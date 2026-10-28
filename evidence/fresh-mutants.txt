@@ -1,0 +1,53 @@
+F0 null: rc=0 app_approve self-test: 225 checks, 0 failed SURVIVED
+F2 sed {3}->{3,}: rc=1 app_approve self-test: 225 checks, 1 failed KILLED
+     FAIL (the table keys exactly the alternatives gh_transient's source holds) (got '403|429|5??|?*|^Get "https?://[^"]*": |^error connecting to |default|s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2/p|secondary rate limit|', want '403|429|5??|?*|^Get "https?://[^"]*": |^error connecting to |default|s/^gh: (.*\()?HTTP ([0-9]{3,})\)?$/\2/p|secondary rate limit|')
+F3 sed \)?$ -> \)$: rc=1 app_approve self-test: 225 checks, 9 failed KILLED
+     FAIL three transient failures and an answer on the fourth read, the budget's last, are approved (got '1', want '0')
+     FAIL with exactly 4 calls to that read (got '1', want '4')
+     FAIL after exactly 4 calls (got '3', want '4')
+     FAIL the fifth queued failure was never read (got 'gh: Service Unavailable (HTTP 503)
+F4 sed [0-9]{3} -> [0-9]+: rc=1 app_approve self-test: 225 checks, 1 failed KILLED
+     FAIL (the table keys exactly the alternatives gh_transient's source holds) (got '403|429|5??|?*|^Get "https?://[^"]*": |^error connecting to |default|s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2/p|secondary rate limit|', want '403|429|5??|?*|^Get "https?://[^"]*": |^error connecting to |default|s/^gh: (.*\()?HTTP ([0-9]+)\)?$/\2/p|secondary rate limit|')
+F5 label 5?? -> 5*: rc=1 app_approve self-test: 225 checks, 1 failed KILLED
+     FAIL (the table keys exactly the alternatives gh_transient's source holds) (got '403|429|5??|?*|^Get "https?://[^"]*": |^error connecting to |default|s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2/p|secondary rate limit|', want '403|429|5*|?*|^Get "https?://[^"]*": |^error connecting to |default|s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2/p|secondary rate limit|')
+F6 label 403 -> 40?: rc=1 app_approve self-test: 225 checks, 2 failed KILLED
+     FAIL every alternative's inputs and near-misses classify as the table needs (production gh_transient) (got '1', want '0')
+     FAIL (the table keys exactly the alternatives gh_transient's source holds) (got '403|429|5??|?*|^Get "https?://[^"]*": |^error connecting to |default|s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2/p|secondary rate limit|', want '40?|429|5??|?*|^Get "https?://[^"]*": |^error connecting to |default|s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2/p|secondary rate limit|')
+F7 label 429 -> 42?: rc=1 app_approve self-test: 225 checks, 5 failed KILLED
+     FAIL REFUSE: a 422 on the CODEOWNERS read (got '0', want '1')
+     FAIL after exactly 1 call (got '2', want '1')
+     FAIL every queued stderr line classifies as its arm needs (production gh_transient) (got '1', want '0')
+     FAIL every alternative's inputs and near-misses classify as the table needs (production gh_transient) (got '2', want '0')
+F8 transport [^"]* -> .*: rc=1 app_approve self-test: 225 checks, 1 failed KILLED
+     FAIL (the table keys exactly the alternatives gh_transient's source holds) (got '403|429|5??|?*|^Get "https?://[^"]*": |^error connecting to |default|s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2/p|secondary rate limit|', want '403|429|5??|?*|^Get "https?://.*": |^error connecting to |default|s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2/p|secondary rate limit|')
+F9 transport grep -qE -> -q: rc=1 app_approve self-test: 225 checks, 8 failed KILLED
+     FAIL a transport error on the comments read, then an answer, is approved (got '1', want '0')
+     FAIL with exactly 2 calls to that read (got '1', want '2')
+     FAIL after exactly 4 calls (got '2', want '4')
+     FAIL the fifth queued failure was never read (got 'gh: HTTP 502
+F10 tail -1 -> tail -2: rc=1 app_approve self-test: 225 checks, 1 failed KILLED
+     FAIL every alternative's inputs and near-misses classify as the table needs (production gh_transient) (got '1', want '0')
+F11 drop trailing space of 'error connecting to ': rc=1 app_approve self-test: 225 checks, 1 failed KILLED
+     FAIL (the table keys exactly the alternatives gh_transient's source holds) (got '403|429|5??|?*|^Get "https?://[^"]*": |^error connecting to |default|s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2/p|secondary rate limit|', want '403|429|5??|?*|^Get "https?://[^"]*": |^error connecting to|default|s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2/p|secondary rate limit|')
+F12 drop trailing space of Get pattern: rc=1 app_approve self-test: 225 checks, 1 failed KILLED
+     FAIL (the table keys exactly the alternatives gh_transient's source holds) (got '403|429|5??|?*|^Get "https?://[^"]*": |^error connecting to |default|s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2/p|secondary rate limit|', want '403|429|5??|?*|^Get "https?://[^"]*":|^error connecting to |default|s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2/p|secondary rate limit|')
+F13 403 grep only the status line: rc=0 app_approve self-test: 225 checks, 0 failed SURVIVED
+F14 secondary grep -qi -> -qiw: rc=0 app_approve self-test: 225 checks, 0 failed SURVIVED
+F15 ?*) return 1 -> ???) return 1: rc=1 app_approve self-test: 225 checks, 1 failed KILLED
+     FAIL (the table keys exactly the alternatives gh_transient's source holds) (got '403|429|5??|?*|^Get "https?://[^"]*": |^error connecting to |default|s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2/p|secondary rate limit|', want '403|429|5??|???|^Get "https?://[^"]*": |^error connecting to |default|s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2/p|secondary rate limit|')
+F16 GH_ERR fold drops sed trim: rc=1 app_approve self-test: 225 checks, 4 failed KILLED
+     FAIL and the settle is printed, never implied (got '0', want '1')
+     FAIL naming the error gh gave, with no attempt count after one call (got '0', want '1')
+     FAIL naming the last error (got '0', want '1')
+     FAIL saying gh left no error (got '0', want '1')
+F17 sed -nE -> -n: rc=1 app_approve self-test: 225 checks, 19 failed KILLED
+     FAIL train 8's shape: a 502 on the pull-request read, then an answer, is approved (got '1', want '0')
+     FAIL the failed read was retried once (2 calls), then the pre-POST re-read (3) (got '1', want '3')
+     FAIL after one settle of 5 s (got '0', want '1')
+     FAIL and the settle is printed, never implied (got '0', want '1')
+F18 secondary phrase -> 'secondary rate limit exceeded': rc=1 app_approve self-test: 225 checks, 5 failed KILLED
+     FAIL a secondary-rate-limit 403 on the files read, then an answer, is approved (got '1', want '0')
+     FAIL with exactly 2 calls to that read (got '1', want '2')
+     FAIL every queued stderr line classifies as its arm needs (production gh_transient) (got '1', want '0')
+     FAIL every alternative's inputs and near-misses classify as the table needs (production gh_transient) (got '2', want '0')
+rc=0
