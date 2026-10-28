@@ -1,5 +1,0 @@
-RESULT N3_age_not_rebased: rc=1 FAIL=10 | 3 of 153 DEBUG COLLECT CHECKS FAILED
-    FAIL a16:debug_inline  [the download 861B against the 40000B cap; 0 row(s) inline]
-    FAIL a16:debug_capped  [bundle NoneB against the 40000B cap; the download 12655B]
-    FAIL a16:debug_inline  [TypeError('not serializable')]
-    FAIL a16:debug_capped  [bundle 268264B against the 40000B cap; the download -1B]

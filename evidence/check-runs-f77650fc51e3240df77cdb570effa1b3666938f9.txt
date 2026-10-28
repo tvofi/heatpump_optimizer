@@ -1,0 +1,61 @@
+122643810836	CodeQL	completed	neutral	2026-10-28T05:08:42Z	2026-10-28T05:08:46Z
+122643549450	arch-score / arch-score	completed	success	2026-10-28T05:08:11Z	2026-10-28T05:09:18Z
+122643615393	arch-score / arch-score	completed	success	2026-10-28T05:08:35Z	2026-10-28T05:09:23Z
+122643549380	budget-raise-gate / budget-raise-gate	completed	success	2026-10-28T05:07:53Z	2026-10-28T05:08:09Z
+122643615496	budget-raise-gate / budget-raise-gate	completed	success	2026-10-28T05:08:20Z	2026-10-28T05:08:41Z
+122643418283	cancel-superseded	completed	skipped	2026-10-28T05:07:24Z	2026-10-28T05:07:23Z
+122643483645	cancel-superseded	completed	skipped	2026-10-28T05:07:37Z	2026-10-28T05:07:36Z
+122643549273	codeql / Analyze (actions)	completed	success	2026-10-28T05:08:05Z	2026-10-28T05:08:52Z
+122643615446	codeql / Analyze (actions)	completed	success	2026-10-28T05:09:04Z	2026-10-28T05:09:58Z
+122643549322	codeql / Analyze (javascript-typescript)	completed	success	2026-10-28T05:07:57Z	2026-10-28T05:09:24Z
+122643615572	codeql / Analyze (javascript-typescript)	completed	success	2026-10-28T05:09:43Z	2026-10-28T05:11:00Z
+122643549249	codeql / Analyze (python)	in_progress	-	2026-10-28T05:07:52Z	-
+122643615598	codeql / Analyze (python)	in_progress	-	2026-10-28T05:09:42Z	-
+122643550717	governance / delivery-status	completed	skipped	2026-10-28T05:07:50Z	2026-10-28T05:07:50Z
+122643615391	governance / delivery-status	completed	success	2026-10-28T05:08:55Z	2026-10-28T05:09:21Z
+122643550733	governance / delivery-status-publish	completed	skipped	2026-10-28T05:07:50Z	2026-10-28T05:07:50Z
+122643616998	governance / delivery-status-publish	completed	skipped	2026-10-28T05:08:03Z	2026-10-28T05:08:03Z
+122643549335	governance / env-matrix	completed	success	2026-10-28T05:07:53Z	2026-10-28T05:13:58Z
+122643615415	governance / env-matrix	completed	success	2026-10-28T05:08:28Z	2026-10-28T05:14:22Z
+122643549333	governance / instrument-self-tests	in_progress	-	2026-10-28T05:07:53Z	-
+122643615502	governance / instrument-self-tests	in_progress	-	2026-10-28T05:08:56Z	-
+122643549280	governance / policy-docs	completed	success	2026-10-28T05:07:52Z	2026-10-28T05:12:04Z
+122643615376	governance / policy-docs	completed	success	2026-10-28T05:08:20Z	2026-10-28T05:12:07Z
+122643550579	governance / record	completed	skipped	2026-10-28T05:07:50Z	2026-10-28T05:07:50Z
+122643617799	governance / record	completed	skipped	2026-10-28T05:08:03Z	2026-10-28T05:08:03Z
+122643549445	governance / wave-script	completed	success	2026-10-28T05:07:53Z	2026-10-28T05:08:25Z
+122643615414	governance / wave-script	completed	success	2026-10-28T05:08:44Z	2026-10-28T05:09:25Z
+122643549284	hassfest / hassfest	completed	success	2026-10-28T05:07:53Z	2026-10-28T05:08:17Z
+122643615348	hassfest / hassfest	completed	success	2026-10-28T05:08:15Z	2026-10-28T05:08:41Z
+122643550864	kernel-points	completed	skipped	2026-10-28T05:07:50Z	2026-10-28T05:07:50Z
+122643616670	kernel-points	completed	skipped	2026-10-28T05:08:03Z	2026-10-28T05:08:03Z
+122643416440	prelude	completed	success	2026-10-28T05:07:26Z	2026-10-28T05:07:49Z
+122643481922	prelude	completed	success	2026-10-28T05:07:40Z	2026-10-28T05:08:03Z
+122643418047	refresh	completed	skipped	2026-10-28T05:07:24Z	2026-10-28T05:07:23Z
+122643482303	refresh	completed	success	2026-10-28T05:07:40Z	2026-10-28T05:08:08Z
+122643686251	tests / arch-instrument	completed	success	2026-10-28T05:09:38Z	2026-10-28T05:10:42Z
+122643864785	tests / arch-instrument	completed	success	2026-10-28T05:11:03Z	2026-10-28T05:12:46Z
+122643549413	tests / briefs	completed	success	2026-10-28T05:07:53Z	2026-10-28T05:08:32Z
+122643615451	tests / briefs	completed	success	2026-10-28T05:09:00Z	2026-10-28T05:09:40Z
+122643686253	tests / browser	completed	success	2026-10-28T05:09:27Z	2026-10-28T05:13:44Z
+122643864753	tests / browser	completed	success	2026-10-28T05:10:01Z	2026-10-28T05:14:15Z
+122643549337	tests / closure-scope	completed	success	2026-10-28T05:07:53Z	2026-10-28T05:08:17Z
+122643615388	tests / closure-scope	completed	success	2026-10-28T05:08:31Z	2026-10-28T05:08:53Z
+122643686271	tests / closures	in_progress	-	2026-10-28T05:10:31Z	-
+122643864902	tests / closures	in_progress	-	2026-10-28T05:11:41Z	-
+122643686190	tests / coverage	in_progress	-	2026-10-28T05:09:25Z	-
+122643864957	tests / coverage	in_progress	-	2026-10-28T05:12:10Z	-
+122643686304	tests / fast (3.14)	in_progress	-	2026-10-28T05:10:45Z	-
+122643864842	tests / fast (3.14)	in_progress	-	2026-10-28T05:12:11Z	-
+122643549510	tests / mutation	in_progress	-	2026-10-28T05:07:53Z	-
+122643615430	tests / mutation	in_progress	-	2026-10-28T05:08:59Z	-
+122643688419	tests / nightly-ha	completed	skipped	2026-10-28T05:08:17Z	2026-10-28T05:08:17Z
+122643866425	tests / nightly-ha	completed	skipped	2026-10-28T05:08:53Z	2026-10-28T05:08:53Z
+122643615372	tests / nightly-status	completed	failure	2026-10-28T05:08:44Z	2026-10-28T05:08:57Z
+122643550574	tests / nightly-status	completed	skipped	2026-10-28T05:07:50Z	2026-10-28T05:07:50Z
+122643688511	tests / replay	completed	skipped	2026-10-28T05:08:17Z	2026-10-28T05:08:17Z
+122643864801	tests / replay	completed	success	2026-10-28T05:11:07Z	2026-10-28T05:12:49Z
+122643686208	tests / typing	completed	success	2026-10-28T05:09:21Z	2026-10-28T05:10:41Z
+122643864765	tests / typing	completed	success	2026-10-28T05:09:29Z	2026-10-28T05:11:04Z
+122643549223	validate / validate-hacs	completed	success	2026-10-28T05:07:53Z	2026-10-28T05:08:32Z
+122643615276	validate / validate-hacs	completed	success	2026-10-28T05:08:12Z	2026-10-28T05:09:01Z

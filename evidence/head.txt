@@ -1,0 +1,2 @@
+head 75ae7b26ff81949586a3c3053a9f0542819a39b3 worktree /Users/timmalmstrom/hpo-seats/r10s6/rev-r4/2873/head 75ae7b26ff81949586a3c3053a9f0542819a39b3 merge-base 9c9cd0d2dddc13228c916916cf73f993c7c645db
+live head at publish time f77650fc51e3240df77cdb570effa1b3666938f9 (bot: ci: pin killed mutants); measured 75ae7b26ff81949586a3c3053a9f0542819a39b3

@@ -1,0 +1,3 @@
+RESULT N5_reader_always_overwrites tests/features.py: rc=1 FAIL(non-a16)=2 |   return _methods._mean(a, axis=axis, dtype=dtype,
+    FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
+    FAIL a refused flow reading's health record keeps its reason by one precedence, and no value: a negative flow is implausible stale or fresh, an unknown unit is stale when old and unknown_unit when fresh  [(('implausible'

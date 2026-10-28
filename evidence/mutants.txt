@@ -1,0 +1,18 @@
+RESULT NULL tests/debug_collect.py: rc=0 FAIL(non-a16)=0 | ALL 158 DEBUG COLLECT CHECKS PASSED
+RESULT N1_over_age_exception_off tests/debug_collect.py: rc=1 FAIL(non-a16)=2 | 2 of 158 DEBUG COLLECT CHECKS FAILED
+    FAIL an implausible input re-based past its own limit stays implausible at the export: out of stale_inputs, counted missing, and worded as a fault, not an age  [{'input_health': '1 stale', 'stale_inputs': ['indoor'], 'in
+    FAIL exported a minute past its own limit, every class reads what the reader says re-reading the same state then: a fault code stays itself, every other class ages into stale, and stale_inputs and input_health agree with
+RESULT N1b_outranks_empty tests/debug_collect.py: rc=1 FAIL(non-a16)=2 | 2 of 158 DEBUG COLLECT CHECKS FAILED
+    FAIL an implausible input re-based past its own limit stays implausible at the export: out of stale_inputs, counted missing, and worded as a fault, not an age  [{'input_health': '1 stale', 'stale_inputs': ['indoor'], 'in
+    FAIL exported a minute past its own limit, every class reads what the reader says re-reading the same state then: a fault code stays itself, every other class ages into stale, and stale_inputs and input_health agree with
+RESULT N4_reader_precedence_off tests/debug_collect.py: rc=1 FAIL(non-a16)=1 | 1 of 158 DEBUG COLLECT CHECKS FAILED
+    FAIL exported a minute past its own limit, every class reads what the reader says re-reading the same state then: a fault code stays itself, every other class ages into stale, and stale_inputs and input_health agree with
+RESULT N5_reader_always_overwrites tests/debug_collect.py: rc=0 FAIL(non-a16)=0 | ALL 158 DEBUG COLLECT CHECKS PASSED
+RESULT N2_stale_never_promoted tests/debug_collect.py: rc=1 FAIL(non-a16)=2 | 2 of 158 DEBUG COLLECT CHECKS FAILED
+    FAIL an input's own limit is the boundary: at it the reading is not stale, a minute past it the export makes it stale and its verdicts follow the age  [[{'input_health': '1 missing', 'stale_inputs': [], 'input_problems':
+    FAIL exported a minute past its own limit, every class reads what the reader says re-reading the same state then: a fault code stays itself, every other class ages into stale, and stale_inputs and input_health agree with
+RESULT N3_age_not_rebased tests/debug_collect.py: rc=1 FAIL(non-a16)=6 | 6 of 158 DEBUG COLLECT CHECKS FAILED
+    FAIL the download's input ages are re-based to the export: read 2 minutes old and exported 14 minutes later, they read 16  [{'input_problems': [{'input': 'indoor', 'age_minutes': 2.0}], 'input_ages_minutes': {'indoor': 1
+    FAIL one export states one age for one input: the problem message, the problem's age_minutes and input_ages_minutes all read 60 after a 40-minute-late export, and both verdicts are judged at that same instant  [{'input_h
+    FAIL an input's own limit is the boundary: at it the reading is not stale, a minute past it the export makes it stale and its verdicts follow the age  [[{'input_health': '1 missing', 'stale_inputs': [], 'input_problems':
+    FAIL an implausible input re-based past its own limit stays implausible at the export: out of stale_inputs, counted missing, and worded as a fault, not an age  [{'input_health': '1 missing', 'stale_inputs': [], 'input_pr
