@@ -1,7 +1,0 @@
-head c8219f601f85f881ae8fe3c38a9c218ffececeb4, check-runs API read 2026-10-24 ~22:45Z
-tests / fast (3.14): completed failure (job 121006924964, run 40139081376)
-  1 of 112 HARNESS HEADER CHECKS FAILED -- FAIL every inlined walk matches the canonical helper and no depth root remains
-  FAIL depth seams: dev/audit/harnesses/r10_train_upgrade_mutants.py:23: ROOT = Path(__file__).resolve().parents[3]
-  tests/entities.py: ALL 2425 ENTITY CHECKS PASSED
-still in progress at read time: tests / closures, tests / coverage, governance / instrument-self-tests, codeql / Analyze (python), prelude (x2)
-success: typing, arch-instrument, arch-score, closure-scope, env-matrix, delivery-status, policy-docs, briefs, nightly-status, budget-raise-gate, mutation, validate-hacs, hassfest, wave-script, browser, claims-autofix, codeql actions/js

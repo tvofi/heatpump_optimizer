@@ -1,0 +1,11 @@
+roster tip origin/handoff/audit-r10-roster: 2124781cf86064c9bba6639755f73d60b5d54627
+origin/main: 662a3809ced43b41dba2166f04277f2d3c95e991
+carry count 10
+index 9 len 562
+From R10-TRAIN-UPGRADE (handoff/r10-train-upgrade b1cba1ac; finding-propagation.md). The queue builder at AUTOTRAIN's handoff b3dceb5ca has no policy exclusion, so P84's "lift the exclusion" has nothing to lift. Build on the upgraded train instead: `Train.admit_add` in tools/audit/seat/merge_train.py is the admission seam the builder extends; `launch_detached` replaces AUTOTRAIN's own launch_train; and AUTOTRAIN's live-train check must read `queue.open` as well as `train.pid` under the state dir. Re-measure against the merged train, not the b3dceb5ca base.
+2381e112129c ancestor of roster tip: yes
+4937d60fe ancestor of origin/main: no
+host-path (absolute user or home directory) matches in tracked roster at 2124781cf86064c9bba6639755f73d60b5d54627: 0
+bare-path carry entries (whole entry is one path), all groups, at 2124781cf86064c9bba6639755f73d60b5d54627: 0
+host-path (absolute user or home directory) matches in tracked roster at origin/main: 0
+bare-path carry entries (whole entry is one path), all groups, at origin/main: 0
