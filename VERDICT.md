@@ -1,36 +1,42 @@
-Fix review: blocked 4a276b6ac22e5543acf0351ba32464b3ee081e36 claim-false: P216's heading and the authored commit subject cite V136, which proposals.md does not contain (the entry is V129); the PR body's mutation proof cites `ruling_verdict` at 456 and `triage_refusal` at 464, which are 455 and 466.
-bus-nonce: 90602aa3a83e9d593d64b3f3bc454260
+Fix review: blocked f975e044a567d42879a3ffc20b769ca8ef590bf9 claim-false: P216's Cost says one CLAUDE.md paragraph with no check to keep green; CLAUDE.md sits at its exact per-file token cap (3605/3605) in policy_budgets.json
+bus-nonce: ed9dce3483ef8f06146f484bce1359c5
 
-## Blocking: false citations
+# Fix review -- PR #2891, triage batch 42 (P216)
 
-- **`V136` is not a proposal.** `proposals.md` holds 121 entries and ends at V131; `grep -c V136` = 0. The entry's heading reads `## P216: ... (V136)` while its own `Source:` line reads `V129`, and the authored commit subject reads `rule V129 as P216/V136`. A later reader resolving the ruling against its stated source finds nothing. Correct the heading to `(V129)`; the authored commit `1c6731b` is not on main and can carry the same correction.
-  Carry: dismissed: corrected in this record pull request before merge; the ruling's content routes to R10-ROUND-PLAYBOOK unchanged.
-- **The PR body's mutation proof cites the wrong lines.** It says `ruling_verdict` at 456 and `triage_refusal` at 464. At the head, `ruling_verdict` is at `tools/audit/seat/roster_edit.py:455` and `triage_refusal` at `:466`; line 456 is the first docstring line and 464 is blank. `roster_edit.py` is absent from the diff, so base and head agree. Re-derive the two line numbers.
-  Carry: dismissed: corrected in this record pull request before merge.
+Round 2. Round 1 blocked on the V136 heading. Reviewed head:
+f975e044a567d42879a3ffc20b769ca8ef590bf9, in a detached worktree at that head, against
+origin/main. `dev/governance/roles/` has no diff between the merge base and origin/main.
 
-## Verified (non-blocking)
+## Results
 
-- **Triage gate moves on every arm.** Reviewer-built harness on `roster_edit.triage_refusal` (`evidence/triage_gate_harness.py`, output `evidence/triage_gate.out`): the committed P216 reads ACCEPT; the ACCEPT citation resolves; DEFER, REJECT, a renamed heading, an absent entry, a missing batch, and an uncited proposal are all refused; a plain carry lands. `RESULT PASS` x9, 0 FAIL.
-  Carry: dismissed: verified, no action.
-- **Destination holds.** At `origin/handoff/audit-r10-roster` `9aed78e0e` (212 groups), `R10-ROUND-PLAYBOOK` exists with `resume.stage: not-started`, files `CLAUDE.md` and `dev/audit/README.md`, 7 carries. `R10-BRIEFS-FOLD` is done, carries 20, and also lists `CLAUDE.md`; `R10-RCA-ORCH-CONTINUITY` lists `sweep_template.md`, not `CLAUDE.md`. The destination and the pre-emption in the body are accurate.
-  Carry: R10-ROUND-PLAYBOOK
-- **Scope and narrowing hold.** V129's title says "orchestrator message", but its Candidate says "another agent", so the ruling's "any agent message" is the proposal's own subject. The declined predicate's argument holds: the carried rule's own text contains "direction" and "superseding", so a state file quoting it would trip the substring test, and the named null control cannot pass.
-  Carry: R10-ROUND-PLAYBOOK
-- **Instance corroborated.** `triage-STATE.md:13` records the correction: "this seat QUEUES the two append-carry ops and runs nothing", against main's "the ops are yours to re-run". P215 (batch 41 at `handoff/triage-s6-batch41` `adf011c8f`) includes `append-carry` in its structural set, so "would have been refused at the write" holds; note P215 resolves on that branch, not origin/main.
-  Carry: dismissed: verified, no action.
-- **Record discipline.** `git diff --name-status origin/main...HEAD` is exactly `dev/programme/triage/s6-batch42.md` and the one-line `**open**` row; `git merge-tree --write-tree origin/main HEAD` exits 0; `carry_audit.py check --body` reads 0 unrouted; the roles contract is unchanged since the merge base; no concluded red check at the head (several checks still in progress).
-  Carry: dismissed: verified, no action.
+- Heading: `## P216: ... (V129)` is in the contract's form and is new, since main ends at P211.
+  The id matches its `Source:` line. `proposals.md` holds `## V129 (orchestrator s7,
+  2026-10-27T20:40Z)` with the same instance and candidate. The heading generalises the subject
+  from "orchestrator message" to "agent message", and the ruling says so. The round-1 finding is
+  repaired.
+- Destination: R10-ROUND-PLAYBOOK is `not-started` at roster `de410e4c9`, and it is the only
+  live group listing `CLAUDE.md`. The ruling says this correctly.
+- `git merge-tree --write-tree origin/main <head>` exits 0 (tree `21794612`). Live check-runs
+  at the head: 68 runs, 45 success, 23 skipped, 0 failure, 0 pending. There is no red to
+  answer.
 
-## Notes
+## Findings
 
-- The ruling's quote of the role contract is a paraphrase in quotation marks: `proposal-triage.md` reads "**You do not** implement, edit the roster or merge", not "the seat does not implement, edit the roster, or merge". Quote it exactly when the rule lands.
-  Carry: R10-ROUND-PLAYBOOK
-- The header says V129 is "quoted below as it stands"; the entry paraphrases it rather than quoting it.
-  Carry: R10-ROUND-PLAYBOOK
-
-## Evidence
-
-- `evidence/head.txt`, `evidence/citations.txt`, `evidence/checks.txt`, `evidence/triage_gate_harness.py`, `evidence/triage_gate.out`.
-- RESULT symbol/id: V129 resolves at `proposals.md:653`; V136 resolves nowhere (0 of 121 entries). RESULT lines: `ruling_verdict` 455 vs body 456; `triage_refusal` 466 vs body 464.
-- RESULT figures: 212 groups at `9aed78e0e`; PLAYBOOK 7 carries, `not-started`; BRIEFS-FOLD 20 carries, done.
-- RESULT gate: 9 of 9 arms move. RESULT records: merge-tree clean, carry-audit 0 unrouted, two-file diff.
+- F1 (blocking, claim-false): P216's `Cost:` reads "one paragraph in `CLAUDE.md` ... no code,
+  no runtime, no new instrument, no check to keep green". `node tools/policy/policy_lint.mjs
+  --budgets` at the head prints `CLAUDE.md 213 221 3605 3605 yes`, which is 213 lines against
+  a cap of 221 and ~3605 tokens against a per-file cap of exactly 3605. Per-file caps are
+  "compared exactly". `CLAUDE.md` is also always loaded (~3605 of 3849 with the band), so
+  every seat session pays the paragraph's tokens. Any paragraph the carry adds is therefore
+  refused unless the fixer deletes the same number of tokens from `CLAUDE.md`, or raises the
+  cap in `dev/governance/config/policy_budgets.json`. That raise is a `*_budgets.json` change,
+  so it merges only on the owner's review (`budget-raise-gate`). The ruling prices neither
+  route, nor the per-session token charge `proposal-triage.md` lists as a cost
+  (`ev/claude-md-cap.txt`). Against one measured instance, that omission can change the
+  verdict, or at least the destination: a `paths:`-scoped rule, or the role contracts the
+  receiving seats open, is charged only to sessions that load it. Repair: re-price the Cost
+  with the cap and the always-loaded charge, and re-rule the destination on that price.
+  Carry: dismissed: blocking; this PR's re-cut owes the repair
+- F2 (non-blocking): the quotation of `proposal-triage.md`, "the seat does not implement, edit
+  the roster, or merge", is not verbatim. Line 32 reads "**You do not** implement, edit the
+  roster or merge". The quote came from the proposal's own text. Carry: dismissed: correct the quote in the same re-cut as F1
