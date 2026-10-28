@@ -1,11 +1,13 @@
   note     required-contexts     the live set is the recorded post-PUT shape; `pre_cutover` is stale -- delete it
 
+tools/audit/briefs/D11.md
+  ERROR   [budgets] tools/audit/briefs/D11.md: about 1508 tokens across its lines exceeds its cap of 1499 tokens (files_tokens). Cut, or state the case for a higher cap in the pull request body.
+
 tools/audit/seat/INSTRUMENTS.md
   ERROR   [named-docs] tools/audit/seat/INSTRUMENTS.md: is named by tools/audit/briefs/D11.md but has no cap in dev/governance/config/policy_budgets.json, so prose moved into it leaves the corpus and buys headroom in every cap at once. Bring it under a POLICY_GLOBS pattern so a cap on it is actually compared, or add it to CORPUS_EXCLUDED with a reason. A cap alone does not do it: a cap on a file no glob matches is refused by checkOrphanCaps precisely because it measures nothing.
 
 KNOWN-BAD: 7 of 7 recorded defect(s) still present, in 8 recorded occurrence(s)
 
-TOTAL: 1 error(s) across 50 policy file(s)
+TOTAL: 2 error(s) across 50 policy file(s)
 
 FIXTURE ok: 93 error(s) hold 263 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
-rc=1
