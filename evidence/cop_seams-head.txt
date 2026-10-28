@@ -1,0 +1,59 @@
+battery.py:115:VirtualBattery.charge_rate_kw:cop x power:return self.charge_power_kw * max(self.cop, 0.1)
+coordinator.py:1071:_async_learn_heat_span:call compute_cop:modelled_cop = coord._thermal_model.compute_cop(ctx._current_state.outdoor_temperature)
+coordinator.py:1114:_watch_lift:call flow_lift_factor:return float(coord._thermal_model.flow_lift_factor(
+coordinator.py:4072:HeatPumpOptimizerCoordinator._dhw_setpoint_sweep:heat / cop:cost_day = (standby_kwh + draw_day_kwh) / cop * mean_price
+coordinator.py:4859:HeatPumpOptimizerCoordinator._max_pump_rise:call compute_cop:cop = self._thermal_model.compute_cop(
+coordinator.py:4862:HeatPumpOptimizerCoordinator._max_pump_rise:cop x power:thermal_kw = params.max_electrical_power * max(cop, 1.0)
+coordinator.py:9117:HeatPumpOptimizerCoordinator._fold_capacity_envelope:cop x power:thermal_kw = float(observed_cop) * float(self._measured_power) if heat_kw is None else heat_kw
+coordinator.py:9154:HeatPumpOptimizerCoordinator._capacity_caps:call compute_cop:cop_i = max((model or self._thermal_model).compute_cop(float(outdoor), humidity=hum), 1e-6)
+coordinator.py:9906:HeatPumpOptimizerCoordinator._record_accuracy:call compute_cop:modelled = self._thermal_model.compute_cop(
+coordinator.py:10951:HeatPumpOptimizerCoordinator._run_system_identification:call compute_cop:cop=self._thermal_model.compute_cop(state.outdoor_temperature),
+coordinator.py:11013:HeatPumpOptimizerCoordinator._battery_view:call compute_cop:cop = self._thermal_model.compute_cop(
+dhw_planner.py:1509:DhwPlanner._plan_dhw_min_cost:heat / cop:best = np.clip(energy / (cop * dt), 0.0, p_dhw_max)
+dhw_planner.py:1716:DhwPlanner._repair_dhw_floor:call marginal_cop:self.model.marginal_cop(
+dhw_planner.py:1875:DhwPlanner._clamp_dhw_to_capacity:heat / cop:allowed = (headroom_c * capacity / dt + q_draw + q_loss) / cop
+dhw_planner.py:2161:DhwPlanner._plan_dhw_cheapest_first:heat / cop:needed_kwh / retained_fraction(j),
+flow_meter.py:121:cop_evidence:cop x power:observed = modelled_cop * commanded_kw / electrical_kw
+flow_meter.py:122:cop_evidence:cop x power:return observed, cop_scale * commanded_kw / electrical_kw
+flow_meter.py:142:space_reference_cop:call compute_cop:return float(model.compute_cop(outdoor_c))
+heat_energy.py:302:span_heat:cop x power:refusal = resolution_refusal(e, modelled_cop * (asked_kwh if e.elec_kwh is None else e.elec_kwh))
+heat_energy.py:383:HeatEnergyMeter.observe_cycle:cop x power:max_heat_kw=params.max_electrical_power * params.cop_nominal_floored,
+optimizer.py:2624:HeatPumpOptimizer._terminal_cost:call compute_cop:cop_end = self.model.compute_cop(out_mean, humidity=hum_mean)
+optimizer.py:2628:HeatPumpOptimizer._terminal_cost:call marginal_cop:cop_buffer = self.model.marginal_cop(
+optimizer.py:4145:HeatPumpOptimizer._tighten_buffer_caps:call marginal_cop:cop_i = self.model.marginal_cop(
+optimizer.py:5100:HeatPumpOptimizer._buffer_charge_ceiling.net:call marginal_cop:cop = self.model.marginal_cop(
+optimizer.py:5103:HeatPumpOptimizer._buffer_charge_ceiling.net:call delivered_heat_kw:heat: float = delivered_heat_kw(p, cop, p.max_electrical_power)
+optimizer.py:5157:HeatPumpOptimizer._deferred_energy_cost:call compute_cop:cop = max(self.model.compute_cop(out_mean, humidity=hum_mean), 1e-3)
+optimizer.py:5193:HeatPumpOptimizer._deferred_energy_cost:call marginal_cop:cop_store = max(self.model.marginal_cop(
+optimizer.py:5300:HeatPumpOptimizer._compute_baseline_power:cop x power:design_power = p.max_electrical_power * p.cop_nominal_floored
+optimizer.py:5319:HeatPumpOptimizer._compute_baseline_power:call compute_cop:cop = self.model.compute_cop(outdoor_temps[i], humidity=hum_i)
+optimizer.py:5325:HeatPumpOptimizer._compute_baseline_power:heat / cop:power = min(required_thermal / cop, p.max_electrical_power)
+pv.py:72:forecast_production_kw:cop x power:config.peak_kw * config.system_efficiency * irradiance / STC_IRRADIANCE
+sensor.py:662:CurrentCOPSensor.native_value:call compute_cop:cop = payload_number(self.coordinator.thermal_model.compute_cop(outdoor_temp))
+sensor.py:1680:ObservedCOPSensor._modelled_cop:call compute_cop:cop = payload_number(model.compute_cop(data.get("outdoor_temperature", 5.0)))
+sysid.py:199:_held_state:cop x power:e = p.max_electrical_power * p.cop_nominal_floored / p.emitter_design_delta_t_floored
+sysid.py:264:_valve_drive:call compute_cop:state, electrical_power=q / model.compute_cop(outdoor),
+sysid.py:1438:SystemIdentification._size_step_power:cop x power:q_max = max_power_kw * cop
+sysid.py:1671:SystemIdentification.step:cop x power:self.samples[-1].power_kw = max(plan_power_kw, 0.0) * thermal_cop
+sysid.py:1694:SystemIdentification.step:cop x power:self.samples[-1].power_kw = self._step_power * thermal_cop
+thermal_model.py:1705:heat_per_cop_kw:call partload_factor:return electrical_power * partload_factor(params, electrical_power)
+thermal_model.py:1716:delivered_heat_kw:cop x power:return cop * heat_per_cop_kw(params, electrical_power)
+thermal_model.py:2285:ThermalModel._cop_law:call flow_lift_factor:cop *= self.flow_lift_factor(outdoor_temp, flow_temp)
+thermal_model.py:2367:ThermalModel.marginal_cop:call compute_cop:return self.compute_cop(
+thermal_model.py:2370:ThermalModel.marginal_cop:call compute_cop:return self.compute_cop(outdoor_temp, humidity=humidity)
+thermal_model.py:2438:ThermalModel.flow_target_for_indoor:cop x power:design_power = p.max_electrical_power * p.cop_nominal_floored
+thermal_model.py:2747:ThermalModel.extend_dhw_temps:call compute_cop:cop = compute_cop(
+thermal_model.py:2792:ThermalModel._simulate_step_single:call compute_cop:self.compute_cop(outdoor_temp, humidity=humidity)
+thermal_model.py:2802:ThermalModel._simulate_step_single:cop x power:cop * heat_per_cop_kw(self.params, electrical_power)
+thermal_model.py:2902:ThermalModel._simulate_step_two_zone:call compute_cop:cop = self.compute_cop(
+thermal_model.py:2917:ThermalModel._simulate_step_two_zone:cop x power:cop * heat_per_cop_kw(self.params, electrical_power)
+thermal_model.py:2951:ThermalModel._simulate_step_two_zone:cop x power:design_power = p.max_electrical_power * p.cop_nominal_floored
+thermal_model.py:3246:ThermalModel.simulate_step:call compute_cop:cop = self.compute_cop(outdoor_temp, humidity=humidity)
+thermal_model.py:3359:ThermalModel._substeps_and_loss:cop x power:design_power = p.max_electrical_power * p.cop_nominal_floored
+thermal_model.py:3562:ThermalModel._batch_cop:call flow_lift_factor:cop = cop * self.flow_lift_factor(out_i, curve)
+thermal_model.py:3649:ThermalModel.simulate_trajectory_batch:cop x power:design_power = p.max_electrical_power * p.cop_nominal_floored
+thermal_model.py:3705:ThermalModel.simulate_trajectory_batch:call _batch_cop:cop = self._batch_cop(out_i, hum_i, T_buf, throttled)
+thermal_model.py:3842:ThermalModel.simulate_trajectory_batch:call _batch_cop:cop = self._batch_cop(out_i, hum_i, T_buf, False)
+thermal_model.py:3992:ThermalModel.simulate_trajectory_with_dhw:cop x power:dhw_thermal_power = cop_dhw * heat_per_cop_kw(self.params, dhw_power_schedule[i])
+topology.py:757:outdoor_cop_miss_sek:cop x power:extra_kwh = float(load_kw) * float(hours) * (1.0 / cop_guess - 1.0 / cop_true)
+wood_fuel.py:54:useful_kwh_m3:cop x power:return WOOD_KWH_M3[wood_type][packing] * float(efficiency) / 100.0
