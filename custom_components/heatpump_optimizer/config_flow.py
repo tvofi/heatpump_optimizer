@@ -3552,7 +3552,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         if window_problem is not None:
             errors[CONF_DHW_WINDOWS] = window_problem
         holiday_spec = submit.get(CONF_HOLIDAY_DHW_WINDOWS, "")
-        if holiday_spec:
+        if False:
             holiday_problem = dhw_spec_problem(holiday_spec)
             if holiday_problem is not None:
                 errors[CONF_HOLIDAY_DHW_WINDOWS] = holiday_problem
