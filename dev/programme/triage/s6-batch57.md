@@ -19,6 +19,8 @@ clarification of the fifth. All three are quoted from `proposals.md` as it stand
 - **Sixth amendment (owner, 2026-10-28T20:28:56Z).** "hotfix also covers (a) a critical bug
   found by the programme during the fixing phase, (b) any bug on main, (c) a CI- or
   programme-machinery bug that deadlocks all merges. hotfix_by records which rule applied."
+  The owner then corrected case (b): it is "any bug making main red on a required check", not
+  "any bug on main". Cases (a) and (c) stand.
 
 Batch 56 (P267) was already pushed as `handoff/triage-s7-batch56` `86d399b50` when the fourth
 amendment arrived. All three are therefore ruled here, and batch 56's head does not move. This
@@ -80,8 +82,10 @@ Carry 1, to R10-ORCH-ROSTER-SCHEMA (the mapping, set at intake):
        owner's words, cited.
      - `fixing-phase-critical`: a critical bug the programme finds during the fixing phase. The
        evidence is the finding or verdict that names it critical.
-     - `bug-on-main`: any bug present on main. The evidence is the main commit or run that shows
-       it, for example a red `push` run on main or a failing test at a main SHA.
+     - `main-red-required`: a bug that makes main red on a **required** check, as the owner
+       corrected it. The evidence is the red required check-run on a main SHA, by its run id and
+       context name. A bug on main that turns no required check red is not a hotfix under this
+       rule.
      - `merge-deadlock`: a CI or programme-machinery bug that deadlocks all merges. The evidence
        is the stop that shows no merge can land, for example the train's stop line, or a required
        check red on every open head.
@@ -116,7 +120,7 @@ Carry 1, to R10-ORCH-ROSTER-SCHEMA (the mapping, set at intake):
      `source: "user"` and is **not** a hotfix, as the owner ruled.
    - R10-HOTFIX-BATCH-ERREXIT keeps its prefix, and `is_hotfix` still reads the prefix. This
      carry sets no `hotfix_by` for it, because no rule's evidence is recorded for it here.
-   - The three programme rules (`fixing-phase-critical`, `bug-on-main` and `merge-deadlock`) are
+   - The three programme rules (`fixing-phase-critical`, `main-red-required` and `merge-deadlock`) are
      applied by the orchestrator at intake as they arise. They are not backfilled from brief
      text.
 5. **Controls:**
@@ -127,8 +131,10 @@ Carry 1, to R10-ORCH-ROSTER-SCHEMA (the mapping, set at intake):
    - `set-field X hotfix true` with no `hotfix_by`, or with an unknown rule, is refused;
    - `rule: user-production-bug` is refused on a `source: "audit"` group and on a user group that
      touches no production file;
-   - each of `fixing-phase-critical`, `bug-on-main` and `merge-deadlock` is accepted with
+   - each of `fixing-phase-critical`, `main-red-required` and `merge-deadlock` is accepted with
      evidence, and refused without it;
+   - `main-red-required` whose evidence names a context outside the ruleset's required checks is
+     refused;
    - `group_class` falls back to lane only when `class` is absent;
    - null: today's roster with no new fields loads unchanged.
 
