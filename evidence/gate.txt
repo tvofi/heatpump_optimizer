@@ -1,0 +1,6 @@
+RESULT committed verdict= DEFER refusal= dev/programme/triage/s6-batch47.md#P235 is not an ACCEPT ruling (DEFER)
+RESULT mutant(ACCEPT) verdict= ACCEPT refusal= None
+RESULT mutant(REJECT) refusal= dev/programme/triage/s6-batch47.md#P235 is not an ACCEPT ruling (REJECT)
+RESULT null(base, no file) refusal= the triage ruling dev/programme/triage/s6-batch47.md is not on the roster branch or origin/main
+RESULT wrong-pid refusal= dev/programme/triage/s6-batch47.md#P236 is not an ACCEPT ruling (no such entry)
+head fb2f3de8624bbdcff8d1f801ada3d7c161f1af33
