@@ -1,0 +1,40 @@
+Fix review: blocked 0f9a29e14adbd342602dec9a1666f9ee8f0ba7cf carry-missing: A1/A2 (Carry: #2733) not carried to a live stage -- #2733's only groups are R10-ORCH-ROSTER-SCHEMA (done) and R10-ROUTING-INVARIANTS (absorbed) at main and at handoff/audit-r10-roster, and #2733 holds no text
+
+bus-nonce: 12539792e0effcae22666a997dee8b14
+
+## Scope
+
+Round 1 of fix review for #2896 (R10-RCA-FRICTION-RESIDUE), measured at head `0f9a29e14adbd342602dec9a1666f9ee8f0ba7cf`, merge base `6349205b61660f41f94015c352f6612d236e105d`, origin/main `6d86acc909f7fc465e5736771daf8fa45c1373a4`. `git diff $(merge-base)...origin/main -- dev/governance/roles/` is empty, so the contract read is current. The head was re-read before writing and is unchanged. The diff is 5 files: the record, two evidence files, one `bugclasses.json` entry, and the delivery row. No production code, policy file, claim file, `VERSION`, manifest version or notes heading is touched.
+
+## Findings
+
+- **Blocking: carry-missing.** The record's main countermeasure for `carry-missing` (26 PRs / 30 entries) is A1 (point `rosterIssues()` at `dev/programme/rosters`) and A2 (the merge-time fold). The body routes A1, A2, "#2875 is unowned", "#2855's key" and the `brief_lint` friction row all as `Carry: #2733`. Record section 3 justifies that choice: #2733 is "the routing-invariants issue a live group (`R10-ORCH-ROSTER-SCHEMA`) holds -- a group, not a tracking issue, because `#201` is the destination that absorbed the last attempt". That was true at the record's base `6eb552157`, where the group was `not-started`. It is false at the head. `roster_edit set-stage R10-ORCH-ROSTER-SCHEMA` (`9e7ee283d`, 2026-10-27T12:05Z) moved the group to `done` after that base and before the PR opened. The other group that lists #2733, R10-ROUTING-INVARIANTS, is `absorbed`. At origin/main and at `handoff/audit-r10-roster` `8c57b43d`, no group's carry holds the A1/A2 text. #2733 is open with 0 comments, and its body predates this finding. `rosterIssues()` still prints `1` at the head. This is the record's own subject: a destination that exists and receives nothing (`brief_lint.mjs` case 3; #2561's `Carry: #201`). The fix is the orchestrator's, because the producing seat cannot write the roster (section 3). It needs a `roster_edit.py append-carry` of A1 and A2, with their controls (indexed 1 -> 72 at this head, or 76 at the record's base; carry-2492 refused; 999999 accepted), on a live group. Failing that, it needs a new group that lists #2733, with the body's five `Carry: #2733` items re-pointed to it. Carry: R10-RCA-FRICTION-RESIDUE
+- Non-blocking: the `## Red checks` answer misattributes one red. At `1e917ac2`, run 40659153934's `pr-contract` (job 122718211015) went red on its own. The closes preflight refused all five `Closes` lines because the group's `fixes` was `[]` at that run's base `802ba7756`. Its `gate` went red through that. It was not red "only through" `prelude`. A cheaper detector exists: `tools/pr/prepr.sh`'s preflight, which takes seconds. The head's green `pr-contract` (job 122736415349, started 09:30:37Z, after the last red at 08:49Z) is step 11's evidence, so this does not block. The body should still say it. The `red-history` walk read only `prelude` because `commits/<sha>/check-runs` is read without `filter=all` (`policy_lint.mjs:6660`), so a red superseded by a green attempt on the same commit is invisible. Carry: R10-RCA-FRICTION-RESIDUE
+- Non-blocking: #2784's paragraph (section 6) names no process state and gives no cost test of its own. It rests on #2561 section 8 and #2704 item 11, the refusal re-measured there at 27 blocks / 18 PRs, median 119 min, tvofi-merged. This record's 6 PRs / 13 entries over 218 merges, about 2.8%, is below #2704's 18 of 214, so the refusal standing is supported. The record should still write the state, (c) per #2561 section 9, and that comparison. Carry: R10-RCA-FRICTION-RESIDUE
+- Non-blocking, instrument: `review_packet.py render` refused `host-path` on this seat. On a seat whose home is `/root`, `ref_privacy.py`'s home-directory test is a bare substring match, and `dev/governance/roles/root-cause.md` contains `/root` (record line 8). The packet was not rendered, and the review used the PR, the check runs and the tree directly. Every tracked file naming `roles/root-cause.md` trips this test. Carry: dismissed: false positive specific to a uid-0 cloud seat; no live group owns ref_privacy.py (R10-REF-PRIVACY done), so the orchestrator decides whether to route it
+- Non-blocking: section 4 says "46 untaught words hold 52 PRs / 67 entries". The 46 words alone hold 64 entries, and 67 is the union with the literal `other` (3 entries). The table's row labels this correctly. Carry: dismissed: wording only; the table row is right and no figure moves
+
+## RCA checks per closed issue (root-cause.md: cause, state, cost test, countermeasure or refusal)
+
+- #2410 mutation family: held. Union 12 PRs re-derived; family 1 PR / 2 entries in `stats_v7.0.4.txt`. The #2561 cause and state stand; the countermeasure is landed. Closing is justified.
+- #2593 body-stale: cause is an open vocabulary; state (c). Re-derived as 9 spellings over 10 PRs / 10 entries. The countermeasure, a derived family, is drafted and routed to #2436, which stays open. Closing as the same obligation is justified.
+- #2597 harness: three different children re-derived (#2524, #2780, #2843), and 0 are `harness: class-open`. State (c). The refusal is recorded with its cost test (zero filings against two edits). Justified.
+- #2660 mutation-vacuous: re-derived 7 PRs / 8 entries before `662a380` and 1 / 1 after (#2832). The countermeasure held. Justified.
+- #2784 class-open: re-derived 6 PRs / 13 entries on #2697 #2706 #2707 #2711 #2770 #2819. The refusal stands by reference (see Findings). Justified with that note.
+- Wiring: the roster `fixes` is `[2410,2593,2597,2660,2784]` at the merge base and head, matching the five `Closes` lines exactly. The head's `pr-contract` prints `ok closes ... -- intended` for each, and a local reproduction gives INTENDED=`2410 2593 2597 2660 2784`, rc=0.
+- Open keys (#2429 #2436 #2437 #2438 #2855) are not closed, which is correct: their countermeasures are drafted, not landed. Their carries to #2436, #2437, #2429 and #2438 are open issues that group R10-RCA-FRICTION-RESIDUE itself lists. Once this group goes done, they share the finding above's exposure. The orchestrator should check they have a live owner at merge.
+
+## Red checks (step 11)
+
+All of the head's workflows concluded green: runs 40661644236 and 40661643960. `pr-contract` 122736415349 started after the last red (08:49Z) and is green; that run is the evidence. Earlier reds at `1e917ac2`: `prelude` (rate limit, answered), and `pr-contract` and `gate` (see the second finding).
+
+## Evidence
+
+- `ev/head.txt`: the head, merge base, origin/main and the branch tip re-read.
+- `ev/merge-tree.txt`: `git merge-tree --write-tree origin/main 0f9a29e1...` rc=0, no conflict.
+- `ev/carry-2733.txt`: the groups listing #2733 at `6eb552157`, origin/main and the handoff roster; the `set-stage` commit; no A1/A2 carry; `rosterIssues()` printing `1 72`.
+- `ev/rederive-counts.txt`: RESULT lines re-derived from `blocked_rounds_v7.0.4.tsv` with this seat's own script. Every key count matches `stats_v7.0.4.txt`. My own definition of "taught" was the `VERDICT_CLASSES` list that `stats_v7.0.4.txt` line 3 prints.
+- `ev/instruments.txt`: `rounds.py --stats` prints 0 bytes with rc=0, confirming section 1; the histogram rows.
+- `ev/ci.txt`: check runs and jobs at the head and at `1e917ac2`, the pr-contract refusal lines, and the local closes reproduction.
+- `ev/packet-refusal.txt`: the `review_packet.py` host-path refusal and its matched span.
+- Not run (CI's heavy runs are cited, never re-run): the gate and the mutation table. There is no mutation proof because the diff has no production line. `policy_lint --stats` (669 s) was not re-run; the committed output was re-derived from its own rows instead.

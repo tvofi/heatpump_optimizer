@@ -1,0 +1,16 @@
+== groups listing #2733 at 6eb552157 (6eb552157b63d1e98a9653250789d9fe0027b5bc)
+R10-ORCH-ROSTER-SCHEMA stage=not-started
+R10-ROUTING-INVARIANTS stage=absorbed
+== groups listing #2733 at origin/main (6d86acc909f7fc465e5736771daf8fa45c1373a4)
+R10-ORCH-ROSTER-SCHEMA stage=done
+R10-ROUTING-INVARIANTS stage=absorbed
+== groups listing #2733 at origin/handoff/audit-r10-roster (8c57b43dded6bc3ebab94b9a217d72b344ad7564)
+R10-ORCH-ROSTER-SCHEMA stage=done
+R10-ROUTING-INVARIANTS stage=absorbed
+== live-group carries mentioning rosterIssues|A1|A2|merge-time fold|#2896 at origin/handoff/audit-r10-roster
+(empty = none)
+== R10-ORCH-ROSTER-SCHEMA went done after the record's base:
+9e7ee283d 2026-10-27T13:05:26+01:00 roster_edit set-stage R10-ORCH-ROSTER-SCHEMA (tools/audit/seat/roster_edit.py)
+== #2733 (GitHub, read 2026-10-28): state open, 0 comments; body names roster group R10-ROUTING-INVARIANTS
+== rosterIssues() at head (no-arg, programme rosters):
+1 72

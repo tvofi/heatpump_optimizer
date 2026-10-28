@@ -1,0 +1,13 @@
+RESULT block rows 132 PRs 84
+RESULT carry-missing 26 PRs / 30 entries
+RESULT mutation-vacuous 8 PRs / 9 entries
+RESULT class-open 6 PRs / 13 entries
+RESULT mutation-survivor 3 PRs / 5 entries
+RESULT regression 3 PRs / 3 entries
+RESULT mutation-vacuous before 662a380 7 / 8 after 1 / 1
+RESULT harness children [('#2524', 'harness:class-rule-missing'), ('#2780', 'harness:design-trace-missing'), ('#2843', 'harness:finder-harness-misreported:')]
+RESULT body/figure spellings 9 over 10 PRs / 10 entries
+RESULT untaught words 46 PRs 52 entries 64 ; union with literal other: PRs 52 entries 67
+RESULT PRs blocked only by untaught words 36
+RESULT mutation union PRs 12
+RESULT root-cause family 6 PRs / 6
