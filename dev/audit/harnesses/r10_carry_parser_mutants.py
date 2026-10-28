@@ -234,6 +234,11 @@ MUTANTS = [
     ("P-issue-end", 'ISSUE_TOK = re.compile(r"\\A#(\\d+)\\Z")', 'ISSUE_TOK = re.compile(r"\\A#(\\d+)")'),
     ("P-brief-name", 'BRIEF_TOK = re.compile(r"\\AO(\\d+)(?:-[a-z0-9][a-z0-9-]*)?\\Z")', 'BRIEF_TOK = re.compile(r"\\AO(\\d+)\\Z")'),
     ("P-brief-end", 'BRIEF_TOK = re.compile(r"\\AO(\\d+)(?:-[a-z0-9][a-z0-9-]*)?\\Z")', 'BRIEF_TOK = re.compile(r"\\AO(\\d+)(?:-[a-z0-9][a-z0-9-]*)?")'),
+    # load_dests: P98 arm (b2), a tree behind origin/main reads main's roster
+    ("B2-ancestry", '        if git(["merge-base", "--is-ancestor", roster_lib.MAIN_REF, "HEAD"])[0] == 1:',
+     "        if False:"),
+    ("B2-always", '        if git(["merge-base", "--is-ancestor", roster_lib.MAIN_REF, "HEAD"])[0] == 1:',
+     "        if True:"),
 ]
 
 

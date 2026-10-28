@@ -41,6 +41,8 @@ A DESTINATION (`Dests.check`):
   GROUP      a group of the newest roster (`roster_lib`), not done; with no
              --roster-ref, also one open on the round's roster branch
              (`roster_lib.round_ref`), printed NOTE ... resolved on <ref>;
+             a checkout lacking origin/main reads the roster there instead of
+             its tree, printed NOTE stale tree: <HEAD> lacks origin/main <sha>;
   #N         owned: a live group lists it in `issues`/`fixes`, it has a
              `dev/programme/carries/carry-N.json`, or an O-brief's file name
              carries N; with `gh` reads (`pr`, `sweep`) it must also be open;
@@ -68,7 +70,9 @@ is routed to a valid destination; `CARRY-AUDIT:` is the summary line;
 from __future__ import annotations
 
 import argparse
+import contextlib
 import hashlib
+import io
 import json
 import os
 import re
@@ -346,11 +350,21 @@ def load_dests(repo: Path = ROOT, ref: str | None = None, briefs_dir: str | None
         texts = [subprocess.run(["git", "-C", str(repo), "show", f"{ref}:{n}"], capture_output=True,
                                 text=True).stdout for n in r.stdout.split() if n.endswith(".json")]
     else:
-        roster = roster_lib.load_roster_file(str(repo / roster_lib.roster_path(str(repo))))
+        git = roster_lib.git_in(str(repo))
+        # A checkout behind origin/main reads main's roster, not its own stale
+        # one (P98: a detached checkout 387 commits behind refused groups open
+        # on main). One containing it, as CI's merge checkout does, keeps its
+        # tree, so a pull request's own new group still counts. rc 1 is "not an
+        # ancestor"; a clone without origin/main answers otherwise and keeps it.
+        if git(["merge-base", "--is-ancestor", roster_lib.MAIN_REF, "HEAD"])[0] == 1:
+            roster = roster_lib.show_roster(str(repo), roster_lib.MAIN_REF)
+            print(f"NOTE stale tree: {git(['rev-parse', 'HEAD'])[1].strip()} lacks {roster_lib.MAIN_REF} "
+                  f"{git(['rev-parse', roster_lib.MAIN_REF])[1].strip()}; roster read at {roster_lib.MAIN_REF}")
+        else:
+            roster = roster_lib.load_roster_file(str(repo / roster_lib.roster_path(str(repo))))
         texts = [p.read_text() for p in sorted((repo / CARRIES_DIR).glob("*.json"))]
         # The tree's roster lags the round's branch (finding-propagation.md);
         # a branch this clone lacks is skipped, which only narrows what passes.
-        git = roster_lib.git_in(str(repo))
         rref = roster_lib.round_ref(git)
         if rref and not git(["rev-parse", "--verify", "--quiet", rref + "^{commit}"])[0]:
             round_roster = (rref, roster_lib.show_roster(str(repo), rref))
@@ -696,6 +710,33 @@ def _self_test() -> int:
     git("update-ref", "-d", "refs/remotes/" + rnd[0])
     r = run(plant.rstrip() + " Carry: R10-BRANCH\n", d=load_dests(Path(gtmp.name)))
     check("... and a clone without that ref refuses it (null control)", r["b"] == 1)
+    # P98 arm (b2): a tree behind origin/main reads the roster at origin/main.
+    main_only = {"groups": roster["groups"] + [{"group": "R10-MAINONLY", "resume": {"stage": "not-started"}}]}
+    rp.write_text(json.dumps(main_only))
+    git("commit", "-qam", "main gains R10-MAINONLY")
+    git("update-ref", "refs/remotes/origin/main", "HEAD")
+    git("reset", "-q", "--hard", "HEAD~1")
+
+    def dests_out() -> "tuple[Dests, str]":
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            d_ = load_dests(Path(gtmp.name))
+        return d_, buf.getvalue()
+    d_, out = dests_out()
+    r = run(plant.rstrip() + " Carry: R10-MAINONLY\n", d=d_)
+    check("a tree behind origin/main reads the roster there: a group only on main passes", r["b"] == 0)
+    check("... and says so: NOTE stale tree names HEAD and origin/main",
+          out.startswith("NOTE stale tree: ") and "lacks origin/main" in out)
+    r = run(plant.rstrip() + " Carry: R10-NEITHER\n", d=d_)
+    check("... and a group on neither is still a bad destination (null control)", r["b"] == 1)
+    git("reset", "-q", "--hard", "origin/main")
+    rp.write_text(json.dumps({"groups": main_only["groups"] + [
+        {"group": "R10-PRONLY", "resume": {"stage": "not-started"}}]}))
+    git("commit", "-qam", "the pull request adds R10-PRONLY")
+    d_, out = dests_out()
+    r = run(plant.rstrip() + " Carry: R10-PRONLY\n", d=d_)
+    check("a tree containing origin/main keeps its own roster: the PR's own new group passes", r["b"] == 0)
+    check("... and prints no stale-tree NOTE (null control)", "stale tree" not in out)
     gtmp.cleanup()
     r = run(plant.rstrip() + " Carry: R10-INVENTED\n", d=Drr)
     check("a group on neither ref is a bad destination", r["b"] == 1)
