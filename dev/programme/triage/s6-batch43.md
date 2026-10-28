@@ -5,7 +5,7 @@ Two proposals, written by the orchestrator s7 as alternatives on the same merge-
 mergeable). They are ruled together, and the ruling says which one stands. Facts read at
 origin/main `ea36188c3`; roster at `origin/handoff/audit-r10-roster` `9aed78e0e` (212 groups).
 
-## P217: a draft head is admitted by the train and fails only at the merge call (V137)
+## P217: a draft head is admitted by the train and fails only at the merge call (V130)
 
 Verdict: REJECT -- superseded by P218. The refusal is sound and costs little, but it spends the
 resource the instance actually lost. Its one useful part, the add-time `draft: true` note, is
@@ -34,7 +34,7 @@ moves in both directions between `add` and the merge, and an admission-time refu
 thrown out #2878, which was clean 23 seconds later. P218 makes that note load-bearing rather than
 a comment -- see its narrowing.
 
-## P218: the train undrafts a head it has already proved mergeable, instead of stopping on it (V138)
+## P218: the train undrafts a head it has already proved mergeable, instead of stopping on it (V131)
 
 Verdict: ACCEPT narrowed -> a carry of **R10-TRAIN-UPGRADE** (`resume.stage` `done`, so the roster
 op reopens it; it owns `tools/audit/seat/merge_train.py` and its brief is exactly "upgrade
