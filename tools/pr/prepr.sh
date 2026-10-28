@@ -3465,7 +3465,7 @@ ORDER=""
 # stdout and stderr go to $PREPR_LOG and fd 3 keeps the real stdout: each
 # verdict line, each refusal's own log lines (`refusal_lines`), and the result
 # line naming the log. `PREPR_VERBOSE=1` or `--verbose` keeps today's stdout.
-# Every caller (push.sh, app_push.sh) reads the rc alone.
+# Both pushers that run this mode read its rc alone, never its stdout.
 PREPR_LOG="" LOG_MARK=0
 say() {
   local l; l=$(printf '  %-8s %-22s %s' "$1" "$2" "${3:-}")
