@@ -16,6 +16,9 @@ clarification of the fifth. All three are quoted from `proposals.md` as it stand
   only if it is a bug touching production code, or a feature request the owner explicitly calls a
   hotfix. Not every "Owner request" brief qualifies, so R10-ROUND-PLAYBOOK is not a hotfix. A
   user-submitted bug in production code is a hotfix.
+- **Sixth amendment (owner, 2026-10-28T20:28:56Z).** "hotfix also covers (a) a critical bug
+  found by the programme during the fixing phase, (b) any bug on main, (c) a CI- or
+  programme-machinery bug that deadlocks all merges. hotfix_by records which rule applied."
 
 Batch 56 (P267) was already pushed as `handoff/triage-s7-batch56` `86d399b50` when the fourth
 amendment arrived. All three are therefore ruled here, and batch 56's head does not move. This
@@ -67,13 +70,23 @@ Carry 1, to R10-ORCH-ROSTER-SCHEMA (the mapping, set at intake):
    - `source` is one of `"user"`, `"audit"` or `"programme"`. `"user"` means an item submitted
      by the owner or an end user, either a report or a request. It does not make the group a
      hotfix by itself.
-   - `hotfix` is an optional boolean, set at intake under the owner's definition:
-     - `true` for a user-submitted **bug touching production code** (`source: "user"`, a bug
-       report, and a group that `touches_production`);
-     - `true` for a feature request **the owner explicitly calls a hotfix**, which then needs
-       `hotfix_by`, citing the owner's words;
-     - anything else is not a hotfix, including an owner request for a document or an
-       instrument such as R10-ROUND-PLAYBOOK.
+   - `hotfix` is an optional boolean, set at intake under the owner's definition. It is
+     `true` only under one of five rules, and `hotfix_by` records which rule applied as
+     `{rule, evidence}`:
+     - `user-production-bug`: a user-submitted bug touching production code (`source: "user"`,
+       a bug report, and a group that `touches_production`). The evidence is the report, an issue
+       or brief line.
+     - `owner-called`: a feature request the owner explicitly calls a hotfix. The evidence is the
+       owner's words, cited.
+     - `fixing-phase-critical`: a critical bug the programme finds during the fixing phase. The
+       evidence is the finding or verdict that names it critical.
+     - `bug-on-main`: any bug present on main. The evidence is the main commit or run that shows
+       it, for example a red `push` run on main or a failing test at a main SHA.
+     - `merge-deadlock`: a CI or programme-machinery bug that deadlocks all merges. The evidence
+       is the stop that shows no merge can land, for example the train's stop line, or a required
+       check red on every open head.
+     - Anything else is not a hotfix. That includes an owner request for a document or an
+       instrument, such as R10-ROUND-PLAYBOOK.
    - `savings_source` cites the ruling or cost test, for example
      `dev/programme/triage/<batch>.md#P<n>`. It is required whenever the existing numeric
      `savings` is set.
@@ -90,8 +103,10 @@ Carry 1, to R10-ORCH-ROSTER-SCHEMA (the mapping, set at intake):
    - A new op, `set-field <group> source|hotfix|hotfix_by|savings|savings_source|class <value>`,
      is restricted to those six fields and validated. It refuses:
      - a `savings` with no `savings_source`;
-     - `hotfix true` unless `source` is `"user"` and either the group `touches_production` or
-       `hotfix_by` is set.
+     - `hotfix true` without a `hotfix_by` whose `rule` is one of the five and whose `evidence`
+       is non-empty;
+     - `rule: user-production-bug` unless `source` is `"user"` and the group
+       `touches_production`.
 4. **Backfill.**
    - Briefs that open "Owner-reported", "User-reported" or "Owner request" get `source: "user"`.
    - Those that report a bug and touch production also get `hotfix: true`. On the live roster that
@@ -99,13 +114,21 @@ Carry 1, to R10-ORCH-ROSTER-SCHEMA (the mapping, set at intake):
      files under `custom_components/`.
    - R10-ROUND-PLAYBOOK ("Owner request"; files `dev/audit/README.md` and `CLAUDE.md`) gets
      `source: "user"` and is **not** a hotfix, as the owner ruled.
+   - R10-HOTFIX-BATCH-ERREXIT keeps its prefix, and `is_hotfix` still reads the prefix. This
+     carry sets no `hotfix_by` for it, because no rule's evidence is recorded for it here.
+   - The three programme rules (`fixing-phase-critical`, `bug-on-main` and `merge-deadlock`) are
+     applied by the orchestrator at intake as they arise. They are not backfilled from brief
+     text.
 5. **Controls:**
    - an append-group without `source` is refused;
    - `set-field X savings 14` without a source is refused;
    - `is_hotfix` is true for a `hotfix: true` fixture and for a `R10-HOTFIX-` fixture, and false
      for a `source: "user"` request that touches only `dev/`;
-   - `set-field X hotfix true` is refused on a `source: "audit"` group, and on a user group that
-     touches no production file and has no `hotfix_by`;
+   - `set-field X hotfix true` with no `hotfix_by`, or with an unknown rule, is refused;
+   - `rule: user-production-bug` is refused on a `source: "audit"` group and on a user group that
+     touches no production file;
+   - each of `fixing-phase-critical`, `bug-on-main` and `merge-deadlock` is accepted with
+     evidence, and refused without it;
    - `group_class` falls back to lane only when `class` is absent;
    - null: today's roster with no new fields loads unchanged.
 
