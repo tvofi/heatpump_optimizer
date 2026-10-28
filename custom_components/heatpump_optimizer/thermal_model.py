@@ -1691,16 +1691,29 @@ def partload_factor(params: ThermalParameters, electrical_power: Any) -> Any:
     return 1.0 - params.cop_partload_derate * x
 
 
+def heat_per_cop_kw(params: ThermalParameters, electrical_power: Any) -> Any:
+    """Heat per unit of COP at ``electrical_power`` kW: the draw itself while
+    the derate is 0, else the draw times its part-load factor.
+
+    It depends on the draw alone, so a loop whose COP moves per sub-step
+    (the batch twin, the hot-water refresh) takes it once for the whole
+    schedule and multiplies by each step's COP, instead of re-deriving it in
+    every sub-step: that per-sub-step call was stress.py's production-call
+    channel firing at 1.051x-1.064x. Elementwise, like ``partload_factor``,
+    so a schedule's rows and a scalar step get the same IEEE product."""
+    if params.cop_partload_derate:
+        return electrical_power * partload_factor(params, electrical_power)
+    return electrical_power
+
+
 def delivered_heat_kw(params: ThermalParameters, cop: Any, electrical_power: Any) -> Any:
     """Heat the pump delivers at ``cop`` and ``electrical_power``, space or hot
-    water.
+    water: ``cop`` times :func:`heat_per_cop_kw`, the one association every
+    conversion uses, so the scalar step and the batch twin stay bitwise.
 
     Exactly ``cop * electrical_power`` while the derate is 0, so a plan with
     no part-load term is byte-identical to one priced before it."""
-    heat = cop * electrical_power
-    if params.cop_partload_derate:
-        heat = heat * partload_factor(params, electrical_power)
-    return heat
+    return cop * heat_per_cop_kw(params, electrical_power)
 
 
 def _copy_state_with(state: ThermalState, **changes: object) -> ThermalState:
@@ -2730,13 +2743,16 @@ class ThermalModel:
         temp = float(temps[from_step])
         compute_cop = self.compute_cop_dhw
         simulate_step = self.simulate_dhw_step
+        # The draw's heat per unit COP for the whole refreshed tail at once;
+        # each step's COP (it moves with the tank) multiplies it below.
+        heat_per_cop = heat_per_cop_kw(self.params, schedule[from_step:])
         for i in range(from_step, schedule.size):
             cop = compute_cop(
                 outdoor[i], temp, humidity=None if humidity is None else humidity[i]
             )
             temp = simulate_step(
                 dhw_temp=temp,
-                dhw_power_thermal=delivered_heat_kw(self.params, cop, schedule[i]),
+                dhw_power_thermal=cop * heat_per_cop[i - from_step],
                 hour_of_day=0.0,
                 dt_hours=dt_hours,
                 draw_power=draws[i],
@@ -3587,6 +3603,9 @@ class ThermalModel:
         """
         p = self.params
         power_matrix = np.asarray(power_matrix, dtype=float)
+        # The draws' heat per unit COP, once for the whole batch: it depends
+        # on the draw alone, and each sub-step's COP multiplies it below.
+        heat_per_cop = heat_per_cop_kw(p, power_matrix)
         outdoor_temps = weather.outdoor_temps
         wind_speeds = weather.wind_speeds
         precipitation = weather.precipitation
@@ -3658,7 +3677,7 @@ class ThermalModel:
             wind_i = float(wind_speeds[i])
             rain_i = float(precipitation[i])
             sol_i = float(solar_radiation[i])
-            power_i = power_matrix[:, i]
+            heat_per_cop_i = heat_per_cop[:, i]
             ext_i = (
                 float(external_heat_kw[i])
                 if external_heat_kw is not None
@@ -3691,7 +3710,7 @@ class ThermalModel:
                     # size stays paid for.
                     cop = self._batch_cop(out_i, hum_i, T_buf, throttled)
                     thermal_power = (
-                        delivered_heat_kw(p, cop, power_i) + (0.0 if two_tank else ext)
+                        cop * heat_per_cop_i + (0.0 if two_tank else ext)
                     )
                     if throttled:
                         target = (
@@ -3827,7 +3846,7 @@ class ThermalModel:
                     # ineligible exactly as the scalar single-zone step
                     # passes no flow temperature.
                     cop = self._batch_cop(out_i, hum_i, T_buf, False)
-                    thermal_power = delivered_heat_kw(p, cop, power_i) + ext
+                    thermal_power = cop * heat_per_cop_i + ext
                     q_slab_to_room = p.slab_heat_transfer * (T_slab - T_room)
                     q_loss = u_first * (T_room - out_i)
                     q_internal = (
