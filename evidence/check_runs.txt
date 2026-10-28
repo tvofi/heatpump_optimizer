@@ -1,3 +1,0 @@
-check-runs at 33660280381756f968ee197f374e9254eecfde19, read 2026-10-28 from the PR check-runs API (10 runs):
-prelude x3: queued, queued, in_progress; cancel-superseded x3: queued; refresh x3: queued, queued, completed success; arm: completed skipped.
-No run concluded failure. The gate, pr-contract and governance instrument-self-tests have not reported.

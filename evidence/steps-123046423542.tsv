@@ -1,0 +1,91 @@
+1	Set up job
+12	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+0	Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+61	Refuse a corpus or record-mode check that survives its own deletion
+0	Show the fragment check refusing its own perturbation
+0	Show the lane-skip decision refusing every unsafe skip
+4	Show field coverage refusing each shape it exists to refuse
+0	Show the comment poster refusing every body it cannot vouch for
+0	Show the record-predicate sweep refusing its own perturbations
+155	Show the pre-PR self-check refusing its own fixtures
+1	Show the push script's decisions refusing their own fixtures
+22	Show the App push refusing its own fixtures
+19	Show the App approval refusing its own fixtures
+0	Show the merge-main bot refusing its own fixtures
+0	Show the superseded-run canceller refusing its own fixtures
+0	Show the Dependabot merge decision refusing its own fixtures
+0	Show the dependency-graph census refusing its own fixtures
+2	Show the App verdict poster refusing its own fixtures
+10	Show the verdict bus refusing its own fixtures
+3	Show the budget-raise gate refusing its own fixtures
+0	Show the CodeQL leg scope refusing every unsafe skip
+0	Show the merge fast path refusing its own fixtures
+0	Show the P3 move ledger and holdout check refusing their own fixtures
+0	Refuse a temp or machine path in a tracked script or decision
+1	Refuse a push that names the host, and an unregistered pusher
+1	Render the sweep template, and the policy re-read predicate
+0	Show the orchestrator tick deciding its own fixtures
+0	Refuse a self-testing seat instrument that no step runs
+3	Show the review-strength enumerator deciding its own fixtures
+1	Show the critical-path and flow instruments deciding their own fixtures
+6	Show the body PATCH refusing its own fixtures
+18	Show the self-tests outside tools/audit/seat/ refusing their own fixtures
+1	Show the CI watcher refusing its own fixtures
+1	Show the cloud dispatcher refusing its own fixtures
+24	Show the cloud relay refusing its own fixtures
+1	Show the obligations ledger refusing its own fixtures
+0	Show the roster queue runner refusing its own fixtures
+0	Show the detached launcher refusing its own fixtures
+0	Show the delivery-row writer refusing its own fixtures
+0	Show the failure-log reader refusing its own fixtures
+0	Show the features block refusing its own fixtures
+1	Show the handoff push and its row writer refusing their own fixtures
+0	Show the handover prompt refusing its own fixtures
+1	Show the PR merger refusing its own fixtures
+0	Show the moved-path reader refusing its own fixtures
+141	Show the PR opener (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtur
+0	Show the plan table refusing its own fixtures
+0	Show the plan page refusing its own fixtures
+140	Show the PR argument builder refusing its own fixtures
+0	Show the dispatch cap refusing its own fixtures
+0	Show the proof watcher refusing its own fixtures
+0	Show the ref pruner refusing its own fixtures
+0	Show the programme pulse refusing its own fixtures
+0	Show the record-row generator refusing its own fixtures
+0	Show the resume renderer refusing its own fixtures
+0	Show the review packet refusing its own fixtures
+5	Show the roster editor refusing its own fixtures
+0	Show the roster-ops mutation harness pinning its own plants
+0	Show the ledger mutation harness pinning its own plants
+1	Show the roster library refusing its own fixtures
+0	Show the roster-sync reconciler refusing its own fixtures
+0	Show the twin-run reader refusing its own fixtures
+0	Show the seat venv recipe refusing its own fixtures
+1	Show the cloud setup profile refusing its own fixtures
+3	Show the state-doc writer refusing its own fixtures
+7	Show the tick loop refusing its own fixtures
+1	Show the heartbeat andon refusing its own fixtures
+141	Show the PR updater (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtu
+0	Show the offline spy refusing its own fixtures
+0	Refuse a throwaway git repository built without the shared helper
+17	Show the merge train refusing its own fixtures
+0	Show the carry check and the queue pre-flight refusing their own fixtures
+2	Show the train launcher refusing its own fixtures
+0	Show the figure check refusing its own fixtures
+0	Show the figure census pinning its counting rule
+0	Show the pin rule refusing every probe and admitting its controls
+0	Show the GitHub REST client (tools/ci/ghapi.py) refusing its own fixtures
+0	Show the CI prelude (tools/ci/prelude.py) refusing its own fixtures
+0	Show the gate predicate (tools/ci/gate.py) refusing its own fixtures
+0	Show the gate sweep (tools/ci/sweep.py) refusing its own fixtures
+0	Show the code-scanning alert lister (tools/ci/alert_list.py) refusing its own fixtures
+1	Show the ruleset cut-over instrument (tools/ci/ruleset_cutover.py) refusing its own fixtur
+0	Show the sweep driver (tools/audit/seat/sweep_driver.py) refusing its own fixtures
+1	Show the CI probe instrument (tools/audit/seat/ci_probe.py) refusing its own fixtures
+0	Show the code-scanning wait (tools/ci/codescan_wait.py) driving alert_list over fakes
+82	Show the CI predictor (tools/pr/ci_predict.py) predicting pr-contract's carry refusal
+0	Show the local alert lister (tools/pr/local_alerts.py) refusing its own fixtures
+1	Show the alert lister's mutants each refused by its self-test
+0	Post Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+0	Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+0	Complete job

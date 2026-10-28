@@ -1,0 +1,3 @@
+26? 26  8? 8
+selftest_wiring: 100 self-testing, 100 wired, 0 unwired
+sweep_render self-test: 21 checks, 0 failed

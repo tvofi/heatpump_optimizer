@@ -1,0 +1,14 @@
+dash covers sha key	owed_unactioned self-test: 29 checks, 0 failed
+expired ack live	owed_unactioned self-test: 29 checks, 1 failed
+future ok	owed_unactioned self-test: 29 checks, 1 failed
+keys not dict	owed_unactioned self-test: 29 checks, 0 failed
+sweeps>=1 dropped	owed_unactioned self-test: 29 checks, 0 failed
+bool sweeps	owed_unactioned self-test: 29 checks, 0 failed
+first unparsed	owed_unactioned self-test: 29 checks, 0 failed
+pid id dropped	owed_unactioned self-test: 29 checks, 2 failed
+whole-id equality dropped	owed_unactioned self-test: 29 checks, 1 failed
+stale board	owed_unactioned self-test: 29 checks, 1 failed
+unanchored ack	owed_unactioned self-test: 29 checks, 1 failed
+late	owed_unactioned self-test: 29 checks, 11 failed
+naive time	owed_unactioned self-test: 29 checks, 0 failed
+ref key unstripped	owed_unactioned self-test: 29 checks, 1 failed
