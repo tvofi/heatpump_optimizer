@@ -10236,7 +10236,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             self._ledger.add(when, f"reason:{reason}", kwh=kwh, sek=kwh * spot)
         if fee:
             self._ledger.add(when, "grid_fee", kwh=energy, sek=energy * fee)
-        if resistive_kwh > 1e-6:
+        if resistive_line:
             self._ledger.add(
                 when, resistive_line, kwh=resistive_kwh, sek=resistive_kwh * spot
             )

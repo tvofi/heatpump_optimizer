@@ -122,7 +122,8 @@ def _dhw_floor(params: Any) -> float:
 
 
 def _dhw(hass: Any, config: dict[str, Any], params: Any, gated: Any = None) -> None:
-    entity_id = EntryConfig.from_mapping(config).dhw_setpoint_entity
+    # "" for an unconfigured entity, which every reader below treats as unset.
+    entity_id = EntryConfig.from_mapping(config).dhw_setpoint_entity or ""
     pump, unit = setpoint_and_unit(hass, entity_id) or (None, None)
     floor = _dhw_floor(params)
     # The pump-duty arbiter's own space-only gate is a step decision, not
@@ -145,7 +146,7 @@ def _dhw(hass: Any, config: dict[str, Any], params: Any, gated: Any = None) -> N
     placeholders = {
         "pump": f"{pump:.1f}" if pump is not None else "",
         "target": f"{floor:.0f}",
-        "entity": entity_id or "",
+        "entity": entity_id,
     }
     set_issue(
         hass, ISSUE_DHW, active, fixable=True, placeholders=placeholders, data=data
