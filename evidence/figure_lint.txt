@@ -1,0 +1,17 @@
+  unverified for r in $B $H; do git show $r:$R | jq '.groups|length'; done
+             `git show` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
+  ok         tools/audit/seat/orchestrator_tick.py
+             `tools/audit/seat/orchestrator_tick.py` is in the tree at this head
+  unverified git show $B:$R | jq -c '.groups[]|select(.group==G)|.resume'
+             `git show` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
+  ok         python3 tools/audit/seat/plan_table.py --roster-ref origin/main
+             `tools/audit/seat/plan_table.py` is in the tree at this head
+  ok         python3 tools/audit/carry_audit.py --roster-ref origin/handoff/audit-r10-roster check --body <this body>
+             `tools/audit/carry_audit.py` is in the tree at this head
+  ok         python3 tools/audit/carry_audit.py --roster-ref origin/handoff/audit-r10-roster sweep
+             `tools/audit/carry_audit.py` is in the tree at this head
+  ok         node tools/policy/policy_lint.mjs --pr-body
+             `tools/policy/policy_lint.mjs` is in the tree at this head
+
+FIGURES: 5 resolved, 2 not verified, 0 refused
+rc=0
