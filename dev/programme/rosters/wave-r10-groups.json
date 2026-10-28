@@ -10930,6 +10930,49 @@
     "note": "fly-in registered by the disposition seat (r10s6 s7) for a [policy] recurring-friction issue with no group; mirrors R10-FRICTION-GATE-SCOPING"
    },
    "brief": "Root-cause seat for issue #2895, the governance cron's recurring-friction key `tools/audit/briefs/fixer.md` (5 distinct pull requests, 7 entries, in the v7.0.4..origin/main window; policy_lint's key normalisation folds every citation of the fixer contract, `fixer.md`, `fixer.md#N`, `fixer-step-N`, `fixer-env`, to that key; the file now lives at dev/governance/roles/fixer.md). This is the key's third filing: #2378 was disposed by R10-POLICY-FIXER-MD (PR #2704) and the key refiled, so per CLAUDE.md and dev/governance/roles/root-cause.md it owes a record, not another edit-and-hope. Read the citing bodies' Friction lines and group the instances by the step they name. Seeds from merged bodies since 2026-10-22 (re-derive, do not trust): step 5 / interpreter on PATH (#2557, #2585, #2631, #2671, #2683) which R10-FLY-CLOUD-SETUP-TOOLCHAIN (#2709) then addressed at the environment; step 2 (#2563, #2709); step 7 (#2609); step 17 (#2620); step 6 / handoff boilerplate (#2631); cloud-seat environment cost (#2704, #2889, #2903). Decide per group whether the contract is unclear, unfollowed, already repaired (so a recorded refusal with the post-#2709 count), or wrong (process state b, c or d), and say whether the key is a path alias that keeps counting one repaired cause. Note the stale `tools/audit/briefs/fixer.md` literal that .claude/hooks/stop-selfcheck.sh still names. Re-derive the count at your merge base with node tools/policy/policy_lint.mjs --stats --since v7.0.4 and --since v7.0.5 (the bot reports no pull request at all in the v7.0.5 window). Per root-cause.md the key owes a named cause, a process state (a-d), a cost test with numbers, and a countermeasure or a recorded refusal, filed under dev/audit/rca/. A policy-file edit is generated into .claude/rules/ and .cursor/rules/ by node tools/policy/rules_sync.mjs and capped by dev/governance/config/policy_budgets.json; it is approved under the orchestrator's mandate (scope all). Closes the issue on delivery."
+  },
+  {
+   "group": "R10-FRICTION-CLAIM-FALSE",
+   "lane": "C",
+   "kind": "rca",
+   "class": "rca",
+   "severity": "low",
+   "size": "S",
+   "issues": [
+    2907
+   ],
+   "fixes": [],
+   "findings": [],
+   "wave": 6,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "dev/audit/rca/"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a seat",
+    "note": "fly-in registered by the disposition seat (r10s6 s7) for a [policy] recurring-friction issue with no group; mirrors R10-FRICTION-GATE-SCOPING"
+   },
+   "brief": "Root-cause seat for issue #2907, the governance cron's recurring-friction key `claim-false` (verdict class: 4 distinct pull requests, 8 entries, in the v7.0.5..origin/main window). The reviewer returns `claim-false` when a figure, line number, id or rule a body or record states does not re-derive. Seeds, each a blocked fix review (re-derive, do not trust): #2883 twice (an unreadable source yields a crash or zero, not the UNAVAILABLE the PR promised); #2890 twice (a cited function that does not exist, a 45-minute figure that does not re-derive, wrong V-ids V132-V135 for V125-V128, ruling_verdict/triage_refusal cited at 456/464 instead of 455/466); #2891 twice (V136 cited where the orchestrator's out-of-tree proposals file holds V129; a one-paragraph CLAUDE.md edit with no headroom against a 3605/3605 cap); #2900 twice (P228's every-failed-job rule excludes its own instance; its gate rule reads FAIL-prefixed lines while tools/ci/gate.py prints its reasons unprefixed). Three of the four are proposal-triage batch records, so test whether one author path (ids and line numbers typed from memory instead of read back) accounts for most, and whether a cheaper detector than the fix review exists (a citation-resolving lint over triage batch bodies, as brief_lint does for wave briefs). Re-derive the count at your merge base with node tools/policy/policy_lint.mjs --stats --since v7.0.5. Per dev/governance/roles/root-cause.md the key owes a named cause, a process state (a-d), a cost test with numbers, and a countermeasure or a recorded refusal, filed under dev/audit/rca/. A countermeasure that edits a policy file is approved under the orchestrator's mandate (scope all). Closes the issue on delivery."
   }
  ]
 }
