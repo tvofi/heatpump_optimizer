@@ -18,9 +18,12 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, "tests")
-from harness import Results
 
-R = Results("harness header EXPECTED vs RESULT (#817)")
+# Bound in main(), not at import: harness imports the Home Assistant stub,
+# which needs voluptuous, and prepr.sh's step 6g imports this module for
+# expected_from / printed_from alone, on the governance job's python3, which
+# has none (#2853's instrument-self-tests red).
+R = None
 
 ROOT = Path(__file__).resolve().parents[1]
 RESULT = re.compile(r"RESULT\s+([A-Za-z0-9_]+)=(\S+)")
@@ -510,6 +513,10 @@ def check_repo_roots() -> None:
 
 
 def main() -> int:
+    global R
+    from harness import Results
+
+    R = Results("harness header EXPECTED vs RESULT (#817)")
     # Discovered here, not at import: tools/audit/judge_batch.py imports this
     # module for header_lines/expected_from, and a discovery at import would
     # put the whole harness corpus in every importer's measured closure.

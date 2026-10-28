@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_signals.py:resistive_carve_out RETURN_DEL 31de71de",
+  "killed_by": "tests/features.py",
+  "old": "    return line, (actual_kw - threshold_kw) * hours",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6."
+}
