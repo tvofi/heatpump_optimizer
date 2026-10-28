@@ -1,0 +1,32 @@
+  ok       transport              no commit since the merge base writes under tools/audit/handoff/ handoff/
+  ok       gate priority          0 (env, .gate-priority, then the critical-path default)
+  ok       heavy slot             taken slot=0 label=prepr-1303 expires_at=2026-10-28T23:07:00.223104+00:00
+  ok       gate mode              MODE: SCOPED
+  ok       policy_lint             FIXTURE ok: 93 error(s) hold 258 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/ 
+  skip     mutants                the diff changes no file mutants reads -- no hit in its declared path list; the closure table maps all 2 changed file(s), so no read is reached
+  ok       rules_sync             RULES-SYNC ok: every generated rule is the generated form of its source
+  ok       fragments              FRAGMENTS ok: 13 canonical fragment(s) [GH_READ, GH_WRITE, GH_MERGE, GATE, DOC, WT, WT_REVIEW, RANK, tierOk, MERGE, mergePrompt, waitMainPrompt, stampPrompt] match every copy across 4 script(s)
+  ok       hooks                  HOOKS ok: 3 wired hook(s) exist and pass their own --self-test
+  ok       codeowners_gap         RESULT uncovered_files=0 count 
+  ok       brief_lint             CARRY ok: 10 error(s) pin the carry acceptance across three malformed fixtures, and the correct one produces no finding of any severity
+  skip     field coverage         the diff changes no file field coverage reads -- no hit in its declared path list nor in the measured closure(s) of tests/structure.py; the closure table maps all 2 changed file(s), so no read is reached
+  ok       agreement lane         AGREEMENT ok
+  skip     register check         the diff changes no file register check reads -- no hit in its declared path list; the closure table maps all 2 changed file(s), so no read is reached
+  ok       temp paths             tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since 593f57c44fa5
+  ok       ref privacy            ref_privacy --check at HEAD: 28 file(s) with a push site, 12 guarded, 62 line(s) added since 593f57c44fa5 judged, 0 refused
+  ok       pinned graders         
+  REFUSE   self-test              418 passed, 9 failed
+  FAIL 6b passes a scoped script its committed closure covers (null control) (got 1:no interpreter that parses the tree was found (tried the seat venv at /root/.local/state/hpo/venv-ci/bin/python3 and the ambient python3) -- build the seat venv, wanted 0:scoped recordings are covered)   FAIL 6b refuses a scoped script that reads an unlisted file as UNDER-SCOPED (got 1:no interpreter that parses the tree was found (tried the seat venv at /root/.local/state/hpo/venv-ci/bin/python3 and the ambient python3) -- build the seat venv, wanted 1:UNDER-SCOPED)   FAIL 6b refuses a recording that exited non-zero as failed, not UNDER-SCOPED (got 1:no interpreter that parses the tree was found (tried the seat venv at /root/.local/state/hpo/venv-ci/bin/python3 and the ambient python3) -- build the seat venv, wanted 1:failed while being recorded) 
+  ok       wave-script            224 passed, 0 failed
+  ok       no version edit        
+  ok       claim files            byte-identical to origin/main
+  ok       claims hygiene         claims hygiene: 593f57c44fa57490ed757343b9f277ef97ad5ca5 ok
+  skip     closures               PREPR_SKIP_CLOSURES is set -- closures-autofix is the only check left
+  ok       ci predict             CI PREDICT: no closures, fast, wave-script or instrument red predicted against 593f57c44fa5 (a data-file read is not seen unless a changed file's own self-test makes it)
+  skip     no-copies              the diff changes no .py under tests/ or custom_components/, so no test can newly share a production name
+  ok       layout guard           layout: GUARD: 0 refusal(s) against 593f57c44fa5
+  ok       throwaway git          throwaway_git: 0 raw git init or clone site(s) refused, 0 stale allow entries at HEAD
+  skip     claims register        no change to README.md or docs/*.md
+  skip     body                   no body passed
+
+PRE-PR: f76cda06eef1b652ad6e8913929fc5a3ca0b1fc3 000000000000020000000
