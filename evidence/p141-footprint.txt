@@ -1,3 +1,0 @@
-at origin/main 8aee66b77289f567617e9f9f852d72d5c4097aba
-_plan_slots lines 4305 4387 logic_stmts 27
-measure failed: KeyError(('coordinator', 'HeatPumpOptimizerCoordinator'))

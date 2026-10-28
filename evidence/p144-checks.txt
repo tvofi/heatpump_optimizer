@@ -1,4 +1,0 @@
-## P144: dispatch/reviewer-* refs on origin now (ruling says 187 fetched, 180 used)
-195
-with commit time <= 50da131 commit (19:55:09Z):
-187
