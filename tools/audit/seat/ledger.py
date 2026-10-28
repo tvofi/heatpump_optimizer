@@ -527,6 +527,22 @@ def handoff_level(hrefs: list, topics: set, git, disp: dict, att: dict, now: str
     return lines, why
 
 
+def read_topics(text: str) -> "tuple[set, dict]":
+    """The level's topics file: open-PR topics, and {topic: epoch} of each
+    topic's latest merged pull request (a reused topic can merge twice)."""
+    topics, merged = set(), {}
+    for l in text.splitlines():
+        f = l.split()
+        if len(f) == 2 and f[1].startswith("merged="):
+            when = datetime.datetime.fromisoformat(f[1][7:].replace("Z", "+00:00")).timestamp()
+            merged[f[0]] = max(merged.get(f[0], 0), int(when))
+        elif len(f) == 1:
+            topics.add(f[0])
+        elif f:
+            raise Refused(f"topics: '{l}' is neither '<topic>' nor '<topic> merged=<utc>'")
+    return topics, merged
+
+
 def fetch_world(git) -> None:
     rc, out = git(["fetch", "-q", "--prune", "origin", f"+refs/heads/main:{NS}/main",
                    f"+refs/heads/handoff/*:{NS}/handoff/*", f"+refs/heads/handoff-body/*:{NS}/handoff-body/*",
@@ -660,16 +676,7 @@ def main(argv: list) -> int:
             return 0
         if cmd == "level" and len(args) == 2:
             hrefs = [tuple(l.split()[:2]) for l in Path(args[0]).read_text().splitlines() if len(l.split()) >= 2]
-            topics, merged = set(), {}
-            for l in Path(args[1]).read_text().splitlines():
-                f = l.split()
-                if len(f) == 2 and f[1].startswith("merged="):
-                    when = datetime.datetime.fromisoformat(f[1][7:].replace("Z", "+00:00")).timestamp()
-                    merged[f[0]] = max(merged.get(f[0], 0), int(when))
-                elif len(f) == 1:
-                    topics.add(f[0])
-                elif f:
-                    raise Refused(f"topics: '{l}' is neither '<topic>' nor '<topic> merged=<utc>'")
+            topics, merged = read_topics(Path(args[1]).read_text())
             fetch_world(_git_cwd)
             lines, why = handoff_level(hrefs, topics, _git_cwd, dispositions(home),
                                        attempts(events(home, log)), utc(), merged)
@@ -952,6 +959,20 @@ def self_test() -> int:
         check("covered: an added file whose bytes main holds at another path is carried (a moved file)",
               covered(gw, mvm, mv))
         check("null control: the same add with other bytes is not", not covered(gw, mvm, put("x.txt", "other\n", "x")))
+        g("checkout", "-qb", "work15", gb)
+        g("rm", "-q", "g.txt")
+        tipd = put("y.txt", "same bytes\n", "delete g.txt, add bytes main holds elsewhere")
+        check("null control: a tip deleting a file main still holds is not covered, beside a carried add",
+              not covered(gw, mvm, tipd) and landed(gw, mvm, tipd) is None)
+        g("checkout", "-qb", "work16", gb)
+        g("rm", "-q", "g.txt")
+        (w / "sub").mkdir(exist_ok=True)
+        mdel = put("sub/moved.txt", "same bytes\n", "main deletes g.txt too and holds the add elsewhere")
+        check("covered: a deletion main already made is carried", covered(gw, mdel, tipd))
+        g("checkout", "-qb", "work17", gb)
+        sbm = put("g.txt", "x\nfi\ny\np\nq\nr\ns\nt\n", "main holds rv's bytes under its own commit")
+        check("covered: the same bytes at the path are carried, a removed line kept elsewhere notwithstanding",
+              covered(gw, sbm, rv))
         g("checkout", "-qb", "work9", mvm)
         m_a = put("ma.txt", "A\n", "main side")
         g("checkout", "-qb", "work10", mvm)
@@ -987,6 +1008,12 @@ def self_test() -> int:
         l2, w2 = handoff_level(hr, {"open"}, gw, {}, att, "NOW", {"unc": 4102444800})
         check("a topic whose PR merged after its tip's commit is closed by the merge (RCA 5.1)",
               not any("/unc " in l for l in l2) and w2["merged-pr"] == 1)
+        l2, w2 = handoff_level(hr, {"open"}, gw, {}, att, "NOW", {"unc": int(g("log", "-1", "--format=%ct", unc))})
+        check("a merge in the tip's own commit second closes it (at or before, not strictly before)",
+              not any("/unc " in l for l in l2) and w2["merged-pr"] == 1)
+        tp, mg = read_topics("open\nt merged=2026-01-02T00:00:00Z\nt merged=2026-01-01T00:00:00Z\n")
+        check("the topics reader keeps a topic's latest merge, whatever the listing order",
+              tp == {"open"} and mg == {"t": 1767312000})
         l2, w2 = handoff_level(hr, {"open"}, gw, {}, att, "NOW", {"unc": 1})
         check("null control: a tip committed after its topic's merge stays owed",
               any(" refs/heads/handoff/unc " in l for l in l2) and "merged-pr" not in w2)
