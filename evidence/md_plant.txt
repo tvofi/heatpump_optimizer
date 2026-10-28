@@ -1,0 +1,23 @@
+-- 4aad9c1175318dec0b90da4113259c3ddb38309f unperturbed
+merge-subject guard: 324 first-parent commit(s) past 07a09406a, 63 merge call(s) in 11 file(s)
+-- 4aad9c1175318dec0b90da4113259c3ddb38309f plant: wrapped parenthetical
+merge-subject guard: 324 first-parent commit(s) past 07a09406a, 64 merge call(s) in 11 file(s)
+-- 4aad9c1175318dec0b90da4113259c3ddb38309f control: no parenthetical
+merge-subject guard: 324 first-parent commit(s) past 07a09406a, 64 merge call(s) in 11 file(s)
+REFUSED       merge-subject-pr writer .claude/workflows/web-fragments.md:157: a merge call that sets the commit subject or body; GitHub's template is the only w
+
+real	0m48.973s
+user	0m45.919s
+sys	0m2.790s
+-- 880b667aa unperturbed
+merge-subject guard: 324 first-parent commit(s) past 07a09406a, 53 merge call(s) in 11 file(s)
+-- 880b667aa plant: wrapped parenthetical
+merge-subject guard: 324 first-parent commit(s) past 07a09406a, 54 merge call(s) in 11 file(s)
+REFUSED       merge-subject-pr writer .claude/workflows/web-fragments.md:157: a merge call that sets the commit subject or body; GitHub's template is the only w
+-- 880b667aa control: no parenthetical
+merge-subject guard: 324 first-parent commit(s) past 07a09406a, 54 merge call(s) in 11 file(s)
+REFUSED       merge-subject-pr writer .claude/workflows/web-fragments.md:157: a merge call that sets the commit subject or body; GitHub's template is the only w
+
+real	0m21.928s
+user	0m20.222s
+sys	0m1.550s

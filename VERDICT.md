@@ -1,109 +1,102 @@
-Fix review: blocked bd81b886388c840792fa69bf5a43cec1337bff02 carry-missing: not carried to R10-MERGE-SUBJECT-CASEARM: its roster brief still sends it to close the case-arm class this head closes (49 of 49), and its carry names the case arm, `*)` and glob arms as its routed spellings, not the three the body routes to it (a blank line in a Python argv, a blank line in a JS argv, a `)` in a JS block comment)
+Fix review: blocked 4aad9c1175318dec0b90da4113259c3ddb38309f class-open: the head regresses main on every line whose lead holds an unmatched closer, not only the case arm the body names; a wrapped Markdown parenthetical closing on the merge line (`down) with gh pr merge 9 --subject x`) is refused=1 at main 880b667aa and refused=0 at the head under the finder's harness, and neither the body nor R10-MERGE-SUBJECT-CASEARM's class text covers it
 
-bus-nonce: 865d2699d5722dcd2b20d07097c53b09
+bus-nonce: 8c5003d6861fc4309716aaa71264dbbe
 
 ## Block
 
-Review round 9 of #2697. The code passes every check the brief set. The tree-planted differential returns main_not_head=0 at this head, the null control returns 0, and round 8's head returns 8070 on the same corpus. The block is `fix-review.md` step 10 only.
+Review round 8. This is the owner's three-round split, so a narrowed class is legitimate. The narrowed class itself holds (Evidence). What does not hold is the body's account of the regression it accepts.
 
-The body's Forward-carry says R10-MERGE-SUBJECT-CASEARM's brief "must record" two things: the three routed spellings, and the regression-against-main control. The roster at `handoff/audit-r10-roster` f02938c3f (`ev/roster_casearm_at_f02938c3f.json`) records only the second.
-- The group's `brief` string still describes this PR's scope as the group's work: "Close the class by a rule that enumerates every case-arm spelling (with and without the leading paren, any indentation, multi-pattern arms a|b))". At this head that class holds 49 of 49 (`OPEN R10-MERGE-SUBJECT-CASEARM expected-fail: held=49 of 49`, `ev/argv_seam_head.txt`). Merging this PR therefore invalidates the assumption the brief rests on (`finding-propagation.md`, "invalidates an assumption it rests on").
-- Its first `carry` entry names "the three routed spellings it owns: the case arm, the `*)` arm, and the glob arms". The body routes three other spellings to it. Each prints `XFAIL` at this head under `routed expected-fail: held=0 of 3` and passes main's line guard too:
-  - a blank line in a Python argv;
-  - a blank line in a JS argv;
-  - a `)` in a JS `/* */` comment after `merge`.
+The body says the regression against main is "that one spelling", the case arm, and carries it to R10-MERGE-SUBJECT-CASEARM, whose class text is "every shell case-arm spelling". The cause the body itself quotes is wider than a case arm:
+- When no bracket is open at `pr`, `callExtent` starts the forward read at the line's start.
+- Any `)` in the lead with no `(` before it on that line ends the extent before `pr`.
+- main's line guard reads the whole line, so it refuses all of these.
 
-  These three are in this PR's body and in its harness's XFAIL rows. They are not in the stage's brief.
-- The RCA carry (#2798's precondition control) is present and states its control as a precondition. That part is satisfied.
+So the head lets through, and main refuses, spellings that are not case arms. Every one below is in the guard's scan surface (`tools/`, `.claude/workflows/`, `.md` included):
+- **Markdown prose wrapped inside a parenthetical**, e.g. `Merge it by hand (the train is` / `down) with \`gh pr merge 9 --subject x\`.`.
+  - The finder's harness `python3 -I tools/policy/agreement_py.py --run`, with this plant appended to `.claude/workflows/web-fragments.md` (`ev/md_plant.sh`, `ev/md_plant.txt`):
+    - head: 64 merge calls, refused=0;
+    - main 880b667aa: 54 merge calls, refused=1 at `web-fragments.md:157`.
+  - Control, the same prose with no parenthetical: refused=1 at both ends.
+  - It also misses at 683dd52c and d0d35231 (`ev/own_probes3.txt`). It is still a regression against main, which is what merging changes.
+- **Markdown `1)` and `a)` list items, `- step 2) ...` and `:)`**: refused at main and missed at the head and 683dd52c (`ev/own_probes2.txt`).
+- **A shell array closed on the merge line**, `x=(` / ` a` / `); gh pr merge 9 --subject x`: same result.
 
-Remedy: a `roster_edit.py` change to R10-MERGE-SUBJECT-CASEARM, with no change to this head.
-- Replace the brief's case-arm scope with the three routed spellings and their XFAIL rows (`node dev/audit/harnesses/r10_merge_subject_argv_seam.mjs <agreement.mjs>`, `routed` lines).
-- Say that the case-arm class holds at #2697's merge, 49 of 49.
-- Correct the first carry's list of routed spellings.
+The shape is common in the scanned files. 134 of 1639 lines in the five scanned `.md` files hold a `)` with no `(` before it on the line (`ev/lead_closer_count.py`, `ev/reach.txt`). No such line holds a merge writer today: the finder's harness reads refused=0 unperturbed at the head. So this is a reachable domain the guard stops reading, not a live writer.
 
-The code verdict below carries to the same head once the roster is corrected.
+Remedy, either of:
+- widen the carried class and the body to "a closer in the line's lead that has no opener on the line", with these probes added to the expected-fail and the body's regression paragraph corrected; or
+- the root fix round 7 named: start the forward read at the lead's start, or skip a closer the backward read already found unmatched.
+
+Either way, R10-MERGE-SUBJECT-CASEARM's roster brief must state the regression against main and its control before this merges (Findings).
 
 ## Findings
 
-- R10-MERGE-SUBJECT-CASEARM's roster brief and first carry describe the case-arm class as the group's work and misname its three routed spellings. See Block. Carry: R10-MERGE-SUBJECT-CASEARM
-- A boundary mutant of the new skip survives every instrument. The mutant is `if (i < at) {` → `if (i < at - 3) {` (B2, my own, `ev/mutant_shas.txt`).
-  - It survives `--self-test` 180 of 180, the argv-seam table, the PR's differential and the RCA differential (planted and corpus, main_not_head=0).
-  - It changes the verdict on reachable spellings where the closer sits within three characters before `pr`. Two examples are `G=${X:-` / `gh} pr merge 9 --subject x` and the Markdown `Run it (with` / `` `gh`) pr merge 9 --subject x ``. The head refuses both and B2 misses both (`ev/boundary_probe.txt`).
-  - Main misses both too, so this is a gain the head makes that no probe pins, not a regression against main.
-  - The group that next edits `callExtent` should add one self-test probe with a closer right before the program word, so that the `< at` boundary is killed. Carry: R10-MERGE-SUBJECT-CASEARM
-- B1 (`i < at` → `i <= at`) also survives. Carry: dismissed: equivalent; the character at `at` is the first letter of the matched word, never a closer
+- The lead-closer regression above. It sits outside the stated class and outside the case-arm class text, and the body does not disposition it. Carry: R10-MERGE-SUBJECT-HARDEN
+- R10-MERGE-SUBJECT-CASEARM's roster brief does not carry two things this PR established.
+  - It states the miss as `refused=0 at e73424f2, 683dd52c, d0d35231` and never says main refuses the same spelling today. Merging #2697 turns that group from closing an open seam into repairing a regression on main. That changes the stage's urgency and its control: the control is main's own refused=1, measured at the stage's merge base.
+  - It omits the three `routed` spellings, which the body routes to the group "for the roster seat to add". They are a blank line in a Python or JS argv, and a `)` in a JS `/* */` after `merge`.
+
+  Both are in this PR's body only, at `origin/main` and at `handoff/audit-r10-roster` e78d7ded. The body also says "the roster has no brief field for it". The group has a `brief` string. Carry: R10-MERGE-SUBJECT-CASEARM
+- The case-arm expected-fail enumerates only `never)`, `(never)`, `a|b)` and `(a|b)`, plus the one-line `x)`. It has no `*)` default arm and no glob pattern arm (`[0-9]*)`).
+  - Both miss at the head and are refused at main (`ev/own_probes.txt`, 24 rows each).
+  - The `*)` default arm opens 94 of the 331 arm lines in the tree's `*.sh` (`git grep -hE '^\s*\*\)'` against `'^\s*\(?[^ ()#"]+\)\s'`, at the head).
+  - The class text, "every shell case-arm spelling", covers them, but the marked test that the group's fixer will run does not. Add them to the expected-fail. Carry: R10-MERGE-SUBJECT-CASEARM
 
 ## Evidence
 
-Head, round and scope:
-- Round 9. The measured head is `bd81b886388c840792fa69bf5a43cec1337bff02` (`ev/HEAD.txt`). It is `refs/pull/2697/head` and the head the PR body names.
-- The head merges origin/main `de794b537` onto the authored code head `2cb5fd961`. `git diff 2cb5fd961 bd81b8863 -- <the 8 PR files>` shows only the new `dev/programme/delivery/2697.md` row. The main merge adds no code delta (`ev/merge_tree_and_scope.txt`).
-- `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` is empty, so the contract is current.
-- `git merge-tree --write-tree origin/main bd81b8863` exits 0 with tree `fb791dff0`. The merge base is origin/main `de794b537` itself.
-- The three-dot diff holds 8 files and none is `VERSION`, the manifest or `RELEASE_NOTES.md`. The 5 new harnesses are classified in `tests/closures.json`.
+Head, CI and merge:
+- Round 8. Measured head: `4aad9c1175318dec0b90da4113259c3ddb38309f` (`ev/HEAD.txt`). It was still `refs/pull/2697/head` at 2026-10-25T08:18:12Z, after the last measurement. The body names it as the head.
+- `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` is empty.
+- `git merge-tree --write-tree origin/main HEAD` exits 0, tree `fb636299`, against origin/main 880b667aa (`ev/merge_tree.txt`).
+- `VERSION`, the manifest and `RELEASE_NOTES.md` are untouched, three-dot.
+- CI on this head, from the check-runs API at my read (37 runs): none concluded failure.
+  - Success: `tests / mutation`, `typing`, `browser`, `arch-instrument`, `closure-scope`, `briefs` and `nightly-status`; `governance / delivery-status`, `env-matrix`, `policy-docs` and `wave-script`; `arch-score`, `budget-raise-gate`, `hassfest`, `validate-hacs`, and `codeql` actions and javascript.
+  - Still in progress: `tests / closures`, `tests / coverage`, `tests / fast (3.14)`, `governance / instrument-self-tests` and `codeql` python.
+  - Step 11 has nothing to answer at this read.
 
-Acceptance: the RCA tree-planted differential. The instrument is `dev/audit/rca/merge-subject-class-open/differential.mjs` at #2798's branch `7c64db1b3`, copied verbatim as `ev/differential.mjs`. It is the root-cause seat's instrument, not the fixer's (`ev/differential_planted_at_head_tree.txt`, `ev/differential_main_tree_and_corpus.txt`).
+Structure and mutants:
+- `python3 tests/structure.py` → `STRUCTURE RATCHET PASSED`, `exit=0` (`ev/structure.txt`). No budget file is in the diff, so there is no re-record.
+- `node tools/policy/agreement.mjs --self-test` → `SELF-TEST 177 of 177 probes held`.
+- `python3 dev/audit/harnesses/r10_merge_subject_mutants.py` → 84 rows, 0 `NOT APPLIED`, exit 0. Exactly Y9 and Y10 print `177 of 177` (`ev/mutants.txt`), matching the body.
 
-| command | files | corpus | main_not_head |
-|---|---|---|---|
-| `planted origin/main bd81b8863` (cwd at the head) | 289 | 82735 | **0** |
-| `planted origin/main origin/main` (null control) | 289 | 82735 | 0 |
-| `planted origin/main 4aad9c117` (round-8 positive control) | 289 | 82735 | 8070 (`unmatched-closer-in-lead` 8016, `other` 54) |
-| `planted ...` with cwd at origin/main `de794b537` | 289 | 82735 | head 0, 4aad9c117 8070 |
-| `corpus origin/main origin/main bd81b8863 4aad9c117` | 192+96+8 | — | 0, 0, 147 |
+The narrowed class is closed under its own rule. `node dev/audit/harnesses/r10_merge_subject_argv_seam.mjs <guard>` at four ends (`ev/argv_seam.txt`):
 
-The instrument names no line at this head, so there is nothing to dispose.
+| row family | head | 683dd52c | d0d35231 | main 880b667aa |
+|---|---|---|---|---|
+| PROGRAM-CLASS | 144/144 | 144 | 44 | 12 |
+| WRAPPED | 12/12 | 0 | 3 | 0 |
+| CLASS | 43/43 | 31 | 30 | 13 |
+| every null twin | 0 refused | 0 | 0 | 0 |
 
-The 54 `other` lines at 4aad9c117 are each refused at this head. I listed them with my own wrapper, `ev/other54.mjs`, which reuses the RCA's corpus, `load()` and `shape()` verbatim (`ev/other54_at_head.txt`):
-- `SUMMARY {"unmatched-closer-in-lead head=refused":8016,"other head=refused":54}`;
-- examples: `audit-find.js:209`, `archscore/ABOUT.md:57`, `archscore/planted/controls.py:208`.
+- Every figure matches the body's table.
+- The 12 `CLASS` rows that 683dd52c passes are exactly the body's list: three comment gaps, the literal join, `"$O"/"$R"`, six values and the exploded call.
 
-Re-derived at three ends: the case-arm and closer-in-lead lines the r8 verdict named. I ran the r8 reviewer's own generators (`ev/r8_generators/`, from verdict/2697 7c97d8c00) against guards from the head, main `de794b537` and 4aad9c117 (`ev/r8_probes_three_ends.txt`):
-- `probe.mjs` (case arms `never)`, `a|b)`, `*)` and `[0-9]*)`, plus 15 control leads): head 228 of 228, main 228 of 228, 4aad9c117 180. Null refused 0 of 8 at all three.
-- `probe2.mjs` (`1)`, `a)`, `- step 2)`, `:)`, the shell array closed on the merge line, and JS and Python tails): head 13 of 13, main 13, 4aad9c117 8.
-- `probe3.mjs` (the wrapped Markdown parenthetical): every `MISS` across all three probes is 4aad9c117's (55 in total), and none is the head's or main's.
+The case arm is pinned open, with the group id in the harness:
+- `OPEN R10-MERGE-SUBJECT-CASEARM expected-fail: held=16 of 33; null refused=0 of 33` at the head, 683dd52c and d0d35231. It is `held=33 of 33` at main.
+- 17 lines print `XFAIL`. All are no-paren spellings at indentation 0, 2 and 8 spaces and a tab, in `.sh` and `.md`, plus the one-line `x)`.
+- `routed: held=0 of 3` at all four ends.
+- The body's Forward-carry states the class rule: with and without the paren, any indentation, multi-pattern arms.
 
-The finder's harness, `python3 -I tools/policy/agreement_py.py --run`, with the r8 plant `ev/r8_generators/md_plant.sh` (`ev/finder_md_plant.txt`):
-- head: unperturbed 63 calls, refused=0. The plant is REFUSED at `web-fragments.md:157`, and the control is REFUSED.
-- main `de794b537`: 53 calls, refused=0. The plant is REFUSED and the control is REFUSED.
-- The worktree is clean afterwards.
+My own generators are mine, not the finder's or the fixer's (`ev/probe.mjs`, `ev/probe2.mjs`, `ev/probe3.mjs`):
+- `ev/probe.mjs` puts 19 leads before three subject writers, in `.sh` and `.md`, with and without `;;`:
+  - head: `PROBE refused=180 of 228; null refused=0 of 8`;
+  - main: 228 of 228;
+  - 683dd52c: 180.
+  - All 48 head misses are case arms: `never)`, `a|b)`, `*)` and `[0-9]*)`.
+  - Leads that close their own bracket on the line are refused at the head: `( cd x ) &&`, `r=$(cat f) &&`, `[[ ]] &&`, `{ ...; } &&`, `a=(1 2);`, `$(( ))`, `if (( ))` and `echo ")"`.
+  - Over-fire nulls are 0 of 8 at all ends: a `pr view` in an arm, an arm merge with no subject, a later sibling `pr edit --title`, and prose.
+- `ev/probe2.mjs` and `ev/probe3.mjs` are the lead-closer probes in the Block. JS and Python statement tails that close an earlier line's bracket (`}); execSync(...)`, `]; os.system(...)`) are refused at the head.
 
-`bash dev/audit/harnesses/r10_merge_subject_plants.sh [origin/main]` (the finder's harness under the body's plants; `ev/plants_sh.txt`): head: unperturbed 63 calls refused=0; the 18 spelling plants refused=1 each; both closer-in-lead plants and both controls refused=1; three nulls refused=0. main `de794b537`: unperturbed 53 refused=0; the 18 spelling plants refused=0 each; the closer-in-lead plants and controls refused=1; nulls refused=0. Matches the body's table; worktree clean afterwards.
+Over-fire: the census reads no new writer. `node dev/audit/harnesses/r10_merge_subject_census.mjs <683dd52c's guard>` at the head (`ev/census.txt`):
+- `TOTAL old=63 new=63 over 290 file(s)`, with no `DIFF` line.
+- `UNCOVERED 62 of 103`, `EXTENT 11 of 63`, `SPLIT 2 of 2`.
 
-Mutants (`ev/mutants.txt`, `ev/mutants_selftest_mine.txt`, `ev/mutants_under_differential.txt`):
-- `python3 dev/audit/harnesses/r10_merge_subject_mutants.py` gives 86 rows, 0 `NOT APPLIED` and exit 0. Exactly 2 rows print `SELF-TEST 180 of 180`: Y9 and Y10, as the body says.
-- K1 (skip deleted) prints 178 of 180 and both closer probes FAIL.
-- K2 (depth kept negative) prints 179 of 180 and the null control FAILs.
-- My own mutants, committed locally and never pushed, under the acceptance instrument:
-  - K1: planted main_not_head=8070, corpus 147. It is killed by the acceptance as well as by the self-test.
-  - B3 (skip only at the extent's start): self-test 178 of 180, planted 7320, corpus 129. Killed.
-  - K2: planted 0. The acceptance measures only the loss direction, and the self-test null control kills K2.
-  - B1 and B2: see Findings.
-- Each arm the brief names is killed: the skip by K1 and B3, the depth reset by K2.
+The body's `UNCOVERED 58 of 99` and `SPLIT 1 of 1` were taken at 43940f75 against main 1aa765fd. The difference comes in with the 880b667aa merge. The new SPLIT is `tools/audit/seat/cloud_relay.sh:44`, which is a comment, not a call.
 
-Other figures at this head:
-- `node tools/policy/agreement.mjs --self-test` prints `SELF-TEST 180 of 180 probes held`, exit 0 (`ev/selftest.txt`).
-- `python3 tests/structure.py` prints `STRUCTURE RATCHET PASSED`, exit=0 (`ev/structure.txt`). No budget file is in the diff.
-- The PR's own differential, `node dev/audit/harnesses/r10_merge_subject_differential.mjs origin/main` (`ev/pr_differential.txt`), prints `TOTAL lines=109027 refused_main=7445 refused_head=7445 main_not_head=0`, exit 0. Against 4aad9c117 it prints `main_not_head=5455` (plants 55, generated 5400). Each part matches the body's table.
-- `r10_merge_subject_argv_seam.mjs` (`ev/argv_seam_head.txt`, `ev/argv_seam_ends.txt`):
-
-  | row family | head | 4aad9c117 | main `de794b537` |
-  |---|---|---|---|
-  | PROGRAM-CLASS | 144/144 | 144 | 12 |
-  | WRAPPED | 12/12 | 12 | 0 |
-  | CLASS | 43/43 | 43 | 13 |
-  | case arm `held=` | 49 of 49 | 16 | 49 |
-  | `routed held=` | 0 of 3 | 0 | 0 |
-
-  Every null is 0, and the figures match the body.
-- The census against 4aad9c117's guard (`ev/census.txt`) prints `TOTAL old=63 new=63` with no `DIFF` line, plus `UNCOVERED 62 of 103`, `EXTENT 11 of 63` and `SPLIT 2 of 2`. These match the body, and the EXTENT and SPLIT sites are the ones it names.
-
-CI on this head, from the check-runs API (37 runs, read during this review):
-- None concluded failure.
-- Success: `tests / mutation`, `typing`, `browser`, `arch-instrument`, `closure-scope`, `briefs` and `nightly-status`; `governance / delivery-status`, `env-matrix`, `policy-docs` and `wave-script`; `arch-score`, `budget-raise-gate`, `hassfest`, `validate-hacs`, and `codeql` actions and javascript.
-- Still in progress: `tests / closures`, `tests / coverage`, `tests / fast (3.14)`, `governance / instrument-self-tests`, `codeql` python, and one `prelude`.
-- Step 11 has nothing to answer at this read. The body's "Red checks: none" holds so far.
+The body's other brief item, the `(#N)` title laxity, is in the diff as `TEMPLATE_SUBJECT` with its probe and null control.
 
 UNCERTAINTIES:
-- I did not re-take the body's hygiene list (entities, ci_predict, policy_lint, rules_sync, archscore). Those figures are the body's, taken at `2cb5fd961`.
-- I used `python3` from PATH.
+- I did not re-run the body's `r10_merge_subject_plants.sh` table. My finder's-harness plant covers the new spelling only. The 18 spelling plants are taken from the body and from the argv-seam table, which I did re-run.
+- I used `python3` from PATH. There is no `seat-python3` in this container.
+- The figure of 134 lead-closer lines is my own definition: a `)` with no `(` before it on the line, over the guard's scanned `.md` files. It is not the guard's grammar.
+- I did not judge whether the owner's split ruling meant to accept a regression against main at all. The block is on the body's under-statement of the regression, not on the split.
