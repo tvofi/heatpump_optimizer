@@ -1,0 +1,11 @@
+KILLED	fires one sweep late	owed_unactioned self-test: 21 checks, 5 failed
+KILLED	an ack never lapses	owed_unactioned self-test: 21 checks, 1 failed
+KILLED	a stale board reads clean	owed_unactioned self-test: 21 checks, 1 failed
+KILLED	any ack covers any tip	owed_unactioned self-test: 21 checks, 1 failed
+KILLED	a re-read board counts a sweep	owed_unactioned self-test: 21 checks, 1 failed
+KILLED	DISPATCH lines leave the family	owed_unactioned self-test: 21 checks, 3 failed
+KILLED	a future ack is accepted	owed_unactioned self-test: 21 checks, 1 failed
+KILLED	an over-long ttl is accepted	owed_unactioned self-test: 21 checks, 1 failed
+KILLED	an unkeyable line is skipped	owed_unactioned self-test: 21 checks, 1 failed
+KILLED	an unreadable state starts fresh	owed_unactioned self-test: 21 checks, 1 failed
+mutants: 10, not killed 0

@@ -4534,6 +4534,22 @@
         "dev/audit/rca/R10-RCA-HEADMOVED.md"
       ]
     },
+    "R10-RCA-OWED-UNACTIONED": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "tick OWED lines stood for hours with no action: triage-s7-batch49 and r10-review-carry 5.7 h and 5.6 h host-up, critical-path r10-orch-beatd (#2916) 1.9 h on 2026-10-28; three more past 4 h on the night's sweep log",
+      "trigger": "recurrence (owner corrections 2026-10-18, 10-22, 10-24, 10-28; 6 instances past the 4 h threshold in about 11.4 host-up hours of sweeps)",
+      "date": "2026-10-28",
+      "status": "proposed",
+      "parts_missing": [],
+      "process_state": "(c) the sweep ran (19 board reads 10:40Z-18:55Z) and its unit, a board read, cannot tell a standing, a handled and a failed-handling owed line apart; the board's rc ignores owed lines, its owed view shows 8 of 26, and 15 of 19 reads filtered the block away",
+      "countermeasure": "built: tools/audit/seat/owed_unactioned.py, run in sweep_template.md step (5): exit 1 on every owed key standing 2 sweeps with no live OWED-ACK (lapsing, 1 h default, 12 h cap); fires on today's and the night's boards, null controls quiet, 10 of 10 mutants killed; session orch_sweep.sh fold and the split ledger home are the orchestrator's",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R10-RCA-OWED-UNACTIONED.md",
+      "doc": [
+        "dev/audit/rca/R10-RCA-OWED-UNACTIONED.md"
+      ]
+    },
     "R10-N-vocabulary-drift": {
       "class": "N-vocabulary-drift",
       "level": "class",
