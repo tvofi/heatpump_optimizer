@@ -19,6 +19,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-BUFFER-STORE (stage in-review, branch `handoff/r10-buffer-store`): `git fetch origin handoff/r10-buffer-store && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-COP-PARTLOAD (stage in-progress, branch `handoff/r10-cop-partload`): `git fetch origin handoff/r10-cop-partload && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-ORCH-MACHINERY (stage absorbed): no branch pushed yet, so nothing to fetch
+- R10-LEARNER-DEFAULT (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-FLOW-BOARD (stage carries-open, branch `handoff/r10-flow-board`): `git fetch origin handoff/r10-flow-board && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLOW-MAIN-GATE (stage carries-open, branch `handoff/r10-flow-main-gate`): `git fetch origin handoff/r10-flow-main-gate && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-OPENPR-ATOMIC (stage carries-open, branch `handoff/r10-fly-openpr-atomic`): `git fetch origin handoff/r10-fly-openpr-atomic && git worktree add --detach $SEAT/wt FETCH_HEAD`
