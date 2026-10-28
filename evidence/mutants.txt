@@ -1,0 +1,23 @@
+== mutant 1: drop _rca entry R10-RCA-CI-RATCHET-RUN-NAME
+deleted from _rca
+UNKNOWN-RCA: N-p2b-assembly-reader cites R10-RCA-CI-RATCHET-RUN-NAME, which _rca does not index
+fold_ledger: 1 violation(s)
+== mutant 2: drop class id from finding.schema.json enum
+RESULT divergent=3 unregistered=0 dead=0 refused=0 seconds=2.2
+AGREEMENT REFUSED: one concept, readers that disagree or a grammar written twice and unregistered
+fold_ledger: 0 violation(s)
+== mutant 3: drop class row N-p2b-assembly-reader
+fold_ledger: 0 violation(s)
+RESULT divergent=0 unregistered=0 dead=0 refused=0 seconds=2.1
+AGREEMENT ok
+== restored
+== mutant 3 vs check-wave-script (tools/policy/check-wave-script.mjs)
+  ok   a throwing block is reported as a failure rather than ending the run
+
+209 passed, 0 failed
+exit-head: 0
+-- Provenance and the fail-closed Reconcile gate
+  ok   a wave refuses to run without a committed roster
+  ok   a fixer that returns prose in `pr` is refused, after one retry
+  ok   an unrecognised stage refuses instead of starting a fresh fixer
+  ok   every bare resume key in a decided branch is classified by the rule

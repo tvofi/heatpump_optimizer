@@ -1,6 +1,43 @@
-head b5cf12dfe83705acaf5726b8e018e84174ac8883
+== merge-tree
+f0b3ea308dce0a24999fea6a18360c749d8abdc2
+exit 0
+== fold_ledger check
 fold_ledger: 46 classes, 746 instances, 121 in-tree judge survivors (rounds [8, 10]), 121 rca entries
 fold_ledger: 0 violation(s)
-0618051976f489a5e90e92772136f4d63d0e76a3
-merge-tree exit 0
-e8a08cf9efefc96c36e79efa7459562e27007b54
+== agreement
+RESULT divergent=0 unregistered=0 dead=0 refused=0 seconds=2.3
+AGREEMENT ok
+agreement_py restore: 14 closure file(s), 14 covered by the wave-script restore list, 0 missing
+== structure
+
+STRUCTURE RATCHET PASSED
+== closure select
+  MODE: SCOPED -- 0 script(s) run, 33 scoped out.
+  changed files (5), measured against the recorded closures in tests/closures.json:
+      SKIP  tests/arch_score.py  (closure: 156 files, no changed file is in its measured closure)
+      SKIP  tests/arch_score_head.py  (closure: 124 files, no changed file is in its measured closure)
+      SKIP  tests/backtest.py  (closure: 36 files, no changed file is in its measured closure)
+      SKIP  tests/block_duty.py  (closure: 90 files, no changed file is in its measured closure)
+      SKIP  tests/boost_drift_replay.py  (closure: 89 files, no changed file is in its measured closure)
+      SKIP  tests/card.mjs  (closure: 94 files, no changed file is in its measured closure)
+      SKIP  tests/card_drift.mjs  (closure: 97 files, no changed file is in its measured closure)
+      SKIP  tests/config_flow_steps.py  (closure: 126 files, no changed file is in its measured closure)
+== row
+0 None 4 ['R10-RCA-CI-RATCHET-RUN-NAME']
+== not registered
+141:  (`defect-root-cause.md`). They are not registered in `bugclasses.json`; I did not register them.
+== version
+== diff b5cf..b7564 files
+ dev/audit/rca/R10-RCA-CI-RATCHET-RUN-NAME.md | 16 ++++++++++++----
+ 1 file changed, 12 insertions(+), 4 deletions(-)
+== eof
+0000020       }  \n   }
+0000024
+0000000  \n   }  \n
+0000003
+== sync check
+usage: fold_ledger.py [-h] [--root ROOT] [--round ROUND] [--dry-run]
+                      [--ledger LEDGER] [--judge JUDGE] [--self-test]
+                      [{fold,check,refresh,sync}]
+
+Fold an audit round into dev/audit/config/bugclasses.json, and check the
