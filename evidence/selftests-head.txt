@@ -1,6 +1,0 @@
-  ok   stand-in: none for a leg main never analyzed (the leg analyzes)
-  ok   stand-in: main's provenance and category are dropped, the results kept
-codeql_scope self-test: 90 checks, 0 failed
-prelude self-test: 38 checks, 0 failed
-gate self-test: 37 checks, 0 failed
-codescan_wait self-test: 17 checks, 0 failed
