@@ -1,11 +1,18 @@
-KILLED	fires one sweep late	owed_unactioned self-test: 21 checks, 5 failed
-KILLED	an ack never lapses	owed_unactioned self-test: 21 checks, 1 failed
-KILLED	a stale board reads clean	owed_unactioned self-test: 21 checks, 1 failed
-KILLED	any ack covers any tip	owed_unactioned self-test: 21 checks, 1 failed
-KILLED	a re-read board counts a sweep	owed_unactioned self-test: 21 checks, 1 failed
-KILLED	DISPATCH lines leave the family	owed_unactioned self-test: 21 checks, 3 failed
-KILLED	a future ack is accepted	owed_unactioned self-test: 21 checks, 1 failed
-KILLED	an over-long ttl is accepted	owed_unactioned self-test: 21 checks, 1 failed
-KILLED	an unkeyable line is skipped	owed_unactioned self-test: 21 checks, 1 failed
-KILLED	an unreadable state starts fresh	owed_unactioned self-test: 21 checks, 1 failed
-mutants: 10, not killed 0
+KILLED	fires one sweep late	owed_unactioned self-test: 29 checks, 11 failed
+KILLED	an ack never lapses	owed_unactioned self-test: 29 checks, 1 failed
+KILLED	a stale board reads clean	owed_unactioned self-test: 29 checks, 1 failed
+KILLED	any ack covers any tip	owed_unactioned self-test: 29 checks, 2 failed
+KILLED	a re-read board counts a sweep	owed_unactioned self-test: 29 checks, 1 failed
+KILLED	DISPATCH lines leave the family	owed_unactioned self-test: 29 checks, 4 failed
+KILLED	a future ack is accepted	owed_unactioned self-test: 29 checks, 1 failed
+KILLED	an over-long ttl is accepted	owed_unactioned self-test: 29 checks, 1 failed
+KILLED	an unkeyable line is skipped	owed_unactioned self-test: 29 checks, 1 failed
+KILLED	an indented `ack:` echo is an ack	owed_unactioned self-test: 29 checks, 1 failed
+KILLED	a <placeholder> reason is accepted	owed_unactioned self-test: 29 checks, 1 failed
+KILLED	a 1-character id covers a sha	owed_unactioned self-test: 29 checks, 1 failed
+KILLED	a malformed state entry is read	"] + (1 if fresh else 0)}
+                        ~~~^^^^^^^^^
+KeyError: 'first'
+KILLED	the template prints a live time	owed_unactioned self-test: 29 checks, 1 failed
+KILLED	an unreadable state starts fresh	owed_unactioned self-test: 29 checks, 2 failed
+mutants: 15, not killed 0
