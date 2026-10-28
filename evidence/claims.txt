@@ -1,0 +1,36 @@
+== review_packet.py:31,308,327
+  carry-audit      `carry_audit.py check` returns 1 on the body (unrouted or bad);
+        "## carry_audit at the head", facts["carry_out"], "",
+    crc, cout = tool([sys.executable, "-I", "tools/audit/carry_audit.py", "check", "--body", "{BODY}"], body)
+== queue_pre_flight.py:172,176,192
+        if why := self.findings_gate(pr):
+    def findings_gate(self, pr: int) -> str:
+        if not ca.finding_rows(body, comments)[0]:
+== carry_audit.py:91,189
+VERDICT = re.compile(r"^Fix review:\s+\w+\s+[0-9a-f]{7,40}\b")
+    blocked_verdict = text.split(None, 3)[2:3] == ["blocked"]  # read only for a verdict
+== CODEOWNERS:89
+/tools/audit/carry_audit.py               @tvofi
+== body_push.sh:40,73
+  [ "$HREF" = "$(git -C "$ROOT" rev-parse HEAD)" ] || { echo "body_push: handoff/$TOPIC is at ${HREF:0:12}, this checkout at $(git -C "$ROOT" rev-parse --short=12 HEAD); push the code, then the body" >&2; exit 1; }
+C=$(git commit-tree "$TREE" $P -m "body: $TOPIC")
+== cloud_relay.sh:165,392,421,438,444,711,749
+level_line() { printf 'OWED %s %s %s %s%s\n' "$(date -u +%FT%TZ)" "$1" "$2" "$3" "${4:+ $4}"; }  # [why]
+  f=$state/cloud-handoff-failed; mkdir -p "$state"
+    if [ -f "$f" ] && grep -qxF "$topic $hs" "$f"; then level_line handoff-update "refs/heads/handoff/$topic" "$hs" >> "$state/cloud-level-update.$$"; continue; fi
+    pr_own_group "${upd[@]}" "$br" "$hs" "$body" $iss >&2 &
+      echo "$topic $hs" >> "$f"; level_line handoff-update "refs/heads/handoff/$topic" "$hs" >> "$state/cloud-level-update.$$"; rm -rf "$bd"; continue
+  # the handoff arm (a bare origin holds PR branches, handoff/ and handoff-body/ refs)
+  handoff_arm >/dev/null 2>&1
+== prepr.sh wc
+    3927
+== prepr.sh:519,534,716,1034
+recorder_python() { # -> the interpreter on stdout; rc 1 with the remedy when none parses
+}
+        rp=$(recorder_python) || { echo "$rp"; r=1; }
+  out=$(cd "$1" && PYTHONPATH=tests/hastub python3 tests/closure.py no-copies 2>&1); r=$?
+== cloud-handoff-failed:115
+triage-s6-batch45 2d296452f6db74afc8f8dd590f34daf27cb0d6dc
+== clean-env python3
+/usr/bin/python3
+Python 3.9.6

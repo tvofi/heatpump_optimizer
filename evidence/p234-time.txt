@@ -1,0 +1,8 @@
+rc=0
+real 12.94
+user 5.69
+sys 0.21
+rc=0
+real 11.82
+user 5.67
+sys 0.20

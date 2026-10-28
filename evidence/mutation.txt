@@ -1,0 +1,10 @@
+RESULT verdicts P232 REJECT / P233 ACCEPT / P234 ACCEPT / P999 None
+RESULT carry P233 None
+RESULT mutant heading P233 dev/programme/triage/s6-batch46.md#P233 is not an ACCEPT ruling (no such entry)
+RESULT mutant DEFER P233 dev/programme/triage/s6-batch46.md#P233 is not an ACCEPT ruling (DEFER)
+RESULT carry P234 None
+RESULT mutant heading P234 dev/programme/triage/s6-batch46.md#P234 is not an ACCEPT ruling (no such entry)
+RESULT mutant DEFER P234 dev/programme/triage/s6-batch46.md#P234 is not an ACCEPT ruling (DEFER)
+RESULT null missing the triage ruling dev/programme/triage/s6-batch46.md is not on the roster branch or origin/main
+RESULT null uncited proposal-sourced text cites no triage ruling (`triage: dev/programme/triage/<file>.md#P<n>`): 'proposal V1 text, triage P1'
+RESULT null REJECT cited dev/programme/triage/s6-batch46.md#P232 is not an ACCEPT ruling (REJECT)

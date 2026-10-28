@@ -1,0 +1,6 @@
+NOTE #2900 review 6458631147 item bc020f97: dismissed:correct the figure in the same re-cut as F1
+NOTE #2900 review 6458631147 item 28b9dfe6: dismissed:snapshot figure, conclusion unchanged
+NOTE #2900 review 6458631147 item f378dd2d: dismissed:out-of-tree log, in-tree mechanism verified
+NOTE #2900 review 6459350190 item 0a8146a6: dismissed:no ruling turns on it
+CARRY-AUDIT: 4 finding item(s): 4 routed, 0 unrouted, 0 bad destination(s)
+CARRY-SWEEP: 1 pull request(s), 0 other unowned finding(s)
