@@ -24,6 +24,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-RCA-FRICTION-RESIDUE (stage in-progress, branch `handoff/r10-rca-friction-residue`): `git fetch origin handoff/r10-rca-friction-residue && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-NIGHTLY-HB-RESPAWN (stage queued, branch `handoff/r10-nightly-hb-respawn`): `git fetch origin handoff/r10-nightly-hb-respawn && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-ORCH-LEDGER (stage carries-open): no branch pushed yet, so nothing to fetch
+- R10-ORCH-BEATD (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-FLY-SUITE-ENV-FLAKES (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-FLY-NO-FOOTERS (stage carries-open, branch `handoff/r10-fly-no-footers`): `git fetch origin handoff/r10-fly-no-footers && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-ROUTING-INVARIANTS (stage absorbed, branch `handoff/r10-routing-invariants`): `git fetch origin handoff/r10-routing-invariants && git worktree add --detach $SEAT/wt FETCH_HEAD`
