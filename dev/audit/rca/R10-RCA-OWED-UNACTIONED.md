@@ -184,7 +184,15 @@ result.
   most recent handling of a line is therefore always re-checked within 12 h.
   Free text in a queue covers nothing; that is exactly the 10:55Z and 17:39Z
   routing lines.
-- Exit 1 prints the block, oldest first, each entry with a ready ack line.
+- The tool's own output is no acknowledgement (round 2, #2930 review 1, which
+  found that logging the output in the seat ledger acknowledged all 12 keys).
+  An `OWED-ACK` counts only on a line of its own, so the indented `ack:` echo
+  does not. Its reason must hold no `<placeholder>`. The printed template's
+  time slot is `<UTC>`, so as printed it cannot parse. Its id must be a prefix
+  of 7 or more characters of a current sha, or the whole of a non-sha ledger
+  id such as a pid: a 1-character id covered about 1 in 16 new tips.
+- Exit 1 prints the block, oldest first, each entry with an ack template to
+  fill in.
 - Exit 2 means it cannot say: no provenance line, a board older than 20 min,
   an owed line it cannot key, or an unreadable state file. It never exits 0
   in that case.
@@ -216,11 +224,25 @@ done while it exits 1. Its `INSTRUMENTS.md` entry is beside the others.
   - The self-test's all-clear board exits 0 with 0 keys.
 - **It is not green by skipping.** These self-test arms each exit 2: a board
   with no provenance line, a 45-minute-old board, an owed line it cannot key,
-  and a corrupt state file. A future, over-long or malformed acknowledgement
-  is refused and covers nothing.
-- **Mutation proof.** `mutants_out.tsv` plants 10 mutants, one per predicate
-  above, and the self-test kills all 10. The self-test runs 21 checks
-  offline.
+  a corrupt state file, and a state entry missing `first` or `sweeps` (round 1
+  raised `KeyError` there and exited 1). A future, over-long, malformed or
+  still-templated acknowledgement is refused and covers nothing.
+- **The tool's own output acknowledges nothing.** The echo control in
+  `live_out.txt` feeds the 19:12Z run's output back as the only ack file: 0
+  acknowledged, 12 unactioned, exit 1. On round 1 the same input gave 12
+  acknowledged, exit 0. The self-test does the same and requires exit 1. Its
+  null control fills in those same lines and gives them a time, and then both
+  keys are acknowledged.
+- **Mutation proof.** `mutants_out.tsv` plants 15 mutants, one per predicate
+  above, and the self-test kills all 15. Five of them are new in round 2:
+  - the anchor removed, so the echo counts;
+  - the placeholder refusal removed;
+  - the 7-character id floor removed;
+  - the state-entry check removed;
+  - the template printing a live time.
+
+  The self-test runs 29 checks offline. The round-2 checks went red first on
+  round 1's code: 3 failed, plus the `KeyError` crash.
 
 ## 7. Owed by others; not built here
 

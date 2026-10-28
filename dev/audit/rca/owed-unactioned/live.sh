@@ -1,7 +1,8 @@
 #!/bin/bash
 # live.sh <checkout> <ack file>...: the two live boards of 2026-10-28 (boards/), each read one
 # minute after its provenance time against one fresh state, with the session's own queue and
-# seat ledger as the ack files; then the null control, every key acknowledged at the second board.
+# seat ledger as the ack files; then the null control, every key acknowledged at the second board;
+# then the echo control: the tool's own output fed back as the ack file must acknowledge nothing.
 set -uo pipefail
 W=$1; shift; T=$W/tools/audit/seat/owed_unactioned.py; B=$(cd "$(dirname "$0")" && pwd)/boards
 S=$(mktemp -d); trap 'rm -rf "$S"' EXIT
@@ -19,3 +20,7 @@ for k, v in ou.board(open(sys.argv[2]).read())[1].items():
     print(f"OWED-ACK {sys.argv[3]} {k} {(v['shas'] or ['-'])[0]} ttl=1 null control: named next action")
 PY
 python3 -I "$T" --tick "$B/tick-1912.txt" --state "$S/live.json" --acks "$S/acks.md" --now "$now" | head -1; echo "rc=${PIPESTATUS[0]}"
+echo "== echo control (#2930 review 1): tick-1912's own output logged verbatim as the only ack file"
+S2=$(mktemp -d); python3 -I "$T" --tick "$B/tick-1904.txt" --state "$S2/e.json" --now "$now" --max-board-min 60 >/dev/null
+python3 -I "$T" --tick "$B/tick-1912.txt" --state "$S2/e.json" --now "$now" > "$S2/out.txt"
+python3 -I "$T" --tick "$B/tick-1912.txt" --state "$S2/e.json" --acks "$S2/out.txt" --now "$now" --no-write | grep -E '^owed:' ; echo "rc=${PIPESTATUS[0]}"; rm -rf "$S2"

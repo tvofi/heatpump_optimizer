@@ -8,55 +8,58 @@ owed: 12 key(s) on board 2026-10-28T19:12:36Z; 0 acknowledged, 12 unactioned (st
 UNACTIONED
   #2887  sweeps=2 first=2026-10-28T19:04:55Z (0.1h)
       -> REVIEW OWED: #2887 17d3cf384a91
-      ack: OWED-ACK 2026-10-28T19:13:36Z #2887 17d3cf384a91 ttl=1 <next action, by whom; what it waits on>
+      ack: OWED-ACK <UTC> #2887 17d3cf384a91 ttl=1 <next action, by whom; what it waits on>
   #2896  sweeps=2 first=2026-10-28T19:04:55Z (0.1h)
       -> REVIEW OWED: #2896 82a6ef4a1004
-      ack: OWED-ACK 2026-10-28T19:13:36Z #2896 82a6ef4a1004 ttl=1 <next action, by whom; what it waits on>
+      ack: OWED-ACK <UTC> #2896 82a6ef4a1004 ttl=1 <next action, by whom; what it waits on>
   audit-r10-roster  sweeps=2 first=2026-10-28T19:04:55Z (0.1h)
       -> OWED handoff: audit-r10-roster be898eaef54a6ba1f996b4ca9b11c6f93ce94ea4 0.0h uncovered=7 repair=opener -- no PR head carries it: open_pr.sh (opener), u
-      ack: OWED-ACK 2026-10-28T19:13:36Z audit-r10-roster be898eaef54a ttl=1 <next action, by whom; what it waits on>
+      ack: OWED-ACK <UTC> audit-r10-roster be898eaef54a ttl=1 <next action, by whom; what it waits on>
   r10-buffer-store  sweeps=2 first=2026-10-28T19:04:55Z (0.1h)
       -> OWED: OWED 2026-10-28T19:12:49Z handoff-update refs/heads/handoff/r10-buffer-store 6ff573112cbfd1e0dc410cd0f056f3d978c54116
       -> OWED handoff: r10-buffer-store 6ff573112cbfd1e0dc410cd0f056f3d978c54116 2.3h uncovered=5 repair=update -- no PR head carries it: open_pr.sh (opener), u
-      ack: OWED-ACK 2026-10-28T19:13:36Z r10-buffer-store 6ff573112cbf ttl=1 <next action, by whom; what it waits on>
+      ack: OWED-ACK <UTC> r10-buffer-store 6ff573112cbf ttl=1 <next action, by whom; what it waits on>
   r10-configflow-pages  sweeps=2 first=2026-10-28T19:04:55Z (0.1h)
       -> DESIGN-BUILD: R10-CONFIGFLOW-PAGES design/r10-configflow-pages 32892dc67863 approved, no build dispatched (stage not-started)
-      ack: OWED-ACK 2026-10-28T19:13:36Z r10-configflow-pages 32892dc67863 ttl=1 <next action, by whom; what it waits on>
+      ack: OWED-ACK <UTC> r10-configflow-pages 32892dc67863 ttl=1 <next action, by whom; what it waits on>
   r10-handoff-bodies  sweeps=2 first=2026-10-28T19:04:55Z (0.1h)
       -> OWED: OWED 2026-10-28T19:12:53Z handoff-no-pr refs/heads/handoff-body/r10-handoff-bodies 0e34b52305292d333fd0c33839e9f2ce0e67ee0d ct=1793148745
       -> DISPATCH: ? refs/heads/handoff-body/r10-handoff-bodies 0e34b5230529 no code ref (18.3h)
       -> OWNER FLAG: ? refs/heads/handoff-body/r10-handoff-bodies 0e34b5230529 stranded 18.3h (threshold 12h)
-      ack: OWED-ACK 2026-10-28T19:13:36Z r10-handoff-bodies 0e34b5230529 ttl=1 <next action, by whom; what it waits on>
+      ack: OWED-ACK <UTC> r10-handoff-bodies 0e34b5230529 ttl=1 <next action, by whom; what it waits on>
   r10-orch-beatd  sweeps=2 first=2026-10-28T19:04:55Z (0.1h)
       -> OWED: OWED 2026-10-28T19:12:26Z handoff-held refs/heads/handoff/r10-orch-beatd c991d64cdaef342d282d1a8e991dadc2671f917d #2916 REVIEW
       -> OWED handoff: r10-orch-beatd c991d64cdaef342d282d1a8e991dadc2671f917d 1.9h uncovered=1 repair=review -- no PR head carries it: open_pr.sh (opener), upd
-      ack: OWED-ACK 2026-10-28T19:13:36Z r10-orch-beatd c991d64cdaef ttl=1 <next action, by whom; what it waits on>
+      ack: OWED-ACK <UTC> r10-orch-beatd c991d64cdaef ttl=1 <next action, by whom; what it waits on>
   r10-rca-state-beat-gate  sweeps=2 first=2026-10-28T19:04:55Z (0.1h)
       -> OWED: OWED 2026-10-28T19:12:53Z handoff-no-pr refs/heads/handoff-body/r10-rca-state-beat-gate a0d474025255f6fb65181368234cf01fba7333cd ct=1793135566
       -> DISPATCH: ? refs/heads/handoff-body/r10-rca-state-beat-gate a0d474025255 no code ref (22.0h)
       -> OWNER FLAG: ? refs/heads/handoff-body/r10-rca-state-beat-gate a0d474025255 stranded 22.0h (threshold 12h)
-      ack: OWED-ACK 2026-10-28T19:13:36Z r10-rca-state-beat-gate a0d474025255 ttl=1 <next action, by whom; what it waits on>
+      ack: OWED-ACK <UTC> r10-rca-state-beat-gate a0d474025255 ttl=1 <next action, by whom; what it waits on>
   r10-review-carry  sweeps=2 first=2026-10-28T19:04:55Z (0.1h)
       -> OWED: OWED 2026-10-28T19:12:53Z handoff-no-pr refs/heads/handoff-body/r10-review-carry 855634af515a5ab7e3e70e0705a249bc843bf65f ct=1793184251 attempt=2
       -> OWED: OWED 2026-10-28T19:12:53Z handoff-no-pr refs/heads/handoff/r10-review-carry 32221ca27fadfcf5735889b24cafa162eb395cd8 ct=1793183831 attempt=2026-1
       -> DISPATCH: R10-REVIEW-CARRY refs/heads/handoff/r10-review-carry 32221ca27fad opener (8.6h; last attempt 2026-10-28T17:16:39Z,unopened)
       -> OWED handoff: r10-review-carry 32221ca27fadfcf5735889b24cafa162eb395cd8 8.6h uncovered=6 repair=opener -- no PR head carries it: open_pr.sh (opener), u
-      ack: OWED-ACK 2026-10-28T19:13:36Z r10-review-carry 855634af515a ttl=1 <next action, by whom; what it waits on>
+      ack: OWED-ACK <UTC> r10-review-carry 855634af515a ttl=1 <next action, by whom; what it waits on>
   r10-ux-health  sweeps=2 first=2026-10-28T19:04:55Z (0.1h)
       -> DESIGN-BUILD: R10-UX-HEALTH design/r10-ux-health e6797ca9d94e approved, no build dispatched (stage not-started)
-      ack: OWED-ACK 2026-10-28T19:13:36Z r10-ux-health e6797ca9d94e ttl=1 <next action, by whom; what it waits on>
+      ack: OWED-ACK <UTC> r10-ux-health e6797ca9d94e ttl=1 <next action, by whom; what it waits on>
   roster-b24-wip  sweeps=2 first=2026-10-28T19:04:55Z (0.1h)
       -> OWED: OWED 2026-10-28T19:12:53Z handoff-no-pr refs/heads/handoff/roster-b24-wip 7191d786acaa7e4d6b06b82c1131ec32ddefcddf ct=1793102500
       -> DISPATCH: ? refs/heads/handoff/roster-b24-wip 7191d786acaa no body ref (31.2h)
       -> OWNER FLAG: ? refs/heads/handoff/roster-b24-wip 7191d786acaa stranded 31.2h (threshold 12h)
-      ack: OWED-ACK 2026-10-28T19:13:36Z roster-b24-wip 7191d786acaa ttl=1 <next action, by whom; what it waits on>
+      ack: OWED-ACK <UTC> roster-b24-wip 7191d786acaa ttl=1 <next action, by whom; what it waits on>
   triage-s7-batch49  sweeps=2 first=2026-10-28T19:04:55Z (0.1h)
       -> OWED: OWED 2026-10-28T19:12:53Z handoff-no-pr refs/heads/handoff-body/triage-s7-batch49 b264fdd66f9427fb1a777a193e48960a161156bb ct=1793183892 attempt=
       -> OWED: OWED 2026-10-28T19:12:53Z handoff-no-pr refs/heads/handoff/triage-s7-batch49 40bec0ab6c44747b9311abb80ca8220b2656b0b7 ct=1793181926 attempt=2026-
       -> DISPATCH: ? refs/heads/handoff/triage-s7-batch49 40bec0ab6c44 opener (9.1h; last attempt 2026-10-28T17:36:08Z,unopened)
       -> OWED handoff: triage-s7-batch49 40bec0ab6c44747b9311abb80ca8220b2656b0b7 9.1h uncovered=1 repair=opener -- no PR head carries it: open_pr.sh (opener), 
-      ack: OWED-ACK 2026-10-28T19:13:36Z triage-s7-batch49 b264fdd66f94 ttl=1 <next action, by whom; what it waits on>
+      ack: OWED-ACK <UTC> triage-s7-batch49 b264fdd66f94 ttl=1 <next action, by whom; what it waits on>
 rc=1
 == null control: tick-1912 again, every key acknowledged at 2026-10-28T19:13:36Z
 owed: 12 key(s) on board 2026-10-28T19:12:36Z; 12 acknowledged, 0 unactioned (standing 2+ sweeps with no live OWED-ACK)
 rc=0
+== echo control (#2930 review 1): tick-1912's own output logged verbatim as the only ack file
+owed: 12 key(s) on board 2026-10-28T19:12:36Z; 0 acknowledged, 12 unactioned (standing 2+ sweeps with no live OWED-ACK)
+rc=1

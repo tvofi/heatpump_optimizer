@@ -23,9 +23,11 @@ acknowledgement line in an `--acks` file covers it now:
 
     OWED-ACK <UTC ISO> <key> <id> [ttl=<hours>] <next action; what it waits on>
 
-The id is a prefix of a sha the key's lines carry this board (the ledger's own
-id column for a kind with no sha, `-` for a line with none), so a new tip needs
-a new acknowledgement. An acknowledgement lapses after ttl hours (default 1, at
+It is a line of its own (the tool's indented `ack:` echo is not), its reason
+holds no `<placeholder>`, and its id is a 7+ character prefix of a sha the
+key's lines carry this board, or the whole of the ledger's own id for a kind
+with no sha (`-` for a line with none). So a new tip needs a new
+acknowledgement, and logging the tool's output acknowledges nothing. An acknowledgement lapses after ttl hours (default 1, at
 most 12, the owner's OWNER FLAG threshold), so a handled line comes back and the
 handling is checked again. Free text in a queue file is not an acknowledgement.
 
@@ -49,7 +51,11 @@ FAMILY = re.compile(r"^-> (OWED|REVIEW OWED:|DISPATCH:|OWNER FLAG:|DESIGN-BUILD:
 BOARD = re.compile(r"^BOARD measured from origin/main at \S+, (\S+)")
 SHA = re.compile(r"\b[0-9a-f]{12,40}\b")
 REF = re.compile(r"\b(?:refs/heads/)?(?:handoff-body|handoff|design)/(\S+)")
-ACK = re.compile(r"OWED-ACK (\S+) (\S+) (\S+)(?: ttl=(\S+))? +(\S.*)$")
+# Anchored at the line start (a list marker allowed): the tool's own `      ack: OWED-ACK ...`
+# echo is not an acknowledgement, and a reason still holding a `<placeholder>` is refused.
+ACK = re.compile(r"^\s*(?:[-*]\s+)?OWED-ACK (\S+) (\S+) (\S+)(?: ttl=(\S+))? +(\S.*)$")
+PLACEHOLDER = re.compile(r"<[^<>]*>")
+ID_FLOOR = 7  # an id shorter than this covers a sha only by being the whole id
 TTL_DEFAULT, TTL_MAX = 1.0, 12.0
 
 
@@ -112,7 +118,10 @@ def acks(texts: list, now: dt.datetime) -> "tuple[dict, list[str]]":
             m = ACK.search(line)
             why = None
             if not m:
-                why = "not `OWED-ACK <UTC ISO> <key> <sha> [ttl=<h>] <reason>`"
+                why = ("not a line of its own: `OWED-ACK <UTC ISO> <key> <id> [ttl=<h>] <reason>` "
+                       "(the tool's own `ack:` echo is not one)")
+            elif PLACEHOLDER.search(m.group(5)):
+                why = "the reason is still the template's <placeholder>"
             else:
                 try:
                     at = utc(m.group(1))
@@ -149,6 +158,12 @@ def run(tick: str, state_path: str, ack_texts: list, now: dt.datetime, after: in
             state = json.load(fh)
         if not isinstance(state.get("keys"), dict):
             raise ValueError("no `keys` object")
+        for k, e in state["keys"].items():
+            if not (isinstance(e, dict) and isinstance(e.get("first"), str)
+                    and isinstance(e.get("sweeps"), int) and not isinstance(e["sweeps"], bool)
+                    and e["sweeps"] >= 1):
+                raise ValueError(f"entry `{k}` is not {{first: <UTC>, sweeps: <n >= 1>}}")
+            utc(e["first"])
     except FileNotFoundError:
         state = {"board": None, "keys": {}}
     except (OSError, ValueError) as e:
@@ -176,7 +191,8 @@ def run(tick: str, state_path: str, ack_texts: list, now: dt.datetime, after: in
     for k, s in sorted(seen.items(), key=lambda kv: (kv[1]["first"], kv[0])):
         ids = keys[k]["shas"]
         cover = [a for a in live.get(k, []) if (a[0] == "-" and not ids) or any(
-            x.startswith(a[0]) or (len(a[0]) >= 7 and a[0].startswith(x)) for x in ids)]
+            x == a[0] or (len(a[0]) >= ID_FLOOR and (x.startswith(a[0]) or a[0].startswith(x)))
+            for x in ids)]
         if cover:
             acked.append((k, max(cover, key=lambda a: a[1])))
         elif s["sweeps"] >= after:
@@ -194,8 +210,7 @@ def run(tick: str, state_path: str, ack_texts: list, now: dt.datetime, after: in
         for line in keys[k]["lines"]:
             out(f"      {line[:200]}")
         sha = keys[k]["shas"][0] if keys[k]["shas"] else "-"
-        out(f"      ack: OWED-ACK {now.strftime('%Y-%m-%dT%H:%M:%SZ')} {k} {sha} ttl=1 "
-            "<next action, by whom; what it waits on>")
+        out(f"      ack: OWED-ACK <UTC> {k} {sha} ttl=1 <next action, by whom; what it waits on>")
     return 1
 
 
@@ -298,6 +313,42 @@ def self_test() -> int:
         check("an unreadable state: exit 2", go(tick(t0, beatd), state="broken.json")[0] == 2)
         rc9, _ = go(tick(t0, beatd), state="nowrite.json", write=False)
         check("--no-write writes nothing", not os.path.exists(os.path.join(d, "nowrite.json")))
+
+        # round 2 (#2930 review 1): the tool's own output is no acknowledgement
+        e1 = t0 + dt.timedelta(hours=3)
+        go(tick(e1, beatd, disp), state="echo.json")
+        rce, oe = go(tick(e1 + dt.timedelta(minutes=10), beatd, disp), state="echo.json")
+        rcf, of_ = go(tick(e1 + dt.timedelta(minutes=20), beatd, disp), [oe], state="echo.json")
+        check("logging the tool's own output acknowledges nothing (exit 1)", rce == 1 and rcf == 1
+              and "0 acknowledged" in of_ and "r10-orch-beatd  sweeps=3" in of_)
+        filled = oe.replace("ack: OWED-ACK", "OWED-ACK").replace(
+            "<next action, by whom; what it waits on>", "opener seat re-runs batch49; waits on #2909's carry")
+        filled = "\n".join(l.strip() for l in filled.splitlines() if l.strip().startswith("OWED-ACK"))
+        filled = filled.replace("<UTC>", (e1 + dt.timedelta(minutes=15)).strftime("%Y-%m-%dT%H:%M:%SZ"))
+        rcg, og = go(tick(e1 + dt.timedelta(minutes=30), beatd, disp), [filled], state="echo.json")
+        check("null control: the same lines, filled in and timed, acknowledge both", rcg == 0
+              and "2 acknowledged" in og)
+        ph = (f"OWED-ACK {(e1 + dt.timedelta(minutes=15)).isoformat()} r10-orch-beatd c991d64cdaef "
+              "ttl=1 <next action, by whom; what it waits on>")
+        rch, oh = go(tick(e1 + dt.timedelta(minutes=40), beatd), [ph], state="ph.json", after=1)
+        check("a reason that is still a <placeholder> is refused", rch == 1 and "REFUSED ack" in oh)
+        echo = ("      ack: " + ph.replace("<next action, by whom; what it waits on>", "a real reason"))
+        rck, ok_ = go(tick(e1 + dt.timedelta(minutes=40), beatd), [echo], state="echo2.json", after=1)
+        check("an indented `ack:` echo, timed and reasoned, is still no acknowledgement",
+              rck == 1 and "REFUSED ack" in ok_)
+        check("the printed template carries no time, so it cannot parse as one",
+              "ack: OWED-ACK <UTC> r10-orch-beatd " in oe)
+        short = f"OWED-ACK {(e1 + dt.timedelta(minutes=15)).isoformat()} r10-orch-beatd c ttl=1 short id"
+        rci, oi = go(tick(e1 + dt.timedelta(minutes=40), beatd), [short], state="short.json", after=1)
+        check("an id under 7 characters covers no sha", rci == 1 and "0 acknowledged" in oi)
+        pid = f"OWED-ACK {(e1 + dt.timedelta(minutes=15)).isoformat()} fix-r10-diag-ages 98785 ttl=1 seat restarted"
+        rcj, _ = go(tick(e1 + dt.timedelta(minutes=40),
+                         "-> OWED: OWED 2026-10-28T00:53:40Z push-stuck fix-r10-diag-ages 98785 STUCK 1641s"),
+                    [pid], state="pid.json", after=1)
+        check("null control: a whole non-sha id (a pid) still covers its key", rcj == 0)
+        with open(os.path.join(d, "entry.json"), "w", encoding="utf-8") as fh:
+            json.dump({"board": None, "keys": {"r10-orch-beatd": {"sweeps": 2}}}, fh)
+        check("a malformed state entry: exit 2", go(tick(t0, beatd), state="entry.json")[0] == 2)
 
     print(f"owed_unactioned self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0
