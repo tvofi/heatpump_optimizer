@@ -1,27 +1,25 @@
-Fix review: merge 1c3302acfc64e780f8c1cf9b3f3f6876132bdee1
+Fix review: blocked c24be17f8cd37cfd46f7fd2cad354c15db74d15a ruling-unsound: the handoff_push.sh detach site breaks handoff_push.sh's own update arm, which reuses that worktree and pushes from it
 
-bus-nonce: d8185da8367b8eae313140f31f239962
+bus-nonce: 419b36e8e7d1804e7e6b59f6574efc6e
 
-## Round
-Round 4 of the #2738 lineage. This round is a re-cut (b2ab64317, merged as 1c3302acf with origin/main 806aa2ce8). I judged the whole P64 ruling at the live head, not only the delta.
+Round 2 (round 1 blocked ruling-unsound on the detach inside app_push.sh). A detach is still a re-cut of the ruling, not of code; round 3 would still be a repair.
+
+## Block
+
+The re-cut fixes round 1's defect for the two-push open sequence: "the detach is the opener's, once, after its last push". But it judges "last push" only inside one run, and handoff_push.sh's worktree is used again by later runs. origin/main `tools/audit/seat/handoff_push.sh` line 166 (`if [ -d "$WT" ] && gh pr view "$BR" ...`) is the update arm. It reuses the same sibling `$WT` the ruling detaches after line 212. It runs `git reset -q --hard "origin/$BR"`, then merges the new code head and main, then `ensure_row`, then `push_app 2` (line 179, `mut:push-update`). On a detached worktree, `reset --hard` moves only HEAD, so those merge commits land on a detached HEAD while `refs/heads/$BR` stays at the old pushed sha. app_push.sh lines 482-484 then die: "worktree HEAD ... is not the committed tip". This is the same mechanism the ruling's own Binding paragraph uses to rule out a detach after p1. Repro in `ev/repro_update_after_detach.txt`: `RESULT update-after-detach app_push-gate=REFUSE`. So carrying the ruling as written turns every handoff_push.sh update of an open PR into a refusal. The ruling must name the update arm, either as reattaching first (`git -C "$WT" checkout -q -B "$BR" "origin/$BR"` before the reset) or as a site with its own detach-after-push, plus a self-test arm for update-after-open. The same question has to be answered for each named site's next run. update_pr.sh and open_pr.sh are safe, because update_pr.sh removes and re-adds its `$WT` with `-B`, and open_pr.sh adds a fresh worktree with `-b`. The ruling should say so.
 
 ## Findings
-- The Binding line says "app_push.sh's committed-tip gate (`is not the committed tip`) refuses a detached HEAD". That is not what the gate does. `tools/pr/app_push.sh` line 484 compares the HEAD sha with `refs/heads/$br`, so a worktree detached exactly at the branch tip passes (`ev/repro_detach_gate.txt`: `RESULT detached-at-tip gate=PASS`). The gate refuses only after a commit lands on the detached HEAD (`RESULT detached-then-row-commit gate=REFUSE`). The ruling's prescription still holds, because each site it rules out (open_pr.sh p1, `mut:push-open`) commits a row before its next push. But the fixer must not count on the gate to catch a misplaced detach: a detach followed by a push with no commit in between would pass the gate without any warning. The helper's self-test arms should assert the sequence itself, not lean on the gate. Carry: R10-FLY-OPENPR-ATOMIC
+
+- The ruling's "Why not --free-holders" says detaching a worktree outside `$HPO_STATE_DIR/pr/` is unsafe because another seat may be using it. It does not mention that origin/main `merge_train.py` already has `--free-holders` (`free_holder`/`freeable`, lines 805-824). That code detaches any holder that is clean and at origin/<br>, with no prefix restriction. Either that existing mechanism is unsafe by the ruling's own argument, or the argument is overstated. The re-cut should engage with it (reuse its `freeable` predicate as the shared helper, or say why not). Carry: R10-FLY-OPENPR-ATOMIC
+- The update_pr.sh site says its `upd-<branch>` worktree "is the holder detached by hand for #2735 and #2738". The cited ledger lines (99, 102) name triage worktree holders for #2734/#2735, not an update_pr.sh holder for #2738. That clause has no citation, and I could not re-derive it from the tree. Carry: R10-FLY-OPENPR-ATOMIC
 
 ## Evidence
-- Head reviewed: 1c3302acfc64e780f8c1cf9b3f3f6876132bdee1 (`ev/HEAD.txt`). Just before return, `refs/heads/triage/s6-batch6` and `refs/pull/2738/head` were both still at that sha. The body's `## Head` names it. Contract current: `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` is empty, and the merge base is origin/main 806aa2ce8.
-- Diff (three-dot): `dev/programme/delivery/2738.md` (+1) and `dev/programme/triage/s6-batch6.md` (+17), both under `dev/programme/`. `VERSION`, the manifest and the `RELEASE_NOTES.md` diff are empty.
-- Earlier blocks, each checked against the live text:
-  - Round 1 (detach inside app_push.sh): answered. The carry says "Never inside app_push.sh", and the detach comes after each run's last push.
-  - Round 2 (handoff_push.sh update arm reuses the detached worktree): answered. The update arm is named in Binding and Sites, with a re-attach before the reset.
-  - Round 2 (`--free-holders` engagement): answered. The "Why not" paragraph cites merge_train.py `freeable` (empty porcelain and HEAD == origin/<br>, no prefix restriction). I verified this at lines 789-803 of the head.
-  - Round 2 (uncited update_pr.sh holder clause): gone.
-  - Round 3 (`checkout -B` drops the reset's discard): answered. The arm now uses `checkout -q -f -B "$BR" "origin/$BR"` and keeps `reset -q --hard`. Re-run: `RESULT ruling-update-arm sym=refs/heads/br porcelain=[] gate=PASS`, against `RESULT todays-update-arm sym=DETACHED` (`ev/repro_detach_gate.sh`, my own scratch instrument).
-- Class rule re-run at this head: `git grep -nE 'bash "?\$_push"?|push_app [0-9]' -- tools ':!tools/pr/app_push.sh'` returns 8 lines (`ev/merge_tree_and_sites.txt`). They are handoff_push.sh 114 (push_app body), 179 (`mut:push-update`), 198 (`mut:push-open`) and 212 (`mut:push-row`); open_pr.sh 58 (p1) and 71 (p2); remerge_main.sh 29 (`--recarry`); and update_pr.sh 77. The Sites line disposes of each one. The class is closed.
-- Next-run claims re-derived: open_pr.sh line 46 runs `git worktree add -q -b $BR $WT $C`. update_pr.sh line 51 runs `worktree remove --force` and line 52 re-adds with `-B` at `origin/$BR`. update_pr.sh line 50 holds the `checked out elsewhere` exit. All three of open_pr.sh, update_pr.sh and handoff_push.sh source pr_args.sh.
-- Figures: `grep -c '^Verdict:'` prints 1. `roster_edit.ruling_verdict` gives `ACCEPT` for P64 and `None` for P99 (the null control re-run). `ref_privacy.py --check` prints `0 refused`.
-- Not re-derivable here: the Instances figure (seat-ledger.md line 99, proposals.md line 89) lives in the orchestrator's out-of-tree record, so I did not verify it. s6-batch5.md (P63) is not on origin/main at this base, so the numbering continues from an unmerged record.
-- Merge: `git merge-tree --write-tree origin/main 1c3302acf` exits 0 with tree c1ec950d05bed4d1dfd8fe78a78caa960409abe7 and no conflict. No claim file is touched.
-- CI at this head, from the check-runs API (`ev/check_runs.txt`): no run is red. Every concluded run is success or skipped. Still in progress at review time: instrument-self-tests, prelude, browser, closures, coverage and fast (3.14). The reds at earlier heads (instrument-self-tests host-path refusal at c24be17f8, pr-contract body-contract and codescan_wait at c24be17f8/d1756ee44, and gate) are each named and answered in the body's `## Red checks`, with a cheaper detector named for the host-path one.
-- Mutation proof: n/a. The diff writes no production or check line, so no mutant is drawn.
-- No figure in the diff moves an instrument (no budget, closure, INERT or golden file).
+
+- Head reviewed: c24be17f8cd37cfd46f7fd2cad354c15db74d15a (`ev/HEAD.txt`). It matches the body's `## Head`. Merge base e97f5749b. The diff touches 2 files, 18 lines, all under `dev/programme/` (INERT): `delivery/2738.md` and `triage/s6-batch6.md`.
+- `git merge-tree --write-tree origin/main <head>` exits 0, tree c3c76836b8 (clean, no claim files touched).
+- These figures re-derived at origin/main (`ev/figures.txt`): update_pr.sh line 50 "checked out elsewhere", sweep lines 45-48, final push line 77, `$WT` under `$P` = state/pr; open_pr.sh `_push` lines 55, 58, 70, 71; handoff_push.sh push_app open line 198, commit_row line 204, row push line 212; app_push.sh committed-tip gate lines 482-484 (the ruling cites 481-484; 481 is the `head=` read, which is fine).
+- The site census omits handoff_push.sh line 179 (`push_app 2`, the update arm), which `git grep 'push_app'` returns. That omission is the Block.
+- I could not re-derive the instances. seat-ledger.md lines 99/102 and proposals.md line 89 live out of tree on the orchestrator's machine.
+- Policy wording: the file is a triage ruling record and quotes no owner words. No tvofi quote was cited, so there was nothing to check against.
+- CI at this head, from the check-runs API: no run is red. fast, typing, closures, coverage and browser are queued, and instrument-self-tests and prelude are in progress. All others that have concluded are success or skipped. No red check is owed an answer.
+- No mutation proof applies (no code lines). The null control (`ruling_verdict` on P99) is not re-run; it does not bear on the block.
