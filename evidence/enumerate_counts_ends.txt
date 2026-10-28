@@ -1,0 +1,10 @@
+== merge base tree, base record_row
+ENUMERATE 372 call(s) for 186 merge(s) over v7.0.4..HEAD, per push to main
+rc=0
+== PR head tree
+enumerate_api_calls: refused, the count would be partial: merge commit 3045a2d attributes to no pull request via the REST API; the window is UNCHECKED this run, not confirmed empty
+rc=1
+ENUMERATE 0 call(s) for 0 merge(s) over HEAD..HEAD, per push to main
+rc=0
+== merge-base tree, fixed record_row
+ENUMERATE 186 call(s) for 186 merge(s) over v7.0.4..HEAD, per push to main

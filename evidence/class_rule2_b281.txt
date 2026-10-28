@@ -1,7 +1,7 @@
-b281d0325:dev/audit/harnesses/record_api_calls.sh
-b281d0325:dev/audit/rounds/round3/D11/conformance.py
-b281d0325:dev/audit/rounds/round7-fix/governance/report_step_driver.py
-b281d0325:tests/delivery_status.py
-b281d0325:tests/entities.py
-b281d0325:tools/policy/agreement_py.py
-b281d0325:tools/policy/record-predicate/sweep.mjs
+dev/audit/harnesses/record_api_calls.sh
+dev/audit/rounds/round3/D11/conformance.py
+dev/audit/rounds/round7-fix/governance/report_step_driver.py
+tests/delivery_status.py
+tests/entities.py
+tools/policy/agreement_py.py
+tools/policy/record-predicate/sweep.mjs

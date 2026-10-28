@@ -1,5 +1,3 @@
-NOTE #2852 body item 8e5fb3d9: R10-RECORD-API-O1: R10-RECORD-API-O1 resolved on origin/handoff/audit-r10-roster
-NOTE #2852 body item f925a218: R10-RECORD-API-O1: R10-RECORD-API-O1 resolved on origin/handoff/audit-r10-roster
-NOTE #2852 body item 5d27f158: R10-RECORD-API-O1: R10-RECORD-API-O1 resolved on origin/handoff/audit-r10-roster
-NOTE #2852 review 6410502910 item bcdde943: R10-RECORD-API-O1: R10-RECORD-API-O1 resolved on origin/handoff/audit-r10-roster
-CARRY-AUDIT #2852: 4 finding item(s): 4 routed, 0 unrouted, 0 bad destination(s)
+NOTE #2852 body item 64c38013: R10-RCA-RATELIMIT-RECUR: R10-RCA-RATELIMIT-RECUR resolved on origin/handoff/audit-r10-roster
+NOTE #2852 body item 5dd4abb0: R10-RCA-RATELIMIT-RECUR: R10-RCA-RATELIMIT-RECUR resolved on origin/handoff/audit-r10-roster
+CARRY-AUDIT #2852: 2 finding item(s): 2 routed, 0 unrouted, 0 bad destination(s)
