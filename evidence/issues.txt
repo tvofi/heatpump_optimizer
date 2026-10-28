@@ -1,0 +1,12 @@
+#2331 closed pr=false [policy] recurring friction: harness
+#2353 closed pr=false [policy] recurring friction: class-open
+#2409 closed pr=false [policy] recurring friction: mutation-vacuous
+#2428 open pr=false [policy] recurring friction: carry-missing
+#2429 open pr=false [policy] recurring friction: .claude/rules/ci-autofix.md
+#2436 open pr=false [policy] recurring friction: other
+#2437 open pr=false [policy] recurring friction: root-cause-unanswered
+#2438 open pr=false [policy] recurring friction: .claude/rules/finding-propagation.md
+#2593 open pr=false [policy] recurring friction: body-stale
+#2597 open pr=false [policy] recurring friction: harness
+#2595 closed pr=true policy: orchestrator.md pays its files_tokens cap by cutting spent wording
+#2577 open pr=true flow: dispatch group (repo half of K16)
