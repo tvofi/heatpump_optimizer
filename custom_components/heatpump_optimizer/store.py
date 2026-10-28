@@ -505,6 +505,8 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
         "snapshots/#/t": _AT, "snapshots/#/cycle": _COUNT, "snapshots/#/data": _TEXT,
         # #1940: the self-tests' results, as their JSON text (the snapshots' precedent).
         "self_tests": _TEXT,
+        # #2814: when they ran, so a download can say how old they are.
+        "self_tests_at": _AT,
     },
 }
 
