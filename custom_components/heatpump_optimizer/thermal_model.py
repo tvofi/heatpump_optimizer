@@ -1759,6 +1759,78 @@ def _single_valve_rates(
     return q_slab, np.minimum(dT_buf, dT_cap), refused
 
 
+def _valve_draw_circuits(
+    model: "ThermalModel", state: ThermalState, outdoor_temp: float,
+    wind_speed: float, precipitation: float,
+) -> list[tuple[float, float, float]]:
+    """Each emitter circuit behind the valve as ``(ua kW/K, the highest
+    water temperature it sees, the zone it heats)``, at the configured
+    curve: the circuits ``_single_valve_rates`` and
+    ``_valve_two_zone_delivery`` draw through (a direct slab sees raw tank
+    water, so no curve caps it)."""
+    p = model.params
+    if not p.two_zone_enabled:
+        ua = _valve_ua(p)
+        u_eff = model.effective_heat_loss_coefficient(
+            p.heat_loss_coefficient, wind_speed, precipitation)
+        flow_set = _valve_flow_set(p, None, outdoor_temp, u_eff, ua)
+        return [(ua, flow_set, state.slab_temperature)]
+    ua_rad = p.radiator_power_fraction * _valve_ua(p)
+    ua_floor = (1.0 - p.radiator_power_fraction) * _valve_ua(p)
+    u_upper, u_lower = model._zone_loss(wind_speed, precipitation)
+    flow_set = _valve_flow_set(
+        p, None, outdoor_temp, u_upper + u_lower, ua_rad + ua_floor)
+    return [
+        (ua_rad, flow_set, state.upper_floor_temperature),
+        (ua_floor, math.inf if p.slab_fed_direct else flow_set,
+         state.slab_temperature),
+    ]
+
+
+def _circuit_draw(circuits: list[tuple[float, float, float]], tank: float) -> float:
+    """What the circuits draw from a tank at ``tank`` degC, kW."""
+    return sum(ua * max(0.0, min(tank, top) - zone) for ua, top, zone in circuits)
+
+
+def valve_charge_demand(
+    model: "ThermalModel", state: ThermalState, need_kw: float,
+    outdoor_temp: float, wind_speed: float, precipitation: float,
+    dt_hours: float,
+) -> float:
+    """Thermal kW a pump behind a valve makes this step so its emitters
+    receive ``need_kw`` the next: what they draw at the tank's present
+    temperature, its standing loss, and the charge that moves the tank to
+    the lowest temperature whose draw is ``need_kw`` -- never past the
+    curve the valve mixes down to, nor ``buffer_max_temp``.
+
+    The thermostat reference's tank law (R10-BUFFER-STORE): sizing the
+    pump to the emitters' need alone charged the tank toward its cap
+    whenever the need exceeded what the curve delivers, and the refused
+    heat was paid for and reported as savings. Heat above the curve
+    reaches no emitter, so a thermostat never buys it.
+    """
+    if need_kw <= 0.0:
+        return 0.0  # no demand: the pump idles and the tank coasts
+    p = model.params
+    circuits = _valve_draw_circuits(
+        model, state, outdoor_temp, wind_speed, precipitation)
+    tank = state.buffer_tank_temperature
+    # The draw is piecewise linear in the tank temperature, kinked where a
+    # circuit starts drawing (its zone) and where its curve caps it; the
+    # highest kink is the curve's top, or the cap behind a direct slab.
+    # Its inverse is the same line read the other way, and a need past the
+    # highest kink's draw holds that kink.
+    kinks = sorted({
+        min(t, p.buffer_max_temp) for _, top, zone in circuits for t in (top, zone)
+    })
+    goal = float(np.interp(need_kw, [_circuit_draw(circuits, k) for k in kinks], kinks))
+    loss = p.buffer_tank_heat_loss_coefficient * (tank - TANK_ROOM_AMBIENT_TEMP)
+    return (
+        _circuit_draw(circuits, tank) + loss
+        + _buffer_capacity(p) * (goal - tank) / dt_hours
+    )
+
+
 def _valve_two_zone_delivery(
     p: ThermalParameters, state: ThermalState, thermal_power: float, ext: float,
     q_buf_loss: float, valve_target: float | None, outdoor_temp: float,

@@ -1,7 +1,7 @@
 """R10-BUFFER-STORE (#2500): does a 750 L manual-valve buffer change the plan?
 
     PYTHONPATH=tests/hastub:custom_components:tests \\
-        python3 dev/audit/harnesses/r10_buffer_store.py [plans|accuracy|bench N] [--two-zone]
+        python3 dev/audit/harnesses/r10_buffer_store.py [plans|accuracy|reference|bench N] [--two-zone]
 
 Synthetic installs only; no private data.
 
@@ -18,6 +18,14 @@ no-buffer plan.
 (realised == predicted, the null), realised 1.4x predicted, and realised
 predicted/1.4 (a plan booking 40 % more than is drawn) -- printing each
 field's value, so the definitions' signs are read off the tree.
+
+``reference``: the savings reference (``_compute_baseline_power``) on the
+finder's cell -- 0.6 loss scale, 5 degC, a 24 degC tank, no hot water -- at
+the flat price day, per zoning, 750 L behind a manual valve against no
+buffer (the null: nothing stores there). Printed per arm: the reference's
+kWh, its own tank's peak, the heat its tank refused at ``buffer_max_temp``,
+and the published ``predicted_savings`` / ``savings_percentage``. Exits 1
+when a valved reference refuses more than 0.01 kWh: heat bought for a cap.
 
 ``bench N``: wall time and peak RSS of ``optimize`` over N solves per arm,
 each arm in its own process, on the owner's shape (750 L buffer behind a
@@ -109,6 +117,56 @@ def accuracy() -> None:
               f"cost_error_percent {s['cost_error_percent']}")
 
 
+def reference() -> int:
+    bad = 0
+    for two_zone in (False, True):
+        for buffer_l in (750.0, 0.0):
+            p = ThermalParameters(two_zone_enabled=two_zone)
+            if buffer_l:
+                p.mixing_valve_mode, p.buffer_tank_volume = "manual", buffer_l
+            p.min_electrical_power, p.max_electrical_power = 1.5, 5.0
+            p.dhw_enabled, p.house_heat_loss_scale = False, 0.6
+            model = ThermalModel(p)
+            opt = HeatPumpOptimizer(model, OptimizationConfig())
+            seen = {"on": False, "tank": [], "refused": 0.0}
+            real_ref, real_step = opt._compute_baseline_power, model.simulate_step
+
+            def ref(*a, **k):
+                seen["on"] = True
+                try:
+                    return real_ref(*a, **k)
+                finally:
+                    seen["on"] = False
+
+            def step(*a, **k):
+                s = real_step(*a, **k)
+                if seen["on"]:
+                    seen["tank"].append(s.buffer_tank_temperature)
+                    seen["refused"] += model._step_buffer_refused * 0.25
+                return s
+
+            opt._compute_baseline_power, model.simulate_step = ref, step
+            r = opt.optimize(inputs=solve_inputs(
+                initial_state=ThermalState(
+                    room_temperature=20.0, upper_floor_temperature=20.0,
+                    lower_floor_temperature=20.0, slab_temperature=20.5,
+                    outdoor_temperature=5.0, buffer_tank_temperature=24.0,
+                    dhw_temperature=48.0,
+                ),
+                prices=FLAT, outdoor_temps=np.full(96, 5.0), start_time=T0,
+            ))
+            ref_kwh = float(np.sum(r.baseline_power_schedule)) / 4.0
+            bad += int(buffer_l > 0 and seen["refused"] > 0.01)
+            print(f"reference {'two' if two_zone else 'single'}-zone flat "
+                  f"buffer {buffer_l:.0f} L: reference_kwh {ref_kwh:.2f} "
+                  f"reference_tank_peak {max(seen['tank']):.1f} "
+                  f"reference_refused_kwh {seen['refused']:.2f} "
+                  f"plan_kwh {sum(r.power_schedule) / 4.0:.2f} "
+                  f"savings {r.predicted_savings:.2f} pct {r.savings_percentage:.1f}")
+    print(f"reference: {bad} valved arm(s) refuse heat the reference paid for")
+    return 1 if bad else 0
+
+
 ARMS = {
     "owner_buffer_spread": (750.0, "spread"),
     "null_flat_nobuffer": (0.0, "flat"),
@@ -146,6 +204,8 @@ def main(argv: list[str]) -> int:
         print(json.dumps(bench_arm(args[1], int(args[2]))))
     elif args[:1] == ["accuracy"]:
         accuracy()
+    elif args[:1] == ["reference"]:
+        return reference()
     elif args[:1] == ["bench"]:
         bench(int(args[1]))
     else:
