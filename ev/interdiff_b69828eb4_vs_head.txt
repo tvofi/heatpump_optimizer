@@ -1,0 +1,28 @@
+134,136c134,137
+< +# alone, and reaching it by running the other eight cost 6.5 s of CPU against
+< +# the 5 s budget the seat's checks meet (R10-FLOW-JIDOKA's review, 2026-10-26).
+< +ARMS = ("orphans", "layout", "privacy", "agreement", "no-recording",
+---
+> +# alone, and reaching it by running every other arm cost 6.5 s of CPU against
+> +# the 5 s budget the seat's checks meet (eight others then; R10-FLOW-JIDOKA's
+> +# review, 2026-10-26).
+> +ARMS = ("orphans", "layout", "privacy", "wiring", "agreement", "no-recording",
+148a150
+> +        ("wiring", lambda: wiring_preds(root, changed)),
+159a162
+> -    preds += wiring_preds(root, changed)
+307c310
+< +  [ -n "${4:-}" ] && only="--only $4"   # a caller that needs one arm's answer, not nine
+---
+> +  [ -n "${4:-}" ] && only="--only $4"   # a caller that needs one arm's answer, not every arm's
+354c357,358
+< +# because the other eight cost 4 s of the 5 s a seat's added check may take.
+---
+> +# because the other arms cost 4 s of the 5 s a seat's added check may take
+> +# (eight others when measured, R10-FLOW-JIDOKA's review, 2026-10-26).
+384,385c388,389
+< +  # One arm, not nine: `--fill-red` writes only the `mutation` red, and the
+< +  # other eight cost 4 s of the 5 s an added check may take. A `--only` value
+---
+> +  # One arm, not every arm: `--fill-red` writes only the `mutation` red, and
+> +  # the other arms cost 4 s of the 5 s an added check may take. A `--only` value

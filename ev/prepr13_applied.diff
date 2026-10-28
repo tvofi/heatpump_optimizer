@@ -1,0 +1,4 @@
+370c370
+<     done < <(cd "$2" && python3 -I "$CLAIMS_GEN" --print-link-targets 2>/dev/null)
+---
+>     done < /dev/null

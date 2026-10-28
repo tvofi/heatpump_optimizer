@@ -1,0 +1,9 @@
+cores 4
+ 01:56:26 up 25 min,  0 user,  load average: 0.62, 0.99, 1.00
+fx: RC=0 dev/audit/rounds/round4/D6/claims.p user 2.980 sys 0.340 wall 3.347 
+fx: RC=0 dev/audit/rounds/round4/D6/claims.p user 3.013 sys 0.283 wall 3.316 
+fx: RC=0 dev/audit/rounds/round4/D6/claims.p user 3.044 sys 0.271 wall 3.311 
+fxA: RC=0 dev/audit/rounds/round4/D6/claims.p user 2.794 sys 0.229 wall 2.982 
+fxA: RC=0 dev/audit/rounds/round4/D6/claims.p user 2.803 sys 0.310 wall 3.098 
+fxE: RC=0 dev/audit/rounds/round4/D6/claims.p user 2.767 sys 0.232 wall 2.979 
+ 01:56:46 up 26 min,  0 user,  load average: 0.73, 0.99, 1.00
