@@ -560,7 +560,9 @@ PY
 }
 
 # Step 6d's whole body: tools/pr/ci_predict.py over the three-dot diff, read
-# statically -- no test, recording or mutant runs, so it costs seconds where
+# statically -- no test or mutant runs, and the one recording is a changed
+# file's own self-test a gate script runs (SELF-TEST READS, the fifth
+# argument), so it costs seconds where
 # step 6b's recordings cost the scoped scripts' run time and are left to CI
 # under the owner's heavy-scripts rule (2026-10-07). It predicts `closures`'s
 # UNDER-SCOPED and INERT READS, entities' unclassified file and
@@ -574,15 +576,16 @@ PY
 # has `mutation-autofix` pin them after the push, so the step lists them into
 # a file and step 7's `unpinned_line` asks the body for each one's disposition.
 # Every PREDICT line prints above the step line; the step line is the last.
-predict_line() { # base ref, [file the unpinned site keys are written to], [body file], [one arm to run]; rc 0 none, 1 predicted, 3 skipped
-  local out r only=""
+predict_line() { # base ref, [file the unpinned site keys are written to], [body file], [one arm to run], [record]; rc 0 none, 1 predicted, 3 skipped
+  local out r only="" rec=""
   if [ ! -f tools/pr/ci_predict.py ]; then
     echo "tools/pr/ci_predict.py is not in this tree"; return 3
   fi
   local bf=""; [ -n "${3:-}" ] && [ -f "$3" ] && bf=$3   # pr-contract's carry check, when a body exists
   [ -n "${4:-}" ] && only="--only $4"   # a caller that needs one arm's answer, not every arm's
-  # shellcheck disable=SC2086 # $only is empty or exactly "--only <arm>"
-  out=$(PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base "$1" ${bf:+--body "$bf"} $only 2>&1); r=$?
+  [ -n "${5:-}" ] && rec="--record-self-tests"   # 6d itself: the one arm that runs code (SELF-TEST READS)
+  # shellcheck disable=SC2086 # $only is empty or exactly "--only <arm>"; $rec is empty or one flag
+  out=$(PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base "$1" ${bf:+--body "$bf"} $only $rec 2>&1); r=$?
   [ -n "${2:-}" ] && printf '%s\n' "$out" \
     | sed -nE 's/^PREDICT tests \/ mutation +ADDED UNPINNED ([^ ]+ [A-Z_]+(\*[0-9]+)?): .*/\1/p' > "$2"
   case "$r" in
@@ -2880,6 +2883,14 @@ https://claude.ai/code/session_011aqzm4YL9jLhU4jLvbkLYE'; got=$(lpush)
   got=$(python3 -I -c "import sys; sys.path.insert(0, 'tools/pr'); import ci_predict as c; print(' '.join(c.ARMS))" 2>&1); r=$?
   case "$got" in *' mutation'*) r=0 ;; *) r=1 ;; esac
   st "$r" 0 "and ci_predict names that arm, so --only cannot select none"
+  # SELF-TEST READS is opt-in, so 6d's wiring is the countermeasure
+  # (dev/audit/rca/R10-RCA-CLOSURE-ARGV.md): dropping either line disconnects it silently.
+  case "$(grep -F 'PREDICT_LINE=$(predict_line origin/main' "$PREPR_PATH")" in
+    *'"${1:-}" "" record)'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "6d asks the predictor to record each changed file's own self-test (SELF-TEST READS)"
+  case "$(sed -n '/^predict_line() {/,/^}/p' "$PREPR_PATH")" in
+    *'[ -n "${5:-}" ] && rec="--record-self-tests"'*'$only $rec 2>&1'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "and predict_line turns its fifth argument into --record-self-tests on the predictor's command line"
   # Step 3f7 (P78): a host path in a line the diff adds is refused, named by
   # file and line; the same line made home-relative passes. Built, never spelled.
   hp=$(printf '%s/%s/%s/proj' '' Users alice)
@@ -3731,9 +3742,12 @@ else
   esac
 fi
 
-# --- 6d. the CI reds a static read of the diff predicts (`predict_line`).
+# --- 6d. the CI reds a static read of the diff predicts (`predict_line`), and
+# the reads each changed file's own self-test makes in a gate script that runs
+# it, recorded by CI's recorder (SELF-TEST READS, dev/audit/rca/R10-RCA-CLOSURE-ARGV.md):
+# seconds per such file, none on a diff that changes none.
 UNPINNED_SITES=/tmp/prepr-unpinned.$$
-PREDICT_LINE=$(predict_line origin/main "$UNPINNED_SITES" "${1:-}")
+PREDICT_LINE=$(predict_line origin/main "$UNPINNED_SITES" "${1:-}" "" record)
 case $? in
   3) say skip "ci predict" "$PREDICT_LINE" ;;
   0) step "ci predict" 0 "$PREDICT_LINE" ;;
