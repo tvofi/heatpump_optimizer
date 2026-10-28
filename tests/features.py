@@ -11242,7 +11242,7 @@ def _direct_slab_refused():
     from heatpump_optimizer.thermal_model import valve_charge_demand
 
     _dp = ThermalParameters(two_zone_enabled=True, mixing_valve_mode=_ds_mv.MODE_MANUAL,
-                            buffer_tank_volume=750.0, max_electrical_power=1e4,
+                            buffer_tank_volume=750.0,
                             topology_layout_override=TOPOLOGY_VALVE_UPPER_DIRECT_SLAB)
     _dm = ThermalModel(_dp)
     assert _dp.slab_fed_direct, "the case must drive the direct-slab layout"
@@ -11250,16 +11250,16 @@ def _direct_slab_refused():
                        lower_floor_temperature=21.0, slab_temperature=24.0,
                        buffer_tank_temperature=60.0, outdoor_temperature=-5.0)
     _kw = valve_charge_demand(_dm, _ds, 1e3, -5.0, 0.0, 0.0, 0.25)
-    _dm._simulate_step_two_zone(
+    _d1 = _dm._simulate_step_two_zone(
         _ds, _kw / _reference_cop(_dm, _ds, -5.0, None), -5.0, dt_hours=0.25)
-    return _dm._step_buffer_refused
+    return _dm._step_buffer_refused, _d1.buffer_tank_temperature
 
 
-_ds_ref = _direct_slab_refused()
+_ds_ref, _ds_tank = _direct_slab_refused()
 R.check(
     "behind a direct slab the tank law stops at buffer_max_temp",
-    _ds_ref < 1e-6,
-    f"a 1000 kW need refused {_ds_ref:.3f} kW at the cap",
+    _ds_ref < 1e-6 and 60.0 < _ds_tank <= 70.0 + 1e-9,
+    f"a 1000 kW need refused {_ds_ref:.3f} kW; the tank ended at {_ds_tank:.2f} C",
 )
 
 _rc_made, _rc_cop, _rc_plain = _ref_cop_gap()
