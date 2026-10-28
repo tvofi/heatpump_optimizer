@@ -1,0 +1,23 @@
+== tools/ci/ghapi.py
+ghapi self-test: 13 checks, 0 failed
+== tools/ci/prelude.py
+prelude self-test: 27 checks, 0 failed
+== tools/ci/gate.py
+gate self-test: 27 checks, 0 failed
+== tools/ci/sweep_selftest.py
+    import sweep
+ModuleNotFoundError: No module named 'sweep'
+== tools/ci/sweep.py
+sweep self-test: 21 checks, 0 failed
+== tools/ci/alert_list.py
+ok  M  main: title without sha= FAILs closed
+alert_list self-test: 25 checks, 0 failed
+== tools/ci/ruleset_cutover.py
+ruleset_cutover self-test: 51 checks, 0 failed
+== tools/audit/seat/sweep_driver.py
+sweep_driver self-test: 15 checks, 0 failed
+== tools/audit/seat/sweep_driver_selftest.py
+    import sweep_driver as D
+ModuleNotFoundError: No module named 'sweep_driver'
+== tools/audit/seat/ci_probe.py
+ci_probe self-test: 40 checks, 0 failed
