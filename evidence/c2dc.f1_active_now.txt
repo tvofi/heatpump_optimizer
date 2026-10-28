@@ -1,8 +1,0 @@
-RESULT heating_now_while_off=0 count
-RESULT snapshots=36 count
-RESULT slot_steps_declared_off=5 count
-RESULT steps=192 count
-RESULT perturbed=0
-RESULT thread_factor=1.000
-RESULT load1=1.08
-RESULT swapins=0

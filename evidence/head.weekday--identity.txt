@@ -1,2 +1,0 @@
-RESULT pairs=49 disagreements=0 first=[]
-rc=0

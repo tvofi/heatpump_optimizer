@@ -1,9 +1,0 @@
--- base: 5
-custom_components/heatpump_optimizer/dhw_draws.py:166:    minutes %= 24 * 60
-custom_components/heatpump_optimizer/dhw_schedule.py:450:            total_minutes %= 24 * 60
-custom_components/heatpump_optimizer/pump_arbiter.py:964:    minutes = int(round(hour * 60.0)) % (24 * 60)
-custom_components/heatpump_optimizer/quiet_windows.py:280:    minutes = int(round(hour * 60.0)) % (24 * 60)
-custom_components/heatpump_optimizer/quiet_windows.py:643:    minutes = int(round(hour * 60.0)) % (24 * 60)
--- head: 2
-custom_components/heatpump_optimizer/dhw_schedule.py:459:        total_minutes %= 24 * 60
-custom_components/heatpump_optimizer/quiet_windows.py:285:    minutes = int(round(hour * 60.0)) % (24 * 60)

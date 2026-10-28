@@ -1,0 +1,31 @@
+== driver output (6f91e6d05 x 5261ba841) vs b5049f3fd
+  class_excess_loc: 18102 + both deltas = 18081
+  max_class_loc: 8311 + both deltas = 8234
+  re-run the gate that owns this file before pushing
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/harness_headers.py: merged as a set (884 entries)
+  re-run the gate that owns this file before pushing
+7664fd70a0fc7abc95fda8efcffe225bbc7a3132
+diff --git a/tests/structure_budgets.json b/tests/structure_budgets.json
+index 82cb0ed40..45580cb56 100644
+--- a/tests/structure_budgets.json
++++ b/tests/structure_budgets.json
+@@ -7,7 +7,7 @@
+  "dead_methods": 0,
+  "dead_top_level_symbols": 1,
+  "duplication_copies": 15,
+- "functions_cc_over_15": 29,
++ "functions_cc_over_15": 28,
+  "functions_cc_over_25": 8,
+  "import_cycle_modules": 0,
+  "max_cc": 44,
+@@ -16,6 +16,6 @@
+  "methods_over_150": 16,
+  "methods_over_200": 9,
+  "name_kept_members": 38,
+- "recorded_at": "da12aa37dee15b9e9567bd6c848493436f2592dd",
++ "recorded_at": "5261ba84139d9459465ccd842b61b04c2b1329d8",
+  "seam_cut_total": 424
+ }
+== auto-merge(eff0486fb x 7d2056970) vs head
+(empty above = head is the automatic merge)
