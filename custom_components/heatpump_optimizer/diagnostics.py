@@ -71,7 +71,7 @@ from homeassistant.util import dt as dt_util
 from . import accuracy, debugger, draw_range, early_cutoff, pump_arbiter, replay_doc
 from .const import CONF_COP_SCALE, CONF_TIBBER_TOKEN, DOMAIN, PRIVATE_ENTITY_ID
 from .drift import stored_age_seconds
-from .inputs import describe_problem, health_summary
+from .inputs import OUTRANKS_STALE, describe_problem, health_summary
 from .thermal_model import probe_install
 from .coordinator import (
     CoordinatorDiagnostics,
@@ -159,14 +159,14 @@ def _without_values(value: Any, private: frozenset[str]) -> Any:
 def _over_age(problem: Any) -> bool:
     """Whether this problem's re-based age has passed its own published limit.
 
-    A fault code is not a measurement at any age: ``InputReader.read`` sets
-    ``implausible`` after the age gate, so it already outranks staleness and
-    the export does not relabel it.
+    A class in :data:`~.inputs.OUTRANKS_STALE` is never relabelled: the reader
+    records the age before it finds the fault, so the entry carries both an age
+    and a limit, and the reader's own precedence keeps it over ``stale``.
     """
     age = problem.get("age_minutes")
     limit = problem.get("max_age_minutes")
     return (
-        problem.get("problem") != "implausible"
+        problem.get("problem") not in OUTRANKS_STALE
         and isinstance(age, (int, float))
         and isinstance(limit, (int, float))
         and age > limit

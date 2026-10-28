@@ -88,6 +88,13 @@ class _Unbounded:
 #: See :class:`_Unbounded`.
 UNBOUNDED = _Unbounded()
 
+#: The problem classes that outrank staleness. A fault code is not a
+#: measurement at any age (D1-s5-52): it replaces ``stale`` and is never
+#: replaced by it, where every other class found in a reading's content defers
+#: to ``stale``. :func:`_set_problem` applies it at the read, and the
+#: diagnostics export where it re-judges a published age.
+OUTRANKS_STALE: frozenset[str] = frozenset({"implausible"})
+
 
 @dataclass
 class InputReading:
@@ -125,6 +132,12 @@ class InputReading:
     def stale(self) -> bool:
         """Whether a value was present but too old to trust."""
         return self.problem == "stale"
+
+
+def _set_problem(reading: InputReading, problem: str) -> None:
+    """Set a class found in a reading's content, past its age gate, by :data:`OUTRANKS_STALE`."""
+    if reading.problem is None or problem in OUTRANKS_STALE:
+        reading.problem = problem
 
 
 @dataclass
@@ -963,7 +976,7 @@ class InputReader:
             # A sensor fault code is not a measurement at any age: withheld
             # outright, where a stale value stays readable (D1-s5-52).
             reading.value = None
-            reading.problem = "implausible"
+            _set_problem(reading, "implausible")
             _LOGGER.debug(
                 "Input %s (%s) reads %.1f, outside %s; treating as missing",
                 key,
@@ -1081,10 +1094,7 @@ class InputReader:
         converted = normalize_flow_kg_s(reading.value, state_unit(state))
         if converted is None or converted < 0.0:
             reading.value = None
-            if reading.problem is None:
-                reading.problem = (
-                    "unknown_unit" if converted is None else "implausible"
-                )
+            _set_problem(reading, "unknown_unit" if converted is None else "implausible")
             return reading
         reading.value = converted
         return reading

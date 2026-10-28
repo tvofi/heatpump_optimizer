@@ -1968,4 +1968,176 @@ R.check(
         {"last_optimization": PUBLISHED - timedelta(minutes=91)}, PUBLISHED, 90.0
     )["plan_stale"] is True,
 )
+
+# -- The export re-judges staleness by the reader's own precedence (#2873, round 3) --
+# A fault code outranks staleness at the reader (D1-s5-52): ``read`` records the
+# age before it sets ``implausible``, so an implausible entry carries an age and
+# a limit, and an export re-basing that age past the limit must not relabel it
+# stale. Every other class a reader sets after its age gate defers to stale.
+# Pinned as a census: each such class is read by the production reader, published
+# by the coordinator's own view, exported a minute past its own limit, and compared
+# with what the same reader says when it reads the same state at that instant.
+
+_IMPLAUSIBLE = {
+    "input_ages_minutes": {"indoor": 10.0},
+    "input_ages_at": PUBLISHED,
+    "input_problems": [{"input": "indoor", "entity_id": "sensor.indoor",
+                        "problem": "implausible", "age_minutes": 10.0,
+                        "max_age_minutes": 30.0}],
+    "problem_messages": ["sensor.indoor: outside its plausible range"],
+    "input_health": "1 missing",
+    "stale_inputs": [],
+}
+
+
+async def _implausible_download(after):
+    coord = FakeCoordinator(dict(_IMPLAUSIBLE))
+    entry = FakeEntry(entry_id="implausible", options={})
+    entry.runtime_data = coord
+    dt_util.freeze(PUBLISHED + after)
+    try:
+        return await diagnostics_mod.async_get_config_entry_diagnostics(FakeHass(), entry)
+    finally:
+        dt_util.freeze(None)
+
+
+def _renders_implausible(download, age):
+    got = download["inputs"]
+    return (
+        got["input_problems"][0]["problem"] == "implausible"
+        and got["input_problems"][0]["age_minutes"] == age
+        and got["stale_inputs"] == []
+        and got["input_health"] == "1 missing"
+        and got["problem_messages"] == ["sensor.indoor: outside its plausible range"]
+    )
+
+
+_implausible_past = asyncio.run(_implausible_download(timedelta(minutes=40)))
+_implausible_within = asyncio.run(_implausible_download(timedelta(minutes=10)))
+R.check(
+    "an implausible input re-based past its own limit stays implausible at the "
+    "export: out of stale_inputs, counted missing, and worded as a fault, not an age",
+    _renders_implausible(_implausible_past, 50.0),
+    str(_implausible_past["inputs"]),
+)
+R.check(
+    "the null control: the same implausible entry exported inside its limit reads "
+    "the same, so the check above is about the age crossing the limit",
+    _renders_implausible(_implausible_within, 20.0),
+    str(_implausible_within["inputs"]),
+)
+
+from harness import FakeState  # noqa: E402
+from heatpump_optimizer import inputs as inputs_mod  # noqa: E402
+from heatpump_optimizer.const import (  # noqa: E402
+    CONF_FLOW_METER_ENTITY, CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY,
+    CONF_POWER_ENTITY, CONF_SOLAR_RADIATION_ENTITY,
+)
+
+# (published class, config key, state, unit, the reader call) -- one row per class
+# a reader sets after its age gate. The reader runs at ``at``.
+_PRECEDENCE_ROWS = [
+    ("implausible", CONF_INDOOR_TEMP_ENTITY, "-127", "°C",
+     lambda r, k: r.read(k)),
+    ("implausible", CONF_FLOW_METER_ENTITY, "-1", "kg/s",
+     lambda r, k: r.read_flow_kg_s(k)),
+    ("unknown_unit", CONF_POWER_ENTITY, "2", "furlong",
+     lambda r, k: r.read_power_kw(k)),
+    ("unknown_value", CONF_OUTDOOR_TEMP_ENTITY, "banana", None,
+     lambda r, k: r.read_state(k, valid={"heat"})),
+    ("not_boolean", CONF_SOLAR_RADIATION_ENTITY, "maybe", None,
+     lambda r, k: r.read_bool(k, strict=True)),
+]
+# A row whose key has no age limit cannot age at the export or at a re-read, so
+# it is held to publishing no limit: the day it gains one, its comparison runs and
+# it leaves this set. Every row above polls and has one.
+_UNBOUNDED_ROWS: set[str] = set()
+# Classes set before the age gate: their reading carries no age, so the export has
+# nothing to re-base (``not_configured`` has no entity and is never published).
+_PRE_GATE = {"not_configured", "missing_entity", "unavailable", "not_numeric"}
+_REPORTED = PUBLISHED - timedelta(minutes=5)
+
+
+def _published(key, state, unit, read, at):
+    # A source that re-reports an unchanged value polls, so it is held to
+    # ``INPUT_MAX_AGE_MINUTES``; its age runs from the last report.
+    hass = FakeHass({f"sensor.{key}": FakeState(
+        state, last_updated=_REPORTED - timedelta(hours=1), last_reported=_REPORTED,
+        unit=unit)})
+    reader = InputReader(hass, {key: f"sensor.{key}"}, now=lambda: at)
+    read(reader, key)
+    view = coordinator_mod.HeatPumpOptimizerCoordinator._input_health_view(
+        types.SimpleNamespace(_input_health=reader.health, _learner_freeze_reason=None))
+    return view
+
+
+def _literal_classes(tree):
+    """Every class literal ``inputs.py`` assigns to a reading's ``problem``."""
+    found = set()
+    for node in ast.walk(tree):
+        values = []
+        if isinstance(node, ast.Assign) and any(
+                isinstance(t, ast.Attribute) and t.attr == "problem" for t in node.targets):
+            values.append(node.value)
+        if isinstance(node, ast.Call) and getattr(node.func, "id", None) == "_set_problem":
+            values.extend(node.args[1:])
+        for value in values:
+            found.update(c.value for c in ast.walk(value)
+                         if isinstance(c, ast.Constant) and isinstance(c.value, str))
+    return found
+
+
+_census = []
+for _cls, _key, _state, _unit, _read in _PRECEDENCE_ROWS:
+    _pub = _published(_key, _state, _unit, _read, PUBLISHED)
+    _entry = (_pub["input_problems"] or [{}])[0]
+    _limit = _entry.get("max_age_minutes")
+    _row = f"{_cls}/{_key}"
+    _bounded = isinstance(_limit, (int, float))
+    _ok_pre = (_entry.get("problem") == _cls and _entry.get("age_minutes") == 5.0
+               and _bounded == (_row not in _UNBOUNDED_ROWS))
+    if not _bounded:
+        _census.append({"row": _row, "pre": _ok_pre, "unbounded": True})
+        continue
+    _at = PUBLISHED + timedelta(minutes=(_limit if _ok_pre else 0) - 5 + 1)
+    _exported = diagnostics_mod._inputs_at(_pub, _at)
+    _reread = _published(_key, _state, _unit, _read, _at)
+    _at_read = diagnostics_mod._inputs_at(_pub, PUBLISHED)
+    _census.append({
+        "row": _row, "pre": _ok_pre, "unbounded": False,
+        "exported": _exported["input_problems"][0]["problem"] if _ok_pre else None,
+        "reread": _reread["input_problems"][0]["problem"] if _ok_pre else None,
+        "stale_agree": _ok_pre and _exported["stale_inputs"] == _reread["stale_inputs"],
+        "health_agree": _ok_pre and _exported["input_health"] == _reread["input_health"],
+        "null": _ok_pre and _at_read["input_problems"][0]["problem"] == _cls,
+    })
+_bounded_rows = [row for row in _census if not row["unbounded"]]
+_found = _literal_classes(ast.parse(Path(inputs_mod.__file__).read_text()))
+_driven = {row[0] for row in _PRECEDENCE_ROWS}
+R.check(
+    "the precedence census covers every class inputs.py sets: each is driven past "
+    "its age gate, set before it, or stale itself, and every worded class is one "
+    "the scan sees",
+    _found == _driven | _PRE_GATE | {"stale"}
+    and set(inputs_mod.PROBLEM_WORDS) <= _found
+    and all(row["pre"] for row in _census),
+    str([sorted(_found), [row["row"] for row in _census if not row["pre"]]]),
+)
+R.check(
+    "exported a minute past its own limit, every class reads what the reader says "
+    "re-reading the same state then: a fault code stays itself, every other class "
+    "ages into stale, and stale_inputs and input_health agree with the re-read",
+    all(row["exported"] == row["reread"] and row["stale_agree"] and row["health_agree"]
+        for row in _bounded_rows)
+    and {row["exported"] for row in _bounded_rows} == {"implausible", "stale"},
+    str([row for row in _bounded_rows
+         if not (row["exported"] == row["reread"] and row["stale_agree"]
+                 and row["health_agree"])]),
+)
+R.check(
+    "the census's null control: exported at the publish instant, every class reads "
+    "as published",
+    all(row["null"] for row in _bounded_rows),
+    str([row["row"] for row in _bounded_rows if not row["null"]]),
+)
 sys.exit(R.close("DEBUG COLLECT CHECKS"))
