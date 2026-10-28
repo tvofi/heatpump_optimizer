@@ -1,0 +1,26 @@
+== head
+DELIVERY STATUS OVERDUE — 147 rowed, 12 pending, 13 overdue (overdue at 12 commits)
+  pending  #2817 5261ba8 0 commit(s) since — R10-PARAMS-OWNER: one owner of the thermal parameters, c
+  pending  #2831 c78df2b 1 commit(s) since — triage: batch 31, P176-P183 (V94-V103 quality series)
+  pending  #2830 04ea9ed 2 commit(s) since — triage: batch 30, P168-P175 (V81, V85-V92)
+  pending  #2829 23d5212 3 commit(s) since — triage: batch 29, P158-P167 (proof CodeQL, V79-V102 roun
+  pending  #2828 1ea3ce4 4 commit(s) since — triage: batch 28, P150-P157 (V66-V67, V73-V78)
+  pending  #2827 2e351ab 5 commit(s) since — triage: batch 27, P140-P149 (V61-V72 less V66 and V67)
+  pending  #2697 f3ffb1c 6 commit(s) since — R10-MERGE-SUBJECT-HARDEN: merge-subject guard findings f
+  pending  #2820 8aee66b 7 commit(s) since — fix(friction): count census rows, not distinct keys, so 
+  pending  #2821 c9cbe6b 8 commit(s) since — Policy: the proposal-triage seat runs on opus (P127)
+  pending  #2823 30d54f8 9 commit(s) since — roster: round-10 batch 14 (roster ops on handoff/audit-r
+  pending  #2822 16c6b9e 10 commit(s) since — Merge remote-tracking branch 'origin/main' into triage/s
+== base f3ffb1c63
+DELIVERY STATUS OVERDUE — 146 rowed, 12 pending, 14 overdue (overdue at 12 commits)
+  pending  #2817 5261ba8 0 commit(s) since — R10-PARAMS-OWNER: one owner of the thermal parameters, c
+  pending  #2831 c78df2b 1 commit(s) since — triage: batch 31, P176-P183 (V94-V103 quality series)
+  pending  #2830 04ea9ed 2 commit(s) since — triage: batch 30, P168-P175 (V81, V85-V92)
+  pending  #2829 23d5212 3 commit(s) since — triage: batch 29, P158-P167 (proof CodeQL, V79-V102 roun
+  pending  #2828 1ea3ce4 4 commit(s) since — triage: batch 28, P150-P157 (V66-V67, V73-V78)
+  pending  #2827 2e351ab 5 commit(s) since — triage: batch 27, P140-P149 (V61-V72 less V66 and V67)
+  pending  #2697 f3ffb1c 6 commit(s) since — R10-MERGE-SUBJECT-HARDEN: merge-subject guard findings f
+  pending  #2820 8aee66b 7 commit(s) since — fix(friction): count census rows, not distinct keys, so 
+  pending  #2821 c9cbe6b 8 commit(s) since — Policy: the proposal-triage seat runs on opus (P127)
+  pending  #2823 30d54f8 9 commit(s) since — roster: round-10 batch 14 (roster ops on handoff/audit-r
+  pending  #2822 16c6b9e 10 commit(s) since — Merge remote-tracking branch 'origin/main' into triage/s

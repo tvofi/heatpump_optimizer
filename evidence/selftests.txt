@@ -1,0 +1,9 @@
+  ok   flush: main runs it after rule 3 and before rule 4, and a dry run's deferral reaches rule 5 only as that deferral
+  ok   flush: the flushed head's gate is waited for while it runs, and read once settled
+RESULT stamp_self_test=pass
+gh_read self-test: 122 checks, 0 failed
+record_row self-test: all checks passed
+  ok   add --auto (bus.sh's event add): the same started train, the comment left for admit_add to fill; --auto with `--` flags is refused
+merge_train self-test: 319 checks, 0 failed
+throwaway_git: 0 raw git init or clone site(s) refused, 0 stale allow entries at HEAD
+ref_privacy --check at HEAD: 26 file(s) with a push site, 12 guarded, 801 line(s) added since f3ffb1c63532 judged, 0 refused
