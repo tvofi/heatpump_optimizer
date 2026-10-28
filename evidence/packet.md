@@ -1,46 +1,57 @@
 # Review packet #2900
-head: ebbc01eaa62d73c639ffb883f5f2211bd3b11fb8
-base: b9e286254e152b6647b37b5612bd340dd39daca0
+head: bb190ecd62b52cc202c58ab5a6d61de9f47ff49e
+base: 53c4b9cb0de45bbfadb19ea6adbe15dd7d7034e1
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
-## Gate digest: pending
-CodeQL id=122592264447 success
-arch-score / arch-score id=122592052868 success
-arm id=122591821589 skipped
-budget-raise-gate / budget-raise-gate id=122592052964 success
-cancel-superseded id=122591831107 success
-codeql / Analyze (actions) id=122592052714 success
-codeql / Analyze (javascript-typescript) id=122592052923 success
-codeql / Analyze (python) id=122592052820 success
-governance / delivery-status id=122592052872 success
-governance / delivery-status-publish id=122592053900 skipped
-governance / env-matrix id=122592052891 success
-governance / instrument-self-tests id=122592052859 in_progress
-governance / policy-docs id=122592052957 success
-governance / record id=122592054624 skipped
-governance / wave-script id=122592052763 success
-hassfest / hassfest id=122592052506 success
-kernel-points id=122592053623 skipped
-prelude id=122591831141 in_progress
-refresh id=122591830734 success
-tests / arch-instrument id=122592431046 success
-tests / briefs id=122592052742 success
-tests / browser id=122592430961 success
-tests / claims-autofix id=122593921616 skipped
-tests / closure-scope id=122592052630 success
-tests / closures id=122592431062 success
-tests / closures-autofix id=122594195154 skipped
-tests / coverage id=122592430859 in_progress
-tests / fast (3.14) id=122592430887 success
-tests / mutation id=122592052669 success
-tests / mutation-autofix id=122592617822 skipped
-tests / mutation-pins id=122592617283 skipped
-tests / nightly-ha id=122592433135 skipped
-tests / nightly-status id=122592052599 success
-tests / replay id=122592432365 skipped
-tests / typing id=122592430894 success
-validate / validate-hacs id=122592052608 success
+## Gate digest: green
+CodeQL id=122619556012 success
+arch-score / arch-score id=122648491289 success
+arm id=122619367824 skipped
+budget-raise-gate / budget-raise-gate id=122648504770 success
+cancel-superseded id=122648483229 success
+codeql id=122624980322 skipped
+codeql / Analyze (actions) id=122648485278 success
+codeql / Analyze (javascript-typescript) id=122648502491 success
+codeql / Analyze (python) id=122648485674 success
+gate id=122648789322 success
+governance id=122624980258 skipped
+governance / delivery-status id=122648483014 success
+governance / delivery-status-publish id=122648454004 skipped
+governance / env-matrix id=122648480948 success
+governance / instrument-self-tests id=122648485031 success
+governance / policy-docs id=122648507006 success
+governance / record id=122648453710 skipped
+governance / wave-script id=122648506385 success
+hassfest id=122624980472 skipped
+hassfest / hassfest id=122648505114 success
+kernel-points id=122648490761 skipped
+pr-contract / pr-contract id=122648537774 success
+prelude id=122648453533 success
+refresh id=122648453253 success
+tests id=122624980095 skipped
+tests / arch-instrument id=122648455925 success
+tests / briefs id=122648503188 success
+tests / browser id=122648454783 success
+tests / ci-ratchet id=122648456382 skipped
+tests / claims-autofix id=122648455800 skipped
+tests / closure-scope id=122648454105 success
+tests / closures id=122648454953 success
+tests / closures-autofix id=122648456271 skipped
+tests / coverage id=122648454761 success
+tests / coverage-ratchet id=122648456106 success
+tests / fast (3.14) id=122648455804 success
+tests / graders-head-copy id=122648455868 success
+tests / lane-proofs id=122648455589 success
+tests / mutation id=122648453820 success
+tests / mutation-autofix id=122648455758 skipped
+tests / mutation-pins id=122648454897 skipped
+tests / nightly-ha id=122648454887 skipped
+tests / nightly-status id=122648451903 success
+tests / replay id=122648455089 skipped
+tests / typing id=122648454979 success
+validate id=122624980388 skipped
+validate / validate-hacs id=122648487664 success
 
 ## Refusals
 none
@@ -86,10 +97,10 @@ index 000000000..38c7bbe47
 +- [#2900](https://github.com/tvofi/heatpump_optimizer/pull/2900) — **open**, triage s7 batch 45: rule P227-P231 (V141-V145) (R10-TRIAGE-S6)
 diff --git a/dev/programme/triage/s6-batch45.md b/dev/programme/triage/s6-batch45.md
 new file mode 100644
-index 000000000..1383ffc18
+index 000000000..4f09cf28a
 --- /dev/null
 +++ b/dev/programme/triage/s6-batch45.md
-@@ -0,0 +1,248 @@
+@@ -0,0 +1,269 @@
 +# Proposal triage, session s7, batch 45 (P227-P231)
 +
 +Five entries: V141-V145, written by the orchestrator s8 on 2026-10-28 and quoted from
@@ -176,11 +187,14 @@ index 000000000..1383ffc18
 +  failed 22:37:27Z on `GitHubRatelimitException: API rate limit exceeded for installation` (job
 +  122512384418's log); `governance / env-matrix` failed 22:43:03Z on `FAIL pr / nothing skipped in
 +  a full clone -- skip required-contexts the GitHub API is unreachable` (job 122512384452's log);
-+  `gate` (job 122526090837) failed 23:09:58Z-23:10:21Z on `FAIL governance / env-matrix: failure
-+  (this run)`, its judge's line for a failed required job (`tools/ci/gate.py:224`; format pinned
-+  by its self-test at `:345`), and on none of the three strings below. Attempt 2 started 01:07:45Z
-+  and ended green 01:17:17Z (`.run_started_at`, `.updated_at`): `gate` red on main for 2 h 07 min,
-+  2 h 30 min from the first failure (validate-hacs, 22:37:27Z) to the re-run.
++  `gate` (job 122526090837) failed 23:09:58Z-23:10:21Z with two reasons, printed at 23:10:18Z on
++  consecutive lines 4372-4373 of its log: `FAIL governance / env-matrix: failure (this run)` and
++  `validate / validate-hacs: failure (this run)`, the second with no `FAIL` prefix. The judge
++  prefixes only its first reason (`f"FAIL {why[0]}"`, `tools/ci/gate.py:224`; format pinned by its
++  self-test at `:345`) and `main` prints the rest bare (`"\n".join([outcome] + why[1:])`, `:295`).
++  The gate log holds none of the three strings below. Attempt 2 started 01:07:45Z and ended green
++  01:17:17Z (`.run_started_at`, `.updated_at`): `gate` red on main for 2 h 07 min, 2 h 30 min from
++  the first failure (validate-hacs, 22:37:27Z) to the re-run.
 +- 2026-10-26 04:52Z, `dev/audit/rca/ratelimit-recur.md`: main's push run at `b281d0325` red on
 +  record, validate-hacs and env-matrix in one dry bucket-hour; the one recovery measured there was
 +  a re-run (#2850, 17.0 min).
@@ -194,17 +208,24 @@ index 000000000..1383ffc18
 +this tree's own tools and CI print for an exhausted or unreachable API (`API rate limit exceeded
 +for installation`, `RATE-LIMITED reset_epoch=`, `the GitHub API is unreachable`), not an
 +open-ended "infrastructure cause"; every failed job of the run must match, except the aggregating
-+`gate` job, which is judged by the jobs its `FAIL <job>: ... (this run)` lines name (it qualifies
-+only when it names at least one job and every job it names is a failed job of the same run that
-+matches; any other `FAIL` line, or none, and it does not); the re-run is
-+`POST .../runs/<id>/rerun-failed-jobs` only when the run is at attempt 1 (the bound is the
-+attempt counter, so no state is kept and no second re-run can follow); and it fires no sooner than
-+the printed `reset_epoch`, else 3600 s after the last matching non-`gate` job completed (an
-+installation bucket resets hourly, `ratelimit-recur.md`), which at the stamp is env-matrix's
-+22:43:03Z, so a re-run due at 23:43:03Z, about 1 h 25 min before the hand re-run. The `gate` job is
-+re-run with the others, since `rerun-failed-jobs` takes every failed job of the run.
-+The root cause stays with the rate-limit groups (`R10-RECORD-API-O1`, not-started); this arm is
-+recovery, not the countermeasure.
++`gate` job, which is judged by its reasons. Its reasons are read from its log, each line with the
++runner's timestamp stripped: the text after `FAIL ` on its outcome line, then each following line
++up to the step's `##[error]` line, one reason per line, unprefixed (`gate.py:224`, `:295`). The
++judge's order is not alphabetical (`gate()` walks the required units in their table order and
++de-duplicates, `:144-171`), so the rule reads the reasons as a set. `gate` qualifies only when it
++has at least one reason, every reason has the form `<job>: failure (this run)`, and every job so
++named is a failed job of the same run that matches. Any reason of another shape (`SKIPPED`,
++`ABSENT`, `PENDING`, a `(run <id>)` source, `no run at this head`, an unreadable title, the attempt
++cap) and it does not. A `gate` whose outcome line is `RATE-LIMITED reset_epoch=<n>` (`:288-290`)
++carries a matching string and is a matching job like any other, and its `reset_epoch` is the one
++the clock rule waits for. The re-run is `POST .../runs/<id>/rerun-failed-jobs` only when the run is
++at attempt 1 (the bound is the attempt counter, so no state is kept and no second re-run can
++follow); and it fires no sooner than the printed `reset_epoch`, else 3600 s after the last
++matching non-`gate` job completed (an installation bucket resets hourly, `ratelimit-recur.md`),
++which at the stamp is env-matrix's 22:43:03Z, so a re-run due at 23:43:03Z, about 1 h 25 min
++before the hand re-run. The `gate` job is re-run with the others, since `rerun-failed-jobs` takes
++every failed job of the run. The root cause stays with the rate-limit groups (`R10-RECORD-API-O1`,
++not-started); this arm is recovery, not the countermeasure.
 +
 +Carry text (for `roster_edit.py append-carry R10-FLOW-MAIN-GATE`, citing `triage:
 +dev/programme/triage/s6-batch45.md#P228`): "Re-run a rate-limited red main once (V142). In
@@ -212,24 +233,35 @@ index 000000000..1383ffc18
 +wait: when a required context is red at main's tip, list the failed jobs of its workflow run; when
 +the run is at attempt 1 and EVERY failed job other than `gate` has a log containing one of `API rate
 +limit exceeded for installation`, `RATE-LIMITED reset_epoch=` or `the GitHub API is unreachable`,
-+and a failed `gate` job (the aggregator, `tools/ci/gate.py:224`) qualifies only when its log's `FAIL
-+<job>: ... (this run)` lines name at least one job and every job they name is a failed, matching job
-+of the same run, POST `repos/<repo>/actions/runs/<id>/rerun-failed-jobs` once, no sooner than the
-+printed `reset_epoch` (else 3600 s after the last matching non-`gate` job completed; before then log
-+`INFRA-RED <ctx> run <id>: rate-limited, re-run due at <time>` and go on as today), and log
-+`INFRA-RERUN <ctx> run <id> attempt 1 (<matched string>)`. The attempt counter is the bound: a run
-+at attempt 2 or later is never re-run, and the arm keeps no state. Any failed job other than `gate`
-+whose log matches none of the strings, a `gate` that does not qualify, or an unreadable log, leaves
-+today's behaviour. Instances: the v7.0.5 stamp `e8cb7e683` (run 40596083060: validate-hacs and
-+env-matrix failed on the installation rate limit at 22:37-22:43Z, `gate` red 23:10Z on `FAIL
-+governance / env-matrix: failure (this run)` until the hand re-run went green at 01:17Z; this rule
-+re-runs it at 23:43Z) and `b281d0325` on 2026-10-26 (`dev/audit/rca/ratelimit-recur.md`). Controls:
-+a fixture of the stamp's shape (validate-hacs and env-matrix failing on the rate-limit strings,
-+`gate` failing on `FAIL governance / env-matrix: failure (this run)`), past the reset, is re-run
-+once and logged; null controls: one failed job with any other failure is not re-run; a `gate` red
-+whose `FAIL` line names a job that failed on a non-infra cause is not re-run; a `gate` red naming a
-+job absent from the run's failed jobs is not re-run; the same run at attempt 2 is not re-run; before
-+the reset nothing is re-run and the INFRA-RED line names the due time; one mutant accepting
++and a failed `gate` job (the aggregator, `tools/ci/gate.py`) qualifies, POST
++`repos/<repo>/actions/runs/<id>/rerun-failed-jobs` once, no sooner than the printed `reset_epoch`
++(else 3600 s after the last matching non-`gate` job completed; before then log `INFRA-RED <ctx> run
++<id>: rate-limited, re-run due at <time>` and go on as today), and log `INFRA-RERUN <ctx> run <id>
++attempt 1 (<matched string>)`. The `gate` job's reasons are, with the runner's timestamp stripped,
++the text after `FAIL ` on its outcome line (`gate.py:224`) plus each following line up to the
++step's `##[error]` line, which `gate.py:295` prints with no prefix; read them as a set, since the
++judge's order is its unit table's, not sorted. It qualifies only when it has at least one reason,
++every reason reads `<job>: failure (this run)`, and every job so named is a failed, matching job of
++the same run; a reason of any other shape (`SKIPPED`, `ABSENT`, `PENDING`, `(run <id>)`, `no run at
++this head`, an unreadable title, the attempt cap) and it does not. A `gate` whose outcome line is
++`RATE-LIMITED reset_epoch=<n>` (`gate.py:288-290`) is a matching job and its epoch is the due time.
++The attempt counter is the bound: a run at attempt 2 or later is never re-run, and the arm keeps no
++state. Any failed job other than `gate` whose log matches none of the strings, a `gate` that does
++not qualify, or an unreadable log, leaves today's behaviour. Instances: the v7.0.5 stamp
++`e8cb7e683` (run 40596083060: validate-hacs and env-matrix failed on the installation rate limit
++at 22:37-22:43Z; `gate` red 23:10Z on two reasons, `FAIL governance / env-matrix: failure (this
++run)` and the unprefixed `validate / validate-hacs: failure (this run)` on the next line (job
++122526090837, log lines 4372-4373), until the hand re-run went green at 01:17Z; this rule re-runs
++it at 23:43Z) and `b281d0325` on 2026-10-26 (`dev/audit/rca/ratelimit-recur.md`). Controls: a
++fixture of the stamp's shape (validate-hacs and env-matrix failing on the rate-limit strings,
++`gate` printing `FAIL governance / env-matrix: failure (this run)` then `validate /
++validate-hacs: failure (this run)` unprefixed), past the reset, is re-run once and logged, and so
++is the same fixture with the two reasons in the other order; null controls: one failed job with any
++other failure is not re-run; a `gate` whose first reason names a job that failed on a non-infra
++cause is not re-run; a `gate` whose second, unprefixed reason names a job absent from the run's
++failed jobs (`tests / browser: SKIPPED (this run)`, or a `(run <id>)` source) is not re-run, and a
++mutant reading only the `FAIL`-prefixed line fails it; the same run at attempt 2 is not re-run;
++before the reset nothing is re-run and the INFRA-RED line names the due time; one mutant accepting
 +any-match instead of every-match fails the mixed arm."
 +
 +## P229: a reviewer can be dispatched at a PR head that lacks its own handoff

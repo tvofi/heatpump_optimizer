@@ -1,0 +1,12 @@
+RESULT instance log (real), re-run: True
+RESULT instance log, FAIL-only reader still re-runs here (env-matrix also matches): True
+RESULT fixture order A,B re-run: True
+RESULT fixture order B,A re-run: True
+RESULT null: second reason SKIPPED not re-run: False
+RESULT null: second reason (run <id>) not re-run: False
+RESULT mutant FAIL-only on SKIPPED-second -> re-runs (caught): True
+RESULT null: first reason names non-infra job: False
+RESULT null: attempt 2: False
+RESULT null: mixed (one non-infra failed job): False
+RESULT mutant any-match on mixed -> re-runs (caught): True
+RESULT RATE-LIMITED gate is matching: True
