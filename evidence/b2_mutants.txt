@@ -2,7 +2,21 @@ RESULT mutant=M0 failed=0 verdict=baseline
 RESULT mutant=B2-ancestry failed=2 verdict=killed
      FAIL a tree behind origin/main reads the roster there: a group only on main passes
      FAIL ... and says so: NOTE stale tree names HEAD and origin/main
-RESULT mutant=B2-always failed=2 verdict=killed
+RESULT mutant=B2-always failed=7 verdict=killed
      FAIL a tree containing origin/main keeps its own roster: the PR's own new group passes
      FAIL ... and prints no stale-tree NOTE (null control)
-RESULT sites=166 unmapped=0 mutants=234 survived=0
+     FAIL a shallow clone whose HEAD contains origin/main keeps its tree: the PR's own group passes
+     FAIL ... and prints no stale-tree NOTE
+     FAIL ... and once unshallowed the ancestry answers itself: passes, no NOTE (null control)
+     FAIL a clone without origin/main keeps its tree: the PR's own group passes
+     FAIL ... and prints no stale-tree NOTE
+RESULT mutant=B2-rc failed=2 verdict=killed
+     FAIL a clone without origin/main keeps its tree: the PR's own group passes
+     FAIL ... and prints no stale-tree NOTE
+RESULT mutant=B2-shallow failed=2 verdict=killed
+     FAIL a shallow clone whose HEAD contains origin/main keeps its tree: the PR's own group passes
+     FAIL ... and prints no stale-tree NOTE
+RESULT mutant=B2-shallow-always failed=2 verdict=killed
+     FAIL a tree behind origin/main reads the roster there: a group only on main passes
+     FAIL ... and says so: NOTE stale tree names HEAD and origin/main
+RESULT sites=166 unmapped=0 mutants=237 survived=0

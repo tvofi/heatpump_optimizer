@@ -209,6 +209,10 @@
   ok   a blocked verdict at the head still updates (null control)
   ok   a merge verdict whose head is not exactly the live head still updates
   ok   no verdict ref and no review updates (null control)
+  FAIL a listed verdict ref the fetch cannot find freezes the head (rc 0) (rc=1, want 0)
+  FAIL and says UNREAD (rc=1, want 0)
+  FAIL a listed sha the fetched ref does not carry (it moved since the listing) is UNREAD too (rc=1, want 0)
+  ok   the same ref listed at its own sha, a verdict at an older head, freezes nothing (null control)
   ok   a dispatch at the head with no verdict holds the handoff: no update_pr call
   ok   and prints HELD-REVIEW
   ok   and owes handoff-held REVIEW in the level
@@ -263,10 +267,11 @@
   ok   a confirm failing every pass is tried HPO_RELAY_CONFIRM_TRIES (3) times, no more
   ok   then stays owed once on the level with its last reason
   ok   a review posted by hand after that leaves the level
-tools/audit/seat/cloud_relay.sh: line 972: 63624 Terminated: 15          bash "$1" pass --log "$LOG" > /dev/null 2>&1
+tools/audit/seat/cloud_relay.sh: line 982: 74491 Terminated: 15          bash "$1" pass --log "$LOG" > /dev/null 2>&1
   ok   a relay TERMed mid-update leaves none of the update's tree alive (R10-PUSHER-REAP)
+tools/audit/seat/cloud_relay.sh: line 982: 74806 Terminated: 15          bash "$1" pass --log "$LOG" > /dev/null 2>&1
   ok   a relay TERMed mid-update TERMs the update alone first, so it ends its own child before anything else does
-tools/audit/seat/cloud_relay.sh: line 972: 64233 Terminated: 15          bash "$1" pass --log "$LOG" > /dev/null 2>&1
+tools/audit/seat/cloud_relay.sh: line 982: 75304 Terminated: 15          bash "$1" pass --log "$LOG" > /dev/null 2>&1
   ok   with no stub, the relay runs update_pr.sh beside it as the lead, asynchronously: a TERM ends it in that order
   ok   a TERM to the relay's whole process group reaches the update only through the relay's reap, which TERMs it alone first
   ok   a KILL to the relay's whole process group leaves the in-flight update to finish under its own lock
@@ -275,4 +280,4 @@ tools/audit/seat/cloud_relay.sh: line 972: 64233 Terminated: 15          bash "$
   ok   a held lock aged 899 s is not reported
   ok   a released lock aged 5000 s is not reported, whatever its text
   ok   once every lock is released nothing is reported, and the level holds no push-stuck line
-cloud_relay self-test: 275 checks, 0 failed
+cloud_relay self-test: 279 checks, 3 failed

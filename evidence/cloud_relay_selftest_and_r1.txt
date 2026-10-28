@@ -1,0 +1,5 @@
+cloud_relay self-test: 279 checks, 0 failed
+== cloud_relay-34 cloud_relay.sh: KILLED rc=1 | tools/audit/seat/cloud_relay.sh: line 982: 35837 Terminated: 15          bash "$1" pass --log "$LOG" > /dev/null 2>&1
+RESULT survivors=0
+
+[exited with code 0]
