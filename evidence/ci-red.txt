@@ -1,0 +1,13 @@
+Check runs at head 5a3c5d2395043b7ce9f82b383be350356c9d5864 (ev/check-runs.tsv), read 2026-10-22T11:48Z: 42 runs, 39 success/skipped, 3 failure.
+
+pr-contract 119788366283 (11:06:16Z) and 119788564469 (11:06:45Z) and 119800865122 (11:36:01Z), each ends:
+  python3 -I tools/audit/carry_audit.py check --body /tmp/pr-body.md
+  BAD-DEST body item 0c8f5156: R10-NIGHTLY-HB-RESPAWN: R10-NIGHTLY-HB-RESPAWN is not a group of the roster
+  CARRY-AUDIT: 3 finding item(s): 2 routed, 0 unrouted, 1 bad destination(s)
+  ##[error]Process completed with exit code 1.
+The preceding steps in 119788564469: preflight "clean no refusal"; "no version edit: origin/main...5a3c5d23... moves none of VERSION, the manifest version or a notes heading".
+#2608 merged 2026-10-22T11:33:58Z as 543c8087c579; the 11:36 run still read the roster from this head's tree, which predates it.
+
+nightly-status 119788368909:
+  NIGHTLY ABSENT: no scheduled run of the workflow was found at all.
+  This check is NOT one of the required contexts on `main-protect`; a red here does not block a merge.
