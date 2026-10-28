@@ -73,6 +73,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
+from datetime import datetime
 from typing import Any
 
 from . import pump_mode
@@ -87,7 +88,13 @@ from .const import (
     MODE_LAST_GOOD_MAX_AGE_MINUTES,
 )
 from .entry_config import EntryConfig
-from .payload import ElectricHeatSignals, HeatPumpSignals
+from .payload import (
+    LINE_BACKUP_HEATER,
+    LINE_DHW_BOOSTER,
+    LINE_IMMERSION,
+    ElectricHeatSignals,
+    HeatPumpSignals,
+)
 from .pump_mode import FULL_CAPABILITY, ModeCapability
 
 _LOGGER = logging.getLogger(__name__)
@@ -206,6 +213,54 @@ class PumpElectricHeat:
         }
 
 
+def resistive_carve_out(
+    heat: PumpElectricHeat,
+    *,
+    latched: bool,
+    immersion_element: bool,
+    actual_kw: float | None,
+    threshold_kw: float,
+    hours: float,
+) -> tuple[str, float] | None:
+    """``(ledger line, kWh)`` of one interval's resistive draw, or ``None``.
+
+    The one place the line is chosen, so its three conditions cannot drift
+    apart:
+
+    * the immersion LATCH holds -- the meter's evidence that something beyond
+      the compressor's nameplate is running;
+    * the draw is over the threshold that tripped that latch
+      (``nameplate x IMMERSION_FACTOR``), never over the plan's ask: the plan
+      reads a pump's own compressor low (1.28x on the install this was found
+      on), so the excess over the ask is mostly ordinary compressor draw, and
+      carving it out booked running heat as resistive for every interval of
+      the latch (#2729);
+    * the SOURCE is known -- the pump heater flag that is on, else an install
+      that has declared an immersion element. Neither, or both heater flags
+      on at once (the kilowatts cannot be apportioned), refuses the line.
+
+    ``None`` and ``False`` are different pieces of evidence but reach the same
+    answer here: a configured heater reading ``False`` while the meter tops
+    the threshold is the compressor over its configured nameplate, not either
+    element.
+    """
+    if not latched or hours <= 0.0 or threshold_kw <= 0.0:
+        return None
+    if actual_kw is None or actual_kw <= threshold_kw:
+        return None
+    if heat.dhw_booster is True:
+        if heat.backup_heater is True:
+            return None
+        line = LINE_DHW_BOOSTER
+    elif heat.backup_heater is True:
+        line = LINE_BACKUP_HEATER
+    elif immersion_element:
+        line = LINE_IMMERSION
+    else:
+        return None
+    return line, (actual_kw - threshold_kw) * hours
+
+
 @dataclass(frozen=True)
 class PumpSignals:
     """What the pump's slots say this cycle, already resolved to decisions.
@@ -241,6 +296,9 @@ class PumpSignals:
     #: not the device enum, so seeing the literal word matters when a mode is
     #: not being recognised.
     mode_text: str | None = None
+    #: The live mode state's ``last_changed``: when the pump entered it, which
+    #: ``heat_energy.ModeDwell`` splits an interval at. ``None`` off a live read.
+    mode_changed_at: datetime | None = None
     #: ``True``/``False`` when the flag was readable this cycle, ``None`` when
     #: there is no evidence either way.
     defrosting: bool | None = None
@@ -255,6 +313,11 @@ class PumpSignals:
     #: unreadable — it is about the machine being in a state where every
     #: thermal measurement it produces is misleading.
     freeze_reason: str | None = None
+
+    @property
+    def mode_live(self) -> bool:
+        """Whether this cycle's mode was read live (not a last-good fallback or absent)."""
+        return self.mode_source == MODE_SOURCE_LIVE
 
     @property
     def space_heat(self) -> bool:
@@ -477,6 +540,7 @@ def read(
         mode_observed=observed,
         mode_source=source,
         mode_text=mode_reading.text,
+        mode_changed_at=getattr(mode_state, "last_changed", None) if source == MODE_SOURCE_LIVE else None,
         defrosting=defrosting,
         online=online,
         fault=fault,

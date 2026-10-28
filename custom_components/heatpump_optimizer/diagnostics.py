@@ -49,6 +49,12 @@ summary's ``plan_age_minutes`` is measured at that instant from
 ``last_optimization``. The published value is the age when the payload was
 built, up to one optimisation interval earlier, so a 14-minute-old plan read
 0.8 in the owner's bundle.
+
+Its residue: the input watchdog's view is judged at the export -- every age,
+including the age its problem messages render, and both verdicts beside them,
+``input_health`` and ``stale_inputs``; ``plan_stale`` is judged at the export by
+the coordinator's own limit; and the debug manifest states when the stored
+self-tests ran.
 """
 from __future__ import annotations
 
@@ -65,11 +71,13 @@ from homeassistant.util import dt as dt_util
 from . import accuracy, debugger, draw_range, early_cutoff, pump_arbiter, replay_doc
 from .const import CONF_COP_SCALE, CONF_TIBBER_TOKEN, DOMAIN, PRIVATE_ENTITY_ID
 from .drift import stored_age_seconds
+from .inputs import OUTRANKS_STALE, describe_problem, health_summary
 from .thermal_model import probe_install
 from .coordinator import (
     CoordinatorDiagnostics,
     HeatPumpOptimizerConfigEntry,
     HeatPumpOptimizerCoordinator,
+    plan_stale_limit_minutes,
 )
 from .payload import LearningView
 
@@ -101,6 +109,7 @@ INPUT_KEYS = (
     "problem_inputs",
     "problem_messages",
     "input_ages_minutes",
+    "input_ages_at",
     "learners_frozen",
     "learner_freeze_reason",
 )
@@ -147,11 +156,115 @@ def _without_values(value: Any, private: frozenset[str]) -> Any:
     return REDACTED if str(value) in private else value
 
 
-def _plan_summary(data: Mapping[str, Any], now: datetime) -> dict[str, Any]:
+def _over_age(problem: Any) -> bool:
+    """Whether this problem's re-based age has passed its own published limit.
+
+    A class in :data:`~.inputs.OUTRANKS_STALE` is never relabelled: the reader
+    records the age before it finds the fault, so the entry carries both an age
+    and a limit, and the reader's own precedence keeps it over ``stale``.
+    """
+    age = problem.get("age_minutes")
+    limit = problem.get("max_age_minutes")
+    return (
+        problem.get("problem") not in OUTRANKS_STALE
+        and isinstance(age, (int, float))
+        and isinstance(limit, (int, float))
+        and age > limit
+    )
+
+
+def _aged_problem(problem: Mapping[str, Any], aged: Callable[[Any], Any]) -> dict[str, Any]:
+    """One published problem, its age re-based and its staleness re-judged at the export.
+
+    An input the publication called stale stays stale, its age only grows; one
+    whose age now passes its own limit joins it.
+    """
+    entry = {**problem, "age_minutes": aged(problem.get("age_minutes"))}
+    return {**entry, "problem": "stale"} if _over_age(entry) else entry
+
+
+def _aged_problems(problems: list[Any], aged: Callable[[Any], Any]) -> list[Any]:
+    """Every published problem re-based and re-judged, non-mappings left as found."""
+    return [
+        _aged_problem(problem, aged) if isinstance(problem, Mapping) else problem
+        for problem in problems
+    ]
+
+
+def _judged_inputs(inputs: Mapping[str, Any], entries: list[Any]) -> dict[str, Any]:
+    """The published watchdog keys re-judged at the export, from the re-based entries.
+
+    ``stale_inputs`` is the publication's own verdict plus every input whose
+    re-based age has passed its published limit; an input it already held keeps
+    its place. ``missing`` is the reader's rule -- a failing reading with an
+    entity behind it that is not stale -- so a class ``stale`` entry is counted
+    once, by ``stale`` alone. ``problem_messages`` and ``input_health`` are
+    rendered from those same entries and sets, so one payload states one age.
+    """
+    over_age = {entry.get("input") for entry in entries if _over_age(entry)}
+    stale = {key for key in (inputs.get("stale_inputs") or []) if isinstance(key, str)}
+    stale.update(over_age)
+    missing = {
+        entry.get("input") for entry in entries
+        if entry.get("entity_id") and entry.get("input") not in stale
+        and entry.get("problem") != "stale"
+    }
+    return {
+        "input_problems": entries,
+        "stale_inputs": sorted(stale),
+        "problem_messages": [
+            describe_problem(entry) for entry in entries if entry.get("entity_id")
+        ],
+        "input_health": health_summary(stale, missing),
+    }
+
+
+def _inputs_at(data: Mapping[str, Any], now: datetime) -> dict[str, Any]:
+    """The input watchdog's keys, each age re-based from ``input_ages_at`` to ``now``.
+
+    With no read instant, or one ahead of ``now``, the ages stay as published.
+
+    An age is half a field. ``problem_messages`` renders a second, and
+    ``input_health`` / ``stale_inputs`` are verdicts about a third. Re-basing
+    only the numbers let one payload state a 20-minute age in the message and
+    a 60-minute age beside it, with an age twice its own ``max_age_minutes``
+    still reported healthy (#2873's fix review). So every age-bearing field
+    and both verdicts are judged at ``now`` -- the export the rest of this
+    module dates its ages at (the module docstring) -- and no third time base
+    is invented. Staleness is the one class the export can re-judge, being
+    this age against this limit with both published (:func:`_over_age`).
+    """
+    inputs = {key: data[key] for key in INPUT_KEYS if key in data}
+    elapsed = stored_age_seconds(data.get("input_ages_at"), now)
+    if elapsed is None:
+        return inputs
+
+    def aged(minutes: Any) -> Any:
+        return round(minutes + elapsed / 60.0, 1) if isinstance(minutes, (int, float)) else minutes
+
+    if isinstance(ages := inputs.get("input_ages_minutes"), Mapping):
+        inputs["input_ages_minutes"] = {key: aged(age) for key, age in ages.items()}
+    if isinstance(problems := inputs.get("input_problems"), list):
+        judged = _judged_inputs(inputs, _aged_problems(problems, aged))
+        inputs.update({
+            key: value for key, value in judged.items() if key in inputs
+        })
+    return inputs
+
+
+def _plan_summary(
+    data: Mapping[str, Any], now: datetime, stale_limit: float | None = None
+) -> dict[str, Any]:
     """What the current plan is, in counts and totals: no per-step series.
 
-    Its age is measured at ``now``, the export, not copied from the payload.
+    Its age is measured at ``now``, the export, not copied from the payload,
+    and so is ``plan_stale`` wherever the export can date the plan and the
+    coordinator's limit is readable; a plan the export cannot date keeps the
+    verdict it was published with.
     """
+    age = stored_age_seconds(data.get("last_optimization"), now)
+    stale = (data.get("plan_stale") if stale_limit is None or age is None
+             else age / 60.0 > stale_limit)
 
     def channel(plan: Any) -> dict[str, Any]:
         plan = plan if isinstance(plan, Mapping) else {}
@@ -171,15 +284,11 @@ def _plan_summary(data: Mapping[str, Any], now: datetime) -> dict[str, Any]:
                 "optimization_status",
                 "last_optimization",
                 "next_optimization",
-                "plan_stale",
                 "current_action",
             )
         },
-        "plan_age_minutes": (
-            round(age / 60.0, 1)
-            if (age := stored_age_seconds(data.get("last_optimization"), now)) is not None
-            else None
-        ),
+        "plan_stale": stale,
+        "plan_age_minutes": round(age / 60.0, 1) if age is not None else None,
         "space": channel(data.get("space_plan")),
         "dhw": channel(data.get("dhw_plan")),
     }
@@ -194,8 +303,10 @@ def _published_sections(coord: Any, now: datetime) -> dict[str, Any]:
         "last_diagnosis": (
             insight.get("last_diagnosis") if isinstance(insight, Mapping) else None
         ),
-        "inputs": {key: data[key] for key in INPUT_KEYS if key in data},
-        "plan": _plan_summary(data, now),
+        "inputs": _inputs_at(data, now),
+        "plan": _plan_summary(
+            data, now, plan_stale_limit_minutes(getattr(coord, "effective_config", None))
+        ),
         "learning": {key: data[key] for key in LearningView.__annotations__ if key in data},
     }
 

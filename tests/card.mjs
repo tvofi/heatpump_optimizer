@@ -5673,7 +5673,7 @@ function ctxL(card, key) {
   check("and the click does not open the expanded dialog",
     !clickOpenedDialog);
   check("each row carries its plain-language explanation",
-    /how long the building holds its stored heat/.test(openDump) &&
+    /corrected for thermal mass/.test(openDump) &&
     /against its own\s+baseline/.test(openDump) &&
     /buying at or above flat scores 0/.test(openDump),
     (openDump.match(/score-breakdown[\s\S]{0,900}/) || [""])[0]);
@@ -5737,7 +5737,7 @@ function ctxL(card, key) {
     if (tile) tile.dispatchEvent({ type: "click", stopPropagation() {} });
     const open = collect(card.shadowRoot).join("\n");
     const row = (key) => (open.match(new RegExp(`data-part="${key}"[\\s\\S]*?sb-text`)) || [""])[0];
-    return { closed, title, row, headline: (closed.match(/hl-score[\s\S]*?hl-value">([^<]*)</) || [null, null])[1] };
+    return { closed, open, title, row, headline: (closed.match(/hl-score[\s\S]*?hl-value">([^<]*)</) || [null, null])[1] };
   };
   const nullParts = surfaces(withScore("60", {
     envelope: null, machine: null, operation: 60, overall: 60,
@@ -5751,6 +5751,28 @@ function ctxL(card, key) {
     && /sb-na">— Still learning/.test(nullParts.row("envelope"))
     && !/0\/100/.test(nullParts.row("machine")) && !/sb-fill/.test(nullParts.row("machine")),
     nullParts.row("machine"));
+
+  // #2816: a house grade says on hover what moves it off 50 and what the
+  // metric is; one no driver moves a point is "typical", never reasonless.
+  const drivenHouse = surfaces(withScore("60", {
+    envelope: 35.2, machine: null, operation: 60, overall: 60,
+    reasons: { machine: "cop_watch_learning" },
+    envelope_drivers: [{ code: "loss_vs_typical", points: 0.0 },
+      { code: "learned_heat_loss", points: -14.8 }, { code: "thermal_mass", points: 0.0 },
+      { code: "not_a_code", points: 3.0 }] }));
+  check("#2816: the house hover names each driver with its signed points, and the metric",
+    /House: 35\/100 \(learned heat loss vs configured −15\)/.test(drivenHouse.title || "")
+    && drivenHouse.title.includes(fn("STRINGS.en")["score.part_envelope"])
+    && !/not_a_code|thermal-mass correction/.test(drivenHouse.title)
+    && /sb-drivers">learned heat loss vs configured −15</.test(drivenHouse.open),
+    drivenHouse.title);
+  const typicalHouse = surfaces(withScore("60", {
+    envelope: 50, machine: null, operation: 60, overall: 60,
+    reasons: { machine: "cop_watch_learning" },
+    envelope_drivers: [{ code: "loss_vs_typical", points: 0.2 }] }));
+  check("#2816: a house no driver moves a point reads typical, with a reason all the same",
+    /House: 50\/100 \(typical for its type and era\)/.test(typicalHouse.title || ""),
+    typicalHouse.title);
 
   // One message everywhere: for every score input -- a grade, or null with
   // each code the coordinator can publish for it -- the headline, the hover
@@ -12033,11 +12055,28 @@ check("without an indoor reading the corner now label is absent",
   }
 
   // Every problem code the integration publishes has words in both languages.
+  // The codes are the keys of inputs.py's PROBLEM_WORDS, the reader's one table of
+  // published classes; tests/debug_collect.py's ast census holds that table equal to
+  // every class literal inputs.py sets, by assignment or through _set_problem, so a
+  // class is enumerated here whichever route sets it (#2873: a regex over one
+  // assignment form lost `implausible` when it moved behind _set_problem).
   const inputsPy = fs.readFileSync("custom_components/heatpump_optimizer/inputs.py", "utf8");
-  const codes = [...new Set([...inputsPy.matchAll(/reading\.problem = "(\w+)"/g)].map((m) => m[1]))]
-    .filter((k) => k !== "not_configured");
+  const table = /^PROBLEM_WORDS: dict\[str, str\] = \{\n([\s\S]*?)^\}/m.exec(inputsPy);
+  const codes = table ? [...table[1].matchAll(/^\s+"(\w+)":/gm)].map((m) => m[1]) : [];
+  const assigned = [...new Set([...inputsPy.matchAll(/(?:reading\.problem = |_set_problem\(reading, )"(\w+)"/g)]
+    .map((m) => m[1]))].filter((k) => k !== "not_configured" && !codes.includes(k));
   check("inputs.py publishes problem codes the card can be enumerated against",
-    codes.includes("unknown_unit") && codes.includes("stale") && codes.length >= 8, codes.join(","));
+    codes.includes("unknown_unit") && codes.includes("stale") && codes.length >= 8 && assigned.length === 0,
+    `${codes.join(",")} | set but not in PROBLEM_WORDS: ${assigned.join(",")}`);
+  // The render check below cannot see a missing Swedish word: L() falls back to
+  // the English table. So each code's own key is read from both tables directly.
+  const strings = fn("STRINGS");
+  const keyOf = (code) => (code === "stale" ? "health.stale" : `health.p_${code}`);
+  for (const lang of ["en", "sv"]) {
+    const missing = codes.filter((k) => !(typeof strings[lang][keyOf(k)] === "string" && strings[lang][keyOf(k)].trim()));
+    check(`every published problem code has its own words in the card's ${lang} table`,
+      missing.length === 0, missing.join(","));
+  }
   const wordsFor = (lang, code) => {
     const w = healthStates();
     w[BIN].attributes.problems = [{ input: `in_${code}`, entity_id: "sensor.x", problem: code,

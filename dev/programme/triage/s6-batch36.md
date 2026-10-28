@@ -5,7 +5,7 @@ writer on the triage role is a live hazard on the stamp path: the orchestrator h
 barrier that admits exactly one batch file newer than the `v7.0.5` tag. Numbering continues
 after `s6-batch35.md` (P199-P203). Facts read at origin/main `524c1896b` on 2026-10-27.
 
-## P204: two seats on one role are invisible and unstoppable (V124)
+## P204: two seats on one role are invisible and unstoppable (orchestrator relay; no `proposals.md` id)
 Verdict: DEFER. Route the item as prose into the carry text of **R10-ORCH-BEATD**
 (`not-started`, L; the sweep/beat is its surface). P197 is deferred to that group and sits
 in its carry 13 (index 12), the context-rotation paragraph, per `s6-batch34.md`; the roster
