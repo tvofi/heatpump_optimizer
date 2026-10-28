@@ -86,7 +86,19 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   `checks, 0 failed` line.
 - `merge_throughput.py` — measures whether merges land inside the previous
   merge's gate window often enough to justify a merge queue. When: someone
-  proposes a queue; the numbers decide before the mechanism is built.
+  proposes a queue; the numbers decide before the mechanism is built. Its
+  `flow` subcommand is the flow board (Lean study K1): throughput against
+  the owner's demand of one roster group merged per hour, read from git
+  alone — the first-parent log, the review/verdict bus refs through
+  `review_strength`'s grammar and the roster through `roster_lib`. It prints
+  per rolling hour and per 24 h: groups closed against takt 1.0, fly-ins
+  closed, main moves split into group-carrying/record/roster-edit/fly-in,
+  WIP by flow lane (A/B/C/F), first-pass review yield with its blocked-class
+  mix, and lead time per size, and prints UNAVAILABLE rather than a zero
+  when a source cannot be read. When: any flow change that claims to move
+  throughput. Refusal: `--self-test` — its fixture's exact counts, the
+  unchanged-fixture null control, and a named arm per classification
+  predicate; `governance.yml`'s self-test step runs it.
 - `preflight.sh` — mechanical checks on anything the orchestrator publishes
   (merge body, issue body, comment, brief): closing keywords and the claim
   shapes. When: before posting any prose that GitHub or a later seat reads.
@@ -386,8 +398,10 @@ sweep's standing-seat liveness step keep them alive.
   reviews: a `Fix review: merge <head>` tip on `verdict/<pr>` at that head
   (`HELD-VERDICT`), or a review of that head in flight with no verdict at it
   (`HELD-REVIEW`: a `bus.sh dispatch` record of the PR at the head, or a
-  detached worktree at it). A blocked verdict, or one at an older head, freezes
-  nothing. Each prints `HELD-<why> #<pr> <handoff tip>` once per pass and is
+  detached worktree at it). A verdict ref the listing names but the fetch
+  cannot read freezes too (`HELD-UNREAD`): it may be a merge at the head. A
+  blocked verdict, or one at an older head, freezes nothing. Each prints
+  `HELD-<why> #<pr> <handoff tip>` once per pass and is
   `OWED <utc> handoff-held <ref> <tip> #<pr> <why>` in `<log>.level`;
   `cloud-handoff-release` (the hold file's grammar) releases a listed PR from the
   freeze, never from the hold, for new work that voids a merge verdict.
@@ -1027,17 +1041,19 @@ sweep's standing-seat liveness step keep them alive.
   and `one-train` beside a train.sh still closing; a pull request already
   queued is `ALREADY`, rc 0. One fcntl lock (`queue.lock`) orders every add
   against the train's drains and its close; never a second train.
-- `state_docs.py` — one call regenerates the three state docs
-  (`plan_table.py`, `resume_doc.py`, `handover_prompt.py`), commits exactly
+- `state_docs.py` — one call regenerates the four state docs
+  (`plan_table.py`, `merge_throughput.py flow`, `resume_doc.py`,
+  `handover_prompt.py`), commits exactly
   their outputs to the orphan ref `handoff/audit-r<N>-plan` at
   `handoff/round<N>/state/`, N the roster's round, and mirrors them to
-  `--mirror`. When: every state
+  `--mirror`. The flow board publishes beside the plan table, so a beat
+  pass carries the throughput figures with the plan they explain. When: every state
   beat — it replaces the five hand commands (worktree, copy, commit, push,
   mirror) and runs the generators instead of copying their logic. Dry run by
   default: without `--push` nothing remote is written. Refusals: any path
-  outside the three state docs (the write set is checked before a commit
+  outside the four state docs (the write set is checked before a commit
   exists to push; every other path at the ref — a round's evidence — is
-  carried untouched), a first commit that would not be exactly the three
+  carried untouched), a first commit that would not be exactly the four
   files, and an already-current tip, which is reported and left alone. The
   commit is plumbing over a temp index, so the calling checkout's index is
   never touched.
