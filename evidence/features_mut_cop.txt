@@ -1,2 +1,0 @@
-  FAIL R10-CURRENCY: the COP notice prices a EUR feed on a SEK instance in EUR, and a SEK feed in SEK  [{'EUR/kWh': ['SEK'], 'SEK/kWh': ['SEK']}]
-1 of 4303 FEATURE CHECKS FAILED

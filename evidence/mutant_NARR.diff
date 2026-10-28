@@ -1,0 +1,11 @@
+--- /tmp/tmp.LO9uW6aikJ/wt/custom_components/heatpump_optimizer/coordinator.py	2026-10-23 05:46:35.966982326 +0000
++++ /tmp/tmp.LO9uW6aikJ/m_NARR/custom_components/heatpump_optimizer/coordinator.py	2026-10-23 05:49:17.635149900 +0000
+@@ -10366,7 +10366,7 @@
+         return {
+             "items": items,
+             # The feed's code, as every other money surface (#1657).
+-            "lines": narrative.render(items, chosen, self.currency),
++            "lines": narrative.render(items, chosen, resolve_currency(hass)),
+             "language": chosen,
+         }
+ 
