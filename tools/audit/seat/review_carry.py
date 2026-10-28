@@ -11,28 +11,32 @@ THE TEST IS A COMMIT RANGE, NOT AN OPINION:
 
     git rev-list --count <reviewed-head>..<new-head> --not origin/main
 
-Zero, or a count whose commits are all merges, means no branch-authored
-change and the prior verdict carries: this prints CARRY. A merge authors no
-code of its own -- what it joins is main's history (`--not` drops it) or
-branch commits, which are in the range as non-merge commits and counted -- so
-a merge of the branch's own previous head, the shape update_pr.sh re-cuts one
-into, is not a change either. Any non-merge commit in that range means the
-head carries code and takes a fresh review: this prints FRESH-REVIEW. A body
-rewrite never by itself voids a verdict, because it is not a commit in the
-range. A claim-file resolution, or a `ci:`/`claims:` bot commit, inside the
-range IS a change when it lands as a commit: it is a non-merge commit, and no
-subject is exempt -- the range is read before the merge is trusted. A claim
-file resolved INSIDE a merge is not read here; `tools/pr/app_approve.sh
---carry` reads it, and a pure union of both parents is the only resolution it
-accepts. (This answers the reviewer's verdict carrying. `merge_train.py`'s
-owner-approval carry answers a different question -- the owner's approval, not
-the reviewer's verdict -- and is not this instrument.)
+Any non-merge commit in that range means the head carries code and takes a
+fresh review: this prints FRESH-REVIEW, and no subject is exempt -- a
+claim-file resolution or a `ci:`/`claims:` bot commit landing as a commit is a
+change. Zero, or a count whose commits are all merges, is no branch-authored
+commit; what a merge can still author is its resolution, so the range then
+carries only where `tools/pr/app_approve.sh --carry` carries it -- each merge
+git's own automatic merge of its parents outside main's driver files, each
+claim file the pure union of both sides, and the branch's own diff equal at
+both heads -- and this prints CARRY. A merge of the branch's own previous
+head, the shape update_pr.sh re-cuts one into, passes all three. A
+hand-resolved conflict, a line a merge adds of its own, or a main change that
+rewrote the branch's hunk context is FRESH-REVIEW with app_approve.sh's
+reason. One predicate, asked rather than copied: two copies once answered the
+same range oppositely, and `bus.sh dispatch` then refused the re-review that
+app_approve.sh refused to carry. A body rewrite never by itself voids a
+verdict, because it is not a commit in the range. (This answers the
+reviewer's verdict carrying. `merge_train.py`'s owner-approval carry answers
+a different question -- the owner's approval, not the reviewer's verdict --
+and is not this instrument.)
 
 THE MEASURED INSTANCES, the null control: one command, opposite answers.
 
     #2876  253dc4867 -> e0237e6d0  branch-only 1, the merge itself -> CARRY
     #2876  253dc4867 -> d08647f05  branch-only 3, all merges       -> CARRY
     #2854  fccb88371 -> 9f424cf74  branch-only 41 (incl. ce277f1d6) -> FRESH-REVIEW
+    #2933  32221ca27 -> 98c6676a8  branch-only 1, a hand-resolved merge -> FRESH-REVIEW
 
 DEGENERATE CASES, each explicit rather than a guess:
   - an unknown sha cannot be decided: CANNOT DECIDE, exit 2, no verdict line;
@@ -97,6 +101,31 @@ def parents_of(repo, commit):
     return fields[1:]
 
 
+# The one carry predicate (R10-REVIEW-CARRY review round 1): this instrument
+# and `app_approve.sh --carry` once answered the same range oppositely, for a
+# hand-resolved merge and for a merge whose main side rewrote the branch's hunk
+# context, so `bus.sh dispatch` refused the re-review that app_approve.sh
+# refused to carry. A second copy of the merge rules is what drifted; this
+# asks the first one.
+APP_APPROVE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                           "..", "..", "pr", "app_approve.sh")
+
+
+def app_approve_carry(repo, reviewed, new, main):
+    """-> None when app_approve.sh --carry carries reviewed -> new, else its
+    reason: each merge git's automatic one outside main's driver files, each
+    claim file the pure union of both sides, the branch's own diff equal."""
+    proc = subprocess.run(["bash", APP_APPROVE, "--carry", reviewed, new, main],
+                          cwd=repo, capture_output=True, text=True)
+    out = proc.stdout.strip()
+    if proc.returncode == 0 and out.startswith("CARRY: yes "):
+        return None
+    if proc.returncode == 1 and out.startswith("CARRY: no "):
+        return out.split(": ", 2)[2] if out.count(": ") >= 2 else out
+    raise Undecidable("app_approve.sh --carry answered neither (rc %d): %s"
+                      % (proc.returncode, (out or proc.stderr.strip())[:200]))
+
+
 def branch_only(repo, reviewed, new, main):
     """The range the rule names: reviewed..new, excluding main's history."""
     count = int(must(repo, "rev-list", "--count", "%s..%s" % (reviewed, new),
@@ -120,10 +149,10 @@ def classify(repo, reviewed, new, main):
     count, commits = branch_only(repo, reviewed, new, main)
     carrying = []
     for sha, subject in commits:
-        # A merge joins history; it does not author a commit. What it joins is
-        # either main's (excluded by --not) or branch commits, which the range
-        # returns as non-merge commits of their own. So it counts as carrying
-        # only if it is not a merge at all.
+        # A merge joins history; what it joins is either main's (excluded by
+        # --not) or branch commits, which the range returns as non-merge
+        # commits of their own. What a merge can still author -- its
+        # resolution -- app_approve.sh --carry reads, below.
         if len(parents_of(repo, sha)) < 2:
             carrying.append((sha, subject))
     if not descendant:
@@ -133,15 +162,19 @@ def classify(repo, reviewed, new, main):
             reason += "; %d of %d branch-only commit(s) carry code" % (
                 len(carrying), count)
         return FRESH, reason, count, commits
-    if count == 0:
-        return CARRY, "no branch-only commit", 0, []
     if carrying:
         return (FRESH,
                 "%d of %d branch-only commit(s) carry code"
                 % (len(carrying), count),
                 count, commits)
+    why = app_approve_carry(repo, reviewed, new, main)
+    if why:
+        return FRESH, why, count, commits
+    if count == 0:
+        return CARRY, "no branch-only commit", 0, []
     return (CARRY,
-            "all %d branch-only commit(s) are merges" % count,
+            "all %d branch-only commit(s) are automatic merges, and "
+            "app_approve.sh --carry carries the range" % count,
             count, commits)
 
 
@@ -323,6 +356,121 @@ def self_test():
     v, why, _, _ = answer(reviewed, forced)
     check("a force-push answers FRESH-REVIEW", v, FRESH)
     check("the force-push names itself", why.startswith("force-push:"), True)
+
+    # A merge's own tree, against git's automatic merge of its parents. The
+    # reviewed head carries a branch change to shared.txt; main changes the
+    # same line, so merging main in conflicts and a human writes the result.
+    _t(seat, "checkout", "-q", "-b", "fix/hand", reviewed)
+    with open(os.path.join(seat, "shared.txt"), "w") as fh:
+        fh.write("branch\n")
+    _t(seat, "add", "shared.txt")
+    reviewed2 = _commit(seat, "reviewed: the shared line")
+    _t(seat, "checkout", "-q", "-b", "main-conflict", main1)
+    with open(os.path.join(seat, "shared.txt"), "w") as fh:
+        fh.write("main\n")
+    with open(os.path.join(seat, ".gitattributes"), "w") as fh:
+        fh.write("# claim notes\nclaims.txt merge=claimnotes\n")
+    with open(os.path.join(seat, "claims.txt"), "w") as fh:
+        fh.write("base-claim\n")
+    _t(seat, "add", "shared.txt", ".gitattributes", "claims.txt")
+    main_c = _commit(seat, "main: the same line, and a claim file")
+    # the hand resolution: the conflict is resolved to text neither side had
+    _t(seat, "checkout", "-q", "fix/hand")
+    subprocess.run(["git", "-C", seat, "merge", "-q", "--no-ff", main_c],
+                   capture_output=True, env=_GIT_ENV)
+    with open(os.path.join(seat, "shared.txt"), "w") as fh:
+        fh.write("written by hand\n")
+    _t(seat, "add", "shared.txt")
+    hand = _commit(seat, "Merge remote-tracking branch 'origin/main' into fix/hand")
+    check("the hand-resolved fixture really conflicts",
+          git(seat, "merge-tree", "--write-tree", reviewed2, main_c)[0], 1)
+    check("the hand-resolved merge is a merge", len(parents_of(seat, hand)), 2)
+    v, why, _, _ = answer(reviewed2, hand, main=main_c)
+    check("a hand-resolved conflict merge answers FRESH-REVIEW", v, FRESH)
+    check("it names the merge as not automatic",
+          "not the automatic merge" in why, True)
+    # an evil merge: no conflict, but the merge commit adds a line of its own
+    _t(seat, "checkout", "-q", "-b", "main-quiet", main1)
+    with open(os.path.join(seat, "other.txt"), "w") as fh:
+        fh.write("main\n")
+    _t(seat, "add", "other.txt")
+    main_q = _commit(seat, "main: another file")
+    _t(seat, "checkout", "-q", "-b", "fix/evil", reviewed2)
+    _t(seat, "merge", "-q", "--no-ff", "--no-commit", main_q)
+    with open(os.path.join(seat, "code.txt"), "a") as fh:
+        fh.write("smuggled\n")
+    _t(seat, "add", "code.txt")
+    evil = _commit(seat, "Merge remote-tracking branch 'origin/main' into fix/evil")
+    v, _, _, _ = answer(reviewed2, evil, main=main_q)
+    check("a clean merge carrying a line of its own answers FRESH-REVIEW",
+          v, FRESH)
+    # the null control: the same merge, git's own result, carries
+    _t(seat, "checkout", "-q", "-b", "fix/auto", reviewed2)
+    _t(seat, "merge", "-q", "--no-ff", "-m", "Merge main into fix/auto", main_q)
+    auto = _t(seat, "rev-parse", "HEAD").strip()
+    v, _, _, _ = answer(reviewed2, auto, main=main_q)
+    check("the same merge, git's automatic result, answers CARRY", v, CARRY)
+    # A claim file (main's `merge=claimnotes`) is left out of the tree
+    # comparison and must resolve to the pure union of both sides, as
+    # app_approve.sh --carry requires.
+    _t(seat, "checkout", "-q", "-b", "main-claim", main_c)
+    with open(os.path.join(seat, "claims.txt"), "w") as fh:
+        fh.write("base-claim\nmain-claim\n")
+    _t(seat, "add", "claims.txt")
+    main_cl = _commit(seat, "main: a claim")
+    _t(seat, "checkout", "-q", "-b", "fix/claim", main_c)
+    _t(seat, "merge", "-q", "--no-ff", "-m", "Merge fix/hand", hand)
+    with open(os.path.join(seat, "claims.txt"), "w") as fh:
+        fh.write("base-claim\nbranch-claim\n")
+    _t(seat, "add", "claims.txt")
+    claimed = _commit(seat, "reviewed: a branch claim")
+
+    def resolve_claims(name, text):
+        _t(seat, "checkout", "-q", "-b", name, claimed)
+        subprocess.run(["git", "-C", seat, "merge", "-q", "--no-ff", main_cl],
+                       capture_output=True, env=_GIT_ENV)
+        with open(os.path.join(seat, "claims.txt"), "w") as fh:
+            fh.write(text)
+        _t(seat, "add", "claims.txt")
+        return _commit(seat, "Merge remote-tracking branch 'origin/main' into " + name)
+
+    union = resolve_claims("fix/union", "base-claim\nbranch-claim\nmain-claim\n")
+    dropped = resolve_claims("fix/dropped", "base-claim\nmain-claim\n")
+    check("the claim fixture really conflicts",
+          git(seat, "merge-tree", "--write-tree", claimed, main_cl)[0], 1)
+    v, _, _, _ = answer(claimed, union, main=main_cl)
+    check("a claim file resolved to the union of both sides answers CARRY",
+          v, CARRY)
+    v, why, _, _ = answer(claimed, dropped, main=main_cl)
+    check("a claim file resolved dropping a line answers FRESH-REVIEW", v, FRESH)
+    check("it names the claim file", "claims.txt" in why, True)
+
+    # An automatic merge whose main side rewrote a context line of the
+    # branch's own hunk: no resolution, but the change no longer sits where it
+    # was reviewed, and app_approve.sh --carry refuses it (6dc025ec6's shape).
+    _t(seat, "checkout", "-q", "-b", "main-ctx", main1)
+    with open(os.path.join(seat, "ctx.txt"), "w") as fh:
+        fh.write("a\nb\nc\nd\ne\nf\ng\nh\n")
+    _t(seat, "add", "ctx.txt")
+    ctx_base = _commit(seat, "main: a file of context")
+    _t(seat, "checkout", "-q", "-b", "fix/ctx", ctx_base)
+    with open(os.path.join(seat, "ctx.txt"), "w") as fh:
+        fh.write("a\nb\nc\nd\nBRANCH\nf\ng\nh\n")
+    _t(seat, "add", "ctx.txt")
+    ctx_rev = _commit(seat, "reviewed: one line")
+    _t(seat, "checkout", "-q", "main-ctx")
+    with open(os.path.join(seat, "ctx.txt"), "w") as fh:
+        fh.write("a\nb\nMAIN\nd\ne\nf\ng\nh\n")
+    _t(seat, "add", "ctx.txt")
+    ctx_main = _commit(seat, "main: a line beside the branch's")
+    _t(seat, "checkout", "-q", "fix/ctx")
+    _t(seat, "merge", "-q", "--no-ff", "-m", "Merge main into fix/ctx", ctx_main)
+    ctx_merge = _t(seat, "rev-parse", "HEAD").strip()
+    v, why, _, _ = answer(ctx_rev, ctx_merge, main=ctx_main)
+    check("an automatic merge that rewrote the branch's hunk context answers "
+          "FRESH-REVIEW", v, FRESH)
+    check("it names the branch's own diff", "branch's own diff differs" in why,
+          True)
 
     try:
         answer("0" * 40, merged)

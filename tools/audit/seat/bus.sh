@@ -456,8 +456,9 @@ dispatch() { # pr head reviewer [--reviewed-head <sha>] [--nonce N] [--model M] 
   # previous review can be carried"). A fresh nonce over a head whose range
   # against the reviewed head the caller names is clean starts a second
   # reviewer for a proof that did not move. `review_carry.py` answers from the
-  # commit range alone, so the seat cannot judge; this refusal is a refusal,
-  # not a warning, because a warning is what let the second reviewer start.
+  # commit range and app_approve.sh --carry's predicate, so the seat cannot
+  # judge; this refusal is a refusal, not a warning, because a warning is what
+  # let the second reviewer start.
   # --nonce mints nothing (a relay-minted nonce re-recorded for the seat
   # fired with it), so it is left alone.
   if [ -n "$rh" ] && [ -z "$n" ]; then
