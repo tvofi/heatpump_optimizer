@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/ledger.py:MonthlyLedger._coverage_factor CLAMP_DROP fa57ad15",
-  "killed_by": "tests/features.py",
-  "old": "            return max(1.0, month_hours(now) / settled)",
-  "reason": "Recorded by `mutation_table.py --pin-killed` against 413944b6772fa7f2f38cef7ea2f667a64d79251a: CLAMP_DROP (`return (1.0)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
-}

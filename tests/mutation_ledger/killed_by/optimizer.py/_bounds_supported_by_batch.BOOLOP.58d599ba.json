@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_bounds_supported_by_batch BOOLOP 58d599ba",
-  "killed_by": "tests/features.py",
-  "old": "        if not (np.isfinite(lo) and np.isfinite(hi)):",
-  "reason": "Recorded by `mutation_table.py --drain` against a745200209b275c0f33dc2253af8c7757ffb8de2: BOOLOP (`if not (np.isfinite(lo) or np.isfinite(hi)):`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

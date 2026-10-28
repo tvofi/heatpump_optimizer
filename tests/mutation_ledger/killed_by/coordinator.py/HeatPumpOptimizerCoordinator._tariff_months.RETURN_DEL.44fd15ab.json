@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._tariff_months RETURN_DEL 44fd15ab",
-  "killed_by": "tests/structure.py",
-  "old": "        return _peak_tariff_months(getattr(self, \"_ctx\", self)._config.peak_tariff_months)",
-  "reason": "Recorded by `mutation_table.py --pin-killed` against 0570b86e9351dfeda88d630093cfe4d442a6d664: RETURN_DEL (`pass`) took tests/structure.py from rc=0 failed=0 to rc=1 failed=1."
-}

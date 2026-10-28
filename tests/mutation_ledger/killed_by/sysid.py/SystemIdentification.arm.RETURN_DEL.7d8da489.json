@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/sysid.py:SystemIdentification.arm RETURN_DEL 7d8da489",
-  "killed_by": "tests/features.py",
-  "old": "            return False",
-  "reason": "Recorded by `mutation_table.py --drain` against 0c298f6b542e6efa4c93941700b3a23b859f3f9a: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
-}

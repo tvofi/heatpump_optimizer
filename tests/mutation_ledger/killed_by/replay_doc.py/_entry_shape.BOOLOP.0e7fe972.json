@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/replay_doc.py:_entry_shape BOOLOP 0e7fe972",
-  "killed_by": "tests/debug_collect.py",
-  "old": "            return [v for v in value if isinstance(v, str) and ENTITY_ID.match(v)]",
-  "reason": "Recorded by `mutation_table.py --pin-killed` against 55dc8d9c2c59c2ab614cb7c5d4b0ae9807401b50: BOOLOP (`return [v for v in value if isinstance(v, str) or ENTITY_ID.match(v)]`) took tests/debug_collect.py from rc=0 failed=0 to rc=1 failed=1."
-}

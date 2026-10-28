@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:desired RETURN_DEL e2e74004",
-  "killed_by": "tests/features.py",
-  "old": "    return PumpCommand(both, dhw, None if space is None else _bounded(inp, \"space_setpoint\", 5.0, rounding=\"down\"), silent)",
-  "reason": "Recorded by `mutation_table.py --pin-killed` against d5cd003111277faa3f2abd7fbe6c9157d2e48ed7: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
-}

@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.house_heat_loss_base GUARD_OFF 5d3bff29",
-  "killed_by": "tests/features.py",
-  "old": "        if self.two_zone_enabled:",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
-}

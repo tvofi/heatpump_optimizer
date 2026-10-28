@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/sysid.py:slab_mode_identifiability GUARD_OFF 72abb7dd",
-  "killed_by": "tests/features.py",
-  "old": "    if not (c_r > 1e-9 and c_s > 1e-9 and k_s > 1e-9):",
-  "reason": "Recorded by `mutation_table.py --drain` against c3530277373ddf87652858f9ecb0ee1cf36f4347: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=5."
-}

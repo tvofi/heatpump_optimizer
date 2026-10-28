@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/pump_mode.py:resolve BOOLOP 600cacea",
-  "killed_by": "tests/guard_pins.py",
-  "old": "    if strict and folded in _STATUS_AMBIGUOUS:",
-  "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`if strict or folded in _STATUS_AMBIGUOUS:`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=1."
-}

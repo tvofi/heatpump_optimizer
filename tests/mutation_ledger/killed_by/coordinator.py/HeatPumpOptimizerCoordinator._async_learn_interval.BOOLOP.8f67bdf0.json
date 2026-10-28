@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_learn_interval BOOLOP 8f67bdf0",
-  "killed_by": "tests/features.py",
-  "old": "        if self._cop_samples != cop_samples_before and self._cop_samples % 10 == 0:",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`if self._cop_samples != cop_samples_before or self._cop_samples % 10 == 0:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
-}

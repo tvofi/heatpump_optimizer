@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/legionella.py:LegionellaGuard._pending_attempt BOOLOP 51a0af1f",
-  "killed_by": "tests/features.py",
-  "old": "        if attempt is None or (last is not None and utc_elapsed_seconds(attempt, last) <= 0):",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`if attempt is None or (last is not None or utc_elapsed_seconds(attempt, last) <= 0):`) took tests/features.py from rc=0 failed=0 to rc=1 failed=8."
-}
