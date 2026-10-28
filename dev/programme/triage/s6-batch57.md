@@ -1,4 +1,4 @@
-# Proposal triage, session s7, batch 57 (P268-P269)
+# Proposal triage, session s7, batch 57 (P268-P270)
 
 One entry, covering the owner's fourth and fifth amendments to V181 and the owner's
 clarification of the fifth. All three are quoted from `proposals.md` as it stands.
@@ -243,3 +243,45 @@ differently.
 
 Binding: owner-directed. The shape keeps one definition of the set, read by both launch paths and
 named by the contract, and it keeps the mandate under the gate's existing checks.
+
+## P270: prompt-cache and context efficiency: stable text first, variables last
+
+Verdict: DEFER. The measurement that decides it is already being taken. The owner approved the
+card, and the orchestrator has a measurement seat quantifying it, which will amend V184. Until
+that amendment arrives, the benefit is unmeasured.
+
+Source: `proposals.md` V184 (owner-approved, 2026-10-28T20:28:06Z).
+
+Instances (read at origin/main `b6f6ceca4`):
+- **(1) The cloud prompt does put variables early.** `tools/audit/seat/cloud_dispatch.py`
+  `_prompt` (line 107) builds its first sentence from the subject, which names the PR, the repo
+  and the 40-hex head (line 109), and appends the bus nonce at line 112. The head reappears
+  inside fixed instructions at lines 120, 123 and 130, and the nonce at line 132. So no two
+  seats share a prefix past the first sentence. The function's text is about 4.9 kB
+  (`sed -n 107,160p | wc -c` gives 4872).
+- **(2) A RemoteTrigger run-body override is untested.** The card itself says "if the API
+  supports a run-body override (test first)".
+- **(3) Local briefs are already stable-first.** This seat's own brief opens with a fixed SEAT
+  PREAMBLE. Its line 13 reads "--- SEAT BRIEF (everything below this line varies per seat;
+  nothing above it may change mid-session) ---". So the local half is the practice already. Only
+  the cloud prompt departs from it.
+- **The owner groups.** `cloud_dispatch.py` is in the `files` of R10-FLOW-DESIGN-STAGES (M,
+  `not-started`), R10-FLOW-DISPATCH (`done`) and R10-FLY-POOL-INSTRUMENT (`absorbed`). The one
+  live owner is R10-FLOW-DESIGN-STAGES.
+
+What would change the answer: the measurement seat's numbers. Two of them decide it:
+- cache-read against uncached input tokens for a burst of cloud seats, dispatched within the
+  cache window with today's prompt, then with a reordered render;
+- whether RemoteTrigger accepts a per-run body.
+
+If the reorder shows a clear saving, (1) goes to R10-FLOW-DESIGN-STAGES as a carry. The fixed role
+text comes first, then one variable block (PR, head, nonce, brief path), and commands read
+`$SEAT` or the environment. A render self-test would assert that two seats' prompts share every
+byte before that block. (2) would join it only if the API test passes. (3) needs nothing.
+
+Cost of the carry, when ruled: about 30 lines of template reordering and one prefix-identity
+check in a 4.9 kB prompt builder. The reviewer prompt's own wording must not change, because
+`cloud_relay.sh` and the verdict grammar read what it asks for.
+
+Binding: an unmeasured benefit, against a measurement already in flight. The ruling waits for the
+amendment and does not pre-empt it.
