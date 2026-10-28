@@ -1,0 +1,10 @@
+SELF-TEST PASS (29 checks)
+selftest_wiring: 87 self-testing, 87 wired, 0 unwired
+rc=0
+throwaway_git: 0 raw git init or clone site(s) refused, 0 stale allow entries at HEAD
+tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since fd9914851f06
+ref_privacy --check at HEAD: 23 file(s) with a push site, 12 guarded, 3667 line(s) added since fd9914851f06 judged, 0 refused
+layout self-test: ok
+STRUCTURE RATCHET PASSED
+   alert_list self-test: 25 checks, 1 failed
+ALERT-LIST MUTANTS: every mutant refused

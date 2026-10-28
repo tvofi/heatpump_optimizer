@@ -1,0 +1,16 @@
+Updated 3 paths from 87889188b
+check source restored from fd9914851f063bc03bb44d4050ad30d6d0052f8d: 3 file(s) differ from the pull request's copy
+agreement_py restore: 13 closure file(s), 13 covered by the wave-script restore list, 0 missing
+  pair rule-frontmatter-paths: 2 readers, 17 items, 0 divergent
+  pair finding-class-id: 3 readers, 52 items, 0 divergent
+  pair finder-report-form: 2 readers, 215 items, 0 divergent
+  pair merge-subject-pr: 4 readers, 1000 items, 0 divergent
+  merge-subject guard: 191 first-parent commit(s) past 07a09406a, 50 merge call(s) in 10 file(s)
+  pair dead-member-liveness: 2 readers, 148 items, 0 divergent
+  pair governance-workflow-jobs: 2 readers, 46 items, 0 divergent
+  pair budget-raise: 2 readers, 56 items, 0 divergent
+  pair entity-names: 2 readers, 121 items, 0 divergent
+  discovery: 404 governance code files, 1723 distinct grammars, 27 shared by two or more files
+RESULT divergent=0 unregistered=0 dead=0 refused=0 seconds=0.4
+AGREEMENT ok
+rc=0

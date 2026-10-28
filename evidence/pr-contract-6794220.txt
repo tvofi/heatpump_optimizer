@@ -1,0 +1,4 @@
+pr-contract job 120085348077 at 67942203677a3a416fc84e25161a614390c67a99 (via MCP get_job_logs, tail):
+BAD-DEST body item 97274a93: R10-RCA-BODY-LINT: R10-RCA-BODY-LINT is not a group of the roster
+CARRY-AUDIT: 8 finding item(s): 7 routed, 0 unrouted, 1 bad destination(s)
+At 91f2bcd4c236095d621f238d44a6ae005e3df220 (main merged in) pr-contract concluded success (check-runs-91f2bcd.json).

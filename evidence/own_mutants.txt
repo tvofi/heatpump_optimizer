@@ -1,0 +1,18 @@
+## own mutant A: ci_probe git_commit accepts any rev-parse success (drops the exact-name test)
+ tools/audit/seat/ci_probe.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+ci_probe self-test: 40 checks, 4 failed
+## own mutant B: ci_probe do_push skips the commit check
+ tools/audit/seat/ci_probe.py | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
+ci_probe self-test: 40 checks, 4 failed
+## own mutant C: alert_list.bind drops the Accept header
+7:`get(path, params=None, headers=None) -> (status, headers, json)` (the P2a
+10:`headers` is the one addition to the contract's signature: the SARIF read needs
+12:optional `headers`; this module's paths are relative to repos/<repo>/.
+55:def read(get, path, what, params=None, headers=None):
+56:    status, _, body = get(path, params, headers) if headers else get(path, params)
+## own mutant D: entities forgery reader ignores job-level grants
+ tests/entities.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+0
