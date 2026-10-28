@@ -2790,11 +2790,14 @@ https://claude.ai/code/session_011aqzm4YL9jLhU4jLvbkLYE'; got=$(lpush)
   # a refusal (rc 1) pushes nothing, a seat that cannot run them (rc 3) pushes.
   printf '#!/bin/bash\necho "review_packet: REFUSE brief-carries: carry 6 is not named in the body" >&2; exit %s\n' 1 > "$PDX/pk1"
   printf '#!/bin/bash\necho "review_packet: UNAVAILABLE: no roster" >&2; exit %s\n' 3 > "$PDX/pk3"
+  was=$(git --git-dir="$PDX/bodies.git" rev-parse refs/heads/handoff-body/zz-lint)
   got=$(HPO_HANDOFF_PACKER="bash $PDX/pk1" lpush)
-  grep -q 'REFUSE brief-carries: carry 6' <<<"$got" && grep -q '^rc=1$' <<<"$got" && ! grep -q '^ref ' <<<"$got"
+  grep -q 'REFUSE brief-carries: carry 6' <<<"$got" && grep -q '^rc=1$' <<<"$got" \
+    && [ "$(git --git-dir="$PDX/bodies.git" rev-parse refs/heads/handoff-body/zz-lint)" = "$was" ]
   st $? 0 "and refuses a body the review packet's handoff refusals refuse, naming the signal and pushing nothing (P256)"
   got=$(HPO_HANDOFF_PACKER="bash $PDX/pk3" lpush)
-  grep -q 'were not run (rc 3' <<<"$got" && grep -q '^rc=0$' <<<"$got" && grep -q '^ref refs/heads/handoff-body/zz-lint$' <<<"$got"
+  grep -q 'were not run (rc 3' <<<"$got" && grep -q '^rc=0$' <<<"$got" \
+    && [ "$(git --git-dir="$PDX/bodies.git" rev-parse refs/heads/handoff-body/zz-lint)" != "$was" ]
   st $? 0 "and pushes, saying so, when the handoff refusals cannot be run (rc 3 is never a refusal)"
   (cd "$PDX/r" && git push -q -f origin pinert:refs/heads/handoff/zz-lint); got=$(lpush)
   grep -q 'push the code, then the body' <<<"$got" && grep -q '^rc=1$' <<<"$got"
