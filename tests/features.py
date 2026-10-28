@@ -11198,6 +11198,41 @@ def _ref_cop_gap():
     return _made, _reference_cop(_cm, _cs, 0.0, None), _cm.compute_cop(0.0)
 
 
+def _charge_case(need_kw):
+    """One step of the tank law's charge, then one coasting step: the tank's
+    peak, what the first step refused, and what the slab received next."""
+    from heatpump_optimizer import mixing_valve as _cc_mv
+    from heatpump_optimizer.optimizer import _reference_cop
+    from heatpump_optimizer.thermal_model import valve_charge_demand
+
+    _cp = ThermalParameters(mixing_valve_mode=_cc_mv.MODE_MANUAL,
+                            buffer_tank_volume=750.0, mixing_valve_target=23.0)
+    _cm = ThermalModel(_cp)
+    _cs = ThermalState(room_temperature=21.0, slab_temperature=24.0,
+                       buffer_tank_temperature=25.0, outdoor_temperature=-5.0)
+    _kw = valve_charge_demand(_cm, _cs, need_kw, -5.0, 0.0, 0.0, 0.25)
+    _s1 = _cm._simulate_step_single(
+        _cs, _kw / _reference_cop(_cm, _cs, -5.0, None), -5.0, dt_hours=0.25)
+    _refused = _cm._step_buffer_refused
+    _s2 = _cm._simulate_step_single(_s1, 0.0, -5.0, dt_hours=0.25)
+    _got = (_s2.slab_temperature - _s1.slab_temperature) * _cp.slab_thermal_mass / 0.25 + (
+        _cp.slab_heat_transfer * (_s1.slab_temperature - _s1.room_temperature))
+    return _s1.buffer_tank_temperature, _refused, _got
+
+
+_cc_top, _cc_ref, _ = _charge_case(1e3)
+R.check(
+    "the tank law never charges past the curve, however much the emitters need",
+    _cc_ref == 0.0 and _cc_top < 45.0,
+    f"a 1000 kW need left the tank at {_cc_top:.1f} C, {_cc_ref:.3f} kW refused",
+)
+_, _, _cc_got = _charge_case(2.0)
+R.check(
+    "the tank law charges to the temperature whose draw is the need",
+    abs(_cc_got - 2.0) < 0.5,
+    f"a 2.0 kW need delivered {_cc_got:.3f} kW the next step",
+)
+
 _rc_made, _rc_cop, _rc_plain = _ref_cop_gap()
 R.check(
     "the valved reference prices its draw at the step's own tank-flow COP",
