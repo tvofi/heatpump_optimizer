@@ -1,0 +1,8 @@
+#2753 2026-10-26T01:36 (45d08312->6dc025ec), the bot-only entry that did not carry.
+carry of main@t: "the branch's own diff differs". Files whose normalised -U3 own diff differs:
+coordinator.py and tests/structure_budgets.json. structure_budgets.json is a ledgermerge driver file
+(excluded by carry), so the refusing file is coordinator.py, which is equal at -U0 (hm3 lists only
+structure_budgets.json): a .py context-only refusal, the bucket-2b shape. In the table the entry is in
+bucket 4 (hm4 G), because its -U0 own patch moved in structure_budgets.json; the 2b row's #2753 is the
+2026-10-25T15:45 entry. Section 5's "it is the bucket 2b context case" is right about the cause and
+loose about the bucket. Non-blocking.
