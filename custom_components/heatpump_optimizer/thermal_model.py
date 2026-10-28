@@ -2737,7 +2737,7 @@ class ThermalModel:
         humidity: np.ndarray | None = None,
     ) -> np.ndarray:
         """Refresh ``temps[from_step + 1:]`` after the schedule changed there."""
-        heat_per_cop = heat_per_cop_kw(self.params, np.asarray(dhw_power_schedule, dtype=float))
+        heat_per_cop = np.asarray(dhw_power_schedule, dtype=float)
         outdoor = np.asarray(outdoor_temps, dtype=float)
         draws = np.asarray(draw_rates, dtype=float)
         temp = float(temps[from_step])
@@ -3599,7 +3599,7 @@ class ThermalModel:
         buffer, wood (None when not modelled), plus refused [B, n].
         """
         p = self.params
-        heat_per_cop = heat_per_cop_kw(p, np.asarray(power_matrix, dtype=float))
+        heat_per_cop = np.asarray(power_matrix, dtype=float)
         outdoor_temps = weather.outdoor_temps
         wind_speeds = weather.wind_speeds
         precipitation = weather.precipitation
@@ -3989,7 +3989,7 @@ class ThermalModel:
                     float(humidity[i]) if humidity is not None else None
                 ),
             )
-            dhw_thermal_power = cop_dhw * heat_per_cop_kw(self.params, dhw_power_schedule[i])
+            dhw_thermal_power = cop_dhw * dhw_power_schedule[i]
 
             new_dhw = self.simulate_dhw_step(
                 dhw_temp=state.dhw_temperature,
