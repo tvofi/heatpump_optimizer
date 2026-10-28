@@ -1,19 +1,22 @@
-Fix review: blocked fb2f3de8624bbdcff8d1f801ada3d7c161f1af33 carry-missing: not carried to R10-FLOW-BOARD
+Fix review: merge 59bf9622a8ad38e5b7673a2a4835892a05e8a5ef
 
-bus-nonce: c3bdf81ffd6ef6deb474489e972c566e
-round: 1 (fresh dispatch; PR marked ready by this seat on the orchestrator's instruction)
-measured-head: fb2f3de8624bbdcff8d1f801ada3d7c161f1af33 (re-read at post: unchanged)
-base: edd7e0e14e08279d0ddc53ec4fcc983570edf12a
+bus-nonce: 080bd4f2cf3e4434e32e50b9e390165b
 
-RESULT triage gate (roster_edit.triage_refusal / ruling_verdict, driven at the head):
-  committed  -> verdict DEFER, refusal "dev/programme/triage/s6-batch47.md#P235 is not an ACCEPT ruling (DEFER)"
-  mutant DEFER->ACCEPT -> refusal None (carry would land) -- mutation proof reproduces
-  mutant DEFER->REJECT -> refused (REJECT); wrong pid P236 -> refused (no such entry)
-  null (file absent, base) -> "the triage ruling ... is not on the roster branch or origin/main" -- reproduces
-RESULT route exists: R10-FLOW-BOARD is in wave-r10-groups.json (origin/main and handoff/audit-r10-roster 05c60458a), resume.stage in-progress, resume.pr 2883; #2883 OPEN; its body's ## Red checks answers root-cause-detectable: tests/closures with the 3.9 s cheaper detector and process state (c), and states the RCA "belong[s] to a separate root-cause seat" (owed: orchestrator to-main ledger "SEAT-OWED root-cause R10-FLOW-BOARD #2883"; no root-cause seat or dev/audit/rca file exists yet)
-RESULT V149 quote: matches proposals.md V149 ("the 2nd instance in one PR"); P235 unused elsewhere on origin/main
-RESULT figures: closure.py:1221-1225 "for argv in spawned" OK; ci_predict.py:795 "a data-file read is not seen" OK; prepr.sh:672-675 PREPR_RECORD_CLOSURES OK; 2b84db687 "leave the closures step to CI off Linux" OK; 28b0fa0f3 on refs/pull/2883/head OK; argv/command-line subjects 0 OK
-RESULT figure NOT re-derived: "311 commits" -- the enumerator prints 310 at edd7e0e14 now (UTC, CET and PT alike) and 314 with --since=2026-10-01T00:00:00Z; git approxidate fills the current time of day into a bare date, so the command's output moves with the clock. Non-binding to the DEFER, but the figure should name a fixed instant
-RESULT live check-runs at head: 45, 0 failed, 2 pending (gate, prelude)
+Round: review of the head after the verdict/2906 repair commit (the "fixed commit and instant" count). Reviewed head 59bf9622a8ad38e5b7673a2a4835892a05e8a5ef.
 
-BLOCK (fix-review.md step 10; finding-propagation.md Enforcement): the body's ## Forward-carry ends "Carry: R10-FLOW-BOARD" and the ruling binds that stage's root-cause seat (its cost test decides; a no-countermeasure result plus a further instance on another PR returns the item to triage). It narrows what that later seat does, so it must be in the group's brief before merge. At handoff/audit-r10-roster 05c60458a the R10-FLOW-BOARD brief (1279 chars) names none of P235, V149, #2883, argv, ci_predict or root-cause, the group has no carries, and the body cites no roster SHA. To clear: land a roster carry on R10-FLOW-BOARD (via the roster seat; it must not cite "triage P235" as a proposal source, since the gate refuses a DEFER citation -- phrase it as the root-cause obligation with its control: record the changed self-test under closure._exec_record, expected the two INERT_EXCEPT paths, null = 3bd284f74 recording files none), cite the roster SHA in the body, and re-dispatch. Also re-state the 311 figure against a fixed instant. Carry: R10-FLOW-BOARD
+## Findings
+
+- The note cites `tests/closure.py:1221-1225` as the `for argv in spawned:` loop; at this head and at origin/main that loop is line 1242 (1221-1225 is the audit-hook runner's `sys.argv = [script, *extra_args]`). The citation is wrong by about 20 lines in a record later seats read as established. Carry: dismissed: a triage record's line cite, content-addressed by the quoted code and the mechanism it names is correct; the seat that records #2910's outcome (below) may correct it.
+- The DEFER's mechanism text (`ci_predict.py:795` prints its green line with "(a data-file read is not seen)") is stale on origin/main: #2910 (R10-RCA-CLOSURE-ARGV, merged after this head's base) ships the host rule in `tools/pr/ci_predict.py`/`prepr.sh` and the caveat now reads "(a data-file read is not seen{seen})" at line 921. The route the note defers to has therefore delivered its countermeasure; the note does not say so, and its "what would change the answer" clause is overtaken. Carry: dismissed: the note is a dated record at origin/main `edd7e0e14` and its verdict DEFER matches the outcome; recording #2910 as the route's answer belongs to R10-RCA-CLOSURE-ARGV's own RCA file, which already exists on main.
+
+## Evidence
+
+- Diff is two new docs files (`dev/programme/delivery/2906.md`, `dev/programme/triage/s6-batch47.md`), no production code, so there is no production line to mutate; step 1 and the mutation proof are not applicable. No finder's harness is named (packet: "none named").
+- `git merge-tree --write-tree origin/main 59bf9622a8ad38e5b7673a2a4835892a05e8a5ef` exits 0 (origin/main b6f6ceca4); no conflict, no claim file touched.
+- VERSION (7.0.5), manifest and RELEASE_NOTES untouched by the three-dot diff; no golden or claim file, closure, budget or INERT entry moved.
+- Re-derived: `git log edd7e0e14... --since=2026-10-01T00:00:00Z --no-merges --format=%s -- tests/closures.json | wc -l` = 314; the `grep -ic 'argv\|command line'` over those subjects = 0. Commits 28b0fa0f3, d218ef378, 2b84db687, edd7e0e14 exist; 28b0fa0f3's subject and fd36e08a1/d218ef378 touches match the note. `prepr.sh:672-675` and the `PREPR_RECORD_CLOSURES` opt-in and 2b84db687's "10-25 minutes" match. The `proposal-triage.md` quote is verbatim.
+- Not re-derived: V149's text in `proposals.md` (no such file in the tree at this head; it is the orchestrator's off-tree file) and the filer's 3.9 s per self-test figure.
+- Role-file drift check (`git diff merge-base...origin/main -- dev/governance/roles/`) is empty.
+- Forward carry: the body routes to R10-FLOW-BOARD (present in wave-r10-groups.json); carry_audit at head: 2 items routed, 0 unrouted.
+- CI at 59bf9622a8ad38e5b7673a2a4835892a05e8a5ef as read from the check-runs API at review time: gate-relevant checks (arch-score, budget-raise-gate, delivery-status, policy-docs, briefs, closure-scope, mutation, hassfest, CodeQL) success; env-matrix, instrument-self-tests, prelude, browser, closures, coverage and fast (3.14) were still running or queued and none red. No red check, so step 11 owes nothing. The merge train keys on those finishing green; this verdict does not claim them.
+- Head re-read before posting: still 59bf9622a8ad38e5b7673a2a4835892a05e8a5ef.
