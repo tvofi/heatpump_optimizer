@@ -1,0 +1,2 @@
+2026-10-16T04:18:03Z	Fix review: merge 1755a8a7df54093861beba00610825dd0e9f46ae
+2026-10-16T02:47:28Z	Fix review: blocked 69f04ec613a14a4f50cb55b10820e411716ac993 policy-regression: D6.md pays its cap by deleting two method requirements, and its web step names an inexecutable anchor check and the wrong drift reference

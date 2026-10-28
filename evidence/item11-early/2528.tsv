@@ -1,3 +1,0 @@
-2026-10-21T20:43:13Z	Fix review: blocked 5332c59f9b5e883d1b1638a6f310fbc7237bdaa9 vacuous-test: the reap arms check only the recorder's leader pid, so a watchdog that TERMs the pid instead of the group orphans derive_closures.sh's lanes and the self-test stays 323/0; step 6b's own closures_step call is also unpinned
-2026-10-21T14:35:53Z	Fix review: blocked b18052f664039d36da73ef745a2a8423f82d2c46 vacuous-test: the recorder-reap arm runs closures_line outside a command substitution and without prepr's top-level TERM trap, so deleting the watchdog or the traps leaves it green while production orphans or hangs the recorder
-2026-10-22T17:53:00Z	Fix review: merge 2af78ed5959f39dbe1e2bdee2efa0298ee198312

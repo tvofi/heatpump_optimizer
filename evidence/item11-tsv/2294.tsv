@@ -1,0 +1,2 @@
+2026-10-15T20:58:43Z	Fix review: merge e6f3837585f0aa83952eb4828c4576587fd50c07
+2026-10-15T19:50:58Z	Fix review: blocked 48d926c1c991774540afbe24b04992d0066a2477 other: docs-code-mismatch: two comments still state the old definition of the head-moved row, and this PR exists to give that row one definition. policy_lint.mjs 2743-2755 (rows stop partitioning; blocked head-moved already in the row by the word) and friction_issues.mjs 22-29 (rework counted under head-moved, files "recurring friction: head-moved")

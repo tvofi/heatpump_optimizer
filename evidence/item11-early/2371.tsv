@@ -1,3 +1,0 @@
-2026-10-18T03:13:12Z	Fix review: blocked 8d76a9edf1ec3356ba7d8e55601e8e8c17553977 metric-gamed: closures INERT READS: the solver-closure census is a harness (fixer.md 18) placed in tools/audit/seat/ only so harness_headers' inert read cannot see it; ci-autofix.md has the bot merge INERT READS from CI recordings
-2026-10-18T04:20:54Z	Fix review: blocked ecdcc466d343421f091bcc9b5b159149bfaf36eb carry-missing: not carried to R10-LIVESTATE (accuracy.utc_shift second UTC owner; 0 occurrences in the roster at origin/main 9a1ce39c3 or handoff/audit-r10-roster)
-2026-10-18T04:23:20Z	Fix review: merge ecdcc466d343421f091bcc9b5b159149bfaf36eb

@@ -1,0 +1,2 @@
+2026-10-16T00:05:54Z	Fix review: merge e01e66f0d00bdc2acfcdef725b2d4c53ff0455ac
+2026-10-15T22:09:58Z	Fix review: blocked 3c807ab5bb62d2d4da36003d2787437d2b012b4b mutation-vacuous: five reviewer mutants on new safety predicates survive the self-test (R4 post-merge no-recover, R11 carry chain, R14 rehearsal bot merge, R15 first-merge green re-read after re-proof, R16 batch sweep), and the body's claim that the gate's mutation pass covers the rest is false (empty scope)

@@ -1,0 +1,2 @@
+2026-10-15T00:18:41Z	Fix review: merge 84c24884c64af7c427164721bfb9aadc4f1c1f8c
+2026-10-14T23:44:29Z	Fix review: blocked 990743c078a3c85b87dfaf09ab3a25fb679c8dcd figure-unverified: R10-RCA-2205.md section 4 runner-class split (19 slow at 0.2441-0.2742, 11 fast) re-derives as 17 slow at 0.2441-0.2783 (1.14x), 13 fast

@@ -1,0 +1,2 @@
+2026-10-16T15:14:04Z	Fix review: merge c777f855b9d87f8218ed3650aead1e92537f51e1
+2026-10-16T14:45:49Z	Fix review: blocked c777f855b9d87f8218ed3650aead1e92537f51e1 harness: class-rule-missing the body names no rule for class N-registry-leak — the issue's own is `dev/audit/rounds/round10/D14/N-registry-leak/registry_leak.py`, and the four seams it returns beyond the ones the body lists (`const.INPUT_MAX_AGE_MINUTES`, `coordinator._FENCED_CAUSES`, `coordinator._WORKER_FALLBACK_CAUSES`, `store._NEWER_ON_DISK`) appear nowhere in the body

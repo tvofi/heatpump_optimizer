@@ -1,0 +1,9 @@
+CARRY-AUDIT: 4 finding item(s): 4 routed, 0 unrouted, 0 bad destination(s)
+R10-ORCH-ROSTER-SCHEMA None
+R10-FLY-CLOUD-SETUP-TOOLCHAIN None
+boilerplate 64 live 64
+R10-POLICY-FIXER-MD resume= {'stage': 'not-started', 'branch': 'handoff/r10-policy-fixer-md', 'commit': None
+R10-ORCH-ROSTER-SCHEMA resume= {'stage': 'not-started', 'branch': None}
+R10-FLY-CLOUD-SETUP-TOOLCHAIN resume= {'stage': 'not-started', 'branch': None}
+boilerplate 64
+[("{'stage': 'done', 'b", 46), ("{'stage': 'not-start", 15), ("{'stage': 'in-progre", 3)]

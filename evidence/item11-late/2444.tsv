@@ -1,5 +1,0 @@
-2026-10-19T14:40:02Z	Fix review: blocked 8be64a110fa4e741889920c4eff2b6b4cb99cf3a carry-missing: not carried to R10-CI-LAYOUT or R10-BRIEFS-FOLD; three of the body's four Forward-carry and Friction lines are not in handoff/audit-r10-roster at 5472ac0d6, and the body names no roster SHA
-2026-10-19T14:48:25Z	Fix review: blocked 8be64a110fa4e741889920c4eff2b6b4cb99cf3a carry-missing: the four #2444 carries at roster ebf81fc1d state no control, and the merge_pr/push-lines carry to R10-CI-LAYOUT is half refuted: deleting open_pr.sh's and update_pr.sh's app_push line reddens their self-tests
-2026-10-19T15:11:33Z	Fix review: blocked 8be64a110fa4e741889920c4eff2b6b4cb99cf3a root-cause-unanswered: arch-score went red, unanswered
-2026-10-19T13:30:20Z	Fix review: blocked b891dfa048a9e52bb782dd058415e286cf8efaf5 mutation-survivor: selftest_wiring.py report()'s `return 1 if unwired else 0` -> `return 0` leaves its --self-test green, so the keep-closed check can stop refusing an unwired file with every check green
-2026-10-19T15:20:52Z	Fix review: merge 8be64a110fa4e741889920c4eff2b6b4cb99cf3a

@@ -1,0 +1,61 @@
+--PKG
+104:PKG = "custom_components/heatpump_optimizer/"
+--carry_audit in prepr
+rc=1
+tools/pr/prepr.sh:436:# Step 6d's whole body: tools/pr/ci_predict.py over the three-dot diff, read
+tools/pr/prepr.sh:446:# reviewed head; `ci_predict.py --apply-inert` is the pre-push repair. The
+tools/pr/prepr.sh:453:  if [ ! -f tools/pr/ci_predict.py ]; then
+--apply-inert
+16:reviewer's head; `--apply-inert` writes the entry the recording would, which
+32:    python3 tools/pr/ci_predict.py [--base origin/main] [--apply-inert] [--body FILE]
+40:`--apply-inert` adds every predicted INERT READS entry to `tests/closures.json`
+--survivor_triage
+killed_by
+survivor_triage
+--harness_headers dir
+--nudge step 9
+--labeled
+.github/workflows/ci.yml:24:      || github.event_name == 'pull_request' && github.event.action == 'labeled'
+.github/workflows/ci.yml:26:      || github.event_name == 'pull_request' && github.event.action == 'labeled' && 'label'
+.github/workflows/ci.yml:36:    # `labeled` is A2 item 1 (kernel-points); `edited` re-judges a body.
+.github/workflows/ci.yml:37:    types: [opened, synchronize, reopened, edited, labeled]
+.github/workflows/kernel-points.yml:15:# standing request: a `labeled` event runs at the head of that moment, so a
+.github/workflows/kernel-points.yml:22:# `head`, and `workflow_dispatch`. The `labeled`/`synchronize` choice is
+--handoff_push
+4:# retitles the PR, adds the PR's own delivery row, fixes ## Head, and re-pushes. The orchestrator writes that
+5:# row here because it is the seat that learns N (dev/governance/rules/delivery-status-tracking.md).
+8:# --self-test runs delivery_row.sh's self-test and this script's own offline
+10:# app_push, so a push line replaced by `true` reddens it (#2444).
+13:# The row is written and committed by delivery_row.sh (commit_row, ensure_row), the one
+15:. "$(dirname -- "$0")/delivery_row.sh"
+19:# the clone holds this script, the row writer and head_note.py, and its
+20:# tools/pr/app_push.sh is a stub that records every call. The open path must
+21:# push twice -- the pull request, then its row -- and the update path once.
+--structure span
+21:  max_class_loc               the largest class span in the integration --
+--prepr 6f HEAD
+3180:# --- 6f. no raw git init/clone: governance.yml's `throwaway_git.py --check`;
+nudge.md
+dev/governance/roles/nudge.md
+57:Required checks are the contexts in ruleset `main-protect-checks`. Read that ruleset every turn. The id last used to open it was 23698884. Do not trust a remembered list. `gate` is the one required check; `tests / nightly-status` and `governance / delivery-status` are not units. Pending is not a pass. DIRTY is the claim-file merge GitHub cannot run. Absorb `main` locally with the claimnotes driver.
+75:## 9. Conflicting or DIRTY
+77:Absorb `origin/main` into an open head only when it is DIRTY or `git merge-tree --write-tree origin/main <head>` reports a conflict. A head merely behind `main` stays put. Merge-tree exit 0 and no train running: merge `origin/main` and push with `tools/pr/app_push.sh`, then `tools/pr/approve_held_runs.sh`. A content conflict stops. Name the path and return it to the fixer who owns the branch. Do not resolve it yourself.
+--6f
+6:# --- 6f. no raw git init/clone: governance.yml's `throwaway_git.py --check`;
+7:# `throwaway_line` above. Reads the committed tree at HEAD.
+40:    body_line "$BODY" "$(git rev-parse HEAD)" "$(git log -1 --format=%s)" "$PATHS" "$BASE" HEAD "$UNPINNED_SITES" \
+3114:# --- 6a. no inherited claim list: `fast`'s INHERITED CLAIMS, before CI.
+3119:# --- 6b. the closures cover what the scoped scripts read: `closures`'s
+3140:# --- 6d. the CI reds a static read of the diff predicts (`predict_line`).
+3152:# --- 6c. a test must import the production symbol: tests.yml's `no-copies`,
+3170:# --- 6e. no moved path re-added: tests.yml's fast job runs the layout guard;
+3180:# --- 6f. no raw git init/clone: governance.yml's `throwaway_git.py --check`;
+--harness_headers
+2:"""#817: a harness header's EXPECTED RESULT lines must match what it prints.
+6:harnesses that issue named and compares each EXPECTED RESULT to the printed
+7:RESULT. Playwright and stress harnesses are not run here.
+9:    PYTHONPATH=tests/hastub:custom_components:tests python3 tests/harness_headers.py
+21:from harness import Results
+23:R = Results("harness header EXPECTED vs RESULT (#817)")
+29:# Every harness whose header carries EXPECTED RESULT lines is executed and
+31:# replaced named three files, and a fourth harness drifted on main for a day

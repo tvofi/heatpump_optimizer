@@ -1,0 +1,4 @@
+2026-10-19T01:44:37Z	Fix review: merge b9f72cb10e8f12798f0111189dedc607d3393acd
+2026-10-19T01:05:44Z	Fix review: blocked b9f72cb10e8f12798f0111189dedc607d3393acd carry-missing: not carried to the mutation instrument's owner (the entities.py --anchor vacuous-kill finding is in no brief, roster or carry file)
+2026-10-18T17:04:32Z	Fix review: merge 3b6e599df04ece95e9615addb19c86d9339328a3
+2026-10-18T14:38:15Z	Fix review: blocked b7a34f98aa6013a542e21d28a76bc5159fe7e14f claims: tests/optimality.py retires the one|summer_negative|shoulder cert claim, CI fast (3.14) measures ladder +10.55 % at this head; also carry-missing to O13 and the residual's cause misstated

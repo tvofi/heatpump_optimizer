@@ -1,0 +1,3 @@
+2026-10-21T13:59:10Z	Fix review: merge 2108fcb09ef16a53119dedb8b731bd89f0fea0ad
+2026-10-21T12:51:29Z	Fix review: blocked 085a4cafa84022120460fd23701a21883321536f harness: class-open tools/audit/seat/ci_predict_replay.sh:47
+2026-10-21T11:56:48Z	Fix review: blocked f8694ba2d73595da723f0de3ed78c3e05df78b3d ci-red: instrument-self-tests is red on this diff (ref_privacy --check refuses the new push site at tools/audit/seat/pr_args.sh:353) and pr-contract is red (carry_audit: both Forward-carry items unrouted), while the body says Red checks: none
