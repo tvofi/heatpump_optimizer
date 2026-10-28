@@ -12,11 +12,15 @@ The diff is one markdown file under `dev/programme/triage/`; nothing implemented
 
 ## Head
 
+`7243c07fe53232e96750ec89ff1687753fa50b53` merges the authored code head `4557bfc940e15d31fe06c6cb7d7f00c1386dc541` and then merges origin/main `e8cb7e683` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
+
+`fc6218ad600b6f853052919bd8c743847969e230` adds one commit to the previous head, containing only this PR's own row, `dev/programme/delivery/2892.md`. The authored code head is `5a21779de67be08974152b844725013c610174d9`.
+
 `5a21779de67be08974152b844725013c610174d9`; the file is the whole diff against `ea36188c3`.
 
 ## Mutation proof
 
-The gate this file feeds is `tools/audit/seat/roster_edit.py`'s `triage_refusal` (`ruling_verdict` at 456, `triage_refusal` at 464): a roster text naming a proposal must cite `triage: dev/programme/triage/<file>.md#P<n>`, and the cited entry must read `Verdict: ACCEPT`. On the committed file:
+The gate this file feeds is `tools/audit/seat/roster_edit.py`'s `triage_refusal` (`ruling_verdict` at 455, `triage_refusal` at 466): a roster text naming a proposal must cite `triage: dev/programme/triage/<file>.md#P<n>`, and the cited entry must read `Verdict: ACCEPT`. On the committed file:
 
 ```
 P217 REJECT | P218 ACCEPT
@@ -34,13 +38,13 @@ Missing file and uncited-proposal text both refuse; the positive control is `car
 
 ## Figures
 
-- `tools/audit/seat/merge_train.py` — the merge step and its phases: `app_approve.sh` at 1523-1530, `--carry` at 1740 and 2047, the docstring's phase list at 54 and 75; the train already reads `isDraft` by hand today.
+- `tools/audit/seat/merge_train.py` — the merge step and its phases: `app_approve.sh` at 1523-1530, `--carry` at 1740 and 2047, the docstring's phase list at 54 and 75; `merge_train.py` reads no draft flag today (`grep -ci draft tools/audit/seat/merge_train.py` = 0 at origin/main `e8cb7e683`), a seat reads `isDraft` by hand.
 - roster at `origin/handoff/audit-r10-roster` `9aed78e0e`: `R10-TRAIN-UPGRADE` `done`, `M`, 1 carry, files include `tools/audit/seat/merge_train.py`; `R10-FLOW-AUTOTRAIN` carries 7 and its brief is the queue-writing pitch, not this step.
 - #2854 and #2878 as the instances, quoted from V130/V131 and not re-derived here; #2854 merged at main `ea36188c3`.
 
 ## Red checks
 
-none
+- `governance / env-matrix` and `governance / policy-docs`, both red at `fc6218ad6` (run 40582127206, completed 21:07:33Z and 21:07:18Z, base `ea36188c3`). Cause: the `[required-contexts]` check read the live ruleset and disagreed with `.claude/workflows/fixtures/required-contexts.json` -- policy-docs: "`23698884` is recorded in `rulesets` as carrying the required contexts, but the live boundary does not draw them from it" (2 errors); env-matrix: `policy_lint` rc=1 under its `push-main` and `no-remote` shapes on 2 `[required-contexts]` ERROR lines, first "`gate` is recorded as a required context but the live set no longer returns it", plus the two corpus arms that fail on that rc ("12 declared outcome(s) held, 4 did not"). Not this diff: the diff is two added markdown paths under `dev/programme/`, which `tests/closure.py` keeps INERT and neither check reads; #2890 at the same base `ea36188c3` ran both green at 20:58:13Z and 21:04:47Z, and `main` `e8cb7e683` ran `policy-docs` green at 22:40:52Z, so the red is a live read, not a tree state: the orchestrator's session ledger records rulesets 22628467, 23698884 and 23937752 disabled at 21:06Z to start the v7.0.5 stamp and read back active at 21:08Z, and both runs completed inside that window. Cheaper detector: none -- this check is itself the detector of a fixture/ruleset mismatch, and the input it fired on is live repository settings no branch can change. Main's own `governance / env-matrix` is red at `e8cb7e683` on a different arm (`required-contexts` skipped, "the GitHub API is unreachable"); that is main's to clear, not this pull request's.
 
 ## Forward-carry
 
@@ -49,3 +53,4 @@ none
 ## Friction
 
 none
+
