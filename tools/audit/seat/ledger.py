@@ -8,6 +8,7 @@
     python3 -I tools/audit/seat/ledger.py [--log FILE] attempt <ref> <sha40> <outcome>
     python3 -I tools/audit/seat/ledger.py [--log FILE] level <hrefs-file> <topics-file>
     python3 -I tools/audit/seat/ledger.py [--log FILE] board
+    python3 -I tools/audit/seat/ledger.py landed [--no-ancestry] [--no-content] <main> [<head>...] < tips
     python3 -I tools/audit/seat/ledger.py --self-test
 
 WHY. An obligation was a level read out of append-only history: the relay
@@ -50,13 +51,23 @@ An obligation of no kind in KINDS is refused, never stored.
 LEVEL (`level`): the relay's handoff level for one pass. Each `handoff/<t>`
 and `handoff-body/<t>` ref listed is owed (`handoff-no-pr`) unless: a state
 ref by name (`audit-r<N>-plan`, `audit-r<N>-roster`); <t> has an open pull
-request (the topics file); the ref is disposed at its sha; or main already
-carries the change -- the code tip is inside main or a live `fix/*` head, or
-every line its uncovered commits add is on main's copy of that file and every
-line they remove is gone (`covered`: a hunk re-applied by another pull request
-into a file main has since changed, which a byte-identical test cannot see).
-A body ref follows its code ref there. Each owed line carries `ct=<epoch>`
+request (the topics file's bare lines); a pull request of <t> merged at or
+after the tip's commit time (its `<t> merged=<utc>` lines: a squash or an App
+push rewrote the commits, and the merge's own record moved the files on, so
+no content test can see it; a re-handoff committed later stays owed); the ref
+is disposed at its sha; or main already
+carries the change, by `landed`: the code tip is inside main or a live `fix/*`
+head, or outside them only by clean merges; its patch applies to main reversed
+and not forward; or `covered` finds every file it touches on main (a hunk
+re-applied by another pull request into a file main has since changed, which
+a byte-identical test cannot see). A body ref follows its code ref: one line
+per topic, the code ref's, naming the body as `body=<sha>`; only a body ref
+with no code ref is a line of its own. Each owed line carries `ct=<epoch>`
 (the tip's commit time) and the topic's last opener attempt at that tip.
+
+LANDED (`landed`): the same classifier for bus.sh orphans, one owner. Main
+and the live heads are arguments, the tips stdin; one `<tip> <why>` line each,
+`-` when nothing carries it. --no-ancestry and --no-content drop an arm.
 
 AGING. `escalate` turns those lines into a queue: DISPATCH at the first
 threshold, oldest first, naming the roster group and the repair; an OWNER FLAG
@@ -358,13 +369,41 @@ def attempts(rows: list) -> dict:
 
 # ------------------------------------------------------------------- level
 def covered(git, main: str, tip: str) -> bool:
-    """Every line tip's uncovered commits add is on main's copy of its file,
-    and every line they remove is gone from it: main carries the change."""
+    """Main carries every file tip's uncovered commits touch: the same bytes at
+    the path; an added file's bytes elsewhere (a recovery moved it); a deletion
+    main already made; or every line they add on main's copy and every line
+    they remove gone from it (a hunk re-applied into a file main has changed)."""
     rc, mb = git(["merge-base", main, tip])
     if rc:
         return False
-    rc, diff = git(["diff", "--no-color", "--no-renames", "-U0", mb.strip(), tip])
-    if rc or not diff.strip():
+    mb = mb.strip()
+    rc, names = git(["diff", "--name-status", "--no-renames", mb, tip])
+    if rc or not names.strip():
+        return False
+    blobs, by_line = None, []
+    for row in names.splitlines():
+        st, path = row.split("\t", 1)
+        rc_t, b_tip = git(["rev-parse", f"{tip}:{path}"])
+        rc_m, b_main = git(["rev-parse", f"{main}:{path}"])
+        if st == "D":
+            if rc_m == 0:
+                return False
+        elif rc_t:
+            return False
+        elif rc_m == 0 and b_main == b_tip:
+            continue
+        elif rc_m:
+            if blobs is None:
+                rc, out = git(["ls-tree", "-r", main])
+                blobs = {l.split()[2] for l in out.splitlines()} if rc == 0 else set()
+            if b_tip.strip() not in blobs:
+                return False
+        else:
+            by_line.append(path)
+    if not by_line:
+        return True
+    rc, diff = git(["diff", "--no-color", "--no-renames", "-U0", mb, tip, "--", *by_line])
+    if rc:
         return False
     files: dict[str, tuple[set, set]] = {}
     path = None
@@ -372,9 +411,7 @@ def covered(git, main: str, tip: str) -> bool:
         if l.startswith("Binary files "):
             return False
         if l.startswith("+++ "):
-            path = l[6:] if l.startswith("+++ b/") else None
-            if path is None:
-                return False  # a deletion: covered only by a byte-identical arm, not this one
+            path = l[6:]
             files.setdefault(path, (set(), set()))
         elif path and l.startswith("+") and l[1:].strip():
             files[path][0].add(l[1:].strip())
@@ -387,24 +424,78 @@ def covered(git, main: str, tip: str) -> bool:
         have = {l.strip() for l in text.splitlines()}
         if not add <= have or rem & have:
             return False
-    return bool(files)
+    return True
 
 
-def handoff_level(hrefs: list, topics: set, git, disp: dict, att: dict, now: str):
-    """(level lines, Counter of why each listed ref is or is not owed)."""
+def reverse_applies(git, main: str, tip: str) -> bool:
+    """Tip's patch from its merge base with main applies to main reversed and
+    not forward: main holds the change, context and all (the brief's test),
+    checked in a throwaway index, never the work tree."""
+    rc, mb = git(["merge-base", main, tip])
+    if rc:
+        return False
+    with tempfile.TemporaryDirectory() as d:
+        patch, env = os.path.join(d, "p.diff"), {"GIT_INDEX_FILE": os.path.join(d, "index")}
+        rc, diff = git(["diff", "--binary", "--full-index", "--no-renames", mb.strip(), tip])
+        if rc or not diff.strip():
+            return False
+        Path(patch).write_text(diff if diff.endswith("\n") else diff + "\n")
+        if git(["read-tree", main], env)[0]:
+            return False
+        return (git(["apply", "--cached", "--check", "--reverse", patch], env)[0] == 0
+                and git(["apply", "--cached", "--check", patch], env)[0] != 0)
+
+
+ANCESTRY_WHY, CONTENT_WHY = ("ancestor", "merges-only"), ("reverse-apply", "content")
+
+
+def landed(git, main: str, tip: str, heads=(), ancestry: bool = True, content: bool = True) -> "str | None":
+    """Why main, or a live fix/* head, already carries tip; None when nothing
+    does. The one classifier of a handoff's landing: `level` folds the relay's
+    handoff-no-pr through it and bus.sh orphans asks it (`landed` below).
+      ancestor       every commit of tip is inside main or a head
+      merges-only    the only commits outside them are merges whose combined
+                     diff is empty (no resolution of their own)
+      reverse-apply  reverse_applies: the patch is on main, context and all
+      content        covered: the change is on main under another commit"""
+    if ancestry:
+        rc, out = git(["rev-list", "--count", tip, "--not", main, *heads])
+        if rc == 0 and out.strip() == "0":
+            return "ancestor"
+        rc, out = git(["rev-list", "--no-merges", "--count", tip, "--not", main, *heads])
+        if rc == 0 and out.strip() == "0":
+            rc, merges = git(["rev-list", "--merges", tip, "--not", main, *heads])
+            if rc == 0 and all((lambda r: r[0] == 0 and not r[1].strip())(
+                    git(["diff-tree", "--cc", "--no-commit-id", "-p", m])) for m in merges.split()):
+                return "merges-only"
+    if content:
+        if reverse_applies(git, main, tip):
+            return "reverse-apply"
+        if covered(git, main, tip):
+            return "content"
+    return None
+
+
+def handoff_level(hrefs: list, topics: set, git, disp: dict, att: dict, now: str, merged: "dict | None" = None):
+    """(level lines, Counter of why each listed ref is or is not owed). merged:
+    {topic: epoch} of merged pull requests, which close a tip committed by then."""
+    merged = merged or {}
     rc, main = git(["rev-parse", "--verify", f"{NS}/main"])
     if rc:
         raise Unreadable("no main in the ledger's fetched namespace")
     main = main.strip()
+    rc, out = git(["for-each-ref", "--format=%(objectname)", f"{NS}/fix/"])
+    if rc:
+        raise Unreadable("the fetched fix/* heads could not be listed")
+    heads = sorted(set(out.split()))
     code = {topic_of(r): s for s, r in hrefs if r.startswith("refs/heads/handoff/")}
+    body = {topic_of(r): s for s, r in hrefs if r.startswith("refs/heads/handoff-body/")}
     carried: dict[str, bool] = {}
 
     def is_carried(t: str) -> bool:
         if t not in carried:
             sha = code.get(t)
-            rc, out = git(["for-each-ref", "--contains", sha, "--format=%(refname)", f"{NS}/main", f"{NS}/fix/"]) \
-                if sha else (1, "")
-            carried[t] = bool(sha) and ((rc == 0 and bool(out.strip())) or covered(git, main, sha))
+            carried[t] = bool(sha) and landed(git, main, sha, heads) is not None
         return carried[t]
 
     ct = {}
@@ -417,17 +508,22 @@ def handoff_level(hrefs: list, topics: set, git, disp: dict, att: dict, now: str
         t = topic_of(ref)
         if STATE_REF.match(t):
             why["state-ref"] += 1
+        elif t in code and not ref.startswith("refs/heads/handoff/"):
+            why["body-follows-code"] += 1  # one obligation per topic: its code ref's line stands for both
         elif t in topics:
             why["open-pr"] += 1
         elif disp.get(ref, ("",))[0] == sha:
             why["disposed"] += 1
+        elif t in merged and ct.get(code.get(t, sha), "").isdigit() and int(ct[code.get(t, sha)]) <= merged[t]:
+            why["merged-pr"] += 1  # delivered by that merge; a re-handoff committed after it stays owed
         elif is_carried(t):
             why["carried"] += 1
         else:
             why["owed"] += 1
             a = att.get(f"refs/heads/handoff/{t}")
             tail = f" attempt={a[1]},{a[2].replace(' ', '_')}" if a and a[0] == code.get(t) else ""
-            lines.append(f"OWED {now} handoff-no-pr {ref} {sha} ct={ct.get(sha, '?')}{tail}")
+            bref = f" body={body[t]}" if ref.startswith("refs/heads/handoff/") and t in body else ""
+            lines.append(f"OWED {now} handoff-no-pr {ref} {sha} ct={ct.get(sha, '?')}{bref}{tail}")
     return lines, why
 
 
@@ -473,7 +569,8 @@ def escalate(level_rows: list, now: datetime.datetime, aging, group_of) -> list[
         if not kv.get("ct", "").isdigit():
             continue
         age = (now.timestamp() - int(kv["ct"])) / 3600  # ahead of the clock: < 0, below any threshold
-        repair = "opener" if len(refs) == 2 else "no code ref" if "code" not in refs else "no body ref"
+        repair = ("no code ref" if "code" not in refs
+                  else "opener" if "body" in refs or "body" in refs["code"][2] else "no body ref")
         queue.append((age, t, ref, sha, repair, kv.get("attempt")))
     queue.sort(key=lambda q: -q[0])
     out = [f"DISPATCH: {group_of(t) or '?'} {ref} {sha[:12]} {repair} ({age:.1f}h"
@@ -532,8 +629,9 @@ def app_approve_carries(cwd: str, main: str, env=None):
 
 
 # --------------------------------------------------------------------- CLI
-def _git_cwd(argv: list) -> "tuple[int, str]":
-    r = subprocess.run(["git", *argv], capture_output=True, text=True)
+def _git_cwd(argv: list, env: "dict | None" = None) -> "tuple[int, str]":
+    r = subprocess.run(["git", *argv], capture_output=True, text=True,
+                       env={**os.environ, **env} if env else None)
     return r.returncode, r.stdout + (r.stderr if r.returncode else "")
 
 
@@ -562,13 +660,34 @@ def main(argv: list) -> int:
             return 0
         if cmd == "level" and len(args) == 2:
             hrefs = [tuple(l.split()[:2]) for l in Path(args[0]).read_text().splitlines() if len(l.split()) >= 2]
-            topics = {l.strip() for l in Path(args[1]).read_text().splitlines() if l.strip()}
+            topics, merged = set(), {}
+            for l in Path(args[1]).read_text().splitlines():
+                f = l.split()
+                if len(f) == 2 and f[1].startswith("merged="):
+                    when = datetime.datetime.fromisoformat(f[1][7:].replace("Z", "+00:00")).timestamp()
+                    merged[f[0]] = max(merged.get(f[0], 0), int(when))
+                elif len(f) == 1:
+                    topics.add(f[0])
+                elif f:
+                    raise Refused(f"topics: '{l}' is neither '<topic>' nor '<topic> merged=<utc>'")
             fetch_world(_git_cwd)
             lines, why = handoff_level(hrefs, topics, _git_cwd, dispositions(home),
-                                       attempts(events(home, log)), utc())
+                                       attempts(events(home, log)), utc(), merged)
             print("".join(l + "\n" for l in lines), end="")
             print("ledger: level " + " ".join(f"{k}={v}" for k, v in sorted(why.items())), file=sys.stderr)
             return 1 if lines else 0
+        if cmd == "landed" and args:
+            flags = {a for a in args if a in ("--no-ancestry", "--no-content")}
+            shas = [a for a in args if a not in flags]
+            if not shas or not all(is_sha(a) for a in shas):
+                raise Refused("landed takes <main> [<head>...] as 40-hex shas, the tips on stdin")
+            for tip in sys.stdin.read().split():
+                if not is_sha(tip):
+                    raise Refused(f"'{tip}' is no 40-hex tip")
+                why = landed(_git_cwd, shas[0], tip, shas[1:], "--no-ancestry" not in flags,
+                             "--no-content" not in flags)
+                print(f"{tip} {why or '-'}")
+            return 0
         if cmd == "board" and not args:
             open_, closed = fold(events(home, log))
             for ob in open_:
@@ -793,25 +912,98 @@ def self_test() -> int:
           f"{unc}:refs/heads/handoff-body/unc", f"{anc}:refs/heads/handoff/anc",
           f"{unc}:refs/heads/handoff/audit-r10-roster", f"{unc}:refs/heads/handoff/open",
           f"{unc}:refs/heads/handoff/disp")
-        gw = lambda argv: (lambda r: (r.returncode, r.stdout + (r.stderr if r.returncode else "")))(
-            subprocess.run(["git", "-C", str(w), *argv], capture_output=True, text=True, env=env))
+        gw = lambda argv, extra=None: (lambda r: (r.returncode, r.stdout + (r.stderr if r.returncode else "")))(
+            subprocess.run(["git", "-C", str(w), *argv], capture_output=True, text=True, env={**env, **(extra or {})}))
         fetch_world(gw)
         mn = g("rev-parse", "main")
         check("covered: a hunk main carries beside a later change (the ecaf178c shape)", covered(gw, mn, cov))
         check("null control: a hunk adding a line main lacks is not covered", not covered(gw, mn, unc))
+        # ---- landed: the one classifier bus.sh orphans shares
+        g("checkout", "-qb", "work4", cov + "~1")
+        put("g.txt", "x\nfi\ny\nfi\np\nq\nr\ns\nt\n", "g base")
+        gb = g("rev-parse", "HEAD")
+        rv = put("g.txt", "x\nfi\ny\np\nq\nr\ns\nt\n", "drop the second fi")
+        g("checkout", "-qb", "work5", gb)
+        put("g.txt", "x\nfi\ny\np\nq\nr\ns\nT\n", "main lands it beside a change")
+        rvm = g("rev-parse", "HEAD")
+        g("checkout", "-qb", "work6", gb)
+        rvn = put("g.txt", "x\ny\nfi\np\nq\nr\ns\nt\n", "drop the first fi")
+        check("landed: a patch main holds whose removed line main keeps elsewhere is reverse-apply, not content",
+              landed(gw, rvm, rv) == "reverse-apply" and not covered(gw, rvm, rv))
+        check("null control: a patch main does not hold lands nowhere", landed(gw, rvm, rvn) is None)
+        g("checkout", "-qb", "work13", gb)
+        body_ = ["h1", "h2", "h3", "h4", "c1", "c2", "c3", "fi", "c4", "c5", "c6", "t1", "t2", "t3", "t4"]
+        put("d.txt", "\n".join(body_) + "\n", "d base")
+        db = g("rev-parse", "HEAD")
+        dt = put("d.txt", "\n".join(x for x in body_ if x != "fi") + "\n", "drop fi")
+        g("checkout", "-qb", "work14", db)
+        dm = put("d.txt", "\n".join([x for x in body_ if x != "fi"] + body_[4:11] + ["e1", "e2", "e3"]) + "\n",
+                 "main holds the patched region and an unpatched copy")
+        check("null control: a patch that applies both ways (an unpatched copy remains) is not landed",
+              landed(gw, dm, dt) is None and not reverse_applies(gw, dm, dt))
+        check("landed: a tip inside main reads ancestor, not merges-only", landed(gw, mn, anc) == "ancestor")
+        check("landed: the re-applied hunk is content (reverse-apply cannot: forward applies too)",
+              landed(gw, mn, cov) == "content" and not reverse_applies(gw, mn, cov))
+        g("checkout", "-qb", "work7", gb)
+        mv = put("moved.txt", "same bytes\n", "add a file")
+        g("checkout", "-qb", "work8", gb)
+        (w / "sub").mkdir()
+        mvm = put("sub/moved.txt", "same bytes\n", "main holds it at another path")
+        check("covered: an added file whose bytes main holds at another path is carried (a moved file)",
+              covered(gw, mvm, mv))
+        check("null control: the same add with other bytes is not", not covered(gw, mvm, put("x.txt", "other\n", "x")))
+        g("checkout", "-qb", "work9", mvm)
+        m_a = put("ma.txt", "A\n", "main side")
+        g("checkout", "-qb", "work10", mvm)
+        f_b = put("fb.txt", "B\n", "fix side")
+        g("merge", "-q", "--no-edit", m_a)
+        tipm = g("rev-parse", "HEAD")
+        g("checkout", "-qb", "work11", f_b)
+        fixh = put("fc.txt", "C\n", "the fix head carries both parents' work")
+        g("merge", "-q", "--no-edit", m_a)
+        fixh = g("rev-parse", "HEAD")
+        check("landed: a merge tip whose parents main and a fix head carry is merges-only",
+              landed(gw, m_a, tipm, [fixh]) == "merges-only")
+        check("null control: without that fix head the same tip is not ancestry-carried",
+              landed(gw, m_a, tipm, [], content=False) is None)
+        g("checkout", "-qb", "work12", f_b)
+        g("merge", "-q", "--no-commit", m_a)
+        put("evil.txt", "E\n", "a merge with a resolution of its own")
+        check("null control: a merge carrying its own resolution is not merges-only",
+              landed(gw, m_a, g("rev-parse", "HEAD"), [fixh], content=False) is None)
+        g("checkout", "-q", "main")
         hr = [tuple(l.split()) for l in g("ls-remote", "origin", "refs/heads/handoff/*",
                                            "refs/heads/handoff-body/*").splitlines()]
         att = {"refs/heads/handoff/unc": (unc, "2026-10-20T11:50:33Z", "rc=143")}
         lines, why = handoff_level(hr, {"open"}, gw, {"refs/heads/handoff/disp": (unc, "t", "h")}, att, "NOW")
         owed = sorted(l.split()[3] for l in lines)
-        check("the level owes exactly the uncovered topic's two refs and the body-only ref",
-              owed == ["refs/heads/handoff-body/bodyonly", "refs/heads/handoff-body/unc", "refs/heads/handoff/unc"])
-        check("and names each close: state ref, open PR, disposed, carried (ancestry and content)",
-              dict(why) == {"owed": 3, "state-ref": 1, "open-pr": 1, "disposed": 1, "carried": 2})
+        check("the level owes the uncovered topic once, at its code ref, and the body-only ref",
+              owed == ["refs/heads/handoff-body/bodyonly", "refs/heads/handoff/unc"])
+        check("the code ref's line names its body ref, which is no line of its own (one obligation per topic)",
+              any(l.split()[3] == "refs/heads/handoff/unc" and f" body={unc}" in l for l in lines))
+        check("and names each close: state ref, open PR, disposed, carried (ancestry and content), body",
+              dict(why) == {"owed": 2, "state-ref": 1, "open-pr": 1, "disposed": 1, "carried": 2,
+                            "body-follows-code": 1})
+        l2, w2 = handoff_level(hr, {"open"}, gw, {}, att, "NOW", {"unc": 4102444800})
+        check("a topic whose PR merged after its tip's commit is closed by the merge (RCA 5.1)",
+              not any("/unc " in l for l in l2) and w2["merged-pr"] == 1)
+        l2, w2 = handoff_level(hr, {"open"}, gw, {}, att, "NOW", {"unc": 1})
+        check("null control: a tip committed after its topic's merge stays owed",
+              any(" refs/heads/handoff/unc " in l for l in l2) and "merged-pr" not in w2)
         check("every owed line, an orphan body ref's included, carries its tip's commit time",
               all(" ct=" in l and not l.split("ct=")[1].startswith("?") for l in lines))
         check("the code ref's topic carries the opener attempt at that tip",
-              sum("attempt=2026-10-20T11:50:33Z,rc=143" in l for l in lines) == 2)
+              sum("attempt=2026-10-20T11:50:33Z,rc=143" in l for l in lines) == 1)
+        bo_t = g("ls-remote", "origin", "refs/heads/handoff-body/bodyonly").split()[0]
+        check("escalate: a code line naming its body is an opener; a body-only line has no code ref",
+              sorted(re.sub(r"^DISPATCH: G (\S+) \S+ (.*) \(.*$", r"\1 \2", q) for q in escalate(
+                  [f"OWED x handoff-no-pr refs/heads/handoff/unc {unc} ct=1 body={unc}",
+                   f"OWED x handoff-no-pr refs/heads/handoff/nob {unc} ct=1",
+                   f"OWED x handoff-no-pr refs/heads/handoff-body/bodyonly {bo_t} ct=1"],
+                  datetime.datetime.now(datetime.timezone.utc), (1.0, 1e9), lambda t: "G")
+                  if q.startswith("DISPATCH")) == ["refs/heads/handoff-body/bodyonly no code ref",
+                                                    "refs/heads/handoff/nob no body ref",
+                                                    "refs/heads/handoff/unc opener"])
         r = subprocess.run([sys.executable, "-I", __file__, "--log", str(e / "cloud-relay.log"), "board"],
                            capture_output=True, text=True)
         check("board: obligations exist is rc 1 with its summary line (a finding, not a failure)",
@@ -828,7 +1020,7 @@ def self_test() -> int:
         r = subprocess.run([sys.executable, "-I", __file__, "--log", str(D / "lv" / "l"), "level",
                             str(D / "hr"), str(D / "tp")], capture_output=True, text=True, cwd=w, env=env)
         check("level CLI: owed lines on stdout, rc 1, the counts on stderr",
-              r.returncode == 1 and r.stdout.count("handoff-no-pr") == 4 and "owed=4" in r.stderr)
+              r.returncode == 1 and r.stdout.count("handoff-no-pr") == 3 and "owed=3" in r.stderr)
         g("remote", "set-url", "origin", str(D / "absent.git"))
         r = subprocess.run([sys.executable, "-I", __file__, "--log", str(D / "lv" / "l"), "level",
                             str(D / "hr"), str(D / "tp")], capture_output=True, text=True, cwd=w, env=env)

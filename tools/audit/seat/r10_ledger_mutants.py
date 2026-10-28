@@ -26,9 +26,10 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
+BUS = "tools/audit/seat/bus.sh"
 LEDGER, RELAY, TICK, OPENER = ("tools/audit/seat/ledger.py", "tools/audit/seat/cloud_relay.sh",
                                "tools/audit/seat/orchestrator_tick.py", "tools/audit/seat/open_pr.sh")
-OWNER = {LEDGER: LEDGER, OPENER: LEDGER, RELAY: RELAY, TICK: TICK}
+OWNER = {LEDGER: LEDGER, OPENER: LEDGER, RELAY: RELAY, TICK: TICK, BUS: BUS}
 PLANTS = {
     # the ledger: event closers, the level's closers, aging, refusals, stores
     "L1_readback_no_close": (LEDGER, '                how = "read-back"', "                how = None"),
@@ -36,10 +37,25 @@ PLANTS = {
     "L3_any_verdict_posts": (LEDGER, '(text in lines if kind == "verdict-unposted"',
                              '(bool(lines) if kind == "verdict-unposted"'),
     "L4_added_lines_unchecked": (LEDGER, "if not add <= have or rem & have:", "if rem & have:"),
-    "L5_no_ancestry_close": (LEDGER, "carried[t] = bool(sha) and ((rc == 0 and bool(out.strip())) or covered(git, main, sha))",
-                             "carried[t] = bool(sha) and covered(git, main, sha)"),
-    "L6_no_content_close": (LEDGER, "carried[t] = bool(sha) and ((rc == 0 and bool(out.strip())) or covered(git, main, sha))",
-                            "carried[t] = bool(sha) and (rc == 0 and bool(out.strip()))"),
+    "L5_no_ancestry_close": (LEDGER, '''        if rc == 0 and out.strip() == "0":
+            return "ancestor"''', '''        if False:
+            return "ancestor"'''),
+    "L6_no_content_close": (LEDGER, '        if covered(git, main, tip):\n            return "content"',
+                            '        if False:\n            return "content"'),
+    "L19_no_reverse_apply": (LEDGER, '        if reverse_applies(git, main, tip):', '        if False:'),
+    "L20_forward_not_refused": (LEDGER, '                and git(["apply", "--cached", "--check", patch], env)[0] != 0)', '                and True)'),
+    "L21_merges_unchecked": (LEDGER, '            rc, merges = git(["rev-list", "--merges", tip, "--not", main, *heads])\n            if rc == 0 and all(',
+                             '            rc, merges = git(["rev-list", "--merges", tip, "--not", main, *heads])\n            if rc == 0 and True or all('),
+    "L22_merges_with_nonmerges": (LEDGER, '["rev-list", "--no-merges", "--count", tip,', '["rev-list", "--count", tip,'),
+    "L23_moved_add_unchecked": (LEDGER, "            if b_tip.strip() not in blobs:\n                return False",
+                                "            if False:\n                return False"),
+    "L24_body_own_line": (LEDGER, '        elif t in code and not ref.startswith("refs/heads/handoff/"):', '        elif False:'),
+    "L25_merged_ignored": (LEDGER, "        elif t in merged and ct.get(", "        elif False and ct.get("),
+    "L26_merged_any_time": (LEDGER, "and int(ct[code.get(t, sha)]) <= merged[t]:", ":"),
+    "R6_merged_unread_clears": (RELAY, '"$state/cloud-merged.$$" \\\n    || { echo "cloud_relay: could not list merged PRs',
+                                '"$state/cloud-merged.$$" \\\n    || true || { echo "cloud_relay: could not list merged PRs'),
+    "B1_orphans_merges_stranded": (BUS, "    case $why in ancestor|merges-only) anc=", "    case $why in ancestor) anc="),
+    "B2_orphans_no_content": (BUS, '    if [ "$why" = reverse-apply ] || [ "$why" = content ]; then', '    if [ "$why" = content ]; then'),
     "L7_no_threshold": (LEDGER, "           if age >= aging[0]]", "           if True]"),
     "L8_one_tip_blanks_all": (LEDGER, '        if rc == 0 and out.strip().isdigit():\n            ct[sha]',
                               '        if rc == 0 and out.strip().isdigit() and False:\n            ct[sha]'),
