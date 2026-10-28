@@ -1,5 +1,6 @@
-# review_packet.py render --pr 2896 --head 0f9a29e14adbd342602dec9a1666f9ee8f0ba7cf
-review_packet: REFUSE host-path: dev/audit/rca/R10-RCA-FRICTION-RESIDUE.md:8: home-directory in an added line of a tracked file; rewrite it with `ref_privacy.py scrub --write dev/audit/rca/R10-RCA-FRICTION-RESIDUE.md` or drop the path
+python3 -I tools/audit/seat/review_packet.py render --pr 2896 --head 0f9a29e14adbd342602dec9a1666f9ee8f0ba7cf --out $HOME/pkt-2896.md
+review_packet: REFUSE host-path: dev/audit/rca/R10-RCA-FRICTION-RESIDUE.md:8: home-directory in an added line of a tracked file; ...
 rc=1
-# the matched span on line 8:
-rnance/roles/root-cause.md`
+line 8: "fix (`dev/governance/roles/root-cause.md`); it lands no production code."
+seat HOME=/root; ref_privacy.py:252 `if any(h.casefold() in folded for h in ident.homes)` -- bare substring, "/root" in "roles/root-cause.md".
+Packet not rendered; review read the PR, check runs and tree directly. Not worked around.
