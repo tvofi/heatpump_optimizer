@@ -2,7 +2,7 @@ Triage batch 47 rules the one proposal with no ruling: V149 (a self-test's argv 
 
 ## Head
 
-`c75799e8697599b5739a377a8ecb26269b882bf9`; the file is the whole diff against `edd7e0e14e08279d0ddc53ec4fcc983570edf12a`.
+`5b8009990cea5ef2885c844678a292b3b9c16ae2`; the file is the whole diff against its merge base with origin/main. This head is round 2: it merges origin/main `beb570c81` and repairs review verdict/2906's block at `fb2f3de86` (carry-missing; the 311 figure). The file's verdict is unchanged.
 
 ## Mutation proof
 
@@ -17,7 +17,7 @@ At the merge base the file does not exist, and the same call returns `the triage
 
 ## Figures
 
-- 311 commits touching `tests/closures.json` since 2026-10-01, none with `argv` or `command line` in its subject: `git log origin/main --since=2026-10-01 --no-merges --format=%s -- tests/closures.json | wc -l`, then the same piped to `grep -ci 'argv\|command line'` (prints 0).
+- 314 commits touching `tests/closures.json` from a fixed instant to a fixed commit, none with `argv` or `command line` in its subject: `git log edd7e0e14e08279d0ddc53ec4fcc983570edf12a --since=2026-10-01T00:00:00Z --no-merges --format=%s -- tests/closures.json | wc -l`, then the same piped to `grep -ci 'argv\|command line'` (prints 0). The first cut's 311 used a bare date against `origin/main`, which moves with the clock and the branch (review verdict/2906).
 - the one verified instance, `28b0fa0f3` on #2883: `git log refs/pull/2883/head --no-merges --format='%h %s' -- tests/closures.json`.
 - the argv arm at `tests/closure.py:1221-1225` and the caveat at `tools/pr/ci_predict.py:795`: `grep -n 'for argv in spawned' tests/closure.py` and `grep -n 'a data-file read is not seen' tools/pr/ci_predict.py`.
 - 3.9 s per changed self-test and 913 s per single derive: the filer's measurement, quoted from `proposals.md` V149, not re-run here.
@@ -28,7 +28,7 @@ At the merge base the file does not exist, and the same call returns `the triage
 
 ## Forward-carry
 
-- P235 DEFER (V149): the cheaper detector for a CI-only closures red from a self-test's argv paths is owed by `defect-root-cause.md`'s second trigger on #2883, answered in its body and by its root-cause seat. Carry: R10-FLOW-BOARD
+- P235 DEFER (V149): the cheaper detector for a CI-only closures red from a self-test's argv paths is owed by `defect-root-cause.md`'s second trigger on #2883, answered in its body and by its root-cause seat. It is on the group's brief as a roster carry at `origin/handoff/audit-r10-roster` `6f074ab57e2f512bbe6ce7f5705481135e57f583`, R10-FLOW-BOARD's newest carry (the named cause, the 3.9 s and 913 s cost test, a countermeasure or a recorded refusal). The review's control (record the changed self-test under `closure._exec_record`; expect the two `INERT_EXCEPT` paths; null `3bd284f74` records none) landed as the group's next carry at `origin/handoff/audit-r10-roster` `b7e25cf06d1d1c13b298a3f94c791dbd2fd395bf` (`dev/programme/rosters/wave-r10-groups.json`). Carry: R10-FLOW-BOARD
 
 ## Friction
 
