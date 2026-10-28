@@ -11018,12 +11018,13 @@
    ],
    "carry": [],
    "resume": {
-    "stage": "handoff",
+    "stage": "in-progress",
     "branch": "handoff/r10-fly-sweep-defaults",
     "commit": "d8b6a3a8df343a0c4dd512a340ad3594e8e52012",
     "last_step": null,
     "next_step": "review the handoff",
-    "note": "Owner order (tvofi, 2026-10-28)"
+    "note": "Owner order (tvofi, 2026-10-28)",
+    "pr": 2935
    },
    "brief": "Owner order (tvofi, 2026-10-28). Sweep additions become defaults in tools/audit/seat/sweep_template.md: each addition the orchestrator's sweep has been making by hand is written into the template so a bare sweep runs it, each switchable off. Controls: a bare sweep from the template carries every added step; removing one step from the template fails the check that reads it; null: a sweep with the old hand additions is equivalent in effect to a bare one."
   },
