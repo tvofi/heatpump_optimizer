@@ -1,0 +1,40 @@
+  ok   seam_cut_total 708 <= 708
+
+STRUCTURE RATCHET PASSED
+rc=0
+ALL 18 ARCHITECTURE SCORE HEAD CHECKS PASSED
+ tests/structure_budgets.json | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+diff --git a/tests/structure_budgets.json b/tests/structure_budgets.json
+index 25e454ad1..5c649a935 100644
+--- a/tests/structure_budgets.json
++++ b/tests/structure_budgets.json
+@@ -1,5 +1,5 @@
+ {
+- "class_excess_loc": 18268,
++ "class_excess_loc": 18258,
+  "const_modules_over_50": 3,
+  "coordinator_attrs": 147,
+  "coordinator_multiassigned_attrs": 115,
+@@ -16,6 +16,6 @@
+  "methods_over_150": 17,
+  "methods_over_200": 9,
+  "name_kept_members": 38,
+- "recorded_at": "58730d09f61f3c26c86dad79387b0c2ffa739d66",
++ "recorded_at": "de69745ffcab66b566b3e75aee0b572023f80857",
+  "seam_cut_total": 708
+ }
+base fef4a135:
+  class_excess_loc = 18268 (every class's span past 300, summed; the coordinator's 410 helper lines count in its span)
+  seam_cut_total = 708
+RESULT class_excess_loc=18268 count
+RESULT seam_cut_total=708 count
+  ok   class_excess_loc 18268 <= 18268
+  ok   seam_cut_total 708 <= 708
+head:
+  class_excess_loc = 18258 (every class's span past 300, summed; the coordinator's 400 helper lines count in its span)
+  seam_cut_total = 708
+RESULT class_excess_loc=18258 count
+RESULT seam_cut_total=708 count
+  ok   class_excess_loc 18258 <= 18258
+  ok   seam_cut_total 708 <= 708
