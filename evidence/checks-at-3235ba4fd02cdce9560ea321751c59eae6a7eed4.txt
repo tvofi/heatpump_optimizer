@@ -1,0 +1,57 @@
+head: 3235ba4fd02cdce9560ea321751c59eae6a7eed4  read 2026-10-28T02:38:41Z
+CodeQL	completed	success	122583207948
+arch-score / arch-score	completed	success	122582935245
+arch-score / arch-score	completed	success	122597751373
+arm	completed	skipped	122582827520
+budget-raise-gate / budget-raise-gate	completed	success	122582935362
+budget-raise-gate / budget-raise-gate	completed	success	122597751370
+cancel-superseded	completed	success	122582828860
+cancel-superseded	completed	success	122582828867
+codeql	completed	skipped	122597753718
+codeql / Analyze (actions)	completed	success	122582935134
+codeql / Analyze (javascript-typescript)	completed	success	122582935166
+codeql / Analyze (python)	completed	success	122582935106
+gate	in_progress	null	122597708214
+gate	in_progress	null	122598336840
+governance	completed	skipped	122597753614
+governance / delivery-status	completed	success	122582935458
+governance / delivery-status-publish	completed	skipped	122582936855
+governance / env-matrix	completed	success	122582935338
+governance / instrument-self-tests	completed	success	122582935439
+governance / policy-docs	completed	success	122582935378
+governance / record	completed	skipped	122582936441
+governance / wave-script	completed	success	122582935242
+hassfest	completed	skipped	122597753369
+hassfest / hassfest	completed	success	122582934920
+kernel-points	completed	skipped	122582935953
+kernel-points	completed	skipped	122597752989
+pr-contract / pr-contract	completed	success	122597478061
+pr-contract / pr-contract	completed	success	122598129425
+prelude	completed	success	122582828791
+prelude	completed	success	122582828825
+refresh	completed	success	122582828566
+refresh	completed	success	122582828619
+tests	completed	skipped	122597752707
+tests / arch-instrument	completed	success	122583047775
+tests / briefs	completed	success	122582935139
+tests / browser	completed	success	122583048004
+tests / ci-ratchet	completed	skipped	122593040804
+tests / claims-autofix	completed	skipped	122592371886
+tests / closure-scope	completed	success	122582935219
+tests / closures	completed	success	122583047972
+tests / closures-autofix	completed	skipped	122593039778
+tests / coverage	completed	success	122583047892
+tests / coverage-ratchet	completed	success	122589982095
+tests / fast (3.14)	completed	success	122583047877
+tests / graders-head-copy	completed	success	122589982077
+tests / lane-proofs	completed	success	122592369769
+tests / mutation	completed	success	122582935144
+tests / mutation-autofix	completed	skipped	122597478753
+tests / mutation-pins	completed	skipped	122597478308
+tests / nightly-ha	completed	skipped	122583049370
+tests / nightly-status	completed	success	122582935181
+tests / replay	completed	success	122583048060
+tests / typing	completed	success	122583047867
+validate	completed	skipped	122597752835
+validate / validate-hacs	completed	success	122582934965
+tests / mutation job 122582935144 last line: MUTATION TABLE PASSED

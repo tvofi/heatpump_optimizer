@@ -1,0 +1,29 @@
+== 9513b571 + e8cb7e683 -> 179572ef5: auto-tree=4c853c8c3f07c7891ab057900fb752fd5cbb3a75 actual-tree=a904d13a9a0add811f3dbab5c2e5158f98f5ab92
+MERGE-CLAIM: refused tests/golden/claimed_drift.txt
+MERGE-CLAIM: refused tests/golden/card_claimed_drift.txt
+LEDGER-MERGE: resolved tests/closures.json
+diff --git a/tests/golden/claimed_drift.txt b/tests/golden/claimed_drift.txt
+index 21750e341..c2ff77bbf 100644
+--- a/tests/golden/claimed_drift.txt
++++ b/tests/golden/claimed_drift.txt
+@@ -742,8 +742,6 @@
+ # plan can land in another basin: valve_storage_low_target does, at a lower
+ # plan cost here (predicted_cost 61.91 -> 61.05). The suspended fixtures'
+ # plan leaves are their own machine-sensitive ones. No coord_* capture moves.
+-<<<<<<< tests/golden/claimed_drift.txt (this branch)
+-config_flow # R10 thermal power option (#1955 fold e): the heat_pump_thermal_power_entity field is published on the meters group; keys added, no value moved
+ # R10-HOUSE-GRADE (#2816): the scores publish `envelope_drivers` beside the
+ # envelope grade, so every coord capture that publishes a grade gains
+ # `data.insight.scores.envelope_drivers` and the same key under
+@@ -764,5 +762,3 @@ coord_dhw  # R10-HOUSE-GRADE (#2816): data.insight.scores.envelope_drivers and s
+ coord_grid_fee  # R10-HOUSE-GRADE (#2816): data.insight.scores.envelope_drivers and sensors.optimization_score.extra_state_attributes.envelope_drivers added
+ coord_minimal  # R10-HOUSE-GRADE (#2816): data.insight.scores.envelope_drivers and sensors.optimization_score.extra_state_attributes.envelope_drivers added
+ coord_two_zone  # R10-HOUSE-GRADE (#2816): data.insight.scores.envelope_drivers and sensors.optimization_score.extra_state_attributes.envelope_drivers added
+-=======
+->>>>>>> tests/golden/claimed_drift.txt (incoming)
+== 9513b571 + 179572ef5 -> d857e54a7: auto-tree=a904d13a9a0add811f3dbab5c2e5158f98f5ab92 actual-tree=a904d13a9a0add811f3dbab5c2e5158f98f5ab92
+  IDENTICAL to the driver merge
+== d857e54a7 + 07295d4ea -> 3235ba4fd: auto-tree=f2dba483be2c1a28923bd303a0f17d266851838d actual-tree=f2dba483be2c1a28923bd303a0f17d266851838d
+  IDENTICAL to the driver merge
+== merge-tree origin/main HEAD:
+rc=0
