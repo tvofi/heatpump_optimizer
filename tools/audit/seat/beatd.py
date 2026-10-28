@@ -601,6 +601,14 @@ def case2(prog, w):
             "null: a run after the first exits 0": first.returncode == 0 and third.returncode == 0}
 
 
+def _zombie(pid: int) -> bool:
+    """Killed but unreaped: a container whose pid 1 reaps no orphans keeps it (Linux /proc)."""
+    try:
+        return Path(f"/proc/{pid}/stat").read_text().rsplit(")", 1)[1].split()[0] == "Z"
+    except (OSError, IndexError):
+        return False
+
+
 def case3(prog, w):
     """(a)3 over-time reads timeout and its group is gone; in-time reads ok."""
     s = w / "s3"
@@ -610,7 +618,7 @@ def case3(prog, w):
     r = _beat(prog, "run", "--state", s, "--jobs", _table(w, [slow, fast]), "--once", timeout=60)
     time.sleep(0.5)
     gc = int(pidf.read_text()) if pidf.exists() else None
-    gone = gc is not None and not pid_alive(gc)
+    gone = gc is not None and (not pid_alive(gc) or _zombie(gc))
     if gc and not gone:
         os.kill(gc, signal.SIGKILL)
     sp = _passes(s, "slow")
