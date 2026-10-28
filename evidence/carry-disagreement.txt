@@ -1,0 +1,20 @@
+== review_carry over this PR's own hand-resolved merge
+review_carry: 32221ca27 -> 98c6676a8  main=origin/main
+  branch-only commits: 1
+  why: all 1 branch-only commit(s) are merges
+  98c6676a8  Merge origin/main into handoff/r10-review-carry
+review_carry: CARRY
+rc=0
+== merge-tree of that merge's parents (conflict => hand resolution)
+LEDGER-MERGE: resolved tests/closures.json
+72b333a8c0d0e24ad7f374fa38dbe1d448ec2e7d
+tools/pr/app_approve.sh
+
+Auto-merging tests/closures.json
+Auto-merging tools/audit/seat/INSTRUMENTS.md
+Auto-merging tools/audit/seat/cloud_relay.sh
+Auto-merging tools/pr/app_approve.sh
+CONFLICT (content): Merge conflict in tools/pr/app_approve.sh
+== app_approve --carry same range
+CARRY: no 32221ca27fadfcf5735889b24cafa162eb395cd8 -> 98c6676a823a9017da6b8055972925035f565679: 98c6676a823a9017da6b8055972925035f565679 is not the automatic merge of its parents
+rc=1
