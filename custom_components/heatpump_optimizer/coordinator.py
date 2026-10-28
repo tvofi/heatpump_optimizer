@@ -5496,14 +5496,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         """
         ctx = getattr(self, "_ctx", self)
         observed = ctx._current_state.room_temperature
-        # #2508: no observed room at all -- folded into the learner's own
-        # freeze, so it ranks before the ventilation pass-through below (a
-        # constant is never fed to the detector) and leaves no span clean.
-        heat_kw, clean, frozen, fold = _replay_gate(self, interval, span_heat_kw, learner_room_unread(
-            ctx._config
-        ) or self._learning_frozen(
-            CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY, CONF_THERMAL_POWER_ENTITY
-        ))
+        # #2508: no room entity is the raw freeze, so it ranks before the
+        # ventilation pass-through below and leaves no counter span clean.
+        raw = learner_room_unread(ctx._config) or self._learning_frozen(
+            CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY, CONF_THERMAL_POWER_ENTITY)
+        heat_kw, clean, frozen, fold = _replay_gate(self, interval, span_heat_kw, raw)
         # "ventilation" is the one reason to look past: the detector below
         # clears it and needs the residual to see the window close. Any other
         # reason makes the residual untrustworthy, detector included.
