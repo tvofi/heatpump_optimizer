@@ -1,49 +1,43 @@
-Fix review: merge cc0510ee2a25444363251df640509b3034bca4f6
+Fix review: blocked 4fc6a4c51ad990b04f7911807c83b245df3a2141 mutation-survivor: config_flow.py:3490 RETURN_DEL survives at this head and keeps tests / mutation red; it is equivalent and needs a survivor_triage record
 
-bus-nonce: ff2ea98c4e75a1315ce4b96f65b2656c
+bus-nonce: 862cd00f1142db22558875efc10f5190
 
 ## Round
 
-First fix review of #2912 (R10-CONFIGFLOW-PAGES arm A + A3'). Measured head `cc0510ee2a25444363251df640509b3034bca4f6`; merge base `eab04d0ebf8c45667099b668ab0d8bf976d5f99a` (= origin/main at review). `git diff $(merge-base)...origin/main -- dev/governance/roles/` is empty, so the contract is current.
+Delta review of #2912. The prior verdict was `merge` at `cc0510ee2a25444363251df640509b3034bca4f6` (probe/rev-2912-ff2ea98c). I measured head `4fc6a4c51ad990b04f7911807c83b245df3a2141`, which is still the PR head at the time of writing. `git diff eab04d0eb...origin/main -- dev/governance/roles/` is empty, so the contract is current.
+
+## Block
+
+The delta itself is clean. The bot commit only adds pin rows, and the carry predicate holds. The block is the condition the prior verdict set for the merge: `tests / mutation` had to be green at `4fc6a4c51`. It concluded `failure` at this head (check run 123016889009).
+
+- `python3 -I tools/pr/ci_predict.py --base origin/main` at this head lists one site the diff adds that is still unpinned: `config_flow.py:3490 RETURN_DEL: return errors`. This is the `return errors` after `tibber_token_required` in `HeatPumpOptimizerOptionsFlow._entities_errors` (ev/ci_predict_head.txt). The pin commit pinned every other predicted site.
+- I replaced that line with `pass` in a fresh `git archive` copy of the head. `PYTHONPATH=tests/hastub python3 tests/config_flow_steps.py` (venv-ci, Python 3.14) then still prints `ALL 531 checks PASSED` with rc 0 (ev/mut_3490.txt). Unmutated, it also prints `ALL 531 checks PASSED` (ev/head_config_flow_steps.txt). The mutant survives, and `mutation-autofix` (`--pin-killed`) cannot pin a survivor.
+- The mutant is equivalent. That branch runs only when neither `submit` nor `current` holds a token. Then `submitted = submit.get(CONF_TIBBER_TOKEN)` is falsy, so validation is skipped and the final `return errors` returns the same dict. No test can kill it.
+- The body's `## Red checks` `mutation` line covers only the predicted sites that autofix pins. It does not cover a survivor. The pin made that line stale, as ci-autofix.md L81 says it would.
+- I could not read the lane's own log: the Actions log and artifact blob host returned 403 through the proxy (ev/mutation_job_log_403.txt). So I infer from ci_predict and my mutant that 3490 is the only survivor. The log itself does not confirm this.
+
+To clear the block, the fixer adds `tests/mutation_ledger/survivor_triage/config_flow.py/HeatPumpOptimizerOptionsFlow._entities_errors.RETURN_DEL.<hash>.json` with `verdict: equivalent` and the reasoning above. ci-autofix.md L81 forbids automating survivor triage, so this has to be a seat's judgement. The fixer then updates the `## Red checks` `mutation` and `## Unpinned sites` lines. The pushed commit then needs a fresh review.
 
 ## Findings
 
-- Surviving mutant on an added line: in `HeatPumpOptimizerOptionsFlow._entities_errors`, `view = {**current, **submit}` -> `view = dict(submit)` leaves `tests/config_flow_steps.py` at `ALL 531 checks PASSED` (ev/mutants.txt, R6). It is equivalent in production: the options form always submits the required `price_source` select, and `_clear_absent` puts a cleared `price_entity` in the submit as `None`, so `current` never supplies either key to `view`. The A3' behaviour the body names is pinned by A3'-M1/M2 and by my R5, which all die. Carry: dismissed: equivalent mutant under Home Assistant's form semantics, the `current` merge is defensive only
-- PR body hygiene: lines 69-116 of the body repeat `## Mutation proof` and `## Unpinned sites` under a broken heading (`## Null control\` and \`## Figures\` was measured ...`), a copy-paste remnant. `--body-check` does not catch it (the packet's figure_lint and carry_audit pass), but a reader sees two copies of each section. The orchestrator should remove the duplicate block before merge. Carry: R10-CONFIGFLOW-PAGES
-- Owed after this verdict: the head moved during the review to `4fc6a4c51ad990b04f7911807c83b245df3a2141` (`ci: pin killed mutants`, github-actions[bot]). It adds 32 `tests/mutation_ledger/killed_by/config_flow.py/` rows and nothing else. At my last read its CI run was `queued` (a GITHUB_TOKEN head is held `action_required`, ci-autofix.md). The `tests / mutation` job log at `cc0510ee` could not be read here (the Actions log blob host returned 403 through the proxy), so I cannot tell whether every predicted site was killed or some survivor is left. Before merging, the orchestrator must see `gate` and `tests / mutation` green at `4fc6a4c51`, and re-check the body's `## Red checks` `mutation` line, which the pin stales (ci-autofix.md). Carry: R10-CONFIGFLOW-PAGES
+- 3490 is an equivalent surviving mutant and needs a triage record (see Block). Carry: R10-CONFIGFLOW-PAGES
+- From the prior verdict, still open at this head: `view = {**current, **submit}` -> `view = dict(submit)` in `_entities_errors` is equivalent under Home Assistant's form semantics. `config_flow.py` is byte-identical between `cc0510ee` and this head. Carry: dismissed: equivalent mutant, the `current` merge is defensive only
+- From the prior verdict, still open at this head: the PR body still repeats `## Mutation proof` and `## Unpinned sites` under the broken heading `## Null control\` and \`## Figures\` was measured ...` (body lines 73-120). Carry: R10-CONFIGFLOW-PAGES
+- Main has moved since the prior verdict (`beb570c81`, #2873). GitHub reports the PR `dirty`, because its merge cannot run the `ledgermerge` driver. The merge needs the orchestrator's driver-equipped merge, and the gate must be re-run on the merged tree. Carry: R10-CONFIGFLOW-PAGES
 
 ## Evidence
 
-- Merge with main: `git merge-tree --write-tree origin/main cc0510ee` exits 0 with tree `df2b246668cb131c4cebfb0b5bc316f441a9e51c`, no conflict (ev/merge-tree.txt).
-- Suite at head (Python 3.14.7, /opt/hpo/venv-ci): `PYTHONPATH=tests/hastub python3 tests/config_flow_steps.py` gives `ALL 531 checks PASSED`, rc 0 (ev/head_config_flow_steps.txt). The head's tests over merge-base `config_flow.py` give `6 of 531 checks FAILED`, rc 1: the five `a rejected <page> submit re-renders each cleared stored entity empty` checks (entities 9, entities_metering 9, comfort 1, hot_water 1, building 7) and `clearing the stored price entity under an entity source is price_entity_required` (ev/base_cf_headtests.txt). The body's `6 of 530` was taken before the wood-block check was added; the same six fail.
-- The body's ported harness `dev/audit/harnesses/r10_configflow_pages.py` (the fixer's own instrument, disclosed as such), run by me at both ends (ev/harness_both_ends.txt):
-  - base `RESULT pages=9 rejected=9 stored_rows=30 stale_slots=27`; head `stale_slots=0`
-  - `--null`: `rejected=7 stored_rows=30 shown_stored=19` on both trees
-  - `--clear-required`: base `type=menu errors=None stored_price_entity=None`; head `type=form errors=price_entity_required stored_price_entity='sensor.price'`
-  - `--clear-required --null`: `stored_price_entity='sensor.other'` on both trees
-  - `--accepted`: `cases=11 exceptions=1 digest=071e7ad04eb0` on both trees. The exception line matches the body at each end.
-  All figures match the body.
-- Finder's harness (step 2): `bash dev/audit/rounds/round10/D7/arch-s2/run_findings.sh 08_page` at its pinned base `554e2ecfa` gives `RESULT delta_S=+1.1717`, `admissible=1`, `duplication_copies=68->62`, `perturbed_delta_S=+0.0000`, `perturbed_vector_equals_baseline=1` (ev/finder_08_page.txt), the same as the body and #2238. The harness only applies its patch to its hardcoded base and cannot score a tree that already has the patch, so the head side is the archscore diff: `python3 tools/audit/archscore/score.py --diff eab04d0eb` at head gives `Architecture score: dS +2.3483 IMPROVES`, `duplication_copies 35 -> 29` (ev/archscore_head_vs_mb.txt), the same as the body.
-- Mutation proof (step 1), my own mutants on head `config_flow.py`, each in a fresh `git archive` copy (ev/mutants.txt):
-  - R1 dropping `current = {**current, **cleaned}`: 7 of 531 FAILED (all seven re-render checks)
-  - R2 `_clear_absent(..., current)` (body M6): 1 of 531 FAILED, the wood-block check
-  - R3 `finish(cleaned, current)`, not in the body: 1 of 531 FAILED, the wood-block check
-  - R4 `if check is not None:` -> `if False:`: 39 of 524 FAILED
-  - R5 `check(flat, current)` (body M2): 3 of 531 FAILED, the three the body names
-  - R6: survives, see Findings
-- Class (step 6): the body's rule is `grep -n 'when='` plus the harness's nine-page enumeration. I also grepped every `{**current, **user_input|flat|submit}` re-render basis (ev/class_rule_grep.txt). The one remaining is `_try_thermal_model_save` (line 3327). The thermal_model pages carry no `_STORED` row (0 matches), so they have no clear to lose. The `_STORED` pages outside the nine (entities_pump, hot_water_pumps, solar_pv, away) have no `check`, so they never re-render a submit. No open seam.
-- Claims and versions (steps 4 and 5): `VERSION`, `RELEASE_NOTES.md`, the manifest and both claim files are untouched three-dot (count 0). Golden drift is not re-run here: no claim moved, the body's `GOLDEN_MODE=drift` run was at a commit with this head's `config_flow.py`, and CI's heavy runs are cited, not re-run.
-- Numbers moved (step 14): `class_excess_loc` re-recorded 18038 -> 17992. `tests/structure.py` measures 18038 at the merge base and 17992 at head, and prints `STRUCTURE RATCHET PASSED` (ev/structure_head.txt, ev/structure_mb_class_excess.txt). This is a tightening that the fold earned, not a raise. `tests/closures.json` adds the new harness to `INERT`. `tests/entities.py` re-points one disposition from `async_step_building` to `_building_wood_flag`, where the guarded code moved. `PYTHONPATH=tests/hastub python3 tests/entities.py` at head prints `ALL 2467 ENTITY CHECKS PASSED`, rc 0 (ev/entities_head.txt). The six re-keyed ledger rows follow their guards. My R1, R4 and R5 kill `_page` and `_entities_errors` sites.
-- Figures re-derived: `ci_predict.py --base origin/main` at head lists 24 ADDED UNPINNED sites in config_flow.py, as the body says (ev/ci_predict_head.txt). The three-dot diffstat at `cc0510ee` is 21 files, +751/-305: the body's 20 files, +750/-305 at `9d043f78`, plus the delivery row.
-- CI at `cc0510ee` (step 11, read from the check-runs API; ev/checks_at_render.tsv, ev/checks_live.tsv, ev/workflow_runs.tsv):
-  - `tests / mutation` concluded failure. The body's `## Red checks` names it and answers it: ci_predict's 24 predicted unpinned sites, with the cheaper detector `ci_predict.py` already run at handoff. That is the documented `mutation-autofix` path, and the bot's pin commit followed.
-  - Every other completed check succeeded, was skipped or was neutral.
-  - At my last read, `prelude` (the edit run) and `tests / mutation-pins (1)` were still in progress.
-  - No `pr-contract` check run is listed on this head, so I cite none.
-- Head moved during the review (step 12): the PR head is now `4fc6a4c51ad990b04f7911807c83b245df3a2141` (bot pin). The carry predicate holds (ev/carry_predicate.txt):
-  - the 32 files it adds share none of the branch's own three-dot file list (overlap 0)
-  - both claim files at `4fc6a4c51` equal origin/main's
-  - the commit holds no reviewer-turn content
-  So this `merge` verdict on `cc0510ee` carries to `4fc6a4c51` by `orchestrator.md` section 11, subject to the gate at that head (see Findings).
-- Behaviour change (A3'): disclosed in the body as user-visible. It uses the existing `price_entity_required` key, so no strings move.
-- Body head SHA (step 7): `## Head` names `cc0510ee`, the head I measured.
+- Delta: `cc0510ee..4fc6a4c51ad990b04f7911807c83b245df3a2141` is one commit by `github-actions[bot]`, `ci: pin killed mutants` (ev/delta_log.txt). It adds 32 files under `tests/mutation_ledger/killed_by/config_flow.py/`, +192/-0, and touches no other path: the count of other paths is 0 (ev/delta_stat.txt). `config_flow.py` is byte-identical between the two heads. So the prior verdict's mutation proof, harness RESULT lines, archscore and structure figures carry unchanged.
+- Body `## Head` names `4fc6a4c51ad990b04f7911807c83b245df3a2141` as the current head, and `cc0510ee` as the reviewed head under it (step 7). Both are correct.
+- Claims and versions: `VERSION` and both claim files at this head equal origin/main `beb570c81`.
+- Merge with main `beb570c817c4efcae0d5f6f4bba52f3383baf8db` (ev/merge-tree.txt, ev/merge-tree_nodriver.txt, ev/structure_merged.txt, ev/merged_config_flow_steps.txt):
+  - With the repo's drivers installed, `git merge-tree --write-tree origin/main 4fc6a4c51ad990b04f7911807c83b245df3a2141` exits 0 with tree `fe660e9a837e98772486202240ed93afa36f307b`.
+  - In that run, `LEDGER-MERGE: resolved tests/structure_budgets.json` (`class_excess_loc` 17991) and `LEDGER-MERGE: resolved tests/closures.json`.
+  - Without the `ledgermerge` driver, it conflicts in exactly those two files, which is why GitHub reports `dirty`.
+  - On the merged tree, `tests/structure.py` prints `STRUCTURE RATCHET PASSED` (`class_excess_loc 17991 <= 17991`), and `tests/config_flow_steps.py` prints `ALL 531 checks PASSED`.
+- CI at 4fc6a4c51ad990b04f7911807c83b245df3a2141, from the check-runs API at writing (ev/checks_live.tsv):
+  - `tests / mutation` is `failure` (see Block).
+  - `tests / closures`, `tests / coverage`, `tests / fast (3.14)`, `governance / instrument-self-tests` and `codeql / Analyze (python)` are still `in_progress`.
+  - Every other check succeeded, was skipped or was neutral.
+  - Branch protection on main returns 404, so no check is marked required at the API level.
+- Review packet rendered at this head (ev/review-packet.md): Refusals none, `CARRY-AUDIT: 1 finding item(s): 1 routed`, `FIGURES: 12 resolved, 4 not verified, 0 refused`.

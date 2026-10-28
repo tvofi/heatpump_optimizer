@@ -1,47 +1,43 @@
 # Review packet #2912
-head: cc0510ee2a25444363251df640509b3034bca4f6
+head: 4fc6a4c51ad990b04f7911807c83b245df3a2141
 base: eab04d0ebf8c45667099b668ab0d8bf976d5f99a
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
 ## Gate digest: red
-CodeQL id=122974842849 neutral
-arch-score / arch-score id=122974175965 success
-arm id=122972121758 skipped
-budget-raise-gate / budget-raise-gate id=122974176741 success
-cancel-superseded id=122972126910 success
-codeql / Analyze (actions) id=122974176258 success
-codeql / Analyze (javascript-typescript) id=122974176445 success
-codeql / Analyze (python) id=122974176316 in_progress
-governance / delivery-status id=122974176568 success
-governance / delivery-status-publish id=122974179715 skipped
-governance / env-matrix id=122974176389 in_progress
-governance / instrument-self-tests id=122974176321 in_progress
-governance / policy-docs id=122974176410 success
-governance / record id=122974179468 skipped
-governance / wave-script id=122974176580 success
-hassfest / hassfest id=122974176286 success
-kernel-points id=122974177912 skipped
-prelude id=122972126883 success
-refresh id=122972126416 success
-tests / arch-instrument id=122975171752 success
-tests / briefs id=122974177003 success
-tests / browser id=122975171475 in_progress
-tests / closure-scope id=122974176345 success
-tests / closures id=122975171501 in_progress
-tests / coverage id=122975171439 in_progress
-tests / fast (3.14) id=122975171468 in_progress
-tests / mutation id=122974176689 failure
-tests / mutation-pins (1) id=122976359898 in_progress
-tests / mutation-pins (2) id=122976360400 queued
-tests / mutation-pins (3) id=122976359788 in_progress
-tests / mutation-pins (4) id=122976359913 in_progress
-tests / mutation-pins (5) id=122976359931 in_progress
-tests / nightly-ha id=122975173651 skipped
-tests / nightly-status id=122974176604 success
-tests / replay id=122975175297 skipped
-tests / typing id=122975171568 success
-validate / validate-hacs id=122974176727 success
+CodeQL id=123019900931 neutral
+arch-score / arch-score id=123016888847 success
+budget-raise-gate / budget-raise-gate id=123016889113 success
+cancel-superseded id=123013458884 skipped
+codeql / Analyze (actions) id=123016888542 success
+codeql / Analyze (javascript-typescript) id=123016889037 success
+codeql / Analyze (python) id=123016888613 in_progress
+governance / delivery-status id=123016891922 skipped
+governance / delivery-status-publish id=123016892275 skipped
+governance / env-matrix id=123016888727 success
+governance / instrument-self-tests id=123016888869 in_progress
+governance / policy-docs id=123016889089 success
+governance / record id=123016891864 skipped
+governance / wave-script id=123016889344 success
+hassfest / hassfest id=123016888824 success
+kernel-points id=123016891194 skipped
+prelude id=123013457168 success
+refresh id=123013458860 skipped
+tests / arch-instrument id=123022875588 success
+tests / briefs id=123016889266 success
+tests / browser id=123022875621 success
+tests / closure-scope id=123016888924 success
+tests / closures id=123022875916 in_progress
+tests / coverage id=123022875514 in_progress
+tests / fast (3.14) id=123022875786 in_progress
+tests / mutation id=123016889009 failure
+tests / mutation-autofix id=123022396826 skipped
+tests / mutation-pins id=123022396522 skipped
+tests / nightly-ha id=123022878657 skipped
+tests / nightly-status id=123016890961 skipped
+tests / replay id=123022879379 skipped
+tests / typing id=123022875723 success
+validate / validate-hacs id=123016888570 success
 
 ## Refusals
 none
@@ -96,6 +92,54 @@ not run
 not run
 
 ## Mutation-ledger diff
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._building_wood_flag.RETURN_DEL.f37fd05d.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._building_wood_flag.RETURN_DEL.f37fd05d.json
+new file mode 100644
+index 000000000..94809b4e5
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._building_wood_flag.RETURN_DEL.f37fd05d.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow._building_wood_flag RETURN_DEL f37fd05d",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "        return cleaned",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._disinfection_errors.RETURN_DEL.eef27ceb.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._disinfection_errors.RETURN_DEL.eef27ceb.json
+new file mode 100644
+index 000000000..002bda4ed
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._disinfection_errors.RETURN_DEL.eef27ceb.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow._disinfection_errors RETURN_DEL eef27ceb",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "        return errors",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=3."
++}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._entities_errors.BOOLOP.0b8e0158.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._entities_errors.BOOLOP.0b8e0158.json
+new file mode 100644
+index 000000000..d249adab3
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._entities_errors.BOOLOP.0b8e0158.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow._entities_errors BOOLOP 0b8e0158",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "        if submitted and submitted != current.get(CONF_TIBBER_TOKEN):",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`if submitted or submitted != current.get(CONF_TIBBER_TOKEN):`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=23."
++}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._entities_errors.GUARD_OFF.0b8e0158.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._entities_errors.GUARD_OFF.0b8e0158.json
+new file mode 100644
+index 000000000..b94b2a9aa
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._entities_errors.GUARD_OFF.0b8e0158.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow._entities_errors GUARD_OFF 0b8e0158",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "        if submitted and submitted != current.get(CONF_TIBBER_TOKEN):",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=3."
++}
 diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._entities_errors.GUARD_OFF.2a9c0142.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._entities_errors.GUARD_OFF.2a9c0142.json
 new file mode 100644
 index 000000000..e92f41977
@@ -120,6 +164,114 @@ index 000000000..31e23f5fe
 +  "old": "            if not view.get(CONF_PRICE_ENTITY):",
 +  "reason": "Re-keyed by R10-CONFIGFLOW-PAGES arm A from `HeatPumpOptimizerOptionsFlow.async_step_entities GUARD_OFF b9ebe2fa` (the guard moved into `HeatPumpOptimizerOptionsFlow._entities_errors`). Previous: Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=1."
 +}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._entities_errors.GUARD_OFF.83cb93cb.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._entities_errors.GUARD_OFF.83cb93cb.json
+new file mode 100644
+index 000000000..74eb45e98
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._entities_errors.GUARD_OFF.83cb93cb.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow._entities_errors GUARD_OFF 83cb93cb",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "        if source == PRICE_SOURCE_ENTITY:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=5."
++}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._entities_errors.GUARD_OFF.b4c07480.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._entities_errors.GUARD_OFF.b4c07480.json
+new file mode 100644
+index 000000000..bce266f05
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._entities_errors.GUARD_OFF.b4c07480.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow._entities_errors GUARD_OFF b4c07480",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "            elif verdict != \"ok\":",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`elif False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._entities_errors.GUARD_OFF.c7990b6d.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._entities_errors.GUARD_OFF.c7990b6d.json
+new file mode 100644
+index 000000000..37339431d
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._entities_errors.GUARD_OFF.c7990b6d.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow._entities_errors GUARD_OFF c7990b6d",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "        if not (submit.get(CONF_TIBBER_TOKEN) or current.get(CONF_TIBBER_TOKEN)):",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=2."
++}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._entities_errors.RETURN_DEL.421708f2.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._entities_errors.RETURN_DEL.421708f2.json
+new file mode 100644
+index 000000000..20e795a55
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._entities_errors.RETURN_DEL.421708f2.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow._entities_errors RETURN_DEL 421708f2",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "            return errors",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=4."
++}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._entities_errors.RETURN_DEL.eef27ceb.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._entities_errors.RETURN_DEL.eef27ceb.json
+new file mode 100644
+index 000000000..a2154851e
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._entities_errors.RETURN_DEL.eef27ceb.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow._entities_errors RETURN_DEL eef27ceb",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "        return errors",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=2."
++}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._grid_fee_errors.GUARD_OFF.ea8cc91b.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._grid_fee_errors.GUARD_OFF.ea8cc91b.json
+new file mode 100644
+index 000000000..713819368
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._grid_fee_errors.GUARD_OFF.ea8cc91b.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow._grid_fee_errors GUARD_OFF ea8cc91b",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "        if fee_problem is not None:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=4."
++}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._grid_fee_errors.RETURN_DEL.eef27ceb.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._grid_fee_errors.RETURN_DEL.eef27ceb.json
+new file mode 100644
+index 000000000..81cbba591
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._grid_fee_errors.RETURN_DEL.eef27ceb.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow._grid_fee_errors RETURN_DEL eef27ceb",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "        return errors",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=4."
++}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._hot_water_errors.BOOLOP.47acdc72.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._hot_water_errors.BOOLOP.47acdc72.json
+new file mode 100644
+index 000000000..729871f08
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._hot_water_errors.BOOLOP.47acdc72.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow._hot_water_errors BOOLOP 47acdc72",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "        if not errors and _dhw_min_too_close(submit, current):",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`if not errors or _dhw_min_too_close(submit, current):`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=11."
++}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._hot_water_errors.GUARD_OFF.03e357ee.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._hot_water_errors.GUARD_OFF.03e357ee.json
+new file mode 100644
+index 000000000..6e44953f2
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._hot_water_errors.GUARD_OFF.03e357ee.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow._hot_water_errors GUARD_OFF 03e357ee",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "        if window_problem is not None:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=3."
++}
 diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._hot_water_errors.GUARD_OFF.355fc9b4.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._hot_water_errors.GUARD_OFF.355fc9b4.json
 new file mode 100644
 index 000000000..74a645116
@@ -131,6 +283,18 @@ index 000000000..74a645116
 +  "killed_by": "tests/config_flow_steps.py",
 +  "old": "        if holiday_spec:",
 +  "reason": "Re-keyed by R10-CONFIGFLOW-PAGES arm A from `HeatPumpOptimizerOptionsFlow.async_step_hot_water GUARD_OFF 02e99d97` (the guard moved into `HeatPumpOptimizerOptionsFlow._hot_water_errors`). Previous: Recorded by `mutation_table.py --drain` against e8c67e1d3df151a8f273443a5ac5f736fb543782: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._hot_water_errors.GUARD_OFF.47acdc72.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._hot_water_errors.GUARD_OFF.47acdc72.json
+new file mode 100644
+index 000000000..77c40dfe0
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._hot_water_errors.GUARD_OFF.47acdc72.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow._hot_water_errors GUARD_OFF 47acdc72",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "        if not errors and _dhw_min_too_close(submit, current):",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=1."
 +}
 diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._hot_water_errors.GUARD_OFF.8cd5759a.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._hot_water_errors.GUARD_OFF.8cd5759a.json
 new file mode 100644
@@ -144,6 +308,30 @@ index 000000000..3c21a0833
 +  "old": "            if holiday_problem is not None:",
 +  "reason": "Re-keyed by R10-CONFIGFLOW-PAGES arm A from `HeatPumpOptimizerOptionsFlow.async_step_hot_water GUARD_OFF 07c72f5d` (the guard moved into `HeatPumpOptimizerOptionsFlow._hot_water_errors`). Previous: Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=1."
 +}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._hot_water_errors.RETURN_DEL.eef27ceb.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._hot_water_errors.RETURN_DEL.eef27ceb.json
+new file mode 100644
+index 000000000..a44f5fbd6
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._hot_water_errors.RETURN_DEL.eef27ceb.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow._hot_water_errors RETURN_DEL eef27ceb",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "        return errors",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=8."
++}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._metering_errors.BOOLOP.bdb67645.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._metering_errors.BOOLOP.bdb67645.json
+new file mode 100644
+index 000000000..2af5344d6
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._metering_errors.BOOLOP.bdb67645.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow._metering_errors BOOLOP bdb67645",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "        if submit.get(CONF_FREQ_CONTROL_MODE) == FREQ_MODE_CONTROL and not submit.get(CONF_COMPRESSOR_FREQ_ENTITY):",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`if submit.get(CONF_FREQ_CONTROL_MODE) == FREQ_MODE_CONTROL or not submit.get(CONF_COMPRESSOR_FREQ_ENTITY):`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=7."
++}
 diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._metering_errors.GUARD_OFF.bdb67645.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._metering_errors.GUARD_OFF.bdb67645.json
 new file mode 100644
 index 000000000..d28394727
@@ -155,6 +343,30 @@ index 000000000..d28394727
 +  "killed_by": "tests/config_flow_steps.py",
 +  "old": "        if submit.get(CONF_FREQ_CONTROL_MODE) == FREQ_MODE_CONTROL and not submit.get(CONF_COMPRESSOR_FREQ_ENTITY):",
 +  "reason": "Re-keyed by R10-CONFIGFLOW-PAGES arm A from `HeatPumpOptimizerOptionsFlow.async_step_entities_metering GUARD_OFF c8d82db8` (the guard moved into `HeatPumpOptimizerOptionsFlow._metering_errors`). Previous: Recorded by `mutation_table.py --drain` against c3530277373ddf87652858f9ecb0ee1cf36f4347: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._metering_errors.RETURN_DEL.eef27ceb.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._metering_errors.RETURN_DEL.eef27ceb.json
+new file mode 100644
+index 000000000..409ba2c17
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._metering_errors.RETURN_DEL.eef27ceb.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow._metering_errors RETURN_DEL eef27ceb",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "        return errors",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=2."
++}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._page.GUARD_OFF.45af9d64.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._page.GUARD_OFF.45af9d64.json
+new file mode 100644
+index 000000000..8a80b5923
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._page.GUARD_OFF.45af9d64.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow._page GUARD_OFF 45af9d64",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "            if check is not None:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=39."
 +}
 diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._page.GUARD_OFF.980b44df.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._page.GUARD_OFF.980b44df.json
 new file mode 100644
@@ -168,6 +380,78 @@ index 000000000..429055959
 +  "old": "            if not errors:",
 +  "reason": "Re-keyed by R10-CONFIGFLOW-PAGES arm A from `HeatPumpOptimizerOptionsFlow.async_step_entities GUARD_OFF 980b44df` (the guard moved into `HeatPumpOptimizerOptionsFlow._page`). Previous: Recorded by `mutation_table.py --drain` against 3976515a08228598ea3863f4f36dc4c7c4846865: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=30."
 +}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._peak_tariff_errors.GUARD_OFF.67752ca1.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._peak_tariff_errors.GUARD_OFF.67752ca1.json
+new file mode 100644
+index 000000000..1ff31b621
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._peak_tariff_errors.GUARD_OFF.67752ca1.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow._peak_tariff_errors GUARD_OFF 67752ca1",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "        if not _valid_months_spec(submit.get(CONF_PEAK_TARIFF_MONTHS, \"\")):",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=3."
++}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._peak_tariff_errors.GUARD_OFF.821aac0b.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._peak_tariff_errors.GUARD_OFF.821aac0b.json
+new file mode 100644
+index 000000000..773da22f3
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._peak_tariff_errors.GUARD_OFF.821aac0b.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow._peak_tariff_errors GUARD_OFF 821aac0b",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "        if not is_valid_spec(submit.get(CONF_PEAK_TARIFF_HOURS, \"\")):",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._peak_tariff_errors.RETURN_DEL.eef27ceb.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._peak_tariff_errors.RETURN_DEL.eef27ceb.json
+new file mode 100644
+index 000000000..bd699c6c3
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._peak_tariff_errors.RETURN_DEL.eef27ceb.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow._peak_tariff_errors RETURN_DEL eef27ceb",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "        return errors",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=4."
++}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._plumbing_errors.RETURN_DEL.eef27ceb.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._plumbing_errors.RETURN_DEL.eef27ceb.json
+new file mode 100644
+index 000000000..3035848a0
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._plumbing_errors.RETURN_DEL.eef27ceb.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow._plumbing_errors RETURN_DEL eef27ceb",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "        return errors",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=4."
++}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._silent_window_errors.GUARD_OFF.093742d2.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._silent_window_errors.GUARD_OFF.093742d2.json
+new file mode 100644
+index 000000000..81c95f777
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._silent_window_errors.GUARD_OFF.093742d2.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow._silent_window_errors GUARD_OFF 093742d2",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "        if problem is not None:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=4."
++}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._silent_window_errors.RETURN_DEL.eef27ceb.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._silent_window_errors.RETURN_DEL.eef27ceb.json
+new file mode 100644
+index 000000000..b90654ac3
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._silent_window_errors.RETURN_DEL.eef27ceb.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow._silent_window_errors RETURN_DEL eef27ceb",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "        return errors",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=4."
++}
 diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow.async_step_comfort.GUARD_OFF.b75e92ec.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow.async_step_comfort.GUARD_OFF.b75e92ec.json
 deleted file mode 100644
 index d9d261a87..000000000
@@ -180,6 +464,18 @@ index d9d261a87..000000000
 -  "old": "        if user_input is not None:",
 -  "reason": "Recorded by `mutation_table.py --drain` against 9061fbd3d710d5894b7083d8a58b8203f9e7aa97: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=8."
 -}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow.async_step_comfort.RETURN_DEL.a5ae6e26.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow.async_step_comfort.RETURN_DEL.a5ae6e26.json
+new file mode 100644
+index 000000000..d6b058854
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow.async_step_comfort.RETURN_DEL.a5ae6e26.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow.async_step_comfort RETURN_DEL a5ae6e26",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "        return await self._page(\"comfort\", user_input, clear=True, check=self._comfort_errors)",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=1."
++}
 diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow.async_step_entities.GUARD_OFF.980b44df.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow.async_step_entities.GUARD_OFF.980b44df.json
 deleted file mode 100644
 index 0285b7415..000000000
@@ -264,6 +560,90 @@ index a4b037dd4..000000000
 -  "old": "        if user_input is not None:",
 -  "reason": "Recorded by `mutation_table.py --drain` against 15f0b5924f3c2a75befe984d156cb3e602effd2e: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=10."
 -}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/_apply_dso_catalog.GUARD_OFF.607abe98.json b/tests/mutation_ledger/killed_by/config_flow.py/_apply_dso_catalog.GUARD_OFF.607abe98.json
+new file mode 100644
+index 000000000..6a7ab27f8
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/_apply_dso_catalog.GUARD_OFF.607abe98.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:_apply_dso_catalog GUARD_OFF 607abe98",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "    if applied:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/_apply_dso_catalog.RETURN_DEL.0ff10d02.json b/tests/mutation_ledger/killed_by/config_flow.py/_apply_dso_catalog.RETURN_DEL.0ff10d02.json
+new file mode 100644
+index 000000000..d21895ba8
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/_apply_dso_catalog.RETURN_DEL.0ff10d02.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:_apply_dso_catalog RETURN_DEL 0ff10d02",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "    return cleaned",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/_fee_placeholders.RETURN_DEL.aa4e4753.json b/tests/mutation_ledger/killed_by/config_flow.py/_fee_placeholders.RETURN_DEL.aa4e4753.json
+new file mode 100644
+index 000000000..fb4cd34aa
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/_fee_placeholders.RETURN_DEL.aa4e4753.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:_fee_placeholders RETURN_DEL aa4e4753",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "    return {\"currency\": currency, \"fee_bound\": f\"{grid_fee.fee_bound(currency):g}\"}",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=2."
++}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/_peak_window_as_int.GUARD_OFF.ab2bb6c0.json b/tests/mutation_ledger/killed_by/config_flow.py/_peak_window_as_int.GUARD_OFF.ab2bb6c0.json
+new file mode 100644
+index 000000000..b1fcd2416
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/_peak_window_as_int.GUARD_OFF.ab2bb6c0.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:_peak_window_as_int GUARD_OFF ab2bb6c0",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "    if window is not None:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=2."
++}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/_peak_window_as_int.RETURN_DEL.0ff10d02.json b/tests/mutation_ledger/killed_by/config_flow.py/_peak_window_as_int.RETURN_DEL.0ff10d02.json
+new file mode 100644
+index 000000000..6bb9e21ca
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/_peak_window_as_int.RETURN_DEL.0ff10d02.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:_peak_window_as_int RETURN_DEL 0ff10d02",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "    return cleaned",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/_warn_legionella_ceiling.GUARD_OFF.04d1f31e.json b/tests/mutation_ledger/killed_by/config_flow.py/_warn_legionella_ceiling.GUARD_OFF.04d1f31e.json
+new file mode 100644
+index 000000000..9c6f7c7e2
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/_warn_legionella_ceiling.GUARD_OFF.04d1f31e.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:_warn_legionella_ceiling GUARD_OFF 04d1f31e",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "    if warning is not None:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/_warn_legionella_ceiling.RETURN_DEL.455596d0.json b/tests/mutation_ledger/killed_by/config_flow.py/_warn_legionella_ceiling.RETURN_DEL.455596d0.json
+new file mode 100644
+index 000000000..16b920934
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/_warn_legionella_ceiling.RETURN_DEL.455596d0.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:_warn_legionella_ceiling RETURN_DEL 455596d0",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "    return submit",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=1."
++}
 
 
 ## Three-dot diff
@@ -1412,6 +1792,54 @@ index 5562214e6..d415376ed 100644
                       "guarded: normalises the flag after wood_furnace_on(merged)",
                   "thermal_model.py::ThermalParameters.from_config":
                       "guarded: under _on = wood_furnace_on(config)",
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._building_wood_flag.RETURN_DEL.f37fd05d.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._building_wood_flag.RETURN_DEL.f37fd05d.json
+new file mode 100644
+index 000000000..94809b4e5
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._building_wood_flag.RETURN_DEL.f37fd05d.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow._building_wood_flag RETURN_DEL f37fd05d",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "        return cleaned",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._disinfection_errors.RETURN_DEL.eef27ceb.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._disinfection_errors.RETURN_DEL.eef27ceb.json
+new file mode 100644
+index 000000000..002bda4ed
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._disinfection_errors.RETURN_DEL.eef27ceb.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow._disinfection_errors RETURN_DEL eef27ceb",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "        return errors",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=3."
++}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._entities_errors.BOOLOP.0b8e0158.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._entities_errors.BOOLOP.0b8e0158.json
+new file mode 100644
+index 000000000..d249adab3
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._entities_errors.BOOLOP.0b8e0158.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow._entities_errors BOOLOP 0b8e0158",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "        if submitted and submitted != current.get(CONF_TIBBER_TOKEN):",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`if submitted or submitted != current.get(CONF_TIBBER_TOKEN):`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=23."
++}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._entities_errors.GUARD_OFF.0b8e0158.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._entities_errors.GUARD_OFF.0b8e0158.json
+new file mode 100644
+index 000000000..b94b2a9aa
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._entities_errors.GUARD_OFF.0b8e0158.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow._entities_errors GUARD_OFF 0b8e0158",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "        if submitted and submitted != current.get(CONF_TIBBER_TOKEN):",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=3."
++}
 diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._entities_errors.GUARD_OFF.2a9c0142.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._entities_errors.GUARD_OFF.2a9c0142.json
 new file mode 100644
 index 000000000..e92f41977
@@ -1436,6 +1864,114 @@ index 000000000..31e23f5fe
 +  "old": "            if not view.get(CONF_PRICE_ENTITY):",
 +  "reason": "Re-keyed by R10-CONFIGFLOW-PAGES arm A from `HeatPumpOptimizerOptionsFlow.async_step_entities GUARD_OFF b9ebe2fa` (the guard moved into `HeatPumpOptimizerOptionsFlow._entities_errors`). Previous: Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=1."
 +}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._entities_errors.GUARD_OFF.83cb93cb.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._entities_errors.GUARD_OFF.83cb93cb.json
+new file mode 100644
+index 000000000..74eb45e98
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._entities_errors.GUARD_OFF.83cb93cb.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow._entities_errors GUARD_OFF 83cb93cb",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "        if source == PRICE_SOURCE_ENTITY:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=5."
++}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._entities_errors.GUARD_OFF.b4c07480.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._entities_errors.GUARD_OFF.b4c07480.json
+new file mode 100644
+index 000000000..bce266f05
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._entities_errors.GUARD_OFF.b4c07480.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow._entities_errors GUARD_OFF b4c07480",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "            elif verdict != \"ok\":",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`elif False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._entities_errors.GUARD_OFF.c7990b6d.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._entities_errors.GUARD_OFF.c7990b6d.json
+new file mode 100644
+index 000000000..37339431d
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._entities_errors.GUARD_OFF.c7990b6d.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow._entities_errors GUARD_OFF c7990b6d",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "        if not (submit.get(CONF_TIBBER_TOKEN) or current.get(CONF_TIBBER_TOKEN)):",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=2."
++}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._entities_errors.RETURN_DEL.421708f2.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._entities_errors.RETURN_DEL.421708f2.json
+new file mode 100644
+index 000000000..20e795a55
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._entities_errors.RETURN_DEL.421708f2.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow._entities_errors RETURN_DEL 421708f2",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "            return errors",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=4."
++}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._entities_errors.RETURN_DEL.eef27ceb.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._entities_errors.RETURN_DEL.eef27ceb.json
+new file mode 100644
+index 000000000..a2154851e
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._entities_errors.RETURN_DEL.eef27ceb.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow._entities_errors RETURN_DEL eef27ceb",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "        return errors",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=2."
++}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._grid_fee_errors.GUARD_OFF.ea8cc91b.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._grid_fee_errors.GUARD_OFF.ea8cc91b.json
+new file mode 100644
+index 000000000..713819368
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._grid_fee_errors.GUARD_OFF.ea8cc91b.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow._grid_fee_errors GUARD_OFF ea8cc91b",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "        if fee_problem is not None:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=4."
++}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._grid_fee_errors.RETURN_DEL.eef27ceb.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._grid_fee_errors.RETURN_DEL.eef27ceb.json
+new file mode 100644
+index 000000000..81cbba591
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._grid_fee_errors.RETURN_DEL.eef27ceb.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow._grid_fee_errors RETURN_DEL eef27ceb",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "        return errors",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=4."
++}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._hot_water_errors.BOOLOP.47acdc72.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._hot_water_errors.BOOLOP.47acdc72.json
+new file mode 100644
+index 000000000..729871f08
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._hot_water_errors.BOOLOP.47acdc72.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow._hot_water_errors BOOLOP 47acdc72",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "        if not errors and _dhw_min_too_close(submit, current):",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`if not errors or _dhw_min_too_close(submit, current):`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=11."
++}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._hot_water_errors.GUARD_OFF.03e357ee.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._hot_water_errors.GUARD_OFF.03e357ee.json
+new file mode 100644
+index 000000000..6e44953f2
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._hot_water_errors.GUARD_OFF.03e357ee.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow._hot_water_errors GUARD_OFF 03e357ee",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "        if window_problem is not None:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=3."
++}
 diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._hot_water_errors.GUARD_OFF.355fc9b4.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._hot_water_errors.GUARD_OFF.355fc9b4.json
 new file mode 100644
 index 000000000..74a645116
@@ -1447,6 +1983,18 @@ index 000000000..74a645116
 +  "killed_by": "tests/config_flow_steps.py",
 +  "old": "        if holiday_spec:",
 +  "reason": "Re-keyed by R10-CONFIGFLOW-PAGES arm A from `HeatPumpOptimizerOptionsFlow.async_step_hot_water GUARD_OFF 02e99d97` (the guard moved into `HeatPumpOptimizerOptionsFlow._hot_water_errors`). Previous: Recorded by `mutation_table.py --drain` against e8c67e1d3df151a8f273443a5ac5f736fb543782: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._hot_water_errors.GUARD_OFF.47acdc72.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._hot_water_errors.GUARD_OFF.47acdc72.json
+new file mode 100644
+index 000000000..77c40dfe0
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._hot_water_errors.GUARD_OFF.47acdc72.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow._hot_water_errors GUARD_OFF 47acdc72",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "        if not errors and _dhw_min_too_close(submit, current):",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=1."
 +}
 diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._hot_water_errors.GUARD_OFF.8cd5759a.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._hot_water_errors.GUARD_OFF.8cd5759a.json
 new file mode 100644
@@ -1460,6 +2008,30 @@ index 000000000..3c21a0833
 +  "old": "            if holiday_problem is not None:",
 +  "reason": "Re-keyed by R10-CONFIGFLOW-PAGES arm A from `HeatPumpOptimizerOptionsFlow.async_step_hot_water GUARD_OFF 07c72f5d` (the guard moved into `HeatPumpOptimizerOptionsFlow._hot_water_errors`). Previous: Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=1."
 +}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._hot_water_errors.RETURN_DEL.eef27ceb.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._hot_water_errors.RETURN_DEL.eef27ceb.json
+new file mode 100644
+index 000000000..a44f5fbd6
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._hot_water_errors.RETURN_DEL.eef27ceb.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow._hot_water_errors RETURN_DEL eef27ceb",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "        return errors",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=8."
++}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._metering_errors.BOOLOP.bdb67645.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._metering_errors.BOOLOP.bdb67645.json
+new file mode 100644
+index 000000000..2af5344d6
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._metering_errors.BOOLOP.bdb67645.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow._metering_errors BOOLOP bdb67645",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "        if submit.get(CONF_FREQ_CONTROL_MODE) == FREQ_MODE_CONTROL and not submit.get(CONF_COMPRESSOR_FREQ_ENTITY):",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`if submit.get(CONF_FREQ_CONTROL_MODE) == FREQ_MODE_CONTROL or not submit.get(CONF_COMPRESSOR_FREQ_ENTITY):`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=7."
++}
 diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._metering_errors.GUARD_OFF.bdb67645.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._metering_errors.GUARD_OFF.bdb67645.json
 new file mode 100644
 index 000000000..d28394727
@@ -1471,6 +2043,30 @@ index 000000000..d28394727
 +  "killed_by": "tests/config_flow_steps.py",
 +  "old": "        if submit.get(CONF_FREQ_CONTROL_MODE) == FREQ_MODE_CONTROL and not submit.get(CONF_COMPRESSOR_FREQ_ENTITY):",
 +  "reason": "Re-keyed by R10-CONFIGFLOW-PAGES arm A from `HeatPumpOptimizerOptionsFlow.async_step_entities_metering GUARD_OFF c8d82db8` (the guard moved into `HeatPumpOptimizerOptionsFlow._metering_errors`). Previous: Recorded by `mutation_table.py --drain` against c3530277373ddf87652858f9ecb0ee1cf36f4347: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._metering_errors.RETURN_DEL.eef27ceb.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._metering_errors.RETURN_DEL.eef27ceb.json
+new file mode 100644
+index 000000000..409ba2c17
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._metering_errors.RETURN_DEL.eef27ceb.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow._metering_errors RETURN_DEL eef27ceb",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "        return errors",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=2."
++}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._page.GUARD_OFF.45af9d64.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._page.GUARD_OFF.45af9d64.json
+new file mode 100644
+index 000000000..8a80b5923
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._page.GUARD_OFF.45af9d64.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow._page GUARD_OFF 45af9d64",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "            if check is not None:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=39."
 +}
 diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._page.GUARD_OFF.980b44df.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._page.GUARD_OFF.980b44df.json
 new file mode 100644
@@ -1484,6 +2080,78 @@ index 000000000..429055959
 +  "old": "            if not errors:",
 +  "reason": "Re-keyed by R10-CONFIGFLOW-PAGES arm A from `HeatPumpOptimizerOptionsFlow.async_step_entities GUARD_OFF 980b44df` (the guard moved into `HeatPumpOptimizerOptionsFlow._page`). Previous: Recorded by `mutation_table.py --drain` against 3976515a08228598ea3863f4f36dc4c7c4846865: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=30."
 +}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._peak_tariff_errors.GUARD_OFF.67752ca1.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._peak_tariff_errors.GUARD_OFF.67752ca1.json
+new file mode 100644
+index 000000000..1ff31b621
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._peak_tariff_errors.GUARD_OFF.67752ca1.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow._peak_tariff_errors GUARD_OFF 67752ca1",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "        if not _valid_months_spec(submit.get(CONF_PEAK_TARIFF_MONTHS, \"\")):",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=3."
++}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._peak_tariff_errors.GUARD_OFF.821aac0b.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._peak_tariff_errors.GUARD_OFF.821aac0b.json
+new file mode 100644
+index 000000000..773da22f3
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._peak_tariff_errors.GUARD_OFF.821aac0b.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow._peak_tariff_errors GUARD_OFF 821aac0b",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "        if not is_valid_spec(submit.get(CONF_PEAK_TARIFF_HOURS, \"\")):",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._peak_tariff_errors.RETURN_DEL.eef27ceb.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._peak_tariff_errors.RETURN_DEL.eef27ceb.json
+new file mode 100644
+index 000000000..bd699c6c3
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._peak_tariff_errors.RETURN_DEL.eef27ceb.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow._peak_tariff_errors RETURN_DEL eef27ceb",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "        return errors",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=4."
++}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._plumbing_errors.RETURN_DEL.eef27ceb.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._plumbing_errors.RETURN_DEL.eef27ceb.json
+new file mode 100644
+index 000000000..3035848a0
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._plumbing_errors.RETURN_DEL.eef27ceb.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow._plumbing_errors RETURN_DEL eef27ceb",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "        return errors",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=4."
++}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._silent_window_errors.GUARD_OFF.093742d2.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._silent_window_errors.GUARD_OFF.093742d2.json
+new file mode 100644
+index 000000000..81c95f777
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._silent_window_errors.GUARD_OFF.093742d2.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow._silent_window_errors GUARD_OFF 093742d2",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "        if problem is not None:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=4."
++}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._silent_window_errors.RETURN_DEL.eef27ceb.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._silent_window_errors.RETURN_DEL.eef27ceb.json
+new file mode 100644
+index 000000000..b90654ac3
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow._silent_window_errors.RETURN_DEL.eef27ceb.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow._silent_window_errors RETURN_DEL eef27ceb",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "        return errors",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=4."
++}
 diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow.async_step_comfort.GUARD_OFF.b75e92ec.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow.async_step_comfort.GUARD_OFF.b75e92ec.json
 deleted file mode 100644
 index d9d261a87..000000000
@@ -1496,6 +2164,18 @@ index d9d261a87..000000000
 -  "old": "        if user_input is not None:",
 -  "reason": "Recorded by `mutation_table.py --drain` against 9061fbd3d710d5894b7083d8a58b8203f9e7aa97: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=8."
 -}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow.async_step_comfort.RETURN_DEL.a5ae6e26.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow.async_step_comfort.RETURN_DEL.a5ae6e26.json
+new file mode 100644
+index 000000000..d6b058854
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow.async_step_comfort.RETURN_DEL.a5ae6e26.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow.async_step_comfort RETURN_DEL a5ae6e26",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "        return await self._page(\"comfort\", user_input, clear=True, check=self._comfort_errors)",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=1."
++}
 diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow.async_step_entities.GUARD_OFF.980b44df.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow.async_step_entities.GUARD_OFF.980b44df.json
 deleted file mode 100644
 index 0285b7415..000000000
@@ -1580,6 +2260,90 @@ index a4b037dd4..000000000
 -  "old": "        if user_input is not None:",
 -  "reason": "Recorded by `mutation_table.py --drain` against 15f0b5924f3c2a75befe984d156cb3e602effd2e: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=10."
 -}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/_apply_dso_catalog.GUARD_OFF.607abe98.json b/tests/mutation_ledger/killed_by/config_flow.py/_apply_dso_catalog.GUARD_OFF.607abe98.json
+new file mode 100644
+index 000000000..6a7ab27f8
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/_apply_dso_catalog.GUARD_OFF.607abe98.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:_apply_dso_catalog GUARD_OFF 607abe98",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "    if applied:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/_apply_dso_catalog.RETURN_DEL.0ff10d02.json b/tests/mutation_ledger/killed_by/config_flow.py/_apply_dso_catalog.RETURN_DEL.0ff10d02.json
+new file mode 100644
+index 000000000..d21895ba8
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/_apply_dso_catalog.RETURN_DEL.0ff10d02.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:_apply_dso_catalog RETURN_DEL 0ff10d02",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "    return cleaned",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/_fee_placeholders.RETURN_DEL.aa4e4753.json b/tests/mutation_ledger/killed_by/config_flow.py/_fee_placeholders.RETURN_DEL.aa4e4753.json
+new file mode 100644
+index 000000000..fb4cd34aa
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/_fee_placeholders.RETURN_DEL.aa4e4753.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:_fee_placeholders RETURN_DEL aa4e4753",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "    return {\"currency\": currency, \"fee_bound\": f\"{grid_fee.fee_bound(currency):g}\"}",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=2."
++}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/_peak_window_as_int.GUARD_OFF.ab2bb6c0.json b/tests/mutation_ledger/killed_by/config_flow.py/_peak_window_as_int.GUARD_OFF.ab2bb6c0.json
+new file mode 100644
+index 000000000..b1fcd2416
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/_peak_window_as_int.GUARD_OFF.ab2bb6c0.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:_peak_window_as_int GUARD_OFF ab2bb6c0",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "    if window is not None:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=2."
++}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/_peak_window_as_int.RETURN_DEL.0ff10d02.json b/tests/mutation_ledger/killed_by/config_flow.py/_peak_window_as_int.RETURN_DEL.0ff10d02.json
+new file mode 100644
+index 000000000..6bb9e21ca
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/_peak_window_as_int.RETURN_DEL.0ff10d02.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:_peak_window_as_int RETURN_DEL 0ff10d02",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "    return cleaned",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/_warn_legionella_ceiling.GUARD_OFF.04d1f31e.json b/tests/mutation_ledger/killed_by/config_flow.py/_warn_legionella_ceiling.GUARD_OFF.04d1f31e.json
+new file mode 100644
+index 000000000..9c6f7c7e2
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/_warn_legionella_ceiling.GUARD_OFF.04d1f31e.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:_warn_legionella_ceiling GUARD_OFF 04d1f31e",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "    if warning is not None:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/_warn_legionella_ceiling.RETURN_DEL.455596d0.json b/tests/mutation_ledger/killed_by/config_flow.py/_warn_legionella_ceiling.RETURN_DEL.455596d0.json
+new file mode 100644
+index 000000000..16b920934
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/_warn_legionella_ceiling.RETURN_DEL.455596d0.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:_warn_legionella_ceiling RETURN_DEL 455596d0",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "    return submit",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=1."
++}
 diff --git a/tests/structure_budgets.json b/tests/structure_budgets.json
 index 24fe45038..0b90cfc0a 100644
 --- a/tests/structure_budgets.json

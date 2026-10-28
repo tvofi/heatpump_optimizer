@@ -1,3 +1,5 @@
+4fc6a4c51ad990b04f7911807c83b245df3a2141
+dirty
 R10-CONFIGFLOW-PAGES (Product UX, L), arm A plus arm A3', the first of the group's pull requests in the approved design's order (`design/R10-CONFIGFLOW-PAGES` `32892dc67`, `dev/programme/designs/R10-CONFIGFLOW-PAGES.md`; approve verdict `design-verdict/R10-CONFIGFLOW-PAGES` `3af84d776`). Findings D7-s2-56 (fixed here) of #2238. Arms B (D7-s2-55), C/C2 (ARCH2-s5-F1) and D (the carried tripwires) follow as their own pull requests, so this one closes nothing.
 
 **The bug (D7-s2-56).** Nine options pages validate their submit, and each wrote its own copy of the page skeleton. When a submit was refused, five of them re-rendered the form over `{**current, **user_input}`. A stored entity the user had cleared is absent from `user_input`, so the re-rendered form showed it again as the stored entity, and the next submit silently kept the entity the user had removed. Driven through the production steps at the merge base, 27 of the 30 cleared `_STORED` rows re-render as stored (entities 9, entities_metering 9, building 7, comfort 1, hot_water 1). hot_water_tank (re-renders over `merged`) and grid_fees (pops its one slot by hand) were already right.
@@ -13,6 +15,8 @@ R10-CONFIGFLOW-PAGES (Product UX, L), arm A plus arm A3', the first of the group
 **Design carries discharged here.** `a3p-test`: the A3' test, its two controls, the two mutants, the `--clear-required` arm and the A3 exception. `overlay-08`: dismissed as designed, because the overlay equals patch 08, which this diff applies. `grid-connection-flatten`: grid_connection's `{CONF_SILENT_MODE_WINDOWS: "", **user_input}` default still runs before `_page` flattens, and no grid_connection row carries a `group`, so no section can hold the window. The check `a cleared silent-mode window saves as no window, on an ungrouped page` asserts that the stored window becomes `""` and that no grid_connection row is grouped, so it fails the day a group is added and the default would sit outside it.
 
 ## Head
+
+`4fc6a4c51ad990b04f7911807c83b245df3a2141` is the current head: the CI bot commit `ci: pin killed mutants` on top of the reviewed head `cc0510ee2a25444363251df640509b3034bca4f6`, and nothing else.
 
 `cc0510ee2a25444363251df640509b3034bca4f6` merges origin/main `eab04d0eb` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head, and then adds one commit containing only this PR's own row, `dev/programme/delivery/2912.md`.
 
@@ -167,4 +171,6 @@ No check has run on this head yet. Two reds are predicted, and both are answered
 ## Friction
 
 none
+
+
 
