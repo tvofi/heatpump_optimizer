@@ -1,9 +1,0 @@
-gate check-runs at head (commit check-runs API, per_page=100):
-  68 runs, all head_sha=9513b571420de2740607e12847adcf047ec94b1b; conclusions: success=43 skipped=25 failure=0 cancelled=0
-  gate 122414671515 success
-  gate 122413376158 success
-  gate 122412872175 success
-gh pr view 2876 --json statusCheckRollup (gate rows):
-  {"__typename":"CheckRun","name":"gate","status":"COMPLETED","conclusion":"SUCCESS","startedAt":"2026-10-27T19:16:22Z","completedAt":"2026-10-27T19:20:03Z"}
-  {"__typename":"CheckRun","name":"gate","status":"COMPLETED","conclusion":"SUCCESS","startedAt":"2026-10-27T19:17:19Z","completedAt":"2026-10-27T19:19:54Z"}
-  {"__typename":"CheckRun","name":"gate","status":"COMPLETED","conclusion":"SUCCESS","startedAt":"2026-10-27T19:19:46Z","completedAt":"2026-10-27T19:20:10Z"}
