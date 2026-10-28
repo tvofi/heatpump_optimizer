@@ -1,0 +1,23 @@
+MUTANT F-CR-ELSEFG in tools/audit/seat/cloud_relay.sh
+  old: else bash "$HERE/update_pr.sh" "$br" "$hs" "$body" $iss >&2 & fi
+  new: else bash "$HERE/update_pr.sh" "$br" "$hs" "$body" $iss >&2; fi
+diff --git a/tools/audit/seat/cloud_relay.sh b/tools/audit/seat/cloud_relay.sh
+index cf21cdbc6..1c9aee15c 100644
+--- a/tools/audit/seat/cloud_relay.sh
++++ b/tools/audit/seat/cloud_relay.sh
+@@ -231,7 +231,7 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of
+     # so update_pr.sh ends its push before it frees the branch lock, and reaps what is left after.
+     urc=0
+     if [ -n "${HPO_RELAY_UPDATE:-}" ]; then "$HPO_RELAY_UPDATE" "$br" "$hs" "$body" $iss >&2 &
+-    else bash "$HERE/update_pr.sh" "$br" "$hs" "$body" $iss >&2 & fi
++    else bash "$HERE/update_pr.sh" "$br" "$hs" "$body" $iss >&2; fi
+     PR_REAP_LEAD=$!; wait "$PR_REAP_LEAD" || urc=$?
+     # 75 is update_pr.sh's BUSY: another run (the orchestrator's) holds this branch's worktree. Not
+     # a failure, so it is not recorded and the next pass retries once that run has ended.
+== bash tools/audit/seat/cloud_relay.sh --self-test
+cloud_relay self-test: 83 checks, 0 failed
+rc=0
+== bash tools/audit/seat/pr_args.sh --self-test
+pr_args self-test: 90 checks, 0 failed
+rc=0
+RESULT F-CR-ELSEFG: 2 of 2 self-tests rc 0
