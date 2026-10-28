@@ -10445,7 +10445,7 @@
    ],
    "carry": [],
    "resume": {
-    "stage": "not-started",
+    "stage": "absorbed",
     "branch": null,
     "commit": null,
     "last_step": null,
