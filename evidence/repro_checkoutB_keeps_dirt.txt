@@ -1,0 +1,4 @@
+A reset --hard: head=detached dirty=[]
+B checkout -B: head=refs/heads/br dirty=[ M f]
+B then the arm's commit -qam: claims: drop   f | 1 + 
+C checkout -f -B: head=refs/heads/br dirty=[]

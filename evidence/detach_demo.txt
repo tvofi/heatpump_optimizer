@@ -1,2 +1,0 @@
-after detach+commit_row: HEAD=6899105631c830f3d61eedcedcfe86b2a11d1aaf tip=2bd13ac7331faf93b54d576244676e155b61561b
-p2 would die: worktree HEAD is not the committed tip of 'fix/x'
