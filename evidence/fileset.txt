@@ -1,3 +1,0 @@
-guard_files=290 script_files=289
-guard-only: tools/devices/gen_device_fixtures.py
-script-only: 

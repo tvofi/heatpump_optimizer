@@ -10,3 +10,7 @@ head d0d35231c: lead-closer=0 control=96 null=0 main_not_head=192
 head 683dd52cb: lead-closer=0 control=96 null=0 main_not_head=192
 head e73424f24: lead-closer=45 control=96 null=0 main_not_head=147
 head 4aad9c117: lead-closer=45 control=96 null=0 main_not_head=147
+
+real	0m0.242s
+user	0m0.260s
+sys	0m0.098s
