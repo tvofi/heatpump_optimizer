@@ -1,0 +1,17 @@
+  3981 unpinned site(s) of 6323 candidate sites, 3990 at the ratchet base 9d0ddf8afcb82848303c60181b736c9fb7c94581; the ledger agrees with the deterministic inventory
+MUTATION TABLE -- scope changed: 4 production file(s) whose code this diff adds or modifies
+ANCHOR -- 1 site(s) of custom_components/heatpump_optimizer/thermal_model.py:heat_loss_basis RETURN_DEL 4a9b3d82
+  1 mutant(s) over 1 file(s); drivers in play: tests/features.py
+  null control: custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT, a comment-only edit every driver in play must let survive
+  tests/features.py: baseline and null control deferred until a mutant run of it is red
+  null control custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT survived every driver
+  baseline tests/features.py: rc=0 failed=0 352s
+  null control custom_components/heatpump_optimizer/thermal_model.py:126 NULL_COMMENT survived tests/features.py
+PIN RE-VERIFICATION: 1 reproduced, 0 not reproduced, 0 not re-verified
+  killed by tests/features.py: custom_components/heatpump_optimizer/thermal_model.py:1413 RETURN_DEL
+
+real	18m0.692s
+user	18m14.235s
+sys	0m13.211s
+
+[exited with code 0]

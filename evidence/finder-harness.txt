@@ -1,3 +1,5 @@
+finder harness: git show 2c42ba4a0:tools/audit/round10/study-reseed/reparam_sites.py (sha1 0536f495b368e23b8afdd2620a9085afa6afcf0a), section 5 deleted -> sha1 e32872268b4732896b986f581e26972db8d3dcc0
+base = 5c0ee109305f (PR merge base), merged = 274e6975c1b7a4334d181879c4ad2bef532c4134 + origin/main
 == base 
 RESULT options_reseed_both_zones.house_rel_err=0.0011  (428.2 vs learned 427.8 W/K)
 RESULT options_reseed_both_zones.upper_rel_err=0.3681  (99.0 vs learned 156.7 W/K)
@@ -28,7 +30,7 @@ RESULT options_reseed_upper_only.lower_rel_err=0.0000  (90.0 vs learned 90.0 W/K
 RESULT snapshot_restore_after_reseed.house_rel_err=0.0000  (190.0 W/K)
 RESULT snapshot_restore_after_reseed.lower_rel_err=0.0000  (90.0 W/K)
 RESULT options_reseed_single_zone.house_rel_err=0.0000  (scale 1.0000, samples kept 310, phi 0.9981)
-== head 
+== merged 
 RESULT options_reseed_both_zones.house_rel_err=0.0000  (427.8 vs learned 427.8 W/K)
 RESULT options_reseed_both_zones.upper_rel_err=0.0000  (156.7 vs learned 156.7 W/K)
 RESULT options_reseed_both_zones.lower_rel_err=0.0000  (271.1 vs learned 271.1 W/K; scale 1.000 ratio 1.000 samples 310/147)
@@ -38,7 +40,7 @@ RESULT options_reseed_upper_only.lower_rel_err=0.0000  (271.1 vs learned 271.1 W
 RESULT snapshot_restore_after_reseed.house_rel_err=0.0000  (427.8 W/K)
 RESULT snapshot_restore_after_reseed.lower_rel_err=0.0000  (271.1 W/K)
 RESULT options_reseed_single_zone.house_rel_err=0.0000  (scale 1.0000, samples kept 310, phi 0.9981)
-== head --ratio 1.0
+== merged --ratio 1.0
 RESULT options_reseed_both_zones.house_rel_err=0.0000  (297.7 vs learned 297.7 W/K)
 RESULT options_reseed_both_zones.upper_rel_err=0.0000  (156.7 vs learned 156.7 W/K)
 RESULT options_reseed_both_zones.lower_rel_err=0.0000  (141.0 vs learned 141.0 W/K; scale 1.000 ratio 1.000 samples 310/147)
@@ -48,7 +50,7 @@ RESULT options_reseed_upper_only.lower_rel_err=0.0000  (141.0 vs learned 141.0 W
 RESULT snapshot_restore_after_reseed.house_rel_err=0.0000  (297.7 W/K)
 RESULT snapshot_restore_after_reseed.lower_rel_err=0.0000  (141.0 W/K)
 RESULT options_reseed_single_zone.house_rel_err=0.0000  (scale 1.0000, samples kept 310, phi 0.9981)
-== head --scale 1.0 --ratio 1.0
+== merged --scale 1.0 --ratio 1.0
 RESULT options_reseed_both_zones.house_rel_err=0.0000  (190.0 vs learned 190.0 W/K)
 RESULT options_reseed_both_zones.upper_rel_err=0.0000  (100.0 vs learned 100.0 W/K)
 RESULT options_reseed_both_zones.lower_rel_err=0.0000  (90.0 vs learned 90.0 W/K; scale 1.000 ratio 1.000 samples 310/147)

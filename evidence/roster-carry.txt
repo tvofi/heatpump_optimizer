@@ -1,0 +1,12 @@
+roster ref handoff/audit-r10-roster at 2124781cf86064c9bba6639755f73d60b5d54627
+R10-HEAT-METER carry:
+ - Tests owed: a synthetic plant with a known COP gives an exact fold; a null with heat equal to COP times electric reproduces the model; a planted reset is refused; a mixed-mode interval splits by time share.
+ - Adding the meter re-anchors the learner scales through R10-RATIO-ANCHOR's mechanism.
+ - Add the new key's max age through R10-INPUT-STALENESS's freshness rule.
+ - R10-COP-GATE runs after you and handles only installs without a heat meter.
+ - Carried from R10-SAV-REASONS round-2 review (2026-10-21), non-blocking but real: the attribution rule hands an idle channel's draw to the channel the plan was running. Exhibit measured at the SAV head: plan runs space at 1.0 kW and idles DHW at 0.0; the meter reads a whole-unit 3.0 kW, so `dhw_share
+ - Design step (owner ruling 2026-10-21): this group gets a pipelined design and design review before its fixer: the designer starts when the group's last predecessor dispatches, the design reviewer approves at the design's head, and the fixer dispatches only after 'Design review: approve'; the approve
+ - After R10-LIVESTATE, FlowBias sets its heat output through observe_temps' keyword argument, so observe_water writes no field and read_heat_output_kw's caller changes. Re-read flow_meter.py and flow_lift.py at your merge base before citing that call site. Source: design/r10-livestate note, item ls-03
+ - From R10-INPUT-STALENESS (#2683, head 07b83e9b2, Closes #2234; finding-propagation.md), superseding this group's older carry "Add the new key's max age through R10-INPUT-STALENESS's freshness rule". Constraint: a new key added to INPUT_MAX_AGE_MINUTES in custom_components/heatpump_optimizer/const.py
+ - From R10-THERMAL-POWER-OPTION (#2753; finding-propagation.md), superseding this brief's opening premise. After #2753 main HAS a delivered-heat input: `CONF_THERMAL_POWER_ENTITY` (`heat_pump_thermal_power_entity`, kW), probed as `thermal_model.probe_install(...).measured_heat`. `flow_meter.read_heat_
+brief mentions HEAT_LOSS_BASES: False ; mentions the control check: False

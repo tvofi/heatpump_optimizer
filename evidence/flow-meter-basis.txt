@@ -1,0 +1,8 @@
+probe: dev/audit/harnesses/r10_ratio_anchor.py at head plus a flow_add arm (ev/flow_probe.py), run from the merged tree's dev/audit/harnesses/
+RESULT flow_add.probe measured_power=False frequency=False basis_before=commanded basis_after=commanded
+RESULT flow_add.scale=1.5670 ratio=1.9220 samples=310/147
+RESULT meter_add.scale=1.0000 ratio=1.0000 samples=0/0
+-- null --scale 1.0 --ratio 1.0
+RESULT flow_add.probe measured_power=False frequency=False basis_before=commanded basis_after=commanded
+RESULT flow_add.scale=1.0000 ratio=1.0000 samples=310/147
+RESULT meter_add.scale=1.0000 ratio=1.0000 samples=0/0
