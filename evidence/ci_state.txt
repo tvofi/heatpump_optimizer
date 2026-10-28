@@ -1,0 +1,5 @@
+CI on head 0303eae447bf7a12fc52ef03d66df50cb573e4f3, read from the commit's check-runs API at 2026-10-25T01:07:32Z: 42 check runs.
+Every completed run is success, skipped or neutral; none is red.
+tests / mutation: completed success (job 121023048704; log summary in ci_mutation_lane.txt).
+pr-contract / pr-contract: job 121035984967, started 01:06:33Z, completed 01:07:15Z, success; red-history line: "17 commit(s) between origin/main and this head, every failure conclusion across them: none".
+Still running at that read: `gate` (queued after pr-contract) and `prelude` of run 40144548358 ("CI edit pr=2753"), whose step "Derive kind, PR, base, scope and legs" had been in_progress since 23:53:52Z.

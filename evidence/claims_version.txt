@@ -1,0 +1,26 @@
+MB c6ef25a6534a612a1cdde1ebb9285e422f609a5a
+VERSION=7.0.4
+11:#   1. The `claims-for:` line below is machine-read and MUST equal the
+35:# `claims-for:` stamp below.
+57:# claims-for: 7.0.4
+diff --git a/tests/golden/claimed_drift.txt b/tests/golden/claimed_drift.txt
+index 0ba3d3159..4bc004433 100644
+--- a/tests/golden/claimed_drift.txt
++++ b/tests/golden/claimed_drift.txt
+@@ -719,3 +719,4 @@ coord_two_zone  # R10-SCORES: envelope 58.3 -> null (learner unconverged), reaso
+ # plan can land in another basin: valve_storage_low_target does, at a lower
+ # plan cost here (predicted_cost 61.91 -> 61.05). The suspended fixtures'
+ # plan leaves are their own machine-sensitive ones. No coord_* capture moves.
++config_flow # R10 thermal power option (#1955 fold e): the heat_pump_thermal_power_entity field is published on the meters group; keys added, no value moved
+--- coord claims at main vs head
+COORD-CLAIMS-SAME
+ tests/golden/claimed_drift.txt |  1 +
+ tests/golden/config_flow.json  | 17 +++++++++++++++++
+ 2 files changed, 18 insertions(+)
+--- roles diff
+(end roles diff)
+MERGED-TREE COORD CLAIMS = origin/main 5c0ee1093 (5 lines)
+57:# claims-for: 7.0.4
+7.0.4
+--- head merge of main c6ef25a: claim lines in main not in head
+(end)
