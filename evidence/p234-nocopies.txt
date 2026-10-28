@@ -1,0 +1,7 @@
+== /Library/Frameworks/Python.framework/Versions/3.11/bin/python3
+                                             ^^^^^^
+SyntaxError: f-string: f-string: expecting '}'
+rc=1
+== /Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3
+closure: no test file defines a symbol production also defines
+rc=0
