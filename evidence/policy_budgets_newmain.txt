@@ -1,0 +1,2 @@
+CLAUDE.md                                        208  221     3515  3590   yes
+corpus:        ~62837 tokens, cap 62892 +band 500 = 63392

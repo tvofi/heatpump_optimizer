@@ -1,0 +1,6 @@
+GATE R10-ARCH-DOCS[5] refused dev/programme/triage/s4-batch1.md#P5 is not an ACCEPT ruling (no such entry)
+GATE R10-FLOW-BODY-PATCH[5] passes
+GATE R10-FLOW-JIDOKA[3] passes
+GATE R10-FLY-ORPHANS-REWRITTEN[0] passes
+GATE R10-TRAIN-OVERLAP-GRADE[2] passes
+replay: 447 carries, 5 proposal-sourced, 1 refused
