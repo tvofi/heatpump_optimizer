@@ -7223,12 +7223,13 @@
    "architect_note": "",
    "brief": "bus.sh orphans treats a handoff whose patch is already on main (git apply --reverse --check passes on origin/main, forward apply fails) as landed-rewritten/superseded, not stranded. bus.sh content_superseded's M arm requires a byte-identical blob and misses a file that moved on. Evidence: r10-earlycutoff-coverage listed 121.8 h stranded though #2397 merged it (P14). Fold: cloud_relay.sh classifies handoff-no-pr from its own rules; it uses bus.sh orphans' classifier instead (32 of 37 handoff-no-pr refs were noise: 20 body duplicates, 12 already in main); evidence 5 merged handoffs (PRs 2513/2465/2485/2519/2525) reported OWED until archived 22:33.",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r10-fly-orphans-rewritten",
     "commit": null,
     "last_step": null,
     "next_step": "dispatch a fixer (fly-in, lane F)",
-    "note": "Fly-in registered by the orchestrator (session s4) under mandate 6319294694; pack ORCHESTRATOR-PROMPT.md revision 19 names the spec."
+    "note": "Fly-in registered by the orchestrator (session s4) under mandate 6319294694; pack ORCHESTRATOR-PROMPT.md revision 19 names the spec.",
+    "pr": 2920
    }
   },
   {
@@ -8733,7 +8734,8 @@
     "From #2632 (R10-LOOP-CPU), run 39874068348 (job 120155413953), head ab6216cee6b6: fast (3.14) failed on tests/entities.py with 1 of 2401 checks failed, and coverage-ratchet failed after it (package coverage 85.89 % against 96.0 %, 45 modules below the 95.0 % floor), while the sibling run 39874062299 on the same head passed both. Diffing the two logs' FAIL lines, the one extra failure in the red run is the gate-lease check \"concurrency control: two waiters released in one poll, exactly one holds the slot\" ([queued=True overlaps=1 order=['b', 'a']]); the other FAIL lines (hb:positive_control, a8:register_once) differ only in measured figures and are planted controls. The check is timing-dependent under runner load, and this diff does not touch gate_lock or the entities check. Make the check deterministic (wait on a condition, never a fixed window), then re-measure the pair of runs.",
     "From #2632 (R10-LOOP-CPU) round 3, correcting the carry above: coverage-ratchet's red in run 39874068348 (package 85.89 % against 96.0 %, 45 modules below 95.0 %) was neither the entities flake nor a flake. It was #2632's own defect, fixed in that PR: tests/features.py left 740 live process-worker children at its exit, and their coverage data files landed after the script's own process exited. tools/coverage/coverage_tree.sh's `measure()` checks `ls \"$WORK/data/$s\"/.coverage.*` the moment `tests/$s.py` returns, so it recorded `features.nodata` with no error, and the ratchet read a package-wide drop. A local run at ab6216ce reproduced the red: `features.nodata` and 85.88 % (18987/22108). A second run printed \"could not combine tests/features.py's data\" instead. The control at fef4a135 read 98.66 % (21801/22097). The seam left here is the instrument's: any measured script whose descendants outlive it loses its whole measurement silently. Make `coverage_tree.sh` refuse a measured script that exited 0 and left no data, or wait for the script's process group before the check, so a red names the script rather than 45 modules. Plant a script that leaves one child writing coverage after its exit; it must read red. Files: tools/coverage/coverage_tree.sh. Re-measure at your merge base.",
     "From #2632 review (item 325975e1): under HASTUB_TZ=Europe/Stockholm, 4 features.py checks fail at base a6620c30 and at the head alike: the house-meter preference check (new since round 1), the naive/aware timestamp check, and the R9-F1.1 N-shared-config pair.",
-    "gate-scoping: cost: in this cloud seat `tests/entities.py` reads `2 of 2449 ENTITY CHECKS FAILED` (`gate-sweep.yml` U0c and `graders-head-copy`'s delivery_status case) identically at the merge base `df478d40b`, so a local scoped gate is red for a reason no diff here reaches. Carry: R10-FLY-SUITE-ENV-FLAKES"
+    "gate-scoping: cost: in this cloud seat `tests/entities.py` reads `2 of 2449 ENTITY CHECKS FAILED` (`gate-sweep.yml` U0c and `graders-head-copy`'s delivery_status case) identically at the merge base `df478d40b`, so a local scoped gate is red for a reason no diff here reaches. Carry: R10-FLY-SUITE-ENV-FLAKES",
+    "`tests/entities.py`'s py-spy stub sizes its call log with `case $(wc -l < calls) in 1)`, and BSD `wc -l` reading stdin pads the count to eight columns, so on macOS the `1)` arm never matches and four `hb:positive_control` checks read red. Control: `printf 'x\\n' | wc -l` on this host prints ` 1`; the same four checks read red at merge base `6fe5170cd` in the round-1 session's baseline log, so the branch under review is not the cause. Precondition for any fix: compare a trimmed count (`tr -d ' '`) so GNU and BSD agree, and keep a planted-defect control that still reads red, so the check is not merely silenced. Re-measure at your own merge base. `tests/entities.py` is outside this group's seam; the group that owns it is open. Carry: R10-FLY-SUITE-ENV-FLAKES"
    ],
    "model": {
     "fixer": "sonnet",
@@ -10525,9 +10527,9 @@
     "From R10-DIAG-REDACT (#2824): issue 2814 stays open on three parts outside that pull request's carries 0-2 -- re-basing input_ages_minutes to the export clock (the payload carries no publish instant to re-base from), judging plan_stale at publish, and a run time on the stored self-test results, which needs a field in the collection's store document."
    ],
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-diag-ages",
-    "commit": "ec2384f70c89db880b6eb7d84b96550b3d205300",
+    "commit": "beb570c817c4efcae0d5f6f4bba52f3383baf8db",
     "last_step": "Handoff pushed at ec2384f70: the three #2814 residues (input ages re-based from input_ages_at to the export; plan_stale re-judged at the export with plan_stale_limit_minutes; self_tests_at stored with the results and stated in the manifest), the structure re-record (class_excess_loc 18079->18078, max_class_loc 8236->8235, no raise) and 107 lines of failing-first checks in tests/debug_collect.py (144 checks). Scoped gate MODE: SCOPED -- 27 script(s) run, 6 scoped out; 5 red scripts, all reproduced at merge base 6fe5170cd in the same environment (card V8 OOM, strict golden, entities BSD wc -l padding, optimality closed claim, the stress shoulder measurement); golden in drift mode rc 0. prepr PRE-PR clean, 0 refusals.",
     "next_step": "Review owed at the handoff tip (fix-review from a detached worktree, the finder harness). Body on handoff-body/r10-diag-ages; open the PR after the verdict. One forward-carry to R10-FLY-SUITE-ENV-FLAKES (the entities py-spy stub BSD wc -l padding).",
     "note": "wired by the roster seat 2026-10-26 under the owner's completion rule (tvofi 20:20Z)",
