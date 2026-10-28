@@ -1,38 +1,24 @@
-Fix review: blocked 3d8f7c37815f78f5eee3718848bbd1b47057d786 carry-missing: six carries this batch appends land on groups the same batch leaves done -- P227 R10-FLY-OPENPR-ATOMIC, P228 R10-FLOW-MAIN-GATE, P229 R10-ORCH-REVIEW-PACKET, P231 R10-TRAIN-OVERLAP-GRADE, P234 R10-PREPR-CAP were reopened to the derivable stage `fixing` and roster_sync 8c57b43dd re-derived all five to `done` from their old merged PRs; V149's RCA carry on R10-FLOW-BOARD was set done by roster_sync d9f81f5c5 one commit after it landed
+Fix review: merge 1d0d17d78cc7bb20bd40c143c6831dede52f8693
 
-bus-nonce: 5c813002eb52bd6bd3f0e9edc8eede3a
+bus-nonce: a4f814db6b343db6190c69114f88dd3d
 reviewer: local-reviewer-s10
-round: 1
-measured: 3d8f7c37815f78f5eee3718848bbd1b47057d786 (detached worktree; head re-read before post, unchanged); base origin/main eab04d0eb
+round: 2 (round 1 blocked carry-missing at 3d8f7c378)
+measured: 1d0d17d78cc7bb20bd40c143c6831dede52f8693 (detached worktree); base origin/main eab04d0eb. Delta over round 1: six roster_edit set-stage ops 7c4acca07..86e101084 plus merge 1d0d17d78; 6 lines in the roster, each "done" -> "carries-open" (ev/delta.txt).
 
-## Blocking: carries stranded on done groups
+## Round-1 block: resolved
+R10-FLY-OPENPR-ATOMIC, R10-FLOW-MAIN-GATE, R10-ORCH-REVIEW-PACKET, R10-TRAIN-OVERLAP-GRADE, R10-PREPR-CAP and R10-FLOW-BOARD read `carries-open` at the head, a stage roster_sync.py lists in PROTECTED_STAGES (self-test "a carries-open group with a merged PR is never overwritten"), so the next sync cannot re-derive them to done. The ACCEPT carries P227/P228/P229/P231/P234 and FLOW-BOARD's root-cause carry now sit on live groups.
 
-`ev/trace.txt` (python3 ev/trace.py, first-parent eab04d0eb..69b1ac245) shows the sequence for each:
-set-stage <G> fixing -> append-carry <G> -> roster_sync 8c57b43dd sets <G> done (resume.pr is the old merged PR).
-The triage rulings route each as "a carry of <G> (resume.stage done ...) ... The group is reopened first (the P196 route)"
-(s6-batch45.md P227/P228/P229/P231, s6-batch46.md P234 on main). The net at the head is the five groups done with the new ACCEPT carry on them,
-so no fixer is dispatched for any: the reopen the ruling required is undone in the same batch. The FLOW-BOARD carry
-(root-cause owed for #2883's 2nd red check) is stranded the same way (6f074ab57 append, d9f81f5c5 done).
-`tools/audit/seat/roster_sync.py` protects `carries-open` (PROTECTED_STAGES, self-test :999-1010) but derives `fixing`, so the op that survives a sync is
-`set-stage <G> carries-open` -- the shape this same batch uses correctly for R10-ORCH-ROSTER-SCHEMA (728e1d80c).
-Remedy: six roster_edit set-stage ops to `carries-open` (or a fresh stage with a non-merged resume.pr) on R10-FLY-OPENPR-ATOMIC, R10-FLOW-MAIN-GATE,
-R10-ORCH-REVIEW-PACKET, R10-TRAIN-OVERLAP-GRADE, R10-PREPR-CAP, R10-FLOW-BOARD; re-lint; re-request review.
-This is the stranding class R10-ORCH-ROSTER-SCHEMA's new carry (item 3: roster_sync never emits carries-open) describes; no CI check catches it today.
-
-## Checks that pass
-
-- brief_lint at the head (head already merges main eab04d0eb; `git merge-tree --write-tree origin/main HEAD` rc 0, tree 0b5cafa80): rc 0, `TOTAL: 0 error(s) across 1 file(s)`, no error lines (ev/brief_lint.txt).
-- Every done group's resume.commit is an ancestor of origin/main: 144 done groups, 0 NOT-ON-MAIN (ev/done_check.txt; 11 done groups without a commit are unchanged from main). The 8 resume.pr values this batch writes (2909 2883 2853 2882 2894 2876 2905 2900) are MERGED with mergeCommit equal to resume.commit (ev/prs.txt); R10-FLOW-ROSTER-FREEZE's 71fe1f7fc is #2903's merge.
-- Proposal carries cite ACCEPT rulings on main: P223 (s6-batch44), P227 P228 P229 P231 (s6-batch45), P233 P234 (s6-batch46), P236 (s6-batch48) -- each "Verdict: ACCEPT narrowed" on origin/main (ev/carry_triage.txt).
-  Not on main: R10-FLOW-BOARD's V149 carry cites "ruled DEFER to this route in s6-batch47"; s6-batch47.md exists only on open PR #2906 (head verdict line: DEFER, owned by the red-check root-cause route on #2883). It is a DEFER, not an ACCEPT, and unmerged; batches 49-51 none cited here.
-- Two live destinations: no issue gains a second live group from this diff except umbrella #2505 (adds R10-ORCH-ROSTER-SCHEMA by its reopen; #2505 already spans 5 live groups on main); #2389, #2428, #2715 each lose live groups (ev/dup.txt vs ev/dup_main.txt). #2895 and #2907 have one group each.
-  Cross-PR hazard, not this PR's to fix: #2896 at its head 73b1b4048 still adds dev/programme/carries/carry-2733.json with the two items this batch moves into R10-ORCH-ROSTER-SCHEMA; if #2896 merges without dropping it, #2733's two items have two destinations. #2896's reviewer owns that.
-- R10-FRICTION-FIXER-MD and R10-FRICTION-CLAIM-FALSE briefs resolve: dev/governance/roles/fixer.md, dev/audit/rca/, tools/policy/policy_lint.mjs, tools/policy/rules_sync.mjs, dev/governance/config/policy_budgets.json, .claude/hooks/stop-selfcheck.sh (which does name tools/audit/briefs/fixer.md once), tools/ci/gate.py all exist; #2895 and #2907 OPEN with the stated titles.
-- Body figure `212 215 3 0 25` re-derived against origin/main at the head (ev/groupdiff.txt).
+## Re-run at the head
+- merge-tree origin/main HEAD: rc 0, tree 72e4c9429 (head already contains main). brief_lint: rc 0, `TOTAL: 0 error(s) across 1 file(s)`, no error lines.
+- Done commits on main: 138 done groups (144 less the six), 0 NOT-ON-MAIN under merge-base --is-ancestor (ev/done_check.txt).
+- Triage citations unchanged from round 1 (ev/carry_triage.txt identical in citations): P223, P227, P228, P229, P231, P233, P234, P236 are "Verdict: ACCEPT narrowed" on origin/main.
+- V149 (FLOW-BOARD): not blocking. Its ruling is a DEFER in s6-batch47.md, on open PR #2906 only, re-read at #2906's current head fb2f3de86: "DEFER -- owned by the red-check root-cause route on #2883 (R10-FLOW-BOARD ...)". The carry implements nothing from the proposal: it records the root cause #2883's second red check already owes under defect-root-cause.md's red-check trigger, which binds with or without a triage ruling, and the DEFER routes to exactly this group. Residual: the citation does not resolve on main until #2906 merges; if #2906 is re-cut to another route, this carry's "Source:" line must follow.
+- Two live destinations: no carry has two destinations. Issue lists: the reopen puts #2717 (R10-ORCH-REVIEW-PACKET + R10-POLICY-ROLE-PACK) and #2719 (R10-FLY-OPENPR-ATOMIC + R10-FLOW-POSTMERGE) on two live groups each, as #2715 is on main. Each is a multi-arm issue whose groups own distinct arms (review packet vs per-role pack; open_pr atomicity vs post-merge bookkeeping), neither group lists either in `fixes`, and the new carries route to one group apiece -- so not one finding routed twice. #2505 stays an umbrella. (ev/dup.txt)
+- Body: names head 1d0d17d78 and code head 86e101084; figures 212 215 3 0 25, 201/43 numstat, blob d1a915b7d, merge-tree fbfe4ade7 for eab04d0eb 86e101084 re-derive. Six-done/seven-carries-open stage account matches ev/done_check.txt.
+- CI at the head: 6 queued, 1 skipped, none red (ev/checkruns.txt). This verdict carries the content; the required gate still has to go green before merge.
 
 ## Advisories
-
-- R10-TRIAGE-S6 is set done (05c60458a) while its own carry says resume.pr tracks the currently open batch PR; #2906 (batch 47) is open now, so it is unwired again -- the gap the group was registered to close. Its next_step text ("review the re-cut head of #2900") is stale.
-- Draft: the PR is a draft (isDraft true); it is not ready -- the six set-stage ops above are owed first.
-- CI at the head: prelude in_progress, 2 success, 1 skipped (ev/checkruns.txt); no red to answer. Not a merge verdict, so the CI wait is moot.
-- No mutation proof / finder's harness applies (roster state only); VERSION, manifest and notes heading untouched (diff touches the roster and delivery/2914.md only).
+- The body's Head section has a second paragraph naming `4fd9402678030982d59cd708fe9088a2ee44155d` as a merge into the previous head; that commit exists but is not an ancestor of 1d0d17d78cc7bb20bd40c143c6831dede52f8693 (merge-base --is-ancestor rc 1). It reads as a leftover from an update attempt that was not pushed (the orchestrator's update script appends one per attempt). Not load-bearing -- the head and every figure re-derive -- but the line is false; drop it on the next body re-take. Instrument note for whoever owns the update script, not this PR.
+- Cross-PR, #2896's reviewer: #2896 (head 73b1b4048) still adds carry-2733.json with the two items this batch moved into R10-ORCH-ROSTER-SCHEMA.
+- R10-TRIAGE-S6 is done while #2906 is open, so that batch PR has no live group; its resume.pr / next_step are stale.
+- Draft: content is ready; mark ready once the gate is green.

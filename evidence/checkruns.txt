@@ -1,4 +1,7 @@
-   2 refresh completed success
-   2 prelude in_progress null
-   2 cancel-superseded completed success
-   1 arm completed skipped
+arm completed skipped
+cancel-superseded queued null
+cancel-superseded queued null
+prelude queued null
+prelude queued null
+refresh queued null
+refresh queued null
