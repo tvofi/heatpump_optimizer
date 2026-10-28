@@ -10345,7 +10345,9 @@
     ".github/workflows/nightly.yml",
     "tests/entities.py"
    ],
-   "carry": [],
+   "carry": [
+    "From triage P241 (V155, the owner's words \"record PRs should not need a review at all\", 2026-10-28): no record/autofix pull request is ever dispatched a fix reviewer. POLICY-ADJACENT: this carry edits dev/governance/roles/standing-dispatch.md, so this group's PR merges only on tvofi's approving review (mandate 6329234399 covers it). Change: tools/audit/seat/ledger.py review_owed (505-522) skips a PR whose headRefName equals record_row.RECORD_BRANCH (\"record/autofix\", record_row.py:619); pass the constant in from the tick (which already fetches headRefName), never import record_row into ledger.py. standing-dispatch.md gains one sentence: a record/autofix PR is never dispatched a reviewer; its oracle is record_row.py --plan equality, tests/delivery_status.py --require-rows and --automerge-check --require-green, and the approver App's review is the approval the ruleset requires (pay zero-headroom caps by cutting text). NOT changed: tools/pr/app_approve.sh and merge_train.py -- sweep_bots (1078-1114) already merges the record PR on the guard alone and never runs app_approve.sh (self-test 3288-3296, directive [7]); the App approval stays (main-protect-checks requires one approving review: #2893 refused with zero reviews, 2026-10-27 22:19Z). Controls: a record/autofix PR at an unverdicted head prints no REVIEW OWED; null: a fix/ PR in the same state prints it; mutant dropping the skip fails. Files added to this group: tools/audit/seat/ledger.py, dev/governance/roles/standing-dispatch.md (ledger.py is an R10-ORCH-BEATD hot file; this group lands first). Basis: #2885 got an opus review (1 of 9 record PRs since 10-25); 101 of 102 delivery-only merges since 10-20 were record/autofix, so BEATD's dispatch-owed job would otherwise mint ~12 reviewers a day. triage: dev/programme/triage/s6-batch49.md#P241"
+   ],
    "resume": {
     "stage": "fixing",
     "branch": null,
