@@ -17,7 +17,7 @@ Policy status: `printf '%s\n' tools/audit/seat/sweep_template.md tools/audit/sea
 
 ## Head
 
-Measured at `d8b6a3a8df343a0c4dd512a340ad3594e8e52012`, cut from origin/main `b6f6ceca4f0323b24171c45a2a2372ba2e2cbaaa` (the base given). The head has two commits: the change itself, then `tests/closures.json` from `python3 tools/pr/ci_predict.py --apply-inert`. That repaired the one red prepr step 6d predicted on the first commit: `INERT READS tests/entities.py: tools/audit/seat/sweep_render.py`. The scoped gate says `MODE: SCOPED -- 1 script(s) run, 32 scoped out` and names `tests/entities.py`, from `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)`.
+Measured at `fe2aa944253780755a3c72ab625fbd72aec1429c`, cut from origin/main `b6f6ceca4f0323b24171c45a2a2372ba2e2cbaaa` (the base given). The head has two commits: the change itself, then `tests/closures.json` from `python3 tools/pr/ci_predict.py --apply-inert`. That repaired the one red prepr step 6d predicted on the first commit: `INERT READS tests/entities.py: tools/audit/seat/sweep_render.py`. The scoped gate says `MODE: SCOPED -- 1 script(s) run, 32 scoped out` and names `tests/entities.py`, from `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)`.
 
 Environment: `tools/audit/seat/seat_venv.sh` failed with rc 2 in this container (`No download found for request: cpython-3.14.7-linux-x86_64-gnu`), and the ambient 3.11 cannot parse `tests/entities.py`. I therefore ran the scoped script in a scratch 3.13 venv built from `tests/requirements-ci.txt`. CI's 3.14 runner is still the authority.
 
@@ -48,7 +48,7 @@ The failing test came first. A new self-test arm, `the tracked template's sweep 
 | scope | `tests/closure.py select` (above) | `MODE: SCOPED -- 1 script(s) run` (`tests/entities.py`) |
 | scoped script | `PYTHONPATH=tests/hastub <py3.13 venv from tests/requirements-ci.txt> tests/entities.py` | `ALL 2467 ENTITY CHECKS PASSED`, rc 0 |
 | prepr, first commit | `PREPR_SKIP_CLOSURES=1 tools/pr/prepr.sh` | rc 1: `REFUSE ci predict` (1 predicted closures red), repaired by `--apply-inert` |
-| prepr, head | same | rc 0, `PRE-PR: d8b6a3a8df343a0c4dd512a340ad3594e8e52012 000000000000000000000` |
+| prepr, head | same | rc 0, `PRE-PR: fe2aa944253780755a3c72ab625fbd72aec1429c 000000000000000000000` |
 
 ## Red checks
 
