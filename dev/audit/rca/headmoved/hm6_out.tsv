@@ -10,14 +10,14 @@
 #2365	2026-10-18T14:28	code	S	carry-no	main=no	fixed=no	
 #2379	2026-10-18T20:05	code	G	carry-no	main=no	fixed=no	
 #2401	2026-10-18T20:45	main	M	P11	main=yes	fixed=yes	
-#2411	2026-10-19T03:05	code	S	carry-no	main=no	fixed=no	
+#2411	2026-10-19T03:05	code	G	carry-no	main=no	fixed=no	
 #2408	2026-10-19T04:59	code	M	carry-no	main=no	fixed=yes	FLIP
 #2399	2026-10-19T05:13	main	M	overlap	main=yes	fixed=yes	
 #2368	2026-10-19T08:24	code	G	carry-no	main=no	fixed=yes	FLIP
 #2415	2026-10-19T08:35	code	M	carry-no	main=no	fixed=yes	FLIP
 #2463	2026-10-20T01:21	bot	M	overlap	main=yes	fixed=yes	
 #2463	2026-10-20T02:29	main	M	P11	main=yes	fixed=yes	
-#2465	2026-10-20T14:18	code	S	carry-no	main=no	fixed=no	
+#2465	2026-10-20T14:18	code	G	carry-no	main=no	fixed=no	
 #2525	2026-10-21T14:11	main	M	P11	main=yes	fixed=yes	
 #2576	2026-10-21T19:56	code	G	carry-no	main=no	fixed=no	
 #2569	2026-10-21T20:18	code	S	carry-no	main=no	fixed=no	
@@ -53,7 +53,7 @@
 #2753	2026-10-25T03:55	bot	M	overlap	main=yes	fixed=yes	
 #2762	2026-10-25T06:15	code	G	carry-no	main=no	fixed=no	
 #2762	2026-10-25T09:03	main	M	P11	main=yes	fixed=yes	
-#2745	2026-10-25T09:08	code	S	carry-no	main=no	fixed=no	
+#2745	2026-10-25T09:08	code	G	carry-no	main=no	fixed=no	
 #2775	2026-10-25T11:37	bot	M	overlap	main=yes	fixed=yes	
 #2753	2026-10-25T14:31	bot	M	overlap	main=yes	fixed=yes	
 #2745	2026-10-25T15:45	main	M	overlap	main=yes	fixed=yes	
@@ -62,8 +62,8 @@
 #2753	2026-10-26T01:36	bot	G	carry-no	main=no	fixed=no	
 #2824	2026-10-26T03:10	code	S	carry-no	main=no	fixed=no	
 #2844	2026-10-26T03:47	code	G	carry-no	main=no	fixed=no	
-#2819	2026-10-26T04:02	code	S	carry-no	main=no	fixed=yes	FLIP
-#2834	2026-10-26T09:07	code	S	carry-no	main=no	fixed=no	
+#2819	2026-10-26T04:02	code	G	carry-no	main=no	fixed=yes	FLIP
+#2834	2026-10-26T09:07	code	G	carry-no	main=no	fixed=no	
 #2834	2026-10-26T16:57	bot	M	overlap	main=yes	fixed=yes	
 #2745	2026-10-26T17:18	code	G	carry-no	main=no	fixed=yes	FLIP
 #2745	2026-10-26T20:38	code	S	carry-no	main=no	fixed=no	

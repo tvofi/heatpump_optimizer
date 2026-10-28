@@ -29,5 +29,5 @@ for l in open('hm2_out.tsv'):
         if files and all(re.match(rf'dev/programme/delivery/{pr[1:]}\.md$',k) for k in files): same='row-only'
     else: files=[]
     c[(kind,at,same,side)]+=1
-    print('\t'.join([pr,t1,pair,kind,at,same,side,','.join(files)[:160]]))
+    print('\t'.join([pr,t1,pair,kind,at,same,side,','.join(files)]))
 for k in sorted(c): print('SUM',k,c[k])

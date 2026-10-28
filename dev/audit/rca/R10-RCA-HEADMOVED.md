@@ -83,15 +83,21 @@ queue time.
 | 2 handed-off main merge | 6 | 2 | 0 | 48.5 | 362 | a seat merged main into the head and handed that off as a code head. `update_pr.sh:62` merged it, then `:64` merged main again. The own patch is unchanged, but `carry()` refused: "merges `<code head>`, which is not on main" |
 | 2b context only | 4 | 1 | 1 | 54 | 241 | own patch equal at `-U0`, refused: context lines differ at `-U3` for #2547 (`INSTRUMENTS.md`), #2636 (`.mjs`) and #2753 (`.py`); #2609 is one own commit |
 | 3 overlap | 13 | 4 | 1 | 51 | 912 | `CARRY: yes`, but main's move touched a file in the branch's own diff, so §11 sends it to the reviewer as a resolution delta |
-| 4 registry | 23 | 4 | 1 | 11 | 737 | the own patch moved only in shared registries: `tests/features.py`, `closures.json`, `structure_budgets.json`, claim files, `mutation_ledger/`, roster JSON, seat-mutant harnesses |
-| 5 substantive | 23 | 9 | 8 | 61 | 1585 | the own patch moved in production, tool or policy code. This is real rework |
+| 4 registry | 28 | 7 | 3 | 32 | 1122 | the own patch moved only in shared registries: `tests/features.py`, `closures.json`, `structure_budgets.json`, claim files, `mutation_ledger/`, roster JSON, seat-mutant harnesses |
+| 5 substantive | 18 | 6 | 6 | 59.5 | 1200 | the own patch moved in production, tool or policy code. This is real rework |
 
 Two notes on the blocked column:
 
 - In buckets 1, 2 and 2b, re-review yield was **1 blocked in 16**. That one
   (#2753 at `45d08312`) was a body-figure defect, not a code defect.
 - In bucket 3 it was 1 in 13 (#2753, a red nightly the body did not name). In
-  bucket 5 it was 8 in 23.
+  bucket 5 it was 6 in 18, and in bucket 4 it was 3 in 28 (#2411,
+  #2465, #2576).
+- Buckets are cut on the full list of files whose own patch differs.
+  The first cut of `hm4.py` read `hm3.py`'s file column, which truncated the
+  list at 160 characters, and sent every truncated list to bucket 5. That moved
+  5 registry-only entries (#2411, #2465, #2745, #2819, #2834) into the wrong
+  bucket. The fix review found it (fix review: blocked, `figure-wrong`).
 
 A move limited to the PR's own `dev/programme/delivery/<N>.md` row occurs **zero**
 times in the 75.
@@ -101,7 +107,7 @@ times in the 75.
 Five causes sit under the count. Each owns a bucket.
 
 1. **Bucket 5, and most of bucket 4: the process working.** `fix-review.md` step
-   12 owes a reviewer turn for a head that is not a carry. In 8 of bucket 5's 23
+   12 owes a reviewer turn for a head that is not a carry. In 6 of bucket 5's 18
    entries, that turn found a defect.
 2. **Bucket 2: `carry()` reads one hop of history.**
    - `tools/pr/app_approve.sh` refuses any merge whose second parent is not on
@@ -114,7 +120,7 @@ Five causes sit under the count. Each owns a bucket.
      cannot see through it.
    - The fixed carry turns 5 of bucket 2's 6 entries to `CARRY: yes`. The
      sixth, #2645, also differs in `INSTRUMENTS.md` context lines. It turns 3
-     more entries in buckets 4 and 5 (#2368, #2745, #2819) to `yes`. There,
+     more entries in bucket 4 (#2368, #2745, #2819) to `yes`. There,
      the own patch moved only in files the carry already excludes:
      merge-driver files and the bot's ledger rows.
 3. **Bucket 3: §11's file-disjointness clause.** `carry()` already proves two
@@ -168,18 +174,20 @@ over the whole head.
 - **Standing cost.** It runs only on the path that refused before, and costs a
   few `git` calls.
   - `app_approve.sh --self-test`, 3 runs each, from `tools/pr/`: main took
-    38.3, 37.7 and 37.1 s for 254 checks; the fix took 38.3, 37.5 and 37.1 s
-    for 258 checks.
+    38.3, 37.7 and 37.1 s; the fix took 38.3, 37.5 and 37.1 s.
+  - The check totals depend on the environment: the seat that wrote this
+    record counted 254 on main and 258 with the fix, and the fix review counted
+    252 and 256. The delta of +4 (the four added cases) reproduces in both.
   - The difference is within noise. A copy run from outside `tools/pr/` cannot
     find `tests/throwaway_git.sh` and prints 25 failures, so time it in place.
 - **Defect cost and measured frequency.**
   - 8 entries in 554 merges flip from `CARRY: no` to `CARRY: yes` (`hm6_out.tsv`).
   - None of the 8 was blocked by its re-review.
   - Under §11's whole predicate as written, only #2673 skips its reviewer turn
-    outright (lag 48 min). The other 7 still fail the overlap or claim clause.
+    outright (lag 42 min). The other 7 still fail the overlap or claim clause.
   - Even so, the train's carry step (`merge_train.py` step 3) and the reviewer
     now get the true carry answer rather than a refusal about history shape.
-- **Verdict.** It passes: a standing cost of about 0 s against about 48 min of
+- **Verdict.** It passes: a standing cost of about 0 s against about 42 min of
   reviewer time per round. If section 6's owner question is answered yes, it
   reaches 7 more entries.
 
@@ -188,8 +196,14 @@ autofix pin commits.**
 
 - It is already in the tree: `bot_author` and `bot_paths` (`app_approve.sh`
   lines 203-219).
-- 9 of the 10 entries whose delta held a bot commit carried at the time.
-- The tenth (#2772) is an empty delta.
+- 23 of the 75 entries hold a bot commit in the delta. Of those, 10 are
+  bot-only moves (kind `bot` in `hm2_out.tsv`), and 9 of the 10 carried at the
+  time. The tenth is #2753 (2026-10-26T01:36), whose delta was one main merge
+  and one bot commit; it is the bucket 2b context case (`.py` context lines
+  differ at `-U3`), so the bot commit was not what refused it.
+- The other 13 entries hold a code or own commit as well, and all 13 had
+  `carry@t=no`: the bot commit is not the reason they went to review.
+- #2772 is not an instance: its delta is empty.
 - Nothing is left for it to pay for.
 
 **CM-3, owner's decision, not built: drop or narrow §11's file-disjointness
@@ -228,13 +242,14 @@ clause.**
       expecting 1;
     - "a merge of a handed-off head whose own main merge was hand-resolved",
       expecting 1, refused as "not the automatic merge".
-  - With the cases added and main's `carry()`: `app_approve self-test: 258
-    checks, 2 failed`. The #2876
+  - With the cases added and main's `carry()`: `app_approve self-test: 2 failed`
+    (258 checks here, 256 under the fix review; the totals are environment-dependent, the
+    count of failures is not). The #2876
     shape got 1 and wanted 0. The hand-resolved reason was missing: got 0,
     wanted 1.
-- **Fixed:** `258 checks, 0 failed`.
+- **Fixed:** 0 failed.
 - **Mutant: the inner carry's answer ignored** (`e=$(carry ...; true)`). Result:
-  `258 checks, 3 failed`.
+  3 failed.
   - The hand-resolved hop carries.
   - Its reason is missing.
   - The existing `NO CARRY: a merge of a branch that is not main` carries.
@@ -263,7 +278,30 @@ clause.**
 | R10-FLY-ROW-HEAD-CARRY | not started | verdict side: 0 of the 75 are row-only moves. Its CI-result carry is not measured here |
 | R10-FLY-CARRY-DOC-CONTEXT | not started | 2 of the 75 (#2547, #2645), both before the split. It edits `carry()`'s final comparison, a different hunk from CM-1 |
 
-## 8. Which of the two the count changes
+## 8. Reconciliation with triage P242
+
+Triage P242 (`dev/programme/triage/s6-batch49.md` on
+`origin/handoff/triage-s7-batch49`, `40bec0ab6`; not yet on main) filed 8 head
+moves on #2887, #2894 and #2883 and carried them here. This record's harness
+keys on a `merge` verdict followed by a verdict at a different head, and those
+three pull requests have no such entry among the 75. So the 8 moves cost no
+re-verification in this count, and nothing here re-measures them.
+
+- **The bot hold buys nothing.** P242 found that only 3 of the 8 were bot
+  commits, and that the merge-main push and the pin commit both already carry
+  (`bot_author` and `bot_paths`). This record reaches the same result from the
+  other side: CM-2 is refused, because 9 of the 10 bot-only entries carried at
+  the time and the tenth was a context refusal.
+- **Where the cost sits.** In this count it sits in bucket 2 (a seat's own main
+  merge, handed off as a code head), which CM-1 addresses, and in the
+  post-split pushes from the orchestrator account (section 3, cause 5). P242
+  names five seat-side `Merge remote-tracking branch 'origin/main'` merges. The
+  bus harness sees such a merge only when a review was in flight.
+- **Not measured here.** The stranded fixer branch of #2887 is a local-branch
+  cost, not a verdict; no git history in this harness records it, and no owner
+  for it is named in this record.
+
+## 9. Which of the two the count changes
 
 **Neither.** The count is correct under its keying and over the window's
 bodies. CM-1 lowers future bucket-2 entries. CM-3, like R9-RCA-1990's CM-3,

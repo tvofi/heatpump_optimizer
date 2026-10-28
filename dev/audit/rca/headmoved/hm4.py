@@ -17,7 +17,7 @@ for l in open('hm3_out.tsv'):
     if not l.startswith('#'): continue
     pr,t1,pair,kind,at,same,side,files=(l.rstrip('\n').split('\t')+[''])[:8]
     fl=[f for f in files.split(',') if f]
-    b='M' if at=='carry@t=yes' or same in('same','row-only') else ('G' if fl and all(REG.match(f) for f in fl) and len(files)<160 else 'S')
+    b='M' if at=='carry@t=yes' or same in('same','row-only') else ('G' if fl and all(REG.match(f) for f in fl) else 'S')
     h1=pair.split('->')[1]; txt=vt.get(h1,'')
     rc='carry-turn' if re.search(r'\bcarr(y|ied|ies)\b',txt[:1500],re.I) else 'full-turn'
     c[(b,side)]+=1; c[(b,side,rc)]+=1; L[(b,side)]+=lag[pair]
