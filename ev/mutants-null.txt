@@ -1,0 +1,5 @@
+RESULT mutant=null:tools/audit/seat/bus.sh rc=0 fails=0
+RESULT mutant=null:tools/audit/seat/cloud_relay.sh rc=0 fails=0
+RESULT mutant=null:tools/audit/seat/ledger.py rc=0 fails=0
+RESULT mutant=null:tools/audit/seat/orchestrator_tick.py rc=0 fails=0
+rc=0
