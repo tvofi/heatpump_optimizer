@@ -1,0 +1,41 @@
+MISSING  custom_components/heatpump_optimizer/__init__.py:38 `get_type_hints`
+MISSING  custom_components/heatpump_optimizer/__init__.py:50 `get_type_hints`
+MISSING  custom_components/heatpump_optimizer/__init__.py:51 `NameError`
+external custom_components/heatpump_optimizer/away.py:161 `input_boolean.holiday_mode`
+external custom_components/heatpump_optimizer/batchmath.py:21 `PW_BLOCKSIZE`
+external custom_components/heatpump_optimizer/comfort_learning.py:228 `__float__`
+external custom_components/heatpump_optimizer/config_flow.py:1454 `_async_configure`
+external custom_components/heatpump_optimizer/coordinator.py:829 `coordinator_methods`
+external custom_components/heatpump_optimizer/coordinator.py:1435 `homeassistant.util.loop.protect_loop`
+MISSING  custom_components/heatpump_optimizer/coordinator.py:2078 `money_currency`
+external custom_components/heatpump_optimizer/device_prefill.py:102 `sensor.hp_t4`
+external custom_components/heatpump_optimizer/device_prefill.py:112 `fault_description`
+external custom_components/heatpump_optimizer/draw_range.py:92 `dev/audit/harnesses/draw_range_evidence.py`
+external custom_components/heatpump_optimizer/early_cutoff.py:1 `dev/audit/harnesses/early_cutoff_closed_loop.py`
+external custom_components/heatpump_optimizer/inputs.py:536 `price_in_cents`
+MISSING  custom_components/heatpump_optimizer/inputs.py:361 `ATTR_MIN_TEMP`
+MISSING  custom_components/heatpump_optimizer/inputs.py:361 `ATTR_MAX_TEMP`
+external custom_components/heatpump_optimizer/ledger.py:40 `savings_`
+external custom_components/heatpump_optimizer/modbus_prefill.py:1 `tools/gen_gchv_package.py`
+external custom_components/heatpump_optimizer/name_match.py:279 `compressorFrequency`
+external custom_components/heatpump_optimizer/name_match.py:87 `sensor.hp_t4`
+external custom_components/heatpump_optimizer/name_match.py:107 `sensor.hp_t4`
+MISSING  custom_components/heatpump_optimizer/optimizer.py:3522 `manual_plan_released`
+MISSING  custom_components/heatpump_optimizer/plan_step.py:1 `FORECAST_STEP_MINUTES`
+MISSING  custom_components/heatpump_optimizer/price_tiles.py:1 `dev/audit/harnesses/r10_advisor_degree.py`
+external custom_components/heatpump_optimizer/pump_mode.py:1 `current_option`
+MISSING  custom_components/heatpump_optimizer/replay_doc.py:86 `TibberSensorElPrice`
+external custom_components/heatpump_optimizer/sensor.py:315 `has_value`
+external custom_components/heatpump_optimizer/sensor.py:377 `has_value`
+external custom_components/heatpump_optimizer/sensor.py:949 `UPPER_FLOOR_TEMP`
+external custom_components/heatpump_optimizer/sensor.py:949 `sensor.heat_pump_optimizer_upper_floor_temperature`
+external custom_components/heatpump_optimizer/sensor.py:63 `_ecl110_topic`
+external custom_components/heatpump_optimizer/sysid.py:1871 `T_prev`
+external custom_components/heatpump_optimizer/thermal_model.py:3190 `a_ii`
+external custom_components/heatpump_optimizer/thermal_model.py:2503 `MixedHotWater`
+RESULT comment_symbols_untriaged_missing=10 count
+RESULT comment_symbols_missing=35 count
+RESULT modules_scanned=81 count
+RESULT thread_factor=1.000
+RESULT load1=1.09
+RESULT swapins=0
