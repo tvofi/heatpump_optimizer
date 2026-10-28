@@ -2737,22 +2737,19 @@ class ThermalModel:
         humidity: np.ndarray | None = None,
     ) -> np.ndarray:
         """Refresh ``temps[from_step + 1:]`` after the schedule changed there."""
-        schedule = np.asarray(dhw_power_schedule, dtype=float)
+        heat_per_cop = heat_per_cop_kw(self.params, np.asarray(dhw_power_schedule, dtype=float))
         outdoor = np.asarray(outdoor_temps, dtype=float)
         draws = np.asarray(draw_rates, dtype=float)
         temp = float(temps[from_step])
         compute_cop = self.compute_cop_dhw
         simulate_step = self.simulate_dhw_step
-        # The draw's heat per unit COP for the whole refreshed tail at once;
-        # each step's COP (it moves with the tank) multiplies it below.
-        heat_per_cop = heat_per_cop_kw(self.params, schedule[from_step:])
-        for i in range(from_step, schedule.size):
+        for i in range(from_step, heat_per_cop.size):
             cop = compute_cop(
                 outdoor[i], temp, humidity=None if humidity is None else humidity[i]
             )
             temp = simulate_step(
                 dhw_temp=temp,
-                dhw_power_thermal=cop * heat_per_cop[i - from_step],
+                dhw_power_thermal=cop * heat_per_cop[i],
                 hour_of_day=0.0,
                 dt_hours=dt_hours,
                 draw_power=draws[i],
@@ -3602,27 +3599,24 @@ class ThermalModel:
         buffer, wood (None when not modelled), plus refused [B, n].
         """
         p = self.params
-        power_matrix = np.asarray(power_matrix, dtype=float)
-        # The draws' heat per unit COP, once for the whole batch: it depends
-        # on the draw alone, and each sub-step's COP multiplies it below.
-        heat_per_cop = heat_per_cop_kw(p, power_matrix)
+        heat_per_cop = heat_per_cop_kw(p, np.asarray(power_matrix, dtype=float))
         outdoor_temps = weather.outdoor_temps
         wind_speeds = weather.wind_speeds
         precipitation = weather.precipitation
         solar_radiation = weather.solar_radiation
         humidity = weather.humidity
         external_heat_kw = weather.external_heat_kw
-        n_steps = power_matrix.shape[1]
+        n_steps = heat_per_cop.shape[1]
         wind_speeds, precipitation, solar_radiation = weather_or_calm(
             n_steps, wind_speeds, precipitation, solar_radiation
         )
 
-        room = np.zeros((power_matrix.shape[0], n_steps + 1))
+        room = np.zeros((heat_per_cop.shape[0], n_steps + 1))
         slab = np.zeros_like(room)
         upper = np.zeros_like(room)
         lower = np.zeros_like(room)
         buf = np.zeros_like(room)
-        refused = np.zeros((power_matrix.shape[0], n_steps))
+        refused = np.zeros((heat_per_cop.shape[0], n_steps))
         wood = None
         if initial_state.wood_tank_temperature is not None:
             wood = np.zeros_like(room)
@@ -3705,9 +3699,9 @@ class ThermalModel:
                     q_buf_loss = p.buffer_tank_heat_loss_coefficient * (
                         T_buf - TANK_ROOM_AMBIENT_TEMP
                     )
-                    # COP: only the flow-temp correction varies per element;
-                    # the scalar law lives in _batch_cop so this method's
-                    # size stays paid for.
+                    # COP: only the flow-temp correction varies per element
+                    # (the scalar law is _batch_cop's); the draws' heat per
+                    # unit COP was taken once for the whole batch above.
                     cop = self._batch_cop(out_i, hum_i, T_buf, throttled)
                     thermal_power = (
                         cop * heat_per_cop_i + (0.0 if two_tank else ext)
