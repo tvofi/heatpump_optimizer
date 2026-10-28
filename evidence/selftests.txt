@@ -1,5 +1,0 @@
-  ok   flow: a path probe that cannot answer is UNAVAILABLE in the roster walk, never {}
-  ok   flow: null control -- the intact roster commit closes its group
-ok: merge_throughput.py self-test
-roster_lib self-test: 51 checks, 0 failed
-( python3 -I tools/audit/merge_throughput.py --self-test 2>&1 | tail -3;  -I )  6.18s user 6.88s system 73% cpu 17.811 total

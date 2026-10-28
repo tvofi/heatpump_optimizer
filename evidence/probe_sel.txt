@@ -1,0 +1,10 @@
+committed table ['dev/programme/delivery/9999.md'] scoped - 
+committed table ['dev/programme/rosters/wave-r10-groups.json'] scoped - 
+committed table ['dev/programme/HANDOVER.md'] scoped entities.py closure
+with the two entries ['dev/programme/delivery/9999.md'] scoped entities.py inert_reads (dir: dev/programme)
+with the two entries ['dev/programme/rosters/wave-r10-groups.json'] scoped entities.py inert_reads (dir: dev/programme/rosters)
+with the two entries ['dev/programme/HANDOVER.md'] scoped entities.py closure
+dev/programme/delivery/9999.md select: scoped False | affected: scoped False
+dev/programme/rosters/critical-path.json select: scoped True | affected: scoped True
+dev/programme/rosters/wave-r9-groups.json select: scoped True | affected: scoped True
+dev/programme/rosters/wave-r10-groups.json select: scoped False | affected: scoped False
