@@ -1,0 +1,55 @@
+CodeQL	completed	success	2026-10-28T22:59:16Z
+arch-score / arch-score	completed	success	2026-10-28T22:57:20Z
+arch-score / arch-score	completed	success	2026-10-28T23:38:47Z
+arm	completed	skipped	2026-10-28T22:52:40Z
+budget-raise-gate / budget-raise-gate	completed	success	2026-10-28T22:56:12Z
+budget-raise-gate / budget-raise-gate	completed	success	2026-10-28T23:37:19Z
+cancel-superseded	completed	success	2026-10-28T22:55:45Z
+cancel-superseded	completed	success	2026-10-28T22:56:26Z
+codeql	completed	skipped	2026-10-28T23:36:54Z
+codeql / Analyze (actions)	completed	success	2026-10-28T23:00:51Z
+codeql / Analyze (javascript-typescript)	completed	success	2026-10-28T22:59:22Z
+codeql / Analyze (python)	completed	success	2026-10-28T23:34:15Z
+gate	completed	success	2026-10-28T23:40:18Z
+gate	completed	success	2026-10-28T23:40:18Z
+governance	completed	skipped	2026-10-28T23:36:54Z
+governance / delivery-status	completed	success	2026-10-28T22:57:03Z
+governance / delivery-status-publish	completed	skipped	2026-10-28T22:55:44Z
+governance / env-matrix	completed	success	2026-10-28T23:02:48Z
+governance / instrument-self-tests	completed	cancelled	2026-10-28T23:18:38Z
+governance / policy-docs	completed	success	2026-10-28T22:58:09Z
+governance / record	completed	skipped	2026-10-28T22:55:44Z
+governance / wave-script	completed	success	2026-10-28T22:58:03Z
+hassfest	completed	skipped	2026-10-28T23:36:54Z
+hassfest / hassfest	completed	success	2026-10-28T22:57:16Z
+kernel-points	completed	skipped	2026-10-28T22:55:44Z
+kernel-points	completed	skipped	2026-10-28T23:36:54Z
+pr-contract / pr-contract	completed	success	2026-10-28T23:36:13Z
+pr-contract / pr-contract	completed	success	2026-10-28T23:39:44Z
+prelude	completed	success	2026-10-28T22:55:44Z
+prelude	completed	success	2026-10-28T23:36:54Z
+refresh	completed	success	2026-10-28T22:56:04Z
+refresh	completed	success	2026-10-28T22:56:05Z
+tests	completed	skipped	2026-10-28T23:36:54Z
+tests / arch-instrument	completed	success	2026-10-28T23:04:33Z
+tests / briefs	completed	success	2026-10-28T22:56:58Z
+tests / browser	completed	success	2026-10-28T23:05:50Z
+tests / ci-ratchet	completed	skipped	2026-10-28T23:21:42Z
+tests / claims-autofix	completed	skipped	2026-10-28T23:13:18Z
+tests / closure-scope	completed	success	2026-10-28T23:01:14Z
+tests / closures	completed	success	2026-10-28T23:17:51Z
+tests / closures-autofix	completed	skipped	2026-10-28T23:17:51Z
+tests / coverage	completed	success	2026-10-28T23:21:41Z
+tests / coverage-ratchet	completed	success	2026-10-28T23:31:26Z
+tests / fast (3.14)	completed	success	2026-10-28T23:13:17Z
+tests / graders-head-copy	completed	success	2026-10-28T23:34:32Z
+tests / lane-proofs	completed	success	2026-10-28T23:29:45Z
+tests / mutation	completed	success	2026-10-28T23:01:19Z
+tests / mutation-autofix	completed	skipped	2026-10-28T23:01:20Z
+tests / mutation-pins	completed	skipped	2026-10-28T23:01:19Z
+tests / nightly-ha	completed	skipped	2026-10-28T23:01:14Z
+tests / nightly-status	completed	success	2026-10-28T23:00:34Z
+tests / replay	completed	skipped	2026-10-28T23:01:14Z
+tests / typing	completed	success	2026-10-28T23:05:35Z
+validate	completed	skipped	2026-10-28T23:36:54Z
+validate / validate-hacs	completed	success	2026-10-28T22:57:51Z

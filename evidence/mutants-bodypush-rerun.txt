@@ -1,0 +1,4 @@
+== body_push-1 tools/audit/seat/body_push.sh: KILLED rc=2 | [1]-  Done                    "$@" >> "$log" 2>&1
+== body_push-2 tools/audit/seat/body_push.sh: KILLED rc=2 | [1]-  Done                    "$@" >> "$log" 2>&1
+RESULT survivors=0
+rc=0
