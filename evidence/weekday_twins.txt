@@ -1,0 +1,12 @@
+== base 
+RESULT pairs=49 disagreements=0 first=[]
+== base --perturb
+RESULT pairs=49 disagreements=49 first=[(0, 0), (0, 1), (0, 2)]
+== base --identity
+RESULT pairs=49 disagreements=0 first=[]
+== head 
+RESULT pairs=49 disagreements=0 first=[]
+== head --perturb
+RESULT pairs=49 disagreements=49 first=[(0, 0), (0, 1), (0, 2)]
+== head --identity
+RESULT pairs=49 disagreements=0 first=[]
