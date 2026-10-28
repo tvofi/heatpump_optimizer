@@ -1,0 +1,5 @@
+RESULT N3_age_not_rebased tests/debug_collect.py: rc=1 FAIL(non-a16)=6 | 6 of 158 DEBUG COLLECT CHECKS FAILED
+    FAIL the download's input ages are re-based to the export: read 2 minutes old and exported 14 minutes later, they read 16  [{'input_problems': [{'input': 'indoor', 'age_minutes': 2.0}], 'input_ages_minutes': {'indoor': 1
+    FAIL one export states one age for one input: the problem message, the problem's age_minutes and input_ages_minutes all read 60 after a 40-minute-late export, and both verdicts are judged at that same instant  [{'input_h
+    FAIL an input's own limit is the boundary: at it the reading is not stale, a minute past it the export makes it stale and its verdicts follow the age  [[{'input_health': '1 missing', 'stale_inputs': [], 'input_problems':
+    FAIL an implausible input re-based past its own limit stays implausible at the export: out of stale_inputs, counted missing, and worded as a fault, not an age  [{'input_health': '1 missing', 'stale_inputs': [], 'input_pr

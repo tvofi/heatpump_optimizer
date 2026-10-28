@@ -1,4 +1,4 @@
-== space_plan points 96 slots 2 kWh 34.39 cost 22.28 active True
+== space_plan points 96 slots 2 kWh 34.38 cost 22.28 active True
   first fc: {"t": "2026-01-15T00:00:00", "price": 0.62, "price_known": true, "outdoor": -10.0, "space_power": 1.52, "room": 20.91, "upper": 20.91, "lower": 20.91, "reason": "cheap_price", "pv_surplus": null}
   first slot: {"start": "2026-01-15T00:00:00", "end": "2026-01-15T05:00:00", "duration_hours": 5.0, "avg_power_kw": 5.68, "energy_kwh": 28.385, "avg_price": 0.62, "cost": 17.6, "shared_kwh": 1.615, "reason": "cheap_price", "reasons": ["cheap_price"]}
   last slot : {"start": "2026-01-15T23:00:00", "end": "2026-01-16T00:00:00", "duration_hours": 1.0, "avg_power_kw": 6.0, "energy_kwh": 6.0, "avg_price": 0.78, "cost": 4.68, "reason": "terminal_value", "reasons": ["terminal_value"]}
@@ -12,5 +12,5 @@ dhw reasons  : ['dhw_preheat', 'dhw_ready', 'dhw_window', 'idle', 'idle_coasting
 raw space kWh 34.39 raw dhw kWh 7.08
 slot-sum space kWh 34.39
 slot-sum dhw kWh 7.08
-wrote /private/tmp/plandata-b19a57644337.json
+wrote /private/tmp/plandata-f8ead97b7c94.json
 plan reason codes, price provenance and slot energy OK

@@ -1,0 +1,5 @@
+RESULT K6_table_names_unpublished_class card: rc=1 FAIL(non-a16)=4 | 4 CARD CHECK(S) FAILED
+    FAIL  every published problem code has its own words in the card's en table
+    FAIL  every published problem code has its own words in the card's sv table
+    FAIL  every published problem code has words in en, none prints as a raw token
+    FAIL  every published problem code has words in sv-SE, none prints as a raw token

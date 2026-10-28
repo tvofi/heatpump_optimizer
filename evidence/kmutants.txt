@@ -1,0 +1,32 @@
+RESULT K1_implausible_unworded card: rc=1 FAIL(non-a16)=1 | 1 CARD CHECK(S) FAILED
+    FAIL  inputs.py publishes problem codes the card can be enumerated against
+RESULT K1_implausible_unworded debug_collect: rc=1 FAIL(non-a16)=3 | 3 of 158 DEBUG COLLECT CHECKS FAILED
+    FAIL an implausible input re-based past its own limit stays implausible at the export: out of stale_inputs, counted missing, and worded as a fault, not an age  [{'input_health': '1 missing', 'stale_inputs': [], 'input_problems': [{'input': 
+    FAIL the null control: the same implausible entry exported inside its limit reads the same, so the check above is about the age crossing the limit  [{'input_health': '1 missing', 'stale_inputs': [], 'input_problems': [{'input': 'indoor', 'e
+    FAIL the precedence census covers every class inputs.py sets: each is driven past its age gate, set before it, or stale itself, and PROBLEM_WORDS, which the card enumerates its wording by, names exactly the published ones  [[['implausible',
+RESULT K2_sv_p_implausible_deleted card: rc=1 FAIL(non-a16)=1 | 1 CARD CHECK(S) FAILED
+    FAIL  every published problem code has its own words in the card's sv table
+RESULT K2_sv_p_implausible_deleted debug_collect: rc=0 FAIL(non-a16)=0 | ALL 158 DEBUG COLLECT CHECKS PASSED
+RESULT K3_en_p_implausible_deleted card: rc=1 FAIL(non-a16)=2 | 2 CARD CHECK(S) FAILED
+    FAIL  every published problem code has its own words in the card's en table
+    FAIL  every published problem code has words in en, none prints as a raw token
+RESULT K3_en_p_implausible_deleted debug_collect: rc=0 FAIL(non-a16)=0 | ALL 158 DEBUG COLLECT CHECKS PASSED
+RESULT K4_stale_unworded card: rc=1 FAIL(non-a16)=1 | 1 CARD CHECK(S) FAILED
+    FAIL  inputs.py publishes problem codes the card can be enumerated against
+RESULT K4_stale_unworded debug_collect: rc=1 FAIL(non-a16)=1 | 1 of 158 DEBUG COLLECT CHECKS FAILED
+    FAIL the precedence census covers every class inputs.py sets: each is driven past its age gate, set before it, or stale itself, and PROBLEM_WORDS, which the card enumerates its wording by, names exactly the published ones  [[['implausible',
+RESULT K5_sv_health_stale_deleted card: rc=1 FAIL(non-a16)=1 | 1 CARD CHECK(S) FAILED
+    FAIL  every published problem code has its own words in the card's sv table
+RESULT K5_sv_health_stale_deleted debug_collect: rc=0 FAIL(non-a16)=0 | ALL 158 DEBUG COLLECT CHECKS PASSED
+RESULT K6_table_names_unpublished_class card: rc=1 FAIL(non-a16)=4 | 4 CARD CHECK(S) FAILED
+    FAIL  every published problem code has its own words in the card's en table
+    FAIL  every published problem code has its own words in the card's sv table
+    FAIL  every published problem code has words in en, none prints as a raw token
+    FAIL  every published problem code has words in sv-SE, none prints as a raw token
+RESULT K6_table_names_unpublished_class debug_collect: rc=1 FAIL(non-a16)=1 | 1 of 158 DEBUG COLLECT CHECKS FAILED
+    FAIL the precedence census covers every class inputs.py sets: each is driven past its age gate, set before it, or stale itself, and PROBLEM_WORDS, which the card enumerates its wording by, names exactly the published ones  [[['implausible',
+RESULT K7_sv_p_implausible_blank card: rc=1 FAIL(non-a16)=1 | 1 CARD CHECK(S) FAILED
+    FAIL  every published problem code has its own words in the card's sv table
+RESULT K7_sv_p_implausible_blank debug_collect: rc=0 FAIL(non-a16)=0 | ALL 158 DEBUG COLLECT CHECKS PASSED
+RESULT NULL card: rc=0 FAIL(non-a16)=0 | ALL CARD CHECKS PASSED
+RESULT NULL debug_collect: rc=0 FAIL(non-a16)=0 | ALL 158 DEBUG COLLECT CHECKS PASSED

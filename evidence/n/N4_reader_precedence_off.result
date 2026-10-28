@@ -1,0 +1,2 @@
+RESULT N4_reader_precedence_off tests/debug_collect.py: rc=1 FAIL(non-a16)=1 | 1 of 158 DEBUG COLLECT CHECKS FAILED
+    FAIL exported a minute past its own limit, every class reads what the reader says re-reading the same state then: a fault code stays itself, every other class ages into stale, and stale_inputs and input_health agree with

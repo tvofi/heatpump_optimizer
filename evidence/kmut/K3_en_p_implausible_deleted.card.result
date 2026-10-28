@@ -1,0 +1,3 @@
+RESULT K3_en_p_implausible_deleted card: rc=1 FAIL(non-a16)=2 | 2 CARD CHECK(S) FAILED
+    FAIL  every published problem code has its own words in the card's en table
+    FAIL  every published problem code has words in en, none prints as a raw token
