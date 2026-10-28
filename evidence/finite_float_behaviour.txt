@@ -1,0 +1,13 @@
+True -> D
+False -> D
+b'3' -> D
+'3.5' -> 3.5
+nan -> D
+inf -> D
+100000000000 -> D
+3 -> 3.0
+' 2 ' -> 2.0
+None -> D
+base _finite_or_none True -> 1.0
+base _finite_or_none nan -> nan
+base _finite_or_none '3' -> None

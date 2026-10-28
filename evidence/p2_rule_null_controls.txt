@@ -1,4 +1,0 @@
-topology.py::_plant_literal :1091 dhw_power > 0.05
-topology.py::_plant_kwdefault :1094 0.05
-topology.py::_plant_posdefault :1098 0.05
-RESULT hits=13
