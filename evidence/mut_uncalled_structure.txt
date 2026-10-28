@@ -1,0 +1,6 @@
+########## counting-rule self-check ##########
+FAIL  a callee handing both reads on through the callee handed on uncalled: an alias, a partial, a callback costs at least the two reads (O19)
+FAIL  a callee handing both reads on through the coordinator in a parameter not spelt self costs at least the two reads (O19)
+FAIL  a callee handing nothing on through a parameter or a reference is still the edge
+3 COUNTING RULE(S) BROKEN -- the structure rows cannot be trusted
+rc=1

@@ -1,4 +1,0 @@
-########## counting-rule self-check ##########
-FAIL  a getter returning bare state reads is priced as those reads at its caller
-FAIL  a property is a callee: read from another seam, it is priced as a call
-2 COUNTING RULE(S) BROKEN -- the structure rows cannot be trusted

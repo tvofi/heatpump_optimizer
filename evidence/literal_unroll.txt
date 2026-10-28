@@ -1,0 +1,3 @@
+RESULT clean= 420
+RESULT loop_without_getattr_but_direct_reads= 420
+RESULT loop_dropped_reads= 420

@@ -1,3 +1,4 @@
 ########## counting-rule self-check ##########
-FAIL  a getter returning bare state reads is priced as those reads at its caller
+FAIL  the state root is the binding, not the name it is bound to
 1 COUNTING RULE(S) BROKEN -- the structure rows cannot be trusted
+rc=1
