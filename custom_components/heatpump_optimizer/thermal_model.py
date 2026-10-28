@@ -1669,10 +1669,7 @@ def _two_tank_rates(
 def _partload_derate(value: Any) -> float:
     """A configured part-load derate, or the 0 default when it is not a
     number inside [0, ``MAX_HEAT_PUMP_COP_PARTLOAD_DERATE``]."""
-    try:
-        derate = float(value)
-    except (TypeError, ValueError):
-        return DEFAULT_HEAT_PUMP_COP_PARTLOAD_DERATE
+    derate = const.finite_float(value, DEFAULT_HEAT_PUMP_COP_PARTLOAD_DERATE)
     if 0.0 <= derate <= MAX_HEAT_PUMP_COP_PARTLOAD_DERATE:
         return derate
     return DEFAULT_HEAT_PUMP_COP_PARTLOAD_DERATE
