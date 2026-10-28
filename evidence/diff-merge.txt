@@ -1,0 +1,19 @@
+reviewed head: 1a7225e826d44b009a37905e19512ab0eafb1035
+merge base: 60cd447a021558df4a1c5e8e71ed5c24b199d01e
+origin/main: 0825aee641c8afb1e67be2a6af9d07e9c9dec9fa
+roster tip: eaf10309d465f1f960abe92ffc216ce4b1bd46d2
+
+$ git diff --stat 60cd447a0...HEAD
+ dev/programme/delivery/2807.md     |  1 +
+ dev/programme/triage/s6-batch23.md | 70 ++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 71 insertions(+)
+
+$ git merge-tree --write-tree origin/main HEAD
+ff6ca150a57a8320b4faf3767c7fc2599475c36e
+rc=0
+
+$ grep -oE ^Verdict: ... | sort | uniq -c
+      3 Verdict: DEFER
+      2 Verdict: REJECT
+
+host- and home-path grep over the three-dot diff: no hits
