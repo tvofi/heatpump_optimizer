@@ -1,28 +1,32 @@
-Fix review: blocked 35cb7e8cc9380d134c61675a4aedba692e938593 dangling-owner: P58 defers to R10-ROUTING-INVARIANTS, a group on neither the roster nor main
+Fix review: merge 35cb7e8cc9380d134c61675a4aedba692e938593
 
-bus-nonce: c1e7fd5ca18d8c993f8be4a4a41ac395
+bus-nonce: e8bf3d86436d0e9b5d67d1b3a2ea935e
 
-Round 1. Measured head 35cb7e8cc9380d134c61675a4aedba692e938593 (still the head of triage/s6-batch4 at 2026-10-24T14:29Z).
+## Round
 
-## Block
+Round 2: a re-dispatch at the same head. The earlier block (a dangling owner) is answered: R10-ROUTING-INVARIANTS is on the roster at 50c690758, which is an ancestor of origin/handoff/audit-r10-roster. Its brief carries the consumed-vs-pending design (`mark-carry`, STRANDED), which is the design P58 defers to.
 
-P58's verdict reads `DEFER -> R10-ROUTING-INVARIANTS`, and its trigger is "judge the consumed-vs-pending marker design when it lands". No group of that name exists on `handoff/audit-r10-roster` at `bbe44258e` (the ref the body names) or at its tip `8fe56f088`, and `git grep ROUTING-INVARIANTS origin/main 8fe56f088` returns 0 hits (ev/destinations-roster-8fe56f088.txt). Under proposal-triage.md a DEFER names "what would change the answer, or the group already owning the item". The ruling names an owner, so a later seat will read V5 as owned, but nothing owns it, and no seat will see the design land and re-triage. The other DEFER destinations all resolve: R10-ORCH-ROSTER-SCHEMA, R10-FLY-DAEMONIZE-ARGV and R10-ORCH-BEATD are present. Fix: name the group that is actually building V5. The "owner note that V5 is already being built" suggests one; R10-FLY-CARRY-DISPOSITION is a candidate, but I did not verify that. If no group is building it, the destination has to be dropped and the trigger restated without an owner.
+## Scope
 
-## Findings
-
-- P58 names a nonexistent owning group. The block above gives the evidence. Carry: dismissed: it is this PR's to fix before merge, and the block returns it to the fixer.
-- P55 and P60 give the same new group, R10-FLY-POOL-INSTRUMENT, contradictory briefs. P55 says "about 15 lines in one existing script, no new file" and rejects a new pool_push.sh as "a file for one call site". P60 says "one new script with a self-test, one INSTRUMENTS.md entry, a call in cloud_dispatch.py". The commit history (58f2e7513 "re-rules P55") shows P60 superseded P55's scope, but P55's text still states the narrower brief, so a fixer reading both gets two scopes. Fix in the same pass: mark P55's Cost/Binding as superseded by P60, or reconcile them. Carry: dismissed: same-PR fix, rides the P58 correction.
-- The title and intro are stale. The H1 reads "batch 4 (P54)", and the intro says the items are "ruled as P54", but the file rules P54 to P62. Carry: dismissed: a cosmetic heading; fix it in the same pass if touched, otherwise not worth a cycle.
-- Two owner citations do not resolve, and the brief asked for every owner quote to be checked. I found neither in #201's comments from 2026-10-23T10:23Z to the latest at 2026-10-24T14:05Z: P60's "owner directive 2026-10-24 (mechanise first)" and P58's "owner note that V5 is already being built". Both may live in the out-of-tree proposals.md. Neither is load-bearing: P60's Binding rests its reversal on the five measured slips ("Reversal is on measured slips"), and P58 is a DEFER. Carry: dismissed: not load-bearing; the next revision should cite a comment id or the proposals.md line.
+The dispatch frames this PR as a policy change. The diff is not one. It adds two files, `dev/programme/triage/s6-batch4.md` and `dev/programme/delivery/2734.md`, both under `dev/programme/`. No path in CLAUDE.md's policy set, `.claude/rules`, `dev/governance` or any brief is touched, so there is no owner policy wording to check line by line. The owner's words matter in one place, P60, which cites the "mechanise first" directive (2026-10-24) as the reason for reversing P50. That reversal is argued from 5 measured slips, not from the directive alone.
 
 ## Evidence
 
-- Policy scope: the diff is `dev/programme/triage/s6-batch4.md` (+95) and `dev/programme/delivery/2734.md` (+1), three-dot from merge-base `e97f5749b`. Neither path is policy under CLAUDE.md: dev/programme is not listed, `tests/closure.py` lists it INERT, and no binding sentence in any policy file changes. The brief's "POLICY CHANGE" label therefore applies only to the owner-quote check, which is reported under Findings.
-- Merge: `git merge-tree --write-tree origin/main 35cb7e8cc9380d134c61675a4aedba692e938593` exits 0 against origin/main `e97f5749b`, with tree 54f3498b1 (ev/merge-tree.txt).
-- Head: the body's `## Head` names 35cb7e8cc9380d134c61675a4aedba692e938593, and it matches what I measured. The code head is `58f2e7513`, with merge-base `9586fce08` against origin/main, as stated. The merge commit `f6a42ff9f` is a clean merge of e97f5749b.
-- Figures re-derived. The verdict counts are 4 ACCEPT and 5 DEFER, matching the body. The owner-gated open groups at roster `bbe44258e` number 38: 19 cite 6175172275, 9 cite 6319294694 and 7 cite 6329234399, and 3 cite none (R10-REPLAY-SCOPED, R10-MERGE-SUBJECT-HARDEN, R10-STRUCTURE-ALIAS), all matching. R10-FLOW-MQ-PROBE's owner_gate reads verbatim as quoted. `orchestrator_tick.py` has "# owner-gated age" at line 1804 on main, and the block runs to the flag at about 1823, matching. I re-derived these with my own python filter, since the body names no committed script (ev/owner-gate-count.txt).
-- Consumer and null control: `roster_edit.ruling_verdict` at the head returns the listed verdict for P54 to P62 and None for P99 (ev/ruling_verdict.txt). The mutation proof is n/a as the body says: there is no production line.
-- P62's instance SHAs (3383fb2a, 04860ee0, ea459c0b) resolve as commits. `tools/ci/codescan_wait.py` exists on main, and its owner R10-CI-LAYOUT-P2 is on the roster as carries-open. The cited `carries/carry-triage-s6v9.md` is in no tracked tree or remote ref I could read. I take it to be the orchestrator's out-of-tree queue file and did not verify it.
-- P55 and P58 instance counts come from the orchestrator's proposals.md. The file itself marks them "not re-counted", and I could not re-derive them.
-- VERSION, the manifest version and the notes heading are untouched; the diff has two files.
-- CI at this head (check-runs API, 2026-10-24T14:2xZ): 6 runs (prelude, refresh and cancel-superseded, in two workflow runs), all `queued`, none concluded. `gate` had not reported. There is no red check to answer.
+- Head measured: 35cb7e8cc9380d134c61675a4aedba692e938593. It is still the head of triage/s6-batch4, and it is the head the PR body names.
+- Merge: `git merge-tree --write-tree origin/main <head>` exits 0 (tree 84908aa09). There is no conflict and neither claim file is touched.
+- Mutation proof: n/a, because the diff has no production line. I mutated the consumer instead: with P55's `Verdict:` line removed, `ruling_verdict` returns `unreadable` and `triage_refusal` refuses a cite of `#P55`. Unmutated, it returns None, so no refusal.
+- Null control: `ruling_verdict(P99)` returns None, as the body claims.
+- Figures:
+  - Verdict counts re-derive: 4 ACCEPT, 5 DEFER.
+  - P54's count re-derives at bbe44258e: 38 open owner-gated groups, 35 of them citing a mandate id (19, 9 and 7 per id), plus the three named groups that cite none. I used my own python filter, following the body's stated rule (truthy `owner_gate`, stage not done).
+  - The same filter on the current roster (50c690758) gives 43 and 39. That is a later snapshot; the body names its ref.
+  - `orchestrator_tick.py` lines 1804-1823 are the owner-gated block, as cited.
+  - R10-FLOW-MQ-PROBE's `owner_gate` text is quoted verbatim and correctly.
+- Not re-derived: P55, P57, P58, P61 and P62 instance counts. The file itself marks them as the orchestrator's account and not re-counted. P62's three run SHAs were not checked.
+- Owners: every DEFER/ACCEPT owner group exists at 50c690758. The two new groups P55, P60 and P61 create (R10-FLY-POOL-INSTRUMENT, R10-FLY-RECORD-BEAT) do not exist yet. That is the stated route: `roster_edit.py` refuses them until this ruling is on main, as with batches 1 and 2.
+- VERSION, the manifest version and the RELEASE_NOTES heading are untouched.
+- CI: the head has 52 check runs across runs 40102153485 and 40102154724. All are success or skipped and none is red, so step 11 has nothing to answer; the body's `## Red checks: none` is accurate.
+
+## Findings
+
+- P62's verdict line points at `carries/carry-triage-s6v9.md`, which exists nowhere: not on the head, origin/main, the roster branch, or any remote ref. Repo carries are `dev/programme/carries/carry-<n>.json`. The PR body's `## Forward-carry` says n/a and routes the ACCEPT through roster_edit after the merge. Substantively, R10-CI-LAYOUT-P2 already holds carry (f), which describes the same codescan_wait `no run` fast-fail: make it wait up to WAIT_MAX_S, and run a re-run-before-CodeQL control. The finding therefore has an owner, and only the pointer dangles. The roster op that records V9 should cite `dev/programme/triage/s6-batch4.md#P62` and fold into or reference carry (f), not the missing file. Carry: R10-CI-LAYOUT-P2
