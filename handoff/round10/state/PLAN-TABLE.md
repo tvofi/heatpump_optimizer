@@ -312,9 +312,9 @@ Role: dev/governance/roles/root-cause.md. |  |
 | R10-ERREXIT-COUNTERMEASURES | IN | 1 | not-started | - | opus/opus | yes: mandated approval under 6329234399 | Fixer for the errexit countermeasures that the root cause of the Nightly record-autofix batch=$? defect (R10-RCA-HOTFIX-BATCH-ERREXIT, PR #2849, hotfix #2848... |  |
 | R10-RECORD-API-O1 | IN | 1 | not-started | - | opus/opus | yes: mandated approval under 6329234399 | Fixer for the decisions and measurements the root cause of the 04:53Z installation rate-limit burst (R10-RCA-RATELIMIT-RECUR, PR #2852) left open: carry 1, d... |  |
 | R10-RECORD-HOLD-APPROVE | IN | 1 | in-progress | - | opus/opus | yes: mandated approval under 6329234399 | Record PRs deadlock under back-to-back trains (V118). |  |
-| R10-FRICTION-REGRESSION | C | 1 | not-started | #2860 | opus/opus | - | Root-cause seat for issue #2860, the governance cron's recurring-friction key regression (three distinct pull requests in the v7.0.4..origin/main window, thr... |  |
-| R10-FRICTION-MUTATION-SURVIVOR | C | 1 | not-started | #2840 | opus/opus | - | Root-cause seat for issue #2840, the recurring-friction key mutation-survivor (verdict class at threshold in the v7.0.4..origin/main window). |  |
-| R10-FRICTION-GATE-SCOPING | C | 1 | not-started | #2835 | opus/opus | - | Root-cause seat for issue #2835, the recurring-friction rule id .claude/rules/gate-scoping.md (cited in the Friction section of distinct pull requests in the... |  |
+| R10-FRICTION-REGRESSION | C | 1 | not-started | #2835, #2840, #2860, #2895, #2907 | opus/opus | - | Root-cause seat for issue #2860, the governance cron's recurring-friction key regression (three distinct pull requests in the v7.0.4..origin/main window, thr... |  |
+| R10-FRICTION-MUTATION-SURVIVOR | C | 1 | absorbed | #2840 | opus/opus | - | Root-cause seat for issue #2840, the recurring-friction key mutation-survivor (verdict class at threshold in the v7.0.4..origin/main window). |  |
+| R10-FRICTION-GATE-SCOPING | C | 1 | absorbed | #2835 | opus/opus | - | Root-cause seat for issue #2835, the recurring-friction rule id .claude/rules/gate-scoping.md (cited in the Friction section of distinct pull requests in the... |  |
 | R10-DIAG-AGES | RP | 1 | done | #2814 | opus/opus | - | Residue of issue #2814 that R10-DIAG-REDACT (#2824) recorded and left, per that body's Forward-carry: (1) re-base the published input ages to the export cloc... |  |
 | R10-ADVISOR-WHATIF | UI | 1 | not-started | #2257 | opus/opus | - | The follow-on sub-PR R10-ADVISOR-RESIDUE (#2834) owed and its group was closed without: issue #2257's residual, per #2834's Forward-carry. |  |
 | R10-DEPENDABOT-SETUPTOOLS | F | 1 | done | #2722 | sonnet/opus | - | Land Dependabot pull request #2678 (setuptools 84.0.0 to 84.1.0 in tests/requirements-build.txt). |  |
@@ -325,7 +325,7 @@ Role: dev/governance/roles/root-cause.md. |  |
 | R10-TRIAGE-B37 | IN | 1 | done | - | opus/opus | - | Own the triage s6 batch 37 pull request from its handoff refs to a merge-ready head. |  |
 | R10-REVIEW-CARRY | IN | 1 | in-progress | - | opus/opus | - | Make the owner's 2026-10-27 ruling mechanical: a head that carries no code change keeps its review, and no seat has to judge which moves those are. |  |
 | R10-TRIAGE-S6 | IN | 1 | done | - | opus/opus | - | Own the standing triage seat's batch pull requests to a merge-ready head, one at a time (resume.pr). |  |
-| R10-FRICTION-FIXER-MD | C | 1 | not-started | #2895 | opus/opus | - | Root-cause seat for issue #2895, the governance cron's recurring-friction key `tools/audit/briefs/fixer.md` (5 distinct pull requests, 7 entries, in the v7.0... |  |
+| R10-FRICTION-FIXER-MD | C | 1 | absorbed | #2895 | opus/opus | - | Root-cause seat for issue #2895, the governance cron's recurring-friction key `tools/audit/briefs/fixer.md` (5 distinct pull requests, 7 entries, in the v7.0... |  |
 | R10-FRICTION-CLAIM-FALSE | C | 1 | not-started | #2907 | opus/opus | - | Root-cause seat for issue #2907, the governance cron's recurring-friction key `claim-false` (verdict class: 4 distinct pull requests, 8 entries, in the v7.0.... |  |
 | R10-FLY-SWEEP-DEFAULTS | IN | 1 | in-progress | - | sonnet/opus | - | Owner order (tvofi, 2026-10-28). |  |
 | R10-FLY-CACHE-PROMPTS | IN | 1 | in-progress | - | sonnet/opus | - | Owner order (tvofi, 2026-10-28). |  |
