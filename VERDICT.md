@@ -1,23 +1,46 @@
-Fix review: blocked 5c82409818aeecda5798676d8f8ea8bd9b232133 figure-false: the ruling says no test pins --max 40, but tests/entities.py:33938 requires the literal in mutation-ledger, so the carried one-token change turns entities.py red
+Fix review: merge dcec0b010961256b49112d66af73805f3c592ebf
 
-bus-nonce: 5ce72605879a7c7ebdfb4fe1a1efecb3
+bus-nonce: 94b2340a6b53541ecb8892e5210410c4
 
-Round 1. Measured head `5c82409818aeecda5798676d8f8ea8bd9b232133` (PR #2759 live head at review time), merge base `2636ce9e9`.
+## Scope
 
-## Block
-
-P85's Cost paragraph states: "`git grep -e '--max 40'` finds no test or entity that pins the figure (only the two workflow lines and a historical RCA sentence)". At this head that grep returns `tests/entities.py` too: line 33938 lists `('--scope full --drain "$out" --max 40', _ml_meas)` in `_ML_MISSING`, the required strings of the check "mutation-ledger measures without a write grant and mutation-ledger-push writes only rows". It also returns roster and fixplan lines (`dev/programme/rosters/wave-r9-groups.json` x2, `dev/audit/rounds/round9/fixplan/data.py`, `prestudy/ALT-ROSTER.json`), which are historical. I applied the carry exactly as written (mutation-ledger `--max 40` -> `70` in `.github/workflows/nightly.yml`) and that test's membership check went from present to absent (ev/pin_mutation.txt). So the fix is not "one token in nightly.yml": it is that token plus the pin in tests/entities.py. The carry text gives the fixer nothing about the pin, and the cost and risk rest on a premise this tree refutes. The repair is small: correct the Cost sentence, add the tests/entities.py pin to the carry text (move the pinned string to `--max 70` in the same PR), and re-lint the carry with brief_lint.mjs.
+PR #2759, triage batch 16 (P85), round 1 at this head; the earlier dispatched head 5c824098 is ignored as briefed. Measured head dcec0b010961256b49112d66af73805f3c592ebf on merge base 2636ce9e9. Three-dot delta: `dev/programme/triage/s6-batch16.md` (new, 36 lines) and `dev/programme/delivery/2759.md` (new, 1 line). No production code, check, budget, closure, golden or claim file is touched, so steps 1, 4 and 14 have nothing to mutate or re-derive beyond the ruling's own consumer.
 
 ## Findings
 
-- The ruling's cost premise is false at the head: `tests/entities.py:33938` pins mutation-ledger's `--max 40`, and the carry for R10-FLY-LEDGER-SAMPLE leaves it out. This is the block above, and it is settled by amending this PR's triage file. Carry: R10-FLY-LEDGER-SAMPLE | #2759 | O1 | dismissed: settled by the amendment this block requires before merge
+- The carry text for R10-FLY-LEDGER-SAMPLE does not say what happens to the one push when a single shard fails. At 2636ce9e9, `mutation-ledger-push` in `.github/workflows/nightly.yml` runs only on `needs.mutation-ledger.result == 'success'`. A matrix's default `fail-fast: true` cancels the sibling shards when one fails, and a matrix with any failed arm reports `failure` to `needs`. So one crashed shard would throw away every other shard's kills that night. The ruling's line "every failure mode is a partial shard or a listed survivor, never a red job" holds for clipped shards but not for a crashed one. The group should set `fail-fast: false` and decide whether the push applies the shards that succeeded, for example by gating on `!cancelled()` plus each shard's own `status` file, which `merge_pin_shards` already ranks. Carry: R10-FLY-LEDGER-SAMPLE
+- Shard sizes are not bounded by `--max 80`. `pin_shard` deals whole anchors round-robin by anchor count, not by site count, and `drain_pool` caps the whole slice at N times `--max`. So one shard can draw more than 80 sites while another draws fewer. `--budget-minutes 240` still clips the large shard as partial, so no job goes red. But the "about 220 min per shard" estimate holds only on average, and the first-night control should report each shard's drawn count against 80. Carry: R10-FLY-LEDGER-SAMPLE
+- The ruling's convergence figures disagree with each other. "Roughly 3400 killable sites" is the orchestrator's figure and was not re-counted. Against 4012 unpinned sites it implies a kill share of about 85 percent, which is the 15-percent-survival assumption the ruling itself rejects. At the ruling's own measured 50 to 70 percent share, about 2000 to 2800 of 4012 sites are killable. Also, `drain_pool` redraws survivors from the unpinned stock, so the yield per night falls as the stock drains. "About 3 weeks" is therefore an estimate, not a derived figure. The group's first-night controls (kills, survivors, drawn counts) measure it directly, so nothing needs to change in this PR. Carry: R10-FLY-LEDGER-SAMPLE
 
 ## Evidence
 
-- Figures re-derived at the head (ev/figures.txt): run 40054585693's job windows match the body (146 min, 144 min, 26 s). nightly.yml has `--budget-minutes 270`, a 330-minute timeout and the "records nothing" header, as quoted. 70 x 146/40 = 255.5 min, which matches "about 256". `rg` Verdict count is 1 ACCEPT. `roster_edit.ruling_verdict` returns P85 -> ACCEPT and P99 -> None, which reproduces the null control. batch15 is not at this base, as the ruling says.
-- Not re-derived: the orchestrator's unpinned-site counts (4062 -> 4012, 6283 -> 6297), the 20 to 28 kills a day, about 3400 killable sites and `private: false`. The ruling marks these as not re-counted. I did not re-run the brief_lint scratch-roster null control.
-- The pin evidence comes from my own instrument, ev/pin_check.py. It extracts `_workflow_job` from tests/entities.py and evaluates the same membership. I could not run the full tests/entities.py here because `homeassistant` is not installed in this container.
-- Merge: `git merge-tree --write-tree origin/main 5c82409818aeecda5798676d8f8ea8bd9b232133` exits 0 (tree 6bf8d3e47). No claim files touched. VERSION, manifest and notes heading are untouched.
-- Head: the body's Head section names `941827589`. The live head `5c8240981` adds only the PR's own delivery row (dev/programme/delivery/2759.md, one line for #2759), the same shape as #2752 merged.
-- CI on the head: at read time all completed check runs were success or skipped. tests / closures, typing, fast (3.14), browser, governance / env-matrix and instrument-self-tests were still in_progress. No pr-contract run appeared in this head's check-run listing. None red, so step 11 owes nothing yet.
-- Steps 1/2/3/6 (mutation proof, finder's harness, class): n/a. The diff is a ruling record with no production line.
+- RESULT `roster_edit.ruling_verdict(batch16, "P85")` = ACCEPT; `"P99"` = None, which reproduces the body's null control. A mutant with the `Verdict:` line deleted returns `unreadable`, so the consumer does read that line. `triage_refusal` passes a text citing `triage: dev/programme/triage/s6-batch16.md#P85` (returns None). Output is in `ev/results.txt`.
+- RESULT Figures: there is 1 `Verdict:` line, and it is ACCEPT. This matches the body.
+- Head: the body's `## Head` names dcec0b010961256b49112d66af73805f3c592ebf and merge base 2636ce9e9, which is the head I reviewed. It lists the three commits (94182758, 5c824098, dcec0b01) as the history shows them.
+- Merge: `git merge-tree --write-tree origin/main <head>` against origin/main 593c4fb28 exits 0 with tree 576a0c42, so there is no conflict (`ev/git.txt`). No other branch uses the P85 number: P84 is on `triage/s6-batch15` (#2758) and P80 to P82 are on main.
+- `VERSION`, the manifest version and the `RELEASE_NOTES.md` heading are untouched. The roles diff from the merge base to origin/main is empty, so this contract is current.
+- Delivery row: `dev/programme/delivery/2759.md` follows the format of the existing rows (for example 2748.md). `dev/programme/` is on `tests/closure.py`'s INERT list (line 273), so both new files are classified.
+- Every tree claim in the ruling was checked against 2636ce9e9:
+  - `pin_shard` deals anchors round-robin in sorted order and its shards are disjoint.
+  - `merge_pin_shards` folds `status`, `pins.json` and `head` with a precedence, and does not union `survivors.txt`.
+  - `write_drain` writes the same layout plus `survivors.txt`.
+  - `--shard` is honoured only under `--pin-killed`; its help says so, and the `--drain` branch in main() never slices.
+  - Both nightly jobs save their pool-seconds cache under `pool-seconds-${{ github.run_id }}`.
+  - The schedule is the single cron `17 2 * * *`. The other crons are in separate workflows: `codeql.yml` `41 2 * * 1` and `governance.yml` `0 7 * * 1`.
+  - The `tests/entities.py` cron check needs only a daily `\d{1,2} \d{1,2} \* \* \*`, which `37 0 * * *` satisfies.
+  - `nightly.yml`'s comment says `mutation-nightly` "records nothing".
+  - `tests/nightly_status.py` `missing_lanes` already strips a matrix suffix (` (`), so `mutation-ledger (1)` and its siblings still count as the required lane.
+  - The ledger lane today runs `--max 40 --jobs 3 --budget-minutes 270` with `timeout-minutes: 330`.
+- The durations were re-derived from the job list of run 40054585693 through the API. `mutation-ledger` ran from 02:32:24Z to 04:58:29Z, which is 146 min, and the run was created at 02:32:22Z. 146 / 40 = 3.65 wall-min per mutant, and ×3 workers is about 11 core-min. 80 × 11 / 4 is about 220 min. 4 × 80 = 320, and 60 percent of 320 is about 190.
+- Figures I could not re-derive:
+  - The unpinned counts (4062 to 4012) and total sites (6283 to 6297) are the orchestrator's; the body says so.
+  - The daily kills of 20 to 28 are also the orchestrator's.
+  - The merges-by-hour counts are also the orchestrator's.
+  - The 02:35:26Z start of the other scheduled run.
+  - The repository's `private: false` setting.
+  - The S6-V20 proposal text, which lives in the out-of-tree s6 `proposals.md`. So I could check the ruling against the tree's mechanics and against tvofi's three relayed questions as the ruling quotes them, but not against the proposal's own wording.
+- The ruling answers all three relayed questions: (1) higher within about 4 hours: 320 at 240 min per shard; (2) the cost to programme CI: one push, placed in the lowest-merge hours; (3) as many mutants per push as possible: shard, still one push. It moves the reduced budget (270 to 240) together with the push window, and it keeps `mutation-nightly` unchanged, in line with that job's "deliberately one job" comment.
+- Mutation proof: n/a. No production line exists. The consumer mutant above (deleting the `Verdict:` line) shows the gate reads the file.
+- Forward-carry: per the body, the orchestrator routes the carry through `roster_edit.py` after the merge, citing this file. The three findings above belong in that group's brief when it is created.
+- CI at this head (check-runs API): no check concluded red. The following have passed: fast (3.14), closures, closure-scope, browser, typing, coverage, coverage-ratchet, mutation, lane-proofs, briefs, policy-docs, delivery-status, env-matrix, wave-script, budget-raise-gate, arch-score, nightly-status, hassfest, validate-hacs, and the three codeql runs. When this verdict was written, `governance / instrument-self-tests` and the `prelude` of run 40129784732 were still in progress. The body's `## Red checks: none` matches every concluded run. If either in-progress run ends red, the body owes an answer under step 11.
+- I did not run `tests/entities.py` locally: there is no Home Assistant package in this container (`ev/entities-local.txt`). For that I rely on CI's `fast` and `closure-scope` passes.

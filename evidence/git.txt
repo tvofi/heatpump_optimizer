@@ -1,0 +1,13 @@
+head: dcec0b010961256b49112d66af73805f3c592ebf
+merge-base: 2636ce9e9378addc393b749160be0bd928af4f90
+origin/main: 593c4fb28d82212d2b2eb1907255f7ac576f7972
+merge-tree --write-tree origin/main head: 576a0c427856f86e86075c863240a188587ff696
+rc=0
+roles diff merge-base...origin/main (empty is current):
+0
+three-dot stat:
+ dev/programme/delivery/2759.md     |  1 +
+ dev/programme/triage/s6-batch16.md | 36 ++++++++++++++++++++++++++++++++++++
+ 2 files changed, 37 insertions(+)
+VERSION/manifest/RELEASE_NOTES touched:
+0

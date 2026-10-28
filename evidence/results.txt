@@ -1,0 +1,6 @@
+RESULT ruling_verdict P85 = ACCEPT
+RESULT ruling_verdict P99 = None
+RESULT mutant(no Verdict line) P85 = unreadable
+RESULT triage_refusal(cite) = None
+RESULT Verdict lines = 1
+      1 Verdict: ACCEPT

@@ -1,8 +1,0 @@
-merge-tree --write-tree origin/main(2636ce9e9) 5c82409818aeecda5798676d8f8ea8bd9b232133 -> 6bf8d3e47f3762f2fbc1636377d0ed3337f5bc3b rc=0
-three-dot diff 2636ce9e9...5c82409818aeecda5798676d8f8ea8bd9b232133: dev/programme/delivery/2759.md (+1, row for #2759 only), dev/programme/triage/s6-batch16.md (+21)
-VERSION / manifest / RELEASE_NOTES untouched (not in diff)
-run 40054585693 jobs: mutation-ledger 02:32:24Z-04:58:29Z (146 min); mutation-nightly 02:32:25Z-04:56:36Z (144 min); mutation-ledger-push 04:58:33Z-04:58:59Z (26 s)
-nightly.yml at head: mutation-ledger line 190 '--drain "$out" --max 40', line 191 '--budget-minutes 270'; timeout-minutes 330 (lines 54, 153); header line 142 'samples the whole package and records nothing'
-rg Verdict count: 1 ACCEPT
-roster_edit.ruling_verdict(src,'P85') -> ACCEPT ; ('P99') -> None
-triage/s6-batch15.md absent at head; ref triage/s6-batch15 exists on origin (7f91e6842) -> 'unmerged at this base' holds
