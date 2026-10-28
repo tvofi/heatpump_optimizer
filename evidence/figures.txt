@@ -1,0 +1,21 @@
+    if _out=$10
+== structure
+
+STRUCTURE RATCHET PASSED
+== archscore
+Architecture score: dS +0.0000 NULL
+== closure select
+  MODE: SCOPED -- 0 script(s) run, 33 scoped out.
+== policy budgets
+rc=0
+== st count
+112
+88
+>/dev/null 2>&1 \
+  gh_read comments --paginate "repos/$repo/issues/$pr/comments?per_page=100" \
+    git fetch -q --no-tags origin "+refs/heads/main:refs/hpo-carry/main" "+refs/pull/$pr/head:refs/hpo-carry/head" \
+  gh_read owners "repos/$repo/contents/.github/CODEOWNERS?ref=main" \
+  gh_read files --paginate "repos/$repo/pulls/$pr/files?per_page=100" \
+  inst=$(curl -fsS -H @"$PRIV/jwt.h" -H "$ACCEPT" "$API/repos/$repo/installation" \
+  curl -fsS -X POST -H @"$PRIV/jwt.h" -H "$ACCEPT" "$API/app/installations/$inst/access_tokens" \
+  resp=$(curl -fsS -X POST -H @"$PRIV/token.h" -H "$ACCEPT" "$API/repos/$repo/pulls/$pr/reviews" \

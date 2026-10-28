@@ -1,2 +1,0 @@
-ok   REFUSE: a carried verdict whose evidence names neither head
-app_approve self-test: 225 checks, 0 failed

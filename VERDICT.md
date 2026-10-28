@@ -1,25 +1,48 @@
-Fix review: merge 53f24912dee67629b3bc383f91031627c995d520
+Fix review: blocked e4b3e01abb48644841202e7d7b0ae93107258bd3 mutant-survives: the retry budget is unpinned, an unbounded-retry mutant passes all 206 checks because the spent-budget fixture's fourth stderr is unclassified, not transient
 
-bus-nonce: c94fab683ab0065190fe3381b6bac28a
+bus-nonce: dc353331c0736bde6c26e8e29ce6b633
 
-Round: fifth review (round 5) of PR #2589 (R10-FLY-GH-READ-RETRY, branch fix/r10-fly-gh-read-retry), at the unmoved head `53f24912dee67629b3bc383f91031627c995d520`. Round 4 blocked body-stale only; the body has been re-cut and posted. `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` is empty, so the contract followed is current. I measured in a detached worktree at the head. The pulls API and `git ls-remote origin refs/pull/2589/head` both give `53f24912dee67629b3bc383f91031627c995d520` (`ev/pr-head-now.txt`).
+Round: first review of this head (round 1). Reviewed from a detached worktree at `e4b3e01abb48644841202e7d7b0ae93107258bd3`, merge base `5a755f53efda8c099af7d6a98fb0b22828a0593c`. `dev/governance/roles/` on main is unchanged since the merge base (empty three-dot diff), so the contract I followed is current. The finder's harness is the group brief's null control (5), read from `origin/handoff/audit-r10-roster` at `a1a3a9c0c`.
 
-## Evidence
+## Block
 
-- **Live body against round 4's evidence and the head.** Every figure and claim re-derives at this head (`ev/pr-body.md` is the live body):
-  - Self-test: `225 checks, 0 failed` (`ev/selftest.txt`). The body's four mutation rows (F13 shape, `head -1`, all of stderr, `-qiw`) each reproduce as `225 checks, 1 failed` on the named check with got '2', '1', '2', '1' (`ev/mutation-proof.txt`). Null is `225 checks, 0 failed`.
-  - Per-alternative table: 48 rows; 6/5, 3/1, 1/2, 2/3, 2/4, 1/5, 3/4, 1/2, 1/2 for the nine alternatives, exactly the body's (`ev/rows.txt`). The enumeration rule prints 8 alternatives; with `default` that is 9.
-  - Sweep: `--list` gives 129 entries. The rule counts are num 45, rel 10, opnd 3, or 4, not 1, ret 2, del 24 (89) and alt 4, glob 4, anch 5, quant 5, word 3, flag 6, pipe 2, src 1, copy 9 (39), plus the null (`ev/rules.txt`). The body's counts and its "nine classifier rules" match. I did not re-run the 128-mutant sweep: no figure disagrees with round 4's run at this code (`ev/r4-sweep.txt`, `RESULT mutants=128 killed=116 equivalent=12 survivors=0`; the code is byte-identical since).
-  - The 12 equivalents in the body are the 12 EQUIVALENT lines of that run: M9, M10, M53, M54 (the two ONELINE entries), M57, M58, M81, M82, M95, M109, M116, M117. The body's `copy` claim (M26-M28, M55, M72-M74 killed; M53, M54 equivalent) matches the run.
-  - `9b9770b34` is in the head's ancestry. The status sed, the phrase read on `$status` only with `grep -qi`, and the `copy` rule are as the body describes (`ev/gh_transient.txt`; the self-test comment reads "Four design choices are rows"). The F13 clearance is described accurately: the `copy` rule generates the shape and the mutant is killed by a behavioural row.
-  - `NONE-TOUCHED` for VERSION, the manifest, the notes and both claim files; the diff names the five files the body lists. 15 commits in `b787c7d45..HEAD` and in the merge-base range. `dcf12f490` is in the head's ancestry.
-- **Forward-carry.** `5620151813e0` is an ancestor of both `origin/handoff/audit-r10-roster` and `origin/main` (`ev/roster-sha.txt`). On main's `wave-r10-groups.json`, group R10-FLY-GH-READ-RETRY holds 3 carry items (`ev/roster-group.txt`), and the "From #2589 (PR 1)" item is present. Every Carry in this verdict names that live group or is dismissed.
-- **Lints on the live body.** `carry_audit.py --roster-ref origin/handoff/audit-r10-roster check` prints `CARRY-AUDIT: 3 finding item(s): 3 routed, 0 unrouted, 0 bad destination(s)`; the same without `--roster-ref` prints the same line. `figure_lint.mjs`: `5 resolved, 3 not verified, 0 refused`. `policy_lint.mjs --pr-body` prints 1 error, shown below under CI (`ev/policy-lint.txt`).
-- **CI at the head.** `ev/checkruns-head.txt`: 52 check runs. The body's "49 runs, 0 red" is the state before the body-edit runs. Two runs are red, both external. `pr-contract` (08:41:23Z) and `arch-score` (08:40:52Z) each failed at the step that reads the PR body through the API with `gh: API rate limit exceeded for installation ... (HTTP 403)`; `pr-contract`'s later steps then fail on the missing `/tmp/pr-body.md`. Neither run reached a check of the code or of the body. The push-time runs of `pr-contract`, `arch-score` and `budget-raise-gate` at 07:11Z are success. The one `policy_lint` error is a consequence of the `arch-score` run: it reads the red `arch-score` in the range and reports that `## Red checks` does not name it. That error clears when the rate-limited runs are re-run and pass; if `arch-score` stayed red after a re-run, the body would owe the answer. Re-running the two jobs is the orchestrator's step before the merge; I did not re-run them (CI heavy runs are cited, not repeated).
-- **Merge with main.** `git merge-tree --write-tree origin/main 53f24912dee67629b3bc383f91031627c995d520` exits 0, tree `73c000b257ef`, with `LEDGER-MERGE: resolved tests/closures.json` (`ev/merge-tree.txt`). It is clean.
-- **Handoff branch.** `refs/heads/handoff/r10-fly-gh-read-retry` is at `a457acaf`. `git log --no-merges 53f24912dee67629b3bc383f91031627c995d520..a457acaf ^origin/main` is empty (`ev/handoff-extra-commits.txt`): it holds no commit the PR lacks. Evidence only.
-- **Contract points.** Step 1 (mutation proof) and steps 3, 6 and 7 hold at this head as round 4 found them and as re-checked above. The code is unchanged since round 4, whose evidence found it passes every check.
+1. **mutant-survives (the backoff is not bounded by any test).** The brief requires "a stub failing 4 times refuses after the budget, naming the last error". The body claims null control (c) does this, "Four transient failures refuse after exactly 4 calls". The `rspent` fixture's fourth queued line is `gh: Service Unavailable (HTTP 503) the-last-one`. `gh_transient`'s sed (`^gh: (.*\()?HTTP ([0-9]{3})\)?$`) does not match it because of the trailing text. No status is extracted, the transport grep fails, and the line classifies as **refuse**; I confirmed this by calling `gh_transient` directly (`ev/budget-unpinned.txt`). So `rspent` refuses on an unclassified stderr at try 4, not on the spent budget. The "(after 4 attempts)" text appears only because `_try` happens to be 4.
+   - Mutant R11 changes `[ "$_try" -ge "$READ_TRIES" ]` to `[ "$_try" -ge 999 ]`, which is effectively unbounded. It runs `206 checks, 0 failed`, rc=0.
+   - Mutant R1 changes `-ge` to `-gt`, a 5-read budget. It also runs `206 checks, 0 failed`.
+   - The production code is correct: a real `gh: Service Unavailable (HTTP 503)` classifies transient. Only the pin is vacuous.
+   - Fix: make the fourth line a real transient shape (e.g. `gh: Service Unavailable (HTTP 503)`, and keep the last-error assertion on it). Optionally add a fifth queued transient so that budget+1 is killed by a call count of 4. Then re-run R1 and R11.
+2. **root-cause-unanswered: `pr-contract` went red, unanswered.** Both `pr-contract` runs on this head concluded `failure`: job 119527655690, and job 119538432191, which started 23:08:56Z after every other workflow on the head had concluded. The log ends `BAD-DEST body item 0e5922c7: R10-FLY-GH-READ-RETRY: R10-FLY-GH-READ-RETRY is not a group of the roster` / `CARRY-AUDIT: 2 finding item(s): 1 routed, 0 unrouted, 1 bad destination(s)`. The body's `## Red checks` names only `nightly-status` and main's `ci-ratchet`. The cause is that CI's carry_audit reads main's rosters, where the fly-in group is not yet registered; it is on the handoff roster. Against `--roster-ref origin/handoff/audit-r10-roster` it routes cleanly (Evidence). The body still owes the answer (fix-review.md step 11).
 
 ## Findings
 
-- G7 (`\2 &/p` -> `\2 \1/p` in the status sed) is killed only by the table-key precondition, so by the harness's own rule it reads SURVIVED. It is behaviourally equivalent: `\1` holds the whole message the phrase can occur in, so the 403 branch classifies identically on every gh status line. Carry: dismissed: \1 holds the whole message the phrase can occur in, so the 403 branch classifies identically on every gh status line
+- The `rspent` fixture's fourth stderr line, `gh: Service Unavailable (HTTP 503) the-last-one`, is not a gh stderr shape and classifies non-transient. Null control (c) and the brief's budget-exhausted control are therefore unmet, and budget mutants R1 and R11 survive. Fix in this PR as described under Block 1. Carry: R10-FLY-GH-READ-RETRY
+- `pr-contract` is red on this head with `BAD-DEST` for `Carry: R10-FLY-GH-READ-RETRY` (main's roster lacks the fly-in group), and the body's `## Red checks` does not name or answer it. Answer it in the body (the cheaper detector or that none exists), or route the carry to a destination main's roster knows. Carry: R10-FLY-GH-READ-RETRY
+
+## Evidence
+
+- RESULT head self-test `e4b3e01a`: `app_approve self-test: 206 checks, 0 failed`, rc=0 (`ev/selftest-head.txt`). Re-derived.
+- RESULT base self-test `5a755f53`: `171 checks, 0 failed`, rc=0 (`ev/selftest-base.txt`). Re-derived.
+- RESULT failing test first: the base production script with the head's self-test runs `206 checks, 16 failed`, rc=1, every one a retry arm (`ev/selftest-hybrid-base-script-head-tests.txt`). Re-derived, matching the body's 16.
+- Mutation proof, my own runner (`ev/mutants.txt`; file restored, `git status` clean):
+  - M0 null: 0 failures.
+  - Killed, matching the body's counts: M1 15, M2 9, M4 2, M5 5, M6 1, M7 2, M8 5.
+  - My extra mutants killed: R2 (429 not transient) 2, R3 (5xx not transient) 9, R4/R5/R6/R7 (each of the four call sites reverted to a bare `gh api`) 2/2/4/8, R8 (no sleep) 2, R9 (every stderr transient) 1, R10 (secondary-limit match dropped) 2.
+  - **Survived: R1 (budget 5) and R11 (unbounded)**, 0 failures each (Block 1).
+  - M3 (retry the POST) I did not re-run as written. The `post502` arm asserts 1 POST and no settle, and its count matches the body's 3 assertions.
+- Brief checks: the four reads (the pull request twice via `check_pr`, the comments, CODEOWNERS, the files) all go through `gh_read`, and R4 to R7 show each is pinned. A 404, 401, 422 or permission 403 is not retried (M2/M4 killed). The backoff is bounded in code (`READ_TRIES=4`, 5/15/45 s), but no test pins the bound (Block 1). A primary-rate-limit 403 (`API rate limit exceeded`) classifies refuse, consistent with the brief's "secondary-limit 403" only.
+- Figures at this head:
+  - Seam rule `awk ...`: 10 lines (`ev/seams.txt`). Re-derived; every line is dispositioned in the body's table.
+  - `tests/structure.py`: `STRUCTURE RATCHET PASSED`. Re-derived.
+  - `score.py --diff`: `Architecture score: dS +0.0000 NULL`. Re-derived.
+  - `closure.py select`: `MODE: SCOPED -- 0 script(s) run, 33 scoped out.` Re-derived.
+  - `policy_lint.mjs --budgets`: rc=0. Re-derived.
+  - `ci_predict.py` and the `run_always` lines: not re-run, so not re-derived here.
+  - The 2667 s / train 8 figures come from the brief's train logs, which are not in this container: not re-derivable.
+  (`ev/figures.txt`)
+- Merge: `git merge-tree --write-tree origin/main e4b3e01a` gives clean tree `b46b5b4be9`, rc=0 (`ev/merge-tree.txt`). No claim file and no VERSION, manifest or notes heading is touched (the CI `no version edit` line agrees).
+- Carry audit (standing rule 19): `carry_audit.py --roster-ref origin/handoff/audit-r10-roster check` over the body gives `2 finding item(s): 2 routed, 0 unrouted, 0 bad destination(s)` (`ev/carry-audit-body.txt`). Without `--roster-ref`, as CI runs it, it reports 1 bad destination (`ev/carry-audit-body-noref.txt`), which is Block 2. The forward-carry of the JWT `curl` GET and the carry path's `git fetch` is present in the roster group's `carry` list.
+- CI on this head, check-runs API (49 runs): `instrument-self-tests` (which runs this self-test), `closures`, `mutation`, `fast (3.14)`, `typing`, `coverage`, `arch-score`, `budget-raise-gate`, `policy-docs` and the CodeQL analyses all passed. Red runs:
+  - `pr-contract`: 2 runs, both failure (Block 2).
+  - `nightly-status`: failure. It grades main, not this PR, and the diff reaches nothing it reads.
+  - `ci-ratchet`: skipped on this head.
+- Head: `e4b3e01abb48644841202e7d7b0ae93107258bd3` is the PR head, and the head in the body. I re-read it before writing this verdict (`ev/HEAD.txt`).
