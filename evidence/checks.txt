@@ -1,0 +1,77 @@
++ cd /home/user/rev
++ H=cd5693f4dfde160c2a1d61ce9557027b64e91bc1
++ MB=b0b2d7697f8c5baaef2c082d9bf3242b57249e68
++ git rev-parse HEAD
+cd5693f4dfde160c2a1d61ce9557027b64e91bc1
++ git merge-tree --write-tree origin/main cd5693f4dfde160c2a1d61ce9557027b64e91bc1
+d5f358be6b6c93bc66fb6856d8ea88d1ef02f5ba
++ echo merge-tree rc=0
+merge-tree rc=0
++ PYTHONPATH=tests/hastub
++ python3 tests/config_flow_steps.py
++ tail -3
+    import voluptuous as vol  # noqa: E402
+    ^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'voluptuous'
++ python3 tests/structure.py
++ tail -3
+  ok   seam_cut_total 423 <= 423
+
+STRUCTURE RATCHET PASSED
++ git diff --name-only b0b2d7697f8c5baaef2c082d9bf3242b57249e68...HEAD -- VERSION RELEASE_NOTES.md custom_components/heatpump_optimizer/manifest.json tests/golden/claimed_drift.txt tests/golden/card_claimed_drift.txt
++ wc -l
+0
++ git grep -n '_options_suggested_numeric\|_suggested_entity\b' -- custom_components
++ echo grep rc=1
+grep rc=1
++ git grep -n suggested_value -- custom_components
+custom_components/heatpump_optimizer/config_flow.py:684:    Both mechanisms count. ``description={"suggested_value": x}`` pre-fills
+custom_components/heatpump_optimizer/config_flow.py:693:    if isinstance(description, dict) and "suggested_value" in description:
+custom_components/heatpump_optimizer/config_flow.py:694:        values.append(description["suggested_value"])
+custom_components/heatpump_optimizer/config_flow.py:897:    absent, so the stored value rides only as a ``suggested_value``. Numeric
+custom_components/heatpump_optimizer/config_flow.py:903:        return vol.Optional(key, description={"suggested_value": current[key]})
+custom_components/heatpump_optimizer/config_flow.py:1206:                    field, description={"suggested_value": suggested[field]}
+custom_components/heatpump_optimizer/config_flow.py:1431:#: A ``default`` pre-fills the field the same way a ``suggested_value`` does,
+custom_components/heatpump_optimizer/config_flow.py:1438:#: empty slot, and clearing a signal could not stick. A ``suggested_value``
+custom_components/heatpump_optimizer/config_flow.py:1815:                row.key, description={"suggested_value": existing}
+custom_components/heatpump_optimizer/config_flow.py:1823:                    row.key, description={"suggested_value": suggestion}
+custom_components/heatpump_optimizer/config_flow.py:1832:                "suggested_value": current.get(row.key, default.fallback)
+custom_components/heatpump_optimizer/config_flow.py:1956:            vol.Optional(key, description={"suggested_value": values[key]})
+custom_components/heatpump_optimizer/config_flow.py:2355:            schema = self.add_suggested_values_to_schema(
+custom_components/heatpump_optimizer/config_flow.py:2391:        # through add_suggested_values_to_schema, which fills by top-level key:
+custom_components/heatpump_optimizer/config_flow.py:2397:            schema = self.add_suggested_values_to_schema(
+custom_components/heatpump_optimizer/config_flow.py:2848:                            "suggested_value": mode == TWO_ZONE_MODE_ON
+custom_components/heatpump_optimizer/config_flow.py:2946:                            "suggested_value": bool(
++ python3 tools/audit/archscore/score.py --diff 6d86acc909f7fc465e5736771daf8fa45c1373a4
++ tail -6
+Architecture score: dS +0.3640 IMPROVES
+  duplication_copies 35 -> 34  +0.3628
+  coord_footprint 2410 -> 2408  +0.0012
++ F=custom_components/heatpump_optimizer/config_flow.py
++ for m in guard ret
++ '[' guard = guard ']'
++ python3 -
++ git diff --stat
+ custom_components/heatpump_optimizer/config_flow.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
++ echo 'MUTANT guard:'
+MUTANT guard:
++ PYTHONPATH=tests/hastub
++ python3 tests/config_flow_steps.py
++ grep -E 'FAILED|PASSED'
++ tail -4
++ git checkout -- custom_components/heatpump_optimizer/config_flow.py
++ for m in guard ret
++ '[' ret = guard ']'
++ python3 -
++ git diff --stat
+ custom_components/heatpump_optimizer/config_flow.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
++ echo 'MUTANT ret:'
+MUTANT ret:
++ PYTHONPATH=tests/hastub
++ python3 tests/config_flow_steps.py
++ grep -E 'FAILED|PASSED'
++ tail -4
++ git checkout -- custom_components/heatpump_optimizer/config_flow.py
++ git status --short

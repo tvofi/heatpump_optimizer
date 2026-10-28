@@ -1,0 +1,33 @@
+cd5693f4dfde160c2a1d61ce9557027b64e91bc1
+HEAD unmodified:
+ALL 505 checks PASSED
+== MUTANT guard_false
+-    if key in current:
++    if False:
+  FAIL and every one of them re-renders its stored value as that field's pre-fill  [12 page(s) carry a two-armed slot; wrong: {'quick_setup': {'wood_tank_top_entity': <object object at 0x7fdce50cd590>, 'wood_tank_bottom_entity': <object object at 0x7fdce50cd590>}}]
+RESULT flow_checks_covered=481/482 checks
+1 of 505 checks FAILED
+== MUTANT guard_true
+-    if key in current:
++    if True and key in current or True:
+== MUTANT ret_del
+-    return vol.Optional(key)
++    pass
+  FAIL and every one of them re-renders its stored value as that field's pre-fill  [12 page(s) carry a two-armed slot; wrong: {'quick_setup': {'None': <object object at 0x7f1f3af45590>}}]
+  FAIL the quick path asks the five house questions plus the building questionnaire  [keys=['None', 'buffer_tank', 'building_era', 'building_foundation', 'building_structure', 'dhw_tank', 'heated_area_m2', 'lower_floor_emitter', 'two_zone', 'upper_floor_emitter', 'wood_buffer_tank', 'wood_furnace']]
+RESULT flow_checks_covered=476/482 checks
+6 of 505 checks FAILED
+== MUTANT ret_required
+-    return vol.Optional(key)
++    return vol.Required(key)
+== MUTANT suggest_as_default
+-        return vol.Optional(key, description={"suggested_value": current[key]})
++        return vol.Optional(key, default=current[key])
+RESULT flow_checks_covered=482/482 checks
+ALL 505 checks PASSED
+== BASE b0b2d76:
+ALL 505 checks PASSED
+== archscore at ad4dd15a5:
+Architecture score: dS +0.3628 IMPROVES
+  duplication_copies 35 -> 34  +0.3628
+cd5693f4dfde160c2a1d61ce9557027b64e91bc1
