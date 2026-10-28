@@ -10885,6 +10885,50 @@
     "pr": 2900
    },
    "brief": "Own the standing triage seat's batch pull requests to a merge-ready head, one at a time (resume.pr). The batch file and the pull request's Figures section must agree on every figure, each produced by the command printed beside it at the merge base. Read dev/governance/roles/proposal-triage.md for what a batch may and may not defer, and dev/governance/rules/brief-citations.md before writing any figure. The batch rules and routes only: nothing is implemented and no roster file is edited in its diff."
+  },
+  {
+   "group": "R10-FRICTION-FIXER-MD",
+   "lane": "C",
+   "kind": "rca",
+   "class": "rca",
+   "severity": "low",
+   "size": "S",
+   "issues": [
+    2895
+   ],
+   "fixes": [],
+   "findings": [],
+   "wave": 6,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "dev/governance/roles/fixer.md",
+    "dev/audit/rca/"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a seat",
+    "note": "fly-in registered by the disposition seat (r10s6 s7) for a [policy] recurring-friction issue with no group; mirrors R10-FRICTION-GATE-SCOPING"
+   },
+   "brief": "Root-cause seat for issue #2895, the governance cron's recurring-friction key `tools/audit/briefs/fixer.md` (5 distinct pull requests, 7 entries, in the v7.0.4..origin/main window; policy_lint's key normalisation folds every citation of the fixer contract, `fixer.md`, `fixer.md#N`, `fixer-step-N`, `fixer-env`, to that key; the file now lives at dev/governance/roles/fixer.md). This is the key's third filing: #2378 was disposed by R10-POLICY-FIXER-MD (PR #2704) and the key refiled, so per CLAUDE.md and dev/governance/roles/root-cause.md it owes a record, not another edit-and-hope. Read the citing bodies' Friction lines and group the instances by the step they name. Seeds from merged bodies since 2026-10-22 (re-derive, do not trust): step 5 / interpreter on PATH (#2557, #2585, #2631, #2671, #2683) which R10-FLY-CLOUD-SETUP-TOOLCHAIN (#2709) then addressed at the environment; step 2 (#2563, #2709); step 7 (#2609); step 17 (#2620); step 6 / handoff boilerplate (#2631); cloud-seat environment cost (#2704, #2889, #2903). Decide per group whether the contract is unclear, unfollowed, already repaired (so a recorded refusal with the post-#2709 count), or wrong (process state b, c or d), and say whether the key is a path alias that keeps counting one repaired cause. Note the stale `tools/audit/briefs/fixer.md` literal that .claude/hooks/stop-selfcheck.sh still names. Re-derive the count at your merge base with node tools/policy/policy_lint.mjs --stats --since v7.0.4 and --since v7.0.5 (the bot reports no pull request at all in the v7.0.5 window). Per root-cause.md the key owes a named cause, a process state (a-d), a cost test with numbers, and a countermeasure or a recorded refusal, filed under dev/audit/rca/. A policy-file edit is generated into .claude/rules/ and .cursor/rules/ by node tools/policy/rules_sync.mjs and capped by dev/governance/config/policy_budgets.json; it is approved under the orchestrator's mandate (scope all). Closes the issue on delivery."
   }
  ]
 }
