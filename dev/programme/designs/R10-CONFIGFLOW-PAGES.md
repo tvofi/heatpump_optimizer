@@ -2,6 +2,8 @@
 
 The group's architect note, extended (`dev/governance/roles/designer.md`). It lives on `design/R10-CONFIGFLOW-PAGES` only and never merges. Issue #2238 (class P2, this group is the last open one listing it and the only one closing it). Findings D7-s2-55 (arch2-05), D7-s2-56 (arch2-06, re-classed bug by the catch-up judge), ARCH2-s5-F1.
 
+**Round 2 of 3.** This adds Arm A3' (after Arm A), the B/C2 conflict resolution (Arm C2) and the #2238 disposition rule, answering the one revise point of `design-verdict/R10-CONFIGFLOW-PAGES` `d2d710ad8`. Nothing else changed. `git diff aaf8af512 6349205b6 -- custom_components/heatpump_optimizer/config_flow.py tests/config_flow_steps.py` is empty, so every line cited still holds at current main.
+
 **Read at.** `origin/main` `aaf8af512c1fb9aeabdf58dbb5131928f432d4d1`. Both predecessors are merged, so there is no handoff head: R10-RATIO-ANCHOR (#2698, `2f88db054`, no `config_flow.py` hunk) and R10-HEAT-METER (#2854, `ea36188c3`, one `_F` row and one import). Prototypes at `01d9d0be2` (arch-s2 patches 04, 08) and `3930b421a` (branch `handoff/audit-r10-arch2-s5`: F1 and the patch-08 overlay). Patches 04, 08 and F1 each apply clean at `aaf8af512`, and together; the overlay is byte-identical to 08 less `index` lines.
 
 ## Premise, re-measured at `aaf8af512`
@@ -37,6 +39,26 @@ Every other touched symbol only calls those two. `tests/seam_map.json` has no `c
   - every error key and placeholder is unchanged;
   - only a rejected form's cleared `_STORED` slots render differently.
 
+**Arm A3', the price-entity clear** (in scope by the orchestrator's ruling; round 2 answers `design-verdict/R10-CONFIGFLOW-PAGES` `d2d710ad8`). It lands in arm A's pull request, after A's template, since it edits `_entities_errors`, the predicate A moves out.
+- **Defect.** Today the entities page judges `price_entity_required` over `user_input.get(CONF_PRICE_ENTITY) or current.get(CONF_PRICE_ENTITY)` (config_flow.py:3405-3411). A cleared `_STORED` slot is absent from the submit, so the stored entity satisfies the check, and then `_clear_absent` saves `None`. `clear_required.py` reads `type=menu errors=None stored_price_entity=None` at `aaf8af512` and under patch 08. `config_flow.py` is unchanged from `aaf8af512` to `6349205b6`, so every line cited here holds.
+- **Fix.** `_entities_errors(cleaned, current)` judges both the source and the entity over `view = {**current, **cleaned}`:
+  - `source = view.get(CONF_PRICE_SOURCE, DEFAULT_PRICE_SOURCE)`;
+  - when `source == PRICE_SOURCE_ENTITY` and `not view.get(CONF_PRICE_ENTITY)`, the result is `{CONF_PRICE_ENTITY: "price_entity_required"}`.
+
+  The view reads the clear because `_clear_absent` writes a cleared `_STORED` slot back as `None` (2264-2267). It is the rule `async_step_hot_water_tank` already uses over `merged` (3540-3544). The tibber branch keeps `user_input.get(CONF_TIBBER_TOKEN) or current.get(...)` unchanged: the token row's default is `''`, not `_STORED` (row at 1563), so `_clear_absent` never nulls it, and the verdict's sibling grep found no other live site.
+- **Failing test** (`tests/config_flow_steps.py`, beside the `price_entity_required` cases at 742 and 3335):
+  - **Setup.** Stored `price_source: entity` and `price_entity: sensor.price`. Submit the entities page with `price_source: entity` and the price entity absent (cleared).
+  - **Assert.** `type == "form"` and `errors == {CONF_PRICE_ENTITY: "price_entity_required"}`. The entry's options are unchanged, with `price_entity` still `sensor.price`.
+  - At main it fails: `type=menu`, `None` saved.
+  - **Null control.** The same submit with `price_entity: sensor.other` saves `sensor.other` with no error, at main and at head.
+  - **Second control.** A switch to `price_source: tibber` with token `t` raises no error and saves the token. The absent price entity is still nulled by `_clear_absent`, as at main; that behaviour is unchanged.
+- **Mutants**, both killed by the failing test:
+  - judge over `{**current, **flat}`, the pre-clear view;
+  - restore `user_input.get(CONF_PRICE_ENTITY) or current.get(CONF_PRICE_ENTITY)`.
+- **Harness.** Port `dev/programme/designs/R10-CONFIGFLOW-PAGES-probes/clear_required.py` into `dev/audit/harnesses/r10_configflow_pages.py` (would be new) as a `--clear-required` arm beside the re-render arm. It prints `type=menu stored_price_entity=None` at base and `type=form errors=price_entity_required` at head. `--clear-required --null` submits `sensor.other` and reads `stored_price_entity='sensor.other'` on both trees.
+- **Invariants, amended.** Arm A's "an accepted submit saves byte-identical options, and every error key is unchanged" keeps exactly one deliberate exception: on the entities page, a submit whose resolved source is `entity` and whose price entity is cleared changes from accepted to refused. A3's record-at-main comparison excludes that case and names it, as `A3-exception: price_entity_cleared_under_entity_source`. A3 also asserts that the exclusion predicate matches exactly one of its fixture cases, so the exception cannot grow silently. Every other A3 case must still compare equal.
+- **Behaviour change, user-visible.** A submit that saved `price_entity: None` is now refused, with the existing `price_entity_required` error. The PR body's behaviour section names it. The translation key already exists in `strings.json` and the translations, so no string moves.
+
 **Arm B: the suggested-optional helper** (patch 04, D7-s2-55). `_suggested_optional(current, key)` replaces both helpers. It has three call sites: `_field_marker` and the two wood probes in `_quick_setup_schema`. No behaviour moves.
 
 **Arm C: wizard widgets from the registry** (F1, ARCH2-s5-F1).
@@ -44,6 +66,7 @@ Every other touched symbol only calls those two. `tests/seam_map.json` has no `c
 - The six wizard pages take all 44 widgets from their rows. Defaults and markers stay the wizard's own.
 
 **Arm C2, the sibling sites:** the same move on the 20 first-screen widgets (`_user_credentials_fields`, `_user_sensors_fields`, `_quick_setup_schema`'s wood probes), as a value swap to `_prefill_row(KEY).widget`, with markers and defaults untouched. Spike `dev/programme/designs/R10-CONFIGFLOW-PAGES-probes/F1_plus_F1b_spike.patch`: other_spelled_twice 20 -> 0, golden_equal 1.
+- **Conflict with arm B, resolved.** Patch 04 (arm B) and the spike conflict textually at `_quick_setup_schema`'s two wood probes (about config_flow.py:1221 on the 08+04 tree). Patch 04 rewrites the marker side (`_suggested_entity(K, current)` becomes `_suggested_optional(current, K)`), and the spike rewrites the value side (`_entity_of(["sensor"])` becomes `_registry_widget(K)`, the spike's lookup of `_OPTION_FIELDS`). So "apply clean together" holds for 04, 08 and F1, but not for F1b. The resolution keeps both sides on each probe: `_suggested_optional(current, CONF_WOOD_TANK_TOP_ENTITY): _registry_widget(CONF_WOOD_TANK_TOP_ENTITY)`, and the same for `CONF_WOOD_TANK_BOTTOM_ENTITY`. That combined A+B+C+C2 tree is the one the design reviewer measured at **dS +3.3700** (`score.py --diff aaf8af512`; duplication_copies 35 -> 28, literal_clone_copies 185 -> 123). Arm C2 lands after arm B, so the fixer applies this resolution and re-runs `wizard_widgets.py --all` (other_spelled_twice 0) and the `_field_marker` and quick-setup tests.
 
 **Arm D: the carried tripwires.**
 - Drop `dr` from the `homeassistant.helpers` import and lower `archscore.unused_boundary_imports` 1 -> 0.
@@ -117,13 +140,15 @@ wizard/first screens: marker(key, default) -> _OPTION_FIELDS[key].widget (no sec
 | C2 | +0.1119 more (C + C2 = +0.5850) | literal_clone_copies 133 -> 123 |
 | D | 0, gate only | unused_boundary_imports 1 -> 0 |
 
-- The combined spike without C2 reads **dS +3.2581**; with C2 it is about +3.37. That is about 15% of the programme's +22.7. Two metrics, with duplication_copies about 83% of this group's share; the 40% cap binds the plan, not the group (decision 0015).
+- The combined spike without C2 reads **dS +3.2581**; with C2 and the B/C2 conflict resolution (arm C2) it reads **dS +3.3700**, measured by the design reviewer. A3' rewrites one predicate inside `_entities_errors` and is not expected to move a scored metric; the fixer's `score.py --diff` at head confirms it. The +3.3700 is about 15% of the programme's +22.7. Two metrics, with duplication_copies about 83% of this group's share; the 40% cap binds the plan, not the group (decision 0015).
 
 ## Decisions routed
 
-- **decision: orchestrator.** A sibling of the class, which no finding names: the entities page judges `price_entity_required` over `submit or current`. A user who clears the stored price entity under `price_source: entity` saves `price_entity: None` with no error, at main and under patch 08 (`clear_required.py`: `type=menu`, `stored_price_entity=None`).
-  - Recommended: in scope, as arm A3'. `_entities_errors` judges the entity over `{**current, **cleaned}`, as `_disinfection_errors` already does, with its own failing test. That changes behaviour on that one submit.
-  - Otherwise, a carry with the probe.
+- **Settled (orchestrator): A3' is in scope.** It is designed in Arm A3' above. The verdict's sibling grep closes the class with A3' alone.
+
+## #2238 disposition rule, for the fix reviewer
+
+This is the last group that lists #2238, and its `fixes` field holds it. The PR body therefore writes no closing keyword for #2238 until every other #2238 finding has a written disposition in that body: fixed by a named merged PR, fixed here, or carried to a named group or brief. The fix reviewer checks that list against the issue's findings at the head and returns `blocked` on a closing keyword that precedes a complete list. A keyword written inside a code span fires nowhere, so the body must not carry one there either.
 
 ## Notes for the fixer
 
@@ -133,3 +158,6 @@ wizard/first screens: marker(key, default) -> _OPTION_FIELDS[key].widget (no sec
 - Carry: R10-CONFIGFLOW-PAGES (item literal-clones). Lower `archscore.literal_clone_copies` to the head's measured value, and give the merge-base figure, the head figure and the drop in the commit message.
 - Carry: R10-CONFIGFLOW-PAGES (item grid-connection-flatten). grid_connection's `{CONF_SILENT_MODE_WINDOWS: "", **user_input}` default runs before the template flattens the sections. Pin it with a test that clears the window inside its section.
 - Carry: R10-CONFIGFLOW-PAGES (item close-2238). This is the last group listing #2238, and `fixes` holds it. Before writing a closing keyword, check every other #2238 finding is dispositioned.
+- Carry: R10-CONFIGFLOW-PAGES (item dr1-b-c2-conflict). Patch 04 and the C2 spike conflict at the two wood probes. Resolve as `_suggested_optional(current, K): _registry_widget(K)`, which is the tree measured at dS +3.3700 (arm C2).
+- Carry: R10-CONFIGFLOW-PAGES (item dr1-close-2238-disposition). Every other #2238 finding is dispositioned in the PR body before any closing keyword, and the fix reviewer checks it (the rule above).
+- Carry: R10-CONFIGFLOW-PAGES (item a3p-test). The A3' arm's failing test, its two controls, the two mutants, the `--clear-required` harness arm and the A3 exception, as designed above.
