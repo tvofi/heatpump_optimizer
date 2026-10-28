@@ -1,0 +1,9 @@
+  ok   the summary run keeps the refusal's rc
+  ok   summary stdout carries no passing step's per-test chatter
+  ok   and carries the REFUSE line with its reason (null control: the refusal stays visible)
+  ok   and the refusal's failing lines
+  ok   the last line is the result with rc, naming a unique log under TMPDIR
+  ok   and that log holds the full output
+  ok   PREPR_VERBOSE=1 prints the full output on stdout
+  ok   the main flow starts the summary after step 1 and ends on its result line
+RESULT arm12 prepr.sh: 8 passed, 0 failed

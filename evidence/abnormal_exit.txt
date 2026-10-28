@@ -1,0 +1,7 @@
+### set -u abort mid-flow, summary mode:
+  ok       quiet                  held
+rc=127
+### same, PREPR_VERBOSE=1:
+  ok       quiet                  held
+bash: line 25: UNSET_VAR: unbound variable
+rc=127

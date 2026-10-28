@@ -1,0 +1,5 @@
+structure rc=0
+env_drift --claims-only rc=0
+Architecture score: dS +0.0000 NULL
+VERSION/manifest/notes untouched
+  MODE: SCOPED -- 0 script(s) run, 33 scoped out.
