@@ -1,0 +1,16 @@
+3280:            merged = {**current, **flat}
+3327:            current = {**current, **user_input}
+3482:        view = {**current, **submit}
+3581:        merged = {**current, **submit}
+3626:        merged = {**current, **submit}
+      2 away
+      7 building
+      1 comfort
+      9 entities
+      9 entities_metering
+      9 entities_pump
+      1 grid_fees
+      1 hot_water
+      1 hot_water_pumps
+      2 hot_water_tank
+      2 solar_pv
