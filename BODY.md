@@ -20,11 +20,14 @@ their countermeasures are drafted and routed, not landed.
 
 ## Head
 
-`581079f20a536c0261158bc86f49f5b10e88f617`: the authored code head. It adds two commits to the previous
-code head `fbfa72a1d92f77a1271838b4691806f3aa7267c1`, which was one commit on `6eb552157`: `carry-2733.json` (the two
-`Carry: #2733` items, #2875 and #2855's key) and its `tests/closures.json` entry. The merge base and
-`origin/main` at measurement is `6eb552157`. Nothing merges main. Every figure in the record was taken at
-`6eb552157`; the histogram window is `v7.0.4..origin/main` with `v7.0.4` at `b448d260`.
+`73b1b404879bde41f2a741ccf3a7f9feb2b34fde` merges the authored code head `581079f20a536c0261158bc86f49f5b10e88f617` and then merges origin/main `f844df1fe` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
+
+`633d4ec4395b9ba8445b5cccbb88bbb9445469cd` is the authored code head. It adds one commit to `581079f20a536c0261158bc86f49f5b10e88f617`, which had added
+`carry-2733.json`: this one deletes that file and its `tests/closures.json` entry, because R10-ORCH-ROSTER-SCHEMA is live
+(carries-open) and lists #2733, so a carry file was a second destination. Both items now sit on that group's brief at
+`c3f563fdc` on handoff/audit-r10-roster. The previous code head is `581079f20`, on `fbfa72a1d92f77a1271838b4691806f3aa7267c1`,
+one commit on `6eb552157`. The merge base and `origin/main` at measurement is `6eb552157`. Nothing merges main. Every figure
+in the record was taken at `6eb552157`; the histogram window is `v7.0.4..origin/main` with `v7.0.4` at `b448d260`.
 
 ## Mutation proof
 
@@ -94,7 +97,7 @@ merged PRs' history, not this head's.
 
 - **A1, the roster index.** `rosterIssues()`'s no-argument path reads
   `roster_lib.ROSTERS_DIR` as well, so the live-group refusal fires in CI.
-  Carry: R10-FLOW-TOOLKIT-MODEL (the carry text is on handoff/audit-r10-roster at `ba973babd`; #2733 has no live group)
+  Carry: R10-FLOW-TOOLKIT-MODEL (the carry text is on handoff/audit-r10-roster at `ba973babd`)
 - **A2, the merge-time fold.** The orchestrator writes each `Carry: <GROUP>`
   body item's id into the destination group's brief before merging, with the
   post-fold id assertion. Carry: R10-FLOW-TOOLKIT-MODEL
@@ -107,8 +110,8 @@ merged PRs' history, not this head's.
 - **#2479's cross-run count** is supplied by the record's section 5 (per check,
   over the window); its policy sentence is the owner's. Carry: #2437
 - **#2875 is unowned** — an open friction issue no roster group lists, the
-  routing audit's subject; carried in `dev/programme/carries/carry-2733.json`.
-  Carry: #2733
+  routing audit's subject; its text is on handoff/audit-r10-roster at `c3f563fdc`.
+  Carry: R10-ORCH-ROSTER-SCHEMA
 - **The ci-autofix wait bound and the measured-pin rule** land in
   `.claude/rules/ci-autofix.md` after the owner's approval. Carry: #2429
 - **The carry-control enumerator lint** in `brief_lint`, and the sentence that a
@@ -117,8 +120,9 @@ merged PRs' history, not this head's.
 - **#2612's row** (a seat cannot land a carry into a brief or a roster) is
   dispositioned by the record's section 8 as section 3's cause; it does not stay
   with `R10-BRIEFS-FOLD`, which is done and did not implement it. Carry: #2438
-- **#2855's key** is dispositioned in the record; the mechanism is #2733's, carried in the same file.
-  Carry: #2733
+- **#2855's key** is dispositioned in the record; the mechanism is #2733's, carried to R10-ORCH-ROSTER-SCHEMA
+  (same roster text, `c3f563fdc`).
+  Carry: R10-ORCH-ROSTER-SCHEMA
 - **#2452's census cost** is a recorded refusal: the cheaper detector is the
   spelling list the census replaced. Carry: dismissed: cheaper census is the spelling list that failed
 
@@ -143,6 +147,7 @@ merged PRs' history, not this head's.
   destination brief (5 PRs in the window). Carry: #2438
 - `roster`: stale: the group's own carry names seven issues; the roster holds
   eleven, and the four it omits all fired in this window. Carry: dismissed: all eleven dispositioned in the record
+
 
 
 
