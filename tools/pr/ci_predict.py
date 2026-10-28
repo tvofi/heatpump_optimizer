@@ -332,11 +332,17 @@ _RECORD_DRIVER = ("import sys; sys.path.insert(0, 'tests'); import closure; "
                   "sys.exit(closure._exec_record(sys.argv[1], sys.argv[2], ['--self-test']))")
 
 
-def self_test_hosts(root: Path, f: str, closures: dict, inert_reads: dict) -> list[str]:
-    """The scripts whose table lists `f` and whose source runs its self-test."""
+def self_test_hosts(root: Path, f: str, closures: dict) -> list[str]:
+    """The scripts whose closure lists `f` and whose source runs its self-test.
+
+    `closures` only: a file a host lists under `inert_reads` alone is one it
+    reads as text (#2910 review 1: budget_raise_gate.py and selftest_wiring.py
+    in tests/entities.py's, each a false red on a green tree). A file is never
+    its own host.
+    """
     name, hosts = Path(f).name, []
-    for script in sorted(set(closures) | set(inert_reads)):
-        if script == f or f not in set(closures.get(script, ())) | set(inert_reads.get(script, ())):
+    for script in sorted(closures):
+        if script == f or f not in set(closures[script]):
             continue
         try:
             lines = (root / script).read_text(errors="replace").splitlines()
@@ -373,7 +379,7 @@ def self_test_reads(root, changed, closures, inert_reads, closure, scripts=None,
             continue
         if "--self-test" not in (root / f).read_text(errors="replace"):
             continue
-        hosts = self_test_hosts(root, f, closures, inert_reads)
+        hosts = self_test_hosts(root, f, closures)
         if not hosts:
             continue
         with tempfile.TemporaryDirectory() as td:
@@ -872,8 +878,9 @@ def main(argv: list[str] | None = None) -> int:
             print(f"APPLIED inert_reads {script}: {f}")
         if added:
             scripts = set()
+            notes = []
             rc, preds, base = predict(root, args.base, None, scripts, args.body, args.only,
-                                      args.record_self_tests)
+                                      args.record_self_tests, notes)
     if rc == 2:
         print(f"CI PREDICT: {base}")
         return 2
@@ -908,7 +915,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"CI PREDICT: {reds} predicted red(s) on {', '.join(jobs)} "
               f"against {base[:12]} -- repair before the handoff; {who}")
     else:
-        seen = (" unless a changed file's own self-test makes it" if args.record_self_tests else "")
+        ran = args.record_self_tests or args.only == "self-test-reads"
+        seen = (" unless a changed file's own self-test makes it" if ran else "")
         print(f"CI PREDICT: no closures, fast, wave-script or instrument red predicted against "
               f"{base[:12]} (a data-file read is not seen{seen})")
     return rc
@@ -1002,10 +1010,13 @@ def self_test_reads_self_test(root: Path) -> int:
         t = Path(d)
         (t / "tests").mkdir()
         h, n = "tests/entities.py", "tests/harness_headers.py"  # real keys; scratch sources
-        (t / h).write_text("# runs `throwaway_git.py --self-test`\n")
-        (t / n).write_text("# lists throwaway_git.py as text\n")
-        (t / f).write_text("# --self-test\n")
-        listed = {h: [f, h], n: [f, n]}
+        far = "\n" * (SELF_TEST_WINDOW + 1)
+        i = "tests/doc_claims.py"  # lists the file under inert_reads alone, and names its self-test
+        (t / h).write_text("# runs throwaway_git.py\n# through its --self-test\n")
+        (t / n).write_text(f"# lists throwaway_git.py as text{far}# its own --self-test\n")
+        (t / i).write_text("# throwaway_git.py --self-test\n")
+        (t / f).write_text("# throwaway_git.py --self-test\n")
+        listed = {h: [f, h], n: [f, n], f: [f]}
 
         def run(files, reads, inert_reads, changed=(f,), why=None):
             def record(_root, _f, out):
@@ -1015,16 +1026,19 @@ def self_test_reads_self_test(root: Path) -> int:
                 return why
             calls, notes = [], []
             closure.CLOSURES = t / "closures.json"
-            closure.write_closures(closure.CLOSURES, {"closures": listed, "inert_reads": inert_reads})
+            ir = {i: [f], **inert_reads}
+            closure.write_closures(closure.CLOSURES, {"closures": listed, "inert_reads": ir})
             try:
-                preds = self_test_reads(t, set(changed), listed, inert_reads, closure,
+                preds = self_test_reads(t, set(changed), listed, ir, closure,
                                         record=record, notes=notes)
             finally:
                 closure.CLOSURES = saved
             return preds, calls, notes
 
         cases = [
-            ("an INERT read the host's inert_reads omit is predicted, for the host that runs it only",
+            ("an INERT read the host's inert_reads omit is predicted for the one host that runs it: "
+             "a self-test named two lines from the file counts, one past the window does not, an "
+             "inert_reads-only listing does not, and the file is never its own host",
              run([inert], [inert], {}), lambda p, c, n: [x[1].split(":")[0] for x in p]
              == [f"SELF-TEST READS INERT {h}"] and inert in p[0][1]),
             ("a plain read the host's closure omits is UNDER-SCOPED",
