@@ -1,0 +1,11 @@
+  entities: stored_rows=9 rejected=1 stale_slots=9 [form {'tibber_token': 'invalid_tibber_token'}]
+  entities_metering: stored_rows=9 rejected=1 stale_slots=9 [form {'freq_control_mode': 'freq_control_needs_number'}]
+  comfort: stored_rows=1 rejected=1 stale_slots=1 [form {'min_temperature': 'min_above_target', 'max_temperature': 'max_below_target', 'comfort_temp_day': 'comfort_outside_band', 'comfort_temp_night': 'comfort_outside_band'}]
+  hot_water: stored_rows=1 rejected=1 stale_slots=1 [form {'dhw_windows': 'invalid_dhw_windows'}]
+  hot_water_tank: stored_rows=2 rejected=1 stale_slots=0 [form {'dhw_disinfection_mode': 'disinfection_control_needs_entity'}]
+  building: stored_rows=7 rejected=1 stale_slots=7 [form {'mixing_valve_write_target_kind': 'flow_target_needs_two_zone'}]
+  grid: stored_rows=0 rejected=1 stale_slots=0 [form {'peak_tariff_months': 'invalid_peak_months'}]
+  grid_connection: stored_rows=0 rejected=1 stale_slots=0 [form {'silent_mode_windows': 'invalid_dhw_windows'}]
+  grid_fees: stored_rows=1 rejected=1 stale_slots=0 [form {'grid_fee_rules': 'invalid_grid_fee_rules'}]
+RESULT pages=9 rejected=9 stored_rows=30 stale_slots=27 count
+RESULT pages=9 rejected=7 stored_rows=30 shown_stored=19 count

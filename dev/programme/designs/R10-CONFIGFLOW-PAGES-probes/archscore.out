@@ -1,0 +1,21 @@
+# python3 tools/audit/archscore/score.py --diff origin/main, at aaf8af512c1fb9aeabdf58dbb5131928f432d4d1, one worktree per arm
+## p04
+Architecture score: dS +0.3628 IMPROVES
+  duplication_copies 35 -> 34  +0.3628
+## p08
+Architecture score: dS +2.3483 IMPROVES
+  duplication_copies 35 -> 29  +2.3483
+## pF1
+Architecture score: dS +0.4731 IMPROVES
+  literal_clone_copies 185 -> 133  +0.4731
+## pdr
+Architecture score: dS +0.0000 NULL
+  unused_boundary_imports 1 -> 0  (gate only)
+## all
+Architecture score: dS +3.2581 IMPROVES
+  duplication_copies 35 -> 28  +2.7850
+  literal_clone_copies 185 -> 133  +0.4731
+  unused_boundary_imports 1 -> 0  (gate only)
+## F1+F1b (F1_plus_F1b_spike.patch)
+Architecture score: dS +0.5850 IMPROVES
+  literal_clone_copies 185 -> 123  +0.5850
