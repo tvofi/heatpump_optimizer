@@ -1,42 +1,60 @@
-Fix review: blocked adf5ef473a74e4c25f654f01c4201244b771c147 claim-false: the four headings cite V132-V135, not the ruled V125-V128 (V133-V135 resolve nowhere, V132 is a different proposal); the body cites ruling_verdict at 456 and triage_refusal at 464, which are 455 and 466
-bus-nonce: 129cf07d6d76b4c7861aca787823feb5
+Fix review: merge e1adaa79ce167dfc0fd022280a44e3e38b565d54
+bus-nonce: ac991a7d38881129260f9e98ae7e9988
 
-Round 2, re-cut after `Fix review: blocked 54ac455ab... claim-false`. Measured at head `adf5ef473a74e4c25f654f01c4201244b771c147` from a detached worktree at that head; live state re-read immediately before writing is `OPEN`, `mergeStateStatus BLOCKED`, head unchanged (`evidence/head.txt`). `git diff --name-status $(git merge-base origin/main HEAD)...HEAD` is exactly two added paths, and no production line is written, so no mutant is drawn and the gate and mutation table were not re-run. `git merge-tree --write-tree origin/main HEAD` exits 0.
+# Fix review -- PR #2890, triage batch 41 (P212-P215)
 
-## The four prior findings: all answered
+Round 3, the second re-cut. The batch says round 1 blocked on `claim-false`, and batch 44
+(#2898, P219) says round 2 blocked on the V-number offset. Reviewed head:
+e1adaa79ce167dfc0fd022280a44e3e38b565d54, in a detached worktree at that head, against
+origin/main 07295d4ea. `dev/governance/roles/` has no diff between the merge base and
+origin/main.
 
-- **B1 answered.** `conflicting_claims_message` is gone from the record. It now names `merge_claim_refusal`, which is at `tests/env_drift.py:1844`, and its CONFLICTING CLAIMS text is verbatim at 1851-1857. `git grep conflicting_claims_message` matches only the triage file's own self-correction, and `git log --all -S conflicting_claims_message -- tests/env_drift.py` is empty, so the self-correction's statement re-derives (`evidence/prior-findings.txt`).
-  Carry: R10-996-RUNNER-CLAIMS
-- **B2 answered.** The 45-minute figure is retracted as one no window holds, and every replacement re-derives. `git log --format=%cI origin/handoff/audit-r10-roster` gives `5ffe924ae` 18:31:07Z to `9aed78e0e` 20:23:46Z, 1 h 52 m 39 s over 12 commits (6.39/h); the three tips `32b938f3e` 18:32:41Z to `d61e2834c` 20:17:47Z, 1 h 45 m 06 s; the ledger reads 18:34:13Z to 20:18:55Z, 1 h 44 m 42 s (`evidence/churn.txt`). The ledger read times are not in a file I can read; see C1.
-  Carry: dismissed: no implementing group (P212 is REJECT); the figure is corrected in place
-- **B3 answered.** `R10-996-RUNNER-CLAIMS` owns `tests/env_drift.py` and `tests/golden/claimed_drift.txt` and nothing else; `tools/pr/merge_main_bot.py` and `tools/pr/head_note.py` have no owner across all 212 groups, over `files` and `hot_files`. P214 now names the `edit-brief` that takes `merge_main_bot.py` into the group's `files`, and P213 states its exclusion as unmeasured benefit plus an unowned file, so the batch answers ownership one way: it pays the brief where the benefit is measured and does not where it is not (`evidence/roster.txt`).
-  Carry: R10-996-RUNNER-CLAIMS
-- **B4 answered.** `append-group` moved to the direct-callable set, and `nudge.md:105` runs it directly and is unchanged. The structural set is `wire-issue`, `unwire-issue`, `edit-brief`, `append-carry`, `set-after`, `drop-carry`; `roster_edit.py:703-705` lists all nine ops, and the instance's op, `wire-issue`, is inside the guarded set. `set-resume` appears in no role or template (`evidence/prior-findings.txt`).
-  Carry: R10-ROSTER-OPS
+## Results
 
-## Block
+- Headings: all four have the contract form `## P<n>: <title>`. P212-P215 are new, and main
+  ends at P211. Each heading's id matches its `Source:` line, and each resolves in the
+  orchestrator's `proposals.md` to the same title and stamp: `## V125` to `## V128`,
+  `orchestrator s7, 2026-10-27T20:20Z`. The +7 offset batch 44 measured is gone from this
+  branch.
+- Verdicts, through `roster_edit.ruling_verdict` at the head: P212 REJECT, P213 ACCEPT,
+  P214 ACCEPT, P215 ACCEPT. Changing P214 to DEFER reads DEFER, so the gate reads this file's
+  entries (`ev/ruling-verdicts.txt`).
+- P212's citations hold. `bus.sh:479` writes `<pr> <head> <reviewer> <nonce> <date> <model>`,
+  and `dispatched_to`'s match at line 313 keys on `pr hsha`, which supports the argument that a digest
+  of in-head files cannot see the instance. The three tips and both spans are exact:
+  18:31:07Z to 20:23:46Z is 1 h 52 m 39 s, and 32b938f3e to d61e2834c is 1 h 45 m 06 s. The
+  count is finding F1.
+- P213's citations hold. `review_packet.py:289` is the head-note string. `:411` is its
+  self-test arm. `head_note.py` defines only `head_offset` (20) and `prefix` (39), besides
+  `self_test` and `main`. The `update_pr.sh` usage block is as quoted.
+- P214's citations hold. `tests/env_drift.py` `merge_claim_refusal` starts at 1844, and the
+  quoted message is verbatim at 1851-1857. `merge_main_bot.py:139` is the
+  `skip-driver-refused` join.
+- P215's citations hold. `roster_edit.py:703-705` lists the nine ops. `sweep_template.md:63`,
+  `nudge.md:89` (set-stage) and `nudge.md:105` (append-group) are quoted correctly.
+  `set-resume` appears in no role and in no sweep template. `roster_queue.py:94-102` builds
+  the child `env`.
+- Roster facts at `d61e2834c` and at `9aed78e0e` (`ev/roster-facts.txt`): 212 groups.
+  R10-ORCH-REVIEW-PACKET is `done` with 10 carries and owns `review_packet.py`.
+  R10-996-RUNNER-CLAIMS is `carries-open` with 2 carries and owns `env_drift.py` and
+  `claimed_drift.txt`. R10-ROSTER-OPS is `done` with 6 carries and owns `roster_edit.py` and
+  `r10_roster_ops_mutants.py`. R10-RCA-FRICTION-RESIDUE `fixes` is `[2410, 2593]` at
+  `d61e2834c`. No group owns `tools/pr/merge_main_bot.py` or `tools/pr/head_note.py` in
+  `files` or `hot_files`.
+- `git merge-tree --write-tree origin/main <head>` exits 0 (tree `d9d867c84`). Live
+  check-runs at the head: 55 runs, 38 success, 17 skipped, 0 failure, 0 pending. There is no
+  red to answer. `VERSION`, the manifest and the notes heading are untouched.
 
-- **N1: all four headings cite a proposal id that resolves nowhere or to a different proposal.** `dev/programme/triage/s6-batch41.md:16` `(V132)`, `:54` `(V133)`, `:97` `(V134)`, `:145` `(V135)`, each beside a `Source:` line naming `proposals.md` V125, V126, V127, V128. Measured in `~/hpo-orch/r10s6/proposals.md`: `grep -c '^## V133 '` = 0, `'^## V134 '` = 0, `'^## V135 '` = 0; `'^## V132 '` = 1, but that entry is "triage rulings cite a V-number seven above their source" (line 731), not P212's subject. The three correct ids do resolve: `## V125`..`## V128` carry exactly P212-P215's titles, and both this PR's delivery row (`dev/programme/delivery/2890.md`) and the PR body say V125-V128. The headings are `Source + 7` — a P minus 80 counter where the ledger is P minus 87 (212-132=80, 212-125=87) — and batch40, already merged in origin/main, has the same shape: heading `(V131)`, Source V124, and `body-b40-correct.md` uses V124. A raw `grep -c V135` is now 2, not 0, because V132's own text quotes the string at proposals.md:741-742, which is why the resolvability test is the heading, not the bare string. Smallest change: `(V132)`->`(V125)`, `(V133)`->`(V126)`, `(V134)`->`(V127)`, `(V135)`->`(V128)` (`evidence/headings.txt`).
-  Carry: dismissed: the ruling text itself is the defect; no group owns a wrong citation
-- **N2: the body cites two def lines that are not where it says.** PR 2890, `## Mutation proof` (body line 23), writes "`ruling_verdict` at 456, `triage_refusal` at 464". `grep -n 'def ruling_verdict\|def triage_refusal' tools/audit/seat/roster_edit.py` gives 455 and 466 at the head, at the authored head `adf011c8f`, and at the base `ea36188c`; line 464 is a blank line, not inside `triage_refusal`. Smallest change: 456 to 455, 464 to 466 (`evidence/headings.txt`).
-  Carry: dismissed: body text; correct in place
-- **N3: "`nudge.md` steps 12 and 18 require set-stage" is false for step 18.** `nudge.md:89`, step 12, runs `roster_edit.py set-stage`. Step 18 (`nudge.md:111-115`, the file's last section) contains no `set-stage` and no `roster_edit`, and `state_docs.py`, which step 18 does name, has no `set-stage`. The claim is inherited from `sweep_template.md:63`'s own parenthetical, so cite that or cite step 12 alone; the narrowing still holds on step 12 and `nudge.md:105`. Re-cut lines 164 and 186 (`evidence/headings.txt`).
-  Carry: dismissed: the justification stands on step 12; drop "and 18"
+## Findings
 
-## Verified
-
-- **V1: the gate reads this file as the carries will cite it.** Re-ran the reader the body names, `roster_edit.ruling_verdict`: P212 REJECT, P213 ACCEPT, P214 ACCEPT, P215 ACCEPT, matching the body's own output (`evidence/citations.txt`). The reader is the seat's, not the author's; this is the only instrument I built.
-- **V2: every code citation resolves.** `merge_main_bot.py:139` is `"skip-driver-refused " + ",".join(driver_conflicts or text_conflicts)`; `review_packet.py:289` is the head-note refusal and `:411` its self-test arm; `roster_edit.py:703-705` lists the nine ops; `roster_queue.py:94-102` builds the child `env`; `head_note.py` holds `head_offset` (20) and `prefix` (39); `bus.sh:479` writes the dispatch record and `:313` matches on pr, head and nonce; `update_pr.sh`'s usage is `updatepr.sh <branch> <code-sha|-> <body-file>` (`evidence/citations.txt`).
-- **V3: the three destinations exist, own what the rulings say, and are at the stated stages.** At `origin/handoff/audit-r10-roster` `9aed78e0e`, 212 groups: `R10-ORCH-REVIEW-PACKET` done, 10 carries; `R10-996-RUNNER-CLAIMS` carries-open, 2; `R10-ROSTER-OPS` done, 6 (`evidence/roster.txt`).
-- **V4: record discipline holds.** The diff is two added paths; no `VERSION`, `RELEASE_NOTES.md` or manifest version moves; the new delivery row is under `dev/programme/`, which `closure.py` keeps INERT; `python3 tools/audit/carry_audit.py pr 2890` is `0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s)` (`evidence/carry-audit.txt`, `evidence/head.txt`).
-- **V5: no concluded red owes an answer.** The head's check runs are green or skipped, or still queued or in progress (`env-matrix`, `instrument-self-tests`, `fast (3.14)`, `arch-instrument`, `browser`, `closures`, `coverage`, `typing`); no failure exists to answer. `tests / mutation` is completed success, but this diff writes no production line, so it draws no mutant (`evidence/checks.txt`).
-- **V6: the head is the one the body names.** The live `## Head` is `adf5ef473a74e4c25f654f01c4201244b771c147`, the head measured.
-
-## Could not establish
-
-- **C1: the ledger's three read timestamps** (18:34:13Z, 19:47:47Z, 20:18:55Z). Their arithmetic re-derives to 1 h 44 m 42 s, but no accessible file carries those reads. It is corroborating only; B2's load-bearing window re-derives from the ref itself.
-  Carry: dismissed: B2 re-derives from the ref; the reads are corroboration
-- **C2: the exact head-note refusal text behind P213's #2883/#2889 instance.** Both pull requests are real and OPEN, but the refusal is a dispatch-time event I cannot re-observe from the tree; the instance is consistent with `review_packet.py:289`, not independently reproduced.
-  Carry: dismissed: consistent with the code, not re-observable
-
-The REJECT of P212 stands on its in-head argument, and the three ACCEPTs are correctly routed to groups that own the files. The block is only on the record's citations.
+- F1 (non-blocking, a figure re-derived under my own definition): P212 says "twelve commits"
+  between 18:31:07Z and 20:23:46Z, measured by `git log --format='%cI'
+  origin/handoff/audit-r10-roster`. That command, as cited, prints 34 commits in the window,
+  because it walks the merged-in main history. Twelve reproduces only with `--first-parent`.
+  Restricting the walk to `-- dev/programme/rosters/` gives 13 (`ev/roster-window.txt`). Under
+  every definition the churn is at least the stated rate, so the REJECT holds and is
+  understated. The ruling's command is missing the flag its figure needs. Carry: dismissed: conclusion holds under all three definitions; this verdict records the flag
+- F2 (non-blocking): the ACCEPT destinations for P213 (R10-ORCH-REVIEW-PACKET) and P215
+  (R10-ROSTER-OPS) are both `done`. Each ruling says "the roster op reopens it", so the carry
+  is only live once the orchestrator runs `set-stage` before `append-carry`. A done group is
+  not a destination under `finding-propagation.md`. Carry: dismissed: the reopen is stated in the ruling and is the orchestrator's routing step under proposal-triage.md

@@ -1,0 +1,10 @@
+(src, pid)
+(texts, read_ruling)
+P212 REJECT
+P213 ACCEPT
+P214 ACCEPT
+P215 ACCEPT
+mutant P214 DEFER
+R10-ORCH-REVIEW-PACKET done 10
+R10-996-RUNNER-CLAIMS carries-open 2
+R10-ROSTER-OPS done 6

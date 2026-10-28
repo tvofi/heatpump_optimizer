@@ -1,0 +1,17 @@
+head e1adaa79ce167dfc0fd022280a44e3e38b565d54
+== roster d61e2834c
+groups 212
+R10-ORCH-REVIEW-PACKET done ['tools/audit/seat/bus.sh', 'tools/audit/seat/review_packet.py', 'dev/governance/roles/fix-review.md', 'tools/audit/seat/INSTRUMENTS.md'] fixes []
+R10-996-RUNNER-CLAIMS carries-open ['tests/env_drift.py', 'tests/golden/claimed_drift.txt'] fixes []
+R10-ROSTER-OPS done ['tools/audit/seat/roster_edit.py', 'tools/audit/seat/r10_roster_ops_mutants.py', 'tools/audit/seat/INSTRUMENTS.md'] fixes []
+R10-RCA-FRICTION-RESIDUE queued ['dev/audit/rca/harness-friction/blocked_rounds.tsv'] fixes [2410, 2593]
+tools/pr/merge_main_bot.py owners []
+tools/pr/head_note.py owners []
+== roster de410e4c9
+groups 212
+R10-ORCH-REVIEW-PACKET done ['tools/audit/seat/bus.sh', 'tools/audit/seat/review_packet.py', 'dev/governance/roles/fix-review.md', 'tools/audit/seat/INSTRUMENTS.md'] fixes []
+R10-996-RUNNER-CLAIMS carries-open ['tests/env_drift.py', 'tests/golden/claimed_drift.txt'] fixes []
+R10-ROSTER-OPS done ['tools/audit/seat/roster_edit.py', 'tools/audit/seat/r10_roster_ops_mutants.py', 'tools/audit/seat/INSTRUMENTS.md'] fixes []
+R10-RCA-FRICTION-RESIDUE in-progress ['dev/audit/rca/harness-friction/blocked_rounds.tsv'] fixes [2410, 2593, 2597, 2660, 2784]
+tools/pr/merge_main_bot.py owners []
+tools/pr/head_note.py owners []
