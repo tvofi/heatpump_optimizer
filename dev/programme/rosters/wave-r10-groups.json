@@ -2653,7 +2653,7 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "fixing",
+    "stage": "done",
     "branch": "handoff/r10-prepr-cap",
     "commit": "e3f3b312fff572904f24d78a44a2c4492b1a8ddb",
     "last_step": null,
@@ -5120,7 +5120,9 @@
     "From the #2584 fix review (comment 6325163760): the pre-dispatch check is `merge_train.py classify <head>`, which must exit 0 or 3.",
     "From the #2584 fix review (comment 6325163760, round-2 verdict review/2584): the beat, the sweep, record_row.py (failed_required, not_green), ci-watch.sh and proof_watch.py read merge_train.classify, or `merge_train.py classify <sha>` from shell; no third red rule is written. Control, a precondition of the build: the e7c66485 replay (dev/audit/harnesses/r10_main_gate_replay.py, landed by #2584) is run through each reader with `--pending mutation typing closures`, where it must read a wait (\"is still running ...: a wait, not red\"), and with no `--pending`, the null control, which must print only END.",
     "- The body's Forward-carry and Friction lines route \"list `body_patch.sh` as a hosted one-shot (args pr, sha, body; success = exit 0 and a last `body_patch: OK` line)\" to R10-ORCH-MACHINERY. Round 3 also carried this as a finding. That group's brief and its 29 carries on handoff/audit-r10-roster at 5620151813e03a5916c375554dd57c977f6d8097 still contain no `body_patch` (ev/roster_carries.txt). K17 item (3) covers the body-only path only indirectly, through R10-FLOW-BODY-ONLY. The line is owed to the group's roster carry with its control (the `--self-test` and the `body_patch: OK|REFUSE` last-line contract) before this PR merges. This is the orchestrator's roster write, not a change to the PR. Carry: R10-ORCH-MACHINERY",
-    "Non-blocking: R10-ORCH-MACHINERY's existing carry \"Lean flow study revision 10 (owner, 2026-10-21): R10-ARCH-DOCS documents and draws this machinery beside the CI shape. Land the beat's job table and the ledger's event-kind table as data the tree holds ...\" still names R10-ARCH-DOCS as the writer. After this replan R10-ARCH-DOCS-FIRST writes and draws it, and R10-ARCH-DOCS verifies it. The precondition (land the tables as tree data) is right and stays; only the group name in that sentence is out of date. The group still has to reword that sentence, with roster_edit.py, to name R10-ARCH-DOCS-FIRST as the writer and R10-ARCH-DOCS as the verifier. (from #2600 verdict)"
+    "Non-blocking: R10-ORCH-MACHINERY's existing carry \"Lean flow study revision 10 (owner, 2026-10-21): R10-ARCH-DOCS documents and draws this machinery beside the CI shape. Land the beat's job table and the ledger's event-kind table as data the tree holds ...\" still names R10-ARCH-DOCS as the writer. After this replan R10-ARCH-DOCS-FIRST writes and draws it, and R10-ARCH-DOCS verifies it. The precondition (land the tables as tree data) is right and stays; only the group name in that sentence is out of date. The group still has to reword that sentence, with roster_edit.py, to name R10-ARCH-DOCS-FIRST as the writer and R10-ARCH-DOCS as the verifier. (from #2600 verdict)",
+    "The beat's sweep, `record_row.py`'s automerge guard (`failed_required`, `not_green`), `ci-watch.sh`'s failure-only red and `proof_watch.py` each still carry their own red rule. Per this group's seam note, the beat and the sweep read `merge_train.classify` (and `merge_train.py classify <sha>` from shell). No third rule is written. The control is the e7c66485 replay (`dev/audit/harnesses/r10_main_gate_replay.py`, `--pending` against no `--pending`). Carry: R10-ORCH-MACHINERY (item c2b007d6)",
+    "K15 (d)'s pre-dispatch check (rule E) has a command now: a reviewer is fired only when `merge_train.py classify <head>` exits 0 or 3, never 1 (RED) or 2 (unreadable). R10-FLOW-DISPATCH is not on the roster yet (registration pending: roster PR-B), so this lands with the dispatch seam R10-ORCH-MACHINERY owns (`bus.sh dispatch`, the `reviewer-fire` close). Carry: R10-ORCH-MACHINERY (item 7f7f3da4)"
    ],
    "model": {
     "fixer": "opus",
@@ -6140,7 +6142,7 @@
    "architect_note": "",
    "brief": "The train's main-green gate tells pending from failed (Lean flow study K15; expedite, it misleads the operator today). At main e7c66485 on 2026-10-21, 30 checks had concluded and 7 were in flight; the only failures were record and record-autofix, red because the record beat was owed; yet the --overlap gate logged that main is not green and should be reverted. Judge main on the latest run of each context only; a queued or in-progress run is wait, never red; count only the contexts the ruleset main-protect-checks requires, read live, never record, record-autofix, nightly-status or delivery-status. One owner for 'is main red': share the classifier the open #2570 gives the tick's MAIN section rather than writing a second. Controls: the e7c66485 shape (pending plus record reds) reads wait or green, not red; a failed required context reads red; an unreadable ruleset is a refusal, never green; mutants for each arm. Revision 7 widens it into the one owner of state classification for the train, the merge seat and the tick: (b) a check-run whose status is in_progress or queued while its workflow run has completed is stale, not pending: re-run that run once and re-read (2026-10-21: #2559's budget-raise-gate check-run 119308796140 stayed in_progress over a completed successful run, mergeStateStatus read BLOCKED, and the merge seat burned 8 attempts; it recurred on #2567, and one re-run cleared each), applied by merge_pr.sh and the train before their merge attempt, each instance logged with its run id so a third recurrence goes to a root-cause seat; (c) a pull request reported DIRTY is classified from git merge-tree --write-tree origin/main <head>: the conflicted files are named first, and the claimnotes repair is offered only when every conflicted file is a claim file; a content conflict returns to the owning fixer and its verdict does not carry (2026-10-21: the tick told #2569 to absorb main with the claimnotes driver while the conflict was content in roster_edit.py); (d) a head is reviewable only when no required context's latest run there has concluded failure. If the fixer has already started on (a), (b) to (d) are its second pull request.",
    "resume": {
-    "stage": "fixing",
+    "stage": "done",
     "branch": "handoff/r10-flow-main-gate",
     "commit": "49018a8bec8d03fd2df52874b9021d25ab93741a",
     "last_step": null,
@@ -6880,7 +6882,7 @@
    "architect_note": "",
    "brief": "open_pr.sh creates the PR only after the body contract (ancestry reds and ref_privacy included) passes. If a later step still fails (the second push of the delivery row), it closes the draft with a comment saying why, so the tick never sees a PR with no delivery row. First-push ancestry-reds skip is by construction; optional: read main's nightly-status before the first push. P13 fold: the stuck row commit lives in open_pr.sh's own worktree ($HPO_STATE_DIR/pr/<topic>/wt) after a refused second push (29 of 98 open_pr runs refused); fix there, NOT an update_pr.sh auto-reset, which would drop the row's group.",
    "resume": {
-    "stage": "fixing",
+    "stage": "done",
     "branch": "handoff/r10-fly-openpr-atomic",
     "commit": "3b4180dcc680e2e2e06f4d8ed0a0839a7374d78f",
     "last_step": null,
@@ -7817,7 +7819,7 @@
    "architect_note": "",
    "brief": "Barrier owed by a third instance (6077bf70e, 143e2d0ac, a2576fcb2): `merge_train.py batch --overlap` merged #2586 onto a tree no CI had checked, because the at_head guard lets the batch's own merges move main and the ruleset is non-strict. Process state (c); cost test passes: at least 1.5 h of red main per instance, about once a week, against roughly 16 s per merge for the check. Own the overlap guard in tools/audit/seat/merge_train.py: before merging a car whose base moved by the batch's own merges, grade the would-be merge tree with policy_lint and, where applicable, structure.py. A red goes to the existing recarry-and-wait path. The prototype is the ratchet-on-merge script in the semmerge RCA seat directory (outside the tree; the fixer is handed its path); it must use the train's driver-free text merge, not the ledger driver. Repair-car admission (forward-carry, 2026-10-22T04:30Z): the tool's only way to admit a car while main is red is --overlap, so the repair car for a red main (#2595) had to run as a one-car --overlap batch. The barrier must keep a repair-car admission path that does not reopen the overlap gap: either a named --repair flag that admits one car onto a red main, or overlap allowed only when the batch has one car. Control: a car whose merge tree is red under the grade is held and recarried; the unmodified green car merges. Considered and rejected, not owed: the ruleset's strict up-to-date rule (cost), and per-file cap headroom minimums (only lowers the odds). Owner ruling 2026-10-22T05:20Z: trains run with --overlap as long as each PR's CI has run on its current head; this group is the in-tool barrier for that rule. Carry: #2595's RCA item is re-routed here from R10-POLICY-LINT-FAMILY.",
    "resume": {
-    "stage": "fixing",
+    "stage": "done",
     "branch": "handoff/r10-train-overlap-grade",
     "commit": "4db1d3e28f0dff50f6916e39d52efed0ce856d0a",
     "last_step": null,
@@ -9014,7 +9016,7 @@
     "Refuse a reviewer dispatch at a head that lacks its own handoff (V143). Add a signal `handoff-not-applied` to `tools/audit/seat/review_packet.py` (`SIGNALS`, `:122`): from the pull request it already reads (`repos/<repo>/pulls/<pr>`, `:324`) take the head branch; when it is `fix/<t>` or `fix/<t>-pr` and `origin/handoff/<t>` exists (one `git fetch origin handoff/<t>`), refuse with `REFUSE handoff-not-applied: handoff/<t> <tip> is not an ancestor of <head>` when `git merge-base --is-ancestor <tip> <head>` fails. `bus.sh dispatch` already refuses on a packet REFUSE and records nothing (`bus.sh:467`). Instance: #2887, head `fdf33f466` = merge of the old head `fc841f51d` and main `07295d4ea`, lacking the fixer's handoff tip `a5f40d84c`; caught by a body seat before dispatch. A branch of any other shape, or a missing handoff ref, is not refused. Controls: #2887's shape refuses; null controls: a head containing the handoff tip renders; a PR with no handoff ref renders; a non-`fix/` branch renders; one mutant inverting the ancestry test fails the refusal and the first null arm. triage: dev/programme/triage/s6-batch45.md#P229"
    ],
    "resume": {
-    "stage": "fixing",
+    "stage": "done",
     "branch": "handoff/r10-orch-review-packet",
     "commit": "eb2063218e40ef1a0aedbfb96b45ec2a9bee638c",
     "last_step": "resumed the crashed seat's branch and finished it: bus dispatch renders and checks the reviewer packet, and the hot-file arm now reads the merge verdict from VERDICT.md through proof_watch.parse_verdict (the agreement lane refused the duplicated verdict grammar; the arm's reader is now fixture-pinned and mutated). 21/21 packet checks, 91/91 bus checks, 11 mutants each one FAIL, agreement lane ok, prepr clean (figures 7 resolved, 0 refused; carry 5/5 routed).",
@@ -10460,7 +10462,9 @@
     "dev/governance/rules/gate-scoping.md",
     "dev/audit/rca/"
    ],
-   "carry": [],
+   "carry": [
+    "`gate-scoping`: cost: `tests/entities.py`, the one script the scoped gate selects for this diff, needs a `homeassistant` module this seat's interpreter lacks, so the local scoped gate could not run; CI's `gate` is the only judge of it here. Carry: R10-FRICTION-GATE-SCOPING"
+   ],
    "resume": {
     "stage": "not-started",
     "branch": null,
