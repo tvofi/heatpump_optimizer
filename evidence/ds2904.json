@@ -1,0 +1,109 @@
+{
+  "verdict": "OK",
+  "stale_after_commits": 12,
+  "merges": [
+    {
+      "number": 2902,
+      "title": "triage s7 batch 46: rule P232-P234 (V146-V148)",
+      "merge_sha": "6349205b61660f41f94015c352f6612d236e105d",
+      "commits_after": 0,
+      "record_class": false,
+      "state": "pending"
+    },
+    {
+      "number": 2900,
+      "title": "triage s7 batch 45: rule P227-P231 (V141-V145)",
+      "merge_sha": "c08720395fa52d8a01a9c4d95dd46302c1879e71",
+      "commits_after": 1,
+      "record_class": false,
+      "state": "pending"
+    },
+    {
+      "number": 2894,
+      "title": "fix(r10-immersion-latch): book the immersion line from the measured latch draw, not the plan's ask",
+      "merge_sha": "2b274fe06d2b62610d2e84e5be63260cf198f527",
+      "commits_after": 3,
+      "record_class": false,
+      "state": "pending"
+    },
+    {
+      "number": 2891,
+      "title": "triage: batch 42 -- rule V129 as P216",
+      "merge_sha": "aaf8af512c1fb9aeabdf58dbb5131928f432d4d1",
+      "commits_after": 4,
+      "record_class": false,
+      "state": "rowed"
+    },
+    {
+      "number": 2899,
+      "title": "roster: round-10 batch (R10-RCA-FRICTION-RESIDUE fixes wires, immersion-latch re-pin)",
+      "merge_sha": "fca311901773d7d594aea169bdbdedbcae90318b",
+      "commits_after": 5,
+      "record_class": false,
+      "state": "rowed"
+    },
+    {
+      "number": 2901,
+      "title": "record: delivery rows for #2898 (autofix)",
+      "merge_sha": "9c9cd0d2dddc13228c916916cf73f993c7c645db",
+      "commits_after": 6,
+      "record_class": true,
+      "state": "rowed"
+    },
+    {
+      "number": 2876,
+      "title": "R10-HOUSE-GRADE: derive the house grade from the delivered curve",
+      "merge_sha": "b2a7e44932d1b5513643e9c5fac998c2a73cd24b",
+      "commits_after": 7,
+      "record_class": false,
+      "state": "rowed"
+    },
+    {
+      "number": 2853,
+      "title": "R10-FLOW-JIDOKA p2: error-proofing second slice",
+      "merge_sha": "53c4b9cb0de45bbfadb19ea6adbe15dd7d7034e1",
+      "commits_after": 8,
+      "record_class": false,
+      "state": "rowed"
+    },
+    {
+      "number": 2892,
+      "title": "triage: batch 43 -- rule V130/V131 as P217/P218",
+      "merge_sha": "d2fc6c6f212b1f916eb991c169c1a46e3686ec9c",
+      "commits_after": 9,
+      "record_class": false,
+      "state": "rowed"
+    },
+    {
+      "number": 2890,
+      "title": "triage: batch 41 -- rule V125-V128 as P212-P215",
+      "merge_sha": "213c9105b8748dc7673cd96e711b1be9fab99f31",
+      "commits_after": 10,
+      "record_class": false,
+      "state": "rowed"
+    },
+    {
+      "number": 2898,
+      "title": "triage: batch 44 -- rule V132-V135 and V137-V140 as P219-P226",
+      "merge_sha": "b9e286254e152b6647b37b5612bd340dd39daca0",
+      "commits_after": 12,
+      "record_class": false,
+      "state": "rowed"
+    },
+    {
+      "number": 2897,
+      "title": "record: rewrite the open rows of #2878, #2888, #2889 to their merges",
+      "merge_sha": "6e5995e51bec7c9f6d3f4dc37ed5297fefe1c3d6",
+      "commits_after": 13,
+      "record_class": true,
+      "state": "rowed"
+    }
+  ],
+  "unattributed": [],
+  "dispositioned": [],
+  "counts": {
+    "rowed": 9,
+    "pending": 3,
+    "overdue": 0
+  }
+}
