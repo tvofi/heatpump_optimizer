@@ -4553,6 +4553,22 @@
         "dev/audit/rca/R10-N-vocabulary-drift.md"
       ]
     },
+    "R10-RCA-CLOSURE-ARGV": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "#2883 red trigger x2: tests / closures INERT READS UNDER-APPROXIMATED on tests/entities.py for reads a changed tool's self-test makes when entities runs it (state_docs spawning merge_throughput.py; roster_lib.blob_at's self-test putting two roster paths on git's argv, which closure._exec_record files as reads); ci_predict.py, whose unit is the static import edge, was quiet on both heads",
+      "trigger": "2 (red check): run 40548660478 at 8f05b74d4 and check-run 122599859589 at 71987ff1e (35 min 10 s FULL), closures-autofix skip-manual-repair-owed, round-3 review blocked",
+      "date": "2026-10-28",
+      "status": "proposed",
+      "parts_missing": [],
+      "process_state": "(c) prepr.sh step 6d ran and passed on both heads; its unit, a top-level import edge, does not reach a read a gate script's run of a changed self-test makes; the cheaper detector (--single, 868-913 s) is in no local path by the heavy-scripts rule",
+      "countermeasure": "ci_predict.py SELF-TEST READS (--record-self-tests, passed by prepr 6d): each changed self-testing file a host's source runs is recorded by closure._exec_record and graded as the host's record by closure.check (0.5-29 s a file; 63.4 s over the 15 of 300 R10 PRs that touch one) against 2 demonstrated reds at about 85 min each in 7 days",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R10-RCA-CLOSURE-ARGV.md",
+      "doc": [
+        "dev/audit/rca/R10-RCA-CLOSURE-ARGV.md"
+      ]
+    },
     "R10-RCA-PREPR-HEAD-GRADERS": {
       "class": "I3",
       "level": "instance-or-process",
@@ -4562,7 +4578,7 @@
       "status": "proposed",
       "parts_missing": [],
       "process_state": "(c) prepr.sh steps 3-4 and 3f3 grade the head's copy (push-to-main's direction); ci_predict.py's agreement arm (#2707) grades the base's copy but its unit, lane_files(), holds agreement.mjs's closure and not policy_lint.mjs, check-wave-script.mjs or field_coverage.mjs; the named-docs refusal directed the fixer to the pinned Set",
-      "countermeasure": "built: ci_predict.py graders arm (policy_lint.mjs as CORPUS on policy-docs/env-matrix, check-wave-script.mjs as WAVE CHECK, field_coverage.mjs as FIELD COVERAGE keyed on its own file) through the agreement arm's factored ci_tree_run, keyed on a changed file in the grader's .mjs closure that the job restores; fires on f008c2b75 with the named-docs line and on #2207, #2529, #2636; green on c991d64cd, its comment-keyed null and #2737; ~2.6 s per predictor run against 92 s expected per PR (2.9 s CI floor only); the named-docs message now names corpus_excluded.json",
+      "countermeasure": "built: ci_predict.py graders arm over every run governance.yml's policy-docs, env-matrix and wave-script jobs restore (pinned_runs; grader_gaps refuses an uncovered one in the self-test): policy_lint.mjs default and --hooks (CORPUS, policy-docs and env-matrix), check-wave-script.mjs (WAVE CHECK, wave-script and env-matrix), field_coverage.mjs (own-file key), rules_sync.mjs --check, fragments_sync.mjs, codeowners_gap.py --check, agreement.mjs --self-test; one CI tree per job, keyed on a changed file in the grader's .mjs closure that the job restores; fires on f008c2b75 with the named-docs line and on #2207, #2529, #2636; green on c991d64cd, its comment-keyed null and #2737; ~4.3 s per predictor run against 92 s expected per PR (2.9 s CI floor only); the five round-2 runs have 0 round-10 instances; the named-docs message now names corpus_excluded.json",
       "landed": null,
       "in_tree_home": "dev/audit/rca/R10-RCA-PREPR-HEAD-GRADERS.md",
       "doc": [
