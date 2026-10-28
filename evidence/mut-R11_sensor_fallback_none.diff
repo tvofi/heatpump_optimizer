@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/sensor.py b/custom_components/heatpump_optimizer/sensor.py
+index 80efba810..679b56a2d 100644
+--- a/custom_components/heatpump_optimizer/sensor.py
++++ b/custom_components/heatpump_optimizer/sensor.py
+@@ -3008,7 +3008,7 @@ class ModelRestartAdvisorSensor(HeatPumpOptimizerSensorBase):
+         scale = _as_float(data.get("house_heat_loss_scale"))
+         return {
+             "drift_alarm": False,
+-            "current_scale": None if scale is None else round(scale, 3),
++            "current_scale": None,
+             "refit": None,
+             "restore": None,
+         }

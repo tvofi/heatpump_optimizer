@@ -1,0 +1,12 @@
+diff --git a/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js b/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
+index 9415c4c71..e9c8dbb3e 100644
+--- a/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
++++ b/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
+@@ -8464,7 +8464,6 @@ function statusSignature(plan, now) {
+  * `Number("")` are 0, and 0 is finite -- without the first test a value the
+  * backend published as None would read as a measured zero. */
+ function readNumber(raw) {
+-  if (raw === null || raw === undefined || raw === "") return null;
+   const n = Number(raw);
+   return Number.isFinite(n) ? n : null;
+ }

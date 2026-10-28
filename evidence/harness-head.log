@@ -1,0 +1,56 @@
+split scale=1.0 ratio=0.5: envelope=16.7 health_grade=16.7 health_w_per_k=84.0 gap=0.0
+split scale=1.0 ratio=0.8: envelope=9.7 health_grade=9.7 health_w_per_k=100.8 gap=0.0
+split scale=1.0 ratio=1.0: envelope=6.2 health_grade=6.2 health_w_per_k=112.0 gap=0.0
+split scale=1.0 ratio=1.25: envelope=2.8 health_grade=2.8 health_w_per_k=126.0 gap=0.0
+split scale=1.0 ratio=2.0: envelope=0.0 health_grade=0.0 health_w_per_k=168.0 gap=0.0
+split scale=2.6 ratio=0.5: envelope=0.0 health_grade=0.0 health_w_per_k=218.4 gap=0.0
+split scale=2.6 ratio=0.8: envelope=0.0 health_grade=0.0 health_w_per_k=262.1 gap=0.0
+split scale=2.6 ratio=1.0: envelope=0.0 health_grade=0.0 health_w_per_k=291.2 gap=0.0
+split scale=2.6 ratio=1.25: envelope=0.0 health_grade=0.0 health_w_per_k=327.6 gap=0.0
+split scale=2.6 ratio=2.0: envelope=0.0 health_grade=0.0 health_w_per_k=436.8 gap=0.0
+RESULT split_cells=10
+RESULT split_max_abs_gap=0.0
+RESULT ends samples=0 scale=0.3: envelope=None reason=heat_loss_learning
+RESULT ends samples=0 scale=3.0: envelope=None reason=heat_loss_learning
+RESULT ends samples=2000 scale=0.3: envelope=79.2 reason=None
+RESULT ends samples=2000 scale=3.0: envelope=0.0 reason=None
+RESULT band two_zone=0 concrete_slab pre_1960: tau_h=22.6 grade=3.2
+RESULT band two_zone=0 concrete_slab 1960_1980: tau_h=30.4 grade=13.0
+RESULT band two_zone=0 concrete_slab 1980_2005: tau_h=43.8 grade=29.7
+RESULT band two_zone=0 concrete_slab post_2005: tau_h=63.6 grade=54.5
+RESULT band two_zone=0 concrete_slab low_energy: tau_h=100.0 grade=100.0
+RESULT band two_zone=0 masonry pre_1960: tau_h=35.5 grade=19.4
+RESULT band two_zone=0 masonry 1960_1980: tau_h=47.8 grade=34.8
+RESULT band two_zone=0 masonry 1980_2005: tau_h=68.8 grade=60.9
+RESULT band two_zone=0 masonry post_2005: tau_h=100.0 grade=100.0
+RESULT band two_zone=0 masonry low_energy: tau_h=157.1 grade=100.0
+RESULT band two_zone=0 timber_crawlspace pre_1960: tau_h=12.9 grade=0.0
+RESULT band two_zone=0 timber_crawlspace 1960_1980: tau_h=17.4 grade=0.0
+RESULT band two_zone=0 timber_crawlspace 1980_2005: tau_h=25.0 grade=6.2
+RESULT band two_zone=0 timber_crawlspace post_2005: tau_h=36.4 grade=20.5
+RESULT band two_zone=0 timber_crawlspace low_energy: tau_h=57.1 grade=46.4
+RESULT band two_zone=0 timber_slab pre_1960: tau_h=12.9 grade=0.0
+RESULT band two_zone=0 timber_slab 1960_1980: tau_h=17.4 grade=0.0
+RESULT band two_zone=0 timber_slab 1980_2005: tau_h=25.0 grade=6.2
+RESULT band two_zone=0 timber_slab post_2005: tau_h=36.4 grade=20.5
+RESULT band two_zone=0 timber_slab low_energy: tau_h=57.1 grade=46.4
+RESULT band two_zone=1 concrete_slab pre_1960: tau_h=22.6 grade=3.2
+RESULT band two_zone=1 concrete_slab 1960_1980: tau_h=30.4 grade=13.0
+RESULT band two_zone=1 concrete_slab 1980_2005: tau_h=43.8 grade=29.7
+RESULT band two_zone=1 concrete_slab post_2005: tau_h=63.6 grade=54.5
+RESULT band two_zone=1 concrete_slab low_energy: tau_h=100.0 grade=100.0
+RESULT band two_zone=1 masonry pre_1960: tau_h=35.5 grade=19.4
+RESULT band two_zone=1 masonry 1960_1980: tau_h=47.8 grade=34.8
+RESULT band two_zone=1 masonry 1980_2005: tau_h=68.8 grade=60.9
+RESULT band two_zone=1 masonry post_2005: tau_h=100.0 grade=100.0
+RESULT band two_zone=1 masonry low_energy: tau_h=157.1 grade=100.0
+RESULT band two_zone=1 timber_crawlspace pre_1960: tau_h=12.9 grade=0.0
+RESULT band two_zone=1 timber_crawlspace 1960_1980: tau_h=17.4 grade=0.0
+RESULT band two_zone=1 timber_crawlspace 1980_2005: tau_h=25.0 grade=6.2
+RESULT band two_zone=1 timber_crawlspace post_2005: tau_h=36.4 grade=20.5
+RESULT band two_zone=1 timber_crawlspace low_energy: tau_h=57.1 grade=46.4
+RESULT band two_zone=1 timber_slab pre_1960: tau_h=12.9 grade=0.0
+RESULT band two_zone=1 timber_slab 1960_1980: tau_h=17.4 grade=0.0
+RESULT band two_zone=1 timber_slab 1980_2005: tau_h=25.0 grade=6.2
+RESULT band two_zone=1 timber_slab post_2005: tau_h=36.4 grade=20.5
+RESULT band two_zone=1 timber_slab low_energy: tau_h=57.1 grade=46.4

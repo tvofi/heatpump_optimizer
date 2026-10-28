@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 798ccd832..7ff774e8c 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -2616,7 +2616,7 @@ def envelope_score(
+     scale = max(params.house_heat_loss_scale, 0.1)
+     # The loss is rounded to 1e-4 kW/K, so a house with no loss reads 0.0.
+     loss = _effective_house_heat_loss(params, scale)
+-    if loss <= 0.0 or params.room_thermal_mass <= 0:
++    if loss < 0.0 or params.room_thermal_mass <= 0:
+         return None, "no_house_model"
+     if not house_loss_converged(samples):
+         return None, "heat_loss_learning"

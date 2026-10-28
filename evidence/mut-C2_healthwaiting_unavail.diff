@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js b/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
+index 9415c4c71..1758b15b2 100644
+--- a/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
++++ b/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
+@@ -9086,7 +9086,7 @@ function healthPlanHtml(plan) {
+  * naming what it waits for. */
+ function healthWaiting(st) {
+   if (!st) return false;
+-  return st.state === "unavailable" || (st.state === "unknown" && !!(st.attributes || {}).waiting_for);
++  return st.state === "unavailable";
+ }
+ 
+ function healthLearningHtml(plan) {
