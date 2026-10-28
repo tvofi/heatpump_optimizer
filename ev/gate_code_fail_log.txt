@@ -1,0 +1,6 @@
+gate job 123101876777 (workflow "CI code", run 40762414090), merge commit 43ccb99f2 = Merge 39e5a3df4aa76b5d13099fe2ef20dcdbd66f2295 into b6f6ceca4f0323b24171c45a2a2372ba2e2cbaaa
+step "Judge this head": python3 -I tools/ci/gate.py --pr 2912 --base main --kind code
+2026-10-28T21:21:33Z FAIL run(s) [40762415902] at this head are still being judged; their gate decides
+gate job 123109181671 (workflow "CI edit", run 40762415902): Judge this head: success, completed 2026-10-28T21:27:20Z
+pr-contract 123105959019 started 2026-10-28T21:21:38Z (after the red concluded 21:21:36Z), completed 21:22:19Z success
+mutation 123078855071 log tail: PIN RE-VERIFICATION: 3 reproduced; 0 survivor(s) of 3 evaluated = 0.0%, cap 20.0%; MUTATION TABLE PASSED
