@@ -1,0 +1,13 @@
+MUTANT 1: 2694.md reverted to base (row says open, no merge SHA)
+DELIVERY STATUS OK — 74 rowed, 1 pending, 0 overdue (overdue at 12 commits)
+  pending  #2694 145bfe1 0 commit(s) since — record: delivery rows for #2687, #2690 (autofix)
+
+This check is NOT a required context and a red here blocks no merge. Pending is the ordinary state: the protocol writes rows in batches, and only OVERDUE means a batch has stopped being drained.
+exit=0
+
+MUTANT 2: 2694.md deleted
+DELIVERY STATUS OK — 74 rowed, 1 pending, 0 overdue (overdue at 12 commits)
+  pending  #2694 145bfe1 0 commit(s) since — record: delivery rows for #2687, #2690 (autofix)
+
+This check is NOT a required context and a red here blocks no merge. Pending is the ordinary state: the protocol writes rows in batches, and only OVERDUE means a batch has stopped being drained.
+exit=0
