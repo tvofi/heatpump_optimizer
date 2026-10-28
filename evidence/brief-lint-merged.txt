@@ -1,0 +1,7 @@
+== merged tree base
+TOTAL: 0 error(s) across 1 file(s)
+== merged tree folded
+TOTAL: 0 error(s) across 1 file(s)
+== merged tree round1
+  ERROR   [R10-FLY-CARRY-DISPOSITION] path: carries/carry-N.json: not in the tree, and not present at its cited tag ref(s) [94612a9b2]
+TOTAL: 1 error(s) across 1 file(s)

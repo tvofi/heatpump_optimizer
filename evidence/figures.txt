@@ -1,37 +1,48 @@
-head reviewed: 2e2b374cd982d0b4d3bc4853a0227239c28e4f76
-origin/main: 73b69fe0a9fa9e45736cd1cdbc2077d3958b41ec
-merge-base: 73b69fe0a9fa9e45736cd1cdbc2077d3958b41ec
---- verdict counts
+## figures at 7b023e7fa0eaa2eedfb08ccea36491d5bd2e4048
       7 ACCEPT
       2 DEFER
       2 REJECT
---- null control
-P99 -> None
---- P75
+P75 old briefs dir files:
 0
+P75 role+dimension md:
 33
+P75 same at origin/main:
+33
+fbbd3e61:
 commit
+prepr step4 old glob:
 3079:# the checker parses every backticked verdict example out of tools/audit/briefs/
-3082:if [ "$PIN_TOUCHED" -eq 0 ] || ! git diff --quiet "$BASE"...HEAD -- \
 3087:     'tools/audit/briefs/*.md'; then
 3195:  # `Closes #N`, which `tools/audit/briefs/fixer.md` step 7 REQUIRES of a fix
-29:function briefListing() {
-627:  const briefs = briefListing().map(([f, p]) => [f, fs.readFileSync(p, 'utf8')])
-754:  const briefSteps = Object.fromEntries(briefListing().filter(([f]) => /^D\d+\.md$/.test(f)).map(([f, p]) => [
---- P67
+P67 rides --red:
 777:# to; when it holds one, `mutation` rides `--red` like `budget-raise-gate`, and
---- P76
+P76 bus.sh ref_privacy:
 143:home_rel() { # path -> the path, `~/`-relative when it is under $HOME (ref_privacy.py owns the rule)
 144:  python3 -I "$ROOT/tools/audit/seat/ref_privacy.py" path "$1"
 264:  python3 -I "$ROOT/tools/audit/seat/ref_privacy.py" guard --ref "$fam/$pr" --message "$msg" \
-1084:  # #2310: a blocked verdict (the grammar that carries free text) whose first line names a host path is refused by
-1092:  expect "push-verdict refuses a first line naming a host path, and review/7 does not move (#2310)" $?
-1093:  printf 'Fix review: blocked %s harness: the planted host path removed\n\nbus-nonce: %s\n' "$h1" "$NL" > "$W/merge-clean.md"
---- versions untouched
---- merge-tree
-7775a74cc7f1456494b68879a12b756b1cbc254c
-rc=0
---- INERT
+P76 self-test text:
+tools/audit/seat/bus.sh:1092:  expect "push-verdict refuses a first line naming a host path, and review/7 does not move (#2310)" $?
+P66 roster carry quote:
+bus.sh dispatch refuses on rc 1
+P69 roster carries:
+ref_privacy --check
+dev/programme INERT:
 268:    # living handover is the hole is_handover cuts, under dev/programme/ as
 273:    "dev/programme/",
 521:# The living file is dev/programme/HANDOVER.md (R9-RO-5). docs/ stays a hole:
+VERSION/manifest/notes touched:
+none
+host paths in diff:
+none
+P69 throwaway carry:
+tests/throwaway_git.py --check. Source: the R10-CLOUD-SHAPE 
+tests/throwaway_git.py --check` is the cheaper detector for 
+origin/main 806aa2ce prepr old glob still present:
+3087:     'tools/audit/briefs/*.md'; then
+merge-tree origin/main(806aa2ce) head:
+0e09b339029762d8ed2bf13710f3931fe05d25e7
+rc=0
+P69 quote fragments on roster:
+A self-test builds any git repository through tests/throwaway_git.py: 20
+before the handoff: 21
+must include instrument-self-tests: 1
