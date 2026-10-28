@@ -28,8 +28,9 @@ Instances: one verified; the filing counts two, both on #2883.
   tools/audit/merge_throughput.py`) was repaired in `d218ef378`, which edits `tests/closure.py`
   (`git log refs/pull/2883/head -S'merge_throughput.py' -- tests/closure.py tests/closures.json`);
   nothing in that commit shows it was the argv arm, so it is not counted here.
-- Programme-wide: of `git log origin/main --since=2026-10-01 --no-merges -- tests/closures.json`
-  (311 commits), none names an argv or command-line read in its subject (`grep -i 'argv\|command
+- Programme-wide: of `git log edd7e0e14e08279d0ddc53ec4fcc983570edf12a --since=2026-10-01T00:00:00Z
+  --no-merges -- tests/closures.json` (314 commits; a fixed commit and a fixed instant, since a bare
+  date takes the current time of day and the count moved with the clock), none names an argv or command-line read in its subject (`grep -i 'argv\|command
   line'`); the closures repairs of the month are INERT READS, which `ci_predict --apply-inert`
   already writes before the push.
 - The mechanism is as filed: `tests/closure.py:1221-1225` (`for argv in spawned:`) adds every
@@ -49,5 +50,5 @@ Binding: route, then frequency. The filing is a root-cause note on a red check, 
 the process state and the cheaper detector's cost test belong to a root-cause seat beside
 #2883's fix (`root-cause.md`), which can name a countermeasure or record that none pays; a triage
 ACCEPT here would decide that seat's answer before it is measured. On the numbers alone the trade
-is not yet clear either: one verified red round in a month of 311 closures commits, against a new
+is not yet clear either: one verified red round in a month of 314 closures commits, against a new
 arm in a hot instrument.
