@@ -20,11 +20,11 @@ Alternatives considered:
 
 ## Head
 
-d0f6de2739e172f35802758e07a9e97d903026bd, measured against origin/main 0b8f8b585daf6a84ae9470389a709d5fec2a4f47 at 2026-10-28T11:57:38Z.
+b082a93e7934fb56514174ec1958b07644b8ae12, a fast-forward of d0f6de273 (round 2, after the blocked verdict on 9328902). Measured against origin/main beb570c817c4efcae0d5f6f4bba52f3383baf8db at 2026-10-28T18:46Z.
 
 ## Mutation proof
 
-`python3 -I tools/audit/seat/r10_ledger_mutants.py`, run at the head: `plants: 42, without a FAIL line: none`, rc 0. These are the plants this diff adds or re-anchors, each with the checks that go red:
+`python3 -I tools/audit/seat/r10_ledger_mutants.py`, run at b082a93e7: `plants: 48, without a FAIL line: none`, rc 0 (42 at d0f6de273). These are the plants this diff adds or re-anchors, each with the checks that go red:
 
 - `L5_no_ancestry_close`: `landed: a tip inside main reads ancestor, not merges-only`
 - `L6_no_content_close`: `landed: the re-applied hunk is content (reverse-apply cannot: forward applies too)`, plus three level checks
@@ -39,6 +39,14 @@ d0f6de2739e172f35802758e07a9e97d903026bd, measured against origin/main 0b8f8b585
 - `R6_merged_unread_clears`: `an unlisted merged set leaves the level as it was, never re-owing what a merge closed`
 - `B1_orphans_merges_stranded`: `a tip outside main and the fix heads only by a clean merge is discharged with the ancestry`
 - `B2_orphans_no_content`: `a patch that applies to main reversed and not forward is SUPERSEDED`
+
+Round 2 (verdict/2920's block and its four surviving mutants). Each arm was added failing first: with its plant applied, the named check is the one FAIL line (`r10_ledger_mutants.py <plant>`, `fails=1` each); without the plant it passes.
+- `L27_deletion_unguarded`, the verdict's block (`if rc_m == 0:` to `if False:` in `covered`'s deletion arm): `null control: a tip deleting a file main still holds is not covered, beside a carried add`. The tip deletes `g.txt` and adds bytes main holds elsewhere, so the deletion guard alone decides it. The check asserts both `covered` is False and `landed` is None.
+- `L28_deletion_always_refused`, the opposite mutant, which survived in ledger.py and was killed only by bus.sh: `covered: a deletion main already made is carried`.
+- `L29_same_blob_arm_off` (the verdict's `same_blob_arm_off`): `covered: the same bytes at the path are carried, a removed line kept elsewhere notwithstanding`. It is not equivalent. Without the arm, the line test refuses a removed duplicate line that the same blob still holds.
+- `L30_merged_strictly_before` (`merged_lt`): `a merge in the tip's own commit second closes it (at or before, not strictly before)`.
+- `L31_merged_last_listed` (`merged_max_dropped`): `the topics reader keeps a topic's latest merge, whatever the listing order`. The topics parse moved out of `main()` into `read_topics()` so it is testable. Its behaviour did not change.
+- `B3_orphans_classifier_unchecked` (`bus_die_dropped`): `null control: a classifier that fails refuses orphans, never an all-ORPHAN list`. A `python3` shim fails only `ledger.py landed`.
 
 Failing test first: I ran the new `bus.sh` self-test cases against the baseline production code (0b8f8b585's `bus.sh` with only the self-test block added). It printed `bus self-test: 97 checks, 4 failed`. The failing checks were:
 - `a hunk main carries in a file that moved on is SUPERSEDED, not stranded (#2397's shape)`
@@ -68,23 +76,28 @@ These null controls show that each new arm closes only what it should:
   - `content_superseded`: deleted, closed in this diff.
   - `covered`: the per-path arms closed in this diff. The `rem & have` line test is kept, and the reverse-apply arm covers its duplicate-line blind spot (`L19`).
   - `landed`: new, pinned L5, L6, L19 to L26.
-- Gate (`python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)`): `MODE: SCOPED -- 1 script(s) run, 32 scoped out`. `tests/entities.py` printed `ALL 2467 ENTITY CHECKS PASSED`. The run_always scripts:
+- `tests/entities.py` and `tests/harness_headers.py` ran under a Python 3.13 interpreter with `tests/requirements-ci.txt` installed. This host's `python3` lacks those packages.
+- Gate, re-run at b082a93e7 (`python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)`): `MODE: SCOPED -- 1 script(s) run, 32 scoped out`. `tests/entities.py` printed `ALL 2467 ENTITY CHECKS PASSED`. The run_always scripts:
   - `tests/env_drift.py --claims-only`: ok
   - `tests/closure.py selftest`: 117 pins passed
   - `tests/layout.py`: ok
   - `tests/harness_headers.py`: 112 passed
   - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`
-- Self-tests:
-  - `bash tools/audit/seat/bus.sh --self-test`: 97 checks, 0 failed (92 on the baseline)
-  - `python3 -I tools/audit/seat/ledger.py --self-test`: 72, 0 failed
-  - `bash tools/audit/seat/cloud_relay.sh --self-test`: 279, 0 failed
-  - `python3 -I tools/audit/seat/orchestrator_tick.py --self-test`: 215, 0 failed
-  - `python3 -I tools/audit/seat/r10_ledger_mutants.py --self-test`: 118, 0 failed
+- Self-tests at b082a93e7 (d0f6de273's figure in brackets):
+  - `bash tools/audit/seat/bus.sh --self-test`: 98 checks, 0 failed (97; 92 on the baseline)
+  - `python3 -I tools/audit/seat/ledger.py --self-test`: 77, 0 failed (72)
+  - `bash tools/audit/seat/cloud_relay.sh --self-test`: 279, 0 failed (279)
+  - `python3 -I tools/audit/seat/orchestrator_tick.py --self-test`: 215, 0 failed (215)
+  - `python3 -I tools/audit/seat/r10_ledger_mutants.py --self-test`: 135, 0 failed (118)
+  - `r10_ledger_mutants.py --null`: rc=0 fails=0 for each of the four owners
+- Harness at b082a93e7, the same command: main 57f0c9c77 gives `MISREAD 3` and `LEVEL-MISREAD 0`. Main beb570c81 gives `MISREAD 4` and `LEVEL-MISREAD 0`. Both match d0f6de273, because round 2 adds tests and one behaviour-neutral extraction. The `null` case is ORPHAN and owed on both mains.
+- `dev/audit/harnesses/r10_fly_orphans_landed.sh` is the fixer's own instrument. Issue #2721 names no committed harness, only the reverse-apply test, so no finder's harness exists to run (verdict/2920 finding 4).
+- verdict/2920's `prune_refs.py classify()` seam: the reviewer dismissed it. It answers a different question (pruning, with roster-done evidence), it predates this diff, and the class rule does not return it. This diff leaves it alone.
 - `python3 tools/audit/archscore/score.py --diff $(git merge-base origin/main HEAD)`: `Architecture score: dS +0.0000 NULL`
 
 ## Red checks
 
-none
+none. Round 1's head 9328902 concluded no failed check before the block (verdict/2920, `ev/ci-checkruns.txt`).
 
 ## Forward-carry
 
