@@ -1,14 +1,15 @@
-# RESUME: R10-ORCH-BEATD arm (a)
+# RESUME: R10-ORCH-BEATD arm (a), repair round for #2916
 
-- Code head: handoff/r10-orch-beatd at c991d64cdaef342d282d1a8e991dadc2671f917d: f8bb14aad plus the INERT READS entry, throwaway_git fixtures (d72c4a982), and the named-docs exclusion in dev/governance/config/corpus_excluded.json (policy_lint.mjs back to main's copy; CI restores pinned check sources from the base). PR #2916.
-- The worktree is /Users/timmalmstrom/hpo-seats/r10s6/fix-beatd-a, on branch fix/r10-orch-beatd, and it is clean.
-- Done:
-  - beatd.py and beatd_shims/git;
-  - the INSTRUMENTS.md entries;
-  - the governance.yml self-test step;
-  - the self-test, which printed 84 checks, 0 failed at f008c2b75 (prepr rc 0 there too). It ran cases (a)1-8 with their nulls and 16 in-tree mutants, all killed;
-  - archscore dS 0, the structure ratchet passed, and selftest_wiring printed 0 unwired.
-- Not run locally: tests/entities.py and tests/harness_headers.py, the two scripts scope.run names. Two attempts died, one to a stop and one to the 12:42Z reboot. CI runs both.
-- The full self-test takes about 9 min here under load and about 2-3 min expected on CI. That is inside instrument-self-tests' 20 min timeout.
-- Gotcha: `.git/info/exclude` holds `seat/`, so new files under tools/audit/seat need `git add -f`.
-- Next: the orchestrator opens the PR (handoff_push.sh), then the fix review runs. Arm (b) starts only after (a) merges.
+- Code head: handoff/r10-orch-beatd at f0f8c3b6011d607f1fb08d41a08d39da92bb7222, a fast-forward of c991d64cd. It merges origin/main beb570c81 and adds two commits:
+  - `Lock.take` creates its file 0o600, for CodeQL alert 45; case (2) gains a mode arm and the mutant m2_lock_world_readable.
+  - case (7)'s git calls run under throwaway_git's identity;
+  - case (3) reads a zombie grandchild as killed;
+  - instrument-self-tests' timeout-minutes goes from 20 to 30.
+- Re-taken at that head (Linux, venv-ci Python 3.14.7):
+  - beatd self-test with no global git identity: 87 checks, 0 failed, 478 s;
+  - prepr (PREPR_SKIP_CLOSURES=1): rc 0, 0 REFUSE;
+  - entities.py and harness_headers.py both passed;
+  - the structure ratchet passed, archscore dS 0, and selftest_wiring printed 0 unwired.
+- Every #2916 red is named in `## Red checks`: CodeQL, alert 45, env-matrix, policy-docs, instrument-self-tests, gate and pr-contract.
+- Open (not built, outside arm (a)): a throwaway_git rule for fixture git calls made outside the throwaway env, owed to a root-cause seat.
+- Next: the orchestrator runs update_pr for #2916, then the fix review runs on f0f8c3b60.
