@@ -1,0 +1,11 @@
+2026-10-22T09:38:20.4432193Z   ok   scrub leaves no leak class under the planted identity, and keeps the line count
+2026-10-22T09:38:20.4432783Z   ok   scrub's placeholders, in order: scratchpad, home, account, temp, session temp
+2026-10-22T09:38:20.4433358Z   ok   scrub leaves another account's home and a public one alone (the null control)
+2026-10-22T09:38:20.4433853Z ref_privacy self-test: 66 checks, 0 failed
+2026-10-22T09:38:20.7659445Z ref_privacy: REFUSE tools/audit/seat/review_strength.py:854: a push site in a file PUSHERS does not name: guard it (ref_privacy.py guard / ref_privacy.refusal) and register it, or register why not
+2026-10-22T09:38:20.7661616Z ref_privacy --check at HEAD: 22 file(s) with a push site, 11 guarded, 1844 line(s) added since c409c9b18a9f judged, 1 refused
+2026-10-22T09:38:20.7754572Z ##[error]Process completed with exit code 1.
+2026-10-22T09:38:20.7821197Z ##[group]Run set -o pipefail
+2026-10-22T09:38:20.7821516Z [36;1mset -o pipefail[0m
+2026-10-22T09:38:20.7822069Z [36;1mpython3 -I tools/audit/seat/review_strength.py --self-test | tee "$RUNNER_TEMP/review-strength-self-test.txt"[0m
+2026-10-22T09:38:20.7822929Z [36;1mgrep -Eq '^review_strength self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/review-strength-self-test.txt"[0m
