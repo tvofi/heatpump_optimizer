@@ -531,7 +531,7 @@ def named_loads(root: Path, path: str) -> tuple[tuple[int, str, str], ...]:
         if re.match(r"\s*(?:import|export)\b.*\bfrom\s+'", line):
             continue
         for m in NAMED.finditer(line):
-            lit = "/".join(re.findall(r"'([^']*)'", m.group(2))) if m.group(2) else m.group(3)
+            lit = "/".join(a.strip().strip("'") for a in m.group(2).split(",") if a.strip()) if m.group(2) else m.group(3)
             for cand in (str(Path(path).parent / lit), lit, layout.locate(lit, root=root)):
                 cand = str(Path(cand)).removeprefix("./")
                 if cand in tracked:
