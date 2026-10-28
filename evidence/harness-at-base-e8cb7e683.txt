@@ -1,4 +1,4 @@
-RESULT tree: /Users/timmalmstrom/hpo-seats/r10s6/review-2873-r1/base-wt/custom_components/heatpump_optimizer/diagnostics.py
+RESULT tree: /private/tmp/claude-501/-Users-timmalmstrom-Library-Application-Support-Claude-scratch-workspaces-a98e53c1-333f-4779-a652-b12285f4d3ce-c7dd3f1e-c571-4ca2-a0de-fcecc6fb749a-scratch-2026-10-28-4203bf/45796881-42b5-4a2d-bb3d-6c5594ee059d/scratchpad/2873/base/custom_components/heatpump_optimizer/diagnostics.py
 RESULT R1.input_ages_minutes.exported_14min_late: {'indoor': 2.0, 'outdoor': 5.0}
 RESULT R1.input_problems_age.exported_14min_late: 2.0
 RESULT R1.input_ages_at.in_bundle: <absent>
@@ -27,3 +27,4 @@ RESULT R7._plan_is_stale.interval_30_age_90.1: True
 RESULT R7._plan_is_stale.interval_True_age_100.0: True
 RESULT R7._plan_is_stale.interval_'15'_age_100.0: raised TypeError: '>' not supported between instances of 'float' and 'str'
 RESULT checks: 27
+rc=0

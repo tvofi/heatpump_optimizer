@@ -1,8 +1,0 @@
-===== HeatPumpOptimizerCoordinator._plan_is_stale.CMP_BOUND.1e075bcb  [custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._plan_is_stale CMP_BOUND 1e075bcb]  driver=tests/debug_collect.py
-rc=0
-  null control custom_components/heatpump_optimizer/coordinator.py:497 NULL_COMMENT survived every driver
-  baseline tests/debug_collect.py: rc=0 failed=0 12s
-  null control custom_components/heatpump_optimizer/coordinator.py:497 NULL_COMMENT survived tests/debug_collect.py
-PIN RE-VERIFICATION: 1 reproduced, 0 not reproduced, 0 not re-verified
-  killed by tests/debug_collect.py: custom_components/heatpump_optimizer/coordinator.py:7547 CMP_BOUND
-===== HeatPumpOptimizerCoordinator._plan_is_stale.RETURN_DEL.1e075bcb  [custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._plan_is_stale RETURN_DEL 1e075bcb]  driver=tests/features.py

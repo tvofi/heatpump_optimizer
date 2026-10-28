@@ -1,4 +1,4 @@
-RESULT tree: /Users/timmalmstrom/hpo-seats/r10s6/review-2873-r1/wt/custom_components/heatpump_optimizer/diagnostics.py
+RESULT tree: /Users/timmalmstrom/hpo-seats/r10s6/rev-prod-s8/2873/custom_components/heatpump_optimizer/diagnostics.py
 RESULT R1.input_ages_minutes.exported_14min_late: {'indoor': 16.0, 'outdoor': 19.0}
 RESULT R1.input_problems_age.exported_14min_late: 16.0
 RESULT R1.input_ages_at.in_bundle: 2026-01-12 08:00:00+00:00
@@ -12,10 +12,10 @@ RESULT R4.absent_instant.input_problems_age: 2.0
 RESULT R4.instant_ahead.input_ages_minutes: {'indoor': 2.0, 'outdoor': 5.0}
 RESULT R4.undated_plan.plan_stale_keeps_payload: True
 RESULT R4.never_judged_plan.plan_stale: None
-RESULT R5.age_leaves_moved_between_publish_export: {"exported_at": ["2026-01-12T08:00:00+00:00", "2026-01-12T08:14:00+00:00"], "inputs.input_ages_minutes": ["{\"indoor\": 2.0, \"outdoor\": 5.0}", "{\"indoor\": 16.0, \"outdoor\": 19.0}"], "inputs.input_problems.0.age_minutes": [2.0, 16.0], "plan.plan_age_minutes": [1.0, 15.0]}
-RESULT R5.age_leaves_at_export: {"exported_at": "2026-01-12T08:14:00+00:00", "coordinator.tibber_outage_cycles": null, "coordinator.weather_stale_hours": null, "coordinator.early_cutoff.min_on_minutes": 10.0, "coordinator.early_cutoff.min_off_minutes": 10.0, "inputs.input_problems.0.age_minutes": 16.0, "inputs.input_problems.0.max_age_minutes": 30.0, "inputs.problem_messages": "[\"sensor.indoor: stale (last report 2 min)\"]", "inputs.input_ages_minutes": "{\"indoor\": 16.0, \"outdoor\": 19.0}", "inputs.input_ages_at": "2026-01-12 08:00:00+00:00", "plan.plan_age_minutes": 15.0}
+RESULT R5.age_leaves_moved_between_publish_export: {"exported_at": ["2026-01-12T08:00:00+00:00", "2026-01-12T08:14:00+00:00"], "inputs.input_ages_minutes": ["{\"indoor\": 2.0, \"outdoor\": 5.0}", "{\"indoor\": 16.0, \"outdoor\": 19.0}"], "inputs.input_problems.0.age_minutes": [2.0, 16.0], "inputs.problem_messages": ["[\"sensor.indoor: stale (last report 2 min)\"]", "[\"sensor.indoor: stale (last report 16 min)\"]"], "plan.plan_age_minutes": [1.0, 15.0]}
+RESULT R5.age_leaves_at_export: {"exported_at": "2026-01-12T08:14:00+00:00", "coordinator.tibber_outage_cycles": null, "coordinator.weather_stale_hours": null, "coordinator.early_cutoff.min_on_minutes": 10.0, "coordinator.early_cutoff.min_off_minutes": 10.0, "inputs.input_problems.0.age_minutes": 16.0, "inputs.input_problems.0.max_age_minutes": 30.0, "inputs.problem_messages": "[\"sensor.indoor: stale (last report 16 min)\"]", "inputs.input_ages_minutes": "{\"indoor\": 16.0, \"outdoor\": 19.0}", "inputs.input_ages_at": "2026-01-12 08:00:00+00:00", "plan.plan_age_minutes": 15.0}
 RESULT R8.input_health_and_flags.exported_14min_late: {"input_health": "ok", "stale_inputs": [], "problem_inputs": ["sensor.indoor"]}
-RESULT R8b.verdicts_beside_a_crossed_age.exported_40min_late: {"input_health": "ok", "stale_inputs": [], "problem_messages": ["sensor.indoor: stale (last report 20 min)"], "input_ages_minutes": {"indoor": 60.0}, "problem_age": 60.0}
+RESULT R8b.verdicts_beside_a_crossed_age.exported_40min_late: {"input_health": "1 stale", "stale_inputs": ["indoor"], "problem_messages": ["sensor.indoor: stale (last report 60 min)"], "input_ages_minutes": {"indoor": 60.0}, "problem_age": 60.0}
 RESULT R6.as_dict.self_tests_at: 2026-01-12T05:00:00+00:00
 RESULT R6.store_admits_self_tests_at: True
 RESULT R6.collector_attribute: 2026-01-12 05:00:00+00:00
@@ -27,3 +27,4 @@ RESULT R7._plan_is_stale.interval_30_age_90.1: True
 RESULT R7._plan_is_stale.interval_True_age_100.0: False
 RESULT R7._plan_is_stale.interval_'15'_age_100.0: False
 RESULT checks: 27
+rc=0
