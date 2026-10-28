@@ -1,4 +1,0 @@
-usage: ci_predict.py [-h] [--base BASE] [--apply-inert] [--body BODY]
-                     [--only {orphans,layout,privacy,wiring,agreement,no-recording,under-scoped,inert-siblings,left-inert,mutation}]
-                     [--self-test] [--rekey-body BODY] [--from SHA]
-ci_predict.py: error: argument --only: invalid choice: 'bogus' (choose from 'orphans', 'layout', 'privacy', 'wiring', 'agreement', 'no-recording', 'under-scoped', 'inert-siblings', 'left-inert', 'mutation')
