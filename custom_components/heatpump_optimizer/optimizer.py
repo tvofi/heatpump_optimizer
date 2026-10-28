@@ -425,15 +425,9 @@ def _thermostat_demand_single(
     q_slab_to_room = k_slab * (state.slab_temperature - state.room_temperature)
     # Replace what the slab gives up to the room, and move the slab to
     # where it needs to be.
-    q_slab = q_slab_to_room + p.slab_thermal_mass * (
+    return q_slab_to_room + p.slab_thermal_mass * (
         slab_target - state.slab_temperature
     ) / dt
-    if mixing_valve.is_throttling(p.mixing_valve_mode):
-        # Behind a valve the pump charges the tank, never the slab.
-        return valve_charge_demand(
-            model, state, q_slab, outdoor_temp, wind_speed, precipitation, dt
-        )
-    return q_slab
 
 
 def _reference_cop(
@@ -511,18 +505,43 @@ def _thermostat_demand_two_zone(
     # demand the way an outdoor-reset curve does. The zones then settle at
     # slightly different temperatures, which is what the real system does
     # too, and inter-zone transfer pulls them back together.
-    thermal = q_upper + q_floor
-    if mixing_valve.is_throttling(p.mixing_valve_mode):
-        # Behind a valve the pump charges the tank, never the emitters.
-        return valve_charge_demand(
-            model, state, thermal, outdoor_temp, wind_speed, precipitation, dt
-        )
+    return q_upper + q_floor
 
-    # Replace what the buffer tank leaks so it does not sag over the day.
-    thermal += p.buffer_tank_heat_loss_coefficient * max(
-        0.0, state.buffer_tank_temperature - TANK_ROOM_AMBIENT_TEMP
+
+def _thermostat_demand(
+    model: ThermalModel,
+    state: ThermalState,
+    target: float,
+    outdoor_temp: float,
+    wind_speed: float,
+    precipitation: float,
+    solar_radiation: float,
+    dt: float,
+    k_slab: float,
+) -> float:
+    """Thermal power the reference thermostat's pump makes this step.
+
+    The zoning's demand is what the emitters need. Behind a valve the pump
+    charges the tank, never the emitters, so the need goes through the tank
+    law the step's own draw inverts (``valve_charge_demand``). Unvalved, the
+    two-zone reference also replaces what the buffer tank leaks so it does
+    not sag over the day.
+    """
+    p = model.params
+    zoned = _thermostat_demand_two_zone if p.two_zone_enabled else _thermostat_demand_single
+    need = zoned(
+        model, state, target, outdoor_temp, wind_speed, precipitation,
+        solar_radiation, dt, k_slab,
     )
-    return thermal
+    if mixing_valve.is_throttling(p.mixing_valve_mode):
+        return valve_charge_demand(
+            model, state, need, outdoor_temp, wind_speed, precipitation, dt
+        )
+    if p.two_zone_enabled:
+        need += p.buffer_tank_heat_loss_coefficient * max(
+            0.0, state.buffer_tank_temperature - TANK_ROOM_AMBIENT_TEMP
+        )
+    return need
 
 
 # The comfort penalty on breaching the user's minimum temperature is quadratic,
@@ -5286,16 +5305,10 @@ class HeatPumpOptimizer:
 
         for i in range(n_steps):
             target = targets[i]
-            if p.two_zone_enabled:
-                required_thermal = _thermostat_demand_two_zone(
-                    self.model, state, target, outdoor_temps[i], wind_speeds[i],
-                    precipitation[i], solar_radiation[i], dt, k_slab,
-                )
-            else:
-                required_thermal = _thermostat_demand_single(
-                    self.model, state, target, outdoor_temps[i], wind_speeds[i],
-                    precipitation[i], solar_radiation[i], dt, k_slab,
-                )
+            required_thermal = _thermostat_demand(
+                self.model, state, target, outdoor_temps[i], wind_speeds[i],
+                precipitation[i], solar_radiation[i], dt, k_slab,
+            )
 
             # A thermostat's house receives a furnace burn too, and its
             # sensor sees the warmth: the reference backs off by the free

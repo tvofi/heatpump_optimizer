@@ -11304,7 +11304,7 @@ R.check(
 # floor over a slab already hot enough must still draw a charge.
 def _two_zone_rad_demand():
     from heatpump_optimizer import mixing_valve as _tz_mv
-    from heatpump_optimizer.optimizer import _thermostat_demand_two_zone
+    from heatpump_optimizer.optimizer import _thermostat_demand
 
     _tp = ThermalParameters(two_zone_enabled=True, mixing_valve_mode=_tz_mv.MODE_MANUAL,
                             buffer_tank_volume=750.0)
@@ -11312,7 +11312,7 @@ def _two_zone_rad_demand():
     _ts = ThermalState(room_temperature=20.0, upper_floor_temperature=18.0,
                        lower_floor_temperature=23.0, slab_temperature=30.0,
                        buffer_tank_temperature=24.0, outdoor_temperature=-5.0)
-    return _thermostat_demand_two_zone(
+    return _thermostat_demand(
         _tm, _ts, 21.0, -5.0, 0.0, 0.0, 0.0, 0.25, _tp.slab_heat_transfer_floored)
 
 
