@@ -1,0 +1,2 @@
+RESULT X3_latch_ignored: rc=0 FAIL=1 ok=1423
+    FAIL R10-IMMERSION-LATCH: the latch is the gate -- an unlatched interval with the booster flag on books no line  [{'spot': 2.875, 'grid_fee': 3.45, 'immersion': 0.0, 'dhw_booster': 0.5750000000000002,

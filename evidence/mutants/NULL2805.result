@@ -1,0 +1,2 @@
+RESULT NULL2805: rc=0 FAIL=1 ok=3052
+    FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']

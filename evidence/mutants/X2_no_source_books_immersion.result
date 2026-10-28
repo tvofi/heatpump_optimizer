@@ -1,0 +1,4 @@
+RESULT X2_no_source_books_immersion: rc=0 FAIL=3 ok=1421
+    FAIL R10-IMMERSION-LATCH: an install with no resistive element configured books no resistive line, however far the draw is over its ask  [{'spot': 2.875, 'grid_fee': 3.0, 'immersion': 0.125, 'dhw_boos
+    FAIL R10-IMMERSION-LATCH: configured flags reading off book nothing -- the draw over the threshold is then the compressor's, not an element's  [{'spot': 2.875, 'grid_fee': 3.45, 'immersion': 0.5750000
+    FAIL R10-IMMERSION-LATCH null: the carve-out only relabels -- with the booster flag on, savings_actual, the thermostat baseline and the energy totals are identical to the same interval with no element

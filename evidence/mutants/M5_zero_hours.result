@@ -1,0 +1,2 @@
+RESULT M5_zero_hours: rc=0 FAIL=1 ok=1423
+    FAIL R10-IMMERSION-LATCH: the carve refuses at its bounds -- a draw at the threshold, zero hours and a zero threshold book no line; one step past each books under the flag's line  [bounds {'at thresho
