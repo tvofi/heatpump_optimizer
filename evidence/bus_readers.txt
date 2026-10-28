@@ -1,7 +1,0 @@
-RESULT reader_a_verdicts=1021
-RESULT reader_b_verdicts=1021
-RESULT outside_grammar_subjects=0
-RESULT only_in_a=0
-RESULT only_in_b=0
-RESULT first_verdict_map_equal=True  prs_a=426 prs_b=426
-RESULT first_verdict_differing_prs=[] n=0

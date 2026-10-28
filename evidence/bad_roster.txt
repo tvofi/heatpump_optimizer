@@ -1,4 +1,0 @@
-RESULT rc = 0
-RESULT stdout_has_UNAVAILABLE = True
-RESULT stderr_tail = 
-RESULT stdout_head = # Flow board

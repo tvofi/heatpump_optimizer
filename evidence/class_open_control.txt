@@ -1,2 +1,0 @@
-RESULT control_closed_intact_blob = (1, '')
-RESULT control_critical_intact = ({'r1-a'}, '')

@@ -1,3 +1,0 @@
-RESULT flow-self-test exit=0 :: ok: merge_throughput.py self-test
-RESULT roster_lib-self-test exit=0 :: roster_lib self-test: 39 checks, 0 failed
-RESULT restored_clean = True

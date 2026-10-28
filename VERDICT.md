@@ -1,41 +1,101 @@
-Fix review: blocked 3bd284f744e372f2440b1f6faa31e3b1708f085f claim-false: an unreadable git object still reads as a zero on the takt headline and as WIP lane A 0 -- `git cat-file -e` cannot tell an absent roster or critical-path path from a blob it cannot read
-bus-nonce: 6ed8f1652f7e1ba51ab02d12643ec05d
+Fix review: blocked 71987ff1ee4f3f411c772681d3bcb32490832c53 root-cause-detectable: tests/closures -- red at this head (INERT READS UNDER-APPROXIMATED: tests/entities.py opens dev/programme/rosters/critical-path.json and wave-r9-groups.json), closures-autofix skip-manual-repair-owed, and ## Red checks names neither it nor the red tests / nightly-status, which pr-contract refuses because the diff touches governance.yml
+bus-nonce: 773253debde59287022b258898625ee3
 
-Second fix review of PR #2883, group R10-FLOW-BOARD, at head 3bd284f744e372f2440b1f6faa31e3b1708f085f. It was the PR head when I measured (ev/head.txt) and when I wrote this. Contract `dev/governance/roles/fix-review.md` from origin/main; `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` is empty.
+# Fix review -- PR #2883, R10-FLOW-BOARD, round 3
 
-The head is the blocked head `8f05b74d` plus `d218ef378` (the fix), merged twice with main. Both merges are git's automatic result, not hand resolutions: `git merge-tree --write-tree d218ef378 a0e7664ea` returns tree `eb3d7213b8d46f6ef8962dce4c361b55fb99f182`, which is `4f2297e1d^{tree}`; `git merge-tree --write-tree 4f2297e1d ea36188c3` returns tree `0d9333f34b83c16491ac689616b543edea37acdb`, which is `3bd284f7^{tree}`. `merge-tree --write-tree origin/main 3bd284f7` exits 0 -- no conflict; main has only moved ahead (delivery rows and the roster). The body's `## Head` says the same, and the measurements it takes at `d218ef378` therefore carry to this head.
+Third fix review. Reviewed head: 71987ff1ee4f3f411c772681d3bcb32490832c53, in a detached worktree at
+that head (`ev/head.txt`), and still the head when I posted this. The baseline is the round-2 blocked
+head `3bd284f74`, in its own detached worktree. `dev/governance/roles/` has no diff between the merge
+base and origin/main.
 
-Harnesses. The finder's harness is the first review's, retargeted only in its tree pin, never in a check or a fixture (my copies are `ev/harness/flow_harness.py`, `ev/harness/bad_roster_board.py`). I re-ran it myself at both ends: the baseline `8f05b74d` (`ev/flow_harness_oldhead.txt`, `ev/bad_roster_oldhead.txt`) and this head (`ev/flow_harness.txt`, `ev/bad_roster.txt`). Everything else is reviewer-built and disclosed as mine: `class_open.py`, `class_open2.py`, `class_open_control.py`, `cmp_bus_readers.py`, `mutate.py`, `patch_test.py`, `patch_selftest.py`.
+The fix since round 2 is `70928ca4e` (`merge_throughput.py` and `roster_lib.py`). The other commits
+in the range are main merges. `git merge-tree --write-tree origin/main <head>` exits 0
+(`ev/merge-tree.txt`).
 
-## The five blocks, finding by finding
+**The round-2 block is answered on the code.** This verdict blocks only on the check state at the
+new head.
 
-1. An unreadable roster at `--roster-ref` crashed. ANSWERED. `ev/bad_roster_oldhead.txt`: `RESULT rc = 1`, `stdout_has_UNAVAILABLE = False`, `json.decoder.JSONDecodeError`. `ev/bad_roster.txt` at this head: `RESULT rc = 0`, `stdout_has_UNAVAILABLE = True`, empty stderr. `flow_main` catches `ValueError` and `roster_shape` refuses JSON that is not a roster. The second way to fail before reading -- no readable window end -- is answered too: `board()` renders UNAVAILABLE and returns 0; mutant M7 (restoring the crash) reds the arm `flow: no readable window end renders UNAVAILABLE, never a refusal` by `TypeError` (`ev/mutants.txt`).
+## Harnesses
 
-2. `flow_closed.state()` turned an unreadable roster commit into `{}`. ANSWERED for the failure it demonstrated. `ev/flow_harness.txt`: `a malformed roster at the only in-window commit` now reads `(None, 'dev/programme/rosters/wave-r1-groups.json at cf894641d942 is not JSON: ...')`; at the baseline it read `(0, '')`. Mutant M5 reds the arm. A different domain of the same predicate survives -- the Block below.
+The finder's harness is round 2's: `class_open.py`, `class_open2.py` and `class_open_control.py`,
+taken from `verdict/2883` at `2678416c5`. I retargeted only the `WT` pin and changed nothing else.
+I ran it myself at both ends (`ev/harness_both_ends.txt`).
 
-3. `critical_of` could not tell unreadable from nothing-critical. ANSWERED for the source it demonstrated. `ev/flow_harness.txt`: `WIP lanes with the file UNREADABLE` now reads `None` (was `{'A': 0, 'B': 2, 'C': 1, 'F': 1}`) and `the rendered board says nothing about the unreadable critical file` now reads `True` (was `False`); the invalid-JSON pair is the same. The board reads the reason-bearing `critical_read`; `critical_of` keeps the lossy contract for `gate_priority.py`. Mutant M4 reds the WIP arm. A different domain of the same predicate survives -- the Block below.
+Reviewer-built and disclosed as mine: `harness/mutants_r3.py` and `harness/lead_unreadable.py`.
 
-4. The default window excluded the event at its own end. ANSWERED. `ev/flow_harness.txt` at this head: `merge exactly at window end` 0 -> 1 and `the tip merge at exactly until` 0 -> 1; the two new arms, a verdict at exactly the window's end and a roster commit at exactly the window's end, are green. Mutants M1/M2/M3 revert each of the three windows and each reds its own arm (`ev/mutants.txt`). On the live board the 1 h column now carries events (`ev/liveboard.txt`).
+## Results
 
-5. `tests / closures` red and `## Red checks: none`. ANSWERED in the body: `## Red checks` names `tests / closures` and `tests / closures-autofix`, the cause, the cheaper detector (`derive_closures.sh --single tests/entities.py` plus `closure.py check`, standing cost 1280 s) and the two `pr-contract` refusals at the blocked head. The cause re-measured at both ends (`ev/closure_entry.txt`): at `8f05b74d` the file is neither in `INERT_EXCEPT` (0 entries) nor in `closures["tests/entities.py"]` (373 entries); at this head it is in `tests/closure.py:851`, `is_inert` is False, and `closures["tests/entities.py"]` carries it (375 entries, not `inert_reads`). CI at this head: `tests / closures` completed **success** (job 122482244383), and `pr-contract / pr-contract` completed success, so the body's answer was accepted.
+- `flow_closed.state()` on an unreadable roster blob:
+  - At `3bd284f74`: `closed_for_unreadable_object = (0, '')` and `is_zero_without_reason = True`.
+  - At this head: `(None, 'cannot read dev/programme/rosters/wave-r1-groups.json at 6782967ae4aa:
+    fatal: bad object ...')` and `False`.
+- `critical_path_read()` on an unreadable critical-path blob:
+  - At `3bd284f74`: `(set(), '')`, and `wip_lanes = {'A': 0, 'B': 1, 'C': 0, 'F': 0}`.
+  - At this head: `(None, 'cannot read ...')` and `wip_lanes = None`.
+- Null control at both ends: `control_closed_intact_blob = (1, '')` and
+  `control_critical_intact = ({'r1-a'}, '')`.
+- The fixer's departure from the round-2 brief is sound. It uses `roster_lib.blob_at` via
+  `git ls-tree -z --full-tree` at all three sites (`state()`, `critical_path_read()` and the
+  `roster_path()` override), instead of the brief's `rev-parse --verify --quiet`. The rev-parse
+  swap, run as mutant M5, answers `(False, '')` for an unreadable tree on the way to the path, and
+  it reads a directory as a file.
+- Mutants, my own driver (`ev/mutants.txt`). Each replacement matched exactly once, both
+  `--self-test`s ran, and the file was restored. **7 of 7 killed:** M0 `cat-file -e` 10 FAIL lines,
+  M1 rc check off 3, M2 the `critical_path_read` guard 1, M3 the `state()` guard 1 plus its
+  self-test FAILED line, M4 `why` dropped 1, M5 the rev-parse swap 4, M6 kind always blob 1.
+  `git status --porcelain` is empty afterwards.
+- Unmutated self-tests: `ok: merge_throughput.py self-test` and
+  `roster_lib self-test: 51 checks, 0 failed` (`ev/selftests.txt`).
+- Class open: no `cat-file -e` or `rev-parse --verify ... :<path>` probe remains in the diff's
+  Python files; the only hits are comments. `_lead_hours` with an unreadable branch commit returns
+  `None`, not a number, and its intact control returns `6.0` (`ev/lead_unreadable.txt`).
+- `carry_audit` at the head reports 4 items, all routed. The three-dot diff touches no claim file,
+  no `VERSION`, no manifest and no `RELEASE_NOTES.md`.
 
 ## Block
 
-The fix introduced `git cat-file -e` as its "does this path exist" probe in two places. `cat-file -e` returns non-zero for an absent path AND for a blob git cannot read, so the two cases the fix exists to separate are separated only while the object is readable. The fix's own docstring (`tools/audit/merge_throughput.py:795`, "git's own failure ... is UNAVAILABLE") and the body (line 3, "never a zero") promise the difference; both are false in the domain below.
+All of this head's workflows had concluded by 03:29Z (`ev/check-runs.txt`: 32 success, 16 skipped,
+7 failure).
 
-- `tools/audit/merge_throughput.py:813`, `flow_closed.state()`. Fixture: a throwaway repo whose only in-window roster commit is intact and whose roster blob is deleted (`ev/class_open.txt`). `RESULT corrupt_blob_was_loose = True`, `RESULT cat_file_e_rc = 1 | show_rc = 128`, `RESULT closed_for_unreadable_object = (0, '')` -- a zero with no reason on the takt headline. Control, the same fixture with the blob intact (`ev/class_open_control.txt`): `RESULT control_closed_intact_blob = (1, '')`.
-- `tools/audit/seat/roster_lib.py:464`, `critical_path_read()`. The same fixture with the critical-path blob deleted (`ev/class_open2.txt`): `RESULT critical_path_read_on_unreadable_blob = (set(), '')`, `RESULT wip_lanes = {'A': 0, 'B': 1, 'C': 0, 'F': 0}` -- lane A 0, no UNAVAILABLE anywhere. Control (`ev/class_open_control.txt`): `RESULT control_critical_intact = ({'r1-a'}, '')`.
+- **`tests / closures` is red at this head.** Check-run 122599859589 ran with `SCOPE_CASE: full`
+  and concluded at 03:20:16Z (`ev/closures.log`) with
+  `INERT READS UNDER-APPROXIMATED: ... tests/entities.py: dev/programme/rosters/critical-path.json`
+  and `tests/entities.py: dev/programme/rosters/wave-r9-groups.json`.
+  - `tests / closures-autofix` (122611263783) printed `skip-manual-repair-owed -- THE REPAIR DID
+    NOT HAPPEN`, so no bot commit is coming.
+  - The reads are new at this head. `tests / closures` was green at the round-2 head `3bd284f74`
+    (job 122482244383, per round 2), at main `6e5995e51` (122584782151) and at main `b9e286254`
+    (122590255408). `tests/closures.json`, `tests/closure.py` and `state_docs.py` are unchanged
+    between `3bd284f74` and this head. That puts the change in `70928ca4e` or its merge with main.
+    I did not establish which line opens the two files.
+  - The cheaper detector is the one the body itself names for the round-1 red:
+    `./tests/derive_closures.sh --single tests/entities.py` plus
+    `python3 tests/closure.py check --in-dir <dir> --partial`, at a standing cost of 1280 s.
+  - `## Red checks` describes only `8f05b74d` and `3bd284f7`.
+- **`tests / nightly-status` is red** (122599133664,
+  `NIGHTLY FAILED: record-autofix failed in the last verification dispatch`). The body does not
+  name it. `pr-contract` refuses on it twice, in runs 122611481226 and 122613316471. Both started
+  after the last red concluded, the second at 03:26:53Z. The refusal reads: "It grades `main`, but
+  this diff touches what it reads (.github/workflows/governance.yml)". The diff does touch
+  `.github/workflows/governance.yml`. So this is the body's to answer, either with the main-side
+  cause and its owner or with the lane's fix. The exemption in `fix-review.md` step 11 does not
+  apply.
+- `gate` is red (122612066136 and 122613516759) on
+  `FAIL tests / closures: failure (run 40622272637)` and
+  `pr-contract / pr-contract: failure (this run)`, the two reds above.
 
-Smallest change, measured. `git rev-parse --verify --quiet <commit>:<path>` resolves the tree entry without reading the blob: `RESULT crit_rev_parse_rc = 0` for a present-but-unreadable blob and `RESULT absent_path_rev_parse_rc = 1` for an absent path (`ev/class_open2.txt`). Swap `"cat-file", "-e"` for `"rev-parse", "--verify", "--quiet"` at both sites. On the patched tree (`ev/patch_test.txt`): `closed_for_unreadable_object = (None, 'cannot read ... bad object ...')` and `critical_path_read_on_unreadable_blob = (None, 'cannot read ...')`, so both rows render UNAVAILABLE; both self-tests stay green (`ev/patch_selftest.txt`: `ok: merge_throughput.py self-test`, `roster_lib self-test: 39 checks, 0 failed`). Every mutant and the patch restored the tree -- `git status --porcelain` empty after each.
+Repair:
+1. Re-derive `tests/entities.py`'s closure at this head, or remove the new working-tree reads.
+2. Answer both reds under `## Red checks`, including the cheaper detector for `tests / closures`.
+3. Re-take the head. The code findings above carry to the new head only if `70928ca4e`'s two
+   files are unchanged.
 
-One smaller instance of the same predicate is not part of this block because it still prints UNAVAILABLE, only with a misleading reason: `tools/audit/seat/roster_lib.py:177` reports a `--roster-path` that is present but unreadable as "is not a file".
+## Findings
 
-## Figures
-
-Re-derived at the head, all matching the body: diffstat 8 files, +1157/-54; `merge_throughput.py` +990/-2; 808 non-blank non-comment added lines there and 70 in `roster_lib.py`; `MODE: FULL` and `STRUCTURE RATCHET PASSED` (`ev/ratchet_scoping.txt`); `--self-test`, `roster_lib` 39 checks and `state_docs` self-test green, `throwaway_git --check` 0 (`ev/selftests.txt`); archscore `dS +0.0000 NULL`; carry_audit 4 finding items, 4 routed, 0 unrouted, 0 bad destinations (`ev/figures.txt`). The branch's own three-dot diff touches no claim file, `VERSION`, the manifest or `RELEASE_NOTES.md`. Not re-derived: `ALL 2467 ENTITY CHECKS PASSED in 2638 s` (CI's lane) and `16 of 16 mutants` (the mutator is out of tree); I re-ran eight mutants covering every block family, all eight red the arm they name, and three of the eight abort with the reviewed crash (`JSONDecodeError`, `TypeError`, `AttributeError`), matching the body's count (`ev/mutants.txt`). The two bus readers' equality is inherited unchanged -- the diff does not touch `_bus_verdicts` -- and re-measured at this head (`ev/bus_readers.txt`): `reader_a_verdicts=1021`, `reader_b_verdicts=1021`, `only_in_a=0`, `only_in_b=0`, `first_verdict_map_equal=True prs_a=426 prs_b=426`.
-
-## Check state at this head
-
-Every check at `3bd284f7` concluded and none is red: `gate` success, `pr-contract / pr-contract` success, `tests / closures` success, `tests / mutation` success, and `tests / fast (3.14)`, `tests / coverage`, `tests / lane-proofs`, `tests / typing`, `tests / browser`, `tests / closure-scope` and the rest success; the skips are the lanes that do not apply. `mergeStateStatus: BLOCKED` is review state, not a conflict: `git merge-tree --write-tree origin/main 3bd284f7` exits 0, and main is only ahead. The head was still `3bd284f7` when I wrote this.
-
-This block is the `claim-false` above, not a red check, so no root-cause answer is owed for it. The mutation lane is green and is cited, not re-run; its baseline-green arm is not established by the conclusion, and the fixer's own committed arms are what I re-ran.
+- F1 (blocking, root-cause-detectable): the `tests / closures` red above. Carry: dismissed:
+  blocking; this PR's next round owes the repair
+- F2 (blocking, the same trigger): the `tests / nightly-status` red, unanswered while `pr-contract`
+  refuses. Carry: dismissed: blocking; this PR's next round owes the answer
+- F3 (non-blocking): the round-2 note about `roster_lib.py:177` is repaired. Under the override, an
+  unreadable tree now refuses with git's reason, and M4 kills that arm. Carry: dismissed: verified
+  repaired

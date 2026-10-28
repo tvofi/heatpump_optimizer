@@ -1,24 +1,26 @@
-RESULT M1-flow_moves-window: exit=1 failing_arms=3
-     FAIL flow: a record merge exactly at the window's end is counted: got 0, want 1
-     FAIL flow: the default window counts the tip merge at exactly its end: got (0, 1), want (1, 1)
-     FAILED: merge_throughput.py self-test
-RESULT M2-flow_verdicts-window: exit=1 failing_arms=2
-     FAIL flow: a verdict at exactly the window's end is counted: got ((0, 0), {}), want ((0, 1), {'harness': 1})
-     FAILED: merge_throughput.py self-test
-RESULT M3-flow_closed-window: exit=1 failing_arms=2
-     FAIL flow: a roster commit at exactly the window's end closes in it: got 0, want 1
-     FAILED: merge_throughput.py self-test
-RESULT M4-flow_wip-none-guard: exit=1 failing_arms=2
-     FAIL flow: WIP refuses to answer without a readable critical set, never guesses lane A 0: got {'A': 0, 'B': 1, 'C': 0, 'F': 1}, want None
-     FAILED: merge_throughput.py self-test
-RESULT M5-flow_closed-json-state: exit=1 failing_arms=2
-     FAIL flow: a malformed roster commit is UNAVAILABLE, never a zero with an empty reason: (0, '')
-     FAILED: merge_throughput.py self-test
-RESULT M6-flow_main-json-catch: exit=1 failing_arms=0
-     (aborted: traceback/exception) json.decoder.JSONDecodeError: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)
-RESULT M7-board-until-none: exit=1 failing_arms=0
-     (aborted: traceback/exception) TypeError: unsupported operand type(s) for -: 'NoneType' and 'datetime.timedelta'
-RESULT restored_clean = True
-RESULT M8-flow_main-roster-shape: exit= 1 failing_arms= 0
-     (aborted) AttributeError: 'list' object has no attribute 'get'
-RESULT restored_clean = True
+RESULT M0 cat-file -e: KILLED fails=10
+    FAIL flow: a roster commit whose blob git cannot read is UNAVAILABLE, never a zero with an empty reason: (0, '')
+    FAIL flow: a critical-path blob git cannot read is UNAVAILABLE with git's reason: (set(), '')
+    FAIL flow: ...and the WIP row is UNAVAILABLE, never A 0: ({'A': 0, 'B': 1, 'C': 0, 'F': 1}, '')
+    FAILED: merge_throughput.py self-test
+    FAIL blob_at: a directory is not a file, and says so (got: (True, ''))
+    FAIL blob_at: an unreadable blob is still present -- its entry is read, not its bytes (got: (False, ''))
+RESULT M1 rc check disabled: KILLED fails=3
+    FAIL blob_at: an unreadable tree on the way is (None, why), never absent (got: (False, ''))
+    FAIL critical_path_read: an unreadable tree is UNAVAILABLE, never set() (got: (set(), ''))
+    FAIL an override behind an unreadable tree refuses with git's read, not 'is not a file' (got: --roster-path dev/programme/rosters/critical-path.json is not a file at f099963bda158fbdbb6cf824dcc0e960b7
+RESULT M2 critical_path_read None-guard deleted: KILLED fails=1
+    FAIL critical_path_read: an unreadable tree is UNAVAILABLE, never set() (got: (set(), ''))
+RESULT M3 state() None-guard deleted: KILLED fails=2
+    FAIL flow: a path probe that cannot answer is UNAVAILABLE in the roster walk, never {}: got (0, ''), want (None, 'roster unreadable before the window: cannot read (stubbed probe)')
+    FAILED: merge_throughput.py self-test
+RESULT M4 roster_path why dropped: KILLED fails=1
+    FAIL an override behind an unreadable tree refuses with git's read, not 'is not a file' (got: --roster-path dev/programme/rosters/critical-path.json is not a file at 54df132c1c2c89ea4d5f21f6be10971d5d
+RESULT M5 rev-parse --verify --quiet swap: KILLED fails=4
+    FAIL blob_at: a directory is not a file, and says so (got: (True, ''))
+    FAIL blob_at: an unreadable tree on the way is (None, why), never absent (got: (False, ''))
+    FAIL critical_path_read: an unreadable tree is UNAVAILABLE, never set() (got: (set(), ''))
+    FAIL an override behind an unreadable tree refuses with git's read, not 'is not a file' (got: --roster-path dev/programme/rosters/critical-path.json is not a file at 9d91e70fca2698d6475e5e315da01a277d
+RESULT M6 kind==blob always true: KILLED fails=1
+    FAIL blob_at: a directory is not a file, and says so (got: (True, ''))
+porcelain-empty-check done
