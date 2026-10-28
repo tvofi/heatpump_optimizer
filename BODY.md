@@ -39,31 +39,53 @@ Neither the keying rule nor the future bodies are changed by this pull request.
 accepts without a reviewer turn. That is an approval instrument, so the owner
 reviews it, though the path is not code-owned.
 
+## Head note
+
+Round 2. The round-1 review was `Fix review: blocked 6ac0d3e67f6a602e4a14e47d75e85e086934c4a6
+figure-wrong`. The fix is on the code head below; CM-1 and its self-test cases are unchanged.
+
+- `hm3.py` truncated its file column at 160 characters and `hm4.py` sent every
+  truncated list to bucket 5. Both now use the full list. Re-run: bucket 4 is
+  28 entries, 7 after the split, 3 blocked, lag sum 1122 min; bucket 5 is 18,
+  6 after, 6 blocked, 1200 min. Five entries (#2411, #2465, #2745, #2819,
+  #2834) moved from 5 to 4. "8 in 23" is now 6 in 18.
+- CM-1's flips #2368, #2745 and #2819 are all bucket 4 (the own patch moved
+  only in carry-excluded registries), not "buckets 4 and 5".
+- CM-2: 23 entries hold a bot commit; 10 are bot-only, 9 of those carried at the
+  time, and the tenth is #2753 (a bucket 2b context refusal), not #2772 (an
+  empty delta). The other 13 all had `carry@t=no`.
+- #2673's lag is 42 min, not 48.
+- New record section 8 reconciles with triage P242 (3 of 8 moves were bot
+  commits; the bot hold buys nothing; the 8 moves cost no verdict re-verification
+  in this keying; #2887's stranded branch is not measured here).
+- Self-test totals are environment-dependent (254/258 here, 252/256 under the
+  review); the +4 delta and the failure counts (2 and 3) reproduce.
+
 ## Head
 
-`25339ace561a6fd3be20e09a8df2e664c1574147`, cut from `origin/main`
+`15abe48e59abfd041e7f938b923410a900ff5948` (round 1: `25339ace561a6fd3be20e09a8df2e664c1574147`), cut from `origin/main`
 `6d86acc909f7fc465e5736771daf8fa45c1373a4` (tip at 2026-10-28T10:14Z).
 
 ## Mutation proof
 
 - **Fix removed.** `tools/pr/app_approve.sh` restored to main's `carry()` with
-  the new cases kept: `app_approve self-test: 258 checks, 2 failed`.
+  the new cases kept: `app_approve self-test: 2 failed` (258 checks here; 256 under the fix review).
   - `CARRY: a merge of a handed-off head that is itself a carried main merge
     (#2876's shape)` got 1, wanted 0.
   - `refused for the handed-off head's own merge, which the outer diffs cannot
     see` got 0, wanted 1.
 - **Inner carry's answer ignored** (`e=$(carry "$v" "$2" "$main"; true)`):
-  `258 checks, 3 failed`.
+  3 failed.
   - `NO CARRY: a merge of a handed-off head whose own main merge was
     hand-resolved`
   - its `not the automatic merge` reason
   - `NO CARRY: a merge of a branch that is not main`
-- **Fixed:** `258 checks, 0 failed`.
+- **Fixed:** 0 failed.
 
 ## Null control
 
-- Main's unmodified `app_approve.sh --self-test`, run from `tools/pr/`: `254
-  checks, 0 failed`.
+- Main's unmodified `app_approve.sh --self-test`, run from `tools/pr/`: 0 failed
+  (254 checks here, 252 under the fix review; the +4 delta reproduces).
 - Over all 75 historical pairs (`hm6_out.tsv`), the fixed carry changes no
   `yes` to `no`. 48 refusals stand. The 8 new `yes` are all shaped as a merge
   of a handed-off main merge. In each, the own patch moved only in paths the
