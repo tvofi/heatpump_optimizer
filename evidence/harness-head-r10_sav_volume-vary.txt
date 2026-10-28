@@ -1,0 +1,3 @@
+vary: row {'month': '2026-10', 'baseline_sek': 179.71, 'actual_sek': 104.83, 'savings_sek': 74.88, 'savings_pct': 41.66713037671804, 'estimated': False, 'meter_calibration': 1.56}
+vary: volume +0.00  timing +74.88  metered 149.8 kWh
+vary: SOUND: the timing term +74.88

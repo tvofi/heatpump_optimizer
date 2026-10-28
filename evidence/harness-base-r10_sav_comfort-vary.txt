@@ -1,0 +1,7 @@
+vary: booked row (production ledger): baseline 154.1 actual 122.84 saved 20.28 %
+vary: comfort: plan mean room 18.83 C vs mean target 20.44 C; booked thermostat 128.4 kWh vs steady at target 128.4, steady at the delivered room 121.9
+vary: stored: plan house heat drawn +0.6 kWh_th = +0.3 kWh_e at the steady COP 1.776
+vary: timing: power-weighted COP plan 2.110 thermostat 1.787; timing saving +15.30 %
+vary: booked kWh: thermostat 128.4 plan 102.4; saving with stored heat settled +20.03 % against timing +15.30 %
+vary: DEFECT
+arms run 1, defect 1: vary

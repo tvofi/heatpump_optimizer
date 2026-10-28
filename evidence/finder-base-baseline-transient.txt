@@ -1,0 +1,7 @@
+transient: start room 21.0 slab 22.0: booked baseline step 0 = 2.06 kW
+transient: start room 20.0 slab 21.0: booked baseline step 0 = 2.06 kW
+transient: start room 19.0 slab 20.0: booked baseline step 0 = 2.06 kW
+transient: start room 22.0 slab 23.5: booked baseline step 0 = 2.06 kW
+transient: spread of the booked step across start states = 0.00 kW
+transient: SOUND
+arms run 1, defect 0: -

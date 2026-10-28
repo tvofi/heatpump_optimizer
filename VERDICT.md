@@ -1,84 +1,88 @@
-Fix review: merge c0f221f76fe3c8fa41fa7d98ae352aa6e5554b43
+Fix review: blocked c70c3e464a4edee48a81dd65c8c612f6e4139c3b carry-missing: carry 5 seam 2's controls are not stated in R10-SAV-ACTUATION's brief
 
-bus-nonce: 8ae7264ca6499d64247efe2aadd47641
+bus-nonce: bb6d21d9179725e51fc68c914b3c12c2
 
-## Scope
+PR #2745 (R10-SAV-COMFORT, #2492). Review round 1: no earlier review of this PR exists. I measured head c70c3e464a4edee48a81dd65c8c612f6e4139c3b. It was still the branch head when this verdict was written. The authored code head is acd865b03, and c70c3e46 adds only `dev/programme/delivery/2745.md`.
 
-This is a delta review of PR #2745 (R10-SAV-COMFORT, #2492) at head c0f221f76fe3c8fa41fa7d98ae352aa6e5554b43, after fixer round r3 (handoff/r10-sav-comfort-r3, c91cc71fe).
-- The previous review's merge verdict was cut at 36c985d335d7dd9545a1df974442541bb65412b9 (probe/rev-2745-2ebbb79b). This review judges only the delta since then, plus the merged main.
-- Round: this is the fifth verdict on this PR: blocked at c70c3e46, merge at c70c3e46 (roster delta), merge at 46dc1dda, merge at 36c985d3, and now this delta. No block is owed, so no fixer.md re-cut is owed.
-- Contract currency: `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` is empty.
+## Block
 
-The PR's own diff between 36c985d3 and this head is two things (ev/pr-interdiff.txt):
-- six new `tests/mutation_ledger/killed_by/` files. These are mutation-autofix's 772d1b938, kept by c91cc71fe when it won the add/add conflict against ed1826c24;
-- the `class_excess_loc` re-record line, which moves from 18209 → 18206 to 18202 → 18199 because main's own budget moved under it. The step is still −3.
+Fix-review step 10. The body forward-carries carry 5, seam 2 (actuating the supply switch at step boundaries) to a new group. The orchestrator created that group as R10-SAV-ACTUATION in `dev/programme/rosters/wave-r10-groups.json` on `handoff/audit-r10-roster`. I read it at 65c67fc26 and again at b90717be1 (ev/roster-R10-SAV-ACTUATION.json). Its `brief` names the work, the design note and "the failing test", and its `carry` is `[]`. It does not state the controls the body carries, which come from carry 5's own text:
+- a synthetic install with the cycle phase at 0 and at 14 min books identical duty verdicts;
+- one mutant per seam.
 
-Every other line of the PR's diff against its merge base is identical, text for text, outside the hunk headers and index lines. The merged main (5c0ee1093 → 21a1e04a7) moves coordinator.py, store.py, thermal_model.py and const.py. Between ab00437c9 (the fixer's measurement base) and 21a1e04a7 it moves no production, golden or tests/*.py file. So the body's figures, taken against ab00437c9, carry. I re-took them anyway against 21a1e04a7, below.
+finding-propagation.md requires "Carry the control, not only the claim". Today the controls live only in R10-SAV-COMFORT's carry 5 and in this PR's body. A seat dispatched on R10-SAV-ACTUATION will not read either.
+
+The remedy is an orchestrator-side `roster_edit.py` op that adds those two controls to R10-SAV-ACTUATION's brief as preconditions. The body says the fixer had no write access there, and nothing in the authored diff needs to change for it. Every other step below passed. A re-review after that edit is a delta, provided the head does not move.
+
+**Stress growth and the brief's raise question.** There is no structural-budget raise in this diff, and the body has no `## Raise justification` section. Evidence:
+- No `*_budgets.json` file changed.
+- `python3 tests/structure.py` passes at the head with `class_excess_loc 18209 <= 18209` and `dead_methods 0 <= 0`.
+- `budget-raise-gate` is green.
+
+The growth the body names is stress.py's production-call channel. Its own rule (tests/stress.py, comment above `SCENARIO_CALLS_GROWTH = 0.05`) says a legitimate firing "passes for ONE pull request, never by a raise", on tvofi's approving review naming the merge and the measured growth. So the budget-raise mandate (0013) has nothing to rule here. What the PR needs is tvofi's review naming merge #2745 and this growth.
+
+I re-measured the growth myself (ev/calls-base.txt, ev/calls-head.txt; probe ev/calls_probe.py, which calls `stress.production_calls(stress.build_case(...))` exactly as stress.py's probe does):
+- winter/1z/space/pin-off: 78480 calls at merge base 73b69fe0a and 84263 at the head, 1.074x.
+- evals 42 vs 42; simulate 131232 vs 131328; vouched ratio 1.001x.
+- objective unchanged at 60.1042784820211.
+- thermal_model.py +4072 and optimizer.py +1654 beyond what is vouched. These match the body and CI's `tests / fast` log.
+- summer/2z/dhw/pin-off grows 220938 → 221027 (+0.04 %).
+
+I looked for a payment the body missed and found none for the firing scenario. Its growth is the second `_compute_baseline_power` at the comfort-matched targets. Carry 1 requires that run, and it already skips when the shortfall is not positive. The unmatched run is also needed, because it is the solver's start.
 
 ## Findings
 
-The two findings of the 36c985d3 review are not closed at this head. Each was routed to #2492 rather than required to be fixed here, and round r3 did not touch either. I re-confirm both and carry them on:
-- `dev/audit/harnesses/r10_sav_baseline.py`'s `cost` arm still asserts the rule this PR retires, "row actual_sek == receipt total_sek". At this head, `r10_sav_baseline.py cost` prints `receipt total_sek = 15.0; row actual_sek = 4.2`, `cost: DEFECT` (ev/finder-baseline-both-ends.txt). The arm should be re-pointed to the covered-interval invariant, or retired with its reason, so that a later seat does not read this stale DEFECT as a regression. Carry: #2492
-- `custom_components/heatpump_optimizer/ledger.py:39-40` still says "the two ``savings_`` lines". The PR adds a third, `savings_plan`. The rule the comment states still holds, because `billed_total` is an allow-list. Only the count word is stale. Carry: #2492
+- The finder's harness `dev/audit/harnesses/r10_sav_baseline.py` (#2255) had its verdicts redefined in this PR (commits 29f6d6cb, c57fb1bc). The body does not say so: it reports every base and head figure under the new definitions.
+  - Under the base tree's own copy of the file, the base reads null DEFECT and transient SOUND (spread 0.00 kW). The head reads null DEFECT (7.59 % saved on a flat price, against the original < 3 % rule) and transient DEFECT (spread 0.07 kW, against the original < 0.05 kW rule). See ev/finder-base-*.txt and ev/finder-basefile-at-head-*.txt.
+  - Both moves are by design. Carry 1's acceptance says the null "must separate [comfort, timing, stored heat], not drive the null to 0". A comfort-matched reference depends on the comfort each start delivers, so its step 0 cannot be the same from every start.
+  - The redefined transient arm still guards #2255's defect: step 0 must equal the steady holding power at the matched target.
+  - I judge the redefinition sound, but the body should have named it as the fixer's.
+  - Carry: dismissed: the redefinition follows carry 1's binding acceptance, and both readings are recorded here for the owner.
+- `custom_components/heatpump_optimizer/ledger.py:36-41` still says "the two ``savings_`` lines". This PR adds a third, `savings_plan`. The rule that comment states, that no savings line is in `BILLED_LINES`, holds for the third line too: `billed_total` is an allow-list. Only the count word is stale.
+  - Carry: #2492
+- The class-LOC ratchet was partly paid by cutting spent-history prose in `optimizer.py`: the measured 10-scenario rationale for a symmetric settlement, the min-power clamp history, and the transient history (commits 1b550bc3, 654aebf4). I planted the same kind of move: deleting comment lines with nothing else changed lowers `class_excess_loc`, because the metric counts a class's span. The same commits also hold real code payments, so the change is sound: `_settle_horizon` removes the duplicated end-less-start settlement, and the buffer and DHW re-pricing became one loop. The prose kept states the current "why", and the history is in the commit messages.
+  - Carry: dismissed: under a sound change this is the known span-counting property of the instrument, not gaming by this PR.
 
 ## Evidence
 
-- RESULT structure (the brief's requirement). `python3 tests/structure.py` at the head exits 0 (ev/structure.txt):
-  - It prints `ok   class_excess_loc 18199 <= 18199` and `STRUCTURE RATCHET PASSED`, rc=0.
-  - At the merge base 21a1e04a7 it measures `class_excess_loc=18202` and passes.
-  - The budget move is a re-record down (18202 → 18199), with its reason in 8f5fd0295's message: "the HeatPumpOptimizer span shrinking by the three lines the hoist removed".
-  - Step 14: the 36c985d3 review established that the move is earned by the hoist, and the hoist's code is unchanged in this delta.
-- RESULT head: the PR body's `## Head` names c0f221f76fe3c8fa41fa7d98ae352aa6e5554b43, the head I measured. `git ls-remote` read it as the branch head at 08:06Z, after every measurement.
-- RESULT merge. `git merge-tree --write-tree` exits 0 against both mains, with no conflict and no claim-driver output (ev/merge-tree.txt):
-  - against origin/main f40142d66: tree a66a90f3;
-  - against origin/main 880b667aa: tree b1b3015d.
-- RESULT version: VERSION, the manifest version and RELEASE_NOTES.md show 0 diff lines, three-dot against 21a1e04a7 (ev/cheap.txt).
-- RESULT claims (ev/cheap.txt):
-  - `env_drift.py --claims-only` prints `claims hygiene: origin/main ok`.
-  - The three-dot claim diff removes 0 lines that are not may-drift lines.
-  - `card_claimed_drift.txt` diff: 0 lines.
-- RESULT golden: `PYTHONPATH=tests/hastub python3 tests/env_drift.py --all 21a1e04a7` at the head prints `NO UNCLAIMED DRIFT: 56 scenario(s)` and `NO STALE FIXTURE: 56`, rc=0 (ev/env_drift_all.txt). The baseline was captured fresh, after a cache miss.
-- RESULT harnesses at both ends: I ran the head's harness files from worktrees of 21a1e04a7 and of the head (ev/harness-both-ends.txt). Every Null-control figure in the body reproduces exactly:
-  - volume flat: −64.51, DEFECT 0.2154/kWh → 0.00, SOUND, k 1.56.
-  - volume vary: 10.37 = −64.51 + 74.88 → 74.88.
-  - volume gap: 48.0 at both ends, k 1.0.
-  - comfort const: +4.95 % vs +0.00 % → +0.35 % vs −0.00 %.
-  - comfort vary: +20.03 % vs +15.30 % → +16.04 % vs +15.31 %.
-  - baseline null: 128.4 vs 121.5 → 121.8 vs 121.5.
-  - baseline transient: 1.81e-01 → 8.88e-16 kW off.
-- RESULT finder's harness, main's own copy of `r10_sav_baseline.py`, at both ends (ev/finder-baseline-both-ends.txt):
-  - base: `arms run 4, defect 1: null`;
-  - head: `arms run 4, defect 3: transient cost null`.
-  - The transient and null moves are the redefinition that carry 1's acceptance requires, judged sound at c70c3e46. The cost arm is the first finding above. Neither result changed since 36c985d3.
-- RESULT mutation proof: the fixer's `r10_sav_comfort_mutants.py` on a `git ls-files` copy of the head (ev/mutants.txt).
-  - M0: rc=0, failing=0. This is the null.
-  - M1 6, M2 2, M3 8, M4 5, M5 1, M6 4, M7 4, M8 1, M9 1, M10 1, M11 1, M12 1, M13 1, M14 1, M15 1, M16 2, M17 3, M18 6, M19 1, M20 1, M21 9, M22 4, M23 2, M24 2.
-  - Every count equals the body's, and every mutant is killed.
-- RESULT the delta's six pins, re-driven by me. I drove `mutation_table.candidates()`'s own mutants with `r10_sav_comfort_opmutants.py <copy> full <key>` on a `git ls-files` copy of the head (ev/opmutants.txt):
-  - The NULL reads rc=1, failing=1. That is the `#363 recorded_at` check, which every copy without `.git` fails.
-  - optimizer.py:324 RETURN_DEL: failing=3.
-  - optimizer.py:333 GUARD_OFF: failing=7.
-  - optimizer.py:336 RETURN_DEL: failing=3.
-  - optimizer.py:5294 BOOLOP: failing=2.
-  - optimizer.py:5294 GUARD_OFF: failing=2.
-  - optimizer.py:5335 CLAMP_DROP: failing=2.
-  - All six are killed under `killed()`'s rule: more failing checks than the NULL.
-  - Each pin's `old` text equals its head line, found with `grep -Fx`.
-  - Two pins record a smaller kill set with tests/plan_view.py: `_baseline_target.RETURN_DEL.26d08f36` and `_baseline_targets.RETURN_DEL.e3ab3cc7`, each at failed=1. That is a different driver, and those counts are the bot's, which I did not re-take.
-- RESULT mutation inventory: `tests/mutation_table.py --base origin/main` at the head prints `3966 unpinned site(s) of 6333 candidate sites, 3969 at the ratchet base 21a1e04a7...; the ledger agrees with the deterministic inventory` (ev/mutation_table.txt).
-  - I stopped that run after the inventory and null-control lines, because step 11 says never to re-run the mutation table.
-  - CI's `tests / mutation` is success at this head, and I cite that instead.
-- RESULT stress: `GOLDEN_REF=21a1e04a7 python3 tests/stress.py` at the head exits rc=0 (ev/stress_head.txt):
-  - `production calls: 20 of 20 family members judged against 21a1e04a7...; re-planned: []; new on this branch: []`;
-  - `ok no scenario's production calls grew past what its work counts vouch for, on an unchanged plan (round 9)`.
-- RESULT cheap checks (ev/cheap.txt): `node tools/policy/policy_lint.mjs --budgets` exits 0.
-- RESULT class (step 6) and forward-carry (step 10): the delta adds no production line, so it opens no new seam. Carry 5 seam 2 to R10-SAV-ACTUATION is unchanged since the round that confirmed roster edit 1debc245a.
-- CI at c0f221f76fe3c8fa41fa7d98ae352aa6e5554b43, read from the commit's check-runs API at 08:06Z (ev/ci_check_runs.tsv):
-  - Every check run is completed, with conclusion success or skipped. That includes `tests / fast (3.14)`, `tests / mutation`, `tests / closures`, `tests / coverage`, `tests / lane-proofs`, `pr-contract / pr-contract` (×2), `gate` (×2), `budget-raise-gate`, `arch-score`, codeql (python, actions, javascript-typescript), hassfest and validate-hacs.
-  - No check is red at this head, so step 11 owes no root-cause answer for this head.
-  - The earlier heads' reds were answered in the body and judged by the 36c985d3 review.
-- UNCERTAINTIES:
-  - I did not re-take the plan_view.py kill counts the bot recorded in the two RETURN_DEL pins. My tests/features.py drive kills both sites, so each pin's site is covered either way.
-  - The interdiff method compares the two PR diffs with their `index` and `@@` lines stripped. A move inside a hunk header alone would not show. Hunk headers carry only line positions and context, so I judged that acceptable.
-  - Two of my runs collided with my own cleanup of a shared scratch copy. The rc=1 FileNotFoundError seen was caused by this seat's process, not by the code under review, and the clean third run is the one recorded in ev/opmutants.txt.
-- My instruments: none of my own this round. Every run used the PR's committed harnesses, main's copy of the finder's harness, or the tree's own tests and tools, named above.
+- RESULT merge: `git merge-tree --write-tree origin/main c70c3e46` exits 0 with tree 1bf92cf6. There are no conflicts and no claim-file driver lines (ev/merge-tree.txt).
+- RESULT version: no change to VERSION, the manifest version or RELEASE_NOTES.md.
+- RESULT head: the body's head c70c3e46 is the head I measured. The roles directory has no diff from origin/main, so this contract is current.
+- RESULT harnesses at both ends: I ran the head's harness files against the merge-base and head worktrees. Every figure matches the body.
+  - volume flat: −64.51 (DEFECT, 0.2154 per kWh) → 0.00 (SOUND), k=1.56.
+  - volume vary: 10.37 = −64.51 + 74.88 → 74.88 timing.
+  - volume gap: 48.0 / 41.67 % at both ends, k=1.0.
+  - comfort const: +4.95 % → +0.35 %.
+  - comfort vary: +20.03 % vs timing +15.30 % → +16.04 % vs +15.31 %.
+  - baseline null: DEFECT → SOUND.
+  - baseline transient: DEFECT → SOUND.
+  - Files: ev/harness-*.txt. The body's figures name ac5788f2 as the base. ac5788f2..73b69fe0a touches only dev/ governance and record files, so the base figures carry.
+- The gap arm is not byte-identical: savings_pct is 41.66666666666677 at the base and 41.666666666666664 at the head. The pct is now computed from the rounded cells, which the body states by design. The published 2-dp cells are identical.
+- RESULT mutation proof (my own mutants, ev/mut.py on a `git ls-files` copy of the head). Null: section rc=0, failing=0. Full tests/features.py: failing=1, the `#363 recorded_at` check that every copy without `.git` fails. Every mutant was killed:
+  - R1, thermostat never calibrated: 3 failing.
+  - R2, settlement passes no plan draw: 4.
+  - R3, a legacy month gains a plan line: 1.
+  - R4, no 1 kWh floor: 1.
+  - R5, actual is the bill again: 9.
+  - R6, saving off by 0.01 from the cells: 11.
+  - R7, arbiter re-freeze deleted (full script): 2 against the null's 1.
+  - R8, comfort matching removed: 8.
+  - R9, the old start bound restored: 4.
+  - R10, `held_cost` line deleted: NameError, a trivial kill. I replaced it with R11.
+  - R11, coordinator reads `baseline_cost` for the held delta (full script): 2 against 1, the #2257 check.
+  - R12, end credit dropped from the start bound: 1.
+  - Files: ev/mutants-section.txt, ev/mutants-full.txt.
+- RESULT golden: `PYTHONPATH=tests/hastub python3 tests/env_drift.py --all 73b69fe0a` at the head prints NO UNCLAIMED DRIFT on 56 scenarios and NO STALE FIXTURE (ev/env_drift_all.txt). The 41 claims include summer_dhw_only −7.62 → 5.88 %, carry 1's second limit. away_setback is unclaimed, so it did not move.
+- RESULT structure: STRUCTURE RATCHET PASSED. RESULT archscore: `Architecture score: dS +0.0000 NULL` against 73b69fe0a.
+- RESULT card equality: `tests/plan_view.py && node tests/card.mjs` prints ALL CARD CHECKS PASSED (ev/card.txt).
+- Seam census: the body's grep returns coordinator, sensor, notifier, payload and card. The census is in ev/seam_census.txt.
+  - Card line 8587 reads the plan-horizon prediction, which is divergence (a), out of scope by carry 3.
+  - Every other reader reads the row. No seam is open.
+  - The receipt renders only `basis` lines, so `savings_plan` never reaches a receipt.
+  - The arbiter's `"plan"` reference stays inside the step row. `_verdict` copies four fields, so diagnostics never serialise the plan.
+- CI on c70c3e46 (run 40112142879), read from the check-runs API.
+  - `tests / mutation` is red: `MUTATION TABLE REFUSED`, with the 14 ADDED UNPINNED sites the body lists one for one. The body answers it under Red checks. `mutation-pins` shards are running (4 is green).
+  - `tests / fast (3.14)` is red with only `tests/stress.py` failing, 1 of 113: the production-call check the body names and answers. In CI `tests/entities.py` passed. The body's 2 local entities failures were environment-only, as the body says.
+  - Everything else concluded is green: closures, coverage, typing, browser, briefs, arch-score, budget-raise-gate, hassfest, CodeQL.
+  - lane-proofs and claims-autofix were still queued, so not every workflow had concluded when I read CI.
+- Both red checks are named and answered in the body, so step 11 is satisfied.
