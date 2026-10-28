@@ -1,0 +1,23 @@
+MERGE-CLAIM: refused tests/golden/claimed_drift.txt
+CONFLICTING CLAIMS: both sides rewrote the claim list -- this
+branch claims ['building_preset', 'capacity_curve', 'capacity_tariff', 'capacity_tariff_15min', 'confidence_margins', 'coord_all_features', 'coord_dhw', 'coord_grid_fee', 'coord_minimal', 'coord_two_zone', 'cop_scale_learned', 'cycling_cost', 'dhw_cold_tank', 'dhw_large_tank', 'dhw_learned_windows', 'dhw_schedule_off', 'direct_flow_carnot', 'everything_on', 'external_heat_active', 'extreme_prices', 'flat_prices', 'fuse_guard', 'horizon_48h', 'legionella_due', 'legionella_due_low_setpoint', 'legionella_off', 'negative_prices', 'peak_masked', 'price_risk', 'start_below_band', 'summer_dhw_only', 'tariff_plus_two_zone', 'valve_storage', 'valve_storage_flat_prices', 'valve_storage_low_target', 'valve_storage_small_tank', 'valve_storage_smart_write', 'valve_upper_direct_slab', 'wide_band', 'winter_single_dhw', 'winter_single_no_dhw', 'winter_two_zone_dhw', 'winter_two_zone_no_dhw', 'wood_coil', 'wood_two_tank', 'wood_two_tank_smart_write'] and the merge
+brings in ['coord_all_features', 'coord_dhw', 'coord_grid_fee', 'coord_minimal', 'coord_two_zone']. A claim excuses
+one release's golden diff and is written for that diff alone, so
+merging two lists would reinstate a claim one side deleted and
+excuse a drift by accident. Resolve it by hand: keep the claims
+that describe THIS branch's diff and delete the rest.
+LEDGER-MERGE: resolved tests/closures.json
+  closures.tests/card.mjs: merged as a set (100 entries)
+  closures.tests/card_drift.mjs: merged as a set (103 entries)
+  closures.tests/plan_view.py: merged as a set (92 entries)
+  inert_reads.tests/harness_headers.py: merged as a set (876 entries)
+  re-run the gate that owns this file before pushing
+a1096b79a7ff50bebf1ac2bf5256925f330a9d7b
+tests/golden/claimed_drift.txt
+
+Auto-merging custom_components/heatpump_optimizer/coordinator.py
+Auto-merging custom_components/heatpump_optimizer/payload.py
+Auto-merging tests/closures.json
+Auto-merging tests/features.py
+Auto-merging tests/golden/claimed_drift.txt
+CONFLICT (content): Merge conflict in tests/golden/claimed_drift.txt
