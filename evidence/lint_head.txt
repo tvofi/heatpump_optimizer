@@ -1,0 +1,4 @@
+
+FIXTURE ok: 92 error(s) hold 246 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
+rc=0
+TOTAL: 0 error(s) across 43 policy file(s)
