@@ -1,0 +1,14 @@
+merge-base: 16a8240f179d8a6a1ecaae2b284f6ec5a0f04eab
+STRUCTURE RATCHET PASSED
+py=/opt/hpo/venv-ci/bin/python
+ALL 2382 ENTITY CHECKS PASSED
+ALL 109 HARNESS HEADER CHECKS PASSED
+layout self-test: ok
+tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since 16a8240f179d
+throwaway_git: 0 raw git init or clone site(s) refused, 0 stale allow entries at HEAD
+selftest_wiring: 76 self-testing, 76 wired, 0 unwired
+  MODE: SCOPED -- 0 script(s) run, 33 scoped out.
+own diff:  4 files changed, 134 insertions(+), 4 deletions(-)
+version/golden lines: 0
+claims hygiene: 16a8240f179d8a6a1ecaae2b284f6ec5a0f04eab ok
+env_drift rc=0
