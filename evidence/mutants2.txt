@@ -1,0 +1,16 @@
+== MUTANT guard_true
+-    if key in current:
++    if True:
+rc=1
+KeyError: 'wood_price_sek_m3'
+== MUTANT ret_required
+-    return vol.Optional(key)
++    return vol.Required(key)
+rc=1
+== BASE b0b2d76, suggest_as_default on both old helpers
+-        return vol.Optional(key, description={"suggested_value": current[key]})
++        return vol.Optional(key, default=current[key])
+-        return vol.Optional(key, description={"suggested_value": current[key]})
++        return vol.Optional(key, default=current[key])
+ALL 505 checks PASSED
+cd5693f4dfde160c2a1d61ce9557027b64e91bc1
