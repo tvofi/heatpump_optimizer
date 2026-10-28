@@ -7438,6 +7438,30 @@ async def options_rejected_page_rerenders_the_clear():
             f"placeholders={result.get('description_placeholders')}",
         )
 
+    # The clear is judged over the submit merged onto the stored config:
+    # turning the wood block off hides its rows, so their absent entities are
+    # kept, not nulled -- the save stores the switch, not a wipe of the block.
+    wood = {
+        const.CONF_WOOD_FURNACE_ENABLED: True,
+        const.CONF_WOOD_TANK_TOP_ENTITY: "sensor.wood_top",
+        const.CONF_WOOD_TANK_BOTTOM_ENTITY: "sensor.wood_bottom",
+    }
+    entry = FakeEntry(data=dict(wood))
+    flow = options_over(entry, FakeHass())
+    await flow.async_step_building(None)
+    result = await submit(flow, "building", {const.CONF_WOOD_FURNACE_ENABLED: False})
+    check(
+        "opt_building",
+        "happy",
+        "turning the wood block off keeps its hidden entities instead of nulling them",
+        shows(result, "building") is False
+        and result.get("type") == "menu"
+        and entry.options.get(const.CONF_WOOD_FURNACE_ENABLED) is False
+        and const.CONF_WOOD_TANK_TOP_ENTITY not in entry.options
+        and const.CONF_WOOD_TANK_BOTTOM_ENTITY not in entry.options,
+        f"type={result.get('type')} options={entry.options}",
+    )
+
     # grid_connection: a cleared silent-mode window is absent from the
     # submit and saves as "" (no window), never the stored window. The page
     # writes that default before ``_page`` lifts any section, so the check
