@@ -1,0 +1,26 @@
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/config_flow.py:1896 RETURN_DEL: return submit
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/config_flow.py:1907 RETURN_DEL: return cleaned
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/config_flow.py:1914 RETURN_DEL: return cleaned
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/config_flow.py:1919 RETURN_DEL: return {"currency": currency, "fee_bound": f"{grid_fee.fee_b
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/config_flow.py:3282 GUARD_OFF: if check is not None:
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/config_flow.py:3487 RETURN_DEL: return errors
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/config_flow.py:3488 GUARD_OFF: if not (submit.get(CONF_TIBBER_TOKEN) or current.get(CONF_TI
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/config_flow.py:3490 RETURN_DEL: return errors
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/config_flow.py:3498 RETURN_DEL: return errors
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/config_flow.py:3513 BOOLOP: if submit.get(CONF_FREQ_CONTROL_MODE) == FREQ_MODE_CONTROL a
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/config_flow.py:3515 RETURN_DEL: return errors
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/config_flow.py:3527 RETURN_DEL: return await self._page("comfort", user_input, clear=True, c
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/config_flow.py:3562 BOOLOP: if not errors and _dhw_min_too_close(submit, current):
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/config_flow.py:3562 GUARD_OFF: if not errors and _dhw_min_too_close(submit, current):
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/config_flow.py:3564 RETURN_DEL: return errors
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/config_flow.py:3586 RETURN_DEL: return errors
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/config_flow.py:3639 RETURN_DEL: return errors
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/config_flow.py:3650 RETURN_DEL: return cleaned
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/config_flow.py:3734 GUARD_OFF: if not _valid_months_spec(submit.get(CONF_PEAK_TARIFF_MONTHS
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/config_flow.py:3736 GUARD_OFF: if not is_valid_spec(submit.get(CONF_PEAK_TARIFF_HOURS, ""))
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/config_flow.py:3738 RETURN_DEL: return errors
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/config_flow.py:3758 GUARD_OFF: if problem is not None:
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/config_flow.py:3764 RETURN_DEL: return errors
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/config_flow.py:3788 RETURN_DEL: return errors
+CI PREDICT: 24 unpinned site(s) the diff adds -- a warning; the body owes each a line under ## Unpinned sites
+CI PREDICT: no closures, fast, wave-script or instrument red predicted against eab04d0ebf8c (a data-file read is not seen)
