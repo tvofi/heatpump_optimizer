@@ -12,11 +12,15 @@ The diff is one markdown file under `dev/programme/triage/`; nothing implemented
 
 ## Head
 
+`cd2e3314c35b94a66d4deb6561fda767e8dfa5f7` (authored code head) corrects P216's heading to `(V129)`, the id its `Source:` line names (the review's finding on `4a276b6ac`); the mutation proof's lines now read 455 and 466.
+
+`4a276b6ac22e5543acf0351ba32464b3ee081e36` adds one commit to the previous head, containing only this PR's own row, `dev/programme/delivery/2891.md`. The authored code head is `1c6731b232015a9b6631b24169a55739be57833c`.
+
 `1c6731b232015a9b6631b24169a55739be57833c`; the file is the whole diff against `a0e7664ea`.
 
 ## Mutation proof
 
-The gate this file feeds is `tools/audit/seat/roster_edit.py`'s `triage_refusal` (`ruling_verdict` at 456, `triage_refusal` at 464): a roster text naming a proposal must cite `triage: dev/programme/triage/<file>.md#P<n>`, and the cited entry must read `Verdict: ACCEPT`. On the committed file, with the seat library on `sys.path`:
+The gate this file feeds is `tools/audit/seat/roster_edit.py`'s `triage_refusal` (`ruling_verdict` at 455, `triage_refusal` at 466): a roster text naming a proposal must cite `triage: dev/programme/triage/<file>.md#P<n>`, and the cited entry must read `Verdict: ACCEPT`. On the committed file, with the seat library on `sys.path`:
 
 ```
 verdict ACCEPT
@@ -50,3 +54,4 @@ none
 ## Friction
 
 none
+
