@@ -654,6 +654,68 @@ def flow_self_test() -> int:
         r = period(ctx, a, rs.when(T(1, 15)))
         check("flow: a roster commit at exactly the window's end closes in it",
               r["closed"][0], 1)
+
+        # B5: an object git cannot read. A path probe that fails alike for an
+        # absent path and an unreadable object (`cat-file -e` reads the blob;
+        # `rev-parse --verify --quiet` answers rc 1 for an absent path and for
+        # an unreadable tree on the way to it) turned each into "nothing here"
+        # -- a zero on the takt headline, lane A 0 (#2883 review 2). Each
+        # fixture's content is unique, so dropping its object breaks no other
+        # arm; the drop asserts the object was a loose file first.
+        def drop(sha: str) -> bool:
+            p = R / ".git" / "objects" / sha[:2] / sha[2:]
+            had = p.is_file()
+            p.unlink(missing_ok=True)
+            return had
+        gone = mk(m0, {ROSTER: ros("done") + " " * 7}, "roster: blob gone",
+                  T(3, 40))
+        g("update-ref", "refs/remotes/origin/roster-gone", gone)
+        check_true("flow: fixture -- the in-window roster blob was loose and "
+                   "is dropped", drop(g("rev-parse", f"{gone}:{ROSTER}")))
+        r = period(replace(ctx, roster_ref="refs/remotes/origin/roster-gone",
+                           roster_path=ROSTER), rs.when(T(3, 30)), rs.when(T(4)))
+        check_true("flow: a roster commit whose blob git cannot read is "
+                   "UNAVAILABLE, never a zero with an empty reason",
+                   r["closed"][0] is None and "cannot read" in r["closed"][1],
+                   r["closed"])
+        cg = mk("", {ROSTER: ros("done"), CRIT: crit + " " * 7}, "crit gone",
+                T(0))
+        g("update-ref", "refs/remotes/origin/roster-critgone", cg)
+        check_true("flow: fixture -- the critical-path blob was loose and is "
+                   "dropped", drop(g("rev-parse", f"{cg}:{CRIT}")))
+        crit_cg, why_cg = critical_read(R, "refs/remotes/origin/roster-critgone",
+                                        roster)
+        check_true("flow: a critical-path blob git cannot read is UNAVAILABLE "
+                   "with git's reason", crit_cg is None and "cannot read" in why_cg,
+                   (crit_cg, why_cg))
+        b_cg = board(replace(ctx, roster_ref="refs/remotes/origin/roster-critgone",
+                             critical=crit_cg, critical_unavailable=why_cg), until)
+        check_true("flow: ...and the WIP row is UNAVAILABLE, never A 0",
+                   b_cg["wip"][0] is None
+                   and "UNAVAILABLE" in render_board(b_cg).split("### WIP")[1],
+                   b_cg["wip"])
+        # The probe's third answer, consumed. A tree git cannot read fails the
+        # first-parent `log -- path` before `state()` is reached, so no fixture
+        # drives `blob_at`'s None into it; the stub does, and pins that the
+        # walk never reads it as "no roster yet".
+        real_blob_at = roster_lib.blob_at
+        roster_lib.blob_at = lambda *_: (None, "cannot read (stubbed probe)")
+        try:
+            r = period(bad_ctx, rs.when(T(3, 30)), rs.when(T(4)))
+        finally:
+            roster_lib.blob_at = real_blob_at
+        check("flow: a path probe that cannot answer is UNAVAILABLE in the "
+              "roster walk, never {}", r["closed"],
+              (None, "roster unreadable before the window: cannot read "
+                     "(stubbed probe)"))
+        # Null control: the same shape with every object intact reads its
+        # measurement, so the arms above are the drop, not the fixture.
+        intact = mk(m0, {ROSTER: ros("done")}, "roster: intact", T(3, 40))
+        g("update-ref", "refs/remotes/origin/roster-intact", intact)
+        r = period(replace(ctx, roster_ref="refs/remotes/origin/roster-intact",
+                           roster_path=ROSTER), rs.when(T(3, 30)), rs.when(T(4)))
+        check("flow: null control -- the intact roster commit closes its group",
+              r["closed"], (1, ""))
     return failures
 
 
@@ -810,7 +872,10 @@ def flow_closed(ctx: FlowCtx, a: datetime, b: datetime):
 
     def state(sha: str) -> tuple[dict | None, str]:
         """The done-flag map at one commit, or None and why it is unreadable."""
-        if _git_ro(ctx.repo, "cat-file", "-e", f"{sha}:{path}").returncode:
+        there, why = roster_lib.blob_at(str(ctx.repo), sha, path)
+        if there is None:
+            return None, why
+        if not there:
             return {}, ""                      # no roster at this commit yet
         rr = _git_ro(ctx.repo, "show", f"{sha}:{path}")
         if rr.returncode:
