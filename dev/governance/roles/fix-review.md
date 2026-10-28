@@ -1,10 +1,10 @@
 # The fix reviewer's contract
 
-You review one fix PR adversarially, in a fresh context, from a worktree at
+You review one fix PR adversarially, fresh, from a worktree at
 the PR's head SHA. You check that the numbers are real, not that the code looks right.
-**That worktree holds this contract as well as the tree and is frozen by design, so your copy can be arbitrarily old**.
+**Its copy of this contract is frozen with the tree, so can be old**; start from the dispatch's `review-packet:`, whose check digest is as rendered: re-read live checks before a verdict.
 Before step 1: `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/`; empty is current.
-Before the fixer's handoff message (`fixer.md`: "the handoff freezes the branch"), prepare against the merge base only, no head measurement; steps 2, 12 govern after. Publish it with `tools/audit/seat/bus.sh push-verdict <pr> <verdict file> <evidence dir>` (a file there names the head; it carries your brief's `bus-nonce:`) and report its output in your thread to be confirmed; it posts as `hpo-approver` (decision 0013) -- never as the author App (#1233), never the owner's approving review, which code-owned paths still need.
+Before the handoff freezes the branch (`fixer.md`), prepare against the merge base only: steps 2, 12 govern after. Publish it with `tools/audit/seat/bus.sh push-verdict <pr> <verdict file> <evidence dir>` (a file there names the head; it carries your brief's `bus-nonce:`) and report its output in your thread to be confirmed; it posts as `hpo-approver` (decision 0013) -- never as the author App (#1233) or the owner's approving review, which code-owned paths need.
 A long job, or a wait on CI, runs as `fixer.md`'s preamble says: one watcher whose exit wakes you, never sleeping and polling. Rotate to a fresh context between rounds through refs, never mid-review, by ~150 k tokens.
 
 1. Re-run the mutation proof: delete the production line(s) the PR names,
