@@ -1,0 +1,5 @@
+/home/user/heatpump_optimizer  c44e95fe3 (detached HEAD)
+/root/m2                       c44e95fe3 (detached HEAD)
+/root/m3                       c44e95fe3 (detached HEAD)
+/root/m4                       c44e95fe3 (detached HEAD)
+/root/mut                      c44e95fe3 (detached HEAD)
