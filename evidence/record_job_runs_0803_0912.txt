@@ -1,8 +1,0 @@
-Governance push runs, record job (GitHub Actions API, run list for governance.yml event=push branch=main):
-run 39744954535 b980e2fa0 08:03:46Z success
-run 39745082624 1787ffd08 08:04:49Z success
-run 39745228063 fae523a14 08:05:57Z success  record job 119711895503 08:06:01-08:10:42, steps 35s / 112s / 110s = full walks (84 PRs), RECORD_ENUM: api, no 403
-run 39745375894 c6165931 08:07:08Z success
-run 39745644227 01cf1398a 08:09:21Z failure
-run 39749268769 8a4c438e7 08:38:37Z failure  record job 119725423893: refusal step 41 s (full), histograms step 15 s (not 112 s), friction filer step failed after 0 s
-Per-run demand by the RCA's formula 3W+6P: 744 753 762 771 780 789 (per_push_cost.txt)

@@ -1,0 +1,6 @@
+check-runs at 4237ca684e89ff2be14054f41e790b4b671ec106 read at 10:56Z (35 runs):
+success: arch-score, validate-hacs, policy-docs, delivery-status, wave-script, hassfest, scope, mutation, briefs, closure-scope, typing, cancel-superseded, Analyze (actions), Analyze (javascript-typescript)
+in progress: coverage, fast (3.14), closures, browser, env-matrix, instrument-self-tests, Analyze (python)
+skipped: record, delivery-status-publish, kernel-points, nightly-ha, mutation-pins, mutation-autofix; neutral: CodeQL
+failure: nightly-status (job 119783315976), pr-contract (job 119783315470)
+pr-contract log tail: "BAD-DEST body item ...: R10-RECORD-API-BUDGET is not a group of the roster"; "CARRY-AUDIT: 4 finding item(s): 1 routed, 0 unrouted, 3 bad destination(s)". Not a rate limit; the group is only on handoff/audit-r10-roster.
