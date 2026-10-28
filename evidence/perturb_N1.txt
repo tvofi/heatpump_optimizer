@@ -1,7 +1,0 @@
-mutN1 argv IDENTICAL
-mutN1 census IDENTICAL
-mutN1 hdiff IDENTICAL
-mutN1 rca.named IDENTICAL
-mutN1 rca.corpus IDENTICAL
-mutN1 rca.planted IDENTICAL
-N1 hdiff(main, worktree head) IDENTICAL

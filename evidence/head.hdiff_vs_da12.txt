@@ -1,5 +1,0 @@
-tree lines=91458 refused_main=0 refused_head=0 main_not_head=0
-plants lines=714 refused_main=245 refused_head=245 main_not_head=0
-generated lines=17568 refused_main=7200 refused_head=7200 main_not_head=0
-null lines=7200 refused_main=0 refused_head=0
-TOTAL lines=109740 refused_main=7445 refused_head=7445 main_not_head=0

@@ -1,0 +1,6 @@
+check-runs on 455d7c2001fc7b94d39f9a0feb933894d9ca704d, read 2026-10-24 after 17:24Z:
+pr-contract / pr-contract: completed failure (job 120936964374)
+gate: queued
+prelude (run 40115512480), cancel-superseded (run 40115512480): queued
+arch-score, budget-raise-gate, refresh, prelude (run 40115512010), cancel-superseded (run 40115512010): success
+governance, validate, codeql, hassfest, tests, kernel-points: skipped

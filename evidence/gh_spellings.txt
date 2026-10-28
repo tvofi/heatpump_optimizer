@@ -1,0 +1,8 @@
+gh version 2.89.0 (2026-03-26)
+$ gh pr -R o/r merge --help | head -2
+Merge a pull request on GitHub.
+
+$ gh pr "merge" --help | head -1
+Merge a pull request on GitHub.
+$ gh --repo o/r pr merge --help
+Merge a pull request on GitHub.

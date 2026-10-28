@@ -1,3 +1,2 @@
-  ok   an entry that no longer spans two files is DEAD
   ok   a disposition of no known kind is refused
-SELF-TEST 180 of 180 probes held
+SELF-TEST 41 of 41 probes held
