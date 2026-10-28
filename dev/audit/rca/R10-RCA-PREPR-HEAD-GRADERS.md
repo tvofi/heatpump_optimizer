@@ -263,11 +263,35 @@ request, that is about 13 s per pull request.
 | expected defect cost, CI floor only | 2.9 s |
 | expected defect cost, with the fixer round | 92 s |
 
+**Round 3's key**, re-taken with `dev/audit/rca/prepr-head-graders/keycount.py beb570c81
+2026-10-14` (539 merges by its rule, `git rev-list --first-parent --merges --since=2026-10-14`;
+the round-2 key counted by that same rule is its null control and reproduces round 2's file counts):
+
+| row | round-2 key, keyed | round-3 key, keyed |
+|---|---|---|
+| CORPUS | 5 files, 15 | 7 files, 21 |
+| WAVE CHECK | 2 files, 9 | 12 files, 32 |
+| FIELD COVERAGE | 1 file, 7 | 8 files, 27 |
+| RULES SYNC | 6 files, 15 | 8 files, 21 |
+| FRAGMENTS | 2 files, 2 | 3 files, 4 |
+| CODEOWNERS | 1 file, 1 | 3 files, 7 |
+| LANE SELF-TEST | 7 files, 19 | 12 files, 28 |
+| any row | 28 | 40 |
+
+When no key is hit, `--only graders` takes 0.85–0.88 s against `--only orphans` 0.16–0.20 s (3
+runs each, `named_loads` and the Python-import walk cached per file): about 0.7 s.
+
+**Weighted, round 3:** FIELD COVERAGE's 27 keyed merges at the plant's 292 s, an upper bound since
+it runs five rows, and the other 13 at round 2's 42 s, not re-taken: 0.7 + (27 × 292 + 13 × 42) /
+539 = 16.3 s per predictor run, about 49 s per pull request at 3 runs. That is under the 92 s
+expected defect cost with the fixer round, so the verdict below holds, with less margin than
+round 2's 13 s.
+
 ### Verdict: build
 
 - On the CI floor alone, the arm does not pay for itself.
-- Counting the fixer round, it pays for itself about 7 times over, and the round-10 record shows
-  that round every time. The five round-2 rows have no instance and add about 1.5 s per run
+- Counting the fixer round, it pays for itself about 1.9 times over at round 3's key (92 s against
+  49 s; round 2's narrower key, 7 times), and the round-10 record shows that round every time. The five round-2 rows have no instance and add about 1.5 s per run
   (their key hits, mostly inside trees the measured rows already build); they are built because
   the class is the restored runs, not the ones that happened to go red.
 - The barrier rule binds either way. The class is past the per-round threshold, and I3 is
@@ -334,6 +358,60 @@ The default is unchanged, so CI's base copy calls it as before.
 This fixes the message half of the cause. The edit is text in a pinned grader, so this branch's own
 `policy-docs` grades it with the base's copy. That works, because no verdict changes.
 
+### Round 3: what a grader names keys it
+
+Review round 2 blocked on a seam the round-2 rule could not see. `policy_lint.mjs` runs
+`budget_raise_gate.py` (`raiseJustification`) in its own fixture acceptance, `policy-docs` restores
+`tools/policy/*.py`, and `mjs_closure` followed only `.mjs` imports and `load`/`at` literals. So a
+head edit to `budget_raise_gate.py`, with the fixture it grades, was predicted green and went red
+under the base's copy.
+
+The class is every restored file a row's grader loads, not only the programs it spawns. The rule
+that enumerates it is `named_loads`: each quoted program or module path (`.mjs`, `.py`, `.sh`) and
+each `path.join` of literals in a source the row's key holds, resolved beside the source, from the
+root, or through layout's move map. A static `from '…'` import is the import arm's.
+
+- `mjs_closure` follows `named_loads` and a Python file's tracked imports, transitively. `whole`
+  still decides whether static `.mjs` imports are followed, so FIELD COVERAGE's 110 s run stays off
+  `policy_lint.mjs`'s import closure.
+- `grader_gaps` scans every source in each row's key. A named file the job restores, outside the
+  row's key and on no `GRADER_NAMED_EXEMPT` site, is a gap. So is an exempt site that no source
+  still holds. An exempt site is keyed on (the naming file, the file named, that line's text), so a
+  load added on another line keys and is never silenced.
+
+The seams the rule returns, from the key with `named_loads` removed (`grader_gaps(…,
+key=lambda e, w: mjs_closure(root, e, imports=w, named=False))`): 42 sites naming 10 files, each
+below; `tests/layout.py` is the Python-import arm's, which the rule does not enumerate:
+
+| row | named at | file | disposition |
+|---|---|---|---|
+| CORPUS, FIELD COVERAGE, RULES SYNC, WAVE CHECK, LANE SELF-TEST | `policy_lint.mjs` (`raiseJustification`) | `tools/policy/budget_raise_gate.py` | keyed (the review's plant) |
+| those five | `budget_raise_gate.py`'s import | `tests/layout.py` | keyed (Python-import arm) |
+| FIELD COVERAGE, WAVE CHECK | `policy_lint.mjs`, a named `brief_lint.mjs` | `tools/policy/brief_lint.mjs` | keyed |
+| LANE SELF-TEST, WAVE CHECK | `stamp.py` | `tests/delivery_status.py` | keyed |
+| WAVE CHECK | `check-wave-script.mjs`, three run-time `import()`s | `tools/policy/policy_lint.mjs` | keyed |
+| WAVE CHECK | `check-wave-script.mjs`, an `at()` read | `tools/audit/prepare_baseline.sh` | keyed |
+| FIELD COVERAGE | `field_coverage.mjs`, `--hooks` spawn | `tools/policy/policy_lint.mjs` | keyed |
+| FIELD COVERAGE | `field_coverage.mjs`, a `python3 -c` import | `tools/policy/budget_raise_gate.py` | keyed |
+| FIELD COVERAGE | `field_coverage.mjs`, a `locate()` spawn | `codeowners_gap.py` | keyed |
+| FIELD COVERAGE | `field_coverage.mjs`, a `path.join(HERE, …)` import | `tools/policy/counts.mjs` | keyed |
+| CODEOWNERS, FIELD COVERAGE | `codeowners_gap.py` | `tools/coverage/coverage_tree.sh` | keyed |
+| LANE SELF-TEST | `agreement.mjs`, an `at()` path for `sys.path` | `tests/throwaway_git.py` | keyed |
+| LANE SELF-TEST, WAVE CHECK | `policy_lint.mjs`, `path.join(ROOT, 'tools', 'release', 'stamp.py')` | `tools/release/stamp.py` | keyed |
+| CORPUS and the rows importing it | `policy_lint.mjs`'s `REPORTER_INPUTS` | `tests/delivery_status.py` | exempt: a path compared with a diff's, never read |
+| CODEOWNERS | `codeowners_gap.py`'s EXEC self-test case | `tools/policy/policy_lint.mjs` | exempt: run text parsed, never run |
+
+The plant from the review, re-run on this branch (`demo`-style, the plant committed on the head):
+
+| predictor at | base | result | s |
+|---|---|---|---|
+| `38422dd15` (round 2's head) | the head | rc 0, `budget_raise_gate.py` keys nothing | 0 |
+| `282496dce` (round 3) | the head | **rc 1**, `CORPUS REFUSED by the base's copy, over tools/policy/budget_raise_gate.py: FIXTURE VACUOUS: the raise-justification arm on prepr/raise/good.md drew 1 error(s)`, on `policy-docs` and `env-matrix` | 292 |
+
+The plant is review round 2's `plant.diff`: `JUSTIFICATION_SCORE` accepts `Arch score: dS`, and
+`fixtures/policy-rot/prepr/raise/good.md` uses that spelling. The 292 s run builds both trees and
+runs five rows (CORPUS in two modes, FIELD COVERAGE, RULES SYNC, WAVE CHECK, LANE SELF-TEST).
+
 ### Demonstration
 
 The runs use `dev/audit/rca/prepr-head-graders/demo.sh`. Each one is a shared throwaway clone at the
@@ -362,14 +440,20 @@ changes what predicts and never what is predicted. FIELD COVERAGE runs have the 
   - The repair is predicted green: the same entry in `corpus_excluded.json`, with `policy_lint.mjs`
     still edited so that the arm runs.
   - The plant staged but not committed is predicted green.
-- **Eleven `grader_key_self_test` rows:**
+- **Fifteen `grader_key_self_test` rows:**
   - CORPUS is keyed by `policy_lint.mjs` and by `counts.mjs`, and not by `corpus_excluded.json`.
-  - WAVE CHECK is not keyed by `policy_lint.mjs`.
-  - FIELD COVERAGE is keyed by its own file, and not by `policy_lint.mjs`.
-  - RULES SYNC is keyed by `rules_sync.mjs`; CODEOWNERS by `codeowners_gap.py` alone.
-  - Every restored pinned run is predicted or exempt (null control: the gap list is empty).
-  - Three perturbations of `GRADERS` are each named as a gap: CORPUS without `env-matrix` (round
-    1's surviving M7), the RULES SYNC row dropped, and CORPUS without `--hooks`.
+  - CORPUS is keyed by `budget_raise_gate.py`, which `policy_lint.mjs` spawns, and by
+    `tests/layout.py`, which that program imports.
+  - WAVE CHECK is keyed by `policy_lint.mjs`, which `check-wave-script.mjs` imports at run time.
+  - FIELD COVERAGE is keyed by its own file and by `policy_lint.mjs`, which it runs with `--hooks`,
+    and not by `render_md.mjs`, which only `policy_lint.mjs`'s static imports reach.
+  - RULES SYNC is keyed by `rules_sync.mjs`; CODEOWNERS by `codeowners_gap.py`, and not by
+    `policy_lint.mjs`, which it names only in an exempt site.
+  - Every restored pinned run is predicted or exempt, and every restored file a grader names is in
+    its key or on an exempt site (null control: the gap list is empty).
+  - Five perturbations are each named as a gap: CORPUS without `env-matrix` (round 1's surviving
+    M7), the RULES SYNC row dropped, CORPUS without `--hooks`, a key blind to named files
+    (`budget_raise_gate.py` under CORPUS), and an exempt site no source holds.
 
 Mutation proof is in the pull-request body.
 
@@ -388,4 +472,8 @@ Mutation proof is in the pull-request body.
   `host-path` on this record because `ref_privacy._leaks` matches the host's home as a bare
   substring: under `HOME=/root` (a cloud seat) every citation of `dev/governance/roles/root-cause.md`
   matches. It is an instrument defect in `tools/audit/seat/ref_privacy.py`, outside this record's
-  class; it is carried to R10-RECORD-API-O1, the open group that owns that file.
+  class; it is carried to R10-RECORD-API-O1, the open group that owns that file. That group's
+  roster `brief` and `carry` in `dev/programme/rosters/wave-r10-groups.json` already hold it, from
+  #2852's fix review (`9573269b1`); read back with `jq '.. | objects | select(.group? ==
+  "R10-RECORD-API-O1") | to_entries[] | select(.value|tostring|contains("no path-segment
+  boundary")) | .key'`, which prints `carry` and `brief` on this tree and on `origin/main`.

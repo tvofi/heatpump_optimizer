@@ -77,6 +77,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import functools
 import json
 import re
 import subprocess
@@ -508,20 +509,74 @@ AGREEMENT = (".claude/workflows/agreement.mjs", "tools/policy/agreement.mjs")
 EMPTY_TREE = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
 
 
-def mjs_closure(root: Path, entry: str) -> set[str]:
-    """What one .mjs grader loads: its relative imports and `load`/`at`
-    literals, transitively, each where the tree keeps it."""
+# A file a grader names to load, spawn or read: one quoted program or module
+# path (`'budget_raise_gate.py'`, `'tests/throwaway_git.py'`), or a
+# `path.join` of literals (`path.join(ROOT, 'tools', 'release', 'stamp.py')`).
+# A static `from '...'` import is the import arm's, not this one's.
+NAMED = re.compile(r"path\.join\(\s*(\w+)((?:\s*,\s*'[^']*')+)\s*\)|['\"]([\w./-]+\.(?:mjs|py|sh))['\"]")
+
+
+@functools.lru_cache(maxsize=None)
+def tracked_files(root: Path) -> frozenset[str]:
+    return frozenset((git(root, "ls-files") or "").split("\n"))
+
+
+@functools.lru_cache(maxsize=None)
+def named_loads(root: Path, path: str) -> tuple[tuple[int, str, str], ...]:
+    """Each (line number, line, tracked file) that `path` names by `NAMED`,
+    resolved beside it, from the root, or through layout's move map."""
     import layout
+    tracked, out = tracked_files(root), []
+    for n, line in enumerate((root / path).read_text().splitlines(), 1):
+        if re.match(r"\s*(?:import|export)\b.*\bfrom\s+'", line):
+            continue
+        for m in NAMED.finditer(line):
+            lit = "/".join(a.strip().strip("'") for a in m.group(2).split(",") if a.strip()) if m.group(2) else m.group(3)
+            for cand in (str(Path(path).parent / lit), lit, layout.locate(lit, root=root)):
+                cand = str(Path(cand)).removeprefix("./")
+                if cand in tracked:
+                    out.append((n, line.strip(), cand))
+                    break
+    return tuple(out)
+
+
+@functools.lru_cache(maxsize=None)
+def py_imports(root: Path, path: str) -> list[str]:
+    import warnings
+    with warnings.catch_warnings():  # a grader's own invalid escape is its lint's, not this walk's
+        warnings.simplefilter("ignore", SyntaxWarning)
+        return sorted(imported_paths((root / path).read_text(), path, tracked_files(root)))
+
+
+def mjs_closure(root: Path, entry: str, imports: bool = True, named: bool = True,
+                exempt=None) -> set[str]:
+    """What one grader loads, transitively, each where the tree keeps it: an
+    `.mjs` file's relative imports (when `imports`) and `load`/`at` literals;
+    with `named`, every file a source names (`named_loads`) but the sites
+    `exempt` lists, and a Python file's tracked imports. The base's copy of
+    each is what a job restoring it grades with: policy_lint.mjs spawns
+    budget_raise_gate.py, which imports tests/layout.py
+    (R10-RCA-PREPR-HEAD-GRADERS, review round 2)."""
+    import layout
+    exempt = GRADER_NAMED_EXEMPT if exempt is None else exempt
     seen: set[str] = set()
     stack = [entry]
     while stack:
         p = layout.locate(stack.pop(), root=root)
-        if p in seen or not p.endswith(".mjs") or not (root / p).is_file():
+        if p in seen or not p.endswith((".mjs", ".py", ".sh")) or not (root / p).is_file():
+            continue
+        if not p.endswith(".mjs") and not named and p != entry:
             continue
         seen.add(p)
         src = (root / p).read_text()
-        stack += [str(Path(p).parent / m) for m in re.findall(r"from '(\./[^']+)'", src)]
-        stack += re.findall(r"\b(?:load|at)\('([^']+)'\)", src)
+        if p.endswith(".mjs"):
+            if imports:
+                stack += [str(Path(p).parent / m) for m in re.findall(r"from '(\./[^']+)'", src)]
+            stack += [m for m in re.findall(r"\b(?:load|at)\('([^']+)'\)", src) if m.endswith(".mjs") or named]
+        elif p.endswith(".py"):
+            stack += py_imports(root, p)
+        if named:
+            stack += [f for _, line, f in named_loads(root, p) if (Path(p).name, f, line) not in exempt]
     return seen
 
 
@@ -627,10 +682,11 @@ def agreement_preds(root: Path, base_ref: str, changed: set[str]) -> list[tuple[
 # policy_lint.mjs's CORPUS_EXCLUDED), #2207 (a cadence rule in
 # check-wave-script.mjs) and #2529 and #2636 (a registration in
 # field_coverage.mjs) red this way with every local path green.
-# field_coverage.mjs takes about 110 s, and its closure holds policy_lint.mjs,
-# so it is keyed on its own file: both its instances edited it, and 7 of 543
-# round-10 merges did, where its closure would add 15. codeowners_gap.py is
-# Python, which `mjs_closure` does not read, so it too is keyed on itself.
+# field_coverage.mjs takes about 110 s, so its static imports are not
+# followed (`whole` False): both its instances edited it. What it names to
+# spawn, import at run time or read still keys it (`named_loads`):
+# policy_lint.mjs, which it runs with --hooks, and budget_raise_gate.py.
+# codeowners_gap.py is Python: its key is itself, its imports and what it names.
 GRADERS = (
     ("policy-docs", ("policy-docs", "env-matrix"), "CORPUS",
      (".claude/workflows/policy_lint.mjs", "tools/policy/policy_lint.mjs"), True, ((), ("--hooks",))),
@@ -653,6 +709,16 @@ AGREEMENT_RUNS = {("wave-script", "agreement_py.py", ("--out",)), ("wave-script"
 GRADER_EXEMPT = {
     ("policy-docs", "policy_lint.mjs", ("--report",)): "its step ends `|| true`: it prints and never reddens",
 }
+# The sites a grader names a restored file at without loading it, each with
+# its reason, keyed on (the naming file, the file named, that line's text): a
+# load added beside one is another line, so it keys and is never silenced.
+GRADER_NAMED_EXEMPT = {
+    ("policy_lint.mjs", "tests/delivery_status.py", "'tests/delivery_status.py', 'tests/nightly_status.py',"):
+        "REPORTER_INPUTS: a path compared with a diff's, never read",
+    ("codeowners_gap.py", "tools/policy/policy_lint.mjs",
+     'ok = got == [".claude/workflows/policy_lint.mjs", "tools/policy/policy_lint.mjs"]'):
+        "an EXEC self-test case's run text, parsed and never run",
+}
 PINNED_JOBS = ("policy-docs", "env-matrix", "wave-script")
 
 
@@ -674,14 +740,35 @@ def pinned_runs(text: str, agreement_py, root: Path | None = None) -> list[tuple
     return sorted(set(out))
 
 
-def grader_gaps(root: Path, text: str, agreement_py, rows=None) -> list[str]:
+def grader_gaps(root: Path, text: str, agreement_py, rows=None, key=None, exempt=None) -> list[str]:
     """Each pinned run the arms leave unpredicted, as one line: a restored
     run no row (in that mode, reaching that job), `AGREEMENT_RUNS` or
     `GRADER_EXEMPT` covers; and a job whose head-copy program spawns a row's
     grader (`'policy_lint.mjs'` in `policy_lint_envmatrix.mjs`) but is not in
-    that row's reds. Empty is the class closed over governance.yml."""
+    that row's reds; and a file a row's grader names (`named_loads`) that its
+    job restores, outside the row's key (`key`, `mjs_closure` by default) and
+    on no `GRADER_NAMED_EXEMPT` site, with each exempt site no source still
+    holds. Empty is the class closed over governance.yml."""
     rows = GRADERS if rows is None else rows
+    key = key or (lambda entry, whole: mjs_closure(root, entry, imports=whole))
+    exempt = GRADER_NAMED_EXEMPT if exempt is None else exempt
     gaps = []
+    held = set()
+    for job, _, mark, homes, whole, _ in rows:
+        entry = next((p for p in homes if (root / p).is_file()), None)
+        if entry is None:
+            continue
+        specs = agreement_py.restore_specs(text, job)
+        keyed = key(entry, whole)
+        for src in sorted(mjs_closure(root, entry, imports=whole)):
+            for n, line, f in named_loads(root, src):
+                site = (Path(src).name, f, line)
+                if site in exempt:
+                    held.add(site)
+                elif f not in keyed and any(agreement_py.covers(s, f) for s in specs):
+                    gaps.append(f"{job}: {mark}'s {src}:{n} names {f}, restored from the base and outside its key")
+    gaps += [f"GRADER_NAMED_EXEMPT: no grader source still holds {s[0]}'s line naming {s[1]}"
+             for s in exempt if s not in held]
     for job, prog, mode, restored in pinned_runs(text, agreement_py, root):
         name = Path(prog).name
         if restored:
@@ -700,9 +787,10 @@ def grader_gaps(root: Path, text: str, agreement_py, rows=None) -> list[str]:
 
 
 def grader_hit(root: Path, entry: str, whole: bool, specs, changed: set[str], covers) -> list[str]:
-    """The changed files that key one grader: in its `.mjs` closure (or the
-    grader alone) and covered by its job's restore pathspecs."""
-    keyed = mjs_closure(root, entry) if whole else {entry}
+    """The changed files that key one grader: in its `mjs_closure` (its static
+    imports followed only when `whole`) and covered by its job's restore
+    pathspecs."""
+    keyed = mjs_closure(root, entry, imports=whole)
     return sorted(p for p in changed & keyed if any(covers(s, p) for s in specs))
 
 
@@ -1143,15 +1231,21 @@ def grader_key_self_test(root: Path) -> int:
     no_hooks = tuple(g[:5] + (((),) if g[2] == "CORPUS" else g[5],) for g in GRADERS)
     counts = str(Path(lint or "tools/policy/policy_lint.mjs").with_name("counts.mjs"))
     data = "dev/governance/config/corpus_excluded.json"
+    gate, render = (str(Path(counts).with_name(n)) for n in ("budget_raise_gate.py", "render_md.mjs"))
+    unnamed = grader_gaps(root, text, agreement_py, key=lambda e, w: mjs_closure(root, e, imports=w, named=False))
+    stale = grader_gaps(root, text, agreement_py, exempt={**GRADER_NAMED_EXEMPT, ("policy_lint.mjs", gate, "x"): "a probe"})
     cases = [
         ("CORPUS is keyed by an edit to policy_lint.mjs", hit("CORPUS", lint) == [lint]),
         ("and by one to a module it imports (counts.mjs)", hit("CORPUS", counts) == [counts]),
         ("and not by corpus_excluded.json, data the job does not restore (#2916's repair)", hit("CORPUS", data) == []),
-        ("WAVE CHECK is keyed by check-wave-script.mjs and not by policy_lint.mjs",
-         hit("WAVE CHECK", cws) == [cws] and hit("WAVE CHECK", lint) == []),
-        ("FIELD COVERAGE is keyed by its own file", hit("FIELD COVERAGE", fc) == [fc]),
-        ("and not by policy_lint.mjs, which its closure holds (the 110 s run stays narrow)",
-         hit("FIELD COVERAGE", lint) == []),
+        ("and by budget_raise_gate.py, a program it spawns (review round 2's plant)", hit("CORPUS", gate) == [gate]),
+        ("and by tests/layout.py, which that program imports", hit("CORPUS", "tests/layout.py") == ["tests/layout.py"]),
+        ("WAVE CHECK is keyed by check-wave-script.mjs, and by policy_lint.mjs, which it imports at run time",
+         hit("WAVE CHECK", cws) == [cws] and hit("WAVE CHECK", lint) == [lint]),
+        ("FIELD COVERAGE is keyed by its own file, and by policy_lint.mjs, which it spawns with --hooks",
+         hit("FIELD COVERAGE", fc) == [fc] and hit("FIELD COVERAGE", lint) == [lint]),
+        ("and not by render_md.mjs, which only policy_lint.mjs's static imports reach (the 110 s run stays off them)",
+         hit("FIELD COVERAGE", render) == []),
         ("RULES SYNC is keyed by rules_sync.mjs, CODEOWNERS by codeowners_gap.py alone",
          hit("RULES SYNC", rs) == [rs] and hit("CODEOWNERS", own) == [own] and hit("CODEOWNERS", lint) == []),
         ("every run a pinned job restores is predicted, or exempt with a reason (null control)"
@@ -1162,6 +1256,11 @@ def grader_key_self_test(root: Path) -> int:
          any("rules_sync.mjs --check" in g for g in grader_gaps(root, text, agreement_py, no_rules))),
         ("CORPUS without its --hooks mode leaves policy_lint.mjs --hooks named as unpredicted",
          any("policy_lint.mjs --hooks" in g for g in grader_gaps(root, text, agreement_py, no_hooks))),
+        ("a key blind to named files leaves budget_raise_gate.py under CORPUS named as unkeyed",
+         any(g.startswith("policy-docs: CORPUS's") and g.endswith(f"names {gate}, restored from the base and outside its key")
+             for g in unnamed)),
+        ("an exempt site no grader source holds is refused as stale",
+         any("GRADER_NAMED_EXEMPT" in g and gate in g for g in stale)),
     ]
     for label, ok in cases:
         print(f"  {'ok  ' if ok else 'FAIL'} graders key: {label}")
