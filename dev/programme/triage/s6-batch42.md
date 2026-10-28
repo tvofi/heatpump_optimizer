@@ -4,7 +4,7 @@ One entry: V129, written by the orchestrator s7 at 2026-10-27T20:40Z and quoted 
 Facts read at origin/main `a0e7664ea`; roster at `origin/handoff/audit-r10-roster` `9aed78e0e`
 (212 groups).
 
-## P216: an agent message that contradicts a contract must not enter a seat's record as direction (V136)
+## P216: an agent message that contradicts a contract must not enter a seat's record as direction (V129)
 
 Verdict: ACCEPT -> a carry of **R10-ROUND-PLAYBOOK** (`resume.stage` `not-started`, so the op is a
 plain append; it owns `CLAUDE.md` and `dev/audit/README.md`, and its brief is the playbook a fresh
