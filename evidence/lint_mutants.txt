@@ -1,0 +1,9 @@
+== null copy
+TOTAL: 0 error(s) across 1 file(s)
+== mutant: nonexistent path in R10-ORCH-MACHINERY new carry
+TOTAL: 0 error(s) across 1 file(s)
+== mutant: unknown after on R10-ADVISOR
+  ERROR   [R10-ADVISOR] after: after: 'R10-NOPE' names no group in this file
+TOTAL: 1 error(s) across 1 file(s)
+== mutant: invalid stage on R10-RCA-ORCH-CONTINUITY
+TOTAL: 0 error(s) across 1 file(s)
