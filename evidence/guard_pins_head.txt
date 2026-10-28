@@ -1,3 +1,0 @@
-  ok   R9-SW-2 a set-point writes set_value
-
-ALL 50 GUARD PIN CHECKS PASSED

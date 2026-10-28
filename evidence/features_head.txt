@@ -1,5 +1,0 @@
-  ok   ConfigNotices: the same offending value is created once, persistent WARNING
-  ok   ConfigNotices: a fresh instance (entry reload) still clears the notice
-  ok   fee audits: a zero fee and a fee exactly at the bound raise nothing; 1% above raises the magnitude notice
-
-ALL 4404 FEATURE CHECKS PASSED

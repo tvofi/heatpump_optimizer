@@ -1,0 +1,9 @@
+  ok   an unresolvable recorded_at FAILS the ratchet, it is not merely noted (#361)
+ALL 134 DST / QUARTER-GRID CHECKS PASSED
+  FAIL an attempt at or before the last completion is spent, and the next window stamps its own  [[datetime.datetime(2026, 10, 26, 6, 3, 5, tzinfo=datetime.timezone.utc), datetime.datetime(2026, 10, 26, 5, 3, 5, tzinfo=datetime.timezone.utc)]]
+  FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
+  ok   the ratchet FAILS on an improvement instead of printing a note (#350)
+  ok   a pump command that FAILED is not remembered as done
+--- guard_pins
+
+ALL 50 GUARD PIN CHECKS PASSED
