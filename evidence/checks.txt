@@ -1,0 +1,121 @@
+== diff of records
+diff --git a/dev/programme/delivery/2912.md b/dev/programme/delivery/2912.md
+new file mode 100644
+index 000000000..d87aaa2ee
+--- /dev/null
++++ b/dev/programme/delivery/2912.md
+@@ -0,0 +1 @@
++- [#2912](https://github.com/tvofi/heatpump_optimizer/pull/2912) — **open**, fix(config-flow): a refused options submit keeps a cleared stored entity cleared (R10-CONFIGFLOW-PAGES arm A, D7-s2-56)
+diff --git a/tests/closures.json b/tests/closures.json
+index 6063b8d8c..7714733eb 100644
+--- a/tests/closures.json
++++ b/tests/closures.json
+@@ -3691,6 +3691,7 @@
+    "dev/audit/harnesses/r10_cloud_setup_mutants.py",
+    "dev/audit/harnesses/r10_cloud_setup_toolchain.py",
+    "dev/audit/harnesses/r10_codescan_wait_race.py",
++   "dev/audit/harnesses/r10_configflow_pages.py",
+    "dev/audit/harnesses/r10_critpath_archive_parity.py",
+    "dev/audit/harnesses/r10_dead_rate_limit.py",
+    "dev/audit/harnesses/r10_demand_overbook.py",
+diff --git a/tests/entities.py b/tests/entities.py
+index 5562214e6..d415376ed 100644
+--- a/tests/entities.py
++++ b/tests/entities.py
+@@ -3837,7 +3837,7 @@ def _p2_registry(sources):
+              dispositions={
+                  "coordinator.py::HeatPumpOptimizerCoordinator._external_heat_config":
+                      "guarded: ANDed with wood_furnace_on",
+-                 "config_flow.py::HeatPumpOptimizerOptionsFlow.async_step_building":
++                 "config_flow.py::HeatPumpOptimizerOptionsFlow._building_wood_flag":
+                      "guarded: normalises the flag after wood_furnace_on(merged)",
+                  "thermal_model.py::ThermalParameters.from_config":
+                      "guarded: under _on = wood_furnace_on(config)",
+diff --git a/tests/structure_budgets.json b/tests/structure_budgets.json
+index d4fd0a0cb..e88de95d0 100644
+--- a/tests/structure_budgets.json
++++ b/tests/structure_budgets.json
+@@ -1,5 +1,5 @@
+ {
+- "class_excess_loc": 18037,
++ "class_excess_loc": 17991,
+  "const_modules_over_50": 3,
+  "coordinator_attrs": 142,
+  "coordinator_multiassigned_attrs": 109,
+@@ -16,6 +16,6 @@
+  "methods_over_150": 16,
+  "methods_over_200": 9,
+  "name_kept_members": 38,
+- "recorded_at": "6eb552157b63d1e98a9653250789d9fe0027b5bc",
++ "recorded_at": "6d86acc909f7fc465e5736771daf8fa45c1373a4",
+  "seam_cut_total": 423
+ }
+== triage row
+{
+  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow._entities_errors RETURN_DEL 421708f2#2",
+  "old": "            return errors",
+  "reason": "Equivalent (RETURN_DEL, the second `return errors` in _entities_errors -> `pass`): it is the arm of `if not (submit.get(CONF_TIBBER_TOKEN) or current.get(CONF_TIBBER_TOKEN)):`, so it runs only when submit's token is falsy. Deleting it falls through to `submitted = submit.get(CONF_TIBBER_TOKEN)`, which is that same falsy value, so `if submitted and ...` is false, validate_tibber_token is never called, and the closing `return errors` returns the same dict holding the same tibber_token_required entry. submit and current are plain dicts, so the extra `.get` has no side effect: same value, on every input, to every reader. Measured by the R10-CONFIGFLOW-PAGES arm-A fixer: `mutation_table.py --anchor '<this anchor>' --no-reach-skip` (Python 3.14.7) drove the mutant through all 12 drivers whose closure holds config_flow.py, tests/config_flow_steps.py among them, and printed `LIVES`, beside the comment-only null control surviving every driver. The first `return errors` in the same function (the price_entity_required arm, #1 of this text) is killed and pinned under killed_by, which is the positive control.",
+  "verdict": "equivalent"
+}
+== entities_errors full
+    async def _entities_errors(
+        self, submit: dict[str, Any], current: dict[str, Any]
+    ) -> dict[str, str]:
+        """The price source must name its feed; a new Tibber token must work.
+
+        The source and its entity are judged over what would be stored: a
+        cleared price entity reaches here as ``None`` (``_clear_absent``), so
+        clearing it under an entity source is refused rather than saved as a
+        source with no feed -- the rule ``_disinfection_errors`` applies.
+        """
+        errors: dict[str, str] = {}
+        view = {**current, **submit}
+        source = view.get(CONF_PRICE_SOURCE, DEFAULT_PRICE_SOURCE)
+        if source == PRICE_SOURCE_ENTITY:
+            if not view.get(CONF_PRICE_ENTITY):
+                errors[CONF_PRICE_ENTITY] = "price_entity_required"
+            return errors
+        if not (submit.get(CONF_TIBBER_TOKEN) or current.get(CONF_TIBBER_TOKEN)):
+            errors[CONF_TIBBER_TOKEN] = "tibber_token_required"
+            return errors
+        submitted = submit.get(CONF_TIBBER_TOKEN)
+        if submitted and submitted != current.get(CONF_TIBBER_TOKEN):
+            verdict = await validate_tibber_token(self.hass, submitted)
+            if verdict == "invalid_auth":
+                errors[CONF_TIBBER_TOKEN] = "invalid_tibber_token"
+            elif verdict != "ok":
+                errors[CONF_TIBBER_TOKEN] = "cannot_connect"
+        return errors
+
+    async def async_step_entities_metering(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Solar, power and compressor frequency sensors."""
+        return await self._page(
+            "entities_metering", user_input, clear=True, check=self._metering_errors
+        )
+
+    async def _metering_errors(
+== structure
+  ok   seam_cut_total 423 <= 423
+
+STRUCTURE RATCHET PASSED
+rc=0
+== entities
+
+ALL 2467 ENTITY CHECKS PASSED
+== archscore
+Architecture score: dS +2.3483 IMPROVES
+  duplication_copies 35 -> 29  +2.3483
+== when= lines
+15
+== env_drift
+claim files identical to base
+== golden drift
+  ok    config_flow is byte-identical to origin/main here
+NO UNCLAIMED DRIFT: 56 scenario(s) checked against origin/main
+NO STALE FIXTURE: 56 committed fixture(s) still match what this tree computes
+== ci_predict
+CI PREDICT: no closures, fast, wave-script or instrument red predicted against b6f6ceca4f03 (a data-file read is not seen)
+== closure select
+  MODE: SCOPED -- 13 script(s) run, 20 scoped out.

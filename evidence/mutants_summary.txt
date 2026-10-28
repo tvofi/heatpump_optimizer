@@ -1,0 +1,38 @@
+M1 rc=1 7 of 531 checks FAILED
+  FAIL a rejected entities submit re-renders each cleared stored entity empty  [errors={'tibber_token': 'tibber_token_required'} rows=9 stil
+  FAIL a rejected entities_metering submit re-renders each cleared stored entity empty  [errors={'freq_control_mode': 'freq_control_needs_nu
+  FAIL a rejected comfort submit re-renders each cleared stored entity empty  [errors={'min_temperature': 'min_above_target', 'max_temperatu
+  FAIL a rejected hot_water submit re-renders each cleared stored entity empty  [errors={'dhw_windows': 'invalid_dhw_windows'} rows=1 still_
+  FAIL a rejected hot_water_tank submit re-renders each cleared stored entity empty  [errors={'dhw_disinfection_mode': 'disinfection_control
+  FAIL a rejected building submit re-renders each cleared stored entity empty  [errors={'mixing_valve_write_target_kind': 'flow_target_needs
+  FAIL a rejected grid_fees submit re-renders each cleared stored entity empty  [errors={'grid_fee_rules': 'invalid_grid_fee_rules'} rows=1 
+M2 rc=1 3 of 531 checks FAILED
+  FAIL clearing the switch under a stored control mode is refused (#1067)  [errors=None options={'dhw_tank_volume': 200.0, 'dhw_daily_consum
+  FAIL a rejected hot_water_tank submit re-renders each cleared stored entity empty  [errors=None rows=2 still_stored=[]]
+  FAIL clearing the stored price entity under an entity source is price_entity_required  [type=menu errors=None stored=None]
+M3 rc=1 38 of 524 checks FAILED
+  FAIL a changed but refused token re-shows the entities page as invalid_tibber_token  [None]
+  FAIL an unreachable Tibber is cannot_connect on the entities page too  [None]
+  FAIL 'flow' without the two-zone model is refused, not saved (#398)  [errors=None options=['buffer_tank_volume', 'dhw_wood_coil_enabled', 
+  FAIL 'flow' with two_zone_mode=off is refused even with zone keys present (D12-01)  [errors=None options=['buffer_tank_volume', 'dhw_wood_
+  FAIL the flow-curve lift with a throttling valve is refused, not saved (#1067)  [errors=None options=['buffer_tank_volume', 'dhw_wood_coil
+  FAIL an inverted comfort band re-shows the page with min_above_target  [None]
+  FAIL and stores nothing  [['comfort_temp_day', 'comfort_temp_night', 'day_end_hour', 'day_start_hour', 'indoor_humidity_entity', 'max_temp
+  FAIL an unparseable window spec is invalid_dhw_windows on this page too  [None]
+M4 rc=1 4 of 531 checks FAILED
+  FAIL a valid hot-water page saves and warns about the legionella pair  [menu/init warned=[]]
+  FAIL an uncoercible peak window falls back to the default, not the string  [stored='half an hour' want=60]
+  FAIL a coercible peak window is converted to int, not defaulted  [stored='45']
+  FAIL a catalog DSO product writes its own rules and mode over the page  [rules='06:00-08:00 = 0.5' mode='rules']
+M5 rc=1 4 of 531 checks FAILED
+  FAIL a rejected grid form keeps its description placeholders  [placeholders=None]
+  FAIL a rejected grid_fees form keeps its description placeholders  [placeholders=None]
+  FAIL a rejected hot_water form keeps its description placeholders  [placeholders=None]
+  FAIL a rejected grid_connection form keeps its description placeholders  [placeholders=None]
+M6 rc=1 1 of 531 checks FAILED
+  FAIL turning the wood block off keeps its hidden entities instead of nulling them  [type=menu options={'wood_furnace_enabled': False, 'val
+A3M1 rc=1 1 of 531 checks FAILED
+  FAIL clearing the stored price entity under an entity source is price_entity_required  [type=menu errors=None stored=None]
+A3M2 rc=1 1 of 531 checks FAILED
+  FAIL clearing the stored price entity under an entity source is price_entity_required  [type=menu errors=None stored=None]
+NULL rc=0 ALL 531 checks PASSED
