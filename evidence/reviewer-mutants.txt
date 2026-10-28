@@ -1,0 +1,17 @@
+RESULT mutant=NULL rc=0 fails=0 summary='roster_sync self-test: 51 checks, 0 failed'
+RESULT mutant=RA_unreadable_ancestry_is_valid rc=0 fails=0 summary='roster_sync self-test: 51 checks, 0 failed'
+RESULT mutant=RB_non_commit_objects_counted rc=0 fails=0 summary='roster_sync self-test: 51 checks, 0 failed'
+RESULT mutant=RC_sha_re_dropped rc=0 fails=0 summary='roster_sync self-test: 51 checks, 0 failed'
+RESULT mutant=RD_dangling_open_branch_ok rc=1 fails=2 summary='roster_sync self-test: 51 checks, 2 failed'
+    FAIL a commit the checkout does not hold is RECORD-INVALID, printed and not a refusal (got: roster_sync: pull requests: 10 read offline from --pr-state
+    FAIL an unresolvable prefix is RECORD-INVALID (got: {'C-OFF': 'e1d9554d3e63 is not an ancestor of origin/main', 'C-UPPER': "'ABCDEF123456' is not 7-40 lowercase hex"})
+RESULT mutant=RE_chosen_open_loses rc=1 fails=3 summary='roster_sync self-test: 51 checks, 3 failed'
+    FAIL the dry run prints each change it would make (got: roster_sync: pull requests: 10 read offline from --pr-state
+    FAIL open PR: stage in-progress with its number (got: {'stage': 'queued', 'branch': 'handoff/r9-open'})
+    FAIL a sibling's open PR decides the sibling and never reopens the shorter topic's done group (got: ({'stage': 'done', 'branch': 'handoff/r9-sib', 'commit': 'ffffffffffffffffffffffffffffffffffffffff'}
+RESULT mutant=RF_equal_topic_one_group rc=0 fails=0 summary='roster_sync self-test: 51 checks, 0 failed'
+RESULT mutant=RG_not_done_guard_dropped rc=1 fails=8 summary="r9-roster:dev/programme/rosters/wave-r9-groups.json (in .) failed: fatal: invalid object name 'handoff/audit-r9-roster'."
+    FAIL dry run rc 0 (got: (2, 'roster_sync: REFUSED: UNREADABLE gh api pulls/14: gh: GitHub access to this repository is not enabled for this session. Use add_repo to request access. If add_repo answers
+    FAIL the dry run prints each change it would make (got: roster_sync: pull requests: 10 read offline from --pr-state
+    FAIL the dry run names the carry append (got: roster_sync: pull requests: 10 read offline from --pr-state
+restored
