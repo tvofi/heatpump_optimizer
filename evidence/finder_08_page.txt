@@ -1,8 +1,0 @@
-logs: /tmp/arch-s2-findings.LSsdkt
-== 08_page
-RESULT delta_S=+1.1717 weighted_log2
-RESULT admissible=1 bool
-RESULT duplication_copies=68->62 count
-RESULT perturbed_delta_S=+0.0000 weighted_log2
-RESULT perturbed_vector_equals_baseline=1 bool
-rc=0

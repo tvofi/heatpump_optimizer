@@ -1,0 +1,5 @@
+RESULT pages=9 rejected=9 stored_rows=30 stale_slots=27
+RESULT pages=9 rejected=7 stored_rows=30 shown_stored=19
+RESULT type=menu errors=None stored_price_entity=None
+Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
+RESULT cases=11 exceptions=1 digest=071e7ad04eb0

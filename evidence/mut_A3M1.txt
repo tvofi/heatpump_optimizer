@@ -477,7 +477,7 @@ Invalid per-day DHW window 'x' for dhw_windows_sun (Invalid window 'x' (expected
   ok   every listed fallback is the value the form shows while the key is absent
 
 -- options: an untouched page does not reload
-/tmp/tmp.v6l9mcIpJZ/basex/tests/harness.py:561: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
+/tmp/tmp.9yetTJCeSC/tests/harness.py:561: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
   callback()
 RuntimeWarning: Enable tracemalloc to get the object allocation traceback
   ok   never saved page by page: only the pages posting a behaviour-changing default reload
@@ -611,15 +611,15 @@ RuntimeWarning: Enable tracemalloc to get the object allocation traceback
   ok   and both own presets have an icon translation
 
 -- options: a rejected page re-renders what was cleared, not what was stored
-  FAIL a rejected entities submit re-renders each cleared stored entity empty  [errors={'tibber_token': 'tibber_token_required'} rows=9 still_stored=['buffer_tank_temp_entity', 'dhw_temp_entity', 'floor_return_temp_entity', 'heat_pump_switch_entity', 'indoor_temp_entity', 'lower_floor_temp_entity', 'outdoor_temp_entity', 'price_entity', 'space_setpoint_entity']]
+  ok   a rejected entities submit re-renders each cleared stored entity empty
   ok   a rejected entities submit that cleared nothing re-renders every stored entity
-  FAIL a rejected entities_metering submit re-renders each cleared stored entity empty  [errors={'freq_control_mode': 'freq_control_needs_number'} rows=9 still_stored=['compressor_freq_entity', 'compressor_freq_sensor', 'flow_meter_entity', 'heat_pump_energy_entity', 'heat_pump_heat_energy_entity', 'heat_pump_power_entity', 'heat_pump_thermal_power_entity', 'house_power_entity', 'solar_radiation_entity']]
-  FAIL a rejected comfort submit re-renders each cleared stored entity empty  [errors={'min_temperature': 'min_above_target', 'max_temperature': 'max_below_target', 'comfort_temp_day': 'comfort_outside_band', 'comfort_temp_night': 'comfort_outside_band'} rows=1 still_stored=['indoor_humidity_entity']]
+  ok   a rejected entities_metering submit re-renders each cleared stored entity empty
+  ok   a rejected comfort submit re-renders each cleared stored entity empty
   ok   a rejected comfort submit that cleared nothing re-renders every stored entity
-  FAIL a rejected hot_water submit re-renders each cleared stored entity empty  [errors={'dhw_windows': 'invalid_dhw_windows'} rows=1 still_stored=['dhw_setpoint_entity']]
+  ok   a rejected hot_water submit re-renders each cleared stored entity empty
   ok   a rejected hot_water submit that cleared nothing re-renders every stored entity
   ok   a rejected hot_water_tank submit re-renders each cleared stored entity empty
-  FAIL a rejected building submit re-renders each cleared stored entity empty  [errors={'mixing_valve_write_target_kind': 'flow_target_needs_two_zone'} rows=7 still_stored=['external_heat_entity', 'mixing_valve_target_entity', 'mixing_valve_write_entity', 'space_circulation_pump_entity', 'valve_outlet_temp_entity', 'wood_tank_bottom_entity', 'wood_tank_top_entity']]
+  ok   a rejected building submit re-renders each cleared stored entity empty
   ok   a rejected building submit that cleared nothing re-renders every stored entity
   ok   a rejected grid submit re-renders each cleared stored entity empty
   ok   a rejected grid submit that cleared nothing re-renders every stored entity
@@ -640,7 +640,7 @@ RuntimeWarning: Enable tracemalloc to get the object allocation traceback
   ok   replacing the stored price entity saves the new one
   ok   switching to Tibber with a token saves it and nulls the cleared price entity
 
-RESULT flow_checks_covered=502/508 checks
+RESULT flow_checks_covered=507/508 checks
 RESULT step_user happy=7/7 error_branches=11/11
 RESULT step_user_sensors happy=2/2 error_branches=0/0
 RESULT step_finish_setup happy=5/5 error_branches=0/0
@@ -659,14 +659,14 @@ RESULT step_reauth_confirm happy=3/3 error_branches=2/2
 RESULT step_opt_init happy=5/5 error_branches=3/3
 RESULT step_opt_advanced happy=3/3 error_branches=0/0
 RESULT step_opt_setup_overview happy=4/4 error_branches=0/0
-RESULT step_opt_entities happy=44/44 error_branches=5/7
-RESULT step_opt_entities_metering happy=39/39 error_branches=1/2
+RESULT step_opt_entities happy=44/44 error_branches=6/7
+RESULT step_opt_entities_metering happy=39/39 error_branches=2/2
 RESULT step_opt_entities_pump happy=28/28 error_branches=0/0
-RESULT step_opt_comfort happy=7/7 error_branches=3/4
-RESULT step_opt_hot_water happy=17/17 error_branches=8/9
+RESULT step_opt_comfort happy=7/7 error_branches=4/4
+RESULT step_opt_hot_water happy=17/17 error_branches=9/9
 RESULT step_opt_hot_water_tank happy=11/11 error_branches=3/3
 RESULT step_opt_hot_water_pumps happy=6/6 error_branches=0/0
-RESULT step_opt_building happy=35/35 error_branches=4/5
+RESULT step_opt_building happy=35/35 error_branches=5/5
 RESULT step_opt_thermal_model happy=7/7 error_branches=2/2
 RESULT step_opt_thermal_model_zones happy=6/6 error_branches=0/0
 RESULT step_opt_tuning happy=3/3 error_branches=0/0
@@ -688,5 +688,4 @@ RESULT reconfigure_round_trips=1
 RESULT options_close_round_trips=1
 RESULT duplicate_aborts=1
 
-6 of 531 checks FAILED
-rc=1
+1 of 531 checks FAILED
