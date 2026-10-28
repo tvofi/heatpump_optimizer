@@ -330,7 +330,7 @@ Role: dev/governance/roles/root-cause.md. |  |
 | R10-FLY-SWEEP-DEFAULTS | IN | 1 | in-progress | - | sonnet/opus | - | Owner order (tvofi, 2026-10-28). |  |
 | R10-FLY-CACHE-PROMPTS | IN | 1 | in-progress | - | sonnet/opus | - | Owner order (tvofi, 2026-10-28). |  |
 | R10-FLY-PREPR-SUMMARY | IN | 1 | in-progress | - | sonnet/opus | - | Owner order (tvofi, 2026-10-28). |  |
-| R10-FLY-INSTRUMENTS-SPLIT | IN | 1 | handoff | - | sonnet/opus | - | Owner order (tvofi, 2026-10-28). |  |
+| R10-FLY-INSTRUMENTS-SPLIT | IN | 1 | in-progress | - | sonnet/opus | - | Owner order (tvofi, 2026-10-28). |  |
 
 ## ETA
 
