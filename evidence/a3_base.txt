@@ -1,5 +1,0 @@
-HEAT_LOSS_BASES at base = ('commanded', 'metered')
-  unearned plain: 'commanded'
-  unearned power only: 'metered'
-  unearned heat meter only (unknown key at base): 'commanded'
-  earned kwarg at base: TypeError -> heat_loss_basis() got an unexpected keyword argument 'earned'

@@ -1,9 +1,0 @@
-### A1: python3 tests/env_drift.py --all  (this tree vs origin/main @ 4db1d3e28f0dff50f6916e39d52efed0ce856d0a; cache key babb25b5934e3fcf)
-  ok    negative_prices is byte-identical to origin/main here
-  ok    summer_dhw_only is byte-identical to origin/main here
-NO UNCLAIMED DRIFT: 56 scenario(s) checked against origin/main
-NO STALE FIXTURE: 56 committed fixture(s) still match what this tree computes
-
-### the two deleted claims as origin/main carries them
-negative_prices  # R10-SAV-COMFORT: the warm start is debited only what it displaced; savings % -13.19 -> 16.17; no plan key moves
-summer_dhw_only  # R10-SAV-COMFORT: the warm start is debited only what it displaced; savings % -7.62 -> 5.88; no plan key moves
