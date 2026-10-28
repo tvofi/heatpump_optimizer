@@ -852,6 +852,16 @@ EOF
   chk "a merge verdict whose head is not exactly the live head still updates" 0 test -e "$t/hupdated"
   git -C "$t/o.git" update-ref -d refs/heads/verdict/41; frz
   chk "no verdict ref and no review updates (null control)" 0 test -e "$t/hupdated"
+  # a verdict ref the listing names but the fetch cannot read is UNREAD, and frozen: an unread
+  # verdict may be a merge at the head (#2792 review: mutant R1 dropped this arm unseen)
+  printf '%s\trefs/heads/verdict/41\n' ffffffffffffffffffffffffffffffffffffffff > "$t/vl"
+  chk "a listed verdict ref the fetch cannot find freezes the head (rc 0)" 0 review_freeze 41 "$PRH" "$t/vl"
+  chk "and says UNREAD" 0 test "$(review_freeze 41 "$PRH" "$t/vl")" = UNREAD
+  mkv "verdict: #41 Fix review: merge $h"
+  chk "a listed sha the fetched ref does not carry (it moved since the listing) is UNREAD too" 0 test "$(review_freeze 41 "$PRH" "$t/vl")" = UNREAD
+  printf '%s\trefs/heads/verdict/41\n' "$(git -C "$t/o.git" rev-parse refs/heads/verdict/41)" > "$t/vl"
+  chk "the same ref listed at its own sha, a verdict at an older head, freezes nothing (null control)" 1 review_freeze 41 "$PRH" "$t/vl"
+  git -C "$t/o.git" update-ref -d refs/heads/verdict/41
   # a review in flight: a dispatch of #41 at its head, until a verdict at that head posts
   printf '41 %s cloud %s\n' "$PRH" "$n" >> "$t/bus/dispatched"; frz
   chk "a dispatch at the head with no verdict holds the handoff: no update_pr call" 0 test ! -e "$t/hupdated"

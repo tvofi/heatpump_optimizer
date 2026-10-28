@@ -260,6 +260,10 @@ carry() {
       # in, and both are read below: content its own resolution added, and a
       # claim file resolved by hand rather than unioned.
       [ $# -eq 2 ] || { echo "$c merges more than one branch"; return 1; }
+      # A parent off main -- a head a seat merged main into and handed off,
+      # which update_pr.sh merged in turn (#2876) -- needs no check of its
+      # own: the range walks into it, so its commits are read here like the
+      # head's, and its own main merge must be automatic too.
       # A hand-resolved merge can move the branch's change to another place
       # with the same context, which the header-free comparison below cannot
       # see: the merge must be git's own automatic result outside the driver
@@ -1537,6 +1541,10 @@ st "$(grep -c "the branch's own diff differs" "$W/carry.out")" 1 "refused by the
   bash "$SELF" --carry "$(cat ../reloc.v)" "$(cat ../reloc.h)" main ) > "$W/carry.out" 2>&1
 st $? 1 "NO CARRY: a hand resolution that moves the branch's change to another function with the same context"
 st "$(grep -c "not the automatic merge" "$W/carry.out")" 1 "refused as a hand-resolved merge, whatever the diffs compare"
+( cd "$W/reloc" || exit 2; git checkout -q --detach "$(cat ../reloc.v)"; git merge -q --no-ff --no-edit "$(cat ../reloc.h)" >/dev/null
+  bash "$SELF" --carry "$(cat ../reloc.v)" "$(git rev-parse HEAD)" main ) > "$W/carry.out" 2>&1
+st $? 1 "NO CARRY: a merge of a handed-off head whose own main merge was hand-resolved"
+st "$(grep -c "not the automatic merge" "$W/carry.out")" 1 "refused for the handed-off head's own merge, which the outer diffs cannot see"
 # The same move as a plain `ci:` commit (fix review of 8bcce59d): no merge,
 # so only the ci: guard can refuse it.
 ( cd "$W/reloc" || exit 2; git checkout -q --detach "$(cat ../reloc.v)"
@@ -1559,6 +1567,13 @@ carried "$H_MERGEPIN"; st $? 0 "CARRY: a merge from main, then the ledger commit
 carried "$H_SIDE"; st $? 1 "NO CARRY: a merge of a branch that is not main"
 g checkout -q --detach "$V"; g merge -q --no-ff --no-edit -m "octopus" "$M1" "$SIDE" >/dev/null; H_OCTO=$(g rev-parse HEAD)
 carried "$H_OCTO"; st $? 1 "NO CARRY: one merge of main and another branch at once"
+# A seat merges main into the head and hands that off as a code head, which
+# update_pr.sh then merges (#2876, R10-RCA-HEADMOVED): the off-main parent
+# carries in turn, or nothing does.
+H_HOP=$(mkmerge "$V" "$H_MERGE" "Merge commit into fix")
+carried "$H_HOP"; st $? 0 "CARRY: a merge of a handed-off head that is itself a carried main merge (#2876's shape)"
+H_HOPEVIL=$(mkmerge "$V" "$H_EVIL" "Merge commit into fix")
+carried "$H_HOPEVIL"; st $? 1 "NO CARRY: a merge of a handed-off head whose main merge changed a byte"
 carried "$H_REWRITE"; st $? 1 "NO CARRY: a rewritten head, not a descendant of the verdict's"
 ( cd "$W/clone" && bash "$SELF" --carry "$H_CIEMPTY" "$V" origin/main ) > "$W/carry.out" 2>&1
 st $? 1 "NO CARRY: a head behind the verdict's, the same tree (only the ancestor check refuses it)"

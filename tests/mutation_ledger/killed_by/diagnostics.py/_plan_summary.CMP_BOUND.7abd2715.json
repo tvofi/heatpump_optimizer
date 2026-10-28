@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/diagnostics.py:_plan_summary CMP_BOUND 7abd2715",
+  "killed_by": "tests/debug_collect.py",
+  "old": "             else age / 60.0 > stale_limit)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`else age / 60.0 >= stale_limit)`) took tests/debug_collect.py from rc=0 failed=0 to rc=1 failed=1."
+}
