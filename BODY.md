@@ -16,7 +16,7 @@ Relative wording inside entries (`merge_pr.sh`: "`merge_train.py` below"; `tick_
 
 ## Head
 
-f5f87c8e34658da7fb0ed7c41eb411a47af3edf5
+89078deb10478e265c2b35fccd23574746c8b848
 
 ## Mutation proof
 
