@@ -1,40 +1,62 @@
-Fix review: blocked ea4630aceaaba32d0e6c79ef16e443de15c4dc66 class-open: _partload_derate accepts every derate in [0, 0.5] whatever the band, and above band/(band+p_max) delivered_heat_kw falls with power
-bus-nonce: 3fd38766c2a8d661105749694c7b8194
+Fix review: blocked a7411d7ad644c1546b4dd4cf1ad34613cd61ca2a class-open: an over-limit part-load derate is still silently read as 0 when the Modbus pre-fill save narrows the power band, because _prefill_errors never runs _partload_errors
 
-Reviewer local-reviewer-s10, round 1 of this group's review. Measured at ea4630ace (moved from 05316a9b1 only by github-actions[bot] `ci: pin killed mutants`, three killed_by ledger files). The finder named no harness: dev/audit/harnesses/r10_cop_partload.py is the fixer's own, and I ran it at both ends. The monotonicity probe is mine: ev/monotone_probe.py, the tree's own helpers.
+bus-nonce: dadb85f46fa24fe0cab2b4caa4b0d09c
 
-## The block (fix-review.md step 6, a predicate's unguarded domain)
+Cloud reviewer seat. Head measured: `a7411d7ad644c1546b4dd4cf1ad34613cd61ca2a`, the head the PR body's `## Head` names. The round-1 review blocked `ea4630ace`. I could find no posted later review, so this is at least round 2 of review for this group. The brief's added check came from a previous reviewer's flag. This review answers it, and the check fails.
 
-`delivered_heat_kw` = P*(1 - d*(P-Pmin)/band). Its slope at p_max is 1 - d - d*p_max/band, which goes negative once d > band/(band+p_max). `_partload_derate` (`0 <= d <= MAX_HEAT_PUMP_COP_PARTLOAD_DERATE`) and the 0-0.5 options selector both accept that domain:
+## Block
 
-RESULT band [4.0,5.0] d=0.19: d_crit 0.167, peak heat 12.2274 kW at P=4.631 vs 12.1500 kW at p_max NON-MONOTONE
-RESULT band [3.0,5.0] d=0.3: d_crit 0.286, peak 10.5125 at P=4.833 vs 10.5000 at p_max NON-MONOTONE
-RESULT band [1.0,5.0] d=0.5 (the cap, default band): d_crit 0.444, peak 7.5938 at P=4.5 vs 7.5000 at p_max NON-MONOTONE
-RESULT band [1.5,5.0] d=0.19 (the harness's band): monotone
+The brief asks for proof that no over-limit derate is silently treated as 0 at this head. One reachable path still does that.
 
-0.19 is the top of the harness's own measured plant range, so the first row is inside physics the PR itself measured. In that domain more electricity buys less heat, which no vapour-compression pump does. Three consequences:
-- The buffer charge ceiling reads heat at p_max, so it understates the capacity that a lower power delivers.
-- The solver sees the top of the band as dominated.
-- The RCA's forward-carried exact inverse ("the positive root ... on the band") no longer has a unique root.
-The default 0 is unaffected, so no existing install moves.
+- `_partload_derate` (`thermal_model.py`, `ThermalParameters.clamp`) refuses a derate at or past `band / (band + p_max)` and returns 0. It logs nothing and raises nothing. Its docstring says "the options page names the refusal on the field".
+- That holds only for the `thermal_model` options page (`config_flow.py:3270`, `_power_errors(...) or _partload_errors(...)`).
+- The Modbus pre-fill save is a second writer of `heat_pump_max_power`. `modbus_prefill._plant` suggests `capacity / cop`, and the user can edit it. That save is judged by `_prefill_errors` (`config_flow.py:2095`, called at `:3958` in the options flow and `:2535` in the setup flow). `_prefill_errors` re-runs the `thermal_model` page's `_power_errors` but not the new `_partload_errors`.
+- Its own docstring says it holds "the refusals of the pages the suggested keys live on". The new refusal lives on that same page and is missing.
+- Scenario: an install stores a 1-5 kW band and derate 0.40, which is legal because the limit is 0.444. A pre-fill save then writes max power 2 kW, which moves the limit to 0.333. The save returns no error, and from then on the model prices derate 0.0. The configured value stays in the options and the page shows nothing.
 
-Repair: bound the accepted derate below band/(band+p_max). Do it in `_partload_derate`, which needs the two power fields, or clamp it in `partload_factor`. Add a feature check on a narrow band, plus a null at the default band where 0.19 stays accepted. Change the selector or its description to match.
+Failing-test-first control (`ev/probe_silent.py`, the tree's own functions, run at the head):
 
-## Everything else checked
+- `RESULT pre-fill save, max 5->2: errors {}; model reads derate 0.0`
+- `RESULT silent over-limit read-as-0 via pre-fill: YES`, rc 1 (`ev/probe_silent-head.txt`).
+- Same values on the thermal_model page: `errors {'heat_pump_cop_partload_derate': 'partload_derate_above_limit'}`. The refusal exists, but on one writer only.
+- Null: derate 0.3 under the narrowed limit is kept by both paths (`read 0.3`, no errors).
+- Planted repair, one line: `errors.update(_partload_errors(saved, current))` in `_prefill_errors` (`ev/planted-fix.diff`). The probe then reads `silent ... no`, rc 0 (`ev/probe_silent-planted-fix.txt`). The probe is therefore not vacuous: it fails at the head and passes once the path is guarded.
+- The tree was restored afterwards: `git status` was clean.
 
-RESULT null d=0: delivered_heat_kw bitwise cop*P True, monotone True
-RESULT parity d=0.15: scalar vs elementwise bitwise True (n 20000); features' two `_grad_parity` part-load cells ok at head
-RESULT null control: 32 of 32 d=0.0 plan lines identical, head vs merge base 0b8f8b585 (r10_cop_partload.py at each tree; base prints `term in tree False`)
-RESULT harness at head: grid 27 plants ratio at p_max >= 0.808; spread term vs none min -0.0598 max -0.0094 cheaper 16 dearer 0; flat min -0.0754 max +0.0046 cheaper 10 dearer 4 (body's figures reproduce)
-RESULT features.py at head: ALL 4550 FEATURE CHECKS PASSED
-RESULT mutation R1 (partload_factor returns 1.0): 7 of 4550 FAILED, the seven part-load checks
-RESULT mutation heat_per_cop_kw GUARD_OFF (`if False:`): 6 of 4550 FAILED
-RESULT mutation four bypasses in one run (batch twin, extend_dhw_temps, trajectory DHW, optimizer ceiling): 7 of 4550 FAILED; each site has its own check (batch: bitwise + jac parity x2 zones; ceiling; dhw schedule; trajectory)
-  all three mutant worktrees restored, 0 dirty files
-RESULT env_drift --all: CLAIMED config_flow 2 leaves; NO UNCLAIMED DRIFT 56; NO STALE FIXTURE 56
-RESULT claimed_drift.txt == origin/main + config_flow only; claims-for 7.0.5 == VERSION; card file identical; VERSION/manifest/notes untouched
-RESULT structure: class_excess_loc 17986 head vs 18038 merge base; STRUCTURE RATCHET PASSED; no budget raise
-RESULT CI tests/stress at head: ALL 113 STRESS CHECKS PASSED, including production-call channel and `shoulder: cheaper than holding the setpoint`. At the merge base CI's stress was also ok, so the shoulder red the body attributes to the base is the fixer's arm64 host, not the canonical platform.
-RESULT CI mutation at head: MUTATION TABLE PASSED, mutants evaluated (not INCONCLUSIVE); the three added sites are pinned by the bot commit
-RESULT class rule: fixer's out-of-tree cop_seams.py (sha1 c628396caf3c) returns 59 sites at head, matching the body; RCA §5 dispositions them. The instrument still lives outside the tree.
-Red checks at ea4630ace: none; every gate check is green or skipped.
+The suite shows the same refusal from another side. At this head the full \`tests/features.py\` fails 1 check:
+
+- Run on this host, it reads \`1 of 4552 FEATURE CHECKS FAILED\`, rc 1, 6m22s (\`ev/features-head.txt\`).
+- The failing check is \`FAIL every configurable parameter is reachable from a config key [cop_partload_derate]\`.
+- Its probe sets each \`CONF_\` key to the sentinel 0.5 on the default 1-5 kW band. 0.5 is past that band's limit of 0.444, so the round-2 reader refuses it to 0, and the probe finds no key that reaches the field.
+- \`ev/reachability-sentinel.txt\`: \`from_config({derate: 0.5}) -> 0.0\`, \`0.25 -> 0.25\`.
+- This is a deterministic logic result, not a host float. CI's \`tests / fast\` will go red on it.
+- The body says it did not re-run the full \`features.py\` this round and quotes \`ALL 4550 FEATURE CHECKS PASSED\` from \`ad2bf7fd6\`. That figure does not hold at this head.
+- The repair: either the check's sentinel accounts for the band limit, or the reader stops silently zeroing. The first is cheaper. The second is the brief's point.
+
+Repair, for the fixer to own:
+
+- Judge the derate on every save that can move the band. At this head that means `_prefill_errors` whenever the save carries `heat_pump_max_power` or `heat_pump_min_power`. The pre-fill form shows no derate field, so the error goes on `base` or on the power field.
+- Add a `tests/features.py` cell for this path, failing first.
+- Say in the body which rule enumerates "writers of the band" so the class is closed. The fix-review.md step 6 class here is every writer of min or max power, not every reader of the derate.
+
+## Findings
+
+- \`tests/features.py\` \`every configurable parameter is reachable from a config key\` fails at this head on \`cop_partload_derate\`, because its 0.5 sentinel is past the default band's limit. It must be fixed in this PR. Carry: R10-COP-PARTLOAD
+- The fix leaves this open: the over-limit derate is silently read as 0 on the Modbus pre-fill path (the block above). It must be fixed in this PR before merge. Carry: R10-COP-PARTLOAD
+- `review_packet.py render` refused this head with `host-path` and wrote no packet. This is a false positive on this host:
+  - `HOME=/root`, and the case-folded home-directory match in `ref_privacy._leaks` finds the substring `/root` in `dev/governance/roles/root-cause.md` on line 3 of `dev/audit/rca/R10-RCA-COP-PARTLOAD.md` (`ev/review-packet-refusal.txt`).
+  - Any cloud seat whose home is `/root` will refuse every diff that adds a line naming `roles/root-cause.md`.
+  - This is an instrument defect, not this PR's. The fixer should not rewrite the path to satisfy it.
+  - Carry: dismissed: instrument false positive outside this PR's diff; the orchestrator, who owns tools/audit/seat/, can take the substring match (a home must match as a whole path component) to that seat's brief.
+
+## Evidence
+
+- The full \`tests/features.py\` at the head: 4551 of 4552 ok. The one failure is the reachability check under \`## Block\`.
+
+- Reviewed head: `ev/HEAD.txt` holds `a7411d7ad644c1546b4dd4cf1ad34613cd61ca2a`.
+- Roles current: `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` is empty. The merge base is origin/main `beb570c81`.
+- Merge: `git merge-tree --write-tree origin/main a7411d7ad644c1546b4dd4cf1ad34613cd61ca2a` exits 0, tree `7e717bc14`, no conflict (`ev/merge-tree.txt`).
+- CI on this head, from the check-runs API at review time (`ev/check-runs-a7411d7ad644c1546b4dd4cf1ad34613cd61ca2a.tsv`): 27 runs, 13 still queued or in progress, including `tests / mutation`, `tests / closure-scope`, codeql and hassfest. None had concluded red. The step-11 root-cause trigger could not be judged for this head's runs, so this review gives no answer on it.
+- `VERSION`, `manifest.json` and `RELEASE_NOTES.md` are untouched three-dot (`ev/version-untouched.txt`).
+- Toolchain: this seat had none of the advertised toolchain on PATH, and the system python is 3.11.17, not CI's. I built a venv with the pinned voluptuous, numpy, scipy, aiohttp, pyyaml and threadpoolctl versions from `tests/requirements-ci.txt`. The full hash-pinned install refuses on 3.11 (typing_extensions unpinned). Float figures from this host are not canonical.
+- Not re-derived at this head: the body's harness figures (grid 27, spread and flat deltas, 32 of 32 null hashes), its stress counts and the round-2 mutant table. The block makes them moot for this round, and the fixer re-takes them after the repair.
