@@ -22,7 +22,7 @@
     "Stop": [
       {
         "hooks": [
-          { "type": "command", "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/stop-selfcheck.sh\"" }
+          { "type": "command", "command": "f=\"$CLAUDE_PROJECT_DIR/.claude/hooks/stop-selfcheck.sh\"; [ -f \"$f\" ] || f=\"$(git rev-parse --show-toplevel 2>/dev/null)/.claude/hooks/stop-selfcheck.sh\"; [ -f \"$f\" ] || exit 0; exec bash \"$f\"" }
         ]
       }
     ]
