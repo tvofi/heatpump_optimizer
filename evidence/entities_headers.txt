@@ -1,4 +1,0 @@
-ALL 2388 ENTITY CHECKS PASSED
-  ok   the executed harnesses leave their committed output byte-identical
-
-ALL 109 HARNESS HEADER CHECKS PASSED
