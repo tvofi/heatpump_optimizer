@@ -1,4 +1,0 @@
-held-shape tree (row not yet written): (4, 'PITCH WAIT: the last record merge is 0s old (pitch 3600s) and the oldest owed merge 0s and 2 commit(s) old')
-plan before apply: [7]
-row: - [#7](https://github.com/tvofi/heatpump_optimizer/pull/7) — **merged `ea86b9e`**, fix: x. plan after: []
-pushed-shape tree (rows commit, the automerge step's HEAD): (0, 'PITCH CLEAR')

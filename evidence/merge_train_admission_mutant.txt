@@ -1,2 +1,0 @@
-  FAIL --bot-prs admits the record PR with no review verdict: app_approve.sh runs for the queued #7, never for #9
-  FAIL every script the train runs resolves through TOOLS, none by a bare path (bare: tools/audit/seat/app_approve.sh)
