@@ -1,0 +1,62 @@
+.claude/hooks/stop-selfcheck.sh:206:printf 'stop-selfcheck: this turn touched the policy corpus and policy_lint refuses it.\n%s\n\nRun `bash tools/pr/prepr.sh` before opening or updating a pull request.\n' \
+.github/workflows/governance.yml:325:        run: if test -f tools/audit/prepr.sh; then bash tools/audit/prepr.sh --self-test; else bash tools/pr/prepr.sh --self-test; fi
+.github/workflows/pr-contract.yml:427:          if test -f tools/audit/prepr.sh; then bash tools/audit/prepr.sh --version-edit origin/main "$PR_HEAD"; else bash tools/pr/prepr.sh --version-edit origin/main "$PR_HEAD"; fi
+dev/audit/harnesses/ci-version-edit/pr_contract_shapes.py:10:measured commit has it) whose `run:` invokes tools/audit/prepr.sh -- the
+dev/audit/harnesses/ci-version-edit/pr_contract_shapes.py:87:         if "tools/audit/prepr.sh" in (s.get("run") or "")]
+dev/audit/harnesses/r10_policy_lint_family_mutants.py:42:PRC, PREPR, PATCH = ".github/workflows/pr-contract.yml", "tools/pr/prepr.sh", "tools/audit/seat/body_patch.sh"
+dev/audit/harnesses/r10_raise_paths.sh:70:  bash tools/pr/prepr.sh --body-check "$body" > "$T/out" 2>&1; rc=$?
+dev/audit/harnesses/r10_seat_selftests_mutants.py:192:    ("prepr-1", "tools/pr/prepr.sh",
+dev/audit/harnesses/r10_seat_selftests_mutants.py:195:    ("prepr-2", "tools/pr/prepr.sh",
+dev/audit/harnesses/r10_seat_selftests_mutants.py:198:    ("prepr-3", "tools/pr/prepr.sh",
+dev/audit/harnesses/r10_seat_selftests_mutants.py:200:    ("prepr-4", "tools/pr/prepr.sh",
+dev/audit/harnesses/r10_seat_selftests_mutants.py:203:    ("prepr-5", "tools/pr/prepr.sh",
+dev/audit/harnesses/r10_seat_selftests_mutants.py:205:    ("prepr-6", "tools/pr/prepr.sh",
+dev/audit/harnesses/r10_seat_selftests_mutants.py:208:    ("prepr-7", "tools/pr/prepr.sh",
+dev/audit/harnesses/r10_seat_selftests_mutants.py:210:    ("prepr-8", "tools/pr/prepr.sh",
+dev/audit/harnesses/r10_seat_selftests_mutants.py:213:     '  (cd "$ROOT" && bash "$HERE/../../pr/prepr.sh" --fill-red "$ABS")\n', ''),
+dev/audit/harnesses/r10_seat_selftests_mutants.py:220:    ("prepr-11", "tools/pr/prepr.sh",
+dev/audit/harnesses/r10_seat_selftests_mutants.py:230:    ("prepr-13", "tools/pr/prepr.sh",
+dev/audit/harnesses/r10_seat_selftests_mutants.py:396:STEP_OF = {"prepr-9": "tools/pr/prepr.sh", "prepr-10": "tools/pr/prepr.sh",
+dev/audit/harnesses/r10_seat_selftests_mutants.py:397:           "prepr-12": "tools/pr/prepr.sh"}
+dev/audit/harnesses/r9_rc_blas_kernel_red_f21_p3.py:10:PR #1726's null control) -- and because `tools/pr/prepr.sh` step 6b records a
+dev/audit/harnesses/throwaway_git_sites.sh:55:    prepr) echo "bash tools/pr/prepr.sh --self-test" ;;
+dev/audit/rounds/round3/D11/mechanisms.py:263:        ("script", "prepr.sh --self-test", "the pre-PR self-check surviving its own fixtures", "governance.yml:pr-contract"),
+dev/audit/rounds/round4/D11/mechanism_inventory.py:106:        ("prepr.sh", ["bash", "tools/audit/prepr.sh", "--self-test"], 0),
+tests/entities.py:27700:_PC_VE_CALL = 'prepr.sh --version-edit origin/main "$PR_HEAD"' in _PC_BODY_STEP
+tests/entities.py:27705:    and "prepr.sh --version-edit" in _blk
+tests/entities.py:35831:    `$HPO_SLOT_LABEL` set -- what prepr.sh step 1b exports -- the stub `PYTHON`
+tests/gate_lock.py:31:group is on the critical path is the caller's policy, and ``tools/pr/prepr.sh``
+tests/gate_lock.py:777:    The marker is written by ``mark_unleased`` -- `prepr.sh`'s failed-take arm --
+tools/audit/seat/body_push.sh:44:  (cd "$ROOT" && bash "$HERE/../../pr/prepr.sh" --fill-red "$ABS")
+tools/audit/seat/body_push.sh:45:  if ! LINT=$(cd "$ROOT" && bash "$HERE/../../pr/prepr.sh" --body-check "$ABS" 2>&1); then
+tools/audit/seat/cloud_relay.sh:739:  eval "$(sed -n '/^shared_root() {/,/^}/p' "$HERE/../../pr/prepr.sh")"
+tools/audit/seat/handoff_push.sh:156:bf=${BODYPATH:-$(git diff --no-renames --name-only "$CODE" "$T" | grep -iE "^(tools/audit/handoff|handoff)/.*body[^/]*\.md$")}; [ "$(echo "$bf" | grep -c .)" = 1 ] || { echo "no single body .md in: $(git diff --no-renames --name-only "$CODE" "$T")"; exit 1; }  # layout:old=tools/audit/handoff (a transport root prepr.sh still reads)
+tools/audit/seat/orchestrator_tick.py:27:          sibling .rc; prepr.sh slots (nudge.md step 8's cap, mechanically).
+tools/audit/seat/orchestrator_tick.py:498:        preprs = self._seat_procs(self.proc("prepr.sh"), "prepr.sh",
+tools/audit/seat/pr_args.sh:1093:  2) [ ! -e "$D/p2fail" ] || { echo "app_push: REFUSE: the body did not pass tools/pr/prepr.sh"; exit 1; }
+tools/audit/seat/ref_privacy.py:391:    "tools/pr/prepr.sh": ("fixture", "its pushes are the --self-test's handoff/zz-lint probe heads, into "
+tools/audit/seat/tmp_paths.py:110:    ("tools/pr/prepr.sh", "shared_root /tmp/body.md", "the self-test arm refusing a body directly in /tmp"),
+tools/policy/budget_raise_gate.py:61:body_patch.sh and prepr.sh (body_push.sh's --body-check) refuse before this
+tools/policy/budget_raise_gate.py:838:             "Owner approval of the code-owned tools/audit/prepr.sh at head e3d0d634. "
+tools/policy/field_coverage.mjs:356:  'pinned tools/audit/prepr.sh': { none: 'runs other checks over a body; no input of its own' },
+tools/policy/figure_lint.mjs:106:// reachable through `tools/pr/prepr.sh` on a seat's own machine, where the
+tools/policy/figure_lint.mjs:600:  const inside = analyse('bash tools/audit/prepr.sh')
+tools/policy/policy_lint.mjs:4485:  // the only entry in CHECKS with no class in REQUIRED_ROT, and `prepr.sh`'s own
+tools/policy/policy_lint.mjs:5513:    // exposure was local, which is exactly where a seat runs `prepr.sh`.
+tools/policy/policy_lint.mjs:6884:  // split on commas -- the form `prepr.sh --self-test` drives -- but each
+tools/policy/policy_lint_mutants.mjs:458:  // and failing here fails `prepr.sh` for a seat whose remote happens to be
+tools/policy/policy_lint_mutants.mjs:474:    // BOTH enumerations on the one line, because `prepr.sh` reports this
+tools/pr/app_push.sh:467:  prepr="$(cd "$(dirname -- "$0")" && pwd)/prepr.sh"
+tools/pr/app_push.sh:468:  [ -f "$prepr" ] || die "no prepr.sh beside this script at $prepr"
+tools/pr/app_push.sh:473:      || die "the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again"
+tools/pr/app_push.sh:601:cat > "$W/tool/prepr.sh" <<'STUB'
+tools/pr/app_push.sh:751:chmod +x "$W/tool/prepr.sh" "$W/bin/gh" "$W/bin/git" "$W/bin/curl" "$W/bin/openssl"
+tools/pr/ci_predict.py:24:`prepr.sh` ran it and `body_push.sh`, which runs only this, did not). Two
+tools/pr/ci_predict.py:31:pull request is graded, where `prepr.sh` step 3f4 runs the head's). One is this predictor's own model, because CI learns the answer by
+tools/pr/ci_predict.py:54:so `prepr.sh` step 6d warns and the body owes each one a disposition.
+tools/pr/ci_predict.py:540:    prepr.sh step 3f4 runs the head's copy, push-to-main's direction; the two
+tools/pr/codeql_scope.py:348:          word("python", "pull_request", ["tools/pr/prepr.sh"]), "analyze")
+tools/pr/gate_priority.py:10:supplies the integer, and ``tools/pr/prepr.sh`` step 1b0 exports its answer as
+tools/pr/gh_comment.py:99:    instances. `tools/audit/prepr.sh`'s `shared_root` is the same predicate, and
+tools/pr/local_alerts.py:7:`prepr.sh` step 7c feeds the red names of the branch's pushed commits to the body
+tools/pr/push.sh:684:if test -f tools/audit/prepr.sh; then bash tools/audit/prepr.sh "$BODY" "$@"; else bash tools/pr/prepr.sh "$BODY" "$@"; fi

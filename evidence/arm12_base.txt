@@ -1,0 +1,13 @@
+bash: line 10: summary_start: command not found
+bash: line 13: summary_end: command not found
+  ok   the summary run keeps the refusal's rc
+  FAIL summary stdout carries no passing step's per-test chatter (got 1 want 0)
+  ok   and carries the REFUSE line with its reason (null control: the refusal stays visible)
+  FAIL and the refusal's failing lines (got 1 want 0)
+  FAIL the last line is the result with rc, naming a unique log under TMPDIR (got 1 want 0)
+  FAIL and that log holds the full output (got 1 want 0)
+bash: line 10: summary_start: command not found
+bash: line 13: summary_end: command not found
+  ok   PREPR_VERBOSE=1 prints the full output on stdout
+  FAIL the main flow starts the summary after step 1 and ends on its result line (got 1 want 0)
+RESULT arm12 base.sh: 3 passed, 5 failed
