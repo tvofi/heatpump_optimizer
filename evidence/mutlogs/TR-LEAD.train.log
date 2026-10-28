@@ -1,2 +1,0 @@
-train.sh: REFUSE: self-test: a TERMed train did not stop merge_train.py first (alive 0, marks 'G early ', pidfile removed)
-rc=2

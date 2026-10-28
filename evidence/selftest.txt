@@ -1,0 +1,3 @@
+  ok   a relay TERMed mid-update TERMs the update alone first, so it ends its own child before anything else does
+  ok   with no stub, the relay runs update_pr.sh beside it as the lead, asynchronously: a TERM ends it in that order
+cloud_relay self-test: 192 checks, 0 failed
