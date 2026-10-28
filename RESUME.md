@@ -1,6 +1,6 @@
 # RESUME: R10-ORCH-BEATD arm (a)
 
-- Code head: handoff/r10-orch-beatd at f008c2b75478f2f2c1722810a5983ee30fbe809f. It is f8bb14aad plus three commits: the ci_predict INERT READS entry, the fixture repositories moved to throwaway_git (d72c4a982), and policy_lint's CORPUS_EXCLUDED naming the shim. It was cut from origin/main 71fe1f7fc and does not conflict with f844df1fe (15:33Z).
+- Code head: handoff/r10-orch-beatd at c991d64cdaef342d282d1a8e991dadc2671f917d: f8bb14aad plus the INERT READS entry, throwaway_git fixtures (d72c4a982), and the named-docs exclusion in dev/governance/config/corpus_excluded.json (policy_lint.mjs back to main's copy; CI restores pinned check sources from the base). PR #2916.
 - The worktree is /Users/timmalmstrom/hpo-seats/r10s6/fix-beatd-a, on branch fix/r10-orch-beatd, and it is clean.
 - Done:
   - beatd.py and beatd_shims/git;

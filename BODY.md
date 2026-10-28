@@ -26,11 +26,14 @@ Arm (a)'s three carries are closed here: dr3-shim-discovery, dr3-bash32 and dr4-
 
 Two repairs followed the first open's prepr refusal (code f1f34cd61):
 - **throwaway git.** The self-test's fixture repositories were raw `git init` and `git clone` calls. They are now built with `tests/throwaway_git.py` (`throwaway_git_init` / `throwaway_git_clone`), so auto-maintenance is off in both the environment and each repository's config. The race's fetches still run under the beat's own env.
-- **policy_lint `named-docs`.** The bare-name pass resolved the word `git` in `.claude/rules/claim-files.md` prose to the tracked extensionless file `tools/audit/seat/beatd_shims/git`, the only tracked file with that basename. It reported that file as an uncapped document. The shim must be named `git` to be found on `PATH`, and it is an executable, not prose. So `tools/policy/policy_lint.mjs`'s `CORPUS_EXCLUDED` names it, with that reason, as the check's own message directs. This is the one edit to an existing program, which the arm's scope otherwise rules out, and it is the visible-diff bar the list states. `policy_lint_mutants.mjs` exited 1 for the same cause: its entry point is `policy_lint.mjs` on the corpus as it stands.
+- **policy_lint `named-docs`.** The bare-name pass resolved the word `git` in `.claude/rules/claim-files.md` prose to the tracked extensionless file `tools/audit/seat/beatd_shims/git`, the only tracked file with that basename. It reported that file as an uncapped document. The shim must be named `git` to be found on `PATH`, and it is an executable, not prose.
+  - The exclusion is the data file's: `dev/governance/config/corpus_excluded.json` gains the path, and its `_comment` the reason.
+  - An earlier head (f008c2b75) put the same entry in `tools/policy/policy_lint.mjs`'s `CORPUS_EXCLUDED`. That passed locally but went red on #2916, because `governance.yml`'s policy-docs and env-matrix jobs restore pinned check sources from the base before grading. That is the case `corpus_excluded.json`'s own `_why_data_not_source` describes. That edit is reverted, so `policy_lint.mjs` is byte-identical to main and no existing program is edited.
+  - `policy_lint_mutants.mjs` exited 1 for the same cause, because its entry point is `policy_lint.mjs` on the corpus as it stands.
 
 ## Head
 
-f008c2b75478f2f2c1722810a5983ee30fbe809f
+c991d64cdaef342d282d1a8e991dadc2671f917d
 
 ## Mutation proof
 
@@ -82,10 +85,11 @@ Wiring null: with `governance.yml` restored to the merge base, `selftest_wiring.
 ## Figures
 
 - `python3 -I tests/throwaway_git.py --check`: `0 raw git init or clone site(s) refused` at d72c4a982 and after. Null: at f1f34cd61 it printed `3 raw git init or clone site(s) refused` (beatd.py:668, :758, :824).
-- `node tools/policy/policy_lint.mjs`: `TOTAL: 0 error(s) across 50 policy file(s)`, rc 0 at f008c2b75. Null: at d72c4a982, without the exclusion, it printed `TOTAL: 1 error(s)`, the `[named-docs] tools/audit/seat/beatd_shims/git` error, rc 1.
-- `node tools/policy/policy_lint_mutants.mjs`: `MUTANTS ok`, rc 0 at f008c2b75. Null: prepr at f1f34cd61 refused it with `the entry point exited 1 on the corpus as it stands`.
+- `node tools/policy/policy_lint.mjs` at c991d64cd, with main's copy of the linter (`git diff origin/main -- tools/policy/policy_lint.mjs` is empty): `TOTAL: 0 error(s) across 50 policy file(s)`, rc 0. Null: at d72c4a982, without the exclusion, it printed `TOTAL: 1 error(s)` with the `[named-docs] tools/audit/seat/beatd_shims/git` error, rc 1. #2916's policy-docs job at e09b123f9 printed the same error.
+- `node tools/policy/policy_lint_envmatrix.mjs "$PWD" <dir> "$(git rev-parse HEAD)"` (CI's argv) at c991d64cd: `16 declared outcome(s) held, 0 did not, across 6 environment shape(s)`. Null: #2916's env-matrix job at e09b123f9 failed `pr / policy_lint rc=0 and every pin earned` and its push-main, no-remote and shallow siblings, each on the same named-docs error.
+- `node tools/policy/policy_lint_mutants.mjs`: `MUTANTS ok`, rc 0 at c991d64cd. Null: prepr at f1f34cd61 refused it with `the entry point exited 1 on the corpus as it stands`.
 - `python3 -I tools/audit/seat/beatd.py --self-test` at f008c2b75 (macOS, /bin/bash 3.2.57, git 2.38.1): `beatd self-test: 84 checks, 0 failed`. That is 68 case checks, 16 anchor checks and 16 mutant checks, the anchor checks counted by `MUTANTS`. Measured 2026-10-28T16:40Z; the same count at f8bb14aad before the throwaway_git change.
-- `PREPR_SKIP_CLOSURES=1 tools/pr/prepr.sh BODY.md` at f008c2b75: `PRE-PR: f008c2b75478f2f2c1722810a5983ee30fbe809f`, rc 0, with 32 ok, 6 skip and 0 REFUSE.
+- `PREPR_SKIP_CLOSURES=1 tools/pr/prepr.sh BODY.md` at f008c2b75 (before the named-docs move to the data file; see `## Red checks` for why its policy_lint step passed there): `PRE-PR: f008c2b75478f2f2c1722810a5983ee30fbe809f`, rc 0, with 32 ok, 6 skip and 0 REFUSE.
 - `python3 -I tools/audit/seat/selftest_wiring.py --check`: `100 self-testing, 100 wired, 0 unwired` (null above).
 - `python3 tools/audit/archscore/score.py --diff 71fe1f7fcaeadd448a3e2213744f68b3e680e24e HEAD`: `Architecture score: dS +0.0000 NULL`. The note's target is dS = 0; `vector.py` reads only `custom_components/heatpump_optimizer`.
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
@@ -97,7 +101,14 @@ Wiring null: with `governance.yml` restored to the merge base, `selftest_wiring.
 
 ## Red checks
 
-none
+- **`governance / env-matrix`** and **`governance / policy-docs`** at e09b123f9 (#2916). Both are the one `[named-docs] tools/audit/seat/beatd_shims/git` error. Fixed at this head through `corpus_excluded.json`; figures and nulls are above.
+  - **Cause.** The exclusion was written into `tools/policy/policy_lint.mjs`. Both jobs restore that pinned program from the base before grading, so the branch's own copy never ran in CI.
+  - **Root-cause trigger.** The trigger applies: a cheaper detector exists.
+    - The check that fired runs locally in seconds (`node tools/policy/policy_lint.mjs`).
+    - `tools/pr/prepr.sh`'s `policy_lint` step ran it and printed ok at f008c2b75, because prepr grades the head's own copy of a pinned program, while CI grades the base's.
+    - The cheaper detector is prepr running each `PINNED` check source from the merge base, the way `governance.yml`'s "Restore the check source from the base commit" step does. Its standing cost is one `git show <base>:<path>` per pinned file on each prepr run.
+  - **Process state.** (c): prepr was followed and passed, and did not model CI's restore.
+  - **Not built here.** It is a change to `tools/pr/prepr.sh`, which is outside arm (a). It is owed to a root-cause seat under `defect-root-cause.md`.
 
 ## Forward-carry
 
