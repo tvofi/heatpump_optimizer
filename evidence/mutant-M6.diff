@@ -1,0 +1,13 @@
+diff --git a/tools/pr/ci_predict.py b/tools/pr/ci_predict.py
+index 2516a6974..f7831c642 100644
+--- a/tools/pr/ci_predict.py
++++ b/tools/pr/ci_predict.py
+@@ -521,7 +521,7 @@ def agreement_preds(root: Path, base_ref: str, changed: set[str]) -> list[tuple[
+ # round-10 merges did, where its closure would add 15.
+ GRADERS = (
+     ("policy-docs", ("policy-docs", "env-matrix"), "CORPUS",
+-     (".claude/workflows/policy_lint.mjs", "tools/policy/policy_lint.mjs"), True),
++     (".claude/workflows/policy_lint.mjs", "tools/policy/policy_lint.mjs"), False),
+     ("wave-script", ("wave-script",), "WAVE CHECK",
+      (".claude/workflows/check-wave-script.mjs", "tools/policy/check-wave-script.mjs"), True),
+     ("policy-docs", ("policy-docs",), "FIELD COVERAGE",
