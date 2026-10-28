@@ -235,6 +235,7 @@ from .accuracy import (
     COP_REFUSED_UNALIGNED,
     LEAD_BUCKETS,
     MeasuredCop,
+    cop_observability,
     AccuracySample,
     AccuracyTracker,
     delivered_ratio,
@@ -881,6 +882,19 @@ def _fold_flow_lift(coord: Any, now: datetime) -> None:
         coord._flow_bias.bias_k,
         coord._flow_bias.samples,
     )
+
+
+def _cop_observability(coord: Any) -> str:
+    """``accuracy.cop_observability`` here: a heat counter divides by its span's electric counter, else the power entity."""
+    cfg = _ctx_of(coord)._config
+    electric = cfg.get(CONF_ENERGY_ENTITY if heat_energy.meter_of(coord).counter else CONF_POWER_ENTITY)
+    return cop_observability(electric=bool(electric), measured_heat=probe_install(cfg).measured_heat, follows=draw_range.follows_ask(coord._accuracy.draw))
+
+
+def _pairs_interval(elapsed_h: float) -> bool:
+    """A pending prediction this many hours old still describes the interval
+    that just closed: not a re-run minutes later, not across a restart or gap."""
+    return 0.05 <= elapsed_h <= 2.0
 
 
 def _interval_measured_heat_kw(coord: Any) -> float | None:
@@ -5148,7 +5162,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         )
         if not np.isfinite(observed_cop) or observed_cop <= 0.1:
             return COP_REFUSED_OBSERVED
-        self._measured_cop.record(observed_cop, cop_curve_dhw, cop_dhw_temp)
+        self._measured_cop.record(observed_cop, cop_curve_dhw, cop_dhw_temp, dt_util.now())
 
         alpha = COP_LEARNING_ALPHA
         new_scale = (1.0 - alpha) * self._cop_scale + alpha * target_scale
@@ -7756,6 +7770,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "cop_scale": round(self._cop_scale, 3),
             "cop_samples": self._cop_samples,
             "measured_cop": self._measured_cop.cop,
+            "measured_cop_at": None if self._measured_cop.at is None else self._measured_cop.at.isoformat(),
+            "cop_refusal": self._measured_cop.refusal,
+            "cop_observability": _cop_observability(self),
             "defrost_derate": self._defrost.factor(
                 ctx._current_state.outdoor_temperature, self._current_humidity()
             ),
@@ -9821,7 +9838,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # the same timestamp. Inert until a supply slot is mapped.
         _fold_flow_lift(self, now)
         power_frozen = self._learning_frozen(CONF_POWER_ENTITY)  # read once: the defrost settlement below gates on it too
-        draw_range.fold(self._accuracy.draw, self._measured_power, self._commanded_split(), ctx._thermal_params, frozen=power_frozen is not None, distorted=_cop_fold_blocked(self), defrost=defrost_window.any_defrost, command=pump_arbiter.flow_command(self))
+        # The meter read now closes the interval ``pending`` governed, so the
+        # draw pairs with that interval's ask and set-point, not the action the
+        # solve just adopted for the next one (#2262), within the window the
+        # accuracy pairing below trusts; a prediction recording no split is none.
+        if pending is not None and pending.get("split") is not None and _pairs_interval(_utc_age_seconds(now, pending["when"]) / 3600.0):
+            draw_range.fold(self._accuracy.draw, self._measured_power, pending["split"], ctx._thermal_params, frozen=power_frozen is not None, distorted=_cop_fold_blocked(self), defrost=defrost_window.any_defrost, command=pending.get("flow_command"))
 
         # T5 #16: settle every matured lead-time promise against the same
         # measured temperature the one-step sample below uses. The window
@@ -9855,7 +9877,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             elapsed = _utc_age_seconds(now, pending["when"]) / 3600.0
             # Only pair up predictions with the interval they were actually
             # about; a restart or a long gap makes the pairing meaningless.
-            if 0.05 <= elapsed <= 2.0:
+            if _pairs_interval(elapsed):
                 price = pending.get("price")  # None: no price covered it (#2229)
                 sample = AccuracySample(
                     when=now,
@@ -9883,32 +9905,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 # T4a: observed-minus-modelled COP rides on the sample, so
                 # the snapshots' accuracy tags and #12's history both see
                 # efficiency, not just temperature error.
-                if (
-                    self._measured_cop.cop is not None
-                    and sample.outdoor_temp is not None
-                ):
+                # Only a COP folded on this interval (MeasuredCop.residual).
+                if sample.outdoor_temp is not None:
                     try:
-                        # v5.3.0: subtract the curve the observation was
-                        # actually referenced to. Recomputing the space curve
-                        # for a hot-water interval would put back exactly the
-                        # mismatch ``_cop_reference_curve`` removes — the
-                        # residual would show ~16 % and nothing would be wrong
-                        # with the pump. Without a mode entity the flag is
-                        # never set and this is the v5.1.5 expression.
-                        if (
-                            self._measured_cop.curve_dhw
-                            and self._measured_cop.dhw_temp is not None
-                        ):
-                            modelled = self._thermal_model.compute_cop_dhw(
-                                sample.outdoor_temp, self._measured_cop.dhw_temp
-                            )
-                        else:
-                            modelled = self._thermal_model.compute_cop(
-                                sample.outdoor_temp
-                            )
-                        sample.cop_residual = round(
-                            float(self._measured_cop.cop) - float(modelled),
-                            3,
+                        sample.cop_residual = self._measured_cop.residual(
+                            pending["when"], sample.outdoor_temp, self._thermal_model
                         )
                     except Exception:  # noqa: BLE001 - tag is best-effort
                         sample.cop_residual = None
@@ -9937,6 +9938,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # heating alone made every hot-water charge look like the unit
             # under-delivering, which fed straight into the defrost derate.
             "power": self._commanded_power(),
+            "split": self._commanded_split(),
+            "flow_command": pump_arbiter.flow_command(self),
             "space_power": float(self._current_action.get("power", 0.0)),
             "dhw_power": float(self._current_action.get("dhw_power", 0.0)),
             # T6: why the plan wanted this interval's draw, captured at

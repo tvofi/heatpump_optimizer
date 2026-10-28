@@ -234,7 +234,8 @@ def main():
     n_replay = sum(sum(c.values()) for c in per_bin_day.values())
     for label, rate in (("production", (tl.get("cop_samples") or 0) / max(span_days, 1e-9)),
                         ("replay", n_replay / max(span_days, 1e-9))):
-        counts = collections.Counter({int(k): int(v[1]) for k, v in stored.items()})
+        # space bins only: a "<bin>:dhw" key is the hot-water curve's (#2262 port)
+        counts = collections.Counter({int(k): int(v[1]) for k, v in stored.items() if ":" not in k})
         first, reached = None, {}
         for day in range(1, 366):
             mu = a.t_mean + a.t_slope * day

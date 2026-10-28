@@ -784,6 +784,11 @@ class LearningView(TypedDict, total=False):
     cop_scale: float
     cop_samples: int
     measured_cop: float | None
+    #: When ``measured_cop`` folded (ISO), the latest interval's refusal code,
+    #: and ``accuracy.cop_observability`` (#2262).
+    measured_cop_at: str | None
+    cop_refusal: str | None
+    cop_observability: str
     defrost_derate: float
     defrost_samples: int
     defrost_measured_samples: int
