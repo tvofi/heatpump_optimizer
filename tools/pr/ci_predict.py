@@ -508,17 +508,32 @@ def agreement_preds(root: Path, base_ref: str, changed: set[str]) -> list[tuple[
 
 # The other corpus graders a pinned job runs with the base's copy: (the job
 # whose restore list the tree takes, the jobs its red reaches, the line
-# marker, the grader at either layout). `policy_lint.mjs` is `policy-docs`'
-# run and the core of each `env-matrix` shape; `check-wave-script.mjs` is
-# `wave-script`'s first step. R10-RCA-PREPR-HEAD-GRADERS measured #2916
-# (an exclusion in policy_lint.mjs's CORPUS_EXCLUDED) and #2207 (a cadence
-# rule in check-wave-script.mjs) red this way with every local path green.
+# marker, the grader at either layout, whether the key is its whole `.mjs`
+# closure or the grader alone). `policy_lint.mjs` is `policy-docs`' run and
+# the core of each `env-matrix` shape; `check-wave-script.mjs` is
+# `wave-script`'s first step; `field_coverage.mjs` is `policy-docs`' I3
+# barrier. R10-RCA-PREPR-HEAD-GRADERS measured #2609 and #2916 (an exclusion
+# in policy_lint.mjs's CORPUS_EXCLUDED), #2207 (a cadence rule in
+# check-wave-script.mjs) and #2529 and #2636 (a registration in
+# field_coverage.mjs) red this way with every local path green.
+# field_coverage.mjs takes about 110 s, and its closure holds policy_lint.mjs,
+# so it is keyed on its own file: both its instances edited it, and 7 of 543
+# round-10 merges did, where its closure would add 15.
 GRADERS = (
     ("policy-docs", ("policy-docs", "env-matrix"), "CORPUS",
-     (".claude/workflows/policy_lint.mjs", "tools/policy/policy_lint.mjs")),
+     (".claude/workflows/policy_lint.mjs", "tools/policy/policy_lint.mjs"), True),
     ("wave-script", ("wave-script",), "WAVE CHECK",
-     (".claude/workflows/check-wave-script.mjs", "tools/policy/check-wave-script.mjs")),
+     (".claude/workflows/check-wave-script.mjs", "tools/policy/check-wave-script.mjs"), True),
+    ("policy-docs", ("policy-docs",), "FIELD COVERAGE",
+     (".claude/workflows/field_coverage.mjs", "tools/policy/field_coverage.mjs"), False),
 )
+
+
+def grader_hit(root: Path, entry: str, whole: bool, specs, changed: set[str], covers) -> list[str]:
+    """The changed files that key one grader: in its `.mjs` closure (or the
+    grader alone) and covered by its job's restore pathspecs."""
+    keyed = mjs_closure(root, entry) if whole else {entry}
+    return sorted(p for p in changed & keyed if any(covers(s, p) for s in specs))
 
 
 def grader_preds(root: Path, base_ref: str, changed: set[str]) -> list[tuple[str, str]]:
@@ -540,7 +555,7 @@ def grader_preds(root: Path, base_ref: str, changed: set[str]) -> list[tuple[str
     if not tip or not wf.is_file():
         return []
     preds: list[tuple[str, str]] = []
-    for job, reds, mark, homes in GRADERS:
+    for job, reds, mark, homes, whole in GRADERS:
         entry = next((p for p in homes if (root / p).is_file()), None)
         if entry is None or not any(git(root, "cat-file", "-e", f"{tip}:{p}") is not None for p in homes):
             continue
@@ -549,8 +564,7 @@ def grader_preds(root: Path, base_ref: str, changed: set[str]) -> list[tuple[str
         except ValueError as e:
             preds += [(j, f"{mark} UNRUN ValueError: {e}") for j in reds]
             continue
-        hit = sorted(p for p in changed & mjs_closure(root, entry)
-                     if any(agreement_py.covers(s, p) for s in specs))
+        hit = grader_hit(root, entry, whole, specs, changed, agreement_py.covers)
         if not hit:
             continue
 
@@ -569,7 +583,8 @@ def grader_preds(root: Path, base_ref: str, changed: set[str]) -> list[tuple[str
             continue
         lines = [l.strip() for l in out.stdout.splitlines() if l.strip()] or \
             [f"rc {out.returncode}: {out.stderr.strip()[-200:]}"]
-        first = next((l for l in lines if l.startswith(("ERROR", "FAIL")) and "probe, expected" not in l), lines[-1])
+        first = next((l for l in lines if l.startswith(("ERROR", "FAIL", "REFUSED", "BLIND", "DEAD"))
+                      and "probe, expected" not in l), lines[-1])
         preds += [(j, f"{mark} REFUSED by the base's copy, over {', '.join(hit)}: {first[:240]}") for j in reds]
     return preds
 
@@ -726,8 +741,8 @@ def repairs(root: Path, preds, scripts: set) -> list[str]:
                    "the lane is graded by the copy it replaces: repair what the base's copy refuses, and a "
                    "registration only the head's copy carries has no local repair "
                    "(dev/audit/rca/R10-RCA-2671-WAVE-SCRIPT.md, cause 3): the body names it under ## Red checks")
-    if any(l.startswith(("CORPUS", "WAVE CHECK")) for _, l in preds):
-        out.append("a CORPUS refusal or a WAVE CHECK refusal is CI's verdict under the base's copy of the grader, so an "
+    if any(l.startswith(("CORPUS", "WAVE CHECK", "FIELD COVERAGE")) for _, l in preds):
+        out.append("a CORPUS refusal, a WAVE CHECK refusal or a FIELD COVERAGE refusal is CI's verdict under the base's copy of the grader, so an "
                    "exclusion, registration or rule written into the grader is graded by the copy it replaces: "
                    "move it into the data the grader reads (corpus_excluded.json for named-docs, #2916's repair), "
                    "or land the grader change first (dev/audit/rca/R10-RCA-PREPR-HEAD-GRADERS.md)")
@@ -896,6 +911,41 @@ def main(argv: list[str] | None = None) -> int:
     return rc
 
 
+def grader_key_self_test(root: Path) -> int:
+    """`grader_hit` over this tree's GRADERS: what keys each grader and what
+    does not. The plants drive CORPUS end to end; FIELD COVERAGE runs about
+    110 s, so its key is pinned here and its run shares CORPUS's code."""
+    home = next((d for d in (".claude/workflows", "tools/policy") if (root / d / "agreement_py.py").is_file()), None)
+    if home is None:
+        print("  FAIL the grader key has an agreement_py.py to read restore lists with")
+        return 1
+    sys.path.insert(0, str(root / home))
+    import agreement_py
+    text = (root / agreement_py.WORKFLOW).read_text()
+    rows = {mark: (job, next(p for p in homes if (root / p).is_file()), whole)
+            for job, _, mark, homes, whole in GRADERS}
+
+    def hit(mark, *changed):
+        job, entry, whole = rows[mark]
+        return grader_hit(root, entry, whole, agreement_py.restore_specs(text, job), set(changed), agreement_py.covers)
+    lint, fc, cws = rows["CORPUS"][1], rows["FIELD COVERAGE"][1], rows["WAVE CHECK"][1]
+    counts = str(Path(lint).with_name("counts.mjs"))
+    data = "dev/governance/config/corpus_excluded.json"
+    cases = [
+        ("CORPUS is keyed by an edit to policy_lint.mjs", hit("CORPUS", lint) == [lint]),
+        ("and by one to a module it imports (counts.mjs)", hit("CORPUS", counts) == [counts]),
+        ("and not by corpus_excluded.json, data the job does not restore (#2916's repair)", hit("CORPUS", data) == []),
+        ("WAVE CHECK is keyed by check-wave-script.mjs and not by policy_lint.mjs",
+         hit("WAVE CHECK", cws) == [cws] and hit("WAVE CHECK", lint) == []),
+        ("FIELD COVERAGE is keyed by its own file", hit("FIELD COVERAGE", fc) == [fc]),
+        ("and not by policy_lint.mjs, which its closure holds (the 110 s run stays narrow)",
+         hit("FIELD COVERAGE", lint) == []),
+    ]
+    for label, ok in cases:
+        print(f"  {'ok  ' if ok else 'FAIL'} graders key: {label}")
+    return sum(not ok for _, ok in cases)
+
+
 def wiring_self_test(root: Path) -> int:
     """`wiring_preds` over a planted unwired tool, its wired twin and a null."""
     import shutil
@@ -951,6 +1001,7 @@ def self_test() -> int:
     bad += plant_self_test(root)
     bad += rekey_self_test()
     bad += wiring_self_test(root)
+    bad += grader_key_self_test(root)
     gate = root / "tools" / "ci" / "gate.py"
     if gate.exists():
         sys.path.insert(0, str(root / "tools" / "ci"))
