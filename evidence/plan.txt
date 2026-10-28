@@ -1,0 +1,32 @@
+head a8cf7889ef2cbbb0b913d2e9f5eabb918fef5996
+== plan at head
+[]
+rc=0
+== plan at base e8cb7e683
+[
+  {
+    "number": 2878,
+    "path": "dev/programme/delivery/2878.md",
+    "line": "- [#2878](https://github.com/tvofi/heatpump_optimizer/pull/2878) \u2014 **merged `22a2c9c`**, roster: round-10 batch 24 (R10-ROSTER-BATCH24).",
+    "title": "roster: round-10 batch 24",
+    "merge_sha": "22a2c9c707c1f8374e202d0317a14a1215bf76e0",
+    "group": "R10-ROSTER-BATCH24"
+  },
+  {
+    "number": 2888,
+    "path": "dev/programme/delivery/2888.md",
+    "line": "- [#2888](https://github.com/tvofi/heatpump_optimizer/pull/2888) \u2014 **merged `939f0c6`**, Triage s6 batch 40: correct P211 -- the lease half is a real second carry.",
+    "title": "Triage s6 batch 40: correct P211 -- the lease half is a real second carry",
+    "merge_sha": "939f0c6428766631d40a62ab7a32044db4223d37",
+    "group": null
+  },
+  {
+    "number": 2889,
+    "path": "dev/programme/delivery/2889.md",
+    "line": "- [#2889](https://github.com/tvofi/heatpump_optimizer/pull/2889) \u2014 **merged `6b9bf5b`**, roster_sync: a carry the destination already holds from the same pull request is not re-appended.",
+    "title": "roster_sync: a carry the destination already holds from the same pull request is not re-appended",
+    "merge_sha": "6b9bf5b58897b13b494303fc2818530d3602076e",
+    "group": null
+  }
+]
+rc=0

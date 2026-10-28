@@ -1,0 +1,21 @@
+head a8cf7889ef2cbbb0b913d2e9f5eabb918fef5996
+DELIVERY STATUS OK — 226 rowed, 0 pending, 0 overdue (overdue at 12 commits)
+  every merge in the window carries a row
+
+This check is NOT a required context and a red here blocks no merge. Pending is the ordinary state: the protocol writes rows in batches, and only OVERDUE means a batch has stopped being drained.
+--require-rows reads the same ledger under `record`'s bar rather than this lane's: a red blocks the STAMP. Every merge listed above without a row is one the tag is about to move the window's start past, and no later window can see it again.
+rc=0
+== at base e8cb7e68302b1d350bb8219fea99e911170af030
+DELIVERY STATUS OK — 223 rowed, 3 pending, 0 overdue (overdue at 12 commits)
+  pending  #2889 6b9bf5b 3 commit(s) since — roster_sync: a carry the destination already holds from 
+  pending  #2878 22a2c9c 4 commit(s) since — roster: round-10 batch 24
+  pending  #2888 939f0c6 5 commit(s) since — Triage s6 batch 40: correct P211 -- the lease half is a 
+
+This check is NOT a required context and a red here blocks no merge. Pending is the ordinary state: the protocol writes rows in batches, and only OVERDUE means a batch has stopped being drained.
+rc=
+base --require-rows rc=1
+  pending  #2888 939f0c6 5 commit(s) since — Triage s6 batch 40: correct P211 -- the lease half is a 
+
+This check is NOT a required context and a red here blocks no merge. Pending is the ordinary state: the protocol writes rows in batches, and only OVERDUE means a batch has stopped being drained.
+--require-rows reads the same ledger under `record`'s bar rather than this lane's: a red blocks the STAMP. Every merge listed above without a row is one the tag is about to move the window's start past, and no later window can see it again.
+head --require-rows rc=0
