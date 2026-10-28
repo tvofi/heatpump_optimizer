@@ -44765,6 +44765,30 @@ R.check(
     f"samples {_t2_hl_indoor_ok._house_heat_loss_samples} reason "
     f"{_t2_hl_indoor_ok._learner_freeze_reason!r}",
 )
+# The freeze enters `_replay_gate` as its raw reason, so the cycle also
+# leaves no heat-counter span clean; the configured house is the control.
+_t2_span_clean = {
+    name: _asyncio.run(coord._async_learn_house_heat_loss(coord._close_fabric_interval()))
+    for name, coord in (
+        ("no_indoor", _t2_house(observed=21.0, indoor_temp_entity=None)),
+        ("indoor", _t2_house(observed=20.9)),
+    )
+}
+R.check(
+    "#2508: a cycle with no indoor entity leaves no heat-counter span clean; "
+    "a configured one does",
+    _t2_span_clean == {"no_indoor": False, "indoor": True},
+    f"span clean {_t2_span_clean!r}",
+)
+from heatpump_optimizer.thermal_model import learner_room_unread as _lru  # noqa: E402
+R.check(
+    "#2508: a caller that cannot see the entry (config None) invents no "
+    "freeze; an empty entry is unconfigured",
+    _lru(None) is None and _lru({}) == "not_configured:indoor_temp_entity",
+    f"None -> {_lru(None)!r}, {{}} -> {_lru({})!r} -- the sysid stand-down "
+    "passes getattr(ctx, '_config', None), and a host modelling only the "
+    "fields it reads must not be frozen",
+)
 _t2_lo_no_indoor = _t2_house(
     two_zone=True, lower=19.9, indoor_temp_entity=None,
 )
