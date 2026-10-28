@@ -100,6 +100,7 @@ from .thermal_model import (
     planned_draw_runs,
     planned_draws_run,
     project_planned_levels,
+    valve_charge_demand,
     weather_or_calm,
     wood_share,
 )
@@ -424,9 +425,28 @@ def _thermostat_demand_single(
     q_slab_to_room = k_slab * (state.slab_temperature - state.room_temperature)
     # Replace what the slab gives up to the room, and move the slab to
     # where it needs to be.
-    return q_slab_to_room + p.slab_thermal_mass * (
+    q_slab = q_slab_to_room + p.slab_thermal_mass * (
         slab_target - state.slab_temperature
     ) / dt
+    if mixing_valve.is_throttling(p.mixing_valve_mode):
+        # Behind a valve the pump charges the tank, never the slab.
+        return valve_charge_demand(
+            model, state, q_slab, outdoor_temp, wind_speed, precipitation, dt
+        )
+    return q_slab
+
+
+def _reference_cop(
+    model: ThermalModel, state: ThermalState, outdoor_temp: float,
+    humidity: float | None,
+) -> float:
+    """The COP the reference's step prices its draw at, as the step does:
+    behind a valve the tank is the flow temperature."""
+    valved = mixing_valve.is_throttling(model.params.mixing_valve_mode)
+    return model.compute_cop(
+        outdoor_temp, humidity=humidity,
+        flow_temp=state.buffer_tank_temperature if valved else None,
+    )
 
 
 def _thermostat_demand_two_zone(
@@ -492,6 +512,11 @@ def _thermostat_demand_two_zone(
     # slightly different temperatures, which is what the real system does
     # too, and inter-zone transfer pulls them back together.
     thermal = q_upper + q_floor
+    if mixing_valve.is_throttling(p.mixing_valve_mode):
+        # Behind a valve the pump charges the tank, never the emitters.
+        return valve_charge_demand(
+            model, state, thermal, outdoor_temp, wind_speed, precipitation, dt
+        )
 
     # Replace what the buffer tank leaks so it does not sag over the day.
     thermal += p.buffer_tank_heat_loss_coefficient * max(
@@ -5315,7 +5340,7 @@ class HeatPumpOptimizer:
             required_thermal = max(0.0, required_thermal - ext_i)
 
             hum_i = hums[i]
-            cop = self.model.compute_cop(outdoor_temps[i], humidity=hum_i)
+            cop = _reference_cop(self.model, state, outdoor_temps[i], hum_i)
             # No lower clamp to ``min_electrical_power``: a pump that cannot
             # modulate that low cycles on and off, and over a step the average
             # power is what determines energy use; a clamp burnt
