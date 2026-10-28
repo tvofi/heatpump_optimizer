@@ -281,9 +281,9 @@ the round-2 key counted by that same rule is its null control and reproduces rou
 When no key is hit, `--only graders` takes 0.85–0.88 s against `--only orphans` 0.16–0.20 s (3
 runs each, `named_loads` and the Python-import walk cached per file): about 0.7 s.
 
-**Weighted, round 3:** FIELD COVERAGE's 27 keyed merges at the plant's 289 s, an upper bound since
-it runs five rows, and the other 13 at round 2's 42 s, not re-taken: 0.7 + (27 × 289 + 13 × 42) /
-539 = 16.2 s per predictor run, about 49 s per pull request at 3 runs. That is under the 92 s
+**Weighted, round 3:** FIELD COVERAGE's 27 keyed merges at the plant's 292 s, an upper bound since
+it runs five rows, and the other 13 at round 2's 42 s, not re-taken: 0.7 + (27 × 292 + 13 × 42) /
+539 = 16.3 s per predictor run, about 49 s per pull request at 3 runs. That is under the 92 s
 expected defect cost with the fixer round, so the verdict below holds, with less margin than
 round 2's 13 s.
 
@@ -406,10 +406,10 @@ The plant from the review, re-run on this branch (`demo`-style, the plant commit
 | predictor at | base | result | s |
 |---|---|---|---|
 | `38422dd15` (round 2's head) | the head | rc 0, `budget_raise_gate.py` keys nothing | 0 |
-| `c8eb2dc51` (round 3) | the head | **rc 1**, `CORPUS REFUSED by the base's copy, over tools/policy/budget_raise_gate.py: FIXTURE VACUOUS: the raise-justification arm on prepr/raise/good.md drew 1 error(s)`, on `policy-docs` and `env-matrix` | 289 |
+| `282496dce` (round 3) | the head | **rc 1**, `CORPUS REFUSED by the base's copy, over tools/policy/budget_raise_gate.py: FIXTURE VACUOUS: the raise-justification arm on prepr/raise/good.md drew 1 error(s)`, on `policy-docs` and `env-matrix` | 292 |
 
 The plant is review round 2's `plant.diff`: `JUSTIFICATION_SCORE` accepts `Arch score: dS`, and
-`fixtures/policy-rot/prepr/raise/good.md` uses that spelling. The 289 s run builds both trees and
+`fixtures/policy-rot/prepr/raise/good.md` uses that spelling. The 292 s run builds both trees and
 runs five rows (CORPUS in two modes, FIELD COVERAGE, RULES SYNC, WAVE CHECK, LANE SELF-TEST).
 
 ### Demonstration
