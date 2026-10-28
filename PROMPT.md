@@ -1,0 +1,12 @@
+CLOUD FIXER seat for tvofi/heatpump_optimizer, topic r10-fly-cache-prompts, at head 6493ea3625900f8361011e0c8f2a3c66885ce7b1. Never send push notifications. Write no Claude Code footer, no Co-Authored-By or Claude-Session trailer and no claude.ai session link in any commit, pull-request body or comment you produce; check your commits with `git log --format=%B` before pushing.
+Setup: `git fetch --unshallow --tags origin`. The toolchain (venv python, node, gh) is on PATH from the environment. Run anything heavy in the background with Monitor and no timeout.
+Role: read dev/governance/roles/fixer.md and CLAUDE.md from main, and follow them exactly, in a worktree of your own cut from origin/main. Fetch 6493ea3625900f8361011e0c8f2a3c66885ce7b1 for the base you were given.
+Output: push the code to refs/heads/handoff/r10-fly-cache-prompts, then write the PR body and run `bash tools/audit/seat/body_push.sh r10-fly-cache-prompts <body.md>`, which pushes refs/heads/handoff-body/r10-fly-cache-prompts; that second push is the return signal. Push nothing else, open no pull request and write no delivery row. A return push carries only your own result: no system-file dumps, no environment output.
+Never write to any branch except your return refs. Never work around a hook or a refusal; report it in your result instead.
+
+Brief (snapshotted when this payload was rendered):
+REPAIR fixer for PR #2937 (branch fix/r10-fly-cache-prompts-pr or fix/r10-fly-cache-prompts; handoff refs handoff/r10-fly-cache-prompts and handoff-body/r10-fly-cache-prompts). Role contract: dev/governance/roles/fixer.md, steps 2-8 re-executed at the repaired head.
+The review blocked head 3d1c405ddbe8d9adefbbb1d26a22ba63871fd995 (git fetch origin refs/heads/verdict/2937; tip ec95afada, read its verdict and ev/ in full). Blocked class and reason: mutation-vacuous: ci-watch.sh sleep "$POLL_S" -> sleep 300 survives
+Repair exactly that, minimally and architecturally soundly: failing-first test, mutation proof showing the named mutants now killed, null control. Update the body (## Head, ## Red checks, mutation line) for the new head.
+Publish only by pushing handoff/r10-fly-cache-prompts (code) and handoff-body/r10-fly-cache-prompts (BODY.md via tools/audit/seat/body_push.sh). Never open or edit a pull request. Every commit authored and committed as tvofi <70032254+tvofi@users.noreply.github.com>; no Claude/anthropic identity, no trailers, no footers, no session URLs (ref_privacy guard refuses them).
+
