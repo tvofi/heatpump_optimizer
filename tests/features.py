@@ -11233,6 +11233,35 @@ R.check(
     f"a 2.0 kW need delivered {_cc_got:.3f} kW the next step",
 )
 
+# Behind the direct-slab layout no curve caps the slab's water, so only
+# buffer_max_temp bounds the tank law there.
+def _direct_slab_refused():
+    from heatpump_optimizer import mixing_valve as _ds_mv
+    from heatpump_optimizer.const import TOPOLOGY_VALVE_UPPER_DIRECT_SLAB
+    from heatpump_optimizer.optimizer import _reference_cop
+    from heatpump_optimizer.thermal_model import valve_charge_demand
+
+    _dp = ThermalParameters(two_zone_enabled=True, mixing_valve_mode=_ds_mv.MODE_MANUAL,
+                            buffer_tank_volume=750.0, max_electrical_power=1e4,
+                            topology_layout_override=TOPOLOGY_VALVE_UPPER_DIRECT_SLAB)
+    _dm = ThermalModel(_dp)
+    assert _dp.slab_fed_direct, "the case must drive the direct-slab layout"
+    _ds = ThermalState(room_temperature=21.0, upper_floor_temperature=21.0,
+                       lower_floor_temperature=21.0, slab_temperature=24.0,
+                       buffer_tank_temperature=60.0, outdoor_temperature=-5.0)
+    _kw = valve_charge_demand(_dm, _ds, 1e3, -5.0, 0.0, 0.0, 0.25)
+    _dm._simulate_step_two_zone(
+        _ds, _kw / _reference_cop(_dm, _ds, -5.0, None), -5.0, dt_hours=0.25)
+    return _dm._step_buffer_refused
+
+
+_ds_ref = _direct_slab_refused()
+R.check(
+    "behind a direct slab the tank law stops at buffer_max_temp",
+    _ds_ref < 1e-6,
+    f"a 1000 kW need refused {_ds_ref:.3f} kW at the cap",
+)
+
 _rc_made, _rc_cop, _rc_plain = _ref_cop_gap()
 R.check(
     "the valved reference prices its draw at the step's own tank-flow COP",

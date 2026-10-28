@@ -1813,10 +1813,12 @@ def valve_charge_demand(
     circuits = _valve_draw_circuits(
         model, state, outdoor_temp, wind_speed, precipitation)
     tank = state.buffer_tank_temperature
-    ceiling = min(p.buffer_max_temp, max(top for _, top, _ in circuits))
     # The draw is piecewise linear in the tank temperature, kinked where a
-    # circuit starts drawing (its zone) and where its curve caps it.
-    kinks = sorted({min(t, ceiling) for _, top, zone in circuits for t in (top, zone)})
+    # circuit starts drawing (its zone) and where its curve caps it; the
+    # highest kink is the curve's top, or the cap behind a direct slab.
+    kinks = sorted({
+        min(t, p.buffer_max_temp) for _, top, zone in circuits for t in (top, zone)
+    })
     goal = kinks[0] if need_kw <= 0.0 else kinks[-1]
     for lo, hi in zip(kinks, kinks[1:]):
         f_lo, f_hi = _circuit_draw(circuits, lo), _circuit_draw(circuits, hi)
