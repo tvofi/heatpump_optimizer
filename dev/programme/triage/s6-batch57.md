@@ -12,6 +12,11 @@ clarification of the fifth. All three are quoted from `proposals.md` as it stand
   the roster; tier definitions/order may stay in a separate file such as ci_priority.json. All
   instruments read the mapping from the roster."
 
+- **The hotfix definition (owner, relayed by the orchestrator).** An owner request is a hotfix
+  only if it is a bug touching production code, or a feature request the owner explicitly calls a
+  hotfix. Not every "Owner request" brief qualifies, so R10-ROUND-PLAYBOOK is not a hotfix. A
+  user-submitted bug in production code is a hotfix.
+
 Batch 56 (P267) was already pushed as `handoff/triage-s7-batch56` `86d399b50` when the fourth
 amendment arrived. All three are therefore ruled here, and batch 56's head does not move. This
 ruling amends P267 where it says so. Facts were read at origin/main
@@ -28,7 +33,8 @@ Verdict: ACCEPT, narrowed, in three carries:
 - **R10-TRAIN-OVERLAP-GRADE** (`carries-open`) amends P267's setting and reader.
 
 Source: `proposals.md` V181, the fourth and fifth amendments and the clarification (owner,
-2026-10-28T19:54:02Z, 19:59:53Z and the clarification after it).
+2026-10-28T19:54:02Z, 19:59:53Z and the clarification after it), and the owner's hotfix
+definition.
 
 Instances:
 - **P267's setting held per-group data that belongs to the roster.**
@@ -58,29 +64,48 @@ Instances:
 
 Carry 1, to R10-ORCH-ROSTER-SCHEMA (the mapping, set at intake):
 1. **Per-group fields.**
-   - `source` is one of `"user"`, `"audit"` or `"programme"`. `"user"` means a finding submitted
-     by the owner or an end user, and it makes the group a hotfix.
+   - `source` is one of `"user"`, `"audit"` or `"programme"`. `"user"` means an item submitted
+     by the owner or an end user, either a report or a request. It does not make the group a
+     hotfix by itself.
+   - `hotfix` is an optional boolean, set at intake under the owner's definition:
+     - `true` for a user-submitted **bug touching production code** (`source: "user"`, a bug
+       report, and a group that `touches_production`);
+     - `true` for a feature request **the owner explicitly calls a hotfix**, which then needs
+       `hotfix_by`, citing the owner's words;
+     - anything else is not a hotfix, including an owner request for a document or an
+       instrument such as R10-ROUND-PLAYBOOK.
    - `savings_source` cites the ruling or cost test, for example
      `dev/programme/triage/<batch>.md#P<n>`. It is required whenever the existing numeric
      `savings` is set.
    - The existing `class` is kept, and `"production"` marks production code.
 2. **`roster_lib` readers, the one place any instrument gets a group's mapping:**
-   - `is_hotfix(g)`: `source == "user"`, or a `R10-HOTFIX-` name (the existing convention);
+   - `is_hotfix(g)`: `hotfix is True`, or a `R10-HOTFIX-` name (the existing convention);
+   - `touches_production(g)`: `class == "production"`, or any of its `files` under
+     `custom_components/`;
    - `savings_h(g)`: the number, or `None`;
    - `group_class(g)`: `class`, or for a group with no `class`, `"production"` if its lane is one
      of replan's production lanes.
 3. **Intake.**
    - `roster_edit.py append-group` **refuses** a group JSON without `source`.
-   - A new op, `set-field <group> source|savings|savings_source|class <value>`, is restricted to
-     those four fields and validated: a `savings` with no `savings_source` is refused.
-4. **Backfill.** A brief that opens "Owner-reported" or "User-reported" is `source: "user"`, and
-   that includes the live R10-UX-HEALTH. "Owner request" briefs stay unmarked unless the owner says
-   otherwise.
+   - A new op, `set-field <group> source|hotfix|hotfix_by|savings|savings_source|class <value>`,
+     is restricted to those six fields and validated. It refuses:
+     - a `savings` with no `savings_source`;
+     - `hotfix true` unless `source` is `"user"` and either the group `touches_production` or
+       `hotfix_by` is set.
+4. **Backfill.**
+   - Briefs that open "Owner-reported", "User-reported" or "Owner request" get `source: "user"`.
+   - Those that report a bug and touch production also get `hotfix: true`. On the live roster that
+     is R10-UX-HEALTH: "Owner-reported Health tab", a list of UI defects, with all three of its
+     files under `custom_components/`.
+   - R10-ROUND-PLAYBOOK ("Owner request"; files `dev/audit/README.md` and `CLAUDE.md`) gets
+     `source: "user"` and is **not** a hotfix, as the owner ruled.
 5. **Controls:**
    - an append-group without `source` is refused;
    - `set-field X savings 14` without a source is refused;
-   - `is_hotfix` is true for a `source: "user"` fixture and for a `R10-HOTFIX-` fixture, and false
-     for a plain one;
+   - `is_hotfix` is true for a `hotfix: true` fixture and for a `R10-HOTFIX-` fixture, and false
+     for a `source: "user"` request that touches only `dev/`;
+   - `set-field X hotfix true` is refused on a `source: "audit"` group, and on a user group that
+     touches no production file and has no `hotfix_by`;
    - `group_class` falls back to lane only when `class` is absent;
    - null: today's roster with no new fields loads unchanged.
 
@@ -132,7 +157,8 @@ Re-pointed, not re-ruled (the held texts are updated before release):
 
 Not carried:
 - deriving "user-submitted" from issue authorship (see the fourth instance);
-- a separate `hotfix: true` field, because `source: "user"` and the existing prefix decide it;
+- making every `source: "user"` group a hotfix, because the owner's definition excludes requests
+  that are not production bugs unless the owner says so;
 - any group-keyed data outside the roster.
 
 Cost: about 50 lines in `roster_lib` and `roster_edit` plus five controls; about 15 lines in
@@ -142,12 +168,10 @@ supply.
 
 Binding: the owner directs the outcome. This ruling's job is that each group's priority has
 exactly one store, the roster, and that the tier rule exists once and is read by all six
-consumers. User-submitted findings need a field, because nothing in the tree marks them today.
+consumers. User-submitted bugs need fields, because nothing in the tree marks them today. `hotfix` is
+validated against the owner's definition at intake, not guessed from the brief text.
 
 ### Owed to the owner from P268
 
-- Whether an "Owner request" brief, such as R10-ROUND-PLAYBOOK, counts as a user-submitted
-  finding. This ruling reads "finding" as a reported defect or issue. Marking a request is one
-  `set-field <group> source user` op.
 - Whether superseded CI runs on CP and hotfix PRs should also be kept rather than cancelled by
   P266's sweep. That is a one-key change in the setting's `never_cancel` reading.
