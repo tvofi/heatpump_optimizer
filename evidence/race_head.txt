@@ -1,0 +1,20 @@
+  t= 1847s run 40119483652 (waited 0 s): PASS
+  t= 1877s run 40119473491 (waited 60 s): PASS
+  t= 1883s run 40119473870 (waited 600 s): PASS
+2754: verdicts 3 UNDECIDED-RED 0 MASKED 0 DEADLOCK no gate-wait 660 s (judge takes a clock: True)
+  t= 1847s run 40119483652 (waited 0 s): FAIL tests / closures: failure (run 40119473870)
+  t= 1877s run 40119473491 (waited 60 s): FAIL tests / closures: failure (run 40119473870)
+  t= 1883s run 40119473870 (waited 600 s): FAIL tests / closures: failure (this run)
+2754-red: verdicts 3 UNDECIDED-RED 0 MASKED 0 DEADLOCK no gate-wait 660 s (judge takes a clock: True)
+  t=  710s run 100 (waited 60 s): PASS
+  t=  710s run 101 (waited 60 s): PASS
+pair: verdicts 2 UNDECIDED-RED 0 MASKED 0 DEADLOCK no gate-wait 120 s (judge takes a clock: True)
+  t=  110s run 99 (waited 0 s): PASS
+  t=  170s run 90 (waited 120 s): PASS
+cascade: verdicts 2 UNDECIDED-RED 0 MASKED 0 DEADLOCK no gate-wait 120 s (judge takes a clock: True)
+  t=  650s run 100 (waited 0 s): PASS
+single: verdicts 1 UNDECIDED-RED 0 MASKED 0 DEADLOCK no gate-wait 0 s (judge takes a clock: True)
+
+real	0m0.356s
+user	0m0.172s
+sys	0m0.026s

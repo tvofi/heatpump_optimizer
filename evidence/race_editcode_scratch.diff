@@ -1,0 +1,12 @@
+46a47
+> EDIT_S = int(__import__("os").environ.get("EDIT_S","518"))
+182c183
+<         h.add(40119473491, "edit", 0, 199, 518)              # prelude 18:13:40, gate 18:22:44 (created 18:10:21)
+---
+>         h.add(40119473491, "edit", 0, 199, EDIT_S)              # prelude 18:13:40, gate 18:22:44 (created 18:10:21)
+184a186,188
+>     elif name == "editcode":
+>         h.add(40119473491, "edit", 0, 199, EDIT_S)
+>         h.add(40119473870, "code", 0, 363, 900)
+221a226
+> 

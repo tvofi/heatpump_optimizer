@@ -1,0 +1,34 @@
+== base 343fb2a2c23dbb1a78142ce869be495187b8d481
+  t=  737s run 40119473491 (waited 0 s): FAIL run(s) [40119473870, 40119483652] at this head are still being judged; their gate decides
+  t= 1283s run 40119473870 (waited 0 s): FAIL run(s) [40119483652] at this head are still being judged; their gate decides
+  t= 1367s run 40119483652 (waited 0 s): PASS
+2754: verdicts 3 UNDECIDED-RED 2 MASKED 0 DEADLOCK no gate-wait 0 s (judge takes a clock: False)
+  t=  737s run 40119473491 (waited 0 s): FAIL run(s) [40119473870, 40119483652] at this head are still being judged; their gate decides
+  t= 1283s run 40119473870 (waited 0 s): FAIL run(s) [40119483652] at this head are still being judged; their gate decides
+  t= 1367s run 40119483652 (waited 0 s): FAIL tests / closures: failure (run 40119473870)
+2754-red: verdicts 3 UNDECIDED-RED 2 MASKED 0 DEADLOCK no gate-wait 0 s (judge takes a clock: False)
+  t=  650s run 100 (waited 0 s): FAIL run(s) [101] at this head are still being judged; their gate decides
+  t=  650s run 101 (waited 0 s): FAIL run(s) [100] at this head are still being judged; their gate decides
+pair: verdicts 2 UNDECIDED-RED 2 MASKED 0 DEADLOCK yes gate-wait 0 s (judge takes a clock: False)
+  t=   50s run 90 (waited 0 s): FAIL run(s) [99] at this head are still being judged; their gate decides
+  t=  110s run 99 (waited 0 s): PASS
+cascade: verdicts 2 UNDECIDED-RED 1 MASKED 0 DEADLOCK no gate-wait 0 s (judge takes a clock: False)
+  t=  650s run 100 (waited 0 s): PASS
+single: verdicts 1 UNDECIDED-RED 0 MASKED 0 DEADLOCK no gate-wait 0 s (judge takes a clock: False)
+== mb c176ee55de7c658b0b870182c5dd55d0843ad8f7
+  t=  737s run 40119473491 (waited 0 s): FAIL run(s) [40119473870, 40119483652] at this head are still being judged; their gate decides
+  t= 1283s run 40119473870 (waited 0 s): FAIL run(s) [40119483652] at this head are still being judged; their gate decides
+  t= 1367s run 40119483652 (waited 0 s): PASS
+2754: verdicts 3 UNDECIDED-RED 2 MASKED 0 DEADLOCK no gate-wait 0 s (judge takes a clock: False)
+  t=  737s run 40119473491 (waited 0 s): FAIL run(s) [40119473870, 40119483652] at this head are still being judged; their gate decides
+  t= 1283s run 40119473870 (waited 0 s): FAIL run(s) [40119483652] at this head are still being judged; their gate decides
+  t= 1367s run 40119483652 (waited 0 s): FAIL tests / closures: failure (run 40119473870)
+2754-red: verdicts 3 UNDECIDED-RED 2 MASKED 0 DEADLOCK no gate-wait 0 s (judge takes a clock: False)
+  t=  650s run 100 (waited 0 s): FAIL run(s) [101] at this head are still being judged; their gate decides
+  t=  650s run 101 (waited 0 s): FAIL run(s) [100] at this head are still being judged; their gate decides
+pair: verdicts 2 UNDECIDED-RED 2 MASKED 0 DEADLOCK yes gate-wait 0 s (judge takes a clock: False)
+  t=   50s run 90 (waited 0 s): FAIL run(s) [99] at this head are still being judged; their gate decides
+  t=  110s run 99 (waited 0 s): PASS
+cascade: verdicts 2 UNDECIDED-RED 1 MASKED 0 DEADLOCK no gate-wait 0 s (judge takes a clock: False)
+  t=  650s run 100 (waited 0 s): PASS
+single: verdicts 1 UNDECIDED-RED 0 MASKED 0 DEADLOCK no gate-wait 0 s (judge takes a clock: False)
