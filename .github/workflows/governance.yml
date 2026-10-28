@@ -244,8 +244,10 @@ jobs:
     runs-on: ubuntu-latest
     # 20, not 10: the seat self-tests below add about four minutes run
     # serially on a seat (pr_args.sh's runs three times, through open_pr.sh
-    # and update_pr.sh), beside the job's three.
-    timeout-minutes: 20
+    # and update_pr.sh), beside the job's three. 30, not 20: beatd.py's
+    # self-test (sleep-bound fixtures and mutants) adds about eight minutes
+    # to a job that ran about 16 (#2873, 2026-10-28) and was cancelled at 20 on #2916.
+    timeout-minutes: 30
     env:
       HPO_JOB_GRADES: nothing
     steps:

@@ -170,7 +170,7 @@ class Lock:
         self.path, self.fd = path, None
 
     def take(self, wait_s: float = 0.0, step: float = 0.2) -> bool:
-        fd = os.open(self.path, os.O_RDWR | os.O_CREAT, 0o644)
+        fd = os.open(self.path, os.O_RDWR | os.O_CREAT, 0o600)  # owner-only, as gate_lock.py
         deadline = time.monotonic() + wait_s
         while True:
             try:
@@ -583,7 +583,7 @@ def case2(prog, w):
     s = w / "s2"
     t = _table(w, [_job("sleep", ["/bin/sleep", "4"])])
     first = subprocess.Popen([sys.executable, "-I", str(prog), "run", "--state", str(s),
-                              "--jobs", str(t), "--once"],
+                              "--jobs", str(t), "--once"], umask=0o022,
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     for _ in range(100):
         if any(x.startswith("RUNNING") for x in _jr(s)):
@@ -592,11 +592,21 @@ def case2(prog, w):
     held_rc = _beat(prog, "held", "--state", s).returncode
     second = _beat(prog, "run", "--state", s, "--jobs", t, "--once")
     first.wait(60)
+    modes = [(s / "beatd" / f).stat().st_mode & 0o777 for f in ("beatd.lock", "sleep.lock")]
     third = _beat(prog, "run", "--state", s, "--jobs", _table(w, [_job("t", ["/usr/bin/true"])]),
                   "--once")
     return {"second run exits 75": second.returncode == 75 and "ALREADY RUNNING" in second.stderr,
             "held reads 0 while it runs": held_rc == 0,
+            "lock files are owner-only under umask 022": modes == [0o600, 0o600],
             "null: a run after the first exits 0": first.returncode == 0 and third.returncode == 0}
+
+
+def _zombie(pid: int) -> bool:
+    """Killed but unreaped: a container whose pid 1 reaps no orphans keeps it (Linux /proc)."""
+    try:
+        return Path(f"/proc/{pid}/stat").read_text().rsplit(")", 1)[1].split()[0] == "Z"
+    except (OSError, IndexError):
+        return False
 
 
 def case3(prog, w):
@@ -608,7 +618,7 @@ def case3(prog, w):
     r = _beat(prog, "run", "--state", s, "--jobs", _table(w, [slow, fast]), "--once", timeout=60)
     time.sleep(0.5)
     gc = int(pidf.read_text()) if pidf.exists() else None
-    gone = gc is not None and not pid_alive(gc)
+    gone = gc is not None and (not pid_alive(gc) or _zombie(gc))
     if gc and not gone:
         os.kill(gc, signal.SIGKILL)
     sp = _passes(s, "slow")
@@ -827,11 +837,12 @@ def case7(prog, w):
     """(a)7 status: each alarm against a fixture; null: a healthy fixture has none."""
     real = resolve_git(os.environ.get("PATH", ""))
     repo = w / "repo7"
-    g = lambda *a: subprocess.run([real, "-C", str(repo), *a], check=True,
-                                  capture_output=True, text=True).stdout.strip()
     sys.path.insert(0, str(ROOT / "tests"))
     from throwaway_git import throwaway_git_init
     env = throwaway_git_init(repo, "-q", "-b", "main", git=(real,))
+    # every call under the throwaway env: commit-tree needs its identity on a runner with none
+    g = lambda *a: subprocess.run([real, "-C", str(repo), *a], check=True, env=env,
+                                  capture_output=True, text=True).stdout.strip()
     subprocess.run([real, "commit", "-q", "--allow-empty", "-m", "a"], cwd=repo, env=env,
                    check=True, capture_output=True)
     old = g("rev-parse", "HEAD")
@@ -945,6 +956,9 @@ MUTANTS = {
     "m2_no_instance_flock": (
         "beatd", "    if not inst.take(wait_s=0.6):", "    if not True:", "2",
         "second run exits 75"),
+    "m2_lock_world_readable": (
+        "beatd", "os.O_RDWR | os.O_CREAT, 0o600)", "os.O_RDWR | os.O_CREAT, 0o644)", "2",
+        "lock files are owner-only under umask 022"),
     "m3_no_killpg": (
         "beatd", 'now + KILL_GRACE_S\n                    os.killpg(p.pid, signal.SIGTERM)',
         'now + KILL_GRACE_S\n                    p.terminate()', "3", "its process group was killed"),
