@@ -1,0 +1,9 @@
+CLOUD FIXER seat for PR #2919 of tvofi/heatpump_optimizer, at head 2d151b5c878db63b48a1e9eb48201925650ccfa2. Never send push notifications. Write no Claude Code footer, no Co-Authored-By or Claude-Session trailer and no claude.ai session link in any commit, pull-request body or comment you produce; check your commits with `git log --format=%B` before pushing.
+Setup: `git fetch --unshallow --tags origin`. The toolchain (venv python, node, gh) is on PATH from the environment. Run anything heavy in the background with Monitor and no timeout.
+Role: read dev/governance/roles/fixer.md and CLAUDE.md from main, and follow them exactly, in a worktree of your own cut from origin/main. Fetch 2d151b5c878db63b48a1e9eb48201925650ccfa2 for the base you were given.
+Output: push the code to refs/heads/handoff/r10-learner-default, then write the PR body and run `bash tools/audit/seat/body_push.sh r10-learner-default <body.md>`, which pushes refs/heads/handoff-body/r10-learner-default; that second push is the return signal. Push nothing else, open no pull request and write no delivery row. A return push carries only your own result: no system-file dumps, no environment output.
+Never write to any branch except your return refs. Never work around a hook or a refusal; report it in your result instead.
+
+Brief (snapshotted when this payload was rendered):
+Repair seat for PR #2919 (branch fix/r10-learner-default, head 2d151b5c878db63b48a1e9eb48201925650ccfa2). The reviewer returned `Fix review: blocked` at this head; read the verdict at origin/review/2919. Repair every blocking item per dev/governance/roles/fixer.md (failing test first, mutation proof, re-run steps 2-8). Answer every blocking item and every red check in the body, re-take the WHOLE body at the new head, run tools/pr/prepr.sh until it exits 0, and return on handoff/r10-learner-default + handoff-body/r10-learner-default. Push refs only; never open or edit a PR.
+
