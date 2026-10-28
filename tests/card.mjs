@@ -12055,11 +12055,28 @@ check("without an indoor reading the corner now label is absent",
   }
 
   // Every problem code the integration publishes has words in both languages.
+  // The codes are the keys of inputs.py's PROBLEM_WORDS, the reader's one table of
+  // published classes; tests/debug_collect.py's ast census holds that table equal to
+  // every class literal inputs.py sets, by assignment or through _set_problem, so a
+  // class is enumerated here whichever route sets it (#2873: a regex over one
+  // assignment form lost `implausible` when it moved behind _set_problem).
   const inputsPy = fs.readFileSync("custom_components/heatpump_optimizer/inputs.py", "utf8");
-  const codes = [...new Set([...inputsPy.matchAll(/reading\.problem = "(\w+)"/g)].map((m) => m[1]))]
-    .filter((k) => k !== "not_configured");
+  const table = /^PROBLEM_WORDS: dict\[str, str\] = \{\n([\s\S]*?)^\}/m.exec(inputsPy);
+  const codes = table ? [...table[1].matchAll(/^\s+"(\w+)":/gm)].map((m) => m[1]) : [];
+  const assigned = [...new Set([...inputsPy.matchAll(/(?:reading\.problem = |_set_problem\(reading, )"(\w+)"/g)]
+    .map((m) => m[1]))].filter((k) => k !== "not_configured" && !codes.includes(k));
   check("inputs.py publishes problem codes the card can be enumerated against",
-    codes.includes("unknown_unit") && codes.includes("stale") && codes.length >= 8, codes.join(","));
+    codes.includes("unknown_unit") && codes.includes("stale") && codes.length >= 8 && assigned.length === 0,
+    `${codes.join(",")} | set but not in PROBLEM_WORDS: ${assigned.join(",")}`);
+  // The render check below cannot see a missing Swedish word: L() falls back to
+  // the English table. So each code's own key is read from both tables directly.
+  const strings = fn("STRINGS");
+  const keyOf = (code) => (code === "stale" ? "health.stale" : `health.p_${code}`);
+  for (const lang of ["en", "sv"]) {
+    const missing = codes.filter((k) => !(typeof strings[lang][keyOf(k)] === "string" && strings[lang][keyOf(k)].trim()));
+    check(`every published problem code has its own words in the card's ${lang} table`,
+      missing.length === 0, missing.join(","));
+  }
   const wordsFor = (lang, code) => {
     const w = healthStates();
     w[BIN].attributes.problems = [{ input: `in_${code}`, entity_id: "sensor.x", problem: code,
