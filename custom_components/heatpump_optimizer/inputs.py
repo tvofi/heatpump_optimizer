@@ -1124,13 +1124,17 @@ def stale_summary(health: InputHealth) -> str:
 
 #: Human wording for each reading problem, for
 #: :func:`describe_problem`. Raw tokens read as codes; a user deciding
-#: which sensor to go and fix is owed words. A token not yet in this table
-#: renders as itself, so a future failure class cannot publish nothing.
+#: which sensor to go and fix is owed words. The keys are every class a
+#: reading publishes (``not_configured`` never is): ``tests/debug_collect.py``
+#: holds them equal to the classes this module sets, by any route, and the
+#: card enumerates its own wording against them. A token outside the table
+#: still renders as itself, so a failure class cannot publish nothing.
 PROBLEM_WORDS: dict[str, str] = {
     "implausible": "outside its plausible range",
     "missing_entity": "entity not found",
     "not_boolean": "not a yes/no flag",
     "not_numeric": "not a number",
+    "stale": "stale",
     "unavailable": "unavailable",
     "unknown_unit": "unknown unit",
     "unknown_value": "unrecognized state",
