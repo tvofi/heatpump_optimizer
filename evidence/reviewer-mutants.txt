@@ -1,0 +1,17 @@
+x1_no_sigkill case(3): SURVIVED
+x2_no_real_git_env case(6b): KILLED by job env: HPO_BEATD_JOB, HPO_REAL_GIT, shim first
+x3_no_ref_lock_timeout: ANCHOR count=2
+x4_no_heartbeat case(3): SURVIVED
+x5_no_down case(7): KILLED by DOWN when beatd.lock is free
+x6_no_owner_dead case(7): KILLED by lock-owner-dead for a dead pid
+x7_stale_off_by_one case(7): KILLED by STALE-CODE behind=1
+x8_watch_as_periodic case(4): SURVIVED
+x9_class_no_wait case(5): KILLED by class jobs never interleave
+x10_journal_unchecked case(7): KILLED by an unreadable journal line refuses rc 2
+x11_retry_any_failure case(6): KILLED by a missing remote fails once, git's message, no retry
+x12_shim_accepted case(6): KILLED by beatd refuses rc 2 when its git is a shim
+x13_unreadable_staleness_clean case(7): SURVIVED
+x14_running_ignored case(7): KILLED by null: a running watch job is not idle
+x15_sigterm_handler_off case(2): SURVIVED
+x16_held_never_dead_clear case(7): SURVIVED
+rc=0
