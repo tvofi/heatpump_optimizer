@@ -67,7 +67,9 @@ comment; it is the guard's input.
 Cost: one `gh pr ready` call in the merge step, one recorded boolean at admission, one log line
 (`UNDRAFT #<pr> <head>`), and a re-read of `isDraft` after the call before the merge proceeds.
 Benefit measured: #2854's hours in the live batch as the v7.0.5 critical path, and #2878's near
-miss. No new dependency, no new rule: the train already reads `isDraft` by hand today.
+miss. No new dependency, no new rule. The train reads no draft flag today (`grep -ci draft
+tools/audit/seat/merge_train.py` = 0 at origin/main `e8cb7e683`); a seat reads `isDraft` by hand, so the
+recorded boolean and the re-read are the train's first draft reads.
 
 Binding: undraft only after all five settled conditions hold **and** the head was recorded a draft
 at admission; the `UNDRAFT` line is written once, with the PR and the head, and the merge continues
