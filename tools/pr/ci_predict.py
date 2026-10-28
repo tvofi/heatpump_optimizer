@@ -726,7 +726,9 @@ def grader_preds(root: Path, base_ref: str, changed: set[str]) -> list[tuple[str
     if not tip or not wf.is_file():
         return []
     preds: list[tuple[str, str]] = []
-    for job, reds, mark, homes, whole, modes in GRADERS:
+    keyed: dict[str, list] = {}  # job -> [(row, hit)]: one CI tree per job, every keyed row run in it
+    for row in GRADERS:
+        job, reds, mark, homes, whole, modes = row
         entry = next((p for p in homes if (root / p).is_file()), None)
         if entry is None or not any(git(root, "cat-file", "-e", f"{tip}:{p}") is not None for p in homes):
             continue
@@ -736,37 +738,37 @@ def grader_preds(root: Path, base_ref: str, changed: set[str]) -> list[tuple[str
             preds += [(j, f"{mark} UNRUN ValueError: {e}") for j in reds]
             continue
         hit = grader_hit(root, entry, whole, specs, changed, agreement_py.covers)
-        if not hit:
-            continue
-        failed: list = []
+        if hit:
+            keyed.setdefault(job, []).append((row, hit))
+    for job, rows in keyed.items():
+        results: list = []  # (row, hit, mode, process) for each run that refused
 
-        def step(mode, homes=homes):
+        def step(row, hit, mode):
             def grade(r, run, tmp):
-                prog = next(p for p in homes if (r / p).is_file())
+                prog = next(p for p in row[3] if (r / p).is_file())
                 cmd = (sys.executable, "-I", prog) if prog.endswith(".py") else ("node", prog)
                 out = run(*cmd, *mode)
                 if out.returncode:
-                    failed.append(mode)
-                return out
+                    results.append((row, hit, mode, out))
+                return subprocess.CompletedProcess(out.args, 0, out.stdout, out.stderr)  # run every step
             return grade
         try:
-            state, out = ci_tree_run(root, tip, job, tuple(step(m) for m in modes))
+            state, _ = ci_tree_run(root, tip, job, tuple(step(row, hit, m) for row, hit in rows for m in row[5]))
         except (OSError, StopIteration, ValueError) as e:
-            preds += [(j, f"{mark} UNRUN {type(e).__name__}: {e}") for j in reds]
+            preds += [(j, f"{row[2]} UNRUN {type(e).__name__}: {e}") for row, _ in rows for j in row[1]]
             continue
         if state == "unmerged":
-            preds += [(j, f"{mark} UNMERGED: HEAD does not merge into {tip[:12]}, and CI runs nothing "
-                          f"on a conflict; merge the base first") for j in reds]
+            preds += [(j, f"{row[2]} UNMERGED: HEAD does not merge into {tip[:12]}, and CI runs nothing "
+                          f"on a conflict; merge the base first") for row, _ in rows for j in row[1]]
             continue
-        if out.returncode == 0:
-            continue
-        lines = [l.strip() for l in out.stdout.splitlines() if l.strip()] or \
-            [f"rc {out.returncode}: {out.stderr.strip()[-200:]}"]
-        first = next((l for l in lines if l.startswith(("ERROR", "FAIL", "REFUSED", "BLIND", "DEAD", "MISSING",
-                                                        "NOT WIRED", "STALE", "DRIFT", "SELF-TEST FAILED"))
-                      and "probe, expected" not in l), lines[-1])
-        label = mark + "".join(f" {f}" for f in (failed[0] if failed else ()))
-        preds += [(j, f"{label} REFUSED by the base's copy, over {', '.join(hit)}: {first[:240]}") for j in reds]
+        for row, hit, mode, out in results:
+            lines = [l.strip() for l in out.stdout.splitlines() if l.strip()] or \
+                [f"rc {out.returncode}: {out.stderr.strip()[-200:]}"]
+            first = next((l for l in lines if l.startswith(("ERROR", "FAIL", "REFUSED", "BLIND", "DEAD", "MISSING",
+                                                            "NOT WIRED", "STALE", "DRIFT", "SELF-TEST FAILED"))
+                          and "probe, expected" not in l), lines[-1])
+            label = row[2] + "".join(f" {f}" for f in mode)
+            preds += [(j, f"{label} REFUSED by the base's copy, over {', '.join(hit)}: {first[:240]}") for j in row[1]]
     return preds
 
 
