@@ -161,9 +161,9 @@ well as for the class.
 A1. **Point the index at the rosters.** `rosterIssues()`'s no-argument path reads
 `roster_lib.ROSTERS_DIR` as well. Demonstration: indexed issues 1 → 76; the
 carry-2492 file refused; control 999999 still accepted. One line, and its
-red/green control is recorded above. Owned by #2733, the routing-invariants
-issue a live group (`R10-ORCH-ROSTER-SCHEMA`) holds — a group, not a tracking
-issue, because `#201` is the destination that absorbed the last attempt at it.
+red/green control is recorded above. Owned by `R10-FLOW-TOOLKIT-MODEL`, whose
+carry holds A1 and A2 with this acceptance — a group, not a tracking issue,
+because `#201` is the destination that absorbed the last attempt at it.
 A2. **Fold at merge, then assert.** The orchestrator, before merging a PR whose
 body names `Carry: <GROUP>`, appends that item (with the 8-hex id
 `carry_audit.py` computes) to the group's brief. The post-fold assertion is the
@@ -262,7 +262,8 @@ the policy sentence that requires it is the owner's.
 no roster group lists — the routing audit's own subject (`carry_audit sweep
 --issues`), and the same existence-not-ownership gap as #2561's `#201` route.
 The obligation's countermeasure is filed under #2437; the ownership repair is
-#2733's.
+`R10-ORCH-ROSTER-SCHEMA`'s, whose STRANDED-carry report names an issue no live
+group lists.
 
 ## 6. `harness` (#2597), `class-open` (#2784), `mutation-vacuous` (#2660), `mutation` family (#2410)
 
@@ -285,7 +286,8 @@ of zero filings in this window; `P` of a class-open recurrence is 0.
 agreement lane, #2711 two getter shapes, #2770 a sweep, #2819 a plan slot):
 `class-open` is the reviewer refusing a change that closed some of a class.
 #2561's countermeasure — teach the word and the step — is in force and these six
-are its residue, not its recurrence. The further countermeasure is refused in
+are its residue, not its recurrence. State (c), as #2561 §9 records it. The
+further countermeasure is refused in
 #2561 §8 and #2704 item 11; this seat does not reopen that refusal.
 
 **#2660, `mutation-vacuous` 8 / 9.** Control against the fix: 7 PRs / 8 entries
