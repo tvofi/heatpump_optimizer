@@ -1,0 +1,22 @@
+diff --git a/tools/pr/prepr.sh b/tools/pr/prepr.sh
+index e8f21f17e..16216ccf1 100755
+--- a/tools/pr/prepr.sh
++++ b/tools/pr/prepr.sh
+@@ -727,7 +727,7 @@ body_line() { # body file, head sha, title, paths file, merge base, head, [unpin
+   out=$(mktemp)
+   body_check "$1" "$2" "$3" "$4" ${reds[@]+"${reds[@]}"} >"$out" 2>&1; r=$?
+   if [ "$r" -eq 0 ]; then printf '%s -- %s' "$(tail -1 "$out")" "$raised"
+-  else printf '%s -- %s' "$(body_refusal "$out")" "$raised"; fi
++  else printf '%s -- %s' "$(grep -m1 'does not name it' "$out" || tail -1 "$out")" "$raised"; fi
+   rm -f "$out"; return "$r"
+ }
+ 
+@@ -1039,7 +1039,7 @@ reds_line() { # body file, head sha, title, paths file, remote head ref
+   else
+     # The refusal printed is the red gate's own sentence, not this wrapper's,
+     # so the row that reads it pins WHICH check refused.
+-    printf 'RED UNANSWERED (%s): %s' "$(echo $names)" "$(body_refusal "$out")"
++    printf 'RED UNANSWERED (%s): %s' "$(echo $names)" "$(grep -m1 'does not name it' "$out" || tail -1 "$out")"
+   fi
+   rm -f "$out"; return "$r"
+ }

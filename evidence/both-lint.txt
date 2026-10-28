@@ -1,0 +1,7 @@
+  skip     red-history           `--head` is not a commit sha, so this run is not at a head the red history can be read for; every head before the one this ran on is UNCHECKED this run, not confirmed clean -- a red a later push cleared would not be named here
+
+$W/both.md
+  ERROR   [pr-body] $W/both.md: `## Friction` line does not parse: "The scoped scripts need the seat venv.". Write `none`, or `<rule_id>: <unclear|contradiction|unenforced|stale|cost>: <evidence>`.
+  ERROR   [pr-body] $W/both.md: check `fast (3.14)` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
+
+PR-BODY: 2 error(s) in $W/both.md
