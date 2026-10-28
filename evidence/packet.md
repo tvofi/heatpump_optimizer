@@ -1,46 +1,46 @@
 # Review packet #2900
-head: 75cfbce6f05150bae27908baae2372cf9d1e1870
-base: 07295d4ea1471048ee2a76a6776b5cd364dcf141
+head: ebbc01eaa62d73c639ffb883f5f2211bd3b11fb8
+base: b9e286254e152b6647b37b5612bd340dd39daca0
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
 ## Gate digest: pending
-CodeQL id=122584458277 success
-arch-score / arch-score id=122584407129 success
-arm id=122584283982 skipped
-budget-raise-gate / budget-raise-gate id=122584407140 success
-cancel-superseded id=122584286275 success
-codeql / Analyze (actions) id=122584406939 success
-codeql / Analyze (javascript-typescript) id=122584407030 success
-codeql / Analyze (python) id=122584407100 success
-governance / delivery-status id=122584407219 success
-governance / delivery-status-publish id=122584409044 skipped
-governance / env-matrix id=122584407177 in_progress
-governance / instrument-self-tests id=122584407071 in_progress
-governance / policy-docs id=122584407090 success
-governance / record id=122584409149 skipped
-governance / wave-script id=122584407022 success
-hassfest / hassfest id=122584407055 success
-kernel-points id=122584409047 skipped
-prelude id=122584286617 success
-refresh id=122584286517 success
-tests / arch-instrument id=122584581592 success
-tests / briefs id=122584407060 success
-tests / browser id=122584581688 in_progress
-tests / closure-scope id=122584407133 success
-tests / closures id=122584581758 in_progress
-tests / coverage id=122584581744 success
-tests / coverage-ratchet id=122584775309 success
-tests / fast (3.14) id=122584581656 in_progress
-tests / graders-head-copy id=122584775335 success
-tests / mutation id=122584407056 success
-tests / mutation-autofix id=122584630494 skipped
-tests / mutation-pins id=122584630315 skipped
-tests / nightly-ha id=122584583797 skipped
-tests / nightly-status id=122584407139 success
-tests / replay id=122584583402 skipped
-tests / typing id=122584581622 success
-validate / validate-hacs id=122584407101 success
+CodeQL id=122592264447 success
+arch-score / arch-score id=122592052868 success
+arm id=122591821589 skipped
+budget-raise-gate / budget-raise-gate id=122592052964 success
+cancel-superseded id=122591831107 success
+codeql / Analyze (actions) id=122592052714 success
+codeql / Analyze (javascript-typescript) id=122592052923 success
+codeql / Analyze (python) id=122592052820 success
+governance / delivery-status id=122592052872 success
+governance / delivery-status-publish id=122592053900 skipped
+governance / env-matrix id=122592052891 success
+governance / instrument-self-tests id=122592052859 in_progress
+governance / policy-docs id=122592052957 success
+governance / record id=122592054624 skipped
+governance / wave-script id=122592052763 success
+hassfest / hassfest id=122592052506 success
+kernel-points id=122592053623 skipped
+prelude id=122591831141 in_progress
+refresh id=122591830734 success
+tests / arch-instrument id=122592431046 success
+tests / briefs id=122592052742 success
+tests / browser id=122592430961 success
+tests / claims-autofix id=122593921616 skipped
+tests / closure-scope id=122592052630 success
+tests / closures id=122592431062 success
+tests / closures-autofix id=122594195154 skipped
+tests / coverage id=122592430859 in_progress
+tests / fast (3.14) id=122592430887 success
+tests / mutation id=122592052669 success
+tests / mutation-autofix id=122592617822 skipped
+tests / mutation-pins id=122592617283 skipped
+tests / nightly-ha id=122592433135 skipped
+tests / nightly-status id=122592052599 success
+tests / replay id=122592432365 skipped
+tests / typing id=122592430894 success
+validate / validate-hacs id=122592052608 success
 
 ## Refusals
 none
@@ -86,10 +86,10 @@ index 000000000..38c7bbe47
 +- [#2900](https://github.com/tvofi/heatpump_optimizer/pull/2900) — **open**, triage s7 batch 45: rule P227-P231 (V141-V145) (R10-TRIAGE-S6)
 diff --git a/dev/programme/triage/s6-batch45.md b/dev/programme/triage/s6-batch45.md
 new file mode 100644
-index 000000000..89de51570
+index 000000000..1383ffc18
 --- /dev/null
 +++ b/dev/programme/triage/s6-batch45.md
-@@ -0,0 +1,235 @@
+@@ -0,0 +1,248 @@
 +# Proposal triage, session s7, batch 45 (P227-P231)
 +
 +Five entries: V141-V145, written by the orchestrator s8 on 2026-10-28 and quoted from
@@ -176,9 +176,11 @@ index 000000000..89de51570
 +  failed 22:37:27Z on `GitHubRatelimitException: API rate limit exceeded for installation` (job
 +  122512384418's log); `governance / env-matrix` failed 22:43:03Z on `FAIL pr / nothing skipped in
 +  a full clone -- skip required-contexts the GitHub API is unreachable` (job 122512384452's log);
-+  `gate` failed 23:09:58Z-23:10:21Z. Attempt 2 started 01:07:45Z and ended green 01:17:17Z
-+  (`.run_started_at`, `.updated_at`): `gate` red on main for 2 h 07 min, 2 h 24 min from the
-+  first failure to the re-run.
++  `gate` (job 122526090837) failed 23:09:58Z-23:10:21Z on `FAIL governance / env-matrix: failure
++  (this run)`, its judge's line for a failed required job (`tools/ci/gate.py:224`; format pinned
++  by its self-test at `:345`), and on none of the three strings below. Attempt 2 started 01:07:45Z
++  and ended green 01:17:17Z (`.run_started_at`, `.updated_at`): `gate` red on main for 2 h 07 min,
++  2 h 30 min from the first failure (validate-hacs, 22:37:27Z) to the re-run.
 +- 2026-10-26 04:52Z, `dev/audit/rca/ratelimit-recur.md`: main's push run at `b281d0325` red on
 +  record, validate-hacs and env-matrix in one dry bucket-hour; the one recovery measured there was
 +  a re-run (#2850, 17.0 min).
@@ -191,11 +193,16 @@ index 000000000..89de51570
 +risk is one spent run. Narrowed against the filing: the trigger is a closed list of the strings
 +this tree's own tools and CI print for an exhausted or unreachable API (`API rate limit exceeded
 +for installation`, `RATE-LIMITED reset_epoch=`, `the GitHub API is unreachable`), not an
-+open-ended "infrastructure cause"; every failed job of the run must match; the re-run is
++open-ended "infrastructure cause"; every failed job of the run must match, except the aggregating
++`gate` job, which is judged by the jobs its `FAIL <job>: ... (this run)` lines name (it qualifies
++only when it names at least one job and every job it names is a failed job of the same run that
++matches; any other `FAIL` line, or none, and it does not); the re-run is
 +`POST .../runs/<id>/rerun-failed-jobs` only when the run is at attempt 1 (the bound is the
 +attempt counter, so no state is kept and no second re-run can follow); and it fires no sooner than
-+the printed `reset_epoch`, else 3600 s after the last failed job completed (an installation
-+bucket resets hourly, `ratelimit-recur.md`), which at the stamp would have re-run at 23:43Z.
++the printed `reset_epoch`, else 3600 s after the last matching non-`gate` job completed (an
++installation bucket resets hourly, `ratelimit-recur.md`), which at the stamp is env-matrix's
++22:43:03Z, so a re-run due at 23:43:03Z, about 1 h 25 min before the hand re-run. The `gate` job is
++re-run with the others, since `rerun-failed-jobs` takes every failed job of the run.
 +The root cause stays with the rate-limit groups (`R10-RECORD-API-O1`, not-started); this arm is
 +recovery, not the countermeasure.
 +
@@ -203,21 +210,27 @@ index 000000000..89de51570
 +dev/programme/triage/s6-batch45.md#P228`): "Re-run a rate-limited red main once (V142). In
 +`merge_train.py`'s `main_green` (2422-2450), in both the `--overlap` log-only read and the blocking
 +wait: when a required context is red at main's tip, list the failed jobs of its workflow run; when
-+the run is at attempt 1 and EVERY failed job's log contains one of `API rate limit exceeded for
-+installation`, `RATE-LIMITED reset_epoch=` or `the GitHub API is unreachable`, POST
-+`repos/<repo>/actions/runs/<id>/rerun-failed-jobs` once, no sooner than the printed `reset_epoch`
-+(else 3600 s after the last failed job completed; before then log `INFRA-RED <ctx> run <id>:
-+rate-limited, re-run due at <time>` and go on as today), and log `INFRA-RERUN <ctx> run <id> attempt
-+1 (<matched string>)`. The attempt counter is the bound: a run at attempt 2 or later is never
-+re-run, and the arm keeps no state. Any failed job whose log matches none of the strings, or an
-+unreadable log, leaves today's behaviour. Instances: the v7.0.5 stamp `e8cb7e683` (run 40596083060:
-+validate-hacs and env-matrix failed on the installation rate limit at 22:37-22:43Z, `gate` red
-+23:10Z until the hand re-run went green at 01:17Z) and `b281d0325` on 2026-10-26
-+(`dev/audit/rca/ratelimit-recur.md`). Controls: a fixture red main whose failed jobs all print the
-+rate-limit line, past the reset, is re-run once and logged; null controls: one failed job with any
-+other failure is not re-run; the same run at attempt 2 is not re-run; before the reset nothing is
-+re-run and the INFRA-RED line names the due time; one mutant accepting any-match instead of
-+every-match fails the mixed arm."
++the run is at attempt 1 and EVERY failed job other than `gate` has a log containing one of `API rate
++limit exceeded for installation`, `RATE-LIMITED reset_epoch=` or `the GitHub API is unreachable`,
++and a failed `gate` job (the aggregator, `tools/ci/gate.py:224`) qualifies only when its log's `FAIL
++<job>: ... (this run)` lines name at least one job and every job they name is a failed, matching job
++of the same run, POST `repos/<repo>/actions/runs/<id>/rerun-failed-jobs` once, no sooner than the
++printed `reset_epoch` (else 3600 s after the last matching non-`gate` job completed; before then log
++`INFRA-RED <ctx> run <id>: rate-limited, re-run due at <time>` and go on as today), and log
++`INFRA-RERUN <ctx> run <id> attempt 1 (<matched string>)`. The attempt counter is the bound: a run
++at attempt 2 or later is never re-run, and the arm keeps no state. Any failed job other than `gate`
++whose log matches none of the strings, a `gate` that does not qualify, or an unreadable log, leaves
++today's behaviour. Instances: the v7.0.5 stamp `e8cb7e683` (run 40596083060: validate-hacs and
++env-matrix failed on the installation rate limit at 22:37-22:43Z, `gate` red 23:10Z on `FAIL
++governance / env-matrix: failure (this run)` until the hand re-run went green at 01:17Z; this rule
++re-runs it at 23:43Z) and `b281d0325` on 2026-10-26 (`dev/audit/rca/ratelimit-recur.md`). Controls:
++a fixture of the stamp's shape (validate-hacs and env-matrix failing on the rate-limit strings,
++`gate` failing on `FAIL governance / env-matrix: failure (this run)`), past the reset, is re-run
++once and logged; null controls: one failed job with any other failure is not re-run; a `gate` red
++whose `FAIL` line names a job that failed on a non-infra cause is not re-run; a `gate` red naming a
++job absent from the run's failed jobs is not re-run; the same run at attempt 2 is not re-run; before
++the reset nothing is re-run and the INFRA-RED line names the due time; one mutant accepting
++any-match instead of every-match fails the mixed arm."
 +
 +## P229: a reviewer can be dispatched at a PR head that lacks its own handoff
 +

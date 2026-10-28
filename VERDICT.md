@@ -1,58 +1,59 @@
-Fix review: blocked 75cfbce6f05150bae27908baae2372cf9d1e1870 claim-false: P228's every-failed-job rule excludes its own instance (gate job 122526090837 matches none of the three strings)
-bus-nonce: 0f0b65e9d72a51220551954187dcc409
+Fix review: blocked ebbc01eaa62d73c639ffb883f5f2211bd3b11fb8 claim-false: P228's gate rule reads only FAIL-prefixed lines, but gate.py:295 prints reasons 2..n with no prefix; the instance's own gate log names validate-hacs on an unprefixed line 4373, so the stamp-shape fixture and the absent-job null control as written are not the instance's shape
+bus-nonce: 7abe72998cf607311b72ce4f498ab67b
 
 # Fix review -- PR #2900, triage s7 batch 45: rule P227-P231 (V141-V145)
 
-Round 1. Reviewed head: 75cfbce6f05150bae27908baae2372cf9d1e1870, in a detached worktree at that
-head. `dev/governance/roles/` has no diff between the merge base and origin/main.
+Round 2. Reviewed head: ebbc01eaa62d73c639ffb883f5f2211bd3b11fb8, in a detached worktree at that
+head, against origin/main b9e286254. `dev/governance/roles/` has no diff between the merge base and
+origin/main.
 
 ## Results
 
-- Ids: every heading is `## P<n>: <title>` with no proposal id, which is the contract's form
-  (P219). Each `Source:` id resolves in the orchestrator's `proposals.md`: `## V141` to `## V145`
-  are present, with sources orchestrator s8 and, for V145, a triage s8 escalation. P227-P231 do
-  not collide with main (max P211), #2890 (P212-P215), #2891 (P216), #2892 (P217-P218) or #2898
-  (P219-P226).
-- Citations re-derived at the head (`ev/claims.txt`): `open_pr.sh:37,:55`,
-  `pr_args.sh:141-152` and `:145`, `handoff_push.sh:114,:198`, `merge_train.py` (5,831 lines,
-  `main_green` 2422-2450, `sweep_bots`' `gh pr merge` at 1110), `review_packet.py:122,:324`,
-  `bus.sh:467,:692,:697`, and #2887's `fdf33f466` parents together with the failed ancestry test
-  of `a5f40d84c`. All hold. The 47 roster-topic merges and the seven `-pr10`..`-pr16` PRs
-  reproduce, as do the four s7 opener logs, 0 tracked `orch_sweep` files, 0 `loop` matches in
-  `handover_prompt.py`, and pid 15079.
-- Roster facts at `de410e4c9`: every group's stage, carry count and ownership matches the
-  ruling's statements. That includes OPENPR-ATOMIC's carry 9 = P72, ORCH-BEATD's carry 1 naming
-  the handoff job and heartbeat, and RECORD-HOLD-APPROVE's nightly.yml brief.
-- ACCEPT carries (P227, P228, P229, P231) are given as `roster_edit.py append-carry` text in the
-  ruling file, which `proposal-triage.md` routes through the orchestrator. The triage seat does not
-  edit the roster, so no roster write is owed by this PR.
-- `git merge-tree --write-tree origin/main <head>` exits 0 against `6e5995e51`. The diff touches
-  only `s6-batch45.md` and its delivery row, so it has no file in common with #2898
-  (`ev/merge-tree.txt`).
-- Live check-runs (`ev/check-runs.txt`): 26 success, 9 skipped, 5 in progress, 0 failure. No red
-  needs an answer yet.
+- Since the round-1 head `75cfbce6f`, the only authored change is P228 in `s6-batch45.md`. Every
+  other file in `75cfbce6f..HEAD` came in with the main merges. P227, P229, P230 and P231 are
+  byte-identical to the text round 1 verified. `tools/` has no diff between `e8cb7e683` and
+  origin/main, so their citations still hold. I spot-checked them again at this head:
+  `merge_train.py` has 5,831 lines, `main_green` is at 2422 and `gh pr merge` at 1110, and
+  `bus.sh:467` and `open_pr.sh:37,:55` read as cited (`ev/claims.txt`).
+- Round-1 F1 is answered in substance. The new rule exempts the aggregating `gate` job and judges it
+  by the jobs it names. On the instance, run 40596083060 attempt 1, the failed jobs are
+  validate-hacs at 22:37:27Z, env-matrix at 22:43:03Z and gate at 23:10:21Z. Re-read from the API,
+  the gate log holds none of the three strings, and both jobs it names are failed jobs of the run
+  that match. So the stamp is re-run under the new rule.
+- Round-1 F2 is answered. The red lasted 2 h 30 min, from 22:37:27Z to 01:07:45Z. The 2 h 07 min
+  figure is 23:10:21Z to 01:17:17Z. The re-run time is 23:43:03Z, which is env-matrix plus 3600 s.
+  That is 1 h 24 min 42 s before the hand re-run, and the ruling's "about 1 h 25 min" matches.
+  Attempt 2 ran from 01:07:45Z to 01:17:17Z and succeeded (API).
+- Null controls are now stated: another failure is not re-run, a `gate` naming a non-infra job is
+  not re-run, a `gate` naming an absent job is not re-run, attempt 2 is not re-run, a run before the
+  reset is not re-run, and a mutant accepting any match is caught.
+- `git merge-tree --write-tree origin/main <head>` exits 0 (`ev/merge-tree.txt`). The live checks
+  at the head (`ev/check-runs.txt`) show no failure. The packet refuses nothing, and
+  `carry_audit` routes 0 items.
 
 ## Findings
 
-- F1 (blocking, claim-false): P228's narrowing makes the arm fire only when "every failed job of
-  the run must match" one of three strings. The ruling also says "at the stamp would have re-run
-  at 23:43Z". Neither holds for its own primary instance. Run 40596083060's attempt 1 has three
-  failed jobs. `validate-hacs` matches `API rate limit exceeded for installation` and
-  `env-matrix` matches `the GitHub API is unreachable`. `gate` (job 122526090837) matches none of
-  the three; it fails on `FAIL governance / env-matrix: failure (this run)`
-  (`ev/p228-instance.txt`). Under the carry as written, the v7.0.5 red is therefore left red, and
-  the ruling's measured benefit (2 h 07 min of red main) is not bought. The 23:43Z time is also
-  inconsistent with its own clock rule: 3600 s after the last failed job, which is `gate` at
-  23:10:21Z, is about 00:10Z. Repair: exclude jobs whose failure only aggregates another failed
-  job of the same run (the `gate` judge), or match on the failed required contexts rather than on
-  every job. Then add a null control showing that a `gate` red over a non-infra failure is still
-  not re-run. Carry: R10-FLOW-MAIN-GATE
-- F2 (non-blocking): P228 says "2 h 24 min from the first failure to the re-run". The first
-  failure, `validate-hacs`, completed at 22:37:27Z and attempt 2 started at 01:07:45Z, which is
-  2 h 30 min. 2 h 24 min is measured from the second failure (`env-matrix`, 22:43:03Z). Carry: dismissed: correct the figure in the same re-cut as F1
-- F3 (non-blocking): P227's count "22 branches; 18 absent" is a snapshot. The main checkout now
-  holds 23 `fix/*-pr` branches, and 18 of them are still absent on origin with tips in
-  origin/main. The argument stands. Carry: dismissed: snapshot figure, conclusion unchanged
-- F4 (non-blocking): P231's merge-seat ledger entries (22:19Z, 22:44Z) are in out-of-tree state
-  and were not re-read. The in-tree half (`merge_train.py:1110` discards the merge return) is
-  verified. Carry: dismissed: out-of-tree log, in-tree mechanism verified
+- F1 (blocking, claim-false): P228's rule and its carry text read the gate's verdict as "its log's
+  `FAIL <job>: ... (this run)` lines". `tools/ci/gate.py:224` prefixes only the first reason
+  (`f"FAIL {why[0]}"`). Line 295 prints the rest with no prefix
+  (`print("\n".join([outcome] + why[1:]))`). The instance's own gate log, job 122526090837
+  (`ev/gate-122526090837.log`), shows this. Line 4372 reads
+  `FAIL governance / env-matrix: failure (this run)`. Line 4373 reads
+  `validate / validate-hacs: failure (this run)`, with no `FAIL`.
+  Three parts of the ruling are therefore false against its own instance.
+  1. The Instances line says gate failed "on `FAIL governance / env-matrix: failure (this run)`".
+     The log names two jobs.
+  2. The control fixture is "of the stamp's shape" with a single FAIL line. That is not the stamp's
+     shape.
+  3. A fixer following the text parses only `FAIL`-prefixed lines. Then the null control "a `gate`
+     red naming a job absent from the run's failed jobs is not re-run" holds only when that job is
+     the first reason. A required context that is SKIPPED, ABSENT or red in another run, listed
+     second, is not a failed job of this run. The every-failed-job test does not cover it, and the
+     gate would qualify anyway.
+
+  Repair: state that the gate's reasons are the first line after `FAIL ` plus each following
+  unprefixed `<name>: <state> (...)` line, up to the step's end. Change the stamp fixture to the
+  two-reason log, and add the null control with the non-qualifying job as the second reason. Then
+  re-take the head. Carry: dismissed: blocking; this PR's re-cut owes the repair
+- F2 (non-blocking): I did not re-read the gate job's start time, 23:09:58Z. Its completion,
+  23:10:21Z, and its FAIL line at 23:10:18Z are verified. Carry: dismissed: no ruling turns on it
