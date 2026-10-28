@@ -580,7 +580,7 @@ predict_line() { # base ref, [file the unpinned site keys are written to], [body
     echo "tools/pr/ci_predict.py is not in this tree"; return 3
   fi
   local bf=""; [ -n "${3:-}" ] && [ -f "$3" ] && bf=$3   # pr-contract's carry check, when a body exists
-  [ -n "${4:-}" ] && only="--only $4"   # a caller that needs one arm's answer, not nine
+  [ -n "${4:-}" ] && only="--only $4"   # a caller that needs one arm's answer, not every arm's
   # shellcheck disable=SC2086 # $only is empty or exactly "--only <arm>"
   out=$(PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base "$1" ${bf:+--body "$bf"} $only 2>&1); r=$?
   [ -n "${2:-}" ] && printf '%s\n' "$out" \
@@ -1588,7 +1588,8 @@ fi
 # step 6d's predictor over HEAD and `fill_red` on the body. It never refuses:
 # a predictor that did not run lists no site, so nothing is written. It asks
 # the predictor one arm -- `mutation`, the only one whose sites it writes --
-# because the other eight cost 4 s of the 5 s a seat's added check may take.
+# because the other arms cost 4 s of the 5 s a seat's added check may take
+# (eight others when measured, R10-FLOW-JIDOKA's review, 2026-10-26).
 if [ "${1:-}" = "--fill-red" ]; then
   [ -f "${2:-}" ] || { echo "fill-red: no body at ${2:-}"; exit 2; }
   S=$(mktemp)
@@ -2870,8 +2871,8 @@ https://claude.ai/code/session_011aqzm4YL9jLhU4jLvbkLYE'; got=$(lpush)
   st "$(tail -1 <<<"$got")" 1 "--fill-red at the pmut head predicts its sites and writes the line"
   case "$(cat tools/audit/seat/body_push.sh)" in *'--fill-red "$ABS"'*'--body-check "$ABS"'*) r=0 ;; *) r=1 ;; esac
   st "$r" 0 "body_push runs --fill-red on the body before the --body-check lint"
-  # One arm, not nine: `--fill-red` writes only the `mutation` red, and the
-  # other eight cost 4 s of the 5 s an added check may take. A `--only` value
+  # One arm, not every arm: `--fill-red` writes only the `mutation` red, and
+  # the other arms cost 4 s of the 5 s an added check may take. A `--only` value
   # ci_predict does not name makes argparse exit 2, so the arm is always run.
   case "$(sed -n '/^if \[ "${1:-}" = "--fill-red" \]/,/^fi$/p' "$PREPR_PATH")" in
     *'predict_line origin/main "$S" "" mutation'*) r=0 ;; *) r=1 ;; esac
