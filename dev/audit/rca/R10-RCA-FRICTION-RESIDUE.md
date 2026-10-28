@@ -5,7 +5,7 @@ The root-cause record for the recurring-friction residue that
 `carry-missing` (#2428, re-filed as #2855), `other` (#2436), `root-cause-unanswered`
 (#2437), and the two rule ids the verdict histogram also counts, `.claude/rules/ci-autofix.md`
 (#2429) and `.claude/rules/finding-propagation.md` (#2438). It ran apart from any
-fix (`dev/governance/roles/root-cause.md`); it lands no production code.
+fix (the root-cause role contract); it lands no production code.
 
 **Merge base and window.** Every figure below was taken on 2026-10-27 with the
 group's merge base at `6eb552157b63d1e98a9653250789d9fe0027b5bc`, which was also
