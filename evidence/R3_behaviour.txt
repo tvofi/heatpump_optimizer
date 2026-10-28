@@ -1,0 +1,6 @@
+cloud-setup check: REFUSE python3 is /opt/hpo/venv-ci/bin/python3, HPO_TYPING_PYTHON is /nonexistent, OPENBLAS_CORETYPE is Haswell; set the environment's variables: PATH=/opt/hpo/venv-ci/bin:/root/.local/bin:/opt/node22/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin HPO_TYPING_PYTHON=/opt/hpo/venv-ha/bin/python OPENBLAS_CORETYPE=Haswell 
+head rc=1
+cloud-setup check: OK python3 is /opt/hpo/venv-ci/bin/python3
+R3 rc=0
+cloud-setup check: OK python3 is /opt/hpo/venv-ci/bin/python3
+R3 non-exec file rc=0
