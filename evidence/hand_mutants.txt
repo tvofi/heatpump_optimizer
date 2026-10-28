@@ -1,0 +1,24 @@
+== unmutated
+review_strength self-test: 87 checks, 0 failed
+rc=0
+== mutant line130 nonce[:8] -> nonce[-8:]
+            cloud = (int(m[1]), nonce[-8:]) in probes or rid.startswith("cloud") or rid.endswith("-cloud")
+FAIL: cloud: the nonce is the line-start bus-nonce, read in full hex, matched to a probe ref (16)
+review_strength self-test: 87 checks, 1 failed
+rc=1
+== mutant line130 nonce[:8] -> nonce[8:16]
+            cloud = (int(m[1]), nonce[8:16]) in probes or rid.startswith("cloud") or rid.endswith("-cloud")
+FAIL: cloud: the nonce is the line-start bus-nonce, read in full hex, matched to a probe ref (16)
+review_strength self-test: 87 checks, 1 failed
+rc=1
+== mutant line130 nonce[:8] -> nonce[16:24]
+            cloud = (int(m[1]), nonce[16:24]) in probes or rid.startswith("cloud") or rid.endswith("-cloud")
+FAIL: cloud: the nonce is the line-start bus-nonce, read in full hex, matched to a probe ref (16)
+review_strength self-test: 87 checks, 1 failed
+rc=1
+== mutant line130 nonce[:8] -> nonce[1:9]
+            cloud = (int(m[1]), nonce[1:9]) in probes or rid.startswith("cloud") or rid.endswith("-cloud")
+FAIL: cloud: the nonce is the line-start bus-nonce, read in full hex, matched to a probe ref (16)
+review_strength self-test: 87 checks, 1 failed
+rc=1
+RESTORED-IDENTICAL
