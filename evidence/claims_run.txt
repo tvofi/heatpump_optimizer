@@ -1,0 +1,3 @@
+RESULT swapins=0
+  UNVERIFIABLE   C109  README.md + docs/how-it-works.md: the links to docs/audit-2026-08.md, docs/audit-2026-09.md and docs/backlog.md re
+  UNVERIFIABLE   C111  README.md + docs/*.md: every external link answers 200 to a HEAD request (17 links)

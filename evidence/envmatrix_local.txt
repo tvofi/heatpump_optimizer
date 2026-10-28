@@ -1,4 +1,4 @@
-  baseline refs/remotes/origin/main = 543c808
+  baseline refs/remotes/origin/main = 738d950
   ok    pr / policy_lint rc=0 and every pin earned
   ok    pr / nothing skipped in a full clone
   ok    pr / every corpus and record-mode check measured and pinned

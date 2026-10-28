@@ -1,3 +1,0 @@
- FAIL Parse error on line 2: | flowchart LR  A -->> B[[ | -------------------^ | Expecting 'AMP', 'COLON', 'PIPE', 'TESTSTR', 'DOWN', 'DEFAULT', 'NUM', 'COMMA', 'NODE_STRING', 'BRKT', 'MINUS', 'MULT', 'UNICODE_TEXT', got 'TAGEND' :: <scratch>/broken.md block 1
-mermaid 12.1.0 parse+render in Chromium: 1 block(s), 1 failure(s)
-rc=1
