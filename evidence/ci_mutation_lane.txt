@@ -1,0 +1,33 @@
+ * [new tag]             archive/handoff-body/r10-sav-baseline -> archive/handoff-body/r10-sav-baseline
+ * [new tag]             archive/handoff/r10-sav-baseline -> archive/handoff/r10-sav-baseline
+ * [new tag]             archive/handoff/r9-f10-claims-baseline-rca -> archive/handoff/r9-f10-claims-baseline-rca
+ * [new tag]             archive/wip-sync/ext-upd-fix-r10-sav-baseline-5d128198 -> archive/wip-sync/ext-upd-fix-r10-sav-baseline-5d128198
+MUTATION TABLE -- scope changed: 5 production file(s) whose code this diff adds or modifies
+  6 mutant(s) over 5 file(s); drivers in play: tests/arch_score_head.py, tests/block_duty.py, tests/boost_drift_replay.py, tests/config_flow_steps.py, tests/debug_collect.py, tests/deployment_shape.py, tests/doc_claims.py, tests/entities.py, tests/env_drift.py, tests/features.py, tests/finite_boundary.py, tests/harness_headers.py, tests/manual_plan.py, tests/plan_view.py, tests/solar_alignment.py, tests/structure.py, tests/typing_ruler.py, tests/wood_advisor.py
+  null control: custom_components/heatpump_optimizer/coordinator.py:511 NULL_COMMENT, a comment-only edit every driver in play must let survive
+  tests/harness_headers.py: baseline and null control deferred until a mutant survives every shared driver
+  tests/arch_score_head.py: baseline and null control deferred until a mutant run of it is red
+  tests/block_duty.py: baseline and null control deferred until a mutant run of it is red
+  tests/boost_drift_replay.py: baseline and null control deferred until a mutant run of it is red
+  tests/config_flow_steps.py: baseline and null control deferred until a mutant run of it is red
+  tests/debug_collect.py: baseline and null control deferred until a mutant run of it is red
+  tests/deployment_shape.py: baseline and null control deferred until a mutant run of it is red
+  tests/doc_claims.py: baseline and null control deferred until a mutant run of it is red
+  tests/entities.py: baseline and null control deferred until a mutant run of it is red
+  tests/features.py: baseline and null control deferred until a mutant run of it is red
+  tests/finite_boundary.py: baseline and null control deferred until a mutant run of it is red
+  tests/manual_plan.py: baseline and null control deferred until a mutant run of it is red
+  tests/plan_view.py: baseline and null control deferred until a mutant run of it is red
+  tests/solar_alignment.py: baseline and null control deferred until a mutant run of it is red
+  tests/structure.py: baseline and null control deferred until a mutant run of it is red
+  tests/typing_ruler.py: baseline and null control deferred until a mutant run of it is red
+  tests/wood_advisor.py: baseline and null control deferred until a mutant run of it is red
+  baseline tests/env_drift.py: rc=0 failed=0 293s
+  null control custom_components/heatpump_optimizer/coordinator.py:511 NULL_COMMENT survived every driver
+  baseline tests/features.py: rc=0 failed=0 586s
+  null control custom_components/heatpump_optimizer/coordinator.py:511 NULL_COMMENT survived tests/features.py
+  baseline tests/entities.py: rc=0 failed=0 474s
+  null control custom_components/heatpump_optimizer/coordinator.py:511 NULL_COMMENT survived tests/entities.py
+PIN RE-VERIFICATION: 6 reproduced, 0 not reproduced, 0 not re-verified
+  0 survivor(s) of 6 evaluated = 0.0%, cap 20.0%
+MUTATION TABLE PASSED

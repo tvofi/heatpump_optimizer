@@ -1,0 +1,20 @@
+applied M9
+diff --git a/custom_components/heatpump_optimizer/const.py b/custom_components/heatpump_optimizer/const.py
+index fd53df4c9..b496ce990 100644
+--- a/custom_components/heatpump_optimizer/const.py
++++ b/custom_components/heatpump_optimizer/const.py
+@@ -1585,7 +1585,6 @@ INPUT_MAX_AGE_MINUTES[CONF_HEAT_PUMP_RETURN_TEMP_ENTITY] = 30.0
+ # Flow is read with those two temperatures, so it shares their horizon.
+ INPUT_MAX_AGE_MINUTES[CONF_FLOW_METER_ENTITY] = 30.0
+ # A thermal meter is read with the electrical one it is divided by.
+-INPUT_MAX_AGE_MINUTES[CONF_THERMAL_POWER_ENTITY] = 30.0
+ 
+ # Humidity drives the mold floor: a frozen sensor would hold a raised floor
+ # forever, so it gets the reader's indoor-scale limit.
+  FAIL every age-limited key declares its on-change limit, no lower than its polling one, and each kept equal is named with its reason  [undeclared [], equal unnamed [], named not equal []]
+ALL 134 DST / QUARTER-GRID CHECKS PASSED
+  FAIL an unusable heat reading is absent, and the flow meter is not consulted in its place (null control: 20 min old is read)  [{'unavailable': None, 'negative': None, 'stale': 4.2, 'unknown unit': None} fresh 4.2]
+  FAIL where the learner already runs it replays the measured heat, and a stale heat reading freezes it rather than falling back to the commanded draw  [4.2 stale None]
+  FAIL a configured heat meter with a stale reading freezes the COP fold rather than falling back to the commanded inference (null control: a fresh one folds)  [stale None fresh None]
+4 of 4374 FEATURE CHECKS FAILED
+rc=1
