@@ -11111,7 +11111,8 @@
     "commit": null,
     "last_step": null,
     "next_step": "fixer dispatched (dispatch/fixer-r10-fly-prepr-summary)",
-    "note": "Owner order (tvofi, 2026-10-28)"
+    "note": "Owner order (tvofi, 2026-10-28)",
+    "pr": 2938
    },
    "brief": "Owner order (tvofi, 2026-10-28). Prompt-cache gap 5 (large tool outputs): prepr prints one summary line (verdict, mode, failing script names) and writes the full output to a log path it names, so a seat reads the line and opens the log only on red. Controls: a green run prints the summary line and not the per-script output; a red run's summary names each failing script; mutant dropping the failing name fails the red arm; null: the log holds exactly the output the old run printed."
   },
