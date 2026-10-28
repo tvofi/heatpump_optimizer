@@ -1,0 +1,12 @@
+A family filter dropped :: review_strength self-test: 114 checks, 2 failed
+B first n instead of last n :: review_strength self-test: 114 checks, 4 failed
+C insufficient <= :: review_strength self-test: 114 checks, 8 failed
+D min->max first verdict :: review_strength self-test: 114 checks, 2 failed
+E until cut dropped in guardrail :: review_strength self-test: 114 checks, 2 failed
+F trip inverted :: review_strength self-test: 114 checks, 7 failed
+G unclassified keeps real :: review_strength self-test: 114 checks, 3 failed
+H tie-break dropped :: review_strength self-test: 114 checks, 1 failed
+I real only on merge :: review_strength self-test: 114 checks, 2 failed
+J local N 21 :: review_strength self-test: 114 checks, 1 failed
+K ALPHA 0.053 :: review_strength self-test: 114 checks, 1 failed
+L until min of windows :: review_strength self-test: 114 checks, 1 failed

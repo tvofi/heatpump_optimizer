@@ -1,0 +1,17 @@
+n=30 k=0 P=0.000052 exact=0.000052 trip=True
+n=30 k=1 P=0.000665 exact=0.000665 trip=True
+n=30 k=2 P=0.004117 exact=0.004117 trip=True
+n=30 k=3 P=0.016648 exact=0.016648 trip=True
+n=30 k=4 P=0.049541 exact=0.049541 trip=True
+n=30 k=5 P=0.116059 exact=0.116059 trip=False
+n=30 k=6 P=0.223841 exact=0.223841 trip=False
+n=20 k=0 P=0.001402 exact=0.001402 trip=True
+n=20 k=1 P=0.012304 exact=0.012304 trip=True
+n=20 k=2 P=0.052580 exact=0.052580 trip=False
+n=20 k=3 P=0.146560 exact=0.146560 trip=False
+n=20 k=4 P=0.301886 exact=0.301886 trip=False
+n=20 k=5 P=0.495181 exact=0.495181 trip=False
+n=20 k=6 P=0.683108 exact=0.683108 trip=False
+p=24/85 30 [0.0, 0.0006, 0.0038, 0.0156, 0.0468, 0.1107]
+p=24/85 20 [0.0013, 0.0116, 0.0503, 0.1414, 0.2938, 0.4857]
+(1-0.28)^20 = 0.0014
