@@ -120,7 +120,7 @@ NONBLOCK = re.compile(r"non-?blocking|not blocking|not a block|neither blocks?|d
                       r"|not owed here|owed to the record|\bminor\b|advisory|secondary note|\bdeferred\b", re.I)
 LEAD = re.compile(r"(?:(?:a|an|one|two|three)\s+)?(?:out of scope|residuals?\b|distinct finding"
                   r"|not fixed here|known[- ]open|follow-?up|non-?blocking|not blocking"
-                  r"|caveat|observation|deferred|advisory|minor\b)|(?:[\w-]+\s+){1,3}residuals?\s*:", re.I)
+                  r"|caveat|observation|deferred|advisory)|(?:[\w-]+\s+){1,3}residuals?\s*:", re.I)
 # A verdict section heading that makes every item under it a note.
 NOTE_HEADING = re.compile(NONBLOCK.pattern + r"|residual|\bowed\b|instrument findings"
                           r"|out of scope|follow-?up|^carry\b", re.I)
