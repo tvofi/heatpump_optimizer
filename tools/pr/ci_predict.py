@@ -1086,13 +1086,13 @@ def plant_self_test(root: Path) -> int:
     # resolves to, excluded in the head's policy_lint.mjs only; its repair is
     # the same exclusion in corpus_excluded.json, the data the grader reads.
     lint = "tools/policy/policy_lint.mjs"
-    shim = {"tools/audit/zz_ci_predict_plant/git": app("#!/bin/sh\n")}
+    shim = {"tools/audit/seat/zz_ci_predict_plant/git": app("#!/bin/sh\n")}
     excl_src = {**shim, lint: lambda s: s.replace("const CORPUS_EXCLUDED = new Set([\n",
-                                                  "const CORPUS_EXCLUDED = new Set([\n  'tools/audit/zz_ci_predict_plant/git',\n", 1)}
+                                                  "const CORPUS_EXCLUDED = new Set([\n  'tools/audit/seat/zz_ci_predict_plant/git',\n", 1)}
 
     def excl_json(s):
         m = json.loads(s)
-        m["excluded"].append("tools/audit/zz_ci_predict_plant/git")
+        m["excluded"].append("tools/audit/seat/zz_ci_predict_plant/git")
         return json.dumps(m, indent=1) + "\n"
     excl_data = {**shim, "dev/governance/config/corpus_excluded.json": excl_json, lint: app("// a comment\n")}
 
@@ -1151,7 +1151,7 @@ def plant_self_test(root: Path) -> int:
               "wave-script", None, 0),
              ("an exclusion written into the head's policy_lint.mjs only is predicted red (#2916)",
               [(excl_src, True)], "policy-docs", "CORPUS REFUSED by the base's copy, over tools/policy/policy_lint.mjs: "
-              "ERROR   [named-docs] tools/audit/zz_ci_predict_plant/git", 1),
+              "ERROR   [named-docs] tools/audit/seat/zz_ci_predict_plant/git", 1),
              ("the same exclusion in corpus_excluded.json, with policy_lint.mjs edited so the arm runs, is "
               "predicted green (null control: #2916's repair, c991d64cd)", [(excl_data, True)], "policy-docs", None, 0),
              ("the exclusion staged and not committed is predicted green (null control)", [(excl_src, False)],
