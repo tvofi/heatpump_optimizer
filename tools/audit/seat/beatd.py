@@ -665,10 +665,6 @@ RACE = r'''
 set -u
 W=$1; SHIMDIR=$2; MODE=$3
 cd "$W"
-git init -q -b main up && git -C up -c user.email=t@t -c user.name=t commit -q --allow-empty -m a && git clone -q up c
-printf '#!/bin/sh\n[ "$1" = prepared ] && [ -n "${SLOW:-}" ] && sleep 3\nexit 0\n' > c/.git/hooks/reference-transaction
-chmod +x c/.git/hooks/reference-transaction
-git -C up -c user.email=t@t -c user.name=t commit -q --allow-empty -m r
 ( SLOW=1 git -C c fetch -q origin ) & sleep 1
 p=$PATH; [ "$MODE" = noshim ] || p=$SHIMDIR:$PATH
 if [ "$MODE" = child ]; then
@@ -692,8 +688,27 @@ def _shim_env(w: Path, retries="2") -> dict:
     return e
 
 
-def _race(w: Path, shimdir: Path, mode: str, retries="2") -> dict:
+def _race_repos(w: Path) -> str:
+    """up and its clone c under w, built by tests/throwaway_git.py; c's
+    reference-transaction hook holds the ref lock 3 s when SLOW is set; up is
+    one commit ahead. Returns the real git."""
+    sys.path.insert(0, str(ROOT / "tests"))
+    from throwaway_git import throwaway_git_clone, throwaway_git_init
+    real = resolve_git(os.environ.get("PATH", ""))
     w.mkdir(parents=True, exist_ok=True)
+    env = throwaway_git_init(w / "up", "-q", "-b", "main", git=(real,))
+    commit = [real, "commit", "-q", "--allow-empty", "-m"]
+    subprocess.run([*commit, "a"], cwd=w / "up", env=env, check=True, capture_output=True)
+    throwaway_git_clone(w / "up", w / "c", "-q", git=(real,))
+    hook = w / "c" / ".git" / "hooks" / "reference-transaction"
+    hook.write_text('#!/bin/sh\n[ "$1" = prepared ] && [ -n "${SLOW:-}" ] && sleep 3\nexit 0\n')
+    hook.chmod(0o755)
+    subprocess.run([*commit, "r"], cwd=w / "up", env=env, check=True, capture_output=True)
+    return real
+
+
+def _race(w: Path, shimdir: Path, mode: str, retries="2") -> dict:
+    _race_repos(w)
     r = subprocess.run(["/bin/bash", "-c", RACE, "race", str(w), str(shimdir), mode],
                        capture_output=True, text=True, env=_shim_env(w, retries), timeout=120)
     m = re.search(r"rc=(\d+) same=(\d) err=(\d+)", r.stdout)
@@ -755,11 +770,13 @@ def case6(prog, w, shim=SHIM):
                         capture_output=True, text=True)
     res["git status through the shim logs no retry"] = (
         st.returncode == 0 and not (w / "plain" / "retry.log").exists())
-    mf = subprocess.run(["git", "-C", str(w / "plain"), "init", "-q"], env=e)
+    sys.path.insert(0, str(ROOT / "tests"))
+    from throwaway_git import throwaway_git_init
+    throwaway_git_init(w / "plain", "-q")
     fe = subprocess.run(["git", "-C", str(w / "plain"), "fetch", "nowhere"], env=e,
                         capture_output=True, text=True)
     res["a missing remote fails once, git's message, no retry"] = (
-        mf.returncode == 0 and fe.returncode != 0 and "nowhere" in fe.stderr
+        fe.returncode != 0 and "nowhere" in fe.stderr
         and not (w / "plain" / "retry.log").exists())
     d = _discovery(w / "disc", shim)
     for c in ("absolute", "relative", "trailing-slash", "two-copies", "duplicate",
@@ -784,17 +801,9 @@ def case6(prog, w, shim=SHIM):
 
 def case6_beat(prog, w):
     """(a)6 through the beat itself: B as a beat job retries; its env carries the shim."""
-    real = resolve_git(os.environ.get("PATH", ""))
     s = w / "s6b"
     rw = w / "r-beat"
-    rw.mkdir(parents=True)
-    g = f"{real}"
-    setup = (f'cd {rw} && {g} init -q -b main up && {g} -C up -c user.email=t@t -c user.name=t '
-             f'commit -q --allow-empty -m a && {g} clone -q up c && '
-             "printf '#!/bin/sh\\n[ \"$1\" = prepared ] && [ -n \"${SLOW:-}\" ] && sleep 3\\nexit 0\\n'"
-             f' > c/.git/hooks/reference-transaction && chmod +x c/.git/hooks/reference-transaction && '
-             f'{g} -C up -c user.email=t@t -c user.name=t commit -q --allow-empty -m r')
-    subprocess.run(["/bin/bash", "-c", setup], check=True, capture_output=True)
+    real = g = _race_repos(rw)
     a = subprocess.Popen(["/bin/bash", "-c", f"SLOW=1 {g} -C {rw}/c fetch -q origin"],
                          stderr=subprocess.DEVNULL)
     time.sleep(1)
@@ -820,9 +829,11 @@ def case7(prog, w):
     repo = w / "repo7"
     g = lambda *a: subprocess.run([real, "-C", str(repo), *a], check=True,
                                   capture_output=True, text=True).stdout.strip()
-    repo.mkdir()
-    g("init", "-q", "-b", "main")
-    g("-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "--allow-empty", "-m", "a")
+    sys.path.insert(0, str(ROOT / "tests"))
+    from throwaway_git import throwaway_git_init
+    env = throwaway_git_init(repo, "-q", "-b", "main", git=(real,))
+    subprocess.run([real, "commit", "-q", "--allow-empty", "-m", "a"], cwd=repo, env=env,
+                   check=True, capture_output=True)
     old = g("rev-parse", "HEAD")
     g("update-ref", "refs/remotes/origin/main", old)
     now = 1_800_000_000.0
