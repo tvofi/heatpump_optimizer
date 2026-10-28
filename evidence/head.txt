@@ -1,1 +1,1 @@
-head 71987ff1ee4f3f411c772681d3bcb32490832c53 (PR #2883), measured in a detached worktree at that head
+head 7b071dbd73701ed8550ca9d31f0b0bdacc0a9f9a worktree /Users/timmalmstrom/hpo-seats/r10s6/rev-r4/2883/7b071dbd7 7b071dbd73701ed8550ca9d31f0b0bdacc0a9f9a merge-base 9c9cd0d2dddc13228c916916cf73f993c7c645db

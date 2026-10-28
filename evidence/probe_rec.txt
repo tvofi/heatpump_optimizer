@@ -1,0 +1,18 @@
+RESULT 3bd284f74 rc 0 wall 3.3s
+  keys: ['argv', 'files', 'how', 'inert_reads', 'rc', 'script', 'seconds', 'spawned']
+   files rosters: []
+   inert_reads rosters: []
+   spawned rosters: []
+   argv rosters: []
+RESULT 71987ff1e rc 0 wall 4.2s
+  keys: ['argv', 'files', 'how', 'inert_reads', 'rc', 'script', 'seconds', 'spawned']
+   files rosters: ['dev/programme/rosters/critical-path.json', 'dev/programme/rosters/wave-r9-groups.json']
+   inert_reads rosters: ['dev/programme/rosters/critical-path.json', 'dev/programme/rosters/wave-r9-groups.json']
+   spawned rosters: []
+   argv rosters: []
+RESULT 7b071dbd7 rc 0 wall 4.1s
+  keys: ['argv', 'files', 'how', 'inert_reads', 'rc', 'script', 'seconds', 'spawned']
+   files rosters: ['dev/programme/rosters/critical-path.json', 'dev/programme/rosters/wave-r9-groups.json']
+   inert_reads rosters: []
+   spawned rosters: []
+   argv rosters: []
