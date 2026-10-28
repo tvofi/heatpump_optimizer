@@ -7762,7 +7762,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "cop_refusal": self._measured_cop.refusal,
             # A heat counter divides by its span's electric counter, else the power entity.
             "cop_observability": cop_observability(
-                electric=bool(ctx._config.get(CONF_ENERGY_ENTITY if heat_energy.meter_of(self).counter else CONF_POWER_ENTITY)),
+                electric=bool(ctx._config.get(CONF_ENERGY_ENTITY if ctx._config.get(CONF_HEAT_ENERGY_ENTITY) else CONF_POWER_ENTITY)),
                 measured_heat=probe_install(ctx._config).measured_heat, follows=draw_range.follows_ask(self._accuracy.draw),
             ),
             "defrost_derate": self._defrost.factor(

@@ -59535,6 +59535,8 @@ _P3_FILES = (
     # against moved here from ``_cop_reference_curve``, so its calls stay
     # under the rule instead of leaving it with the move.
     "flow_meter.py",
+    # R10-COP-GATE (#2262): the accuracy residual moved to MeasuredCop.residual.
+    "accuracy.py",
 )
 _P3_ALLOWED = {
     # (file, function, callee, first argument): why the current humidity
@@ -59548,9 +59550,9 @@ _P3_ALLOWED = {
         "the same reference, at the supply a metered interval ran at",
     ("coordinator.py", "_cop_reference_curve", "compute_cop_dhw", "outdoor"):
         "the same reference, for a hot-water interval",
-    ("coordinator.py", "_record_accuracy", "compute_cop_dhw", "sample.outdoor_temp"):
+    ("accuracy.py", "residual", "compute_cop_dhw", "outdoor"):
         "the residual of the interval that just ended",
-    ("coordinator.py", "_record_accuracy", "compute_cop", "sample.outdoor_temp"):
+    ("accuracy.py", "residual", "compute_cop", "outdoor"):
         "the same residual, for a space interval",
     ("coordinator.py", "_run_system_identification", "compute_cop",
      "state.outdoor_temperature"): "the experiment step running now",
