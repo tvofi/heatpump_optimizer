@@ -4518,6 +4518,22 @@
         "dev/audit/rca/R10-RCA-HOTFIX-BATCH-ERREXIT.md"
       ]
     },
+    "R10-RCA-HEADMOVED": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "#2389 head-moved (rework): 75 re-verifications after a merge verdict on 55 PRs (21 after the relay freeze #2792); the carry refused a merge of a seat's own handed-off main merge whose own patch was unchanged",
+      "trigger": "recurrence (#2389, rework arm at 19 PRs against 3; owner asked for the write-up 2026-10-18)",
+      "date": "2026-10-28",
+      "status": "proposed",
+      "parts_missing": [],
+      "process_state": "(c) carry() reads one hop of history; (b) nudge.md section 2 carry-first, 6 instances; (a) no freeze on non-roster heads for the orchestrator's own pushes, 2 after the split",
+      "countermeasure": "CM-1 built: carry() carries a second parent off main when that parent carries in turn (8 of 75 flip to CARRY: yes, standing cost within self-test noise); CM-3, section 11's file-disjointness clause, is the owner's decision",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R10-RCA-HEADMOVED.md",
+      "doc": [
+        "dev/audit/rca/R10-RCA-HEADMOVED.md"
+      ]
+    },
     "R10-N-vocabulary-drift": {
       "class": "N-vocabulary-drift",
       "level": "class",
