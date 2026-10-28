@@ -732,6 +732,21 @@ def forecast_outdoor_now(forecast: list[dict[str, Any]], now: datetime) -> float
 # consecutive failures, raises a repair issue.
 PLAN_STALE_INTERVALS = 3
 PLAN_STALE_FLOOR_MINUTES = 90.0
+
+
+def plan_stale_limit_minutes(config: Any) -> float | None:
+    """The plan age, in minutes, past which a plan solved every cycle is stale.
+
+    ``None`` when ``config`` carries no readable ``optimization_interval``:
+    a caller that only displays the verdict then keeps the one it was given
+    rather than inventing a limit.
+    """
+    interval = getattr(config, "optimization_interval", None)
+    if isinstance(interval, bool) or not isinstance(interval, (int, float)):
+        return None
+    return max(PLAN_STALE_INTERVALS * interval, PLAN_STALE_FLOOR_MINUTES)
+
+
 SOLVE_FAILURE_ISSUE_COUNT = 3
 # Consecutive in-process fallbacks before the GIL solve is skipped and the
 # last plan is kept (#783). The first N still degrade: a slow plan beats none
@@ -5198,6 +5213,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "problem_inputs": health.problem_entity_ids,
             "problem_messages": health.problem_messages(),
             "input_ages_minutes": health.ages(),
+            "input_ages_at": health.read_at,
             "learners_frozen": reason is not None,
             "learner_freeze_reason": reason,
         }
@@ -7554,10 +7570,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     def _plan_is_stale(self) -> bool:
         """True when the plan is older than three solve cycles (min 90 min)."""
         age = self._plan_age_minutes()
-        if age is None:
-            return False
-        interval = self.effective_config.optimization_interval
-        return age > max(PLAN_STALE_INTERVALS * interval, PLAN_STALE_FLOOR_MINUTES)
+        limit = plan_stale_limit_minutes(self.effective_config)
+        return age is not None and limit is not None and age > limit
 
     async def _apply_action(self) -> None:
         """Apply current action as (heat_pump_on, displace_value)."""

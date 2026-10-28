@@ -491,6 +491,7 @@ class DebugCollector:
         self._solve_wall_ms: float | None = None
         self._closed = False
         self.self_tests: dict[str, Any] | None = None
+        self.self_tests_at: datetime | None = None
 
     async def async_load(self) -> None:
         raw = await load_mapping(self._store, "the debug collection") or {}
@@ -502,10 +503,13 @@ class DebugCollector:
         self.snapshots = _kept(raw, "snapshots", {"t", "cycle", "data"})
         tests = raw.get("self_tests")
         self.self_tests = _parsed(tests) if isinstance(tests, str) else None
+        self.self_tests_at = stored_instant(raw.get("self_tests_at")) if self.self_tests else None
 
     def as_dict(self) -> dict[str, Any]:
         start = {"started_at": self.started_at.isoformat()} if self.started_at else {}
         tests = {"self_tests": _dumps(self.self_tests)} if self.self_tests is not None else {}
+        if self.self_tests_at is not None and tests:
+            tests["self_tests_at"] = self.self_tests_at.isoformat()
         return {**start, "final": self.final, "rows": list(self.rows),
                 "snapshots": list(self.snapshots), **tests}
 
@@ -580,7 +584,7 @@ class DebugCollector:
         ], SELF_TEST_BUDGET.total_seconds())
         # Unless the collection restarted meanwhile:
         if self.final and self.started_at == started_at:
-            self.self_tests = tests
+            self.self_tests, self.self_tests_at = tests, dt_util.utcnow()
         await self.async_save()
 
     async def _read(self) -> dict[str, tuple[Any, Any]]:
@@ -591,7 +595,7 @@ class DebugCollector:
 
     def restart(self) -> None:
         self.started_at, self.final, self.rows, self.snapshots = None, False, [], []
-        self._saved_at, self.self_tests = None, None
+        self._saved_at, self.self_tests, self.self_tests_at = None, None, None
         self._spawn(self.async_save())
 
     def status(self) -> dict[str, Any]:
@@ -622,6 +626,10 @@ class DebugCollector:
                 "replay": None,
                 "store_versions": {key: version for key, (version, _d) in stores.items()},
                 "self_tests": self.self_tests,
+                "self_tests_at": self.self_tests_at.isoformat() if self.self_tests_at else None,
+                "self_tests_age_hours": (
+                    round(age / 3600.0, 1)
+                    if (age := stored_age_seconds(self.self_tests_at, now)) is not None else None),
             },
             "replay": None,
             "cycle_rows": list(self.rows),

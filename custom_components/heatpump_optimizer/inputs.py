@@ -40,7 +40,7 @@ import logging
 import math
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from collections.abc import Callable
+from collections.abc import Callable, Collection
 from typing import Any, Literal
 from weakref import WeakKeyDictionary
 
@@ -88,6 +88,13 @@ class _Unbounded:
 #: See :class:`_Unbounded`.
 UNBOUNDED = _Unbounded()
 
+#: The problem classes that outrank staleness. A fault code is not a
+#: measurement at any age (D1-s5-52): it replaces ``stale`` and is never
+#: replaced by it, where every other class found in a reading's content defers
+#: to ``stale``. :func:`_set_problem` applies it at the read, and the
+#: diagnostics export where it re-judges a published age.
+OUTRANKS_STALE: frozenset[str] = frozenset({"implausible"})
+
 
 @dataclass
 class InputReading:
@@ -127,11 +134,19 @@ class InputReading:
         return self.problem == "stale"
 
 
+def _set_problem(reading: InputReading, problem: str) -> None:
+    """Set a class found in a reading's content, past its age gate, by :data:`OUTRANKS_STALE`."""
+    if reading.problem is None or problem in OUTRANKS_STALE:
+        reading.problem = problem
+
+
 @dataclass
 class InputHealth:
     """A snapshot of every guarded read from one update cycle."""
 
     readings: dict[str, InputReading] = field(default_factory=dict)
+    #: The instant the readings' ages are measured from.
+    read_at: datetime | None = None
 
     def record(self, reading: InputReading) -> InputReading:
         self.readings[reading.key] = reading
@@ -814,7 +829,7 @@ class InputReader:
         self.enabled = bool(enabled)
         self.scale = float(scale)
         self._now: Callable[[], datetime] | None = now
-        self.health = InputHealth()
+        self.health = InputHealth(read_at=self._utcnow())
 
     def _utcnow(self) -> datetime:
         if callable(self._now):
@@ -961,7 +976,7 @@ class InputReader:
             # A sensor fault code is not a measurement at any age: withheld
             # outright, where a stale value stays readable (D1-s5-52).
             reading.value = None
-            reading.problem = "implausible"
+            _set_problem(reading, "implausible")
             _LOGGER.debug(
                 "Input %s (%s) reads %.1f, outside %s; treating as missing",
                 key,
@@ -1079,38 +1094,47 @@ class InputReader:
         converted = normalize_flow_kg_s(reading.value, state_unit(state))
         if converted is None or converted < 0.0:
             reading.value = None
-            if reading.problem is None:
-                reading.problem = (
-                    "unknown_unit" if converted is None else "implausible"
-                )
+            _set_problem(reading, "unknown_unit" if converted is None else "implausible")
             return reading
         reading.value = converted
         return reading
 
 
-def stale_summary(health: InputHealth) -> str:
-    """One-line description for the diagnostic entity's state."""
-    stale = health.stale_keys
-    missing = health.missing_keys
-    if not stale and not missing:
+def health_summary(stale_keys: Collection[str], missing_keys: Collection[str]) -> str:
+    """One-line description from the two sets, so the wording has one owner.
+
+    :func:`stale_summary` reads them off an :class:`InputHealth`; the
+    diagnostics read them at the export instant, where staleness is re-judged
+    from an age and its own published limit and the sets are built there.
+    """
+    if not stale_keys and not missing_keys:
         return "ok"
     parts = []
-    if stale:
-        parts.append(f"{len(stale)} stale")
-    if missing:
-        parts.append(f"{len(missing)} missing")
+    if stale_keys:
+        parts.append(f"{len(stale_keys)} stale")
+    if missing_keys:
+        parts.append(f"{len(missing_keys)} missing")
     return ", ".join(parts)
+
+
+def stale_summary(health: InputHealth) -> str:
+    """One-line description for the diagnostic entity's state."""
+    return health_summary(health.stale_keys, health.missing_keys)
 
 
 #: Human wording for each reading problem, for
 #: :func:`describe_problem`. Raw tokens read as codes; a user deciding
-#: which sensor to go and fix is owed words. A token not yet in this table
-#: renders as itself, so a future failure class cannot publish nothing.
+#: which sensor to go and fix is owed words. The keys are every class a
+#: reading publishes (``not_configured`` never is): ``tests/debug_collect.py``
+#: holds them equal to the classes this module sets, by any route, and the
+#: card enumerates its own wording against them. A token outside the table
+#: still renders as itself, so a failure class cannot publish nothing.
 PROBLEM_WORDS: dict[str, str] = {
     "implausible": "outside its plausible range",
     "missing_entity": "entity not found",
     "not_boolean": "not a yes/no flag",
     "not_numeric": "not a number",
+    "stale": "stale",
     "unavailable": "unavailable",
     "unknown_unit": "unknown unit",
     "unknown_value": "unrecognized state",

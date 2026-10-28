@@ -1677,4 +1677,468 @@ R.check(
     and drift.stored_age_seconds("garbage", T0) is None
     and drift.stored_age_seconds(T0 + timedelta(seconds=1), T0) is None,
 )
+
+# -- #2814's residue: the input ages, the stale flag and the self-tests' run time --
+# The payload's input ages are their ages when the inputs were read and its
+# ``plan_stale`` is judged then too; the stored self-test results carried no time.
+
+
+async def _published_download(after, solved_before, interval=None):
+    """The download ``after`` past a payload published at ``PUBLISHED``, for a plan
+    solved ``solved_before`` that, and inputs read at the publish instant."""
+    coord = FakeCoordinator({
+        "last_optimization": PUBLISHED - solved_before, "plan_stale": False,
+        "input_ages_minutes": {"indoor": 2.0}, "input_ages_at": PUBLISHED,
+        "input_problems": [{"input": "indoor", "age_minutes": 2.0}],
+    }, **({"_config": {"optimization_interval": interval}} if interval else {}))
+    entry = FakeEntry(entry_id="published", options={})
+    entry.runtime_data = coord
+    dt_util.freeze(PUBLISHED + after)
+    try:
+        return await diagnostics_mod.async_get_config_entry_diagnostics(FakeHass(), entry)
+    finally:
+        dt_util.freeze(None)
+
+
+from heatpump_optimizer.inputs import (  # noqa: E402
+    InputHealth, InputReader, InputReading, health_summary, stale_summary,
+)
+
+R.check(
+    "an input reader stamps its health with the instant its ages are measured from",
+    InputReader(FakeHass(), {}, now=lambda: PUBLISHED).health.read_at == PUBLISHED,
+)
+_late = asyncio.run(_published_download(timedelta(minutes=14), timedelta(minutes=1)))
+_at_publish = asyncio.run(_published_download(timedelta(0), timedelta(minutes=1)))
+_overdue = asyncio.run(_published_download(timedelta(minutes=95), timedelta(minutes=1)))
+# At a 15-minute interval three missed cycles are 45 minutes, under the
+# 90-minute floor, so a plan solved 60 minutes ago is fresh: this tells the
+# floor from the cycles (the default interval's 3 cycles are exactly the floor).
+_at_floor = asyncio.run(_published_download(timedelta(0), timedelta(minutes=60), interval=15))
+R.check(
+    "the download's input ages are re-based to the export: read 2 minutes old and "
+    "exported 14 minutes later, they read 16",
+    _late["inputs"]["input_ages_minutes"] == {"indoor": 16.0}
+    and _late["inputs"]["input_problems"][0]["age_minutes"] == 16.0,
+    str(_late["inputs"]),
+)
+R.check(
+    "the null control: a download taken at the publish instant reads the published ages",
+    _at_publish["inputs"]["input_ages_minutes"] == {"indoor": 2.0}
+    and _at_publish["inputs"]["input_problems"][0]["age_minutes"] == 2.0,
+    str(_at_publish["inputs"]),
+)
+R.check(
+    "input ages with no read instant, or one ahead of the export, stay as published",
+    diagnostics_mod._inputs_at({"input_ages_minutes": {"x": 1.0}}, PUBLISHED)
+    == {"input_ages_minutes": {"x": 1.0}}
+    and diagnostics_mod._inputs_at(
+        {"input_ages_minutes": {"x": 1.0}, "input_ages_at": PUBLISHED},
+        PUBLISHED - timedelta(minutes=1))["input_ages_minutes"] == {"x": 1.0},
+)
+
+# One age, one input: the message is an age-bearing field too, and the two
+# verdicts beside it are judged at the same instant as the numbers. A payload
+# that said "20 min" and, exported 40 minutes later, reports a 60-minute age
+# beside it states two ages for one input (#2873's fix review, R8b).
+
+_WATCHDOG = {
+    "input_ages_minutes": {"indoor": 20.0},
+    "input_ages_at": PUBLISHED,
+    "input_problems": [{"input": "indoor", "entity_id": "sensor.indoor",
+                        "problem": "stale", "age_minutes": 20.0,
+                        "max_age_minutes": 30.0}],
+    "problem_inputs": [],
+    "problem_messages": ["sensor.indoor: stale (last report 20 min)"],
+    "input_health": "ok",
+    "stale_inputs": [],
+}
+
+
+async def _watchdog_download(after):
+    coord = FakeCoordinator(dict(_WATCHDOG))
+    entry = FakeEntry(entry_id="watchdog", options={})
+    entry.runtime_data = coord
+    dt_util.freeze(PUBLISHED + after)
+    try:
+        return await diagnostics_mod.async_get_config_entry_diagnostics(FakeHass(), entry)
+    finally:
+        dt_util.freeze(None)
+
+
+def _message_age(message):
+    """The age a ``(last report N min)`` problem message states."""
+    return float(message.rsplit("last report ", 1)[1].split(" min", 1)[0])
+
+
+_crossed = asyncio.run(_watchdog_download(timedelta(minutes=40)))
+_at_read = asyncio.run(_watchdog_download(timedelta(0)))
+R.check(
+    "one export states one age for one input: the problem message, the problem's "
+    "age_minutes and input_ages_minutes all read 60 after a 40-minute-late "
+    "export, and both verdicts are judged at that same instant",
+    _message_age(_crossed["inputs"]["problem_messages"][0]) == 60.0
+    and _crossed["inputs"]["input_problems"][0]["age_minutes"] == 60.0
+    and _crossed["inputs"]["input_ages_minutes"] == {"indoor": 60.0}
+    and _crossed["inputs"]["stale_inputs"] == ["indoor"]
+    and _crossed["inputs"]["input_health"] == "1 stale",
+    str(_crossed["inputs"]),
+)
+R.check(
+    "the null control for the same payload: exported at the publish instant, the "
+    "message reads the published 20 minutes, the ages do not move, and the "
+    "verdicts stay as published",
+    _message_age(_at_read["inputs"]["problem_messages"][0]) == 20.0
+    and _at_read["inputs"]["input_problems"][0]["age_minutes"] == 20.0
+    and _at_read["inputs"]["input_ages_minutes"] == {"indoor": 20.0}
+    and _at_read["inputs"]["stale_inputs"] == []
+    and _at_read["inputs"]["input_health"] == "ok",
+    str(_at_read["inputs"]),
+)
+# The other direction: a reading that was a problem but not stale at publication
+# crosses its own limit as the export slides away from it, so it becomes stale
+# there and both its message and the verdicts follow. The boundary is the
+# input's own limit exactly: at it the reading is fresh, a minute past it stale.
+_UNIT_PROBLEM = {
+    "input_ages_minutes": {"power": 29.0},
+    "input_ages_at": PUBLISHED,
+    "input_problems": [{"input": "power", "entity_id": "sensor.power",
+                        "problem": "unknown_unit", "age_minutes": 29.0,
+                        "max_age_minutes": 30.0}],
+    "problem_messages": ["sensor.power: unknown unit"],
+    "input_health": "1 missing",
+    "stale_inputs": [],
+}
+
+
+async def _unit_download(after):
+    coord = FakeCoordinator(dict(_UNIT_PROBLEM))
+    entry = FakeEntry(entry_id="unit", options={})
+    entry.runtime_data = coord
+    dt_util.freeze(PUBLISHED + after)
+    try:
+        return await diagnostics_mod.async_get_config_entry_diagnostics(FakeHass(), entry)
+    finally:
+        dt_util.freeze(None)
+
+
+_at_limit = asyncio.run(_unit_download(timedelta(minutes=1)))
+_past_limit = asyncio.run(_unit_download(timedelta(minutes=2)))
+R.check(
+    "an input's own limit is the boundary: at it the reading is not stale, a "
+    "minute past it the export makes it stale and its verdicts follow the age",
+    _at_limit["inputs"]["input_problems"][0]["age_minutes"] == 30.0
+    and _at_limit["inputs"]["stale_inputs"] == []
+    and _at_limit["inputs"]["input_health"] == "1 missing"
+    and _at_limit["inputs"]["problem_messages"] == ["sensor.power: unknown unit"]
+    and _past_limit["inputs"]["input_problems"][0]["age_minutes"] == 31.0
+    and _past_limit["inputs"]["input_problems"][0]["problem"] == "stale"
+    and _past_limit["inputs"]["stale_inputs"] == ["power"]
+    and _past_limit["inputs"]["input_health"] == "1 stale"
+    and _past_limit["inputs"]["problem_messages"] == ["sensor.power: stale (last report 31 min)"],
+    str([_at_limit["inputs"], _past_limit["inputs"]]),
+)
+# The verdict the export publishes is this summary, so its two classes and its
+# empty case are pinned here too: the cheap driver for a shared function.
+_health = InputHealth(readings={
+    "a": InputReading(key="a", entity_id="sensor.a", problem="stale"),
+    "b": InputReading(key="b", entity_id="sensor.b", problem="unavailable"),
+})
+_only_missing = InputHealth(readings={
+    "b": InputReading(key="b", entity_id="sensor.b", problem="unavailable"),
+})
+R.check(
+    "the diagnostic entity's summary counts each failure class, and reads ok with "
+    "neither",
+    stale_summary(_health) == "1 stale, 1 missing"
+    and stale_summary(_only_missing) == "1 missing"
+    and stale_summary(InputHealth()) == "ok",
+    str([stale_summary(_health), stale_summary(_only_missing),
+         stale_summary(InputHealth())]),
+)
+# The export renders its own `input_health` from the same function, off the two
+# sets it judges, so all four combinations of the shared wording are pinned.
+R.check(
+    "the shared summary wording names each class present and ok for neither",
+    health_summary(set(), set()) == "ok"
+    and health_summary({"a"}, set()) == "1 stale"
+    and health_summary(set(), {"b"}) == "1 missing"
+    and health_summary({"a"}, {"b"}) == "1 stale, 1 missing",
+    str([health_summary(set(), set()), health_summary({"a"}, set()),
+         health_summary(set(), {"b"}), health_summary({"a"}, {"b"})]),
+)
+R.check(
+    "the download judges plan_stale at the export with the coordinator's limit: at "
+    "a 15-minute interval a plan solved 60 minutes ago is fresh, under the "
+    "90-minute floor, and stale 96 minutes after it",
+    _overdue["plan"]["plan_stale"] is True and _late["plan"]["plan_stale"] is False
+    and _at_publish["plan"]["plan_stale"] is False
+    and _at_floor["plan"]["plan_stale"] is False,
+    f'{_overdue["plan"]["plan_stale"]} {_late["plan"]["plan_stale"]} {_at_floor["plan"]["plan_stale"]}',
+)
+# An instant ahead of the export cannot be dated, so the payload's verdict is
+# the only evidence: re-judging it there would invent "fresh" from no age.
+_ahead_plan = {"last_optimization": PUBLISHED + timedelta(minutes=5)}
+R.check(
+    "a plan the export clock cannot date keeps the payload's plan_stale, and one the "
+    "payload never judged publishes none",
+    diagnostics_mod._plan_summary({**_ahead_plan, "plan_stale": True}, PUBLISHED, 90.0)
+    ["plan_stale"] is True
+    and diagnostics_mod._plan_summary(_ahead_plan, PUBLISHED, 90.0)["plan_stale"] is None
+    and diagnostics_mod._plan_summary(
+        {"last_optimization": PUBLISHED - timedelta(minutes=95), "plan_stale": False},
+        PUBLISHED, 90.0)["plan_stale"] is True,
+    str([diagnostics_mod._plan_summary({**_ahead_plan, "plan_stale": True},
+                                       PUBLISHED, 90.0)["plan_stale"],
+         diagnostics_mod._plan_summary(_ahead_plan, PUBLISHED, 90.0)["plan_stale"]]),
+)
+with tempfile.TemporaryDirectory() as tmp:
+    dt_util.freeze(T0 + timedelta(hours=5))
+    try:
+        _, _timed, _, _timed_reload, _ = asyncio.run(_finish(tmp))
+        _timed_bundle = asyncio.run(_timed.async_bundle(_coord(integration_version="0")))
+    finally:
+        dt_util.freeze(None)
+R.check(
+    "the self-tests' run time is stored with them, survives a reload, and the manifest "
+    "states it and its age at the export",
+    _timed.self_tests_at == T0 + timedelta(hours=5)
+    and _timed_reload.self_tests_at == _timed.self_tests_at
+    and admitted("debug", _timed.as_dict())
+    and _timed_bundle["manifest"]["self_tests_at"] == (T0 + timedelta(hours=5)).isoformat()
+    and _timed_bundle["manifest"]["self_tests_age_hours"] == 0.0,
+    f"{_timed.self_tests_at} {_timed_reload.self_tests_at}",
+)
+_cleared_at, _ = _collector()
+_cleared_at.started_at, _cleared_at.final = T0, True
+_cleared_at.self_tests, _cleared_at.self_tests_at = {"feeds": {"ms": 1.0}}, T0
+_cleared_at.restart()
+R.check(
+    "starting a finished collection again clears its self-tests' run time",
+    _cleared_at.self_tests_at is None and "self_tests_at" not in _cleared_at.as_dict(),
+)
+from heatpump_optimizer import coordinator as coordinator_mod  # noqa: E402
+
+_limit = coordinator_mod.plan_stale_limit_minutes
+R.check(
+    "a stale limit needs a numeric interval: a bool is no interval, a string is no "
+    "interval, and zero is a number the 90-minute floor still lifts",
+    _limit(types.SimpleNamespace(optimization_interval=True)) is None
+    and _limit(types.SimpleNamespace(optimization_interval="15")) is None
+    and _limit(types.SimpleNamespace(optimization_interval=0)) == 90.0,
+    # Only the bool read is reported: the string read raises under a guard
+    # that admits it, and a detail built from it would hide the check's name.
+    f"{_limit(types.SimpleNamespace(optimization_interval=True))!r}",
+)
+# The coordinator's own predicate, called unbound over the two reads it makes:
+# at three 30-minute cycles the limit is exactly 90 minutes, so an age exactly
+# at it is the boundary the comparison owns.
+_at_limit = types.SimpleNamespace(
+    effective_config=types.SimpleNamespace(optimization_interval=30),
+    _plan_age_minutes=lambda: 90.0,
+)
+_past_limit = types.SimpleNamespace(
+    effective_config=_at_limit.effective_config,
+    _plan_age_minutes=lambda: 90.1,
+)
+_stale = coordinator_mod.HeatPumpOptimizerCoordinator._plan_is_stale
+R.check(
+    "a plan exactly at the limit is not stale, and a tenth of a minute past it is",
+    _stale(_at_limit) is False and _stale(_past_limit) is True,
+    f"{_stale(_at_limit)} {_stale(_past_limit)}",
+)
+# The stored run time and the stored results travel together: a collector
+# holding an instant without the results writes neither, rather than a
+# timestamp with nothing it stamps.
+_only_instant, _ = _collector()
+_only_instant.self_tests, _only_instant.self_tests_at = None, T0
+R.check(
+    "a stored run time with no stored results is left out of the document: the two "
+    "are written together or not at all",
+    "self_tests_at" not in _only_instant.as_dict(),
+    str(sorted(_only_instant.as_dict())),
+)
+R.check(
+    "a plan exactly at the limit is fresh at the export, and one a minute past it "
+    "is stale",
+    diagnostics_mod._plan_summary(
+        {"last_optimization": PUBLISHED - timedelta(minutes=90)}, PUBLISHED, 90.0
+    )["plan_stale"] is False
+    and diagnostics_mod._plan_summary(
+        {"last_optimization": PUBLISHED - timedelta(minutes=91)}, PUBLISHED, 90.0
+    )["plan_stale"] is True,
+)
+
+# -- The export re-judges staleness by the reader's own precedence (#2873, round 3) --
+# A fault code outranks staleness at the reader (D1-s5-52): ``read`` records the
+# age before it sets ``implausible``, so an implausible entry carries an age and
+# a limit, and an export re-basing that age past the limit must not relabel it
+# stale. Every other class a reader sets after its age gate defers to stale.
+# Pinned as a census: each such class is read by the production reader, published
+# by the coordinator's own view, exported a minute past its own limit, and compared
+# with what the same reader says when it reads the same state at that instant.
+
+_IMPLAUSIBLE = {
+    "input_ages_minutes": {"indoor": 10.0},
+    "input_ages_at": PUBLISHED,
+    "input_problems": [{"input": "indoor", "entity_id": "sensor.indoor",
+                        "problem": "implausible", "age_minutes": 10.0,
+                        "max_age_minutes": 30.0}],
+    "problem_messages": ["sensor.indoor: outside its plausible range"],
+    "input_health": "1 missing",
+    "stale_inputs": [],
+}
+
+
+async def _implausible_download(after):
+    coord = FakeCoordinator(dict(_IMPLAUSIBLE))
+    entry = FakeEntry(entry_id="implausible", options={})
+    entry.runtime_data = coord
+    dt_util.freeze(PUBLISHED + after)
+    try:
+        return await diagnostics_mod.async_get_config_entry_diagnostics(FakeHass(), entry)
+    finally:
+        dt_util.freeze(None)
+
+
+def _renders_implausible(download, age):
+    got = download["inputs"]
+    return (
+        got["input_problems"][0]["problem"] == "implausible"
+        and got["input_problems"][0]["age_minutes"] == age
+        and got["stale_inputs"] == []
+        and got["input_health"] == "1 missing"
+        and got["problem_messages"] == ["sensor.indoor: outside its plausible range"]
+    )
+
+
+_implausible_past = asyncio.run(_implausible_download(timedelta(minutes=40)))
+_implausible_within = asyncio.run(_implausible_download(timedelta(minutes=10)))
+R.check(
+    "an implausible input re-based past its own limit stays implausible at the "
+    "export: out of stale_inputs, counted missing, and worded as a fault, not an age",
+    _renders_implausible(_implausible_past, 50.0),
+    str(_implausible_past["inputs"]),
+)
+R.check(
+    "the null control: the same implausible entry exported inside its limit reads "
+    "the same, so the check above is about the age crossing the limit",
+    _renders_implausible(_implausible_within, 20.0),
+    str(_implausible_within["inputs"]),
+)
+
+from harness import FakeState  # noqa: E402
+from heatpump_optimizer import inputs as inputs_mod  # noqa: E402
+from heatpump_optimizer.const import (  # noqa: E402
+    CONF_FLOW_METER_ENTITY, CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY,
+    CONF_POWER_ENTITY, CONF_SOLAR_RADIATION_ENTITY,
+)
+
+# (published class, config key, state, unit, the reader call) -- one row per class
+# a reader sets after its age gate. The reader runs at ``at``.
+_PRECEDENCE_ROWS = [
+    ("implausible", CONF_INDOOR_TEMP_ENTITY, "-127", "°C",
+     lambda r, k: r.read(k)),
+    ("implausible", CONF_FLOW_METER_ENTITY, "-1", "kg/s",
+     lambda r, k: r.read_flow_kg_s(k)),
+    ("unknown_unit", CONF_POWER_ENTITY, "2", "furlong",
+     lambda r, k: r.read_power_kw(k)),
+    ("unknown_value", CONF_OUTDOOR_TEMP_ENTITY, "banana", None,
+     lambda r, k: r.read_state(k, valid={"heat"})),
+    ("not_boolean", CONF_SOLAR_RADIATION_ENTITY, "maybe", None,
+     lambda r, k: r.read_bool(k, strict=True)),
+]
+# A row whose key has no age limit cannot age at the export or at a re-read, so
+# it is held to publishing no limit: the day it gains one, its comparison runs and
+# it leaves this set. Every row above polls and has one.
+_UNBOUNDED_ROWS: set[str] = set()
+# Classes set before the age gate: their reading carries no age, so the export has
+# nothing to re-base (``not_configured`` has no entity and is never published).
+_PRE_GATE = {"not_configured", "missing_entity", "unavailable", "not_numeric"}
+_REPORTED = PUBLISHED - timedelta(minutes=5)
+
+
+def _published(key, state, unit, read, at):
+    # A source that re-reports an unchanged value polls, so it is held to
+    # ``INPUT_MAX_AGE_MINUTES``; its age runs from the last report.
+    hass = FakeHass({f"sensor.{key}": FakeState(
+        state, last_updated=_REPORTED - timedelta(hours=1), last_reported=_REPORTED,
+        unit=unit)})
+    reader = InputReader(hass, {key: f"sensor.{key}"}, now=lambda: at)
+    read(reader, key)
+    view = coordinator_mod.HeatPumpOptimizerCoordinator._input_health_view(
+        types.SimpleNamespace(_input_health=reader.health, _learner_freeze_reason=None))
+    return view
+
+
+def _literal_classes(tree):
+    """Every class literal ``inputs.py`` assigns to a reading's ``problem``."""
+    found = set()
+    for node in ast.walk(tree):
+        values = []
+        if isinstance(node, ast.Assign) and any(
+                isinstance(t, ast.Attribute) and t.attr == "problem" for t in node.targets):
+            values.append(node.value)
+        if isinstance(node, ast.Call) and getattr(node.func, "id", None) == "_set_problem":
+            values.extend(node.args[1:])
+        for value in values:
+            found.update(c.value for c in ast.walk(value)
+                         if isinstance(c, ast.Constant) and isinstance(c.value, str))
+    return found
+
+
+_census = []
+for _cls, _key, _state, _unit, _read in _PRECEDENCE_ROWS:
+    _pub = _published(_key, _state, _unit, _read, PUBLISHED)
+    _entry = (_pub["input_problems"] or [{}])[0]
+    _limit = _entry.get("max_age_minutes")
+    _row = f"{_cls}/{_key}"
+    _bounded = isinstance(_limit, (int, float))
+    _ok_pre = (_entry.get("problem") == _cls and _entry.get("age_minutes") == 5.0
+               and _bounded == (_row not in _UNBOUNDED_ROWS))
+    if not _bounded:
+        _census.append({"row": _row, "pre": _ok_pre, "unbounded": True})
+        continue
+    _at = PUBLISHED + timedelta(minutes=(_limit if _ok_pre else 0) - 5 + 1)
+    _exported = diagnostics_mod._inputs_at(_pub, _at)
+    _reread = _published(_key, _state, _unit, _read, _at)
+    _at_read = diagnostics_mod._inputs_at(_pub, PUBLISHED)
+    _census.append({
+        "row": _row, "pre": _ok_pre, "unbounded": False,
+        "exported": _exported["input_problems"][0]["problem"] if _ok_pre else None,
+        "reread": _reread["input_problems"][0]["problem"] if _ok_pre else None,
+        "stale_agree": _ok_pre and _exported["stale_inputs"] == _reread["stale_inputs"],
+        "health_agree": _ok_pre and _exported["input_health"] == _reread["input_health"],
+        "null": _ok_pre and _at_read["input_problems"][0]["problem"] == _cls,
+    })
+_bounded_rows = [row for row in _census if not row["unbounded"]]
+_found = _literal_classes(ast.parse(Path(inputs_mod.__file__).read_text()))
+_driven = {row[0] for row in _PRECEDENCE_ROWS}
+R.check(
+    "the precedence census covers every class inputs.py sets: each is driven past "
+    "its age gate, set before it, or stale itself, and PROBLEM_WORDS, which the "
+    "card enumerates its wording by, names exactly the published ones",
+    _found == _driven | _PRE_GATE | {"stale"}
+    and set(inputs_mod.PROBLEM_WORDS) == _found - {"not_configured"}
+    and all(row["pre"] for row in _census),
+    str([sorted(_found), sorted(set(inputs_mod.PROBLEM_WORDS) ^ (_found - {"not_configured"})),
+         [row["row"] for row in _census if not row["pre"]]]),
+)
+R.check(
+    "exported a minute past its own limit, every class reads what the reader says "
+    "re-reading the same state then: a fault code stays itself, every other class "
+    "ages into stale, and stale_inputs and input_health agree with the re-read",
+    all(row["exported"] == row["reread"] and row["stale_agree"] and row["health_agree"]
+        for row in _bounded_rows)
+    and {row["exported"] for row in _bounded_rows} == {"implausible", "stale"},
+    str([row for row in _bounded_rows
+         if not (row["exported"] == row["reread"] and row["stale_agree"]
+                 and row["health_agree"])]),
+)
+R.check(
+    "the census's null control: exported at the publish instant, every class reads "
+    "as published",
+    all(row["null"] for row in _bounded_rows),
+    str([row["row"] for row in _bounded_rows if not row["null"]]),
+)
 sys.exit(R.close("DEBUG COLLECT CHECKS"))
