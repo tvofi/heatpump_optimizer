@@ -10587,13 +10587,13 @@
    ],
    "carry": [],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": null,
     "commit": null,
     "last_step": null,
     "next_step": "dispatch a seat",
     "note": "wired by the roster seat 2026-10-26 under the owner's completion rule (tvofi 20:20Z)",
-    "pr": 2678
+    "pr": 2905
    },
    "brief": "Land Dependabot pull request #2678 (setuptools 84.0.0 to 84.1.0 in tests/requirements-build.txt). Main's pin is the one open Dependabot alert, whose first patched version is 84.1.0. The head is all dependabot[bot] commits: per R10-FLY-CARRY-DISPOSITION's P100 carry its delivery row lives on origin/main, never on the head; do not add a merge commit or row to the head (the #2773 trap, tools/policy/dependabot_contract.mjs). Verify the scoped gate is green at the head, then the orchestrator merges it; afterwards the open-alert count reads zero."
   },
