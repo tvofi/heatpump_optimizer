@@ -71,8 +71,12 @@ than fixed, so #2499 stays open on that residual.
 
 ## Head
 
+`12510c484f3bde0080d97d692ce14321d6da6bf5` merges the authored code head `e41708750fc50c1da7cc302041641a96dcdde5a0` and then merges origin/main `6349205b6` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
+
+`80ddb0554d6a48a7a317e137b010cbbce0447cca` merges the authored code head `e41708750fc50c1da7cc302041641a96dcdde5a0` and then merges origin/main `2b274fe06` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
+
 `e41708750fc50c1da7cc302041641a96dcdde5a0` (fixer seat, round 10, fix review 1 rework) is the
-authored code head: a merge of `origin/main` `53c4b9cb0` into `baff727d1`, which
+authored code head: a merge of `origin/main` `aaf8af512` into `baff727d1`, which
 is 19 commits over the reviewed head `fa6eb482b` (`git rev-list --count
 fa6eb482b..baff727d1`). `update_pr.sh` stopped on `tests/golden/claimed_drift.txt`
 (`CONFLICTING CLAIMS: both sides rewrote the claim list`: main added
@@ -80,7 +84,7 @@ R10-HOUSE-GRADE's five coord claims); the resolution is main's file with this
 branch's six suspensions applied and its note and nine claims appended, no
 other line changed; every other file merged clean (`tests/closures.json` by its
 driver). Main's side touches neither `optimizer.py`, `thermal_model.py` nor
-`tests/structure_budgets.json` (`git diff --stat 07295d4ea 53c4b9cb0 --` those
+`tests/structure_budgets.json` (`git diff --stat 07295d4ea aaf8af512 --` those
 paths prints nothing); after the merge `tests/structure.py` reads `STRUCTURE
 RATCHET PASSED` and the rework's `tests/features.py` block `ALL 12 FEATURES
 BLOCK PASSED`. Figures headed `at baff727d1` below were taken before the merge.
