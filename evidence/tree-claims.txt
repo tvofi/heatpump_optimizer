@@ -1,0 +1,7 @@
+R10-ORCH-BEATD at origin/main 6d86acc90 and handoff/audit-r10-roster ba973babd:
+origin/main stage not-started carries 35 | brief has single-instance locks: True | double start: True | carry22 P97: From P97 (triage: dev/programme/triage/s6-batch21.md#P97): I
+origin/handoff/audit-r10-roster stage not-started carries 35 | brief has single-instance locks: True | double start: True | carry22 P97: From P97 (triage: dev/programme/triage/s6-batch21.md#P97): I
+git ls-files | grep -c 'seat-launch\|orch_sweep' = 0
+P230 at origin/main: dev/programme/triage/s6-batch45.md:208 Verdict: DEFER, owned by R10-ORCH-BEATD; out-of-tree sweep edit 'sent to it, not carried'
+design/R10-ORCH-BEATD tip: f0f046929 design R10-ORCH-BEATD: round 3, answers the five points of design-verdict 810697a5a
+V150/P236 absent from origin/main and roster branch dev/programme (carry not yet routed; triage seat may not edit roster per proposal-triage.md)
