@@ -1,7 +1,0 @@
-beatd rc=0 after 2s
-START 2026-10-28T21:12:02Z beatd pid=32302 code=ad1ba9adb7341d31288d27648da09f0ce61def19 supervisor=none
-RUNNING 2026-10-28T21:12:02Z stubborn pid=32306 elapsed=0
-PASS 2026-10-28T21:12:04Z stubborn start=2026-10-28T21:12:02Z dur=2 rc=-15 outcome=timeout
-STOP 2026-10-28T21:12:04Z beatd pid=32302
-15s after timeout: grandchild 32307 state: S
--rw------- 1 root root 0 Oct 28 21:12 /tmp/tmp.CgTveMUJgS/s/beatd/stubborn.lock

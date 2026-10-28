@@ -1,39 +1,7 @@
-CodeQL|completed|neutral|2026-10-28T20:45:00Z|2026-10-28T20:45:03Z
-arch-score / arch-score|completed|success|2026-10-28T20:44:00Z|2026-10-28T20:45:12Z
-arm|completed|skipped|2026-10-28T20:43:21Z|2026-10-28T20:43:21Z
-budget-raise-gate / budget-raise-gate|completed|success|2026-10-28T20:43:49Z|2026-10-28T20:44:55Z
-cancel-superseded|completed|success|2026-10-28T20:43:24Z|2026-10-28T20:43:57Z
-cancel-superseded|completed|success|2026-10-28T20:43:25Z|2026-10-28T20:43:34Z
-codeql / Analyze (actions)|completed|success|2026-10-28T20:43:49Z|2026-10-28T20:45:09Z
-codeql / Analyze (javascript-typescript)|completed|success|2026-10-28T20:43:54Z|2026-10-28T20:45:38Z
-codeql / Analyze (python)|in_progress|null|2026-10-28T20:43:49Z|null
-governance / delivery-status-publish|completed|skipped|2026-10-28T20:43:47Z|2026-10-28T20:43:46Z
-governance / delivery-status|completed|success|2026-10-28T20:44:27Z|2026-10-28T20:45:01Z
-governance / env-matrix|completed|success|2026-10-28T20:43:49Z|2026-10-28T20:47:54Z
-governance / instrument-self-tests|completed|success|2026-10-28T20:44:19Z|2026-10-28T21:10:20Z
-governance / policy-docs|completed|success|2026-10-28T20:43:55Z|2026-10-28T20:47:59Z
-governance / record|completed|skipped|2026-10-28T20:43:47Z|2026-10-28T20:43:46Z
-governance / wave-script|completed|success|2026-10-28T20:43:49Z|2026-10-28T20:45:52Z
-hassfest / hassfest|completed|success|2026-10-28T20:43:50Z|2026-10-28T20:44:17Z
-kernel-points|completed|skipped|2026-10-28T20:43:47Z|2026-10-28T20:43:46Z
-prelude|completed|success|2026-10-28T20:43:25Z|2026-10-28T20:43:46Z
-prelude|in_progress|null|2026-10-28T20:43:24Z|null
-refresh|completed|success|2026-10-28T20:43:24Z|2026-10-28T20:43:53Z
-refresh|completed|success|2026-10-28T20:43:25Z|2026-10-28T20:43:51Z
-tests / arch-instrument|completed|success|2026-10-28T20:45:31Z|2026-10-28T20:46:13Z
-tests / briefs|completed|success|2026-10-28T20:43:49Z|2026-10-28T20:44:27Z
-tests / browser|completed|success|2026-10-28T20:45:31Z|2026-10-28T20:49:42Z
-tests / claims-autofix|completed|skipped|2026-10-28T20:53:22Z|2026-10-28T20:53:22Z
-tests / closure-scope|completed|success|2026-10-28T20:43:56Z|2026-10-28T20:45:28Z
-tests / closures-autofix|completed|skipped|2026-10-28T21:10:25Z|2026-10-28T21:10:24Z
-tests / closures|completed|success|2026-10-28T20:45:32Z|2026-10-28T21:10:24Z
-tests / coverage|in_progress|null|2026-10-28T20:45:31Z|null
-tests / fast (3.14)|completed|success|2026-10-28T20:45:31Z|2026-10-28T20:53:22Z
-tests / mutation-autofix|completed|skipped|2026-10-28T20:44:49Z|2026-10-28T20:44:48Z
-tests / mutation-pins|completed|skipped|2026-10-28T20:44:49Z|2026-10-28T20:44:48Z
-tests / mutation|completed|success|2026-10-28T20:43:49Z|2026-10-28T20:44:48Z
-tests / nightly-ha|completed|skipped|2026-10-28T20:45:29Z|2026-10-28T20:45:28Z
-tests / nightly-status|completed|success|2026-10-28T20:43:49Z|2026-10-28T20:44:29Z
-tests / replay|completed|skipped|2026-10-28T20:45:29Z|2026-10-28T20:45:28Z
-tests / typing|completed|success|2026-10-28T20:45:32Z|2026-10-28T20:46:49Z
-validate / validate-hacs|completed|success|2026-10-28T20:43:49Z|2026-10-28T20:44:30Z
+check-runs API (pull_request_read get_check_runs) for PR #2916 head ca2dc27d74252606afb264c514585f9ea0e405b5, read ~23:20Z 2026-10-28; 37 runs.
+success: tests/typing, tests/browser, tests/arch-instrument, budget-raise-gate, codeql/Analyze (javascript-typescript), codeql/Analyze (actions), tests/briefs, governance/policy-docs, arch-score, tests/nightly-status, hassfest, tests/closure-scope, validate-hacs, governance/env-matrix, tests/mutation, governance/delivery-status, governance/wave-script, prelude, cancel-superseded x2, refresh x2
+neutral: CodeQL
+skipped: tests/mutation-autofix, tests/mutation-pins, tests/nightly-ha, tests/replay, governance/delivery-status-publish, governance/record, kernel-points, arm
+in_progress: tests/closures, tests/coverage, tests/fast (3.14), governance/instrument-self-tests, codeql/Analyze (python), prelude (run 40784411505)
+failure/cancelled: none
+no pr-contract or gate run concluded on this head at read time
