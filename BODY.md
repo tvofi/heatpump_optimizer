@@ -78,30 +78,59 @@ this pull request does not touch them.
 - **V179** (triage) covers open pull requests with no owed line: #2919, #2917
   and #2906. It is not duplicated here.
 
+## Head note
+
+Round 2. Round 1 was `Fix review: blocked 33660280381756f968ee197f374e9254eecfde19
+countermeasure-silenced`: the ready ack line the tool printed parsed as a live
+`OWED-ACK`, so logging the output in the seat ledger acknowledged all 12 keys.
+Each finding is answered on the code head below:
+
+- **Blocker.** An `OWED-ACK` now counts only on a line of its own (anchored at
+  the line start, a list marker allowed), so the indented `ack:` echo is
+  refused. A reason that still holds a `<placeholder>` is refused. The printed
+  template's time slot is `<UTC>`, so it cannot parse as printed.
+  - On round 1's code, the five round-2 checks gave 3 FAIL plus a `KeyError`
+    crash.
+  - At this head, the reviewer's `ev/attacks.txt` section A replay, which is
+    `live.sh`'s echo control, gives 0 acknowledged and 12 unactioned, exit 1.
+- **Short id.** An id must be a prefix of 7 or more characters of a current
+  sha, or the whole of a non-sha ledger id such as a pid. The `#2887 1` attack
+  now covers nothing. A null control keeps a whole pid id covering its key.
+- **Malformed state entry.** An entry missing `first` or `sweeps`, or with a
+  bad type, is `UNREADABLE`, exit 2. On round 1 it was a `KeyError` with exit
+  1. This is folded in, though the review dismissed it.
+
 ## Head
 
-`b7097883936d96a122f46b1289caf4e6767d44e8`, cut from `origin/main`
-`beb570c817c4f56bb56ef0b7e5e4c46d6b1bb2b8`.
+`40cf99db4ae41cd56b634422a675a8a18b561c60` (round 1:
+`33660280381756f968ee197f374e9254eecfde19`), a fast-forward of round 1.
+`origin/main` `b6f6ceca4f0323b24171c45a2a2372ba2e2cbaaa` is already merged into
+it. It was cut from `beb570c817c4f56bb56ef0b7e5e4c46d6b1bb2b8`.
 
 ## Mutation proof
 
-`python3 -I dev/audit/rca/owed-unactioned/mutants.py .` plants 10 mutants in
-a scratch copy of `owed_unactioned.py`. The self-test kills all 10
+`python3 -I dev/audit/rca/owed-unactioned/mutants.py .` plants 15 mutants in
+a scratch copy of `owed_unactioned.py`. The self-test kills all 15
 (`dev/audit/rca/owed-unactioned/mutants_out.tsv`). The mutants, with the number
-of self-test checks each one turns red:
+of self-test checks each one turns red, out of 29:
 
 | mutant | red |
 |---|---|
-| fires one sweep late (`>=` to `>`) | 5 |
+| fires one sweep late (`>=` to `>`) | 11 |
 | an ack never lapses | 1 |
 | a stale board reads clean | 1 |
-| any ack covers any tip | 1 |
+| any ack covers any tip | 2 |
 | a re-read board counts a sweep | 1 |
-| `DISPATCH:` lines leave the family | 3 |
+| `DISPATCH:` lines leave the family | 4 |
 | a future ack is accepted | 1 |
 | an over-long ttl is accepted | 1 |
 | an unkeyable line is skipped | 1 |
-| an unreadable state starts fresh | 1 |
+| an indented `ack:` echo is an ack (round 2) | 1 |
+| a `<placeholder>` reason is accepted (round 2) | 1 |
+| a 1-character id covers a sha (round 2) | 1 |
+| a malformed state entry is read (round 2) | crash: the round-1 `KeyError` itself |
+| the template prints a live time (round 2) | 1 |
+| an unreadable state starts fresh | 2 |
 
 **It fires on the defect.**
 
@@ -114,7 +143,10 @@ of self-test checks each one turns red:
   - `triage-s7-batch49` and `r10-review-carry`, with their `DISPATCH:` lines;
   - both hidden `DESIGN-BUILD` lines.
 - `replay_out.tsv` replays the night's 31 boards. The first exits 0 and the
-  other 30 exit 1.
+  other 30 exit 1. Both replays are unchanged byte for byte at this head.
+- **Its own output is no acknowledgement.** `live_out.txt`'s echo control
+  feeds the 19:12Z run's output back as the only ack file: 0 acknowledged,
+  12 unactioned, exit 1.
 
 ## Null control
 
@@ -123,17 +155,20 @@ of self-test checks each one turns red:
 - The night replay with an acknowledgement re-taken each sweep exits 0 on 31
   of 31 boards (`replay_acked_out.tsv`).
 - The self-test's all-clear board exits 0 with 0 keys.
+- The echo control's own null control: the self-test fills in the same echoed
+  lines and gives them a time, and then both keys are acknowledged, exit 0.
 - It never goes green by skipping. These exit 2: no provenance line, a board
-  45 minutes old, an owed line it cannot key, and a corrupt state file.
+  45 minutes old, an owed line it cannot key, a corrupt state file, and a
+  malformed state entry.
 - The unmodified base: `sweep_render.py --self-test` passes 21 of 21 checks on
   main and on this head, and the session overlay renders step (5) with the
   new command.
 
 ## Figures
 
-- 21 checks, 0 failed: `python3 -I tools/audit/seat/owed_unactioned.py --self-test`
-- 10 mutants, 10 killed: `python3 -I dev/audit/rca/owed-unactioned/mutants.py .`
-- 12 keys, then 12 unactioned, then 0 with acknowledgements: `bash dev/audit/rca/owed-unactioned/live.sh . <session>/s7/ORCH-QUEUE.md <session>/seat-ledger.md`
+- 29 checks, 0 failed: `python3 -I tools/audit/seat/owed_unactioned.py --self-test`
+- 15 mutants, 15 killed: `python3 -I dev/audit/rca/owed-unactioned/mutants.py .`
+- 12 keys, then 12 unactioned, then 0 with acknowledgements, then 12 unactioned with its own output as the ack file: `bash dev/audit/rca/owed-unactioned/live.sh . <session>/s7/ORCH-QUEUE.md <session>/seat-ledger.md`
 - Night replay, 30 of 31 exit 1, mean 5.6 unactioned keys per sweep; acknowledged, 31 of 31 exit 0: `python3 -I dev/audit/rca/owed-unactioned/replay.py <session>/orch-sweep.log .` and the same with `--acked`
 - 26 owed-family lines on the 19:04Z board, 8 shown by the session board's owed block: `grep -cE '^-> ' dev/audit/rca/owed-unactioned/boards/tick-1904.txt` and `grep -E '^-> (OWED|REVIEW OWED)' dev/audit/rca/owed-unactioned/boards/tick-1904.txt | tail -8 | wc -l`
 - Owed block at line 56 of a 65-line board, mean of 32 blocks: `awk '/^== SWEEP/{if(n)print n, o; n=0; o=0} {n++} /^-- owed \(tick\)/{o=n} END{print n,o}' <session>/orch-sweep.log`
