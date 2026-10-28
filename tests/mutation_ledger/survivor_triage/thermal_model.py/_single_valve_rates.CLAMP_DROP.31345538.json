@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:_single_valve_rates CLAMP_DROP 31345538",
+  "old": "    dT_cap = headroom_k / max(dt_hours, 1e-6)",
+  "reason": "Equivalent on every reachable input (CLAMP_DROP, `max(dt_hours, 1e-6)` -> `dt_hours`), for the reason `_tank_bounded_draw`'s identical floor is: dt_hours is the step or sub-step length from `_simulate_step_single` or `simulate_trajectory_batch` (dt_hours / n_sub, n_sub >= 1), never below 1e-6 h. Survival measured by the `mutation-pins` drive of run 40574874260 at cd731ff0d1ec231db24054d197c5a86d0f9d5757 (24 drivers in play, every one whose closure holds thermal_model.py, null control NULL_COMMENT surviving every driver), shard job 122440356131: `thermal_model.py:1749 CLAMP_DROP -- lives`, on the line before it was split -- `np.maximum(0.0, p.buffer_max_temp - T_buf) / max(dt_hours, 1e-6)`, whose second site is this mutant; the split (bcffa2649) moves the clamp to its own line `headroom_k = ...` with bit-identical arithmetic, so the mutant evaluates the same expression. The split exists so this mark does not cover the clamp, which tests/features.py kills (the same drive: `1749 CLAMP_DROP -- killed by tests/features.py, but its anchor also covers a site no run killed`); `mutation-autofix` pins the clamp's own anchor.",
+  "verdict": "equivalent"
+}

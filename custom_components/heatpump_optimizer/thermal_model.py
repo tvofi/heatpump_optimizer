@@ -1753,7 +1753,8 @@ def _single_valve_rates(
         drawn, thermal_power, q_buf_loss, c_buf, T_buf, T_slab, dt_hours
     )
     dT_buf = (thermal_power - q_slab - q_buf_loss) / c_buf
-    dT_cap = np.maximum(0.0, p.buffer_max_temp - T_buf) / max(dt_hours, 1e-6)
+    headroom_k = np.maximum(0.0, p.buffer_max_temp - T_buf)
+    dT_cap = headroom_k / max(dt_hours, 1e-6)
     refused = np.maximum(0.0, dT_buf - dT_cap) * c_buf
     return q_slab, np.minimum(dT_buf, dT_cap), refused
 
@@ -3519,9 +3520,7 @@ class ThermalModel:
                         / p.emitter_design_delta_t_floored
                     )
                 if c_buf is None:
-                    c_buf = p.buffer_tank_thermal_mass
-                    if c_buf < 1e-6:
-                        c_buf = 0.04  # the step's own fallback
+                    c_buf = _buffer_capacity(p)
                 valve_row = ua_valve / c_buf
             worst = max(
                 (u_upper + p.slab_heat_transfer) / p.room_thermal_mass,
