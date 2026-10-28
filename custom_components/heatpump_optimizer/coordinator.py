@@ -249,7 +249,7 @@ from . import issues, setpoint_check
 from . import quiet_windows
 from . import price_tiles
 from .pump_mode import ModeCapability
-from .pump_signals import PumpSignals
+from .pump_signals import PumpSignals, resistive_carve_out
 from .manual_plan import (
     CHANNEL_DHW,
     CHANNEL_SPACE,
@@ -2923,17 +2923,17 @@ def _refit_disagrees(advice: Mapping[str, Any], scale: float) -> bool:
 
 
 def envelope_score(
-    params: ThermalParameters, samples: int, advice: Mapping[str, Any]
-) -> tuple[float | None, str | None]:
-    """The house grade (#65) and, when it is None, the one code saying why.
+    params: ThermalParameters,
+    samples: int,
+    advice: Mapping[str, Any],
+    config: Mapping[str, Any],
+) -> tuple[float | None, str | None, list[dict[str, Any]]]:
+    """The house grade (#65), the code saying why it is None, and its drivers.
 
-    The time constant ``envelope_thermal_mass / loss`` in hours, placed on a
-    log scale between the shortest and the longest any shipped preset
-    derives (``presets.envelope_band_hours``). ``loss`` is the model's own
-    whole-house figure, both zones with the learned split -- the one the
-    Health tab publishes (#2239) -- and the mass is the one the dynamics
-    store, slab and zones included, so the grade is the house the model
-    simulates, as measured. The codes, in precedence (#2258):
+    ``presets.house_grade``: the model's own whole-house loss, both zones
+    with the learned split -- the one the Health tab publishes (#2239) --
+    and the mass the dynamics store, against the configured type and era
+    (#2816). The codes, in precedence (#2258):
     nothing to grade; the learner still walking from its prior; a refit
     of settled evidence outside its band of the learned scale.
     """
@@ -2943,14 +2943,13 @@ def envelope_score(
     # The loss is rounded to 1e-4 kW/K, so a house with no loss reads 0.0.
     loss = _effective_house_heat_loss(params, scale)
     if loss <= 0.0 or params.envelope_thermal_mass <= 0.0:
-        return None, "no_house_model"
+        return None, "no_house_model", []
     if not house_loss_converged(samples):
-        return None, "heat_loss_learning"
+        return None, "heat_loss_learning", []
     if _refit_disagrees(advice, scale):
-        return None, "heat_loss_refit_disagrees"
-    low_h, high_h = presets.envelope_band_hours()
-    tau_h = params.envelope_thermal_mass / loss
-    return float(np.clip(np.log(tau_h / low_h) / np.log(high_h / low_h), 0.0, 1.0)) * 100.0, None
+        return None, "heat_loss_refit_disagrees", []
+    grade, drivers = presets.house_grade(params, scale, config)
+    return grade, None, drivers
 
 
 def machine_score(
@@ -2973,7 +2972,7 @@ def operation_reason(score_day: Mapping[str, Any]) -> str:
 
 
 def compose_scores(
-    envelope: tuple[float | None, str | None],
+    envelope: tuple[float | None, str | None, list[dict[str, Any]]],
     machine: tuple[float | None, str | None],
     operation: tuple[float | None, str | None],
 ) -> Scores:
@@ -2982,19 +2981,24 @@ def compose_scores(
     Envelope is the house; it stays in the breakdown. Overall is machine and
     operation only -- averaging the house in is how a DHW-only cheap-hour plan
     reads as 5/100. None is no evidence and is never 0: each None carries one
-    code in ``reasons`` (#2258), and a grade carries none.
+    code in ``reasons`` (#2258), and a grade carries none. The house grade's
+    drivers ride ``envelope_drivers`` (#2816).
     """
-    parts = {"envelope": envelope, "machine": machine, "operation": operation}
+    house = envelope[:2]
+    parts = {"envelope": house, "machine": machine, "operation": operation}
     reasons = {key: why for key, (_grade, why) in parts.items() if why is not None}
     available = [g for g, _why in (machine, operation) if g is not None]
     if not available:
         reasons["overall"] = "first_scored_day"
     return {
-        "envelope": None if envelope[0] is None else round(envelope[0], 1),
+        "envelope": None if house[0] is None else round(house[0], 1),
         "machine": None if machine[0] is None else round(machine[0], 1),
         "operation": None if operation[0] is None else round(operation[0], 1),
         "overall": round(float(np.mean(available)), 1) if available else None,
         "reasons": reasons,
+        "envelope_drivers": [
+            {"code": d["code"], "points": round(d["points"], 1)} for d in envelope[2]
+        ],
     }
 
 
@@ -10124,9 +10128,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         circuit to draw (``heat_energy.attribution``). That is stated in the
         sensor attributes rather than presented as measured.
 
-        The immersion carve-out stays METER-DRIVEN, deliberately: #1067's
+        The resistive carve-out stays METER-DRIVEN, deliberately: #1067's
         heater flags say an element is running, never how many kilowatts it
-        took, and these lines must sum to the metered energy.
+        took, and these lines must sum to the metered energy. The flags name
+        the line and ``resistive_carve_out`` measures the kWh over the latch
+        threshold, never over the plan's ask (#2729).
         """
         # No price covered the interval (#2229): the energy totals take its
         # kWh and no cost; NaN, which the ledger refuses line by line, keeps
@@ -10200,26 +10206,21 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # receipts, and the fee never contaminates the spot column the
         # contract comparison settles on.
         fee = finite_float(pending.get("grid_fee"), 0.0)
-        # T4a #11: while the immersion element runs, the draw beyond what
-        # the plan commanded is resistive heat. Its kWh are CARVED OUT of
-        # the spot line, not booked on top of it — the lines must sum to
-        # the metered energy, or every cross-line total overstates. The
-        # fee line keeps the full energy: resistive kWh pay the grid fee
-        # like any other.
-        immersion_excess = 0.0
-        if (
-            self._immersion_active
-            and sample.actual_power_kw is not None
-            and sample.actual_power_kw > planned_total
-        ):
-            immersion_excess = min(
-                energy,
-                max(
-                    0.0,
-                    (sample.actual_power_kw - planned_total) * elapsed_hours,
-                ),
-            )
-        metered = energy - immersion_excess
+        # T4a #11: resistive kWh are CARVED OUT of the spot line, not booked
+        # on top of it — the lines must sum to the metered energy, or every
+        # cross-line total overstates. The fee line keeps the full energy:
+        # resistive kWh pay the grid fee like any other.
+        ctx = getattr(self, "_ctx", self)
+        resistive_line, resistive_kwh = resistive_carve_out(
+            self._pump_signals.electric_heat,
+            latched=self._immersion_active,
+            immersion_element=ctx._config.immersion_feedback_enabled,
+            actual_kw=sample.actual_power_kw,
+            threshold_kw=float(ctx._thermal_params.max_electrical_power)
+            * IMMERSION_FACTOR,
+            hours=elapsed_hours,
+        ) or ("", 0.0)
+        metered = energy - resistive_kwh
         self._ledger.add(when, "spot", kwh=metered, sek=metered * spot)
         # T6: the same metered kWh again, partitioned by WHY the plan drew
         # them — the space share under the space slot's reason, the DHW
@@ -10239,12 +10240,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             self._ledger.add(when, f"reason:{reason}", kwh=kwh, sek=kwh * spot)
         if fee:
             self._ledger.add(when, "grid_fee", kwh=energy, sek=energy * fee)
-        if immersion_excess > 1e-6:
+        if resistive_line:
             self._ledger.add(
-                when,
-                "immersion",
-                kwh=immersion_excess,
-                sek=immersion_excess * spot,
+                when, resistive_line, kwh=resistive_kwh, sek=resistive_kwh * spot
             )
         self._schedule_ledger_save()
 
@@ -10458,8 +10456,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         return compose_scores(
             envelope_score(
                 getattr(self, "_ctx", self)._thermal_params,
-                self._house_heat_loss_samples,
-                advice,
+                self._house_heat_loss_samples, advice,
+                getattr(self, "_ctx", self)._config,
             ),
             machine_score(self._cop_baseline, self._cop_health_cusum.stat),
             (operation, None if operation is not None else operation_reason(self._score_day)),

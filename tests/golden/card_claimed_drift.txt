@@ -19,55 +19,11 @@
 #
 # The state names are the ones `node tests/card_drift.mjs --list` prints.
 #
-# claims-for: 7.0.4
+# claims-for: 7.0.5
 #
-# v7.0.4: Round-10 docs: architecture, CI and development shape at programme end. The stamp empties the list; the
+# v7.0.5: Round-10 close-out: 226 merges of audited fixes, roster batches, triage rulings and records since v7.0.4. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
-no_plan  # R10-CARD-VOICE: stylesheet text only
-no_plan_expanded  # R10-CARD-VOICE: the dialog's 14 px base (H1); stylesheet text
-plan_inline  # R10-CARD-VOICE: stylesheet text only
-plan_inline_sv  # R10-CARD-VOICE: stylesheet text only
-plan_short_window  # R10-CARD-VOICE: stylesheet text only
-custom_title_currency  # R10-CARD-VOICE: stylesheet text only
-hidden_series  # R10-CARD-VOICE: stylesheet text only
-score_open  # R10-CARD-VOICE: stylesheet text only
-expanded_plan  # R10-CARD-VOICE: the dialog's 14 px base (H1); stylesheet text
-what_if_off  # R10-CARD-VOICE: the dialog's 14 px base (H1); stylesheet text
-expanded_zoomed  # R10-CARD-VOICE: the dialog's 14 px base (H1); stylesheet text
-draft_dirty_menu_open  # R10-CARD-VOICE: the dialog's 14 px base (H1); stylesheet text
-draft_mid_drag  # R10-CARD-VOICE: the dialog's 14 px base (H1); stylesheet text
-whatif_edited  # R10-CARD-VOICE: the dialog's 14 px base (H1); stylesheet text
-whatif_weekly  # R10-CARD-VOICE: the dialog's 14 px base (H1); stylesheet text
-override_active  # R10-CARD-VOICE: the dialog's 14 px base (H1); stylesheet text
-shared_steps  # R10-CARD-VOICE: the dialog's 14 px base (H1); stylesheet text
-shared_steps_hover  # R10-CARD-VOICE: the dialog's 14 px base (H1); stylesheet text
-tooltip_hover  # R10-CARD-VOICE: the dialog's 14 px base (H1); stylesheet text
-coarse_pointer  # R10-CARD-VOICE: the dialog's 14 px base (H1); stylesheet text
-reduced_motion  # R10-CARD-VOICE: stylesheet text only
-setup_single_buffer  # R10-CARD-VOICE: the setup page's type discs, coil states and Configure buttons; the dialog's 14 px base
-setup_two_tank  # R10-CARD-VOICE: the setup page's type discs, coil states and Configure buttons; the dialog's 14 px base
-setup_coil  # R10-CARD-VOICE: the setup page's type discs, coil states and Configure buttons; the dialog's 14 px base
-advisor_page  # R10-CARD-VOICE: the dialog's 14 px base (H1); stylesheet text
-savings_page  # R10-CARD-VOICE: the receipt's text-sm fallbacks (C1); the dialog's 14 px base
-savings_empty  # R10-CARD-VOICE: the savings empty state in the card's one empty shape; the dialog's 14 px base
-health_page  # R10-CARD-VOICE: the dialog's 14 px base (H1); stylesheet text
-setup_not_published  # R10-CARD-VOICE: the dialog's 14 px base (H1); stylesheet text
-advisor_empty  # R10-CARD-VOICE: the dialog's 14 px base (H1); stylesheet text
-layout_editing_dragged  # R10-CARD-VOICE: the setup page's type discs, coil states and Configure buttons; the dialog's 14 px base
-layout_editing_tidy  # R10-CARD-VOICE: the setup page's type discs, coil states and Configure buttons; the dialog's 14 px base
-picker_open_filtered  # R10-CARD-VOICE: the setup page's type discs, coil states and Configure buttons; the dialog's 14 px base
-wood_alert  # R10-CARD-VOICE: stylesheet text only
-wood_lane  # R10-CARD-VOICE: stylesheet text only
-wood_whatif  # R10-CARD-VOICE: the dialog's 14 px base (H1); stylesheet text
-away_toggle  # R10-CARD-VOICE: the dialog's 14 px base (H1); stylesheet text
-away_return  # R10-CARD-VOICE: the dialog's 14 px base (H1); stylesheet text
-away_status  # R10-CARD-VOICE: the dialog's 14 px base (H1); stylesheet text
-history_panned  # R10-CARD-VOICE: the dialog's 14 px base (H1); stylesheet text
-history_deep_panned  # R10-CARD-VOICE: the dialog's 14 px base (H1); stylesheet text
-history_no_power  # R10-CARD-VOICE: the dialog's 14 px base (H1); stylesheet text
-history_unavailable  # R10-CARD-VOICE: the dialog's 14 px base (H1); stylesheet text
-history_pending  # R10-CARD-VOICE: the dialog's 14 px base (H1); stylesheet text
 # R10-CARD-VOICE (the owner's prototype 1, probe/card-symbols-design, and the
 # harmony study's carries, probe/card-harmony-design): 44 of the 45 states
 # move; editor_schema renders no card stylesheet and does not. Measured by
@@ -812,3 +768,16 @@ history_pending  # R10-CARD-VOICE: the dialog's 14 px base (H1); stylesheet text
 # 1. the stylesheet alone:
 
 # 2. the redrawn Setup page, on top of the stylesheet:
+
+# R10-HOUSE-GRADE (#2816): the House score row explains the grade the way it is
+# now measured -- the envelope's heat loss in W/K, corrected for thermal mass,
+# against what is typical for the configured house type and building era -- and
+# the row and hover gain a line naming what moves it off 50, from the
+# `envelope_drivers` the coordinator publishes, each with its signed points.
+# Both languages move (score.part_envelope is rewritten and the score.driver_*
+# keys are new). score_open is the state that opens the score dialog, so it is
+# the one that renders either; its house row's explanation text changes
+# whatever the fixture publishes, and the driver line and the headline's
+# parenthetical follow the fixture's own scores. The other 44 states were
+# rendered and stayed identical.
+score_open  # R10-HOUSE-GRADE (#2816): the House row's explanation rewritten and its driver line added
