@@ -1,0 +1,7 @@
+origin/main 593f57c44fa57490ed757343b9f277ef97ad5ca5
+54f5a981a78e0b7c1dfc22f384cbf139d8a1aa75
+merge-tree rc=0
+main commits touching the guide since b0b2d7697:
+(end)
+selftest_wiring: 54 self-testing, 54 wired, 0 unwired
+selftest_wiring: 0 index gap(s)
