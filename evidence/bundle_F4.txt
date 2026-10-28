@@ -1,6 +1,5 @@
-### bundle
 facts as of 2026-10-21T15:15Z: tree e7c664856776 roster 2c76c3128bf6
-verdicts on the bus: 358; outside the grammar: 0
+verdicts on the bus: 380; outside the grammar: 0
 ## all
   all                      E      PRs 83 verdicts 200 real 57 (0.69/PR) book 44 (0.53/PR) incidence 35/83 (0.42) first-pass 30/83
   all                      L      PRs 47 verdicts 84 real 7 (0.15/PR) book 30 (0.64/PR) incidence 6/47 (0.13) first-pass 20/44
@@ -54,17 +53,17 @@ verdicts on the bus: 358; outside the grammar: 0
   none                     L1     PRs 20 verdicts 35 real 2 (0.10/PR) book 17 (0.85/PR) incidence 2/20 (0.10) first-pass 7/20
   none                     S      PRs 14 verdicts 20 real 5 (0.36/PR) book 5 (0.36/PR) incidence 4/14 (0.29) first-pass 4/10
 ## size
-  L>=600                   E      PRs 30 verdicts 90 real 31 (1.03/PR) book 25 (0.83/PR) incidence 17/30 (0.57) first-pass 7/30
-  L>=600                   L      PRs 13 verdicts 26 real 1 (0.08/PR) book 12 (0.92/PR) incidence 1/13 (0.08) first-pass 4/11
-  L>=600                   P1     PRs 19 verdicts 42 real 21 (1.11/PR) book 4 (0.21/PR) incidence 11/19 (0.58) first-pass 6/19
-  L>=600                   P2     PRs 15 verdicts 48 real 10 (0.67/PR) book 21 (1.40/PR) incidence 6/15 (0.40) first-pass 1/11
-  L>=600                   L1     PRs 11 verdicts 20 real 1 (0.09/PR) book 7 (0.64/PR) incidence 1/11 (0.09) first-pass 4/9
+  L>=600                   E      PRs 32 verdicts 94 real 33 (1.03/PR) book 25 (0.78/PR) incidence 19/32 (0.59) first-pass 7/32
+  L>=600                   L      PRs 15 verdicts 30 real 1 (0.07/PR) book 15 (1.00/PR) incidence 1/15 (0.07) first-pass 4/13
+  L>=600                   P1     PRs 20 verdicts 44 real 22 (1.10/PR) book 4 (0.20/PR) incidence 12/20 (0.60) first-pass 6/20
+  L>=600                   P2     PRs 16 verdicts 50 real 11 (0.69/PR) book 21 (1.31/PR) incidence 7/16 (0.44) first-pass 1/12
+  L>=600                   L1     PRs 13 verdicts 24 real 1 (0.08/PR) book 10 (0.77/PR) incidence 1/13 (0.08) first-pass 4/11
   L>=600                   S      PRs 2 verdicts 7 real 0 (0.00/PR) book 5 (2.50/PR) incidence 0/2 (0.00) first-pass 0/2
-  M<600                    E      PRs 27 verdicts 64 real 21 (0.78/PR) book 13 (0.48/PR) incidence 13/27 (0.48) first-pass 6/27
-  M<600                    L      PRs 20 verdicts 37 real 6 (0.30/PR) book 11 (0.55/PR) incidence 5/20 (0.25) first-pass 10/20
-  M<600                    P1     PRs 14 verdicts 35 real 18 (1.29/PR) book 4 (0.29/PR) incidence 10/14 (0.71) first-pass 3/14
-  M<600                    P2     PRs 13 verdicts 29 real 3 (0.23/PR) book 9 (0.69/PR) incidence 3/13 (0.23) first-pass 3/13
-  M<600                    L1     PRs 15 verdicts 29 real 2 (0.13/PR) book 11 (0.73/PR) incidence 2/15 (0.13) first-pass 8/15
+  M<600                    E      PRs 25 verdicts 60 real 19 (0.76/PR) book 13 (0.52/PR) incidence 11/25 (0.44) first-pass 6/25
+  M<600                    L      PRs 18 verdicts 33 real 6 (0.33/PR) book 8 (0.44/PR) incidence 5/18 (0.28) first-pass 10/18
+  M<600                    P1     PRs 13 verdicts 33 real 17 (1.31/PR) book 4 (0.31/PR) incidence 9/13 (0.69) first-pass 3/13
+  M<600                    P2     PRs 12 verdicts 27 real 2 (0.17/PR) book 9 (0.75/PR) incidence 2/12 (0.17) first-pass 3/12
+  M<600                    L1     PRs 13 verdicts 25 real 2 (0.15/PR) book 8 (0.62/PR) incidence 2/13 (0.15) first-pass 8/13
   M<600                    S      PRs 9 verdicts 10 real 5 (0.56/PR) book 0 (0.00/PR) incidence 4/9 (0.44) first-pass 3/7
   S<150                    E      PRs 26 verdicts 46 real 5 (0.19/PR) book 6 (0.23/PR) incidence 5/26 (0.19) first-pass 17/26
   S<150                    L      PRs 14 verdicts 21 real 0 (0.00/PR) book 7 (0.50/PR) incidence 0/14 (0.00) first-pass 6/13
@@ -406,49 +405,3 @@ verdicts on the bus: 358; outside the grammar: 0
   local+none               P2     PRs 6 verdicts 13 real 6 (1.00/PR) book 3 (0.50/PR) incidence 4/6 (0.67) first-pass 1/6
   local+none               L1     PRs 9 verdicts 15 real 0 (0.00/PR) book 5 (0.56/PR) incidence 0/9 (0.00) first-pass 3/7
   local+none               S      PRs 0 verdicts 0 real 0 (-/PR) book 0 (-/PR) incidence 0/0 (-) first-pass 0/0
-### A112
-verdicts on the bus: 358; outside the grammar: 0
-## all
-  all                      A      PRs 112 verdicts 257 real 58 (0.52/PR) book 65 (0.58/PR) incidence 36/112 (0.32) first-pass 43/112
-## prior-merge
-  after-a-merge-verdict    A      PRs 22 verdicts 33 real 0 (0.00/PR) book 3 (0.14/PR) incidence 0/22 (0.00) first-pass 0/0
-  no-merge-yet             A      PRs 112 verdicts 224 real 58 (0.52/PR) book 62 (0.55/PR) incidence 36/112 (0.32) first-pass 43/112
-### A35
-verdicts on the bus: 358; outside the grammar: 0
-## all
-  all                      A      PRs 35 verdicts 67 real 2 (0.06/PR) book 27 (0.77/PR) incidence 2/35 (0.06) first-pass 13/32
-### L13
-verdicts on the bus: 358; outside the grammar: 0
-## all
-  all                      L13    PRs 11 verdicts 16 real 4 (0.36/PR) book 5 (0.45/PR) incidence 3/11 (0.27) first-pass 3/8
-### extended
-REAL = the study's list + claim-false, claim-refuted, control-failed, flaky-arm, null-control-false, red-at-head, regression, rule-dropped, tests-red
-verdicts on the bus: 358; outside the grammar: 0
-## all
-  all                      P1     PRs 48 verdicts 102 real 43 (0.90/PR) book 8 (0.17/PR) incidence 25/48 (0.52) first-pass 20/48
-  all                      P2     PRs 39 verdicts 98 real 19 (0.49/PR) book 31 (0.79/PR) incidence 13/39 (0.33) first-pass 10/35
-  all                      L1     PRs 39 verdicts 68 real 8 (0.21/PR) book 20 (0.51/PR) incidence 7/39 (0.18) first-pass 17/36
-  all                      S      PRs 14 verdicts 20 real 5 (0.36/PR) book 5 (0.36/PR) incidence 4/14 (0.29) first-pass 4/10
-  all                      POST   PRs 85 verdicts 186 real 32 (0.38/PR) book 56 (0.66/PR) incidence 24/85 (0.28) first-pass 31/81
-## kind
-  cloud                    P1     PRs 0 verdicts 0 real 0 (-/PR) book 0 (-/PR) incidence 0/0 (-) first-pass 0/0
-  cloud                    P2     PRs 31 verdicts 70 real 9 (0.29/PR) book 25 (0.81/PR) incidence 8/31 (0.26) first-pass 8/25
-  cloud                    L1     PRs 24 verdicts 35 real 8 (0.33/PR) book 10 (0.42/PR) incidence 7/24 (0.29) first-pass 9/20
-  cloud                    S      PRs 14 verdicts 20 real 5 (0.36/PR) book 5 (0.36/PR) incidence 4/14 (0.29) first-pass 4/10
-  cloud                    POST   PRs 62 verdicts 125 real 22 (0.35/PR) book 40 (0.65/PR) incidence 19/62 (0.31) first-pass 21/55
-  local                    P1     PRs 48 verdicts 102 real 43 (0.90/PR) book 8 (0.17/PR) incidence 25/48 (0.52) first-pass 20/48
-  local                    P2     PRs 14 verdicts 28 real 10 (0.71/PR) book 6 (0.43/PR) incidence 7/14 (0.50) first-pass 2/10
-  local                    L1     PRs 20 verdicts 33 real 0 (0.00/PR) book 10 (0.50/PR) incidence 0/20 (0.00) first-pass 8/16
-  local                    S      PRs 0 verdicts 0 real 0 (-/PR) book 0 (-/PR) incidence 0/0 (-) first-pass 0/0
-  local                    POST   PRs 34 verdicts 61 real 10 (0.29/PR) book 16 (0.47/PR) incidence 7/34 (0.21) first-pass 10/26
-### backtest
-GUARDRAIL last 30 PRs (first verdict 10-18T17:45Z..10-19T23:58Z): incidence 8/30; P(X<=8|30,0.28) = 0.528 -> ok (report-only)
-GUARDRAIL last 30 PRs (first verdict 10-18T17:56Z..10-20T02:21Z): incidence 8/30; P(X<=8|30,0.28) = 0.528 -> ok (report-only)
-GUARDRAIL last 30 PRs (first verdict 10-18T18:24Z..10-20T08:19Z): incidence 8/30; P(X<=8|30,0.28) = 0.528 -> ok (report-only)
-GUARDRAIL last 30 PRs (first verdict 10-18T18:24Z..10-20T08:19Z): incidence 8/30; P(X<=8|30,0.28) = 0.528 -> ok (report-only)
-GUARDRAIL last 30 PRs (first verdict 10-18T23:32Z..10-20T14:33Z): incidence 7/30; P(X<=7|30,0.28) = 0.368 -> ok (report-only)
-GUARDRAIL last 30 PRs (first verdict 10-18T23:32Z..10-20T14:33Z): incidence 7/30; P(X<=7|30,0.28) = 0.368 -> ok (report-only)
-GUARDRAIL last 30 PRs (first verdict 10-19T03:52Z..10-21T00:00Z): incidence 6/30; P(X<=6|30,0.28) = 0.224 -> ok (report-only)
-GUARDRAIL last 30 PRs (first verdict 10-19T08:26Z..10-21T02:39Z): incidence 5/30; P(X<=5|30,0.28) = 0.116 -> ok (report-only)
-GUARDRAIL last 30 PRs (first verdict 10-19T08:47Z..10-21T05:42Z): incidence 5/30; P(X<=5|30,0.28) = 0.116 -> ok (report-only)
-GUARDRAIL last 30 PRs (first verdict 10-19T23:12Z..10-21T12:18Z): incidence 5/30; P(X<=5|30,0.28) = 0.116 -> ok (report-only)
