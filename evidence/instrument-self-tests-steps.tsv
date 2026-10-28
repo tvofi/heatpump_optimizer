@@ -1,0 +1,92 @@
+1	success	2026-10-28T20:46:46Z	2026-10-28T20:46:47Z	Set up job
+2	success	2026-10-28T20:46:47Z	2026-10-28T20:47:04Z	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+3	success	2026-10-28T20:47:04Z	2026-10-28T20:47:05Z	Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+4	success	2026-10-28T20:47:05Z	2026-10-28T20:48:45Z	Refuse a corpus or record-mode check that survives its own deletion
+5	success	2026-10-28T20:48:45Z	2026-10-28T20:48:46Z	Show the fragment check refusing its own perturbation
+6	success	2026-10-28T20:48:46Z	2026-10-28T20:48:46Z	Show the lane-skip decision refusing every unsafe skip
+7	success	2026-10-28T20:48:46Z	2026-10-28T20:48:53Z	Show field coverage refusing each shape it exists to refuse
+8	success	2026-10-28T20:48:53Z	2026-10-28T20:48:53Z	Show the comment poster refusing every body it cannot vouch for
+9	success	2026-10-28T20:48:53Z	2026-10-28T20:48:53Z	Show the record-predicate sweep refusing its own perturbations
+10	success	2026-10-28T20:48:53Z	2026-10-28T20:52:58Z	Show the pre-PR self-check refusing its own fixtures
+11	success	2026-10-28T20:52:58Z	2026-10-28T20:53:00Z	Show the push script's decisions refusing their own fixtures
+12	success	2026-10-28T20:53:00Z	2026-10-28T20:53:31Z	Show the App push refusing its own fixtures
+13	success	2026-10-28T20:53:31Z	2026-10-28T20:53:57Z	Show the App approval refusing its own fixtures
+14	success	2026-10-28T20:53:57Z	2026-10-28T20:53:57Z	Show the merge-main bot refusing its own fixtures
+15	success	2026-10-28T20:53:57Z	2026-10-28T20:53:57Z	Show the superseded-run canceller refusing its own fixtures
+16	success	2026-10-28T20:53:57Z	2026-10-28T20:53:57Z	Show the Dependabot merge decision refusing its own fixtures
+17	success	2026-10-28T20:53:57Z	2026-10-28T20:53:58Z	Show the dependency-graph census refusing its own fixtures
+18	success	2026-10-28T20:53:58Z	2026-10-28T20:54:01Z	Show the App verdict poster refusing its own fixtures
+19	success	2026-10-28T20:54:01Z	2026-10-28T20:54:15Z	Show the verdict bus refusing its own fixtures
+20	success	2026-10-28T20:54:15Z	2026-10-28T20:54:19Z	Show the budget-raise gate refusing its own fixtures
+21	success	2026-10-28T20:54:19Z	2026-10-28T20:54:19Z	Show the CodeQL leg scope refusing every unsafe skip
+22	success	2026-10-28T20:54:19Z	2026-10-28T20:54:19Z	Show the merge fast path refusing its own fixtures
+23	success	2026-10-28T20:54:19Z	2026-10-28T20:54:19Z	Show the P3 move ledger and holdout check refusing their own fixtures
+24	success	2026-10-28T20:54:19Z	2026-10-28T20:54:20Z	Refuse a temp or machine path in a tracked script or decision
+25	success	2026-10-28T20:54:20Z	2026-10-28T20:54:22Z	Refuse a push that names the host, and an unregistered pusher
+26	success	2026-10-28T20:54:22Z	2026-10-28T20:54:22Z	Render the sweep template, and the policy re-read predicate
+27	success	2026-10-28T20:54:22Z	2026-10-28T20:54:23Z	Show the orchestrator tick deciding its own fixtures
+28	success	2026-10-28T20:54:23Z	2026-10-28T20:54:23Z	Refuse a self-testing seat instrument that no step runs
+29	success	2026-10-28T20:54:23Z	2026-10-28T20:54:27Z	Show the review-strength enumerator deciding its own fixtures
+30	success	2026-10-28T20:54:27Z	2026-10-28T20:54:28Z	Show the critical-path and flow instruments deciding their own fixtures
+31	success	2026-10-28T20:54:28Z	2026-10-28T20:54:38Z	Show the body PATCH refusing its own fixtures
+32	success	2026-10-28T20:54:38Z	2026-10-28T20:55:10Z	Show the self-tests outside tools/audit/seat/ refusing their own fixtures
+33	success	2026-10-28T20:55:10Z	2026-10-28T20:55:11Z	Show the CI watcher refusing its own fixtures
+34	success	2026-10-28T20:55:11Z	2026-10-28T20:55:13Z	Show the cloud dispatcher refusing its own fixtures
+35	success	2026-10-28T20:55:13Z	2026-10-28T20:55:46Z	Show the cloud relay refusing its own fixtures
+36	success	2026-10-28T20:55:46Z	2026-10-28T20:55:47Z	Show the obligations ledger refusing its own fixtures
+37	success	2026-10-28T20:55:47Z	2026-10-28T20:55:47Z	Show the roster queue runner refusing its own fixtures
+38	success	2026-10-28T20:55:47Z	2026-10-28T20:55:48Z	Show the owed-line reader refusing a stale board and a lapsed acknowledgement
+39	success	2026-10-28T20:55:48Z	2026-10-28T20:55:48Z	Show the detached launcher refusing its own fixtures
+40	success	2026-10-28T20:55:48Z	2026-10-28T20:55:48Z	Show the delivery-row writer refusing its own fixtures
+41	success	2026-10-28T20:55:48Z	2026-10-28T20:55:48Z	Show the failure-log reader refusing its own fixtures
+42	success	2026-10-28T20:55:48Z	2026-10-28T20:55:48Z	Show the features block refusing its own fixtures
+43	success	2026-10-28T20:55:48Z	2026-10-28T20:55:49Z	Show the handoff push and its row writer refusing their own fixtures
+44	success	2026-10-28T20:55:49Z	2026-10-28T20:55:49Z	Show the handover prompt refusing its own fixtures
+45	success	2026-10-28T20:55:49Z	2026-10-28T20:55:50Z	Show the PR merger refusing its own fixtures
+46	success	2026-10-28T20:55:50Z	2026-10-28T20:55:51Z	Show the moved-path reader refusing its own fixtures
+47	success	2026-10-28T20:55:51Z	2026-10-28T20:58:24Z	Show the PR opener (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures
+48	success	2026-10-28T20:58:24Z	2026-10-28T20:58:24Z	Show the plan table refusing its own fixtures
+49	success	2026-10-28T20:58:24Z	2026-10-28T20:58:24Z	Show the plan page refusing its own fixtures
+50	success	2026-10-28T20:58:24Z	2026-10-28T21:00:58Z	Show the PR argument builder refusing its own fixtures
+51	success	2026-10-28T21:00:58Z	2026-10-28T21:00:58Z	Show the dispatch cap refusing its own fixtures
+52	success	2026-10-28T21:00:58Z	2026-10-28T21:00:58Z	Show the proof watcher refusing its own fixtures
+53	success	2026-10-28T21:00:58Z	2026-10-28T21:00:58Z	Show the ref pruner refusing its own fixtures
+54	success	2026-10-28T21:00:58Z	2026-10-28T21:00:58Z	Show the programme pulse refusing its own fixtures
+55	success	2026-10-28T21:00:58Z	2026-10-28T21:00:59Z	Show the record-row generator refusing its own fixtures
+56	success	2026-10-28T21:00:59Z	2026-10-28T21:00:59Z	Show the resume renderer refusing its own fixtures
+57	success	2026-10-28T21:00:59Z	2026-10-28T21:00:59Z	Show the review packet refusing its own fixtures
+58	success	2026-10-28T21:00:59Z	2026-10-28T21:01:05Z	Show the roster editor refusing its own fixtures
+59	success	2026-10-28T21:01:05Z	2026-10-28T21:01:06Z	Show the roster-ops mutation harness pinning its own plants
+60	success	2026-10-28T21:01:06Z	2026-10-28T21:01:06Z	Show the ledger mutation harness pinning its own plants
+61	success	2026-10-28T21:01:06Z	2026-10-28T21:01:07Z	Show the roster library refusing its own fixtures
+62	success	2026-10-28T21:01:07Z	2026-10-28T21:01:07Z	Show the roster-sync reconciler refusing its own fixtures
+63	success	2026-10-28T21:01:07Z	2026-10-28T21:01:07Z	Show the twin-run reader refusing its own fixtures
+64	success	2026-10-28T21:01:07Z	2026-10-28T21:01:08Z	Show the seat venv recipe refusing its own fixtures
+65	success	2026-10-28T21:01:08Z	2026-10-28T21:01:08Z	Show the cloud setup profile refusing its own fixtures
+66	success	2026-10-28T21:01:08Z	2026-10-28T21:01:13Z	Show the state-doc writer refusing its own fixtures
+67	success	2026-10-28T21:01:13Z	2026-10-28T21:01:20Z	Show the tick loop refusing its own fixtures
+68	success	2026-10-28T21:01:20Z	2026-10-28T21:01:22Z	Show the heartbeat andon refusing its own fixtures
+69	success	2026-10-28T21:01:22Z	2026-10-28T21:03:56Z	Show the PR updater (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures
+70	success	2026-10-28T21:03:56Z	2026-10-28T21:03:56Z	Show the offline spy refusing its own fixtures
+71	success	2026-10-28T21:03:56Z	2026-10-28T21:03:57Z	Refuse a throwaway git repository built without the shared helper
+72	success	2026-10-28T21:03:57Z	2026-10-28T21:04:20Z	Show the merge train refusing its own fixtures
+73	success	2026-10-28T21:04:20Z	2026-10-28T21:04:20Z	Show the carry check and the queue pre-flight refusing their own fixtures
+74	success	2026-10-28T21:04:20Z	2026-10-28T21:04:22Z	Show the train launcher refusing its own fixtures
+75	success	2026-10-28T21:04:22Z	2026-10-28T21:04:23Z	Show the figure check refusing its own fixtures
+76	success	2026-10-28T21:04:23Z	2026-10-28T21:04:23Z	Show the figure census pinning its counting rule
+77	success	2026-10-28T21:04:23Z	2026-10-28T21:04:23Z	Show the pin rule refusing every probe and admitting its controls
+78	success	2026-10-28T21:04:23Z	2026-10-28T21:04:23Z	Show the GitHub REST client (tools/ci/ghapi.py) refusing its own fixtures
+79	success	2026-10-28T21:04:23Z	2026-10-28T21:04:23Z	Show the CI prelude (tools/ci/prelude.py) refusing its own fixtures
+80	success	2026-10-28T21:04:23Z	2026-10-28T21:04:23Z	Show the gate predicate (tools/ci/gate.py) refusing its own fixtures
+81	success	2026-10-28T21:04:23Z	2026-10-28T21:04:23Z	Show the gate sweep (tools/ci/sweep.py) refusing its own fixtures
+82	success	2026-10-28T21:04:23Z	2026-10-28T21:04:23Z	Show the code-scanning alert lister (tools/ci/alert_list.py) refusing its own fixtures
+83	success	2026-10-28T21:04:23Z	2026-10-28T21:04:24Z	Show the ruleset cut-over instrument (tools/ci/ruleset_cutover.py) refusing its own fixtures
+84	success	2026-10-28T21:04:24Z	2026-10-28T21:04:24Z	Show the sweep driver (tools/audit/seat/sweep_driver.py) refusing its own fixtures
+85	success	2026-10-28T21:04:24Z	2026-10-28T21:04:25Z	Show the CI probe instrument (tools/audit/seat/ci_probe.py) refusing its own fixtures
+86	success	2026-10-28T21:04:25Z	2026-10-28T21:04:25Z	Show the code-scanning wait (tools/ci/codescan_wait.py) driving alert_list over fakes
+87	cancelled	2026-10-28T21:04:25Z	2026-10-28T21:06:58Z	Show the CI predictor (tools/pr/ci_predict.py) predicting pr-contract's carry refusal
+88	skipped	2026-10-28T21:06:58Z	2026-10-28T21:06:58Z	Show the local alert lister (tools/pr/local_alerts.py) refusing its own fixtures
+89	skipped	2026-10-28T21:06:58Z	2026-10-28T21:06:58Z	Show the alert lister's mutants each refused by its self-test
+177	skipped	2026-10-28T21:06:58Z	2026-10-28T21:06:58Z	Post Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+178	success	2026-10-28T21:06:58Z	2026-10-28T21:06:58Z	Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+179	success	2026-10-28T21:06:58Z	2026-10-28T21:06:58Z	Complete job

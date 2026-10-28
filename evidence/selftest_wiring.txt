@@ -1,2 +1,0 @@
-selftest_wiring: 100 self-testing, 100 wired, 0 unwired
-rc=0
