@@ -1,73 +1,60 @@
-Design review: revise a202285df21a43e5f83601e0420d1a18c9f5e2b5 harness
+Design review: revise f0f0469294c95f39b399c1392c1d393bebc4985c class-open
 
-Reviewed: `dev/programme/designs/R10-ORCH-BEATD.md` at `design/R10-ORCH-BEATD` a202285df, round 2 of 3. I read it from a detached worktree at that SHA. Code was read at the note's base `6349205b6`. Its `tools/audit/seat/` differs from current main `6d86acc90` only in `roster_lib.py` and `state_docs.py` (the FLOW-BOARD doc), and none of the fetch lines cited moves. The round-1 verdict read was `d93e1b1f2`. Token count: not reported by this harness.
+Reviewed: `dev/programme/designs/R10-ORCH-BEATD.md` at `design/R10-ORCH-BEATD` f0f046929, round 3 of 3. I read it from a detached worktree at that SHA. Code was read at the note's base `6d86acc90`. The prior verdicts read were `d93e1b1f2` (round 1) and `810697a5a` (round 2). The spike was re-run on this host (git 2.38.1, macOS): it reproduces the note's §3 table row for row. Token count: not reported by this harness.
 
-## Round-1 points
+This is the third `revise`. By `design-review.md` there is no fourth note: the designer re-cuts to the minimal shape the fixer can start from, and these points become carries. Each point below states the fix it wants, so the re-cut can carry it as written.
 
-1. **level_set race: answered.** `level_rmw` puts the flock inside `cloud_relay.sh`, the level's owner. It also covers the second writer, `dispose` at :262, which round 1 missed. `git grep 'mv -f "$lv'` finds exactly those two sites. Test (b)1 fails today, has a null control, and has two mutants. The remaining narrower gap is a carry below.
-2. **Fetchers: the table is answered, the remedy is not** (revise point 1). The per-job checkout and fetch-site table matches the code at `6349205b6`: tick 418/643/707/1194/1559/2058, relay 190/204/313/413/427, wt_sync 26, roster_queue 110/123, and bus 443. One citation is wrong: :380 belongs to `review_freeze`, inside the handoff arm, so it is a handoff fetch, not a relay-probe one. The class assignment is sound. The `FETCH_HEAD` claim holds: the only reader is `cloud_dispatch.py`, in its own clone. Layer (i), the ref-lock retry that `handoff`, `pitch` and their children rely on, is falsified for the race that actually occurs.
-3. **Loop modes: answered.** `tick_loop.sh` without `--once`, `cloud_relay.sh pass --loop` and `state_docs.py beat` without `--once` all refuse through `beatd.py held`. Each has a null control and a per-script mutant in (b)2. `heartbeat.sh --watch` is one check, not a loop, so it needs no refusal. The wt_sync hand loop is a separate miss (revise point 4).
-4. **Handoff ahead > 20 min: shape answered, kind not wired** (revise point 2). Carrying `since=` correctly fixes round 1's suggestion, because a pass re-stamps its line.
-5. **Arm order: answered for (a)→(b), recurs for (b)→(c)** (revise point 3).
-6. **Cursor: answered.** `roster_queue.py` owns `--cursor` and `.inflight`, with per-op resolution and an `unresolved` stop. The registry serves as the dispatch consumed-set. `kind:"queue"` is gone, so `late` has one meaning, and an empty pass reads `ok`. Two edge cases are carries.
+## Round-2 points
+
+1. **Ref lock: answered in mechanism.** A retrying `git` shim on every beat job's `PATH`, measured against the two-real-fetcher race: B exits 0 with a retry, the null exits 1, and `HPO_GIT_RETRIES=0` exits 1. Inheritance through children, the `-C` skip mutant, and the dropped lock-timeout claims all hold. `git push` was also checked, as a further writer of remote-tracking refs: under the same held lock it exits 0, so the shim needs no push arm. The shim's PATH discovery is new revise point 2.
+2. **`handoff-ahead`: answered.** It is in `KINDS`, written at the iteration's end at 421, 428, 442 and 443 (cloud_relay.sh, re-read), never on an rc 0 update, and the tick prints unflagged until 1200 s with 1200/1201 fixtures. One refinement is a carry below.
+3. **Rows: answered.** The (b) rows' argv exist or land in (b), `phase` is dropped, and dispatch is `bus.sh dispatch-owed`, owned by the registry's owner. The heartbeat row's placeholder is a carry below.
+4. **Hand launches: the grep is answered, its disposition is not** (revise point 1).
+5. **(d): answered.** Merge is the only seat left. The (d1) and (d3) dismissals hold against `pulse.py:91` and `merge_train.py:721` and `:845`. The pulse attribution that (c) leaves stale is new revise point 3.
 
 ## Revise points
 
-1. **harness / architecture-unsound: `core.filesRefLockTimeout` does not survive two real concurrent fetches. Layer (i) is what §3 relies on for `handoff`, `pitch`, `update_pr.sh`, the train and the fixer worktrees.**
-   - **The reproduction** (`evidence/reflock_two_fetchers.sh` and `.out`, git 2.38.1):
-     - Fetch A holds `refs/remotes/origin/main.lock` for 3 s through a `reference-transaction` hook, then commits the new value. Fetch B starts 1 s later.
-     - With the note's `GIT_CONFIG_COUNT=2` env, B waits. It then exits **1** with `cannot lock ref 'refs/remotes/origin/main': is at <new> but expected <old>`, which is git's old-value check.
-     - Without the env, B exits 1 with `File exists`.
-   - **Effect.** The timeout changes the message and not the outcome. It helps only when a lock is freed with the ref unchanged, and that is exactly fixture (a)6, so (a)6 passes while the item-28 race persists.
-   - **Where it still bites.** The tick (fetches `origin main` at 418, 707, 1559, 2058) and state-docs still collide with `pitch`, the train, `update_pr.sh` and `wt_sync`'s full fetch, all of which update the same remote-tracking refs.
-   - **Note claims to drop or replace:** §1 row 7, §3 "Two layers close item 28", alternative 4's reason, risk 3, and §8.2.
-   - **What does work:** a retry once after rc 1, in the same race, exits 0 at the right value (the appended arm of the evidence script).
-   - **Fix wanted:** a mechanism measured against the two-real-fetcher race. Two options:
-     - a `git` shim on the beat's `PATH` that retries a fetch once on `cannot lock ref`. There is a shims precedent at `tools/audit/seat/shims`, which `roster_queue.py` already prepends, and children inherit `PATH`;
-     - or beat jobs fetch into job-private destination refspecs and read those.
-   - **Test and controls for either:** replace (a)6 with the hook fixture above. Fixed: B exits 0 and the ref equals origin. Null: no beat env, rc 1. Mutant: drop the retry or shim. State which children the mechanism reaches.
-
-2. **class-open / seam: the new `handoff-ahead` level kind misses its schema owner and the tick.**
-   - **Unknown kind refused.** `ledger.py` `KINDS` (90-95) is the one schema of level kinds. `orchestrator_tick.py:749-754` prints `REFUSED: a level line of no ledger kind` for any line outside it, flagged, every pass. The note names neither `ledger.py` nor the tick for (b).
-   - **Spurious OWED once added.** Once added as `derived`, the tick prints every line flagged `OWED:` from its first pass. The line is written at the :415 test, before the update. So every normal handoff, one that is updated in that same pass, puts a flagged OWED on the board until the next pass, and it never reaches 1200 s.
+1. **class-open: two hand runs of the `state-docs` job's script survive the beat, and the note's count does not match its own command.**
+   - **The count.** §5's command at `6d86acc90` prints 70 lines. Its launch-word filter prints **19**, not the note's 11. Eight of the 19 have no disposition (`evidence/hand_runs.txt`).
+   - **The two hand runs that write.**
+     - `dev/governance/roles/nudge.md:109`: the orchestrator runs `state_docs.py` "with its push flag" whenever the roster or PR set changes.
+     - `dev/governance/roles/standing-merge.md:13`: the merge seat, which survives (c), runs `state_docs.py --push` after each merge. That line has no launch word, so the filter cannot catch it.
+   - **Effect.** Each run pushes `handoff/audit-r<N>-plan` beside the beat's `state-docs` job, so the double-writer class of round-2 point 4 stays open. Neither run takes `orch-checkout`.
    - **Fix wanted:**
-     - add the kind to `KINDS` in (b), with `ledger.py`'s self-test;
-     - write the line only for a PR still ahead when its iteration ends: busy 75, failed, no body, or no update attempted;
-     - state what the tick prints for it before 1200 s, either filtered or escalated on `since=`, with a fixture at each side.
-   - **Test additions to (b)3:** a pass whose update succeeds leaves no `handoff-ahead` line (mutant: write at :415). (`evidence/handoff_ahead_kind.txt`)
+     - (c) rewrites both sites to "the beat's `state-docs` job runs it".
+     - Or `state_docs.py --push` takes the `state-docs` job lock while `beatd.py held`, with a failing test, a null control (lock free) and a mutant.
+     - Dispose of every line the filter prints, and widen the filter to an imperative `run`, or dispose of the whole name grep.
+     - (c)8's control covers these sites, not only the eight rewritten ones.
 
-3. **evidence plan, order: round-1 point 5 recurs between (b) and (c).**
-   - **Contradiction.** (b) says `beatd.jobs.json` "lands here with every row", and its self-test asserts every row's flags are accepted. But the `roster-queue` row's `--cursor` lands in (c), and `roster_queue.py run` has no such option at `6349205b6`. The `dispatch`, `ci-watch` and `proof-watch` jobs are listed under (c) too. (b)'s own self-test would fail at (b)'s head.
-   - **Undefined key.** The table key `phase` (`b|c`) is defined nowhere.
-   - **Not an argv.** The `dispatch` row (`bus.sh dispatch` "for each `REVIEW OWED:`…") names no argv, and no script that owns parsing the board. `beatd.py` owns only the schedule (§2), so that loop needs an owner.
+2. **architecture-unsound / harness: the shim's real-git discovery loops forever, and it reaches the orchestrator's own `git`, which the note says it does not.**
+   - **Discovery.** §3's rule, "the first `git` on `PATH` outside its own directory", compares strings. `evidence/shim_discovery.sh` and `.out` run the spike's `shims/git` (`git --version` under a 5 s timeout):
+     - one absolute copy: rc 0;
+     - a relative entry: rc 124;
+     - a trailing slash: rc 124;
+     - two copies of the shim directory: rc 124.
+
+     Each 124 is an endless `exec` loop. On a fetch, the same loop forks without end.
+   - **Reach.** `tools/audit/seat/sweep_template.md:51` tells the orchestrator to run "with `tools/audit/seat/shims` first on PATH". Once arm (a) puts `git` in that directory, every git call of the orchestrator's sweep goes through the shim. §3 says the shim "does not reach the orchestrator's hand fetches". The template's own wording, a relative path, is one of the hanging cases.
+   - **Second copy.** `roster_queue.py:95-97` prepends `<edit-checkout>/tools/audit/seat/shims`. That is a second copy whenever the edit checkout is not the beat's checkout under the same spelling.
    - **Fix wanted:**
-     - (b)'s table holds only rows whose argv exist at (b);
-     - (c) appends the other four with their flags;
-     - define `phase` or drop it;
-     - name the dispatch job's argv and the script that owns iterating the owed lines. (`evidence/arm_b_c_rows.txt`)
+     - Resolve the real git once. Either `beatd.py` exports it, or the shim skips every candidate that is itself a shim (compared canonically, or by marker) and fails rc 127 instead of looping.
+     - Either put the git shim in a directory of its own that only `beatd.py` prepends, or state and accept its reach into the sweep.
+     - (a)6 gains the four cases above. Fixed: each returns within 5 s. Mutant: the string compare.
 
-4. **class-open: a hand launch of a beat job's script survives the beat.**
-   - **The instruction.** `dev/governance/roles/nudge.md:113` tells the orchestrator: "If no sync loop is running, start one detached with `tools/audit/seat/wt_sync.sh` … Do not start a second."
-   - **Why nothing refuses it.** Under the beat, `wt-sync` is a one-shot job that runs every 900 s, so no sync loop is ever visible. `wt_sync.sh` has no loop mode for (b)2's refusal.
-   - **Why §5 missed it.** §5's hand-launch class keys on `daemonize.py` (2, 3 and 1 hits) and does not catch this line.
-   - **Fix wanted:** grep the policy corpus for every job's script name, not for `daemonize.py`. (c)'s policy text then rewrites each hand launch, `nudge.md:113` included, to "the beat runs it", with a rendered-text control. (`evidence/hand_launch_sibling.txt`)
-
-5. **harness / evidence plan: arm (d1) and (d3) are not concrete against arm (c)'s retirement.**
-   - **(d1).** (d1) builds `--seat-alive` and `DUPLICATE` for the standing seats (`pulse.py` `STANDING`: tick, merge, dispatch, roster). But (c) retires tick, roster and dispatch (carries 11, 23, 33). The tree also has no writer of a `<seat>.alive` file, nor of "one entry per seat id": the only `--alive` in the tree is `roster_queue.py`'s, which the beat replaces.
-   - **(d3).** (d3) leaves "measure the tracked writers per standing seat at main" to the fixer. Two of item 19's three writers, the roster apply and the dispatch fire, become single-instance beat jobs in (c).
+3. **class-open: after (c), `pulse.py` names retired seats.** `ARM_SEAT = {"opener": "dispatch", "state-beat": "merge"}` (pulse.py:92) and `seat_of` (201-211) prefix every STOPPED origin arm with `seat <name>:` (217-219). (c) changes `STANDING` and adds `RETIRED`, but names neither.
+   - **What (c) leaves.**
+     - A stopped opener and a stopped non-merge verdict both read `seat dispatch:`, a seat (c) retires.
+     - A stopped state-beat reads `seat merge:`, but the state docs are now the `state-docs` job.
+   - **Why it matters.** `pulse.py` is the off-host complement (§2), so the off-host alarm points at a seat that no longer exists (`evidence/pulse_arm_seat.txt`).
    - **Fix wanted:**
-     - name the seats that survive (c);
-     - give (d1)'s alive-file layout and who writes it, for those seats only;
-     - for (d3), do the measurement in the note: list each writer that remains seat-driven after (c), with file:line;
-     - wire `check` there, or record a two-word-plus dismissal per retired writer. (`evidence/arm_d.txt`)
-
-   (d2) is concrete as written.
+     - (c) routes `seat_of` through `RETIRED` to `job <name>` (and the state-beat arm to `job state-docs`), with one fixture per arm.
+     - Mutant: leave `ARM_SEAT` as it is.
+     - (c)'s pulse self-test, which compares contracts with `STANDING ∪ RETIRED`, also covers `ARM_SEAT`'s values.
 
 ## Notes for the fixer (carries)
 
-- Fixture (a)8's mutant `≥ 1260` survives the 21-min (1260 s) fixture: both alarm. Use fixtures at 1201 s and 1200 s, or a mutant the 21-min case kills, such as `> 1260`. Carry: R10-ORCH-BEATD (item dr2-ahead-boundary)
-- The confirm arm copies an existing `confirm-owed` line from a read at cloud_relay.sh:315 to its `level_set` at :337. A hand `dispose` in between is undone, and `level_rmw` does not cover that window. Check `disposed` before carrying the line, as the probe arm does at :275. Carry: R10-ORCH-BEATD (item dr2-confirm-carry-dispose)
-- The `level_rmw` holder: `STUCK_PY` (:477) is a lock probe, not a holder. The pattern to reuse is `tick_loop.sh`'s `RELAY_HOLDER` (48-60), which takes the lock and runs a child under it. Carry: R10-ORCH-BEATD (item dr2-holder-pattern)
-- An `.inflight` line re-applied after a kill can meet the killed run's `--worktree` left behind, and would then read `refused`, so the cursor advances past it. Remove the stale worktree before re-applying. Carry: R10-ORCH-BEATD (item dr2-inflight-worktree)
-- `bus.sh dispatch` appends the registry with no lock (:479). The unclassed `handoff` job's dispatch (cloud_relay.sh:452) and the `dispatch` job can both mint for one (pr, head). Add a concurrent case to (c)4, or lock the registry in `bus.sh`. Carry: R10-ORCH-BEATD (item dr2-dispatch-double-mint)
-- §3's table cites cloud_relay.sh:380 under `relay-probe`. It is `review_freeze`, called by the handoff arm. Carry: R10-ORCH-BEATD (item dr2-380-citation)
+- Triage P241 rules that `ledger.py` `review_owed` skips record and autofix PRs. The design does not contradict it: `bus.sh dispatch-owed` takes its pairs only from the board through `ledger.py owed-pairs`, and the board's `REVIEW OWED` lines are `review_owed`'s. That keeps one predicate. Do not add a second owed derivation in `bus.sh`. Add a (c)4 case: once P241 has landed, a board built from an open `record/` or autofix PR yields no dispatch. Carry: R10-ORCH-BEATD (item dr3-p241-record-skip)
+- The `heartbeat` row's argv is `heartbeat.sh --once --message "BEAT <status line>"`. Nothing expands the placeholder, and the dr1 carry says the job calls `beatd.py status` itself, which `heartbeat.sh` does not. Make the row's argv a real one: a `beatd.py heartbeat` subcommand, or a `heartbeat.sh --message-file` that a beatd pre-step writes. (b)'s every-row flag check then tests it. Carry: R10-ORCH-BEATD (item dr3-heartbeat-argv)
+- An rc 0 update that leaves the new head `nh` still not containing `hs` writes no `handoff-ahead` line, so it never alarms. Test `merge-base --is-ancestor "$hs" "$nh"` after the head read, and write the line when it fails. A failed update already writes `handoff-update`, which the tick flags at once. Say whether the 1200 s `handoff-ahead` line beside it is wanted. Carry: R10-ORCH-BEATD (item dr3-ahead-after-rc0)
+- The spike `race.sh` fails under macOS `/bin/bash` 3.2 (`e[@]: unbound variable`: `set -u` with an empty array). The beat host is a Mac. The shim itself ran there, but (a)6's fixtures must run under bash 3.2. Carry: R10-ORCH-BEATD (item dr3-bash32)
+- `orch-checkout` waits 60 s and then records `busy`, while `tick` holds the class for up to 900 s. Measure the tick's pass duration at main. If it routinely exceeds 60 s, `relay-probe` (every 120 s) goes `busy` whenever it overlaps a tick. Then either lengthen the wait or, now that the shim covers the race, drop `relay-probe` from the class. Carry: R10-ORCH-BEATD (item dr3-class-wait)

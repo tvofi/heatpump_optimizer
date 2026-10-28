@@ -1,0 +1,26 @@
+# pulse.py at 6d86acc90: a STOPPED origin arm is attributed to a seat by ARM_SEAT / seat_of
+THE STANDING SEATS (decision 0015). The four standing seats the orchestrator
+keeps alive -- tick, merge, dispatch, roster, each a contract under
+dev/governance/roles/standing-*.md -- are judged the same way. Each origin arm
+names the seat that consumes its input: opener -> dispatch, verdict -> merge
+for a merge verdict and dispatch for any other, state-beat -> merge. A seat
+STANDING = {"tick": 70, "merge": 120, "dispatch": 60, "roster": 60}
+ARM_SEAT = {"opener": "dispatch", "state-beat": "merge"}
+    """The standing seat an origin arm's owed input waits on. The verdict arm's
+    is the merge seat when its oldest owed verdict is a merge, else dispatch."""
+    if arm != "verdict":
+        return ARM_SEAT[arm]
+    heads = snap.get("open_heads") or {}
+    owed = [v for v in snap.get("verdicts") or []
+            if (h := heads.get(str(v["pr"]))) and (h.startswith(v["sha"]) or v["sha"].startswith(h))
+            and (a := _age(now, v["t"])) is not None and a > bound]
+    oldest = min(owed, key=lambda v: v["t"], default=None)
+    return "merge" if oldest and oldest["kind"] == "merge" else "dispatch"
+
+        word, detail = JUDGES[arm](snap, now, bounds[arm])
+        if word == "STOPPED":
+            detail = f"seat {seat_of(arm, snap, now, bounds[arm])}: {detail}"
+
+# note (c): STANDING = {"merge": 120} plus RETIRED for tick, dispatch, roster; ARM_SEAT and seat_of are not named.
+# After (c): opener -> 'seat dispatch' (retired); verdict, non-merge -> 'seat dispatch' (retired);
+# state-beat -> 'seat merge', while the state docs are the beat's state-docs job.

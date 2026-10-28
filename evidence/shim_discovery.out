@@ -1,0 +1,5 @@
+git version 2.38.1
+absolute, one copy (the spike's case): rc=0
+relative entry (sweep_template.md:51's wording): rc=124
+two shim copies (beatd's + roster_queue.py:95-97's): rc=124
+trailing slash: rc=124
