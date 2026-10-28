@@ -71,6 +71,13 @@ than fixed, so #2499 stays open on that residual.
 
 ## Head
 
+`ff71ecaa84183ee444b5b0abf78edfc9b78798e5` (fixer seat s11, 2026-10-28T16:20Z by `date -u`) is the authored code head: `origin/handoff/r10-buffer-store` (`e41708750`), fast-forwarded to the PR head `12510c484`, merged with `origin/main` `0b8f8b585` (clean, no conflict), merged with the bot's `17d3cf384` (`ci: pin killed mutants`, two `killed_by` rows), plus two commits that answer the reds below:
+
+- `393ded460`: `tests/structure.py --record`, `class_excess_loc` 17988 -> 17982, `recorded_at` -> `0b8f8b585`. Not this branch's code: main's immersion-latch carve `99367cbc3` (its own commit reads `class_excess_loc 18047 -> 18041`) reached the branch through the orchestrator's merge of main `2b274fe06` (head `80ddb0554`), after the branch's last record `d73b2568c`. `git merge-base --is-ancestor 99367cbc3 X` is false for `d73b2568c` and `aaf8af512` and true for `2b274fe06` and `6349205b6`. `tests/structure.py` at `12510c484` reads 17982 against the budget 17988, the same as at this head, and so it is no artefact of the `0b8f8b585` merge (`git diff --stat 12510c484 0b8f8b585 -- custom_components/` prints nothing).
+- `ff71ecaa8`: `tests/stress_budgets.json` `summer/2z/space/wood-two-tank` `ratio` 7.64 -> 2.2 (memory columns unchanged): a lowering, which takes the per-scenario budget from 22.9x to 6.6x. The commit carries the readings and the null control (see `## Red checks`).
+
+`tools/policy/budget_raise_gate.py`'s `raises_between(merge-base, HEAD)` returns no raise over the seven `*_budgets.json` at this head.
+
 `12510c484f3bde0080d97d692ce14321d6da6bf5` merges the authored code head `e41708750fc50c1da7cc302041641a96dcdde5a0` and then merges origin/main `6349205b6` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
 
 `80ddb0554d6a48a7a317e137b010cbbce0447cca` merges the authored code head `e41708750fc50c1da7cc302041641a96dcdde5a0` and then merges origin/main `2b274fe06` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
@@ -424,11 +431,13 @@ budget at `8d0a1c3f7` (`class_excess_loc` 17999, `recorded_at` 524c1896b); at `a
 
 ## Unpinned sites
 
+At `17d3cf384` `tests / mutation` (job 122800571392) refuses 9 sites this diff adds. The bot pinned two (`optimizer.py:508 RETURN_DEL` by `tests/features.py`, `thermal_model.py:1812 GUARD_OFF` by `tests/stress.py`; `17d3cf384`). Pin shards 2 and 3 at `12510c484` (jobs 122753983010, 122753982950) and both shards at `17d3cf384` (jobs 122800972785, 122800973381) read `MUTATION TABLE INCONCLUSIVE`, `the baseline is already red in tests/structure.py`. That red was the unrecorded `class_excess_loc` gain, which `393ded460` records, so the rest are owed to `mutation-autofix`'s next drive at this head. The per-site lines below give each its disposition. Where a line says "pinned by `mutation-autofix`", that is still owed, not done.
+
 - `custom_components/heatpump_optimizer/optimizer.py:508 RETURN_DEL: return q_upper + q_floor`: `_thermostat_demand_two_zone`'s return; a `pass` returns None into the router and every two-zone check raises; M16 kills the same line's sum. Pinned by `mutation-autofix`.
-- `custom_components/heatpump_optimizer/optimizer.py:536 GUARD_OFF: if mixing_valve.is_throttling(p.mixing_valve_mode):`: the router's valve gate. Killed by M1; pinned by `mutation-autofix`.
+- `custom_components/heatpump_optimizer/optimizer.py:536 GUARD_OFF: if mixing_valve.is_throttling(p.mixing_valve_mode):`: the router's valve gate. **Open, survivor on CI.** The local M1 run (below) killed it, but CI's pin drive at `12510c484` (`tests / mutation-pins (1)`, job 122753983131) reads `UNPINNED ... optimizer.py:536 GUARD_OFF -- lives` under every driver it put in play (env_drift, optimality, features, harness_headers, stress; `REACH SKIP: 0`). It needs a killing check or a survivor triage, and no tool writes either. This seat did not re-drive it: on this host `tests/features.py`'s own pin baseline timed out (`rc=124 ... 1795s`, load average 340).
 - `custom_components/heatpump_optimizer/optimizer.py:544 RETURN_DEL: return need`: the router's unvalved return; None reaches `max(0.0, required_thermal - ext_i)` and every unvalved reference raises. Pinned by `mutation-autofix`.
 - `custom_components/heatpump_optimizer/thermal_model.py:1756 CLAMP_DROP: headroom_k = np.maximum(0.0, p.buffer_max_temp - T_buf)`: `_single_valve_rates`' headroom floor. Killed by M8 through `single-zone valve: a tank above buffer_max_temp cools at its physical rate`; pinned by `mutation-autofix`.
-- `custom_components/heatpump_optimizer/thermal_model.py:1772 GUARD_OFF: if not p.two_zone_enabled:`: `_valve_draw_circuits`' zoning. Killed by M11; pinned by `mutation-autofix`.
+- `custom_components/heatpump_optimizer/thermal_model.py:1772 GUARD_OFF: if not p.two_zone_enabled:`: `_valve_draw_circuits`' zoning. **Open, survivor on CI**: the same job 122753983131 reads `thermal_model.py:1772 GUARD_OFF -- lives`, and the same disposition is owed as for 536.
 - `custom_components/heatpump_optimizer/thermal_model.py:1777 RETURN_DEL: return [(ua, flow_set, state.slab_temperature)]`: the single-zone circuit. Killed by M12; pinned by `mutation-autofix`.
 - `custom_components/heatpump_optimizer/thermal_model.py:1792 CLAMP_DROP*2: return sum(ua * max(0.0, min(tank, top) - zone) for ua, top,`: `_circuit_draw`'s floor and curve cap. Killed by M9 and M10; pinned by `mutation-autofix`.
 - `custom_components/heatpump_optimizer/thermal_model.py:1792 RETURN_DEL: return sum(ua * max(0.0, min(tank, top) - zone) for ua, top,`: None into `np.interp` raises in every valved reference. Pinned by `mutation-autofix`.
@@ -452,6 +461,13 @@ which `bcffa2649` deleted two (the folded fallback) and split one line in two.
 The 25 sites the earlier body listed at `8d0a1c3f7` are, by the same `ci_predict.py` read at `a5f40d84c`, pinned (by `mutation-autofix`'s `fc841f51d` and the rows already on main) or among the four above.
 
 ## Red checks
+
+Reds at `12510c484` and `17d3cf384`, read with `tools/audit/seat/failure_logs.sh 2887` and the jobs' own logs:
+
+- `tests / fast (3.14)`: red at `17d3cf384` (job 122800769388) and `12510c484` (job 122753882783). Two scripts failed (`2 TEST SCRIPT(S) FAILED`). (1) `tests/structure.py`: `1 metric(s) IMPROVED and not yet recorded`, `class_excess_loc 17988 17982 -6`. Answer: `393ded460` records it (see `## Head` for main's carve that earned it). (2) `tests/stress.py`: `FAIL no scenario got dramatically cheaper without a re-record [summer/2z/space/wood-two-tank at 1.9x vs recorded 7.6x ...]`, and the same check reads 2.2x at `12510c484`. `main` `f844df1fe` reads `ALL 113 STRESS CHECKS PASSED` (job 122787048782), so the branch made this scenario cheaper. Answer: `ff71ecaa8` re-records that row's ratio to 2.2, the larger of the two CI readings. Null control (`stress.stale_cheap_verdict`): (1.9, 7.64) True, while (1.9, 2.2) and (2.2, 2.2) are False and (0.6, 2.2) is True. Cheaper detector: `prepr.sh` runs `tests/structure.py` and would have named (1) at seat time. That head was the orchestrator's automatic merge of main, though, and no seat ran prepr on it. For (2) nothing cheaper exists: a whole `tests/stress.py` sweep on the table's machine is the only reading of a per-scenario ratio, and the seat's Darwin ratios do not travel.
+- `tests / mutation`: red at `17d3cf384` (job 122800571392, `9 of them added by this diff`) and `12510c484` (job 122753672794, 11). Answer: see `## Unpinned sites`. Two of the sites are CI survivors that remain open (`optimizer.py:536 GUARD_OFF`, `thermal_model.py:1772 GUARD_OFF`), so this check stays red at this head until each has a killing check or a triage. The rest are owed to `mutation-autofix` now that the structure baseline is green. Cheaper detector: `prepr.sh` step 6d's `ci_predict.py` lists the added unpinned sites. It cannot say whether a site lives, which only the drive answers.
+- `pr-contract / pr-contract` (job 122815997180): ``check `tests / fast (3.14)` is red and `## Red checks` does not name it``. Answer: named above. Cheaper detector: `prepr.sh` step 7c reads the same red history, and it was not re-run on the bot head.
+- `gate` (job 122816448024): the aggregate of the three above (`FAIL tests / fast (3.14)`, `tests / mutation`, `pr-contract / pr-contract`). It is answered by them.
 
 - **Fix review 1 rework, local reds and how each was answered**, before
   this head was pushed (no check runs at `baff727d1` yet):
