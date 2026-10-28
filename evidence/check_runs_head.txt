@@ -1,0 +1,56 @@
+CodeQL|completed|success|2026-10-25T05:49:45Z
+arch-score / arch-score|completed|success|2026-10-25T05:49:58Z
+arch-score / arch-score|completed|success|2026-10-25T06:23:50Z
+arm|completed|skipped|2026-10-25T05:48:25Z
+budget-raise-gate / budget-raise-gate|completed|success|2026-10-25T05:49:09Z
+budget-raise-gate / budget-raise-gate|completed|success|2026-10-25T06:23:03Z
+cancel-superseded|completed|success|2026-10-25T05:48:38Z
+cancel-superseded|completed|success|2026-10-25T05:48:38Z
+codeql / Analyze (actions)|completed|success|2026-10-25T05:49:52Z
+codeql / Analyze (javascript-typescript)|completed|success|2026-10-25T05:50:13Z
+codeql / Analyze (python)|completed|success|2026-10-25T06:08:04Z
+codeql|completed|skipped|2026-10-25T06:22:44Z
+gate|completed|success|2026-10-25T06:24:59Z
+gate|completed|success|2026-10-25T06:25:26Z
+governance / delivery-status-publish|completed|skipped|2026-10-25T05:48:49Z
+governance / delivery-status|completed|success|2026-10-25T05:49:15Z
+governance / env-matrix|completed|success|2026-10-25T05:54:54Z
+governance / instrument-self-tests|completed|success|2026-10-25T05:59:47Z
+governance / policy-docs|completed|success|2026-10-25T05:51:04Z
+governance / record|completed|skipped|2026-10-25T05:48:49Z
+governance / wave-script|completed|success|2026-10-25T05:49:19Z
+governance|completed|skipped|2026-10-25T06:22:44Z
+hassfest / hassfest|completed|success|2026-10-25T05:49:14Z
+hassfest|completed|skipped|2026-10-25T06:22:44Z
+kernel-points|completed|skipped|2026-10-25T05:48:49Z
+kernel-points|completed|skipped|2026-10-25T06:22:44Z
+pr-contract / pr-contract|completed|success|2026-10-25T06:21:54Z
+pr-contract / pr-contract|completed|success|2026-10-25T06:24:36Z
+prelude|completed|success|2026-10-25T05:48:48Z
+prelude|completed|success|2026-10-25T06:22:44Z
+refresh|completed|success|2026-10-25T05:48:52Z
+refresh|completed|success|2026-10-25T05:48:57Z
+tests / arch-instrument|completed|success|2026-10-25T05:50:46Z
+tests / briefs|completed|success|2026-10-25T05:49:28Z
+tests / browser|completed|success|2026-10-25T05:53:11Z
+tests / ci-ratchet|completed|skipped|2026-10-25T06:21:18Z
+tests / claims-autofix|completed|skipped|2026-10-25T06:19:37Z
+tests / closure-scope|completed|success|2026-10-25T05:49:12Z
+tests / closures-autofix|completed|skipped|2026-10-25T06:21:18Z
+tests / closures|completed|success|2026-10-25T06:21:18Z
+tests / coverage-ratchet|completed|success|2026-10-25T06:17:27Z
+tests / coverage|completed|success|2026-10-25T06:17:17Z
+tests / fast (3.14)|completed|success|2026-10-25T06:19:36Z
+tests / graders-head-copy|completed|success|2026-10-25T06:17:42Z
+tests / lane-proofs|completed|success|2026-10-25T06:19:45Z
+tests / mutation-autofix|completed|skipped|2026-10-25T06:15:20Z
+tests / mutation-pins|completed|skipped|2026-10-25T06:15:20Z
+tests / mutation|completed|success|2026-10-25T06:15:20Z
+tests / nightly-ha (2025.2.0)|completed|success|2026-10-25T05:51:27Z
+tests / nightly-ha (stable)|completed|success|2026-10-25T05:52:11Z
+tests / nightly-status|completed|success|2026-10-25T05:49:02Z
+tests / replay|completed|success|2026-10-25T05:50:59Z
+tests / typing|completed|success|2026-10-25T05:50:43Z
+tests|completed|skipped|2026-10-25T06:22:44Z
+validate / validate-hacs|completed|success|2026-10-25T05:49:35Z
+validate|completed|skipped|2026-10-25T06:22:44Z
