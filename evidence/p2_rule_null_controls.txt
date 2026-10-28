@@ -1,7 +1,4 @@
-topology.py::_rv_chained :1091 0.0 < dhw_kw <= 0.05
-topology.py::_rv_unnamed :1094 0.05
-topology.py::_rv_kwonly :1098 0.05
-topology.py::_rv_operand :1103 override > 0.05
-topology.py::_rv_spelt :1107 p > 0.05
-topology.py::_rv_lambda :1121 0.05
-RESULT hits=25
+topology.py::_plant_literal :1091 dhw_power > 0.05
+topology.py::_plant_kwdefault :1094 0.05
+topology.py::_plant_posdefault :1098 0.05
+RESULT hits=13

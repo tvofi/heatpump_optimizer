@@ -1,116 +1,105 @@
-Fix review: blocked d710a5af5bb2dd1263a5b72b77cdf8ecc011390b claim-drift: on the CI runner (tests / fast (3.14), job 121296829654) env_drift.py --all fails: the claimed away_setback and valve_storage_small_tank are STALE and valve_storage_flat_prices (4 leaves) and valve_storage_low_target (3 leaves) move unclaimed
+Fix review: blocked 734ad21fa28847281236822e7a751f9c185d236c claim-drift: on Linux the claimed dhw_cold_tank and horizon_48h do not move (2 STALE) while away_setback and valve_storage_small_tank move unclaimed (2 UNCLAIMED), env_drift.py --all rc=1
 
-bus-nonce: 3ce70f9641fb1cef85c0592f42614eba
+bus-nonce: 5ef4149d49fa41ac0f78d25654c27816
 
 ## Block
 
-This is fix-review round 3 of #2819 (R10-ARCH-SHAPES), from the cloud reviewer seat, claim `rev-2819-3ce70f96`.
+This is fix-review round 2 for #2819, from the cloud reviewer seat, claim `rev-2819-5ef4149d`. I measured head `734ad21fa28847281236822e7a751f9c185d236c` from detached worktrees on Linux x86_64 (`/opt/hpo` CI venv, numpy 2.4.6, scipy 1.17.1). `git ls-remote` showed it was still `refs/pull/2819/head` when this verdict was written. The merge base with origin/main is now `dfcd8d9be` (origin/main itself). The fixer's base `da12aa37d` was measured as well.
 
-- **Head.** `d710a5af5bb2dd1263a5b72b77cdf8ecc011390b`, measured from detached worktrees. `git ls-remote` showed it was still `refs/pull/2819/head` when this verdict was written.
-- **Merge base.** `f3ffb1c635327365841ad430ce8fad7488a02d61`, which is origin/main.
-- **Delta.** `734ad21fa..d710a5af5`: the fixer's commits `63c71616c` and `b2a55c4a9`, plus main merges.
-- **Roles.** `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` is empty, so the contract is current.
+1. **claim-drift (step 4).** I ran `PYTHONPATH=tests/hastub python3 tests/env_drift.py --all dfcd8d9be1dab28cfe52f684764befd1e19291de` at the head. It exits rc=1 (`ev/env_drift_all.txt`):
+   - The two claims `06eccb1a5` adds are `STALE claim for dhw_cold_tank` and `STALE claim for horizon_48h`. Both scenarios are byte-identical to the merge base on this box, and the tool prints the `RUNNER-CONDITIONAL CANDIDATE (#996 class)` decision tree for each.
+   - The same classifier fix moves two other scenarios here, and neither is claimed:
+     - `away_setback`: `space_reasons[40,44]` `cheap_price -> idle_coasting`, and `dhw_reasons[40,44]` `idle_other_channel -> idle_coasting` (4 leaves);
+     - `valve_storage_small_tank`: `space_reasons[77]` `scheduled -> idle_coasting` (1 leaf).
 
-**claim-drift (step 4; orchestrator ruling 3 makes CI `tests / fast` the judge).** `tests / fast (3.14)` concluded `failure` on this head. Its only failed script is `python3 tests/env_drift.py --all f3ffb1c63...` (`ev/ci_fast_script_lines_d710a5af.txt`, `ev/ci_fast_env_drift_d710a5af.txt`). On the runner:
+   This is the drift D8-s1-01's classifier change predicts: sub-running space shares the plan calls off become idle. But on Linux it lands on different scenarios from the ones the macOS arm64 run claimed. The body says every round-2 figure was taken on macOS arm64, and that its `GOLDEN_MODE=drift` run was the claim's null control. That is the dev-box reading `env_drift.py`'s #996 text says the runner overrules. Brief item 5 asked whether the claims reproduce on Linux: they do not. The fix is to follow the tool's pre-agreed decision tree, with the CI runner as judge of record:
+   - remove the two claims (or post the #996 instances);
+   - claim `away_setback` and `valve_storage_small_tank` with their direction, if the runner shows the same moves;
+   - re-run `env_drift.py --all` on Linux.
 
-- `STALE claim for away_setback: nothing drifted, remove it`
-- `STALE claim for valve_storage_small_tank: nothing drifted, remove it`
-- `DRIFT valve_storage_flat_prices: 4 leaves`, `space_reasons[28..31]` `cheap_price -> idle_coasting`
-- `DRIFT valve_storage_low_target: 3 leaves`:
-  - `space_reasons[87]` `comfort_floor -> idle`
-  - `[88]` `scheduled -> idle_coasting`
-  - `[90]` `terminal_value -> idle_coasting`
-- `2 UNCLAIMED DRIFT(S)`, plus the `RUNNER-CONDITIONAL CANDIDATE (#996 class)` text for both claims.
+   `tests / fast (3.14)` was still in progress at write time, so CI has not yet confirmed or refuted this reading. If its `env_drift --all` comes back green on this head, this block is void and the class-open below stands alone.
 
-The two claims this round added were taken from the round-2 reviewer's reading. They do not reproduce on the runner. Round 2 asked for the drift to be "re-run on Linux with the runner as judge", and this result is that re-run. The body's statements are refuted at this head:
+2. **class-open (step 6), the second block.** Location: `pump_arbiter.py::step_duty`, and `optimizer.py::HeatPumpOptimizer.get_current_action` (`dhw_heating_active`).
+   - **The claim.** The body says `optimizer.channel_heating_steps` is now the "one reader of 'does this channel heat at this step'", and that every seat answering that question from a raw draw reads the plan's running rule.
+   - **The two seats that still answer it another way.** Both test each circuit's own draw against the pump's running floor, 0.1 kW:
+     - `step_duty` uses `planned_draw_runs(space[i])` and `planned_draw_runs(dhw[i])`. This decides which duty the arbiter serves.
+     - `get_current_action` uses `dhw_power > 0.1`. That flag feeds the DHW learner's `heating_active`, the climate attributes and the payload.
+   - **Why the P2 rule misses them.** The rule spells only 0.05, so it cannot see either seat. `dhw_heating_active` is dispositioned only in the sibling `plan_running_rule` registry (D12-s2-01), as "the DHW circuit's own activity". That is the fact `channel_heating_steps` now owns.
+   - **Reviewer probe** (`ev/drivers/channel_rules.py`, my own instrument, disclosed), output in `ev/probe_channel_rules.txt`. At the head, 3 of 6 straddling steps disagree:
+     - (space 0.30, dhw 0.08): DHW is heating per `channel_heating_steps`, but `step_duty=space` and `dhw_heating_active=False`.
+     - (0.08, 0.50): space is heating, but `step_duty=dhw`.
+     - (0.08, 0.08): both channels are heating and the plan runs (0.16 > 0.1), but `step_duty=idle`.
+   - **Solver output, not only synthetic steps.** `ev/drivers/golden_split.py` over the 40 committed golden plans that carry both channels finds 7 of 3864 steps (`ev/probe_golden_split.txt`): `cycling_cost` 60, `fuse_guard` 62, `shoulder_two_zone` 84-87 and `tariff_plus_two_zone` 68. Each has a space share of 0.055-0.099 kW beside a DHW draw of 0.6-2.8 kW. On these steps:
+     - the space plan sensor says "heating now", and the slot merge counts the step;
+     - the space circulation pump, which this PR moves onto `channel_heating_steps`, runs;
+     - the arbiter serves duty `dhw` only.
 
-- "CI tests/fast on this head ... is the confirmation";
-- the #996 comment's "CI tests/fast on b2a55c4a9 confirms it".
+     That is D8-s1-01's shape on the channel axis: a plan sensor heating, the actuating seat not.
+   - **Not a regression.** Every one of these readings is the same at the base. But the body states the class closed, and neither seat is in the diff or dispositioned in the body.
+   - **To unblock**, do either of these:
+     - route `step_duty` and `dhw_heating_active` through `channel_heating_steps`, if the arbiter should serve what the plan views publish (a behaviour change that needs its own golden claim);
+     - disposition both in the `channel_active_kw` registry and the body, with the reason the arbiter's per-circuit floor is a different fact, and widen the rule to reach them.
 
-**Why claiming one reading does not converge (the cause, measured).** The drift's direction is the same in every environment: a sub-running share the plan calls off becomes idle. That matches D8-s1-01's classifier change. But the set of scenarios it lands on depends on the numeric environment, and the runner has had two numeric environments today:
-
-| environment | `numeric_probe` | `numpy_build` | non-may-drift scenarios that move |
-|---|---|---|---|
-| runner at `734ad21fa` (job 121260837344, `ev/ci_fast_env_drift_734ad21f.txt`) | `37fadb5234b8` | `ee41918c4ccd` | `valve_storage_small_tank` only |
-| this seat and the round-2 seat (cloud container, `ev/env_drift_all.txt`, rc=0 against these claims) | `37fadb5234b8` | `6411f37f1299` | `away_setback`, `valve_storage_small_tank` |
-| runner at this head (job 121296829654) | `cacff2cda4b5` | `442b5ddcb90d` | `valve_storage_flat_prices`, `valve_storage_low_target` |
-| macOS arm64 (body) | n/a | n/a | `dhw_cold_tank`, `horizon_48h` |
-
-- **The runner is not one environment.** Its two runs on this PR share `interpreter` and `platform` keys, but `numeric_probe` and `numpy_build` differ.
-- **Any fixed claim set can go STALE or UNCLAIMED on the next runner host.** That covers re-claiming the runner's latest pair as well. A third repair round of the same shape can fail the same way.
-- **This seat's Linux container is not the runner either.** The round-2 block treated it as the runner, and I reproduce its reading exactly here (`NO UNCLAIMED DRIFT`, `NO STALE FIXTURE`, rc=0). That makes it a third environment, not a confirmation.
-
-**To unblock.** This is the orchestrator's call, not a fixer repair:
-
-- either claim the runner's current pair and accept that the claim may flip on the next host;
-- or decide how a classifier change whose leaves are BLAS-host-conditional is recorded on #996, for example by naming the affected fixtures for the run, or by pinning the runner's numeric environment.
-
-Everything else this round touches is sound (Evidence). If the orchestrator rules the claim question separately, this verdict has no other block.
+Round 2 delta (`41c7f46d2..9c9d12c82`): the round-1 block itself is closed. `_plan_slots` and the sensor fallback now read the running rule, and the finder's secondary metric falls on Linux (Evidence).
 
 ## Findings
 
-- **The judge of record moved under the claim protocol.** The CI runner's `numeric_probe` changed from `37fadb5234b8` to `cacff2cda4b5` between two `tests / fast` runs on this PR on the same day. `env_drift.py`'s #996 decision tree ("the runner is the judge of record") assumes one runner reading. With two, a claim-bearing PR whose drift is BLAS-conditional cannot be made green reliably by any claim set. A cloud reviewer's Linux container is a third reading, so the round-2 advice to claim it was unsound. Carry: #996
-- **Unclaimed may-drift movers this diff causes go unrecorded in the body.** On the runner, eight may-drift fixtures moved in exactly this PR's direction (`-> idle_coasting` / `-> idle`): `direct_flow_carnot`, `shoulder_two_zone`, `valve_storage`, `valve_upper_direct_slab`, `winter_two_zone_dhw`, `wood_coil` (12 leaves), `wood_two_tank` and `wood_two_tank_smart_write`. They pass only because each holds a may-drift entry granted for an older, unrelated cause (#1207/#1208). The body names none of them. `env_drift.py` refuses to let a fixture be both claimed and may-drift, so the tool cannot record this PR's movement on them. Carry: R10-ARCH-SHAPES
-- **Unpinned sites still owed.** `tests / mutation` refuses 75 sites added by this diff (`ev/ci_mutation.txt`). `ci_predict.py` gives 74 lines, one of them `quiet_windows.py:343 CMP_BOUND*2`, which matches the body's 74-line list exactly. `tests / mutation-autofix` again ended `AUTOFIX: skip-measure-failed -- THE REPAIR DID NOT HAPPEN` (`ev/ci_mutation_autofix.txt`). The pin run, and a killing check or `survivor_triage` entry for any survivor, are still owed before merge, as the body's `## Red checks` says. Carry: R10-ARCH-SHAPES
-- **P2 rule reach, residual spellings.** With the round-3 rule, a planted `np.greater(p, 0.05)` (a ufunc call, not a Compare) and a local-bound line (`line = 0.05; p > line`) are not returned (`ev/p2_rule_null_controls.txt`). A grep of every `0.05` in `custom_components/heatpump_optimizer/*.py` finds no production instance of either spelling, so this is an instrument gap and not an open seam. Carry: R10-ARCH-SHAPES
-- **Body text.**
-  - `## Head` carries a second paragraph naming `ac87aaf9e021c148d2bfabdccc29ed3ee5e73215`, which is not an object in the repository (`git cat-file` fails).
-  - The Figures line "71 unpinned sites, listed below" is the round-2 count, beside the round-3 count of 74.
-  - The `tests / fast` red-check answer says no seat can run `env_drift.py --all` on Linux. A cloud seat can, but per the first finding its reading is not the runner's either.
+- **Instrument reach (step 14).** `tests/entities.py::_p2_match_channel_line` needs a single-op Compare whose source mentions `power|space|_kw|kw|dhw`, or a default named `threshold|*_kw`. Planted into `topology.py` (`ev/p2_rule_null_controls.txt`), it catches the literal compare, the keyword default and a `line_kw` positional default, as the body claims. It misses three spellings:
+  - a chained `0.0 < dhw_kw <= 0.05`;
+  - a default named `line`;
+  - an operand named `override`, or `draw` compared against a local line.
 
-  Carry: R10-ARCH-SHAPES
+  One such spelling exists in production and neither registry sees it: `coordinator.py` system-identification override, `"heat_pump_on": override > 0.05`. That is the pump's on flag set from 0.05 rather than `planned_draw_runs` (0.1). So is `accuracy.py::AccuracyTracker.power_ratio`, `pred > 0.05`, a sibling of the dispositioned `delivered_ratio` floor. Both predate this diff. Carry: R10-ARCH-SHAPES
+- **Round-1 carry still open (finite-float class).** `accuracy.py` `AccuracySample.from_dict.num` is still a nested float coercer with its own bool policy (`float(True)` reads 1.0). It is outside `_finite_float_coercers`' reach, and neither the diff nor the body routes it to `const.finite_float` or dispositions it. Carry: R10-ARCH-SHAPES
+- **Round-1 carry still open (unpinned sites).** `## Unpinned sites` still dispositions all 71 sites as "pinned by mutation-autofix". `ci-autofix.md`'s `mutation-autofix` pins killed mutants only, and survivor triage is never automated. `tests / mutation-autofix` was in progress at write time. Survivors among the 71, once its commit lands, owe the `## Red checks` `mutation` line their own answer. Carry: R10-ARCH-SHAPES
+- **Body text.** The "Architect note amendment" calls the two round-2 `coordinator.py` hunks "(float coercion only)". They are running-rule plumbing, not float coercion (Evidence). Carry: R10-ARCH-SHAPES
 
 ## Evidence
 
-- **Round-2 block, item 1 (claim-drift):** not fixed on the runner (Block). On this seat's container the round-2 reading reproduces exactly: `ev/env_drift_all.txt`, `CLAIMED away_setback: 4 leaves`, `CLAIMED valve_storage_small_tank: 1 leaves`, `dhw_cold_tank` / `horizon_48h` byte-identical, `NO UNCLAIMED DRIFT`, `NO STALE FIXTURE`, rc=0.
-- **Round-2 block, item 2 (class-open on `step_duty` / `dhw_heating_active`):** settled by orchestrator ruling 2. The body now dispositions both seats under "Seats that test a circuit against the pump's running floor", with the owner named (D12-s2-01, #1955). Not re-litigated.
-- **Round-2 findings, re-checked at this head.**
-  - Instrument reach: the round-3 rule (`tests/entities.py::_p2_match_channel_line`) now returns the chained, `line=`, keyword-only, `override` and `5e-2` spellings and a lambda default (`ev/p2_rule_null_controls.txt`, planted into a `topology.py` copy).
-  - `coordinator.py::_run_system_identification` now reads `planned_draw_runs(float(override))`. This is the third coordinator hunk, in scope by ruling 1. `git diff 734ad21fa d710a5af5 -- custom_components/heatpump_optimizer/coordinator.py` is that one line.
-  - `accuracy.py::AccuracyTracker.power_ratio` is dispositioned.
-  - `AccuracySample.from_dict.num` now reads `const.finite_float`.
-  - The "Architect note amendment" now calls the hunks running-rule plumbing.
-- **Mutation proof, round-3 hunks** (`ev/mutants.txt`, `ev/feat_m*.txt`), `git archive` copies of the head, `PYTHONPATH=tests/hastub python3 tests/features.py`:
-  - control `1 of 4411 FEATURE CHECKS FAILED`, the archive-only #363 `recorded_at` check;
-  - `heat_pump_on` back to `override > 0.05`: `2 of 4411`, the extra FAIL is "an experiment command under the running floor does not mark the pump on (D8-s1-01)" `[2.0 kW -> True, 0.07 kW -> True]`;
-  - `num` back to the base's bare `float()`: `2 of 4411`, the extra FAIL is "a stored sample's numbers go through const.finite_float ..." `[True used to load as 1.0]`.
+- **Finder harness**, `dev/audit/rounds/round10/D8/s1/f1_active_now.py` (sha1 `766cc95a3b886f3f70d122a167028d2313d78048`, identical at every end), on Linux with `PYTHONPATH=tests/hastub:custom_components` (`ev/f1_*.txt`):
 
-  Both are killed. I did not re-run the rule mutant in `tests/entities.py`. CI's `tests/entities.py` is `ok` at this head.
-- **Finder harness**, `dev/audit/rounds/round10/D8/s1/f1_active_now.py` (sha1 `766cc95a3b886f3f70d122a167028d2313d78048`, identical at both ends), with `PYTHONPATH=tests/hastub:custom_components` on Linux x86_64 (`ev/f1_*.txt`):
+  | end | heating_now_while_off | slot_steps_declared_off |
+  |---|---|---|
+  | `da12aa37d` | 2 | 5 |
+  | `6feac7ece` | 0 | 5 |
+  | `dfcd8d9be` (main) | 2 | 5 |
+  | head | 0 | 0 |
 
-  | end | heating_now_while_off | slot_steps_declared_off | --perturb |
-  |---|---|---|---|
-  | `da12aa37d` (fixer's base) | 2 | 5 | 0 / 5 |
-  | `f3ffb1c63` (merge base) | 2 | 5 | 0 / 5 |
-  | `734ad21fa` (round 2) | 0 | 0 | 0 / 0 |
-  | head | 0 | 0 | 0 / 0 |
+  - `snapshots=36` and `steps=192` at every end.
+  - `--perturb`: `heating_now_while_off=0` at every end, and `slot_steps_declared_off` 5/5/5/0 (untouched by design). The harness moves under its own perturbation.
+  - macOS figures (the body): base 1 and 0. Linux figures: base 2 and 5. The harness header says the counts are exact per machine/BLAS. On Linux the slot arm does measure, and it falls 5 -> 0 at this head. The round-2 class claim for the three named seams holds here.
+- **Companion**, `dev/audit/harnesses/r10_channel_running_rule.py` (`ev/companion.txt`): `da12aa37d` reads 5/5/2 (`'2 heating periods'`), `6feac7ece` reads 5/5/2, and the head reads 0/0/0 (`sensor_state=None`). `--perturb` reads 0/0/0 at every end, with `perturbed=1`. This matches the body exactly.
+- **Rule reach**, `dev/audit/harnesses/r10_channel_line_reach.py head <tree>`: 16 at `da12aa37d`, 15 at `6feac7ece`, 16 at main and 10 at the head. The site lists match the body's dispositions.
+- **Mutation proof**, re-run by me in copies of the head worktree with `tests/features.py` (`ev/mutants_features.txt`, `ev/feat_*.txt`). The control prints `ALL 4409 FEATURE CHECKS PASSED`, rc=0. Each mutant fails exactly the check the body names, `1 of 4409`:
+  - `_plan_slots` heating to `[p > 0.05 ...]`;
+  - `_async_drive_pumps` schedule to `[p > 0.05 ...]`;
+  - `classify_space_steps` `_heating_draws` line deleted;
+  - `wood_fuel_from_parts` runs to `[p > 0.05 ...]`.
 
-  `snapshots=36` and `steps=192` everywhere, and `perturbed=1` on every `--perturb` run.
-- **Companion**, `dev/audit/harnesses/r10_channel_running_rule.py` (`ev/companion.txt`):
-  - merge base: slot 5, reason 5, sensor 2 (`'2 heating periods'`);
-  - head: 0 / 0 / 0 (`sensor_state=None`);
-  - `--perturb`: 0 / 0 / 0 at both ends.
+  All four are killed. I did not re-run the `tests/entities.py` sensor and instrument mutants.
+- **Coordinator hunks (brief item 2).** `git diff 6feac7ece 9c9d12c82 -- coordinator.py` has five hunks, and none is outside the named set:
+  - the `CHANNEL_ACTIVE_KW` import removal;
+  - `_async_drive_pumps`: `schedule = channel_heating_steps(result.power_schedule, result.dhw_power_schedule)`, where `plan_commands_heat` now takes bools;
+  - `_plan_slots`: threshold parameter removed, two masks added, `shared_kwh` now gated on `other_heating`;
+  - the slot loop on `heating`;
+  - the simulator's two `other_powers=` arguments.
 
-  The three counters fall as sets, matching the body.
-- **Class enumeration**, `dev/audit/harnesses/r10_channel_line_reach.py <head rule> <tree>` (`ev/reach_*.txt`): `RESULT hits=26` at the merge base and `RESULT hits=19` at the head, which matches the body. Every head site is the owner or a body disposition.
-- **Class sweep beyond the literal.** I grepped production comparisons of power, draw or schedule values against literals other than 0.05. `coordinator.py::_detect_immersion` `_commanded_power() > 0.1` is dispositioned in `plan_running_rule`. `optimizer.py` `dhw_heating_active` falls under ruling 2. `coordinator.py::_replay_interval` `dhw_kw > 0.0 or space_kw <= 0.0` is a split-interval test on the commanded split, not the channel-heating question. No new seam was found.
-- **Architecture and structure** (`ev/structure_archscore.txt`): `STRUCTURE RATCHET PASSED`. `score.py --diff da12aa37d HEAD` and `--diff f3ffb1c63 HEAD` both give `Architecture score: dS +1.8325 IMPROVES`:
+  The behaviour change is the intended one: the space pump and slots skip steps the plan does not run.
+- **coord_footprint (ruling 2).** `tools/audit/archscore/score.py --diff da12aa37d HEAD` at the head gives `Architecture score: dS +1.8325 IMPROVES`, with:
   - duplication_copies 38 -> 35;
   - coord_footprint 2446 -> 2437;
   - params_over_10 7 -> 6;
   - layer_violations 17 -> 13;
   - private_cross_module 12 -> 10.
 
-  This matches the body. Per ruling 2, I did not block on the round-2 +1.
-- **Claims file** (`ev/claim_diff.txt`). The three-dot diff against the merge base is the two added lines only. `claims-for: 7.0.4` equals `VERSION` 7.0.4. Each line states its direction. Neither scenario is may-drift.
-- **Release stamps.** `VERSION`, the manifest and `RELEASE_NOTES.md` have an empty three-dot diff.
-- **Merge.** `git merge-tree --write-tree origin/main d710a5af5` exits rc=0 with tree `48c7263e7` and no conflict (`ev/merge_tree.txt`).
-- **#996 instance lines** (ruling 4). Comment 6402685018 exists on #996. Its "CI confirms it" line is refuted by the runner (Block).
-- **CI on this head** (check-runs API, `ev/check_runs.txt`, 42 success at write time). Red:
-  - `tests / fast (3.14)`: the Block.
-  - `tests / mutation`: the predicted unpinned-sites red, answered in the body's `## Red checks`.
-  - `tests / mutation-autofix`: skip-measure-failed, answered in the body.
-  - `governance / delivery-status`: OVERDUE on #2798, #2799, #2780, #2749, #2775, #2797, #2762 and #2795, not #2819. Its log says "This check is NOT a required context and a red here blocks no merge" (`ev/ci_delivery_status.txt`), so it is not this PR's.
-
-  `pr-contract` was still queued and `prelude` in progress, so step 11's posting condition has not concluded. No root-cause block is raised.
-- **Head SHA in the body.** `## Head` names `d710a5af5bb2dd1263a5b72b77cdf8ecc011390b`, the head I measured. I re-read it before writing.
+  `--diff dfcd8d9be HEAD` gives the same. `tests/structure.py` prints `STRUCTURE RATCHET PASSED` (`ev/structure_archscore.txt`). The merge-base figures are confirmed. Per the ruling, I did not block on the +1.
+- **Claims file (brief item 4).** Three-dot diff against `dfcd8d9be`: only the two added lines (`ev/claim_diff.txt`). `claims-for: 7.0.4` equals `VERSION` 7.0.4, and each line states its direction. Neither scenario is in the may-drift lists `env_drift.py` printed. The Linux reproduction is under Block.
+- **Release stamps.** `VERSION`, the manifest and `RELEASE_NOTES.md` are untouched (empty three-dot diff).
+- **Merge.** `git merge-tree --write-tree origin/main 734ad21fa` exits rc=0 with tree `8f9013700` and no conflict (`ev/merge_tree.txt`).
+- **CI on this head** (check-runs API, 48 runs):
+  - Green: arch-score, typing, replay, browser, briefs, env-matrix, instrument-self-tests, policy-docs, budget-raise-gate, closure-scope, hassfest, validate-hacs, wave-script, nightly-status, and mutation-pins 1-12.
+  - Red:
+    - `tests / mutation` is the predicted unpinned-sites red. The body names it and answers it by `ci_predict.py` (`ci-autofix.md`).
+    - `governance / delivery-status` is OVERDUE on #2762 and #2795 only. The log says "This check is NOT a required context and a red here blocks no merge", and this diff's row does not reach the overdue rows, so it is not this PR's.
+  - Still running: `tests / fast`, closures, coverage, mutation-autofix and codeql-python. So step 11 is not concluded for them.
+- **Head SHA in the body.** The body's `## Head` names `734ad21fa`, the head I measured.
