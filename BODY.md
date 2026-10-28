@@ -1,4 +1,4 @@
-R10-ORCH-REVIEW-PACKET, carries pass (stage `carries-open`, after #2870). This pass builds roster carry 11 (P229, `handoff-not-applied`), carry 10 (P200, the relay format in `fix-review.md`) and triage P256 (the review packet's offline refusals at the handoff). It does not build carries 7 and 9 (dispatch at the handoff ref); see `## Forward-carry`.
+R10-ORCH-REVIEW-PACKET, carries pass (stage `carries-open`, after #2870). This pass builds roster carry 11 (P229, `handoff-not-applied`), carry 10 (P200, the relay format in `fix-review.md`) and carry 12 (triage P256, the review packet's offline refusals at the handoff). It does not build carries 7 and 9 (dispatch at the handoff ref); see `## Forward-carry`.
 
 - **`tools/audit/seat/review_packet.py`**
   - New render signal `handoff-not-applied` (P229). The branch comes from the pull request `gather` already reads. When it is `fix/<t>` or `fix/<t>-pr` and `origin/handoff/<t>` exists, the render refuses if that ref's tip is not an ancestor of the head.
@@ -19,7 +19,7 @@ Refs #2717. Not closed: carries 7 and 9 stay open on this group.
 
 ## Head
 
-`b51ffa069f07814cdf0f3db0bfe5066873de2b48`. Every figure below was measured there, over `origin/main` at `b6f6ceca4f0323b24171c45a2a2372ba2e2cbaaa`.
+`d2e92490232ae946eca69d430a24208584e38d63`, the merge of `origin/main` at `b0b2d7697f8c5baaef2c082d9bf3242b57249e68` into the previous handoff `b51ffa069`. The merge was clean and changed none of this diff's seven files (`git diff --stat b51ffa069 d2e924902 --` those files prints nothing). Every figure below was re-taken at this head, over that `origin/main`, on 2026-10-28 (UTC). `origin/main` has since moved to `593f57c44fa57490ed757343b9f277ef97ad5ca5` (fetched 23:03Z); `git merge-tree --write-tree origin/main d2e924902` reports no conflict, so the head is not merged again (`fixer.md` step 6).
 
 ## Mutation proof
 
@@ -32,13 +32,13 @@ Refs #2717. Not closed: carries 7 and 9 stay open on this group.
 
 `body_push-1` and `body_push-2` replace `body_push.sh`'s refusal branch with `if false` and `!= 0` respectively, each graded by `prepr.sh --self-test`. Run with `python3 dev/audit/harnesses/r10_seat_selftests_mutants.py body_push-1 body_push-2 prepr-13`: all three KILLED, `RESULT survivors=0`. `prepr-13` is the existing mutant of that name, still killed with the new STEP_OF rows beside it.
 
-Each `body_push` mutant was also run alone, through `prepr.sh --self-test` in a throwaway worktree, to name the arm it kills. Each kills exactly its own (`420 passed, 1 failed`):
+Each `body_push` mutant was also run alone, through `prepr.sh --self-test` in a throwaway worktree of `d2e924902`, to name the arm it kills. Each kills exactly its own (`420 passed, 1 failed`):
 - `body_push-1` fails `and refuses a body the review packet's handoff refusals refuse, naming the signal and pushing nothing (P256)`;
 - `body_push-2` fails `and pushes, saying so, when the handoff refusals cannot be run (rc 3 is never a refusal)`.
 
 ## Null control
 
-At the base `b6f6ceca4`, `python3 -I tools/audit/seat/review_packet.py handoff --topic r10-orch-review-packet --body /dev/null` exits 2 with `invalid choice: 'handoff'`. The same tree's `review_packet.py --self-test` prints `31 checks, 0 failed`; none of the new rows exist there.
+At the base `b0b2d7697`, `python3 -I tools/audit/seat/review_packet.py handoff --topic r10-orch-review-packet --body /dev/null` exits 2 with `invalid choice: 'handoff'`. The same tree's `review_packet.py --self-test` prints `31 checks, 0 failed`; none of the new rows exist there.
 
 Each new rule has a null arm in `--self-test`:
 - `handoff-not-applied`: a head containing the handoff tip renders; a branch with no `handoff/<t>` ref renders; a non-`fix/` branch renders.
@@ -57,10 +57,10 @@ Both come from `handoff_not_applied("fix/r10-buffer-store-pr", <head>, {"r10-buf
 - `python3 -I tools/audit/seat/review_packet.py --self-test` → `review_packet self-test: 42 checks, 0 failed` (31 at the base).
 - `PYTHONPATH=tests/hastub bash tools/pr/prepr.sh --self-test` (`/opt/hpo/venv-ci/bin` first on PATH) → `421 passed, 0 failed`.
 - `python3 tests/structure.py` → `STRUCTURE RATCHET PASSED`.
-- `PYTHONPATH=tests/hastub python3 tests/entities.py` (the one script `tests/closure.py select` names, `MODE: SCOPED`) → `ALL 2467 ENTITY CHECKS PASSED`.
+- `PYTHONPATH=tests/hastub python3 tests/entities.py` (`/opt/hpo/venv-ci/bin` first on PATH; the image's 3.11 `python3` cannot parse its 3.12 f-strings) (the one script `tests/closure.py select` names, `MODE: SCOPED`) → `ALL 2467 ENTITY CHECKS PASSED`.
 - `node tools/policy/policy_lint.mjs --budgets`: `fixer.md` 5216 against 5216 tokens, `fix-review.md` 2447 against 2451; `node tools/policy/policy_lint.mjs` prints `TOTAL: 0 error(s) across 50 policy file(s)`.
-- Live at the head: `python3 -I tools/audit/seat/review_packet.py handoff --topic r10-orch-review-packet --body <a body naming only carry 1>` → `R10-ORCH-REVIEW-PACKET at ..., 11 carries, 10 refused`, rc 1. This body names all 11 and passes the same command at `body_push.sh`.
-- Live, #2887 now: `handoff_not_applied("fix/r10-buffer-store-pr", "17d3cf384a...", origin_handoff_tip, is_ancestor)` refuses against `handoff/r10-buffer-store` at `c40766a90`. That tip is a merge of main pushed at 19:26Z, after the PR head (11:54Z), so it is a true positive as read: a reviewer dispatched now would review a head lacking the fixer's latest handoff.
+- Live at the head: `python3 -I tools/audit/seat/review_packet.py handoff --topic r10-orch-review-packet --body <a body naming only carry 1>` → `R10-ORCH-REVIEW-PACKET at d2e92490232a, 12 carries, 11 refused`, rc 1 (the roster at `origin/handoff/audit-r10-roster` now holds 12 carries: carry 12 is P256 itself). This body names all 12 and passes the same command at `body_push.sh`.
+- Live, #2887 now (fetched 2026-10-28 22:07Z): `handoff_not_applied("fix/r10-buffer-store-pr", "a5b8603b2f...", origin_handoff_tip, is_ancestor)` gives `None`. `handoff/r10-buffer-store` is now at `91a3d6810` (20:29Z), and the PR head `a5b8603b2f` (a merge of main at 20:59Z) contains it, so a reviewer dispatched now would review the fixer's latest handoff. The refusing arm is the fixed `fdf33f466` instance above, re-run at this head with the same result.
 
 ## Approval
 
@@ -89,6 +89,7 @@ none
 - Carry 8: the `[6]`/`[7]` summary. Landed by #2870.
 - Carry 10: P200. This PR, `fix-review.md`.
 - Carry 11: P229. This PR, `handoff-not-applied`.
+- Carry 12: P256. This PR: (1) the offline refusals run at the seat's handoff push, `body_push.sh` (the push the contract calls the handoff), not in `handoff_push.sh`, which opens the PR after it; `structure` and `hot-file` run there through `review_packet.py handoff`, and `head-note` is already checked at that push by `prepr.sh --body-check`. (2) `brief-carries`, with the stated controls in `--self-test` (1-5 of 6 refused naming carry 6, passing once dispositioned; a group with no carries passes) and mutant `review_packet-3`. (3) No CI wait added. (4) The `fixer.md` step 6 sentence.
 - P213 (a repair hint on the `head-note` refusal) is not on this group's roster entry, so it is not built. It is named here so the orchestrator can append it if it still stands.
 
 ## Forward-carry
