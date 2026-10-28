@@ -1,5 +1,5 @@
-Triage batch 57 rules V183 as P269 (below) and, as P268, the owner's fourth and fifth amendments to V181 (2026-10-28T19:54:02Z and 19:59:53Z) and the owner's clarification of the fifth, together with the owner's hotfix definition. The ruling is ACCEPT narrowed, in three carries. This is the open rolling batch under V182.
-- A hotfix is a user-submitted bug touching production code, or a feature request the owner explicitly calls a hotfix (the owner's definition). Not every "Owner request" brief qualifies.
+Triage batch 57 rules V183 as P269 and V184 as P270 (below), and, as P268, the owner's fourth and fifth amendments to V181 (2026-10-28T19:54:02Z and 19:59:53Z) and the owner's clarification of the fifth, together with the owner's hotfix definition and its sixth amendment, as the owner corrected it. The ruling is ACCEPT narrowed, in three carries. This is the open rolling batch under V182.
+- A hotfix is one of five things, under the owner's definition and sixth amendment: a user-submitted bug touching production code; a feature request the owner explicitly calls a hotfix; a critical bug found in the fixing phase; a bug making main red on a required check (the owner's correction); or a CI or machinery bug that deadlocks all merges. `hotfix_by` records which rule applied, with its evidence. Not every "Owner request" brief qualifies.
 - An instrument that saves at least 12 h ranks with production.
 - Only each group's priority mapping lives in the roster. The tier order may stay in P267's `dev/audit/config/ci_priority.json`.
 
@@ -9,11 +9,11 @@ The default order is main push > CP and hotfix > production plus instruments sav
 - **R10-ORCH-ROSTER-SCHEMA: the mapping.**
   - New fields:
     - `source`: `user` means an item submitted by the owner or an end user. It is not a hotfix by itself.
-    - `hotfix`: true only for a user bug touching production code, or a request the owner explicitly calls a hotfix, cited in `hotfix_by`.
+    - `hotfix`: true only under one of the five rules: `user-production-bug`, `owner-called`, `fixing-phase-critical`, `main-red-required` or `merge-deadlock`. `hotfix_by` holds `{rule, evidence}`.
     - `savings_source`: required with `savings`.
     - The existing `class` is kept.
   - New readers `roster_lib.is_hotfix`, `touches_production`, `savings_h` and `group_class`.
-  - `append-group` requires `source`, and the validated `set-field` op refuses a hotfix the definition does not allow.
+  - `append-group` requires `source`. The validated `set-field` op refuses a hotfix with no rule or no evidence, and refuses `user-production-bug` off production.
   - Backfill: "Owner-reported", "User-reported" and "Owner request" briefs get source user.
     - R10-UX-HEALTH is a hotfix: a production UI bug report, with all three files under `custom_components/`.
     - R10-ROUND-PLAYBOOK is not a hotfix.
@@ -28,17 +28,21 @@ The default order is main push > CP and hotfix > production plus instruments sav
   - One `RECOMMENDED` tuple will hold the set. `train.sh` and the sweep default to it, and each flag gets an explicit `--no-*` switch. The mandate is read from `$STATE_DIR/mandate` and still checked by the gate at every merge.
   - `standing-merge.md` names the set by reference. That line is policy, so the group's PR merges on tvofi's approving review.
   - It is a new group, because `train.sh`'s owners are done and the live `merge_train.py` owner is the M group that already carries P267 and P268.
+- **P270 (V184, owner-approved 2026-10-28T20:28:06Z): DEFER, to the orchestrator's measurement seat, whose report amends V184.**
+  - `cloud_dispatch.py` `_prompt` (line 107) puts the PR, head and nonce in its first sentence, and repeats the head at lines 120, 123 and 130. No two seats share a prefix past that sentence.
+  - Local briefs are already stable-first: the seat preamble's line 13 marks where the variable brief starts.
+  - If the numbers clear the bar, the reorder goes to R10-FLOW-DESIGN-STAGES, the one live owner of `cloud_dispatch.py`.
 
 No product behaviour changes: the diff is one markdown file under `dev/programme/triage/`.
 
 ## Head
 
-`a22006cf41281b9786c4e43a43705a94023eba06`; the file is the whole diff against `b6f6ceca4f0323b24171c45a2a2372ba2e2cbaaa`. This head fast-forwards `9051091b6` with two commits: one adds the owner's hotfix definition and its backfill rule, and one adds P269. Batch 56 (#2931, P267) is unchanged and merges on its own verdict.
+`604d38bf64fa69ec3d34cc772891421f0b80a26d`; the file is the whole diff against `b6f6ceca4f0323b24171c45a2a2372ba2e2cbaaa`. This head fast-forwards the last pushed head `a22006cf4` with three commits: P270, the owner's sixth amendment folded into P268, and the owner's correction to its case (b). Batch 56 (#2931, P267) is unchanged and merges on its own verdict.
 
 ## Mutation proof
 
 This file's only consumer is `tools/audit/seat/roster_edit.py`'s triage gate.
-- On the committed file, `ruling_verdict` reads P268 and P269 as `ACCEPT`.
+- On the committed file, `ruling_verdict` reads P268 and P269 as `ACCEPT`, and P270 as `DEFER`.
 - The held R10-FLY-TRAIN-DEFAULTS brief, which cites `#P269`, passes. With P269's verdict rewritten to `REJECT`, it is refused, `#P269 is not an ACCEPT ruling (REJECT)`.
 - The gate passes all seven held texts citing `#P268`: the three carries, the re-pointed R10-TRAIN-OVERLAP-GRADE, R10-FLOW-WIP and R10-ORCH-LEDGER carries (which also cite `#P267`), and the R10-FLY-CANCEL-SWEEP brief (`#P266`, `#P267` and `#P268`).
 - Mutant (the verdict rewritten to `DEFER` in a copy): the R10-ORCH-ROSTER-SCHEMA carry is refused, `#P268 is not an ACCEPT ruling (DEFER)`, so the gate reads this line.
@@ -56,6 +60,7 @@ With the file absent, the same carry returns `the triage ruling dev/programme/tr
   - 11 briefs open "Owner-reported", "Owner request" or "User-reported"; 2 of them are live.
   - R10-UX-HEALTH's three files are all under `custom_components/`. R10-ROUND-PLAYBOOK's are `dev/audit/README.md` and `CLAUDE.md`.
 - `merge_train.py`: `AUTO_TRAIN_FLAGS = ("--bot-prs", "--approval-carry", "--pre-flight")`; `standing-merge.md:9` names `--overlap --bot-prs --approval-carry --skip-bad --free-holders`; `train.sh` is 398 lines.
+- `cloud_dispatch.py` `_prompt`, `sed -n 107,160p | wc -c`: 4872 bytes.
 
 ## Red checks
 
