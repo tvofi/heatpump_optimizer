@@ -7362,7 +7362,7 @@ PAGE_REJECTIONS = {
 }
 
 
-def _stored_rows(step, base):
+def _page_stored_entities(step, base):
     """The page's ``_STORED`` rows with every ``when`` gate open, each given
     a distinct stored entity."""
     rows = [
@@ -7380,7 +7380,7 @@ async def options_rejected_page_rerenders_the_clear():
     R.section("options: a rejected page re-renders what was cleared, not what was stored")
     total_rows = 0
     for step, (base, bad) in PAGE_REJECTIONS.items():
-        stored = _stored_rows(step, base)
+        stored = _page_stored_entities(step, base)
         total_rows += len(stored)
         flow = options_over(FakeEntry(data={**base, **stored}), FakeHass())
         result = await submit(flow, step, bad)
