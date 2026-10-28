@@ -66887,7 +66887,16 @@ for _dr_label, _dr_args in (
     )
 
 
-# The fold, from the coordinator's per-cycle settlement.
+# The fold, from the coordinator's per-cycle settlement. The meter read at a
+# cycle closes the interval the previous cycle's prediction governed (#2262),
+# so a settlement is two cycles half an hour apart: the first records the
+# prediction, the second folds the reading against it.
+def _dr_settle(c):
+    c._record_accuracy()
+    c._pending_prediction["when"] -= timedelta(minutes=30)
+    c._record_accuracy()
+
+
 def _dr_coord(**extra):
     c = _DrCoord(FakeHass(), _dr_entry(data={
         "tibber_token": "x", "weather_entity": "weather.home", **extra}))
@@ -66897,7 +66906,7 @@ def _dr_coord(**extra):
 
 
 _dr_cycle = _dr_coord()
-_dr_cycle._record_accuracy()
+_dr_settle(_dr_cycle)
 R.check(
     "the per-cycle settlement folds one running sample: (drawn, space asked)",
     list(_dr_cycle._accuracy.draw.samples) == [(2.3, 6.0)],
@@ -66910,14 +66919,14 @@ for _dr_label, _dr_mut in (
 ):
     _dr_c = _dr_coord()
     _dr_mut(_dr_c)
-    _dr_c._record_accuracy()
+    _dr_settle(_dr_c)
     R.check(
         f"and folds nothing under {_dr_label}",
         len(_dr_c._accuracy.draw.samples) == 0,
     )
 _dr_frost = _dr_coord()
 _dr_frost._defrost_window.close = lambda now: _DrDefrost(events=1, observed=True)
-_dr_frost._record_accuracy()
+_dr_settle(_dr_frost)
 R.check(
     "and folds nothing for an interval whose closed window saw a defrost",
     len(_dr_frost._accuracy.draw.samples) == 0,
@@ -67202,7 +67211,7 @@ def _bst_coord(**extra):
     c._current_action = {"power": 6.0, "dhw_power": 0.0}
     c._measured_power = 2.3
     _bst_pa.state_for(c).written["space_setpoint"] = (40.0, _BST_T0)
-    c._record_accuracy()
+    _dr_settle(c)
     return list(getattr(c._accuracy.draw, "commands", [None]))
 
 
