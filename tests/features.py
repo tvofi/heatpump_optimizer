@@ -18361,38 +18361,261 @@ R.check(
     f"{max(_m2.dhw_temp_trajectory[:25]):.1f}",
 )
 
-# The ledger carve-out: the immersion line comes OUT of spot, so the
-# month's lines sum to the metered energy instead of overstating it.
-_cl2 = _t2_coord()
-_cl2._immersion_active = True
-_lsample = AccuracySample(when=NOW, actual_power_kw=6.9)
+# The ledger carve-out: resistive kWh come OUT of spot, so the month's lines
+# sum to the metered energy instead of overstating it.
+#
+# R10-IMMERSION-LATCH (#2729). The carve-out is measured over the threshold
+# that tripped the LATCH -- nameplate x IMMERSION_FACTOR -- never over the
+# plan's ask: the plan under-reads a pump's own compressor draw (1.28x on the
+# owner's install), so the ask is mostly compressor and carving the excess
+# over it booked ordinary running as resistive heat. And the line names its
+# SOURCE: the pump heater flag that is on, else a declared immersion element
+# (`immersion_feedback_enabled`); no evidence, no line -- an install with no
+# element configured books nothing.
+_RL_WHEN = datetime(2026, 2, 1, 12, 0, tzinfo=UTC)
 _lpending = {
     "price": 2.5,
     "spot_price": 2.0,
     "grid_fee": 0.5,
     "space_power": 1.0,
     "dhw_power": 1.0,
-    "when": NOW,
+    "when": _RL_WHEN,
 }
-_cl2._accumulate_energy(_lsample, 0.5, _lpending)
-_lmonth = NOW.strftime("%Y-%m")
-_lspot = _cl2._ledger.line(_lmonth, "spot")
-_limm = _cl2._ledger.line(_lmonth, "immersion")
-_lfee = _cl2._ledger.line(_lmonth, "grid_fee")
+_lmonth = _RL_WHEN.strftime("%Y-%m")
+_RL_NAMEPLATE = 5.0  # _t2_coord's default max_electrical_power, kW
+_RL_THRESHOLD = _RL_NAMEPLATE * IMMERSION_FACTOR  # 5.75 kW
+_RL_LINES = ("immersion", "dhw_booster", "backup_heater")
+
+
+def _rl_book(actual_kw, plan_kw=2.0, *, latched=True, heat=None, **cfg):
+    """Book one latched interval and return its energy lines, kWh."""
+    c = _t2_coord(**cfg)
+    c._immersion_active = latched
+    if heat is not None:
+        c._pump_signals = PumpSignals(electric_heat=heat)
+    c._accumulate_energy(
+        AccuracySample(when=_RL_WHEN, actual_power_kw=actual_kw),
+        0.5,
+        {**_lpending, "space_power": plan_kw / 2, "dhw_power": plan_kw / 2},
+    )
+    return {
+        name: c._ledger.line(_lmonth, name)["kwh"]
+        for name in ("spot", "grid_fee", *_RL_LINES)
+    }, c
+
+
+# Control 1: no element configured, drawing twice its ask. The draw is over
+# the latch threshold, so the latch itself is not what refuses the line.
+_rl_none, _ = _rl_book(2 * 3.0, 3.0)
 R.check(
-    "the immersion kWh are carved out of spot, and the lines sum to the "
-    "metered energy",
-    abs(_limm["kwh"] - 2.45) < 1e-9
-    and abs(_lspot["kwh"] + _limm["kwh"] - 3.45) < 1e-9
-    and abs(_lfee["kwh"] - 3.45) < 1e-9,
-    f"spot {_lspot['kwh']:.2f} + immersion {_limm['kwh']:.2f} must equal "
-    "the 3.45 kWh metered; the fee line keeps the full energy",
+    "R10-IMMERSION-LATCH: an install with no resistive element configured "
+    "books no resistive line, however far the draw is over its ask",
+    all(_rl_none[name] == 0.0 for name in _RL_LINES)
+    and abs(_rl_none["spot"] - 3.0) < 1e-9,
+    repr(_rl_none),
+)
+
+# Control 2: a configured booster, flag on -- only the draw over the latch
+# threshold, under its own line, and the partition still sums to the meter.
+_rl_boost, _cl2 = _rl_book(
+    6.9, 2.0, heat=pump_signals.PumpElectricHeat(dhw_booster=True)
+)
+R.check(
+    "R10-IMMERSION-LATCH: a booster flag on books only the draw over the "
+    "latch threshold, under the booster's own line",
+    abs(_rl_boost["dhw_booster"] - (6.9 - _RL_THRESHOLD) * 0.5) < 1e-9
+    and _rl_boost["immersion"] == _rl_boost["backup_heater"] == 0.0
+    and abs(_rl_boost["spot"] + _rl_boost["dhw_booster"] - 3.45) < 1e-9
+    and abs(_rl_boost["grid_fee"] - 3.45) < 1e-9,
+    f"{_rl_boost!r}: spot + booster must equal the 3.45 kWh metered, and the "
+    "fee line keeps the full energy",
+)
+_rl_backup, _ = _rl_book(
+    6.9, 2.0, heat=pump_signals.PumpElectricHeat(backup_heater=True)
+)
+R.check(
+    "R10-IMMERSION-LATCH: a backup-heater flag on books under its own line",
+    abs(_rl_backup["backup_heater"] - (6.9 - _RL_THRESHOLD) * 0.5) < 1e-9
+    and _rl_backup["immersion"] == _rl_backup["dhw_booster"] == 0.0,
+    repr(_rl_backup),
+)
+_rl_declared, _ = _rl_book(6.9, 2.0, immersion_feedback_enabled=True)
+R.check(
+    "R10-IMMERSION-LATCH: a declared immersion element books the same "
+    "threshold excess when no pump heater flag is on",
+    abs(_rl_declared["immersion"] - (6.9 - _RL_THRESHOLD) * 0.5) < 1e-9
+    and _rl_declared["dhw_booster"] == _rl_declared["backup_heater"] == 0.0,
+    repr(_rl_declared),
+)
+_rl_off, _ = _rl_book(
+    6.9,
+    2.0,
+    heat=pump_signals.PumpElectricHeat(dhw_booster=False, backup_heater=False),
+)
+R.check(
+    "R10-IMMERSION-LATCH: configured flags reading off book nothing -- the "
+    "draw over the threshold is then the compressor's, not an element's",
+    all(_rl_off[name] == 0.0 for name in _RL_LINES)
+    and abs(_rl_off["spot"] - 3.45) < 1e-9,
+    repr(_rl_off),
+)
+_rl_both, _ = _rl_book(
+    6.9,
+    2.0,
+    heat=pump_signals.PumpElectricHeat(dhw_booster=True, backup_heater=True),
+)
+R.check(
+    "R10-IMMERSION-LATCH: both heater flags on refuses the line -- the "
+    "kilowatts cannot be apportioned between them",
+    all(_rl_both[name] == 0.0 for name in _RL_LINES),
+    repr(_rl_both),
+)
+
+# Control 3 (the null): flat draw at or below nameplate books zero, with the
+# flag on and the latch held -- the only difference from Control 2's row.
+_rl_flat, _ = _rl_book(
+    _RL_NAMEPLATE, 2.0, heat=pump_signals.PumpElectricHeat(dhw_booster=True)
+)
+_rl_under, _ = _rl_book(
+    _RL_NAMEPLATE - 1.0, 2.0, heat=pump_signals.PumpElectricHeat(dhw_booster=True)
+)
+R.check(
+    "R10-IMMERSION-LATCH null: a flat draw at or below nameplate books zero, "
+    "flag on and latched",
+    all(_rl_flat[name] == 0.0 for name in _RL_LINES)
+    and all(_rl_under[name] == 0.0 for name in _RL_LINES)
+    and abs(_rl_flat["spot"] - 2.5) < 1e-9
+    and abs(_rl_under["spot"] - 2.0) < 1e-9,
+    f"at nameplate {_rl_flat!r}, under it {_rl_under!r}",
+)
+_rl_unlatched, _ = _rl_book(
+    6.9, 2.0, latched=False, heat=pump_signals.PumpElectricHeat(dhw_booster=True)
+)
+R.check(
+    "R10-IMMERSION-LATCH: the latch is the gate -- an unlatched interval "
+    "with the booster flag on books no line",
+    all(_rl_unlatched[name] == 0.0 for name in _RL_LINES),
+    repr(_rl_unlatched),
+)
+
+# The carve's own contract, at each of its three refusal bounds: the draw AT
+# the threshold, zero hours and a zero threshold each book nothing (None, not
+# a zero-kWh line), while one step past each bound books -- the null that
+# shows the inputs are otherwise bookable.
+_rl_heat = pump_signals.PumpElectricHeat(dhw_booster=True)
+
+
+def _rl_carve(actual_kw=6.9, threshold_kw=_RL_THRESHOLD, hours=0.5):
+    return pump_signals.resistive_carve_out(
+        _rl_heat,
+        latched=True,
+        immersion_element=False,
+        actual_kw=actual_kw,
+        threshold_kw=threshold_kw,
+        hours=hours,
+    )
+
+
+_rl_bounds = {
+    "at threshold": _rl_carve(actual_kw=_RL_THRESHOLD),
+    "zero hours": _rl_carve(hours=0.0),
+    "zero threshold": _rl_carve(threshold_kw=0.0),
+}
+_rl_past = {
+    "over threshold": _rl_carve(actual_kw=_RL_THRESHOLD + 0.5),
+    "some hours": _rl_carve(hours=0.25),
+    "some threshold": _rl_carve(threshold_kw=1.0),
+}
+R.check(
+    "R10-IMMERSION-LATCH: the carve refuses at its bounds -- a draw at the "
+    "threshold, zero hours and a zero threshold book no line; one step past "
+    "each books under the flag's line",
+    all(v is None for v in _rl_bounds.values())
+    and all(v is not None and v[0] == "dhw_booster" and v[1] > 0.0
+            for v in _rl_past.values()),
+    f"bounds {_rl_bounds!r} past {_rl_past!r}",
+)
+
+# A carve under any epsilon is still a partition: what left the spot line is
+# on the flag's line, so the lines sum to the meter however small the excess.
+_RL_TINY_KW = 1e-6
+_rl_tiny, _ = _rl_book(_RL_THRESHOLD + _RL_TINY_KW, 2.0, heat=_rl_heat)
+R.check(
+    "R10-IMMERSION-LATCH: a carve smaller than any epsilon is booked, so "
+    "spot plus the resistive line still equals the metered kWh",
+    abs(_rl_tiny["spot"] + _rl_tiny["dhw_booster"]
+        - (_RL_THRESHOLD + _RL_TINY_KW) * 0.5) < 1e-12
+    and _rl_tiny["dhw_booster"] > 0.0,
+    repr(_rl_tiny),
+)
+
+# The new lines are metered energy like `immersion`: the one energy figure
+# every contract settles on, and the closed month's receipt, must both count
+# them, or a booster month loses its resistive kWh from every total.
+from heatpump_optimizer.ledger import freeze_month_report as _rl_freeze  # noqa: E402
+
+_rl_metered = _cl2._ledger.metered_energy(_lmonth)
+_rl_receipt = _rl_freeze(
+    _cl2._ledger, _lmonth, compressor_starts=0, contract_comparison={}
+)
+R.check(
+    "R10-IMMERSION-LATCH: every resistive line is metered energy -- the "
+    "contract settlement and the receipt both fold it back in",
+    abs(_rl_metered["kwh"] - 3.45) < 1e-9
+    and abs(_rl_receipt["total_kwh"] - 3.45) < 1e-6,
+    f"metered {_rl_metered!r} receipt total {_rl_receipt['total_kwh']!r}",
+)
+
+
+# The brief's "effect on savings: none in total" (#2729), as a null control:
+# the SAME interval booked twice, differing only in whether a booster flag is
+# on. The carve-out is a PARTITION of the spot line, so the savings lines and
+# the energy totals must not move at all while the partition does. Priced at
+# one flat spot, so the claim is volume-only.
+def _rl_savings(heat=None):
+    c = _t2_coord()
+    c._immersion_active = True
+    if heat is not None:
+        c._pump_signals = PumpSignals(electric_heat=heat)
+    c._accumulate_energy(
+        AccuracySample(when=_RL_WHEN, actual_power_kw=6.9),
+        0.5,
+        {**_lpending, "baseline_kw": 3.0},
+    )
+    return (
+        c._ledger.line(_lmonth, "savings_actual")["kwh"],
+        c._ledger.line(_lmonth, "savings_actual")["sek"],
+        c._ledger.line(_lmonth, "savings_baseline")["kwh"],
+        c._energy_totals["total_energy_kwh"],
+        c._ledger.line(_lmonth, "spot")["kwh"],
+    )
+
+
+_rl_sav_off = _rl_savings()
+_rl_sav_on = _rl_savings(pump_signals.PumpElectricHeat(dhw_booster=True))
+R.check(
+    "R10-IMMERSION-LATCH null: the carve-out only relabels -- with the "
+    "booster flag on, savings_actual, the thermostat baseline and the energy "
+    "totals are identical to the same interval with no element, while the "
+    "spot line is not",
+    _rl_sav_off[:4] == _rl_sav_on[:4]
+    and abs(_rl_sav_off[4] - _rl_sav_on[4]) > 0.5,
+    f"off {_rl_sav_off!r} on {_rl_sav_on!r}",
+)
+# The four controls' measured lines, on the pass as well as the fail: a body
+# citing these values names this suite as the command that printed them.
+print(
+    "  R10-IMMERSION-LATCH controls:"
+    f" no element {_rl_none}"
+    f" booster {_rl_boost}"
+    f" flat at nameplate {_rl_flat}"
+    f" savings off {_rl_sav_off} on {_rl_sav_on}"
 )
 import homeassistant.util.dt as _dt_mod_led
 
 _real_now_led = _dt_mod_led.now
 try:
-    _dt_mod_led.now = lambda: NOW  # the settlement reads "this month"
+    _dt_mod_led.now = lambda: _RL_WHEN  # the settlement reads "this month"
     _settled_kwh = _cl2._contract_comparison()["kwh"]
 finally:
     _dt_mod_led.now = _real_now_led
@@ -18400,14 +18623,6 @@ R.check(
     "the contract settlement folds the carved-out kWh back in",
     abs(_settled_kwh - 3.45) < 1e-3,
     "the comparison settles ALL metered energy, however it is lined",
-)
-_cl3 = _t2_coord()
-_cl3._accumulate_energy(_lsample, 0.5, dict(_lpending))
-R.check(
-    "with the element off the spot line carries everything and no "
-    "immersion line appears",
-    abs(_cl3._ledger.line(_lmonth, "spot")["kwh"] - 3.45) < 1e-9
-    and _cl3._ledger.line(_lmonth, "immersion")["kwh"] == 0.0,
 )
 
 # --- #12 the compressor-health watch --------------------------------------------------
@@ -21378,6 +21593,12 @@ R.check(
 )
 _ci = _t2_coord()
 _ci._immersion_active = True
+# A booster flag on, so #2729's carve-out runs and the partition below is the
+# relation it claims to pin: with no element nothing is carved and the check
+# would hold vacuously.
+_ci._pump_signals = PumpSignals(
+    electric_heat=pump_signals.PumpElectricHeat(dhw_booster=True)
+)
 _ci._accumulate_energy(
     AccuracySample(when=_T6, actual_power_kw=6.9), 0.5, dict(_ct_pending)
 )
@@ -40296,6 +40517,41 @@ R.check(
     isinstance(_sp_cf, _sp_repairs.DhwSetpointRepairFlow),
 )
 
+# #2805: Fix writes the floor rounded UP to the entity's step, in the entity's
+# own unit, so a hand-set fractional floor is never written below itself. An
+# off-step write is snapped by the entity, and a °F entity's whole-degree step
+# is 0.556 K: 48.05 °C written as 118.5 °F lands at 118 °F = 47.78 °C.
+def _sp_step_value(floor_c, state, unit=None, step=None):
+    attrs = {"unit_of_measurement": unit} if unit else {}
+    if step is not None:
+        attrs["step"] = step
+    c = _sp_coord(
+        {"number.dhw_sp": FakeState(state, unit=unit, attributes=attrs)},
+        **{_SP_DHW_ENT: "number.dhw_sp"},
+    )
+    c._thermal_params.dhw_legionella_temp = floor_c
+    _sp_evaluate(c)
+    raised = _sp_issues(c, _SP_ISSUE_DHW)
+    return raised[0][2].get("data", {}).get("value") if raised else None
+
+
+_sp_steps = {
+    "degF step 1": (_sp_step_value(48.05, "100", "°F", 1), 119),
+    "degC step 1": (_sp_step_value(48.05, "40", "°C", 1), 49),
+    "degC step 0.5": (_sp_step_value(48.05, "40", "°C", 0.5), 48.5),
+    "null degF on-step": (_sp_step_value(60.0, "100", "°F", 1), 140),
+    "null degC on-step": (_sp_step_value(60.0, "40", "°C", 1), 60),
+}
+R.check(
+    "#2805: a fractional disinfection floor is written up to the entity's "
+    "step in its own unit; an on-step floor writes unchanged",
+    all(
+        got is not None and abs(got - want) < 1e-6
+        for got, want in _sp_steps.values()
+    ),
+    repr(_sp_steps),
+)
+
 _sp_clim_fix = _sp_coord(
     {"climate.dhw": FakeState("heat", attributes={"temperature": 50.0})},
     **{_SP_DHW_ENT: "climate.dhw"},
@@ -41168,16 +41424,29 @@ R.check(
 )
 _sv_imm = _t2_coord()
 _sv_imm._immersion_active = True
+# A booster flag on, so the carve-out actually happens: without it #2729's
+# "no evidence, no line" books the whole interval to spot and the check below
+# would pass on a carve that never ran.
+_sv_imm._pump_signals = PumpSignals(
+    electric_heat=pump_signals.PumpElectricHeat(dhw_booster=True)
+)
 _sv_imm._accumulate_energy(
     AccuracySample(when=NOW, actual_power_kw=6.9),
     0.5,
     {**_sv_pending, "space_power": 1.0, "dhw_power": 1.0},
 )
-# 6.9 kW × 0.5 h = 3.45 kWh actual (spot+immersion), same as contract comparison
+# 6.9 kW × 0.5 h = 3.45 kWh actual; the booster line takes the 1.15 kW over
+# the 5.75 kW latch threshold (0.575 kWh) out of spot, so the savings line
+# must still read the full 3.45 while spot does not.
 R.check(
-    "savings_actual is spot+immersion metered kWh, not the carved spot line",
-    abs(_sv_imm._ledger.line(_sv_m, "savings_actual")["kwh"] - 3.45) < 1e-9,
-    repr(_sv_imm._ledger.line(_sv_m, "savings_actual")),
+    "savings_actual is the metered kWh, not the carved spot line",
+    abs(_sv_imm._ledger.line(_sv_m, "savings_actual")["kwh"] - 3.45) < 1e-9
+    and abs(_sv_imm._ledger.line(_sv_m, "spot")["kwh"] - 2.875) < 1e-9
+    and abs(_sv_imm._ledger.line(_sv_m, "dhw_booster")["kwh"] - 0.575) < 1e-9,
+    repr({
+        name: _sv_imm._ledger.line(_sv_m, name)["kwh"]
+        for name in ("savings_actual", "spot", "dhw_booster")
+    }),
 )
 import homeassistant.util.dt as _dt_sav
 _real_now_sav = _dt_sav.now
