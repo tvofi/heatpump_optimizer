@@ -1,0 +1,11 @@
+head 75cfbce6f05150bae27908baae2372cf9d1e1870
+open_pr.sh:37,:55 / pr_args.sh:141-152,:145 / handoff_push.sh:114,:198 -- verified
+merge_train.py:     5831 lines; main_green 2422 (raise at 2450); sweep_bots gh pr merge at 1110 -- verified
+review_packet.py SIGNALS :122, pulls read :324; bus.sh :467 refuse, :692 repair=update, :697 ORPHAN print -- verified
+fdf33f466 parents fc841f51d 07295d4ea; merge-base --is-ancestor a5f40d84c fdf33f466 rc=1 -- verified
+roster-topic merges on origin/main: 47 (47 cited); -pr10..-pr16 = #2812 #2823 #2842 #2851 #2857 #2861 #2864
+main checkout fix/*-pr: 23 now (22 cited), 18 absent on origin with tip in origin/main (18 cited)
+four s7 opener logs with 'fatal: a branch named' present in orchestrator s7 dir -- verified
+roster de410e4c9: OPENPR-ATOMIC done 11 carries c9=P72; FLOW-MAIN-GATE done 1 carry; ORCH-REVIEW-PACKET done 10; ORCH-BEATD not-started 35; TRAIN-OVERLAP-GRADE done 15; RECORD-HOLD-APPROVE not-started brief nightly.yml train-hold; RECORD-API-O1 not-started
+orch_sweep tracked files: 0; handover_prompt.py grep -c -i loop: 0; pid 15079 runs cloud_relay.sh pass --confirm
+proposals.md ## V141..V145 present, sources orchestrator s8 / triage s8 escalation
