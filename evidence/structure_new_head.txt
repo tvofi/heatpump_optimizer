@@ -1,0 +1,3 @@
+  seam_cut_total = 420
+RESULT seam_cut_total=420 count
+FAIL seam_cut_total 420 > 417 (+3)

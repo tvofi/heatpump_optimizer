@@ -1,0 +1,7 @@
+RESULT field=present
+RESULT eta_on_settling=853
+RESULT gate_err.p10=+0.0 p50=+0.0 p90=+0.4 n=861
+RESULT settle_err.p10=-33.0 p50=-18.0 p90=-4.0 n=453
+RESULT phase_counting=875
+RESULT phase_settling=294
+RESULT phase_waiting=7

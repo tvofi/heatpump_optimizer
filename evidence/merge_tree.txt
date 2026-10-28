@@ -1,2 +1,6 @@
-82fba1335aff86195b7da0b22cfd338c3467f61b
-exit 0 origin/main=b89fea13e99f23cc75f01bb1604030cabea4ca66
+LEDGER-MERGE: resolved tests/closures.json
+  closures.tests/entities.py: merged as a set (369 entries)
+  closures.tests/harness_headers.py: merged as a set (396 entries)
+  re-run the gate that owns this file before pushing
+d5de61656102358decac8218b8643d0e90c3155b
+merge-tree rc=0
