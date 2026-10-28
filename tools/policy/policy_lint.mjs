@@ -465,6 +465,10 @@ const CORPUS_EXCLUDED = new Set([
   'docs/plan-2026-09-open-issues.md', // plan of record
   'DISCLAIMER.md',                    // user-facing, same ground as README.md
   'dev/archive/README.md',            // archive index, not policy; a seat is not sent here to learn a rule
+  // An executable, not prose: the beat jobs' git shim (R10-ORCH-BEATD). It must be
+  // named `git` to be found on PATH, so the bare-name pass resolves every policy
+  // sentence's word `git` to it; no prose can move into a program a job execs.
+  'tools/audit/seat/beatd_shims/git',
   // The living handover left POLICY_GLOBS by the owner's decision of 2026-09-16
   // (#201 comment 5702401684): it carries state, not rules, changes with nearly
   // every record PR, and so owes no `## Approval` and no code-owner review. Its
