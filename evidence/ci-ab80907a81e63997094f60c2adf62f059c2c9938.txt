@@ -1,6 +1,0 @@
-check-runs for ab80907a81e63997094f60c2adf62f059c2c9938 (PR #2825 get_check_runs, read 2026-10-25 ~20:30Z), 43 runs:
-failure: governance / delivery-status
-in_progress: codeql / Analyze (python), prelude (run 40228272727)
-neutral: CodeQL
-skipped: ci-ratchet, closures-autofix, claims-autofix, mutation-autofix, mutation-pins, replay, nightly-ha, governance/record, delivery-status-publish, kernel-points, arm
-success: everything else, including lane-proofs, coverage-ratchet, graders-head-copy, browser, fast (3.14), typing, closures, arch-instrument, coverage, budget-raise-gate, wave-script, validate-hacs, instrument-self-tests, hassfest, env-matrix, policy-docs, codeql js/actions, closure-scope, nightly-status, briefs, mutation, arch-score

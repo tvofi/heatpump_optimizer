@@ -1,0 +1,56 @@
+ tools/audit/seat/pr_args.sh | 1 -
+ 1 file changed, 1 deletion(-)
+ tools/audit/seat/pr_args.sh | 1 -
+ 1 file changed, 1 deletion(-)
+[1]   Done                    ( cd /tmp/claude-0/p$i && { NULLW=$W/ev/nullctl-wait-$i.txt bash tools/audit/seat/pr_args.sh --self-test; echo "rc=$?"; } > $W/ev/nullctl-$i.txt 2>&1 )
+[2]   Done                    ( cd /tmp/claude-0/p$i && { NULLW=$W/ev/nullctl-wait-$i.txt bash tools/audit/seat/pr_args.sh --self-test; echo "rc=$?"; } > $W/ev/nullctl-$i.txt 2>&1 )
+[4]   Done                    ( cd /tmp/claude-0/p4 && { bash tools/audit/seat/pr_args.sh --self-test; echo "rc=$?"; } > $W/ev/mutant-pushhold-real.txt 2>&1 )
+[5]-  Done                    ( cd /tmp/claude-0/p$i && { bash tools/audit/seat/pr_args.sh --self-test; echo "rc=$?"; } > $W/ev/load-$i.txt 2>&1 )
+[6]+  Done                    ( cd /tmp/claude-0/p$i && { bash tools/audit/seat/pr_args.sh --self-test; echo "rc=$?"; } > $W/ev/load-$i.txt 2>&1 )
+[3]+  Done                    ( cd /tmp/claude-0/p3 && { bash tools/audit/seat/pr_args.sh --self-test; echo "rc=$?"; } > $W/ev/mutant-drain-real.txt 2>&1 )
+nullctl-7.txt:  ok   pr_cap.py --self-test: its tally says 0 failed
+nullctl-7.txt:pr_args self-test: 124 checks, 0 failed
+nullctl-7.txt:rc=0
+nullctl-8.txt:  ok   pr_cap.py --self-test: its tally says 0 failed
+nullctl-8.txt:pr_args self-test: 124 checks, 0 failed
+nullctl-8.txt:rc=0
+mutant-drain-real.txt:  ok   pr_cap.py --self-test: its tally says 0 failed
+mutant-drain-real.txt:pr_args self-test: 123 checks, 4 failed
+mutant-drain-real.txt:rc=1
+mutant-pushhold-real.txt:  ok   pr_cap.py --self-test: its tally says 0 failed
+mutant-pushhold-real.txt:pr_args self-test: 123 checks, 4 failed
+mutant-pushhold-real.txt:rc=1
+load-5.txt:  ok   pr_cap.py --self-test: its tally says 0 failed
+load-5.txt:pr_args self-test: 123 checks, 0 failed
+load-5.txt:rc=0
+load-6.txt:  ok   pr_cap.py --self-test: its tally says 0 failed
+load-6.txt:pr_args self-test: 123 checks, 0 failed
+load-6.txt:rc=0
+nullctl-7.txt:  ok     NULLCTL: no line deleted, the correct holder reads held at the drain/pushhold bound
+nullctl-8.txt:  ok     NULLCTL: no line deleted, the correct holder reads held at the drain/pushhold bound
+mutant-drain-real.txt:  FAIL   mutant mut:stop: and the lock stays held while that push runs, so the next run is BUSY (the drain, not the reap, guards it)
+mutant-drain-real.txt:  FAIL update_pr: a SIGKILLed run's lock stays held while its push runs
+mutant-drain-real.txt:  FAIL update_pr: and a run meanwhile is BUSY, naming that push
+mutant-drain-real.txt:  FAIL update_pr: the SIGKILLed run's worktree holds the branch while its push runs, and its lock's holder leaves it detached once the push has ended
+mutant-pushhold-real.txt:  FAIL   mutant mut:stop: and the lock stays held while that push runs, so the next run is BUSY (the drain, not the reap, guards it)
+mutant-pushhold-real.txt:  FAIL update_pr: a SIGKILLed run's lock stays held while its push runs
+mutant-pushhold-real.txt:  FAIL update_pr: and a run meanwhile is BUSY, naming that push
+mutant-pushhold-real.txt:  FAIL update_pr: the SIGKILLed run's worktree holds the branch while its push runs, and its lock's holder leaves it detached once the push has ended
+- 1792977957.347533591 1792977957.344698773
+detach 1792977959.073093936 1792977959.070541993
+drain 1792977960.449031782 1792977960.427517844
+pushhold 1792977961.964804392 1792977961.931076700
+ctl 1792977978.693048115 1792977963.260013451
+- 1792977982.041346280 1792977982.038599671
+- 1792977985.314771278 1792977985.311673278
+holdsig 1792977986.487340101 1792977986.484922265
+- 1792977956.048855014 1792977956.042872791
+detach 1792977957.696392343 1792977957.693363516
+drain 1792977959.171202641 1792977959.131109378
+pushhold 1792977960.589030076 1792977960.561349678
+ctl 1792977977.492701221 1792977961.994723277
+- 1792977981.066513549 1792977981.062957900
+- 1792977984.497893501 1792977984.494881319
+holdsig 1792977985.602030576 1792977985.597604405
+
+[exited with code 0]
