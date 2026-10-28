@@ -1,5 +1,0 @@
-tools/audit/briefs/nudge.md
-  ERROR   [budgets] tools/audit/briefs/nudge.md: 116 lines exceeds its cap of 115. Cut, or state the case for a higher cap in the pull request body.
-  ERROR   [budgets] tools/audit/briefs/nudge.md: about 3822 tokens across its lines exceeds its cap of 3814 tokens (files_tokens). Cut, or state the case for a higher cap in the pull request body.
-TOTAL: 2 error(s) across 43 policy file(s)
-rc=1
