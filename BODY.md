@@ -16,7 +16,7 @@ The predictor's unit is the static top-level import edge, so it cannot see any r
 
 **Process state: (c).** Step 6d ran and passed on both heads, but its unit does not reach a run-time read. The cheaper detector that existed was `--single`, at 868 s to 913 s, and the heavy-scripts rule keeps it out of every local path.
 
-**Countermeasure.** `ci_predict.py` gains the arm SELF-TEST READS, turned on by `--record-self-tests`. `prepr.sh` step 6d passes the flag through `predict_line`'s fifth argument. `body_push.sh` and every other caller stay static. For each changed file that carries `--self-test`, and each host script whose table lists that file and whose source runs its self-test:
+**Countermeasure.** `ci_predict.py` gains the arm SELF-TEST READS, turned on by `--record-self-tests`. `prepr.sh` step 6d passes the flag through `predict_line`'s fifth argument. `body_push.sh` and every other caller stay static. For each changed file that carries `--self-test`, and each host script whose `closures` entry lists that file (never `inert_reads` alone, never the file itself) and whose source runs its self-test:
 
 1. It records `<file> --self-test` with CI's recorder, `closure._exec_record`, with a 180 s timeout. A timeout prints a `NOTE` and never a red.
 2. It grades that record as the host's with CI's own `closure.check(partial=True)`.
@@ -27,6 +27,7 @@ The predictor's unit is the static top-level import edge, so it cannot see any r
 - One recurrence costs about 85 min: a 35 min red run, a 15 min `--single` and a 35 min review round.
 - In 300 R10 PR merges over 7 days, 4 reds had this shape and 2 are demonstrated catchable.
 - The standing cost is 0.5 s to 29 s for each changed hosted file. Measured over the same 300 PRs, it was 63.4 s in total, spread across the 15 PRs that touched one.
+- With the closures-only rule, no false red occurs. Round 1's rule would have refused 4 merged PRs falsely (review 1's count).
 
 Verdict: build it.
 
@@ -34,45 +35,64 @@ No policy text changes, no budget changes, and no claim file, `VERSION`, manifes
 
 ## Head
 
-`c68b62203f5e22cb881d8b4dd9ca810d0a11b8bf` merges origin/main `6d86acc909f7fc465e5736771daf8fa45c1373a4` into `80cf79c2cc7cc8d10a31e11cccd599eefd289173`. It is an automatic merge: main's delta touches none of the four files. The figures below were measured at `80cf79c2c` or at this head, three-dot over `6d86acc909f7fc465e5736771daf8fa45c1373a4...c68b62203f5e22cb881d8b4dd9ca810d0a11b8bf`.
+`43e474b3a7c598d68d789247baf38f64dfc555a8` merges origin/main `71fe1f7fcaeadd448a3e2213744f68b3e680e24e` into `7f29ac144`. That commit merges the PR's previous head `0d6c82965f056081c30e2cf1938597fde42dc643` (the delivery row) into `d2e0d88f7`. Both merges are automatic: main's delta touches none of the PR's files. Everything marked round 2 below was measured at `8ad983385` and `d2e0d88f7`, three-dot over `71fe1f7fcaeadd448a3e2213744f68b3e680e24e...43e474b3a7c598d68d789247baf38f64dfc555a8`.
+
+**Round-2 delta (review 1, `blocked 0d6c82965 null-control`).**
+
+- `8ad983385`. `self_test_hosts` counts a host only when its `closures` entry lists the file, never `inert_reads` alone, and never the file as its own host. Review 1 measured round 1's rule at 10 pairs, not 8. The two extra were `budget_raise_gate.py` and `selftest_wiring.py`, which sit in `tests/entities.py`'s `inert_reads` only, and each gave a false red on a green tree.
+- `8ad983385` also adds:
+  - three null arms to the arm's self-test: an inert_reads-only host, a self-test named one line past the window, and the file as its own key;
+  - a host that names the self-test on the next line, which kills window 0;
+  - two `prepr.sh --self-test` pins on 6d's wiring;
+  - the quiet line under `--only self-test-reads`, and `notes` kept across `--apply-inert`'s re-predict.
+- `d2e0d88f7` updates the RCA's sections 4 to 6: the null sweep re-run over the shipped code, the cost test with false reds counted, and the mutation proof.
 
 ## Mutation proof
 
-Each mutant replaces one predicate of `self_test_reads` or `self_test_hosts`. The seat's driver asserts its replacement matched once, runs `self_test_reads_self_test` and restores the file, and `cmp` with a pre-run copy is identical afterwards. **5 of 5 are killed:**
+Round 2 (`ev/mutants-r2.txt`). The seat's driver asserts each replacement matched once, runs `self_test_reads_self_test` and restores the file, and `cmp` with a pre-run copy is identical afterwards. **8 of 8 are killed, including review 1's three survivors:**
 
-- M1, the host rule is always true: 2 FAIL (`an INERT read the host's inert_reads omit is predicted, for the host that runs it only`, and the UNDER-SCOPED arm).
-- M2, a failing `check` is skipped (`if True: continue`): 2 FAIL, the same two arms.
-- M3, a recorder failure is graded anyway: 1 FAIL (`a self-test the recorder cannot finish is a note, never a red`).
-- M4, the INERT header is never parsed: 1 FAIL (the INERT arm).
-- M5, an unchanged file is recorded too: 1 FAIL (`null control: a file the diff does not change is never recorded`).
+- R2, window 0: 4 FAIL.
+- R3, round 1's closures-or-inert_reads host rule: 3 FAIL.
+- R6, a file may be its own host: 2 FAIL.
+- M1, the host rule always true: 2 FAIL.
+- M2, a failing `check` skipped: 2 FAIL.
+- M3, a recorder failure graded: 1 FAIL.
+- M4, the INERT header unparsed: 1 FAIL.
+- M5, an unchanged file recorded: 1 FAIL.
 
 The unmutated run exits 0.
 
-**The detector shown on the defect.** Head `ci_predict.py` was copied into detached worktrees of #2883's heads and run with `--base 00ab2e97b^1`:
+**The 6d wiring pins.** The two new `prepr.sh --self-test` pins check that 6d passes `record` and that `predict_line` maps `${5}` to `--record-self-tests`. Their predicates (`ev/pin6d.sh`) print `6d-record=0 predict_line-maps=0` on this prepr.sh. With 6d's `record` removed they print `6d-record=1`, and with `$rec` dropped from the predictor's command line they print `predict_line-maps=1`. `prepr.sh --self-test` itself was not run under this load; it is CI's.
 
-- At `8f05b74d4` (instance 1): rc 1, `PREDICT tests / closures SELF-TEST READS INERT tests/entities.py: tools/audit/merge_throughput.py (its run of tools/audit/seat/state_docs.py's self-test ...)`. Without the flag: rc 0, quiet.
-- At `71987ff1e` (instance 2): rc 1, `SELF-TEST READS INERT tests/entities.py: dev/programme/rosters/critical-path.json` and `.../wave-r9-groups.json`, the pair CI named. Without the flag: rc 0, quiet.
-- At the repaired head `7b071dbd7`: rc 0, `... (a data-file read is not seen unless a changed file's own self-test makes it)`.
+**The detector shown on the defect, re-run with the round-2 rule.** Head `ci_predict.py` was copied into detached worktrees of #2883's heads, then `--only self-test-reads --base 00ab2e97b^1` (`ev/demo-r2.txt`):
+
+- At `8f05b74d4`: rc 1, `SELF-TEST READS INERT tests/entities.py: tools/audit/merge_throughput.py`, via state_docs.
+- At `71987ff1e`: rc 1, `critical-path.json` and `wave-r9-groups.json`, via roster_lib, the pair CI named.
+- At the repaired `7b071dbd7`: rc 0.
 
 ## Null control
 
-**The sweep.** At `6349205b6`, the seat recorded every tracked `.py` that carries `--self-test` and is listed by a host (32 files, 38 file-host pairs), and graded each record as its host's.
+**Round 2, over what the code ships.** This figure has no command a reader can run: it rests on the seat's driver `nullsweep2.py`, outside the tree, and its log `nullsweep-r2.txt` in the seat scratch `ev/`. The driver calls the head's own `ci_predict.self_test_hosts` and `self_test_reads`. At this branch's tree on merge base `6d86acc90`, the head's own `self_test_hosts` and `self_test_reads` ran over every tracked `.py` carrying `--self-test`, each treated as the only change. The result is `self-testing=95 pairs=8`, and each of the 8 prints `preds=0`:
 
-- The 8 pairs the host rule keeps grade rc 0. Each is a host whose source names the file within 12 lines of a self-test mention: `ci_ratchet.py`, `archscore/gate.py`, `record_row.py`, `roster_lib.py`, `state_docs.py`, `tools/ci/gate.py`, `ledger_merge.py` and `stamp.py`.
-- The 11 rc-1 pairs on that green main are all hosts that list a file as text and never run it, such as `harness_headers.py`, `doc_claims.py` and `arch_score.py`. That is why the host rule exists.
+- `ci_ratchet.py`, `archscore/gate.py`, `record_row.py`, `roster_lib.py`, `state_docs.py`, `tools/ci/gate.py`, `ledger_merge.py` and `stamp.py`;
+- each hosted by `tests/entities.py` or `tests/arch_score.py`.
 
-**This branch.** `ci_predict.py --base origin/main --record-self-tests` prints `CI PREDICT: no closures, fast, wave-script or instrument red predicted against 6d86acc909f7 (a data-file read is not seen unless a changed file's own self-test makes it)`, rc 0, in 19.4 s.
+`budget_raise_gate.py` and `selftest_wiring.py` are no longer hosted.
 
-**The self-test's own null arms.** `null control: a record inside the host's closure is not` and `null control: a file the diff does not change is never recorded` both pass.
+**Round 1's sweep** at `6349205b6` graded 38 file-host pairs from `closures` listings. The 11 rc-1 pairs are scripts that list a file as text and never run it, which is why the host rule exists.
+
+**The self-test's null arms** all pass:
+
+- `null control: a record inside the host's closure is not`;
+- `null control: a file the diff does not change is never recorded`;
+- the inert_reads-only, past-the-window and own-host plants inside the first arm.
 
 ## Figures
 
-- the gate, `PRE-PR: c68b62203f5e22cb881d8b4dd9ca810d0a11b8bf 00000000000000000000000000`, `clean no refusal`, rc 0: `PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh <this body>`
-- `ci_predict.py --self-test` at this head prints 32 `ok` lines and 5 FAIL lines, and `ci_predict self-test: 5 failed`. At the base `6349205b6` it prints 27 `ok` lines and the same 5 FAIL lines, all in the AGREEMENT arm (`a grammar registered only in the head's copy is predicted red`, and four more). The 5 extra `ok` lines are this PR's arms, so the diff adds no failure: `python3 -I tools/pr/ci_predict.py --self-test`
-- three-dot diffstat, 4 files changed, 423 insertions(+), 17 deletions(-): `git diff --stat 6d86acc909f7fc465e5736771daf8fa45c1373a4...c68b62203f5e22cb881d8b4dd9ca810d0a11b8bf`
-- scoped-gate mode line, `MODE: SCOPED -- 0 script(s) run, 33 scoped out.`: `python3 tests/closure.py select --diff 6d86acc909f7fc465e5736771daf8fa45c1373a4`
+- three-dot diffstat, 5 files changed, 480 insertions(+), 17 deletions(-): `git diff --stat 71fe1f7fcaeadd448a3e2213744f68b3e680e24e...43e474b3a7c598d68d789247baf38f64dfc555a8`
 - the arm's self-test, 5 `ok` lines and rc 0: `python3 -I -c "import sys; sys.path.insert(0, 'tools/pr'); import ci_predict as c; from pathlib import Path; sys.exit(c.self_test_reads_self_test(Path('.').resolve()))"`
 - the new file is INERT, `True`: `python3 -c "import sys; sys.path.insert(0, 'tests'); import closure; print(closure.is_inert('dev/audit/rca/R10-RCA-CLOSURE-ARGV.md'))"`
+- round 1, at `c68b62203`: `ci_predict.py --self-test` prints 32 `ok` lines and the 5 AGREEMENT FAILs the base `6349205b6` prints too, and CI's instrument-self-tests job 122773548310 prints `ci_predict self-test: 0 failed`: `python3 -I tools/pr/ci_predict.py --self-test`
 - the cost-test and class-search figures are each named with their command in `dev/audit/rca/R10-RCA-CLOSURE-ARGV.md` sections 4 and 5
 
 ## Red checks
