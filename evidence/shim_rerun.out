@@ -1,0 +1,21 @@
+GNU bash, version 3.2.57(1)-release (arm64-apple-darwin26)
+## spike discovery.sh at 32e249d2e
+absolute, one copy: rc=0 git version 2.54.0 (Apple Git-157)
+relative entry: rc=0 git version 2.54.0 (Apple Git-157)
+trailing slash: rc=0 git version 2.54.0 (Apple Git-157)
+two shim copies: rc=0 git version 2.54.0 (Apple Git-157)
+duplicate entry: rc=0 git version 2.54.0 (Apple Git-157)
+HPO_REAL_GIT is a shim copy: rc=0 git version 2.54.0 (Apple Git-157)
+no real git on PATH: rc=127 git shim: no real git on PATH
+## round-3 verdict's shim_discovery.sh (1d5cdad0f) against the re-cut shim
+absolute, one copy (the spike's case): rc=0
+relative entry (sweep_template.md:51's wording): rc=0
+two shim copies (beatd's + roster_queue.py:95-97's): rc=0
+trailing slash: rc=0
+## poisoned HPO_REAL_GIT
+missing file: rc=0 git version 2.54.0 (Apple Git-157)
+a directory: rc=126 <tmp>/s/git: line 28: /usr/bin: is a directory
+the shim itself: rc=0 git version 2.54.0 (Apple Git-157)
+a relative path to the shim: rc=0 git version 2.54.0 (Apple Git-157)
+empty: rc=0 git version 2.54.0 (Apple Git-157)
+an arbitrary executable: rc=0 --version

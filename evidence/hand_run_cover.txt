@@ -1,0 +1,17 @@
+# note §5's 70 lines at 6d86acc90 (file:line) vs the 23 + 47 the note disposes
+grep lines: 70  disposed: 70
+in the grep, undisposed:
+disposed, not in the grep:
+(both empty: exact cover)
+
+# outside the policy corpus: the tick's board still renders the hand push (b)8 refuses
+57:          -- each nonzero names the owed action (`state_docs.py --push`), the
+1556:        beat (state_docs.py --push): a timer push would race merge beats and
+1593:        self.line(S, "run python3 tools/audit/seat/state_docs.py --push "
+1653:            self.line(S, "record beat owed: state_docs.py --push + #201 "
+2969:            ("state_docs --push dispatch item", any("state_docs.py --push"
+
+# main moved since the note's base: INSTRUMENTS.md +2 lines at 400 (b9a66d28d)
+ tools/audit/seat/INSTRUMENTS.md |  6 ++++--
+ tools/audit/seat/cloud_relay.sh | 10 ++++++++++
+ 2 files changed, 14 insertions(+), 2 deletions(-)
