@@ -7729,6 +7729,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         ctx = _ctx_of(self)
         ring = self._snapshot_ring
         snaps = ring.snapshots
+        install = probe_install(ctx._config)
         return {
             "dhw_cooling_rate": round(self._dhw_learner.cooling_rate, 3),
             "dhw_cooling_samples": self._dhw_learner.cooling_samples,
@@ -7760,10 +7761,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "measured_cop": self._measured_cop.cop,
             "measured_cop_at": None if self._measured_cop.at is None else self._measured_cop.at.isoformat(),
             "cop_refusal": self._measured_cop.refusal,
-            # A heat counter divides by its span's electric counter, else the power entity.
             "cop_observability": cop_observability(
-                electric=bool(ctx._config.get(CONF_ENERGY_ENTITY if ctx._config.get(CONF_HEAT_ENERGY_ENTITY) else CONF_POWER_ENTITY)),
-                measured_heat=probe_install(ctx._config).measured_heat, follows=draw_range.follows_ask(self._accuracy.draw),
+                electric=install.cop_electric(), measured_heat=install.measured_heat,
+                follows=draw_range.follows_ask(self._accuracy.draw),
             ),
             "defrost_derate": self._defrost.factor(
                 ctx._current_state.outdoor_temperature, self._current_humidity()
