@@ -1,0 +1,4 @@
+run 40082372718 jobs 39 Counter({('completed', 'success'): 29, ('completed', 'skipped'): 9, ('completed', 'failure'): 1})
+gate completed failure 2026-10-24T09:44:21Z
+governance / instrument-self-tests success 2026-10-24T09:43:32Z
+tests / arch-instrument success 2026-10-24T09:34:13Z

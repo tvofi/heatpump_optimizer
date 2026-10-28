@@ -1,0 +1,5 @@
+head 583219fa8a44c79e038ae091ce907dafa3e847d0 (merge ref c9a6d9ed448e8fef094e556ce2cadf71e41b109e), check-runs API, read 2026-10-24 ~09:50Z
+run 40082372718 (CI code): 39 jobs, 29 success, 9 skipped, 1 failure = gate 120840541163 09:44:21Z "FAIL run(s) [40082577168] at this head are still being judged; their gate decides"
+run 40082372176: gate 120838763234 failure 09:34:57Z "FAIL run(s) [40082372718] at this head are still being judged; their gate decides"; pr-contract 120838641349 success
+run 40082577168 (CI edit): 13 jobs; pr-contract 120840986826 success (started 09:46:19Z, after the last red gate 09:44:21Z); gate 120841072885 success 09:47:08Z
+governance / instrument-self-tests 120838476461 success 09:43:32Z (red on earlier head 44ee0e5f per body; ref_privacy fix verified locally: 0 refused)
