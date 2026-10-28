@@ -1,5 +1,0 @@
-RESULT null prices=flat weather=winter_cold two_zone=True identical=True max_dP=0.000e+00 cost_fused=nan cost_scalar_valued=nan sha=f09d318e5598/f09d318e5598 runs={'relaxed': 1, 'continuation': 1, 'multi-start': 12}
-RESULT null prices=flat weather=winter_mild two_zone=True identical=True max_dP=0.000e+00 cost_fused=nan cost_scalar_valued=nan sha=5121d5934f74/5121d5934f74 runs={'relaxed': 1, 'continuation': 1, 'multi-start': 12}
-RESULT null prices=flat weather=winter_cold two_zone=False identical=True max_dP=0.000e+00 cost_fused=nan cost_scalar_valued=nan sha=7f449783d23d/7f449783d23d runs={'relaxed': 1, 'multi-start': 10}
-RESULT null prices=winter_typical weather=winter_cold two_zone=True identical=True max_dP=0.000e+00 cost_fused=nan cost_scalar_valued=nan sha=d9c5f2b15f9c/d9c5f2b15f9c runs={'relaxed': 1, 'continuation': 1, 'multi-start': 12}
-rc=0

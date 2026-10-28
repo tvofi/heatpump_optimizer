@@ -4,6 +4,7 @@ RESULT r10_solver_runs fused={'relaxed': (1, 0), 'continuation': (1, 0), 'multi-
   ok   R10-SOLVER D9-s1-01 (census precondition): the metered solve runs the continuation, the relaxed candidate and the multi-start's own runs on the batched jac
   ok   R10-SOLVER D9-s1-01: no L-BFGS-B run with a supplied jac simulates the scalar trajectory -- the value rides in the gradient's batch
   ok   R10-SOLVER D9-s1-01 (positive control): the scalar-valued form of the same runs is seen by the meter
-  FAIL R10-SOLVER D9-s1-01 (null, exact): the fused runs ship the plan the scalar-valued runs ship, bit for bit  [max |dP| 2.507e+00 kW]
+  FAIL R10-SOLVER D9-s1-01 (null, exact): the fused runs ship the plan the scalar-valued runs ship, bit for bit  [max |dP| 2.514e+00 kW]
+  ok   R10-SOLVER (O1): bounds _bounds_supported_by_batch refuses run on scipy's own estimate -- no batch call, the plain scalar run's point
 
-1 of 4 FEATURES BLOCK FAILED
+1 of 5 FEATURES BLOCK FAILED
