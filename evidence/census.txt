@@ -1,0 +1,54 @@
+== HEAD
+ok   tools/audit/seat/handoff_push.sh runner
+ok   tools/audit/seat/handover_prompt.py mention:
+ok   tools/audit/seat/merge_train.py runner-py
+ok   tools/audit/seat/open_pr.sh runner
+ok   tools/audit/seat/pr_args.sh mention:
+ok   tools/audit/seat/ref_privacy.py mention:
+ok   tools/audit/seat/remerge_main.sh runner
+ok   tools/audit/seat/update_pr.sh runner
+ok   tools/policy/check-wave-script.mjs mention:
+ok   tools/policy/friction_issues.mjs mention:
+ok   tools/policy/policy_lint.mjs mention:
+ok   tools/pr/app_approve.sh mention:
+ok   tools/pr/app_push.sh runner
+ok   tools/pr/approve_held_runs.sh mention:
+ok   tools/pr/head_note.py mention:
+ok   tools/pr/push.sh retired
+rc=0
+== 93e6a63d2
+OPEN tools/audit/seat/handoff_push.sh runner: no pr_exit_trap, so a stop leaves its tree
+ok   tools/audit/seat/handover_prompt.py mention:
+OPEN tools/audit/seat/merge_train.py runner-py: a stop SIGKILLs or orphans its tool
+OPEN tools/audit/seat/open_pr.sh runner: no pr_exit_trap, so a stop leaves its tree
+ok   tools/audit/seat/pr_args.sh mention:
+ok   tools/audit/seat/ref_privacy.py mention:
+OPEN tools/audit/seat/remerge_main.sh runner: no pr_exit_trap, so a stop leaves its tree
+OPEN tools/audit/seat/update_pr.sh runner: no pr_exit_trap, so a stop leaves its tree
+ok   tools/policy/check-wave-script.mjs mention:
+ok   tools/policy/friction_issues.mjs mention:
+ok   tools/policy/policy_lint.mjs mention:
+ok   tools/pr/app_approve.sh mention:
+OPEN tools/pr/app_push.sh runner: no pr_exit_trap, so a stop leaves its tree
+ok   tools/pr/approve_held_runs.sh mention:
+ok   tools/pr/head_note.py mention:
+ok   tools/pr/push.sh retired
+rc=1
+== c071fa5f3
+OPEN tools/audit/seat/handoff_push.sh runner: no pr_exit_trap, so a stop leaves its tree
+ok   tools/audit/seat/handover_prompt.py mention:
+OPEN tools/audit/seat/merge_train.py runner-py: a stop SIGKILLs or orphans its tool
+OPEN tools/audit/seat/open_pr.sh runner: no pr_exit_trap, so a stop leaves its tree
+ok   tools/audit/seat/pr_args.sh mention:
+ok   tools/audit/seat/ref_privacy.py mention:
+OPEN tools/audit/seat/remerge_main.sh runner: no pr_exit_trap, so a stop leaves its tree
+OPEN tools/audit/seat/update_pr.sh runner: no pr_exit_trap, so a stop leaves its tree
+ok   tools/policy/check-wave-script.mjs mention:
+ok   tools/policy/friction_issues.mjs mention:
+ok   tools/policy/policy_lint.mjs mention:
+ok   tools/pr/app_approve.sh mention:
+OPEN tools/pr/app_push.sh runner: no pr_exit_trap, so a stop leaves its tree
+ok   tools/pr/approve_held_runs.sh mention:
+ok   tools/pr/head_note.py mention:
+ok   tools/pr/push.sh retired
+rc=1

@@ -1,0 +1,48 @@
+RESULT hp_base.sh sig=TERM tree=4 pusher=gone survivors=4/4 bystander=alive
+/tmp/claude-0/-home-user-heatpump-optimizer/c469b17f-120c-5b21-9555-bf1ae176c9e9/scratchpad/harness/run.sh: line 13: 25314 Killed                  sleep 300
+RESULT hp_head.sh sig=TERM tree=4 pusher=gone survivors=0/4 bystander=alive
+/tmp/claude-0/-home-user-heatpump-optimizer/c469b17f-120c-5b21-9555-bf1ae176c9e9/scratchpad/harness/run.sh: line 13: 25604 Killed                  sleep 300
+RESULT hp_base.sh sig=INT tree=4 pusher=alive survivors=4/4 bystander=alive
+/tmp/claude-0/-home-user-heatpump-optimizer/c469b17f-120c-5b21-9555-bf1ae176c9e9/scratchpad/harness/run.sh: line 13: 27077 Killed                  sleep 300
+/tmp/claude-0/-home-user-heatpump-optimizer/c469b17f-120c-5b21-9555-bf1ae176c9e9/scratchpad/harness/run.sh: line 13: 27078 Killed                  setsid bash "$S" "$(dirname "$0")/stub.sh" "$REAP_DIR/b" > $REAP_DIR/out 2>&1
+RESULT hp_head.sh sig=INT tree=4 pusher=alive survivors=4/4 bystander=alive
+/tmp/claude-0/-home-user-heatpump-optimizer/c469b17f-120c-5b21-9555-bf1ae176c9e9/scratchpad/harness/run.sh: line 13: 28056 Killed                  sleep 300
+/tmp/claude-0/-home-user-heatpump-optimizer/c469b17f-120c-5b21-9555-bf1ae176c9e9/scratchpad/harness/run.sh: line 13: 28057 Killed                  setsid bash "$S" "$(dirname "$0")/stub.sh" "$REAP_DIR/b" > $REAP_DIR/out 2>&1
+/tmp/claude-0/-home-user-heatpump-optimizer/c469b17f-120c-5b21-9555-bf1ae176c9e9/scratchpad/harness/run.sh: line 8: 28142 Hangup                  setsid bash "$S" "$(dirname "$0")/stub.sh" "$REAP_DIR/b" > $REAP_DIR/out 2>&1
+RESULT hp_base.sh sig=HUP tree=4 pusher=gone survivors=4/4 bystander=alive
+/tmp/claude-0/-home-user-heatpump-optimizer/c469b17f-120c-5b21-9555-bf1ae176c9e9/scratchpad/harness/run.sh: line 13: 28141 Killed                  sleep 300
+/tmp/claude-0/-home-user-heatpump-optimizer/c469b17f-120c-5b21-9555-bf1ae176c9e9/scratchpad/harness/run.sh: line 8: 28877 Hangup                  setsid bash "$S" "$(dirname "$0")/stub.sh" "$REAP_DIR/b" > $REAP_DIR/out 2>&1
+RESULT hp_head.sh sig=HUP tree=4 pusher=gone survivors=0/4 bystander=alive
+/tmp/claude-0/-home-user-heatpump-optimizer/c469b17f-120c-5b21-9555-bf1ae176c9e9/scratchpad/harness/run.sh: line 13: 28875 Killed                  sleep 300
+RESULT hp_base.sh sig=TERM tree=4 pusher=gone survivors=4/4 bystander=alive
+/tmp/claude-0/-home-user-heatpump-optimizer/c469b17f-120c-5b21-9555-bf1ae176c9e9/scratchpad/harness/run.sh: line 13: 29700 Killed                  sleep 300
+RESULT hp_head.sh sig=TERM tree=4 pusher=gone survivors=0/4 bystander=alive
+/tmp/claude-0/-home-user-heatpump-optimizer/c469b17f-120c-5b21-9555-bf1ae176c9e9/scratchpad/harness/run.sh: line 13: 30562 Killed                  sleep 300
+RESULT hp_base.sh sig=INT tree=4 pusher=alive survivors=4/4 bystander=alive
+/tmp/claude-0/-home-user-heatpump-optimizer/c469b17f-120c-5b21-9555-bf1ae176c9e9/scratchpad/harness/run.sh: line 13: 31417 Killed                  sleep 300
+/tmp/claude-0/-home-user-heatpump-optimizer/c469b17f-120c-5b21-9555-bf1ae176c9e9/scratchpad/harness/run.sh: line 13: 31418 Killed                  setsid bash "$S" "$(dirname "$0")/stub.sh" "$REAP_DIR/b" > $REAP_DIR/out 2>&1
+RESULT hp_head.sh sig=INT tree=4 pusher=alive survivors=4/4 bystander=alive
+/tmp/claude-0/-home-user-heatpump-optimizer/c469b17f-120c-5b21-9555-bf1ae176c9e9/scratchpad/harness/run.sh: line 13: 32247 Killed                  sleep 300
+/tmp/claude-0/-home-user-heatpump-optimizer/c469b17f-120c-5b21-9555-bf1ae176c9e9/scratchpad/harness/run.sh: line 13: 32248 Killed                  setsid bash "$S" "$(dirname "$0")/stub.sh" "$REAP_DIR/b" > $REAP_DIR/out 2>&1
+/tmp/claude-0/-home-user-heatpump-optimizer/c469b17f-120c-5b21-9555-bf1ae176c9e9/scratchpad/harness/run.sh: line 8:   672 Hangup                  setsid bash "$S" "$(dirname "$0")/stub.sh" "$REAP_DIR/b" > $REAP_DIR/out 2>&1
+RESULT hp_base.sh sig=HUP tree=4 pusher=gone survivors=4/4 bystander=alive
+/tmp/claude-0/-home-user-heatpump-optimizer/c469b17f-120c-5b21-9555-bf1ae176c9e9/scratchpad/harness/run.sh: line 13:   671 Killed                  sleep 300
+/tmp/claude-0/-home-user-heatpump-optimizer/c469b17f-120c-5b21-9555-bf1ae176c9e9/scratchpad/harness/run.sh: line 8:  1386 Hangup                  setsid bash "$S" "$(dirname "$0")/stub.sh" "$REAP_DIR/b" > $REAP_DIR/out 2>&1
+RESULT hp_head.sh sig=HUP tree=4 pusher=gone survivors=0/4 bystander=alive
+/tmp/claude-0/-home-user-heatpump-optimizer/c469b17f-120c-5b21-9555-bf1ae176c9e9/scratchpad/harness/run.sh: line 13:  1385 Killed                  sleep 300
+RESULT hp_base.sh sig=TERM tree=4 pusher=gone survivors=4/4 bystander=alive
+/tmp/claude-0/-home-user-heatpump-optimizer/c469b17f-120c-5b21-9555-bf1ae176c9e9/scratchpad/harness/run.sh: line 13:  1742 Killed                  sleep 300
+RESULT hp_head.sh sig=TERM tree=4 pusher=gone survivors=0/4 bystander=alive
+/tmp/claude-0/-home-user-heatpump-optimizer/c469b17f-120c-5b21-9555-bf1ae176c9e9/scratchpad/harness/run.sh: line 13:  1777 Killed                  sleep 300
+RESULT hp_base.sh sig=INT tree=4 pusher=alive survivors=4/4 bystander=alive
+/tmp/claude-0/-home-user-heatpump-optimizer/c469b17f-120c-5b21-9555-bf1ae176c9e9/scratchpad/harness/run.sh: line 13:  1841 Killed                  sleep 300
+/tmp/claude-0/-home-user-heatpump-optimizer/c469b17f-120c-5b21-9555-bf1ae176c9e9/scratchpad/harness/run.sh: line 13:  1842 Killed                  setsid bash "$S" "$(dirname "$0")/stub.sh" "$REAP_DIR/b" > $REAP_DIR/out 2>&1
+RESULT hp_head.sh sig=INT tree=4 pusher=alive survivors=4/4 bystander=alive
+/tmp/claude-0/-home-user-heatpump-optimizer/c469b17f-120c-5b21-9555-bf1ae176c9e9/scratchpad/harness/run.sh: line 13:  1876 Killed                  sleep 300
+/tmp/claude-0/-home-user-heatpump-optimizer/c469b17f-120c-5b21-9555-bf1ae176c9e9/scratchpad/harness/run.sh: line 13:  1877 Killed                  setsid bash "$S" "$(dirname "$0")/stub.sh" "$REAP_DIR/b" > $REAP_DIR/out 2>&1
+/tmp/claude-0/-home-user-heatpump-optimizer/c469b17f-120c-5b21-9555-bf1ae176c9e9/scratchpad/harness/run.sh: line 8:  1910 Hangup                  setsid bash "$S" "$(dirname "$0")/stub.sh" "$REAP_DIR/b" > $REAP_DIR/out 2>&1
+RESULT hp_base.sh sig=HUP tree=4 pusher=gone survivors=4/4 bystander=alive
+/tmp/claude-0/-home-user-heatpump-optimizer/c469b17f-120c-5b21-9555-bf1ae176c9e9/scratchpad/harness/run.sh: line 13:  1909 Killed                  sleep 300
+/tmp/claude-0/-home-user-heatpump-optimizer/c469b17f-120c-5b21-9555-bf1ae176c9e9/scratchpad/harness/run.sh: line 8:  1945 Hangup                  setsid bash "$S" "$(dirname "$0")/stub.sh" "$REAP_DIR/b" > $REAP_DIR/out 2>&1
+RESULT hp_head.sh sig=HUP tree=4 pusher=gone survivors=0/4 bystander=alive
+/tmp/claude-0/-home-user-heatpump-optimizer/c469b17f-120c-5b21-9555-bf1ae176c9e9/scratchpad/harness/run.sh: line 13:  1944 Killed                  sleep 300

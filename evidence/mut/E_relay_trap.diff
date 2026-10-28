@@ -1,0 +1,13 @@
+diff --git a/tools/audit/seat/cloud_relay.sh b/tools/audit/seat/cloud_relay.sh
+index 938deaba5..0b4c7504f 100644
+--- a/tools/audit/seat/cloud_relay.sh
++++ b/tools/audit/seat/cloud_relay.sh
+@@ -91,7 +91,7 @@ set -uo pipefail
+ HERE=$(cd "$(dirname -- "$0")" && pwd)
+ # A stopped relay ends the whole tree it started (R10-PUSHER-REAP): pr_args.sh's EXIT
+ # trap reaps it, and the update runs asynchronously so an INT does not wait behind it.
+-. "$HERE/pr_args.sh"; pr_exit_trap
++. "$HERE/pr_args.sh"
+ 
+ die() { echo "cloud_relay: refused: $*" >&2; return 2; }
+ 

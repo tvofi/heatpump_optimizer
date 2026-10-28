@@ -132,31 +132,8 @@
   ok   a CI wait that outlives one poll refreshes the hold mid-wait, so the bound can be shorter than a wait
   ok   a recarry refreshes the hold, so --overlap's up-front recarry loop cannot age it
   ok   a bare wait-ci publishes no hold: only a train or batch arms the ref
-  ok   a TERMed train exits 143 and leaves none of its tool's tree alive (R10-PUSHER-REAP)
+  FAIL a TERMed train exits 143 and leaves none of its tool's tree alive (R10-PUSHER-REAP)
   ok     null control: without stop_on_signal the train dies and its tool's tree survives
-  ok   K15 (a): main e7c66485's shape -- required contexts in flight, record and record-autofix red -- reads wait, never red, even with record listed as required
-  ok   K15 (a): every required context green reads green; a non-required red is not counted
-  ok   K15 (a): a failed required context reads red while another is still in flight
-  ok   K15 (a): judged on the latest run of each context -- a re-run that went green clears the red
-  ok   K15 (a): a required context with no run yet is wait, never green
-  ok   K15 (a): an unreadable ruleset is a refusal, never green
-  ok   K15 (a): the --overlap gate logs main WAIT for pending plus a record red
-  ok   K15 (a): the --overlap gate logs main RED for a failed required context
-  ok   K15 (a): unreadable check runs log the --overlap gate as unreadable, never as a wait on every context (null control: the readable arms above)
-  ok   K15 (b): stale only while its run has completed (null control: a run still in progress)
-  ok   K15 (b): a stale check-run at the head is re-run once, before the merge attempt, and logged with its run id
-  ok   K15 (b): two stale check-runs over one workflow run re-run that run once, not once per check-run
-  ok   K15 (b): a check-run whose run is still in progress is pending: no re-run (null control)
-  ok   K15 (b): a re-run that leaves it unconcluded stops the merge, and never re-runs twice
-  ok   K15 (d): a pull request's head with a required context concluded failure is RED, not reviewable (rc 1); the same runs read as main's tip drop PR_ONLY and are GREEN (rc 0)
-  ok   K15 (d): a head still in flight is WAIT (rc 3) and reviewable; an unreadable ruleset refuses (rc 2)
-  ok   K15 (c): an exit code that disagrees with the lines is no answer: a clean exit with a second line (a driver's stderr) and a conflict exit with none are None (null control: each agreeing shape)
-  ok   K15 (c): an unreadable git config is no answer and no proof: conflicts() None, build stops (null control: rc 1, git's no-such-key, is a clean read above)
-  ok   K15 (c): merge-tree names the conflicted files; a clean merge is [] and an unknown head None
-  ok   K15 (c): with the claimnotes driver installed the answer is GitHub's, which runs none: a claim-only head lists its claim file and a content conflict lists no stderr line (null control: the bare merge-tree in that clone resolves the claim and prints MERGE-CLAIM, and without the driver it does not)
-  ok   K15 (c): the claimnotes repair only when every conflicted file is a claim file; a content conflict goes back to its fixer and its verdict does not carry
-/tmp/tmp.zvuli0Xmhl/wt/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
-  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
   ok   batch null control: two clean pull requests are proved once and both merge, the base's tree equal to P_i after each
   ok   the proof is pushed to batch/<tag>-1 and every DISPATCH workflow runs on that branch
   ok   batch announces itself in its FIRST line -- tag, pid, base, the queue's PRs -- before any blocking call, so a daemonized launch is attributable from the log's first line
@@ -221,4 +198,4 @@
   ok   --skip-bad: a red main still stops everything -- at step 0 and through the merge guard's re-read, both outside the per-entry skip
   ok   --skip-bad (--main-moved-tries 0): a Stop after the merge API call is fatal for that entry only -- logged post-merge, never retried, and the next entry is neither merged nor re-proved onto the unread tree
   ok   --skip-bad (--main-moved-tries 3): a Stop after the merge API call is fatal for that entry only -- logged post-merge, never retried, and the next entry is neither merged nor re-proved onto the unread tree
-merge_train self-test: 221 checks, 0 failed
+merge_train self-test: 200 checks, 1 failed

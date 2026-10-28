@@ -1,0 +1,13 @@
+diff --git a/tools/audit/seat/pr_args.sh b/tools/audit/seat/pr_args.sh
+index dcf9c579a..2c1c68fc2 100644
+--- a/tools/audit/seat/pr_args.sh
++++ b/tools/audit/seat/pr_args.sh
+@@ -83,7 +83,7 @@ p = os.getppid()
+ f.truncate(0); f.write("%d %d\n" % (p, os.getpid())); f.flush()
+ while os.getppid() == p: time.sleep(2)  # mut:watch
+ sys.exit(0)' "$1" </dev/null >/dev/null 2>&1 & LKP=$!
+-  PR_REAP_SPARE=$LKP
++  :
+   PR_AFTER_REAP='{ kill "$LKP"; wait "$LKP"; } 2>/dev/null || :'  # mut:unlock
+   while kill -0 "$LKP" 2>/dev/null && [ "$(cat "$1" 2>/dev/null)" != "$$ $LKP" ] && [ $k -lt 400 ]; do sleep 0.05; k=$((k + 1)); done
+   [ "$(cat "$1" 2>/dev/null)" = "$$ $LKP" ] || pr_lock_busy "$1" "$2" "$3"  # mut:lock

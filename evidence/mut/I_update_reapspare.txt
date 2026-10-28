@@ -1,0 +1,3 @@
+MUTANT I_update_reapspare rc=1 secs=86 :: pr_args self-test: 86 checks, 2 failed  :: FAILS: 2
+  FAIL   mutant mut:unlock (its line deleted): the holder is still alive when the run returns
+  FAIL update_pr: a TERMed run whose push outlives the TERM keeps the lock until the reap has ended it

@@ -1,0 +1,12 @@
+RESULT hp_base.sh sig=INT tree=4 pusher=alive survivors=4/4 bystander=alive
+RESULT hp_head.sh sig=INT tree=4 pusher=gone survivors=0/4 bystander=alive
+RESULT hp_base.sh sig=TERM tree=4 pusher=gone survivors=4/4 bystander=alive
+RESULT hp_head.sh sig=TERM tree=4 pusher=gone survivors=0/4 bystander=alive
+RESULT hp_base.sh sig=INT tree=4 pusher=alive survivors=4/4 bystander=alive
+RESULT hp_head.sh sig=INT tree=4 pusher=gone survivors=0/4 bystander=alive
+RESULT hp_base.sh sig=TERM tree=4 pusher=gone survivors=4/4 bystander=alive
+RESULT hp_head.sh sig=TERM tree=4 pusher=gone survivors=0/4 bystander=alive
+RESULT hp_base.sh sig=INT tree=4 pusher=alive survivors=4/4 bystander=alive
+RESULT hp_head.sh sig=INT tree=4 pusher=gone survivors=0/4 bystander=alive
+RESULT hp_base.sh sig=TERM tree=4 pusher=gone survivors=4/4 bystander=alive
+RESULT hp_head.sh sig=TERM tree=4 pusher=gone survivors=0/4 bystander=alive

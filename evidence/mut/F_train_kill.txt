@@ -1,0 +1,2 @@
+MUTANT F_train_kill rc=1 secs=33 :: merge_train self-test: 200 checks, 1 failed  :: FAILS: 1
+  FAIL a TERMed train exits 143 and leaves none of its tool's tree alive (R10-PUSHER-REAP)
