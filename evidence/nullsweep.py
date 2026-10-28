@@ -19,7 +19,12 @@ data = json.loads((root / "tests" / "closures.json").read_text())
 closures, inert = data.get("closures", {}), data.get("inert_reads", {})
 files = subprocess.run(["git", "ls-files", "*.py"], cwd=root, capture_output=True, text=True).stdout.split()
 st = [f for f in files if "--self-test" in (root / f).read_text(errors="replace")]
-hosted = {f: c.self_test_hosts(root, f, closures, inert) for f in st}
+import inspect
+nargs = len(inspect.signature(c.self_test_hosts).parameters)
+hosted = {f: (c.self_test_hosts(root, f, closures) if nargs == 3 else c.self_test_hosts(root, f, closures, inert)) for f in st}
+# also every (file, host) a host merely LISTS (closures or inert_reads) and names near a self-test mention, for the record
+listed_any = sum(1 for f in st for h in set(closures)|set(inert) if h != f and f in set(closures.get(h,()))|set(inert.get(h,())))
+print(f'RESULT listed-pairs-any-table={listed_any}')
 hosted = {f: h for f, h in hosted.items() if h}
 print(f"RESULT self-testing={len(st)} hosted-files={len(hosted)} pairs={sum(map(len, hosted.values()))}")
 for f, h in sorted(hosted.items()):

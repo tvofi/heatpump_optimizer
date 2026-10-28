@@ -1,0 +1,4 @@
+RESULT prepr=clean pin6d=0 pinmap=0 changed=no
+RESULT prepr=w1 pin6d=1 pinmap=0 changed=yes
+RESULT prepr=w2 pin6d=0 pinmap=1 changed=yes
+RESULT prepr=w3 pin6d=0 pinmap=1 changed=yes

@@ -16,12 +16,14 @@ MUTANTS = {
     "R0-unmutated": None,
     "R1-record-not-rekeyed-to-host": ('{**rec, "script": host}', "rec"),
     "R2-window-zero": ("SELF_TEST_WINDOW = 12", "SELF_TEST_WINDOW = 0"),
-    "R3-hosts-ignore-inert_reads": ("set(closures.get(script, ())) | set(inert_reads.get(script, ()))",
-                                    "set(closures.get(script, ()))"),
+    "R3-hosts-union-inert_reads-again": ("hosts = self_test_hosts(root, f, closures)",
+        "hosts = self_test_hosts(root, f, {**closures, **{k: list(set(closures.get(k, ())) | set(v)) for k, v in inert_reads.items()}})"),
     "R4-under-scoped-header-unparsed": ('"UNDER-SCOPED" if line.startswith("UNDER-SCOPED") else None', "None"),
     "R5-no-self-test-filter-negated": ('if "--self-test" not in (root / f).read_text(errors="replace"):',
                                        'if "--self-test" in (root / f).read_text(errors="replace"):'),
     "R6-host-may-be-file-itself": ("if script == f or f not in", "if f not in"),
+    "R7-window-huge": ("SELF_TEST_WINDOW = 12", "SELF_TEST_WINDOW = 10000"),
+    "R8-no-self-test-word-needed": ('re.search(r"self[-_]test", ln)', 'True'),
 }
 for name, sub in MUTANTS.items():
     s = src

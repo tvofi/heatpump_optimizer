@@ -13,40 +13,40 @@
   ok   a line that pushes nothing and names the seat's home is predicted green (null control: CI judges with the runner's identity) (rc 0)
   ok   the push site staged and not committed is predicted green (null control) (rc 0)
   FAIL a grammar registered only in the head's copy is predicted red (rc 1)
-         PREDICT governance / wave-script AGREEMENT RESULT divergent=2 unregistered=1 dead=0 refused=0 seconds=14.2 (the base's copy, over tools/policy/agreement.mjs)
+         PREDICT governance / wave-script AGREEMENT RESULT divergent=2 unregistered=1 dead=0 refused=0 seconds=13.0 (the base's copy, over tools/policy/agreement.mjs)
          PREDICT governance / wave-script AGREEMENT DIVERGENT     raise-justification "body 20 \"The raise-justification null c\"": budget_raise_gate.py justification=false  policy_lint.mjs raiseJustification=true
          PREDICT governance / wave-script AGREEMENT DIVERGENT     raise-justification "body 24 \"## Raise justification\\n\\nMandat\"": budget_raise_gate.py justification=false  policy_lint.mjs raiseJustification=true
          PREDICT governance / wave-script AGREEMENT UNREGISTERED  "ci-predict-plant-(\\d+)-x" in tests/wood_advisor.py, tools/audit/archscore/score.py
          CI PREDICT: an AGREEMENT refusal is CI's verdict under the base's copy of the lane, so an edit to the lane is graded by the copy it replaces: repair what the base's copy refuses, and a registration only the head's copy carries has no local repair (dev/audit/rca/R10-RCA-2671-WAVE-SCRIPT.md, cause 3): the body names it under ## Red checks
-         CI PREDICT: 4 predicted red(s) on governance / wave-script against 39b2046543ca -- repair before the handoff; the lines above name each arm's repair
+         CI PREDICT: 4 predicted red(s) on governance / wave-script against 720fcf0e382d -- repair before the handoff; the lines above name each arm's repair
   FAIL a grammar the base tip shares and registers, under a HEAD that only edits the lane, is predicted green (CI merges HEAD into the tip) (rc 1)
-         PREDICT governance / wave-script AGREEMENT RESULT divergent=2 unregistered=0 dead=0 refused=0 seconds=13.3 (the base's copy, over tools/policy/agreement.mjs)
+         PREDICT governance / wave-script AGREEMENT RESULT divergent=2 unregistered=0 dead=0 refused=0 seconds=11.0 (the base's copy, over tools/policy/agreement.mjs)
          PREDICT governance / wave-script AGREEMENT DIVERGENT     raise-justification "body 20 \"The raise-justification null c\"": budget_raise_gate.py justification=false  policy_lint.mjs raiseJustification=true
          PREDICT governance / wave-script AGREEMENT DIVERGENT     raise-justification "body 24 \"## Raise justification\\n\\nMandat\"": budget_raise_gate.py justification=false  policy_lint.mjs raiseJustification=true
          CI PREDICT: an AGREEMENT refusal is CI's verdict under the base's copy of the lane, so an edit to the lane is graded by the copy it replaces: repair what the base's copy refuses, and a registration only the head's copy carries has no local repair (dev/audit/rca/R10-RCA-2671-WAVE-SCRIPT.md, cause 3): the body names it under ## Red checks
-         CI PREDICT: 3 predicted red(s) on governance / wave-script against 39b2046543ca -- repair before the handoff; the lines above name each arm's repair
+         CI PREDICT: 3 predicted red(s) on governance / wave-script against 720fcf0e382d -- repair before the handoff; the lines above name each arm's repair
   ok   a grammar in two files the lane does not load, the lane untouched, is not run (null control: the key; prepr step 3f4 refuses it under either copy) (rc 0)
   FAIL a lane edit under a branch merge, main already past it, is predicted green (null control: CI's origin/main is the base) (rc 1)
-         PREDICT governance / wave-script AGREEMENT RESULT divergent=2 unregistered=0 dead=0 refused=0 seconds=17.2 (the base's copy, over tools/policy/agreement.mjs)
+         PREDICT governance / wave-script AGREEMENT RESULT divergent=2 unregistered=0 dead=0 refused=0 seconds=18.2 (the base's copy, over tools/policy/agreement.mjs)
          PREDICT governance / wave-script AGREEMENT DIVERGENT     raise-justification "body 20 \"The raise-justification null c\"": budget_raise_gate.py justification=false  policy_lint.mjs raiseJustification=true
          PREDICT governance / wave-script AGREEMENT DIVERGENT     raise-justification "body 24 \"## Raise justification\\n\\nMandat\"": budget_raise_gate.py justification=false  policy_lint.mjs raiseJustification=true
          CI PREDICT: an AGREEMENT refusal is CI's verdict under the base's copy of the lane, so an edit to the lane is graded by the copy it replaces: repair what the base's copy refuses, and a registration only the head's copy carries has no local repair (dev/audit/rca/R10-RCA-2671-WAVE-SCRIPT.md, cause 3): the body names it under ## Red checks
-         CI PREDICT: 3 predicted red(s) on governance / wave-script against 39b2046543ca -- repair before the handoff; the lines above name each arm's repair
+         CI PREDICT: 3 predicted red(s) on governance / wave-script against 720fcf0e382d -- repair before the handoff; the lines above name each arm's repair
   FAIL a comment in the lane is predicted green (null control) (rc 1)
-         PREDICT governance / wave-script AGREEMENT RESULT divergent=2 unregistered=0 dead=0 refused=0 seconds=21.0 (the base's copy, over tools/policy/agreement.mjs)
+         PREDICT governance / wave-script AGREEMENT RESULT divergent=2 unregistered=0 dead=0 refused=0 seconds=36.0 (the base's copy, over tools/policy/agreement.mjs)
          PREDICT governance / wave-script AGREEMENT DIVERGENT     raise-justification "body 20 \"The raise-justification null c\"": budget_raise_gate.py justification=false  policy_lint.mjs raiseJustification=true
          PREDICT governance / wave-script AGREEMENT DIVERGENT     raise-justification "body 24 \"## Raise justification\\n\\nMandat\"": budget_raise_gate.py justification=false  policy_lint.mjs raiseJustification=true
          CI PREDICT: an AGREEMENT refusal is CI's verdict under the base's copy of the lane, so an edit to the lane is graded by the copy it replaces: repair what the base's copy refuses, and a registration only the head's copy carries has no local repair (dev/audit/rca/R10-RCA-2671-WAVE-SCRIPT.md, cause 3): the body names it under ## Red checks
-         CI PREDICT: 3 predicted red(s) on governance / wave-script against 39b2046543ca -- repair before the handoff; the lines above name each arm's repair
+         CI PREDICT: 3 predicted red(s) on governance / wave-script against 720fcf0e382d -- repair before the handoff; the lines above name each arm's repair
   FAIL a head copy of the lane that exits 1 is predicted green (null control: CI runs the base's) (rc 1)
-         PREDICT governance / wave-script AGREEMENT RESULT divergent=2 unregistered=0 dead=0 refused=0 seconds=55.5 (the base's copy, over tools/policy/agreement.mjs)
+         PREDICT governance / wave-script AGREEMENT RESULT divergent=2 unregistered=0 dead=0 refused=0 seconds=11.9 (the base's copy, over tools/policy/agreement.mjs)
          PREDICT governance / wave-script AGREEMENT DIVERGENT     raise-justification "body 20 \"The raise-justification null c\"": budget_raise_gate.py justification=false  policy_lint.mjs raiseJustification=true
          PREDICT governance / wave-script AGREEMENT DIVERGENT     raise-justification "body 24 \"## Raise justification\\n\\nMandat\"": budget_raise_gate.py justification=false  policy_lint.mjs raiseJustification=true
          CI PREDICT: an AGREEMENT refusal is CI's verdict under the base's copy of the lane, so an edit to the lane is graded by the copy it replaces: repair what the base's copy refuses, and a registration only the head's copy carries has no local repair (dev/audit/rca/R10-RCA-2671-WAVE-SCRIPT.md, cause 3): the body names it under ## Red checks
-         CI PREDICT: 3 predicted red(s) on governance / wave-script against 39b2046543ca -- repair before the handoff; the lines above name each arm's repair
+         CI PREDICT: 3 predicted red(s) on governance / wave-script against 720fcf0e382d -- repair before the handoff; the lines above name each arm's repair
   ok   the registration staged and not committed is predicted green (null control) (rc 0)
   ok   a self-testing tool the diff adds with no workflow run line is predicted red (rc 1)
-  ok   an INERT read the host's inert_reads omit is predicted, for the host that runs it only
+  ok   an INERT read the host's inert_reads omit is predicted for the one host that runs it: a self-test named two lines from the file counts, one past the window does not, an inert_reads-only listing does not, and the file is never its own host
   ok   a plain read the host's closure omits is UNDER-SCOPED
   ok   null control: a record inside the host's closure is not
   ok   a self-test the recorder cannot finish is a note, never a red
@@ -62,4 +62,4 @@
   ok   null control: a tool main already carries is not this branch's
   ok   every JOB value is a name gate.REQUIRED owes
 ci_predict self-test: 5 failed
-python3 -I tools/pr/ci_predict.py --self-test  174.03s user 51.91s system 60% cpu 6:12.91 total
+python3 -I tools/pr/ci_predict.py --self-test  155.04s user 45.62s system 66% cpu 5:00.13 total

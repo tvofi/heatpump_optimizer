@@ -1,24 +1,19 @@
-RESULT self-testing=95 hosted-files=10 pairs=10
+RESULT listed-pairs-any-table=74
+RESULT self-testing=95 hosted-files=8 pairs=8
 PAIR tests/ci_ratchet.py -> tests/entities.py
 PAIR tools/audit/archscore/gate.py -> tests/arch_score.py
 PAIR tools/audit/seat/record_row.py -> tests/entities.py
 PAIR tools/audit/seat/roster_lib.py -> tests/entities.py
-PAIR tools/audit/seat/selftest_wiring.py -> tests/entities.py
 PAIR tools/audit/seat/state_docs.py -> tests/entities.py
 PAIR tools/ci/gate.py -> tests/entities.py
 PAIR tools/merge/ledger_merge.py -> tests/entities.py
-PAIR tools/policy/budget_raise_gate.py -> tests/entities.py
 PAIR tools/release/stamp.py -> tests/entities.py
-RESULT file=tests/ci_ratchet.py preds=0 notes=0 secs=0.6
-RESULT file=tools/audit/archscore/gate.py preds=0 notes=0 secs=0.7
-RESULT file=tools/audit/seat/record_row.py preds=0 notes=0 secs=4.1
-RESULT file=tools/audit/seat/roster_lib.py preds=0 notes=0 secs=6.2
-RESULT file=tools/audit/seat/selftest_wiring.py preds=1 notes=0 secs=0.8
-  PRED SELF-TEST READS UNDER-SCOPED tests/entities.py: tools/audit/seat/selftest_wiring.py (its run of tools/audit/seat/selftest_wiring.py's self-test, recorded by closure._exec_record)
-RESULT file=tools/audit/seat/state_docs.py preds=0 notes=0 secs=58.5
-RESULT file=tools/ci/gate.py preds=0 notes=0 secs=0.7
-RESULT file=tools/merge/ledger_merge.py preds=0 notes=0 secs=1.7
-RESULT file=tools/policy/budget_raise_gate.py preds=1 notes=0 secs=18.6
-  PRED SELF-TEST READS INERT tests/entities.py: dev/governance/config/policy_budgets.json (its run of tools/policy/budget_raise_gate.py's self-test, recorded by closure._exec_record)
-RESULT file=tools/release/stamp.py preds=0 notes=0 secs=2.3
-RESULT total-preds=2
+RESULT file=tests/ci_ratchet.py preds=0 notes=0 secs=0.2
+RESULT file=tools/audit/archscore/gate.py preds=0 notes=0 secs=0.3
+RESULT file=tools/audit/seat/record_row.py preds=0 notes=0 secs=1.6
+RESULT file=tools/audit/seat/roster_lib.py preds=0 notes=0 secs=5.8
+RESULT file=tools/audit/seat/state_docs.py preds=0 notes=0 secs=41.8
+RESULT file=tools/ci/gate.py preds=0 notes=0 secs=0.3
+RESULT file=tools/merge/ledger_merge.py preds=0 notes=0 secs=1.2
+RESULT file=tools/release/stamp.py preds=0 notes=0 secs=1.7
+RESULT total-preds=0
