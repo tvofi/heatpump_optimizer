@@ -20,10 +20,11 @@ their countermeasures are drafted and routed, not landed.
 
 ## Head
 
-`fbfa72a1d92f77a1271838b4691806f3aa7267c1`: one commit on `6eb552157`, the
-merge base and `origin/main` at measurement. Nothing merges main. Every figure
-in the record was taken at `6eb552157`; the histogram window is
-`v7.0.4..origin/main` with `v7.0.4` at `b448d260`.
+`581079f20a536c0261158bc86f49f5b10e88f617`: the authored code head. It adds two commits to the previous
+code head `fbfa72a1d92f77a1271838b4691806f3aa7267c1`, which was one commit on `6eb552157`: `carry-2733.json` (the two
+`Carry: #2733` items, #2875 and #2855's key) and its `tests/closures.json` entry. The merge base and
+`origin/main` at measurement is `6eb552157`. Nothing merges main. Every figure in the record was taken at
+`6eb552157`; the histogram window is `v7.0.4..origin/main` with `v7.0.4` at `b448d260`.
 
 ## Mutation proof
 
@@ -83,17 +84,20 @@ are recorded and re-runnable by the commands under Figures.
 
 ## Red checks
 
-none: this head has not run CI, and the record names no failing check of its
-own. The 132 block rows it measures are merged PRs' history, not this head's.
+`prelude`: GitHub API rate limit ("RATE-LIMITED reset_epoch=1793140725", run
+40595111242), transient; cheaper detector: none (HANDOVER trap 44: rate-limit
+403s arrive as red lanes; the repair is a re-run, not a code change). `gate`
+and `pr-contract` are red only through it. The 132 block rows it measures are
+merged PRs' history, not this head's.
 
 ## Forward-carry
 
 - **A1, the roster index.** `rosterIssues()`'s no-argument path reads
   `roster_lib.ROSTERS_DIR` as well, so the live-group refusal fires in CI.
-  Carry: #2733
+  Carry: R10-FLOW-TOOLKIT-MODEL (the carry text is on handoff/audit-r10-roster at `ba973babd`; #2733 has no live group)
 - **A2, the merge-time fold.** The orchestrator writes each `Carry: <GROUP>`
   body item's id into the destination group's brief before merging, with the
-  post-fold id assertion. Carry: #2733
+  post-fold id assertion. Carry: R10-FLOW-TOOLKIT-MODEL
 - **The derived `other (untaught)` friction family** in `statsFamilies`, which
   folds 46 untaught spellings over 52 PRs into one threshold row (46 after the
   #2410 subtraction). Carry: #2436
@@ -103,7 +107,8 @@ own. The 132 block rows it measures are merged PRs' history, not this head's.
 - **#2479's cross-run count** is supplied by the record's section 5 (per check,
   over the window); its policy sentence is the owner's. Carry: #2437
 - **#2875 is unowned** — an open friction issue no roster group lists, the
-  routing audit's subject. Carry: #2733
+  routing audit's subject; carried in `dev/programme/carries/carry-2733.json`.
+  Carry: #2733
 - **The ci-autofix wait bound and the measured-pin rule** land in
   `.claude/rules/ci-autofix.md` after the owner's approval. Carry: #2429
 - **The carry-control enumerator lint** in `brief_lint`, and the sentence that a
@@ -112,7 +117,7 @@ own. The 132 block rows it measures are merged PRs' history, not this head's.
 - **#2612's row** (a seat cannot land a carry into a brief or a roster) is
   dispositioned by the record's section 8 as section 3's cause; it does not stay
   with `R10-BRIEFS-FOLD`, which is done and did not implement it. Carry: #2438
-- **#2855's key** is dispositioned in the record; the mechanism is #2733's.
+- **#2855's key** is dispositioned in the record; the mechanism is #2733's, carried in the same file.
   Carry: #2733
 - **#2452's census cost** is a recorded refusal: the cheaper detector is the
   spelling list the census replaced. Carry: dismissed: cheaper census is the spelling list that failed
@@ -126,7 +131,7 @@ own. The 132 block rows it measures are merged PRs' history, not this head's.
   .claude/workflows and the carries directory, never dev/programme/rosters; 1 of
   76 live-group issues is indexed and a carry file at a covered issue is
   accepted rc=0. #2561 recorded the same defect and routed it to #201, where no
-  text about it landed. Carry: #2733
+  text about it landed. Carry: R10-FLOW-TOOLKIT-MODEL
 - `policy_lint.mjs`: unclear: the threshold's unit is the class spelling, so 46
   untaught words over 52 PRs and three root-cause words over 6 PRs aggregate to
   no filing. Carry: #2436
@@ -138,3 +143,7 @@ own. The 132 block rows it measures are merged PRs' history, not this head's.
   destination brief (5 PRs in the window). Carry: #2438
 - `roster`: stale: the group's own carry names seven issues; the roster holds
   eleven, and the four it omits all fired in this window. Carry: dismissed: all eleven dispositioned in the record
+
+
+
+
