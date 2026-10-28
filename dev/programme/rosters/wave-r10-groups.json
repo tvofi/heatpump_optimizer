@@ -10491,7 +10491,7 @@
     "`gate-scoping`: cost: `tests/entities.py`, the one script the scoped gate selects for this diff, needs a `homeassistant` module this seat's interpreter lacks, so the local scoped gate could not run; CI's `gate` is the only judge of it here. Carry: R10-FRICTION-GATE-SCOPING"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "absorbed",
     "branch": null,
     "commit": null,
     "last_step": null,
