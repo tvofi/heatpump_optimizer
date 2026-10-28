@@ -1,0 +1,20 @@
+pr:head | body_patch self-test: 62 checks, 2 failed
+pr:prew | body_patch self-test: 62 checks, 2 failed
+pr:lint | body_patch self-test: 62 checks, 8 failed
+pr:carry | body_patch self-test: 62 checks, 3 failed
+pr:rb | body_patch self-test: 62 checks, 4 failed
+pr:rbhead | body_patch self-test: 62 checks, 1 failed
+pr:rbx | body_patch self-test: 62 checks, 3 failed
+pr:eq1 | body_patch self-test: 62 checks, 2 failed
+pr:exist | body_patch self-test: 62 checks, 1 failed
+pr:dot2 | body_patch self-test: 62 checks, 1 failed
+rev:dryrun-falls-through | body_patch self-test: 62 checks, 2 failed
+rev:contract-not-gating | body_patch self-test: 62 checks, 6 failed
+rev:closed-pr-accepted | body_patch self-test: 62 checks, 1 failed
+rev:readback-closed-ok | body_patch self-test: 62 checks, 0 failed
+rev:reds-listing-fail-open | body_patch self-test: 62 checks, 2 failed
+rev:reds-not-passed | body_patch self-test: 62 checks, 1 failed
+rev:patch-fail-ignored | body_patch self-test: 62 checks, 0 failed
+rev:verdict-state-off | body_patch self-test: 62 checks, 2 failed
+restored: body_patch self-test: 62 checks, 0 failed
+rev:del-readback-closed-line | body_patch self-test: 62 checks, 0 failed (equivalent: the unmatched read falls through to the retry loop and rbexhaust refuses)

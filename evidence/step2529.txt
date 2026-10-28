@@ -1,0 +1,510 @@
+gate self-test: all cases pass
+ref=94ef8a7d7bfddda09f1698f75ff06f466a085f69 seats=48
+ok D0 mode=cells seats=3 universe=3 [s1:3f/20844loc, s2:3f/20844loc, s3:3f/20844loc]
+FAIL D1 mode=cells seats=3 universe=81 [s1:81f/63442loc, s2:81f/63442loc, s3:81f/63442loc]
+   owned twice ('custom_components/heatpump_optimizer/__init__.py', 'M1', None) by ['s1', 's2']
+   owned twice ('custom_components/heatpump_optimizer/__init__.py', 'M4', None) by ['s1', 's2']
+   owned twice ('custom_components/heatpump_optimizer/accuracy.py', 'M1', None) by ['s1', 's2']
+   owned twice ('custom_components/heatpump_optimizer/accuracy.py', 'M4', None) by ['s1', 's2']
+   owned twice ('custom_components/heatpump_optimizer/away.py', 'M1', None) by ['s1', 's2']
+   owned twice ('custom_components/heatpump_optimizer/away.py', 'M4', None) by ['s1', 's2']
+   owned twice ('custom_components/heatpump_optimizer/batchmath.py', 'M1', None) by ['s1', 's2']
+   owned twice ('custom_components/heatpump_optimizer/batchmath.py', 'M4', None) by ['s1', 's2']
+   owned twice ('custom_components/heatpump_optimizer/battery.py', 'M1', None) by ['s1', 's2']
+   owned twice ('custom_components/heatpump_optimizer/battery.py', 'M4', None) by ['s1', 's2']
+ok D2 mode=cells seats=3 universe=81 [s1:81f/63442loc, s2:81f/63442loc, s3:81f/63442loc]
+ok D3 mode=cells seats=3 universe=82 [s1:12f/29244loc, s2:18f/14133loc, s3:52f/34815loc]
+ok D4 mode=cells seats=3 universe=9 [s1:9f/19049loc, s2:9f/19049loc, s3:9f/19049loc]
+ok D5 mode=cells seats=3 universe=90 [s1:8f/0loc, s2:8f/0loc, s3:90f/78192loc]
+ok D6 mode=files seats=3 universe=18 [s1:5f/0loc, s2:7f/0loc, s3:6f/0loc]
+ok D7 mode=cells seats=3 universe=81 [s1:81f/63442loc, s2:81f/63442loc, s3:81f/63442loc]
+ok D8 mode=cells seats=3 universe=6 [s1:6f/4567loc, s2:6f/4567loc, s3:6f/4567loc]
+ok D9 mode=cells seats=3 universe=82 [s1:82f/78192loc, s2:82f/78192loc, s3:82f/78192loc]
+ok D10 mode=cells seats=3 universe=99 [s1:99f/78192loc, s2:99f/78192loc, s3:99f/78192loc]
+ok D11 mode=cells seats=3 universe=2785 [s1:2785f/0loc, s2:2785f/0loc, s3:2785f/0loc]
+ok D12 mode=cells seats=3 universe=81 [s1:81f/63442loc, s2:81f/63442loc, s3:81f/63442loc]
+ok D13 mode=cells seats=3 universe=1 [s1:1f/0loc, s2:1f/0loc, s3:1f/0loc]
+ok D14 mode=cells seats=3 universe=1 [s1:1f/0loc, s2:1f/0loc, s3:1f/0loc]
+ok D15 mode=cells seats=3 universe=1 [s1:1f/0loc, s2:1f/0loc, s3:1f/0loc]
+ok D0 mode=cells seats=3 universe=3 [s1:3f/20844loc, s2:3f/20844loc, s3:3f/20844loc]
+ok D1 mode=cells seats=3 universe=81 [s1:81f/63442loc, s2:81f/63442loc, s3:81f/63442loc]
+FAIL D2 mode=cells seats=3 universe=81 [s1:81f/63442loc, s2:81f/63442loc, s3:81f/63442loc]
+   unowned ('custom_components/heatpump_optimizer/__init__.py', 'M3', None)
+   unowned ('custom_components/heatpump_optimizer/__init__.py', 'M4', None)
+   unowned ('custom_components/heatpump_optimizer/__init__.py', 'M5', None)
+   unowned ('custom_components/heatpump_optimizer/accuracy.py', 'M3', None)
+   unowned ('custom_components/heatpump_optimizer/accuracy.py', 'M4', None)
+   unowned ('custom_components/heatpump_optimizer/accuracy.py', 'M5', None)
+   unowned ('custom_components/heatpump_optimizer/away.py', 'M3', None)
+   unowned ('custom_components/heatpump_optimizer/away.py', 'M4', None)
+   unowned ('custom_components/heatpump_optimizer/away.py', 'M5', None)
+   unowned ('custom_components/heatpump_optimizer/batchmath.py', 'M3', None)
+ok D3 mode=cells seats=3 universe=82 [s1:12f/29244loc, s2:18f/14133loc, s3:52f/34815loc]
+ok D4 mode=cells seats=3 universe=9 [s1:9f/19049loc, s2:9f/19049loc, s3:9f/19049loc]
+ok D5 mode=cells seats=3 universe=90 [s1:8f/0loc, s2:8f/0loc, s3:90f/78192loc]
+ok D6 mode=files seats=3 universe=18 [s1:5f/0loc, s2:7f/0loc, s3:6f/0loc]
+ok D7 mode=cells seats=3 universe=81 [s1:81f/63442loc, s2:81f/63442loc, s3:81f/63442loc]
+ok D8 mode=cells seats=3 universe=6 [s1:6f/4567loc, s2:6f/4567loc, s3:6f/4567loc]
+ok D9 mode=cells seats=3 universe=82 [s1:82f/78192loc, s2:82f/78192loc, s3:82f/78192loc]
+ok D10 mode=cells seats=3 universe=99 [s1:99f/78192loc, s2:99f/78192loc, s3:99f/78192loc]
+ok D11 mode=cells seats=3 universe=2785 [s1:2785f/0loc, s2:2785f/0loc, s3:2785f/0loc]
+ok D12 mode=cells seats=3 universe=81 [s1:81f/63442loc, s2:81f/63442loc, s3:81f/63442loc]
+ok D13 mode=cells seats=3 universe=1 [s1:1f/0loc, s2:1f/0loc, s3:1f/0loc]
+ok D14 mode=cells seats=3 universe=1 [s1:1f/0loc, s2:1f/0loc, s3:1f/0loc]
+ok D15 mode=cells seats=3 universe=1 [s1:1f/0loc, s2:1f/0loc, s3:1f/0loc]
+SELF-TEST passed (both perturbed scopes refused)
+  ok   sequential gates are not overlaps
+  ok   ...and the gap count is one
+  ok   ...and the later merge is not an own-failure
+  ok   a merge inside the previous gate window is an overlap
+  ok   ...and a successful own gate is not an own-failure
+  ok   an overlapping merge whose own Tests failed is counted
+  ok   a sequential failure is not an overlap-own-failure
+  ok   ...and still not an overlap
+  ok   a gap under 400s is counted
+  ok   no runs means no overlaps
+  ok   ...and wait is not busy
+  ok   a single completed run has no gaps
+  ok   ...and wait is not busy
+  ok   duration min is the shortest completed run
+  ok   duration max is the longest completed run
+  ok   latest in_progress is busy
+  ok   latest completed is not busy
+  ok   latest queued is busy
+  ok   empty run list is not busy
+  ok   a completed cancelled run is not busy
+ok: merge_throughput.py self-test
+ok   the sweep over every class exits 0 (fail-soft)
+ok   merged+clean: worktree removed
+ok   with git worktree remove --force
+ok   and the local branch deleted
+ok   and the seat scratch directory removed
+ok   open PR: worktree and seat kept
+ok   kept naming open-pr
+ok   and no remove call for it (null control)
+ok   no pull request at all: kept (ambiguous, not proved merged)
+ok   kept naming no-merged-pr
+ok   detached at a merged sha: worktree removed
+ok   its cited evidence moved into the keep-dir
+ok   out of the seat directory
+ok   and the seat directory removed
+ok   and the move printed
+ok   detached at an unmerged sha: kept
+ok   kept naming unmerged-head
+ok   dirty merged: removed (force; merged work is on main)
+ok   with force
+ok   its uncommitted state printed
+ok   diff text included
+ok   the diff is printed BEFORE the removal (stop-a-seat check)
+ok   locked: kept (a seat's claim, trap 34)
+ok   kept naming locked
+ok   orphan dir old and dead: seat dir removed
+ok   with its evidence preserved to the keep-dir
+ok   orphan dir fresh: kept (2h guard)
+ok   kept naming fresh
+ok   orphan with an open-PR branch: kept
+ok   kept naming unmerged-branch
+ok   orphan with a merged branch: removed
+ok   stale venv: removed
+ok   venv a live worktree symlinks: kept
+ok   kept naming venv-in-use
+ok   the main checkout is never touched
+ok   the fixture redirect holds: the real seats root is never walked (null control)
+ok   one PR read per branch worktree plus the two orphan branches
+ok   a no-PR branch is never removed
+ok   nested live worktree under an orphan: rc 0
+ok   the nested worktree itself is kept naming open-pr
+ok   the nested LIVE worktree is not deleted
+ok   and the seat dir holding it is kept
+ok   kept naming the nested worktree
+ok   never announced as an orphan removal (null control)
+ok   the live worktree's file is intact
+ok   failed evidence move in class C: rc 0
+ok   the move failure is reported
+ok   the evidence stays in the seat dir
+ok   and the seat dir is kept
+ok   kept naming nondisposable-contents
+ok   --dry-run exits 0
+ok   removes no worktree
+ok   deletes no branch
+ok   leaves the merged seat on disk
+ok   moves no evidence
+ok   and says what would go
+ok   and what is kept, with the reason
+ok   unauthenticated gh: rc 0 (fail-soft)
+ok   a notice, not a refusal
+ok   and nothing removed
+ok   the merged worktree survives
+ok   --strict with nothing eligible: rc 1
+ok   without --strict the same run is rc 0
+ok   no repository argument is a usage error
+ok   and so is a repo without owner/repo shape
+ok   refused before any git or gh call
+worktree_gc self-test: 66 checks, 0 failed
+  ok   an unnamed below-bar module is assigned
+  ok   ...to the residual
+  ok   an at-bar module is not partitioned
+  ok   ...and no line names it
+  ok   a roster without the residual group is refused
+  ok   ...and the tail is reported unassigned
+  ok   ...but the missing group is still refused on its own
+  ok   ...with nothing unassigned
+  ok   a done tranche's module below the bar again is refused
+  ok   ...naming the module
+  ok   ...and it does not fire when that module is at the bar
+ok: partition.py self-test
+LEDGER-MERGE: resolved tests/closures.json
+  recorded.a.seconds: took the larger of 21.1 and 27.2
+  closures.a: merged as a set (2 entries)
+  re-run the gate that owns this file before pushing
+LEDGER-MERGE: refused tests/mutation_budgets.json: survivor_triage.k1: both sides rewrote this record differently
+LEDGER-MERGE: tests/closures.json: text merge (a side is not in its writer's own JSON format)
+  ok   closures: a timing both sides re-took no longer conflicts
+  ok   closures: an addition on one side and a removal on the other both land
+  ok   closures: a file only theirs added lands beside ours' removal
+  ok   closures: a key only one side changed takes that side
+  ok   closures: two re-timings inside 2x of the base keep the base
+  ok   closures: a re-timing outside 2x wins over one inside
+  ok   closures: the driver writes the layout from two tail-appended legacy sides
+  ok   closures: --resolve finishes a merge an older driver left conflicted
+  ok   closures: --resolve refuses a path with no conflict to finish
+  ok   structure: a recorded_at pair with no ancestry is refused
+  ok   structure: recorded_at takes the descendant SHA
+  ok   structure: a count both sides moved takes base plus both deltas
+  ok   mutation: dispositions both sides added all land
+  ok   mutation: a measurement both sides re-took keeps the later one whole
+  ok   an unsorted map places a new key where the text merge would
+  ok   mutation: a cap both sides raised takes the lower raise, not the sum
+  ok   re-keyed ledger: a row the branch added survives main's re-key
+  ok   re-keyed ledger: the branch's edit lands on main's key
+  ok   re-keyed ledger: a row both sides re-keyed appears once, under main's key
+  ok   re-keyed ledger: a row only the branch re-keyed keeps the branch's key
+  ok   pre-#1577 branch: a count main retired is dropped, not refused
+  ok   pre-#1577 branch: its addition to `reason` is appended to main's text
+  ok   refuses: a prose field both sides rewrote (neither only appended)
+  ok   re-keyed ledger: when both sides moved a row, the anchored key wins
+  ok   re-keyed ledger: the same pinned text added under two anchors stays two rows
+  ok   re-keyed ledger: the same pinned text added at two line keys stays two rows
+  ok   re-keyed ledger: a row moved to two different anchors is not merged into one
+  ok   re-keyed ledger: rows that swapped keys on one side keep that side's keys
+  ok   a retired count both sides still record merges as base plus both deltas
+  ok   a retired key both sides still hold is merged, not dropped
+  ok   re-keyed ledger: a repeated pinned line does not stop the other rows aligning
+  ok   re-keyed ledger: a row both sides' line shifts moved is one row, under theirs' key
+  ok   re-keyed ledger: renames that would collide are refused, not collapsed
+  ok   refuses: one disposition both sides rewrote differently
+  ok   refuses: a disposition one side deleted and the other rewrote (ours deletes)
+  ok   refuses: a disposition one side deleted and the other rewrote (theirs deletes)
+  ok   refuses: a side not in its writer's own format
+  ok   a side with a raw non-ASCII character is merged, not refused
+  ok   refuses: a side that is not JSON (conflict markers)
+  ok   driver: resolves into %A and exits 0
+  ok   driver: a refusal exits 1 and leaves conflict markers in %A
+  ok   driver: a format refusal falls back to a clean text merge
+  ok   replay: a merge-tree usage error (git < 2.40) is refused, not a zero
+  ok   replay: a conflicted merge-tree (exit 1) is counted (null control)
+  ok   bugclasses: two _rca entries appended after the same last entry both land
+  ok   bugclasses: raw non-ASCII text is written back raw
+  ok   bugclasses refuses: one _rca entry both sides rewrote differently
+  ok   bugclasses refuses: a class both sides added an instance to (equal counts, both wrong)
+  ok   .gitattributes routes every ledger to the driver
+  ok   a .gitattributes routing only one ledger is refused
+
+all passed
+ok   deterministic: two runs are byte-identical
+ok   the clean plan passes --check
+ok   the critical path runs A -> B -> D
+ok   cycle: build refuses
+ok   over-cap wave refuses
+ok   dependency inversion refuses
+ok   stamp cadence breach refuses
+ok   short patch stamp refuses
+ok   summary mismatch refuses
+ok   --check exits 1 on a planted over-cap wave
+ok   the command exits 2 on a dependency cycle
+ok   live admission never exceeds the slot cap
+ok   the excess live group is queued, not invented
+ok   an inherited group ahead of its dependency is recorded
+ok   the plan with a recorded inversion passes --check
+ok   an unrecorded inherited inversion refuses
+ok   the inherited coordinator set is recorded
+ok   a missing inherited-coordinator record refuses
+ok   a disagreeing inherited-coordinator record refuses
+ok   a rerun does not replace the first attempt (earliest started_at)
+ok   the coordinator cap limits planned groups in flight
+ok   dispatch takes the longest remaining path first, not the shortest job
+ok   five production merges cut one patch stamp
+ok   CI minutes price every gate run (batches + stamps)
+ok   the gate price includes the cancelled-leg rerun
+  null control: unmutated copy rc=0
+ok   the unmutated copy's self-test exits 0 (null control)
+  mutation earliest-attempt: 'if prev is None or started < prev["started"]:' -> rc=1
+ok   self-test fails when earliest-attempt is deleted
+  mutation coordinator-cap: 'if coord[n] and n not in inherited and cc >= coord_cap:' -> rc=1
+ok   self-test fails when coordinator-cap is deleted
+  mutation dispatch-order: 'key = (-height[n], -dur_min[n], n)' -> rc=1
+ok   self-test fails when dispatch-order is deleted
+  mutation stamp-cadence: 'if len(carry) >= every:' -> rc=1
+ok   self-test fails when stamp-cadence is deleted
+  mutation ci-formula: 'ci = round((len(batch_rows) + len(stamps)) * gate_report, 1)' -> rc=1
+ok   self-test fails when ci-formula is deleted
+  mutation gate-cancellation: 'return fast + clo + ana * (1.0 + p_cancel)' -> rc=1
+ok   self-test fails when gate-cancellation is deleted
+self-test: 0 failed
+
+KNOWN-BAD: 7 of 7 recorded defect(s) still present, in 8 recorded occurrence(s)
+
+TOTAL: 0 error(s) across 41 policy file(s)
+
+FIXTURE ok: 92 error(s) hold 246 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
+ok: plan_path(fc76a05)=docs/plan-2026-09-open-issues.md; a new-path-only read misses it
+ok: plan_path(HEAD)=dev/programme/plan-2026-09-open-issues.md
+ok   an open pull request's held runs at its head ref are approved (branch defaulted via gh)
+ok   the branch reached both listings percent-encoded
+ok   and never raw: a slash in a branch name would reshape the query
+ok   the loop is list, approve each held run, then re-list
+ok   exactly one approve POST for run 111
+ok   and exactly one for run 222
+ok   and NONE for run 333 (null control: a success-state run is not approved)
+ok   the success-state run is reported skipped, with its own status
+ok   the report counts every category
+ok   and each approved run is named with its id and URL
+ok   both of them
+ok   no raw curl call: every request rides gh, so no credential can reach this script's argv
+ok   and no credential text on any stubbed command line
+ok   (null control: that log does hold real argv -- the 0 above is read off a non-empty artifact)
+ok   a run still held on the re-list fails the tool
+ok   counted as still-held, not approved
+ok   named with its id and URL
+ok   while its sibling, no longer held, is approved
+ok   a refused approve POST fails the tool
+ok   naming the failed run and its URL
+ok   reported under failed
+ok   with the rest of the report honest
+ok   REFUSE: gh is unauthenticated
+ok   saying so
+ok   and approving nothing
+ok   having asked gh before anything else
+ok   REFUSE: a repo argument without owner/repo shape
+ok   before any gh, git or curl call
+ok   REFUSE: a branch argument that is not a plain ref name
+ok   before any gh, git or curl call
+ok   REFUSE: no arguments at all is a usage error
+ok   with the usage line
+ok   REFUSE: no open pull request on the checked-out branch
+ok   naming the repo and the checkout's branch
+ok   and approving nothing
+ok   a branch with nothing held succeeds approving nothing
+ok   saying there was nothing to do
+ok   --dry-run lists the held run and succeeds
+ok   and POSTs no approve at all
+ok   having listed exactly once
+ok   naming the run it would approve
+ok   and saying it approved nothing
+approve_held_runs self-test: 42 checks, 0 failed
+gate_priority self-test: 12 checks, 0 failed
+ok   prose quoting `## Head` above the heading: the note lands under the heading, not in the prose
+ok   two notes: the later one above the earlier, both under the heading
+ok   a `## Head` line inside a code fence is not the heading
+ok   `### Head` and `## Heading` are not it; `##  Head  ` with CRLF is (sections()'s \s)
+ok   a heading at the end of the body with no newline
+ok   no heading refuses
+head_note self-test: 6 checks, 0 failed
+  ok   bump patch
+  ok   bump minor
+  ok   bump major
+  ok   tag order
+  ok   notes: first section found
+  ok   notes: wrong version is None
+  ok   merged prs
+  ok   subjects: a merge commit names its pull request
+  ok   subjects: a squash subject names its pull request
+  ok   subjects: an issue reference is not a merged pull request
+  ok   subjects: a trailing issue list is not read as one number
+  ok   subjects: the stamper's own commit carries none
+  ok   subjects: #16 is not read out of (#165)
+  ok   merged prs: both shapes, and nothing invented
+  ok   subjects: a title-subject merge is numbered from a body Merge pull request line
+  ok   subjects: Fixes #N in the body is not a merged pull request
+  ok   window: the format carries the body so a title-subject merge is readable
+  ok   rule 4: a title-subject merge is demanded by number, not only by sha
+  ok   rule 4: notes naming that number pass
+  ok   window: the log is first-parent
+  ok   window: the log spans last tag to head
+  ok   window: the format carries sha, parents, subject and body
+  ok   window: a merge is recognised by its parent count
+  ok   window: a body carrying the separator keeps it
+  ok   window: an empty log is an empty window
+  ok   window: an unreadable line refuses, it is not dropped
+  ok   window: an all-unreadable log refuses rather than reading empty
+  ok   blind: a healthy window raises no alarm
+  ok   blind: a healthy window names no unattributable merge
+  ok   blind: a merge with no number in its subject is named, not dropped
+  ok   blind: a named merge is refused by name, not by the empty-set alarm
+  ok   blind: a window that attributed nothing at all refuses
+  ok   blind: an empty window is not blind, it is empty
+  ok   blind: a window holding only the stamper's own commit is not blind
+  ok   rule 4: complete notes pass
+  ok   rule 4: notes omitting a merge are refused, naming it
+  ok   rule 4: an issue number is never demanded of the notes
+  ok   rule 4: an unattributable merge refuses, naming its sha
+  ok   rule 4: naming that sha in the notes clears it
+  ok   rule 4: a window it could attribute nothing in refuses
+  ok   rule 4: an empty window passes, as it did before
+  ok   direct push: a single-parent commit beside a real merge is named
+  ok   direct push: the merge beside it is not
+  ok   direct push: the stamp's own commit is never named
+  ok   direct push: a squash commit citing its own PR is not named
+  ok   direct push: an empty window names nothing
+  ok   rule 4: the window comes from window_log_args
+  ok   rule 4: the call site builds no log of its own
+  ok   rule 4: the verdict comes from rule4_problem
+  ok   claims: old stamp read
+  ok   claims: one bare claim deleted
+  ok   claims: new stamp present
+  ok   claims: may-drift kept
+  ok   claims: old reason gone
+  ok   claims: no bare lines
+  ok   claims: may-drift survives without a blank line
+  ok   claims: suspended entries restored, the stale note dropped
+  ok   claims: a note after the reason block ends it and keeps its continuation
+  ok   claims: an entry below the claims is restored in place
+  ok   claims: a malformed suspension refuses (no tail)
+  ok   claims: a malformed suspension refuses (two notes)
+  ok   card: old version read
+  ok   card: new version written
+  ok   card: missing constant refuses
+  ok   notes: #16 is not covered by #165
+  ok   tags: pre-release tags are ignored
+  ok   rule 2: the rest query
+  ok   rule 2: a token becomes a bearer header
+  ok   rule 2: no token, no header (the repository is public)
+  ok   rule 2: the payload reduces to gh's shape
+  ok   rule 2: another workflow's run is not the gate
+  ok   rule 2: a completed success is green
+  ok   rule 2: a red run refuses, naming the conclusion
+  ok   rule 2: a run still going is counted, not awaited
+  ok   rule 2: no run at all
+  ok   rule 2: gh's shape and rest's reduce to one verdict
+  ok   rule 2: the five newest Tests runs, as gh's --limit
+  ok   rule 2: gh is used when it is installed
+  ok   rule 2: rest is used when gh is absent
+  ok   rule 2: a source that cannot answer refuses, it does not raise
+  ok   tag push: the failure is caught, not raised
+  ok   tag push: a failed tag push does not roll the commit back
+  ok   tag push: the caller can tell it apart from success
+  ok   tag push: the recovery names the Release workflow
+  ok   push: --push alone is today's command, unchanged
+  ok   push: over the key, the target is the SSH URL
+  ok   push: over the key, origin is never named
+  ok   push: over the key, no config is written or overridden
+  ok   push: the ssh command reaches the subprocess environment
+  ok   push: the caller's environment is kept beside it
+  ok   push: the ssh command pins the key, the host file and strict checking
+  ok   push: the ssh command is exactly the measured one, options in order
+  ok   push: a path with a space is quoted, not split
+  ok   push: a refused key push raises
+  ok   push: a refused key push is never retried as origin
+  ok   push: after a key push, origin is fetched so origin/main shows the stamp
+  ok   push: a failed refresh is reported, not raised
+  ok   key: a 600 key and a pinned host file pass
+  ok   key: a missing key refuses, naming it
+  ok   key: a missing known_hosts refuses, naming it
+  ok   key: a key readable by others refuses, naming the mode
+  ok   key: a key that is not exactly 600 refuses
+  ok   key: a host file others can rewrite refuses
+  ok   key: an empty key path refuses
+  ok   key: a known_hosts path with 'sp ace' refuses before push time
+  ok   key: a key path with 'sp ace' refuses before push time
+  ok   key: a known_hosts path with "quo'te" refuses before push time
+  ok   key: a key path with "quo'te" refuses before push time
+  ok   key: a known_hosts path with 'dq"te' refuses before push time
+  ok   key: a key path with 'dq"te' refuses before push time
+  ok   key: a known_hosts path with 'tab\tbed' refuses before push time
+  ok   key: a key path with 'tab\tbed' refuses before push time
+  ok   key: a known_hosts path with 'pct%h' refuses before push time
+  ok   key: a key path with 'pct%h' refuses before push time
+  ok   push: main pushes the branch and the tag only through push_via
+  ok   push: both pushes carry the key arguments
+  ok   push: the key is checked before rule 1, and a problem refuses
+  ok   title: a title naming a host path is refused (#2310)
+  ok   title: an ordinary title passes (the null control)
+  ok   title: main refuses through title_refusal before rule 1
+  ok   push: an empty --push-key is checked, not skipped as falsy
+  ok   push: main refreshes origin after a key push
+  ok   push: the refresh runs before the tag push
+  ok   claims self-check: the command is main's push-run check against HEAD^1
+  ok   claims self-check: exit 0 passes
+  ok   claims self-check: exit 1 refuses, carrying the refusal
+  ok   claims self-check: a crash is not a pass
+  ok   claims self-check: a check that cannot start refuses
+  ok   rows gate: the command is the token-free disposition instrument, over this window
+  ok   rows gate: with no tag yet it asks over the whole of origin/main
+  ok   rows gate: a rowless window refuses, carrying the instrument's own list
+  ok   rows gate: a fully rowed window clears
+  ok   rows gate: a crash is not a pass
+  ok   rows gate: a check that cannot start refuses
+  ok   rows gate: an uncleared window with no override refuses
+  ok   rows gate: --allow-rowless warns, carries the instrument's list, and proceeds
+  ok   rows gate: a cleared window proceeds with the instrument's summary line
+  ok   rows gate: main() runs the disposition gate, before the manifest rule
+  ok   rows gate: main() hands the verdict to the driven decision, and refuses it
+  ok   record-class: the three record path classes together classify
+  ok   record-class: each class alone classifies
+  ok   record-class: one code file beside a delivery row breaks the class
+  ok   record-class: an empty diff fails closed and keeps owing its row
+  ok   record-class: the classes are exact, not prefixes
+  ok   rows: the instrument's pending line parses to pr and sha
+  ok   rows: an overdue line parses the same way
+  ok   rows: the verdict line, the skip marker and prose parse to nothing
+  ok   rows: a malformed rowless line refuses, it is not read as none
+  ok   rows gate: a window whose only rowless merge is record-class proceeds, naming it
+  ok   rows gate: a rowless merge that is not record-class still refuses
+  ok   rows gate: a rowless list that parsed to nothing refuses as before
+  ok   rows gate: --allow-rowless still warns when nothing is exempt
+  ok   rows gate: a cleared window proceeds quietly, as before
+  ok   throwaway repo: git itself reads auto-maintenance as off, so no detached repack outlives the directory
+  ok   record-class: a record-only merge classifies, from real git objects
+  ok   record-class: a code merge beside its delivery row does not classify
+  ok   record-class: a sha git cannot resolve fails closed, not crashes
+  ok   rows gate: main() parses the rowless list and classifies each merge
+  ok   rows gate: main() cross-checks the parse against rule 4's window
+  ok   rows gate: main() hands the partition to the driven decision
+  ok   register: the generator is claims.py, run from ROOT
+  ok   register: the stub is put on PYTHONPATH, the caller's kept after it
+  ok   register: a generator that exits 0 passes
+  ok   register: a generator that fails refuses, naming its last line
+  ok   register: a generator that cannot start refuses
+  ok   claims self-check: a refused stamp commit pushes nothing
+  ok   claims self-check: a refused stamp commit is undone to the pre-stamp head
+  ok   claims self-check: a refused stamp exits non-zero, printing the refusal
+  ok   claims self-check: a good stamp still pushes the branch, then the tag, over the key
+  ok   claims self-check: a good stamp is not undone
+  ok   claims self-check: it runs before the first push
+  ok   claims self-check: a local stamp without --push is checked and undone too
+  ok   undo: the local tag is gone
+  ok   undo: HEAD is the pre-stamp commit
+  ok   undo: the stamp's other writes are reverted
+  ok   undo: the notes are kept, uncommitted
+  ok   claims self-check: main publishes only through publish_stamp, after the tag
+  ok   claims self-check: --dry-run's help says it skips the claims check
+  ok   claims self-check: --dry-run returns before the commit and the self-check
+  ok   register: main re-records the register before it commits, and stages it
+  ok   register: its failure path restores the stamp's writes and keeps the notes
+  ok   register dry run: the generator runs in a copy, not the checkout
+  ok   register dry run: the copy carries the stamped version and claim files
+  ok   register dry run: the copy is removed after the run
+  ok   register dry run: the default runner's working directory is the copy, not the checkout
+  ok   register dry run: a generator that fails refuses, as the real stamp does
+  ok   register dry run: main calls it before returning from --dry-run
+RESULT stamp_self_test=pass
+  ok   the closure is transitive and includes a locate() load, not a file nothing imports
+  ok   a wildcard does not cross a slash, and a directory pathspec does
+  ok   a list that covers the closure passes (null control)
+  ok   a list missing one transitive reader exits 1 and names it
+  ok   a wildcard pathspec over tests/ does not cover a nested file
+  ok   a workflow with no wave-script job is refused, not read as covered
+  ok   and --out refuses to answer on it (the precondition, not a report)
+agreement_py self-test: 7 checks, 0 failed
+agreement_py restore: 13 closure file(s), 13 covered by the wave-script restore list, 0 missing
+rc=0

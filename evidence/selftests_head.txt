@@ -1,0 +1,5 @@
+ok   MUTANT --diff-filter=a dropped: the existing list now holds the added file (the ok-run assertion catches it)
+ok   MUTANT two-dot diff: the paths now hold the base's own d.txt (the ok-run assertion catches it)
+body_patch self-test: 62 checks, 0 failed
+app_push self-test: 182 checks, 0 failed
+selftest_wiring: 74 self-testing, 74 wired, 0 unwired
