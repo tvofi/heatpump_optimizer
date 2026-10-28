@@ -876,6 +876,7 @@ class InputHealthView(TypedDict, total=False):
     problem_inputs: list[str]
     problem_messages: list[str]
     input_ages_minutes: dict[str, float]
+    input_ages_at: datetime | None
     learners_frozen: bool
     learner_freeze_reason: str | None
 
