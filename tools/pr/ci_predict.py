@@ -82,7 +82,8 @@ from pathlib import Path
 # (DESIGN-P2 section 9); gate.REQUIRED pins every value but `ledger`.
 JOB = {"closures": "tests / closures", "fast": "tests / fast (3.14)",
        "mutation": "tests / mutation", "carry": "pr-contract / pr-contract",
-       "wave-script": "governance / wave-script", "instrument": "governance / instrument-self-tests"}
+       "wave-script": "governance / wave-script", "instrument": "governance / instrument-self-tests",
+       "policy-docs": "governance / policy-docs", "env-matrix": "governance / env-matrix"}
 
 
 def git(root: Path, *args: str) -> str | None:
@@ -401,19 +402,12 @@ AGREEMENT = (".claude/workflows/agreement.mjs", "tools/policy/agreement.mjs")
 EMPTY_TREE = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
 
 
-def lane_files(root: Path) -> set[str]:
-    """What the agreement lane loads: agreement_py.py's own `closure` (its
-    restore precondition's list) and agreement.mjs's, its relative imports and
-    `load`/`at` literals over every .mjs file those reach."""
+def mjs_closure(root: Path, entry: str) -> set[str]:
+    """What one .mjs grader loads: its relative imports and `load`/`at`
+    literals, transitively, each where the tree keeps it."""
     import layout
-    mjs = next((p for p in AGREEMENT if (root / p).is_file()
-                and (root / p).with_name("agreement_py.py").is_file()), None)
-    if mjs is None:
-        return set()
-    sys.path.insert(0, str(root / Path(mjs).parent))
-    import agreement_py
-    seen = set(agreement_py.closure(root, root / Path(mjs).with_name("agreement_py.py")))
-    stack = [mjs]
+    seen: set[str] = set()
+    stack = [entry]
     while stack:
         p = layout.locate(stack.pop(), root=root)
         if p in seen or not p.endswith(".mjs") or not (root / p).is_file():
@@ -425,11 +419,59 @@ def lane_files(root: Path) -> set[str]:
     return seen
 
 
+def lane_files(root: Path) -> set[str]:
+    """What the agreement lane loads: agreement_py.py's own `closure` (its
+    restore precondition's list) and agreement.mjs's `mjs_closure`."""
+    mjs = next((p for p in AGREEMENT if (root / p).is_file()
+                and (root / p).with_name("agreement_py.py").is_file()), None)
+    if mjs is None:
+        return set()
+    sys.path.insert(0, str(root / Path(mjs).parent))
+    import agreement_py
+    return set(agreement_py.closure(root, root / Path(mjs).with_name("agreement_py.py"))) | mjs_closure(root, mjs)
+
+
+def ci_tree_run(root: Path, tip: str, job: str, steps) -> tuple[str, subprocess.CompletedProcess | None]:
+    """Run `steps` (each a function of the tree's runner) where CI's pull-
+    request run of `job` runs them: the merge of HEAD into the base tip (base
+    first), the job's restore pathspecs checked out from that tip, in a clone
+    whose origin/main is the tip (a live origin/main past the PR moves the
+    merge-subject walk onto its own merges). Returns ("unmerged", None) on a
+    conflict, else ("ran", the first failing step's process or the last)."""
+    import shutil
+    import tempfile
+    import agreement_py
+    from throwaway_git import throwaway_git_clone
+    head = (git(root, "rev-parse", "HEAD") or "").strip()
+    tmp = Path(tempfile.mkdtemp(prefix="hpo-ci-predict-tree-"))
+    r = tmp / "r"
+    try:
+        env = throwaway_git_clone(root, r, "-q", "--shared", "--no-checkout")
+
+        def run(*a: str) -> subprocess.CompletedProcess:
+            return subprocess.run(a, cwd=r, env=env, capture_output=True, text=True)
+
+        run("git", "update-ref", "refs/remotes/origin/main", tip)
+        run("git", "checkout", "-q", "--detach", tip)
+        if run("git", "merge", "-q", "--no-ff", "-m", f"Merge {head} into {tip}", head).returncode:
+            return "unmerged", None
+        shutil.rmtree(r / ".claude" / "workflows" / "vendor", ignore_errors=True)
+        specs = agreement_py.restore_specs((r / agreement_py.WORKFLOW).read_text(), job)
+        (tmp / "pinned.list").write_text(run("git", "diff", "--no-renames", "--name-only", "-z", EMPTY_TREE, tip, "--", *specs).stdout)
+        run("git", "checkout", tip, f"--pathspec-from-file={tmp / 'pinned.list'}", "--pathspec-file-nul")
+        out = None
+        for step in steps:
+            out = step(r, run, tmp)
+            if out.returncode:
+                break
+        return "ran", out
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
 def agreement_preds(root: Path, base_ref: str, changed: set[str]) -> list[tuple[str, str]]:
-    """`wave-script`'s agreement lane as CI runs it on the pull request: the
-    merge of HEAD into the base tip (base first), the job's restore pathspecs
-    checked out from that tip, in a clone whose origin/main is the tip (a live
-    origin/main past the PR moves the merge-subject walk onto its own merges).
+    """`wave-script`'s agreement lane as CI runs it on the pull request
+    (`ci_tree_run`).
 
     prepr.sh step 3f4 runs the head's copy, push-to-main's direction; the two
     differ only where the diff edits a file the lane loads, so that diff is
@@ -441,36 +483,20 @@ def agreement_preds(root: Path, base_ref: str, changed: set[str]) -> list[tuple[
     tip = (git(root, "rev-parse", "--verify", f"{base_ref}^{{commit}}") or "").strip()
     if not hit or not tip or not any(git(root, "cat-file", "-e", f"{tip}:{p}") is not None for p in AGREEMENT):
         return []
-    import shutil
-    import tempfile
-    import agreement_py
-    from throwaway_git import throwaway_git_clone
-    head = (git(root, "rev-parse", "HEAD") or "").strip()
-    tmp = Path(tempfile.mkdtemp(prefix="hpo-ci-predict-agreement-"))
-    r = tmp / "r"
+
+    def py(r, run, tmp):
+        p = next(p for p in (".claude/workflows/agreement_py.py", "tools/policy/agreement_py.py") if (r / p).is_file())
+        return run(sys.executable, "-I", p, "--out", str(tmp / "agreement.json"))
+
+    def lane(r, run, tmp):
+        return run("node", next(p for p in AGREEMENT if (r / p).is_file()), "--py-json", str(tmp / "agreement.json"))
     try:
-        env = throwaway_git_clone(root, r, "-q", "--shared", "--no-checkout")
-
-        def run(*a: str) -> subprocess.CompletedProcess:
-            return subprocess.run(a, cwd=r, env=env, capture_output=True, text=True)
-
-        run("git", "update-ref", "refs/remotes/origin/main", tip)
-        run("git", "checkout", "-q", "--detach", tip)
-        if run("git", "merge", "-q", "--no-ff", "-m", f"Merge {head} into {tip}", head).returncode:
-            return [("wave-script", f"AGREEMENT UNMERGED: HEAD does not merge into {tip[:12]}, "
-                                    f"and CI runs nothing on a conflict; merge the base first")]
-        shutil.rmtree(r / ".claude" / "workflows" / "vendor", ignore_errors=True)
-        specs = agreement_py.restore_specs((r / agreement_py.WORKFLOW).read_text())
-        (tmp / "pinned.list").write_text(run("git", "diff", "--no-renames", "--name-only", "-z", EMPTY_TREE, tip, "--", *specs).stdout)
-        run("git", "checkout", tip, f"--pathspec-from-file={tmp / 'pinned.list'}", "--pathspec-file-nul")
-        py = next(p for p in (".claude/workflows/agreement_py.py", "tools/policy/agreement_py.py") if (r / p).is_file())
-        out = run(sys.executable, "-I", py, "--out", str(tmp / "agreement.json"))
-        if out.returncode == 0:
-            out = run("node", next(p for p in AGREEMENT if (r / p).is_file()), "--py-json", str(tmp / "agreement.json"))
+        state, out = ci_tree_run(root, tip, "wave-script", (py, lane))
     except (OSError, StopIteration, ValueError) as e:
         return [("wave-script", f"AGREEMENT UNRUN {type(e).__name__}: {e}")]
-    finally:
-        shutil.rmtree(tmp, ignore_errors=True)
+    if state == "unmerged":
+        return [("wave-script", f"AGREEMENT UNMERGED: HEAD does not merge into {tip[:12]}, "
+                                f"and CI runs nothing on a conflict; merge the base first")]
     if out.returncode == 0:
         return []
     lines = [l for l in out.stdout.splitlines() if l.strip()] or [f"rc {out.returncode}: {out.stderr.strip()[-200:]}"]
@@ -478,6 +504,74 @@ def agreement_preds(root: Path, base_ref: str, changed: set[str]) -> list[tuple[
     result = next((l for l in reversed(lines) if l.startswith("RESULT ")), lines[-1].strip())
     return [("wave-script", f"AGREEMENT {result} (the base's copy, over {', '.join(hit)})")] + \
            [("wave-script", f"AGREEMENT {w}") for w in why]
+
+
+# The other corpus graders a pinned job runs with the base's copy: (the job
+# whose restore list the tree takes, the jobs its red reaches, the line
+# marker, the grader at either layout). `policy_lint.mjs` is `policy-docs`'
+# run and the core of each `env-matrix` shape; `check-wave-script.mjs` is
+# `wave-script`'s first step. R10-RCA-PREPR-HEAD-GRADERS measured #2916
+# (an exclusion in policy_lint.mjs's CORPUS_EXCLUDED) and #2207 (a cadence
+# rule in check-wave-script.mjs) red this way with every local path green.
+GRADERS = (
+    ("policy-docs", ("policy-docs", "env-matrix"), "CORPUS",
+     (".claude/workflows/policy_lint.mjs", "tools/policy/policy_lint.mjs")),
+    ("wave-script", ("wave-script",), "WAVE CHECK",
+     (".claude/workflows/check-wave-script.mjs", "tools/policy/check-wave-script.mjs")),
+)
+
+
+def grader_preds(root: Path, base_ref: str, changed: set[str]) -> list[tuple[str, str]]:
+    """Each `GRADERS` program as CI runs it on the pull request (`ci_tree_run`).
+
+    Keyed on the diff changing a file the grader loads (`mjs_closure`) that
+    the job restores: only there do the head's and the base's copies differ,
+    and a data file the job does not restore (corpus_excluded.json, the
+    #2916 repair) reaches CI as the branch has it, as it reaches prepr.sh.
+    A base without the grader runs none, as the job has nothing to restore.
+    """
+    home = next((d for d in (".claude/workflows", "tools/policy") if (root / d / "agreement_py.py").is_file()), None)
+    if home is None:
+        return []
+    sys.path.insert(0, str(root / home))
+    import agreement_py
+    tip = (git(root, "rev-parse", "--verify", f"{base_ref}^{{commit}}") or "").strip()
+    wf = root / agreement_py.WORKFLOW
+    if not tip or not wf.is_file():
+        return []
+    preds: list[tuple[str, str]] = []
+    for job, reds, mark, homes in GRADERS:
+        entry = next((p for p in homes if (root / p).is_file()), None)
+        if entry is None or not any(git(root, "cat-file", "-e", f"{tip}:{p}") is not None for p in homes):
+            continue
+        try:
+            specs = agreement_py.restore_specs(wf.read_text(), job)
+        except ValueError as e:
+            preds += [(j, f"{mark} UNRUN ValueError: {e}") for j in reds]
+            continue
+        hit = sorted(p for p in changed & mjs_closure(root, entry)
+                     if any(agreement_py.covers(s, p) for s in specs))
+        if not hit:
+            continue
+
+        def grade(r, run, tmp, homes=homes):
+            return run("node", next(p for p in homes if (r / p).is_file()))
+        try:
+            state, out = ci_tree_run(root, tip, job, (grade,))
+        except (OSError, StopIteration, ValueError) as e:
+            preds += [(j, f"{mark} UNRUN {type(e).__name__}: {e}") for j in reds]
+            continue
+        if state == "unmerged":
+            preds += [(j, f"{mark} UNMERGED: HEAD does not merge into {tip[:12]}, and CI runs nothing "
+                          f"on a conflict; merge the base first") for j in reds]
+            continue
+        if out.returncode == 0:
+            continue
+        lines = [l.strip() for l in out.stdout.splitlines() if l.strip()] or \
+            [f"rc {out.returncode}: {out.stderr.strip()[-200:]}"]
+        first = next((l for l in lines if l.startswith(("ERROR", "FAIL")) and "probe, expected" not in l), lines[-1])
+        preds += [(j, f"{mark} REFUSED by the base's copy, over {', '.join(hit)}: {first[:240]}") for j in reds]
+    return preds
 
 
 def orphans(changed, closure):
@@ -538,7 +632,7 @@ def unpinned(base):
 # alone, and reaching it by running every other arm cost 6.5 s of CPU against
 # the 5 s budget the seat's checks meet (eight others then; R10-FLOW-JIDOKA's
 # review, 2026-10-26).
-ARMS = ("orphans", "layout", "privacy", "wiring", "agreement", "no-recording",
+ARMS = ("orphans", "layout", "privacy", "wiring", "agreement", "graders", "no-recording",
         "under-scoped", "inert-siblings", "left-inert", "mutation")
 
 
@@ -563,6 +657,7 @@ def predict(root: Path, base_ref: str, pairs: set | None = None,
         ("privacy", lambda: privacy_preds(root)),
         ("wiring", lambda: wiring_preds(root, changed)),
         ("agreement", lambda: agreement_preds(root, base_ref, changed)),
+        ("graders", lambda: grader_preds(root, base_ref, changed)),
         ("no-recording", lambda: no_recording(root, base, changed, closure)),
         ("under-scoped", lambda: under_scoped(root, base, changed, tracked, closures,
                                               inert_reads, closure, pairs, scripts)),
@@ -626,11 +721,16 @@ def repairs(root: Path, preds, scripts: set) -> list[str]:
         out.append("a LAYOUT refusal is repaired in the diff as `python3 -I tests/layout.py --guard` "
                    "names it: a re-added moved path goes where it lives, a citation is re-pointed to "
                    "its new path, and a new file goes where tests/layout.json says")
-    if any(j == "wave-script" for j, _ in preds):
+    if any(j == "wave-script" and l.startswith("AGREEMENT") for j, l in preds):
         out.append("an AGREEMENT refusal is CI's verdict under the base's copy of the lane, so an edit to "
                    "the lane is graded by the copy it replaces: repair what the base's copy refuses, and a "
                    "registration only the head's copy carries has no local repair "
                    "(dev/audit/rca/R10-RCA-2671-WAVE-SCRIPT.md, cause 3): the body names it under ## Red checks")
+    if any(l.startswith(("CORPUS", "WAVE CHECK")) for _, l in preds):
+        out.append("a CORPUS refusal or a WAVE CHECK refusal is CI's verdict under the base's copy of the grader, so an "
+                   "exclusion, registration or rule written into the grader is graded by the copy it replaces: "
+                   "move it into the data the grader reads (corpus_excluded.json for named-docs, #2916's repair), "
+                   "or land the grader change first (dev/audit/rca/R10-RCA-PREPR-HEAD-GRADERS.md)")
     if any(j == "instrument" for j, _ in preds):
         out.append("a REF PRIVACY refusal is repaired as `python3 -I tools/audit/seat/ref_privacy.py --check` "
                    "names it: a push site guarded and registered in PUSHERS, a published host path scrubbed")
@@ -791,7 +891,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"CI PREDICT: {reds} predicted red(s) on {', '.join(jobs)} "
               f"against {base[:12]} -- repair before the handoff; {who}")
     else:
-        print(f"CI PREDICT: no closures, fast, wave-script or instrument red predicted against "
+        print(f"CI PREDICT: no closures, fast, wave-script, policy-docs or instrument red predicted against "
               f"{base[:12]} (a data-file read is not seen)")
     return rc
 
@@ -910,7 +1010,7 @@ SEAT_HOME = "/opt/hpo-ci-predict-seat"
 
 
 def plant_self_test(root: Path) -> int:
-    """The layout, REF PRIVACY and AGREEMENT arms end to end: the predictor as
+    """The layout, REF PRIVACY, AGREEMENT and CORPUS arms end to end: the predictor as
     a process over a throwaway clone of this head, each plant a commit (or
     two) on a base holding this file, each arm's repair line beside its red.
 
@@ -930,6 +1030,10 @@ def plant_self_test(root: Path) -> int:
     tip registers and shares (CI grades HEAD merged into the tip, not HEAD
     alone), and an unregistered grammar in files the lane does not load (the
     key: prepr step 3f4 refuses that under either copy, so the arm need not).
+    CORPUS's is #2916's, an exclusion only the head's policy_lint.mjs carries;
+    its nulls are the exclusion moved into corpus_excluded.json with the
+    grader still edited (the arm runs and passes: the repair) and the plant
+    staged, not committed.
     """
     import shutil
     import tempfile
@@ -978,6 +1082,19 @@ def plant_self_test(root: Path) -> int:
     push = {"tools/audit/archscore/score.py": app(site)}
     readd, cite = f"LAYOUT placement: {old} re-adds a moved path", f"LAYOUT new-reference: tests/wood_advisor.py cites retired path {old}"
     shared = {"tests/wood_advisor.py": app(grammar), "tools/audit/archscore/score.py": app(grammar)}
+    # #2916's shape: an executable named `git`, which the corpus's bare word
+    # resolves to, excluded in the head's policy_lint.mjs only; its repair is
+    # the same exclusion in corpus_excluded.json, the data the grader reads.
+    lint = "tools/policy/policy_lint.mjs"
+    shim = {"tools/audit/zz_ci_predict_plant/git": app("#!/bin/sh\n")}
+    excl_src = {**shim, lint: lambda s: s.replace("const CORPUS_EXCLUDED = new Set([\n",
+                                                  "const CORPUS_EXCLUDED = new Set([\n  'tools/audit/zz_ci_predict_plant/git',\n", 1)}
+
+    def excl_json(s):
+        m = json.loads(s)
+        m["excluded"].append("tools/audit/zz_ci_predict_plant/git")
+        return json.dumps(m, indent=1) + "\n"
+    excl_data = {**shim, "dev/governance/config/corpus_excluded.json": excl_json, lint: app("// a comment\n")}
 
     def side_merge(run):
         """A branch merge whose subject is no template, then a main already past it: what a
@@ -1032,6 +1149,13 @@ def plant_self_test(root: Path) -> int:
               [({ag: lambda s: "process.exit(1)\n" + s}, True)], "wave-script", None, 0),
              ("the registration staged and not committed is predicted green (null control)", [(register, False)],
               "wave-script", None, 0),
+             ("an exclusion written into the head's policy_lint.mjs only is predicted red (#2916)",
+              [(excl_src, True)], "policy-docs", "CORPUS REFUSED by the base's copy, over tools/policy/policy_lint.mjs: "
+              "ERROR   [named-docs] tools/audit/zz_ci_predict_plant/git", 1),
+             ("the same exclusion in corpus_excluded.json, with policy_lint.mjs edited so the arm runs, is "
+              "predicted green (null control: #2916's repair, c991d64cd)", [(excl_data, True)], "policy-docs", None, 0),
+             ("the exclusion staged and not committed is predicted green (null control)", [(excl_src, False)],
+              "policy-docs", None, 0),
              # WIRING's call site, not only its helper: `wiring_self_test` drives
              # `wiring_preds` directly, so without this a deleted
              # `preds += wiring_preds(...)` in `predict` would leave the arm dead
@@ -1040,7 +1164,7 @@ def plant_self_test(root: Path) -> int:
               [({"tools/audit/seat/planted_selftest.py":
                  app('if __name__ == "__main__":\n    pass  # --self-test\n')}, True)],
               "instrument", ("UNWIRED", "UNWIRED tools/audit/seat/planted_selftest.py:"), 1)]
-    marker = {"fast": "LAYOUT", "instrument": "REF PRIVACY", "wave-script": "AGREEMENT"}
+    marker = {"fast": "LAYOUT", "instrument": "REF PRIVACY", "wave-script": "AGREEMENT", "policy-docs": "CORPUS"}
     head = (git(root, "rev-parse", "HEAD") or "").strip()
     tmp = Path(tempfile.mkdtemp(prefix="hpo-ci-predict-plant-"))
     r = tmp / "r"
