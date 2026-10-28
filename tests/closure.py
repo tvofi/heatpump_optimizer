@@ -849,6 +849,17 @@ INERT_EXCEPT = (
     # it, so the committed closure never listed the file and CI's closures job
     # named it -- INERT READS UNDER-APPROXIMATED, run 40548660478.
     "tools/audit/merge_throughput.py",
+    # #2883 round 3: `roster_lib.blob_at` lists a path's tree entry with
+    # `git ls-tree ... -- <path>`, and its self-test, which tests/entities.py
+    # runs, passes these two roster paths on that command line, so
+    # `_exec_record` records each as a read. CI's closures job named the pair
+    # (INERT READS UNDER-APPROXIMATED, check-run 122599859589), and the
+    # `--single` merge refuses them as INERT and recorded. The route is the one
+    # wave-r10-groups.json took for doc_claims.py above: the
+    # dev/programme/ prefix stays INERT, and the two files move to
+    # entities.py's recorded closure.
+    "dev/programme/rosters/critical-path.json",
+    "dev/programme/rosters/wave-r9-groups.json",
     # #2310: state_docs.py imports ref_privacy.py, the push guard its push
     # path calls, so entities.py's load of the beat reads it the same way.
     "tools/audit/seat/ref_privacy.py",
