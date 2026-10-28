@@ -1,0 +1,5 @@
+head 44281492277f962676e72abb09b2202f872d9273
+P223 as is: None
+P223 mutated DEFER: dev/programme/triage/s6-batch44.md#P223 is not an ACCEPT ruling (DEFER)
+P220 as is: dev/programme/triage/s6-batch44.md#P220 is not an ACCEPT ruling (DEFER)
+P220 mutated ACCEPT: None
