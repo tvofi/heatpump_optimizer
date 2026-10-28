@@ -1,0 +1,19 @@
+applied M3_partial_load_decays
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 63a43a1e7..55b693e77 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -9110,7 +9110,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+             np.floor(float(ctx._current_state.outdoor_temperature) / 3.0)
+         )
+         entry = self._capacity_envelope.setdefault(bucket, [thermal_kw, 0])
+-        entry[0] = max(thermal_kw, float(entry[0]) * (CAPACITY_FORGET if nameplate else 1.0))
++        entry[0] = max(thermal_kw, float(entry[0]) * CAPACITY_FORGET)
+         entry[1] = int(entry[1]) + int(nameplate)
+     def _capacity_caps(
+         self, outdoor_temps: np.ndarray, humidity: Any = None, model: Any = None
+rc=1
+ALL 134 DST / QUARTER-GRID CHECKS PASSED
+  ok   a pump command that FAILED is not remembered as done
+  FAIL a measured partial-load heat seeds or raises its bucket, never counts and never lowers it (null control: the same interval unmetered is censored)  [[6.5, 0] [6.5, 7] [4.995, 7] None]
+1 of 4374 FEATURE CHECKS FAILED

@@ -1,0 +1,2 @@
+$ git diff $(git merge-base origin/main ba02b95fca47744634a5e404ad24dfcc77fca314)...origin/main -- dev/governance/roles/ (empty = contract current)
+$ git diff 4a00a3f...ba02b95fca47744634a5e404ad24dfcc77fca314 --stat -- VERSION manifest RELEASE_NOTES.md (empty = untouched)
