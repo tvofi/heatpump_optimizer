@@ -1,4 +1,0 @@
-      1 ACCEPT
-268:    # living handover is the hole is_handover cuts, under dev/programme/ as
-273:    "dev/programme/",
-521:# The living file is dev/programme/HANDOVER.md (R9-RO-5). docs/ stays a hole:
