@@ -1,0 +1,16 @@
+mutants run on fresh detached worktrees at f0a975b0ad3d75ffba004af26223a27af6247635, PYTHONPATH=tests/hastub python3 <script>
+base_features 0
+cmp_features 1
+base_entities 1
+cmp_entities 1
+M2 1
+M1 1
+M3 1
+M4 1
+M5 1
+NULL 0
+ALLDONE
+(entities re-run with full output)
+cmp_entities 1
+base_entities 1
+ENTDONE

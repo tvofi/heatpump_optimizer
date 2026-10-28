@@ -1,3 +1,0 @@
-# CLAMP_DROP_running at a126c8b3fa820bbac01f53f8e66c99a278af7c1e
-  FAIL #2499: a learned idle draw above the fixed floor raises it to IDLE_MARGIN times the idle draw  [idle_kw=0.4]
-1 of 4367 FEATURE CHECKS FAILED

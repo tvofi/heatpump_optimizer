@@ -1,0 +1,21 @@
+tests/structure.py taken from origin/main 5c0ee109305fc4f377c9326c712156b9ceb0e638, run on each tree; seam table + seam_cut_total
+== tree c6ef25a6534a612a1cdde1ebb9285e422f609a5a
+########## coordinator seam table (helpers charged: 19) ##########
+  internal call occurrences: 422, crossing a seam: 175 (ratio 0.4147, evidence only)
+  seam        units  attrs  xattr  xmeth    cut
+  dhw            17      3     24      7     31
+  learning       36     37     94     31    125
+  fetch          27      9     53     14     67
+  grid           23     27     78     25    103
+  views          19      3     83     11     94
+  seam_cut_total = 420
+== tree f0a975b0ad3d75ffba004af26223a27af6247635
+########## coordinator seam table (helpers charged: 20) ##########
+  internal call occurrences: 426, crossing a seam: 178 (ratio 0.4178, evidence only)
+  seam        units  attrs  xattr  xmeth    cut
+  dhw            18      3     25      8     33
+  learning       36     37     95     32    127
+  fetch          27      9     53     14     67
+  grid           23     27     78     25    103
+  views          19      3     83     11     94
+  seam_cut_total = 424

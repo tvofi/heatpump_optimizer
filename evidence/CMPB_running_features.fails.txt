@@ -1,3 +1,0 @@
-# CMPB_running_features at a126c8b3fa820bbac01f53f8e66c99a278af7c1e
-  FAIL #2499: a draw at the running floor is standby, not heat
-1 of 4367 FEATURE CHECKS FAILED

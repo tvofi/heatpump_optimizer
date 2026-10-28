@@ -1,0 +1,9 @@
+$ git merge-tree --write-tree origin/main f0a975b0ad3d75ffba004af26223a27af6247635  (origin/main=5c0ee109305fc4f377c9326c712156b9ceb0e638, ledger driver installed)
+LEDGER-MERGE: resolved tests/structure_budgets.json
+  seam_cut_total: 710 + both deltas = 418
+  re-run the gate that owns this file before pushing
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/harness_headers.py: merged as a set (863 entries)
+  re-run the gate that owns this file before pushing
+fcad12cc29504a296e81c26d67d753e4304648e9
+rc=0
