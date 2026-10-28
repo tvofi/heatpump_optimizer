@@ -1,0 +1,32 @@
+[m30-mtime] cloud_relay: STUCK fix-oldmtime 777 5000s
+RESULT m30-mtime held901 NOT-reported
+RESULT m30-mtime held899 not-reported
+RESULT m30-mtime released5000 not-reported
+RESULT m30-mtime oldmtime-freshstart reported
+RESULT m30-mtime level NO-line
+RESULT m30-mtime all-released nothing-reported
+[m31-nobound] cloud_relay: STUCK fix-old 111 901s
+[m31-nobound] cloud_relay: STUCK fix-oldmtime 777 10s
+[m31-nobound] cloud_relay: STUCK fix-young 333 899s
+RESULT m31-nobound held901 reported
+RESULT m31-nobound held899 reported
+RESULT m31-nobound released5000 not-reported
+RESULT m31-nobound oldmtime-freshstart reported
+RESULT m31-nobound level push-stuck-line
+RESULT m31-nobound all-released nothing-reported
+[m32-noheld] cloud_relay: STUCK fix-gone 555 5000s
+[m32-noheld] cloud_relay: STUCK fix-old 111 901s
+RESULT m32-noheld held901 reported
+RESULT m32-noheld held899 not-reported
+RESULT m32-noheld released5000 reported
+RESULT m32-noheld oldmtime-freshstart not-reported
+RESULT m32-noheld level push-stuck-line
+RESULT m32-noheld all-released REPORTED:cloud_relay: STUCK fix-gone 555 5001s
+cloud_relay: STUCK fix-old 111 902s
+[m34-ge-bound] cloud_relay: STUCK fix-old 111 901s
+RESULT m34-ge-bound held901 reported
+RESULT m34-ge-bound held899 not-reported
+RESULT m34-ge-bound released5000 not-reported
+RESULT m34-ge-bound oldmtime-freshstart not-reported
+RESULT m34-ge-bound level push-stuck-line
+RESULT m34-ge-bound all-released nothing-reported
