@@ -506,27 +506,91 @@ def agreement_preds(root: Path, base_ref: str, changed: set[str]) -> list[tuple[
            [("wave-script", f"AGREEMENT {w}") for w in why]
 
 
-# The other corpus graders a pinned job runs with the base's copy: (the job
-# whose restore list the tree takes, the jobs its red reaches, the line
-# marker, the grader at either layout, whether the key is its whole `.mjs`
-# closure or the grader alone). `policy_lint.mjs` is `policy-docs`' run and
-# the core of each `env-matrix` shape; `check-wave-script.mjs` is
-# `wave-script`'s first step; `field_coverage.mjs` is `policy-docs`' I3
-# barrier. R10-RCA-PREPR-HEAD-GRADERS measured #2609 and #2916 (an exclusion
-# in policy_lint.mjs's CORPUS_EXCLUDED), #2207 (a cadence rule in
+# The other graders a pinned job runs with the base's copy: (the job whose
+# restore list the tree takes, the jobs its red reaches, the line marker, the
+# grader at either layout, whether the key is its whole `.mjs` closure or the
+# grader alone, and each mode the job runs it in). `policy_lint.mjs` is
+# `policy-docs`' run and its `--hooks` step, and the core of each `env-matrix`
+# shape (`policy_lint_envmatrix.mjs` spawns it); `check-wave-script.mjs` is
+# `wave-script`'s first step and `env-matrix`'s no-rosters shape (spawned the
+# same way: the arm grades it on CI's tree, not that shape's); `agreement.mjs
+# --self-test` is `wave-script`'s; the rest are `policy-docs`'.
+# `pinned_runs` derives the population from governance.yml and the self-test
+# refuses a restored run no row, `AGREEMENT_RUNS` or `GRADER_EXEMPT` covers.
+# R10-RCA-PREPR-HEAD-GRADERS measured #2609 and #2916 (an exclusion in
+# policy_lint.mjs's CORPUS_EXCLUDED), #2207 (a cadence rule in
 # check-wave-script.mjs) and #2529 and #2636 (a registration in
 # field_coverage.mjs) red this way with every local path green.
 # field_coverage.mjs takes about 110 s, and its closure holds policy_lint.mjs,
 # so it is keyed on its own file: both its instances edited it, and 7 of 543
-# round-10 merges did, where its closure would add 15.
+# round-10 merges did, where its closure would add 15. codeowners_gap.py is
+# Python, which `mjs_closure` does not read, so it too is keyed on itself.
 GRADERS = (
     ("policy-docs", ("policy-docs", "env-matrix"), "CORPUS",
-     (".claude/workflows/policy_lint.mjs", "tools/policy/policy_lint.mjs"), True),
-    ("wave-script", ("wave-script",), "WAVE CHECK",
-     (".claude/workflows/check-wave-script.mjs", "tools/policy/check-wave-script.mjs"), True),
+     (".claude/workflows/policy_lint.mjs", "tools/policy/policy_lint.mjs"), True, ((), ("--hooks",))),
+    ("wave-script", ("wave-script", "env-matrix"), "WAVE CHECK",
+     (".claude/workflows/check-wave-script.mjs", "tools/policy/check-wave-script.mjs"), True, ((),)),
     ("policy-docs", ("policy-docs",), "FIELD COVERAGE",
-     (".claude/workflows/field_coverage.mjs", "tools/policy/field_coverage.mjs"), False),
+     (".claude/workflows/field_coverage.mjs", "tools/policy/field_coverage.mjs"), False, ((),)),
+    ("policy-docs", ("policy-docs",), "RULES SYNC",
+     (".claude/workflows/rules_sync.mjs", "tools/policy/rules_sync.mjs"), True, (("--check",),)),
+    ("policy-docs", ("policy-docs",), "FRAGMENTS",
+     (".claude/workflows/fragments_sync.mjs", "tools/policy/fragments_sync.mjs"), True, ((),)),
+    ("policy-docs", ("policy-docs",), "CODEOWNERS",
+     ("tools/audit/round6/D11/fix/codeowners_gap.py", "dev/audit/rounds/round6/D11/fix/codeowners_gap.py"),
+     False, (("--check",),)),
+    ("wave-script", ("wave-script",), "LANE SELF-TEST", AGREEMENT, True, (("--self-test",),)),
 )
+# The restored runs the `agreement` arm already makes, and the ones no arm
+# needs, each with its reason.
+AGREEMENT_RUNS = {("wave-script", "agreement_py.py", ("--out",)), ("wave-script", "agreement.mjs", ("--py-json",))}
+GRADER_EXEMPT = {
+    ("policy-docs", "policy_lint.mjs", ("--report",)): "its step ends `|| true`: it prints and never reddens",
+}
+PINNED_JOBS = ("policy-docs", "env-matrix", "wave-script")
+
+
+def pinned_runs(text: str, agreement_py, root: Path | None = None) -> list[tuple[str, str, tuple, bool]]:
+    """Each program a pinned job runs, from governance.yml's own run text:
+    (job, the program's path, its flags, whether the job restores it). With
+    `root`, only a path the tree holds: each run line names both layouts and
+    `test -f` runs the one that exists."""
+    out = []
+    for job in PINNED_JOBS:
+        m = re.search(rf"^  {re.escape(job)}:\n(.*?)(?=^  [a-z][\w-]*:\n|\Z)", text, re.M | re.S)
+        if not m:
+            continue
+        specs = agreement_py.restore_specs(text, job)
+        body = "\n".join(l for l in m.group(1).splitlines() if not l.lstrip().startswith("#"))
+        for prog, rest in re.findall(r"(?:node|python3(?: -I)?)\s+([\w./-]+\.(?:mjs|py))([^;&|\n]*)", body):
+            if root is None or (root / prog).is_file():
+                out.append((job, prog, tuple(re.findall(r"--[\w-]+", rest)), any(agreement_py.covers(s, prog) for s in specs)))
+    return sorted(set(out))
+
+
+def grader_gaps(root: Path, text: str, agreement_py, rows=None) -> list[str]:
+    """Each pinned run the arms leave unpredicted, as one line: a restored
+    run no row (in that mode, reaching that job), `AGREEMENT_RUNS` or
+    `GRADER_EXEMPT` covers; and a job whose head-copy program spawns a row's
+    grader (`'policy_lint.mjs'` in `policy_lint_envmatrix.mjs`) but is not in
+    that row's reds. Empty is the class closed over governance.yml."""
+    rows = GRADERS if rows is None else rows
+    gaps = []
+    for job, prog, mode, restored in pinned_runs(text, agreement_py, root):
+        name = Path(prog).name
+        if restored:
+            if (job, name, mode) in AGREEMENT_RUNS or (job, name, mode) in GRADER_EXEMPT:
+                continue
+            if not any(job in reds and mode in modes and name in {Path(h).name for h in homes}
+                       for _, reds, _, homes, _, modes in rows):
+                gaps.append(f"{job}: {prog}{''.join(' ' + f for f in mode)} is restored from the base and no arm runs it")
+            continue
+        src = (root / prog).read_text() if (root / prog).is_file() else ""
+        for _, reds, mark, homes, _, _ in rows:
+            spawned = {Path(h).name for h in homes} & set(re.findall(r"'([\w.-]+\.(?:mjs|py))'", src))
+            if spawned and job not in reds:
+                gaps.append(f"{job}: its head-copy {prog} spawns {', '.join(sorted(spawned))}, but {mark} does not report {job}")
+    return sorted(set(gaps))
 
 
 def grader_hit(root: Path, entry: str, whole: bool, specs, changed: set[str], covers) -> list[str]:
@@ -537,7 +601,8 @@ def grader_hit(root: Path, entry: str, whole: bool, specs, changed: set[str], co
 
 
 def grader_preds(root: Path, base_ref: str, changed: set[str]) -> list[tuple[str, str]]:
-    """Each `GRADERS` program as CI runs it on the pull request (`ci_tree_run`).
+    """Each `GRADERS` program, in each of its modes, as CI runs it on the pull
+    request (`ci_tree_run`).
 
     Keyed on the diff changing a file the grader loads (`mjs_closure`) that
     the job restores: only there do the head's and the base's copies differ,
@@ -555,7 +620,7 @@ def grader_preds(root: Path, base_ref: str, changed: set[str]) -> list[tuple[str
     if not tip or not wf.is_file():
         return []
     preds: list[tuple[str, str]] = []
-    for job, reds, mark, homes, whole in GRADERS:
+    for job, reds, mark, homes, whole, modes in GRADERS:
         entry = next((p for p in homes if (root / p).is_file()), None)
         if entry is None or not any(git(root, "cat-file", "-e", f"{tip}:{p}") is not None for p in homes):
             continue
@@ -567,11 +632,19 @@ def grader_preds(root: Path, base_ref: str, changed: set[str]) -> list[tuple[str
         hit = grader_hit(root, entry, whole, specs, changed, agreement_py.covers)
         if not hit:
             continue
+        failed: list = []
 
-        def grade(r, run, tmp, homes=homes):
-            return run("node", next(p for p in homes if (r / p).is_file()))
+        def step(mode, homes=homes):
+            def grade(r, run, tmp):
+                prog = next(p for p in homes if (r / p).is_file())
+                cmd = (sys.executable, "-I", prog) if prog.endswith(".py") else ("node", prog)
+                out = run(*cmd, *mode)
+                if out.returncode:
+                    failed.append(mode)
+                return out
+            return grade
         try:
-            state, out = ci_tree_run(root, tip, job, (grade,))
+            state, out = ci_tree_run(root, tip, job, tuple(step(m) for m in modes))
         except (OSError, StopIteration, ValueError) as e:
             preds += [(j, f"{mark} UNRUN {type(e).__name__}: {e}") for j in reds]
             continue
@@ -583,9 +656,11 @@ def grader_preds(root: Path, base_ref: str, changed: set[str]) -> list[tuple[str
             continue
         lines = [l.strip() for l in out.stdout.splitlines() if l.strip()] or \
             [f"rc {out.returncode}: {out.stderr.strip()[-200:]}"]
-        first = next((l for l in lines if l.startswith(("ERROR", "FAIL", "REFUSED", "BLIND", "DEAD"))
+        first = next((l for l in lines if l.startswith(("ERROR", "FAIL", "REFUSED", "BLIND", "DEAD", "MISSING",
+                                                        "NOT WIRED", "STALE", "DRIFT", "SELF-TEST FAILED"))
                       and "probe, expected" not in l), lines[-1])
-        preds += [(j, f"{mark} REFUSED by the base's copy, over {', '.join(hit)}: {first[:240]}") for j in reds]
+        label = mark + "".join(f" {f}" for f in (failed[0] if failed else ()))
+        preds += [(j, f"{label} REFUSED by the base's copy, over {', '.join(hit)}: {first[:240]}") for j in reds]
     return preds
 
 
@@ -741,8 +816,9 @@ def repairs(root: Path, preds, scripts: set) -> list[str]:
                    "the lane is graded by the copy it replaces: repair what the base's copy refuses, and a "
                    "registration only the head's copy carries has no local repair "
                    "(dev/audit/rca/R10-RCA-2671-WAVE-SCRIPT.md, cause 3): the body names it under ## Red checks")
-    if any(l.startswith(("CORPUS", "WAVE CHECK", "FIELD COVERAGE")) for _, l in preds):
-        out.append("a CORPUS refusal, a WAVE CHECK refusal or a FIELD COVERAGE refusal is CI's verdict under the base's copy of the grader, so an "
+    if any(l.startswith(tuple(g[2] + " " for g in GRADERS)) for _, l in preds):
+        out.append("a CORPUS refusal, or any other graders-arm refusal (" + ", ".join(g[2] for g in GRADERS[1:]) + "), "
+                   "is CI's verdict under the base's copy of the grader, so an "
                    "exclusion, registration or rule written into the grader is graded by the copy it replaces: "
                    "move it into the data the grader reads (corpus_excluded.json for named-docs, #2916's repair), "
                    "or land the grader change first (dev/audit/rca/R10-RCA-PREPR-HEAD-GRADERS.md)")
@@ -923,12 +999,17 @@ def grader_key_self_test(root: Path) -> int:
     import agreement_py
     text = (root / agreement_py.WORKFLOW).read_text()
     rows = {mark: (job, next(p for p in homes if (root / p).is_file()), whole)
-            for job, _, mark, homes, whole in GRADERS}
+            for job, _, mark, homes, whole, _ in GRADERS}
 
     def hit(mark, *changed):
         job, entry, whole = rows[mark]
         return grader_hit(root, entry, whole, agreement_py.restore_specs(text, job), set(changed), agreement_py.covers)
     lint, fc, cws = rows["CORPUS"][1], rows["FIELD COVERAGE"][1], rows["WAVE CHECK"][1]
+    rs, own = rows["RULES SYNC"][1], rows["CODEOWNERS"][1]
+    gaps = grader_gaps(root, text, agreement_py)
+    no_env = tuple(g[:1] + (tuple(j for j in g[1] if j != "env-matrix"),) + g[2:] for g in GRADERS)
+    no_rules = tuple(g for g in GRADERS if g[2] != "RULES SYNC")
+    no_hooks = tuple(g[:5] + (((),) if g[2] == "CORPUS" else g[5],) for g in GRADERS)
     counts = str(Path(lint).with_name("counts.mjs"))
     data = "dev/governance/config/corpus_excluded.json"
     cases = [
@@ -940,6 +1021,16 @@ def grader_key_self_test(root: Path) -> int:
         ("FIELD COVERAGE is keyed by its own file", hit("FIELD COVERAGE", fc) == [fc]),
         ("and not by policy_lint.mjs, which its closure holds (the 110 s run stays narrow)",
          hit("FIELD COVERAGE", lint) == []),
+        ("RULES SYNC is keyed by rules_sync.mjs, CODEOWNERS by codeowners_gap.py alone",
+         hit("RULES SYNC", rs) == [rs] and hit("CODEOWNERS", own) == [own] and hit("CODEOWNERS", lint) == []),
+        ("every run a pinned job restores is predicted, or exempt with a reason (null control)"
+         + ("" if not gaps else f" -- {gaps}"), gaps == []),
+        ("CORPUS without env-matrix in its reds is refused: policy_lint_envmatrix.mjs spawns policy_lint.mjs (M7)",
+         any("env-matrix" in g and "CORPUS" in g for g in grader_gaps(root, text, agreement_py, no_env))),
+        ("the RULES SYNC row dropped leaves rules_sync.mjs --check named as unpredicted",
+         any("rules_sync.mjs --check" in g for g in grader_gaps(root, text, agreement_py, no_rules))),
+        ("CORPUS without its --hooks mode leaves policy_lint.mjs --hooks named as unpredicted",
+         any("policy_lint.mjs --hooks" in g for g in grader_gaps(root, text, agreement_py, no_hooks))),
     ]
     for label, ok in cases:
         print(f"  {'ok  ' if ok else 'FAIL'} graders key: {label}")
