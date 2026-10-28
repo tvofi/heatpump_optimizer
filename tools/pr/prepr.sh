@@ -2883,6 +2883,14 @@ https://claude.ai/code/session_011aqzm4YL9jLhU4jLvbkLYE'; got=$(lpush)
   got=$(python3 -I -c "import sys; sys.path.insert(0, 'tools/pr'); import ci_predict as c; print(' '.join(c.ARMS))" 2>&1); r=$?
   case "$got" in *' mutation'*) r=0 ;; *) r=1 ;; esac
   st "$r" 0 "and ci_predict names that arm, so --only cannot select none"
+  # SELF-TEST READS is opt-in, so 6d's wiring is the countermeasure
+  # (dev/audit/rca/R10-RCA-CLOSURE-ARGV.md): dropping either line disconnects it silently.
+  case "$(grep -F 'PREDICT_LINE=$(predict_line origin/main' "$PREPR_PATH")" in
+    *'"${1:-}" "" record)'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "6d asks the predictor to record each changed file's own self-test (SELF-TEST READS)"
+  case "$(sed -n '/^predict_line() {/,/^}/p' "$PREPR_PATH")" in
+    *'[ -n "${5:-}" ] && rec="--record-self-tests"'*'$only $rec 2>&1'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "and predict_line turns its fifth argument into --record-self-tests on the predictor's command line"
   # Step 3f7 (P78): a host path in a line the diff adds is refused, named by
   # file and line; the same line made home-relative passes. Built, never spelled.
   hp=$(printf '%s/%s/%s/proj' '' Users alice)
