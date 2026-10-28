@@ -1,25 +1,22 @@
-== origin/main 8aee66b77
-R10-INPUT-STALENESS done carries 3 files ['custom_components/heatpump_optimizer/const.py', 'custom_components/heatpump_optimizer/coordinator.py']
-R10-UPDATE-PR-SIGNALS in-progress carries 5 files ['tools/audit/seat/update_pr.sh', 'tools/audit/seat/pr_args.sh', 'tools/audit/seat/cloud_relay.sh', 'tools/audit/seat/INSTRUMENTS.md']
-R10-FLOW-DESIGN-STAGES not-started carries 12 files ['tools/audit/seat/roster_edit.py', 'tools/audit/seat/bus.sh', 'tools/audit/seat/cloud_dispatch.py', 'tools/audit/seat/orchestrator_tick.py', 'tools/audit/seat/INSTRUMENTS.md']
-R10-FLY-OPENPR-ATOMIC not-started carries 9 files ['tools/audit/seat/open_pr.sh']
-R10-TRAIN-OVERLAP-GRADE queued carries 8 files ['tools/audit/seat/merge_train.py', 'tools/audit/seat/INSTRUMENTS.md']
-R10-ORCH-BEATD not-started carries 24 files ['tools/audit/seat/daemonize.py', 'tools/audit/seat/tick_loop.sh']
-R10-REPLAY-REAL-DAY not-started carries 3 files ['tests/replay.py', 'tests/closures.json', 'tests/entities.py']
-R10-LEGIONELLA-COMPLETION queued carries 0 files ['custom_components/heatpump_optimizer/legionella.py', 'custom_components/heatpump_optimizer/disinfection.py', 'custom_components/heatpump_optimizer/dhw_planner.py', 'custom_components/heatpump_optimizer/coordinator.py']
-roster text citing s6-batch29: 0
-== handoff/audit-r10-roster 2b7fe35c6
-R10-INPUT-STALENESS done carries 3 files ['custom_components/heatpump_optimizer/const.py', 'custom_components/heatpump_optimizer/coordinator.py']
-R10-UPDATE-PR-SIGNALS in-progress carries 5 files ['tools/audit/seat/update_pr.sh', 'tools/audit/seat/pr_args.sh', 'tools/audit/seat/cloud_relay.sh', 'tools/audit/seat/INSTRUMENTS.md']
-R10-FLOW-DESIGN-STAGES not-started carries 15 files ['tools/audit/seat/roster_edit.py', 'tools/audit/seat/bus.sh', 'tools/audit/seat/cloud_dispatch.py', 'tools/audit/seat/orchestrator_tick.py', 'tools/audit/seat/INSTRUMENTS.md']
-R10-FLY-OPENPR-ATOMIC not-started carries 10 files ['tools/audit/seat/open_pr.sh']
-R10-TRAIN-OVERLAP-GRADE queued carries 10 files ['tools/audit/seat/merge_train.py', 'tools/audit/seat/INSTRUMENTS.md']
-R10-ORCH-BEATD not-started carries 24 files ['tools/audit/seat/daemonize.py', 'tools/audit/seat/tick_loop.sh']
-R10-REPLAY-REAL-DAY not-started carries 3 files ['tests/replay.py', 'tests/closures.json', 'tests/entities.py']
-R10-LEGIONELLA-COMPLETION queued carries 0 files ['custom_components/heatpump_optimizer/legionella.py', 'custom_components/heatpump_optimizer/disinfection.py', 'custom_components/heatpump_optimizer/dhw_planner.py', 'custom_components/heatpump_optimizer/coordinator.py']
-R10-PROOF-CODEQL queued carries 0 files ['tools/pr/codeql_scope.py', 'tools/ci/prelude.py']
-roster text citing s6-batch29: 0
-
-R10-PROOF-CODEQL brief on roster branch (appended at 362a47062):
-GROUP R10-PROOF-CODEQL (new, size S, orchestrator-sourced under mandate 6329234399; triage ruling P158 in PR #2829). A train batch proof (a push to `batch/<tag>-<n>`, `merge_train.py`) analyzes every CodeQL leg in full (`prelude.py` gives a push full scope; `codeql_scope.py` lets only `pull_request` skip), and the python leg's 28-30 min held the 2026-10-25 s41 batch-1 proof after every other check was green. Change: `codeql_scope.decide` lets a push to a `batch/` ref skip a leg when every entry head the proof merges has a successful or legitimately skipped analysis of that leg at that head, uploading the stand-in category as a skipped PR leg does. Fail closed: an unreadable entry list, an entry with no analysis at its head, or any changed file under `.github/` analyzes. Pushes to main and every other event keep analyzing in full (the rule that main keeps a full analysis of every merged tree is unchanged). This revises DESIGN-P2 D-5's push arm for proof refs only, under mandate 6329234399; say so in the body. Controls: a proof whose entries all analyzed python at their heads skips the python leg and uploads its category; one entry without an analysis analyzes it; a push to main analyzes every leg (null); a `.github/` change analyzes every leg; a mutant that skips on any push fails the main arm. Measure the proof's wall time before and after over at least three batches.
-4347a0b74c779d9889f2ba03f3b3aee68067cfc5	refs/heads/dispatch/fixer-r10-pusher-reap
+== origin/main c9cbe6b45
+R10-PROOF-CODEQL MISSING
+R10-FLOW-DESIGN-STAGES ('not-started', 'M', 'files=', ['tools/audit/seat/roster_edit.py', 'tools/audit/seat/bus.sh', 'tools/audit/seat/cloud_dispatch.py', 'tools/audit/seat/orchestrator_tick.py', 'tools/audit/seat/INSTRUMENTS.md'])
+R10-FLY-OPENPR-ATOMIC ('not-started', 'S', 'files=', ['tools/audit/seat/open_pr.sh'])
+R10-UPDATE-PR-SIGNALS ('in-progress', 'S', 'files=', ['tools/audit/seat/update_pr.sh', 'tools/audit/seat/pr_args.sh', 'tools/audit/seat/cloud_relay.sh', 'tools/audit/seat/INSTRUMENTS.md'])
+R10-TRAIN-OVERLAP-GRADE ('queued', 'M', 'files=', ['tools/audit/seat/merge_train.py', 'tools/audit/seat/INSTRUMENTS.md'])
+R10-REPLAY-REAL-DAY ('not-started', 'M', 'files=', ['tests/replay.py', 'tests/closures.json', 'tests/entities.py'])
+R10-ROUND-PLAYBOOK ('not-started', 'M', 'files=', ['dev/audit/README.md', 'CLAUDE.md'])
+R10-LEGIONELLA-COMPLETION ('queued', 'S', 'files=', ['custom_components/heatpump_optimizer/legionella.py', 'custom_components/heatpump_optimizer/disinfection.py', 'custom_components/heatpump_optimizer/dhw_planner.py', 'custom_components/heatpump_optimizer/coordinator.py'])
+R10-ORCH-BEATD ('not-started', 'L', 'files=', ['tools/audit/seat/daemonize.py', 'tools/audit/seat/tick_loop.sh'])
+R10-INPUT-STALENESS ('done', 'S', 'files=', ['custom_components/heatpump_optimizer/const.py', 'custom_components/heatpump_optimizer/coordinator.py'])
+== handoff/audit-r10-roster 32ffe43c0
+R10-PROOF-CODEQL ('queued', 'S', 'files=', ['tools/pr/codeql_scope.py', 'tools/ci/prelude.py'])
+R10-FLOW-DESIGN-STAGES ('not-started', 'M', 'files=', ['tools/audit/seat/roster_edit.py', 'tools/audit/seat/bus.sh', 'tools/audit/seat/cloud_dispatch.py', 'tools/audit/seat/orchestrator_tick.py', 'tools/audit/seat/INSTRUMENTS.md'])
+R10-FLY-OPENPR-ATOMIC ('not-started', 'S', 'files=', ['tools/audit/seat/open_pr.sh'])
+R10-UPDATE-PR-SIGNALS ('in-progress', 'S', 'files=', ['tools/audit/seat/update_pr.sh', 'tools/audit/seat/pr_args.sh', 'tools/audit/seat/cloud_relay.sh', 'tools/audit/seat/INSTRUMENTS.md'])
+R10-TRAIN-OVERLAP-GRADE ('queued', 'M', 'files=', ['tools/audit/seat/merge_train.py', 'tools/audit/seat/INSTRUMENTS.md'])
+R10-REPLAY-REAL-DAY ('not-started', 'M', 'files=', ['tests/replay.py', 'tests/closures.json', 'tests/entities.py'])
+R10-ROUND-PLAYBOOK ('not-started', 'M', 'files=', ['dev/audit/README.md', 'CLAUDE.md'])
+R10-LEGIONELLA-COMPLETION ('queued', 'S', 'files=', ['custom_components/heatpump_optimizer/legionella.py', 'custom_components/heatpump_optimizer/disinfection.py', 'custom_components/heatpump_optimizer/dhw_planner.py', 'custom_components/heatpump_optimizer/coordinator.py'])
+R10-ORCH-BEATD ('not-started', 'L', 'files=', ['tools/audit/seat/daemonize.py', 'tools/audit/seat/tick_loop.sh'])
+R10-INPUT-STALENESS ('done', 'S', 'files=', ['custom_components/heatpump_optimizer/const.py', 'custom_components/heatpump_optimizer/coordinator.py'])

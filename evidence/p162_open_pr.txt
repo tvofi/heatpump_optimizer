@@ -1,0 +1,23 @@
+== open_pr.sh @ dfcd8d9be lines 12,15,48
+. "$(dirname -- "$0")/delivery_row.sh"; . "$(dirname -- "$0")/pr_args.sh"
+PR_NAME=open_pr; pr_trap; unset GIT_AUTHOR_NAME; SEAT=$(cd "$(dirname -- "$0")" && pwd)
+git fetch -q origin main; git -c user.name=tvofi -c user.email=70032254+tvofi@users.noreply.github.com merge -q --no-edit origin/main
+== pr_args.sh pr_trap
+pr_trap() { # errexit, and the report of every stop it makes
+  set -Eeo pipefail
+  trap 'pr_stopped $? $LINENO "$BASH_COMMAND"' ERR  # mut:trap
+}
+== open_pr.sh PR creation after line 48 (app_push)
+E0
+if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi
+# Asynchronous, so a stop signal interrupts the `wait` and the EXIT trap reaps
+# the tree (pr_args.sh's why).
+PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash "$_push" $R $WT $BR $D/body.md $ISS > $D/p1.log 2>&1 &
+pr_wait $! $D/p1.log
+== #2817 head history (refs/pull/2817/head)
+889c15e5e 2026-10-25 20:17:28 +0100 Merge remote-tracking branch 'origin/main' into fix/r10-params-owner-pr
+9a45eca1b 2026-10-25 20:17:28 +0100 Merge commit '9e401f833b2ccf91dc40484f749a6ad010e984f9' into fix/r10-params-owner-pr
+16c6b9e8f 2026-10-25 20:17:18 +0100 Merge pull request #2822 from tvofi/triage/s6-batch26
+b760e448a 2026-10-25 20:16:44 +0100 Merge pull request #2818 from tvofi/triage/s6-batch25
+f130a7c2c 2026-10-25 19:09:47 +0000 ci: pin killed mutants
+9e401f833 2026-10-25 19:35:54 +0100 R10-PARAMS-OWNER: pin the lower displace-limit mirror and the DHW profile save after an explicit cooling rate (r2 mutation survivors)
