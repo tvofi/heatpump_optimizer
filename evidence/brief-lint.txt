@@ -1,0 +1,11 @@
+# The four carry texts in file order (P88, P89, P90, P92) were linted as lint-P88..lint-P91 (labels are sequence numbers; P91 has no carry). Last block: null control, P88 text with one path made unresolvable.
+== lint-P88.json
+TOTAL: 0 error(s) across 1 file(s)
+== lint-P89.json
+TOTAL: 0 error(s) across 1 file(s)
+== lint-P90.json
+TOTAL: 0 error(s) across 1 file(s)
+== lint-P91.json
+TOTAL: 0 error(s) across 1 file(s)
+  ERROR   [ZZ-P88] path: tests/delivery_statusX.py: not in the tree, and no tag SHA is cited alongside it
+TOTAL: 1 error(s) across 1 file(s)
