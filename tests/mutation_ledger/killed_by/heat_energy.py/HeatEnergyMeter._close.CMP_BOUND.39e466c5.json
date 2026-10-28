@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/heat_energy.py:HeatEnergyMeter._close CMP_BOUND 39e466c5",
+  "killed_by": "tests/features.py",
+  "old": "        elif heat_kwh > max_heat_kw * hours * HEAT_COUNTER_SLACK:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`elif heat_kwh >= max_heat_kw * hours * HEAT_COUNTER_SLACK:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

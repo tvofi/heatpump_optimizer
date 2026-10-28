@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/heat_energy.py:ModeDwell.shares GUARD_OFF 3891bf7a",
+  "killed_by": "tests/features.py",
+  "old": "            if not _after(hi, lo):",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}
