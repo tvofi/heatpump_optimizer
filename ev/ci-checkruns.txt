@@ -1,0 +1,6 @@
+check-runs on 9328902275ba97b94d71f1778cf23f1eb2df031c, read 2026-10-28 ~18:10Z (get_check_runs, 29 runs)
+success: arch-score, budget-raise-gate, governance/delivery-status, governance/wave-script, governance/env-matrix, governance/policy-docs, tests/briefs, tests/mutation, hassfest, validate-hacs, codeql actions, codeql js-ts, refresh x2, cancel-superseded x2, prelude (run 40737110615)
+neutral: CodeQL
+skipped: arm, kernel-points, governance/record, governance/delivery-status-publish, tests/mutation-pins, tests/mutation-autofix
+in progress / queued: governance/instrument-self-tests, codeql python, tests/closure-scope, tests/nightly-status, prelude (run 40737112939)
+failure: none
