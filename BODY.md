@@ -13,7 +13,7 @@ For the reviewer, one design choice: with a body, the lines that stay in the log
 
 ## Head
 
-`4a7ccd9305ff9494f6b78117882490b889ff1e40` (base `b6f6ceca4f0323b24171c45a2a2372ba2e2cbaaa`, which was `origin/main` at 2026-10-28T22:05:20Z).
+`881ba419ef798d8a32e85742e26f248106b60a39` (base `b6f6ceca4f0323b24171c45a2a2372ba2e2cbaaa`, which was `origin/main` at 2026-10-28T22:05:20Z).
 
 ## Mutation proof
 
