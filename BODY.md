@@ -24,13 +24,17 @@ The shim resolves the real git from `HPO_REAL_GIT` only when that is a regular e
 
 Arm (a)'s three carries are closed here: dr3-shim-discovery, dr3-bash32 and dr4-real-git-validate. The (b) and (c) carries stay on the roster group, as the note and the verdict assign them.
 
+Two repairs followed the first open's prepr refusal (code f1f34cd61):
+- **throwaway git.** The self-test's fixture repositories were raw `git init` and `git clone` calls. They are now built with `tests/throwaway_git.py` (`throwaway_git_init` / `throwaway_git_clone`), so auto-maintenance is off in both the environment and each repository's config. The race's fetches still run under the beat's own env.
+- **policy_lint `named-docs`.** The bare-name pass resolved the word `git` in `.claude/rules/claim-files.md` prose to the tracked extensionless file `tools/audit/seat/beatd_shims/git`, the only tracked file with that basename. It reported that file as an uncapped document. The shim must be named `git` to be found on `PATH`, and it is an executable, not prose. So `tools/policy/policy_lint.mjs`'s `CORPUS_EXCLUDED` names it, with that reason, as the check's own message directs. This is the one edit to an existing program, which the arm's scope otherwise rules out, and it is the visible-diff bar the list states. `policy_lint_mutants.mjs` exited 1 for the same cause: its entry point is `policy_lint.mjs` on the corpus as it stands.
+
 ## Head
 
-f1f34cd6119f0a39939fbb66e0d38a322f4b05be
+f008c2b75478f2f2c1722810a5983ee30fbe809f
 
 ## Mutation proof
 
-The self-test plants each mutant in a temp copy of `beatd.py` and `beatd_shims/git`, runs that case against the copy, and requires the named check to go red. The plants are the `MUTANTS` table in `beatd.py`. Every plant is a predicate change, and the self-test pins each anchor to occur exactly once in production text. Run at f8bb14aad, every plant below turned its check red (`mutant <name> turns (<case>) '<check>' red` printed `ok`):
+The self-test plants each mutant in a temp copy of `beatd.py` and `beatd_shims/git`, runs that case against the copy, and requires the named check to go red. The plants are the `MUTANTS` table in `beatd.py`. Every plant is a predicate change, and the self-test pins each anchor to occur exactly once in production text. Run at f008c2b75, every plant below turned its check red (`mutant <name> turns (<case>) '<check>' red` printed `ok`):
 
 - `m1_parse_defaults_to_zero_jobs`: (1) `unreadable`
 - `m1b_unknown_key_accepted`: (1) `unknown key`
@@ -57,7 +61,7 @@ Both cases were fixed before this head, and all 16 plants now kill.
 
 ## Null control
 
-Each case carries its own null in the same run, and each printed `ok` at f8bb14aad:
+Each case carries its own null in the same run, and each printed `ok` at f008c2b75:
 - (1) a well-formed table runs its job.
 - (2) a run after the first ends gets the lock.
 - (3) an in-time job reads `ok`.
@@ -77,7 +81,11 @@ Wiring null: with `governance.yml` restored to the merge base, `selftest_wiring.
 
 ## Figures
 
-- `python3 -I tools/audit/seat/beatd.py --self-test` at f8bb14aad (macOS, /bin/bash 3.2.57, git 2.38.1): `beatd self-test: 84 checks, 0 failed`. That is 68 case checks, 16 anchor checks and 16 mutant checks, the anchor checks counted by `MUTANTS`. Measured 2026-10-28T15:44Z.
+- `python3 -I tests/throwaway_git.py --check`: `0 raw git init or clone site(s) refused` at d72c4a982 and after. Null: at f1f34cd61 it printed `3 raw git init or clone site(s) refused` (beatd.py:668, :758, :824).
+- `node tools/policy/policy_lint.mjs`: `TOTAL: 0 error(s) across 50 policy file(s)`, rc 0 at f008c2b75. Null: at d72c4a982, without the exclusion, it printed `TOTAL: 1 error(s)`, the `[named-docs] tools/audit/seat/beatd_shims/git` error, rc 1.
+- `node tools/policy/policy_lint_mutants.mjs`: `MUTANTS ok`, rc 0 at f008c2b75. Null: prepr at f1f34cd61 refused it with `the entry point exited 1 on the corpus as it stands`.
+- `python3 -I tools/audit/seat/beatd.py --self-test` at f008c2b75 (macOS, /bin/bash 3.2.57, git 2.38.1): `beatd self-test: 84 checks, 0 failed`. That is 68 case checks, 16 anchor checks and 16 mutant checks, the anchor checks counted by `MUTANTS`. Measured 2026-10-28T16:40Z; the same count at f8bb14aad before the throwaway_git change.
+- `PREPR_SKIP_CLOSURES=1 tools/pr/prepr.sh BODY.md` at f008c2b75: `PRE-PR: f008c2b75478f2f2c1722810a5983ee30fbe809f`, rc 0, with 32 ok, 6 skip and 0 REFUSE.
 - `python3 -I tools/audit/seat/selftest_wiring.py --check`: `100 self-testing, 100 wired, 0 unwired` (null above).
 - `python3 tools/audit/archscore/score.py --diff 71fe1f7fcaeadd448a3e2213744f68b3e680e24e HEAD`: `Architecture score: dS +0.0000 NULL`. The note's target is dS = 0; `vector.py` reads only `custom_components/heatpump_optimizer`.
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
@@ -85,7 +93,7 @@ Wiring null: with `governance.yml` restored to the merge base, `selftest_wiring.
 - `git diff --stat 71fe1f7fcaeadd448a3e2213744f68b3e680e24e...HEAD -- tests/golden/claimed_drift.txt tests/golden/card_claimed_drift.txt VERSION custom_components`: empty.
 - Measured against origin/main f844df1fe750d5e420af0d1555f4b9472a740413 at 2026-10-28T15:33Z: `git merge-tree --write-tree origin/main HEAD` reports no conflict.
 
-- `tests/closures.json` has one INERT READS entry: `tests/entities.py` reads `tools/audit/seat/beatd.py`. It was written by `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main --apply-inert`, and after it the predictor printed `no closures, fast, wave-script or instrument red predicted`. The figures above were measured at f8bb14aad; this head's tree differs from that one only by this entry.
+- `tests/closures.json` has one INERT READS entry: `tests/entities.py` reads `tools/audit/seat/beatd.py`. It was written by `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main --apply-inert`, and after it the predictor printed `no closures, fast, wave-script or instrument red predicted`. 
 
 ## Red checks
 
