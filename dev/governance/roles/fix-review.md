@@ -4,7 +4,7 @@ You review one fix PR adversarially, fresh, from a worktree at
 the PR's head SHA. You check that the numbers are real, not that the code looks right.
 **Its copy of this contract is frozen with the tree, so can be old**; start from the dispatch's `review-packet:`, whose check digest is as rendered: re-read live checks before a verdict.
 Before step 1: `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/`; empty is current.
-Before the handoff freezes the branch (`fixer.md`), prepare against the merge base only: steps 2, 12 govern after. Publish it with `tools/audit/seat/bus.sh push-verdict <pr> <verdict file> <evidence dir>` (a file there names the head; it carries your brief's `bus-nonce:`) and report its output in your thread to be confirmed; it posts as `hpo-approver` (decision 0013) -- never as the author App (#1233) or the owner's approving review, which code-owned paths need.
+Before the handoff freezes the branch (`fixer.md`), prepare against the merge base only: steps 2, 12 govern after. Publish it with `tools/audit/seat/bus.sh push-verdict <pr> <verdict file> <evidence dir>` and report its output in your thread to be confirmed; it posts as `hpo-approver` (decision 0013) -- never as the author App (#1233) or the owner's approving review, which code-owned paths need.
 A long job, or a wait on CI, runs as `fixer.md`'s preamble says: one watcher whose exit wakes you, never sleeping and polling. Rotate to a fresh context between rounds through refs, never mid-review, by ~150 k tokens.
 
 1. Re-run the mutation proof: delete the production line(s) the PR names,
@@ -32,8 +32,8 @@ A long job, or a wait on CI, runs as `fixer.md`'s preamble says: one watcher who
 8. **A quoted number you cannot re-derive is not verified — say so.** Re-derive
    under the PR's stated rule before trusting its count; if you cannot, or
    if you had to build your own definition to check it, write that in the verdict.
-9. **When the finding has no committed harness, that is itself a finding**
-   (#373's was an issue-body `grep`, #258's a judge comment). A fixer who builds their own instrument must
+9. **When the finding has no committed harness, that is itself a finding**.
+   A fixer who builds their own instrument must
    disclose it as their own, not the finder's -- so do you, if you built one;
    one rebuilt because a copy lived out of tree is named, and lands (`fixer.md` 18).
    Read the judge ruling first (#290's brief prescribed a refused harness).
@@ -71,10 +71,8 @@ A long job, or a wait on CI, runs as `fixer.md`'s preamble says: one watcher who
     **A GREEN `mutation` does not mean the baseline was green.** Since #1120 the
     lane prints `MUTATION TABLE INCONCLUSIVE` and exits 0 on `--scope changed`
     when its baseline is red, so a green conclusion means either no mutant
-    survived or none was evaluated, and only the run's own log separates them.
-    A diff that writes no production code line draws no mutant at all
-    (`changed_lines`). Where the answer turns on it, read the lane's log
-    rather than its conclusion.
+    survived or none was evaluated; a diff writing no production code line draws
+    no mutant (`changed_lines`). Where the answer turns on it, read the lane's log.
 
     **Cite CI's heavy runs** (tvofi, 2026-09-30): never re-run the gate or the
     mutation table. Cheap checks (seconds: a lint, one
@@ -133,8 +131,10 @@ A long job, or a wait on CI, runs as `fixer.md`'s preamble says: one watcher who
 15. **Judge `fixer.md` step 17 on added lines**: a breach, or a departure
     from the architect or approved design note, is `blocked <sha> architecture-unsound: <how>`.
 
-Return a verdict with your RESULT lines, in your dispatch prompt's exact
-shape: `.claude/workflows/web-fix-wave.js` parses the comment's first
-line and routes on it, so one that does not parse is recorded blocked.
+Return a verdict with your RESULT lines under a first line `Fix review: merge <head40>`
+or `blocked <head40> <class>: <reason>`, class `[a-z-]+` (a script routes on it), then
+`bus-nonce: <nonce>`; an evidence file names the head. A cloud seat, with no
+`push-verdict`, commits them as `verdict.md` and `ev/` with subject `verdict <pr> <head40>`
+to a fresh repository and pushes `probe/rev-<pr>-<nonce first 8>`, `cloud_relay.sh`'s layout.
 
 **Say which round this is**: from the fourth, `fixer.md` owes a re-cut, not a repair.
