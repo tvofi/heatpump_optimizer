@@ -1,0 +1,24 @@
+== base, finder(base) harness
+--record 94 call(s) over v7.0.2..origin/main
+--stats 370 call(s) over v7.0.2..origin/main
+--sunset 370 call(s) over v7.0.2..origin/main
+TOTAL 834 call(s) per push to main, before policy-docs, env-matrix and the other jobs
+rc=0
+== base, own harness
+--record 94 call(s) over v7.0.2..origin/main
+--stats 370 call(s) over v7.0.2..origin/main
+--sunset 370 call(s) over v7.0.2..origin/main
+TOTAL 834 call(s) per push to main, before policy-docs, env-matrix and the other jobs
+rc=0
+== head, finder(base) harness
+--record 94 call(s) over v7.0.2..origin/main
+--stats 370 call(s) over v7.0.2..origin/main
+--sunset 370 call(s) over v7.0.2..origin/main
+TOTAL 834 call(s) per push to main, before policy-docs, env-matrix and the other jobs
+rc=0
+== head, own harness
+--record 94 call(s) over v7.0.2..origin/main (--window-cache, as the job passes it)
+--stats 276 call(s) over v7.0.2..origin/main (--window-cache, as the job passes it)
+--sunset 0 call(s) over v7.0.2..origin/main (--window-cache, as the job passes it)
+TOTAL 370 call(s) per push to main, before policy-docs, env-matrix and the other jobs
+rc=0
