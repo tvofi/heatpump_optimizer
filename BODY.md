@@ -32,6 +32,12 @@ Acted under the owner's full-scope mandate #6329234399.
 
 ## Head
 
+`10f75266e6fd1774cf42e4196e7708c87bea10af` is the code head measured in this round: it merges origin/main `e8cb7e683` into the bot head `4607ba956` (clean, no resolution) and adds one commit answering `tests / mutation` and `tests / typing` (`## Red checks`).
+
+`c616d5e7278c0cad4fea370305b6426fbc2c1409` re-keys 11 `## Unpinned sites` line(s) the main merge moved from `99367cbc3a012e21ca1183526671a5cc3cc98e3f`, each to the line at this head with identical text and kind (`ci_predict.py --rekey-body`): custom_components/heatpump_optimizer/coordinator.py:10225 CMP_BOUND -> custom_components/heatpump_optimizer/coordinator.py:10239 CMP_BOUND; custom_components/heatpump_optimizer/coordinator.py:10225 GUARD_OFF -> custom_components/heatpump_optimizer/coordinator.py:10239 GUARD_OFF; custom_components/heatpump_optimizer/pump_signals.py:246 CMP_BOUND -> custom_components/heatpump_optimizer/pump_signals.py:247 CMP_BOUND; custom_components/heatpump_optimizer/pump_signals.py:246 GUARD_OFF -> custom_components/heatpump_optimizer/pump_signals.py:247 GUARD_OFF; custom_components/heatpump_optimizer/pump_signals.py:248 CMP_BOUND -> custom_components/heatpump_optimizer/pump_signals.py:249 CMP_BOUND; custom_components/heatpump_optimizer/pump_signals.py:248 GUARD_OFF -> custom_components/heatpump_optimizer/pump_signals.py:249 GUARD_OFF; custom_components/heatpump_optimizer/pump_signals.py:250 GUARD_OFF -> custom_components/heatpump_optimizer/pump_signals.py:251 GUARD_OFF; custom_components/heatpump_optimizer/pump_signals.py:251 GUARD_OFF -> custom_components/heatpump_optimizer/pump_signals.py:252 GUARD_OFF; custom_components/heatpump_optimizer/pump_signals.py:254 GUARD_OFF -> custom_components/heatpump_optimizer/pump_signals.py:255 GUARD_OFF; custom_components/heatpump_optimizer/pump_signals.py:256 GUARD_OFF -> custom_components/heatpump_optimizer/pump_signals.py:257 GUARD_OFF; custom_components/heatpump_optimizer/pump_signals.py:260 RETURN_DEL -> custom_components/heatpump_optimizer/pump_signals.py:261 RETURN_DEL.
+
+`c616d5e7278c0cad4fea370305b6426fbc2c1409` merges origin/main `ea36188c3` into the authored code head `99367cbc3a012e21ca1183526671a5cc3cc98e3f` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below).
+
 `99367cbc3a012e21ca1183526671a5cc3cc98e3f`
 
 ## Mutation proof
@@ -70,12 +76,35 @@ slices taken from `tests/features.py`, and the block text, under the same
   every fractional floor falls back to the snapped value while both on-step
   nulls stay put.
 
+Round 2 (`10f75266e`, the four survivors `tests / mutation` refused at
+`4607ba956`). Each mutant is a copy of `custom_components/` with one line
+changed, imported by a scratch driver that runs `tests/features.py` from its
+first line to just past the new checks (1421 checks), from a root whose
+`custom_components` is the mutant (`harness.py` inserts that path
+cwd-relative). The unmutated tree is the null: `ALL 1421 PREFIX CHECKS
+PASSED`. The driver is not in the tree; the checks are.
+
+- M4 `pump_signals.py` `actual_kw <= threshold_kw` -> `<`: `1 of 1421 PREFIX
+  CHECKS FAILED`, `R10-IMMERSION-LATCH: the carve refuses at its bounds`
+  `[bounds {'at threshold': ('dhw_booster', 0.0), 'zero hours': None, 'zero
+  threshold': None} ...]`.
+- M5 `hours <= 0.0` -> `<`: the same check, `'zero hours': ('dhw_booster',
+  0.0)`.
+- M6 `threshold_kw <= 0.0` -> `<`: the same check, `'zero threshold':
+  ('dhw_booster', 3.45)`.
+- M7 `coordinator.py` `if resistive_line:` -> `if False:`: `4 of 1421`, the
+  booster, backup, declared-element and sub-epsilon arms.
+- M8, the failing test first -- the pre-fix guard restored, `if resistive_kwh
+  > 1e-6:`: `1 of 1421`, `R10-IMMERSION-LATCH: a carve smaller than any
+  epsilon is booked` `[{'spot': 2.875, 'grid_fee': 2.8750005, ...,
+  'dhw_booster': 0.0, ...}]` -- 5e-7 kWh left spot and reached no line.
+
 ## Null control
 
 - The unmodified tree is the defect: `python3 tests/features.py` at
-  6eb552157 with this branch's tests prints `10 of 4481 FEATURE CHECKS FAILED`
-  -- the eight `R10-IMMERSION-LATCH` controls, `#2805`, and the strengthened
-  `savings_actual is the metered kWh` arm -- with the measured lines `[{'spot': 1.5, 'grid_fee': 3.0, 'immersion': 1.5, ...}]` for the
+  6eb552157 with this branch's tests prints `8 of 4480 FEATURE CHECKS FAILED`
+  -- the seven `R10-IMMERSION-LATCH` controls and `#2805` -- with the measured
+  lines `[{'spot': 1.5, 'grid_fee': 3.0, 'immersion': 1.5, ...}]` for the
   no-element install and `{'degF step 1': (118.5, 119), ...}` for the floor.
 - The flat-draw null in the tree: at nameplate and one kW below it, with the
   booster flag on and the latch held, all three resistive lines book 0.0 and
@@ -93,16 +122,14 @@ slices taken from `tests/features.py`, and the block text, under the same
 
 ## Figures
 
-- `10 of 4481 FEATURE CHECKS FAILED` before the fix, `ALL 4481 FEATURE CHECKS
+- `8 of 4480 FEATURE CHECKS FAILED` before the fix, `ALL 4480 FEATURE CHECKS
   PASSED` at this head -- `python3 tests/features.py`
 - `R10-IMMERSION-LATCH controls: no element {'spot': 3.0, 'grid_fee': 3.0,
   'immersion': 0.0, 'dhw_booster': 0.0, 'backup_heater': 0.0} booster {'spot':
-  2.875, 'grid_fee': 3.45, 'immersion': 0.0, 'dhw_booster':
-  0.5750000000000002, 'backup_heater': 0.0} flat at nameplate {'spot': 2.5,
-  'grid_fee': 2.5, 'immersion': 0.0, 'dhw_booster': 0.0, 'backup_heater': 0.0}
-  savings off (3.45, 8.625, 1.5, 3.45, 3.45) on (3.45, 8.625, 1.5, 3.45,
-  2.875)` -- `python3 tests/features.py` (the block prints its controls on the
-  pass)
+  2.875, 'grid_fee': 3.45, 'immersion': 0.0, 'dhw_booster': 0.575, ...} flat at
+  nameplate {'spot': 2.5, ...} savings off (3.45, 8.625, 1.5, 3.45, 3.45) on
+  (3.45, 8.625, 1.5, 3.45, 2.875)` -- `python3 tests/features.py` (the block
+  prints its controls on the pass)
 - `class_excess_loc 18041 <= 18047`, `max_class_loc 8216 <= 8222`, both
   re-recorded downwards in this commit -- `python3 tests/structure.py`
 - `MODE: SCOPED -- 28 script(s) run, 5 scoped out` --
@@ -111,51 +138,68 @@ slices taken from `tests/features.py`, and the block text, under the same
   roster and not re-measured here -- `git grep -n '3.9 %' --
   dev/programme/rosters/wave-r10-groups.json`
 
+- `ALL 1421 PREFIX CHECKS PASSED` at `10f75266e`, and M4-M8's failing
+  counts above -- the scratch prefix driver over `tests/features.py` (above)
+- `ALL 9 typing-ruler checks PASSED` at `10f75266e`; `2 of 10 typing-ruler
+  checks FAILED` at `4607ba956` (CI job 122537218510) -- `python3
+  tests/typing_ruler.py --mypy` under the pinned venv-ha
+- `STRUCTURE RATCHET PASSED` at `10f75266e` -- `python3 tests/structure.py`
+- `CI PREDICT: 3 unpinned site(s) the diff adds` at `10f75266e` (the lines
+  under `## Unpinned sites`) -- `python3 tools/pr/ci_predict.py --base
+  e8cb7e68302b`
+- `MODE: SCOPED -- 22 script(s) run, 11 scoped out` for `10f75266e` over its
+  own parent -- `python3 tests/closure.py select --diff HEAD~1`; run locally:
+  the scripts under 20 s recorded, each green; `features.py`, `entities.py`,
+  `boost_drift_replay.py`, `harness_headers.py`, `arch_score_head.py`,
+  `finite_boundary.py` and `card.mjs` are CI's
 ## Red checks
 
-- `tests / mutation` -- predicted red at this head before the push: 12 unpinned
-  sites the diff adds. The cheaper detector already ran and caught it: `prepr.sh`
-  step 6d's `tools/pr/ci_predict.py --base 6eb552157b63` prints the 12 `ADDED
-  UNPINNED` lines in seconds, pre-push, with no CI run; its standing cost is that
-  predict call. Each site's disposition is under `## Unpinned sites`, and the
-  surviving mutants' pins are `mutation-autofix`'s to record from the run.
+- `tests / mutation` -- red at `4607ba956` after `ci: pin killed mutants`:
+  `MUTATION TABLE REFUSED -- 3803 unpinned site(s) against 3802 at the ratchet
+  base e8cb7e683..., 4 of them added by this diff` (job 122537018832). The four
+  were survivors: no check reached the carve's three refusal bounds at
+  equality or zero, and the coordinator's `resistive_kwh > 1e-6` bound moved
+  by one changes no observable line. Repaired at `10f75266e` by real
+  assertions (see `## Mutation proof` M4-M8) and by removing the epsilon
+  guard, never by triage. Cheaper detector: `tools/pr/ci_predict.py --base
+  <merge-base>` (prepr step 6d) lists every added unpinned site pre-push in
+  seconds -- it named these at the original handoff; what it cannot say is
+  which will survive, which only the drive (CI's `mutation-pins`, or a local
+  mutant run of the block) answers. No cheaper detector of survival exists
+  than running the mutant.
+- `tests / typing` -- red at `c616d5e72` and `4607ba956`: `FAIL errors did not
+  grow [recorded 0, measured 1 (+1)]`, `by_code[arg-type]`, the line being
+  `setpoint_check.py:142: Argument 2 to "quantise_setpoint_c" has
+  incompatible type "str | None"` (job 122537218510). Repaired at `10f75266e`.
+  Cheaper detector exists: the scoped gate selects `tests/typing_ruler.py`
+  for this diff, and with `HPO_TYPING_PYTHON` set (the seat shim exports it
+  when `venv-ha` exists) it runs the pinned mypy census locally; standing cost
+  about 30 s per gate run on this seat. Unset, it prints what goes unchecked
+  and passes, which is how the census regression reached CI.
+- `prelude` -- red at `c616d5e72` (run 40587828577, job 122483930403):
+  `tools/ci/prelude.py` exited 3 on `RATE-LIMITED ... actions/runs/.../jobs`,
+  GitHub's API quota at run time, not the diff. No cheaper detector exists: the
+  condition is the shared API bucket when the run executes; the next run's
+  `prelude` at `4607ba956` was green.
 
 ## Unpinned sites
 
-- `custom_components/heatpump_optimizer/coordinator.py:10225 CMP_BOUND`: pinned
-  by `R10-IMMERSION-LATCH: a booster flag on books only the draw over the latch
-  threshold` -- deleting the booking leaves spot at 3.45 and the arm red.
-- `custom_components/heatpump_optimizer/coordinator.py:10225 GUARD_OFF`: pinned
-  by the same arm, and by the declared-element and backup arms.
-- `custom_components/heatpump_optimizer/pump_signals.py:246 CMP_BOUND*2`:
-  written triage -- the non-positive-hours and non-positive-threshold guards
-  cannot be reached from `_accumulate_energy` (it returns before booking when
-  `energy <= 0`, and the threshold is nameplate x 1.15 for a configured pump);
-  the branch books nothing on any other path. `mutation-autofix` may record a
-  survivor here and that is the triage.
-- `custom_components/heatpump_optimizer/pump_signals.py:246 GUARD_OFF`: same
-  written triage.
-- `custom_components/heatpump_optimizer/pump_signals.py:248 CMP_BOUND`: pinned
-  by `R10-IMMERSION-LATCH null: a flat draw at or below nameplate books zero`
-  -- the measured red under M1 is exactly this bound moving.
-- `custom_components/heatpump_optimizer/pump_signals.py:248 GUARD_OFF`: pinned
-  by the same null and by the no-element control.
-- `custom_components/heatpump_optimizer/pump_signals.py:250 GUARD_OFF`: pinned
-  by `R10-IMMERSION-LATCH: a booster flag on books only the draw over the latch
-  threshold, under the booster's own line` (the line would fall through to
-  `immersion` or to no line).
-- `custom_components/heatpump_optimizer/pump_signals.py:251 GUARD_OFF`: pinned
-  by `R10-IMMERSION-LATCH: both heater flags on refuses the line`.
-- `custom_components/heatpump_optimizer/pump_signals.py:254 GUARD_OFF`: pinned
-  by `R10-IMMERSION-LATCH: a backup-heater flag on books under its own line`.
-- `custom_components/heatpump_optimizer/pump_signals.py:256 GUARD_OFF`: pinned
-  by `R10-IMMERSION-LATCH: a declared immersion element books the same threshold
-  excess`.
-- `custom_components/heatpump_optimizer/pump_signals.py:260 RETURN_DEL`: pinned
-  by every R10-IMMERSION-LATCH arm -- no arm books a line without it.
-- `custom_components/heatpump_optimizer/setpoint_check.py:141 GUARD_OFF`: pinned
-  by `#2805: a fractional disinfection floor is written up to the entity's step`
-  and its two on-step null arms.
+At `10f75266e` (`ci_predict.py`). The rest the original handoff listed are
+pinned in the ledger by `ci: pin killed mutants` (`4607ba956`); the
+`coordinator.py` `if resistive_kwh > 1e-6:` site is gone with its line, and its
+stale GUARD_OFF pin removed.
+
+- `custom_components/heatpump_optimizer/coordinator.py:10239 GUARD_OFF`
+  (`if resistive_line:`): pinned by `mutation-autofix` -- killed by
+  `R10-IMMERSION-LATCH: a booster flag on books only the draw over the latch
+  threshold` and three sibling arms (M7).
+- `custom_components/heatpump_optimizer/pump_signals.py:247 CMP_BOUND*2`:
+  pinned by `mutation-autofix` -- killed by `R10-IMMERSION-LATCH: the carve
+  refuses at its bounds` (M5, M6). The earlier written triage
+  (unreachable from `_accumulate_energy`) is withdrawn: the bounds are the
+  public decision's contract and are now checked on it directly.
+- `custom_components/heatpump_optimizer/pump_signals.py:249 CMP_BOUND`:
+  pinned by `mutation-autofix` -- killed by the same check (M4).
 
 ## Forward-carry
 
@@ -180,3 +224,4 @@ slices taken from `tests/features.py`, and the block text, under the same
   same file's header and fixture slices. Carry: dismissed: no open group owns
   features_block.py, and a --prefix flag is a seat-instrument change outside
   this seam.
+
