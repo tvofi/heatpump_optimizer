@@ -27,7 +27,13 @@ from typing import Any, Callable, Mapping
 import numpy as np
 
 from .const import finite_float
-from .payload import ContractComparison, IDLE_REASONS, REASON_UNTAGGED, SavingsMonth
+from .payload import (
+    RESISTIVE_LINES,
+    ContractComparison,
+    IDLE_REASONS,
+    REASON_UNTAGGED,
+    SavingsMonth,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -40,7 +46,7 @@ KEEP_MONTHS = 24
 #: circuit, the ``reason:`` lines partition it by why, and the two
 #: ``savings_`` lines compare it with a thermostat -- so adding any of them
 #: counts the same money again (R9-UX-6).
-BILLED_LINES = ("spot", "grid_fee", "capacity", "immersion", "wear")
+BILLED_LINES = ("spot", "grid_fee", "capacity", *RESISTIVE_LINES, "wear")
 
 #: The month's billed peak, kW, beside the capacity line it prices.
 CAPACITY_PEAK_META = "capacity_peak_kw"
@@ -65,8 +71,9 @@ SAVINGS_PLAN_LINE = "savings_plan"
 MIN_CALIBRATION_KWH = 1.0
 
 #: The lines that are metered energy at the spot price: what every contract
-#: settles on. ``immersion`` is spot energy carved out of ``spot`` (#11).
-ENERGY_LINES = ("spot", "immersion")
+#: settles on. The resistive lines are spot energy carved out of ``spot``
+#: (#11), one per source (#2729).
+ENERGY_LINES = ("spot", *RESISTIVE_LINES)
 
 
 def month_key(when: datetime) -> str:
@@ -241,7 +248,7 @@ class MonthlyLedger:
 
         ``baseline_kw is None`` means no plan covered the interval — skip.
         A finite 0.0 kW is a real thermostat-off step and must book.
-        ``actual_kwh`` is already energy (spot + immersion), not kW.
+        ``actual_kwh`` is already energy (spot + the resistive lines), not kW.
         ``planned_kw``, the plan's modelled draw, books the plan line; a
         month whose savings lines began without it never gains one, which
         would calibrate a share of its thermostat only.
@@ -353,7 +360,7 @@ class MonthlyLedger:
         """The month's metered kWh and their spot cost: ``ENERGY_LINES`` summed.
 
         The one figure every contract settles on; the contract comparison
-        reads it rather than folding the immersion line back in itself.
+        reads it rather than folding the resistive lines back in itself.
         """
         parts = [self.line(month, name) for name in ENERGY_LINES]
         return {
@@ -546,14 +553,15 @@ def freeze_month_report(
     reason_kwh = sum(entry["kwh"] for entry in raw)
     reason_sek = sum(entry["sek"] for entry in raw)
     raw_spot = ledger.line(month, "spot")
-    spot = lines.get("spot", {"kwh": 0.0, "sek": 0.0})
     billed = {name: entry for name, entry in lines.items() if not name.startswith("reason:")}
     total, basis = billed_total(billed)
     report: dict[str, Any] = {
         "month": month,
         "lines": billed,
         "reasons": reasons,
-        "total_kwh": round(spot["kwh"] + lines.get("immersion", {}).get("kwh", 0.0), 3),
+        "total_kwh": round(
+            sum(lines.get(name, {}).get("kwh", 0.0) for name in ENERGY_LINES), 3
+        ),
         "total_sek": total,
         "basis": basis,
         "compressor_starts": compressor_starts,
