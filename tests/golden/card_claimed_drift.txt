@@ -768,3 +768,16 @@
 # 1. the stylesheet alone:
 
 # 2. the redrawn Setup page, on top of the stylesheet:
+
+# R10-HOUSE-GRADE (#2816): the House score row explains the grade the way it is
+# now measured -- the envelope's heat loss in W/K, corrected for thermal mass,
+# against what is typical for the configured house type and building era -- and
+# the row and hover gain a line naming what moves it off 50, from the
+# `envelope_drivers` the coordinator publishes, each with its signed points.
+# Both languages move (score.part_envelope is rewritten and the score.driver_*
+# keys are new). score_open is the state that opens the score dialog, so it is
+# the one that renders either; its house row's explanation text changes
+# whatever the fixture publishes, and the driver line and the headline's
+# parenthetical follow the fixture's own scores. The other 44 states were
+# rendered and stayed identical.
+score_open  # R10-HOUSE-GRADE (#2816): the House row's explanation rewritten and its driver line added

@@ -23,11 +23,22 @@ shipped as absolute numbers per archetype.
 """
 from __future__ import annotations
 
-import functools
-import itertools
+import math
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
+from .const import (
+    CONF_BUILDING_ERA,
+    CONF_BUILDING_FOUNDATION,
+    CONF_BUILDING_STRUCTURE,
+    CONF_HEATED_AREA,
+    CONF_LOWER_EMITTER,
+    CONF_UPPER_EMITTER,
+    CONF_UPPER_FLOOR_AREA_RATIO,
+    DEFAULT_HEATED_AREA,
+    DEFAULT_UPPER_FLOOR_AREA_RATIO,
+)
 from .thermal_model import ThermalParameters
 
 # --- Structure -------------------------------------------------------------
@@ -279,26 +290,79 @@ def derive(preset: BuildingPreset) -> dict[str, Any]:
     return result
 
 
-@functools.cache
-def envelope_band_hours() -> tuple[float, float]:
-    """The shortest and longest envelope time constant the presets derive, h.
+def preset_from_config(
+    answers: Mapping[str, Any], current: Mapping[str, Any]
+) -> BuildingPreset:
+    """The questionnaire's preset for ``answers`` on the configuration ``current``.
 
-    Every structure, era, foundation and emitter, single- and two-zone, at
-    the configured prior (no learned scale), each ``envelope_thermal_mass``
-    over ``house_heat_loss_base``. The house grade (#65) places a house
-    between the two on a log scale -- a time constant is a ratio, and the
-    eras' losses step by ratios -- so the band moves with this table and is
-    never a second, uncalibrated pair of literals (R10-SCORES).
+    ``two_zone`` is the canonical predicate's verdict on the configuration in
+    force (R9 D14-s2-01) -- the rule ``ThermalParameters.from_config``
+    applies -- never a proxy read of one zone key. An unanswered question, or
+    one posted blank, falls to the preset's own default: named here rather
+    than left to ``validate``, because a reader outside ``config_flow`` has
+    to state what absence means. ``config_flow._ABSENT_FALLBACKS`` pairs each
+    key with the same value, and ``tests/config_flow_steps.py``'s absent-key
+    proof reads the two against each other.
     """
-    taus = []
-    for structure, era, foundation, emitter, two_zone in itertools.product(
-        STRUCTURES, ERAS, FOUNDATIONS, EMITTERS, (False, True)
-    ):
-        params = ThermalParameters.from_config(derive(BuildingPreset(
-            structure=structure, era=era, foundation=foundation,
-            lower_emitter=emitter, two_zone=two_zone)))
-        taus.append(params.envelope_thermal_mass / params.house_heat_loss_base)
-    return min(taus), max(taus)
+    return BuildingPreset(
+        structure=answers.get(CONF_BUILDING_STRUCTURE, STRUCTURE_TIMBER_SLAB),
+        era=answers.get(CONF_BUILDING_ERA, ERA_1980_2005),
+        foundation=answers.get(CONF_BUILDING_FOUNDATION, FOUNDATION_NONE),
+        heated_area_m2=float(answers.get(CONF_HEATED_AREA, DEFAULT_HEATED_AREA)),
+        upper_emitter=answers.get(CONF_UPPER_EMITTER, EMITTER_RADIATORS),
+        lower_emitter=answers.get(CONF_LOWER_EMITTER, EMITTER_FLOOR),
+        upper_area_ratio=float(
+            current.get(CONF_UPPER_FLOOR_AREA_RATIO, DEFAULT_UPPER_FLOOR_AREA_RATIO)
+        ),
+        two_zone=ThermalParameters.from_config(dict(current)).two_zone_enabled,
+    ).validate()
+
+
+#: The house grade's slope in log loss ratio: the owner's ~100-year-old house
+#: at 1.5x the typical pre-1960 loss grades 35, inside #2816's asked 30-40.
+_GRADE_SLOPE = 1.5
+#: 0 is reserved for no data (#2816), so a measured house never rounds onto it.
+_GRADE_FLOOR = 1.0
+
+
+def house_grade(
+    params: ThermalParameters, scale: float, config: Mapping[str, Any]
+) -> tuple[float, list[dict[str, Any]]]:
+    """The house grade (#65, #2816) and the drivers that account for it.
+
+    The loss ratio is the model's envelope loss (W/K) against the loss
+    ``derive`` gives the configured type, era, foundation and area,
+    corrected for thermal mass: the learner identifies the time constant
+    ``mass / loss``, so a loss read off a mass unlike the typical one is
+    rescaled by ``typical_mass / mass``. The ratio is therefore
+    ``typical_tau / tau``, and its log is the sum of three drivers: the
+    configured loss against typical, the learned correction (``scale``),
+    and the mass correction. The grade is ``100 / (1 + ratio ** slope)``:
+    50 at typical, above for tighter, below for leakier, never 0. Each
+    driver's ``points`` is its log share of the distance from 50, so the
+    points sum to ``grade - 50``.
+
+    There is deliberately no driver for an unconfigured building era: an
+    absent era grades exactly as the form's default era, which the entry's
+    absent-key contract states (``config_flow._ABSENT_FALLBACKS``) and
+    ``tests/config_flow_steps.py`` proves, so the two cases are one and
+    there is nothing to disclose. A read that told them apart would fail
+    that proof; the grade says so here rather than in a driver.
+    """
+    typical = ThermalParameters.from_config(derive(preset_from_config(config, config)))
+    logs = {
+        "loss_vs_typical": math.log(params.house_heat_loss_base / typical.house_heat_loss_base),
+        "learned_heat_loss": math.log(scale),
+        "thermal_mass": math.log(
+            typical.envelope_thermal_mass / params.envelope_thermal_mass
+        ),
+    }
+    total = sum(logs.values())
+    grade = max(100.0 / (1.0 + math.exp(_GRADE_SLOPE * total)), _GRADE_FLOOR)
+    return grade, [
+        {"code": code, "points": (grade - 50.0) * value / total if total else 0.0}
+        for code, value in logs.items()
+    ]
 
 
 def _radiator_fraction(preset: BuildingPreset) -> float:
