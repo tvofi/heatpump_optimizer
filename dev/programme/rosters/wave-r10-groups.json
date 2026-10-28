@@ -11026,6 +11026,49 @@
     "note": "Owner order (tvofi, 2026-10-28)"
    },
    "brief": "Owner order (tvofi, 2026-10-28). Sweep additions become defaults in tools/audit/seat/sweep_template.md: each addition the orchestrator's sweep has been making by hand is written into the template so a bare sweep runs it, each switchable off. Controls: a bare sweep from the template carries every added step; removing one step from the template fails the check that reads it; null: a sweep with the old hand additions is equivalent in effect to a bare one."
+  },
+  {
+   "group": "R10-FLY-CACHE-PROMPTS",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "instrument",
+   "severity": "medium",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 6,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "tools/audit/seat/sweep_template.md",
+    "tools/audit/seat/cloud_dispatch.py",
+    ".claude/settings.json"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "in-progress",
+    "branch": "handoff/r10-fly-cache-prompts",
+    "commit": null,
+    "last_step": null,
+    "next_step": "fixer dispatched (dispatch/fixer-r10-fly-cache-prompts)",
+    "note": "Owner order (tvofi, 2026-10-28)"
+   },
+   "brief": "Owner order (tvofi, 2026-10-28). Prompt-cache gaps: gap 1 (a seat that waits past the 5-minute cache TTL pays a full re-read) caps every wait at <=270 s; gap 4 (RemoteTrigger echoes the payload back into context) sends a pointer prompt that names the brief on dispatch/<role>-<topic> instead of the brief text; gap 6 partial. Also the project Stop hook that never runs for the orchestrator: its hook path is relative and resolves against the seat's cwd, so it is made cwd-independent. Controls: a wait over 270 s is refused or clamped; a dispatch payload carries the pointer and not the brief; the Stop hook fires from a non-root cwd; null: a wait of 240 s is unchanged."
   }
  ]
 }
