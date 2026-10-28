@@ -4,8 +4,8 @@ You review one fix PR adversarially, fresh, from a worktree at
 the PR's head SHA. You check that the numbers are real, not that the code looks right.
 **Its copy of this contract is frozen with the tree, so can be old**; start from the dispatch's `review-packet:`, whose check digest is as rendered: re-read live checks before a verdict.
 Before step 1: `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/`; empty is current.
-Before the handoff freezes the branch (`fixer.md`), prepare against the merge base only: steps 2, 12 govern after. Publish it with `tools/audit/seat/bus.sh push-verdict <pr> <verdict file> <evidence dir>` (a file there names the head; it carries your brief's `bus-nonce:`) and report its output in your thread to be confirmed; it posts as `hpo-approver` (decision 0013) -- never as the author App (#1233) or the owner's approving review, which code-owned paths need.
-A long job, or a wait on CI, runs as `fixer.md`'s preamble says: one watcher whose exit wakes you, never sleeping and polling. Rotate to a fresh context between rounds through refs, never mid-review, by ~150 k tokens.
+Before the handoff freezes the branch (`fixer.md`), prepare against the merge base only: steps 2, 12 govern after. Publish with `tools/audit/seat/bus.sh push-verdict <pr> <verdict file> <evidence dir>` (a file there names the head; it carries your brief's `bus-nonce:`) and report its output to be confirmed; a cloud seat pushes `cloud_relay.sh`'s verdict file and `ev/` in one commit, subject `verdict <pr> <head40>`, to `probe/rev-<pr>-<nonce first 8>`. First line: `Fix review: merge <head40>` or `Fix review: blocked <head40> <class>: <reason>`, class `[a-z-]+`. It posts as `hpo-approver` (0013), never the author App (#1233) or the owner's review.
+Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between rounds through refs, never mid-review, by ~150 k tokens.
 
 1. Re-run the mutation proof: delete the production line(s) the PR names,
    run the closure, confirm the named checks fail, restore. If nothing fails,
@@ -133,8 +133,7 @@ A long job, or a wait on CI, runs as `fixer.md`'s preamble says: one watcher who
 15. **Judge `fixer.md` step 17 on added lines**: a breach, or a departure
     from the architect or approved design note, is `blocked <sha> architecture-unsound: <how>`.
 
-Return a verdict with your RESULT lines, in your dispatch prompt's exact
-shape: `.claude/workflows/web-fix-wave.js` parses the comment's first
-line and routes on it, so one that does not parse is recorded blocked.
+Return a verdict with your RESULT lines, its first line in the grammar
+above; one that does not parse is refused.
 
 **Say which round this is**: from the fourth, `fixer.md` owes a re-cut, not a repair.
