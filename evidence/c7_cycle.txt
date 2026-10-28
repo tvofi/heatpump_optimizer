@@ -1,2 +1,0 @@
-head -> SystemExit: ci_critpath: refused: a needs cycle through a
-c7-mutant -> RecursionError (uncaught crash, non-zero exit)
