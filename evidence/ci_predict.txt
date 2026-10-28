@@ -1,8 +1,0 @@
-PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/optimizer.py:324 RETURN_DEL: return _baseline_targets(comfort_targets, i + 1, default)[i]
-PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/optimizer.py:333 GUARD_OFF: if comfort_targets is not None:
-PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/optimizer.py:336 RETURN_DEL: return targets.tolist()
-PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/optimizer.py:5294 BOOLOP: if two_tank and state.wood_tank_temperature is not None:
-PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/optimizer.py:5294 GUARD_OFF: if two_tank and state.wood_tank_temperature is not None:
-PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/optimizer.py:5335 CLAMP_DROP: power = min(required_thermal / cop, p.max_electrical_power)
-CI PREDICT: 6 unpinned site(s) the diff adds -- a warning; the body owes each a line under ## Unpinned sites
-CI PREDICT: no closures, fast, wave-script or instrument red predicted against 5c0ee109305f (a data-file read is not seen)
