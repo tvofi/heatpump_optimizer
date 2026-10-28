@@ -1,5 +1,0 @@
-  ok   seam_cut_total 420 <= 420
-
-STRUCTURE RATCHET PASSED
-rc=0
-merged=1e931b3be15c8aa848061203769f8a50d98535cf
