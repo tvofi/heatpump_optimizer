@@ -1,0 +1,36 @@
+merge-base origin/main HEAD: 16a8240f179d8a6a1ecaae2b284f6ec5a0f04eab
+origin/main: 16a8240f179d8a6a1ecaae2b284f6ec5a0f04eab
+ dev/programme/delivery/2598.md             |   1 +
+ dev/programme/rosters/wave-r10-groups.json | 159 ++++++++++++++++++++++++++---
+ 2 files changed, 147 insertions(+), 13 deletions(-)
+null control rc=0
+ 1 file changed, 146 insertions(+), 13 deletions(-)
+commits 306a96d5f..562015181: 15
+3976515a ancestor of origin/main: 3976515a08228598ea3863f4f36dc4c7c4846865
+6077bf70e ancestor of origin/main: 6077bf70e3b31cb0e9ccb042c24c0e4edfb65665
+roles diff merge-base...origin/main: []
+coordinator.py@origin/main 10305-10312:
+    def _scores_view(self) -> Scores:
+        """
+        ctx = getattr(self, "_ctx", self)
+        envelope = None
+        loss = (
+            ctx._thermal_params.heat_loss_coefficient
+            * max(ctx._thermal_params.house_heat_loss_scale, 0.1)
+        )
+        if loss > 1e-6 and ctx._thermal_params.room_thermal_mass > 0:
+ CLAUDE.md                                          |  2 +
+ dev/governance/config/policy_budgets.json          |  6 ++-
+ .../0012-process-diet-and-round-cadence.md         | 14 +++--
+ ...design-seats-and-the-end-of-0012s-moratorium.md | 63 ++++++++++++++++++++++
+ dev/governance/roles/design-review.md              | 53 ++++++++++++++++++
+ dev/governance/roles/designer.md                   | 60 +++++++++++++++++++++
+ dev/governance/roles/fix-review.md                 | 10 ++--
+ dev/governance/roles/fixer.md                      |  8 +--
+ dev/governance/roles/orchestrator.md               | 19 +++----
+ dev/programme/delivery/2586.md                     |  1 +
+ tests/closures.json                                |  2 +
+ tools/policy/policy_lint.mjs                       |  8 +--
+ 12 files changed, 219 insertions(+), 27 deletions(-)
+Status: Revoked 2026-10-21 (owner addendum 6322712314); kept as history.
+Revoked by decision `0014-design-seats-and-the-end-of-0012s-moratorium.md`.
