@@ -1,26 +1,33 @@
-Fix review: merge 7ae5e30e0df57b522d527945d398ccc547e0389b
+Fix review: blocked 1a13f2b3b97a2164d32308f12c5f6816e6a67bf2 metric-gamed: tests/structure.py class_excess_loc: 14 of 8005c528's 21 lines are line-joins that improve nothing
 
-bus-nonce: 4842c50acd697be76cc297189b4bdcb7
+Round: delta review (round 2 on #2745) of d2cd24dcdfee19518416e299b8ac3207b92bc8b3..1a13f2b3b97a2164d32308f12c5f6816e6a67bf2. Measured head 1a13f2b3b97a2164d32308f12c5f6816e6a67bf2, which was still the head (ls-remote refs/pull/2745/head) when I posted.
 
-## Scope
+## Blocking
 
-DELTA review of #2745 (R10-SAV-COMFORT) from the prior merge verdict at 1b6df0e492decf43f14575faaa991408eb81501d to 7ae5e30e0df57b522d527945d398ccc547e0389b. Scope is the hand-resolved conflict in tests/golden/claimed_drift.txt; the fix itself was not re-reviewed.
+`8005c528` ("ledger: pay the merge's MonthlyLedger growth in its own formatting") pays 21 lines of `class_excess_loc` (18096 -> 18075, re-recorded 18076 -> 18075). Null control (fix-review step 14): I took the commit's own ledger.py change and re-expanded only the pure line-joins, keeping the guard collapse.
 
-## Evidence
+- RESULT class_excess_loc=18096 with the commit's ledger.py change reverted
+- RESULT class_excess_loc=18089 with the guard collapse only (`baseline_kw is None or not all(np.isfinite(...))`)
+- RESULT class_excess_loc=18075 at the head
 
-- One commit in range, the merge 7ae5e30e0 with parents 1b6df0e49 (the prior head) and 0825aee64 (origin/main). merge-base(prior, main) = b89fea13e. The claim file has 721 lines at the base, 777 at the prior head (+56: PR), 730 at main (+9: main), 786 at the new head (721 + 56 + 9). ev/claimed_drift_threeway.txt.
-- Main's change to the claim list (base to main): the five R10-SCORES lines (coord_all_features, coord_dhw, coord_grid_fee, coord_minimal, coord_two_zone) were REPLACED by five R10-LEARNER-ETA lines on the same fixtures plus a nine-line R10-LEARNER-ETA comment block. Main kept its R10-SCORES (#2258) explanatory comment block; the head keeps it too, as main does.
-- PR's change (base to prior head): 41 R10-SAV-COMFORT claim lines added after the claims-for stamp, and fourteen `# may-drift:` entries rewritten as suspension notes for fixtures it claims.
-- Head vs prior head: the only change is the five R10-SCORES lines replaced by main's 14-line R10-LEARNER-ETA block, byte-for-byte as on main. Head vs main: every difference is a PR-side change (41 claims, suspension notes); no main line is missing.
-- Line ledger. Kept: all 41 R10-SAV-COMFORT claim lines (count at head: 41, text and direction words identical to the prior head), all fourteen suspension notes, main's R10-SCORES comment block. Added from main: the five R10-LEARNER-ETA coord_* claims and their nine-line comment, verbatim. Dropped: the five R10-SCORES coord_* claim lines, which main itself replaced. No claim lost, none invented.
-- Mechanical check: `git merge-file --union` of (prior, base, main) differs from the head only by those five R10-SCORES lines. `git merge-tree --write-tree` of the two parents conflicts only in tests/golden/claimed_drift.txt (the claimnotes driver's MERGE-CLAIM refusal, ev/automerge_P_M.txt); the head's tree differs from that auto-merge tree only in that file, by the conflict markers and the five dropped lines (ev/head_vs_automerge.txt). Every other file the merge touched equals the clean auto-merge, so the head merge changed no code by hand.
-- `claims-for: 7.0.4` at the head; VERSION at the head is 7.0.4 (ev/claims_for.txt).
-- `python3 tests/env_drift.py` at the head: rc=0, NO UNCLAIMED DRIFT on the 5 sensitive fixtures against origin/main bc52ad2af, NO STALE FIXTURE, no claimed-and-may-drift refusal; the 36 R10-SAV-COMFORT scenarios are NOT EVALUATED in that mode, as it prints, and are judged by CI's `--all` (ev/env_drift.txt).
-- Change set: `git diff 1b6df0e49 7ae5e30e0 --stat` names 67 paths; `git diff b89fea13e 0825aee64` names the same 67, symmetric difference 0, so every path is main's own. Three-dot against origin/main: 47 paths at the prior head and 47 at the head, symmetric difference 0. Three-dot over claimed_drift.txt removes no line other than `# may-drift:` entries (0) and adds 71; card_claimed_drift.txt three-dot diff is empty (ev/stat_and_scope.txt).
-- `git merge-tree --write-tree origin/main 7ae5e30e0` with origin/main at bc52ad2af: clean, tree a09d009d4, rc=0 (ev/merge_tree_origin_main.txt).
-- VERSION, the manifest and RELEASE_NOTES.md are untouched by the branch.
-- CI at this head (check-runs API, read 2026-10-25): no red conclusion. Green: closures, closure-scope, coverage, coverage-ratchet, typing, replay, browser, arch-instrument, nightly-status, delivery-status, instrument-self-tests, wave-script, briefs, policy-docs, env-matrix, hassfest, arch-score, budget-raise-gate, validate-hacs, codeql javascript-typescript and actions. Still in progress when read: tests / fast (3.14), tests / mutation, tests / graders-head-copy, codeql / Analyze (python), one prelude. This verdict does not cover their results; the merge train reads them.
+So the guard collapse is a real simplification and earns 7 lines. The other 14 come from joining the two `self.add(...)` calls, the `add_savings_settlement(...)` keyword call and `line()`'s return dict onto fewer lines. No code changes there. `fixer.md` step 17 says "Never move a metric by a change that does not improve the code". `tests/structure.py`'s definition of `class_excess_loc` says "only lines that go -- copies merged, dead code deleted -- lower it". The same move works on any class over the limit, so the diff's change is that move.
 
-## Findings
+Owed: pay the remaining 14 lines with a change that improves the code (a simplification, removed duplication or dead code in any class over the limit), or take the raise path (`CLAUDE.md` rule 2, the owner's confirmation before the push). Then re-pin the mutants the pay moves, as `82e51032` did.
 
-- The PR body is stale on the claim resolution at this head. Its "The claim file keeps main's claims" paragraph still says main's five R10-SCORES lines "stand verbatim", which is false at 7ae5e30e0, where they are replaced by main's R10-LEARNER-ETA lines (correctly). The `## Head` section says the head merges origin/main `50af6174f`; the merged main parent is 0825aee641c8afb1e67be2a6af9d07e9c9dec9fa (50af6174f is #2686, an older main). The commit message names the resolution correctly and the tree is right, so this is a body-only edit owed before the merge records the body. Carry: R10-SAV-COMFORT
+## Verified (these survive a re-cut of 8005c528 that leaves the rest of the delta alone)
+
+- **Held-cost semantics survive #2834.** Merge `aef1a2595` resolved the coordinator conflict to #2834's `**price_tiles.monthly_deltas(...)`. In `price_tiles.monthly_deltas` it changed main's `sim.baseline_cost - live.baseline_cost` to `sim.held_cost - live.held_cost`. That matches the branch's pre-merge coordinator formula `simulated.held_cost - result.held_cost` at d2cd24dc. On this branch `baseline_cost` became the comfort-matched reference (#2492). `held_cost` keeps main's old `baseline_cost` meaning: optimizer.py:4611 `held_cost = float(energy_cost_of(baseline_power))` is taken before the reference is re-targeted, and 4898 is the same on the other path. So the key's meaning on main is preserved. `price_tiles.py:141`'s key selection is unchanged. Evidence: `ev/resolution_aef1a2595.diff`.
+- **The payment changes no behaviour.** `all(np.isfinite(v) for v in ...)` short-circuits in the same order as the `and` chain, and `None` is still checked first. The other hunks only re-wrap code.
+- **Claim files.** The `claimed_drift.txt` resolution keeps this branch's R10-SAV-COMFORT claims and main's coord_* R10-ADVISOR-RESIDUE claims. It drops the stale R10-CARD-VOICE coord_* lines. `claims-for: 7.0.4` equals `VERSION` 7.0.4.
+- **Release files untouched.** The three-dot diff touches neither `VERSION` nor `RELEASE_NOTES.md` nor `manifest.json`.
+- **Merges cleanly.** `git merge-tree --write-tree origin/main 1a13f2b3` (main 3b4180dc) exits 0.
+- **Structure gate.** `python3 tests/structure.py` at the head exits 0, `ok class_excess_loc 18075 <= 18075`. Output in `ev/structure_head.txt`.
+
+## Not verified
+
+- **env_drift.** I did not run `env_drift.py --all`, because the block above does not depend on it. A re-cut head owes it.
+- **The fixer's 4 local gate reds.** I did not reproduce them on main: stress shoulder, entities heartbeat, the card.mjs OOM, and optimality winter_narrow|shoulder. This needs re-checking at the re-cut head.
+- **Mutation pins.** I did not re-run `82e51032`'s pins (ledger.py:225 GUARD_OFF, :265 RETURN_DEL). Re-cutting 8005c528 re-keys these sites, so they are owed again anyway.
+- **CI and the body's root-cause answers.** I did not read the CI check-runs or the PR body's red-check answers at this head.
+
+bus-nonce: 8cd35a44bf2eb1e4bb4de7b5758e53c6
