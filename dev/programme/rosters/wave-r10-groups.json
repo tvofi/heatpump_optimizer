@@ -10346,9 +10346,9 @@
    ],
    "carry": [],
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": null,
-    "commit": null,
+    "commit": "593f57c44fa57490ed757343b9f277ef97ad5ca5",
     "last_step": null,
     "next_step": "dispatch a fixer once this group is on the roster (critical path)",
     "note": "triage P198, 2026-10-26",
