@@ -1,0 +1,7 @@
+roster ref origin/handoff/audit-r10-roster at 743463c61f6af0631f7ac20ca36561232b028b97
+## R10-ORCH-MACHINERY carry lines naming the hold:
+14:dently of the relay, as R10-TICK-RELAY-DECOUPLE (#2549) already does for tick_loop.sh. The handoff job honours R10-FLOW-RELAY-HOLD's hold file. (1) beatd.jobs.json gains two jobs: heartbeat (R10-FLOW-ANDON's jo
+20:er appended at the file's end, so parallel additions touch different hunks; on 2026-10-21 three pull requests (R10-FLOW-RELAY-HOLD, R10-FLOW-YIELD-PROBE, R10-CI-LAYOUT's PR G) each lost a code round to a conten
+grep 'cloud_relay.sh held' in that group's brief+carry: 0
+## R10-FLOW-ROSTER-FREEZE registered: R10-FLOW-ROSTER-FREEZE since 2026-10-21T22:55:13+02:00
+its brief+carry naming malformed/hold-file grammar: 0
