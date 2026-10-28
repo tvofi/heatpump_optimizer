@@ -12,10 +12,10 @@ this box, and it is not re-derived here; the claim that #2854's body lacks the f
 
 Correction (this seat, after the first cut merged): the first cut rejected the proposal's second
 arm whole. That was wrong about its lease half, and the entry below is corrected. The first cut
-reached `main` as PR #2886 at `ee5816b1`; this follow-up replaces it, and the ledger keeps the
+reached `main` as PR #2886 (merge `a0e7664ea`); this follow-up replaces it, and the ledger keeps the
 order in which the seat changed its mind.
 
-## P211: the push-stuck guard's threshold sits below the work it is guarding (V131)
+## P211: the push-stuck guard's threshold sits below the work it is guarding (V124)
 
 Verdict: ACCEPT narrowed, in two carries. The proposal's first arm (sample the push's
 process-tree CPU advance instead of elapsed time alone) is the one carried into
