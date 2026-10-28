@@ -25,6 +25,10 @@
 R=tvofi/heatpump_optimizer
 S=${CI_WATCH_STATE:-${HPO_STATE_DIR:-$HOME/.local/state/hpo}/ci-watch-state}
 RULESET=main-protect-checks
+# Seconds between cycles: under a waiting seat's 5-minute prompt-cache TTL, so the
+# wake on its exit does not rewrite the seat's whole context (R10-FLY-CACHE-PROMPTS),
+# and never under GitHub's 60 s poll floor.
+POLL_S=240
 
 # --------------------------------------------------------------- self-test
 self_test() {
@@ -223,6 +227,11 @@ EOF
   ck "W12 a gate that did not succeed (skipped; RATE-LIMITED is a failure) alerts RED: gate, never a pass" \
      "$([ $rc = 1 ] && says 'RED: gate' "$O" && echo 1 || echo 0)"
 
+  # The cadence (R10-FLY-CACHE-PROMPTS): under the seat's 5-minute prompt-cache
+  # TTL, never under GitHub's 60 s poll floor.
+  ck "the poll is inside [60 s, 240 s] (POLL_S=${POLL_S:-unset})" \
+     "$([ "${POLL_S:-0}" -ge 60 ] && [ "${POLL_S:-0}" -le 240 ] && echo 1 || echo 0)"
+
   printf 'ci-watch self-test: %d checks, %d failed\n' "$((passed + failed))" "$failed"
   [ "$failed" = 0 ]
   return $?
@@ -287,5 +296,5 @@ while true; do
   done
   if [ -n "$OUT" ]; then echo -e "CI-WATCH ALERT ($(date -u +%H:%MZ)): NEW state(s):$OUT"; exit 1; fi
   [ -n "${CI_WATCH_ONCE:-}" ] && exit 0
-  sleep 300
+  sleep "$POLL_S"
 done
