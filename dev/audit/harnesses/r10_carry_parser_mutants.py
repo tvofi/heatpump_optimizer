@@ -64,7 +64,8 @@ PATTERNS = ("HEADING", "BULLET", "TABLE_SEP", "FRICTION_ENTRY", "VERDICT", "CARR
             "TRAILER", "EVIDENCE_HEADING", "NOT_REQUIRED", "DEFERRED", "NONBLOCK", "LEAD", "NOTE_HEADING", "BLOCK_HEADING", "CARRY", "ITEM_REF", "CODE_SPAN",
             "GROUP_TOK", "ISSUE_TOK", "BRIEF_TOK", "LEDGER_FINDING")
 
-# load_dests' stale-tree test, the line every B2 mutant perturbs
+# load_dests' stale-tree test: the lines the B2 mutants perturb
+B2_SHALLOW = '        shallow = git(["rev-parse", "--is-shallow-repository"])[1].strip() == "true"'
 B2_LINE = '        if not shallow and git(["merge-base", "--is-ancestor", roster_lib.MAIN_REF, "HEAD"])[0] == 1:'
 MUTANTS = [
     # items(): the lines read
@@ -244,8 +245,8 @@ MUTANTS = [
     # ... only rc 1 is stale: a clone without origin/main (rc 128) keeps its tree
     ("B2-rc", B2_LINE, B2_LINE.replace("[0] == 1:", "[0] != 0:")),
     # ... and a shallow clone, whose rc 1 may be its graft, keeps it too
-    ("B2-shallow", '        shallow = git(["rev-parse", "--is-shallow-repository"])[1].strip() == "true"',
-     "        shallow = False"),
+    ("B2-shallow", B2_SHALLOW, "        shallow = False"),
+    ("B2-shallow-always", B2_SHALLOW, "        shallow = True"),
 ]
 
 
