@@ -1,0 +1,8 @@
+LEDGER-MERGE: resolved tests/structure_budgets.json
+  class_excess_loc: 18038 + both deltas = 17991
+  re-run the gate that owns this file before pushing
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/harness_headers.py: merged as a set (902 entries)
+  re-run the gate that owns this file before pushing
+fe660e9a837e98772486202240ed93afa36f307b
+rc=0
