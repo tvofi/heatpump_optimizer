@@ -1,0 +1,42 @@
+dev/programme/triage/s6-batch1.md:20:Instances: 3 -- `update-2675.log` records `update_pr: BUSY` at
+dev/programme/triage/s6-batch1.md:47:Instances: 1 direct -- `merge-report.txt` 2026-10-24T02:06:48Z parked #2675 in
+dev/programme/triage/s6-batch1.md:78:Instances: 1 constructed, 0 incidents. Reproduced at origin/main `50af6174f`:
+dev/programme/triage/s6-batch2.md:51:Instances: 2 sessions -- s5 wrote five "Sweep overrides" for steps (1b), (2),
+dev/programme/triage/s6-batch2.md:74:Instances: 2 sessions, 4 queue files -- s5's first pulse (19:39Z) read
+dev/programme/triage/s6-batch2.md:100:Instances: 2 -- `r10s5/state-beat.log` line 306, 2026-10-23T20:08Z:
+dev/programme/triage/s6-batch2.md:127:Instances: 3 refused ops in 1 session, 2 of them `files` -- `r10s5/roster-report.txt`
+dev/programme/triage/s6-batch2.md:149:Instances: 14 of 48 first-parent merges on main since 2026-10-23T00:00Z are
+dev/programme/triage/s6-batch2.md:185:Instances: 1 session, 8 fixer runs fired from one pool routine
+dev/programme/triage/s6-batch2.md:208:Instances: 4 in the opening 11 minutes of one session -- the haiku tick and
+dev/programme/triage/s6-batch2.md:231:Instances: 4 incidents, 0 judged survivors. Three are fixes inside the
+dev/programme/triage/s6-batch3.md:15:Instances: 1 observed, 1 mechanism in the tree. The observation: at 09:30Z all
+dev/programme/triage/s6-batch5.md:9:Instances: 3 (roster w5/w6; the #2698 fixer against an update; dispatch w14/w15, where w14 reported completion with background work still live). Orchestrator's acco
+dev/programme/triage/s5-batch1.md:36:Instances: 1 owner-flagged figure. At origin/main dev/README.md lines 262-275
+dev/programme/triage/s5-batch1.md:48:Instances: (a) P2a merged as #2622 (`a1633381a`); (b)
+dev/programme/triage/s5-batch1.md:61:Instances: 1 (R10-SCORES, dispatched over the cap at 20:12Z). The scheduler
+dev/programme/triage/s5-batch1.md:74:Instances: 1 orchestrator-granted route blocked as metric-gamed
+dev/programme/triage/s5-batch1.md:86:Instances: the same item as P3; its re-point actions are moot because #2622
+dev/programme/triage/s5-batch1.md:95:Instances: 1 (#2612, run 39838974680; the s4 ledger's own count). No second
+dev/programme/triage/s5-batch1.md:105:Instances: 1 refused confirm (#2612 at `7b42306f`) against 164 merged verdicts
+dev/programme/triage/s5-batch1.md:119:Instances: R10-SCORES held 24.5 h by the cap (plan rev 19 against rev 24, s4
+dev/programme/triage/s5-batch1.md:129:Instances: the token figure (about 35k per fire) is the orchestrator's
+dev/programme/triage/s5-batch1.md:145:Instances: 2 -- ledger P4 (2026-10-21, a loop predating the relay decouple) and
+dev/programme/triage/s5-batch1.md:160:Instances: #2635 (s4 batch 4) after the P15 fold's #2582 case. Built on #2664:
+dev/programme/triage/s5-batch1.md:170:Instances: 2 -- #2632's opener worktree blocked merge trains run24 and run25
+dev/programme/triage/s5-batch1.md:183:Instances: 2 -- #2620's round-3 fixer ended 20:01Z with nothing pushed and was
+dev/programme/triage/s5-batch1.md:194:Instances: 2 PRs, 3 refused or parked gate runs (#2633 once; #2647 at run40 and
+dev/programme/triage/s5-batch1.md:206:Instances: 1 -- #2645 parked at run37 on 8 unrouted items; s4 measured the
+dev/programme/triage/s5-batch1.md:219:Instances: 1 -- #2651 moved `2bb638af` -> `91e37c09` by the relay's handoff
+dev/programme/triage/s5-batch1.md:233:Instances: 1 -- 3.5 h of #2632's round-4 work lost to an idle container.
+dev/programme/triage/s5-batch1.md:247:Instances: 12 stale lines, all in the tick seat's hand-built scan:
+dev/programme/triage/s5-batch1.md:258:Instances: a defect, live: `jq .sizes_hours tools/plan/durations.json` holds
+dev/programme/triage/s5-batch1.md:268:Instances: 1 -- update_pr.sh stopped on #2632. `pin_entry` in
+dev/programme/triage/s5-batch1.md:280:Instances: 4 of 6 slots phantom on 2026-10-23 with the ready queue idle about
+dev/programme/triage/s5-batch1.md:291:Instances: 3 reported, 2 read in the openers' state-dir logs:
+dev/programme/triage/s5-batch1.md:304:Instances: 4 over two days (#2582, #2635, #2659, #2632), the last costing about
+dev/programme/triage/s5-batch1.md:314:Instances: 1 here (#2664 opened without its row: a checkout 1706 commits behind
+dev/programme/triage/s5-batch1.md:324:Instances: 2 -- #2664 and #2666 went red on pr-contract's carry audit at open;
+dev/programme/triage/s5-batch1.md:337:Instances: 0 since #2569 landed (R10-ROSTER-PUSH-RACE done at `3a9c6f849`, an
+dev/programme/triage/s5-batch1.md:351:Instances: carry 2 counts 3 (#2513, #2544, #2547); the 17:31Z case (#2580) is a
+dev/programme/triage/s5-batch1.md:361:Instances: the installation rate-limit reds of 06:27Z; the RCA (#2606) traced
+dev/programme/triage/s5-batch1.md:371:Instances: 2 -- #2599 undrained until delivery-status went red on #2580 and
