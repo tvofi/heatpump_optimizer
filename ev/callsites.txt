@@ -1,0 +1,8 @@
+orchestrator_tick.py self.gh( before L2200: 24
+ci-watch.sh 'gh api|gh pr|gh run': 5
+merge_train.py grep -cE '\bgh\b': 132
+merge_train.py grep -cE '"gh"': 104
+merge_train.py grep -cE 'gh api|gh pr|gh run|"gh"': 114
+merge_train.py grep -cE 'self\.(run|out|ok|head)\(': 110
+proof_watch.py gh-invoking call sites before self_test (L183,190,197,245,329,352): 6 (scout-derived)
+merge_train.py/orchestrator_tick.py unchanged 0b8f8b585..HEAD: 0 diff lines

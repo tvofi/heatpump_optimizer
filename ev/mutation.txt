@@ -1,0 +1,4 @@
+committed: DEFER | dev/programme/triage/s6-batch50.md#P248 is not an ACCEPT ruling (DEFER)
+mutant ACCEPT: ACCEPT | None
+mutant no-verdict-line: unreadable | dev/programme/triage/s6-batch50.md#P248 is not an ACCEPT ruling (unreadable)
+null (absent): the triage ruling dev/programme/triage/s6-batch50.md is not on the roster branch or origin/main
