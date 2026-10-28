@@ -1,0 +1,14 @@
+120959896354 pr-contract / pr-contract failure 2026-10-24T19:03:25Z 2026-10-24T19:13:03Z https://github.com/tvofi/heatpump_optimizer/actions/runs/40123245316/job/120959896354
+{"title": null, "summary": null, "text": null, "annotations_count": 2, "annotations_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/check-runs/120959896354/annotations"}
+120962237384 gate failure 2026-10-24T19:13:06Z 2026-10-24T19:13:26Z https://github.com/tvofi/heatpump_optimizer/actions/runs/40123245316/job/120962237384
+{"title": null, "summary": null, "text": null, "annotations_count": 2, "annotations_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/check-runs/120962237384/annotations"}
+40123245316 1 [('Wait for code scanning and list its open alerts', 'failure')]
+120959896354 failure Process completed with exit code 1.
+120959896354 notice "The ubuntu-latest label will migrate to Ubuntu 26 beginning October 19, 2026. For more information, see https://github.com/actions/runner-images/issues/14748"
+120962237384 failure Process completed with exit code 1.
+120962237384 notice "The ubuntu-latest label will migrate to Ubuntu 26 beginning October 19, 2026. For more information, see https://github.com/actions/runner-images/issues/14748"
+40123245316 CI edit pr=2756 base=main sha=88e0edaa8011f9e778ac67677a9754de02922765 pull_request 2026-10-24T18:59:50Z
+40123245316 CI edit pr=2756 base=main sha=88e0edaa8011f9e778ac67677a9754de02922765 2026-10-24T18:59:50Z failure
+40123245376 CI code pr=2756 base=main sha=88e0edaa8011f9e778ac67677a9754de02922765 2026-10-24T18:59:50Z success
+FAIL closed: no run at this head owns a finished codeql unit for base 'main' after 600 s
+##[error]Process completed with exit code 1.
