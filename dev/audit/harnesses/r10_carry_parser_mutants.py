@@ -64,6 +64,8 @@ PATTERNS = ("HEADING", "BULLET", "TABLE_SEP", "FRICTION_ENTRY", "VERDICT", "CARR
             "TRAILER", "EVIDENCE_HEADING", "NOT_REQUIRED", "DEFERRED", "NONBLOCK", "LEAD", "NOTE_HEADING", "BLOCK_HEADING", "CARRY", "ITEM_REF", "CODE_SPAN",
             "GROUP_TOK", "ISSUE_TOK", "BRIEF_TOK", "LEDGER_FINDING")
 
+# load_dests' stale-tree test, the line every B2 mutant perturbs
+B2_LINE = '        if not shallow and git(["merge-base", "--is-ancestor", roster_lib.MAIN_REF, "HEAD"])[0] == 1:'
 MUTANTS = [
     # items(): the lines read
     ("I-split", '    for ln in text.split("\\n"):', '    for ln in [text]:'),
@@ -235,10 +237,15 @@ MUTANTS = [
     ("P-brief-name", 'BRIEF_TOK = re.compile(r"\\AO(\\d+)(?:-[a-z0-9][a-z0-9-]*)?\\Z")', 'BRIEF_TOK = re.compile(r"\\AO(\\d+)\\Z")'),
     ("P-brief-end", 'BRIEF_TOK = re.compile(r"\\AO(\\d+)(?:-[a-z0-9][a-z0-9-]*)?\\Z")', 'BRIEF_TOK = re.compile(r"\\AO(\\d+)(?:-[a-z0-9][a-z0-9-]*)?")'),
     # load_dests: P98 arm (b2), a tree behind origin/main reads main's roster
-    ("B2-ancestry", '        if git(["merge-base", "--is-ancestor", roster_lib.MAIN_REF, "HEAD"])[0] == 1:',
+    ("B2-ancestry", B2_LINE,
      "        if False:"),
-    ("B2-always", '        if git(["merge-base", "--is-ancestor", roster_lib.MAIN_REF, "HEAD"])[0] == 1:',
+    ("B2-always", B2_LINE,
      "        if True:"),
+    # ... only rc 1 is stale: a clone without origin/main (rc 128) keeps its tree
+    ("B2-rc", B2_LINE, B2_LINE.replace("[0] == 1:", "[0] != 0:")),
+    # ... and a shallow clone, whose rc 1 may be its graft, keeps it too
+    ("B2-shallow", '        shallow = git(["rev-parse", "--is-shallow-repository"])[1].strip() == "true"',
+     "        shallow = False"),
 ]
 
 
