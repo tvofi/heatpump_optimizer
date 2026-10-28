@@ -1,6 +1,0 @@
-python3 -I tools/audit/seat/review_packet.py render --pr 2896 --head 0f9a29e14adbd342602dec9a1666f9ee8f0ba7cf --out $HOME/pkt-2896.md
-review_packet: REFUSE host-path: dev/audit/rca/R10-RCA-FRICTION-RESIDUE.md:8: home-directory in an added line of a tracked file; ...
-rc=1
-line 8: "fix (`dev/governance/roles/root-cause.md`); it lands no production code."
-seat HOME=/root; ref_privacy.py:252 `if any(h.casefold() in folded for h in ident.homes)` -- bare substring, "/root" in "roles/root-cause.md".
-Packet not rendered; review read the PR, check runs and tree directly. Not worked around.

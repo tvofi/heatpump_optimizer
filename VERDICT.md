@@ -1,36 +1,49 @@
-Fix review: blocked 0f9a29e14adbd342602dec9a1666f9ee8f0ba7cf carry-missing: the two remaining `Carry: #2733` items (#2875 unowned; #2855's key) are not carried to a live stage -- #2733's only groups are R10-ORCH-ROSTER-SCHEMA (done) and R10-ROUTING-INVARIANTS (absorbed), and no carry-2733.json exists
+Fix review: blocked 73b1b404879bde41f2a741ccf3a7f9feb2b34fde carry-missing: carry-2733.json is a second destination for #2733 -- R10-ORCH-ROSTER-SCHEMA is live (carries-open, 728e1d80c) and lists 2733, so brief_lint refuses the file under the roster index and accepts it only through the blind no-argument arm (A1) this record carries
 
-bus-nonce: a1ab84e259ede975ba4cbadb404e27ea
+bus-nonce: 11723a5f71ff3958cd243df9847104a8
 
 ## Scope
 
-This is round 2 of fix review for #2896 (R10-RCA-FRICTION-RESIDUE). The head `0f9a29e14adbd342602dec9a1666f9ee8f0ba7cf` is the same head round 1 measured: the repair was a roster carry plus a body edit, not a push. Merge base is `6349205b6`, origin/main is `6d86acc909f7fc465e5736771daf8fa45c1373a4`, and the roster `handoff/audit-r10-roster` is `ba973babdf0c`. `git diff $(merge-base)...origin/main -- dev/governance/roles/` is empty. I re-read the head before writing, and it is unchanged. `git merge-tree --write-tree origin/main <head>` gives rc=0 with no conflict. `VERSION`, the manifest version, the notes heading and the claim files are untouched. `fold_ledger.py check` at the head gives 125 rca entries and 0 violations, as the body says. The diff has no production line, so there is no mutant to draw (step 1 n/a). I cited CI's heavy runs and did not re-run them.
+This is fix review of #2896 (R10-RCA-FRICTION-RESIDUE), dispatched as round 2, at head `73b1b404879bde41f2a741ccf3a7f9feb2b34fde`. The merge base is `f844df1fe750d5e420af0d1555f4b9472a740413`, which is also origin/main. The roster is `handoff/audit-r10-roster` at `c3f563fdc6e5`. `git diff $(merge-base)...origin/main -- dev/governance/roles/` is empty. The named worktree did not exist, so I re-created it detached at the head. I re-read the head with `git ls-remote` before writing, and it is unchanged.
 
-The packet was not rendered: `review_packet.py` refused `host-path` on this seat. See the last finding and `ev/packet-refusal.txt`. I did not work around it.
-
-## Round-1 block: A1/A2 (resolved)
-
-A1 and A2 are now carry 15 of **R10-FLOW-TOOLKIT-MODEL** (`not-started`, a live group) at roster `ba973babd`, which is the roster branch tip. The carry includes the control as an acceptance precondition: 1 → 76 indexed, the carry at 2492 accepted rc=0 against control 999999, and "Acceptance: the no-argument call indexes the roster's issues and a carry at 2492 is refused". It also includes A2's post-fold id assertion. The body's A1, A2 and `brief_lint` friction rows point to that group, and `carry_audit` gives 17/17 routed. This part of round 1 is settled.
+The three-dot diff touches seven files. Two are new since the round-1 head: `dev/programme/carries/carry-2733.json` and its `tests/closures.json` entry. There is no production line, so step 1 has no mutant. `VERSION`, the manifest version, the notes heading and the claim files are untouched. `git merge-tree --write-tree origin/main HEAD` gives rc=0. I cited CI's heavy runs and did not re-run them.
 
 ## Findings
 
-- **Blocking: carry-missing (the remaining two `Carry: #2733` items).** This is the same defect round 1 named, on the two items not re-routed. **"#2875 is unowned"**: the record's section 5 says "the ownership repair is #2733's". **"#2855's key ... the mechanism is #2733's"**. Both send a later-stage change to #2733. At origin/main and at `ba973babd`, #2733 is listed only by R10-ORCH-ROSTER-SCHEMA (`done`) and R10-ROUTING-INVARIANTS (`absorbed`). No `dev/programme/carries/carry-2733.json` (or carry for 2875) exists at main, the roster or the head. By `finding-propagation.md`, a done group is not a destination, and with no live group the destination is a carry file, whose creation is part of the finding. The body itself now says "#2733 has no live group". #2875's ownership gap is the record's own subject, so routing it to a stage nobody dispatches reproduces it. The #2855 item is also stale: the mechanism it names (A1/A2) now sits in R10-FLOW-TOOLKIT-MODEL carry 15. Re-point it there, and route #2875's ownership repair to a live group (`roster_edit.py append-carry`, the orchestrator's) or to `carry-2875.json`/`carry-2733.json`. Carry: R10-RCA-FRICTION-RESIDUE
-- **Must fix with the above: the record contradicts the carries.** At the head, `R10-RCA-FRICTION-RESIDUE.md` lines 163-166 still say A1 is "Owned by #2733, the routing-invariants issue a live group (`R10-ORCH-ROSTER-SCHEMA`) holds". Lines 261-265 say "the ownership repair is #2733's". Both are false at the head, and the tree copy, which survives the session, disagrees with the roster. Update both sentences to the destinations the carries name. The fix-up is one push to the record file. Carry: R10-RCA-FRICTION-RESIDUE
-- **The Red-checks misattribution of `pr-contract` at `1e917ac2`: wrong, and to be corrected in the same push.** The body says "`gate` and `pr-contract` are red only through" the `prelude` rate limit. At `1e917ac2`, `pr-contract` run 122718211015 (08:47:50Z) failed on its own: the closes preflight refused all five `Closes` lines, because at that run's base `802ba7756` the group's `fixes` held none of #2410 #2593 #2597 #2660 #2784. The roster commits `e331abfbf`/`d61e2834c` added them afterwards. The `prelude` runs that preceded it (08:33Z, 08:46Z) were green. The `gate` reds at 08:48-08:49Z follow it. A cheaper detector exists: the seat's `prepr.sh`/`preflight.sh` closes check, which takes seconds and runs locally on the same roster arithmetic. Round 1 held this non-blocking on step 11's ruling that a green body-check run is the evidence. I differ on one point. `policy_lint.mjs:6537` excludes `pr-contract` and `gate` from the red-history walk **by name** (`OWN_VERDICT_CHECKS`, #956). So that green run cannot speak to a `pr-contract` red, and its `record red-history ... prelude` line is silent here by design, not because the red was answered. Round 1's stated mechanism (no `filter=all`) is not the cause: the unfiltered listing returned all 81 runs, including the failed `pr-contract`. I do not add a second block class, because step 11 checks that the trigger was answered, and the body does name `pr-contract`. But the answer it gives is factually false and needs the actual cause plus the cheaper-detector line above. Carry: R10-RCA-FRICTION-RESIDUE
-- **Instrument (non-blocking).** A `pr-contract` or `gate` red at an earlier head is never named by red-history, so `## Red checks` misattributions of those two checks go undetected unless a reviewer reads the runs. That is how this one passed both the body check and round 1's mechanism reading. This is #956's deliberate trade (excluding by id deadlocks the body), not this PR's defect. Carry: dismissed: by design per #956; recorded here for the orchestrator, no live group owns red-history and this PR does not touch it
-- **Instrument (non-blocking).** `review_packet.py render` refuses `host-path` on a seat whose home is `/root`. `ref_privacy.py:252`'s home test is a bare substring match, and record line 8 names `dev/governance/roles/root-cause.md`. Round 1 reported this as well. Carry: dismissed: uid-0 seat false positive outside this PR; no live group owns review_packet.py
+- **Blocking: carry-missing (two destinations for #2733).** `finding-propagation.md` sends a carry to `carry-<N>.json` only when "the stage has no live roster group". It also says brief_lint "refuses a carry at an issue a live group covers, so no stage has two destinations". `brief_lint.mjs` states the reopen case directly: "a stage reopened as a group closes the carry file again". On the roster tip, `728e1d80c` moved R10-ORCH-ROSTER-SCHEMA from `done` to `carries-open`. That stage is live, because brief_lint skips only `done`, and the group lists 2733. R10-ROUTING-INVARIANTS (`absorbed`) also lists 2733 and is also indexed as live. I called `checkCarryShape()` on the head's `carry-2733.json` (`ev/carry_index.txt`):
+  - With the no-argument index (size 1) it is accepted with 0 errors. This is the blind arm that record section 3 measures and A1 repairs.
+  - With the roster tip's `dev/programme/rosters` it is refused: `issue 2733 already has a live roster group (wave-r10-groups.json R10-ORCH-ROSTER-SCHEMA)`. At origin/main and before the reopen it is refused against R10-ROUTING-INVARIANTS.
+  - Null control: the same file with `issue: 999999` gets 0 errors under every index, so the refusal is specific to 2733.
 
-## The other `Carry: #<issue>` items
+  So the head passes `tests / briefs` only because of the defect it documents. R10-FLOW-TOOLKIT-MODEL carry 14 (A1) has as its acceptance "the no-argument call indexes the roster's issues". When that lands, this file turns brief_lint red on main. The file's own `_comment` ("#2733's only roster groups ... are done or absorbed, so no live group's brief can hold them") is false at the roster tip. The body's A1 line ("#2733 has no live group") is false too.
 
-`#2436`, `#2437` and `#2429`/`#2438` are open issues listed by R10-RCA-FRICTION-RESIDUE itself, which is `in-progress`, so they are live today. They lose their owner when this group goes done, as round 1 noted. The orchestrator should check that at merge. They do not block this round.
+  The roster carry `2a0a854e6` (R10-ORCH-ROSTER-SCHEMA carry 24) does not duplicate the #2875 text. It only points at "carry-2733.json's two items" as first instances. So no item's text is routed twice, but the stage has two destinations, and its live brief holds a pointer instead of the items' controls.
 
-## Red checks (step 11)
+  Repair:
+  1. The orchestrator appends both items to R10-ORCH-ROSTER-SCHEMA, using the carry file's `control`, `remeasure` and `brief` text. These are: #2875 is listed by no group, with null #2860; and #2855 is listed only by this group, with null #2733.
+  2. The fixer deletes `carry-2733.json` and its `tests/closures.json` entry.
+  3. The body's two `Carry: #2733` items name `Carry: R10-ORCH-ROSTER-SCHEMA`, or stay `#2733`, which then resolves through the live group. The A1 line drops "#2733 has no live group".
 
-All 68 check runs at the head are completed with no failure: `gate` 122746542151 and `pr-contract` 122746256170 are green, and `pr-contract` started 09:52:51Z, after the last red at `1e917ac2` (08:49Z). The earlier reds are `prelude`, which is answered, and `pr-contract`/`gate`, which are misattributed (see Findings).
+  Carry: R10-RCA-FRICTION-RESIDUE
+- Non-blocking: the second carry item's mechanism also strands four sibling issues. That item is #2855: when this group goes `done`, an open issue is listed only by a done group. On the roster tip, #2429, #2436, #2437 and #2438 are also listed only by R10-RCA-FRICTION-RESIDUE, and all four are open. The body routes `Carry: #2429`, `#2436`, `#2437` and `#2438` to them, and that resolves only while this group is live. At the merge's set-stage done, all four strand exactly as #2855 does. Name all five in the same item. Carry: R10-ORCH-ROSTER-SCHEMA
+- Non-blocking: the `rounds.py` friction row routes `Carry: R10-ROUND-PLAYBOOK`, but that group's seven carries hold no text about it. This is case 3 of record section 3. A2's fold, or an append-carry, should land it. Carry: R10-ROUND-PLAYBOOK
 
-## Evidence
+## Verified
 
-- `ev/head.txt`: the head, branch tip re-read, origin/main, roster, merge base, merge-tree rc=0, diff stat.
-- `ev/carries.txt`: R10-FLOW-TOOLKIT-MODEL carry 15 at `ba973babd`; the groups listing #2733; the absent carry files; the stale record sentences.
-- `ev/pr-contract-1e917ac2.txt`: the check runs at `1e917ac2`, the preflight REFUSE lines, the roster `fixes` before and after, and the `OWN_VERDICT_CHECKS` exclusion.
-- `ev/packet-refusal.txt`: the packet refusal and its matched span.
+- **`Closes`:** I reproduced `pr-contract`'s jq derivation byte for byte, on origin/main's rosters and on the roster tip. Both give `INTENDED=2410 2593 2597 2660 2784`. `preflight.sh` prints `ok closes #N -- intended` for all five (`ev/pr-contract-closes-derivation.txt`). The five match the record's section 6 and section 10 dispositions:
+  - #2410: held.
+  - #2593: folded into section 4.
+  - #2597: refusal recorded.
+  - #2660: held, 7/8 → 1/1.
+  - #2784: refusal stands.
+
+  #2410 and #2593 are already CLOSED, which is harmless.
+- **`carry_audit check --body`:** `CARRY-AUDIT: 17 finding item(s): 17 routed, 0 unrouted, 0 bad destination(s)`, rc=0 (`ev/carry_audit.txt`). It accepts `#2733` through either the carry file or the live group, so it does not see the double destination.
+- **brief_lint no-argument:** rc=0 (`ev/brief_lint-noarg.txt`).
+- **Re-derived:** `rosterIssues()` is 1 at the head. With rosters it is 72 at origin/main and 69 at the roster tip. The record's 76 is its own base's figure, and the record labels it as such.
+- **Red checks (step 11):** this is not judged. At read time no check-run on the head was red. `prelude`, `instrument-self-tests`, `closures`, `coverage` and `fast (3.14)` were still in progress, and no `gate` or `pr-contract` run existed yet (`ev/check-runs.txt`). The body's `prelude` answer refers to an earlier head.
+
+RESULT carry-2733 brief_lint(no-arg)=accepted brief_lint(rosters@c3f563fdc)=refused:R10-ORCH-ROSTER-SCHEMA brief_lint(rosters@f844df1fe)=refused:R10-ROUTING-INVARIANTS control-999999=accepted(all)
+RESULT closes intended=2410,2593,2597,2660,2784 refused=0
+RESULT carry_audit routed=17/17
+RESULT head 73b1b404879bde41f2a741ccf3a7f9feb2b34fde unchanged at write
