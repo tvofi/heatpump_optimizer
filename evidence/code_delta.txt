@@ -1,8 +1,6 @@
-merge-tree --write-tree origin/main(0810d5b8f30a81adbbc074640c6d95a1b358c5f6) c851f2a8d464bff58730c5351698eba8cffffff1
-776a579f812c8836bb7e54d549bba15ce6a0334f
-rc=0
-merge base 2636ce9e9378addc393b749160be0bd928af4f90
-roles diff since merge base:
+branch patch, 6e4e274a (mb ab00437c9) vs 9a3bbaa751b71a9b6c75a4c152b9c96d4f5a92a1 (mb 21a1e04a7), index lines stripped:
+IDENTICAL (diff rc=0)
+
  .../heatpump_optimizer/coordinator.py              | 125 +++------------------
  custom_components/heatpump_optimizer/issues.py     |   3 +
  .../heatpump_optimizer/setpoint_check.py           |  40 ++++++-
@@ -14,5 +12,9 @@ roles diff since merge base:
  .../issues.py/set_issue.GUARD_OFF.266bc37b.json    |   6 +
  .../ConfigNotices.report.GUARD_OFF.a6e43270.json   |   6 +
  .../ConfigNotices.report.GUARD_OFF.b8e5c2f9.json   |   6 +
- tests/structure_budgets.json                       |  12 +-
- 12 files changed, 145 insertions(+), 125 deletions(-)
+ tests/structure_budgets.json                       |  10 +-
+ 12 files changed, 144 insertions(+), 124 deletions(-)
+
+merge-tree --write-tree origin/main(21a1e04a7) 9a3bbaa751b71a9b6c75a4c152b9c96d4f5a92a1:
+04c4e72be5156c56c09ae661d85e5cd25b3c4ece
+rc=0

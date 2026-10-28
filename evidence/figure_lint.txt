@@ -1,0 +1,5 @@
+             `tests/harness_headers.py` is in the tree at this head
+  ok         PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main
+             `tools/pr/ci_predict.py` is in the tree at this head
+
+FIGURES: 7 resolved, 1 not verified, 0 refused
