@@ -1,0 +1,3 @@
+  FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
+1 of 4411 FEATURE CHECKS FAILED
+rc=1

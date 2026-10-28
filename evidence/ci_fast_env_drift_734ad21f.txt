@@ -1,0 +1,175 @@
+########## python3 tests/env_drift.py --all dfcd8d9be1dab28cfe52f684764befd1e19291de ##########
+==========================================================================
+DRIFT BASELINE CACHE MISS (no entry for this key) -- capturing dfcd8d9be1dab28cfe52f684764befd1e19291de from scratch
+  key       c3a1c5e325980914976da3b269e792ba90ad8c5ed4fd2dad185de90027b86b11
+  entry     ~/.cache/heatpump_optimizer/drift-baseline/c3a1c5e325980914976da3b269e792ba90ad8c5ed4fd2dad185de90027b86b11.json
+    baseline_commit  18b1970f6dc6
+    baseline_tree    c9a9c3e75dd0
+    cache_format     391552c099c1
+    driver_sha256    7e5272a739a5
+    environment      991470dc1f77
+    interpreter      506eb20ea850
+    mode             5cf7504d9781
+    numeric_probe    37fadb5234b8
+    numpy_build      ee41918c4ccd
+    packages         bb144dea7588
+    platform         2e50f2e587ce
+    sensitive        541346c5f2b4
+==========================================================================
+  captured 56 scenarios from branch
+  captured 56 scenarios from baseline
+  cached   the dfcd8d9be1dab28cfe52f684764befd1e19291de baseline under key c3a1c5e325980914 in ~/.cache/heatpump_optimizer/drift-baseline/c3a1c5e325980914976da3b269e792ba90ad8c5ed4fd2dad185de90027b86b11.json
+
+########## committed fixtures: staleness (#347) ##########
+  56 fixture(s) compared against this tree's capture; 1 of them float-free and compared exactly.
+
+  values (reported, never failed): 55 fixture(s), 34603 leaf/leaves differ from the committed files in value alone.
+  A float-bearing fixture can only be re-recorded honestly in the environment
+  that records them all; a dev box would poison it. Nothing here is failed on.
+  no committed fixture is stale
+  ok    away_setback is byte-identical to dfcd8d9be1dab28cfe52f684764befd1e19291de here
+  ok    building_preset is byte-identical to dfcd8d9be1dab28cfe52f684764befd1e19291de here
+  ok    capacity_curve is byte-identical to dfcd8d9be1dab28cfe52f684764befd1e19291de here
+  ok    capacity_tariff is byte-identical to dfcd8d9be1dab28cfe52f684764befd1e19291de here
+  may-drift capacity_tariff_15min: did not move here (#1207 keep-gate (2e-2 -> 2e-5), owner)
+  ok    confidence_margins is byte-identical to dfcd8d9be1dab28cfe52f684764befd1e19291de here
+  ok    config_flow is byte-identical to dfcd8d9be1dab28cfe52f684764befd1e19291de here
+  ok    cool_rainy_summer is byte-identical to dfcd8d9be1dab28cfe52f684764befd1e19291de here
+  ok    coord_all_features is byte-identical to dfcd8d9be1dab28cfe52f684764befd1e19291de here
+  ok    coord_dhw is byte-identical to dfcd8d9be1dab28cfe52f684764befd1e19291de here
+  ok    coord_grid_fee is byte-identical to dfcd8d9be1dab28cfe52f684764befd1e19291de here
+  ok    coord_minimal is byte-identical to dfcd8d9be1dab28cfe52f684764befd1e19291de here
+  ok    coord_two_zone is byte-identical to dfcd8d9be1dab28cfe52f684764befd1e19291de here
+  ok    cop_scale_learned is byte-identical to dfcd8d9be1dab28cfe52f684764befd1e19291de here
+  may-drift cycling_cost: did not move here (#1207 keep-gate (2e-2 -> 2e-5), owner directive)
+  ok    dhw_cold_tank is byte-identical to dfcd8d9be1dab28cfe52f684764befd1e19291de here
+  ok    dhw_large_tank is byte-identical to dfcd8d9be1dab28cfe52f684764befd1e19291de here
+  ok    dhw_learned_windows is byte-identical to dfcd8d9be1dab28cfe52f684764befd1e19291de here
+  ok    dhw_schedule_off is byte-identical to dfcd8d9be1dab28cfe52f684764befd1e19291de here
+  may-drift direct_flow_carnot: did not move here (#1207 keep-gate (2e-2 -> 2e-5), widened)
+  may-drift everything_on: did not move here (#1207 keep-gate (2e-2 -> 2e-5), owner)
+  ok    external_heat_active is byte-identical to dfcd8d9be1dab28cfe52f684764befd1e19291de here
+  ok    extreme_prices is byte-identical to dfcd8d9be1dab28cfe52f684764befd1e19291de here
+  may-drift flat_prices: did not move here (#1208 polish-every-candidate, owner ruling #1208 comment 208bed25)
+  may-drift fuse_guard: did not move here (#1207 keep-gate (2e-2 -> 2e-5), widened to the)
+  ok    horizon_48h is byte-identical to dfcd8d9be1dab28cfe52f684764befd1e19291de here
+  ok    horizon_6h is byte-identical to dfcd8d9be1dab28cfe52f684764befd1e19291de here
+  ok    legionella_due is byte-identical to dfcd8d9be1dab28cfe52f684764befd1e19291de here
+  ok    legionella_due_low_setpoint is byte-identical to dfcd8d9be1dab28cfe52f684764befd1e19291de here
+  ok    legionella_off is byte-identical to dfcd8d9be1dab28cfe52f684764befd1e19291de here
+  ok    mild_windy_rain is byte-identical to dfcd8d9be1dab28cfe52f684764befd1e19291de here
+  may-drift narrow_band: did not move here (#1207 keep-gate (2e-2 -> 2e-5), owner directive)
+  ok    negative_prices is byte-identical to dfcd8d9be1dab28cfe52f684764befd1e19291de here
+  ok    peak_masked is byte-identical to dfcd8d9be1dab28cfe52f684764befd1e19291de here
+  may-drift precip_snow: did not move here (#1207 keep-gate (2e-2 -> 2e-5), widened to the)
+  ok    price_risk is byte-identical to dfcd8d9be1dab28cfe52f684764befd1e19291de here
+  may-drift shoulder: did not move here (#1207 keep-gate (2e-2 -> 2e-5), owner directive)
+  MAY-DRIFT shoulder_two_zone: 4 leaves moved (#1208 polish-every-candidate, third name)
+         shoulder_two_zone.dhw_reasons[9]: 'idle_other_channel' vs 'idle_coasting'
+         shoulder_two_zone.dhw_reasons[10]: 'idle_other_channel' vs 'idle_coasting'
+         shoulder_two_zone.space_reasons[9]: 'preheat_weather' vs 'idle_coasting'
+         shoulder_two_zone.space_reasons[10]: 'preheat_weather' vs 'idle_coasting'
+  ok    start_above_band is byte-identical to dfcd8d9be1dab28cfe52f684764befd1e19291de here
+  ok    start_below_band is byte-identical to dfcd8d9be1dab28cfe52f684764befd1e19291de here
+  ok    summer_dhw_only is byte-identical to dfcd8d9be1dab28cfe52f684764befd1e19291de here
+  may-drift tariff_plus_two_zone: did not move here (#1207 keep-gate (2e-2 -> 2e-5),)
+  MAY-DRIFT valve_storage: 6 leaves moved (#1207 keep-gate (2e-2 -> 2e-5), widened to)
+         valve_storage.space_reasons[43]: 'cheap_price' vs 'idle_coasting'
+         valve_storage.space_reasons[44]: 'cheap_price' vs 'idle_coasting'
+         valve_storage.space_reasons[45]: 'cheap_price' vs 'idle_coasting'
+         valve_storage.space_reasons[46]: 'cheap_price' vs 'idle_coasting'
+         valve_storage.space_reasons[47]: 'cheap_price' vs 'idle_coasting'
+         valve_storage.space_reasons[48]: 'cheap_price' vs 'idle_coasting'
+  ok    valve_storage_flat_prices is byte-identical to dfcd8d9be1dab28cfe52f684764befd1e19291de here
+  ok    valve_storage_low_target is byte-identical to dfcd8d9be1dab28cfe52f684764befd1e19291de here
+  DRIFT valve_storage_small_tank: 1 leaves moved vs dfcd8d9be1dab28cfe52f684764befd1e19291de
+         valve_storage_small_tank.space_reasons[77]: 'scheduled' vs 'idle_coasting'
+  MAY-DRIFT valve_storage_smart_write: 1 leaves moved (machine-sensitive; the DHW plan can reach it, per local optimum)
+         valve_storage_smart_write.space_reasons[21]: 'cheap_price' vs 'idle_coasting'
+  MAY-DRIFT valve_upper_direct_slab: 5 leaves moved (machine-sensitive; the DHW plan can reach it, per local optimum)
+         valve_upper_direct_slab.space_reasons[43]: 'cheap_price' vs 'idle_coasting'
+         valve_upper_direct_slab.space_reasons[50]: 'cheap_price' vs 'idle_coasting'
+         valve_upper_direct_slab.space_reasons[51]: 'cheap_price' vs 'idle_coasting'
+         valve_upper_direct_slab.space_reasons[52]: 'cheap_price' vs 'idle_coasting'
+         valve_upper_direct_slab.space_reasons[53]: 'cheap_price' vs 'idle_coasting'
+  ok    wide_band is byte-identical to dfcd8d9be1dab28cfe52f684764befd1e19291de here
+  ok    winter_single_dhw is byte-identical to dfcd8d9be1dab28cfe52f684764befd1e19291de here
+  ok    winter_single_no_dhw is byte-identical to dfcd8d9be1dab28cfe52f684764befd1e19291de here
+  may-drift winter_two_zone_dhw: did not move here (#1207 keep-gate (2e-2 -> 2e-5), owner)
+  may-drift winter_two_zone_no_dhw: did not move here (#1208 polish-every-candidate, owner)
+  MAY-DRIFT wood_coil: 12 leaves moved (machine-sensitive; the DHW plan can reach it, per local optimum)
+         wood_coil.dhw_reasons[20]: 'idle_other_channel' vs 'idle_coasting'
+         wood_coil.dhw_reasons[40]: 'idle_other_channel' vs 'idle_coasting'
+         wood_coil.dhw_reasons[41]: 'idle_other_channel' vs 'idle_coasting'
+         wood_coil.dhw_reasons[42]: 'idle_other_channel' vs 'idle_coasting'
+         wood_coil.dhw_reasons[43]: 'idle_other_channel' vs 'idle_coasting'
+         wood_coil.dhw_reasons[44]: 'idle_other_channel' vs 'idle_coasting'
+         wood_coil.space_reasons[20]: 'cheap_price' vs 'idle_coasting'
+         wood_coil.space_reasons[40]: 'cheap_price' vs 'idle_coasting'
+         wood_coil.space_reasons[41]: 'cheap_price' vs 'idle_coasting'
+         wood_coil.space_reasons[42]: 'cheap_price' vs 'idle_coasting'
+  MAY-DRIFT wood_two_tank: 1 leaves moved (machine-sensitive; the DHW plan can reach it, per local optimum)
+         wood_two_tank.space_reasons[52]: 'cheap_price' vs 'idle_coasting'
+  MAY-DRIFT wood_two_tank_smart_write: 2 leaves moved (machine-sensitive; the DHW plan can reach it, per local optimum)
+         wood_two_tank_smart_write.space_reasons[13]: 'cheap_price' vs 'idle_coasting'
+         wood_two_tank_smart_write.space_reasons[86]: 'comfort_floor' vs 'idle'
+  STALE claim for dhw_cold_tank: nothing drifted, remove it
+  STALE claim for horizon_48h: nothing drifted, remove it
+
+7 MAY-DRIFT SCENARIO(S) MOVED, plan only
+These fixtures are non-reproducible across BLAS builds; only
+diffs outside MAY_DRIFT_JUDGED_KEYS are exempt. Plan drift
+is printed rather than judged:
+  shoulder_two_zone: #1208 polish-every-candidate, third name
+  valve_storage: #1207 keep-gate (2e-2 -> 2e-5), widened to
+  valve_storage_smart_write: machine-sensitive; the DHW plan can reach it, per local optimum
+  valve_upper_direct_slab: machine-sensitive; the DHW plan can reach it, per local optimum
+  wood_coil: machine-sensitive; the DHW plan can reach it, per local optimum
+  wood_two_tank: machine-sensitive; the DHW plan can reach it, per local optimum
+  wood_two_tank_smart_write: machine-sensitive; the DHW plan can reach it, per local optimum
+Read the leaf diffs above. Never re-record them on a
+machine where golden.py already reports them as DIFF.
+
+1 UNCLAIMED DRIFT(S) vs dfcd8d9be1dab28cfe52f684764befd1e19291de
+This branch moved scenarios the baseline does not move in
+this environment: a regression, or a change that must be
+claimed in tests/golden/claimed_drift.txt and justified in
+the PR. Never re-record the five sensitive fixtures on a
+machine where golden.py already reports them as DIFF.
+
+RUNNER-CONDITIONAL CANDIDATE (#996 class): this branch's own
+claim for dhw_cold_tank matched nothing the capture found against dfcd8d9be1dab28cfe52f684764befd1e19291de.
+If a dev box showed drift for it, that drift is BLAS-build-conditional,
+not a property of the diff (issue #996). DECISION TREE, pre-agreed:
+  1. remove the claim -- the runner is the judge of record;
+  2. post the instance on issue #996 with BOTH captures' numbers
+     (the dev box's and the runner's), one marker line per
+     instance, at column 0: 996-instance:
+     <scenario> -- <numbers>;
+  3. do NOT edit the claim file again -- re-adding this claim
+     cannot make the drift real where it was absent, and only
+     re-fails the gate. Count the recorded instances with
+     `python3 tests/issue996_count.py`; the third re-opens the
+     claim-grammar decision.
+
+RUNNER-CONDITIONAL CANDIDATE (#996 class): this branch's own
+claim for horizon_48h matched nothing the capture found against dfcd8d9be1dab28cfe52f684764befd1e19291de.
+If a dev box showed drift for it, that drift is BLAS-build-conditional,
+not a property of the diff (issue #996). DECISION TREE, pre-agreed:
+  1. remove the claim -- the runner is the judge of record;
+  2. post the instance on issue #996 with BOTH captures' numbers
+     (the dev box's and the runner's), one marker line per
+     instance, at column 0: 996-instance:
+     <scenario> -- <numbers>;
+  3. do NOT edit the claim file again -- re-adding this claim
+     cannot make the drift real where it was absent, and only
+     re-fails the gate. Count the recorded instances with
+     `python3 tests/issue996_count.py`; the third re-opens the
+     claim-grammar decision.
+
+2 STALE CLAIM(S) vs dfcd8d9be1dab28cfe52f684764befd1e19291de
+Nothing drifted for these -- they are entries in
+tests/golden/claimed_drift.txt that matched no scenario:
+  dhw_cold_tank: R10-ARCH-SHAPES D8-s1-01: step 26, a sub-running space share the plan calls off, is idle to the reason classifiers (space cheap_price -> idle_coasting, dhw idle_other_channel -> idle_coasting); 2 leaves
+  horizon_48h: R10-ARCH-SHAPES D8-s1-01: step 153, a sub-running space share the plan calls off, is idle to the reason classifiers (space cheap_price -> idle_coasting, dhw idle_other_channel -> idle_coasting); 2 leaves
+A claim nothing uses would silently excuse the next

@@ -1,7 +1,7 @@
 ==========================================================================
 DRIFT BASELINE CACHE MISS (no entry for this key) -- capturing f3ffb1c635327365841ad430ce8fad7488a02d61 from scratch
-  key       cb54f8c1e793142d2f56644cb7eee188db0f4596de596e7011563709af36edc6
-  entry     /root/.cache/heatpump_optimizer/drift-baseline/cb54f8c1e793142d2f56644cb7eee188db0f4596de596e7011563709af36edc6.json
+  key       bd539e62ff03966d36178450e46d7e6c0fa6e9c1326e4b347353df21732f1c2b
+  entry     ~/.cache/heatpump_optimizer/drift-baseline/bd539e62ff03966d36178450e46d7e6c0fa6e9c1326e4b347353df21732f1c2b.json
     baseline_commit  737f48a3a6aa
     baseline_tree    39866616dd3a
     cache_format     391552c099c1
@@ -10,14 +10,14 @@ DRIFT BASELINE CACHE MISS (no entry for this key) -- capturing f3ffb1c6353273658
     interpreter      2c0d5a52c59a
     mode             5cf7504d9781
     numeric_probe    37fadb5234b8
-    numpy_build      1d6b22fc9d3d
+    numpy_build      6411f37f1299
     packages         3f060bd9af17
     platform         753cfa5a9551
     sensitive        541346c5f2b4
 ==========================================================================
   captured 56 scenarios from branch
   captured 56 scenarios from baseline
-  cached   the f3ffb1c635327365841ad430ce8fad7488a02d61 baseline under key cb54f8c1e793142d in /root/.cache/heatpump_optimizer/drift-baseline/cb54f8c1e793142d2f56644cb7eee188db0f4596de596e7011563709af36edc6.json
+  cached   the f3ffb1c635327365841ad430ce8fad7488a02d61 baseline under key bd539e62ff03966d in ~/.cache/heatpump_optimizer/drift-baseline/bd539e62ff03966d36178450e46d7e6c0fa6e9c1326e4b347353df21732f1c2b.json
 
 ########## committed fixtures: staleness (#347) ##########
   56 fixture(s) compared against this tree's capture; 1 of them float-free and compared exactly.
@@ -26,11 +26,10 @@ DRIFT BASELINE CACHE MISS (no entry for this key) -- capturing f3ffb1c6353273658
   A float-bearing fixture can only be re-recorded honestly in the environment
   that records them all; a dev box would poison it. Nothing here is failed on.
   no committed fixture is stale
-  DRIFT away_setback: 4 leaves moved vs f3ffb1c635327365841ad430ce8fad7488a02d61
+  CLAIMED away_setback: 4 leaves moved (R10-ARCH-SHAPES D8-s1-01: steps 40 and 44, a sub-running space share the plan calls off, are idle to the reason classifiers (space cheap_price -> idle_coasting, dhw idle_other_channel -> idle_coasting); 4 leaves, Linux x86_64 runner)
          away_setback.dhw_reasons[40]: 'idle_other_channel' vs 'idle_coasting'
          away_setback.dhw_reasons[44]: 'idle_other_channel' vs 'idle_coasting'
          away_setback.space_reasons[40]: 'cheap_price' vs 'idle_coasting'
-         away_setback.space_reasons[44]: 'cheap_price' vs 'idle_coasting'
   ok    building_preset is byte-identical to f3ffb1c635327365841ad430ce8fad7488a02d61 here
   ok    capacity_curve is byte-identical to f3ffb1c635327365841ad430ce8fad7488a02d61 here
   ok    capacity_tariff is byte-identical to f3ffb1c635327365841ad430ce8fad7488a02d61 here
@@ -85,7 +84,7 @@ DRIFT BASELINE CACHE MISS (no entry for this key) -- capturing f3ffb1c6353273658
          valve_storage.space_reasons[48]: 'cheap_price' vs 'idle_coasting'
   ok    valve_storage_flat_prices is byte-identical to f3ffb1c635327365841ad430ce8fad7488a02d61 here
   ok    valve_storage_low_target is byte-identical to f3ffb1c635327365841ad430ce8fad7488a02d61 here
-  DRIFT valve_storage_small_tank: 1 leaves moved vs f3ffb1c635327365841ad430ce8fad7488a02d61
+  CLAIMED valve_storage_small_tank: 1 leaves moved (R10-ARCH-SHAPES D8-s1-01: step 77, a sub-running space share the plan calls off, is idle to the space classifier (scheduled -> idle_coasting); 1 leaf, Linux x86_64 runner)
          valve_storage_small_tank.space_reasons[77]: 'scheduled' vs 'idle_coasting'
   MAY-DRIFT valve_storage_smart_write: 1 leaves moved (machine-sensitive; the DHW plan can reach it, per local optimum)
          valve_storage_smart_write.space_reasons[21]: 'cheap_price' vs 'idle_coasting'
@@ -134,10 +133,6 @@ is printed rather than judged:
 Read the leaf diffs above. Never re-record them on a
 machine where golden.py already reports them as DIFF.
 
-2 UNCLAIMED DRIFT(S) vs f3ffb1c635327365841ad430ce8fad7488a02d61
-This branch moved scenarios the baseline does not move in
-this environment: a regression, or a change that must be
-claimed in tests/golden/claimed_drift.txt and justified in
-the PR. Never re-record the five sensitive fixtures on a
-machine where golden.py already reports them as DIFF.
-rc=1
+NO UNCLAIMED DRIFT: 56 scenario(s) checked against f3ffb1c635327365841ad430ce8fad7488a02d61
+NO STALE FIXTURE: 56 committed fixture(s) still match what this tree computes
+rc=0
