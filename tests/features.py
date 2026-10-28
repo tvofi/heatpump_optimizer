@@ -11262,6 +11262,33 @@ R.check(
     f"a 1000 kW need refused {_ds_ref:.3f} kW; the tank ended at {_ds_tank:.2f} C",
 )
 
+# Only the charging direction is capped (`_single_valve_rates`'s headroom
+# floor): a tank read above buffer_max_temp cools at its physical rate, the
+# slab's delivery plus its standing loss, and refuses nothing.
+def _over_cap_coast():
+    from heatpump_optimizer import mixing_valve as _oc_mv
+
+    _op = ThermalParameters(mixing_valve_mode=_oc_mv.MODE_MANUAL,
+                            buffer_tank_volume=750.0, mixing_valve_target=23.0)
+    _om = ThermalModel(_op)
+    _os = ThermalState(room_temperature=21.0, slab_temperature=24.0,
+                       buffer_tank_temperature=75.0, outdoor_temperature=-5.0)
+    _o1 = _om._simulate_step_single(_os, 0.0, -5.0, dt_hours=0.25)
+    _slab = (_o1.slab_temperature - 24.0) * _op.slab_thermal_mass / 0.25 + (
+        _op.slab_heat_transfer * (24.0 - 21.0))
+    _lost = (75.0 - _o1.buffer_tank_temperature) * _op.buffer_tank_thermal_mass / 0.25
+    _stand = _op.buffer_tank_heat_loss_coefficient * (75.0 - 20.0)
+    return _om._step_buffer_refused, _lost, _slab + _stand
+
+
+_oc_ref, _oc_lost, _oc_phys = _over_cap_coast()
+R.check(
+    "single-zone valve: a tank above buffer_max_temp cools at its physical rate",
+    _oc_ref == 0.0 and abs(_oc_lost - _oc_phys) < 1e-6,
+    f"refused {_oc_ref:.3f} kW; the tank gave {_oc_lost:.4f} kW against "
+    f"{_oc_phys:.4f} kW delivered and lost",
+)
+
 _rc_made, _rc_cop, _rc_plain = _ref_cop_gap()
 R.check(
     "the valved reference prices its draw at the step's own tank-flow COP",
