@@ -1,0 +1,1200 @@
+2026-10-22T11:02:54.3413666Z   ok   disposed no-PR refs are not owed
+2026-10-22T11:02:54.4301590Z   ok   a disposed no-PR ref that moved is OWED again
+2026-10-22T11:02:54.4371659Z   ok   a failed PR listing leaves the level as it was (unknown is not 'nothing owed')
+2026-10-22T11:02:54.4393709Z   ok   pass --loop is the only loop (a bad interval is refused)
+2026-10-22T11:02:54.5436918Z   ok   pass runs both arms once and returns
+2026-10-22T11:02:54.5440589Z   ok   the pass fired the handoff arm
+2026-10-22T11:02:54.5606962Z cloud_relay self-test: 81 checks, 0 failed
+2026-10-22T11:02:54.5687553Z ##[group]Run set -o pipefail
+2026-10-22T11:02:54.5688079Z [36;1mset -o pipefail[0m
+2026-10-22T11:02:54.5689169Z [36;1mpython3 -I tools/audit/seat/daemonize.py --self-test | tee "$RUNNER_TEMP/daemonize-self-test.txt"[0m
+2026-10-22T11:02:54.5690590Z [36;1mgrep -Eq '^SELF-TEST PASS$' "$RUNNER_TEMP/daemonize-self-test.txt"[0m
+2026-10-22T11:02:54.5767269Z shell: /usr/bin/bash -e {0}
+2026-10-22T11:02:54.5767731Z env:
+2026-10-22T11:02:54.5768079Z   HPO_JOB_GRADES: nothing
+2026-10-22T11:02:54.5768490Z ##[endgroup]
+2026-10-22T11:02:54.6176656Z usage: daemonize.py [-h] --log LOG [--cwd CWD] [--env K=V]
+2026-10-22T11:02:54.6177521Z                     [--path-prepend PATH_PREPEND]
+2026-10-22T11:02:54.6178049Z                     ...
+2026-10-22T11:02:54.6179174Z daemonize.py: error: usage: daemonize.py --log LOG [--cwd DIR] [--env K=V]... [--path-prepend DIR] -- CMD [ARG]...
+2026-10-22T11:02:54.8206923Z   ok   `-- CMD` parses to CMD, the `--` dropped
+2026-10-22T11:02:54.8207882Z   ok   options before `--` still parse
+2026-10-22T11:02:54.8208601Z   ok   a later `--` belongs to the command
+2026-10-22T11:02:54.8209355Z   ok   the bare form without `--` still parses
+2026-10-22T11:02:54.8210469Z   ok   an empty command after `--` is refused
+2026-10-22T11:02:54.8211217Z daemonize: child pid 36524
+2026-10-22T11:02:54.8211962Z   ok   banner is the log's first line and names a pid
+2026-10-22T11:02:54.8212547Z   ok   banner's pid is the pid the parent returned
+2026-10-22T11:02:54.8213292Z   ok   child output reached the log unflushed (fork/setsid/dup2/-u)
+2026-10-22T11:02:54.8213928Z   ok   the logged argv carries the prepended -u
+2026-10-22T11:02:54.8214477Z   ok   banner precedes the child's output in the log
+2026-10-22T11:02:54.8215106Z   ok   append mode: a relaunch extends the log, first run intact
+2026-10-22T11:02:54.8215607Z SELF-TEST PASS
+2026-10-22T11:02:54.8345898Z ##[group]Run set -o pipefail
+2026-10-22T11:02:54.8346226Z [36;1mset -o pipefail[0m
+2026-10-22T11:02:54.8346699Z [36;1mbash tools/audit/seat/delivery_row.sh --self-test | tee "$RUNNER_TEMP/delivery-row-self-test.txt"[0m
+2026-10-22T11:02:54.8347420Z [36;1mgrep -Eq '^delivery_row self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/delivery-row-self-test.txt"[0m
+2026-10-22T11:02:54.8400165Z shell: /usr/bin/bash -e {0}
+2026-10-22T11:02:54.8400451Z env:
+2026-10-22T11:02:54.8400670Z   HPO_JOB_GRADES: nothing
+2026-10-22T11:02:54.8400919Z ##[endgroup]
+2026-10-22T11:02:54.8539170Z   ok   a row lands under dev/programme/delivery/<N>.md, and nothing is written under docs/
+2026-10-22T11:02:54.8980529Z   ok   a head without its row gains exactly one commit, adding only that row, as tvofi; the stray file and the edit stay out
+2026-10-22T11:02:54.9076255Z   ok   null control: a head that carries its row gains no commit, and its row file is not rewritten
+2026-10-22T11:02:54.9081942Z   ok   no group writes no empty parentheses
+2026-10-22T11:02:54.9088309Z   ok   a group, when given, closes the row in parentheses (open_pr.sh's shape)
+2026-10-22T11:02:54.9121339Z delivery_row self-test: 5 checks, 0 failed
+2026-10-22T11:02:54.9177819Z ##[group]Run set -o pipefail
+2026-10-22T11:02:54.9178126Z [36;1mset -o pipefail[0m
+2026-10-22T11:02:54.9178596Z [36;1mbash tools/audit/seat/failure_logs.sh --self-test | tee "$RUNNER_TEMP/failure-logs-self-test.txt"[0m
+2026-10-22T11:02:54.9179248Z [36;1mgrep -Eq '^passed=[1-9][0-9]* failed=0$' "$RUNNER_TEMP/failure-logs-self-test.txt"[0m
+2026-10-22T11:02:54.9230720Z shell: /usr/bin/bash -e {0}
+2026-10-22T11:02:54.9230983Z env:
+2026-10-22T11:02:54.9231190Z   HPO_JOB_GRADES: nothing
+2026-10-22T11:02:54.9231426Z ##[endgroup]
+2026-10-22T11:02:54.9700169Z   ok   partial read reports itself (exit 1, one log unread)
+2026-10-22T11:02:54.9716246Z   ok   red-then-green grouped to the newest: job 900 read, 901 never fetched
+2026-10-22T11:02:54.9730694Z   ok   non-Actions check prints NO-JOB
+2026-10-22T11:02:54.9745043Z   ok   unreadable log prints NO-LOG
+2026-10-22T11:02:54.9759484Z   ok   error lines from the real log land in the report
+2026-10-22T11:02:54.9775133Z   ok   count is over readable logs beside the unread one
+2026-10-22T11:02:54.9790268Z   ok   report names the head it read at
+2026-10-22T11:02:54.9790817Z passed=7 failed=0
+2026-10-22T11:02:54.9858002Z ##[group]Run set -o pipefail
+2026-10-22T11:02:54.9858323Z [36;1mset -o pipefail[0m
+2026-10-22T11:02:54.9858837Z [36;1mpython3 -I tools/audit/seat/features_block.py --self-test | tee "$RUNNER_TEMP/features-block-self-test.txt"[0m
+2026-10-22T11:02:54.9860101Z [36;1mgrep -Eq '^features_block self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/features-block-self-test.txt"[0m
+2026-10-22T11:02:54.9911810Z shell: /usr/bin/bash -e {0}
+2026-10-22T11:02:54.9912060Z env:
+2026-10-22T11:02:54.9912257Z   HPO_JOB_GRADES: nothing
+2026-10-22T11:02:54.9912496Z ##[endgroup]
+2026-10-22T11:02:55.0145943Z   ok   a block runs from its marker line to the close
+2026-10-22T11:02:55.0147249Z features_block self-test: 1 checks, 0 failed
+2026-10-22T11:02:55.0235694Z ##[group]Run set -o pipefail
+2026-10-22T11:02:55.0236014Z [36;1mset -o pipefail[0m
+2026-10-22T11:02:55.0236480Z [36;1mbash tools/audit/seat/handoff_push.sh --self-test | tee "$RUNNER_TEMP/handoff-push-self-test.txt"[0m
+2026-10-22T11:02:55.0237188Z [36;1mgrep -Eq '^delivery_row self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/handoff-push-self-test.txt"[0m
+2026-10-22T11:02:55.0237881Z [36;1mgrep -Eq '^handoff_push self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/handoff-push-self-test.txt"[0m
+2026-10-22T11:02:55.0288365Z shell: /usr/bin/bash -e {0}
+2026-10-22T11:02:55.0288617Z env:
+2026-10-22T11:02:55.0288823Z   HPO_JOB_GRADES: nothing
+2026-10-22T11:02:55.0289062Z ##[endgroup]
+2026-10-22T11:02:55.0490880Z   ok   a row lands under dev/programme/delivery/<N>.md, and nothing is written under docs/
+2026-10-22T11:02:55.0928267Z   ok   a head without its row gains exactly one commit, adding only that row, as tvofi; the stray file and the edit stay out
+2026-10-22T11:02:55.1026675Z   ok   null control: a head that carries its row gains no commit, and its row file is not rewritten
+2026-10-22T11:02:55.1031946Z   ok   no group writes no empty parentheses
+2026-10-22T11:02:55.1038217Z   ok   a group, when given, closes the row in parentheses (open_pr.sh's shape)
+2026-10-22T11:02:55.1070562Z delivery_row self-test: 5 checks, 0 failed
+2026-10-22T11:02:55.3078359Z   ok   null control: the open path pushes the pull request, then its row
+2026-10-22T11:02:55.4897263Z   ok   null control: the update path pushes its head once
+2026-10-22T11:02:55.4967958Z handoff_push self-test: 2 checks, 0 failed
+2026-10-22T11:02:55.5042415Z ##[group]Run set -o pipefail
+2026-10-22T11:02:55.5042751Z [36;1mset -o pipefail[0m
+2026-10-22T11:02:55.5043286Z [36;1mpython3 -I tools/audit/seat/handover_prompt.py --self-test | tee "$RUNNER_TEMP/handover-prompt-self-test.txt"[0m
+2026-10-22T11:02:55.5044122Z [36;1mgrep -Eq '^handover_prompt self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/handover-prompt-self-test.txt"[0m
+2026-10-22T11:02:55.5096497Z shell: /usr/bin/bash -e {0}
+2026-10-22T11:02:55.5096947Z env:
+2026-10-22T11:02:55.5097284Z   HPO_JOB_GRADES: nothing
+2026-10-22T11:02:55.5097676Z ##[endgroup]
+2026-10-22T11:02:55.5554789Z handover_prompt self-test: 15 checks, 0 failed
+2026-10-22T11:02:55.5672445Z ##[group]Run set -o pipefail
+2026-10-22T11:02:55.5672777Z [36;1mset -o pipefail[0m
+2026-10-22T11:02:55.5673228Z [36;1mbash tools/audit/seat/merge_pr.sh --self-test | tee "$RUNNER_TEMP/merge-pr-self-test.txt"[0m
+2026-10-22T11:02:55.5673900Z [36;1mgrep -Eq '^merge_pr self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/merge-pr-self-test.txt"[0m
+2026-10-22T11:02:55.5725745Z shell: /usr/bin/bash -e {0}
+2026-10-22T11:02:55.5726005Z env:
+2026-10-22T11:02:55.5726201Z   HPO_JOB_GRADES: nothing
+2026-10-22T11:02:55.5726434Z ##[endgroup]
+2026-10-22T11:02:55.6936073Z   ok   app mode on a ready pull request passes the gates (null control)
+2026-10-22T11:02:55.6971023Z   ok   owner mode with no --mandate refuses, never a default
+2026-10-22T11:02:55.6999419Z   ok   owner mode with a non-id --mandate refuses
+2026-10-22T11:02:55.7558544Z   ok   owner mode under a mandate in force now passes
+2026-10-22T11:02:55.8082327Z   ok   owner mode under a code-owned mandate in force now passes
+2026-10-22T11:02:55.8594796Z   ok   owner mode under a budget-raise mandate refuses: the gate's MANDATE_COVERS_CODE_OWNED excludes it
+2026-10-22T11:02:55.9101290Z   ok   owner mode under an expired mandate refuses with the gate's why
+2026-10-22T11:02:55.9610757Z   ok   owner mode under a mandate that does not exist refuses
+2026-10-22T11:02:55.9639422Z   ok   a draft refuses without --ready, naming the flag
+2026-10-22T11:02:55.9668346Z   ok   a draft with --ready passes the gates
+2026-10-22T11:02:55.9689652Z   ok   ... and owes the ready mark
+2026-10-22T11:02:55.9709588Z   ok   a ready pull request with --ready owes no ready mark
+2026-10-22T11:02:56.0152729Z   ok   the owner body declares an agent and cites exactly the mandate given
+2026-10-22T11:02:56.0170898Z   ok   no mandate date is written into this script
+2026-10-22T11:02:56.1272111Z   ok   null control: the merge records the reviewed head
+2026-10-22T11:02:56.1788092Z   ok   a refused merge fails the script (the line's own exit)
+2026-10-22T11:02:56.1833102Z merge_pr self-test: 16 checks, 0 failed
+2026-10-22T11:02:56.1896763Z ##[group]Run set -o pipefail
+2026-10-22T11:02:56.1897274Z [36;1mset -o pipefail[0m
+2026-10-22T11:02:56.1898152Z [36;1mpython3 -I tools/audit/seat/moved_paths.py --self-test | tee "$RUNNER_TEMP/moved-paths-self-test.txt"[0m
+2026-10-22T11:02:56.1899513Z [36;1mgrep -Eq '^moved_paths self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/moved-paths-self-test.txt"[0m
+2026-10-22T11:02:56.1967417Z shell: /usr/bin/bash -e {0}
+2026-10-22T11:02:56.1967691Z env:
+2026-10-22T11:02:56.1967921Z   HPO_JOB_GRADES: nothing
+2026-10-22T11:02:56.1968164Z ##[endgroup]
+2026-10-22T11:02:56.2423570Z   ok   a retired file no longer tracked is moved
+2026-10-22T11:02:56.2424537Z   ok   its emptied parent directory is moved
+2026-10-22T11:02:56.2425306Z   ok   a retired entry still tracked is a planned move, not a moved path
+2026-10-22T11:02:56.2426175Z   ok   a retired directory with tracked files under it is a planned move
+2026-10-22T11:02:56.2426827Z   ok   a lifted prefix is moved
+2026-10-22T11:02:56.2427412Z   ok   a moved tree under a ref namespace is moved
+2026-10-22T11:02:56.2428082Z   ok   its parent, a ref namespace, is not a moved directory
+2026-10-22T11:02:56.2428810Z   ok   a directory reference is found and marked STALE?
+2026-10-22T11:02:56.2429536Z   ok   an old-first fallback naming the new path is marked FALLBACK
+2026-10-22T11:02:56.2430846Z   ok   a directory argument walks its tracked files, recursively, and skips untracked ones
+2026-10-22T11:02:56.2431583Z   ok   a walked directory's files are scanned
+2026-10-22T11:02:56.2432124Z moved_paths self-test: 11 checks, 0 failed
+2026-10-22T11:02:56.2528298Z ##[group]Run set -o pipefail
+2026-10-22T11:02:56.2528623Z [36;1mset -o pipefail[0m
+2026-10-22T11:02:56.2529045Z [36;1mbash tools/audit/seat/open_pr.sh --self-test | tee "$RUNNER_TEMP/open-pr-self-test.txt"[0m
+2026-10-22T11:02:56.2530020Z [36;1mgrep -Eq '^delivery_row self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/open-pr-self-test.txt"[0m
+2026-10-22T11:02:56.2530781Z [36;1mgrep -Eq '^pr_args self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/open-pr-self-test.txt"[0m
+2026-10-22T11:02:56.2582084Z shell: /usr/bin/bash -e {0}
+2026-10-22T11:02:56.2582337Z env:
+2026-10-22T11:02:56.2582529Z   HPO_JOB_GRADES: nothing
+2026-10-22T11:02:56.2582765Z ##[endgroup]
+2026-10-22T11:02:56.2791418Z   ok   a row lands under dev/programme/delivery/<N>.md, and nothing is written under docs/
+2026-10-22T11:02:56.3218091Z   ok   a head without its row gains exactly one commit, adding only that row, as tvofi; the stray file and the edit stay out
+2026-10-22T11:02:56.3314948Z   ok   null control: a head that carries its row gains no commit, and its row file is not rewritten
+2026-10-22T11:02:56.3320363Z   ok   no group writes no empty parentheses
+2026-10-22T11:02:56.3326504Z   ok   a group, when given, closes the row in parentheses (open_pr.sh's shape)
+2026-10-22T11:02:56.3359983Z delivery_row self-test: 5 checks, 0 failed
+2026-10-22T11:02:56.4429610Z   ok   open_pr: three arguments refuse, naming the count
+2026-10-22T11:02:56.4651548Z   ok     mutant mut:arity (its line deleted) fails that arm
+2026-10-22T11:02:56.4914757Z   ok   open_pr: an abbreviated code sha refuses as not 40-hex
+2026-10-22T11:02:56.6958331Z   ok     mutant mut:hex (its line deleted) fails that arm
+2026-10-22T11:02:56.8120767Z   ok   open_pr: a 40-hex sha that names no commit refuses as unresolved
+2026-10-22T11:02:56.9262107Z   ok     mutant mut:resolve (its line deleted) fails that arm
+2026-10-22T11:02:57.0441649Z   ok   open_pr: the body sha in the code slot refuses, naming it the BODY sha
+2026-10-22T11:02:57.1606780Z   ok     mutant mut:body (its line deleted) fails that arm
+2026-10-22T11:02:57.2775723Z   ok   open_pr: a non-ancestor refuses, saying it is not the body tip
+2026-10-22T11:02:57.4806574Z   ok     mutant mut:ancestor (its line deleted) fails that arm
+2026-10-22T11:02:57.5873145Z   ok   open_pr: a topic with no handoff/<topic> refuses, naming the ref
+2026-10-22T11:02:57.6971900Z   ok     mutant mut:noref (its line deleted) fails that arm
+2026-10-22T11:02:57.8031107Z   ok   open_pr: a topic with no handoff-body/<topic> refuses, naming the ref
+2026-10-22T11:02:57.9119195Z   ok     mutant mut:nobody (its line deleted) fails that arm
+2026-10-22T11:02:58.0783365Z   ok   open_pr: a failing step past the checks (worktree add) reports itself through the ERR trap
+2026-10-22T11:02:58.2368823Z   ok     mutant mut:trap (its line deleted) fails that arm
+2026-10-22T11:02:58.4425104Z   ok   open_pr: twenty open pull requests do not stop an open; the count is information
+2026-10-22T11:02:58.6093487Z   ok     mutant mut:openinfo (its line deleted) no longer prints it
+2026-10-22T11:02:58.8109152Z   ok   open_pr: --over-cap is still accepted, and says it is advisory
+2026-10-22T11:02:59.0132841Z   ok     mutant mut:overadvisory (its line deleted) no longer prints it
+2026-10-22T11:02:59.2121869Z   ok   open_pr: an open count gh cannot read says so and still opens
+2026-10-22T11:02:59.4123084Z   ok     mutant mut:inforead (its line deleted) reports the unreadable board as a count
+2026-10-22T11:02:59.6153133Z   ok   open_pr: a record: title and another bot's pull request are not in the open count
+2026-10-22T11:02:59.8118334Z   ok     mutant mut:caprecord (its line deleted) no longer prints it
+2026-10-22T11:03:00.0142428Z   ok   open_pr: the same board, the bot pull request uncounted
+2026-10-22T11:03:00.2159598Z   ok     mutant mut:capbot (its line deleted) no longer prints it
+2026-10-22T11:03:00.4235863Z   ok   null control: open_pr with the code sha passes every check, and its failed push names its log
+2026-10-22T11:03:00.4486329Z   ok   update_pr: two arguments refuse, naming the count
+2026-10-22T11:03:00.4694326Z   ok     mutant mut:arity (its line deleted) fails that arm
+2026-10-22T11:03:00.4937949Z   ok   update_pr: an abbreviated code sha refuses as not 40-hex
+2026-10-22T11:03:00.6826093Z   ok     mutant mut:hex (its line deleted) fails that arm
+2026-10-22T11:03:00.7992919Z   ok   update_pr: the body sha in the code slot refuses, naming it the BODY sha
+2026-10-22T11:03:00.9152735Z   ok     mutant mut:body (its line deleted) fails that arm
+2026-10-22T11:03:01.0331190Z   ok   update_pr: a non-ancestor refuses, saying it is not the body tip
+2026-10-22T11:03:01.2236649Z   ok     mutant mut:ancestor (its line deleted) fails that arm
+2026-10-22T11:03:01.3302186Z   ok   update_pr: a branch whose topic has no handoff/<topic> refuses, naming the ref
+2026-10-22T11:03:01.4390314Z   ok     mutant mut:noref (its line deleted) fails that arm
+2026-10-22T11:03:01.5566121Z   ok   update_pr: branch fix/x-pr, with no handoff/x-pr on origin, is checked against handoff/x
+2026-10-22T11:03:01.6551037Z   ok     mutant mut:prtopic (its line deleted) fails that arm
+2026-10-22T11:03:01.7486023Z   ok   update_pr: a failing step past the checks (fetching an absent branch) reports itself through the ERR trap
+2026-10-22T11:03:01.8421298Z   ok     mutant mut:trap (its line deleted) fails that arm
+2026-10-22T11:03:02.0532524Z   ok   update_pr: a branch whose update is in flight refuses BUSY (75) and leaves that run's worktree in place
+2026-10-22T11:03:02.3330849Z   ok     mutant mut:lock (its line deleted) removes the in-flight run's worktree
+2026-10-22T11:03:02.5168725Z   ok   null control: a lock left by a dead run (the kernel freed it) does not block; the run reaches its push
+2026-10-22T11:03:02.8548272Z   ok   update_pr: a child the run left detached does not hold the lock; the next run on the branch reaches its push
+2026-10-22T11:03:02.8563287Z   ok   update_pr: the lock holder has exited by the time a run returns
+2026-10-22T11:03:03.1116231Z   ok     mutant mut:unlock (its line deleted): the holder is still alive when the run returns
+2026-10-22T11:03:09.4619986Z   ok   update_pr: a TERMed run (daemonize.py's stop) keeps the lock until its push has ended; then the next run takes it
+2026-10-22T11:03:16.9572347Z   ok     mutant mut:stop (its line deleted): a TERMed run frees the lock while its push still runs
+2026-10-22T11:03:23.1382870Z   ok   update_pr: a SIGKILLed run leaves no stale lock; a later run takes it
+2026-10-22T11:03:30.6291571Z   ok     mutant mut:watch (its line deleted): the holder exits at once, so the lock is not held during the push
+2026-10-22T11:03:31.0640642Z   ok   open_pr: an update_pr.sh on its branch during its second push is BUSY, and the PR's row reaches origin
+2026-10-22T11:03:31.4683923Z   ok     mutant mut:oplock (its line deleted): update_pr.sh takes the branch (not BUSY); the unpushed-work refusal alone keeps the row
+2026-10-22T11:03:31.9036366Z   ok     mutants mut:oplock and mut:unpushed (both deleted): the row's push is refused, HEAD detached under it, and the PR keeps no row (the defect)
+2026-10-22T11:03:32.0659959Z   ok   update_pr: a worktree holding the branch with a commit origin lacks is refused and stays on its branch
+2026-10-22T11:03:32.2885449Z   ok     mutant mut:unpushed (its line deleted): the worktree is detached under its unpushed commit
+2026-10-22T11:03:32.5105110Z   ok   null control: a worktree whose HEAD origin has is detached as before, and the run reaches its push
+2026-10-22T11:03:32.6966242Z   ok   update_pr: code sha '-' asks app_push.sh for --row-only, whose verdict decides the prepr
+2026-10-22T11:03:32.8623011Z   ok     mutant mut:rowonly (its line deleted): code sha '-' runs the full prepr
+2026-10-22T11:03:33.0595696Z   ok   null control: a code sha never asks for --row-only, so its push runs the full prepr
+2026-10-22T11:03:33.2587781Z   ok   null control: update_pr with code sha 'fec30d8' passes every check, and its failed push names its log
+2026-10-22T11:03:33.4258456Z   ok   null control: update_pr with code sha '-' passes every check, and its failed push names its log
+2026-10-22T11:03:33.4725825Z   ok   pr_cap.py --self-test: its tally says 0 failed
+2026-10-22T11:03:33.5240260Z pr_args self-test: 63 checks, 0 failed
+2026-10-22T11:03:33.5321211Z ##[group]Run set -o pipefail
+2026-10-22T11:03:33.5321652Z [36;1mset -o pipefail[0m
+2026-10-22T11:03:33.5322140Z [36;1mpython3 -I tools/audit/seat/plan_table.py --self-test | tee "$RUNNER_TEMP/plan-table-self-test.txt"[0m
+2026-10-22T11:03:33.5322849Z [36;1mgrep -Eq '^plan_table self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/plan-table-self-test.txt"[0m
+2026-10-22T11:03:33.5374145Z shell: /usr/bin/bash -e {0}
+2026-10-22T11:03:33.5374407Z env:
+2026-10-22T11:03:33.5374614Z   HPO_JOB_GRADES: nothing
+2026-10-22T11:03:33.5374844Z ##[endgroup]
+2026-10-22T11:03:33.5815538Z plan_table: live overlay names no roster group: ['R9-NOPE']
+2026-10-22T11:03:33.5819004Z plan_table self-test: 25 checks, 0 failed
+2026-10-22T11:03:33.5928751Z ##[group]Run set -o pipefail
+2026-10-22T11:03:33.5929073Z [36;1mset -o pipefail[0m
+2026-10-22T11:03:33.5929554Z [36;1mpython3 -I tools/audit/seat/plan_page.py --self-test | tee "$RUNNER_TEMP/plan-page-self-test.txt"[0m
+2026-10-22T11:03:33.5930682Z [36;1mgrep -Eq '^plan_page self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/plan-page-self-test.txt"[0m
+2026-10-22T11:03:33.5981102Z shell: /usr/bin/bash -e {0}
+2026-10-22T11:03:33.5981352Z env:
+2026-10-22T11:03:33.5981548Z   HPO_JOB_GRADES: nothing
+2026-10-22T11:03:33.5981781Z ##[endgroup]
+2026-10-22T11:03:33.7341119Z plan_page: refused, nothing written: 1 violation(s)
+2026-10-22T11:03:33.7342813Z   freshness: plan.json is stale: built from roster blob 8506d7a97f16, but main:dev/programme/rosters/wave-r9-groups.json is now ba6c83b416a0; re-run tools/plan/replan.py --out <plan.json>
+2026-10-22T11:03:33.7406517Z wrote /tmp/tmpvjeets5s/page.html: 7 groups, closure 2026-01-05T22:16:00Z
+2026-10-22T11:03:33.7407260Z plan_page self-test: 41 checks, 0 failed
+2026-10-22T11:03:33.7545218Z ##[group]Run set -o pipefail
+2026-10-22T11:03:33.7545573Z [36;1mset -o pipefail[0m
+2026-10-22T11:03:33.7546009Z [36;1mbash tools/audit/seat/pr_args.sh --self-test | tee "$RUNNER_TEMP/pr-args-self-test.txt"[0m
+2026-10-22T11:03:33.7546671Z [36;1mgrep -Eq '^pr_args self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/pr-args-self-test.txt"[0m
+2026-10-22T11:03:33.7597388Z shell: /usr/bin/bash -e {0}
+2026-10-22T11:03:33.7597638Z env:
+2026-10-22T11:03:33.7597839Z   HPO_JOB_GRADES: nothing
+2026-10-22T11:03:33.7598068Z ##[endgroup]
+2026-10-22T11:03:33.8751366Z   ok   open_pr: three arguments refuse, naming the count
+2026-10-22T11:03:33.8981340Z   ok     mutant mut:arity (its line deleted) fails that arm
+2026-10-22T11:03:33.9278931Z   ok   open_pr: an abbreviated code sha refuses as not 40-hex
+2026-10-22T11:03:34.1347963Z   ok     mutant mut:hex (its line deleted) fails that arm
+2026-10-22T11:03:34.2495757Z   ok   open_pr: a 40-hex sha that names no commit refuses as unresolved
+2026-10-22T11:03:34.3636129Z   ok     mutant mut:resolve (its line deleted) fails that arm
+2026-10-22T11:03:34.4803663Z   ok   open_pr: the body sha in the code slot refuses, naming it the BODY sha
+2026-10-22T11:03:34.5955544Z   ok     mutant mut:body (its line deleted) fails that arm
+2026-10-22T11:03:34.7127446Z   ok   open_pr: a non-ancestor refuses, saying it is not the body tip
+2026-10-22T11:03:34.9218319Z   ok     mutant mut:ancestor (its line deleted) fails that arm
+2026-10-22T11:03:35.0306160Z   ok   open_pr: a topic with no handoff/<topic> refuses, naming the ref
+2026-10-22T11:03:35.1421592Z   ok     mutant mut:noref (its line deleted) fails that arm
+2026-10-22T11:03:35.2478603Z   ok   open_pr: a topic with no handoff-body/<topic> refuses, naming the ref
+2026-10-22T11:03:35.3586117Z   ok     mutant mut:nobody (its line deleted) fails that arm
+2026-10-22T11:03:35.5277716Z   ok   open_pr: a failing step past the checks (worktree add) reports itself through the ERR trap
+2026-10-22T11:03:35.6869401Z   ok     mutant mut:trap (its line deleted) fails that arm
+2026-10-22T11:03:35.8986241Z   ok   open_pr: twenty open pull requests do not stop an open; the count is information
+2026-10-22T11:03:36.0660317Z   ok     mutant mut:openinfo (its line deleted) no longer prints it
+2026-10-22T11:03:36.2715090Z   ok   open_pr: --over-cap is still accepted, and says it is advisory
+2026-10-22T11:03:36.4770434Z   ok     mutant mut:overadvisory (its line deleted) no longer prints it
+2026-10-22T11:03:36.6791543Z   ok   open_pr: an open count gh cannot read says so and still opens
+2026-10-22T11:03:36.8836351Z   ok     mutant mut:inforead (its line deleted) reports the unreadable board as a count
+2026-10-22T11:03:37.0925544Z   ok   open_pr: a record: title and another bot's pull request are not in the open count
+2026-10-22T11:03:37.3019370Z   ok     mutant mut:caprecord (its line deleted) no longer prints it
+2026-10-22T11:03:37.5090218Z   ok   open_pr: the same board, the bot pull request uncounted
+2026-10-22T11:03:37.7161582Z   ok     mutant mut:capbot (its line deleted) no longer prints it
+2026-10-22T11:03:37.9230749Z   ok   null control: open_pr with the code sha passes every check, and its failed push names its log
+2026-10-22T11:03:37.9494193Z   ok   update_pr: two arguments refuse, naming the count
+2026-10-22T11:03:37.9703786Z   ok     mutant mut:arity (its line deleted) fails that arm
+2026-10-22T11:03:37.9951311Z   ok   update_pr: an abbreviated code sha refuses as not 40-hex
+2026-10-22T11:03:38.1845061Z   ok     mutant mut:hex (its line deleted) fails that arm
+2026-10-22T11:03:38.3051941Z   ok   update_pr: the body sha in the code slot refuses, naming it the BODY sha
+2026-10-22T11:03:38.4244573Z   ok     mutant mut:body (its line deleted) fails that arm
+2026-10-22T11:03:38.5408958Z   ok   update_pr: a non-ancestor refuses, saying it is not the body tip
+2026-10-22T11:03:38.7315893Z   ok     mutant mut:ancestor (its line deleted) fails that arm
+2026-10-22T11:03:38.8364917Z   ok   update_pr: a branch whose topic has no handoff/<topic> refuses, naming the ref
+2026-10-22T11:03:38.9437926Z   ok     mutant mut:noref (its line deleted) fails that arm
+2026-10-22T11:03:39.0596723Z   ok   update_pr: branch fix/x-pr, with no handoff/x-pr on origin, is checked against handoff/x
+2026-10-22T11:03:39.1615271Z   ok     mutant mut:prtopic (its line deleted) fails that arm
+2026-10-22T11:03:39.2578922Z   ok   update_pr: a failing step past the checks (fetching an absent branch) reports itself through the ERR trap
+2026-10-22T11:03:39.3527755Z   ok     mutant mut:trap (its line deleted) fails that arm
+2026-10-22T11:03:39.5657086Z   ok   update_pr: a branch whose update is in flight refuses BUSY (75) and leaves that run's worktree in place
+2026-10-22T11:03:39.8467140Z   ok     mutant mut:lock (its line deleted) removes the in-flight run's worktree
+2026-10-22T11:03:40.0376665Z   ok   null control: a lock left by a dead run (the kernel freed it) does not block; the run reaches its push
+2026-10-22T11:03:40.3759966Z   ok   update_pr: a child the run left detached does not hold the lock; the next run on the branch reaches its push
+2026-10-22T11:03:40.3777062Z   ok   update_pr: the lock holder has exited by the time a run returns
+2026-10-22T11:03:40.6293585Z   ok     mutant mut:unlock (its line deleted): the holder is still alive when the run returns
+2026-10-22T11:03:46.9810431Z   ok   update_pr: a TERMed run (daemonize.py's stop) keeps the lock until its push has ended; then the next run takes it
+2026-10-22T11:03:54.4771436Z   ok     mutant mut:stop (its line deleted): a TERMed run frees the lock while its push still runs
+2026-10-22T11:04:00.6591899Z   ok   update_pr: a SIGKILLed run leaves no stale lock; a later run takes it
+2026-10-22T11:04:08.1490341Z   ok     mutant mut:watch (its line deleted): the holder exits at once, so the lock is not held during the push
+2026-10-22T11:04:08.5829349Z   ok   open_pr: an update_pr.sh on its branch during its second push is BUSY, and the PR's row reaches origin
+2026-10-22T11:04:08.9898589Z   ok     mutant mut:oplock (its line deleted): update_pr.sh takes the branch (not BUSY); the unpushed-work refusal alone keeps the row
+2026-10-22T11:04:09.4318809Z   ok     mutants mut:oplock and mut:unpushed (both deleted): the row's push is refused, HEAD detached under it, and the PR keeps no row (the defect)
+2026-10-22T11:04:09.5945301Z   ok   update_pr: a worktree holding the branch with a commit origin lacks is refused and stays on its branch
+2026-10-22T11:04:09.8248022Z   ok     mutant mut:unpushed (its line deleted): the worktree is detached under its unpushed commit
+2026-10-22T11:04:10.0530163Z   ok   null control: a worktree whose HEAD origin has is detached as before, and the run reaches its push
+2026-10-22T11:04:10.2450537Z   ok   update_pr: code sha '-' asks app_push.sh for --row-only, whose verdict decides the prepr
+2026-10-22T11:04:10.4143207Z   ok     mutant mut:rowonly (its line deleted): code sha '-' runs the full prepr
+2026-10-22T11:04:10.6204013Z   ok   null control: a code sha never asks for --row-only, so its push runs the full prepr
+2026-10-22T11:04:10.8244512Z   ok   null control: update_pr with code sha '21913c2' passes every check, and its failed push names its log
+2026-10-22T11:04:10.9976442Z   ok   null control: update_pr with code sha '-' passes every check, and its failed push names its log
+2026-10-22T11:04:11.0459087Z   ok   pr_cap.py --self-test: its tally says 0 failed
+2026-10-22T11:04:11.0866903Z pr_args self-test: 63 checks, 0 failed
+2026-10-22T11:04:11.0945251Z ##[group]Run set -o pipefail
+2026-10-22T11:04:11.0945567Z [36;1mset -o pipefail[0m
+2026-10-22T11:04:11.0946019Z [36;1mpython3 -I tools/audit/seat/pr_cap.py --self-test | tee "$RUNNER_TEMP/pr-cap-self-test.txt"[0m
+2026-10-22T11:04:11.0946691Z [36;1mgrep -Eq '^pr_cap self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/pr-cap-self-test.txt"[0m
+2026-10-22T11:04:11.0997935Z shell: /usr/bin/bash -e {0}
+2026-10-22T11:04:11.0998209Z env:
+2026-10-22T11:04:11.0998423Z   HPO_JOB_GRADES: nothing
+2026-10-22T11:04:11.0998668Z ##[endgroup]
+2026-10-22T11:04:11.1424276Z roster_lib: no roster readable at origin/main; reading origin/main
+2026-10-22T11:04:11.1488681Z   ok   WIP is exactly resume.stage in-progress: done, not-started, queued and fixing are not work in progress
+2026-10-22T11:04:11.1490583Z   ok   a group with an open pull request is ONE group: the count is over group ids, and the open count is a separate rule
+2026-10-22T11:04:11.1491795Z   ok   null control: no in-progress group is 0 WIP, and the gate passes
+2026-10-22T11:04:11.1492458Z   ok   5 WIP passes and names the groups
+2026-10-22T11:04:11.1493165Z   ok   6 WIP refuses at the cap, naming the count, the groups and both ways past it
+2026-10-22T11:04:11.1493959Z   ok   7 WIP refuses too (at or over the cap, not exactly at it)
+2026-10-22T11:04:11.1494651Z   ok   --over-cap passes at the cap and logs its reason
+2026-10-22T11:04:11.1495238Z   ok   --over-cap with an empty reason refuses
+2026-10-22T11:04:11.1495925Z   ok   a roster it cannot read refuses, naming why: never a clean zero
+2026-10-22T11:04:11.1496796Z   ok   read_roster over a checkout with no roster is a refusal, not ({} , '')
+2026-10-22T11:04:11.1497660Z   ok   a roster file that is not JSON is a refusal, naming it
+2026-10-22T11:04:11.1498419Z   ok   HPO_WIP_CAP: unset is 6, '3' is 3, '0' and 'x' are invalid
+2026-10-22T11:04:11.1498984Z   ok   an invalid cap refuses
+2026-10-22T11:04:11.1499881Z   ok   the authoring App's pull requests count; a record: title and another bot do not
+2026-10-22T11:04:11.1500863Z   ok   null control: 20 open pull requests are information; opening is not refused
+2026-10-22T11:04:11.1501762Z   ok   an open count gh cannot read says so and still does not stop an open
+2026-10-22T11:04:11.1502540Z   ok   a gh failure is reported, never read as an empty board
+2026-10-22T11:04:11.1503208Z   ok   output that is not JSON is a refusal of the read
+2026-10-22T11:04:11.1503850Z   ok   a list at gh's limit may be truncated: refused
+2026-10-22T11:04:11.1504504Z   ok   null control: an empty board reads as zero
+2026-10-22T11:04:11.1505320Z   ok   coordinator PRs: the diff that touches it counts, an unread diff is named apart
+2026-10-22T11:04:11.1506164Z pr_cap self-test: 21 checks, 0 failed
+2026-10-22T11:04:11.1612143Z ##[group]Run set -o pipefail
+2026-10-22T11:04:11.1612472Z [36;1mset -o pipefail[0m
+2026-10-22T11:04:11.1612970Z [36;1mpython3 -I tools/audit/seat/proof_watch.py --self-test | tee "$RUNNER_TEMP/proof-watch-self-test.txt"[0m
+2026-10-22T11:04:11.1613760Z [36;1mgrep -Eq '^proof_watch self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/proof-watch-self-test.txt"[0m
+2026-10-22T11:04:11.1664835Z shell: /usr/bin/bash -e {0}
+2026-10-22T11:04:11.1665086Z env:
+2026-10-22T11:04:11.1665295Z   HPO_JOB_GRADES: nothing
+2026-10-22T11:04:11.1665527Z ##[endgroup]
+2026-10-22T11:04:11.2749013Z proof_watch: REFUSE: --mode owner needs --mandate <comment-id>
+2026-10-22T11:04:11.2844917Z ok   (a1) dry-run reports what it would hand merge_pr.sh
+2026-10-22T11:04:11.2845675Z ok   (a1) dry-run performs no merge
+2026-10-22T11:04:11.2846220Z ok   (f) dry-run creates no state directory, log or lock
+2026-10-22T11:04:11.2847019Z ok   (a2) the merge goes through merge_pr.sh with pr, pinned head, evidence and mode
+2026-10-22T11:04:11.2847723Z ok   (a3) owner mode passes --mandate <id> to merge_pr.sh
+2026-10-22T11:04:11.2848304Z ok   (a3) --mode owner without --mandate refuses at launch
+2026-10-22T11:04:11.2848786Z ok   (a2) exactly one merge line
+2026-10-22T11:04:11.2849419Z ok   (a2) the merge line names pr, head, check, verdict comment id, evidence and merge sha
+2026-10-22T11:04:11.2850461Z ok   (a2) the state log exists after a live merge
+2026-10-22T11:04:11.2850973Z ok   (a2) the merge line is in the state log too
+2026-10-22T11:04:11.2851499Z ok   (b) a failing named check aborts, naming the check
+2026-10-22T11:04:11.2851976Z ok   (b) no merge after a failed check
+2026-10-22T11:04:11.2852380Z ok   (b) the abort is logged too
+2026-10-22T11:04:11.2852812Z ok   (c) an exceeded budget aborts with a report
+2026-10-22T11:04:11.2853399Z ok   (c) the clock's budget abort fired, not the poll-count fallback
+2026-10-22T11:04:11.2854171Z ok   (c) no merge on budget
+2026-10-22T11:04:11.2854561Z ok   (c) the watch was announced first
+2026-10-22T11:04:11.2855026Z ok   (d) a moved head aborts, naming both heads
+2026-10-22T11:04:11.2855470Z ok   (d) no merge at a moved head
+2026-10-22T11:04:11.2855933Z ok   (e) a refused verdict gate aborts with its reason
+2026-10-22T11:04:11.2856404Z ok   (e) no merge without a verdict
+2026-10-22T11:04:11.2856830Z ok   (e) the gate was asked, not assumed
+2026-10-22T11:04:11.2857244Z ok   (e2) the divergence is named
+2026-10-22T11:04:11.2857655Z ok   (e2) no merge on an unreadable verdict
+2026-10-22T11:04:11.2858078Z ok   (g) the red context is named
+2026-10-22T11:04:11.2858422Z ok   (g) no merge on red
+2026-10-22T11:04:11.2858784Z ok   (h) the mergeable state is named
+2026-10-22T11:04:11.2859160Z ok   (h) no merge unmergeable
+2026-10-22T11:04:11.2859528Z ok   (i) the held lock is named
+2026-10-22T11:04:11.2860206Z ok   (i) no double merge
+2026-10-22T11:04:11.2860628Z ok   (j) the merge path's refusal is reported
+2026-10-22T11:04:11.2861188Z ok   (j) no MERGE line is logged for a merge that did not land
+2026-10-22T11:04:11.2861632Z ok   (k) skipped reads as not-succeeded
+2026-10-22T11:04:11.2861961Z ok   (k) no merge on a skipped check
+2026-10-22T11:04:11.2862407Z ok   (l) a pending required context waits a poll, then merges when it lands
+2026-10-22T11:04:11.2862868Z ok   (l) the wait polls at the configured cadence
+2026-10-22T11:04:11.2863245Z proof_watch self-test: 36 checks, 0 failed
+2026-10-22T11:04:11.2981305Z ##[group]Run set -o pipefail
+2026-10-22T11:04:11.2981613Z [36;1mset -o pipefail[0m
+2026-10-22T11:04:11.2982099Z [36;1mpython3 -I tools/audit/seat/prune_refs.py --self-test | tee "$RUNNER_TEMP/prune-refs-self-test.txt"[0m
+2026-10-22T11:04:11.2982773Z [36;1mgrep -Eq '^SELF-TEST PASS \([1-9][0-9]* checks\)$' "$RUNNER_TEMP/prune-refs-self-test.txt"[0m
+2026-10-22T11:04:11.3033107Z shell: /usr/bin/bash -e {0}
+2026-10-22T11:04:11.3033362Z env:
+2026-10-22T11:04:11.3033572Z   HPO_JOB_GRADES: nothing
+2026-10-22T11:04:11.3033818Z ##[endgroup]
+2026-10-22T11:04:11.3637966Z   PASS  main keeps
+2026-10-22T11:04:11.3638760Z   PASS  merged into main deletes
+2026-10-22T11:04:11.3639562Z   PASS  open PR keeps
+2026-10-22T11:04:11.3640171Z   PASS  open PR keeps even when merged (null control)
+2026-10-22T11:04:11.3641017Z   PASS  handoff whose PR merged deletes
+2026-10-22T11:04:11.3641633Z   PASS  merged beats handoff-pr-merged
+2026-10-22T11:04:11.3642195Z   PASS  no PR is residue
+2026-10-22T11:04:11.3642796Z   PASS  closed-unmerged PR is residue
+2026-10-22T11:04:11.3643357Z   PASS  open handoff ref keeps
+2026-10-22T11:04:11.3643929Z   PASS  handoff ref that is a done group's branch deletes
+2026-10-22T11:04:11.3644665Z   PASS  ...but an OPEN handoff group branch still keeps
+2026-10-22T11:04:11.3645363Z   PASS  archive tag is the branch under archive/
+2026-10-22T11:04:11.3645974Z   PASS  archive tag of a two-segment ref
+2026-10-22T11:04:11.3646538Z   PASS  family is the first segment
+2026-10-22T11:04:11.3647076Z   PASS  planner tags before deletes
+2026-10-22T11:04:11.3647585Z   PASS  planner never acts on main
+2026-10-22T11:04:11.3648181Z   PASS  orphans scope tags only unmerged tips
+2026-10-22T11:04:11.3648907Z   PASS  orphans scope still deletes the already-merged tip
+2026-10-22T11:04:11.3649594Z   PASS  archive-scope none deletes nothing
+2026-10-22T11:04:11.3650442Z   PASS  keep-residue keeps a no-PR ref
+2026-10-22T11:04:11.3651020Z   PASS  refuses an undrained verdict ref
+2026-10-22T11:04:11.3651620Z   PASS  refuses a plan that would act on main
+2026-10-22T11:04:11.3652380Z   PASS  refuses an archive tag naming a host path, without echoing it
+2026-10-22T11:04:11.3653259Z   PASS  and plans the same tip under a clean name (the null control)
+2026-10-22T11:04:11.3653969Z SELF-TEST PASS (24 checks)
+2026-10-22T11:04:11.3768821Z ##[group]Run set -o pipefail
+2026-10-22T11:04:11.3769134Z [36;1mset -o pipefail[0m
+2026-10-22T11:04:11.3769594Z [36;1mpython3 -I tools/audit/seat/pulse.py --self-test | tee "$RUNNER_TEMP/pulse-self-test.txt"[0m
+2026-10-22T11:04:11.3770751Z [36;1mgrep -Eq '^pulse self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/pulse-self-test.txt"[0m
+2026-10-22T11:04:11.3820597Z shell: /usr/bin/bash -e {0}
+2026-10-22T11:04:11.3820845Z env:
+2026-10-22T11:04:11.3821037Z   HPO_JOB_GRADES: nothing
+2026-10-22T11:04:11.3821263Z ##[endgroup]
+2026-10-22T11:04:11.5761858Z   ok   null control: a healthy board is ok on all three arms
+2026-10-22T11:04:11.5762727Z   ok   the 10-21 shape: the blocked #2527 verdict 7.7 h at its head is STOPPED
+2026-10-22T11:04:11.5763323Z   ok   the 10-21 shape: a backlog older than the last opening is counted, not a stop
+2026-10-22T11:04:11.5763966Z   ok   the 10-21 shape: a beat that died with the train is not blamed while main is still
+2026-10-22T11:04:11.5764690Z   ok   a handoff 4 h old with no opening since it arrived: opener STOPPED, the rest ok
+2026-10-22T11:04:11.5765259Z   ok   the same handoff with an opening after it arrived is ok
+2026-10-22T11:04:11.5765870Z   ok   main moved 60 min ago, the state ref did not follow: state-beat STOPPED, the rest ok
+2026-10-22T11:04:11.5766518Z   ok   the state-beat age is the oldest main move the state ref has not followed
+2026-10-22T11:04:11.5767029Z   ok   inputs younger than their bounds are ok on every arm
+2026-10-22T11:04:11.5767507Z   ok   perturbation: a --verdict-h above the verdict's age reads it ok
+2026-10-22T11:04:11.5768082Z   ok   a verdict whose pull request merged or whose head moved is consumed
+2026-10-22T11:04:11.5768564Z   ok   an unread last opening is UNREADABLE, never ok
+2026-10-22T11:04:11.5769016Z   ok   unreadable inputs read UNREADABLE on every arm, never ok
+2026-10-22T11:04:11.5769498Z   ok   a state ref with main or its own commit unread is UNREADABLE
+2026-10-22T11:04:11.5770369Z   ok   bus.sh rc 0 with no summary line is UNREADABLE
+2026-10-22T11:04:11.5770804Z   ok   bus.sh rc 2 or more is UNREADABLE even beside a summary line
+2026-10-22T11:04:11.5771260Z   ok   a stamp ahead of the clock is never aged and is named skew
+2026-10-22T11:04:11.5771777Z   ok   the verdict subject parser reads a blocked verdict's PR, kind and head
+2026-10-22T11:04:11.5772232Z   ok   a design-review subject is not a verdict
+2026-10-22T11:04:11.5772622Z   ok   an orphan of unknown age is named, never aged
+2026-10-22T11:04:11.5773100Z   ok   --snapshot exits 1 on a stop, 2 on unreadable, 0 on a healthy board
+2026-10-22T11:04:11.5773535Z   ok   the summary line counts the arms
+2026-10-22T11:04:11.5773907Z pulse self-test: 22 checks, 0 failed
+2026-10-22T11:04:11.5889068Z ##[group]Run set -o pipefail
+2026-10-22T11:04:11.5889380Z [36;1mset -o pipefail[0m
+2026-10-22T11:04:11.5890200Z [36;1mpython3 -I tools/audit/seat/record_row.py --self-test | tee "$RUNNER_TEMP/record-row-self-test.txt"[0m
+2026-10-22T11:04:11.5890931Z [36;1mgrep -Eq '^record_row self-test: all checks passed$' "$RUNNER_TEMP/record-row-self-test.txt"[0m
+2026-10-22T11:04:11.5943322Z shell: /usr/bin/bash -e {0}
+2026-10-22T11:04:11.5943576Z env:
+2026-10-22T11:04:11.5943798Z   HPO_JOB_GRADES: nothing
+2026-10-22T11:04:11.5944040Z ##[endgroup]
+2026-10-22T11:04:11.9519653Z record_row self-test: all checks passed
+2026-10-22T11:04:11.9683509Z ##[group]Run set -o pipefail
+2026-10-22T11:04:11.9683827Z [36;1mset -o pipefail[0m
+2026-10-22T11:04:11.9684302Z [36;1mpython3 -I tools/audit/seat/resume_doc.py --self-test | tee "$RUNNER_TEMP/resume-doc-self-test.txt"[0m
+2026-10-22T11:04:11.9685005Z [36;1mgrep -Eq '^resume_doc self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/resume-doc-self-test.txt"[0m
+2026-10-22T11:04:11.9736542Z shell: /usr/bin/bash -e {0}
+2026-10-22T11:04:11.9736800Z env:
+2026-10-22T11:04:11.9736996Z   HPO_JOB_GRADES: nothing
+2026-10-22T11:04:11.9737235Z ##[endgroup]
+2026-10-22T11:04:12.0224705Z resume_doc: REFUSED: 11579 bytes over the 10240-byte budget; archive before regenerating, --out not written
+2026-10-22T11:04:12.0237034Z wrote /tmp/hpo-fr8-resume-32_uwn0_/o.md (627 bytes of the 10240-byte budget)
+2026-10-22T11:04:12.0238177Z resume_doc self-test: 14 checks, 0 failed
+2026-10-22T11:04:12.0358622Z ##[group]Run set -o pipefail
+2026-10-22T11:04:12.0358941Z [36;1mset -o pipefail[0m
+2026-10-22T11:04:12.0359420Z [36;1mpython3 -I tools/audit/seat/roster_edit.py --self-test | tee "$RUNNER_TEMP/roster-edit-self-test.txt"[0m
+2026-10-22T11:04:12.0360481Z [36;1mgrep -Eq '^roster_edit self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/roster-edit-self-test.txt"[0m
+2026-10-22T11:04:12.0412144Z shell: /usr/bin/bash -e {0}
+2026-10-22T11:04:12.0412422Z env:
+2026-10-22T11:04:12.0412625Z   HPO_JOB_GRADES: nothing
+2026-10-22T11:04:12.0412851Z ##[endgroup]
+2026-10-22T11:04:12.8243246Z roster_edit: REFUSED: R9-B already wires #1946 in issues
+2026-10-22T11:04:12.9326248Z roster_edit: REFUSED: R9-B does not hold #1946 in issues (holds: [])
+2026-10-22T11:04:12.9527635Z roster_edit: REFUSED: R9-A does not hold #10 in fixes (holds: [])
+2026-10-22T11:04:13.0681817Z roster_edit: REFUSED: issue must be an integer: 'abc'
+2026-10-22T11:04:13.0878045Z roster_edit: REFUSED: no roster group 'R9-NOPE' (known: 2 groups)
+2026-10-22T11:04:13.1988344Z roster_edit: REFUSED: R9-B already wires #5 in fixes
+2026-10-22T11:04:13.2921733Z usage: roster_edit.py [-h] [--at-sha AT_SHA]
+2026-10-22T11:04:13.2922472Z                       [--field {stage,commit,branch,last_step,next_step,note,issues,fixes}]
+2026-10-22T11:04:13.2922969Z                       [--value VALUE_OPT] [--match MATCH]
+2026-10-22T11:04:13.2923376Z                       [--checkout CHECKOUT] [--roster-ref ROSTER_REF]
+2026-10-22T11:04:13.2923822Z                       [--branch BRANCH] [--roster-path ROSTER_PATH] --worktree
+2026-10-22T11:04:13.2924248Z                       WORKTREE [--lint-cwd LINT_CWD] [--push]
+2026-10-22T11:04:13.2924597Z                       [--message MESSAGE]
+2026-10-22T11:04:13.2925264Z                       {set-stage,wire-issue,unwire-issue,append-group,edit-brief,append-carry,set-resume,set-after,drop-carry}
+2026-10-22T11:04:13.2925888Z                       group [value]
+2026-10-22T11:04:13.2926353Z roster_edit.py: error: wire-issue --field is one of issues, fixes
+2026-10-22T11:04:13.4635625Z usage: roster_edit.py [-h] [--at-sha AT_SHA]
+2026-10-22T11:04:13.4636354Z                       [--field {stage,commit,branch,last_step,next_step,note,issues,fixes}]
+2026-10-22T11:04:13.4636999Z                       [--value VALUE_OPT] [--match MATCH]
+2026-10-22T11:04:13.4637507Z                       [--checkout CHECKOUT] [--roster-ref ROSTER_REF]
+2026-10-22T11:04:13.4638225Z                       [--branch BRANCH] [--roster-path ROSTER_PATH] --worktree
+2026-10-22T11:04:13.4638794Z                       WORKTREE [--lint-cwd LINT_CWD] [--push]
+2026-10-22T11:04:13.4639236Z                       [--message MESSAGE]
+2026-10-22T11:04:13.4640392Z                       {set-stage,wire-issue,unwire-issue,append-group,edit-brief,append-carry,set-resume,set-after,drop-carry}
+2026-10-22T11:04:13.4641251Z                       group [value]
+2026-10-22T11:04:13.4641913Z roster_edit.py: error: unwire-issue --field is one of issues, fixes
+2026-10-22T11:04:13.5738486Z roster_edit: REFUSED: append-group: R9-C already in the roster
+2026-10-22T11:04:13.7702100Z roster_edit: REFUSED: R9-F does not hold #7 in fixes (holds: [8])
+2026-10-22T11:04:13.7893995Z roster_edit: REFUSED: append-group: R9-D after names no group: ['R9-NOPE']
+2026-10-22T11:04:13.9884517Z roster_edit: REFUSED: R9-A already carries that entry
+2026-10-22T11:04:14.0085946Z roster_edit: REFUSED: no roster group 'R9-ZZ' (known: 4 groups)
+2026-10-22T11:04:14.2106179Z roster_edit: REFUSED: --field commit needs a sha: 'nothex'
+2026-10-22T11:04:14.3185036Z roster_edit: REFUSED: resume.stage is a non-null field; an empty value is refused
+2026-10-22T11:04:14.3374308Z roster_edit: REFUSED: resume.branch is a non-null field; an empty value is refused
+2026-10-22T11:04:14.4440512Z roster_edit: REFUSED: no roster group 'R9-ZZ' (known: 4 groups)
+2026-10-22T11:04:14.4447273Z usage: roster_edit.py [-h] [--at-sha AT_SHA]
+2026-10-22T11:04:14.4448439Z                       [--field {stage,commit,branch,last_step,next_step,note,issues,fixes}]
+2026-10-22T11:04:14.4449240Z                       [--value VALUE_OPT] [--match MATCH]
+2026-10-22T11:04:14.4450276Z                       [--checkout CHECKOUT] [--roster-ref ROSTER_REF]
+2026-10-22T11:04:14.4450936Z                       [--branch BRANCH] [--roster-path ROSTER_PATH] --worktree
+2026-10-22T11:04:14.4451534Z                       WORKTREE [--lint-cwd LINT_CWD] [--push]
+2026-10-22T11:04:14.4452083Z                       [--message MESSAGE]
+2026-10-22T11:04:14.4452968Z                       {set-stage,wire-issue,unwire-issue,append-group,edit-brief,append-carry,set-resume,set-after,drop-carry}
+2026-10-22T11:04:14.4453803Z                       group [value]
+2026-10-22T11:04:14.4454776Z roster_edit.py: error: argument --field: invalid choice: 'log' (choose from 'stage', 'commit', 'branch', 'last_step', 'next_step', 'note', 'issues', 'fixes')
+2026-10-22T11:04:15.7092706Z roster_edit: LINT GATE REFUSED the push
+2026-10-22T11:04:15.7093470Z TOTAL: 1 error(s) across 1 file(s)
+2026-10-22T11:04:15.7094407Z the commit is local at 162c397ada2f in /tmp/hpo-fr8-selftest-jr588r8e/wt-lint (detached); nothing pushed
+2026-10-22T11:04:15.7360485Z roster_edit: REFUSED: host-path in the ref name would publish this host (#2310); nothing written
+2026-10-22T11:04:15.7924440Z roster_edit: LINT GATE REFUSED the push
+2026-10-22T11:04:15.7925692Z --lint-cwd /tmp/hpo-fr8-selftest-jr588r8e/stale is at a13d5d810af7, not origin/main (c74b72c73d26): the stale-worktree trap; lint from a fresh main checkout
+2026-10-22T11:04:15.7926937Z the commit is local at 95be034f26f2 in /tmp/hpo-fr8-selftest-jr588r8e/wt-stale (detached); nothing pushed
+2026-10-22T11:04:17.1505846Z roster_edit: REFUSED: --roster-path nope.json is not a file at /tmp/hpo-fr8-selftest-jr588r8e/wt5
+2026-10-22T11:04:17.1907910Z roster_edit: REFUSED: no dev/programme/rosters/wave-r<N>-groups.json at /tmp/hpo-fr8-selftest-jr588r8e/wt6; pass --roster-path or --roster-ref
+2026-10-22T11:04:17.1998550Z roster_edit: REFUSED: no dev/programme/rosters/wave-r<N>-groups.json at origin/main in /tmp/hpo-fr8-selftest-jr588r8e/drv3; pass --roster-path or --roster-ref
+2026-10-22T11:04:17.2811799Z roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+2026-10-22T11:04:17.2812845Z lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+2026-10-22T11:04:17.2814143Z pushed edit-1 at 2a335a82e5d3c0f20bd4514b6837da2a09a6afae
+2026-10-22T11:04:17.2815123Z roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+2026-10-22T11:04:17.2816030Z lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+2026-10-22T11:04:17.2816992Z pushed edit-1 at 802b4285ff5b3e8d56215b8169524c5937c6eba0
+2026-10-22T11:04:17.2817837Z roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+2026-10-22T11:04:17.2818832Z lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+2026-10-22T11:04:17.2820061Z pushed edit-1 at 7f5ffa71542b4f36e06931a4e4ec6ea5a8303f36
+2026-10-22T11:04:17.2820981Z roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+2026-10-22T11:04:17.2822059Z roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+2026-10-22T11:04:17.2822947Z lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+2026-10-22T11:04:17.2824001Z pushed edit-1 at 39a7f776ee31d172209c498f637271e8a4d55b5b
+2026-10-22T11:04:17.2824858Z roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+2026-10-22T11:04:17.2825682Z roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+2026-10-22T11:04:17.2826617Z roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+2026-10-22T11:04:17.2827538Z lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+2026-10-22T11:04:17.2828490Z pushed edit-1 at 2a81e0096ebfb3de3d58df3bc6f3c69f477f7130
+2026-10-22T11:04:17.2829346Z roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+2026-10-22T11:04:17.2830490Z roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+2026-10-22T11:04:17.2831521Z roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+2026-10-22T11:04:17.2833128Z lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+2026-10-22T11:04:17.2834185Z pushed edit-1 at 2a13405b321d60bb06840207255c8d74754d7e8b
+2026-10-22T11:04:17.2835114Z roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+2026-10-22T11:04:17.2836023Z roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+2026-10-22T11:04:17.2837094Z lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+2026-10-22T11:04:17.2838028Z pushed edit-1 at 25fb87e3208b276849484297cacaa0d6e4bc0a06
+2026-10-22T11:04:17.2839099Z roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+2026-10-22T11:04:17.2840383Z lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+2026-10-22T11:04:17.2841385Z pushed edit-1 at 6fb8435322cac49d446c5ededdb66b1d32a6ef0c
+2026-10-22T11:04:17.2842486Z roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+2026-10-22T11:04:17.2843341Z lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+2026-10-22T11:04:17.2844378Z pushed edit-1 at 65a877bd3eef000f8cc654c1e160db37d8c46580
+2026-10-22T11:04:17.2845316Z roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+2026-10-22T11:04:17.2846323Z lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+2026-10-22T11:04:17.2847468Z pushed edit-1 at efeaf9bead8c2ee2d7207458905345e3b005b081
+2026-10-22T11:04:17.2848430Z roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+2026-10-22T11:04:17.2849488Z roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+2026-10-22T11:04:17.2850873Z lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+2026-10-22T11:04:17.2851853Z pushed edit-1 at a602c43d43a86ed61338bf276b599dcdc97c46ad
+2026-10-22T11:04:17.2853010Z roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+2026-10-22T11:04:17.2854024Z lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+2026-10-22T11:04:17.2855087Z pushed edit-1 at 4c93af293327abc7be883128171b5f56eb3b887a
+2026-10-22T11:04:17.2856188Z roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+2026-10-22T11:04:17.2857227Z roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+2026-10-22T11:04:17.2858368Z roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+2026-10-22T11:04:17.2859304Z lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+2026-10-22T11:04:17.2860506Z pushed edit-1 at 6c65a7d48d12d75ca1bbfbbfd3ea132345cb3532
+2026-10-22T11:04:17.2861621Z roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+2026-10-22T11:04:17.2862566Z lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+2026-10-22T11:04:17.2863716Z pushed edit-1 at 01aa3caa8beedb1d213425f1222e3a3cf0dfc1dd
+2026-10-22T11:04:17.2864711Z roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+2026-10-22T11:04:17.2865680Z roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+2026-10-22T11:04:17.2866693Z roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+2026-10-22T11:04:17.2867636Z lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+2026-10-22T11:04:17.2868737Z pushed edit-1 at 451ba42d85ed8484beaebe3f3723289c8d5a9c1c
+2026-10-22T11:04:17.2869932Z roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+2026-10-22T11:04:17.2871012Z lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+2026-10-22T11:04:17.2872048Z pushed edit-1 at de613357123e60645e25bed912b9b04ccf66d384
+2026-10-22T11:04:17.2873024Z roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+2026-10-22T11:04:17.2874115Z roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+2026-10-22T11:04:17.2875091Z lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+2026-10-22T11:04:17.2876072Z pushed edit-1 at 9ef6b132d97f8d1e16c0cb8e7a1feba1f73687e2
+2026-10-22T11:04:17.2877079Z roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+2026-10-22T11:04:17.2878146Z roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+2026-10-22T11:04:17.2879201Z roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+2026-10-22T11:04:17.2880425Z lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+2026-10-22T11:04:17.2881983Z pushed edit-1 at 721ca7097b56824031a030f19a185db4bfea08cd
+2026-10-22T11:04:17.2883024Z roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+2026-10-22T11:04:17.2884159Z roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+2026-10-22T11:04:17.2885284Z lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+2026-10-22T11:04:17.2886283Z pushed edit-1 at db17188c8a3568cf91183ef0cfa636e7ed76e63f
+2026-10-22T11:04:17.2887328Z roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+2026-10-22T11:04:17.2888393Z lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+2026-10-22T11:04:17.2889323Z pushed edit-1 at 63af51408d05b9d2131df95a103f0f1f9eb76cd1
+2026-10-22T11:04:17.2890617Z roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+2026-10-22T11:04:17.2891914Z no change: set-after R9-B wrote the roster's own bytes (byte-identical); nothing to commit or push
+2026-10-22T11:04:17.2893209Z roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+2026-10-22T11:04:17.2894410Z roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+2026-10-22T11:04:17.2895488Z roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+2026-10-22T11:04:17.2896581Z roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+2026-10-22T11:04:17.2897547Z roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+2026-10-22T11:04:17.2898606Z roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+2026-10-22T11:04:17.2899649Z lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+2026-10-22T11:04:17.2900833Z pushed edit-1 at 5f62e1c9728efc0610fb564024871c9995f551b0
+2026-10-22T11:04:17.2901821Z roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+2026-10-22T11:04:17.2902732Z roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+2026-10-22T11:04:17.2903758Z roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+2026-10-22T11:04:17.2904805Z roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+2026-10-22T11:04:17.2905767Z roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+2026-10-22T11:04:17.2906984Z roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+2026-10-22T11:04:17.2907928Z lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+2026-10-22T11:04:17.2908847Z pushed edit-1 at f3226637b49e4753403e32f11225cf61ac37b33a
+2026-10-22T11:04:17.2910031Z roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+2026-10-22T11:04:17.2910967Z lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+2026-10-22T11:04:17.2912040Z pushed edit-1 at a71e8eb6c7b45e7eba8c9b38240118008d662538
+2026-10-22T11:04:17.2912954Z roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+2026-10-22T11:04:17.2913887Z lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+2026-10-22T11:04:17.2914870Z pushed edit-1 at 4af2a848cb0922bfcf765f5f8f54ba090dbb81e0
+2026-10-22T11:04:17.2915799Z roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+2026-10-22T11:04:17.2916820Z roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+2026-10-22T11:04:17.2917673Z roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+2026-10-22T11:04:17.2918481Z roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+2026-10-22T11:04:17.2919220Z roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+2026-10-22T11:04:17.2920244Z roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+2026-10-22T11:04:17.2920989Z lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+2026-10-22T11:04:17.2921706Z pushed edit-1 at bf885c546f13334e3c260e5e3ccbf586e103664c
+2026-10-22T11:04:17.2922421Z roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+2026-10-22T11:04:17.2923162Z lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+2026-10-22T11:04:17.2923872Z pushed edit-1 at 6a01ef5b67121c30da0e21d0fc7971bc4023baf4
+2026-10-22T11:04:17.2924596Z roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+2026-10-22T11:04:17.2925371Z lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+2026-10-22T11:04:17.2926381Z pushed edit-1 at 15e96e841638e33649659baa269958a9e0f64998
+2026-10-22T11:04:17.2927367Z roster: dev/programme/rosters/wave-r9-groups.json on edit-byte
+2026-10-22T11:04:17.2928391Z no change: set-resume R9-A wrote the roster's own bytes (byte-identical); nothing to commit or push
+2026-10-22T11:04:17.2929410Z roster: dev/programme/rosters/wave-r9-groups.json on edit-byte
+2026-10-22T11:04:17.2930647Z no change: set-after R9-A wrote the roster's own bytes (byte-identical); nothing to commit or push
+2026-10-22T11:04:17.2931570Z roster: dev/programme/rosters/wave-r9-groups.json on edit-1
+2026-10-22T11:04:17.2932430Z roster: dev/programme/rosters/wave-r9-groups.json on edit-2
+2026-10-22T11:04:17.2933196Z roster: dev/programme/rosters/wave-r9-groups.json on edit-3
+2026-10-22T11:04:17.2933921Z lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+2026-10-22T11:04:17.2934702Z pushed edit-3 at 95be034f26f2927b218de9b052f559a6e1929681
+2026-10-22T11:04:17.2935553Z roster: dev/programme/rosters/wave-r10-groups.json on handoff/audit-r10-roster
+2026-10-22T11:04:17.2936450Z lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+2026-10-22T11:04:17.2937389Z pushed handoff/audit-r10-roster at a763deecdaf89e4729b0e001d1473f5beb1b5833
+2026-10-22T11:04:17.2938245Z roster: dev/programme/rosters/wave-r9-groups.json on edit-r9
+2026-10-22T11:04:17.2938971Z lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+2026-10-22T11:04:17.2939869Z pushed edit-r9 at d3bb718a27743e5189be402e82e328f01c55be30
+2026-10-22T11:04:17.2940531Z roster_edit self-test: 106 checks, 0 failed
+2026-10-22T11:04:17.2999282Z ##[group]Run set -o pipefail
+2026-10-22T11:04:17.2999590Z [36;1mset -o pipefail[0m
+2026-10-22T11:04:17.3000530Z [36;1mpython3 -I tools/audit/seat/r10_roster_ops_mutants.py --self-test | tee "$RUNNER_TEMP/r10-roster-ops-mutants-self-test.txt"[0m
+2026-10-22T11:04:17.3001403Z [36;1mgrep -Eq '^r10_roster_ops_mutants self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/r10-roster-ops-mutants-self-test.txt"[0m
+2026-10-22T11:04:17.3052915Z shell: /usr/bin/bash -e {0}
+2026-10-22T11:04:17.3053174Z env:
+2026-10-22T11:04:17.3053374Z   HPO_JOB_GRADES: nothing
+2026-10-22T11:04:17.3053607Z ##[endgroup]
+2026-10-22T11:04:17.5441499Z   ok   A1: anchor occurs once in tools/audit/seat/roster_edit.py
+2026-10-22T11:04:17.5442437Z   ok   A1: the plant changes the text
+2026-10-22T11:04:17.5442887Z   ok   A1: the mutant parses
+2026-10-22T11:04:17.5443427Z   ok   A2: anchor occurs once in tools/audit/seat/roster_edit.py
+2026-10-22T11:04:17.5443995Z   ok   A2: the plant changes the text
+2026-10-22T11:04:17.5444466Z   ok   A2: the mutant parses
+2026-10-22T11:04:17.5444982Z   ok   A3: anchor occurs once in tools/audit/seat/roster_edit.py
+2026-10-22T11:04:17.5445539Z   ok   A3: the plant changes the text
+2026-10-22T11:04:17.5445936Z   ok   A3: the mutant parses
+2026-10-22T11:04:17.5446445Z   ok   A4: anchor occurs once in tools/audit/seat/roster_edit.py
+2026-10-22T11:04:17.5447005Z   ok   A4: the plant changes the text
+2026-10-22T11:04:17.5447408Z   ok   A4: the mutant parses
+2026-10-22T11:04:17.5447932Z   ok   A5: anchor occurs once in tools/audit/seat/roster_edit.py
+2026-10-22T11:04:17.5448506Z   ok   A5: the plant changes the text
+2026-10-22T11:04:17.5448935Z   ok   A5: the mutant parses
+2026-10-22T11:04:17.5449485Z   ok   A6: anchor occurs once in tools/audit/seat/roster_edit.py
+2026-10-22T11:04:17.5450383Z   ok   A6: the plant changes the text
+2026-10-22T11:04:17.5450774Z   ok   A6: the mutant parses
+2026-10-22T11:04:17.5451267Z   ok   A7: anchor occurs once in tools/audit/seat/roster_edit.py
+2026-10-22T11:04:17.5451813Z   ok   A7: the plant changes the text
+2026-10-22T11:04:17.5452195Z   ok   A7: the mutant parses
+2026-10-22T11:04:17.5452685Z   ok   C1: anchor occurs once in tools/audit/seat/roster_edit.py
+2026-10-22T11:04:17.5453212Z   ok   C1: the plant changes the text
+2026-10-22T11:04:17.5453595Z   ok   C1: the mutant parses
+2026-10-22T11:04:17.5454075Z   ok   C2: anchor occurs once in tools/audit/seat/roster_edit.py
+2026-10-22T11:04:17.5454598Z   ok   C2: the plant changes the text
+2026-10-22T11:04:17.5455356Z   ok   C2: the mutant parses
+2026-10-22T11:04:17.5455854Z   ok   C3: anchor occurs once in tools/audit/seat/roster_edit.py
+2026-10-22T11:04:17.5456396Z   ok   C3: the plant changes the text
+2026-10-22T11:04:17.5456782Z   ok   C3: the mutant parses
+2026-10-22T11:04:17.5457275Z   ok   C4: anchor occurs once in tools/audit/seat/roster_edit.py
+2026-10-22T11:04:17.5457807Z   ok   C4: the plant changes the text
+2026-10-22T11:04:17.5458198Z   ok   C4: the mutant parses
+2026-10-22T11:04:17.5458696Z   ok   C5: anchor occurs once in tools/audit/seat/roster_edit.py
+2026-10-22T11:04:17.5459222Z   ok   C5: the plant changes the text
+2026-10-22T11:04:17.5459612Z   ok   C5: the mutant parses
+2026-10-22T11:04:17.5460321Z   ok   C6: anchor occurs once in tools/audit/seat/roster_edit.py
+2026-10-22T11:04:17.5460747Z   ok   C6: the plant changes the text
+2026-10-22T11:04:17.5461049Z   ok   C6: the mutant parses
+2026-10-22T11:04:17.5461400Z   ok   C7: anchor occurs once in tools/audit/seat/roster_edit.py
+2026-10-22T11:04:17.5461790Z   ok   C7: the plant changes the text
+2026-10-22T11:04:17.5462078Z   ok   C7: the mutant parses
+2026-10-22T11:04:17.5462428Z   ok   C8: anchor occurs once in tools/audit/seat/roster_edit.py
+2026-10-22T11:04:17.5462808Z   ok   C8: the plant changes the text
+2026-10-22T11:04:17.5463090Z   ok   C8: the mutant parses
+2026-10-22T11:04:17.5463437Z   ok   P1: anchor occurs once in tools/audit/seat/roster_edit.py
+2026-10-22T11:04:17.5463816Z   ok   P1: the plant changes the text
+2026-10-22T11:04:17.5464389Z   ok   P1: the mutant parses
+2026-10-22T11:04:17.5464764Z   ok   P2: anchor occurs once in tools/audit/seat/roster_edit.py
+2026-10-22T11:04:17.5465149Z   ok   P2: the plant changes the text
+2026-10-22T11:04:17.5465428Z   ok   P2: the mutant parses
+2026-10-22T11:04:17.5465778Z   ok   P3: anchor occurs once in tools/audit/seat/roster_edit.py
+2026-10-22T11:04:17.5466163Z   ok   P3: the plant changes the text
+2026-10-22T11:04:17.5466442Z   ok   P3: the mutant parses
+2026-10-22T11:04:17.5466806Z   ok   D1: anchor occurs once in tools/audit/seat/roster_edit.py
+2026-10-22T11:04:17.5467186Z   ok   D1: the plant changes the text
+2026-10-22T11:04:17.5467460Z   ok   D1: the mutant parses
+2026-10-22T11:04:17.5467832Z   ok   a killed plant prints its tally and drops the (got:) suffix
+2026-10-22T11:04:17.5468262Z   ok   a crash with no FAIL line prints its tail
+2026-10-22T11:04:17.5468758Z   ok   a survivor prints fails=0 and no tail
+2026-10-22T11:04:17.5469089Z   ok   no names selects every plant
+2026-10-22T11:04:17.5469372Z   ok   a named plant is kept
+2026-10-22T11:04:17.5469904Z   ok   an unknown plant is returned for refusal
+2026-10-22T11:04:17.5470408Z r10_roster_ops_mutants self-test: 63 checks, 0 failed
+2026-10-22T11:04:17.5566824Z ##[group]Run set -o pipefail
+2026-10-22T11:04:17.5567131Z [36;1mset -o pipefail[0m
+2026-10-22T11:04:17.5567604Z [36;1mpython3 -I tools/audit/seat/roster_lib.py --self-test | tee "$RUNNER_TEMP/roster-lib-self-test.txt"[0m
+2026-10-22T11:04:17.5568336Z [36;1mgrep -Eq '^roster_lib self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/roster-lib-self-test.txt"[0m
+2026-10-22T11:04:17.5619269Z shell: /usr/bin/bash -e {0}
+2026-10-22T11:04:17.5619514Z env:
+2026-10-22T11:04:17.5619971Z   HPO_JOB_GRADES: nothing
+2026-10-22T11:04:17.5620238Z ##[endgroup]
+2026-10-22T11:04:17.7236020Z roster_lib self-test: 24 checks, 0 failed
+2026-10-22T11:04:17.7354050Z ##[group]Run set -o pipefail
+2026-10-22T11:04:17.7354376Z [36;1mset -o pipefail[0m
+2026-10-22T11:04:17.7354872Z [36;1mpython3 -I tools/audit/seat/roster_sync.py --self-test | tee "$RUNNER_TEMP/roster-sync-self-test.txt"[0m
+2026-10-22T11:04:17.7355612Z [36;1mgrep -Eq '^roster_sync self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/roster-sync-self-test.txt"[0m
+2026-10-22T11:04:17.7406267Z shell: /usr/bin/bash -e {0}
+2026-10-22T11:04:17.7406533Z env:
+2026-10-22T11:04:17.7406752Z   HPO_JOB_GRADES: nothing
+2026-10-22T11:04:17.7406999Z ##[endgroup]
+2026-10-22T11:04:18.4985335Z FAIL every stage the tree's rosters carry is classified (derivable or protected) (got: {'in-review': 'wave-r10-groups.json'})
+2026-10-22T11:04:18.4991291Z roster_sync self-test: 53 checks, 1 failed
+2026-10-22T11:04:18.5117792Z ##[error]Process completed with exit code 1.
+2026-10-22T11:04:18.5168941Z ##[group]Run set -o pipefail
+2026-10-22T11:04:18.5169250Z [36;1mset -o pipefail[0m
+2026-10-22T11:04:18.5170065Z [36;1mpython3 -I tools/audit/seat/run_twins.py --self-test | tee "$RUNNER_TEMP/run-twins-self-test.txt"[0m
+2026-10-22T11:04:18.5170783Z [36;1mgrep -Eq '^run_twins self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/run-twins-self-test.txt"[0m
+2026-10-22T11:04:18.5220614Z shell: /usr/bin/bash -e {0}
+2026-10-22T11:04:18.5220875Z env:
+2026-10-22T11:04:18.5221080Z   HPO_JOB_GRADES: nothing
+2026-10-22T11:04:18.5221324Z ##[endgroup]
+2026-10-22T11:04:18.5584102Z   ok   a cancelled run with a same-SHA sibling 1 s later is a twin
+2026-10-22T11:04:18.5584985Z   ok   a cancelled run at an older SHA is other, not a twin (null control)
+2026-10-22T11:04:18.5585683Z   ok   a same-SHA sibling 30 s apart is not a twin
+2026-10-22T11:04:18.5586295Z   ok   a review run at the same SHA is not a pull_request sibling
+2026-10-22T11:04:18.5586940Z run_twins self-test: 4 checks, 0 failed
+2026-10-22T11:04:18.5690485Z ##[group]Run set -o pipefail
+2026-10-22T11:04:18.5690826Z [36;1mset -o pipefail[0m
+2026-10-22T11:04:18.5691324Z [36;1mbash tools/audit/seat/seat_venv.sh --self-test | tee "$RUNNER_TEMP/seat-venv-self-test.txt"[0m
+2026-10-22T11:04:18.5692089Z [36;1mgrep -Eq '^seat_venv self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/seat-venv-self-test.txt"[0m
+2026-10-22T11:04:18.5742125Z shell: /usr/bin/bash -e {0}
+2026-10-22T11:04:18.5742394Z env:
+2026-10-22T11:04:18.5742612Z   HPO_JOB_GRADES: nothing
+2026-10-22T11:04:18.5742869Z ##[endgroup]
+2026-10-22T11:04:18.6559519Z   ok   the shim arms run a real interpreter, not a script
+2026-10-22T11:04:18.6800474Z   ok   seat-python exports HPO_TYPING_PYTHON when venv-ha exists and the variable is unset
+2026-10-22T11:04:18.6995466Z   ok   seat-python does not override a value the seat set
+2026-10-22T11:04:18.7183727Z   ok   seat-python does not override an empty value the seat set
+2026-10-22T11:04:18.7388982Z   ok   seat-python3 exports HPO_TYPING_PYTHON when venv-ha exists and the variable is unset
+2026-10-22T11:04:18.7580970Z   ok   seat-python3 does not override a value the seat set
+2026-10-22T11:04:18.7774492Z   ok   seat-python3 does not override an empty value the seat set
+2026-10-22T11:04:18.8004951Z   ok   the shim exports nothing when venv-ha is absent (null control)
+2026-10-22T11:04:18.8066702Z   ok   seat-python reaches the default root's venv-ci when the seat's state holds none
+2026-10-22T11:04:18.8084661Z   ok   seat-python3 reaches the default root's venv-ci when the seat's state holds none
+2026-10-22T11:04:18.8131800Z   ok   seat-python refuses naming the build command when no root holds a pinned interpreter
+2026-10-22T11:04:18.8147542Z   ok   seat-python never falls through to an unpinned interpreter (null control)
+2026-10-22T11:04:18.8180458Z   ok   seat-python3 refuses naming the build command when no root holds a pinned interpreter
+2026-10-22T11:04:18.8195674Z   ok   seat-python3 never falls through to an unpinned interpreter (null control)
+2026-10-22T11:04:18.8863182Z   ok   --check reports venv-ha when it is present
+2026-10-22T11:04:18.9535784Z   ok   --check refuses a venv-ha whose homeassistant assertion fails
+2026-10-22T11:04:19.0172869Z   ok   --check refuses a missing venv-ha
+2026-10-22T11:04:19.0213995Z   ok   pins() still hash-pins (venv-ci control)
+2026-10-22T11:04:19.0231145Z   ok   the build calls pins() for venv-ha with --no-deps from the typing lock
+2026-10-22T11:04:19.0247316Z   ok   check() carries cloud-setup.sh's homeassistant assertion
+2026-10-22T11:04:19.0262168Z   ok   cloud-setup.sh is still the oracle for that pins call
+2026-10-22T11:04:19.0283608Z seat_venv self-test: 21 checks, 0 failed
+2026-10-22T11:04:19.0340954Z ##[group]Run set -o pipefail
+2026-10-22T11:04:19.0341427Z [36;1mset -o pipefail[0m
+2026-10-22T11:04:19.0341902Z [36;1mpython3 -I tools/audit/seat/state_docs.py --self-test | tee "$RUNNER_TEMP/state-docs-self-test.txt"[0m
+2026-10-22T11:04:19.0342599Z [36;1mgrep -Eq '^state_docs self-test: all checks passed$' "$RUNNER_TEMP/state-docs-self-test.txt"[0m
+2026-10-22T11:04:19.0393793Z shell: /usr/bin/bash -e {0}
+2026-10-22T11:04:19.0394074Z env:
+2026-10-22T11:04:19.0394279Z   HPO_JOB_GRADES: nothing
+2026-10-22T11:04:19.0394516Z ##[endgroup]
+2026-10-22T11:04:19.8101643Z state_docs: REFUSED: host-path in the message would publish this host (#2310); nothing committed
+2026-10-22T11:04:20.8532920Z state_docs: REFUSED: git push -q origin 8545629099f2ebcd1dd6917ccb11e80960270dc8:refs/heads/handoff/audit-r9-plan (in /tmp/tmpcct6g0ip/beat-drv) failed: To /tmp/tmpcct6g0ip/origin.git
+2026-10-22T11:04:20.8534269Z  ! [remote rejected] 8545629099f2ebcd1dd6917ccb11e80960270dc8 -> handoff/audit-r9-plan (pre-receive hook declined)
+2026-10-22T11:04:20.8535497Z error: failed to push some refs to '/tmp/tmpcct6g0ip/origin.git'
+2026-10-22T11:04:20.8536130Z beat: refs/heads/main at 5d396ae4c6e4 not recorded (rc 2); the next pass retries
+2026-10-22T11:04:22.8965467Z state_docs: REFUSED: which round: no dev/programme/rosters/wave-r<N>-groups.json at main in /tmp/tmptln6rrk4/two; pass --roster-path or --roster-ref
+2026-10-22T11:04:22.8989013Z round state: handoff/audit-r9-plan at handoff/round9/state/
+2026-10-22T11:04:22.8990208Z generated handoff/round9/state/NEXT-SESSION-PROMPT.md: 2345 bytes
+2026-10-22T11:04:22.8990914Z generated handoff/round9/state/PLAN-TABLE.md: 1038 bytes
+2026-10-22T11:04:22.8991456Z generated handoff/round9/state/RESUME-CURRENT.md: 518 bytes
+2026-10-22T11:04:22.8992192Z ready: would push handoff/audit-r9-plan at 166977ec20fcda5ce11e3c3427ee18a36b1a99aa (no --push)
+2026-10-22T11:04:22.8993201Z mirrored handoff/round9/state/NEXT-SESSION-PROMPT.md -> /tmp/tmpknns4c_k/mirror/NEXT-SESSION-PROMPT.md
+2026-10-22T11:04:22.8994094Z mirrored handoff/round9/state/PLAN-TABLE.md -> /tmp/tmpknns4c_k/mirror/PLAN-TABLE.md
+2026-10-22T11:04:22.8994938Z mirrored handoff/round9/state/RESUME-CURRENT.md -> /tmp/tmpknns4c_k/mirror/RESUME-CURRENT.md
+2026-10-22T11:04:22.8995629Z round state: handoff/audit-r9-plan at handoff/round9/state/
+2026-10-22T11:04:22.8996203Z generated handoff/round9/state/NEXT-SESSION-PROMPT.md: 2345 bytes
+2026-10-22T11:04:22.8996752Z generated handoff/round9/state/PLAN-TABLE.md: 1038 bytes
+2026-10-22T11:04:22.8997282Z generated handoff/round9/state/RESUME-CURRENT.md: 518 bytes
+2026-10-22T11:04:22.8997886Z pushed handoff/audit-r9-plan at 166977ec20fcda5ce11e3c3427ee18a36b1a99aa
+2026-10-22T11:04:22.8998715Z mirrored handoff/round9/state/NEXT-SESSION-PROMPT.md -> /tmp/tmpknns4c_k/mirror/NEXT-SESSION-PROMPT.md
+2026-10-22T11:04:22.8999578Z mirrored handoff/round9/state/PLAN-TABLE.md -> /tmp/tmpknns4c_k/mirror/PLAN-TABLE.md
+2026-10-22T11:04:22.9001089Z mirrored handoff/round9/state/RESUME-CURRENT.md -> /tmp/tmpknns4c_k/mirror/RESUME-CURRENT.md
+2026-10-22T11:04:22.9001755Z round state: handoff/audit-r9-plan at handoff/round9/state/
+2026-10-22T11:04:22.9002284Z generated handoff/round9/state/NEXT-SESSION-PROMPT.md: 2345 bytes
+2026-10-22T11:04:22.9002766Z generated handoff/round9/state/PLAN-TABLE.md: 1038 bytes
+2026-10-22T11:04:22.9003213Z generated handoff/round9/state/RESUME-CURRENT.md: 518 bytes
+2026-10-22T11:04:22.9003868Z already current: handoff/audit-r9-plan at 166977ec20fc carries these bytes; nothing to commit or push
+2026-10-22T11:04:22.9004703Z mirrored handoff/round9/state/NEXT-SESSION-PROMPT.md -> /tmp/tmpknns4c_k/mirror/NEXT-SESSION-PROMPT.md
+2026-10-22T11:04:22.9005441Z mirrored handoff/round9/state/PLAN-TABLE.md -> /tmp/tmpknns4c_k/mirror/PLAN-TABLE.md
+2026-10-22T11:04:22.9006142Z mirrored handoff/round9/state/RESUME-CURRENT.md -> /tmp/tmpknns4c_k/mirror/RESUME-CURRENT.md
+2026-10-22T11:04:22.9006725Z round state: handoff/audit-r9-plan at handoff/round9/state/
+2026-10-22T11:04:22.9007476Z generated handoff/round9/state/NEXT-SESSION-PROMPT.md: 2128 bytes
+2026-10-22T11:04:22.9008168Z generated handoff/round9/state/PLAN-TABLE.md: 957 bytes
+2026-10-22T11:04:22.9008641Z generated handoff/round9/state/RESUME-CURRENT.md: 510 bytes
+2026-10-22T11:04:22.9009105Z round state: handoff/audit-r9-plan at handoff/round9/state/
+2026-10-22T11:04:22.9009597Z generated handoff/round9/state/NEXT-SESSION-PROMPT.md: 2128 bytes
+2026-10-22T11:04:22.9010389Z generated handoff/round9/state/PLAN-TABLE.md: 957 bytes
+2026-10-22T11:04:22.9010848Z generated handoff/round9/state/RESUME-CURRENT.md: 510 bytes
+2026-10-22T11:04:22.9011395Z pushed handoff/audit-r9-plan at 38fc0f93c3d203103f9f419aeb71480df9e99b6a
+2026-10-22T11:04:22.9012163Z mirrored handoff/round9/state/NEXT-SESSION-PROMPT.md -> /tmp/tmpknns4c_k/mirror/NEXT-SESSION-PROMPT.md
+2026-10-22T11:04:22.9012926Z mirrored handoff/round9/state/PLAN-TABLE.md -> /tmp/tmpknns4c_k/mirror/PLAN-TABLE.md
+2026-10-22T11:04:22.9013639Z mirrored handoff/round9/state/RESUME-CURRENT.md -> /tmp/tmpknns4c_k/mirror/RESUME-CURRENT.md
+2026-10-22T11:04:22.9014203Z beat: fetched origin/handoff/audit-r9-fixplan
+2026-10-22T11:04:22.9014640Z round state: handoff/audit-r9-plan at handoff/round9/state/
+2026-10-22T11:04:22.9015139Z generated handoff/round9/state/NEXT-SESSION-PROMPT.md: 2045 bytes
+2026-10-22T11:04:22.9015607Z generated handoff/round9/state/PLAN-TABLE.md: 817 bytes
+2026-10-22T11:04:22.9016049Z generated handoff/round9/state/RESUME-CURRENT.md: 536 bytes
+2026-10-22T11:04:22.9016573Z pushed handoff/audit-r9-plan at 64e82f6d5d30dd5c988d4131d0910c938e99c46a
+2026-10-22T11:04:22.9017306Z mirrored handoff/round9/state/NEXT-SESSION-PROMPT.md -> /tmp/tmpcct6g0ip/beat-mirror/NEXT-SESSION-PROMPT.md
+2026-10-22T11:04:22.9018081Z mirrored handoff/round9/state/PLAN-TABLE.md -> /tmp/tmpcct6g0ip/beat-mirror/PLAN-TABLE.md
+2026-10-22T11:04:22.9018819Z mirrored handoff/round9/state/RESUME-CURRENT.md -> /tmp/tmpcct6g0ip/beat-mirror/RESUME-CURRENT.md
+2026-10-22T11:04:22.9019670Z beat: refs/heads/main at dd5a37047dcc and origin/handoff/audit-r9-fixplan at 3d6b4269dde3 unchanged; nothing written
+2026-10-22T11:04:22.9020575Z beat: fetched origin/handoff/audit-r9-fixplan
+2026-10-22T11:04:22.9021006Z round state: handoff/audit-r9-plan at handoff/round9/state/
+2026-10-22T11:04:22.9021502Z generated handoff/round9/state/NEXT-SESSION-PROMPT.md: 2261 bytes
+2026-10-22T11:04:22.9021981Z generated handoff/round9/state/PLAN-TABLE.md: 911 bytes
+2026-10-22T11:04:22.9022442Z generated handoff/round9/state/RESUME-CURRENT.md: 525 bytes
+2026-10-22T11:04:22.9022970Z pushed handoff/audit-r9-plan at e5f4c6b08f49deb51ad2e3452a336ae595eb11f6
+2026-10-22T11:04:22.9023721Z mirrored handoff/round9/state/NEXT-SESSION-PROMPT.md -> /tmp/tmpcct6g0ip/beat-mirror/NEXT-SESSION-PROMPT.md
+2026-10-22T11:04:22.9024505Z mirrored handoff/round9/state/PLAN-TABLE.md -> /tmp/tmpcct6g0ip/beat-mirror/PLAN-TABLE.md
+2026-10-22T11:04:22.9025254Z mirrored handoff/round9/state/RESUME-CURRENT.md -> /tmp/tmpcct6g0ip/beat-mirror/RESUME-CURRENT.md
+2026-10-22T11:04:22.9025824Z beat: fetched origin/handoff/audit-r9-fixplan
+2026-10-22T11:04:22.9026255Z round state: handoff/audit-r9-plan at handoff/round9/state/
+2026-10-22T11:04:22.9026753Z generated handoff/round9/state/NEXT-SESSION-PROMPT.md: 2271 bytes
+2026-10-22T11:04:22.9027227Z generated handoff/round9/state/PLAN-TABLE.md: 921 bytes
+2026-10-22T11:04:22.9027677Z generated handoff/round9/state/RESUME-CURRENT.md: 535 bytes
+2026-10-22T11:04:22.9028088Z beat: fetched origin/handoff/audit-r9-fixplan
+2026-10-22T11:04:22.9028505Z round state: handoff/audit-r9-plan at handoff/round9/state/
+2026-10-22T11:04:22.9028995Z generated handoff/round9/state/NEXT-SESSION-PROMPT.md: 2271 bytes
+2026-10-22T11:04:22.9029461Z generated handoff/round9/state/PLAN-TABLE.md: 921 bytes
+2026-10-22T11:04:22.9030043Z generated handoff/round9/state/RESUME-CURRENT.md: 535 bytes
+2026-10-22T11:04:22.9030562Z pushed handoff/audit-r9-plan at 9667748d919700a568a045d2e1a4c48c6bf5fa75
+2026-10-22T11:04:22.9031453Z mirrored handoff/round9/state/NEXT-SESSION-PROMPT.md -> /tmp/tmpcct6g0ip/beat-mirror/NEXT-SESSION-PROMPT.md
+2026-10-22T11:04:22.9032353Z mirrored handoff/round9/state/PLAN-TABLE.md -> /tmp/tmpcct6g0ip/beat-mirror/PLAN-TABLE.md
+2026-10-22T11:04:22.9033101Z mirrored handoff/round9/state/RESUME-CURRENT.md -> /tmp/tmpcct6g0ip/beat-mirror/RESUME-CURRENT.md
+2026-10-22T11:04:22.9033653Z beat: fetched origin/handoff/audit-r9-roster
+2026-10-22T11:04:22.9034070Z round state: handoff/audit-r9-plan at handoff/round9/state/
+2026-10-22T11:04:22.9034554Z generated handoff/round9/state/NEXT-SESSION-PROMPT.md: 2436 bytes
+2026-10-22T11:04:22.9035027Z generated handoff/round9/state/PLAN-TABLE.md: 1150 bytes
+2026-10-22T11:04:22.9035479Z generated handoff/round9/state/RESUME-CURRENT.md: 717 bytes
+2026-10-22T11:04:22.9035991Z pushed handoff/audit-r9-plan at 00ee7cf1333aa2f55d437baa499e55069b781433
+2026-10-22T11:04:22.9036719Z mirrored handoff/round9/state/NEXT-SESSION-PROMPT.md -> /tmp/tmpwtd0gua5/sync-mirror/NEXT-SESSION-PROMPT.md
+2026-10-22T11:04:22.9037492Z mirrored handoff/round9/state/PLAN-TABLE.md -> /tmp/tmpwtd0gua5/sync-mirror/PLAN-TABLE.md
+2026-10-22T11:04:22.9038232Z mirrored handoff/round9/state/RESUME-CURRENT.md -> /tmp/tmpwtd0gua5/sync-mirror/RESUME-CURRENT.md
+2026-10-22T11:04:22.9038844Z roster_sync: pull requests: 3 read offline from --pr-state
+2026-10-22T11:04:22.9039400Z roster_sync: R9-MERGED: stage not-started -> done at ffffffffffff (PR #41 MERGED)
+2026-10-22T11:04:22.9040607Z roster_sync: R9-OPEN: stage queued -> in-progress (PR #42 OPEN)
+2026-10-22T11:04:22.9041271Z roster_sync: SKIP R9-DEFER: stage deferred is a human disposition (PR #43 MERGED); left alone
+2026-10-22T11:04:22.9041939Z roster: dev/programme/rosters/wave-r9-groups.json on handoff/audit-r9-roster
+2026-10-22T11:04:22.9042497Z lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+2026-10-22T11:04:22.9043031Z pushed handoff/audit-r9-roster at 889de3cc24ad25a611cd249f2e8a64c07b5aec96
+2026-10-22T11:04:22.9043499Z beat: fetched origin/handoff/audit-r9-roster
+2026-10-22T11:04:22.9043922Z round state: handoff/audit-r9-plan at handoff/round9/state/
+2026-10-22T11:04:22.9044422Z generated handoff/round9/state/NEXT-SESSION-PROMPT.md: 2430 bytes
+2026-10-22T11:04:22.9044896Z generated handoff/round9/state/PLAN-TABLE.md: 1093 bytes
+2026-10-22T11:04:22.9045350Z generated handoff/round9/state/RESUME-CURRENT.md: 673 bytes
+2026-10-22T11:04:22.9045861Z pushed handoff/audit-r9-plan at 678e99a7248f82aa9bb57a3bc3bf73e1067e7ba0
+2026-10-22T11:04:22.9046590Z mirrored handoff/round9/state/NEXT-SESSION-PROMPT.md -> /tmp/tmpwtd0gua5/sync-mirror/NEXT-SESSION-PROMPT.md
+2026-10-22T11:04:22.9047361Z mirrored handoff/round9/state/PLAN-TABLE.md -> /tmp/tmpwtd0gua5/sync-mirror/PLAN-TABLE.md
+2026-10-22T11:04:22.9048098Z mirrored handoff/round9/state/RESUME-CURRENT.md -> /tmp/tmpwtd0gua5/sync-mirror/RESUME-CURRENT.md
+2026-10-22T11:04:22.9048702Z roster_sync: pull requests: 3 read offline from --pr-state
+2026-10-22T11:04:22.9049402Z roster_sync: RECORD-INVALID R9-MERGED ffffffffffffffffffffffffffffffffffffffff does not resolve to a commit
+2026-10-22T11:04:22.9050360Z roster_sync: SKIP R9-DEFER: stage deferred is a human disposition (PR #43 MERGED); left alone
+2026-10-22T11:04:22.9050989Z roster_sync: no derived change on handoff/audit-r9-roster; nothing written
+2026-10-22T11:04:22.9051443Z beat: fetched origin/handoff/audit-r9-roster
+2026-10-22T11:04:22.9051863Z round state: handoff/audit-r9-plan at handoff/round9/state/
+2026-10-22T11:04:22.9052356Z generated handoff/round9/state/NEXT-SESSION-PROMPT.md: 2430 bytes
+2026-10-22T11:04:22.9052827Z generated handoff/round9/state/PLAN-TABLE.md: 1093 bytes
+2026-10-22T11:04:22.9053279Z generated handoff/round9/state/RESUME-CURRENT.md: 673 bytes
+2026-10-22T11:04:22.9053916Z already current: handoff/audit-r9-plan at 678e99a7248f carries these bytes; nothing to commit or push
+2026-10-22T11:04:22.9054752Z mirrored handoff/round9/state/NEXT-SESSION-PROMPT.md -> /tmp/tmpwtd0gua5/sync-mirror/NEXT-SESSION-PROMPT.md
+2026-10-22T11:04:22.9055676Z mirrored handoff/round9/state/PLAN-TABLE.md -> /tmp/tmpwtd0gua5/sync-mirror/PLAN-TABLE.md
+2026-10-22T11:04:22.9056529Z mirrored handoff/round9/state/RESUME-CURRENT.md -> /tmp/tmpwtd0gua5/sync-mirror/RESUME-CURRENT.md
+2026-10-22T11:04:22.9057065Z state_docs self-test: all checks passed
+2026-10-22T11:04:22.9144061Z ##[group]Run set -o pipefail
+2026-10-22T11:04:22.9144368Z [36;1mset -o pipefail[0m
+2026-10-22T11:04:22.9144811Z [36;1mbash tools/audit/seat/tick_loop.sh --self-test | tee "$RUNNER_TEMP/tick-loop-self-test.txt"[0m
+2026-10-22T11:04:22.9145479Z [36;1mgrep -Eq '^tick_loop self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/tick-loop-self-test.txt"[0m
+2026-10-22T11:04:22.9196000Z shell: /usr/bin/bash -e {0}
+2026-10-22T11:04:22.9196252Z env:
+2026-10-22T11:04:22.9196450Z   HPO_JOB_GRADES: nothing
+2026-10-22T11:04:22.9196693Z ##[endgroup]
+2026-10-22T11:04:23.0594061Z   ok   --once: one pass, cloud_relay.sh pass first, then the tick with its args; one banner
+2026-10-22T11:04:23.0782969Z   ok   null control: no cloud_relay.sh in the tree (before #2419) skips the relay and still ticks
+2026-10-22T11:04:23.2024219Z   ok   a failing relay pass is reported and the tick still runs; the tick's status is reported
+2026-10-22T11:04:24.2396201Z   ok   a relay slower than the interval does not delay the board; the banner says relay=running
+2026-10-22T11:04:24.3607757Z   ok   a pass that finds the relay in flight starts none (no overlap) and still ticks
+2026-10-22T11:04:29.3158531Z   ok   the in-flight relay was left to finish after its loop exited, never killed
+2026-10-22T11:04:29.5479645Z   ok   null control: the late relay is reaped with its log next pass, and a fast relay reports ok
+2026-10-22T11:04:29.5536260Z   ok   a non-numeric --interval refuses
+2026-10-22T11:04:29.5724113Z   ok   each pass calls the heartbeat once, with the pass line (no --out path)
+2026-10-22T11:04:29.5898525Z   ok   a failing heartbeat is printed, never silent, and the loop still exits cleanly
+2026-10-22T11:04:29.7079575Z   ok   a real pass moves heartbeat/orchestrator on the remote
+2026-10-22T11:04:29.7992888Z   ok   null control: a refused push is printed with its reason and the pass still completes
+2026-10-22T11:04:29.8029557Z tick_loop self-test: 12 checks, 0 failed
+2026-10-22T11:04:29.8089358Z ##[group]Run set -o pipefail
+2026-10-22T11:04:29.8089661Z [36;1mset -o pipefail[0m
+2026-10-22T11:04:29.8091211Z [36;1mbash tools/audit/seat/heartbeat.sh --self-test | tee "$RUNNER_TEMP/heartbeat-self-test.txt"[0m
+2026-10-22T11:04:29.8091896Z [36;1mgrep -Eq '^heartbeat self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/heartbeat-self-test.txt"[0m
+2026-10-22T11:04:29.8142847Z shell: /usr/bin/bash -e {0}
+2026-10-22T11:04:29.8143111Z env:
+2026-10-22T11:04:29.8143321Z   HPO_JOB_GRADES: nothing
+2026-10-22T11:04:29.8143574Z ##[endgroup]
+2026-10-22T11:04:29.9395623Z   ok   --once moves heartbeat/orchestrator to a commit carrying the pass line
+2026-10-22T11:04:31.0261858Z   ok   a second pass force-moves the same ref (one parentless commit, no history)
+2026-10-22T11:04:31.0914973Z   ok   a message carrying the host's home directory is refused and the reachable ref does not move
+2026-10-22T11:04:31.1076509Z   ok   watcher: a fresh ref does not alert
+2026-10-22T11:04:31.1436093Z   ok   watcher: a ref older than the limit alerts, naming its message
+2026-10-22T11:04:31.1573760Z   ok   watcher: an absent ref alerts
+2026-10-22T11:04:31.2327627Z   ok   a refused push is printed with its reason and exits 1, never silent
+2026-10-22T11:04:31.2362974Z heartbeat self-test: 7 checks, 0 failed
+2026-10-22T11:04:31.2416369Z ##[group]Run set -o pipefail
+2026-10-22T11:04:31.2416682Z [36;1mset -o pipefail[0m
+2026-10-22T11:04:31.2417130Z [36;1mbash tools/audit/seat/update_pr.sh --self-test | tee "$RUNNER_TEMP/update-pr-self-test.txt"[0m
+2026-10-22T11:04:31.2417820Z [36;1mgrep -Eq '^delivery_row self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/update-pr-self-test.txt"[0m
+2026-10-22T11:04:31.2418545Z [36;1mgrep -Eq '^pr_args self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/update-pr-self-test.txt"[0m
+2026-10-22T11:04:31.2468702Z shell: /usr/bin/bash -e {0}
+2026-10-22T11:04:31.2469139Z env:
+2026-10-22T11:04:31.2469336Z   HPO_JOB_GRADES: nothing
+2026-10-22T11:04:31.2469566Z ##[endgroup]
+2026-10-22T11:04:31.2672741Z   ok   a row lands under dev/programme/delivery/<N>.md, and nothing is written under docs/
+2026-10-22T11:04:31.3086489Z   ok   a head without its row gains exactly one commit, adding only that row, as tvofi; the stray file and the edit stay out
+2026-10-22T11:04:31.3183047Z   ok   null control: a head that carries its row gains no commit, and its row file is not rewritten
+2026-10-22T11:04:31.3188268Z   ok   no group writes no empty parentheses
+2026-10-22T11:04:31.3194818Z   ok   a group, when given, closes the row in parentheses (open_pr.sh's shape)
+2026-10-22T11:04:31.3225806Z delivery_row self-test: 5 checks, 0 failed
+2026-10-22T11:04:31.4246882Z   ok   open_pr: three arguments refuse, naming the count
+2026-10-22T11:04:31.4461729Z   ok     mutant mut:arity (its line deleted) fails that arm
+2026-10-22T11:04:31.4711723Z   ok   open_pr: an abbreviated code sha refuses as not 40-hex
+2026-10-22T11:04:31.6691172Z   ok     mutant mut:hex (its line deleted) fails that arm
+2026-10-22T11:04:31.7819527Z   ok   open_pr: a 40-hex sha that names no commit refuses as unresolved
+2026-10-22T11:04:31.8926852Z   ok     mutant mut:resolve (its line deleted) fails that arm
+2026-10-22T11:04:32.0051594Z   ok   open_pr: the body sha in the code slot refuses, naming it the BODY sha
+2026-10-22T11:04:32.1201334Z   ok     mutant mut:body (its line deleted) fails that arm
+2026-10-22T11:04:32.2427732Z   ok   open_pr: a non-ancestor refuses, saying it is not the body tip
+2026-10-22T11:04:32.4385947Z   ok     mutant mut:ancestor (its line deleted) fails that arm
+2026-10-22T11:04:32.5435682Z   ok   open_pr: a topic with no handoff/<topic> refuses, naming the ref
+2026-10-22T11:04:32.6500970Z   ok     mutant mut:noref (its line deleted) fails that arm
+2026-10-22T11:04:32.7541125Z   ok   open_pr: a topic with no handoff-body/<topic> refuses, naming the ref
+2026-10-22T11:04:32.8606120Z   ok     mutant mut:nobody (its line deleted) fails that arm
+2026-10-22T11:04:33.0165074Z   ok   open_pr: a failing step past the checks (worktree add) reports itself through the ERR trap
+2026-10-22T11:04:33.1708716Z   ok     mutant mut:trap (its line deleted) fails that arm
+2026-10-22T11:04:33.3700571Z   ok   open_pr: twenty open pull requests do not stop an open; the count is information
+2026-10-22T11:04:33.5336434Z   ok     mutant mut:openinfo (its line deleted) no longer prints it
+2026-10-22T11:04:33.7320364Z   ok   open_pr: --over-cap is still accepted, and says it is advisory
+2026-10-22T11:04:33.9334846Z   ok     mutant mut:overadvisory (its line deleted) no longer prints it
+2026-10-22T11:04:34.1307177Z   ok   open_pr: an open count gh cannot read says so and still opens
+2026-10-22T11:04:34.3296162Z   ok     mutant mut:inforead (its line deleted) reports the unreadable board as a count
+2026-10-22T11:04:34.5292129Z   ok   open_pr: a record: title and another bot's pull request are not in the open count
+2026-10-22T11:04:34.7255954Z   ok     mutant mut:caprecord (its line deleted) no longer prints it
+2026-10-22T11:04:34.9298758Z   ok   open_pr: the same board, the bot pull request uncounted
+2026-10-22T11:04:35.1280900Z   ok     mutant mut:capbot (its line deleted) no longer prints it
+2026-10-22T11:04:35.3349987Z   ok   null control: open_pr with the code sha passes every check, and its failed push names its log
+2026-10-22T11:04:35.3596918Z   ok   update_pr: two arguments refuse, naming the count
+2026-10-22T11:04:35.3798608Z   ok     mutant mut:arity (its line deleted) fails that arm
+2026-10-22T11:04:35.4031393Z   ok   update_pr: an abbreviated code sha refuses as not 40-hex
+2026-10-22T11:04:35.5937997Z   ok     mutant mut:hex (its line deleted) fails that arm
+2026-10-22T11:04:35.7124706Z   ok   update_pr: the body sha in the code slot refuses, naming it the BODY sha
+2026-10-22T11:04:35.8276974Z   ok     mutant mut:body (its line deleted) fails that arm
+2026-10-22T11:04:35.9436040Z   ok   update_pr: a non-ancestor refuses, saying it is not the body tip
+2026-10-22T11:04:36.1339576Z   ok     mutant mut:ancestor (its line deleted) fails that arm
+2026-10-22T11:04:36.2408831Z   ok   update_pr: a branch whose topic has no handoff/<topic> refuses, naming the ref
+2026-10-22T11:04:36.3505897Z   ok     mutant mut:noref (its line deleted) fails that arm
+2026-10-22T11:04:36.4665858Z   ok   update_pr: branch fix/x-pr, with no handoff/x-pr on origin, is checked against handoff/x
+2026-10-22T11:04:36.5660200Z   ok     mutant mut:prtopic (its line deleted) fails that arm
+2026-10-22T11:04:36.6590598Z   ok   update_pr: a failing step past the checks (fetching an absent branch) reports itself through the ERR trap
+2026-10-22T11:04:36.7550878Z   ok     mutant mut:trap (its line deleted) fails that arm
+2026-10-22T11:04:36.9668668Z   ok   update_pr: a branch whose update is in flight refuses BUSY (75) and leaves that run's worktree in place
+2026-10-22T11:04:37.2433451Z   ok     mutant mut:lock (its line deleted) removes the in-flight run's worktree
+2026-10-22T11:04:37.4286924Z   ok   null control: a lock left by a dead run (the kernel freed it) does not block; the run reaches its push
+2026-10-22T11:04:37.7684722Z   ok   update_pr: a child the run left detached does not hold the lock; the next run on the branch reaches its push
+2026-10-22T11:04:37.7698948Z   ok   update_pr: the lock holder has exited by the time a run returns
+2026-10-22T11:04:38.0185508Z   ok     mutant mut:unlock (its line deleted): the holder is still alive when the run returns
+2026-10-22T11:04:44.3643954Z   ok   update_pr: a TERMed run (daemonize.py's stop) keeps the lock until its push has ended; then the next run takes it
+2026-10-22T11:04:51.8489361Z   ok     mutant mut:stop (its line deleted): a TERMed run frees the lock while its push still runs
+2026-10-22T11:04:58.0312224Z   ok   update_pr: a SIGKILLed run leaves no stale lock; a later run takes it
+2026-10-22T11:05:05.5230179Z   ok     mutant mut:watch (its line deleted): the holder exits at once, so the lock is not held during the push
+2026-10-22T11:05:05.9590380Z   ok   open_pr: an update_pr.sh on its branch during its second push is BUSY, and the PR's row reaches origin
+2026-10-22T11:05:06.3651126Z   ok     mutant mut:oplock (its line deleted): update_pr.sh takes the branch (not BUSY); the unpushed-work refusal alone keeps the row
+2026-10-22T11:05:06.7952284Z   ok     mutants mut:oplock and mut:unpushed (both deleted): the row's push is refused, HEAD detached under it, and the PR keeps no row (the defect)
+2026-10-22T11:05:06.9524731Z   ok   update_pr: a worktree holding the branch with a commit origin lacks is refused and stays on its branch
+2026-10-22T11:05:07.1669635Z   ok     mutant mut:unpushed (its line deleted): the worktree is detached under its unpushed commit
+2026-10-22T11:05:07.3882793Z   ok   null control: a worktree whose HEAD origin has is detached as before, and the run reaches its push
+2026-10-22T11:05:07.5813224Z   ok   update_pr: code sha '-' asks app_push.sh for --row-only, whose verdict decides the prepr
+2026-10-22T11:05:07.7533192Z   ok     mutant mut:rowonly (its line deleted): code sha '-' runs the full prepr
+2026-10-22T11:05:07.9543280Z   ok   null control: a code sha never asks for --row-only, so its push runs the full prepr
+2026-10-22T11:05:08.1535896Z   ok   null control: update_pr with code sha 'ff7a975' passes every check, and its failed push names its log
+2026-10-22T11:05:08.3220972Z   ok   null control: update_pr with code sha '-' passes every check, and its failed push names its log
+2026-10-22T11:05:08.3675208Z   ok   pr_cap.py --self-test: its tally says 0 failed
+2026-10-22T11:05:08.4092092Z pr_args self-test: 63 checks, 0 failed
+2026-10-22T11:05:08.4173622Z ##[group]Run set -o pipefail
+2026-10-22T11:05:08.4173940Z [36;1mset -o pipefail[0m
+2026-10-22T11:05:08.4174426Z [36;1mpython3 -I tools/audit/seat/offline_spy.py --self-test | tee "$RUNNER_TEMP/offline-spy-self-test.txt"[0m
+2026-10-22T11:05:08.4175152Z [36;1mgrep -Eq '^offline_spy self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/offline-spy-self-test.txt"[0m
+2026-10-22T11:05:08.4226718Z shell: /usr/bin/bash -e {0}
+2026-10-22T11:05:08.4226981Z env:
+2026-10-22T11:05:08.4227174Z   HPO_JOB_GRADES: nothing
+2026-10-22T11:05:08.4227408Z ##[endgroup]
+2026-10-22T11:05:08.8388500Z   ok   a pure Python self-test is accepted (null control)
+2026-10-22T11:05:08.8389098Z   ok   a subprocess the Python file starts is counted
+2026-10-22T11:05:08.8389554Z   ok   a socket connect is counted and refused
+2026-10-22T11:05:08.8390329Z   ok   a non-zero exit is refused
+2026-10-22T11:05:08.8390755Z   ok   a gh call from a shell file is counted and refused
+2026-10-22T11:05:08.8391351Z   ok   a git call naming a URL remote is counted and refused
+2026-10-22T11:05:08.8392061Z   ok   clone and fetch against a local bare repository are not remote (null control for the URL rule)
+2026-10-22T11:05:08.8392824Z   ok   a clone of a local path from a cwd whose origin is a URL is not remote
+2026-10-22T11:05:08.8393471Z   ok   a bare fetch resolves origin through the cwd's remotes and is remote
+2026-10-22T11:05:08.8394069Z   ok   a shell file's subprocess count is n/a, never a zero
+2026-10-22T11:05:08.8394560Z offline_spy self-test: 10 checks, 0 failed
+2026-10-22T11:05:08.8525343Z ##[group]Run if test -f .claude/workflows/figure_lint.mjs; then node .claude/workflows/figure_lint.mjs --self-test; else node tools/policy/figure_lint.mjs --self-test; fi
+2026-10-22T11:05:08.8526514Z [36;1mif test -f .claude/workflows/figure_lint.mjs; then node .claude/workflows/figure_lint.mjs --self-test; else node tools/policy/figure_lint.mjs --self-test; fi[0m
+2026-10-22T11:05:08.8578229Z shell: /usr/bin/bash -e {0}
+2026-10-22T11:05:08.8578486Z env:
+2026-10-22T11:05:08.8578684Z   HPO_JOB_GRADES: nothing
+2026-10-22T11:05:08.8578918Z ##[endgroup]
+2026-10-22T11:05:09.0453970Z   ok   the #715 enumerator's `--arg` is refused (got 1 error(s))
+2026-10-22T11:05:09.0456041Z   ok   and the refusal names the flag, not merely the line
+2026-10-22T11:05:09.1916025Z   ok   a `gh` subcommand that does not exist is refused (got 1)
+2026-10-22T11:05:09.1916876Z   ok   and by the subcommand arm, not the flag arm
+2026-10-22T11:05:09.1930172Z   ok   a script path that is not in the tree is refused
+2026-10-22T11:05:09.3348977Z   ok   a body whose figure commands all resolve is silent (null control; got 0)
+2026-10-22T11:05:09.3357441Z   ok   and it did not go silent by examining nothing
+2026-10-22T11:05:09.3358771Z   ok   backticked prose is not read as a command (got 0)
+2026-10-22T11:05:09.3463788Z   ok   a placeholder or an unknown program is reported unverified, not refused
+2026-10-22T11:05:09.3465289Z   ok   a body with no `## Figures` section is not this check's refusal
+2026-10-22T11:05:09.3466192Z   ok   a pipeline splits into its simple commands
+2026-10-22T11:05:09.3466829Z   ok   a pipe inside quotes does not split
+2026-10-22T11:05:09.3467427Z   ok   a quoted word is marked quoted
+2026-10-22T11:05:09.3468156Z   ok   a command substitution stays one word
+2026-10-22T11:05:09.3469391Z   ok   a heading inside a fence does not end the section early
+2026-10-22T11:05:09.3470719Z   ok   `gh` is runnable, so the flag inventory is real (gh version 2.102.0 (2026-09-30))
+2026-10-22T11:05:09.3471772Z   ok   the derived `gh api` inventory has --jq and --paginate and no --arg
+2026-10-22T11:05:09.4186185Z   ok   a `gh` shell alias really does run under `--help` (null control; without this the containment assertion is vacuous)
+2026-10-22T11:05:09.4882332Z   ok   and this check does not expand it: the word resolves to nothing and the alias does not run
+2026-10-22T11:05:09.4889110Z   ok   an existing file reached by `..` from outside the repository is not reported in the tree
+2026-10-22T11:05:09.4892724Z   ok   and a path that stays inside it still resolves (null control; the verdict above is the containment arm, not the path shape)
+2026-10-22T11:05:09.4894077Z   ok   past the `gh --help` spawn budget a command is unverified, not refused and not silently accepted
+2026-10-22T11:05:09.4894604Z 
+2026-10-22T11:05:09.4894738Z 22 passed, 0 failed
+2026-10-22T11:05:09.4971931Z ##[group]Run if test -f .claude/workflows/figure_census.mjs; then node .claude/workflows/figure_census.mjs --self-test; else node tools/policy/figure_census.mjs --self-test; fi
+2026-10-22T11:05:09.4973152Z [36;1mif test -f .claude/workflows/figure_census.mjs; then node .claude/workflows/figure_census.mjs --self-test; else node tools/policy/figure_census.mjs --self-test; fi[0m
+2026-10-22T11:05:09.5024491Z shell: /usr/bin/bash -e {0}
+2026-10-22T11:05:09.5024746Z env:
+2026-10-22T11:05:09.5024946Z   HPO_JOB_GRADES: nothing
+2026-10-22T11:05:09.5025181Z ##[endgroup]
+2026-10-22T11:05:09.5441170Z   ok   the #715 enumerator counts as one `gh` command (got 1)
+2026-10-22T11:05:09.5443108Z   ok   and as templated, since `$n` is bound by the loop around it
+2026-10-22T11:05:09.5450900Z   ok   a mixed body splits into its classes (got 5 instrument, 3 gh)
+2026-10-22T11:05:09.5452269Z   ok   and one command in each class is templated -- `$D` in the scope selection, `<sha>` in the check-run listing
+2026-10-22T11:05:09.5453826Z   ok   and the rest are not (null control: a rule that called everything templated would satisfy the assertion above)
+2026-10-22T11:05:09.5454981Z   ok   and every recognised command landed in a named class
+2026-10-22T11:05:09.5465573Z   ok   backticked prose is not counted as a command (got 0)
+2026-10-22T11:05:09.5466604Z   ok   a body with no `## Figures` section is reported, not silently counted as empty
+2026-10-22T11:05:09.5468059Z   ok   `gh` and `git` are counted apart (got gh, git)
+2026-10-22T11:05:09.5471591Z   ok   a `<placeholder>` is templated
+2026-10-22T11:05:09.5472261Z   ok   a `$NAME` bound elsewhere is templated
+2026-10-22T11:05:09.5473207Z   ok   a `$(...)` alone is counted separately: a shell runs it as written, an argv spawn does not
+2026-10-22T11:05:09.5474312Z   ok   and a command with neither is not templated (null control)
+2026-10-22T11:05:09.5474739Z 
+2026-10-22T11:05:09.5474889Z 13 passed, 0 failed
+2026-10-22T11:05:09.5543957Z ##[group]Run if test -f tools/audit/round6/D11/fix/codeowners_gap.py; then python3 -I tools/audit/round6/D11/fix/codeowners_gap.py --self-test; else python3 -I dev/audit/rounds/round6/D11/fix/codeowners_gap.py --self-test; fi
+2026-10-22T11:05:09.5545505Z [36;1mif test -f tools/audit/round6/D11/fix/codeowners_gap.py; then python3 -I tools/audit/round6/D11/fix/codeowners_gap.py --self-test; else python3 -I dev/audit/rounds/round6/D11/fix/codeowners_gap.py --self-test; fi[0m
+2026-10-22T11:05:09.5598318Z shell: /usr/bin/bash -e {0}
+2026-10-22T11:05:09.5598592Z env:
+2026-10-22T11:05:09.5598798Z   HPO_JOB_GRADES: nothing
+2026-10-22T11:05:09.5599032Z ##[endgroup]
+2026-10-22T11:05:09.5921815Z /home/runner/work/heatpump_optimizer/heatpump_optimizer/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: invalid escape sequence '\;'
+2026-10-22T11:05:09.5923004Z   ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+2026-10-22T11:05:09.7179979Z   ok   PROBE a listed restore never checked out: grader not pinned
+2026-10-22T11:05:09.7180968Z   ok   PROBE a listed restore checked out from another list: grader not pinned
+2026-10-22T11:05:09.7181853Z   ok   PROBE a listed restore whose list is emptied first: grader not pinned
+2026-10-22T11:05:09.7182745Z   ok   PROBE a listed restore whose list names another file: grader not pinned
+2026-10-22T11:05:09.7183627Z   ok   PROBE a listed restore whose list is truncated by cat: grader not pinned
+2026-10-22T11:05:09.7184333Z   ok   PROBE pip install: grader not pinned
+2026-10-22T11:05:09.7184840Z   ok   PROBE npm ci: grader not pinned
+2026-10-22T11:05:09.7185386Z   ok   PROBE bare tracked path: grader not pinned
+2026-10-22T11:05:09.7185964Z   ok   PROBE ./ tracked path: grader not pinned
+2026-10-22T11:05:09.7186522Z   ok   PROBE echo && script: grader not pinned
+2026-10-22T11:05:09.7187041Z   ok   PROBE ; script: grader not pinned
+2026-10-22T11:05:09.7187543Z   ok   PROBE timeout 60: grader not pinned
+2026-10-22T11:05:09.7188044Z   ok   PROBE env A=1: grader not pinned
+2026-10-22T11:05:09.7188973Z   ok   PROBE sudo: grader not pinned
+2026-10-22T11:05:09.7189455Z   ok   PROBE cd x && ./y: grader not pinned
+2026-10-22T11:05:09.7190165Z   ok   PROBE bash -c: grader not pinned
+2026-10-22T11:05:09.7190636Z   ok   PROBE source: grader not pinned
+2026-10-22T11:05:09.7191098Z   ok   PROBE . file: grader not pinned
+2026-10-22T11:05:09.7191616Z   ok   PROBE python3 -m tests.x: grader not pinned
+2026-10-22T11:05:09.7192202Z   ok   PROBE python3 -c import: grader not pinned
+2026-10-22T11:05:09.7192795Z   ok   PROBE exec: grader not pinned
+2026-10-22T11:05:09.7193323Z   ok   PROBE pytest: grader not pinned
+2026-10-22T11:05:09.7193857Z   ok   PROBE npm test: grader not pinned
+2026-10-22T11:05:09.7194406Z   ok   PROBE node --test: grader not pinned
+2026-10-22T11:05:09.7194961Z   ok   PROBE npx: grader not pinned
+2026-10-22T11:05:09.7195493Z   ok   PROBE find -exec: grader not pinned
+2026-10-22T11:05:09.7196084Z   ok   PROBE cat x | bash: grader not pinned
+2026-10-22T11:05:09.7196697Z   ok   PROBE python3 - heredoc: grader not pinned
+2026-10-22T11:05:09.7197355Z   ok   PROBE $GITHUB_PATH shim: grader not pinned
+2026-10-22T11:05:09.7198016Z   ok   PROBE $GITHUB_ENV BASH_ENV: grader not pinned
+2026-10-22T11:05:09.7198653Z   ok   PROBE PATH= assignment: grader not pinned
+2026-10-22T11:05:09.7199272Z   ok   PROBE echo $(script): grader not pinned
+2026-10-22T11:05:09.7200051Z   ok   PROBE backtick: grader not pinned
+2026-10-22T11:05:09.7200581Z   ok   PROBE github-script require: grader not pinned
+2026-10-22T11:05:09.7201169Z   ok   PROBE local action: grader not pinned
+2026-10-22T11:05:09.7201812Z   ok   PROBE unpinned setup-python: grader not pinned
+2026-10-22T11:05:09.7202472Z   ok   PROBE step shell:: grader not pinned
+2026-10-22T11:05:09.7203176Z   ok   PROBE step env names a tracked file: grader not pinned
+2026-10-22T11:05:09.7203969Z   ok   PROBE git checkout HEAD -- grader: grader not pinned
+2026-10-22T11:05:09.7205093Z   ok   PROBE redirect into the tree: grader not pinned
+2026-10-22T11:05:09.7205847Z   ok   PROBE sort -o into the grader: grader not pinned
+2026-10-22T11:05:09.7206560Z   ok   PROBE git show --output=: grader not pinned
+2026-10-22T11:05:09.7207223Z   ok   PROBE git diff --output=: grader not pinned
+2026-10-22T11:05:09.7207845Z   ok   PROBE printf -v PATH: grader not pinned
+2026-10-22T11:05:09.7208462Z   ok   PROBE read -r PATH: grader not pinned
+2026-10-22T11:05:09.7209224Z   ok   PROBE bare PINNED=HEAD before the restore: grader not pinned
+2026-10-22T11:05:09.7210323Z   ok   PROBE step env PINNED: github.sha: grader not pinned
+2026-10-22T11:05:09.7211182Z   ok   PROBE step env PINNED: github.sha before the queue's base: grader not pinned
+2026-10-22T11:05:09.7212014Z   ok   PROBE step env PINNED: the queue's head: grader not pinned
+2026-10-22T11:05:09.7212795Z   ok   PROBE grader run by an interpreter path: grader not pinned
+2026-10-22T11:05:09.7213500Z   ok   NULL  no inserted step: grader PINNED
+2026-10-22T11:05:09.7214121Z   ok   NULL  the listed restore: grader PINNED
+2026-10-22T11:05:09.7214742Z   ok   NULL  echo and printf: grader PINNED
+2026-10-22T11:05:09.7215450Z   ok   NULL  git fetch, rev-parse, hash-object: grader PINNED
+2026-10-22T11:05:09.7216079Z   ok   NULL  set, test, mkdir, cmp: grader PINNED
+2026-10-22T11:05:09.7216710Z   ok   NULL  download-artifact at its pin: grader PINNED
+2026-10-22T11:05:09.7217315Z   ok   NULL  a scratch write: grader PINNED
+2026-10-22T11:05:09.7217942Z   ok   NULL  PINNED from the queue's base: grader PINNED
+2026-10-22T11:05:09.7218727Z   ok   NULL  PINNED from the queue's base, else the push's: grader PINNED
+2026-10-22T11:05:09.7220115Z   ok   EXEC  if/then prefers the old path: ['.claude/workflows/policy_lint.mjs', 'tools/policy/policy_lint.mjs']
+2026-10-22T11:05:09.7221332Z   ok   EXEC  python3 -I dev/audit/rounds/x/fix.py --check: dev/audit/rounds/x/fix.py
+2026-10-22T11:05:09.7222211Z   ok   EXEC  python3 -I tools/audit/x.py: tools/audit/x.py
+2026-10-22T11:05:09.7222888Z   ok   EXEC  python3 -I docs/x.py: not an execution
+2026-10-22T11:05:09.7223558Z SELF-TEST: 50 probe(s), 9 null(s), 0 wrong
+2026-10-22T11:05:09.7381816Z Post job cleanup.
+2026-10-22T11:05:09.8326936Z [command]/usr/bin/git version
+2026-10-22T11:05:09.8375611Z git version 2.55.0
+2026-10-22T11:05:09.8418500Z Temporarily overriding HOME='/home/runner/work/_temp/f676da1e-1070-4220-83eb-e13e0b2b03d8' before making global git config changes
+2026-10-22T11:05:09.8420602Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-22T11:05:09.8425718Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/heatpump_optimizer/heatpump_optimizer
+2026-10-22T11:05:09.8476519Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-22T11:05:09.8515912Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-22T11:05:09.8777093Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-22T11:05:09.8809217Z http.https://github.com/.extraheader
+2026-10-22T11:05:09.8821787Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-10-22T11:05:09.8859214Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-22T11:05:09.9122403Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-22T11:05:09.9165290Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-22T11:05:09.9574179Z Cleaning up orphan processes
