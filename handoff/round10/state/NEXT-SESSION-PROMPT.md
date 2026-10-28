@@ -38,6 +38,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-FLY-RECORD-BEAT (stage absorbed, branch `handoff/r10-fly-record-beat`): `git fetch origin handoff/r10-fly-record-beat && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-996-RUNNER-CLAIMS (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-ARCH-SHAPES-CLASSIFIER (stage queued): no branch pushed yet, so nothing to fetch
+- R10-RECORD-HOLD-APPROVE (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-DIAG-AGES (stage in-progress, branch `handoff/r10-diag-ages`): `git fetch origin handoff/r10-diag-ages && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-REVIEW-CARRY (stage fixing): no branch pushed yet, so nothing to fetch
 
