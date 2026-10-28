@@ -1,0 +1,32 @@
+== --drop-edge coverage:closures
+run 39625218966: wall 2915 s (48.6 min), 14 jobs ran
+  counterfactual: wall 1693 s (28.2 min), gain 1222 s; path closure-scope > coverage > composed-proof
+rc=0
+== --drop-edge typing:closures
+ci_critpath: refused: closures does not need typing in run 39625218966
+rc=1
+== --drop-edge nosuchjob:closures
+run 39625218966: wall 2915 s (48.6 min), 14 jobs ran
+  counterfactual: wall 2915 s (48.6 min), gain 0 s; path closure-scope > coverage > closures > composed-proof
+rc=0
+== --drop-edge coverage:nosuchjob
+run 39625218966: wall 2915 s (48.6 min), 14 jobs ran
+  counterfactual: wall 2915 s (48.6 min), gain 0 s; path closure-scope > coverage > closures > composed-proof
+rc=0
+== W1 null-control figures
+run 39625218966: wall 2915 s (48.6 min), 14 jobs ran
+  critical path (queue / duration / longest step):
+    closure-scope                q     13  d     19  ends +    32  Run actions/checkout@fbc6f3992d24b796d5a048ff273f7 (10 s)
+    coverage                     q     38  d   1545  ends +  1615  Measure the tree (1501 s)
+    closures                     q      3  d   1219  ends +  2837  Re-record the closures (1172 s)
+    composed-proof               q     61  d     17  ends +  2915  Run actions/checkout@fbc6f3992d24b796d5a048ff273f7 (12 s)
+  counterfactual: wall 1632 s (27.2 min), gain 1283 s; path closure-scope > coverage > graders-head-copy
+run 39619839750: wall 2867 s (47.8 min), 10 jobs ran
+  critical path (queue / duration / longest step):
+    coverage                     q      3  d   1631  ends +  1634  Measure the tree (1591 s)
+    closures                     q      3  d   1208  ends +  2845  Re-record the closures (1162 s)
+    ci-ratchet                   q      4  d     18  ends +  2867  Gather this run's and the recent window's metrics (11 s)
+  counterfactual: wall 2461 s (41.0 min), gain 406 s; path fast (3.14) > ci-ratchet
+runs 2: wall median 2891 s p90 2915 s
+  counterfactual wall median 2046 s p90 2461 s; gain median 844 s p90 1283 s, runs slower 0
+API reads: 0 (max 200)

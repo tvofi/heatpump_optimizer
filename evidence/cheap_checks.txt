@@ -1,0 +1,4 @@
+selftest_wiring: 89 self-testing, 89 wired, 0 unwired
+STRUCTURE RATCHET PASSED
+ref_privacy --check at HEAD: 24 file(s) with a push site, 12 guarded, 3320 line(s) added since f38f91852ea0 judged, 0 refused
+throwaway_git: 0 raw git init or clone site(s) refused, 0 stale allow entries at HEAD
