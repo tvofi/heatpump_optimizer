@@ -1,0 +1,19 @@
+head 345daba44851215b9510f27826957e1bd5fc0a30 vs origin/main 07295d4ea1471048ee2a76a6776b5cd364dcf141
+== R10-REVIEW-CARRY stage fixing carries 3 -> 3
+   P199 in carry: False
+   P200 in carry: False
+   P203 in carry: False
+== R10-FLOW-TOOLKIT-MODEL stage not-started carries 10 -> 12
+  ADDED/REWRITTEN: `replan.py:94`'s `LIVE_STAGES` is a second copy of the live-stage view. Equal to `roster_lib.LIVE` at this head, so adopting the import changes no schedule; the file belongs to `R10-FLOW-TOOLKIT-MODEL`, which lists `tools/plan/replan.py` and is not started (`R10-PLAN-PRIO`, which the wave brief named, is done), and this pull request does not touch it. Carry: R10-FLOW-TOOLKIT-MODEL
+  ADDED/REWRITTEN: `brief-citations: contradiction: the brief assigns the XS measurement to R10-FLOW-TOOLKIT-MODEL while asking this group's reader to refuse a size the model lacks over the tree's own rosters, so the arm is red until the drifted data is cleared here; cleared by relabelling XS to S and carrying the measurement` Carry: R10-FLOW-TOOLKIT-MODEL
+   P199 in carry: False
+   P200 in carry: False
+   P203 in carry: False
+== R10-FLOW-WIP stage not-started carries 9 -> 10
+  ADDED/REWRITTEN: `orchestrator_tick.py:206`'s `DEFERRED_STAGES = ("deferred", "refused")` is narrower than `roster_lib.DISPOSITION`, so a `refuted` or `absorbed` group prints as in progress and its after-edges keep dependents blocked. No instance today (no refuted group in the round-10 roster; the four absorbed groups have no dependents), and `carries-open`'s blocking is wanted until carry 19 lands. Measured and controlled in the new carry. Carry: R10-FLOW-WIP
+   P199 in carry: True
+   P200 in carry: False
+   P203 in carry: False
+cites P199 -> R10-FLOW-WIP not-started
+cites P203 -> R10-ORCH-ROSTER-SCHEMA done
+cites P200 -> R10-ORCH-REVIEW-PACKET done
