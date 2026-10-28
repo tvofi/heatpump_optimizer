@@ -1130,15 +1130,18 @@ def grader_key_self_test(root: Path) -> int:
             for job, _, mark, homes, whole, _ in GRADERS}
 
     def hit(mark, *changed):
+        if mark not in rows:  # a row dropped from GRADERS: every key case on it fails, never raises
+            return None
         job, entry, whole = rows[mark]
         return grader_hit(root, entry, whole, agreement_py.restore_specs(text, job), set(changed), agreement_py.covers)
-    lint, fc, cws = rows["CORPUS"][1], rows["FIELD COVERAGE"][1], rows["WAVE CHECK"][1]
-    rs, own = rows["RULES SYNC"][1], rows["CODEOWNERS"][1]
+    path = {m: r[1] for m, r in rows.items()}
+    lint, fc, cws = path.get("CORPUS"), path.get("FIELD COVERAGE"), path.get("WAVE CHECK")
+    rs, own = path.get("RULES SYNC"), path.get("CODEOWNERS")
     gaps = grader_gaps(root, text, agreement_py)
     no_env = tuple(g[:1] + (tuple(j for j in g[1] if j != "env-matrix"),) + g[2:] for g in GRADERS)
     no_rules = tuple(g for g in GRADERS if g[2] != "RULES SYNC")
     no_hooks = tuple(g[:5] + (((),) if g[2] == "CORPUS" else g[5],) for g in GRADERS)
-    counts = str(Path(lint).with_name("counts.mjs"))
+    counts = str(Path(lint or "tools/policy/policy_lint.mjs").with_name("counts.mjs"))
     data = "dev/governance/config/corpus_excluded.json"
     cases = [
         ("CORPUS is keyed by an edit to policy_lint.mjs", hit("CORPUS", lint) == [lint]),
