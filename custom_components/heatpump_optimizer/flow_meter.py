@@ -1,14 +1,16 @@
-"""The heat the pump delivers, read off a thermal meter or the water flow.
+"""The heat the pump delivers, read off a heat meter or the water flow.
 
-Two sources, one answer (:func:`read_heat_output_kw`). A thermal power entity
-(#1955 fold e) is the direct reading and wins whenever it is configured,
-whatever else the install has; the flow meter is not consulted then, even in
-a cycle the thermal reading is unusable, so a learner never mixes the two.
-Without one, thermal output is flow x c_p x (supply - return) (#2016): the
+Three sources, one answer (:func:`read_heat_output_kw`), in rank order, and a
+configured one answers alone, even in a cycle its reading is unusable, so a
+learner never mixes two. A delivered-heat counter (#2261) ranks first: it
+integrates the compressor's cycling, which a point reading samples, and it
+answers per span (``heat_energy``), so a cycle reads ``None`` from it. A
+thermal power entity (#1955 fold e) is the direct reading at one instant.
+Without a heat meter, thermal output is flow x c_p x (supply - return) (#2016): the
 stand-in for the signals an install does not have, so a power entity or a
 frequency entity or sensor each outrank it
-(:func:`~.thermal_model.probe_install`). An install with neither key reads
-exactly what it read before.
+(:func:`~.thermal_model.probe_install`). An install with none of the three
+keys reads exactly what it read before.
 
 Kept free of Home Assistant imports so it can be unit-tested directly, like
 ``flow_lift``.
@@ -49,7 +51,8 @@ def read_heat_output_kw(
 ) -> float | None:
     """This cycle's thermal output, or ``None`` when it is not to be used.
 
-    A configured thermal entity answers alone: its reading in kW, ``None``
+    A configured heat counter answers alone and per span, so ``None`` here. A
+    configured thermal entity answers alone: its reading in kW, ``None``
     when unusable or negative. Otherwise the flow meter: ``temps`` is the
     cycle's (supply, return) when already read, so the two slots are not
     read twice. ``None`` when the flow key is unset, when a power or
@@ -58,6 +61,8 @@ def read_heat_output_kw(
     """
     cfg = config or {}
     cap = probe_install(cfg)
+    if cfg.get(const.CONF_HEAT_ENERGY_ENTITY):
+        return None
     if cap.measured_heat:
         heat = reader.read_power_kw(const.CONF_THERMAL_POWER_ENTITY)
         kw = heat.value if heat.ok else None
