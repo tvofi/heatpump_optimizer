@@ -1,8 +1,0 @@
-# cmd (cwd = head worktree): python3 tools/audit/seat/flow_metrics.py --window 2026-10-15T12:37:57Z..2026-10-25T19:00:00Z --roster origin/main:dev/programme/rosters/wave-r10-groups.json --prefix R10-   (origin/main f3ffb1c63)
-window 246.4 h
-  groups added 190 (0.77/h), closed 124 (0.50/h)
-  merges 437, records 174/437 (0.40)
-  first-pass yield 117/255 (0.46); merged with no bus verdict 8
-  main absorbs per fix branch: mean 4.06 max 27 over 263
-  merge-to-merge re-reviews of unchanged code 81; unresolved 0
-  hours with a merge 187/246 (0.76)

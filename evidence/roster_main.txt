@@ -1,20 +1,7 @@
-['fork', 'fork_note', 'session', 'repo', 'serial', 'struck', 'refused', 'unreproduced', 'groups']
-groups R10-FLOW-JIDOKA stage= None kind= instrument absorbed= None ncarry= 21
-  carry 11 P-Q (triage batch 9): prepr.sh --body-check (what body_push.sh and open_pr's prepr step 7 run) never calls carry_audit.py check --body, which pr-contract runs a
-  carry 18 (triage: dev/programme/triage/s6-batch9.md#P78) Priority and shape of the ref_privacy arm in `prepr.sh` (the 2026-10-22 carry, 'must include instrument-self-tes
-groups R10-FLOW-BODY-ONLY stage= None kind= instrument absorbed= None ncarry= 9
-  carry 8 tvofi 2026-10-24 card 4 (CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): hold part (a) (merge origin/main into the head only when the pull request is DIRTY or merge-tree reports a conflic
-groups R10-ROUND-PLAYBOOK stage= None kind= doc absorbed= None ncarry= 1
-groups R10-ORCH-REVIEW-PACKET stage= None kind= instrument absorbed= None ncarry= 3
-R10-FLOW-JIDOKA resume= {'stage': 'in-progress', 'branch': 'handoff/r10-flow-jidoka', 'commit': None, 'last_step': None, 'next_step': 'dispatch a fixer once every after group is done', 'note': 'rca: topic r10-rca-body-check-
-R10-FLOW-BODY-ONLY resume= {'stage': 'not-started', 'branch': 'handoff/r10-flow-body-only', 'commit': None, 'last_step': None, 'next_step': 'dispatch a fixer once every after group is done', 'note': 'Lean flow study 2026-10-21 
-R10-ROUND-PLAYBOOK resume= {'stage': 'not-started', 'branch': 'handoff/r10-round-playbook', 'commit': None, 'last_step': None, 'next_step': 'dispatch a fixer once every `after` group is done', 'note': 'Owner request 2026-10-21;
-R10-ORCH-REVIEW-PACKET resume= {'stage': 'not-started', 'branch': 'handoff/r10-orch-review-packet', 'commit': None, 'last_step': None, 'next_step': 'dispatch a fixer once every after group is done', 'note': 'owner card 8, 2026-10-2
-R10-FLOW-JIDOKA merges on main: 811c806e6 roster_edit append-carry R10-FLOW-JIDOKA (tools/audit/seat/roster_edit.py)
-42d6176aa roster_edit append-carry R10-FLOW-JIDOKA (tools/audit/seat/roster_edit.py)
-90246e0f8 roster_edit append-carry R10-FLOW-JIDOKA (tools/audit/seat/roster_edit.py)
-R10-ORCH-REVIEW-PACKET merges on main: 087ea355b roster_edit wire-issue R10-ORCH-REVIEW-PACKET (tools/audit/seat/roster_edit.py)
-1c142a52c roster_edit append-group R10-ORCH-REVIEW-PACKET (tools/audit/seat/roster_edit.py)
-R10-FLOW-BODY-ONLY merges on main: 5d10a53af roster_edit wire-issue R10-FLOW-BODY-ONLY (tools/audit/seat/roster_edit.py)
-5732a248d roster_edit append-carry R10-FLOW-BODY-ONLY (tools/audit/seat/roster_edit.py)
-c42d749ef roster_edit append-carry R10-FLOW-BODY-ONLY (tools/audit/seat/roster_edit.py)
+[('instrument', 101), ('defect', 29), ('owner', 16), ('policy', 10), ('arch', 7), ('study', 7), ('production', 7), ('rca', 6), ('feature', 3), ('fix', 3), ('docs', 1), ('record', 1), ('doc', 1)]
+R10-FLOW-JIDOKA {'stage': 'in-progress', 'branch': 'handoff/r10-flow-jidoka', 'commit': None, 'last_step': None, 'next_step': 'dispatch a fixer once every after group is done', 'note': 'rca: topic r10-rca-body-check-parity'}
+R10-FLOW-BODY-ONLY {'stage': 'not-started', 'branch': 'handoff/r10-flow-body-only', 'commit': None, 'last_step': None, 'next_step': 'dispatch a fixer once every after group is done', 'note': 'Lean flow study 2026-10-21 (owner-adopted)'}
+R10-ROUND-PLAYBOOK {'stage': 'not-started', 'branch': 'handoff/r10-round-playbook', 'commit': None, 'last_step': None, 'next_step': 'dispatch a fixer once every `after` group is done', 'note': 'Owner request 2026-10-21; the last group before the closure stamp.'}
+R10-ORCH-REVIEW-PACKET {'stage': 'not-started', 'branch': 'handoff/r10-orch-review-packet', 'commit': None, 'last_step': None, 'next_step': 'dispatch a fixer once every after group is done', 'note': 'owner card 8, 2026-10-24'}
+R10-PROOF-CODEQL on main: False
+roster ref 32ffe43c0: PROOF-CODEQL [{'stage': 'queued', 'branch': None, 'commit': None, 'last_step': None, 'next_step': 'dispatch a fixer (no after-groups)', 'note': None}]

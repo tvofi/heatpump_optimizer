@@ -1,0 +1,8 @@
+window 599.0 h
+  groups added 192 (0.32/h), closed 125 (0.21/h)
+  merges 698, records 204/698 (0.29)
+  first-pass yield 153/344 (0.44); merged with no bus verdict 150
+  main absorbs per fix branch: mean 3.44 max 27 over 494
+  merge-to-merge re-reviews of unchanged code 135; unresolved 2
+  hours with a merge 349/599 (0.58)
+rc 0

@@ -1,7 +1,0 @@
-check-runs API, head d4f71c00acdedb70f9fcdbf619030a7766b76d04, read 2026-10-25 ~20:32Z (37 runs)
-failure: governance / delivery-status (job 121281674452): "DELIVERY STATUS OVERDUE - 146 rowed, 12 pending, 8 overdue"; overdue rows #2798 #2799 #2780 #2749 #2775 #2797 #2762 #2795, none this PR's; log: "This check is NOT a required context and a red here blocks no merge."
-success: CodeQL, codeql/Analyze (actions, javascript-typescript, python), arch-score, wave-script, policy-docs, budget-raise-gate, validate-hacs, hassfest, briefs, mutation, closure-scope, nightly-status, prelude (run 40230397367), refresh, cancel-superseded
-skipped: mutation-autofix, mutation-pins, nightly-ha, replay, governance/record, delivery-status-publish, kernel-points, arm
-queued: tests typing, fast (3.14), closures, browser, arch-instrument, coverage
-in_progress: governance instrument-self-tests, env-matrix, prelude (run 40230397305)
-pr-contract / gate: not yet listed
