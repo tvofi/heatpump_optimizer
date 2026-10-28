@@ -419,7 +419,7 @@ from . import (
     topology,
 )
 from .wood_fuel import wood_furnace_on
-from .thermal_model import ThermalParameters, _dhw_enabled_from_config
+from .thermal_model import ThermalParameters, _dhw_enabled_from_config, partload_derate_limit
 from .currency import money_scale, resolve_currency
 from .dhw_schedule import (
     ERROR_TOO_SHORT as DHW_ERROR_TOO_SHORT,
@@ -889,6 +889,22 @@ def _power_errors(
         candidate, current, CONF_HEAT_PUMP_MAX_POWER, DEFAULT_HEAT_PUMP_MAX_POWER
     ):
         return {CONF_HEAT_PUMP_MIN_POWER: "min_power_above_max"}
+    return {}
+
+
+def _partload_errors(
+    candidate: dict[str, Any], current: dict[str, Any]
+) -> dict[str, str]:
+    """A part-load derate at or above its band's limit makes delivered heat
+    fall with power at the top of the band (``partload_derate_limit``), and
+    the model would refuse it to 0 unseen; the form says so on the field."""
+    derate = _effective(candidate, current, CONF_HEAT_PUMP_COP_PARTLOAD_DERATE, 0.0)
+    limit = partload_derate_limit(
+        _effective(candidate, current, CONF_HEAT_PUMP_MIN_POWER, DEFAULT_HEAT_PUMP_MIN_POWER),
+        _effective(candidate, current, CONF_HEAT_PUMP_MAX_POWER, DEFAULT_HEAT_PUMP_MAX_POWER),
+    )
+    if derate >= limit:  # the limit is positive, so 0 always passes
+        return {CONF_HEAT_PUMP_COP_PARTLOAD_DERATE: "partload_derate_above_limit"}
     return {}
 
 
@@ -3251,7 +3267,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         current = self._current
         if user_input is not None:
             user_input = _flatten_section_input(user_input)
-            errors = _power_errors(user_input, self._current)
+            errors = _power_errors(user_input, current) or _partload_errors(user_input, current)
             if not errors:
                 saved = dict(user_input)
                 _disarm_preset_on_derived_edit(saved, self._current)

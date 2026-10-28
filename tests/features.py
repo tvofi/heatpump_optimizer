@@ -71308,10 +71308,14 @@ _pl_cfg = {
     v: ThermalParameters.from_config({_PL_KEY: v}).cop_partload_derate
     for v in (0.0, 0.1, 0.5, -0.1, 0.9, "x", None, float("nan"))
 }
+from heatpump_optimizer.thermal_model import _partload_derate as _pl_read  # noqa: E402
 R.check(
     "a configured derate inside [0, 0.5] is taken; a negative, oversized, "
-    "non-numeric or NaN one refuses to the 0 default",
-    _pl_cfg[0.0] == 0.0 and _pl_cfg[0.1] == 0.1 and _pl_cfg[0.5] == 0.5
+    "non-numeric or NaN one refuses to the 0 default; the reader alone keeps "
+    "0.5 and refuses the float above it, and on the default 1-5 kW band 0.5 is "
+    "past band / (band + p_max) = 4/9 and refuses too",
+    _pl_cfg[0.0] == 0.0 and _pl_cfg[0.1] == 0.1 and _pl_cfg[0.5] == 0.0
+    and _pl_read(0.5) == 0.5 and _pl_read(float(np.nextafter(0.5, 1.0))) == 0.0
     and all(_pl_cfg[v] == 0.0 for v in (-0.1, 0.9, "x", None))
     and _pl_cfg[next(k for k in _pl_cfg if isinstance(k, float) and k != k)] == 0.0
     and ThermalParameters.from_config({}).cop_partload_derate == 0.0,
@@ -71407,6 +71411,68 @@ R.check(
     "null control: at the modulation floor the track is unchanged",
     _pl_traj[0.2] < _pl_traj[0.0] and _pl_traj_lo[0.2] == _pl_traj_lo[0.0],
     f"max {_pl_traj} floor {_pl_traj_lo}",
+)
+
+
+# R10-COP-PARTLOAD round 2: heat = cop * P * (1 - d * (P - p_min) / band) has
+# slope cop * (1 - d * (band + p_max) / band) at p_max, so a derate at or above
+# band / (band + p_max) buys less heat with more power at the top of the band.
+# Every construction path refuses it (``ThermalParameters.clamp``), and the
+# options page names it. Narrow band 4-5 kW: the limit is 1/6.
+from heatpump_optimizer import config_flow as _pl_flow  # noqa: E402
+_pl_lim = 1.0 / 6.0
+_pl_grid = np.linspace(4.0, 5.0, 2001)
+
+
+def _pl_kept(derate, p_min=4.0, p_max=5.0):
+    """The derate a direct construction and from_config each keep."""
+    direct = ThermalParameters(min_electrical_power=p_min, max_electrical_power=p_max,
+                               cop_partload_derate=derate).cop_partload_derate
+    cfg = ThermalParameters.from_config({
+        "heat_pump_min_power": p_min, "heat_pump_max_power": p_max, _PL_KEY: derate,
+    }).cop_partload_derate
+    return direct, cfg
+
+
+from heatpump_optimizer.thermal_model import (  # noqa: E402
+    partload_derate_limit as _pl_limit,
+)
+_pl_below = float(np.nextafter(_pl_lim, 0.0))
+_pl_heat_below = _pl_heat_of(_pl_model(_pl_below, 4.0, 5.0).params, 3.0, _pl_grid)
+R.check(
+    "a part-load derate at or above band / (band + p_max) is refused on every "
+    "construction path, so delivered heat never falls with power: on a 4-5 kW "
+    "band 0.19 and the limit itself read 0, the float just below it is kept and "
+    "heat rises across the band there; "
+    "null controls: 0 stays 0 and is exactly cop * power, the default 1-5 kW "
+    "band keeps 0.19, and a fixed-speed band (or one with no positive span to "
+    "divide by) has no limit, its factor being 1",
+    _pl_kept(0.19) == (0.0, 0.0) and _pl_kept(_pl_lim) == (0.0, 0.0)
+    and _pl_kept(_pl_below) == (_pl_below, _pl_below)
+    and bool(np.all(np.diff(_pl_heat_below) > 0.0))
+    and _pl_kept(0.0) == (0.0, 0.0)
+    and np.array_equal(_pl_heat_of(_pl_model(0.0, 4.0, 5.0).params, 3.0, _pl_grid),
+                       3.0 * _pl_grid)
+    and _pl_kept(0.19, 1.0, 5.0) == (0.19, 0.19)
+    and _pl_kept(0.2, 3.0, 3.0) == (0.2, 0.2)
+    and _pl_limit(-2.0, -1.0) == float("inf"),
+    f"4-5: 0.19 {_pl_kept(0.19)} limit {_pl_kept(_pl_lim)} below {_pl_kept(_pl_below)}; "
+    f"1-5: 0.19 {_pl_kept(0.19, 1.0, 5.0)}",
+)
+_pl_err = getattr(_pl_flow, "_partload_errors", lambda c, cur: {})
+_pl_narrow = {"heat_pump_min_power": 4.0, "heat_pump_max_power": 5.0}
+R.check(
+    "the thermal-model options page refuses a derate at or above the band's "
+    "limit on the derate field, judged against the stored band when the page "
+    "posts only the derate; "
+    "null controls: 0 and the default band's 0.19 pass",
+    _pl_err({_PL_KEY: 0.19}, _pl_narrow) == {_PL_KEY: "partload_derate_above_limit"}
+    and _pl_err({**_pl_narrow, _PL_KEY: 0.19}, {}) == {_PL_KEY: "partload_derate_above_limit"}
+    and _pl_err({_PL_KEY: _pl_lim}, _pl_narrow) == {_PL_KEY: "partload_derate_above_limit"}
+    and _pl_err({_PL_KEY: _pl_below}, _pl_narrow) == {}
+    and _pl_err({_PL_KEY: 0.0}, _pl_narrow) == {}
+    and _pl_err({_PL_KEY: 0.19}, {}) == {},
+    f"{_pl_err({_PL_KEY: 0.19}, _pl_narrow)}",
 )
 
 
