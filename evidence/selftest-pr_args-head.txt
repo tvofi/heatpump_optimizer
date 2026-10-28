@@ -44,24 +44,24 @@ Terminated
   ok     mutant mut:lead (its line deleted): the lead's child is TERMed beside the lead
   ok   a PR_REAP_LEAD outside the walk (a stale or reused pid) is never signalled; the host's own tree is reaped
   ok     mutant mut:leadwalk (its line deleted): the stale lead's process is TERMed
-tools/audit/seat/pr_args.sh: line 335: printf: write error: Broken pipe
-tools/audit/seat/pr_args.sh: line 325: printf: write error: Broken pipe
+tools/audit/seat/pr_args.sh: line 332: printf: write error: Broken pipe
   ok   the pusher census: the rule returns exactly the dispositioned paths, and every runner reaps
-tools/audit/seat/pr_args.sh: line 335: printf: write error: Broken pipe
-tools/audit/seat/pr_args.sh: line 325: printf: write error: Broken pipe
+tools/audit/seat/pr_args.sh: line 332: printf: write error: Broken pipe
+tools/audit/seat/pr_args.sh: line 322: printf: write error: Broken pipe
   ok     the census on the scratch copy passes as it does on the tree
-tools/audit/seat/pr_args.sh: line 335: printf: write error: Broken pipe
-tools/audit/seat/pr_args.sh: line 325: printf: write error: Broken pipe
+tools/audit/seat/pr_args.sh: line 332: printf: write error: Broken pipe
+tools/audit/seat/pr_args.sh: line 322: printf: write error: Broken pipe
   ok     a new script that runs app_push.sh is refused as undispositioned
-tools/audit/seat/pr_args.sh: line 335: printf: write error: Broken pipe
+tools/audit/seat/pr_args.sh: line 332: printf: write error: Broken pipe
+tools/audit/seat/pr_args.sh: line 322: printf: write error: Broken pipe
   ok     a runner without pr_exit_trap is refused
-tools/audit/seat/pr_args.sh: line 335: printf: write error: Broken pipe
-tools/audit/seat/pr_args.sh: line 325: printf: write error: Broken pipe
+tools/audit/seat/pr_args.sh: line 332: printf: write error: Broken pipe
+tools/audit/seat/pr_args.sh: line 322: printf: write error: Broken pipe
   ok     a runner whose push runs in the foreground is refused (its `2>&1` backgrounds nothing)
-tools/audit/seat/pr_args.sh: line 335: printf: write error: Broken pipe
+tools/audit/seat/pr_args.sh: line 332: printf: write error: Broken pipe
   ok     a runner under the branch lock whose push holds no push lock is refused
-tools/audit/seat/pr_args.sh: line 335: printf: write error: Broken pipe
-tools/audit/seat/pr_args.sh: line 325: printf: write error: Broken pipe
+tools/audit/seat/pr_args.sh: line 332: printf: write error: Broken pipe
+tools/audit/seat/pr_args.sh: line 322: printf: write error: Broken pipe
   ok     null control: the same runner without its branch lock needs no push lock
   ok   update_pr: two arguments refuse, naming the count
   ok     mutant mut:arity (its line deleted) fails that arm
@@ -117,7 +117,7 @@ tools/audit/seat/pr_args.sh: line 325: printf: write error: Broken pipe
   ok   update_pr: code sha '-' asks app_push.sh for --row-only, whose verdict decides the prepr
   ok     mutant mut:rowonly (its line deleted): code sha '-' runs the full prepr
   ok   null control: a code sha never asks for --row-only, so its push runs the full prepr
-  ok   null control: update_pr with code sha '9e707b8' passes every check, and its failed push names its log
+  ok   null control: update_pr with code sha '91cf69e' passes every check, and its failed push names its log
   ok   null control: update_pr with code sha '-' passes every check, and its failed push names its log
   ok   update_pr: the run leaves its worktree detached, so no worktree holds the branch
   ok     mutant mut:detach (its line deleted): the worktree still holds fix/x
@@ -129,10 +129,11 @@ tools/audit/seat/pr_args.sh: line 325: printf: write error: Broken pipe
   ok     mutant mut:boundreap (its line deleted): the child outlives the self-test
   ok   pr_bounded: a SIGKILLed supervisor's self-test is ended all the same, by its watchdog
   ok     mutant mut:dogend (its line deleted): the SIGKILLed supervisor's self-test runs on
-  ok   pr_bounded: a SIGKILL to its caller's whole group still ends the self-test, 0 survivors in either session
-  ok     mutant mut:dogsid (its line deleted): the group kill takes the watchdog too and the self-test runs on
   ok   every # mut: line is a whole statement, never one continued from the line above
   ok   null control: a # mut: line continued from the line above is named
   ok   pr_cap.py --self-test: its tally says 0 failed
-pr_args self-test: 123 checks, 0 failed
-rc=0 real=173s
+pr_args self-test: 121 checks, 0 failed
+
+real	2m26.069s
+user	0m29.009s
+sys	0m13.146s
