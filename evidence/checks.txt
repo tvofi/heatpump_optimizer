@@ -1,0 +1,22 @@
+$ closure select
+  MODE: SCOPED -- 0 script(s) run, 33 scoped out.
+$ structure
+
+STRUCTURE RATCHET PASSED
+$ entities
+  File "/tmp/claude-0/wt/tests/harness.py", line 25, in <module>
+    from homeassistant.config_entries import ConfigEntryState
+ModuleNotFoundError: No module named 'homeassistant'
+$ diff VERSION/manifest/notes
+(empty = untouched)
+$ roles diff
+0
+$ tmp_paths/ref_privacy
+tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since b89fea13e99f
+ref_privacy --check at HEAD: 26 file(s) with a push site, 12 guarded, 389 line(s) added since b89fea13e99f judged, 0 refused
+$ agreement
+usage: agreement.mjs [--only pairs|discovery | --self-test]
+$ entities (hastub)
+  ok   the CI ratchet refuses a non-finite, mistyped or unknown budget row
+  ok   the CI ratchet's main() refuses a script-run count above its budget
+  ok   and main() passes the committed table at its own recorded count (the null control)

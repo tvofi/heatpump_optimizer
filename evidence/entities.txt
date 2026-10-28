@@ -1,4 +1,0 @@
-  ok   the CI ratchet's main() refuses a script-run count above its budget
-  ok   and main() passes the committed table at its own recorded count (the null control)
-  ok   a derived metric with no budget row is a growth, not a pass
-entities (hastub) exit=124
