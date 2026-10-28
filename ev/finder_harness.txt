@@ -1,0 +1,18 @@
+== base 6d86acc909f7fc465e5736771daf8fa45c1373a4 
+RESULT wizard_fields=46 count RESULT in_registry=44 count RESULT spelled_twice=44 count RESULT disagree=0 count RESULT menu_fallbacks=23 count RESULT menu_disagree=0 count RESULT golden_equal=1 bool 
+== base 6d86acc909f7fc465e5736771daf8fa45c1373a4 --all
+RESULT wizard_fields=46 count RESULT in_registry=44 count RESULT spelled_twice=44 count RESULT disagree=0 count RESULT other_wizard_fields=38 count RESULT other_in_registry=20 count RESULT other_spelled_twice=20 count RESULT other_disagree=0 count RESULT menu_fallbacks=23 count RESULT menu_disagree=0 count RESULT golden_equal=1 bool 
+== base 6d86acc909f7fc465e5736771daf8fa45c1373a4 --bump heat_pump_cop_nominal
+RESULT wizard_fields=46 count RESULT in_registry=44 count RESULT spelled_twice=44 count RESULT disagree=2 count RESULT menu_fallbacks=23 count RESULT menu_disagree=0 count 
+== mb b0b2d7697f8c5baaef2c082d9bf3242b57249e68 
+RESULT wizard_fields=46 count RESULT in_registry=44 count RESULT spelled_twice=44 count RESULT disagree=0 count RESULT menu_fallbacks=23 count RESULT menu_disagree=0 count RESULT golden_equal=1 bool 
+== mb b0b2d7697f8c5baaef2c082d9bf3242b57249e68 --all
+RESULT wizard_fields=46 count RESULT in_registry=44 count RESULT spelled_twice=44 count RESULT disagree=0 count RESULT other_wizard_fields=38 count RESULT other_in_registry=20 count RESULT other_spelled_twice=20 count RESULT other_disagree=0 count RESULT menu_fallbacks=23 count RESULT menu_disagree=0 count RESULT golden_equal=1 bool 
+== mb b0b2d7697f8c5baaef2c082d9bf3242b57249e68 --bump heat_pump_cop_nominal
+RESULT wizard_fields=46 count RESULT in_registry=44 count RESULT spelled_twice=44 count RESULT disagree=2 count RESULT menu_fallbacks=23 count RESULT menu_disagree=0 count 
+== head f74f6cbb23649562bcc3db7f6415334707b1fd23 
+RESULT wizard_fields=46 count RESULT in_registry=44 count RESULT spelled_twice=0 count RESULT disagree=0 count RESULT menu_fallbacks=23 count RESULT menu_disagree=0 count RESULT golden_equal=1 bool 
+== head f74f6cbb23649562bcc3db7f6415334707b1fd23 --all
+RESULT wizard_fields=46 count RESULT in_registry=44 count RESULT spelled_twice=0 count RESULT disagree=0 count RESULT other_wizard_fields=38 count RESULT other_in_registry=20 count RESULT other_spelled_twice=0 count RESULT other_disagree=0 count RESULT menu_fallbacks=23 count RESULT menu_disagree=0 count RESULT golden_equal=1 bool 
+== head f74f6cbb23649562bcc3db7f6415334707b1fd23 --bump heat_pump_cop_nominal
+RESULT wizard_fields=46 count RESULT in_registry=44 count RESULT spelled_twice=0 count RESULT disagree=0 count RESULT menu_fallbacks=23 count RESULT menu_disagree=0 count 
