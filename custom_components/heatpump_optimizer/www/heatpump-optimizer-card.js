@@ -760,9 +760,10 @@ const STRINGS = {
       "The average of whichever scores below have evidence. " +
       "Not a score of its own.",
     "score.part_envelope":
-      "House: how long the building holds its stored heat " +
-      "(time constant). Low points at a leaky envelope — insulation, or a " +
-      "learned heat loss worse than configured.",
+      "House: the envelope's heat loss in W/K, corrected for thermal mass, " +
+      "against what is typical for the configured house type and building " +
+      "era. 50 is typical for that type and era; above is tighter, below " +
+      "leakier. Never 0 — that is only for no data.",
     "score.part_machine":
       "Machine: the heat pump's observed efficiency against its own " +
       "baseline. Low points at the pump drawing more electricity than its " +
@@ -786,6 +787,12 @@ const STRINGS = {
     "score.reason_first_scored_day": "Waiting for the first scored day.",
     // Short names for the breakdown rows; the explanations follow below.
     "score.label_envelope": "House",
+    // What moves the house grade off 50, one per code the coordinator
+    // publishes in `envelope_drivers` (#2816), with its signed points.
+    "score.driver_loss_vs_typical": "configured heat loss vs typical for the type and era",
+    "score.driver_learned_heat_loss": "learned heat loss vs configured",
+    "score.driver_thermal_mass": "thermal-mass correction",
+    "score.driver_typical": "typical for its type and era",
     "score.label_machine": "Heat pump",
     "score.label_operation": "Driving",
     // The percent is a template because the spacing is orthographic:
@@ -1483,9 +1490,10 @@ const STRINGS = {
       "Genomsnittet av de delbetyg nedan som har underlag. " +
       "Intet eget betyg.",
     "score.part_envelope":
-      "Huset: hur länge byggnaden håller kvar sin lagrade värme " +
-      "(tidskonstant). Lågt pekar på ett läckande klimatskal — isolering, " +
-      "eller en inlärd värmeförlust sämre än den konfigurerade.",
+      "Huset: klimatskalets värmeförlust i W/K, korrigerad för " +
+      "värmetröghet, mot det typiska för den inställda hustypen och " +
+      "byggperioden. 50 är typiskt för den typen och perioden; över är " +
+      "tätare, under läckigare. Aldrig 0 — det betyder bara inget underlag.",
     "score.part_machine":
       "Maskinen: värmepumpens uppmätta effektivitet mot sitt eget " +
       "baslinjevärde. Lågt pekar på att pumpen drar mer el än sitt eget " +
@@ -1506,6 +1514,10 @@ const STRINGS = {
       "Nollställd efter en rad dagar med gratis el; väntar på en dag med pris.",
     "score.reason_first_scored_day": "Väntar på den första bedömda dagen.",
     "score.label_envelope": "Huset",
+    "score.driver_loss_vs_typical": "inställd värmeförlust mot typisk för typ och period",
+    "score.driver_learned_heat_loss": "inlärd värmeförlust mot inställd",
+    "score.driver_thermal_mass": "korrigering för värmetröghet",
+    "score.driver_typical": "typiskt för sin typ och period",
     "score.label_machine": "Värmepumpen",
     "score.label_operation": "Körningen",
     "headline.savings_pct": "({pct} %)",
@@ -8694,8 +8706,23 @@ function scoreParts(plan) {
   return ["envelope", "machine", "operation"].map((key) => {
     const value = readNumber(attrs[key]);
     return { key, label: L(`score.label_${key}`), value,
-      reason: value === null ? scoreReasonText(reasons[key]) : null };
+      reason: value === null ? scoreReasonText(reasons[key]) : null,
+      drivers: key === "envelope" && value !== null
+        ? envelopeDrivers(attrs.envelope_drivers) : "" };
   });
+}
+
+/** What moves the house grade off 50 (#2816): each driver the coordinator
+ * published with its signed whole points, or "typical" when none moves it a
+ * point -- so every shown grade carries at least one reason. An unknown
+ * code is skipped rather than shown raw. */
+function envelopeDrivers(drivers) {
+  const shown = (Array.isArray(drivers) ? drivers : [])
+    .filter((d) => STRINGS.en[`score.driver_${d.code}`] !== undefined)
+    .map((d) => ({ code: d.code, pts: Math.round(Number(d.points) || 0) }))
+    .filter((d) => d.pts !== 0)
+    .map((d) => `${L(`score.driver_${d.code}`)}${d.pts ? ` ${d.pts > 0 ? "+" : "−"}${Math.abs(d.pts)}` : ""}`);
+  return shown.length ? shown.join("; ") : L("score.driver_typical");
 }
 
 /** The words for a score's no-grade code; an unknown code is no evidence. */
@@ -8722,6 +8749,7 @@ function scoreBreakdownHtml(plan) {
         `<div class="sb-row" data-part="${p.key}">` +
         `<div class="sb-head"><span class="sb-name">${esc(p.label)}</span>` +
         `${bar}${value}</div>` +
+        (p.drivers ? `<div class="sb-text sb-drivers">${esc(p.drivers)}</div>` : "") +
         `<div class="sb-text">${esc(L(`score.part_${p.key}`))}</div>` +
         `</div>`
       );
@@ -8821,7 +8849,7 @@ function headlineHtml(plan, cfg, scoreOpen) {
         (p) =>
           `${p.label}: ${
               p.value === null ? `— ${p.reason}` : `${Math.round(p.value)}/100`
-            }`
+            }${p.drivers ? ` (${p.drivers})` : ""}`
       )
       .join(" · ");
     items.push({
@@ -8829,6 +8857,7 @@ function headlineHtml(plan, cfg, scoreOpen) {
       title:
         L("headline.score_title") +
         (breakdown ? `\n${breakdown}` : "") +
+        (parts[0].drivers ? `\n${L("score.part_envelope")}` : "") +
         `\n${L("headline.score_click_hint")}`,
       label: L("headline.score"),
       value: `${Math.round(score)}/100`,
