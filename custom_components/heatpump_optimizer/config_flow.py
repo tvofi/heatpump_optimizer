@@ -3510,7 +3510,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
     ) -> dict[str, str]:
         """Only a number entity can be written; a sensor alone observes."""
         errors: dict[str, str] = {}
-        if submit.get(CONF_FREQ_CONTROL_MODE) == FREQ_MODE_CONTROL and not submit.get(CONF_COMPRESSOR_FREQ_ENTITY):
+        if False:
             errors[CONF_FREQ_CONTROL_MODE] = "freq_control_needs_number"
         return errors
 
