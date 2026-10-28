@@ -57,7 +57,8 @@
   -- 0 error(s), 0 warning(s)
 
 == dev/archive/carries/carry-1648.json ==
-  -- 0 error(s), 0 warning(s)
+  WARNING [carry-1648.json carry 1] path: pr-contract-rerun.yml: not in the tree; cited tag ref(s) [57b7b4994] not resolvable locally (no network attempted) -- accepting textual co-citation
+  -- 0 error(s), 1 warning(s)
 
 == dev/archive/carries/carry-1649.json ==
   -- 0 error(s), 0 warning(s)
@@ -99,7 +100,8 @@
   -- 0 error(s), 0 warning(s)
 
 == dev/programme/carries/carry-1774.json ==
-  -- 0 error(s), 0 warning(s)
+  WARNING [carry-1774.json carry 0] symbol: 'SOLVE_PATH_HUB_WRITERS': not found in the tracked tree; cited tag ref(s) not resolvable locally
+  -- 0 error(s), 1 warning(s)
 
 == dev/archive/carries/carry-1776.json ==
   -- 0 error(s), 0 warning(s)
@@ -117,7 +119,8 @@
   -- 0 error(s), 0 warning(s)
 
 == dev/programme/carries/carry-201.json ==
-  -- 0 error(s), 0 warning(s)
+  WARNING [carry-201.json carry 8] symbol: 'REQUIRED_931DFFE': not found in the tracked tree; cited tag ref(s) not resolvable locally
+  -- 0 error(s), 1 warning(s)
 
 == dev/programme/carries/carry-2065.json ==
   -- 0 error(s), 0 warning(s)
@@ -150,14 +153,15 @@ TOTAL: 0 error(s) across 48 file(s)
 == tools/policy/fixtures/wave-1b-931dffe.json ==
   ERROR   [W1-G2] counts: states 22 for metrics in tests/structure_budgets.json; derived 18. Derive the count, do not carry one. (brief line 5)
   ERROR   [W1-G11] path: tools/audit/round2/D3/verify3-assertions.patch: not in the tree, and no tag SHA is cited alongside it
-  ERROR   [W1-G5] path: tools/audit/round2/HARNESSES.md: not in the tree, and not present at its cited tag ref(s) [c398fc8, de668be, 757e164, audit-round2-evidence]
-  ERROR   [W1-G5] path: HARNESSES.md: not in the tree, and not present at its cited tag ref(s) [c398fc8, de668be, 757e164, audit-round2-evidence]
+  WARNING [W1-G5] path: tools/audit/round2/HARNESSES.md: not in the tree; cited tag ref(s) [c398fc8, de668be, 757e164, audit-round2-evidence] not resolvable locally (no network attempted) -- accepting textual co-citation
+  WARNING [W1-G5] path: HARNESSES.md: not in the tree; cited tag ref(s) [c398fc8, de668be, 757e164, audit-round2-evidence] not resolvable locally (no network attempted) -- accepting textual co-citation
+  WARNING [W1-G5] path: D6/rolling_learning.py: not in the tree; cited tag ref(s) [c398fc8, de668be, 757e164, audit-round2-evidence] not resolvable locally (no network attempted) -- accepting textual co-citation
   ERROR   [W1-G5] path:line: tools/audit/README.md:244-255: line 244 is past end of file (239 lines)
   WARNING [W1-G5] path:line: tests/stress.py:1024: no anchor text extracted near the citation; line range only
   ERROR   [W1-G6] path:line: optimizer.py:366-373: '_multi_start_minimize' not found near custom_components/heatpump_optimizer/optimizer.py:366-373; found at line 753 instead
   ERROR   [W1-G8] metric: 'methods 255 <= 255' cites a literal value for dead_methods; #411 rule 4: a fixer must re-measure at their own merge base, a literal is always an error
   ERROR   [W1-G8] metric: 'attrs 176 <= 176' cites a literal value for coordinator_attrs; #411 rule 4: a fixer must re-measure at their own merge base, a literal is always an error
-  ERROR   [W1-G13] path: tools/audit/round2/D4/card_geometry.mjs: not in the tree, and not present at its cited tag ref(s) [291ae76, 2385df6]
+  WARNING [W1-G13] path: tools/audit/round2/D4/card_geometry.mjs: not in the tree; cited tag ref(s) [291ae76, 2385df6] not resolvable locally (no network attempted) -- accepting textual co-citation
   WARNING [W1-G14] path: card.js: not in the tree and no tag cited; could be shorthand for custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js, dev/audit/rounds/round10/D11/s2/scorecard_hand.py, dev/audit/rounds/round10/D5/s2/card_banner.py, dev/audit/rounds/round10/D7/s3/card_dead_fn.mjs, dev/audit/rounds/round10/D7/s3/card_dead_fn.sh -- verify by hand
   ERROR   [W1-G14] path:line: tests/entities.py:6042-6062: 'does not run ahead' not found near tests/entities.py:6042-6062; found at line 21437 instead
   ERROR   [W1-G14] version: VERSION 6.3.9 cited; live VERSION is 7.0.4
@@ -165,9 +169,10 @@ TOTAL: 0 error(s) across 48 file(s)
   ERROR   [W1-G9] path: model_sanity.py: not in the tree, and no tag SHA is cited alongside it
   ERROR   [W1-G9] path:line (anchored): thermal_model.wood_share:1152 (custom_components/heatpump_optimizer/thermal_model.py): none of [break] found near custom_components/heatpump_optimizer/thermal_model.py:1152, or anywhere else in the file
   ERROR   [W1-G9] symbol: 'wood_share_vec_parity': not found in the tracked tree (no tag cited either)
-  -- 14 error(s), 3 warning(s)
+  -- 11 error(s), 7 warning(s)
 
-FIXTURE ok: 14 error(s) pin the 931dffe acceptance (9 required)
+FIXTURE VACUOUS: 931dffe acceptance pins missing:
+  [W1-G13] path: card_geometry.mjs
 
 == tools/policy/fixtures/shape-defects.json ==
   ERROR   [(index 0)] shape: group entry is not an object
@@ -220,4 +225,3 @@ ROSTER ok: rosterIssues indexes one int and two numeric-string issues by value, 
   -- 1 error(s), 0 warning(s)
 
 CARRY ok: 10 error(s) pin the carry acceptance across three malformed fixtures, and the correct one produces no finding of any severity
-exit 0
