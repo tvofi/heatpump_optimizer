@@ -1016,7 +1016,8 @@ sweep's standing-seat liveness step keep them alive.
 - `beatd.py` — the one supervised beat (R10-ORCH-BEATD arm (a)): `run
   --state S [--jobs FILE] [--once | --for N]` runs a job table, each job on
   its own thread and process group under `S/beatd/<job>.lock`, SIGTERM at its
-  `timeout_s` and SIGKILL 10 s later; a `class: orch-checkout` job also holds
+  `timeout_s` and SIGKILL 10 s later unless the group has emptied, its leader
+  gone or not, before the job lock drops; a `class: orch-checkout` job also holds
   `S/beatd/orch-checkout.lock`, waiting at most `class_wait_s` (default 60)
   before `outcome=busy`. Every start, heartbeat and pass is a line of
   `S/beatd/journal.log`. `status` prints one `JOB` line per job (`late` past
@@ -1033,7 +1034,8 @@ sweep's standing-seat liveness step keep them alive.
   an unreadable table; a first `git` on `PATH` that is absent, a shim, or does
   not answer `git version`. A second `run` exits 75, `ALREADY RUNNING`.
   `--self-test` drives cases (a)1-8 under `/bin/bash`, each with its null
-  control, and plants one mutant per case in a temp copy.
+  control, and plants each `MUTANTS` entry (at least one per case) in a temp
+  copy, four at a time; a crashing mutant fails, it is never a kill.
 - `beatd_shims/git` — the beat jobs' `git`, reached only through the `PATH`
   `beatd.py` builds (never `shims/`, which the sweep and `roster_queue.py`
   prepend). A `fetch` or `pull` failing on `cannot lock ref` is re-run at most
