@@ -1,7 +1,9 @@
-# Proposal triage, session s7, batch 44 (P219-P222)
+# Proposal triage, session s7, batch 44 (P219-P226)
 
-Four entries: V132, V133, V134 and V135, written by the orchestrator s7 on 2026-10-27 and quoted
-from `proposals.md` as they stand. Facts read at origin/main `e8cb7e683` (v7.0.5); roster at
+Eight entries: V132-V135, written by the orchestrator s7 on 2026-10-27, and V137-V140, written by
+the orchestrator s8 on 2026-10-28, quoted from `proposals.md` as they stand. `proposals.md` leaves
+V136 unassigned ("#2891 cites it; the triage seat resolves that reference"): no proposal is V136,
+and #2891's P216 heading is corrected to V129, its `Source:` id, on its own branch. Facts read at origin/main `e8cb7e683` (v7.0.5); roster at
 `origin/handoff/audit-r10-roster` `de410e4c9` (212 groups). From this batch on, a heading carries no
 proposal id: the contract's form is `## P<n>: <title>`, and the `Source:` line is the one place an
 id is written (P219).
@@ -131,3 +133,117 @@ Binding: no owner in the tree. The guard is the session host's own worktree-isol
 no roster group can change it; a carry would sit on a group that cannot deliver it. The workaround
 the filing used (a script, verified) is what the tree supports. The report belongs with the
 owner, against the host.
+
+## P223: `worktree_gc.sh` keeps every clean detached worktree whose head is not on main
+
+Verdict: ACCEPT narrowed -> a carry of **R10-FLY-WORKTREE-GC** (`resume.stage` `not-started`, so
+the op is a plain append; its one file is `tools/audit/worktree_gc.sh`, and its brief is the same
+seam from the other side: never collect unpushed work). The new class is `on-remote`, inside class
+B (detached) only; a worktree on a branch keeps today's rules.
+
+Source: `proposals.md` V137 (orchestrator s8, 2026-10-28).
+
+Instances: one rotation, measured by the filer: 130 worktrees, 5.4 GiB free, 72 of them clean,
+process-free and with heads on remote refs (about 10 GiB). Re-read at this seat's start:
+`git worktree list | wc -l` = 65 and `df -h` reports 10 GiB free at 95 % used, after the manual
+pass the filing describes.
+- `tools/audit/worktree_gc.sh` at `e8cb7e683`: class B keeps a clean detached worktree as
+  `unmerged-head` whenever `head_is_merged_ancestor` (388-392, `git merge-base --is-ancestor
+  <head> origin/main`) fails (562-563); `locked` is decided first (529); the script has no
+  process check (`grep -c lsof tools/audit/worktree_gc.sh` = 0).
+
+Cost: one predicate and one class line in a 701-line script, one self-test arm per control, one
+mutant, plus one fetch per run. Per candidate: one `git for-each-ref --contains <head> refs/remotes refs/tags --count=1`
+and one `lsof -a -d cwd` read, only on worktrees already past the clean and age guards.
+
+Binding: the benefit is measured (a disk-exhaustion stall averted and 72 worktrees removed by
+hand), and the narrowing keeps the group's own promise. A head reachable from a remote-tracking
+ref or a tag can be re-created with `git worktree add <head>`, so nothing unpushed is lost. The
+script fetches nothing today (`grep -c fetch tools/audit/worktree_gc.sh` = 0), so the class adds one
+`git fetch --prune origin` per run: a remote-tracking ref whose branch origin deleted then no longer
+vouches, and a run that cannot fetch keeps every such worktree as today. Kept as today: `locked` (a seat's claim), dirty, young, and any worktree some process has
+as its working directory.
+
+Carry text (for `roster_edit.py append-carry R10-FLY-WORKTREE-GC`, citing
+`triage: dev/programme/triage/s6-batch44.md#P223`): "Add an `on-remote` removal class to class B
+(detached) of `tools/audit/worktree_gc.sh` (V137). Today a clean detached worktree is kept as
+`unmerged-head` whenever its head is not an ancestor of origin/main (`head_is_merged_ancestor`,
+388-392; 562-563); one rotation measured 130 worktrees and 5.4 GiB free, 72 of them clean with
+heads on remote refs (about 10 GiB). After the clean check and before `unmerged-head`, remove the
+worktree as `remove  <wt>  on-remote` when its head is reachable from refs/remotes/* or refs/tags/*
+(read after one `git fetch --prune origin` at the start of the run; a failed fetch keeps them all as `unmerged-head`) and no process has a working directory inside it
+(`lsof -a -d cwd`; an unreadable lsof keeps the worktree, naming `cwd-unread`). `locked` (529),
+dirty and young keep first, as today; a worktree on a branch is out of scope. Controls: a clean
+detached worktree at a head only a remote branch holds is removed; null controls: the same at a
+head no remote ref or tag holds is kept `unmerged-head`; the same with a process cwd inside is
+kept; a locked one is kept `locked`; one mutant drops the cwd test and fails its arm."
+
+## P224: the sweep does not check that the cloud environment and pool triggers still resolve
+
+Verdict: REJECT.
+
+Source: `proposals.md` V138 (orchestrator s8, 2026-10-28).
+
+Instances: one. `cloud-overlay.json` named a deleted environment and both pool triggers were gone;
+the first dispatch failed with HTTP 404, then 400 `environment_not_found` (the filing).
+- `orch_sweep.sh` is not in the tree (`git ls-files | grep -c orch_sweep` = 0); the in-tree sweep
+  is `tools/audit/seat/sweep_template.md`, a prompt the orchestrator follows.
+- `tools/audit/seat/cloud_dispatch.py` reads the environment id from the overlay
+  (`:32-36`, `:334-341`); trigger and environment reads are host tools, not shell-callable.
+
+Cost: the check is a host-tool read by the orchestrator on every sweep. V139 measures that a
+trigger read echoes the whole trigger, about 10 KB; two triggers per sweep at the 1800 s default
+(`INSTRUMENTS.md:516`) is about 20 KB of main-loop context per sweep, about 960 KB a day.
+
+Binding: the failure is already loud and exact at the first dispatch (404, then
+`environment_not_found`), which is the one moment the environment matters; a sweep check buys
+only the time between the loss and that dispatch, at a standing token cost on every sweep. A
+rotation that inherits the loss meets it at its own first dispatch with the same message.
+
+## P225: pool routines that read their payload from a dispatch ref, so a dispatch costs fewer tokens
+
+Verdict: DEFER -- the mechanism already exists in the tree; the decision is a measurement. Owner
+of the in-tree half: **R10-FLOW-DISPATCH** (`done`; `tools/audit/seat/cloud_dispatch.py`). Nothing
+is carried.
+
+Source: `proposals.md` V139 (orchestrator s8, 2026-10-28).
+
+Instances: the filer's estimate, ~10 KB per trigger echo and ~30 KB of main-loop tokens per three
+seats; no transcript count is cited.
+- `cloud_dispatch.py:19-23` already publishes every payload with its prompt on
+  `dispatch/<role>-<topic>` (PAYLOAD.json, PROMPT.md) and states that "a standing trigger whose
+  prompt fetches the ref it is fired with needs nothing else"; `:25-29` records the update+run
+  path the filing wants to leave.
+
+Cost: recreating two routines and one prompt is outside the tree. A `run` with no body cannot name
+which ref to read, so the routine has to pick its dispatch by claim, which is the pool path whose
+failures V107 and V114 recorded (a re-pooled topic reading POOL EMPTY; a hand-edited POOL.txt
+emptying the pool).
+
+Binding: the benefit is an estimate, and the cost includes a claim race the tree has already paid
+for twice. Flips to ACCEPT on one measured pair: the orchestrator's context growth for one
+update+run dispatch against one bodiless pool run, both read from the session transcript, and the
+pool claim's refusal on two concurrent runs shown with a null control.
+
+## P226: the resume header does not show the replan's closure date and open counts
+
+Verdict: DEFER -- owned by **R10-ORCH-BEATD** (`not-started`, 35 carries), which P197
+(`s6-batch34.md#P197`) already names as the owner of the orchestrator's generated handover
+(`state_docs.py` plus the resume, with `handover_prompt.py` and `resume_doc.py`, its carry 13).
+
+Source: `proposals.md` V140 (orchestrator s8, 2026-10-28).
+
+Instances: one: a rotation's `RESUME-PROMPT` read as near-complete ("v7.0.5 stamped, window
+closed") while the replanned page shows 66 open roster issues and closure 2026-11-02 (the filing).
+- `tools/audit/seat/handover_prompt.py` (280 lines) already computes the open groups
+  (`roster_lib.open_groups`, `:46`) for its seats' prompt; the orchestrator's `RESUME-PROMPT.md` is
+  hand-kept and, per P197, deliberately static.
+
+Cost: small in the generator, but the instance's prompt is the hand-kept one, which the generator
+does not write; a header in `handover_prompt.py` reaches it only through R10-ORCH-BEATD's
+generated orchestrator handover.
+
+Binding: no cost of the misread is recorded (no wrong dispatch or lost hour), so the benefit is
+unmeasured, and the owning group already carries the generated handover the header would live in.
+Flips on a recorded decision the misread caused, or on R10-ORCH-BEATD's dispatch, where it is one
+line of its brief.
