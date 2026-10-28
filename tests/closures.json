@@ -3695,6 +3695,7 @@
    "dev/audit/harnesses/r10_dead_rate_limit.py",
    "dev/audit/harnesses/r10_demand_overbook.py",
    "dev/audit/harnesses/r10_dhw_lift_law_grid.py",
+   "dev/audit/harnesses/r10_diag_ages_export.py",
    "dev/audit/harnesses/r10_envmatrix_noremote.sh",
    "dev/audit/harnesses/r10_errexit_capture.py",
    "dev/audit/harnesses/r10_fahrenheit_setpoints.py",
