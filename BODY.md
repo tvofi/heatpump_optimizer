@@ -56,6 +56,28 @@ Part of #2258, #2816. Neither closes here: the roster gives this group
 
 ## Head
 
+`179572ef592d7f246b0f281dccd250cd2c55dcff` is a merge commit whose parents are
+the previous head `9513b571420de2740607e12847adcf047ec94b1b` and origin/main
+`e8cb7e68302b1d350bb8219fea99e911170af030` (the v7.0.5 stamp), in that order,
+cut by `git merge origin/main` in a detached worktree; not a rebase, not a
+re-cut of the code. The stamp emptied both claim lists and set `claims-for:
+7.0.5`, so the `claimnotes` driver refused both claim files (both sides rewrote
+the bare list); no other path conflicted (`git merge-tree --write-tree
+origin/main 9513b5714` names only the two claim files). Each was resolved as
+main's file verbatim plus this branch's own R10-HOUSE-GRADE block appended
+unchanged (`git diff e40806a7d 9513b5714 -- <file>`'s added lines): in
+`claimed_drift.txt` the 15-line note and the five `coord_*` claims, in
+`card_claimed_drift.txt` the note and `score_open`. The inherited
+R10-SAV-COMFORT, R10-ADVISOR-RESIDUE and `config_flow` claims are dropped with
+the stamp. `claims-for: 7.0.5` in both equals `VERSION`. Three-dot
+(`git diff $(git merge-base origin/main HEAD)...HEAD -- tests/golden/*claimed_drift.txt`)
+the branch adds exactly those two blocks and deletes nothing. No production or
+test line moves relative to `9513b5714` outside main's own paths.
+
+`9513b571420de2740607e12847adcf047ec94b1b` merges main `e40806a` into the previous head: an automatic merge by the orchestrator, no resolution. The reviewed code is unchanged.
+
+`d08647f0513a5a568b5ac917748df02adf9fded6` merges the authored code head `e0237e6d0e860f664512b2970d7ad65a54db8acd` and then merges origin/main `2b45d098c` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
+
 `e0237e6d0e860f664512b2970d7ad65a54db8acd` is a merge commit whose parents are
 the reviewed head `253dc4867cf39f2aa9875f5f2540c5b67b7c1018` and origin/main
 `67178dc6a589cf95d2ce7cff36d8bbf17343e8dc`, in that order. It was cut by
@@ -190,21 +212,29 @@ split's, not a scale-only drift.
 - `card_drift: 1 state(s) moved and claimed, 44 identical`:
   `python3 tests/plan_view.py` then `node tests/card_drift.mjs`.
 - `STRUCTURE RATCHET PASSED`: `python3 tests/structure.py`.
-- `NO UNCLAIMED DRIFT: 56 scenario(s) checked against origin/main`,
+- At head `179572ef5`, origin/main `e8cb7e683` (taken 2026-10-28 UTC):
+  `NO UNCLAIMED DRIFT: 56 scenario(s) checked against e8cb7e68...`,
   `NO STALE FIXTURE: 56 committed fixture(s) still match what this tree
-  computes`, and `CLAIMED` for `coord_all_features`, `coord_dhw`,
-  `coord_grid_fee`, `coord_minimal`, `coord_two_zone`:
-  `python3 tests/env_drift.py --all origin/main`.
-- `tests/golden/claimed_drift.txt` is 772 lines and its claim map is the union
-  of the branch's five `coord_*` names and main's two: `wc -l
-  tests/golden/claimed_drift.txt`.
-- `excusing_claims` at this head names `coord_all_features`, `coord_dhw`,
-  `coord_grid_fee`, `coord_minimal`, `coord_two_zone` as branch-authored and
-  filters `config_flow`, `negative_prices`, `summer_dhw_only`:
-  `python3 -I -c "import sys; sys.path.insert(0,'tests'); import env_drift as E; ..."`.
-- `DEFECT: none` from the driver's own checker:
-  `python3 -I -c "import sys; sys.path.insert(0,'tests'); import env_drift as E; ..."`
-  over the three merge stages and the resolved file.
+  computes`, `config_flow is byte-identical`, and `CLAIMED ... 2 leaves moved`
+  for each of `coord_all_features`, `coord_dhw`, `coord_grid_fee`,
+  `coord_minimal`, `coord_two_zone`:
+  `PYTHONPATH=tests/hastub python3 tests/env_drift.py --all $(git merge-base origin/main HEAD)`, rc 0.
+- `claims hygiene: e8cb7e68... ok`:
+  `python3 tests/env_drift.py --claims-only $(git merge-base origin/main HEAD)`.
+- `ALL 2467 ENTITY CHECKS PASSED`: `PYTHONPATH=tests/hastub python3 tests/entities.py`.
+- The claim map at this head is exactly the five `coord_*` names, and
+  `excusing_claims` against origin/main names all five as branch-authored
+  (fork point `e8cb7e683`):
+  `python3 -I -c "import sys; sys.path.insert(0,'tests'); import env_drift as E; c=E._claimed_at('.','HEAD',E.CLAIM_FILE); print(sorted(E.excusing_claims('.','origin/main',c)))"`.
+- `DEFECT: none` for both claim files from the driver's own checker,
+  `E.merge_claim_defect(merged, merged, ours=9513b5714, theirs=e8cb7e683)`;
+  null control: the same call with a conflict marker appended prints
+  `conflict markers survived into the result`.
+- Three-dot over the claim files: 33 lines added, 0 deleted:
+  `git diff $(git merge-base origin/main HEAD)...HEAD -- tests/golden/claimed_drift.txt tests/golden/card_claimed_drift.txt`.
+- The merge's delta from `9513b5714` is 199 paths, all in main's own
+  `e40806a7d..e8cb7e683` set (`comm -23` of the two `git diff --name-only`
+  lists prints nothing; null: a branch path such as `presets.py` would print).
 
 ## Unpinned sites
 
@@ -373,3 +403,4 @@ out of memory` line right after the same census check at both.
 ## Friction
 
 none
+
