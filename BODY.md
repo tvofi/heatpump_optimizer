@@ -22,37 +22,73 @@ forward-carried inverse conversions.
 
 ## Head
 
-`54437ac849f8cd9d73ef59fa3bd2faf8f0190a9d` is the authored code head, pushed to
-`handoff/r10-cop-partload`. It is three commits on `635e991a4` (the previous
-handoff tip, which merged `34cd75bf1` into `f4415303e`):
+`c221d2ac4eb579853953f00eefa75f8b8712b738` is the authored code head, pushed to `handoff/r10-cop-partload`.
+It is six commits on `54437ac84` (the previous handoff tip), and its merge
+base is origin/main `edd7e0e14`:
 
-- `5599dcd19` merges origin/main `e8cb7e683` (the v7.0.5 stamp), now this
-  branch's merge base. Five files conflicted and were resolved by hand:
-  - `tests/golden/claimed_drift.txt`: the stamp emptied main's claim list at
-    `claims-for: 7.0.5`, and the `claimnotes` driver refused the merge (both
-    sides rewrote the list). This branch's only golden diff against
-    `e8cb7e683` is `tests/golden/config_flow.json` (`git diff --stat
-    e8cb7e683...HEAD -- tests/golden/`: that file and the claim file), so the
-    result is main's file plus one `config_flow` claim for the part-load
-    option's keys. The seven other claims the previous head carried excused
-    other pull requests' diffs, which the stamp released. `card_claimed_drift.txt`
-    is untouched (byte-identical to main).
-  - `tests/features.py`: both sides appended a block at the same place
-    (this branch's part-load checks, main's #2261 heat-meter checks); both kept.
-  - `dev/audit/rounds/round3/D5/option_doc_coverage.py`: both sides added one
-    option, so the header's counts are re-measured at the merge (203 fields,
-    236 schema keys) and its history names both moves.
-  - `dev/audit/rounds/round4/D6/claims.py`: this branch's Range row (92) beside
-    main's module count (83, `heat_energy.py`); `claims.md` is the script's own
-    regeneration at the merge, not a hand edit.
-  - `tests/structure_budgets.json` and `tests/closures.json` merged through
-    the ledger driver.
-- `2f082ee3b` pays the structure budget instead of raising it (below).
-- `54437ac84` routes the derate's validation through `const.finite_float`,
-  which `tests/finite_boundary.py` refused (below).
+- `6d14230a8` merges origin/main `edd7e0e14` into `54437ac84`.
+  `tests/structure_budgets.json` and `tests/closures.json` merged through the
+  ledger driver; the claim file was re-cut in `e03722e94`.
+- `e03722e94` repairs two things. `tests/features.py` did not parse at
+  `54437ac84`: the merge `5599dcd19` placed main's #2261 heat-meter section
+  after the part-load hot-water `R.check` and dropped that call's closing
+  `)` (`SyntaxError: '(' was never closed`; prepr's `no-copies` step refused
+  on it too). The `)` and its two blank lines are back, and that is the
+  file's whole edit; `git diff origin/main...HEAD -- tests/features.py` is
+  pure additions. `tests/golden/claimed_drift.txt` is main's file byte for
+  byte plus this branch's one `config_flow` claim, `claims-for: 7.0.5` ==
+  `VERSION`. The claimnotes driver refused the merge (both sides rewrote the
+  list); main's R10-HOUSE-GRADE `coord_*` claims stay, because deleting them
+  here would delete them from main while their drift is unstamped.
+  `card_claimed_drift.txt` is byte-identical to main.
+- `639ba901f` pays the production-call red in `tests/stress.py` with code
+  (`## Red checks`): `thermal_model.heat_per_cop_kw(params, power)` is the
+  draw's heat per unit of COP (the draw at derate 0, else draw times
+  `partload_factor`), and `delivered_heat_kw` is `cop * heat_per_cop_kw(...)`.
+  The part-load factor depends on the draw alone, so the batch twin takes it
+  once for its power matrix and `extend_dhw_temps` once for its schedule,
+  and each sub-step multiplies in its own COP. Before, those two loops called
+  the helper once per interval and sub-step: 30432 and 5566 of the 38014
+  `delivered_heat_kw` calls on `heavy_old/winter`. After, 0 and 0 of 2016
+  (the 1920 scalar-step calls and the 96 hot-water trajectory calls are
+  unchanged). Out-of-tree counter `$SCRATCH/probe/site_count.py`. The
+  association is now `cop * (power * factor)` at every site, scalar and
+  batch, so the twins stay bitwise; at derate 0 every product is still
+  exactly `cop * power`.
+- `ad2bf7fd6` pays the six class lines the hoist first cost
+  (`class_excess_loc 17992 > 17986`): both loops build `heat_per_cop` from
+  the `asarray` and read their shapes from it, and the batch's existing COP
+  comment carries the note. `class_excess_loc 17986 <= 17986`.
+- `c221d2ac4` closes the last firing scenario: at `f041578bd` the channel
+  read `summer/1z/space/valve` 88705 against 84434 = 1.051x, because
+  `delivered_heat_kw` now made a second call per scalar step. Both zone
+  steps and the hot-water trajectory write `cop * heat_per_cop_kw(...)`, the
+  product `delivered_heat_kw` returns, and `delivered_heat_kw` stays the
+  optimizer ceiling's.
+- `f041578bd` deletes `delivered_heat_kw`'s two pins (`GUARD_OFF 54581fbd`,
+  `RETURN_DEL 8c667869`), which `ci_predict` reads as STALE PIN once their
+  lines moved into `heat_per_cop_kw`.
 
-Every comparison below is three-dot against `e8cb7e683`. Figures measured at an
-earlier head say which.
+Every comparison below is three-dot against `edd7e0e14`. Figures measured at
+an earlier head say which. The mutation proof and the null control are
+carried from `635e991a4`. The one later production change that touches the
+priced law is `639ba901f`, which keeps `cop * power` exactly at derate 0, and
+the two `_grad_parity` cells at derate 0.15 hold the twins bitwise.
+
+## Unpinned sites
+
+`ci_predict` names three sites `639ba901f` adds and nothing pins yet. Each is
+disposed as pinned by `mutation-autofix`, which pins a killed added site:
+
+- `custom_components/heatpump_optimizer/thermal_model.py:1704 GUARD_OFF`
+  (`heat_per_cop_kw`'s `if params.cop_partload_derate:`): it carries the
+  derate, the guard R1 below removes, killed by 7 feature checks.
+- `custom_components/heatpump_optimizer/thermal_model.py:1706 RETURN_DEL`
+  (`return electrical_power`) and
+  `custom_components/heatpump_optimizer/thermal_model.py:1716 RETURN_DEL`
+  (`delivered_heat_kw`'s `return cop * heat_per_cop_kw(...)`): either
+  dropped makes every conversion `cop * None`, so every `tests/features.py`
+  plan check raises.
 
 ## Mutation proof
 
@@ -112,7 +148,7 @@ does not fire there.
   command.
 - `32 of 32` `d=0.0` plan hashes identical between the merge base and `635e991a4`
   — the null control above; the same command at each tree.
-- At `54437ac84`: `CLAIMED config_flow: 2 leaves moved`, `NO UNCLAIMED DRIFT:
+- At `ad2bf7fd6`: `CLAIMED config_flow: 2 leaves moved`, `NO UNCLAIMED DRIFT:
   56 scenario(s) checked against origin/main` and `NO STALE FIXTURE: 56
   committed fixture(s) still match what this tree computes` (rc 0): the one
   claim the resolved file carries excuses exactly this branch's diff.
@@ -140,8 +176,10 @@ does not fire there.
   to its one suffix. `ThermalParameters` spans 995 lines at `5599dcd19` and 940
   at `2f082ee3b` (`ast` `end_lineno - lineno + 1`), and `python3
   tests/structure.py` reads `class_excess_loc 17992 (budget 18047, -55)`, then
-  `STRUCTURE RATCHET PASSED` once `--record` wrote 17992; main records 18044,
-  so the +3 this branch adds is paid and no cap rises. Equivalence:
+  `STRUCTURE RATCHET PASSED` once `--record` wrote 17992; main then recorded
+  18044, so the +3 this branch adds is paid and no cap rises. At `ad2bf7fd6`
+  the ledger driver's merge reads 17986 against main's 18038, and
+  `python3 tests/structure.py` prints `STRUCTURE RATCHET PASSED`. Equivalence:
   `asdict(ThermalParameters.from_config(cfg))` for an empty config, one setting
   all 219 `CONF_` string keys to 0.37, and the boolean rows read from `"x"`,
   compared byte for byte before and after the edit: identical. Null control:
@@ -157,24 +195,27 @@ does not fire there.
 
 ## Red checks
 
-Lines naming `54437ac84` were re-run there on this arm64 host; the golden,
-stress, optimality and mutation-proof readings were taken at `635e991a4` and
-are carried: this pass's production edits are the table's shape and the
-derate's reader, and both leave `from_config`'s output unchanged (`## Figures`).
+Lines naming `ad2bf7fd6` were re-run there on this arm64 host (the two
+later commits are a ledger deletion and `c221d2ac4`, which spells three
+sites' product `cop * heat_per_cop_kw(...)`, the value `delivered_heat_kw`
+returned there); the golden,
+optimality and mutation-proof readings were taken at `635e991a4` and are
+carried (`## Head` says why).
 
 - `budget-raise-gate / budget-raise-gate`: red at `fe964895e` on `class_excess_loc` 18067 -> 18070.
-  Answered by paying it: at `54437ac84` no cap rises (`git diff
-  e8cb7e683...HEAD -- tests/structure_budgets.json`: `class_excess_loc` 18044
-  -> 17992, `recorded_at` only otherwise), and `python3 -I
-  tools/policy/budget_raise_gate.py --base e8cb7e683 --head 54437ac84 --pr
-  2872` prints `RESULT budget_raises=0 count` and `PASS: no budget raise; no
-  owner review is owed`. Answer: no cheaper detector than
-  the gate exists for a cap rise; `tests/structure.py` already names the
-  growing row locally, which is how this pass found it.
+  Answered by paying it: at `ad2bf7fd6` no cap rises (`git diff
+  edd7e0e14...HEAD -- tests/structure_budgets.json`: `class_excess_loc` 18038
+  -> 17986, `recorded_at` only otherwise), and the gate's own diff read,
+  `raises_between(merge-base, HEAD)`, returns `[]` (budget_raises=0);
+  `python3 -I tools/policy/budget_raise_gate.py --check-body BODY.md --base
+  origin/main --head HEAD` prints `the diff raises no cap, and the body has no
+  raise section to judge`. Answer: no cheaper detector than the gate exists
+  for a cap rise; `tests/structure.py` already names the growing row locally,
+  which is how this pass found it.
 - `tests / fast (3.14)`, `tests/finite_boundary.py` at `fe964895e`: `1 of 108 FINITE
   BOUNDARY CHECKS FAILED`, `stray=['thermal_model.py::_partload_derate']` (the
   derate read its config through a bare `float()`). Same at `2f082ee3b`;
-  `ALL 108 FINITE BOUNDARY CHECKS PASSED` at `54437ac84`.
+  `ALL 108 FINITE BOUNDARY CHECKS PASSED` at `54437ac84` and at `ad2bf7fd6`.
   `PYTHONPATH=tests/hastub python3 tests/finite_boundary.py`. Answer: the
   cheaper detector exists and is that script, which a local run of the scoped
   gate reaches in 7 minutes; it was not run before the earlier push.
@@ -196,20 +237,36 @@ derate's reader, and both leave `from_config`'s output unchanged (`## Figures`).
   3.96]`: the branch's only production change is the derate at its 0 default,
   where the null control shows the plans byte-identical, so this comparison is
   the merge base's. Not this branch's.
-- `tests/stress.py`, the production-call channel: **this branch's**, and the one
-  red that needs the owner. 13 scenarios grow 1.051x to 1.064x past the 1.05
-  allowance on work their counts vouch at 1.000x, and the merge base does not
-  fire it. The growth is `delivered_heat_kw`'s one call per heat conversion,
-  which is the point of the change: the alternative is `cop * power` written at
-  seven sites, the divergence the fix exists to remove. The CPU kernels stay
-  inside their 3.0x factor, so this channel is the only one that sees a call.
-  The channel's own rule is that a legitimate firing passes for one pull
-  request, never by a raise, on the owner's approving review naming the merge
-  and the measured growth. Answer: no cheaper detector exists. A pin's claim is
-  "some check in the suite fails when this operator is applied", which only
-  running the suite against the mutant establishes; a coverage delta prices both
-  at zero and detects neither.
+- `tests/stress.py`, the production-call channel: **this branch's**, and paid
+  in code, not passed by review. At `6d14230a8` (54437ac84 plus main) 13
+  scenarios grew 1.051x to 1.064x past the 1.05 allowance on work their counts
+  vouch at 1.000x (`heavy_old/winter` 1258913 against 1182874, 1.064x,
+  thermal_model.py +76034; `winter/cycle` 2655470 against 2527295, 1.051x).
+  The growth was `delivered_heat_kw`'s call per interval and sub-step in the
+  batch twin and per step in `extend_dhw_temps`; `639ba901f` takes the
+  draw's heat per unit COP once per schedule (`## Head`). At `ad2bf7fd6`:
+  at `f041578bd` the full run judged 20 of 20 family members and one still
+  fired, `summer/1z/space/valve` 88705 against 84434 = 1.051x;
+  `c221d2ac4` removes the second call, and `stress.production_calls`, the
+  channel's own meter run in process on this head and on the merge-base
+  tree, reads `summer/1z/space/valve` 86593/84434 = 1.026x,
+  `summer/1z/space` 81620/79661 = 1.025x, `light_new/shoulder`
+  486204/482519 = 1.008x, `heavy_old/winter` 1187891/1182874 = 1.004x,
+  `summer_negative/1z/dhw` 277773/275086 = 1.010x, all under 1.05. The
+  baselines are the stress run's own to the call. Driver
+  `$SCRATCH/probe/calls.py`. The full `tests/stress.py` was not re-run at
+  `c221d2ac4`; CI's `tests / stress` run is the authority.
+  Answer: no cheaper detector exists. A per-sub-step call costs nothing the
+  CPU kernels' 3.0x factor sees, so only this exact count finds it, and it
+  costs a stress run.
   `PYTHONPATH=tests/hastub python3 tests/stress.py`
+- `tests/features.py`: did not parse at `54437ac84` (`SyntaxError: '(' was
+  never closed`, the merge's dropped `)`, `## Head`); `ALL 4550 FEATURE CHECKS
+  PASSED` at `ad2bf7fd6`, the two `_grad_parity` part-load cells at derate
+  0.15 bitwise included. Answer: the cheaper detector is `python3 -c "import
+  ast; ast.parse(...)"` on every merged test file, which prepr's `no-copies`
+  step already runs and which refused; the earlier push did not stop on it.
+  `PYTHONPATH=tests/hastub python3 tests/features.py`
 - `tests/optimality.py`: 1 of 84, the `one|summer_negative|shoulder` claim. The
   file records that "the gate's platform is the one that counts, so this claim
   reads stale on arm64 only" (`tests/optimality.py`, the claim's note), and the
@@ -218,9 +275,10 @@ derate's reader, and both leave `from_config`'s output unchanged (`## Figures`).
 - `tests/harness_headers.py`: green. `ALL 112 HARNESS HEADER CHECKS PASSED` at
   `54437ac84`, which executes the two headers the merge re-measured.
   `PYTHONPATH=tests/hastub:custom_components:tests python3 tests/harness_headers.py`
-- `mutation`: no site this diff adds is unpinned at `54437ac84`. The branch's
-  later commits `d2e128d49` and `24bd25b92` add ten ledger rows, one per site
-  the diff adds, and `ci_predict` prints no ADDED UNPINNED line. Green.
+- `mutation` at `c221d2ac4`: red by construction on the 3 sites under
+  `## Unpinned sites`; mutation-autofix pins killed sites after the push.
+  The ten rows `d2e128d49` and `24bd25b92` added stand, less the two
+  `delivered_heat_kw` pins `f041578bd` deletes as stale.
   `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main`
 
 ## Forward-carry
@@ -254,4 +312,5 @@ none
 
 Architecture score: dS +0.0000 NULL (`python3 tools/audit/archscore/score.py
 --diff origin/main`, origin/main `e8cb7e683`, at `5599dcd19` before the payment,
-at `2f082ee3b` after it, and at `54437ac84`; all three print the same line).
+at `2f082ee3b` after it, at `54437ac84`, and at `ad2bf7fd6` against origin/main
+`edd7e0e14`; all four print the same line).
