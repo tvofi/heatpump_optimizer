@@ -1,17 +1,10 @@
-$ python3 tools/audit/carry_audit.py --roster-ref handoff/audit-r10-roster(3d1c5efcc9f6f98127fde7d2eccd20e99d7518a9) pr 2712
-CARRY-AUDIT #2712: 6 finding item(s): 6 routed, 0 unrouted, 0 bad destination(s)
-
-R10-ORCH-MACHINERY on origin/main and on handoff/audit-r10-roster 3d1c5efcc:
-  origin/main R10-UX-HEALTH holds 1 carry(ies) from r10-demand-overbook
-  origin/main R10-PREPR-UNPINNED-RED stage= done
-  origin/main R10-BUFFER-STORE holds 2 carry(ies) from r10-demand-overbook
-  origin/main stage= absorbed carries= 12 holding PREPR-UNPINNED/demand-overbook/2712: 0
-  origin/main R10-LEARNER-DEFAULT holds 1 carry(ies) from r10-demand-overbook
-  3d1c5efcc9f6f98127fde7d2eccd20e99d7518a9 R10-UX-HEALTH holds 1 carry(ies) from r10-demand-overbook
-  3d1c5efcc9f6f98127fde7d2eccd20e99d7518a9 R10-PREPR-UNPINNED-RED stage= done
-  3d1c5efcc9f6f98127fde7d2eccd20e99d7518a9 R10-BUFFER-STORE holds 2 carry(ies) from r10-demand-overbook
-  3d1c5efcc9f6f98127fde7d2eccd20e99d7518a9 stage= absorbed carries= 12 holding PREPR-UNPINNED/demand-overbook/2712: 0
-  3d1c5efcc9f6f98127fde7d2eccd20e99d7518a9 R10-LEARNER-DEFAULT holds 1 carry(ies) from r10-demand-overbook
-
-tools/pr/prepr.sh on origin/main still appends the bare name:
-787:  [ -n "${7:-}" ] && [ -s "$7" ] && reds+=(mutation)
+== origin/handoff/audit-r10-roster dbd592fe41c8c45b0b2f1677e0b9fc9c24971caa
+R10-UX-HEALTH not-started carry :: "From r10-demand-overbook (handoff d6ab12b4, body a7a683d1, Part of #2499): installs with no power meter cannot tell a draw shortfall from UA (nometer_half scale 1.828, plan/deliv 1.936, unchanged at both ends). The health surface must report this as unobserva
+R10-BUFFER-STORE queued carry :: "From r10-demand-overbook (body a7a683d1), measure first: on its own model, the plan books about 38-40% more kWh than the relaxed DP optimum, at both ends, in one window. This is a lead, not a proof. Confirm with a flat-price null control before any fix. Harne
+R10-BUFFER-STORE queued carry :: "From r10-demand-overbook (body a7a683d1): the dhw_temp_trajectory tank seed is open-loop (class census). Seed it from the measured tank temperature where one exists. Pin with a failing test first."
+R10-LEARNER-DEFAULT not-started carry :: "From r10-demand-overbook (body a7a683d1): on owner_i03 (0.3 kW idle draw) the house learner accepted 0 samples in 10 days at both ends, because the tracking-error gate in _interval_space_power refuses every interval. Re-measure at your base with dev/audit/har
+== origin/main b89fea13e99f23cc75f01bb1604030cabea4ca66
+R10-UX-HEALTH not-started carry :: "From r10-demand-overbook (handoff d6ab12b4, body a7a683d1, Part of #2499): installs with no power meter cannot tell a draw shortfall from UA (nometer_half scale 1.828, plan/deliv 1.936, unchanged at both ends). The health surface must report this as unobserva
+R10-BUFFER-STORE queued carry :: "From r10-demand-overbook (body a7a683d1), measure first: on its own model, the plan books about 38-40% more kWh than the relaxed DP optimum, at both ends, in one window. This is a lead, not a proof. Confirm with a flat-price null control before any fix. Harne
+R10-BUFFER-STORE queued carry :: "From r10-demand-overbook (body a7a683d1): the dhw_temp_trajectory tank seed is open-loop (class census). Seed it from the measured tank temperature where one exists. Pin with a failing test first."
+R10-LEARNER-DEFAULT not-started carry :: "From r10-demand-overbook (body a7a683d1): on owner_i03 (0.3 kW idle draw) the house learner accepted 0 samples in 10 days at both ends, because the tracking-error gate in _interval_space_power refuses every interval. Re-measure at your base with dev/audit/har

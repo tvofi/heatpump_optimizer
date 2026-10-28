@@ -1,0 +1,18 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index e4a3c2204..51c74c35a 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -6483,7 +6483,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+             await self._async_learn_buffer_cooling(buffer_value)
+ 
+         # The fabric model refined by how the interval went: last, on the full state.
+-        seed = await self._async_learn_interval(prior, slab_unsensed=not floor_return.ok)
++        seed = await self._async_learn_interval(prior, slab_unsensed=False)
+ 
+         state = replace(_ctx_of(self)._current_state)
+         # Update ECL110 effective displace state (PID/PI lag approximation)
+tests/features.py rc=1
+ALL 134 DST / QUARTER-GRID CHECKS PASSED
+  ok   a pump command that FAILED is not remembered as done
+7 of 4388 FEATURE CHECKS FAILED
+DONE

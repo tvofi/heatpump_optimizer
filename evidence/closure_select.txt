@@ -1,0 +1,71 @@
+########## scoped gate ##########
+  MODE: SCOPED -- 28 script(s) run, 5 scoped out.
+  changed files (27), measured against the recorded closures in tests/closures.json:
+      custom_components/heatpump_optimizer/coordinator.py
+      custom_components/heatpump_optimizer/draw_range.py
+      custom_components/heatpump_optimizer/legionella.py
+      dev/audit/harnesses/r10_demand_overbook.py
+      dev/programme/delivery/2712.md
+      tests/closures.json
+      tests/features.py
+      tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._async_learn_interval.BOOLOP.8f67bdf0.json
+      tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._async_learn_interval.RETURN_DEL.7cca5f1c.json
+      tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._update_current_state.BOOLOP.73ca1d75.json
+      tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._update_current_state.BOOLOP.8f67bdf0.json
+      tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._update_current_state.GUARD_OFF.5bbf06c9.json
+      tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._update_current_state.GUARD_OFF.73ca1d75.json
+      tests/mutation_ledger/killed_by/coordinator.py/_propagated_slab.CMP_BOUND.28c622e7.json
+      tests/mutation_ledger/killed_by/coordinator.py/_propagated_slab.RETURN_DEL.a6225a7f.json
+      tests/mutation_ledger/killed_by/coordinator.py/_settle_interval_diag.CMP_BOUND.611f0784.json
+      tests/mutation_ledger/killed_by/draw_range.py/running_kw.CLAMP_DROP.c0bdb768.json
+      tests/mutation_ledger/killed_by/draw_range.py/running_kw.CMP_BOUND.5f36889b.json
+      tests/mutation_ledger/killed_by/draw_range.py/running_kw.RETURN_DEL.5f36889b.json
+      tests/mutation_ledger/killed_by/draw_range.py/space_draw_kw.GUARD_OFF.3f9836f7.json
+      tests/mutation_ledger/killed_by/draw_range.py/space_draw_kw.RETURN_DEL.8b9f939b.json
+      tests/mutation_ledger/killed_by/draw_range.py/space_share.CMP_BOUND.f8f8d8a5.json
+      tests/mutation_ledger/killed_by/draw_range.py/space_share.RETURN_DEL.f8f8d8a5.json
+      tests/mutation_ledger/killed_by/legionella.py/LegionellaGuard.async_observe.GUARD_OFF.c97515c6.json
+      tests/mutation_ledger/killed_by/legionella.py/LegionellaGuard.async_observe.RETURN_DEL.32cb48eb.json
+      tests/seam_map.json
+      tests/structure_budgets.json
+
+      RUN   tests/arch_score.py
+      RUN   tests/arch_score_head.py
+      RUN   tests/backtest.py
+      RUN   tests/block_duty.py
+      RUN   tests/boost_drift_replay.py
+      RUN   tests/config_flow_steps.py
+      RUN   tests/debug_collect.py
+      RUN   tests/deployment_shape.py
+      RUN   tests/doc_claims.py
+      RUN   tests/edge.py
+      RUN   tests/entities.py
+      RUN   tests/env_drift.py
+      RUN   tests/features.py
+      RUN   tests/finite_boundary.py
+      RUN   tests/golden.py
+      RUN   tests/guard_pins.py
+      RUN   tests/harness_headers.py
+      RUN   tests/manual_plan.py
+      RUN   tests/optimality.py
+      RUN   tests/plan_view.py
+      RUN   tests/card.mjs
+      RUN   tests/card_drift.mjs
+      RUN   tests/solar_alignment.py
+      RUN   tests/stress.py
+      RUN   tests/structure.py
+      RUN   tests/typing_ruler.py
+      RUN   tests/validate.py
+      RUN   tests/wood_advisor.py
+
+      SKIP  tests/frontend.py  (closure: 6 files, no changed file is in its measured closure)
+      SKIP  tests/ha_contract.py  (closure: 36 files, no changed file is in its measured closure)
+      SKIP  tests/layout.py  (closure: 3 files, no changed file is in its measured closure)
+      SKIP  tests/md_tables.mjs  (closure: 10 files, no changed file is in its measured closure)
+      SKIP  tests/open_meteo.py  (closure: 3 files, no changed file is in its measured closure)
+
+  A skipped script is a claim that no changed file is in its measured
+  closure. The claim is re-checked by the FULL unscoped suite that runs
+  on every push to main, so a wrong closure turns main red within one
+  gate. Set GATE_SCOPE=full to run everything here and now.
+rc=0

@@ -1,0 +1,18 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index e4a3c2204..77fb01e5e 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -6474,7 +6474,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         self._track_curve_comfort(dt_util.now())
+ 
+         tank = dhw.value if dhw.ok else None
+-        if tank is not None and (frozen := await self._dhw_learner.async_learn_dynamics(tank)):
++        if False:
+             self._learner_freeze_reason = frozen
+         hours = await self._legionella.async_observe(tank, reader)
+         _ctx_of(self).publish(self, dhw_hours_since_legionella=hours)
+tests/features.py rc=1
+ALL 134 DST / QUARTER-GRID CHECKS PASSED
+  ok   a pump command that FAILED is not remembered as done
+1 of 4388 FEATURE CHECKS FAILED
+DONE
