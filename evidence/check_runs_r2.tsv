@@ -26,11 +26,8 @@ tests / browser	completed	success
 tests / claims-autofix	completed	skipped
 tests / closure-scope	completed	success
 tests / closures	in_progress	-
-tests / coverage	completed	success
-tests / coverage-ratchet	completed	success
+tests / coverage	in_progress	-
 tests / fast (3.14)	completed	success
-tests / graders-head-copy	completed	success
-tests / lane-proofs	completed	success
 tests / mutation	completed	success
 tests / mutation-autofix	completed	skipped
 tests / mutation-pins	completed	skipped

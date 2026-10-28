@@ -1,2 +1,3 @@
-measured head: 6ac0d3e67f6a602e4a14e47d75e85e086934c4a6 (PR #2909)
-merge base / origin/main at review: 0b8f8b585daf6a84ae9470389a709d5fec2a4f47
+measured head: 04b2c9c76c69c7fdcdbbd600ccb4ef204fd8fdc4 (PR #2909, round 2)
+authored code head: 15abe48e59abfd041e7f938b923410a900ff5948
+round-1 verdict head: 6ac0d3e67f6a602e4a14e47d75e85e086934c4a6

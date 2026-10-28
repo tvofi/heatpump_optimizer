@@ -1,0 +1,4 @@
+RESULT bucket M n 29 after 8 blocked 2 lag_median 51 lag_sum 1806
+RESULT bucket G n 28 after 7 blocked 3 lag_median 32.0 lag_sum 1122
+RESULT bucket S n 18 after 6 blocked 6 lag_median 59.5 lag_sum 1200
+RESULT mismatches_vs_hm4 0
