@@ -56,17 +56,32 @@ stored baseline's `"1:dhw"` key before its draw-follows arm; space bins are
 now read as integers and the hot-water key skipped.
 
 ## Head
-
-`d3ce1d33f4475a5ec7479d878e11bb20e79c4fa7`, merge base with origin/main
-`edd7e0e14e08279d0ddc53ec4fcc983570edf12a` (origin/main's tip at 2026-10-28
-09:09Z). Cut from `aaf8af512`; `572ed657a` merges origin/main (no conflict;
-the structure budget's ledger-merge driver summed both sides' gains:
-`class_excess_loc` 18030, `max_class_loc` 8153). Commits: `3ea1d8d48` the
+`309f44882234ea0138a6e39a16fee81da858701c`, merge base with origin/main
+`beb570c817c4efcae0d5f6f4bba52f3383baf8db` (origin/main's tip at 2026-10-28
+19:08Z, `git fetch` at that time). Cut from `aaf8af512`. Commits: `3ea1d8d48` the
 fix; `614fdc7d4` harness classification, five stale `MeasuredCop` pins
 dropped; `52ef373cb` footprint paid; `575ba5f61` structure gains recorded;
 `2c3de4661` the counter install's electric key; `0b8e0e970` the per-cycle
-fold tests settle two cycles; `572ed657a` the merge; `d3ce1d33f` the
-electrical-figure rule moved into the install probe.
+fold tests settle two cycles; `572ed657a` merges origin/main `edd7e0e14`;
+`d3ce1d33f` the electrical-figure rule moved into the install probe;
+`718768025` merges origin/main `beb570c81`; `a90db5e2b` merges the PR head
+`d4ec6fcce` (the merge bot's main merge; tree identical to `718768025`,
+`git diff 718768025 a90db5e2b` empty), so the PR branch fast-forwards;
+`309f44882` passes the fold instant in `tests/finite_boundary.py`'s seed.
+
+What the `beb570c81` merge touched: no conflicting hunk, and no hunk inside
+this diff's own lines. Main's side moved `coordinator.py`, `debugger.py`,
+`diagnostics.py`, `inputs.py`, `payload.py`, `store.py` and `tests/features.py`
+(`git diff d3ce1d33f 718768025 --stat -- custom_components tests/features.py`:
+6 production files, 194 insertions, 34 deletions); the ledger driver merged
+`tests/structure_budgets.json` (`class_excess_loc` 18029, `max_class_loc` 8152)
+and `tests/closures.json` key by key. The PR was `DIRTY` on GitHub because
+GitHub runs no merge driver on those two ledgers; locally the drivers resolved
+them. Claim files: neither conflicted; `card_claimed_drift.txt`, `VERSION` and
+`RELEASE_NOTES.md` byte-identical to the merge base (`git diff --quiet
+$(git merge-base origin/main HEAD)...HEAD -- tests/golden/card_claimed_drift.txt
+VERSION RELEASE_NOTES.md` rc 0); `claimed_drift.txt` unchanged from `d3ce1d33f`'s
+claim at `claims-for: 7.0.5`, `VERSION` 7.0.5.
 
 ## Mutation proof
 
@@ -109,6 +124,18 @@ m5b and m4 on the head's production code.
   'CONF_HEAT_ENERGY_ENTITY')]`, a real red at `0b8e0e970` that `d3ce1d33f`
   removes (its result at this head is CI's).
 
+After the `beb570c81` merge (`309f44882`): the m1-m6 sites are untouched by
+main's side of the merge (no hunk of `git diff d3ce1d33f 718768025` falls in
+`judge_ratio`, `MeasuredCop`, `cop_electric`, `_waiting_for` or the
+`_record_accuracy` draw guard), and the mutants were not re-run at this head;
+the scratch driver above is not on this seat. What re-executes them at the
+merged head is `tests/mutation_table.py --pin-killed --base origin/main`
+(below, under `## Red checks`, `mutation`).
+
+`309f44882` (the seed fix): before, at `a90db5e2b` (`git archive HEAD~1`),
+`PYTHONPATH=tests/hastub python3 tests/finite_boundary.py` raised `TypeError:
+MeasuredCop.record() missing 1 required positional argument: 'at'` from
+`_a6_enrich` (rc 1); after, `ALL 108 FINITE BOUNDARY CHECKS PASSED` (rc 0).
 ## Null control
 
 - A draw that follows its ask still folds: follows 12/12 at head, and under
@@ -120,7 +147,57 @@ m5b and m4 on the head's production code.
 - Companion `--slope-follow` (draws 1.3 x the ask): `owner.folds=77
   folds_within_tolerance=0` at both ends.
 
+- `tests/finite_boundary.py`'s store.py arm: with the seed fix, `coverage run
+  --include='*/heatpump_optimizer/store.py' tests/finite_boundary.py` misses 1
+  of 253 statements; at `a90db5e2b` (no fix) it misses 20 (the domain arm
+  aborts). That is the mechanism of `coverage-ratchet`'s store.py figure, and
+  the unfixed run is its null control.
 ## Figures
+Re-taken at this head (`309f44882`, merge base `beb570c81`; the harness runs
+used the tree of `a90db5e2b`, which differs from the head only in
+`tests/finite_boundary.py`, a file no harness below reads), seat Python 3.14.7
+(`/opt/hpo/venv-ci`), 2026-10-28 19:10Z-19:51Z UTC. Base = `git archive
+beb570c81 | tar -x` with the head's two harness files copied in.
+
+- `PYTHONPATH=tests/hastub python3 dev/audit/harnesses/r10_cop_gate.py`
+  (synthetic arm; the private owner bundle is not on this seat, so the owner
+  arm was not re-run): base `synthetic.selfset.folded=12/12 refusal=None
+  observability=absent`, `synthetic.follows.folded=12/12 refusal=None
+  observability=absent`; head `synthetic.selfset.folded=0/12
+  refusal=draw_off_ask observability=not_measurable`,
+  `synthetic.follows.folded=12/12 refusal=None
+  observability=draw_follows_plan`. Harness sha1
+  d03dd93508936796fba5ec07ce387d393c9d8b60, unchanged.
+- `PYTHONPATH=tests/hastub:custom_components:tests python3 dev/audit/harnesses/cop_duty_floor.py`,
+  base -> head, `diff` of the RESULT lines (31 each): only
+  `selfmod_independent` 9/96 0.976 -> 5/96 0.987, `selfmod_independent_4kw`
+  33/96 0.780 -> 29/96 0.789, `selfset_hourly` 7/96 0.978 -> 5/96 0.985,
+  `p4_follow_lag1tick` 37/96 1.002 -> 24/96 0.983 differ; the same four rows
+  and values as at `d3ce1d33f`. Harness sha1
+  9587bead80b5f4b103c510a9f46a4c70e3ea2a91, unchanged.
+- `python3 tools/audit/archscore/score.py --diff beb570c81` at `309f44882`:
+  `Architecture score: dS +0.0000 NULL`.
+- `PYTHONPATH=tests/hastub python3 tests/structure.py` at `309f44882`:
+  `STRUCTURE RATCHET PASSED`.
+- `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py` at `309f44882`:
+  `no closures, fast, wave-script or instrument red predicted against
+  beb570c817c4`; it lists the unpinned sites under `## Unpinned sites`.
+- `python3 tests/closure.py select --diff beb570c81 --workdir D` at
+  `309f44882`: `MODE: SCOPED -- 27 script(s) run, 6 scoped out`.
+- Scoped gate at `a90db5e2b` (`GATE_SCOPE=auto GATE_SCOPE_BASE=beb570c81
+  GOLDEN_MODE=drift GOLDEN_REF=beb570c81 PYTHONPATH=tests/hastub bash
+  tests/run.sh`, started 19:12Z): `MODE: SCOPED -- 27 script(s) run, 6
+  scoped out`; `1 TEST SCRIPT(S) FAILED`, `tests/finite_boundary.py` (the
+  `TypeError` above), every other selected script green (`tests/features.py`
+  `ALL 4540 FEATURE CHECKS PASSED`, `tests/entities.py` `ALL 2468 ENTITY
+  CHECKS PASSED`, `tests/stress.py` `ALL 113 STRESS CHECKS PASSED`). At
+  `309f44882`, `tests/finite_boundary.py` alone: `ALL 108 FINITE BOUNDARY
+  CHECKS PASSED`; the gate was not re-run in full at `309f44882`, whose delta
+  is that one test line.
+
+Taken at `d3ce1d33f` (merge base `edd7e0e14`) by the previous seat and not
+re-taken here (the owner bundle is the previous seat's):
+
 
 Owner bundle `~/Downloads/config_entry-heatpump_optimizer-01M0GGS19KP0FH4E7K9S003DTV-11.json`
 (private, derived ratios only). Base = `git archive edd7e0e14 | tar -x` with
@@ -151,8 +228,6 @@ ce04b0dd15eabed34457a515afa8955de193fc04,
   `aaf8af512` it raised `AttributeError: 'Gate' object has no attribute
   '_fold_cop_evidence'` at both ends. The thermal-power arm is the features
   check "the coordinator's state: ... a thermal-power install never is".
-- `python3 tools/audit/archscore/score.py --diff edd7e0e14` at `d3ce1d33f`:
-  `Architecture score: dS +0.0000 NULL`.
 - `PYTHONPATH=tests/hastub python3 tests/structure.py` at `d3ce1d33f`:
   `STRUCTURE RATCHET PASSED`.
 - `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py` at `d3ce1d33f`:
@@ -172,7 +247,7 @@ ce04b0dd15eabed34457a515afa8955de193fc04,
 
 ## Unpinned sites
 
-Every site `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py` lists at `d3ce1d33f` merged with origin/main `f844df1fe` (20, the same lines as at `d3ce1d33f` alone), each under `custom_components/`, so `mutation-autofix` pins it; the mutants under `## Mutation proof` kill the ones they drove:
+Every site `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py` lists at `309f44882` (merge base `beb570c81`; 20, the same sites as at `d3ce1d33f`, two `coordinator.py` lines moved +14 by main's side of the merge: 9837 -> 9851, 9872 -> 9886), each under `custom_components/`, so `mutation-autofix` pins it; the mutants under `## Mutation proof` kill the ones they drove:
 
 - `custom_components/heatpump_optimizer/accuracy.py:787 CMP_BOUND*2`: `pairs_interval`; mutation-autofix.
 - `custom_components/heatpump_optimizer/accuracy.py:787 RETURN_DEL`: `pairs_interval`; mutation-autofix.
@@ -190,18 +265,46 @@ Every site `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py` lists at `d3
 - `custom_components/heatpump_optimizer/accuracy.py:943 RETURN_DEL`: `MeasuredCop.as_dict`; mutation-autofix; value check "a folded COP carries the instant it folded".
 - `custom_components/heatpump_optimizer/accuracy.py:961 GUARD_OFF`: `MeasuredCop.from_dict`; mutation-autofix; value check "a folded COP carries the instant it folded".
 - `custom_components/heatpump_optimizer/accuracy.py:963 RETURN_DEL`: `MeasuredCop.from_dict`; mutation-autofix; value check "a folded COP carries the instant it folded".
-- `custom_components/heatpump_optimizer/coordinator.py:9837 GUARD_OFF`: `_record_accuracy`, the draw fold guard; mutation-autofix; killed by m2's check.
-- `custom_components/heatpump_optimizer/coordinator.py:9872 GUARD_OFF`: `_record_accuracy`, `pairs_interval(elapsed)`; mutation-autofix.
+- `custom_components/heatpump_optimizer/coordinator.py:9851 GUARD_OFF`: `_record_accuracy`, the draw fold guard; mutation-autofix; killed by m2's check.
+- `custom_components/heatpump_optimizer/coordinator.py:9886 GUARD_OFF`: `_record_accuracy`, `pairs_interval(elapsed)`; mutation-autofix.
 - `custom_components/heatpump_optimizer/sensor.py:1689 GUARD_OFF`: `ObservedCOPSensor._waiting_for`; mutation-autofix; killed by m4.
 - `custom_components/heatpump_optimizer/thermal_model.py:1295 RETURN_DEL`: `InstallCapability.cop_electric`; mutation-autofix; killed by m5b.
 
 ## Red checks
 
-none at this head (no PR yet; `ci_predict.py` predicts none). The
-entry-config census red at `0b8e0e970` was never pushed; `d3ce1d33f` answers
-it, and the cheaper detector is the scoped gate the previous seat did not
-re-run after `2c3de4661`.
-- `mutation` at d3ce1d33f447: red by construction on the 20 site(s) under `## Unpinned sites`; mutation-autofix pins killed sites after the push.
+Each concluded red at the previous PR head `d4ec6fcce`, by its exact name:
+
+- `tests / fast (3.14)`: this PR's. `tests/finite_boundary.py`'s domain-arm
+  seed `_a6_enrich` called `MeasuredCop.record(3.17, True, 52.5)`, which
+  `3ea1d8d48` gave a required `at`; `TypeError`. Fixed in `309f44882` (the
+  seed passes `t0`). Cheaper detector: the scoped gate, which selects
+  `tests/finite_boundary.py` for this diff and failed it in 105 s; the
+  previous seat's gate at `d3ce1d33f` had not reported that script when it
+  handed off (its body: "had not reported at 10:35Z and are CI's").
+- `tests / coverage-ratchet`: this PR's, a consequence of the red above.
+  `store.py: 93.28 %` under the 95 % per-module floor: the aborted
+  `finite_boundary.py` domain arm leaves 19 store.py statements unexecuted
+  (`## Null control`: 20 missed without the fix, 1 with it). No coverage
+  re-run of the full tree here; CI's at the new head is the proof.
+- `tests / mutation-autofix`: `skip-measure-failed` ("THE REPAIR DID NOT
+  HAPPEN"), the bot's measurement on a red baseline. The same red baseline
+  reproduces locally: `tests/mutation_table.py --pin-killed --base
+  origin/main` at `a90db5e2b` printed `MUTATION TABLE INCONCLUSIVE -- the
+  baseline is already red in tests/finite_boundary.py`. `309f44882` greens
+  that baseline; a re-run of `--pin-killed` at `309f44882` was started at
+  19:51Z and had not finished at handoff (each mutant re-runs `features.py`,
+  about 700 s), so no pins are committed here and none is claimed;
+  `mutation-autofix` at the new head is expected to pin the killed sites
+  (`ci-autofix.md`: once the PR exists, wait for the bot commit).
+- `tests / mutation`: red by construction on the 20 sites under
+  `## Unpinned sites` until those pins land; it is not a separate defect.
+- `pr-contract / pr-contract` and `gate`: `gate` aggregates the others
+  (its log: `FAIL tests / fast (3.14)`, `tests / mutation`, `pr-contract /
+  pr-contract`); it has no cause of its own. `pr-contract` ran on the `DIRTY`
+  head `d4ec6fcce` with a body whose `## Head` named `d3ce1d33f` and whose
+  `## Red checks` named none of these reds; this body names the new head and
+  every red. Its failing step is not in the log tail this seat read, so the
+  cause is inferred, not shown; CI's run at the new head is the proof.
 
 ## Forward-carry
 
