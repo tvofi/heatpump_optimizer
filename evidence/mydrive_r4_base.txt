@@ -1,0 +1,13 @@
+RESULT mutant=M0 failed=0 verdict=null-ok
+RESULT mutant=role-probe failed=2 verdict=killed
+    FAIL the --group CLI passes --head and --roster-ref through
+    FAIL a re-dispatch from a second clone fast-forwards the existing ref
+RESULT mutant=role-swap-fixer-if-reviewer failed=0 verdict=SURVIVED
+RESULT mutant=group-first-roster failed=0 verdict=SURVIVED
+RESULT mutant=model-default failed=0 verdict=SURVIVED
+RESULT mutant=pr-nonce-swapped failed=0 verdict=SURVIVED
+RESULT mutant=pr-truncated-1 failed=0 verdict=SURVIVED
+RESULT mutant=nonce-truncated-3 failed=0 verdict=SURVIVED
+RESULT mutant=pr-none failed=0 verdict=SURVIVED
+RESULT mutant=nonce-none failed=0 verdict=SURVIVED
+RESULT mutants=9 survived=8
