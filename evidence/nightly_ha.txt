@@ -1,0 +1,13 @@
+tests / nightly-ha (stable), from the check-runs API and the job log:
+- job 121042556914 (run 40149339083, head e6455b8fe617ec28d6916977778e7499a6d2fd27): conclusion failure.
+  log: py-spy did not run: TimeoutExpired: Command '['/opt/hpo/py-spy', 'dump', '--nonblocking', '--pid', '1']' timed out after 5.0 seconds
+  log: FAIL hb:positive_control  [a 600 ms spin read as 5290.1 ms; dump names the spin: True; py-spy rc=0 names it: False; try 3 of 3 (at most 3)]
+  log: FAILED: 2 of 64 checks: ['hb:positive_control', 'run:exit_status']
+- job 121023292089 (run 40144547813, head 0303eae447bf7a12fc52ef03d66df50cb573e4f3): conclusion success.
+Cited record dev/audit/rca/nightly-ha-pyspy-timeout.md at origin/main ab00437c9: exists; same two checks
+(['hb:positive_control', 'run:exit_status']), single py-spy --nonblocking sample racing a live process,
+"## 2. Process state: (c)", "CI's (8 of 120)". In-tree countermeasures at the head: tests/nightly_ha.py
+PY_SPY_TIMEOUT_S = 5.0, HB_CONTROL_TRIES = 3. Roster dev/programme/rosters/wave-r10-groups.json holds
+group R10-NIGHTLY-HB-RESPAWN (issues [2726], fixes []).
+CI on head bafbef69d197027e3f07c2dc496fe612e16b54bc at 2026-10-25T04:06Z: 7 check runs, prelude/refresh
+queued or in progress, arm skipped; no tests, mutation or pr-contract run concluded.
