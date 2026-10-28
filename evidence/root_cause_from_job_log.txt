@@ -1,0 +1,6 @@
+Job 121219438293 (governance / record, main da12aa37dee1) log, CENSUS rows counted by hand from the job log and transcribed into job121219438293_census_replay.txt:
+verdict class 37, verdict family 1, rework 1, friction rule id 27, friction family 1 = 67 rows; summary line "CENSUS: 67 key(s)".
+Distinct keys 66; the one duplicate is `harness` (verdict class 2/2, friction rule id 1/1).
+Producer: tools/policy/policy_lint.mjs prints one CENSUS row per (label, key) and the summary as verdicts.size + rework.size + friction.size + families -- a row count.
+Filer refusal in the log: "the census summary declares 67 key(s) and 66 row(s) parsed".
+Replay harness note: parseHistogram was loaded from a scratch copy of friction_issues.mjs with only its final `run(argv)` entry line dropped (my own instrument, not the finder's; the finder's is the job log itself).

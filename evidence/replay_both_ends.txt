@@ -1,0 +1,6 @@
+== base
+RESULT job121219438293_census_replay.txt ok=false census.size=0 harness.prs=- why=the census summary declares 67 key(s) and 66 row(s) parsed: a partial census is not a measurement of the keys it is missing
+RESULT nullcontrol_missing_row.txt ok=false census.size=0 harness.prs=- why=the census summary declares 67 key(s) and 65 row(s) parsed: a partial census is not a measurement of the keys it is missing
+== head
+RESULT job121219438293_census_replay.txt ok=true census.size=66 harness.prs=2 why=
+RESULT nullcontrol_missing_row.txt ok=false census.size=0 harness.prs=- why=the census summary declares 67 key(s) and 66 row(s) parsed: a partial census is not a measurement of the keys it is missing
