@@ -2,7 +2,7 @@
 
 One entry. Facts read at origin/main `524c1896b` on 2026-10-27.
 
-## P206: one seat's measurements hold the whole push lane for half an hour (V126)
+## P206: one seat's measurements hold the whole push lane for half an hour (orchestrator relay; no `proposals.md` id)
 Verdict: ACCEPT narrowed -> a carry of **R10-PREPR-CAP** (it owns `tools/pr/prepr.sh` and
 `tests/gate_lock.py`, `stage` `done` -- the roster command under "Roster" below). The proposal asked for a cost/benefit
 ruling on three arms; measured against the tree, the holder-side bound it names in arm 1 is
