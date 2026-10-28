@@ -1195,7 +1195,8 @@
       "RCA-1567-unpinned-installs",
       "RCA-1589-policy-docs-red",
       "RCA-R8-I3-1516",
-      "R10-RCA-2671-WAVE-SCRIPT"
+      "R10-RCA-2671-WAVE-SCRIPT",
+      "R10-RCA-PREPR-HEAD-GRADERS"
     ],
     "rca_planned": [],
     "trigger": {
@@ -4550,6 +4551,22 @@
       "in_tree_home": "dev/audit/rca/R10-N-vocabulary-drift.md",
       "doc": [
         "dev/audit/rca/R10-N-vocabulary-drift.md"
+      ]
+    },
+    "R10-RCA-PREPR-HEAD-GRADERS": {
+      "class": "I3",
+      "level": "instance-or-process",
+      "subject": "#2916 red trigger: policy-docs and env-matrix graded f008c2b75's CORPUS_EXCLUDED edit with the base's policy_lint.mjs (named-docs beatd_shims/git) while prepr.sh and ci_predict.py were green; 8 round-10 PRs (#2207 #2366 #2529 #2609 #2636 #2671 #2739 #2916) red on a pinned grader the branch edited, base copy red and head copy green on CI's tree",
+      "trigger": "2 (red check): CI code run 40732339443, governance / policy-docs and governance / env-matrix",
+      "date": "2026-10-28",
+      "status": "proposed",
+      "parts_missing": [],
+      "process_state": "(c) prepr.sh steps 3-4 and 3f3 grade the head's copy (push-to-main's direction); ci_predict.py's agreement arm (#2707) grades the base's copy but its unit, lane_files(), holds agreement.mjs's closure and not policy_lint.mjs, check-wave-script.mjs or field_coverage.mjs; the named-docs refusal directed the fixer to the pinned Set",
+      "countermeasure": "built: ci_predict.py graders arm (policy_lint.mjs as CORPUS on policy-docs/env-matrix, check-wave-script.mjs as WAVE CHECK, field_coverage.mjs as FIELD COVERAGE keyed on its own file) through the agreement arm's factored ci_tree_run, keyed on a changed file in the grader's .mjs closure that the job restores; fires on f008c2b75 with the named-docs line and on #2207, #2529, #2636; green on c991d64cd, its comment-keyed null and #2737; ~2.6 s per predictor run against 92 s expected per PR (2.9 s CI floor only); the named-docs message now names corpus_excluded.json",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R10-RCA-PREPR-HEAD-GRADERS.md",
+      "doc": [
+        "dev/audit/rca/R10-RCA-PREPR-HEAD-GRADERS.md"
       ]
     }
   },
