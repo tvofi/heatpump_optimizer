@@ -1,2 +1,0 @@
- .../heatpump_optimizer/config_flow.py              | 850 +++++++++------------
- 1 file changed, 374 insertions(+), 476 deletions(-)

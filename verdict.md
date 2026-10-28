@@ -1,52 +1,38 @@
-Design review: revise c9aa2294772a4a2d5be672f3f1df52894903dc12 harness
+Design review: approve 32892dc67863bcfd92a6f0d7ad6f5583d83ed229
 
-Reviewed: `dev/programme/designs/R10-CONFIGFLOW-PAGES.md` and its `-probes/` at `design/R10-CONFIGFLOW-PAGES` c9aa22947, round 1 of 3, from a detached worktree at that SHA (main aaf8af512 plus the note and probes). No earlier design verdict exists on `design-verdict/R10-CONFIGFLOW-PAGES`: the killed seat posted none. Token count: not reported by this harness.
+Reviewed: `dev/programme/designs/R10-CONFIGFLOW-PAGES.md` at `design/R10-CONFIGFLOW-PAGES` 32892dc67, round 2 of 3, from a detached worktree at that SHA. Round-1 verdict: `d2d710ad8`. Round 2 changes only the note: 32 lines added, 4 removed, against c9aa22947. `config_flow.py` and `tests/config_flow_steps.py` are unchanged from `aaf8af512` to current main `6d86acc90`, so every line cited still holds. No open `design/*` ref touches `config_flow.py`. Evidence: `evidence/round2_checks.txt`. Token count: not reported by this harness.
 
-## Re-measured, holding (`evidence/probes.cfp.out`, `evidence/probes.p08.out`)
+## Round-1 point 1 (Arm A3'), answered point for point
 
-- **`rejected_rerender.py`:** 27 of 30 cleared rows are stale at main and 0 with patches 08+04+08t+F1b applied. The `--null` row reads shown_stored 19 = 19 on both trees.
-- **`clear_required.py` at main:** `type=menu errors=None stored_price_entity=None`, so the A3' defect is reproduced. It is unchanged under patch 08.
-- **Finder's `wizard_widgets.py` (3930b421a):**
-  - spelled_twice: 44 -> 0;
-  - other_spelled_twice: 20 -> 0;
-  - `--bump heat_pump_cop_nominal` disagree: 2 -> 0.
-- **Archscore:**
-  - The combined A+B+C+C2 tree reads dS **+3.3700** (duplication_copies 35 -> 28, literal_clone_copies 185 -> 123) against the note's "about +3.37" (`evidence/archscore_combined.out`).
-  - The per-move figures in `archscore.out` are consistent with it.
-- **Goldens:** `golden.capture_config_flow()` is byte-identical between main and the combined tree (`evidence/golden_capture_sha.txt`), so no golden moves.
-  - `golden_equal` reads 0 on both trees in this seat's mixed venv. That is environment drift against the committed file, the same on both sides.
-  - The canonical environment's `golden_equal 1` stays the fixer's to show.
-- **Seam:** `config_flow.py` only (`_page`, `_OPTION_FIELDS`). No other open `design/*` ref touches `config_flow.py`; R10-HEAT-METER's ref is merged as #2854.
-- **Sibling grep of the A3' class** (a required check that falls back to stored data, so a cleared `_STORED` slot still reads as stored): `or current.get(` appears twice in the options flow (config_flow.py:3405, 3411).
-  - The tibber token's row default is `''`, not `_STORED` (config_flow.py:1563), so `_clear_absent` never nulls it. The only live site is `CONF_PRICE_ENTITY` (row at :1564).
-  - metering (:3445), hot_water_tank (:3540-3547) and building (:3585-3603) do not judge a cleared `_STORED` entity over stored data.
-  - The note's class is closed by A3' alone.
-- **Mutation-ledger re-key (15 entries) and no claim-file change:** these hold as written.
+- **Fix:** answered. `_entities_errors(cleaned, current)` judges the source and the entity over `{**current, **cleaned}`. The tibber branch is unchanged, because its row default is `''` and not `_STORED`.
+  - The rule is grounded in `_clear_absent` (2264-2267), and it matches `async_step_hot_water_tank`.
+- **Failing test:** answered, with the setup, the asserts (`form`, the error, options unchanged) and the main failure as specified.
+  - The null control (`sensor.other` saves) is as specified.
+  - The second control corrects my round-1 wording, and the correction is right. Under the tibber switch the absent `_STORED` entity is still nulled by `_clear_absent`, so that control's claim is "no error, token saved, nulling as at main", not "clears nothing".
+- **Mutants:** answered. Both are killed by the failing test:
+  - the pre-clear `{**current, **flat}` view still sees `sensor.price` and returns `menu`;
+  - the restored `or current.get` does the same.
+- **Harness:** answered. `--clear-required` is added to `dev/audit/harnesses/r10_configflow_pages.py`, with its base and head readings and a `--null` arm.
+- **Invariants:** answered.
+  - The one exception is named (`A3-exception: price_entity_cleared_under_entity_source`).
+  - The predicate must match exactly one fixture case, which goes beyond the request and closes silent growth of the exception.
+- **User-visible change:** answered. It is named for the PR body's behaviour section, and the existing `price_entity_required` key means no string moves.
+- **Placement:** sound. A3' lands in arm A's PR, after A's template, because A is the change that introduces `_entities_errors`.
 
-## Revise point (one, an addition only)
+## Round-1 carries
 
-1. **harness / evidence plan: arm A3' is in scope by the orchestrator's ruling, and the note designs it in one sentence.** The note's "Decisions routed" section offers A3' as a recommendation, with the fix in one line and "its own failing test" unspecified. Add an **Arm A3'** section after Arm A that states all of the following.
-   - **Fix:** `_entities_errors(cleaned, current)` judges both the source and the entity over `view = {**current, **cleaned}`:
-     - `source = view.get(CONF_PRICE_SOURCE, DEFAULT_PRICE_SOURCE)`;
-     - when `source == PRICE_SOURCE_ENTITY` and `not view.get(CONF_PRICE_ENTITY)`, the result is `price_entity_required`.
+- **patch04/C2 conflict:** resolved in Arm C2. The note keeps both sides on each wood probe: `_suggested_optional(current, K): _registry_widget(K)`.
+  - This is the tree I measured at dS +3.3700. The note cites it as the reviewer's figure, not its own.
+  - It re-runs `wizard_widgets.py --all` and the marker and quick-setup tests after the merge.
+- **#2238:** the disposition section is adequate. The rule for the fix reviewer is:
+  - no closing keyword until every other #2238 finding is dispositioned in the body, as fixed by a named PR, fixed here, or carried;
+  - `blocked` on a keyword that precedes a complete list;
+  - no keyword in a code span.
 
-     This works because `_clear_absent` writes a cleared `_STORED` slot back as `None` (config_flow.py:2264-2267), so the view reads the clear. It is the same rule `async_step_hot_water_tank` already uses (:3540-3544). The tibber branch stays as it is: its row is not `_STORED`.
-   - **Failing test** (`tests/config_flow_steps.py`, beside the existing `price_entity_required` cases at :742 and :3335):
-     - **Setup:** stored `price_source: entity` and `price_entity: sensor.price`, then submit the entities page with `price_source: entity` and the price entity cleared (absent).
-     - **Assert:** `type == "form"`, `errors == {CONF_PRICE_ENTITY: "price_entity_required"}`, and the stored options unchanged, with `price_entity` still `sensor.price`.
-     - At main it fails: menu, and `None` saved.
-     - **Null control:** the same submit with `price_entity: sensor.other` saves `sensor.other`.
-     - **Second control:** a switch to tibber with a token clears nothing and raises no error.
-   - **Mutants:**
-     - judge over `{**current, **flat}`, which is the pre-clear view;
-     - restore `submit or current`.
+  `close-2238` and `dr1-close-2238-disposition` carry it to the fixer.
 
-     The test must kill both.
-   - **Harness:** port `clear_required.py` into `dev/audit/harnesses/r10_configflow_pages.py` beside the re-render arm. It reads `type=menu stored_price_entity=None` at base and `type=form errors=price_entity_required` at head.
-   - **Invariants amended.** Arm A states that an accepted submit saves byte-identical options and that every error key is unchanged. A3' is the one deliberate exception: this submit changes from accepted to refused. A3's record-at-main comparison must exclude exactly that case and name it, or A3 will flag the fix as a regression.
-   - **The behaviour change is user-visible:** a submit that used to save is now refused. Name it in the PR body's behaviour section. The translation key `price_entity_required` already exists, so no string moves.
+Nothing in the re-cut breaks a measured figure. A3' is one predicate inside `_entities_errors`, and the note leaves the fixer's `score.py --diff` at head to confirm that dS does not move.
 
-## Notes for the fixer (carries)
+## Notes for the fixer
 
-- Patch 04 (arm B) and `F1_plus_F1b_spike.patch` (arm C2) conflict textually at `_quick_setup_schema`'s two wood probes (config_flow.py about :1221 on the 08+04 tree). The note's "apply clean together" holds for 04, 08 and F1, not for F1b. The resolution `_suggested_optional(current, K): _registry_widget(K)` is the one measured at dS +3.3700 above. Carry: R10-CONFIGFLOW-PAGES (item dr1-b-c2-conflict)
-- Per the ruling, every other #2238 finding is dispositioned in the PR body before any closing keyword is written. This is the note's own `close-2238` carry, restated so the fix reviewer checks it. Carry: R10-CONFIGFLOW-PAGES (item dr1-close-2238-disposition)
+None new. The note's carries (`a3p-test`, `dr1-b-c2-conflict`, `dr1-close-2238-disposition`, and the round-1 set) stand as written.

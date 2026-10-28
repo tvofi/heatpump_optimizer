@@ -1,0 +1,23 @@
+$ git diff --stat c9aa22947 32892dc67   (round 2 changes only the note)
+ dev/programme/designs/R10-CONFIGFLOW-PAGES.md | 36 ++++++++++++++++++++++++---
+ 1 file changed, 32 insertions(+), 4 deletions(-)
+
+$ git diff --stat aaf8af512 origin/main(6d86acc90) -- config_flow.py tests/config_flow_steps.py   (empty: every cited line holds)
+
+$ open design/* refs touching config_flow.py
+(none)
+
+$ config_flow.py:2264-2267 (_clear_absent nulls a cleared _STORED slot) and 3401-3409 (the A3 prime defect)
+    cleaned = dict(_flatten_section_input(user_input))
+    for row in _page_rows(step, current):
+        if row.default is _STORED and not cleaned.get(row.key):
+            cleaned[row.key] = None
+            source = user_input.get(
+                CONF_PRICE_SOURCE, current.get(CONF_PRICE_SOURCE, DEFAULT_PRICE_SOURCE)
+            )
+            if source == PRICE_SOURCE_ENTITY:
+                entity = user_input.get(CONF_PRICE_ENTITY) or current.get(
+                    CONF_PRICE_ENTITY
+                )
+                if not entity:
+                    errors[CONF_PRICE_ENTITY] = "price_entity_required"
