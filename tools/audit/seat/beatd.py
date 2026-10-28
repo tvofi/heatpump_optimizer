@@ -28,7 +28,8 @@ unreadable file refuses: `beatd: REFUSE <reason>`, rc 2, and zero jobs run.
 RUN. `run` holds `S/beatd/beatd.lock` (a second run exits 75, `ALREADY
 RUNNING`). Each job runs on its own thread, in its own process group, under
 `S/beatd/<job>.lock` (held elsewhere: `outcome=locked`). At timeout_s the group
-gets SIGTERM, and SIGKILL 10 s later (`outcome=timeout`). A class job holds
+gets SIGTERM, and SIGKILL 10 s later unless it has emptied, even when its
+leader exited on the SIGTERM (`outcome=timeout`). A class job holds
 `S/beatd/<class>.lock` for its whole run and waits at most class_wait_s for it,
 then records `outcome=busy`. A lock file holds its owner's pid while held and
 is emptied on release, so a non-empty lock whose pid is dead is an owner that
@@ -80,6 +81,7 @@ import subprocess
 import sys
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -264,6 +266,25 @@ def resolve_git(path_var: str) -> str:
 
 # ---------------------------------------------------------------- the beat
 
+def kill_group(pgid: int, at: float) -> None:
+    """SIGKILL process group pgid at `at`, unless it empties first. A timed-out
+    job whose leader exits on SIGTERM can leave a descendant that ignores it;
+    the job lock must not drop while that descendant runs."""
+    try:
+        while time.time() < at:
+            os.killpg(pgid, 0)
+            time.sleep(0.1)
+        os.killpg(pgid, signal.SIGKILL)
+    except ProcessLookupError:  # the group is empty
+        pass
+
+
+def next_start(kind: str, prev: float, start: float, end: float, interval_s: float) -> float:
+    """A periodic job's next start is on its grid (prev, or this start when it
+    ran late); a watch job restarts interval_s after its instance ends."""
+    return (end if kind == "watch" else max(prev, start)) + interval_s
+
+
 class Beat:
     def __init__(self, state: Path, table: dict, repo: Path, real_git: str):
         self.dir = state / "beatd"
@@ -335,6 +356,8 @@ class Beat:
                     self.journal(f"RUNNING {utc()} {job['name']} pid={p.pid} "
                                  f"elapsed={int(now - t0)}")
                 time.sleep(0.1)
+            if kill_at is not None:  # the leader exited inside the grace; the group may not have
+                kill_group(p.pid, kill_at)
             self.procs.pop(job["name"], None)
         rc = p.returncode
         return rc, outcome or ("ok" if rc == 0 else "failed")
@@ -346,7 +369,7 @@ class Beat:
             self.run_one(job)
             if once:
                 return
-            nxt = (time.time() if job["kind"] == "watch" else max(nxt, start)) + job["interval_s"]
+            nxt = next_start(job["kind"], nxt, start, time.time(), job["interval_s"])
             self.stop.wait(max(0.0, nxt - time.time()))
 
     def code(self) -> str:
@@ -525,6 +548,7 @@ def main(argv: list[str]) -> int:
 # a temp copy and asserts that case goes red on it.
 
 SELF = Path(__file__).resolve()
+MUTANT_WORKERS = 4
 SHIM = SHIMS / "git"
 SELFTEST_MARK = "# " + "-" * 64 + " self-test"
 
@@ -592,13 +616,52 @@ def case2(prog, w):
     held_rc = _beat(prog, "held", "--state", s).returncode
     second = _beat(prog, "run", "--state", s, "--jobs", t, "--once")
     first.wait(60)
-    modes = [(s / "beatd" / f).stat().st_mode & 0o777 for f in ("beatd.lock", "sleep.lock")]
+    modes = [(s / "beatd" / f).stat().st_mode & 0o777 if (s / "beatd" / f).exists() else None
+             for f in ("beatd.lock", "sleep.lock")]
     third = _beat(prog, "run", "--state", s, "--jobs", _table(w, [_job("t", ["/usr/bin/true"])]),
                   "--once")
-    return {"second run exits 75": second.returncode == 75 and "ALREADY RUNNING" in second.stderr,
-            "held reads 0 while it runs": held_rc == 0,
-            "lock files are owner-only under umask 022": modes == [0o600, 0o600],
-            "null: a run after the first exits 0": first.returncode == 0 and third.returncode == 0}
+    res = {"second run exits 75": second.returncode == 75 and "ALREADY RUNNING" in second.stderr,
+           "held reads 0 while it runs": held_rc == 0,
+           "lock files are owner-only under umask 022": modes == [0o600, 0o600],
+           "null: a run after the first exits 0": first.returncode == 0 and third.returncode == 0}
+    return {**res, **_case2_term(prog, w)}
+
+
+def _case2_term(prog, w):
+    """SIGTERM to a scheduling beat TERMs its running group and stops it: rc 0, the
+    job's PASS, then STOP. Null: the job was running, unfinished, when the signal went."""
+    s = w / "s2-term"
+    t = _table(w, [_job("long", ["/bin/sleep", "300"], timeout_s=600)])
+    beat = subprocess.Popen([sys.executable, "-I", str(prog), "run", "--state", str(s),
+                             "--jobs", str(t)], stdout=subprocess.DEVNULL,
+                            stderr=subprocess.DEVNULL)
+    for _ in range(200):
+        if any(x.startswith("RUNNING") for x in _jr(s)):
+            break
+        time.sleep(0.1)
+    mid = _jr(s)
+    beat.send_signal(signal.SIGTERM)
+    try:
+        rc = beat.wait(20)
+    except subprocess.TimeoutExpired:
+        beat.kill()
+        rc = None
+    for ln in _jr(s):
+        if ln.startswith("RUNNING "):
+            try:
+                os.killpg(int(ln.split()[3].split("=", 1)[1]), signal.SIGKILL)
+            except OSError:
+                pass
+    jr, lp = _jr(s), _passes(s, "long")
+    return {"SIGTERM stops the beat and TERMs its job: rc 0, PASS rc=-15, STOP":
+            rc == 0 and len(lp) == 1 and lp[0].endswith("rc=-15 outcome=failed")
+            and jr[-1].startswith("STOP "),
+            "null: the job was running when the beat got SIGTERM":
+            any(x.startswith("RUNNING ") for x in mid) and not _passes_in(mid, "long")}
+
+
+def _passes_in(lines: list[str], job: str) -> list[str]:
+    return [x for x in lines if x.startswith("PASS ") and x.split()[2] == job]
 
 
 def _zombie(pid: int) -> bool:
@@ -609,24 +672,72 @@ def _zombie(pid: int) -> bool:
         return False
 
 
-def case3(prog, w):
-    """(a)3 over-time reads timeout and its group is gone; in-time reads ok."""
-    s = w / "s3"
-    pidf = w / "grandchild.pid"
-    slow = _job("slow", ["/bin/bash", "-c", f'sleep 300 & echo $! > {pidf}; wait'], timeout_s=2)
-    fast = _job("fast", ["/bin/sleep", "0"], timeout_s=30)
-    r = _beat(prog, "run", "--state", s, "--jobs", _table(w, [slow, fast]), "--once", timeout=60)
+def _gone(pidf: Path) -> bool:
+    """The pid in pidf is dead (or a zombie); a survivor is killed here, after the read."""
     time.sleep(0.5)
     gc = int(pidf.read_text()) if pidf.exists() else None
     gone = gc is not None and (not pid_alive(gc) or _zombie(gc))
     if gc and not gone:
         os.kill(gc, signal.SIGKILL)
+    return gone
+
+
+def _stubborn(prog, w, label: str, leader_ignores: bool) -> tuple[bool, bool, list[str]]:
+    """A timed-out job whose grandchild ignores SIGTERM; its leader too when leader_ignores.
+    Returns (one PASS outcome=timeout, the grandchild gone when the beat returned, PASS lines)."""
+    import shlex
+    s, pf = w / f"s3-{label}", w / f"{label}.pid"
+    inner = f"trap '' TERM; echo $$ > {pf}; exec sleep 300"
+    outer = ("trap '' TERM; " if leader_ignores else "") + f"bash -c {shlex.quote(inner)} & wait"
+    try:
+        r = _beat(prog, "run", "--state", s, "--jobs",
+                  _table(w, [_job(label, ["/bin/bash", "-c", outer], timeout_s=2)]),
+                  "--once", timeout=40)
+        rc = r.returncode
+    except subprocess.TimeoutExpired:
+        rc = None
+    gone = _gone(pf)
+    for ln in _jr(s):
+        if ln.startswith("RUNNING "):
+            try:
+                os.killpg(int(ln.split()[3].split("=", 1)[1]), signal.SIGKILL)
+            except OSError:
+                pass
+    p = _passes(s, label)
+    return rc == 0 and len(p) == 1 and p[0].endswith("outcome=timeout"), gone, p
+
+
+def case3(prog, w):
+    """(a)3 over-time reads timeout and its group is gone; in-time reads ok; a heartbeat
+    job journals RUNNING past elapsed=0 (null: one with none journals RUNNING once).
+    A grandchild ignoring SIGTERM is SIGKILLed after the grace although its leader
+    exited on the TERM, before the beat moves on; null: a leader ignoring it too."""
+    import shlex
+    s = w / "s3"
+    pidf, mark = w / "grandchild.pid", w / "termed"
+    trapper = f"trap 'echo TERM > {mark}; exit 0' TERM; sleep 300 & wait"
+    slow = _job("slow", ["/bin/bash", "-c", f"sleep 300 & echo $! > {pidf}; "
+                         f"bash -c {shlex.quote(trapper)} & wait"], timeout_s=2, heartbeat_s=1)
+    fast = _job("fast", ["/bin/sleep", "0"], timeout_s=30)
+    r = _beat(prog, "run", "--state", s, "--jobs", _table(w, [slow, fast]), "--once", timeout=60)
+    gone = _gone(pidf)
     sp = _passes(s, "slow")
     fp = _passes(s, "fast")
+    beats = [x for x in _jr(s) if x.startswith("RUNNING ") and x.split()[2] == "slow"]
+    st_ok, st_gone, _ = _stubborn(prog, w, "stubborn", leader_ignores=False)
+    nl_ok, nl_gone, nl_p = _stubborn(prog, w, "both", leader_ignores=True)
+    st_beats = [x for x in _jr(w / "s3-stubborn") if x.startswith("RUNNING ")]
     return {"over-time job reads timeout": r.returncode == 0 and len(sp) == 1
             and sp[0].endswith("outcome=timeout"),
             "its process group was killed": gone,
-            "null: in-time job reads ok": len(fp) == 1 and fp[0].endswith("outcome=ok")}
+            "its process group took SIGTERM before any SIGKILL": mark.exists(),
+            "null: in-time job reads ok": len(fp) == 1 and fp[0].endswith("outcome=ok"),
+            "a heartbeat job journals RUNNING past elapsed=0":
+            any(int(x.rsplit("=", 1)[1]) >= 1 for x in beats),
+            "null: a job with no heartbeat journals RUNNING once": len(st_beats) == 1,
+            "a TERM-ignoring grandchild is killed after its leader exits": st_ok and st_gone,
+            "null: a leader ignoring TERM too is killed at the grace, rc -9":
+            nl_ok and nl_gone and "rc=-9 " in nl_p[0]}
 
 
 def case4(prog, w):
@@ -634,16 +745,37 @@ def case4(prog, w):
     s = w / "s4"
     t = _table(w, [_job("slow", ["/bin/sleep", "5"], interval_s=1),
                    _job("fast", ["/usr/bin/true"], interval_s=1)])
-    r = _beat(prog, "run", "--state", s, "--jobs", t, "--for", "4", timeout=60)
+    def run(state, table):
+        try:
+            return _beat(prog, "run", "--state", state, "--jobs", table, "--for", "4",
+                         timeout=30).returncode
+        except subprocess.TimeoutExpired:  # a beat that never stops scheduling
+            return None
+    rc = run(s, t)
     fast, slow = _passes(s, "fast"), _passes(s, "slow")
     s0 = w / "s4-null"
-    _beat(prog, "run", "--state", s0, "--jobs", _table(w, [_job("fast", ["/usr/bin/true"],
-                                                                interval_s=1)]), "--for", "4")
+    run(s0, _table(w, [_job("fast", ["/usr/bin/true"], interval_s=1)]))
     alone = _passes(s0, "fast")
     first_slow = parse_utc(slow[0].split()[1]) if slow else 0.0
     before = [x for x in fast if parse_utc(x.split()[1]) < first_slow]
-    return {"fast passes while slow runs": r.returncode == 0 and len(slow) == 1 and len(before) >= 3,
-            "null: fast alone passes as often": len(alone) >= 3}
+    sched = _load(prog).next_start
+    return {"fast passes while slow runs": rc == 0 and len(slow) == 1 and len(before) >= 3,
+            "null: fast alone passes as often": len(alone) >= 3,
+            # a watch job's interval_s is >= 60, past a fixture's budget: the rule, not a run
+            "a watch job restarts interval_s after its instance ends":
+            sched("watch", 160.0, 100.0, 130.0, 60) == 190.0,
+            "null: a periodic job keeps its grid, or restarts from a late start":
+            sched("periodic", 160.0, 100.0, 130.0, 60) == 220.0
+            and sched("periodic", 100.0, 150.0, 170.0, 60) == 210.0}
+
+
+def _load(prog: Path):
+    """The beatd module at prog (the tree under test, a mutant copy included)."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(f"beatd_under_test_{os.getpid()}", prog)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
 
 
 def case5(prog, w):
@@ -906,6 +1038,17 @@ def case7(prog, w):
     res["null: a pulse with nothing stopped is no alarm"] = rc == 0 and "ALERT" not in out
     rc, out = fixture("stale", [st, ok_p, ok_w], head=new)
     res["STALE-CODE behind=1"] = rc == 1 and "STALE-CODE behind=1" in out
+    st_bad = f"START {utc(now - 1000)} beatd pid=1 code={'0' * 39}1 supervisor=none"
+    rc, out = fixture("staleunread", [st_bad, ok_p, ok_w])
+    res["an unreadable staleness read is rc 2, never clean"] = (
+        rc == 2 and "UNREADABLE code-staleness" in out)
+    run_p = f"RUNNING {utc(now - 50)} p pid=1 elapsed=0"
+    rc, out = fixture("deadrunning", [st, ok_w, run_p], hold=False)
+    res["a RUNNING line with no PASS under a free beatd.lock is a dead instance"] = (
+        rc == 1 and "JOB p late" in out)
+    rc, out = fixture("liverunning", [st, ok_w, run_p])
+    res["null: the same lines under a held beatd.lock read running"] = (
+        rc == 0 and "JOB p running" in out)
     rc, out = fixture("badline", [st, "PASS garbage"])
     res["an unreadable journal line refuses rc 2"] = rc == 2 and "REFUSE journal line 2" in out
     return res
@@ -961,7 +1104,26 @@ MUTANTS = {
         "lock files are owner-only under umask 022"),
     "m3_no_killpg": (
         "beatd", 'now + KILL_GRACE_S\n                    os.killpg(p.pid, signal.SIGTERM)',
-        'now + KILL_GRACE_S\n                    p.terminate()', "3", "its process group was killed"),
+        'now + KILL_GRACE_S\n                    p.terminate()', "3",
+        "its process group took SIGTERM before any SIGKILL"),
+    "m3_no_group_kill_after_leader": (
+        "beatd", "                kill_group(p.pid, kill_at)\n", "                pass\n", "3",
+        "a TERM-ignoring grandchild is killed after its leader exits"),
+    "m3_kill_group_no_sigkill": (
+        "beatd", "        os.killpg(pgid, signal.SIGKILL)\n", "        pass\n", "3",
+        "a TERM-ignoring grandchild is killed after its leader exits"),
+    "m3_no_sigkill_live_leader": (
+        "beatd", "                    os.killpg(p.pid, signal.SIGKILL)\n", "                    pass\n",
+        "3", "null: a leader ignoring TERM too is killed at the grace, rc -9"),
+    "m3_no_heartbeat": (
+        "beatd", "elif hb and now - beat >= hb:", "elif False:", "3",
+        "a heartbeat job journals RUNNING past elapsed=0"),
+    "m4_watch_as_periodic": (
+        "beatd", '(end if kind == "watch" else max(prev, start))', "max(prev, start)", "4",
+        "a watch job restarts interval_s after its instance ends"),
+    "m2_sigterm_handler_off": (
+        "beatd", "        signal.signal(signal.SIGTERM, term)", "        pass", "2",
+        "SIGTERM stops the beat and TERMs its job: rc 0, PASS rc=-15, STOP"),
     "m4_serial_jobs": (
         "beatd", "        for t in threads:\n            t.start()",
         "        for t in threads:\n            t.start(); t.join()", "4",
@@ -999,6 +1161,12 @@ MUTANTS = {
     "m7_no_pulse_alarm": (
         "beatd", r'if re.match(r"^PULSE \S+ STOPPED\b", ln):', "if False:", "7",
         "pulse-silent while beatd reads healthy"),
+    "m7_unreadable_staleness_clean": (
+        "beatd", "            rc = 2\n", "            rc = 0\n", "7",
+        "an unreadable staleness read is rc 2, never clean"),
+    "m7_dead_running_kept": (
+        "beatd", "        running.clear()  # no beat", "        pass  # no beat", "7",
+        "a RUNNING line with no PASS under a free beatd.lock is a dead instance"),
     "m8_held_always_free": (
         "beatd", "        return lock_pid(path) or 0\n", "        return None\n", "8",
         "held: rc 0 while held"),
@@ -1053,17 +1221,24 @@ def self_test(only: list[str] | None = None, mutants: bool = True) -> int:
         check(f"anchor {name} occurs once in production, changes it, names a check of ({case})",
               text.count(anchor) == 1 and anchor != repl and target in names[case])
     if mutants:
-        for name, (_f, _a, _r, case, target) in MUTANTS.items():
-            if only and case not in only:
-                continue
+        def plant(name: str) -> dict:
+            case = MUTANTS[name][3]
             with tempfile.TemporaryDirectory(prefix="beatd-mu-") as td:
                 prog, shim = _mutant_copy(Path(td), name)
                 try:
-                    got = _run_case(case, prog, shim, Path(td) / "w")
-                except Exception as e:  # a crash is not a kill unless the target is red
-                    got = {target: False, "crash": str(e)[:80]}
-                check(f"mutant {name} turns ({case}) '{target}' red",
-                      got.get(target) is False)
+                    return _run_case(case, prog, shim, Path(td) / "w")
+                except Exception as e:  # a crash is no kill: its target reads unset
+                    return {"crash": f"{type(e).__name__}: {str(e)[:80]}"}
+        # The fixtures are sleep-bound, so the mutants run MUTANT_WORKERS at once
+        # (instrument-self-tests' wall clock); each has its own temp tree and state.
+        todo = [n for n, m in MUTANTS.items() if not only or m[3] in only]
+        with ThreadPoolExecutor(MUTANT_WORKERS) as pool:
+            results = dict(zip(todo, pool.map(plant, todo)))
+        for name in todo:
+            case, target, got = MUTANTS[name][3], MUTANTS[name][4], results[name]
+            check(f"mutant {name} turns ({case}) '{target}' red"
+                  + (f" [crash {got['crash']}]" if "crash" in got else ""),
+                  got.get(target) is False)
     print(f"beatd self-test: {checks} checks, {fails} failed")
     return 1 if fails else 0
 
