@@ -1,0 +1,8 @@
+== ag_head
+calls=1 bad=["f:1"] "run([GH, \"pr\" , \"merge\", n, \"-t\", s])"
+calls=1 bad=["f:1"] "run([GH, \"pr\",\n    \"merge\", n, \"-t\", s])"
+calls=1 bad=["f:1"] "execFileSync(GH, ['pr',  'merge', n, '--subject', s])"
+== ag_rv3
+calls=0 bad=[] "run([GH, \"pr\" , \"merge\", n, \"-t\", s])"
+calls=0 bad=[] "run([GH, \"pr\",\n    \"merge\", n, \"-t\", s])"
+calls=0 bad=[] "execFileSync(GH, ['pr',  'merge', n, '--subject', s])"

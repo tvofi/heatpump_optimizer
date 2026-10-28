@@ -1,0 +1,63 @@
+UNCOVERED .claude/workflows/audit-fix.js:34: `You are the adversarial fix reviewer for PR #${fix.pr} (group ${group}). From ${repo}: git fetch origin; git worktree add ../audit-review-${group} ${
+UNCOVERED .claude/workflows/audit-wave.js:52: `You are the adversarial fix reviewer for PR #${fix.pr} (group ${group}). From ${repo}: git fetch origin; git worktree add ../audit-review-${group} ${
+UNCOVERED .claude/workflows/web-decomp-stage.js:189: const m = await agent(mergePrompt(fix.pr, fix.head_sha), { model: 'opus', label: `merge ${stage.name}`, phase: 'Merge', schema: MERGE })
+UNCOVERED .claude/workflows/web-decomp-stage.js:192: return { survey, fix, review, merge: m, gate, merged: [{ group: stage.name, issues, pr: fix.pr, sha: m.sha }] }
+UNCOVERED .claude/workflows/web-fix-wave.js:354: - resume.stage is 'merge' but there is no "Fix review: merge" comment at the CURRENT head (a verdict at an older head counts only when bash tools/pr/a
+UNCOVERED .claude/workflows/web-fix-wave.js:398: const m = await agent(mergePrompt(fix.pr, fix.head_sha), { model: 'opus', label: `merge ${g.group}`, phase: 'Wave', schema: MERGE })
+UNCOVERED .claude/workflows/web-fix-wave.js:404: return { group: g.group, issues: g.issues, pr: fix.pr, head_sha: fix.head_sha, verdict: 'merge', ...outcome }
+UNCOVERED .claude/workflows/web-fix-wave.js:457: log(`${g.group}: resuming at merge -- PR #${fix.pr} at ${fix.head_sha} is already reviewed`)
+UNCOVERED tools/audit/seat/INSTRUMENTS.md:448: merge) fatal for its entry alone — logged `SKIP #<pr>`, reported in
+UNCOVERED tools/audit/seat/bus.sh:773: echo "$out" | grep -q "^BUS posted 7 $v1 Fix review: merge $h1" && [ "$(calls)" = 1 ]; expect "confirm signs the proposal onto verdict/<pr> and posts 
+UNCOVERED tools/audit/seat/ci_probe.py:14: sarif-upload <pr> --commit SHA --category CAT   an empty CodeQL SARIF to refs/pull/<pr>/merge
+UNCOVERED tools/audit/seat/ci_probe.py:273: {"commit_sha": commit, "ref": f"refs/pull/{self.num(pr)}/merge", "sarif": packed})
+UNCOVERED tools/audit/seat/cloud_relay.sh:454: printf 'Fix review: merge %s\n\nbus-nonce: %s\n' "$3" "$4" > "$t/pr/verdict.md"
+UNCOVERED tools/audit/seat/cloud_relay.sh:658: git -C "$t/pr" -c user.name=t -c user.email=t@t merge -q --no-edit -m m "$HS" 2>/dev/null; git -C "$t/pr" reset -q --hard "$HS"; hc "pr tip"; mkref fi
+UNCOVERED tools/audit/seat/flow_metrics.py:136: judged=len(judged), first_pass=sum(first[m["pr"]]["kind"] == "merge" for m in judged),
+UNCOVERED tools/audit/seat/merge_pr.sh:152: # control must record exactly `pr merge <N> --merge --match-head-commit <S>`;
+UNCOVERED tools/audit/seat/merge_pr.sh:186: "pr merge "*) [ "$FAKE_MERGE_FAIL" = 1 ] && exit 1; exit 0 ;;
+UNCOVERED tools/audit/seat/merge_pr.sh:200: && grep -qxF "pr merge 42 --merge --match-head-commit $msha" "$T/gh2.log"
+DIFF tools/audit/seat/merge_train.py:2874 old=0 new=1 | MOVED = (1, "GraphQL: Base branch was modified. Review and try the merge again. (mergePullRequest)")
+UNCOVERED tools/audit/seat/merge_train.py:14: [{"pr": 1869, "verdict": "<40-hex head the merge verdict names>",
+UNCOVERED tools/audit/seat/merge_train.py:1463: """Approve, preflight and merge <pr> at <h>, `guard()` raising Stop before
+UNCOVERED tools/audit/seat/merge_train.py:1468: under = self.policy_gate(pr, h, files)  # step 5, re-read at the merge itself
+UNCOVERED tools/audit/seat/merge_train.py:1493: self.log(f"#{pr} merge attempt {k}/{self.merge_tries} refused (rc={code}): {said}")
+UNCOVERED tools/audit/seat/merge_train.py:1698: under = self.policy_gate(pr, h, files)  # early refusal; land re-reads at the merge
+UNCOVERED tools/audit/seat/merge_train.py:1964: lone = kept[0]["pr"] if len(kept) == 1 else None  # the unproved merge, by number
+UNCOVERED tools/audit/seat/merge_train.py:1977: raise MainMoved("merge", f"{self.base} moved: its tree is not the one #{pr}'s proof was built on; run the batch again")
+UNCOVERED tools/audit/seat/merge_train.py:1980: self.main_green(now, req, f"right before #{pr}'s merge")
+UNCOVERED tools/audit/seat/merge_train.py:2008: self.log(f"[MAIN-MOVED] before #{a['pr']}'s merge: re-proving "
+UNCOVERED tools/audit/seat/merge_train.py:3119: t, calls, sleeps, _ = train({"pr merge": ["gh: Bad Gateway (HTTP 502)"]})
+UNCOVERED tools/audit/seat/merge_train.py:3121: check("read retry: and neither is a merge", code == 1 and n(calls, "pr merge") == 1 and sleeps == [])
+UNCOVERED tools/audit/seat/plan_page.py:202: label, pr = "folded into another group (no merge of its own)", "merged"
+UNCOVERED tools/audit/seat/proof_watch.py:517: "(a2) the merge goes through merge_pr.sh with pr, pinned head, evidence and mode")
+UNCOVERED tools/audit/seat/proof_watch.py:535: "(a2) the merge line names pr, head, check, verdict comment id, evidence and merge sha")
+UNCOVERED tools/audit/seat/pulse.py:372: "verdicts": [{"pr": 2526, "kind": "merge", "sha": s_head, "t": now - 20 * 60}],
+UNCOVERED tools/audit/seat/pulse.py:422: verdicts=[{"pr": 2526, "kind": "merge", "sha": s_head, "t": now - 30 * 60}],
+UNCOVERED tools/audit/seat/pulse.py:429: old = [{"pr": 2526, "kind": "merge", "sha": s_head, "t": now - 50 * H},
+UNCOVERED tools/audit/seat/pulse.py:448: verdicts=[{"pr": 2526, "kind": "merge", "sha": s_head, "t": now + 600}],
+UNCOVERED tools/audit/seat/pulse.py:468: mv = snap(verdicts=[{"pr": 2526, "kind": "merge", "sha": s_head, "t": now - 5 * H}])
+UNCOVERED tools/audit/seat/record_row.py:595: """Every reason the record pull request `pr` may NOT merge unreviewed.
+UNCOVERED tools/audit/seat/ref_privacy.py:374: "tools/pr/merge_main_bot.py": ("republishes", "pushes a merge onto a pull request's own branch, "
+UNCOVERED tools/audit/seat/remerge_main.sh:2: # remerge_main.sh <pr> <worktree> <branch> <body>: merge origin/main into an open PR (claimnotes driver), drop inherited claims, push as the App
+UNCOVERED tools/audit/seat/review_strength.py:18: `verdict: #<pr> Fix review: merge|blocked <40hex>`; a blocked one carries
+UNCOVERED tools/audit/seat/review_strength.py:740: kind = {v["pr"]: v["reviewer"] for v in vl if v["pr"] in (16, 17, 18, 22, 23) and v["kind"] == "merge"}
+UNCOVERED tools/audit/seat/review_strength.py:750: [v["kind"] for v in vl if v["pr"] == 18] == ["merge"] and kind[18] == "local")
+UNCOVERED tools/audit/seat/roster_sync.py:287: skips.append((gid, stage, pr, "the merge carries no commit"))
+UNCOVERED tools/audit/seat/sweep_template.md:63: (4) After each merge (`dev/governance/roles/nudge.md` steps 12 and 18): `tools/audit/seat/roster_edit.py set-stage` for a roster group, one #201 comme
+UNCOVERED tools/ci/codescan_wait.py:121: ref = f"refs/pull/{pr}/merge" if s["event"] == "pull_request" else f"refs/heads/{s['head_branch']}"
+UNCOVERED tools/ci/ruleset_cutover.py:97: then open and merge the revert of PR {pr}. The other way round deadlocks: the
+UNCOVERED tools/ci/ruleset_cutover.py:437: print(f"NEXT: merge PR {pr} at {head}, then\n  python3 -I tools/ci/ruleset_cutover.py --enable "
+UNCOVERED tools/policy/check-wave-script.mjs:101: groups: [G('A', { stage: 'merge', pr: 385, head_sha: 'bf9bda6' })], groupsFile: 'r.json', reconResult: OK,
+UNCOVERED tools/policy/check-wave-script.mjs:171: agentImpl: async (p, o) => o.label.startsWith('fix') ? { pr: 1, head_sha: 'h' } : o.label.startsWith('review') ? { verdict: 'merge', comment: 'Fix rev
+UNCOVERED tools/policy/check-wave-script.mjs:235: merge: [['pr'], ['head_sha']],
+UNCOVERED tools/policy/check-wave-script.mjs:250: // `merge: [['pr'], ['head_sha', 'merge_sha']]` was accepted because the done
+UNCOVERED tools/policy/policy_lint.mjs:2469: message: `no disposition in the plan of record or the living handover for merged pull request #${pr} (${subject.slice(0, 90)}). Write its row as ${ROW
+UNCOVERED tools/policy/policy_lint.mjs:4881: if (!gapCustom || gapCustom.pr !== '2379' || gapCustom.source !== 'subject-gap') gapFail.push('an empty API answer on a merge subject with a custom ta
+UNCOVERED tools/pr/app_approve.sh:367: || die "no 'Fix review:' verdict on #$pr from the approver App ($VERDICT_AUTHORS, id $VERDICT_AUTHOR_ID); an approval needs 'Fix review: merge $sha'"
+UNCOVERED tools/pr/app_approve.sh:375: why="the newest allowlisted verdict on #$pr ($vurl) is '$vline', not 'Fix review: merge $sha'"
+UNCOVERED tools/pr/app_approve.sh:551: "body": "Approved by `hpo-approver` at `%s` on the verdict %s (`Fix review: merge %s`)%s, via `tools/pr/app_approve.sh`." % (sha, url, v, "" if v == s
+UNCOVERED tools/pr/local_alerts.py:56: ok, got = alert_list.reds(get, f"refs/pull/{pr['number']}/merge",
+UNCOVERED tools/release/stamp.py:1919: """(pr, sha) per merge the instrument lists without a row, or a refusal.
+UNCOVERED tools/release/stamp.py:2133: raise Refuse("rows", f"the disposition instrument lists #{pr} at merge "
+TOTAL old=55 new=56 over 287 file(s)
+UNCOVERED 60 of 95 line(s) holding both words, over 287 file(s)

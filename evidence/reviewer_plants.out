@@ -1,0 +1,38 @@
+== guard at 87ecf385b1d2d80770d879b6b0fc1cf926406c77
+unperturbed: 52 merge call(s) in 11 file(s) RESULT divergent=0 unregistered=0 dead=0 refused=0 
+MT single-quoted argv: 51 merge call(s) in 11 file(s) RESULT divergent=0 unregistered=0 dead=0 refused=0 
+MT space before comma: 51 merge call(s) in 11 file(s) RESULT divergent=0 unregistered=0 dead=0 refused=0 
+MT --repo between pr and merge: 51 merge call(s) in 11 file(s) RESULT divergent=0 unregistered=0 dead=0 refused=0 
+MT blank line inside argv: 52 merge call(s) in 11 file(s) RESULT divergent=0 unregistered=0 dead=0 refused=0 
+MT -t in argv: 52 merge call(s) in 11 file(s) REFUSED       merge-subject-pr writer tools/audit/seat/merge_train.py:864: a merge call that sets the commit subject or body; GitHub's template is the only writer every reader agrees with RESULT divergent=0 unregistered=0 dead=0 refused=1 
+MP gh pr "merge": 52 merge call(s) in 11 file(s) RESULT divergent=0 unregistered=0 dead=0 refused=0 
+MP gh "pr" merge: 52 merge call(s) in 11 file(s) RESULT divergent=0 unregistered=0 dead=0 refused=0 
+MP gh pr -R o/r merge: 52 merge call(s) in 11 file(s) RESULT divergent=0 unregistered=0 dead=0 refused=0 
+MP gh --repo o/r pr merge: 52 merge call(s) in 11 file(s) RESULT divergent=0 unregistered=0 dead=0 refused=0 
+MP gh \\-nl pr merge: 52 merge call(s) in 11 file(s) RESULT divergent=0 unregistered=0 dead=0 refused=0 
+MP -mt cluster: 53 merge call(s) in 11 file(s) RESULT divergent=0 unregistered=0 dead=0 refused=0 
+MP ${GH:-gh} program: 52 merge call(s) in 11 file(s) RESULT divergent=0 unregistered=0 dead=0 refused=0 
+MP $(command -v gh) program: 52 merge call(s) in 11 file(s) RESULT divergent=0 unregistered=0 dead=0 refused=0 
+MP flag before merge word: 52 merge call(s) in 11 file(s) RESULT divergent=0 unregistered=0 dead=0 refused=0 
+MP -t"x" attached quoted: 53 merge call(s) in 11 file(s) REFUSED       merge-subject-pr writer tools/audit/seat/merge_pr.sh:258: a merge call that sets the commit subject or body; GitHub's template is the only writer every reader agrees with RESULT divergent=0 unregistered=0 dead=0 refused=1 
+MP gh.exe: 52 merge call(s) in 11 file(s) RESULT divergent=0 unregistered=0 dead=0 refused=0 
+MP null: gh pr view -t: 52 merge call(s) in 11 file(s) RESULT divergent=0 unregistered=0 dead=0 refused=0 
+== guard at 5d79db511e0f801cc17605e1f8e3d935b3a7980e
+unperturbed: 56 merge call(s) in 11 file(s) RESULT divergent=0 unregistered=0 dead=0 refused=0 
+MT single-quoted argv: 56 merge call(s) in 11 file(s) REFUSED       merge-subject-pr writer tools/audit/seat/merge_train.py:864: a merge call that sets the commit subject or body; GitHub's template is the only writer every reader agrees with RESULT divergent=0 unregistered=0 dead=0 refused=1 
+MT space before comma: 56 merge call(s) in 11 file(s) REFUSED       merge-subject-pr writer tools/audit/seat/merge_train.py:864: a merge call that sets the commit subject or body; GitHub's template is the only writer every reader agrees with RESULT divergent=0 unregistered=0 dead=0 refused=1 
+MT --repo between pr and merge: 56 merge call(s) in 11 file(s) REFUSED       merge-subject-pr writer tools/audit/seat/merge_train.py:864: a merge call that sets the commit subject or body; GitHub's template is the only writer every reader agrees with RESULT divergent=0 unregistered=0 dead=0 refused=1 
+MT blank line inside argv: 56 merge call(s) in 11 file(s) RESULT divergent=0 unregistered=0 dead=0 refused=0 
+MT -t in argv: 56 merge call(s) in 11 file(s) REFUSED       merge-subject-pr writer tools/audit/seat/merge_train.py:864: a merge call that sets the commit subject or body; GitHub's template is the only writer every reader agrees with RESULT divergent=0 unregistered=0 dead=0 refused=1 
+MP gh pr "merge": 57 merge call(s) in 11 file(s) REFUSED       merge-subject-pr writer tools/audit/seat/merge_pr.sh:258: a merge call that sets the commit subject or body; GitHub's template is the only writer every reader agrees with RESULT divergent=0 unregistered=0 dead=0 refused=1 
+MP gh "pr" merge: 57 merge call(s) in 11 file(s) REFUSED       merge-subject-pr writer tools/audit/seat/merge_pr.sh:258: a merge call that sets the commit subject or body; GitHub's template is the only writer every reader agrees with RESULT divergent=0 unregistered=0 dead=0 refused=1 
+MP gh pr -R o/r merge: 57 merge call(s) in 11 file(s) REFUSED       merge-subject-pr writer tools/audit/seat/merge_pr.sh:258: a merge call that sets the commit subject or body; GitHub's template is the only writer every reader agrees with RESULT divergent=0 unregistered=0 dead=0 refused=1 
+MP gh --repo o/r pr merge: 57 merge call(s) in 11 file(s) REFUSED       merge-subject-pr writer tools/audit/seat/merge_pr.sh:258: a merge call that sets the commit subject or body; GitHub's template is the only writer every reader agrees with RESULT divergent=0 unregistered=0 dead=0 refused=1 
+MP gh \\-nl pr merge: 57 merge call(s) in 11 file(s) REFUSED       merge-subject-pr writer tools/audit/seat/merge_pr.sh:258: a merge call that sets the commit subject or body; GitHub's template is the only writer every reader agrees with RESULT divergent=0 unregistered=0 dead=0 refused=1 
+MP -mt cluster: 57 merge call(s) in 11 file(s) REFUSED       merge-subject-pr writer tools/audit/seat/merge_pr.sh:258: a merge call that sets the commit subject or body; GitHub's template is the only writer every reader agrees with RESULT divergent=0 unregistered=0 dead=0 refused=1 
+MP ${GH:-gh} program: 56 merge call(s) in 11 file(s) RESULT divergent=0 unregistered=0 dead=0 refused=0 
+MP $(command -v gh) program: 56 merge call(s) in 11 file(s) RESULT divergent=0 unregistered=0 dead=0 refused=0 
+MP flag before merge word: 56 merge call(s) in 11 file(s) RESULT divergent=0 unregistered=0 dead=0 refused=0 
+MP -t"x" attached quoted: 57 merge call(s) in 11 file(s) REFUSED       merge-subject-pr writer tools/audit/seat/merge_pr.sh:258: a merge call that sets the commit subject or body; GitHub's template is the only writer every reader agrees with RESULT divergent=0 unregistered=0 dead=0 refused=1 
+MP gh.exe: 56 merge call(s) in 11 file(s) RESULT divergent=0 unregistered=0 dead=0 refused=0 
+MP null: gh pr view -t: 56 merge call(s) in 11 file(s) RESULT divergent=0 unregistered=0 dead=0 refused=0 
