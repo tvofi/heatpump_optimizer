@@ -10856,9 +10856,9 @@
     "Registered 2026-10-28 so the standing triage seat's open batch pull request is wired to a live group: the delivery row of #2900 names R10-TRIAGE-S6, and the roster seat logged it as an unwired open pull request with no live group (the same gap R10-TRIAGE-B36 and R10-TRIAGE-B37 closed for batches 36 and 37). resume.pr names the batch pull request currently open; set it to the next one when a later batch opens."
    ],
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "fix/triage-s6-batch45-pr",
-    "commit": "8622b108db95f3b09d765bb3921011f2a0cf4704",
+    "commit": "c08720395fa52d8a01a9c4d95dd46302c1879e71",
     "last_step": "registered",
     "next_step": "review the re-cut head of #2900 (round 2), then merge",
     "note": "re-derive the head from the pull request, never from the handoff ref, which is an ancestor of it",
