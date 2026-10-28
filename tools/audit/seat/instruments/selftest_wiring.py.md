@@ -7,3 +7,8 @@
   `instrument-self-tests`. When: adding a tool with a `--self-test`; add its
   step in the same pull request. Refusal: each unwired file by path; a
   mention in a comment, a step name or a `--check` call does not wire it.
+  `--check` also refuses this guide's index and its `instruments/` files
+  disagreeing: a line whose file is gone, a file linked twice or by no line,
+  or a line naming another instrument than its file's entry. When: adding,
+  renaming or removing an entry; its index line moves in the same pull
+  request.

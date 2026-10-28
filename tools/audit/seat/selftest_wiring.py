@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Refuse a self-testing tool that no CI step runs.
+"""Refuse a self-testing tool that no CI step runs, or an unindexed instrument.
 
     python3 -I tools/audit/seat/selftest_wiring.py --check
     python3 -I tools/audit/seat/selftest_wiring.py --self-test
@@ -26,6 +26,14 @@ inside a quoted string can only make a file read unwired, never wired.
 Blind spots, stated: a self-test whose entry point is spelled neither way;
 a step that never runs (`if: false`, a job no event triggers); a step whose
 exit is ignored (`continue-on-error`, `|| true`).
+
+THE INDEX RULE (R10-FLY-INSTRUMENTS-SPLIT). The instruments guide is an index,
+`tools/audit/seat/INSTRUMENTS.md`, whose lines `- [label](instruments/<f>.md) — `
+each link one entry file under `tools/audit/seat/instruments/`. `--check` also
+refuses an index line whose file is missing, a file linked twice, an entry
+file no index line links, and a line whose label's first backticked name is
+not the name the file's entry opens with. It reads the files, not the
+scripts: an instrument with no entry at all is outside it.
 """
 from __future__ import annotations
 
@@ -42,6 +50,11 @@ SEAT = "tools/audit/seat"
 SELF_TEST_RE = re.compile(r"--self-test|self-test\)")
 RUN_RE = re.compile(r"^(?P<indent>\s*)(?:-\s+)?run:\s*(?P<rest>.*)$")
 COMMENT_RE = re.compile(r"(?:^|(?<=\s))#.*$")
+INDEX = f"{SEAT}/INSTRUMENTS.md"
+ENTRIES = f"{SEAT}/instruments"
+INDEX_RE = re.compile(
+    r"^- \[(?P<label>[^\]]+)\]\((?P<target>instruments/[^)]+\.md)\) — ", re.M)
+ENTRY_RE = re.compile(r"^- `(?P<name>[^`]+)`", re.M)
 
 
 def self_testing(root: Path) -> list[str]:
@@ -93,6 +106,34 @@ def wired(root: Path) -> set[str]:
     return found
 
 
+def index_gaps(root: Path) -> list[str]:
+    """Every way the guide's index and its entry files disagree."""
+    index = root / INDEX
+    if not index.is_file():
+        return [f"MISSING {INDEX}: the index is gone"]
+    gaps: list[str] = []
+    linked: set[str] = set()
+    for m in INDEX_RE.finditer(index.read_text()):
+        target = m.group("target")
+        if target in linked:
+            gaps.append(f"DUPLICATE {target}: linked by more than one index line")
+        linked.add(target)
+        entry = root / SEAT / target
+        if not entry.is_file():
+            gaps.append(f"MISSING {SEAT}/{target}: indexed, no such file")
+            continue
+        label = re.search(r"`([^`]+)`", m.group("label"))
+        opens = ENTRY_RE.search(entry.read_text())
+        if not label or not opens or label.group(1) != opens.group("name"):
+            gaps.append(f"MISMATCH {SEAT}/{target}: the index line's name is not "
+                        "the one its entry opens with")
+    entries = root / ENTRIES
+    for p in sorted(entries.glob("*.md")) if entries.is_dir() else []:
+        if f"instruments/{p.name}" not in linked:
+            gaps.append(f"UNINDEXED {ENTRIES}/{p.name}: no index line links it")
+    return gaps
+
+
 def check(root: Path) -> tuple[list[str], list[str]]:
     tests = self_testing(root)
     w = wired(root)
@@ -105,7 +146,11 @@ def report(root: Path) -> int:
         print(f"  UNWIRED {TOOLS}/{name}: no workflow run line names its self-test")
     print(f"selftest_wiring: {len(tests)} self-testing, "
           f"{len(tests) - len(unwired)} wired, {len(unwired)} unwired")
-    return 1 if unwired else 0
+    gaps = index_gaps(root)
+    for gap in gaps:
+        print(f"  {gap}")
+    print(f"selftest_wiring: {len(gaps)} index gap(s)")
+    return 1 if unwired or gaps else 0
 
 
 def self_test() -> int:
@@ -128,6 +173,15 @@ def self_test() -> int:
 
     seat = "tools/audit/seat"
     st = {f"{seat}/a.py": "if argv == ['--self-test']: pass\n"}
+    # A consistent guide: two index lines, each linking the file whose entry
+    # opens with its name, beside prose lines the index rule does not read.
+    guide = {
+        f"{seat}/INSTRUMENTS.md": "# Instruments\n\nProse, `a.py`.\n\n"
+        "- [`a.py`](instruments/a.py.md) — does a\n"
+        "- [`b.sh` (tools/pr/)](instruments/b.sh.md) — does b\n",
+        f"{seat}/instruments/a.py.md": "# `a.py`\n\n- `a.py` — does a. When: x.\n",
+        f"{seat}/instruments/b.sh.md": "# `b.sh`\n\n- `b.sh` (tools/pr/) — does b.\n",
+    }
     head = "jobs:\n  j:\n    steps:\n"
     cases = [
         ("an inline run line wires it (null control)", True,
@@ -189,6 +243,33 @@ def self_test() -> int:
        "not a file without one, a .md or .json, or a __pycache__ file",
        tests == ["audit/seat/a.py", "audit/seat/b.sh", "audit/seat/c.sh", "pr/f.py"]
        and unwired == tests)
+    # The index rule: the consistent guide is clean (null control), and each
+    # perturbation is named by its own gap -- deleting one index line is the
+    # owner's mutant for this rule.
+    idx = f"{seat}/INSTRUMENTS.md"
+    a_line = "- [`a.py`](instruments/a.py.md) — does a\n"
+    for name, edit, want in (
+        ("a consistent index and entry set has no gap (null control)", {}, []),
+        ("deleting one index line leaves its file unindexed",
+         {idx: guide[idx].replace(a_line, "")},
+         [f"UNINDEXED {seat}/instruments/a.py.md"]),
+        ("an index line whose file is gone is refused",
+         {f"{seat}/instruments/a.py.md": None},
+         [f"MISSING {seat}/instruments/a.py.md"]),
+        ("a file linked twice is refused",
+         {idx: guide[idx] + a_line}, ["DUPLICATE instruments/a.py.md"]),
+        ("a line naming another instrument than its file's entry is refused",
+         {idx: guide[idx].replace("[`a.py`]", "[`z.py`]")},
+         [f"MISMATCH {seat}/instruments/a.py.md"]),
+        ("an entry file no line links is refused",
+         {f"{seat}/instruments/c.py.md": "# `c.py`\n\n- `c.py` — c.\n"},
+         [f"UNINDEXED {seat}/instruments/c.py.md"]),
+        ("a missing index is refused", {idx: None}, [f"MISSING {idx}"]),
+    ):
+        files = {**guide, **edit}
+        root = tree("", {k: v for k, v in files.items() if v is not None})
+        gaps = index_gaps(root)
+        ck(name, [g.split(":")[0] for g in gaps] == want)
     # The refusal is report()'s exit code, which `--check` returns: grade it,
     # not only check()'s list (a `return 0` there passed every check above).
     for name, want, wf in ((
@@ -197,9 +278,15 @@ def self_test() -> int:
             head + f"      - run: python3 -I {seat}/a.py --self-test\n")):
         out = io.StringIO()
         with contextlib.redirect_stdout(out):
-            rc = report(tree(wf, st))
+            rc = report(tree(wf, {**st, **guide}))
         ck(f"{name} (rc={rc})", rc == want
            and f", {want} unwired" in out.getvalue())
+    wf = head + f"      - run: python3 -I {seat}/a.py --self-test\n"
+    out = io.StringIO()
+    with contextlib.redirect_stdout(out):
+        rc = report(tree(wf, {**st, **guide, idx: guide[idx].replace(a_line, "")}))
+    ck(f"--check exits 1 on an index gap when every file is wired (rc={rc})",
+       rc == 1 and "1 index gap(s)" in out.getvalue())
     print(f"selftest_wiring self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0
 
