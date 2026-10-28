@@ -1809,6 +1809,8 @@ def valve_charge_demand(
     heat was paid for and reported as savings. Heat above the curve
     reaches no emitter, so a thermostat never buys it.
     """
+    if need_kw <= 0.0:
+        return 0.0  # no demand: the pump idles and the tank coasts
     p = model.params
     circuits = _valve_draw_circuits(
         model, state, outdoor_temp, wind_speed, precipitation)
@@ -1816,13 +1818,15 @@ def valve_charge_demand(
     # The draw is piecewise linear in the tank temperature, kinked where a
     # circuit starts drawing (its zone) and where its curve caps it; the
     # highest kink is the curve's top, or the cap behind a direct slab.
+    # The lowest kink draws nothing, so each segment entered starts below
+    # the need and the one reaching it is interpolated.
     kinks = sorted({
         min(t, p.buffer_max_temp) for _, top, zone in circuits for t in (top, zone)
     })
-    goal = kinks[0] if need_kw <= 0.0 else kinks[-1]
+    goal = kinks[-1]
     for lo, hi in zip(kinks, kinks[1:]):
         f_lo, f_hi = _circuit_draw(circuits, lo), _circuit_draw(circuits, hi)
-        if need_kw > 0.0 and f_hi >= need_kw > f_lo:
+        if f_hi >= need_kw:
             goal = lo + (need_kw - f_lo) * (hi - lo) / (f_hi - f_lo)
             break
     loss = p.buffer_tank_heat_loss_coefficient * (tank - TANK_ROOM_AMBIENT_TEMP)

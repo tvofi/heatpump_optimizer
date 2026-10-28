@@ -11226,6 +11226,12 @@ R.check(
     _cc_ref == 0.0 and _cc_top < 45.0,
     f"a 1000 kW need left the tank at {_cc_top:.1f} C, {_cc_ref:.3f} kW refused",
 )
+_cc_idle = _charge_case(0.0)
+R.check(
+    "the tank law idles the pump when the emitters need nothing",
+    _cc_idle[0] < 25.0 and _cc_idle[1] == 0.0,
+    f"a zero need left the tank at {_cc_idle[0]:.3f} C from 25 C",
+)
 _, _, _cc_got = _charge_case(2.0)
 R.check(
     "the tank law charges to the temperature whose draw is the need",
