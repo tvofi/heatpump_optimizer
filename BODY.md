@@ -172,17 +172,28 @@ ce04b0dd15eabed34457a515afa8955de193fc04,
 
 ## Unpinned sites
 
-All 20 sites `ci_predict.py` lists are under `custom_components/`, so
-`mutation-autofix` pins them; the mutants above kill the ones they drove:
+Every site `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py` lists at `d3ce1d33f` merged with origin/main `f844df1fe` (20, the same lines as at `d3ce1d33f` alone), each under `custom_components/`, so `mutation-autofix` pins it; the mutants under `## Mutation proof` kill the ones they drove:
 
-- `accuracy.py` `pairs_interval` CMP_BOUND*2, RETURN_DEL: mutation-autofix.
-- `accuracy.py` `cop_observability` GUARD_OFF x3, RETURN_DEL: mutation-autofix; value check "cop_observability: heat metered beats ...".
-- `accuracy.py` `judge_ratio` GUARD_OFF, RETURN_DEL: mutation-autofix; m1.
-- `accuracy.py` `MeasuredCop.residual` CMP_BOUND, GUARD_OFF x2, BOOLOP, RETURN_DEL: mutation-autofix; m3.
-- `accuracy.py` `as_dict` RETURN_DEL, `from_dict` GUARD_OFF, RETURN_DEL: mutation-autofix; value check "a folded COP carries the instant it folded".
-- `coordinator.py` `_record_accuracy` GUARD_OFF x2: mutation-autofix; m2.
-- `sensor.py` `ObservedCOPSensor._waiting_for` GUARD_OFF: mutation-autofix; m4.
-- `thermal_model.py` `InstallCapability.cop_electric` RETURN_DEL: mutation-autofix; m5b.
+- `custom_components/heatpump_optimizer/accuracy.py:787 CMP_BOUND*2`: `pairs_interval`; mutation-autofix.
+- `custom_components/heatpump_optimizer/accuracy.py:787 RETURN_DEL`: `pairs_interval`; mutation-autofix.
+- `custom_components/heatpump_optimizer/accuracy.py:838 GUARD_OFF`: `cop_observability`; mutation-autofix; value check "cop_observability: heat metered beats ...".
+- `custom_components/heatpump_optimizer/accuracy.py:840 GUARD_OFF`: `cop_observability`; mutation-autofix; value check "cop_observability: heat metered beats ...".
+- `custom_components/heatpump_optimizer/accuracy.py:842 GUARD_OFF`: `cop_observability`; mutation-autofix; value check "cop_observability: heat metered beats ...".
+- `custom_components/heatpump_optimizer/accuracy.py:844 RETURN_DEL`: `cop_observability`; mutation-autofix; value check "cop_observability: heat metered beats ...".
+- `custom_components/heatpump_optimizer/accuracy.py:905 GUARD_OFF`: `judge_ratio` (`if follows is False`); mutation-autofix; killed by m1.
+- `custom_components/heatpump_optimizer/accuracy.py:916 RETURN_DEL`: `judge_ratio`; mutation-autofix.
+- `custom_components/heatpump_optimizer/accuracy.py:932 CMP_BOUND`: `MeasuredCop.residual`; mutation-autofix; the time guard killed by m3.
+- `custom_components/heatpump_optimizer/accuracy.py:932 GUARD_OFF`: `MeasuredCop.residual`; mutation-autofix; the time guard killed by m3.
+- `custom_components/heatpump_optimizer/accuracy.py:934 BOOLOP`: `MeasuredCop.residual`; mutation-autofix.
+- `custom_components/heatpump_optimizer/accuracy.py:934 GUARD_OFF`: `MeasuredCop.residual`; mutation-autofix.
+- `custom_components/heatpump_optimizer/accuracy.py:938 RETURN_DEL`: `MeasuredCop.residual`; mutation-autofix; value check "the accuracy residual reads the latch only ...".
+- `custom_components/heatpump_optimizer/accuracy.py:943 RETURN_DEL`: `MeasuredCop.as_dict`; mutation-autofix; value check "a folded COP carries the instant it folded".
+- `custom_components/heatpump_optimizer/accuracy.py:961 GUARD_OFF`: `MeasuredCop.from_dict`; mutation-autofix; value check "a folded COP carries the instant it folded".
+- `custom_components/heatpump_optimizer/accuracy.py:963 RETURN_DEL`: `MeasuredCop.from_dict`; mutation-autofix; value check "a folded COP carries the instant it folded".
+- `custom_components/heatpump_optimizer/coordinator.py:9837 GUARD_OFF`: `_record_accuracy`, the draw fold guard; mutation-autofix; killed by m2's check.
+- `custom_components/heatpump_optimizer/coordinator.py:9872 GUARD_OFF`: `_record_accuracy`, `pairs_interval(elapsed)`; mutation-autofix.
+- `custom_components/heatpump_optimizer/sensor.py:1689 GUARD_OFF`: `ObservedCOPSensor._waiting_for`; mutation-autofix; killed by m4.
+- `custom_components/heatpump_optimizer/thermal_model.py:1295 RETURN_DEL`: `InstallCapability.cop_electric`; mutation-autofix; killed by m5b.
 
 ## Red checks
 
