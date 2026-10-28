@@ -1,0 +1,5 @@
+head 172afa85d2bc2f68b402217981f22cfb26e86b56; each mutant applied, self-test run, file restored (git status clean after)
+review_carry.py `if len(parents_of(repo, sha)) < 2:` -> `if True:` : 14 checks, 3 failed (killed)
+bus.sh `elif [ "$rc" = 0 ]; then` -> `elif false; then` : 94 checks, 1 failed (killed)
+app_approve.sh range walk -> --first-parent : 265 checks, 3 failed (killed)
+app_approve.sh claim-union test `[ "$got" = "$want" ]` -> `true` : 265 checks, 4 failed (killed)
