@@ -1,0 +1,8 @@
+2026-10-21T16:00:00Z ae=501 total=3917 ce=483
+2026-10-21T16:20:00Z ae=501 total=3910 ce=483
+2026-10-21T16:30:00Z ae=501 total=3908 ce=483
+2026-10-21T16:40:00Z ae=500 total=3906 ce=482
+2026-10-21T16:45:00Z ae=499 total=3904 ce=481
+main commits after base on first-parent, with since-10-26 count:
+eab04d0eb 2026-10-28T17:41:53+01:00 n=1002
+beb570c81 2026-10-28T18:31:42+01:00 n=1029

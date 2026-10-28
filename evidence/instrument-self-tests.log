@@ -1,0 +1,91 @@
+Set up job	success
+Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	success
+Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444	success
+Refuse a corpus or record-mode check that survives its own deletion	success
+Show the fragment check refusing its own perturbation	success
+Show the lane-skip decision refusing every unsafe skip	success
+Show field coverage refusing each shape it exists to refuse	success
+Show the comment poster refusing every body it cannot vouch for	success
+Show the record-predicate sweep refusing its own perturbations	success
+Show the pre-PR self-check refusing its own fixtures	success
+Show the push script's decisions refusing their own fixtures	success
+Show the App push refusing its own fixtures	success
+Show the App approval refusing its own fixtures	success
+Show the merge-main bot refusing its own fixtures	success
+Show the superseded-run canceller refusing its own fixtures	success
+Show the Dependabot merge decision refusing its own fixtures	success
+Show the dependency-graph census refusing its own fixtures	success
+Show the App verdict poster refusing its own fixtures	success
+Show the verdict bus refusing its own fixtures	success
+Show the budget-raise gate refusing its own fixtures	success
+Show the CodeQL leg scope refusing every unsafe skip	success
+Show the merge fast path refusing its own fixtures	success
+Show the P3 move ledger and holdout check refusing their own fixtures	success
+Refuse a temp or machine path in a tracked script or decision	success
+Refuse a push that names the host, and an unregistered pusher	success
+Render the sweep template, and the policy re-read predicate	success
+Show the orchestrator tick deciding its own fixtures	success
+Refuse a self-testing seat instrument that no step runs	success
+Show the review-strength enumerator deciding its own fixtures	success
+Show the critical-path and flow instruments deciding their own fixtures	success
+Show the body PATCH refusing its own fixtures	success
+Show the self-tests outside tools/audit/seat/ refusing their own fixtures	success
+Show the CI watcher refusing its own fixtures	success
+Show the cloud dispatcher refusing its own fixtures	success
+Show the cloud relay refusing its own fixtures	success
+Show the obligations ledger refusing its own fixtures	success
+Show the roster queue runner refusing its own fixtures	success
+Show the detached launcher refusing its own fixtures	success
+Show the delivery-row writer refusing its own fixtures	success
+Show the failure-log reader refusing its own fixtures	success
+Show the features block refusing its own fixtures	success
+Show the handoff push and its row writer refusing their own fixtures	success
+Show the handover prompt refusing its own fixtures	success
+Show the PR merger refusing its own fixtures	success
+Show the moved-path reader refusing its own fixtures	success
+Show the PR opener (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures	success
+Show the plan table refusing its own fixtures	success
+Show the plan page refusing its own fixtures	success
+Show the PR argument builder refusing its own fixtures	success
+Show the dispatch cap refusing its own fixtures	success
+Show the proof watcher refusing its own fixtures	success
+Show the ref pruner refusing its own fixtures	success
+Show the programme pulse refusing its own fixtures	success
+Show the record-row generator refusing its own fixtures	success
+Show the resume renderer refusing its own fixtures	success
+Show the review packet refusing its own fixtures	success
+Show the roster editor refusing its own fixtures	success
+Show the roster-ops mutation harness pinning its own plants	success
+Show the ledger mutation harness pinning its own plants	success
+Show the roster library refusing its own fixtures	success
+Show the roster-sync reconciler refusing its own fixtures	success
+Show the twin-run reader refusing its own fixtures	success
+Show the seat venv recipe refusing its own fixtures	success
+Show the cloud setup profile refusing its own fixtures	success
+Show the state-doc writer refusing its own fixtures	success
+Show the tick loop refusing its own fixtures	success
+Show the heartbeat andon refusing its own fixtures	success
+Show the PR updater (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures	success
+Show the offline spy refusing its own fixtures	success
+Refuse a throwaway git repository built without the shared helper	success
+Show the merge train refusing its own fixtures	success
+Show the carry check and the queue pre-flight refusing their own fixtures	success
+Show the train launcher refusing its own fixtures	success
+Show the figure check refusing its own fixtures	success
+Show the figure census pinning its counting rule	success
+Show the pin rule refusing every probe and admitting its controls	success
+Show the GitHub REST client (tools/ci/ghapi.py) refusing its own fixtures	success
+Show the CI prelude (tools/ci/prelude.py) refusing its own fixtures	success
+Show the gate predicate (tools/ci/gate.py) refusing its own fixtures	success
+Show the gate sweep (tools/ci/sweep.py) refusing its own fixtures	success
+Show the code-scanning alert lister (tools/ci/alert_list.py) refusing its own fixtures	success
+Show the ruleset cut-over instrument (tools/ci/ruleset_cutover.py) refusing its own fixtures	success
+Show the sweep driver (tools/audit/seat/sweep_driver.py) refusing its own fixtures	success
+Show the CI probe instrument (tools/audit/seat/ci_probe.py) refusing its own fixtures	success
+Show the code-scanning wait (tools/ci/codescan_wait.py) driving alert_list over fakes	success
+Show the CI predictor (tools/pr/ci_predict.py) predicting pr-contract's carry refusal	cancelled
+Show the local alert lister (tools/pr/local_alerts.py) refusing its own fixtures	skipped
+Show the alert lister's mutants each refused by its self-test	skipped
+Post Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444	skipped
+Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	success
+Complete job	success

@@ -1,0 +1,38 @@
+base f844df1fe750d5e420af0d1555f4b9472a740413 date: 2026-10-28T12:24:13+01:00
+7d author (ending at base date):
+since 2026-10-21T11:24:13Z
+ae anthropic: 545
+total: 4099
+ce anthropic: 527
+all ae: 919
+all total: 12434
+all ce: 863
+since 10-26 ae: 1
+of: 994
+since 10-26 hits:
+b9a66d28d Claude <noreply@anthropic.com> | Claude <noreply@anthropic.com> 2026-10-28T01:41:39+00:00
+b9a66 on main/first-parent ancestry:
+yes
+71fe1f7fcaeadd448a3e2213744f68b3e680e24e Merge pull request #2903 from tvofi/fix/r10-roster-freeze-close
+last before 10-26:
+70b57a370 2026-10-25T20:07:12+00:00 noreply@anthropic.com
+daily (author date, 14d):
+     47 2026-10-18
+    159 2026-10-21
+    168 2026-10-22
+     57 2026-10-23
+    122 2026-10-24
+     64 2026-10-25
+      1 2026-10-28
+identities 7d:
+    495 Claude <noreply@anthropic.com> | Claude
+     20 Claude <noreply@anthropic.com> | tvofi
+      8 hpo-fixer-seat <noreply@anthropic.com> | hpo-fixer-seat
+      7 hpo seat <noreply@anthropic.com> | hpo seat
+      5 hpo fixer seat <noreply@anthropic.com> | hpo fixer seat
+      4 hpo-fixer <noreply@anthropic.com> | hpo-fixer
+      4 hpo-author <noreply@anthropic.com> | hpo-author
+      2 hpo <noreply@anthropic.com> | hpo
+pre-10-26 window:
+544
+3105

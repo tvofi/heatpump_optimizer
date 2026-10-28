@@ -1,0 +1,31 @@
+verdict P249 REJECT
+verdict P250 DEFER
+verdict P251 ACCEPT
+verdict P252 REJECT
+verdict P253 ACCEPT
+verdict P254 None
+committed P249 dev/programme/triage/s6-batch51.md#P249 is not an ACCEPT ruling (REJECT)
+committed P250 dev/programme/triage/s6-batch51.md#P250 is not an ACCEPT ruling (DEFER)
+committed P251 None
+committed P252 dev/programme/triage/s6-batch51.md#P252 is not an ACCEPT ruling (REJECT)
+committed P253 None
+absent P249 the triage ruling dev/programme/triage/s6-batch51.md is not on the roster branch or origin/main
+absent P250 the triage ruling dev/programme/triage/s6-batch51.md is not on the roster branch or origin/main
+absent P251 the triage ruling dev/programme/triage/s6-batch51.md is not on the roster branch or origin/main
+absent P252 the triage ruling dev/programme/triage/s6-batch51.md is not on the roster branch or origin/main
+absent P253 the triage ruling dev/programme/triage/s6-batch51.md is not on the roster branch or origin/main
+mut249 P249 None
+mut249 P250 dev/programme/triage/s6-batch51.md#P250 is not an ACCEPT ruling (DEFER)
+mut249 P251 None
+mut249 P252 dev/programme/triage/s6-batch51.md#P252 is not an ACCEPT ruling (REJECT)
+mut249 P253 None
+mut253 P249 dev/programme/triage/s6-batch51.md#P249 is not an ACCEPT ruling (REJECT)
+mut253 P250 dev/programme/triage/s6-batch51.md#P250 is not an ACCEPT ruling (DEFER)
+mut253 P251 None
+mut253 P252 dev/programme/triage/s6-batch51.md#P252 is not an ACCEPT ruling (REJECT)
+mut253 P253 dev/programme/triage/s6-batch51.md#P253 is not an ACCEPT ruling (REJECT)
+mut253-noverdict P249 dev/programme/triage/s6-batch51.md#P249 is not an ACCEPT ruling (REJECT)
+mut253-noverdict P250 dev/programme/triage/s6-batch51.md#P250 is not an ACCEPT ruling (DEFER)
+mut253-noverdict P251 None
+mut253-noverdict P252 dev/programme/triage/s6-batch51.md#P252 is not an ACCEPT ruling (REJECT)
+mut253-noverdict P253 dev/programme/triage/s6-batch51.md#P253 is not an ACCEPT ruling (unreadable)
