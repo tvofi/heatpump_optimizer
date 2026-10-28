@@ -1,0 +1,16 @@
+237 REJECT
+238 REJECT
+239 ACCEPT
+240 REJECT
+241 ACCEPT
+242 ACCEPT
+243 REJECT
+244 DEFER
+245 REJECT
+246 REJECT
+247 ACCEPT
+all None
+m1 dev/programme/triage/s6-batch49.md#P241 is not an ACCEPT ruling (DEFER)
+m2 dev/programme/triage/s6-batch49.md#P239 is not an ACCEPT ruling (no such entry)
+null the triage ruling dev/programme/triage/s6-batch49.md is not on the roster branch or origin/main
+rej dev/programme/triage/s6-batch49.md#P240 is not an ACCEPT ruling (REJECT)
