@@ -1,0 +1,27 @@
+Collecting pyyaml==6.0.1 (from -r <scratch>/ev2905/pyyaml.req (line 1))
+  Downloading PyYAML-6.0.1.tar.gz (125 kB)
+  Installing build dependencies: started
+  Running command installing build dependencies for pyyaml
+  Using pip 26.2.1 from <scratch>/venv2905/lib/python3.14/site-packages/pip (python 3.14)
+  Collecting setuptools==84.1.0
+    Using cached setuptools-84.1.0-py3-none-any.whl (819 kB)
+  ERROR: THESE PACKAGES DO NOT MATCH THE HASHES FROM THE REQUIREMENTS FILE. If you have updated the package versions, please update the hashes. Otherwise, examine the package contents carefully; someone may have tampered with them.
+      setuptools==84.1.0 from https://files.pythonhosted.org/packages/18/02/b4bbb90f8f29e334898ff45c6d9b1fffaa6f378017052b3023a06262b5f7/setuptools-84.1.0-py3-none-any.whl:
+          Expected sha256 0000000000000000000000000000000000000000000000000000000000000000
+          Expected     or 1111111111111111111111111111111111111111111111111111111111111111
+               Got        5231689c6ac8156cd155cfb98c3fd6fb252c3e7e9bd3d78b64d3c55f132624c9
+
+  error: subprocess-exited-with-error
+  
+  × installing build dependencies for pyyaml did not run successfully.
+  │ exit code: 1
+  ╰─> No available output.
+  
+  note: This error originates from a subprocess, and is likely not a problem with pip.
+  full command: <scratch>/venv2905/bin/python <scratch>/venv2905/lib/python3.14/site-packages/pip/__pip-runner__.py install --prefix <tmp> --no-user --no-warn-script-location --disable-pip-version-check --no-compile --target '' --ignore-installed -v --no-binary pyyaml --only-binary :none: -i https://pypi.org/simple --build-constraint <scratch>/ev2905/build-mut2.txt -- setuptools wheel 'Cython<3.0'
+  cwd: [inherit]
+  Installing build dependencies: finished with status 'error'
+
+[notice] A new release of pip is available: 26.2.1 -> 26.2.2
+[notice] To update, run: <scratch>/venv2905/bin/python -m pip install --upgrade pip
+ERROR: Failed to build 'pyyaml' when installing build dependencies for pyyaml
