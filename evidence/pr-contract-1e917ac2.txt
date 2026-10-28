@@ -1,0 +1,13 @@
+check-runs at 1e917ac2d29667d9645a0159e96c103f2400c5ab (GET /commits/<sha>/check-runs, all 81 runs):
+  122714746204 prelude failure 2026-10-27T22:29:01Z..22:32:24Z  -> log: "RATE-LIMITED reset_epoch=1793140725 .../actions/runs/40595111242/jobs", exit 3
+  122717803722 / 122717738568 / 122717514575 prelude success (22:28Z, 08:33Z, 08:46Z)
+  122717752548 pr-contract success 08:33:54Z; 122717688160 pr-contract success 08:36:16Z
+  122718211015 pr-contract / pr-contract FAILURE 08:47:50Z..08:48:29Z  (PR_BASE 802ba77563c0b49d85c89a9c1b9b584d1a194a82)
+     log: "  REFUSE   'Closes #2410' closes #2410; not in the intended list" (and #2593 #2597 #2660 #2784)
+          "##[error]Process completed with exit code 1."
+  122714703096 / 122717686033 / 122717751900 / 122718493990 gate failure (08:39Z..08:49Z)
+roster at 802ba7756: R10-RCA-FRICTION-RESIDUE issues has 2410 2593 2597 2660 2784, fixes has none of them
+roster at 6349205b6 / head: fixes = all five (commits e331abfbf, d61e2834c: "the body cannot carry them until the roster lists them")
+head's pr-contract 122746256170 (09:52:51Z): "ok closes #2410..#2784 -- intended"; "record red-history 4 commit(s) ... every failure conclusion across them: prelude"
+policy_lint.mjs:6537 OWN_VERDICT_CHECKS = new Set([PR_CONTRACT_CHECK, 'gate']); failingCheckNames() (6584) skips them by name (#956),
+  so red-history can never list a pr-contract or gate red; its green is not evidence about the 1e917ac2 pr-contract red.
