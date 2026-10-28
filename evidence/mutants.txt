@@ -1,6 +1,17 @@
-venv-ha python, tests/gate_lock.py --accept, worktree at ea459c0b5f6b4d753394935dfb49e5386480fd40, 2 runs each
-M1 Owner.write -> path.write_text : FAIL torn_write [torn reads=22588 / 18135 of 4000 rewrites], 1 of 31 FAILED (killed)
-M2 Owner.create -> O_EXCL then write : FAIL torn_create [winners=['rival','a']], 1 of 31 FAILED (killed)
-M3 os.link(tmp,path) -> os.replace(tmp,path) : FAIL torn_create [winners=['rival','a']], 1 of 31 FAILED (killed)
-M4 drop finally: tmp.unlink : ALL 31 PASSED (SURVIVED)
-unmutated head: ALL 31 PASSED x3
+== m1
+  FAIL an unleased marker being rewritten is never lost to a polling slot-status  [polls missing it=2666 during 1000 rewrites]
+1 of 33 gate lock acceptance checks FAILED
+== m2
+  FAIL concurrency control: a slot being renewed is never read as empty by a waiter  [torn reads=15685 of 4000 rewrites]
+  FAIL an unleased marker being rewritten is never lost to a polling slot-status  [polls missing it=1812 during 1000 rewrites]
+2 of 33 gate lock acceptance checks FAILED
+== m3
+  FAIL a take, a renewal and a marker leave no staging file in the pool  [pool=['.create-aa36910d504f-slot-000', 'flock', 'slot-000', 'unleased-prepr-x']]
+1 of 33 gate lock acceptance checks FAILED
+== m4
+  FAIL concurrency control: a slot being renewed is never read as empty by a waiter  [torn reads=17200 of 4000 rewrites]
+1 of 33 gate lock acceptance checks FAILED
+== m5
+  FAIL concurrency control: two waiters released in one poll, exactly one holds the slot  [queued=True overlaps=1 order=['a', 'b']]
+  FAIL concurrency control: a rival taking while a slot is being created cannot also hold it  [winners=['rival', 'a']]
+2 of 33 gate lock acceptance checks FAILED

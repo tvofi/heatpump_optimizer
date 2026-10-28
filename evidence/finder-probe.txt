@@ -1,0 +1,12 @@
+RESULT tree=base mode=write lost=13478 polls=14609 rewrites=4000
+RESULT tree=base mode=write lost=11532 polls=12841 rewrites=4000
+RESULT tree=base mode=write lost=9408 polls=10441 rewrites=4000
+RESULT tree=base mode=null lost=0 polls=1008 rewrites=0
+RESULT tree=base mode=null lost=0 polls=1371 rewrites=0
+RESULT tree=base mode=null lost=0 polls=1108 rewrites=0
+RESULT tree=head mode=write lost=0 polls=6057 rewrites=4000
+RESULT tree=head mode=write lost=0 polls=5881 rewrites=4000
+RESULT tree=head mode=write lost=0 polls=5217 rewrites=4000
+RESULT tree=head mode=null lost=0 polls=359 rewrites=0
+RESULT tree=head mode=null lost=0 polls=402 rewrites=0
+RESULT tree=head mode=null lost=0 polls=574 rewrites=0
