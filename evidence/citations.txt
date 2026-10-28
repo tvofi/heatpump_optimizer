@@ -1,0 +1,13 @@
+head 44281492277f962676e72abb09b2202f872d9273
+Citations checked at e8cb7e683 (the batch's stated read point) with git show:
+merge_train.py: 5831 lines; :2516 seen = {...batches}; :2567-2569 ALREADY drop; :2037-2038 record branch LEFT text  -- hold
+git diff 4db1d3e28^1 4db1d3e28 -- tools/audit/seat/merge_train.py | grep -c seen = 0  -- holds (#2882 merge)
+INSTRUMENTS.md:516-519 sweep backstop admits heads `queue` admits  -- holds
+git grep "isolated git worktree|base repo checkout" -> only dev/audit/rounds/round7/D3/REPORT.md:4  -- holds
+.claude/settings.json PreToolUse = pre-edit.sh only; grep -c worktree pre-edit.sh = 0  -- holds
+worktree_gc.sh: 701 lines; head_is_merged_ancestor 388-392; locked 529; unmerged-head 562-563; lsof 0; fetch 0  -- hold
+git ls-tree origin_sweep count 0; cloud_dispatch.py :19-23, :25-29, :32-36, :334-341  -- hold
+INSTRUMENTS.md:516 1800 s; handover_prompt.py 280 lines, open_groups at :46  -- hold
+Roster de410e4c9: R10-TRAIN-OVERLAP-GRADE done, carries 9/13/15 = P129/P189/#2846; R10-FLY-WORKTREE-GC not-started, 1 carry, files [worktree_gc.sh], no P223 carry yet; R10-FLOW-DISPATCH done; R10-ORCH-BEATD not-started, 35 carries, carry 13 = card 2 (P197)
+proposals.md (~/hpo-orch/r10s6): V132-V135 titles match P219-P222; V137-V140 match P223-P226; no ## V136 heading
+Not re-derivable here: P220's s7 train.log (857 lines, one ALREADY #2876 line) -- no train log on this machine holds that line; P223's 65 worktrees / 10 GiB free snapshot
