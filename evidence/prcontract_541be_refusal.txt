@@ -1,4 +1,0 @@
-[36;1mprintf 'red checks the body must answer: %s\n' \[0m
-red checks the body must answer: ,governance / delivery-status,tests / fast (3.14)
-  ERROR   [pr-body] /tmp/pr-body.md: check `tests / fast (3.14)` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
-PR-BODY: 1 error(s) in /tmp/pr-body.md

@@ -1,6 +1,7 @@
-RESULT case=empty-issue-set distinct_y=1 polyline=True
-RESULT case=all-closed distinct_y=1 polyline=True
-RESULT case=every-carrier-unplanned distinct_y=1 polyline=True
-RESULT case=all-open-planned distinct_y=4 polyline=True
-RESULT proj(all-open-planned) {'close_at': {1: datetime.datetime(2026, 1, 2, 0, 0), 2: datetime.datetime(2026, 1, 4, 0, 0), 3: datetime.datetime(2026, 1, 4, 0, 0)}, 'unplanned': set(), 'other': {201}}
-RESULT case=offline polyline=False omitted=True
+RESULT roster_open_group_issues= 72
+RESULT case=empty-issue-set polyline=yes distinct_y=1 open_now=[] note='Open issues carried by not-done roster groups, as GitHub had them at the plan&#x27;s start; each is projected to close at the planned finish of the last group c'
+RESULT case=all-closed polyline=yes distinct_y=1 open_now=[] note='Open issues carried by not-done roster groups, as GitHub had them at the plan&#x27;s start; each is projected to close at the planned finish of the last group c'
+RESULT case=all-open polyline=yes distinct_y=73 open_now=[] note='Open issues carried by not-done roster groups, as GitHub had them at the plan&#x27;s start; each is projected to close at the planned finish of the last group c'
+RESULT case=all-unplanned-flat polyline=yes distinct_y=1 open_now=[] note='Open issues carried by not-done roster groups, as GitHub had them at the plan&#x27;s start; each is projected to close at the planned finish of the last group c'
+RESULT case=offline polyline=no distinct_y=0 open_now=[] note='Omitted: GitHub state was not available (no '
+RESULT all-open close_at= 72 unplanned= 0 other= [201]
