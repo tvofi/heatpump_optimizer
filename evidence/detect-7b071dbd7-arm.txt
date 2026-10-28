@@ -1,1 +1,1 @@
-CI PREDICT: no closures, fast, wave-script or instrument red predicted against 9c9cd0d2dddc (a data-file read is not seen)
+CI PREDICT: no closures, fast, wave-script or instrument red predicted against 9c9cd0d2dddc (a data-file read is not seen unless a changed file's own self-test makes it)

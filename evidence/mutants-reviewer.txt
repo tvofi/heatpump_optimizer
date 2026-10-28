@@ -1,14 +1,25 @@
 RESULT mutant=R0-unmutated fails=0 baseline
-RESULT mutant=R1-record-not-rekeyed-to-host fails=2 KILLED
-    FAIL a plain read the host's closure omits is UNDER-SCOPED -- [('closures', "SELF-TEST READS CHECK tests/entities.py: UNDER-SCOPED: tests/throwaway_git.py has n
-    FAIL null control: a record inside the host's closure is not -- [('closures', "SELF-TEST READS CHECK tests/entities.py: UNDER-SCOPED: tests/throwaway_git.py has
-RESULT mutant=R2-window-zero fails=0 SURVIVED
-RESULT mutant=R3-hosts-ignore-inert_reads fails=0 SURVIVED
-RESULT mutant=R4-under-scoped-header-unparsed fails=1 KILLED
-    FAIL a plain read the host's closure omits is UNDER-SCOPED -- [('closures', "SELF-TEST READS CHECK tests/entities.py: UNDER-SCOPED: tests/entities.py really rea
-RESULT mutant=R5-no-self-test-filter-negated fails=4 KILLED
-    FAIL an INERT read the host's inert_reads omit is predicted, for the host that runs it only -- []
+RESULT mutant=R1-record-not-rekeyed-to-host fails=0 SURVIVED
+RESULT mutant=R2-window-zero fails=4 KILLED
+    FAIL an INERT read the host's inert_reads omit is predicted for the one host that runs it: a self-test named two lines from the file counts, one past the window
     FAIL a plain read the host's closure omits is UNDER-SCOPED -- []
     FAIL null control: a record inside the host's closure is not -- []
     FAIL a self-test the recorder cannot finish is a note, never a red -- []
-RESULT mutant=R6-host-may-be-file-itself fails=0 SURVIVED
+RESULT mutant=R3-hosts-union-inert_reads-again fails=3 KILLED
+    FAIL an INERT read the host's inert_reads omit is predicted for the one host that runs it: a self-test named two lines from the file counts, one past the window
+    FAIL a plain read the host's closure omits is UNDER-SCOPED -- [('closures', "SELF-TEST READS CHECK tests/doc_claims.py: UNDER-SCOPED: tests/doc_claims.py has no
+    FAIL null control: a record inside the host's closure is not -- [('closures', "SELF-TEST READS CHECK tests/doc_claims.py: UNDER-SCOPED: tests/doc_claims.py has 
+RESULT mutant=R4-under-scoped-header-unparsed fails=1 KILLED
+    FAIL a plain read the host's closure omits is UNDER-SCOPED -- [('closures', "SELF-TEST READS CHECK tests/entities.py: UNDER-SCOPED: tests/entities.py really rea
+RESULT mutant=R5-no-self-test-filter-negated fails=4 KILLED
+    FAIL an INERT read the host's inert_reads omit is predicted for the one host that runs it: a self-test named two lines from the file counts, one past the window
+    FAIL a plain read the host's closure omits is UNDER-SCOPED -- []
+    FAIL null control: a record inside the host's closure is not -- []
+    FAIL a self-test the recorder cannot finish is a note, never a red -- []
+RESULT mutant=R6-host-may-be-file-itself fails=2 KILLED
+    FAIL an INERT read the host's inert_reads omit is predicted for the one host that runs it: a self-test named two lines from the file counts, one past the window
+    FAIL a plain read the host's closure omits is UNDER-SCOPED -- [('closures', "SELF-TEST READS UNDER-SCOPED tests/entities.py: tests/layout.py (its run of tests/t
+RESULT mutant=R7-window-huge fails=0 SURVIVED
+RESULT mutant=R8-no-self-test-word-needed fails=2 KILLED
+    FAIL an INERT read the host's inert_reads omit is predicted for the one host that runs it: a self-test named two lines from the file counts, one past the window
+    FAIL a plain read the host's closure omits is UNDER-SCOPED -- [('closures', "SELF-TEST READS UNDER-SCOPED tests/entities.py: tests/layout.py (its run of tests/t
