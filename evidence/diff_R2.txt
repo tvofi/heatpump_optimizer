@@ -1,0 +1,20 @@
+56,67c56,61
+<   L>=600                   E      PRs 32 verdicts 94 real 33 (1.03/PR) book 25 (0.78/PR) incidence 19/32 (0.59) first-pass 7/32
+<   L>=600                   L      PRs 15 verdicts 30 real 1 (0.07/PR) book 15 (1.00/PR) incidence 1/15 (0.07) first-pass 4/13
+<   L>=600                   P1     PRs 20 verdicts 44 real 22 (1.10/PR) book 4 (0.20/PR) incidence 12/20 (0.60) first-pass 6/20
+<   L>=600                   P2     PRs 16 verdicts 50 real 11 (0.69/PR) book 21 (1.31/PR) incidence 7/16 (0.44) first-pass 1/12
+<   L>=600                   L1     PRs 13 verdicts 24 real 1 (0.08/PR) book 10 (0.77/PR) incidence 1/13 (0.08) first-pass 4/11
+<   L>=600                   S      PRs 2 verdicts 7 real 0 (0.00/PR) book 5 (2.50/PR) incidence 0/2 (0.00) first-pass 0/2
+<   M<600                    E      PRs 25 verdicts 60 real 19 (0.76/PR) book 13 (0.52/PR) incidence 11/25 (0.44) first-pass 6/25
+<   M<600                    L      PRs 18 verdicts 33 real 6 (0.33/PR) book 8 (0.44/PR) incidence 5/18 (0.28) first-pass 10/18
+<   M<600                    P1     PRs 13 verdicts 33 real 17 (1.31/PR) book 4 (0.31/PR) incidence 9/13 (0.69) first-pass 3/13
+<   M<600                    P2     PRs 12 verdicts 27 real 2 (0.17/PR) book 9 (0.75/PR) incidence 2/12 (0.17) first-pass 3/12
+<   M<600                    L1     PRs 13 verdicts 25 real 2 (0.15/PR) book 8 (0.62/PR) incidence 2/13 (0.15) first-pass 8/13
+<   M<600                    S      PRs 9 verdicts 10 real 5 (0.56/PR) book 0 (0.00/PR) incidence 4/9 (0.44) first-pass 3/7
+---
+>   M<600                    E      PRs 57 verdicts 154 real 52 (0.91/PR) book 38 (0.67/PR) incidence 30/57 (0.53) first-pass 13/57
+>   M<600                    L      PRs 33 verdicts 63 real 7 (0.21/PR) book 23 (0.70/PR) incidence 6/33 (0.18) first-pass 14/31
+>   M<600                    P1     PRs 33 verdicts 77 real 39 (1.18/PR) book 8 (0.24/PR) incidence 21/33 (0.64) first-pass 9/33
+>   M<600                    P2     PRs 28 verdicts 77 real 13 (0.46/PR) book 30 (1.07/PR) incidence 9/28 (0.32) first-pass 4/24
+>   M<600                    L1     PRs 26 verdicts 49 real 3 (0.12/PR) book 18 (0.69/PR) incidence 3/26 (0.12) first-pass 12/24
+>   M<600                    S      PRs 11 verdicts 17 real 5 (0.45/PR) book 5 (0.45/PR) incidence 4/11 (0.36) first-pass 3/9
