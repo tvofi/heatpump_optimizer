@@ -279,6 +279,7 @@ class ThermalParameters:
             if not np.isfinite(value) or value < POSITIVE_PARAM_FLOOR:
                 value = POSITIVE_PARAM_FLOOR
             setattr(self, name, value)
+        self.cop_partload_derate = _partload_derate(self.cop_partload_derate, self)
 
     @property
     def buffer_is_store(self) -> bool:
@@ -1010,7 +1011,6 @@ class ThermalParameters:
         # entry that stored it explicitly keeps working.
         if const.CONF_BUFFER_COOLING_RATE not in config:
             values["buffer_cooling_rate"] = 0.0
-        values["cop_partload_derate"] = _partload_derate(values["cop_partload_derate"])
 
         # Mixing valve. The mode is validated here rather than trusted, because
         # an unknown string would silently fall through to the unthrottled
@@ -1666,12 +1666,37 @@ def _two_tank_rates(
     )
 
 
-def _partload_derate(value: Any) -> float:
+def partload_derate_limit(min_power: Any, max_power: Any) -> float:
+    """The derate at which delivered heat stops rising with power on the band.
+
+    ``heat = cop * P * (1 - d * (P - p_min) / band)`` has slope
+    ``cop * (1 - d * (band + p_max) / band)`` at ``p_max``, its least on the
+    band, so heat rises across the whole band exactly while ``d`` is below
+    ``band / (band + p_max)``; at or above it more power buys less heat, which
+    no vapour-compression pump does. Infinite for an empty band, where the
+    factor is 1 and a derate prices nothing."""
+    p_min = const.finite_float(min_power, DEFAULT_HEAT_PUMP_MIN_POWER)
+    p_max = const.finite_float(max_power, DEFAULT_HEAT_PUMP_MAX_POWER)
+    band = p_max - p_min
+    if band <= 0.0 or band + p_max <= 0.0:
+        return float("inf")
+    return band / (band + p_max)
+
+
+def _partload_derate(value: Any, params: ThermalParameters | None = None) -> float:
     """A configured part-load derate, or the 0 default when it is not a
-    number inside [0, ``MAX_HEAT_PUMP_COP_PARTLOAD_DERATE``]."""
+    number inside [0, ``MAX_HEAT_PUMP_COP_PARTLOAD_DERATE``] or, given the
+    parameters, not strictly below their band's ``partload_derate_limit``.
+
+    Refused to 0 rather than clamped to the limit: a clamp would price a
+    derate nobody configured, and the limit itself is a pump whose heat stops
+    rising at max power. 0 is the term off, every plan as it was before it,
+    and the options page names the refusal on the field."""
     derate = const.finite_float(value, DEFAULT_HEAT_PUMP_COP_PARTLOAD_DERATE)
+    limit = float("inf") if params is None else partload_derate_limit(
+        params.min_electrical_power, params.max_electrical_power)
     if 0.0 <= derate <= MAX_HEAT_PUMP_COP_PARTLOAD_DERATE:
-        return derate
+        return derate if derate < limit else DEFAULT_HEAT_PUMP_COP_PARTLOAD_DERATE
     return DEFAULT_HEAT_PUMP_COP_PARTLOAD_DERATE
 
 
