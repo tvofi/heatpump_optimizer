@@ -1,0 +1,15 @@
+groups main/head 189 189 removed [] new []
+changed ['R10-FLOW-ROSTER-FREEZE', 'R10-ORCH-BEATD', 'R10-MERGE-SUBJECT-CASEARM']
+R10-FLOW-ROSTER-FREEZE carry main 7 head 8 appended 1 prefix kept True
+   + len 215 : From #2792 review (verdict comment 6394610388): mutant R1 in review_freeze (`|| 
+   P97 entry already at main: False | P98 entry already at main: True
+R10-ORCH-BEATD carry main 22 head 23 appended 1 prefix kept True
+   + len 811 : From R10-FLOW-ROSTER-FREEZE arm (a) (carry 5, tvofi 2026-10-24 card 1): this gro
+   P97 entry already at main: True | P98 entry already at main: False
+R10-MERGE-SUBJECT-CASEARM carry main 0 head 1 appended 1 prefix kept True
+   + len 469 : From the #2697 r8 verdict (verdict/2697 7c97d8c00, finding 2; finding-propagatio
+   P97 entry already at main: False | P98 entry already at main: False
+stages main {'absorbed': 1, 'carries-open': 5, 'done': 115, 'in-progress': 12, 'not-started': 50, 'queued': 6}
+stages head {'absorbed': 1, 'carries-open': 5, 'done': 115, 'in-progress': 12, 'not-started': 50, 'queued': 6}
+afeb76c02 on main: yes
+9a019e994 on main: yes
