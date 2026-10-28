@@ -1,1 +1,0 @@
-job 119762852755 nightly-status: 'NIGHTLY ABSENT: no scheduled run of the workflow was found at all.' ... 'This check is NOT one of the required contexts on main-protect; a red here does not block a merge.'

@@ -1,1 +1,0 @@
-NEVER tree=head pass=False calls=3 elapsed=17.9s detail=a 600 ms spin read as 5315.7 ms; dump names the spin: True; py-spy rc=0 names it: False; try 3 of 3 (at most 3)

@@ -1,0 +1,4 @@
+usage: nightly_ha.py [-h] [--image IMAGE] [--plan-budget PLAN_BUDGET]
+                     [--timeout TIMEOUT]
+nightly_ha.py: error: unrecognized arguments: --self-test
+rc=2
