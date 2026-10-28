@@ -71,11 +71,19 @@ than fixed, so #2499 stays open on that residual.
 
 ## Head
 
-`baff727d116d5c94b6c2ebc58902a3fc4f381283` (fixer seat, round 10, fix review 1 rework) is the
-authored code head: 19 commits over the reviewed head `fa6eb482b`
-(`git rev-list --count fa6eb482b..baff727d1`), no merge (`git merge-tree
---write-tree origin/main baff727d1` reports no conflict, so `origin/main` is not
-merged in; the base stays `07295d4ea`, `git merge-base origin/main HEAD`).
+`e41708750fc50c1da7cc302041641a96dcdde5a0` (fixer seat, round 10, fix review 1 rework) is the
+authored code head: a merge of `origin/main` `53c4b9cb0` into `baff727d1`, which
+is 19 commits over the reviewed head `fa6eb482b` (`git rev-list --count
+fa6eb482b..baff727d1`). `update_pr.sh` stopped on `tests/golden/claimed_drift.txt`
+(`CONFLICTING CLAIMS: both sides rewrote the claim list`: main added
+R10-HOUSE-GRADE's five coord claims); the resolution is main's file with this
+branch's six suspensions applied and its note and nine claims appended, no
+other line changed; every other file merged clean (`tests/closures.json` by its
+driver). Main's side touches neither `optimizer.py`, `thermal_model.py` nor
+`tests/structure_budgets.json` (`git diff --stat 07295d4ea 53c4b9cb0 --` those
+paths prints nothing); after the merge `tests/structure.py` reads `STRUCTURE
+RATCHET PASSED` and the rework's `tests/features.py` block `ALL 12 FEATURES
+BLOCK PASSED`. Figures headed `at baff727d1` below were taken before the merge.
 First the failing test (`f7368ec86`), then the fix (`a0cfb763e`), then checks
 and simplifications each mutation run demanded, the router (`744d6c3a3`) and
 its `class_excess_loc` re-record (`d73b2568c`), the golden claims
