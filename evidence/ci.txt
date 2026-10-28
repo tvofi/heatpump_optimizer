@@ -1,2 +1,5 @@
-check-runs on ac6c53581363fc4b6206e369bc13985c892db9cc (API, 43 runs, read 2026-10-25 ~15:25Z): 0 failure, 0 cancelled; success/skipped for all completed runs; in_progress: governance / instrument-self-tests, prelude (run 40206284172). mergeable_state blocked (reviews pending).
-roster R10-SAV-ACTUATION on origin/main and origin/handoff/audit-r10-roster: resume.stage not-started, branch handoff/r10-sav-actuation (ref absent at remote), files [coordinator.py, pump_arbiter.py], carries 0, no absorbed field; PR search "R10-SAV-ACTUATION" finds no PR for it (only #2813, #2745 R10-SAV-COMFORT, closed #2764 roster ops).
+check-runs on bd88bca13ce433d838432184320a2ce9eea9bc6f (PR #2813 get_check_runs, 43 runs): no run concluded failure.
+completed success: lane-proofs, graders-head-copy, coverage-ratchet, fast (3.14), browser, arch-instrument, closures, coverage, typing, CodeQL, arch-score, codeql x3, closure-scope, delivery-status, wave-script, budget-raise-gate, nightly-status, env-matrix, mutation, policy-docs, briefs, validate-hacs, hassfest, refresh x2, cancel-superseded x2, prelude (run 40204955342).
+skipped: claims-autofix, ci-ratchet, closures-autofix, mutation-pins, mutation-autofix, replay, nightly-ha, delivery-status-publish, record, kernel-points, arm.
+in_progress at read time: governance / instrument-self-tests (run 40204955342), prelude (run 40204954586).
+Open PRs at read time (search is:open): none for any destination group's branch; #2712 (R10-DEMAND-OVERBOOK) draft open; #2745 R10-SAV-COMFORT open.
