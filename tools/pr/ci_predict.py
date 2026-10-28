@@ -37,9 +37,14 @@ says so where it stood.) Every arm is
 scoped to what the three-dot diff adds or changes, so a red main already
 carries is never charged to a branch. Nothing here runs a test, a recording
 or a mutant: seconds, never a heavy script, but for AGREEMENT, which runs the
-lane in a throwaway clone (about 10 s) and only on a diff to a file it loads.
+lane in a throwaway clone (about 10 s) and only on a diff to a file it loads,
+and SELF-TEST READS, opt-in by `--record-self-tests` (prepr's 6d passes it):
+a changed file's own `--self-test`, recorded by `closure._exec_record` and
+graded as its host's record by `closure.check`, for each gate script whose
+source runs that self-test (0.5 s to 29 s a file, measured;
+dev/audit/rca/R10-RCA-CLOSURE-ARGV.md).
 
-    python3 tools/pr/ci_predict.py [--base origin/main] [--apply-inert] [--body FILE]
+    python3 tools/pr/ci_predict.py [--base origin/main] [--apply-inert] [--body FILE] [--record-self-tests]
     python3 -I tools/pr/ci_predict.py --self-test
 
 Prints one `PREDICT <job> ...` line per predicted red and a last line
@@ -61,7 +66,8 @@ Job names are the check names of `ci.yml`'s units (`tests / closures`, ...,
 `JOB` below); `ledger` is no check, only the file a stale pin leaves behind.
 
 What it cannot see, said so the quiet line is not over-read: a data file a
-script opens by name (#1987's `services.yaml`), a read behind a dynamic path,
+script opens by name (#1987's `services.yaml`) outside a changed file's own
+self-test, a read behind a dynamic path,
 and a closure whose recording a merge from `main` alone moves. Those stay
 `closures`'s, and `ci-autofix.md` says who repairs them. What it does see it
 names the repair for, per arm, on a `CI PREDICT:` line: before a PR exists no
@@ -309,6 +315,100 @@ def no_recording(root, base, changed, closure):
     return []
 
 
+# SELF-TEST READS (dev/audit/rca/R10-RCA-CLOSURE-ARGV.md). A gate script that
+# RUNS a tool's self-test files every read that run makes, and the recorder
+# counts more than opens: `closure._exec_record` files every subprocess argv
+# token naming a repo file. #2883 went red on `closures` twice that way, both
+# times through tests/entities.py, and the static arms above saw neither: a
+# path handed to `git ls-tree` in roster_lib's self-test, and a generator
+# state_docs.py spawns. Recording the changed file's own self-test with CI's
+# recorder, then grading that record as its host's with CI's own `check`,
+# took 4.7 s and named both pairs CI named. A host counts only when its source
+# names the file within SELF_TEST_WINDOW lines of a self-test mention: a
+# script that lists a file as text (harness_headers' scan) does not run it.
+SELF_TEST_WINDOW = 12
+SELF_TEST_TIMEOUT = 180
+_RECORD_DRIVER = ("import sys; sys.path.insert(0, 'tests'); import closure; "
+                  "sys.exit(closure._exec_record(sys.argv[1], sys.argv[2], ['--self-test']))")
+
+
+def self_test_hosts(root: Path, f: str, closures: dict, inert_reads: dict) -> list[str]:
+    """The scripts whose table lists `f` and whose source runs its self-test."""
+    name, hosts = Path(f).name, []
+    for script in sorted(set(closures) | set(inert_reads)):
+        if script == f or f not in set(closures.get(script, ())) | set(inert_reads.get(script, ())):
+            continue
+        try:
+            lines = (root / script).read_text(errors="replace").splitlines()
+        except OSError:
+            continue
+        w = SELF_TEST_WINDOW
+        if any(re.search(r"self[-_]test", ln) for i, line in enumerate(lines) if name in line
+               for ln in lines[max(0, i - w):i + w + 1]):
+            hosts.append(script)
+    return hosts
+
+
+def record_self_test(root: Path, f: str, out: Path) -> str | None:
+    """`f --self-test` under CI's recorder; None when recorded, else why not."""
+    import os
+    env = {**os.environ, "PYTHONPATH": "tests/hastub"}
+    try:
+        subprocess.run([sys.executable, "-c", _RECORD_DRIVER, f, str(out)], cwd=root, env=env,
+                       capture_output=True, text=True, timeout=SELF_TEST_TIMEOUT)
+    except subprocess.TimeoutExpired:
+        return f"not recorded in {SELF_TEST_TIMEOUT} s"
+    return None if out.is_file() else "the recorder wrote no record"
+
+
+def self_test_reads(root, changed, closures, inert_reads, closure, scripts=None,
+                    record=record_self_test, notes=None):
+    """Each changed file's own self-test, recorded and graded as its host's."""
+    import contextlib
+    import io
+    import tempfile
+    preds: list[tuple[str, str]] = []
+    for f in sorted(changed):
+        if not f.endswith(".py") or not (root / f).is_file():
+            continue
+        if "--self-test" not in (root / f).read_text(errors="replace"):
+            continue
+        hosts = self_test_hosts(root, f, closures, inert_reads)
+        if not hosts:
+            continue
+        with tempfile.TemporaryDirectory() as td:
+            out = Path(td) / "rec.json"
+            why = record(root, f, out)
+            if why is not None:
+                if notes is not None:
+                    notes.append(f"SELF-TEST READS {f}: {why}; left to CI's closures job")
+                continue
+            rec = json.loads(out.read_text())
+            for host in hosts:
+                d = Path(td) / host.replace("/", "_")
+                d.mkdir()
+                (d / "r.json").write_text(json.dumps({**rec, "script": host}))
+                buf = io.StringIO()
+                with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(buf):
+                    rc = closure.check(d, partial=True)
+                if rc == 0:
+                    continue
+                kind, named = None, []
+                for line in buf.getvalue().splitlines():
+                    if line.startswith("    ") and kind:
+                        named.append((kind, line.strip().removeprefix(f"{host}: ")))
+                    elif not line.startswith(" "):  # a header; its prose lines indent by two
+                        kind = ("INERT" if line.startswith("INERT READS") else
+                                "UNDER-SCOPED" if line.startswith("UNDER-SCOPED") else None)
+                first = (buf.getvalue().strip().splitlines() or ["no output"])[0]
+                for k, g in named or [("CHECK", first)]:
+                    preds.append(("closures", f"SELF-TEST READS {k} {host}: {g} (its run of "
+                                              f"{f}'s self-test, recorded by closure._exec_record)"))
+                if scripts is not None:
+                    scripts.add(host)
+    return preds
+
+
 def carry_preds(root: Path, body: str) -> list[tuple[str, str]]:
     """`pr-contract`'s carry_audit check over the body: CI's own function.
 
@@ -539,12 +639,13 @@ def unpinned(base):
 # the 5 s budget the seat's checks meet (eight others then; R10-FLOW-JIDOKA's
 # review, 2026-10-26).
 ARMS = ("orphans", "layout", "privacy", "wiring", "agreement", "no-recording",
-        "under-scoped", "inert-siblings", "left-inert", "mutation")
+        "under-scoped", "inert-siblings", "left-inert", "mutation", "self-test-reads")
 
 
 def predict(root: Path, base_ref: str, pairs: set | None = None,
             scripts: set | None = None, body: str | None = None,
-            only: str | None = None) -> tuple[int, list[tuple[str, str]], str]:
+            only: str | None = None, record: bool = False,
+            notes: list | None = None) -> tuple[int, list[tuple[str, str]], str]:
     if only is not None and only not in ARMS:
         raise SystemExit(f"ci_predict: --only {only} is not one of {', '.join(ARMS)}")
     base = (git(root, "merge-base", base_ref, "HEAD") or "").strip()
@@ -569,10 +670,13 @@ def predict(root: Path, base_ref: str, pairs: set | None = None,
         ("inert-siblings", lambda: inert_siblings(changed, inert_reads, closure, pairs)),
         ("left-inert", lambda: left_inert(changed, closures, inert_reads, closure, scripts)),
         ("mutation", lambda: unpinned(base)),
+        ("self-test-reads", lambda: self_test_reads(root, changed, closures, inert_reads,
+                                                    closure, scripts, notes=notes)),
     )
     preds: list[tuple[str, str]] = []
     for name, arm in arms:
-        if only is None or name == only:
+        # The one arm that runs code: on --record-self-tests (prepr 6d) or by name.
+        if (only is None and (name != "self-test-reads" or record)) or name == only:
             preds += arm()
     if body:
         preds += carry_preds(root, body)
@@ -622,6 +726,11 @@ def repairs(root: Path, preds, scripts: set) -> list[str]:
                    f"(CI's last recordings of the {len(scripts)} took {secs:.0f} s in all)"
                    + ("; that many is the orchestrator's to record on Linux, asked for before the handoff"
                       if many else ""))
+    if any(j == "closures" and l.startswith("SELF-TEST READS INERT") for j, l in preds):
+        out.append("a SELF-TEST READS INERT file is one the host really records, so `--apply-inert` "
+                   "cannot clear it: it leaves INERT through INERT_EXCEPT in tests/closure.py and "
+                   "joins the host's closure by the --single above, the route #2883 took "
+                   "(dev/audit/rca/R10-RCA-CLOSURE-ARGV.md)")
     if any(j == "fast" and l.startswith("LAYOUT") for j, l in preds):
         out.append("a LAYOUT refusal is repaired in the diff as `python3 -I tests/layout.py --guard` "
                    "names it: a re-added moved path goes where it lives, a citation is re-pointed to "
@@ -738,6 +847,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--body", help="the pull-request body: also predict pr-contract's carry check")
     ap.add_argument("--only", choices=ARMS,
                     help="run only this arm: a caller that needs one question answered")
+    ap.add_argument("--record-self-tests", action="store_true",
+                    help="also record each changed file's own self-test a gate script runs "
+                         "(SELF-TEST READS: seconds per file, so prepr's 6d passes it)")
     ap.add_argument("--self-test", action="store_true")
     ap.add_argument("--rekey-body", metavar="BODY", help="re-key BODY's moved `## Unpinned sites` lines in place")
     ap.add_argument("--from", dest="frm", metavar="SHA", help="with --rekey-body: the code sha the keys were taken at")
@@ -751,19 +863,24 @@ def main(argv: list[str] | None = None) -> int:
         return rekey_main(root, args.rekey_body, args.frm)
     pairs: set[tuple[str, str]] = set()
     scripts: set[str] = set()
-    rc, preds, base = predict(root, args.base, pairs, scripts, args.body, args.only)
+    notes: list[str] = []
+    rc, preds, base = predict(root, args.base, pairs, scripts, args.body, args.only,
+                              args.record_self_tests, notes)
     if args.apply_inert and rc != 2:
         added = apply_inert(root, pairs)
         for script, f in added:
             print(f"APPLIED inert_reads {script}: {f}")
         if added:
             scripts = set()
-            rc, preds, base = predict(root, args.base, None, scripts, args.body, args.only)
+            rc, preds, base = predict(root, args.base, None, scripts, args.body, args.only,
+                                      args.record_self_tests)
     if rc == 2:
         print(f"CI PREDICT: {base}")
         return 2
     for job, line in preds:
         print(f"PREDICT {JOB.get(job, job):<8} {line}")
+    for line in notes:
+        print(f"NOTE    {line}")
     if any(j == "ledger" for j, _ in preds):
         print("CI PREDICT: a STALE PIN's file under tests/mutation_ledger/ is "
               "deleted by hand; `mutation-autofix` never drops one, and pins "
@@ -791,8 +908,9 @@ def main(argv: list[str] | None = None) -> int:
         print(f"CI PREDICT: {reds} predicted red(s) on {', '.join(jobs)} "
               f"against {base[:12]} -- repair before the handoff; {who}")
     else:
+        seen = (" unless a changed file's own self-test makes it" if args.record_self_tests else "")
         print(f"CI PREDICT: no closures, fast, wave-script or instrument red predicted against "
-              f"{base[:12]} (a data-file read is not seen)")
+              f"{base[:12]} (a data-file read is not seen{seen})")
     return rc
 
 
@@ -849,6 +967,7 @@ def self_test() -> int:
         print(f"  {'ok  ' if got == want else 'FAIL'} {label}")
         bad += got != want
     bad += plant_self_test(root)
+    bad += self_test_reads_self_test(root)
     bad += rekey_self_test()
     bad += wiring_self_test(root)
     gate = root / "tools" / "ci" / "gate.py"
@@ -863,6 +982,66 @@ def self_test() -> int:
         bad += bool(miss)
     print(f"ci_predict self-test: {bad} failed")
     return 1 if bad else 0
+
+
+def self_test_reads_self_test(root: Path) -> int:
+    """SELF-TEST READS over planted records, graded by CI's own `check`.
+
+    The table is a scratch one, so every path in it is a real file of this
+    tree (`check` refuses a phantom); the host sources are scratch files.
+    """
+    import tempfile
+    sys.path[:0] = [str(root / "tests")]
+    import closure
+    f, inert, plain = "tests/throwaway_git.py", "dev/audit/rca/R10-RCA-INERT-PREDICT.md", "tests/layout.py"
+    if not (closure.is_inert(inert) and not closure.is_inert(plain) and not closure.is_inert(f)):
+        print(f"  FAIL the SELF-TEST READS plant needs {inert} INERT, {f} and {plain} not")
+        return 1
+    bad, saved = 0, closure.CLOSURES
+    with tempfile.TemporaryDirectory() as d:
+        t = Path(d)
+        (t / "tests").mkdir()
+        h, n = "tests/entities.py", "tests/harness_headers.py"  # real keys; scratch sources
+        (t / h).write_text("# runs `throwaway_git.py --self-test`\n")
+        (t / n).write_text("# lists throwaway_git.py as text\n")
+        (t / f).write_text("# --self-test\n")
+        listed = {h: [f, h], n: [f, n]}
+
+        def run(files, reads, inert_reads, changed=(f,), why=None):
+            def record(_root, _f, out):
+                calls.append(_f)
+                out.write_text(json.dumps({"script": _f, "rc": 0, "files": [_f, *files],
+                                           "inert_reads": reads}))
+                return why
+            calls, notes = [], []
+            closure.CLOSURES = t / "closures.json"
+            closure.write_closures(closure.CLOSURES, {"closures": listed, "inert_reads": inert_reads})
+            try:
+                preds = self_test_reads(t, set(changed), listed, inert_reads, closure,
+                                        record=record, notes=notes)
+            finally:
+                closure.CLOSURES = saved
+            return preds, calls, notes
+
+        cases = [
+            ("an INERT read the host's inert_reads omit is predicted, for the host that runs it only",
+             run([inert], [inert], {}), lambda p, c, n: [x[1].split(":")[0] for x in p]
+             == [f"SELF-TEST READS INERT {h}"] and inert in p[0][1]),
+            ("a plain read the host's closure omits is UNDER-SCOPED",
+             run([plain], [], {}), lambda p, c, n: len(p) == 1 and f"UNDER-SCOPED {h}: "
+             + plain in p[0][1]),
+            ("null control: a record inside the host's closure is not",
+             run([], [], {}), lambda p, c, n: p == [] and c == [f]),
+            ("a self-test the recorder cannot finish is a note, never a red",
+             run([inert], [inert], {}, why="not recorded in 180 s"), lambda p, c, n: p == [] and len(n) == 1),
+            ("null control: a file the diff does not change is never recorded",
+             run([inert], [inert], {}, changed=()), lambda p, c, n: p == [] and c == []),
+        ]
+        for label, got, ok in cases:
+            good = ok(*got)
+            print(f"  {'ok  ' if good else 'FAIL'} {label}{'' if good else ' -- ' + repr(got[0])}")
+            bad += not good
+    return bad
 
 
 def rekey_self_test() -> int:
