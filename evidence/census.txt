@@ -6,13 +6,18 @@ UNCOVERED .claude/workflows/web-fix-wave.js:354: - resume.stage is 'merge' but t
 UNCOVERED .claude/workflows/web-fix-wave.js:398: const m = await agent(mergePrompt(fix.pr, fix.head_sha), { model: 'opus', label: `merge ${g.group}`, phase: 'Wave', schema: MERGE })
 UNCOVERED .claude/workflows/web-fix-wave.js:404: return { group: g.group, issues: g.issues, pr: fix.pr, head_sha: fix.head_sha, verdict: 'merge', ...outcome }
 UNCOVERED .claude/workflows/web-fix-wave.js:457: log(`${g.group}: resuming at merge -- PR #${fix.pr} at ${fix.head_sha} is already reviewed`)
-UNCOVERED tools/audit/seat/INSTRUMENTS.md:454: merge) fatal for its entry alone — logged `SKIP #<pr>`, reported in
-UNCOVERED tools/audit/seat/INSTRUMENTS.md:903: merge verdict is confirmed. Refusal: `ADD REFUSED #<pr> <rule>: <why>` from
+UNCOVERED tools/audit/seat/INSTRUMENTS.md:338: reviews: a `Fix review: merge <head>` tip on `verdict/<pr>` at that head
+UNCOVERED tools/audit/seat/INSTRUMENTS.md:464: merge) fatal for its entry alone — logged `SKIP #<pr>`, reported in
+UNCOVERED tools/audit/seat/INSTRUMENTS.md:916: merge verdict is confirmed. Refusal: `ADD REFUSED #<pr> <rule>: <why>` from
 UNCOVERED tools/audit/seat/bus.sh:773: echo "$out" | grep -q "^BUS posted 7 $v1 Fix review: merge $h1" && [ "$(calls)" = 1 ]; expect "confirm signs the proposal onto verdict/<pr> and posts 
 UNCOVERED tools/audit/seat/ci_probe.py:14: sarif-upload <pr> --commit SHA --category CAT   an empty CodeQL SARIF to refs/pull/<pr>/merge
 UNCOVERED tools/audit/seat/ci_probe.py:273: {"commit_sha": commit, "ref": f"refs/pull/{self.num(pr)}/merge", "sarif": packed})
-UNCOVERED tools/audit/seat/cloud_relay.sh:454: printf 'Fix review: merge %s\n\nbus-nonce: %s\n' "$3" "$4" > "$t/pr/verdict.md"
-UNCOVERED tools/audit/seat/cloud_relay.sh:658: git -C "$t/pr" -c user.name=t -c user.email=t@t merge -q --no-edit -m m "$HS" 2>/dev/null; git -C "$t/pr" reset -q --hard "$HS"; hc "pr tip"; mkref fi
+SPLIT tools/audit/seat/cloud_relay.sh:44: "pr head\n# thread nonce`) supplies the head and full nonce for a ref's pr and nonce8; a ref\n# with no record is logged and left for a later pass. A 
+UNCOVERED tools/audit/seat/cloud_relay.sh:118: #     merge verdict at that head on verdict/<pr> (HELD-VERDICT), or a review of
+UNCOVERED tools/audit/seat/cloud_relay.sh:362: #   VERDICT  verdict/<pr>'s tip is `verdict: #<pr> Fix review: merge <head>` at the PR's live head:
+UNCOVERED tools/audit/seat/cloud_relay.sh:418: echo "cloud_relay: HELD-$why #$pr $hs (head $head under review; merge it, or list #$pr in $(release_file) and re-dispatch)"
+UNCOVERED tools/audit/seat/cloud_relay.sh:504: printf 'Fix review: merge %s\n\nbus-nonce: %s\n' "$3" "$4" > "$t/pr/verdict.md"
+UNCOVERED tools/audit/seat/cloud_relay.sh:708: git -C "$t/pr" -c user.name=t -c user.email=t@t merge -q --no-edit -m m "$HS" 2>/dev/null; git -C "$t/pr" reset -q --hard "$HS"; hc "pr tip"; mkref fi
 UNCOVERED tools/audit/seat/flow_metrics.py:136: judged=len(judged), first_pass=sum(first[m["pr"]]["kind"] == "merge" for m in judged),
 EXTENT tools/audit/seat/gh_read.py:446: flag "\"-F" in "([\"gh\", \"api\", \"repos/o/r/x\", \"-F\"], False),"
 EXTENT tools/audit/seat/merge_pr.sh:152: flag "-b" in "throwaway_git_init \"$mo\" -q -b main && printf 'a\\n' > \"$mo/a\" \\"
@@ -47,8 +52,9 @@ UNCOVERED tools/audit/seat/record_row.py:595: """Every reason the record pull re
 UNCOVERED tools/audit/seat/ref_privacy.py:374: "tools/pr/merge_main_bot.py": ("republishes", "pushes a merge onto a pull request's own branch, "
 UNCOVERED tools/audit/seat/remerge_main.sh:2: # remerge_main.sh <pr> <worktree> <branch> <body>: merge origin/main into an open PR (claimnotes driver), drop inherited claims, push as the App
 UNCOVERED tools/audit/seat/review_strength.py:18: `verdict: #<pr> Fix review: merge|blocked <40hex>`; a blocked one carries
-UNCOVERED tools/audit/seat/review_strength.py:740: kind = {v["pr"]: v["reviewer"] for v in vl if v["pr"] in (16, 17, 18, 22, 23) and v["kind"] == "merge"}
-UNCOVERED tools/audit/seat/review_strength.py:750: [v["kind"] for v in vl if v["pr"] == 18] == ["merge"] and kind[18] == "local")
+UNCOVERED tools/audit/seat/review_strength.py:799: kind = {v["pr"]: v["reviewer"] for v in vl if v["pr"] in (16, 17, 18, 22, 23) and v["kind"] == "merge"}
+UNCOVERED tools/audit/seat/review_strength.py:809: [v["kind"] for v in vl if v["pr"] == 18] == ["merge"] and kind[18] == "local")
+UNCOVERED tools/audit/seat/review_strength.py:1028: return [dict(pr=pr0 + i, t=t0 + timedelta(minutes=pr0 - 1000 + i), kind="blocked" if i < k else "merge",
 UNCOVERED tools/audit/seat/roster_sync.py:287: skips.append((gid, stage, pr, "the merge carries no commit"))
 UNCOVERED tools/audit/seat/sweep_template.md:63: (4) After each merge (`dev/governance/roles/nudge.md` steps 12 and 18): `tools/audit/seat/roster_edit.py set-stage` for a roster group, one #201 comme
 UNCOVERED tools/ci/codescan_wait.py:121: ref = f"refs/pull/{pr}/merge" if s["event"] == "pull_request" else f"refs/heads/{s['head_branch']}"
@@ -68,7 +74,6 @@ UNCOVERED tools/pr/local_alerts.py:56: ok, got = alert_list.reds(get, f"refs/pul
 UNCOVERED tools/release/stamp.py:1919: """(pr, sha) per merge the instrument lists without a row, or a refusal.
 UNCOVERED tools/release/stamp.py:2133: raise Refuse("rows", f"the disposition instrument lists #{pr} at merge "
 TOTAL old=63 new=63 over 290 file(s)
-UNCOVERED 57 of 98 line(s) holding both words, over 290 file(s)
+UNCOVERED 62 of 103 line(s) holding both words, over 290 file(s)
 EXTENT 11 of 63 merge call(s) with a subject flag in the statement outside the extent, over 290 file(s)
-SPLIT 1 of 1 pr word(s) with merge on a later line of the statement uncovered, over 290 file(s)
-exit=0
+SPLIT 2 of 2 pr word(s) with merge on a later line of the statement uncovered, over 290 file(s)
