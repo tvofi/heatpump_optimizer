@@ -1,42 +1,61 @@
-Fix review: blocked f975e044a567d42879a3ffc20b769ca8ef590bf9 claim-false: P216's Cost says one CLAUDE.md paragraph with no check to keep green; CLAUDE.md sits at its exact per-file token cap (3605/3605) in policy_budgets.json
-bus-nonce: ed9dce3483ef8f06146f484bce1359c5
+Fix review: merge dae8e4195416218b58171a752ae18eb9264c5ada
+bus-nonce: 17ad6d320d9a3a28beb37f0ea7e00e07
 
 # Fix review -- PR #2891, triage batch 42 (P216)
 
-Round 2. Round 1 blocked on the V136 heading. Reviewed head:
-f975e044a567d42879a3ffc20b769ca8ef590bf9, in a detached worktree at that head, against
-origin/main. `dev/governance/roles/` has no diff between the merge base and origin/main.
+Round 3. Reviewed head: dae8e4195416218b58171a752ae18eb9264c5ada, in a detached worktree at that
+head, against origin/main b9e286254. `dev/governance/roles/` has no diff between the merge base and
+origin/main. The head is authored code head `c36609f06` merged with main. The diff is
+`s6-batch42.md` (+98) and its delivery row.
 
 ## Results
 
-- Heading: `## P216: ... (V129)` is in the contract's form and is new, since main ends at P211.
-  The id matches its `Source:` line. `proposals.md` holds `## V129 (orchestrator s7,
-  2026-10-27T20:40Z)` with the same instance and candidate. The heading generalises the subject
-  from "orchestrator message" to "agent message", and the ruling says so. The round-1 finding is
-  repaired.
-- Destination: R10-ROUND-PLAYBOOK is `not-started` at roster `de410e4c9`, and it is the only
-  live group listing `CLAUDE.md`. The ruling says this correctly.
-- `git merge-tree --write-tree origin/main <head>` exits 0 (tree `21794612`). Live check-runs
-  at the head: 68 runs, 45 success, 23 skipped, 0 failure, 0 pending. There is no red to
-  answer.
+- Round-2 F1, the re-pricing, is answered. P216's `Cost:` now prices `CLAUDE.md` at its exact cap,
+  and every figure re-derives at this head (`ev/claims.txt`):
+  - `policy_lint.mjs --budgets` prints `CLAUDE.md 213 221 3605 3605 yes` and
+    `proposal-triage.md 36 36 489 489`.
+  - The estimator is `Math.round(r.bytes / 4) > tcap` at `policy_lint.mjs:1679`.
+  - The drafted paragraph is 413 bytes on one line, so 414 with its newline, which is about 104
+    tokens.
+  - `CLAUDE.md` is 14,418 bytes, which rounds to 3,605. 14,421 bytes is the most the cap admits.
+- Three routes are priced, and the verdict is re-ruled on that price:
+  - A cap raise is rejected, because it needs `budget-raise-gate` and charges about 104 tokens to
+    every session.
+  - A role-file home is rejected.
+  - An equal deletion is carried.
+- The carry text itself states the equal-deletion requirement: "deletes at least 414 bytes of other
+  `CLAUDE.md` text so the cap is unchanged", with no cap raise. If no cut is accepted, the carry
+  closes unimplemented. With 3 bytes of headroom under the cap, a deletion of at least 414 bytes
+  holds the cap even with the extra blank-line byte.
+- Round-2 F2 is answered. The quote is verbatim. `dev/governance/roles/proposal-triage.md:32` reads
+  "**You do not** implement, edit the roster or merge", and the ruling quotes exactly that in
+  Instances and in the carry text.
+- Destination: at roster tip `e3bc6128e`, `R10-ROUND-PLAYBOOK` is `not-started` and lists
+  `CLAUDE.md` and `dev/audit/README.md`. It holds 7 carries, as the body says, and it is the only
+  live group listing `CLAUDE.md`.
+- Mutation proof re-run (`ev/mutation.txt`), with the op's `triage: ...#P216` cite prepended to the
+  carry text:
+  - `ruling_verdict` reads `Verdict: ACCEPT narrowed` as ACCEPT, and `triage_refusal` passes the
+    carry.
+  - Mutating the verdict to DEFER is refused, and so is renaming the heading ("no such entry").
+  - The null control, a missing file, is refused.
+- `git merge-tree --write-tree origin/main <head>` exits 0 (`ev/merge-tree.txt`). The packet refuses
+  nothing. `carry_audit` routes 0 items, and the body's Forward-carry is `none`.
+- Live checks at the head (`ev/check-runs.txt`): no failure, none pending at the final read.
+  `VERSION`, the manifest and the notes heading are untouched.
 
 ## Findings
 
-- F1 (blocking, claim-false): P216's `Cost:` reads "one paragraph in `CLAUDE.md` ... no code,
-  no runtime, no new instrument, no check to keep green". `node tools/policy/policy_lint.mjs
-  --budgets` at the head prints `CLAUDE.md 213 221 3605 3605 yes`, which is 213 lines against
-  a cap of 221 and ~3605 tokens against a per-file cap of exactly 3605. Per-file caps are
-  "compared exactly". `CLAUDE.md` is also always loaded (~3605 of 3849 with the band), so
-  every seat session pays the paragraph's tokens. Any paragraph the carry adds is therefore
-  refused unless the fixer deletes the same number of tokens from `CLAUDE.md`, or raises the
-  cap in `dev/governance/config/policy_budgets.json`. That raise is a `*_budgets.json` change,
-  so it merges only on the owner's review (`budget-raise-gate`). The ruling prices neither
-  route, nor the per-session token charge `proposal-triage.md` lists as a cost
-  (`ev/claude-md-cap.txt`). Against one measured instance, that omission can change the
-  verdict, or at least the destination: a `paths:`-scoped rule, or the role contracts the
-  receiving seats open, is charged only to sessions that load it. Repair: re-price the Cost
-  with the cap and the always-loaded charge, and re-rule the destination on that price.
-  Carry: dismissed: blocking; this PR's re-cut owes the repair
-- F2 (non-blocking): the quotation of `proposal-triage.md`, "the seat does not implement, edit
-  the roster, or merge", is not verbatim. Line 32 reads "**You do not** implement, edit the
-  roster or merge". The quote came from the proposal's own text. Carry: dismissed: correct the quote in the same re-cut as F1
+- F1 (non-blocking): "5 lines" for the drafted paragraph is an estimate. Wrapped at 80 columns, the
+  file's prose width, it is 6 lines, so 7 with its blank line. That gives 213 + 7 = 220, still at or
+  under the 221 cap, and the byte deletion the carry requires removes at least 5 lines in any case.
+  Carry: dismissed: within cap at either count; the carry's byte rule binds
+- F2 (non-blocking): the quoted carry text holds no `triage:` cite of its own. It depends on the op
+  prepending `triage: dev/programme/triage/s6-batch42.md#P216`, as the ruling's lead-in says. Without
+  the cite, `triage_refusal` passes the text unconditionally, because the text never names
+  "proposal P<n>" or "triage P<n>". So the cite is load-bearing at the op. Carry: R10-ROUND-PLAYBOOK
+
+## Check state at this head
+
+Final read, at about 03:06Z (`ev/check-runs.txt`): 55 runs, 38 success, 17 skipped, 0 failure and 0
+pending. `gate` and `pr-contract` concluded success.
