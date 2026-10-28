@@ -535,8 +535,9 @@ def unpinned(base):
 
 # The arms, in the order they run. `--only` selects one where a caller needs a
 # single question answered: `prepr.sh --fill-red` derives the `mutation` red
-# alone, and reaching it by running the other eight cost 6.5 s of CPU against
-# the 5 s budget the seat's checks meet (R10-FLOW-JIDOKA's review, 2026-10-26).
+# alone, and reaching it by running every other arm cost 6.5 s of CPU against
+# the 5 s budget the seat's checks meet (eight others then; R10-FLOW-JIDOKA's
+# review, 2026-10-26).
 ARMS = ("orphans", "layout", "privacy", "wiring", "agreement", "no-recording",
         "under-scoped", "inert-siblings", "left-inert", "mutation")
 
