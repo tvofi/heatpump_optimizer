@@ -1,11 +1,23 @@
-merge_train.py lines:     5831
-2422:    def main_green(self, tip: str, req: list[str], why: str) -> None:
-        self.run(["gh", "pr", "merge", n, "--repo", self.repo, "--merge", "--match-head-commit", h])
-    die "dispatch: the review packet refused #$pr at $h (its lines above name each signal)"
-git -C "$M" show-ref -q --verify refs/heads/$BR && [ -z "${BR_FIXED:-}" ] && BR=$BR-pr  # a seat often holds a local branch of the default name
-git worktree add -q -b $BR $WT $C
+== gate.py:224
     return ("PASS" if ok else f"FAIL {why[0]}"), why, notes
+== gate.py:288-290
+        outcome, why = f"RATE-LIMITED reset_epoch={e.reset_epoch} {e.path}", [str(e)]
+        # The annotation is how the sweep tells this red from any other (check-runs/<job>/annotations).
+        print(f"{outcome}\n::error title=RATE-LIMITED::reset_epoch={e.reset_epoch}")
+== gate.py:295
     print("\n".join([outcome] + why[1:]))
-# gate log 4372-4373 (job 122526090837)
-2026-10-27T23:10:18.8309596Z FAIL governance / env-matrix: failure (this run)
-2026-10-27T23:10:18.8310160Z validate / validate-hacs: failure (this run)
+== gate.py:345
+    check("a red required job", judge(ctx, claim, fake(red), cc)[0], "FAIL tests / closures: failure (this run)")
+== gate.py:171
+    return not bad, sorted(set(bad), key=bad.index)
+== RATE-LIMITED printers
+tools/ci/gate.py:19:`RATE-LIMITED reset_epoch=<n>` (exit 3, A1 item 4): a rate limit fails closed
+tools/ci/gate.py:288:        outcome, why = f"RATE-LIMITED reset_epoch={e.reset_epoch} {e.path}", [str(e)]
+tools/ci/prelude.py:284:        print(f"RATE-LIMITED reset_epoch={e.reset_epoch} {e.path}", file=sys.stderr)
+tools/ci/sweep.py:160:        out(f"RATE-LIMITED reset_epoch={getattr(exc, 'reset_epoch', 0)}; no further re-runs before it")
+== ci.yml gate/prelude tokens
+          GH_TOKEN: ${{ github.token }}
+  gate:
+    needs: [prelude, pr-contract]
+    if: ${{ !cancelled() }}
+          GH_TOKEN: ${{ github.token }}
