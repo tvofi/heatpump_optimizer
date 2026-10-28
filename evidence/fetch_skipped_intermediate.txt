@@ -1,0 +1,8 @@
+== 70f1d19c3
+RESULT mutant=M0 failed=0 verdict=null-ok
+RESULT mutant=fetch-skipped failed=0 verdict=SURVIVED
+RESULT mutants=1 survived=1
+== 2f7137eed
+RESULT mutant=M0 failed=0 verdict=null-ok
+RESULT mutant=fetch-skipped failed=0 verdict=SURVIVED
+RESULT mutants=1 survived=1
