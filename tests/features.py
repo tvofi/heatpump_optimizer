@@ -67798,9 +67798,12 @@ R.check(
     _fm_zero_kw == 0.0 and _fm_zero_rd is not None and _fm_zero_rd.ok,
     f"kw={_fm_zero_kw} problem={getattr(_fm_zero_rd, 'problem', None)}",
 )
-# The health record keeps the first reason a flow reading was refused, and no
-# value: a stale negative reading stays "stale" (the age outranks the value),
-# a fresh negative one is "implausible" and an unknown unit "unknown_unit".
+# The health record keeps the reason a flow reading was refused, and no value,
+# by the reader's one precedence (``inputs.OUTRANKS_STALE``): a negative flow is
+# "implausible" stale or fresh, as a -127 degC temperature is (D1-s5-52; #2873
+# round 3 reversed this pin's earlier "stale" for a stale negative flow, which
+# was the flow arm alone deferring a fault code to the age), while an unknown
+# unit defers to the age: "stale" when old, "unknown_unit" when fresh.
 
 
 def _fm_problem(flow_state, unit="L/min", flow_age_min=1):
@@ -67813,11 +67816,15 @@ def _fm_problem(flow_state, unit="L/min", flow_age_min=1):
 _fm_problems = (
     _fm_problem("-3.0", flow_age_min=45),
     _fm_problem("-3.0"),
+    _fm_problem("15.0", unit="gal/min", flow_age_min=45),
     _fm_problem("15.0", unit="gal/min"),
 )
 R.check(
-    "a refused flow reading's health record keeps its first reason (stale, implausible, unknown unit) and no value",
-    _fm_problems == (("stale", None), ("implausible", None), ("unknown_unit", None)),
+    "a refused flow reading's health record keeps its reason by one precedence, and no "
+    "value: a negative flow is implausible stale or fresh, an unknown unit is stale "
+    "when old and unknown_unit when fresh",
+    _fm_problems == (("implausible", None), ("implausible", None), ("stale", None),
+                     ("unknown_unit", None)),
     f"{_fm_problems}",
 )
 
