@@ -1,0 +1,7 @@
+check-runs API (pull_request_read get_check_runs) for PR #2916 head ca2dc27d74252606afb264c514585f9ea0e405b5, read ~23:20Z 2026-10-28; 37 runs.
+success: tests/typing, tests/browser, tests/arch-instrument, budget-raise-gate, codeql/Analyze (javascript-typescript), codeql/Analyze (actions), tests/briefs, governance/policy-docs, arch-score, tests/nightly-status, hassfest, tests/closure-scope, validate-hacs, governance/env-matrix, tests/mutation, governance/delivery-status, governance/wave-script, prelude, cancel-superseded x2, refresh x2
+neutral: CodeQL
+skipped: tests/mutation-autofix, tests/mutation-pins, tests/nightly-ha, tests/replay, governance/delivery-status-publish, governance/record, kernel-points, arm
+in_progress: tests/closures, tests/coverage, tests/fast (3.14), governance/instrument-self-tests, codeql/Analyze (python), prelude (run 40784411505)
+failure/cancelled: none
+no pr-contract or gate run concluded on this head at read time
