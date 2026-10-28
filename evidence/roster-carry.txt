@@ -1,0 +1,14 @@
+origin/handoff/audit-r10-roster = e5d5c508465fd5a5c279ae87e12350fd0f7f082f
+carry appended by: 5620151813e03a5916c375554dd57c977f6d8097 2026-10-22T08:23:30+02:00 roster_edit append-carry R10-FLY-GH-READ-RETRY (tools/audit/seat/roster_edit.py)
+== origin/handoff/audit-r10-roster e5d5c508465fd5a5c279ae87e12350fd0f7f082f: R10-FLY-GH-READ-RETRY carry items
+Fourth instance of the class (#2579 at 816b1e20, run 39681234360, job 119504172159): pr-co
+From #2589 (item 0e5922c7, #2589): the JWT-authenticated curl GET of /repos/$repo/installa
+From #2589 (PR 1): PR 2 and PR 3 of this group owe PR 1's proof, both for the retry loop a
+== origin/main b787c7d45951243a05b6522437b60a01288f0dfd: R10-FLY-GH-READ-RETRY carry items
+Fourth instance of the class (#2579 at 816b1e20, run 39681234360, job 119504172159): pr-co
+From #2589 (item 0e5922c7, #2589): the JWT-authenticated curl GET of /repos/$repo/installa
+
+== origin/main 01cf1398a9cfa3dcae5945221afd0c1dae9cf682 after #2598: R10-FLY-GH-READ-RETRY carry items
+Fourth instance of the class (#2579 at 816b1e20, run 39681234360, job 119504172159): pr-co
+From #2589 (item 0e5922c7, #2589): the JWT-authenticated curl GET of /repos/$repo/installa
+From #2589 (PR 1): PR 2 and PR 3 of this group owe PR 1's proof, both for the retry loop a

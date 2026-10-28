@@ -1,0 +1,3 @@
+== F13 at 74a18df9 (403) printf "$1" | tail -1 | grep)
+app_approve self-test: 225 checks, 0 failed
+rc=0
