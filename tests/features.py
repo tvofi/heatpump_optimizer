@@ -60461,6 +60461,11 @@ def _f21_ms_no_continuation(objective, starts, bounds, *a, **kw):
 
 
 def _f21_storage_solve(two_zone, seed=None, l1=None, continuation=True):
+    # The two-zone cell's tank starts at 30 C: from 25 C the plain solve now
+    # reaches the storage basin unaided (R10-BUFFER-STORE's tank-aware
+    # reference moved the baseline-anchored seeds: j 110.154 with and without
+    # the continuation, against 110.437 / 110.560 before), so that cell no
+    # longer separates the continuation; from 30 C it does again.
     cfg = _f21_house(
         two_zone=two_zone, dhw=False, buffer_tank_volume=750.0,
         buffer_max_temperature=70.0, mixing_valve_mode="manual",
@@ -60479,7 +60484,8 @@ def _f21_storage_solve(two_zone, seed=None, l1=None, continuation=True):
     state = _f21_State(
         room_temperature=20.0, upper_floor_temperature=20.0,
         lower_floor_temperature=20.0, slab_temperature=21.0,
-        buffer_tank_temperature=25.0, outdoor_temperature=float(out[0]),
+        buffer_tank_temperature=30.0 if two_zone else 25.0,
+        outdoor_temperature=float(out[0]),
     )
     inputs = solve_inputs(
         initial_state=state,
