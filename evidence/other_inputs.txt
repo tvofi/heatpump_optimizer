@@ -1,0 +1,3 @@
+270:    environ = os.environ if environ is None else environ
+284:    environ = os.environ if environ is None else environ
+645:    sys.exit(main(sys.argv[1:]))

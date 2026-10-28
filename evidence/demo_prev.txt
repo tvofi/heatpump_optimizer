@@ -1,0 +1,7 @@
+rc 0 stdout dispatch/x
+forwarded ['group', 'head', 'model', 'nonce', 'overlay', 'pr', 'role', 'roster_ref']
+value env_OTHER DROPPED
+value /nonexistent/brief.md DROPPED
+value t-other DROPPED
+value other/repo DROPPED
+value /nonexistent/out.json DROPPED

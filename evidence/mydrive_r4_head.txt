@@ -1,0 +1,26 @@
+RESULT mutant=M0 failed=0 verdict=null-ok
+RESULT mutant=role-probe failed=3 verdict=killed
+    FAIL the --group CLI passes --head and --roster-ref through
+    FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through
+    FAIL a re-dispatch from a second clone fast-forwards the existing ref
+RESULT mutant=role-swap-fixer-if-reviewer failed=1 verdict=killed
+    FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through
+RESULT mutant=group-first-roster failed=2 verdict=killed
+    FAIL --group forwards --group to dispatch_group
+    FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through
+RESULT mutant=model-default failed=2 verdict=killed
+    FAIL --group forwards --model to dispatch_group
+    FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through
+RESULT mutant=pr-nonce-swapped failed=1 verdict=killed
+    FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through
+RESULT mutant=pr-truncated-1 failed=2 verdict=killed
+    FAIL --group forwards --pr to dispatch_group
+    FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through
+RESULT mutant=nonce-truncated-3 failed=2 verdict=killed
+    FAIL --group forwards --nonce to dispatch_group
+    FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through
+RESULT mutant=pr-none failed=-1 verdict=CRASHED
+    FAIL --group forwards --pr to dispatch_group
+RESULT mutant=nonce-none failed=-1 verdict=CRASHED
+    FAIL --group forwards --nonce to dispatch_group
+RESULT mutants=9 survived=0
