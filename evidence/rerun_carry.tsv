@@ -1,0 +1,76 @@
+#2211	2026-10-15T00:50	base=yes	fixed=yes	
+#2209	2026-10-15T03:18	base=no	fixed=no	
+#2296	2026-10-15T22:54	base=no	fixed=no	
+#2309	2026-10-16T01:02	base=no	fixed=no	
+#2315	2026-10-16T02:15	base=no	fixed=no	
+#2321	2026-10-16T03:22	base=no	fixed=no	
+#2330	2026-10-16T08:09	base=no	fixed=no	
+#2336	2026-10-16T21:30	base=yes	fixed=yes	
+#2379	2026-10-18T11:56	base=yes	fixed=yes	
+#2365	2026-10-18T14:28	base=no	fixed=no	
+#2379	2026-10-18T20:05	base=no	fixed=no	
+#2401	2026-10-18T20:45	base=yes	fixed=yes	
+#2411	2026-10-19T03:05	base=no	fixed=no	
+#2408	2026-10-19T04:59	base=no	fixed=yes	FLIP
+#2399	2026-10-19T05:13	base=yes	fixed=yes	
+#2368	2026-10-19T08:24	base=no	fixed=yes	FLIP
+#2415	2026-10-19T08:35	base=no	fixed=yes	FLIP
+#2463	2026-10-20T01:21	base=yes	fixed=yes	
+#2463	2026-10-20T02:29	base=yes	fixed=yes	
+#2465	2026-10-20T14:18	base=no	fixed=no	
+#2525	2026-10-21T14:11	base=yes	fixed=yes	
+#2576	2026-10-21T19:56	base=no	fixed=no	
+#2569	2026-10-21T20:18	base=no	fixed=no	
+#2547	2026-10-21T22:49	base=no	fixed=no	
+#2580	2026-10-22T02:59	base=no	fixed=no	
+#2582	2026-10-22T03:02	base=no	fixed=no	
+#2578	2026-10-22T04:26	base=no	fixed=no	
+#2585	2026-10-22T05:09	base=no	fixed=no	
+#2578	2026-10-22T09:37	base=no	fixed=no	
+#2600	2026-10-22T10:59	base=no	fixed=no	
+#2580	2026-10-22T11:26	base=no	fixed=no	
+#2605	2026-10-22T14:21	base=yes	fixed=yes	
+#2609	2026-10-22T16:00	base=no	fixed=no	
+#2580	2026-10-22T18:50	base=no	fixed=no	
+#2612	2026-10-22T22:53	base=yes	fixed=yes	
+#2622	2026-10-22T23:48	base=yes	fixed=yes	
+#2626	2026-10-23T00:28	base=no	fixed=no	
+#2626	2026-10-23T00:48	base=no	fixed=no	
+#2626	2026-10-23T00:55	base=no	fixed=no	
+#2632	2026-10-23T07:14	base=no	fixed=no	
+#2636	2026-10-23T07:19	base=no	fixed=no	
+#2651	2026-10-23T08:58	base=no	fixed=no	
+#2645	2026-10-23T10:30	base=no	fixed=no	
+#2620	2026-10-23T14:31	base=no	fixed=no	
+#2673	2026-10-24T01:41	base=no	fixed=yes	FLIP
+#2683	2026-10-24T10:07	base=yes	fixed=yes	
+#2689	2026-10-24T11:23	base=no	fixed=no	
+#2688	2026-10-24T14:09	base=no	fixed=no	
+#2741	2026-10-24T18:04	base=no	fixed=no	
+#2745	2026-10-24T20:46	base=yes	fixed=yes	
+#2745	2026-10-25T02:44	base=no	fixed=no	
+#2772	2026-10-25T02:48	base=no	fixed=no	
+#2753	2026-10-25T03:55	base=yes	fixed=yes	
+#2762	2026-10-25T06:15	base=no	fixed=no	
+#2762	2026-10-25T09:03	base=yes	fixed=yes	
+#2745	2026-10-25T09:08	base=no	fixed=no	
+#2775	2026-10-25T11:37	base=yes	fixed=yes	
+#2753	2026-10-25T14:31	base=yes	fixed=yes	
+#2745	2026-10-25T15:45	base=yes	fixed=yes	
+#2753	2026-10-25T15:45	base=no	fixed=no	
+#2833	2026-10-26T00:03	base=no	fixed=no	
+#2753	2026-10-26T01:36	base=no	fixed=no	
+#2824	2026-10-26T03:10	base=no	fixed=no	
+#2844	2026-10-26T03:47	base=no	fixed=no	
+#2819	2026-10-26T04:02	base=no	fixed=yes	FLIP
+#2834	2026-10-26T09:07	base=no	fixed=no	
+#2834	2026-10-26T16:57	base=yes	fixed=yes	
+#2745	2026-10-26T17:18	base=no	fixed=yes	FLIP
+#2745	2026-10-26T20:38	base=no	fixed=no	
+#2819	2026-10-27T05:41	base=no	fixed=no	
+#2745	2026-10-27T15:03	base=no	fixed=no	
+#2854	2026-10-27T20:08	base=no	fixed=no	
+#2876	2026-10-27T21:21	base=no	fixed=yes	FLIP
+#2853	2026-10-27T21:55	base=no	fixed=no	
+#2876	2026-10-28T03:38	base=no	fixed=yes	FLIP
+RESULT pairs 75 flips 8 yes_to_no 0
