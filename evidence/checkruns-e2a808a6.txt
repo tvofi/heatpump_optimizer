@@ -1,0 +1,81 @@
+gate failure 2026-10-26T00:47:46Z
+pr-contract / pr-contract failure 2026-10-26T00:47:12Z
+tests / mutation-autofix success 2026-10-26T00:46:36Z
+tests / ci-ratchet skipped 2026-10-26T00:44:05Z
+tests / closures-autofix skipped 2026-10-26T00:44:05Z
+gate failure 2026-10-26T00:47:33Z
+tests / claims-autofix skipped 2026-10-26T00:39:01Z
+tests / lane-proofs skipped 2026-10-26T00:39:01Z
+tests / ci-ratchet skipped 2026-10-26T00:39:01Z
+pr-contract / pr-contract failure 2026-10-26T00:39:45Z
+tests / lane-proofs success 2026-10-26T00:38:49Z
+tests / graders-head-copy success 2026-10-26T00:39:10Z
+tests / coverage-ratchet success 2026-10-26T00:38:54Z
+tests / closures-autofix skipped 2026-10-26T00:31:07Z
+tests / graders-head-copy skipped 2026-10-26T00:21:47Z
+tests / coverage-ratchet success 2026-10-26T00:22:36Z
+tests / claims-autofix skipped 2026-10-26T00:16:55Z
+tests / mutation-pins skipped 2026-10-26T00:01:32Z
+tests / mutation-autofix skipped 2026-10-26T00:01:32Z
+tests / mutation-pins (1) success 2026-10-26T00:46:15Z
+tests / nightly-ha skipped 2026-10-25T23:54:08Z
+tests / replay skipped 2026-10-25T23:54:09Z
+tests / browser success 2026-10-26T00:16:45Z
+tests / closures success 2026-10-26T00:31:06Z
+tests / typing success 2026-10-26T00:11:35Z
+tests / coverage success 2026-10-26T00:21:47Z
+tests / fast (3.14) success 2026-10-26T00:39:01Z
+tests / arch-instrument success 2026-10-26T00:12:00Z
+CodeQL success 2026-10-25T23:41:13Z
+tests / nightly-ha skipped 2026-10-25T23:40:45Z
+tests / closures success 2026-10-26T00:44:05Z
+tests / coverage success 2026-10-26T00:38:42Z
+tests / replay success 2026-10-26T00:08:25Z
+tests / browser success 2026-10-26T00:12:39Z
+tests / arch-instrument success 2026-10-26T00:05:59Z
+tests / fast (3.14) success 2026-10-26T00:16:54Z
+tests / typing success 2026-10-25T23:58:04Z
+governance / delivery-status-publish skipped 2026-10-25T23:39:07Z
+kernel-points skipped 2026-10-25T23:39:07Z
+governance / record skipped 2026-10-25T23:39:07Z
+tests / nightly-status success 2026-10-25T23:55:25Z
+governance / policy-docs success 2026-10-26T00:06:00Z
+tests / mutation failure 2026-10-25T23:55:12Z
+validate / validate-hacs success 2026-10-25T23:53:15Z
+governance / env-matrix success 2026-10-25T23:57:52Z
+governance / instrument-self-tests success 2026-10-25T23:50:28Z
+governance / wave-script success 2026-10-25T23:54:29Z
+governance / delivery-status failure 2026-10-25T23:39:44Z
+tests / closure-scope success 2026-10-25T23:40:45Z
+tests / briefs success 2026-10-25T23:41:22Z
+budget-raise-gate / budget-raise-gate success 2026-10-25T23:41:51Z
+hassfest / hassfest success 2026-10-25T23:41:38Z
+arch-score / arch-score success 2026-10-25T23:52:16Z
+codeql / Analyze (python) success 2026-10-26T00:12:21Z
+codeql / Analyze (javascript-typescript) success 2026-10-25T23:41:18Z
+codeql / Analyze (actions) success 2026-10-25T23:42:39Z
+governance / delivery-status-publish skipped 2026-10-25T23:38:55Z
+governance / delivery-status skipped 2026-10-25T23:38:55Z
+tests / nightly-status skipped 2026-10-25T23:38:55Z
+governance / record skipped 2026-10-25T23:38:55Z
+kernel-points skipped 2026-10-25T23:38:55Z
+codeql / Analyze (python) success 2026-10-26T00:32:21Z
+budget-raise-gate / budget-raise-gate success 2026-10-25T23:39:56Z
+codeql / Analyze (actions) success 2026-10-25T23:41:36Z
+arch-score / arch-score success 2026-10-25T23:41:02Z
+codeql / Analyze (javascript-typescript) success 2026-10-25T23:44:14Z
+governance / wave-script success 2026-10-25T23:41:32Z
+governance / instrument-self-tests success 2026-10-26T00:09:29Z
+governance / policy-docs success 2026-10-26T00:01:14Z
+governance / env-matrix success 2026-10-25T23:48:15Z
+tests / briefs success 2026-10-26T00:02:08Z
+validate / validate-hacs success 2026-10-25T23:41:05Z
+tests / mutation failure 2026-10-26T00:01:32Z
+hassfest / hassfest success 2026-10-25T23:39:44Z
+tests / closure-scope success 2026-10-25T23:54:08Z
+cancel-superseded skipped 2026-10-25T23:37:02Z
+prelude success 2026-10-25T23:39:06Z
+refresh success 2026-10-25T23:38:10Z
+cancel-superseded skipped 2026-10-25T23:36:59Z
+refresh skipped 2026-10-25T23:36:59Z
+prelude success 2026-10-25T23:38:55Z
