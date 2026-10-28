@@ -398,8 +398,10 @@ sweep's standing-seat liveness step keep them alive.
   reviews: a `Fix review: merge <head>` tip on `verdict/<pr>` at that head
   (`HELD-VERDICT`), or a review of that head in flight with no verdict at it
   (`HELD-REVIEW`: a `bus.sh dispatch` record of the PR at the head, or a
-  detached worktree at it). A blocked verdict, or one at an older head, freezes
-  nothing. Each prints `HELD-<why> #<pr> <handoff tip>` once per pass and is
+  detached worktree at it). A verdict ref the listing names but the fetch
+  cannot read freezes too (`HELD-UNREAD`): it may be a merge at the head. A
+  blocked verdict, or one at an older head, freezes nothing. Each prints
+  `HELD-<why> #<pr> <handoff tip>` once per pass and is
   `OWED <utc> handoff-held <ref> <tip> #<pr> <why>` in `<log>.level`;
   `cloud-handoff-release` (the hold file's grammar) releases a listed PR from the
   freeze, never from the hold, for new work that voids a merge verdict.
