@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/draw_range.py b/custom_components/heatpump_optimizer/draw_range.py
+index 7873f4453..2658a1f40 100644
+--- a/custom_components/heatpump_optimizer/draw_range.py
++++ b/custom_components/heatpump_optimizer/draw_range.py
+@@ -292,7 +292,7 @@ def running_kw(draw: DrawRange | None, drawn_kw: float) -> float:
+     which heat nothing.
+     """
+     idle = None if draw is None else draw.idle_kw()
+-    floor = RUNNING_FLOOR_KW if idle is None else max(RUNNING_FLOOR_KW, IDLE_MARGIN * idle)
++    floor = RUNNING_FLOOR_KW if idle is None else (RUNNING_FLOOR_KW)
+     return float(drawn_kw) if drawn_kw > floor else 0.0
+ 
+ 

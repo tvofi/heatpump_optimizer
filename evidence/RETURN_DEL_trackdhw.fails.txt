@@ -1,0 +1,3 @@
+# RETURN_DEL_trackdhw at a126c8b3fa820bbac01f53f8e66c99a278af7c1e
+  FAIL #2499: a tank reading reaches the DHW learner, and its freeze reason the coordinator; no reading reaches neither  [tank=([48.0], None) notank=([], None)]
+1 of 4367 FEATURE CHECKS FAILED

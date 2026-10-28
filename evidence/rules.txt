@@ -1,0 +1,11 @@
+# production/test identity rules at a126c8b3fa820bbac01f53f8e66c99a278af7c1e
+4a00a3f05..343fb2a2c:
+df2737ed4..65d37a7cb:
+65d37a7cb..a126c8b3fa820bbac01f53f8e66c99a278af7c1e prod+tests:
+versions/claims vs merge base:
+(all empty)
+
+class rule:
+a126c8b3fa820bbac01f53f8e66c99a278af7c1e:custom_components/heatpump_optimizer/coordinator.py:1012:    return _open_loop_plan_value(coord._optimization_result, "slab_temp_trajectory", now)
+a126c8b3fa820bbac01f53f8e66c99a278af7c1e:custom_components/heatpump_optimizer/coordinator.py:1969:def _open_loop_plan_value(
+a126c8b3fa820bbac01f53f8e66c99a278af7c1e:custom_components/heatpump_optimizer/coordinator.py:6369:            seed := _open_loop_plan_value(

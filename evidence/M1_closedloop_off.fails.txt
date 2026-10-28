@@ -1,0 +1,5 @@
+# M1_closedloop_off at a126c8b3fa820bbac01f53f8e66c99a278af7c1e
+  FAIL #2499: a metered pump that drew nothing leaves the slab cooling, not at the plan's commanded 25 degC  [slab=25.000]
+  FAIL #2499: the slab rises with the metered draw, below the commanded trajectory while the pump draws less than 4 kW  [slab off/1kW/4kW=25.000/25.000/25.000]
+  FAIL #2499: a gap of exactly the sample window still advances the slab by the meter; a minute past it follows the plan  [slab edge/past=25.000/25.000]
+3 of 4367 FEATURE CHECKS FAILED
