@@ -43,6 +43,19 @@ than fixed, so #2499 stays open on that residual.
 
 ## Head
 
+`a5f40d84c407c90fbaf51cf6de6b14c8e062b765` (fixer seat, round 10) is four commits over the previous head `fc841f51d88b0dbae35684be00f4012d63059b23` (`ci: pin killed mutants`):
+
+- `2aa7f2d9910ec27d228e117285caf1dc42b6326b`, a merge whose parents are `fc841f51d` and `origin/main` `e8cb7e68302b1d350bb8219fea99e911170af030` (`git log -1 --format=%P 2aa7f2d99`). GitHub read the head `DIRTY`; `git merge-tree --write-tree origin/main fc841f51d` with this checkout's drivers exits 0 and prints only `LEDGER-MERGE: resolved tests/structure_budgets.json` (`class_excess_loc: 18047 + both deltas = 17996`) and `LEDGER-MERGE: resolved tests/closures.json` (`inert_reads.tests/harness_headers.py: merged as a set (900 entries)`), so the conflict is the two driver files GitHub's own merge cannot resolve, and the merge is that driver output, no hand resolution. The base is now `e8cb7e683` (`git merge-base origin/main HEAD`); the reviewed range is `git diff --shortstat e8cb7e683...55bbe8b62`, one more file at `a5f40d84c`: 40 files, 1161 insertions, 176 deletions.
+- `bcffa264969a488419fa38fd94eea890ab801cd8`: `ThermalModel._substeps_and_loss`'s single-zone valved row read `c_buf = p.buffer_tank_thermal_mass; if c_buf < 1e-6: c_buf = 0.04`, a fourth inline copy of the fallback `_buffer_capacity` owns, and that copy carried two survivors (`_substeps_and_loss` CMP_BOUND and GUARD_OFF at `e26455a8#2`); it now reads `c_buf = _buffer_capacity(p)`, the same expression. `_single_valve_rates`'s `dT_cap = np.maximum(0.0, p.buffer_max_temp - T_buf) / max(dt_hours, 1e-6)` held a killed clamp and a surviving divisor floor under one ledger anchor, so any triage of the floor would have covered the clamp (fixer step 14); it is now `headroom_k = np.maximum(...)` then `dT_cap = headroom_k / max(dt_hours, 1e-6)`, the same operations in the same order.
+- `55bbe8b622500b12919ddc47397e59c40a25a57d`: three `survivor_triage` rows (verdict `equivalent`) for the survivors the pin drive left that no reachable input can kill; `## Unpinned sites` names each.
+- `a5f40d84c407c90fbaf51cf6de6b14c8e062b765`: `tests/structure.py --record`, `class_excess_loc` 17996 -> 17994 (the two lines `bcffa2649` deleted from the class), `recorded_at` -> `e8cb7e683`.
+
+Everything below this note's other notes was measured at `8d0a1c3f7` (or the heads it names) and is not re-taken here except where `## Figures` says `at a5f40d84c`.
+
+`cd731ff0d1ec231db24054d197c5a86d0f9d5757` merges origin/main `6eb552157` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head, and then adds one commit containing only this PR's own row, `dev/programme/delivery/2887.md`.
+
+`52783d67715be8304d5b4bde75bcd3cdad789350` merges origin/main `4db1d3e28` into the authored code head `8d0a1c3f7f699f94f1da93ef4e0c29c1f00cb22c` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below).
+
 `8d0a1c3f7f699f94f1da93ef4e0c29c1f00cb22c`, a merge whose parents are the
 branch's `5c01e40658af339371b22b1b7c141ae3e539deb9` and `origin/main`'s
 `67178dc6a589cf95d2ce7cff36d8bbf17343e8dc` (`git log -1 --format=%P HEAD`).
@@ -139,6 +152,17 @@ head:
 
 ## Figures
 
+At `a5f40d84c` (base `e8cb7e683`, `date -u` 2026-10-28):
+
+- `PYTHONPATH=tests/hastub:custom_components:tests python3 dev/audit/harnesses/r10_buffer_store.py plans 0`, each from a `git archive` of the named tree: at `55bbe8b62` (`a5f40d84c` adds only the budget row) spread 750 L `6a546df76556` / 22.41 / 1.000 / +40.00 / 21.947, spread 0 L `21d0378f2f79` / 22.63 / 0.965 / +0.00 / 22.184, identical False; flat 750 L `5d1137c8e29e` / 23.55 / 0.321 / +0.00 / 38.059, flat 0 L `1144455deb6a` / 31.22 / 0.242 / +0.00 / 50.457. The same six lines at the previous head `fc841f51d`, so the fold and split move no plan. Null: the new base `e8cb7e683` reads the buffer plan **identical True** to the no-buffer plan on both days (`21d0378f2f79`, `1144455deb6a`), so main's merge did not give the base a store.
+- `python3 tools/audit/archscore/score.py --diff e8cb7e683 55bbe8b62`: `Architecture score: dS +0.0000 NULL`.
+- `python3 tests/structure.py` at `55bbe8b62`: `class_excess_loc 17994 (budget 17996, -2; not yet recorded)`, the only row moved; recorded in `a5f40d84c`.
+- `python3 tools/pr/ci_predict.py --base origin/main` at `55bbe8b62`: `CI PREDICT: 4 unpinned site(s) the diff adds` and `no closures, fast, wave-script or instrument red predicted against e8cb7e68302b`.
+- `python3 tests/closure.py select --diff e8cb7e683`: `MODE: SCOPED -- 27 script(s) run, 6 scoped out.`
+- Not re-taken at this push: `tests/entities.py`, `tests/guard_pins.py`, `tests/finite_boundary.py`, `GOLDEN_MODE=drift tests/golden.py` and `tests/features.py` were started at `55bbe8b62` on this seat and had not finished when the seat's time bound fell; no result is claimed for them, and the PR's `gate` run at this head is the reading. `tests/features.py` holds the check M7 named (`the stability count subdivides for the tank's own row`), the row `bcffa2649` touched.
+
+Measured at `8d0a1c3f7` and not re-taken (the delta since is the merge of main, the fold and the split above):
+
 - `dev/audit/harnesses/r10_buffer_store.py plans 0` — 750 L manual valve vs no
   buffer, spread and flat, at `3b4180dcc` and at this head. Base spread 750 L
   `21d0378f2f79` / 22.63 kWh / cheap-quarter 0.965 / +0.00 K / 22.184 /
@@ -224,58 +248,35 @@ head:
 ## Architecture score
 
 Architecture score: dS +0.0000 NULL (`tools/audit/archscore/score.py --diff
-67178dc6a 8d0a1c3f7`). `tests/arch_score_head.py` reads **ALL 18 CHECKS
+e8cb7e683 55bbe8b62`; at `8d0a1c3f7` over `67178dc6a` it also read NULL). `tests/arch_score_head.py` reads **ALL 18 CHECKS
 PASSED** at this head, and `tests/structure.py` reads every metric within its
-budget (`class_excess_loc` 17999, `recorded_at` 524c1896b).
+budget at `8d0a1c3f7` (`class_excess_loc` 17999, `recorded_at` 524c1896b); at `a5f40d84c` the recorded table is `class_excess_loc` 17994, `recorded_at` e8cb7e683.
 
 ## Unpinned sites
 
-- `custom_components/heatpump_optimizer/thermal_model.py:1677 CMP_BOUND: return 0.04 if c_buf < 1e-6 else c_buf`: `_buffer_capacity`'s 35 L fallback. Pinned by `mutation-autofix`; a survivor is equivalence unless it moves the small-tank arm, which the parity pair and M6 rest on.
-- `custom_components/heatpump_optimizer/thermal_model.py:1677 RETURN_DEL: return 0.04 if c_buf < 1e-6 else c_buf`: `_buffer_capacity`'s 35 L fallback. Pinned by `mutation-autofix`; a survivor is equivalence unless it moves the small-tank arm, which the parity pair and M6 rest on.
-- `custom_components/heatpump_optimizer/thermal_model.py:1719 CLAMP_DROP: * np.maximum(0.0, T_buf - floor_temp)`: `_tank_bounded_draw`, the scalar step's energy bound. Killed by M6 today and re-pinned by `mutation-autofix` on the moved line.
-- `custom_components/heatpump_optimizer/thermal_model.py:1720 CLAMP_DROP: / max(dt_hours, 1e-6)`: `_tank_bounded_draw`, the scalar step's energy bound. Killed by M6 today and re-pinned by `mutation-autofix` on the moved line.
-- `custom_components/heatpump_optimizer/thermal_model.py:1722 CLAMP_DROP*2: return np.minimum(drawn, np.maximum(available, 0.0))`: `_tank_bounded_draw`, the scalar step's energy bound. Killed by M6 today and re-pinned by `mutation-autofix` on the moved line.
-- `custom_components/heatpump_optimizer/thermal_model.py:1722 RETURN_DEL: return np.minimum(drawn, np.maximum(available, 0.0))`: `_tank_bounded_draw`, the scalar step's energy bound. Killed by M6 today and re-pinned by `mutation-autofix` on the moved line.
-- `custom_components/heatpump_optimizer/thermal_model.py:1744 CLAMP_DROP*2: drawn = np.maximum(0.0, ua * (np.minimum(T_buf, flow_set) - `: `_single_valve_rates`, the scalar valved step. Killed by M6/M8 and the small-tank check; re-pinned by `mutation-autofix`.
-- `custom_components/heatpump_optimizer/thermal_model.py:1749 CLAMP_DROP*2: dT_cap = np.maximum(0.0, p.buffer_max_temp - T_buf) / max(dt`: `_single_valve_rates`, the scalar valved step. Killed by M6/M8 and the small-tank check; re-pinned by `mutation-autofix`.
-- `custom_components/heatpump_optimizer/thermal_model.py:1750 CLAMP_DROP: refused = np.maximum(0.0, dT_buf - dT_cap) * c_buf`: `_single_valve_rates`, the scalar valved step. Killed by M6/M8 and the small-tank check; re-pinned by `mutation-autofix`.
-- `custom_components/heatpump_optimizer/thermal_model.py:1751 CLAMP_DROP: return q_slab, np.minimum(dT_buf, dT_cap), refused`: `_single_valve_rates`, the scalar valved step. Killed by M6/M8 and the small-tank check; re-pinned by `mutation-autofix`.
-- `custom_components/heatpump_optimizer/thermal_model.py:1751 RETURN_DEL: return q_slab, np.minimum(dT_buf, dT_cap), refused`: `_single_valve_rates`, the scalar valved step. Killed by M6/M8 and the small-tank check; re-pinned by `mutation-autofix`.
-- `custom_components/heatpump_optimizer/thermal_model.py:1788 GUARD_OFF: if valve_target is not None:`: `_valve_flow_set`'s explicit-target arm, the scalar step. The batch twin computes the same target inline and the bitwise parity pair kills a divergence; re-pinned by `mutation-autofix`.
-- `custom_components/heatpump_optimizer/thermal_model.py:1841 GUARD_OFF: if two_tank:`: `_valve_two_zone_delivery`'s two-tank ledger, which moved here with the law; the two-tank cell of the parity pair and the census kill it. The ledger row that pinned this guard in `_simulate_step_two_zone` is deleted in this diff because the guard moved, and the nightly drain re-pins it here.
-- `custom_components/heatpump_optimizer/thermal_model.py:1885 RETURN_DEL: return q_rad_from_buf, q_floor_from_buf, wood_draw, q_wood_l`: the moved law's return, read by both parity cells for the valved families; re-pinned by `mutation-autofix`.
-- `custom_components/heatpump_optimizer/thermal_model.py:3007 GUARD_OFF: if throttled or cop is None:`: `_simulate_step_single`'s valved branch. Killed by M2/M4; re-pinned by `mutation-autofix`.
-- `custom_components/heatpump_optimizer/thermal_model.py:3049 GUARD_OFF: if throttled:`: `_simulate_step_single`'s valved branch. Killed by M2/M4; re-pinned by `mutation-autofix`.
-- `custom_components/heatpump_optimizer/thermal_model.py:3484 CMP_BOUND: if c_buf < 1e-6:`: the two-zone stability row's 35 L fallback. A dropped fallback is equivalent at every recorded volume; `mutation-autofix` pins the line and a survivor is triaged as equivalence.
-- `custom_components/heatpump_optimizer/thermal_model.py:3484 GUARD_OFF: if c_buf < 1e-6:`: the two-zone stability row's 35 L fallback. A dropped fallback is equivalent at every recorded volume; `mutation-autofix` pins the line and a survivor is triaged as equivalence.
-- `custom_components/heatpump_optimizer/thermal_model.py:3509 GUARD_OFF: if ua_valve is None:`: a direct caller's default in `_substeps_and_loss`; the batch always hands both in, so the scalar path is what exercises it. Pinned by `mutation-autofix`; a survivor is equivalence unless the scalar arm diverges.
-- `custom_components/heatpump_optimizer/thermal_model.py:3514 GUARD_OFF: if c_buf is None:`: a direct caller's default in `_substeps_and_loss`; the batch always hands both in, so the scalar path is what exercises it. Pinned by `mutation-autofix`; a survivor is equivalence unless the scalar arm diverges.
-- `custom_components/heatpump_optimizer/thermal_model.py:3516 CMP_BOUND: if c_buf < 1e-6:`: a direct caller's default in `_substeps_and_loss`; the batch always hands both in, so the scalar path is what exercises it. Pinned by `mutation-autofix`; a survivor is equivalence unless the scalar arm diverges.
-- `custom_components/heatpump_optimizer/thermal_model.py:3516 GUARD_OFF: if c_buf < 1e-6:`: a direct caller's default in `_substeps_and_loss`; the batch always hands both in, so the scalar path is what exercises it. Pinned by `mutation-autofix`; a survivor is equivalence unless the scalar arm diverges.
-- `custom_components/heatpump_optimizer/thermal_model.py:3798 BOOLOP: if throttled and not p.two_zone_enabled`: the batch's `throttled and not two_zone` hoist. The single-zone arm is pinned by the bitwise parity pair; the two-zone arm is its control. Pinned by `mutation-autofix`.
-- `custom_components/heatpump_optimizer/thermal_model.py:3914 CLAMP_DROP: * np.maximum(0.0, T_buf - floor_temp)`: base's own two-zone bound, re-written inline by the call-parity rework (text moved, not behaviour). The two-zone figures are bit-identical to base; pinned by `mutation-autofix`.
-- `custom_components/heatpump_optimizer/thermal_model.py:3991 GUARD_OFF: if throttled:`: the batch single-zone twin, now inline. Killed by the bitwise parity pair, M10/M11 and the census; pinned by `mutation-autofix`.
+At `a5f40d84c`, `python3 tools/pr/ci_predict.py --base origin/main` lists four
+sites the diff adds unpinned (`CI PREDICT: 4 unpinned site(s) the diff adds`);
+the `tests / mutation` run at `fc841f51d` (job 122542872450) refused six, of
+which `bcffa2649` deleted two (the folded fallback) and split one line in two.
+
+- `custom_components/heatpump_optimizer/thermal_model.py:1684 CMP_BOUND: return 0.04 if c_buf < 1e-6 else c_buf`: survivor triage, `equivalent`, `tests/mutation_ledger/survivor_triage/thermal_model.py/_buffer_capacity.CMP_BOUND.c7ca72ab.json`. The arms differ only at `c_buf == 1e-6` exactly; every volume writer (the `_number(10, 1500, 5, 'L')` selector, the quick-setup 500 L, the 35 L default) gives `c_buf >= 0.0116`. Survival: `mutation-pins` shard job 122440356132 at `cd731ff0d`, `1677 CMP_BOUND -- lives`.
+- `custom_components/heatpump_optimizer/thermal_model.py:1727 CLAMP_DROP: / max(dt_hours, 1e-6)`: survivor triage, `equivalent`, `.../_tank_bounded_draw.CLAMP_DROP.ebabcabd.json`: dt_hours is a positive step or sub-step length in both callers. Survival: shard job 122440356297, `1720 CLAMP_DROP -- lives`.
+- `custom_components/heatpump_optimizer/thermal_model.py:1756 CLAMP_DROP: headroom_k = np.maximum(0.0, p.buffer_max_temp - T_buf)`: pinned by `mutation-autofix`: the same mutant on the pre-split line was `killed by tests/features.py` (shard job 122440356131), and the split gives it an anchor of its own, so the next pin drive records it.
+- `custom_components/heatpump_optimizer/thermal_model.py:1757 CLAMP_DROP: dT_cap = headroom_k / max(dt_hours, 1e-6)`: survivor triage, `equivalent`, `.../_single_valve_rates.CLAMP_DROP.31345538.json`; the same divisor floor as 1727. Survival: shard job 122440356131, `1749 CLAMP_DROP -- lives`, measured on the pre-split line, whose dropped floor is this same expression.
+
+The 25 sites the earlier body listed at `8d0a1c3f7` are, by the same `ci_predict.py` read at `a5f40d84c`, pinned (by `mutation-autofix`'s `fc841f51d` and the rows already on main) or among the four above.
 
 ## Red checks
 
-- **No check runs exist at `8d0a1c3f7`.** `gh api
-  repos/tvofi/heatpump_optimizer/commits/8d0a1c3f7/check-runs` returns
-  `total_count 0`, so there is no rollup at this head to read and none is
-  claimed; the pull request's first `gate` run is the authority. A reviewer runs
-  `bash tools/pr/prepr.sh <body>`, and for the two sections a push cannot show
-  `node tools/policy/figure_lint.mjs --pr-body <body>` and `python3 -I
-  tools/audit/carry_audit.py --roster-ref origin/handoff/audit-r10-roster check
-  --body <body>`; the reds below were observed at the heads they name and are
-  re-run there.
-- `tests / mutation` — predicted red on the **25 sites this diff adds unpinned**
-  (`tools/pr/ci_predict.py --base origin/main` lists every one). Answer: the
-  cheaper detector exists and ran, at nil standing cost: the same static read
-  names each site, `## Unpinned sites` above disposes of all 25, and the eleven
-  mutants at this head kill every site whose text carries behaviour; the
-  nightly `mutation-autofix` pins the killed sites after the push (its standing
-  cost is the nightly drain, not this seat's). No added site is left an open
-  seam: each is either killed by a named check above or recorded as the
-  equivalent-line disposition under `## Unpinned sites`.
+Reds on this pull request's earlier heads, read with `gh api repos/tvofi/heatpump_optimizer/commits/<sha>/check-runs` (no check run exists at `a5f40d84c` until its push; the reviewer reads that head's own rollup).
+
+- `tests / mutation` — red at `fc841f51d` (run 40605154960, job 122542872450): `MUTATION TABLE REFUSED -- 3813 unpinned site(s) against 3814 at the ratchet base 6eb552157 ..., 6 of them added by this diff`, after `mutation-autofix` had pinned the killed ones (`fc841f51d`, `ci: pin killed mutants`); red earlier at `cd731ff0d` (job 122439826301) and `52783d677` (job 122405319553) on the then-unpinned sites. Answer: the six were survivors, which no tool may triage (`ci-autofix.md`). `bcffa2649` removes two by deleting a duplicate of `_buffer_capacity`'s fallback and separates a killed clamp from a surviving floor; `a5f40d84c` triages the three that no reachable input can kill; the clamp is left to `mutation-autofix`'s pin, so this check stays red at `a5f40d84c` until that bot commit (one site, `thermal_model.py:1756`). The cheaper detector exists and ran: `prepr.sh` step 6d's `ci_predict.py` named every one of the six before the PR; the cost was a body that disposed of them as "pinned by `mutation-autofix`; a survivor is equivalence" without writing the triage rows.
+- `governance / instrument-self-tests` — not red at any head of this pull request: `success` at `fc841f51d` (job 122542872544) and `52783d677` (job 122405319332); `cancelled` at `cd731ff0d` (job 122439826567, run 40574874260 superseded). No answer owed; named because it was reported red.
+- `prelude` — red at `cd731ff0d` (run 40574873474, job 122438486750): `FAIL run(s) [40574874260] still adding sources after 8700 s`, a wait on a sibling run that was itself later cancelled. Answer: no defect of this diff; a CI scheduling timeout with no cheaper detector at the seat.
+- `pr-contract / pr-contract` and `gate` — red at `cd731ff0d` (jobs 122543135800, 122543337610; 122509599588, 122510079459): ``check `prelude` is red and `## Red checks` does not name it``. Answer: this section names it; the cheaper detector is `prepr.sh`'s step 7c, which reads the same red history and was not re-run on the bot-pushed heads.
+
+Earlier reds, observed and answered at the heads they name:
+
 - `tests/optimality.py` — `one|summer_negative|shoulder: a recorded claim
   still has a gap (not stale)`: claimed but the measured gap is 0.0000 %, at or
   below the bar. Answer: **this host's platform, documented at
@@ -357,7 +358,7 @@ budget (`class_excess_loc` 17999, `recorded_at` 524c1896b).
   Carry: R10-STORE-RACES (handoff/audit-r10-roster at 4fa0f8418)
 - **Two homes for the 35 L fallback, on purpose.** `_buffer_capacity` words it
   once, and the two-zone step and the batch step each still inline it
-  (`if c_buf < 1e-6: c_buf = 0.04`). The step's copy sits two lines above the
+  (`if c_buf < 1e-6: c_buf = 0.04`); the single-zone stability row's copy, added by this branch, now calls it (`bcffa2649`). The step's copy sits two lines above the
   call that now also computes it; routing the step through the helper would
   delete those lines and drop `class_excess_loc`, at one more call per
   two-zone step — the call channel is at 1.030x of its 1.05x allowance, so it
@@ -383,3 +384,5 @@ budget (`class_excess_loc` 17999, `recorded_at` 524c1896b).
   that push's checks, so a base red travels unremarked into a branch's gate. Not
   this group's to fix; the after-merge bookkeeping must read main's own suite
   state. Carry: R10-FLOW-POSTMERGE (handoff/audit-r10-roster at c0dbb4585d68)
+
+
