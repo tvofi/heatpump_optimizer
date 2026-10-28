@@ -56,7 +56,8 @@ BIAS_TRIP_DAYS = 5
 class SnapshotRing:
     """The ring buffer plus the daily bias watch."""
 
-    #: Oldest first. Each: {"taken_at", "healthy", "accuracy", "learners"}.
+    #: Oldest first. Each: {"taken_at", "healthy", "unhealthy_input",
+    #: "accuracy", "learners"}.
     snapshots: list[dict[str, Any]] = field(default_factory=list)
     #: Consecutive out-of-band days, and the last day counted.
     _bias_days: int = 0
@@ -69,6 +70,21 @@ class SnapshotRing:
     _drift_inputs_healthy: bool = True
     #: Latched when the alarm has raised, until bias returns to band.
     alarmed: bool = False
+    #: Worst-of-day input health, accumulated across heartbeats until a day
+    #: is counted (#42): the first freeze reason that made today's inputs
+    #: unhealthy, ``None`` while they are healthy. A snapshot taken on an
+    #: unhealthy day records it, so a diagnostics bundle names the input
+    #: (D15 lead L9) rather than a bare ``healthy: false``.
+    day_unhealthy: str | None = None
+
+    def observe_health(self, reason: str | None) -> bool:
+        """Fold one heartbeat's input health into the day; whether the day is still healthy."""
+        self.day_unhealthy = self.day_unhealthy or reason
+        return self.day_unhealthy is None
+
+    def start_day(self, reason: str | None) -> None:
+        """A counted day consumed the accumulator; the next starts from this tick's health."""
+        self.day_unhealthy = reason
 
     # -- taking snapshots -----------------------------------------------------
 
@@ -96,6 +112,7 @@ class SnapshotRing:
             {
                 "taken_at": now.isoformat(),
                 "healthy": bool(healthy),
+                "unhealthy_input": None if healthy else self.day_unhealthy,
                 # A snapshot taken during an active alarm can only hold
                 # state the alarm already distrusts; it must never enter
                 # the restore pool, however in-band its tag looks.

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/heat_energy.py:resolution_refusal RETURN_DEL da9e8e97",
+  "old": "    return None",
+  "reason": "Equivalent (RETURN_DEL, `return None` -> `pass`): the statement is the last one in resolution_refusal, after an `if` whose arm returns, so deleting it lets the function fall off its own end and return None -- the same value, on every input, to every reader. Measured by the R10-HEAT-METER fixer's mutant drive over the extracted heat-meter section of tests/features.py (all 92 checks of the section at the time, including the three resolution_refusal checks that pin both arms: no step yet, a zero expected figure and a one-step span): SURVIVED rc=0 with 0 failing checks, against 37 of the 45 other drafted mutants killed by a failing check in the same drive.",
+  "verdict": "equivalent"
+}

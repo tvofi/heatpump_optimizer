@@ -39,6 +39,9 @@ HREF=$(printf '%s\n' "$HREF" | awk 'NF { print $1; exit }')
 if [ -n "$HREF" ]; then
   [ "$HREF" = "$(git -C "$ROOT" rev-parse HEAD)" ] || { echo "body_push: handoff/$TOPIC is at ${HREF:0:12}, this checkout at $(git -C "$ROOT" rev-parse --short=12 HEAD); push the code, then the body" >&2; exit 1; }
   ABS=$(cd "$(dirname "$BODY")" && pwd)/$(basename "$BODY")
+  # The `mutation` red an unpinned site makes is derived, so it is written into
+  # `## Red checks` before the lint, not refused at the open (P67).
+  (cd "$ROOT" && bash "$HERE/../../pr/prepr.sh" --fill-red "$ABS")
   if ! LINT=$(cd "$ROOT" && bash "$HERE/../../pr/prepr.sh" --body-check "$ABS" 2>&1); then
     printf '%s\n' "$LINT" >&2
     echo "body_push: the pr-body lint refuses this body (above), as open_pr.sh's prepr step 7 would; repair it and push again" >&2

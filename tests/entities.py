@@ -3884,6 +3884,12 @@ def _p2_registry(sources):
                      "the pump's run length is the age of the switch's VALUE "
                      "(last_changed); state_stamp answers when the entity was "
                      "last heard from, which a re-reported 'on' resets",
+                 # R10-HEAT-METER: where a mode split falls, never an age.
+                 "pump_signals.py::read":
+                     "carries the live mode's last_changed as the instant its "
+                     "VALUE changed, where heat_energy.ModeDwell splits a span; "
+                     "state_stamp answers when the entity was last heard from, "
+                     "which a re-reported 'heat' resets",
                  # #2271: the replay half copies the recorder's rows, as the
                  # export copies them out of SQLite; no age is decided there.
                  "debugger.py::_since":
@@ -4704,6 +4710,20 @@ _EC_RESIDUAL = {
                      "not declare the key",
     "grid_fee.py": "GridFeeSchedule.from_config is parsed once per EntryConfig, cached on identity",
     "price_model.py": "pull_prices resolves the price source from the merged mapping each pull",
+    # #2816 moved the questionnaire's own reads here from config_flow.py, which
+    # this census skips as a form-answer module. Every read of a building key
+    # in presets.py is inside preset_from_config: it takes the questionnaire's
+    # answers and the settings flow's current options (both config_flow's
+    # form), and house_grade hands it the coordinator's merged mapping to build
+    # the typical house the grade is measured against. EntryConfig declares no
+    # building structure, era, foundation, area or emitter key, so a parsed
+    # field cannot serve either call. The entry is module-wide because this
+    # table has no per-site arm; a read added elsewhere in presets.py would
+    # inherit it.
+    "presets.py": "preset_from_config reads the questionnaire's answers and the settings "
+                  "flow's current options into a BuildingPreset, and house_grade hands it "
+                  "the coordinator's merged config to build the typical house it measures "
+                  "against; EntryConfig declares none of the building keys",
     "quiet_windows.py": "the window readers also take the simulator's what-if mapping, which "
                         "overridden_config folds the call's quiet keys into",
     "thermal_model.py": "ThermalParameters.from_config, the solver's own parsed object, "
