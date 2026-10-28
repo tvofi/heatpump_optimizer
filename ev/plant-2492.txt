@@ -1,0 +1,6 @@
+Plant at head 318c9380d3267c141882c82d590949869ee1487a (worktree, files removed after, git status clean):
+carry-2492.json (copy of carry-2674.json shape), no-arg `node tools/policy/brief_lint.mjs`: rc=0, 0 error(s); TOTAL 0 error(s) across 50 file(s).
+carry-999999.json, no-arg: rc=0, 0 errors.
+lintCarryFile(carry-2492, {roster: rosterIssues('dev/programme/rosters')}): 1 finding: "issue 2492 already has a live roster group (wave-r10-groups.json R10-SAV-ACTUATION) ..."
+lintCarryFile(carry-999999, same roster): 0 findings.
+Note: at this head the covering live group is R10-SAV-ACTUATION (R10-SAV-COMFORT is stage done); the record names R10-SAV-COMFORT at its measurement base 6eb552157.

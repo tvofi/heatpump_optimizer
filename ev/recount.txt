@@ -1,0 +1,12 @@
+block rows 132 PRs 84
+carry-missing 26 / 30 median-lower 96 median-upper 103 sum 5076
+mutation-vacuous 8 / 9 median-lower 111 median-upper 111 sum 1417
+class-open 6 / 13 median-lower 153 median-upper 153 sum 2402
+mutation-survivor 3 / 5 median-lower 119 median-upper 119 sum 1134
+root-cause-detectable 3 / 3 median-lower 181 median-upper 181 sum 586
+regression 3 / 3 median-lower 153 median-upper 153 sum 978
+root-cause-unanswered 2 / 2 median-lower 17 median-upper 219 sum 236
+root-cause-unrecorded 1 / 1 median-lower 73 median-upper 73 sum 73
+other 2 / 3 median-lower 164 median-upper 164 sum 508
+untaught words 46 PRs 52 entries 64 ; union with literal other PRs 52 entries 67
+PRs blocked only by untaught 36

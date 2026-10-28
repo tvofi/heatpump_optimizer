@@ -1,0 +1,37 @@
+Fix review: merge 318c9380d3267c141882c82d590949869ee1487a
+
+bus-nonce: 5946536fc669f1887525b274ae80c0e7
+
+## Round
+
+Round 5 of #2896 (R10-RCA-FRICTION-RESIDUE). Round 4 blocked only on a `bugclasses.json` conflict with main. This head is a merge of origin/main `b0b2d7697` plus a body edit, so it is a repair of a merge conflict (`fixer.md` step 6), not a re-cut of content.
+
+**Is it minimal?** Yes in scope. The diff touches 5 files: the record (446 lines), its two evidence files (136 + 245 lines, which are needed to re-measure the record), one 18-line `_rca` register entry, and the orchestrator's one-line delivery row. It writes no production code and no policy file, and the earlier `carry-2733.json` and its closures entry stay dropped. The record is long, but each of sections 3 to 9 gives a disposition for one of the eleven issues the group lists, and five of those are `Closes`. Every section I checked is backed by a figure that reproduces. I found nothing that could be dropped without leaving an issue without a disposition.
+
+## Evidence
+
+- Head measured: `318c9380d3267c141882c82d590949869ee1487a`. `git ls-remote` confirmed it is still the PR head at verdict time. The body's `## Head` names this SHA.
+- `dev/governance/roles/` has no diff between the merge base and origin/main, so the contract used here is current.
+- Merge: `git merge-tree --write-tree origin/main HEAD` gives tree `3df51e9a9`, rc=0, with no conflict. The merge base `b0b2d7697` equals origin/main.
+- Mutation proof (step 1): not applicable. The diff writes no production, test or check line (md/json/tsv/txt only), so `changed_lines` draws no mutant. `tests / mutation` is green on this head.
+- Claims and versions (steps 4, 5): the diff does not touch `tests/golden/`, either claim file, `VERSION`, the manifest or `RELEASE_NOTES.md`. `env_drift.py --all` could not run here (its `--capture` subprocess exits 1 because this container has no solver venv). Nothing it measures is in the diff, so no drift is possible from this PR. This is stated as not run, not as verified.
+- Finder's harness (steps 2, 9): the packet names none, which is expected for an RCA record. The instruments the record itself relies on were run here:
+  - `rounds.py --stats <file>` gives rc=0 and 0 bytes, which reproduces section 1's vacuous-zero finding.
+  - `rosterIssues()` gives `1 76` at the record's base `6eb552157` and `1 72` at this head. Both match: the record is pinned to `6eb552157`, and the body re-took the figure at `7cda20df8`.
+  - Section 3's perturbation reproduces at this head (ev/plant-2492.txt). carry-2492 passes with rc=0 on the no-argument CI path and is refused when the rosters dir is passed. Control 999999 passes both ways. At this head the covering live group is `R10-SAV-ACTUATION`, not the record's `R10-SAV-COMFORT` (now done). The record names its base, so this is not a defect.
+- Figures re-derived from `blocked_rounds_v7.0.4.tsv` (ev/recount.txt): all reproduce exactly. 132 rows over 84 PRs; carry-missing 26/30, sum 5076 min; mutation-vacuous 8/9; class-open 6/13; mutation-survivor 3/5; root-cause-detectable 3/3; regression 3/3; root-cause-unanswered 2/2; root-cause-unrecorded 1/1; other 2/3; 46 untaught words; untaught ∪ literal 52 PRs / 67 entries; 44 words at ≤2 PRs holding 47 PRs / 56 entries; 36 PRs blocked only by untaught words; derived family 46 after subtracting 6; root-cause union 6/6; nine body-drift spellings over 10 PRs / 10 entries. `stats_v7.0.4.txt` lines 11 and 22 agree (26/30, 2/2).
+- Figures not re-derived: the predicate counts 205/205, 193/205 and 29 come from `pred*.py` scripts that live only in the seat's scratch. The mutation-vacuous before/after split at `662a380` (7/8 vs 1/1) was not re-timed. The 669 s and the census 159.43 s are the producer's own figures, and the record labels them that way.
+- Body figures (`figure_lint`: 4 resolved, 1 inline node figure unverified). I re-ran all five at this head: closure select `MODE: SCOPED -- 0 script(s) run, 33 scoped out`; `rosterIssues` `1 72`; `STRUCTURE RATCHET PASSED`; `fold_ledger` 127 rca entries, 0 violation(s); carry_audit 16 routed, 0 unrouted (packet). The `_rca` count moving from 126 to 127 comes from this record's own entry (step 14).
+- Forward-carry (step 10): checked on `handoff/audit-r10-roster` at `213eae5b1dcf1df3325a63787e111b0e0b166d1a`.
+  - `R10-FLOW-TOOLKIT-MODEL` holds A1 and A2, with the 1→76 measurement, the 2492/999999 control and an acceptance as precondition.
+  - `R10-ORCH-ROSTER-SCHEMA` holds the #2855 stranding carry with its null control. Its carry[24] names #2875 as a STRANDED first instance.
+  - Issue destinations #2429/#2436/#2437/#2438 stay open, and ROSTER-SCHEMA's carry records them as listed only on this group.
+- CI (step 11), read live from the check-runs API on this head: no check is red. `governance / instrument-self-tests` and two `prelude` runs were still `in_progress` when read. Every other run is success or skipped. There is no red check, so there is no root-cause trigger to answer. The body's `## Red checks` answers the earlier heads' gate deferral and the `prelude` rate limit. The in-progress runs still have to conclude before the train merges. Re-read the checks at merge.
+- Steps 6, 13 and 15 (class enumeration, claimnotes driver, architecture): not applicable. There is no seam, no claim-file conflict and no added code line.
+
+## Findings
+
+- Section 2's "median min to next verdict" uses the upper median for even counts, and the record does not say so. carry-missing (30 entries) is printed as 103, but the conventional median is 99.5 (lower 96). root-cause-unanswered (2 entries: 17, 219) is printed as 219, which is that key's maximum, not its median. Every other row has an odd count and reproduces exactly. No disposition depends on these two cells. Carry: dismissed: the convention reproduces every cell and no disposition or cost test turns on the two even-count medians
+- Section 4's sentence "46 untaught words hold 52 PRs / 67 entries" includes the 3 literal `other` entries. The untaught words alone hold 52 PRs / 64 entries. The table row ("untaught ∪ literal 52 / 67") states this correctly, so only the prose is loose. Carry: dismissed: the table carries the correct union and the derived-family figure 46 is unaffected
+- The body's friction row on `rounds.py` (`Carry: R10-ROUND-PLAYBOOK`) is not yet in that group's brief or carry at roster `213eae5b1`. It also carries a sharper constraint than the row states. The playbook's brief requires a self-checking arm that "resolves every path and instrument the playbook names", but `rounds.py --stats` has a path that resolves while its mode does not exist, and the call exits 0 with 0 bytes. A path-only check would pass it. Precondition for the playbook's checker: an instrument invocation is resolved by running it against a fixture and requiring non-empty output or a non-zero exit, not by the path existing. Control: `python3 dev/audit/rca/harness-friction/rounds.py --stats dev/audit/rca/harness-friction/blocked_rounds.tsv` prints 0 bytes rc=0, while `rounds.py <dir of per-PR tsv>` prints rows. Re-measure at the playbook's merge base. Carry: R10-ROUND-PLAYBOOK
+- The body's round-4 note (ROSTER-SCHEMA carry[24] still names "carry-2733.json's two items", a deleted file) still stands at roster `213eae5b1`. Carry[24] reads exactly that at this roster. It is the orchestrator's edit. Carry: R10-ORCH-ROSTER-SCHEMA

@@ -1,0 +1,11 @@
+head 318c9380d3267c141882c82d590949869ee1487a
+merge-base b0b2d7697f8c5baaef2c082d9bf3242b57249e68
+origin/main b0b2d7697f8c5baaef2c082d9bf3242b57249e68
+merge-tree: 3df51e9a93907be8a4f1eb9c2a071beb226d5cff rc=0
+rosterIssues at head: 1 72
+rosterIssues at 6eb552157: 1 76
+STRUCTURE RATCHET PASSED
+fold_ledger: 47 classes, 749 instances, 121 in-tree judge survivors (rounds [8, 10]), 127 rca entries
+fold_ledger: 0 violation(s)
+  MODE: SCOPED -- 0 script(s) run, 33 scoped out.
+rounds.py --stats bytes: 0
