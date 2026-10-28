@@ -1,0 +1,12 @@
+diff --git a/tools/pr/ci_predict.py b/tools/pr/ci_predict.py
+index 2516a6974..6a806508a 100644
+--- a/tools/pr/ci_predict.py
++++ b/tools/pr/ci_predict.py
+@@ -672,7 +672,6 @@ def predict(root: Path, base_ref: str, pairs: set | None = None,
+         ("privacy", lambda: privacy_preds(root)),
+         ("wiring", lambda: wiring_preds(root, changed)),
+         ("agreement", lambda: agreement_preds(root, base_ref, changed)),
+-        ("graders", lambda: grader_preds(root, base_ref, changed)),
+         ("no-recording", lambda: no_recording(root, base, changed, closure)),
+         ("under-scoped", lambda: under_scoped(root, base, changed, tracked, closures,
+                                               inert_reads, closure, pairs, scripts)),
