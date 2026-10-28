@@ -1,0 +1,11 @@
+RESULT mutant=NULL rc=0 fails=0 summary='roster_sync self-test: 53 checks, 0 failed'
+RESULT mutant=RH_dash_dropped_from_prefix_arm rc=1 fails=1 summary='roster_sync self-test: 53 checks, 1 failed'
+    FAIL no PR, or a closed-unmerged PR, changes nothing (got: ({'stage': 'not-started', 'branch': 'handoff/r9-nopr'}, {'stage': 'in-progress', 'branch': 'handoff/r9-pre', 'pr': 17}))
+RESULT mutant=RI_rc_ignored_on_disambiguate rc=0 fails=0 summary='roster_sync self-test: 53 checks, 0 failed'
+RESULT mutant=RJ_off_main_maps_true rc=1 fails=1 summary='roster_sync self-test: 53 checks, 1 failed'
+    FAIL a done group's commit off origin/main is RECORD-INVALID (got: {'C-NONE': 'c35302773738 does not resolve to a commit', 'C-UPPER': "'ABCDEF123456' is not 7-40 lowercase hex"})
+RESULT mutant=RK_open_group_ancestry_checked_noneonly rc=1 fails=1 summary='roster_sync self-test: 53 checks, 1 failed'
+    FAIL an open group's handoff head off origin/main is valid (got: {'C-NONE': 'c35302773738 does not resolve to a commit', 'C-OFF': 'ea0dee8100ad is not an ancestor of origin/main', 'C-OPEN': 'ea0dee810
+RESULT mutant=RL_unreadable_reads_valid_in_verdict rc=1 fails=1 summary='roster_sync self-test: 53 checks, 1 failed'
+    FAIL a checkout with no origin/main reads the ancestry as unreadable (got: {'C-NOMAIN': '19f7862ebc95427a9a73b29cedd0d04e08d4ed44 is not an ancestor of origin/main'})
+restored
