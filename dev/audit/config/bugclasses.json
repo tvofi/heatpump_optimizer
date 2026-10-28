@@ -4519,6 +4519,22 @@
         "dev/audit/rca/R10-RCA-HOTFIX-BATCH-ERREXIT.md"
       ]
     },
+    "R10-RCA-HEADMOVED": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "#2389 head-moved (rework): 75 re-verifications after a merge verdict on 55 PRs (21 after the relay freeze #2792); the carry refused a merge of a seat's own handed-off main merge whose own patch was unchanged",
+      "trigger": "recurrence (#2389, rework arm at 19 PRs against 3; owner asked for the write-up 2026-10-18)",
+      "date": "2026-10-28",
+      "status": "proposed",
+      "parts_missing": [],
+      "process_state": "(c) carry() reads one hop of history; (b) nudge.md section 2 carry-first, 6 instances; (a) no freeze on non-roster heads for the orchestrator's own pushes, 2 after the split",
+      "countermeasure": "CM-1 built: carry() carries a second parent off main when that parent carries in turn (8 of 75 flip to CARRY: yes, standing cost within self-test noise); CM-3, section 11's file-disjointness clause, is the owner's decision",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R10-RCA-HEADMOVED.md",
+      "doc": [
+        "dev/audit/rca/R10-RCA-HEADMOVED.md"
+      ]
+    },
     "R10-RCA-BUFFER-STORE": {
       "class": "P2",
       "level": "instance-or-process",
@@ -4551,6 +4567,22 @@
       "in_tree_home": "dev/audit/rca/R10-N-vocabulary-drift.md",
       "doc": [
         "dev/audit/rca/R10-N-vocabulary-drift.md"
+      ]
+    },
+    "R10-RCA-CLOSURE-ARGV": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "#2883 red trigger x2: tests / closures INERT READS UNDER-APPROXIMATED on tests/entities.py for reads a changed tool's self-test makes when entities runs it (state_docs spawning merge_throughput.py; roster_lib.blob_at's self-test putting two roster paths on git's argv, which closure._exec_record files as reads); ci_predict.py, whose unit is the static import edge, was quiet on both heads",
+      "trigger": "2 (red check): run 40548660478 at 8f05b74d4 and check-run 122599859589 at 71987ff1e (35 min 10 s FULL), closures-autofix skip-manual-repair-owed, round-3 review blocked",
+      "date": "2026-10-28",
+      "status": "proposed",
+      "parts_missing": [],
+      "process_state": "(c) prepr.sh step 6d ran and passed on both heads; its unit, a top-level import edge, does not reach a read a gate script's run of a changed self-test makes; the cheaper detector (--single, 868-913 s) is in no local path by the heavy-scripts rule",
+      "countermeasure": "ci_predict.py SELF-TEST READS (--record-self-tests, passed by prepr 6d): each changed self-testing file a host's source runs is recorded by closure._exec_record and graded as the host's record by closure.check (0.5-29 s a file; 63.4 s over the 15 of 300 R10 PRs that touch one) against 2 demonstrated reds at about 85 min each in 7 days",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R10-RCA-CLOSURE-ARGV.md",
+      "doc": [
+        "dev/audit/rca/R10-RCA-CLOSURE-ARGV.md"
       ]
     }
   },
