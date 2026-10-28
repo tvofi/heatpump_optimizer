@@ -1,0 +1,7 @@
+RESULT head=8f05b74d4 mode=arm rc=1 secs=46
+RESULT head=8f05b74d4 mode=noflag rc=0 secs=1
+RESULT head=71987ff1e mode=arm rc=1 secs=58
+RESULT head=71987ff1e mode=noflag rc=0 secs=1
+RESULT head=7b071dbd7 mode=arm rc=0 secs=51
+RESULT head=7b071dbd7 mode=noflag rc=0 secs=0
+RESULT head=71987ff1e mutant=R2-window-zero rc=1
