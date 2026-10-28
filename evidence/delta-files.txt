@@ -1,2 +1,0 @@
-dev/programme/delivery/2608.md
-dev/programme/rosters/wave-r10-groups.json
