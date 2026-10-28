@@ -1,3 +1,0 @@
-2026-10-18T18:45:20Z	Fix review: merge 311e9de3e0c6d5bd0aa2139caf16b7707bf232f6
-2026-10-18T15:02:21Z	Fix review: merge da688f50971bd31043383aeffca623d3b713c86b
-2026-10-18T13:28:46Z	Fix review: blocked c75609c3a172cae8497086606abe25d7b84a6c08 tests-red: fast's tests/arch_score.py fails "null: a callback handed to a package function" (got 1, want 0), because the P18 fold C16b roots a callback a package function only returns; pr-contract also refuses `Closes #2259`

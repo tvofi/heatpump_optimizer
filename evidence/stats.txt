@@ -1,3 +1,0 @@
-     3 / 5     tools/audit/briefs/fixer.md   <- at or over threshold
-CENSUS	friction rule id	3	5	tools/audit/briefs/fixer.md
-  INFO    [stats] (window): would open "[policy] recurring friction: tools/audit/briefs/fixer.md" -- friction rule id at 3 in this window, threshold 3. Counted as DISTINCT pull requests (5 entries in all); recurrence is across occasions, not within one body. Not opened here: a seat measures and files, a report does not.

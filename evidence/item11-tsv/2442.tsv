@@ -1,3 +1,0 @@
-2026-10-19T08:50:09Z	Fix review: merge b9f201f90efbb39422319426a7839c036b7b46af
-2026-10-19T08:33:15Z	Fix review: blocked b9f201f90efbb39422319426a7839c036b7b46af body-head-unnamed: ## Head names bef08da49, not this head b9f201f, and pr-contract run 117962608686 (started 08:28:44Z, after the body edit) refuses it with PR-BODY: 4 error(s); the same run also wants arch-score, env-matrix and validate-hacs named under ## Red checks
-2026-10-19T08:26:55Z	Fix review: blocked b9f201f90efbb39422319426a7839c036b7b46af carry-missing: the body's ## Forward-carry item and both ## Friction items name no destination, so carry_audit.py (pr-contract's last step) refuses it: CARRY-AUDIT 3 unrouted

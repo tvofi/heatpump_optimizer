@@ -1,2 +1,0 @@
-2026-10-18T14:40:59Z	Fix review: merge 4a4dee5c0525606ec628856b7f5f8b29a0a26234
-2026-10-18T13:29:41Z	Fix review: blocked fbba2ccb58a74111c4cfb139639533238835cd66 harness: class-open rename source paths: the scope job's `git diff --name-only` detects renames, so a .py/.js/action.yml renamed to an inert suffix drops off the list and that leg skips

@@ -1,1 +1,0 @@
-2026-10-24T13:32:14Z	Fix review: blocked 3383fb2acfcfaabef1ebeb635253c8140a45ebd5 regression: a scale clamp-reset keeps the ratio solved against the out-of-bounds scale, so the lower zone lands further off than at base

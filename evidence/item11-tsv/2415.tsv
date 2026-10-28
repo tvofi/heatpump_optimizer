@@ -1,3 +1,0 @@
-2026-10-19T06:35:45Z	Fix review: merge bd8011e9231944317162ffbde7824ffcad89ff2e
-2026-10-18T19:19:44Z	Fix review: merge 87c579404df187dc426960c2ac79f10a553be468
-2026-10-18T18:02:24Z	Fix review: blocked 9951f224a9e652fb7323784e05d86b4b35f16e55 carry-missing: not carried to R10-ARCHSCORE-COVERAGE (#2259 item 2, #2373): the card_dead_definitions census registration and the ledger strike owed at #2373's merge are in this PR's body and RCA §5.3 only; the group's roster brief and carry on origin/main name neither

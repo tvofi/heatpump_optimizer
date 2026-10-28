@@ -1,2 +1,0 @@
-2026-10-15T21:43:51Z	Fix review: merge 4792a3d14df943c588a3a374ae5fbf8590bf01c6
-2026-10-15T20:17:30Z	Fix review: blocked 1c385e45693e6d72965391146ea549d51f633afe test-vacuous: the production wiring of pins_running in run() and the mutation-pin-plan alternative survive deletion with the self-test green

@@ -1,5 +1,0 @@
-2026-10-21T14:58:18Z	Fix review: merge 802b38503eb5de20e87c278ba7923508a50c0f1f
-2026-10-21T14:13:17Z	Fix review: blocked 802b38503eb5de20e87c278ba7923508a50c0f1f body-stale: the body enumerates the diff at code head 31e162fd and calls it the authored code head, but this head carries 2c76c312; at the head done=52 (body 51), carries=257 (body 254), and R10-MERGE-PR-MANDATE to done plus 3 carries are undescribed
-2026-10-21T14:08:44Z	Fix review: blocked 2e77ed3e6aa2f03565bd02274ac847227bc619b5 head-moved: measured 2e77ed3e6aa2f03565bd02274ac847227bc619b5, head is 802b38503eb5de20e87c278ba7923508a50c0f1f
-2026-10-21T13:51:30Z	Fix review: blocked 5756617f185bbed71852ed1273c19b1e45787c9d head-moved: measured 5756617f185bbed71852ed1273c19b1e45787c9d, head is 2e77ed3e6aa2f03565bd02274ac847227bc619b5
-2026-10-21T13:15:44Z	Fix review: blocked 39f465739706edd44c7446a7cdebc0e0c5b30091 head-moved: measured 39f465739706edd44c7446a7cdebc0e0c5b30091, head is 13a798252c51e730f409d1648f1a39b3b0c1c997

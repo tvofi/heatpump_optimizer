@@ -1,3 +1,0 @@
-2026-10-20T07:06:27Z	Fix review: merge 42bee4bde021e9934e85cba43a34be6c99c05f30
-2026-10-20T05:50:36Z	Fix review: blocked 67ee6adfd712786da12241bf59bb5b78030c2d80 ci-red: pr-contract is red on both of this head's runs (carry_audit BAD-DEST x3: R10-UPDATE-PR-SIGNALS was not on main yet); the code verifies clean, and a head that merges origin/main at or after 1e30f876 routes 3/3
-2026-10-20T02:22:19Z	Fix review: blocked 2351c1c7bb6d71e455a7fd164f42f67091491d0f claim-false: the residual's Carry dismissal rests on a group kill, but daemonize.py's documented stop is kill <pid>, and a TERM of a daemonized update_pr.sh frees the branch lock at once while its push runs on in the worktree

@@ -1,6 +1,0 @@
-2026-10-21T18:45:27Z	Fix review: merge 4ef1a8270f3bd30bc6c313c950f6f44713a1442d
-2026-10-21T17:17:48Z	Fix review: blocked 54bf182104e450c0ac2e6eb007da59b9315e0565 merge-conflict: the unchanged head no longer merges with origin/main f2fb1b0e9, which conflicts in tools/audit/seat/pr_args.sh
-2026-10-21T16:21:07Z	Fix review: merge 54bf182104e450c0ac2e6eb007da59b9315e0565
-2026-10-21T15:24:49Z	Fix review: blocked 54bf182104e450c0ac2e6eb007da59b9315e0565 carry-missing: not carried to R10-POLICY-FIXER-MD
-2026-10-21T14:35:30Z	Fix review: blocked f16956542b2c4470de5a3e12fc843f97cef1840e mutation-survivor: W11 (row-only (c) drops its one-row conjunct) survives the self-test; a two-line row file skips prepr
-2026-10-21T13:26:33Z	Fix review: blocked 93015ecada7190edc054e49a47538704b14e1f34 mutation-survivor: widened skip predicates W4 (open-status) and W7 (row-only head pin) survive the self-test; pr-contract red on the body (carry_audit); row-only drops prepr 7c ancestry reds
