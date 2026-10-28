@@ -1,9 +1,0 @@
-RESULT groups=171 groups_with_carry=125 carries=513
-RESULT backticked_paths(distinct, own rule)=46 missing=4
-MISSING dev/audit/rounds/round10/D7/arch3-s6/patches/P1_issue_writer_leaf.patch ['R10-FAHRENHEIT']
-MISSING tools/audit/harnesses/k1725_blas_kernel_gap.py ['R10-BRIEFS-FOLD']
-MISSING tests/composed_closures.json ['R10-CI-LAYOUT']
-MISSING .github/workflows/pr-contract-rerun.yml ['R10-CI-LAYOUT']
-RESULT ref=50af6174f groups=171 with_carry=125 carries=513 path_occurrences=58
-RESULT ref=4c54758d7 groups=171 with_carry=125 carries=557 path_occurrences=65
-RESULT ref=717f7e582 groups=173 with_carry=132 carries=586 path_occurrences=65

@@ -1,1 +1,0 @@
-stage {'stage': 'not-started', 'branch': 'handoff/r10-fly-carry-disposition', 'commit': None, 'last_step': None, 'next_step': 'dispatch a fixer (fly-in, lane F)', 'note': 'Fly-in registered by the orchestrator (session s4) under mandate 6319294694; pack ORCHESTRATOR-PROMPT.md revision 19 names the spec.'}

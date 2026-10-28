@@ -1,0 +1,25 @@
+## null control + verdicts (roster_edit.ruling_verdict / triage_refusal)
+P42 DEFER
+P43 ACCEPT
+P44 DEFER
+P45 None
+P42 refusal: dev/programme/triage/s6-batch1.md#P42 is not an ACCEPT ruling (DEFER)
+P43 refusal: None
+P44 refusal: dev/programme/triage/s6-batch1.md#P44 is not an ACCEPT ruling (DEFER)
+mutant P43 verdict -> unreadable
+## ref_privacy --check
+ref_privacy --check at HEAD: 26 file(s) with a push site, 12 guarded, 104 line(s) added since 50af6174f53c judged, 0 refused
+## ref_privacy on b451bde0 version (pre-fix)
+(`<HOSTPATH>`, out of tree). GitHub calls: 0.
+## line 11-12 at head
+Logs cited by file name are in the s5 orchestrator's scratch directory
+(the s5 orchestrator's scratch directory, out of tree). GitHub calls: 0.
+## rules_sync/entities
+
+RULES-SYNC ok: every generated rule is the generated form of its source
+## entities (venv-ci)
+    )
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/acb63eaa-4d0a-5002-b364-94c24d359665/scratchpad/rev2688/wt/tests/harness.py", line 25, in <module>
+    from homeassistant.config_entries import ConfigEntryState
+ModuleNotFoundError: No module named 'homeassistant'
+rc=0
