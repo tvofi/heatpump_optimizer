@@ -186,8 +186,9 @@ Instances (read at origin/main `f844df1fe`):
   - `Claude` as author with tvofi as committer: 20.
   - Seat names on the Anthropic address (`hpo-fixer-seat`, `hpo seat`, `hpo fixer seat`,
     `hpo-author`, `hpo-fixer`): 27.
-- **The class has almost stopped, but not quite.** By author date, Anthropic-authored commits
-  ran from 47 to 168 a day between 10-18 and 10-25, with the last of that run on
+- **The class has almost stopped, but not quite.** By author date over 14 days, Anthropic-authored
+  commits fall on six days (10-18, 10-21 to 10-25), from 47 to 168 on each of those days, with the
+  last of that run on
   10-25T20:07:12Z (`70b57a370`). Since 2026-10-26T00:00Z, 1 of 1002 commits on main carries it:
   `b9a66d28d`, authored and committed as `Claude` at 2026-10-28T01:41:39Z.
 - **The source is a cloud fixer that did not set its identity.** `cloud-sessions.tsv` records
@@ -220,8 +221,9 @@ refusal costs the pushing seat a `git commit --amend --reset-author` (or a rebas
 before review, not after it, at the measured rate of 1 per 1002 commits.
 
 Binding: the owner's ruling (R10-FLY-NO-FOOTERS: no Claude attribution "in commits, pull request
-bodies or comments") is wider than the guard enforcing it. A runner default reached main 2 days
-after the preamble fix had taken the rate from 13 % to 0.1 %. Widening the existing arm costs a
+bodies or comments") is wider than the guard enforcing it. A runner default reached main 2 days after
+the rate had fallen from 499 of the 2904 commits before 10-26 in the 7-day window (17 %) to 1 of
+1002 since (0.1 %). The cause of the fall is not recorded in the tree. Widening the existing arm costs a
 few lines, and the alternative is a review catching it by eye. If the owner rules that the author
 field is outside the attribution rule (the filing's option (b)), this ruling falls and nothing
 lands.
