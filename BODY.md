@@ -13,93 +13,81 @@ Closes #2784
 #2429, #2436, #2437, #2438 and #2855 stay open: their countermeasures are
 drafted and routed, not landed.
 
-## Re-cut note
+## Re-cut
 
-Three rounds blocked on `carry-missing`; this cut replaces the body
-(`fixer.md`, past three rounds).
+Round 4 (`17dc8769b`, head `82a6ef4a1`) blocked on one item: a conflict on
+`dev/audit/config/bugclasses.json` with origin/main `b6f6ceca4`. It disputed
+nothing else. A conflict with main is resolved by merge, never a re-cut
+(`fixer.md`, step 6), so this pass is a merge plus this body; the diff's
+content is unchanged apart from the resolved file.
 
-- Round 1 (`aca91d7d1`, head `0f9a29e14`): A1/A2 were routed `Carry: #2733`,
-  whose groups were done or absorbed. Answered: A1 and A2 sit on
-  R10-FLOW-TOOLKIT-MODEL's carry (live, not-started), and the record's
-  section 3 now names that group, not #2733.
-- Round 2 (`94f8fa2b7`, head `0f9a29e14`): #2875's ownership and #2855's key
-  were still `Carry: #2733`, and the record's sections 3 and 5 still said
-  "#2733's". Answered: both items route to R10-ORCH-ROSTER-SCHEMA, which is
-  live (carries-open) on handoff/audit-r10-roster and whose STRANDED-carry
-  carry covers both. Both record sentences now name the live groups. Round 2
-  also found the `## Red checks` answer wrong for `pr-contract`; it is
-  corrected below.
-- Round 3 (`d91a634f7`, head `73b1b4048`): `carry-2733.json` was a second
-  destination for #2733. Answered: the file and its `tests/closures.json` entry
-  are deleted (`633d4ec43`), and no item names it as a destination.
+- **Answered: the conflict.** `7cda20df8` merges origin/main `b0b2d7697` into
+  `82a6ef4a1`. Both sides appended one `_rca` entry after
+  `R10-N-vocabulary-drift`; the resolution keeps both, `R10-RCA-CLOSURE-ARGV`
+  (main) and `R10-RCA-FRICTION-RESIDUE` (this branch), with main's bytes
+  otherwise identical. It also restores the file's trailing newline. Without
+  it `ledger_merge._format` reads no side as the writer's format and refuses
+  every concurrent edit of this ledger, which is what turned this race into a
+  hand conflict (the verdict's instrument finding). With it, the file
+  round-trips as `{'indent': 2}` under `_format`.
 
-Dropped, and why:
+Kept, and not contested in round 4: the record and its two evidence files, and
+the one `bugclasses.json` `_rca` entry. Dropped earlier and still dropped:
+`carry-2733.json` and its closures entry. The delivery row in the diff is the
+orchestrator's, not this seat's.
 
-- `dev/programme/carries/carry-2733.json` and its closures entry: contested in
-  round 3, and not owed. The roster brief owes the record, not a carry file.
-- The delivery row: it is the orchestrator's, not this seat's.
-- Round history and every figure not re-taken in this pass. The record's
-  figures are its own base's (`6eb552157`) and are labelled as such inside the
-  record; they are not restated here.
-
-Kept, and not contested: the record and its two evidence files, and the one
-`bugclasses.json` `_rca` entry.
-
-Non-blocking items taken in this cut: the record writes #2784's process state,
-(c) per #2561 section 9 (round 1). The four open siblings #2429, #2436, #2437
-and #2438 strand when this group goes done, as #2855 does; R10-ORCH-ROSTER-SCHEMA's
-carry for #2855 names them too (round 3). For the orchestrator: that group's
-STRANDED-carry carry names "carry-2733.json's two items" as first instances. That
-file is deleted, so the instances are #2875 and #2855 themselves.
+For the orchestrator (round 4, non-blocking): R10-ORCH-ROSTER-SCHEMA carry[24]
+still names "carry-2733.json's two items" as the STRANDED report's first
+instances. That file is deleted; the instances are #2875 and #2855 themselves.
 Carry: R10-ORCH-ROSTER-SCHEMA
 
 ## Head
 
-`2ee7cdc38e637ee435a8fbf154b768dece002c01` is the code head. It fast-forwards `633d4ec43` with a merge of
-origin/main `beb570c81` (no conflict) and two commits to the record. The second
-commit replaces the path `dev/governance/roles/root-cause.md` on the record's line 8
-with the role's name. `ref_privacy` refused that path as a home directory on this seat,
-whose home is `/root`. That is the substring false positive both earlier reviewers
-reported, and dropping the path is the remedy the refusal itself prescribes. The merge base is `beb570c81`,
-which is also origin/main at measurement (2026-10-28 18:29Z).
+`7cda20df866c0d2e94395ea030ce1f2587993ecc` is the code head: a merge of
+origin/main `b0b2d7697` into the previous head `82a6ef4a1`, resolving
+`dev/audit/config/bugclasses.json` as described in `## Re-cut`. The merge base
+is `b0b2d7697`, which is also origin/main at measurement (2026-10-28).
 
 ## Mutation proof
 
 n/a: no check, test or production line changes. The diff is a record, two
-evidence files and one register entry. The demonstrations A1 and A2 owe are
-their fixers' (record section 3; R10-FLOW-TOOLKIT-MODEL's acceptance).
+evidence files, one register entry and the orchestrator's delivery row. The
+demonstrations A1 and A2 owe are their fixers' (record section 3;
+R10-FLOW-TOOLKIT-MODEL's acceptance).
 
 ## Null control
 
 - `rosterIssues()` with no argument indexes 1 issue. With
-  `dev/programme/rosters` passed, it indexes 72 at `beb570c81`. The live-group
+  `dev/programme/rosters` passed, it indexes 72 at `7cda20df8`. The live-group
   arm is blind in production, which is A1's subject.
 - The scoped gate on the unmodified closures: `MODE: SCOPED -- 0 script(s) run`.
   No changed file is in any measured closure.
 
 ## Figures
 
+All re-taken at `7cda20df8` in this pass.
+
 - `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"`:
-  `MODE: SCOPED -- 0 script(s) run, 33 scoped out`, four changed files.
+  `MODE: SCOPED -- 0 script(s) run, 33 scoped out`, five changed files (the
+  three-dot diff's `--name-only` count).
 - `node --input-type=module -e "import {rosterIssues} from './tools/policy/brief_lint.mjs'; console.log(rosterIssues().size, rosterIssues('dev/programme/rosters').size)"`:
-  `1 72` at `beb570c81`.
-- `python3 -I tests/structure.py`: `STRUCTURE RATCHET PASSED` at the head.
+  `1 72`.
+- `python3 -I tests/structure.py`: `STRUCTURE RATCHET PASSED`.
+- `python3 -I tools/audit/fold_ledger.py check`: `127 rca entries`,
+  `0 violation(s)` (126 before main's `R10-RCA-CLOSURE-ARGV` came in).
 - `python3 -I tools/audit/carry_audit.py check --body <this body>`: the
   instrument's `CARRY-AUDIT` line, re-run by `prepr.sh`.
-- `python3 -I tools/audit/fold_ledger.py check`: the instrument's summary and
-  violation lines.
 
 ## Red checks
 
-- `pr-contract` (and `gate` through it) at `1e917ac2`: the closes preflight
-  refused all five `Closes` lines, because the group's `fixes` was empty at that
-  run's base. It was not red only through `prelude`. A cheaper detector exists:
-  `tools/pr/preflight.sh`'s closes check inside `prepr.sh`, which runs in seconds
-  on the same roster arithmetic. It had already refused these lines locally. The
-  red was the predicted result of the roster-write gap that record section 3
-  names, and the orchestrator's roster edit repaired it.
-- `prelude` at `1e917ac2`: GitHub API rate limit (`RATE-LIMITED`), transient.
-  Cheaper detector: none. The repair is a re-run (HANDOVER trap 44).
+- None at `82a6ef4a1` but `gate` 123069364626 in `CI code`, whose only verdict
+  line is a deferral (`FAIL run(s) [...] at this head are still being judged;
+  their gate decides`); the edit run's `gate` printed `PASS` and
+  `pr-contract` was green after it (round 4's evidence). No cause to answer;
+  cheaper detector: none needed.
+- `prelude` at `1e917ac2` (an earlier head of this PR): GitHub API rate limit
+  (`RATE-LIMITED`), transient. Cheaper detector: none exists; the repair is a
+  re-run (HANDOVER trap 44), and `prelude` is green at `82a6ef4a1`.
 
 ## Forward-carry
 
@@ -136,3 +124,4 @@ their fixers' (record section 3; R10-FLOW-TOOLKIT-MODEL's acceptance).
 - `policy_lint.mjs`: unclear: the threshold's unit is the class spelling, so many untaught words over many PRs aggregate to no filing (record section 4). Carry: #2436
 - `ci-autofix.md`: unclear: "wait for the bot" has no terminating condition when the bot's own job stalls (record section 7). Carry: #2429
 - `finding-propagation.md`: unenforced: the producing seat cannot write the destination brief (record section 8). Carry: #2438
+
