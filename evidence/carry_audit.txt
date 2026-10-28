@@ -1,6 +1,2 @@
-## at head 37d1d0d3, main tool
 CARRY-AUDIT: 3 finding item(s): 3 routed, 0 unrouted, 0 bad destination(s)
-rc=0
-## --roster-ref origin/handoff/audit-r10-roster
 CARRY-AUDIT: 3 finding item(s): 3 routed, 0 unrouted, 0 bad destination(s)
-carry_audit.py identical main/head
