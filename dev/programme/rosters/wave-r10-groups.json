@@ -11110,6 +11110,48 @@
     "note": "Owner order (tvofi, 2026-10-28)"
    },
    "brief": "Owner order (tvofi, 2026-10-28). Prompt-cache gap 5 (large tool outputs): prepr prints one summary line (verdict, mode, failing script names) and writes the full output to a log path it names, so a seat reads the line and opens the log only on red. Controls: a green run prints the summary line and not the per-script output; a red run's summary names each failing script; mutant dropping the failing name fails the red arm; null: the log holds exactly the output the old run printed."
+  },
+  {
+   "group": "R10-FLY-INSTRUMENTS-SPLIT",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "instrument",
+   "severity": "medium",
+   "size": "M",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 6,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "tools/audit/seat/INSTRUMENTS.md",
+    "CLAUDE.md"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "handoff",
+    "branch": "handoff/r10-fly-instruments-split",
+    "commit": "f5f87c8e34658da7fb0ed7c41eb411a47af3edf5",
+    "last_step": null,
+    "next_step": "review the handoff",
+    "note": "Owner order (tvofi, 2026-10-28)"
+   },
+   "brief": "Owner order (tvofi, 2026-10-28). Prompt-cache gap 6 (re-read cost of CLAUDE.md and tools/audit/seat/INSTRUMENTS.md): INSTRUMENTS.md is split so a seat loads the index and only the section for the instrument it runs, the index naming every part; no instrument entry is deleted. Controls: every instrument named before the split is named after it (set equality); the index is smaller than the old file; null: an entry's text is byte-identical in its new part."
   }
  ]
 }
