@@ -1,0 +1,2 @@
+FAIL every stage the tree's rosters carry is classified (derivable or protected) (got: {'in-review': 'wave-r10-groups.json'})
+roster_sync self-test: 53 checks, 1 failed
