@@ -1,0 +1,18 @@
+M1: FAIL the profile sourced twice puts venv-ci/bin on PATH once FAIL under BASH_ENV a nested bash keeps a stub its caller put ahead of the venv (#2452) cloud_setup self-test: 8 checks, 2 failed 
+M2: FAIL check refuses without them, naming each variable FAIL check refuses venv-ci's python3 without HPO_TYPING_PYTHON cloud_setup self-test: 8 checks, 2 failed 
+M3: FAIL check refuses venv-ci's python3 without HPO_TYPING_PYTHON cloud_setup self-test: 8 checks, 1 failed 
+M4: FAIL a non-login bash under the printed variables gets venv-ci's python3 FAIL check is OK under the printed variables FAIL check refuses without them, naming each variable cloud_setup self-test: 8 checks, 3 failed 
+M5: FAIL check is OK under the printed variables FAIL check refuses without them, naming each variable cloud_setup self-test: 8 checks, 2 failed 
+M6: FAIL the printed PATH holds venv-ci/bin once, first, from a PATH holding it twice cloud_setup self-test: 8 checks, 1 failed 
+M7_openblas_profile: cloud_setup self-test: 8 checks, 0 failed 
+Traceback (most recent call last):
+  File "/tmp/tmp.UPL2HWA9a8/mut.py", line 3, in <module>
+    assert src.count(old)==1, (old, src.count(old))
+           ^^^^^^^^^^^^^^^^^
+AssertionError: (' OPENBLAS_CORETYPE=Haswell', 2)
+M8_openblas_vars: no-apply
+M9_check_py_only: cloud_setup self-test: 8 checks, 0 failed 
+M10_typing_profile: cloud_setup self-test: 8 checks, 0 failed 
+M11_check_rc: FAIL check refuses without them, naming each variable FAIL check refuses venv-ci's python3 without HPO_TYPING_PYTHON cloud_setup self-test: 8 checks, 2 failed 
+M12_main_check: cloud_setup self-test: 8 checks, 0 failed 
+M13_write_call: cloud_setup self-test: 8 checks, 0 failed 
