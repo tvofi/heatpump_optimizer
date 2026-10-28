@@ -1,0 +1,7 @@
+DELIVERY STATUS OK — 9 rowed, 3 pending, 0 overdue (overdue at 12 commits)
+  pending  #2902 6349205 0 commit(s) since — triage s7 batch 46: rule P232-P234 (V146-V148)
+  pending  #2900 c087203 1 commit(s) since — triage s7 batch 45: rule P227-P231 (V141-V145)
+  pending  #2894 2b274fe 3 commit(s) since — fix(r10-immersion-latch): book the immersion line from t
+
+This check is NOT a required context and a red here blocks no merge. Pending is the ordinary state: the protocol writes rows in batches, and only OVERDUE means a batch has stopped being drained.
+--require-rows reads the same ledger under `record`'s bar rather than this lane's: a red blocks the STAMP. Every merge listed above without a row is one the tag is about to move the window's start past, and no later window can see it again.
