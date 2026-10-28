@@ -1,3 +1,0 @@
-[] "run([\"gh\", \"pr\", \"merge\", n] + [\"--subject\", s])"
-[] "args = [\"gh\", \"pr\", \"merge\", n]\nargs += [\"--subject\", s]\nrun(args)"
-["f:1"] "run([\"gh\", \"pr\", \"merge\", n, \"--subject\", s])"

@@ -1,0 +1,6 @@
+mutH1 argv IDENTICAL
+mutH1 census IDENTICAL
+mutH1 hdiff DIFFER
+mutH1 rca.named DIFFER
+mutH1 rca.corpus DIFFER
+mutH1 rca.planted DIFFER

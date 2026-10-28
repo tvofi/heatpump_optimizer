@@ -1,0 +1,124 @@
+PROGRAM-CLASS f-string: merge refused=12 of 12; view refused=0 of 12
+PROGRAM-CLASS f-string, single quotes: merge refused=12 of 12; view refused=0 of 12
+PROGRAM-CLASS %-format: merge refused=12 of 12; view refused=0 of 12
+PROGRAM-CLASS %r-format: merge refused=12 of 12; view refused=0 of 12
+PROGRAM-CLASS .format: merge refused=12 of 12; view refused=0 of 12
+PROGRAM-CLASS .format, indexed: merge refused=12 of 12; view refused=0 of 12
+PROGRAM-CLASS template literal: merge refused=12 of 12; view refused=0 of 12
+PROGRAM-CLASS concatenation: merge refused=12 of 12; view refused=0 of 12
+PROGRAM-CLASS list join: merge refused=12 of 12; view refused=0 of 12
+PROGRAM-CLASS JS array join: merge refused=12 of 12; view refused=0 of 12
+PROGRAM-CLASS shell $(...): merge refused=12 of 12; view refused=0 of 12
+PROGRAM-CLASS shell "${...}": merge refused=12 of 12; view refused=0 of 12
+PROGRAM-CLASS merge refused=144 of 144; view refused=0 of 144
+WRAPPED argv wrapped after gh f.py: merge refused; null passed
+WRAPPED argv wrapped after gh f.mjs: merge refused; null passed
+WRAPPED argv wrapped after gh f.sh: merge refused; null passed
+WRAPPED argv wrapped after GH f.py: merge refused; null passed
+WRAPPED argv wrapped after GH f.mjs: merge refused; null passed
+WRAPPED argv wrapped after GH f.sh: merge refused; null passed
+WRAPPED exploded argv f.py: merge refused; null passed
+WRAPPED exploded argv f.mjs: merge refused; null passed
+WRAPPED exploded argv f.sh: merge refused; null passed
+WRAPPED exploded JS argv f.py: merge refused; null passed
+WRAPPED exploded JS argv f.mjs: merge refused; null passed
+WRAPPED exploded JS argv f.sh: merge refused; null passed
+WRAPPED merge refused=12 of 12; null refused=0 of 12
+CLASS gh pr merge f.sh: merge refused; null passed
+CLASS a double-quoted word f.sh: merge refused; null passed
+CLASS a single-quoted word f.sh: merge refused; null passed
+CLASS a \-newline before pr f.sh: merge refused; null passed
+CLASS a \-newline before merge f.sh: merge refused; null passed
+CLASS the subject on a continued line f.sh: merge refused; null passed
+CLASS a Python argv f.py: merge refused; null passed
+CLASS a single-quoted argv f.py: merge refused; null passed
+CLASS a space before an argv comma f.py: merge refused; null passed
+CLASS a # comment between the words f.py: merge refused; null passed
+CLASS a // comment between the words f.mjs: merge refused; null passed
+CLASS a /* */ comment between the words f.mjs: merge refused; null passed
+CLASS two adjacent literals f.py: merge refused; null passed
+CLASS -R o/r between f.sh: merge refused; null passed
+CLASS --subject "x y" between f.sh: merge refused; null passed
+CLASS -t "x y" between f.sh: merge refused; null passed
+CLASS -R $(cat r) between f.sh: merge refused; null passed
+CLASS -R "$O"/"$R" between f.sh: merge refused; null passed
+CLASS -R {repo} between f.py: merge refused; null passed
+CLASS a subscript value between f.py: merge refused; null passed
+CLASS an environ value between f.py: merge refused; null passed
+CLASS an indexed value between f.py: merge refused; null passed
+CLASS a call value between f.py: merge refused; null passed
+CLASS an f-string value between f.py: merge refused; null passed
+CLASS a JS subscript value between f.mjs: merge refused; null passed
+CLASS the flag --subject x f.sh: merge refused; null passed
+CLASS the flag --subject=x f.sh: merge refused; null passed
+CLASS the flag --title x f.sh: merge refused; null passed
+CLASS the flag --body x f.sh: merge refused; null passed
+CLASS the flag --body-file f f.sh: merge refused; null passed
+CLASS the flag -t x f.sh: merge refused; null passed
+CLASS the flag -tx f.sh: merge refused; null passed
+CLASS the flag -b x f.sh: merge refused; null passed
+CLASS the flag -F f f.sh: merge refused; null passed
+CLASS the flag -mt x f.sh: merge refused; null passed
+CLASS the flag -dmb x f.sh: merge refused; null passed
+CLASS the flag -mF f f.sh: merge refused; null passed
+CLASS an exploded call of separate arguments f.py: merge refused; null passed
+CLASS a call split over lines f.py: merge refused; null passed
+CLASS a paren in a shell comment above f.sh: merge refused; null passed
+CLASS merge_pull_request(commit_title=) f.py: merge refused; null passed
+CLASS /pulls/N/merge -f commit_message= f.sh: merge refused; null passed
+CLASS mergePullRequest(commitHeadline:) f.mjs: merge refused; null passed
+CLASS merge refused=43 of 43; null refused=0 of 43
+OPEN R10-MERGE-SUBJECT-CASEARM "never)" f.sh: held
+OPEN R10-MERGE-SUBJECT-CASEARM "never)" f.md: held
+OPEN R10-MERGE-SUBJECT-CASEARM "(never)" f.sh: held
+OPEN R10-MERGE-SUBJECT-CASEARM "(never)" f.md: held
+OPEN R10-MERGE-SUBJECT-CASEARM "a|b)" f.sh: held
+OPEN R10-MERGE-SUBJECT-CASEARM "a|b)" f.md: held
+OPEN R10-MERGE-SUBJECT-CASEARM "(a|b)" f.sh: held
+OPEN R10-MERGE-SUBJECT-CASEARM "(a|b)" f.md: held
+OPEN R10-MERGE-SUBJECT-CASEARM "*)" f.sh: held
+OPEN R10-MERGE-SUBJECT-CASEARM "*)" f.md: held
+OPEN R10-MERGE-SUBJECT-CASEARM "[0-9]*)" f.sh: held
+OPEN R10-MERGE-SUBJECT-CASEARM "[0-9]*)" f.md: held
+OPEN R10-MERGE-SUBJECT-CASEARM "  never)" f.sh: held
+OPEN R10-MERGE-SUBJECT-CASEARM "  never)" f.md: held
+OPEN R10-MERGE-SUBJECT-CASEARM "  (never)" f.sh: held
+OPEN R10-MERGE-SUBJECT-CASEARM "  (never)" f.md: held
+OPEN R10-MERGE-SUBJECT-CASEARM "  a|b)" f.sh: held
+OPEN R10-MERGE-SUBJECT-CASEARM "  a|b)" f.md: held
+OPEN R10-MERGE-SUBJECT-CASEARM "  (a|b)" f.sh: held
+OPEN R10-MERGE-SUBJECT-CASEARM "  (a|b)" f.md: held
+OPEN R10-MERGE-SUBJECT-CASEARM "  *)" f.sh: held
+OPEN R10-MERGE-SUBJECT-CASEARM "  *)" f.md: held
+OPEN R10-MERGE-SUBJECT-CASEARM "  [0-9]*)" f.sh: held
+OPEN R10-MERGE-SUBJECT-CASEARM "  [0-9]*)" f.md: held
+OPEN R10-MERGE-SUBJECT-CASEARM "        never)" f.sh: held
+OPEN R10-MERGE-SUBJECT-CASEARM "        never)" f.md: held
+OPEN R10-MERGE-SUBJECT-CASEARM "        (never)" f.sh: held
+OPEN R10-MERGE-SUBJECT-CASEARM "        (never)" f.md: held
+OPEN R10-MERGE-SUBJECT-CASEARM "        a|b)" f.sh: held
+OPEN R10-MERGE-SUBJECT-CASEARM "        a|b)" f.md: held
+OPEN R10-MERGE-SUBJECT-CASEARM "        (a|b)" f.sh: held
+OPEN R10-MERGE-SUBJECT-CASEARM "        (a|b)" f.md: held
+OPEN R10-MERGE-SUBJECT-CASEARM "        *)" f.sh: held
+OPEN R10-MERGE-SUBJECT-CASEARM "        *)" f.md: held
+OPEN R10-MERGE-SUBJECT-CASEARM "        [0-9]*)" f.sh: held
+OPEN R10-MERGE-SUBJECT-CASEARM "        [0-9]*)" f.md: held
+OPEN R10-MERGE-SUBJECT-CASEARM "\tnever)" f.sh: held
+OPEN R10-MERGE-SUBJECT-CASEARM "\tnever)" f.md: held
+OPEN R10-MERGE-SUBJECT-CASEARM "\t(never)" f.sh: held
+OPEN R10-MERGE-SUBJECT-CASEARM "\t(never)" f.md: held
+OPEN R10-MERGE-SUBJECT-CASEARM "\ta|b)" f.sh: held
+OPEN R10-MERGE-SUBJECT-CASEARM "\ta|b)" f.md: held
+OPEN R10-MERGE-SUBJECT-CASEARM "\t(a|b)" f.sh: held
+OPEN R10-MERGE-SUBJECT-CASEARM "\t(a|b)" f.md: held
+OPEN R10-MERGE-SUBJECT-CASEARM "\t*)" f.sh: held
+OPEN R10-MERGE-SUBJECT-CASEARM "\t*)" f.md: held
+OPEN R10-MERGE-SUBJECT-CASEARM "\t[0-9]*)" f.sh: held
+OPEN R10-MERGE-SUBJECT-CASEARM "\t[0-9]*)" f.md: held
+OPEN R10-MERGE-SUBJECT-CASEARM one-line x) gh pr merge 9 -t s f.sh: held
+OPEN R10-MERGE-SUBJECT-CASEARM expected-fail: held=49 of 49; null refused=0 of 49
+OPEN R10-MERGE-SUBJECT-CASEARM routed a blank line in a Python argv f.py: XFAIL
+OPEN R10-MERGE-SUBJECT-CASEARM routed a blank line in a JS argv f.mjs: XFAIL
+OPEN R10-MERGE-SUBJECT-CASEARM routed a closer in a JS block comment f.mjs: XFAIL
+OPEN R10-MERGE-SUBJECT-CASEARM routed expected-fail: held=0 of 3; null refused=0 of 3

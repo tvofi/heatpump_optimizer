@@ -1,0 +1,4 @@
+dev/audit/harnesses/merge_subject_guard_block.mjs:4:// The block opens at `// WHAT A MERGE CALL IS`, or, in a guard from before the extent
+dev/audit/harnesses/merge_subject_guard_block.mjs:5:// reader, at its subject-flag comment, and ends at `// WHICH LINE IS MAIN'S`.
+dev/audit/harnesses/merge_subject_guard_block.mjs:10:  const h = src.indexOf('// WHAT A MERGE CALL IS'); const from = h < 0 ? src.indexOf('// What a merge call may not carry') : h
+dev/audit/harnesses/merge_subject_guard_block.mjs:11:  const to = src.indexOf("// WHICH LINE IS MAIN'S")

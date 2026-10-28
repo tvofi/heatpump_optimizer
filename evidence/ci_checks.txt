@@ -1,0 +1,5 @@
+check-runs on 3bf97d36aa37989936038feba3c69cc6ae7011c3 read 2026-10-25 ~17:01Z (run 40212983945):
+success: arch-score, hassfest, governance/wave-script, codeql JS/actions, tests/closure-scope, tests/mutation, budget-raise-gate, validate-hacs, prelude, refresh, cancel-superseded
+neutral: CodeQL
+failure: governance/delivery-status (job 121229912413): "DELIVERY STATUS OVERDUE ... overdue #2795 102f749 12 commit(s) since"; "This check is NOT a required context and a red here blocks no merge."
+in progress / queued: governance/env-matrix, policy-docs, instrument-self-tests, tests/nightly-status, codeql python, tests/briefs, typing, closures, browser, coverage, arch-instrument, fast (3.14)
