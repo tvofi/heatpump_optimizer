@@ -1,0 +1,9 @@
+head b62c1aa5d9069e025d2b2a5b5e8b0e7ee2d0a902 2026-10-26T07:48:36Z, no planted pyc
+## before (a2a7b9ef copy)
+      7 R11: RESULT pins=16 fails=0 SURVIVED
+      3 R11: RESULT pins=16 fails=1 KILLED
+      3 exit=0
+      7 exit=1
+## after
+     10 R11: RESULT pins=16 fails=1 KILLED
+     10 exit=0
