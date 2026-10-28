@@ -1,5 +1,0 @@
-tools/pr/gh_comment.py:99:    instances. `tools/audit/prepr.sh`'s `shared_root` is the same predicate, and
-tools/pr/prepr.sh:23:#   tools/audit/prepr.sh --self-test
-tools/pr/prepr.sh:27:# copy at tools/audit/prepr.sh and run that instead. Reads of the script use
-tools/pr/prepr.sh:3302:  if test -f tools/audit/prepr.sh; then heavy_run /tmp/prepr-stlog.$$ bash tools/audit/prepr.sh --self-test; else heavy_run /tmp/prepr-stlog.$$ bash tools/pr/prepr.sh --self-test; fi
-tools/pr/push.sh:684:if test -f tools/audit/prepr.sh; then bash tools/audit/prepr.sh "$BODY" "$@"; else bash tools/pr/prepr.sh "$BODY" "$@"; fi

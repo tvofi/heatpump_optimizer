@@ -1,4 +1,0 @@
-PREDICT tests / fast (3.14) LAYOUT new-reference: tools/pr/prepr.sh cites retired path tools/audit/prepr.sh: #   tools/audit/prepr.sh [body.md]   # issue numbers after it are ignored: step 7 derives them
-CI PREDICT: a LAYOUT refusal is repaired in the diff as `python3 -I tests/layout.py --guard` names it: a re-added moved path goes where it lives, a citation is re-pointed to its new path, and a new file goes where tests/layout.json says
-CI PREDICT: 1 predicted red(s) on tests / fast (3.14) against 5261ba84139d -- repair before the handoff; the lines above name each arm's repair
-rc=1

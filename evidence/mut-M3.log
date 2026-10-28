@@ -311,11 +311,6 @@
   ok   a change to no pinned path touches none (null control)
   ok   preflight refuses an unintended closing keyword
   ok   preflight accepts an intended one (null control)
-  ok   step 7 refuses Closes on a roster never-issue though the caller forwards it (#2838's Closes #2428)
-  ok   and names the forwarded number it ignored
-  ok   and passes Closes on an issue a group fixes (null control)
-  ok   and on an unrostered issue, as pr-contract treats it (null control)
-  ok   INTENDED_JQ is pr-contract's own derivation, byte for byte
   ok   transport: a code head over a base that carries a transport file passes (null control)
   ok   transport: a code commit above a body transport commit is refused
   ok   transport: a body added and deleted again is still refused
@@ -371,20 +366,18 @@
   ok   the same carry passes once carry_line fetches the round branch
   ok   and the ok line names the count and the ref it read
   ok   a carry to a group only the worktree's roster holds passes the offline read (the defect's null control)
-  ok   and carry_line refuses it: the round branch, where fix-review step 10 looks, lacks the group
-  ok   and the refusal is carry_audit's own BAD-DEST line, naming the group
+  FAIL and carry_line refuses it: the round branch, where fix-review step 10 looks, lacks the group (got 0, wanted 1)
+  FAIL and the refusal is carry_audit's own BAD-DEST line, naming the group (got 1, wanted 0)
   ok   an unrouted ## Forward-carry item is refused
   ok   and the refusal is carry_audit's own UNROUTED line
   ok   a round branch that cannot be fetched refuses, never reads the stale mirror
   ok   and the refusal says why
   ok   the body step runs carry_line on the body and refuses on its rc
-  FAIL step 7's preflight derives the intended list and refuses on its rc (got 1, wanted 0)
-  ok   and --body-check runs the same preflight and refuses on its rc
   ok   the clone's mirror lacks the pushed head (the gate's null control: 7b's read)
   ok   reds_head_sha finds a pushed head the mirror lacked
   ok   and returns the origin's sha for it
   ok   a head the origin does not carry is a skip
   ok   and step 7c gates on it, not on 7b's UPSHA
 
-383 passed, 1 failed
-rc=2 wall 284 s
+375 passed, 2 failed
+rc=2 wall=267 s

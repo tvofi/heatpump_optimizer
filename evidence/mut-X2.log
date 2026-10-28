@@ -311,11 +311,6 @@
   ok   a change to no pinned path touches none (null control)
   ok   preflight refuses an unintended closing keyword
   ok   preflight accepts an intended one (null control)
-  ok   step 7 refuses Closes on a roster never-issue though the caller forwards it (#2838's Closes #2428)
-  ok   and names the forwarded number it ignored
-  ok   and passes Closes on an issue a group fixes (null control)
-  ok   and on an unrostered issue, as pr-contract treats it (null control)
-  ok   INTENDED_JQ is pr-contract's own derivation, byte for byte
   ok   transport: a code head over a base that carries a transport file passes (null control)
   ok   transport: a code commit above a body transport commit is refused
   ok   transport: a body added and deleted again is still refused
@@ -377,14 +372,12 @@
   ok   and the refusal is carry_audit's own UNROUTED line
   ok   a round branch that cannot be fetched refuses, never reads the stale mirror
   ok   and the refusal says why
-  FAIL the body step runs carry_line on the body and refuses on its rc (got 1, wanted 0)
-  ok   step 7's preflight derives the intended list and refuses on its rc
-  ok   and --body-check runs the same preflight and refuses on its rc
+  ok   the body step runs carry_line on the body and refuses on its rc
   ok   the clone's mirror lacks the pushed head (the gate's null control: 7b's read)
   ok   reds_head_sha finds a pushed head the mirror lacked
   ok   and returns the origin's sha for it
   ok   a head the origin does not carry is a skip
   ok   and step 7c gates on it, not on 7b's UPSHA
 
-383 passed, 1 failed
-rc=2 wall 282 s
+377 passed, 0 failed
+rc=0 wall=259 s

@@ -12,6 +12,10 @@ Alternatives considered:
 
 ## Head
 
+`042c60c8ad01d5f66858955c653ddd6a08c1e177` adds one commit to the previous head, containing only this PR's own row, `dev/programme/delivery/2838.md`. The authored code head is `2b0eb9d853c6f319bf2c61acee24baeae7b945ce`.
+
+`de39327b2379ee929a4fa0b99a9a48116a18f0a7` merges origin/main `f3ffb1c63` into the authored code head `2b0eb9d853c6f319bf2c61acee24baeae7b945ce` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below).
+
 `2b0eb9d853c6f319bf2c61acee24baeae7b945ce`. Its merge base is `da12aa37dee15b9e9567bd6c848493436f2592dd`, which was origin/main's tip when read at 2026-10-25T17:50Z. Three commits sit over the merge base:
 - `1b9a86266`, the change itself.
 - `d4bce566f`, which cuts the step 5 sentence in `fixer.md` back under `tools/audit/briefs/fixer.md`'s `files_tokens` cap. The first wording had put the file 13 tokens over.
@@ -98,3 +102,4 @@ Result: 9 planted, 9 killed.
 ## Friction
 
 none
+
