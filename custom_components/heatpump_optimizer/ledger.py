@@ -26,7 +26,14 @@ from typing import Any, Callable, Mapping
 
 import numpy as np
 
-from .payload import ContractComparison, IDLE_REASONS, REASON_UNTAGGED, SavingsMonth
+from .const import finite_float
+from .payload import (
+    RESISTIVE_LINES,
+    ContractComparison,
+    IDLE_REASONS,
+    REASON_UNTAGGED,
+    SavingsMonth,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -39,7 +46,7 @@ KEEP_MONTHS = 24
 #: circuit, the ``reason:`` lines partition it by why, and the two
 #: ``savings_`` lines compare it with a thermostat -- so adding any of them
 #: counts the same money again (R9-UX-6).
-BILLED_LINES = ("spot", "grid_fee", "capacity", "immersion", "wear")
+BILLED_LINES = ("spot", "grid_fee", "capacity", *RESISTIVE_LINES, "wear")
 
 #: The month's billed peak, kW, beside the capacity line it prices.
 CAPACITY_PEAK_META = "capacity_peak_kw"
@@ -52,9 +59,21 @@ SETTLED_HOURS_META = "settled_hours"
 #: coverage fold the same call makes.
 SPOT_PRICE_META = "spot_price"
 
+#: The kWh the plan's own model booked for the intervals the savings lines
+#: settle. Beside ``savings_actual``, the metered kWh of the same intervals,
+#: it calibrates the modelled thermostat to the meter (owner specification,
+#: 2026-10-24): the baseline runs at the power levels the pump recorded.
+SAVINGS_PLAN_LINE = "savings_plan"
+
+#: Below this many modelled kWh a month the plan commanded almost nothing:
+#: a meter-over-model ratio over it measures the meter's own residue, not
+#: the plan's power levels, so the thermostat stays at modelled power.
+MIN_CALIBRATION_KWH = 1.0
+
 #: The lines that are metered energy at the spot price: what every contract
-#: settles on. ``immersion`` is spot energy carved out of ``spot`` (#11).
-ENERGY_LINES = ("spot", "immersion")
+#: settles on. The resistive lines are spot energy carved out of ``spot``
+#: (#11), one per source (#2729).
+ENERGY_LINES = ("spot", *RESISTIVE_LINES)
 
 
 def month_key(when: datetime) -> str:
@@ -70,6 +89,29 @@ def pro_rata_factor(now: datetime) -> float:
 def month_hours(now: datetime) -> float:
     """Hours in ``now``'s calendar month, as days x 24 (a DST hour ignored)."""
     return 24.0 * calendar.monthrange(now.year, now.month)[1]
+
+
+def coverage_factor(meta: Mapping[str, Any], now: datetime) -> float:
+    """Open-month scale from the month's ``meta``: its hours over the hours it settled.
+
+    The coverage is the month's only when it began with the month's
+    first settlement: the call folding it folds a spot sample at most
+    once, so a complete coverage has at least as many folds. A month
+    booked before the coverage meta existed (an upgrade mid-month) has
+    fewer, and its hours describe the upgrade's tail, not the lines it
+    would scale (#2255's coverage under v7.0.1: months of bookings over
+    minutes of hours). That month, like one with no coverage, falls back
+    to the calendar-day ratio. Every estimated figure takes this one
+    factor. A meta entry that is not a dict, or one whose ``sum`` or
+    ``count`` is missing or not a finite number, reads as no coverage.
+    """
+    entry, spot = meta.get(SETTLED_HOURS_META), meta.get(SPOT_PRICE_META)
+    settled = finite_float(entry.get("sum"), 0.0) if isinstance(entry, dict) else 0.0
+    folds = int(finite_float(entry.get("count"), 0.0)) if isinstance(entry, dict) else 0
+    spot_folds = int(finite_float(spot.get("count"), 0.0)) if isinstance(spot, dict) else 0
+    if settled > 0 and folds >= spot_folds:
+        return max(1.0, month_hours(now) / settled)
+    return pro_rata_factor(now)
 
 
 def savings_pct(baseline_sek: float, savings_sek: float) -> float | None:
@@ -200,22 +242,21 @@ class MonthlyLedger:
         actual_kwh: float,
         spot: float,
         dt: float,
+        planned_kw: float | None = None,
     ) -> None:
-        """Book the two savings lines, or neither.
+        """Book the savings lines, or none.
 
         ``baseline_kw is None`` means no plan covered the interval — skip.
         A finite 0.0 kW is a real thermostat-off step and must book.
-        ``actual_kwh`` is already energy (spot + immersion), not kW.
+        ``actual_kwh`` is already energy (spot + the resistive lines), not kW.
+        ``planned_kw``, the plan's modelled draw, books the plan line; a
+        month whose savings lines began without it never gains one, which
+        would calibrate a share of its thermostat only.
         """
-        if baseline_kw is None:
+        if baseline_kw is None or not all(np.isfinite(v) for v in (baseline_kw, actual_kwh, spot, dt)):
             return
-        if not (
-            np.isfinite(baseline_kw)
-            and np.isfinite(actual_kwh)
-            and np.isfinite(spot)
-            and np.isfinite(dt)
-        ):
-            return
+        lines = self._month(month_key(when))["lines"]
+        calibrated = SAVINGS_PLAN_LINE in lines or "savings_baseline" not in lines
         base_kwh = float(baseline_kw) * float(dt)
         self.add(
             when, "savings_baseline", kwh=base_kwh, sek=base_kwh * float(spot)
@@ -226,6 +267,9 @@ class MonthlyLedger:
             kwh=float(actual_kwh),
             sek=float(actual_kwh) * float(spot),
         )
+        if calibrated and planned_kw is not None and np.isfinite(planned_kw):
+            plan_kwh = float(planned_kw) * float(dt)
+            self.add(when, SAVINGS_PLAN_LINE, kwh=plan_kwh, sek=plan_kwh * float(spot))
 
     def settle_interval_savings(
         self,
@@ -250,6 +294,7 @@ class MonthlyLedger:
             actual_kwh=actual_kwh,
             spot=spot + fee_per_kwh,
             dt=dt,
+            planned_kw=pending.get("power"),
         )
 
     # -- reading ------------------------------------------------------------
@@ -315,7 +360,7 @@ class MonthlyLedger:
         """The month's metered kWh and their spot cost: ``ENERGY_LINES`` summed.
 
         The one figure every contract settles on; the contract comparison
-        reads it rather than folding the immersion line back in itself.
+        reads it rather than folding the resistive lines back in itself.
         """
         parts = [self.line(month, name) for name in ENERGY_LINES]
         return {
@@ -323,49 +368,35 @@ class MonthlyLedger:
             "sek": sum(part["sek"] for part in parts),
         }
 
-    def month_cost(self, month: str) -> float:
-        """What the month cost: its receipt's total, from the same lines.
+    def meter_calibration(self, month: str) -> float | None:
+        """Metered kWh over the plan's modelled kWh, on the same intervals.
 
-        The receipt's headline and the savings row's actual are this one
-        figure (#2255 item 5); two sums over two sets of lines disagreed.
+        The factor that puts the modelled thermostat at the power levels the
+        pump recorded (owner specification, 2026-10-24). ``None`` where the
+        month has no plan line (booked before it existed) or the plan booked
+        under ``MIN_CALIBRATION_KWH``.
         """
-        return billed_total(self.month_summary(month))[0]
-
-    def _coverage_factor(self, now: datetime) -> float:
-        """Open-month scale: the month's hours over the hours it settled.
-
-        The coverage is the month's only when it began with the month's
-        first settlement: the call folding it folds a spot sample at most
-        once, so a complete coverage has at least as many folds. A month
-        booked before the coverage meta existed (an upgrade mid-month) has
-        fewer, and its hours describe the upgrade's tail, not the lines it
-        would scale (#2255's coverage under v7.0.1: months of bookings over
-        minutes of hours). That month, like one with no coverage, falls back
-        to the calendar-day ratio. Every estimated figure takes this one
-        factor.
-        """
-        meta = self.months.get(month_key(now), {}).get("meta", {})
-        entry, spot = meta.get(SETTLED_HOURS_META), meta.get(SPOT_PRICE_META)
-        settled = float(entry["sum"]) if isinstance(entry, dict) else 0.0
-        folds = int(entry["count"]) if isinstance(entry, dict) else 0
-        spot_folds = int(spot["count"]) if isinstance(spot, dict) else 0
-        if settled > 0 and folds >= spot_folds:
-            return max(1.0, month_hours(now) / settled)
-        return pro_rata_factor(now)
+        lines = self.months.get(month, {}).get("lines") or {}
+        plan_kwh = self.line(month, SAVINGS_PLAN_LINE)["kwh"]
+        if SAVINGS_PLAN_LINE not in lines or plan_kwh < MIN_CALIBRATION_KWH:
+            return None
+        return self.line(month, "savings_actual")["kwh"] / plan_kwh
 
     def savings_months(self, now: datetime) -> list[SavingsMonth]:
         """Published rows: months that booked savings_baseline, oldest first.
 
-        ``actual_sek`` is the month's bill (``month_cost``), the figure the
-        receipt states. ``savings_sek`` is the thermostat's cost less the
-        plan's over the intervals a plan covered, both priced alike, and
-        ``baseline_sek`` is the bill plus that saving: the lines no
-        thermostat model prices (capacity, wear, uncovered intervals) are
-        held equal on both sides rather than charged to one (#2255).
+        One basis for every cell: the intervals a plan covered, priced at
+        spot plus the per-kWh grid fee on both sides. ``actual_sek`` is the
+        metered energy's cost; ``baseline_sek`` is the modelled thermostat's,
+        scaled to the meter by ``meter_calibration``, so its power levels
+        are the pump's recorded ones and a model that under-reads the meter
+        is not booked as a loss; ``savings_sek`` is the one less the other.
+        At one flat price the saving is the volume difference alone. The
+        lines no thermostat prices (capacity, wear, uncovered intervals)
+        are in neither column: the receipt states them.
 
-        The open month is an estimate: every energy-proportional figure is
-        scaled by ``_coverage_factor``; the capacity line is already a
-        month figure (the running billed peak) and is not.
+        The open month is an estimate: every figure is scaled by
+        ``coverage_factor``.
         """
         open_key = month_key(now)
         rows: list[SavingsMonth] = []
@@ -373,25 +404,27 @@ class MonthlyLedger:
             lines = self.months[key].get("lines") or {}
             if "savings_baseline" not in lines:
                 continue
-            saved = float(self.line(key, "savings_baseline")["sek"]) - float(
-                self.line(key, "savings_actual")["sek"]
+            calibration = self.meter_calibration(key)
+            baseline_sek = self.line(key, "savings_baseline")["sek"] * (
+                1.0 if calibration is None else calibration
             )
-            actual_sek = self.month_cost(key)
+            actual_sek = self.line(key, "savings_actual")["sek"]
             estimated = key == open_key
             if estimated:
-                factor = self._coverage_factor(now)
-                capacity = round(self.line(key, "capacity")["sek"], 2) if "capacity" in lines else 0.0
-                actual_sek = (actual_sek - capacity) * factor + capacity
-                saved *= factor
-            baseline_sek = actual_sek + saved
+                factor = coverage_factor(self.months[key].get("meta") or {}, now)
+                baseline_sek *= factor
+                actual_sek *= factor
+            baseline_sek, actual_sek = round(baseline_sek, 2), round(actual_sek, 2)
+            saved = round(baseline_sek - actual_sek, 2)
             rows.append(
                 {
                     "month": key,
-                    "baseline_sek": round(baseline_sek, 2),
-                    "actual_sek": round(actual_sek, 2),
-                    "savings_sek": round(saved, 2),
+                    "baseline_sek": baseline_sek,
+                    "actual_sek": actual_sek,
+                    "savings_sek": saved,
                     "savings_pct": savings_pct(baseline_sek, saved),
                     "estimated": estimated,
+                    "meter_calibration": None if calibration is None else round(calibration, 3),
                 }
             )
         return rows
@@ -520,14 +553,15 @@ def freeze_month_report(
     reason_kwh = sum(entry["kwh"] for entry in raw)
     reason_sek = sum(entry["sek"] for entry in raw)
     raw_spot = ledger.line(month, "spot")
-    spot = lines.get("spot", {"kwh": 0.0, "sek": 0.0})
     billed = {name: entry for name, entry in lines.items() if not name.startswith("reason:")}
     total, basis = billed_total(billed)
     report: dict[str, Any] = {
         "month": month,
         "lines": billed,
         "reasons": reasons,
-        "total_kwh": round(spot["kwh"] + lines.get("immersion", {}).get("kwh", 0.0), 3),
+        "total_kwh": round(
+            sum(lines.get(name, {}).get("kwh", 0.0) for name in ENERGY_LINES), 3
+        ),
         "total_sek": total,
         "basis": basis,
         "compressor_starts": compressor_starts,

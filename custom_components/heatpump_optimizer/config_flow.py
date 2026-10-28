@@ -352,6 +352,7 @@ from .const import (
     CONF_COMPRESSOR_FREQ_SENSOR,
     CONF_FLOW_METER_ENTITY,
     CONF_THERMAL_POWER_ENTITY,
+    CONF_HEAT_ENERGY_ENTITY,
     CONF_COMPRESSOR_FREQ_MIN_HZ,
     CONF_COMPRESSOR_FREQ_MAX_HZ,
     DEFAULT_COMPRESSOR_FREQ_MIN_HZ,
@@ -1168,26 +1169,11 @@ def _questionnaire_fields(current: dict[str, Any]) -> dict[Any, Any]:
 def _derive_preset(answers: dict[str, Any], current: dict[str, Any]) -> dict[str, Any]:
     """Turn questionnaire answers into thermal-parameter starting values.
 
-    ``two_zone`` is the canonical predicate's verdict on the configuration in
-    force (R9 D14-s2-01) — the same rule ``ThermalParameters.from_config``
-    applies — never a proxy read of one zone key, which ignored the mode
-    override, the other presence keys and a present-but-0.0 value. A fresh
-    setup has no zone keys, so the questionnaire derives a single-zone model
-    and never writes the keys whose presence would flip two-zone on.
+    A fresh setup has no zone keys, so the questionnaire derives a
+    single-zone model and never writes the keys whose presence would flip
+    two-zone on (``presets.preset_from_config``).
     """
-    preset = presets.BuildingPreset(
-        structure=answers.get(CONF_BUILDING_STRUCTURE, ""),
-        era=answers.get(CONF_BUILDING_ERA, ""),
-        foundation=answers.get(CONF_BUILDING_FOUNDATION, ""),
-        heated_area_m2=float(answers.get(CONF_HEATED_AREA, DEFAULT_HEATED_AREA)),
-        upper_emitter=answers.get(CONF_UPPER_EMITTER, ""),
-        lower_emitter=answers.get(CONF_LOWER_EMITTER, ""),
-        upper_area_ratio=float(
-            current.get(CONF_UPPER_FLOOR_AREA_RATIO, DEFAULT_UPPER_FLOOR_AREA_RATIO)
-        ),
-        two_zone=ThermalParameters.from_config(current).two_zone_enabled,
-    )
-    derived = presets.derive(preset)
+    derived = presets.derive(presets.preset_from_config(answers, current))
     # The derived response time is informational; it is not a thermal
     # parameter and would be rejected by the model.
     derived.pop("heating_response_hours", None)
@@ -1597,6 +1583,7 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     _F("entities_metering", CONF_POWER_ENTITY, _STORED, _entity_of('sensor', 'power'), group="meters"),
     _F("entities_metering", CONF_THERMAL_POWER_ENTITY, _STORED, _entity_of('sensor', 'power'), group="meters"),
     _F("entities_metering", CONF_ENERGY_ENTITY, _STORED, _entity_of('sensor', 'energy'), group="meters"),
+    _F("entities_metering", CONF_HEAT_ENERGY_ENTITY, _STORED, _entity_of('sensor', 'energy'), group="meters"),
     _F("entities_metering", CONF_HOUSE_POWER_ENTITY, _STORED, _entity_of('sensor', 'power'), group="meters"),
     _F("entities_metering", CONF_COMPRESSOR_FREQ_ENTITY, _STORED, _entity_of('number'), group="compressor"),
     _F("entities_metering", CONF_COMPRESSOR_FREQ_SENSOR, _STORED, _entity_of('sensor', 'frequency'), group="compressor"),

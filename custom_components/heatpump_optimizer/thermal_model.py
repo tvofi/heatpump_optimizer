@@ -912,133 +912,81 @@ class ThermalParameters:
         they need validating, deriving from another field, or defaulting on
         absence rather than on value.
         """
+        # field name -> the name its CONF_ key and DEFAULT_ value share in
+        # ``const``, resolved by name so the table stays readable and a missing
+        # constant raises rather than silently substituting a default.
         table = {
             # Single-zone / legacy
-            "room_thermal_mass": ("HOUSE_THERMAL_MASS", "HOUSE_THERMAL_MASS"),
-            "slab_thermal_mass": ("SLAB_THERMAL_MASS", "SLAB_THERMAL_MASS"),
-            "heat_loss_coefficient": (
-                "HOUSE_HEAT_LOSS_COEFFICIENT", "HOUSE_HEAT_LOSS_COEFFICIENT"
-            ),
-            "slab_heat_transfer": ("SLAB_HEAT_TRANSFER", "SLAB_HEAT_TRANSFER"),
+            "room_thermal_mass": "HOUSE_THERMAL_MASS",
+            "slab_thermal_mass": "SLAB_THERMAL_MASS",
+            "heat_loss_coefficient": "HOUSE_HEAT_LOSS_COEFFICIENT",
+            "slab_heat_transfer": "SLAB_HEAT_TRANSFER",
             # Two-zone
-            "upper_floor_thermal_mass": (
-                "UPPER_FLOOR_THERMAL_MASS", "UPPER_FLOOR_THERMAL_MASS"
-            ),
-            "lower_floor_thermal_mass": (
-                "LOWER_FLOOR_THERMAL_MASS", "LOWER_FLOOR_THERMAL_MASS"
-            ),
-            "upper_floor_heat_loss": (
-                "UPPER_FLOOR_HEAT_LOSS", "UPPER_FLOOR_HEAT_LOSS"
-            ),
-            "lower_floor_heat_loss": (
-                "LOWER_FLOOR_HEAT_LOSS", "LOWER_FLOOR_HEAT_LOSS"
-            ),
-            "inter_zone_transfer": ("INTER_ZONE_TRANSFER", "INTER_ZONE_TRANSFER"),
-            "radiator_power_fraction": (
-                "RADIATOR_POWER_FRACTION", "RADIATOR_POWER_FRACTION"
-            ),
-            "upper_floor_area_ratio": (
-                "UPPER_FLOOR_AREA_RATIO", "UPPER_FLOOR_AREA_RATIO"
-            ),
+            "upper_floor_thermal_mass": "UPPER_FLOOR_THERMAL_MASS",
+            "lower_floor_thermal_mass": "LOWER_FLOOR_THERMAL_MASS",
+            "upper_floor_heat_loss": "UPPER_FLOOR_HEAT_LOSS",
+            "lower_floor_heat_loss": "LOWER_FLOOR_HEAT_LOSS",
+            "inter_zone_transfer": "INTER_ZONE_TRANSFER",
+            "radiator_power_fraction": "RADIATOR_POWER_FRACTION",
+            "upper_floor_area_ratio": "UPPER_FLOOR_AREA_RATIO",
             # Buffer tank
-            "buffer_tank_volume": ("BUFFER_TANK_VOLUME", "BUFFER_TANK_VOLUME"),
-            "buffer_tank_heat_loss": ("BUFFER_TANK_LOSS", "BUFFER_TANK_LOSS"),
+            "buffer_tank_volume": "BUFFER_TANK_VOLUME",
+            "buffer_tank_heat_loss": "BUFFER_TANK_LOSS",
             # Solar gain
-            "window_area": ("WINDOW_AREA", "WINDOW_AREA"),
-            "solar_orientation_factor": (
-                "SOLAR_ORIENTATION_FACTOR", "SOLAR_ORIENTATION_FACTOR"
-            ),
-            "solar_heat_gain_coefficient": (
-                "SOLAR_HEAT_GAIN_COEFF", "SOLAR_HEAT_GAIN_COEFF"
-            ),
-            "solar_upper_fraction": (
-                "SOLAR_UPPER_FRACTION", "SOLAR_UPPER_FRACTION"
-            ),
+            "window_area": "WINDOW_AREA",
+            "solar_orientation_factor": "SOLAR_ORIENTATION_FACTOR",
+            "solar_heat_gain_coefficient": "SOLAR_HEAT_GAIN_COEFF",
+            "solar_upper_fraction": "SOLAR_UPPER_FRACTION",
             # Hot water
-            "dhw_tank_volume": ("DHW_TANK_VOLUME", "DHW_TANK_VOLUME"),
-            "dhw_setpoint": ("DHW_SETPOINT", "DHW_SETPOINT"),
-            "dhw_min_temp": ("DHW_MIN_TEMP", "DHW_MIN_TEMP"),
-            "dhw_daily_consumption": (
-                "DHW_DAILY_CONSUMPTION", "DHW_DAILY_CONSUMPTION"
-            ),
-            "dhw_cooling_rate": ("DHW_COOLING_RATE", "DHW_COOLING_RATE"),
-            "dhw_idle_min_temp": ("DHW_IDLE_MIN_TEMP", "DHW_IDLE_MIN_TEMP"),
-            "dhw_legionella_temp": (
-                "DHW_LEGIONELLA_TEMP", "DHW_LEGIONELLA_TEMP"
-            ),
-            "dhw_legionella_interval_days": (
-                "DHW_LEGIONELLA_INTERVAL_DAYS", "DHW_LEGIONELLA_INTERVAL_DAYS"
-            ),
+            "dhw_tank_volume": "DHW_TANK_VOLUME",
+            "dhw_setpoint": "DHW_SETPOINT",
+            "dhw_min_temp": "DHW_MIN_TEMP",
+            "dhw_daily_consumption": "DHW_DAILY_CONSUMPTION",
+            "dhw_cooling_rate": "DHW_COOLING_RATE",
+            "dhw_idle_min_temp": "DHW_IDLE_MIN_TEMP",
+            "dhw_legionella_temp": "DHW_LEGIONELLA_TEMP",
+            "dhw_legionella_interval_days": "DHW_LEGIONELLA_INTERVAL_DAYS",
             # Hot water, v4.0.0 T3. None of these joins the dhw_enabled
             # presence trio below — a configured inlet must never phantom-
             # enable hot water on an entry that has none.
-            "dhw_inlet_temp": ("DHW_INLET_TEMP", "DHW_INLET_TEMP"),
-            "dhw_inlet_seasonal_amplitude": (
-                "DHW_INLET_SEASONAL_AMPLITUDE", "DHW_INLET_SEASONAL_AMPLITUDE"
-            ),
-            "greywater_recovery": ("GREYWATER_RECOVERY", "GREYWATER_RECOVERY"),
-            "dhw_legionella_min_interval_days": (
-                "DHW_LEGIONELLA_MIN_INTERVAL_DAYS",
-                "DHW_LEGIONELLA_MIN_INTERVAL_DAYS",
-            ),
+            "dhw_inlet_temp": "DHW_INLET_TEMP",
+            "dhw_inlet_seasonal_amplitude": "DHW_INLET_SEASONAL_AMPLITUDE",
+            "greywater_recovery": "GREYWATER_RECOVERY",
+            "dhw_legionella_min_interval_days": "DHW_LEGIONELLA_MIN_INTERVAL_DAYS",
             # Learned corrections
-            "buffer_cooling_rate": ("BUFFER_COOLING_RATE", "BUFFER_COOLING_RATE"),
-            "house_heat_loss_scale": (
-                "HOUSE_HEAT_LOSS_SCALE", "HOUSE_HEAT_LOSS_SCALE"
-            ),
-            "lower_floor_loss_ratio": (
-                "LOWER_FLOOR_LOSS_RATIO", "LOWER_FLOOR_LOSS_RATIO"
-            ),
+            "buffer_cooling_rate": "BUFFER_COOLING_RATE",
+            "house_heat_loss_scale": "HOUSE_HEAT_LOSS_SCALE",
+            "lower_floor_loss_ratio": "LOWER_FLOOR_LOSS_RATIO",
             # Weather sensitivity
-            "wind_sensitivity": ("WIND_SENSITIVITY", "WIND_SENSITIVITY"),
-            "rain_heat_loss_multiplier": (
-                "RAIN_HEAT_LOSS_MULTIPLIER", "RAIN_HEAT_LOSS_MULTIPLIER"
-            ),
+            "wind_sensitivity": "WIND_SENSITIVITY",
+            "rain_heat_loss_multiplier": "RAIN_HEAT_LOSS_MULTIPLIER",
             # ECL110 heat curve control
-            "ecl110_displace_min": (
-                "ECL110_DISPLACE_MIN", "ECL110_DISPLACE_MIN"
-            ),
-            "ecl110_displace_max": (
-                "ECL110_DISPLACE_MAX", "ECL110_DISPLACE_MAX"
-            ),
-            "ecl110_pid_time_constant_hours": (
-                "ECL110_PID_TIME_CONSTANT", "ECL110_PID_TIME_CONSTANT"
-            ),
+            "ecl110_displace_min": "ECL110_DISPLACE_MIN",
+            "ecl110_displace_max": "ECL110_DISPLACE_MAX",
+            "ecl110_pid_time_constant_hours": "ECL110_PID_TIME_CONSTANT",
             # Heat pump
-            "cop_nominal": ("HEAT_PUMP_COP_NOMINAL", "HEAT_PUMP_COP_NOMINAL"),
-            "max_electrical_power": (
-                "HEAT_PUMP_MAX_POWER", "HEAT_PUMP_MAX_POWER"
-            ),
-            "min_electrical_power": (
-                "HEAT_PUMP_MIN_POWER", "HEAT_PUMP_MIN_POWER"
-            ),
-            "cop_partload_derate": ("HEAT_PUMP_COP_PARTLOAD_DERATE",) * 2,
+            "cop_nominal": "HEAT_PUMP_COP_NOMINAL",
+            "max_electrical_power": "HEAT_PUMP_MAX_POWER",
+            "min_electrical_power": "HEAT_PUMP_MIN_POWER",
+            "cop_partload_derate": "HEAT_PUMP_COP_PARTLOAD_DERATE",
         }
 
         values = {
             name: config.get(
-                getattr(const, f"CONF_{conf}"), getattr(const, f"DEFAULT_{default}")
+                getattr(const, f"CONF_{key}"), getattr(const, f"DEFAULT_{key}")
             )
-            for name, (conf, default) in table.items()
+            for name, key in table.items()
         }
 
         # Booleans are coerced because a config entry may carry a string.
-        for name, conf, default in (
-            ("dhw_schedule_enabled", "DHW_SCHEDULE_ENABLED", "DHW_SCHEDULE_ENABLED"),
-            (
-                "dhw_legionella_enabled",
-                "DHW_LEGIONELLA_ENABLED",
-                "DHW_LEGIONELLA_ENABLED",
-            ),
-            (
-                "dhw_elastic_legionella_enabled",
-                "DHW_ELASTIC_LEGIONELLA_ENABLED",
-                "DHW_ELASTIC_LEGIONELLA_ENABLED",
-            ),
+        for name, key in (
+            ("dhw_schedule_enabled", "DHW_SCHEDULE_ENABLED"),
+            ("dhw_legionella_enabled", "DHW_LEGIONELLA_ENABLED"),
+            ("dhw_elastic_legionella_enabled", "DHW_ELASTIC_LEGIONELLA_ENABLED"),
         ):
             values[name] = bool(
                 config.get(
-                    getattr(const, f"CONF_{conf}"), getattr(const, f"DEFAULT_{default}")
+                    getattr(const, f"CONF_{key}"), getattr(const, f"DEFAULT_{key}")
                 )
             )
         return values
@@ -1052,9 +1000,6 @@ class ThermalParameters:
         fields that need validating against a set of legal values, deriving
         from another field, or defaulting on *absence* rather than on value.
         """
-        # field name -> (config key, default). Both are resolved from ``const``
-        # by name so the table stays readable and a missing constant fails
-        # loudly at import rather than silently substituting a default.
         values = cls._tabled_values(config)
 
 
@@ -1347,7 +1292,9 @@ def probe_install(config: Any) -> InstallCapability:
         frequency=bool(
             freq_entity or cfg.get(const.CONF_COMPRESSOR_FREQ_SENSOR)
         ),
-        measured_heat=bool(cfg.get(const.CONF_THERMAL_POWER_ENTITY)),
+        measured_heat=bool(
+            cfg.get(const.CONF_HEAT_ENERGY_ENTITY) or cfg.get(const.CONF_THERMAL_POWER_ENTITY)
+        ),
     )
 
 
@@ -1444,9 +1391,14 @@ def learner_unmetered(config: Any) -> str | None:
     )
 
 
-def heat_loss_basis(config: Any) -> str:
-    """The ``HEAT_LOSS_BASES`` entry the heat-loss learners replay on this install."""
-    return const.HEAT_LOSS_BASES[1 if probe_install(config or {}).measured_power else 0]
+def heat_loss_basis(config: Any, earned: bool = False) -> str:
+    """The ``HEAT_LOSS_BASES`` entry the heat-loss learners replay on this install.
+
+    ``earned``: a fold has replayed a measured heat, which counts while the
+    install still has a heat meter.
+    """
+    cap = probe_install(config or {})
+    return const.HEAT_LOSS_BASES[2 if earned and cap.measured_heat else 1 if cap.measured_power else 0]
 
 
 def heat_loss_basis_voids(stored: Any, basis: str) -> bool:
@@ -1717,10 +1669,7 @@ def _two_tank_rates(
 def _partload_derate(value: Any) -> float:
     """A configured part-load derate, or the 0 default when it is not a
     number inside [0, ``MAX_HEAT_PUMP_COP_PARTLOAD_DERATE``]."""
-    try:
-        derate = float(value)
-    except (TypeError, ValueError):
-        return DEFAULT_HEAT_PUMP_COP_PARTLOAD_DERATE
+    derate = const.finite_float(value, DEFAULT_HEAT_PUMP_COP_PARTLOAD_DERATE)
     if 0.0 <= derate <= MAX_HEAT_PUMP_COP_PARTLOAD_DERATE:
         return derate
     return DEFAULT_HEAT_PUMP_COP_PARTLOAD_DERATE
@@ -1742,16 +1691,29 @@ def partload_factor(params: ThermalParameters, electrical_power: Any) -> Any:
     return 1.0 - params.cop_partload_derate * x
 
 
+def heat_per_cop_kw(params: ThermalParameters, electrical_power: Any) -> Any:
+    """Heat per unit of COP at ``electrical_power`` kW: the draw itself while
+    the derate is 0, else the draw times its part-load factor.
+
+    It depends on the draw alone, so a loop whose COP moves per sub-step
+    (the batch twin, the hot-water refresh) takes it once for the whole
+    schedule and multiplies by each step's COP, instead of re-deriving it in
+    every sub-step: that per-sub-step call was stress.py's production-call
+    channel firing at 1.051x-1.064x. Elementwise, like ``partload_factor``,
+    so a schedule's rows and a scalar step get the same IEEE product."""
+    if params.cop_partload_derate:
+        return electrical_power * partload_factor(params, electrical_power)
+    return electrical_power
+
+
 def delivered_heat_kw(params: ThermalParameters, cop: Any, electrical_power: Any) -> Any:
     """Heat the pump delivers at ``cop`` and ``electrical_power``, space or hot
-    water.
+    water: ``cop`` times :func:`heat_per_cop_kw`, the one association every
+    conversion uses, so the scalar step and the batch twin stay bitwise.
 
     Exactly ``cop * electrical_power`` while the derate is 0, so a plan with
     no part-load term is byte-identical to one priced before it."""
-    heat = cop * electrical_power
-    if params.cop_partload_derate:
-        heat = heat * partload_factor(params, electrical_power)
-    return heat
+    return cop * heat_per_cop_kw(params, electrical_power)
 
 
 def _copy_state_with(state: ThermalState, **changes: object) -> ThermalState:
@@ -2775,19 +2737,19 @@ class ThermalModel:
         humidity: np.ndarray | None = None,
     ) -> np.ndarray:
         """Refresh ``temps[from_step + 1:]`` after the schedule changed there."""
-        schedule = np.asarray(dhw_power_schedule, dtype=float)
+        heat_per_cop = heat_per_cop_kw(self.params, np.asarray(dhw_power_schedule, dtype=float))
         outdoor = np.asarray(outdoor_temps, dtype=float)
         draws = np.asarray(draw_rates, dtype=float)
         temp = float(temps[from_step])
         compute_cop = self.compute_cop_dhw
         simulate_step = self.simulate_dhw_step
-        for i in range(from_step, schedule.size):
+        for i in range(from_step, heat_per_cop.size):
             cop = compute_cop(
                 outdoor[i], temp, humidity=None if humidity is None else humidity[i]
             )
             temp = simulate_step(
                 dhw_temp=temp,
-                dhw_power_thermal=delivered_heat_kw(self.params, cop, schedule[i]),
+                dhw_power_thermal=cop * heat_per_cop[i],
                 hour_of_day=0.0,
                 dt_hours=dt_hours,
                 draw_power=draws[i],
@@ -2837,7 +2799,7 @@ class ThermalModel:
         # where a flow meter read it (#2016) and inferred from the draw and
         # this step's COP everywhere else.
         pump_heat_kw = (
-            delivered_heat_kw(self.params, cop, electrical_power)
+            cop * heat_per_cop_kw(self.params, electrical_power)
             if measured_heat_kw is None
             else measured_heat_kw
         )
@@ -2952,7 +2914,7 @@ class ThermalModel:
         # flow meter read it (#2016) and inferred from the draw and this
         # step's COP everywhere else.
         pump_heat_kw = (
-            delivered_heat_kw(self.params, cop, electrical_power)
+            cop * heat_per_cop_kw(self.params, electrical_power)
             if measured_heat_kw is None
             else measured_heat_kw
         )
@@ -3637,24 +3599,24 @@ class ThermalModel:
         buffer, wood (None when not modelled), plus refused [B, n].
         """
         p = self.params
-        power_matrix = np.asarray(power_matrix, dtype=float)
+        heat_per_cop = heat_per_cop_kw(p, np.asarray(power_matrix, dtype=float))
         outdoor_temps = weather.outdoor_temps
         wind_speeds = weather.wind_speeds
         precipitation = weather.precipitation
         solar_radiation = weather.solar_radiation
         humidity = weather.humidity
         external_heat_kw = weather.external_heat_kw
-        n_steps = power_matrix.shape[1]
+        n_steps = heat_per_cop.shape[1]
         wind_speeds, precipitation, solar_radiation = weather_or_calm(
             n_steps, wind_speeds, precipitation, solar_radiation
         )
 
-        room = np.zeros((power_matrix.shape[0], n_steps + 1))
+        room = np.zeros((heat_per_cop.shape[0], n_steps + 1))
         slab = np.zeros_like(room)
         upper = np.zeros_like(room)
         lower = np.zeros_like(room)
         buf = np.zeros_like(room)
-        refused = np.zeros((power_matrix.shape[0], n_steps))
+        refused = np.zeros((heat_per_cop.shape[0], n_steps))
         wood = None
         if initial_state.wood_tank_temperature is not None:
             wood = np.zeros_like(room)
@@ -3709,7 +3671,7 @@ class ThermalModel:
             wind_i = float(wind_speeds[i])
             rain_i = float(precipitation[i])
             sol_i = float(solar_radiation[i])
-            power_i = power_matrix[:, i]
+            heat_per_cop_i = heat_per_cop[:, i]
             ext_i = (
                 float(external_heat_kw[i])
                 if external_heat_kw is not None
@@ -3737,12 +3699,12 @@ class ThermalModel:
                     q_buf_loss = p.buffer_tank_heat_loss_coefficient * (
                         T_buf - TANK_ROOM_AMBIENT_TEMP
                     )
-                    # COP: only the flow-temp correction varies per element;
-                    # the scalar law lives in _batch_cop so this method's
-                    # size stays paid for.
+                    # COP: only the flow-temp correction varies per element
+                    # (the scalar law is _batch_cop's); the draws' heat per
+                    # unit COP was taken once for the whole batch above.
                     cop = self._batch_cop(out_i, hum_i, T_buf, throttled)
                     thermal_power = (
-                        delivered_heat_kw(p, cop, power_i) + (0.0 if two_tank else ext)
+                        cop * heat_per_cop_i + (0.0 if two_tank else ext)
                     )
                     if throttled:
                         target = (
@@ -3878,7 +3840,7 @@ class ThermalModel:
                     # ineligible exactly as the scalar single-zone step
                     # passes no flow temperature.
                     cop = self._batch_cop(out_i, hum_i, T_buf, False)
-                    thermal_power = delivered_heat_kw(p, cop, power_i) + ext
+                    thermal_power = cop * heat_per_cop_i + ext
                     q_slab_to_room = p.slab_heat_transfer * (T_slab - T_room)
                     q_loss = u_first * (T_room - out_i)
                     q_internal = (
@@ -4027,7 +3989,7 @@ class ThermalModel:
                     float(humidity[i]) if humidity is not None else None
                 ),
             )
-            dhw_thermal_power = delivered_heat_kw(self.params, cop_dhw, dhw_power_schedule[i])
+            dhw_thermal_power = cop_dhw * heat_per_cop_kw(self.params, dhw_power_schedule[i])
 
             new_dhw = self.simulate_dhw_step(
                 dhw_temp=state.dhw_temperature,

@@ -5673,7 +5673,7 @@ function ctxL(card, key) {
   check("and the click does not open the expanded dialog",
     !clickOpenedDialog);
   check("each row carries its plain-language explanation",
-    /how long the building holds its stored heat/.test(openDump) &&
+    /corrected for thermal mass/.test(openDump) &&
     /against its own\s+baseline/.test(openDump) &&
     /buying at or above flat scores 0/.test(openDump),
     (openDump.match(/score-breakdown[\s\S]{0,900}/) || [""])[0]);
@@ -5737,7 +5737,7 @@ function ctxL(card, key) {
     if (tile) tile.dispatchEvent({ type: "click", stopPropagation() {} });
     const open = collect(card.shadowRoot).join("\n");
     const row = (key) => (open.match(new RegExp(`data-part="${key}"[\\s\\S]*?sb-text`)) || [""])[0];
-    return { closed, title, row, headline: (closed.match(/hl-score[\s\S]*?hl-value">([^<]*)</) || [null, null])[1] };
+    return { closed, open, title, row, headline: (closed.match(/hl-score[\s\S]*?hl-value">([^<]*)</) || [null, null])[1] };
   };
   const nullParts = surfaces(withScore("60", {
     envelope: null, machine: null, operation: 60, overall: 60,
@@ -5751,6 +5751,28 @@ function ctxL(card, key) {
     && /sb-na">— Still learning/.test(nullParts.row("envelope"))
     && !/0\/100/.test(nullParts.row("machine")) && !/sb-fill/.test(nullParts.row("machine")),
     nullParts.row("machine"));
+
+  // #2816: a house grade says on hover what moves it off 50 and what the
+  // metric is; one no driver moves a point is "typical", never reasonless.
+  const drivenHouse = surfaces(withScore("60", {
+    envelope: 35.2, machine: null, operation: 60, overall: 60,
+    reasons: { machine: "cop_watch_learning" },
+    envelope_drivers: [{ code: "loss_vs_typical", points: 0.0 },
+      { code: "learned_heat_loss", points: -14.8 }, { code: "thermal_mass", points: 0.0 },
+      { code: "not_a_code", points: 3.0 }] }));
+  check("#2816: the house hover names each driver with its signed points, and the metric",
+    /House: 35\/100 \(learned heat loss vs configured −15\)/.test(drivenHouse.title || "")
+    && drivenHouse.title.includes(fn("STRINGS.en")["score.part_envelope"])
+    && !/not_a_code|thermal-mass correction/.test(drivenHouse.title)
+    && /sb-drivers">learned heat loss vs configured −15</.test(drivenHouse.open),
+    drivenHouse.title);
+  const typicalHouse = surfaces(withScore("60", {
+    envelope: 50, machine: null, operation: 60, overall: 60,
+    reasons: { machine: "cop_watch_learning" },
+    envelope_drivers: [{ code: "loss_vs_typical", points: 0.2 }] }));
+  check("#2816: a house no driver moves a point reads typical, with a reason all the same",
+    /House: 50\/100 \(typical for its type and era\)/.test(typicalHouse.title || ""),
+    typicalHouse.title);
 
   // One message everywhere: for every score input -- a grade, or null with
   // each code the coordinator can publish for it -- the headline, the hover
@@ -10281,6 +10303,31 @@ const STOCK_THEMES = {
     check(`and the bar itself is perceptible on a ${theme} card`,
       contrast(bar, th.card) >= 1.3, `${contrast(bar, th.card).toFixed(3)}:1 at opacity ${barAlpha}`);
   }
+
+  // #2492, the owner's acceptance: the tab equals ledger.savings_months cell
+  // for cell. The sensor's own published attributes, from a ledger settled
+  // through the production path (tests/plan_view.py), are what the card is
+  // handed; each cell is read back against the ledger's row.
+  const sav = plan.savings || { attributes: { savings_months: [] }, ledger_rows: [] };
+  const live = { ...savStates, "sensor.heat_pump_optimizer_monthly_savings": {
+    state: String(sav.attributes.savings_months.length), attributes: sav.attributes } };
+  const ledgerCard = build(live, { title: "c3-savings-ledger" });
+  ledgerCard.dialog.open();
+  ledgerCard.dialog.page = "savings";
+  ledgerCard._sig = null;
+  ledgerCard._render();
+  const ledgerCells = [...ledgerCard.shadowRoot.querySelectorAll("td")]
+    .map((el) => (el.textContent || "").replace(/\u00a0/g, " ").trim());
+  const fmt = (n) => (Number.isFinite(n) ? n.toFixed(2) : "—");
+  const expected = sav.ledger_rows.flatMap((r) => [r.month, fmt(r.baseline_sek), fmt(r.actual_sek),
+    fmt(r.savings_sek), Number.isFinite(r.savings_pct) ? `${r.savings_pct.toFixed(0)}%` : "—"]);
+  const got = ledgerCells.map((t, i) => (i % COLS === 0 ? t.split(" ")[0] : t));
+  check("#2492: the Savings tab's every cell is ledger.savings_months's, from the sensor's payload",
+    sav.ledger_rows.length >= 2 && got.length === expected.length && got.every((t, i) => t === expected[i]),
+    `tab ${got.join(" | ")} ledger ${expected.join(" | ")}`);
+  check("#2492: and each row's cells are one basis: baseline less actual is the saving shown",
+    sav.ledger_rows.every((r) => fmt(r.baseline_sek - r.actual_sek) === fmt(r.savings_sek)),
+    JSON.stringify(sav.ledger_rows));
 }
 
 // --- D4-03 (#1456): one screen, one quantity, one currency -----------------

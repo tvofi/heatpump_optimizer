@@ -171,12 +171,12 @@ conversion; and 22 are other conversions:
 
 ## 6. Mutation proof
 
-Run against the real `tests/features.py` — 4 466 checks — by
-`$EXPORT/probe/pl_mutants.py` (sha1 `8d3b2796f2ec`), which restores every file
+Run at `24bd25b9` against the real `tests/features.py` — 4 475 checks — by
+`$EXPORT/probe/pl_mutants.py` (sha1 `979ad48a4a60`), which restores every file
 with `git checkout --` afterwards.
 
 **R1, the factor itself removed.** `partload_factor` returns 1.0, so every site
-prices the flat law the defect shipped. Seven of 4 466 checks fail, and they are
+prices the flat law the defect shipped. Seven of 4 475 checks fail, and they are
 exactly the seven that need the term: the factor, the pump heat, the scalar
 step, the buffer ceiling, the flat-price plan, and the two hot-water checks. The
 configured-derate check passes, as it must — it drives `from_config`, not the
@@ -191,7 +191,7 @@ factor — so the run fails its own checks and nothing else:
   FAIL at a flat price the derate moves the plan off max power ...
   FAIL a hot-water schedule carries the derate too ...
   FAIL the full trajectory's hot-water track prices the same conversion ...
-=== R1 summary: 7 of 4466 FEATURE CHECKS FAILED
+=== R1 summary: 7 of 4475 FEATURE CHECKS FAILED
 ```
 
 R1 is the fix's line deleted. It cannot say *where* the term is missing, because
@@ -214,7 +214,7 @@ conversions — so no site is pinned by a neighbour's check:
   FAIL the buffer's charge ceiling prices the pump's max-power output ...
   FAIL a hot-water schedule carries the derate too ...
   FAIL the full trajectory's hot-water track prices the same conversion ...
-=== R2 summary: 6 of 4466 FEATURE CHECKS FAILED
+=== R2 summary: 6 of 4475 FEATURE CHECKS FAILED
 ```
 
 R1 says the fix's line is load-bearing; R2 says each site is load-bearing on its
@@ -225,10 +225,10 @@ rule, and §5 dispositions every seam it returns.
 ## Reproduce
 
 - Harness: `PYTHONPATH=tests/hastub:custom_components:tests python3 -u dev/audit/harnesses/r10_cop_partload.py`
-- Base arm: the same harness with `PYTHONPATH` on a worktree at `3b4180dcc`, where
+- Base arm: the same harness with `PYTHONPATH` on a worktree at `4f3c73020`, where
   it prints `term in tree False`, the same 32 plan hashes and the same three score
   summaries for the d=0 arm.
 - Census: `$EXPORT/probe/cop_seams.py custom_components/heatpump_optimizer`.
 - Standing cost of the feature block: `$EXPORT/probe/pl_block_cost.py`
-  (sha1 `fc6e9af30290`), 1.92 s CPU per run, median of three.
+  (sha1 `fc6e9af30290`), 1.94 s CPU per run, median of three.
 - Mutants: §6.

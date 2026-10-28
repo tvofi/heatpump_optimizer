@@ -528,7 +528,9 @@ costs a scrollbar rather than spilled content.
 The **Savings** tab opens on the last closed month's **receipt**: its total,
 what it saved against a plain thermostat, and one row per billed line with
 the basis it was priced on: spot energy and the grid energy fee in kWh, the
-capacity charge at the month's billed peak, an immersion heater's kWh, and
+capacity charge at the month's billed peak, the kWh a resistive heater drew
+beyond what the compressor can (the pump's own tank booster or backup heater
+while its flag is on, or an immersion heater you have declared), and
 compressor wear in starts. The total adds those lines and nothing else; a
 note under it says which lines it covers and that the savings figure
 compares spot cost only. Wear reads "not priced" until you set a
@@ -548,9 +550,14 @@ is missing from the measured lines. A restart that misses the midnight hour
 leaves that day without a promise, so the next day shows no replay.
 
 Under both, the table settles the months so far: for each
-month the conventional baseline, what you actually paid, the difference and its
-percentage — the same `savings_months` rows the **Plan Monthly Savings** sensor
-publishes, so the page can never disagree with the entity. The savings column
+month the conventional baseline, what the metered energy cost, the difference
+and its percentage — the same `savings_months` rows the **Plan Monthly Savings**
+sensor publishes, so the page can never disagree with the entity. Every column
+is on one basis: the intervals a plan covered, at spot price plus the grid
+energy fee. The baseline is a plain thermostat over the same prices, hot water
+kept hot around the clock, run at the power levels your heat pump's meter
+recorded rather than the model's; capacity and wear are the receipt's, in
+neither column. At one flat price the difference is energy alone. The savings column
 carries a bar scaled to the biggest month in the table, which answers "compared
 with the others" without quoting a target the page does not show. The open
 month is an estimate until it closes, and is badged as one; a month with no

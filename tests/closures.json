@@ -206,6 +206,7 @@
    "custom_components/heatpump_optimizer/freq_control.py",
    "custom_components/heatpump_optimizer/frontend.py",
    "custom_components/heatpump_optimizer/grid_fee.py",
+   "custom_components/heatpump_optimizer/heat_energy.py",
    "custom_components/heatpump_optimizer/icon.png",
    "custom_components/heatpump_optimizer/icons.json",
    "custom_components/heatpump_optimizer/inputs.py",
@@ -354,6 +355,7 @@
    "custom_components/heatpump_optimizer/flow_meter.py",
    "custom_components/heatpump_optimizer/freq_control.py",
    "custom_components/heatpump_optimizer/grid_fee.py",
+   "custom_components/heatpump_optimizer/heat_energy.py",
    "custom_components/heatpump_optimizer/inputs.py",
    "custom_components/heatpump_optimizer/issues.py",
    "custom_components/heatpump_optimizer/learner_progress.py",
@@ -448,6 +450,7 @@
    "custom_components/heatpump_optimizer/flow_meter.py",
    "custom_components/heatpump_optimizer/freq_control.py",
    "custom_components/heatpump_optimizer/grid_fee.py",
+   "custom_components/heatpump_optimizer/heat_energy.py",
    "custom_components/heatpump_optimizer/inputs.py",
    "custom_components/heatpump_optimizer/issues.py",
    "custom_components/heatpump_optimizer/learner_progress.py",
@@ -542,6 +545,7 @@
    "custom_components/heatpump_optimizer/flow_meter.py",
    "custom_components/heatpump_optimizer/freq_control.py",
    "custom_components/heatpump_optimizer/grid_fee.py",
+   "custom_components/heatpump_optimizer/heat_energy.py",
    "custom_components/heatpump_optimizer/inputs.py",
    "custom_components/heatpump_optimizer/issues.py",
    "custom_components/heatpump_optimizer/learner_progress.py",
@@ -567,6 +571,7 @@
    "custom_components/heatpump_optimizer/pv.py",
    "custom_components/heatpump_optimizer/quiet_windows.py",
    "custom_components/heatpump_optimizer/repairs.py",
+   "custom_components/heatpump_optimizer/sensor.py",
    "custom_components/heatpump_optimizer/setpoint_check.py",
    "custom_components/heatpump_optimizer/silent_mode.py",
    "custom_components/heatpump_optimizer/snapshots.py",
@@ -584,10 +589,12 @@
    "tests/dom_stub.mjs",
    "tests/env_drift.py",
    "tests/golden/card_claimed_drift.txt",
+   "tests/harness.py",
    "tests/hastub/homeassistant/__init__.py",
    "tests/hastub/homeassistant/components/__init__.py",
    "tests/hastub/homeassistant/components/mqtt.py",
    "tests/hastub/homeassistant/components/repairs.py",
+   "tests/hastub/homeassistant/components/sensor.py",
    "tests/hastub/homeassistant/config_entries.py",
    "tests/hastub/homeassistant/const.py",
    "tests/hastub/homeassistant/core.py",
@@ -598,10 +605,12 @@
    "tests/hastub/homeassistant/helpers/config_validation.py",
    "tests/hastub/homeassistant/helpers/device_registry.py",
    "tests/hastub/homeassistant/helpers/entity.py",
+   "tests/hastub/homeassistant/helpers/entity_platform.py",
    "tests/hastub/homeassistant/helpers/entity_registry.py",
    "tests/hastub/homeassistant/helpers/event.py",
    "tests/hastub/homeassistant/helpers/issue_registry.py",
    "tests/hastub/homeassistant/helpers/storage.py",
+   "tests/hastub/homeassistant/helpers/typing.py",
    "tests/hastub/homeassistant/helpers/update_coordinator.py",
    "tests/hastub/homeassistant/loader.py",
    "tests/hastub/homeassistant/util/__init__.py",
@@ -642,6 +651,7 @@
    "custom_components/heatpump_optimizer/flow_meter.py",
    "custom_components/heatpump_optimizer/freq_control.py",
    "custom_components/heatpump_optimizer/grid_fee.py",
+   "custom_components/heatpump_optimizer/heat_energy.py",
    "custom_components/heatpump_optimizer/inputs.py",
    "custom_components/heatpump_optimizer/issues.py",
    "custom_components/heatpump_optimizer/learner_progress.py",
@@ -667,6 +677,7 @@
    "custom_components/heatpump_optimizer/pv.py",
    "custom_components/heatpump_optimizer/quiet_windows.py",
    "custom_components/heatpump_optimizer/repairs.py",
+   "custom_components/heatpump_optimizer/sensor.py",
    "custom_components/heatpump_optimizer/setpoint_check.py",
    "custom_components/heatpump_optimizer/silent_mode.py",
    "custom_components/heatpump_optimizer/snapshots.py",
@@ -685,10 +696,12 @@
    "tests/card_rig.mjs",
    "tests/dom_stub.mjs",
    "tests/golden/card_claimed_drift.txt",
+   "tests/harness.py",
    "tests/hastub/homeassistant/__init__.py",
    "tests/hastub/homeassistant/components/__init__.py",
    "tests/hastub/homeassistant/components/mqtt.py",
    "tests/hastub/homeassistant/components/repairs.py",
+   "tests/hastub/homeassistant/components/sensor.py",
    "tests/hastub/homeassistant/config_entries.py",
    "tests/hastub/homeassistant/const.py",
    "tests/hastub/homeassistant/core.py",
@@ -699,10 +712,12 @@
    "tests/hastub/homeassistant/helpers/config_validation.py",
    "tests/hastub/homeassistant/helpers/device_registry.py",
    "tests/hastub/homeassistant/helpers/entity.py",
+   "tests/hastub/homeassistant/helpers/entity_platform.py",
    "tests/hastub/homeassistant/helpers/entity_registry.py",
    "tests/hastub/homeassistant/helpers/event.py",
    "tests/hastub/homeassistant/helpers/issue_registry.py",
    "tests/hastub/homeassistant/helpers/storage.py",
+   "tests/hastub/homeassistant/helpers/typing.py",
    "tests/hastub/homeassistant/helpers/update_coordinator.py",
    "tests/hastub/homeassistant/loader.py",
    "tests/hastub/homeassistant/util/__init__.py",
@@ -748,6 +763,7 @@
    "custom_components/heatpump_optimizer/freq_control.py",
    "custom_components/heatpump_optimizer/frontend.py",
    "custom_components/heatpump_optimizer/grid_fee.py",
+   "custom_components/heatpump_optimizer/heat_energy.py",
    "custom_components/heatpump_optimizer/icons.json",
    "custom_components/heatpump_optimizer/inputs.py",
    "custom_components/heatpump_optimizer/issues.py",
@@ -872,6 +888,7 @@
    "custom_components/heatpump_optimizer/flow_meter.py",
    "custom_components/heatpump_optimizer/freq_control.py",
    "custom_components/heatpump_optimizer/grid_fee.py",
+   "custom_components/heatpump_optimizer/heat_energy.py",
    "custom_components/heatpump_optimizer/inputs.py",
    "custom_components/heatpump_optimizer/issues.py",
    "custom_components/heatpump_optimizer/learner_progress.py",
@@ -989,6 +1006,7 @@
    "custom_components/heatpump_optimizer/freq_control.py",
    "custom_components/heatpump_optimizer/frontend.py",
    "custom_components/heatpump_optimizer/grid_fee.py",
+   "custom_components/heatpump_optimizer/heat_energy.py",
    "custom_components/heatpump_optimizer/icon.png",
    "custom_components/heatpump_optimizer/icons.json",
    "custom_components/heatpump_optimizer/inputs.py",
@@ -1113,6 +1131,7 @@
    "custom_components/heatpump_optimizer/freq_control.py",
    "custom_components/heatpump_optimizer/frontend.py",
    "custom_components/heatpump_optimizer/grid_fee.py",
+   "custom_components/heatpump_optimizer/heat_energy.py",
    "custom_components/heatpump_optimizer/icons.json",
    "custom_components/heatpump_optimizer/inputs.py",
    "custom_components/heatpump_optimizer/issues.py",
@@ -1376,6 +1395,7 @@
    "custom_components/heatpump_optimizer/freq_control.py",
    "custom_components/heatpump_optimizer/frontend.py",
    "custom_components/heatpump_optimizer/grid_fee.py",
+   "custom_components/heatpump_optimizer/heat_energy.py",
    "custom_components/heatpump_optimizer/icon.png",
    "custom_components/heatpump_optimizer/icons.json",
    "custom_components/heatpump_optimizer/inputs.py",
@@ -1701,6 +1721,7 @@
    "custom_components/heatpump_optimizer/freq_control.py",
    "custom_components/heatpump_optimizer/frontend.py",
    "custom_components/heatpump_optimizer/grid_fee.py",
+   "custom_components/heatpump_optimizer/heat_energy.py",
    "custom_components/heatpump_optimizer/icon.png",
    "custom_components/heatpump_optimizer/icons.json",
    "custom_components/heatpump_optimizer/inputs.py",
@@ -1888,6 +1909,7 @@
    "custom_components/heatpump_optimizer/freq_control.py",
    "custom_components/heatpump_optimizer/frontend.py",
    "custom_components/heatpump_optimizer/grid_fee.py",
+   "custom_components/heatpump_optimizer/heat_energy.py",
    "custom_components/heatpump_optimizer/inputs.py",
    "custom_components/heatpump_optimizer/issues.py",
    "custom_components/heatpump_optimizer/learner_progress.py",
@@ -2030,6 +2052,7 @@
    "custom_components/heatpump_optimizer/freq_control.py",
    "custom_components/heatpump_optimizer/frontend.py",
    "custom_components/heatpump_optimizer/grid_fee.py",
+   "custom_components/heatpump_optimizer/heat_energy.py",
    "custom_components/heatpump_optimizer/inputs.py",
    "custom_components/heatpump_optimizer/issues.py",
    "custom_components/heatpump_optimizer/learner_progress.py",
@@ -2165,6 +2188,7 @@
    "custom_components/heatpump_optimizer/freq_control.py",
    "custom_components/heatpump_optimizer/frontend.py",
    "custom_components/heatpump_optimizer/grid_fee.py",
+   "custom_components/heatpump_optimizer/heat_energy.py",
    "custom_components/heatpump_optimizer/icon.png",
    "custom_components/heatpump_optimizer/icons.json",
    "custom_components/heatpump_optimizer/inputs.py",
@@ -2344,6 +2368,7 @@
    "custom_components/heatpump_optimizer/flow_meter.py",
    "custom_components/heatpump_optimizer/freq_control.py",
    "custom_components/heatpump_optimizer/grid_fee.py",
+   "custom_components/heatpump_optimizer/heat_energy.py",
    "custom_components/heatpump_optimizer/inputs.py",
    "custom_components/heatpump_optimizer/issues.py",
    "custom_components/heatpump_optimizer/learner_progress.py",
@@ -2504,6 +2529,7 @@
    "custom_components/heatpump_optimizer/freq_control.py",
    "custom_components/heatpump_optimizer/frontend.py",
    "custom_components/heatpump_optimizer/grid_fee.py",
+   "custom_components/heatpump_optimizer/heat_energy.py",
    "custom_components/heatpump_optimizer/icons.json",
    "custom_components/heatpump_optimizer/inputs.py",
    "custom_components/heatpump_optimizer/issues.py",
@@ -2883,6 +2909,7 @@
    "custom_components/heatpump_optimizer/freq_control.py",
    "custom_components/heatpump_optimizer/frontend.py",
    "custom_components/heatpump_optimizer/grid_fee.py",
+   "custom_components/heatpump_optimizer/heat_energy.py",
    "custom_components/heatpump_optimizer/inputs.py",
    "custom_components/heatpump_optimizer/issues.py",
    "custom_components/heatpump_optimizer/learner_progress.py",
@@ -3043,6 +3070,7 @@
    "custom_components/heatpump_optimizer/flow_meter.py",
    "custom_components/heatpump_optimizer/freq_control.py",
    "custom_components/heatpump_optimizer/grid_fee.py",
+   "custom_components/heatpump_optimizer/heat_energy.py",
    "custom_components/heatpump_optimizer/inputs.py",
    "custom_components/heatpump_optimizer/issues.py",
    "custom_components/heatpump_optimizer/learner_progress.py",
@@ -3068,6 +3096,7 @@
    "custom_components/heatpump_optimizer/pv.py",
    "custom_components/heatpump_optimizer/quiet_windows.py",
    "custom_components/heatpump_optimizer/repairs.py",
+   "custom_components/heatpump_optimizer/sensor.py",
    "custom_components/heatpump_optimizer/setpoint_check.py",
    "custom_components/heatpump_optimizer/silent_mode.py",
    "custom_components/heatpump_optimizer/snapshots.py",
@@ -3078,10 +3107,12 @@
    "custom_components/heatpump_optimizer/topology.py",
    "custom_components/heatpump_optimizer/wear.py",
    "custom_components/heatpump_optimizer/wood_fuel.py",
+   "tests/harness.py",
    "tests/hastub/homeassistant/__init__.py",
    "tests/hastub/homeassistant/components/__init__.py",
    "tests/hastub/homeassistant/components/mqtt.py",
    "tests/hastub/homeassistant/components/repairs.py",
+   "tests/hastub/homeassistant/components/sensor.py",
    "tests/hastub/homeassistant/config_entries.py",
    "tests/hastub/homeassistant/const.py",
    "tests/hastub/homeassistant/core.py",
@@ -3092,10 +3123,12 @@
    "tests/hastub/homeassistant/helpers/config_validation.py",
    "tests/hastub/homeassistant/helpers/device_registry.py",
    "tests/hastub/homeassistant/helpers/entity.py",
+   "tests/hastub/homeassistant/helpers/entity_platform.py",
    "tests/hastub/homeassistant/helpers/entity_registry.py",
    "tests/hastub/homeassistant/helpers/event.py",
    "tests/hastub/homeassistant/helpers/issue_registry.py",
    "tests/hastub/homeassistant/helpers/storage.py",
+   "tests/hastub/homeassistant/helpers/typing.py",
    "tests/hastub/homeassistant/helpers/update_coordinator.py",
    "tests/hastub/homeassistant/loader.py",
    "tests/hastub/homeassistant/util/__init__.py",
@@ -3133,6 +3166,7 @@
    "custom_components/heatpump_optimizer/flow_meter.py",
    "custom_components/heatpump_optimizer/freq_control.py",
    "custom_components/heatpump_optimizer/grid_fee.py",
+   "custom_components/heatpump_optimizer/heat_energy.py",
    "custom_components/heatpump_optimizer/inputs.py",
    "custom_components/heatpump_optimizer/issues.py",
    "custom_components/heatpump_optimizer/learner_progress.py",
@@ -3275,6 +3309,7 @@
    "custom_components/heatpump_optimizer/freq_control.py",
    "custom_components/heatpump_optimizer/frontend.py",
    "custom_components/heatpump_optimizer/grid_fee.py",
+   "custom_components/heatpump_optimizer/heat_energy.py",
    "custom_components/heatpump_optimizer/inputs.py",
    "custom_components/heatpump_optimizer/issues.py",
    "custom_components/heatpump_optimizer/learner_progress.py",
@@ -3362,6 +3397,7 @@
    "custom_components/heatpump_optimizer/freq_control.py",
    "custom_components/heatpump_optimizer/frontend.py",
    "custom_components/heatpump_optimizer/grid_fee.py",
+   "custom_components/heatpump_optimizer/heat_energy.py",
    "custom_components/heatpump_optimizer/inputs.py",
    "custom_components/heatpump_optimizer/issues.py",
    "custom_components/heatpump_optimizer/learner_progress.py",
@@ -3476,6 +3512,7 @@
    "custom_components/heatpump_optimizer/flow_meter.py",
    "custom_components/heatpump_optimizer/freq_control.py",
    "custom_components/heatpump_optimizer/grid_fee.py",
+   "custom_components/heatpump_optimizer/heat_energy.py",
    "custom_components/heatpump_optimizer/inputs.py",
    "custom_components/heatpump_optimizer/issues.py",
    "custom_components/heatpump_optimizer/learner_progress.py",
@@ -3567,6 +3604,7 @@
    "tools/audit/seat/r10_roster_ops_mutants.py",
    "tools/audit/seat/r10_roster_sync_mutants.py",
    "tools/audit/seat/record_row.py",
+   "tools/audit/seat/review_packet.py",
    "tools/audit/seat/review_strength.py",
    "tools/audit/seat/roster_lib.py",
    "tools/audit/seat/roster_queue.py",
@@ -3651,6 +3689,7 @@
    "dev/audit/harnesses/r10_cloud_setup_toolchain.py",
    "dev/audit/harnesses/r10_codescan_wait_race.py",
    "dev/audit/harnesses/r10_cop_partload.py",
+   "dev/audit/harnesses/r10_cop_partload_equiv.py",
    "dev/audit/harnesses/r10_critpath_archive_parity.py",
    "dev/audit/harnesses/r10_dead_rate_limit.py",
    "dev/audit/harnesses/r10_demand_overbook.py",
@@ -3668,6 +3707,9 @@
    "dev/audit/harnesses/r10_gate_defer_race.py",
    "dev/audit/harnesses/r10_gate_priority_base.py",
    "dev/audit/harnesses/r10_gh_read_retry_mutants.py",
+   "dev/audit/harnesses/r10_heat_meter.py",
+   "dev/audit/harnesses/r10_heat_meter_mutants.py",
+   "dev/audit/harnesses/r10_house_grade.py",
    "dev/audit/harnesses/r10_i1_action_guards.py",
    "dev/audit/harnesses/r10_i1_solve_cpu_2x.py",
    "dev/audit/harnesses/r10_i1_sweep_guards.py",
@@ -3706,12 +3748,14 @@
    "dev/audit/harnesses/r10_registry_leak.py",
    "dev/audit/harnesses/r10_relay_owed_class_reach.py",
    "dev/audit/harnesses/r10_replay_loopnorm.py",
+   "dev/audit/harnesses/r10_review_gather_share.py",
    "dev/audit/harnesses/r10_review_strength_mutants.py",
    "dev/audit/harnesses/r10_roster_push_race.sh",
    "dev/audit/harnesses/r10_roster_sync_base.py",
    "dev/audit/harnesses/r10_sav_baseline.py",
    "dev/audit/harnesses/r10_sav_baseline_mutants.py",
    "dev/audit/harnesses/r10_sav_null_terms.py",
+   "dev/audit/harnesses/r10_sav_volume.py",
    "dev/audit/harnesses/r10_savings_upgrade_month.py",
    "dev/audit/harnesses/r10_scores_envelope.py",
    "dev/audit/harnesses/r10_seat_selftests_mutants.py",
@@ -4488,7 +4532,7 @@
   },
   "tests/arch_score_head.py": {
    "rc": 0,
-   "seconds": 33.0
+   "seconds": 85.9
   },
   "tests/backtest.py": {
    "rc": 0,
@@ -4496,7 +4540,7 @@
   },
   "tests/block_duty.py": {
    "rc": 0,
-   "seconds": 4.3
+   "seconds": 1.1
   },
   "tests/boost_drift_replay.py": {
    "rc": 0,
@@ -4508,7 +4552,7 @@
   },
   "tests/card_drift.mjs": {
    "rc": 0,
-   "seconds": 29.5
+   "seconds": 6.0
   },
   "tests/config_flow_steps.py": {
    "rc": 0,
@@ -4516,7 +4560,7 @@
   },
   "tests/debug_collect.py": {
    "rc": 0,
-   "seconds": 6.8
+   "seconds": 1.5
   },
   "tests/deployment_shape.py": {
    "rc": 0,
@@ -4535,7 +4579,7 @@
    "seconds": 25.0
   },
   "tests/entities.py": {
-   "rc": 1,
+   "rc": 0,
    "seconds": 867.9
   },
   "tests/env_drift.py": {
@@ -4560,7 +4604,7 @@
   },
   "tests/guard_pins.py": {
    "rc": 0,
-   "seconds": 1.2
+   "seconds": 2.5
   },
   "tests/ha_contract.py": {
    "rc": 0,
@@ -4592,11 +4636,11 @@
   },
   "tests/plan_view.py": {
    "rc": 0,
-   "seconds": 4.3
+   "seconds": 1.9
   },
   "tests/solar_alignment.py": {
    "rc": 0,
-   "seconds": 4.3
+   "seconds": 1.2
   },
   "tests/stress.py": {
    "rc": 0,
@@ -4604,11 +4648,11 @@
   },
   "tests/structure.py": {
    "rc": 0,
-   "seconds": 13.5
+   "seconds": 29.3
   },
   "tests/typing_ruler.py": {
    "rc": 0,
-   "seconds": 34.3
+   "seconds": 0.6
   },
   "tests/validate.py": {
    "rc": 0,
