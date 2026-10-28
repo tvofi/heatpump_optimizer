@@ -1,3 +1,0 @@
-########## scoped gate ##########
-  MODE: SCOPED -- 1 script(s) run, 32 scoped out.
-  closure. The claim is re-checked by the FULL unscoped suite that runs

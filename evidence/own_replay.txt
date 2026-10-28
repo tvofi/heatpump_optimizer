@@ -1,0 +1,24 @@
+   OWED: OWED 2026-10-22T01:00:00Z dispatch 105 no new head read after the update
+   OWED: OWED 2026-10-22T01:00:00Z dispatch 107 aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa bus.sh dispatch failed; run it by hand
+   OWED: OWED 2026-10-22T01:00:00Z probe-ref refs/heads/probe/scan-x aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+   OWED: OWED 2026-10-22T01:00:00Z probe-ref refs/heads/probe/scan-x aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+   OWED: OWED 2026-10-22T01:00:00Z handoff-no-pr refs/heads/handoff/topic-b aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+   OWED: OWED 2026-10-22T01:00:00Z handoff-no-pr refs/heads/handoff/topic-b aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+   OWED: OWED 2026-10-22T01:00:00Z handoff-update 103 topic-a aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+   OWED: OWED 2026-10-22T01:00:00Z approve-held-runs 104 fix/x
+RESULT tick=/tmp/claude-0/-home-user-heatpump-optimizer/c53ce2de-c168-5cce-b75c-2f22ba8197bd/scratchpad/rp/tick_1ebc737e7.py uncleared_after_POSTED=8 kinds=['approve-held-runs', 'dispatch', 'handoff-no-pr', 'handoff-update', 'probe-ref']
+   OWED: OWED 2026-10-22T01:00:00Z dispatch 105 no new head read after the update
+   OWED: OWED 2026-10-22T01:00:00Z dispatch 107 aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa bus.sh dispatch failed; run it by hand
+   OWED: OWED 2026-10-22T01:00:00Z probe-ref refs/heads/probe/scan-x aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+   OWED: OWED 2026-10-22T01:00:00Z probe-ref refs/heads/probe/scan-x aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+   OWED: OWED 2026-10-22T01:00:00Z handoff-no-pr refs/heads/handoff/topic-b aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+   OWED: OWED 2026-10-22T01:00:00Z handoff-no-pr refs/heads/handoff/topic-b aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+   OWED: OWED 2026-10-22T01:00:00Z handoff-update 103 topic-a aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+   OWED: OWED 2026-10-22T01:00:00Z approve-held-runs 104 fix/x
+RESULT tick=/tmp/claude-0/-home-user-heatpump-optimizer/c53ce2de-c168-5cce-b75c-2f22ba8197bd/scratchpad/rp/tick_6e12aeb5b.py uncleared_after_POSTED=8 kinds=['approve-held-runs', 'dispatch', 'handoff-no-pr', 'handoff-update', 'probe-ref']
+   cloud-relay log: 4 OWED line(s) naming no PR skipped (an older writer's level lines; the level file is the level)
+RESULT tick=/tmp/claude-0/-home-user-heatpump-optimizer/c53ce2de-c168-5cce-b75c-2f22ba8197bd/scratchpad/rp/tick_302f66571.py uncleared_after_POSTED=0 kinds=[]
+   cloud-relay log: 4 OWED line(s) naming no PR skipped (an older writer's level lines; the level file is the level)
+RESULT tick=/tmp/claude-0/-home-user-heatpump-optimizer/c53ce2de-c168-5cce-b75c-2f22ba8197bd/scratchpad/rp/tick_2124bc75b.py uncleared_after_POSTED=0 kinds=[]
+   cloud-relay log: 4 OWED line(s) naming no PR skipped (an older writer's level lines; the level file is the level)
+RESULT tick=/tmp/claude-0/-home-user-heatpump-optimizer/c53ce2de-c168-5cce-b75c-2f22ba8197bd/scratchpad/rp/tick_46e368127.py uncleared_after_POSTED=0 kinds=[]
