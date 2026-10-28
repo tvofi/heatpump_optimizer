@@ -1,4 +1,0 @@
-NOTE #2832 body item ac41654c: R10-IMMERSION-LATCH
-NOTE #2832 body item ee44520a: dismissed:the overdue notice stands beside it in every arm and names the completion's age, as the body says
-NOTE #2832 body item 7e720174: dismissed:the budget is lowered, not raised, and no rationale is lost
-CARRY-AUDIT #2832: 3 finding item(s): 3 routed, 0 unrouted, 0 bad destination(s)

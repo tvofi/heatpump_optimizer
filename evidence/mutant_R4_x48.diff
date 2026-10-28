@@ -1,4 +1,0 @@
-60c60
-<     return int(age_h // 24.0) if age_h > interval_days * 24.0 else None
----
->     return int(age_h // 24.0) if age_h > interval_days * 48.0 else None

@@ -1,4 +1,0 @@
-659c659
-<             watched=bool(params.dhw_enabled and params.dhw_legionella_enabled)
----
->             watched=bool(params.dhw_enabled or params.dhw_legionella_enabled)

@@ -1,0 +1,3 @@
+MUTANT M2_overdue_observe: features: 2 of 4404 FEATURE CHECKS FAILED | guard_pins: ALL 50 GUARD PIN CHECKS PASSED
+  FAIL a cycle overdue since its last confirmed completion is loud, with a silent probe too  [short None, silent probe None]
+  FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']

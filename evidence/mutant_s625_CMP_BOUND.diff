@@ -1,4 +1,0 @@
-625c625
-<         if attempt is None or (last is not None and utc_elapsed_seconds(attempt, last) <= 0):
----
->         if attempt is None or (last is not None and utc_elapsed_seconds(attempt, last) < 0):
