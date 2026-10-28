@@ -54,16 +54,11 @@
 # about one release's diff, it does not expire with the stamp and is not part
 # of the inherited-claims comparison.
 #
-# claims-for: 7.0.4
+# claims-for: 7.0.5
 #
-# v7.0.4: Round-10 docs: architecture, CI and development shape at programme end. The stamp empties the list; the
+# v7.0.5: Round-10 close-out: 226 merges of audited fixes, roster batches, triage rulings and records since v7.0.4. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
-coord_all_features  # R10-ADVISOR-RESIDUE: data.recent_kwh_price added (null: the fixture's ledger holds no settled interval)
-coord_dhw  # R10-ADVISOR-RESIDUE: data.recent_kwh_price added (null: the fixture's ledger holds no settled interval)
-coord_grid_fee  # R10-ADVISOR-RESIDUE: data.recent_kwh_price added (null: the fixture's ledger holds no settled interval)
-coord_minimal  # R10-ADVISOR-RESIDUE: data.recent_kwh_price added (null: the fixture's ledger holds no settled interval)
-coord_two_zone  # R10-ADVISOR-RESIDUE: data.recent_kwh_price added (null: the fixture's ledger holds no settled interval)
 # R10-ADVISOR-RESIDUE (#2257): the grid view gains `recent_kwh_price`, the
 # ledger's recent kWh price the advisors' monthly rows are priced at, so each
 # coord fixture's data gains that one key, null (no interval has settled in
@@ -747,4 +742,3 @@ coord_two_zone  # R10-ADVISOR-RESIDUE: data.recent_kwh_price added (null: the fi
 # plan can land in another basin: valve_storage_low_target does, at a lower
 # plan cost here (predicted_cost 61.91 -> 61.05). The suspended fixtures'
 # plan leaves are their own machine-sensitive ones. No coord_* capture moves.
-config_flow # R10-HEAT-METER (#2261): the heat_pump_heat_energy_entity field is published on the meters group and seeded; keys added (3 leaves), no value moved
