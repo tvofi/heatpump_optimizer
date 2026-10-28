@@ -11316,6 +11316,30 @@ def _two_zone_rad_demand():
         _tm, _ts, 21.0, -5.0, 0.0, 0.0, 0.0, 0.25, _tp.slab_heat_transfer_floored)
 
 
+# Unvalved, the two-zone reference still replaces the tank's standing loss
+# (the term the router carries for that arm alone).
+def _two_zone_unvalved_loss():
+    from heatpump_optimizer.optimizer import _thermostat_demand
+
+    _up = ThermalParameters(two_zone_enabled=True, buffer_tank_volume=750.0)
+    _um = ThermalModel(_up)
+
+    def _at(tank):
+        return _thermostat_demand(
+            _um, ThermalState(room_temperature=21.0, upper_floor_temperature=21.0,
+                              lower_floor_temperature=21.0, slab_temperature=25.0,
+                              buffer_tank_temperature=tank, outdoor_temperature=-5.0),
+            21.0, -5.0, 0.0, 0.0, 0.0, 0.25, _up.slab_heat_transfer_floored)
+    return _at(50.0) - _at(20.0), _up.buffer_tank_heat_loss_coefficient * 30.0
+
+
+_ul_gap, _ul_loss = _two_zone_unvalved_loss()
+R.check(
+    "two-zone, no valve: the reference replaces the tank's standing loss",
+    abs(_ul_gap - _ul_loss) < 1e-9 and _ul_loss > 0.0,
+    f"a 50 C tank asks {_ul_gap:.4f} kW more than a 20 C one; its loss is {_ul_loss:.4f} kW",
+)
+
 _tz_kw = _two_zone_rad_demand()
 R.check(
     "two-zone valve: the reference charges for the radiators' need over a hot slab",
