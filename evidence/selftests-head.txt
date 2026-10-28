@@ -1,33 +1,19 @@
 == bash tools/audit/seat/bus.sh --self-test
-  ok   a renderer this seat cannot run dispatches, names no packet, and says why
-  ok   dispatch takes one finder's harness, never two
+rc=0
   ok   the packet renderer passes its self-test (each refusal signal, independence, byte identity)
-bus self-test: 97 checks, 0 failed
-rc=0
+bus self-test: 98 checks, 0 failed
 == python3 -I tools/audit/seat/ledger.py --self-test
-  ok   null control: an opener that ends records opened,PR=<n>
-  ok   the census reads both sinks of the relay (ledger_open events, level_line levels)
-  ok   every kind cloud_relay.sh writes is a ledger kind (census of level_line and ledger_open)
-ledger self-test: 72 checks, 0 failed
 rc=0
+  ok   every kind cloud_relay.sh writes is a ledger kind (census of level_line and ledger_open)
+ledger self-test: 77 checks, 0 failed
 == bash tools/audit/seat/cloud_relay.sh --self-test
-  ok   a held lock aged 899 s is not reported
-  ok   a released lock aged 5000 s is not reported, whatever its text
+rc=0
   ok   once every lock is released nothing is reported, and the level holds no push-stuck line
 cloud_relay self-test: 283 checks, 0 failed
-rc=0
 == python3 -I tools/audit/seat/orchestrator_tick.py --self-test
+rc=0
 orchestrator_tick self-test: 215 checks, 0 failed
-rc=0
 == python3 -I tools/audit/seat/r10_ledger_mutants.py --self-test
-  ok   T7_readback_uncollected: the plant changes the text
-  ok   T7_readback_uncollected: the mutant parses
+rc=0
   ok   every plant's target has an owner self-test
-r10_ledger_mutants self-test: 118 checks, 0 failed
-rc=0
-== python3 -I tools/audit/seat/r10_ledger_mutants.py
-    FAIL verdict levels: a verdict not from the approver App is ignored: the head owes its review
-    FAIL REVIEW OWED: of reviewed, dispatched and neither (a draft aside), exactly one line: the one with neither
-    FAIL REVIEW OWED: a head the newest merge verdict carries to owes no review; one it does not carry to does
-plants: 42, without a FAIL line: none
-rc=0
+r10_ledger_mutants self-test: 135 checks, 0 failed

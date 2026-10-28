@@ -1,14 +1,76 @@
-MUTANT D_arm_ignored rc=0 SURVIVED :: ledger self-test: 72 checks, 0 failed
-MUTANT merged_lt rc=0 SURVIVED :: ledger self-test: 72 checks, 0 failed
-MUTANT merged_max_dropped rc=0 SURVIVED :: ledger self-test: 72 checks, 0 failed
-MUTANT relay_pr_suffix_kept rc=1 KILLED :: cloud_relay self-test: 283 checks, 2 failed
-    FAIL a handoff its topic's merged PR delivered (committed by the merge) is not owed (rc=0, want 1)
-    FAIL an unlisted merged set leaves the level as it was, never re-owing what a merge closed (rc=0, want 1)
-MUTANT bus_die_dropped rc=0 SURVIVED :: bus self-test: 97 checks, 0 failed
-MUTANT same_blob_arm_off rc=0 SURVIVED :: ledger self-test: 72 checks, 0 failed
-MUTANT D_arm_always_refuses under tools/audit/seat/ledger.py rc=0 SURVIVED :: ledger self-test: 72 checks, 0 failed
-MUTANT D_arm_always_refuses under tools/audit/seat/bus.sh rc=1 KILLED :: bus self-test: 97 checks, 2 failed
-MUTANT D_arm_always_refuses under tools/audit/seat/cloud_relay.sh rc=0 SURVIVED :: cloud_relay self-test: 283 checks, 0 failed
-MUTANT D_arm_ignored under tools/audit/seat/bus.sh rc=0 SURVIVED :: bus self-test: 97 checks, 0 failed
-MUTANT D_arm_ignored under tools/audit/seat/cloud_relay.sh rc=0 SURVIVED :: cloud_relay self-test: 283 checks, 0 failed
-BASELINE eab04d0 MUTANT content_superseded_D_guard_off rc=0 SURVIVED :: bus self-test: 92 checks, 0 failed
+MUTANT D_guard_inverted_rc KILLED
+   tools/audit/seat/ledger.py rc=1 ['ledger self-test: 77 checks, 2 failed']
+        FAIL null control: a tip deleting a file main still holds is not covered, beside a carried add
+        FAIL covered: a deletion main already made is carried
+   tools/audit/seat/bus.sh rc=1 ['bus self-test: 98 checks, 2 failed']
+        FAIL a ref whose file main already carries under a moved path is SUPERSEDED
+        FAIL green: with the pull requests pushed nothing is stranded and the run is 0
+   tools/audit/seat/cloud_relay.sh rc=0 ['cloud_relay self-test: 283 checks, 0 failed']
+MUTANT merged_min KILLED
+   tools/audit/seat/ledger.py rc=1 ['ledger self-test: 77 checks, 1 failed']
+        FAIL the topics reader keeps a topic's latest merge, whatever the listing order
+   tools/audit/seat/bus.sh rc=0 ['bus self-test: 98 checks, 0 failed']
+   tools/audit/seat/cloud_relay.sh rc=0 ['cloud_relay self-test: 283 checks, 0 failed']
+MUTANT no_by_line_true KILLED
+   tools/audit/seat/ledger.py rc=1 ['ledger self-test: 77 checks, 3 failed']
+        FAIL covered: an added file whose bytes main holds at another path is carried (a moved file)
+        FAIL covered: a deletion main already made is carried
+        FAIL covered: the same bytes at the path are carried, a removed line kept elsewhere notwithstanding
+   tools/audit/seat/bus.sh rc=1 ['bus self-test: 98 checks, 2 failed']
+        FAIL a ref whose file main already carries under a moved path is SUPERSEDED
+        FAIL green: with the pull requests pushed nothing is stranded and the run is 0
+   tools/audit/seat/cloud_relay.sh rc=0 ['cloud_relay self-test: 283 checks, 0 failed']
+MUTANT bare_topic_dropped KILLED
+   tools/audit/seat/ledger.py rc=1 ['ledger self-test: 77 checks, 2 failed']
+        FAIL the topics reader keeps a topic's latest merge, whatever the listing order
+        FAIL level CLI: owed lines on stdout, rc 1, the counts on stderr
+   tools/audit/seat/bus.sh rc=0 ['bus self-test: 98 checks, 0 failed']
+   tools/audit/seat/cloud_relay.sh rc=1 ['cloud_relay self-test: 283 checks, 2 failed']
+        FAIL a handoff ref with an open PR is not (null control) (rc=0, want 1)
+        FAIL disposed no-PR refs are not owed (rc=0, want 1)
+MUTANT escalate_body_ignored KILLED
+   tools/audit/seat/ledger.py rc=1 ['ledger self-test: 77 checks, 1 failed']
+        FAIL escalate: a code line naming its body is an opener; a body-only line has no code ref
+   tools/audit/seat/bus.sh rc=0 ['bus self-test: 98 checks, 0 failed']
+   tools/audit/seat/cloud_relay.sh rc=0 ['cloud_relay self-test: 283 checks, 0 failed']
+MUTANT bref_dropped KILLED
+   tools/audit/seat/ledger.py rc=1 ['ledger self-test: 77 checks, 1 failed']
+        FAIL the code ref's line names its body ref, which is no line of its own (one obligation per topic)
+   tools/audit/seat/bus.sh rc=0 ['bus self-test: 98 checks, 0 failed']
+   tools/audit/seat/cloud_relay.sh rc=1 ['cloud_relay self-test: 283 checks, 1 failed']
+        FAIL a no-PR topic with a body ref is one line, its code ref's, naming the body (rc=1, want 0)
+MUTANT level_heads_dropped KILLED
+   tools/audit/seat/ledger.py rc=0 ['ledger self-test: 77 checks, 0 failed']
+   tools/audit/seat/bus.sh rc=0 ['bus self-test: 98 checks, 0 failed']
+   tools/audit/seat/cloud_relay.sh rc=1 ['cloud_relay self-test: 283 checks, 1 failed']
+        FAIL a no-PR handoff ref a live fix/ head carries is not owed (the ledger's ancestry close) (rc=0, want 1)
+MUTANT reverse_flag_dropped KILLED
+   tools/audit/seat/ledger.py rc=1 ['ledger self-test: 77 checks, 1 failed']
+        FAIL landed: a patch main holds whose removed line main keeps elsewhere is reverse-apply, not content
+   tools/audit/seat/bus.sh rc=1 ['bus self-test: 98 checks, 2 failed']
+        FAIL a patch that applies to main reversed and not forward is SUPERSEDED
+        FAIL green: with the pull requests pushed nothing is stranded and the run is 0
+   tools/audit/seat/cloud_relay.sh rc=0 ['cloud_relay self-test: 283 checks, 0 failed']
+MUTANT cli_no_content_ignored ANCHOR-COUNT 0
+MUTANT bus_content_as_ancestor KILLED
+   tools/audit/seat/bus.sh rc=1 ['bus self-test: 98 checks, 2 failed']
+        FAIL a ref whose file main already carries under a moved path is SUPERSEDED
+        FAIL a hunk main carries in a file that moved on is SUPERSEDED, not stranded (#2397's shape)
+MUTANT merged_ct_any_ref SURVIVED
+   tools/audit/seat/ledger.py rc=0 ['ledger self-test: 77 checks, 0 failed']
+   tools/audit/seat/bus.sh rc=0 ['bus self-test: 98 checks, 0 failed']
+   tools/audit/seat/cloud_relay.sh rc=0 ['cloud_relay self-test: 283 checks, 0 failed']
+MUTANT relay_merged_awk_nf KILLED
+   tools/audit/seat/cloud_relay.sh rc=1 ['cloud_relay self-test: 283 checks, 2 failed']
+        FAIL a handoff its topic's merged PR delivered (committed by the merge) is not owed (rc=0, want 1)
+        FAIL an unlisted merged set leaves the level as it was, never re-owing what a merge closed (rc=0, want 1)
+MUTANT moved_blob_any KILLED
+   tools/audit/seat/ledger.py rc=1 ['ledger self-test: 77 checks, 1 failed']
+        FAIL null control: the same add with other bytes is not
+   tools/audit/seat/bus.sh rc=1 ['bus self-test: 98 checks, 5 failed']
+        FAIL orphans reports an owed handoff with no pull request as repair=opener, exit 1
+        FAIL a pull request whose head is behind its ref is repair=update
+        FAIL an exact-name pull request behind its newer handoff is repair=update, not discharged
+        FAIL a ref diverged from its pull request is repair=review, a human decision
+   tools/audit/seat/cloud_relay.sh rc=0 ['cloud_relay self-test: 283 checks, 0 failed']
+rc=0

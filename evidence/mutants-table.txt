@@ -1,0 +1,138 @@
+RESULT mutant=L1_readback_no_close rc=1 fails=2
+    FAIL verdict-unposted closes on a read-back of its first line (4b)
+    FAIL reviewer-fire closes on any verdict naming its head
+RESULT mutant=L2_moved_head_kept rc=1 fails=1
+    FAIL a PR head moved off the sha supersedes
+RESULT mutant=L3_any_verdict_posts rc=1 fails=1
+    FAIL a relayed claim is no close: a read-back of another verdict leaves it open
+RESULT mutant=L4_added_lines_unchecked rc=1 fails=7
+    FAIL null control: a hunk adding a line main lacks is not covered
+    FAIL the level owes the uncovered topic once, at its code ref, and the body-only ref
+    FAIL the code ref's line names its body ref, which is no line of its own (one obligation per topic)
+    FAIL and names each close: state ref, open PR, disposed, carried (ancestry and content), body
+    FAIL null control: a tip committed after its topic's merge stays owed
+    FAIL the code ref's topic carries the opener attempt at that tip
+    FAIL level CLI: owed lines on stdout, rc 1, the counts on stderr
+RESULT mutant=L5_no_ancestry_close rc=1 fails=1
+    FAIL landed: a tip inside main reads ancestor, not merges-only
+RESULT mutant=L6_no_content_close rc=1 fails=4
+    FAIL landed: the re-applied hunk is content (reverse-apply cannot: forward applies too)
+    FAIL the level owes the uncovered topic once, at its code ref, and the body-only ref
+    FAIL and names each close: state ref, open PR, disposed, carried (ancestry and content), body
+    FAIL level CLI: owed lines on stdout, rc 1, the counts on stderr
+RESULT mutant=L19_no_reverse_apply rc=1 fails=1
+    FAIL landed: a patch main holds whose removed line main keeps elsewhere is reverse-apply, not content
+RESULT mutant=L20_forward_not_refused rc=1 fails=1
+    FAIL null control: a patch that applies both ways (an unpatched copy remains) is not landed
+RESULT mutant=L21_merges_unchecked rc=1 fails=1
+    FAIL null control: a merge carrying its own resolution is not merges-only
+RESULT mutant=L22_merges_with_nonmerges rc=1 fails=1
+    FAIL landed: a merge tip whose parents main and a fix head carry is merges-only
+RESULT mutant=L23_moved_add_unchecked rc=1 fails=1
+    FAIL null control: the same add with other bytes is not
+RESULT mutant=L24_body_own_line rc=1 fails=6
+    FAIL the level owes the uncovered topic once, at its code ref, and the body-only ref
+    FAIL and names each close: state ref, open PR, disposed, carried (ancestry and content), body
+    FAIL a topic whose PR merged after its tip's commit is closed by the merge (RCA 5.1)
+    FAIL a merge in the tip's own commit second closes it (at or before, not strictly before)
+    FAIL the code ref's topic carries the opener attempt at that tip
+    FAIL level CLI: owed lines on stdout, rc 1, the counts on stderr
+RESULT mutant=L25_merged_ignored rc=1 fails=2
+    FAIL a topic whose PR merged after its tip's commit is closed by the merge (RCA 5.1)
+    FAIL a merge in the tip's own commit second closes it (at or before, not strictly before)
+RESULT mutant=L26_merged_any_time rc=1 fails=1
+    FAIL null control: a tip committed after its topic's merge stays owed
+RESULT mutant=L27_deletion_unguarded rc=1 fails=1
+    FAIL null control: a tip deleting a file main still holds is not covered, beside a carried add
+RESULT mutant=L28_deletion_always_refused rc=1 fails=1
+    FAIL covered: a deletion main already made is carried
+RESULT mutant=L29_same_blob_arm_off rc=1 fails=1
+    FAIL covered: the same bytes at the path are carried, a removed line kept elsewhere notwithstanding
+RESULT mutant=L30_merged_strictly_before rc=1 fails=1
+    FAIL a merge in the tip's own commit second closes it (at or before, not strictly before)
+RESULT mutant=L31_merged_last_listed rc=1 fails=1
+    FAIL the topics reader keeps a topic's latest merge, whatever the listing order
+RESULT mutant=R6_merged_unread_clears rc=1 fails=1
+    FAIL an unlisted merged set leaves the level as it was, never re-owing what a merge closed
+RESULT mutant=B1_orphans_merges_stranded rc=1 fails=2
+    FAIL a tip outside main and the fix heads only by a clean merge is discharged with the ancestry
+    FAIL green: with the pull requests pushed nothing is stranded and the run is 0
+RESULT mutant=B3_orphans_classifier_unchecked rc=1 fails=1
+    FAIL null control: a classifier that fails refuses orphans, never an all-ORPHAN list
+RESULT mutant=B2_orphans_no_content rc=1 fails=2
+    FAIL a patch that applies to main reversed and not forward is SUPERSEDED
+    FAIL green: with the pull requests pushed nothing is stranded and the run is 0
+RESULT mutant=L7_no_threshold rc=1 fails=3
+    FAIL DISPATCH oldest first, one per topic, naming group, repair and the attempt
+    FAIL null control: a young tip and a tip ahead of the clock escalate nothing
+    FAIL a moved threshold moves the queue
+RESULT mutant=L8_one_tip_blanks_all rc=1 fails=3
+    FAIL a topic whose PR merged after its tip's commit is closed by the merge (RCA 5.1)
+    FAIL a merge in the tip's own commit second closes it (at or before, not strictly before)
+    FAIL every owed line, an orphan body ref's included, carries its tip's commit time
+RESULT mutant=L18_body_refs_unfetched rc=1 fails=1
+    FAIL every owed line, an orphan body ref's included, carries its tip's commit time
+RESULT mutant=L9_unknown_kind_taken rc=1 fails=1
+    FAIL an obligation of no kind is refused
+RESULT mutant=L10_first_disposition rc=1 fails=1
+    FAIL the import takes the last disposition per ref (t1 at its re-disposal)
+RESULT mutant=L11_bad_row_read rc=1 fails=2
+    FAIL an events row of no ledger kind is UNREADABLE
+    FAIL board: an unreadable store is rc 2 and UNREADABLE, never a summary
+RESULT mutant=L12_board_owed_rc0 rc=1 fails=1
+    FAIL board: obligations exist is rc 1 with its summary line (a finding, not a failure)
+RESULT mutant=L13_state_ref_owed rc=1 fails=3
+    FAIL the level owes the uncovered topic once, at its code ref, and the body-only ref
+    FAIL and names each close: state ref, open PR, disposed, carried (ancestry and content), body
+    FAIL level CLI: owed lines on stdout, rc 1, the counts on stderr
+RESULT mutant=L14_disposition_ignored rc=1 fails=2
+    FAIL the level owes the uncovered topic once, at its code ref, and the body-only ref
+    FAIL and names each close: state ref, open PR, disposed, carried (ancestry and content), body
+RESULT mutant=L15_reader_persists rc=1 fails=1
+    FAIL a reader of the events writes nothing
+RESULT mutant=L16_moved_design_owed rc=1 fails=2
+    FAIL an approved design with its group not dispatched owes a build; dispatched, revised and moved do not
+    FAIL disposing the verdict ref at its sha closes it
+RESULT mutant=L17_dispatch_ignored rc=1 fails=1
+    FAIL REVIEW OWED: of reviewed, dispatched and neither, exactly the one with neither
+RESULT mutant=O1_no_attempt_on_exit rc=1 fails=3
+    FAIL open_pr.sh carries both attempt lines
+    FAIL a TERMed opener records started then unopened on its handoff ref
+    FAIL null control: an opener that ends records opened,PR=<n>
+RESULT mutant=R1_verdict_not_owed rc=1 fails=3
+    FAIL the ledger owes the relayed verdict's posting until a read-back (K17 4b)
+    FAIL and the verdict is owed in the ledger, not the log
+    FAIL but the ledger owes its posting: a relayed verdict is owed until it is read back
+RESULT mutant=R2_reviewer_not_owed rc=1 fails=1
+    FAIL reviewer-fire is opened in the ledger with pr, head and nonce
+RESULT mutant=R3_update_level_unset rc=1 fails=2
+    FAIL and owes handoff-update in the level file, at the topic's tip
+    FAIL once after two passes (a level, rewritten)
+RESULT mutant=R4_unreadable_clears rc=1 fails=1
+    FAIL an unreadable ledger leaves the handoff level as it was (rc 2 is not 'nothing owed')
+RESULT mutant=R5_disposition_unread rc=1 fails=3
+    FAIL a disposed refusal is not owed
+    FAIL a disposed ref is not owed
+    FAIL a disposed review is not owed
+RESULT mutant=T1_unkinded_printed rc=1 fails=1
+    FAIL relay OWED: a level line of no ledger kind is REFUSED, never printed as owed
+RESULT mutant=T2_no_reads_fold rc=1 fails=2
+    FAIL relay OWED: a read-back closes verdict-unposted and reviewer-fire; train-stop stays (K17 4b)
+    FAIL relay OWED: a relayed POSTED with no read-back leaves the verdict owed; a moved head supersedes
+RESULT mutant=T3_review_owed_silent rc=1 fails=3
+    FAIL verdict levels: a verdict not from the approver App is ignored: the head owes its review
+    FAIL REVIEW OWED: of reviewed, dispatched and neither (a draft aside), exactly one line: the one with neither
+    FAIL REVIEW OWED: a head the newest merge verdict carries to owes no review; one it does not carry to does
+RESULT mutant=T4_no_escalation rc=1 fails=2
+    FAIL relay OWED: a stranded handoff past 4 h is a DISPATCH line naming its group and opener, oldest first
+    FAIL relay OWED: past 12 h it raises an owner flag
+RESULT mutant=T5_no_design_build rc=1 fails=1
+    FAIL DESIGN-BUILD: PLAN prints it every pass
+RESULT mutant=T6_unreadable_silent rc=1 fails=1
+    FAIL relay OWED: an unreadable store is UNREADABLE, never a clean board
+RESULT mutant=T7_readback_uncollected rc=1 fails=3
+    FAIL verdict levels: a verdict not from the approver App is ignored: the head owes its review
+    FAIL REVIEW OWED: of reviewed, dispatched and neither (a draft aside), exactly one line: the one with neither
+    FAIL REVIEW OWED: a head the newest merge verdict carries to owes no review; one it does not carry to does
+plants: 48, without a FAIL line: none
+rc=0

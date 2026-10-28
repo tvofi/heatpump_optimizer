@@ -1,63 +1,62 @@
-Fix review: blocked 9328902275ba97b94d71f1778cf23f1eb2df031c mutation-vacuous: ledger.covered deletion guard `if rc_m == 0: return False` removed, every owner self-test stays green
+Fix review: merge 67c7fdf39849f8b51222004e84812ec5bd2807de
 
-bus-nonce: 34b58e842636b27546ec1832f8ebdb4c
+bus-nonce: 11577e9ed0f82f862d280f77684a61b0
 
-Round: 1 (first review of this PR). Measured head: 9328902275ba97b94d71f1778cf23f1eb2df031c, which is still the PR head as of the last read.
-
-## Block
-
-The body lists the content arm's per-path arms as new, including "a deletion main already made". It also states the class rule "every arm of the one classifier is driven by the shared self-tests and pinned by a plant". That arm's refusal half is not pinned anywhere. In `tools/audit/seat/ledger.py` `covered()`:
-
-    if st == "D":
-        if rc_m == 0:
-            return False
-
-I replaced `if rc_m == 0:` with `if False:`, so a tip that deletes a file main still holds counts as covered. Results under this mutant:
-- `ledger.py --self-test`: 72 checks, 0 failed.
-- `bus.sh --self-test`: 97 checks, 0 failed.
-- `cloud_relay.sh --self-test`: 283 checks, 0 failed.
-- `r10_ledger_mutants.py`: has no plant for this line.
-
-This is the harmful direction for the classifier. A handoff whose patch deletes a file main still holds, alone or next to otherwise-covered paths, would read `content`. `bus.sh orphans` would then print it SUPERSEDED, and the relay's level would call it `carried`. Stranded work would leave both lists silently.
-
-The level path is new behaviour. At the base, `covered()` refused every deletion ("a deletion: covered only by a byte-identical arm, not this one"). This diff makes the level accept deletions, and the guard that bounds that acceptance is untested. The opposite mutant (every deletion refused) is killed, by 2 `bus.sh` checks, so only the guard is vacuous. The same guard was already unpinned in the base's `content_superseded` (`D) git rev-parse "$main:$a" ... && return 1` deleted at eab04d0: `bus self-test: 92 checks, 0 failed`). The line now lives in the classifier this PR makes the single owner, and the body's own class rule says it is pinned.
-
-Repair: add one self-test null control where a tip deletes a file main still holds and `landed` returns None. Add a plant on the guard in `r10_ledger_mutants.py`. Re-run the table.
+Round: 2. Round 1 blocked 9328902 as mutation-vacuous (the `covered` deletion guard). Measured head: 67c7fdf39849f8b51222004e84812ec5bd2807de, which was still the PR head when I last read it before writing this.
 
 ## Findings
 
-- `ledger.covered` deletion guard is unpinned. This is the block above, and the fixer settles it on this branch. Carry: R10-FLY-ORPHANS-REWRITTEN | #2721
-- Four more mutants survived that I judged not worth a block. The same fix round can pin them if it is cheap:
-  - `merged_lt`: `<=` changed to `<` in the merged-pr close. Only the equality second differs.
-  - `merged_max_dropped`: the latest of several merged PRs per topic is replaced by the last listed.
-  - `bus_die_dropped`: `|| die` on the `ledger.py landed` call changed to `|| true`. A failed classifier then reads every tip as ORPHAN, which is loud, not silent.
-  - `same_blob_arm_off`: close to an equivalent mutant, because the line test takes the same paths.
-  Carry: R10-FLY-ORPHANS-REWRITTEN | #2721
-- `tools/audit/seat/prune_refs.py` `classify()` is a third reader of "this handoff was delivered by a merged PR". It uses a same-named merged PR or a roster-done branch and has no tip-time guard. It is outside the body's class rule (that grep does not return it). It decides deletion, not landing, and it predates this PR, so I am not counting it as class-open. Carry: dismissed: a different question (pruning, with roster-done evidence), predates this diff, and the body's stated rule does not return it.
-- The finder's harness is missing. The packet reports "Finder's harness: none named", and issue #2721's body names no committed harness, only the reverse-apply test. `dev/audit/harnesses/r10_fly_orphans_landed.sh` was built by the fixer, and the body does not say it is the fixer's own instrument (fix-review step 9). I measured with it because no finder's harness exists. Carry: R10-FLY-ORPHANS-REWRITTEN | #2721
+- The level's `merged-pr` close looks up the tip's commit time with `ct.get(code.get(t, sha))`. My mutant `merged_ct_any_ref` changes that to `ct.get(sha)`, and every owner self-test stays green. I judge this an equivalent mutant, not a gap:
+  - A body ref whose topic has a code ref is handled earlier, by `body-follows-code`.
+  - For every other ref, `code.get(t, sha)` equals `sha`.
+  - So nothing to pin. Carry: dismissed: equivalent mutant, no input reaches a difference.
+- `bus.sh orphans` reads only git refs and holds no PR listing. So a merged handoff whose files main has since moved on from still reads ORPHAN there (re-measured below: MISREAD 3 at main 57f0c9c77, 4 at main b6f6ceca4). The relay's level closes all of them. The body declares this residual and carries it. Carry: R10-FLY-ORPHANS-REWRITTEN | #2721
+- `dev/audit/harnesses/r10_fly_orphans_landed.sh` is the fixer's own instrument. Issue #2721 names no committed finder's harness. The body now discloses this (round 1 finding 4, step 9). I measured with this harness because no finder's harness exists. Carry: R10-FLY-ORPHANS-REWRITTEN | #2721
 
 ## Evidence
 
 - Roles current: `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` is empty.
-- The packet was rendered here: no refusals, and the gate digest was pending at render time (`ev/review-packet.md`).
-- Merge: `git merge-tree --write-tree origin/main(beb570c81) 9328902` gives rc 0, and `LEDGER-MERGE: resolved tests/closures.json` (`ev/merge-tree.txt`). No conflict.
-- VERSION, the manifest, the RELEASE_NOTES heading and both claim files are untouched (three-dot, `ev/version-claims.txt`). The diff moves no golden fixture, so env_drift has nothing to compare.
+- The packet was rendered here (`ev/review-packet.md`). Refusals: none. FIGURES: 15 resolved, 1 not verified (a bare `python3`), 0 refused.
+- Round 1's block is settled at this head. The mutation table (`ev/mutants-table.txt`) reads `plants: 48, without a FAIL line: none`, rc 0, and each new plant fails exactly one check:
+  - `L27_deletion_unguarded` rc=1 fails=1
+  - `L28_deletion_always_refused` rc=1 fails=1
+  - `L29_same_blob_arm_off` rc=1 fails=1
+  - `L30_merged_strictly_before` rc=1 fails=1
+  - `L31_merged_last_listed` rc=1 fails=1
+  - `B3_orphans_classifier_unchecked` rc=1 fails=1
+- `--null` gives rc=0 fails=0 for each of bus.sh, cloud_relay.sh, ledger.py and orchestrator_tick.py (`ev/mutants-null.txt`).
+- My own mutants are re-spellings of round 1's survivors and of new lines (`ev/reviewer-mutants.txt`). 11 were killed:
+  - `D_guard_inverted_rc` (`rc_m != 0`)
+  - `merged_min`
+  - `no_by_line_true`
+  - `bare_topic_dropped`
+  - `escalate_body_ignored`
+  - `bref_dropped`
+  - `level_heads_dropped`, killed by the relay
+  - `reverse_flag_dropped`
+  - `bus_content_as_ancestor`
+  - `relay_merged_awk_nf`
+  - `moved_blob_any`
+- Of the other two: `merged_ct_any_ref` survived, as an equivalent mutant (see Findings). `cli_no_content_ignored` did not apply because my anchor matched nothing; the existing bus check `--no-content reads the same ref as stranded` exercises that flag.
 - Self-tests at the head (`ev/selftests-head.txt`):
-  - bus 97/0 and ledger 72/0, as the body says.
-  - cloud_relay 283/0 at this head. The body's 279 is the authored code head d0f6de273: I measured 279 there, 279 at eab04d0 and 275 at 0b8f8b585 (`ev/relay-counts.txt`). The merge brought in 4 checks from main, so the body's figure holds at the SHA it names.
-  - orchestrator_tick 215/0 and r10_ledger_mutants --self-test 118/0, as the body says.
-- Mutation table at the head: `plants: 42, without a FAIL line: none`, rc 0. This matches the body.
-- Harness `r10_fly_orphans_landed.sh` (the fixer's), run at both ends (`ev/harness.txt`):
-  - main 57f0c9c77, base checkout eab04d0: MISREAD 5, LEVEL-MISREAD 5, LEVEL-LINES 12 for 7 topics.
-  - main 57f0c9c77, head: MISREAD 3 (earlycutoff, pr2465 and pr2485 SUPERSEDED), LEVEL-MISREAD 0, LEVEL-LINES 1, `body-follows-code=7 carried=1 merged-pr=5 owed=1`.
-  - main beb570c81 (current), base checkout: MISREAD 6, LEVEL-MISREAD 5.
-  - main beb570c81, head: MISREAD 4, LEVEL-MISREAD 0.
-  - The `null` case is ORPHAN/owed at both ends on both mains.
-  - All of these match the body's figures. Its baseline was 0b8f8b585; I used eab04d0, whose classifier code is the same.
-- My own mutants are in `ev/reviewer-mutants.txt`. `relay_pr_suffix_kept` was killed (2 relay checks). `D_arm_always_refuses` was killed by bus.sh (2 checks). The survivors are listed above.
-- Not re-derived:
-  - The body's failing-test-first count ("97 checks, 4 failed" for the new bus.sh cases on baseline production code). Plants B1 and B2 and my mutants cover the same direction.
-  - The gate and structure figures. These are CI's heavy runs, cited, never re-run.
-- Class rule: the body's grep at the head returns only `def covered` and `def landed` in ledger.py, and `content_superseded` is gone. Both are in the diff. The class is this one classifier, as the body says.
-- CI on the head (`ev/ci-checkruns.txt`): no failed run when read. `governance/instrument-self-tests`, `codeql python`, `tests/closure-scope`, `tests/nightly-status` and one `prelude` were still running. `tests/mutation` is green, but this diff's changed lines are tooling, and its log was not read. The body's `## Red checks: none` matches what has concluded so far.
-- Forward-carry: none named, and none is owed beyond the findings above.
+  - bus 98/0
+  - ledger 77/0
+  - cloud_relay 283/0
+  - orchestrator_tick 215/0
+  - r10_ledger_mutants --self-test 135/0
+- These match the body. The body's relay figure of 279 is for the code head b082a93e7. I measured 279/0 there (`ev/relay-count-code.txt`); the +4 come from main's merge, as in round 1.
+- Harness at both ends (`ev/harness.txt`; checkout base = b6f6ceca4, head = 67c7fdf39):
+  - main 57f0c9c77, base: MISREAD 5, LEVEL-MISREAD 5, LEVEL-LINES 12 for 7 topics.
+  - main 57f0c9c77, head: MISREAD 3, LEVEL-MISREAD 0, LEVEL-LINES 1, `body-follows-code=7 carried=1 merged-pr=5 owed=1`.
+  - main b6f6ceca4, base: MISREAD 6, LEVEL-MISREAD 5.
+  - main b6f6ceca4, head: MISREAD 4, LEVEL-MISREAD 0.
+  - The null case is ORPHAN/owed in all four runs.
+  - These match every figure in the body. Its baseline was 0b8f8b585, with the same classifier code.
+- Head and merges: 67c7fdf39 merges b6f6ceca4 (main) into 69c4e7fd6, and 69c4e7fd6 merges b082a93e7 into round 1's head 9328902. Both merges have an empty `diff-tree --cc`, so neither carries a resolution of its own (`ev/merge-resolutions.txt`). The three-dot diff equals the authored code head's diff plus the delivery row. The body names b082a93e7 and its merge to this head, so step 7 holds.
+- Merge with main: origin/main b6f6ceca4 is an ancestor of the head. `git merge-tree --write-tree origin/main 67c7fdf39` gives rc 0, no conflict (`ev/merge-tree.txt`).
+- VERSION, the manifest, the RELEASE_NOTES heading and both claim files are untouched (three-dot, `ev/version-claims.txt`). The diff moves no golden fixture. `env_drift.py --claims-only`: ok.
+- Instruments re-run: `tests/structure.py` gives `STRUCTURE RATCHET PASSED`. `archscore --diff` gives `Architecture score: dS +0.0000 NULL`, as the body says. No budget moves (`ev/structure.txt`, `ev/archscore.txt`).
+- Class rule: the body's grep returns `def covered` and `def landed`, and `content_superseded` is deleted. The class is this one classifier. prune_refs.py classify() stays dismissed, as in round 1.
+- CI on the head (`ev/ci-checkruns.txt`, read after every run had concluded): 55 runs, 38 success, 17 skipped, 0 failed. That includes `gate`, `pr-contract` (both runs), `budget-raise-gate` and `tests / mutation`. The body's `## Red checks: none` holds.
+- Forward-carry: none named, and none owed beyond the residual carried above.
+- Not re-derived: the failing-test-first counts ("97 checks, 4 failed" on the baseline, and `fails=1` per plant before each arm was added); plants and mutants cover the same direction. The gate's `ALL 2467 ENTITY CHECKS PASSED` and `harness_headers` 112 are cited from CI's green `gate`, not re-run.

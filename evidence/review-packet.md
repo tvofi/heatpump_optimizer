@@ -1,33 +1,14 @@
 # Review packet #2920
-head: 9328902275ba97b94d71f1778cf23f1eb2df031c
-base: eab04d0ebf8c45667099b668ab0d8bf976d5f99a
+head: 67c7fdf39849f8b51222004e84812ec5bd2807de
+base: b6f6ceca4f0323b24171c45a2a2372ba2e2cbaaa
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
 ## Gate digest: pending
-arch-score / arch-score id=122995350492 queued
-arm id=122988531755 skipped
-budget-raise-gate / budget-raise-gate id=122995350685 queued
-cancel-superseded id=122988530481 queued
-codeql / Analyze (actions) id=122995350284 queued
-codeql / Analyze (javascript-typescript) id=122995350279 queued
-codeql / Analyze (python) id=122995350212 queued
-governance / delivery-status id=122995350618 queued
-governance / delivery-status-publish id=122995353719 skipped
-governance / env-matrix id=122995350441 queued
-governance / instrument-self-tests id=122995350600 queued
-governance / policy-docs id=122995351203 queued
-governance / record id=122995353357 skipped
-governance / wave-script id=122995350568 queued
-hassfest / hassfest id=122995350403 queued
-kernel-points id=122995352275 skipped
-prelude id=122988530011 queued
-refresh id=122988530632 queued
-tests / briefs id=122995350416 queued
-tests / closure-scope id=122995350456 queued
-tests / mutation id=122995350126 queued
-tests / nightly-status id=122995350363 queued
-validate / validate-hacs id=122995350395 queued
+arm id=123056498406 skipped
+cancel-superseded id=123056506283 queued
+prelude id=123056505824 queued
+refresh id=123056506440 queued
 
 ## Refusals
 none
@@ -42,18 +23,20 @@ CARRY-AUDIT: 1 finding item(s): 1 routed, 0 unrouted, 0 bad destination(s)
 ## figure_lint at the head
 ok         bash dev/audit/harnesses/r10_fly_orphans_landed.sh <checkout> 57f0c9c77cfd5958e0a2443e158bea8326bedae2
              `dev/audit/harnesses/r10_fly_orphans_landed.sh` is in the tree at this head
-  ok         python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)
-             `tests/closure.py` is in the tree at this head
   ok         tests/entities.py
              `tests/entities.py` is in the tree at this head
+  ok         tests/harness_headers.py
+             `tests/harness_headers.py` is in the tree at this head
+  unverified python3
+             python3 with no script argument
+  ok         python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)
+             `tests/closure.py` is in the tree at this head
   ok         tests/env_drift.py --claims-only
              `tests/env_drift.py` is in the tree at this head
   ok         tests/closure.py selftest
              `tests/closure.py` is in the tree at this head
   ok         tests/layout.py
              `tests/layout.py` is in the tree at this head
-  ok         tests/harness_headers.py
-             `tests/harness_headers.py` is in the tree at this head
   ok         python3 tests/structure.py
              `tests/structure.py` is in the tree at this head
   ok         bash tools/audit/seat/bus.sh --self-test
@@ -66,10 +49,12 @@ ok         bash dev/audit/harnesses/r10_fly_orphans_landed.sh <checkout> 57f0c9c
              `tools/audit/seat/orchestrator_tick.py` is in the tree at this head
   ok         python3 -I tools/audit/seat/r10_ledger_mutants.py --self-test
              `tools/audit/seat/r10_ledger_mutants.py` is in the tree at this head
+  ok         dev/audit/harnesses/r10_fly_orphans_landed.sh
+             `dev/audit/harnesses/r10_fly_orphans_landed.sh` is in the tree at this head
   ok         python3 tools/audit/archscore/score.py --diff $(git merge-base origin/main HEAD)
              `tools/audit/archscore/score.py` is in the tree at this head
 
-FIGURES: 14 resolved, 0 not verified, 0 refused
+FIGURES: 15 resolved, 1 not verified, 0 refused
 
 ## Finder's harness: none named
 ### at the base
@@ -174,10 +159,10 @@ index 000000000..e099b12d6
 @@ -0,0 +1 @@
 +- [#2920](https://github.com/tvofi/heatpump_optimizer/pull/2920) — **open**, fix(orphans): one landed classifier, shared by bus.sh orphans and the relay's level (R10-FLY-ORPHANS-REWRITTEN) (R10-FLY-ORPHANS-REWRITTEN)
 diff --git a/tests/closures.json b/tests/closures.json
-index f591c0251..02f293782 100644
+index 6063b8d8c..b68ca4e57 100644
 --- a/tests/closures.json
 +++ b/tests/closures.json
-@@ -3704,6 +3704,7 @@
+@@ -3705,6 +3705,7 @@
     "dev/audit/harnesses/r10_flow_autotrain_live.py",
     "dev/audit/harnesses/r10_flow_autotrain_mutants.sh",
     "dev/audit/harnesses/r10_flow_dispatch_mutants.py",
@@ -201,7 +186,7 @@ index c2a5128fe..88bd04cf4 100644
    ledger read leaves those lines as they were, since an empty list would make
    every ref look orphaned. Every event the relay owes (`verdict-unposted` at
 diff --git a/tools/audit/seat/bus.sh b/tools/audit/seat/bus.sh
-index 9636471cd..317c8c6a6 100755
+index 9636471cd..94b282eab 100755
 --- a/tools/audit/seat/bus.sh
 +++ b/tools/audit/seat/bus.sh
 @@ -36,12 +36,14 @@
@@ -386,6 +371,22 @@ index 9636471cd..317c8c6a6 100755
    # Green: every stranded ref carries a pull request at its tip now; the
    # superseded ref stays, and neither is stranded -> exit 0.
    git -C "$W/seat" push -q origin "$o1:refs/heads/fix/orph1" \
+@@ -1230,6 +1259,15 @@ B
+   out=$(run orphans --min-age-h 0); rc=$?
+   echo "$out" | grep -qx "ORPHAN orp-force $f2 .* repair=opener" && [ $rc = 1 ]
+   expect "a handoff ref rewritten non-fast-forward after a run is still read, at its new tip" $?
++  # Null control: a classifier that cannot answer refuses the run; it never
++  # reads every tip as stranded (a loud list is still a wrong one).
++  mkdir -p "$W/pyfail"; rp=$(command -v python3)
++  printf '#!/bin/sh\ncase "$*" in *ledger.py\ landed*) exit 3 ;; esac\nexec "%s" "$@"\n' "$rp" > "$W/pyfail/python3"
++  chmod +x "$W/pyfail/python3"
++  out=$(PATH=$W/pyfail:$PATH run orphans --min-age-h 0); rc=$?
++  echo "$out" | grep -q "REFUSE: orphans: ledger.py landed could not classify" && [ $rc != 0 ] \
++    && ! echo "$out" | grep -q "^ORPHAN "
++  expect "null control: a classifier that fails refuses orphans, never an all-ORPHAN list" $?
+   # Null control: a remote that cannot answer still refuses, never a clean zero.
+   out=$(HPO_BUS_REMOTE=$W/nowhere.git run orphans --min-age-h 0); rc=$?
+   [ $rc != 0 ] && echo "$out" | grep -q "could not fetch the refs of" && ! echo "$out" | grep -q "^orphans: "
 diff --git a/tools/audit/seat/cloud_relay.sh b/tools/audit/seat/cloud_relay.sh
 index 35741074e..c7909dd10 100644
 --- a/tools/audit/seat/cloud_relay.sh
@@ -451,7 +452,7 @@ index 35741074e..c7909dd10 100644
    chk "a no-PR handoff ref a live fix/ head carries is not owed (the ledger's ancestry close)" 1 grep -q "handoff/topic-z" "$LV"
    git -C "$t/o.git" update-ref -d refs/heads/handoff/topic-z
 diff --git a/tools/audit/seat/ledger.py b/tools/audit/seat/ledger.py
-index 5758febfa..834a33391 100644
+index 5758febfa..8828ee4b6 100644
 --- a/tools/audit/seat/ledger.py
 +++ b/tools/audit/seat/ledger.py
 @@ -8,6 +8,7 @@
@@ -635,7 +636,7 @@ index 5758febfa..834a33391 100644
          return carried[t]
  
      ct = {}
-@@ -417,17 +508,22 @@ def handoff_level(hrefs: list, topics: set, git, disp: dict, att: dict, now: str
+@@ -417,20 +508,41 @@ def handoff_level(hrefs: list, topics: set, git, disp: dict, att: dict, now: str
          t = topic_of(ref)
          if STATE_REF.match(t):
              why["state-ref"] += 1
@@ -659,7 +660,26 @@ index 5758febfa..834a33391 100644
      return lines, why
  
  
-@@ -473,7 +569,8 @@ def escalate(level_rows: list, now: datetime.datetime, aging, group_of) -> list[
++def read_topics(text: str) -> "tuple[set, dict]":
++    """The level's topics file: open-PR topics, and {topic: epoch} of each
++    topic's latest merged pull request (a reused topic can merge twice)."""
++    topics, merged = set(), {}
++    for l in text.splitlines():
++        f = l.split()
++        if len(f) == 2 and f[1].startswith("merged="):
++            when = datetime.datetime.fromisoformat(f[1][7:].replace("Z", "+00:00")).timestamp()
++            merged[f[0]] = max(merged.get(f[0], 0), int(when))
++        elif len(f) == 1:
++            topics.add(f[0])
++        elif f:
++            raise Refused(f"topics: '{l}' is neither '<topic>' nor '<topic> merged=<utc>'")
++    return topics, merged
++
++
+ def fetch_world(git) -> None:
+     rc, out = git(["fetch", "-q", "--prune", "origin", f"+refs/heads/main:{NS}/main",
+                    f"+refs/heads/handoff/*:{NS}/handoff/*", f"+refs/heads/handoff-body/*:{NS}/handoff-body/*",
+@@ -473,7 +585,8 @@ def escalate(level_rows: list, now: datetime.datetime, aging, group_of) -> list[
          if not kv.get("ct", "").isdigit():
              continue
          age = (now.timestamp() - int(kv["ct"])) / 3600  # ahead of the clock: < 0, below any threshold
@@ -669,7 +689,7 @@ index 5758febfa..834a33391 100644
          queue.append((age, t, ref, sha, repair, kv.get("attempt")))
      queue.sort(key=lambda q: -q[0])
      out = [f"DISPATCH: {group_of(t) or '?'} {ref} {sha[:12]} {repair} ({age:.1f}h"
-@@ -532,8 +629,9 @@ def app_approve_carries(cwd: str, main: str, env=None):
+@@ -532,8 +645,9 @@ def app_approve_carries(cwd: str, main: str, env=None):
  
  
  # --------------------------------------------------------------------- CLI
@@ -681,21 +701,12 @@ index 5758febfa..834a33391 100644
      return r.returncode, r.stdout + (r.stderr if r.returncode else "")
  
  
-@@ -562,13 +660,34 @@ def main(argv: list) -> int:
+@@ -562,13 +676,25 @@ def main(argv: list) -> int:
              return 0
          if cmd == "level" and len(args) == 2:
              hrefs = [tuple(l.split()[:2]) for l in Path(args[0]).read_text().splitlines() if len(l.split()) >= 2]
 -            topics = {l.strip() for l in Path(args[1]).read_text().splitlines() if l.strip()}
-+            topics, merged = set(), {}
-+            for l in Path(args[1]).read_text().splitlines():
-+                f = l.split()
-+                if len(f) == 2 and f[1].startswith("merged="):
-+                    when = datetime.datetime.fromisoformat(f[1][7:].replace("Z", "+00:00")).timestamp()
-+                    merged[f[0]] = max(merged.get(f[0], 0), int(when))
-+                elif len(f) == 1:
-+                    topics.add(f[0])
-+                elif f:
-+                    raise Refused(f"topics: '{l}' is neither '<topic>' nor '<topic> merged=<utc>'")
++            topics, merged = read_topics(Path(args[1]).read_text())
              fetch_world(_git_cwd)
              lines, why = handoff_level(hrefs, topics, _git_cwd, dispositions(home),
 -                                       attempts(events(home, log)), utc())
@@ -718,7 +729,7 @@ index 5758febfa..834a33391 100644
          if cmd == "board" and not args:
              open_, closed = fold(events(home, log))
              for ob in open_:
-@@ -793,25 +912,98 @@ def self_test() -> int:
+@@ -793,25 +919,118 @@ def self_test() -> int:
            f"{unc}:refs/heads/handoff-body/unc", f"{anc}:refs/heads/handoff/anc",
            f"{unc}:refs/heads/handoff/audit-r10-roster", f"{unc}:refs/heads/handoff/open",
            f"{unc}:refs/heads/handoff/disp")
@@ -764,6 +775,20 @@ index 5758febfa..834a33391 100644
 +        check("covered: an added file whose bytes main holds at another path is carried (a moved file)",
 +              covered(gw, mvm, mv))
 +        check("null control: the same add with other bytes is not", not covered(gw, mvm, put("x.txt", "other\n", "x")))
++        g("checkout", "-qb", "work15", gb)
++        g("rm", "-q", "g.txt")
++        tipd = put("y.txt", "same bytes\n", "delete g.txt, add bytes main holds elsewhere")
++        check("null control: a tip deleting a file main still holds is not covered, beside a carried add",
++              not covered(gw, mvm, tipd) and landed(gw, mvm, tipd) is None)
++        g("checkout", "-qb", "work16", gb)
++        g("rm", "-q", "g.txt")
++        (w / "sub").mkdir(exist_ok=True)
++        mdel = put("sub/moved.txt", "same bytes\n", "main deletes g.txt too and holds the add elsewhere")
++        check("covered: a deletion main already made is carried", covered(gw, mdel, tipd))
++        g("checkout", "-qb", "work17", gb)
++        sbm = put("g.txt", "x\nfi\ny\np\nq\nr\ns\nt\n", "main holds rv's bytes under its own commit")
++        check("covered: the same bytes at the path are carried, a removed line kept elsewhere notwithstanding",
++              covered(gw, sbm, rv))
 +        g("checkout", "-qb", "work9", mvm)
 +        m_a = put("ma.txt", "A\n", "main side")
 +        g("checkout", "-qb", "work10", mvm)
@@ -803,6 +828,12 @@ index 5758febfa..834a33391 100644
 +        l2, w2 = handoff_level(hr, {"open"}, gw, {}, att, "NOW", {"unc": 4102444800})
 +        check("a topic whose PR merged after its tip's commit is closed by the merge (RCA 5.1)",
 +              not any("/unc " in l for l in l2) and w2["merged-pr"] == 1)
++        l2, w2 = handoff_level(hr, {"open"}, gw, {}, att, "NOW", {"unc": int(g("log", "-1", "--format=%ct", unc))})
++        check("a merge in the tip's own commit second closes it (at or before, not strictly before)",
++              not any("/unc " in l for l in l2) and w2["merged-pr"] == 1)
++        tp, mg = read_topics("open\nt merged=2026-01-02T00:00:00Z\nt merged=2026-01-01T00:00:00Z\n")
++        check("the topics reader keeps a topic's latest merge, whatever the listing order",
++              tp == {"open"} and mg == {"t": 1767312000})
 +        l2, w2 = handoff_level(hr, {"open"}, gw, {}, att, "NOW", {"unc": 1})
 +        check("null control: a tip committed after its topic's merge stays owed",
 +              any(" refs/heads/handoff/unc " in l for l in l2) and "merged-pr" not in w2)
@@ -824,7 +855,7 @@ index 5758febfa..834a33391 100644
          r = subprocess.run([sys.executable, "-I", __file__, "--log", str(e / "cloud-relay.log"), "board"],
                             capture_output=True, text=True)
          check("board: obligations exist is rc 1 with its summary line (a finding, not a failure)",
-@@ -828,7 +1020,7 @@ def self_test() -> int:
+@@ -828,7 +1047,7 @@ def self_test() -> int:
          r = subprocess.run([sys.executable, "-I", __file__, "--log", str(D / "lv" / "l"), "level",
                              str(D / "hr"), str(D / "tp")], capture_output=True, text=True, cwd=w, env=env)
          check("level CLI: owed lines on stdout, rc 1, the counts on stderr",
@@ -834,7 +865,7 @@ index 5758febfa..834a33391 100644
          r = subprocess.run([sys.executable, "-I", __file__, "--log", str(D / "lv" / "l"), "level",
                              str(D / "hr"), str(D / "tp")], capture_output=True, text=True, cwd=w, env=env)
 diff --git a/tools/audit/seat/r10_ledger_mutants.py b/tools/audit/seat/r10_ledger_mutants.py
-index 6c614a8b0..42470aa67 100644
+index 6c614a8b0..331858f75 100644
 --- a/tools/audit/seat/r10_ledger_mutants.py
 +++ b/tools/audit/seat/r10_ledger_mutants.py
 @@ -26,9 +26,10 @@ import sys
@@ -849,7 +880,7 @@ index 6c614a8b0..42470aa67 100644
  PLANTS = {
      # the ledger: event closers, the level's closers, aging, refusals, stores
      "L1_readback_no_close": (LEDGER, '                how = "read-back"', "                how = None"),
-@@ -36,10 +37,25 @@ PLANTS = {
+@@ -36,10 +37,33 @@ PLANTS = {
      "L3_any_verdict_posts": (LEDGER, '(text in lines if kind == "verdict-unposted"',
                               '(bool(lines) if kind == "verdict-unposted"'),
      "L4_added_lines_unchecked": (LEDGER, "if not add <= have or rem & have:", "if rem & have:"),
@@ -872,9 +903,17 @@ index 6c614a8b0..42470aa67 100644
 +    "L24_body_own_line": (LEDGER, '        elif t in code and not ref.startswith("refs/heads/handoff/"):', '        elif False:'),
 +    "L25_merged_ignored": (LEDGER, "        elif t in merged and ct.get(", "        elif False and ct.get("),
 +    "L26_merged_any_time": (LEDGER, "and int(ct[code.get(t, sha)]) <= merged[t]:", ":"),
++    "L27_deletion_unguarded": (LEDGER, '        if st == "D":\n            if rc_m == 0:', '        if st == "D":\n            if False:'),
++    "L28_deletion_always_refused": (LEDGER, '        if st == "D":\n            if rc_m == 0:', '        if st == "D":\n            if True:'),
++    "L29_same_blob_arm_off": (LEDGER, "        elif rc_m == 0 and b_main == b_tip:\n            continue",
++                              "        elif False:\n            continue"),
++    "L30_merged_strictly_before": (LEDGER, "and int(ct[code.get(t, sha)]) <= merged[t]:", "and int(ct[code.get(t, sha)]) < merged[t]:"),
++    "L31_merged_last_listed": (LEDGER, "merged[f[0]] = max(merged.get(f[0], 0), int(when))", "merged[f[0]] = int(when)"),
 +    "R6_merged_unread_clears": (RELAY, '"$state/cloud-merged.$$" \\\n    || { echo "cloud_relay: could not list merged PRs',
 +                                '"$state/cloud-merged.$$" \\\n    || true || { echo "cloud_relay: could not list merged PRs'),
 +    "B1_orphans_merges_stranded": (BUS, "    case $why in ancestor|merges-only) anc=", "    case $why in ancestor) anc="),
++    "B3_orphans_classifier_unchecked": (BUS, '    || die "orphans: ledger.py landed could not classify',
++                                        '    || true || die "orphans: ledger.py landed could not classify'),
 +    "B2_orphans_no_content": (BUS, '    if [ "$why" = reverse-apply ] || [ "$why" = content ]; then', '    if [ "$why" = content ]; then'),
      "L7_no_threshold": (LEDGER, "           if age >= aging[0]]", "           if True]"),
      "L8_one_tip_blanks_all": (LEDGER, '        if rc == 0 and out.strip().isdigit():\n            ct[sha]',
