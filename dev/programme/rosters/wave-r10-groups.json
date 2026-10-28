@@ -10819,6 +10819,50 @@
     "note": "orchestrator registration 2026-10-27 under the owner's ruling; the orchestrator applies the test by hand until this lands"
    },
    "brief": "Make the owner's 2026-10-27 ruling mechanical: a head that carries no code change keeps its review, and no seat has to judge which moves those are. THE RULE. The test is a commit range, not an opinion: git rev-list --count <reviewed-head>..<new-head> --not origin/main. Zero, or a count whose commits are all merges of origin/main, means no branch-authored change and the prior merge verdict carries. Any non-merge commit in that range means the head carries code and takes a fresh review. A body rewrite never by itself voids a verdict. A claim-file resolution inside a merge IS a change, so the range is read before the merge is trusted. THE WORK. (1) A helper beside the other seat instruments that answers the question from two shas and prints a line a seat can paste: the count, the branch-only commit subjects, and exactly one of CARRY or FRESH-REVIEW, with the null control that a merge-only move and a code move give opposite lines from the same command. (2) bus.sh dispatch refuses to mint a nonce for a head whose range is empty against the reviewed head the caller names, and says so in one line -- a refusal, not a warning, because a warning is what let a second reviewer be dispatched anyway. (3) The two contract sentences: fix-review.md states which head a verdict attaches to and that it carries while the range is clean; orchestrator.md states that dispatching a second reviewer over a clean range is the error, not diligence. Both are policy: dev/governance/roles/ changes merge on the owner's approving review, and the pull request body cites this group and the ruling verbatim. Do not touch merge_train.py's existing owner-approval carry, which answers a different question -- the owner's approval, not the reviewer's verdict -- and is already covered by R10-TICK-TRAIN. The self-test for each arm goes in the same pull request and is demonstrated failing before the helper exists."
+  },
+  {
+   "group": "R10-TRIAGE-S6",
+   "lane": "IN",
+   "kind": "fix",
+   "class": "process",
+   "severity": "low",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 6,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "dev/programme/triage/"
+   ],
+   "carry": [
+    "Registered 2026-10-28 so the standing triage seat's open batch pull request is wired to a live group: the delivery row of #2900 names R10-TRIAGE-S6, and the roster seat logged it as an unwired open pull request with no live group (the same gap R10-TRIAGE-B36 and R10-TRIAGE-B37 closed for batches 36 and 37). resume.pr names the batch pull request currently open; set it to the next one when a later batch opens."
+   ],
+   "resume": {
+    "stage": "fixing",
+    "branch": "fix/triage-s6-batch45-pr",
+    "commit": "8622b108db95f3b09d765bb3921011f2a0cf4704",
+    "last_step": "registered",
+    "next_step": "review the re-cut head of #2900 (round 2), then merge",
+    "note": "re-derive the head from the pull request, never from the handoff ref, which is an ancestor of it",
+    "pr": 2900
+   },
+   "brief": "Own the standing triage seat's batch pull requests to a merge-ready head, one at a time (resume.pr). The batch file and the pull request's Figures section must agree on every figure, each produced by the command printed beside it at the merge base. Read dev/governance/roles/proposal-triage.md for what a batch may and may not defer, and dev/governance/rules/brief-citations.md before writing any figure. The batch rules and routes only: nothing is implemented and no roster file is edited in its diff."
   }
  ]
 }
