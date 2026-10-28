@@ -1,2 +1,0 @@
-  FAIL a stored instant's age is the seconds to now, none for text that does not parse, and none for an instant ahead of now
-1 of 135 DEBUG COLLECT CHECKS FAILED

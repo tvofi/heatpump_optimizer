@@ -115,18 +115,18 @@ RESULT leak_probes_through_download=21 written=21 refused=0 unit=count
   ok   replay_doc.mapped_entities finds entity ids at any depth, in lists too
   ok   replay_doc.seal refuses a document where a dropped credential survives elsewhere, and one whose sanitised form still breaks a rule, and writes a clean one
   ok   with two live Tibber homes the entry's own price_entity decides, and without one the choice is refused with both candidates listed
-  ok   a16:debug_inline  [the download 12586B against the 40000B cap; 1 row(s) inline]
-  ok   a16:debug_capped  [bundle 268195B against the 40000B cap; the download 792B]
-  FAIL a16:debug_inline  [the download 792B against the 40000B cap; 0 row(s) inline]
-  FAIL a16:debug_capped  [bundle NoneB against the 40000B cap; the download 12586B]
+  ok   a16:debug_inline  [the download 12427B against the 40000B cap; 1 row(s) inline]
+  ok   a16:debug_capped  [bundle 268034B against the 40000B cap; the download 631B]
+  FAIL a16:debug_inline  [the download 631B against the 40000B cap; 0 row(s) inline]
+  FAIL a16:debug_capped  [bundle NoneB against the 40000B cap; the download 12427B]
   FAIL a16:debug_inline  [TypeError('not serializable')]
-  FAIL a16:debug_capped  [bundle 268195B against the 40000B cap; the download -1B]
+  FAIL a16:debug_capped  [bundle 268034B against the 40000B cap; the download -1B]
   ok   the nightly A16 judge passes a whole bundle and a summary past the cap, and fails each swapped, and a bundle its serializer refuses
-  FAIL a16:debug_inline  [the download 12586B against the 100B cap; 1 row(s) inline]
-  FAIL a16:debug_capped  [bundle 268195B against the 100B cap; the download 792B]
+  FAIL a16:debug_inline  [the download 12427B against the 100B cap; 1 row(s) inline]
+  FAIL a16:debug_capped  [bundle 268034B against the 100B cap; the download 631B]
   ok   the nightly A16 judge fails a bundle carried whole whose download is over the cap
-  ok   a16:debug_inline  [the download 12586B against the 40000B cap; 1 row(s) inline]
-  FAIL a16:debug_capped  [bundle 268195B against the 40000B cap; the download 769B]
+  ok   a16:debug_inline  [the download 12427B against the 40000B cap; 1 row(s) inline]
+  FAIL a16:debug_capped  [bundle 268034B against the 40000B cap; the download 608B]
   ok   the nightly A16 judge fails a download over the cap that does not say it is a summary
   ok   the nightly lane demands both A16 checks by name
   ok   A16's download writer returns the bytes of HA's 2025.2.0 writer, whose body is a payload with no len()
@@ -141,12 +141,5 @@ RESULT leak_probes_through_download=21 written=21 refused=0 unit=count
   ok   the null control: with nothing private planted elsewhere, the value pass leaves the download byte-identical
   ok   the value pass searches for a removed value at the leak check's shortest length and not one character under it, for a coordinate only when the coarsening cut it, and never for a flag
   ok   the value pass redacts a private value inside text, as a key, and as a number, in a tuple too, and leaves a flag and any other number alone
-  ok   the download's plan age is measured at the export: 14 minutes after the solve it reads 14, whatever the payload said when it was published
-  ok   the null control: a plan solved a minute before the export reads 1
-  ok   a plan stamped ahead of the export clock has an unknowable age, never 0, and a payload with no solve has none
-  ok   the download carries its own export time, outside the debug half, read from the clock the debug manifest's generated_at reads
-  ok   the manifest labels the finished collection: its first and last row, the 3 h the rows span, and the last row's age at the export, not the configured 7 days
-  ok   a collection with no row has no window, and a row stamped ahead of the export clock has an unknowable age, never 0
-  ok   a stored instant's age is the seconds to now, none for text that does not parse, and none for an instant ahead of now
 
-1 of 135 DEBUG COLLECT CHECKS FAILED
+1 of 128 DEBUG COLLECT CHECKS FAILED
