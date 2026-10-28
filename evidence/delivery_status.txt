@@ -1,0 +1,11 @@
+DELIVERY STATUS OK — 2 rowed, 0 pending, 0 overdue (overdue at 12 commits)
+  every merge in the window carries a row
+
+This check is NOT a required context and a red here blocks no merge. Pending is the ordinary state: the protocol writes rows in batches, and only OVERDUE means a batch has stopped being drained.
+--require-rows reads the same ledger under `record`'s bar rather than this lane's: a red blocks the STAMP. Every merge listed above without a row is one the tag is about to move the window's start past, and no later window can see it again.
+rc=0
+DELIVERY STATUS OK — 2 rowed, 0 pending, 0 overdue (overdue at 12 commits)
+  every merge in the window carries a row
+
+This check is NOT a required context and a red here blocks no merge. Pending is the ordinary state: the protocol writes rows in batches, and only OVERDUE means a batch has stopped being drained.
+--require-rows reads the same ledger under `record`'s bar rather than this lane's: a red blocks the STAMP. Every merge listed above without a row is one the tag is about to move the window's start past, and no later window can see it again.

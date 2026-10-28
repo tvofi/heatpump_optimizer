@@ -1,0 +1,14 @@
+diff --git a/dev/programme/delivery/2898.md b/dev/programme/delivery/2898.md
+index 5122dfe6d..d13f3c205 100644
+--- a/dev/programme/delivery/2898.md
++++ b/dev/programme/delivery/2898.md
+@@ -1 +1 @@
+-- [#2898](https://github.com/tvofi/heatpump_optimizer/pull/2898) — **open**, triage: batch 44 -- rule V132-V135 and V137-V140 as P219-P226 (R10-FLY-WORKTREE-GC)
++- [#2898](https://github.com/tvofi/heatpump_optimizer/pull/2898) — **merged `b9e2862`**, triage: batch 44 -- rule V132-V135 and V137-V140 as P219-P226.
+diff --git a/dev/programme/delivery/2901.md b/dev/programme/delivery/2901.md
+new file mode 100644
+index 000000000..d41f832db
+--- /dev/null
++++ b/dev/programme/delivery/2901.md
+@@ -0,0 +1 @@
++- [#2901](https://github.com/tvofi/heatpump_optimizer/pull/2901) — **open**, record: delivery rows (autofix)
