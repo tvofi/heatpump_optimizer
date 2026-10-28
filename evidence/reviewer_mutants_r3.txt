@@ -1,9 +1,0 @@
-RESULT mutant=cli-pr-dropped failed=0 verdict=SURVIVED
-RESULT mutant=cli-nonce-dropped failed=0 verdict=SURVIVED
-RESULT mutant=cli-overlay-dropped failed=2 verdict=killed
-    FAIL the --group CLI passes --head and --roster-ref through
-    FAIL a re-dispatch from a second clone fast-forwards the existing ref
-RESULT mutant=cli-role-fixed failed=0 verdict=SURVIVED
-RESULT mutant=pr-dropped-api failed=-1 verdict=CRASHED
-RESULT mutant=nonce-dropped-api failed=-1 verdict=CRASHED
-RESULT mutants=6 survived=3
