@@ -1,0 +1,2 @@
+check-runs API, head 04820384b7cbbf1d7d5a96fc6b103cff7a6da2a6, read after 17:34Z: 53 runs, all completed; conclusions success or skipped, none failure/cancelled/timed_out.
+required: tests / fast (3.14) success; tests / closures success; tests / mutation success; pr-contract / pr-contract success (17:30:54Z, after all others concluded); gate success (17:34:46Z); governance / wave-script success; governance / instrument-self-tests success (16:54:20Z-17:07:08Z); codeql / Analyze (python) success.

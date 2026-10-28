@@ -1,0 +1,6 @@
+MUTANT R1 seat identity in content_check rc=1 fails=4
+    FAIL the re-added path staged and not committed is predicted green (null control) (rc 1)
+    FAIL a line that pushes nothing and names the seat's home is predicted green (null control: CI judges with the runner's identity) (rc 1)
+    FAIL the push site staged and not committed is predicted green (null control) (rc 1)
+    FAIL the registration staged and not committed is predicted green (null control) (rc 1)
+    ci_predict self-test: 4 failed

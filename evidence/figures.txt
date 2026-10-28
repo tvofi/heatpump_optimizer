@@ -1,10 +1,22 @@
-merge-base ac5788f2617755631f14e4d1a31efab0e47aa820
-census: 9 functions: predict_line unpinned_line claims_line closures_line body_line copies_line throwaway_line moved_line reds_line 
+## closure select
   MODE: SCOPED -- 0 script(s) run, 33 scoped out.
+## structure
 STRUCTURE RATCHET PASSED
+## archscore
 Architecture score: dS +0.0000 NULL
+## ref_privacy
+ref_privacy --check at HEAD: 26 file(s) with a push site, 12 guarded, 296 line(s) added since 806aa2ce89ae judged, 0 refused
+## layout
+layout: GUARD: 0 refusal(s) against 806aa2ce89ae
+## tmp_paths
+tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since 806aa2ce89ae
+## throwaway
 throwaway_git: 0 raw git init or clone site(s) refused, 0 stale allow entries at HEAD
-layout: GUARD: 0 refusal(s) against ac5788f26177
-CI PREDICT: no closures or fast red predicted against ac5788f26177 (a data-file read is not seen)
+## wiring
 selftest_wiring: 93 self-testing, 93 wired, 0 unwired
-VERSION/manifest/notes/claims untouched
+## predictor own diff
+CI PREDICT: no closures, fast, wave-script or instrument red predicted against 806aa2ce89ae (a data-file read is not seen)
+
+real	0m3.313s
+user	0m3.089s
+sys	0m0.247s

@@ -1,0 +1,3 @@
+MUTANT R2 merge onto HEAD, not the tip rc=1 fails=1
+    FAIL a grammar the base tip shares and registers, under a HEAD that only edits the lane, is predicted green (CI merges HEAD into the tip) (rc 1)
+    ci_predict self-test: 1 failed

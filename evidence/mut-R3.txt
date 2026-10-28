@@ -1,0 +1,4 @@
+MUTANT R3 restore pathspecs from the merge, not the tip rc=1 fails=2
+    FAIL a grammar registered only in the head's copy is predicted red (rc 0)
+    FAIL a head copy of the lane that exits 1 is predicted green (null control: CI runs the base's) (rc 1)
+    ci_predict self-test: 2 failed

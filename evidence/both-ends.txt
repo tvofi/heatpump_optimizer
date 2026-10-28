@@ -1,9 +1,0 @@
-plant path: .claude/workflows/agreement.mjs
-RESULT end=base plant=readd predictor_rc=0 predictor_layout_lines=0 ci_guard_rc=1
-RESULT end=base plant=cite predictor_rc=0 predictor_layout_lines=0 ci_guard_rc=1
-RESULT end=base plant=null predictor_rc=0 predictor_layout_lines=0 ci_guard_rc=0
-RESULT end=base plant=twocommit predictor_rc=0 predictor_layout_lines=0 ci_guard_rc=1
-RESULT end=head plant=readd predictor_rc=1 predictor_layout_lines=2 ci_guard_rc=1
-RESULT end=head plant=cite predictor_rc=1 predictor_layout_lines=2 ci_guard_rc=1
-RESULT end=head plant=null predictor_rc=0 predictor_layout_lines=0 ci_guard_rc=0
-RESULT end=head plant=twocommit predictor_rc=1 predictor_layout_lines=2 ci_guard_rc=1

@@ -1,0 +1,28 @@
+  ok   a carry to a group of the roster is predicted green
+  ok   a carry to a group the roster lacks is predicted red
+  ok   a finding with no carry at all is predicted red
+  ok   a file re-added at a path whose move landed is predicted red (rc 1)
+  ok   the re-added path under a second commit is predicted red (rc 1)
+  ok   the re-added path with its entry dropped from the staged manifest is predicted red (rc 1)
+  ok   a new line citing a landed path is predicted red (rc 1)
+  ok   a manifest that does not parse is predicted red (rc 1)
+  ok   a comment citing nothing is predicted green (null control) (rc 0)
+  ok   the re-added path staged and not committed is predicted green (null control) (rc 0)
+  ok   an unregistered push site is predicted red (rc 1)
+  ok   a guarded pusher's guard dropped in HEAD and restored in the index is predicted red (rc 1)
+  ok   a line that pushes nothing and names the seat's home is predicted green (null control: CI judges with the runner's identity) (rc 0)
+  ok   the push site staged and not committed is predicted green (null control) (rc 0)
+  ok   a grammar registered only in the head's copy is predicted red (rc 1)
+  ok   a grammar the base tip shares and registers, under a HEAD that only edits the lane, is predicted green (CI merges HEAD into the tip) (rc 0)
+  ok   a grammar in two files the lane does not load, the lane untouched, is not run (null control: the key; prepr step 3f4 refuses it under either copy) (rc 0)
+  ok   a lane edit under a branch merge, main already past it, is predicted green (null control: CI's origin/main is the base) (rc 0)
+  ok   a comment in the lane is predicted green (null control) (rc 0)
+  ok   a head copy of the lane that exits 1 is predicted green (null control: CI runs the base's) (rc 0)
+  ok   the registration staged and not committed is predicted green (null control) (rc 0)
+  ok   every JOB value is a name gate.REQUIRED owes
+ci_predict self-test: 0 failed
+
+real	2m45.484s
+user	1m34.191s
+sys	0m21.073s
+rc=0

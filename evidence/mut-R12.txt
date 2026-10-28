@@ -1,0 +1,2 @@
+MUTANT R12 empty push-site scan not refused rc=0 fails=0
+    ci_predict self-test: 0 failed
