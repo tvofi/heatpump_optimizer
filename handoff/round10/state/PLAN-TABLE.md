@@ -319,7 +319,7 @@ Role: dev/governance/roles/root-cause.md. |  |
 | R10-TRIAGE-B36 | IN | 1 | done | - | opus/opus | - | Own the triage s6 batch 36 pull request to a merge-ready head. |  |
 | R10-ROSTER-BATCH24 | IN | 1 | done | - | opus/opus | - | Own the round-10 roster batch 24 pull request to a merge-ready head. |  |
 | R10-TRIAGE-B37 | IN | 1 | done | - | opus/opus | - | Own the triage s6 batch 37 pull request from its handoff refs to a merge-ready head. |  |
-| R10-REVIEW-CARRY | IN | 1 | fixing | - | opus/opus | - | Make the owner's 2026-10-27 ruling mechanical: a head that carries no code change keeps its review, and no seat has to judge which moves those are. |  |
+| R10-REVIEW-CARRY | IN | 1 | in-progress | - | opus/opus | - | Make the owner's 2026-10-27 ruling mechanical: a head that carries no code change keeps its review, and no seat has to judge which moves those are. |  |
 | R10-TRIAGE-S6 | IN | 1 | done | - | opus/opus | - | Own the standing triage seat's batch pull requests to a merge-ready head, one at a time (resume.pr). |  |
 | R10-FRICTION-FIXER-MD | C | 1 | not-started | #2895 | opus/opus | - | Root-cause seat for issue #2895, the governance cron's recurring-friction key `tools/audit/briefs/fixer.md` (5 distinct pull requests, 7 entries, in the v7.0... |  |
 | R10-FRICTION-CLAIM-FALSE | C | 1 | not-started | #2907 | opus/opus | - | Root-cause seat for issue #2907, the governance cron's recurring-friction key `claim-false` (verdict class: 4 distinct pull requests, 8 entries, in the v7.0.... |  |
