@@ -1,0 +1,4 @@
+2026-10-20T12:18:17Z	Fix review: blocked 44ea3af3f1b8c6ca3ad32c6d4edb45920fcf5687 head-moved: measured 44ea3af3f1b8c6ca3ad32c6d4edb45920fcf5687, head is 294bf66ffb463faf842f6a0f43c119b27005b558
+2026-10-20T01:21:29Z	Fix review: blocked afabd5b6a6e2da5bb42eaad5f6697837491c5556 carry-missing: not carried to R10-CEILING-PROBE (the idle-absorbs-compressor control and the set-point-to-draw gain identification are routed there by Carry: lines but absent from its brief on origin/main and on handoff/audit-r10-roster)
+2026-10-20T12:59:06Z	Fix review: merge 294bf66ffb463faf842f6a0f43c119b27005b558
+2026-10-20T02:04:16Z	Fix review: merge afabd5b6a6e2da5bb42eaad5f6697837491c5556

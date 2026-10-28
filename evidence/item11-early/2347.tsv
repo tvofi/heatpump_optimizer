@@ -1,0 +1,2 @@
+2026-10-17T13:55:23Z	Fix review: blocked 13c98d851e1e63002c951629590fbec95b5a6693 root-cause-unanswered: fast (3.14), mutation, mutation-autofix went red, unanswered
+2026-10-17T08:59:40Z	Fix review: blocked b8639bc20d5b2310ee25853831d5a4280accf231 harness: class-open optimizer.py:2982

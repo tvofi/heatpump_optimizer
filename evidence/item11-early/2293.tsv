@@ -1,0 +1,2 @@
+2026-10-15T19:28:06Z	Fix review: blocked 92f549f9cf7339627c3d8acda08c6d4eec0061b1 class-open: C14 seed misses Union[X, None], Union[None, X] and Annotated[X, ...] -- each reopens rt_16 (IMPROVES at head)
+2026-10-15T21:27:06Z	Fix review: merge 54cb8531b6cbe7576381d0acf68f733e496a115b

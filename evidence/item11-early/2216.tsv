@@ -1,0 +1,3 @@
+2026-10-14T23:43:38Z	Fix review: blocked 25418620f9fb39304e82dceea3ce8d2114ad018f body-stale: the code is verified; the body says the diff lists 5 files and adds no tracked file, but head adds dev/programme/delivery/2216.md (6 files), and the PR title is a merge-commit subject
+2026-10-15T00:10:42Z	Fix review: blocked 25418620f9fb39304e82dceea3ce8d2114ad018f closures-red: the diff's new emitter check makes tests/entities.py read tools/coverage/coverage_tree.sh, an INERT file; closures job 116164533770 printed INERT READS UNDER-APPROXIMATED and closures-autofix 116172854754 refused (skip-merge-failed)
+2026-10-15T04:38:04Z	Fix review: merge e530ff16701d78656e458acc4da6b40d6ad204ef

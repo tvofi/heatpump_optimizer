@@ -1,0 +1,4 @@
+2026-10-21T20:07:24Z	Fix review: blocked bb9f93e8bc0d8ed6bf2a9b397c41d378c7d8cf5e body-stale: figures and item 6 describe round 1, not this head (corpus 62423 vs 62892, caps 46/666 and 35/521 vs 60/878 and 53/778, 0012 superseded-in-part vs revoked)
+2026-10-21T20:49:31Z	Fix review: blocked bb9f93e8bc0d8ed6bf2a9b397c41d378c7d8cf5e spec-unmet: CLAUDE.md role row for design-review.md keeps the retired two-revise-rounds rule
+2026-10-21T19:27:10Z	Fix review: blocked d3e34be538b02f1186419a3e7e4220bdf269803d ruling-unmet: 0012 recorded void-in-part not revoked per addendum 6322712314, and both contracts follow drafts at ddacf98 not pin 30c57744a
+2026-10-21T22:43:26Z	Fix review: merge e4f021a5feb25503025f6e09ae63f866fa5d2025

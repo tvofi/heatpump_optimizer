@@ -1,0 +1,5 @@
+2026-10-21T17:11:33Z	Fix review: blocked a8a2778e155e0f13527ec2864f856d8ddd942e31 mutation-vacuous: the self-test check "a last line without a newline is read" passes with that read removed (R6), so a hold file without a trailing newline silently holds none; the OWED handoff-hold-malformed log line (R3) and the `held` CLI arm (R4) also survive deletion
+2026-10-22T16:54:03Z	Fix review: merge 3541137e8998aa0b2c609d4429feb37e5999140d
+2026-10-22T09:37:32Z	Fix review: merge 808137a949c2c1ce64acc340cfd72ccfebc7a6b8
+2026-10-21T18:17:45Z	Fix review: merge a54aed8b9e756aaa47ea18e9a13bf33a06878a0b
+2026-10-22T07:52:23Z	Fix review: merge caac2c8dfb338b316803b94ba1df13aff02647e0
