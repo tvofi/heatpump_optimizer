@@ -1,2 +1,3 @@
-measured head 3d8f7c37815f78f5eee3718848bbd1b47057d786 (PR #2914 headRefOid at read and again before post)
-origin/main eab04d0ebf8c45667099b668ab0d8bf976d5f99a (merge base; head already contains it)
+measured head 1d0d17d78cc7bb20bd40c143c6831dede52f8693 (PR #2914 headRefOid at read)
+roster blob d1a915b7dada5fe03b19546d553222381182dd50 = 86e101084 roster blob
+origin/main eab04d0ebf8c45667099b668ab0d8bf976d5f99a

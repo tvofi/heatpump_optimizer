@@ -1,8 +1,0 @@
-2909 MERGED eab04d0ebf8c rca(R10-RCA-HEADMOVED): root-cause record for head-moved (rework), car
-2883 MERGED 00ab2e97b41a flow board: measure programme throughput against takt, publish FLOW-BO
-2853 MERGED 53c4b9cb0de4 R10-FLOW-JIDOKA p2: error-proofing second slice
-2882 MERGED 4db1d3e28f0d train: grade each merge tree before its car lands
-2894 MERGED 2b274fe06d2b fix(r10-immersion-latch): book the immersion line from the measured la
-2876 MERGED b2a7e44932d1 R10-HOUSE-GRADE: derive the house grade from the delivered curve
-2905 MERGED 6d86acc909f7 build(deps): bump setuptools 84.0.0 -> 84.1.0 in tests/requirements-bu
-2900 MERGED c08720395fa5 triage s7 batch 45: rule P227-P231 (V141-V145)
