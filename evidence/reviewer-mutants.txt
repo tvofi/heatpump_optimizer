@@ -1,0 +1,14 @@
+MUTANT D_arm_ignored rc=0 SURVIVED :: ledger self-test: 72 checks, 0 failed
+MUTANT merged_lt rc=0 SURVIVED :: ledger self-test: 72 checks, 0 failed
+MUTANT merged_max_dropped rc=0 SURVIVED :: ledger self-test: 72 checks, 0 failed
+MUTANT relay_pr_suffix_kept rc=1 KILLED :: cloud_relay self-test: 283 checks, 2 failed
+    FAIL a handoff its topic's merged PR delivered (committed by the merge) is not owed (rc=0, want 1)
+    FAIL an unlisted merged set leaves the level as it was, never re-owing what a merge closed (rc=0, want 1)
+MUTANT bus_die_dropped rc=0 SURVIVED :: bus self-test: 97 checks, 0 failed
+MUTANT same_blob_arm_off rc=0 SURVIVED :: ledger self-test: 72 checks, 0 failed
+MUTANT D_arm_always_refuses under tools/audit/seat/ledger.py rc=0 SURVIVED :: ledger self-test: 72 checks, 0 failed
+MUTANT D_arm_always_refuses under tools/audit/seat/bus.sh rc=1 KILLED :: bus self-test: 97 checks, 2 failed
+MUTANT D_arm_always_refuses under tools/audit/seat/cloud_relay.sh rc=0 SURVIVED :: cloud_relay self-test: 283 checks, 0 failed
+MUTANT D_arm_ignored under tools/audit/seat/bus.sh rc=0 SURVIVED :: bus self-test: 97 checks, 0 failed
+MUTANT D_arm_ignored under tools/audit/seat/cloud_relay.sh rc=0 SURVIVED :: cloud_relay self-test: 283 checks, 0 failed
+BASELINE eab04d0 MUTANT content_superseded_D_guard_off rc=0 SURVIVED :: bus self-test: 92 checks, 0 failed

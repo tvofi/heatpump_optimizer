@@ -1,0 +1,88 @@
+== checkout=/tmp/rv-base main=57f0c9c77cfd5958e0a2443e158bea8326bedae2
+fatal: expected 'acknowledgments', received 'packfile'
+warning: push negotiation failed; proceeding anyway with push
+RESULT earlycutoff=ORPHAN expect=landed
+RESULT pr2513=ORPHAN expect=landed
+RESULT pr2465=ORPHAN expect=landed
+RESULT pr2485=SUPERSEDED expect=landed
+RESULT pr2519=ORPHAN expect=landed
+RESULT pr2525=ORPHAN expect=landed
+RESULT null=ORPHAN expect=stranded
+orphans: 6 stranded, 1 superseded; skipped no-body=0 named=0 ancestor=0 young=0; origin main 57f0c9c
+MISREAD 5
+LEVEL earlycutoff=closed expect=landed
+LEVEL pr2513=owed expect=landed
+LEVEL pr2465=owed expect=landed
+LEVEL pr2485=owed expect=landed
+LEVEL pr2519=owed expect=landed
+LEVEL pr2525=owed expect=landed
+LEVEL null=owed expect=stranded
+LEVEL-LINES 12 for 7 topics; ledger: level carried=2 owed=12
+LEVEL-MISREAD 5
+rc=0
+== checkout=/tmp/rv-head main=57f0c9c77cfd5958e0a2443e158bea8326bedae2
+fatal: expected 'acknowledgments', received 'packfile'
+warning: push negotiation failed; proceeding anyway with push
+RESULT earlycutoff=SUPERSEDED expect=landed
+RESULT pr2513=ORPHAN expect=landed
+RESULT pr2465=SUPERSEDED expect=landed
+RESULT pr2485=SUPERSEDED expect=landed
+RESULT pr2519=ORPHAN expect=landed
+RESULT pr2525=ORPHAN expect=landed
+RESULT null=ORPHAN expect=stranded
+orphans: 4 stranded, 3 superseded; skipped no-body=0 named=0 ancestor=0 young=0; origin main 57f0c9c
+MISREAD 3
+LEVEL earlycutoff=closed expect=landed
+LEVEL pr2513=closed expect=landed
+LEVEL pr2465=closed expect=landed
+LEVEL pr2485=closed expect=landed
+LEVEL pr2519=closed expect=landed
+LEVEL pr2525=closed expect=landed
+LEVEL null=owed expect=stranded
+LEVEL-LINES 1 for 7 topics; ledger: level body-follows-code=7 carried=1 merged-pr=5 owed=1
+LEVEL-MISREAD 0
+rc=0
+== checkout=/tmp/rv-base main=beb570c817c4efcae0d5f6f4bba52f3383baf8db
+fatal: expected 'acknowledgments', received 'packfile'
+warning: push negotiation failed; proceeding anyway with push
+RESULT earlycutoff=ORPHAN expect=landed
+RESULT pr2513=ORPHAN expect=landed
+RESULT pr2465=ORPHAN expect=landed
+RESULT pr2485=ORPHAN expect=landed
+RESULT pr2519=ORPHAN expect=landed
+RESULT pr2525=ORPHAN expect=landed
+RESULT null=ORPHAN expect=stranded
+orphans: 7 stranded, 0 superseded; skipped no-body=0 named=0 ancestor=0 young=0; origin main beb570c
+MISREAD 6
+LEVEL earlycutoff=closed expect=landed
+LEVEL pr2513=owed expect=landed
+LEVEL pr2465=owed expect=landed
+LEVEL pr2485=owed expect=landed
+LEVEL pr2519=owed expect=landed
+LEVEL pr2525=owed expect=landed
+LEVEL null=owed expect=stranded
+LEVEL-LINES 12 for 7 topics; ledger: level carried=2 owed=12
+LEVEL-MISREAD 5
+rc=0
+== checkout=/tmp/rv-head main=beb570c817c4efcae0d5f6f4bba52f3383baf8db
+fatal: expected 'acknowledgments', received 'packfile'
+warning: push negotiation failed; proceeding anyway with push
+RESULT earlycutoff=SUPERSEDED expect=landed
+RESULT pr2513=ORPHAN expect=landed
+RESULT pr2465=ORPHAN expect=landed
+RESULT pr2485=SUPERSEDED expect=landed
+RESULT pr2519=ORPHAN expect=landed
+RESULT pr2525=ORPHAN expect=landed
+RESULT null=ORPHAN expect=stranded
+orphans: 5 stranded, 2 superseded; skipped no-body=0 named=0 ancestor=0 young=0; origin main beb570c
+MISREAD 4
+LEVEL earlycutoff=closed expect=landed
+LEVEL pr2513=closed expect=landed
+LEVEL pr2465=closed expect=landed
+LEVEL pr2485=closed expect=landed
+LEVEL pr2519=closed expect=landed
+LEVEL pr2525=closed expect=landed
+LEVEL null=owed expect=stranded
+LEVEL-LINES 1 for 7 topics; ledger: level body-follows-code=7 carried=1 merged-pr=5 owed=1
+LEVEL-MISREAD 0
+rc=0
