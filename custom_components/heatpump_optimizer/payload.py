@@ -139,6 +139,17 @@ IDLE_REASONS = frozenset({
     REASON_IDLE_DEARER, REASON_IDLE_COASTING, REASON_PUMP_MODE,
 })
 
+#: The ledger lines a resistive element's kWh book under, one per source
+#: (#11, #2729): a declared immersion element, or one of the pump's own two
+#: heaters. Each is spot energy carved out of ``spot``, so each is metered
+#: energy like it -- one owner, read by the booking that names the line
+#: (``pump_signals.resistive_carve_out``) and by the totals that must count it
+#: (``ledger.ENERGY_LINES`` and the closed month's receipt).
+LINE_IMMERSION = "immersion"
+LINE_DHW_BOOSTER = "dhw_booster"
+LINE_BACKUP_HEATER = "backup_heater"
+RESISTIVE_LINES = (LINE_IMMERSION, LINE_DHW_BOOSTER, LINE_BACKUP_HEATER)
+
 
 class CurrentAction(TypedDict, total=False):
     mode: str

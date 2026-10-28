@@ -1748,7 +1748,7 @@
         "step": {
           "confirm": {
             "title": "Set the pump to {target} °C",
-            "description": "The pump's DHW set-point on {entity} is below {target} °C. This writes {target} °C to that entity, the disinfection or minimum temperature already configured."
+            "description": "The pump's DHW set-point on {entity} is below {target} °C. This writes at least {target} °C to that entity, the disinfection or minimum temperature already configured."
           }
         }
       }
