@@ -1,0 +1,17 @@
+diff --git a/custom_components/heatpump_optimizer/thermal_model.py b/custom_components/heatpump_optimizer/thermal_model.py
+index 4ca435f97..f802f42b3 100644
+--- a/custom_components/heatpump_optimizer/thermal_model.py
++++ b/custom_components/heatpump_optimizer/thermal_model.py
+@@ -1449,11 +1449,7 @@ def learner_room_unread(config: Any) -> str | None:
+     if config is None:
+         return None
+     cfg = config or {}
+-    return (
+-        INDOOR_UNCONFIGURED_FREEZE
+-        if not cfg.get(const.CONF_INDOOR_TEMP_ENTITY)
+-        else None
+-    )
++    return None
+ 
+ 
+ def learner_unmetered(config: Any) -> str | None:
