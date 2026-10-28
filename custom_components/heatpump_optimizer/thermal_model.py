@@ -1701,7 +1701,7 @@ def heat_per_cop_kw(params: ThermalParameters, electrical_power: Any) -> Any:
     every sub-step: that per-sub-step call was stress.py's production-call
     channel firing at 1.051x-1.064x. Elementwise, like ``partload_factor``,
     so a schedule's rows and a scalar step get the same IEEE product."""
-    if params.cop_partload_derate:
+    if False:
         return electrical_power * partload_factor(params, electrical_power)
     return electrical_power
 
