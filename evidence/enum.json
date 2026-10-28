@@ -1,0 +1,1584 @@
+[
+  {
+    "number": 2524,
+    "title": "fix(seat): a stopped pusher reaps its whole descendant tree (R10-UPDATE-PR-SIGNALS)",
+    "state": "closed",
+    "head_ref": "fix/r10-pusher-reap",
+    "merge_sha": "fd9914851f063bc03bb44d4050ad30d6d0052f8d"
+  },
+  {
+    "number": 2528,
+    "title": "ci(prepr): closures is CI's off Linux, and the recorder dies with its parent (R10-PREPR-CAP)",
+    "state": "closed",
+    "head_ref": "fix/r10-prepr-closures",
+    "merge_sha": "f0724675ff079895f7af8756b342165137a344ed"
+  },
+  {
+    "number": 2579,
+    "title": "flow: yield probe (D13)",
+    "state": "closed",
+    "head_ref": "fix/r10-flow-yield-probe",
+    "merge_sha": "a9db47846647a516fbdb544c55c59a416875309f"
+  },
+  {
+    "number": 2580,
+    "title": "Hold list for the cloud relay handoff arm (R10-FLOW-RELAY-HOLD)",
+    "state": "closed",
+    "head_ref": "fix/r10-flow-relay-hold",
+    "merge_sha": "50808a755ce300fac4b19b7cfe7f89c795b8387b"
+  },
+  {
+    "number": 2584,
+    "title": "fix(train): one CI-state classifier for train, merge_pr and tick (R10-FLOW-MAIN-GATE)",
+    "state": "closed",
+    "head_ref": "fix/r10-flow-main-gate",
+    "merge_sha": "49018a8bec8d03fd2df52874b9021d25ab93741a"
+  },
+  {
+    "number": 2589,
+    "title": "app_approve: retry GitHub reads on transport, 5xx, 429 and secondary-limit 403 (R10-FLY-GH-READ-RETRY 1/2)",
+    "state": "closed",
+    "head_ref": "fix/r10-fly-gh-read-retry",
+    "merge_sha": "58730d09f61f3c26c86dad79387b0c2ffa739d66"
+  },
+  {
+    "number": 2605,
+    "title": "fix(nightly): py-spy sample cut at 5 s and the heartbeat control retried over fresh spins (R10-NIGHTLY-PYSPY-RETRY)",
+    "state": "closed",
+    "head_ref": "fix/r10-nightly-pyspy-retry",
+    "merge_sha": "2c0c4749499f5c3b85867120e41226e279a94164"
+  },
+  {
+    "number": 2606,
+    "title": "rca(R10-RCA-INSTALL-RATELIMIT): the record job drains the GITHUB_TOKEN bucket",
+    "state": "closed",
+    "head_ref": "fix/r10-rca-install-ratelimit",
+    "merge_sha": "9af4664c1e6317dcc9dd6ee310c9877bb0fc5125"
+  },
+  {
+    "number": 2610,
+    "title": "record: delivery rows for #2607, #2608 (autofix)",
+    "state": "closed",
+    "head_ref": "record/autofix",
+    "merge_sha": "738d950aa981efbdf866ff369942a69c5ae7d205"
+  },
+  {
+    "number": 2611,
+    "title": "record: delivery rows for #2610 (autofix)",
+    "state": "closed",
+    "head_ref": "record/autofix",
+    "merge_sha": "752f697ccc9c8a4191fe8a999f3622c190b6ff82"
+  },
+  {
+    "number": 2612,
+    "title": "R10-SOLVER: every L-BFGS-B run takes its value from the gradient's batch",
+    "state": "closed",
+    "head_ref": "fix/r10-solver",
+    "merge_sha": "008ad15bbba4df3dc6cb3afaee4ef7120557739d"
+  },
+  {
+    "number": 2613,
+    "title": "Roster: batch 13 carries and stage changes (R10)",
+    "state": "closed",
+    "head_ref": "fix/audit-r10-roster-13",
+    "merge_sha": "8a94ffd03c05c9bc799db8ad11d820dbaa133844"
+  },
+  {
+    "number": 2614,
+    "title": "record: delivery rows for #2584, #2589, #2605, #2606, #2611 (autofix)",
+    "state": "closed",
+    "head_ref": "record/autofix",
+    "merge_sha": "23dbd46a0426a28256dfc4a0ca117c287133e948"
+  },
+  {
+    "number": 2616,
+    "title": "record: delivery rows for #2579, #2580, #2613, #2614 (autofix)",
+    "state": "closed",
+    "head_ref": "record/autofix",
+    "merge_sha": "4d407a35f5f5e7785d06bebf1e40f2ab9e02ff3b"
+  },
+  {
+    "number": 2617,
+    "title": "build(deps): bump dompurify 3.4.16 -> 3.4.17 in the docs-site lockfile (supersedes #2615)",
+    "state": "closed",
+    "head_ref": "fix/r10-site-dompurify-2615-pr",
+    "merge_sha": "39f09d3e05b787a2b778258852b1fb7dcf2e71f2"
+  },
+  {
+    "number": 2618,
+    "title": "record: delivery rows for #2528, #2616 (autofix)",
+    "state": "closed",
+    "head_ref": "record/autofix",
+    "merge_sha": "86425b9ad471c752baca652b9189f75b78514931"
+  },
+  {
+    "number": 2619,
+    "title": "Roster: batch 14 stage changes (R10)",
+    "state": "closed",
+    "head_ref": "fix/audit-r10-roster-14",
+    "merge_sha": "98b532ab10a6b6abd4903477abfb863792463618"
+  },
+  {
+    "number": 2620,
+    "title": "fix(narrative): price the plan narrative in the feed's currency (R10-CURRENCY)",
+    "state": "closed",
+    "head_ref": "fix/r10-currency",
+    "merge_sha": "27b59c9f7975d1526529fe5aff21e8243caf19c5"
+  },
+  {
+    "number": 2622,
+    "title": "CI layout P2a: the umbrella engine under tools/ci (R10-CI-LAYOUT-P2)",
+    "state": "closed",
+    "head_ref": "fix/r10-ci-layout-p2a",
+    "merge_sha": "a1633381adadcf9e94c477bf651dfe94ba229c5c"
+  },
+  {
+    "number": 2623,
+    "title": "record: delivery rows for #2618, #2619 (autofix)",
+    "state": "closed",
+    "head_ref": "record/autofix",
+    "merge_sha": "de69745ffcab66b566b3e75aee0b572023f80857"
+  },
+  {
+    "number": 2624,
+    "title": "record: delivery rows for #2524, #2612, #2617, #2623 (autofix)",
+    "state": "closed",
+    "head_ref": "record/autofix",
+    "merge_sha": "fef4a1351db3e8e328d714e84299284c6876eecb"
+  },
+  {
+    "number": 2625,
+    "title": "RCA: body_push runs the pr-body lint (R10-RCA-BODY-LINT)",
+    "state": "closed",
+    "head_ref": "fix/r10-rca-body-lint",
+    "merge_sha": "cf01e82eec281c0d4e4141beb8fd5a8834cf99de"
+  },
+  {
+    "number": 2626,
+    "title": "Roster: batch 15 stage changes (R10-ROSTER-OPS)",
+    "state": "closed",
+    "head_ref": "fix/audit-r10-roster-pr",
+    "merge_sha": "3cb111514a0896d604f12b829eac4d12542d726f"
+  },
+  {
+    "number": 2627,
+    "title": "nightly-status: a workflow younger than its first cron slot reads NEW, not ABSENT (R10-NIGHTLY-ABSENT-NEW)",
+    "state": "closed",
+    "head_ref": "fix/r10-nightly-absent-new",
+    "merge_sha": "e364a0d73b8537e94258d5d0da98542d53793c84"
+  },
+  {
+    "number": 2628,
+    "title": "roles: pull, pitch and classes of service in the orchestrator's turn (R10-FLOW-PULL)",
+    "state": "closed",
+    "head_ref": "fix/r10-flow-pull",
+    "merge_sha": "fc7173fe7876e9973a170675d25337a810a40c59"
+  },
+  {
+    "number": 2629,
+    "title": "record: one window walk and a concurrency group for the record beat's API budget (R10-RECORD-API-BUDGET)",
+    "state": "closed",
+    "head_ref": "fix/r10-record-api-budget",
+    "merge_sha": "97b4fddf21b00c617e12dc906e289f61a2630baf"
+  },
+  {
+    "number": 2630,
+    "title": "record: delivery rows for #2622, #2624 (autofix)",
+    "state": "closed",
+    "head_ref": "record/autofix",
+    "merge_sha": "e45fc34fb1459e67f01ea50399b970f0e9aff2da"
+  },
+  {
+    "number": 2631,
+    "title": "Fold the D7 M7/M8 policy and round-10 brief and contract edits (R10-BRIEFS-FOLD)",
+    "state": "closed",
+    "head_ref": "fix/r10-briefs-fold",
+    "merge_sha": "b24cfe517bd95d30911c43184cf62e2ac781aa19"
+  },
+  {
+    "number": 2632,
+    "title": "Move the away recovery estimate and interval replay off the event loop (R10-LOOP-CPU)",
+    "state": "closed",
+    "head_ref": "fix/r10-loop-cpu",
+    "merge_sha": "7108101d71211772c2f45f67b240ee3663e3446e"
+  },
+  {
+    "number": 2633,
+    "title": "Land the architect/planner, plan-review, triage and standing-seat contracts (R10-FLOW-ARCH-PLANNER)",
+    "state": "closed",
+    "head_ref": "fix/r10-flow-arch-planner",
+    "merge_sha": "f38f91852ea0251a9043378f76f907794874b2be"
+  },
+  {
+    "number": 2634,
+    "title": "record: delivery rows for #2625, #2626, #2628, #2630 (autofix)",
+    "state": "closed",
+    "head_ref": "record/autofix",
+    "merge_sha": "4e38e7d7b3138b24c97e7d0fbea74965c1d43d62"
+  },
+  {
+    "number": 2635,
+    "title": "Roster: batch 17 re-cut and stage changes (R10-ROSTER-OPS)",
+    "state": "closed",
+    "head_ref": "fix/audit-r10-roster-pr",
+    "merge_sha": "d6308d77c5d02b2001e58a5436715d0c45a4fa9e"
+  },
+  {
+    "number": 2636,
+    "title": "fly: ban Claude attribution footers and session links in seat output",
+    "state": "closed",
+    "head_ref": "fix/r10-fly-no-footers-pr",
+    "merge_sha": "7deeef1b6b083b0fb5a8379717f3facd61897c6a"
+  },
+  {
+    "number": 2637,
+    "title": "Roster: batch 18 stage changes and carries (R10-ROSTER-OPS)",
+    "state": "closed",
+    "head_ref": "fix/audit-r10-roster-pr",
+    "merge_sha": "0d859d318c03611dcd735492e604d7032d9e2584"
+  },
+  {
+    "number": 2638,
+    "title": "policy_lint: a reusable-workflow caller of pr-contract is not its definition (R10-CI-LAYOUT-P2 pre-PR)",
+    "state": "closed",
+    "head_ref": "fix/r10-ci-layout-p2-policylint",
+    "merge_sha": "5056615a28b861abb32a9b8ff2111340b7487146"
+  },
+  {
+    "number": 2639,
+    "title": "R10-FLY-GH-READ-RETRY PR 2: merge_train, record_row and the App JWT read retry under one bounded rule",
+    "state": "closed",
+    "head_ref": "fix/r10-fly-gh-read-retry-2",
+    "merge_sha": "57b7b4994ac7ba3d1b4786edee3ed0e153c50fad"
+  },
+  {
+    "number": 2640,
+    "title": "record: delivery rows for #2627, #2631, #2634, #2635, #2637 (autofix)",
+    "state": "closed",
+    "head_ref": "record/autofix",
+    "merge_sha": "53bcf404aa48d6c2850e331b3eb8d01d99d6b6bf"
+  },
+  {
+    "number": 2641,
+    "title": "Roster: batch 19 PR records (R10-ROSTER-OPS)",
+    "state": "closed",
+    "head_ref": "fix/audit-r10-roster-pr",
+    "merge_sha": "e30b24bbc45afd1174f64f7051d05021e31b6a89"
+  },
+  {
+    "number": 2642,
+    "title": "record: delivery rows for #2638, #2640 (autofix)",
+    "state": "closed",
+    "head_ref": "record/autofix",
+    "merge_sha": "4200ea4c4275e24506dbef22f819c9f5320c5bff"
+  },
+  {
+    "number": 2643,
+    "title": "field_coverage: a pending entry on the hooks registration (tolerant form before #2636)",
+    "state": "closed",
+    "head_ref": "fix/r10-fly-no-footers-ignore-pr",
+    "merge_sha": "a7cf60cfd8acbd0a8b66421d6ac33e06400ac882"
+  },
+  {
+    "number": 2644,
+    "title": "record: delivery rows for #2629, #2641, #2642 (autofix)",
+    "state": "closed",
+    "head_ref": "record/autofix",
+    "merge_sha": "b3e857f26e2bd308e41a2551027d76dd71230d29"
+  },
+  {
+    "number": 2645,
+    "title": "R10-FLOW-TOOLKIT-MEASURE: the flow study's measuring tools, generalised for any round",
+    "state": "closed",
+    "head_ref": "fix/r10-flow-toolkit-measure-pr",
+    "merge_sha": "a6620c30adcdf0d9529ee66977694bfa2a06d5c3"
+  },
+  {
+    "number": 2646,
+    "title": "roster: batch 20 (twentieth landing)",
+    "state": "closed",
+    "head_ref": "fix/audit-r10-roster-pr",
+    "merge_sha": "90a2a19dd2b5bfcf3aac470555de1affe9a5ae5f"
+  },
+  {
+    "number": 2647,
+    "title": "R10-SCORES: one rule for every score, the house graded as measured",
+    "state": "closed",
+    "head_ref": "fix/r10-scores",
+    "merge_sha": "14405df59331481ac16662db64d8d8db9488026e"
+  },
+  {
+    "number": 2648,
+    "title": "record: delivery rows for #2633, #2643, #2644, #2646 (autofix)",
+    "state": "closed",
+    "head_ref": "record/autofix",
+    "merge_sha": "a243a79f4b97776e25063bb18a4c4c3062aa61b8"
+  },
+  {
+    "number": 2650,
+    "title": "record: delivery rows for #2636, #2648 (autofix)",
+    "state": "closed",
+    "head_ref": "record/autofix",
+    "merge_sha": "8cea0d2cf3e1b6632b667174a17b2808c01ec21b"
+  },
+  {
+    "number": 2651,
+    "title": "roster: batch 21 (twenty-first landing)",
+    "state": "closed",
+    "head_ref": "fix/audit-r10-roster-pr",
+    "merge_sha": "8a6e5826b608d67f285ded9c8c45a5763c9994df"
+  },
+  {
+    "number": 2652,
+    "title": "fix: stop the delivery-row and stamp commits writing a Co-Authored-By trailer",
+    "state": "closed",
+    "head_ref": "fix/r10-trailer-emitters-pr",
+    "merge_sha": "c6ef0668463b5e9291d0bf41061b06940ecb11ef"
+  },
+  {
+    "number": 2653,
+    "title": "record: delivery rows for 20 merges (8 overdue: #2639 #2645 #2647 #2650 #2651 #2652 #2655 #2659) (autofix)",
+    "state": "closed",
+    "head_ref": "record/autofix",
+    "merge_sha": "c93a469512901df777f08e69783b1bef71a84f71"
+  },
+  {
+    "number": 2655,
+    "title": "roster: batch 23 (twenty-third landing)",
+    "state": "closed",
+    "head_ref": "fix/audit-r10-roster-pr",
+    "merge_sha": "bfd61aaf167f87ddb582437f8626c49f76e1a0fa"
+  },
+  {
+    "number": 2659,
+    "title": "fix: a closure recording does not grade the harness CPU headroom (R10-FLY-SUITE-ENV-FLAKES)",
+    "state": "closed",
+    "head_ref": "fix/r10-fly-suite-env-flakes-hh",
+    "merge_sha": "975fbb832bd784a786f37c7ca3c24c4f0cfefcc0"
+  },
+  {
+    "number": 2661,
+    "title": "Merge remote-tracking branch 'origin/handoff/audit-r10-roster' into fix/audit-r10-roster-pr2",
+    "state": "closed",
+    "head_ref": "fix/audit-r10-roster-pr2",
+    "merge_sha": "4c31eb16e5756579e1c951ff560bd3d7a8e39c4c"
+  },
+  {
+    "number": 2663,
+    "title": "Merge remote-tracking branch 'origin/handoff/audit-r10-roster' into fix/audit-r10-roster-pr3",
+    "state": "closed",
+    "head_ref": "fix/audit-r10-roster-pr3",
+    "merge_sha": "12032c43cc321160ab0278f417c9575b786a03b4"
+  },
+  {
+    "number": 2664,
+    "title": "R10-FLY-RELAY-REVIEW-FF: relay retries confirm on unposted verdicts",
+    "state": "closed",
+    "head_ref": "fix/r10-fly-relay-review-ff",
+    "merge_sha": "811cd01aaef5a5e72e0f27598aaaef53823302fd"
+  },
+  {
+    "number": 2665,
+    "title": "R10-CI-LAYOUT-P2b-pre2: the architecture-score pair gets its own job beside fast, on main",
+    "state": "closed",
+    "head_ref": "fix/r10-ci-layout-p2b-pre2",
+    "merge_sha": "e6dd462770de22086769778e1ea7376fd90579f1"
+  },
+  {
+    "number": 2666,
+    "title": "R10-FLY-INERT-LOAD-TIME: closures re-split a recording's inert_reads at load time (class I2 barrier)",
+    "state": "closed",
+    "head_ref": "fix/r10-rca-inert-closure-recording",
+    "merge_sha": "c5e1be1967de4b1d29b203aaf73162046dc85bd1"
+  },
+  {
+    "number": 2667,
+    "title": "Merge remote-tracking branch 'origin/handoff/audit-r10-roster' into fix/audit-r10-roster-pr4",
+    "state": "closed",
+    "head_ref": "fix/audit-r10-roster-pr4",
+    "merge_sha": "fd7e289d0a09862b57f0509bf1071c54b9054799"
+  },
+  {
+    "number": 2668,
+    "title": "R10-FLY-NO-FOOTERS-PUSH-PATHS: judge commit messages on every publishing push path",
+    "state": "closed",
+    "head_ref": "fix/r10-fly-no-footers-push-paths",
+    "merge_sha": "25816d5eb50d285c0c94261223e5e0b2b3380759"
+  },
+  {
+    "number": 2669,
+    "title": "R10-POLICY-LINT-FAMILY: the raise-justification barrier and policy_lint fixes",
+    "state": "closed",
+    "head_ref": "fix/r10-policy-lint-family",
+    "merge_sha": "5c9828fe5e5521a9c24a095daf3cf83263d67f9a"
+  },
+  {
+    "number": 2670,
+    "title": "Record proposal-triage rulings, s5 batch 1 (P5-P33)",
+    "state": "closed",
+    "head_ref": "fix/r10-triage-s5-batch1",
+    "merge_sha": "d7cb63508d1a13bd63a0cb74119e429899fa476e"
+  },
+  {
+    "number": 2671,
+    "title": "The orchestrator's owed-work ledger (R10-ORCH-LEDGER)",
+    "state": "closed",
+    "head_ref": "fix/r10-orch-ledger",
+    "merge_sha": "6120fb5138dccca84a5f5ca1e8bd3ef8487a1efa"
+  },
+  {
+    "number": 2672,
+    "title": "Record proposal-triage rulings, s5 batch 2 (P34-P41)",
+    "state": "closed",
+    "head_ref": "fix/r10-triage-s5-batch2",
+    "merge_sha": "f046076aded786f271edba6f27a2a1d4b4a515d7"
+  },
+  {
+    "number": 2673,
+    "title": "ci: the CI umbrella and its readers, cut over to one required gate (R10-CI-LAYOUT-P2b)",
+    "state": "closed",
+    "head_ref": "fix/r10-ci-layout-p2b-v2",
+    "merge_sha": "b927f431abad03249ba91de5535f7e179f392d00"
+  },
+  {
+    "number": 2675,
+    "title": "coordinator: live state owned per cycle, restore and await races closed (R10-LIVESTATE)",
+    "state": "closed",
+    "head_ref": "fix/r10-livestate-pr",
+    "merge_sha": "94bec976b345473d1124caa6a7df5b7b4071dc53"
+  },
+  {
+    "number": 2676,
+    "title": "record: delivery rows for #2653 (autofix)",
+    "state": "closed",
+    "head_ref": "record/autofix",
+    "merge_sha": "f8cc41ab0dc2a9cd5a6c1f14732bcf849e0f738c"
+  },
+  {
+    "number": 2679,
+    "title": "record: delivery rows for #2671, #2673, #2676 (autofix)",
+    "state": "closed",
+    "head_ref": "record/autofix",
+    "merge_sha": "144fb4f900768195c64469f9647ece583a54a52b"
+  },
+  {
+    "number": 2680,
+    "title": "record: delivery rows for #2679 (autofix)",
+    "state": "closed",
+    "head_ref": "record/autofix",
+    "merge_sha": "d05a44c63647fe62da28b3951a87a4b3e7107319"
+  },
+  {
+    "number": 2681,
+    "title": "rca(R10-RCA-2671-WAVE-SCRIPT): #2671 wave-script and instrument-self-tests reds",
+    "state": "closed",
+    "head_ref": "fix/r10-rca-2671-wave-script",
+    "merge_sha": "b14376b80c959acec8b68c298c901284466de33c"
+  },
+  {
+    "number": 2682,
+    "title": "record: delivery rows for #2680 (autofix)",
+    "state": "closed",
+    "head_ref": "record/autofix",
+    "merge_sha": "5c1980cbac23fbb68c271d5da81a46e77cb5e1cd"
+  },
+  {
+    "number": 2683,
+    "title": "inputs: stale power and mode readings expire per source (R10-INPUT-STALENESS)",
+    "state": "closed",
+    "head_ref": "fix/r10-input-staleness",
+    "merge_sha": "d0ae3ca9f480d778fdb3643f30324a92f038b44c"
+  },
+  {
+    "number": 2684,
+    "title": "record: delivery rows for #2682 (autofix)",
+    "state": "closed",
+    "head_ref": "record/autofix",
+    "merge_sha": "d5dc3e26a3cc297a6888c07961bff74d70b7f60e"
+  },
+  {
+    "number": 2685,
+    "title": "record: delivery rows for #2681, #2684 (autofix)",
+    "state": "closed",
+    "head_ref": "record/autofix",
+    "merge_sha": "15f0b5924f3c2a75befe984d156cb3e602effd2e"
+  },
+  {
+    "number": 2686,
+    "title": "record: delivery rows for #2675, #2685 (autofix)",
+    "state": "closed",
+    "head_ref": "record/autofix",
+    "merge_sha": "50af6174f53c0f9bec3f705c3a4bb99615f71acc"
+  },
+  {
+    "number": 2687,
+    "title": "record: delivery rows for #2686 (autofix)",
+    "state": "closed",
+    "head_ref": "record/autofix",
+    "merge_sha": "0c36407610e372ec73cf03b757b07b5ef7e352dc"
+  },
+  {
+    "number": 2688,
+    "title": "Record proposal-triage rulings, s6 batch 1 (P42-P44)",
+    "state": "closed",
+    "head_ref": "fix/r10-triage-s6-batch1",
+    "merge_sha": "2cdf7adca3201ba941c5eb315984643608de33ee"
+  },
+  {
+    "number": 2689,
+    "title": "Record proposal-triage rulings, s6 batch 2 (P45-P52)",
+    "state": "closed",
+    "head_ref": "fix/r10-triage-s6-batch2",
+    "merge_sha": "d2dcfed15a0c9d0bb4934f4b29cd95dbe04bbf44"
+  },
+  {
+    "number": 2690,
+    "title": "Fix main ci-ratchet: run-title keying and repo-wide artifacts listing",
+    "state": "closed",
+    "head_ref": "fix/r10-ci-ratchet-artifacts-pr",
+    "merge_sha": "9fd5eb10720ca54194414115c1bc7863288df7d3"
+  },
+  {
+    "number": 2691,
+    "title": "Record two stranded root-cause records (R10-HANDOFF-PREPR-BOUNCE)",
+    "state": "closed",
+    "head_ref": "fix/r10-rca-strand-pr",
+    "merge_sha": "36db48e724e20b718f4a47262e8fd6b440a8bdc7"
+  },
+  {
+    "number": 2692,
+    "title": "Replay scoped: part of #2273",
+    "state": "closed",
+    "head_ref": "fix/r10-replay-scoped",
+    "merge_sha": "bed70a7224e63d8044a96c84d8aa1feae2dee535"
+  },
+  {
+    "number": 2693,
+    "title": "Record proposal-triage rulings, s6 batch 3",
+    "state": "closed",
+    "head_ref": "fix/r10-triage-s6-batch3",
+    "merge_sha": "026527b5ae8dc2f0270b0bf9f2df1801f5a78ac3"
+  },
+  {
+    "number": 2694,
+    "title": "record: delivery rows for #2687, #2690 (autofix)",
+    "state": "closed",
+    "head_ref": "record/autofix",
+    "merge_sha": "145bfe197b9e7c09eb90bedadec44c6bc19d679d"
+  },
+  {
+    "number": 2695,
+    "title": "record: delivery rows for #2694 (autofix)",
+    "state": "closed",
+    "head_ref": "record/autofix",
+    "merge_sha": "8d0ce23a0d3b2f2cd13e1b29eeded9369c8831de"
+  },
+  {
+    "number": 2696,
+    "title": "R10 rca ci ratchet run name",
+    "state": "closed",
+    "head_ref": "fix/r10-rca-ci-ratchet-run-name-pr",
+    "merge_sha": "e97f5749b441b282e43bd99dbcbb762e9d10a369"
+  },
+  {
+    "number": 2697,
+    "title": "R10-MERGE-SUBJECT-HARDEN: merge-subject guard findings from #2423",
+    "state": "closed",
+    "head_ref": "fix/r10-merge-subject-harden",
+    "merge_sha": "f3ffb1c635327365841ad430ce8fad7488a02d61"
+  },
+  {
+    "number": 2698,
+    "title": "R10 ratio anchor",
+    "state": "closed",
+    "head_ref": "fix/r10-ratio-anchor",
+    "merge_sha": "2f88db05420dfb50ddba09d5ca97a6be8ef0a485"
+  },
+  {
+    "number": 2699,
+    "title": "record: delivery rows for #2683, #2695 (autofix)",
+    "state": "closed",
+    "head_ref": "record/autofix",
+    "merge_sha": "e8a08cf9efefc96c36e79efa7459562e27007b54"
+  },
+  {
+    "number": 2700,
+    "title": "R10 policy: gate scoping",
+    "state": "closed",
+    "head_ref": "fix/r10-policy-gate-scoping-pr",
+    "merge_sha": "c686fe3668b2dab7d5760dbb7b548748dfdaba7e"
+  },
+  {
+    "number": 2701,
+    "title": "record: delivery rows for #2693, #2699 (autofix)",
+    "state": "closed",
+    "head_ref": "record/autofix",
+    "merge_sha": "ac5788f2617755631f14e4d1a31efab0e47aa820"
+  },
+  {
+    "number": 2702,
+    "title": "record: delivery rows for #2701 (autofix)",
+    "state": "closed",
+    "head_ref": "record/autofix",
+    "merge_sha": "fa4dad4a75eef5d8db3d8f1c35e6ae15dd57583a"
+  },
+  {
+    "number": 2703,
+    "title": "record: delivery rows for #2688, #2689, #2702 (autofix)",
+    "state": "closed",
+    "head_ref": "record/autofix",
+    "merge_sha": "9586fce081411da3e552aab930919c40e2b2b233"
+  },
+  {
+    "number": 2704,
+    "title": "R10-POLICY-FIXER-MD: dispose #2378's recurring fixer.md friction",
+    "state": "closed",
+    "head_ref": "fix/r10-policy-fixer-md",
+    "merge_sha": "662a3809ced43b41dba2166f04277f2d3c95e991"
+  },
+  {
+    "number": 2705,
+    "title": "record: delivery rows for #2703 (autofix)",
+    "state": "closed",
+    "head_ref": "record/autofix",
+    "merge_sha": "bf9f8aa16709ff5c6ab054057480c6d896f46b6c"
+  },
+  {
+    "number": 2706,
+    "title": "rca-gate-lease-flake: fix(gate_lock): create and renew an owner file whole, so a waiter neve",
+    "state": "closed",
+    "head_ref": "fix/r10-rca-gate-lease-flake",
+    "merge_sha": "8e7dc7ad103660455586c94fd46ee6f0ee64e472"
+  },
+  {
+    "number": 2707,
+    "title": "R10-FLY-CIPREDICT-LAYOUT: ci_predict: pin the layout arm to HEAD, not the index, and its repair ",
+    "state": "closed",
+    "head_ref": "fix/r10-fly-cipredict-layout",
+    "merge_sha": "0c7d6ca4faf974807abbe31da852afaa25ee4744"
+  },
+  {
+    "number": 2708,
+    "title": "R10-FLY-ENVMATRIX-NOREMOTE: env-matrix without a remote",
+    "state": "closed",
+    "head_ref": "fix/r10-fly-envmatrix-noremote",
+    "merge_sha": "93931ab2b2750ed13a0dd8706513f65ffdb0caf2"
+  },
+  {
+    "number": 2709,
+    "title": "R10-FLY-CLOUD-SETUP-TOOLCHAIN: cloud-setup toolchain",
+    "state": "closed",
+    "head_ref": "fix/r10-fly-cloud-setup-toolchain",
+    "merge_sha": "6c25b26d6214c10ace9dd42046d6395d0c26edac"
+  },
+  {
+    "number": 2710,
+    "title": "Merge branch 'handoff/audit-r10-roster' of https://github.com/tvofi/heatpump_optimizer into fix/audit-r10-roster-pr5",
+    "state": "closed",
+    "head_ref": "fix/audit-r10-roster-pr5",
+    "merge_sha": "1e5f91bc87a4db77f53d4520a4c17bfc481c6a88"
+  },
+  {
+    "number": 2711,
+    "title": "R10-STRUCTURE-ALIAS: replay the alias and getter plants in memory; census bare getters",
+    "state": "closed",
+    "head_ref": "fix/r10-structure-alias",
+    "merge_sha": "5c0ee109305fc4f377c9326c712156b9ceb0e638"
+  },
+  {
+    "number": 2712,
+    "title": "Demand overbook: the planner books heat the house does not need (part of #2499)",
+    "state": "closed",
+    "head_ref": "fix/r10-demand-overbook",
+    "merge_sha": "da12aa37dee15b9e9567bd6c848493436f2592dd"
+  },
+  {
+    "number": 2713,
+    "title": "record: delivery rows for #2691, #2705 (autofix)",
+    "state": "closed",
+    "head_ref": "record/autofix",
+    "merge_sha": "73b69fe0a9fa9e45736cd1cdbc2077d3958b41ec"
+  },
+  {
+    "number": 2714,
+    "title": "roster-runq: tools: roster_queue.py self-test builds its repo through throwaway_git_init",
+    "state": "closed",
+    "head_ref": "fix/r10-roster-runq",
+    "merge_sha": "c3e3bd18eda97f329853f754e6597d2cfbbc52f4"
+  },
+  {
+    "number": 2734,
+    "title": "triage: s6 batch 4 adds P60 to P62, re-rules P55",
+    "state": "closed",
+    "head_ref": "triage/s6-batch4",
+    "merge_sha": "806aa2ce89aeb6c00cf756195f31026ab798f3ca"
+  },
+  {
+    "number": 2735,
+    "title": "triage: s6 batch 5 rules P63 (S6-V4 recurrence)",
+    "state": "closed",
+    "head_ref": "triage/s6-batch5",
+    "merge_sha": "d3b381a23be68f9d6c57d9a020c74fc5c52d87e3"
+  },
+  {
+    "number": 2736,
+    "title": "policy(D11): mechanise-first owner's brief addition",
+    "state": "closed",
+    "head_ref": "policy/r10-mechanise-first",
+    "merge_sha": "e783f09206f85c57dcaeb56e80720a7621bf922d"
+  },
+  {
+    "number": 2737,
+    "title": "R10-CI-LAYOUT-P2: the carries the cut-over left open",
+    "state": "closed",
+    "head_ref": "fix/r10-ci-layout-p2b-v2",
+    "merge_sha": "deb7a4c1e14f4db66bcad425b1f7e270df1cf68b"
+  },
+  {
+    "number": 2738,
+    "title": "triage: s6 batch 6 rules P64 (S6-V10)",
+    "state": "closed",
+    "head_ref": "triage/s6-batch6",
+    "merge_sha": "712c8d2828b346442258ad01d688b3e6e1407b77"
+  },
+  {
+    "number": 2739,
+    "title": "CodeQL scope and a Dependabot contract that passes the gates",
+    "state": "closed",
+    "head_ref": "fix/r10-codeql-dependabot-pr",
+    "merge_sha": "7896976ed4602b51102c628ecda72294044b771f"
+  },
+  {
+    "number": 2740,
+    "title": "record: delivery rows for #2696, #2713 (autofix)",
+    "state": "closed",
+    "head_ref": "record/autofix",
+    "merge_sha": "e463e95e255dac31ed229e520e197b5710a07d94"
+  },
+  {
+    "number": 2741,
+    "title": "triage: s6 batch 7 rules P65 (S6-V11)",
+    "state": "closed",
+    "head_ref": "triage/s6-batch7",
+    "merge_sha": "593c4fb28d82212d2b2eb1907255f7ac576f7972"
+  },
+  {
+    "number": 2742,
+    "title": "roster_sync: carries-open classified as derivable",
+    "state": "closed",
+    "head_ref": "fix/r10-roster-sync-carries-open",
+    "merge_sha": "4a00a3f053c252b3bbf9f0e75ae36d27331f8ac3"
+  },
+  {
+    "number": 2743,
+    "title": "triage: s6 batch 8, avoid the retired path literal",
+    "state": "closed",
+    "head_ref": "triage/s6-batch8",
+    "merge_sha": "80006932b74050005353dd93f122b38d6b631bc3"
+  },
+  {
+    "number": 2744,
+    "title": "triage: s6 batch 9, correct the counts",
+    "state": "closed",
+    "head_ref": "triage/s6-batch9",
+    "merge_sha": "87ecf385b1d2d80770d879b6b0fc1cf926406c77"
+  },
+  {
+    "number": 2745,
+    "title": "R10-SAV-COMFORT: the savings figures on the owner's baseline specification",
+    "state": "closed",
+    "head_ref": "fix/r10-sav-comfort",
+    "merge_sha": "34cd75bf1fe506334611ba6c074c223317370e67"
+  },
+  {
+    "number": 2747,
+    "title": "triage: s6 batch 10, P79 (dispose into a home the tick does not read)",
+    "state": "closed",
+    "head_ref": "triage/s6-batch10",
+    "merge_sha": "343fb2a2c23dbb1a78142ce869be495187b8d481"
+  },
+  {
+    "number": 2748,
+    "title": "triage: s6 batch 11, P80 (brief_lint never reads carry entries)",
+    "state": "closed",
+    "head_ref": "triage/s6-batch11",
+    "merge_sha": "2636ce9e9378addc393b749160be0bd928af4f90"
+  },
+  {
+    "number": 2749,
+    "title": "R10-MUTANT-SKIP: mutation skip handling",
+    "state": "closed",
+    "head_ref": "fix/r10-mutant-skip",
+    "merge_sha": "6b5d2a8169d64ab9ec276cfa2670ae32b2e2053b"
+  },
+  {
+    "number": 2750,
+    "title": "triage: s6 batch 12, P81 (issue 2746 gate-scoping friction count)",
+    "state": "closed",
+    "head_ref": "triage/s6-batch12",
+    "merge_sha": "e77f786e8fc25a08cc3628c04b131b23d052dba9"
+  },
+  {
+    "number": 2751,
+    "title": "record: delivery rows for #2700, #2734, #2736, #2740 (autofix)",
+    "state": "closed",
+    "head_ref": "record/autofix",
+    "merge_sha": "d71e56ba087dcf77e09f4b66666aabe814a25b07"
+  },
+  {
+    "number": 2752,
+    "title": "triage: s6 batch 13, P82 (tick reports the early-gate race as back to the fixer)",
+    "state": "closed",
+    "head_ref": "triage/s6-batch13",
+    "merge_sha": "646dbaa65ed40bafbf8eb9ecf16acf69be8945b3"
+  },
+  {
+    "number": 2753,
+    "title": "R10-THERMAL-POWER-OPTION: an optional thermal power entity",
+    "state": "closed",
+    "head_ref": "fix/r10-thermal-power-option-pr",
+    "merge_sha": "a441d2e15986033840c226eb39c4833c177f4dc8"
+  },
+  {
+    "number": 2754,
+    "title": "record: delivery rows for #2735, #2737, #2738, #2742, #2743, #2744, #2747, #2750, #2751 (autofix)",
+    "state": "closed",
+    "head_ref": "record/autofix",
+    "merge_sha": "a260e563086a85dcd2f1bc0ffaf033c93a01e783"
+  },
+  {
+    "number": 2755,
+    "title": "triage: s6 batch 14, P83 (cloud pool run ends its turn behind a background job)",
+    "state": "closed",
+    "head_ref": "triage/s6-batch14",
+    "merge_sha": "0810d5b8f30a81adbbc074640c6d95a1b358c5f6"
+  },
+  {
+    "number": 2756,
+    "title": "R10-RCA-CODESCAN-WAIT: root cause of the codescan wait race",
+    "state": "closed",
+    "head_ref": "fix/r10-rca-codescan-wait",
+    "merge_sha": "6939389f8c0cfbf684bd92e64f5e1c4552e89986"
+  },
+  {
+    "number": 2757,
+    "title": "record: delivery rows for #2709, #2752, #2754 (autofix)",
+    "state": "closed",
+    "head_ref": "record/autofix",
+    "merge_sha": "e45c154640ed059735d809f2e395864f41856cc1"
+  },
+  {
+    "number": 2758,
+    "title": "triage: s6 batch 15, P84 (the train posts the mandate approval its policy step requires)",
+    "state": "closed",
+    "head_ref": "triage/s6-batch15",
+    "merge_sha": "9082f264231448393938225931aa0218c5ecb76a"
+  },
+  {
+    "number": 2759,
+    "title": "triage: s6 batch 16, P85 (raise mutation-ledger's nightly sample after the anchor fix)",
+    "state": "closed",
+    "head_ref": "triage/s6-batch16",
+    "merge_sha": "728018c3403599257a660a1b2abf51ca1ee36368"
+  },
+  {
+    "number": 2760,
+    "title": "record: delivery rows for #2710, #2714, #2741, #2748, #2755, #2757 (autofix)",
+    "state": "closed",
+    "head_ref": "record/autofix",
+    "merge_sha": "eceef457a8e6d9b77494f459f4d464f56cbbb231"
+  },
+  {
+    "number": 2761,
+    "title": "triage: s6 batch 17, P86 (approve ahead of the merge; the review-event CI run blocks it)",
+    "state": "closed",
+    "head_ref": "triage/s6-batch17",
+    "merge_sha": "26449b5df560cdd36f0f533df7af0bd42d522333"
+  },
+  {
+    "number": 2762,
+    "title": "R10-CONFIG-NOTICES: one owner for the four standing configuration notices",
+    "state": "closed",
+    "head_ref": "fix/r10-config-notices",
+    "merge_sha": "de794b53765388da42b2b5f22da455ccfe3fe912"
+  },
+  {
+    "number": 2763,
+    "title": "triage: s6 batch 18, P87 (rows go through update_pr.sh so the Head note moves with them)",
+    "state": "closed",
+    "head_ref": "triage/s6-batch18",
+    "merge_sha": "0fa2b4ebee29f9fb7b700141080be463faa8d112"
+  },
+  {
+    "number": 2764,
+    "title": "roster: land the round-10 roster ops from handoff/audit-r10-roster 1558cf55f",
+    "state": "closed",
+    "head_ref": "fix/audit-r10-roster-pr5",
+    "merge_sha": "c176ee55de7c658b0b870182c5dd55d0843ad8f7"
+  },
+  {
+    "number": 2765,
+    "title": "R10-FLY-YIELD-GUARD: the review-strength guardrail",
+    "state": "closed",
+    "head_ref": "fix/r10-fly-yield-guard",
+    "merge_sha": "8a11b8bdd6bfdca0b5f6bd356638fad2b234525f"
+  },
+  {
+    "number": 2766,
+    "title": "R10-MUTATION-ANCHOR: anchor the mutation lane",
+    "state": "closed",
+    "head_ref": "fix/r10-mutation-anchor",
+    "merge_sha": "4944b20d59f1e55703b4c0b1438e3b4f28d80de4"
+  },
+  {
+    "number": 2767,
+    "title": "triage: s6 batch 19, P89-P92 (roster-ref carries, review-owed classes, check-run reads, set-stage group)",
+    "state": "closed",
+    "head_ref": "triage/s6-batch19",
+    "merge_sha": "12b222007b67c4bc0ac931a509d8b1385c6458cf"
+  },
+  {
+    "number": 2769,
+    "title": "record: delivery rows for #2707, #2708, #2760 (autofix)",
+    "state": "closed",
+    "head_ref": "record/autofix",
+    "merge_sha": "fe58844454525da612f7a06e44700287b55d0275"
+  },
+  {
+    "number": 2770,
+    "title": "R10-GATE-DEFER: the gate waits for sibling runs before it judges",
+    "state": "closed",
+    "head_ref": "fix/r10-gate-defer",
+    "merge_sha": "7c8154bd8c0f633ab63f9d82a21982551ae3feae"
+  },
+  {
+    "number": 2771,
+    "title": "roster: round-10 batch 6 (FLY-LEDGER-SAMPLE, ARCH-DOCS after-edges, HEAT-METER and COP-GATE carries from #2753, CIPREDICT-LAYOUT set-stage)",
+    "state": "closed",
+    "head_ref": "fix/audit-r10-roster-pr6",
+    "merge_sha": "0d1385e2f3a30324b205f0a7d377e45ee573da92"
+  },
+  {
+    "number": 2772,
+    "title": "R10-TRAIN-UPGRADE: the merge train takes policy heads, sequences batches and accepts adds on a running train",
+    "state": "closed",
+    "head_ref": "fix/r10-train-upgrade",
+    "merge_sha": "ac0a616a2ba3b6afaeabbe25c67bbc48d13ff217"
+  },
+  {
+    "number": 2773,
+    "title": "Bump mermaid from 12.1.0 to 12.2.0 in /tools/site in the site group across 1 directory",
+    "state": "closed",
+    "head_ref": "dependabot/npm_and_yarn/tools/site/site-8ab25b5845",
+    "merge_sha": "dfcd8d9be1dab28cfe52f684764befd1e19291de"
+  },
+  {
+    "number": 2774,
+    "title": "build(deps): bump playwright from 1.56.1 to 1.64.1 in /tests/pwlane in the pwlane group",
+    "state": "closed",
+    "head_ref": "dependabot/npm_and_yarn/tests/pwlane/pwlane-c4b57d7147",
+    "merge_sha": "c6ef25a6534a612a1cdde1ebb9285e422f609a5a"
+  },
+  {
+    "number": 2775,
+    "title": "R10-LEARNER-ETA: learner progress payload instead of day-count ETAs while a learner settles",
+    "state": "closed",
+    "head_ref": "fix/r10-learner-eta-r3",
+    "merge_sha": "60cd447a021558df4a1c5e8e71ed5c24b199d01e"
+  },
+  {
+    "number": 2776,
+    "title": "record: delivery rows for #2739, #2759, #2764, #2769 (autofix)",
+    "state": "closed",
+    "head_ref": "record/autofix",
+    "merge_sha": "9d0ddf8afcb82848303c60181b736c9fb7c94581"
+  },
+  {
+    "number": 2779,
+    "title": "R10-FLOW-ROSTER-FREEZE: carry_audit accepts a group open on the round roster ref (arm b)",
+    "state": "closed",
+    "head_ref": "fix/r10-roster-freeze-b-r2",
+    "merge_sha": "c01d54b9811349f79599a915cf016ae7357842a2"
+  },
+  {
+    "number": 2780,
+    "title": "R10-FLOW-AUTOTRAIN",
+    "state": "closed",
+    "head_ref": "fix/r10-flow-autotrain-r2",
+    "merge_sha": "0825aee641c8afb1e67be2a6af9d07e9c9dec9fa"
+  },
+  {
+    "number": 2781,
+    "title": "record: delivery rows for #2711, #2771, #2774, #2776 (autofix)",
+    "state": "closed",
+    "head_ref": "record/autofix",
+    "merge_sha": "ab00437c94bd8d8ca7b47b69095c47535f3e645a"
+  },
+  {
+    "number": 2782,
+    "title": "triage: s6 batch 20, P96 (carried single merges via the train; merge_pr.sh names the route)",
+    "state": "closed",
+    "head_ref": "triage/s6-batch20",
+    "merge_sha": "cc9d584ac8f80280be28799c0dc8882fe74e8031"
+  },
+  {
+    "number": 2786,
+    "title": "record: delivery rows for #2692, #2698, #2704, #2706, #2761, #2763, #2766, #2767, #2770, #2772, #2781 (autofix)",
+    "state": "closed",
+    "head_ref": "record/autofix",
+    "merge_sha": "1afbbceaea843b2c7ffe914e1aa9b7172cbc0161"
+  },
+  {
+    "number": 2787,
+    "title": "roster: round-10 batch 9 (roster ops on handoff/audit-r10-roster through c57fa3768: GATE-DEFER, TRAIN-UPGRADE, RATIO-ANCHOR and RCA-CODESCAN-WAIT set-stages; ORCH-BEATD carries P94 and P95)",
+    "state": "closed",
+    "head_ref": "fix/audit-r10-roster-pr9",
+    "merge_sha": "1aa765fdd202647debaa7699f74bc15cf52ab674"
+  },
+  {
+    "number": 2788,
+    "title": "record: delivery rows for #2756, #2758, #2779, #2782, #2786 (autofix)",
+    "state": "closed",
+    "head_ref": "record/autofix",
+    "merge_sha": "973618e6f9410f7864993837cfc6153bb9b21fca"
+  },
+  {
+    "number": 2789,
+    "title": "record: delivery rows for #2765, #2788 (autofix)",
+    "state": "closed",
+    "head_ref": "record/autofix",
+    "merge_sha": "7138516b4b03764b4e76afbfdf183bab2cb1396b"
+  },
+  {
+    "number": 2790,
+    "title": "triage: s6 batch 21, P100 (S6-V34 accepted narrowed)",
+    "state": "closed",
+    "head_ref": "triage/s6-batch21",
+    "merge_sha": "ab3aade496371f1da01e96730188e2b0997e5536"
+  },
+  {
+    "number": 2791,
+    "title": "record: delivery rows for #2787, #2789 (autofix)",
+    "state": "closed",
+    "head_ref": "record/autofix",
+    "merge_sha": "21a1e04a7e838545f43a6f9a8545f4bb2bc0548f"
+  },
+  {
+    "number": 2792,
+    "title": "R10-FLOW-ROSTER-FREEZE: the relay does not move a roster pull request's head while a review of it is in flight (arm a)",
+    "state": "closed",
+    "head_ref": "fix/r10-roster-freeze-a",
+    "merge_sha": "ce3a77c5f5036767a951ab26d072f49ed05d3c05"
+  },
+  {
+    "number": 2793,
+    "title": "roster: round-10 batch 10 (roster ops on handoff/audit-r10-roster through 4a18b96b1: P96 a and b carries, ROSTER-FREEZE resume, FLY-YIELD-GUARD done, MERGE-SUBJECT-CASEARM add, batch-21 carries P97, P98, P100)",
+    "state": "closed",
+    "head_ref": "fix/audit-r10-roster",
+    "merge_sha": "f40142d66c9cc8e2f144a815990fc1fe1d99d9a8"
+  },
+  {
+    "number": 2794,
+    "title": "record: delivery rows for #2790, #2791 (autofix)",
+    "state": "closed",
+    "head_ref": "record/autofix",
+    "merge_sha": "880b667aaa22e25cb0c16712374a7f29ac39b2d3"
+  },
+  {
+    "number": 2795,
+    "title": "record: delivery rows for #2792, #2793, #2794 (autofix)",
+    "state": "closed",
+    "head_ref": "record/autofix",
+    "merge_sha": "102f74975840088fbb29ea37c40b47aa2c126d15"
+  },
+  {
+    "number": 2797,
+    "title": "roster: round-10 batch 11 (roster ops on handoff/audit-r10-roster through 2c5b1b612: ROSTER-FREEZE set-after and #2792 carry, ORCH-BEATD arm (a) carry and set-after, MERGE-SUBJECT-CASEARM r8 carry)",
+    "state": "closed",
+    "head_ref": "fix/audit-r10-roster",
+    "merge_sha": "b89fea13e99f23cc75f01bb1604030cabea4ca66"
+  },
+  {
+    "number": 2798,
+    "title": "R10-RCA-MERGE-SUBJECT-CLASS-OPEN: root cause of eight blocked rounds on the merge-subject guard",
+    "state": "closed",
+    "head_ref": "fix/r10-rca-merge-subject-class-open",
+    "merge_sha": "c29f3089beff847adbdd0ae3dc739f4a071f5756"
+  },
+  {
+    "number": 2799,
+    "title": "roster: round-10 batch 12 (roster ops through 54d78f9bb)",
+    "state": "closed",
+    "head_ref": "fix/audit-r10-roster-pr",
+    "merge_sha": "022d4aaec011f871c8d9bb848fbaacfd0fed3a28"
+  },
+  {
+    "number": 2804,
+    "title": "triage: s6 batch 22 (P101-P104)",
+    "state": "closed",
+    "head_ref": "triage/s6-batch22",
+    "merge_sha": "9d20341df5dc93bdbe68fb0970fa24528373c497"
+  },
+  {
+    "number": 2807,
+    "title": "Merge remote-tracking branch 'origin/main' into triage/s6-batch23",
+    "state": "closed",
+    "head_ref": "triage/s6-batch23",
+    "merge_sha": "bc52ad2af1d0cfe95896119b649fa56e14c74b5b"
+  },
+  {
+    "number": 2811,
+    "title": "depgraph: submit the pip locks snapshot on every manifest push to main; census the graph against the tree",
+    "state": "closed",
+    "head_ref": "fix/r10-fly-depgraph-stale",
+    "merge_sha": "1a7ba47b860451b1bb4144be4a32b2463a72e493"
+  },
+  {
+    "number": 2812,
+    "title": "roster: round-10 batch 13 (roster ops on handoff/audit-r10-roster through e64be204d: CASEARM carry, LEARNER-ETA/MUTANT-SKIP/FLOW-AUTOTRAIN done, coordinator pin re-pin, #2712 PIN-DRIVE carry on FLY-LEDGER-SAMPLE)",
+    "state": "closed",
+    "head_ref": "fix/audit-r10-roster-pr10",
+    "merge_sha": "f54f40cc1157529fea147456ad67e26c24d67aca"
+  },
+  {
+    "number": 2813,
+    "title": "Merge remote-tracking branch 'origin/main' into triage/s6-batch24",
+    "state": "closed",
+    "head_ref": "triage/s6-batch24",
+    "merge_sha": "4126505caf3a3bb4bcf67665d09c7d7648905b30"
+  },
+  {
+    "number": 2817,
+    "title": "R10-PARAMS-OWNER: one owner of the thermal parameters, copy-on-write, published whole; one fabric interval; user-command and per-cycle writers wait for their store's startup read",
+    "state": "closed",
+    "head_ref": "fix/r10-params-owner-pr",
+    "merge_sha": "5261ba84139d9459465ccd842b61b04c2b1329d8"
+  },
+  {
+    "number": 2818,
+    "title": "triage: batch 25 header",
+    "state": "closed",
+    "head_ref": "triage/s6-batch25",
+    "merge_sha": "b760e448abf167a80733df129db9579466f28034"
+  },
+  {
+    "number": 2819,
+    "title": "R10-ARCH-SHAPES: one owner per duplicated shape, power readings bounded",
+    "state": "closed",
+    "head_ref": "fix/r10-arch-shapes-pr",
+    "merge_sha": "4f3c7302046eccd1f869724a6de2cbf6f8183418"
+  },
+  {
+    "number": 2820,
+    "title": "fix(friction): count census rows, not distinct keys, so a key shared by two kinds is not a partial census",
+    "state": "closed",
+    "head_ref": "hotfix/friction-census-r10s6",
+    "merge_sha": "8aee66b77289f567617e9f9f852d72d5c4097aba"
+  },
+  {
+    "number": 2821,
+    "title": "Policy: the proposal-triage seat runs on opus (P127)",
+    "state": "closed",
+    "head_ref": "fix/r10-triage-opus",
+    "merge_sha": "c9cbe6b458a7053f914649eb02d5296d6cd8c0f4"
+  },
+  {
+    "number": 2822,
+    "title": "Merge remote-tracking branch 'origin/main' into triage/s6-batch26",
+    "state": "closed",
+    "head_ref": "triage/s6-batch26",
+    "merge_sha": "16c6b9e8f0191690f084128bc1e5760f0d48658d"
+  },
+  {
+    "number": 2823,
+    "title": "roster: round-10 batch 14 (roster ops on handoff/audit-r10-roster through 9e5f5cf1c: PARAMS-OWNER/ARCH-SHAPES stages, DEMAND-OVERBOOK done, HEAT-METER design carries, D15 leads L1-L9, new group LEGIONELLA-COMPLETION)",
+    "state": "closed",
+    "head_ref": "fix/audit-r10-roster-pr11",
+    "merge_sha": "30d54f87a24e22bf76f5bdacbdf2992833189aa4"
+  },
+  {
+    "number": 2824,
+    "title": "R10-DIAG-REDACT: redact owner data in the diagnostics bundle",
+    "state": "closed",
+    "head_ref": "fix/r10-diag-redact",
+    "merge_sha": "d181d014a0d9681b4f4ca217a540f7bd1bf932a2"
+  },
+  {
+    "number": 2825,
+    "title": "R10-UPDATE-PR-SIGNALS: a stopped update_pr.sh keeps its branch lock until its push ends",
+    "state": "closed",
+    "head_ref": "fix/r10-update-pr-signals",
+    "merge_sha": "ed1c9045e140b14e6a98fdb642942b6fa39aca71"
+  },
+  {
+    "number": 2827,
+    "title": "triage: batch 27, P140-P149 (V61-V72 less V66 and V67)",
+    "state": "closed",
+    "head_ref": "triage/s6-batch27",
+    "merge_sha": "2e351ab6d45f5f5588324552d50b0e5a198fb22b"
+  },
+  {
+    "number": 2828,
+    "title": "triage: batch 28, P150-P157 (V66-V67, V73-V78)",
+    "state": "closed",
+    "head_ref": "triage/s6-batch28",
+    "merge_sha": "1ea3ce4f23bec674e71a9095092c9f9496dcf9b1"
+  },
+  {
+    "number": 2829,
+    "title": "triage: batch 29, P158-P167 (proof CodeQL, V79-V102 round-10 part)",
+    "state": "closed",
+    "head_ref": "triage/s6-batch29",
+    "merge_sha": "23d521218853d62b937225a52c04b98e0b0acf8f"
+  },
+  {
+    "number": 2830,
+    "title": "triage: batch 30, P168-P175 (V81, V85-V92)",
+    "state": "closed",
+    "head_ref": "triage/s6-batch30",
+    "merge_sha": "04ea9ed07357ff7b828ef20d42fb745aa83c2242"
+  },
+  {
+    "number": 2831,
+    "title": "triage: batch 31, P176-P183 (V94-V103 quality series)",
+    "state": "closed",
+    "head_ref": "triage/s6-batch31",
+    "merge_sha": "c78df2b86b5ec51d631eb0ed18bbac8feecd166a"
+  },
+  {
+    "number": 2832,
+    "title": "R10-LEGIONELLA-COMPLETION: an overdue legionella cycle is commanded, a below-target peak leaves it due, and an overdue cycle raises a notice",
+    "state": "closed",
+    "head_ref": "fix/r10-legionella-completion",
+    "merge_sha": "510787b769407ed25054177cfb0f6bd17e041e0e"
+  },
+  {
+    "number": 2833,
+    "title": "R10-PLAN-ISSUES-CHART: projected open-issues chart in plan_page.py",
+    "state": "closed",
+    "head_ref": "fix/r10-plan-issues-chart-pr",
+    "merge_sha": "63a1c5fe81b749ed6f0c67e81369d6edae8ed2c9"
+  },
+  {
+    "number": 2834,
+    "title": "R10-ADVISOR-RESIDUE: the residue of #2257 that R10-ADVISOR recorded and left",
+    "state": "closed",
+    "head_ref": "fix/r10-advisor-residue",
+    "merge_sha": "0137c4cb052e134c953f31054907c01393d55ad7"
+  },
+  {
+    "number": 2836,
+    "title": "R10-FLOW-RECORD-PITCH: record pull requests come in batches, a pitch bounds when they merge, and the record chain is cut",
+    "state": "closed",
+    "head_ref": "fix/r10-flow-record-pitch",
+    "merge_sha": "28800999b9ce23793f191101bdfc1e4f598168fc"
+  },
+  {
+    "number": 2837,
+    "title": "R10-PROOF-CODEQL: a merge-train proof skips a CodeQL leg its entries already analyzed",
+    "state": "closed",
+    "head_ref": "fix/r10-proof-codeql",
+    "merge_sha": "f6784210c9c2c89cfe82ec8bf6acb8b412629055"
+  },
+  {
+    "number": 2838,
+    "title": "R10-FLOW-JIDOKA: error-proofing in tools/pr/prepr.sh before handoff",
+    "state": "closed",
+    "head_ref": "fix/r10-flow-jidoka",
+    "merge_sha": "bdf69a5c332acad0d92cf603881f603324422ff6"
+  },
+  {
+    "number": 2839,
+    "title": "R10-HOTFIX-CI-RATCHET-CRITPATH: ci_ratchet critical_path_minutes measures work, not runner queue",
+    "state": "closed",
+    "head_ref": "fix/r10-hotfix-ci-ratchet-critpath",
+    "merge_sha": "b1a78f1ff90e63bbc1e74c9e9aba51198cd177ce"
+  },
+  {
+    "number": 2841,
+    "title": "R10-CARD-VOICE: the card's setup page in the type-badge design, with the roster's six carries",
+    "state": "closed",
+    "head_ref": "fix/r10-card-voice",
+    "merge_sha": "75ac453534e10c0a6ef88533ad5ff375cd6ca333"
+  },
+  {
+    "number": 2842,
+    "title": "roster: round-10 batch 15 (52 ops)",
+    "state": "closed",
+    "head_ref": "fix/audit-r10-roster-pr12",
+    "merge_sha": "7d2056970e08135bdc7c2cab4063427a2efa1c30"
+  },
+  {
+    "number": 2843,
+    "title": "R10-996-RUNNER-CLAIMS: a golden-drift claim keyed on the move, for drift whose fixture set depends on the host",
+    "state": "closed",
+    "head_ref": "fix/r10-996-runner-claims",
+    "merge_sha": "bb8addd89b024beefab970573a6cac0ccbe88de6"
+  },
+  {
+    "number": 2844,
+    "title": "roster: round-10 batch 16 (5 ops)",
+    "state": "closed",
+    "head_ref": "fix/audit-r10-roster-pr",
+    "merge_sha": "21b45524d8b242c9520c9413966ff7bb26b72c7d"
+  },
+  {
+    "number": 2845,
+    "title": "record: delivery rows for #2697, #2712, #2749, #2753, #2762, #2773, #2775, #2780, #2797, #2798, #2799, #2804, #2807, #2811, #2812, #2813, #2817, #2818, #2820, #2821, #2822, #2823, #2827, #2828, #2829, #2830, #2831 (autofix)",
+    "state": "closed",
+    "head_ref": "record/autofix",
+    "merge_sha": "b709a4c50c0708ba6e1dc7e4f03fb6e3c9681d79"
+  },
+  {
+    "number": 2846,
+    "title": "triage: batch 32, P191 (V111 record PR swept on a refused merge attempt)",
+    "state": "closed",
+    "head_ref": "triage/s6-batch32",
+    "merge_sha": "0dfc063fa56ef7c5d2b202933792caf87a2ed154"
+  },
+  {
+    "number": 2847,
+    "title": "record: delivery rows for #2824, #2833, #2836, #2837, #2839, #2842 (autofix)",
+    "state": "closed",
+    "head_ref": "record/autofix",
+    "merge_sha": "df478d40be4b546a7aaad150a5d9132483534a3a"
+  },
+  {
+    "number": 2848,
+    "title": "R10-HOTFIX-BATCH-ERREXIT: hotfix for the batch errexit class",
+    "state": "closed",
+    "head_ref": "fix/r10-hotfix-batch-errexit",
+    "merge_sha": "e0ffb12130436f1cef00e770aed436ac8b4f067e"
+  },
+  {
+    "number": 2849,
+    "title": "R10-HOTFIX-BATCH-ERREXIT: root cause of the batch errexit class",
+    "state": "closed",
+    "head_ref": "fix/r10-rca-hotfix-batch-errexit",
+    "merge_sha": "fe47636fbd03d5384880badca8691f9bb4add715"
+  },
+  {
+    "number": 2850,
+    "title": "roster: round-10 batch 17 (8 ops)",
+    "state": "closed",
+    "head_ref": "fix/audit-r10-roster-pr",
+    "merge_sha": "11b7a9d739db46a5a62e9f9cf01a8f527a974137"
+  },
+  {
+    "number": 2851,
+    "title": "roster: round-10 batch 18 (9 ops)",
+    "state": "closed",
+    "head_ref": "fix/audit-r10-roster-pr13",
+    "merge_sha": "5fb8339304e10b2b1416d9c439587ae1806d820e"
+  },
+  {
+    "number": 2852,
+    "title": "R10-RCA-RATELIMIT-RECUR: the record beat's enumerate reads once per merge; the recurrence's root cause",
+    "state": "closed",
+    "head_ref": "fix/r10-rca-ratelimit-recur",
+    "merge_sha": "d8a803130ade881c35de79545524039ac82e6a49"
+  },
+  {
+    "number": 2854,
+    "title": "R10-HEAT-METER: an optional delivered-heat energy meter read per span",
+    "state": "closed",
+    "head_ref": "fix/r10-heat-meter-pr",
+    "merge_sha": "ea36188c30ff9b8e5f48e8181eacc837b002a07a"
+  },
+  {
+    "number": 2856,
+    "title": "record: delivery rows for #2825, #2838, #2844, #2846, #2848, #2850, #2851 (autofix)",
+    "state": "closed",
+    "head_ref": "record/autofix",
+    "merge_sha": "1f82fee49addbffa3388248f66e3f9f4482daed5"
+  },
+  {
+    "number": 2857,
+    "title": "roster: round-10 batch 19 (10 ops)",
+    "state": "closed",
+    "head_ref": "fix/audit-r10-roster-pr14",
+    "merge_sha": "2563e29228a9c2b075afed4f13b89839fcc281b2"
+  },
+  {
+    "number": 2858,
+    "title": "R10-FLY-OPENPR-ATOMIC: open_pr releases its worktree and pushes the row row-only",
+    "state": "closed",
+    "head_ref": "fix/r10-fly-openpr-atomic",
+    "merge_sha": "3b4180dcc680e2e2e06f4d8ed0a0839a7374d78f"
+  },
+  {
+    "number": 2859,
+    "title": "triage: s6 batch 33 (P192-P194)",
+    "state": "closed",
+    "head_ref": "triage/s6-batch33",
+    "merge_sha": "10f459f185ba204c1af2bb67cc93e729e545b8d7"
+  },
+  {
+    "number": 2861,
+    "title": "roster: round-10 batch 20",
+    "state": "closed",
+    "head_ref": "fix/audit-r10-roster-pr15",
+    "merge_sha": "ca877f55951351a783c52180b8d1ffb6fdad5efe"
+  },
+  {
+    "number": 2862,
+    "title": "triage: s6 batch 34 (P195-P198)",
+    "state": "closed",
+    "head_ref": "fix/triage-s6-batch34",
+    "merge_sha": "149ce54a36bcf9e794d357e0ef69dc8af62f8eb8"
+  },
+  {
+    "number": 2863,
+    "title": "record: delivery rows for #2832, #2841, #2843, #2849, #2852, #2857, #2859, #2861 (autofix)",
+    "state": "closed",
+    "head_ref": "record/autofix",
+    "merge_sha": "f46bb2728641cba0434ea4abc38acdc1062fce97"
+  },
+  {
+    "number": 2864,
+    "title": "roster: round-10 batch 21",
+    "state": "closed",
+    "head_ref": "fix/audit-r10-roster-pr16",
+    "merge_sha": "6fe5170cd7ce01e60ffebfc93e598c216e628fa3"
+  },
+  {
+    "number": 2865,
+    "title": "R10-ORCH-DISPATCH-REG: one dispatch registry, replay-safe confirm, the three-round re-cut",
+    "state": "closed",
+    "head_ref": "fix/r10-orch-dispatch-reg",
+    "merge_sha": "bfc4a1e297fb2899be1c4643ae9d75b8a5829208"
+  },
+  {
+    "number": 2866,
+    "title": "roster: round-10 batch 22",
+    "state": "closed",
+    "head_ref": "fix/audit-r10-roster-pr",
+    "merge_sha": "484d9902222031f8e081df9f53b52ffd50fcc0af"
+  },
+  {
+    "number": 2867,
+    "title": "triage: s6 batch 35 (P199-P203)",
+    "state": "closed",
+    "head_ref": "fix/triage-s6-batch35",
+    "merge_sha": "38d12ffd825844149f8a0df400d0f666f7ad9c03"
+  },
+  {
+    "number": 2868,
+    "title": "record: delivery rows for #2866, #2867 (autofix)",
+    "state": "closed",
+    "head_ref": "record/autofix",
+    "merge_sha": "d620369fad72e18081b2efa1b66ee0058296f12c"
+  },
+  {
+    "number": 2869,
+    "title": "R10-FLOW-AUDIT-PLAN: an audit-plan stage between verify and the fix wave",
+    "state": "closed",
+    "head_ref": "fix/r10-flow-audit-plan",
+    "merge_sha": "6f44346080d2630563a2cda08bd158ca50a1d23e"
+  },
+  {
+    "number": 2870,
+    "title": "R10-ORCH-REVIEW-PACKET: render one packet a reviewer reads instead of 20 probes",
+    "state": "closed",
+    "head_ref": "fix/r10-orch-review-packet",
+    "merge_sha": "eb2063218e40ef1a0aedbfb96b45ec2a9bee638c"
+  },
+  {
+    "number": 2871,
+    "title": "roster: round-10 batch 23",
+    "state": "closed",
+    "head_ref": "fix/audit-r10-roster-pr",
+    "merge_sha": "273221c71347fce38f6361d46e80bde3d8033d43"
+  },
+  {
+    "number": 2874,
+    "title": "plan: dispatch by the owner's priority, refuse an unmeasured size",
+    "state": "closed",
+    "head_ref": "fix/r10-plan-prio-pr",
+    "merge_sha": "524c1896b6943b3da03d6cad61420ced31e14c9c"
+  },
+  {
+    "number": 2877,
+    "title": "triage: s6 batch 36 (P204)",
+    "state": "closed",
+    "head_ref": "fix/triage-s6-batch36",
+    "merge_sha": "3ce45cbf6b4de945d8da117a9714de10220c258f"
+  },
+  {
+    "number": 2878,
+    "title": "roster: round-10 batch 24",
+    "state": "closed",
+    "head_ref": "fix/audit-r10-roster-pr",
+    "merge_sha": "22a2c9c707c1f8374e202d0317a14a1215bf76e0"
+  },
+  {
+    "number": 2879,
+    "title": "triage: s6 batch 37 (P205)",
+    "state": "closed",
+    "head_ref": "fix/triage-s6-batch37",
+    "merge_sha": "6eb552157b63d1e98a9653250789d9fe0027b5bc"
+  },
+  {
+    "number": 2880,
+    "title": "fix(roster): one stage and size registry, and a writer that refuses what no read closes",
+    "state": "closed",
+    "head_ref": "fix/r10-roster-schema-pr",
+    "merge_sha": "67178dc6a589cf95d2ce7cff36d8bbf17343e8dc"
+  },
+  {
+    "number": 2881,
+    "title": "triage: s6 batch 38 (P206)",
+    "state": "closed",
+    "head_ref": "fix/triage-s6-batch38",
+    "merge_sha": "2b45d098c92ed880a37a2848eac99713c3a2730b"
+  },
+  {
+    "number": 2882,
+    "title": "train: grade each merge tree before its car lands",
+    "state": "closed",
+    "head_ref": "fix/r10-train-overlap-grade",
+    "merge_sha": "4db1d3e28f0dff50f6916e39d52efed0ce856d0a"
+  },
+  {
+    "number": 2884,
+    "title": "triage: s6 batch 39 (P207-P210)",
+    "state": "closed",
+    "head_ref": "fix/triage-s6-batch39-pr",
+    "merge_sha": "e40806a7d8b024e7090182ea6d1906f45ddf89e2"
+  },
+  {
+    "number": 2885,
+    "title": "record: delivery rows for #2745, #2819, #2869, #2871, #2874, #2880, #2881, #2882 (autofix)",
+    "state": "closed",
+    "head_ref": "record/autofix",
+    "merge_sha": "12311951e447676dcf62ebca5a406f276fd73ed7"
+  },
+  {
+    "number": 2886,
+    "title": "triage: batch 40 -- rule V124 as P211/V131 (the push-stuck guard's CPU-advance arm)",
+    "state": "closed",
+    "head_ref": "fix/triage-s6-batch40-pr",
+    "merge_sha": "a0e7664ea6485b9ad8f68d164cd255ec4fd51fb9"
+  },
+  {
+    "number": 2888,
+    "title": "Triage s6 batch 40: correct P211 -- the lease half is a real second carry",
+    "state": "closed",
+    "head_ref": "fix/triage-s6-batch40-correct-pr",
+    "merge_sha": "939f0c6428766631d40a62ab7a32044db4223d37"
+  },
+  {
+    "number": 2889,
+    "title": "roster_sync: a carry the destination already holds from the same pull request is not re-appended",
+    "state": "closed",
+    "head_ref": "fix/r10-rca-state-beat-gate",
+    "merge_sha": "6b9bf5b58897b13b494303fc2818530d3602076e"
+  },
+  {
+    "number": 2893,
+    "title": "record: delivery rows for #2854, #2870, #2877, #2879, #2884, #2886 (autofix)",
+    "state": "closed",
+    "head_ref": "record/autofix",
+    "merge_sha": "802ba77563c0b49d85c89a9c1b9b584d1a194a82"
+  }
+]
