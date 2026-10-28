@@ -1,0 +1,36 @@
+#!/bin/bash
+# hpo-git-shim
+# Spike of tools/audit/seat/beatd_shims/git (design R10-ORCH-BEATD, never merged).
+# Real git is resolved once: HPO_REAL_GIT if it is executable and not a shim, else the
+# first executable `git` on PATH that is not a shim (marker line 2), canonicalised and
+# exported, so children never walk PATH again. No real git: rc 127, never a loop.
+# A fetch or pull that fails on `cannot lock ref` is re-run, at most HPO_GIT_RETRIES
+# (default 2) more times, 1 s then 2 s apart; every other git command is exec'd as is.
+is_shim() { local l1= l2=; { IFS= read -r l1; IFS= read -r l2; } < "$1" 2>/dev/null; [ "$l2" = '# hpo-git-shim' ]; }  # builtins only
+real=${HPO_REAL_GIT:-}
+if [ -n "$real" ] && { [ ! -x "$real" ] || is_shim "$real"; }; then real=; fi
+if [ -z "$real" ]; then
+  ifs=$IFS; IFS=:
+  for d in $PATH; do
+    [ -n "$d" ] || d=.
+    c=$d/git
+    if [ -x "$c" ] && [ ! -d "$c" ] && ! is_shim "$c"; then real=$(cd "$d" && pwd -P)/git; break; fi
+  done
+  IFS=$ifs
+fi
+[ -n "$real" ] || { echo "git shim: no real git on PATH" >&2; exit 127; }
+export HPO_REAL_GIT=$real
+sub=; skip=0
+for a in "$@"; do
+  if [ $skip = 1 ]; then skip=0; continue; fi
+  case $a in -C|-c|--git-dir|--work-tree|--namespace) skip=1;; -*) ;; *) sub=$a; break;; esac
+done
+case $sub in fetch|pull) ;; *) exec "$real" "$@";; esac
+err=$(mktemp); n=0; max=${HPO_GIT_RETRIES:-2}
+while :; do
+  "$real" "$@" 2>"$err"; rc=$?
+  if [ $rc = 0 ] || [ $n -ge "$max" ] || ! grep -q 'cannot lock ref' "$err"; then cat "$err" >&2; rm -f "$err"; exit $rc; fi
+  n=$((n + 1))
+  [ -z "${HPO_GIT_SHIM_LOG:-}" ] || printf '%s retry=%d rc=%d %s\n' "$(date -u +%FT%TZ)" "$n" "$rc" "$sub" >> "$HPO_GIT_SHIM_LOG"
+  sleep $n
+done

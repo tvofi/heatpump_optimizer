@@ -1,0 +1,16 @@
+# fixed: shims/git at this ref, /bin/bash 3.2.57(1)-release
+absolute, one copy: rc=0 git version 2.54.0 (Apple Git-157)
+relative entry: rc=0 git version 2.54.0 (Apple Git-157)
+trailing slash: rc=0 git version 2.54.0 (Apple Git-157)
+two shim copies: rc=0 git version 2.54.0 (Apple Git-157)
+duplicate entry: rc=0 git version 2.54.0 (Apple Git-157)
+HPO_REAL_GIT is a shim copy: rc=0 git version 2.54.0 (Apple Git-157)
+no real git on PATH: rc=127 git shim: no real git on PATH
+# mutant: the round-3 string compare (f0f046929 shims/git)
+absolute, one copy: rc=0 git version 2.54.0 (Apple Git-157)
+relative entry: rc=124 
+trailing slash: rc=124 
+two shim copies: rc=124 
+duplicate entry: rc=0 git version 2.54.0 (Apple Git-157)
+HPO_REAL_GIT is a shim copy: rc=0 git version 2.54.0 (Apple Git-157)
+no real git on PATH: rc=124 <tmp>/a/tools/audit/seat/beatd_shims/git: line 5: dirname: command not found

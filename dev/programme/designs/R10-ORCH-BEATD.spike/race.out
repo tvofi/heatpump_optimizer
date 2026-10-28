@@ -1,7 +1,7 @@
-git version 2.43.0
-fix: shim, no env: B rc=0 origin/main=84fa3a2 up=84fa3a2 retries=2
-fix: shim + lock-timeout env: B rc=0 origin/main=a699825 up=a699825 retries=1
-null: no shim, no env: B rc=1 origin/main=2b96403 up=2b96403 retries=0
-null: no shim, env (round 2): B rc=1 origin/main=b43b62a up=b43b62a retries=0
-mutant: shim, retries=0: B rc=1 origin/main=3548226 up=3548226 retries=0
-mutant: shim, retries=0, env: B rc=1 origin/main=5a06968 up=5a06968 retries=0
+git version 2.38.1
+fix: shim, no env: B rc=0 origin/main=7793c13 up=7793c13 retries=       2
+fix: shim + lock-timeout env: B rc=0 origin/main=a7c51a4 up=a7c51a4 retries=       1
+null: no shim, no env: B rc=1 origin/main=771c76e up=771c76e retries=       0
+null: no shim, env (round 2): B rc=1 origin/main=370da8c up=370da8c retries=       0
+mutant: shim, retries=0: B rc=1 origin/main=8f05932 up=8f05932 retries=       0
+mutant: shim, retries=0, env: B rc=1 origin/main=8c77e6a up=8c77e6a retries=       0
