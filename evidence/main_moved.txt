@@ -1,0 +1,117 @@
+## main b787c7d45..8a4c438e7 per shared file
+ dev/audit/harnesses/r10_seat_selftests_mutants.py |  6 +++-
+ tests/closures.json                               | 12 ++++++--
+ tools/audit/seat/INSTRUMENTS.md                   | 31 +++++++++++++++++--
+ tools/audit/seat/merge_train.py                   |  6 ++--
+ tools/audit/seat/orchestrator_tick.py             | 37 +++++++++++++++++++++++
+ 5 files changed, 83 insertions(+), 9 deletions(-)
+## commits on main touching dev/audit/harnesses/r10_seat_selftests_mutants.py
+ab80640b8 seat: body_patch.sh read-back success is a flag only an ok read sets
+## commits on main touching tools/audit/seat/merge_train.py
+abf4f40b7 ci: R10-CI-LAYOUT PR 1 -- the nightly lanes leave tests.yml; W1 drops C1
+## commits on main touching tools/audit/seat/orchestrator_tick.py
+abf4f40b7 ci: R10-CI-LAYOUT PR 1 -- the nightly lanes leave tests.yml; W1 drops C1
+## main's change to the mutants harness
+diff --git a/dev/audit/harnesses/r10_seat_selftests_mutants.py b/dev/audit/harnesses/r10_seat_selftests_mutants.py
+index 0e804373e..8c7ec5d79 100644
+--- a/dev/audit/harnesses/r10_seat_selftests_mutants.py
++++ b/dev/audit/harnesses/r10_seat_selftests_mutants.py
+@@ -9,7 +9,7 @@ file in place and restores its bytes, and a dirty file refuses first.
+ 
+ M0 runs every seat step in governance.yml's `instrument-self-tests` as CI
+ does (its `run:` text, under `bash -e`, with RUNNER_TEMP set, a throwaway
+-HOME and no inherited PYTHONUNBUFFERED) and must exit 0 for each. S01..S38 and the per-file ids (tick_loop-N, heartbeat-N) each plant one production-line
++HOME and no inherited PYTHONUNBUFFERED) and must exit 0 for each. S01..S38 and the per-file ids (body_patch-1, tick_loop-N, heartbeat-N) each plant one production-line
+ mutant in one file -- outside that file's self-test function -- and run only
+ the step that names the file: a killed mutant reddens the step, and the same
+ step on the unmutated file must pass first (NOT RUN otherwise). S04U is S04 run with
+@@ -116,6 +116,10 @@ MUTANTS = [
+     ("S38", "merge_pr.sh",
+      "gh pr merge $PR --merge --match-head-commit $S || exit 1  # mut:merge",
+      "exit 0  # mut:merge"),
++    # r10-flow-body-patch: retry exhaustion of the read-back never reports the body patched.
++    ("body_patch-1", "body_patch.sh",
++     '[ "$rbok" = 1 ] || die "#$pr could not be read back',
++     '[ "$rbok" = 1 ] || : "#$pr could not be read back'),
+     # r10-flow-andon: ids are per file (tick_loop-N, heartbeat-N), never a new S number.
+     ("tick_loop-1", "tick_loop.sh", '  timeout 60 bash "${HPO_TICK_HEARTBEAT:-$HERE/heartbeat.sh}" --once --message "TICK-PASS $now relay=$rrc tick=$trc"  # mut:heartbeat\n', ""),
+     ("tick_loop-2", "tick_loop.sh", '[ $? = 0 ] || echo "HEARTBEAT NOT PUSHED: heartbeat.sh did not finish cleanly"', "true"),
+diff --git a/tools/audit/seat/merge_train.py b/tools/audit/seat/merge_train.py
+index d09c3072b..00c518ee1 100644
+--- a/tools/audit/seat/merge_train.py
++++ b/tools/audit/seat/merge_train.py
+@@ -81,7 +81,7 @@ later pull request would be graded against a `main` the refused one never joined
+ It prints one line per step and ends `TRAIN DONE` or `TRAIN STOPPED #<pr> <step>:
+ <reason>` (exit 1). A real run publishes `TRAIN HOLD refs/heads/train-hold`
+ before anything merges and releases it just before the closing line: CI
+-cannot see this process's pidfile, and tests.yml's record beat auto-merges
++cannot see this process's pidfile, and nightly.yml's record beat auto-merges
+ record pull requests otherwise, moving main mid-train (#2291/#2295/#2299,
+ 2026-10-15; issue #2302). Every GitHub write is the orchestrator's: run this
+ only from the orchestrator's machine and identity (decisions 0011, 0013).
+@@ -281,7 +281,7 @@ HEARTBEAT_SECONDS = 240
+ # main's entry to about two hours before it stops as before.
+ MAIN_MOVED_TRIES = 3
+ # THE RECORD-BEAT HOLD (R10-TRAIN-HOLD, issue #2302). CI cannot see this
+-# process's pidfile, and the record beat in tests.yml auto-merges record pull
++# process's pidfile, and the record beat in nightly.yml auto-merges record pull
+ # requests on its own schedule: #2291, #2295 and #2299 each landed mid-train
+ # on 2026-10-15 and stopped or re-carried #2284 and #2290. A real run
+ # publishes this ref while it is live and deletes it at its closing line; the
+@@ -3355,7 +3355,7 @@ def _batch_self_test(check) -> None:
+     # THE GUARD THE STUB CANNOT SEE: --bot-prs runs record_row.py's own CLI,
+     # the one the record beat runs; these read the real tree.
+     rr = (ROOT / "tools/audit/seat/record_row.py").read_text()
+-    beat = (ROOT / ".github/workflows/tests.yml").read_text()
++    beat = (ROOT / ".github/workflows/nightly.yml").read_text()
+     check("record_row.py takes every option the bot sweep passes, and the record beat merges behind "
+           "the same --automerge-check ... --head ... --require-green guard",
+           all(f'"{o}"' in rr for o in ("--find-open", "--owner", "--automerge-check", "--require-green",
+diff --git a/tools/audit/seat/orchestrator_tick.py b/tools/audit/seat/orchestrator_tick.py
+index 3d34ec909..c9fabd3ad 100644
+--- a/tools/audit/seat/orchestrator_tick.py
++++ b/tools/audit/seat/orchestrator_tick.py
+@@ -2645,6 +2645,43 @@ def self_test() -> int:
+         ])
+         total, failed = total + a, failed + f
+ 
++        # ---- MAIN: D-1 (R10-CI-LAYOUT PR 1). record-autofix left the Tests
++        # push run for nightly.yml, so its red no longer reddens Tests; the
++        # tick must still flag it. It reads per-commit check runs, whatever
++        # workflow wrote them, so what is pinned is the name: every
++        # nightly.yml job that runs on a push to main -- read off the
++        # workflow, not listed here -- is one NIGHTLY_CLASS flags, and the
++        # tick names it red beside a green required set.
++        wf = (ROOT / ".github/workflows/nightly.yml").read_text().split("\njobs:\n", 1)[1]
++        on_push = []
++        for job in re.findall(r"(?m)^  ([A-Za-z][\w-]*):\n", wf):
++            body = re.search(rf"(?ms)^  {re.escape(job)}:\n(.*?)(?=^  [A-Za-z]|\Z)", wf).group(1)
++            cond = " ".join((re.search(r"(?ms)^    if: >-\n((?:      .*\n)+)|^    if: (.*)$", body)
++                             or re.match("", "")).group(0).split())
++            if "'push'" in cond and "!= 'push'" not in cond:
++                on_push.append(job)
++        gh = Stub()
++        gh.on("commits/main", out=H1)
++        gh.on(".[] | select(.name", out="42")
++        gh.on("rulesets/42", out="tests\nclosures\n")
++        gh.on(f"commits/{H1}/check-runs",
++              out="\n".join(json.dumps(run_obj(n)) for n in ("tests", "closures"))
++              + "".join("\n" + json.dumps(run_obj(j, conclusion="failure")) for j in on_push))
++        gh.on("issues/201/comments", out=json.dumps([[MAN]]))
++        t = Tick("o/r", str(version), gh=gh, git=Stub(), proc=Stub(), now=NOW)
++        t.main()
++        a, f = check("MAIN D-1", [
++            ("nightly.yml's push-run jobs are exactly the record beat", on_push == ["record-autofix"]),
++            ("each is a name the tick flags", all(NIGHTLY_CLASS.search(j) for j in on_push)),
++            ("and its red is named with the required set green",
++             any("non-required red" in x["text"] and "record-autofix" in x["text"]
++                 for x in t.findings)
++             and not any("REQUIRED not green" in x["text"] for x in t.findings)),
++            ("null control: a beat renamed out of the class would not be flagged",
++             not NIGHTLY_CLASS.search("delivery-beat")),
++        ])
++        total, failed = total + a, failed + f
++
+         # ---- MAIN: a lane GitHub cancelled for a newer run in its own
+         # concurrency group is superseded, not red (rerun-stale-contract on
+         # f58b14c1: a workflow_run follower of a PR head attaches to main's

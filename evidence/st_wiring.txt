@@ -1,1 +1,0 @@
-selftest_wiring: 77 self-testing, 77 wired, 0 unwired
