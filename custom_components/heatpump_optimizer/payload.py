@@ -41,7 +41,7 @@ mypy now checks. Values read through a coordinator's hubs are checked too:
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING, Any, TypedDict
 
 if TYPE_CHECKING:
     from .open_meteo import SolarDiagnostics  # standalone-loaded by a test: not imported at run time
@@ -138,6 +138,17 @@ IDLE_REASONS = frozenset({
     REASON_IDLE, REASON_IDLE_OTHER, REASON_IDLE_FUSE, REASON_IDLE_SOLAR,
     REASON_IDLE_DEARER, REASON_IDLE_COASTING, REASON_PUMP_MODE,
 })
+
+#: The ledger lines a resistive element's kWh book under, one per source
+#: (#11, #2729): a declared immersion element, or one of the pump's own two
+#: heaters. Each is spot energy carved out of ``spot``, so each is metered
+#: energy like it -- one owner, read by the booking that names the line
+#: (``pump_signals.resistive_carve_out``) and by the totals that must count it
+#: (``ledger.ENERGY_LINES`` and the closed month's receipt).
+LINE_IMMERSION = "immersion"
+LINE_DHW_BOOSTER = "dhw_booster"
+LINE_BACKUP_HEATER = "backup_heater"
+RESISTIVE_LINES = (LINE_IMMERSION, LINE_DHW_BOOSTER, LINE_BACKUP_HEATER)
 
 
 class CurrentAction(TypedDict, total=False):
@@ -266,6 +277,9 @@ class Scores(TypedDict, total=False):
     envelope: float | None
     #: One code per score that is None, and only for those (#2258).
     reasons: dict[str, str]
+    #: What moves the house grade off 50: ``code`` and signed ``points``,
+    #: summing to ``envelope - 50`` (#2816).
+    envelope_drivers: list[dict[str, Any]]
 
 
 class CompressorStarts(TypedDict, total=False):
