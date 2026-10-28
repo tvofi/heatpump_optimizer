@@ -1,0 +1,14 @@
+## A: unfilled ack template from the tool's own UNACTIONED output, pasted as a ledger log
+rc=1 (before paste)
+12
+REFUSED ack ledger.md:1: not `OWED-ACK <UTC ISO> <key> <sha> [ttl=<h>] <reason>`
+owed: 12 key(s) on board 2026-10-28T19:12:36Z; 12 acknowledged, 0 unactioned (standing 2+ sweeps with no live OWED-ACK)
+  acked #2887 17d3cf384a91 until 20:13Z: <next action, by whom; what it waits on>
+rc=0 (tool output pasted verbatim as the ack file)
+## B: one-hex-char id prefix
+  #2887  sweeps=2 first=2026-10-28T19:04:55Z (0.2h)
+  #2896  sweeps=2 first=2026-10-28T19:04:55Z (0.2h)
+  audit-r10-roster  sweeps=2 first=2026-10-28T19:04:55Z (0.2h)
+key+1char: #2887 1
+owed: 12 key(s) on board 2026-10-28T19:12:36Z; 1 acknowledged, 11 unactioned (standing 2+ sweeps with no live OWED-ACK)
+  acked #2887 1 until 20:13Z: x
