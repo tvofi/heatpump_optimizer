@@ -1,0 +1,5 @@
+--- issues on >1 live group:
+2389 [('R10-RCA-HEADMOVED', 'not-started', 'issues'), ('R10-FLOW-ROSTER-FREEZE', 'carries-open', 'issues'), ('R10-FLOW-BODY-ONLY', 'not-started', 'issues'), ('R10-FLY-ROW-HEAD-CARRY', 'not-started', 'issues'), ('R10-FLY-CARRY-DOC-CONTEXT', 'not-started', 'issues')]
+2428 [('R10-FLOW-JIDOKA', 'in-progress', 'issues'), ('R10-FLY-CARRY-DISPOSITION', 'not-started', 'fixes'), ('R10-FLY-CARRY-DISPOSITION', 'not-started', 'fixes'), ('R10-RCA-FRICTION-RESIDUE', 'in-progress', 'issues')]
+2505 [('R10-ORCH-LEDGER', 'carries-open', 'issues'), ('R10-ORCH-BEATD', 'not-started', 'issues'), ('R10-ORCH-PLANPAGE', 'not-started', 'issues'), ('R10-FLY-WORKTREE-GC', 'not-started', 'issues'), ('R10-FLY-DAEMONIZE-ARGV', 'not-started', 'issues')]
+2715 [('R10-FLOW-BOARD', 'in-progress', 'issues'), ('R10-FLOW-POSTMERGE', 'not-started', 'issues'), ('R10-FLOW-WIP', 'not-started', 'issues'), ('R10-FLOW-TOOLKIT-MODEL', 'not-started', 'issues')]

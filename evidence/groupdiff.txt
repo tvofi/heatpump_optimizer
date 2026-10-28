@@ -1,0 +1,157 @@
+212 215
+CHANGED R10-COP-GATE stage None -> None fields ['carry']
+CHANGED R10-UX-HEALTH stage None -> None fields ['carry']
+CHANGED R10-PREPR-CAP stage None -> None fields ['carry']
+CHANGED R10-RCA-HEADMOVED stage None -> None fields ['resume']
+CHANGED R10-ORCH-MACHINERY stage None -> None fields ['carry']
+CHANGED R10-LEARNER-DEFAULT stage None -> None fields ['fixes']
+CHANGED R10-FLOW-BOARD stage None -> None fields ['resume', 'carry']
+CHANGED R10-FLOW-JIDOKA stage None -> None fields ['resume']
+CHANGED R10-FLOW-MAIN-GATE stage None -> None fields ['carry']
+CHANGED R10-FLOW-ROSTER-FREEZE stage None -> None fields ['resume']
+CHANGED R10-FLOW-BODY-ONLY stage None -> None fields ['carry']
+CHANGED R10-FLY-OPENPR-ATOMIC stage None -> None fields ['carry']
+CHANGED R10-FLOW-TOOLKIT-MODEL stage None -> None fields ['carry']
+CHANGED R10-TRAIN-OVERLAP-GRADE stage None -> None fields ['resume', 'carry']
+CHANGED R10-ORCH-LEDGER stage None -> None fields ['carry']
+CHANGED R10-ORCH-BEATD stage None -> None fields ['resume', 'carry']
+CHANGED R10-ORCH-PLANPAGE stage None -> None fields ['carry']
+CHANGED R10-ORCH-ROSTER-SCHEMA stage None -> None fields ['resume', 'carry']
+CHANGED R10-FLY-WORKTREE-GC stage None -> None fields ['carry']
+CHANGED R10-ORCH-REVIEW-PACKET stage None -> None fields ['carry']
+CHANGED R10-IMMERSION-LATCH stage None -> None fields ['resume']
+CHANGED R10-HOUSE-GRADE stage None -> None fields ['resume']
+CHANGED R10-FRICTION-GATE-SCOPING stage None -> None fields ['carry']
+CHANGED R10-DEPENDABOT-SETUPTOOLS stage None -> None fields ['resume']
+CHANGED R10-STORE-RACES stage None -> None fields ['carry']
+ADDED R10-TRIAGE-S6 {
+ "group": "R10-TRIAGE-S6",
+ "lane": "IN",
+ "kind": "fix",
+ "class": "process",
+ "severity": "low",
+ "size": "S",
+ "issues": [],
+ "fixes": [],
+ "findings": [],
+ "wave": 6,
+ "hot_files": [],
+ "fixture": false,
+ "owner_gate": null,
+ "rca": [],
+ "architect_note": "",
+ "effort": "medium",
+ "model": {
+  "fixer": "opus",
+  "reviewer": "opus",
+  "rca": "opus",
+  "runner": "haiku",
+  "record": "sonnet"
+ },
+ "fixerModel": "opus",
+ "reviewerModel": "opus",
+ "after": [],
+ "files": [
+  "dev/programme/triage/"
+ ],
+ "carry": [
+  "Registered 2026-10-28 so the standing triage seat's open batch pull request is wired to a live group: the delivery row of #2900 names R10-TRIAGE-S6, and the roster seat logged it as an unwired open pull request with no live group (the same gap R10-TRIAGE-B36 and R10-TRIAGE-B37 closed for batches 36 and 37). resume.pr names the batch pull request currently open; set it to the next one when a later batch opens."
+ ],
+ "resume": {
+  "stage": "done",
+  "branch": "fix/triage-s6-batch45-pr",
+  "commit": "c08720395fa52d8a01a9c4d95dd46302c1879e71",
+  "last_step": "registered",
+  "next_step": "review the re-cut head of #2900 (round 2), then merge",
+  "note": "re-derive the head from the pull request, never from the handoff ref, which is an ancestor of it",
+  "pr": 2900
+ },
+ "brief": "Own the standing triage seat's batch pull requests to a merge-ready head, one at a time (resume.pr). The batch file and the pull request's Figures section must agree on every figure, each produced by the command printed beside it at the merge base. Read dev/governance/roles/proposal-triage.md for what a batch may and may not defer, and dev/governance/rules/brief-citations.md before writing any figure. The batch rules and routes only: nothing is implemented and no roster file is edited in its diff."
+}
+ADDED R10-FRICTION-FIXER-MD {
+ "group": "R10-FRICTION-FIXER-MD",
+ "lane": "C",
+ "kind": "rca",
+ "class": "rca",
+ "severity": "low",
+ "size": "S",
+ "issues": [
+  2895
+ ],
+ "fixes": [],
+ "findings": [],
+ "wave": 6,
+ "hot_files": [],
+ "fixture": false,
+ "owner_gate": null,
+ "rca": [],
+ "architect_note": "",
+ "effort": "medium",
+ "model": {
+  "fixer": "opus",
+  "reviewer": "opus",
+  "rca": "opus",
+  "runner": "haiku",
+  "record": "sonnet"
+ },
+ "fixerModel": "opus",
+ "reviewerModel": "opus",
+ "after": [],
+ "files": [
+  "dev/governance/roles/fixer.md",
+  "dev/audit/rca/"
+ ],
+ "carry": [],
+ "resume": {
+  "stage": "not-started",
+  "branch": null,
+  "commit": null,
+  "last_step": null,
+  "next_step": "dispatch a seat",
+  "note": "fly-in registered by the disposition seat (r10s6 s7) for a [policy] recurring-friction issue with no group; mirrors R10-FRICTION-GATE-SCOPING"
+ },
+ "brief": "Root-cause seat for issue #2895, the governance cron's recurring-friction key `tools/audit/briefs/fixer.md` (5 distinct pull requests, 7 entries, in the v7.0.4..origin/main window; policy_lint's key normalisation folds every citation of the fixer contract, `fixer.md`, `fixer.md#N`, `fixer-step-N`, `fixer-env`, to that key; the file now lives at dev/governance/roles/fixer.md). This is the key's third filing: #2378 was disposed by R10-POLICY-FIXER-MD (PR #2704) and the key refiled, so per CLAUDE.md and dev/governance/roles/root-cause.md it owes a record, not another edit-and-hope. Read the citing bodies' Friction lines and group the instances by the step they name. Seeds from merged bodies since 2026-10-22 (re-derive, do not trust): step 5 / interpreter on PATH (#2557, #2585, #2631, #2671, #2683) which R10-FLY-CLOUD-SETUP-TOOLCHAIN (#2709) then addressed at the environment; step 2 (#2563, #2709); step 7 (#2609); step 17 (#2620); step 6 / handoff boilerplate (#2631); cloud-seat environment cost (#2704, #2889, #2903). Decide per group whether the contract is unclear, unfollowed, already repaired (so a recorded refusal with the post-#2709 count), or wrong (process state b, c or d), and say whether the key is a path alias that keeps counting one repaired cause. Note the stale `tools/audit/briefs/fixer.md` literal that .claude/hooks/stop-selfcheck.sh still names. Re-derive the count at your merge base with node tools/policy/policy_lint.mjs --stats --since v7.0.4 and --since v7.0.5 (the bot reports no pull request at all in the v7.0.5 window). Per root-cause.md the key owes a named cause, a process state (a-d), a cost test with numbers, and a countermeasure or a recorded refusal, filed under dev/audit/rca/. A policy-file edit is generated into .claude/rules/ and .cursor/rules/ by node tools/policy/rules_sync.mjs and capped by dev/governance/config/policy_budgets.json; it is approved under the orchestrator's mandate (scope all). Closes the issue on delivery."
+}
+ADDED R10-FRICTION-CLAIM-FALSE {
+ "group": "R10-FRICTION-CLAIM-FALSE",
+ "lane": "C",
+ "kind": "rca",
+ "class": "rca",
+ "severity": "low",
+ "size": "S",
+ "issues": [
+  2907
+ ],
+ "fixes": [],
+ "findings": [],
+ "wave": 6,
+ "hot_files": [],
+ "fixture": false,
+ "owner_gate": null,
+ "rca": [],
+ "architect_note": "",
+ "effort": "medium",
+ "model": {
+  "fixer": "opus",
+  "reviewer": "opus",
+  "rca": "opus",
+  "runner": "haiku",
+  "record": "sonnet"
+ },
+ "fixerModel": "opus",
+ "reviewerModel": "opus",
+ "after": [],
+ "files": [
+  "dev/audit/rca/"
+ ],
+ "carry": [],
+ "resume": {
+  "stage": "not-started",
+  "branch": null,
+  "commit": null,
+  "last_step": null,
+  "next_step": "dispatch a seat",
+  "note": "fly-in registered by the disposition seat (r10s6 s7) for a [policy] recurring-friction issue with no group; mirrors R10-FRICTION-GATE-SCOPING"
+ },
+ "brief": "Root-cause seat for issue #2907, the governance cron's recurring-friction key `claim-false` (verdict class: 4 distinct pull requests, 8 entries, in the v7.0.5..origin/main window). The reviewer returns `claim-false` when a figure, line number, id or rule a body or record states does not re-derive. Seeds, each a blocked fix review (re-derive, do not trust): #2883 twice (an unreadable source yields a crash or zero, not the UNAVAILABLE the PR promised); #2890 twice (a cited function that does not exist, a 45-minute figure that does not re-derive, wrong V-ids V132-V135 for V125-V128, ruling_verdict/triage_refusal cited at 456/464 instead of 455/466); #2891 twice (V136 cited where the orchestrator's out-of-tree proposals file holds V129; a one-paragraph CLAUDE.md edit with no headroom against a 3605/3605 cap); #2900 twice (P228's every-failed-job rule excludes its own instance; its gate rule reads FAIL-prefixed lines while tools/ci/gate.py prints its reasons unprefixed). Three of the four are proposal-triage batch records, so test whether one author path (ids and line numbers typed from memory instead of read back) accounts for most, and whether a cheaper detector than the fix review exists (a citation-resolving lint over triage batch bodies, as brief_lint does for wave briefs). Re-derive the count at your merge base with node tools/policy/policy_lint.mjs --stats --since v7.0.5. Per dev/governance/roles/root-cause.md the key owes a named cause, a process state (a-d), a cost test with numbers, and a countermeasure or a recorded refusal, filed under dev/audit/rca/. A countermeasure that edits a policy file is approved under the orchestrator's mandate (scope all). Closes the issue on delivery."
+}

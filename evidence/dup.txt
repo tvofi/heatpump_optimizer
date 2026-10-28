@@ -1,0 +1,16 @@
+2895 [('R10-FRICTION-FIXER-MD', 'not-started', 'issues')]
+2907 [('R10-FRICTION-CLAIM-FALSE', 'not-started', 'issues')]
+2508 [('R10-LEARNER-DEFAULT', 'not-started', 'fixes'), ('R10-LEARNER-DEFAULT', 'not-started', 'fixes')]
+2733 [('R10-ORCH-ROSTER-SCHEMA', 'carries-open', 'issues'), ('R10-ROUTING-INVARIANTS', 'absorbed', 'issues')]
+2855 [('R10-RCA-FRICTION-RESIDUE', 'in-progress', 'issues')]
+2875 None
+2499 [('R10-DEMAND-OVERBOOK', 'done', 'issues'), ('R10-BUFFER-STORE', 'in-review', 'issues')]
+2429 [('R10-RCA-FRICTION-RESIDUE', 'in-progress', 'issues')]
+2436 [('R10-RCA-FRICTION-RESIDUE', 'in-progress', 'issues')]
+2437 [('R10-RCA-FRICTION-RESIDUE', 'in-progress', 'issues')]
+2438 [('R10-RCA-FRICTION-RESIDUE', 'in-progress', 'issues')]
+--- issues on >1 live group:
+2389 [('R10-FLOW-BODY-ONLY', 'not-started', 'issues'), ('R10-FLY-ROW-HEAD-CARRY', 'not-started', 'issues'), ('R10-FLY-CARRY-DOC-CONTEXT', 'not-started', 'issues')]
+2428 [('R10-FLY-CARRY-DISPOSITION', 'not-started', 'fixes'), ('R10-FLY-CARRY-DISPOSITION', 'not-started', 'fixes'), ('R10-RCA-FRICTION-RESIDUE', 'in-progress', 'issues')]
+2505 [('R10-ORCH-LEDGER', 'carries-open', 'issues'), ('R10-ORCH-BEATD', 'in-progress', 'issues'), ('R10-ORCH-PLANPAGE', 'not-started', 'issues'), ('R10-ORCH-ROSTER-SCHEMA', 'carries-open', 'issues'), ('R10-FLY-WORKTREE-GC', 'not-started', 'issues'), ('R10-FLY-DAEMONIZE-ARGV', 'not-started', 'issues')]
+2715 [('R10-FLOW-POSTMERGE', 'not-started', 'issues'), ('R10-FLOW-WIP', 'not-started', 'issues'), ('R10-FLOW-TOOLKIT-MODEL', 'not-started', 'issues')]
