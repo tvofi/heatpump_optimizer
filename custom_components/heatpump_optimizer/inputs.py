@@ -1130,7 +1130,6 @@ def stale_summary(health: InputHealth) -> str:
 #: card enumerates its own wording against them. A token outside the table
 #: still renders as itself, so a failure class cannot publish nothing.
 PROBLEM_WORDS: dict[str, str] = {
-    "implausible": "outside its plausible range",
     "missing_entity": "entity not found",
     "not_boolean": "not a yes/no flag",
     "not_numeric": "not a number",
