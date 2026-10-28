@@ -137,7 +137,7 @@ gantt
 | R10-ARCH-SHAPES | AR | 1 | done | **#2236**, #2238, **#2239** | opus/opus | - | Bug first: D7-s2-61 (P1, weakened low; D7-s3-81 merged into it): a power entity reading inf lifts the quiet-window cap to the 6.0 kW nameplate. |  |
 | R10-LEARNER-ETA | LR | 1 | done | #2260 | opus/opus | - | G-ID-4. |  |
 | R10-HEAT-METER | LR | 1 | done | #2261 | opus/opus | - | Owner request (tvofi, 2026-10-15). |  |
-| R10-COP-GATE | LR | 1 | not-started | #2262 | opus/opus | - | From STUDY R10-IDENT Q2: no bin of the COP gate reaches 20 within 120 days, because 59 of 138 rows fall under the duty floor, and the sample definition assum... |  |
+| R10-COP-GATE | LR | 1 | in-progress | #2262 | opus/opus | - | From STUDY R10-IDENT Q2: no bin of the COP gate reaches 20 within 120 days, because 59 of 138 rows fall under the duty floor, and the sample definition assum... |  |
 | R10-UX-HEALTH | UI | 2 | not-started | #2253, #2260, #2263, #2809, #2815 | opus/opus | - | Owner-reported Health tab (tvofi, 2026-10-14): (1) mixed casing, the integration's role labels next to the user's raw entity friendly names; every row shows... |  |
 | R10-CONFIGFLOW-PAGES | AR | 1 | not-started | **#2238** | opus/opus | - | Bug first: D7-s2-56 (the catch-up judge re-classed it a bug): a cleared entity slot re-renders as the stored entity on a rejected options form (9 of 9 slots;... |  |
 | R10-SOLVER | AR | 1 | done | **#2240**, #2250 | opus/opus | - | The solve internals of custom_components/heatpump_optimizer/optimizer.py. |  |
