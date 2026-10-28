@@ -1,3 +1,0 @@
-pulse self-test: 22 checks, 0 failed
-roster_edit self-test: 106 checks, 0 failed
-r10_roster_ops_mutants self-test: 63 checks, 0 failed
