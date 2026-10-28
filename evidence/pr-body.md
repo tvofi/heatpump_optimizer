@@ -4,128 +4,124 @@ Train 8 stopped at 21:50:38Z on `app_approve: REFUSE: could not read pull reques
 
 What changes, in `tools/pr/app_approve.sh`:
 
-- **`gh_read <var> <gh api args...>`** is the one entry for the four reads:
-  - the pull request, read twice by `check_pr`: before the mint and again before the POST;
-  - the comments (`--paginate`);
-  - `.github/CODEOWNERS` at `ref=main`;
-  - the changed files (`--paginate`).
+- **`gh_read <var> <gh api args...>`** is the one entry for the four reads: the pull request (read twice by `check_pr`, before the mint and before the POST), the comments (`--paginate`), `.github/CODEOWNERS` at `ref=main`, and the changed files (`--paginate`). It sets `<var>` to the answer. On a refusal it returns 1 and leaves gh's stderr in `GH_ERR`, and every `die` at those sites names that error.
+- **`gh_transient <stderr>`** classifies a failure from gh's stderr as it came, line by line. Retried: a status line `gh: <message> (HTTP NNN)` or `gh: HTTP NNN` whose status is 5xx or 429, or 403 with the phrase `secondary rate limit` in any case; with no status line, a transport line starting Go's `Get "http(s)://...": ` or gh's `error connecting to `. Everything else refuses after its one call.
+- **The budget is `app_push.sh`'s read-back rule**: 4 reads, settling `READ_SLEEP * 3^(n-1)`, so 5/15/45 s, each settle printed. A spent budget refuses with the last error and `(after 4 attempts)`.
+- **A wrong answer is never retried**: the callers judge a completed read after `gh_read` returns 0. **Writes are never retried**: the mint, the review POST and the revoke stay single `curl` calls.
+- **The comments' python parse** keeps its own refusal, reworded to `could not parse the comments`.
+- **`tools/audit/seat/INSTRUMENTS.md`**: the `app_approve.sh` entry states the rule.
 
-  It sets `<var>` to the answer. On a refusal it returns 1 and leaves gh's stderr in `GH_ERR`. Every `die` at those four sites now names that error.
-- **`gh_transient <stderr>`** classifies a failure from gh's own stderr format: `gh: <message> (HTTP NNN)`, or `gh: HTTP NNN` when the body has no message. These are retried:
-  - 5xx;
-  - 429;
-  - a 403 whose message names the `secondary rate limit`;
-  - a transport error, which carries no status: Go's `Get "https://...": <err>` (the shape merge_train's own stop logged), or gh's `error connecting to`.
+This round clears the review of `6e4d2b5c` (blocked: `mutant-survives` on gh_transient's classification branches; `carry-missing`) and its three findings:
 
-  Everything else refuses after its one call, as it did before: 401, a permission 403, 404, 422, any other status, or a stderr that matches no rule.
-- **The budget is `app_push.sh`'s read-back rule.** That is 4 reads, settling `READ_SLEEP * 3^(n-1)` between them, so 5/15/45 s. Each settle prints `app_approve: read n/4 of <path>: <error>; sleeping Ns` on stderr. A spent budget refuses with the last error and `(after 4 attempts)`.
-- **A wrong answer is never retried.** A read that completes but answers wrong (head moved, closed, no verdict, an owned path) is judged by the callers after `gh_read` returns 0, so it never enters the loop.
-- **Writes are never retried.** The token mint, the review POST and the revoke stay on single `curl` calls.
-- **The python parse of the comments** keeps its own refusal, reworded to `could not parse the comments`. A parse failure is no longer reported as a read failure.
-- **`tools/audit/seat/INSTRUMENTS.md`**: the `app_approve.sh` entry states the rule in one sentence.
+- **Every alternative of gh_transient is pinned from both sides.** The self-test derives the alternatives from gh_transient's own source (`ALTS`, the rule in `## Figures`) and keys a table of 43 inputs to exactly that set. Each key holds at least one input that must classify transient and one near-miss that must refuse, and each row goes through the production `gh_transient`. The table's own preconditions are checks: its keys equal the derived set, every key holds both classes, and gh_transient prints nothing on either stream. The review's probes are rows: `error connecting to` (transient), a primary-rate-limit 403 (refuse), a mixed-case `Secondary Rate Limit` 403 (transient), a 520 (transient), and an unanchored `post-step: Get "https://...": EOF` (refuse).
+- **Three rows encode design choices**, stated in the self-test beside the table. Of two status lines the last decides, because it is the response gh read last, and only a whole line is a status line. A status line decides even beside a transport line. The `secondary rate limit` phrase rescues a 403 only, and only as the whole phrase.
+- **The finding's X17** (classify the folded `GH_ERR`, not gh's stderr) gets an end-to-end arm, `rhint`: a 502 followed by a second stderr line, then an answer, is approved after one retry. The folded `GH_ERR` puts the status mid-line, where no rule reads it. **X13** (`tail -1` -> `head -1`) is killed by the two-status-line rows.
+- **The sweep gains the classifier's rules.** `dev/audit/harnesses/r10_gh_read_retry_mutants.py` adds eight rules over each `case` label and each single-quoted sed/grep pattern of the region:
+  - `alt`: drop each `|` alternative;
+  - `glob`: each `?` of a label to `0`, and `?*` to `*`;
+  - `anch`: drop each `^` and `$`;
+  - `quant`: drop each `?` and `*` quantifier;
+  - `word`: drop each word of an all-letter phrase;
+  - `flag`: drop each sed/grep option letter;
+  - `pipe`: `| tail -N` to `| head -N`, and deleted;
+  - `src`: a `"$(cat "$F")"` argument to each variable the region assigns from `< "$F"`.
 
-Round 2 clears the review of `e4b3e01a` (blocked: `mutant-survives`, `root-cause-unanswered`):
-
-- **The budget is pinned.** The spent-budget arm `rspent` used to queue `gh: Service Unavailable (HTTP 503) the-last-one` as its fourth line. That line is unclassified, not transient, so it refused in the budget's place, and the reviewer's R1 (budget 5) and R11 (`[ "$_try" -ge 999 ]`) both passed. The arm now queues five transient lines (500, transport, `gh: HTTP 502`, `gh: Service Unavailable (HTTP 503)`, `gh: Gateway Timeout (HTTP 504)`). It asserts all of these:
-  - 4 calls;
-  - the fifth line is still unread;
-  - the refusal names the fourth line, anchored at `(after 4 attempts)$`;
-  - the stderr file is gone.
-
-  So only the budget can stop it, and a fifth read takes the 504 and then an answer and is approved.
-- **The class rule, a census over every fixture line.** Each retry and refusal arm queues its stderr lines through `queue <case> <read> <class> <line>...`, which also records the class that arm needs. The census sends every recorded line through the production `gh_transient` and fails on any line whose class differs. It also asserts its own preconditions:
-  - it covers every `fail-*` file an arm made;
-  - it holds both classes.
-
-  The review's shape, a retry arm stopped by a line it did not mean, is what it refuses.
-- **The class rule, a sweep over every one-line mutant of the retry region.** `dev/audit/harnesses/r10_gh_read_retry_mutants.py` covers the region from `READ_TRIES=` to `gh_read`'s closing `}`. It generates mutants by rule, not by hand:
-  - `num`: each integer literal to n-1, n+1 and 999;
-  - `rel`: each test operator to the other five;
-  - `opnd`: each `"$var"` operand to 999 (R11 is this rule's);
-  - `or`: `||` and `&&` swapped;
-  - `not`: `if !` to `if`;
-  - `ret`: a bare `return` to `return 0` or `return 1`;
-  - `del`: each non-structural line deleted.
-
-  It runs the self-test against each mutant. A survivor reads EQUIVALENT only under a listed reason, and a listed reason that no rule generates any more refuses the run. So a bound, budget or classification branch added to the region is swept the day it lands.
-- **The branches the sweep found unpinned at `e4b3e01a`** each gained an arm:
-  - `rempty`: an empty stderr refuses after 1 call, saying `gh failed with nothing on stderr`;
-  - `rmktemp`: an uncreatable stderr file refuses with no `gh` call;
-  - `r404`'s message is anchored, so a one-call refusal carries no attempt count;
-  - `r404` and `rspent` assert the stderr file is removed.
-- **`tests/closures.json`**: `ci_predict.py --apply-inert` added the harness to `tests/harness_headers.py`'s INERT READS. CI's Linux recording would otherwise merge that entry as a bot commit on the reviewed head.
+  A mutant that fails only the table's source-text preconditions reads SURVIVED, not KILLED. Dropping an alternative changes the set those checks derive, so they would otherwise kill every `alt` mutant with no input classified differently.
+- **One equivalent left the harness.** Deleting `?*) return 1` was listed as equivalent "for one stderr holding a status and a transport line". That stderr is now a row, so the mutant is killed and the entry is gone.
+- **The carry-missing block.** The roster branch is frozen until #2588 merges, so the item is in `## Forward-carry` as a fenced `roster_edit append-carry R10-FLY-GH-READ-RETRY` text, for the orchestrator to apply. It extends the item to the classifier rules of this round. No roster write was made, so there is no roster SHA to name. The roster read is `origin/handoff/audit-r10-roster` at `306a96d5f21f7876070d48c194fd4be99b64022c`, where the group's `carry` holds the fourth-instance note and item 0e5922c7, and not this item.
 
 Alternatives, and why each lost (fixer.md step 17):
 
-- **Factor a shared helper with `app_push.sh`.** `app_push.sh`'s reads go through `curl -f`, which reports every HTTP status of 400 and over as exit 22. Its classifier works on a different signal, so it cannot classify a 404 apart from a 500. What could be shared is the six-line settle loop. Sharing it needs a new sourced file, which needs a `tests/closure.py` classification, and an edit to `app_push.sh`. Both are outside this PR's scope. PR 2's python callers could not source bash anyway.
-
-  The rule is shared instead: the same budget and schedule, stated in both scripts and in `INSTRUMENTS.md`.
-- **Retry on any non-zero exit.** That would retry a 404 and a 401, so a real refusal would read as slow success. The sweep's `?*) return 1` -> `return 0` mutant shows the self-test refuses it.
-- **Honour `Retry-After`.** `gh api` puts response headers only on stdout, and only under `--include`, which mixes them into the paginated JSON this script parses. The house 65 s budget is used instead (see Forward-carry).
-- **Kill the budget mutants with a fixed list of hand-picked mutants** (the round-1 mutation proof). Lost because a hand-picked list missed exactly the budget branch. The rule-generated sweep re-derives the list from the code.
+- **Factor a shared helper with `app_push.sh`.** Its reads go through `curl -f`, which reports every status of 400 and over as exit 22, so its classifier works on a different signal. Sharing the six-line settle loop needs a new sourced file, a `tests/closure.py` classification and an `app_push.sh` edit, all outside this PR's scope. The rule is shared instead.
+- **Retry on any non-zero exit.** That retries a 404 and a 401, so a refusal reads as slow success. The sweep's `?*) return 1` -> `return 0` mutant is killed.
+- **Honour `Retry-After`.** `gh api` exposes headers only on stdout under `--include`, mixed into the paginated JSON this script parses.
+- **Hand-pick the classifier's mutants** (the review's X list). A hand list was what missed these branches. The rules regenerate the list from the code, and the review's 23 named mutants are re-run below as the finder's harness.
+- **Simplify gh_transient to drop the anchors or `tail -1`.** That changes which stderr refuses, with no gain in code. The anchors are what keep a status line from matching mid-line.
 
 Architecture score: `score.py --diff` prints `dS +0.0000 NULL`. No ratchet row moves and no budget is raised.
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 
-https://claude.ai/code/session_01Rm9bzxRPiA8mnUCoYC8Uog
+https://claude.ai/code/session_013tC9Y1rUeYSc7kdayWDLao
 
 ## Head
 
-`6e4d2b5cf5e9580e20198e2ea282bdb6ef597516` merges the authored code head `1063eb3a4ef69f924932b4159a67fd55dbb37c1a` and then merges origin/main `3976515a0` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
+`74a18df941939cd87c11280ec216531148015b46` merges the authored code head `37cffb09c1bffa3a35af13ba9bee3f7c7f6445a1` and then merges origin/main `1602f9342` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
 
-`1063eb3a4ef69f924932b4159a67fd55dbb37c1a`. The branch's commits:
+`37cffb09c1bffa3a35af13ba9bee3f7c7f6445a1`. The branch's commits, oldest first:
 
 - `d42bda80f0477a72f41cc1588352b4f48e7ff046`: the retry.
 - `e4b3e01abb48644841202e7d7b0ae93107258bd3`: the delivery row.
-- `f84fa6b2e`: merge of `origin/main` at `93e6a63d2855651448a2b8f677b392feddc03c99`. `origin/main`'s tip and the merge base, measured 2026-10-22T02:16:49Z.
-- `0f2fa660b07f9a4e039abb6e8cb38de06f53bdaf`: the budget pin, the census, the new arms and the sweep harness.
+- `f84fa6b2ee17023b032e87bd4df779cd529ccda9`: merge of `origin/main`.
+- `0f2fa660b07f9a4e039abb6e8cb38de06f53bdaf`: the budget pin, the queue census and the first sweep.
 - `1063eb3a4ef69f924932b4159a67fd55dbb37c1a`: the INERT READS entry.
+- `14eda530b4b24b7620b21970564c825778e9537d`: merge of `1063eb3a`.
+- `6e4d2b5cf5e9580e20198e2ea282bdb6ef597516`: merge of `origin/main` (the reviewed head).
+- `fd1e3f6c47c878fd7014a8a241bb1dd919ea84ac`: merge of `origin/main` at `07fcbee2ed9e38e71d8ca497e1b2470b16baf09f`. That is `origin/main`'s tip and the merge base, re-read at 2026-10-22T04:14:20Z.
+- `21307f6fc8e0b81ae03565604c3b6aeeed505496`: the alternatives table, the `rhint` arm, the multi-line stub, and the sweep's eight classifier rules.
+- `37cffb09c1bffa3a35af13ba9bee3f7c7f6445a1`: three two-line rows, and the stale equivalent removed.
 
-Every figure below was taken at `1063eb3a`. The two sweeps ran at tree `af8cb9ba` (`0f2fa660`'s tree, which `1063eb3a` changes only in `tests/closures.json`) and at `f84fa6b2e`.
+Every figure below was taken at `37cffb09` unless a row names another tree. The other end is `fd1e3f6c`: this round's base, with main merged and round 2's tests.
 
 ## Mutation proof
 
-**The sweep at both ends.** The command is `python3 dev/audit/harnesses/r10_gh_read_retry_mutants.py`, with the same harness and therefore the same 89 rule-generated mutants at each end:
+**The sweep at both ends.** Command: `python3 dev/audit/harnesses/r10_gh_read_retry_mutants.py`, with this round's harness at both ends, so both ends sweep the same 119 rule-generated mutants. At `fd1e3f6c` the harness file was copied into a scratch worktree of that commit.
 
 | tree | self-test | killed | equivalent | survivors | rc |
 |---|---|---|---|---|---|
-| `f84fa6b2e` (round 1's tests, main merged) | 206 checks | 68 | 11 | 10 | 1 |
-| `0f2fa660` (this round) | 218 checks | 78 | 11 | 0 | 0 |
+| `fd1e3f6c` (round 2's tests) | 218 checks | 92 | 10 | 17 | 1 |
+| `37cffb09` (this round) | 225 checks | 109 | 10 | 0 | 0 |
 
-The 10 survivors at `f84fa6b2e`, each killed at `0f2fa660`:
+M0, the unmutated tree, is `NULL-OK` at both ends.
 
-| mutant | line | rule | killed by, at `0f2fa660` |
-|---|---|---|---|
-| M54 (the review's R1) | `[ "$_try" -ge "$READ_TRIES" ]` | `rel -ge->-gt` | `after exactly 4 calls` |
-| M60 (the review's R11) | `[ "$_try" -ge "$READ_TRIES" ]` | `opnd "$READ_TRIES"->999` | `REFUSE: four transient failures spend the budget` |
-| M42 | mktemp's `return 1` | `num 1->0` | `rmktemp`: `naming that, not a parse of an empty answer` |
-| M53 | `[ -n "$GH_ERR" ] \|\| GH_ERR="gh failed with nothing on stderr"` | `del` | `rempty`: `saying gh left no error` |
-| M64 | the refusal's `rm -f "$_ef"` | `del` | `and the read's stderr file is gone` |
-| M65, M66, M67 | `[ "$_try" -eq 1 ]` | `num 1->0/2/999` | `naming the error gh gave, with no attempt count after one call` |
-| M71 | `[ "$_try" -eq 1 ]` | `rel -eq->-lt` | the same |
-| M73 | `[ "$_try" -eq 1 ]` | `opnd "$_try"->999` | the same |
+The 17 survivors at `fd1e3f6c`, each killed at `37cffb09`. The separating row was measured by evaluating each mutated `gh_transient` over the 43 table rows (a scratch probe):
 
-Each of the 11 equivalents carries its reason in the harness's `EQUIVALENT` table:
+| mutant | rule | killed by at `37cffb09` |
+|---|---|---|
+| M17 | sed `anch ^` | the table (`warning: gh: ... (HTTP 404)` after a 502) |
+| M21 | sed `anch $` | the table (`... (HTTP 404) see the docs` after a 502) |
+| M24 | `pipe tail->head` | the table (the two-status rows) |
+| M25 | `pipe -tail` | the table |
+| M37 | `glob 5??->50?` (the review's X4b) | the table (`HTTP 520`, `HTTP 599`) |
+| M45 | `word -secondary` (X20) | the table (the primary-limit 403) |
+| M47 | `word -limit` | the table (`secondary rate exceeded`) |
+| M48 | 403 grep `flag -q` | `and gh_transient prints nothing on either stream` |
+| M49 | `flag -i` (X14) | the table (`Secondary Rate Limit`) |
+| M53 | `del ?*) return 1` | the table (a 404 beside `error connecting to`) |
+| M54 | `glob ?*->0*` | the same row |
+| M58 | `alt '^error connecting to '` (X7) | the table |
+| M59 | transport `anch ^` (X22) | the table (`post-step: Get ...`) |
+| M60 | `quant ?` in `https?` | the table (`Get "http://..."`) |
+| M63 | `anch ^error` | the table (`proxy: error connecting to ...`) |
+| M64 | transport grep `flag -q` | `and gh_transient prints nothing on either stream` |
+| M93 | `src -> $GH_ERR` (X17) | `a 502 followed by a second stderr line, then an answer, is approved` |
 
-- six are `return 1` to `return 2` or `999`, which no caller can tell apart: every caller tests zero against non-zero only;
+The 10 equivalents each carry their reason in the harness's `EQUIVALENT` table:
+
+- six are `return 1` to `return 2` or `999`, which no caller can tell apart;
 - `-ge` to `-eq` on the budget: `_try` steps by 1 from 1;
 - `-eq 1` to `-le 1`: `_try` is never below 1;
-- deleting `GH_ERR=""`, or `local code`: neither has another reader;
-- deleting `?*) return 1`: a status line falls through to the transport grep, which it cannot match.
+- deleting `GH_ERR=""` or `local code`: neither has another reader.
 
-**The census's mutant** (null control for the census). In a scratch worktree of `0f2fa660`, I put the review's line `gh: Service Unavailable (HTTP 503) the-last-one` back as `rspent`'s fourth line. Result: `218 checks, 2 failed`, rc=1. The failures:
+**The finder's harness at both ends.** This is the review's own mutant runner and list, `evidence/my-mutants-runner.py` on `origin/review/2589`, run against a detached worktree. Command: `python3 my-mutants-runner.py <dir>`.
 
-- `FAIL every queued stderr line classifies as its arm needs (production gh_transient)`, printing `census: rspent/fail-pulls line 'gh: Service Unavailable (HTTP 503) the-last-one' classifies refuse, its arm needs transient`;
-- `FAIL naming the last error`.
+| tree | X0 null | killed | survived |
+|---|---|---|---|
+| `fd1e3f6c` | `218 checks, 0 failed` | 17 | X4b, X7, X13, X14, X17, X20, X22 |
+| `37cffb09` | `225 checks, 0 failed` | 24 | none |
 
-**Round 1's named mutants** (the brief's three) are the sweep's rows:
+At `37cffb09`, each of the seven fails a behavioural check, not only a source-text precondition:
 
-- removing the retry: `not` and `or` on the `if ! gh_transient` line;
-- retrying on 404: `?*) return 1` -> `return 0`;
-- retrying a write: the POST arm `post502`, which asserts 1 POST and no settle.
+- X4b, X7, X13, X14, X20 and X22 fail `every alternative's inputs and near-misses classify as the table needs (production gh_transient)`;
+- X17 fails `a 502 followed by a second stderr line, then an answer, is approved`.
 
-Each is KILLED at `0f2fa660`.
+**Null controls for the table's preconditions**, each in a scratch worktree of `37cffb09`, with `bash tools/pr/app_approve.sh --self-test`:
+
+| perturbation | result |
+|---|---|
+| none | `225 checks, 0 failed` |
+| a table-less alternative added: `5??\|429)` -> `5??\|429\|418)` | `225 checks, 2 failed`: `FAIL (the table keys exactly the alternatives ...)` and `FAIL (nine alternatives ...) (got '10', want '9')` |
+| the 403 key's refused row deleted | `225 checks, 1 failed`: `FAIL (and every alternative holds both a transient input and a refused near-miss) (got '1', want '0')` |
 
 ## Null control
 
@@ -133,94 +129,111 @@ All runs are `bash tools/pr/app_approve.sh --self-test`:
 
 | tree | result | rc |
 |---|---|---|
-| `f84fa6b2e` | `206 checks, 0 failed` | 0 |
-| `1063eb3a` | `218 checks, 0 failed` | 0 |
-| `0f2fa660` with the review's fourth line planted | `218 checks, 2 failed` | 1 |
-
-**The finder's harness at both ends** is the group brief's null control (5): the self-test arms, read through the sweep.
-
-- At `f84fa6b2e`, "a stub failing 4 times refuses after the budget, naming the last error" is vacuous: the budget mutants M54 and M60 survive.
-- At `0f2fa660` both are killed.
+| `fd1e3f6c` | `218 checks, 0 failed` | 0 |
+| `37cffb09` | `225 checks, 0 failed` | 0 |
 
 The brief's controls at the head:
 
-- **One transient failure, then an answer, approves.** The comments read makes exactly 2 calls. The pull-request read makes 3, because the pre-POST re-read is the third. The 429 and secondary-403 arms make 2.
-- **No retry on a refusal.** A 404, a permission 403, a 401, a 422 or an empty stderr refuses `after exactly 1 call` with no `sleep`. A readable wrong head (`moved`) refuses after 1 read of the pull request, and a readable answer with no verdict (`none`) refuses after 1 comments read.
-- **Four transient failures spend the budget** (`rspent`). Five transient lines are queued, and the read stops after exactly 4 calls with sleeps `sleep 5 sleep 15 sleep 45`. The fifth line is still queued. The refusal names the fourth line, `gh: Service Unavailable (HTTP 503) (after 4 attempts)`.
-- **The budget's last read can still succeed** (`rlast`). Three transient failures and an answer on the fourth read approve.
+- **One transient failure, then an answer, approves**:
+  - the comments, 429 and secondary-403 arms make exactly 2 calls;
+  - the pull-request arms (`r502`, `rhint`) make 3, because the pre-POST re-read is the third.
+- **No retry on a refusal.** A 404, a permission 403, a 401, a 422 or an empty stderr refuses `after exactly 1 call` with no `sleep`. A readable wrong head, and a readable answer with no verdict, each refuse after 1 read.
+- **Four transient failures spend the budget** (`rspent`). Five transient lines are queued, and the read stops after exactly 4 calls with `sleep 5 sleep 15 sleep 45`. The fifth line stays queued, and the refusal names the fourth with `(after 4 attempts)`. The queue census proves every queued line transient.
+- **The budget's last read can still succeed** (`rlast`).
 
-The `sleep` the tool calls is a logging stub on the self-test's PATH, so the schedule is read off the log and costs no time.
+`sleep` is a logging stub on the self-test's PATH.
 
 ## Figures
 
-- **The self-test's check count** is the number of `st` assertions executed: `bash tools/pr/app_approve.sh --self-test`, at both ends (see Null control).
-- **The sweep's counts** come from `python3 dev/audit/harnesses/r10_gh_read_retry_mutants.py`. The mutant total is the number of rule applications its header lists over the region. Its own null control is M0, the unmutated tree: `NULL-OK` at both ends.
-- **The scoped gate** is `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"`. It prints `MODE: SCOPED -- 1 script(s) run, 32 scoped out`, and `scope.run` names `tests/entities.py`. The run comes from `tests/closures.json`'s new entry; the rest of the diff is in no measured closure.
-- **`tests/entities.py`** and the `run_always` lines are run with `PYTHONPATH=tests/hastub` under `/opt/hpo/venv-ci`, each rc=0:
-  - `python3 tests/entities.py`: `ALL 2382 ENTITY CHECKS PASSED`
-  - `python3 tests/closure.py selftest`
-  - `python3 tests/layout.py`
-  - `python3 tests/harness_headers.py`: `ALL 109 HARNESS HEADER CHECKS PASSED`
-  - `python3 tests/env_drift.py --claims-only <merge base>`
-- **CI also runs the self-test**, in `governance.yml`'s `instrument-self-tests` job (`app_approve.sh --self-test`).
+- **The alternatives' enumeration rule**, re-derivable from the source:
+
+  `sed -n '/^gh_transient() {/,/^}/p' tools/pr/app_approve.sh | grep -v '^ *#' | grep -oE "^ +[^ ()]+\)|(sed|grep) -[a-zA-Z]+ '[^']*'" | sed -E "s/^ +//; s/\)$//; s/^[a-z]+ -[a-zA-Z]+ '(.*)'$/\1/" | tr '|' '\n'`
+
+  It prints 8 lines. With `default`, the fall-through no rule matches, that makes 9 alternatives. The self-test runs the same pipeline as `ALTS` and asserts both the set and the count. Rows per alternative, counted by `sed -n "/^cat > \"\$W\/alts\" <<'ALT'/,/^ALT$/p" tools/pr/app_approve.sh | sed '1d;$d' | cut -f1,2 | sort | uniq -c`:
+
+  | alternative | transient rows | refused rows |
+  |---|---|---|
+  | `s/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2/p` | 6 | 5 |
+  | `5??` | 3 | 1 |
+  | `429` | 1 | 2 |
+  | `403` | 1 | 1 |
+  | `secondary rate limit` | 1 | 4 |
+  | `?*` | 1 | 5 |
+  | `^Get "https?://[^"]*": ` | 2 | 4 |
+  | `^error connecting to ` | 1 | 2 |
+  | `default` | 1 | 2 |
+
+  That is 43 rows in all. Each row's class is asserted against the production `gh_transient`, and the two precondition checks would fail on a missing class (the null controls above).
+- **The sweep's mutant total** is the number of rule applications the harness header lists over the region, from `READ_TRIES=` to `gh_read`'s closing `}`. `--list` enumerates them: 89 from the seven loop rules and 30 from the eight classifier rules.
+- **The scoped gate**: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"` prints `MODE: SCOPED -- 1 script(s) run, 32 scoped out`, and `scope.run` names `tests/entities.py`.
+- **`tests/entities.py`** (`PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 tests/entities.py`) prints `1 of 2382 ENTITY CHECKS FAILED` at `37cffb09`, and the same at the merge base `07fcbee2` from a detached worktree.
+  - The one failure is the same check at both: `the template arm turns the acceptance red ... (and the real template keeps it green)`.
+  - The cause is that `node tools/policy/policy_lint.mjs` exits 1 on main itself. At `07fcbee2` it prints `ERROR [budgets] tools/audit/briefs/orchestrator.md: about 4515 tokens across its lines exceeds its cap of 4513 tokens`.
+  - This diff touches no policy file. See `## Red checks`.
+- **The `run_always` lines**, each with `PYTHONPATH=tests/hastub` under `/opt/hpo/venv-ci`, rc=0:
+  - `tests/closure.py selftest`: `ALL 124 closure shrink pins PASSED`
+  - `tests/layout.py`: `layout self-test: ok`
+  - `tests/harness_headers.py`: `ALL 109 HARNESS HEADER CHECKS PASSED`
+  - `tests/env_drift.py --claims-only 07fcbee2ed9e38e71d8ca497e1b2470b16baf09f`: `claims hygiene: ... ok`
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`, rc=0.
 - `node tools/policy/policy_lint.mjs --budgets`: rc=0.
-- `python3 tools/audit/archscore/score.py --diff <merge base> HEAD`: `Architecture score: dS +0.0000 NULL`.
-- `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main`:
-  - at `0f2fa660` it predicted 1 red, the INERT READS entry, which `--apply-inert` wrote;
-  - at `1063eb3a` it prints `CI PREDICT: no closures or fast red predicted against 93e6a63d2855`.
-- `python3 -I tools/audit/seat/tmp_paths.py --check`: `0 refused`.
-- **The class's seams in this file.** Two rules enumerate them.
-  - The GitHub calls outside the self-test:
+- `python3 tools/audit/archscore/score.py --diff 07fcbee2e HEAD`: `Architecture score: dS +0.0000 NULL`.
+- `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main`: `CI PREDICT: no closures or fast red predicted against 07fcbee2ed9e`.
+- `python3 -I tools/audit/seat/tmp_paths.py --check`: `tmp_paths: 0 refused, 0 stale allow entries at HEAD`.
+- `PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh <body>` exits 1 at `37cffb09`, printing `PRE-PR: 37cffb09c1bffa3a35af13ba9bee3f7c7f6445a1 000110000001000000000000000`.
+  - `pr-body` is clean: `node tools/policy/policy_lint.mjs --pr-body <body>` gives `PR-BODY: 0 error(s)`.
+  - Three steps refuse: `policy_lint`, `mutants` (`the entry point exited 1 on the corpus as it stands`) and `field coverage` (`1 capped file(s) already red unperturbed`). The same command with the same body, in a detached worktree of `07fcbee2`, prints the same three refusals. They are `main`'s `policy_lint` red, not this diff's (`## Red checks`).
+  - The `push order` WARN is expected: the head goes to `handoff/r10-fly-gh-read-retry`, not the pull request.
+- `git diff --quiet 07fcbee2e...HEAD -- VERSION 'custom_components/*/manifest.json' RELEASE_NOTES.md tests/golden/claimed_drift.txt tests/golden/card_claimed_drift.txt && echo NONE-TOUCHED` prints `NONE-TOUCHED`.
+- **The class's seams in this file.** Two rules enumerate them:
+  - **The GitHub calls outside the self-test**: `awk '/^# --self-test: .gh./{exit} /(gh api|gh_read [a-z]|curl -|git fetch)/ && !/^ *#/' tools/pr/app_approve.sh`. It returns 10 lines, unchanged from the reviewed head, each dispositioned below.
+  - **The branches inside the retry path, classifier included**: the sweep above, with 0 survivors.
 
-    `awk '/^# --self-test: .gh./{exit} /(gh api|gh_read [a-z]|curl -|git fetch)/ && !/^ *#/' tools/pr/app_approve.sh`
-
-    It returns 10 lines; each is dispositioned below.
-  - The branches inside the retry path: the sweep above, whose survivors are 0 and whose 11 equivalents are each reasoned in the harness.
-
-  | seam | what it is | disposition |
-  |---|---|---|
-  | `gh api` inside `gh_read` | the retry loop itself | this diff; every branch swept |
-  | `gh_read js` in `check_pr` | the pull request, called twice | closed in this diff |
-  | `gh_read comments` | the comments | closed in this diff |
-  | `gh_read owners` | CODEOWNERS at `ref=main` | closed in this diff |
-  | `gh_read files` | the changed files | closed in this diff |
-  | `curl -X DELETE .../installation/token` | a write | never retried; it already only warns on failure |
-  | `curl -X POST .../access_tokens` | the mint | a write, never retried |
-  | `curl -X POST .../reviews` | the review | a write, never retried; `post502` pins it |
-  | `curl .../repos/$repo/installation` | a JWT read | a distinct seam, carried below |
-  | `git fetch ... refs/pull/$pr/head` | the carry path's git read | a distinct seam, carried below |
+  | seam | disposition |
+  |---|---|
+  | `gh api` inside `gh_read` | this diff; every branch swept |
+  | `gh_read js` in `check_pr` (called twice) | closed in this diff |
+  | `gh_read comments` | closed in this diff |
+  | `gh_read owners` | closed in this diff |
+  | `gh_read files` | closed in this diff |
+  | `curl -X DELETE .../installation/token` | a write, never retried; it only warns on failure |
+  | `curl -X POST .../access_tokens` | the mint, a write, never retried |
+  | `curl -X POST .../reviews` | a write, never retried; `post502` pins it |
+  | `curl .../repos/$repo/installation` | a distinct seam, already in the group's roster `carry` (item 0e5922c7) |
+  | `git fetch ... refs/pull/$pr/head` | the same distinct seam, the same carry |
 
 ## Red checks
 
-From the check-runs API, per commit:
+From the check-runs API (`gh api repos/tvofi/heatpump_optimizer/commits/<sha>/check-runs`), per commit, read at 2026-10-22T03:19Z:
 
-- **`d42bda80`**: `nightly-status` failed and `pr-contract` failed. The rest of that run was cancelled by the push of `e4b3e01a`.
-- **`e4b3e01a`**: `nightly-status` failed, and `pr-contract` failed in both of its runs (jobs 119527655690 and 119538432191). `ci-ratchet` was skipped.
+- **`d42bda80`**: `nightly-status` and `pr-contract` failed; 18 runs were cancelled by the push of `e4b3e01a`.
+- **`e4b3e01a`**: `nightly-status` failed, and `pr-contract` failed twice (jobs 119527655690 and 119538432191).
+- **`6e4d2b5c`**: `nightly-status` failed, and `pr-contract` failed twice (jobs 119605965880 and 119606114810). `closures` was still `in_progress`, started 02:47:51Z.
+- **`f84fa6b2`, `0f2fa660`, `1063eb3a`, `14eda530`**: no check runs.
+- **`fd1e3f6c`, `21307f6f`, `37cffb09`**: not yet on the pull request, so not run.
 
-The commits after `e4b3e01a` are on `handoff/r10-fly-gh-read-retry`, not on the pull request, so CI has not run on them.
+The two red checks:
 
-- **`pr-contract`** fails with `BAD-DEST body item 0e5922c7: R10-FLY-GH-READ-RETRY: R10-FLY-GH-READ-RETRY is not a group of the roster`.
-  - The cause: CI runs `carry_audit.py check` with no `--roster-ref`, so it reads `main`'s roster. This fly-in group is registered only on `handoff/audit-r10-roster`.
-  - `python3 tools/audit/carry_audit.py --roster-ref origin/handoff/audit-r10-roster check --body <body>` routes this body with 0 bad destinations.
-  - The cheaper detector is running that same command without `--roster-ref`. It costs about a second, and it reports the bad destination before a push. The round-1 body was checked only against the handoff roster.
-  - The red is not this diff's. Routing the carry anywhere else would misroute it, so the check stays red on this body until the roster that registers the group merges to `main`.
-  - Carry destinations that only the round's roster knows are R10-FLOW-ROSTER-FREEZE's part (b), which names #2529, #2547 and #2561 blocked the same way. Carry: R10-FLOW-ROSTER-FREEZE
-- **`nightly-status`** grades `main`'s nightly lanes, not this branch. Its log names `mutation-nightly` and `slow` failing on `main`'s scheduled run 39563978649. This diff reaches neither lane. Carry: dismissed: grades main's nightly lanes, not this branch
+- **`pr-contract`** fails `BAD-DEST` on round 2's `Carry: R10-FLY-GH-READ-RETRY` items.
+  - The cause: CI runs `carry_audit.py check` against `main`'s roster, and this fly-in group exists only on `handoff/audit-r10-roster`.
+  - The cheaper detector is the same command without `--roster-ref`. It takes about a second, and round 2's body was checked only with `--roster-ref`.
+  - This body carries nothing to a group missing from `main`'s roster. Both `carry_audit` runs below report 0 bad.
+- **`nightly-status`** grades `main`'s nightly lanes, and this diff touches nothing it reads. Carry: dismissed: grades main's nightly lanes, not this branch
+
+**Predicted, not this diff's.** `main` at the merge base `07fcbee2` is itself red on `policy-docs`, `fast (3.14)`, `instrument-self-tests` and `env-matrix`. That is `gh api .../commits/07fcbee2ed9e.../check-runs`, pages 1 and 2. The local cause of the `policy-docs` and `entities` red is in `## Figures`: `policy_lint.mjs` exits 1 on a 2-token overrun of `orchestrator.md`'s `files_tokens` cap (4515 > 4513), and it reproduces at the merge base. A red on these checks at `37cffb09` is `main`'s until it reproduces off the base. Carry: dismissed: red on main's own push at the merge base, the orchestrator's on main
 
 ## Forward-carry
 
-- The JWT-authenticated `curl` GET of `/repos/$repo/installation`, and the carry path's `git fetch` of `refs/pull/$pr/head`, are GitHub reads of the same class. They are left single-shot here:
-  - the brief scopes this PR to the four `gh` reads;
-  - `curl -f` gives exit 22 for every HTTP status of 400 and over, so classifying it needs its own `-w '%{http_code}'` read.
+```
+# roster_edit append-carry R10-FLY-GH-READ-RETRY, once #2588 unfreezes the roster; read it back with brief_lint.mjs
+From #2589 (PR 1): PR 2 and PR 3 of this group owe PR 1's proof, both for the retry loop and for the classifier that feeds it:
+(a) a spent-budget fixture whose queued failures are all transient, with one more queued than the budget, so only the budget can stop it;
+(b) a census sending every fixture line through the production classifier;
+(c) every alternative of the classifier, derived from its source by a written rule rather than listed by hand, pinned from both sides by an input it must retry and a near-miss it must refuse, with the derived set and both-classes-per-key asserted as preconditions;
+(d) a rule-generated sweep of the retry loop AND the classifier (alternatives, anchors, quantifiers, glob narrowing, phrase words, grep/sed flags, tail/head, and which copy of stderr is classified), in which a mutant killed only by a source-text precondition counts as surviving.
+Control: dev/audit/harnesses/r10_gh_read_retry_mutants.py at fd1e3f6c gives 17 survivors and at 37cffb09 gives 0. A hand-picked mutant list missed exactly the budget branch in round 1 and the classifier's branches in round 2.
+```
 
-  They go to PR 2 of this group, beside `merge_train.py`'s and `record_row.py`'s reads. Carry: R10-FLY-GH-READ-RETRY
-- **PR 2 and PR 3 of this group owe the same proof.** That means:
-  - a spent-budget fixture whose queued failures are all transient, with one more queued than the budget, so only the budget stops it;
-  - a census sending every fixture line through the production classifier;
-  - a rule-generated sweep of their retry loops.
-
-  Without those, a hand-picked mutant list reads a vacuous budget pin as green, which is what this PR's round 1 did. Carry: R10-FLY-GH-READ-RETRY
 - The roster brief asks for `Retry-After` to be honoured. `gh api` exposes response headers only on stdout, under `--include`, which mixes them into the paginated JSON this script parses. The fixed 5/15/45 s budget stands, as `app_push.sh`'s does. Carry: dismissed: gh exposes no Retry-After header without mixing headers into paginated stdout
 
 ## Friction
