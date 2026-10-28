@@ -1,5 +1,0 @@
-before kill: processes in pgid 14537: 1; bound sessions: 1
-sessions led by the supervisor's children: 14539
-14540
-session 14539: 0 live process(es) 3 s after the group KILL
-session 14540: 0 live process(es) 3 s after the group KILL

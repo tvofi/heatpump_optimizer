@@ -1,8 +1,0 @@
-RESULT par6 head 3e936f0c2f4eb4dc8e07abc735b14fa6cac59edc red=0 runs=6
-RESULT par6 prev 5e83e3d8897aeb3661aa20278c2fd872284f04fb red=0 runs=6
-RESULT cloud_relay-selftest rc=0 cloud_relay self-test: 275 checks, 0 failed
-RESULT ledger-selftest rc=0 ledger self-test: 56 checks, 0 failed
-RESULT mutant-harness rc=0 RESULT survivors=0
-RESULT grpkill head 2 zero-sessions, 0 nonzero
-RESULT grpkill prev 2 zero-sessions, 0 nonzero
-SEQDONE

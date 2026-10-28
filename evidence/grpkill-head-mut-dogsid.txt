@@ -1,0 +1,10 @@
+before kill: processes in pgid 5261: 2; bound sessions: 2
+sessions led by the supervisor's children: 5263
+5264
+session 5263: 12 live process(es) 3 s after the group KILL
+ 5263  5263      18 bash tools/audit/seat/pr_args.sh --self-test
+ 5265  5263      17 bash tools/audit/seat/pr_args.sh --self-test
+ 7597  5263       6 /tmp/tmp.M5WI2NI7Xp/unrelated-sleep 1200
+ 8239  5263       2 bash /tmp/tmp.M5WI2NI7Xp/m/tools/audit/seat/open_pr.sh reap 40bbc5e895dcc7a0a70ed73ef944c5df90dba80d T G
+ 8263  5263       2 python3 -I -c import fcntl, os, signal, sys, time os.closerange(3, 1024) for s in (signal.SIGTERM, signal.SIGINT, signal.SIGHUP): signal.signal(s, signal.SIG_IGN)  # mut:holdsig end = [] signal.signal(signal.SIGUSR1, lambda *a: end.append(1)) f = open(sys.argv[1], "a") try: fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB) except BlockingIOError: sys.exit(75) p = os.getppid() f.truncate(0); f.write("%d %d\n" % (p, os.getpid())); f.flush() while os.getppid() == p and not end: time.sleep(0.2)  # mut:watch f.truncate(0); f.write("%d %d drain\n" % (p, os.getpid())); f.flush() fcntl.flock(open(sys.argv[1] + ".push", "a"), fcntl.LOCK_EX)  # mut:drain if sys.argv[2:] and sys.argv[2] == "detach" and os.path.isdir(sys.argv[3]): import subprocess; subprocess.call(["git", "-C", sys.argv[3], "checkout", "-q", "--detach"])  # mut:detach sys.exit(0) /tmp/tmp.M5WI2NI7Xp/ropen/pr/upd-fix-reap.lock
+session 5264: 0 live process(es) 3 s after the group KILL

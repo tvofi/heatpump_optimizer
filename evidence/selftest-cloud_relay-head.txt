@@ -268,9 +268,5 @@
   ok   with no stub, the relay runs update_pr.sh beside it as the lead, asynchronously: a TERM ends it in that order
   ok   a TERM to the relay's whole process group reaches the update only through the relay's reap, which TERMs it alone first
   ok   a KILL to the relay's whole process group leaves the in-flight update to finish under its own lock
-  ok   a held branch lock aged 901 s by its recorded start is STUCK, naming branch, run pid and age
-  ok   and it is push-stuck on the level, where the tick reads it
-  ok   a held lock aged 899 s is not reported
-  ok   a released lock aged 5000 s is not reported, whatever its text
-  ok   once every lock is released nothing is reported, and the level holds no push-stuck line
-cloud_relay self-test: 275 checks, 0 failed
+cloud_relay self-test: 270 checks, 0 failed
+rc=0
