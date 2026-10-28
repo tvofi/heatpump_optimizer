@@ -1,0 +1,76 @@
+=== base r10_sav_volume.py flat
+flat: row {'month': '2026-10', 'baseline_sek': 115.2, 'actual_sek': 179.71, 'savings_sek': -64.51, 'savings_pct': -56.0009722391011, 'estimated': False}
+flat: volume -64.51  timing +0.00  metered 149.8 kWh
+flat: DEFECT: |saving| 0.2154 per metered kWh at one price
+=== base r10_sav_volume.py vary
+vary: row {'month': '2026-10', 'baseline_sek': 115.2, 'actual_sek': 104.83, 'savings_sek': 10.37, 'savings_pct': 9.00015625271292, 'estimated': False}
+vary: volume -64.51  timing +74.88  metered 149.8 kWh
+vary: SOUND: the timing term +74.88
+=== base r10_sav_volume.py gap
+gap: row {'month': '2026-10', 'baseline_sek': 115.2, 'actual_sek': 67.2, 'savings_sek': 48.0, 'savings_pct': 41.66666666666677, 'estimated': False}
+gap: volume +0.00  timing +48.00  metered 96.0 kWh
+=== base r10_sav_comfort.py const
+const: comfort: plan mean room 19.03 C vs mean target 20.44 C; booked thermostat 124.9 kWh vs steady at target 124.5, steady at the delivered room 118.7
+const: stored: plan house heat drawn -0.5 kWh_th = -0.3 kWh_e at the steady COP 1.838
+const: timing: power-weighted COP plan 1.837 thermostat 1.837; timing saving +0.00 %
+const: booked kWh: thermostat 124.9 plan 119.0; saving with stored heat settled +4.95 % against timing +0.00 %
+const: DEFECT
+arms run 1, defect 1: const
+=== base r10_sav_comfort.py vary
+vary: comfort: plan mean room 18.83 C vs mean target 20.44 C; booked thermostat 128.4 kWh vs steady at target 128.4, steady at the delivered room 121.9
+vary: stored: plan house heat drawn +0.6 kWh_th = +0.3 kWh_e at the steady COP 1.776
+vary: timing: power-weighted COP plan 2.110 thermostat 1.787; timing saving +15.30 %
+vary: booked kWh: thermostat 128.4 plan 102.4; saving with stored heat settled +20.03 % against timing +15.30 %
+vary: DEFECT
+arms run 1, defect 1: vary
+=== base r10_sav_baseline.py null
+null: plan kWh 112.6 vs booked thermostat kWh 128.4; plan mean room 18.72 C vs mean comfort target 20.44 C
+null: flat price, 2 days, re-plan every 1.00 h: baseline 154.1 actual 135.09 saved 19.01 (12.338180574038821 %)
+null: comfort: booked thermostat 128.4 kWh vs steady at the delivered room 121.5
+null: DEFECT
+arms run 1, defect 1: null
+=== base r10_sav_baseline.py transient
+transient: start room 20.0 slab 21.0: booked baseline step 0 = 2.06 kW; steady at the matched target 17.47 C = 1.90 kW
+transient: start room 19.0 slab 20.0: booked baseline step 0 = 2.06 kW; steady at the matched target 17.21 C = 1.88 kW
+transient: start room 22.0 slab 23.5: booked baseline step 0 = 2.06 kW; steady at the matched target 18.14 C = 1.95 kW
+transient: spread of the booked step across start states = 0.00 kW; largest step 0 off its steady holding power = 1.81e-01 kW
+transient: DEFECT
+arms run 1, defect 1: transient
+=== wt r10_sav_volume.py flat
+flat: row {'month': '2026-10', 'baseline_sek': 179.71, 'actual_sek': 179.71, 'savings_sek': 0.0, 'savings_pct': 0.0, 'estimated': False, 'meter_calibration': 1.56}
+flat: volume +0.00  timing +0.00  metered 149.8 kWh
+flat: SOUND: |saving| 0.0000 per metered kWh at one price
+=== wt r10_sav_volume.py vary
+vary: row {'month': '2026-10', 'baseline_sek': 179.71, 'actual_sek': 104.83, 'savings_sek': 74.88, 'savings_pct': 41.66713037671804, 'estimated': False, 'meter_calibration': 1.56}
+vary: volume +0.00  timing +74.88  metered 149.8 kWh
+vary: SOUND: the timing term +74.88
+=== wt r10_sav_volume.py gap
+gap: row {'month': '2026-10', 'baseline_sek': 115.2, 'actual_sek': 67.2, 'savings_sek': 48.0, 'savings_pct': 41.666666666666664, 'estimated': False, 'meter_calibration': 1.0}
+gap: volume +0.00  timing +48.00  metered 96.0 kWh
+=== wt r10_sav_comfort.py const
+const: comfort: plan mean room 19.03 C vs mean target 20.44 C; booked thermostat 119.1 kWh vs steady at target 124.5, steady at the delivered room 118.7
+const: stored: plan house heat drawn -0.5 kWh_th = -0.3 kWh_e at the steady COP 1.838
+const: timing: power-weighted COP plan 1.837 thermostat 1.837; timing saving -0.00 %
+const: booked kWh: thermostat 119.1 plan 119.0; saving with stored heat settled +0.35 % against timing -0.00 %
+const: SOUND
+arms run 1, defect 0: -
+=== wt r10_sav_comfort.py vary
+vary: comfort: plan mean room 18.83 C vs mean target 20.44 C; booked thermostat 122.3 kWh vs steady at target 128.4, steady at the delivered room 121.9
+vary: stored: plan house heat drawn +0.6 kWh_th = +0.3 kWh_e at the steady COP 1.776
+vary: timing: power-weighted COP plan 2.110 thermostat 1.787; timing saving +15.31 %
+vary: booked kWh: thermostat 122.3 plan 102.4; saving with stored heat settled +16.04 % against timing +15.31 %
+vary: SOUND
+arms run 1, defect 0: -
+=== wt r10_sav_baseline.py null
+null: plan kWh 112.6 vs booked thermostat kWh 121.8; plan mean room 18.72 C vs mean comfort target 20.44 C
+null: flat price, 2 days, re-plan every 1.00 h: baseline 146.18 actual 135.09 saved 11.09 (7.586537145984402 %)
+null: comfort: booked thermostat 121.8 kWh vs steady at the delivered room 121.5
+null: SOUND
+arms run 1, defect 0: -
+=== wt r10_sav_baseline.py transient
+transient: start room 20.0 slab 21.0: booked baseline step 0 = 1.90 kW; steady at the matched target 17.47 C = 1.90 kW
+transient: start room 19.0 slab 20.0: booked baseline step 0 = 1.88 kW; steady at the matched target 17.21 C = 1.88 kW
+transient: start room 22.0 slab 23.5: booked baseline step 0 = 1.95 kW; steady at the matched target 18.14 C = 1.95 kW
+transient: spread of the booked step across start states = 0.07 kW; largest step 0 off its steady holding power = 8.88e-16 kW
+transient: SOUND
+arms run 1, defect 0: -
