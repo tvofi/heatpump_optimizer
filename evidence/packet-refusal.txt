@@ -1,0 +1,5 @@
+# review_packet.py render --pr 2896 --head 0f9a29e14adbd342602dec9a1666f9ee8f0ba7cf
+review_packet: REFUSE host-path: dev/audit/rca/R10-RCA-FRICTION-RESIDUE.md:8: home-directory in an added line of a tracked file; rewrite it with `ref_privacy.py scrub --write dev/audit/rca/R10-RCA-FRICTION-RESIDUE.md` or drop the path
+rc=1
+# the matched span on line 8:
+rnance/roles/root-cause.md`
