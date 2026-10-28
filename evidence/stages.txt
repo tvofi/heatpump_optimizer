@@ -1,0 +1,21 @@
+d7121f32b onmain Merge pull request #2531 from tvofi/fix/r10-ci-ratchet-red
+290712ec0 onmain Merge pull request #2548 from tvofi/fix/r10-replay-cap
+92b5bf442 onmain Merge pull request #2521 from tvofi/fix/r10-i5-docs
+4b36dc730 onmain Merge pull request #2527 from tvofi/fix/r10-freq-defrost
+295c874e8 onmain Merge pull request #2547 from tvofi/fix/r10-tick-owed-level
+5a755f53e onmain Merge pull request #2529 from tvofi/fix/r10-ci-layout-g
+302f66571 onmain Merge pull request #2566 from tvofi/fix/r10-handover-refresh
+3a9c6f849 onmain Merge pull request #2569 from tvofi/fix/r10-roster-push-race-pr
+f24895c0c onmain Merge pull request #2572 from tvofi/fix/r10-advisor
+93e6a63d2 onmain Merge pull request #2557 from tvofi/fix/r10-rca-orch-continuity
+500668757 onmain Merge pull request #2576 from tvofi/fix/audit-r10-roster
+== valid stages per tooling
+tools/audit/seat/roster_lib.py:12:`resume.stage not in DONE_STAGES`, so a done group's after-edges count as
+tools/audit/seat/roster_lib.py:32:# not in DONE_STAGES keeps the group open (and its after-edges constraining).
+tools/audit/seat/roster_lib.py:33:DONE_STAGES = ("done", "rca-done")
+tools/audit/seat/roster_lib.py:206:    return (group.get("resume") or {}).get("stage") not in DONE_STAGES
+tools/audit/seat/roster_edit.py:233:    new.setdefault("resume", {"stage": "not-started",
+tools/audit/seat/roster_edit.py:720:         "resume": {"stage": "not-started", "branch": "handoff/a"}},
+tools/audit/seat/roster_edit.py:723:         "resume": {"stage": "not-started", "branch": "handoff/b"}},
+tools/audit/seat/roster_edit.py:836:          and rc[-1]["resume"]["stage"] == "not-started")
+== every carry cites a PR? (added carries)

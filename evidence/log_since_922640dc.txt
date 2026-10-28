@@ -1,0 +1,44 @@
+ad10fd215 Merge remote-tracking branch 'origin/main' into fix/audit-r10-roster-pr
+23cc013fa Merge commit '306a96d5f21f7876070d48c194fd4be99b64022c' into fix/audit-r10-roster-pr
+306a96d5f roster_edit set-stage R10-RCA-ORCH-CONTINUITY (tools/audit/seat/roster_edit.py)
+78c3d2b23 roster_edit set-stage R10-ADVISOR (tools/audit/seat/roster_edit.py)
+26ce4022f roster_edit edit-brief R10-SCORES (tools/audit/seat/roster_edit.py)
+93e6a63d2 Merge pull request #2557 from tvofi/fix/r10-rca-orch-continuity
+f24895c0c Merge pull request #2572 from tvofi/fix/r10-advisor
+de4729ba1 Merge commit '743463c61f6af0631f7ac20ca36561232b028b97' into fix/audit-r10-roster-pr
+743463c61 roster_edit append-carry R10-ORCH-MACHINERY (tools/audit/seat/roster_edit.py)
+035541c61 roster_edit append-carry R10-FLOW-BODY-ONLY (tools/audit/seat/roster_edit.py)
+a9f187ea9 Merge remote-tracking branch 'origin/main' into fix/r10-rca-orch-continuity
+e5845f90c Merge remote-tracking branch 'origin/main' into fix/r10-advisor
+aaf7c832c Merge remote-tracking branch 'origin/main' into fix/r10-rca-orch-continuity
+876af7889 Merge remote-tracking branch 'origin/main' into fix/r10-advisor
+1d54b05d5 Merge commit '2f171454d90475b4eb6e22d52df78a3b8cd68879' into fix/r10-rca-orch-continuity
+2f171454d rca: carry the barrier and failure_logs.sh findings to carry-201.json; pin pulse's opener rc clause
+4b215f4be Merge remote-tracking branch 'origin/main' into fix/r10-advisor
+07e75418b Merge commit 'b11f008c52fff8b30ff47a142700e7f36fca26b3' into fix/r10-advisor
+7e312ed2e record: the delivery row for #2557
+0a67e82d6 Merge remote-tracking branch 'origin/main' into fix/r10-rca-orch-continuity
+5558a7e63 Merge commit 'ad6bdbcd836286887c7e42c5a63676d97019d8db' into fix/r10-rca-orch-continuity
+ad6bdbcd8 Merge remote-tracking branch 'origin/main' into fix/r10-rca-orch-continuity
+b11f008c5 Merge remote-tracking branch 'origin/main' into fix/r10-advisor
+29435d2fa features: the ledger-save check sets the tile book itself, so it pins the save alone
+42b6681f4 price tiles: the card checks the degree pair's order, not its convexity
+c34330926 Merge remote-tracking branch 'origin/main' into fix/r10-advisor
+441d19932 ci: pin killed mutants
+21eeb5b23 Merge remote-tracking branch 'origin/main' into fix/r10-advisor
+a7fc57853 record: the delivery row for #2572
+b6f1b2463 Merge remote-tracking branch 'origin/main' into fix/r10-advisor
+cd1c837ca price_tiles: sample -> monthly_figure
+13035875c closures: entities.py re-recorded clean (rc 0) on its own closure
+c5ad992b4 closures: record price_tiles.py into entities.py's closure
+4eaec5793 R10-ADVISOR: name the settlement's whole-action reasons on the receipt
+464468bac closures: record price_tiles.py into the 21 scripts that read it
+9caa5e252 R10-ADVISOR: claim advisor_page's drift; D6 counts the new module
+f2766fd4d R10-ADVISOR: drop a dead guard and a dead clamp; pin restore's branches
+01d7ac8c7 Merge remote-tracking branch 'origin/main' into fix/r10-rca-orch-continuity
+187134aff structure: re-record the four rows R10-ADVISOR lowered
+16f9c4a86 Merge remote-tracking branch 'origin/main' into handoff/r10-advisor
+5e1fdb77b R10-ADVISOR: price a degree held over 30 days, check it before render, link the opt-ins
+33f6c201f bugclasses: N-silent-stop in finding.schema.json's class_guess enum; audit-find.js regenerated (fold_ledger.py sync)
+84d160d87 closures: classify dev/audit/harnesses/pulse_replay.py in harness_headers' inert reads (ci_predict --apply-inert)
+49fb5245b rca: R10-RCA-ORCH-CONTINUITY -- the programme stops silently with its host; pulse.py reads liveness from origin
