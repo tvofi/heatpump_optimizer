@@ -1,0 +1,13 @@
+diff --git a/dev/programme/triage/s6-batch1.md b/dev/programme/triage/s6-batch1.md
+index e749fa157..6809b6669 100644
+--- a/dev/programme/triage/s6-batch1.md
++++ b/dev/programme/triage/s6-batch1.md
+@@ -9,7 +9,7 @@ Base: origin/main `50af6174f`; roster origin/handoff/audit-r10-roster
+ `4c54758d7`, read with
+ `git show origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r10-groups.json`.
+ Logs cited by file name are in the s5 orchestrator's scratch directory
+-(`/Users/timmalmstrom/hpo-orch/r10s5/`, out of tree). GitHub calls: 0.
++(the s5 orchestrator's scratch directory, out of tree). GitHub calls: 0.
+ 
+ A roster op citing an ACCEPT below resolves only once this file is on the
+ roster branch or origin/main (`roster_edit.py` reads the ruling from there).
