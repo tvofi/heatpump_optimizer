@@ -3837,7 +3837,7 @@ def _p2_registry(sources):
              dispositions={
                  "coordinator.py::HeatPumpOptimizerCoordinator._external_heat_config":
                      "guarded: ANDed with wood_furnace_on",
-                 "config_flow.py::HeatPumpOptimizerOptionsFlow.async_step_building":
+                 "config_flow.py::HeatPumpOptimizerOptionsFlow._building_wood_flag":
                      "guarded: normalises the flag after wood_furnace_on(merged)",
                  "thermal_model.py::ThermalParameters.from_config":
                      "guarded: under _on = wood_furnace_on(config)",
