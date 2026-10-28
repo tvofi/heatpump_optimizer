@@ -742,3 +742,17 @@
 # plan can land in another basin: valve_storage_low_target does, at a lower
 # plan cost here (predicted_cost 61.91 -> 61.05). The suspended fixtures'
 # plan leaves are their own machine-sensitive ones. No coord_* capture moves.
+# R10-BUFFER-STORE (#2887 review 1): behind a valve the savings reference
+# charges its tank only to the configured curve (`valve_charge_demand`) and
+# prices its draw at the tank's flow COP (`_reference_cop`), as the step
+# does; it used to size the pump to the emitters' need and charge the tank
+# toward buffer_max_temp. Measured with tests/env_drift.py --all against
+# origin/main in one environment: exactly these five move, each in
+# baseline_cost alone (plan leaves exempt); four DOWN, the direct-slab one UP
+# (its slab drinks raw tank water, so the reference now buys that circuit's
+# need through the tank). Unvalved fixtures do not move.
+valve_storage_smart_write  # R10-BUFFER-STORE: tank-aware savings reference; baseline_cost DOWN 146.865 -> 129.695 here; no plan key judged
+valve_upper_direct_slab  # R10-BUFFER-STORE: tank-aware savings reference; baseline_cost UP 125.709 -> 126.782 here; no plan key judged
+wood_coil  # R10-BUFFER-STORE: tank-aware savings reference; baseline_cost DOWN 150.751 -> 129.566 here; no plan key judged
+wood_two_tank  # R10-BUFFER-STORE: tank-aware savings reference; baseline_cost DOWN 141.475 -> 120.254 here; no plan key judged
+wood_two_tank_smart_write  # R10-BUFFER-STORE: tank-aware savings reference; baseline_cost DOWN 141.475 -> 120.254 here; no plan key judged
