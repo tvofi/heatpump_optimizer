@@ -1,0 +1,6 @@
+m2 -              curl -fsS -o /dev/null -X POST -H "Authorization: Bearer $APPROVER" -H "$ACCEPT" \
+m2 +              true -fsS -o /dev/null -X POST -H "Authorization: Bearer $APPROVER" -H "$ACCEPT" \
+m3 -            dismiss_bot; say refused; exit 0
+m3 +            say refused; exit 0
+m4 -                elif [ "$hold_age" -lt "$HOLD_MAX_AGE_S" ]; then
+m4 +                elif [ "$hold_age" -gt "$HOLD_MAX_AGE_S" ]; then

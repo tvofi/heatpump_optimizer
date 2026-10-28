@@ -1,0 +1,11 @@
+37:            echo "::warning::record pull request #$NUM is unreadable"; say skip-unread; exit 0; }
+40:            dismiss_bot; say refused; exit 0
+46:              || { say skip-unread; exit 0; }
+52:                echo "::warning::the approver App's review on #$NUM was refused"; say skip-review-refused; exit 0; }
+106:                  say skip-train-hold; exit 0
+133:              say skip-pitch; exit 0
+141:          # either into `say ...; exit 0`. Every outcome here is green; the
+147:            3) say approved-pending; exit 0 ;;
+148:            *) dismiss_bot; say refused; exit 0 ;;
+155:            say merged
+159:            say skip-merge-refused
