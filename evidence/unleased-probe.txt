@@ -1,0 +1,3 @@
+RESULT unleased-torn: markers lost right after mark_unleased=1522 of 4000; empty marker survives _unleased=False
+RESULT unleased-torn: markers lost right after mark_unleased=1618 of 4000; empty marker survives _unleased=False
+RESULT unleased-torn: markers lost right after mark_unleased=1542 of 4000; empty marker survives _unleased=False
