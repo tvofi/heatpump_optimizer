@@ -1,2 +1,0 @@
-CI PREDICT: no closures or fast red predicted against e6dd462770de (a data-file read is not seen)
-rc=0
