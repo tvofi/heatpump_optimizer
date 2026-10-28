@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:_tank_bounded_draw CLAMP_DROP ebabcabd",
+  "old": "        / max(dt_hours, 1e-6)",
+  "reason": "Equivalent on every reachable input (CLAMP_DROP, `max(dt_hours, 1e-6)` -> `dt_hours`): the floor binds only for dt_hours < 1e-6 h (3.6 ms). `_tank_bounded_draw` is called only from `_single_valve_rates`, whose two callers pass the step length: `_simulate_step_single`'s `dt_hours` (the plan step, 0.25 h by default; diagnosis.py's replay replaces a missing or zero one with 0.25) and `simulate_trajectory_batch`'s sub-step `dt = dt_hours / n_sub` with n_sub >= 1. The same unreachable divisor floor in tariff.py `_window_means_batch` is triaged equivalent for the same reason. Survival measured by the `mutation-pins` drive of run 40574874260 at cd731ff0d1ec231db24054d197c5a86d0f9d5757 (24 drivers in play, every one whose closure holds thermal_model.py, null control NULL_COMMENT surviving every driver), shard job 122440356297: `thermal_model.py:1720 CLAMP_DROP -- lives` (unchanged line; moved to 1727 by the merge of origin/main).",
+  "verdict": "equivalent"
+}
