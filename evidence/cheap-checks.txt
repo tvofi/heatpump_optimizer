@@ -1,0 +1,24 @@
+
+RULES-SYNC ok: every generated rule is the generated form of its source
+rc=0
+  MODE: SCOPED -- 1 script(s) run, 32 scoped out.
+  closure. The claim is re-checked by the FULL unscoped suite that runs
+  gate. Set GATE_SCOPE=full to run everything here and now.
+ALL 2382 ENTITY CHECKS PASSED
+claims hygiene: 93e6a63d2855651448a2b8f677b392feddc03c99 ok
+ALL 124 closure shrink pins PASSED
+layout self-test: ok
+ALL 109 HARNESS HEADER CHECKS PASSED
+STRUCTURE RATCHET PASSED
+throwaway_git: 0 raw git init or clone site(s) refused, 0 stale allow entries at HEAD
+Architecture score: dS +0.0000 NULL
+564:        GOLDEN_REF=origin/main PYTHON="$rp" ${PREPR_RECORD:-./tests/derive_closures.sh} \
+sibling rule:
+18
+release-rc=0
+nightly-filter-rc=1
+.claude/rules/gate-scoping.md
+.cursor/rules/gate-scoping.mdc
+dev/governance/rules/gate-scoping.md
+dev/programme/delivery/2528.md
+tools/pr/prepr.sh
