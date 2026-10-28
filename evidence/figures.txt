@@ -1,17 +1,22 @@
-measured at base 50af6174f53c0f9bec3f705c3a4bb99615f71acc, head 4a81d718e03564dc1b0de06ee5a68edc98d13096
+at 50af6174f
 harness siblings: 102
-inert_reads[tests/harness_headers.py] dev/audit/harnesses/ paths: 139
-re-record closures since 2026-09-25: 35; since 2026-10-12: 15
-handoff refs (live ls-remote 2026-10-24, not at base): 108 (body says 99)
-grep -c rederive tools/pr/ci_predict.py: 0
-grep -c -i 'predict\|prepr' ci-autofix.md: 2
-grep -c carry_audit prepr.sh body_push.sh: 0, 0
-policy_lint.mjs:6244 isNone; carry_audit.py:94 NONE_ITEM
-prepr.sh:3130 PREPR_SKIP_CLOSURES line: present
-roster at origin/main: R10-FLOW-JIDOKA not-started, R10-POLICY-LINT-FAMILY not-started
-roster at handoff/audit-r10-roster 717f7e58285d7795d82e23d6feb84d56c15ea9d5: JIDOKA in-progress; POLICY-LINT-FAMILY done (pr 2669, commit 5c9828fe5)
-PR #2669 head 0506a55b29af305fb8f7fc4012e5c41485d6cb2f is an ancestor of origin/main 50af6174f (merged 2026-10-23T19:12Z)
-G1/G2/G3 text (arch-score / gate.py --body / twin table / argv pin / isNone / NONE_ITEM / one parser) in JIDOKA or POLICY-LINT-FAMILY brief+carry: absent at origin/main and at 717f7e58
-JIDOKA's P-Q carry (717f7e58 only) scopes the parity test to "the checks pr-contract.yml runs on a body" -- the scope G1 says is insufficient
-VERSION / manifest / RELEASE_NOTES / tests/golden: untouched (git diff --name-only empty)
-CI on head: 52 check runs, all success or skipped, 0 failure
+inert_reads[harness_headers] total: 857
+  of which dev/audit/harnesses/: 139
+closures commits since 2026-09-25: 35
+closures commits since 2026-10-12: 15
+rederive in ci_predict.py: 0
+predict|prepr in ci-autofix.md: 2
+carry_audit in tools/pr/prepr.sh: 0
+carry_audit in tools/audit/seat/body_push.sh: 0
+policy_lint.mjs:6244: const isNone = (text) => new RegExp(`^${STRIP}(none|n/a)\\b[^\\n]*$`, 'i').test(text)
+carry_audit.py:94: NONE_ITEM = re.compile(r"^\W*(?:none|n/a)\W*$|^\W*n/a\s*:", re.I)
+
+roster a72ff1128 (ancestor of origin/handoff/audit-r10-roster d3c2a27c7):
+R10-POLICY-LINT-FAMILY {"stage": "done", "branch": "handoff/r10-policy-lint-family", "commit": "5c9828fe5e5521a9c24a095daf3cf83263d67f9a", "last_step": null, "next_step": "dispatch a fixer once every `after` group is done", "note": null, "pr": 2669}
+R10-FLOW-JIDOKA {"stage": "in-progress", "branch": "handoff/r10-flow-jidoka", "commit": null, "last_step": null, "next_step": "dispatch a fixer once every after group is done", "note": "rca: topic r10-rca-body-check-parity"}
+last carry: RCA R10-RCA-BODY-CHECK-PARITY (handoff-body/r10-rca-body-check-parity 4fd3eef16, state (c), cost test: build). Two programs grade ## Forward-carry with different grammars (policy_lint.mjs isNone accepts `none` + prose; carry_audit.py NONE_ITEM accepts only bare `none` or `n/a: <reason>`, and a path after `Carry:` reads as unrouted), and only one runs before a PR opens. A name-level parity test over pr-contract.yml is necessary but not sufficient: the pre-open twin must run carry_audit's grammar with CI's inputs. Read section 4 of that body for the three requirements this fixer owes.
+
+ls-remote heads handoff-body/r10-rca-body*: []
+ls-remote tag: 4fd3eef16dbc4d15af04085150b9477b8e6b490a	refs/tags/archive/handoff-body/r10-rca-body-check-parity
+4fd3eef16 BODY.md Who owns:
+Who owns what. G1 and G2 belong to R10-FLOW-JIDOKA, the same test widened. G3 belongs to R10-POLICY-LINT-FAMILY, the group that already owns `policy_lint`'s grammar seams (P-F's M1 is there). This seat builds nothing in parallel: a second test would be the parallel mechanism `fixer.md` forbids, and G3 changes a grader's grammar, which is the owning group's call.

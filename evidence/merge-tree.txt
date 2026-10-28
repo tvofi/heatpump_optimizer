@@ -1,2 +1,11 @@
-5c54aae1f6317c7f755d0f49ed5247e2e25bde80
+head: 3b5eea2062c8a444f5f921fc30a2fe4dd18150bd
+merge-base: fa4dad4a75eef5d8db3d8f1c35e6ae15dd57583a
+origin/main: 9586fce081411da3e552aab930919c40e2b2b233
+ dev/audit/rca/R10-HANDOFF-PREPR-BOUNCE.md  | 332 +++++++++++++++++++++++++++++
+ dev/audit/rca/R10-RCA-BODY-CHECK-PARITY.md | 147 +++++++++++++
+ dev/programme/delivery/2691.md             |   1 +
+ 3 files changed, 480 insertions(+)
+merge-tree:
+beb7cc8a98ac6c57e1a9a0597e78dae0fdd60510
 rc=0
+roles diff vs main: 0 lines
