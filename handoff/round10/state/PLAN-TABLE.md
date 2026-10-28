@@ -327,7 +327,7 @@ Role: dev/governance/roles/root-cause.md. |  |
 | R10-TRIAGE-S6 | IN | 1 | done | - | opus/opus | - | Own the standing triage seat's batch pull requests to a merge-ready head, one at a time (resume.pr). |  |
 | R10-FRICTION-FIXER-MD | C | 1 | not-started | #2895 | opus/opus | - | Root-cause seat for issue #2895, the governance cron's recurring-friction key `tools/audit/briefs/fixer.md` (5 distinct pull requests, 7 entries, in the v7.0... |  |
 | R10-FRICTION-CLAIM-FALSE | C | 1 | not-started | #2907 | opus/opus | - | Root-cause seat for issue #2907, the governance cron's recurring-friction key `claim-false` (verdict class: 4 distinct pull requests, 8 entries, in the v7.0.... |  |
-| R10-FLY-SWEEP-DEFAULTS | IN | 1 | handoff | - | sonnet/opus | - | Owner order (tvofi, 2026-10-28). |  |
+| R10-FLY-SWEEP-DEFAULTS | IN | 1 | in-progress | - | sonnet/opus | - | Owner order (tvofi, 2026-10-28). |  |
 | R10-FLY-CACHE-PROMPTS | IN | 1 | in-progress | - | sonnet/opus | - | Owner order (tvofi, 2026-10-28). |  |
 | R10-FLY-PREPR-SUMMARY | IN | 1 | in-progress | - | sonnet/opus | - | Owner order (tvofi, 2026-10-28). |  |
 | R10-FLY-INSTRUMENTS-SPLIT | IN | 1 | handoff | - | sonnet/opus | - | Owner order (tvofi, 2026-10-28). |  |

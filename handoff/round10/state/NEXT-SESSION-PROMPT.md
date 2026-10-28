@@ -43,7 +43,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-ARCH-SHAPES-CLASSIFIER (stage queued): no branch pushed yet, so nothing to fetch
 - R10-RECORD-HOLD-APPROVE (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-REVIEW-CARRY (stage in-progress): no branch pushed yet, so nothing to fetch
-- R10-FLY-SWEEP-DEFAULTS (stage handoff, branch `handoff/r10-fly-sweep-defaults`): `git fetch origin handoff/r10-fly-sweep-defaults && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-FLY-SWEEP-DEFAULTS (stage in-progress, branch `handoff/r10-fly-sweep-defaults`): `git fetch origin handoff/r10-fly-sweep-defaults && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-CACHE-PROMPTS (stage in-progress, branch `handoff/r10-fly-cache-prompts`): `git fetch origin handoff/r10-fly-cache-prompts && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-PREPR-SUMMARY (stage in-progress, branch `handoff/r10-fly-prepr-summary`): `git fetch origin handoff/r10-fly-prepr-summary && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-INSTRUMENTS-SPLIT (stage handoff, branch `handoff/r10-fly-instruments-split`): `git fetch origin handoff/r10-fly-instruments-split && git worktree add --detach $SEAT/wt FETCH_HEAD`
