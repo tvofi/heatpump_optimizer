@@ -1,4 +1,0 @@
- heatpump-optimizer-card  v7.0.4 
-{"state":"active","boxes":8,"badge_types":0,"wood_badge":"none","coil_pipes_accent":0,"configure_buttons":5,"buttons_naming_page":0,"dhw_coil_lines":["refilled through a wood tank coil"],"dest_caption":0}
-{"state":"off","boxes":8,"badge_types":0,"wood_badge":"none","coil_pipes_accent":0,"configure_buttons":4,"buttons_naming_page":0,"dhw_coil_lines":[],"dest_caption":0}
-{"state":"none","boxes":8,"badge_types":0,"wood_badge":"none","coil_pipes_accent":0,"configure_buttons":4,"buttons_naming_page":0,"dhw_coil_lines":[],"dest_caption":0}

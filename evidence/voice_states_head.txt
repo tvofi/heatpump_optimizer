@@ -1,4 +1,0 @@
- heatpump-optimizer-card  v7.0.4 
-{"state":"active","boxes":8,"badge_types":8,"wood_badge":"coil","coil_pipes_accent":1,"configure_buttons":8,"buttons_naming_page":8,"dhw_coil_lines":["refilled through a wood tank coil","preheats the mains water"],"dest_caption":1}
-{"state":"off","boxes":8,"badge_types":8,"wood_badge":"coil off","coil_pipes_accent":1,"configure_buttons":8,"buttons_naming_page":8,"dhw_coil_lines":["coil configured, not modelled","needs the two-tank layout"],"dest_caption":1}
-{"state":"none","boxes":8,"badge_types":7,"wood_badge":"store","coil_pipes_accent":0,"configure_buttons":8,"buttons_naming_page":8,"dhw_coil_lines":["no hot-water coil","wood heat only"],"dest_caption":1}
