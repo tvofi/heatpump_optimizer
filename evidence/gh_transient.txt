@@ -1,0 +1,12 @@
+gh_transient() { # gh's stderr -> 0 when another read may ride the failure out
+  local status
+  # The last whole status line, as `<code> <line>`: it is the response gh read
+  # last, and a 403's secondary-limit phrase is read on that line alone.
+  status=$(printf '%s\n' "$1" | sed -nE 's/^gh: (.*\()?HTTP ([0-9]{3})\)?$/\2 &/p' | tail -1)
+  case "${status%% *}" in
+    5??|429) return 0 ;;
+    403) printf '%s\n' "$status" | grep -qi 'secondary rate limit'; return ;;
+    ?*) return 1 ;;
+  esac
+  printf '%s\n' "$1" | grep -qE '^Get "https?://[^"]*": |^error connecting to '
+}

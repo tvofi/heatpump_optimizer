@@ -1,0 +1,4 @@
+head 53f24912dee67629b3bc383f91031627c995d520 check-runs: total_count 52 (read via pull_request_read get_check_runs at review time)
+red: pr-contract (job 119726428608, 08:41:23Z) -- log: "gh: API rate limit exceeded for installation ... (HTTP 403)" at the step that writes /tmp/pr-body.md; later steps then fail on the missing file
+red: arch-score (job 119726183785, 08:40:52Z) -- log: "gh: API rate limit exceeded for installation ... (HTTP 403)" at the step that fetches the body
+all others: success or skipped (arch-score/pr-contract/budget-raise-gate of the earlier 07:11Z push run are success)

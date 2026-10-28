@@ -1,0 +1,14 @@
+== F13 shape
+FAIL every alternative's inputs and near-misses classify as the table needs (production gh_transient) (got '2', want '0')
+app_approve self-test: 225 checks, 1 failed
+== head -1
+FAIL every alternative's inputs and near-misses classify as the table needs (production gh_transient) (got '1', want '0')
+app_approve self-test: 225 checks, 1 failed
+== all stderr
+FAIL every alternative's inputs and near-misses classify as the table needs (production gh_transient) (got '2', want '0')
+app_approve self-test: 225 checks, 1 failed
+== -qiw
+FAIL every alternative's inputs and near-misses classify as the table needs (production gh_transient) (got '1', want '0')
+app_approve self-test: 225 checks, 1 failed
+== null
+app_approve self-test: 225 checks, 0 failed

@@ -1,0 +1,6 @@
+  record   red-history           15 commit(s) between origin/main and this head, every failure conclusion across them: arch-score, nightly-status
+
+/tmp/tmp.x97LVgVkoJ/ev/pr-body.md
+  ERROR   [pr-body] /tmp/tmp.x97LVgVkoJ/ev/pr-body.md: check `arch-score` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
+
+PR-BODY: 1 error(s) in /tmp/tmp.x97LVgVkoJ/ev/pr-body.md
