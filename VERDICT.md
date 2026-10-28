@@ -1,36 +1,31 @@
 Fix review: merge 583219fa8a44c79e038ae091ce907dafa3e847d0
 
-bus-nonce: 4fff0b41f588c5ca0029da5a4a9d2c9b
+bus-nonce: 7c3743ba165cbfbf61fab7740ccd4751
 
-Round 1. Reviewed head `583219fa8a44c79e038ae091ce907dafa3e847d0` (still the head when this was written), merge base origin/main `50af6174f`. The PR adds one INERT ruling record (`dev/programme/triage/s6-batch2.md`, P45-P52) and its delivery row. It changes no code, check, budget, claim file, closure or version.
-
-## Evidence
-
-- RESULT roles-current: `git diff <merge-base>...origin/main -- dev/governance/roles/` is empty, so this review used the current contract.
-- RESULT merge: `git merge-tree --write-tree` exits 0 against `50af6174f` and against the newer origin/main `0c3640761`. No conflict and no claim-file involvement.
-- RESULT version: `VERSION`, the manifest and `RELEASE_NOTES.md` are untouched (three-dot diff).
-- RESULT mutation (step 1): there is no production line, so the step does not apply as written. I tested the consumer instead. `roster_edit.ruling_verdict` at the head returns P45 ACCEPT, P46 ACCEPT, P47 DEFER, P48 DEFER, P49 ACCEPT, P50 REJECT, P51 ACCEPT, P52 REJECT and P53 None. `triage_refusal` passes carries citing #P45, #P46, #P49 and #P51, and refuses #P47 (DEFER), #P50 (REJECT) and #P53 (no such entry). Mutant: changing P45's verdict to REJECT makes the refusal fire for #P45. The body's null control reproduces (`ev/nullcontrol.txt`). The harness is mine, built from the body's description; no committed harness exists for a ruling record.
-- RESULT figures, all re-derived at `50af6174f`:
-  - Verdict counts: 4 ACCEPT, 2 DEFER, 2 REJECT; 8 entries.
-  - P49: 14 of 48 merges, and the chain #2676-#2686 each add only their own `delivery/<N>.md`.
-  - P52: the five commit times match in UTC.
-  - `N-postreview-merge-red`: kind instrument, total 0, 15 non_round_instances, rca R9-RC-POSTREVIEW-MERGE, barrier null, `trigger` with per_round, cross_round and barriered_any false and class_rca_on_record true.
-  - RCA `776d37392` is an ancestor of `handoff/r10-rca-ci-ratchet-run-name`. Its numbers (129 s/day, 21 600 s, 167 days, state (d) "not (c)", section 5 not registering) are as quoted.
-  - Code citations: `sweep_template.md:61` names `train.sh`, last edited in `b16084794`. `pulse.py` 49-53 is the queue format and `STANDING` is at line 91. `roster_sync.py` 84-92 is `DERIVABLE_STAGES`, which excludes `carries-open`. `replan.py` ~205 is `touches_coordinator`. `standing-tick.md:8` is the only wait/background line. `orchestrator.md:109` is the "Four standing seats" line.
-  - Roster at `4c54758d7` (an ancestor of the current roster head): R10-ORCH-BEATD, R10-FLOW-RECORD-PITCH, R10-ORCH-ROSTER-SCHEMA, R10-FLOW-TOOLKIT-MODEL and R10-FLY-PRUNE-REFS are not-started. R10-FLY-INERT-LOAD-TIME is in-progress. R10-FLY-RELAY-REVIEW-FF and R10-CI-LAYOUT-P2 are carries-open. This matches the file.
-- RESULT ref_privacy: `ref_privacy.py --check` at the head prints `0 refused`. The body's red `instrument-self-tests` at `44ee0e5f` is answered (bypassed detector named, 0.5 s), and that job is now green at this head.
-- RESULT CI on the head (`ev/ci.txt`): every workflow has concluded.
-  - The final `gate` 120841072885 is success.
-  - `pr-contract` 120840986826 started after the last red check and passed.
-  - The two red `gate` runs at this head (120838763234 and 120840541163) each print only "run(s) ... at this head are still being judged; their gate decides". That is a deferral to a later run, not a defect, so no root-cause answer is owed.
-  - The mutation lane is green but drew no mutant (no production code line).
-- RESULT class (step 6): no enumeration rule applies, because the PR is a ruling record and not a fix of a seam.
-- RESULT forward-carry (step 10): the carry texts for P45/P46/P51 and P49 are in the tree file, and each states its controls. They are not yet on the roster branch (`717f7e582` has 0 lines citing s6-batch2). By design `roster_edit` refuses them until this file is on main or the roster branch, so the ops are owed after the merge (findings below).
+Third review of #2689. The earlier verdicts were merge at 44ee0e5f, blocked at 80a62d9a7 (figure-unverified) and merge at this head. This is the second repair round, so no re-cut is owed. I reviewed head `583219fa8a44c79e038ae091ce907dafa3e847d0` in a detached worktree. The merge base is origin/main `50af6174f`. I used the current contract: `git diff <merge-base>...origin/main -- dev/governance/roles/` is empty. The diff adds `dev/programme/triage/s6-batch2.md` (P45-P52) and `dev/programme/delivery/2689.md`, and it changes no code, check, budget, claim file, closure or version.
 
 ## Findings
 
-- After the merge, append the shared standing-seat carry (P45, P46, P51; text in `s6-batch2.md` "One destination") to R10-ORCH-BEATD with `roster_edit.py append-carry`, citing `triage: dev/programme/triage/s6-batch2.md#P45` (#P46, #P51). This cannot land before the merge. Carry: R10-ORCH-BEATD
+- After the merge, append the shared standing-seat carry for P45, P46 and P51 (the text is under "One destination" in s6-batch2.md) to R10-ORCH-BEATD. Use `roster_edit.py append-carry` and cite `#P45`, `#P46` and `#P51`. `roster_edit` reads the ruling only from origin/main or the roster branch, so this op cannot land before the merge. Carry: R10-ORCH-BEATD
 - After the merge, append P49's record-chain carry (measure first) to R10-FLOW-RECORD-PITCH, citing `#P49`. Carry: R10-FLOW-RECORD-PITCH
-- P52's derivation command is inaccurate. `TZ=UTC git log -1 --format=%cI <sha>` prints the committer's +02:00 offset, not UTC; `--date=iso-strict-local --format=%cd` with `TZ=UTC` prints UTC. All five quoted UTC times are correct after conversion (`ev/checks.txt`), so no figure is wrong. Carry: dismissed: wording of a derivation command in a ruling record; every figure it supports re-derives correctly
-- The delivery row's title still reads "(P45-P51)", but the PR title and file cover P45-P52. `delivery-status` is green at this head. Carry: dismissed: cosmetic title drift in a record row that no check reads as a figure
-- P52 asks the RCA seat (R10-RCA-CI-RATCHET-RUN-NAME) to add a `bugclasses.json` row on its own PR before that PR merges. No live roster group owns that RCA, so the ruling routes it as an orchestrator ask rather than a carry. Carry: dismissed: routed by the ruling to the RCA seat's own pull request; no roster group to carry to
+- The title in `dev/programme/delivery/2689.md` still reads "(P45-P51)", but the file and the PR title cover P45-P52. Carry: dismissed: `delivery-status` is green, and the record row is rewritten at merge
+- P52's stated command `TZ=UTC git log -1 --format=%cI` prints the committer's +02:00 offset, not UTC. Every UTC time it quotes still re-derives correctly with `--date=iso-strict-local --format=%cd`. Carry: dismissed: the wording of a derivation command; no figure is wrong
+- P52 routes the `bugclasses.json` row to the RCA seat's own pull request as an orchestrator ask. Carry: dismissed: no roster group owns R10-RCA-CI-RATCHET-RUN-NAME, and the ruling names the route
+
+## Evidence
+
+- RESULT merge: `git merge-tree --write-tree origin/main(e8a08cf9e) 583219fa8a44c79e038ae091ce907dafa3e847d0` exits 0 with tree 48fe6c63f. There is no conflict and no claim file is involved. `VERSION`, the manifest, `RELEASE_NOTES.md` and the golden fixtures are untouched in the three-dot diff.
+- RESULT mutation (step 1): the diff has no production line, so I ran the step on the consumer. `roster_edit.ruling_verdict` at the head returns P45, P46, P49 and P51 ACCEPT; P47 and P48 DEFER; P50 and P52 REJECT; and P53 None. `triage_refusal` passes #P45, #P46, #P49 and #P51 and refuses #P47, #P50 and #P53. Mutant: deleting P45's `Verdict:` line makes #P45 refused as unreadable. The body's null control reproduces, with P53 as the absent pid. I built this harness from the body's description; there is no committed one.
+- RESULT figures, re-derived at 50af6174f:
+  - Verdict counts are 4 ACCEPT, 2 DEFER and 2 REJECT, over 8 entries.
+  - P49: 14 of the 48 first-parent merges since 2026-10-23T00:00Z are record/autofix. The chain #2676-#2686 each add only their own `delivery/<N>.md`, and 2685.md names #2681 and #2684.
+  - P52: all five commit times match in UTC.
+  - `N-postreview-merge-red` matches as the file now states it: kind instrument, total 0, 15 non_round_instances, barrier null, and `class_rca_on_record` true with the other three trigger fields false.
+  - Citations match: `sweep_template.md:61` names `train.sh` (last edited in b16084794), `orchestrator.md:109`, `pulse.py` STANDING at line 91 with no file-liveness arm, `roster_sync.py` `chosen` at line 239 and `DERIVABLE_STAGES` (no `carries-open`), `replan.py` `touches_coordinator` at about line 205, and `standing-tick.md:8` as the only wait/background line.
+  - Roster at origin/main: R10-ORCH-BEATD, R10-FLOW-RECORD-PITCH, R10-ORCH-ROSTER-SCHEMA, R10-FLOW-TOOLKIT-MODEL and R10-FLY-PRUNE-REFS are not-started, and R10-FLY-INERT-LOAD-TIME is in-progress. On the roster branch (76fdb35fa), R10-FLY-RELAY-REVIEW-FF is carries-open. R10-FLY-STANDING-SEATS is absent, which matches the file: it names that group only as a possible split.
+  - I did not re-derive the out-of-tree session logs (the r10s5/r10s6 ledgers and reports) or P50's token figures; neither is in the tree.
+- The previous block is settled. The body's null control now names P53. The P52 times are UTC. The class trigger is stated with `class_rca_on_record` true.
+- RESULT red-check trigger: `ref_privacy.py --check` at the head prints 0 refused out of 284 added lines. The body answers the red `instrument-self-tests` at 44ee0e5f by naming the bypassed cheaper detector (`handoff_push.sh`'s guard, 0.5 s).
+- RESULT CI at this head (check-runs API, `ev/ci.txt`): all 65 runs have completed, 44 success and 21 skipped, none red. The `gate` runs 120841072885, 120841202397 and 120841210260 are success. `pr-contract` is success, its latest run being 120840986826. The mutation lane is green but drew no mutant, because the diff writes no code line.
+- Classification: both files fall under the INERT prefix `dev/programme/` (`tests/closure.py` line 273). I could not run `tests/entities.py` locally because `homeassistant` is missing, so I cite CI's green `gate`.
+- Step 6 (class): this PR is a ruling record, not a fix of a seam, so there is no enumeration rule and its class is the one record. Step 12: `git ls-remote` still shows the head at 583219fa8a44c79e038ae091ce907dafa3e847d0 when this verdict was written.
