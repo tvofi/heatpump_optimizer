@@ -11067,7 +11067,8 @@
     "commit": null,
     "last_step": null,
     "next_step": "fixer dispatched (dispatch/fixer-r10-fly-cache-prompts)",
-    "note": "Owner order (tvofi, 2026-10-28)"
+    "note": "Owner order (tvofi, 2026-10-28)",
+    "pr": 2937
    },
    "brief": "Owner order (tvofi, 2026-10-28). Prompt-cache gaps: gap 1 (a seat that waits past the 5-minute cache TTL pays a full re-read) caps every wait at <=270 s; gap 4 (RemoteTrigger echoes the payload back into context) sends a pointer prompt that names the brief on dispatch/<role>-<topic> instead of the brief text; gap 6 partial. Also the project Stop hook that never runs for the orchestrator: its hook path is relative and resolves against the seat's cwd, so it is made cwd-independent. Controls: a wait over 270 s is refused or clamped; a dispatch payload carries the pointer and not the brief; the Stop hook fires from a non-root cwd; null: a wait of 240 s is unchanged."
   },
