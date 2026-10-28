@@ -19983,72 +19983,103 @@ R.check(
     f"{_rs_d_view['model_restart']} {_rs_d_view['scores']}",
 )
 
-# R10-SCORES' forward carry, decided by R10-PARAMS-OWNER as the parameters'
-# owner: the grade's time constant reads every store the dynamics drain through
-# the house's loss (the zones, or the room, and the emitter slab), and its band
-# is the one the shipped presets derive, on a log scale -- the leakiest preset
-# grades 0 and the tightest 100, no other one clipped to either. The 20-100 h
-# band on the room mass clipped 78 of these 240 presets at the merge base.
+# #2816, the owner's spec: the house grade is the envelope's loss (W/K),
+# thermal-mass corrected, against typical for the configured type and era --
+# typical grades 50, leakier below but never 0 (no data), tighter above. The
+# one band over every preset graded an era, not an envelope: at the merge base
+# the twenty structure x era presets at their own typical loss spread 67.7
+# points (dev/audit/harnesses/r10_house_grade.py).
 import itertools as _env_it  # noqa: E402
 
 from heatpump_optimizer import presets as _env_presets  # noqa: E402
-from heatpump_optimizer.coordinator import _effective_house_heat_loss  # noqa: E402
 from heatpump_optimizer.coordinator import envelope_score as _env_score  # noqa: E402
 
+#: Config key -> ``BuildingPreset`` field.
+_ENV_FIELDS = {"building_structure": "structure", "building_era": "era",
+               "building_foundation": "foundation", "lower_floor_emitter": "lower_emitter"}
+_ENV_KEYS = tuple(_ENV_FIELDS)
 
-def _env_params(**kw):
-    return ThermalParameters.from_config(_env_presets.derive(_env_presets.BuildingPreset(**kw)))
+
+def _env_config(two_zone=False, **answers):
+    derived = _env_presets.derive(_env_presets.BuildingPreset(
+        two_zone=two_zone, **{_ENV_FIELDS[k]: v for k, v in answers.items()}))
+    return {**derived, **answers}
 
 
-def _env_grade(params):
-    return _env_score(params, 10**6, {})[0]
+def _env_grade(params, config, scale=1.0):
+    params = replace(params, house_heat_loss_scale=scale)
+    return _env_score(params, 10**6, {}, config)
 
 
 _env_cells = []
 for _env_key in _env_it.product(
         _env_presets.STRUCTURES, _env_presets.ERAS, _env_presets.FOUNDATIONS,
         _env_presets.EMITTERS, (False, True)):
-    _env_p = _env_params(**dict(zip(
-        ("structure", "era", "foundation", "lower_emitter", "two_zone"), _env_key)))
-    _env_tau = (getattr(_env_p, "envelope_thermal_mass", _env_p.room_thermal_mass)
-                / _effective_house_heat_loss(_env_p, 1.0))
-    _env_cells.append((round(_env_tau, 6), _env_grade(_env_p)))
-_env_lo, _env_hi = min(_env_cells)[0], max(_env_cells)[0]
-# Clipped: a preset at 0 or 100 that is not itself the band's end. Two presets
-# tie at each end where derive maps them to one house (timber on a slab over a
-# crawl space derives as the crawl-space structure, #93).
-_env_clipped = [c for c in _env_cells
-                if (c[1] == 0.0 and c[0] != _env_lo) or (c[1] == 100.0 and c[0] != _env_hi)]
+    _env_cfg = _env_config(_env_key[4], **dict(zip(_ENV_KEYS, _env_key[:4])))
+    _env_cells.append(_env_grade(ThermalParameters.from_config(_env_cfg), _env_cfg))
 R.check(
-    "the house grade's band is the presets' own: the leakiest grades 0, the "
-    "tightest 100, and no other preset is clipped to either",
-    not _env_clipped and min(g for _t, g in _env_cells) == 0.0
-    and max(g for _t, g in _env_cells) == 100.0,
-    f"{len(_env_cells)} presets, {len(_env_clipped)} clipped",
+    "#2816 null control: every preset house at its own type and era's typical "
+    "loss grades 50, and its drivers say nothing moved it",
+    all(abs(g - 50.0) < 1e-9 and all(abs(d["points"]) < 1e-9 for d in dr)
+        for g, _why, dr in _env_cells),
+    f"{len(_env_cells)} presets, grades {sorted({round(c[0], 3) for c in _env_cells})}",
 )
-_env_floor = _env_params(lower_emitter="floor")
-_env_zoned = _env_params(two_zone=True)
+_env_old = _env_config(building_structure="timber_crawlspace", building_era="pre_1960")
+_env_old_p = ThermalParameters.from_config(_env_old)
+_env_owner = _env_grade(_env_old_p, _env_old, 1.5)
+R.check(
+    "#2816: the owner's house, a century old at 1.5x the typical pre-1960 "
+    "loss, grades low but clearly nonzero -- 30 to 40",
+    30.0 <= _env_owner[0] <= 40.0,
+    f"{_env_owner}",
+)
+_env_curve = [_env_grade(_env_old_p, _env_old, s)[0]
+              for s in (0.1, 0.5, 0.9, 1.0, 1.1, 2.0, 10.0, 1e6)]
+R.check(
+    "#2816: the grade falls strictly with the loss ratio until the floor, and "
+    "a measured house never grades 0",
+    all(x > y for x, y in zip(_env_curve[:-1], _env_curve[1:-1]))
+    and min(_env_curve) == 1.0 and _env_curve[0] > 50.0 > _env_curve[5],
+    f"{_env_curve}",
+)
+_env_new = dict(_env_old, building_era="post_2005")
+R.check(
+    "#2816: one envelope is graded against its own era: the same house reads "
+    "better configured as pre-1960 than as post-2005",
+    _env_grade(_env_old_p, _env_old)[0] > _env_grade(_env_old_p, _env_new)[0],
+)
+_env_drivers = [_env_owner, _env_grade(replace(
+    _env_old_p, room_thermal_mass=2 * _env_old_p.room_thermal_mass), _env_new, 0.7)]
+R.check(
+    "#2816: the drivers account for the grade: their points sum to its "
+    "distance from 50, the mass correction among them",
+    all(abs(sum(d["points"] for d in dr) - (g - 50.0)) < 1e-9
+        for g, _why, dr in _env_drivers)
+    and next(d for d in _env_drivers[1][2] if d["code"] == "thermal_mass")["points"] > 0,
+    f"{_env_drivers}",
+)
+_env_bare = {k: v for k, v in _env_old.items() if k != "building_era"}
+_env_default_era = dict(_env_old, building_era=_env_presets.ERA_1980_2005)
+R.check(
+    "#2816: a house with no configured era grades exactly as one configured with "
+    "the form's default era, driver for driver -- an absent answer is the default "
+    "house, not a different one",
+    _env_grade(_env_old_p, _env_bare)[0] == _env_grade(_env_old_p, _env_default_era)[0]
+    and _env_grade(_env_old_p, _env_bare)[2] == _env_grade(_env_old_p, _env_default_era)[2],
+    f"{_env_grade(_env_old_p, _env_bare)} vs "
+    f"{_env_grade(_env_old_p, _env_default_era)}",
+)
+_env_floor_cfg = _env_config(lower_floor_emitter="floor")
+_env_floor = ThermalParameters.from_config(_env_floor_cfg)
+_env_zoned_cfg = _env_config(True)
+_env_zoned = ThermalParameters.from_config(_env_zoned_cfg)
 R.check(
     "the house grade reads the mass the dynamics store: a floor-heated slab "
     "moves it, and a two-zone house's unused room mass does not",
-    _env_grade(replace(_env_floor, slab_thermal_mass=2 * _env_floor.slab_thermal_mass))
-    > _env_grade(_env_floor)
-    and _env_grade(replace(_env_zoned, room_thermal_mass=5 * _env_zoned.room_thermal_mass))
-    == _env_grade(_env_zoned),
-    f"floor {_env_grade(_env_floor)}, two-zone {_env_grade(_env_zoned)}",
-)
-
-# A time constant is a ratio, so the band is logarithmic: halving the loss --
-# doubling the time constant -- moves every unclipped house by the same points.
-_env_doubling = [
-    _env_grade(replace(_p, house_heat_loss_scale=0.5)) - _env_grade(_p)
-    for _p in (_env_params(), _env_params(era="pre_1960", structure="masonry"))
-]
-R.check(
-    "doubling the house's time constant moves its grade by the same points "
-    "wherever it starts",
-    abs(_env_doubling[0] - _env_doubling[1]) < 1e-6 and _env_doubling[0] > 0,
-    f"{_env_doubling}",
+    _env_grade(replace(_env_floor, slab_thermal_mass=2 * _env_floor.slab_thermal_mass),
+               _env_floor_cfg)[0] > _env_grade(_env_floor, _env_floor_cfg)[0]
+    and _env_grade(replace(_env_zoned, room_thermal_mass=5 * _env_zoned.room_thermal_mass),
+                   _env_zoned_cfg)[0] == _env_grade(_env_zoned, _env_zoned_cfg)[0],
 )
 
 # --- persistence: the detectors' memory rides the thermal store ----------------------
@@ -21996,13 +22027,15 @@ _ce._house_heat_loss_samples = 1000
 _ce._thermal_params.room_thermal_mass = 10.0
 _ce._thermal_params.heat_loss_coefficient = 0.1
 _ce._thermal_params.house_heat_loss_scale = 1.0
-# The band is the presets' own (R10-SCORES, decided by R10-PARAMS-OWNER):
-# a house at the longest time constant any preset derives grades 100, one at
-# the shortest 0. The mass is the envelope's, slab included.
+# The grade is against the configured type and era (#2816): ``_ce_typ`` is
+# the house ``derive`` gives this coordinator's answers.
 from heatpump_optimizer import presets as _ce_presets  # noqa: E402
 
-_ce_low_h, _ce_high_h = _ce_presets.envelope_band_hours()
+_ce_typ = ThermalParameters.from_config(_ce_presets.derive(
+    _ce_presets.preset_from_config(_ce._config, _ce._config)))
 _ce_mass = _ce._thermal_params.envelope_thermal_mass
+#: The loss at which this house's time constant is its typical one.
+_ce_mid = _ce_typ.house_heat_loss_base * _ce_mass / _ce_typ.envelope_thermal_mass
 
 
 def _ce_grade(loss, scale=1.0):
@@ -22012,25 +22045,13 @@ def _ce_grade(loss, scale=1.0):
 
 
 R.check(
-    "a house at the longest preset time constant grades 100 on the envelope",
-    abs(_ce_grade(_ce_mass / _ce_high_h) - 100.0) < 1e-6,
-    f"band {_ce_low_h:.1f}-{_ce_high_h:.1f} h, envelope mass {_ce_mass}",
+    "#2816: a house at its type and era's typical time constant grades 50",
+    abs(_ce_grade(_ce_mid) - 50.0) < 0.05,
+    f"typical {_ce_mid:.4f} kW/K at envelope mass {_ce_mass}",
 )
 R.check(
-    "a house at the shortest preset time constant grades 0 on the envelope",
-    abs(_ce_grade(_ce_mass / _ce_low_h)) < 1e-6,
-)
-R.check(
-    "#2258: a house past the longest time constant grades 100, not more",
-    _ce_grade(_ce_mass / (2.0 * _ce_high_h)) == 100.0,
-)
-R.check(
-    "#2258: a house under the shortest time constant grades 0, not less",
-    _ce_grade(_ce_mass / (0.5 * _ce_low_h)) == 0.0,
-)
-R.check(
-    "the band is a log scale: the geometric middle of the band grades 50",
-    abs(_ce_grade(_ce_mass / (_ce_low_h * _ce_high_h) ** 0.5) - 50.0) < 1e-6,
+    "#2816: twice the typical loss grades below 50, half of it above",
+    _ce_grade(2.0 * _ce_mid) < 50.0 < _ce_grade(0.5 * _ce_mid),
 )
 _ce_floored = _ce_grade(0.5, scale=0.1)
 R.check(
@@ -22046,6 +22067,55 @@ R.check(
     "0.25 kW/K configured at a learned scale of 0.5 grades as a 0.125 kW/K house",
 )
 _ce._thermal_params.house_heat_loss_scale = 1.0
+
+
+# #2816: the grade reads the entry's own answers and publishes the drivers that
+# explain it. At the merge base one band spanned every preset, so the same
+# house graded alike whatever its era; and the drivers are the seam
+# R10-COP-GATE mirrors, so their shape is pinned here, at the coordinator.
+def _ce_house(**cfg):
+    coord = _t2_coord(**cfg)
+    coord._house_heat_loss_samples = 1000
+    coord._thermal_params.room_thermal_mass = 10.0
+    coord._thermal_params.heat_loss_coefficient = 0.25
+    coord._thermal_params.house_heat_loss_scale = 1.0
+    return coord._scores_view(_rs_advice(coord))
+
+
+_ce_old = _ce_house(building_structure="timber", building_era="pre_1960")
+_ce_new = _ce_house(building_structure="timber", building_era="post_2005")
+R.check(
+    "#2816: the same house grades better as a pre-1960 house than as a "
+    "post-2005 one, so the grade reads the answers the entry was configured with",
+    _ce_old["envelope"] > _ce_new["envelope"],
+    f"pre-1960 {_ce_old['envelope']}, post-2005 {_ce_new['envelope']} "
+    "at 0.25 kW/K and 10 t",
+)
+R.check(
+    "#2816: the scores publish the grade's drivers, their points rounded to one "
+    "decimal and summing to its distance from 50",
+    {d["code"] for d in _ce_old["envelope_drivers"]}
+    == {"loss_vs_typical", "learned_heat_loss", "thermal_mass"}
+    and all(abs(round(d["points"], 1) - d["points"]) < 1e-9
+            for d in _ce_old["envelope_drivers"])
+    and abs(sum(d["points"] for d in _ce_old["envelope_drivers"])
+            - (_ce_old["envelope"] - 50.0)) < 0.25,
+    f"{_ce_old['envelope']} from {_ce_old['envelope_drivers']}",
+)
+_ce_blind = _ce_house(building_structure="timber")
+_ce_blind_era = _ce_house(building_structure="timber", building_era="1980_2005")
+R.check(
+    "#2816: a house with no configured era grades exactly as one configured with "
+    "the form's default era, drivers included, and the points still account for "
+    "the distance from 50",
+    _ce_blind["envelope"] == _ce_blind_era["envelope"]
+    and _ce_blind["envelope_drivers"] == _ce_blind_era["envelope_drivers"]
+    and abs(sum(d["points"] for d in _ce_blind["envelope_drivers"])
+            - (_ce_blind["envelope"] - 50.0)) < 0.25,
+    f"{_ce_blind['envelope']} vs {_ce_blind_era['envelope']} from "
+    f"{_ce_blind['envelope_drivers']}",
+)
+
 # The time constant needs both halves: a house with no thermal mass, or one
 # with no loss, has no envelope evidence -- None, never a grade of 0 and
 # never a division by zero.
@@ -22303,11 +22373,11 @@ R.check(
 )
 _ce._operation_score = None
 _ce._cop_baseline.clear()
-_ce._thermal_params.heat_loss_coefficient = _ce_mass / (1.05 * _ce_low_h)
+_ce._thermal_params.heat_loss_coefficient = 6.0 * _ce_mid
 _ce._thermal_params.house_heat_loss_scale = 1.0
 _leaky = _ce._scores_view(_rs_advice(_ce))
 R.check(
-    "a house near the leakiest preset is not 5/100 overall while nothing has been driven",
+    "a house six times its typical loss is not 5/100 overall while nothing has been driven",
     _leaky["overall"] is None
     and _leaky["envelope"] is not None
     and _leaky["envelope"] < 10.0,

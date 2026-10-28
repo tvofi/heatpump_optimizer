@@ -748,6 +748,26 @@
 # plan can land in another basin: valve_storage_low_target does, at a lower
 # plan cost here (predicted_cost 61.91 -> 61.05). The suspended fixtures'
 # plan leaves are their own machine-sensitive ones. No coord_* capture moves.
+# R10-HOUSE-GRADE (#2816): the scores publish `envelope_drivers` beside the
+# envelope grade, so every coord capture that publishes a grade gains
+# `data.insight.scores.envelope_drivers` and the same key under
+# `sensors.optimization_score.extra_state_attributes`. Those two leaves are the
+# whole diff in each fixture, both "present on one side only" and both ADDED at
+# this head (the direction); no price, cost, outdoor, price_known or
+# baseline_cost leaf moves. Claimed rather than re-recorded because the key is
+# the change: its points are the grade's own distance from 50 split by log
+# share, so the branch adds a published leaf rather than moving a recorded
+# value, and the fixtures stay the canonical environment's. The committed files
+# were patched in those two paths alone -- an empty list in each, because a
+# coord fixture publishes no grade (`envelope_score: null`) -- and no other leaf
+# was re-recorded: a claim excuses drift but not a structurally stale fixture
+# (`env_drift --all`'s `rot.failed`), which is the `tests / fast` red that
+# patch answers.
+coord_all_features  # R10-HOUSE-GRADE (#2816): data.insight.scores.envelope_drivers and sensors.optimization_score.extra_state_attributes.envelope_drivers added
+coord_dhw  # R10-HOUSE-GRADE (#2816): data.insight.scores.envelope_drivers and sensors.optimization_score.extra_state_attributes.envelope_drivers added
+coord_grid_fee  # R10-HOUSE-GRADE (#2816): data.insight.scores.envelope_drivers and sensors.optimization_score.extra_state_attributes.envelope_drivers added
+coord_minimal  # R10-HOUSE-GRADE (#2816): data.insight.scores.envelope_drivers and sensors.optimization_score.extra_state_attributes.envelope_drivers added
+coord_two_zone  # R10-HOUSE-GRADE (#2816): data.insight.scores.envelope_drivers and sensors.optimization_score.extra_state_attributes.envelope_drivers added
 # R10-BUFFER-STORE (#2887 review 1): behind a valve the savings reference
 # charges its tank only to the configured curve (`valve_charge_demand`) and
 # prices its draw at the tank's flow COP (`_reference_cop`), as the step

@@ -29,9 +29,11 @@ Arms (each prints RESULT lines):
          where the head publishes one, its reason.
   band   The tree's own presets, single-zone and two-zone, each era and
          structure at 140 m2: the room-mass time constant, the grade the
-         20-100 h band gives it, and the tree's own grade (``tree_grade``:
-         R10-PARAMS-OWNER's envelope mass and preset band where the tree has
-         them).
+         20-100 h band gives it, and the tree's own grade on the preset's own
+         answers -- R10-HOUSE-GRADE's loss ratio where the tree has it, so
+         every preset reads 50 and the 20-100 h column shows what the all-era
+         band graded it instead; R10-PARAMS-OWNER's envelope mass and preset
+         band where the tree has that; the room-mass band at the merge base.
   bundle (optional, ``--bundle PATH``) The owner's diagnostics bundle: the
          stored scale, split and sample count, and the grade on both bases.
          Never commit a bundle: it is a user's private data.
@@ -44,6 +46,10 @@ Expected: at the merge base the gap is non-zero wherever the split left 1
     head it is 0 everywhere; under --ratio-override 1.0, 0 at both:
     EXPECTED RESULT split_cells=10
     EXPECTED RESULT split_max_abs_gap=0.0
+The head's ``tree_grade`` is R10-HOUSE-GRADE's ``presets.house_grade`` (#2816),
+    applied to the Health tab's published loss; the merge base has only the
+    preset band, so the same arm reads a different rule at each end by design
+    and the numbers above are the band's.
 Baseline SHA: 86425b9ad. Machine: Linux x86_64, CI venv 3.14; the grid is
     float arithmetic on fixed inputs, not a solve.
 Perturbation: --ratio-override 1.0 -- the split arm's gap falls to 0.
@@ -51,7 +57,8 @@ Null control: the same flag at the merge base -- 0 there too, so the base's
     gap is the split's and not a scale-only drift.
 Instrumented symbols: coordinator:HeatPumpOptimizerCoordinator._scores_view,
     coordinator:HeatPumpOptimizerCoordinator._learning_view (via
-    house_heat_loss_effective), presets:derive.
+    house_heat_loss_effective), presets:derive, presets:house_grade where the
+    tree has it.
 """
 import os
 
@@ -86,10 +93,20 @@ def grade(tau_h):
     return round(max(0.0, min(1.0, (tau_h - 20.0) / 80.0)) * 100.0, 1)
 
 
-def tree_grade(params, loss_kw_per_k):
-    """The tree's own rule on the Health tab's loss: R10-PARAMS-OWNER's mass
-    basis and preset band where the tree has them, else the 20-100 h band on
-    the room mass (the merge base's rule), so the split arm reads either end."""
+def tree_grade(params, loss_kw_per_k, config=None):
+    """The tree's own rule on the Health tab's loss, at whichever stage it is.
+
+    R10-HOUSE-GRADE's ``presets.house_grade`` (#2816) where the tree has it,
+    else R10-PARAMS-OWNER's preset band on the envelope mass, else the 20-100 h
+    band on the room mass (the merge base's rule) -- so the split arm reads
+    either end. The Health tab's figure is driven in as the model's own loss,
+    which is the one ``house_grade`` reads, so the gap is that rule applied to
+    the published number rather than a second reading of the call that made it.
+    """
+    house = getattr(presets, "house_grade", None)
+    if house is not None:
+        return round(house(params, loss_kw_per_k / params.house_heat_loss_base,
+                           config or {})[0], 1)
     band = getattr(presets, "envelope_band_hours", None)
     if band is None:
         return grade(params.room_thermal_mass / loss_kw_per_k)
@@ -139,7 +156,8 @@ def arm_split(ratio_override):
             r = ratio if ratio_override is None else ratio_override
             params = params_from(derived, True)
             scores, eff = publish(coord, params, scale, r, CONVERGED_SAMPLES)
-            want = tree_grade(coord._thermal_params, eff)
+            want = tree_grade(coord._thermal_params, eff,
+                              getattr(coord, "_ctx", coord)._config)
             got = scores["envelope"]
             gap = None if got is None else round(abs(got - want), 1)
             print(f"split scale={scale} ratio={r}: envelope={got} health_grade={want} "
@@ -168,9 +186,14 @@ def arm_band():
                     structure=structure, era=era, two_zone=two_zone))
                 tau = d["house_thermal_mass"] / d["house_heat_loss_coefficient"]
                 p = ThermalParameters.from_config(d)
+                # The preset's own answers, so ``tree_grade`` grades this house
+                # against the type and era it was configured with (#2816).
+                cfg = dict(d, building_structure=structure, building_era=era)
+                loss = (p.heat_loss_coefficient if not p.two_zone_enabled
+                        else p.upper_floor_heat_loss + p.lower_floor_heat_loss_learned)
                 print(f"RESULT band two_zone={int(two_zone)} {structure} {era}: "
                       f"tau_h={tau:.1f} grade={grade(tau)} "
-                      f"tree_grade={tree_grade(p, p.heat_loss_coefficient if not p.two_zone_enabled else p.upper_floor_heat_loss + p.lower_floor_heat_loss_learned)}")
+                      f"tree_grade={tree_grade(p, loss, cfg)}")
 
 
 def arm_bundle(path):
