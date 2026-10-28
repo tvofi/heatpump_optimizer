@@ -1,7 +1,0 @@
-2026-10-25T19:46:54.5473945Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.16/x64/lib
-2026-10-25T19:46:54.5474123Z ##[endgroup]
-2026-10-25T19:46:54.8784166Z From https://github.com/tvofi/heatpump_optimizer
-2026-10-25T19:46:54.8784495Z  * branch                main       -> FETCH_HEAD
-2026-10-25T19:46:56.3435441Z     ADDED UNPINNED custom_components/heatpump_optimizer/coordinator.py:6303 GUARD_OFF: if "ecl110_displace_min" in params:
-2026-10-25T19:46:56.3436566Z     ADDED UNPINNED custom_components/heatpump_optimizer/coordinator.py:6331 GUARD_OFF: if CONF_DHW_COOLING_RATE in params:
-2026-10-25T19:46:56.3438315Z MUTATION TABLE REFUSED -- 3945 unpinned site(s) against 3957 at the ratchet base c9cbe6b458a7053f914649eb02d5296d6cd8c0f4, 2 of them added by this diff. A new guard, clamp, removable return, doubled constant or comparison bound left the tree without a recorded disposition; record it under killed_by or survivor_triage and the count falls back. `python3 tests/mutation_table.py --pin-killed --base origin/main` records every one a driver kills.
