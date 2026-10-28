@@ -1,0 +1,37 @@
+CodeQL	completed	neutral	122781067477	2026-10-28T11:11:05Z
+arch-score / arch-score	completed	success	122780707955	2026-10-28T11:11:21Z
+arm	completed	skipped	122780533728	2026-10-28T11:09:49Z
+budget-raise-gate / budget-raise-gate	completed	success	122780708404	2026-10-28T11:10:42Z
+cancel-superseded	completed	success	122780543129	2026-10-28T11:10:23Z
+cancel-superseded	completed	success	122780550322	2026-10-28T11:10:24Z
+codeql / Analyze (actions)	completed	success	122780708291	2026-10-28T11:11:12Z
+codeql / Analyze (javascript-typescript)	completed	success	122780708125	2026-10-28T11:11:44Z
+codeql / Analyze (python)	in_progress	null	122780708067	null
+governance / delivery-status	completed	success	122780708336	2026-10-28T11:10:35Z
+governance / delivery-status-publish	completed	skipped	122780710606	2026-10-28T11:10:14Z
+governance / env-matrix	in_progress	null	122780708464	null
+governance / instrument-self-tests	in_progress	null	122780708345	null
+governance / policy-docs	in_progress	null	122780708376	null
+governance / record	completed	skipped	122780710480	2026-10-28T11:10:14Z
+governance / wave-script	completed	success	122780708246	2026-10-28T11:11:09Z
+hassfest / hassfest	completed	success	122780707853	2026-10-28T11:10:43Z
+kernel-points	completed	skipped	122780710255	2026-10-28T11:10:14Z
+prelude	completed	success	122780550608	2026-10-28T11:10:13Z
+prelude	in_progress	null	122780542920	null
+refresh	completed	success	122780543061	2026-10-28T11:10:25Z
+refresh	completed	success	122780551107	2026-10-28T11:10:22Z
+tests / arch-instrument	completed	success	122780892636	2026-10-28T11:12:25Z
+tests / briefs	completed	success	122780708144	2026-10-28T11:10:54Z
+tests / browser	in_progress	null	122780892592	null
+tests / closure-scope	completed	success	122780708530	2026-10-28T11:10:38Z
+tests / closures	in_progress	null	122780892753	null
+tests / coverage	in_progress	null	122780892719	null
+tests / fast (3.14)	in_progress	null	122780892661	null
+tests / mutation	completed	failure	122780707994	2026-10-28T11:10:52Z
+tests / mutation-pins (1)	in_progress	null	122780996534	null
+tests / nightly-ha (2025.2.0)	in_progress	null	122780892749	null
+tests / nightly-ha (stable)	in_progress	null	122780892724	null
+tests / nightly-status	completed	success	122780708231	2026-10-28T11:10:28Z
+tests / replay	completed	success	122780892627	2026-10-28T11:12:22Z
+tests / typing	completed	success	122780892658	2026-10-28T11:11:46Z
+validate / validate-hacs	completed	success	122780707981	2026-10-28T11:11:08Z

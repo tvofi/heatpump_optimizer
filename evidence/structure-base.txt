@@ -1,0 +1,3 @@
+  class_excess_loc = 18038 (every class's span past 300, summed; the coordinator's 503 helper lines count in its span)
+RESULT class_excess_loc=18038 count
+  ok   class_excess_loc 18038 <= 18038
