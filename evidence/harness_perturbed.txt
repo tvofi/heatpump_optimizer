@@ -1,7 +1,0 @@
-== first-gap @ base 73b69fe0a: merge-subject guard: 265 first-parent commit(s) past 07a09406a, 52 merge call(s) in 11 file(s) RESULT divergent=0 unregistered=0 dead=0 refused=0 seconds=2.1 
-== first-gap @ wt 455d7c200: merge-subject guard: 270 first-parent commit(s) past 07a09406a, 56 merge call(s) in 11 file(s) RESULT divergent=0 unregistered=0 dead=0 refused=1 seconds=2.0 
-== quoted-word @ base 73b69fe0a: merge-subject guard: 265 first-parent commit(s) past 07a09406a, 52 merge call(s) in 11 file(s) RESULT divergent=0 unregistered=0 dead=0 refused=0 seconds=2.0 
-== quoted-word @ wt 455d7c200: merge-subject guard: 270 first-parent commit(s) past 07a09406a, 55 merge call(s) in 11 file(s) RESULT divergent=0 unregistered=0 dead=0 refused=0 seconds=1.9 
-== repo-between @ base 73b69fe0a: merge-subject guard: 265 first-parent commit(s) past 07a09406a, 52 merge call(s) in 11 file(s) RESULT divergent=0 unregistered=0 dead=0 refused=0 seconds=1.9 
-== repo-between @ wt 455d7c200: merge-subject guard: 270 first-parent commit(s) past 07a09406a, 55 merge call(s) in 11 file(s) RESULT divergent=0 unregistered=0 dead=0 refused=0 seconds=2.0 
-== sq-argv @ wt:   merge-subject guard: 270 first-parent commit(s) past 07a09406a, 54 merge call(s) in 11 file(s) RESULT divergent=0 unregistered=0 dead=0 refused=0 seconds=1.9 

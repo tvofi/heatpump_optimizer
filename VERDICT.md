@@ -1,40 +1,127 @@
-Fix review: blocked 455d7c2001fc7b94d39f9a0feb933894d9ca704d class-open: MERGE_CALL spellings gh and Python accept still pass unseen, and the gh-to-pr continuation arm survives deletion
+Fix review: blocked 683dd52cbb938ad00b38857117710791f5581f4b class-open: a writer the before end refused now passes, a wrapped argv whose open bracket is on the program's line and whose subject is on a later line (subprocess.run(["gh",\n "pr", "merge", str(n), "--squash",\n "--subject", s], check=True)), refused=1 at d0d35231 and refused=0 at the head under the finder's harness
 
-bus-nonce: d80279e66a77e018eb1e327c348ac4ee
-
-## Round
-
-This is the third review of #2697 by the body's numbering (round-1 and round-2 verdicts are answered in the body). The dispatch brief calls it round 2. A fourth review would owe a re-cut, not a repair (fix-review.md).
+bus-nonce: c9f56678938c303f574685af35040d6a
 
 ## Block
 
-The brief asked me to judge whether the shell arm's class is closed. It is not closed. The class is the spellings of one merge call that `MERGE_CALL` must read. The body says the continuation finding is "Closed, not dispositioned" and that the table's three survivors are the only unpinned sites. Neither statement holds at this head.
+This is review round 6. The fixer re-cut the guard as `fixer.md` owes from round 4 on: `MERGE_CALL` no longer reads the program, and the extent opens at `pr`.
 
-1. **Surviving mutant on the line this round repaired (fix-review.md step 1).** `MERGE_CALL`'s shell arm has two gaps, `gh`→`pr` and `pr`→`merge`. The new continuation probe drives only the second. Mutant R-first-gap is `\bgh(?:\s|\\\r?\n)+pr` → `\bgh\s+pr`, with the second gap left as is. Under it the self-test prints `SELF-TEST 41 of 41 probes held` (ev/own_mutants.txt). It is a real writer miss. `gh \`, newline, `  pr merge 9 --merge --subject "Merge pull request #9 (x)"` gives `bad ["f:1"]` at head and `calls [] bad []` under the mutant (ev/first_gap_probe.txt). The 33-row table in `r10_merge_subject_mutants.py` has no row for this. So the body's "Every other mutant ... is killed" holds for the table, not for the repaired line. The fix: add one probe with the continuation between `gh` and `pr`.
-2. **Spellings of the same call that gh accepts pass unseen. The body neither closes nor dispositions them.** With the head's own `subjectWriters` (ev/shell_arm_shapes.txt, `ev/probe.mjs`), each of these gives `calls 0 bad []`:
-   - `gh pr "merge" ...`, `gh pr 'merge' ...` and `gh "pr" merge ...` (quoted words);
-   - `gh pr -R o/r merge ...` and `gh --repo o/r pr merge ...` (a flag between the words). gh 2.89.0 accepts all three spellings checked (ev/gh_spellings.txt);
-   - the argv arm written with single quotes, `run(['gh', 'pr', 'merge', n, '--subject', s])`, and the same split over lines;
-   - `"pr" , "merge"` (whitespace before the comma).
-   This is the finder's harness with a perturbation (ev/harness_perturbed.txt, `python3 -I tools/policy/agreement_py.py --run`). The tree's own merge call at `tools/audit/seat/merge_train.py:864`, rewritten in single quotes with a `--subject`, drops the call count to `54` and prints `refused=0`. The call is no longer even counted. `gh pr "merge"` and `gh pr -R o/r merge`, planted in `merge_pr.sh`, print `refused=0` at both base `73b69fe0a` and this head. The single-quoted argv is an ordinary Python spelling, and the argv arm is a literal `"pr",\s*"merge"`, the same shape as Y8. The body's class rule 2 (`git grep -E 'gh pr merge|merge_pull_request'`) is itself a literal-spelling grep, so it cannot return a spelling it does not match. It enumerates scan sites, not call spellings. The body names no rule for the spellings. No site of these shapes is on the tree today (ev/tree_census.txt), so this is a seam of the guard, not a live writer. The cost of closing it is about one regex arm (`["']pr["']\s*,\s*["']merge["']`, and optional quotes around `pr` and `merge` in the shell arm) plus probes. Alternatively, the body can disposition each member with its reason the way it does the argv-across-expressions seam. Either one settles it. Silence does not.
+The program class is closed (see Evidence). The re-cut also brought in a regression in the extent:
+- `LEAD` cannot cross a bare line end (`LINE_GAP`, pinned by mutant L2).
+- So when the program ends its line, as in `["gh",` followed by a newline, the match starts on the line of `pr`.
+- `callExtent` looks for an open bracket only from the start of that line (`agreement.mjs:195`, `ls = text.lastIndexOf('\n', at - 1) + 1`).
+- So it never sees the `[` on the program's line. The extent ends at the end of the `pr` line, and a subject flag on any later line goes unread.
+- At the before end, `PROGRAM` matched `gh"` on line 1, so that line's `[` opened the extent and the same writer was refused.
+
+Measured with the finder's harness, `python3 -I tools/policy/agreement_py.py --run`, by appending one `if False:` writer to `tools/audit/seat/merge_train.py` (`ev/regress_plant.sh`, output in `ev/regress_plant.txt`):
+- at d0d35231: `57 merge call(s)`, `REFUSED merge-subject-pr writer tools/audit/seat/merge_train.py:4176`, refused=1;
+- at 683dd52c: `62 merge call(s)`, refused=0;
+- unperturbed, both ends: refused=0.
+
+The self-test's probes do not cover this shape. The same shape through my own probe (`ev/own_probes_wrap.txt`, `w-gh-own-line2`) is `["tools/x.py:1"]` at d0d35231 and `[]` at the head. The nearest probe, `cmd = ["gh", "pr",\n "merge", n, "--subject", s]`, has its `[` on the line of `pr`.
+
+This is the hand-wrapped style the tree itself uses: continuation-aligned lists, as at `tools/audit/seat/record_row.py:962`.
+
+Remedy: read the open-bracket context before `pr` from before the line of `pr`. Scan from the start of the statement, or from the last blank line, with the quote tracker, and keep the innermost bracket still open at `pr`. Add these probes:
+- this wrapped shape;
+- the exploded argv in the Findings;
+- a null control: a sibling argv in an enclosing table on earlier lines, which L4's probes already shape.
+
+Add a mutant that restores the line-local scan.
 
 ## Findings
 
-- `MERGE_CALL`'s `\\\r?\n` accepts a backslash-CRLF as a continuation, and bash does not: there the backslash escapes the `\r` and the newline ends the command. `callExtent` also tests `text[i - 1] !== '\\'`, so a CRLF continuation's extent ends at the call line anyway. The `\r?` is dead weight that can only add a call, never miss one. The R-crlf mutant (the `\r?` removed) holds 41 of 41 (ev/own_mutants.txt). Carry: dismissed: widening only; no writer miss on any shell input
-- Y9 (close bracket excluded from the extent): I agree with the body's disposition. I re-ran it myself (R-Y9-own, 41 of 41). `SUBJECT_ARG`'s lookahead already accepts `]`, and `"` precedes any quoted closing `)`. Removing the close can only let `$` match a bare flag right before `)` or `}`, which is a refusal the head does not make. It is never a miss. Carry: dismissed: near-equivalent mutant that only widens refusal; no writer miss
-- Y10 (end-of-file tail of the blank-line test): I agree with the body's disposition. R-Y10-own holds 41 of 41. The mutant only changes a file's single-character last line. That line cannot hold a subject flag, and every earlier line of the extent is already read when it returns. Carry: dismissed: equivalent for writer detection; end-of-file single-character line only
+- The wrapped-argv regression above: a writer refused at d0d35231 passes unseen at 683dd52c (Block). Carry: R10-MERGE-SUBJECT-HARDEN
+- An exploded argv is unread at both ends and not dispositioned in the body. This is one expression, one element per line, as black or prettier writes an over-long list, with the subject after `merge`: `run([\n "gh",\n "pr",\n "merge",\n str(n),\n "--subject",\n s,\n])`, and the same in JS with `execFileSync('gh', [\n 'pr',\n 'merge', ...`. Both return `[]` under `.py`, `.mjs` and `.sh` names, at both ends (`ev/own_probes_byext.txt`). The root is the Block's line-local bracket scan, so the same remedy settles it. Carry: R10-MERGE-SUBJECT-HARDEN
+- An option value between `pr` and `merge` that is an expression rather than one bare run is unread at both ends. The body's `VALUE` list (a quoted run, a `SLOT`, one bare run) does not name these shapes and no disposition covers them. Each returns `[]` (`ev/own_probes_byext.txt`):
+  - `"-R", cfg["repo"]`
+  - `"--repo", os.environ["REPO"]`
+  - `"-R", f"{owner}/{repo}"`
+  - `"-R", REPOS[0]`
+  - `"-R", join(o, r)`
+  - JS `'-R', cfg['repo']`
+  - the shell word `-R "$O"/"$R"`
+
+  JS `` `${o}/${r}` `` is refused. This is the family that round 5's second finding opened (an option value in a gap). It is one expression, not one split across expressions. Fix it by code (a `VALUE` arm for a subscript, a call or an f-string, or a gap-tolerant value that runs to the next argv comma), or disposition it with its reason. Carry: R10-MERGE-SUBJECT-HARDEN
+- Two gaps inside one expression are unread at both ends and not dispositioned. Each returns `[]`:
+  - a comment between `"pr",` and `"merge"` (Python `# ...` + newline, JS `/* ... */`);
+  - Python implicit string concatenation, `os.system("gh pr " "merge 9 --subject x")`.
+
+  Read them by code (comment and adjacent-literal arms in `GAP`), or name them under Unpinned sites. Carry: R10-MERGE-SUBJECT-HARDEN
+- The census rule is line-scoped: it lists lines that hold both words. It cannot list a call whose `pr` and `merge` sit on different lines, or a call whose subject is on a later line than both words, and those are the shapes in the first two findings. So "no seam is open" holds only for one-line calls. Extend the census with a rule that reads `pr` and `merge` within one bracket group across lines, or state the bound in the body. Carry: R10-MERGE-SUBJECT-HARDEN
 
 ## Evidence
 
-- Head measured: `455d7c2001fc7b94d39f9a0feb933894d9ca704d` (ev/HEAD.txt). It is still the PR head at verdict time (PR commits list), so the head did not move. It matches the body's `## Head`.
-- Roles current: `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` is empty.
-- Merge: `git merge-tree --write-tree origin/main <head>` exits 0 against origin/main `4a00a3f05` (ev/merge_tree.txt). No conflict.
-- Self-test at head: `SELF-TEST 41 of 41 probes held` (ev/selftest.txt).
-- Mutation table: `python3 dev/audit/harnesses/r10_merge_subject_mutants.py` at head runs 33 mutants. Exactly X5, Y9 and Y10 print `41 of 41`, and every other row names a FAIL (ev/mutants.txt). This matches the body's table. The working tree is clean afterwards.
-- Own targeted mutants (ev/own_mutants.txt): R-second-gap (continuation dropped between `pr` and `merge`) is killed, 40 of 41. R-first-gap survives, 41 of 41 (Block 1). R-crlf survives, 41 of 41 (Findings).
-- Finder's harness, unperturbed (ev/harness_unperturbed.txt). Base `73b69fe0a`: `52 merge call(s) in 11 file(s)`, `RESULT divergent=0 unregistered=0 dead=0 refused=0`. Head: `270 first-parent commit(s)`, `55 merge call(s) in 11 file(s)`, `RESULT divergent=0 unregistered=0 dead=0 refused=0`, `AGREEMENT ok`. The body's 52→55 and refused=0 reproduce. The body's `265 first-parent commit(s)` at this head reads 270 now, because the first-parent count grows with origin/main. Only the 265 is not re-derivable here.
-- Finder's harness, perturbed (ev/harness_perturbed.txt). A first-gap continuation plant in `merge_pr.sh` gives `refused=0` at base and `refused=1` (56 calls) at head, so the repair works on that shape even though no probe pins it. The quoted-word and `-R`-between plants give `refused=0` at both ends. The single-quoted rewrite of `merge_train.py:864` gives `54 merge call(s)`, `refused=0` at head.
-- Census of the missed shapes on the scan's surface (`tools/`, `.claude/workflows/`): no site (ev/tree_census.txt). The census rules are my own, written for this review, and are not the body's.
-- Instruments built for this review and disclosed as my own (fix-review.md step 9): `ev/probe.mjs` and `ev/p2.mjs`. They use the same guard-block extraction as `dev/audit/harnesses/r10_merge_subject_argv_seam.mjs`.
-- CI on this head (ev/ci.txt): `pr-contract` completed failure, and `gate` and one `prelude` are still queued. The head's workflows have not all concluded, so I do not judge step 11 (red-check answer) in this verdict. The body's `## Red checks: none` is to be re-checked once they conclude.
-- `VERSION`, the manifest and `RELEASE_NOTES.md` are untouched by the three-dot diff. The diff's fifth file, `dev/programme/delivery/2697.md`, is the record row (commit `b4dd11917`).
+Head, CI and merge:
+- Round 6. Head measured: `683dd52cbb938ad00b38857117710791f5581f4b` (`ev/HEAD.txt`). It was still the PR's head when I re-read it before writing this verdict. The body names it as the head.
+- The role files are read from origin/main (`dev/governance/roles/fix-review.md`).
+- `git merge-tree --write-tree origin/main 683dd52c` exits 0 with tree `99e75e11`, against origin/main `12b22200`, with no conflict (`ev/merge_tree.txt`).
+- VERSION, the manifest and RELEASE_NOTES.md are untouched, checked three-dot against the merge base.
+- CI on this head, from the check-runs API at my read: no check concluded red. These were success: `tests / mutation`, `arch-score`, `budget-raise-gate`, `governance / policy-docs`, `hassfest`, `validate-hacs`, and `codeql` actions and javascript.
+- These were still queued or in progress: `pr-contract`, `governance / env-matrix`, `wave-script`, `instrument-self-tests`, `delivery-status`, `tests / closure-scope`, `tests / briefs`, `tests / nightly-status`, and `codeql` python.
+- So step 11 has nothing to answer at this read.
+
+The program class (the brief's main question) is closed at the head:
+- The six round-5 probes are each refused at the head (`["f:1"]`) and return `[]` at d0d35231, the null control (`ev/own_probes.txt`, `ev/own_probes_byext.txt`; probe source `ev/probe.mjs`, `ev/probes.json`):
+  - f-string `{GH}`;
+  - `{gh_bin}`;
+  - `{self.gh}` under shell=True;
+  - `%s`;
+  - `{}`.format;
+  - JS `${cfg.gh}`.
+- The control `${GH}` is refused at both ends.
+- Round 5's second finding, `gh pr -R $(cat r) merge 9 -t x`, is refused at the head and `[]` at the before end.
+- The PR's argv-seam generator, run from a pristine copy of each end's `agreement.mjs`, gives:
+  - at the head: `PROGRAM-CLASS merge refused=144 of 144; view refused=0 of 144`;
+  - at the before end: `merge refused=44 of 144; view refused=0 of 144`;
+  - its first three lines are `[]`, `[]`, `["f:1"]` at both ends (`ev/argv_seam_head.txt`, `ev/argv_seam_before.txt`).
+- I did not write a separate generator of interpolation shapes over program names. The program is no longer read, so a program generator tests only `LEAD`'s optionality. Instead, my own probes vary what the structural reader still reads: gaps, values and extents. Those probes found the four findings above.
+
+Over-fire, benign plants at the head:
+- These return `[]`: `gh xpr merge`, `gh pr merged`, `echo $pr merge`, and `f"{GH} pr view {n} -t x"`.
+- `# we used to pr merge here --subject x`, a comment, is refused. That is the body's stated design choice: prose that names the two words is read as a call and can only add a refusal.
+- The census of tools/ and .claude/workflows/, `r10_merge_subject_census.mjs` against the before end's guard (`ev/census.txt`), gives:
+  - `TOTAL old=56 new=61 over 290 file(s)`;
+  - five `DIFF` lines, at `merge_pr.sh:152`, `:186`, `:200` and `merge_train.py:3119`, `:3121`;
+  - `UNCOVERED 55 of 95 line(s)`.
+
+  All of these match the body. The finder's harness gives refused=0 unperturbed at the head, so the census reads no new writer.
+- `CMD="pr merge"; gh $CMD 9 --subject x` on one line is refused at the head and `[]` at the before end, which is a gain.
+
+Finder's harness at both ends under the PR's plants (`ev/plants_head.txt`, `ev/plants_before.txt`):
+- Unperturbed: `61 merge call(s) in 11 file(s)` at the head and `56` at the before end, both `RESULT divergent=0 unregistered=0 dead=0 refused=0`.
+- These five plants give refused=0 at the before end and refused=1 at the head:
+  - the f-string program;
+  - the `%`-format program;
+  - the `.format` program;
+  - `${cfg.gh}`;
+  - `gh pr -R $(cat r) merge`.
+- The other ten plants give refused=1 at both ends.
+- The two null plants give refused=0 at both ends.
+- All of this matches the body. The first-parent count is 305 at my run.
+
+Self-test and mutants:
+- `node tools/policy/agreement.mjs --self-test` gives `SELF-TEST 141 of 141 probes held` (`ev/selftest.txt`).
+- With the before end's guard block (`// WHAT A MERGE CALL IS` up to `function nonTemplateMerges`) put into the head's file, the self-test gives `SELF-TEST 119 of 141 probes held` with 22 FAIL lines (`ev/old_guard_selftest.txt`):
+  - the ten `spelling:` probes the body lists;
+  - twelve `program class:` probes, all but the list join, the argv and the JS argv.
+
+  This matches the body.
+- `python3 dev/audit/harnesses/r10_merge_subject_mutants.py` gives 67 rows and no `NOT APPLIED` (`ev/mutants.txt`). Exactly X5, Y9 and Y10 print `141 of 141`. Each named row matches the body: L1 139, L2 139, L3 139, L4 133, L5 94, R4a 140, R11d 138, R11e 139, R11f 140, RV2 117, RV5 128.
+- I read X5, Y9 and Y10:
+  - X5 can only widen the extent;
+  - Y9 drops only the closing bracket character;
+  - Y10 touches only a one-character last line.
+
+  I concur with their `Carry: dismissed`.
+
+The body's other `Carry: dismissed` (words split across expressions, in-word quoting, gh aliases, eval) is concurred:
+- A lexical scan cannot read any of these shapes. The two words in different expressions, `m"erge"`, an alias resolved in gh's config, and `eval` of a built string each need evaluation.
+- `git grep -n -e '--subject' tools/audit/seat/merge_pr.sh tools/audit/seat/merge_train.py` prints nothing at the head.
+- The shapes in my Findings are not of that kind. Each is one expression with both words adjacent in it, and each is readable by a lexical scan.
+
+Figures I did not re-take:
+- `MODE: SCOPED`, entities `2 of 2429`, structure, policy_lint, rules_sync, ci_predict, archscore `dS +0.0000 NULL`, and the run_always lines.
+- These are the body's own, at code head 46d41ddc. CI's runs on this head are the authority for them, and they were still running at my read.
+
+Instruments are my own and disclosed: `ev/probe.mjs` loads the head's or the before end's guard block the way the argv-seam harness does, `ev/probes.json` and `ev/probes2.json` are my probe sets, and `ev/regress_plant.sh` is my plant under the finder's harness.

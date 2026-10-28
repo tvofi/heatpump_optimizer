@@ -1,5 +1,0 @@
-R-second-gap-continuation-dropped:   FAIL a shell continuation inside "gh pr merge" is still a merge call: its --subject is refused, at the call line SELF-TEST 40 of 41 probes held 
-R-first-gap-continuation-dropped: SELF-TEST 41 of 41 probes held 
-R-crlf-dropped: SELF-TEST 41 of 41 probes held 
-R-Y9-own: SELF-TEST 41 of 41 probes held 
-R-Y10-own: SELF-TEST 41 of 41 probes held 
