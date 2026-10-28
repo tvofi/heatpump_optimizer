@@ -1,7 +1,8 @@
 # R10-RCA-HEADMOVED: heads that move under a review, after the round-10 flow fixes
 
 This is the root-cause seat for issue **#2389** (`[policy] recurring friction:
-head-moved (rework)`). It follows `dev/governance/roles/root-cause.md` and
+head-moved (rework)`). It follows the root-cause seat's contract
+(`root-cause.md`, under `dev/governance/roles/`) and
 `dev/governance/rules/defect-root-cause.md`. It ran at `origin/main` `6d86acc9`
 on 2026-10-28.
 
