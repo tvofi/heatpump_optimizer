@@ -1,0 +1,1 @@
+rc=0: the stat is empty, so no role contract changed between the merge base and origin/main

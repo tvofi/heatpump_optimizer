@@ -1,0 +1,5 @@
+Check runs on head b6df9b2b91bc45b7a2d405716312546f2d4d47d1 (GitHub check-runs API via pull_request_read get_check_runs, 40 runs, read 2026-10-25 ~20:22Z):
+failure: governance / delivery-status (job 121277926039). Log: "DELIVERY STATUS OVERDUE -- 146 rowed, 12 pending, 6 overdue"; overdue rows are #2780 #2749 #2775 #2797 #2762 #2795, none is #2831. Log: "This check is NOT a required context and a red here blocks no merge."
+in_progress/queued: tests / fast (3.14), tests / typing, governance / env-matrix, governance / instrument-self-tests, tests / coverage-ratchet, tests / graders-head-copy, prelude (run 40229186710).
+success: closures, closure-scope, coverage, browser, mutation, briefs, arch-instrument, nightly-status, wave-script, policy-docs, budget-raise-gate, arch-score, validate-hacs, hassfest, codeql x4, CodeQL, prelude/refresh/cancel-superseded.
+skipped: closures-autofix, mutation-autofix, mutation-pins, replay, nightly-ha, kernel-points, governance/record, delivery-status-publish, arm.

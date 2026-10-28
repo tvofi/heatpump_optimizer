@@ -1,0 +1,18 @@
+head b6df9b2b91bc45b7a2d405716312546f2d4d47d1
+Verdict: 8
+Source: 8
+Instances: 8
+Cost: 8
+Binding: 8
+      8 Verdict: DEFER
+16:Instances: none measured. The block classes already coded in `fix-review.md` (lines 12, 28, 46, 88, 134) are the population a count would read.
+23:Instances: none measured. No test under `tests/` imports a property-testing library (`git grep -l hypothesis -- 'tests/*.py'` prints nothing).
+30:Instances: none measured. `tests/optimality.py`'s docstring states it is "Not an optimality proof".
+37:Instances: none measured. `tests/mutation_budgets.json` holds one sampled cap (`max_survivor_fraction`) and no per-module figure.
+49:Instances: none measured. The floor, stub and real-container instruments exist (`tests/ha_floor.py`, `tests/ha_contract.py`, `tests/nightly_ha.py`).
+56:Instances: none measured.
+63:Instances: none measured. `tests/typing_ruler.py` ratchets `mypy --strict` errors, errors per code and type-ignores held at 0 (its docstring).
+74:Instances: none measured.
+host-path grep:
+0
+9
