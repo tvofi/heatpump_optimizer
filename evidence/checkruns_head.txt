@@ -1,0 +1,35 @@
+CodeQL	completed	neutral
+arch-score / arch-score	completed	success
+arm	completed	skipped
+budget-raise-gate / budget-raise-gate	completed	success
+cancel-superseded	completed	success
+cancel-superseded	completed	success
+codeql / Analyze (actions)	completed	success
+codeql / Analyze (javascript-typescript)	completed	success
+codeql / Analyze (python)	in_progress	-
+governance / delivery-status	completed	success
+governance / delivery-status-publish	completed	skipped
+governance / env-matrix	completed	success
+governance / instrument-self-tests	completed	success
+governance / policy-docs	completed	success
+governance / record	completed	skipped
+governance / wave-script	completed	success
+hassfest / hassfest	completed	success
+kernel-points	completed	skipped
+prelude	completed	success
+prelude	in_progress	-
+refresh	completed	success
+refresh	completed	success
+tests / arch-instrument	completed	success
+tests / briefs	completed	success
+tests / browser	completed	success
+tests / closure-scope	completed	success
+tests / closures	in_progress	-
+tests / coverage	in_progress	-
+tests / fast (3.14)	in_progress	-
+tests / mutation	in_progress	-
+tests / nightly-ha	completed	skipped
+tests / nightly-status	completed	success
+tests / replay	completed	success
+tests / typing	completed	success
+validate / validate-hacs	completed	success
