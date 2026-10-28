@@ -1,129 +1,101 @@
-R10-ORCH-REVIEW-PACKET (owner card 8, tvofi 2026-10-24). `bus.sh dispatch` now renders, at the frozen head, a review packet (`tools/audit/seat/review_packet.py`) and names it in the reviewer's brief as `review-packet: <path>`; `fix-review.md` starts the reviewer from it. The packet holds the three-dot diff against the merge base, the head's check runs as read (state red, pending, `none` or green, each run's id; card 5's rejection stands, so nothing waits on the gate and the reviewer re-reads live checks before a verdict), `carry_audit.py check` and `figure_lint.mjs --pr-body --at <head>` at the head, the finder's harness output at the base and at the head, and the `tests/mutation_ledger/` three-dot diff. The renderer reads no clock, so the same facts render byte-identical.
+R10-ORCH-REVIEW-PACKET, carries pass (stage `carries-open`, after #2870). This pass builds roster carry 11 (P229, `handoff-not-applied`), carry 10 (P200, the relay format in `fix-review.md`) and triage P256 (the review packet's offline refusals at the handoff). It does not build carries 7 and 9 (dispatch at the handoff ref); see `## Forward-carry`.
 
-What changes:
+- **`tools/audit/seat/review_packet.py`**
+  - New render signal `handoff-not-applied` (P229). The branch comes from the pull request `gather` already reads. When it is `fix/<t>` or `fix/<t>-pr` and `origin/handoff/<t>` exists, the render refuses if that ref's tip is not an ancestor of the head.
+  - New subcommand `handoff --topic T --body FILE` (P256). At the checkout's `HEAD` it runs `structure` (merged with main) and `hot-file`, plus a new count, `brief-carries`. That count takes the group from the round roster (`roster_lib.group_for_branch` of `handoff/<topic>`) and refuses each 1-based carry index the body never names as `Carry N`. Exit codes match `render`: 0, 1 refused, 3 unavailable.
+  - `handoff_refusals()` is the one spelling of the structure and hot-file refusal lines, used by `render` and `handoff` alike. The hot-file reads moved into `hot_prs()`, shared by both.
+- **`tools/audit/seat/body_push.sh`**: after the pr-body lint, runs `review_packet.py handoff`. On rc 1 it pushes nothing. On rc 3 it says so and pushes, because a seat that cannot read the inputs is not refusing the head. `HPO_HANDOFF_PACKER` is the self-test stub, the same pattern as `bus.sh`'s `HPO_BUS_PACKER`.
+- **Not run again at the handoff:**
+  - `head-note` is already checked at the same push: `prepr.sh --body-check` hands `policy_lint.mjs` `--head HEAD` (`body_check`).
+  - `red-unanswered` and `required-red` stay at dispatch, per the owner's card 5 ruling. The CI-wait half of P256 is not built: the owner rejected it.
+- **Policy, one commit each, merging on tvofi's approving review:**
+  - `dev/governance/roles/fixer.md` step 6: `body_push.sh` runs `review_packet.py handoff`'s offline refusals, and each is answered before the push (P256). Paid in the same step by dropping the restated `prepr.sh` step 1a clause. The file sits at its token cap: `node tools/policy/policy_lint.mjs --budgets` prints 5216 against 5216.
+  - `dev/governance/roles/fix-review.md`: the four checks `cloud_relay.sh` grades a cloud verdict on (P200). They are the probe ref name `probe/rev-<pr>-<nonce first 8>`, the commit subject `verdict <pr> <head40>`, the first-line grammar with class `[a-z-]+`, and `ev/`. They sit beside the two the file already stated. Paid in the same file by shortening the restated `fixer.md` preamble and replacing the retired `web-fix-wave.js` pointer with the grammar it now states. The file ends under its cap: 2447 against 2451 tokens, 139 against 140 lines.
+- **`dev/audit/harnesses/r10_seat_selftests_mutants.py`**: seven in-tree mutants. `review_packet-1` to `-5` are graded by `review_packet.py --self-test`. `body_push-1` and `-2` are graded by `prepr.sh --self-test`, which drives `body_push.sh`.
+- **`tools/pr/prepr.sh`** self-test: two `body_push` arms, a refusal (rc 1, body ref unmoved) and an unavailable checker (rc 3, pushed).
+- **`tools/audit/seat/INSTRUMENTS.md`**: the new signal and subcommand.
 
-- **`tools/audit/seat/review_packet.py`** (new): `render`, `check` and `--self-test`. Every git read runs in the checkout the working directory is in (`repo()`, `git rev-parse --show-toplevel`), never the tool's install, so a dispatch from a throwaway clone resolves its own head. A refusal states a fact about the head and the packet is still written, except `host-path`, which writes nothing because the packet carries the diff verbatim; a head whose check runs were not read digests as `none`, never `green`.
-- **`tools/audit/seat/bus.sh`**: `dispatch` renders the packet to `$S/packets/<pr>-<head>.md`, names it, and refuses (recording nothing) when the renderer refuses or the packet does not name the dispatched head. `--harness`/`--harness-file` passes the finder's harness through.
-- **`tools/audit/seat/cloud_dispatch.py`**: a cloud reviewer renders its own packet at the dispatched head, because the dispatcher's copy is a path on the dispatcher's machine; the dispatcher's self-test stubs the renderer (`HPO_BUS_PACKER`) and checks that a refused packet holds the dispatch and records nothing; the relay's nonce is found by search on its own line, not by stripping a prefix from a line the packet now precedes.
-- **`.github/workflows/governance.yml`**: one `instrument-self-tests` step, "Show the review packet refusing its own fixtures", runs `review_packet.py --self-test` and greps its verdict line.
-- **`tools/pr/ci_predict.py`**: the `instrument` job gains a WIRING arm (`wiring_preds`) — a self-testing file the diff adds that no workflow `run:` line names is predicted `UNWIRED <path>` — and `plant_self_test` pins its call site in `predict()`, so deleting the call site fails a check instead of leaving the arm dead (#1591).
-- **`dev/governance/roles/fix-review.md`**: the reviewer starts from the dispatch's packet and re-reads live checks before a verdict. Paid by cuts in the same paragraph; the file's policy budget is unchanged.
-- **`tools/audit/seat/INSTRUMENTS.md`**: the entry for the packet and its refusal signals, including that a refusal still writes.
-- **`dev/audit/harnesses/r10_review_gather_share.py`** (new): the reviewer gather-share measurement the body's figure comes from.
-- **`tests/closures.json`**: inert reads for both new files, written by `ci_predict.py --apply-inert`.
-
-Refs #2717 (not closed: roster carry [11], dispatch at the handoff ref, is not built here; see `## Forward-carry`).
-
-The render refuses (rc 1, `## Refusals` names each signal, `dispatch` records nothing and names no packet), each by its signal: `carry-audit` (`carry_audit.py check` returns 1), `head-note` (`## Head` does not name the dispatched head), `structure` (`tests/structure.py` refuses the head merged with main via `git merge-tree --write-tree`), `red-unanswered` (a CONCLUDED red `policy_lint.mjs --pr-body --red` reports unnamed in `## Red checks`), `required-red` (carry [6]: the latest run of the ruleset's required context, `gate`, concluded failure), `host-path` (`ref_privacy.body_refusal` on the body, `content_refusals` on the added lines), `hot-file` (carry [7]: the diff shares a `HOT_FILES` path with an open pull request whose `verdict/<pr>` commit's `VERDICT.md` first line, read by `proof_watch.parse_verdict` — the one Python reader of the verdict grammar, which `agreement` refuses a copy of — is a merge verdict at that PR's head and which is not in the train's spool or pending set under `HPO_BUS_TRAIN_STATE`). A pending check never refuses. Independence: `--harness` must exist at the merge base and be untouched by the diff, and runs from the base's bytes at both ends; `--harness-file` must be outside the tree and is cited by sha1; a diff-edited or base-absent harness is refused as the fixer's. `dispatch` then runs `review_packet.py check <packet> --head <head>` and refuses to name a packet that does not name its head.
-
-Caveats a reviewer should weigh:
-
-- The structure arm runs `tests/structure.py` on the merged tree, so a dispatch costs that run; a live render at #2864's head measured `real 44.72` wall end to end on this loaded host (`/usr/bin/time -p`, below). It is the brief's signal as specified; a cheaper read was not found. Carry: #2717
-- With `HPO_BUS_TRAIN_STATE` unset nothing reads as boarded, so a shared hot file with any merge verdict at its head refuses; the packet prints an advisory saying so. Carry: #2717
-- The rule functions are unit-pinned in `review_packet.py --self-test`; the verdict read (`verdict_merge_head`, first line of `VERDICT.md` through `proof_watch.parse_verdict`) is fixture-pinned and mutated; the remaining `gather` I/O wiring (the gh reads, the `policy_lint` message match, the `ref_privacy` calls) is pinned only by the live renders below, not by a mutant. Carry: #2717
+Refs #2717. Not closed: carries 7 and 9 stay open on this group.
 
 ## Head
 
-The authored code head is `627f44cfee56756ee4a97277204bd320423b9d33`, six commits over the previous head `410d3988fd2ae01ea6ec281174e470b4f5540bcb`: the packet's dispatched-checkout read, its self-test wired into the instrument job, the cloud reviewer's own render and its two fixtures, the throwaway-checkout helper, and the predictor's call-site pin.
-
-Every three-dot read below is against the merge base with `origin/main` at this reading, `484d9902222031f8e081df9f53b52ffd50fcc0af`; `origin/main` tip `524c1896b6943b3da03d6cad61420ced31e14c9c` merges the code head cleanly (`git merge-tree --write-tree origin/main HEAD` exits 0).
+`b51ffa069f07814cdf0f3db0bfe5066873de2b48`. Every figure below was measured there, over `origin/main` at `b6f6ceca4f0323b24171c45a2a2372ba2e2cbaaa`.
 
 ## Mutation proof
 
-Each refusal line in `review_packet.build`, each new rule line, and each new check below was replaced one at a time and its own self-test re-run; every mutant drew the FAILs named, and each file was restored byte-identical (`diff -q` against a backup, `review_packet.py --self-test` back to 0 failed).
+`python3 dev/audit/harnesses/r10_seat_selftests_mutants.py review_packet-1 review_packet-2 review_packet-3 review_packet-4 review_packet-5` gave `RESULT survivors=0`:
+- `review_packet-1` inverts the ancestry test: KILLED, `42 checks, 3 failed`. Both the #2887 refusal arm and the head-containing-tip null arm go red.
+- `review_packet-2` drops the build's `handoff-not-applied` line: KILLED, `42 checks, 1 failed`.
+- `review_packet-3` skips the `brief-carries` count: KILLED. The self-test dies (`IndexError`) on the `Carry [10]` row, so its exit is non-zero.
+- `review_packet-4` drops the `fix/<t>-pr` spelling: KILLED, `42 checks, 1 failed`.
+- `review_packet-5` drops the hot-file line from `handoff_refusals`: KILLED, `42 checks, 2 failed`.
 
-`review_packet.py --self-test`:
+`body_push-1` and `body_push-2` replace `body_push.sh`'s refusal branch with `if false` and `!= 0` respectively, each graded by `prepr.sh --self-test`. Run with `python3 dev/audit/harnesses/r10_seat_selftests_mutants.py body_push-1 body_push-2 prepr-13`: all three KILLED, `RESULT survivors=0`. `prepr-13` is the existing mutant of that name, still killed with the new STEP_OF rows beside it.
 
-- `refusals.append("carry-audit…` → FAIL `carry-audit: an unrouted body refuses and names it`
-- `refusals.append(f"head-note…` → FAIL `head-note: a ## Head naming another head refuses`
-- `refusals.append(f"structure…` → FAIL `structure: a structure refusal at the merge refuses`
-- `refusals.append(f"red-unanswered…` → FAIL `red-unanswered: an unanswered concluded red refuses`
-- `refusals.append(f"required-red…` → FAIL `required-red: the required context's latest run concluded failure refuses`
-- `refusals.append(f"host-path…` → FAIL `host-path: a host path refuses`
-- `refusals.append(f"hot-file…` → FAIL `hot-file: a shared hot file with an unboarded merge verdict refuses`
-- `out.append(f"#{p…` in `hot_file_refusals` → FAIL `hot-file arm: an unboarded merge verdict sharing a hot file refuses`
-- `return v[1] if v and v[0] == "merge" else None` in `verdict_merge_head` → FAIL `hot-file reader: the verdict's head is the first line of VERDICT.md through proof_watch.parse_verdict`
-- the `is edited by the diff` raise in `harness_source` → FAIL `independence: a harness the diff edits is refused as the fixer's`
-- `pending |= not done` in `gate_digest` → FAIL `a head with checks still running dispatches, digest pending with run ids`
-- `repo()` returning `Path(__file__).resolve().parents[3]` (the install) → FAIL `repo(): a git read runs in the checkout the working directory is in, not the tool's install`
-- `writes_packet` returning `True` always → 2 FAILs: `write-on-refusal: a host path writes nothing` and `write-on-refusal: one host path beside other refusals still writes nothing`
-- the digest's `else "none"` dropped (green) → FAIL ``a head with no run read is `none`, never `green` ``
-
-`cloud_dispatch.py --self-test`:
-
-- the packet-render sentence deleted from `_prompt` → FAIL `the reviewer's brief carries the packet render at the dispatched head for the seat's own machine`
-- `re.search(r"^bus-nonce: …")` reverted to `relay.removeprefix("bus-nonce: ").strip()` → 3 FAILs, the first `a relay dispatch at a second pull request mints its nonce` (the two below it consume the nonce it fails to mint)
-
-`ci_predict.py`:
-
-- `preds += wiring_preds(root, changed)` replaced by `pass` in `predict()` → FAIL `a self-testing tool the diff adds with no workflow run line is predicted red` (`ci_predict self-test: 6 failed` against the 5 pre-existing host FAILs measured identically at `origin/main` tip `524c1896b`, below); the case passes with the line present.
-- `wiring_preds` returning `[]` → FAIL `an unwired self-testing tool the diff adds is predicted red`
-- the governance step deleted is the red tree itself: at `410d3988f` (no step) `selftest_wiring.py --check` prints `98 self-testing, 97 wired, 1 unwired` and the CI step exits 1; at this head it prints `0 unwired`.
-
-`bash tools/audit/seat/bus.sh --self-test` (`env -u BASH_ENV`) in a mutant worktree:
-
-- the `review_packet.py check` call in `dispatch` replaced by `true` → `bus self-test: 91 checks, 1 failed` (FAIL `a packet naming another head is stale: dispatch refuses to name it and records nothing`)
-- the render call replaced by `true render` → `bus self-test: 91 checks, 45 failed`
-
-Restored: `review_packet.py --self-test` prints 28 checks, 0 failed; `cloud_dispatch.py --self-test` prints 76 checks, 0 failed; `bus.sh --self-test` prints 91 checks, 0 failed.
+Each `body_push` mutant was also run alone, through `prepr.sh --self-test` in a throwaway worktree, to name the arm it kills. Each kills exactly its own (`420 passed, 1 failed`):
+- `body_push-1` fails `and refuses a body the review packet's handoff refusals refuse, naming the signal and pushing nothing (P256)`;
+- `body_push-2` fails `and pushes, saying so, when the handoff refusals cannot be run (rc 3 is never a refusal)`.
 
 ## Null control
 
-`review_packet.py --self-test`: a clean head (no signal set) dispatches with zero refusals; the same required context with its latest run green renders; a head with checks still running dispatches with digest `pending`; a head whose check runs were not read digests `none`; the hot-file verdict once boarded passes, and a verdict at a stale head does not count; the verdict reader returns the merge head from a `VERDICT.md` first line and None for a verdict-ref commit subject; a base harness the diff leaves alone is accepted; a clean render writes, and a concluded red writes beside a host path that does not.
+At the base `b6f6ceca4`, `python3 -I tools/audit/seat/review_packet.py handoff --topic r10-orch-review-packet --body /dev/null` exits 2 with `invalid choice: 'handoff'`. The same tree's `review_packet.py --self-test` prints `31 checks, 0 failed`; none of the new rows exist there.
 
-Live: `review_packet.py render --pr 2864 --head 30c940e5b…` twice, `cmp` byte-identical, `## Refusals` `none`; `check` refuses an empty packet and a malformed one (rc 1) and a non-40-hex `--head` (rc 2); `--harness` naming a file the diff adds is refused as the fixer's.
+Each new rule has a null arm in `--self-test`:
+- `handoff-not-applied`: a head containing the handoff tip renders; a branch with no `handoff/<t>` ref renders; a non-`fix/` branch renders.
+- `brief-carries`: the 1-5-of-6 body passes once carry 6 is dispositioned; a group with no carries passes.
+- `handoff`: a clean head refuses nothing.
+- `prepr.sh`: the existing "pushes a body the lint passes" arm is the clean-checker null. It now runs the real `handoff` against a fixture topic no roster group claims.
 
-`ci_predict.py`: the five FAILs it prints on this host are the agreement lane's `raise-justification` divergence on bodies 20 and 24 inside the plant's throwaway clone, and they are the same five case names, in the same order, at `origin/main` tip `524c1896b` (`ci_predict self-test: 5 failed`, `EXIT=5` there): a host-dependent reading, not this branch's. `origin/main`'s own CI is green on `governance / wave-script`, and the lane run outside the clone reports `divergent=0`. The WIRING arm's null control is its own third case: a tool main already carries is not this branch's.
+Live, against the #2887 instance (handoff tip `a5f40d84c` then):
+- head `fdf33f466` gives `handoff/r10-buffer-store a5f40d84c... is not an ancestor of fdf33f466...`;
+- its later head `17d3cf384a`, which contains that tip, gives `None`.
+
+Both come from `handoff_not_applied("fix/r10-buffer-store-pr", <head>, {"r10-buffer-store": <a5f40d84c>}.get, is_ancestor)`.
 
 ## Figures
 
-- Review packet self-test: `python3 -I tools/audit/seat/review_packet.py --self-test` → `review_packet self-test: 28 checks, 0 failed`; `/usr/bin/time -p` on it → `real 0.38`.
-- Cloud dispatcher self-test: `python3 -I tools/audit/seat/cloud_dispatch.py --self-test` → `cloud_dispatch self-test: 76 checks, 0 failed`; `/usr/bin/time -p` → `real 14.12`.
-- Wiring reader: `python3 -I tools/audit/seat/selftest_wiring.py --check` → `selftest_wiring: 98 self-testing, 98 wired, 0 unwired`; `/usr/bin/time -p` → `real 0.21`.
-- Scope predictor: `PYTHONPATH=tests/hastub python3 -I tools/pr/ci_predict.py --base origin/main` → `CI PREDICT: no closures, fast, wave-script or instrument red predicted against 484d99022220 (a data-file read is not seen)`, rc 0; `/usr/bin/time -p` → `real 6.92`.
-- The predictor on the defect: the same command, with this head's `ci_predict.py`, in a worktree at `410d3988f` → `PREDICT governance / instrument-self-tests UNWIRED tools/audit/seat/review_packet.py: no workflow run line names its self-test`, `CI PREDICT: 1 predicted red(s) …`, rc 1.
-- Predictor self-test: `python3 -I tools/pr/ci_predict.py --self-test` → `ci_predict self-test: 5 failed` (the host-dependent agreement cases above); at `origin/main` tip `524c1896b` the same 5 case names and `EXIT=5`.
-- Bus self-test: `env -u BASH_ENV bash tools/audit/seat/bus.sh --self-test` → `bus self-test: 91 checks, 0 failed` (86 at the base plus the 5 packet cases).
-- Verdict read on live refs: `verdict_merge_head` over `refs/heads/verdict/2865` (commit `33d6c5a4210138c6d5878a96cd653231d19f8e25`, subject `verdict: #2865 Fix review: merge 07bc8000…`) → `07bc8000cd85b894ae65905eee065f0e15c21a68`, its `VERDICT.md` first line; over `verdict/2864` (`b3d758ec72959b0c15133ea987acef3bfa6714f5`) → `30c940e5b5e009ebe95004235cbab8536ea14799`. The commit subject format varies across refs, so the verdict file, not the subject, is what the reader pins.
-- Reviewer gather share, measured first: `python3 -I dev/audit/harnesses/r10_review_gather_share.py <agent-transcripts dir>` → `RESULT seats=14 calls=731 gather=361 share=49%`. Rule: a reviewer seat is a transcript whose first record names a reviewer brief; a gather call is a `Read`, a `gh api|pr` read, a check-run read, a git read, or a carry_audit/figure_lint/pr-body lint run. Transcripts carry no tool-result sizes, so it is a share of calls, not tokens, and an upper bound on what the packet removes (a `Read` that judges code counts as gather). Null control: `python3 -I dev/audit/harnesses/r10_review_gather_share.py --self-test` refuses a fixer's transcript as a reviewer's. The corpus is out of the tree, so the rule, not the path, is what a later seat re-runs.
-- Packet size and byte identity: `python3 -I tools/audit/seat/review_packet.py render --pr 2864 --head 30c940e5b… --out a` and the same to `b`, then `cmp a b` → identical; the packet is `87` lines / `3591` bytes with `## Refusals` `none` and `## Gate digest: green`.
-- Packet cost: `/usr/bin/time -p python3 -I tools/audit/seat/review_packet.py render --pr 2864 --head 30c940e5b… --out a` → `real 44.72` wall end to end, the structure run included, on this host under four other gates.
-- Refusals shown, not assumed: `review_packet.py check <empty file> --head …` and `check <malformed file> --head …` each print `REFUSE stale` and return 1; `render --head zzz` prints `--head takes a 40-hex sha` and returns 2; `render --harness tools/audit/seat/review_packet.py` prints `REFUSE independence` and returns 1, writing nothing.
-- Structure ratchet: `python3 tests/structure.py` → `STRUCTURE RATCHET PASSED`, every metric at or under its budget (`max_class_loc 8236 <= 8236`, `max_method_loc 373 <= 373`, `methods_over_150 16 <= 16`, `methods_over_200 9 <= 9`, `name_kept_members 38 <= 38`, `seam_cut_total 424 <= 424`).
-- Closure self-test: `python3 tests/closure.py selftest` → `ALL 117 closure shrink pins PASSED`.
-- Red history: `gh api --paginate "repos/tvofi/heatpump_optimizer/commits/410d3988fd2ae01ea6ec281174e470b4f5540bcb/check-runs" --jq '.check_runs[] | select(.status=="completed" and .conclusion=="failure") | select(.name!="pr-contract / pr-contract" and .name!="gate") | .name'` → `governance / instrument-self-tests`, the one name this branch's ancestry owes; the earlier head `d0087e3ad…` adds none under the same filter.
-- Instrument job: `gh api repos/tvofi/heatpump_optimizer/actions/jobs/122007070159 --jq '{started:.started_at,completed:.completed_at}'` → `2026-10-27T04:18:39Z` to `2026-10-27T04:36:41Z`, 1082 s.
-- Scoped gate: see `## Red checks`.
+- `python3 -I tools/audit/seat/review_packet.py --self-test` → `review_packet self-test: 42 checks, 0 failed` (31 at the base).
+- `PYTHONPATH=tests/hastub bash tools/pr/prepr.sh --self-test` (`/opt/hpo/venv-ci/bin` first on PATH) → `421 passed, 0 failed`.
+- `python3 tests/structure.py` → `STRUCTURE RATCHET PASSED`.
+- `PYTHONPATH=tests/hastub python3 tests/entities.py` (the one script `tests/closure.py select` names, `MODE: SCOPED`) → `ALL 2467 ENTITY CHECKS PASSED`.
+- `node tools/policy/policy_lint.mjs --budgets`: `fixer.md` 5216 against 5216 tokens, `fix-review.md` 2447 against 2451; `node tools/policy/policy_lint.mjs` prints `TOTAL: 0 error(s) across 50 policy file(s)`.
+- Live at the head: `python3 -I tools/audit/seat/review_packet.py handoff --topic r10-orch-review-packet --body <a body naming only carry 1>` → `R10-ORCH-REVIEW-PACKET at ..., 11 carries, 10 refused`, rc 1. This body names all 11 and passes the same command at `body_push.sh`.
+- Live, #2887 now: `handoff_not_applied("fix/r10-buffer-store-pr", "17d3cf384a...", origin_handoff_tip, is_ancestor)` refuses against `handoff/r10-buffer-store` at `c40766a90`. That tip is a merge of main pushed at 19:26Z, after the PR head (11:54Z), so it is a true positive as read: a reviewer dispatched now would review a head lacking the fixer's latest handoff.
 
 ## Approval
 
-This diff edits policy: `dev/governance/roles/fix-review.md`'s opening paragraph now starts the reviewer from the dispatch's `review-packet:` and pays for the sentence by cuts in the same paragraph, which the roster group `R10-ORCH-REVIEW-PACKET` carries under mandate `6329234399` (owner card 8, tvofi 2026-10-24). The policy approval is the orchestrator's approving review at the head under that mandate; this body claims none of its own and no owner approval has been given for this diff yet. The file's policy budget is unchanged: `node tools/policy/policy_lint.mjs --budgets` exits 0 and prints each cap beside its measurement; no cap moved.
+This diff edits policy, in two commits of their own:
+- `dev/governance/roles/fixer.md` step 6 (P256), commit "fixer.md: the handoff runs review_packet.py handoff". The triage ruling requires tvofi's approving review at this head before merge.
+- `dev/governance/roles/fix-review.md` (P200), commit "fix-review.md: state the four relay checks". This merges on the owner-approved route under the mandate in force for this group (`6329234399`, owner card 8).
+
+No cap moved: `node tools/policy/policy_lint.mjs --budgets` prints each file at or under its cap. This body claims no approval of its own, and none has been given for this diff yet.
 
 ## Red checks
 
-`governance / instrument-self-tests` is red at `410d3988fd2ae01ea6ec281174e470b4f5540bcb`, the previous head, six commits below this one and inside the branch's ancestry. Job `122007070159` failed two of its steps, each read from that step's own output:
+none
 
-- step 27, "Refuse a self-testing seat instrument that no step runs": `UNWIRED tools/audit/seat/review_packet.py: no workflow run line names its self-test`; `selftest_wiring: 98 self-testing, 97 wired, 1 unwired`; exit 1.
-- step 33, "Show the cloud dispatcher refusing its own fixtures": `Refusal: bus.sh dispatch refused: review_packet: REFUSED git merge-base origin/main 7f4eed19e877c4bdfdddf20399e9a4723741cdb1: fatal: Not a valid commit name 7f4eed19…`, from `_bus_dispatch` into `bus.sh dispatch` — the renderer read its own install directory, not the throwaway checkout it was dispatching for.
+## Carries
 
-Both are real, both were this pull request's, and both are repaired in this head: the packet's self-test is a step in that same job (`Show the review packet refusing its own fixtures`), and `review_packet.repo()` reads `git rev-parse --show-toplevel` of the working directory. Measured at `627f44cfee…`: `selftest_wiring.py --check` → `98 self-testing, 98 wired, 0 unwired`; `cloud_dispatch.py --self-test` → `76 checks, 0 failed`; `review_packet.py --self-test` → `28 checks, 0 failed`.
-
-Cheaper detector and its standing cost. For step 27 the cheaper detector is the predictor `prepr.sh` step 6d already runs (`tools/pr/ci_predict.py --base origin/main`, 6.9 s on this host) and `body_push.sh` runs again; this pull request gives it the WIRING arm, which runs `selftest_wiring.py --check` (0.21 s) over the changed paths. It is shown detecting: run against the red tree at `410d3988f` it prints `PREDICT governance / instrument-self-tests UNWIRED tools/audit/seat/review_packet.py: no workflow run line names its self-test` and exits 1, and against this head it predicts no red (rc 0). Standing cost: 0.2 s on every prepr run, plus the new 0.38 s governance step that pins the packet's own self-test; the red it replaces cost a 1082 s job round trip plus the fix-and-push round. The process state was (c): prepr ran, and its predictor had no arm for an unwired self-test, so the process was followed and did not produce the intended result; the arm is the repair. For step 33 the cheapest detector is `cloud_dispatch.py --self-test` itself (14.1 s, in the tree, part of that same CI job), which failed at the red head and passes here; the process state was (a) — nothing local ran it before the handoff. Its standing cost is already paid by the job, so no new check is added for it inside this fix; the dispatcher's own self-test now also holds a refused packet.
-
-The scoped gate (`GATE_SCOPE=auto`) runs `tests/entities.py`, and on this Darwin host four of its checks are red, all in the nightly hang-control self-test:
-
-- `hb:positive_control survives one hung py-spy sample: a fresh spin answers on try 2, the hang cut at the sample's timeout with the spin held across it` — `pass=True calls=1 gaps=[0.6]; a 600 ms spin read as 600.4 ms; dump names the spin: True; py-spy rc=0 names it: True; try 1 of 1 (at most 3)`
-- `and a try whose sample misses the spin, or names it at rc!=0, is retried, not accepted` — `idle first: pass=True calls=1; rc=1 first: pass=True calls=1`
-- `the control rests between tries: two tries with a 1 s rest take at least the rest plus both spins` — `two tries took 0.80s against a 1.0s rest`
-- `the control survives two hung samples, answering on try 3: HB_CONTROL_TRIES is at least 3` — `pass=True calls=1; 600 ms spin read as 600.4 ms; try 1 of 1 (at most 3)`
-
-Root cause: on this loaded Darwin host the control's sample process does not answer inside its 0.5 s cut, so a single sample misses where the checks expect the retry path's second, and the two wall-clock arms read short. Both files are byte-identical to `origin/main` (`git diff origin/main -- tests/entities.py tests/nightly_ha.py` prints nothing), and `origin/main`'s tip `524c1896b` carries the required `gate` check `completed success`, so the same bytes pass the same checks on CI's runner. Cheaper detector and standing cost: CI's own `gate`, already required on every head; no local instrument decides a sub-second wall-clock bound honestly on a host running four other gates. The branch's own scripts are green: the packet, dispatcher, wiring, bus, closure and structure instruments above, and the predictor.
+- Carry 1: card 8 placement. Landed by #2870 (`eb2063218`).
+- Carry 2: card 5. Landed by #2870. This pass keeps it: `handoff` runs no CI-dependent check, and the CI-wait half of P256 is not built.
+- Carry 3: independence. Landed by #2870, unchanged.
+- Carry 4: the refusal-signal list (P135). Landed by #2870. This pass adds `handoff-not-applied` to it.
+- Carry 5: concluded-red required context (`required-red`). Landed by #2870.
+- Carry 6: hot-file arm. Landed by #2870. `handoff` now also runs it before the push.
+- Carry 7 and Carry 9: dispatch the reviewer at the handoff ref. Not built in this pass, and the group stays `carries-open` for them.
+  - Why: the change moves the dispatch moment. It needs a topic-keyed record re-keyed by `open_pr.sh`, a held-verdict post in `cloud_relay.sh` (a hot file), and policy text in `standing-dispatch.md` and `fix-review.md` step 7. After this pass's P200 text, `fix-review.md` sits at its token cap, so that text has to pay by cuts of its own.
+  - That is an L-sized change across hot files and two policy files. It does not fit this M group's dispatch beside the other carries.
+  - The controls stand as written in carry 7. The orchestrator may split it into its own group; routed under `## Forward-carry`.
+- Carry 8: the `[6]`/`[7]` summary. Landed by #2870.
+- Carry 10: P200. This PR, `fix-review.md`.
+- Carry 11: P229. This PR, `handoff-not-applied`.
+- P213 (a repair hint on the `head-note` refusal) is not on this group's roster entry, so it is not built. It is named here so the orchestrator can append it if it still stands.
 
 ## Forward-carry
 
-- Roster carry [11], dispatch the reviewer at the handoff ref (topic-keyed record re-keyed by `open_pr.sh`, a relay posting a held verdict, `standing-dispatch.md` and `fix-review.md` step 7 text) is not built here: it moves the dispatch moment and needs its own policy diff, which `fix-review.md` at zero token headroom (`policy_lint.mjs --budgets`) could not carry beside this one. Its controls stand as the roster states them. Carry: #2717
-- The `gather` I/O wiring has no mutant: a later instrument round over `tools/audit/seat/` should give `review_packet.gather` a fixture-driven test (gh stub plus throwaway repo). Carry: #2717
+- Carries 7 and 9 of R10-ORCH-REVIEW-PACKET (dispatch at the handoff ref) stay open on its roster entry with their stated controls; not built here (see `## Carries`). Carry: R10-ORCH-REVIEW-PACKET
+- The cloud-seat `host-path` false positive (#2925) is already carried to R10-RECORD-API-O1 as its carry 3 (the `ref_privacy.py` home match has no path-segment boundary). Its cause is the root account's passwd home matching, as a bare substring, any citation of the root-cause role contract. It sits in `ref_privacy._leaks`, which that group owns (`files`), so it is not fixed here. `review_packet.py` calls `ref_privacy` and inherits that fix. #2925 is a second instance of the same cause, read through `review_packet.py`'s `host-path` signal. Carry: R10-RECORD-API-O1
 
 ## Friction
 
-prepr: unenforced: step 6d's predictor had no arm for an unwired self-test, so the branch was green locally and red in the instrument job after 1082 s; the WIRING arm this pull request adds runs the same check in 0.21 s. Carry: #2717
+none
