@@ -1,7 +1,0 @@
-const: booked row (production ledger): baseline 149.89 actual 142.81 saved 4.72 %
-const: comfort: plan mean room 19.03 C vs mean target 20.44 C; booked thermostat 124.9 kWh vs steady at target 124.5, steady at the delivered room 118.7
-const: stored: plan house heat drawn -0.5 kWh_th = -0.3 kWh_e at the steady COP 1.838
-const: timing: power-weighted COP plan 1.837 thermostat 1.837; timing saving +0.00 %
-const: booked kWh: thermostat 124.9 plan 119.0; saving with stored heat settled +4.95 % against timing +0.00 %
-const: DEFECT
-arms run 1, defect 1: const

@@ -1,0 +1,16 @@
+RESULT BASELINE tests/plan_view.py unmutated rc=0 failed=0 1s
+RESULT HeatPumpOptimizer._deferred_energy_cost GUARD_OFF d11cb401 line=5193 new='if False:' driver=tests/features.py rc=1 failed=3 428s
+RESULT HeatPumpOptimizer._optimize_space_only GUARD_OFF 77ab8056 line=4600 new='if False:' driver=tests/features.py rc=1 failed=7 436s
+RESULT HeatPumpOptimizer._start_gap_cost CLAMP_DROP 31b40b21 line=5399 new='displaced = (0.0) + max(0.0, -end_cost)' driver=tests/features.py rc=1 failed=7 425s
+RESULT HeatPumpOptimizer._start_gap_cost CLAMP_DROP 31b40b21 line=5399 new='displaced = max(0.0, space_baseline_cost) + (0.0)' driver=tests/features.py rc=1 failed=2 437s
+RESULT HeatPumpOptimizer._start_gap_cost CLAMP_DROP 83697c20 line=5400 new='return (min(capped, uncapped))' driver=tests/features.py rc=1 failed=5 428s
+RESULT HeatPumpOptimizer._start_gap_cost CLAMP_DROP 83697c20 line=5400 new='return max((capped), -displaced)' driver=tests/features.py rc=1 failed=6 402s
+RESULT HeatPumpOptimizer._start_gap_cost RETURN_DEL 83697c20 line=5400 new='pass' driver=tests/plan_view.py rc=1 failed=1 1s
+RESULT MonthlyLedger.add_savings_settlement GUARD_OFF dce68de8 line=246 new='if False:' driver=tests/features.py rc=1 failed=7 438s
+RESULT MonthlyLedger.meter_calibration CMP_BOUND 66109ecf line=355 new='if SAVINGS_PLAN_LINE not in lines or plan_kwh <= MIN_CALIBRATION_KWH:' driver=tests/features.py rc=1 failed=2 435s
+RESULT MonthlyLedger.meter_calibration GUARD_OFF 66109ecf line=355 new='if False:' driver=tests/features.py rc=1 failed=3 260s
+RESULT MonthlyLedger.meter_calibration RETURN_DEL fbe6bc9f line=357 new='pass' driver=tests/features.py rc=1 failed=7 437s
+RESULT _comfort_matched_targets CMP_BOUND 54b5145f line=345 new='if not shortfall >= 0.0:' driver=tests/features.py rc=1 failed=2 437s
+RESULT _comfort_matched_targets GUARD_OFF 54b5145f line=345 new='if False:' driver=tests/features.py rc=1 failed=2 438s
+RESULT _comfort_matched_targets RETURN_DEL c9844e3e line=347 new='pass' driver=tests/features.py rc=1 failed=6 433s
+RESULT _observe GUARD_OFF f2ad4d4c line=1018 new='elif False:' driver=tests/features.py rc=1 failed=2 411s

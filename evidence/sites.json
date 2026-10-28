@@ -1,0 +1,130 @@
+[
+ {
+  "kind": "CONST",
+  "file": "custom_components/heatpump_optimizer/ledger.py",
+  "line": 64,
+  "old": "MIN_CALIBRATION_KWH = 1.0",
+  "new": "MIN_CALIBRATION_KWH = 2.0",
+  "anchor": "custom_components/heatpump_optimizer/ledger.py:<module> CONST 7dc7eda1"
+ },
+ {
+  "kind": "GUARD_OFF",
+  "file": "custom_components/heatpump_optimizer/ledger.py",
+  "line": 246,
+  "old": "        if calibrated and planned_kw is not None and np.isfinite(planned_kw):",
+  "new": "        if False:",
+  "anchor": "custom_components/heatpump_optimizer/ledger.py:MonthlyLedger.add_savings_settlement GUARD_OFF dce68de8"
+ },
+ {
+  "kind": "CMP_BOUND",
+  "file": "custom_components/heatpump_optimizer/ledger.py",
+  "line": 355,
+  "old": "        if SAVINGS_PLAN_LINE not in lines or plan_kwh < MIN_CALIBRATION_KWH:",
+  "new": "        if SAVINGS_PLAN_LINE not in lines or plan_kwh <= MIN_CALIBRATION_KWH:",
+  "anchor": "custom_components/heatpump_optimizer/ledger.py:MonthlyLedger.meter_calibration CMP_BOUND 66109ecf"
+ },
+ {
+  "kind": "GUARD_OFF",
+  "file": "custom_components/heatpump_optimizer/ledger.py",
+  "line": 355,
+  "old": "        if SAVINGS_PLAN_LINE not in lines or plan_kwh < MIN_CALIBRATION_KWH:",
+  "new": "        if False:",
+  "anchor": "custom_components/heatpump_optimizer/ledger.py:MonthlyLedger.meter_calibration GUARD_OFF 66109ecf"
+ },
+ {
+  "kind": "RETURN_DEL",
+  "file": "custom_components/heatpump_optimizer/ledger.py",
+  "line": 357,
+  "old": "        return self.line(month, \"savings_actual\")[\"kwh\"] / plan_kwh",
+  "new": "        pass",
+  "anchor": "custom_components/heatpump_optimizer/ledger.py:MonthlyLedger.meter_calibration RETURN_DEL fbe6bc9f"
+ },
+ {
+  "kind": "CMP_BOUND",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "line": 345,
+  "old": "    if not shortfall > 0.0:",
+  "new": "    if not shortfall >= 0.0:",
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_comfort_matched_targets CMP_BOUND 54b5145f"
+ },
+ {
+  "kind": "GUARD_OFF",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "line": 345,
+  "old": "    if not shortfall > 0.0:",
+  "new": "    if False:",
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_comfort_matched_targets GUARD_OFF 54b5145f"
+ },
+ {
+  "kind": "RETURN_DEL",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "line": 347,
+  "old": "    return comfort_targets - shortfall",
+  "new": "    pass",
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_comfort_matched_targets RETURN_DEL c9844e3e"
+ },
+ {
+  "kind": "GUARD_OFF",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "line": 4600,
+  "old": "        if reference_targets is not comfort_targets:",
+  "new": "        if False:",
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._optimize_space_only GUARD_OFF 77ab8056"
+ },
+ {
+  "kind": "GUARD_OFF",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "line": 5193,
+  "old": "            if cop_store != cop:",
+  "new": "            if False:",
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._deferred_energy_cost GUARD_OFF d11cb401"
+ },
+ {
+  "kind": "CLAMP_DROP",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "line": 5399,
+  "old": "        displaced = max(0.0, space_baseline_cost) + max(0.0, -end_cost)",
+  "new": "        displaced = (0.0) + max(0.0, -end_cost)",
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._start_gap_cost CLAMP_DROP 31b40b21"
+ },
+ {
+  "kind": "CLAMP_DROP",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "line": 5399,
+  "old": "        displaced = max(0.0, space_baseline_cost) + max(0.0, -end_cost)",
+  "new": "        displaced = max(0.0, space_baseline_cost) + (0.0)",
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._start_gap_cost CLAMP_DROP 31b40b21"
+ },
+ {
+  "kind": "CLAMP_DROP",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "line": 5400,
+  "old": "        return max(min(capped, uncapped), -displaced)",
+  "new": "        return (min(capped, uncapped))",
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._start_gap_cost CLAMP_DROP 83697c20"
+ },
+ {
+  "kind": "CLAMP_DROP",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "line": 5400,
+  "old": "        return max(min(capped, uncapped), -displaced)",
+  "new": "        return max((capped), -displaced)",
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._start_gap_cost CLAMP_DROP 83697c20"
+ },
+ {
+  "kind": "RETURN_DEL",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "line": 5400,
+  "old": "        return max(min(capped, uncapped), -displaced)",
+  "new": "        pass",
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._start_gap_cost RETURN_DEL 83697c20"
+ },
+ {
+  "kind": "GUARD_OFF",
+  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "line": 1018,
+  "old": "    elif row[\"plan\"] is not inp.plan:",
+  "new": "    elif False:",
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_observe GUARD_OFF f2ad4d4c"
+ }
+]
