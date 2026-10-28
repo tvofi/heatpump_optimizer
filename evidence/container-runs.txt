@@ -1,0 +1,35 @@
+== F5 tree=base
+run 1: FAIL a 600 ms spin read as 600.5 ms; dump names the spin: True; py-spy rc=0 names it: False | py-spy did not run: TimeoutExpired: Command '['/opt/hpo/py-spy', 'dump', '--nonblocking', '--pid', '1']' timed out after 30 seconds
+run 2: FAIL a 600 ms spin read as 600.7 ms; dump names the spin: True; py-spy rc=0 names it: False | py-spy did not run: TimeoutExpired: Command '['/opt/hpo/py-spy', 'dump', '--nonblocking', '--pid', '1']' timed out after 30 seconds
+run 3: FAIL a 600 ms spin read as 600.4 ms; dump names the spin: True; py-spy rc=0 names it: False | py-spy did not run: TimeoutExpired: Command '['/opt/hpo/py-spy', 'dump', '--nonblocking', '--pid', '1']' timed out after 30 seconds
+SUMMARY sampler=hang-once runs=3 ok=0 fail=3
+== F5 tree=head
+run 1: ok a 600 ms spin read as 600.6 ms; dump names the spin: True; py-spy rc=0 names it: True; try 2 of 2 (at most 3) | py-spy did not run: TimeoutExpired: Command '['/opt/hpo/py-spy', 'dump', '--nonblocking', '--pid', '1']' timed out after 5.0 seconds / py-spy rc=0:
+run 2: ok a 600 ms spin read as 600.7 ms; dump names the spin: True; py-spy rc=0 names it: True; try 2 of 2 (at most 3) | py-spy did not run: TimeoutExpired: Command '['/opt/hpo/py-spy', 'dump', '--nonblocking', '--pid', '1']' timed out after 5.0 seconds / py-spy rc=0:
+run 3: ok a 600 ms spin read as 600.7 ms; dump names the spin: True; py-spy rc=0 names it: True; try 2 of 2 (at most 3) | py-spy did not run: TimeoutExpired: Command '['/opt/hpo/py-spy', 'dump', '--nonblocking', '--pid', '1']' timed out after 5.0 seconds / py-spy rc=0:
+SUMMARY sampler=hang-once runs=3 ok=3 fail=0
+== real tree=head
+run 1: ok a 600 ms spin read as 600.6 ms; dump names the spin: True; py-spy rc=0 names it: True; try 1 of 1 (at most 3) | py-spy rc=0:
+run 2: ok a 600 ms spin read as 600.4 ms; dump names the spin: True; py-spy rc=0 names it: True; try 1 of 1 (at most 3) | py-spy rc=0:
+run 3: ok a 600 ms spin read as 600.5 ms; dump names the spin: True; py-spy rc=0 names it: True; try 1 of 1 (at most 3) | py-spy rc=0:
+run 4: ok a 600 ms spin read as 600.5 ms; dump names the spin: True; py-spy rc=0 names it: True; try 1 of 1 (at most 3) | py-spy rc=0:
+run 5: ok a 600 ms spin read as 600.5 ms; dump names the spin: True; py-spy rc=0 names it: True; try 1 of 1 (at most 3) | py-spy rc=0:
+run 6: ok a 600 ms spin read as 600.4 ms; dump names the spin: True; py-spy rc=0 names it: True; try 1 of 1 (at most 3) | py-spy rc=0:
+run 7: ok a 600 ms spin read as 600.5 ms; dump names the spin: True; py-spy rc=0 names it: True; try 1 of 1 (at most 3) | py-spy rc=0:
+run 8: ok a 600 ms spin read as 600.5 ms; dump names the spin: True; py-spy rc=0 names it: True; try 1 of 1 (at most 3) | py-spy rc=0:
+run 9: ok a 600 ms spin read as 600.5 ms; dump names the spin: True; py-spy rc=0 names it: True; try 1 of 1 (at most 3) | py-spy rc=0:
+run 10: ok a 600 ms spin read as 600.6 ms; dump names the spin: True; py-spy rc=0 names it: True; try 1 of 1 (at most 3) | py-spy rc=0:
+SUMMARY sampler=real runs=10 ok=10 fail=0
+== real tree=base
+run 1: ok a 600 ms spin read as 600.6 ms; dump names the spin: True; py-spy rc=0 names it: True | py-spy rc=0:
+run 2: ok a 600 ms spin read as 600.6 ms; dump names the spin: True; py-spy rc=0 names it: True | py-spy rc=0:
+run 3: ok a 600 ms spin read as 600.6 ms; dump names the spin: True; py-spy rc=0 names it: True | py-spy rc=0:
+run 4: ok a 600 ms spin read as 600.6 ms; dump names the spin: True; py-spy rc=0 names it: True | py-spy rc=0:
+run 5: ok a 600 ms spin read as 600.7 ms; dump names the spin: True; py-spy rc=0 names it: True | py-spy rc=0:
+run 6: ok a 600 ms spin read as 600.6 ms; dump names the spin: True; py-spy rc=0 names it: True | py-spy rc=0:
+run 7: ok a 600 ms spin read as 600.5 ms; dump names the spin: True; py-spy rc=0 names it: True | py-spy rc=0:
+run 8: ok a 600 ms spin read as 600.6 ms; dump names the spin: True; py-spy rc=0 names it: True | py-spy rc=0:
+run 9: ok a 600 ms spin read as 600.4 ms; dump names the spin: True; py-spy rc=0 names it: True | py-spy rc=0:
+run 10: ok a 600 ms spin read as 600.6 ms; dump names the spin: True; py-spy rc=0 names it: True | py-spy rc=0:
+SUMMARY sampler=real runs=10 ok=10 fail=0
+DONE

@@ -1,0 +1,2 @@
+F2 tree=base pass=False calls=1 elapsed=30.3s detail=a 600 ms spin read as 600.6 ms; dump names the spin: True; py-spy rc=0 names it: False
+F2 tree=head pass=True calls=2 elapsed=7.1s detail=a 600 ms spin read as 600.6 ms; dump names the spin: True; py-spy rc=0 names it: True; try 2 of 2 (at most 3)

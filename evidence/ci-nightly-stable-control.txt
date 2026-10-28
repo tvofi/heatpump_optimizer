@@ -1,0 +1,1 @@
+job 119763055260 nightly-ha (stable) at 7651b942166e994a29d4b2178ba551ac43565b73: 'ok   hb:positive_control  [a 600 ms spin read as 600.2 ms; dump names the spin: True; py-spy rc=0 names it: True; try 1 of 1 (at most 3)]' ... 'ALL 64 checks PASSED'
