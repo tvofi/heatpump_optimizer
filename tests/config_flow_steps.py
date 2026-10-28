@@ -7327,6 +7327,61 @@ async def r9_f5_text_and_menu_findings():
     )
 
 
+# ---------------------------------------------------------------------------
+# R10-CONFIGFLOW-PAGES arm C/C2 (ARCH2-s5-F1, #2238): one setting, one widget.
+# Every setup-flow field whose key has an ``_OPTION_FIELDS`` row renders that
+# row's widget OBJECT, so the two flows cannot offer two ranges for one setting.
+# ---------------------------------------------------------------------------
+SETUP_FORM_STEPS = (
+    "temperature", "building_extras", "thermal", "zones", "dhw",
+    "weather_sensitivity", "user", "user_sensors", "quick_setup", "building_describe",
+)
+
+
+def _schema_leaves(schema):
+    """(marker, widget) for every field, a ``section()``'s fields included."""
+    for marker, value in schema.schema.items():
+        inner = getattr(value, "schema", None)
+        if isinstance(inner, vol.Schema):
+            yield from _schema_leaves(inner)
+        else:
+            yield marker, value
+
+
+async def setup_widgets_are_the_registry_rows():
+    """Each setup field with a registry row delivers that row's widget (``is``)."""
+    R.section("setup flow: every field with an options row renders that row's widget")
+    flow = config_flow.HeatPumpOptimizerConfigFlow()
+    flow.hass = FakeHass()
+    in_registry, twice = 0, []
+    for step in SETUP_FORM_STEPS:
+        schema = (await getattr(flow, f"async_step_{step}")()).get("data_schema")
+        for marker, widget in _schema_leaves(schema):
+            key = str(marker)
+            rows = [row for row in config_flow._OPTION_FIELDS if row.key == key]
+            if not rows:
+                continue
+            in_registry += 1
+            if not any(widget is row.widget for row in rows):
+                twice.append(f"{step}:{key}")
+    # The census asserts its own reach: a page that stopped rendering would
+    # pass the identity check vacuously.
+    check(
+        "temperature",
+        "happy",
+        "the setup-widget census reaches every registry-backed setup field",
+        in_registry >= 64,
+        f"registry-backed setup fields={in_registry}",
+    )
+    check(
+        "temperature",
+        "happy",
+        "no setup field spells a second widget for a setting the options registry declares",
+        not twice,
+        f"{len(twice)} spelled twice: {twice[:12]}",
+    )
+
+
 async def main() -> int:
     if "--self-check" in sys.argv:
         return await self_check()
@@ -7372,6 +7427,7 @@ async def main() -> int:
     await config_flow_device_prefill_offer()
     await device_prefill_preview_texts()
     await r9_f5_text_and_menu_findings()
+    await setup_widgets_are_the_registry_rows()
 
     print()
     LEDGER.print_result_lines()
