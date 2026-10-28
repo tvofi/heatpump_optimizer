@@ -1,0 +1,6 @@
+note: the quoted carry text holds no cite; the op prepends 'triage: ...#P216' as the ruling's intro says
+verdict ACCEPT
+carry -> None
+mutant DEFER -> dev/programme/triage/s6-batch42.md#P216 is not an ACCEPT ruling (DEFER)
+mutant heading -> dev/programme/triage/s6-batch42.md#P216 is not an ACCEPT ruling (no such entry)
+null missing file -> the triage ruling dev/programme/triage/s6-batch42.md is not on the roster branch or origin/main

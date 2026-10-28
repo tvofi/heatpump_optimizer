@@ -1,0 +1,24 @@
+# proposal-triage.md:32
+**You do not** implement, edit the roster or merge. The orchestrator routes an
+# policy_lint --budgets (CLAUDE.md, proposal-triage.md, orchestrator.md)
+file                                           lines cap  ~tokens  cap always
+tools/audit/briefs/orchestrator.md               295  295     4251  4251 
+CLAUDE.md                                        213  221     3605  3605   yes
+dev/governance/roles/proposal-triage.md           36   36      489   489 
+# policy_lint.mjs:1675-1682
+    if (tokenCaps == null) continue
+    const tcap = tokenCaps[r.file]
+    if (tcap === undefined) {
+      out.push({ severity: 'error', check: 'budgets', where: r.file, message: `no token cap recorded in ${BUDGET_FILE}'s files_tokens. A capped file carries both caps, or its prose can grow at a constant line count.` })
+    } else if (!refused(r.file, `files_tokens["${r.file}"]`, tcap) && Math.round(r.bytes / 4) > tcap) {
+      out.push({
+        severity: 'error',
+        check: 'budgets',
+# drafted paragraph bytes 413 tokens~ 103
+ wrapped at 80 -> 6 lines
+ wrapped at 79 -> 6 lines
+ wrapped at 78 -> 6 lines
+ CLAUDE.md max prose line len 109
+14418 3604.5 3604 max bytes at cap 14421
+R10-ROUND-PLAYBOOK not-started ['dev/audit/README.md', 'CLAUDE.md'] 0
+live groups listing CLAUDE.md: [('R10-ROUND-PLAYBOOK', 'not-started')]
