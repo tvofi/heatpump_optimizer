@@ -1,0 +1,12 @@
+head 3754510d82e329cbb27d2f8ca38ed031eaafa6c2
+RESULT ruling_verdict(real file, P264) = ACCEPT
+RESULT ruling_verdict(Verdict rewritten to REJECT) = REJECT; triage_refusal -> "dev/programme/triage/s6-batch53.md#P264 is not an ACCEPT ruling (REJECT)"
+RESULT triage_refusal(real) = None
+RESULT null (ruling absent) -> "the triage ruling dev/programme/triage/s6-batch53.md is not on the roster branch or origin/main"
+RESULT merge-tree origin/main(beb570c8, unmoved) vs head: exit 0, tree b600b796
+RESULT diff vs merge base: 2 added files (dev/programme/delivery/2926.md, dev/programme/triage/s6-batch53.md); no VERSION/manifest/notes/claim file touched
+RESULT line cites: app_comment.sh:68-69, merge_train.py:2029 admit_verdict, 2047 carry call, 2076 "confirmed and not posted" all match
+RESULT verdicts per PR (grep -c 'Fix review: merge' on origin/verdict/<n>): 2745=14 2819=3 2824=2 2817=2 2775=5 2612=2 (matches body)
+RESULT pin count: first-parent merges since 2026-10-21T00:00Z: 18 of 327; since 2026-10-22T00:00Z: 16 of 275; body says 16 of 284 (not reproduced)
+RESULT roles diff base...main: empty
+RESULT CI at read: 7 check runs, arm skipped, six queued; none red
