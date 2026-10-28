@@ -163,6 +163,30 @@ def _git(repo: str, *args: str) -> subprocess.CompletedProcess:
                           text=True)
 
 
+def blob_at(repo: str, ref: str, path: str) -> tuple[bool | None, str]:
+    """Whether `path` is a file in `ref`'s tree: `(True, "")`, `(False, "")`
+    when nothing is at that path, `(None, why)` when git cannot say.
+
+    Read with `git ls-tree`, which reads the trees on the way to `path` and
+    never the blob, so absent (an empty listing) and unreadable (git's own
+    failure) are different answers. `cat-file -e` fails alike for an absent
+    path and an unreadable blob, and `rev-parse --verify --quiet` exits 1
+    alike for an absent path and an unreadable tree on the way to it (#2883).
+    A present blob git cannot read is True here; its reader reports that.
+    """
+    r = _git(repo, "ls-tree", "-z", "--full-tree", ref, "--", path)
+    if r.returncode:
+        return None, (f"cannot read {path} at {ref}: "
+                      f"{(r.stderr or r.stdout).strip()[:140]}")
+    for entry in filter(None, r.stdout.split("\0")):
+        meta, _, name = entry.partition("\t")
+        if name == path:
+            kind = meta.split()[1]
+            return (True, "") if kind == "blob" else (
+                None, f"{path} at {ref} is a {kind}, not a file")
+    return False, ""
+
+
 def roster_path(repo: str = ".", ref: str | None = None,
                 override: str | None = None) -> str:
     """THE answer to "which roster", relative to the repository root.
@@ -174,11 +198,11 @@ def roster_path(repo: str = ".", ref: str | None = None,
     and an absent roster both raise RosterNotFound.
     """
     if override:
-        there = (_git(repo, "cat-file", "-e", f"{ref}:{override}").returncode == 0
-                 if ref else (Path(repo) / override).is_file())
+        there, why = (blob_at(repo, ref, override) if ref
+                      else ((Path(repo) / override).is_file(), ""))
         if not there:
-            raise RosterNotFound(f"--roster-path {override} is not a file at "
-                                 f"{ref or Path(repo).resolve()}")
+            raise RosterNotFound(why or f"--roster-path {override} is not a "
+                                 f"file at {ref or Path(repo).resolve()}")
         return override
     if ref:
         r = _git(repo, "ls-tree", "--name-only", ref, ROSTERS_DIR + "/")
@@ -278,6 +302,30 @@ def reader_ref(repo: str, ref: str | None) -> str:
     if note:
         print(f"roster_lib: {note}", file=sys.stderr)
     return ref
+
+
+def roster_shape(roster) -> str:
+    """Why `roster` is not a roster ("" when it is one).
+
+    JSON that parses is not yet a source this module can read: every reader
+    below indexes `groups` and each entry's `group`, so a list, a `groups`
+    that is not one, or an entry without a string `group` is an unreadable
+    source -- UNAVAILABLE to a caller that must tell it from a measurement
+    (#2883) -- and not an empty roster. A missing `groups` key is still an
+    empty roster: `groups_of` has always read that as no groups, and a
+    roster of none is a measurement.
+    """
+    if not isinstance(roster, dict):
+        return f"not a JSON object ({type(roster).__name__})"
+    groups = roster.get("groups", [])
+    if not isinstance(groups, list):
+        return f"`groups` is a {type(groups).__name__}, not a list"
+    for i, g in enumerate(groups):
+        if not isinstance(g, dict):
+            return f"groups[{i}] is a {type(g).__name__}, not an object"
+        if not isinstance(g.get("group"), str):
+            return f"groups[{i}] carries no string `group`"
+    return ""
 
 
 def groups_of(roster: dict) -> dict:
@@ -416,32 +464,62 @@ def group_for_branch(roster: dict, branch: str) -> str | None:
 #     {"at": "<iso8601>", "critical": ["R10-GROUP", ...]}
 #
 # `at` records when the set was published and is not read; `critical` is the
-# list of roster group ids. A missing, unreadable or differently-shaped file is
-# None -- "no group is critical" to a caller, never a crash and never "all are".
+# list of roster group ids. A ref that publishes no file means no group is
+# critical -- a measurement, `set()`; a file that is there and cannot be read
+# (git's own failure, invalid JSON, a non-object, a `critical` that is not a
+# list of strings) is UNAVAILABLE with its reason, never a zero and never "all
+# are" (#2883). `critical_path_groups` keeps the lossy None for callers whose
+# contract is to fail toward "nothing critical"; `critical_path_read` is the
+# reason-bearing form a board that must print the difference reads.
 CRITICAL_PATH_NAME = f"{ROSTERS_DIR}/critical-path.json"
+
+
+def critical_path_read(repo: str, ref: str) -> tuple[set[str] | None, str]:
+    """`(set, "")` when `ref` answered; `(None, why)` when it could not be read.
+
+    Read at `ref` (`git show`), so a caller needs no checkout of the roster
+    branch. An unresolvable REF and a file that will not parse are both
+    unreadable; only a ref that resolves and carries no
+    `CRITICAL_PATH_NAME` at all is the measurement "none published".
+    """
+    if _git(repo, "rev-parse", "--verify", "--quiet",
+            f"{ref}^{{commit}}").returncode:
+        return None, f"cannot read {ref}: not a resolvable commit"
+    there, why = blob_at(repo, ref, CRITICAL_PATH_NAME)
+    if there is None:
+        return None, why
+    if not there:
+        return set(), ""
+    r = _git(repo, "show", f"{ref}:{CRITICAL_PATH_NAME}")
+    if r.returncode:
+        return None, (f"cannot read {CRITICAL_PATH_NAME} at {ref}: "
+                      f"{(r.stderr or r.stdout).strip()[:140]}")
+    try:
+        data = json.loads(r.stdout)
+    except ValueError as e:
+        return None, f"{CRITICAL_PATH_NAME} at {ref} is not JSON: {e}"
+    if not isinstance(data, dict):
+        return None, (f"{CRITICAL_PATH_NAME} at {ref} is not a JSON object "
+                      f"({type(data).__name__})")
+    ids = data.get("critical")
+    if not isinstance(ids, list) or not all(isinstance(i, str) for i in ids):
+        return None, (f"{CRITICAL_PATH_NAME} at {ref} carries no `critical` "
+                      "list of ids")
+    return {norm_group(i) for i in ids}, ""
 
 
 def critical_path_groups(repo: str, ref: str) -> set[str] | None:
     """The normalized group ids `CRITICAL_PATH_NAME` lists at `ref`, or None.
 
-    Read at `ref` (`git show`), so a caller needs no checkout of the roster
-    branch. None covers every failure the caller must treat as "nothing is
-    critical": the file absent at this ref, git unreadable, invalid JSON, a
-    non-object, or a `critical` that is not a list of strings.
+    The lossy convenience form of `critical_path_read`: None covers every
+    outcome a caller must treat as "nothing is critical" -- the file absent at
+    this ref, git unreadable, invalid JSON, a non-object, or a `critical` that
+    is not a list of strings. `gate_priority.py`'s pre-pr helper is that
+    caller: it must never crash a run. A reader that has to *print* the
+    difference reads `critical_path_read`.
     """
-    r = _git(repo, "show", f"{ref}:{CRITICAL_PATH_NAME}")
-    if r.returncode:
-        return None
-    try:
-        data = json.loads(r.stdout)
-    except ValueError:
-        return None
-    if not isinstance(data, dict):
-        return None
-    ids = data.get("critical")
-    if not isinstance(ids, list) or not all(isinstance(i, str) for i in ids):
-        return None
-    return {norm_group(i) for i in ids}
+    groups, _ = critical_path_read(repo, ref)
+    return groups or None
 
 
 # ------------------------------------------------------------------ self-test
@@ -540,6 +618,20 @@ def _self_test() -> int:
         check("a group id normalizes case and underscore", norm_group("R10_A") == "r10-a")
         check("no critical-path file at a ref is None",
               critical_path_groups(str(repo), "HEAD") is None)
+        check("critical_path_read: a ref publishing no file is (set(), ''), a "
+              "measurement not a failure",
+              critical_path_read(str(repo), "HEAD") == (set(), ""),
+              critical_path_read(str(repo), "HEAD"))
+        check("critical_path_read: an unresolvable ref is UNAVAILABLE",
+              critical_path_read(str(repo), "refs/heads/nope")[0] is None
+              and bool(critical_path_read(str(repo), "refs/heads/nope")[1]))
+        check("roster_shape: an absent groups key is an empty roster",
+              roster_shape({}) == "", roster_shape({}))
+        check("roster_shape: a list is not a roster",
+              "not a JSON object" in roster_shape([]), roster_shape([]))
+        check("roster_shape: an entry without a string group is not a roster",
+              "groups[0]" in roster_shape({"groups": [{"lane": "IN"}]}),
+              roster_shape({"groups": [{"lane": "IN"}]}))
         (repo / CRITICAL_PATH_NAME).write_text(
             json.dumps({"at": "2026-10-20T00:00:00Z", "critical": ["R10_A", "R10-B"]}),
             encoding="utf-8")
@@ -557,6 +649,11 @@ def _self_test() -> int:
             check(f"a malformed critical-path file is None: {bad}",
                   critical_path_groups(str(repo), "HEAD") is None,
                   critical_path_groups(str(repo), "HEAD"))
+            check(f"critical_path_read: a malformed file is UNAVAILABLE, not "
+                  f"empty: {bad}",
+                  critical_path_read(str(repo), "HEAD")[0] is None
+                  and bool(critical_path_read(str(repo), "HEAD")[1]),
+                  critical_path_read(str(repo), "HEAD"))
         check("two rosters at a ref: the newest",
               roster_path(str(repo), "HEAD")
               == f"{ROSTERS_DIR}/wave-r10-groups.json")
@@ -610,6 +707,71 @@ def _self_test() -> int:
         got = default_roster_ref(g)
         check("no roster readable at main: main, with a note (null control)",
               got[0] == MAIN_REF and got[1], got)
+
+        # AN OBJECT GIT CANNOT READ (#2883 review 2). Absent and unreadable
+        # are different answers: `cat-file -e` fails alike for an absent path
+        # and an unreadable blob, and `rev-parse --verify --quiet` exits 1
+        # alike for an absent path and an unreadable tree on the way to it.
+        # Last in the test: the drops below leave HEAD unreadable. Each
+        # dropped object is unique to its commit and asserted loose first.
+        def drop(sha: str) -> bool:
+            p = repo / ".git" / "objects" / sha[:2] / sha[2:]
+            had = p.is_file()
+            p.unlink(missing_ok=True)
+            return had
+
+        def commit_crit(at: str) -> str:
+            (repo / CRITICAL_PATH_NAME).write_text(
+                json.dumps({"at": at, "critical": ["R10-A"]}), encoding="utf-8")
+            subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
+            subprocess.run(["git", "-C", str(repo), "commit", "-q", "-m", at],
+                           check=True)
+            return subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"],
+                                  capture_output=True, text=True).stdout.strip()
+        intact = commit_crit("2026-10-28T00:00:00Z")
+        check("blob_at: a file present is (True, '')",
+              blob_at(str(repo), intact, CRITICAL_PATH_NAME) == (True, ""),
+              blob_at(str(repo), intact, CRITICAL_PATH_NAME))
+        check("blob_at: an absent path is (False, ''), a measurement",
+              blob_at(str(repo), intact, f"{ROSTERS_DIR}/nope.json") == (False, ""),
+              blob_at(str(repo), intact, f"{ROSTERS_DIR}/nope.json"))
+        check("blob_at: an absent directory is (False, '')",
+              blob_at(str(repo), intact, "zz/nope.json") == (False, ""),
+              blob_at(str(repo), intact, "zz/nope.json"))
+        got = blob_at(str(repo), intact, ROSTERS_DIR)
+        check("blob_at: a directory is not a file, and says so",
+              got[0] is None and "tree" in got[1], got)
+        blob_gone = commit_crit("2026-10-28T01:00:00Z")
+        check("fixture: the critical-path blob was loose and is dropped",
+              drop(subprocess.run(["git", "-C", str(repo), "rev-parse",
+                                   f"{blob_gone}:{CRITICAL_PATH_NAME}"],
+                                  capture_output=True, text=True).stdout.strip()))
+        check("blob_at: an unreadable blob is still present -- its entry is "
+              "read, not its bytes",
+              blob_at(str(repo), blob_gone, CRITICAL_PATH_NAME) == (True, ""),
+              blob_at(str(repo), blob_gone, CRITICAL_PATH_NAME))
+        got = critical_path_read(str(repo), blob_gone)
+        check("critical_path_read: an unreadable blob is UNAVAILABLE with "
+              "git's reason, never set()",
+              got[0] is None and "cannot read" in got[1], got)
+        tree_gone = commit_crit("2026-10-28T02:00:00Z")
+        check("fixture: the rosters tree was loose and is dropped",
+              drop(subprocess.run(["git", "-C", str(repo), "rev-parse",
+                                   f"{tree_gone}:{ROSTERS_DIR}"],
+                                  capture_output=True, text=True).stdout.strip()))
+        got = blob_at(str(repo), tree_gone, CRITICAL_PATH_NAME)
+        check("blob_at: an unreadable tree on the way is (None, why), never "
+              "absent", got[0] is None and "cannot read" in got[1], got)
+        got = blob_at(str(repo), tree_gone, "zz/nope.json")
+        check("blob_at: a path outside the unreadable tree is still absent "
+              "(null control)", got == (False, ""), got)
+        got = critical_path_read(str(repo), tree_gone)
+        check("critical_path_read: an unreadable tree is UNAVAILABLE, never "
+              "set()", got[0] is None and "cannot read" in got[1], got)
+        why = refuses(lambda: roster_path(str(repo), tree_gone, CRITICAL_PATH_NAME))
+        check("an override behind an unreadable tree refuses with git's read, "
+              "not 'is not a file'",
+              "cannot read" in why and "is not a file" not in why, why)
     print(f"roster_lib self-test: {n[0]} checks, {len(fails)} failed")
     for f in fails:
         print("FAIL", f)
