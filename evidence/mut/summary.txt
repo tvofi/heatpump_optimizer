@@ -1,0 +1,11 @@
+MUTANT M0 rc=0 secs=77 :: pr_args self-test: 86 checks, 0 failed  :: FAILS: 0
+MUTANT A_apppush_trapcleanup rc=1 secs=37 :: app_push self-test: 186 checks, 1 failed  :: FAILS: 1
+MUTANT B_grace rc=1 secs=78 :: pr_args self-test: 86 checks, 1 failed  :: FAILS: 1
+MUTANT C_exitreap rc=1 secs=76 :: pr_args self-test: 86 checks, 11 failed  :: FAILS: 11
+MUTANT D_handoff_fg rc=1 secs=77 :: pr_args self-test: 86 checks, 2 failed  :: FAILS: 2
+MUTANT E_relay_trap rc=1 secs=10 :: cloud_relay self-test: 82 checks, 1 failed  :: FAILS: 1
+MUTANT F_train_kill rc=1 secs=33 :: merge_train self-test: 200 checks, 1 failed  :: FAILS: 1
+MUTANT G_sigign rc=1 secs=76 :: pr_args self-test: 86 checks, 1 failed  :: FAILS: 1
+MUTANT H_remerge_fg rc=1 secs=76 :: pr_args self-test: 86 checks, 2 failed  :: FAILS: 2
+MUTANT I_update_reapspare rc=1 secs=86 :: pr_args self-test: 86 checks, 2 failed  :: FAILS: 2
+ALLDONE

@@ -1,0 +1,1 @@
+MUTANT M0 rc=0 secs=77 :: pr_args self-test: 86 checks, 0 failed  :: FAILS: 0

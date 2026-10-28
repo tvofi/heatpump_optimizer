@@ -1,0 +1,13 @@
+diff --git a/tools/audit/seat/merge_train.py b/tools/audit/seat/merge_train.py
+index bde6c47c8..da1c23c89 100644
+--- a/tools/audit/seat/merge_train.py
++++ b/tools/audit/seat/merge_train.py
+@@ -517,7 +517,7 @@ class Train:
+             try:
+                 out, err = p.communicate(stdin)
+             except BaseException:  # a stop (stop_on_signal): TERM the tool, never a bare SIGKILL
+-                p.terminate()
++                p.kill()
+                 try:
+                     p.wait(TOOL_STOP_SECONDS)
+                 except subprocess.TimeoutExpired:
