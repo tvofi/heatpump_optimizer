@@ -145,7 +145,8 @@ sweep's standing-seat liveness step keep them alive.
   the code head's ancestry (`prepr.sh` step 1a refuses that). Refusal: a
   head `tools/pr/ci_predict.py` predicts a closures or `fast` red on, or a
   checkout with no predictor (R10-HANDOFF-PREPR-BOUNCE M2), is refused
-  before anything is pushed, with each arm's repair printed; a fetch that
+  before anything is pushed, with each arm's repair printed; so is a PR body
+  `review_packet.py handoff` refuses (P256); a fetch that
   half-failed leaves a parentless commit the push refuses as a
   non-fast-forward — a rewrite is never forced through; the body commit it
   wrote is read back through `ref_privacy.py guard --commits`, message and
@@ -203,8 +204,12 @@ sweep's standing-seat liveness step keep them alive.
   renders its own from its dispatch prompt. Refusal: carry-audit, a `## Head`
   not naming the head, a `tests/structure.py` refusal at the head merged with
   main, an unanswered concluded red, a required context concluded failure, a
-  host path, or a hot file shared with an open pull request holding an
-  unboarded merge verdict; a pending check never refuses. A refusal still
+  host path, a hot file shared with an open pull request holding an
+  unboarded merge verdict, or a `fix/<t>` head lacking its `handoff/<t>` tip
+  (`handoff-not-applied`); a pending check never refuses. `handoff`, run by
+  `body_push.sh` before a PR body is pushed, refuses the structure and
+  hot-file signals and `brief-carries` (a roster carry the body never names
+  as `Carry N`). A refusal still
   WRITES the packet, so a held dispatch never withholds the evidence, except
   a host path, which writes nothing because the packet carries the diff.
   Unavailable (rc 3, `UNAVAILABLE`) is a different outcome: the seat cannot
