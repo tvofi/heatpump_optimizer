@@ -1012,7 +1012,15 @@ def plant_self_test(root: Path) -> int:
              ("a head copy of the lane that exits 1 is predicted green (null control: CI runs the base's)",
               [({ag: lambda s: "process.exit(1)\n" + s}, True)], "wave-script", None, 0),
              ("the registration staged and not committed is predicted green (null control)", [(register, False)],
-              "wave-script", None, 0)]
+              "wave-script", None, 0),
+             # WIRING's call site, not only its helper: `wiring_self_test` drives
+             # `wiring_preds` directly, so without this a deleted
+             # `preds += wiring_preds(...)` in `predict` would leave the arm dead
+             # and every check above green (#1591's lesson).
+             ("a self-testing tool the diff adds with no workflow run line is predicted red",
+              [({"tools/audit/seat/planted_selftest.py":
+                 app('if __name__ == "__main__":\n    pass  # --self-test\n')}, True)],
+              "instrument", ("UNWIRED", "UNWIRED tools/audit/seat/planted_selftest.py:"), 1)]
     marker = {"fast": "LAYOUT", "instrument": "REF PRIVACY", "wave-script": "AGREEMENT"}
     head = (git(root, "rev-parse", "HEAD") or "").strip()
     tmp = Path(tempfile.mkdtemp(prefix="hpo-ci-predict-plant-"))
@@ -1056,9 +1064,12 @@ def plant_self_test(root: Path) -> int:
             out = subprocess.run((sys.executable, "-I", "tools/pr/ci_predict.py", "--base", tip), cwd=r, env=penv,
                                  capture_output=True, text=True)
             lines = out.stdout.splitlines()
-            tag = f"PREDICT {JOB[job]} {marker[job]}"
+            # A case may name its own line marker (a job can hold two arms) as
+            # `(marker, text)`; `text` None is that arm's null control.
+            mark, want_text = want if isinstance(want, tuple) else (marker[job], want)
+            tag = f"PREDICT {JOB[job]} {mark}"
             fix = any(l.startswith(f"CI PREDICT: a{'n' if job == 'wave-script' else ''} {marker[job]} refusal") for l in lines)
-            hit = (any(l.startswith(tag) and want in l for l in lines) and fix if want
+            hit = (any(l.startswith(tag) and want_text in l for l in lines) and fix if want_text
                    else not any(l.startswith(tag) for l in lines) and not fix)
             ok = hit and out.returncode == rc
             print(f"  {'ok  ' if ok else 'FAIL'} {label} (rc {out.returncode})")
