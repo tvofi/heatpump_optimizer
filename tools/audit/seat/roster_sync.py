@@ -82,21 +82,46 @@ import ref_privacy  # noqa: E402  a ref or message never names this host (#2310)
 import roster_edit  # noqa: E402  the one write path: dump, commit, lint gate
 import roster_lib  # noqa: E402  which roster, and what a done stage is
 
-#: The stages a repository measurement may rewrite: the factual working
-#: states. A stage outside this tuple is a human disposition and is never
-#: overwritten -- the rule that keeps `deferred` and `refused` intact.
-DERIVABLE_STAGES = ("not-started", "planned", "queued", "in-progress",
-                    "in-flight", "fixing", "handoff", "done")
+#: The stages a repository measurement may touch: the registry's closeable
+#: view, imported rather than declared, so the reconciler and the writer cannot
+#: disagree about a word. A stage outside it is a human disposition -- or an
+#: unclassified word a hand-edited roster carries -- and is left alone.
+DERIVABLE_STAGES = roster_lib.DERIVABLE
 #: The human dispositions, named so a skip can say which rule protected it.
 #: Not exhaustive by design: anything unclassified is protected too, and the
-#: self-test refuses a roster stage this tuple and DERIVABLE_STAGES together
-#: do not cover. `deferred` and `refuted` are the tree's own rosters' words;
-#: `refused`, `absorbed` and `rca-done` are the orchestrator's and design 6.4's.
+#: self-test refuses a roster stage the registry does not classify.
+#: `deferred` and `refuted` are the tree's own rosters' words; `refused` and
+#: `absorbed` are the orchestrator's and design 6.4's (`rca-done` is a closed
+#: stage in the registry's DONE view, not a disposition).
 #: `carries-open`: the group's code is done but it still owns open carries; a
 #: human disposition, so a merged PR must not turn it into `done`. It is not
 #: `in-progress`, so `pr_cap.py` (WIP_STAGE equality) does not count it.
-PROTECTED_STAGES = ("deferred", "refused", "refuted", "absorbed", "rca-done",
-                    "carries-open")
+PROTECTED_STAGES = roster_lib.DISPOSITION
+
+
+def roster_sizes(root) -> dict:
+    """{size: the roster file carrying it} over every wave roster at `root`.
+
+    The durations model IS the size vocabulary (R10-ORCH-ROSTER-SCHEMA), so
+    this is the reading a drift check dials: a size a roster carries and the
+    model does not is `replan.build_plan`'s `size_hours[...]` KeyError, seen
+    before it happens. `None` is not a size -- the r9 roster carries none and
+    the planner defaults an absent one to M -- so it is skipped.
+    """
+    seen: dict[str, str] = {}
+    for path in sorted((Path(root) / roster_lib.ROSTERS_DIR)
+                       .glob("wave-*-groups.json")):
+        groups = json.loads(path.read_text(encoding="utf-8")).get("groups", [])
+        for g in groups:
+            size = g.get("size")
+            if size is not None:
+                seen.setdefault(size, path.name)
+    return seen
+
+
+def unmodelled_sizes(seen: dict, model) -> dict:
+    """The part of `seen` the duration model does not key: the drift."""
+    return {s: w for s, w in seen.items() if s not in model}
 #: The branch prefixes a topic is read past (design 6.4's B13 rule).
 PREFIXES = ("handoff-body/", "handoff/", "fix/")
 OPEN, MERGED, CLOSED = "OPEN", "MERGED", "CLOSED"
@@ -263,7 +288,15 @@ class Change(NamedTuple):
 def derive(roster: dict, prs: list[PR]) -> tuple[list[Change], list[tuple], list[PR]]:
     """(changes, skips, transitions): the stage writes a read supports, the
     groups a human disposition protected, and the merged pull requests whose
-    group moves to done in this pass -- the only bodies read for `Carry:`."""
+    group moves to done in this pass -- the only bodies read for `Carry:`.
+
+    The registry decides what a stage allows. A disposition is skipped. A
+    closed stage is a settled record and is left alone in both arms. A live
+    claim (`review`, `in-review`) is left alone while its pull request is open
+    and closed to `done` on the merge -- the transition that keeps a merged
+    group from being stranded open. Every other derivable stage follows the
+    read: an open pull request makes it `in-progress`, a merge makes it `done`.
+    """
     by_group = matches(roster, prs)
     changes: list[Change] = []
     skips: list[tuple] = []
@@ -276,9 +309,16 @@ def derive(roster: dict, prs: list[PR]) -> tuple[list[Change], list[tuple], list
         if pr is None:
             continue
         if stage not in DERIVABLE_STAGES:
-            skips.append((gid, stage, pr))
+            why = ("a human disposition"
+                   if stage in PROTECTED_STAGES else
+                   "unclassified: the writer refuses it and no read derives it")
+            skips.append((gid, stage, pr, why))
+            continue
+        if stage in roster_lib.DONE_STAGES:
             continue
         if pr.state == OPEN:
+            if stage in roster_lib.LIVE_CLAIM:
+                continue
             if stage != "in-progress" or resume.get("pr") != pr.number:
                 changes.append(Change(gid, "in-progress", pr.number, None, stage,
                                       pr.state))
@@ -289,10 +329,9 @@ def derive(roster: dict, prs: list[PR]) -> tuple[list[Change], list[tuple], list
         # A transition only: a group already done is a settled record, and its
         # commit is not re-recorded (the tick checks a done commit is in main;
         # a pull request's head is, once merged).
-        if stage != "done":
-            changes.append(Change(gid, "done", pr.number, pr.merge_commit,
-                                  stage, pr.state))
-            transitions.append(pr)
+        changes.append(Change(gid, "done", pr.number, pr.merge_commit,
+                              stage, pr.state))
+        transitions.append(pr)
     return changes, skips, transitions
 
 
@@ -348,6 +387,62 @@ def invalid_commits(checkout: str, roster: dict) -> list[tuple[str, str]]:
     return out
 
 
+RULING_CITE = re.compile(r"\btriage:\s*(dev/programme/triage/[A-Za-z0-9_.-]+\.md)"
+                         r"#(P\d+)\b")
+RULING_PROSE = re.compile(r"\btriage\s+P(\d+)(?:/Q(\d+))?\s*\((s\d+)\)", re.I)
+MARKUP = re.compile(r"[`*_]")
+
+
+def finding_words(text: str) -> str:
+    """<text> with markup dropped, whitespace collapsed, case folded: the form
+    two records of one finding agree on even when they were written apart."""
+    return " ".join(MARKUP.sub("", str(text)).lower().split())
+
+
+def rulings(text: str) -> set[tuple[str, str]]:
+    """(round, item) for every triage ruling <text> cites, in the resolvable
+    form (`triage: <file>#P<n>`) or the routing seat's prose form
+    (`triage P3 (s4)`). A triage item is one finding, so its ruling is the
+    finding's identity across two phrasings; P ids are unique within a round
+    (the s6 `## P<n>:` headings across `dev/programme/triage/s6-batch*.md`
+    define 169 ids with no duplicate)."""
+    out: set[tuple[str, str]] = set()
+    for path, pid in RULING_CITE.findall(str(text)):
+        m = re.match(r"s\d+", path.rsplit("/", 1)[-1])
+        if m:
+            out.add((m.group(0), pid))
+    for p, q, rnd in RULING_PROSE.findall(str(text)):
+        out.add((rnd.lower(), "P" + p))
+        if q:
+            out.add((rnd.lower(), "Q" + q))
+    return out
+
+
+def already_carried(carries: list, text: str) -> str | None:
+    """The destination carry that records this same finding, or None.
+
+    The key is the finding, never the pull request (#2889's B1): one pull
+    request legitimately routes several findings to one destination, so a key
+    on the number refuses a genuine second finding, and a carry that mentions
+    a number in prose (`a second instance beside #2447's`) matches it too. Two
+    records are the same finding when they cite the same triage ruling, or
+    when their substantive text is equal once markup and whitespace are
+    normalised. A derived copy
+    the destination already holds is refused before the write path's triage
+    gate sees it: that gate refuses an unresolvable `triage P<n>` citation,
+    and `write_roster` is atomic, so the duplicate would abort the stage
+    changes that stop it being re-derived.
+    """
+    want = finding_words(text)
+    want_rulings = rulings(text)
+    for c in carries:
+        if finding_words(c) == want:
+            return str(c)
+        if want_rulings & rulings(c):
+            return str(c)
+    return None
+
+
 def carry_plan(roster: dict, transitions: list[PR], repo: str,
                pr_state: str | None) -> tuple[list[tuple], list[tuple]]:
     """(appends, refusals) from a merged body's `Carry: <GROUP>` items.
@@ -355,7 +450,11 @@ def carry_plan(roster: dict, transitions: list[PR], repo: str,
     The parser is `carry_audit.py`'s (`audit`, hence `items` and `carry_dests`);
     a second one is refused. Only a group token is appended -- an issue, an
     O-brief and a dismissal keep their own record -- and a destination that
-    is done is refused, never appended.
+    is done is refused, never appended. A destination that already records
+    the same finding (`already_carried`) is refused too: the derived text is
+    that finding again in the body's words, and re-appending it would
+    duplicate the carry. A different finding from the same pull request
+    still appends.
     """
     groups = roster_lib.groups_of(roster)
     appends: list[tuple] = []
@@ -377,6 +476,12 @@ def carry_plan(roster: dict, transitions: list[PR], repo: str,
                 else:
                     text = " ".join(BULLET.sub("", row["text"], count=1).split())
                     if text in (g.get("carry") or []) or (dest, text) in appends:
+                        continue
+                    held = already_carried(g.get("carry") or [], text)
+                    if held is not None:
+                        refusals.append((pr.number, dest,
+                                         "already carried (the same finding, "
+                                         f"from #{pr.number}): {held[:60]!r}"))
                         continue
                     appends.append((dest, text))
     return appends, refusals
@@ -494,7 +599,10 @@ def sync(a) -> int:
         if not made:
             parent = Path(tempfile.mkdtemp(prefix="hpo-roster-sync-"))
             made = str(parent / "wt")
-        def edit(roster) -> bool:
+        def edit(roster, _rel) -> bool:
+            # `_rel` is the roster's path, which write_roster hands every edit
+            # for a refusal to name; a sync derives only classified stages, so
+            # it has nothing to refuse and does not use it.
             # Re-derive on the bytes this write path is about to replace --
             # on every attempt of a push race -- so the edit is computed from
             # the file it lands in, never an older read.
@@ -605,6 +713,63 @@ def self_test() -> int:
     LINT_BAD = ("console.log('TOTAL: 1 error(s) across 1 file(s)');\n")
     ROSTER = f"{roster_lib.ROSTERS_DIR}/wave-r9-groups.json"
 
+    # THE LIVE-CLAIM CLOSE (R10-ORCH-ROSTER-SCHEMA). `review` and `in-review`
+    # are a seat's claim that the work is live: the reconciler leaves the claim
+    # alone while its pull request is open and closes it to `done` on the merge,
+    # so a live claim can never strand a merged group open. A done group is a
+    # settled record in both arms.
+    #
+    # First, before any git fixture: these arms are pure, and a mutant on the
+    # done guard breaks the fixtures below in ways that abort them -- a plant
+    # must turn its OWN arm red, not die in a later block first.
+    live = {"groups": [
+        {"group": "L-OPEN", "resume": {"stage": "in-review",
+                                       "branch": "handoff/l-open"}},
+        {"group": "L-MERGED", "resume": {"stage": "review",
+                                         "branch": "handoff/l-merged"}},
+        {"group": "L-GONE", "resume": {"stage": "done",
+                                       "branch": "handoff/l-gone"}},
+    ]}
+    got_changes, got_skips, _ = derive(live, [
+        PR(31, OPEN, "handoff/l-open", None, ""),
+        PR(32, MERGED, "handoff/l-merged", "3" * 40, "## Friction\n\n- none\n"),
+        PR(33, OPEN, "handoff/l-gone", None, ""),
+    ])
+    by = {c.group: c for c in got_changes}
+    check("a live claim survives its open pull request (no change)",
+          "L-OPEN" not in by and not [s for s in got_skips if s[0] == "L-OPEN"],
+          (by, got_skips))
+    check("a live claim is closed to done by its merge",
+          "L-MERGED" in by and by["L-MERGED"].stage == "done"
+          and by["L-MERGED"].merge_commit == "3" * 40, by)
+    check("a done group stays settled under a matching open pull request",
+          "L-GONE" not in by, by)
+
+    # The reader half of the vocabulary barrier: a word the registry does not
+    # classify is skipped with that reason and never derived, while a
+    # classified word in the same fixture still derives -- so the skip is the
+    # word's, not the fixture's shape.
+    odd = {"groups": [
+        {"group": "L-ODD", "resume": {"stage": "reviewed",
+                                      "branch": "handoff/l-odd"}},
+        {"group": "L-OK", "resume": {"stage": "not-started",
+                                     "branch": "handoff/l-ok"}},
+    ]}
+    got_changes, got_skips, _ = derive(odd, [
+        PR(34, OPEN, "handoff/l-odd", None, ""),
+        PR(35, OPEN, "handoff/l-ok", None, ""),
+    ])
+    by = {c.group: c for c in got_changes}
+    skip = {s[0]: s[3] for s in got_skips}
+    check("an unclassified stage is skipped, named as unclassified, and not "
+          "derived", "L-ODD" not in by and "unclassified" in skip.get("L-ODD", ""),
+          (by, skip))
+    check("a classified stage beside it still derives (null control)",
+          by.get("L-OK") is not None and by["L-OK"].stage == "in-progress",
+          by)
+
+
+
     def build(tmp: Path, lint_src: str) -> tuple[Path, Path, Path]:
         """(bare origin, driver clone, fixture roster path at the driver)."""
         tmp.mkdir(parents=True, exist_ok=True)
@@ -696,6 +861,41 @@ def self_test() -> int:
         {"group": "R9-HELD", "lane": "L1", "issues": [], "fixes": [],
          "after": [], "brief": "held", "carry": ["already held. Carry: R9-HELD"],
          "resume": {"stage": "not-started"}},
+        # A destination already holding THIS finding: both its carry and the
+        # derived row cite triage ruling P3 of s4, so the derived copy is the
+        # same finding in the body's words and is not appended (its unresolved
+        # `triage P3` tail would otherwise reach the write path's triage gate).
+        {"group": "R9-FROM", "lane": "L1", "issues": [], "fixes": [],
+         "after": [], "brief": "from",
+         "carry": ["From #15 (R9-CARRY): the base-pinned replay, triage P3 (s4)."],
+         "resume": {"stage": "not-started"}},
+        # The NULL CONTROL for the finding key: this carry names a DIFFERENT
+        # source pull request and a different finding, so #15's item appends.
+        {"group": "R9-FROM-2", "lane": "L1", "issues": [], "fixes": [],
+         "after": [], "brief": "from 2", "carry": ["From #1525 (other): landed."],
+         "resume": {"stage": "not-started"}},
+        # (b-ii) The same pull request, a GENUINELY different finding: the
+        # destination already carries one finding from #15, but this one is not
+        # that finding, so it must still append (B1: the finding is the key,
+        # never the pull request).
+        {"group": "R9-FROM-3", "lane": "L1", "issues": [], "fixes": [],
+         "after": [], "brief": "from 3",
+         "carry": ["From #15 (R9-CARRY): the widget parser drops a unit."],
+         "resume": {"stage": "not-started"}},
+        # A prose mention of the source number is not provenance: this carry
+        # records a finding from another pull request and merely cites #15.
+        {"group": "R9-PROSE", "lane": "L1", "issues": [], "fixes": [],
+         "after": [], "brief": "prose",
+         "carry": ["From the R10-BRIEFS-FOLD body, a second instance beside "
+                   "#15's: the page cache."],
+         "resume": {"stage": "not-started"}},
+        # The same finding with formatting drift: the held carry quotes its
+        # destination marker in backticks, the derived row does not. The text
+        # key normalises markup, so this is refused.
+        {"group": "R9-ECHO", "lane": "L1", "issues": [], "fixes": [],
+         "after": [], "brief": "echo",
+         "carry": ["the widget parser drops a unit. `Carry: R9-ECHO`"],
+         "resume": {"stage": "not-started"}},
     ]
     ROSTER_FIXTURE = {"repo": "fixture/roster", "session": "r9-sync",
                       "groups": groups}
@@ -704,6 +904,15 @@ def self_test() -> int:
             "- a quoted example `Carry: R9-DEST` in a code span routes nothing.\n\n"
             "- a real finding for a done group. Carry: R9-OVER\n\n"
             "- already held. Carry: R9-HELD\n\n"
+            "- the same finding again, where triage P3 (s4) gives it. "
+            "Carry: R9-FROM\n\n"
+            "- the same finding for a destination naming another pull request. "
+            "Carry: R9-FROM-2\n\n"
+            "- the batch loader double-counts; a genuinely distinct finding "
+            "from #15. Carry: R9-FROM-3\n\n"
+            "- the prose control: a distinct finding for a destination that "
+            "only mentions the number. Carry: R9-PROSE\n\n"
+            "- the widget parser drops a unit. Carry: R9-ECHO\n\n"
             "- an issue keeps its own record. Carry: #77\n")
     PRS = [
         {"number": 11, "state": "MERGED", "headRefName": "fix/r9-live-pr",
@@ -749,6 +958,18 @@ def self_test() -> int:
               "SKIP R9-DEFER: stage deferred is a human disposition" in out, out)
         check("the dry run plans no append of an item the destination holds",
               "carry R9-HELD +=" not in out, out)
+        check("the dry run refuses an item the destination already carries: "
+              "same finding, same triage ruling", "REFUSED Carry: R9-FROM "
+              "from #15: already carried" in out, out)
+        check("a held carry naming another pull request does not suppress the "
+              "append (#15 is not #1525)", "carry R9-FROM-2 +=" in out, out)
+        check("a genuinely different finding from a pull request the "
+              "destination already carries one from still appends (B1)",
+              "carry R9-FROM-3 +=" in out, out)
+        check("a prose mention of the source number does not suppress the "
+              "append", "carry R9-PROSE +=" in out, out)
+        check("a duplicate differing only in markup is refused",
+              "REFUSED Carry: R9-ECHO from #15: already carried" in out, out)
         check("an issue destination is neither appended nor refused (it keeps "
               "its own record)", "#77" not in out, out)
         check("a commit the checkout does not hold is RECORD-INVALID, printed "
@@ -793,6 +1014,33 @@ def self_test() -> int:
               by["R9-DEST"].get("carry"))
         check("a Carry: to a done group is refused, not appended",
               "carry" not in by["R9-OVER"], by["R9-OVER"].get("carry"))
+        check("a duplicate of a carry already landed from that pull request is "
+              "not appended", by["R9-FROM"].get("carry")
+              == ["From #15 (R9-CARRY): the base-pinned replay, triage P3 (s4)."],
+              by["R9-FROM"].get("carry"))
+        check("a genuinely different finding from the same pull request "
+              "appends beside the one already held (B1)",
+              by["R9-FROM-3"].get("carry")
+              == ["From #15 (R9-CARRY): the widget parser drops a unit.",
+                  "the batch loader double-counts; a genuinely distinct "
+                  "finding from #15. Carry: R9-FROM-3"],
+              by["R9-FROM-3"].get("carry"))
+        check("a prose mention of the source number leaves the append alone",
+              by["R9-PROSE"].get("carry")
+              == ["From the R10-BRIEFS-FOLD body, a second instance beside "
+                  "#15's: the page cache.",
+                  "the prose control: a distinct finding for a destination "
+                  "that only mentions the number. Carry: R9-PROSE"],
+              by["R9-PROSE"].get("carry"))
+        check("a duplicate differing only in markup is not appended",
+              by["R9-ECHO"].get("carry")
+              == ["the widget parser drops a unit. `Carry: R9-ECHO`"],
+              by["R9-ECHO"].get("carry"))
+        check("the dedupe's null control: a held carry naming another pull "
+              "request leaves the append alone", by["R9-FROM-2"].get("carry")
+              == ["From #1525 (other): landed.",
+                  "the same finding for a destination naming another pull "
+                  "request. Carry: R9-FROM-2"], by["R9-FROM-2"].get("carry"))
         check("a head matching only through the <topic>- arm decides its group",
               by["R9-ARM"]["resume"]["stage"] == "done"
               and by["R9-ARM"]["resume"].get("commit") == "1" * 40,
@@ -962,6 +1210,36 @@ def self_test() -> int:
           and "carries-open" not in DERIVABLE_STAGES)
     check("the classification covers the tree's rosters at all",
           bool(seen), sorted(seen))
+
+    # The same rule for the size vocabulary: the durations model IS the
+    # vocabulary, so a roster size the model does not carry breaks the planner
+    # (`size_hours[...]` raises KeyError) with no gate to see it. Driven first
+    # on a planted roster, so the tree's green is a measurement, not a scan
+    # that could have returned the same nothing while reading nothing.
+    model = roster_lib.sizes(roster_lib.read_durations(root))
+    planted = Path(tempfile.mkdtemp(prefix="hpo-size-scan-"))
+    try:
+        (planted / roster_lib.ROSTERS_DIR).mkdir(parents=True)
+        (planted / roster_lib.ROSTERS_DIR / "wave-r1-groups.json").write_text(
+            json.dumps({"groups": [{"group": "P1", "size": "S"},
+                                   {"group": "P2", "size": "__unmodelled__"},
+                                   {"group": "P3"}]}), encoding="utf-8")
+        p_seen = roster_sizes(planted)
+        check("the size scan reads a roster and skips an absent size",
+              p_seen == {"S": "wave-r1-groups.json",
+                         "__unmodelled__": "wave-r1-groups.json"}, p_seen)
+        check("the size scan refuses a size the model lacks (null control)",
+              unmodelled_sizes(p_seen, model)
+              == {"__unmodelled__": "wave-r1-groups.json"},
+              unmodelled_sizes(p_seen, model))
+    finally:
+        shutil.rmtree(planted, ignore_errors=True)
+    sizes_seen = roster_sizes(root)
+    check("every size the tree's rosters carry is in the durations model",
+          not unmodelled_sizes(sizes_seen, model),
+          unmodelled_sizes(sizes_seen, model))
+    check("the size scan covers the tree's rosters at all",
+          bool(sizes_seen), sorted(sizes_seen))
 
     print(f"roster_sync self-test: {n[0]} checks, {len(fails)} failed")
     return 1 if fails else 0
