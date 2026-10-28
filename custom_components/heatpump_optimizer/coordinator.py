@@ -9036,12 +9036,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # An away setback sits deliberately below the normal floor this
         # tracker reads (the lowered floor lives only inside the solve's
         # snapshot/unwind envelope), so every vacation would read as a
-        # comfort miss and wipe the learned bias. Same for a tripped
-        # window detector or stale sensor: the dip is real but it is not
-        # the curve's doing. No evidence is collected on such days.
+        # comfort miss and wipe the learned bias. Same for a tripped window
+        # detector, a stale sensor or none (#2508: room and upper zone are
+        # 21.0 C defaults): not the curve's doing. No evidence on such days.
         if self._away_state.active or self._away_state.recovery_active:
             return
-        if self._learning_frozen(CONF_INDOOR_TEMP_ENTITY) is not None:
+        if (self._learning_frozen(CONF_INDOOR_TEMP_ENTITY) or learner_room_unread(ctx._config)) is not None:
             return
         hour = now.hour + now.minute / 60.0
         try:
@@ -9842,14 +9842,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # measured temperature the one-step sample below uses. The window
         # is the sampling cadence itself — score only on the default
         # half-hour and every bucket whose lead is not a multiple of a
-        # coarser configured interval starves forever. A stale or frozen
-        # indoor sensor scores nothing: a frozen reading is not a
-        # measurement, and an EWMA poisoned by one persists for weeks.
+        # coarser configured interval starves forever. A stale, frozen or
+        # unconfigured (#2508: the 21.0 C default) indoor sensor scores no
+        # room: none is a measurement, and an EWMA poisoned persists weeks.
         interval_h = (
             ctx._config.optimization_interval
             / 60.0
         )
-        actual_now = ctx._current_state.room_temperature
+        actual_now = None if learner_room_unread(ctx._config) else ctx._current_state.room_temperature
         indoor_frozen = self._learning_frozen(CONF_INDOOR_TEMP_ENTITY)
         if actual_now is not None and indoor_frozen is None:
             self._accuracy.score_lead_predictions(
@@ -9877,7 +9877,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                     predicted_power_kw=pending.get("power"),
                     actual_power_kw=self._measured_power,
                     predicted_temp=pending.get("predicted_temp"),
-                    actual_temp=ctx._current_state.room_temperature,
+                    actual_temp=actual_now,
                     # #1935: the tag a post-drift recommendation excludes
                     # override rows by, rather than guessing at windows.
                     boost_space=boost.interval_boosted(pending, self),
