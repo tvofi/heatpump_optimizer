@@ -1,4 +1,0 @@
-shipped no-arg index: carry-2492 rc=0 TOTAL: 0 error(s) across 1 file(s) 
-with dev/programme/rosters index: carry-2492 covered: "wave-r10-groups.json R10-SAV-ACTUATION"
-shipped no-arg index: carry-999999 rc=0 TOTAL: 0 error(s) across 1 file(s) 
-with dev/programme/rosters index: carry-999999 not covered
