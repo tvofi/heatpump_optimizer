@@ -11122,6 +11122,9 @@ R.check(
 # reference on a flat day, a night setback's recovery asking more than the
 # curve delivers). The unvalved arm is the null: nothing in it can store, and
 # the valved reference may cost no more than the tank's own loss.
+_RT_TARGETS = np.array([21.0] * 8 + [19.5] * 36 + [21.0] * 52)
+
+
 def _ref_tank_arm(two_zone, valved):
     from heatpump_optimizer import mixing_valve as _rt_mv
     from heatpump_optimizer.optimizer import (
@@ -11151,7 +11154,7 @@ def _ref_tank_arm(two_zone, valved):
         ThermalState(room_temperature=20.0, upper_floor_temperature=20.0,
                      lower_floor_temperature=20.0, slab_temperature=20.5,
                      outdoor_temperature=5.0, buffer_tank_temperature=24.0),
-        0.25, np.array([21.0] * 8 + [19.5] * 36 + [21.0] * 52),
+        0.25, _RT_TARGETS,
     )
     _loss = _rp.buffer_tank_heat_loss_coefficient * max(
         0.0, max(_seen["tank"]) - 20.0) * 24.0 if valved else 0.0
@@ -11198,7 +11201,7 @@ def _ref_cop_gap():
     return _made, _reference_cop(_cm, _cs, 0.0, None), _cm.compute_cop(0.0)
 
 
-def _charge_case(need_kw):
+def _charge_case(need_kw, tank0=25.0):
     """One step of the tank law's charge, then one coasting step: the tank's
     peak, what the first step refused, and what the slab received next."""
     from heatpump_optimizer import mixing_valve as _cc_mv
@@ -11209,7 +11212,7 @@ def _charge_case(need_kw):
                             buffer_tank_volume=750.0, mixing_valve_target=23.0)
     _cm = ThermalModel(_cp)
     _cs = ThermalState(room_temperature=21.0, slab_temperature=24.0,
-                       buffer_tank_temperature=25.0, outdoor_temperature=-5.0)
+                       buffer_tank_temperature=tank0, outdoor_temperature=-5.0)
     _kw = valve_charge_demand(_cm, _cs, need_kw, -5.0, 0.0, 0.0, 0.25)
     _s1 = _cm._simulate_step_single(
         _cs, _kw / _reference_cop(_cm, _cs, -5.0, None), -5.0, dt_hours=0.25)
@@ -11217,26 +11220,28 @@ def _charge_case(need_kw):
     _s2 = _cm._simulate_step_single(_s1, 0.0, -5.0, dt_hours=0.25)
     _got = (_s2.slab_temperature - _s1.slab_temperature) * _cp.slab_thermal_mass / 0.25 + (
         _cp.slab_heat_transfer * (_s1.slab_temperature - _s1.room_temperature))
-    return _s1.buffer_tank_temperature, _refused, _got
+    return _s1.buffer_tank_temperature, _refused, _got, _kw
 
 
-_cc_top, _cc_ref, _ = _charge_case(1e3)
+_cc_top, _cc_ref, _, _ = _charge_case(1e3)
 R.check(
     "the tank law never charges past the curve, however much the emitters need",
     _cc_ref == 0.0 and _cc_top < 45.0,
     f"a 1000 kW need left the tank at {_cc_top:.1f} C, {_cc_ref:.3f} kW refused",
 )
-_cc_idle = _charge_case(0.0)
+_cc_idle = _charge_case(0.0, tank0=22.0)[3]
 R.check(
     "the tank law idles the pump when the emitters need nothing",
-    _cc_idle[0] < 25.0 and _cc_idle[1] == 0.0,
-    f"a zero need left the tank at {_cc_idle[0]:.3f} C from 25 C",
+    _cc_idle == 0.0,
+    f"a zero need behind a tank colder than the slab asked {_cc_idle:.3f} kW",
 )
-_, _, _cc_got = _charge_case(2.0)
+_, _, _cc_got, _ = _charge_case(2.0)
+_, _, _cc_cold, _ = _charge_case(2.0, tank0=22.0)
 R.check(
     "the tank law charges to the temperature whose draw is the need",
-    abs(_cc_got - 2.0) < 0.5,
-    f"a 2.0 kW need delivered {_cc_got:.3f} kW the next step",
+    abs(_cc_got - 2.0) < 0.5 and abs(_cc_cold - 2.0) < 0.5,
+    f"a 2.0 kW need delivered {_cc_got:.3f} kW the next step from a 25 C tank, "
+    f"{_cc_cold:.3f} kW from a 22 C tank below the slab",
 )
 
 # Behind the direct-slab layout no curve caps the slab's water, so only
@@ -11293,6 +11298,29 @@ R.check(
     _oc_ref == 0.0 and abs(_oc_lost - _oc_phys) < 1e-6,
     f"refused {_oc_ref:.3f} kW; the tank gave {_oc_lost:.4f} kW against "
     f"{_oc_phys:.4f} kW delivered and lost",
+)
+
+# The two-zone reference asks the tank for both circuits' need: a cold upper
+# floor over a slab already hot enough must still draw a charge.
+def _two_zone_rad_demand():
+    from heatpump_optimizer import mixing_valve as _tz_mv
+    from heatpump_optimizer.optimizer import _thermostat_demand_two_zone
+
+    _tp = ThermalParameters(two_zone_enabled=True, mixing_valve_mode=_tz_mv.MODE_MANUAL,
+                            buffer_tank_volume=750.0)
+    _tm = ThermalModel(_tp)
+    _ts = ThermalState(room_temperature=20.0, upper_floor_temperature=18.0,
+                       lower_floor_temperature=23.0, slab_temperature=30.0,
+                       buffer_tank_temperature=24.0, outdoor_temperature=-5.0)
+    return _thermostat_demand_two_zone(
+        _tm, _ts, 21.0, -5.0, 0.0, 0.0, 0.0, 0.25, _tp.slab_heat_transfer_floored)
+
+
+_tz_kw = _two_zone_rad_demand()
+R.check(
+    "two-zone valve: the reference charges for the radiators' need over a hot slab",
+    _tz_kw > 0.5,
+    f"an 18 C upper floor over a 30 C slab asked {_tz_kw:.3f} kW of the tank",
 )
 
 _rc_made, _rc_cop, _rc_plain = _ref_cop_gap()

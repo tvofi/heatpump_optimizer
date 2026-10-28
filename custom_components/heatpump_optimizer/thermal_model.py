@@ -1832,7 +1832,7 @@ def valve_charge_demand(
     loss = p.buffer_tank_heat_loss_coefficient * (tank - TANK_ROOM_AMBIENT_TEMP)
     return (
         _circuit_draw(circuits, tank) + loss
-        + _buffer_capacity(p) * (goal - tank) / max(dt_hours, 1e-6)
+        + _buffer_capacity(p) * (goal - tank) / dt_hours
     )
 
 
