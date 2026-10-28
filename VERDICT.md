@@ -1,43 +1,38 @@
-Fix review: merge 9e212cd0e3687575e764517916f5057d79c8e01a
+Fix review: merge c84d561bbf8ce9ebe1f7c295bafc1f2f3fa1a896
 
-bus-nonce: 2487dee5866579c3b064cbff49fa6ab6
+bus-nonce: 5599ef569f1d24bfab69cfb9367b5bc4
 
-Round 2 (delta review) of PR #2834, R10-ADVISOR-RESIDUE. Measured head `9e212cd0e3687575e764517916f5057d79c8e01a`, still the PR head by `git ls-remote` when this verdict was written. Round 1 was MERGE at `313a19d91` (probe/rev-2834-9895de2a). This round judges only the delta `313a19d91...9e212cd0e`. `dev/governance/roles/` matches origin/main.
+Round 3 (delta review) of PR #2834, R10-ADVISOR-RESIDUE. Measured head `c84d561bbf8ce9ebe1f7c295bafc1f2f3fa1a896`, still the PR head by `git ls-remote` when this verdict was written (origin/main then `149ce54a36bcf9e794d357e0ef69dc8af62f8eb8`). Round 2 was MERGE at `9e212cd0e` (hpo-approver comment 6411221315, ev/prior-verdict-9e212cd0.md). This round judges only `9e212cd0e..c84d561bb`.
 
 ## Findings
 
-- Seam (a) is still open at the Plan page's what-if panel, unchanged from round 1. The `whatif` arm, re-run at the head, gives `null 00:00 target_plus_1 plan by start +255.2 +150.9 +123.2 spread 132.0`, and the settled figure has the wrong sign across schedules (`varying 00:00 target_minus_1 … settled +24.6`, `target_plus_1 … settled -25.5`). The body keeps `Part of #2257`, which is consistent with that. The roster at origin/main `5fb833930` (group R10-ADVISOR-RESIDUE, carry index 9) records that the next sub-PR owns the panel, closes #2257, and keeps the group open after this merge. This settles round 1's no-owner finding. Carry: #2257
+- None blocking. The delta is four merges of main and no authored commit.
+- Non-blocking: the PR body's `## Head` section repeats its `c84d561bb…` paragraph three times verbatim. The named head is correct; the duplication carries no fact. Carry: dismissed: cosmetic body text; the next body push regenerates `## Head`.
+- Seam (a), the Plan page's what-if panel, stays open exactly as round 2 recorded it; this delta touches no production line, so it is not re-measured. Carry: #2257
 
 ## Evidence
 
-Brief item 1, the two `_sweep_price` sites refused at `e2a808a6`. Each mutant was run in its own detached worktree at the head, under `PYTHONPATH=tests/hastub python3 tests/features.py` (ev/mut-*.diff, ev/mut-*.summary):
-- CLAMP_DROP (`max(abs(level), 0.1)` -> `(abs(level))`): `1 of 4439 FEATURE CHECKS FAILED`, rc 1. The red check is `a free-energy day, and one at the floor's bound, still rank a hotter tank as the dearer one`, with detail `0.0/kWh [0.0 ×7]`.
-- CMP_BOUND (`level > 1e-6` -> `level >= 1e-6`): `1 of 4439 FEATURE CHECKS FAILED`, rc 1. The same check is red, with detail `0.0/kWh [0.87 … 1.23]; 1e-6/kWh [0.0 ×7]`.
-- Unmutated head: `ALL 4439 FEATURE CHECKS PASSED`, rc 0.
-- Both mutants are killed by a named check, and both `killed_by` pins (`3f0ce95ba`) name `tests/features.py`.
-- The body reports `2 of 4439` per mutant. The second red there is the `#363` recorded_at check, which the body attributes to its `git archive` copy. My git worktrees do not show that red, and that agrees with the body's explanation.
+The delta, `git log --first-parent 9e212cd0..c84d561bb`: `c38903518` (ci: merge main, bot), `5e37c15d9`, `7202e5cc0`, `c84d561bb` (merges of origin/main). `git log 9e212cd0..HEAD --not origin/main` lists only those four: no authored commit.
 
-Brief item 2, the `Closes #2257` premise. It does not hold at this head. The PR body reads `Part of #2257` (intro and Carries item 10) and has no `Closes` keyword. So there is no premature close to judge. Seam (a) is listed under Findings.
+Merge resolutions, each merge re-merged with `git merge-tree --write-tree <p1> <p2>` (drivers installed) and its tree compared with the commit's:
+- `c38903518`, `7202e5cc0`, `c84d561bb`: auto tree equals the committed tree (`8ed29d379`, `239c5a23b`, `488cda2c4`). No hand resolution.
+- `5e37c15d9`: the claimnotes driver refused (`CONFLICTING CLAIMS: both sides rewrote the claim list`) on `tests/golden/claimed_drift.txt`; that file is the only path where the committed tree differs from the auto tree. The hand resolution (ev/5e37c15d-claim-resolution.txt, `git show --cc`): this branch's five `coord_*` R10-ADVISOR-RESIDUE claim lines kept; main's five R10-CARD-VOICE bare lines for the same five names dropped (main's own diff's claims, inert on this branch per claim-files.md: a line excuses only the diff that wrote it); main's R10-CARD-VOICE note kept as a comment; main's `config_flow` claim kept. That is the resolution claim-files.md asks for: branch claims kept, main's notes unioned.
 
-Brief item 3, everything else equals round 1:
-- custom_components. The added and removed lines of `git diff c9cbe6b45...313a19d91 -- custom_components` and `git diff ed1c9045e...9e212cd0e -- custom_components` are identical. The delta adds no production line.
-- The branch's own non-merge commits since round 1 are: `b2946cd12` (the one features.py check), `3f0ce95ba` (two killed_by pins), `f77f0e4cc` (the bot's eight pins) and `e01608bdd` (a single comment line in claimed_drift.txt, giving the measurement base). The other commits are merges of main.
-- VERSION (7.0.4), manifest.json and RELEASE_NOTES.md: the three-dot diff against `ed1c9045e` is empty.
-- `tests/structure.py` at the head prints `STRUCTURE RATCHET PASSED`. The three-dot diff of `structure_budgets.json` only lowers values (`class_excess_loc` 18086 -> 18085, `max_class_loc` 8241 -> 8236). No budget rises.
-- `env_drift.py --all ed1c9045e…` at the head prints `NO UNCLAIMED DRIFT: 56 scenario(s)` and `NO STALE FIXTURE: 56`, rc 0 (ev/structure-envdrift-head.log). The claim file holds the five coord_* claims (`data.recent_kwh_price`), and `card_claimed_drift.txt` is byte-identical.
-- The head named in the body equals the measured head `9e212cd0e`.
-- `git merge-tree --write-tree origin/main(5fb833930) 9e212cd0e` gives rc 0, tree `e83dc14db` (ev/merge-tree.txt).
+Claim files at the head:
+- `claims-for: 7.0.4` in both files; `VERSION` is `7.0.4` at the head and at origin/main.
+- `card_claimed_drift.txt` is byte-identical to the base `1f82fee49`.
+- The five coord fixtures differ from the base `1f82fee49` in exactly one line each: `+  "recent_kwh_price": null,`. Main's `dhw_wood_coil_configured` leaves auto-merged and are not in the branch's diff.
+- `tests/env_drift.py --all 1f82fee49…` at the head: `NO UNCLAIMED DRIFT: 56 scenario(s)`, `NO STALE FIXTURE: 56 committed fixture(s)`, rc 0 (ev/envdrift-head.log).
 
-CI on the head, from the check-runs API (ev/checkruns-head.txt, 55 runs):
-- All runs are completed, each as success or skipped.
-- These all report success: `tests / mutation`, `pr-contract / pr-contract` (both runs), `gate` (both runs), `governance / delivery-status`, fast, typing, closures, replay, browser, coverage, instrument-self-tests and codeql.
+No production behaviour beyond round 2's approval:
+- `git diff ed1c9045e 9e212cd0e` (round 2's branch diff) and `git diff 1f82fee49 c84d561bb` (this head's) both stat `30 files changed, 594 insertions(+), 50 deletions(-)` (ev/old-branch.diff, ev/new-branch.diff).
+- `custom_components/`: the hunks are identical once `index` and `@@` line-number headers are stripped (`heatpump-optimizer-card.js` hunks shifted by main's R10-CARD-VOICE rewrite of the card). `docs/`, `dev/`, the coord fixtures: byte-identical diffs.
+- The only content interdiff is in `claimed_drift.txt` (context lines from main's side) and `tests/structure_budgets.json` (`class_excess_loc` base 18080 -> 18079 here, 18086 -> 18085 at round 2; `max_class_loc` 8241 -> 8236 at both). Both are lowerings; no budget rises.
+- The finder's harness was not re-run: the delta adds no production line.
 
-Red checks at `e2a808a6`, from the check-runs API (ev/checkruns-e2a808a6.txt):
-- The failures are `gate`, `pr-contract / pr-contract`, `tests / mutation` and `governance / delivery-status`.
-- Each one appears in the body's `## Red checks` with a cause and a cheaper detector (`mutation_table.py --pin-killed` before handoff, `prepr.sh --body-check` after CI). For `delivery-status`, the body states it is not a required context and is other PRs' OVERDUE rows.
-- No body entry lacks a real check-run.
-
-Harness `whatif` arm (dev/audit/harnesses/r10_advisor_residue.py) at the head, rc 0 (ev/whatif-head.log):
-- `rows 24 plan_moves_by_start 24 held_moves_by_start 0`
-- `caps rows 12 spread_by_start mean plan 50.4 settled 10.1; … plan 18/36 settled 1/36`
-- Both lines are identical to the body and to round 1.
+Gate and contract:
+- `tests/structure.py` at the head: `STRUCTURE RATCHET PASSED` (ev/structure.txt).
+- VERSION, manifest version, RELEASE_NOTES.md heading: unchanged in the three-dot diff.
+- PR body `## Head` names `c84d561bbf8ce9ebe1f7c295bafc1f2f3fa1a896`, equal to the measured head (ev/pr.json).
+- `git merge-tree --write-tree origin/main(149ce54a3) c84d561bb`: rc 0, tree `f593321f6` (ev/merge-tree.txt). The same command with both drivers replaced by plain `git merge-file` (what GitHub runs): rc 0, the same tree `f593321f6` (ev/merge-tree-nodriver.txt). GitHub reports `MERGEABLE`, `BLOCKED` (review pending).
+- CI at the head, from the check-runs API (ev/checkruns-head.txt, 55 runs): all completed; 39 success, 16 skipped, 0 failure. `gate` (both runs), `pr-contract / pr-contract` (both runs), `tests / fast (3.14)`, `tests / mutation`, `tests / closures`, `tests / coverage`, `tests / coverage-ratchet`, `governance / instrument-self-tests`, `governance / delivery-status`, codeql all success. No red check at any commit of the delta needs a body answer.
