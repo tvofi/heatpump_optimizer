@@ -1,0 +1,53 @@
+tools/policy/figure_lint.mjs:630:  const bodyPath = val('--pr-body')
+tools/policy/figure_lint.mjs:632:    console.log('usage: figure_lint.mjs --pr-body <file> [--at <rev>] | --self-test')
+tools/policy/figure_lint.mjs:644:    console.log('FIGURES: no `## Figures` section -- `policy_lint.mjs --pr-body` is the check that refuses that')
+tools/policy/brief_lint.mjs:802://      policy_lint.mjs's --pr-body rule on `## Forward-carry`, and that is a
+tools/policy/policy_lint.mjs:49://   node tools/policy/policy_lint.mjs --pr-body <file> --head <sha> [--base <sha>] [--title t] [--red names] [--paths-file f] [--existing-file f] [--author login] [--commits-file f]
+tools/policy/policy_lint.mjs:4177:  const bodyCheck = runBlocks.filter((b) => /policy_lint\.mjs/.test(b) && /--pr-body/.test(b)).join('\n')
+tools/policy/policy_lint.mjs:4197:  // used to push its findings and continue: the template failed `--pr-body`
+tools/policy/policy_lint.mjs:6878:  const bodyPath = val('--pr-body')
+tools/policy/policy_lint.mjs:7513:  if (has('--pr-body')) process.exit(cmdPrBody(argv))
+tools/policy/counts.mjs:125:  // `--corpus-filter` and `--pr-body` fixtures do not have throws, and `main`
+tools/policy/budget_raise_gate.py:60:no section (check_body). policy_lint.mjs --pr-body calls it, so pr-contract,
+tools/policy/budget_raise_gate.py:1054:    # the process policy_lint.mjs --pr-body runs. The three shapes the gate
+tools/policy/budget_raise_gate.py:1371:        # justification() on a body file, for policy_lint.mjs --pr-body: the
+tools/pr/app_push.sh:239:# contract (`policy_lint.mjs --pr-body`) and the carry check
+tools/pr/app_push.sh:260:    GH_TOKEN=$tok node "$lint" --pr-body "$2" --head "$3" --title "$4" --paths-file "$p" --existing-file "$e" --base "$base"; rc=$?
+tools/pr/app_push.sh:478:    || die "--row-only: the body contract (policy_lint.mjs --pr-body) or the carry check (carry_audit.py) refused $body, so NOTHING was minted, pushed or posted"
+tools/pr/app_push.sh:1056:st "$(grep -c "^node tools/policy/policy_lint.mjs --pr-body $W/ook/body.md --head $SHA --title the title --paths-file .* --existing-file " "$W/ook/log")" 1 "the body contract ran in its place, pr-contract's command at the head, with the pull request's own title"
+tools/pr/app_push.sh:1136:# file, with the REAL contract (policy_lint.mjs --pr-body and its
+tools/pr/app_push.sh:1158:# HEADING, read by the reader pr-contract runs (policy_lint.mjs --pr-body).
+tools/pr/app_push.sh:1164:  node "$(dirname -- "$SELF")/../policy/policy_lint.mjs" --pr-body "$1" --head "$2" 2>&1 \
+tools/pr/prepr.sh:260:  if test -f .claude/workflows/figure_lint.mjs; then node .claude/workflows/figure_lint.mjs --pr-body "$1"; else node tools/policy/figure_lint.mjs --pr-body "$1"; fi
+tools/pr/prepr.sh:791:# `--pr-body`, `--head` and `--title` and nothing else, so `policyPaths` was
+tools/pr/prepr.sh:846:  # commits carry -- one implementation, `policy_lint.mjs --pr-body`, decides
+tools/pr/prepr.sh:853:  local args=(--pr-body "$1" --head "$2" --title "$3" --paths-file "$4") n rc
+tools/pr/prepr.sh:1235:# deliberately NOT copied here: it already lives in policy_lint's `--pr-body`
+tools/pr/prepr.sh:1243:# derivation (inside `--pr-body`) covers the same range but only when a token
+tools/pr/prepr.sh:1512:# `--pr-body` rows move when they do.
+tools/pr/prepr.sh:1688:    if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --pr-body "$D/$f.md" --head "$ZERO" >/dev/null 2>&1; else node tools/policy/policy_lint.mjs --pr-body "$D/$f.md" --head "$ZERO" >/dev/null 2>&1; fi
+tools/pr/prepr.sh:1691:  if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --pr-body "$D/unnamed-red.md" --head "$ZERO" --red 'fast (3.14)' >/dev/null 2>&1; else node tools/policy/policy_lint.mjs --pr-body "$D/unnamed-red.md" --head "$ZERO" --red 'fast (3.14)' >/dev/null 2>&1; fi
+tools/pr/prepr.sh:1700:  if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --pr-body "$D/good.md" --head "$ZERO" >/dev/null 2>&1; else node tools/policy/policy_lint.mjs --pr-body "$D/good.md" --head "$ZERO" >/dev/null 2>&1; fi
+tools/pr/prepr.sh:1702:  if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --pr-body "$D/good-none.md" --head "$ZERO" >/dev/null 2>&1; else node tools/policy/policy_lint.mjs --pr-body "$D/good-none.md" --head "$ZERO" >/dev/null 2>&1; fi
+tools/pr/prepr.sh:1704:  if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --pr-body "$D/good-claude-ai.md" --head "$ZERO" >/dev/null 2>&1; else node tools/policy/policy_lint.mjs --pr-body "$D/good-claude-ai.md" --head "$ZERO" >/dev/null 2>&1; fi
+tools/pr/prepr.sh:2855:  plred() { if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --pr-body "$1" --head "$ZERO" --red mutation >/dev/null 2>&1; else node tools/policy/policy_lint.mjs --pr-body "$1" --head "$ZERO" --red mutation >/dev/null 2>&1; fi; }
+tools/pr/push.sh:122:# `policy_lint --pr-body` requires a `## Approval` section on EITHER of two
+tools/pr/push.sh:179:# `policy_lint --pr-body --head` tests the section with `includes`, a substring,
+tools/pr/push.sh:393:  if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --pr-body "$W/b.md" --head "$ZERO" >/dev/null 2>&1; else node tools/policy/policy_lint.mjs --pr-body "$W/b.md" --head "$ZERO" >/dev/null 2>&1; fi
+tools/pr/push.sh:397:  if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --pr-body "$W/b.md" --head "$ZERO" >/dev/null 2>&1; else node tools/policy/policy_lint.mjs --pr-body "$W/b.md" --head "$ZERO" >/dev/null 2>&1; fi
+tools/pr/push.sh:447:  if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --pr-body "$W/prose.md" --head "$ZERO" >/dev/null 2>&1; else node tools/policy/policy_lint.mjs --pr-body "$W/prose.md" --head "$ZERO" >/dev/null 2>&1; fi
+tools/pr/push.sh:449:  if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --pr-body "$W/prose.md" --head "$OLD" >/dev/null 2>&1; else node tools/policy/policy_lint.mjs --pr-body "$W/prose.md" --head "$OLD" >/dev/null 2>&1; fi
+tools/pr/push.sh:472:  if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --pr-body "$W/abbrev.md" --head "$ZERO" >/dev/null 2>&1; else node tools/policy/policy_lint.mjs --pr-body "$W/abbrev.md" --head "$ZERO" >/dev/null 2>&1; fi
+tools/pr/push.sh:480:  if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --pr-body "$W/nosha.md" --head "$ZERO" >/dev/null 2>&1; else node tools/policy/policy_lint.mjs --pr-body "$W/nosha.md" --head "$ZERO" >/dev/null 2>&1; fi
+tools/pr/push.sh:664:# The ASSERTION is not re-implemented here: `policy_lint --pr-body --head` makes
+tools/audit/seat/INSTRUMENTS.md:156:  (`policy_lint.mjs --pr-body` with pr-contract's arguments, then
+tools/audit/seat/record_row.py:989:    argv = ["node", str(_LINT_JS), "--pr-body", str(body_path),
+tools/audit/seat/body_patch.sh:16:#   3. the body contract, offline, at that head: `policy_lint.mjs --pr-body`
+tools/audit/seat/body_patch.sh:95:  local args=(--pr-body "$body" --head "$head" --base "$base" --title "$title" --author "$author"
+tools/audit/seat/body_patch.sh:328:st "$(grep -c -- "--pr-body $W/body.md --head $HEAD --base $BASE --title fix: the title --author hpo-author --paths-file .* --existing-file .* --red fast (3.14) --red lint$" "$W/ok/log")" 1 "policy_lint gets pr-contract's arguments: body, head, base, title, author, paths, existing, one --red per check"
+tools/audit/seat/review_packet.py:35:                   (`policy_lint.mjs --pr-body --red`);
+tools/audit/seat/review_packet.py:328:    _, fout = tool(["node", "tools/policy/figure_lint.mjs", "--pr-body", "{BODY}", "--at", head], body)
+tools/audit/seat/review_packet.py:331:        _, pout = tool(["node", "tools/policy/policy_lint.mjs", "--pr-body", "{BODY}", "--head", head,
+.github/workflows/pr-contract.yml:348:              --pr-body /tmp/pr-body.md --head "$PR_HEAD" --base "$PR_BASE" --title "$PR_TITLE" \
+.github/workflows/pr-contract.yml:354:              --pr-body /tmp/pr-body.md --head "$PR_HEAD" --base "$PR_BASE" --title "$PR_TITLE" \
+.github/workflows/pr-contract.yml:362:        run: if test -f .claude/workflows/figure_lint.mjs; then node .claude/workflows/figure_lint.mjs --pr-body /tmp/pr-body.md; else node tools/policy/figure_lint.mjs --pr-body /tmp/pr-body.md; fi

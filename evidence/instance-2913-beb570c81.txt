@@ -1,0 +1,7 @@
+  record   red-history           3 commit(s) between origin/main and this head, every failure conclusion across them: none
+
+/tmp/tmp.NCNR4ebGLd/i-body.md
+  ERROR   [pr-body] /tmp/tmp.NCNR4ebGLd/i-body.md: the diff touches tests/structure_budgets.json, and no `--base` and `--head` name it, so whether it raises a cap -- and owes `## Raise justification` -- was not read. Pass both.
+
+PR-BODY: 1 error(s) in /tmp/tmp.NCNR4ebGLd/i-body.md
+rc=1
