@@ -781,6 +781,12 @@ def heat_loss_refit(
     }
 
 
+def pairs_interval(elapsed_h: float) -> bool:
+    """A pending prediction this many hours old still describes the interval
+    that just closed: not a re-run minutes later, not across a restart or gap."""
+    return 0.05 <= elapsed_h <= 2.0
+
+
 # -- the COP learner's last word -------------------------------------------
 
 #: Why the COP learner turned an interval away: one code per guard of
@@ -914,15 +920,16 @@ class MeasuredCop:
         self.cop, self.curve_dhw, self.dhw_temp = round(float(cop), 2), curve_dhw, dhw_temp
         self.at = at
 
-    def residual(self, since: datetime, outdoor: float, model: Any) -> float | None:
+    def residual(self, since: datetime, outdoor: float | None, model: Any) -> float | None:
         """Observed minus modelled COP for an interval that began at ``since``.
 
         ``None`` unless the latch folded after ``since``: a COP latched on an
         earlier interval re-subtracted on every later sample is a function of
         outdoor temperature alone (#2262), not a reading of this one. The
-        modelled curve is the one the observation was referenced to.
+        modelled curve is the one the observation was referenced to; no
+        outdoor temperature, no residual.
         """
-        if self.cop is None or self.at is None or utc_elapsed_seconds(self.at, since) <= 0.0:
+        if outdoor is None or self.cop is None or self.at is None or utc_elapsed_seconds(self.at, since) <= 0.0:
             return None
         if self.curve_dhw and self.dhw_temp is not None:
             modelled = model.compute_cop_dhw(outdoor, self.dhw_temp)

@@ -4077,7 +4077,7 @@ def _p2_registry(sources):
                      "a temperature gap in K (target minus room), not a power",
                  "coordinator.py::HeatPumpOptimizerCoordinator._maybe_run_fuse_advisor":
                      "a comfort shortfall in K (the fuse advisor's breach), not a power",
-                 "coordinator.py::_pairs_interval":
+                 "accuracy.py::pairs_interval":
                      "an elapsed time in hours (the pairing window's lower edge), not a power",
                  "dhw_learning.py::DhwProfileLearner.async_learn_usage":
                      "a tank draw intensity in K/h, not a power",

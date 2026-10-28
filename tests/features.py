@@ -66121,7 +66121,6 @@ R.section("R10-COP-GATE (#2262): COP observability, the latch's time, and the dr
 # ask only happened to: a pump whose own controller (or a flow set-point) sets
 # the draw folds nothing, while one whose draw follows still folds.
 from heatpump_optimizer import accuracy as _cg_acc  # noqa: E402
-from heatpump_optimizer import coordinator as _cg_coordmod  # noqa: E402
 
 
 def _cg_fold_near_ask(window_pairs, n=12):
@@ -66170,7 +66169,7 @@ def _cg_install_obs(selfset=True, **extra):
     cfg = dict(_L5_CFG, heat_pump_max_power=14.0, heat_pump_min_power=1.0, **extra)
     coord = _Coord(_FakeHass(dict(_CF_STATES)), _FakeEntry(data=cfg))
     coord._accuracy.draw = _cf_window([(a, 2.2 if selfset else 1.3 * a) for a, _ in _cf_prop])
-    return _cg_coordmod._cop_observability(coord)
+    return coord._learning_view()["cop_observability"]
 
 
 _cg_states = {

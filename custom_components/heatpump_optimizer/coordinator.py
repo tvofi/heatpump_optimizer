@@ -236,6 +236,7 @@ from .accuracy import (
     LEAD_BUCKETS,
     MeasuredCop,
     cop_observability,
+    pairs_interval,
     AccuracySample,
     AccuracyTracker,
     delivered_ratio,
@@ -882,19 +883,6 @@ def _fold_flow_lift(coord: Any, now: datetime) -> None:
         coord._flow_bias.bias_k,
         coord._flow_bias.samples,
     )
-
-
-def _cop_observability(coord: Any) -> str:
-    """``accuracy.cop_observability`` here: a heat counter divides by its span's electric counter, else the power entity."""
-    cfg = _ctx_of(coord)._config
-    electric = cfg.get(CONF_ENERGY_ENTITY if heat_energy.meter_of(coord).counter else CONF_POWER_ENTITY)
-    return cop_observability(electric=bool(electric), measured_heat=probe_install(cfg).measured_heat, follows=draw_range.follows_ask(coord._accuracy.draw))
-
-
-def _pairs_interval(elapsed_h: float) -> bool:
-    """A pending prediction this many hours old still describes the interval
-    that just closed: not a re-run minutes later, not across a restart or gap."""
-    return 0.05 <= elapsed_h <= 2.0
 
 
 def _interval_measured_heat_kw(coord: Any) -> float | None:
@@ -7772,7 +7760,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "measured_cop": self._measured_cop.cop,
             "measured_cop_at": None if self._measured_cop.at is None else self._measured_cop.at.isoformat(),
             "cop_refusal": self._measured_cop.refusal,
-            "cop_observability": _cop_observability(self),
+            # A heat counter divides by its span's electric counter, else the power entity.
+            "cop_observability": cop_observability(
+                electric=bool(ctx._config.get(CONF_ENERGY_ENTITY if heat_energy.meter_of(self).counter else CONF_POWER_ENTITY)),
+                measured_heat=probe_install(ctx._config).measured_heat, follows=draw_range.follows_ask(self._accuracy.draw),
+            ),
             "defrost_derate": self._defrost.factor(
                 ctx._current_state.outdoor_temperature, self._current_humidity()
             ),
@@ -9842,7 +9834,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # draw pairs with that interval's ask and set-point, not the action the
         # solve just adopted for the next one (#2262), within the window the
         # accuracy pairing below trusts; a prediction recording no split is none.
-        if pending is not None and pending.get("split") is not None and _pairs_interval(_utc_age_seconds(now, pending["when"]) / 3600.0):
+        if pending is not None and pending.get("split") is not None and pairs_interval(_utc_age_seconds(now, pending["when"]) / 3600.0):
             draw_range.fold(self._accuracy.draw, self._measured_power, pending["split"], ctx._thermal_params, frozen=power_frozen is not None, distorted=_cop_fold_blocked(self), defrost=defrost_window.any_defrost, command=pending.get("flow_command"))
 
         # T5 #16: settle every matured lead-time promise against the same
@@ -9877,7 +9869,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             elapsed = _utc_age_seconds(now, pending["when"]) / 3600.0
             # Only pair up predictions with the interval they were actually
             # about; a restart or a long gap makes the pairing meaningless.
-            if _pairs_interval(elapsed):
+            if pairs_interval(elapsed):
                 price = pending.get("price")  # None: no price covered it (#2229)
                 sample = AccuracySample(
                     when=now,
@@ -9906,13 +9898,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 # the snapshots' accuracy tags and #12's history both see
                 # efficiency, not just temperature error.
                 # Only a COP folded on this interval (MeasuredCop.residual).
-                if sample.outdoor_temp is not None:
-                    try:
-                        sample.cop_residual = self._measured_cop.residual(
-                            pending["when"], sample.outdoor_temp, self._thermal_model
-                        )
-                    except Exception:  # noqa: BLE001 - tag is best-effort
-                        sample.cop_residual = None
+                try:
+                    sample.cop_residual = self._measured_cop.residual(
+                        pending["when"], sample.outdoor_temp, self._thermal_model
+                    )
+                except Exception:  # noqa: BLE001 - tag is best-effort
+                    sample.cop_residual = None
                 # D7-03/D7-05: skip the accuracy sample when ``indoor_frozen``
                 # above is set — open window, external heat, pump fault, or
                 # an unusable indoor sensor. Energy below is still

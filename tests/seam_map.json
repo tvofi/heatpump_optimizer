@@ -225,7 +225,6 @@
   "coordinator._async_save_restored": "learning",
   "coordinator._restored_stores": "learning",
   "coordinator._cop_fold_blocked": "learning",
-  "coordinator._cop_observability": "views",
   "coordinator._ctx_of": "core",
   "coordinator._publish_params": "core",
   "coordinator._diagnose_payload": "core",
