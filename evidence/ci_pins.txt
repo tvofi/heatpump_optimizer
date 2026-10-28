@@ -1,0 +1,7 @@
+CI run 40777080201 at head 67ffb958b1a76173cfe237bceab6198282260726 (merge ref 92f404013 onto b0b2d7697)
+tests / mutation (job 123129545510): MUTATION TABLE REFUSED -- 3776 unpinned site(s) against 3758 at the ratchet base b0b2d7697, 21 of them added by this diff.
+tests / mutation-pins (3) (job 123130725298): pinned accuracy.py:838 GUARD_OFF, accuracy.py:963 RETURN_DEL, coordinator.py:9851 GUARD_OFF; UNPINNED accuracy.py:934 GUARD_OFF -- lives. "PIN KILLED: 3 pinned, 1 left unpinned (1 survived ...) -- a survivor needs a killing check or a survivor_triage verdict, which no tool writes". Null control accuracy.py:50 NULL_COMMENT survived every driver.
+tests / mutation-pins (4) (job 123130724989): ... accuracy.py:932 GUARD_OFF killed by tests/features.py; sensor.py:1689 GUARD_OFF killed by tests/entities.py; "PIN KILLED: 4 pinned, 0 left unpinned".
+tests / mutation-pins (5) (job 123130725045): UNPINNED accuracy.py:787 CMP_BOUND -- lives (x2); UNPINNED accuracy.py:916 RETURN_DEL -- lives; pinned accuracy.py:938 RETURN_DEL, thermal_model.py:1295 RETURN_DEL. "PIN KILLED: 2 pinned, 3 left unpinned (3 survived ...)".
+tests / mutation-pins (1), (2): in_progress when this verdict was written.
+governance / instrument-self-tests (job 123129545395) step 46 (open_pr.sh --self-test): "FAIL   mutant mut:unlock (its line deleted): the holder is still alive when the run returns" at 22:13:01Z; "pr_args self-test: 144 checks, 1 failed". The same pr_args self-test in the same job's update_pr.sh step at 22:17-22:19Z: "pr_args self-test: 144 checks, 0 failed".
