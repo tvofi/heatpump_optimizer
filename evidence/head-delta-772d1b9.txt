@@ -1,7 +1,0 @@
- .../HeatPumpOptimizer._compute_baseline_power.BOOLOP.03ee6373.json  | 6 ++++++
- ...atPumpOptimizer._compute_baseline_power.CLAMP_DROP.2bd515d1.json | 6 ++++++
- ...eatPumpOptimizer._compute_baseline_power.GUARD_OFF.03ee6373.json | 6 ++++++
- .../optimizer.py/_baseline_target.RETURN_DEL.26d08f36.json          | 6 ++++++
- .../optimizer.py/_baseline_targets.GUARD_OFF.7df02561.json          | 6 ++++++
- .../optimizer.py/_baseline_targets.RETURN_DEL.e3ab3cc7.json         | 6 ++++++
- 6 files changed, 36 insertions(+)
