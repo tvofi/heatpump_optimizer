@@ -11340,6 +11340,37 @@ R.check(
     f"a 50 C tank asks {_ul_gap:.4f} kW more than a 20 C one; its loss is {_ul_loss:.4f} kW",
 )
 
+# Single-zone behind a valve, the reference's charge lands the tank on the
+# curve its emitters are mixed down to, run through the step's own tank law:
+# a need past what the curve delivers buys the curve's draw and no more. The
+# pump sized to the need alone, or the draw read off two-zone circuits, lands
+# it elsewhere.
+def _single_valve_charge_landing():
+    from heatpump_optimizer import mixing_valve as _sv_mv
+    from heatpump_optimizer.optimizer import _thermostat_demand
+    from heatpump_optimizer.thermal_model import (
+        _single_valve_rates, _valve_flow_set, _valve_ua,
+    )
+
+    _sp = ThermalParameters(mixing_valve_mode=_sv_mv.MODE_MANUAL, buffer_tank_volume=750.0)
+    _sm = ThermalModel(_sp)
+    _su = _sm.effective_heat_loss_coefficient(_sp.heat_loss_coefficient, 0.0, 0.0)
+    _ss = ThermalState(room_temperature=21.0, slab_temperature=25.0,
+                       buffer_tank_temperature=26.0, outdoor_temperature=-5.0)
+    _sd = _thermostat_demand(
+        _sm, _ss, 21.0, -5.0, 0.0, 0.0, 0.0, 0.25, _sp.slab_heat_transfer_floored)
+    _, _sdt, _ = _single_valve_rates(_sp, 26.0, 25.0, _sd, -5.0, _su, None, 0.25)
+    return 26.0 + float(_sdt) * 0.25, _valve_flow_set(_sp, None, -5.0, _su, _valve_ua(_sp))
+
+
+_sv_tank, _sv_curve = _single_valve_charge_landing()
+R.check(
+    "single-zone valve: the reference charges the tank onto its curve, never past it",
+    abs(_sv_tank - _sv_curve) < 1e-9,
+    f"a 26 C tank over a 25 C slab ends the step at {_sv_tank:.4f} C; the curve is "
+    f"{_sv_curve:.4f} C",
+)
+
 _tz_kw = _two_zone_rad_demand()
 R.check(
     "two-zone valve: the reference charges for the radiators' need over a hot slab",
