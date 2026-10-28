@@ -1,8 +1,0 @@
-roster-main.json ROSTER-SCHEMA carries: 10
-roster-main.json R10-ROUTING-INVARIANTS brief contains: roster_sync sets the existing `carries-open` stage instead o
-roster-main.json R10-ROUTING-INVARIANTS brief contains: Every carry not yet implemented routes to a roster group tha
-roster-branch.json R10-ORCH-ROSTER-SCHEMA carry[10] contains: roster_sync sets the existing `carries-open` stage instead o
-roster-branch.json R10-ORCH-ROSTER-SCHEMA carry[10] contains: Every carry not yet implemented routes to a roster group tha
-roster-branch.json ROSTER-SCHEMA carries: 16
-roster-branch.json R10-ROUTING-INVARIANTS brief contains: roster_sync sets the existing `carries-open` stage instead o
-roster-branch.json R10-ROUTING-INVARIANTS brief contains: Every carry not yet implemented routes to a roster group tha
