@@ -1,0 +1,2 @@
+measured head 3d8f7c37815f78f5eee3718848bbd1b47057d786 (PR #2914 headRefOid at read and again before post)
+origin/main eab04d0ebf8c45667099b668ab0d8bf976d5f99a (merge base; head already contains it)

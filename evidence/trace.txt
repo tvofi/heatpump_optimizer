@@ -1,0 +1,39 @@
+08c0818cd roster_edit append-carry R10-FLOW-TOOLKIT-MODEL (tools/audit | R10-PREPR-CAP done carries 1
+08c0818cd roster_edit append-carry R10-FLOW-TOOLKIT-MODEL (tools/audit | R10-FLOW-MAIN-GATE done carries 1
+08c0818cd roster_edit append-carry R10-FLOW-TOOLKIT-MODEL (tools/audit | R10-FLY-OPENPR-ATOMIC done carries 11
+08c0818cd roster_edit append-carry R10-FLOW-TOOLKIT-MODEL (tools/audit | R10-TRAIN-OVERLAP-GRADE done carries 15
+08c0818cd roster_edit append-carry R10-FLOW-TOOLKIT-MODEL (tools/audit | R10-ORCH-REVIEW-PACKET done carries 10
+08c0818cd roster_edit append-carry R10-FLOW-TOOLKIT-MODEL (tools/audit | R10-FLOW-BOARD in-progress carries 6
+08c0818cd roster_edit append-carry R10-FLOW-TOOLKIT-MODEL (tools/audit | R10-FLOW-ROSTER-FREEZE carries-open carries 8
+08c0818cd roster_edit append-carry R10-FLOW-TOOLKIT-MODEL (tools/audit | R10-ORCH-ROSTER-SCHEMA done carries 24
+08c0818cd roster_edit append-carry R10-FLOW-TOOLKIT-MODEL (tools/audit | R10-ORCH-BEATD not-started carries 35
+08c0818cd roster_edit append-carry R10-FLOW-TOOLKIT-MODEL (tools/audit | R10-TRIAGE-S6 None carries 0
+3c87df306 roster_edit set-stage R10-TRAIN-OVERLAP-GRADE (tools/audit/s | R10-TRAIN-OVERLAP-GRADE fixing carries 15
+5127e1aa3 roster_sync: derive stages from pull requests (tools/audit/s | R10-TRAIN-OVERLAP-GRADE done carries 15
+c7a19fb2e roster_edit append-group R10-TRIAGE-S6 (tools/audit/seat/ros | R10-TRIAGE-S6 fixing carries 1
+e3bc6128e roster_sync: derive stages from pull requests (tools/audit/s | R10-TRIAGE-S6 in-progress carries 1
+05c60458a roster_sync: derive stages from pull requests (tools/audit/s | R10-TRIAGE-S6 done carries 1
+6f074ab57 roster_edit append-carry R10-FLOW-BOARD (tools/audit/seat/ro | R10-FLOW-BOARD in-progress carries 7
+d9f81f5c5 roster_sync: derive stages from pull requests (tools/audit/s | R10-FLOW-BOARD done carries 7
+6cc3414ba roster_edit set-stage R10-FLY-OPENPR-ATOMIC (tools/audit/sea | R10-FLY-OPENPR-ATOMIC fixing carries 11
+d088ac6b3 roster_edit append-carry R10-FLY-OPENPR-ATOMIC (tools/audit/ | R10-FLY-OPENPR-ATOMIC fixing carries 12
+26a0e26a6 roster_edit set-stage R10-FLOW-MAIN-GATE (tools/audit/seat/r | R10-FLOW-MAIN-GATE fixing carries 1
+cb15a60be roster_edit append-carry R10-FLOW-MAIN-GATE (tools/audit/sea | R10-FLOW-MAIN-GATE fixing carries 2
+f8c1bcf28 roster_edit set-stage R10-ORCH-REVIEW-PACKET (tools/audit/se | R10-ORCH-REVIEW-PACKET fixing carries 10
+408bcc28c roster_edit append-carry R10-ORCH-REVIEW-PACKET (tools/audit | R10-ORCH-REVIEW-PACKET fixing carries 11
+ccae0f74e roster_edit set-stage R10-TRAIN-OVERLAP-GRADE (tools/audit/s | R10-TRAIN-OVERLAP-GRADE fixing carries 15
+ce8b1dff5 roster_edit append-carry R10-TRAIN-OVERLAP-GRADE (tools/audi | R10-TRAIN-OVERLAP-GRADE fixing carries 16
+eb38f64d3 roster_edit set-stage R10-PREPR-CAP (tools/audit/seat/roster | R10-PREPR-CAP fixing carries 1
+8b434ef62 roster_edit append-carry R10-PREPR-CAP (tools/audit/seat/ros | R10-PREPR-CAP fixing carries 2
+8c57b43dd roster_sync: derive stages from pull requests (tools/audit/s | R10-PREPR-CAP done carries 2
+8c57b43dd roster_sync: derive stages from pull requests (tools/audit/s | R10-FLOW-MAIN-GATE done carries 2
+8c57b43dd roster_sync: derive stages from pull requests (tools/audit/s | R10-FLY-OPENPR-ATOMIC done carries 12
+8c57b43dd roster_sync: derive stages from pull requests (tools/audit/s | R10-TRAIN-OVERLAP-GRADE done carries 16
+8c57b43dd roster_sync: derive stages from pull requests (tools/audit/s | R10-ORCH-REVIEW-PACKET done carries 11
+bd536cc90 roster_edit set-stage R10-FLOW-ROSTER-FREEZE (tools/audit/se | R10-FLOW-ROSTER-FREEZE in-review carries 8
+ed8ffe159 roster_edit append-carry R10-ORCH-BEATD (tools/audit/seat/ro | R10-ORCH-BEATD not-started carries 36
+2ff100100 roster_edit set-stage R10-ORCH-BEATD (tools/audit/seat/roste | R10-ORCH-BEATD in-progress carries 36
+3e7de593b roster_edit set-stage R10-FLOW-ROSTER-FREEZE (tools/audit/se | R10-FLOW-ROSTER-FREEZE done carries 8
+728e1d80c roster_edit set-stage R10-ORCH-ROSTER-SCHEMA (tools/audit/se | R10-ORCH-ROSTER-SCHEMA carries-open carries 24
+2a0a854e6 roster_edit append-carry R10-ORCH-ROSTER-SCHEMA (tools/audit | R10-ORCH-ROSTER-SCHEMA carries-open carries 25
+7173689d8 roster_edit append-carry R10-ORCH-ROSTER-SCHEMA (tools/audit | R10-ORCH-ROSTER-SCHEMA carries-open carries 26
