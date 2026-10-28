@@ -1,0 +1,3 @@
+RESULT lead_hours control intact = 6.0
+RESULT b1_loose = True
+RESULT lead_hours B1 unreadable = None

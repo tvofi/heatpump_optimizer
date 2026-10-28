@@ -1,8 +1,0 @@
-=== AT THE BLOCKED HEAD 8f05b74d ===
-merge_throughput in closures['tests/entities.py']: False | size 373
-INERT_EXCEPT entries naming merge_throughput: 0
-=== AT THIS HEAD 3bd284f7 ===
-INERT_EXCEPT: 851:    "tools/audit/merge_throughput.py",
-tools/audit/merge_throughput.py is_inert= False | in closures['tests/entities.py']: True | in inert_reads: False
-tools/audit/seat/state_docs.py is_inert= False | in closures['tests/entities.py']: True | in inert_reads: False
-entities closure size: 375

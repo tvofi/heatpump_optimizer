@@ -1,13 +1,5 @@
-=== merge_throughput --self-test ===
-  ok   flow: an unreadable critical path makes the WIP row UNAVAILABLE, never A 0
-  ok   flow: a record merge exactly at the window's end is counted
-  ok   flow: the default window counts the tip merge at exactly its end
-  ok   flow: a verdict at exactly the window's end is counted
-  ok   flow: a roster commit at exactly the window's end closes in it
+  ok   flow: a path probe that cannot answer is UNAVAILABLE in the roster walk, never {}
+  ok   flow: null control -- the intact roster commit closes its group
 ok: merge_throughput.py self-test
-=== roster_lib --self-test ===
-roster_lib self-test: 39 checks, 0 failed
-=== state_docs --self-test ===
-state_docs self-test: all checks passed
-=== throwaway_git --check ===
-throwaway_git: 0 raw git init or clone site(s) refused, 0 stale allow entries at HEAD
+roster_lib self-test: 51 checks, 0 failed
+( python3 -I tools/audit/merge_throughput.py --self-test 2>&1 | tail -3;  -I )  6.18s user 6.88s system 73% cpu 17.811 total
