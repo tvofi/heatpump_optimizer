@@ -1818,17 +1818,12 @@ def valve_charge_demand(
     # The draw is piecewise linear in the tank temperature, kinked where a
     # circuit starts drawing (its zone) and where its curve caps it; the
     # highest kink is the curve's top, or the cap behind a direct slab.
-    # The lowest kink draws nothing, so each segment entered starts below
-    # the need and the one reaching it is interpolated.
+    # Its inverse is the same line read the other way, and a need past the
+    # highest kink's draw holds that kink.
     kinks = sorted({
         min(t, p.buffer_max_temp) for _, top, zone in circuits for t in (top, zone)
     })
-    goal = kinks[-1]
-    for lo, hi in zip(kinks, kinks[1:]):
-        f_lo, f_hi = _circuit_draw(circuits, lo), _circuit_draw(circuits, hi)
-        if f_hi >= need_kw:
-            goal = lo + (need_kw - f_lo) * (hi - lo) / (f_hi - f_lo)
-            break
+    goal = float(np.interp(need_kw, [_circuit_draw(circuits, k) for k in kinks], kinks))
     loss = p.buffer_tank_heat_loss_coefficient * (tank - TANK_ROOM_AMBIENT_TEMP)
     return (
         _circuit_draw(circuits, tank) + loss

@@ -13413,11 +13413,14 @@ R.check(
 
 # The savings reference backs its electric demand off by the same wood share,
 # and only where the layout models the wood tank: a single-tank state that
-# carries a wood reading is the thermostat it would be without one.
+# carries a wood reading is the thermostat it would be without one. The HP
+# tank starts at 25 C, below the curve: behind a valve the reference coasts
+# on a tank above the curve before it buys anything (R10-BUFFER-STORE), so
+# the 45 C tank of the states above would leave both arms at zero.
 def _w2t_reference(params, wood, n=16):
     _z = np.zeros(n)
     return _PvOpt(_PvModel(params), _PvOptCfg(target_temp=21.0))._compute_baseline_power(
-        _WS(np.full(n, -5.0), _z, _z, _z), _w2t_state(wood), 0.25)[0]
+        _WS(np.full(n, -5.0), _z, _z, _z), _w2t_state(wood, buf=25.0), 0.25)[0]
 
 
 _w2t_ref_hot = _w2t_reference(_w2t_params_two, 80.0)
