@@ -1,0 +1,7 @@
+check-runs at ad62bf6346a131111ea482185caa2813e9851a19 (one bulk read, 39 runs, read ~03:33Z 2026-10-23)
+failure: fast (3.14) [job 120220882995] -- tests/entities.py "1 of 2406 ENTITY CHECKS FAILED"; harness_headers 109 passed; layout ok
+failure: nightly-status [job 120220769226]
+in_progress: closures, coverage, Analyze (python)
+success: pr-contract (x3, last started 03:20:54Z), arch-score, budget-raise-gate, instrument-self-tests, wave-script, policy-docs, env-matrix, delivery-status, typing, browser, mutation, briefs, closure-scope, claims-autofix, hassfest, validate-hacs, CodeQL Analyze (js-ts, actions)
+skipped/neutral: mutation-autofix, mutation-pins, nightly-ha, kernel-points, record, delivery-status-publish, CodeQL
+main push run 39890320654 at merge base e30b24bbc4: fast (3.14) success (full suite), ci-ratchet failure
