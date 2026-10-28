@@ -1,7 +1,0 @@
-== job 121407967543
-2026-10-26T05:06:28.8168841Z gh: API rate limit exceeded for installation. If you reach out to GitHub Support for help, please include the request ID 4800:29C7DF:293FDFC:8605605:6ADEDFD4 and timestamp 2026-10-26 05:06:28 UTC. For more on scraping GitHub and how it may affect your rights, please review our Terms of Service (https://docs.github.com/en/site-policy/github-terms/github-terms-of-service) (HTTP 403)
-2026-10-26T05:06:28.8205892Z ##[error]Process completed with exit code 1.
-2026-10-26T05:06:28.8740158Z ##[error]Process completed with exit code 1.
-== job 121408083256
-2026-10-26T05:06:52.5355208Z RATE-LIMITED reset_epoch=1792991224 repos/tvofi/heatpump_optimizer/actions/runs/40269359453/jobs
-2026-10-26T05:06:52.5457682Z ##[error]Process completed with exit code 3.

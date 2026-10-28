@@ -1,0 +1,40 @@
+== git log -S batch=$? nightly.yml
+c24adf589 2026-10-25 18:11:21 +0000 record: batch the record beat, pitch its automerge, and cut the record chain (R10-FLOW-RECORD-PITCH)
+== intro first-parent of 28800999b
+28800999b Merge pull request #2836 from tvofi/fix/r10-flow-record-pitch
+c24adf589-in-2836
+== tests grep at 28800999b
+28800999b:tests/README.md:1
+28800999b:tests/closure.py:2
+28800999b:tests/closures.json:2
+28800999b:tests/entities.py:26
+28800999b:tests/mutation_table.py:2
+28800999b:tests/nightly_status.py:5
+== _RAF_BARE_GREEN at 28800999b
+28800999b:tests/entities.py:27718:_RAF_BARE_GREEN = re.compile(r"(?m)^\s*guard --require-green\b")
+28800999b:tests/entities.py:27726:            and _RAF_BARE_GREEN.search(job) is None
+== _raf_batch_gated
+28800999b:tests/entities.py:27739:def _raf_batch_gated(job: str) -> bool:
+28800999b:tests/entities.py:27743:            and 'if [ "$batch" = 4 ]; then status="batching"; break; fi' in job
+28800999b:tests/entities.py:27767:        and _raf_batch_gated(job)
+== bash -c in train_hold
+28800999b:tests/entities.py:19712:        p = _subprocess.run(["bash", "-c", script], capture_output=True, text=True, timeout=30,
+28800999b:tests/entities.py:27925:        p = subprocess.run(["bash", "-c", _HOLD_RUN], cwd=t, capture_output=True, text=True,
+28800999b:tests/entities.py:28288:        subprocess.run(["bash", "-c", script], cwd=_td, capture_output=True, text=True,
+28800999b:tests/entities.py:29775:        subprocess.run(["bash", "-c", check_run], capture_output=True, text=True,
+28800999b:tests/entities.py:29786:        subprocess.run(["bash", "-c", stage_run], capture_output=True, text=True,
+28800999b:tests/entities.py:35204:        ["bash", "-c", f'{derived.group(0)}\n{fast.group(1)}\nprintf "%s\\n" "$SCRIPTS"'],
+d181d014a:tests/entities.py:19712:        p = _subprocess.run(["bash", "-c", script], capture_output=True, text=True, timeout=30,
+d181d014a:tests/entities.py:27925:        p = subprocess.run(["bash", "-c", _HOLD_RUN], cwd=t, capture_output=True, text=True,
+d181d014a:tests/entities.py:28288:        subprocess.run(["bash", "-c", script], cwd=_td, capture_output=True, text=True,
+d181d014a:tests/entities.py:29775:        subprocess.run(["bash", "-c", check_run], capture_output=True, text=True,
+d181d014a:tests/entities.py:29786:        subprocess.run(["bash", "-c", stage_run], capture_output=True, text=True,
+d181d014a:tests/entities.py:35204:        ["bash", "-c", f'{derived.group(0)}\n{fast.group(1)}\nprintf "%s\\n" "$SCRIPTS"'],
+== main-only guard
+2:542-    if: >-
+3:543-      !cancelled() && github.ref == 'refs/heads/main'
+== bc2ad6964
+bc2ad6964 2026-10-14 13:46:55 +0200 fix(record-autofix): keep the --require-green call a condition so bash -e cannot abort the merge step
+1035:            pitch=$?
+1042:          # A CONDITION, not a bare `guard --require-green; rc=$?`: this step
+1049:          if guard --require-green; then rc=0; else rc=$?; fi

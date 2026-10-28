@@ -1,19 +1,54 @@
-== forbidden paths
-       0
-== host paths in added lines
+diff --git a/dev/audit/config/bugclasses.json b/dev/audit/config/bugclasses.json
+index 948d016e7..f48d7476d 100644
+--- a/dev/audit/config/bugclasses.json
++++ b/dev/audit/config/bugclasses.json
+@@ -4484,6 +4484,22 @@
+       "doc": [
+         "dev/audit/rca/R10-RCA-CI-RATCHET-RUN-NAME.md"
+       ]
++    },
++    "R10-RCA-HOTFIX-BATCH-ERREXIT": {
++      "class": null,
++      "level": "instance-or-process",
++      "subject": "nightly.yml record-autofix reads batch=$? after a bare record_row.py --batch-due; GitHub's default bash -e ends the step on the designed exit 4 before the read, so every push below the batch floor reddens record-autofix (jobs 121376331566, 121376503388)",
++      "trigger": "assigned by the orchestrator: record-autofix red on main from the #2845 merge run (2026-10-26), beside R10-HOTFIX-BATCH-ERREXIT",
++      "date": "2026-10-26",
++      "status": "proposed",
++      "parts_missing": [],
++      "process_state": "(c) the bash -e barrier _RAF_BARE_GREEN (bc2ad6964) ran and passed but its unit is one literal call; #2836's _raf_batch_gated pins the dead line's text; the executed-step harness runs bash -c without -e",
++      "countermeasure": "A: a tree-wide $?-after-bare-call check over every errexit run block replacing _RAF_BARE_GREEN (<=0.54 s per run, 61 runner-s/day against break-even 940 s per defect at 0.065/day measured), landed after the hotfix; B: executed step harnesses under bash -e -c; I1's pipeline shape uncovered",
++      "landed": null,
++      "in_tree_home": "dev/audit/rca/R10-RCA-HOTFIX-BATCH-ERREXIT.md",
++      "doc": [
++        "dev/audit/rca/R10-RCA-HOTFIX-BATCH-ERREXIT.md"
++      ]
+     }
+   },
+   "N-registry-leak": {
+diff --git a/dev/programme/delivery/2849.md b/dev/programme/delivery/2849.md
+new file mode 100644
+index 000000000..488041e26
+--- /dev/null
++++ b/dev/programme/delivery/2849.md
+@@ -0,0 +1 @@
++- [#2849](https://github.com/tvofi/heatpump_optimizer/pull/2849) — **open**, R10-HOTFIX-BATCH-ERREXIT: root cause of the batch errexit class (R10-HOTFIX-BATCH-ERREXIT)
+diff --git a/tests/closures.json b/tests/closures.json
+index 705988538..a782d31a9 100644
+--- a/tests/closures.json
++++ b/tests/closures.json
+@@ -3621,6 +3621,7 @@
+    "dev/audit/harnesses/r10_demand_overbook.py",
+    "dev/audit/harnesses/r10_dhw_lift_law_grid.py",
+    "dev/audit/harnesses/r10_envmatrix_noremote.sh",
++   "dev/audit/harnesses/r10_errexit_capture.py",
+    "dev/audit/harnesses/r10_fahrenheit_setpoints.py",
+    "dev/audit/harnesses/r10_family_replay.mjs",
+    "dev/audit/harnesses/r10_field_coverage_paths.sh",
+== json parse
+dict 52
+== untouched
 0
-== trailers
-0
-== body host paths
-0
-== bugclasses
-dict
-fold_ledger: 46 classes, 746 instances, 121 in-tree judge survivors (rounds [8, 10]), 123 rca entries
-fold_ledger: 0 violation(s)
-== structure
-STRUCTURE RATCHET PASSED
-== harness_headers
-ModuleNotFoundError: No module named 'homeassistant'
-== select
-  MODE: SCOPED -- 1 script(s) run, 32 scoped out.
-harness_headers: local run stopped after 5 min (cited from CI tests / fast green instead)
+== merge-tree
+b582d13608434ab8f098fcedb755676a27cdef84
+exit=0
+trailer-grep done

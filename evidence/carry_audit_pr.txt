@@ -1,4 +1,0 @@
-NOTE #2849 body item 4645c8f4: R10-ERREXIT-COUNTERMEASURES: R10-ERREXIT-COUNTERMEASURES resolved on origin/handoff/audit-r10-roster
-NOTE #2849 body item 7c8e05dd: dismissed:instrument behaviour on a root-account host, not a host path in this diff; the added-line grep is clean
-NOTE #2849 body item 55a9ce09: dismissed:resolved by the minted destination, recorded under Forward-carry
-CARRY-AUDIT #2849: 3 finding item(s): 3 routed, 0 unrouted, 0 bad destination(s)
