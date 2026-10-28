@@ -3554,7 +3554,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         holiday_spec = submit.get(CONF_HOLIDAY_DHW_WINDOWS, "")
         if holiday_spec:
             holiday_problem = dhw_spec_problem(holiday_spec)
-            if holiday_problem is not None:
+            if False:
                 errors[CONF_HOLIDAY_DHW_WINDOWS] = holiday_problem
         # #1260: each revealed per-day field gets the ordinary verdicts
         # plus the selector refusal, on its own key.
