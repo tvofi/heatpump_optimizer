@@ -1,0 +1,78 @@
+=== python3 tools/audit/seat/merge_train.py --self-test
+  ok   a skip carries its block class in the line and in skipped.json
+  ok   without --skip-bad the same bad entry still stops the train before anything merges (the default did not change)
+  ok   --skip-bad: a red main still stops everything -- at step 0 and through the merge guard's re-read, both outside the per-entry skip
+  ok   --skip-bad (--main-moved-tries 0): a Stop after the merge API call is fatal for that entry only -- logged post-merge, never retried, and the next entry is neither merged nor re-proved onto the unread tree
+  ok   --skip-bad (--main-moved-tries 3): a Stop after the merge API call is fatal for that entry only -- logged post-merge, never retried, and the next entry is neither merged nor re-proved onto the unread tree
+merge_train self-test: 229 checks, 0 failed
+rc=0
+=== python3 tools/audit/seat/queue_pre_flight.py --self-test
+  ok   the queue prints one line per entry and the summary, and is not clean
+  ok   an all-PASS queue is clean (the summary's null control)
+  ok   the train this instrument mirrors is in the tree
+  ok   the delivery-row directory the train requires, dev/programme/delivery/, is in the tree
+  ok   the mandate reader the budget arm reads is in the tree
+queue_pre_flight self-test: 43 checks, 0 failed
+rc=0
+=== python3 tools/audit/seat/record_row.py --self-test
+gh_read self-test: 112 checks, 0 failed
+record_row self-test: all checks passed
+rc=0
+=== bash tools/pr/app_approve.sh --self-test
+ok   printing the carry it relied on
+ok   REFUSE: the verdict at V does not carry to a head one byte away (null control)
+ok   saying why
+ok   and nothing was minted or posted
+ok   REFUSE: a carried verdict whose evidence names neither head
+app_approve self-test: 254 checks, 0 failed
+rc=0
+=== bash tools/audit/seat/merge_pr.sh --self-test
+  ok   a check-run whose run is still in progress is not re-run (null control)
+  ok   the owner body declares an agent and cites exactly the mandate given
+  ok   no mandate date is written into this script
+  ok   null control: the merge records the reviewed head
+  ok   a refused merge fails the script (the line's own exit)
+merge_pr self-test: 18 checks, 0 failed
+rc=0
+=== bash tools/audit/seat/pr_args.sh --self-test
+  ok     mutant mut:rowonly (its line deleted): code sha '-' runs the full prepr
+  ok   null control: a code sha never asks for --row-only, so its push runs the full prepr
+  ok   null control: update_pr with code sha 'b53d3ed' passes every check, and its failed push names its log
+  ok   null control: update_pr with code sha '-' passes every check, and its failed push names its log
+  ok   pr_cap.py --self-test: its tally says 0 failed
+pr_args self-test: 93 checks, 0 failed
+rc=0
+=== bash tools/audit/seat/pr_args.sh --pushers
+ok   tools/pr/app_approve.sh mention:
+ok   tools/pr/app_mint.sh mention:
+ok   tools/pr/app_push.sh runner
+ok   tools/pr/approve_held_runs.sh mention:
+ok   tools/pr/head_note.py mention:
+ok   tools/pr/push.sh retired
+rc=0
+=== python3 tools/audit/seat/ref_privacy.py --self-test
+  ok   a NUL-bearing file naming no host passes (the null control), and nothing else is charged
+  ok   the scrubbed tree's diff is refused nothing (scrub is the remedy)
+  ok   scrub leaves no leak class under the planted identity, and keeps the line count
+  ok   scrub's placeholders, in order: scratchpad, home, account, temp, session temp
+  ok   scrub leaves another account's home and a public one alone (the null control)
+ref_privacy self-test: 66 checks, 0 failed
+rc=0
+=== python3 tools/audit/seat/ref_privacy.py --check
+ref_privacy --check at HEAD: 25 file(s) with a push site, 12 guarded, 1161 line(s) added since 4200ea4c4275 judged, 0 refused
+rc=0
+=== python3 -c 'import sys;sys.path.insert(0,"tools/audit/seat");import gh_read;r=gh_read.self_test();print("RET",r)'
+gh_read self-test: 112 checks, 0 failed
+RET 0
+rc=0
+=== python3 tests/structure.py
+  ok   methods_over_150 17 <= 17
+  ok   methods_over_200 9 <= 9
+  ok   name_kept_members 38 <= 38
+  ok   seam_cut_total 708 <= 708
+
+STRUCTURE RATCHET PASSED
+rc=0
+=== python3 tools/audit/carry_audit.py pr 2639
+CARRY-AUDIT #2639: 4 finding item(s): 4 routed, 0 unrouted, 0 bad destination(s)
+rc=0
