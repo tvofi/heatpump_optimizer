@@ -1,5 +1,7 @@
-Check runs on 6fd6c0c1b1ff3250fd1d7190ed7c4d3b4abae47f (check-runs API via the PR, 37 runs) at review time:
-in progress: tests / fast (3.14), tests / closures, tests / coverage, codeql / Analyze (python), one prelude
-failure: governance / delivery-status -- DELIVERY STATUS OVERDUE, overdue #2795 (main's backlog, 12 commits); job states it is NOT a required context
-skipped: governance / record (not run on a PR), tests / mutation-pins, tests / mutation-autofix, tests / replay, tests / nightly-ha, kernel-points, delivery-status-publish, arm
-success: all others (arch-score, policy-docs, instrument-self-tests, briefs, closure-scope, env-matrix, wave-script, mutation, typing, browser, arch-instrument, budget-raise-gate, hassfest, validate-hacs, nightly-status, codeql js/actions)
+prelude	queued	null
+cancel-superseded	queued	null
+refresh	queued	null
+prelude	queued	null
+refresh	queued	null
+cancel-superseded	completed	success
+arm	completed	skipped

@@ -1,0 +1,16 @@
+diff --git a/tools/policy/friction_issues.mjs b/tools/policy/friction_issues.mjs
+index d1a45bb9c..c51954340 100644
+--- a/tools/policy/friction_issues.mjs
++++ b/tools/policy/friction_issues.mjs
+@@ -1075,6 +1075,11 @@ export function selfTest() {
+     `${LINE('blocked', 'verdict class', 4)}\n${WINDOW_LINE(12)}\nCENSUS\tverdict class\t2\t2\tharness\nCENSUS\tfriction rule id\t1\t1\tharness\nCENSUS: 2 key(s)${THRESHOLD_LINE}\nWOULD OPEN: 1 issue(s)`)
+   st(twoKinds.ok, true, 'a key shared by two kinds is two census rows, which the summary counts: the census is whole, not partial')
+   st(twoKinds.census.get('harness')?.prs, 2, 'and the shared key keeps the larger PR count, never the smaller')
++  // The mirror: the larger row comes second (a friction rule id outranking its
++  // verdict class), so first-write-wins and last-write-wins each fail one order.
++  const twoKindsLater = parseHistogram(
++    `${LINE('blocked', 'verdict class', 4)}\n${WINDOW_LINE(12)}\nCENSUS\tverdict class\t1\t1\tharness\nCENSUS\tfriction rule id\t3\t3\tharness\nCENSUS: 2 key(s)${THRESHOLD_LINE}\nWOULD OPEN: 1 issue(s)`)
++  st(twoKindsLater.census.get('harness')?.prs, 3, 'and the larger count wins when it is the later row, not only the earlier one')
+   const noThreshold = parseHistogram(`${LINE('blocked', 'verdict class', 4)}\n${WINDOW_LINE(12)}\n${CENSUS(CROWS)}\nWOULD OPEN: 1 issue(s)`)
+   st(noThreshold.ok, false, 'a histogram that does not print its own threshold is refused rather than compared against a number typed here')
+ 
