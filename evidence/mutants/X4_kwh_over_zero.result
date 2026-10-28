@@ -1,0 +1,4 @@
+RESULT X4_kwh_over_zero: rc=0 FAIL=3 ok=1421
+    FAIL R10-IMMERSION-LATCH: a booster flag on books only the draw over the latch threshold, under the booster's own line  [{'spot': 0.0, 'grid_fee': 3.45, 'immersion': 0.0, 'dhw_booster': 3.45, 'backup_
+    FAIL R10-IMMERSION-LATCH: a backup-heater flag on books under its own line  [{'spot': 0.0, 'grid_fee': 3.45, 'immersion': 0.0, 'dhw_booster': 0.0, 'backup_heater': 3.45}]
+    FAIL R10-IMMERSION-LATCH: a declared immersion element books the same threshold excess when no pump heater flag is on  [{'spot': 0.0, 'grid_fee': 3.45, 'immersion': 3.45, 'dhw_booster': 0.0, 'backup_h

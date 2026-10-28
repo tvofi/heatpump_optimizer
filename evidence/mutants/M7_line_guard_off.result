@@ -1,0 +1,6 @@
+RESULT M7_line_guard_off: rc=0 FAIL=6 ok=1418
+    FAIL R10-IMMERSION-LATCH: a booster flag on books only the draw over the latch threshold, under the booster's own line  [{'spot': 2.875, 'grid_fee': 3.45, 'immersion': 0.0, 'dhw_booster': 0.0, 'backup
+    FAIL R10-IMMERSION-LATCH: a backup-heater flag on books under its own line  [{'spot': 2.875, 'grid_fee': 3.45, 'immersion': 0.0, 'dhw_booster': 0.0, 'backup_heater': 0.0}]
+    FAIL R10-IMMERSION-LATCH: a declared immersion element books the same threshold excess when no pump heater flag is on  [{'spot': 2.875, 'grid_fee': 3.45, 'immersion': 0.0, 'dhw_booster': 0.0, 'backup_
+    FAIL R10-IMMERSION-LATCH: a carve smaller than any epsilon is booked, so spot plus the resistive line still equals the metered kWh  [{'spot': 2.875, 'grid_fee': 2.8750005, 'immersion': 0.0, 'dhw_boost
+    FAIL R10-IMMERSION-LATCH: every resistive line is metered energy -- the contract settlement and the receipt both fold it back in  [metered {'kwh': 2.875, 'sek': 5.75} receipt total 2.875]

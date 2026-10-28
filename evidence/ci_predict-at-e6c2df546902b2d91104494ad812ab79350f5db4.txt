@@ -1,0 +1,5 @@
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/coordinator.py:10239 GUARD_OFF: if resistive_line:
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/pump_signals.py:247 CMP_BOUND*2: if not latched or hours <= 0.0 or threshold_kw <= 0.0:
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/pump_signals.py:249 CMP_BOUND: if actual_kw is None or actual_kw <= threshold_kw:
+CI PREDICT: 3 unpinned site(s) the diff adds -- a warning; the body owes each a line under ## Unpinned sites
+CI PREDICT: no closures, fast, wave-script or instrument red predicted against 6e5995e51bec (a data-file read is not seen)

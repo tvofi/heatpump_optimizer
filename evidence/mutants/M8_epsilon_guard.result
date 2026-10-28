@@ -1,0 +1,2 @@
+RESULT M8_epsilon_guard: rc=0 FAIL=1 ok=1423
+    FAIL R10-IMMERSION-LATCH: a carve smaller than any epsilon is booked, so spot plus the resistive line still equals the metered kWh  [{'spot': 2.875, 'grid_fee': 2.8750005, 'immersion': 0.0, 'dhw_boost

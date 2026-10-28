@@ -1,0 +1,6 @@
+RESULT BASE: rc=1 FAIL=7 ok=1412
+    FAIL R10-IMMERSION-LATCH: an install with no resistive element configured books no resistive line, however far the draw is over its ask  [{'spot': 1.5, 'grid_fee': 3.0, 'immersion': 1.5, 'dhw_booster'
+    FAIL R10-IMMERSION-LATCH: a booster flag on books only the draw over the latch threshold, under the booster's own line  [{'spot': 1.0, 'grid_fee': 3.45, 'immersion': 2.45, 'dhw_booster': 0.0, 'backup_
+    FAIL R10-IMMERSION-LATCH: a backup-heater flag on books under its own line  [{'spot': 1.0, 'grid_fee': 3.45, 'immersion': 2.45, 'dhw_booster': 0.0, 'backup_heater': 0.0}]
+    FAIL R10-IMMERSION-LATCH: a declared immersion element books the same threshold excess when no pump heater flag is on  [{'spot': 1.0, 'grid_fee': 3.45, 'immersion': 2.45, 'dhw_booster': 0.0, 'backup_h
+    FAIL R10-IMMERSION-LATCH: configured flags reading off book nothing -- the draw over the threshold is then the compressor's, not an element's  [{'spot': 1.0, 'grid_fee': 3.45, 'immersion': 2.45, 'dhw_
