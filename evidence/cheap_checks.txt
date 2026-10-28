@@ -1,0 +1,3 @@
+STRUCTURE RATCHET PASSED
+closure select --diff <merge-base>: MODE: SCOPED -- 1 script(s) run, 32 scoped out.
+tests/entities.py: not run locally (no voluptuous in the local 3.14); CI tests/closures and tests/fast (3.14) concluded success at the head

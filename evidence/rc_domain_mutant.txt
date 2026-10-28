@@ -1,0 +1,10 @@
+head 3133112f7e2869278f2524201ed0637990a09eab
+reviewer mutant rc-ne0 in tools/audit/carry_audit.py load_dests:
+  '[0] == 1:' -> '[0] != 0:'
+RESULT mutant=rc-ne0 self-test="carry_audit self-test: 201 checks, 0 failed" verdict=SURVIVED
+behaviour it changes, a clone with no refs/remotes/origin/main (git clone --single-branch of the PR branch), check --body on #2903's body:
+  head:    CARRY-AUDIT: 1 finding item(s): 1 routed, 0 unrouted, 0 bad destination(s)
+  mutant:  carry_audit: REFUSED cannot list dev/programme/rosters/ at origin/main ...: fatal: Not a valid object name origin/main
+shallow probe (scratch repo, depth-1 clone, origin/main = HEAD~1 fetched depth 1):
+  git merge-base --is-ancestor origin/main HEAD -> rc=1 (true answer 0): a shallow HEAD containing origin/main takes the stale-tree branch
+other reviewer mutants: no-note killed(1), show-head killed(1), rev-swap killed(4)
