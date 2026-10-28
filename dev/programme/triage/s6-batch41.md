@@ -13,7 +13,7 @@ carry now takes `tools/pr/merge_main_bot.py` into the group's `files` by `edit-b
 guarded `append-group`, which `nudge.md:105` runs directly, so that op moved to the direct-callable
 set with `set-stage`.
 
-## P212: a verdict cannot be voided by a change to the content it ruled (V132)
+## P212: a verdict cannot be voided by a change to the content it ruled (V125)
 
 Verdict: REJECT. The proposed mechanism cannot see the instance it was written for.
 
@@ -51,7 +51,7 @@ What would make it worth pricing: the first instance where a document cited by a
 verdict and the stale reading is what merges. Then a digest of exactly the out-of-head paths the
 packet cites, and nothing else, is a bounded check. No such instance is recorded.
 
-## P213: a complete pull request can be unmergeable because its `## Head` names another sha (V133)
+## P213: a complete pull request can be unmergeable because its `## Head` names another sha (V126)
 
 Verdict: ACCEPT narrowed -> a carry of **R10-ORCH-REVIEW-PACKET** (`resume.stage` `done`, so the
 roster op reopens it; it owns `tools/audit/seat/review_packet.py`, and its brief is the packet's
@@ -94,7 +94,7 @@ a branch, it prints the refusal without the command rather than a guess; and the
 repair text is present only when the branch is known (null control: the refusal with no branch
 prints no command).
 
-## P214: the claimnotes refusal leaves a PR unrunnable without stating the decision (V134)
+## P214: the claimnotes refusal leaves a PR unrunnable without stating the decision (V127)
 
 Verdict: ACCEPT -> a carry of **R10-996-RUNNER-CLAIMS** (`resume.stage` `carries-open`; it owns
 `tests/env_drift.py` and `tests/golden/claimed_drift.txt`, and its note is the claimnotes arm), with
@@ -142,7 +142,7 @@ touches the file, and the fix carries a line in the bot's own self-test assertin
 now contains the driver's first sentence (null control: a run whose driver reports no conflict
 prints the same status it prints today).
 
-## P215: a lane rule that only prose enforces (V135)
+## P215: a lane rule that only prose enforces (V128)
 
 Verdict: ACCEPT narrowed -> a carry of **R10-ROSTER-OPS** (`resume.stage` `done`, so the roster
 op reopens it; it owns `tools/audit/seat/roster_edit.py` and the mutant driver
@@ -161,7 +161,7 @@ seat.
 
 Why narrowed: two ops are written into the procedures the tree runs. The sweep template
 instructs the orchestrator to run `roster_edit.py set-stage` directly after each merge
-(`tools/audit/seat/sweep_template.md:63`, `nudge.md` steps 12 and 18), and `nudge.md:105` instructs
+(`tools/audit/seat/sweep_template.md:63`, `nudge.md` step 12; step 18 runs no `set-stage`), and `nudge.md:105` instructs
 it to "register a fly-in at dispatch with `tools/audit/seat/roster_edit.py` append-group". A guard
 on either would refuse the tree's own written procedure -- the next slip, built by the fix. So the
 structural set is `wire-issue`, `unwire-issue`, `edit-brief`, `append-carry`, `set-after`,
@@ -183,7 +183,7 @@ Binding: the marker is an environment variable the queue runner sets on its chil
 not a pid check, so the seat's own pass carries it and a seat calling `roster_edit.py` directly
 from a shell does not; the refusal names the queue runner and the group and exits before the
 roster file is read; `set-stage`, `append-group` and `set-resume` are unchanged and stay
-direct-callable, because `sweep_template.md:63` and `nudge.md` steps 12 and 18 require the first and
+direct-callable, because `sweep_template.md:63` and `nudge.md` step 12 (`nudge.md:89`) require the first and
 `nudge.md:105` the second, and the third appears in neither procedure; the null control is
 `roster_queue.py` running the same ops, which passes with the marker; and a caller that sets the marker by hand is out of scope
 -- the guard stops a caller that does not know the lane, which is what the instance was, not a
