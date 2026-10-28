@@ -1,9 +1,0 @@
--- R10-DEMAND-OVERBOOK: the unsensed slab advances by metered heat (#2499)
-  ok   #2499: a metered pump that drew nothing leaves the slab cooling, not at the plan's commanded 25 degC
-  ok   #2499: the slab rises with the metered draw, below the commanded trajectory while the pump draws less than 4 kW
-  ok   #2499: a standby draw under the running floor heats nothing
-  ok   #2499: without a power meter the slab follows the plan (null control)
-  ok   #2499: with no previous sample time the slab follows the plan
-  FAIL #2499: a resistive element sharing the meter gives no space draw; a pump not serving rooms gives 0 kW
-1 of 4362 FEATURE CHECKS FAILED
-rc=1

@@ -1,9 +1,0 @@
-All in detached worktrees at 5fb0a083bec51dd84b816c9b965c56c6365cb9f2, PYTHONPATH=tests/hastub python3 tests/features.py
-head unmutated : ALL 4362 FEATURE CHECKS PASSED rc=0
-M1 (body) coordinator._propagated_slab predicate `if False and kw is not None ...`: 2 of 4362 FAILED rc=1 (both named #2499 checks)
-M2 (body) draw_range.running_kw `drawn_kw > floor` -> `drawn_kw > 0.0`: 1 of 4362 FAILED rc=1 (standby check)
-M3 (mine) _propagated_slab `shared=coord._immersion_active or signals.electric_heat.resistive_heat` -> `shared=False`: ALL 4362 PASSED rc=0  SURVIVES
-M4 (mine) _propagated_slab `space_served=signals.space_heat or not signals.mode_observed` -> `space_served=True`: ALL 4362 PASSED rc=0  SURVIVES
-M5 (mine) `0.0 < dt_h <= HOUSE_LOSS_MAX_SAMPLE_HOURS` -> `0.0 < dt_h`: ALL 4362 PASSED rc=0  SURVIVES (body pre-declares coordinator.py:1008 CMP_BOUND*2 unkilled locally)
-M6 (mine) space_draw_kw drop `* space_share(*split)`: 1 of 4362 FAILED rc=1
-Only tests/features.py references _propagated_slab / space_draw_kw (grep tests/).
