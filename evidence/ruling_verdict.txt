@@ -1,7 +1,0 @@
-RESULT ruling_verdict P106 DEFER
-RESULT ruling_verdict P107 DEFER
-RESULT ruling_verdict P108 REJECT
-RESULT ruling_verdict P109 REJECT
-RESULT ruling_verdict P110 DEFER
-RESULT ruling_verdict P111 None
-RESULT mutant P110 verdict line misspelt -> unreadable
