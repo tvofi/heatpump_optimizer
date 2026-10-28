@@ -1,0 +1,2 @@
+4468:2026-10-28T01:51:16.3908089Z     ADDED UNPINNED custom_components/heatpump_optimizer/thermal_model.py:1756 CLAMP_DROP: headroom_k = np.maximum(0.0, p.buffer_max_temp - T_buf)
+4469:2026-10-28T01:51:16.3910178Z MUTATION TABLE REFUSED -- 3791 unpinned site(s) against 3797 at the ratchet base 07295d4ea1471048ee2a76a6776b5cd364dcf141, 1 of them added by this diff. A new guard, clamp, removable return, doubled constant or comparison bound left the tree without a recorded dispo

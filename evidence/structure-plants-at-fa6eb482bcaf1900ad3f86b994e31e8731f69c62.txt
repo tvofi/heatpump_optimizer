@@ -1,0 +1,4 @@
+RESULT revert_fold: rc=1 ['FAIL class_excess_loc 17996 > 17994 (+2)']
+RESULT compact_inline: rc=0 ['ok   class_excess_loc 17994 <= 17994']
+
+[exited with code 0]

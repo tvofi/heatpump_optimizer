@@ -1,0 +1,3 @@
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/thermal_model.py:1756 CLAMP_DROP: headroom_k = np.maximum(0.0, p.buffer_max_temp - T_buf)
+CI PREDICT: 1 unpinned site(s) the diff adds -- a warning; the body owes each a line under ## Unpinned sites
+CI PREDICT: no closures, fast, wave-script or instrument red predicted against 07295d4ea147 (a data-file read is not seen)
