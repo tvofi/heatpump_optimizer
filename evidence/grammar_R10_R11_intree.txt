@@ -1,0 +1,6 @@
+R11: RESULT pins=16 fails=1 KILLED
+RESULT mutants=2 killed=1
+R11: RESULT pins=16 fails=1 KILLED
+RESULT mutants=2 killed=1
+R11: RESULT pins=16 fails=0 SURVIVED
+RESULT mutants=2 killed=0

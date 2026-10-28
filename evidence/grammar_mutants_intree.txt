@@ -1,0 +1,24 @@
+M0 RESULT pins=16 fails=0
+R1: RESULT pins=16 fails=3 KILLED
+R2: RESULT pins=16 fails=1 KILLED
+R3: RESULT pins=16 fails=1 KILLED
+R4: RESULT pins=16 fails=1 KILLED
+R5: RESULT pins=16 fails=1 KILLED
+R6: RESULT pins=16 fails=3 KILLED
+R7: RESULT pins=16 fails=3 KILLED
+R8: RESULT pins=16 fails=3 KILLED
+R9: RESULT pins=16 fails=3 KILLED
+R10: RESULT pins=16 fails=0 SURVIVED
+R11: RESULT pins=16 fails=0 SURVIVED
+R12: RESULT pins=16 fails=1 KILLED
+R13: RESULT pins=16 fails=2 KILLED
+R14: RESULT pins=16 fails=1 KILLED
+R15: RESULT pins=16 fails=1 KILLED
+R16: RESULT pins=16 fails=1 KILLED
+R17: RESULT pins=16 fails=1 KILLED
+RESULT mutants=17 killed=15
+
+real	0m4.304s
+user	0m3.256s
+sys	0m0.883s
+exit=1
