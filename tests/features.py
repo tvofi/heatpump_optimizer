@@ -66521,6 +66521,45 @@ R.check(
 )
 
 
+# The flow-bias learner's duty gate reads the interval's attribution, the
+# dwell where the mode entity observed it, as the COP fold does (#2262 carries
+# 13 and 16): a window that switched back from hot water to space leaves the
+# plan's split space-dominant while the supply reading is the tank's charge.
+from heatpump_optimizer import heat_energy as _cg_he  # noqa: E402
+
+
+def _cg_flow_fold(dwell):
+    coord = _cf_coord()
+    _cf_learn(coord, 2.2)  # commanded split (2.2, 0.0): space-dominant
+    coord._flow_bias.observe_temps(35.0, 30.0)
+    meter = _cg_he.meter_of(coord)
+    if dwell is not None:
+        meter.dwell.segments = [_cg_he.Segment(_T6 - timedelta(hours=0.5), d) for d in dwell[:1]] + [
+            _cg_he.Segment(_T6 - timedelta(hours=0.05), d) for d in dwell[1:]]
+        meter.cycle = (_T6 - timedelta(hours=0.5), _T6)
+    before = coord._flow_bias.samples
+    _fold_flow_lift(coord, _T6)
+    return coord._flow_bias.samples - before
+
+
+_cg_flow = {
+    "switch-back (0.45 h hot water, 0.05 h space)": _cg_flow_fold((_cg_he.DHW, _cg_he.SPACE)),
+    "all-space window (null)": _cg_flow_fold((_cg_he.SPACE, _cg_he.SPACE)),
+    "no mode entity, plan split (null)": _cg_flow_fold(None),
+}
+R.check(
+    "the flow-bias fold reads the observed dwell: a switch-back window whose "
+    "plan split is space-dominant folds nothing; an all-space window and an "
+    "unobserved one on a space plan still fold (nulls)",
+    _cg_flow == {
+        "switch-back (0.45 h hot water, 0.05 h space)": 0,
+        "all-space window (null)": 1,
+        "no mode entity, plan split (null)": 1,
+    },
+    f"{_cg_flow!r}",
+)
+
+
 # R9-UX-6: money and memory -- the receipt, the capacity line, the replay
 # ---------------------------------------------------------------------------
 from harness import FakeEntry as _ux6_Entry, FakeHass as _ux6_Hass  # noqa: E402
