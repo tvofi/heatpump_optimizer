@@ -44840,6 +44840,15 @@ R.check(
     and _t2_rr_ok["curve_worst"] is not None,
     f"no indoor {_t2_rr_none!r}, indoor {_t2_rr_ok!r}",
 )
+from heatpump_optimizer.curve_learning import worst_zone_margin_k as _wzm  # noqa: E402
+R.check(
+    "#2508: the curve-comfort margin is the coldest finite zone less the floor, "
+    "and no finite zone is no evidence",
+    _wzm((20.0, None, float("nan"), 19.5), 19.0) == 0.5
+    and _wzm((None, float("nan")), 19.0) is None,
+    f"{_wzm((20.0, None, float('nan'), 19.5), 19.0)!r}, "
+    f"{_wzm((None, float('nan')), 19.0)!r}",
+)
 
 _t2_hl_mild = _t2_house(outdoor=16.0)
 _t2_drive(_t2_hl_mild, "_async_learn_house_heat_loss")

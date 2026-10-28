@@ -279,7 +279,7 @@ from .dhw_draws import labels_for
 from .dhw_learning import DHW_PROFILE_STORE_VERSION, DhwProfileLearner
 from .legionella import LegionellaGuard
 from .disinfection import DisinfectionSwitch
-from .curve_learning import CurveLearner
+from .curve_learning import CurveLearner, worst_zone_margin_k
 from .currency import declared_currency, resolve_currency
 from .drift import utc_shift
 from .drift import Cusum, stored_instant, utc_step_starts
@@ -9052,18 +9052,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             floor_c = float(ctx._opt_config.get_temp_bounds(hour)[0])
         except Exception:  # noqa: BLE001 - evidence, never operations
             return
-        temps = [
-            t
-            for t in (
-                ctx._current_state.room_temperature,
-                ctx._current_state.upper_floor_temperature,
-                ctx._current_state.lower_floor_temperature,
-            )
-            if t is not None and np.isfinite(t)
-        ]
-        if not temps:
+        margin = worst_zone_margin_k((
+            ctx._current_state.room_temperature,
+            ctx._current_state.upper_floor_temperature,
+            ctx._current_state.lower_floor_temperature,
+        ), floor_c)
+        if margin is None:
             return
-        margin = min(temps) - floor_c
 
         day = now.date().isoformat()
         if self._curve_day and day != self._curve_day:
