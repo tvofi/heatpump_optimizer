@@ -1,0 +1,4 @@
+== origin/handoff/audit-r10-roster 229151c282b9
+/groups[93]/carry[10] :: From #2579 (item b8b28b28): the yield-probe guardrail (threshold, extended class list, seat-family arm, planted-defect calibration), and the reviewer model is unrecorded in the ledger. Control: a planted defect of each class must trip the guardrail, and a null window must not.
+== origin/main 47147487ba2b
+/groups[93]/carry[10] :: From #2579 (item b8b28b28): the yield-probe guardrail (threshold, extended class list, seat-family arm, planted-defect calibration), and the reviewer model is unrecorded in the ledger. Control: a planted defect of each class must trip the guardrail, and a null window must not.

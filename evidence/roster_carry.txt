@@ -1,2 +1,0 @@
-From #2579 (item b8b28b28): the yield-probe guardrail (threshold, extended class list, seat-family arm, planted-defect calibration), and the reviewer model is unrecorded in the ledger. Control: a planted defect of each class must trip the guardrail, and a null window must not.
-c9140d299f9cc8a25bf1766e697678467306b030
