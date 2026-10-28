@@ -161,7 +161,7 @@ gantt
 State found: the RCA is DONE but unpublished. |  |
 | R10-POLICY-FIXER-MD | RP | 1 | done | **#2378** | opus/opus | - | # Fixer brief O10-policy-fixer-md: dispose recurring friction #2378 (finding sweep L20, F-POL, P16, P23, P38). |  |
 | R10-POLICY-GATE-SCOPING | RP | 1 | done | **#2381** | opus/opus | - | # Fixer brief O10-policy-gate-scoping: dispose recurring friction #2381 (finding sweep L21, P37). |  |
-| R10-RCA-HEADMOVED | RP | 1 | not-started | #2389 | opus/opus | - | ROOT-CAUSE SEAT O15 (round 10, part of #201, mandate 6175172275). |  |
+| R10-RCA-HEADMOVED | RP | 1 | in-progress | #2389 | opus/opus | - | ROOT-CAUSE SEAT O15 (round 10, part of #201, mandate 6175172275). |  |
 | R10-RCA-STRUCTURE-BLIND | RP | 1 | done | #2235 | opus/opus | - | # O16 — round-10 RCA for the N-structure-blind class (#2235)
 Role: dev/governance/roles/root-cause.md. |  |
 | R10-SAV-COMFORT | SV | 1 | done | #2492 | opus/opus | - | Owns two limits R10-SAV-BASELINE (#2255, PR #2411) left open in the savings figures. |  |
@@ -223,7 +223,7 @@ Role: dev/governance/roles/root-cause.md. |  |
 | R10-FLOW-RECHAIN | IN | 1 | done | - | opus/opus | yes: mandated approval under 6175172275 | Apply the re-chain the decision seat ruled (Lean flow study K7). |  |
 | R10-FLOW-RECORD-PITCH | IN | 1 | done | #2715 | opus/opus | yes: mandated approval under 6175172275 | Records in the pitch (Lean study K6). |  |
 | R10-FLOW-RELAY-HOLD | IN | 1 | done | - | sonnet/opus | yes: mandated approval under 6175172275 | A hold list the relay honours, so a frozen pull request's head stays put while its handoff branch keeps moving (Lean flow study K13a; expedite since revision... |  |
-| R10-FLOW-ROSTER-FREEZE | IN | 1 | carries-open | #2389 | opus/opus | yes: mandated approval under 6175172275 | The roster pull request as a frozen head, and carries that can name the round's roster (Lean flow study K13). |  |
+| R10-FLOW-ROSTER-FREEZE | IN | 1 | in-review | #2389 | opus/opus | yes: mandated approval under 6175172275 | The roster pull request as a frozen head, and carries that can name the round's roster (Lean flow study K13). |  |
 | R10-FLOW-WIP | IN | 1 | not-started | #2715 | opus/opus | yes: mandated approval under 6175172275 | Lane caps and the work the cap cannot see (Lean study K4). |  |
 | R10-FLOW-YIELD-PROBE | IN | 1 | done | - | opus/opus | yes: mandated approval under 6175172275 | Explain the fall in review strength before any guardrail relies on it (Lean flow study, owner ruling R13). |  |
 | R10-FLOW-ARCH-PLANNER | IN | 1 | done | - | opus/opus | yes: policy: owner's approving review | Land the architect/planner seat in the policy corpus for round 11 (owner, 2026-10-21). |  |

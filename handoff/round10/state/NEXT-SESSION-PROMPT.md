@@ -13,11 +13,12 @@ git show origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r10-groups.j
 ```
 
 Worktrees in flight (a crashed seat restarts from its branch and note, never from scratch):
+- R10-RCA-HEADMOVED (stage in-progress, branch `handoff/r10-rca-headmoved`): `git fetch origin handoff/r10-rca-headmoved && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-CEILING-PROBE (stage in-progress, branch `design/r10-ceiling-probe`): `git fetch origin design/r10-ceiling-probe && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-BUFFER-STORE (stage in-review, branch `handoff/r10-buffer-store`): `git fetch origin handoff/r10-buffer-store && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-COP-PARTLOAD (stage in-progress, branch `handoff/r10-cop-partload`): `git fetch origin handoff/r10-cop-partload && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-ORCH-MACHINERY (stage absorbed): no branch pushed yet, so nothing to fetch
-- R10-FLOW-ROSTER-FREEZE (stage carries-open, branch `handoff/r10-flow-roster-freeze`): `git fetch origin handoff/r10-flow-roster-freeze && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-FLOW-ROSTER-FREEZE (stage in-review, branch `handoff/r10-flow-roster-freeze`): `git fetch origin handoff/r10-flow-roster-freeze && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-RELAY-REVIEW-FF (stage carries-open, branch `handoff/r10-fly-relay-review-ff`): `git fetch origin handoff/r10-fly-relay-review-ff && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-GH-READ-RETRY (stage carries-open, branch `handoff/r10-fly-gh-read-retry`): `git fetch origin handoff/r10-fly-gh-read-retry && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-RCA-FRICTION-RESIDUE (stage in-progress, branch `handoff/r10-rca-friction-residue`): `git fetch origin handoff/r10-rca-friction-residue && git worktree add --detach $SEAT/wt FETCH_HEAD`
