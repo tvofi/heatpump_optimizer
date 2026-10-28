@@ -57,7 +57,7 @@ sets the same reason but leaves `clean=True`; the new span check below separates
 `tests/features.py` with `PYTHONPATH=tests/hastub`, each in a `git archive` tree of `372c510a5`
 (the code `f37c0dcae` carries). An archive tree is not a git checkout, so "and the path that
 proceeds still stamps a resolvable recorded_at (#363)" fails in every one of them, the unmutated
-head included (`recorded_at = 'unknown'`); it is excluded from the counts below.
+head included (`recorded_at = 'unknown'`); each count below includes it.
 
 - Unmutated head: `1 of 4539 FEATURE CHECKS FAILED`, the #363 check only.
 - `learner_room_unread` returns `None` (predicate never freezes): `4 of 4539`. Red: "#2508: no
@@ -97,13 +97,15 @@ has no `learner_room_unread` (`ImportError`, rc 1).
 
 ## Red checks
 
-none. `tools/pr/ci_predict.py --base origin/main` runs inside `body_push.sh`, and
-`git merge-tree --write-tree origin/main f37c0dcae` is clean at main `6d86acc90`.
+`tools/pr/ci_predict.py --base origin/main` predicts no closures, fast, wave-script or instrument
+red, and `git merge-tree --write-tree origin/main f37c0dcae` is clean at main `6d86acc90`.
 - `mutation` at f37c0dcae3b3: red by construction on the 1 site(s) under `## Unpinned sites`; mutation-autofix pins killed sites after the push.
 
 ## Unpinned sites
 
-none: the `config is None` guard the predictor named at s8's head is now pinned (mutant above).
+- `custom_components/heatpump_optimizer/thermal_model.py:1449 GUARD_OFF`: the `config is None`
+  guard. Killed when measured: deleting it reddens 4 checks (`## Mutation proof`, last bullet).
+  It is unpinned only in the mutant ledger, which `mutation-autofix` writes after the push.
 
 ## Forward-carry
 
