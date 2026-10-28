@@ -1,1 +1,5 @@
-6dc025ec6ab74df65b14202ecea67ef9f09d0bb1
+head reviewed: 45d083123c6f45482dae00bbef4b82bf6e50bc04
+parents: bd1a5f31c7a25282420285197412882f4a40a162 0825aee641c8afb1e67be2a6af9d07e9c9dec9fa
+^1=bd1a5f31c7a25282420285197412882f4a40a162
+^2=0825aee641c8afb1e67be2a6af9d07e9c9dec9fa first12=0825aee641c8
+^2 subject: Merge pull request #2780 from tvofi/fix/r10-flow-autotrain-r2
