@@ -1,0 +1,5 @@
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/harness_headers.py: merged as a set (861 entries)
+  re-run the gate that owns this file before pushing
+19c607b8941261d83b49d17a078f1ee52f7e539a
+rc=0

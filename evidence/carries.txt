@@ -1,10 +1,8 @@
-== origin/handoff/audit-r10-roster dbd592fe41c8c45b0b2f1677e0b9fc9c24971caa
-R10-UX-HEALTH not-started carry :: "From r10-demand-overbook (handoff d6ab12b4, body a7a683d1, Part of #2499): installs with no power meter cannot tell a draw shortfall from UA (nometer_half scale 1.828, plan/deliv 1.936, unchanged at both ends). The health surface must report this as unobserva
-R10-BUFFER-STORE queued carry :: "From r10-demand-overbook (body a7a683d1), measure first: on its own model, the plan books about 38-40% more kWh than the relaxed DP optimum, at both ends, in one window. This is a lead, not a proof. Confirm with a flat-price null control before any fix. Harne
-R10-BUFFER-STORE queued carry :: "From r10-demand-overbook (body a7a683d1): the dhw_temp_trajectory tank seed is open-loop (class census). Seed it from the measured tank temperature where one exists. Pin with a failing test first."
-R10-LEARNER-DEFAULT not-started carry :: "From r10-demand-overbook (body a7a683d1): on owner_i03 (0.3 kW idle draw) the house learner accepted 0 samples in 10 days at both ends, because the tracking-error gate in _interval_space_power refuses every interval. Re-measure at your base with dev/audit/har
-== origin/main b89fea13e99f23cc75f01bb1604030cabea4ca66
-R10-UX-HEALTH not-started carry :: "From r10-demand-overbook (handoff d6ab12b4, body a7a683d1, Part of #2499): installs with no power meter cannot tell a draw shortfall from UA (nometer_half scale 1.828, plan/deliv 1.936, unchanged at both ends). The health surface must report this as unobserva
-R10-BUFFER-STORE queued carry :: "From r10-demand-overbook (body a7a683d1), measure first: on its own model, the plan books about 38-40% more kWh than the relaxed DP optimum, at both ends, in one window. This is a lead, not a proof. Confirm with a flat-price null control before any fix. Harne
-R10-BUFFER-STORE queued carry :: "From r10-demand-overbook (body a7a683d1): the dhw_temp_trajectory tank seed is open-loop (class census). Seed it from the measured tank temperature where one exists. Pin with a failing test first."
-R10-LEARNER-DEFAULT not-started carry :: "From r10-demand-overbook (body a7a683d1): on owner_i03 (0.3 kW idle draw) the house learner accepted 0 samples in 10 days at both ends, because the tracking-error gate in _interval_space_power refuses every interval. Re-measure at your base with dev/audit/har
+Roster branch handoff/audit-r10-roster at 1558cf55fb9073f3d3dbe72c536a186906657775:
+R10-UX-HEALTH        carry "From r10-demand-overbook ... no power meter ... unobservable"      (appended 4bdb4c470, 2026-10-24T09:03Z)
+R10-LEARNER-DEFAULT  carry "From r10-demand-overbook ... owner_i03 ... 0 samples"              (78c843bb0)
+R10-BUFFER-STORE     carry "From r10-demand-overbook ... 38-40% more kWh than the relaxed DP"   (e11909cff)
+R10-BUFFER-STORE     carry "From r10-demand-overbook ... dhw_temp_trajectory tank seed"         (0b19947d0)
+R10-COP-PARTLOAD     0 carries from r10-demand-overbook (body line 3 names this group)
+R10-HEAT-METER       0 carries from r10-demand-overbook (body line 4 names this group)
+PR body (updated 2026-10-24T19:53:35Z) Forward-carry: R10-UX-HEALTH, R10-LEARNER-DEFAULT, R10-COP-PARTLOAD, R10-HEAT-METER; names no roster branch SHA.
