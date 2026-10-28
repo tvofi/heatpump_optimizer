@@ -1,0 +1,5 @@
+check-runs on ca804c6dfb6156bf348345f5fabbff4cda302b9b (25 runs, read ~15:25Z 2026-10-24):
+success: arch-score, policy-docs, tests/briefs, hassfest, codeql x3, budget-raise-gate, prelude, refresh x2, cancel-superseded x2
+skipped: governance/record, delivery-status-publish, kernel-points
+queued/in_progress: instrument-self-tests, delivery-status, closure-scope, wave-script, nightly-status, mutation, env-matrix, validate-hacs, prelude (run 40105796215)
+red: none
