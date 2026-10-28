@@ -1,0 +1,15 @@
+== origin/handoff/audit-r10-roster
+no-arg size 1 has2733 null errors [] control999999 errors 0
+rosters size 69 has2733 wave-r10-groups.json R10-ORCH-ROSTER-SCHEMA errors [
+  "issue 2733 already has a live roster group (wave-r10-groups.json R10-ORCH-ROSTER-SCHEMA), whose `brief` is that stage's destination. Two des"
+] control999999 errors 0
+== f844df1fe
+no-arg size 1 has2733 null errors [] control999999 errors 0
+rosters size 72 has2733 wave-r10-groups.json R10-ROUTING-INVARIANTS errors [
+  "issue 2733 already has a live roster group (wave-r10-groups.json R10-ROUTING-INVARIANTS), whose `brief` is that stage's destination. Two des"
+] control999999 errors 0
+== 728e1d80c~1
+no-arg size 1 has2733 null errors [] control999999 errors 0
+rosters size 67 has2733 wave-r10-groups.json R10-ROUTING-INVARIANTS errors [
+  "issue 2733 already has a live roster group (wave-r10-groups.json R10-ROUTING-INVARIANTS), whose `brief` is that stage's destination. Two des"
+] control999999 errors 0
