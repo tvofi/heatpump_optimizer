@@ -1,0 +1,15 @@
+## throwaway_git --check
+throwaway_git: 0 raw git init or clone site(s) refused, 0 stale allow entries at HEAD
+rc=0
+## selftest_wiring --check
+selftest_wiring: 100 self-testing, 100 wired, 0 unwired
+## policy_lint
+
+FIXTURE ok: 93 error(s) hold 258 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
+## policy_lint diff vs main
+0
+## structure
+STRUCTURE RATCHET PASSED
+## entities
+ALL 2467 ENTITY CHECKS PASSED
+## harness_headers
