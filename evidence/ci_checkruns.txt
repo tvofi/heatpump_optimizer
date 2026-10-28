@@ -1,3 +1,0 @@
-check-runs API, PR #2822 head 6cc0273f6b0693c775f2295576ac40fa2f4ab08d, read 2026-10-25 (4 runs):
-cancel-superseded queued; refresh queued; prelude queued; arm completed/skipped.
-No run concluded failure. Other timestamps: #2524 merged_at 2026-10-22T20:16:54Z; #2671 merged_at 2026-10-23T23:20:07Z; dispatch/fixer-r10-pusher-reap tip 4347a0b74 committed 2026-10-22T18:32:48Z UTC.
