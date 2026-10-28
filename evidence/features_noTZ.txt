@@ -1,6 +1,0 @@
-=== null (no HASTUB_TZ)
-ALL 4307 FEATURE CHECKS PASSED
-rc=0
-=== M3-guard-off (no HASTUB_TZ)
-  FAIL D14-s1-01 the away recovery estimate is handed off the loop, and a switch written during its await is not reverted by the resolve's publish  [(['estimate_recovery_hours'], AwayState(active=True, source='service', return_time=datetime.datetime(2026, 10, 23, 5, 57, 2, 191465, tzinfo=datetime.ti
-1 of 4307 FEATURE CHECKS FAILED
