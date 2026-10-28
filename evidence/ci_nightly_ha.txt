@@ -1,0 +1,6 @@
+head e6455b8fe617ec28d6916977778e7499a6d2fd27; job 121042556914 tests / nightly-ha (stable)
+  FAIL hb:positive_control  [a 600 ms spin read as 5290.1 ms; dump names the spin: True; py-spy rc=0 names it: False; try 3 of 3 (at most 3)]
+  FAIL run:exit_status  [the container exited 1]
+  FAIL hb:positive_control  [a 600 ms spin read as 5290.1 ms; dump names the spin: True; py-spy rc=0 names it: False; try 3 of 3 (at most 3)]
+FAILED: 2 of 64 checks: ['hb:positive_control', 'run:exit_status']
+same check at 0303eae4 (pre-merge head): tests / nightly-ha (stable) success 121023292089

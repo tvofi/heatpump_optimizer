@@ -1,0 +1,15 @@
+  ok   dead_methods 0 <= 0
+  ok   dead_top_level_symbols 1 <= 1
+  ok   duplication_copies 17 <= 17
+  ok   functions_cc_over_15 30 <= 30
+  ok   functions_cc_over_25 8 <= 8
+  ok   import_cycle_modules 0 <= 0
+  ok   max_cc 44 <= 44
+  ok   max_class_loc 8442 <= 8442
+  ok   max_method_loc 373 <= 373
+  ok   methods_over_150 17 <= 17
+  ok   methods_over_200 9 <= 9
+  ok   name_kept_members 38 <= 38
+  ok   seam_cut_total 420 <= 420
+
+STRUCTURE RATCHET PASSED
