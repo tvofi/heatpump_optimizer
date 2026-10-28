@@ -3,7 +3,7 @@
 One entry. Numbering continues after `s6-batch36.md` (P204). Facts re-measured on
 2026-10-27 at origin/main `2b45d098c` and against the live refs and logs named below.
 
-## P205: a STOP result body reads as an orphan handoff on every pass (V125)
+## P205: a STOP result body reads as an orphan handoff on every pass (orchestrator relay; no `proposals.md` id)
 Verdict: DEFER. The item's group is `R10-ORCH-LEDGER` (`carries-open`, L). What would
 change the answer: two or more live STOP result bodies that `dispose` does not heal, or
 a body whose owed text is machine-checkable.

@@ -1750,7 +1750,7 @@
         "step": {
           "confirm": {
             "title": "Sätt pumpen till {target} °C",
-            "description": "Pumpens varmvattenbörvärde på {entity} ligger under {target} °C. Det här skriver {target} °C till den enheten, desinfektions- eller minimumtemperaturen som redan är konfigurerad."
+            "description": "Pumpens varmvattenbörvärde på {entity} ligger under {target} °C. Det här skriver minst {target} °C till den enheten, desinfektions- eller minimumtemperaturen som redan är konfigurerad."
           }
         }
       }

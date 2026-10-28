@@ -4,7 +4,7 @@ Four proposals, relayed by the orchestrator on 2026-10-27 in its funding order (
 P209, P210). None is yet in `proposals.md`, whose newest entry is V123. Facts read at
 origin/main `67178dc6a`; this seat's own samples at 17:10Z and 53 s later.
 
-## P207: a verdict publishes before anything checks its findings name a destination (V127)
+## P207: a verdict publishes before anything checks its findings name a destination (orchestrator relay; no `proposals.md` id)
 
 Verdict: ACCEPT -> a carry of **R10-FLY-CARRY-DISPOSITION** (`resume.stage` `not-started`;
 the only group whose `files` name both files the change touches,
@@ -47,7 +47,7 @@ roster (queue_pre_flight:192's own short-circuit, `finding_rows(...)[0]` empty);
 must name the count and the first item, so the reviewer reads in the refusal what the train
 would otherwise have said.
 
-## P208: the body's `## Head` is checked last, after the expensive steps (V128)
+## P208: the body's `## Head` is checked last, after the expensive steps (orchestrator relay; no `proposals.md` id)
 
 Verdict: ACCEPT -> a carry of **R10-RCA-BODY-LINT** (the group that owns `tools/pr/prepr.sh`,
 `tools/audit/seat/body_push.sh` and `tools/policy/policy_lint.mjs`; `resume.stage` `done`, so the
@@ -85,7 +85,7 @@ the early refusal must print the same line the late one does; the check must run
 1b's slot is taken, or the expensive part it exists to avoid is still spent; and the null
 control is a matching body running every step exactly as today.
 
-## P209: the claim driver refuses a merge it can safely union (V129)
+## P209: the claim driver refuses a merge it can safely union (orchestrator relay; no `proposals.md` id)
 
 Verdict: ACCEPT -> a carry of **R10-996-RUNNER-CLAIMS** (`resume.stage` `carries-open`;
 `files` `tests/env_drift.py` and `tests/golden/claimed_drift.txt`).
@@ -126,7 +126,7 @@ deterministic and preserve the stamp, header and `may-drift` lines the existing 
 (`tests/entities.py:22423-22445`); the retained refusal keeps the reason that still applies;
 and the policy sentence moves in the same pull request, never after it.
 
-## P210: the field-coverage step has no bound, so a blocked run reads as a long one (V130)
+## P210: the field-coverage step has no bound, so a blocked run reads as a long one (orchestrator relay; no `proposals.md` id)
 
 Verdict: DEFER -> what would change the answer is one healthy run to completion (wall and CPU)
 plus what the zero-CPU instances wait on. The item is `tools/pr/prepr.sh`, `R10-PREPR-CAP`'s

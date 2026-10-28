@@ -9,6 +9,10 @@ each verdict.
 RUN (from the repository root, never elsewhere):
     PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py
     PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py --links   # + HEAD requests
+    python3 dev/audit/rounds/round4/D6/claims.py --print-link-targets   # the relative link targets
+        # C108 resolves, one per line; exits before the heavy imports, so it runs
+        # on an interpreter with no Home Assistant stack. prepr.sh's step 6g uses
+        # it to hold those targets in the copy it grades (#2853's review).
 
 ROOT RULE: the working directory.  ``ROOT = pathlib.Path(".")``.  This file
 never resolves anything from ``__file__`` -- see tools/audit/README.md, "A
@@ -183,6 +187,47 @@ ROOT = pathlib.Path(".")          # the working directory, deliberately
 OUT = ROOT / "dev" / "audit" / "rounds" / "round4" / "D6"
 PKG = ROOT / "custom_components" / "heatpump_optimizer"
 
+
+# --- what a documentation link names ---------------------------------------
+# ONE DEFINITION, shared by C108 (which resolves each target against the tree
+# being graded) and --print-link-targets (which step 6g's pre-PR copy asks for).
+# They were separate reads until #2853's review: the copy held an enumerated
+# list of the generator's inputs, so a documentation link to an in-tree file
+# the list did not name was graded broken in the copy though the repository
+# held it, and re-recording could not clear it.
+def _doc_paths(root):
+    return sorted(
+        p for p in (root / "docs").glob("*.md")
+        if not p.name.startswith("plan-") and p.name != "HANDOVER.md"
+    )
+
+
+def _doc_names(root):
+    return ["README.md", "DISCLAIMER.md"] + [f"docs/{p.name}" for p in _doc_paths(root)]
+
+
+def _doc_links(root, doc_files):
+    """(the target as the page writes it, the path relative to ``root``) for
+    every relative link. Fenced code is stripped first, as C108 always did."""
+    for f in doc_files:
+        text = re.sub(r"^```.*?^```", "", (root / f).read_text(), flags=re.M | re.S)
+        for m in re.finditer(r"\[[^\]]*\]\(([^)\s]+)\)", text):
+            target = m.group(1)
+            if target.startswith("http") or target.startswith("#"):
+                continue
+            base = target.split("#")[0]
+            if base:
+                yield target, pathlib.Path(f).parent / base
+
+
+if "--print-link-targets" in sys.argv:
+    # BEFORE the heavy imports: the copy step must be able to ask this file
+    # what the docs link to on the governance job's interpreter, which has no
+    # Home Assistant stack. Prints one path per line, then exits.
+    for _target, _path in _doc_links(ROOT, _doc_names(ROOT)):
+        print(_path)
+    raise SystemExit(0)
+
 sys.path.insert(0, "tests")
 sys.path.insert(0, "custom_components")
 
@@ -246,11 +291,7 @@ def eq(cid, source, text, command, documented, measured, truth_fmt="the true val
 # ---------------------------------------------------------------------------
 README = (ROOT / "README.md").read_text()
 DISCLAIMER = (ROOT / "DISCLAIMER.md").read_text()
-DOCS = {
-    p.name: p.read_text()
-    for p in sorted((ROOT / "docs").glob("*.md"))
-    if not p.name.startswith("plan-") and p.name != "HANDOVER.md"
-}
+DOCS = {p.name: p.read_text() for p in _doc_paths(ROOT)}
 if PERTURB:
     DOCS["configuration.md"] = DOCS["configuration.md"].replace(
         "| Target indoor temperature | 21.0 °C |", "| Target indoor temperature | 22.0 °C |"
@@ -1196,7 +1237,7 @@ claim("C106", "docs/automations.md",
 # --- C107..C116 cited entity ids and links ---------------------------------
 _ids = {getattr(e, "entity_id", None) for es in CENSUS.values() for e in es}
 _cited = {}
-_doc_files = ["README.md", "DISCLAIMER.md"] + [f"docs/{n}" for n in DOCS]
+_doc_files = _doc_names(ROOT)
 for _f in _doc_files + ["custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"]:
     for _m in re.finditer(
         r"\b(?:sensor|binary_sensor|switch|button|climate|datetime)\.heat_pump_optimizer_[a-z0-9_]+",
@@ -1211,15 +1252,7 @@ claim("C107", "README.md + docs/*.md + the card",
 
 _internal, _missing_docs = [], []
 for _f in _doc_files:
-    _text = re.sub(r"^```.*?^```", "", (ROOT / _f).read_text(), flags=re.M | re.S)
-    for _m in re.finditer(r"\[[^\]]*\]\(([^)\s]+)\)", _text):
-        _t = _m.group(1)
-        if _t.startswith("http") or _t.startswith("#"):
-            continue
-        _base = _t.split("#")[0]
-        if not _base:
-            continue
-        _p = (pathlib.Path(_f).parent / _base)
+    for _t, _p in _doc_links(ROOT, [_f]):
         _internal.append((_f, _t, _p.exists()))
 _broken = [(f, t) for f, t, ok in _internal if not ok]
 _export_cut = {"docs/audit-2026-08.md", "docs/audit-2026-09.md", "docs/backlog.md",
