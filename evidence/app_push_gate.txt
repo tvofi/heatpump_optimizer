@@ -1,0 +1,9 @@
+  # clean. A dirty worktree would push a sha whose tree the body never
+  # measured, and a HEAD elsewhere would push a branch the seat is not on.
+  local head tip
+  head=$(git -C "$wt" rev-parse HEAD 2>/dev/null) || die "'$wt' is not a git worktree"
+  tip=$(git -C "$wt" rev-parse --verify "refs/heads/$br" 2>/dev/null) \
+    || die "no local branch '$br' in $wt"
+  [ "$head" = "$tip" ] || die "worktree HEAD ($head) is not the committed tip of '$br' ($tip); commit or check out first"
+  [ -z "$(git -C "$wt" status --porcelain 2>/dev/null)" ] \
+    || die "worktree $wt is dirty; only a committed tip is pushed -- commit or clean it first"

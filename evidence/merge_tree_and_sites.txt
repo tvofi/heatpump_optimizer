@@ -1,3 +1,5 @@
+c1ec950d05bed4d1dfd8fe78a78caa960409abe7
+rc=0
 tools/audit/seat/handoff_push.sh:114:  PYTHONPATH=tests/hastub PREPR_SKIP_CLOSURES=${PREPR_SKIP_CLOSURES:-} bash "$_push" $R "$WT" "$BR" "$B" ${ISSUES:-} > "$B.push.log" 2>&1 &
 tools/audit/seat/handoff_push.sh:179:  push_app 2  # mut:push-update
 tools/audit/seat/handoff_push.sh:198:push_app 2 > /dev/null; out=$PUSH_OUT  # mut:push-open
