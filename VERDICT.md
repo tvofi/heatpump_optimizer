@@ -1,22 +1,51 @@
-Fix review: blocked 7804d813a7134b9a03ae39c64a7d24dedba69e6c merge-conflict: dev/governance/roles/orchestrator.md conflicts with origin/main fc7173fe7 (de20d0c72, section 10)
+Fix review: merge 3dc9ae19b33be293d7eb9fb07116b014427a2aa5
 
-bus-nonce: 5d7cbe37a46d2d4c38abfacdae8414d7
+bus-nonce: f6f116a23187ea37d896733dff8dfd9d
 
-## Block
+## Verdict
 
-Round 1. `git merge-tree --write-tree origin/main 7804d813a7134b9a03ae39c64a7d24dedba69e6c` (origin/main = fc7173fe7876e9973a170675d25337a810a40c59) exits 1: `CONFLICT (content): Merge conflict in dev/governance/roles/orchestrator.md`. That is not a claim file, and no `MERGE-CLAIM:` marker was printed (ev/merge-tree.txt, ev/merge-tree.stderr). GitHub also reports `mergeable_state: dirty`.
+This is round 3 of PR #2633 (R10-FLOW-ARCH-PLANNER). I measured head `3dc9ae19b33be293d7eb9fb07116b014427a2aa5` from a detached worktree. Before writing this I re-read the head with `git ls-remote` and it had not moved (ev/HEAD.txt, ev/head_reread.txt).
 
-The cause: the body's merge base `fef4a1351` was origin/main's tip at 22:42Z. Main then merged #2628 (`de20d0c72`, "nudge, orchestrator: pull dispatch, hourly pitch, classes of service"), which rewrote section 10's brief-citation paragraph. This PR moves that same paragraph to `standing-roster.md` and leaves a single line, `Through the roster seat, on standing-roster.md's terms.`. The two edits overlap. Resolving them means checking that main's new wording (the `brief_lint.mjs` read set, "putting one there is not carrying it", the `FIXTURE ok: N error(s)` exit-code rule) lands in `standing-roster.md` rather than being lost, and then re-taking the policy budgets. That is the fixer's resolution delta, not something a reviewer can wave through. `git diff fef4a1351...origin/main -- dev/governance/roles/` also moves `nudge.md` and `orchestrator.md` (ev/roles_main_moved.txt). After the merge commit, the re-review is that resolution delta, and the evidence below carries over to it.
+**This PR is policy.** It edits `CLAUDE.md`, adds seven role contracts under `dev/governance/roles/`, and changes `orchestrator.md`, decision 0015 and `policy_budgets.json`. It merges only on the owner's approving review at this head, or on an approval citing the mandate in force with scope `all` (#201 comment 6329234399). Against origin/main, this PR still raises `files_tokens["CLAUDE.md"]` (3590 -> 3605) and `corpus_tokens` (62892 -> 66434), and adds the seven new caps. That is the raise justified in the body's `## Raise justification`, and `budget-raise-gate` stays red until that approval is given.
+
+Contract currency: `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` is empty, and main's later move to 5056615a2 (#2638) touches nothing under `roles/`.
+
+## Brief checks
+
+1. **Budgets.**
+   - At the head, `policy_lint.mjs --budgets` prints `CLAUDE.md 213 221 3605 3605 yes`, `always-loaded: ~3605 tokens, cap 3349 +band 500 = 3849` and `corpus: ~66434 tokens, cap 66434 +band 500 = 66934` (ev/policy_budgets_head.txt). Both match the body.
+   - Against the round-2 head `8cb08929c`, the round-3 delta to `policy_budgets.json` only lowers caps: `corpus_tokens` 66507 -> 66434 and `CLAUDE.md` 3609 -> 3605. No `*_budgets.json` key rose in round 3.
+   - The three-dot diff against origin/main touches only `policy_budgets.json` among the budget files. Its raises are the ones listed above, which round 2 already judged and which go to the mandate.
+2. **The two cuts of main's text.** Both are in origin/main's `CLAUDE.md` at lines 111 and 168 (ev/claude_md_vs_main.txt, ev/claude_md_round3.diff). Neither drops an obligation:
+   - **"Each says what its role owes and what blocks it."** This was the lead sentence of the role-contracts table. It describes the contracts and binds no seat to do anything. Each row still names what its role owes, and each contract still states it: for example, `standing-merge.md` says "It never chooses what merges", and the triage contract opens with its gate. True duplicate.
+   - **"state, not policy:"** on the `HANDOVER.md` line. `CLAUDE.md:67` at the head still says "Everything named here but `dev/programme/HANDOVER.md` is **policy**". `writing-for-agents.md` still rules the handover, and the line still cites it. True duplicate; the exception still stands in the same file.
+   - The three shortened rows (`proposal-triage.md`, `standing-tick.md`, `standing-merge.md`) are rewordings with the same meaning: the cost/benefit gate comes first, only owed or new items are reported, and the merge seat never chooses what merges.
+3. **DEFER check.** `roster_edit.py --self-test` at the head reads `117 checks, 0 failed` (ev/roster_selftest_head.txt). My mutants are in ev/reviewer_mutants.txt, and the file was restored after each one; the restored self-test reads `117 checks, 0 failed`.
+   - **M1, the brief's mutant:** `if verdict != "ACCEPT":` changed to `if verdict not in ("ACCEPT", "DEFER"):`. Result: `3 failed`, first `FAIL triage gate: a DEFER ruling is refused: only an ACCEPT is routed`. Round 2 recorded `0 failed` for this mutant, so that survivor is now killed.
+   - **M2, my own:** the cited-ruling gate never refuses. Result: `13 failed`, including the REJECT, DEFER, no-verdict and missing-entry checks.
+   - **M3, my own:** `ruling_verdict` matches the first `## P<n>:` entry instead of the cited pid. Result: `13 failed`, including the DEFER check.
+4. **policy_lint.** At the head: `TOTAL: 0 error(s) across 50 policy file(s)` (ev/policy_lint_head.txt).
+   - `git merge-tree --write-tree origin/main <head>` against 4e38e7d7b exits 0, and the merged tree is identical to the head's tree (ev/merge-tree.txt).
+   - Main then moved to 5056615a2 (#2638, which touches `policy_lint.mjs` and `tests/entities.py`). The merge is still clean: rc=0, tree f51c71e36, no stderr (ev/merge-tree-new-main.txt).
+   - On that merged tree, policy_lint reads `TOTAL: 0 error(s) across 50 policy file(s)`, with CLAUDE.md at 3605/3605 and the corpus at 66434/66434 (ev/policy_lint_merged.txt). `tests/entities.py` reads `ALL 2404 ENTITY CHECKS PASSED`, rc=0 (ev/entities_merged.txt).
+5. **Figures, re-run at the head.** They match the body (ev/figures_head.txt):
+   - pulse: 37 checks, 0 failed. roster_edit: 117, 0 failed. r10_roster_ops_mutants self-test: 78, 0 failed. sweep_render: 21, 0 failed.
+   - `RULES-SYNC ok`, and `brief_lint` `TOTAL: 0 error(s) across 47 file(s)`.
+   - Null `RESULT mutant=null rc=0 fails=0`. T1..T5 give rc=1 with fails 11, 12, 1, 16 and 16, exactly as the body states.
+   - `STRUCTURE RATCHET PASSED`. `score.py --diff d6308d77c HEAD` gives `Architecture score: dS +0.0000 NULL`.
+   - Claims hygiene ok, and `ALL 112 closure shrink pins PASSED`.
+   - `VERSION`, `RELEASE_NOTES.md`, the manifests and the rosters are untouched in the three-dot diff.
+   - **tests/entities.py.** On Linux (`/opt/hpo/venv-ci`) the head reads `ALL 2402 ENTITY CHECKS PASSED`, rc=0 (ev/entities_head.txt). The body's 2399 is the authored code head's count over `d6308d77c`. origin/main 4e38e7d7b on its own also reads 2402 (ev/entities_origin_main.txt), so the +3 comes from main through the automatic merge, not from this PR. The four py-spy heartbeat failures the fixer saw on macOS do not appear on Linux, and CI's `fast (3.14)` and `closures` are green on this head.
+6. **CI at the head**, read from the commit's check-runs once every workflow had concluded (ev/check_runs.tsv, 41 rows). The only red check is `budget-raise-gate`, on both of its runs. That is by design until approval (decision 0013), and `## Red checks` answers it. `pr-contract` ran after the last red concluded (started 01:58:30, after budget-raise-gate concluded at 01:58:15) and passed.
+   - `nightly-status` and `fast (3.14)`, which the body also answers, are green on this head.
+   - Everything else is green, skipped or neutral: fast, closures, coverage, coverage-ratchet, instrument-self-tests, policy-docs, mutation, arch-score, typing, browser, briefs, closure-scope, delivery-status, env-matrix, wave-script, hassfest, validate-hacs, CodeQL and its Analyze runs.
+7. **Policy.** See the top of this verdict: this is a policy PR, and it merges on the owner's approval or the scope-`all` mandate.
 
 ## Findings
 
-- Main's new section-10 text from #2628 (the brief_lint read-set and exit-code rules) has to be folded into `standing-roster.md` when the conflict is resolved, and `corpus_tokens` and the `standing-roster.md` caps re-measured afterwards. Otherwise the move drops policy that main added. Carry: R10-FLOW-ARCH-PLANNER | dismissed: owed by this group's own resolution delta, re-reviewed before merge
+- Not blocking: the body's earlier round says the cut AGENTS.md sentence (POLICY_GLOBS and the cap) is something that "`ratchet-budgets.md` carries". That rule names `AGENTS.md` only in its `paths:` frontmatter. The mechanics the sentence described are still enforced by `policy_lint.mjs` (the `^AGENTS\.md$` glob, at :246) and `policy_budgets.json` (AGENTS.md is capped at 13 lines and 183 tokens). The cut sentence stated a fact the instruments enforce, not an obligation on a seat, so nothing binding was lost; only the body's citation is loose. Carry: R10-FLOW-ARCH-PLANNER | dismissed: a body wording point, no rule dropped
 
-## Evidence
+## Not verified
 
-- Head re-read through the PR API: `7804d813a7134b9a03ae39c64a7d24dedba69e6c`, unchanged from the dispatch (ev/HEAD.txt). It matches the body's `## Head`.
-- Check 4: `git diff fef4a1351...HEAD -- dev/programme/rosters/wave-r10-groups.json VERSION RELEASE_NOTES.md custom_components/*/manifest.json` is empty (ev/untouched.txt). The roster and the version files are untouched.
-- Check 3 (fast 3.14 fix): at the head, harness_headers' `check_repo_roots()` passes with no FAIL (ev/repo_roots_head.txt). The mutant that puts back `ROOT = Path(__file__).resolve().parents[3]` gives `FAIL every inlined walk matches the canonical helper and no depth root remains`, naming `dev/audit/harnesses/r10_triage_gate_replay.py:34` (ev/repo_roots_mutant_parents3.txt). I restored the file afterwards. The full `tests/harness_headers.py` run was stopped before completion and is not cited (ev/harness_headers_head.txt). I did not run CI's heavy gate, per step 11.
-- Check 2 (raise): `node tools/policy/policy_lint.mjs --budgets` at the head prints `corpus: ~66443 tokens, cap 66443 +band 500` (ev/policy_budgets_head.txt), which matches the recorded 62892 -> 66443. The seven new caps add 3757 tokens. `CLAUDE.md` is +19 and `orchestrator.md` is -315. The remaining ~90 I attribute to the guide edits but did not itemise, so that figure is not verified. The body has `## Raise justification`, lists its payments and refusals, and carries `Architecture score: dS +0.0000 NULL`. My own payment hunt: an 8-word-shingle overlap scan between the seven new contracts and every other governance/rules file (ev/overlap.txt) found no restatement worth cutting. The largest overlap is 11 shingles, architect-planner against decision 0015, and decision 0015 is outside the corpus. So I found no missed payment at this head. The scan is my own instrument, not the finder's. I am not judging the raise as final, because the conflict resolution changes these figures.
-- Check 1: each of the seven contracts names its seat and what the seat owes, and the CLAUDE.md rows point to them. On the scan above they are not restatements. The final judgement waits for the resolved text.
-- CI at the head, read from check-runs: `budget-raise-gate` is red twice, which is by design until an approving review (decision 0013), and the body answers it. `nightly-status` is red and grades main; the body answers it by citing #2627. Green: `pr-contract`, `arch-score`, `mutation`, `typing`, `briefs`, `delivery-status`, `env-matrix`, `closure-scope`, `hassfest`, `validate-hacs`, `wave-script`. Still in progress when I read them: `fast (3.14)`, `closures`, `coverage`, `browser`, `policy-docs`, `instrument-self-tests`, `Analyze (python)`. The head's workflows had not all concluded, so the step 11 root-cause check is unsettled at this head, apart from the three red checks above, all of which the body answers.
+- I did not re-run CI's heavy runs (the full gate and the mutation table), per step 11; I cite CI for those.
+- I did not re-plant the pulse.py mutants. `pulse.py` is unchanged since round 2 (the body says so, and its self-test re-reads 37/0).

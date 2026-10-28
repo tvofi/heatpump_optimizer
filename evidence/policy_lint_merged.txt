@@ -1,0 +1,5 @@
+TOTAL: 0 error(s) across 50 policy file(s)
+file                                           lines cap  ~tokens  cap always
+CLAUDE.md                                        213  221     3605  3605   yes
+always-loaded: ~3605 tokens, cap 3349 +band 500 = 3849
+corpus:        ~66434 tokens, cap 66434 +band 500 = 66934

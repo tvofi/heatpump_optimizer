@@ -1,0 +1,20 @@
+== M1 brief mutant: DEFER let through
+roster_edit self-test: 117 checks, 3 failed
+FAIL triage gate: a DEFER ruling is refused: only an ACCEPT is routed (got: )
+FAIL triage gate fixture restored (got: )
+FAIL drop-carry with no carry refused (got: )
+== M2 own: gate never refuses a cited ruling
+roster_edit self-test: 117 checks, 13 failed
+FAIL triage gate: a REJECT ruling is refused (got: )
+FAIL triage gate: a DEFER ruling is refused: only an ACCEPT is routed (got: )
+FAIL triage gate: an entry with no verdict line is refused (got: )
+FAIL triage gate: a cited entry the batch lacks is refused (got: )
+FAIL triage gate fixture restored (got: )
+== M3 own: ruling_verdict reads the first entry, not the cited pid
+roster_edit self-test: 117 checks, 13 failed
+FAIL triage gate: a REJECT ruling is refused (got: )
+FAIL triage gate: a DEFER ruling is refused: only an ACCEPT is routed (got: )
+FAIL triage gate: an entry with no verdict line is refused (got: )
+FAIL triage gate: a cited entry the batch lacks is refused (got: )
+FAIL triage gate fixture restored (got: )
+roster_edit self-test: 117 checks, 0 failed
