@@ -1,0 +1,14 @@
+== entities (python3.13)
+rc=1
+    )
+  File "/tmp/tmp.4PWQlLaX49/wt/tests/harness.py", line 25, in <module>
+    from homeassistant.config_entries import ConfigEntryState
+ModuleNotFoundError: No module named 'homeassistant'
+== carry_audit pr
+usage: carry_audit.py pr [-h] n
+
+positional arguments:
+  n
+
+options:
+  -h, --help  show this help message and exit

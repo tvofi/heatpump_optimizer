@@ -1,0 +1,26 @@
+governance / record	completed	skipped	2026-10-28T17:54:27Z
+governance / delivery-status-publish	completed	skipped	2026-10-28T17:54:27Z
+kernel-points	completed	skipped	2026-10-28T17:54:27Z
+governance / instrument-self-tests	in_progress		2026-10-28T17:55:58Z
+arch-score / arch-score	queued		2026-10-28T17:54:27Z
+codeql / Analyze (actions)	queued		2026-10-28T17:54:27Z
+governance / delivery-status	queued		2026-10-28T17:54:27Z
+governance / env-matrix	queued		2026-10-28T17:54:27Z
+governance / wave-script	queued		2026-10-28T17:54:27Z
+budget-raise-gate / budget-raise-gate	queued		2026-10-28T17:54:27Z
+governance / policy-docs	queued		2026-10-28T17:54:27Z
+tests / nightly-status	queued		2026-10-28T17:54:27Z
+tests / closure-scope	queued		2026-10-28T17:54:27Z
+tests / briefs	queued		2026-10-28T17:54:27Z
+codeql / Analyze (python)	queued		2026-10-28T17:54:27Z
+hassfest / hassfest	queued		2026-10-28T17:54:27Z
+validate / validate-hacs	queued		2026-10-28T17:54:27Z
+tests / mutation	queued		2026-10-28T17:54:27Z
+codeql / Analyze (javascript-typescript)	queued		2026-10-28T17:54:27Z
+refresh	queued		2026-10-28T17:38:49Z
+prelude	completed	success	2026-10-28T17:54:05Z
+cancel-superseded	queued		2026-10-28T17:38:49Z
+arm	completed	skipped	2026-10-28T17:38:48Z
+prelude	in_progress		2026-10-28T17:53:47Z
+cancel-superseded	completed	success	2026-10-28T17:53:31Z
+refresh	completed	success	2026-10-28T17:52:32Z
