@@ -1,0 +1,30 @@
+== python3 -I tools/audit/seat/cloud_dispatch.py --self-test
+  ok   the --group CLI passes --role, --group, --model, --pr and --nonce through
+  ok   a nonce the relay minted is re-recorded by the seat fired with it, with its model, minting none
+  ok   a re-dispatch from a second clone fast-forwards the existing ref
+cloud_dispatch self-test: 87 checks, 0 failed
+rc=0
+== bash .claude/hooks/stop-selfcheck.sh --self-test
+  ok   WIRED: a project dir without the hook runs the repository's, found from the cwd
+  ok   WIRED: no hook anywhere exits 0, never a missing-file error
+
+29 passed, 0 failed
+rc=0
+== bash tools/audit/seat/ci-watch.sh --self-test
+  ok   W11 A5 null: a red gate re-run green inside ONE suite is no alert
+  ok   W12 a gate that did not succeed (skipped; RATE-LIMITED is a failure) alerts RED: gate, never a pass
+  ok   the poll is inside [60 s, 240 s] (POLL_S=240)
+ci-watch self-test: 14 checks, 0 failed
+rc=0
+== python3 tools/audit/seat/proof_watch.py --self-test
+ok   (k) no merge on a skipped check
+ok   (l) a pending required context waits a poll, then merges when it lands
+ok   (l) the wait polls at the configured cadence
+proof_watch self-test: 43 checks, 0 failed
+rc=0
+== node tools/policy/policy_lint.mjs --hooks
+  ok                PreToolUse    .claude/hooks/pre-edit.sh  22 passed, 0 failed
+  ok                Stop          .claude/hooks/stop-selfcheck.sh  29 passed, 0 failed
+
+HOOKS ok: 3 wired hook(s) exist and pass their own --self-test
+rc=0
