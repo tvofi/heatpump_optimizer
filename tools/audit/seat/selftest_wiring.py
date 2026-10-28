@@ -53,7 +53,8 @@ COMMENT_RE = re.compile(r"(?:^|(?<=\s))#.*$")
 INDEX = f"{SEAT}/INSTRUMENTS.md"
 ENTRIES = f"{SEAT}/instruments"
 INDEX_RE = re.compile(
-    r"^- \[(?P<label>[^\]]+)\]\((?P<target>instruments/[^)]+\.md)\) — ", re.M)
+    r"^- \[`(?P<name>[^`]+)`[^\]]*\]\((?P<target>instruments/[^)]+\.md)\) — ",
+    re.M)
 ENTRY_RE = re.compile(r"^- `(?P<name>[^`]+)`", re.M)
 
 
@@ -122,9 +123,8 @@ def index_gaps(root: Path) -> list[str]:
         if not entry.is_file():
             gaps.append(f"MISSING {SEAT}/{target}: indexed, no such file")
             continue
-        label = re.search(r"`([^`]+)`", m.group("label"))
         opens = ENTRY_RE.search(entry.read_text())
-        if not label or not opens or label.group(1) != opens.group("name"):
+        if not opens or m.group("name") != opens.group("name"):
             gaps.append(f"MISMATCH {SEAT}/{target}: the index line's name is not "
                         "the one its entry opens with")
     entries = root / ENTRIES
