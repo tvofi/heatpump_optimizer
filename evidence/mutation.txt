@@ -1,0 +1,4 @@
+ruling_verdict P268 ACCEPT
+P269 ACCEPT
+P270 DEFER
+mutant(P268 rewritten to DEFER) -> DEFER (gate reads the line)
