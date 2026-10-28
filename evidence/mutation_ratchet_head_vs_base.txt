@@ -1,6 +1,0 @@
-  3839 unpinned site(s) of 6390 candidate sites, 3904 at the ratchet base 484d9902222031f8e081df9f53b52ffd50fcc0af; the ledger agrees with the deterministic inventory
-MUTATION TABLE -- scope changed: 21 production file(s) whose code this diff adds or modifies
-  1 drawn site(s) hold a survivor_triage mark: tests/entities.py, which would call them killed for the mark's sake, is not one of their drivers
-  no mutant is both generatable and drivable
-
-MUTATION TABLE PASSED (empty pool)

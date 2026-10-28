@@ -1,3 +1,0 @@
-git merge-tree --write-tree origin/main 57b2857ac
-5efa36d89a0d9d5c2771e7a0bad26234a7a6b5f4
-exit=0

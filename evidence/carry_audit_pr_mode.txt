@@ -1,4 +1,0 @@
-NOTE #2819 body item f517dc5c: R10-ARCH-SHAPES-CLASSIFIER
-NOTE #2819 body item faa40b15: R10-ARCH-SHAPES-CLASSIFIER
-UNROUTED #2819 review 6400399252 item ad97d77d (## Evidence) [evidence]: '- `tests/entities.py`: `2 of 2445` at base and `2 of 2448` at head, with an identical FAIL-name set (diff empt'
-CARRY-AUDIT #2819: 3 finding item(s): 2 routed, 1 unrouted, 0 bad destination(s)
