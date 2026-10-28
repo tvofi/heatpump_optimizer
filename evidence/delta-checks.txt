@@ -1,3 +1,0 @@
-head 6d9a841e69c91afe6186cbdcb384744c0c44d6d1 ; prior verdict head 9da4dcab96eca8278a81fa4589faa865a69d3803
-delta: only dev/programme/rosters/wave-r10-groups.json, 2 pure appends (R10-FLY-OPENPR-ATOMIC, R10-LIVESTATE), prefixes unchanged, 154 groups; each equals its source carry file
-brief_lint rc=0; merge-tree origin/main head clean; host-path grep on added lines: 0
