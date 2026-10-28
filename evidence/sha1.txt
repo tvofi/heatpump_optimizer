@@ -1,0 +1,3 @@
+c634e17854e8e84e650f480eb53bad5dbc73a3e2 tools/audit/seat/cloud-setup.sh
+b4b5ba0df9ff5350f0f091715a416d8888702ccc dev/audit/harnesses/r10_cloud_setup_mutants.py
+e5d50e1f5bdaea4c3054242bb60fd60180f1077f dev/audit/harnesses/r10_cloud_setup_toolchain.py

@@ -1,0 +1,16 @@
+M0 none: PASS 3/3 runs 0 failed
+M1 the profile's presence test (the merge base's line): KILLED 3/3 runs red; the profile sourced twice puts venv-ci/bin on PATH once; under BASH_ENV a nested bash keeps a stub its caller put ahead of the venv (#2452)
+M2 check's whole condition: KILLED 3/3 runs red; check refuses the system python3 beside an executable HPO_TYPING_PYTHON; check refuses venv-ci's python3 without HPO_TYPING_PYTHON; check refuses without OPENBLAS_CORETYPE; check refuses without them, naming each variable; cloud-setup.sh --check exits 1 without them
+M3 check's HPO_TYPING_PYTHON half: KILLED 3/3 runs red; check refuses venv-ci's python3 without HPO_TYPING_PYTHON
+M4 variables' venv-ci/bin prefix: KILLED 3/3 runs red; a non-login bash under the printed variables gets venv-ci's python3; check is OK under the printed variables; check refuses without them, naming each variable; cloud-setup.sh --check exits 0 under the printed variables
+M5 variables' HPO_TYPING_PYTHON line: KILLED 3/3 runs red; check is OK under the printed variables; check refuses without them, naming each variable
+M6 variables' dedupe filter: KILLED 3/3 runs red; the printed PATH holds venv-ci/bin once, first, from a PATH holding it twice
+M7 the profile's OPENBLAS_CORETYPE export: KILLED 3/3 runs red; check is OK in a shell that sourced the profile
+M8 variables' OPENBLAS_CORETYPE line: KILLED 3/3 runs red; check is OK under the printed variables; check refuses without them, naming each variable
+M9 check's python3-is-venv-ci half: KILLED 3/3 runs red; check refuses the system python3 beside an executable HPO_TYPING_PYTHON
+M10 the profile's HPO_TYPING_PYTHON export: KILLED 3/3 runs red; check is OK in a shell that sourced the profile
+M11 check's refusal exit: KILLED 3/3 runs red; check refuses the system python3 beside an executable HPO_TYPING_PYTHON; check refuses venv-ci's python3 without HPO_TYPING_PYTHON; check refuses without OPENBLAS_CORETYPE; check refuses without them, naming each variable; cloud-setup.sh --check exits 1 without them
+M12 --check's refusal exit: KILLED 3/3 runs red; cloud-setup.sh --check exits 1 without them
+M12b --check's OK exit: KILLED 3/3 runs red; cloud-setup.sh --check exits 0 under the printed variables
+M13 check's OPENBLAS_CORETYPE half: KILLED 3/3 runs red; check refuses without OPENBLAS_CORETYPE
+RESULT survivors=0
