@@ -1,2 +1,0 @@
-== cloud_relay-34 cloud_relay.sh: KILLED rc=1 | tools/audit/seat/cloud_relay.sh: line 982: 54216 Terminated: 15          bash "$1" pass --log "$LOG" > /dev/null 2>&1
-RESULT survivors=0

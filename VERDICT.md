@@ -1,59 +1,75 @@
-Fix review: blocked 3133112f7e2869278f2524201ed0637990a09eab class-open: carry_audit.load_dests rc domain unpinned: mutant "== 1" to "!= 0" survives the self-test (201/0), yet turns a clone without origin/main from a pass into REFUSED
-bus-nonce: c831213cd040f81ffa8dd4bd9e18e7bb
+Fix review: merge e71c999da56d58d8bff4cd639479826d9af1993d
+bus-nonce: b967a70c89582135875675b14ecda440
 
-# Fix review -- PR #2903, R10-FLOW-ROSTER-FREEZE close-out (round 1)
+# Fix review -- PR #2903, R10-FLOW-ROSTER-FREEZE close-out (round 2)
 
-Reviewed head: `3133112f7e2869278f2524201ed0637990a09eab` (GitHub `headRefOid` at the start and re-read before publishing). A detached worktree at that head, a second at origin/main `aaf8af512` (the merge base: the head already contains main), and a third for mutants. Nothing pushed to the branch.
+Reviewed head: `e71c999da56d58d8bff4cd639479826d9af1993d`. It was GitHub's `headRefOid` at the start and again before this post. I worked from a detached worktree at that head and ran mutants in two more detached worktrees at the same head. The harnesses mutate files in place, so the mutants ran on copies, never on the checkout under review. Each copy's `git status --short` was empty afterwards. Nothing was pushed to the branch.
 Roles drift: `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` is empty.
+This is round 2. Round 1 was blocked at 3133112f7 (`class-open`, B2-rc survived).
 
-## Claims re-derived (RESULT lines)
+## Round-1 block: closed
 
-- RESULT carry_audit --self-test head: `201 checks, 0 failed`; main: `196 checks, 0 failed`.
-- RESULT B2-ancestry: killed failed=2 (the two stale-tree checks); B2-always: killed failed=2 (the two null controls); M0 baseline failed=0. B2-ancestry is main's semantics (tree read), so this is also the failing-test-first figure the body quotes (201 checks, 2 failed): reproduced.
-- RESULT cloud_relay --self-test head: `279 checks, 0 failed`; main: `275 checks, 0 failed`.
-- RESULT cloud_relay-34 (#2792 R1) at head: KILLED (`279 checks, 3 failed`, the three UNREAD checks); at main with only the harness entry added: SURVIVED. #2792's survival reproduced, and killed.
-- RESULT reviewer mutants on the UNREAD arm, all killed (ev/own_mutants.txt): R1 re-applied by hand: 3 failed. Drop the `cat-file -e` clause: 1 failed. Drop the fetch: 13 failed. `echo UNREAD; return 1`: 1 failed.
-- Reviewer mutants on b2: drop the NOTE -> killed (1); show_roster at HEAD instead of origin/main -> killed (1); `== 1` -> `== 0` -> killed (4); **`== 1` -> `!= 0` -> SURVIVED (201 checks, 0 failed).**
-- RESULT throwaway_git --check: `0 raw git init or clone site(s) refused, 0 stale allow entries at HEAD`; the new self-test arm builds its repo inside the existing `throwaway_git_init` scratch repo.
-- RESULT ref_privacy --check: `28 file(s) with a push site, 12 guarded, 60 line(s) added since aaf8af512c1f judged, 0 refused`; the diff adds no push site, so PUSHERS owes nothing.
-- RESULT merge-tree --write-tree origin/main head: rc 0, tree 9d3f36c9d, no conflict (no claim file touched).
-- RESULT VERSION, manifest version, notes heading: untouched. structure.py: PASSED. closure select: MODE: SCOPED, 1 script.
+- RESULT carry_audit --self-test at the head: `206 checks, 0 failed`. The body quotes the same figure.
+- RESULT mutants, `r10_carry_parser_mutants.py M0 B2-ancestry B2-always B2-rc B2-shallow B2-shallow-always`. Every figure matches the body:
+  - M0: `failed=0 baseline`.
+  - B2-ancestry: `failed=2 killed`.
+  - B2-always: `failed=7 killed`.
+  - B2-rc: `failed=2 killed`. This is round 1's survivor.
+  - B2-shallow: `failed=2 killed`.
+  - B2-shallow-always: `failed=2 killed`.
+- RESULT full census at the head: `sites=166 unmapped=0 mutants=237 survived=0`, rc 0. This matches the body.
+- RESULT my own mutants on the b2 arm, each applied to a copy and checked with the self-test. All five were killed:
+  - `show_roster` at `HEAD` instead of origin/main: 1 failed.
+  - NOTE dropped: 1 failed.
+  - Shallow test reads the rc instead of stdout: 2 failed.
+  - `--is-ancestor` arguments swapped: 5 failed.
+  - Guard inverted (`if shallow or ...`): 2 failed.
+- RESULT end to end, on real clones of this repository with `carry_audit.py check --body <this PR's body>`:
+  - Full clone, origin/main contained in HEAD (rc 0): `3 routed, 0 unrouted, 0 bad`, no NOTE.
+  - `refs/remotes/origin/main` deleted (rc 128): `3 routed, 0 bad`, no NOTE. Under round 1's B2-rc mutant this case was REFUSED.
+  - Depth-1 clone of the head, with origin/main fetched at depth 1: `--is-shallow-repository` is `true` and `--is-ancestor` gives rc 1, so the false answer is real. The guard keeps the tree: `3 routed`, no NOTE.
+  - Full clone with origin/main at the real tip 6d86acc90 (rc 1): `NOTE stale tree: e71c999da... lacks origin/main 6d86acc90...; roster read at origin/main`, then `3 routed, 0 bad`.
 
-## The blocking finding
+## Body checks
 
-The body states a third behaviour of the new predicate: "A clone without origin/main answers some other rc and also keeps its tree" (the code comment says the same). Nothing pins it. Replace `== 1` with `!= 0` (stale on any non-zero rc) and the self-test stays at 201/0. The behaviour that mutant changes is real. In a clone with no `refs/remotes/origin/main` (`git clone --single-branch` of the PR branch), `carry_audit.py check --body` on this PR's own body gives:
+- The corrected sentence: "a **fresh** merge ref contains origin/main and keeps the PR's own roster". It holds. `.github/workflows/pr-contract.yml` checks out with `fetch-depth: 0` (l75) and fetches `+refs/heads/main:refs/remotes/origin/main` (l426) before the carry step (l452). The body now names, as the stated P98 trade, the runs where the head lacks main. That covers both of round 1's non-blocking notes: the shallow guard landed, and the sentence is scoped.
+- Class rule (step 6): I re-ran the body's seam enumeration, `sed -n '/^def load_dests/,/^def /p' ... | grep -nE 'git\(|subprocess\.run|returncode'`. It returns the same 7 lines the body dispositions: `ls-tree` and `show` (unchanged `--roster-ref` branch), the shallow test, the ancestry test, the two NOTE `rev-parse` calls, and the round-ref `--verify` (#2779). No seam is left open.
+- Head figures (step 7): stamped at code head 09af90349 against edd7e0e14. The head e71c999da merges that code head and then origin/main 820b07eca. Main has since moved twice:
+  - 6d86acc90, #2905: `tests/requirements-build.txt` and a delivery row.
+  - 0b8f8b585: a triage file and a delivery row.
+  
+  Neither touches anything the figures read. The figures still hold: I re-took the self-test (206/0), the census (survived=0) and the B2 mutants at e71c999da, and each matches.
+- cloud_relay (#2792 R1):
+  - RESULT `cloud_relay.sh --self-test` at the head: `279 checks, 0 failed`.
+  - RESULT `r10_seat_selftests_mutants.py cloud_relay-34`: `KILLED rc=1`. The harness's last-line field showed a `Terminated: 15` line from a background child, so I applied R1 by hand on a copy: `279 checks, 3 failed`. The three failures are the UNREAD checks ("a listed verdict ref the fetch cannot find freezes the head", "and says UNREAD", "a listed sha the fetched ref does not carry ... is UNREAD too").
+- Other checks:
+  - RESULT `throwaway_git --check`: `0 raw git init or clone site(s) refused, 0 stale allow entries at HEAD`.
+  - RESULT `tests/structure.py`: `STRUCTURE RATCHET PASSED`.
+  - RESULT `closure.py select`: `MODE: SCOPED -- 1 script(s) run, 32 scoped out`.
+  - VERSION, the manifest version, the notes heading and the golden and claim files are untouched.
+  - No budget, closure, INERT or ledger number moves (step 14). The new mutants and self-test checks are earned by the predicate they pin.
+- Forward-carry (step 10): unchanged since round 1, which verified it. Card 1 is R10-ORCH-BEATD carry 22. The group's stale `resume` is queued for the roster seat.
+- Architecture (step 15): the guard stays inside `load_dests` and reads through `roster_lib.git_in` and `show_roster`. It adds no network fetch. The rejected alternatives are stated in the body.
 
-- head: `CARRY-AUDIT: 1 finding item(s): 1 routed, 0 unrouted, 0 bad destination(s)`
-- mutant: `carry_audit: REFUSED cannot list dev/programme/rosters/ at origin/main ... Not a valid object name origin/main`
+## merge-tree (step 13)
 
-pr-contract can reach this domain. Its main fetch is an earlier `if: always()` step. If that step fails, the carry step still runs, with no origin/main. The repair is one self-test case: in the scratch repo, `update-ref -d refs/remotes/origin/main`, then assert that a group in the tree passes with no NOTE. Add a mutant `B2-rc` (`== 1` -> `!= 0`) next to B2-ancestry. Carry: R10-FLOW-ROSTER-FREEZE
+`git merge-tree --write-tree origin/main e71c999da` gives rc 0:
+- at 6d86acc90: tree 1ff84ad46.
+- at the current main 0b8f8b585: tree e022a28fb.
 
-## Non-blocking notes (fix in the same re-cut if cheap)
-
-- In a shallow clone, the predicate gives a false rc 1. Measured on a scratch repo with a depth-1 clone and origin/main = HEAD~1 fetched at depth 1: `merge-base --is-ancestor origin/main HEAD` returned rc=1, where the true answer is 0. A shallow HEAD that contains main therefore takes the stale-tree branch. It prints a false `lacks origin/main` and drops the tree's own new groups. Cloud seats start shallow, and INSTRUMENTS tells them to unshallow first. A `git rev-parse --is-shallow-repository` guard (shallow: keep the tree) closes it. The null control is the same scratch repo after `fetch --unshallow`, which returns rc 0. Carry: R10-FLOW-ROSTER-FREEZE
-- The same applies wherever CI checks out a head that lacks main: a `workflow_dispatch` bot-head run, a re-run of an old merge ref, or main moving between the event and the fetch step. Those runs now read main's roster rather than the tree's. This is the intended P98 trade, and the round-ref union covers groups added through the roster branch. A PR whose own tree adds a group that is not on the round ref loses it there. The body's "CI's merge checkout keeps its tree" holds only for a fresh merge ref, and the body should say so. Carry: R10-FLOW-ROSTER-FREEZE
-
-## Requirement table against main (verified)
-
-- (a) review-in-flight freeze: 07cbe6fe1 is on main; HELD-REVIEW self-test checks are present; mutants cloud_relay-22..28 are in the harness. Met.
-- P-H, HELD-VERDICT: on main with the four null controls (older head, blocked at head, no ref, exact-head mismatch). Met.
-- Hold-file grammar: met on main (nine malformed variants, release file). The ROSTER-APPEND text is the group's 4th carry entry on the roster. Met.
-- (b) round-ref read: c01d54b98 (#2779) is on main. Met.
-- (b2): landed here except the rc-domain pin above.
-- #2792 R1: killed here (above).
-- Card 1: no beat or daemon job invokes `roster_queue.py` (grep of tick_loop.sh, daemonize.py and seat/*.sh is empty). The carry is already in the tree: R10-ORCH-BEATD carry 22, on both origin/main and the roster branch at b36710478. It states the precondition (a seeded no-op op lands, a seeded lint failure refuses, the seat runs beside the job one cycle) and the owner's no-inline constraint. Carry check (step 10): satisfied.
-
-## Red checks (step 11)
-
-`tests / nightly-status` is red at the head (job 122641850283). Its diff does not reach what nightly-status reads, so per step 11 it is not this PR's. All of the head's workflows have concluded; no check run is pending. Both `pr-contract / pr-contract` runs started after the red concluded at 05:02:24Z: 122653076099 (05:38:42Z) and 122653949333 (05:41:35Z). Both concluded success, and that run is the evidence. No root-cause class is owed.
+No conflict, and no claim file is touched.
 
 ## CI at the head (check-runs API, ev/checkruns_head.tsv)
 
-Every check run has completed: gate success (two runs), pr-contract success (two runs), budget-raise-gate success, tests/closures, fast (3.14), coverage, coverage-ratchet, typing and mutation success, governance instrument-self-tests success, all three codeql/Analyze success. The only red is nightly-status (above). No heavy run was re-run here.
+All 53 check runs at e71c999da have completed. Every conclusion is success or skipped, across both rounds of runs:
+- gate: 122755393279, 122756097345.
+- pr-contract: 122755140719, 122755827766.
+- arch-score (two runs), budget-raise-gate (two runs).
+- tests: closures, fast (3.14), coverage, coverage-ratchet, typing, mutation, graders-head-copy, lane-proofs.
+- governance instrument-self-tests, the three codeql/Analyze runs, hassfest, validate-hacs.
 
-## Group close and #2389
+`tests / nightly-status` (122744005411) is **green** at this head. The red at the previous head graded main and was answered in the body as not this PR's (step 11). No check is red at this head, so no root-cause class is owed. `tests / mutation` is green, but the diff writes no `custom_components/` line, so the lane drew no mutant. The in-tree mutants above pin the production lines, as the body's Unpinned sites section says. No heavy run was re-run here.
 
-- Once this merges with the rc pin, nothing of R10-FLOW-ROSTER-FREEZE's brief or its eight carries is owed in-group. Card 1 sits with R10-ORCH-BEATD. The group can go `done`. Its roster `resume` is stale ("dispatch arm (a) fixer" although arm (a) merged as 07cbe6fe1), which is the orchestrator's record to fix. Carry: R10-FLOW-ROSTER-FREEZE
-- #2389 must not close on this group. Four other live groups list it in `issues`: R10-RCA-HEADMOVED (root-cause seat O15, not-started), R10-FLOW-BODY-ONLY, R10-FLY-ROW-HEAD-CARRY and R10-FLY-CARRY-DOC-CONTEXT. tvofi's 2026-10-18 record asks for a root-cause disposition (cause, cost test, countermeasure or a recorded refusal), and that belongs to R10-RCA-HEADMOVED. The cron's below-threshold comments (v7.0.1 to v7.0.5 windows) say explicitly that they are not a close. Carry: R10-RCA-HEADMOVED
+## Verdict
 
-Round: 1 of this PR.
+merge at e71c999da56d58d8bff4cd639479826d9af1993d. The rc domain is now pinned in every direction (0, 1 and 128, plus shallow and unshallow). Every named mutant and every mutant of mine is killed, the census shows survived=0, and the body's figures re-derive at the head.
