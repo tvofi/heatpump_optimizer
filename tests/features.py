@@ -71427,6 +71427,9 @@ def _pl_kept(derate, p_min=4.0, p_max=5.0):
     return direct, cfg
 
 
+from heatpump_optimizer.thermal_model import (  # noqa: E402
+    partload_derate_limit as _pl_limit,
+)
 _pl_below = float(np.nextafter(_pl_lim, 0.0))
 _pl_heat_below = _pl_heat_of(_pl_model(_pl_below, 4.0, 5.0).params, 3.0, _pl_grid)
 R.check(
@@ -71434,15 +71437,18 @@ R.check(
     "construction path, so delivered heat never falls with power: on a 4-5 kW "
     "band 0.19 and the limit itself read 0, the float just below it is kept and "
     "heat rises across the band there; "
-    "null controls: 0 stays 0 and is exactly cop * power, and the default 1-5 kW "
-    "band keeps 0.19",
+    "null controls: 0 stays 0 and is exactly cop * power, the default 1-5 kW "
+    "band keeps 0.19, and a fixed-speed band (or one with no positive span to "
+    "divide by) has no limit, its factor being 1",
     _pl_kept(0.19) == (0.0, 0.0) and _pl_kept(_pl_lim) == (0.0, 0.0)
     and _pl_kept(_pl_below) == (_pl_below, _pl_below)
     and bool(np.all(np.diff(_pl_heat_below) > 0.0))
     and _pl_kept(0.0) == (0.0, 0.0)
     and np.array_equal(_pl_heat_of(_pl_model(0.0, 4.0, 5.0).params, 3.0, _pl_grid),
                        3.0 * _pl_grid)
-    and _pl_kept(0.19, 1.0, 5.0) == (0.19, 0.19),
+    and _pl_kept(0.19, 1.0, 5.0) == (0.19, 0.19)
+    and _pl_kept(0.2, 3.0, 3.0) == (0.2, 0.2)
+    and _pl_limit(-2.0, -1.0) == float("inf"),
     f"4-5: 0.19 {_pl_kept(0.19)} limit {_pl_kept(_pl_lim)} below {_pl_kept(_pl_below)}; "
     f"1-5: 0.19 {_pl_kept(0.19, 1.0, 5.0)}",
 )
@@ -71455,6 +71461,8 @@ R.check(
     "null controls: 0 and the default band's 0.19 pass",
     _pl_err({_PL_KEY: 0.19}, _pl_narrow) == {_PL_KEY: "partload_derate_above_limit"}
     and _pl_err({**_pl_narrow, _PL_KEY: 0.19}, {}) == {_PL_KEY: "partload_derate_above_limit"}
+    and _pl_err({_PL_KEY: _pl_lim}, _pl_narrow) == {_PL_KEY: "partload_derate_above_limit"}
+    and _pl_err({_PL_KEY: _pl_below}, _pl_narrow) == {}
     and _pl_err({_PL_KEY: 0.0}, _pl_narrow) == {}
     and _pl_err({_PL_KEY: 0.19}, {}) == {},
     f"{_pl_err({_PL_KEY: 0.19}, _pl_narrow)}",

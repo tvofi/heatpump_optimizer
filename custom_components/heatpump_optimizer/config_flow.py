@@ -903,7 +903,7 @@ def _partload_errors(
         _effective(candidate, current, CONF_HEAT_PUMP_MIN_POWER, DEFAULT_HEAT_PUMP_MIN_POWER),
         _effective(candidate, current, CONF_HEAT_PUMP_MAX_POWER, DEFAULT_HEAT_PUMP_MAX_POWER),
     )
-    if derate > 0.0 and derate >= limit:
+    if derate >= limit:  # the limit is positive, so 0 always passes
         return {CONF_HEAT_PUMP_COP_PARTLOAD_DERATE: "partload_derate_above_limit"}
     return {}
 
