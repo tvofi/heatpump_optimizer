@@ -11115,6 +11115,64 @@ R.check(
     f"tank peaked at {_cap_peak:.4f} C",
 )
 
+# R10-BUFFER-STORE review 1: the savings reference sized its power from the
+# emitters' need as if the step delivered it straight to them, so behind a
+# valve its tank climbed to buffer_max_temp and the refused heat was paid for
+# and booked as savings (single-zone 3.3x, two-zone 1.66x the unvalved
+# reference on a flat day, a night setback's recovery asking more than the
+# curve delivers). The unvalved arm is the null: nothing in it can store, and
+# the valved reference may cost no more than the tank's own loss.
+def _ref_tank_arm(two_zone, valved):
+    from heatpump_optimizer import mixing_valve as _rt_mv
+    from heatpump_optimizer.optimizer import (
+        HeatPumpOptimizer as _RtOpt, OptimizationConfig as _RtCfg,
+    )
+    from heatpump_optimizer.thermal_model import WeatherSeries as _RtWS
+    _rp = ThermalParameters(
+        two_zone_enabled=two_zone, min_electrical_power=1.5,
+        max_electrical_power=5.0, dhw_enabled=False, house_heat_loss_scale=0.6,
+    )
+    if valved:
+        _rp.mixing_valve_mode, _rp.buffer_tank_volume = _rt_mv.MODE_MANUAL, 750.0
+    _rm = ThermalModel(_rp)
+    _seen = {"refused": 0.0, "tank": []}
+    _real = _rm.simulate_step
+
+    def _spy(*a, **k):
+        _s = _real(*a, **k)
+        _seen["refused"] += _rm._step_buffer_refused * 0.25
+        _seen["tank"].append(_s.buffer_tank_temperature)
+        return _s
+
+    _rm.simulate_step = _spy
+    _bp, _ = _RtOpt(_rm, _RtCfg())._compute_baseline_power(
+        _RtWS(outdoor_temps=np.full(96, 5.0), wind_speeds=np.zeros(96),
+                      precipitation=np.zeros(96), solar_radiation=np.zeros(96)),
+        ThermalState(room_temperature=20.0, upper_floor_temperature=20.0,
+                     lower_floor_temperature=20.0, slab_temperature=20.5,
+                     outdoor_temperature=5.0, buffer_tank_temperature=24.0),
+        0.25, np.array([21.0] * 8 + [19.5] * 36 + [21.0] * 52),
+    )
+    _loss = _rp.buffer_tank_heat_loss_coefficient * max(
+        0.0, max(_seen["tank"]) - 20.0) * 24.0 if valved else 0.0
+    return float(np.sum(_bp)) * 0.25, _seen["refused"], max(_seen["tank"]), _loss
+
+
+for _rt_tz, _rt_name in ((False, "single-zone"), (True, "two-zone")):
+    _rt_kwh, _rt_ref, _rt_top, _rt_loss = _ref_tank_arm(_rt_tz, True)
+    _rt_null, _, _, _ = _ref_tank_arm(_rt_tz, False)
+    R.check(
+        f"{_rt_name}: the savings reference never charges its valved tank into the cap",
+        _rt_ref < 1e-9 and _rt_top < 45.0,
+        f"reference refused {_rt_ref:.2f} kWh; its tank peaked at {_rt_top:.1f} C",
+    )
+    R.check(
+        f"{_rt_name}: a valved reference costs the unvalved one plus the tank's loss",
+        _rt_kwh <= _rt_null + _rt_loss + 0.5,
+        f"valved {_rt_kwh:.2f} kWh vs unvalved {_rt_null:.2f} + loss bound "
+        f"{_rt_loss:.2f}",
+    )
+
 
 R.section("The valve hold schedule (item 29)")
 
