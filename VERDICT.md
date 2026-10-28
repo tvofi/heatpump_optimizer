@@ -1,135 +1,126 @@
-Fix review: merge 3522cd92564309ba64ba08c9bcf5101ccd8f1b8b
-bus-nonce: 0f5534bb89c2f503ca5a592771b934a5
+Fix review: merge 36c985d335d7dd9545a1df974442541bb65412b9
 
-Round 2 of #2745. Reviewed only `4522d46b0` and `6d526cfdc` (`ledger.py`
-+7/-5); the r1 `merge` at `4bf7c2eaa` does not cover them. Measured head
-`3522cd92564309ba64ba08c9bcf5101ccd8f1b8b`.
+bus-nonce: 2ebbb79b24a0de6a97163e7a90efdb21
 
-## The tree is the measured code head
-`git diff 6d526cfdc 3522cd925` is empty: the head's tree is the measured code
-head's. Branch-side commits in `4bf7c2eaa..3522cd925` that are not reachable
-from origin/main are exactly the two fixes; the other 195 changed paths are
-main's delta (`git log --name-only 4bf7c2eaa..524c1896b` explains 196 paths;
-end-diff paths minus those minus `ledger.py` is empty).
+## Scope
 
-## The check, at every end (`python3 -I tests/finite_boundary.py`)
-- `4bf7c2eaa`: `ALL 106 FINITE BOUNDARY CHECKS PASSED`. The census does not
-  exist at this head (`_finite_float_census` occurs 0 times), so the old end
-  cannot see the defect — which is why the r1 head was green.
-- `02a28aed1` (the merge-forward that brought main's census beside the pre-fix
-  code): `1 of 108 FINITE BOUNDARY CHECKS FAILED`, and the failing line is
-  `FAIL every finite-float coercion is const.finite_float or a dispositioned
-  site, and the census reaches the owner and a planted sibling (D7-s2-58)
-  [stray=['ledger.py::coverage_factor'] stale=[] owner_found=True
-  plant_found=True]`. This is the mutation proof: the pre-fix production line
-  against the same census check, failing on the named seam.
-- `3522cd925`: `ALL 108 FINITE BOUNDARY CHECKS PASSED`.
+PR #2745 (R10-SAV-COMFORT, #2492). This review measured head 36c985d335d7dd9545a1df974442541bb65412b9, from a detached worktree.
+- That head merges the authored code head 28ddae464 (the r2 handoff) and origin/main 5c0ee1093.
+- Round: the brief labels this the r4 dispatch on the r2 handoff. The earlier rounds were:
+  - blocked c70c3e46 (carry-missing);
+  - merge on the 46dc1dda delta;
+  - a return over main's five deleted claim lines, which 28ddae464 restores.
+- Because this is the fourth round, a further block would owe a re-cut under fixer.md, not a repair. None is owed.
 
-## Mechanism, re-derived from the rule (items 1 and 5)
-`_finite_float_coercers` matches a module-level function returning `float` or
-`float | None` with at most two positional parameters and a builtin `float()`
-call under an `isinstance` test or in a `try` catching ValueError/TypeError.
-The finder's harness `dev/audit/harnesses/r10_finite_float_census.py` applies
-that rule: `RESULT coercers=2` at `02a28aed1` (`const.py::finite_float`,
-`ledger.py::coverage_factor`), `RESULT coercers=1` at `3522cd925`
-(`const.py::finite_float`). The fixed read is `finite_float(entry.get("sum"),
-0.0)`; a `finite_float(...)` Call has `func.id == "finite_float"`, so the
-rule's `calls_float` does not match it.
-The `int()` blind spot, controlled both ways on the head's `ledger.py` text in
-one process: reverting only `int(finite_float(...))` to `int(entry["count"])`
-still returns no `coverage_factor`; reverting only `settled` to
-`float(entry["sum"])` returns `ledger.py::coverage_factor`. So the two `int()`
-counts are guarded by the fix's own decision, invisible to the census — the
-claim in `6d526cfdc`'s body, re-derived.
+The contract was current at dispatch: `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` was empty against 5c0ee1093. While I worked, main moved to 662a3809 and edited fix-review.md and fixer.md.
+- Those edits are wording, plus one widening of step 6's class-open clause: "a site or a predicate's unguarded domain".
+- I checked that clause against the added predicates (Evidence). Nothing in it changes this verdict.
 
-## Bad inputs (item 2), reviewer-built harness `bad_inputs.py`
-Old head is the null control: the numbers move, so the harness is not vacuous.
-`fallback` = exactly `pro_rata_factor(NOW)` (2.8); `scale` = the covered figure.
+## Findings
 
-| input (settled_hours entry)      | old 4bf7c2eaa | new 3522cd925 |
-|---|---|---|
-| entry None                       | 2.8 fallback  | 2.8 fallback  |
-| entry not a dict (list)          | 2.8 fallback  | 2.8 fallback  |
-| entry not a dict (str)           | 2.8 fallback  | 2.8 fallback  |
-| missing `sum`                    | KeyError      | 2.8 fallback  |
-| `sum` non-numeric "warm"         | ValueError    | 2.8 fallback  |
-| `sum` = "nan"                    | 2.8 fallback  | 2.8 fallback  |
-| `sum` = "inf"                    | 1.0 OTHER     | 2.8 fallback  |
-| `sum` = float("inf")             | 1.0 OTHER     | 2.8 fallback  |
-| `sum` = True                     | 672.0 OTHER   | 2.8 fallback  |
-| `count` missing (spot absent)    | KeyError      | 28.0 scale    |
-| `count` missing (spot count 24)  | KeyError      | 2.8 fallback  |
-| `count` "nan" (spot absent)      | ValueError    | 28.0 scale    |
-| `count` "nan" (spot count 24)    | ValueError    | 2.8 fallback  |
-| spot entry None / not a dict     | 28.0 scale    | 28.0 scale    |
-| spot missing `count` / "nan"     | KeyError/ValueError | 28.0 scale |
-| whole `meta` is None             | AttributeError | AttributeError |
+- The committed copy of the finder's harness reads DEFECT on its `cost` arm at this head, and the body does not say so.
+  - The file is `dev/audit/harnesses/r10_sav_baseline.py`. Its `cost` arm pins #2255 item 5's rule, "row actual_sek == receipt total_sek".
+  - At this head the arm reads receipt 15.0 against row 4.2, so a no-argument run prints `arms run 4, defect 1+`.
+  - The PR retires that rule on purpose. Carry 3's owner acceptance puts the row's Baseline, Actual and Savings on one covered-interval basis, and M21 pins it.
+  - The PR edited this file's transient and null verdicts but left the `cost` arm asserting the retired rule. The body runs only `null` and `transient`.
+  - The arm should be re-pointed to the new invariant (actual_sek equals the covered intervals' metered cost) or retired with its reason, so a later seat does not read a stale DEFECT as a regression.
+  - The earlier reviewer's dismissal of the transient and null redefinition (comment 6387209379) did not cover this arm.
+  - Carry: #2492
+- `custom_components/heatpump_optimizer/ledger.py:39-40` still says "the two ``savings_`` lines", and the PR adds a third (`savings_plan`).
+  - The rule the comment states still holds, because `billed_total` is an allow-list. Only the count word is stale.
+  - The c70c3e46 review carried this, and it is unchanged at this head.
+  - Carry: #2492
 
-`whole meta is None` is unchanged at both ends and out of the fix's stated
-scope (`meta` is typed `Mapping`; `None` is a caller contract breach).
+## Evidence
 
-## The fallback is the right fallback (item 3)
-The finder's committed `dev/audit/harnesses/r10_savings_upgrade_month.py`,
-run at both ends, is flat at every arm — old then new:
-`upgrade 2.800/2.800`, `null 28.000/28.000`, `fresh 2.800/2.800`. The `null`
-arm is a genuinely covered month and reads the settled scale 28.0 at both
-ends; `upgrade` (coverage lost mid-month) and `fresh` (no coverage) read
-`pro_rata_factor` 2.8 at both. In `bad_inputs.py` every fallback row is
-asserted equal to `pro_rata_factor(NOW)` exactly, not judged by eye.
-
-## Every admitted value is unchanged (fix1's claim, controlled)
-`admitted_grid.py` enumerates 200 cells over exactly what `_clean_month`
-admits (`sum` finite, `count` int >= 1, but bools and non-finite dropped
-before the function): 10 sums x 4 counts x 5 spot counts. The two ends'
-outputs diff to 0 lines. The bad-input table is the perturbation that keeps
-the flat grid from being vacuous: the ends differ on unadmitted inputs.
-
-## Nothing else moved in ledger.py (item 4)
-The end-to-end diff is three hunks: the `from .const import finite_float`
-import (fix1); the docstring clause (fix2, documentation only); and the three
-reads, where fix2 rewrote the `settled` line fix1 had written
-(`entry["sum"]` -> `entry.get("sum")`). That is why the two commits total
-+7/-5 but the end diff is +6/-4. `month_hours`, `pro_rata_factor`,
-`savings_pct` and the comparison and return lines are untouched; main did not
-touch `ledger.py` in the merged window (`git log 4bf7c2eaa..524c1896b --
-ledger.py` is empty).
-
-## Hygiene
-- `VERSION` (7.0.4), the manifest and `RELEASE_NOTES.md` are untouched by the
-  branch delta; no `tests/golden` path moves between the two ends, so these
-  commits owe no claim. The branch's pre-existing `claimed_drift.txt` entry is
-  unchanged here.
-- `git merge-tree --write-tree origin/main 3522cd925` exits 0 — no conflict;
-  `mergeStateStatus: BLOCKED` is not a conflict.
-- Forward-carry: `dev/programme/rosters/wave-r10-groups.json`
-  `R10-SAV-ACTUATION` carries both controls of carry 5 seam 2 as preconditions
-  for its failing test (`dev/programme/rosters/wave-r10-groups.json:9455`).
-- Root-cause: the body answers the red `tests / fast (3.14)` at `02a28aed`,
-  state (d), cheaper detector `python3 tests/finite_boundary.py` (295 s, the
-  fast lane already) — the trigger is answered.
-- `fixer.md` step 17 on the added lines: the coercion moves to its one owner
-  (`const.finite_float`), no HA import, no side effect, no parallel mechanism.
-
-## Residual (non-blocking)
-A settled `count` that is missing or non-finite scales instead of falling back
-when the spot `count` is also absent: `folds` and `spot_folds` both read 0,
-`0 >= 0` passes, and the function returns the covered figure (28.0 here).
-`spot` present (count 24) falls back to 2.8. The docstring's "count ... missing
-or not a finite number, reads as no coverage" is therefore over-broad. Not
-reachable: the one production call is
-`coverage_factor(self.months[key].get("meta") or {}, now)`, and every entry
-reaching it comes from `_clean_month` (both keys, count >= 1) or from
-`observe_meta_mean`/`book_capacity` (both keys), so `folds == 0` with
-`sum > 0` cannot occur. The function is total either way; the sentence is a
-precision note, not a wrong published value.
-Carry: dismissed: unreachable through the loader and both in-memory writers;
-where the inconsistent dict can be built by hand the function still returns a
-finite figure; docstring precision only.
-
-## Could not establish
-- The fix1 body's phrase "a tenth coercion" is narrative; the measurable form
-  is the stray set, which is one entry (`ledger.py::coverage_factor`) at
-  `02a28aed1` and empty at the head.
-- No `pr-contract` check-run had started at this head (only `budget-raise-gate`
-  concluded); the body's own `carry_audit` line is therefore taken from the
-  body, not re-read from a run.
+- RESULT head:
+  - The body's `## Head` names 36c985d335d7dd9545a1df974442541bb65412b9, the head I measured.
+  - The branch has since moved one commit to 772d1b9387cd66d4dd59006e0112bf3806f180ce, "ci: pin killed mutants" by github-actions[bot] (ci-autofix's mutation-autofix job).
+  - That commit adds exactly six files under `tests/mutation_ledger/killed_by/` and touches nothing else (ev/head-delta-772d1b9.txt).
+  - The six anchors are the body's six Unpinned sites, and each one is killed (RESULT opmutants below).
+  - Whether this verdict carries to 772d1b9 is the orchestrator's section-11 carry predicate. I did not run it.
+- RESULT merge: `git merge-tree --write-tree origin/main <head>` exits 0 for both heads:
+  - against 5c0ee1093: tree ed0560eb;
+  - against main 662a3809: tree edae3540 for 36c985d3 and 264d6d90 for 772d1b9;
+  - no conflict and no claim-driver output (ev/merge-tree.txt).
+- RESULT version: VERSION, the manifest version and RELEASE_NOTES.md are untouched. The diff moves none of them, and CI's pr-contract version-edit step agrees.
+- RESULT claims, checked three-dot against the merge base 5c0ee1093 (ev/claim-diff.txt):
+  - All five of main's `coord_*` R10-SCORES lines are present once each: coord_all_features, coord_dhw, coord_grid_fee, coord_minimal, coord_two_zone.
+  - The only `-` lines are 15 may-drift comments. Each is restated under its "R10-SAV-COMFORT suspends ..." note, so no claim line is removed.
+  - Each of the 41 new claim lines carries a direction (`a -> b`).
+  - `claims-for: 7.0.4` equals VERSION in both claim files. card_claimed_drift.txt is byte-identical to main's.
+  - `env_drift.py --claims-only`: `claims hygiene: origin/main ok`.
+- RESULT golden: `PYTHONPATH=tests/hastub python3 tests/env_drift.py --all 5c0ee1093` at the head (ev/env_drift_all.txt), rc=0:
+  - `NO UNCLAIMED DRIFT: 56 scenario(s)` and `NO STALE FIXTURE`.
+  - 41 CLAIMED fixtures moved, every claim moved, and the five coord_* fixtures are byte-identical to main.
+  - The moved leaves are baseline_cost ×39, deferred_energy_cost ×41, predicted_savings ×41 and savings_percentage ×2. No plan key moved, as every claim states.
+- RESULT finder's harness, main's own copy (ev/finder_r10_sav_baseline.main.py, ev/finder_baseline_both_ends.txt). Base 5c0ee1093 against head:
+  - transient: SOUND (spread 0.00) → DEFECT (spread 0.07 kW).
+  - cost: SOUND → DEFECT (15.0 vs 4.2).
+  - coverage: SOUND both ends.
+  - null: DEFECT 12.34 % → DEFECT 7.59 %.
+  - The transient and null moves follow from carry 1's acceptance and were judged sound by the earlier reviewer. The cost move follows from carry 3, and the stale arm is listed under Findings.
+- RESULT finder's carry harness `dev/audit/harnesses/r10_sav_null_terms.py`, main's copy (the #2411 reviewer's probe named in carry 1), both ends (ev/finder_null_terms_both_ends.txt). The comfort term is gone and the timing term survives:
+  - vary arm: booked thermostat 128.4 → 121.8 kWh, against steady at the delivered room 121.5 at both ends. Outdoor-timing gain +17.29 % → +17.27 %.
+  - const arm: booked 124.9 → 119.2 against 119.4 steady at the delivered room. Timing +0.00 % → −0.00 %.
+  - The const arm's remaining gap of 9.1 kWh is its stored-heat drawdown (9.3 kWh_e). Settled, it reads about 0, which is carry 1's acceptance.
+- RESULT body figures, re-taken with the head's harness files at both ends (ev/pr_harnesses_both_ends.txt). Every figure in the body's Null control reproduces exactly:
+  - volume flat: −64.51, DEFECT 0.2154/kWh → 0.00, SOUND, meter_calibration 1.56.
+  - volume vary: 10.37 = −64.51 + 74.88 → 74.88.
+  - volume gap: 48.0 at both ends, meter_calibration 1.0.
+  - comfort const: +4.95 % vs +0.00 % → +0.35 % vs −0.00 %.
+  - comfort vary: +20.03 % vs +15.30 % → +16.04 % vs +15.31 %.
+  - baseline null: 128.4 vs 121.5 → 121.8 vs 121.5.
+  - baseline transient: 2.06 kW, 1.81e-01 off → 1.95 kW, 8.88e-16 off.
+- RESULT mutation proof, the fixer's `r10_sav_comfort_mutants.py` on a `git ls-files` copy of the head (ev/mutants.txt). Every count equals the body's:
+  - M0: rc=0, failing=0.
+  - M1 6, M2 2, M3 8, M4 5, M5 1, M6 4, M7 4, M8 1, M9 1, M10 1, M11 1, M12 1, M13 1, M14 1, M15 1, M16 2, M17 3, M18 6, M19 1, M20 1, M21 9, M22 4, M23 2, M24 2.
+- RESULT reviewer mutants, my own (ev/reviewer_mutants.py, ev/reviewer_mutants.txt, same runner). M0: rc=0, failing=0. All four are killed:
+  - X1: the space path matches against `room_temps[:-1]` → failing=3, the matched-target step-0 checks.
+  - X2: the hot-water `held_cost` drops `baseline_dhw` → failing=1, "held_cost is the thermostat at the schedule itself, on both paths".
+  - X3: calibration inverted (model over meter) → failing=5.
+  - X4: shortfall taken as the max, not the mean → failing=6, including "moves the reference down by its mean shortfall, uniformly".
+- RESULT opmutants, for the 6 previously unpinned sites. I drove `mutation_table.candidates()`'s own mutants with `r10_sav_comfort_opmutants.py <copy> full <key>` (ev/opmutants.txt). The NULL is rc=1, failing=1: the `#363 recorded_at` check that fails in every copy without `.git`. All 6 are killed by the `killed()` rule:
+  - optimizer.py:324 RETURN_DEL failing=3 and :336 RETURN_DEL failing=3: D1-s2-51, D1-s4-02 and D1-s2-04, all `solve_failed`.
+  - :333 GUARD_OFF failing=7, among them "a night setback lowers the reference, not the reported savings".
+  - :5294 BOOLOP and :5294 GUARD_OFF, failing=2 each: "the savings reference backs off by the wood share on the two-tank layout ...".
+  - :5335 CLAMP_DROP failing=2: "a demand past the pump's nameplate holds the reference at max_electrical_power", reading 1.469 kW against a 1.0 kW pump.
+  - Every pin in 772d1b9 matches these sites. Its `killed_by` drivers are tests/features.py and tests/plan_view.py, with the same failing counts.
+- RESULT predictor: `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main` at the head prints the same 6 ADDED UNPINNED sites and "no closures, fast, wave-script or instrument red predicted" (ev/ci_predict.txt).
+- RESULT stress: the earlier head's stress red is gone, paid in code.
+  - Local run: `GOLDEN_REF=5c0ee1093 PYTHONPATH=tests/hastub python3 tests/stress.py` at the head exits 0 with 0 FAIL lines (ev/stress_head.txt). It prints `production calls: 20 of 20 family members judged against 5c0ee109305f ...; re-planned: []; new on this branch: []` and `ok no scenario's production calls grew past what its work counts vouch for, on an unchanged plan (round 9)`.
+  - CI: `tests / fast (3.14)` is success at this head (job 121031503938).
+  - The payment is the per-pass hoist in `_compute_baseline_power`. No allowance and no raise was made.
+  - Bitwise equivalence is shown by the golden run above: no unclaimed drift, and no plan key moved.
+  - `documented` in stress.py moves with docs/how-it-works.md:1315 in the same diff, so the README table and its test agree.
+- RESULT owner specification (carry 4), checked against the code:
+  - The baseline runs at the meter's power levels: `meter_calibration` = metered kWh over the plan's modelled kWh, both on the same intervals.
+  - DHW thermostat always on: `dhw_planner._baseline_dhw_economics` holds the tank at setpoint around the clock, unchanged.
+  - One price profile on both sides: spot plus fee, `settle_interval_savings`.
+  - Card equals ledger cell for cell: tests/card.mjs, killed by M24.
+  - At one flat price the timing is 0 (volume flat arm). COP timing at a flat price is a volume difference, which the specification lets remain.
+- RESULT class and domain (step 6). The body's reader census, `grep -rnE "savings_months|savings_sek|savings_pct|baseline_sek|actual_sek" custom_components/` with ledger.py excluded, returns coordinator, sensor, notifier, card and payload. Each reads the row.
+  - I also listed readers of `OptimizationResult.baseline_cost` outside optimizer.py. They are coordinator.py:2435 (the payload) and sensor.py:546 (an attribute). Neither differences it across what-ifs.
+  - The one what-if difference, coordinator.py:11243, now reads `held_cost`, which M16 pins.
+  - `_comfort_matched_targets`'s domain: a NaN trajectory returns the schedule, which is tested. Length mismatch is unreachable, because both solve paths build `comfort_targets` at n_steps.
+  - `meter_calibration`'s domain: a plan under 1 kWh returns None, pinned by M20. Non-finite inputs never book (`add_savings_settlement`'s finite guard). No seam is open.
+- RESULT forward-carry: carry 5 seam 2 goes to R10-SAV-ACTUATION. The c70c3e46 block's remedy, roster edit 1debc245a, put both controls in that group's `carry`; the 46dc1dda delta review confirmed it.
+- RESULT metrics (step 14). Each move is earned by the change:
+  - `class_excess_loc` 18209 → 18206 is a lowering. Its reason is in 8f5fd0295's message. `python3 tests/structure.py` prints STRUCTURE RATCHET PASSED.
+  - `node tools/policy/policy_lint.mjs --budgets` exits 0, and `rules_sync.mjs --check` is ok (ev/cheap_checks.txt).
+  - The mutation ledger drops `_baseline_target`'s four pins. Their line no longer exists: the hoist rewrote it into a delegation, re-pinned in 772d1b9.
+  - The golden and claim moves are the 41 measured above. `budget-raise-gate` and `arch-score` are green.
+- CI at 36c985d335d7dd9545a1df974442541bb65412b9, read from the commit's check-runs API (ev/ci_check_runs.tsv). These are success:
+  - tests: fast (3.14), closures, coverage, coverage-ratchet, typing, browser, arch-instrument, briefs, closure-scope, nightly-status, graders-head-copy, mutation-pins (1) and (2), mutation-autofix.
+  - governance: delivery-status, env-matrix, instrument-self-tests, policy-docs, wave-script.
+  - codeql: actions, javascript-typescript, python.
+  - also arch-score, budget-raise-gate, hassfest and validate-hacs.
+  - `tests / lane-proofs` was still queued when I read CI.
+- The three red checks at this head:
+  - `tests / mutation` failed at 00:31. It is the 6 ADDED UNPINNED sites that the body's Red checks names and answers. mutation-autofix has since pinned them in 772d1b9.
+  - `pr-contract / pr-contract` failed in its code-scanning wait: `FAIL closed: no run at this head owns a finished codeql unit for base 'main' after 600 s`. codeql / Analyze (python) concluded success later, at 01:01:13.
+    - Every body check in that run is clean: `FIGURES: 15 resolved, 2 not verified, 0 refused`; preflight `clean    no refusal`; `CARRY-AUDIT: 2 finding item(s): 2 routed, 0 unrouted`; no version edit.
+    - This is a timing red with no content defect for the body to answer. No pr-contract run had started after it when I read CI.
+  - `gate` (edit run) failed with `FAIL run(s) [40145720045] at this head are still being judged; their gate decides`. That is a deferral to the code run, not a content red.
+  - All three are this head's timing or ordering artefacts, or answered in the body, so step 11 owes no root-cause answer for them. The orchestrator's section-11 gate check is still owed at whichever head it merges.
+- My instruments: the mutant runner ev/reviewer_mutants.py is my own; it reuses the fixer's runner and swaps in my M list. All other runs used the finder's (main's) harness copies or the PR's committed harnesses, named file by file above.
