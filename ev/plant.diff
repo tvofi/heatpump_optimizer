@@ -1,0 +1,26 @@
+diff --git a/tools/policy/budget_raise_gate.py b/tools/policy/budget_raise_gate.py
+index daad84355..c7101901a 100644
+--- a/tools/policy/budget_raise_gate.py
++++ b/tools/policy/budget_raise_gate.py
+@@ -142,7 +142,7 @@ MANDATE_COVERS_CODE_OWNED = ("code-owned", "all")
+ JUSTIFICATION_HEADING = "## Raise justification"
+ JUSTIFICATION_PAID = re.compile(r"^[ \t]*(?:[-*][ \t]+)?Payments tried:[ \t]*\S", re.M)
+ JUSTIFICATION_SCORE = re.compile(
+-    r"^[ \t]*(?:[-*][ \t]+)?Architecture score: dS [+-]?\d+(?:\.\d+)? (?:IMPROVES|NULL|WORSENS)\b", re.M)
++    r"^[ \t]*(?:[-*][ \t]+)?(?:Architecture|Arch) score: dS [+-]?\d+(?:\.\d+)? (?:IMPROVES|NULL|WORSENS)\b", re.M)
+ SUFFIX = "_budgets.json"
+ 
+ FREE, MAX, MAX0, MIN, OVERRIDE, CAPFILE, SUPERSET, FROZEN = (
+diff --git a/tools/policy/fixtures/policy-rot/prepr/raise/good.md b/tools/policy/fixtures/policy-rot/prepr/raise/good.md
+index 2e59f9002..57099d88f 100644
+--- a/tools/policy/fixtures/policy-rot/prepr/raise/good.md
++++ b/tools/policy/fixtures/policy-rot/prepr/raise/good.md
+@@ -16,7 +16,7 @@ The unmodified tree passes.
+ ## Raise justification
+ 
+ Payments tried: moved the helper into its caller; arch_score read it worse.
+-Architecture score: dS +0.1000 IMPROVES
++Arch score: dS +0.1000 IMPROVES
+ 
+ ## Figures
+ 

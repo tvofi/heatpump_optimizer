@@ -1,0 +1,6 @@
+head under test: 38422dd1525cbf2cf7ace3e6e04213ea04b0f4ff (plant commit eb59425ff on top of it, not pushed)
+$ PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base 38422dd1525cbf2cf7ace3e6e04213ea04b0f4ff --only graders
+CI PREDICT: no closures, fast, wave-script, policy-docs or instrument red predicted against 38422dd1525c (a data-file read is not seen)
+rc=0
+head-copy policy_lint.mjs on the plant: rc 0 (plant-head-copy-lint.txt)
+base-copy budget_raise_gate.py + plant fixture: rc 1, FIXTURE VACUOUS (plant-base-copy-lint.txt)
