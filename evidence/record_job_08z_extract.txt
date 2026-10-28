@@ -1,0 +1,22 @@
+2026-10-22T08:06:13.9690403Z  * [new tag]             archive/cursor/r9-sw-2-actuation-6d19 -\u003e archive/cursor/r9-sw-2-actuation-6d19
+2026-10-22T08:06:13.9814403Z  * [new tag]             archive/handoff/r9-ux-10    -\u003e archive/handoff/r9-ux-10
+2026-10-22T08:06:49.4070969Z RECORD_ENUM: api
+2026-10-22T08:06:49.4073832Z GAP: 0 merge(s) recovered from the commit's own \"Merge pull request #N\" subject after /commits/\u003csha\u003e/pulls answered []
+2026-10-22T08:06:49.9650500Z RECORD: 84 merged pull request(s) in v7.0.2..origin/main; 0 without a disposition in dev/programme/plan-2026-09-open-issues.md, dev/programme/HANDOVER.md or dev/programme/delivery/
+2026-10-22T08:06:50.1199383Z TOTAL: 0 error(s) over 84 merged pull request(s)
+2026-10-22T08:06:50.1329378Z ##[group]Run if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --stats --since \"v7.0.2\" 2\u003e\u00261; else node tools/policy/policy_lint.mjs --stats --since 
+2026-10-22T08:07:22.6897424Z GAP: 0 merge(s) recovered from the commit's own \"Merge pull request #N\" subject after /commits/\u003csha\u003e/pulls answered []
+2026-10-22T08:08:42.1088757Z STATS: 84 merged pull request(s) in v7.0.2..origin/main; verdict grammar [\"blocked\",\"merge\"] over block classes [\"mutation-vacuous\",\"harness\",\"null-control\",\"claims\",\"version\",\"head-move
+2026-10-22T08:08:42.1840346Z 
+2026-10-22T08:08:42.2015616Z ##[group]Run if test -f .claude/workflows/friction_issues.mjs; then node .claude/workflows/friction_issues.mjs --self-test; else node tools/policy/friction_issues.mjs --self-test; fi
+2026-10-22T08:08:42.2630799Z ##[group]Run if test -f .claude/workflows/friction_issues.mjs; then node .claude/workflows/friction_issues.mjs --stats-file \"$RUNNER_TEMP/stats.txt\" --since \"v7.0.2\"; else node tools/policy/frictio
+2026-10-22T08:08:42.3063794Z FRICTION: histogram names 5 key(s) at or over threshold in v7.0.2..origin/main
+2026-10-22T08:08:50.0746589Z ##[group]Run if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --sunset --since \"v7.0.2\"; else node tools/policy/policy_lint.mjs --sunset --since \"v7.0.2\"; f
+2026-10-22T08:10:40.7740519Z SUNSET: 43 policy file(s) over v7.0.2..origin/main
+2026-10-22T08:10:40.7749246Z SUNSET MARKERS: 43 policy file(s) scanned; REFUSED BY 0, SUNSET: 0, HONOUR: 0 -- no marker is declared in these files, so the (0) counts below are the PARTICIPATION zero -- this class has nothing to re
+2026-10-22T08:10:40.7847239Z ##[group]Run RECORD_TXT=\"$RUNNER_TEMP/record.txt\"
+2026-10-22T08:10:40.8022400Z RECORD_ENUM: api
+2026-10-22T08:10:40.8023479Z GAP: 0 merge(s) recovered from the commit's own \"Merge pull request #N\" subject after /commits/\u003csha\u003e/pulls answered []
+2026-10-22T08:10:40.8025994Z RECORD: 84 merged pull request(s) in v7.0.2..origin/main; 0 without a disposition in dev/programme/plan-2026-09-open-issues.md, dev/programme/HANDOVER.md or dev/programme/delivery/
+2026-10-22T08:10:40.8040365Z   self-disposing (record-class)  #2542  record: delivery rows for #2541 (autofix)
+2026-10-22T08:10:40.8057083Z TOTAL: 0 error(s) over 84 merged pull request(s)
