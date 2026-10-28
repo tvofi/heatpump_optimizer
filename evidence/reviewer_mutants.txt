@@ -1,0 +1,21 @@
+M0 unmutated: rc=0 failing=0
+X1 space path matches against the start room (room_temps[:-1]): rc=1 failing=3
+    FAIL the booked thermostat step depends on the start only through the comfort delivered (single-zone)  [booked [1.9473076401854053, 1.898855718075113,
+    FAIL the booked thermostat step is the steady holding power at the matched target  [1.9473076401854053 vs 1.9460986607574504]
+    FAIL the held house at the booked power is a steady state of the plant model  [room 18.075387780705025 -> 18.075387780705025, slab 22.971042224172987 
+X2 hot-water held_cost drops the DHW baseline: rc=1 failing=1
+    FAIL held_cost is the thermostat at the schedule itself, on both paths, while baseline_cost is matched  [space held 89.62336233273521 vs off 89.623362
+X3 calibration inverted (model over meter): rc=1 failing=5
+    FAIL #2492: a meter reading a fixed factor over the model saves 0 at one flat price when the thermostat's modelled volume is the plan's  [{'month': '2
+    FAIL #2492: over a varying profile the same month saves its timing, priced alike on both sides  [{'month': '2026-01', 'baseline_sek': 5.33, 'actual_se
+    FAIL #2492: at one flat price the volume difference remains, at the meter's levels  [{'month': '2026-01', 'baseline_sek': 10.67, 'actual_sek': 12.0, '
+    FAIL #2492: a month begun without the plan line stays modelled; the next one calibrates  [{'2026-01': dict_keys(['savings_baseline', 'savings_actual']
+    FAIL #2492: a month whose plan booked under one modelled kWh stays modelled (at one kWh it calibrates)  [{'2026-01': {'lines': {'savings_baseline': {'
+X4 shortfall is the max step shortfall, not the mean: rc=1 failing=6
+    FAIL the booked thermostat step depends on the start only through the comfort delivered (single-zone)  [booked [1.7812006723731364, 1.743794134657478,
+    FAIL the booked thermostat step is the steady holding power at the matched target  [1.7812006723731364 vs 1.9460986607574504]
+    FAIL the held house at the booked power is a steady state of the plant model  [room 18.075387780705025 -> 18.075387780705025, slab 22.971042224172987 
+    FAIL the booked thermostat step depends on the start only through the comfort delivered (two-zone, DHW)  [booked [2.762987945186593, 2.771859096172189
+    FAIL a plan below the schedule on average moves the reference down by its mean shortfall, uniformly  [array([19., 20., 20., 19.])]
+    FAIL a plan at or above the schedule on average, or a NaN trajectory, leaves the schedule itself
+rc=0
