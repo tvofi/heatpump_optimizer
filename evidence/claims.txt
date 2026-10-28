@@ -1,0 +1,20 @@
+head 7243c07fe53232e96750ec89ff1687753fa50b53
+== grep -ci draft merge_train.py at e8cb7e683 / head
+0
+0
+== workflows triggering on ready_for_review
+.github/workflows/dependabot-automerge.yml:40:    types: [opened, synchronize, reopened]
+.github/workflows/ci.yml:37:    types: [opened, synchronize, reopened, edited, labeled]
+.github/workflows/ci.yml:39:    types: [submitted, edited, dismissed]
+.github/workflows/ci.yml:44:    types: [checks_requested]
+.github/workflows/gate-sweep.yml:19:    types: [completed]
+done ['tools/audit/seat/merge_train.py', 'tools/audit/seat/train.sh'] 1
+Owner-ordered (tvofi 2026-10-24, prioritized): upgrade tools/audit/seat/merge_train.py so that (1) policy and triage-record heads batch with code under a valid mandate (budget raises stay serial), (2)
+['R10-FLOW-POSTMERGE', 'R10-FLY-GH-READ-RETRY']
+head 7243c07fe53232e96750ec89ff1687753fa50b53
+== #2878 draft events
+convert_to_draft 2026-10-27T10:14:19Z
+ready_for_review 2026-10-27T20:30:28Z
+== #2854 draft events
+convert_to_draft 2026-10-26T06:43:22Z
+ready_for_review 2026-10-27T20:42:14Z
