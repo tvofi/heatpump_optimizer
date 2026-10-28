@@ -1,3 +1,0 @@
-  class_excess_loc = 17986 (every class's span past 300, summed; the coordinator's 503 helper lines count in its span)
-RESULT class_excess_loc=17986 count
-  ok   class_excess_loc 17986 <= 17986
