@@ -1,7 +1,0 @@
-R10-ORCH-PLANPAGE stage not-started after ['R10-ORCH-BEATD'] files ['tools/audit/seat/plan_page.py', 'tools/audit/seat/state_docs.py'] hot None
-R10-ORCH-BEATD stage not-started after ['R10-ORCH-DISPATCH-REG', 'R10-POLICY-FIXER-MD', 'R10-ORCH-REVIEW-PACKET', 'R10-FLOW-ROSTER-FREEZE'] files ['tools/audit/seat/daemonize.py', 'tools/audit/seat/tick_loop.sh'] hot None
-R10-PLAN-ISSUES-CHART stage queued after [] files ['tools/audit/seat/plan_page.py'] hot []
-R10-HEAT-METER stage not-started after ['R10-LEARNER-ETA', 'R10-INPUT-STALENESS', 'R10-UX-SETUP', 'R10-RATIO-ANCHOR', 'R10-PARAMS-OWNER', 'R10-ARCH-SHAPES', 'R10-THERMAL-POWER-OPTION'] files ['custom_components/heatpump_optimizer/const.py', 'custom_components/heatpump_optimizer/config_flow.py', 'custom_components/heatpump_optimizer/strings.json', 'custom_components/heatpump_optimizer/coordinator.py', 'custom_components/heatpump_optimizer/flow_meter.py', 'custom_components/heatpump_optimizer/translations/en.json'] hot ['config_flow.py', 'const.py', 'coordinator.py']
-R10-RATIO-ANCHOR stage done after [] files ['custom_components/heatpump_optimizer/coordinator.py', 'custom_components/heatpump_optimizer/store.py', 'custom_components/heatpump_optimizer/sysid.py', 'custom_components/heatpump_optimizer/config_flow.py'] hot ['config_flow.py', 'coordinator.py']
-groups whose after names PLAN-ISSUES-CHART: ['R10-ARCH-DOCS']
-other groups listing plan_page.py: ['R10-ORCH-PLANPAGE', 'R10-PLAN-ISSUES-CHART']
