@@ -1,0 +1,18 @@
+merge-tree --write-tree origin/main(0810d5b8f30a81adbbc074640c6d95a1b358c5f6) c851f2a8d464bff58730c5351698eba8cffffff1
+776a579f812c8836bb7e54d549bba15ce6a0334f
+rc=0
+merge base 2636ce9e9378addc393b749160be0bd928af4f90
+roles diff since merge base:
+ .../heatpump_optimizer/coordinator.py              | 125 +++------------------
+ custom_components/heatpump_optimizer/issues.py     |   3 +
+ .../heatpump_optimizer/setpoint_check.py           |  40 ++++++-
+ dev/programme/delivery/2762.md                     |   1 +
+ tests/features.py                                  |  53 +++++++++
+ ...tor._audit_comfort_band.GUARD_OFF.cfdeb929.json |   6 -
+ ...dinator._audit_grid_fee.CMP_BOUND.1caaf4ae.json |   6 +
+ ...dinator._audit_grid_fee.CMP_BOUND.d30c7c7a.json |   6 +
+ .../issues.py/set_issue.GUARD_OFF.266bc37b.json    |   6 +
+ .../ConfigNotices.report.GUARD_OFF.a6e43270.json   |   6 +
+ .../ConfigNotices.report.GUARD_OFF.b8e5c2f9.json   |   6 +
+ tests/structure_budgets.json                       |  12 +-
+ 12 files changed, 145 insertions(+), 125 deletions(-)

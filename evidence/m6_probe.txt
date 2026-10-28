@@ -1,0 +1,6 @@
+== head
+calls [('create', 'grid_fee_sign'), ('delete', 'grid_fee_sign'), ('create', 'grid_fee_sign')]
+RESULT reraised_after_recovery=1
+== m6
+calls [('create', 'grid_fee_sign'), ('delete', 'grid_fee_sign')]
+RESULT reraised_after_recovery=0

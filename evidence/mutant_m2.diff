@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/setpoint_check.py b/custom_components/heatpump_optimizer/setpoint_check.py
+index aa5f854e8..460621ad2 100644
+--- a/custom_components/heatpump_optimizer/setpoint_check.py
++++ b/custom_components/heatpump_optimizer/setpoint_check.py
+@@ -58,7 +58,7 @@ class ConfigNotices:
+             clear_issue(hass, issue_id)
+             self._raised.pop(issue_id, None)
+             return
+-        if self._raised.get(issue_id) == offending:
++        if False:
+             return
+         set_issue(hass, issue_id, True, persistent=True, placeholders=placeholders)
+         self._raised[issue_id] = offending
