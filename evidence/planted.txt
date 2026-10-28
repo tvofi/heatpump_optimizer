@@ -1,0 +1,11 @@
+clean rc=0 attribution=0 dnp=0 
+link rc=1 attribution=1 dnp=0 attribution (session-link)
+footer rc=1 attribution=1 dnp=0 attribution (generated-footer)
+coauth rc=1 attribution=1 dnp=0 attribution (co-author-trailer)
+strailer rc=1 attribution=1 dnp=1 attribution (session-link, session-trailer)
+italic rc=1 attribution=1 dnp=1 attribution (generated-footer)
+all rc=1 attribution=1 dnp=1 attribution (session-link, session-trailer, co-author-trailer, generated-footer)
+prose rc=1 attribution=0 dnp=1 
+three rc=1 attribution=1 dnp=0 attribution (session-link, co-author-trailer, generated-footer)
+fl rc=1 attribution=1 dnp=0 attribution (session-link, generated-footer)
+prose rc=0 attribution=0 dnp=0 

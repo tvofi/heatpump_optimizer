@@ -1,0 +1,8 @@
+policy-docs job 120180437397, step "Refuse a governance check input field no check reads" (base-pinned field_coverage.mjs), log tail:
+  BLIND    hooks `attribution.commit` = "": perturbed, policy_lint.mjs --hooks stays green
+  BLIND    hooks `attribution.pr` = "": perturbed, policy_lint.mjs --hooks stays green
+  BLIND    hooks `attribution.sessionUrl` = false: perturbed, policy_lint.mjs --hooks stays green
+RESULT read=63 ignored=25 declared_none=34 blind=3 dead=0 refused=0 runs=142 seconds=97.3
+FIELD COVERAGE REFUSED: a BLIND field, a DEAD entry or a REFUSED run above
+nightly-status job 120180904221: NIGHTLY ABSENT: no scheduled run of the workflow was found at all.
+pr-contract job 120189852360 (started 01:33:17Z, after the last red concluded 01:05:19Z): success; "clean no refusal".

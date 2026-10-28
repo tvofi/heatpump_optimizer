@@ -1,0 +1,2 @@
+RESULT bodies=294 refused_without_a_real_attribution_line=0 passed_bodies_mentioning_claude=35 passed_bodies_with_footer_words=0
+
