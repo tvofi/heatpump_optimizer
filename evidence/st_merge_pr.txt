@@ -1,2 +1,0 @@
-  ok   a refused merge fails the script (the line's own exit)
-merge_pr self-test: 18 checks, 0 failed

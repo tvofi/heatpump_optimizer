@@ -1,0 +1,12 @@
+## wt at 70a1a1fb1 (merge_pr.sh blob ddb1a49cc53a975794bbde2fa789d83a71106a41, head blob ddb1a49cc53a975794bbde2fa789d83a71106a41)
+## unmutated
+merge_pr self-test: 18 checks, 0 failed
+## copy line removed
+ tools/audit/seat/merge_pr.sh | 1 -
+ 1 file changed, 1 deletion(-)
+  FAIL null control: the merge records the reviewed head (STALE: a re-run did not clear #42's head)
+merge_pr self-test: 18 checks, 1 failed
+## copy replaced by an always-green stub (exit 0)
+-  cp "${SELF%/*}/merge_train.py" "$mm/tools/audit/seat/merge_train.py"
++  printf "import sys\nsys.exit(0)\n" > "$mm/tools/audit/seat/merge_train.py"
+merge_pr self-test: 18 checks, 0 failed
