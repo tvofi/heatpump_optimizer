@@ -1,0 +1,4 @@
+########## counting-rule self-check ##########
+FAIL  a call is priced by what escapes through its return: a getter of k reads costs the k reads, however it is spelt (O19)
+FAIL  a callee that does more than hand back what it reads keeps its edge, and what escapes is read on top
+2 COUNTING RULE(S) BROKEN -- the structure rows cannot be trusted

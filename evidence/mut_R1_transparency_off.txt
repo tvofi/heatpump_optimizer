@@ -1,0 +1,4 @@
+########## counting-rule self-check ##########
+FAIL  a call is priced by what escapes through its return: a getter of k reads costs the k reads, however it is spelt (O19)
+FAIL  a callee handing back the coordinator itself is read through: what the caller reads through it is its reads
+2 COUNTING RULE(S) BROKEN -- the structure rows cannot be trusted
