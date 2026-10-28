@@ -33,6 +33,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-996-RUNNER-CLAIMS (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-ARCH-SHAPES-CLASSIFIER (stage queued): no branch pushed yet, so nothing to fetch
 - R10-DIAG-AGES (stage in-progress, branch `handoff/r10-diag-ages`): `git fetch origin handoff/r10-diag-ages && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-DEPENDABOT-SETUPTOOLS (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-REVIEW-CARRY (stage fixing): no branch pushed yet, so nothing to fetch
 - R10-TRIAGE-S6 (stage in-progress, branch `fix/triage-s6-batch45-pr`): `git fetch origin fix/triage-s6-batch45-pr && git worktree add --detach $SEAT/wt FETCH_HEAD`
 

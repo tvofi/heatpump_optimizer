@@ -310,7 +310,7 @@ Role: dev/governance/roles/root-cause.md. |  |
 | R10-FRICTION-GATE-SCOPING | C | 1 | not-started | #2835 | opus/opus | - | Root-cause seat for issue #2835, the recurring-friction rule id .claude/rules/gate-scoping.md (cited in the Friction section of distinct pull requests in the... |  |
 | R10-DIAG-AGES | RP | 1 | in-progress | #2814 | opus/opus | - | Residue of issue #2814 that R10-DIAG-REDACT (#2824) recorded and left, per that body's Forward-carry: (1) re-base the published input ages to the export cloc... |  |
 | R10-ADVISOR-WHATIF | UI | 1 | not-started | #2257 | opus/opus | - | The follow-on sub-PR R10-ADVISOR-RESIDUE (#2834) owed and its group was closed without: issue #2257's residual, per #2834's Forward-carry. |  |
-| R10-DEPENDABOT-SETUPTOOLS | F | 1 | not-started | #2722 | sonnet/opus | - | Land Dependabot pull request #2678 (setuptools 84.0.0 to 84.1.0 in tests/requirements-build.txt). |  |
+| R10-DEPENDABOT-SETUPTOOLS | F | 1 | in-progress | #2722 | sonnet/opus | - | Land Dependabot pull request #2678 (setuptools 84.0.0 to 84.1.0 in tests/requirements-build.txt). |  |
 | R10-STORE-RACES | IN | 2 | not-started | #2248, #2249, #2674 | -/- | - | Store seam races, after R10-BUFFER-STORE (same store seam; ordered behind its running fixer to avoid conflict). |  |
 | R10-PLAN-PRIO | IN | 1 | done | - | -/- | - | tools/plan/replan.py pick() inside build_plan orders candidates by remaining longest path only. |  |
 | R10-TRIAGE-B36 | IN | 1 | done | - | opus/opus | - | Own the triage s6 batch 36 pull request to a merge-ready head. |  |
