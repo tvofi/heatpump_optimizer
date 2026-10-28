@@ -1,0 +1,5 @@
+  FAIL a grammar registered only in the head's copy is predicted red (rc 1)
+  FAIL a grammar the base tip shares and registers, under a HEAD that only edits the lane, is predicted green (CI merges HEAD into the tip) (rc 1)
+  FAIL a lane edit under a branch merge, main already past it, is predicted green (null control: CI's origin/main is the base) (rc 1)
+  FAIL a comment in the lane is predicted green (null control) (rc 1)
+  FAIL a head copy of the lane that exits 1 is predicted green (null control: CI runs the base's) (rc 1)

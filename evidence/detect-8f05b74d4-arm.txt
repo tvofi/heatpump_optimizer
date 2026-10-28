@@ -1,0 +1,4 @@
+PREDICT tests / closures SELF-TEST READS INERT tests/entities.py: tools/audit/merge_throughput.py (its run of tools/audit/seat/state_docs.py's self-test, recorded by closure._exec_record)
+CI PREDICT: an UNDER-SCOPED closure is re-recorded in the diff, one script at a time: tests/derive_closures.sh --single tests/entities.py (CI's last recordings of the 1 took 868 s in all)
+CI PREDICT: a SELF-TEST READS INERT file is one the host really records, so `--apply-inert` cannot clear it: it leaves INERT through INERT_EXCEPT in tests/closure.py and joins the host's closure by the --single above, the route #2883 took (dev/audit/rca/R10-RCA-CLOSURE-ARGV.md)
+CI PREDICT: 1 predicted red(s) on tests / closures against 67178dc6a589 -- repair before the handoff; the lines above name each arm's repair
