@@ -1,3 +1,24 @@
+## v7.0.5
+
+**Round-10 close-out stamp: 226 merges since v7.0.4.** This window is the audit programme finishing its work rather than a feature release: 100 audited fix groups, 31 roster batches, 38 triage rulings, 3 policy and tooling changes, 2 dependency bumps and 52 generated record rows. Every merge in the window is listed below, grouped by class.
+
+User-visible changes:
+
+- Heat metering: the heat-meter correction group (#2854).
+- Savings: the SAV comfort group (#2745).
+- The two dependency bumps and the two policy or tooling changes are listed with their groups below.
+
+Engineering and audit programme (round 10):
+
+- Audited fix groups (100): #2524, #2528, #2579, #2580, #2584, #2589, #2605, #2606, #2612, #2617, #2620, #2622, #2625, #2627, #2628, #2629, #2631, #2632, #2633, #2636, #2638, #2639, #2643, #2645, #2647, #2652, #2659, #2664, #2665, #2666, #2668, #2669, #2670, #2671, #2672, #2673, #2675, #2681, #2683, #2688, #2689, #2690, #2691, #2692, #2693, #2696, #2697, #2698, #2700, #2704, #2706, #2707, #2708, #2709, #2711, #2712, #2714, #2737, #2739, #2742, #2745, #2749, #2753, #2756, #2762, #2765, #2766, #2770, #2772, #2775, #2779, #2780, #2792, #2798, #2811, #2817, #2819, #2821, #2824, #2825, #2832, #2833, #2834, #2836, #2837, #2838, #2839, #2841, #2843, #2848, #2849, #2852, #2854, #2858, #2865, #2869, #2870, #2874, #2880, #2882.
+- Roster batches (31): #2613, #2619, #2626, #2635, #2637, #2641, #2646, #2651, #2655, #2661, #2663, #2667, #2710, #2764, #2771, #2787, #2793, #2797, #2799, #2812, #2823, #2842, #2844, #2850, #2851, #2857, #2861, #2864, #2866, #2871, #2878.
+- Triage rulings (38): #2734, #2735, #2738, #2741, #2743, #2744, #2747, #2748, #2750, #2752, #2755, #2758, #2759, #2761, #2763, #2767, #2782, #2790, #2804, #2807, #2813, #2818, #2822, #2827, #2828, #2829, #2830, #2831, #2846, #2859, #2862, #2867, #2877, #2879, #2881, #2884, #2886, #2888.
+- Policy and tooling (3): #2736, #2820, #2889.
+- Dependencies (2): #2773, #2774.
+- Record and bot merges (52): #2610, #2611, #2614, #2616, #2618, #2623, #2624, #2630, #2634, #2640, #2642, #2644, #2648, #2650, #2653, #2676, #2679, #2680, #2682, #2684, #2685, #2686, #2687, #2694, #2695, #2699, #2701, #2702, #2703, #2705, #2713, #2740, #2751, #2754, #2757, #2760, #2769, #2776, #2781, #2786, #2788, #2789, #2791, #2794, #2795, #2845, #2847, #2856, #2863, #2868, #2885, #2893.
+
+- Delivery record: the rows the stamp flushed before tagging (#2893).
+
 ## v7.0.4
 
 **Round-10 docs stamp: the architecture, CI shape and development shape at programme end.** This is the stamp the owner asked for right after the docs delivery merges.

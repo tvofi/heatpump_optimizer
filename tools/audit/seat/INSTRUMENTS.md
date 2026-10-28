@@ -89,7 +89,19 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   `checks, 0 failed` line.
 - `merge_throughput.py` — measures whether merges land inside the previous
   merge's gate window often enough to justify a merge queue. When: someone
-  proposes a queue; the numbers decide before the mechanism is built.
+  proposes a queue; the numbers decide before the mechanism is built. Its
+  `flow` subcommand is the flow board (Lean study K1): throughput against
+  the owner's demand of one roster group merged per hour, read from git
+  alone — the first-parent log, the review/verdict bus refs through
+  `review_strength`'s grammar and the roster through `roster_lib`. It prints
+  per rolling hour and per 24 h: groups closed against takt 1.0, fly-ins
+  closed, main moves split into group-carrying/record/roster-edit/fly-in,
+  WIP by flow lane (A/B/C/F), first-pass review yield with its blocked-class
+  mix, and lead time per size, and prints UNAVAILABLE rather than a zero
+  when a source cannot be read. When: any flow change that claims to move
+  throughput. Refusal: `--self-test` — its fixture's exact counts, the
+  unchanged-fixture null control, and a named arm per classification
+  predicate; `governance.yml`'s self-test step runs it.
 - `preflight.sh` — mechanical checks on anything the orchestrator publishes
   (merge body, issue body, comment, brief): closing keywords and the claim
   shapes. When: before posting any prose that GitHub or a later seat reads.
@@ -177,7 +189,30 @@ sweep's standing-seat liveness step keep them alive.
   note or `--past-three <reason>` (logged in `past-three`). `confirm` writes
   the record's model as `bus-model:` on `verdict/<pr>`, which
   `review_strength.py --guardrail` reads as a model arm; it refuses a replay of
-  a posted tree before it pushes.
+  a posted tree before it pushes. `dispatch` first renders the review packet
+  (`review_packet.py`) and names it as `review-packet:`. A REFUSED packet (the
+  head is unfit: rc 1, a named signal) refuses the dispatch and records
+  nothing; a packet this seat cannot RENDER (rc 3, `UNAVAILABLE`: no checkout,
+  no `gh`, no token, an unwritable path) dispatches anyway, names no packet,
+  and says why in `review-packet: unavailable -- <reason>`.
+- `review_packet.py` — the fix reviewer's packet at the frozen head: three-dot
+  diff, the head's check runs as read (red, pending, `none` or green, with run
+  ids), `carry_audit.py` and `figure_lint.mjs` at the head, the finder's
+  harness at both ends when one is named (`--harness`, at the base and
+  untouched by the diff, or `--harness-file` outside the tree; `none named`
+  and `not run` otherwise), and the mutation-ledger diff. When: through
+  `bus.sh dispatch`, which runs it in the checkout it is dispatching for; a
+  cloud reviewer, whose dispatcher's copy is a path on another machine,
+  renders its own from its dispatch prompt. Refusal: carry-audit, a `## Head`
+  not naming the head, a `tests/structure.py` refusal at the head merged with
+  main, an unanswered concluded red, a required context concluded failure, a
+  host path, or a hot file shared with an open pull request holding an
+  unboarded merge verdict; a pending check never refuses. A refusal still
+  WRITES the packet, so a held dispatch never withholds the evidence, except
+  a host path, which writes nothing because the packet carries the diff.
+  Unavailable (rc 3, `UNAVAILABLE`) is a different outcome: the seat cannot
+  read the packet's inputs (no checkout, no `gh`/token, a missing tool, an
+  unwritable `--out`), so it writes nothing and `dispatch` degrades.
 - `ci-watch.sh` — watches open PRs' check states and alerts only on NEW
   states (per-PR signature file): reds, CONFLICTING/DIRTY, STALLED zero-runs,
   and required contexts ABSENT at a settled head — a bot GITHUB_TOKEN push's
@@ -1025,17 +1060,19 @@ sweep's standing-seat liveness step keep them alive.
   and `one-train` beside a train.sh still closing; a pull request already
   queued is `ALREADY`, rc 0. One fcntl lock (`queue.lock`) orders every add
   against the train's drains and its close; never a second train.
-- `state_docs.py` — one call regenerates the three state docs
-  (`plan_table.py`, `resume_doc.py`, `handover_prompt.py`), commits exactly
+- `state_docs.py` — one call regenerates the four state docs
+  (`plan_table.py`, `merge_throughput.py flow`, `resume_doc.py`,
+  `handover_prompt.py`), commits exactly
   their outputs to the orphan ref `handoff/audit-r<N>-plan` at
   `handoff/round<N>/state/`, N the roster's round, and mirrors them to
-  `--mirror`. When: every state
+  `--mirror`. The flow board publishes beside the plan table, so a beat
+  pass carries the throughput figures with the plan they explain. When: every state
   beat — it replaces the five hand commands (worktree, copy, commit, push,
   mirror) and runs the generators instead of copying their logic. Dry run by
   default: without `--push` nothing remote is written. Refusals: any path
-  outside the three state docs (the write set is checked before a commit
+  outside the four state docs (the write set is checked before a commit
   exists to push; every other path at the ref — a round's evidence — is
-  carried untouched), a first commit that would not be exactly the three
+  carried untouched), a first commit that would not be exactly the four
   files, and an already-current tip, which is reported and left alone. The
   commit is plumbing over a temp index, so the calling checkout's index is
   never touched.

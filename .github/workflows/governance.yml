@@ -537,6 +537,10 @@ jobs:
           set -euo pipefail
           python3 -I tools/audit/archscore/gate.py --self-test
           python3 -I tools/audit/check_scopes.py --self-test --repo .
+          # merge_throughput.py's `flow` subcommand (R10-FLOW-BOARD) rides
+          # this same self-test: the fixture's exact counts, the unchanged
+          # fixture's null control, and a named arm per classification
+          # predicate. A flow board that stopped counting a kind reddens here.
           python3 -I tools/audit/merge_throughput.py --self-test
           bash tools/audit/worktree_gc.sh --self-test
           python3 -I tools/coverage/partition.py --self-test
@@ -719,6 +723,13 @@ jobs:
           set -o pipefail
           python3 -I tools/audit/seat/resume_doc.py --self-test | tee "$RUNNER_TEMP/resume-doc-self-test.txt"
           grep -Eq '^resume_doc self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/resume-doc-self-test.txt"
+
+      - name: Show the review packet refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/review_packet.py --self-test | tee "$RUNNER_TEMP/review-packet-self-test.txt"
+          grep -Eq '^review_packet self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/review-packet-self-test.txt"
 
       - name: Show the roster editor refusing its own fixtures
         if: ${{ !cancelled() }}

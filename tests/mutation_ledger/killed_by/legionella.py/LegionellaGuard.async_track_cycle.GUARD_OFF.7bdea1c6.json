@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/legionella.py:LegionellaGuard.async_track_cycle GUARD_OFF 7bdea1c6",
+  "killed_by": "tests/features.py",
+  "old": "        if commanded:",
+  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=46."
+}
