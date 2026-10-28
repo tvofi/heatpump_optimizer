@@ -2655,7 +2655,7 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "done",
+    "stage": "carries-open",
     "branch": "handoff/r10-prepr-cap",
     "commit": "e3f3b312fff572904f24d78a44a2c4492b1a8ddb",
     "last_step": null,
@@ -5813,7 +5813,7 @@
    "architect_note": "",
    "brief": "Flow board (Lean study K1). Today nothing measures throughput against the owner's demand of one roster group merged per hour, so no flow change can show it worked. Extend tools/audit/merge_throughput.py with a flow subcommand rather than adding a file: read the first-parent log of origin/main, the review and verdict bus refs (tools/audit/seat/bus.sh publishes one commit per verdict, subject 'verdict: #N Fix review: merge|blocked <sha> <class>: ...'), and the roster through tools/audit/seat/roster_lib.py. Print per rolling hour and per 24 h: roster groups closed against takt 1.0; fly-ins closed; main moves split into group-carrying, record, roster-edit and fly-in; work in progress by flow lane (A critical path, B product, C process, F fly-in); first-pass yield of fix review and the blocked-class mix; lead time per size. Add it to tools/audit/seat/state_docs.py's generator list so the beat publishes it beside the plan table, and print UNAVAILABLE, never zeros, when a source is unreadable. Wire its self-test into governance.yml's instrument-self-tests job. Controls: a fixture with one merge, one blocked then merged verdict and one record merge gives exact counts; a null control (an unchanged fixture) reads identical before and after; its mutants fail named arms.",
    "resume": {
-    "stage": "done",
+    "stage": "carries-open",
     "branch": "handoff/r10-flow-board",
     "commit": "00ab2e97b41a62ae3b4bd9cbd8f476c1ba9a2b18",
     "last_step": null,
@@ -6147,7 +6147,7 @@
    "architect_note": "",
    "brief": "The train's main-green gate tells pending from failed (Lean flow study K15; expedite, it misleads the operator today). At main e7c66485 on 2026-10-21, 30 checks had concluded and 7 were in flight; the only failures were record and record-autofix, red because the record beat was owed; yet the --overlap gate logged that main is not green and should be reverted. Judge main on the latest run of each context only; a queued or in-progress run is wait, never red; count only the contexts the ruleset main-protect-checks requires, read live, never record, record-autofix, nightly-status or delivery-status. One owner for 'is main red': share the classifier the open #2570 gives the tick's MAIN section rather than writing a second. Controls: the e7c66485 shape (pending plus record reds) reads wait or green, not red; a failed required context reads red; an unreadable ruleset is a refusal, never green; mutants for each arm. Revision 7 widens it into the one owner of state classification for the train, the merge seat and the tick: (b) a check-run whose status is in_progress or queued while its workflow run has completed is stale, not pending: re-run that run once and re-read (2026-10-21: #2559's budget-raise-gate check-run 119308796140 stayed in_progress over a completed successful run, mergeStateStatus read BLOCKED, and the merge seat burned 8 attempts; it recurred on #2567, and one re-run cleared each), applied by merge_pr.sh and the train before their merge attempt, each instance logged with its run id so a third recurrence goes to a root-cause seat; (c) a pull request reported DIRTY is classified from git merge-tree --write-tree origin/main <head>: the conflicted files are named first, and the claimnotes repair is offered only when every conflicted file is a claim file; a content conflict returns to the owning fixer and its verdict does not carry (2026-10-21: the tick told #2569 to absorb main with the claimnotes driver while the conflict was content in roster_edit.py); (d) a head is reviewable only when no required context's latest run there has concluded failure. If the fixer has already started on (a), (b) to (d) are its second pull request.",
    "resume": {
-    "stage": "done",
+    "stage": "carries-open",
     "branch": "handoff/r10-flow-main-gate",
     "commit": "49018a8bec8d03fd2df52874b9021d25ab93741a",
     "last_step": null,
@@ -6887,7 +6887,7 @@
    "architect_note": "",
    "brief": "open_pr.sh creates the PR only after the body contract (ancestry reds and ref_privacy included) passes. If a later step still fails (the second push of the delivery row), it closes the draft with a comment saying why, so the tick never sees a PR with no delivery row. First-push ancestry-reds skip is by construction; optional: read main's nightly-status before the first push. P13 fold: the stuck row commit lives in open_pr.sh's own worktree ($HPO_STATE_DIR/pr/<topic>/wt) after a refused second push (29 of 98 open_pr runs refused); fix there, NOT an update_pr.sh auto-reset, which would drop the row's group.",
    "resume": {
-    "stage": "done",
+    "stage": "carries-open",
     "branch": "handoff/r10-fly-openpr-atomic",
     "commit": "3b4180dcc680e2e2e06f4d8ed0a0839a7374d78f",
     "last_step": null,
@@ -7825,7 +7825,7 @@
    "architect_note": "",
    "brief": "Barrier owed by a third instance (6077bf70e, 143e2d0ac, a2576fcb2): `merge_train.py batch --overlap` merged #2586 onto a tree no CI had checked, because the at_head guard lets the batch's own merges move main and the ruleset is non-strict. Process state (c); cost test passes: at least 1.5 h of red main per instance, about once a week, against roughly 16 s per merge for the check. Own the overlap guard in tools/audit/seat/merge_train.py: before merging a car whose base moved by the batch's own merges, grade the would-be merge tree with policy_lint and, where applicable, structure.py. A red goes to the existing recarry-and-wait path. The prototype is the ratchet-on-merge script in the semmerge RCA seat directory (outside the tree; the fixer is handed its path); it must use the train's driver-free text merge, not the ledger driver. Repair-car admission (forward-carry, 2026-10-22T04:30Z): the tool's only way to admit a car while main is red is --overlap, so the repair car for a red main (#2595) had to run as a one-car --overlap batch. The barrier must keep a repair-car admission path that does not reopen the overlap gap: either a named --repair flag that admits one car onto a red main, or overlap allowed only when the batch has one car. Control: a car whose merge tree is red under the grade is held and recarried; the unmodified green car merges. Considered and rejected, not owed: the ruleset's strict up-to-date rule (cost), and per-file cap headroom minimums (only lowers the odds). Owner ruling 2026-10-22T05:20Z: trains run with --overlap as long as each PR's CI has run on its current head; this group is the in-tool barrier for that rule. Carry: #2595's RCA item is re-routed here from R10-POLICY-LINT-FAMILY.",
    "resume": {
-    "stage": "done",
+    "stage": "carries-open",
     "branch": "handoff/r10-train-overlap-grade",
     "commit": "4db1d3e28f0dff50f6916e39d52efed0ce856d0a",
     "last_step": null,
@@ -9025,7 +9025,7 @@
     "Refuse a reviewer dispatch at a head that lacks its own handoff (V143). Add a signal `handoff-not-applied` to `tools/audit/seat/review_packet.py` (`SIGNALS`, `:122`): from the pull request it already reads (`repos/<repo>/pulls/<pr>`, `:324`) take the head branch; when it is `fix/<t>` or `fix/<t>-pr` and `origin/handoff/<t>` exists (one `git fetch origin handoff/<t>`), refuse with `REFUSE handoff-not-applied: handoff/<t> <tip> is not an ancestor of <head>` when `git merge-base --is-ancestor <tip> <head>` fails. `bus.sh dispatch` already refuses on a packet REFUSE and records nothing (`bus.sh:467`). Instance: #2887, head `fdf33f466` = merge of the old head `fc841f51d` and main `07295d4ea`, lacking the fixer's handoff tip `a5f40d84c`; caught by a body seat before dispatch. A branch of any other shape, or a missing handoff ref, is not refused. Controls: #2887's shape refuses; null controls: a head containing the handoff tip renders; a PR with no handoff ref renders; a non-`fix/` branch renders; one mutant inverting the ancestry test fails the refusal and the first null arm. triage: dev/programme/triage/s6-batch45.md#P229"
    ],
    "resume": {
-    "stage": "done",
+    "stage": "carries-open",
     "branch": "handoff/r10-orch-review-packet",
     "commit": "eb2063218e40ef1a0aedbfb96b45ec2a9bee638c",
     "last_step": "resumed the crashed seat's branch and finished it: bus dispatch renders and checks the reviewer packet, and the hot-file arm now reads the merge verdict from VERDICT.md through proof_watch.parse_verdict (the agreement lane refused the duplicated verdict grammar; the arm's reader is now fixture-pinned and mutated). 21/21 packet checks, 91/91 bus checks, 11 mutants each one FAIL, agreement lane ok, prepr clean (figures 7 resolved, 0 refused; carry 5/5 routed).",
