@@ -1,0 +1,13 @@
+diff --git a/tools/pr/ci_predict.py b/tools/pr/ci_predict.py
+index 2516a6974..3088fcbe3 100644
+--- a/tools/pr/ci_predict.py
++++ b/tools/pr/ci_predict.py
+@@ -525,7 +525,7 @@ GRADERS = (
+     ("wave-script", ("wave-script",), "WAVE CHECK",
+      (".claude/workflows/check-wave-script.mjs", "tools/policy/check-wave-script.mjs"), True),
+     ("policy-docs", ("policy-docs",), "FIELD COVERAGE",
+-     (".claude/workflows/field_coverage.mjs", "tools/policy/field_coverage.mjs"), False),
++     (".claude/workflows/field_coverage.mjs", "tools/policy/field_coverage.mjs"), True),
+ )
+ 
+ 
