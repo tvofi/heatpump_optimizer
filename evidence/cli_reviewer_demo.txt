@@ -1,0 +1,8 @@
+RESULT demo=unmutated rc=0 line='dispatch/reviewer-r10-x' stderr=''
+    prompt first line: 'CLOUD REVIEWER seat for PR #2577 of o/n, at head 807cbb8ea288bca53921b99f8fade27154f9fdc3. Bus nonce: n0nce. Never send push notifications.'
+RESULT demo=cli-role-fixed rc=0 line='dispatch/fixer-r10-x' stderr=''
+    prompt first line: 'CLOUD FIXER seat for PR #2577 of o/n, at head 807cbb8ea288bca53921b99f8fade27154f9fdc3. Bus nonce: n0nce. Never send push notifications.'
+RESULT demo=cli-nonce-dropped rc=2 line='' stderr='cloud_dispatch: refused: a reviewer needs a non-empty bus nonce'
+    prompt first line: ''
+RESULT demo=cli-pr-dropped rc=2 line='' stderr='cloud_dispatch: refused: a reviewer needs --pr <number>'
+    prompt first line: ''
