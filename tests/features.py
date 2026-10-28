@@ -18498,6 +18498,57 @@ R.check(
     repr(_rl_unlatched),
 )
 
+# The carve's own contract, at each of its three refusal bounds: the draw AT
+# the threshold, zero hours and a zero threshold each book nothing (None, not
+# a zero-kWh line), while one step past each bound books -- the null that
+# shows the inputs are otherwise bookable.
+_rl_heat = pump_signals.PumpElectricHeat(dhw_booster=True)
+
+
+def _rl_carve(actual_kw=6.9, threshold_kw=_RL_THRESHOLD, hours=0.5):
+    return pump_signals.resistive_carve_out(
+        _rl_heat,
+        latched=True,
+        immersion_element=False,
+        actual_kw=actual_kw,
+        threshold_kw=threshold_kw,
+        hours=hours,
+    )
+
+
+_rl_bounds = {
+    "at threshold": _rl_carve(actual_kw=_RL_THRESHOLD),
+    "zero hours": _rl_carve(hours=0.0),
+    "zero threshold": _rl_carve(threshold_kw=0.0),
+}
+_rl_past = {
+    "over threshold": _rl_carve(actual_kw=_RL_THRESHOLD + 0.5),
+    "some hours": _rl_carve(hours=0.25),
+    "some threshold": _rl_carve(threshold_kw=1.0),
+}
+R.check(
+    "R10-IMMERSION-LATCH: the carve refuses at its bounds -- a draw at the "
+    "threshold, zero hours and a zero threshold book no line; one step past "
+    "each books under the flag's line",
+    all(v is None for v in _rl_bounds.values())
+    and all(v is not None and v[0] == "dhw_booster" and v[1] > 0.0
+            for v in _rl_past.values()),
+    f"bounds {_rl_bounds!r} past {_rl_past!r}",
+)
+
+# A carve under any epsilon is still a partition: what left the spot line is
+# on the flag's line, so the lines sum to the meter however small the excess.
+_RL_TINY_KW = 1e-6
+_rl_tiny, _ = _rl_book(_RL_THRESHOLD + _RL_TINY_KW, 2.0, heat=_rl_heat)
+R.check(
+    "R10-IMMERSION-LATCH: a carve smaller than any epsilon is booked, so "
+    "spot plus the resistive line still equals the metered kWh",
+    abs(_rl_tiny["spot"] + _rl_tiny["dhw_booster"]
+        - (_RL_THRESHOLD + _RL_TINY_KW) * 0.5) < 1e-12
+    and _rl_tiny["dhw_booster"] > 0.0,
+    repr(_rl_tiny),
+)
+
 # The new lines are metered energy like `immersion`: the one energy figure
 # every contract settles on, and the closed month's receipt, must both count
 # them, or a booster month loses its resistive kWh from every total.
