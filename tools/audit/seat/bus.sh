@@ -1259,6 +1259,15 @@ B
   out=$(run orphans --min-age-h 0); rc=$?
   echo "$out" | grep -qx "ORPHAN orp-force $f2 .* repair=opener" && [ $rc = 1 ]
   expect "a handoff ref rewritten non-fast-forward after a run is still read, at its new tip" $?
+  # Null control: a classifier that cannot answer refuses the run; it never
+  # reads every tip as stranded (a loud list is still a wrong one).
+  mkdir -p "$W/pyfail"; rp=$(command -v python3)
+  printf '#!/bin/sh\ncase "$*" in *ledger.py\ landed*) exit 3 ;; esac\nexec "%s" "$@"\n' "$rp" > "$W/pyfail/python3"
+  chmod +x "$W/pyfail/python3"
+  out=$(PATH=$W/pyfail:$PATH run orphans --min-age-h 0); rc=$?
+  echo "$out" | grep -q "REFUSE: orphans: ledger.py landed could not classify" && [ $rc != 0 ] \
+    && ! echo "$out" | grep -q "^ORPHAN "
+  expect "null control: a classifier that fails refuses orphans, never an all-ORPHAN list" $?
   # Null control: a remote that cannot answer still refuses, never a clean zero.
   out=$(HPO_BUS_REMOTE=$W/nowhere.git run orphans --min-age-h 0); rc=$?
   [ $rc != 0 ] && echo "$out" | grep -q "could not fetch the refs of" && ! echo "$out" | grep -q "^orphans: "
