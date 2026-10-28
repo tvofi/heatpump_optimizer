@@ -11174,6 +11174,39 @@ for _rt_tz, _rt_name in ((False, "single-zone"), (True, "two-zone")):
     )
 
 
+# The reference converts its tank charge to electricity at the COP the step
+# itself prices: behind a valve the tank is the flow. Read off one undivided
+# step's own energy balance (tank gain, slab delivery, standing loss), a
+# Carnot-priced install with a 60 C tank, where the flow term moves the COP.
+def _ref_cop_gap():
+    from heatpump_optimizer import mixing_valve as _rc_mv
+    from heatpump_optimizer.optimizer import _reference_cop
+
+    _cp = ThermalParameters(
+        mixing_valve_mode=_rc_mv.MODE_MANUAL, buffer_tank_volume=750.0,
+        cop_flow_carnot=True,
+    )
+    _cm = ThermalModel(_cp)
+    _cs = ThermalState(room_temperature=21.0, slab_temperature=24.0,
+                       buffer_tank_temperature=60.0, outdoor_temperature=0.0)
+    _n = _cm._simulate_step_single(_cs, 1.0, 0.0, dt_hours=0.25)
+    _tank = (_n.buffer_tank_temperature - 60.0) * _cp.buffer_tank_thermal_mass / 0.25
+    _slab = (_n.slab_temperature - 24.0) * _cp.slab_thermal_mass / 0.25 + (
+        _cp.slab_heat_transfer * (24.0 - 21.0))
+    _loss = _cp.buffer_tank_heat_loss_coefficient * (60.0 - 20.0)
+    _made = _tank + _slab + _loss
+    return _made, _reference_cop(_cm, _cs, 0.0, None), _cm.compute_cop(0.0)
+
+
+_rc_made, _rc_cop, _rc_plain = _ref_cop_gap()
+R.check(
+    "the valved reference prices its draw at the step's own tank-flow COP",
+    abs(_rc_made - _rc_cop) < 1e-6 and abs(_rc_plain - _rc_cop) > 0.05,
+    f"1 kW made {_rc_made:.4f} kW in the step; reference COP {_rc_cop:.4f}, "
+    f"flow-blind COP {_rc_plain:.4f}",
+)
+
+
 R.section("The valve hold schedule (item 29)")
 
 # A fixed-curve valve starts feeding the house the moment the tank is warmer
