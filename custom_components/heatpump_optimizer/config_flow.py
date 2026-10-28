@@ -1023,13 +1023,6 @@ def _valid_months_spec(spec: Any) -> bool:
     return True
 
 
-def _tibber_token_selector() -> selector.TextSelector:
-    """The masked token widget shared by setup, reauth and options."""
-    return selector.TextSelector(
-        selector.TextSelectorConfig(type=selector.TextSelectorType.PASSWORD)
-    )
-
-
 def _entity_of(
     domain: str | list[str], device_class: str | None = None
 ) -> selector.EntitySelector:
@@ -1552,7 +1545,7 @@ _OPTION_PAGES: Final[tuple[_P, ...]] = (
 _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     # -- entities
     _F("entities", CONF_PRICE_SOURCE, DEFAULT_PRICE_SOURCE, _select(list(PRICE_SOURCES), "price_source"), group="credentials"),
-    _F("entities", CONF_TIBBER_TOKEN, '', _tibber_token_selector(), required=False, group="credentials"),
+    _F("entities", CONF_TIBBER_TOKEN, '', selector.TextSelector(selector.TextSelectorConfig(type=selector.TextSelectorType.PASSWORD)), required=False, group="credentials"),
     _F("entities", CONF_PRICE_ENTITY, _STORED, _entity_of('sensor'), group="credentials"),
     _F("entities", CONF_PRICE_VAT, DEFAULT_PRICE_VAT, _number(0.0, 2.0, 0.01), group="credentials"),
     _F("entities", CONF_PRICE_SURCHARGE, DEFAULT_PRICE_SURCHARGE, _number(0.0, 2.0, 0.01), group="credentials"),
@@ -2997,7 +2990,7 @@ class HeatPumpOptimizerConfigFlow(
         return self.async_show_form(
             step_id="reauth_confirm",
             data_schema=vol.Schema(
-                {vol.Required(CONF_TIBBER_TOKEN): _tibber_token_selector()}
+                {vol.Required(CONF_TIBBER_TOKEN): _prefill_row(CONF_TIBBER_TOKEN).widget}
             ),
             errors=errors,
         )
