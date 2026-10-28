@@ -44849,6 +44849,21 @@ R.check(
     f"{_wzm((20.0, None, float('nan'), 19.5), 19.0)!r}, "
     f"{_wzm((None, float('nan')), 19.0)!r}",
 )
+_t2_nan_zones = _t2_coord(curve_learning_enabled=True, indoor_temp_entity="sensor.indoor")
+_t2_nan_zones._learning_frozen = lambda *keys: None
+_t2_nan_zones._current_state = _dc_replace(
+    _t2_nan_zones._current_state, room_temperature=float("nan"),
+    upper_floor_temperature=float("nan"), lower_floor_temperature=float("nan"),
+)
+try:
+    _t2_nan_tick = _t2_nan_zones._track_curve_comfort(datetime(2026, 1, 21, 6, 0, tzinfo=UTC))
+except Exception as _t2_nan_err:  # noqa: BLE001 - the check reports it
+    _t2_nan_tick = _t2_nan_err
+R.check(
+    "#2508: a curve-comfort tick with no finite zone books nothing and raises nothing",
+    _t2_nan_tick is None and _t2_nan_zones._curve_day_worst is None,
+    f"tick {_t2_nan_tick!r} day worst {_t2_nan_zones._curve_day_worst!r}",
+)
 
 _t2_hl_mild = _t2_house(outdoor=16.0)
 _t2_drive(_t2_hl_mild, "_async_learn_house_heat_loss")
