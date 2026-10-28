@@ -1,0 +1,5 @@
+RESULT committed ACCEPT
+RESULT mutant DEFER
+RESULT gate committed None
+RESULT gate mutant dev/programme/triage/s6-batch54.md#P265 is not an ACCEPT ruling (DEFER)
+RESULT gate absent the triage ruling dev/programme/triage/s6-batch54.md is not on the roster branch or origin/main

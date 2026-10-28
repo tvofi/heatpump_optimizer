@@ -1,0 +1,12 @@
+verdict: #2906 Fix review: blocked fb2f3de8624bbdcff8d1f801ada3d7c161f1af33 carry-missing: not carried to R10-FLOW-BOARD|2026-10-28T10:00:27+01:00
+fatal: couldn't find remote ref verdict/2917
+fatal: couldn't find remote ref verdict/2919
+fb2f3de8624bbdcff8d1f801ada3d7c161f1af33	refs/pull/2906/head
+4066 tools/audit/seat/orchestrator_tick.py
+            self.line(S, f"#{n}: mergeable state DIRTY -- " + (
+                    self.line(S, f"THROUGHPUT STALL: #{pr} is verdicted and "
+usage: carry_audit.py [-h] [--repo REPO] [--briefs-dir BRIEFS_DIR]
+                      [--roster-ref ROSTER_REF]
+                      {check,pr,sweep,owners} ...
+d4ec6fccef963f76b5cd603fcb70b7066aa44c14	refs/pull/2917/head
+755f141e7f1262a15c552854c87f28c2cd781d2a	refs/pull/2919/head
