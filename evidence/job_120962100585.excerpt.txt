@@ -1,0 +1,4 @@
+3324:  record   red-history           3 commit(s) between origin/main and this head, every failure conclusion across them: none
+3327:  ERROR   [pr-body] <ci-pr-body>: `## Head` does not name 06cb984, which is the head this ran on. Evidence measured at another head describes another tree. Nor is it an autofix repair on a head the section names: 06cb984 is not authored and committed as github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>.
+3358:  check    figures -- each is in ## Figures with its command, or is an instrument's own output and not restated
+3359:             2750 r
