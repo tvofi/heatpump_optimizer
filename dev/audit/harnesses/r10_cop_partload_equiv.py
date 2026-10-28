@@ -25,10 +25,16 @@ Expected on this tree (chain R10-COP-PARTLOAD, the part-load derate):
     RESULT equiv_sign_only=2 count           (-0.0 and "-0.0": the arms answer
                                               -0.0 and 0.0, numerically equal and
                                               equal in every caller's product)
-    RESULT equiv_control_differs=7 count     (tie-only control: a deliberate
-                                              change at the ties, differing on
+    RESULT equiv_control_differs=15 count    (control: a deliberate change at
+                                              an accepted 0.0, differing on
                                               every tied cell)
-    RESULT equiv_control_untied=0 count
+    RESULT equiv_control_untied=8 count      (the eight refused cells -- NaN,
+                                              +-inf, "x", "", None, True and
+                                              0.5+0j -- which
+                                              const.finite_float maps to 0.0
+                                              before the range check, so they
+                                              reach the rewritten line too;
+                                              read 0 before finite_float)
     RESULT equiv_positive_differs=4 count    (the other twin: differs on the
                                               four cells that are 0.5 -- 0.5,
                                               "0.5", Fraction(1, 2),
@@ -41,7 +47,7 @@ disk changes.
 Perturbation: --identity applies each mutant's *old* line as the "mutant";
 every RESULT count above must read 0, so a difference the normal run reports is
 the operator's and not the comparison's -- and the normal run's tie-only
-control, which differs on all seven tied cells and nowhere else, is what shows
+control, which differs on all seven tied cells, is what shows
 the comparison sees a difference there when one exists.
 """
 from __future__ import annotations
