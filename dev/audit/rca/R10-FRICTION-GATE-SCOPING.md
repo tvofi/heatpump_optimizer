@@ -68,8 +68,8 @@ attribute.
 **Reproduction, at the merge base.** `/etc/profile.d/hpo-toolchain.sh` in this
 seat is the unconditional form (`export PATH="/opt/hpo/venv-ci/bin:$PATH"`);
 with it as `BASH_ENV`, `tests/entities.py` at `88c6ad5` reads
-RESULT_BASE_BASHENV; the same tree under `env -u BASH_ENV` reads
-RESULT_BASE_CLEAN.
+`2 of 2470 ENTITY CHECKS FAILED`, rc=1, and the two are U0c and delivery_status (the only `FAIL` lines absent from the clean run, by a sorted diff of the two runs' `FAIL` lines; the rest of either list is planted controls that differ in measured figures only); the same tree under `env -u BASH_ENV` reads
+`ALL 2470 ENTITY CHECKS PASSED`, rc=0.
 
 **Process state: (d), with a (c) component.** The checks were sound under the
 precondition CI keeps — no `BASH_ENV` — and a seat environment removed it.
@@ -112,7 +112,7 @@ through a plain `bash -c` and must read `toolchain`, so the arm cannot pass by
 the profile failing to load. It is red at the merge base's behaviour (the
 mutant that keeps `BASH_ENV` in the helper) and green at the head, in CI's own
 environment, because it plants the `BASH_ENV` itself. Figures:
-RESULT_HEAD_SUMMARY.
+at the head `c24f1dbd4`, `ALL 2471 ENTITY CHECKS PASSED` both with the profile as `BASH_ENV` and under `env -u BASH_ENV`; the mutant (`env = dict(os.environ)` in `_stub_path_env`) reads `3 of 2471 ENTITY CHECKS FAILED` with the profile (the new check, U0c, delivery_status) and `1 of 2471` without it (the new check alone, `read='toolchain'`), so the new check is red in CI's environment as well.
 
 Refused: unsetting `BASH_ENV` once at the top of `tests/entities.py` (a check
 that sets it later, as this one does, would not be covered, and the property
