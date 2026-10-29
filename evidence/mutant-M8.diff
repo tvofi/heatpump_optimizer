@@ -1,0 +1,13 @@
+diff --git a/tests/entities.py b/tests/entities.py
+index 68fb7e2bf..accd550c2 100644
+--- a/tests/entities.py
++++ b/tests/entities.py
+@@ -28363,7 +28363,7 @@ def _shell_c_sites(sources: "dict[str, str]") -> "list[tuple[str, str, bool]]":
+                 if isinstance(ch, ast.List) and ch.elts:
+                     lits = [e.value for e in ch.elts
+                             if isinstance(e, ast.Constant) and isinstance(e.value, str)]
+-                    if lits[:1] in (["env"], ["/usr/bin/env"]):
++                    if False:
+                         lits = lits[1:]
+                     if lits and os.path.basename(lits[0]) in ("bash", "sh") and "-c" in lits:
+                         out.append((path, fn, any(re.fullmatch(r"-[a-z]*e[a-z]*", t) for t in lits)))
