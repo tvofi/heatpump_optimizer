@@ -1,7 +1,0 @@
-
-KNOWN-BAD: 7 of 7 recorded defect(s) still present, in 8 recorded occurrence(s)
-
-TOTAL: 0 error(s) across 50 policy file(s)
-
-FIXTURE VACUOUS: the raise-justification arm on prepr/raise/good.md drew 1 error(s) (File "/tmp/claude-0/mut/tools/policy/budget_raise_gate.py", line 69
-    from __f); the gate accepts this body, so pr-body must stay silent
