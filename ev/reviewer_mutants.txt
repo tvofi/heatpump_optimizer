@@ -1,0 +1,8 @@
+MUTANT [rerun-request-failed-counts-as-rerun]: merge_train self-test: 344 checks, 0 failed
+MUTANT [no-dedupe]: merge_train self-test: 344 checks, 0 failed
+MUTANT [reasons-unbounded]: merge_train self-test: 344 checks, 4 failed
+  FAIL V142: the stamp's shape (validate-hacs and env-matrix on the rate-limit strings, gate FAIL env-matrix then validate-hacs unprefixed) is due 3600 s after the last matching job, 23:43Z
+  FAIL V142 --overlap: past the reset the stamp's run is re-run once, failed jobs only, and logged INFRA-RERUN with its run id and attempt
+MUTANT [no-sleep-after-rerun]: merge_train self-test: 344 checks, 0 failed
+
+[exited with code 0]
