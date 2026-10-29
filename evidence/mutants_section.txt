@@ -1,0 +1,29 @@
+== M1 rc=1
+  FAIL a synthetic install at cycle phase 0 and at 14 min books identical duty verdicts (#2492)  [phase 0: ['delivered', 'space-instead', 'delivered', 'delivered', 'space-instead', 'delivered', 'delivered', 'space-instead', 'delivered', 'space-instead', 'space-instead', 'delivered', 'delivered', 'delivered', 'space-instead', 'idle-instead']; phase 14: ['idle-instead', 'space-instead', 'delivered', 'delivered', 'space-instead', 'delivered', 'idle-instead', 'space-instead', 'delivered', 'space-instead', 'space-instead', 'delivered', 'idle-instead', 'delivered', 'space-instead', 'idle-instead']]
+  FAIL the step tick writes the switch at the boundary of each step whose command changes  [[(14, 'turn_on'), (44, 'turn_on'), (74, 'turn_off'), (104, 'turn_on'), (134, 'turn_on'), (164, 'turn_off'), (194, 'turn_on'), (224, 'turn_off')]]
+2 of 4 FEATURE CHECKS FAILED
+== M2 rc=1
+  FAIL a synthetic install at cycle phase 0 and at 14 min books identical duty verdicts (#2492)  [phase 0: ['delivered', 'space-instead', 'delivered', 'delivered', 'space-instead', 'delivered', 'delivered', 'space-instead', 'delivered', 'space-instead', 'space-instead', 'delivered', 'delivered', 'delivered', 'space-instead', 'idle-instead']; phase 14: ['idle-instead', 'space-instead', 'delivered', 'delivered', 'space-instead', 'delivered', 'idle-instead', 'space-instead', 'delivered', 'space-instead', 'space-instead', 'delivered', 'idle-instead', 'delivered', 'space-instead', 'idle-instead']]
+  FAIL the step tick writes the switch at the boundary of each step whose command changes  [[(14, 'turn_on'), (44, 'turn_on'), (74, 'turn_off'), (104, 'turn_on'), (134, 'turn_on'), (164, 'turn_off'), (194, 'turn_on'), (224, 'turn_off')]]
+2 of 4 FEATURE CHECKS FAILED
+== M3 rc=1
+  FAIL the step tick writes the switch at the boundary of each step whose command changes  [[(14, 'turn_on'), (15, 'turn_off'), (30, 'turn_on'), (44, 'turn_on'), (45, 'turn_on'), (60, 'turn_off'), (74, 'turn_off'), (75, 'turn_off'), (90, 'turn_on'), (104, 'turn_on'), (105, 'turn_off'), (120, 'turn_on'), (134, 'turn_on'), (135, 'turn_off'), (150, 'turn_off'), (164, 'turn_off'), (165, 'turn_off'), (180, 'turn_on'), (194, 'turn_on'), (195, 'turn_on'), (210, 'turn_off'), (224, 'turn_off'), (225, 'turn_on')]]
+  FAIL an early cut-off holds across a step boundary the plan keeps on  [[(0, 'turn_on'), (15, 'turn_off'), (30, 'turn_on'), (34, 'turn_off'), (45, 'turn_on'), (60, 'turn_off'), (75, 'turn_off'), (90, 'turn_on'), (105, 'turn_off'), (120, 'turn_on'), (135, 'turn_off'), (150, 'turn_off'), (165, 'turn_off'), (180, 'turn_on'), (195, 'turn_on'), (210, 'turn_off'), (225, 'turn_on'), (240, 'turn_on')]]
+2 of 4 FEATURE CHECKS FAILED
+== M4 rc=1
+  FAIL a synthetic install at cycle phase 0 and at 14 min books identical duty verdicts (#2492)  [phase 0: ['idle-instead', 'delivered', 'idle-instead', 'idle-instead', 'space-instead', 'space-instead', 'idle-instead', 'delivered', 'idle-instead', 'delivered', 'delivered', 'delivered', 'idle-instead', 'idle-instead', 'space-instead', 'delivered']; phase 14: ['idle-instead', 'delivered', 'delivered', 'delivered', 'space-instead', 'delivered', 'delivered', 'space-instead', 'delivered', 'space-instead', 'space-instead', 'delivered', 'delivered', 'delivered', 'space-instead', 'idle-instead']]
+1 of 4 FEATURE CHECKS FAILED
+== M5 rc=1
+  FAIL every slot the pump arbiter persists is declared in the pump_duty store domain  [['written/silent/0']]
+1 of 4 FEATURE CHECKS FAILED
+== M6 rc=1
+  FAIL a synthetic install at cycle phase 0 and at 14 min books identical duty verdicts (#2492)  [phase 0: ['delivered', 'space-instead', 'delivered', 'delivered', 'space-instead', 'delivered', 'delivered', 'space-instead', 'delivered', 'space-instead', 'space-instead', 'delivered', 'delivered', 'delivered', 'space-instead', 'idle-instead']; phase 14: ['idle-instead', 'space-instead', 'delivered', 'delivered', 'space-instead', 'delivered', 'idle-instead', 'space-instead', 'delivered', 'space-instead', 'space-instead', 'delivered', 'idle-instead', 'delivered', 'space-instead', 'idle-instead']]
+  FAIL the step tick writes the switch at the boundary of each step whose command changes  [[(14, 'turn_on'), (44, 'turn_on'), (74, 'turn_off'), (104, 'turn_on'), (134, 'turn_on'), (164, 'turn_off'), (194, 'turn_on'), (224, 'turn_off')]]
+2 of 4 FEATURE CHECKS FAILED
+== X1-boost rc=0
+ALL 4 FEATURE CHECKS PASSED
+Traceback (most recent call last):
+  File "/tmp/tmp.DuqoUOIoM3/tools/mutants.py", line 31, in <module>
+    assert s.count(old) == 1, (name, s.count(old))
+           ^^^^^^^^^^^^^^^^^
+AssertionError: ('X2-sysid', 2)

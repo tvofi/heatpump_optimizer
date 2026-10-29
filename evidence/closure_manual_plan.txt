@@ -1,0 +1,72 @@
+== NULL rc=0
+ File "/tmp/tmpv28zchxk/custom_components/heatpump_optimizer/coordinator.py", line 6741, in _fetch_tibber_prices
+    else async_get_clientsession(hass)
+         ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/tmp/tmpv28zchxk/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+    raise RuntimeError("no HTTP session available in the test stub")
+RuntimeError: no HTTP session available in the test stub
+Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
+Discarding unreadable stored manual plan: 'str' object has no attribute 'get'
+Discarding unreadable stored manual plan: 'int' object has no attribute 'get'
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+
+== X1-boost rc=0
+ File "/tmp/tmp1e90gbex/custom_components/heatpump_optimizer/coordinator.py", line 6741, in _fetch_tibber_prices
+    else async_get_clientsession(hass)
+         ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/tmp/tmp1e90gbex/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+    raise RuntimeError("no HTTP session available in the test stub")
+RuntimeError: no HTTP session available in the test stub
+Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
+Discarding unreadable stored manual plan: 'str' object has no attribute 'get'
+Discarding unreadable stored manual plan: 'int' object has no attribute 'get'
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+
+== X2-sysid rc=0
+ File "/tmp/tmpyqknlixe/custom_components/heatpump_optimizer/coordinator.py", line 6741, in _fetch_tibber_prices
+    else async_get_clientsession(hass)
+         ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/tmp/tmpyqknlixe/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+    raise RuntimeError("no HTTP session available in the test stub")
+RuntimeError: no HTTP session available in the test stub
+Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
+Discarding unreadable stored manual plan: 'str' object has no attribute 'get'
+Discarding unreadable stored manual plan: 'int' object has no attribute 'get'
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+
+== X3-stale rc=0
+ File "/tmp/tmpb7x070zf/custom_components/heatpump_optimizer/coordinator.py", line 6741, in _fetch_tibber_prices
+    else async_get_clientsession(hass)
+         ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/tmp/tmpb7x070zf/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+    raise RuntimeError("no HTTP session available in the test stub")
+RuntimeError: no HTTP session available in the test stub
+Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
+Discarding unreadable stored manual plan: 'str' object has no attribute 'get'
+Discarding unreadable stored manual plan: 'int' object has no attribute 'get'
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+
+== X4-released rc=0
+ File "/tmp/tmpd89t9u04/custom_components/heatpump_optimizer/coordinator.py", line 6741, in _fetch_tibber_prices
+    else async_get_clientsession(hass)
+         ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/tmp/tmpd89t9u04/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+    raise RuntimeError("no HTTP session available in the test stub")
+RuntimeError: no HTTP session available in the test stub
+Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
+Discarding unreadable stored manual plan: 'str' object has no attribute 'get'
+Discarding unreadable stored manual plan: 'int' object has no attribute 'get'
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+
+== X5-release rc=0
+ File "/tmp/tmpmr3rcjpx/custom_components/heatpump_optimizer/coordinator.py", line 6741, in _fetch_tibber_prices
+    else async_get_clientsession(hass)
+         ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/tmp/tmpmr3rcjpx/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+    raise RuntimeError("no HTTP session available in the test stub")
+RuntimeError: no HTTP session available in the test stub
+Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
+Discarding unreadable stored manual plan: 'str' object has no attribute 'get'
+Discarding unreadable stored manual plan: 'int' object has no attribute 'get'
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+

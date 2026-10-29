@@ -1,0 +1,3 @@
+== X4-released rc=1
+ALL 134 DST / QUARTER-GRID CHECKS PASSED
+  FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
