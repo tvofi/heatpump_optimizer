@@ -1,0 +1,79 @@
+cd /home/user/rev2964 && PATH=/root/v314/bin:$PATH PYTHONPATH=tests/hastub /root/v314/bin/python dev/audit/harnesses/r10_fly_nightly_hb.py --tree /home/user/rev2964 --mode N4 --inproc hung --runs 2 --out /root/ev/fly/h_head_N4_hung
+  ..   hb:positive_control| stall >= 256 ms; loop thread:
+  ..   hb:positive_control|   File "/home/user/rev2964/dev/audit/harnesses/r10_fly_nightly_hb.py", line 211, in <module>
+  ..   hb:positive_control|   File "/home/user/rev2964/dev/audit/harnesses/r10_fly_nightly_hb.py", line 189, in main
+  ..   hb:positive_control|   File "/home/user/rev2964/dev/audit/harnesses/r10_fly_nightly_hb.py", line 164, in run_inproc
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 706, in run_until_complete
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 677, in run_forever
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2056, in _run_once
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
+  ..   hb:positive_control|   File "/home/user/rev2964/tests/nightly_ha.py", line 1907, in _hb_spin
+  ..   hb:positive_control| sampler did not run: TimeoutExpired: Command '['/root/ev/fly/h_head_N4_hung/py-spy', 'dump', '--nonblocking', '--pid', '2487']' timed out after 5.0 seconds
+  ..   hb:positive_control| stall >= 254 ms; loop thread:
+  ..   hb:positive_control|   File "/home/user/rev2964/dev/audit/harnesses/r10_fly_nightly_hb.py", line 211, in <module>
+  ..   hb:positive_control|   File "/home/user/rev2964/dev/audit/harnesses/r10_fly_nightly_hb.py", line 189, in main
+  ..   hb:positive_control|   File "/home/user/rev2964/dev/audit/harnesses/r10_fly_nightly_hb.py", line 164, in run_inproc
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 706, in run_until_complete
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 677, in run_forever
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2056, in _run_once
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
+  ..   hb:positive_control|   File "/home/user/rev2964/tests/nightly_ha.py", line 1907, in _hb_spin
+  ..   hb:positive_control| sampler did not run: TimeoutExpired: Command '['/root/ev/fly/h_head_N4_hung/py-spy', 'dump', '--nonblocking', '--pid', '2487']' timed out after 5.0 seconds
+  ..   hb:positive_control| stall >= 254 ms; loop thread:
+  ..   hb:positive_control|   File "/home/user/rev2964/dev/audit/harnesses/r10_fly_nightly_hb.py", line 211, in <module>
+  ..   hb:positive_control|   File "/home/user/rev2964/dev/audit/harnesses/r10_fly_nightly_hb.py", line 189, in main
+  ..   hb:positive_control|   File "/home/user/rev2964/dev/audit/harnesses/r10_fly_nightly_hb.py", line 164, in run_inproc
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 706, in run_until_complete
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 677, in run_forever
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2056, in _run_once
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
+  ..   hb:positive_control|   File "/home/user/rev2964/tests/nightly_ha.py", line 1907, in _hb_spin
+  ..   hb:positive_control| sampler did not run: TimeoutExpired: Command '['/root/ev/fly/h_head_N4_hung/py-spy', 'dump', '--nonblocking', '--pid', '2487']' timed out after 5.0 seconds
+  FAIL hb:positive_control  [a 600 ms spin read as 5315.9 ms; dump names the spin: True; sampler rc=0 names it: False; try 3 of 3 (at most 3)]
+run 1: FAIL readings=[(True, True, False), (True, True, False), (True, True, False)] gaps_ms=[5294.0, 5314.4, 5315.9] sampler=py-spy
+  ..   hb:positive_control| stall >= 257 ms; loop thread:
+  ..   hb:positive_control|   File "/home/user/rev2964/dev/audit/harnesses/r10_fly_nightly_hb.py", line 211, in <module>
+  ..   hb:positive_control|   File "/home/user/rev2964/dev/audit/harnesses/r10_fly_nightly_hb.py", line 189, in main
+  ..   hb:positive_control|   File "/home/user/rev2964/dev/audit/harnesses/r10_fly_nightly_hb.py", line 164, in run_inproc
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 706, in run_until_complete
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 677, in run_forever
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2056, in _run_once
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
+  ..   hb:positive_control|   File "/home/user/rev2964/tests/nightly_ha.py", line 1907, in _hb_spin
+  ..   hb:positive_control| sampler did not run: TimeoutExpired: Command '['/root/ev/fly/h_head_N4_hung/py-spy', 'dump', '--nonblocking', '--pid', '2487']' timed out after 5.0 seconds
+  ..   hb:positive_control| stall >= 255 ms; loop thread:
+  ..   hb:positive_control|   File "/home/user/rev2964/dev/audit/harnesses/r10_fly_nightly_hb.py", line 211, in <module>
+  ..   hb:positive_control|   File "/home/user/rev2964/dev/audit/harnesses/r10_fly_nightly_hb.py", line 189, in main
+  ..   hb:positive_control|   File "/home/user/rev2964/dev/audit/harnesses/r10_fly_nightly_hb.py", line 164, in run_inproc
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 706, in run_until_complete
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 677, in run_forever
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2056, in _run_once
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
+  ..   hb:positive_control|   File "/home/user/rev2964/tests/nightly_ha.py", line 1907, in _hb_spin
+  ..   hb:positive_control| sampler did not run: TimeoutExpired: Command '['/root/ev/fly/h_head_N4_hung/py-spy', 'dump', '--nonblocking', '--pid', '2487']' timed out after 5.0 seconds
+  ..   hb:positive_control| stall >= 256 ms; loop thread:
+  ..   hb:positive_control|   File "/home/user/rev2964/dev/audit/harnesses/r10_fly_nightly_hb.py", line 211, in <module>
+  ..   hb:positive_control|   File "/home/user/rev2964/dev/audit/harnesses/r10_fly_nightly_hb.py", line 189, in main
+  ..   hb:positive_control|   File "/home/user/rev2964/dev/audit/harnesses/r10_fly_nightly_hb.py", line 164, in run_inproc
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 706, in run_until_complete
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 677, in run_forever
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2056, in _run_once
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
+  ..   hb:positive_control|   File "/home/user/rev2964/tests/nightly_ha.py", line 1907, in _hb_spin
+  ..   hb:positive_control| sampler did not run: TimeoutExpired: Command '['/root/ev/fly/h_head_N4_hung/py-spy', 'dump', '--nonblocking', '--pid', '2487']' timed out after 5.0 seconds
+  FAIL hb:positive_control  [a 600 ms spin read as 5289.9 ms; dump names the spin: True; sampler rc=0 names it: False; try 3 of 3 (at most 3)]
+run 2: FAIL readings=[(True, True, False), (True, True, False), (True, True, False)] gaps_ms=[5322.3, 5297.9, 5289.9] sampler=py-spy
+SUMMARY mode=N4 inproc=hung python=3.14.6 runs=2 ok=0 fail=2
+EXIT 0

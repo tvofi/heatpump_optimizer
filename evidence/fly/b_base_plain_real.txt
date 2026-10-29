@@ -1,0 +1,193 @@
+cd /home/user/rev2964 && PATH=/root/v314/bin:$PATH PYTHONPATH=tests/hastub /root/v314/bin/python dev/audit/harnesses/r10_fly_nightly_hb.py --tree /home/user/base2964 --mode plain --inproc real --runs 5 --out /root/ev/fly/b_base_plain_real
+  ..   hb:positive_control| stall >= 255 ms; loop thread:
+  ..   hb:positive_control|   File "/home/user/rev2964/dev/audit/harnesses/r10_fly_nightly_hb.py", line 211, in <module>
+  ..   hb:positive_control|   File "/home/user/rev2964/dev/audit/harnesses/r10_fly_nightly_hb.py", line 189, in main
+  ..   hb:positive_control|   File "/home/user/rev2964/dev/audit/harnesses/r10_fly_nightly_hb.py", line 164, in run_inproc
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 706, in run_until_complete
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 677, in run_forever
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2056, in _run_once
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
+  ..   hb:positive_control|   File "/home/user/base2964/tests/nightly_ha.py", line 1895, in _hb_spin
+  ..   hb:positive_control| py-spy rc=0:
+  ..   hb:positive_control| Process 2290: /root/v314/bin/python dev/audit/harnesses/r10_fly_nightly_hb.py --tree /home/user/base2964 --mode plain --inproc real --runs 5 --out /root/ev/fly/b_base_plain_real
+  ..   hb:positive_control| Python v3.14.6 (/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/bin/python3.14)
+  ..   hb:positive_control| 
+  ..   hb:positive_control| Thread 2290 (active+gil)
+  ..   hb:positive_control|     _hb_spin (nightly_ha.py:1895)
+  ..   hb:positive_control|     _run (asyncio/events.py:94)
+  ..   hb:positive_control|     _run_once (asyncio/base_events.py:2056)
+  ..   hb:positive_control|     run_forever (asyncio/base_events.py:677)
+  ..   hb:positive_control|     run_until_complete (asyncio/base_events.py:706)
+  ..   hb:positive_control|     run (asyncio/runners.py:128)
+  ..   hb:positive_control|     run (asyncio/runners.py:205)
+  ..   hb:positive_control|     run_inproc (r10_fly_nightly_hb.py:164)
+  ..   hb:positive_control|     main (r10_fly_nightly_hb.py:189)
+  ..   hb:positive_control|     <module> (r10_fly_nightly_hb.py:211)
+  ..   hb:positive_control| Thread 2291 (idle)
+  ..   hb:positive_control|     select (selectors.py:398)
+  ..   hb:positive_control|     _communicate (subprocess.py:2153)
+  ..   hb:positive_control|     communicate (subprocess.py:1221)
+  ..   hb:positive_control|     run (subprocess.py:557)
+  ..   hb:positive_control|     dump (nightly_ha.py:1967)
+  ..   hb:positive_control|     _watch (nightly_ha.py:1950)
+  ..   hb:positive_control|     run (threading.py:1024)
+  ..   hb:positive_control|     _bootstrap_inner (threading.py:1082)
+  ..   hb:positive_control|     _bootstrap (threading.py:1044)
+  ok   hb:positive_control  [a 600 ms spin read as 600.6 ms; dump names the spin: True; py-spy rc=0 names it: True; try 1 of 1 (at most 3)]
+run 1: ok readings=[(True, True, True)] gaps_ms=[600.6] sampler=py-spy
+  ..   hb:positive_control| stall >= 256 ms; loop thread:
+  ..   hb:positive_control|   File "/home/user/rev2964/dev/audit/harnesses/r10_fly_nightly_hb.py", line 211, in <module>
+  ..   hb:positive_control|   File "/home/user/rev2964/dev/audit/harnesses/r10_fly_nightly_hb.py", line 189, in main
+  ..   hb:positive_control|   File "/home/user/rev2964/dev/audit/harnesses/r10_fly_nightly_hb.py", line 164, in run_inproc
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 706, in run_until_complete
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 677, in run_forever
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2056, in _run_once
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
+  ..   hb:positive_control|   File "/home/user/base2964/tests/nightly_ha.py", line 1895, in _hb_spin
+  ..   hb:positive_control| py-spy rc=0:
+  ..   hb:positive_control| Process 2290: /root/v314/bin/python dev/audit/harnesses/r10_fly_nightly_hb.py --tree /home/user/base2964 --mode plain --inproc real --runs 5 --out /root/ev/fly/b_base_plain_real
+  ..   hb:positive_control| Python v3.14.6 (/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/bin/python3.14)
+  ..   hb:positive_control| 
+  ..   hb:positive_control| Thread 2290 (active+gil)
+  ..   hb:positive_control|     _hb_spin (nightly_ha.py:1895)
+  ..   hb:positive_control|     _run (asyncio/events.py:94)
+  ..   hb:positive_control|     _run_once (asyncio/base_events.py:2056)
+  ..   hb:positive_control|     run_forever (asyncio/base_events.py:677)
+  ..   hb:positive_control|     run_until_complete (asyncio/base_events.py:706)
+  ..   hb:positive_control|     run (asyncio/runners.py:128)
+  ..   hb:positive_control|     run (asyncio/runners.py:205)
+  ..   hb:positive_control|     run_inproc (r10_fly_nightly_hb.py:164)
+  ..   hb:positive_control|     main (r10_fly_nightly_hb.py:189)
+  ..   hb:positive_control|     <module> (r10_fly_nightly_hb.py:211)
+  ..   hb:positive_control| Thread 2293 (idle)
+  ..   hb:positive_control|     select (selectors.py:398)
+  ..   hb:positive_control|     _communicate (subprocess.py:2153)
+  ..   hb:positive_control|     communicate (subprocess.py:1221)
+  ..   hb:positive_control|     run (subprocess.py:557)
+  ..   hb:positive_control|     dump (nightly_ha.py:1967)
+  ..   hb:positive_control|     _watch (nightly_ha.py:1950)
+  ..   hb:positive_control|     run (threading.py:1024)
+  ..   hb:positive_control|     _bootstrap_inner (threading.py:1082)
+  ..   hb:positive_control|     _bootstrap (threading.py:1044)
+  ok   hb:positive_control  [a 600 ms spin read as 600.4 ms; dump names the spin: True; py-spy rc=0 names it: True; try 1 of 1 (at most 3)]
+run 2: ok readings=[(True, True, True)] gaps_ms=[600.4] sampler=py-spy
+  ..   hb:positive_control| stall >= 256 ms; loop thread:
+  ..   hb:positive_control|   File "/home/user/rev2964/dev/audit/harnesses/r10_fly_nightly_hb.py", line 211, in <module>
+  ..   hb:positive_control|   File "/home/user/rev2964/dev/audit/harnesses/r10_fly_nightly_hb.py", line 189, in main
+  ..   hb:positive_control|   File "/home/user/rev2964/dev/audit/harnesses/r10_fly_nightly_hb.py", line 164, in run_inproc
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 706, in run_until_complete
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 677, in run_forever
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2056, in _run_once
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
+  ..   hb:positive_control|   File "/home/user/base2964/tests/nightly_ha.py", line 1895, in _hb_spin
+  ..   hb:positive_control| py-spy rc=0:
+  ..   hb:positive_control| Process 2290: /root/v314/bin/python dev/audit/harnesses/r10_fly_nightly_hb.py --tree /home/user/base2964 --mode plain --inproc real --runs 5 --out /root/ev/fly/b_base_plain_real
+  ..   hb:positive_control| Python v3.14.6 (/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/bin/python3.14)
+  ..   hb:positive_control| 
+  ..   hb:positive_control| Thread 2290 (active+gil)
+  ..   hb:positive_control|     _hb_spin (nightly_ha.py:1895)
+  ..   hb:positive_control|     _run (asyncio/events.py:94)
+  ..   hb:positive_control|     _run_once (asyncio/base_events.py:2056)
+  ..   hb:positive_control|     run_forever (asyncio/base_events.py:677)
+  ..   hb:positive_control|     run_until_complete (asyncio/base_events.py:706)
+  ..   hb:positive_control|     run (asyncio/runners.py:128)
+  ..   hb:positive_control|     run (asyncio/runners.py:205)
+  ..   hb:positive_control|     run_inproc (r10_fly_nightly_hb.py:164)
+  ..   hb:positive_control|     main (r10_fly_nightly_hb.py:189)
+  ..   hb:positive_control|     <module> (r10_fly_nightly_hb.py:211)
+  ..   hb:positive_control| Thread 2295 (idle)
+  ..   hb:positive_control|     select (selectors.py:398)
+  ..   hb:positive_control|     _communicate (subprocess.py:2153)
+  ..   hb:positive_control|     communicate (subprocess.py:1221)
+  ..   hb:positive_control|     run (subprocess.py:557)
+  ..   hb:positive_control|     dump (nightly_ha.py:1967)
+  ..   hb:positive_control|     _watch (nightly_ha.py:1950)
+  ..   hb:positive_control|     run (threading.py:1024)
+  ..   hb:positive_control|     _bootstrap_inner (threading.py:1082)
+  ..   hb:positive_control|     _bootstrap (threading.py:1044)
+  ok   hb:positive_control  [a 600 ms spin read as 600.6 ms; dump names the spin: True; py-spy rc=0 names it: True; try 1 of 1 (at most 3)]
+run 3: ok readings=[(True, True, True)] gaps_ms=[600.6] sampler=py-spy
+  ..   hb:positive_control| stall >= 257 ms; loop thread:
+  ..   hb:positive_control|   File "/home/user/rev2964/dev/audit/harnesses/r10_fly_nightly_hb.py", line 211, in <module>
+  ..   hb:positive_control|   File "/home/user/rev2964/dev/audit/harnesses/r10_fly_nightly_hb.py", line 189, in main
+  ..   hb:positive_control|   File "/home/user/rev2964/dev/audit/harnesses/r10_fly_nightly_hb.py", line 164, in run_inproc
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 706, in run_until_complete
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 677, in run_forever
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2056, in _run_once
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
+  ..   hb:positive_control|   File "/home/user/base2964/tests/nightly_ha.py", line 1895, in _hb_spin
+  ..   hb:positive_control| py-spy rc=0:
+  ..   hb:positive_control| Process 2290: /root/v314/bin/python dev/audit/harnesses/r10_fly_nightly_hb.py --tree /home/user/base2964 --mode plain --inproc real --runs 5 --out /root/ev/fly/b_base_plain_real
+  ..   hb:positive_control| Python v3.14.6 (/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/bin/python3.14)
+  ..   hb:positive_control| 
+  ..   hb:positive_control| Thread 2290 (active+gil)
+  ..   hb:positive_control|     _hb_spin (nightly_ha.py:1895)
+  ..   hb:positive_control|     _run (asyncio/events.py:94)
+  ..   hb:positive_control|     _run_once (asyncio/base_events.py:2056)
+  ..   hb:positive_control|     run_forever (asyncio/base_events.py:677)
+  ..   hb:positive_control|     run_until_complete (asyncio/base_events.py:706)
+  ..   hb:positive_control|     run (asyncio/runners.py:128)
+  ..   hb:positive_control|     run (asyncio/runners.py:205)
+  ..   hb:positive_control|     run_inproc (r10_fly_nightly_hb.py:164)
+  ..   hb:positive_control|     main (r10_fly_nightly_hb.py:189)
+  ..   hb:positive_control|     <module> (r10_fly_nightly_hb.py:211)
+  ..   hb:positive_control| Thread 2297 (idle)
+  ..   hb:positive_control|     select (selectors.py:398)
+  ..   hb:positive_control|     _communicate (subprocess.py:2153)
+  ..   hb:positive_control|     communicate (subprocess.py:1221)
+  ..   hb:positive_control|     run (subprocess.py:557)
+  ..   hb:positive_control|     dump (nightly_ha.py:1967)
+  ..   hb:positive_control|     _watch (nightly_ha.py:1950)
+  ..   hb:positive_control|     run (threading.py:1024)
+  ..   hb:positive_control|     _bootstrap_inner (threading.py:1082)
+  ..   hb:positive_control|     _bootstrap (threading.py:1044)
+  ok   hb:positive_control  [a 600 ms spin read as 600.7 ms; dump names the spin: True; py-spy rc=0 names it: True; try 1 of 1 (at most 3)]
+run 4: ok readings=[(True, True, True)] gaps_ms=[600.7] sampler=py-spy
+  ..   hb:positive_control| stall >= 256 ms; loop thread:
+  ..   hb:positive_control|   File "/home/user/rev2964/dev/audit/harnesses/r10_fly_nightly_hb.py", line 211, in <module>
+  ..   hb:positive_control|   File "/home/user/rev2964/dev/audit/harnesses/r10_fly_nightly_hb.py", line 189, in main
+  ..   hb:positive_control|   File "/home/user/rev2964/dev/audit/harnesses/r10_fly_nightly_hb.py", line 164, in run_inproc
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 706, in run_until_complete
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 677, in run_forever
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2056, in _run_once
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
+  ..   hb:positive_control|   File "/home/user/base2964/tests/nightly_ha.py", line 1895, in _hb_spin
+  ..   hb:positive_control| py-spy rc=0:
+  ..   hb:positive_control| Process 2290: /root/v314/bin/python dev/audit/harnesses/r10_fly_nightly_hb.py --tree /home/user/base2964 --mode plain --inproc real --runs 5 --out /root/ev/fly/b_base_plain_real
+  ..   hb:positive_control| Python v3.14.6 (/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/bin/python3.14)
+  ..   hb:positive_control| 
+  ..   hb:positive_control| Thread 2290 (active+gil)
+  ..   hb:positive_control|     _hb_spin (nightly_ha.py:1895)
+  ..   hb:positive_control|     _run (asyncio/events.py:94)
+  ..   hb:positive_control|     _run_once (asyncio/base_events.py:2056)
+  ..   hb:positive_control|     run_forever (asyncio/base_events.py:677)
+  ..   hb:positive_control|     run_until_complete (asyncio/base_events.py:706)
+  ..   hb:positive_control|     run (asyncio/runners.py:128)
+  ..   hb:positive_control|     run (asyncio/runners.py:205)
+  ..   hb:positive_control|     run_inproc (r10_fly_nightly_hb.py:164)
+  ..   hb:positive_control|     main (r10_fly_nightly_hb.py:189)
+  ..   hb:positive_control|     <module> (r10_fly_nightly_hb.py:211)
+  ..   hb:positive_control| Thread 2301 (idle)
+  ..   hb:positive_control|     select (selectors.py:398)
+  ..   hb:positive_control|     _communicate (subprocess.py:2153)
+  ..   hb:positive_control|     communicate (subprocess.py:1221)
+  ..   hb:positive_control|     run (subprocess.py:557)
+  ..   hb:positive_control|     dump (nightly_ha.py:1967)
+  ..   hb:positive_control|     _watch (nightly_ha.py:1950)
+  ..   hb:positive_control|     run (threading.py:1024)
+  ..   hb:positive_control|     _bootstrap_inner (threading.py:1082)
+  ..   hb:positive_control|     _bootstrap (threading.py:1044)
+  ok   hb:positive_control  [a 600 ms spin read as 600.6 ms; dump names the spin: True; py-spy rc=0 names it: True; try 1 of 1 (at most 3)]
+run 5: ok readings=[(True, True, True)] gaps_ms=[600.6] sampler=py-spy
+SUMMARY mode=plain inproc=real python=3.14.6 runs=5 ok=5 fail=0
+EXIT 0

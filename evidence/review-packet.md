@@ -1,45 +1,33 @@
 # Review packet #2964
-head: 67be951d3980dcfa9a2c5ce8b099f9239f3db904
+head: 38ffa02aeb39e8a49d667ec80bad0d434e8be58a
 base: e5ddba1fad5e6eccfeceaeaaa249bc459963405b
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
-## Gate digest: red
-CodeQL id=123726596224 neutral
-arch-score / arch-score id=123726258796 success
-arm id=123726057226 skipped
-budget-raise-gate / budget-raise-gate id=123726258866 success
-cancel-superseded id=123726060596 success
-codeql / Analyze (actions) id=123726258458 success
-codeql / Analyze (javascript-typescript) id=123726258723 success
-codeql / Analyze (python) id=123726258537 in_progress
-governance / delivery-status id=123726258935 success
-governance / delivery-status-publish id=123726261078 skipped
-governance / env-matrix id=123726259047 in_progress
-governance / instrument-self-tests id=123726258875 in_progress
-governance / policy-docs id=123726259185 success
-governance / record id=123726260749 skipped
-governance / wave-script id=123726258916 success
-hassfest / hassfest id=123726258893 success
-kernel-points id=123726259966 skipped
-prelude id=123726060658 success
-refresh id=123726060097 success
-tests / arch-instrument id=123726500892 success
-tests / briefs id=123726258712 success
-tests / browser id=123726501399 in_progress
-tests / closure-scope id=123726258599 success
-tests / closures id=123726501129 in_progress
-tests / coverage id=123726500944 in_progress
-tests / fast (3.14) id=123726500891 in_progress
-tests / mutation id=123726258720 success
-tests / mutation-autofix id=123726627386 skipped
-tests / mutation-pins id=123726627588 skipped
-tests / nightly-ha (2025.2.0) id=123726501217 in_progress
-tests / nightly-ha (stable) id=123726501072 in_progress
-tests / nightly-status id=123726258955 failure
-tests / replay id=123726504095 skipped
-tests / typing id=123726500893 in_progress
-validate / validate-hacs id=123726258504 success
+## Gate digest: pending
+arch-score / arch-score id=123751564062 queued
+arm id=123750444352 skipped
+budget-raise-gate / budget-raise-gate id=123751563779 in_progress
+cancel-superseded id=123750866374 queued
+codeql / Analyze (actions) id=123751563713 queued
+codeql / Analyze (javascript-typescript) id=123751563782 queued
+codeql / Analyze (python) id=123751563664 queued
+governance / delivery-status id=123751563671 queued
+governance / delivery-status-publish id=123751566447 skipped
+governance / env-matrix id=123751563667 queued
+governance / instrument-self-tests id=123751563786 queued
+governance / policy-docs id=123751564382 queued
+governance / record id=123751567214 skipped
+governance / wave-script id=123751563689 queued
+hassfest / hassfest id=123751563650 in_progress
+kernel-points id=123751565237 skipped
+prelude id=123750865474 queued
+refresh id=123750864993 queued
+tests / briefs id=123751563845 queued
+tests / closure-scope id=123751563763 queued
+tests / mutation id=123751563811 queued
+tests / nightly-status id=123751563872 queued
+validate / validate-hacs id=123751563856 queued
 
 ## Refusals
 none
@@ -48,37 +36,48 @@ none
 none
 
 ## carry_audit at the head
-NOTE body item 71dbd532: R10-NIGHTLY-HB-RESPAWN
-NOTE body item 61287b2f: dismissed:seat environment cost, not a policy defect
-CARRY-AUDIT: 2 finding item(s): 2 routed, 0 unrouted, 0 bad destination(s)
+NOTE body item 38e17bfd: R10-NIGHTLY-HB-RESPAWN
+NOTE body item fe6eb782: dismissed:two seats on one topic is the dispatcher's to sequence; the merge kept both seats' commits
+NOTE body item 9909b5a0: dismissed:seat environment cost, not a policy defect
+CARRY-AUDIT: 3 finding item(s): 3 routed, 0 unrouted, 0 bad destination(s)
 
 ## figure_lint at the head
-ok         dev/audit/harnesses/r10_fly_nightly_hb.py
+unverified git grep -n -e 'spy_timeout' -e 'PY_SPY_TIMEOUT_S' -e 'py-spy rc=' -e '_py_spy_path' -e 'py_spy=' -e 'py-spy did not run' -- .
+             `git grep` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
+  ok         python dev/audit/harnesses/r10_fly_nightly_hb.py --tree <worktree> --mode <m> --inproc <real|hung> --runs <n> --out <dir>
              `dev/audit/harnesses/r10_fly_nightly_hb.py` is in the tree at this head
-  ok         python3 dev/audit/harnesses/r10_fly_nightly_hb.py --tree <head worktree> --mode side --runs 30 --out <dir> --image <stable+threadpoolctl>
-             `dev/audit/harnesses/r10_fly_nightly_hb.py` is in the tree at this head
-  ok         python3 dev/audit/harnesses/r10_fly_nightly_hb.py --tree <merge-base worktree> --mode probe --runs 40 --out <dir> --image <stable+threadpoolctl>
-             `dev/audit/harnesses/r10_fly_nightly_hb.py` is in the tree at this head
-  ok         python3 dev/audit/harnesses/r10_fly_nightly_hb.py --tree <head worktree> --mode N1 --runs 2 --out <dir> --image <stable+threadpoolctl>
-             `dev/audit/harnesses/r10_fly_nightly_hb.py` is in the tree at this head
-  ok         python3 tests/closure.py select --diff 486e65cbd9c8451c01624f13b773feb6d722ad9b --workdir <dir>
+  ok         tests/nightly_ha.py
+             `tests/nightly_ha.py` is in the tree at this head
+  unverified git diff 877f4addb HEAD -- tests/nightly_ha.py
+             `git diff` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
+  ok         python tests/closure.py select --diff e5ddba1fad5e6eccfeceaeaaa249bc459963405b --workdir <dir>
              `tests/closure.py` is in the tree at this head
   ok         tests/entities.py
              `tests/entities.py` is in the tree at this head
-  ok         tests/doc_claims.py
-             `tests/doc_claims.py` is in the tree at this head
   ok         tests/config_flow_steps.py
              `tests/config_flow_steps.py` is in the tree at this head
   ok         tests/debug_collect.py
              `tests/debug_collect.py` is in the tree at this head
+  ok         tests/doc_claims.py
+             `tests/doc_claims.py` is in the tree at this head
   ok         tests/harness_headers.py
              `tests/harness_headers.py` is in the tree at this head
-  ok         dev/audit/rounds/round4/D7/sysid_estimator_frontier.py costs at most 50% of its CPU bound [cpu=245.9s against 240s]
-             `dev/audit/rounds/round4/D7/sysid_estimator_frontier.py` is in the tree at this head
-  ok         python3 tests/structure.py
+  ok         tests/env_drift.py --claims-only e5ddba1fa
+             `tests/env_drift.py` is in the tree at this head
+  ok         tests/closure.py selftest
+             `tests/closure.py` is in the tree at this head
+  ok         tests/layout.py
+             `tests/layout.py` is in the tree at this head
+  ok         python tests/structure.py
              `tests/structure.py` is in the tree at this head
+  ok         dev/audit/harnesses/r10_fly_nightly_hb.py
+             `dev/audit/harnesses/r10_fly_nightly_hb.py` is in the tree at this head
+  ok         dev/audit/harnesses/r10_nightly_pyspy_retry_mutants.py
+             `dev/audit/harnesses/r10_nightly_pyspy_retry_mutants.py` is in the tree at this head
+  unverified git grep -l nightly_ha -- dev/audit/harnesses
+             `git grep` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
 
-FIGURES: 12 resolved, 0 not verified, 0 refused
+FIGURES: 14 resolved, 3 not verified, 0 refused
 
 ## Finder's harness: none named
 ### at the base
@@ -307,6 +306,81 @@ index 000000000..2fa6017f8
 +
 +if __name__ == "__main__":
 +    sys.exit(main())
+diff --git a/dev/audit/harnesses/r10_nightly_pyspy_retry_mutants.py b/dev/audit/harnesses/r10_nightly_pyspy_retry_mutants.py
+index aa954907c..852a0aaf8 100644
+--- a/dev/audit/harnesses/r10_nightly_pyspy_retry_mutants.py
++++ b/dev/audit/harnesses/r10_nightly_pyspy_retry_mutants.py
+@@ -1,9 +1,11 @@
+ """R10-NIGHTLY-PYSPY-RETRY mutation proof: each mutant of tests/nightly_ha.py's
+-positive control against the A15 py-spy checks of tests/entities.py.
++positive control against the A15 sampler checks of tests/entities.py.
+ 
+ The checks run from ``_HB_BOTH = `` up to ``_hb_cmd = _nightly.docker_command``,
+ the block that drives ``_async_hb_control`` against stub samplers, on a copy of
+ nightly_ha.py with one substitution. M0 substitutes nothing: the null control.
++The block runs alone, so it is given every module-level stdlib ``import`` that
++precedes it in entities.py, which is what it reads when entities.py runs whole.
+ 
+     PYTHONPATH=tests/hastub python3 dev/audit/harnesses/r10_nightly_pyspy_retry_mutants.py
+ 
+@@ -13,6 +15,7 @@ Prints ``<id> KILLED by: <check>`` or ``<id> SURVIVED`` per mutant, then
+ 
+ from __future__ import annotations
+ 
++import ast
+ import subprocess
+ import sys
+ import tempfile
+@@ -35,23 +38,24 @@ ROOT = repo_root(__file__)
+ MUTANTS = {
+     "M0-null": ("", ""),
+     "M1-one-try": ("for _ in range(tries):", "for _ in range(1):"),
+-    "M2-timeout-30": ("timeout=self.spy_timeout,", "timeout=30,"),
++    "M2-timeout-30": ("timeout=self.sample_timeout,", "timeout=30,"),
+     "M3-any-output": ("        if all(hb_control_reading(summary)):\n            break",
+                       '        if summary["dumps"]:\n            break'),
+     "M4-no-hold": ("hold is not None and not hold.is_set() and now < bound", "False"),
+     "M5-no-release": ("                    self.dumped.set()\n", ""),
+-    "M6-check-any-rc0": ('"_hb_spin" in d.split("py-spy rc=0:", 1)[1]', "True"),
++    "M6-check-any-rc0": ('"_hb_spin" in d.split("sampler rc=0:", 1)[1]', "True"),
+     "M7-control-no-hold": ("call_soon(_hb_spin, HB_CONTROL_S, dumped)",
+                            "call_soon(_hb_spin, HB_CONTROL_S)"),
+     "M8-check-split-tries": ("        any(all(r) for r in readings),",
+                              "        all(any(r[i] for r in readings) for i in range(3)),"),
+-    "M9-rc-ignored": ('d.split("py-spy rc=0:", 1)[1]\n        for d in summary["dumps"] if "py-spy rc=0:" in d',
+-                      'd.split("py-spy rc=", 1)[1]\n        for d in summary["dumps"] if "py-spy rc=" in d'),
++    "M9-rc-ignored": ('d.split("sampler rc=0:", 1)[1]\n        for d in summary["dumps"] if "sampler rc=0:" in d',
++                      'd.split("sampler rc=", 1)[1]\n        for d in summary["dumps"] if "sampler rc=" in d'),
+     "M10-boot-skips-control": ("    await _async_hb_control(checks)\n", "    pass\n"),
++    "M11-pyspy-first": ('if importlib.util.find_spec("_remote_debugging") is not None:', "if False:"),
+     "X1-no-rest": ("            await asyncio.sleep(rest)\n", "            pass\n"),
+-    "X2-timeout-25": ("PY_SPY_TIMEOUT_S = 5.0", "PY_SPY_TIMEOUT_S = 25.0"),
++    "X2-timeout-25": ("SAMPLE_TIMEOUT_S = 5.0", "SAMPLE_TIMEOUT_S = 25.0"),
+     "X3-tries-2": ("HB_CONTROL_TRIES = 3", "HB_CONTROL_TRIES = 2"),
+-    "X5-default-30": ("spy_timeout=PY_SPY_TIMEOUT_S,", "spy_timeout=30.0,"),
++    "X5-default-30": ("sample_timeout=SAMPLE_TIMEOUT_S,", "sample_timeout=30.0,"),
+ }
+ HEADER = '''import asyncio, sys, tempfile, threading, inspect as _inspect, time as _time
+ from pathlib import Path
+@@ -66,10 +70,16 @@ R = _R()
+ 
+ 
+ def block() -> str:
+-    lines = (ROOT / "tests" / "entities.py").read_text().splitlines(keepends=True)
++    text = (ROOT / "tests" / "entities.py").read_text()
++    lines = text.splitlines(keepends=True)
+     start = next(i for i, ln in enumerate(lines) if ln.startswith("_HB_BOTH = "))
+     end = next(i for i, ln in enumerate(lines) if ln.startswith("_hb_cmd = _nightly.docker_command"))
+-    return "".join(lines[start:end])
++    imports = [
++        ast.unparse(node) + "\n" for node in ast.parse(text).body
++        if isinstance(node, ast.Import) and node.lineno <= start
++        and all(a.name.split(".")[0] in sys.stdlib_module_names for a in node.names)
++    ]
++    return "".join(imports) + "".join(lines[start:end])
+ 
+ 
+ def run(mid: str, old: str, new: str, checks: str) -> list[str]:
 diff --git a/dev/programme/delivery/2964.md b/dev/programme/delivery/2964.md
 new file mode 100644
 index 000000000..7d1f2b80e
