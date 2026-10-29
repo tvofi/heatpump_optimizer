@@ -1,4 +1,4 @@
-Triage batch 59 rules V185 as P273 and V186 as P274. It is the next rolling batch under V182, after batch 58 (#2934, merge-verdicted at `56e61dc9e`).
+Triage batch 59 rules V185 as P273, V186 as P274, and the orchestrator's 2026-10-29T04:14Z carry_audit proposal as P275. It is the next rolling batch under V182, after batch 58 (#2934, merge-verdicted at `56e61dc9e`).
 - **P273 (V185, card docs may still show the pre-R10-CARD-VOICE setup drawing): REJECT.**
   - V185 asked for a measurement first and a size-S docs fly-in only if something differed. This seat took the measurement, and nothing differs.
   - The premise comes from the card-symbols pre-study (`2cc4d5ebc`, 2026-10-20), written before #2841 merged (2026-10-26). #2841 itself rewrote `docs/dashboard-card.md` and all three `docs/img/model/hydronic-*.svg`.
@@ -9,18 +9,23 @@ Triage batch 59 rules V185 as P273 and V186 as P274. It is the next rolling batc
   - Detector: `body_push.sh` guards the code ref `handoff/<topic>` over origin/main before it pushes the body, which is the return signal.
   - Measured: 28 commits authored `noreply@anthropic.com` sit on 8 open handoff refs pushed 2026-10-28. Main's guard passes them today; P253's class will refuse each at the opener.
   - One held roster op (`append-carry R10-FLY-NO-FOOTERS`), released once this file is on main.
+- **P275 (carry_audit over-fires on verdict lines, and the train PARKs on it): ACCEPT, narrowed, to R10-ORCH-REVIEW-PACKET; option (a) REJECT.**
+  - The review packet gives the reviewer the exact `carry_audit.py check` command to run on its own `verdict.md`. The verdict is returned only at rc 0, and `fix-review.md` gains one sentence binding the step.
+  - Of the two named PARKs, #2914 `c63349c9` was a correct fire (a "not blocking" note with no `Carry:`). #2887 `da4b2420` was an over-fire ("residual" in a carry title, under `## Evidence`).
+  - Option (a) was measured: the low-risk narrowings clear 2 of the 16 `evidence` flags across 396 verdicts. Clearing the rest would also hide #2612 `434dcf9d`, a real unpinned-mutant defect.
+  - One held roster op (`append-carry R10-ORCH-REVIEW-PACKET`), released once this file is on main.
 
 No product behaviour changes: the diff is one markdown file under `dev/programme/triage/`.
 
 ## Head
 
-`a00d97646781b5286a631c4a8f7c0f969e1e866b`; the file is the whole diff against `b0b2d7697f8c5baaef2c082d9bf3242b57249e68`.
+`8bd0654c12c4d972b8778514e3912036b9526faa`; the file is the whole diff against `b0b2d7697f8c5baaef2c082d9bf3242b57249e68`.
 
 ## Mutation proof
 
 This file's only consumer is `tools/audit/seat/roster_edit.py`'s triage gate, `ruling_verdict` (line 455).
-- On the committed file, it reads P273 as `REJECT` and P274 as `ACCEPT`.
-- A text citing `#P273` is refused as `not an ACCEPT ruling (REJECT)`. The P274 carry text passes (`triage_refusal` returns None).
+- On the committed file, it reads P273 as `REJECT`, and P274 and P275 as `ACCEPT`.
+- A text citing `#P273` is refused as `not an ACCEPT ruling (REJECT)`. The P274 and P275 carry texts pass (`triage_refusal` returns None).
 
 ## Null control
 
@@ -34,6 +39,8 @@ This file's only consumer is `tools/audit/seat/roster_edit.py`'s triage gate, `r
 - `git merge-base --is-ancestor 75ac45353 2cc4d5ebc` is false: the pre-study does not contain #2841.
 - P274: `git ls-remote origin 'refs/heads/handoff/*'` lists 153 refs, 118 of them fully on main. Commits not on main, by author and committer: 951 tvofi noreply, 28 `noreply@anthropic.com`, 9 github-actions and 2 `seat@users.noreply.github.com`.
 - P274: `ref_privacy.py guard --ref x --commits 4a7ccd930 --over origin/main` gives rc 0 on main. V186's `r10-fly-prepr-summary` instance was therefore not refused by main's guard. Of the 35 open refs, 3 fail the guard today, each on a co-author trailer (`audit-r10-arch-s2`, `audit-r10-arch-s3`, `audit-r10-find-B9`).
+
+- P275: the verdict files come from the `verdict/*` refs, 396 of them, read by origin/main's `carry_audit.items()`. Of 367 merge verdicts, 82 hold a flagged item with no `Carry:` of its own; since 2026-10-26 it is 17. The narrowing test ran on a scratch copy of `carry_audit.py` (code spans stripped before DEFERRED/NONBLOCK, and "blocks no merge" added to NOT_REQUIRED): `evidence` flags went from 16 to 14.
 
 ## Red checks
 
