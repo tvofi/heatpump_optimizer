@@ -1,6 +1,0 @@
-CI PREDICT: no closures, fast, wave-script, policy-docs or instrument red predicted against ef895338c060 (a data-file read is not seen)
-
-real	0m27.885s
-user	0m17.708s
-sys	0m22.429s
-rc=0
