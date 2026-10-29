@@ -279,7 +279,7 @@ from .dhw_draws import labels_for
 from .dhw_learning import DHW_PROFILE_STORE_VERSION, DhwProfileLearner
 from .legionella import LegionellaGuard
 from .disinfection import DisinfectionSwitch
-from .curve_learning import CurveLearner
+from .curve_learning import CurveLearner, worst_zone_margin_k
 from .currency import declared_currency, resolve_currency
 from .drift import utc_shift
 from .drift import Cusum, stored_instant, utc_step_starts
@@ -328,6 +328,7 @@ from .thermal_model import (
     heat_loss_basis,
     heat_loss_basis_voids,
     learner_newton_step,
+    learner_room_unread,
     mold_safe_room_floor,
     learner_unmetered,
     on_threshold_kw,
@@ -5511,14 +5512,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         """
         ctx = getattr(self, "_ctx", self)
         observed = ctx._current_state.room_temperature
-        heat_kw, clean, frozen, fold = _replay_gate(self, interval, span_heat_kw, self._learning_frozen(
-            CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY, CONF_THERMAL_POWER_ENTITY
-        ))
-        # "ventilation" is the one freeze reason this method must look
-        # past: the ventilation detector below is what CLEARS it, and it
-        # needs the residual to see the window close. Every other reason
-        # (stale sensors, external heat) makes the residual itself
-        # untrustworthy, detector included.
+        # #2508: no room entity is the raw freeze, so it ranks before the
+        # ventilation pass-through below and leaves no counter span clean.
+        raw = learner_room_unread(ctx._config) or self._learning_frozen(
+            CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY, CONF_THERMAL_POWER_ENTITY)
+        heat_kw, clean, frozen, fold = _replay_gate(self, interval, span_heat_kw, raw)
+        # "ventilation" is the one reason to look past: the detector below
+        # clears it and needs the residual to see the window close. Any other
+        # reason makes the residual untrustworthy, detector included.
         vent_only = frozen == "ventilation"
         if frozen and not vent_only:
             self._learner_freeze_reason = frozen
@@ -9035,12 +9036,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # An away setback sits deliberately below the normal floor this
         # tracker reads (the lowered floor lives only inside the solve's
         # snapshot/unwind envelope), so every vacation would read as a
-        # comfort miss and wipe the learned bias. Same for a tripped
-        # window detector or stale sensor: the dip is real but it is not
-        # the curve's doing. No evidence is collected on such days.
+        # comfort miss and wipe the learned bias. Same for a tripped window
+        # detector, a stale sensor or none (#2508: room and upper zone are
+        # 21.0 C defaults): not the curve's doing. No evidence on such days.
         if self._away_state.active or self._away_state.recovery_active:
             return
-        if self._learning_frozen(CONF_INDOOR_TEMP_ENTITY) is not None:
+        if (self._learning_frozen(CONF_INDOOR_TEMP_ENTITY) or learner_room_unread(ctx._config)) is not None:
             return
         hour = now.hour + now.minute / 60.0
         try:
@@ -9051,18 +9052,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             floor_c = float(ctx._opt_config.get_temp_bounds(hour)[0])
         except Exception:  # noqa: BLE001 - evidence, never operations
             return
-        temps = [
-            t
-            for t in (
-                ctx._current_state.room_temperature,
-                ctx._current_state.upper_floor_temperature,
-                ctx._current_state.lower_floor_temperature,
-            )
-            if t is not None and np.isfinite(t)
-        ]
-        if not temps:
+        margin = worst_zone_margin_k((
+            ctx._current_state.room_temperature,
+            ctx._current_state.upper_floor_temperature,
+            ctx._current_state.lower_floor_temperature,
+        ), floor_c)
+        if margin is None:
             return
-        margin = min(temps) - floor_c
 
         day = now.date().isoformat()
         if self._curve_day and day != self._curve_day:
@@ -9841,14 +9837,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # measured temperature the one-step sample below uses. The window
         # is the sampling cadence itself — score only on the default
         # half-hour and every bucket whose lead is not a multiple of a
-        # coarser configured interval starves forever. A stale or frozen
-        # indoor sensor scores nothing: a frozen reading is not a
-        # measurement, and an EWMA poisoned by one persists for weeks.
+        # coarser configured interval starves forever. A stale, frozen or
+        # unconfigured (#2508: the 21.0 C default) indoor sensor scores no
+        # room: none is a measurement, and an EWMA poisoned persists weeks.
         interval_h = (
             ctx._config.optimization_interval
             / 60.0
         )
-        actual_now = ctx._current_state.room_temperature
+        actual_now = None if learner_room_unread(ctx._config) else ctx._current_state.room_temperature
         indoor_frozen = self._learning_frozen(CONF_INDOOR_TEMP_ENTITY)
         if actual_now is not None and indoor_frozen is None:
             self._accuracy.score_lead_predictions(
@@ -9876,7 +9872,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                     predicted_power_kw=pending.get("power"),
                     actual_power_kw=self._measured_power,
                     predicted_temp=pending.get("predicted_temp"),
-                    actual_temp=ctx._current_state.room_temperature,
+                    actual_temp=actual_now,
                     # #1935: the tag a post-drift recommendation excludes
                     # override rows by, rather than guessing at windows.
                     boost_space=boost.interval_boosted(pending, self),
@@ -10942,13 +10938,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             return
         # #1523: the experiment is a heat-loss learner, so it stands down on
         # the house learner's own freeze (external heat, a defrost, an open
-        # window, an unusable room or outdoor reading, the pump's freezes,
-        # which ``_learning_frozen`` ranks first) and on a mode that cannot heat.
+        # window, an unusable or unconfigured room or outdoor reading) and on
+        # a mode that cannot heat. The room half is ``learner_room_unread``.
         why = (
             f"heat pump mode {self._pump_signals.mode.label} cannot heat the house"
             if self._pump_signals.space_blocked
             else self._learning_frozen(CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY)
-        )
+        ) or learner_room_unread(getattr(ctx, "_config", None))
         if why is not None:
             self._sysid.abort(why)
             return

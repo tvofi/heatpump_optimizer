@@ -12,12 +12,16 @@
   branch, `roster_lib.default_roster_ref`); the head is `--head`, else
   `origin/main`'s tip, never the roster ref's (a reviewer must pass its PR
   head); the environment is the overlay / `HPO_CLOUD_ENV_ID`; a flag it does
-  not consume (`--topic`, `--brief`, `--repo`, `--env-id`, `--out`) refuses;
-  it renders through the same `render` (the payload is the flag path's byte
-  for byte), publishes PAYLOAD.json and PROMPT.md on origin as
-  `dispatch/<role>-<topic>` (fast-forwarded, an identical tree adds nothing, a
-  render refusal pushes nothing) and prints that ref name, the one line a
-  standing trigger is fired with; `dev/audit/harnesses/r10_flow_dispatch_mutants.py`
+  not consume (`--topic`, `--brief`, `--repo`, `--env-id`, `--out`,
+  `--publish`) refuses; it renders through the same `publish_seat` as the flag
+  path's `--publish` (the payload is that path's byte for byte), publishes
+  PAYLOAD.json and PROMPT.md on origin as `dispatch/<role>-<topic>`
+  (fast-forwarded, an identical tree adds nothing, a render refusal pushes
+  nothing) and prints that ref name, the one line a standing trigger is fired
+  with. A published payload's event is a pointer to PROMPT.md on its ref, not
+  the prompt (the runner echoes the event into the orchestrator); `--publish`
+  on the flag path publishes to `dispatch/<role>-<topic>`, else
+  `dispatch/<role>-rev-<PR>`, the same way; `dev/audit/harnesses/r10_flow_dispatch_mutants.py`
   re-runs its mutants. When: dispatching a seat to the cloud runner;
   paste the printed JSON as the trigger update, or fire the standing trigger
   with the printed ref. The measured shape of a cloud seat:

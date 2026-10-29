@@ -71,6 +71,7 @@ sweep's standing-seat liveness step keep them alive.
 - [`offline_spy.py`](instruments/offline_spy.py.md) — runs a seat instrument's `--self-test` under a throwaway HOME and counts what it reaches outside
 - [`open_pr.sh`](instruments/open_pr.sh.md) — opens a draft PR from `handoff/<topic>` as `hpo-author`, adds its own delivery row, re-pushes, prints N and the head
 - [`orchestrator_tick.py`](instruments/orchestrator_tick.py.md) — the heartbeat's dispatch list
+- [`owed_unactioned.py`](instruments/owed_unactioned.py.md) — says which tick owed lines have outlived a sweep with no live acknowledgement
 - [`plan_audit.py`](instruments/plan_audit.py.md) — P3's measuring half (R10-FLOW-AUDIT-PLAN), beside the `audit-plan` workflow
 - [`plan_page.py`](instruments/plan_page.py.md) — renders the round's plan page (HTML) from `tools/plan/replan.py`'s plan.json, the roster through `roster_lib`
 - [`plan_table.py`](instruments/plan_table.py.md) — renders the plan artifact from a wave-groups roster
@@ -96,6 +97,8 @@ sweep's standing-seat liveness step keep them alive.
 - [`selftest_wiring.py`](instruments/selftest_wiring.py.md) — refuses a self-testing file under `tools/` (widened from `tools/audit/seat/` by #2444's forward-carry) that no workflow `run:` line, comments removed, invokes with its self-test (`--check`, `--self-test`)
 - [`tick_loop.sh`](instruments/tick_loop.sh.md) — the tick's driver loop (tvofi approved, 2026-10-18)
 - [`heartbeat.sh`](instruments/heartbeat.sh.md) — the andon
+- [`beatd.py`](instruments/beatd.py.md) — the one supervised beat (R10-ORCH-BEATD arm (a))
+- [`beatd_shims/git`](instruments/beatd_shims_git.md) — the beat jobs' `git`, reached only through the `PATH` `beatd.py` builds
 - [`train.sh`](instruments/train.sh.md) — one invocation shape for `merge_train.py batch`
 - [`state_docs.py`](instruments/state_docs.py.md) — one call regenerates the four state docs (`plan_table.py`, `merge_throughput.py flow`, `resume_doc.py`, `handover_prompt.py`), commits exactly their outputs to the orphan ref `handoff/audit-r<N>-plan` at `handoff/round<N>/state/`, N the roster's round
 - [`sweep_driver.py`](instruments/sweep_driver.py.md) — the probe PR's sweep, where `workflow_run` never fires (`gate-sweep.yml` runs only from the default branch)
