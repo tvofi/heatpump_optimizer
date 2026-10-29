@@ -14,7 +14,7 @@
 # other stop exits 75. A stopped (TERM/INT/HUP, to the run or its whole group) run reaps its push's whole tree and ends
 # (pr_args.sh's pr_exit_trap); the lock is freed only once that push has ended, a SIGKILLed run's too (pr_push_hold).
 # The lock's holder leaves $WT detached once that push has ended, not holding the branch, a SIGKILLed
-# run's too.
+# run's too; a merge the run left stopped on a conflict is aborted first (P276).
 # With code sha `-` the push asks app_push.sh for --row-only (R10-ROW-ONLY-UPDATE): app_push.sh's
 # own verdict replaces the full prepr with the body contract when the push is exactly this PR's
 # row added onto its live head under the body plus this run's note, and runs prepr otherwise; its
