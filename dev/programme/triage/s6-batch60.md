@@ -1,4 +1,4 @@
-# Proposal triage, session s7, batch 60 (P278-P283)
+# Proposal triage, session s7, batch 60 (P278-P284)
 
 The rolling batch (V182) after batch 59 (#2945, merged as
 `66974d47312caa46e9817b9aeae7186e9764e560`). Facts were read at that origin/main.
@@ -283,3 +283,49 @@ Cost: about 15 lines in `cloud_relay.sh` and one self-test arm. No change to the
 
 Binding: 13 relayed updates refused in two days, plus the three manual refusals named, from a
 checkout that no caller keeps level.
+
+## P284: nothing attributes the shared REST quota to its caller
+
+Verdict: ACCEPT, as a new fly-in, R10-FLY-GH-CALL-LOG. It is the attribution that P248 named
+as the precondition for any cache. The cache stays deferred to R10-ORCH-BEATD.
+
+Source: `proposals.md` V187 (orchestrator, 2026-10-29T16:40Z). The core bucket of the shared
+token was spent at about 15:11Z (reset 15:41:30Z). The sweep's PR read went blind, and `bus.sh
+confirm` 2917 was refused three times. A 90-second `ps` sample of `gh` and `curl` spawns saw only
+`merge_train.py`. The owner asked what is hammering the REST API, and nothing could answer.
+
+Instances:
+- **P248 named this as what would change its answer.** P248 (`s6-batch50.md`, V162) deferred a
+  shared cache because "Until a consumer is attributed, a cache has no measured target". It
+  would revisit on "a second exhaustion, with the consumer that drew the bucket named". This is
+  the second recorded exhaustion. Its consumer is still unnamed, because no tool can name one.
+- **A `gh` shim sees nearly every local call.** Of the seat's tools, 21 Python files and 18 shell
+  scripts reach GitHub through the `gh` binary. Direct HTTP in-process is one call:
+  `urllib.request.urlopen` in `record_row.py` (`:882`). `gh_read.py` imports `http.client` only to
+  classify failures (`:132`). So V187's worry that "in-process Python HTTP is invisible" applies
+  to one call, not to the daemons.
+- **The shim is not on every daemon's PATH today.** Of the live daemons sampled,
+  `merge_train.py` has the `shims` directory on PATH. The tick loop, the relay and the roster loop
+  do not; the roster loop adds it inside its own loop. The fly-in measures and names each one.
+- **What exists.** The tick flags `API quota low` below 20% (`orchestrator_tick.py`, the
+  `rate_limit` read). That says the bucket is low, not who drew it.
+
+Accepted: a `gh` shim beside `seat-python`. It appends one line per call (time, parent pid and
+command, `gh` subcommand, and the API path or verb) and execs the real `gh` unchanged. Field
+values and bodies are never logged, and a log it cannot write is skipped. It is installed by
+`seat_venv.sh --install-shims`, and a reader's `--top` mode ranks callers and endpoints.
+Self-test: a stub `gh` call logs one line and returns the stub's bytes and status. A `-f body=`
+value never reaches the log. Mutation: dropping the exec pass-through fails. Null control: an
+unwritable log changes nothing.
+
+Not built: the cache and any poll change, which stay with R10-ORCH-BEATD under P248. A server-side
+attribution does not exist for one token.
+
+Blind spots, stated: the cloud seats share the token from another host, and `record_row.py`'s
+one direct read is not counted.
+
+Cost: one exec and one appended line per call, a small shell shim, a reader of about 40 lines,
+and the PATH wiring. No API call is added.
+
+Binding: two exhaustions in two days, each blinding the sweep. The owner's question has no
+answer today, and the cache P248 deferred cannot be sized without one.
