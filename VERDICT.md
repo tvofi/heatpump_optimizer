@@ -1,43 +1,25 @@
-Fix review: merge ceb41a60bfe094903a2aac8b5f3f07af4cef83a4
+Fix review: merge cf326bb3440f2d9bb49d0394ee7e75cd9e60b304
 
-bus-nonce: 63c5cfb0b5c3f5efe4282ee6865bf087
+bus-nonce: d6a90ec015330dc3386ce996a3f92e4b
 
-## Round
+## Scope
 
-Round 1. Measured head: ceb41a60bfe094903a2aac8b5f3f07af4cef83a4, which was still the PR head when this verdict was written.
-
-## Findings
-
-- `tools/audit/seat/gh_read.py:12` ("stated once in `INSTRUMENTS.md`") and `tools/audit/seat/cloud_dispatch.py:29` ("INSTRUMENTS.md has the measured shape of a cloud seat") now point one hop short: the text they mean is in `instruments/app_push.sh.md` and the cloud-seat entry, which the index links. The PR body dispositions both as resolving through the index, and the pointer still leads there in one link. Carry: dismissed: still resolves through the index, which links every entry and is pinned by the new --check index rule
+Resolution-delta review (fix-review.md step 12, #1667): the prior merge verdict was at ceb41a60; the head since moved only by two first-parent merges of origin/main (8410878f merging ddc4f1fe = ceb41a60 + main 9071062b, then cf326bb merging main 51cd66673). No authored commit beyond those merges. Round: re-review of the resolution delta, not a new round. Roles diff `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` is empty, so the contract read is current.
 
 ## Evidence
 
-- Roles current: `git diff $(merge-base)...origin/main -- dev/governance/roles/` is empty.
-- Mutation proof (ev/mutants.txt), my own mutants at the head:
-  - The owner's mutant: deleting the `push.sh` index line makes `--check` print `UNINDEXED tools/audit/seat/instruments/push.sh.md` and `1 index gap(s)`, and it exits with rc=1.
-  - Replacing the UNINDEXED append with `pass` gives `26 checks, 3 failed`, the same three names as the body.
-  - The same for MISMATCH, DUPLICATE and MISSING-file: `26 checks, 1 failed` each, each failure naming its own arm.
-  - Making `report()` ignore the gaps: `1 failed` (the rc arm).
-  - A real-tree label mismatch (`push.sh` to `pushx.sh`) gives a MISMATCH gap.
-  - Every gap kind is pinned. Restored, the self-test reports `26 checks, 0 failed`.
-- Null control: the unmutated head prints `--check`: `99 self-testing, 99 wired, 0 unwired` and `0 index gap(s)`, rc=0.
-- Move proof (ev/move_proof.txt), rebuilt with my own script rather than the fixer's:
-  - From the first commit 9a3a11edd, I removed the index's added sentence and replaced each linked line with its entry body minus the title. The result is byte-identical to the merge base's `INSTRUMENTS.md` (`cmp` rc=0).
-  - The second commit changes entry text only in `instruments/selftest_wiring.py.md` (+5 lines), as the body says.
-- Figures, re-derived:
-  - 83235 bytes at the base and 12060 at the head.
-  - 76 entries at the base and 76 files at the head.
-  - The body's "merge base b6f6ceca4" is the pre-merge base. `INSTRUMENTS.md` is identical at b6f6ceca4 and b0b2d7697, so the figure holds at the actual base.
-  - corpus `~66398 tokens, cap 66434` at the head. `--corpus-filter` lists 0 `audit/seat` paths, so the guide is outside the corpus and the flat claim follows.
-  - `MODE: SCOPED -- 0 script(s) run, 33 scoped out`.
-  - `STRUCTURE RATCHET PASSED`, `ALL 2467 ENTITY CHECKS PASSED` and `ALL 112 HARNESS HEADER CHECKS PASSED` (ev/merge_and_checks.txt).
-- Harness: the finding names no finder's harness. The packet shows "none named", and the owner's order (R10-FLY-INSTRUMENTS-SPLIT) is a restructure with the owner's mutant as its test. The check that pins it is the extended `selftest_wiring.py --check`, which is the fixer's own and is disclosed as such. I graded it with my own mutants above.
-- Class (step 6): one seam, the guide and its entry files. Programmatic readers of the guide (`git grep INSTRUMENTS`) are `tests/entities.py`, which pins the path string and still passes, plus two docstrings (see Findings). There are no `INSTRUMENTS.md#` anchor citations (ev/citations.txt).
-- `VERSION`, the manifest and `RELEASE_NOTES.md` are untouched. No golden or claim file is touched, and no budget, closure or ledger moves.
-- Merge:
-  - `git merge-tree --write-tree origin/main ceb41a60bfe094903a2aac8b5f3f07af4cef83a4` exits 0 against b0b2d7697.
-  - It exits 0 again against the moved main 593f57c44 (tree 54f5a981a). No main commit since the base touches the guide or `selftest_wiring.py`.
-  - The merged tree's index rule prints `0 index gap(s)` (ev/merge_new_main.txt). That run extracted only `tools/audit/seat`, so its self-testing count of 54 is partial and only the gap line is the evidence.
-- CI on this head (ev/check_runs.txt): all 55 check runs completed, none red. Every one is success, skipped or neutral, including `governance / instrument-self-tests`, `gate` and `budget-raise-gate`. There is no red check, so no root-cause answer is owed. The body's "Red checks: none" matches.
-- Head named in the body: the body names ceb41a60bfe094903a2aac8b5f3f07af4cef83a4, with authored code head 89078deb1 and a delivery-row-only commit on top. That matches the head measured.
-- Forward-carry: none claimed, and none needed. The change alters no later stage's procedure.
+- RESULT main-delta: main changed `tools/audit/seat/INSTRUMENTS.md` between the old base b0b2d769 and the new base 51cd66673 in four hunks (ev/main-delta-INSTRUMENTS.diff): the `cloud_dispatch.py` `--publish`/pointer-event text, the `cloud_relay.sh` `ledger.py landed` text, and new entries `owed_unactioned.py`, `beatd.py`, `beatd_shims/git`. Main has not touched `tools/audit/seat/` since 51cd66673 (origin/main now 7685a4d9).
+- RESULT placement: each of the three new entries is main's bullet verbatim in its own `instruments/` file under a `# name` title; their index lines sit in main's order (`owed_unactioned.py` between `orchestrator_tick.py` and `plan_audit.py`; `beatd.py`, `beatd_shims/git` after `heartbeat.sh`, before `train.sh`). The two changed entries carry main's text inside `cloud_dispatch.py.md` and `cloud_relay.sh.md` (ev/resolution-delta.diff).
+- RESULT nothing lost or duplicated: for every file of the PR, the PR's own +/- lines against its merge base are identical at ceb41a60 and at the head except the six files above; INSTRUMENTS.md's added lines differ only by the three new index lines. A line census of main's INSTRUMENTS.md against head's index plus all 79 entry files: 1197 non-blank lines, 0 over-represented, 1 absent (`runs offline.`, the intro line the split itself reflowed, unchanged since ceb41a60). This census and the rebuild below are my own instruments, not a finder's harness; this PR's finding has no finder harness (packet: "Finder's harness: none named"), as at the prior verdict.
+- RESULT read-back: rebuilding the flat guide from the head's index (each linked line replaced by its entry body minus the title) and diffing against main 51cd66673's INSTRUMENTS.md shows exactly the split's two intended additions, the index sentence and the `selftest_wiring.py` paragraph (ev/rebuild-vs-main.diff), matching the body's Head section.
+- RESULT check: `selftest_wiring.py --check` at head exits 0, `101 self-testing, 101 wired, 0 unwired`, `0 index gap(s)`; `--self-test` `26 checks, 0 failed`. Mutants on the merged-in entries: dropping the `beatd.py` index line gives `UNINDEXED ... beatd.py.md`, rc 1; deleting `owed_unactioned.py.md` gives `MISSING ...`, rc 1; restored clean (ev/selftest_wiring.txt).
+- RESULT figures: INSTRUMENTS.md `wc -c` 87231 at 9071062b0 and at 51cd66673, 12425 at ddc4f1fe7 and at the head; `grep -c '^- \`'` 79 at the base; 79 entry files and 79 index links at head. The seat tree is identical between ddc4f1fe7 and the head, so the body's figures taken at ddc4f1fe7 hold at cf326bb.
+- RESULT merge: `git merge-tree --write-tree origin/main cf326bb` exits 0 against origin/main 7685a4d9 (ev/merge-tree.txt); no claim file or other conflict.
+- RESULT untouched: VERSION, manifest, RELEASE_NOTES.md and tests/golden/ are not in the three-dot diff; no claim file changed, so step 4 has nothing to compare.
+- RESULT head: the PR body's Head section names cf326bb3440f2d9bb49d0394ee7e75cd9e60b304, the head measured; the live PR head was still cf326bb at verdict time.
+- RESULT CI on the head (ev/checks.txt): no run concluded failure; five runs were still in progress at read time (closures, coverage, instrument-self-tests, codeql python, one prelude). With no red check, step 11 owes no answer; the body's `## Red checks: none` agrees. The heavy runs are CI's to finish; the merge train gates on their conclusion.
+- RESULT packet: rendered rc 0, `## Refusals none`, carry_audit and figure_lint clean at the head (ev/review-packet.md).
+
+## Findings
+
+none

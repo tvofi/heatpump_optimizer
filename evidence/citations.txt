@@ -1,7 +1,0 @@
-== anchor citations
-(none above = no anchor citations)
-== tools reading INSTRUMENTS.md programmatically
-tests/entities.py
-tools/audit/seat/cloud_dispatch.py
-tools/audit/seat/gh_read.py
-tools/audit/seat/selftest_wiring.py

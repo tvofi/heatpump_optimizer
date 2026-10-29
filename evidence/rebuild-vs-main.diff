@@ -1,0 +1,11 @@
+6c6,7
+< runs offline.
+---
+> runs offline. Each linked line below indexes one instrument; its text is
+> `instruments/<name>.md`, beside this file.
+1004a1006,1010
+>   `--check` also refuses this guide's index and its `instruments/` files
+>   disagreeing: a line whose file is gone, a file linked twice or by no line,
+>   or a line naming another instrument than its file's entry. When: adding,
+>   renaming or removing an entry; its index line moves in the same pull
+>   request.

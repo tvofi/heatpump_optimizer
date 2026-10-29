@@ -1,0 +1,6 @@
+check-runs on cf326bb3440f2d9bb49d0394ee7e75cd9e60b304 (PR #2936 get_check_runs, 38 runs, read 2026-10-29 ~06:07Z):
+failure: 0
+in_progress: tests / closures, tests / coverage, governance / instrument-self-tests, codeql / Analyze (python), prelude (run 40826492034)
+success: arch-score, budget-raise-gate, codeql actions + js-ts, governance delivery-status/env-matrix/policy-docs/wave-script, hassfest, tests arch-instrument/briefs/browser/closure-scope/fast (3.14)/mutation/nightly-status/typing, validate-hacs, refresh, prelude (run 40826490948), cancel-superseded
+skipped: claims-autofix, mutation-pins, mutation-autofix, replay, nightly-ha, record, delivery-status-publish, kernel-points, arm
+neutral: CodeQL

@@ -1,14 +1,45 @@
 # Review packet #2936
-head: ceb41a60bfe094903a2aac8b5f3f07af4cef83a4
-base: b0b2d7697f8c5baaef2c082d9bf3242b57249e68
+head: cf326bb3440f2d9bb49d0394ee7e75cd9e60b304
+base: 51cd666735eb9d1eda3505144a09c828646e08f0
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
 ## Gate digest: pending
-arm id=123118881874 skipped
-cancel-superseded id=123118886602 in_progress
-prelude id=123118887018 in_progress
-refresh id=123118887193 queued
+CodeQL id=123290915404 neutral
+arch-score / arch-score id=123290751554 success
+arm id=123290627014 skipped
+budget-raise-gate / budget-raise-gate id=123290751621 success
+cancel-superseded id=123290628785 success
+codeql / Analyze (actions) id=123290751466 success
+codeql / Analyze (javascript-typescript) id=123290751512 success
+codeql / Analyze (python) id=123290751451 in_progress
+governance / delivery-status id=123290751589 success
+governance / delivery-status-publish id=123290753161 skipped
+governance / env-matrix id=123290752265 success
+governance / instrument-self-tests id=123290751523 in_progress
+governance / policy-docs id=123290751542 success
+governance / record id=123290753650 skipped
+governance / wave-script id=123290751657 success
+hassfest / hassfest id=123290751474 success
+kernel-points id=123290753099 skipped
+prelude id=123290629329 in_progress
+refresh id=123290629259 success
+tests / arch-instrument id=123290888351 success
+tests / briefs id=123290751514 success
+tests / browser id=123290888343 success
+tests / claims-autofix id=123292640523 skipped
+tests / closure-scope id=123290751616 success
+tests / closures id=123290888353 in_progress
+tests / coverage id=123290888283 in_progress
+tests / fast (3.14) id=123290888285 success
+tests / mutation id=123290751553 success
+tests / mutation-autofix id=123290974063 skipped
+tests / mutation-pins id=123290975929 skipped
+tests / nightly-ha id=123290889535 skipped
+tests / nightly-status id=123290751602 success
+tests / replay id=123290890782 skipped
+tests / typing id=123290888266 success
+validate / validate-hacs id=123290752427 success
 
 ## Refusals
 none
@@ -40,7 +71,7 @@ index 000000000..eeaf2d99a
 @@ -0,0 +1 @@
 +- [#2936](https://github.com/tvofi/heatpump_optimizer/pull/2936) — **open**, R10-FLY-INSTRUMENTS-SPLIT: split INSTRUMENTS.md so a seat reads only its part (R10-FLY-INSTRUMENTS-SPLIT)
 diff --git a/tools/audit/seat/INSTRUMENTS.md b/tools/audit/seat/INSTRUMENTS.md
-index c2a5128fe..94ee8925b 100644
+index e5045ddea..dadeb1c74 100644
 --- a/tools/audit/seat/INSTRUMENTS.md
 +++ b/tools/audit/seat/INSTRUMENTS.md
 @@ -3,7 +3,8 @@
@@ -181,7 +212,7 @@ index c2a5128fe..94ee8925b 100644
  
  ## tools/audit/seat/
  
-@@ -133,1018 +45,63 @@ have a contract: `dev/governance/roles/standing-tick.md` (the tick board),
+@@ -133,1072 +45,66 @@ have a contract: `dev/governance/roles/standing-tick.md` (the tick board),
  `dev/governance/roles/standing-roster.md` (roster ops). `pulse.py` and the
  sweep's standing-seat liveness step keep them alive.
  
@@ -309,12 +340,16 @@ index c2a5128fe..94ee8925b 100644
 -  branch, `roster_lib.default_roster_ref`); the head is `--head`, else
 -  `origin/main`'s tip, never the roster ref's (a reviewer must pass its PR
 -  head); the environment is the overlay / `HPO_CLOUD_ENV_ID`; a flag it does
--  not consume (`--topic`, `--brief`, `--repo`, `--env-id`, `--out`) refuses;
--  it renders through the same `render` (the payload is the flag path's byte
--  for byte), publishes PAYLOAD.json and PROMPT.md on origin as
--  `dispatch/<role>-<topic>` (fast-forwarded, an identical tree adds nothing, a
--  render refusal pushes nothing) and prints that ref name, the one line a
--  standing trigger is fired with; `dev/audit/harnesses/r10_flow_dispatch_mutants.py`
+-  not consume (`--topic`, `--brief`, `--repo`, `--env-id`, `--out`,
+-  `--publish`) refuses; it renders through the same `publish_seat` as the flag
+-  path's `--publish` (the payload is that path's byte for byte), publishes
+-  PAYLOAD.json and PROMPT.md on origin as `dispatch/<role>-<topic>`
+-  (fast-forwarded, an identical tree adds nothing, a render refusal pushes
+-  nothing) and prints that ref name, the one line a standing trigger is fired
+-  with. A published payload's event is a pointer to PROMPT.md on its ref, not
+-  the prompt (the runner echoes the event into the orchestrator); `--publish`
+-  on the flag path publishes to `dispatch/<role>-<topic>`, else
+-  `dispatch/<role>-rev-<PR>`, the same way; `dev/audit/harnesses/r10_flow_dispatch_mutants.py`
 -  re-runs its mutants. When: dispatching a seat to the cloud runner;
 -  paste the printed JSON as the trigger update, or fire the standing trigger
 -  with the printed ref. The measured shape of a cloud seat:
@@ -469,7 +504,9 @@ index c2a5128fe..94ee8925b 100644
 -  `handoff-no-pr` lines in `<log>.level` are `ledger.py level`'s fold of
 -  every `handoff/*` and `handoff-body/*` ref, rewritten every pass: owed unless
 -  its topic has an open pull request, it is disposed at its sha, or main
--  already carries the change (ancestry, or content: see `ledger.py`), each
+-  already carries the change (`ledger.py landed`, the one classifier `bus.sh
+-  orphans` asks too: ancestry, clean merges, reverse-apply, content), one line
+-  per topic (a body ref rides its code ref's), each
 -  with its tip's commit time and last opener attempt; a failed PR listing or
 -  ledger read leaves those lines as they were, since an empty list would make
 -  every ref look orphaned. Every event the relay owes (`verdict-unposted` at
@@ -754,6 +791,22 @@ index c2a5128fe..94ee8925b 100644
 -  roster ref: exit 1 prints one dispatch line and the unowned lines, and a
 -  run without its `CARRY-SWEEP:` summary is UNREADABLE. Its driver is
 -  `tick_loop.sh`.
+-- `owed_unactioned.py` — says which tick owed lines have outlived a sweep with
+-  no live acknowledgement (dev/audit/rca/R10-RCA-OWED-UNACTIONED.md). It reads
+-  the board's whole owed family (`-> OWED…`, `REVIEW OWED:`, `DISPATCH:`,
+-  `OWNER FLAG:`, `DESIGN-BUILD:`), keys each line on its topic or `#<pr>`, and
+-  counts in `--state` the boards each key has stood on. A key standing
+-  `--after` (2) sweeps is UNACTIONED unless an `--acks` file holds a live
+-  `OWED-ACK <UTC> <key> <id> [ttl=<h>] <reason>` whose id prefixes a sha the
+-  key carries now (7+ characters, or the whole of a non-sha ledger id; the
+-  tool's own indented `ack:` echo and a `<placeholder>` reason are refused);
+-  an acknowledgement lapses after its ttl (default 1 h, at
+-  most 12), so a handled line comes back for its handling to be checked, and
+-  free queue text covers nothing. When: every sweep, step (5) of
+-  `sweep_template.md`. Exit 0 none unactioned, 1 the UNACTIONED block (each
+-  with a ready ack line), 2 UNREADABLE: no provenance line, a board older than
+-  `--max-board-min`, an owed line it cannot key, an unreadable state.
+-  `--self-test` drives it offline.
 -- `plan_audit.py` — P3's measuring half (R10-FLOW-AUDIT-PLAN), beside the
 -  `audit-plan` workflow. `ledger` parses each merged PR's
 -  `## Architecture score` block with the parser `score.py`'s own report
@@ -1065,6 +1118,38 @@ index c2a5128fe..94ee8925b 100644
 -  call from `tick_loop.sh`. Refusal: unknown option, a non-numeric
 -  `--max-age`. `--self-test` drives both modes over a bare-repo fixture, a
 -  stale ref and a fresh one.
+-- `beatd.py` — the one supervised beat (R10-ORCH-BEATD arm (a)): `run
+-  --state S [--jobs FILE] [--once | --for N]` runs a job table, each job on
+-  its own thread and process group under `S/beatd/<job>.lock`, SIGTERM at its
+-  `timeout_s` and SIGKILL 10 s later unless the group has emptied, its leader
+-  gone or not, before the job lock drops; a `class: orch-checkout` job also holds
+-  `S/beatd/orch-checkout.lock`, waiting at most `class_wait_s` (default 60)
+-  before `outcome=busy`. Every start, heartbeat and pass is a line of
+-  `S/beatd/journal.log`. `status` prints one `JOB` line per job (`late` past
+-  `interval_s + timeout_s`, `idle` for a watch job with no instance) and the
+-  alarms `DOWN`, `ALERT lock-owner-dead`, `ALERT pulse-silent` (a `STOPPED`
+-  line of pulse.py's output in `S/beatd/pulse.txt`) and `STALE-CODE behind=`;
+-  rc 0, 1 alarm, 2 unreadable. `held` is `beatd.lock`'s one reader for other
+-  scripts: rc 0 held, 1 free. A job's env carries `HPO_BEATD_JOB`, the real git
+-  as `HPO_REAL_GIT`, `HPO_GIT_SHIM_LOG` and `beatd_shims` first on `PATH`.
+-  When: arm (b) lands the job table (`beatd.jobs.json`, absent until then)
+-  and the rows; until a supervisor unit is applied it runs under
+-  `daemonize.py` and records `supervisor=none`. Refusal (rc 2, `beatd:
+-  REFUSE`, zero jobs run): an unknown or missing key, a watch job under 60 s,
+-  an unreadable table; a first `git` on `PATH` that is absent, a shim, or does
+-  not answer `git version`. A second `run` exits 75, `ALREADY RUNNING`.
+-  `--self-test` drives cases (a)1-8 under `/bin/bash`, each with its null
+-  control, and plants each `MUTANTS` entry (at least one per case) in a temp
+-  copy, four at a time; a crashing mutant fails, it is never a kill.
+-- `beatd_shims/git` — the beat jobs' `git`, reached only through the `PATH`
+-  `beatd.py` builds (never `shims/`, which the sweep and `roster_queue.py`
+-  prepend). A `fetch` or `pull` failing on `cannot lock ref` is re-run at most
+-  `HPO_GIT_RETRIES` (default 2) more times, each retry a line of
+-  `HPO_GIT_SHIM_LOG`; anything else is `exec`'d unchanged. The real git is
+-  `HPO_REAL_GIT` when that is a regular executable file and not a shim, else
+-  the first such `git` on `PATH`, any copy recognised by its line-2 marker
+-  `# hpo-git-shim`. Refusal: no real git, `git shim: no real git on PATH`, rc
+-  127; it never execs itself. Tested by `beatd.py --self-test`, case (a)6.
 -- `train.sh` — one invocation shape for `merge_train.py batch`: the seat
 -  venv first on PATH — an absent venv refuses (naming `seat_venv.sh` to
 -  build it), it never falls back to ambient python, which on 3.11 refuses
@@ -1226,6 +1311,7 @@ index c2a5128fe..94ee8925b 100644
 +- [`offline_spy.py`](instruments/offline_spy.py.md) — runs a seat instrument's `--self-test` under a throwaway HOME and counts what it reaches outside
 +- [`open_pr.sh`](instruments/open_pr.sh.md) — opens a draft PR from `handoff/<topic>` as `hpo-author`, adds its own delivery row, re-pushes, prints N and the head
 +- [`orchestrator_tick.py`](instruments/orchestrator_tick.py.md) — the heartbeat's dispatch list
++- [`owed_unactioned.py`](instruments/owed_unactioned.py.md) — says which tick owed lines have outlived a sweep with no live acknowledgement
 +- [`plan_audit.py`](instruments/plan_audit.py.md) — P3's measuring half (R10-FLOW-AUDIT-PLAN), beside the `audit-plan` workflow
 +- [`plan_page.py`](instruments/plan_page.py.md) — renders the round's plan page (HTML) from `tools/plan/replan.py`'s plan.json, the roster through `roster_lib`
 +- [`plan_table.py`](instruments/plan_table.py.md) — renders the plan artifact from a wave-groups roster
@@ -1251,6 +1337,8 @@ index c2a5128fe..94ee8925b 100644
 +- [`selftest_wiring.py`](instruments/selftest_wiring.py.md) — refuses a self-testing file under `tools/` (widened from `tools/audit/seat/` by #2444's forward-carry) that no workflow `run:` line, comments removed, invokes with its self-test (`--check`, `--self-test`)
 +- [`tick_loop.sh`](instruments/tick_loop.sh.md) — the tick's driver loop (tvofi approved, 2026-10-18)
 +- [`heartbeat.sh`](instruments/heartbeat.sh.md) — the andon
++- [`beatd.py`](instruments/beatd.py.md) — the one supervised beat (R10-ORCH-BEATD arm (a))
++- [`beatd_shims/git`](instruments/beatd_shims_git.md) — the beat jobs' `git`, reached only through the `PATH` `beatd.py` builds
 +- [`train.sh`](instruments/train.sh.md) — one invocation shape for `merge_train.py batch`
 +- [`state_docs.py`](instruments/state_docs.py.md) — one call regenerates the four state docs (`plan_table.py`, `merge_throughput.py flow`, `resume_doc.py`, `handover_prompt.py`), commits exactly their outputs to the orphan ref `handoff/audit-r<N>-plan` at `handoff/round<N>/state/`, N the roster's round
 +- [`sweep_driver.py`](instruments/sweep_driver.py.md) — the probe PR's sweep, where `workflow_run` never fires (`gate-sweep.yml` runs only from the default branch)
@@ -1336,6 +1424,54 @@ index 000000000..9d20119db
 +  logs, with the `closures` failure heading behind each closures skip. When:
 +  judging whether the autofix chain repairs anything. Refusal: a log GitHub
 +  no longer serves is counted beside the totals, never read as a status.
+diff --git a/tools/audit/seat/instruments/beatd.py.md b/tools/audit/seat/instruments/beatd.py.md
+new file mode 100644
+index 000000000..e9276bed8
+--- /dev/null
++++ b/tools/audit/seat/instruments/beatd.py.md
+@@ -0,0 +1,25 @@
++# `beatd.py`
++
++- `beatd.py` — the one supervised beat (R10-ORCH-BEATD arm (a)): `run
++  --state S [--jobs FILE] [--once | --for N]` runs a job table, each job on
++  its own thread and process group under `S/beatd/<job>.lock`, SIGTERM at its
++  `timeout_s` and SIGKILL 10 s later unless the group has emptied, its leader
++  gone or not, before the job lock drops; a `class: orch-checkout` job also holds
++  `S/beatd/orch-checkout.lock`, waiting at most `class_wait_s` (default 60)
++  before `outcome=busy`. Every start, heartbeat and pass is a line of
++  `S/beatd/journal.log`. `status` prints one `JOB` line per job (`late` past
++  `interval_s + timeout_s`, `idle` for a watch job with no instance) and the
++  alarms `DOWN`, `ALERT lock-owner-dead`, `ALERT pulse-silent` (a `STOPPED`
++  line of pulse.py's output in `S/beatd/pulse.txt`) and `STALE-CODE behind=`;
++  rc 0, 1 alarm, 2 unreadable. `held` is `beatd.lock`'s one reader for other
++  scripts: rc 0 held, 1 free. A job's env carries `HPO_BEATD_JOB`, the real git
++  as `HPO_REAL_GIT`, `HPO_GIT_SHIM_LOG` and `beatd_shims` first on `PATH`.
++  When: arm (b) lands the job table (`beatd.jobs.json`, absent until then)
++  and the rows; until a supervisor unit is applied it runs under
++  `daemonize.py` and records `supervisor=none`. Refusal (rc 2, `beatd:
++  REFUSE`, zero jobs run): an unknown or missing key, a watch job under 60 s,
++  an unreadable table; a first `git` on `PATH` that is absent, a shim, or does
++  not answer `git version`. A second `run` exits 75, `ALREADY RUNNING`.
++  `--self-test` drives cases (a)1-8 under `/bin/bash`, each with its null
++  control, and plants each `MUTANTS` entry (at least one per case) in a temp
++  copy, four at a time; a crashing mutant fails, it is never a kill.
+diff --git a/tools/audit/seat/instruments/beatd_shims_git.md b/tools/audit/seat/instruments/beatd_shims_git.md
+new file mode 100644
+index 000000000..e3e06c840
+--- /dev/null
++++ b/tools/audit/seat/instruments/beatd_shims_git.md
+@@ -0,0 +1,11 @@
++# `beatd_shims/git`
++
++- `beatd_shims/git` — the beat jobs' `git`, reached only through the `PATH`
++  `beatd.py` builds (never `shims/`, which the sweep and `roster_queue.py`
++  prepend). A `fetch` or `pull` failing on `cannot lock ref` is re-run at most
++  `HPO_GIT_RETRIES` (default 2) more times, each retry a line of
++  `HPO_GIT_SHIM_LOG`; anything else is `exec`'d unchanged. The real git is
++  `HPO_REAL_GIT` when that is a regular executable file and not a shim, else
++  the first such `git` on `PATH`, any copy recognised by its line-2 marker
++  `# hpo-git-shim`. Refusal: no real git, `git shim: no real git on PATH`, rc
++  127; it never execs itself. Tested by `beatd.py --self-test`, case (a)6.
 diff --git a/tools/audit/seat/instruments/body_patch.sh.md b/tools/audit/seat/instruments/body_patch.sh.md
 new file mode 100644
 index 000000000..1ce30865d
@@ -1505,10 +1641,10 @@ index 000000000..873de410b
 +  exits 0, so a session still starts, without pins.
 diff --git a/tools/audit/seat/instruments/cloud_dispatch.py.md b/tools/audit/seat/instruments/cloud_dispatch.py.md
 new file mode 100644
-index 000000000..fec3c3134
+index 000000000..5c8dafdd1
 --- /dev/null
 +++ b/tools/audit/seat/instruments/cloud_dispatch.py.md
-@@ -0,0 +1,50 @@
+@@ -0,0 +1,54 @@
 +# `cloud_dispatch.py`
 +
 +- `cloud_dispatch.py` — renders the whole cloud-runner trigger payload
@@ -1523,12 +1659,16 @@ index 000000000..fec3c3134
 +  branch, `roster_lib.default_roster_ref`); the head is `--head`, else
 +  `origin/main`'s tip, never the roster ref's (a reviewer must pass its PR
 +  head); the environment is the overlay / `HPO_CLOUD_ENV_ID`; a flag it does
-+  not consume (`--topic`, `--brief`, `--repo`, `--env-id`, `--out`) refuses;
-+  it renders through the same `render` (the payload is the flag path's byte
-+  for byte), publishes PAYLOAD.json and PROMPT.md on origin as
-+  `dispatch/<role>-<topic>` (fast-forwarded, an identical tree adds nothing, a
-+  render refusal pushes nothing) and prints that ref name, the one line a
-+  standing trigger is fired with; `dev/audit/harnesses/r10_flow_dispatch_mutants.py`
++  not consume (`--topic`, `--brief`, `--repo`, `--env-id`, `--out`,
++  `--publish`) refuses; it renders through the same `publish_seat` as the flag
++  path's `--publish` (the payload is that path's byte for byte), publishes
++  PAYLOAD.json and PROMPT.md on origin as `dispatch/<role>-<topic>`
++  (fast-forwarded, an identical tree adds nothing, a render refusal pushes
++  nothing) and prints that ref name, the one line a standing trigger is fired
++  with. A published payload's event is a pointer to PROMPT.md on its ref, not
++  the prompt (the runner echoes the event into the orchestrator); `--publish`
++  on the flag path publishes to `dispatch/<role>-<topic>`, else
++  `dispatch/<role>-rev-<PR>`, the same way; `dev/audit/harnesses/r10_flow_dispatch_mutants.py`
 +  re-runs its mutants. When: dispatching a seat to the cloud runner;
 +  paste the printed JSON as the trigger update, or fire the standing trigger
 +  with the printed ref. The measured shape of a cloud seat:
@@ -1561,10 +1701,10 @@ index 000000000..fec3c3134
 +  anything else resolving `homeassistant`) with `env -u BASH_ENV`.
 diff --git a/tools/audit/seat/instruments/cloud_relay.sh.md b/tools/audit/seat/instruments/cloud_relay.sh.md
 new file mode 100644
-index 000000000..b9839a67e
+index 000000000..e8a39a7a5
 --- /dev/null
 +++ b/tools/audit/seat/instruments/cloud_relay.sh.md
-@@ -0,0 +1,133 @@
+@@ -0,0 +1,135 @@
 +# `cloud_relay.sh`
 +
 +- `cloud_relay.sh` — the orchestrator's half of a cloud reviewer's return:
@@ -1691,7 +1831,9 @@ index 000000000..b9839a67e
 +  `handoff-no-pr` lines in `<log>.level` are `ledger.py level`'s fold of
 +  every `handoff/*` and `handoff-body/*` ref, rewritten every pass: owed unless
 +  its topic has an open pull request, it is disposed at its sha, or main
-+  already carries the change (ancestry, or content: see `ledger.py`), each
++  already carries the change (`ledger.py landed`, the one classifier `bus.sh
++  orphans` asks too: ancestry, clean merges, reverse-apply, content), one line
++  per topic (a body ref rides its code ref's), each
 +  with its tip's commit time and last opener attempt; a failed PR listing or
 +  ledger read leaves those lines as they were, since an empty list would make
 +  every ref look orphaned. Every event the relay owes (`verdict-unposted` at
@@ -2227,6 +2369,30 @@ index 000000000..d5559895d
 +  roster ref: exit 1 prints one dispatch line and the unowned lines, and a
 +  run without its `CARRY-SWEEP:` summary is UNREADABLE. Its driver is
 +  `tick_loop.sh`.
+diff --git a/tools/audit/seat/instruments/owed_unactioned.py.md b/tools/audit/seat/instruments/owed_unactioned.py.md
+new file mode 100644
+index 000000000..724ccedcb
+--- /dev/null
++++ b/tools/audit/seat/instruments/owed_unactioned.py.md
+@@ -0,0 +1,18 @@
++# `owed_unactioned.py`
++
++- `owed_unactioned.py` — says which tick owed lines have outlived a sweep with
++  no live acknowledgement (dev/audit/rca/R10-RCA-OWED-UNACTIONED.md). It reads
++  the board's whole owed family (`-> OWED…`, `REVIEW OWED:`, `DISPATCH:`,
++  `OWNER FLAG:`, `DESIGN-BUILD:`), keys each line on its topic or `#<pr>`, and
++  counts in `--state` the boards each key has stood on. A key standing
++  `--after` (2) sweeps is UNACTIONED unless an `--acks` file holds a live
++  `OWED-ACK <UTC> <key> <id> [ttl=<h>] <reason>` whose id prefixes a sha the
++  key carries now (7+ characters, or the whole of a non-sha ledger id; the
++  tool's own indented `ack:` echo and a `<placeholder>` reason are refused);
++  an acknowledgement lapses after its ttl (default 1 h, at
++  most 12), so a handled line comes back for its handling to be checked, and
++  free queue text covers nothing. When: every sweep, step (5) of
++  `sweep_template.md`. Exit 0 none unactioned, 1 the UNACTIONED block (each
++  with a ready ack line), 2 UNREADABLE: no provenance line, a board older than
++  `--max-board-min`, an owed line it cannot key, an unreadable state.
++  `--self-test` drives it offline.
 diff --git a/tools/audit/seat/instruments/plan_audit.py.md b/tools/audit/seat/instruments/plan_audit.py.md
 new file mode 100644
 index 000000000..029f0bc76
