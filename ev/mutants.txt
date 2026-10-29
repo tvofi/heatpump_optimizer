@@ -1,0 +1,18 @@
+== MUTANT: return re.escape(home) + r"(?![\w-]|\.[\w-])"
+  FAIL a cloud seat's home inside a longer path segment passes: []
+ref_privacy self-test: 97 checks, 1 failed
+== MUTANT: return r"(?<![\w.-])" + re.escape(home)
+  FAIL a sibling extending the home's last segment is not that home: ['home-directory', 'host-path']
+ref_privacy self-test: 97 checks, 1 failed
+== MUTANT: return re.escape(home)
+  FAIL a cloud seat's home inside a longer path segment passes: ['home-directory']
+  FAIL a sibling extending the home's last segment is not that home: ['home-directory', 'host-path']
+  FAIL scrub rewrites the cloud home only as a whole path: see dev/governance/roles~-cause.md ~/x
+ref_privacy self-test: 97 checks, 3 failed
+== MUTANT: return r"(?<![\w-])" + re.escape(home) + r"(?![\w-]|\.[\w-])"
+ref_privacy self-test: 97 checks, 0 failed
+== MUTANT: return r"(?<![\w.-])" + re.escape(home) + r"(?![\w-])"
+ref_privacy self-test: 97 checks, 0 failed
+== MUTANT: return r"(?<![\w.-])" + re.escape(home) + r"(?![\w.-])"
+  FAIL and its home as a whole path is still refused, alone, at a start or after a quote: [['home-directory'], ['home-directory']]
+ref_privacy self-test: 97 checks, 1 failed
