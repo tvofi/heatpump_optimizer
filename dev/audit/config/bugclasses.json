@@ -4618,6 +4618,22 @@
       "doc": [
         "dev/audit/rca/R10-RCA-FRICTION-RESIDUE.md"
       ]
+    },
+    "R10-RCA-FRICTION-CLAIM-FALSE": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "recurring-friction key claim-false (#2907), 4 PRs / 8 entries in v7.0.5..origin/main at 88c6ad5bb: 18 blocking items, of which a triage ruling's rule never run on its own instance or a Cost that read no cap (3 rounds, 287 min, each the verdict's only block), typed or carried citations (5 items, no round on their own), a second V-id writer (2, closed by P219) and #2883's class-open residue (6)",
+      "trigger": "recurring-friction issue #2907 filed by the governance cron; group R10-FRICTION-CLAIM-FALSE",
+      "date": "2026-10-29",
+      "status": "proposed",
+      "parts_missing": [],
+      "process_state": "(a) for the rule replay and the cap read: proposal-triage.md required Instances cited and Cost as an estimate, and neither a run of the ruling's rule on its instances nor a cap read; (b) for typed citations (cite it, don't carry it existed); (d) for the V-ids, already countermeasured by P219",
+      "countermeasure": "proposal-triage.md: an ACCEPT runs its rule on each instance, result beside it, and Cost carries each capped file's --budgets row (paid inside the 489-token cap); a citation-resolving lint over triage batches and bodies refused by the cost test (at most 1 round saved in the window); P219 held, 0 of 52 headings in batches 45-59 carry an id",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R10-RCA-FRICTION-CLAIM-FALSE.md",
+      "doc": [
+        "dev/audit/rca/R10-RCA-FRICTION-CLAIM-FALSE.md"
+      ]
     }
   },
   "N-registry-leak": {
