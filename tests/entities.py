@@ -3837,7 +3837,7 @@ def _p2_registry(sources):
              dispositions={
                  "coordinator.py::HeatPumpOptimizerCoordinator._external_heat_config":
                      "guarded: ANDed with wood_furnace_on",
-                 "config_flow.py::HeatPumpOptimizerOptionsFlow.async_step_building":
+                 "config_flow.py::HeatPumpOptimizerOptionsFlow._building_wood_flag":
                      "guarded: normalises the flag after wood_furnace_on(merged)",
                  "thermal_model.py::ThermalParameters.from_config":
                      "guarded: under _on = wood_furnace_on(config)",
@@ -4165,6 +4165,18 @@ _P2_CENSUSES = {
     # runtime-object mixin's included.
     "finite_scrub_resolves_mro": (
         "tests/finite_boundary.py", "a package mixin with runtime base object"),
+    # R10-BUFFER-STORE (#2500): a store capability implemented at one
+    # zoning's seam and silently missing at its sibling -- three arms, so
+    # three entries; the census drives every value of the zoning domain.
+    "zoned_store_valve_live": (
+        "tests/features.py",
+        "zoned store census: the valve moves the tank in every zoning (#2500)"),
+    "zoned_store_cap_live": (
+        "tests/features.py",
+        "zoned store census: the cap books what it refuses in every zoning (#2500)"),
+    "zoned_store_credit_live": (
+        "tests/features.py",
+        "zoned store census: the terminal cost credits the tank in every zoning (#2500)"),
 }
 
 
@@ -18196,6 +18208,10 @@ def _hb_spy_run(*answers: str, rest: float = 0.05) -> tuple[bool, list[dict], in
     with tempfile.TemporaryDirectory() as tmp:
         calls, stub = Path(tmp) / "calls", Path(tmp) / "py-spy"
         cases = "".join(f"  {k}) {_HB_SPY_SAYS[a]} ;;\n" for k, a in enumerate(answers, 1))
+        # `wc` pads its count when it prints no filename column: BSD says
+        # "       1", GNU "1". The case arms need the bare number, or on a BSD
+        # host every call takes the last answer and the multi-answer fixtures
+        # below test nothing.
         stub.write_text(
             f'#!/bin/sh\necho >> "{calls}"\ncase $(wc -l < "{calls}" | tr -d " ") in\n{cases}'
             f"  *) {_HB_SPY_SAYS[answers[-1]]} ;;\nesac\n"
@@ -28315,9 +28331,12 @@ R.check(
 # younger than the step's bound: the beat auto-merged mid-train on 2026-10-15
 # (#2291, #2295, #2299), moving main under #2284 and #2290, which CI cannot
 # see because the train's pidfile is local. THE STEP IS EXECUTED, over a
-# stubbed API: the status it prints is what proves the skip happens before the
-# guard and the merge, so a check placed after them (or an inverted age
-# comparison) cannot pass. The bound is read from the step, never carried.
+# stubbed API: the status it prints and the calls it makes are what prove the
+# skip happens after the guard and the approver App's review and before the
+# merge (V118: a hold ahead of the review left #2856 unreviewed while trains
+# ran back to back, since the train's --bot-prs sweep merges on the guard
+# alone), so a check placed elsewhere (or an inverted age comparison) cannot
+# pass. The bound is read from the step, never carried.
 _HOLD_STEP = next((s for s in ((_yaml.safe_load(_NIGHTLY_YML) or {}).get("jobs") or {})
                    .get("record-autofix", {}).get("steps") or []
                    if str(s.get("id") or "") == "automerge"), {})
@@ -28330,7 +28349,8 @@ _MT_HOLD_REF = re.search(r'(?m)^HOLD_REF = "refs/heads/([\w.-]+)"',
 
 
 def _train_hold_status(code: int, body: str, pitch_rc: int = 0, guard_rc: int = 1,
-                       approver: str = "", calls: "list | None" = None) -> "tuple[str, bool]":
+                       approver: str = "", calls: "list | None" = None, green_rc: int = 1,
+                       reviews: str = "[]", run: str = "") -> "tuple[str, bool]":
     """The automerge step's `status=` and whether it warned "unreadable" over a
     stubbed API whose train-hold read answers (code, body); every other read is
     the minimum the step needs.
@@ -28345,19 +28365,21 @@ def _train_hold_status(code: int, body: str, pitch_rc: int = 0, guard_rc: int = 
     `pitch_rc` is what the stub answers `--pitch-check` with: 0 no pitch (the
     default, so the hold's own arms read as before), 4 the pitch's wait.
     `guard_rc` is the first guard's exit (the refusing default; 0 passes it,
-    and the green wait after it still refuses), `approver` the approver App's
-    token, and `calls`, when given, receives every curl argv the step ran."""
+    and the green wait after it refuses unless `green_rc` is 0), `approver` the
+    approver App's token, `reviews` the pull request's reviews read, `run` a
+    step text in place of the step's own (a mutant), and `calls`, when given,
+    receives every curl argv the step ran."""
     with tempfile.TemporaryDirectory() as td:
         t = Path(td)
         (t / "tools" / "audit" / "seat").mkdir(parents=True)
         (t / "tools" / "audit" / "seat" / "record_row.py").write_text(
-            f"import sys\nsys.exit({pitch_rc} if '--pitch-check' in sys.argv else 1 "
-            f"if '--require-green' in sys.argv else {guard_rc})\n")
+            f"import sys\nsys.exit({pitch_rc} if '--pitch-check' in sys.argv else "
+            f"{green_rc} if '--require-green' in sys.argv else {guard_rc})\n")
         answers = t / "answers.json"
         answers.write_text(json.dumps({
             "hold": {"code": code, "body": body},
             "pulls": {"code": 200, "body": json.dumps({"head": {"sha": "a" * 40}})},
-            "reviews": {"code": 200, "body": "[]"},
+            "reviews": {"code": 200, "body": reviews},
             "other": {"code": 404, "body": "{}"}}))
         bin_ = t / "bin"
         bin_.mkdir()
@@ -28383,7 +28405,7 @@ def _train_hold_status(code: int, body: str, pitch_rc: int = 0, guard_rc: int = 
         (bin_ / "curl").chmod(0o755)
         out = t / "out"
         out.write_text("")
-        p = subprocess.run(["bash", "-c", _HOLD_RUN], cwd=t, capture_output=True, text=True,
+        p = subprocess.run(["bash", "-c", run or _HOLD_RUN], cwd=t, capture_output=True, text=True,
                            env={**os.environ, "PATH": str(bin_) + os.pathsep + os.environ["PATH"],
                                 "RUNNER_TEMP": str(t), "GITHUB_OUTPUT": str(out),
                                 "REPO": "o/r", "TOKEN": "t0k", "APPROVER": approver, "NUM": "42",
@@ -28402,30 +28424,82 @@ def _hold_when(offset_s: int) -> str:
         "date": at.strftime("%Y-%m-%dT%H:%M:%SZ")}}})
 
 
+def _hold_calls(code: int, body: str, **kw) -> "tuple[str, bool, bool, bool]":
+    """(status, approver review posted, a review dismissed, merge called) for one
+    run of the automerge step with the approver App's token present."""
+    calls: list = []
+    st, _ = _train_hold_status(code, body, approver="ap0", calls=calls, **kw)
+    return (st,
+            any("POST" in c and "Authorization: Bearer ap0" in c
+                and c[-1].endswith("/pulls/42/reviews") for c in calls),
+            any("PUT" in c and c[-1].endswith("/dismissals") for c in calls),
+            any(c[-1].endswith("/merge") for c in calls))
+
+
+# A bot approval at an older head, so a refusal has one to dismiss.
+_HOLD_OLD_REVIEW = json.dumps([{"id": 7, "state": "APPROVED", "commit_id": "b" * 40,
+                                "user": {"login": "hpo-approver[bot]"}}])
+_HELD = _hold_calls(200, _hold_when(-60), guard_rc=0)
+_HELD_REFUSED = _hold_calls(200, _hold_when(-60), reviews=_HOLD_OLD_REVIEW)
 R.check(
-    "tests.yml's automerge skips while a live merge train holds the record "
-    "beat (executed, issue #2302)",
-    _HOLD_BOUND > 0
-    and _train_hold_status(200, _hold_when(-60)) == ("skip-train-hold", False),
-    f"bound={_HOLD_BOUND}, "
-    f"status={_train_hold_status(200, _hold_when(-60))!r}",
+    "nightly.yml's automerge reviews a record pull request the guard passes "
+    "under a live merge train hold, then skips the merge (executed, issue "
+    "#2302, V118)",
+    _HOLD_BOUND > 0 and _HELD == ("skip-train-hold", True, False, False),
+    f"bound={_HOLD_BOUND}, (status, reviewed, dismissed, merged)={_HELD!r}; the "
+    "train's --bot-prs sweep merges on the guard alone and leaves the review "
+    "to this beat, so a hold ahead of the review starves it (#2856)",
+)
+R.check(
+    "and under a live hold a head the guard refuses is refused, its approver "
+    "App approvals dismissed and no review posted",
+    _HELD_REFUSED == ("refused", False, True, False),
+    f"(status, reviewed, dismissed, merged)={_HELD_REFUSED!r}",
+)
+# The mutant: the hold block moved back ahead of the head read, the guard and
+# the review -- the order #2856 deadlocked under. Built from the step's own
+# text, so it tracks the block; a mutant that cannot be built is red.
+_HOLD_A = _HOLD_RUN.find("# THE TRAIN HOLD (")
+_HOLD_B = _HOLD_RUN.find("# THE PITCH (")
+_HOLD_H = _HOLD_RUN.find("HEAD=$(pr_field")
+_HOLD_MUT_OK = -1 < _HOLD_H < _HOLD_A < _HOLD_B
+_HOLD_A, _HOLD_B, _HOLD_H = (_HOLD_RUN.rfind("\n", 0, i) + 1 for i in (_HOLD_A, _HOLD_B, _HOLD_H))
+_HOLD_MUT = (_HOLD_RUN[:_HOLD_H] + _HOLD_RUN[_HOLD_A:_HOLD_B] + _HOLD_RUN[_HOLD_H:_HOLD_A]
+             + _HOLD_RUN[_HOLD_B:])
+_HELD_MUT = _hold_calls(200, _hold_when(-60), guard_rc=0, run=_HOLD_MUT) if _HOLD_MUT_OK else None
+R.check(
+    "and the hold moved back ahead of the review leaves the held head "
+    "unreviewed, so the reviewed-under-a-live-hold check sees it (mutant)",
+    _HOLD_MUT_OK and _HELD_MUT == ("skip-train-hold", False, False, False),
+    f"order ok={_HOLD_MUT_OK}, mutant (status, reviewed, dismissed, merged)={_HELD_MUT!r}",
 )
 R.check(
     "and a hold at the bound, one dated ahead of the runner's clock, an absent "
     "one (the API's own 422) and an unreadable one do not skip -- and only the "
     "unreadable ones warn (null controls)",
     _HOLD_BOUND > 0
-    and _train_hold_status(200, _hold_when(-(_HOLD_BOUND + 60))) == ("refused", False)
-    and _train_hold_status(200, _hold_when(3600)) == ("refused", False)
-    and _train_hold_status(422, "{}") == ("refused", False)
-    and _train_hold_status(404, "{}") == ("refused", False)
-    and _train_hold_status(500, "{}") == ("refused", True)
-    and _train_hold_status(200, "{}") == ("refused", True),
+    and _train_hold_status(200, _hold_when(-(_HOLD_BOUND + 60)), guard_rc=0)
+    == ("refused", False)
+    and _train_hold_status(200, _hold_when(3600), guard_rc=0) == ("refused", False)
+    and _train_hold_status(422, "{}", guard_rc=0) == ("refused", False)
+    and _train_hold_status(404, "{}", guard_rc=0) == ("refused", False)
+    and _train_hold_status(500, "{}", guard_rc=0) == ("refused", True)
+    and _train_hold_status(200, "{}", guard_rc=0) == ("refused", True),
     "a stale hold is a crashed train (no merges, so no rows go overdue); a "
     "date ahead of the reading clock is unknowable, never young (#775); the "
     "commits endpoint answers 422 for an absent ref, so that arm must be "
     "silent or every idle beat warns; an unreadable hold leaves the pre-fix "
-    "behaviour, which is the safe failure",
+    "behaviour, which is the safe failure. The guard passes, so the hold is "
+    "read; the green wait, stubbed to refuse, reports `refused`",
+)
+_HOLD_NONE = _hold_calls(422, "{}", guard_rc=0, green_rc=0)
+_HOLD_STALE = _hold_calls(200, _hold_when(-(_HOLD_BOUND + 60)), guard_rc=0, green_rc=0)
+R.check(
+    "and with no hold, or a stale one, a passing head is reviewed, passes the "
+    "pitch and merges as before (null control)",
+    _HOLD_NONE == ("merged", True, False, True)
+    and _HOLD_STALE == ("merged", True, False, True),
+    f"absent: {_HOLD_NONE!r}; stale: {_HOLD_STALE!r}",
 )
 # THE PITCH (R10-FLOW-RECORD-PITCH, Lean study K6), executed over the same
 # stub: record_row.py's `--pitch-check` answering 4 skips the merge with
@@ -28434,7 +28508,7 @@ R.check(
 # posts no review -- finds a head main's ruleset accepts (directive [7]:
 # record pull requests ride trains rather than race them). 0 proceeds to the
 # green wait; a crashed check is no pitch; a refused head never waits; a live
-# train answers first, so the hold arm is unchanged by it. The decision itself
+# train answers before the pitch, so the hold arm is unchanged by it. The decision itself
 # (a young record merge waits, a stale backlog proceeds) is record_row.py's
 # `pitch_wait`, driven both ways by its --self-test.
 _PITCH_CALLS: list = []
@@ -28445,7 +28519,7 @@ _PITCH_REVIEWED = any("POST" in c and "Authorization: Bearer ap0" in c
 _PITCH_MERGED = any(c[-1].endswith("/merge") for c in _PITCH_CALLS)
 R.check(
     "nightly.yml's automerge waits the pitch when record_row.py says so, after "
-    "the train hold, the guard and the approver App's review, before the merge "
+    "the guard, the approver App's review and the train hold, before the merge "
     "(executed)",
     _PITCH_ST == ("skip-pitch", False) and _PITCH_REVIEWED and not _PITCH_MERGED
     and _train_hold_status(200, _hold_when(-60), pitch_rc=4, guard_rc=0)
