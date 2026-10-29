@@ -1,0 +1,15 @@
+== extra mutant: s/        return m.group(1), \[m.group(2)\]/        return m.group(1), shas/
+-        return m.group(1), [m.group(2)]
++        return m.group(1), shas
+FAIL MERGE-READY: keyed #2896 on its head8, unactioned on the second sweep
+FAIL MERGE-READY: an OWED-ACK on #<N> <head8> covers it
+FAIL MERGE-READY: a new head8 re-raises
+FAIL BLOCKED-UNFIXED: keyed #2933 on its head8, unactioned on the second sweep
+FAIL BLOCKED-UNFIXED: an OWED-ACK on #<N> <head8> covers it
+FAIL BLOCKED-UNFIXED: a new head8 re-raises
+FAIL REVIEW OWED and MERGE-READY on one pull request are one key
+owed_unactioned self-test: 37 checks, 7 failed
+== extra mutant: s/(#\\d+) (\[0-9a-f\]{8})\$"/(#\\d+) ([0-9a-f]{8})"/
+-    m = re.match(r"(?:MERGE-READY|BLOCKED-UNFIXED): (#\d+) ([0-9a-f]{8})$", body)
++    m = re.match(r"(?:MERGE-READY|BLOCKED-UNFIXED): (#\d+) ([0-9a-f]{8})", body)
+owed_unactioned self-test: 37 checks, 0 failed

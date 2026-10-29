@@ -1,0 +1,3 @@
+untouched VERSION
+untouched RELEASE_NOTES.md
+untouched custom_components/heatpump_optimizer/manifest.json
