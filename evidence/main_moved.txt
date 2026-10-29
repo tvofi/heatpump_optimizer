@@ -1,0 +1,19 @@
+0265f524e Merge pull request #2940 from tvofi/record/autofix
+ba19d13c4 Merge pull request #2912 from tvofi/fix/r10-configflow-a-pr
+aa1d6720e Merge pull request #2930 from tvofi/fix/r10-rca-owed-unactioned
+67e850764 ci: record delivery rows
+607b57bf5 ci: record delivery rows
+49300b5b8 Merge remote-tracking branch 'origin/main' into fix/r10-configflow-a-pr
+55f0d1310 Merge remote-tracking branch 'origin/main' into fix/r10-rca-owed-unactioned
+aaa846f0e Merge commit '40cf99db4ae41cd56b634422a675a8a18b561c60' into fix/r10-rca-owed-unactioned
+40cf99db4 R10-RCA-OWED-UNACTIONED round 2: the tool's own output is no acknowledgement (#2930 review 1)
+39e5a3df4 Merge commit '1373f682062f8577c53b3607411ac68d89a614f9' into fix/r10-configflow-a-pr
+336602803 record: the delivery row for #2930
+1373f6820 mutation ledger: triage _entities_errors' second return errors as equivalent
+de516a4da Merge commit '4fc6a4c51ad990b04f7911807c83b245df3a2141' into r10-configflow-a
+77c88cc1e Merge remote-tracking branch 'origin/main' into r10-configflow-a
+38871a14d Merge remote-tracking branch 'origin/main' into fix/r10-rca-owed-unactioned
+c52f43c18 ci: merge main
+b70978839 R10-RCA-OWED-UNACTIONED: wire owed_unactioned.py's self-test into instrument-self-tests; its INERT READS entry
+8f97f7471 R10-RCA-OWED-UNACTIONED: owed_unactioned.py, so a sweep cannot report done while a tick owed line stands unacknowledged
+4fc6a4c51 ci: pin killed mutants
