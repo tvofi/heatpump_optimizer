@@ -1,4 +1,4 @@
-# Proposal triage, session s7, batch 60 (P278-P281)
+# Proposal triage, session s7, batch 60 (P278-P282)
 
 The rolling batch (V182) after batch 59 (#2945, merged as
 `66974d47312caa46e9817b9aeae7186e9764e560`). Facts were read at that origin/main.
@@ -192,3 +192,49 @@ Cost: about 6 lines in the same section and fixture as P279 item 2, which stays 
 
 Binding: two days of a false stale line on every pass, from a link no tool kept, fixed by reading
 the record the train already writes.
+
+## P282: the review packet owes main-graded reds an answer
+
+Verdict: ACCEPT, reframed, as a new fly-in, R10-FLY-PACKET-RED-PATHS. The exemption already
+exists. The packet does not give it the inputs it decides on. The exemption list the proposal
+would add to `review_packet.py` is REJECTED as a second copy.
+
+Source: the orchestrator's triage-queue line of 2026-10-29T11:46:16Z. #2933, #2946, #2948 and
+#2925 each had dispatch refused on `tests / nightly-status`. Each needed an orchestrator
+`body_patch`, and each patch re-triggered pr-contract and the gate (about 10 minutes).
+
+Instances:
+- **The rule.** `defect-root-cause.md` says `tests / nightly-status` and `governance /
+  delivery-status` grade `main`, so a body owes them no answer unless its diff touches what they
+  read.
+- **The rule is implemented once.** `policy_lint.mjs --pr-body` exempts both reporters, but only
+  when it is given the changed paths. With no `--paths-file` the obligation is restored on
+  purpose: its self-test's `no paths` case (`policy_lint.mjs:4447`). `prepr.sh` passes
+  `--paths-file` and `--existing-file` (`body_check`, `:858-863`), and states that the exemption
+  is "deliberately NOT copied" anywhere else (`:1239`).
+- **The packet omits the inputs.** `review_packet.py` calls `policy_lint.mjs --pr-body {BODY}
+  --head <head> --red <name>...` with no paths (`:331`), although the same function computes
+  the diff's paths as `touched` (`:321`). So every concluded nightly-status red reads as
+  red-unanswered.
+- **Reproduced.** The batch-59 body was linted with `--red 'tests / nightly-status' --red
+  typing`. With no paths, both are reported unanswered. With a `--paths-file` naming one triage
+  file and an empty `--existing-file`, only `typing` is reported. The null control holds: the
+  check still bites on a red that is not main-graded.
+
+Accepted: the packet passes `touched` as `--paths-file` and the base's existing paths as
+`--existing-file`, plus `--base`, as `prepr.sh` does. Self-test: reds nightly-status and typing
+over a test-only diff report typing alone. Mutation: dropping `--paths-file` reports both. Null
+control: a diff touching `tests/nightly_status.py` reports both.
+
+Rejected: an exemption list in `review_packet.py`. It would be the second implementation that
+`prepr.sh`'s comment refuses, and it would drift from `policy_lint.mjs`'s voiding routes (an own
+row edited, a reporter's script, no existing list).
+
+Placement: a fly-in, not a carry on R10-ORCH-REVIEW-PACKET. That group's open work is #2939
+(parked, a different function in the same file), and a carry would wait behind it. The brief
+names the overlap.
+
+Cost: about 10 lines and one self-test arm in one file.
+
+Binding: four dispatch refusals in one day, each needing a hand body patch and a re-triggered
+gate, from a call that drops two arguments its own function already has.
