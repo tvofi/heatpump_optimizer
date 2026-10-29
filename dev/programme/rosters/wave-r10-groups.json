@@ -11350,7 +11350,8 @@
     "commit": null,
     "last_step": "registered",
     "next_step": "cloud fixer dispatched",
-    "note": "orchestrator registration 2026-10-29"
+    "note": "orchestrator registration 2026-10-29",
+    "pr": 2964
    },
    "brief": "Make the nightly-ha heartbeat positive control (check_hb_positive_control in tests/nightly_ha.py, failure key hb:positive_control) deterministic on a loaded GitHub runner without weakening what it detects. Measured failure: nightly run 40806276912, job nightly-ha (stable), 2026-10-29: a 600 ms spin read as 5308.8 ms, the dump named the spin but py-spy rc=0 did not, three tries of three, which also failed run:exit_status. First count how often this key has failed across the last 30 nightly runs (gh run list --workflow nightly.yml) and state the rate with that command as its enumerator. Find the cause (sampling window, py-spy attach latency, runner CPU contention) by measurement, not argument. The fix must keep the control a control: demonstrate it still fails on a heartbeat that does not see a real spin (the defect it exists for) and passes on the fixed code, both runs in the body. Widening a timing bound or adding retries alone is not a fix unless the measurement shows the bound was wrong. Respect tests/structure_budgets.json; a raise needs the mandate path in CLAUDE.md rule 2."
   },
