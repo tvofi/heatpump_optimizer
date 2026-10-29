@@ -992,7 +992,7 @@
  {
   "id": "C111",
   "source": "README.md + docs/*.md",
-  "claim": "every external link answers 200 to a HEAD request (17 links)",
+  "claim": "every external link answers 200 to a HEAD request (19 links)",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py --links",
   "result": "not run: pass --links",
   "verdict": "unverifiable",
