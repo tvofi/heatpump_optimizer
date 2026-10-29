@@ -1,45 +1,49 @@
 # Review packet #2937
-head: 3d1c405ddbe8d9adefbbb1d26a22ba63871fd995
-base: b0b2d7697f8c5baaef2c082d9bf3242b57249e68
+head: 3ffdfa633186ab6e9eadfde8bdcc2206cec3421f
+base: 6493ea3625900f8361011e0c8f2a3c66885ce7b1
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
-## Gate digest: pending
-CodeQL id=123126697271 neutral
-arch-score / arch-score id=123126201421 in_progress
-arm id=123125863531 skipped
-budget-raise-gate / budget-raise-gate id=123126201328 success
-cancel-superseded id=123125866218 success
-codeql / Analyze (actions) id=123126201371 in_progress
-codeql / Analyze (javascript-typescript) id=123126201507 queued
-codeql / Analyze (python) id=123126201342 in_progress
-governance / delivery-status id=123126201402 queued
-governance / delivery-status-publish id=123126203960 skipped
-governance / env-matrix id=123126201365 in_progress
-governance / instrument-self-tests id=123126201662 queued
-governance / policy-docs id=123126201413 queued
-governance / record id=123126204285 skipped
-governance / wave-script id=123126201459 queued
-hassfest / hassfest id=123126201329 queued
-kernel-points id=123126203673 skipped
-prelude id=123125866733 in_progress
-refresh id=123125866675 in_progress
-tests / arch-instrument id=123126699175 queued
-tests / briefs id=123126201563 queued
-tests / browser id=123126699141 queued
-tests / closure-scope id=123126201391 success
-tests / closures id=123126699261 queued
-tests / coverage id=123126699340 queued
-tests / fast (3.14) id=123126699279 queued
-tests / mutation id=123126201390 in_progress
-tests / nightly-ha id=123126701087 skipped
-tests / nightly-status id=123126201674 queued
-tests / replay id=123126700795 skipped
-tests / typing id=123126699325 queued
-validate / validate-hacs id=123126201327 in_progress
+## Gate digest: red
+CodeQL id=123179263811 neutral
+arch-score / arch-score id=123178553927 success
+arm id=123178433079 skipped
+budget-raise-gate / budget-raise-gate id=123178553883 success
+cancel-superseded id=123182421596 success
+codeql / Analyze (actions) id=123178553879 success
+codeql / Analyze (javascript-typescript) id=123178553823 success
+codeql / Analyze (python) id=123178553857 in_progress
+governance / delivery-status id=123178553658 failure
+governance / delivery-status-publish id=123178555476 skipped
+governance / env-matrix id=123178553657 success
+governance / instrument-self-tests id=123178553745 success
+governance / policy-docs id=123178553620 success
+governance / record id=123178555405 skipped
+governance / wave-script id=123178553665 success
+hassfest / hassfest id=123178553614 success
+kernel-points id=123178554609 skipped
+prelude id=123182421754 in_progress
+refresh id=123182421430 success
+tests / arch-instrument id=123178940690 success
+tests / briefs id=123178553684 success
+tests / browser id=123178940443 success
+tests / claims-autofix id=123185020496 skipped
+tests / closure-scope id=123178553761 success
+tests / closures id=123178940551 success
+tests / closures-autofix id=123186793972 skipped
+tests / coverage id=123178940459 in_progress
+tests / fast (3.14) id=123178940606 success
+tests / mutation id=123178553841 success
+tests / mutation-autofix id=123180417197 skipped
+tests / mutation-pins id=123180417003 skipped
+tests / nightly-ha id=123178942528 skipped
+tests / nightly-status id=123178553845 success
+tests / replay id=123178941944 skipped
+tests / typing id=123178940548 success
+validate / validate-hacs id=123178554260 success
 
 ## Refusals
-none
+red-unanswered: concluded red check `governance / delivery-status` is not named in ## Red checks
 
 ## Advisories
 none
@@ -220,7 +224,7 @@ index c2a5128fe..229775fbb 100644
    paste the printed JSON as the trigger update, or fire the standing trigger
    with the printed ref. The measured shape of a cloud seat:
 diff --git a/tools/audit/seat/ci-watch.sh b/tools/audit/seat/ci-watch.sh
-index 01a6f21a9..6d95b0463 100755
+index 01a6f21a9..a17dfc4c8 100755
 --- a/tools/audit/seat/ci-watch.sh
 +++ b/tools/audit/seat/ci-watch.sh
 @@ -25,6 +25,10 @@
@@ -234,7 +238,7 @@ index 01a6f21a9..6d95b0463 100755
  
  # --------------------------------------------------------------- self-test
  self_test() {
-@@ -223,6 +227,11 @@ EOF
+@@ -223,6 +227,26 @@ EOF
    ck "W12 a gate that did not succeed (skipped; RATE-LIMITED is a failure) alerts RED: gate, never a pass" \
       "$([ $rc = 1 ] && says 'RED: gate' "$O" && echo 1 || echo 0)"
  
@@ -242,11 +246,26 @@ index 01a6f21a9..6d95b0463 100755
 +  # TTL, never under GitHub's 60 s poll floor.
 +  ck "the poll is inside [60 s, 240 s] (POLL_S=${POLL_S:-unset})" \
 +     "$([ "${POLL_S:-0}" -ge 60 ] && [ "${POLL_S:-0}" -le 240 ] && echo 1 || echo 0)"
++  # ...and the loop sleeps for it: one quiet cycle without CI_WATCH_ONCE, a
++  # stub `sleep` recording its argument. A loop that never sleeps leaves the
++  # record empty and is killed after ~10 s rather than hanging the self-test.
++  mkdir -p "$TMP/sleepbin"
++  printf '#!/bin/bash\nprintf "%%s\\n" "$1" >> "$SLEPT"\n' > "$TMP/sleepbin/sleep"
++  chmod +x "$TMP/sleepbin/sleep"
++  PATH="$TMP/sleepbin:$TMP/bin:$PATH" FIX="$TMP/w2" CI_WATCH_STATE="$TMP/s-sleep" \
++    SLEPT="$TMP/slept" bash "$WATCH" >/dev/null 2>&1 &
++  wp=$!
++  i=0
++  while [ ! -s "$TMP/slept" ] && [ $i -lt 100 ]; do sleep 0.1; i=$((i + 1)); done
++  kill "$wp" 2>/dev/null; wait "$wp" 2>/dev/null
++  slept=$(head -n 1 "$TMP/slept" 2>/dev/null)
++  ck "the loop sleeps POLL_S between cycles (slept ${slept:-never})" \
++     "$([ -n "$slept" ] && [ "$slept" = "$POLL_S" ] && echo 1 || echo 0)"
 +
    printf 'ci-watch self-test: %d checks, %d failed\n' "$((passed + failed))" "$failed"
    [ "$failed" = 0 ]
    return $?
-@@ -287,5 +296,5 @@ while true; do
+@@ -287,5 +311,5 @@ while true; do
    done
    if [ -n "$OUT" ]; then echo -e "CI-WATCH ALERT ($(date -u +%H:%MZ)): NEW state(s):$OUT"; exit 1; fi
    [ -n "${CI_WATCH_ONCE:-}" ] && exit 0
