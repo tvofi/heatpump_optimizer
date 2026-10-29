@@ -1,0 +1,47 @@
+== version untouched
+none
+== items.tsv by path
+      1 B
+      1 C
+      5 F
+      2 O
+      2 R
+      5 T
+      2 V
+== excluding 2883
+      1 C
+      2 O
+      2 R
+      5 T
+      2 V
+== roster_edit defs
+455:def ruling_verdict(src, pid):
+466:def triage_refusal(texts, read_ruling):
+== conflicting_claims_message
+0
+1844:def merge_claim_refusal(base: str, ours: str, theirs: str) -> str:
+== gate.py
+    return ("PASS" if ok else f"FAIL {why[0]}"), why, notes
+    print("\n".join([outcome] + why[1:]))
+== P219 grep new
+id-headings 0
+headings 52
+== control 35-43
+13
+== budgets row
+dev/governance/roles/proposal-triage.md           36   36      489   489 
+1956 dev/governance/roles/proposal-triage.md
+1956
+== json valid
+ok
+== fold_ledger
+fold_ledger: 47 classes, 749 instances, 121 in-tree judge survivors (rounds [8, 10]), 130 rca entries
+fold_ledger: 0 violation(s)
+== structure
+
+STRUCTURE RATCHET PASSED
+== merge-tree
+42b96dad0b5c9acc3c146e7e34d1097cbf932bdc
+rc=0
+== tag
+e8cb7e68302b1d350bb8219fea99e911170af030
