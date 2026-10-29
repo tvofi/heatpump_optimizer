@@ -10290,7 +10290,8 @@
    ],
    "resume": {
     "stage": "in-progress",
-    "branch": ""
+    "branch": "",
+    "pr": 2955
    },
    "brief": "Fixer for the errexit countermeasures that the root cause of the Nightly record-autofix batch=$? defect (R10-RCA-HOTFIX-BATCH-ERREXIT, PR #2849, hotfix #2848 e0ffb1213) proposed and the fix review of #2849 sharpened. Four carries, each quoted from #2849 handoff-body e78cd811 with its control. Land: (1) countermeasure A, the tree-wide check over errexit run: blocks including a $? read in an if/while/until test after a bare producer, with its selftest case; (2) gate-sweep.yml sweep step fix with _gs_step_verdict switched to bash -e -c, failing test first (the switch alone fails the U0c check on 3 cases); (3) countermeasure B, bash -e -c for the executed-step harnesses in tests/entities.py and tests/arch_score.py, enumerating every bash -c over workflow text with a disposition each; (4) the class proposal for the judge or orchestrator to mint. Failing test first, mutation proof, the finder harness dev/audit/harnesses/r10_errexit_capture.py (at e1a684789) at both ends. Lands after PR #2849 merges (the harness r10_errexit_capture.py is its file).",
    "architect_note": ""
