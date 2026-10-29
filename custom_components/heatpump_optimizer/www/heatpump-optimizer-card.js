@@ -10143,10 +10143,15 @@ class ExpandedDialog {
 
   /** Remember where the user was before `root` is rebuilt: the body scrolls,
    * and a plan refresh on the coordinator's schedule must not jump it back
-   * to the top mid-edit. */
+   * to the top mid-edit. A body still showing another page than the one
+   * about to be drawn (a tab was just pressed, which zeroed the offset) has
+   * no position to carry: the new page opens at its top (R10-UX-HEALTH
+   * item 3, its first row drawn under the head at the old page's offset). */
   saveScroll(root) {
     const openBody = root.querySelector("dialog.expanded .dlg-body");
-    this.scroll = openBody ? openBody.scrollTop : this.scroll || 0;
+    const shown = root.querySelector("dialog.expanded .dlg-tab.active");
+    this.scroll = openBody && (!shown || shown.dataset.page === this.activePage())
+      ? openBody.scrollTop : this.scroll || 0;
   }
 
   /** Which page an expanded dialog opens on, decided once `anyData` is known
