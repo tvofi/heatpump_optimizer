@@ -1,0 +1,42 @@
+roster main 279578074a17cb2c7f527f5e28da0de4e2006db0 and handoff/audit-r10-roster e9e3f93d279a1c4c6a53086cacafacdfb28442bd
+===== R10-FLY-LEDGER-SAMPLE
+{
+ "issues": [
+  2802
+ ],
+ "fixes": [],
+ "carry": [
+  "From #2712 (R10-DEMAND-OVERBOOK) friction item R10-PIN-DRIVE-INCONCLUSIVE (verdict/2712 at 9d5c6afe, finding-propagation.md): the tests/mutation_table.py --pin-killed baseline defect it records belongs to this group's mutation_table.py scope; settle it here. Item text from the #2712 body ## Friction: R10-PIN-DRIVE-INCONCLUSIVE: cost: `tests/mutation_table.py --pin-killed` with a red `tests/entities.py` baseline prints `MUTATION TABLE INCONCLUSIVE` and then reports every remaining site `lives` with `5 survived`, the wording of a real survivor; four of those five were killed once `entities.py` was left out (three by `tests/features.py`, one by `tests/typing_ruler.py`). Carry: R10-FLOW-JIDOKA",
+  "Measure first (#2840, main ruling under mandate 6329234399, 2026-10-26): recurring mutation-survivor friction, exactly 3 at threshold 3. Name the 3 PRs and their survivors. If they share a cause in tests/mutation_table.py, fix it here. If each survivor was answered in its own PR with no shared cause, record the refusal with that evidence, because ci-autofix.md forbids automating survivor triage. Part of #2840."
+ ],
+ "resume": {
+  "stage": "not-started",
+  "branch": null,
+  "commit": null
+ }
+}
+===== R10-FRICTION-MUTATION-SURVIVOR
+{
+ "issues": [
+  2840,
+  2942
+ ],
+ "fixes": [],
+ "carry": [
+  "`reviewer-head-off` survives `r10_flow_dispatch_mutants.py` at the base and at this head: `dispatch_group`'s \"a reviewer needs --head\" refusal is not pinned by the self-test (the arm that should kill it, `refused(role=\"reviewer\", pr=\"7\")`, is refused for another reason). Carry: R10-FRICTION-MUTATION-SURVIVOR"
+ ],
+ "resume": {
+  "stage": "in-progress",
+  "branch": null,
+  "commit": null,
+  "last_step": null,
+  "next_step": "dispatch a seat",
+  "note": "wired by the roster seat 2026-10-26 under the owner's completion rule (tvofi 20:20Z)",
+  "pr": 2961
+ }
+}
+
+grep "2 left unpinned" across every origin ref roster: no hit
+9fbc902ca 2026-10-29T03:55:24+01:00 roster_sync: derive stages from pull requests (tools/audit/seat/roster_sync.py)
+11d198e9e 2026-10-29T17:05:21+01:00 roster_edit wire-issue R10-FRICTION-MUTATION-SURVIVOR (tools/audit/seat/roster_edit.py)
+de410e4c9 2026-10-28T00:00:20+01:00 roster_sync: derive stages from pull requests (tools/audit/seat/roster_sync.py)
