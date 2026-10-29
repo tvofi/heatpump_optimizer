@@ -1,0 +1,18 @@
+edd149d14059c2806cc1bf2ccbdbd817ce6ada05 roster_edit append-carry R10-FLY-LEDGER-SAMPLE (tools/audit/seat/roster_edit.py)
+
+diff --git a/dev/programme/rosters/wave-r10-groups.json b/dev/programme/rosters/wave-r10-groups.json
+index 11d05c554..4b16a21c0 100644
+--- a/dev/programme/rosters/wave-r10-groups.json
++++ b/dev/programme/rosters/wave-r10-groups.json
+@@ -9797,7 +9797,8 @@
+    ],
+    "carry": [
+     "From #2712 (R10-DEMAND-OVERBOOK) friction item R10-PIN-DRIVE-INCONCLUSIVE (verdict/2712 at 9d5c6afe, finding-propagation.md): the tests/mutation_table.py --pin-killed baseline defect it records belongs to this group's mutation_table.py scope; settle it here. Item text from the #2712 body ## Friction: R10-PIN-DRIVE-INCONCLUSIVE: cost: `tests/mutation_table.py --pin-killed` with a red `tests/entities.py` baseline prints `MUTATION TABLE INCONCLUSIVE` and then reports every remaining site `lives` with `5 survived`, the wording of a real survivor; four of those five were killed once `entities.py` was left out (three by `tests/features.py`, one by `tests/typing_ruler.py`). Carry: R10-FLOW-JIDOKA",
+-    "Measure first (#2840, main ruling under mandate 6329234399, 2026-10-26): recurring mutation-survivor friction, exactly 3 at threshold 3. Name the 3 PRs and their survivors. If they share a cause in tests/mutation_table.py, fix it here. If each survivor was answered in its own PR with no shared cause, record the refusal with that evidence, because ci-autofix.md forbids automating survivor triage. Part of #2840."
++    "Measure first (#2840, main ruling under mandate 6329234399, 2026-10-26): recurring mutation-survivor friction, exactly 3 at threshold 3. Name the 3 PRs and their survivors. If they share a cause in tests/mutation_table.py, fix it here. If each survivor was answered in its own PR with no shared cause, record the refusal with that evidence, because ci-autofix.md forbids automating survivor triage. Part of #2840.",
++    "From #2961 (R10-FRICTION-MUTATION-SURVIVOR record), countermeasure C: `mutation-autofix` must go red when its measurement leaves an added site alive, naming each such site in its summary line. Acceptance: red on #2817's `4fbe4c6a5` measurement shape (`N pinned, 2 left unpinned`); green on `0 left unpinned`; quiet on `skip-head-moved`. This also answers this group's own #2840 carry: the survivors share one cause, which lives in the autofix's status vocabulary, not in `--pin-killed`; #2579 and #2820 are hand mutants under `tools/` with no shared cause. See that record's section 7. Re-measure against your own merge base."
+    ],
+    "model": {
+     "fixer": "sonnet",
+
+roster tip 19acc911c879b7efa8bd493d8a02fbfbd0deff17, edd149d14 is ancestor: yes

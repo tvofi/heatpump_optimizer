@@ -1,0 +1,30 @@
+head 3d3d7edd16bb4e291e865973be64e378d49c72fa
+PIN_SUMMARY = re.compile(r"^PIN KILLED: (\d+) pinned, \d+ left unpinned", re.M)
+def measurement(table: str, run: str | None, before: dict,
+                after: dict) -> tuple[str, dict]:
+    """The status and `killed_by` entries `mutation`'s measure step uploads.
+
+    Only a ratchet refusal is measured (`table` is the lane's output). The
+    status comes from the base program's OWN summary line, never from the
+    ledger diff alone: a red baseline (INCONCLUSIVE, rc 0), a refusal or a
+    crash prints no `PIN KILLED:` line and changes nothing, which a diff
+    would read as "every site survived" -- the #523 class, measured by the
+    #1599 review. `run` is None when the base had no `--pin-killed`.
+    """
+    if not UNPINNED_REFUSAL.search(table):
+        return "skip-not-unpinned", {}
+    if run is None:
+        return "skip-no-base-program", {}
+    if "PIN KILLED: nothing to pin" in run:
+        return "skip-nothing-drivable", {}
+    summary = PIN_SUMMARY.search(run)
+    old = before.get("killed_by", {})
+    added = {k: v for k, v in after.get("killed_by", {}).items() if old.get(k) != v}
+    if summary is None or (int(summary.group(1)) > 0) != bool(added):
+        return "skip-measure-failed", {}
+    return ("measured" if added else "skip-nothing-killed"), added
+
+
+def apply_pins(pins_dir: str, head: str) -> str:
+    "mutation-autofix": ("changed", "skip-not-allowed", "skip-not-unpinned",
+                         "skip-nothing-killed", "skip-head-moved"),

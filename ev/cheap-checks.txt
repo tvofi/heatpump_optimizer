@@ -1,0 +1,16 @@
+
+RULES-SYNC ok: every generated rule is the generated form of its source
+.claude/rules/ci-autofix.md                       91   96     1469  1469 
+at 88c6ad5bb:
+.claude/rules/ci-autofix.md                       89   96     1468  1469 
+.claude/rules/ci-autofix.md
+.cursor/rules/ci-autofix.mdc
+dev/audit/rca/R10-RCA-MUTATION-SURVIVOR.md
+dev/audit/rca/mutation-survivor/mutblocks.py
+dev/audit/rca/mutation-survivor/mutblocks.tsv
+dev/audit/rca/mutation-survivor/pin2817.txt
+dev/audit/rca/mutation-survivor/pinsbefore.sh
+dev/audit/rca/mutation-survivor/stats_v7.0.4.txt
+dev/governance/rules/ci-autofix.md
+dev/programme/delivery/2961.md
+cc=28 merges=285 (git diff --quiet loop over git rev-list --first-parent --merges v7.0.4..88c6ad5bb)
