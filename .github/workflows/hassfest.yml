@@ -1,8 +1,8 @@
 name: Hassfest
 
-# A called workflow of ci.yml's umbrella: the caller owns the triggers, the
-# run-id concurrency group and the grant (`contents: read`). It takes no inputs
-# and no secrets.
+# A called workflow of ci.yml's umbrella and of marketplace.yml's weekly
+# schedule: each caller owns the triggers, the run-id concurrency group and the
+# grant (`contents: read`). It takes no inputs and no secrets.
 on:
   workflow_call:
 
