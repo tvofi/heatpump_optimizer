@@ -11041,9 +11041,9 @@
    ],
    "carry": [],
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-fly-sweep-defaults",
-    "commit": "d8b6a3a8df343a0c4dd512a340ad3594e8e52012",
+    "commit": "9df0fe679eab7f44c8dbb26c3ff6cda4244b94a0",
     "last_step": null,
     "next_step": "review the handoff",
     "note": "Owner order (tvofi, 2026-10-28)",
