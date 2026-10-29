@@ -1,0 +1,2980 @@
+diff --git a/tools/audit/seat/INSTRUMENTS.md b/tools/audit/seat/INSTRUMENTS.md
+index 94ee8925b..dadeb1c74 100644
+--- a/tools/audit/seat/INSTRUMENTS.md
++++ b/tools/audit/seat/INSTRUMENTS.md
+@@ -71,6 +71,7 @@ sweep's standing-seat liveness step keep them alive.
+ - [`offline_spy.py`](instruments/offline_spy.py.md) — runs a seat instrument's `--self-test` under a throwaway HOME and counts what it reaches outside
+ - [`open_pr.sh`](instruments/open_pr.sh.md) — opens a draft PR from `handoff/<topic>` as `hpo-author`, adds its own delivery row, re-pushes, prints N and the head
+ - [`orchestrator_tick.py`](instruments/orchestrator_tick.py.md) — the heartbeat's dispatch list
++- [`owed_unactioned.py`](instruments/owed_unactioned.py.md) — says which tick owed lines have outlived a sweep with no live acknowledgement
+ - [`plan_audit.py`](instruments/plan_audit.py.md) — P3's measuring half (R10-FLOW-AUDIT-PLAN), beside the `audit-plan` workflow
+ - [`plan_page.py`](instruments/plan_page.py.md) — renders the round's plan page (HTML) from `tools/plan/replan.py`'s plan.json, the roster through `roster_lib`
+ - [`plan_table.py`](instruments/plan_table.py.md) — renders the plan artifact from a wave-groups roster
+@@ -96,6 +97,8 @@ sweep's standing-seat liveness step keep them alive.
+ - [`selftest_wiring.py`](instruments/selftest_wiring.py.md) — refuses a self-testing file under `tools/` (widened from `tools/audit/seat/` by #2444's forward-carry) that no workflow `run:` line, comments removed, invokes with its self-test (`--check`, `--self-test`)
+ - [`tick_loop.sh`](instruments/tick_loop.sh.md) — the tick's driver loop (tvofi approved, 2026-10-18)
+ - [`heartbeat.sh`](instruments/heartbeat.sh.md) — the andon
++- [`beatd.py`](instruments/beatd.py.md) — the one supervised beat (R10-ORCH-BEATD arm (a))
++- [`beatd_shims/git`](instruments/beatd_shims_git.md) — the beat jobs' `git`, reached only through the `PATH` `beatd.py` builds
+ - [`train.sh`](instruments/train.sh.md) — one invocation shape for `merge_train.py batch`
+ - [`state_docs.py`](instruments/state_docs.py.md) — one call regenerates the four state docs (`plan_table.py`, `merge_throughput.py flow`, `resume_doc.py`, `handover_prompt.py`), commits exactly their outputs to the orphan ref `handoff/audit-r<N>-plan` at `handoff/round<N>/state/`, N the roster's round
+ - [`sweep_driver.py`](instruments/sweep_driver.py.md) — the probe PR's sweep, where `workflow_run` never fires (`gate-sweep.yml` runs only from the default branch)
+diff --git a/tools/audit/seat/beatd.py b/tools/audit/seat/beatd.py
+new file mode 100644
+index 000000000..f13015d16
+--- /dev/null
++++ b/tools/audit/seat/beatd.py
+@@ -0,0 +1,1264 @@
++#!/usr/bin/env python3
++"""beatd.py -- the one supervised beat: a job table run on a schedule, never an agent loop.
++
++    python3 -I tools/audit/seat/beatd.py run --state S [--jobs FILE] [--repo DIR]
++        [--once | --for SECONDS]
++    python3 -I tools/audit/seat/beatd.py status --state S [--jobs FILE] [--repo DIR]
++        [--pulse FILE] [--now EPOCH]
++    python3 -I tools/audit/seat/beatd.py held --state S
++    python3 -I tools/audit/seat/beatd.py --self-test
++
++WHY THIS EXISTS (R10-ORCH-BEATD, design note on design/R10-ORCH-BEATD 32e249d2e,
++arm (a)). The programme's daemons were hand-launched, one per seat, with no
++bookkeeping, and agent-hosted loops ended their turns and went silent. This is
++the engine that replaces them: one process, a table of jobs, a journal. Arm (a)
++ships the engine and no production table; the rows are arm (b)'s.
++
++THE TABLE. `{"version": 1, "class_wait_s": 60, "jobs": [...]}`; `class_wait_s`
++is optional (default 60). Each job has exactly the keys `name`, `argv` (a list;
++an argv[0] holding `/` is relative to the repository; `$S` in any argument is
++the state directory), `cwd` (`orch`, the beat's checkout, or a path),
++`interval_s`, `timeout_s`, `heartbeat_s` (seconds or null), `env_pass` (names
++passed through from the beat's environment), `class` (null or
++`orch-checkout`) and `kind` (`periodic`: started every interval; `watch`:
++restarted interval_s after its instance ends). An unknown or missing key, a
++wrong type, a duplicate name, `interval_s < 60` on a watch job, or an
++unreadable file refuses: `beatd: REFUSE <reason>`, rc 2, and zero jobs run.
++
++RUN. `run` holds `S/beatd/beatd.lock` (a second run exits 75, `ALREADY
++RUNNING`). Each job runs on its own thread, in its own process group, under
++`S/beatd/<job>.lock` (held elsewhere: `outcome=locked`). At timeout_s the group
++gets SIGTERM, and SIGKILL 10 s later unless it has emptied, even when its
++leader exited on the SIGTERM (`outcome=timeout`). A class job holds
++`S/beatd/<class>.lock` for its whole run and waits at most class_wait_s for it,
++then records `outcome=busy`. A lock file holds its owner's pid while held and
++is emptied on release, so a non-empty lock whose pid is dead is an owner that
++died holding it. A job's environment is HOME, USER, LOGNAME, LANG, LC_ALL,
++TMPDIR, SHELL, its env_pass names, `HPO_BEATD_JOB=<name>`, `HPO_REAL_GIT`,
++`HPO_GIT_SHIM_LOG=S/beatd/git-retry.log`, the ref-lock timeout
++(`core.filesRefLockTimeout=30000` through GIT_CONFIG_COUNT), and PATH with
++`beatd_shims` first. The real git is resolved once, before that prepend: the
++first `git` on the beat's own PATH, canonicalised; it refuses rc 2 when there
++is none, when it is a shim (line 2 `# hpo-git-shim`), or when it does not
++answer `--version` with `git version`. `--once` runs each job once; `--for N`
++stops scheduling after N seconds. Either way the run waits for its jobs.
++
++JOURNAL (`S/beatd/journal.log`), one line per event:
++    START <utc> beatd pid=<p> code=<HEAD sha> supervisor=<HPO_BEATD_SUPERVISOR|none>
++    RUNNING <utc> <job> pid=<p> elapsed=<s>   (at start, then every heartbeat_s)
++    PASS <utc> <job> start=<utc> dur=<s> rc=<rc> outcome=ok|failed|timeout|locked|busy|unreadable
++    STOP <utc> beatd pid=<p>
++
++STATUS. One `JOB <name> <state> age=<s> last=<outcome>` line per job, where
++state is `late` (age since its last PASS, or since START, exceeds interval_s +
++timeout_s), `running`, `idle` (a watch job with no instance), `ok`, or the last
++outcome when that is not ok. Then the alarms: `DOWN` (beatd.lock free),
++`ALERT lock-owner-dead <lock> pid=<p>`, `ALERT pulse-silent <pulse line>` for
++each `PULSE <arm> STOPPED` line of the pulse file (default S/beatd/pulse.txt,
++pulse.py's output; absent prints `pulse=none`), and `STALE-CODE behind=<n>`
++when the START code is behind origin/main. rc 0 clean, 1 any alarm (late,
++DOWN, a non-ok last outcome, an ALERT, STALE-CODE), 2 unreadable (table,
++journal line, or the staleness read). An unreadable input is never clean.
++
++HELD. `held` is beatd.lock's one reader for other scripts: rc 0 and
++`held pid=<p>` while a beat holds it, rc 1 `free` otherwise. Its probe is a
++shared non-blocking flock released at once; `run` retries its own lock for
++0.6 s, so a probe never costs a starting beat its instance.
++
++Not here, stated: no job row (arm (b)), no refusal in any other script (arms
++(b), (c)), and no supervisor unit (host config the owner applies; until then
++`supervisor=none`).
++"""
++from __future__ import annotations
++
++import argparse
++import fcntl
++import json
++import os
++import re
++import signal
++import subprocess
++import sys
++import threading
++import time
++from concurrent.futures import ThreadPoolExecutor
++from pathlib import Path
++
++ROOT = Path(__file__).resolve().parents[3]
++SHIMS = Path(__file__).resolve().parent / "beatd_shims"
++MARKER = "# hpo-git-shim"
++KEYS = {"name", "argv", "cwd", "interval_s", "timeout_s", "heartbeat_s",
++        "env_pass", "class", "kind"}
++CLASSES = {None, "orch-checkout"}
++KINDS = {"periodic", "watch"}
++BASE_ENV = ("HOME", "USER", "LOGNAME", "LANG", "LC_ALL", "TMPDIR", "SHELL")
++KILL_GRACE_S = 10.0
++OUTCOMES = ("ok", "failed", "timeout", "locked", "busy", "unreadable")
++LINE_RE = re.compile(
++    r"^(?:START \S+ beatd pid=\d+ code=\S+ supervisor=\S+"
++    r"|RUNNING \S+ \S+ pid=\d+ elapsed=\d+"
++    r"|PASS \S+ \S+ start=\S+ dur=\d+ rc=-?\d+ outcome=(?:%s)"
++    r"|STOP \S+ beatd pid=\d+)$" % "|".join(OUTCOMES))
++
++
++class Refuse(Exception):
++    """A refusal: printed as `beatd: REFUSE <reason>`, rc 2."""
++
++
++def utc(t: float | None = None) -> str:
++    return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(time.time() if t is None else t))
++
++
++def parse_utc(s: str) -> float:
++    import calendar
++    return float(calendar.timegm(time.strptime(s, "%Y-%m-%dT%H:%M:%SZ")))
++
++
++# ---------------------------------------------------------------- the table
++
++def load_table(path: Path) -> dict:
++    """The validated table, or Refuse. Never a partial table."""
++    try:
++        doc = json.loads(path.read_text())
++    except (OSError, ValueError) as e:
++        raise Refuse(f"job table {path} unreadable: {e}") from None
++    if not isinstance(doc, dict) or set(doc) - {"version", "class_wait_s", "jobs"} \
++            or doc.get("version") != 1 or not isinstance(doc.get("jobs"), list):
++        raise Refuse(f"job table {path}: want {{version: 1, jobs: [...]}} "
++                     "(optional class_wait_s), nothing else")
++    wait = doc.get("class_wait_s", 60)
++    if not isinstance(wait, (int, float)) or isinstance(wait, bool) or wait < 0:
++        raise Refuse("class_wait_s must be a number >= 0")
++    seen: set[str] = set()
++    for i, j in enumerate(doc["jobs"]):
++        if not isinstance(j, dict) or set(j) != KEYS:
++            got = set(j) if isinstance(j, dict) else set()
++            raise Refuse(f"job {i}: keys must be exactly {sorted(KEYS)}; "
++                         f"unknown {sorted(got - KEYS)}, missing {sorted(KEYS - got)}")
++        name = j["name"]
++        if not isinstance(name, str) or not re.fullmatch(r"[a-z0-9][a-z0-9-]*", name) \
++                or name in seen or name == "beatd" or name in CLASSES:
++            raise Refuse(f"job {i}: bad or duplicate name {name!r}")
++        seen.add(name)
++        if not (isinstance(j["argv"], list) and j["argv"]
++                and all(isinstance(a, str) and a for a in j["argv"])):
++            raise Refuse(f"{name}: argv must be a non-empty list of strings")
++        if not isinstance(j["cwd"], str) or not j["cwd"]:
++            raise Refuse(f"{name}: cwd must be 'orch' or a path")
++        for k in ("interval_s", "timeout_s"):
++            v = j[k]
++            if not isinstance(v, (int, float)) or isinstance(v, bool) or v <= 0:
++                raise Refuse(f"{name}: {k} must be a positive number")
++        hb = j["heartbeat_s"]
++        if hb is not None and (not isinstance(hb, (int, float)) or isinstance(hb, bool) or hb <= 0):
++            raise Refuse(f"{name}: heartbeat_s must be a positive number or null")
++        if not (isinstance(j["env_pass"], list) and all(isinstance(e, str) for e in j["env_pass"])):
++            raise Refuse(f"{name}: env_pass must be a list of names")
++        if j["class"] not in CLASSES:
++            raise Refuse(f"{name}: class must be null or orch-checkout")
++        if j["kind"] not in KINDS:
++            raise Refuse(f"{name}: kind must be periodic or watch")
++        if j["kind"] == "watch" and j["interval_s"] < 60:
++            raise Refuse(f"{name}: a watch job's interval_s must be >= 60")
++    return {"class_wait_s": float(wait), "jobs": doc["jobs"]}
++
++
++# ---------------------------------------------------------------- locks
++
++class Lock:
++    """An flock'd file holding its owner's pid; emptied on release."""
++
++    def __init__(self, path: Path):
++        self.path, self.fd = path, None
++
++    def take(self, wait_s: float = 0.0, step: float = 0.2) -> bool:
++        fd = os.open(self.path, os.O_RDWR | os.O_CREAT, 0o600)  # owner-only, as gate_lock.py
++        deadline = time.monotonic() + wait_s
++        while True:
++            try:
++                fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
++                break
++            except OSError:
++                if time.monotonic() >= deadline:
++                    os.close(fd)
++                    return False
++                time.sleep(step)
++        os.ftruncate(fd, 0)
++        os.write(fd, f"pid={os.getpid()}\n".encode())
++        self.fd = fd
++        return True
++
++    def drop(self) -> None:
++        if self.fd is not None:
++            os.ftruncate(self.fd, 0)
++            fcntl.flock(self.fd, fcntl.LOCK_UN)
++            os.close(self.fd)
++            self.fd = None
++
++
++def lock_pid(path: Path) -> int | None:
++    try:
++        m = re.match(r"pid=(\d+)", path.read_text())
++    except OSError:
++        return None
++    return int(m.group(1)) if m else None
++
++
++def pid_alive(pid: int) -> bool:
++    try:
++        os.kill(pid, 0)
++    except ProcessLookupError:
++        return False
++    except PermissionError:
++        return True
++    return True
++
++
++def held(state: Path) -> int | None:
++    """The holder's pid (0 when unrecorded) while beatd.lock is held, else None."""
++    path = state / "beatd" / "beatd.lock"
++    if not path.exists():
++        return None
++    fd = os.open(path, os.O_RDONLY)
++    try:
++        fcntl.flock(fd, fcntl.LOCK_SH | fcntl.LOCK_NB)
++    except OSError:
++        return lock_pid(path) or 0
++    else:
++        fcntl.flock(fd, fcntl.LOCK_UN)
++        return None
++    finally:
++        os.close(fd)
++
++
++# ---------------------------------------------------------------- real git
++
++def is_shim(path: str) -> bool:
++    try:
++        with open(path, errors="replace") as f:
++            f.readline()
++            return f.readline().rstrip("\n") == MARKER
++    except OSError:
++        return False
++
++
++def resolve_git(path_var: str) -> str:
++    """The first `git` on path_var, canonicalised, or Refuse (none, a shim, not git)."""
++    for d in path_var.split(os.pathsep):
++        c = os.path.join(d or ".", "git")
++        if os.path.isfile(c) and os.access(c, os.X_OK):
++            real = os.path.join(os.path.realpath(d or "."), "git")
++            break
++    else:
++        raise Refuse("no git on PATH")
++    if is_shim(real):
++        raise Refuse(f"the first git on PATH is a shim ({real}); "
++                     "run the beat with the real git's directory first")
++    try:
++        out = subprocess.run([real, "--version"], capture_output=True, text=True,
++                             timeout=30).stdout
++    except (OSError, subprocess.TimeoutExpired) as e:
++        raise Refuse(f"{real} --version failed: {e}") from None
++    if not out.startswith("git version"):
++        raise Refuse(f"{real} does not answer --version with 'git version'")
++    return real
++
++
++# ---------------------------------------------------------------- the beat
++
++def kill_group(pgid: int, at: float) -> None:
++    """SIGKILL process group pgid at `at`, unless it empties first. A timed-out
++    job whose leader exits on SIGTERM can leave a descendant that ignores it;
++    the job lock must not drop while that descendant runs."""
++    try:
++        while time.time() < at:
++            os.killpg(pgid, 0)
++            time.sleep(0.1)
++        os.killpg(pgid, signal.SIGKILL)
++    except ProcessLookupError:  # the group is empty
++        pass
++
++
++def next_start(kind: str, prev: float, start: float, end: float, interval_s: float) -> float:
++    """A periodic job's next start is on its grid (prev, or this start when it
++    ran late); a watch job restarts interval_s after its instance ends."""
++    return (end if kind == "watch" else max(prev, start)) + interval_s
++
++
++class Beat:
++    def __init__(self, state: Path, table: dict, repo: Path, real_git: str):
++        self.dir = state / "beatd"
++        self.state, self.table, self.repo, self.git = state, table, repo, real_git
++        self.jlock = threading.Lock()
++        self.stop = threading.Event()
++        self.procs: dict[str, subprocess.Popen] = {}
++
++    def journal(self, line: str) -> None:
++        with self.jlock, open(self.dir / "journal.log", "a") as f:
++            f.write(line + "\n")
++
++    def env(self, job: dict) -> dict:
++        e = {k: os.environ[k] for k in (*BASE_ENV, *job["env_pass"]) if k in os.environ}
++        e.update(HPO_BEATD_JOB=job["name"], HPO_REAL_GIT=self.git,
++                 HPO_GIT_SHIM_LOG=str(self.dir / "git-retry.log"),
++                 GIT_CONFIG_COUNT="1", GIT_CONFIG_KEY_0="core.filesRefLockTimeout",
++                 GIT_CONFIG_VALUE_0="30000",
++                 PATH=os.pathsep.join([str(SHIMS), os.environ.get("PATH", "")]))
++        return e
++
++    def argv(self, job: dict) -> list[str]:
++        a = [x.replace("$S", str(self.state)) for x in job["argv"]]
++        if "/" in a[0] and not os.path.isabs(a[0]):
++            a[0] = str(self.repo / a[0])
++        return a
++
++    def run_one(self, job: dict) -> None:
++        name, t0 = job["name"], time.time()
++        rc, outcome = -1, "ok"
++        jl = Lock(self.dir / f"{name}.lock")
++        cl = Lock(self.dir / f"{job['class']}.lock") if job["class"] else None
++        if not jl.take():
++            outcome = "locked"
++        elif cl and not cl.take(self.table["class_wait_s"]):
++            outcome = "busy"
++        else:
++            rc, outcome = self.supervise(job, t0)
++        if cl:
++            cl.drop()
++        jl.drop()
++        self.journal(f"PASS {utc()} {name} start={utc(t0)} dur={int(time.time() - t0)} "
++                     f"rc={rc} outcome={outcome}")
++
++    def supervise(self, job: dict, t0: float) -> tuple[int, str]:
++        cwd = str(self.repo) if job["cwd"] == "orch" else job["cwd"]
++        with open(self.dir / f"{job['name']}.out", "ab") as out:
++            try:
++                p = subprocess.Popen(self.argv(job), cwd=cwd, env=self.env(job),
++                                     stdin=subprocess.DEVNULL, stdout=out,
++                                     stderr=subprocess.STDOUT, start_new_session=True)
++            except OSError:
++                return -1, "unreadable"
++            self.procs[job["name"]] = p
++            hb = job["heartbeat_s"]
++            beat = t0
++            self.journal(f"RUNNING {utc()} {job['name']} pid={p.pid} elapsed=0")
++            outcome, kill_at = None, None
++            while p.poll() is None:
++                now = time.time()
++                if outcome is None and now - t0 >= job["timeout_s"]:
++                    outcome, kill_at = "timeout", now + KILL_GRACE_S
++                    os.killpg(p.pid, signal.SIGTERM)
++                elif kill_at is not None and now >= kill_at:
++                    os.killpg(p.pid, signal.SIGKILL)
++                    kill_at = None
++                elif hb and now - beat >= hb:
++                    beat = now
++                    self.journal(f"RUNNING {utc()} {job['name']} pid={p.pid} "
++                                 f"elapsed={int(now - t0)}")
++                time.sleep(0.1)
++            if kill_at is not None:  # the leader exited inside the grace; the group may not have
++                kill_group(p.pid, kill_at)
++            self.procs.pop(job["name"], None)
++        rc = p.returncode
++        return rc, outcome or ("ok" if rc == 0 else "failed")
++
++    def loop(self, job: dict, once: bool) -> None:
++        nxt = time.time()
++        while not self.stop.is_set():
++            start = time.time()
++            self.run_one(job)
++            if once:
++                return
++            nxt = next_start(job["kind"], nxt, start, time.time(), job["interval_s"])
++            self.stop.wait(max(0.0, nxt - time.time()))
++
++    def code(self) -> str:
++        r = subprocess.run([self.git, "-C", str(self.repo), "rev-parse", "HEAD"],
++                           capture_output=True, text=True)
++        return r.stdout.strip() if r.returncode == 0 and r.stdout.strip() else "unknown"
++
++    def run(self, once: bool, for_s: float | None) -> int:
++        sup = os.environ.get("HPO_BEATD_SUPERVISOR") or "none"
++        self.journal(f"START {utc()} beatd pid={os.getpid()} code={self.code()} supervisor={sup}")
++        threads = [threading.Thread(target=self.loop, args=(j, once), daemon=True)
++                   for j in self.table["jobs"]]
++        for t in threads:
++            t.start()
++
++        def term(*_):
++            self.stop.set()
++            for p in list(self.procs.values()):
++                try:
++                    os.killpg(p.pid, signal.SIGTERM)
++                except OSError:
++                    pass
++        signal.signal(signal.SIGTERM, term)
++        if for_s is not None:
++            tm = threading.Timer(for_s, self.stop.set)
++            tm.daemon = True
++            tm.start()
++        for t in threads:
++            while t.is_alive():
++                t.join(0.2)
++        self.journal(f"STOP {utc()} beatd pid={os.getpid()}")
++        return 0
++
++
++def cmd_run(a) -> int:
++    state = Path(a.state)
++    table = load_table(Path(a.jobs))
++    real = resolve_git(os.environ.get("PATH", ""))
++    d = state / "beatd"
++    d.mkdir(parents=True, exist_ok=True)
++    inst = Lock(d / "beatd.lock")
++    if not inst.take(wait_s=0.6):
++        print(f"beatd: ALREADY RUNNING pid={lock_pid(d / 'beatd.lock')}", file=sys.stderr)
++        return 75
++    try:
++        return Beat(state, table, Path(a.repo).resolve(), real).run(a.once, a.for_s)
++    finally:
++        inst.drop()
++
++
++# ---------------------------------------------------------------- status
++
++def read_journal(path: Path) -> list[str]:
++    if not path.exists():
++        return []
++    lines = path.read_text().splitlines()
++    for i, ln in enumerate(lines, 1):
++        if not LINE_RE.match(ln):
++            raise Refuse(f"journal line {i} unreadable: {ln[:80]!r}")
++    return lines
++
++
++def status(state: Path, table: dict, repo: Path, pulse: Path, now: float,
++           git: str = "git") -> tuple[int, list[str]]:
++    d = state / "beatd"
++    lines = read_journal(d / "journal.log")
++    out, alarms = [], 0
++    start, code = None, None
++    last: dict[str, tuple[float, str]] = {}
++    running: dict[str, int] = {}
++    for ln in lines:
++        f = ln.split()
++        if f[0] == "START":
++            start, code = parse_utc(f[1]), f[4].split("=", 1)[1]
++            running.clear()
++        elif f[0] == "RUNNING":
++            running[f[2]] = int(f[3].split("=", 1)[1])
++        elif f[0] == "PASS":
++            last[f[2]] = (parse_utc(f[1]), f[-1].split("=", 1)[1])
++            running.pop(f[2], None)
++    pid = held(state)
++    if pid is None:
++        running.clear()  # no beat: a RUNNING line with no PASS is a dead instance
++    for j in table["jobs"]:
++        n = j["name"]
++        t, outcome = last.get(n, (start, "none"))
++        age = int(now - t) if t is not None else -1
++        if n in running:
++            st = "running"
++        elif j["kind"] == "watch":
++            st = "idle"
++        elif t is None or age > j["interval_s"] + j["timeout_s"]:
++            st = "late"
++        else:
++            st = "ok" if outcome in ("ok", "none") else outcome
++        if st == "idle" and outcome not in ("ok", "none"):
++            st = outcome
++        if st not in ("ok", "running", "idle"):
++            alarms += 1
++        out.append(f"JOB {n} {st} age={age} last={outcome}")
++    if pid is None:
++        out.append("DOWN beatd.lock is free" + (f" (last START {utc(start)})" if start else ""))
++        alarms += 1
++    for lk in sorted(d.glob("*.lock")) if d.is_dir() else []:
++        p = lock_pid(lk)
++        if p is not None and not pid_alive(p):
++            out.append(f"ALERT lock-owner-dead {lk.name} pid={p}")
++            alarms += 1
++    if pulse.exists():
++        for ln in pulse.read_text().splitlines():
++            if re.match(r"^PULSE \S+ STOPPED\b", ln):
++                out.append(f"ALERT pulse-silent {ln}")
++                alarms += 1
++    else:
++        out.append("pulse=none")
++    rc = 0
++    if code and code != "unknown":
++        r = subprocess.run([git, "-C", str(repo), "rev-list", "--count", f"{code}..origin/main"],
++                           capture_output=True, text=True)
++        if r.returncode or not r.stdout.strip().isdigit():
++            out.append(f"UNREADABLE code-staleness {(r.stderr or r.stdout).strip()[-80:]}")
++            rc = 2
++        elif int(r.stdout) > 0:
++            out.append(f"STALE-CODE behind={int(r.stdout)} code={code[:12]}")
++            alarms += 1
++    out.append(f"beatd status: {len(table['jobs'])} jobs, {alarms} alarms at {utc(now)}")
++    return rc or (1 if alarms else 0), out
++
++
++def cmd_status(a) -> int:
++    state = Path(a.state)
++    pulse = Path(a.pulse) if a.pulse else state / "beatd" / "pulse.txt"
++    rc, out = status(state, load_table(Path(a.jobs)), Path(a.repo), pulse,
++                     float(a.now) if a.now is not None else time.time())
++    print("\n".join(out))
++    return rc
++
++
++def cmd_held(a) -> int:
++    pid = held(Path(a.state))
++    print("free" if pid is None else f"held pid={pid}")
++    return 1 if pid is None else 0
++
++
++def main(argv: list[str]) -> int:
++    if argv[:1] == ["--self-test"]:  # [case ...] [--no-mutants] narrow it, for a seat
++        rest = [x for x in argv[1:] if x != "--no-mutants"]
++        return self_test(rest or None, "--no-mutants" not in argv)
++    ap = argparse.ArgumentParser(prog="beatd.py")
++    sub = ap.add_subparsers(dest="cmd", required=True)
++    for name in ("run", "status", "held"):
++        p = sub.add_parser(name)
++        p.add_argument("--state", required=True)
++        if name != "held":
++            p.add_argument("--jobs", default=str(Path(__file__).with_name("beatd.jobs.json")))
++            p.add_argument("--repo", default=str(ROOT))
++    r = sub.choices["run"]
++    g = r.add_mutually_exclusive_group()
++    g.add_argument("--once", action="store_true")
++    g.add_argument("--for", dest="for_s", type=float)
++    s = sub.choices["status"]
++    s.add_argument("--pulse")
++    s.add_argument("--now", type=float)
++    a = ap.parse_args(argv)
++    try:
++        return {"run": cmd_run, "status": cmd_status, "held": cmd_held}[a.cmd](a)
++    except Refuse as e:
++        print(f"beatd: REFUSE {e}", file=sys.stderr)
++        return 2
++
++
++# ---------------------------------------------------------------- self-test
++# Every fixture is a temp directory; bash fixtures run under /bin/bash (3.2 on
++# macOS: no bash-4 construct, no empty-array expansion under set -u). Each case
++# has a null control, and MUTANTS below plants one predicate change per case in
++# a temp copy and asserts that case goes red on it.
++
++SELF = Path(__file__).resolve()
++MUTANT_WORKERS = 4
++SHIM = SHIMS / "git"
++SELFTEST_MARK = "# " + "-" * 64 + " self-test"
++
++
++def _job(name, argv, **kw):
++    j = {"name": name, "argv": argv, "cwd": "orch", "interval_s": 3600, "timeout_s": 60,
++         "heartbeat_s": None, "env_pass": [], "class": None, "kind": "periodic"}
++    j.update(kw)
++    return j
++
++
++def _table(w: Path, jobs, **top) -> Path:
++    p = w / f"jobs{len(list(w.glob('jobs*.json')))}.json"
++    p.write_text(json.dumps({"version": 1, **top, "jobs": jobs}))
++    return p
++
++
++def _beat(prog: Path, *args, env=None, timeout=120) -> subprocess.CompletedProcess:
++    return subprocess.run([sys.executable, "-I", str(prog), *map(str, args)],
++                          capture_output=True, text=True, env=env, timeout=timeout)
++
++
++def _jr(state: Path) -> list[str]:
++    p = state / "beatd" / "journal.log"
++    return p.read_text().splitlines() if p.exists() else []
++
++
++def _passes(state: Path, job: str) -> list[str]:
++    return [x for x in _jr(state) if x.startswith("PASS ") and x.split()[2] == job]
++
++
++def case1(prog, w):
++    """(a)1 a malformed table runs zero jobs; null: the well-formed one runs it."""
++    mark = w / "ran"
++    good = _job("touch", ["/usr/bin/touch", str(mark)])
++    res = {}
++    other = {**good, "name": "other"}
++    for label, bad in (("unknown key", {**other, "extra": 1}),
++                       ("missing key", {k: v for k, v in other.items() if k != "kind"}),
++                       ("watch under 60 s", {**other, "kind": "watch", "interval_s": 30})):
++        s = w / f"s1-{label.replace(' ', '')}"
++        r = _beat(prog, "run", "--state", s, "--jobs", _table(w, [good, bad]), "--once")
++        res[label] = (r.returncode == 2 and "beatd: REFUSE" in r.stderr
++                      and not mark.exists() and not _jr(s))
++    s = w / "s1-unreadable"
++    (w / "garbage.json").write_text("{")
++    r = _beat(prog, "run", "--state", s, "--jobs", w / "garbage.json", "--once")
++    res["unreadable"] = r.returncode == 2 and "REFUSE" in r.stderr and not mark.exists()
++    r = _beat(prog, "run", "--state", w / "s1-null", "--jobs", _table(w, [good]), "--once")
++    res["null: good table runs"] = r.returncode == 0 and mark.exists()
++    return res
++
++
++def case2(prog, w):
++    """(a)2 a second run exits 75; null: after the first ends, a run gets the lock."""
++    s = w / "s2"
++    t = _table(w, [_job("sleep", ["/bin/sleep", "4"])])
++    first = subprocess.Popen([sys.executable, "-I", str(prog), "run", "--state", str(s),
++                              "--jobs", str(t), "--once"], umask=0o022,
++                             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
++    for _ in range(100):
++        if any(x.startswith("RUNNING") for x in _jr(s)):
++            break
++        time.sleep(0.1)
++    held_rc = _beat(prog, "held", "--state", s).returncode
++    second = _beat(prog, "run", "--state", s, "--jobs", t, "--once")
++    first.wait(60)
++    modes = [(s / "beatd" / f).stat().st_mode & 0o777 if (s / "beatd" / f).exists() else None
++             for f in ("beatd.lock", "sleep.lock")]
++    third = _beat(prog, "run", "--state", s, "--jobs", _table(w, [_job("t", ["/usr/bin/true"])]),
++                  "--once")
++    res = {"second run exits 75": second.returncode == 75 and "ALREADY RUNNING" in second.stderr,
++           "held reads 0 while it runs": held_rc == 0,
++           "lock files are owner-only under umask 022": modes == [0o600, 0o600],
++           "null: a run after the first exits 0": first.returncode == 0 and third.returncode == 0}
++    return {**res, **_case2_term(prog, w)}
++
++
++def _case2_term(prog, w):
++    """SIGTERM to a scheduling beat TERMs its running group and stops it: rc 0, the
++    job's PASS, then STOP. Null: the job was running, unfinished, when the signal went."""
++    s = w / "s2-term"
++    t = _table(w, [_job("long", ["/bin/sleep", "300"], timeout_s=600)])
++    beat = subprocess.Popen([sys.executable, "-I", str(prog), "run", "--state", str(s),
++                             "--jobs", str(t)], stdout=subprocess.DEVNULL,
++                            stderr=subprocess.DEVNULL)
++    for _ in range(200):
++        if any(x.startswith("RUNNING") for x in _jr(s)):
++            break
++        time.sleep(0.1)
++    mid = _jr(s)
++    beat.send_signal(signal.SIGTERM)
++    try:
++        rc = beat.wait(20)
++    except subprocess.TimeoutExpired:
++        beat.kill()
++        rc = None
++    for ln in _jr(s):
++        if ln.startswith("RUNNING "):
++            try:
++                os.killpg(int(ln.split()[3].split("=", 1)[1]), signal.SIGKILL)
++            except OSError:
++                pass
++    jr, lp = _jr(s), _passes(s, "long")
++    return {"SIGTERM stops the beat and TERMs its job: rc 0, PASS rc=-15, STOP":
++            rc == 0 and len(lp) == 1 and lp[0].endswith("rc=-15 outcome=failed")
++            and jr[-1].startswith("STOP "),
++            "null: the job was running when the beat got SIGTERM":
++            any(x.startswith("RUNNING ") for x in mid) and not _passes_in(mid, "long")}
++
++
++def _passes_in(lines: list[str], job: str) -> list[str]:
++    return [x for x in lines if x.startswith("PASS ") and x.split()[2] == job]
++
++
++def _zombie(pid: int) -> bool:
++    """Killed but unreaped: a container whose pid 1 reaps no orphans keeps it (Linux /proc)."""
++    try:
++        return Path(f"/proc/{pid}/stat").read_text().rsplit(")", 1)[1].split()[0] == "Z"
++    except (OSError, IndexError):
++        return False
++
++
++def _gone(pidf: Path) -> bool:
++    """The pid in pidf is dead (or a zombie); a survivor is killed here, after the read."""
++    time.sleep(0.5)
++    gc = int(pidf.read_text()) if pidf.exists() else None
++    gone = gc is not None and (not pid_alive(gc) or _zombie(gc))
++    if gc and not gone:
++        os.kill(gc, signal.SIGKILL)
++    return gone
++
++
++def _stubborn(prog, w, label: str, leader_ignores: bool) -> tuple[bool, bool, list[str]]:
++    """A timed-out job whose grandchild ignores SIGTERM; its leader too when leader_ignores.
++    Returns (one PASS outcome=timeout, the grandchild gone when the beat returned, PASS lines)."""
++    import shlex
++    s, pf = w / f"s3-{label}", w / f"{label}.pid"
++    inner = f"trap '' TERM; echo $$ > {pf}; exec sleep 300"
++    outer = ("trap '' TERM; " if leader_ignores else "") + f"bash -c {shlex.quote(inner)} & wait"
++    try:
++        r = _beat(prog, "run", "--state", s, "--jobs",
++                  _table(w, [_job(label, ["/bin/bash", "-c", outer], timeout_s=2)]),
++                  "--once", timeout=40)
++        rc = r.returncode
++    except subprocess.TimeoutExpired:
++        rc = None
++    gone = _gone(pf)
++    for ln in _jr(s):
++        if ln.startswith("RUNNING "):
++            try:
++                os.killpg(int(ln.split()[3].split("=", 1)[1]), signal.SIGKILL)
++            except OSError:
++                pass
++    p = _passes(s, label)
++    return rc == 0 and len(p) == 1 and p[0].endswith("outcome=timeout"), gone, p
++
++
++def case3(prog, w):
++    """(a)3 over-time reads timeout and its group is gone; in-time reads ok; a heartbeat
++    job journals RUNNING past elapsed=0 (null: one with none journals RUNNING once).
++    A grandchild ignoring SIGTERM is SIGKILLed after the grace although its leader
++    exited on the TERM, before the beat moves on; null: a leader ignoring it too.
++    Both arms read the grace from the PASS dur: not before KILL_GRACE_S, nor long after."""
++    import shlex
++    s = w / "s3"
++    pidf, mark = w / "grandchild.pid", w / "termed"
++    trapper = f"trap 'echo TERM > {mark}; exit 0' TERM; sleep 300 & wait"
++    slow = _job("slow", ["/bin/bash", "-c", f"sleep 300 & echo $! > {pidf}; "
++                         f"bash -c {shlex.quote(trapper)} & wait"], timeout_s=2, heartbeat_s=1)
++    fast = _job("fast", ["/bin/sleep", "0"], timeout_s=30)
++    r = _beat(prog, "run", "--state", s, "--jobs", _table(w, [slow, fast]), "--once", timeout=60)
++    gone = _gone(pidf)
++    sp = _passes(s, "slow")
++    fp = _passes(s, "fast")
++    beats = [x for x in _jr(s) if x.startswith("RUNNING ") and x.split()[2] == "slow"]
++    st_ok, st_gone, st_p = _stubborn(prog, w, "stubborn", leader_ignores=False)
++    nl_ok, nl_gone, nl_p = _stubborn(prog, w, "both", leader_ignores=True)
++    st_beats = [x for x in _jr(w / "s3-stubborn") if x.startswith("RUNNING ")]
++    # SIGKILL comes KILL_GRACE_S after the TERM at timeout_s=2, never sooner; beatd's own dur
++    def graced(p: list[str]) -> bool:
++        d = int(re.search(r" dur=(\d+) ", p[0]).group(1)) if p else -1
++        return 2 + KILL_GRACE_S <= d <= 2 + KILL_GRACE_S + 5
++    return {"over-time job reads timeout": r.returncode == 0 and len(sp) == 1
++            and sp[0].endswith("outcome=timeout"),
++            "its process group was killed": gone,
++            "its process group took SIGTERM before any SIGKILL": mark.exists(),
++            "null: in-time job reads ok": len(fp) == 1 and fp[0].endswith("outcome=ok"),
++            "a heartbeat job journals RUNNING past elapsed=0":
++            any(int(x.rsplit("=", 1)[1]) >= 1 for x in beats),
++            "null: a job with no heartbeat journals RUNNING once": len(st_beats) == 1,
++            "a TERM-ignoring grandchild is killed after its leader exits": st_ok and st_gone
++            and graced(st_p),
++            "null: a leader ignoring TERM too is killed at the grace, rc -9":
++            nl_ok and nl_gone and "rc=-9 " in nl_p[0] and graced(nl_p)}
++
++
++def case4(prog, w):
++    """(a)4 a slow job does not delay a fast one; null: the fast job alone runs as often."""
++    s = w / "s4"
++    t = _table(w, [_job("slow", ["/bin/sleep", "5"], interval_s=1),
++                   _job("fast", ["/usr/bin/true"], interval_s=1)])
++    def run(state, table):
++        try:
++            return _beat(prog, "run", "--state", state, "--jobs", table, "--for", "4",
++                         timeout=30).returncode
++        except subprocess.TimeoutExpired:  # a beat that never stops scheduling
++            return None
++    rc = run(s, t)
++    fast, slow = _passes(s, "fast"), _passes(s, "slow")
++    s0 = w / "s4-null"
++    run(s0, _table(w, [_job("fast", ["/usr/bin/true"], interval_s=1)]))
++    alone = _passes(s0, "fast")
++    first_slow = parse_utc(slow[0].split()[1]) if slow else 0.0
++    before = [x for x in fast if parse_utc(x.split()[1]) < first_slow]
++    sched = _load(prog).next_start
++    return {"fast passes while slow runs": rc == 0 and len(slow) == 1 and len(before) >= 3,
++            "null: fast alone passes as often": len(alone) >= 3,
++            # a watch job's interval_s is >= 60, past a fixture's budget: the rule, not a run
++            "a watch job restarts interval_s after its instance ends":
++            sched("watch", 160.0, 100.0, 130.0, 60) == 190.0,
++            "null: a periodic job keeps its grid, or restarts from a late start":
++            sched("periodic", 160.0, 100.0, 130.0, 60) == 220.0
++            and sched("periodic", 100.0, 150.0, 170.0, 60) == 210.0}
++
++
++def _load(prog: Path):
++    """The beatd module at prog (the tree under test, a mutant copy included)."""
++    import importlib.util
++    spec = importlib.util.spec_from_file_location(f"beatd_under_test_{os.getpid()}", prog)
++    mod = importlib.util.module_from_spec(spec)
++    spec.loader.exec_module(mod)
++    return mod
++
++
++def case5(prog, w):
++    """(a)5 class jobs never interleave; a third past class_wait_s is busy.
++    Null: the same two jobs with no class do overlap."""
++    def pair(cls, label, wait=60, third=False):
++        s = w / f"s5-{label}"
++        log = w / f"{label}.log"
++        body = f'echo "start $HPO_BEATD_JOB" >> {log}; sleep 2; echo "end $HPO_BEATD_JOB" >> {log}'
++        jobs = [_job(n, ["/bin/bash", "-c", body], **{"class": cls}) for n in ("one", "two")]
++        if third:
++            jobs.append(_job("three", ["/bin/bash", "-c", body], **{"class": cls}))
++        _beat(prog, "run", "--state", s, "--jobs", _table(w, jobs, class_wait_s=wait), "--once")
++        ev = log.read_text().split("\n") if log.exists() else []
++        return s, [x for x in ev if x]
++    _, ev = pair("orch-checkout", "class")
++    serial = len(ev) == 4 and ev[0].split()[0] == "start" and ev[1].split()[0] == "end" \
++        and ev[0].split()[1] == ev[1].split()[1]
++    _, ev0 = pair(None, "noclass")
++    overlap = len(ev0) == 4 and [x.split()[0] for x in ev0[:2]] == ["start", "start"]
++    s3, _ = pair("orch-checkout", "busy", wait=1, third=True)
++    busy = [x for x in _jr(s3) if x.startswith("PASS ") and x.endswith("outcome=busy")]
++    return {"class jobs never interleave": serial,
++            "null: class-less jobs overlap": overlap,
++            "past class_wait_s records busy": len(busy) == 2}
++
++
++RACE = r'''
++set -u
++W=$1; SHIMDIR=$2; MODE=$3
++cd "$W"
++( SLOW=1 git -C c fetch -q origin ) & sleep 1
++p=$PATH; [ "$MODE" = noshim ] || p=$SHIMDIR:$PATH
++if [ "$MODE" = child ]; then
++  env PATH="$p" bash -c 'git -C c fetch -q origin' 2>"$W/err"; rc=$?
++else
++  env PATH="$p" git -C c fetch -q origin 2>"$W/err"; rc=$?
++fi
++wait
++echo "rc=$rc same=$([ "$(git -C c rev-parse origin/main)" = "$(git -C up rev-parse main)" ] && echo 1 || echo 0) err=$(grep -c 'cannot lock ref' "$W/err")"
++'''
++
++
++def _shim_env(w: Path, retries="2") -> dict:
++    """The beat's job env for a git child, as Beat.env builds it (no PATH: the fixture sets it)."""
++    real = resolve_git(os.environ.get("PATH", ""))
++    e = {k: v for k, v in os.environ.items() if k in BASE_ENV}
++    e.update(PATH=os.environ.get("PATH", ""), HPO_REAL_GIT=real,
++             HPO_GIT_SHIM_LOG=str(w / "retry.log"), HPO_GIT_RETRIES=retries,
++             GIT_CONFIG_COUNT="1", GIT_CONFIG_KEY_0="core.filesRefLockTimeout",
++             GIT_CONFIG_VALUE_0="30000")
++    return e
++
++
++def _race_repos(w: Path) -> str:
++    """up and its clone c under w, built by tests/throwaway_git.py; c's
++    reference-transaction hook holds the ref lock 3 s when SLOW is set; up is
++    one commit ahead. Returns the real git."""
++    sys.path.insert(0, str(ROOT / "tests"))
++    from throwaway_git import throwaway_git_clone, throwaway_git_init
++    real = resolve_git(os.environ.get("PATH", ""))
++    w.mkdir(parents=True, exist_ok=True)
++    env = throwaway_git_init(w / "up", "-q", "-b", "main", git=(real,))
++    commit = [real, "commit", "-q", "--allow-empty", "-m"]
++    subprocess.run([*commit, "a"], cwd=w / "up", env=env, check=True, capture_output=True)
++    throwaway_git_clone(w / "up", w / "c", "-q", git=(real,))
++    hook = w / "c" / ".git" / "hooks" / "reference-transaction"
++    hook.write_text('#!/bin/sh\n[ "$1" = prepared ] && [ -n "${SLOW:-}" ] && sleep 3\nexit 0\n')
++    hook.chmod(0o755)
++    subprocess.run([*commit, "r"], cwd=w / "up", env=env, check=True, capture_output=True)
++    return real
++
++
++def _race(w: Path, shimdir: Path, mode: str, retries="2") -> dict:
++    _race_repos(w)
++    r = subprocess.run(["/bin/bash", "-c", RACE, "race", str(w), str(shimdir), mode],
++                       capture_output=True, text=True, env=_shim_env(w, retries), timeout=120)
++    m = re.search(r"rc=(\d+) same=(\d) err=(\d+)", r.stdout)
++    log = w / "retry.log"
++    return {"rc": int(m.group(1)) if m else -1, "same": m and m.group(2) == "1",
++            "err": int(m.group(3)) if m else -1,
++            "retries": len(log.read_text().splitlines()) if log.exists() else 0}
++
++
++DISCOVERY = r'''
++set -u
++W=$1; SHIM=$2; REALDIR=$3
++mkdir -p "$W/a/tools/audit/seat/beatd_shims" "$W/b" "$W/empty" "$W/rg" "$W/fake"
++cp "$SHIM" "$W/a/tools/audit/seat/beatd_shims/git"; cp "$SHIM" "$W/b/git"
++printf '#!/bin/sh\necho not-git\n' > "$W/fake/git"; chmod +x "$W/fake/git"
++cd "$W/a"
++bound() { "$@" & p=$!; ( /bin/sleep 5; kill -9 $p 2>/dev/null ) & k=$!; wait $p; r=$?; kill $k 2>/dev/null; wait $k 2>/dev/null; [ $r = 137 ] && r=124; return $r; }
++run() { out=$(PATH="$2" HPO_REAL_GIT="${3:-}" bound git --version 2>&1); r=$?; echo "$1|$r|${out%%$'\n'*}"; }
++S=$W/a/tools/audit/seat/beatd_shims; B=$REALDIR:/usr/bin:/bin
++run absolute             "$S:$B"
++run relative             "tools/audit/seat/beatd_shims:$B"
++run trailing-slash       "$S/:$B"
++run two-copies           "$S:$W/b:$B"
++run duplicate            "$S:$S:$B"
++run real-git-is-shim     "$S:$B" "$W/b/git"
++run real-git-is-dir      "$S:$B" "$W/empty"
++run no-real-git          "$S:$W/b:$W/empty"
++'''
++
++
++def _discovery(w: Path, shim: Path) -> dict:
++    w.mkdir(parents=True, exist_ok=True)
++    real = resolve_git(os.environ.get("PATH", ""))
++    r = subprocess.run(["/bin/bash", "-c", DISCOVERY, "disc", str(w), str(shim),
++                        os.path.dirname(real)], capture_output=True, text=True,
++                       env={k: v for k, v in os.environ.items() if k in BASE_ENV}, timeout=120)
++    out = {}
++    for ln in r.stdout.splitlines():
++        name, rc, text = (ln.split("|", 2) + ["", ""])[:3]
++        out[name] = (int(rc), text)
++    return out
++
++
++def case6(prog, w, shim=SHIM):
++    """(a)6 the two-fetcher race, discovery, and the beat's own git refusals."""
++    sd = shim.parent
++    res = {}
++    fx = _race(w / "r-fix", sd, "shim")
++    res["race: B through the shim exits 0, origin/main current, a retry logged"] = (
++        fx["rc"] == 0 and fx["same"] and fx["retries"] >= 1)
++    nl = _race(w / "r-null", sd, "noshim")
++    res["null: B with no shim exits 1 with cannot lock ref"] = nl["rc"] == 1 and nl["err"] >= 1
++    ch = _race(w / "r-child", sd, "child")
++    res["race through a child inherits the shim"] = ch["rc"] == 0 and ch["retries"] >= 1
++    e = _shim_env(w / "plain")
++    (w / "plain").mkdir()
++    e["PATH"] = f"{sd}:{e['PATH']}"
++    st = subprocess.run(["git", "-C", str(ROOT), "status", "--short"], env=e,
++                        capture_output=True, text=True)
++    res["git status through the shim logs no retry"] = (
++        st.returncode == 0 and not (w / "plain" / "retry.log").exists())
++    sys.path.insert(0, str(ROOT / "tests"))
++    from throwaway_git import throwaway_git_init
++    throwaway_git_init(w / "plain", "-q")
++    fe = subprocess.run(["git", "-C", str(w / "plain"), "fetch", "nowhere"], env=e,
++                        capture_output=True, text=True)
++    res["a missing remote fails once, git's message, no retry"] = (
++        fe.returncode != 0 and "nowhere" in fe.stderr
++        and not (w / "plain" / "retry.log").exists())
++    d = _discovery(w / "disc", shim)
++    for c in ("absolute", "relative", "trailing-slash", "two-copies", "duplicate",
++              "real-git-is-shim", "real-git-is-dir"):
++        rc, text = d.get(c, (-1, ""))
++        res[f"discovery {c}: rc 0 within 5 s"] = rc == 0 and text.startswith("git version")
++    rc, text = d.get("no-real-git", (-1, ""))
++    res["discovery no-real-git: rc 127, one line"] = (
++        rc == 127 and text == "git shim: no real git on PATH")
++    t = _table(w, [_job("t", ["/usr/bin/true"])])
++    for label, path in (("a shim", f"{w / 'disc' / 'b'}:{os.environ.get('PATH', '')}"),
++                        ("not git", f"{w / 'disc' / 'fake'}:{os.environ.get('PATH', '')}"),
++                        ("no git", "/nonexistent")):
++        r = _beat(prog, "run", "--state", w / f"s6-{label.replace(' ', '')}", "--jobs", t,
++                  "--once", env=dict(os.environ, PATH=path))
++        res[f"beatd refuses rc 2 when its git is {label}"] = (
++            r.returncode == 2 and "REFUSE" in r.stderr)
++    r = _beat(prog, "run", "--state", w / "s6-null", "--jobs", t, "--once")
++    res["null: beatd with the real git first runs"] = r.returncode == 0
++    return res
++
++
++def case6_beat(prog, w):
++    """(a)6 through the beat itself: B as a beat job retries; its env carries the shim."""
++    s = w / "s6b"
++    rw = w / "r-beat"
++    real = g = _race_repos(rw)
++    a = subprocess.Popen(["/bin/bash", "-c", f"SLOW=1 {g} -C {rw}/c fetch -q origin"],
++                         stderr=subprocess.DEVNULL)
++    time.sleep(1)
++    t = _table(w, [_job("fetch", ["/bin/bash", "-c",
++                                  f'env > {rw}/env; git -C {rw}/c fetch -q origin'],
++                        timeout_s=60)])
++    r = _beat(prog, "run", "--state", s, "--jobs", t, "--once")
++    a.wait(60)
++    p = _passes(s, "fetch")
++    log = s / "beatd" / "git-retry.log"
++    envs = (rw / "env").read_text() if (rw / "env").exists() else ""
++    return {"beat job B exits ok through the shim": r.returncode == 0 and len(p) == 1
++            and p[0].endswith("outcome=ok"),
++            "beat job's retry lands in S/beatd/git-retry.log": log.exists()
++            and len(log.read_text().splitlines()) >= 1,
++            "job env: HPO_BEATD_JOB, HPO_REAL_GIT, shim first": "HPO_BEATD_JOB=fetch" in envs
++            and f"HPO_REAL_GIT={real}" in envs and f"PATH={SHIMS}" in envs}
++
++
++def case7(prog, w):
++    """(a)7 status: each alarm against a fixture; null: a healthy fixture has none."""
++    real = resolve_git(os.environ.get("PATH", ""))
++    repo = w / "repo7"
++    sys.path.insert(0, str(ROOT / "tests"))
++    from throwaway_git import throwaway_git_init
++    env = throwaway_git_init(repo, "-q", "-b", "main", git=(real,))
++    # every call under the throwaway env: commit-tree needs its identity on a runner with none
++    g = lambda *a: subprocess.run([real, "-C", str(repo), *a], check=True, env=env,
++                                  capture_output=True, text=True).stdout.strip()
++    subprocess.run([real, "commit", "-q", "--allow-empty", "-m", "a"], cwd=repo, env=env,
++                   check=True, capture_output=True)
++    old = g("rev-parse", "HEAD")
++    g("update-ref", "refs/remotes/origin/main", old)
++    now = 1_800_000_000.0
++    jobs = [_job("p", ["/usr/bin/true"], interval_s=300, timeout_s=60),
++            _job("w", ["/usr/bin/true"], interval_s=300, timeout_s=60, kind="watch")]
++    tbl = _table(w, jobs)
++
++    def fixture(label, lines, hold=True, lock=None, pulse=None, head=old):
++        s = w / f"s7-{label}"
++        (s / "beatd").mkdir(parents=True)
++        (s / "beatd" / "journal.log").write_text("".join(x + "\n" for x in lines))
++        g("update-ref", "refs/remotes/origin/main", head)
++        holder = None
++        if hold:
++            holder = Lock(s / "beatd" / "beatd.lock")
++            holder.take()
++        if lock:
++            (s / "beatd" / "p.lock").write_text(f"pid={lock}\n")
++        if pulse:
++            (s / "beatd" / "pulse.txt").write_text(pulse)
++        r = _beat(prog, "status", "--state", s, "--jobs", tbl, "--repo", repo, "--now", now,
++                  env=dict(os.environ, PATH=f"{os.path.dirname(real)}:{os.environ.get('PATH', '')}"))
++        if holder:
++            holder.drop()
++        return r.returncode, r.stdout + r.stderr
++    st = f"START {utc(now - 1000)} beatd pid=1 code={old} supervisor=none"
++    ok_p = f"PASS {utc(now - 100)} p start={utc(now - 101)} dur=1 rc=0 outcome=ok"
++    ok_w = f"PASS {utc(now - 100)} w start={utc(now - 101)} dur=1 rc=0 outcome=ok"
++    dead = subprocess.Popen(["/usr/bin/true"])
++    dead.wait()
++    new = g("commit-tree", "-p", old, "-m", "b", g("rev-parse", "HEAD^{tree}"))
++    res = {}
++    rc, out = fixture("healthy", [st, ok_p, ok_w])
++    res["null: healthy prints no alarm, rc 0"] = (
++        rc == 0 and not re.search(r"late|DOWN|busy|ALERT|STALE", out) and "JOB w idle" in out)
++    late = f"PASS {utc(now - 361)} p start={utc(now - 362)} dur=1 rc=0 outcome=ok"
++    rc, out = fixture("late", [st, late, ok_w])
++    res["late past interval + timeout"] = rc == 1 and "JOB p late" in out
++    inwin = f"PASS {utc(now - 330)} p start={utc(now - 331)} dur=1 rc=0 outcome=ok"
++    rc, out = fixture("inwindow", [st, inwin, ok_w])
++    res["null: past interval, inside interval + timeout, is not late"] = rc == 0 and "JOB p ok" in out
++    rc, out = fixture("down", [st, ok_p, ok_w], hold=False)
++    res["DOWN when beatd.lock is free"] = rc == 1 and "DOWN" in out
++    busy = f"PASS {utc(now - 100)} p start={utc(now - 160)} dur=60 rc=-1 outcome=busy"
++    rc, out = fixture("busy", [st, busy, ok_w])
++    res["busy last outcome alarms"] = rc == 1 and "JOB p busy" in out
++    run_w = f"RUNNING {utc(now - 50)} w pid=1 elapsed=0"
++    rc, out = fixture("watchrun", [st, ok_p, run_w])
++    res["null: a running watch job is not idle"] = rc == 0 and "JOB w running" in out
++    rc, out = fixture("deadowner", [st, ok_p, ok_w], lock=dead.pid)
++    res["lock-owner-dead for a dead pid"] = rc == 1 and f"ALERT lock-owner-dead p.lock pid={dead.pid}" in out
++    rc, out = fixture("liveowner", [st, ok_p, ok_w], lock=os.getpid())
++    res["null: a live owner is no alarm"] = rc == 0 and "ALERT" not in out
++    rc, out = fixture("pulse", [st, ok_p, ok_w],
++                      pulse="PULSE opener ok\nPULSE verdict STOPPED seat merge: 3h\n")
++    res["pulse-silent while beatd reads healthy"] = (
++        rc == 1 and "ALERT pulse-silent PULSE verdict STOPPED" in out and "JOB p ok" in out)
++    rc, out = fixture("pulseok", [st, ok_p, ok_w], pulse="PULSE opener ok\n")
++    res["null: a pulse with nothing stopped is no alarm"] = rc == 0 and "ALERT" not in out
++    rc, out = fixture("stale", [st, ok_p, ok_w], head=new)
++    res["STALE-CODE behind=1"] = rc == 1 and "STALE-CODE behind=1" in out
++    st_bad = f"START {utc(now - 1000)} beatd pid=1 code={'0' * 39}1 supervisor=none"
++    rc, out = fixture("staleunread", [st_bad, ok_p, ok_w])
++    res["an unreadable staleness read is rc 2, never clean"] = (
++        rc == 2 and "UNREADABLE code-staleness" in out)
++    run_p = f"RUNNING {utc(now - 50)} p pid=1 elapsed=0"
++    rc, out = fixture("deadrunning", [st, ok_w, run_p], hold=False)
++    res["a RUNNING line with no PASS under a free beatd.lock is a dead instance"] = (
++        rc == 1 and "JOB p late" in out)
++    rc, out = fixture("liverunning", [st, ok_w, run_p])
++    res["null: the same lines under a held beatd.lock read running"] = (
++        rc == 0 and "JOB p running" in out)
++    rc, out = fixture("badline", [st, "PASS garbage"])
++    res["an unreadable journal line refuses rc 2"] = rc == 2 and "REFUSE journal line 2" in out
++    return res
++
++
++def case7_cli(prog, w):
++    """(a)7 the status CLI over the case's own fixture rc (mutant-run path)."""
++    s = w / "s7cli"
++    (s / "beatd").mkdir(parents=True)
++    now = time.time()
++    (s / "beatd" / "journal.log").write_text(
++        f"PASS {utc(now - 361)} p start={utc(now - 362)} dur=1 rc=0 outcome=ok\n")
++    holder = Lock(s / "beatd" / "beatd.lock")
++    holder.take()
++    r = _beat(prog, "status", "--state", s, "--jobs",
++              _table(w, [_job("p", ["/usr/bin/true"], interval_s=300, timeout_s=60)]),
++              "--now", now)
++    holder.drop()
++    return {"status CLI: late job, rc 1": r.returncode == 1 and "JOB p late" in r.stdout}
++
++
++def case8(prog, w):
++    """(a)8 held rc 0 while beatd.lock is held, rc 1 when free."""
++    s = w / "s8"
++    (s / "beatd").mkdir(parents=True)
++    free0 = _beat(prog, "held", "--state", s).returncode
++    holder = Lock(s / "beatd" / "beatd.lock")
++    holder.take()
++    h = _beat(prog, "held", "--state", s)
++    holder.drop()
++    free1 = _beat(prog, "held", "--state", s).returncode
++    return {"held: rc 0 while held": h.returncode == 0 and f"pid={os.getpid()}" in h.stdout,
++            "null: rc 1 with no lock file": free0 == 1,
++            "null: rc 1 after release": free1 == 1}
++
++
++CASES = {"1": case1, "2": case2, "3": case3, "4": case4, "5": case5, "6": case6,
++         "6b": case6_beat, "7": case7, "7c": case7_cli, "8": case8}
++
++# One predicate change per case: (file, anchor, replacement, case, the check it must break).
++MUTANTS = {
++    "m1_parse_defaults_to_zero_jobs": (
++        "beatd", '        raise Refuse(f"job table {path} unreadable: {e}") from None',
++        '        doc = {"version": 1, "jobs": []}', "1", "unreadable"),
++    "m1b_unknown_key_accepted": (
++        "beatd", "if not isinstance(j, dict) or set(j) != KEYS:",
++        "if not isinstance(j, dict) or not KEYS <= set(j):", "1", "unknown key"),
++    "m2_no_instance_flock": (
++        "beatd", "    if not inst.take(wait_s=0.6):", "    if not True:", "2",
++        "second run exits 75"),
++    "m2_lock_world_readable": (
++        "beatd", "os.O_RDWR | os.O_CREAT, 0o600)", "os.O_RDWR | os.O_CREAT, 0o644)", "2",
++        "lock files are owner-only under umask 022"),
++    "m3_no_killpg": (
++        "beatd", 'now + KILL_GRACE_S\n                    os.killpg(p.pid, signal.SIGTERM)',
++        'now + KILL_GRACE_S\n                    p.terminate()', "3",
++        "its process group took SIGTERM before any SIGKILL"),
++    "m3_no_group_kill_after_leader": (
++        "beatd", "                kill_group(p.pid, kill_at)\n", "                pass\n", "3",
++        "a TERM-ignoring grandchild is killed after its leader exits"),
++    "m3_kill_group_no_sigkill": (
++        "beatd", "        os.killpg(pgid, signal.SIGKILL)\n", "        pass\n", "3",
++        "a TERM-ignoring grandchild is killed after its leader exits"),
++    "m3_no_sigkill_live_leader": (
++        "beatd", "                    os.killpg(p.pid, signal.SIGKILL)\n", "                    pass\n",
++        "3", "null: a leader ignoring TERM too is killed at the grace, rc -9"),
++    "m3_kill_group_no_grace": (
++        "beatd", "        while time.time() < at:\n", "        while False:\n", "3",
++        "a TERM-ignoring grandchild is killed after its leader exits"),
++    "m3_grace_half_second": (
++        "beatd", "KILL_GRACE_S = 10.0", "KILL_GRACE_S = 0.5", "3",
++        "null: a leader ignoring TERM too is killed at the grace, rc -9"),
++    "m3_no_heartbeat": (
++        "beatd", "elif hb and now - beat >= hb:", "elif False:", "3",
++        "a heartbeat job journals RUNNING past elapsed=0"),
++    "m4_watch_as_periodic": (
++        "beatd", '(end if kind == "watch" else max(prev, start))', "max(prev, start)", "4",
++        "a watch job restarts interval_s after its instance ends"),
++    "m2_sigterm_handler_off": (
++        "beatd", "        signal.signal(signal.SIGTERM, term)", "        pass", "2",
++        "SIGTERM stops the beat and TERMs its job: rc 0, PASS rc=-15, STOP"),
++    "m4_serial_jobs": (
++        "beatd", "        for t in threads:\n            t.start()",
++        "        for t in threads:\n            t.start(); t.join()", "4",
++        "fast passes while slow runs"),
++    "m5_class_ignored": (
++        "beatd", 'cl = Lock(self.dir / f"{job[\'class\']}.lock") if job["class"] else None',
++        "cl = None", "5", "class jobs never interleave"),
++    "m6_retries_zero": (
++        "shim", "max=${HPO_GIT_RETRIES:-2}", "max=0", "6",
++        "race: B through the shim exits 0, origin/main current, a retry logged"),
++    "m6_no_shim_prepend": (
++        "beatd", "PATH=os.pathsep.join([str(SHIMS), os.environ.get(\"PATH\", \"\")]))",
++        "PATH=os.environ.get(\"PATH\", \"\"))", "6b", "beat job B exits ok through the shim"),
++    "m6_drop_C_skip": (
++        "shim", "-C|-c|--git-dir", "-c|--git-dir", "6",
++        "race: B through the shim exits 0, origin/main current, a retry logged"),
++    # round 3's rule (f0f046929 spike shims/git): skip only the entry spelled as its own dir
++    "m6_string_compare": (
++        "shim", '    if usable "$d/git"; then real=$(cd "$d" && pwd -P)/git; break; fi',
++        '    if [ "$d" != "$(cd "$(dirname "$0")" && pwd)" ] && [ -x "$d/git" ]; then real=$d/git; break; fi',
++        "6", "discovery relative: rc 0 within 5 s"),
++    "m6_marker_via_head": (
++        "shim", "is_shim() { local l1= l2=; { IFS= read -r l1; IFS= read -r l2; } < \"$1\" 2>/dev/null; [ \"$l2\" = '# hpo-git-shim' ]; }",
++        "is_shim() { [ \"$(head -2 \"$1\" 2>/dev/null | tail -1)\" = '# hpo-git-shim' ]; }",
++        "6", "discovery no-real-git: rc 127, one line"),
++    "m6_real_git_dir_accepted": (
++        "shim", 'usable() { [ -f "$1" ] && [ -x "$1" ]', 'usable() { [ -x "$1" ]', "6",
++        "discovery real-git-is-dir: rc 0 within 5 s"),
++    "m6_beatd_trusts_any_git": (
++        "beatd", '    if not out.startswith("git version"):', "    if False:", "6",
++        "beatd refuses rc 2 when its git is not git"),
++    "m7_late_without_timeout": (
++        "beatd", 'age > j["interval_s"] + j["timeout_s"]:', 'age > j["interval_s"]:', "7",
++        "null: past interval, inside interval + timeout, is not late"),
++    "m7_no_pulse_alarm": (
++        "beatd", r'if re.match(r"^PULSE \S+ STOPPED\b", ln):', "if False:", "7",
++        "pulse-silent while beatd reads healthy"),
++    "m7_unreadable_staleness_clean": (
++        "beatd", "            rc = 2\n", "            rc = 0\n", "7",
++        "an unreadable staleness read is rc 2, never clean"),
++    "m7_dead_running_kept": (
++        "beatd", "        running.clear()  # no beat", "        pass  # no beat", "7",
++        "a RUNNING line with no PASS under a free beatd.lock is a dead instance"),
++    "m8_held_always_free": (
++        "beatd", "        return lock_pid(path) or 0\n", "        return None\n", "8",
++        "held: rc 0 while held"),
++}
++
++
++def _mutant_copy(w: Path, name: str) -> tuple[Path, Path]:
++    """A temp tree holding beatd.py and beatd_shims/git with one plant applied."""
++    f, anchor, repl = MUTANTS[name][:3]
++    d = w / "tree" / "tools" / "audit" / "seat"
++    (d / "beatd_shims").mkdir(parents=True)
++    prog, shim = d / "beatd.py", d / "beatd_shims" / "git"
++    btxt, stxt = SELF.read_text(), SHIM.read_text()
++    if f == "beatd":
++        btxt = btxt.replace(anchor, repl, 1)
++    else:
++        stxt = stxt.replace(anchor, repl, 1)
++    prog.write_text(btxt)
++    shim.write_text(stxt)
++    shim.chmod(0o755)
++    return prog, shim
++
++
++def _run_case(case: str, prog: Path, shim: Path, w: Path) -> dict:
++    fn = CASES[case]
++    w.mkdir(parents=True, exist_ok=True)
++    if case == "6":
++        return fn(prog, w, shim)
++    return fn(prog, w)
++
++
++def self_test(only: list[str] | None = None, mutants: bool = True) -> int:
++    import tempfile
++    checks = fails = 0
++
++    def check(name: str, ok: bool) -> None:
++        nonlocal checks, fails
++        checks += 1
++        fails += not ok
++        print(f"{'ok  ' if ok else 'FAIL'} {name}")
++    names: dict[str, set] = {}
++    for case in only or CASES:
++        with tempfile.TemporaryDirectory(prefix="beatd-st-") as td:
++            got = _run_case(case, SELF, SHIM, Path(td))
++            names[case] = set(got)
++            for k, ok in got.items():
++                check(f"({case}) {k}", ok)
++    for name, (f, anchor, repl, case, target) in MUTANTS.items():
++        if case not in names:
++            continue
++        text = production(SELF.read_text()) if f == "beatd" else SHIM.read_text()
++        check(f"anchor {name} occurs once in production, changes it, names a check of ({case})",
++              text.count(anchor) == 1 and anchor != repl and target in names[case])
++    if mutants:
++        def plant(name: str) -> dict:
++            case = MUTANTS[name][3]
++            with tempfile.TemporaryDirectory(prefix="beatd-mu-") as td:
++                prog, shim = _mutant_copy(Path(td), name)
++                try:
++                    return _run_case(case, prog, shim, Path(td) / "w")
++                except Exception as e:  # a crash is no kill: its target reads unset
++                    return {"crash": f"{type(e).__name__}: {str(e)[:80]}"}
++        # The fixtures are sleep-bound, so the mutants run MUTANT_WORKERS at once
++        # (instrument-self-tests' wall clock); each has its own temp tree and state.
++        todo = [n for n, m in MUTANTS.items() if not only or m[3] in only]
++        with ThreadPoolExecutor(MUTANT_WORKERS) as pool:
++            results = dict(zip(todo, pool.map(plant, todo)))
++        for name in todo:
++            case, target, got = MUTANTS[name][3], MUTANTS[name][4], results[name]
++            check(f"mutant {name} turns ({case}) '{target}' red"
++                  + (f" [crash {got['crash']}]" if "crash" in got else ""),
++                  got.get(target) is False)
++    print(f"beatd self-test: {checks} checks, {fails} failed")
++    return 1 if fails else 0
++
++
++def production(text: str) -> str:
++    """beatd.py above the self-test, where every plant must land."""
++    return text.split(SELFTEST_MARK, 1)[0]
++
++
++if __name__ == "__main__":
++    sys.exit(main(sys.argv[1:]))
+diff --git a/tools/audit/seat/beatd_shims/git b/tools/audit/seat/beatd_shims/git
+new file mode 100755
+index 000000000..8c9c05f9b
+--- /dev/null
++++ b/tools/audit/seat/beatd_shims/git
+@@ -0,0 +1,48 @@
++#!/bin/bash
++# hpo-git-shim
++# The beat's git (R10-ORCH-BEATD arm (a)). Only beatd.py puts this directory on
++# PATH, first, for a job's process tree; nothing else reaches it. Line 2 is the
++# marker every copy is recognised by, read with builtins only.
++#
++# The real git is resolved once: HPO_REAL_GIT when it is a regular executable
++# file and not a shim; else the first `git` on PATH that is a regular
++# executable file and not a shim (an empty entry is `.`), canonicalised by
++# `cd .. && pwd -P`. It is exported, so a child never walks PATH again. No real
++# git: one line, rc 127. The shim never execs itself.
++#
++# A `fetch` or `pull` whose stderr holds `cannot lock ref` is re-run at most
++# HPO_GIT_RETRIES (default 2) more times, 1 s then 2 s apart; only the last
++# attempt's stderr is printed, and each retry appends
++# `<utc> retry=<n> rc=<rc> <sub>` to HPO_GIT_SHIM_LOG. Every other command is
++# exec'd unchanged. Tested by beatd.py's self-test, case (a)6.
++is_shim() { local l1= l2=; { IFS= read -r l1; IFS= read -r l2; } < "$1" 2>/dev/null; [ "$l2" = '# hpo-git-shim' ]; }
++usable() { [ -f "$1" ] && [ -x "$1" ] && ! is_shim "$1"; }
++real=${HPO_REAL_GIT:-}
++if [ -n "$real" ] && ! usable "$real"; then real=; fi
++if [ -z "$real" ]; then
++  ifs=$IFS; IFS=:
++  for d in $PATH; do
++    [ -n "$d" ] || d=.
++    if usable "$d/git"; then real=$(cd "$d" && pwd -P)/git; break; fi
++  done
++  IFS=$ifs
++fi
++[ -n "$real" ] || { echo "git shim: no real git on PATH" >&2; exit 127; }
++export HPO_REAL_GIT=$real
++sub=; skip=0
++for a in "$@"; do
++  if [ $skip = 1 ]; then skip=0; continue; fi
++  case $a in -C|-c|--git-dir|--work-tree|--namespace) skip=1;; -*) ;; *) sub=$a; break;; esac
++done
++case $sub in fetch|pull) ;; *) exec "$real" "$@";; esac
++err=$(mktemp "${TMPDIR:-/tmp}/hpo-git-shim.XXXXXX") || exec "$real" "$@"
++n=0; max=${HPO_GIT_RETRIES:-2}
++while :; do
++  "$real" "$@" 2>"$err"; rc=$?
++  if [ $rc = 0 ] || [ $n -ge "$max" ] || ! grep -q 'cannot lock ref' "$err"; then
++    cat "$err" >&2; rm -f "$err"; exit $rc
++  fi
++  n=$((n + 1))
++  [ -z "${HPO_GIT_SHIM_LOG:-}" ] || printf '%s retry=%d rc=%d %s\n' "$(date -u +%FT%TZ)" "$n" "$rc" "$sub" >> "$HPO_GIT_SHIM_LOG"
++  sleep $n
++done
+diff --git a/tools/audit/seat/bus.sh b/tools/audit/seat/bus.sh
+index 9636471cd..94b282eab 100755
+--- a/tools/audit/seat/bus.sh
++++ b/tools/audit/seat/bus.sh
+@@ -36,12 +36,14 @@
+ # owed a pull request -- `open_pr.sh` fetches both and fails without the body --
+ # and is reported in one of three states. IN FLIGHT: its tip is younger than
+ # --min-age-h hours (default 2), a lane's own push, silently counted, never a
+-# line. STRANDED: no `fix/<t>` or `fix/<t>-pr` head carries the tip, the tip is
+-# no ancestor of `main` or a live `fix/*` head, and the change is not already on
+-# main. SUPERSEDED: flagged by that ancestry test, but a content-equivalence
+-# arm (`content_superseded`) finds main already carries every path the ref's
+-# uncovered commits touch -- a recovery rewrote the commit and landed the
+-# change under another, so the ref needs pruning, not an opener. Each STRANDED
++# line. STRANDED: no `fix/<t>` or `fix/<t>-pr` head carries the tip, and
++# `ledger.py landed` -- the one classifier, which the relay's level shares --
++# finds neither its commits inside `main` and the live `fix/*` heads (merges
++# with no resolution of their own aside) nor its change on main. SUPERSEDED:
++# flagged by that ancestry test, but main carries the change: the patch applies
++# to main reversed and not forward, or every file it touches is on main
++# (`covered`) -- a recovery rewrote the commit, or another pull request landed
++# the patch, so the ref needs pruning, not an opener. Each STRANDED
+ # line names the repair it needs, never works it: `opener` (no pull request:
+ # `open_pr.sh`), `update` (its pull request's head is behind the ref:
+ # `update_pr.sh`) or `review` (a pull request that diverged from the ref, a
+@@ -564,40 +566,9 @@ watch() {
+   done
+ }
+ 
+-# content_superseded TIP -> rc 0 when main already carries every path the ref's
+-# uncovered commits touch, so the ref is SUPERSEDED rather than stranded: a
+-# modification byte-identical on main, an addition whose basename main holds (a
+-# recovery that moved or renamed the file, e.g. the tools/ -> dev/ restructure),
+-# a deletion main already made, a rename to a basename main holds. The ancestry
+-# arm asks "is this work inside main"; this one asks "is it on main under
+-# another commit" -- a recovery that rewrote the commit leaves a non-ancestral
+-# ref whose content main has. Reads the caller's `main`, `main_basenames`, `LF`.
+-content_superseded() { # tip -> 0 superseded, 1 stranded
+-  local tip=$1 mb st a b base b1 b2
+-  mb=$(git merge-base "$main" "$tip") || return 1
+-  while IFS=$'\t' read -r st a b; do
+-    [ -n "$st" ] || continue
+-    case $st in
+-      A) base=${a##*/}
+-         case $main_basenames in *"$LF$base$LF"*) ;; *) return 1 ;; esac ;;
+-      M) b1=$(git rev-parse "$tip:$a" 2>/dev/null) || return 1
+-         b2=$(git rev-parse "$main:$a" 2>/dev/null) || return 1
+-         [ "$b1" = "$b2" ] || return 1 ;;
+-      D) git rev-parse "$main:$a" >/dev/null 2>&1 && return 1 ;;
+-      R*) base=${b##*/}
+-          case $main_basenames in *"$LF$base$LF"*) ;; *) return 1 ;; esac
+-          git rev-parse "$main:$a" >/dev/null 2>&1 && return 1 ;;
+-      *) return 1 ;;
+-    esac
+-  done <<EOF
+-$(git diff --name-status "$mb" "$tip")
+-EOF
+-  return 0
+-}
+-
+ orphans() { # [--min-age-h N] [--no-body] [--no-ancestry] [--no-content] [--exclude-topic T]... -> one ORPHAN line each, rc 1 when any stranded
+   local ns=refs/hpo-orphans LF=$'\n' min_age=2 no_body=0 no_ancestry=0 no_content=0 excl=$'\n'
+-  local t ref tip main fix_nl fix_heads bodies_nl main_basenames h hit
++  local t ref tip main fix_nl fix_heads bodies_nl landed_nl why hit arms
+   local reported=0 superseded=0 nb=0 named=0 anc=0 young=0
+   local ct now age_s age_t word dn H bt
+   while [ $# -gt 0 ]; do
+@@ -629,7 +600,15 @@ orphans() { # [--min-age-h N] [--no-body] [--no-ancestry] [--no-content] [--excl
+   fix_nl=$LF"$(git for-each-ref --format='%(refname)' "$ns/fix/")"$LF
+   fix_heads=$(git for-each-ref --format='%(objectname)' "$ns/fix/")
+   bodies_nl=$LF"$(git for-each-ref --format='%(refname)' "$ns/handoff-body/")"$LF
+-  main_basenames=$LF"$(git ls-tree -r --name-only "$main" | sed 's#.*/##')"$LF
++  # LANDED: ledger.py's classifier, the one owner of "main already carries this
++  # tip" (the relay's handoff-no-pr level folds through the same function), asked
++  # once for every handoff tip: `<tip> <why>`, `-` when nothing carries it.
++  arms=()
++  [ "$no_ancestry" = 1 ] && arms+=(--no-ancestry)
++  [ "$no_content" = 1 ] && arms+=(--no-content)
++  landed_nl=$LF"$(git for-each-ref --format='%(objectname)' "$ns/handoff/" \
++    | python3 -I "$ROOT/tools/audit/seat/ledger.py" landed "${arms[@]}" "$main" $fix_heads)"$LF \
++    || die "orphans: ledger.py landed could not classify the handoff tips"
+   now=$(date +%s)
+   # A while-read over a heredoc, not a pipe: the counters survive the loop.
+   while read -r ref tip; do
+@@ -653,15 +632,11 @@ orphans() { # [--min-age-h N] [--no-body] [--no-ancestry] [--no-content] [--excl
+       esac
+     done
+     if [ "$hit" = 1 ]; then named=$((named + 1)); continue; fi
+-    # DISCHARGED, ancestry half: the tip is inside `main` or a live `fix/*`
+-    # head already. Both halves are required; each alone over-reports.
+-    if [ "$no_ancestry" != 1 ]; then
+-      hit=0
+-      for h in "$main" $fix_heads; do
+-        git merge-base --is-ancestor "$tip" "$h" && { hit=1; break; }
+-      done
+-      if [ "$hit" = 1 ]; then anc=$((anc + 1)); continue; fi
+-    fi
++    # DISCHARGED, ancestry half: the tip is inside `main` or the live `fix/*`
++    # heads already, or outside them only by clean merges. Both halves are
++    # required; each alone over-reports.
++    why=${landed_nl#*"$LF$tip "}; why=${why%%"$LF"*}
++    case $why in ancestor|merges-only) anc=$((anc + 1)); continue ;; esac
+     # AGED: a ref pushed moments ago is a lane's own in-flight handoff, not an
+     # orphan. A stamp ahead of the clock reads as young, never as aged.
+     ct=$(git log -1 --format=%ct "$tip" 2>/dev/null) || ct=""
+@@ -673,9 +648,10 @@ orphans() { # [--min-age-h N] [--no-body] [--no-ancestry] [--no-content] [--excl
+     if [ "$((age_s / 3600))" -lt "$min_age" ]; then young=$((young + 1)); continue; fi
+     age_t=$((age_s / 360))
+     # SUPERSEDED: not ancestral to main, but main already carries the change
+-    # (the recovery rewrote the commit). Report it so the ref can be pruned
+-    # deliberately; it is not stranded and does not fail the run.
+-    if [ "$no_content" != 1 ] && content_superseded "$tip"; then
++    # (the recovery rewrote the commit, or another pull request landed the
++    # patch). Report it so the ref can be pruned deliberately; it is not
++    # stranded and does not fail the run.
++    if [ "$why" = reverse-apply ] || [ "$why" = content ]; then
+       printf 'SUPERSEDED %s %s %s.%sh\n' "$t" "$tip" "$((age_t / 10))" "$((age_t % 10))"
+       superseded=$((superseded + 1)); continue
+     fi
+@@ -1152,6 +1128,14 @@ B
+     sub=$(printf '100644 blob %s\t%s\n' "$b" "$f" | git -C "$W/seat" mktree)
+     printf 'add %s/%s\n' "$d" "$f" | git -C "$W/seat" commit-tree "$(printf '040000 tree %s\t%s\n' "$sub" "$d" | git -C "$W/seat" mktree)" -p "$p"
+   }
++  mkf() { # <parent> <file> <content> [<parent2>] -> a commit setting top-level <file> in <parent>'s tree
++    local p=$1 f=$2 b t
++    b=$(printf '%b' "$3" | git -C "$W/seat" hash-object -w --stdin)
++    GIT_INDEX_FILE=$W/mkf.idx git -C "$W/seat" read-tree "$p"
++    GIT_INDEX_FILE=$W/mkf.idx git -C "$W/seat" update-index --add --cacheinfo "100644,$b,$f"
++    t=$(GIT_INDEX_FILE=$W/mkf.idx git -C "$W/seat" write-tree)
++    printf 'set %s\n' "$f" | git -C "$W/seat" commit-tree "$t" -p "$p" ${4:+-p "$4"}
++  }
+   mb=$(git -C "$W/seat" rev-parse HEAD)
+   # A stranded opener: owed, no pull request, no ancestor of main -> exit 1.
+   o1=$(mkc "$mb" orph1)
+@@ -1212,6 +1196,51 @@ B
+   out=$(run orphans --min-age-h 0 --no-content)
+   echo "$out" | grep -qx "ORPHAN orp-super $s1 .* repair=opener"
+   expect "the content arm is load-bearing: --no-content reads the same ref as stranded" $?
++  # The earlycutoff shape (#2397): a hunk another pull request landed into a file
++  # main has since changed. The byte-identical arm read it stranded for 121.8 h.
++  b0=$(mkf "$m1" hunk.txt 'a\nb\n'); git -C "$W/seat" push -q origin "$b0:refs/heads/main"
++  e1=$(mkf "$b0" hunk.txt 'a\nb\nblock1\nblock2\n')
++  git -C "$W/seat" push -q origin "$e1:refs/heads/handoff/orp-hunk" "$e1:refs/heads/handoff-body/orp-hunk"
++  m2=$(mkf "$b0" hunk.txt 'z\na\nb\nblock1\nblock2\n'); git -C "$W/seat" push -q origin "$m2:refs/heads/main"
++  out=$(run orphans --min-age-h 0)
++  echo "$out" | grep -qx "SUPERSEDED orp-hunk $e1 .*"
++  expect "a hunk main carries in a file that moved on is SUPERSEDED, not stranded (#2397's shape)" $?
++  # A patch on main, context and all, whose removed line main still holds
++  # elsewhere: only the reverse-apply arm sees it (applies reversed, not forward).
++  r0=$(mkf "$m2" rev.txt 'x\nfi\ny\nfi\np\nq\nr\ns\nt\n'); git -C "$W/seat" push -q origin "$r0:refs/heads/main"
++  r1=$(mkf "$r0" rev.txt 'x\nfi\ny\np\nq\nr\ns\nt\n')
++  git -C "$W/seat" push -q origin "$r1:refs/heads/handoff/orp-rev2" "$r1:refs/heads/handoff-body/orp-rev2"
++  m3=$(mkf "$r0" rev.txt 'x\nfi\ny\np\nq\nr\ns\nT\n'); git -C "$W/seat" push -q origin "$m3:refs/heads/main"
++  out=$(run orphans --min-age-h 0)
++  echo "$out" | grep -qx "SUPERSEDED orp-rev2 $r1 .*"
++  expect "a patch that applies to main reversed and not forward is SUPERSEDED" $?
++  # Null control: the same removal of a line main has NOT removed stays stranded.
++  r2=$(mkf "$r0" rev.txt 'x\ny\nfi\np\nq\nr\ns\nt\n')
++  git -C "$W/seat" push -q origin "$r2:refs/heads/handoff/orp-rev3" "$r2:refs/heads/handoff-body/orp-rev3"
++  out=$(run orphans --min-age-h 0)
++  echo "$out" | grep -qx "ORPHAN orp-rev3 $r2 .* repair=opener"
++  expect "null control: a patch main does not hold stays stranded" $?
++  # The merge-tip shape (a457acaf4): the tip merges a main commit with a commit
++  # a live fix/* head carries; no non-merge commit is outside main and the heads.
++  q1=$(mkf "$m3" mA.txt 'A\n'); git -C "$W/seat" push -q origin "$q1:refs/heads/main"
++  q2=$(mkf "$m3" mB.txt 'B\n')
++  q3=$(mkf "$q2" mA.txt 'A\n' "$q1"); qf=$(mkf "$q3" mC.txt 'C\n')
++  q4=$(git -C "$W/seat" commit-tree "$q3^{tree}" -p "$q2" -p "$q1" -m 'merge main')
++  git -C "$W/seat" push -q origin "$qf:refs/heads/fix/orp-merge-other" \
++    "$q4:refs/heads/handoff/orp-merge" "$q4:refs/heads/handoff-body/orp-merge"
++  out=$(run orphans --min-age-h 0)
++  ! echo "$out" | grep -q "^ORPHAN orp-merge " && ! echo "$out" | grep -q "^SUPERSEDED orp-merge "
++  expect "a tip outside main and the fix heads only by a clean merge is discharged with the ancestry" $?
++  # Null controls: a merge carrying a resolution of its own, and one non-merge
++  # commit outside main and every head, stay stranded.
++  q5=$(mkf "$q3" evil.txt 'E\n'); q5=$(git -C "$W/seat" commit-tree "$q5^{tree}" -p "$q2" -p "$q1" -m 'evil merge')
++  q6=$(mkf "$q2" mD.txt 'D\n')
++  git -C "$W/seat" push -q origin "$q5:refs/heads/handoff/orp-evil" "$q5:refs/heads/handoff-body/orp-evil" \
++    "$q6:refs/heads/handoff/orp-nonm" "$q6:refs/heads/handoff-body/orp-nonm"
++  out=$(run orphans --min-age-h 0)
++  echo "$out" | grep -qx "ORPHAN orp-evil $q5 .*" && echo "$out" | grep -qx "ORPHAN orp-nonm $q6 .*"
++  expect "null control: a merge with its own resolution, or a non-merge commit absent everywhere, stays stranded" $?
++  git -C "$W/seat" push -q origin :refs/heads/handoff/orp-rev3 :refs/heads/handoff/orp-evil :refs/heads/handoff/orp-nonm
+   # Green: every stranded ref carries a pull request at its tip now; the
+   # superseded ref stays, and neither is stranded -> exit 0.
+   git -C "$W/seat" push -q origin "$o1:refs/heads/fix/orph1" \
+@@ -1230,6 +1259,15 @@ B
+   out=$(run orphans --min-age-h 0); rc=$?
+   echo "$out" | grep -qx "ORPHAN orp-force $f2 .* repair=opener" && [ $rc = 1 ]
+   expect "a handoff ref rewritten non-fast-forward after a run is still read, at its new tip" $?
++  # Null control: a classifier that cannot answer refuses the run; it never
++  # reads every tip as stranded (a loud list is still a wrong one).
++  mkdir -p "$W/pyfail"; rp=$(command -v python3)
++  printf '#!/bin/sh\ncase "$*" in *ledger.py\ landed*) exit 3 ;; esac\nexec "%s" "$@"\n' "$rp" > "$W/pyfail/python3"
++  chmod +x "$W/pyfail/python3"
++  out=$(PATH=$W/pyfail:$PATH run orphans --min-age-h 0); rc=$?
++  echo "$out" | grep -q "REFUSE: orphans: ledger.py landed could not classify" && [ $rc != 0 ] \
++    && ! echo "$out" | grep -q "^ORPHAN "
++  expect "null control: a classifier that fails refuses orphans, never an all-ORPHAN list" $?
+   # Null control: a remote that cannot answer still refuses, never a clean zero.
+   out=$(HPO_BUS_REMOTE=$W/nowhere.git run orphans --min-age-h 0); rc=$?
+   [ $rc != 0 ] && echo "$out" | grep -q "could not fetch the refs of" && ! echo "$out" | grep -q "^orphans: "
+diff --git a/tools/audit/seat/ci-watch.sh b/tools/audit/seat/ci-watch.sh
+index 01a6f21a9..a17dfc4c8 100755
+--- a/tools/audit/seat/ci-watch.sh
++++ b/tools/audit/seat/ci-watch.sh
+@@ -25,6 +25,10 @@
+ R=tvofi/heatpump_optimizer
+ S=${CI_WATCH_STATE:-${HPO_STATE_DIR:-$HOME/.local/state/hpo}/ci-watch-state}
+ RULESET=main-protect-checks
++# Seconds between cycles: under a waiting seat's 5-minute prompt-cache TTL, so the
++# wake on its exit does not rewrite the seat's whole context (R10-FLY-CACHE-PROMPTS),
++# and never under GitHub's 60 s poll floor.
++POLL_S=240
+ 
+ # --------------------------------------------------------------- self-test
+ self_test() {
+@@ -223,6 +227,26 @@ EOF
+   ck "W12 a gate that did not succeed (skipped; RATE-LIMITED is a failure) alerts RED: gate, never a pass" \
+      "$([ $rc = 1 ] && says 'RED: gate' "$O" && echo 1 || echo 0)"
+ 
++  # The cadence (R10-FLY-CACHE-PROMPTS): under the seat's 5-minute prompt-cache
++  # TTL, never under GitHub's 60 s poll floor.
++  ck "the poll is inside [60 s, 240 s] (POLL_S=${POLL_S:-unset})" \
++     "$([ "${POLL_S:-0}" -ge 60 ] && [ "${POLL_S:-0}" -le 240 ] && echo 1 || echo 0)"
++  # ...and the loop sleeps for it: one quiet cycle without CI_WATCH_ONCE, a
++  # stub `sleep` recording its argument. A loop that never sleeps leaves the
++  # record empty and is killed after ~10 s rather than hanging the self-test.
++  mkdir -p "$TMP/sleepbin"
++  printf '#!/bin/bash\nprintf "%%s\\n" "$1" >> "$SLEPT"\n' > "$TMP/sleepbin/sleep"
++  chmod +x "$TMP/sleepbin/sleep"
++  PATH="$TMP/sleepbin:$TMP/bin:$PATH" FIX="$TMP/w2" CI_WATCH_STATE="$TMP/s-sleep" \
++    SLEPT="$TMP/slept" bash "$WATCH" >/dev/null 2>&1 &
++  wp=$!
++  i=0
++  while [ ! -s "$TMP/slept" ] && [ $i -lt 100 ]; do sleep 0.1; i=$((i + 1)); done
++  kill "$wp" 2>/dev/null; wait "$wp" 2>/dev/null
++  slept=$(head -n 1 "$TMP/slept" 2>/dev/null)
++  ck "the loop sleeps POLL_S between cycles (slept ${slept:-never})" \
++     "$([ -n "$slept" ] && [ "$slept" = "$POLL_S" ] && echo 1 || echo 0)"
++
+   printf 'ci-watch self-test: %d checks, %d failed\n' "$((passed + failed))" "$failed"
+   [ "$failed" = 0 ]
+   return $?
+@@ -287,5 +311,5 @@ while true; do
+   done
+   if [ -n "$OUT" ]; then echo -e "CI-WATCH ALERT ($(date -u +%H:%MZ)): NEW state(s):$OUT"; exit 1; fi
+   [ -n "${CI_WATCH_ONCE:-}" ] && exit 0
+-  sleep 300
++  sleep "$POLL_S"
+ done
+diff --git a/tools/audit/seat/cloud_dispatch.py b/tools/audit/seat/cloud_dispatch.py
+index cc1b1e976..a97421109 100644
+--- a/tools/audit/seat/cloud_dispatch.py
++++ b/tools/audit/seat/cloud_dispatch.py
+@@ -3,7 +3,7 @@
+ 
+     python3 -I tools/audit/seat/cloud_dispatch.py --role reviewer|fixer|probe \
+         --head <40-hex> [--pr N] [--topic T] [--nonce N] [--brief FILE] \
+-        [--env-id ID] [--model M] [--repo OWNER/NAME] [--overlay FILE] [--out FILE]
++        [--env-id ID] [--model M] [--repo OWNER/NAME] [--overlay FILE] [--out FILE] [--publish]
+     python3 -I tools/audit/seat/cloud_dispatch.py --role reviewer|fixer|probe --group G --model M \
+         [--roster-ref REF] [--head <40-hex>] [--pr N] [--nonce N] [--overlay FILE]
+     python3 -I tools/audit/seat/cloud_dispatch.py --self-test
+@@ -16,10 +16,13 @@ never the roster ref's (a seat forks from main, not from the roster branch); a
+ reviewer needs --head (the PR head) and takes its nonce from `bus.sh dispatch`, which
+ mints one or re-records --nonce; the environment id comes from the overlay /
+ $HPO_CLOUD_ENV_ID. The
+-payload is rendered by the same `render` as the flag path, so it is the flag
+-path's byte for byte, and is published, with its prompt, on origin as
++payload is rendered by the same `publish_seat` as the flag path's --publish, so it
++is that path's byte for byte, and is published, with its prompt, on origin as
+ `dispatch/<role>-<topic>` (PAYLOAD.json, PROMPT.md); the one line printed is that
+-ref name. A standing trigger whose prompt fetches the ref it is fired with
++ref name. A published payload's event is a pointer to PROMPT.md on the ref, never
++the prompt itself (the runner echoes the event; R10-FLY-CACHE-PROMPTS). --publish
++does the same on the flag path, to `dispatch/<role>-<topic>`, else
++`dispatch/<role>-rev-<PR>`, and prints the payload as without it. A standing trigger whose prompt fetches the ref it is fired with
+ needs nothing else. A render refusal (below) pushes nothing.
+ 
+ WHAT IT RENDERS. The whole `job_config.ccr` object a cloud runner's trigger
+@@ -100,20 +103,39 @@ FOOTER_BAN = ("Write no Claude Code footer, no Co-Authored-By or Claude-Session
+               "with `git log --format=%B` before pushing.")
+ 
+ 
++#: A seat's prompt cache lives 5 min: a wait past it rewrites the whole context on
++#: the next turn (R10-FLY-CACHE-PROMPTS). 240 s stays under it; GitHub's 60 s poll
++#: floor stays the lower bound.
++WAIT_LINE = "Never wait in one tool call longer than 240 s; poll again instead."
++
++
+ class Refusal(Exception):
+     pass
+ 
+ 
+-def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, brief: str) -> str:
++def _seat_line(role: str, repo: str, pr: str, head: str, topic: str, nonce: str) -> str:
+     who = {"reviewer": "CLOUD REVIEWER", "fixer": "CLOUD FIXER", "probe": "CLOUD PROBE"}[role]
+     subject = f"PR #{pr} of {repo}, at head {head}" if pr else f"{repo}, topic {topic}, at head {head}"
+     first = f"{who} seat for {subject}."
+     if nonce:
+         first += f" Bus nonce: {nonce}."
+-    first += " Never send push notifications. " + FOOTER_BAN
++    return first + " Never send push notifications."
++
++
++def _pointer(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, ref: str) -> str:
++    """The event a published seat is fired with: who it is, and where its prompt is.
++    The runner echoes the event into every view of the trigger, so the whole prompt
++    there was paid for several times over; PROMPT.md on the ref is paid once."""
++    return (_seat_line(role, repo, pr, head, topic, nonce) + "\n"
++            f"Your full brief is PROMPT.md at origin ref {ref} (`git fetch origin {ref} && git show "
++            "FETCH_HEAD:PROMPT.md`); read it first and follow it exactly.\n")
++
++
++def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, brief: str) -> str:
++    first = _seat_line(role, repo, pr, head, topic, nonce) + " " + FOOTER_BAN
+     setup = ("Setup: `git fetch --unshallow --tags origin`. The toolchain (venv python, node, gh) "
+              "is on PATH from the environment. Run anything heavy in the background with Monitor "
+-             "and no timeout.")
++             "and no timeout. " + WAIT_LINE)
+     if role == "reviewer":
+         body = (
+             "Role: read dev/governance/roles/fix-review.md and its rules from main, and follow them "
+@@ -153,7 +175,7 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
+             "That ref is the return signal. Do not post comments, approve or merge.")
+     elif role == "fixer":
+         body = (
+-            "Role: read dev/governance/roles/fixer.md and CLAUDE.md from main, and follow them exactly, "
++            "Role: read dev/governance/roles/fixer.md from main, and follow it exactly, "
+             f"in a worktree of your own cut from origin/main. Fetch {head} for the base you were given.\n"
+             f"Output: push the code to refs/heads/handoff/{topic}, then write the PR body and run "
+             f"`bash tools/audit/seat/body_push.sh {topic} <body.md>`, which pushes "
+@@ -176,7 +198,8 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
+ 
+ 
+ def render(role: str, head: str, *, env_id: str, model: str, repo: str, pr: str = "",
+-           topic: str = "", nonce: str = "", brief: str = "") -> dict:
++           topic: str = "", nonce: str = "", brief: str = "", publish_ref: str = "") -> dict:
++    """The payload; with `publish_ref`, its event is the pointer to that ref (`publish_seat`)."""
+     if role not in ROLES:
+         raise Refusal(f"role must be one of {', '.join(ROLES)}")
+     if not is_head(head or ""):
+@@ -193,7 +216,8 @@ def render(role: str, head: str, *, env_id: str, model: str, repo: str, pr: str
+             raise Refusal(f"no {name}: pass a flag, an overlay entry or its HPO_CLOUD_* variable")
+     if not re.fullmatch(r"[\w.-]+/[\w.-]+", repo):
+         raise Refusal("repo must be OWNER/NAME")
+-    text = _prompt(role, repo, pr, head, topic, nonce, brief)
++    text = (_pointer(role, repo, pr, head, topic, nonce, publish_ref) if publish_ref
++            else _prompt(role, repo, pr, head, topic, nonce, brief))
+     payload = {"job_config": {"ccr": {
+         "environment_id": env_id,
+         "session_context": {
+@@ -260,6 +284,24 @@ def _publish(repo_dir: str, ref: str, files: dict[str, str]) -> None:
+     _git(repo_dir, "push", "-q", "origin", f"{commit}:refs/heads/{ref}")
+ 
+ 
++def dispatch_ref(role: str, topic: str, pr: str) -> str:
++    """`dispatch/<role>-<topic>`, or `dispatch/<role>-rev-<PR>` for a seat with no topic."""
++    key = topic or (f"rev-{pr}" if pr.isdigit() else "")
++    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", key):
++        raise Refusal("a published seat needs a topic (letters, digits, . _ -) or a --pr")
++    return f"{DISPATCH_NS}/{role}-{key}"
++
++
++def publish_seat(repo_dir: str, ref: str, role: str, head: str, **args) -> dict:
++    """Publish the seat's whole prompt as PROMPT.md, with the payload firing it, on `ref`;
++    return that payload, whose event is the pointer to the ref. Both render first, so
++    every `render` refusal pushes nothing."""
++    prompt = render(role, head, **args)["job_config"]["ccr"]["events"][0]["data"]["message"]["content"]
++    payload = render(role, head, **args, publish_ref=ref)
++    _publish(repo_dir, ref, {"PAYLOAD.json": json.dumps(payload), "PROMPT.md": prompt})
++    return payload
++
++
+ def dispatch_group(role: str, group_id: str, model: str, *, repo_dir: str = ".",
+                    roster_ref: str | None = None, head: str = "", pr: str = "", nonce: str = "",
+                    overlay: str | None = None, environ=None) -> str:
+@@ -292,12 +334,9 @@ def dispatch_group(role: str, group_id: str, model: str, *, repo_dir: str = ".",
+     if role == "reviewer":
+         render(role, head, **args, nonce=BUS_PROBE_NONCE)  # every other refusal, before the bus records
+         nonce = _bus_dispatch(repo_dir, pr, head, model, nonce, environ)
+-    payload = render(role, head, **args, nonce=nonce)
+-    ref = f"{DISPATCH_NS}/{role}-{topic}"
++    ref = dispatch_ref(role, topic, "")
+     try:
+-        _publish(repo_dir, ref, {
+-            "PAYLOAD.json": json.dumps(payload),
+-            "PROMPT.md": payload["job_config"]["ccr"]["events"][0]["data"]["message"]["content"]})
++        publish_seat(repo_dir, ref, role, head, **args, nonce=nonce)
+     except Refusal:
+         if role == "reviewer":  # the bus closed reviewer-fire for a seat that was never fired
+             subprocess.run([sys.executable, "-I", str(HERE / "ledger.py"), *_ledger_log(environ), "open",
+@@ -410,14 +449,23 @@ def _group_checks(check) -> None:
+               line == "dispatch/fixer-r10-x" and "\n" not in line and " " not in line)
+         brief = work / "brief.txt"
+         brief.write_text(grp["brief"])
+-        old = io.StringIO()
+-        with contextlib.redirect_stdout(old):
+-            rc = main(["--role", "fixer", "--head", tip, "--topic", "r10-x", "--brief", str(brief),
+-                       "--env-id", "env_x", "--model", "m-1", "--repo", "owner/name"])
+-        check("the printed line round-trips to a payload byte-identical to today's flag path",
++        flags = ["--role", "fixer", "--head", tip, "--topic", "r10-x", "--brief", str(brief),
++                 "--env-id", "env_x", "--model", "m-1", "--repo", "owner/name"]
++        plain, old = io.StringIO(), io.StringIO()
++        with contextlib.redirect_stdout(plain):
++            rc0 = main(flags)
++        with contextlib.chdir(work), contextlib.redirect_stdout(old):
++            rc = main([*flags, "--publish"])
++        check("the printed line round-trips to a payload byte-identical to the flag path's --publish",
+               rc == 0 and fetched(line, "PAYLOAD.json") == old.getvalue().rstrip("\n"))
+-        msg = json.loads(fetched(line, "PAYLOAD.json"))["job_config"]["ccr"]["events"][0]["data"]["message"]["content"]
+-        check("the ref carries the prompt the payload carries", fetched(line, "PROMPT.md") == msg)
++        content = lambda text: json.loads(text)["job_config"]["ccr"]["events"][0]["data"]["message"]["content"]
++        msg = fetched(line, "PROMPT.md")
++        ptr = content(fetched(line, "PAYLOAD.json"))
++        check("the published payload's event is the pointer to the ref, under 600 chars; PROMPT.md is the prompt",
++              len(ptr) < 600 and f"origin ref {line} (`git fetch origin {line} && git show FETCH_HEAD:PROMPT.md`)"
++              in ptr and tip in ptr and msg.startswith("CLOUD FIXER") and msg not in ptr)
++        check("without --publish the flag path is unchanged: the whole prompt in its event, nothing published",
++              rc0 == 0 and content(plain.getvalue()) == msg)
+         check("the roster brief is inlined and the roster tip is the head",
+               "Fix the thing in tools/x.py." in msg and tip in msg)
+         check("a re-dispatch of the same brief moves no ref", dispatch() == line
+@@ -516,6 +564,17 @@ def _group_checks(check) -> None:
+             published = False
+         check("_publish itself refuses a ref that would publish the host, and pushes nothing",
+               not published and "someone" not in git(work, "ls-remote", str(origin)))
++        out = io.StringIO()
++        with contextlib.chdir(work), contextlib.redirect_stdout(out):
++            rc = main(["--role", "reviewer", "--head", rhead, "--pr", "7", "--nonce", "abc123", "--publish",
++                       "--env-id", "env_x", "--model", "m-1", "--repo", "owner/name"])
++        try:
++            msg = fetched("dispatch/reviewer-rev-7", "PROMPT.md")
++        except subprocess.CalledProcessError:
++            msg = ""
++        check("a reviewer's flag-path --publish publishes to dispatch/reviewer-rev-<PR> and points there",
++              rc == 0 and "git fetch origin dispatch/reviewer-rev-7 " in content(out.getvalue())
++              and msg.startswith("CLOUD REVIEWER") and "Bus nonce: abc123." in msg)
+         # Two sources, never one: the roster from the round's roster branch
+         # (O17), the head from main. The branch is one commit ahead of main
+         # with its own brief, so either swap shows.
+@@ -603,6 +662,7 @@ def _flag_checks(check) -> None:
+     import contextlib
+     import io
+     dests = {a.dest for a in _parser()._actions if a.dest != "help"}
++    switches = {a.dest for a in _parser()._actions if a.nargs == 0 and a.dest != "help"}
+     check("every flag the parser accepts has a --group disposition in GROUP_FLAGS, and no other",
+           dests == set(GROUP_FLAGS))
+     calls: list = []
+@@ -613,6 +673,8 @@ def _flag_checks(check) -> None:
+             base = {"role": "fixer", "group": "G-BASE", "model": "m-base"}
+             value = "probe" if dest == "role" else f"value-of-{dest}"
+             argv = [x for k, v in {**base, dest: value}.items() for x in ("--" + k.replace("_", "-"), v)]
++            if dest in switches:  # a switch takes no value
++                argv = argv[:-1]
+             calls.clear()
+             with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                 rc = main(argv)
+@@ -682,6 +744,22 @@ def self_test() -> int:
+           all(sum(FOOTER_BAN in line for line in t.splitlines()) == 1 for t in prompts.values()))
+     check("and no rendered prompt carries the attribution it bans (ref_privacy's classes: the null control)",
+           all(ref_privacy.attribution(t) == [] for t in prompts.values()))
++    check("every role's prompt caps one tool call's wait under the 5-minute prompt-cache TTL (R10-FLY-CACHE-PROMPTS)",
++          all(WAIT_LINE in t and "240 s" in WAIT_LINE for t in prompts.values()))
++    check("the fixer reads its role file, not CLAUDE.md, which the harness already loaded",
++          "dev/governance/roles/fixer.md" in prompts["fixer"] and "CLAUDE.md" not in prompts["fixer"])
++    for role, ref in (("fixer", "dispatch/fixer-t-1"), ("reviewer", "dispatch/reviewer-rev-7")):
++        a = dict(pr="7" if role == "reviewer" else "", topic="" if role == "reviewer" else "t-1",
++                 nonce="abc123" if role == "reviewer" else "")
++        check(f"the {role}'s publish ref is {ref}", dispatch_ref(role, a["topic"], a["pr"]) == ref)
++        ptr = render(role, head, **base, **a, publish_ref=ref)["job_config"]["ccr"]["events"][0]["data"][
++            "message"]["content"]
++        check(f"a published {role}'s event is a pointer: under 600 chars, names the ref, the head and PROMPT.md",
++              len(ptr) < 600 and f"git fetch origin {ref} && git show FETCH_HEAD:PROMPT.md" in ptr
++              and head in ptr and FOOTER_BAN not in ptr and len(ptr) < len(prompts[role]))
++    check("a reviewer's pointer carries its nonce", "abc123" in render(
++        "reviewer", head, **base, pr="7", nonce="abc123", publish_ref="dispatch/reviewer-rev-7")[
++        "job_config"]["ccr"]["events"][0]["data"]["message"]["content"])
+     check("a 39-hex head is refused", refused(h=head[:-1]))
+     check("a 41-hex head is refused", refused(h=head + "0"))
+     check("an upper-case head is refused", refused(h=head.upper()))
+@@ -723,6 +801,7 @@ GROUP_FLAGS = {
+     "repo": "the roster gives the repository",
+     "env_id": "the environment id comes from the overlay or $HPO_CLOUD_ENV_ID",
+     "out": "--group publishes the payload to its ref and prints the ref name",
++    "publish": "--group always publishes",
+ }
+ 
+ 
+@@ -742,6 +821,8 @@ def _parser() -> argparse.ArgumentParser:
+     ap.add_argument("--repo")
+     ap.add_argument("--overlay")
+     ap.add_argument("--out")
++    ap.add_argument("--publish", action="store_true", help="publish PROMPT.md to dispatch/<role>-<topic or "
++                    "rev-PR> and fire the seat with a pointer to it")
+     return ap
+ 
+ 
+@@ -768,8 +849,12 @@ def main(argv: list[str]) -> int:
+                 brief = Path(args.brief).read_text()
+             except OSError as e:
+                 raise Refusal(f"unreadable brief: {e.__class__.__name__}")
+-        payload = render(args.role, args.head, pr=args.pr, topic=args.topic, nonce=args.nonce,
+-                         brief=brief, **_config(args))
++        known = dict(pr=args.pr, topic=args.topic, nonce=args.nonce, brief=brief, **_config(args))
++        if args.publish:
++            payload = publish_seat(".", dispatch_ref(args.role, args.topic, args.pr), args.role, args.head,
++                                   **known)
++        else:
++            payload = render(args.role, args.head, **known)
+     except Refusal as e:
+         print(f"cloud_dispatch: refused: {e}", file=sys.stderr)
+         return 2
+diff --git a/tools/audit/seat/cloud_relay.sh b/tools/audit/seat/cloud_relay.sh
+index 35741074e..c7909dd10 100644
+--- a/tools/audit/seat/cloud_relay.sh
++++ b/tools/audit/seat/cloud_relay.sh
+@@ -100,8 +100,9 @@
+ #     meanwhile as `OWED <utc> handoff-update <ref> <sha>` in <log>.level. The
+ #     `handoff-no-pr` lines there are `ledger.py level`'s fold of every
+ #     handoff/* and handoff-body/* ref: owed unless its topic has an open PR,
+-#     it is disposed at its sha, or main already carries the change (ancestry
+-#     or content), each with its tip's commit time; rewritten every pass, and
++#     it is disposed at its sha, or main already carries the change (`ledger.py
++#     landed`, the classifier bus.sh orphans asks too), one line per topic
++#     (a body ref rides its code ref's), each with its tip's commit time; rewritten every pass, and
+ #     a failed PR listing or ledger read leaves them as they were.
+ #     HOLD. `<state>/cloud-handoff-hold` lists PR numbers, one per line (blank
+ #     lines and `#` lines allowed); only the orchestrator writes or edits it.
+@@ -458,11 +459,18 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of
+   level_set handoff-held "$state/cloud-level-held.$$"
+   # a handoff or handoff-body ref whose topic has no open PR is OWED on every pass until disposed
+   cut -f2 "$state/cloud-prs.$$" | sed -e 's,^fix/,,' -e 's,-pr$,,' > "$state/cloud-topics.$$"
++  # and the merged ones, `<topic> merged=<utc>`: a merge closes a handoff committed by then (RCA section 5.1)
++  { if [ -n "${HPO_RELAY_MERGED:-}" ]; then "$HPO_RELAY_MERGED"
++    else gh pr list -R "$repo" --state merged --limit 200 --json headRefName,mergedAt \
++      -q '.[] | [.headRefName, .mergedAt] | @tsv'; fi; } > "$state/cloud-merged.$$" \
++    || { echo "cloud_relay: could not list merged PRs; the handoff level stays as it was" >&2
++         rm -f "$state/cloud-prs.$$" "$state/cloud-hrefs.$$" "$state/cloud-topics.$$" "$state/cloud-vrefs.$$" "$state/cloud-merged.$$"; return 0; }
++  awk -F'\t' 'NF == 2 { t = $1; sub(/^fix\//, "", t); sub(/-pr$/, "", t); print t " merged=" $2 }' "$state/cloud-merged.$$" >> "$state/cloud-topics.$$"
+   # The level is ledger.py's fold (rc 0 none owed, 1 owed, 2 unreadable: the level stays as it was).
+   ledger level "$state/cloud-hrefs.$$" "$state/cloud-topics.$$" > "$state/cloud-level-handoff.$$"
+   case $? in 0|1) level_set handoff-no-pr "$state/cloud-level-handoff.$$";;
+     *) echo "cloud_relay: the ledger could not derive the handoff level; it stays as it was" >&2; rm -f "$state/cloud-level-handoff.$$";; esac
+-  rm -f "$state/cloud-prs.$$" "$state/cloud-hrefs.$$" "$state/cloud-topics.$$" "$state/cloud-vrefs.$$"
++  rm -f "$state/cloud-prs.$$" "$state/cloud-hrefs.$$" "$state/cloud-topics.$$" "$state/cloud-vrefs.$$" "$state/cloud-merged.$$"
+ }
+ 
+ # THE STUCK ANDON (triage P163; a trial, report-only, removed if it reports no STUCK line in its first
+@@ -718,6 +726,7 @@ EOF
+   rm -rf "$t/pr"; throwaway_git_init "$t/pr" -q; hc base; mkref fix/topic-a-pr; PRH=$(git -C "$t/pr" rev-parse HEAD)
+   printf '%s\t%s\t%s\n' 41 fix/topic-a-pr "$PRH" > "$prs"
+   printf '#!/bin/sh\ncat "%s"\n' "$prs" > "$t/lister.sh"; chmod +x "$t/lister.sh"; export HPO_RELAY_PRS=$t/lister.sh
++  : > "$t/merged.tsv"; printf '#!/bin/sh\ncat "%s"\n' "$t/merged.tsv" > "$t/mlister.sh"; chmod +x "$t/mlister.sh"; export HPO_RELAY_MERGED=$t/mlister.sh
+   # update stub: records args, advances the PR head to a new commit that contains the handoff
+   printf '#!/bin/sh\necho "$1 $2 $(basename "$3" | cut -c1-0) $4 $5" >> "%s/updated"\ncp "$3" "%s/body.seen"\necho "$3" > "%s/body.path"\nprintf "41\\tfix/topic-a-pr\\t%s\\n" > "%s"\n' "$t" "$t" "$t" "$N40" "$prs" > "$ustub"
+   printf '#!/bin/sh\necho "$1" >> "%s/approved"\n' "$t" > "$astub"
+@@ -905,6 +914,19 @@ EOF
+   handoff_arm >/dev/null 2>&1; handoff_arm >/dev/null 2>&1
+   chk "after three passes the no-PR ref is owed once (rewritten, never appended)" 0 test "$(grep -c "handoff-no-pr refs/heads/handoff/topic-b" "$LV")" = 1
+   chk "the event log carries no level line" 1 grep -q "handoff-no-pr" "$LOG"
++  # one obligation per topic: a no-PR topic's body ref rides its code ref's line (32 of 37 lines were noise, 20 of them body twins)
++  git -C "$t/o.git" update-ref refs/heads/handoff-body/topic-b "$OB"; handoff_arm >/dev/null 2>&1
++  chk "a no-PR topic with a body ref is one line, its code ref's, naming the body" 0 test "$(grep -c "handoff-no-pr refs/heads/handoff.*/topic-b " "$LV")-$(grep -c "handoff-no-pr refs/heads/handoff/topic-b $OB ct=[0-9]* body=$OB" "$LV")" = 1-1
++  git -C "$t/o.git" update-ref -d refs/heads/handoff-body/topic-b
++  # RCA 5.1: a merged PR of the topic closes a handoff committed by its merge; a re-handoff after it stays owed
++  printf 'fix/topic-b-pr\t2099-01-01T00:00:00Z\n' > "$t/merged.tsv"; handoff_arm >/dev/null 2>&1
++  chk "a handoff its topic's merged PR delivered (committed by the merge) is not owed" 1 grep -q "handoff-no-pr refs/heads/handoff/topic-b " "$LV"
++  failm=$t/failm.sh; printf '#!/bin/sh\nexit 1\n' > "$failm"; chmod +x "$failm"
++  HPO_RELAY_MERGED=$failm handoff_arm >/dev/null 2>&1
++  chk "an unlisted merged set leaves the level as it was, never re-owing what a merge closed" 1 grep -q "handoff-no-pr refs/heads/handoff/topic-b " "$LV"
++  printf 'fix/topic-b-pr\t2001-01-01T00:00:00Z\n' > "$t/merged.tsv"; handoff_arm >/dev/null 2>&1
++  chk "null control: a handoff committed after its topic's merge stays owed" 0 grep -q "handoff-no-pr refs/heads/handoff/topic-b $OB " "$LV"
++  : > "$t/merged.tsv"
+   git -C "$t/o.git" update-ref refs/heads/handoff/topic-z "$PRH"; handoff_arm >/dev/null 2>&1
+   chk "a no-PR handoff ref a live fix/ head carries is not owed (the ledger's ancestry close)" 1 grep -q "handoff/topic-z" "$LV"
+   git -C "$t/o.git" update-ref -d refs/heads/handoff/topic-z
+diff --git a/tools/audit/seat/instruments/beatd.py.md b/tools/audit/seat/instruments/beatd.py.md
+new file mode 100644
+index 000000000..e9276bed8
+--- /dev/null
++++ b/tools/audit/seat/instruments/beatd.py.md
+@@ -0,0 +1,25 @@
++# `beatd.py`
++
++- `beatd.py` — the one supervised beat (R10-ORCH-BEATD arm (a)): `run
++  --state S [--jobs FILE] [--once | --for N]` runs a job table, each job on
++  its own thread and process group under `S/beatd/<job>.lock`, SIGTERM at its
++  `timeout_s` and SIGKILL 10 s later unless the group has emptied, its leader
++  gone or not, before the job lock drops; a `class: orch-checkout` job also holds
++  `S/beatd/orch-checkout.lock`, waiting at most `class_wait_s` (default 60)
++  before `outcome=busy`. Every start, heartbeat and pass is a line of
++  `S/beatd/journal.log`. `status` prints one `JOB` line per job (`late` past
++  `interval_s + timeout_s`, `idle` for a watch job with no instance) and the
++  alarms `DOWN`, `ALERT lock-owner-dead`, `ALERT pulse-silent` (a `STOPPED`
++  line of pulse.py's output in `S/beatd/pulse.txt`) and `STALE-CODE behind=`;
++  rc 0, 1 alarm, 2 unreadable. `held` is `beatd.lock`'s one reader for other
++  scripts: rc 0 held, 1 free. A job's env carries `HPO_BEATD_JOB`, the real git
++  as `HPO_REAL_GIT`, `HPO_GIT_SHIM_LOG` and `beatd_shims` first on `PATH`.
++  When: arm (b) lands the job table (`beatd.jobs.json`, absent until then)
++  and the rows; until a supervisor unit is applied it runs under
++  `daemonize.py` and records `supervisor=none`. Refusal (rc 2, `beatd:
++  REFUSE`, zero jobs run): an unknown or missing key, a watch job under 60 s,
++  an unreadable table; a first `git` on `PATH` that is absent, a shim, or does
++  not answer `git version`. A second `run` exits 75, `ALREADY RUNNING`.
++  `--self-test` drives cases (a)1-8 under `/bin/bash`, each with its null
++  control, and plants each `MUTANTS` entry (at least one per case) in a temp
++  copy, four at a time; a crashing mutant fails, it is never a kill.
+diff --git a/tools/audit/seat/instruments/beatd_shims_git.md b/tools/audit/seat/instruments/beatd_shims_git.md
+new file mode 100644
+index 000000000..e3e06c840
+--- /dev/null
++++ b/tools/audit/seat/instruments/beatd_shims_git.md
+@@ -0,0 +1,11 @@
++# `beatd_shims/git`
++
++- `beatd_shims/git` — the beat jobs' `git`, reached only through the `PATH`
++  `beatd.py` builds (never `shims/`, which the sweep and `roster_queue.py`
++  prepend). A `fetch` or `pull` failing on `cannot lock ref` is re-run at most
++  `HPO_GIT_RETRIES` (default 2) more times, each retry a line of
++  `HPO_GIT_SHIM_LOG`; anything else is `exec`'d unchanged. The real git is
++  `HPO_REAL_GIT` when that is a regular executable file and not a shim, else
++  the first such `git` on `PATH`, any copy recognised by its line-2 marker
++  `# hpo-git-shim`. Refusal: no real git, `git shim: no real git on PATH`, rc
++  127; it never execs itself. Tested by `beatd.py --self-test`, case (a)6.
+diff --git a/tools/audit/seat/instruments/cloud_dispatch.py.md b/tools/audit/seat/instruments/cloud_dispatch.py.md
+index fec3c3134..5c8dafdd1 100644
+--- a/tools/audit/seat/instruments/cloud_dispatch.py.md
++++ b/tools/audit/seat/instruments/cloud_dispatch.py.md
+@@ -12,12 +12,16 @@
+   branch, `roster_lib.default_roster_ref`); the head is `--head`, else
+   `origin/main`'s tip, never the roster ref's (a reviewer must pass its PR
+   head); the environment is the overlay / `HPO_CLOUD_ENV_ID`; a flag it does
+-  not consume (`--topic`, `--brief`, `--repo`, `--env-id`, `--out`) refuses;
+-  it renders through the same `render` (the payload is the flag path's byte
+-  for byte), publishes PAYLOAD.json and PROMPT.md on origin as
+-  `dispatch/<role>-<topic>` (fast-forwarded, an identical tree adds nothing, a
+-  render refusal pushes nothing) and prints that ref name, the one line a
+-  standing trigger is fired with; `dev/audit/harnesses/r10_flow_dispatch_mutants.py`
++  not consume (`--topic`, `--brief`, `--repo`, `--env-id`, `--out`,
++  `--publish`) refuses; it renders through the same `publish_seat` as the flag
++  path's `--publish` (the payload is that path's byte for byte), publishes
++  PAYLOAD.json and PROMPT.md on origin as `dispatch/<role>-<topic>`
++  (fast-forwarded, an identical tree adds nothing, a render refusal pushes
++  nothing) and prints that ref name, the one line a standing trigger is fired
++  with. A published payload's event is a pointer to PROMPT.md on its ref, not
++  the prompt (the runner echoes the event into the orchestrator); `--publish`
++  on the flag path publishes to `dispatch/<role>-<topic>`, else
++  `dispatch/<role>-rev-<PR>`, the same way; `dev/audit/harnesses/r10_flow_dispatch_mutants.py`
+   re-runs its mutants. When: dispatching a seat to the cloud runner;
+   paste the printed JSON as the trigger update, or fire the standing trigger
+   with the printed ref. The measured shape of a cloud seat:
+diff --git a/tools/audit/seat/instruments/cloud_relay.sh.md b/tools/audit/seat/instruments/cloud_relay.sh.md
+index b9839a67e..e8a39a7a5 100644
+--- a/tools/audit/seat/instruments/cloud_relay.sh.md
++++ b/tools/audit/seat/instruments/cloud_relay.sh.md
+@@ -124,7 +124,9 @@
+   `handoff-no-pr` lines in `<log>.level` are `ledger.py level`'s fold of
+   every `handoff/*` and `handoff-body/*` ref, rewritten every pass: owed unless
+   its topic has an open pull request, it is disposed at its sha, or main
+-  already carries the change (ancestry, or content: see `ledger.py`), each
++  already carries the change (`ledger.py landed`, the one classifier `bus.sh
++  orphans` asks too: ancestry, clean merges, reverse-apply, content), one line
++  per topic (a body ref rides its code ref's), each
+   with its tip's commit time and last opener attempt; a failed PR listing or
+   ledger read leaves those lines as they were, since an empty list would make
+   every ref look orphaned. Every event the relay owes (`verdict-unposted` at
+diff --git a/tools/audit/seat/instruments/owed_unactioned.py.md b/tools/audit/seat/instruments/owed_unactioned.py.md
+new file mode 100644
+index 000000000..724ccedcb
+--- /dev/null
++++ b/tools/audit/seat/instruments/owed_unactioned.py.md
+@@ -0,0 +1,18 @@
++# `owed_unactioned.py`
++
++- `owed_unactioned.py` — says which tick owed lines have outlived a sweep with
++  no live acknowledgement (dev/audit/rca/R10-RCA-OWED-UNACTIONED.md). It reads
++  the board's whole owed family (`-> OWED…`, `REVIEW OWED:`, `DISPATCH:`,
++  `OWNER FLAG:`, `DESIGN-BUILD:`), keys each line on its topic or `#<pr>`, and
++  counts in `--state` the boards each key has stood on. A key standing
++  `--after` (2) sweeps is UNACTIONED unless an `--acks` file holds a live
++  `OWED-ACK <UTC> <key> <id> [ttl=<h>] <reason>` whose id prefixes a sha the
++  key carries now (7+ characters, or the whole of a non-sha ledger id; the
++  tool's own indented `ack:` echo and a `<placeholder>` reason are refused);
++  an acknowledgement lapses after its ttl (default 1 h, at
++  most 12), so a handled line comes back for its handling to be checked, and
++  free queue text covers nothing. When: every sweep, step (5) of
++  `sweep_template.md`. Exit 0 none unactioned, 1 the UNACTIONED block (each
++  with a ready ack line), 2 UNREADABLE: no provenance line, a board older than
++  `--max-board-min`, an owed line it cannot key, an unreadable state.
++  `--self-test` drives it offline.
+diff --git a/tools/audit/seat/ledger.py b/tools/audit/seat/ledger.py
+index 5758febfa..8828ee4b6 100644
+--- a/tools/audit/seat/ledger.py
++++ b/tools/audit/seat/ledger.py
+@@ -8,6 +8,7 @@
+     python3 -I tools/audit/seat/ledger.py [--log FILE] attempt <ref> <sha40> <outcome>
+     python3 -I tools/audit/seat/ledger.py [--log FILE] level <hrefs-file> <topics-file>
+     python3 -I tools/audit/seat/ledger.py [--log FILE] board
++    python3 -I tools/audit/seat/ledger.py landed [--no-ancestry] [--no-content] <main> [<head>...] < tips
+     python3 -I tools/audit/seat/ledger.py --self-test
+ 
+ WHY. An obligation was a level read out of append-only history: the relay
+@@ -50,14 +51,24 @@ An obligation of no kind in KINDS is refused, never stored.
+ LEVEL (`level`): the relay's handoff level for one pass. Each `handoff/<t>`
+ and `handoff-body/<t>` ref listed is owed (`handoff-no-pr`) unless: a state
+ ref by name (`audit-r<N>-plan`, `audit-r<N>-roster`); <t> has an open pull
+-request (the topics file); the ref is disposed at its sha; or main already
+-carries the change -- the code tip is inside main or a live `fix/*` head, or
+-every line its uncovered commits add is on main's copy of that file and every
+-line they remove is gone (`covered`: a hunk re-applied by another pull request
+-into a file main has since changed, which a byte-identical test cannot see).
+-A body ref follows its code ref there. Each owed line carries `ct=<epoch>`
++request (the topics file's bare lines); a pull request of <t> merged at or
++after the tip's commit time (its `<t> merged=<utc>` lines: a squash or an App
++push rewrote the commits, and the merge's own record moved the files on, so
++no content test can see it; a re-handoff committed later stays owed); the ref
++is disposed at its sha; or main already
++carries the change, by `landed`: the code tip is inside main or a live `fix/*`
++head, or outside them only by clean merges; its patch applies to main reversed
++and not forward; or `covered` finds every file it touches on main (a hunk
++re-applied by another pull request into a file main has since changed, which
++a byte-identical test cannot see). A body ref follows its code ref: one line
++per topic, the code ref's, naming the body as `body=<sha>`; only a body ref
++with no code ref is a line of its own. Each owed line carries `ct=<epoch>`
+ (the tip's commit time) and the topic's last opener attempt at that tip.
+ 
++LANDED (`landed`): the same classifier for bus.sh orphans, one owner. Main
++and the live heads are arguments, the tips stdin; one `<tip> <why>` line each,
++`-` when nothing carries it. --no-ancestry and --no-content drop an arm.
++
+ AGING. `escalate` turns those lines into a queue: DISPATCH at the first
+ threshold, oldest first, naming the roster group and the repair; an OWNER FLAG
+ at the second. The thresholds are policy (tvofi's); the switch is
+@@ -358,13 +369,41 @@ def attempts(rows: list) -> dict:
+ 
+ # ------------------------------------------------------------------- level
+ def covered(git, main: str, tip: str) -> bool:
+-    """Every line tip's uncovered commits add is on main's copy of its file,
+-    and every line they remove is gone from it: main carries the change."""
++    """Main carries every file tip's uncovered commits touch: the same bytes at
++    the path; an added file's bytes elsewhere (a recovery moved it); a deletion
++    main already made; or every line they add on main's copy and every line
++    they remove gone from it (a hunk re-applied into a file main has changed)."""
+     rc, mb = git(["merge-base", main, tip])
+     if rc:
+         return False
+-    rc, diff = git(["diff", "--no-color", "--no-renames", "-U0", mb.strip(), tip])
+-    if rc or not diff.strip():
++    mb = mb.strip()
++    rc, names = git(["diff", "--name-status", "--no-renames", mb, tip])
++    if rc or not names.strip():
++        return False
++    blobs, by_line = None, []
++    for row in names.splitlines():
++        st, path = row.split("\t", 1)
++        rc_t, b_tip = git(["rev-parse", f"{tip}:{path}"])
++        rc_m, b_main = git(["rev-parse", f"{main}:{path}"])
++        if st == "D":
++            if rc_m == 0:
++                return False
++        elif rc_t:
++            return False
++        elif rc_m == 0 and b_main == b_tip:
++            continue
++        elif rc_m:
++            if blobs is None:
++                rc, out = git(["ls-tree", "-r", main])
++                blobs = {l.split()[2] for l in out.splitlines()} if rc == 0 else set()
++            if b_tip.strip() not in blobs:
++                return False
++        else:
++            by_line.append(path)
++    if not by_line:
++        return True
++    rc, diff = git(["diff", "--no-color", "--no-renames", "-U0", mb, tip, "--", *by_line])
++    if rc:
+         return False
+     files: dict[str, tuple[set, set]] = {}
+     path = None
+@@ -372,9 +411,7 @@ def covered(git, main: str, tip: str) -> bool:
+         if l.startswith("Binary files "):
+             return False
+         if l.startswith("+++ "):
+-            path = l[6:] if l.startswith("+++ b/") else None
+-            if path is None:
+-                return False  # a deletion: covered only by a byte-identical arm, not this one
++            path = l[6:]
+             files.setdefault(path, (set(), set()))
+         elif path and l.startswith("+") and l[1:].strip():
+             files[path][0].add(l[1:].strip())
+@@ -387,24 +424,78 @@ def covered(git, main: str, tip: str) -> bool:
+         have = {l.strip() for l in text.splitlines()}
+         if not add <= have or rem & have:
+             return False
+-    return bool(files)
++    return True
+ 
+ 
+-def handoff_level(hrefs: list, topics: set, git, disp: dict, att: dict, now: str):
+-    """(level lines, Counter of why each listed ref is or is not owed)."""
++def reverse_applies(git, main: str, tip: str) -> bool:
++    """Tip's patch from its merge base with main applies to main reversed and
++    not forward: main holds the change, context and all (the brief's test),
++    checked in a throwaway index, never the work tree."""
++    rc, mb = git(["merge-base", main, tip])
++    if rc:
++        return False
++    with tempfile.TemporaryDirectory() as d:
++        patch, env = os.path.join(d, "p.diff"), {"GIT_INDEX_FILE": os.path.join(d, "index")}
++        rc, diff = git(["diff", "--binary", "--full-index", "--no-renames", mb.strip(), tip])
++        if rc or not diff.strip():
++            return False
++        Path(patch).write_text(diff if diff.endswith("\n") else diff + "\n")
++        if git(["read-tree", main], env)[0]:
++            return False
++        return (git(["apply", "--cached", "--check", "--reverse", patch], env)[0] == 0
++                and git(["apply", "--cached", "--check", patch], env)[0] != 0)
++
++
++ANCESTRY_WHY, CONTENT_WHY = ("ancestor", "merges-only"), ("reverse-apply", "content")
++
++
++def landed(git, main: str, tip: str, heads=(), ancestry: bool = True, content: bool = True) -> "str | None":
++    """Why main, or a live fix/* head, already carries tip; None when nothing
++    does. The one classifier of a handoff's landing: `level` folds the relay's
++    handoff-no-pr through it and bus.sh orphans asks it (`landed` below).
++      ancestor       every commit of tip is inside main or a head
++      merges-only    the only commits outside them are merges whose combined
++                     diff is empty (no resolution of their own)
++      reverse-apply  reverse_applies: the patch is on main, context and all
++      content        covered: the change is on main under another commit"""
++    if ancestry:
++        rc, out = git(["rev-list", "--count", tip, "--not", main, *heads])
++        if rc == 0 and out.strip() == "0":
++            return "ancestor"
++        rc, out = git(["rev-list", "--no-merges", "--count", tip, "--not", main, *heads])
++        if rc == 0 and out.strip() == "0":
++            rc, merges = git(["rev-list", "--merges", tip, "--not", main, *heads])
++            if rc == 0 and all((lambda r: r[0] == 0 and not r[1].strip())(
++                    git(["diff-tree", "--cc", "--no-commit-id", "-p", m])) for m in merges.split()):
++                return "merges-only"
++    if content:
++        if reverse_applies(git, main, tip):
++            return "reverse-apply"
++        if covered(git, main, tip):
++            return "content"
++    return None
++
++
++def handoff_level(hrefs: list, topics: set, git, disp: dict, att: dict, now: str, merged: "dict | None" = None):
++    """(level lines, Counter of why each listed ref is or is not owed). merged:
++    {topic: epoch} of merged pull requests, which close a tip committed by then."""
++    merged = merged or {}
+     rc, main = git(["rev-parse", "--verify", f"{NS}/main"])
+     if rc:
+         raise Unreadable("no main in the ledger's fetched namespace")
+     main = main.strip()
++    rc, out = git(["for-each-ref", "--format=%(objectname)", f"{NS}/fix/"])
++    if rc:
++        raise Unreadable("the fetched fix/* heads could not be listed")
++    heads = sorted(set(out.split()))
+     code = {topic_of(r): s for s, r in hrefs if r.startswith("refs/heads/handoff/")}
++    body = {topic_of(r): s for s, r in hrefs if r.startswith("refs/heads/handoff-body/")}
+     carried: dict[str, bool] = {}
+ 
+     def is_carried(t: str) -> bool:
+         if t not in carried:
+             sha = code.get(t)
+-            rc, out = git(["for-each-ref", "--contains", sha, "--format=%(refname)", f"{NS}/main", f"{NS}/fix/"]) \
+-                if sha else (1, "")
+-            carried[t] = bool(sha) and ((rc == 0 and bool(out.strip())) or covered(git, main, sha))
++            carried[t] = bool(sha) and landed(git, main, sha, heads) is not None
+         return carried[t]
+ 
+     ct = {}
+@@ -417,20 +508,41 @@ def handoff_level(hrefs: list, topics: set, git, disp: dict, att: dict, now: str
+         t = topic_of(ref)
+         if STATE_REF.match(t):
+             why["state-ref"] += 1
++        elif t in code and not ref.startswith("refs/heads/handoff/"):
++            why["body-follows-code"] += 1  # one obligation per topic: its code ref's line stands for both
+         elif t in topics:
+             why["open-pr"] += 1
+         elif disp.get(ref, ("",))[0] == sha:
+             why["disposed"] += 1
++        elif t in merged and ct.get(code.get(t, sha), "").isdigit() and int(ct[code.get(t, sha)]) <= merged[t]:
++            why["merged-pr"] += 1  # delivered by that merge; a re-handoff committed after it stays owed
+         elif is_carried(t):
+             why["carried"] += 1
+         else:
+             why["owed"] += 1
+             a = att.get(f"refs/heads/handoff/{t}")
+             tail = f" attempt={a[1]},{a[2].replace(' ', '_')}" if a and a[0] == code.get(t) else ""
+-            lines.append(f"OWED {now} handoff-no-pr {ref} {sha} ct={ct.get(sha, '?')}{tail}")
++            bref = f" body={body[t]}" if ref.startswith("refs/heads/handoff/") and t in body else ""
++            lines.append(f"OWED {now} handoff-no-pr {ref} {sha} ct={ct.get(sha, '?')}{bref}{tail}")
+     return lines, why
+ 
+ 
++def read_topics(text: str) -> "tuple[set, dict]":
++    """The level's topics file: open-PR topics, and {topic: epoch} of each
++    topic's latest merged pull request (a reused topic can merge twice)."""
++    topics, merged = set(), {}
++    for l in text.splitlines():
++        f = l.split()
++        if len(f) == 2 and f[1].startswith("merged="):
++            when = datetime.datetime.fromisoformat(f[1][7:].replace("Z", "+00:00")).timestamp()
++            merged[f[0]] = max(merged.get(f[0], 0), int(when))
++        elif len(f) == 1:
++            topics.add(f[0])
++        elif f:
++            raise Refused(f"topics: '{l}' is neither '<topic>' nor '<topic> merged=<utc>'")
++    return topics, merged
++
++
+ def fetch_world(git) -> None:
+     rc, out = git(["fetch", "-q", "--prune", "origin", f"+refs/heads/main:{NS}/main",
+                    f"+refs/heads/handoff/*:{NS}/handoff/*", f"+refs/heads/handoff-body/*:{NS}/handoff-body/*",
+@@ -473,7 +585,8 @@ def escalate(level_rows: list, now: datetime.datetime, aging, group_of) -> list[
+         if not kv.get("ct", "").isdigit():
+             continue
+         age = (now.timestamp() - int(kv["ct"])) / 3600  # ahead of the clock: < 0, below any threshold
+-        repair = "opener" if len(refs) == 2 else "no code ref" if "code" not in refs else "no body ref"
++        repair = ("no code ref" if "code" not in refs
++                  else "opener" if "body" in refs or "body" in refs["code"][2] else "no body ref")
+         queue.append((age, t, ref, sha, repair, kv.get("attempt")))
+     queue.sort(key=lambda q: -q[0])
+     out = [f"DISPATCH: {group_of(t) or '?'} {ref} {sha[:12]} {repair} ({age:.1f}h"
+@@ -532,8 +645,9 @@ def app_approve_carries(cwd: str, main: str, env=None):
+ 
+ 
+ # --------------------------------------------------------------------- CLI
+-def _git_cwd(argv: list) -> "tuple[int, str]":
+-    r = subprocess.run(["git", *argv], capture_output=True, text=True)
++def _git_cwd(argv: list, env: "dict | None" = None) -> "tuple[int, str]":
++    r = subprocess.run(["git", *argv], capture_output=True, text=True,
++                       env={**os.environ, **env} if env else None)
+     return r.returncode, r.stdout + (r.stderr if r.returncode else "")
+ 
+ 
+@@ -562,13 +676,25 @@ def main(argv: list) -> int:
+             return 0
+         if cmd == "level" and len(args) == 2:
+             hrefs = [tuple(l.split()[:2]) for l in Path(args[0]).read_text().splitlines() if len(l.split()) >= 2]
+-            topics = {l.strip() for l in Path(args[1]).read_text().splitlines() if l.strip()}
++            topics, merged = read_topics(Path(args[1]).read_text())
+             fetch_world(_git_cwd)
+             lines, why = handoff_level(hrefs, topics, _git_cwd, dispositions(home),
+-                                       attempts(events(home, log)), utc())
++                                       attempts(events(home, log)), utc(), merged)
+             print("".join(l + "\n" for l in lines), end="")
+             print("ledger: level " + " ".join(f"{k}={v}" for k, v in sorted(why.items())), file=sys.stderr)
+             return 1 if lines else 0
++        if cmd == "landed" and args:
++            flags = {a for a in args if a in ("--no-ancestry", "--no-content")}
++            shas = [a for a in args if a not in flags]
++            if not shas or not all(is_sha(a) for a in shas):
++                raise Refused("landed takes <main> [<head>...] as 40-hex shas, the tips on stdin")
++            for tip in sys.stdin.read().split():
++                if not is_sha(tip):
++                    raise Refused(f"'{tip}' is no 40-hex tip")
++                why = landed(_git_cwd, shas[0], tip, shas[1:], "--no-ancestry" not in flags,
++                             "--no-content" not in flags)
++                print(f"{tip} {why or '-'}")
++            return 0
+         if cmd == "board" and not args:
+             open_, closed = fold(events(home, log))
+             for ob in open_:
+@@ -793,25 +919,118 @@ def self_test() -> int:
+           f"{unc}:refs/heads/handoff-body/unc", f"{anc}:refs/heads/handoff/anc",
+           f"{unc}:refs/heads/handoff/audit-r10-roster", f"{unc}:refs/heads/handoff/open",
+           f"{unc}:refs/heads/handoff/disp")
+-        gw = lambda argv: (lambda r: (r.returncode, r.stdout + (r.stderr if r.returncode else "")))(
+-            subprocess.run(["git", "-C", str(w), *argv], capture_output=True, text=True, env=env))
++        gw = lambda argv, extra=None: (lambda r: (r.returncode, r.stdout + (r.stderr if r.returncode else "")))(
++            subprocess.run(["git", "-C", str(w), *argv], capture_output=True, text=True, env={**env, **(extra or {})}))
+         fetch_world(gw)
+         mn = g("rev-parse", "main")
+         check("covered: a hunk main carries beside a later change (the ecaf178c shape)", covered(gw, mn, cov))
+         check("null control: a hunk adding a line main lacks is not covered", not covered(gw, mn, unc))
++        # ---- landed: the one classifier bus.sh orphans shares
++        g("checkout", "-qb", "work4", cov + "~1")
++        put("g.txt", "x\nfi\ny\nfi\np\nq\nr\ns\nt\n", "g base")
++        gb = g("rev-parse", "HEAD")
++        rv = put("g.txt", "x\nfi\ny\np\nq\nr\ns\nt\n", "drop the second fi")
++        g("checkout", "-qb", "work5", gb)
++        put("g.txt", "x\nfi\ny\np\nq\nr\ns\nT\n", "main lands it beside a change")
++        rvm = g("rev-parse", "HEAD")
++        g("checkout", "-qb", "work6", gb)
++        rvn = put("g.txt", "x\ny\nfi\np\nq\nr\ns\nt\n", "drop the first fi")
++        check("landed: a patch main holds whose removed line main keeps elsewhere is reverse-apply, not content",
++              landed(gw, rvm, rv) == "reverse-apply" and not covered(gw, rvm, rv))
++        check("null control: a patch main does not hold lands nowhere", landed(gw, rvm, rvn) is None)
++        g("checkout", "-qb", "work13", gb)
++        body_ = ["h1", "h2", "h3", "h4", "c1", "c2", "c3", "fi", "c4", "c5", "c6", "t1", "t2", "t3", "t4"]
++        put("d.txt", "\n".join(body_) + "\n", "d base")
++        db = g("rev-parse", "HEAD")
++        dt = put("d.txt", "\n".join(x for x in body_ if x != "fi") + "\n", "drop fi")
++        g("checkout", "-qb", "work14", db)
++        dm = put("d.txt", "\n".join([x for x in body_ if x != "fi"] + body_[4:11] + ["e1", "e2", "e3"]) + "\n",
++                 "main holds the patched region and an unpatched copy")
++        check("null control: a patch that applies both ways (an unpatched copy remains) is not landed",
++              landed(gw, dm, dt) is None and not reverse_applies(gw, dm, dt))
++        check("landed: a tip inside main reads ancestor, not merges-only", landed(gw, mn, anc) == "ancestor")
++        check("landed: the re-applied hunk is content (reverse-apply cannot: forward applies too)",
++              landed(gw, mn, cov) == "content" and not reverse_applies(gw, mn, cov))
++        g("checkout", "-qb", "work7", gb)
++        mv = put("moved.txt", "same bytes\n", "add a file")
++        g("checkout", "-qb", "work8", gb)
++        (w / "sub").mkdir()
++        mvm = put("sub/moved.txt", "same bytes\n", "main holds it at another path")
++        check("covered: an added file whose bytes main holds at another path is carried (a moved file)",
++              covered(gw, mvm, mv))
++        check("null control: the same add with other bytes is not", not covered(gw, mvm, put("x.txt", "other\n", "x")))
++        g("checkout", "-qb", "work15", gb)
++        g("rm", "-q", "g.txt")
++        tipd = put("y.txt", "same bytes\n", "delete g.txt, add bytes main holds elsewhere")
++        check("null control: a tip deleting a file main still holds is not covered, beside a carried add",
++              not covered(gw, mvm, tipd) and landed(gw, mvm, tipd) is None)
++        g("checkout", "-qb", "work16", gb)
++        g("rm", "-q", "g.txt")
++        (w / "sub").mkdir(exist_ok=True)
++        mdel = put("sub/moved.txt", "same bytes\n", "main deletes g.txt too and holds the add elsewhere")
++        check("covered: a deletion main already made is carried", covered(gw, mdel, tipd))
++        g("checkout", "-qb", "work17", gb)
++        sbm = put("g.txt", "x\nfi\ny\np\nq\nr\ns\nt\n", "main holds rv's bytes under its own commit")
++        check("covered: the same bytes at the path are carried, a removed line kept elsewhere notwithstanding",
++              covered(gw, sbm, rv))
++        g("checkout", "-qb", "work9", mvm)
++        m_a = put("ma.txt", "A\n", "main side")
++        g("checkout", "-qb", "work10", mvm)
++        f_b = put("fb.txt", "B\n", "fix side")
++        g("merge", "-q", "--no-edit", m_a)
++        tipm = g("rev-parse", "HEAD")
++        g("checkout", "-qb", "work11", f_b)
++        fixh = put("fc.txt", "C\n", "the fix head carries both parents' work")
++        g("merge", "-q", "--no-edit", m_a)
++        fixh = g("rev-parse", "HEAD")
++        check("landed: a merge tip whose parents main and a fix head carry is merges-only",
++              landed(gw, m_a, tipm, [fixh]) == "merges-only")
++        check("null control: without that fix head the same tip is not ancestry-carried",
++              landed(gw, m_a, tipm, [], content=False) is None)
++        g("checkout", "-qb", "work12", f_b)
++        g("merge", "-q", "--no-commit", m_a)
++        put("evil.txt", "E\n", "a merge with a resolution of its own")
++        check("null control: a merge carrying its own resolution is not merges-only",
++              landed(gw, m_a, g("rev-parse", "HEAD"), [fixh], content=False) is None)
++        g("checkout", "-q", "main")
+         hr = [tuple(l.split()) for l in g("ls-remote", "origin", "refs/heads/handoff/*",
+                                            "refs/heads/handoff-body/*").splitlines()]
+         att = {"refs/heads/handoff/unc": (unc, "2026-10-20T11:50:33Z", "rc=143")}
+         lines, why = handoff_level(hr, {"open"}, gw, {"refs/heads/handoff/disp": (unc, "t", "h")}, att, "NOW")
+         owed = sorted(l.split()[3] for l in lines)
+-        check("the level owes exactly the uncovered topic's two refs and the body-only ref",
+-              owed == ["refs/heads/handoff-body/bodyonly", "refs/heads/handoff-body/unc", "refs/heads/handoff/unc"])
+-        check("and names each close: state ref, open PR, disposed, carried (ancestry and content)",
+-              dict(why) == {"owed": 3, "state-ref": 1, "open-pr": 1, "disposed": 1, "carried": 2})
++        check("the level owes the uncovered topic once, at its code ref, and the body-only ref",
++              owed == ["refs/heads/handoff-body/bodyonly", "refs/heads/handoff/unc"])
++        check("the code ref's line names its body ref, which is no line of its own (one obligation per topic)",
++              any(l.split()[3] == "refs/heads/handoff/unc" and f" body={unc}" in l for l in lines))
++        check("and names each close: state ref, open PR, disposed, carried (ancestry and content), body",
++              dict(why) == {"owed": 2, "state-ref": 1, "open-pr": 1, "disposed": 1, "carried": 2,
++                            "body-follows-code": 1})
++        l2, w2 = handoff_level(hr, {"open"}, gw, {}, att, "NOW", {"unc": 4102444800})
++        check("a topic whose PR merged after its tip's commit is closed by the merge (RCA 5.1)",
++              not any("/unc " in l for l in l2) and w2["merged-pr"] == 1)
++        l2, w2 = handoff_level(hr, {"open"}, gw, {}, att, "NOW", {"unc": int(g("log", "-1", "--format=%ct", unc))})
++        check("a merge in the tip's own commit second closes it (at or before, not strictly before)",
++              not any("/unc " in l for l in l2) and w2["merged-pr"] == 1)
++        tp, mg = read_topics("open\nt merged=2026-01-02T00:00:00Z\nt merged=2026-01-01T00:00:00Z\n")
++        check("the topics reader keeps a topic's latest merge, whatever the listing order",
++              tp == {"open"} and mg == {"t": 1767312000})
++        l2, w2 = handoff_level(hr, {"open"}, gw, {}, att, "NOW", {"unc": 1})
++        check("null control: a tip committed after its topic's merge stays owed",
++              any(" refs/heads/handoff/unc " in l for l in l2) and "merged-pr" not in w2)
+         check("every owed line, an orphan body ref's included, carries its tip's commit time",
+               all(" ct=" in l and not l.split("ct=")[1].startswith("?") for l in lines))
+         check("the code ref's topic carries the opener attempt at that tip",
+-              sum("attempt=2026-10-20T11:50:33Z,rc=143" in l for l in lines) == 2)
++              sum("attempt=2026-10-20T11:50:33Z,rc=143" in l for l in lines) == 1)
++        bo_t = g("ls-remote", "origin", "refs/heads/handoff-body/bodyonly").split()[0]
++        check("escalate: a code line naming its body is an opener; a body-only line has no code ref",
++              sorted(re.sub(r"^DISPATCH: G (\S+) \S+ (.*) \(.*$", r"\1 \2", q) for q in escalate(
++                  [f"OWED x handoff-no-pr refs/heads/handoff/unc {unc} ct=1 body={unc}",
++                   f"OWED x handoff-no-pr refs/heads/handoff/nob {unc} ct=1",
++                   f"OWED x handoff-no-pr refs/heads/handoff-body/bodyonly {bo_t} ct=1"],
++                  datetime.datetime.now(datetime.timezone.utc), (1.0, 1e9), lambda t: "G")
++                  if q.startswith("DISPATCH")) == ["refs/heads/handoff-body/bodyonly no code ref",
++                                                    "refs/heads/handoff/nob no body ref",
++                                                    "refs/heads/handoff/unc opener"])
+         r = subprocess.run([sys.executable, "-I", __file__, "--log", str(e / "cloud-relay.log"), "board"],
+                            capture_output=True, text=True)
+         check("board: obligations exist is rc 1 with its summary line (a finding, not a failure)",
+@@ -828,7 +1047,7 @@ def self_test() -> int:
+         r = subprocess.run([sys.executable, "-I", __file__, "--log", str(D / "lv" / "l"), "level",
+                             str(D / "hr"), str(D / "tp")], capture_output=True, text=True, cwd=w, env=env)
+         check("level CLI: owed lines on stdout, rc 1, the counts on stderr",
+-              r.returncode == 1 and r.stdout.count("handoff-no-pr") == 4 and "owed=4" in r.stderr)
++              r.returncode == 1 and r.stdout.count("handoff-no-pr") == 3 and "owed=3" in r.stderr)
+         g("remote", "set-url", "origin", str(D / "absent.git"))
+         r = subprocess.run([sys.executable, "-I", __file__, "--log", str(D / "lv" / "l"), "level",
+                             str(D / "hr"), str(D / "tp")], capture_output=True, text=True, cwd=w, env=env)
+diff --git a/tools/audit/seat/owed_unactioned.py b/tools/audit/seat/owed_unactioned.py
+new file mode 100644
+index 000000000..6cac6f1f4
+--- /dev/null
++++ b/tools/audit/seat/owed_unactioned.py
+@@ -0,0 +1,387 @@
++#!/usr/bin/env python3
++"""Say which tick OWED lines have outlived a sweep with no live acknowledgement.
++
++    python3 -I tools/audit/seat/owed_unactioned.py --tick <tick.txt> --state <state.json> \
++        [--acks <file>]... [--after 2] [--max-board-min 20] [--now <ISO>] [--no-write]
++    python3 -I tools/audit/seat/owed_unactioned.py --self-test
++
++WHY THIS EXISTS (dev/audit/rca/R10-RCA-OWED-UNACTIONED.md). The tick prints its
++owed lines level-triggered, every pass, and escalates a stranded handoff by age;
++the sweep read them and still left them standing for hours, because a line the
++orchestrator handled once -- routed to a seat, waited on a named PR, believed the
++relay would move -- prints identically after that handling has failed. Nothing
++asked again. On 2026-10-28 the critical-path handoff r10-orch-beatd (#2916) stood
++1.7 h on `repair=review` while the relay printed HELD-REVIEW on every pass, and
++two handoffs routed to the opener at 10:55Z stood 8 h.
++
++WHAT IT DOES. It reads the tick board's owed family -- every `-> ` line that
++starts `OWED`, `REVIEW OWED:`, `DISPATCH:`, `OWNER FLAG:` or `DESIGN-BUILD:` --
++and keys each on its obligation: the handoff topic, or `#<pr>`. The state file
++counts the sweeps (distinct boards, by the board's provenance time) each key has
++stood on. A key standing on `--after` sweeps or more is UNACTIONED unless an
++acknowledgement line in an `--acks` file covers it now:
++
++    OWED-ACK <UTC ISO> <key> <id> [ttl=<hours>] <next action; what it waits on>
++
++It is a line of its own (the tool's indented `ack:` echo is not), its reason
++holds no `<placeholder>`, and its id is a 7+ character prefix of a sha the
++key's lines carry this board, or the whole of the ledger's own id for a kind
++with no sha (`-` for a line with none). So a new tip needs a new
++acknowledgement, and logging the tool's output acknowledges nothing. An acknowledgement lapses after ttl hours (default 1, at
++most 12, the owner's OWNER FLAG threshold), so a handled line comes back and the
++handling is checked again. Free text in a queue file is not an acknowledgement.
++
++EXIT. 0: no owed key is unactioned. 1: the UNACTIONED block, oldest first, each
++with a ready OWED-ACK line to fill in -- the sweep is not done. 2: cannot say --
++no tick file, no provenance line, a board older than --max-board-min, an owed
++line it cannot key, an unreadable state file -- never a clean zero. A refused
++OWED-ACK line is printed and covers nothing.
++"""
++from __future__ import annotations
++
++import argparse
++import datetime as dt
++import json
++import os
++import re
++import sys
++import tempfile
++
++FAMILY = re.compile(r"^-> (OWED|REVIEW OWED:|DISPATCH:|OWNER FLAG:|DESIGN-BUILD:)")
++BOARD = re.compile(r"^BOARD measured from origin/main at \S+, (\S+)")
++SHA = re.compile(r"\b[0-9a-f]{12,40}\b")
++REF = re.compile(r"\b(?:refs/heads/)?(?:handoff-body|handoff|design)/(\S+)")
++# Anchored at the line start (a list marker allowed): the tool's own `      ack: OWED-ACK ...`
++# echo is not an acknowledgement, and a reason still holding a `<placeholder>` is refused.
++ACK = re.compile(r"^\s*(?:[-*]\s+)?OWED-ACK (\S+) (\S+) (\S+)(?: ttl=(\S+))? +(\S.*)$")
++PLACEHOLDER = re.compile(r"<[^<>]*>")
++ID_FLOOR = 7  # an id shorter than this covers a sha only by being the whole id
++TTL_DEFAULT, TTL_MAX = 1.0, 12.0
++
++
++class Unreadable(Exception):
++    pass
++
++
++def utc(s: str) -> dt.datetime:
++    t = dt.datetime.fromisoformat(s.replace("Z", "+00:00"))
++    if t.tzinfo is None:
++        raise ValueError(f"{s}: no zone")
++    return t.astimezone(dt.timezone.utc)
++
++
++def key_of(line: str) -> "tuple[str, list[str]]":
++    """(key, shas) for one owed-family line; Unreadable when it names no obligation."""
++    body = line[3:]
++    shas = [s[:12] for s in SHA.findall(body)]
++    m = re.match(r"REVIEW OWED: (#\d+)", body)
++    if m:
++        return m.group(1), shas
++    m = re.match(r"OWED handoff: (\S+) ", body)
++    if m:
++        return m.group(1), shas
++    m = re.match(r"OWED: OWED \S+ \S+ (\S+) (\S+)", body)
++    if m:
++        subj = m.group(1)
++        shas = shas or [m.group(2)]  # a kind whose id is no sha (push-stuck: a pid)
++        r = REF.match(subj)
++        return (r.group(1) if r else f"#{subj}" if subj.isdigit()
++                else subj.removeprefix("refs/heads/")), shas
++    m = REF.search(body)
++    if m and re.match(r"(DISPATCH|OWNER FLAG|DESIGN-BUILD): ", body):
++        return m.group(1), shas
++    raise Unreadable(f"an owed line names no topic or pull request: {line[:120]}")
++
++
++def board(text: str) -> "tuple[dt.datetime, dict]":
++    lines = text.splitlines()
++    m = BOARD.match(lines[0]) if lines else None
++    if not m:
++        raise Unreadable("no `BOARD measured from origin/main at <sha>, <UTC>` provenance line")
++    keys: dict = {}
++    for line in lines:
++        if FAMILY.match(line):
++            k, shas = key_of(line)
++            e = keys.setdefault(k, {"shas": [], "lines": []})
++            e["shas"] += [s for s in shas if s not in e["shas"]]
++            e["lines"].append(line)
++    return utc(m.group(1)), keys
++
++
++def acks(texts: list, now: dt.datetime) -> "tuple[dict, list[str]]":
++    """{key: [(sha, expiry, reason)]} live now, and the refused lines."""
++    live, refused = {}, []
++    for name, text in texts:
++        for n, line in enumerate(text.splitlines(), 1):
++            if "OWED-ACK" not in line:
++                continue
++            m = ACK.search(line)
++            why = None
++            if not m:
++                why = ("not a line of its own: `OWED-ACK <UTC ISO> <key> <id> [ttl=<h>] <reason>` "
++                       "(the tool's own `ack:` echo is not one)")
++            elif PLACEHOLDER.search(m.group(5)):
++                why = "the reason is still the template's <placeholder>"
++            else:
++                try:
++                    at = utc(m.group(1))
++                    ttl = float(m.group(4) or TTL_DEFAULT)
++                except ValueError as e:
++                    at, ttl, why = None, 0.0, f"unparsable time or ttl ({e})"
++                if why is None and not 0 < ttl <= TTL_MAX:
++                    why = f"ttl={m.group(4)} outside (0, {TTL_MAX:g}] hours"
++                if why is None and at > now + dt.timedelta(minutes=5):
++                    why = "stamped ahead of the clock"
++            if why:
++                refused.append(f"REFUSED ack {name}:{n}: {why}")
++                continue
++            exp = at + dt.timedelta(hours=ttl)
++            if exp > now:
++                live.setdefault(m.group(2), []).append((m.group(3), exp, m.group(5)))
++    return live, refused
++
++
++def run(tick: str, state_path: str, ack_texts: list, now: dt.datetime, after: int,
++        max_board_min: float, write: bool, out) -> int:
++    try:
++        when, keys = board(tick)
++    except (Unreadable, ValueError) as e:
++        out(f"UNREADABLE: {e}")
++        return 2
++    age = (now - when).total_seconds() / 60
++    if age > max_board_min:
++        out(f"UNREADABLE: the board is {age:.0f} min old (over {max_board_min:g}); "
++            "a stale board cannot say a line was discharged")
++        return 2
++    try:
++        with open(state_path, encoding="utf-8") as fh:
++            state = json.load(fh)
++        if not isinstance(state.get("keys"), dict):
++            raise ValueError("no `keys` object")
++        for k, e in state["keys"].items():
++            if not (isinstance(e, dict) and isinstance(e.get("first"), str)
++                    and isinstance(e.get("sweeps"), int) and not isinstance(e["sweeps"], bool)
++                    and e["sweeps"] >= 1):
++                raise ValueError(f"entry `{k}` is not {{first: <UTC>, sweeps: <n >= 1>}}")
++            utc(e["first"])
++    except FileNotFoundError:
++        state = {"board": None, "keys": {}}
++    except (OSError, ValueError) as e:
++        out(f"UNREADABLE: state {state_path}: {e}")
++        return 2
++    stamp = when.strftime("%Y-%m-%dT%H:%M:%SZ")
++    fresh = stamp != state.get("board")
++    seen = {}
++    for k in keys:
++        old = state["keys"].get(k)
++        if old is None:
++            seen[k] = {"first": stamp, "sweeps": 1}
++        else:
++            seen[k] = {"first": old["first"], "sweeps": old["sweeps"] + (1 if fresh else 0)}
++    if write:
++        d = os.path.dirname(os.path.abspath(state_path))
++        fd, tmp = tempfile.mkstemp(dir=d, prefix=".owed-unactioned.")
++        with os.fdopen(fd, "w", encoding="utf-8") as fh:
++            json.dump({"board": stamp, "keys": seen}, fh, indent=1, sort_keys=True)
++        os.replace(tmp, state_path)
++    live, refused = acks(ack_texts, now)
++    for r in refused:
++        out(r)
++    acked, bad = [], []
++    for k, s in sorted(seen.items(), key=lambda kv: (kv[1]["first"], kv[0])):
++        ids = keys[k]["shas"]
++        cover = [a for a in live.get(k, []) if (a[0] == "-" and not ids) or any(
++            x == a[0] or (len(a[0]) >= ID_FLOOR and (x.startswith(a[0]) or a[0].startswith(x)))
++            for x in ids)]
++        if cover:
++            acked.append((k, max(cover, key=lambda a: a[1])))
++        elif s["sweeps"] >= after:
++            bad.append((k, s))
++    out(f"owed: {len(seen)} key(s) on board {stamp}; {len(acked)} acknowledged, "
++        f"{len(bad)} unactioned (standing {after}+ sweeps with no live OWED-ACK)")
++    for k, (sha, exp, reason) in acked:
++        out(f"  acked {k} {sha} until {exp.strftime('%H:%MZ')}: {reason[:100]}")
++    if not bad:
++        return 0
++    out("UNACTIONED")
++    for k, s in bad:
++        h = (now - utc(s["first"])).total_seconds() / 3600
++        out(f"  {k}  sweeps={s['sweeps']} first={s['first']} ({h:.1f}h)")
++        for line in keys[k]["lines"]:
++            out(f"      {line[:200]}")
++        sha = keys[k]["shas"][0] if keys[k]["shas"] else "-"
++        out(f"      ack: OWED-ACK <UTC> {k} {sha} ttl=1 <next action, by whom; what it waits on>")
++    return 1
++
++
++# ------------------------------------------------------------------ self-test
++def self_test() -> int:
++    passed = failed = 0
++
++    def check(name: str, cond: bool) -> None:
++        nonlocal passed, failed
++        passed, failed = passed + bool(cond), failed + (not cond)
++        if not cond:
++            print(f"FAIL {name}")
++
++    t0 = utc("2026-10-28T17:20:00Z")
++
++    def tick(at: dt.datetime, *lines: str) -> str:
++        return "\n".join([f"BOARD measured from origin/main at beb570c817c4, {at.isoformat()}",
++                          "== PRS ==", "-> #2887: mergeable state DIRTY"] + list(lines)) + "\n"
++
++    beatd = ("-> OWED handoff: r10-orch-beatd c991d64cdaef342d282d1a8e991dadc2671f917d 1.6h "
++             "uncovered=1 repair=review -- no PR head carries it")
++    held = ("-> OWED: OWED 2026-10-28T18:57:09Z handoff-held refs/heads/handoff/r10-orch-beatd "
++            "c991d64cdaef342d282d1a8e991dadc2671f917d #2916 REVIEW")
++    disp = ("-> DISPATCH: ? refs/heads/handoff/triage-s7-batch49 40bec0ab6c44 opener (8.9h; "
++            "last attempt 2026-10-28T17:36:08Z,unopened)")
++    review = "-> REVIEW OWED: #2896 5f3a5dd615b5"
++    event = ("-> OWED: OWED 2026-10-28T18:11:39Z verdict-unposted 2920 "
++             "9328902275ba97b94d71f1778cf23f1eb2df031c Fix review: blocked")
++
++    with tempfile.TemporaryDirectory() as d:
++        def go(text, acks_=(), now=None, state="s.json", after=2, write=True):
++            lines: list = []
++            rc = run(text, os.path.join(d, state), [("acks", a) for a in acks_],
++                     now or utc(BOARD.match(text).group(1)) + dt.timedelta(minutes=1),
++                     after, 20, write, lines.append)
++            return rc, "\n".join(lines)
++
++        # keying: one obligation per topic or pull request, whatever the line's shape
++        _, k = board(tick(t0, beatd, held, disp, review, event))
++        check("beatd's two line shapes are one key", set(k) == {"r10-orch-beatd", "triage-s7-batch49",
++                                                                 "#2896", "#2920"})
++        check("the key carries its sha", "c991d64cdaef" in k["r10-orch-beatd"]["shas"])
++        check("a non-owed flagged line is not owed", not any("#2887" in x for x in k))
++        _, k2 = board(tick(t0, "-> OWED: OWED 2026-10-28T00:53:40Z push-stuck fix-r10-diag-ages 98785 STUCK 1641s"))
++        check("a kind with no sha keys on its id column", k2.get("fix-r10-diag-ages", {}).get("shas") == ["98785"])
++
++        # the defect: the same lines on successive boards, nothing acknowledges them
++        rc1, o1 = go(tick(t0, beatd, disp))
++        check("first sweep: new, not yet unactioned", rc1 == 0 and "UNACTIONED" not in o1)
++        rc2, o2 = go(tick(t0 + dt.timedelta(minutes=10), beatd, disp))
++        check("second sweep: unactioned, exit 1", rc2 == 1 and "UNACTIONED" in o2
++              and "r10-orch-beatd  sweeps=2" in o2 and "triage-s7-batch49  sweeps=2" in o2)
++        check("it prints a ready ack line", "ack: OWED-ACK " in o2 and " r10-orch-beatd c991d64cdaef ttl=1" in o2)
++        rc2b, o2b = go(tick(t0 + dt.timedelta(minutes=10), beatd, disp))
++        check("the same board re-read adds no sweep", "sweeps=2" in o2b and "sweeps=3" not in o2b)
++        check("free text in a queue names the topic and covers nothing",
++              go(tick(t0 + dt.timedelta(minutes=20), beatd, disp),
++                 ["- 17:39Z opener done: batch49 refused BAD-DEST; r10-orch-beatd relay updates #2916"])[0] == 1)
++
++        # acknowledgements: live, matching sha, lapsing
++        now = t0 + dt.timedelta(minutes=31)
++        ok = [f"OWED-ACK {(now - dt.timedelta(minutes=5)).isoformat()} r10-orch-beatd c991d64cd "
++              "release #2916 in cloud-handoff-release; reviewer at e09b123f9 finishing",
++              f"OWED-ACK {(now - dt.timedelta(minutes=5)).isoformat()} triage-s7-batch49 40bec0ab6 ttl=2 "
++              "opener re-run after RCA-HEADMOVED carry; opener seat s7"]
++        rc3, o3 = go(tick(t0 + dt.timedelta(minutes=30), beatd, disp), ok, now=now)
++        check("null control: every standing key acknowledged -> exit 0", rc3 == 0 and "2 acknowledged" in o3)
++        later = t0 + dt.timedelta(minutes=95)
++        rc4, o4 = go(tick(t0 + dt.timedelta(minutes=90), beatd, disp), ok, now=later)
++        check("a 1 h ack lapses, a 2 h ack holds", rc4 == 1 and "r10-orch-beatd  sweeps" in o4
++              and "triage-s7-batch49  sweeps" not in o4)
++        newtip = beatd.replace("c991d64cdaef342d282d1a8e991dadc2671f917d", "a" * 40)
++        rc5, _ = go(tick(t0 + dt.timedelta(minutes=40), newtip), ok, now=t0 + dt.timedelta(minutes=41),
++                    state="tip.json", after=1)
++        check("an ack for the old tip does not cover a new tip", rc5 == 1)
++        bad_ack = [f"OWED-ACK {(now + dt.timedelta(hours=1)).isoformat()} r10-orch-beatd c991d64cd later",
++                   f"OWED-ACK {now.isoformat()} r10-orch-beatd c991d64cd ttl=48 park it",
++                   "OWED-ACK r10-orch-beatd soon"]
++        rc6, o6 = go(tick(t0 + dt.timedelta(minutes=30), beatd), bad_ack, now=now,
++                     state="bad.json", after=1)
++        check("future, over-long and malformed acks are refused and cover nothing",
++              rc6 == 1 and o6.count("REFUSED ack") == 3)
++
++        # discharge and the clean board
++        rc7, o7 = go(tick(t0 + dt.timedelta(minutes=100), disp), ok, now=later + dt.timedelta(minutes=6))
++        check("a discharged key leaves the state", rc7 == 0 and "r10-orch-beatd" not in o7)
++        with open(os.path.join(d, "s.json"), encoding="utf-8") as fh:
++            check("state drops it too", "r10-orch-beatd" not in json.load(fh)["keys"])
++        rc8, o8 = go(tick(t0), state="clean.json", after=1)
++        check("null control: an all-clear board exits 0 with 0 keys", rc8 == 0 and "owed: 0 key(s)" in o8)
++
++        # never green by skipping
++        check("no provenance line: exit 2", go("-> OWED handoff: x " + "a" * 40 + "\n", now=t0)[0] == 2)
++        check("a stale board: exit 2", go(tick(t0, beatd), now=t0 + dt.timedelta(minutes=45),
++                                          state="stale.json")[0] == 2)
++        check("an owed line it cannot key: exit 2", go(tick(t0, "-> OWED something new"),
++                                                       state="unk.json")[0] == 2)
++        with open(os.path.join(d, "broken.json"), "w", encoding="utf-8") as fh:
++            fh.write("{")
++        check("an unreadable state: exit 2", go(tick(t0, beatd), state="broken.json")[0] == 2)
++        rc9, _ = go(tick(t0, beatd), state="nowrite.json", write=False)
++        check("--no-write writes nothing", not os.path.exists(os.path.join(d, "nowrite.json")))
++
++        # round 2 (#2930 review 1): the tool's own output is no acknowledgement
++        e1 = t0 + dt.timedelta(hours=3)
++        go(tick(e1, beatd, disp), state="echo.json")
++        rce, oe = go(tick(e1 + dt.timedelta(minutes=10), beatd, disp), state="echo.json")
++        rcf, of_ = go(tick(e1 + dt.timedelta(minutes=20), beatd, disp), [oe], state="echo.json")
++        check("logging the tool's own output acknowledges nothing (exit 1)", rce == 1 and rcf == 1
++              and "0 acknowledged" in of_ and "r10-orch-beatd  sweeps=3" in of_)
++        filled = oe.replace("ack: OWED-ACK", "OWED-ACK").replace(
++            "<next action, by whom; what it waits on>", "opener seat re-runs batch49; waits on #2909's carry")
++        filled = "\n".join(l.strip() for l in filled.splitlines() if l.strip().startswith("OWED-ACK"))
++        filled = filled.replace("<UTC>", (e1 + dt.timedelta(minutes=15)).strftime("%Y-%m-%dT%H:%M:%SZ"))
++        rcg, og = go(tick(e1 + dt.timedelta(minutes=30), beatd, disp), [filled], state="echo.json")
++        check("null control: the same lines, filled in and timed, acknowledge both", rcg == 0
++              and "2 acknowledged" in og)
++        ph = (f"OWED-ACK {(e1 + dt.timedelta(minutes=15)).isoformat()} r10-orch-beatd c991d64cdaef "
++              "ttl=1 <next action, by whom; what it waits on>")
++        rch, oh = go(tick(e1 + dt.timedelta(minutes=40), beatd), [ph], state="ph.json", after=1)
++        check("a reason that is still a <placeholder> is refused", rch == 1 and "REFUSED ack" in oh)
++        echo = ("      ack: " + ph.replace("<next action, by whom; what it waits on>", "a real reason"))
++        rck, ok_ = go(tick(e1 + dt.timedelta(minutes=40), beatd), [echo], state="echo2.json", after=1)
++        check("an indented `ack:` echo, timed and reasoned, is still no acknowledgement",
++              rck == 1 and "REFUSED ack" in ok_)
++        check("the printed template carries no time, so it cannot parse as one",
++              "ack: OWED-ACK <UTC> r10-orch-beatd " in oe)
++        short = f"OWED-ACK {(e1 + dt.timedelta(minutes=15)).isoformat()} r10-orch-beatd c ttl=1 short id"
++        rci, oi = go(tick(e1 + dt.timedelta(minutes=40), beatd), [short], state="short.json", after=1)
++        check("an id under 7 characters covers no sha", rci == 1 and "0 acknowledged" in oi)
++        pid = f"OWED-ACK {(e1 + dt.timedelta(minutes=15)).isoformat()} fix-r10-diag-ages 98785 ttl=1 seat restarted"
++        rcj, _ = go(tick(e1 + dt.timedelta(minutes=40),
++                         "-> OWED: OWED 2026-10-28T00:53:40Z push-stuck fix-r10-diag-ages 98785 STUCK 1641s"),
++                    [pid], state="pid.json", after=1)
++        check("null control: a whole non-sha id (a pid) still covers its key", rcj == 0)
++        with open(os.path.join(d, "entry.json"), "w", encoding="utf-8") as fh:
++            json.dump({"board": None, "keys": {"r10-orch-beatd": {"sweeps": 2}}}, fh)
++        check("a malformed state entry: exit 2", go(tick(t0, beatd), state="entry.json")[0] == 2)
++
++    print(f"owed_unactioned self-test: {passed + failed} checks, {failed} failed")
++    return 1 if failed else 0
++
++
++def main(argv: list) -> int:
++    ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
++    ap.add_argument("--tick")
++    ap.add_argument("--state")
++    ap.add_argument("--acks", action="append", default=[])
++    ap.add_argument("--after", type=int, default=2)
++    ap.add_argument("--max-board-min", type=float, default=20.0)
++    ap.add_argument("--now")
++    ap.add_argument("--no-write", action="store_true")
++    ap.add_argument("--self-test", action="store_true")
++    a = ap.parse_args(argv)
++    if a.self_test:
++        return self_test()
++    if not a.tick or not a.state or a.after < 1:
++        ap.error("--tick and --state are required, and --after is at least 1")
++    try:
++        with open(a.tick, encoding="utf-8", errors="replace") as fh:
++            tick = fh.read()
++        texts = []
++        for p in a.acks:
++            with open(p, encoding="utf-8", errors="replace") as fh:
++                texts.append((os.path.basename(p), fh.read()))
++    except OSError as e:
++        print(f"UNREADABLE: {e}")
++        return 2
++    now = utc(a.now) if a.now else dt.datetime.now(dt.timezone.utc)
++    return run(tick, a.state, texts, now, a.after, a.max_board_min, not a.no_write, print)
++
++
++if __name__ == "__main__":
++    sys.exit(main(sys.argv[1:]))
+diff --git a/tools/audit/seat/proof_watch.py b/tools/audit/seat/proof_watch.py
+index 5378b9a1d..e43748235 100644
+--- a/tools/audit/seat/proof_watch.py
++++ b/tools/audit/seat/proof_watch.py
+@@ -138,11 +138,18 @@ def _train():
+     return merge_train
+ 
+ 
++#: Seconds between polls: under a waiting seat's 5-minute prompt-cache TTL, so
++#: the wake that follows a poll does not rewrite its whole context
++#: (R10-FLY-CACHE-PROMPTS), and never under GitHub's 60 s floor (main refuses it).
++POLL_S = 240.0
++POLL_FLOOR_S = 60.0
++
++
+ class Watcher:
+     """One watch: one pull request, one pinned head, one named check-run."""
+ 
+     def __init__(self, repo: str, pr: int, sha: str, check: str,
+-                 poll: float = 300.0, budget_h: float = 6.0,
++                 poll: float = POLL_S, budget_h: float = 6.0,
+                  dry: bool = False, mode: str = "app", state: Path = DEFAULT_STATE,
+                  merge_script: Path | None = None, approve_script: Path | None = None,
+                  run=None, sleep=time.sleep, clock=time.monotonic, say=print,
+@@ -375,7 +382,7 @@ def main(argv: list[str] | None = None) -> int:
+     ap.add_argument("--head", help="the pinned 40-hex head SHA; never followed")
+     ap.add_argument("--check", help="the name of the check-run to wait for")
+     ap.add_argument("--repo", default=DEFAULT_REPO, help="owner/repo (default %(default)s)")
+-    ap.add_argument("--poll", type=float, default=300.0, help="seconds between polls (default %(default)s)")
++    ap.add_argument("--poll", type=float, default=POLL_S, help="seconds between polls (default %(default)s)")
+     ap.add_argument("--budget", type=float, default=6.0, help="hours before aborting (default %(default)s)")
+     ap.add_argument("--mode", choices=("app", "owner"), default="app",
+                     help="the merge identity merge_pr.sh is handed (default %(default)s)")
+@@ -389,6 +396,10 @@ def main(argv: list[str] | None = None) -> int:
+         if v is None:
+             print(f"proof_watch: REFUSE: {flag} is required (or --self-test)", file=sys.stderr)
+             return 2
++    if a.poll < POLL_FLOOR_S:
++        print(f"proof_watch: REFUSE: --poll under GitHub's {POLL_FLOOR_S:.0f} s floor, got {a.poll}",
++              file=sys.stderr)
++        return 2
+     if not (len(a.head) == 40 and set(a.head) <= HEX):
+         print(f"proof_watch: REFUSE: --head must be the full 40-hex SHA, got '{a.head}'", file=sys.stderr)
+         return 2
+@@ -412,6 +423,7 @@ def main(argv: list[str] | None = None) -> int:
+ # pairs, and the dry-run arm asserts the tree it was given is untouched.
+ 
+ def self_test() -> int:
++    import io
+     import shutil
+     import tempfile
+ 
+@@ -435,6 +447,17 @@ def self_test() -> int:
+             print(f"FAIL {why} (got {got!r}, want {want!r})")
+             fails += 1
+ 
++    # The cadence (R10-FLY-CACHE-PROMPTS): under the seat's 5-minute prompt-cache
++    # TTL, never under GitHub's 60 s poll floor. The --poll 60 case is the null
++    # control: it passes the poll guard and is refused at --head instead.
++    st(60.0 <= POLL_S <= 240.0, True, "the default poll is inside [60 s, 240 s]")
++    for poll, flag in (("59", "--poll"), ("60", "--head")):
++        err = io.StringIO()
++        with contextlib.redirect_stderr(err):
++            rc = main(["--pr", "7", "--head", "short", "--check", "x", "--poll", poll])
++        st((rc, flag in err.getvalue().split("REFUSE: ", 1)[-1][:8]), (2, True),
++           f"--poll {poll} is refused at {flag}")
++
+     class Fixture:
+         def __init__(self):
+             self.root = W / f"case{len(cases)}"
+diff --git a/tools/audit/seat/r10_ledger_mutants.py b/tools/audit/seat/r10_ledger_mutants.py
+index 6c614a8b0..331858f75 100644
+--- a/tools/audit/seat/r10_ledger_mutants.py
++++ b/tools/audit/seat/r10_ledger_mutants.py
+@@ -26,9 +26,10 @@ import sys
+ from pathlib import Path
+ 
+ ROOT = Path(__file__).resolve().parents[3]
++BUS = "tools/audit/seat/bus.sh"
+ LEDGER, RELAY, TICK, OPENER = ("tools/audit/seat/ledger.py", "tools/audit/seat/cloud_relay.sh",
+                                "tools/audit/seat/orchestrator_tick.py", "tools/audit/seat/open_pr.sh")
+-OWNER = {LEDGER: LEDGER, OPENER: LEDGER, RELAY: RELAY, TICK: TICK}
++OWNER = {LEDGER: LEDGER, OPENER: LEDGER, RELAY: RELAY, TICK: TICK, BUS: BUS}
+ PLANTS = {
+     # the ledger: event closers, the level's closers, aging, refusals, stores
+     "L1_readback_no_close": (LEDGER, '                how = "read-back"', "                how = None"),
+@@ -36,10 +37,33 @@ PLANTS = {
+     "L3_any_verdict_posts": (LEDGER, '(text in lines if kind == "verdict-unposted"',
+                              '(bool(lines) if kind == "verdict-unposted"'),
+     "L4_added_lines_unchecked": (LEDGER, "if not add <= have or rem & have:", "if rem & have:"),
+-    "L5_no_ancestry_close": (LEDGER, "carried[t] = bool(sha) and ((rc == 0 and bool(out.strip())) or covered(git, main, sha))",
+-                             "carried[t] = bool(sha) and covered(git, main, sha)"),
+-    "L6_no_content_close": (LEDGER, "carried[t] = bool(sha) and ((rc == 0 and bool(out.strip())) or covered(git, main, sha))",
+-                            "carried[t] = bool(sha) and (rc == 0 and bool(out.strip()))"),
++    "L5_no_ancestry_close": (LEDGER, '''        if rc == 0 and out.strip() == "0":
++            return "ancestor"''', '''        if False:
++            return "ancestor"'''),
++    "L6_no_content_close": (LEDGER, '        if covered(git, main, tip):\n            return "content"',
++                            '        if False:\n            return "content"'),
++    "L19_no_reverse_apply": (LEDGER, '        if reverse_applies(git, main, tip):', '        if False:'),
++    "L20_forward_not_refused": (LEDGER, '                and git(["apply", "--cached", "--check", patch], env)[0] != 0)', '                and True)'),
++    "L21_merges_unchecked": (LEDGER, '            rc, merges = git(["rev-list", "--merges", tip, "--not", main, *heads])\n            if rc == 0 and all(',
++                             '            rc, merges = git(["rev-list", "--merges", tip, "--not", main, *heads])\n            if rc == 0 and True or all('),
++    "L22_merges_with_nonmerges": (LEDGER, '["rev-list", "--no-merges", "--count", tip,', '["rev-list", "--count", tip,'),
++    "L23_moved_add_unchecked": (LEDGER, "            if b_tip.strip() not in blobs:\n                return False",
++                                "            if False:\n                return False"),
++    "L24_body_own_line": (LEDGER, '        elif t in code and not ref.startswith("refs/heads/handoff/"):', '        elif False:'),
++    "L25_merged_ignored": (LEDGER, "        elif t in merged and ct.get(", "        elif False and ct.get("),
++    "L26_merged_any_time": (LEDGER, "and int(ct[code.get(t, sha)]) <= merged[t]:", ":"),
++    "L27_deletion_unguarded": (LEDGER, '        if st == "D":\n            if rc_m == 0:', '        if st == "D":\n            if False:'),
++    "L28_deletion_always_refused": (LEDGER, '        if st == "D":\n            if rc_m == 0:', '        if st == "D":\n            if True:'),
++    "L29_same_blob_arm_off": (LEDGER, "        elif rc_m == 0 and b_main == b_tip:\n            continue",
++                              "        elif False:\n            continue"),
++    "L30_merged_strictly_before": (LEDGER, "and int(ct[code.get(t, sha)]) <= merged[t]:", "and int(ct[code.get(t, sha)]) < merged[t]:"),
++    "L31_merged_last_listed": (LEDGER, "merged[f[0]] = max(merged.get(f[0], 0), int(when))", "merged[f[0]] = int(when)"),
++    "R6_merged_unread_clears": (RELAY, '"$state/cloud-merged.$$" \\\n    || { echo "cloud_relay: could not list merged PRs',
++                                '"$state/cloud-merged.$$" \\\n    || true || { echo "cloud_relay: could not list merged PRs'),
++    "B1_orphans_merges_stranded": (BUS, "    case $why in ancestor|merges-only) anc=", "    case $why in ancestor) anc="),
++    "B3_orphans_classifier_unchecked": (BUS, '    || die "orphans: ledger.py landed could not classify',
++                                        '    || true || die "orphans: ledger.py landed could not classify'),
++    "B2_orphans_no_content": (BUS, '    if [ "$why" = reverse-apply ] || [ "$why" = content ]; then', '    if [ "$why" = content ]; then'),
+     "L7_no_threshold": (LEDGER, "           if age >= aging[0]]", "           if True]"),
+     "L8_one_tip_blanks_all": (LEDGER, '        if rc == 0 and out.strip().isdigit():\n            ct[sha]',
+                               '        if rc == 0 and out.strip().isdigit() and False:\n            ct[sha]'),
+diff --git a/tools/audit/seat/sweep_template.md b/tools/audit/seat/sweep_template.md
+index 6341b938d..5abc54e35 100644
+--- a/tools/audit/seat/sweep_template.md
++++ b/tools/audit/seat/sweep_template.md
+@@ -62,7 +62,7 @@ ORCHESTRATOR SWEEP, round {{round}}, repository {{repo}}. Read {{seat_ledger}} f
+ 
+ (4) After each merge (`dev/governance/roles/nudge.md` steps 12 and 18): `tools/audit/seat/roster_edit.py set-stage` for a roster group, one #201 comment through `tools/pr/gh_comment.py` with its read-back, `tools/audit/worktree_gc.sh {{repo}}`, the issues the merge commit closed read back (`dev/governance/roles/orchestrator.md` section 4), the finished seat's worktrees under {{seat_root}} and its scratch removed, `tools/audit/seat/state_docs.py --push --mirror {{state_mirror}}`, and the plan artifact regenerated with `{{plan_generator}}` and republished at {{plan_artifact}}.
+ 
+-(5) Tick watcher. If {{tick_alive}} is missing or older than {{tick_stale_min}} minutes, the tick seat has died: start a new one in the background on `dev/governance/roles/standing-tick.md`, whose prompt is the contents of {{tick_brief}}; it runs `tools/audit/seat/orchestrator_tick.py`. Log the restart in {{seat_ledger}}. Act on the newest actionable lines of {{tick_log}}; the tick only lists, the sweep acts (`tools/audit/seat/INSTRUMENTS.md`, `orchestrator_tick.py`). The `pulse.py` lines step (1b) printed name each consumer whose owed input is waiting on it (opener, verdict router or train, state beat, a standing seat's queue): drive that consumer before the rest of the sweep, and log it in {{seat_ledger}}; `UNREADABLE` is not a clean board.
++(5) Tick watcher. If {{tick_alive}} is missing or older than {{tick_stale_min}} minutes, the tick seat has died: start a new one in the background on `dev/governance/roles/standing-tick.md`, whose prompt is the contents of {{tick_brief}}; it runs `tools/audit/seat/orchestrator_tick.py`. Log the restart in {{seat_ledger}}. Act on the newest actionable lines of {{tick_log}}; the tick only lists, the sweep acts (`tools/audit/seat/INSTRUMENTS.md`, `orchestrator_tick.py`). The `pulse.py` lines step (1b) printed name each consumer whose owed input is waiting on it (opener, verdict router or train, state beat, a standing seat's queue): drive that consumer before the rest of the sweep, and log it in {{seat_ledger}}; `UNREADABLE` is not a clean board. Then run `python3 -I tools/audit/seat/owed_unactioned.py --tick {{tick_log}} --state {{orch_scratch}}/owed-unactioned.json --acks {{seat_ledger}}`: it reads the tick's whole owed family (never a `grep | head` or `tail` of it) and exits 1 on each owed line that has stood two sweeps with no live `OWED-ACK` line. Each such line gets its action this sweep, or an `OWED-ACK` line in {{seat_ledger}} naming its next action and what it waits on; an acknowledgement lapses after its ttl, so the next sweep re-checks the handling. The sweep is not done while it exits 1, and its 2 is `UNREADABLE`, never clean (`dev/audit/rca/R10-RCA-OWED-UNACTIONED.md`).
+ 
+ (6) Verdicts and CI. Read any moved `review/*` or `probe/*` refs and the cloud runs; confirm each verdict at its exact head with `tools/audit/seat/bus.sh confirm` (`dev/governance/roles/nudge.md` step 1). A red required check at an open head goes back to its fixer with the line `tools/audit/seat/failure_logs.sh` prints (`dev/governance/roles/nudge.md` steps 4 and 15).
+ 
