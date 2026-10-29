@@ -11361,6 +11361,47 @@
     "pr": 2947
    },
    "brief": "From triage P276 (orchestrator 2026-10-29T05:58Z: abandoned merge worktrees hold a PR's branch; #2935 staged half-merge, #2936 106-file conflicted merge, #2917 upd-fix-r10-cop-gate). Cause: the two tools that start a merge leave it behind when it fails. (1) tools/audit/seat/remerge_main.sh line 21 resets the train's recarry worktree to origin/$BR, merges origin/main, and on failure only prints MERGE CONFLICT and exits 1, so the conflicted index keeps the branch checked out; merge_train.py's release_worktrees then logs NOT released (never forced) and the next recarry's `worktree add -B` finds the branch checked out. Fix: on a failed merge run `git -C \"$W\" merge --abort` (fallback `git -C \"$W\" reset -q --hard origin/$BR` when no merge is in progress) before printing MERGE CONFLICT, leaving the worktree clean at origin/$BR. (2) tools/audit/seat/pr_args.sh line 105 (pr_branch_lock's `detach`, mut:detach): `git checkout -q --detach` fails on a conflicted index, so update_pr.sh's $WT keeps the branch. Fix: when the worktree has a MERGE_HEAD, `git merge --abort` first, then detach; only the run's own worktree, as today. Nothing is lost: both merges start from origin/$BR and merge only remote refs. (3) Self-tests: a conflicting fixture merge leaves the worktree with empty `status --porcelain` and HEAD == origin/<branch>, and a second `worktree add -B <branch>` elsewhere succeeds; a mutant dropping either abort fails its arm; null control: a clean merge is untouched. Out of scope: freeing another seat's dirty holder (merge_train --free-holders stays clean-only, P193), worktree_gc.sh changes. Shares pr_args.sh with R10-FLOW-BODY-ONLY on a distinct seam (the lock holder's exit). triage: dev/programme/triage/s6-batch59.md#P276"
+  },
+  {
+   "group": "R10-FLY-OWED-LEVELS",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "instrument",
+   "severity": "medium",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 6,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "tools/audit/seat/owed_unactioned.py"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-fly-owed-levels",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer (fly-in)",
+    "note": "2026-10-29 (triage: dev/programme/triage/s6-batch59.md#P277)"
+   },
+   "brief": "From triage P277 (orchestrator, measured 2026-10-29T08:10Z): the tick prints flagged `MERGE-READY: #N <head8>` and `BLOCKED-UNFIXED: #N <head8>` lines (orchestrator_tick.py:690, :696). The FAMILY regex (tools/audit/seat/owed_unactioned.py:50) keys only OWED / REVIEW OWED: / DISPATCH: / OWNER FLAG: / DESIGN-BUILD:, so no sweep must acknowledge them; blocked #2933/#2925/#2872 and merge-verdicted #2896/#2939 stood 5-11 h while main fell from 9 to 1-2 merges/h. (1) FAMILY gains `MERGE-READY:` and `BLOCKED-UNFIXED:`; key_of keys each on `#<N>` with `<head8>` as its id (an ack covers one head; a new head re-raises); the docstring's family list names both. (2) Self-test: a board with each line stands UNACTIONED after --after sweeps without an OWED-ACK, and is covered by `OWED-ACK <ts> #<N> <head8> ...`; a new head8 re-raises; a mutant dropping either alternative from FAMILY fails its arm; null control: a board without them reports as today. Out of scope: sweep_template.md (its step 5 already runs this tool; R10-FLY-SWEEP-DEFAULTS has it open as #2935) and orchestrator_tick.py. triage: dev/programme/triage/s6-batch59.md#P277"
   }
  ]
 }
