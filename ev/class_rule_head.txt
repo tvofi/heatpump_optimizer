@@ -1,0 +1,10 @@
+dev/audit/harnesses/r10_fly_nightly_hb.py:71:      echo "blocking py-spy rc=$?" >> "$L"; fi
+dev/audit/rca/nightly-ha-pyspy-timeout.md:15:py-spy did not run: TimeoutExpired: Command '['/opt/hpo/py-spy', 'dump', '--nonblocking', '--pid', '1']' timed out after 30 seconds
+dev/audit/rca/nightly-ha-pyspy-timeout.md:16:FAIL hb:positive_control  [a 600 ms spin read as 600.3 ms; dump names the spin: True; py-spy rc=0 names it: False]
+dev/audit/rca/nightly-ha-pyspy-timeout.md:27:dump contains `py-spy rc=0:` followed by `_hb_spin`. `LoopHeartbeat.dump` makes
+dev/audit/rca/nightly-ha-pyspy-timeout.md:55:  spin: True; py-spy rc=0 names it: False]` with the same `TimeoutExpired … 30
+dev/audit/rca/nightly-ha-pyspy-timeout.md:140:`py-spy did not run: TimeoutExpired` twice in the log: 113611720490 (10-09),
+dev/audit/rca/nightly-ha-pyspy-timeout.md:147:`stable` runs on the same digest and runner read `Python v3.14.6`, `py-spy rc=0`,
+dev/audit/rca/nightly-ha-pyspy-timeout.md:227:  - `py-spy rc=1: Permission denied` (no cap) fails every attempt.
+dev/audit/rca/nightly-ha-pyspy-timeout.md:247:GET /repos/tvofi/heatpump_optimizer/actions/jobs/<job>/logs      # grep 'py-spy did not run'
+dev/programme/carries/carry-201.json:105:      "control": "The RCA measures the class from CI's own job logs, not from argument: three failed nightly-ha jobs each carry two `py-spy did not run: TimeoutExpired` lines and `FAIL hb:positive_control`, and two green jobs at the same image digest read `py-spy rc=0` with `Python v3.14.6`; the null is the green pair, which shows the sample can succeed. The perturbation that would void the finding is a green job whose positive control ran with no py-spy call at all.",

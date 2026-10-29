@@ -1,0 +1,23 @@
+== Python 3.11.17
+Traceback (most recent call last):
+  File "/home/user/rev2964/dev/audit/harnesses/r10_nightly_pyspy_retry_mutants.py", line 120, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/home/user/rev2964/dev/audit/harnesses/r10_nightly_pyspy_retry_mutants.py", line 103, in main
+    checks, killed, survived, null_ok = block(), 0, 0, False
+                                        ^^^^^^^
+  File "/home/user/rev2964/dev/audit/harnesses/r10_nightly_pyspy_retry_mutants.py", line 78, in block
+    ast.unparse(node) + "\n" for node in ast.parse(text).body
+                                         ^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/ast.py", line 50, in parse
+    return compile(source, filename, mode, flags,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<unknown>", line 4265
+    ([f'{h[0]}:{h[1]} in {h[2] or chr(60) + 'module>'}' for h in _p2_stray])
+                                             ^^^^^^
+SyntaxError: f-string: f-string: expecting '}'
+== Python 3.14.6
+M0-null all checks pass
+M1-one-try KILLED by: hb:positive_control survives one hung py-spy sample: a fresh spin answers on try 2, the hang cut at the sample's timeout with the spin held across it | and a try whose sample misses the spin, or names it at rc!=0, is retried, not accepted | the control rests between tries: two tries with a 1 s rest take at least the rest plus both spins | the control survives two hung samples, answering on try 3: HB_CONTROL_TRIES is at least 3 | null control: py-spy that never answers, or never names the spin, still fails hb:positive_control after the last try
+M2-timeout-30 KILLED by: hb:positive_control survives one hung py-spy sample: a fresh spin answers on try 2, the hang cut at the sample's timeout with the spin held across it
+M3-any-output KILLED by: hb:positive_control survives one hung py-spy sample: a fresh spin answers on try 2, the hang cut at the sample's timeout with the spin held across it | and a try whose sample misses the spin, or names it at rc!=0, is retried, not accepted | the control rests between tries: two tries with a 1 s rest take at least the rest plus both spins | the control survives two hung samples, answering on try 3: HB_CONTROL_TRIES is at least 3 | null control: py-spy that never answers, or never names the spin, still fails hb:positive_control after the last try
