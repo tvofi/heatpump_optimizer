@@ -257,12 +257,16 @@ sweep's standing-seat liveness step keep them alive.
   branch, `roster_lib.default_roster_ref`); the head is `--head`, else
   `origin/main`'s tip, never the roster ref's (a reviewer must pass its PR
   head); the environment is the overlay / `HPO_CLOUD_ENV_ID`; a flag it does
-  not consume (`--topic`, `--brief`, `--repo`, `--env-id`, `--out`) refuses;
-  it renders through the same `render` (the payload is the flag path's byte
-  for byte), publishes PAYLOAD.json and PROMPT.md on origin as
-  `dispatch/<role>-<topic>` (fast-forwarded, an identical tree adds nothing, a
-  render refusal pushes nothing) and prints that ref name, the one line a
-  standing trigger is fired with; `dev/audit/harnesses/r10_flow_dispatch_mutants.py`
+  not consume (`--topic`, `--brief`, `--repo`, `--env-id`, `--out`,
+  `--publish`) refuses; it renders through the same `publish_seat` as the flag
+  path's `--publish` (the payload is that path's byte for byte), publishes
+  PAYLOAD.json and PROMPT.md on origin as `dispatch/<role>-<topic>`
+  (fast-forwarded, an identical tree adds nothing, a render refusal pushes
+  nothing) and prints that ref name, the one line a standing trigger is fired
+  with. A published payload's event is a pointer to PROMPT.md on its ref, not
+  the prompt (the runner echoes the event into the orchestrator); `--publish`
+  on the flag path publishes to `dispatch/<role>-<topic>`, else
+  `dispatch/<role>-rev-<PR>`, the same way; `dev/audit/harnesses/r10_flow_dispatch_mutants.py`
   re-runs its mutants. When: dispatching a seat to the cloud runner;
   paste the printed JSON as the trigger update, or fire the standing trigger
   with the printed ref. The measured shape of a cloud seat:
@@ -417,7 +421,9 @@ sweep's standing-seat liveness step keep them alive.
   `handoff-no-pr` lines in `<log>.level` are `ledger.py level`'s fold of
   every `handoff/*` and `handoff-body/*` ref, rewritten every pass: owed unless
   its topic has an open pull request, it is disposed at its sha, or main
-  already carries the change (ancestry, or content: see `ledger.py`), each
+  already carries the change (`ledger.py landed`, the one classifier `bus.sh
+  orphans` asks too: ancestry, clean merges, reverse-apply, content), one line
+  per topic (a body ref rides its code ref's), each
   with its tip's commit time and last opener attempt; a failed PR listing or
   ledger read leaves those lines as they were, since an empty list would make
   every ref look orphaned. Every event the relay owes (`verdict-unposted` at
@@ -702,6 +708,22 @@ sweep's standing-seat liveness step keep them alive.
   roster ref: exit 1 prints one dispatch line and the unowned lines, and a
   run without its `CARRY-SWEEP:` summary is UNREADABLE. Its driver is
   `tick_loop.sh`.
+- `owed_unactioned.py` — says which tick owed lines have outlived a sweep with
+  no live acknowledgement (dev/audit/rca/R10-RCA-OWED-UNACTIONED.md). It reads
+  the board's whole owed family (`-> OWED…`, `REVIEW OWED:`, `DISPATCH:`,
+  `OWNER FLAG:`, `DESIGN-BUILD:`), keys each line on its topic or `#<pr>`, and
+  counts in `--state` the boards each key has stood on. A key standing
+  `--after` (2) sweeps is UNACTIONED unless an `--acks` file holds a live
+  `OWED-ACK <UTC> <key> <id> [ttl=<h>] <reason>` whose id prefixes a sha the
+  key carries now (7+ characters, or the whole of a non-sha ledger id; the
+  tool's own indented `ack:` echo and a `<placeholder>` reason are refused);
+  an acknowledgement lapses after its ttl (default 1 h, at
+  most 12), so a handled line comes back for its handling to be checked, and
+  free queue text covers nothing. When: every sweep, step (5) of
+  `sweep_template.md`. Exit 0 none unactioned, 1 the UNACTIONED block (each
+  with a ready ack line), 2 UNREADABLE: no provenance line, a board older than
+  `--max-board-min`, an owed line it cannot key, an unreadable state.
+  `--self-test` drives it offline.
 - `plan_audit.py` — P3's measuring half (R10-FLOW-AUDIT-PLAN), beside the
   `audit-plan` workflow. `ledger` parses each merged PR's
   `## Architecture score` block with the parser `score.py`'s own report
