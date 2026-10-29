@@ -242,3 +242,44 @@ fly-in lands first.
 Binding: 3 stalls tonight, each costing a PARK or a failed update and a manual
 inspect/abort/detach, all from two failure paths that leave their own merge behind. The fix is a
 few lines at those two producers, with no cross-seat deletion.
+
+## P277: the owed family omits the tick's MERGE-READY and BLOCKED-UNFIXED lines
+
+Verdict: ACCEPT, as a new fly-in, R10-FLY-OWED-LEVELS. The change is to
+`tools/audit/seat/owed_unactioned.py` only.
+
+Source: the orchestrator's P277 (`s7/triage-queue-s7.txt`, 2026-10-29, measured 08:10Z).
+
+Instances:
+- **The gap.** The tick prints `MERGE-READY: #N <head8>` and `BLOCKED-UNFIXED: #N <head8>` as
+  flagged lines (`orchestrator_tick.py:690`, `:696`; self-test `:3761-3766`). But
+  `owed_unactioned.py:50` keys only `FAMILY = ^-> (OWED|REVIEW OWED:|DISPATCH:|OWNER FLAG:|DESIGN-BUILD:)`,
+  and `key_of` (`:71-93`) has no branch for either. So no sweep ever has to acknowledge them.
+  `sweep_template.md` step (5) runs the tool and names no family of its own, so the template
+  needs no change.
+- **The stalled verdicts, from their refs** (`git log -1 --format=%cI verdict/<N>`):
+  - Blocked: #2933 at 2026-10-28T21:07:09Z, #2925 at 2026-10-29T01:21:47Z and #2872 at
+    2026-10-29T02:17:17Z.
+  - Merge: #2896 at 2026-10-28T22:12:05Z and #2939 at 2026-10-28T23:45:44Z.
+  - All five still stood unrouted or unboarded at 08:10Z, between 5 and 11 h.
+- **The throughput** (`git log origin/main --first-parent --merges`, by UTC hour): 9 merges in
+  the 23Z hour on 10-28, then 4, 3, 3, then 2, 2, 1 and 1 an hour from 04Z to 08Z on 10-29.
+
+Accepted, as R10-FLY-OWED-LEVELS (S, sonnet fixer, opus reviewer):
+1. `FAMILY` gains `MERGE-READY:` and `BLOCKED-UNFIXED:`. `key_of` keys each on `#<N>`, with
+   `<head8>` as its id, so an acknowledgement covers one head and a new head re-raises it. The
+   module docstring's family list gains both.
+2. Self-test: a board holding each line stands UNACTIONED after `--after` sweeps with no
+   `OWED-ACK`, and is covered once a matching `OWED-ACK #<N> <head8>` exists. A new head8
+   re-raises it. Mutants dropping either alternative from `FAMILY` fail their arm. Null control:
+   a board without them reports as today.
+3. Not touched: `sweep_template.md`, whose step (5) already runs the tool (and which
+   R10-FLY-SWEEP-DEFAULTS has open as #2935), and `orchestrator_tick.py`, whose lines are
+   unchanged.
+
+Cost: about 6 lines and two self-test arms in one tool, with no new check, file or API call.
+Each sweep owes one `OWED-ACK` line per standing merge-ready or blocked PR, which is the
+acknowledgement the measured stall lacked.
+
+Binding: five verdicts held 5-11 h while main's merge rate fell from 9/h to 1-2/h, against a
+six-line change in the tool the sweep already runs.
