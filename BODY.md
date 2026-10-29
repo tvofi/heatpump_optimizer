@@ -17,9 +17,15 @@ Policy status: `printf '%s\n' tools/audit/seat/sweep_template.md tools/audit/sea
 
 ## Head
 
-Measured at `fe2aa944253780755a3c72ab625fbd72aec1429c`, cut from origin/main `b6f6ceca4f0323b24171c45a2a2372ba2e2cbaaa` (the base given). The head has two commits: the change itself, then `tests/closures.json` from `python3 tools/pr/ci_predict.py --apply-inert`. That repaired the one red prepr step 6d predicted on the first commit: `INERT READS tests/entities.py: tools/audit/seat/sweep_render.py`. The scoped gate says `MODE: SCOPED -- 1 script(s) run, 32 scoped out` and names `tests/entities.py`, from `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)`.
+Measured at `b37742feeb049fc59a0e5c0eebb4381c90c9a6fc`, a merge of origin/main `7685a4d98a5bcde0e6f872f1d93a02ec87693c51` (tip at 2026-10-29T06:34Z) into the verdicted head `89b04b74feaef1c0696fca1f353c9532c6792374`, never a rebase or re-cut. Everything below the resolution delta was measured at `fe2aa944253780755a3c72ab625fbd72aec1429c` and its figures re-run at the merged head where the table says so.
 
-Environment: `tools/audit/seat/seat_venv.sh` failed with rc 2 in this container (`No download found for request: cpython-3.14.7-linux-x86_64-gnu`), and the ambient 3.11 cannot parse `tests/entities.py`. I therefore ran the scoped script in a scratch 3.13 venv built from `tests/requirements-ci.txt`. CI's 3.14 runner is still the authority.
+**Resolution delta.** One conflict, `tools/audit/seat/sweep_template.md`, between this PR's (4b)-(5) block and main's `8f97f7471` (R10-RCA-OWED-UNACTIONED), which appended two sentences to step (5). The resolution is a union: this PR's (4b), (4c), (4d) and (4e) stay as they were, and (5) keeps this PR's sentence `Read {{tick_log}}'s newest pass unfiltered: every OWED, ... DESIGN-BUILD: line, none truncated, and give each an action this sweep` in place of main's `Act on the newest actionable lines of {{tick_log}}` (the sentence this PR already replaced), with main's `owed_unactioned.py` sentences appended unchanged after `UNREADABLE is not a clean board.`. Read-back, with stage 1/2/3 the merge base, this PR and main: `diff <(diff base main | grep '^>') <(diff ours merged | grep '^>')` shows one line differing, (5), and the only difference in it is that PR sentence. All other files merged cleanly.
+
+The earlier head notes still apply: `fe2aa944` repaired the `INERT READS tests/entities.py: tools/audit/seat/sweep_render.py` red with `ci_predict.py --apply-inert`, and `89b04b74` adds the delivery row. At the merged head, `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` still says `MODE: SCOPED -- 1 script(s) run, 32 scoped out` and names `tests/entities.py`.
+
+Environment: the ambient `python3` here is 3.11 and cannot parse `tests/entities.py`, so the merged-head runs used `/opt/hpo/venv-ci/bin/python3` (3.14.7). CI's runner is still the authority.
+
+**For the reviewer.** The self-test's citation check (`sweep_render.py` `CITED`) checks only a backtick span that opens with the path, so main's `` `python3 -I tools/audit/seat/owed_unactioned.py ...` `` is not checked. Mutating it to `owed_unactioned_x.py` at the merged head left the self-test at `24 checks, 0 failed`. This limitation is in the instrument and comes from main, not from this delta; the path does exist on main. It is recorded here, not fixed.
 
 ## Mutation proof
 
@@ -32,6 +38,10 @@ The failing test came first. A new self-test arm, `the tracked template's sweep 
   - `replan.py --out` reduced to `replan.py` failed it with `missing: record beat: the replan`.
   - With `` `REVIEW OWED`, `` deleted, it failed with `missing: tick board read unfiltered`.
   - With `` `DESIGN-BUILD:` `` deleted, it failed with `missing: tick board: design builds`.
+
+### Mutation proof re-run at the merged head
+
+At `b37742fe`, each mutation was applied to the template, followed by `python3 -I tools/audit/seat/sweep_render.py --self-test`, then a restore. The train flags reverted to `--bot-prs --approval-carry --pre-flight` gave `FAIL the tracked template's sweep carries every round-10 default` (`23 checks, 1 failed`). Deleting `` `REVIEW OWED`, `` gave the same FAIL (`23 checks, 1 failed`). After the restore it reports `24 checks, 0 failed`, and `git status --short` is empty.
 
 ## Null control
 
@@ -49,10 +59,14 @@ The failing test came first. A new self-test arm, `the tracked template's sweep 
 | scoped script | `PYTHONPATH=tests/hastub <py3.13 venv from tests/requirements-ci.txt> tests/entities.py` | `ALL 2467 ENTITY CHECKS PASSED`, rc 0 |
 | prepr, first commit | `PREPR_SKIP_CLOSURES=1 tools/pr/prepr.sh` | rc 1: `REFUSE ci predict` (1 predicted closures red), repaired by `--apply-inert` |
 | prepr, head | same | rc 0, `PRE-PR: fe2aa944253780755a3c72ab625fbd72aec1429c 000000000000000000000` |
+| self-test, merged head `b37742fe` | `python3 -I tools/audit/seat/sweep_render.py --self-test` | `24 checks, 0 failed`, rc 0 |
+| structure ratchet, merged head | `python3 tests/structure.py` | `STRUCTURE RATCHET PASSED`, rc 0 |
+| scoped script, merged head | `PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 tests/entities.py` | `ALL 2470 ENTITY CHECKS PASSED`, rc 0 |
+| prepr, merged head | `PREPR_SKIP_CLOSURES=1 tools/pr/prepr.sh` | rc 0, `PRE-PR: b37742feeb049fc59a0e5c0eebb4381c90c9a6fc 000000000000000000000` |
 
 ## Red checks
 
-Locally, prepr step 6d predicted one red on `tests / closures` (`INERT READS`) on the first commit. Following `ci-autofix.md`, it was repaired before the handoff with `ci_predict.py --apply-inert` and is no longer predicted at the head. CI has not run.
+Locally, prepr step 6d predicted one red on `tests / closures` (`INERT READS`) on the first commit. Following `ci-autofix.md`, it was repaired before the first handoff with `ci_predict.py --apply-inert`. At the merged head `b37742fe`, prepr exits 0 and predicts no red. CI has not run on the merged head.
 
 ## Forward-carry
 
