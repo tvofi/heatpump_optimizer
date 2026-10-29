@@ -1,5 +1,0 @@
-review_carry: f53ac2a39 -> 2fda9547e  main=origin/main
-  branch-only commits: 1
-  why: 2fda9547ec7f49620efdfee368eb8d19dbadd19b resolves tests/golden/claimed_drift.txt to something other than the union of its parents
-  2fda9547e  Merge remote-tracking branch 'origin/main' into fix/r10-cop-gate
-review_carry: FRESH-REVIEW

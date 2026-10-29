@@ -1,57 +1,57 @@
 # Review packet #2917
-head: 2fda9547ec7f49620efdfee368eb8d19dbadd19b
-base: 279578074a17cb2c7f527f5e28da0de4e2006db0
+head: c861c0e7b04f86e0626bbc0f8d8ecc7b26bf3b33
+base: ce5940c0d1d8f611a818d53e7fffcafb48b356c1
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
 ## Gate digest: red
-CodeQL id=123564159456 success
-arch-score / arch-score id=123603518013 success
-arm id=123563668285 skipped
-budget-raise-gate / budget-raise-gate id=123603518100 success
-cancel-superseded id=123563672805 success
-codeql id=123603520019 skipped
-codeql / Analyze (actions) id=123563855681 success
-codeql / Analyze (javascript-typescript) id=123563855664 success
-codeql / Analyze (python) id=123563855865 success
-gate id=123604807203 success
-governance id=123603520889 skipped
-governance / delivery-status id=123563855924 success
-governance / delivery-status-publish id=123563860050 skipped
-governance / env-matrix id=123563855816 success
-governance / instrument-self-tests id=123563855693 success
-governance / policy-docs id=123563855826 success
-governance / record id=123563859464 skipped
-governance / wave-script id=123563855999 success
-hassfest id=123603521585 skipped
-hassfest / hassfest id=123563855703 success
-kernel-points id=123603520422 skipped
-pr-contract / pr-contract id=123604299603 success
-prelude id=123563673385 success
-refresh id=123563673290 success
-tests id=123603521090 skipped
-tests / arch-instrument id=123564131822 success
-tests / briefs id=123563855822 success
-tests / browser id=123564131573 success
-tests / ci-ratchet id=123583326257 skipped
-tests / claims-autofix id=123582885951 skipped
-tests / closure-scope id=123563855856 success
-tests / closures id=123564131502 success
-tests / closures-autofix id=123583327415 skipped
-tests / coverage id=123564131552 success
-tests / coverage-ratchet id=123581468952 success
-tests / fast (3.14) id=123564131393 success
-tests / graders-head-copy id=123581468773 success
-tests / lane-proofs id=123582883156 success
-tests / mutation id=123563855858 success
-tests / mutation-autofix id=123602773039 skipped
-tests / mutation-pins id=123602772084 skipped
-tests / nightly-ha id=123564134660 skipped
-tests / nightly-status id=123563855797 failure
-tests / replay id=123564131737 success
-tests / typing id=123564131574 success
-validate id=123603520802 skipped
-validate / validate-hacs id=123563855980 success
+CodeQL id=123641734998 success
+arch-score / arch-score id=123679358805 success
+arm id=123641108529 skipped
+budget-raise-gate / budget-raise-gate id=123679358818 success
+cancel-superseded id=123641105452 success
+codeql id=123679362129 skipped
+codeql / Analyze (actions) id=123641336170 success
+codeql / Analyze (javascript-typescript) id=123641336137 success
+codeql / Analyze (python) id=123641336291 success
+gate id=123680483258 success
+governance id=123679362132 skipped
+governance / delivery-status id=123641336040 success
+governance / delivery-status-publish id=123641339003 skipped
+governance / env-matrix id=123641336263 success
+governance / instrument-self-tests id=123641335989 success
+governance / policy-docs id=123641336165 success
+governance / record id=123641338840 skipped
+governance / wave-script id=123641335998 success
+hassfest id=123679360579 skipped
+hassfest / hassfest id=123641335804 success
+kernel-points id=123679360298 skipped
+pr-contract / pr-contract id=123680035795 success
+prelude id=123641105174 success
+refresh id=123641105513 success
+tests id=123679361812 skipped
+tests / arch-instrument id=123641574693 success
+tests / briefs id=123641335838 success
+tests / browser id=123641574927 success
+tests / ci-ratchet id=123659664625 skipped
+tests / claims-autofix id=123659353913 skipped
+tests / closure-scope id=123641335980 success
+tests / closures id=123641574879 success
+tests / closures-autofix id=123659664843 skipped
+tests / coverage id=123641574718 success
+tests / coverage-ratchet id=123658289964 success
+tests / fast (3.14) id=123641574712 success
+tests / graders-head-copy id=123658289804 success
+tests / lane-proofs id=123659350603 success
+tests / mutation id=123641335953 success
+tests / mutation-autofix id=123678333594 skipped
+tests / mutation-pins id=123678330985 skipped
+tests / nightly-ha id=123641578426 skipped
+tests / nightly-status id=123641335918 failure
+tests / replay id=123641574845 success
+tests / typing id=123641574759 success
+validate id=123679360837 skipped
+validate / validate-hacs id=123641335852 success
 
 ## Refusals
 none
@@ -60,7 +60,6 @@ none
 none
 
 ## carry_audit at the head
-NOTE stale tree: 2fda9547ec7f49620efdfee368eb8d19dbadd19b lacks origin/main 553cee1df10ef3626fbc1c40b268c4e6801b31e3; roster read at origin/main
 NOTE body item 8e11a43d: R10-COP-GATE
 NOTE body item a8c294f4: R10-COP-GATE
 NOTE body item bdb8b040: R10-COP-GATE
@@ -980,7 +979,7 @@ index 6b8a5b958..9c6c6da45 100644
     "dev/audit/harnesses/r10_dead_rate_limit.py",
     "dev/audit/harnesses/r10_demand_overbook.py",
 diff --git a/tests/entities.py b/tests/entities.py
-index 94258619f..36e58ddb6 100644
+index 2df47f388..b9bc02ddf 100644
 --- a/tests/entities.py
 +++ b/tests/entities.py
 @@ -4077,7 +4077,7 @@ def _p2_registry(sources):
