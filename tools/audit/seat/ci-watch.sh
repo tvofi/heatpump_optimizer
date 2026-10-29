@@ -25,6 +25,10 @@
 R=tvofi/heatpump_optimizer
 S=${CI_WATCH_STATE:-${HPO_STATE_DIR:-$HOME/.local/state/hpo}/ci-watch-state}
 RULESET=main-protect-checks
+# Seconds between cycles: under a waiting seat's 5-minute prompt-cache TTL, so the
+# wake on its exit does not rewrite the seat's whole context (R10-FLY-CACHE-PROMPTS),
+# and never under GitHub's 60 s poll floor.
+POLL_S=240
 
 # --------------------------------------------------------------- self-test
 self_test() {
@@ -223,6 +227,26 @@ EOF
   ck "W12 a gate that did not succeed (skipped; RATE-LIMITED is a failure) alerts RED: gate, never a pass" \
      "$([ $rc = 1 ] && says 'RED: gate' "$O" && echo 1 || echo 0)"
 
+  # The cadence (R10-FLY-CACHE-PROMPTS): under the seat's 5-minute prompt-cache
+  # TTL, never under GitHub's 60 s poll floor.
+  ck "the poll is inside [60 s, 240 s] (POLL_S=${POLL_S:-unset})" \
+     "$([ "${POLL_S:-0}" -ge 60 ] && [ "${POLL_S:-0}" -le 240 ] && echo 1 || echo 0)"
+  # ...and the loop sleeps for it: one quiet cycle without CI_WATCH_ONCE, a
+  # stub `sleep` recording its argument. A loop that never sleeps leaves the
+  # record empty and is killed after ~10 s rather than hanging the self-test.
+  mkdir -p "$TMP/sleepbin"
+  printf '#!/bin/bash\nprintf "%%s\\n" "$1" >> "$SLEPT"\n' > "$TMP/sleepbin/sleep"
+  chmod +x "$TMP/sleepbin/sleep"
+  PATH="$TMP/sleepbin:$TMP/bin:$PATH" FIX="$TMP/w2" CI_WATCH_STATE="$TMP/s-sleep" \
+    SLEPT="$TMP/slept" bash "$WATCH" >/dev/null 2>&1 &
+  wp=$!
+  i=0
+  while [ ! -s "$TMP/slept" ] && [ $i -lt 100 ]; do sleep 0.1; i=$((i + 1)); done
+  kill "$wp" 2>/dev/null; wait "$wp" 2>/dev/null
+  slept=$(head -n 1 "$TMP/slept" 2>/dev/null)
+  ck "the loop sleeps POLL_S between cycles (slept ${slept:-never})" \
+     "$([ -n "$slept" ] && [ "$slept" = "$POLL_S" ] && echo 1 || echo 0)"
+
   printf 'ci-watch self-test: %d checks, %d failed\n' "$((passed + failed))" "$failed"
   [ "$failed" = 0 ]
   return $?
@@ -287,5 +311,5 @@ while true; do
   done
   if [ -n "$OUT" ]; then echo -e "CI-WATCH ALERT ($(date -u +%H:%MZ)): NEW state(s):$OUT"; exit 1; fi
   [ -n "${CI_WATCH_ONCE:-}" ] && exit 0
-  sleep 300
+  sleep "$POLL_S"
 done

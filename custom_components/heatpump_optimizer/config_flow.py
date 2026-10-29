@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
-from collections.abc import Callable, Iterable, Mapping
+from collections.abc import Awaitable, Callable, Iterable, Mapping
 from typing import TYPE_CHECKING, Any, Final, NamedTuple, Protocol, cast
 
 import aiohttp
@@ -13,7 +13,7 @@ from homeassistant import config_entries
 from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.data_entry_flow import section
-from homeassistant.helpers import device_registry as dr, entity_registry as er, selector
+from homeassistant.helpers import entity_registry as er, selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.translation import async_get_translations
 from homeassistant.helpers.typing import UNDEFINED, UndefinedType
@@ -908,21 +908,14 @@ def _partload_errors(
     return {}
 
 
-def _options_suggested_numeric(current: dict[str, Any], key: str) -> Any:
-    """Optional key that suggests the stored value without defaulting it."""
-    if key in current:
-        return vol.Optional(key, description={"suggested_value": current[key]})
-    return vol.Optional(key)
+def _suggested_optional(current: dict[str, Any], key: str) -> Any:
+    """An optional key that suggests the stored value, never defaults it.
 
-
-def _suggested_entity(key: str, current: dict[str, Any]) -> Any:
-    """An entity picker that suggests the stored slot, never defaults it.
-
-    The same two-armed rule as ``_options_suggested_numeric`` beside it, and
-    for the same reason: a ``default`` is refilled by voluptuous for a key the
-    submission left absent, so the stored value rides only as a
-    ``suggested_value``. #1258: the Configure quick-setup page shows an
-    existing entry's wood probes rather than pickers that read as unconfigured.
+    A ``default`` is refilled by voluptuous for a key the submission left
+    absent, so the stored value rides only as a ``suggested_value``. Numeric
+    rows and entity pickers alike: #1258, the Configure quick-setup page shows
+    an existing entry's wood probes rather than pickers that read as
+    unconfigured.
     """
     if key in current:
         return vol.Optional(key, description={"suggested_value": current[key]})
@@ -1039,13 +1032,6 @@ def _valid_months_spec(spec: Any) -> bool:
     except grid_fee.GridFeeError:
         return False
     return True
-
-
-def _tibber_token_selector() -> selector.TextSelector:
-    """The masked token widget shared by setup, reauth and options."""
-    return selector.TextSelector(
-        selector.TextSelectorConfig(type=selector.TextSelectorType.PASSWORD)
-    )
 
 
 def _entity_of(
@@ -1243,10 +1229,10 @@ def _quick_setup_schema(
     return vol.Schema(
         {
             **question_fields,
-            _suggested_entity(CONF_WOOD_TANK_TOP_ENTITY, current): _entity_of(["sensor"]),
-            _suggested_entity(
-                CONF_WOOD_TANK_BOTTOM_ENTITY, current
-            ): _entity_of(["sensor"]),
+            _suggested_optional(current, CONF_WOOD_TANK_TOP_ENTITY): _prefill_row(CONF_WOOD_TANK_TOP_ENTITY).widget,
+            _suggested_optional(
+                current, CONF_WOOD_TANK_BOTTOM_ENTITY
+            ): _prefill_row(CONF_WOOD_TANK_BOTTOM_ENTITY).widget,
             **_questionnaire_fields(current),
         }
     )
@@ -1286,10 +1272,10 @@ def _user_credentials_fields() -> dict[Any, Any]:
         vol.Required(CONF_NAME, default="Heat Pump Optimizer"): str,
         vol.Optional(
             CONF_PRICE_SOURCE, default=DEFAULT_PRICE_SOURCE
-        ): _select(list(PRICE_SOURCES), "price_source"),
-        vol.Optional(CONF_TIBBER_TOKEN, default=""): _tibber_token_selector(),
-        vol.Optional(CONF_PRICE_ENTITY): _entity_of("sensor"),
-        vol.Required(CONF_WEATHER_ENTITY): _entity_of("weather"),
+        ): _prefill_row(CONF_PRICE_SOURCE).widget,
+        vol.Optional(CONF_TIBBER_TOKEN, default=""): _prefill_row(CONF_TIBBER_TOKEN).widget,
+        vol.Optional(CONF_PRICE_ENTITY): _prefill_row(CONF_PRICE_ENTITY).widget,
+        vol.Required(CONF_WEATHER_ENTITY): _prefill_row(CONF_WEATHER_ENTITY).widget,
     }
 
 
@@ -1326,36 +1312,28 @@ def _user_sensors_fields(hass: HomeAssistant) -> dict[Any, Any]:
     ``_user_sensors_sections`` is what the setup page renders (#824).
     """
     return {
-        vol.Optional(CONF_INDOOR_TEMP_ENTITY): _entity_of("sensor", "temperature"),
-        vol.Optional(CONF_OUTDOOR_TEMP_ENTITY): _entity_of("sensor", "temperature"),
-        vol.Optional(CONF_HEAT_PUMP_SWITCH_ENTITY): _entity_of("switch"),
-        vol.Optional(CONF_SOLAR_RADIATION_ENTITY): _entity_of("sensor"),
+        vol.Optional(CONF_INDOOR_TEMP_ENTITY): _prefill_row(CONF_INDOOR_TEMP_ENTITY).widget,
+        vol.Optional(CONF_OUTDOOR_TEMP_ENTITY): _prefill_row(CONF_OUTDOOR_TEMP_ENTITY).widget,
+        vol.Optional(CONF_HEAT_PUMP_SWITCH_ENTITY): _prefill_row(CONF_HEAT_PUMP_SWITCH_ENTITY).widget,
+        vol.Optional(CONF_SOLAR_RADIATION_ENTITY): _prefill_row(CONF_SOLAR_RADIATION_ENTITY).widget,
         vol.Optional(
             CONF_SOLAR_FORECAST_SOURCE,
             default=DEFAULT_SOLAR_FORECAST_SOURCE,
-        ): _solar_source_selector(),
+        ): _prefill_row(CONF_SOLAR_FORECAST_SOURCE).widget,
         vol.Optional(
             CONF_SOLAR_LOCATION,
             default=_default_location(hass, {}),
-        ): _solar_location_selector(),
-        vol.Optional(CONF_FLOOR_RETURN_TEMP_ENTITY): _entity_of("sensor", "temperature"),
-        vol.Optional(CONF_LOWER_FLOOR_TEMP_ENTITY): _entity_of("sensor", "temperature"),
-        vol.Optional(CONF_DHW_TEMP_ENTITY): _entity_of("sensor", "temperature"),
+        ): _prefill_row(CONF_SOLAR_LOCATION).widget,
+        vol.Optional(CONF_FLOOR_RETURN_TEMP_ENTITY): _prefill_row(CONF_FLOOR_RETURN_TEMP_ENTITY).widget,
+        vol.Optional(CONF_LOWER_FLOOR_TEMP_ENTITY): _prefill_row(CONF_LOWER_FLOOR_TEMP_ENTITY).widget,
+        vol.Optional(CONF_DHW_TEMP_ENTITY): _prefill_row(CONF_DHW_TEMP_ENTITY).widget,
         vol.Optional(
             CONF_BUFFER_TANK_TEMP_ENTITY
-        ): _entity_of("sensor", "temperature"),
-        vol.Optional(CONF_HEAT_PUMP_MODE_ENTITY): _entity_of(
-            list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_MODE_ENTITY])
-        ),
-        vol.Optional(CONF_HEAT_PUMP_DEFROST_ENTITY): _entity_of(
-            list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_DEFROST_ENTITY])
-        ),
-        vol.Optional(CONF_HEAT_PUMP_ONLINE_ENTITY): _entity_of(
-            list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_ONLINE_ENTITY])
-        ),
-        vol.Optional(CONF_HEAT_PUMP_FAULT_ENTITY): _entity_of(
-            list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_FAULT_ENTITY])
-        ),
+        ): _prefill_row(CONF_BUFFER_TANK_TEMP_ENTITY).widget,
+        vol.Optional(CONF_HEAT_PUMP_MODE_ENTITY): _prefill_row(CONF_HEAT_PUMP_MODE_ENTITY).widget,
+        vol.Optional(CONF_HEAT_PUMP_DEFROST_ENTITY): _prefill_row(CONF_HEAT_PUMP_DEFROST_ENTITY).widget,
+        vol.Optional(CONF_HEAT_PUMP_ONLINE_ENTITY): _prefill_row(CONF_HEAT_PUMP_ONLINE_ENTITY).widget,
+        vol.Optional(CONF_HEAT_PUMP_FAULT_ENTITY): _prefill_row(CONF_HEAT_PUMP_FAULT_ENTITY).widget,
     }
 
 
@@ -1578,7 +1556,7 @@ _OPTION_PAGES: Final[tuple[_P, ...]] = (
 _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     # -- entities
     _F("entities", CONF_PRICE_SOURCE, DEFAULT_PRICE_SOURCE, _select(list(PRICE_SOURCES), "price_source"), group="credentials"),
-    _F("entities", CONF_TIBBER_TOKEN, '', _tibber_token_selector(), required=False, group="credentials"),
+    _F("entities", CONF_TIBBER_TOKEN, '', selector.TextSelector(selector.TextSelectorConfig(type=selector.TextSelectorType.PASSWORD)), required=False, group="credentials"),
     _F("entities", CONF_PRICE_ENTITY, _STORED, _entity_of('sensor'), group="credentials"),
     _F("entities", CONF_PRICE_VAT, DEFAULT_PRICE_VAT, _number(0.0, 2.0, 0.01), group="credentials"),
     _F("entities", CONF_PRICE_SURCHARGE, DEFAULT_PRICE_SURCHARGE, _number(0.0, 2.0, 0.01), group="credentials"),
@@ -1850,7 +1828,7 @@ def _field_marker(row: _F, current: dict[str, Any], hass: HomeAssistant) -> Any:
                 )
         return vol.Optional(row.key)
     if default is _SUGGESTED:
-        return _options_suggested_numeric(current, row.key)
+        return _suggested_optional(current, row.key)
     if isinstance(default, _Suggested):
         return vol.Optional(
             row.key,
@@ -1890,6 +1868,52 @@ def _section_inner(value: Any) -> vol.Schema | None:
     """
     inner = getattr(value, "schema", None)
     return inner if isinstance(inner, vol.Schema) else None
+
+
+#: A page's refusal: the submit (flattened, cleared rows nulled) and the stored
+#: config in, the per-field errors out (empty to save).
+_PageCheck = Callable[[dict[str, Any], dict[str, Any]], Awaitable[dict[str, str]]]
+#: What a page saves, from the accepted submit and the submit merged over the
+#: stored config (before any cleared row is nulled).
+_PageFinish = Callable[[dict[str, Any], dict[str, Any]], dict[str, Any]]
+
+
+def _warn_legionella_ceiling(submit: dict[str, Any], merged: dict[str, Any]) -> dict[str, Any]:
+    """Warned, never blocked -- see the setup flow's DHW step."""
+    warning = _dhw_legionella_warning(submit, merged)
+    if warning is not None:
+        _LOGGER.warning(
+            "Hot water: the anti-legionella cycle at %s °C is "
+            "above the %s °C charge limit, so the tank is taken "
+            "above that limit every %s days",
+            warning["legionella_temp"],
+            warning["setpoint"],
+            warning["interval_days"],
+        )
+    return submit
+
+
+def _peak_window_as_int(submit: dict[str, Any], _merged: dict[str, Any]) -> dict[str, Any]:
+    cleaned = dict(submit)
+    window = cleaned.get(CONF_PEAK_TARIFF_WINDOW)
+    if window is not None:
+        try:
+            cleaned[CONF_PEAK_TARIFF_WINDOW] = int(window)
+        except (TypeError, ValueError):
+            cleaned[CONF_PEAK_TARIFF_WINDOW] = DEFAULT_PEAK_TARIFF_WINDOW
+    return cleaned
+
+
+def _apply_dso_catalog(cleaned: dict[str, Any], _merged: dict[str, Any]) -> dict[str, Any]:
+    applied = grid_fee.apply_catalog(cleaned.get(CONF_DSO_PRODUCT))
+    if applied:
+        cleaned.update(applied)
+    return cleaned
+
+
+def _fee_placeholders(hass: HomeAssistant) -> dict[str, str]:
+    currency = resolve_currency(hass)
+    return {"currency": currency, "fee_bound": f"{grid_fee.fee_bound(currency):g}"}
 
 
 def _flatten_section_input(user_input: dict[str, Any]) -> dict[str, Any]:
@@ -1954,6 +1978,33 @@ def _page_schema(
 def _prefill_row(key: str) -> _F:
     """The first registry row presenting ``key``; its widget renders the suggestion."""
     return next(row for row in _OPTION_FIELDS if row.key == key)
+
+
+def _wizard_fields(
+    marker: Callable[..., Any], defaults: Mapping[str, Any]
+) -> dict[Any, Any]:
+    """Setup-wizard fields, each rendered by its options-registry widget.
+
+    A setting's selector -- bounds, step, unit, slider -- is declared once, on
+    its ``_OPTION_FIELDS`` row. The wizard asks the same question earlier and
+    with its own default and marker, so it takes the widget from that row
+    rather than spelling a second one: the two flows cannot then offer a
+    different range for one setting, which is the disagreement
+    ``_StoredValuesAlwaysFit`` would otherwise be left to paper over.
+    """
+    return {
+        marker(key, default=default): _prefill_row(key).widget
+        for key, default in defaults.items()
+    }
+
+
+#: The heat pump's nameplate, asked on both wizard paths (``building_extras``
+#: after the questionnaire, ``thermal`` on the expert path).
+_NAMEPLATE_DEFAULTS: Final = {
+    CONF_HEAT_PUMP_COP_NOMINAL: DEFAULT_HEAT_PUMP_COP_NOMINAL,
+    CONF_HEAT_PUMP_MAX_POWER: DEFAULT_HEAT_PUMP_MAX_POWER,
+    CONF_HEAT_PUMP_MIN_POWER: DEFAULT_HEAT_PUMP_MIN_POWER,
+}
 
 
 def _prefill_fits(key: str, value: Any) -> bool:
@@ -2672,37 +2723,18 @@ class HeatPumpOptimizerConfigFlow(
             step_id="temperature",
             errors=errors,
             data_schema=vol.Schema(
-                {
-                    vol.Required(
-                        CONF_TARGET_TEMP, default=DEFAULT_TARGET_TEMP
-                    ): _number(15, 28, 0.5, "°C", slider=True),
-                    vol.Required(
-                        CONF_MIN_TEMP, default=DEFAULT_MIN_TEMP
-                    ): _number(14, 25, 0.5, "°C", slider=True),
-                    vol.Required(
-                        CONF_MAX_TEMP, default=DEFAULT_MAX_TEMP
-                    ): _number(18, 28, 0.5, "°C", slider=True),
-                    vol.Required(
-                        CONF_COMFORT_TEMP_DAY, default=DEFAULT_COMFORT_TEMP_DAY
-                    ): _number(
-                        COMFORT_TEMP_DAY_SELECTOR_MIN,
-                        COMFORT_TEMP_DAY_SELECTOR_MAX,
-                        0.5, "°C", slider=True,
-                    ),
-                    vol.Required(
-                        CONF_COMFORT_TEMP_NIGHT, default=DEFAULT_COMFORT_TEMP_NIGHT
-                    ): _number(
-                        COMFORT_TEMP_NIGHT_SELECTOR_MIN,
-                        COMFORT_TEMP_NIGHT_SELECTOR_MAX,
-                        0.5, "°C", slider=True,
-                    ),
-                    vol.Required(
-                        CONF_DAY_START_HOUR, default=DEFAULT_DAY_START_HOUR
-                    ): _number(0, 23, 1, slider=True),
-                    vol.Required(
-                        CONF_DAY_END_HOUR, default=DEFAULT_DAY_END_HOUR
-                    ): _number(1, 24, 1, slider=True),
-                }
+                _wizard_fields(
+                    vol.Required,
+                    {
+                        CONF_TARGET_TEMP: DEFAULT_TARGET_TEMP,
+                        CONF_MIN_TEMP: DEFAULT_MIN_TEMP,
+                        CONF_MAX_TEMP: DEFAULT_MAX_TEMP,
+                        CONF_COMFORT_TEMP_DAY: DEFAULT_COMFORT_TEMP_DAY,
+                        CONF_COMFORT_TEMP_NIGHT: DEFAULT_COMFORT_TEMP_NIGHT,
+                        CONF_DAY_START_HOUR: DEFAULT_DAY_START_HOUR,
+                        CONF_DAY_END_HOUR: DEFAULT_DAY_END_HOUR,
+                    },
+                )
             ),
         )
 
@@ -2773,20 +2805,7 @@ class HeatPumpOptimizerConfigFlow(
         return self.async_show_form(
             step_id="building_extras",
             errors=errors,
-            data_schema=vol.Schema(
-                {
-                    vol.Required(
-                        CONF_HEAT_PUMP_COP_NOMINAL,
-                        default=DEFAULT_HEAT_PUMP_COP_NOMINAL,
-                    ): _number(1.5, 6.0, 0.1),
-                    vol.Required(
-                        CONF_HEAT_PUMP_MAX_POWER, default=DEFAULT_HEAT_PUMP_MAX_POWER
-                    ): _number(1, 20, 0.5, "kW"),
-                    vol.Required(
-                        CONF_HEAT_PUMP_MIN_POWER, default=DEFAULT_HEAT_PUMP_MIN_POWER
-                    ): _number(0, 10, 0.5, "kW"),
-                }
-            ),
+            data_schema=vol.Schema(_wizard_fields(vol.Required, _NAMEPLATE_DEFAULTS)),
         )
 
     async def async_step_thermal(
@@ -2804,41 +2823,19 @@ class HeatPumpOptimizerConfigFlow(
             step_id="thermal",
             errors=errors,
             data_schema=vol.Schema(
-                {
-                    vol.Required(
-                        CONF_HOUSE_THERMAL_MASS, default=DEFAULT_HOUSE_THERMAL_MASS
-                    ): _number(*RANGE_HOUSE_THERMAL_MASS, 0.5, "kWh/°C"),
-                    vol.Required(
-                        CONF_HOUSE_HEAT_LOSS_COEFFICIENT,
-                        default=DEFAULT_HOUSE_HEAT_LOSS_COEFFICIENT,
-                    ): _number(*RANGE_HOUSE_HEAT_LOSS, 0.01, "kW/°C"),
-                    vol.Required(
-                        CONF_SLAB_THERMAL_MASS, default=DEFAULT_SLAB_THERMAL_MASS
-                    ): _number(*RANGE_SLAB_THERMAL_MASS, 0.5, "kWh/°C"),
-                    vol.Required(
-                        CONF_SLAB_HEAT_TRANSFER, default=DEFAULT_SLAB_HEAT_TRANSFER
-                    ): _number(*RANGE_SLAB_HEAT_TRANSFER, 0.1, "kW/°C"),
-                    vol.Required(
-                        CONF_HEAT_PUMP_COP_NOMINAL,
-                        default=DEFAULT_HEAT_PUMP_COP_NOMINAL,
-                    ): _number(1.5, 6.0, 0.1),
-                    vol.Required(
-                        CONF_HEAT_PUMP_MAX_POWER, default=DEFAULT_HEAT_PUMP_MAX_POWER
-                    ): _number(1, 20, 0.5, "kW"),
-                    vol.Required(
-                        CONF_HEAT_PUMP_MIN_POWER, default=DEFAULT_HEAT_PUMP_MIN_POWER
-                    ): _number(0, 10, 0.5, "kW"),
-                    vol.Required(
-                        CONF_OPTIMIZATION_INTERVAL,
-                        default=DEFAULT_OPTIMIZATION_INTERVAL,
-                    ): _number(10, 120, 5, "min", slider=True),
-                    vol.Required(
-                        CONF_PRICE_WEIGHT, default=DEFAULT_PRICE_WEIGHT
-                    ): _number(0.1, 10, 0.1),
-                    vol.Required(
-                        CONF_COMFORT_WEIGHT, default=DEFAULT_COMFORT_WEIGHT
-                    ): _number(0.1, 20, 0.1),
-                }
+                _wizard_fields(
+                    vol.Required,
+                    {
+                        CONF_HOUSE_THERMAL_MASS: DEFAULT_HOUSE_THERMAL_MASS,
+                        CONF_HOUSE_HEAT_LOSS_COEFFICIENT: DEFAULT_HOUSE_HEAT_LOSS_COEFFICIENT,
+                        CONF_SLAB_THERMAL_MASS: DEFAULT_SLAB_THERMAL_MASS,
+                        CONF_SLAB_HEAT_TRANSFER: DEFAULT_SLAB_HEAT_TRANSFER,
+                        **_NAMEPLATE_DEFAULTS,
+                        CONF_OPTIMIZATION_INTERVAL: DEFAULT_OPTIMIZATION_INTERVAL,
+                        CONF_PRICE_WEIGHT: DEFAULT_PRICE_WEIGHT,
+                        CONF_COMFORT_WEIGHT: DEFAULT_COMFORT_WEIGHT,
+                    },
+                )
             ),
         )
 
@@ -2879,49 +2876,22 @@ class HeatPumpOptimizerConfigFlow(
                             "suggested_value": mode == TWO_ZONE_MODE_ON
                         },
                     ): selector.BooleanSelector(),
-                    vol.Optional(
-                        CONF_UPPER_FLOOR_THERMAL_MASS,
-                        default=DEFAULT_UPPER_FLOOR_THERMAL_MASS,
-                    ): _number(*RANGE_ZONE_THERMAL_MASS, 0.5, "kWh/°C"),
-                    vol.Optional(
-                        CONF_LOWER_FLOOR_THERMAL_MASS,
-                        default=DEFAULT_LOWER_FLOOR_THERMAL_MASS,
-                    ): _number(*RANGE_ZONE_THERMAL_MASS, 0.5, "kWh/°C"),
-                    vol.Optional(
-                        CONF_UPPER_FLOOR_HEAT_LOSS,
-                        default=DEFAULT_UPPER_FLOOR_HEAT_LOSS,
-                    ): _number(*RANGE_ZONE_HEAT_LOSS, 0.01, "kW/°C"),
-                    vol.Optional(
-                        CONF_LOWER_FLOOR_HEAT_LOSS,
-                        default=DEFAULT_LOWER_FLOOR_HEAT_LOSS,
-                    ): _number(*RANGE_ZONE_HEAT_LOSS, 0.01, "kW/°C"),
-                    vol.Optional(
-                        CONF_INTER_ZONE_TRANSFER,
-                        default=DEFAULT_INTER_ZONE_TRANSFER,
-                    ): _number(POSITIVE_PARAM_FLOOR, 3.0, 0.1, "kW/°C"),
-                    vol.Optional(
-                        CONF_RADIATOR_POWER_FRACTION,
-                        default=DEFAULT_RADIATOR_POWER_FRACTION,
-                    ): _number(0.0, 1.0, 0.05, slider=True),
-                    vol.Optional(
-                        CONF_UPPER_FLOOR_AREA_RATIO,
-                        default=DEFAULT_UPPER_FLOOR_AREA_RATIO,
-                    ): _number(0.1, 0.9, 0.05, slider=True),
-                    vol.Optional(
-                        CONF_BUFFER_TANK_VOLUME,
-                        default=DEFAULT_BUFFER_TANK_VOLUME,
-                    ): _number(10, 1500, 5, "L"),
-                    vol.Optional(
-                        CONF_WINDOW_AREA, default=DEFAULT_WINDOW_AREA
-                    ): _number(POSITIVE_PARAM_FLOOR, 50, 0.5, "m²"),
-                    vol.Optional(
-                        CONF_SOLAR_ORIENTATION_FACTOR,
-                        default=DEFAULT_SOLAR_ORIENTATION_FACTOR,
-                    ): _number(0.0, 1.0, 0.05, slider=True),
-                    vol.Optional(
-                        CONF_SOLAR_HEAT_GAIN_COEFF,
-                        default=DEFAULT_SOLAR_HEAT_GAIN_COEFF,
-                    ): _number(0.1, 1.0, 0.05, slider=True),
+                    **_wizard_fields(
+                        vol.Optional,
+                        {
+                            CONF_UPPER_FLOOR_THERMAL_MASS: DEFAULT_UPPER_FLOOR_THERMAL_MASS,
+                            CONF_LOWER_FLOOR_THERMAL_MASS: DEFAULT_LOWER_FLOOR_THERMAL_MASS,
+                            CONF_UPPER_FLOOR_HEAT_LOSS: DEFAULT_UPPER_FLOOR_HEAT_LOSS,
+                            CONF_LOWER_FLOOR_HEAT_LOSS: DEFAULT_LOWER_FLOOR_HEAT_LOSS,
+                            CONF_INTER_ZONE_TRANSFER: DEFAULT_INTER_ZONE_TRANSFER,
+                            CONF_RADIATOR_POWER_FRACTION: DEFAULT_RADIATOR_POWER_FRACTION,
+                            CONF_UPPER_FLOOR_AREA_RATIO: DEFAULT_UPPER_FLOOR_AREA_RATIO,
+                            CONF_BUFFER_TANK_VOLUME: DEFAULT_BUFFER_TANK_VOLUME,
+                            CONF_WINDOW_AREA: DEFAULT_WINDOW_AREA,
+                            CONF_SOLAR_ORIENTATION_FACTOR: DEFAULT_SOLAR_ORIENTATION_FACTOR,
+                            CONF_SOLAR_HEAT_GAIN_COEFF: DEFAULT_SOLAR_HEAT_GAIN_COEFF,
+                        },
+                    ),
                 }
             ),
         )
@@ -2979,54 +2949,22 @@ class HeatPumpOptimizerConfigFlow(
                             )
                         },
                     ): selector.BooleanSelector(),
-                    vol.Optional(
-                        CONF_DHW_TANK_VOLUME,
-                        default=DEFAULT_DHW_TANK_VOLUME,
-                    ): _number(50, 1500, 10, "L"),
-                    vol.Optional(
-                        CONF_DHW_SETPOINT,
-                        default=DEFAULT_DHW_SETPOINT,
-                    ): _number(40, 65, 1, "°C", slider=True),
-                    vol.Optional(
-                        CONF_DHW_MIN_TEMP,
-                        default=DEFAULT_DHW_MIN_TEMP,
-                    ): _number(35, 55, 1, "°C", slider=True),
-                    vol.Optional(
-                        CONF_DHW_DAILY_CONSUMPTION,
-                        default=DEFAULT_DHW_DAILY_CONSUMPTION,
-                    ): _number(50, 1500, 10, "L/day"),
-                    vol.Optional(
-                        CONF_DHW_COOLING_RATE,
-                        default=DEFAULT_DHW_COOLING_RATE,
-                    ): _number(0.05, 3.0, 0.05, "°C/h"),
-                    vol.Optional(
-                        CONF_DHW_SCHEDULE_ENABLED,
-                        default=DEFAULT_DHW_SCHEDULE_ENABLED,
-                    ): selector.BooleanSelector(),
-                    vol.Optional(
-                        CONF_DHW_WINDOWS,
-                        default=DEFAULT_DHW_WINDOWS,
-                    ): selector.TextSelector(
-                        selector.TextSelectorConfig(
-                            type=selector.TextSelectorType.TEXT,
-                        )
+                    **_wizard_fields(
+                        vol.Optional,
+                        {
+                            CONF_DHW_TANK_VOLUME: DEFAULT_DHW_TANK_VOLUME,
+                            CONF_DHW_SETPOINT: DEFAULT_DHW_SETPOINT,
+                            CONF_DHW_MIN_TEMP: DEFAULT_DHW_MIN_TEMP,
+                            CONF_DHW_DAILY_CONSUMPTION: DEFAULT_DHW_DAILY_CONSUMPTION,
+                            CONF_DHW_COOLING_RATE: DEFAULT_DHW_COOLING_RATE,
+                            CONF_DHW_SCHEDULE_ENABLED: DEFAULT_DHW_SCHEDULE_ENABLED,
+                            CONF_DHW_WINDOWS: DEFAULT_DHW_WINDOWS,
+                            CONF_DHW_IDLE_MIN_TEMP: DEFAULT_DHW_IDLE_MIN_TEMP,
+                            CONF_DHW_LEGIONELLA_ENABLED: DEFAULT_DHW_LEGIONELLA_ENABLED,
+                            CONF_DHW_LEGIONELLA_TEMP: DEFAULT_DHW_LEGIONELLA_TEMP,
+                            CONF_DHW_LEGIONELLA_INTERVAL_DAYS: DEFAULT_DHW_LEGIONELLA_INTERVAL_DAYS,
+                        },
                     ),
-                    vol.Optional(
-                        CONF_DHW_IDLE_MIN_TEMP,
-                        default=DEFAULT_DHW_IDLE_MIN_TEMP,
-                    ): _number(10, 55, 1, "°C", slider=True),
-                    vol.Optional(
-                        CONF_DHW_LEGIONELLA_ENABLED,
-                        default=DEFAULT_DHW_LEGIONELLA_ENABLED,
-                    ): selector.BooleanSelector(),
-                    vol.Optional(
-                        CONF_DHW_LEGIONELLA_TEMP,
-                        default=DEFAULT_DHW_LEGIONELLA_TEMP,
-                    ): _number(55, 70, 1, "°C", slider=True),
-                    vol.Optional(
-                        CONF_DHW_LEGIONELLA_INTERVAL_DAYS,
-                        default=DEFAULT_DHW_LEGIONELLA_INTERVAL_DAYS,
-                    ): _number(1, 30, 1, "days", slider=True),
                 }
             ),
         )
@@ -3042,16 +2980,13 @@ class HeatPumpOptimizerConfigFlow(
         return self.async_show_form(
             step_id="weather_sensitivity",
             data_schema=vol.Schema(
-                {
-                    vol.Optional(
-                        CONF_WIND_SENSITIVITY,
-                        default=DEFAULT_WIND_SENSITIVITY,
-                    ): _number(0.0, 0.5, 0.01),
-                    vol.Optional(
-                        CONF_RAIN_HEAT_LOSS_MULTIPLIER,
-                        default=DEFAULT_RAIN_HEAT_LOSS_MULTIPLIER,
-                    ): _number(1.0, 1.5, 0.01),
-                }
+                _wizard_fields(
+                    vol.Optional,
+                    {
+                        CONF_WIND_SENSITIVITY: DEFAULT_WIND_SENSITIVITY,
+                        CONF_RAIN_HEAT_LOSS_MULTIPLIER: DEFAULT_RAIN_HEAT_LOSS_MULTIPLIER,
+                    },
+                )
             ),
         )
 
@@ -3118,7 +3053,7 @@ class HeatPumpOptimizerConfigFlow(
         return self.async_show_form(
             step_id="reauth_confirm",
             data_schema=vol.Schema(
-                {vol.Required(CONF_TIBBER_TOKEN): _tibber_token_selector()}
+                {vol.Required(CONF_TIBBER_TOKEN): _prefill_row(CONF_TIBBER_TOKEN).widget}
             ),
             errors=errors,
         )
@@ -3229,21 +3164,46 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         return await self.async_step_init()
 
     async def _page(
-        self, step_id: str, user_input: dict[str, Any] | None, *, clear: bool = False
+        self,
+        step_id: str,
+        user_input: dict[str, Any] | None,
+        *,
+        clear: bool = False,
+        check: _PageCheck | None = None,
+        finish: _PageFinish | None = None,
+        placeholders: Mapping[str, str] | None = None,
     ) -> ConfigFlowResult:
         """One registry page (#597): save the submit, or show the form.
 
-        ``clear`` hands the submit to ``_clear_absent`` first, so a stored
-        entity row the user emptied is nulled rather than kept. A page with
-        no ``_STORED`` row passes ``clear=False``: there is nothing to null.
+        Every options page is this one sequence: lift the ``section()``
+        groups, null the stored entity rows the user emptied (``clear``),
+        refuse the submit with ``check``'s errors, shape what is saved with
+        ``finish``, and otherwise re-render the rejected form with what was
+        typed rather than with the stored values the user was changing.
+
+        ``clear`` hands the submit to ``_clear_absent``, judged over the
+        SUBMISSION merged onto the stored config, so a block the same submit
+        turns off still clears its own slots. A page with no ``_STORED`` row
+        passes ``clear=False``: there is nothing to null.
         """
+        errors: dict[str, str] = {}
         current = self._current
         if user_input is not None:
-            return await self._save_or_menu(
-                _clear_absent(user_input, step_id, current) if clear else user_input
-            )
+            flat = _flatten_section_input(user_input)
+            merged = {**current, **flat}
+            cleaned = _clear_absent(flat, step_id, merged) if clear else flat
+            if check is not None:
+                errors = await check(cleaned, current)
+            if not errors:
+                return await self._save_or_menu(
+                    finish(cleaned, merged) if finish is not None else cleaned
+                )
+            current = {**current, **cleaned}
         return self.async_show_form(
-            step_id=step_id, data_schema=_page_schema(step_id, current, self.hass)
+            step_id=step_id,
+            errors=errors,
+            description_placeholders=placeholders,
+            data_schema=_page_schema(step_id, current, self.hass),
         )
 
     async def _thermal_model_page(
@@ -3417,67 +3377,55 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Change which Home Assistant entities the optimizer reads."""
-        errors: dict[str, str] = {}
-        current = self._current
-
-        if user_input is not None:
-            user_input = _flatten_section_input(user_input)
-            source = user_input.get(
-                CONF_PRICE_SOURCE, current.get(CONF_PRICE_SOURCE, DEFAULT_PRICE_SOURCE)
-            )
-            if source == PRICE_SOURCE_ENTITY:
-                entity = user_input.get(CONF_PRICE_ENTITY) or current.get(
-                    CONF_PRICE_ENTITY
-                )
-                if not entity:
-                    errors[CONF_PRICE_ENTITY] = "price_entity_required"
-            else:
-                token = user_input.get(CONF_TIBBER_TOKEN) or current.get(
-                    CONF_TIBBER_TOKEN
-                )
-                if not token:
-                    errors[CONF_TIBBER_TOKEN] = "tibber_token_required"
-                else:
-                    submitted = user_input.get(CONF_TIBBER_TOKEN)
-                    if submitted and submitted != current.get(CONF_TIBBER_TOKEN):
-                        verdict = await validate_tibber_token(self.hass, submitted)
-                        if verdict == "invalid_auth":
-                            errors[CONF_TIBBER_TOKEN] = "invalid_tibber_token"
-                        elif verdict != "ok":
-                            errors[CONF_TIBBER_TOKEN] = "cannot_connect"
-            if not errors:
-                return await self._save_or_menu(
-                    _clear_absent(user_input, "entities", current)
-                )
-            current = {**current, **user_input}
-
-        return self.async_show_form(
-            step_id="entities",
-            errors=errors,
-            data_schema=_page_schema("entities", current, self.hass),
+        return await self._page(
+            "entities", user_input, clear=True, check=self._entities_errors
         )
+
+    async def _entities_errors(
+        self, submit: dict[str, Any], current: dict[str, Any]
+    ) -> dict[str, str]:
+        """The price source must name its feed; a new Tibber token must work.
+
+        The source and its entity are judged over what would be stored: a
+        cleared price entity reaches here as ``None`` (``_clear_absent``), so
+        clearing it under an entity source is refused rather than saved as a
+        source with no feed -- the rule ``_disinfection_errors`` applies.
+        """
+        errors: dict[str, str] = {}
+        view = {**current, **submit}
+        source = view.get(CONF_PRICE_SOURCE, DEFAULT_PRICE_SOURCE)
+        if source == PRICE_SOURCE_ENTITY:
+            if not view.get(CONF_PRICE_ENTITY):
+                errors[CONF_PRICE_ENTITY] = "price_entity_required"
+            return errors
+        if not (submit.get(CONF_TIBBER_TOKEN) or current.get(CONF_TIBBER_TOKEN)):
+            errors[CONF_TIBBER_TOKEN] = "tibber_token_required"
+            return errors
+        submitted = submit.get(CONF_TIBBER_TOKEN)
+        if submitted and submitted != current.get(CONF_TIBBER_TOKEN):
+            verdict = await validate_tibber_token(self.hass, submitted)
+            if verdict == "invalid_auth":
+                errors[CONF_TIBBER_TOKEN] = "invalid_tibber_token"
+            elif verdict != "ok":
+                errors[CONF_TIBBER_TOKEN] = "cannot_connect"
+        return errors
 
     async def async_step_entities_metering(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Solar, power and compressor frequency sensors."""
-        errors: dict[str, str] = {}
-        current = self._current
-        if user_input is not None:
-            user_input = _flatten_section_input(user_input)
-            # Only a number entity can be written; a sensor alone observes.
-            if user_input.get(CONF_FREQ_CONTROL_MODE) == FREQ_MODE_CONTROL and not user_input.get(CONF_COMPRESSOR_FREQ_ENTITY):
-                errors[CONF_FREQ_CONTROL_MODE] = "freq_control_needs_number"
-            else:
-                return await self._save_or_menu(
-                    _clear_absent(user_input, "entities_metering", current)
-                )
-            current = {**current, **user_input}
-        return self.async_show_form(
-            step_id="entities_metering",
-            errors=errors,
-            data_schema=_page_schema("entities_metering", current, self.hass),
+        return await self._page(
+            "entities_metering", user_input, clear=True, check=self._metering_errors
         )
+
+    async def _metering_errors(
+        self, submit: dict[str, Any], _current: dict[str, Any]
+    ) -> dict[str, str]:
+        """Only a number entity can be written; a sensor alone observes."""
+        errors: dict[str, str] = {}
+        if submit.get(CONF_FREQ_CONTROL_MODE) == FREQ_MODE_CONTROL and not submit.get(CONF_COMPRESSOR_FREQ_ENTITY):
+            errors[CONF_FREQ_CONTROL_MODE] = "freq_control_needs_number"
+        return errors
 
     async def async_step_entities_pump(
         self, user_input: dict[str, Any] | None = None
@@ -3489,92 +3437,66 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """How warm the house should be, and when."""
-        errors: dict[str, str] = {}
-        current = self._current
-        if user_input is not None:
-            user_input = _flatten_section_input(user_input)
-            errors = _band_errors(user_input, current)
-            if not errors:
-                return await self._save_or_menu(
-                    _clear_absent(user_input, "comfort", current)
-                )
-            # Re-render the rejected form with what was typed, not with the
-            # stored values the user was in the middle of changing.
-            current = {**current, **user_input}
-        return self.async_show_form(
-            step_id="comfort",
-            errors=errors,
-            data_schema=_page_schema("comfort", current, self.hass),
-        )
+        return await self._page("comfort", user_input, clear=True, check=self._comfort_errors)
+
+    async def _comfort_errors(
+        self, submit: dict[str, Any], current: dict[str, Any]
+    ) -> dict[str, str]:
+        return _band_errors(submit, current)
 
     async def async_step_hot_water(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """When hot water is needed and how hot it has to be."""
-        errors: dict[str, str] = {}
-        current = self._current
-        if user_input is not None:
-            user_input = _flatten_section_input(user_input)
-            window_problem = dhw_spec_problem(user_input.get(CONF_DHW_WINDOWS, ""))
-            if window_problem is not None:
-                errors[CONF_DHW_WINDOWS] = window_problem
-            holiday_spec = user_input.get(CONF_HOLIDAY_DHW_WINDOWS, "")
-            if holiday_spec:
-                holiday_problem = dhw_spec_problem(holiday_spec)
-                if holiday_problem is not None:
-                    errors[CONF_HOLIDAY_DHW_WINDOWS] = holiday_problem
-            # #1260: each revealed per-day field gets the ordinary verdicts
-            # plus the selector refusal, on its own key.
-            errors.update(_dhw_day_field_errors(user_input))
-            if not errors and _dhw_min_too_close(user_input, current):
-                errors[CONF_DHW_MIN_TEMP] = "dhw_min_too_close"
-            if not errors:
-                # Warned, never blocked — see the setup flow's DHW step.
-                warning = _dhw_legionella_warning(user_input, current)
-                if warning is not None:
-                    _LOGGER.warning(
-                        "Hot water: the anti-legionella cycle at %s °C is "
-                        "above the %s °C charge limit, so the tank is taken "
-                        "above that limit every %s days",
-                        warning["legionella_temp"],
-                        warning["setpoint"],
-                        warning["interval_days"],
-                    )
-                return await self._save_or_menu(
-                    _clear_absent(user_input, "hot_water", current)
-                )
-            current = {**current, **user_input}
-
-        return self.async_show_form(
-            step_id="hot_water",
-            errors=errors,
-            description_placeholders=_WINDOW_PLACEHOLDERS,
-            data_schema=_page_schema("hot_water", current, self.hass),
+        return await self._page(
+            "hot_water",
+            user_input,
+            clear=True,
+            check=self._hot_water_errors,
+            finish=_warn_legionella_ceiling,
+            placeholders=_WINDOW_PLACEHOLDERS,
         )
+
+    async def _hot_water_errors(
+        self, submit: dict[str, Any], current: dict[str, Any]
+    ) -> dict[str, str]:
+        errors: dict[str, str] = {}
+        window_problem = dhw_spec_problem(submit.get(CONF_DHW_WINDOWS, ""))
+        if window_problem is not None:
+            errors[CONF_DHW_WINDOWS] = window_problem
+        holiday_spec = submit.get(CONF_HOLIDAY_DHW_WINDOWS, "")
+        if holiday_spec:
+            holiday_problem = dhw_spec_problem(holiday_spec)
+            if holiday_problem is not None:
+                errors[CONF_HOLIDAY_DHW_WINDOWS] = holiday_problem
+        # #1260: each revealed per-day field gets the ordinary verdicts
+        # plus the selector refusal, on its own key.
+        errors.update(_dhw_day_field_errors(submit))
+        if not errors and _dhw_min_too_close(submit, current):
+            errors[CONF_DHW_MIN_TEMP] = "dhw_min_too_close"
+        return errors
 
     async def async_step_hot_water_tank(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Tank size, inlet water, advanced DHW learning and the pump's switch."""
-        errors: dict[str, str] = {}
-        current = self._current
-        if user_input is not None:
-            cleaned = _clear_absent(user_input, "hot_water_tank", current)
-            merged = {**current, **cleaned}
-            # #1067: control writes the pump's disinfection switch, so it is
-            # refused without one -- judged over what would be stored, so
-            # clearing the switch under a stored control mode is refused too.
-            if merged.get(CONF_DHW_DISINFECTION_MODE) != FREQ_MODE_CONTROL or merged.get(
-                CONF_DHW_DISINFECTION_SWITCH_ENTITY
-            ):
-                return await self._save_or_menu(cleaned)
-            errors[CONF_DHW_DISINFECTION_MODE] = "disinfection_control_needs_entity"
-            current = merged
-        return self.async_show_form(
-            step_id="hot_water_tank",
-            errors=errors,
-            data_schema=_page_schema("hot_water_tank", current, self.hass),
+        return await self._page(
+            "hot_water_tank", user_input, clear=True, check=self._disinfection_errors
         )
+
+    async def _disinfection_errors(
+        self, submit: dict[str, Any], current: dict[str, Any]
+    ) -> dict[str, str]:
+        """#1067: control writes the pump's disinfection switch, so it is refused
+        without one -- judged over what would be stored, so clearing the switch
+        under a stored control mode is refused too."""
+        errors: dict[str, str] = {}
+        merged = {**current, **submit}
+        if merged.get(CONF_DHW_DISINFECTION_MODE) == FREQ_MODE_CONTROL and not merged.get(
+            CONF_DHW_DISINFECTION_SWITCH_ENTITY
+        ):
+            errors[CONF_DHW_DISINFECTION_MODE] = "disinfection_control_needs_entity"
+        return errors
 
     async def async_step_hot_water_pumps(
         self, user_input: dict[str, Any] | None = None
@@ -3601,53 +3523,44 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         configured is caught as an error instead of being saved and
         silently skipped every write cycle.
         """
-        errors: dict[str, str] = {}
-        current = self._current
-        if user_input is not None:
-            user_input = _flatten_section_input(user_input)
-            if (
-                user_input.get(CONF_MIXING_VALVE_WRITE_TARGET_KIND)
-                == mixing_valve.WRITE_TARGET_FLOW
-                and not ThermalParameters.from_config(
-                    {**current, **user_input}
-                ).two_zone_enabled
-            ):
-                errors[CONF_MIXING_VALVE_WRITE_TARGET_KIND] = (
-                    "flow_target_needs_two_zone"
-                )
-            elif user_input.get(CONF_FLOW_CURVE_COP_ENABLED) and (
-                mixing_valve.is_throttling(
-                    {**current, **user_input}.get(CONF_MIXING_VALVE_MODE)
-                )
-            ):
-                # #1067: behind a throttling valve the tank temperature is
-                # already the priced flow; the model refuses the curve lift
-                # there too, so saving it would be a switch that does nothing.
-                errors[CONF_FLOW_CURVE_COP_ENABLED] = (
-                    "flow_curve_needs_direct_plant"
-                )
-            else:
-                # The wood block's rows carry ``when=wood_furnace_on``, so one
-                # predicate decides both what the page rendered and what its
-                # save may clear. It is evaluated over the SUBMISSION merged
-                # onto the stored config, not over the stored config alone:
-                # turning the block off would otherwise still clear its slots.
-                merged = {**current, **user_input}
-                cleaned = _clear_absent(user_input, "building", merged)
-                if wood_furnace_on(merged):
-                    cleaned[CONF_WOOD_FURNACE_ENABLED] = True
-                elif CONF_WOOD_FURNACE_ENABLED in cleaned:
-                    cleaned[CONF_WOOD_FURNACE_ENABLED] = bool(
-                        cleaned[CONF_WOOD_FURNACE_ENABLED]
-                    )
-                return await self._save_or_menu(cleaned)
-            current = {**current, **user_input}
-
-        return self.async_show_form(
-            step_id="building",
-            errors=errors,
-            data_schema=_page_schema("building", current, self.hass),
+        return await self._page(
+            "building",
+            user_input,
+            clear=True,
+            check=self._plumbing_errors,
+            finish=self._building_wood_flag,
         )
+
+    async def _plumbing_errors(
+        self, submit: dict[str, Any], current: dict[str, Any]
+    ) -> dict[str, str]:
+        """The write-target kind (#398) and the flow-curve lift (#1067), validated."""
+        errors: dict[str, str] = {}
+        merged = {**current, **submit}
+        if (
+            submit.get(CONF_MIXING_VALVE_WRITE_TARGET_KIND) == mixing_valve.WRITE_TARGET_FLOW
+            and not ThermalParameters.from_config(merged).two_zone_enabled
+        ):
+            errors[CONF_MIXING_VALVE_WRITE_TARGET_KIND] = "flow_target_needs_two_zone"
+        elif submit.get(CONF_FLOW_CURVE_COP_ENABLED) and mixing_valve.is_throttling(
+            merged.get(CONF_MIXING_VALVE_MODE)
+        ):
+            # #1067: behind a throttling valve the tank temperature is already
+            # the priced flow; the model refuses the curve lift there too, so
+            # saving it would be a switch that does nothing.
+            errors[CONF_FLOW_CURVE_COP_ENABLED] = "flow_curve_needs_direct_plant"
+        return errors
+
+    @staticmethod
+    def _building_wood_flag(cleaned: dict[str, Any], merged: dict[str, Any]) -> dict[str, Any]:
+        """The wood block's rows carry ``when=wood_furnace_on``, so one predicate
+        decides both what the page rendered and what its save may clear, over
+        the submission merged onto the stored config."""
+        if wood_furnace_on(merged):
+            cleaned[CONF_WOOD_FURNACE_ENABLED] = True
+        elif CONF_WOOD_FURNACE_ENABLED in cleaned:
+            cleaned[CONF_WOOD_FURNACE_ENABLED] = bool(cleaned[CONF_WOOD_FURNACE_ENABLED])
+        return cleaned
 
     async def async_step_thermal_model(
         self, user_input: dict[str, Any] | None = None
@@ -3719,97 +3632,73 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Peak capacity tariff hours and pricing."""
-        errors: dict[str, str] = {}
-        current = self._current
-        if user_input is not None:
-            user_input = _flatten_section_input(user_input)
-            if not _valid_months_spec(
-                user_input.get(CONF_PEAK_TARIFF_MONTHS, "")
-            ):
-                errors[CONF_PEAK_TARIFF_MONTHS] = "invalid_peak_months"
-            if not is_valid_spec(user_input.get(CONF_PEAK_TARIFF_HOURS, "")):
-                errors[CONF_PEAK_TARIFF_HOURS] = "invalid_peak_hours"
-            if not errors:
-                cleaned = dict(user_input)
-                window = cleaned.get(CONF_PEAK_TARIFF_WINDOW)
-                if window is not None:
-                    try:
-                        cleaned[CONF_PEAK_TARIFF_WINDOW] = int(window)
-                    except (TypeError, ValueError):
-                        cleaned[CONF_PEAK_TARIFF_WINDOW] = (
-                            DEFAULT_PEAK_TARIFF_WINDOW
-                        )
-                return await self._save_or_menu(cleaned)
-            current = {**current, **user_input}
-
-        return self.async_show_form(
-            step_id="grid",
-            errors=errors,
-            description_placeholders={
-                "currency": resolve_currency(self.hass),
-                "fee_bound": f"{grid_fee.fee_bound(resolve_currency(self.hass)):g}",
-            },
-            data_schema=_page_schema("grid", current, self.hass),
+        return await self._page(
+            "grid",
+            user_input,
+            check=self._peak_tariff_errors,
+            finish=_peak_window_as_int,
+            placeholders=_fee_placeholders(self.hass),
         )
+
+    async def _peak_tariff_errors(
+        self, submit: dict[str, Any], _current: dict[str, Any]
+    ) -> dict[str, str]:
+        errors: dict[str, str] = {}
+        if not _valid_months_spec(submit.get(CONF_PEAK_TARIFF_MONTHS, "")):
+            errors[CONF_PEAK_TARIFF_MONTHS] = "invalid_peak_months"
+        if not is_valid_spec(submit.get(CONF_PEAK_TARIFF_HOURS, "")):
+            errors[CONF_PEAK_TARIFF_HOURS] = "invalid_peak_hours"
+        return errors
 
     async def async_step_grid_connection(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Main fuse, peak guards and the pump's silent-mode window."""
-        errors: dict[str, str] = {}
-        current = self._current
-        if user_input is not None:
+        return await self._page(
+            "grid_connection",
             # A cleared text field is absent, and options merge over setup
             # data, so an absent window would silently keep the old one.
-            user_input = {CONF_SILENT_MODE_WINDOWS: "", **user_input}
-            problem = dhw_spec_problem(user_input[CONF_SILENT_MODE_WINDOWS])
-            if problem is None:
-                return await self._save_or_menu(user_input)
+            None if user_input is None else {CONF_SILENT_MODE_WINDOWS: "", **user_input},
+            check=self._silent_window_errors,
+            placeholders=_WINDOW_PLACEHOLDERS,
+        )
+
+    async def _silent_window_errors(
+        self, submit: dict[str, Any], _current: dict[str, Any]
+    ) -> dict[str, str]:
+        errors: dict[str, str] = {}
+        problem = dhw_spec_problem(submit[CONF_SILENT_MODE_WINDOWS])
+        if problem is not None:
             errors[CONF_SILENT_MODE_WINDOWS] = (
                 "silent_mode_window_too_short"
                 if problem == DHW_ERROR_TOO_SHORT
                 else problem
             )
-            current = {**current, **user_input}
-        return self.async_show_form(
-            step_id="grid_connection",
-            errors=errors,
-            description_placeholders=_WINDOW_PLACEHOLDERS,
-            data_schema=_page_schema("grid_connection", current, self.hass),
-        )
+        return errors
 
     async def async_step_grid_fees(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Transfer fees and contract shadow price."""
-        errors: dict[str, str] = {}
-        current = self._current
-        if user_input is not None:
-            user_input = _flatten_section_input(user_input)
-            fee_problem = grid_fee.spec_problem(
-                user_input.get(CONF_GRID_FEE_RULES, ""), resolve_currency(self.hass)
-            )
-            if fee_problem is not None:
-                errors[CONF_GRID_FEE_RULES] = fee_problem
-            if not errors:
-                cleaned = _clear_absent(user_input, "grid_fees", current)
-                applied = grid_fee.apply_catalog(user_input.get(CONF_DSO_PRODUCT))
-                if applied:
-                    cleaned.update(applied)
-                return await self._save_or_menu(cleaned)
-            current = {**current, **user_input}
-            if not user_input.get(CONF_GRID_FEE_ENTITY):
-                current.pop(CONF_GRID_FEE_ENTITY, None)
-
-        return self.async_show_form(
-            step_id="grid_fees",
-            errors=errors,
-            description_placeholders={
-                "currency": resolve_currency(self.hass),
-                "fee_bound": f"{grid_fee.fee_bound(resolve_currency(self.hass)):g}",
-            },
-            data_schema=_page_schema("grid_fees", current, self.hass),
+        return await self._page(
+            "grid_fees",
+            user_input,
+            clear=True,
+            check=self._grid_fee_errors,
+            finish=_apply_dso_catalog,
+            placeholders=_fee_placeholders(self.hass),
         )
+
+    async def _grid_fee_errors(
+        self, submit: dict[str, Any], _current: dict[str, Any]
+    ) -> dict[str, str]:
+        errors: dict[str, str] = {}
+        fee_problem = grid_fee.spec_problem(
+            submit.get(CONF_GRID_FEE_RULES, ""), resolve_currency(self.hass)
+        )
+        if fee_problem is not None:
+            errors[CONF_GRID_FEE_RULES] = fee_problem
+        return errors
 
     async def async_step_solar_pv(
         self, user_input: dict[str, Any] | None = None
