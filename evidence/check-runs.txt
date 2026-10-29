@@ -1,7 +1,0 @@
-head 2c62c682d180b6270a42d8c3a9a010fb6dd1ac4c, read from the check-runs API (68 runs) after every run had completed
-red: tests / nightly-status (123427497163) failure -- the only red
-pr-contract / pr-contract 123427941747 success (started 11:47:41, after nightly-status concluded 11:03:15)
-gate 123428333045 success; gate 123427498963 success
-governance / policy-docs, env-matrix, wave-script, instrument-self-tests: success
-budget-raise-gate / budget-raise-gate, tests / briefs, tests / coverage-ratchet, tests / graders-head-copy: success
-tests / mutation 123427496700 success

@@ -7,7 +7,7 @@ M1 restored_hit keys nothing: bad 5; 5 FAIL
 M2 restored_hit ignores the base tip: bad 1; 1 FAIL
     FAIL a restored path the base tip lacks keys no job (nothing to restore it from)
 M3 grader_runs drops no exemption: bad 1; 1 FAIL
-    FAIL the arm makes every pinned run but the agreement arm's and the exempt -- {('policy-docs', 'policy_lint.mj
+    FAIL the arm makes every pinned run but the agreement arm's and the exempt -- {('policy-docs', 'fragments_sync
 M4 predict's graders entry removed: bad 1; 1 FAIL
     FAIL predict reaches the graders arm by name (its call site, not only its helper) -- []
 M5 ci_tree_run restores nothing: bad 3; 3 FAIL
