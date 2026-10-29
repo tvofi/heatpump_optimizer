@@ -1,0 +1,14 @@
+head f53ac2a3987e8dbf59ebedd0b708731d767aa5ab
+arch-score / arch-score  job 123519886484  (started 2026-10-29T14:44:40Z, latest run) :
+  2026-10-29T14:45:02.5395467Z gh: HTTP 503
+  2026-10-29T14:45:02.5429799Z ##[error]Process completed with exit code 1.
+  (step: PULL=$(gh api repos/.../pulls/2917) -- before any scoring ran; earlier runs 123520033928 and 123520051858 on this head concluded success)
+pr-contract / pr-contract  job 123520160162 (started 14:45:08Z, after arch-score concluded red at 14:45:05Z):
+  red checks the body must answer: ,arch-score / arch-score,tests / nightly-status
+  ERROR   [pr-body] /tmp/pr-body.md: check `arch-score / arch-score` is red and `## Red checks` does not name it.
+  PR-BODY: 1 error(s)
+  (figure_lint: FIGURES: 14 resolved, 5 not verified, 0 refused; preflight: clean; CARRY-AUDIT: 8 routed, 0 unrouted)
+gate  job 123520707738:
+  FAIL arch-score / arch-score: failure (this run)
+  pr-contract / pr-contract: failure (this run)
+tests / nightly-status job 123520033208: failure (reads main's nightly, not this diff; fix-review.md rule 11)

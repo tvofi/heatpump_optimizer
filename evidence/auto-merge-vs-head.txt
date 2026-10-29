@@ -1,0 +1,1 @@
+rc=0 empty stat = head tree equals git merge-tree of c9bf05df and 3042dcd4 with drivers installed
