@@ -1,0 +1,17 @@
+M1 drop --skip-bad from template train flags
+sweep_render self-test: 23 checks, 1 failed
+M2 drop DESIGN-BUILD from template
+sweep_render self-test: 23 checks, 1 failed
+M3 drop plan_page record beat
+sweep_render self-test: 23 checks, 1 failed
+M4 defaults_missing returns []
+1
+sweep_render self-test: 23 checks, 1 failed
+M5 drop main owed_unactioned sentence (merged side)
+ tools/audit/seat/sweep_template.md | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+sweep_render self-test: 24 checks, 0 failed
+M6 drop OWED unfiltered clause (PR side of line 5)
+ tools/audit/seat/sweep_template.md | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+sweep_render self-test: 23 checks, 1 failed

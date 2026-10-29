@@ -1,0 +1,5 @@
+tests / nightly-status job 123316328010 at head a39a08f1db5453f79458dadcfe2d975deee664a8 (PINNED 486e65cbd9c8451c01624f13b773feb6d722ad9b):
+NIGHTLY FAILED: nightly-ha (stable) failed last night.
+  scheduled run 40806276912, 2026-10-29T02:25:38+00:00, head ee48937, run conclusion 'failure'
+This check is NOT one of the required contexts on `main-protect`; a red here does not block a merge.
+Diff files (three-dot): dev/programme/delivery/2935.md, tests/closures.json, tools/audit/seat/sweep_render.py, tools/audit/seat/sweep_template.md -- none is a nightly lane input.
