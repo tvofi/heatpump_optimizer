@@ -1,0 +1,16 @@
+RESULT mutant=R1 rc=1 fails=2
+    FAIL round close: 7.1.0 closing round 10 stamps 10.0.0
+    FAIL round close: a round not above the current major refuses
+RESULT mutant=R2 rc=1 fails=1
+    FAIL round close: a round not above the current major refuses
+RESULT mutant=R3 rc=1 fails=2
+    FAIL round close: a round the roster disagrees with refuses
+    FAIL round close: a roster that cannot be read refuses, never defaults
+RESULT mutant=R4 rc=1 fails=1
+    FAIL round close: combined with --bump refuses
+RESULT mutant=R5 rc=1 fails=1
+    FAIL bump major refuses, naming --round-close
+RESULT mutant=R6 rc=1 fails=1
+    FAIL round close: main takes the version from next_version, the round from the roster
+plants: 6, without a FAIL line: none
+exit=0

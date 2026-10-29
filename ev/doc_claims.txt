@@ -1,0 +1,4 @@
+  ok   red case: an SVG colour that is not the docs.css token is a finding
+
+ALL 203 checks PASSED
+exit=0
