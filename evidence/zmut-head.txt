@@ -1,0 +1,7 @@
+BASELINE (3) 8 checks, not-true: []
+RESULT z1_kill_group_now: KILLED; red=['(3) a TERM-ignoring grandchild is killed after its leader exits']; crash=[]
+RESULT z2_grace_twenty: KILLED; red=['(3) a TERM-ignoring grandchild is killed after its leader exits', '(3) null: a leader ignoring TERM too is killed at the grace, rc -9']; crash=[]
+RESULT z3_live_kill_at_one: KILLED; red=['(3) a TERM-ignoring grandchild is killed after its leader exits', '(3) null: a leader ignoring TERM too is killed at the grace, rc -9']; crash=[]
+RESULT z4_live_early_kill: KILLED; red=['(3) null: a leader ignoring TERM too is killed at the grace, rc -9']; crash=[]
+RESULT z5_group_poll_skips_to_kill: KILLED; red=['(3) a TERM-ignoring grandchild is killed after its leader exits']; crash=[]
+rc=0

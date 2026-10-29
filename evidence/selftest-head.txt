@@ -71,6 +71,8 @@ ok   anchor m3_no_killpg occurs once in production, changes it, names a check of
 ok   anchor m3_no_group_kill_after_leader occurs once in production, changes it, names a check of (3)
 ok   anchor m3_kill_group_no_sigkill occurs once in production, changes it, names a check of (3)
 ok   anchor m3_no_sigkill_live_leader occurs once in production, changes it, names a check of (3)
+ok   anchor m3_kill_group_no_grace occurs once in production, changes it, names a check of (3)
+ok   anchor m3_grace_half_second occurs once in production, changes it, names a check of (3)
 ok   anchor m3_no_heartbeat occurs once in production, changes it, names a check of (3)
 ok   anchor m4_watch_as_periodic occurs once in production, changes it, names a check of (4)
 ok   anchor m2_sigterm_handler_off occurs once in production, changes it, names a check of (2)
@@ -96,6 +98,8 @@ ok   mutant m3_no_killpg turns (3) 'its process group took SIGTERM before any SI
 ok   mutant m3_no_group_kill_after_leader turns (3) 'a TERM-ignoring grandchild is killed after its leader exits' red
 ok   mutant m3_kill_group_no_sigkill turns (3) 'a TERM-ignoring grandchild is killed after its leader exits' red
 ok   mutant m3_no_sigkill_live_leader turns (3) 'null: a leader ignoring TERM too is killed at the grace, rc -9' red
+ok   mutant m3_kill_group_no_grace turns (3) 'a TERM-ignoring grandchild is killed after its leader exits' red
+ok   mutant m3_grace_half_second turns (3) 'null: a leader ignoring TERM too is killed at the grace, rc -9' red
 ok   mutant m3_no_heartbeat turns (3) 'a heartbeat job journals RUNNING past elapsed=0' red
 ok   mutant m4_watch_as_periodic turns (4) 'a watch job restarts interval_s after its instance ends' red
 ok   mutant m2_sigterm_handler_off turns (2) 'SIGTERM stops the beat and TERMs its job: rc 0, PASS rc=-15, STOP' red
@@ -113,9 +117,5 @@ ok   mutant m7_no_pulse_alarm turns (7) 'pulse-silent while beatd reads healthy'
 ok   mutant m7_unreadable_staleness_clean turns (7) 'an unreadable staleness read is rc 2, never clean' red
 ok   mutant m7_dead_running_kept turns (7) 'a RUNNING line with no PASS under a free beatd.lock is a dead instance' red
 ok   mutant m8_held_always_free turns (8) 'held: rc 0 while held' red
-beatd self-test: 115 checks, 0 failed
-
-real	4m28.228s
-user	0m33.317s
-sys	0m9.888s
-rc=0
+beatd self-test: 119 checks, 0 failed
+rc=0 wall=282s
