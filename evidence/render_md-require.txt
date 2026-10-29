@@ -1,0 +1,3 @@
+6:// markdown-it 14.1.0, vendored beside this file so the walk is offline. Tables
+13:const MarkdownIt = require('./vendor/markdown-it.min.js')
+31:// GFM cell count, not the rendered td count. markdown-it already truncates a
