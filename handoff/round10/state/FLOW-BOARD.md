@@ -1,17 +1,17 @@
 # Flow board
 
-Window ends 2026-10-29T21:31:56+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
+Window ends 2026-10-29T22:13:32+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
 
 Sources: tree `origin/main`, roster `origin/handoff/audit-r10-roster`, bus `origin/review/*`
 
 | measure | last 1 h | last 24 h |
 |---|---|---|
-| roster groups closed vs takt | 1 / 1.0 | 19 / 24.0 |
-| fly-ins closed | 0 | 23 |
-| main moves: group-carrying / record / roster-edit / fly-in | 1 / 0 / 0 / 0 | 13 / 5 / 2 / 23 |
-| first-pass fix-review yield | 2/3 (0.67) | 21/32 (0.66) |
-| blocked-class mix | body-stale:2, carry-missing:4, instrument-broken:1 | body-stale:2, carry-missing:20, ci-red:5, ci-unconcluded:3, claims:1, class-open:15, class-rule-missing:4, conflict:1, contract-incomplete:1, control-missing:1, countermeasure-silenced:1, duplicate-ruling:1, figure-false:2, harness:3, harness-nondeterministic:1, head-moved:1, instrument-broken:1, merge-conflict:2, metric-gamed:1, mutation-survivor:3, mutation-survivors:2, mutation-vacuous:9, nondeterministic-arm:1, regression:2, released-early:1, retry-rule-unsound:1, root-cause-detectable:1, root-cause-unanswered:1, ruling-change:1, ruling-incomplete:1, ruling-unsound:1, verdict-word:2 |
-| lead time per size (h, n/p50/max) | M n=1 p50=3.98 max=3.98 | M n=3 p50=9.19 max=19.93; S n=10 p50=5.97 max=36.68 |
+| roster groups closed vs takt | 0 / 1.0 | 19 / 24.0 |
+| fly-ins closed | 0 | 20 |
+| main moves: group-carrying / record / roster-edit / fly-in | 0 / 0 / 0 / 0 | 13 / 5 / 2 / 20 |
+| first-pass fix-review yield | 0/1 (0.00) | 19/29 (0.66) |
+| blocked-class mix | instrument-broken:3 | body-stale:2, carry-missing:10, ci-red:4, ci-unconcluded:2, class-open:8, class-rule-missing:4, figure-false:2, harness:2, instrument-broken:3, merge-conflict:2, mutation-survivor:2, mutation-survivors:2, mutation-vacuous:6 |
+| lead time per size (h, n/p50/max) | none | M n=3 p50=9.19 max=19.93; S n=10 p50=5.97 max=36.68 |
 
 ### WIP by flow lane (snapshot at the window's end)
 
