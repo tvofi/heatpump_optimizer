@@ -1,0 +1,39 @@
+8b0f5c316903372f34e5194a9c5791fd9b8365ee
+ci: re-record closures
+----
+324755c9f4ef0f270d95f46e40d1613ebd43de7c
+record: the delivery row for #2946
+----
+814f944f182c72f218702b1945109c503f290f1d
+R10-CONFIGFLOW-PAGES arm D: lower archscore.unused_boundary_imports 1 -> 0 and literal_clone_copies 186 -> 123
+
+Re-record of two rows in tests/ci_budgets.json, both downward, each at the
+value tools/audit/archscore's vector.measure derives at 4b9ee5377 (now
+recorded_at):
+
+- archscore.unused_boundary_imports 1 -> 0: the previous commit drops
+  config_flow.py's unread `device_registry as dr` import, the row's one
+  count (R10-ARCHSCORE-COVERAGE part 3's carry, counter C19).
+- archscore.literal_clone_copies 186 -> 123: merge-base figure 123
+  (measured at origin/main 66974d473; the row still recorded 186), head
+  figure 123, drop 63 against the recorded row. The tree's own drop came
+  with arms C and C2 (#2915: the setup-flow widgets taken from
+  _OPTION_FIELDS, 185 -> 123 by score.py --diff on that PR); this commit
+  records it (R10-ARCHSCORE-COVERAGE part 4's carry).
+
+No other row moves. The reason field states the same.
+----
+4b9ee53778fa8fd15ad8ffdf1f1309e3f06aa282
+R10-CONFIGFLOW-PAGES arm D: drop config_flow's unread device_registry import; land the finder's wizard_widgets harness
+
+config_flow.py imported `device_registry as dr` from homeassistant.helpers and
+never read `dr` (`grep -n '\bdr\b'` matched the import line alone). The import
+goes; archscore's unused_boundary_imports reads 1 -> 0 on this tree.
+
+dev/audit/rounds/round10/D7/arch2-s5/wizard_widgets.py is the ARCH2-s5-F1
+finder's harness, byte-identical to its copy at 3930b421a (sha1
+66b390554c0aa54c8960eacb532b04ff827ca8cf), landed as verdict/2915's carry so
+a later seat re-runs F1 from the tree. Two levels under D7/, it sits outside
+harness_headers.py's round*/D*/*.py discovery glob and inside closure.py's
+dev/audit/ INERT prefix.
+----

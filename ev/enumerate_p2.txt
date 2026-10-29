@@ -1,0 +1,8 @@
+RESULT F1_run_threshold=13 count
+RESULT F2_learner_gate=8 count
+RESULT F3_cop_law_fork=2 count
+RESULT F4_entry_resolve=0 count
+RESULT F5_clone=24 count
+RESULT F6_hour_clock=2 count
+RESULT F7_scrub_mixin=1 count
+RESULT seams_total=50 count

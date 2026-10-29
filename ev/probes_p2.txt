@@ -1,0 +1,4 @@
+    v6 = bool(eval(e6, {}, {"self": _Self(), "reported": 45.0, "hz_min": 30.0}))  # noqa: S307
+              ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<string>", line 1, in <module>
+NameError: name 'defrost_interval' is not defined
