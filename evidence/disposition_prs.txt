@@ -1,0 +1,23 @@
+2290 d8c13ac5b Merge pull request #2290 from tvofi/fix/r10-services-guard
+2365 413944b67 Merge pull request #2365 from tvofi/fix/r10-pump-model
+2368 499f952b0 Merge pull request #2368 from tvofi/fix/r10-pump-model-d2
+2527 4b36dc730 Merge pull request #2527 from tvofi/fix/r10-freq-defrost
+2379 5756f2b15 Merge pull request #2379 (R10-SENSOR-PAYLOAD)
+2912 ba19d13c4 Merge pull request #2912 from tvofi/fix/r10-configflow-a-pr
+2913 ee4893758 Merge pull request #2913 from tvofi/fix/r10-configflow-b-pr
+2915 51cd66673 Merge pull request #2915 from tvofi/fix/r10-configflow-c-pr
+2819 4f3c73020 Merge pull request #2819 from tvofi/fix/r10-arch-shapes-pr
+2282 4c01a3dc2 Merge pull request #2282 from tvofi/fix/r10-tariff-pr
+#2290 D10-s1-51 commits=3 tree=5
+#2365 D2-s2-01 commits=1 tree=6
+#2368 D2-s2-01 commits=16 tree=76
+#2527 D7-s2-01 commits=0 tree=10
+#2379 D7-s2-51 commits=1 tree=3
+#2379 D7-s2-52 commits=2 tree=2
+#2379 D7-s2-53 commits=0 tree=1
+#2379 D7-s2-54 commits=2 tree=3
+#2913 D7-s2-55 commits=2 tree=2
+#2912 D7-s2-56 commits=2 tree=4
+#2819 D7-s2-57 commits=1 tree=2
+#2282 D7-s2-59 commits=2 tree=3
+#2819 D8-s1-01 commits=4 tree=26

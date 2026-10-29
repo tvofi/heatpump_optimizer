@@ -1,30 +1,27 @@
-merge2915=51cd66673
-== p15 bb48cf61b
-{'unused_boundary_imports': 1, 'literal_clone_copies': 185}
-== m15 51cd66673
-{'unused_boundary_imports': 1, 'literal_clone_copies': 123}
-== plant area_registry
-1
-== score diff
+== ratchet base
+measured {'archscore.unused_boundary_imports': 1, 'archscore.literal_clone_copies': 123}
+  ok    archscore.literal_clone_copies: 123 (budget 186)
+  ok    archscore.unused_boundary_imports: 1 (budget 1)
+grew 0 budget_problems []
+== ratchet head
+measured {'archscore.unused_boundary_imports': 0, 'archscore.literal_clone_copies': 123}
+  ok    archscore.literal_clone_copies: 123 (budget 123)
+  ok    archscore.unused_boundary_imports: 0 (budget 0)
+grew 0 budget_problems []
+== dr reads at head
+== score --diff
 Architecture score: dS +0.0000 NULL
   unused_boundary_imports 1 -> 0  (gate only)
 == structure
 STRUCTURE RATCHET PASSED
-== closure select
-  MODE: SCOPED -- 13 script(s) run, 20 scoped out.
-== merge-tree
-66974d47312caa46e9817b9aeae7186e9764e560
-bcfe8ca9ed0d991964f3086969dd8e6ae0e01ea2
-rc=0
 == release files
-== roster groups
--- origin/main
-R10-CONFIGFLOW-PAGES {"group": "R10-CONFIGFLOW-PAGES", "lane": "AR", "kind": "arch", "issues": [2238], "fixes": [2238], "findings": ["D7-s2-55 (arch2-05)", "D7-s2-56 (arch2-06)", "ARCH2-s5-F1"], "class": "P2", "severity": "low", "size": "L", "wave": 25, "files": ["custom_components/heatpump_optimizer/config_flow.py"], "hot_files": ["config_flow.py"], "fixerModel": "opus", "reviewerModel": "opus", "model": {"fixer": "opus", "reviewer": "opus", "rca": null, "runner": "haiku", "record": "sonnet"}, "effort": "medium", "fixture": false, "owner_gate": null, "rca": [], "after": ["R10-HEAT-METER"], "carry": ["Use the arch2-s5 overlay of patch 08 if it applies cleaner after R10-HEAT-METER's options step.", "Mutation-ledger re-key owed.", "From R10-ARCHSCORE-COVERAGE part 3 (counter C19, finding-propagation.md): custom_components/heatpump_optimizer/config_flow.py imports device_registry as dr and never reads dr (grep -n '\\bdr\\b' shows only the import line). The new tripwire archscore.unused_boundary_imports in tests/ci_budgets.json reads 1 for it. This group removes the import and lowers that row 1 -> 0 in the same pull request, re-recording it and recorded_at with the reason in the commit message.", "From R10
-R10-ROUND-PLAYBOOK {"group": "R10-ROUND-PLAYBOOK", "lane": "C", "kind": "doc", "class": "docs", "issues": [2716], "fixes": [], "findings": [], "severity": "medium", "size": "M", "wave": 4, "files": ["dev/audit/README.md", "CLAUDE.md"], "hot_files": ["dev/audit/README.md"], "fixerModel": "opus", "reviewerModel": "opus", "model": {"fixer": "opus", "reviewer": "opus", "rca": null, "runner": "haiku", "record": "sonnet"}, "effort": "medium", "fixture": false, "owner_gate": "owner request (tvofi, 2026-10-21); policy files, merges on mandated approval under 6319294694", "rca": [], "after": ["R10-FLOW-ARCH-PLANNER", "R10-FLOW-AUDIT-PLAN", "R10-ORCH-LEDGER", "R10-ORCH-DISPATCH-REG", "R10-ORCH-BEATD", "R10-ORCH-PLANPAGE", "R10-HANDOVER-REFRESH", "R10-FLOW-AUTOTRAIN", "R10-FLOW-MAIN-GATE", "R10-FLOW-DISPATCH", "R10-CI-LAYOUT-P2", "R10-FLY-RELAY-REVIEW-FF", "R10-FLOW-ROSTER-FREEZE", "R10-FLOW-BODY-ONLY"], "carry": ["tvofi 2026-10-24 cards 1, 2 (amended twice) and 6 (owner accepted; CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): write round 10's final shape into dev/audit/README.md. (1) The standing set after the retirements is the triage seat plus the beat jobs; name each retired seat's job and its
-R10-ARCH-SHAPES-CLASSIFIER {"group": "R10-ARCH-SHAPES-CLASSIFIER", "lane": "AR", "kind": "arch", "issues": [], "fixes": [], "findings": [], "class": "P2", "severity": "low", "size": "S", "wave": 5, "files": ["custom_components/heatpump_optimizer/thermal_model.py", "tests/golden/claimed_drift.txt"], "hot_files": ["coordinator.py"], "fixerModel": "opus", "reviewerModel": "opus", "model": {"fixer": "opus", "reviewer": "opus", "rca": null, "runner": "haiku", "record": "sonnet"}, "effort": "medium", "fixture": false, "owner_gate": null, "rca": [], "after": ["R10-996-RUNNER-CLAIMS", "R10-ARCH-SHAPES"], "carry": ["The `tests/golden/claimed_drift.txt` header does not name the shape line, and a branch that claims nothing leaves that file byte-identical. The first branch that claims by shape restates the header with its claim. Carry: R10-ARCH-SHAPES-CLASSIFIER", "R10-ARCH-SHAPES-CLASSIFIER claims by `shape: space_reasons[*]|dhw_reasons[*] * -> 'idle_coasting'|'idle'`; `bash dev/audit/harnesses/r10_shape_claim_controls.sh <its head> <its base>` re-runs the real-capture controls there. Carry: R10-ARCH-SHAPES-CLASSIFIER", "From #2843 (R10-996-RUNNER-CLAIMS, merged bb8addd8): The `tests/golden/claimed_drift.txt` header do
--- origin/handoff/audit-r10-roster
-R10-CONFIGFLOW-PAGES {"group": "R10-CONFIGFLOW-PAGES", "lane": "AR", "kind": "arch", "issues": [2238], "fixes": [2238], "findings": ["D7-s2-55 (arch2-05)", "D7-s2-56 (arch2-06)", "ARCH2-s5-F1"], "class": "P2", "severity": "low", "size": "L", "wave": 25, "files": ["custom_components/heatpump_optimizer/config_flow.py"], "hot_files": ["config_flow.py"], "fixerModel": "opus", "reviewerModel": "opus", "model": {"fixer": "opus", "reviewer": "opus", "rca": null, "runner": "haiku", "record": "sonnet"}, "effort": "medium", "fixture": false, "owner_gate": null, "rca": [], "after": ["R10-HEAT-METER"], "carry": ["Use the arch2-s5 overlay of patch 08 if it applies cleaner after R10-HEAT-METER's options step.", "Mutation-ledger re-key owed.", "From R10-ARCHSCORE-COVERAGE part 3 (counter C19, finding-propagation.md): custom_components/heatpump_optimizer/config_flow.py imports device_registry as dr and never reads dr (grep -n '\\bdr\\b' shows only the import line). The new tripwire archscore.unused_boundary_imports in tests/ci_budgets.json reads 1 for it. This group removes the import and lowers that row 1 -> 0 in the same pull request, re-recording it and recorded_at with the reason in the commit message.", "From R10
-R10-ROUND-PLAYBOOK {"group": "R10-ROUND-PLAYBOOK", "lane": "C", "kind": "doc", "class": "docs", "issues": [2716], "fixes": [], "findings": [], "severity": "medium", "size": "M", "wave": 4, "files": ["dev/audit/README.md", "CLAUDE.md"], "hot_files": ["dev/audit/README.md"], "fixerModel": "opus", "reviewerModel": "opus", "model": {"fixer": "opus", "reviewer": "opus", "rca": null, "runner": "haiku", "record": "sonnet"}, "effort": "medium", "fixture": false, "owner_gate": "owner request (tvofi, 2026-10-21); policy files, merges on mandated approval under 6319294694", "rca": [], "after": ["R10-FLOW-ARCH-PLANNER", "R10-FLOW-AUDIT-PLAN", "R10-ORCH-LEDGER", "R10-ORCH-DISPATCH-REG", "R10-ORCH-BEATD", "R10-ORCH-PLANPAGE", "R10-HANDOVER-REFRESH", "R10-FLOW-AUTOTRAIN", "R10-FLOW-MAIN-GATE", "R10-FLOW-DISPATCH", "R10-CI-LAYOUT-P2", "R10-FLY-RELAY-REVIEW-FF", "R10-FLOW-ROSTER-FREEZE", "R10-FLOW-BODY-ONLY"], "carry": ["tvofi 2026-10-24 cards 1, 2 (amended twice) and 6 (owner accepted; CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): write round 10's final shape into dev/audit/README.md. (1) The standing set after the retirements is the triage seat plus the beat jobs; name each retired seat's job and its
-R10-ARCH-SHAPES-CLASSIFIER {"group": "R10-ARCH-SHAPES-CLASSIFIER", "lane": "AR", "kind": "arch", "issues": [], "fixes": [], "findings": [], "class": "P2", "severity": "low", "size": "S", "wave": 5, "files": ["custom_components/heatpump_optimizer/thermal_model.py", "tests/golden/claimed_drift.txt"], "hot_files": ["coordinator.py"], "fixerModel": "opus", "reviewerModel": "opus", "model": {"fixer": "opus", "reviewer": "opus", "rca": null, "runner": "haiku", "record": "sonnet"}, "effort": "medium", "fixture": false, "owner_gate": null, "rca": [], "after": ["R10-996-RUNNER-CLAIMS", "R10-ARCH-SHAPES"], "carry": ["The `tests/golden/claimed_drift.txt` header does not name the shape line, and a branch that claims nothing leaves that file byte-identical. The first branch that claims by shape restates the header with its claim. Carry: R10-ARCH-SHAPES-CLASSIFIER", "R10-ARCH-SHAPES-CLASSIFIER claims by `shape: space_reasons[*]|dhw_reasons[*] * -> 'idle_coasting'|'idle'`; `bash dev/audit/harnesses/r10_shape_claim_controls.sh <its head> <its base>` re-runs the real-capture controls there. Carry: R10-ARCH-SHAPES-CLASSIFIER", "From #2843 (R10-996-RUNNER-CLAIMS, merged bb8addd8): The `tests/golden/claimed_drift.txt` header do
-
-[exited with code 0]
+(end)
+== diffstat
+ 5 files changed, 164 insertions(+), 5 deletions(-)
+ 3 files changed, 162 insertions(+), 5 deletions(-)
+== scope
+  MODE: SCOPED -- 13 script(s) run, 20 scoped out.
+== merge-tree vs origin/main 66974d47312caa46e9817b9aeae7186e9764e560
+56a4f7453eff8370fb138497f0ef83b8b90b9cfc
+rc=0
+== origin/main..base

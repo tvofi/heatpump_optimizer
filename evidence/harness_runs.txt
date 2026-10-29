@@ -1,0 +1,91 @@
+== pre aa1d6720e3f5fa60da15aa41e4f58bf1e4da2b09
+-- r10 
+RESULT pages=9 rejected=9 stored_rows=30 stale_slots=27
+-- r10 --null
+RESULT pages=9 rejected=7 stored_rows=30 shown_stored=19
+-- r10 --clear-required
+RESULT type=menu errors=None stored_price_entity=None
+-- ww --all
+RESULT wizard_fields=46 count
+RESULT in_registry=44 count
+RESULT spelled_twice=44 count
+RESULT disagree=0 count
+  other user:price_source
+  other user:tibber_token
+  other user:price_entity
+  other user:weather_entity
+  other user_sensors:indoor_temp_entity
+  other user_sensors:outdoor_temp_entity
+  other user_sensors:solar_radiation_entity
+  other user_sensors:solar_forecast_source
+  other user_sensors:solar_location
+  other user_sensors:heat_pump_switch_entity
+  other user_sensors:floor_return_temp_entity
+  other user_sensors:lower_floor_temp_entity
+  other user_sensors:dhw_temp_entity
+  other user_sensors:buffer_tank_temp_entity
+  other user_sensors:heat_pump_mode_entity
+  other user_sensors:heat_pump_defrost_entity
+  other user_sensors:heat_pump_online_entity
+  other user_sensors:heat_pump_fault_entity
+  other quick_setup:wood_tank_top_entity
+  other quick_setup:wood_tank_bottom_entity
+RESULT other_wizard_fields=38 count
+RESULT other_in_registry=20 count
+RESULT other_spelled_twice=20 count
+RESULT other_disagree=0 count
+RESULT menu_fallbacks=23 count
+RESULT menu_disagree=0 count
+RESULT golden_equal=1 bool
+RESULT load1=0.22
+-- ww --bump
+    DISAGREES building_extras:heat_pump_cop_nominal
+    DISAGREES thermal:heat_pump_cop_nominal
+RESULT spelled_twice=44 count
+RESULT disagree=2 count
+== base 66974d47312caa46e9817b9aeae7186e9764e560
+-- r10 
+RESULT pages=9 rejected=9 stored_rows=30 stale_slots=0
+-- r10 --null
+RESULT pages=9 rejected=7 stored_rows=30 shown_stored=19
+-- r10 --clear-required
+RESULT type=form errors=price_entity_required stored_price_entity='sensor.price'
+-- ww --all
+RESULT wizard_fields=46 count
+RESULT in_registry=44 count
+RESULT spelled_twice=0 count
+RESULT disagree=0 count
+RESULT other_wizard_fields=38 count
+RESULT other_in_registry=20 count
+RESULT other_spelled_twice=0 count
+RESULT other_disagree=0 count
+RESULT menu_fallbacks=23 count
+RESULT menu_disagree=0 count
+RESULT golden_equal=1 bool
+RESULT load1=0.22
+-- ww --bump
+RESULT spelled_twice=0 count
+RESULT disagree=0 count
+== head 8b0f5c316903372f34e5194a9c5791fd9b8365ee
+-- r10 
+RESULT pages=9 rejected=9 stored_rows=30 stale_slots=0
+-- r10 --null
+RESULT pages=9 rejected=7 stored_rows=30 shown_stored=19
+-- r10 --clear-required
+RESULT type=form errors=price_entity_required stored_price_entity='sensor.price'
+-- ww --all
+RESULT wizard_fields=46 count
+RESULT in_registry=44 count
+RESULT spelled_twice=0 count
+RESULT disagree=0 count
+RESULT other_wizard_fields=38 count
+RESULT other_in_registry=20 count
+RESULT other_spelled_twice=0 count
+RESULT other_disagree=0 count
+RESULT menu_fallbacks=23 count
+RESULT menu_disagree=0 count
+RESULT golden_equal=1 bool
+RESULT load1=0.29
+-- ww --bump
+RESULT spelled_twice=0 count
+RESULT disagree=0 count
