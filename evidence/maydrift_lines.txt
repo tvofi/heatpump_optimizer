@@ -1,0 +1,14 @@
+== b6f6ceca4f0323b24171c45a2a2372ba2e2cbaaa
+125:# may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
+126:# may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
+127:# may-drift: wood_two_tank_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
+128:# may-drift: wood_coil -- machine-sensitive; the DHW plan can reach it, per local optimum
+129:# may-drift: valve_upper_direct_slab -- machine-sensitive; the DHW plan can reach it, per local optimum
+214:# may-drift: valve_storage -- #1207 keep-gate (2e-2 -> 2e-5), widened to
+== c9bf05dfe0a1b29eb18dd444a8a32983ea781d77
+134:# may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
+135:# may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
+136:# may-drift: wood_two_tank_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
+137:# may-drift: wood_coil -- machine-sensitive; the DHW plan can reach it, per local optimum
+138:# may-drift: valve_upper_direct_slab -- machine-sensitive; the DHW plan can reach it, per local optimum
+223:# may-drift: valve_storage -- #1207 keep-gate (2e-2 -> 2e-5), widened to

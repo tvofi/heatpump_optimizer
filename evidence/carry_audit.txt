@@ -1,2 +1,0 @@
-NOTE stale tree: 67ffb958b1a76173cfe237bceab6198282260726 lacks origin/main 6493ea3625900f8361011e0c8f2a3c66885ce7b1; roster read at origin/main
-CARRY-AUDIT: 0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s)
