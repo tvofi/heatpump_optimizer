@@ -1,0 +1,13 @@
+selftest_wiring: 101 self-testing, 101 wired, 0 unwired
+selftest_wiring: 0 index gap(s)
+rc=0
+selftest_wiring self-test: 26 checks, 0 failed
+## mutant: drop beatd.py index line
+  UNINDEXED tools/audit/seat/instruments/beatd.py.md: no index line links it
+selftest_wiring: 1 index gap(s)
+rc=1
+## mutant: delete owed_unactioned.py.md
+  MISSING tools/audit/seat/instruments/owed_unactioned.py.md: indexed, no such file
+selftest_wiring: 1 index gap(s)
+rc=1
+0
