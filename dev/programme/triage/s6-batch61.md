@@ -1,4 +1,4 @@
-# Proposal triage, session s7, batch 61 (P286-P288)
+# Proposal triage, session s7, batch 61 (P286-P289)
 
 The rolling batch (V182) after batch 60 (#2958, merged as
 `20c205158ec465bd37e65ed1b847f4589b173a73`). Facts were read at origin/main
@@ -192,3 +192,45 @@ committed after the head's commit, while `handoff/<topic>` is an ancestor of the
 is never silent.
 
 Not built: a commit-time comparison in the tick, and a read of the cloud session's worker status.
+
+## P289: critical-path pull requests jump the train's record step
+
+Verdict: ACCEPT, by the owner's ruling. This seat rules only the size and the route: size S, as a
+carry on R10-TRAIN-OVERLAP-GRADE, which owns the train's queue order and already carries P267's
+"train head, critical path first".
+
+Source: the orchestrator's triage-queue line of 2026-10-29T20:34:03Z, owner-ruled (tvofi
+2026-10-29): "critical-path PRs jump the record step too". `merge_train.py` and `train.sh` are to
+let a critical-path entry merge past the hold kept for the record beat. The proposed self-test is
+that a held train with a critical-path entry merges it, while a non-critical-path entry stays held.
+
+Instances, read at origin/main `e5ddba1fa`, to place the change:
+- **The record step is `sweep_bots`.** Under `--bot-prs`, which the merge seat always passes
+  (`standing-merge.md`), `Train.sweep_bots` merges the open record pull request "NOW, in the
+  train's own sequence". It runs before every serial item's recarry (`recarry`, "a record PR
+  merged now is inside this recarry") and before a batch reads its base ("a record PR merged now
+  is under every proof"). So every record merge moves main ahead of the entry, which then
+  recarries and re-runs its CI. The self-test pins it: "the open record PR ... merges FIRST".
+- **`refs/heads/train-hold` holds the beat, not the train.** The train publishes it so that
+  `nightly.yml`'s record beat does not merge a record pull request mid-train (issue #2302). No
+  reader makes the train wait on it. So "merges past train-hold" has no tool reading to change.
+  The owner's rule lands on the record step above.
+- **The critical path is already readable.** `roster_lib.critical_path_groups` (used by
+  `gate_priority.py`) and `roster_lib.group_for_branch` map an entry's branch to a
+  critical-path group. `merge_train.py` has no critical-path read today.
+
+Route, as a carry on R10-TRAIN-OVERLAP-GRADE:
+1. Serial: before a critical-path entry's recarry, `sweep_bots` is skipped. The record pull
+   request merges at the next non-critical-path item, or at the end of the run if none follows.
+2. Batch: a batch holding a critical-path entry reads its base without the sweep, and sweeps
+   after its merges.
+3. A critical-path read that fails counts as "nothing is critical", so today's order holds.
+4. Self-test, with an open record PR passing its guard and a queue of a critical-path entry then
+   a non-critical-path entry: the critical-path entry merges first, then the record PR, then the
+   other entry.
+5. Null control: the existing arm, a non-critical-path queue merging the record PR first, is
+   unchanged.
+6. Mutation: skipping the sweep for every entry fails the null control.
+
+Not urgent enough to open the batch early, unless a critical-path entry is in the train while a
+record pull request is open: each such entry pays one extra recarry and CI run.
