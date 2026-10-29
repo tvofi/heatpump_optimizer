@@ -1,0 +1,6 @@
+== dev/programme/carries/carry-2952.json ==
+  ERROR   [carry-2952.json] carry: carry 0: `control` is missing or is not a non-empty string
+  -- 1 error(s), 0 warning(s)
+
+== dev/archive/carries/carry-681.json ==
+rc=1
