@@ -3957,6 +3957,7 @@
    "dev/audit/rounds/round10/D7/arch-s3/payload_any_spellings.py",
    "dev/audit/rounds/round10/D7/arch-s3/payload_census_coverage.py",
    "dev/audit/rounds/round10/D7/arch-s3/score_delta.py",
+   "dev/audit/rounds/round10/D7/arch2-s5/wizard_widgets.py",
    "dev/audit/rounds/round10/D7/s1/class_growth.py",
    "dev/audit/rounds/round10/D7/s2/learner_gates.py",
    "dev/audit/rounds/round10/D7/s2/sysid_plant.py",
