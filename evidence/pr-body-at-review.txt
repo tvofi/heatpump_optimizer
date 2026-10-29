@@ -10,7 +10,7 @@ Alternatives: copying the reporter list into review_packet.py lost (two implemen
 
 ## Mutation proof
 
-Delete `"--paths-file", str(pf),` from `unanswered_reds`'s policy_lint argv (the brief's mutation): `sed -i 's/"--base", base, "--paths-file", str(pf), "--existing-file", str(ef),/"--base", base, "--existing-file", str(ef),/' tools/audit/seat/review_packet.py`, then `python3 -I tools/audit/seat/review_packet.py --self-test` prints `FAIL red-unanswered: main's nightly-status red is not owed by a diff touching only a test file` (both reds reported) and `51 checks, 4 failed` (the reviewer's probe at this head; I did not re-run M1), rc 1; restored, `51 checks, 0 failed`. The site is not added to `dev/audit/harnesses/r10_seat_selftests_mutants.py`: that file is a hot file #2959 holds a merge verdict on (the packet's `hot-file` refusal at the first handoff). The harness additions are owed after #2959 merges. Carry: #2959
+Delete `"--paths-file", str(pf),` from `unanswered_reds`'s policy_lint argv (the brief's mutation): `sed -i 's/"--base", base, "--paths-file", str(pf), "--existing-file", str(ef),/"--base", base, "--existing-file", str(ef),/' tools/audit/seat/review_packet.py`, then `python3 -I tools/audit/seat/review_packet.py --self-test` prints `FAIL red-unanswered: main's nightly-status red is not owed by a diff touching only a test file` (both reds reported) and `51 checks, 4 failed` (the reviewer's probe at this head; I did not re-run M1), rc 1; restored, `51 checks, 0 failed`. The site is not added to `dev/audit/harnesses/r10_seat_selftests_mutants.py`: that file is a hot file #2959 holds a merge verdict on (the packet's `hot-file` refusal at the first handoff). The harness additions are owed after #2959 merges. Carry: R10-FLOW-MAIN-GATE
 
 ### Unpinned sites
 
@@ -60,6 +60,7 @@ none
 ## Friction
 
 none
+
 
 
 

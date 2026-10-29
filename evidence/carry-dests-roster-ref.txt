@@ -1,0 +1,21 @@
+NOTE stale tree: 9ce0179f77aa68eab6440c3d85aa92e788936b22 lacks origin/main e5ddba1fad5e6eccfeceaeaaa249bc459963405b; roster read at origin/main
+ref= None round_ref= origin/handoff/audit-r10-roster
+   R10-FLOW-MAIN-GATE (True, '')
+   R10-FLY-PACKET-RED-PATHS (True, 'R10-FLY-PACKET-RED-PATHS resolved on origin/handoff/audit-r10-roster')
+   dismissed: --base cannot be pinned witho (True, '')
+ref= origin/handoff/audit-r10-roster round_ref= None
+   R10-FLOW-MAIN-GATE (False, 'R10-FLOW-MAIN-GATE is done (resume.stage done)')
+   R10-FLY-PACKET-RED-PATHS (True, '')
+   dismissed: --base cannot be pinned witho (True, '')
+ref= origin/main round_ref= None
+   R10-FLOW-MAIN-GATE (True, '')
+   R10-FLY-PACKET-RED-PATHS (False, 'R10-FLY-PACKET-RED-PATHS is not a group of the roster')
+   dismissed: --base cannot be pinned witho (True, '')
+465eee3b2 [('R10-FLOW-MAIN-GATE', 'done'), ('R10-FLY-PACKET-RED-PATHS', 'in-progress')]
+19acc911c [('R10-FLOW-MAIN-GATE', 'done'), ('R10-FLY-PACKET-RED-PATHS', 'in-progress')]
+6acfdfa41 [('R10-FLOW-MAIN-GATE', 'done'), ('R10-FLY-PACKET-RED-PATHS', 'in-progress')]
+NOTE stale tree: 9ce0179f77aa68eab6440c3d85aa92e788936b22 lacks origin/main e5ddba1fad5e6eccfeceaeaaa249bc459963405b; roster read at origin/main
+ref= None R10-ORCH-REVIEW-PACKET (True, '')
+ref= None R10-FLY-CARRY-DISPOSITION (True, '')
+ref= origin/handoff/audit-r10-roster R10-ORCH-REVIEW-PACKET (True, '')
+ref= origin/handoff/audit-r10-roster R10-FLY-CARRY-DISPOSITION (True, '')
