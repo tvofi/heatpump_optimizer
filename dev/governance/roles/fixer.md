@@ -85,9 +85,9 @@ fix, handoff) through refs, never mid-task, by ~150 k tokens (S, M), ~300 k (L, 
    the evidence describes one tree, and either makes a new one — **the body included**, because a figure that is a function
    of `origin/main`'s tip is false the moment `main` moves. Stamp such a figure
    with that tip and `date -u`. The code head goes to `handoff/<topic>`, the
-   body to the orphan `handoff-body/<topic>` (`seat/body_push.sh`),
-   off the code head (`prepr.sh` step 1a); that push is the handoff; the
-   orchestrator's `handoff_push.sh` opens the PR and writes the row.
+   body to the orphan `handoff-body/<topic>` by `seat/body_push.sh`, which
+   runs `review_packet.py handoff`'s offline refusals; answer each before the
+   push. That push is the handoff; `handoff_push.sh` opens the PR and writes the row.
 
    **The handoff freezes the branch.** Until then, merge `origin/main` (never
    rebase) only when `git merge-tree --write-tree origin/main HEAD` reports a
