@@ -1,0 +1,8 @@
+  MODE: SCOPED -- 2 script(s) run, 31 scoped out.
+  changed files (6), measured against the recorded closures in tests/closures.json:
+      tests/closures.json
+      tests/entities.py
+      RUN   tests/entities.py (its tests/closures.json entry changed)
+      RUN   tests/harness_headers.py (its tests/closures.json entry changed)
+      SKIP  tests/arch_score.py  (closure: 156 files, no changed file is in its measured closure)
+      SKIP  tests/arch_score_head.py  (closure: 126 files, no changed file is in its measured closure)
