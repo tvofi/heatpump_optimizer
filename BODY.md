@@ -30,7 +30,7 @@ No product behaviour changes: the diff is one markdown file under `dev/programme
 
 ## Head
 
-`222e0723976e9cba0061d9ddb0cb76fd0fd175fb`; the file is the whole diff against `ce5940c0d1d8f611a818d53e7fffcafb48b356c1`.
+`b46e95475dd00459c035fd22ca5fcf4335b88f98`; the file is the whole diff against `ce5940c0d1d8f611a818d53e7fffcafb48b356c1`.
 
 ## Mutation proof
 
