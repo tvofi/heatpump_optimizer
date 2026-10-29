@@ -67253,6 +67253,33 @@ R.check(
 )
 
 
+# Both readers of a pending prediction -- the accuracy sample and the draw
+# window -- go through pairs_interval, so a prediction older than the window or
+# a re-run inside it pairs neither; one 30 minutes old pairs both (null).
+def _cg_aged(age):
+    coord = _cf_coord()
+    coord._current_state.outdoor_temperature = 8.0
+    coord._current_action = {"power": 1.5, "dhw_power": 0.0}
+    coord._measured_power = 1.5
+    coord._record_accuracy()
+    coord._pending_prediction["when"] -= age
+    coord._record_accuracy()
+    return len(coord._accuracy.samples), len(coord._accuracy.draw.samples)
+
+
+_cg_ages = {
+    "1 min": _cg_aged(timedelta(minutes=1)),
+    "30 min": _cg_aged(timedelta(minutes=30)),
+    "3 h": _cg_aged(timedelta(hours=3)),
+}
+R.check(
+    "a pending prediction a minute or three hours old pairs neither an accuracy "
+    "sample nor a draw reading; one 30 minutes old pairs both (null)",
+    _cg_ages == {"1 min": (0, 0), "30 min": (1, 1), "3 h": (0, 0)},
+    f"{_cg_ages!r}",
+)
+
+
 # R9-UX-6: money and memory -- the receipt, the capacity line, the replay
 # ---------------------------------------------------------------------------
 from harness import FakeEntry as _ux6_Entry, FakeHass as _ux6_Hass  # noqa: E402
