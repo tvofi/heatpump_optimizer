@@ -417,7 +417,9 @@ sweep's standing-seat liveness step keep them alive.
   `handoff-no-pr` lines in `<log>.level` are `ledger.py level`'s fold of
   every `handoff/*` and `handoff-body/*` ref, rewritten every pass: owed unless
   its topic has an open pull request, it is disposed at its sha, or main
-  already carries the change (ancestry, or content: see `ledger.py`), each
+  already carries the change (`ledger.py landed`, the one classifier `bus.sh
+  orphans` asks too: ancestry, clean merges, reverse-apply, content), one line
+  per topic (a body ref rides its code ref's), each
   with its tip's commit time and last opener attempt; a failed PR listing or
   ledger read leaves those lines as they were, since an empty list would make
   every ref look orphaned. Every event the relay owes (`verdict-unposted` at
