@@ -5,7 +5,8 @@ Output: push the code to refs/heads/handoff/r10-sav-actuation, then write the PR
 Never write to any branch except your return refs. Never work around a hook or a refusal; report it in your result instead.
 
 Brief (snapshotted when this payload was rendered):
-Fixer seat (dev/governance/roles/fixer.md), roster group R10-SAV-ACTUATION, tvofi/heatpump_optimizer. Your code handoff is handoff/r10-sav-actuation at 3bc55901544dbcefc9655af514e000ebdf66284a, and it has no PR yet. The orchestrator's opener refused the body: tools/pr/prepr.sh reports "28 unpinned site(s) the diff adds and no section headed exactly `## Unpinned sites` -- give each its key and disposition".
-Add `## Unpinned sites` with each site's key and disposition. Pin a killed one, so it needs no entry; a survivor gets its reason. Also answer `tests / nightly-status` under `## Red checks` as main-graded, unless your diff touches what it reads.
-Run prepr.sh until it passes. Then republish BODY.md on handoff-body/r10-sav-actuation with body_push.sh. If pinning changes the mutation ledger, push the code too.
-Put no Claude footers anywhere.
+Fixer seat (dev/governance/roles/fixer.md), roster group R10-SAV-ACTUATION, tvofi/heatpump_optimizer. Your code handoff is handoff/r10-sav-actuation at 3bc55901544dbcefc9655af514e000ebdf66284a. It has no PR yet. The body on handoff-body/r10-sav-actuation (b0dbdeac7, 17:15Z) predates the code tip, and the opener's prepr.sh refused it: "28 unpinned site(s) the diff adds and no section headed exactly `## Unpinned sites`". A previous seat was sent to fix this at 17:59Z, went idle, and pushed nothing, so assume nothing from it landed.
+1. Make the body describe the code tip.
+2. Add `## Unpinned sites` with each site's key and disposition. Pin killed sites with the mutation ledger so they need no entry; give each survivor its reason. If you must keep a 2-hour mutation run, run it in the background, write the body meanwhile, and push the ledger change when it lands.
+3. Under `## Red checks`, answer `tests / nightly-status` as main-graded unless the diff touches what it reads.
+Run tools/audit/prepr.sh until it passes. Then publish BODY.md with tools/audit/seat/body_push.sh, and push the code too if pinning changed the ledger. Finish within 90 minutes, pushing what you have. Put no Claude footers anywhere. Commit as hpo-fixer <70032254+tvofi@users.noreply.github.com>; never author as Claude.
