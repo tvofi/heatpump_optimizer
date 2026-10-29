@@ -1,0 +1,7 @@
+tools/audit/briefs/fixer.md                      314  315     5216  5216 
+tools/audit/briefs/fix-review.md                 137  140     2439  2451 
+
+FIXTURE ok: 93 error(s) hold 258 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
+review_packet self-test: 42 checks, 0 failed
+137 dev/governance/roles/fix-review.md
+STRUCTURE RATCHET PASSED

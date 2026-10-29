@@ -1,47 +1,60 @@
 # Review packet #2939
-head: 000eae090f657edf008eaba961398705329c4197
-base: 66974d47312caa46e9817b9aeae7186e9764e560
+head: 6e7f2a1881b015e9de3038bd479e4db96671ca40
+base: b87019b868ef0b8d713c2adcf0901f1a823cabc6
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
 ## Gate digest: red
-CodeQL id=123384856897 neutral
-arch-score / arch-score id=123384623368 success
-arm id=123384385955 skipped
-budget-raise-gate / budget-raise-gate id=123384622917 success
-cancel-superseded id=123384389446 success
-codeql / Analyze (actions) id=123384622746 success
-codeql / Analyze (javascript-typescript) id=123384622803 success
-codeql / Analyze (python) id=123384622854 in_progress
-governance / delivery-status id=123384623424 success
-governance / delivery-status-publish id=123384626021 skipped
-governance / env-matrix id=123384623275 in_progress
-governance / instrument-self-tests id=123384623134 in_progress
-governance / policy-docs id=123384623482 success
-governance / record id=123384626248 skipped
-governance / wave-script id=123384623443 success
-hassfest / hassfest id=123384623165 success
-kernel-points id=123384625068 skipped
-prelude id=123384389136 in_progress
-refresh id=123384389566 success
-tests / arch-instrument id=123384823249 success
-tests / briefs id=123384622884 success
-tests / browser id=123384823020 in_progress
-tests / closure-scope id=123384623164 success
-tests / closures id=123384823262 in_progress
-tests / coverage id=123384823344 in_progress
-tests / fast (3.14) id=123384823079 in_progress
-tests / mutation id=123384622902 success
-tests / mutation-autofix id=123384900486 skipped
-tests / mutation-pins id=123384899231 skipped
-tests / nightly-ha id=123384826040 skipped
-tests / nightly-status id=123384622757 failure
-tests / replay id=123384825578 skipped
-tests / typing id=123384823498 success
-validate / validate-hacs id=123384622734 success
+CodeQL id=123438888407 success
+arch-score / arch-score id=123458369371 success
+arm id=123438453179 skipped
+budget-raise-gate / budget-raise-gate id=123458369789 success
+cancel-superseded id=123458410732 success
+codeql id=123458354491 skipped
+codeql / Analyze (actions) id=123458369497 success
+codeql / Analyze (javascript-typescript) id=123458439399 success
+codeql / Analyze (python) id=123458369009 success
+gate id=123458371412 in_progress
+governance id=123458354467 skipped
+governance / delivery-status id=123458368969 success
+governance / delivery-status-publish id=123458369328 skipped
+governance / env-matrix id=123458369076 success
+governance / instrument-self-tests id=123458368869 success
+governance / policy-docs id=123458429323 success
+governance / record id=123458369107 skipped
+governance / wave-script id=123458369149 success
+hassfest id=123458354489 skipped
+hassfest / hassfest id=123458421542 success
+kernel-points id=123458369423 skipped
+pr-contract / pr-contract id=123458912125 in_progress
+prelude id=123458451100 success
+refresh id=123458430874 success
+tests id=123458354627 skipped
+tests / arch-instrument id=123458371056 success
+tests / briefs id=123458369234 success
+tests / browser id=123458370869 success
+tests / ci-ratchet id=123458372966 skipped
+tests / claims-autofix id=123458372821 skipped
+tests / closure-scope id=123458452539 success
+tests / closures id=123458370492 success
+tests / closures-autofix id=123458371783 skipped
+tests / coverage id=123458370469 success
+tests / coverage-ratchet id=123458372055 success
+tests / fast (3.14) id=123458371592 success
+tests / graders-head-copy id=123458373168 success
+tests / lane-proofs id=123458371915 success
+tests / mutation id=123458369896 success
+tests / mutation-autofix id=123458371967 skipped
+tests / mutation-pins id=123458371339 skipped
+tests / nightly-ha id=123458371356 skipped
+tests / nightly-status id=123458368828 failure
+tests / replay id=123458371349 skipped
+tests / typing id=123458370647 success
+validate id=123458420409 skipped
+validate / validate-hacs id=123458369373 success
 
 ## Refusals
-red-unanswered: concluded red check `tests / nightly-status` is not named in ## Red checks
+none
 
 ## Advisories
 hot-file: HPO_BUS_TRAIN_STATE is unset, so every merge verdict reads unboarded
@@ -122,29 +135,31 @@ index 6605987d6..df45d5685 100644
  # The wrappers' own line is the dispatch to the self-tests they delegate.
  # S08's wrapper now runs both tallies (delivery_row.sh's and its own pushes):
 diff --git a/dev/governance/roles/fix-review.md b/dev/governance/roles/fix-review.md
-index 0c06d901b..93026841b 100644
+index 52ccc8949..1301bd7e1 100644
 --- a/dev/governance/roles/fix-review.md
 +++ b/dev/governance/roles/fix-review.md
 @@ -4,8 +4,8 @@ You review one fix PR adversarially, fresh, from a worktree at
  the PR's head SHA. You check that the numbers are real, not that the code looks right.
  **Its copy of this contract is frozen with the tree, so can be old**; start from the dispatch's `review-packet:`, whose check digest is as rendered: re-read live checks before a verdict.
  Before step 1: `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/`; empty is current.
--Before the handoff freezes the branch (`fixer.md`), prepare against the merge base only: steps 2, 12 govern after. Publish it with `tools/audit/seat/bus.sh push-verdict <pr> <verdict file> <evidence dir>` (a file there names the head; it carries your brief's `bus-nonce:`) and report its output in your thread to be confirmed; it posts as `hpo-approver` (decision 0013) -- never as the author App (#1233) or the owner's approving review, which code-owned paths need.
+-Before the handoff freezes the branch (`fixer.md`), prepare against the merge base only: steps 2, 12 govern after. Publish it with `tools/audit/seat/bus.sh push-verdict <pr> <verdict file> <evidence dir>` and report its output in your thread to be confirmed; it posts as `hpo-approver` (decision 0013) -- never as the author App (#1233) or the owner's approving review, which code-owned paths need.
 -A long job, or a wait on CI, runs as `fixer.md`'s preamble says: one watcher whose exit wakes you, never sleeping and polling. Rotate to a fresh context between rounds through refs, never mid-review, by ~150 k tokens.
-+Before the handoff freezes the branch (`fixer.md`), prepare against the merge base only: steps 2, 12 govern after. Publish with `tools/audit/seat/bus.sh push-verdict <pr> <verdict file> <evidence dir>` (a file there names the head; it carries your brief's `bus-nonce:`) and report its output to be confirmed; a cloud seat pushes `cloud_relay.sh`'s verdict file and `ev/` in one commit, subject `verdict <pr> <head40>`, to `probe/rev-<pr>-<nonce first 8>`. First line: `Fix review: merge <head40>` or `Fix review: blocked <head40> <class>: <reason>`, class `[a-z-]+`. It posts as `hpo-approver` (0013), never the author App (#1233) or the owner's review.
++Before the handoff freezes the branch (`fixer.md`), prepare against the merge base only: steps 2, 12 govern after. Publish with `tools/audit/seat/bus.sh push-verdict <pr> <verdict file> <evidence dir>` (a file there names the head) and report its output to be confirmed; a cloud seat, with no `push-verdict`, commits `cloud_relay.sh`'s verdict file and `ev/` in one commit, subject `verdict <pr> <head40>`, to a fresh repository and pushes `probe/rev-<pr>-<nonce first 8>`. First line: `Fix review: merge <head40>` or `Fix review: blocked <head40> <class>: <reason>`, class `[a-z-]+` (a script routes on it), then your brief's `bus-nonce: <nonce>`. It posts as `hpo-approver` (0013), never the author App (#1233) or the owner's review.
 +Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between rounds through refs, never mid-review, by ~150 k tokens.
  
  1. Re-run the mutation proof: delete the production line(s) the PR names,
     run the closure, confirm the named checks fail, restore. If nothing fails,
-@@ -133,8 +133,7 @@ A long job, or a wait on CI, runs as `fixer.md`'s preamble says: one watcher who
+@@ -131,10 +131,7 @@ A long job, or a wait on CI, runs as `fixer.md`'s preamble says: one watcher who
  15. **Judge `fixer.md` step 17 on added lines**: a breach, or a departure
      from the architect or approved design note, is `blocked <sha> architecture-unsound: <how>`.
  
--Return a verdict with your RESULT lines, in your dispatch prompt's exact
--shape: `.claude/workflows/web-fix-wave.js` parses the comment's first
--line and routes on it, so one that does not parse is recorded blocked.
-+Return a verdict with your RESULT lines, its first line in the grammar
-+above; one that does not parse is refused.
+-Return a verdict with your RESULT lines under a first line `Fix review: merge <head40>`
+-or `Fix review: blocked <head40> <class>: <reason>`, class `[a-z-]+` (a script routes on it), then
+-`bus-nonce: <nonce>`; an evidence file names the head. A cloud seat, with no `push-verdict`,
+-commits them in `cloud_relay.sh`'s layout (`ev/`, subject `verdict <pr> <head40>`) to a
+-fresh repository and pushes `probe/rev-<pr>-<nonce first 8>`.
++Return a verdict with your RESULT lines, its first line and `bus-nonce:` line
++in the grammar above; one that does not parse is refused.
  
  **Say which round this is**: from the fourth, `fixer.md` owes a re-cut, not a repair.
 diff --git a/dev/governance/roles/fixer.md b/dev/governance/roles/fixer.md
