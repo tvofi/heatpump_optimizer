@@ -1,0 +1,85 @@
+== budget diffs
+diff --git a/tests/stress_budgets.json b/tests/stress_budgets.json
+index 2f2979dd6..0fd77caf4 100644
+--- a/tests/stress_budgets.json
++++ b/tests/stress_budgets.json
+@@ -162,7 +162,7 @@
+     "traced_peak_mb": 0.85
+   },
+   "summer/2z/space/wood-two-tank": {
+-    "ratio": 7.64,
++    "ratio": 2.2,
+     "rss_attrib_mb": 2.4,
+     "rss_peak_mb": 78.5,
+     "traced_peak_mb": 0.91
+diff --git a/tests/structure_budgets.json b/tests/structure_budgets.json
+index d4fd0a0cb..50b447230 100644
+--- a/tests/structure_budgets.json
++++ b/tests/structure_budgets.json
+@@ -1,5 +1,5 @@
+ {
+- "class_excess_loc": 18037,
++ "class_excess_loc": 17981,
+  "const_modules_over_50": 3,
+  "coordinator_attrs": 142,
+  "coordinator_multiassigned_attrs": 109,
+@@ -7,15 +7,15 @@
+  "dead_methods": 0,
+  "dead_top_level_symbols": 1,
+  "duplication_copies": 15,
+- "functions_cc_over_15": 28,
++ "functions_cc_over_15": 27,
+  "functions_cc_over_25": 8,
+  "import_cycle_modules": 0,
+  "max_cc": 44,
+  "max_class_loc": 8160,
+  "max_method_loc": 373,
+  "methods_over_150": 16,
+- "methods_over_200": 9,
++ "methods_over_200": 8,
+  "name_kept_members": 38,
+- "recorded_at": "6eb552157b63d1e98a9653250789d9fe0027b5bc",
++ "recorded_at": "0b8f8b585daf6a84ae9470389a709d5fec2a4f47",
+  "seam_cut_total": 423
+ }
+== structure.py
+RESULT methods_over_200=8 count
+RESULT name_kept_members=38 count
+RESULT seam_cut_total=423 count
+RESULT thread_factor=1.0 ratio
+
+########## ratchet vs structure_budgets.json (recorded_at 0b8f8b585daf) ##########
+
+STRUCTURE RATCHET PASSED
+== census rule
+      1 custom_components/heatpump_optimizer/away.py
+      7 custom_components/heatpump_optimizer/coordinator.py
+      1 custom_components/heatpump_optimizer/diagnosis.py
+      1 custom_components/heatpump_optimizer/flow_meter.py
+      5 custom_components/heatpump_optimizer/optimizer.py
+      2 custom_components/heatpump_optimizer/sensor.py
+      4 custom_components/heatpump_optimizer/sysid.py
+      9 custom_components/heatpump_optimizer/thermal_model.py
+      1 custom_components/heatpump_optimizer/topology.py
+custom_components/heatpump_optimizer/away.py:248:        sim = model.simulate_step(
+custom_components/heatpump_optimizer/coordinator.py:930:    return model.simulate_step(
+custom_components/heatpump_optimizer/coordinator.py:1086:    modelled_cop = coord._thermal_model.compute_cop(ctx._current_state.outdoor_temperature)
+custom_components/heatpump_optimizer/coordinator.py:4874:        cop = self._thermal_model.compute_cop(
+custom_components/heatpump_optimizer/coordinator.py:9168:            cop_i = max((model or self._thermal_model).compute_cop(float(outdoor), humidity=hum), 1e-6)
+custom_components/heatpump_optimizer/coordinator.py:9920:                            modelled = self._thermal_model.compute_cop(
+custom_components/heatpump_optimizer/coordinator.py:10965:            cop=self._thermal_model.compute_cop(state.outdoor_temperature),
+custom_components/heatpump_optimizer/coordinator.py:11027:        cop = self._thermal_model.compute_cop(
+custom_components/heatpump_optimizer/diagnosis.py:56:    after = model.simulate_step(
+custom_components/heatpump_optimizer/flow_meter.py:142:        return float(model.compute_cop(outdoor_c))
+custom_components/heatpump_optimizer/optimizer.py:440:    return model.compute_cop(
+custom_components/heatpump_optimizer/optimizer.py:2667:        cop_end = self.model.compute_cop(out_mean, humidity=hum_mean)
+custom_components/heatpump_optimizer/optimizer.py:5200:        cop = max(self.model.compute_cop(out_mean, humidity=hum_mean), 1e-3)
+custom_components/heatpump_optimizer/optimizer.py:5365:            state = self.model.simulate_step(
+custom_components/heatpump_optimizer/optimizer.py:5513:            state = self.model.simulate_step(
+custom_components/heatpump_optimizer/sensor.py:662:            cop = payload_number(self.coordinator.thermal_model.compute_cop(outdoor_temp))
+custom_components/heatpump_optimizer/sensor.py:1680:        cop = payload_number(model.compute_cop(data.get("outdoor_temperature", 5.0)))
+custom_components/heatpump_optimizer/sysid.py:253:    ``q`` is electrical power times the coordinator's ``compute_cop(outdoor)``.
+custom_components/heatpump_optimizer/sysid.py:259:        return model.simulate_step(
+custom_components/heatpump_optimizer/sysid.py:263:    return model.simulate_step(
+custom_components/heatpump_optimizer/sysid.py:264:        state, electrical_power=q / model.compute_cop(outdoor),
+custom_components/heatpump_optimizer/topology.py:951:        state = model.simulate_step(

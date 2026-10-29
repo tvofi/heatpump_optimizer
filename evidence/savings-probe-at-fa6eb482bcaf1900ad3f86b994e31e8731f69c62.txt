@@ -1,8 +1,0 @@
-RESULT 1z flat   buf=  750 savings=  32.33 baseline_cost=43.93922438333561 plan_cost=17.319115788280282 plan_kwh=10.72 baseline_kwh=27.190114098598762 room_min=19.709274186326812 tank_max=24.595673780903617
-RESULT 1z flat   buf=    0 savings=   0.74 baseline_cost=13.168961922807558 plan_cost=21.297803610180715 plan_kwh=13.18 baseline_kwh=8.14911010074725 room_min=19.43269987353217 tank_max=None
-RESULT 1z spread buf=  750 savings=  43.11 baseline_cost=49.18232270837417 plan_cost=12.90597662643296 plan_kwh=13.51 baseline_kwh=27.190114098598762 room_min=19.789286411233405 tank_max=57.39416815863917
-RESULT 1z spread buf=    0 savings=   8.93 baseline_cost=15.808919464898263 plan_cost=10.223281919488038 plan_kwh=10.53 baseline_kwh=8.14911010074725 room_min=19.572396928058144 tank_max=None
-RESULT 2z flat   buf=  750 savings=   8.08 baseline_cost=24.1089493398022 plan_cost=15.985015265751333 plan_kwh=9.89 baseline_kwh=14.91890429443205 room_min=19.572342430283154 tank_max=24.507590631831167
-RESULT 2z flat   buf=    0 savings=   2.17 baseline_cost=14.549343972968765 plan_cost=19.472680519612673 plan_kwh=12.05 baseline_kwh=9.003306913965817 room_min=19.551569060032254 tank_max=None
-RESULT 2z spread buf=  750 savings=  19.90 baseline_cost=29.897940056036603 plan_cost=10.492248115918148 plan_kwh=10.68 baseline_kwh=14.91890429443205 room_min=19.73919748034036 tank_max=50.30793182267914
-RESULT 2z spread buf=    0 savings=   8.30 baseline_cost=17.205902276641474 plan_cost=10.004598174821849 plan_kwh=8.44 baseline_kwh=9.003306913965817 room_min=19.585061808884454 tank_max=None

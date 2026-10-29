@@ -1,0 +1,14 @@
+== base reference
+reference single-zone flat buffer 750 L: reference_kwh 8.15 reference_tank_peak 24.0 reference_refused_kwh 0.00 plan_kwh 13.02 savings 0.73 pct 5.5
+reference single-zone flat buffer 0 L: reference_kwh 8.15 reference_tank_peak 24.0 reference_refused_kwh 0.00 plan_kwh 13.02 savings 0.73 pct 5.5
+reference two-zone flat buffer 750 L: reference_kwh 14.92 reference_tank_peak 60.6 reference_refused_kwh 0.00 plan_kwh 9.93 savings 8.07 pct 33.5
+reference two-zone flat buffer 0 L: reference_kwh 9.00 reference_tank_peak 24.0 reference_refused_kwh 0.00 plan_kwh 12.05 savings 2.17 pct 14.9
+reference: 0 valved arm(s) refuse heat the reference paid for
+rc=0
+== m_null reference
+reference single-zone flat buffer 750 L: reference_kwh 8.10 reference_tank_peak 24.4 reference_refused_kwh 0.00 plan_kwh 10.63 savings 1.68 pct 12.8
+reference single-zone flat buffer 0 L: reference_kwh 8.15 reference_tank_peak 24.0 reference_refused_kwh 0.00 plan_kwh 13.02 savings 0.73 pct 5.5
+reference two-zone flat buffer 750 L: reference_kwh 7.99 reference_tank_peak 24.4 reference_refused_kwh 0.00 plan_kwh 9.93 savings 0.73 pct 5.7
+reference two-zone flat buffer 0 L: reference_kwh 9.00 reference_tank_peak 24.0 reference_refused_kwh 0.00 plan_kwh 12.05 savings 2.17 pct 14.9
+reference: 0 valved arm(s) refuse heat the reference paid for
+rc=0
