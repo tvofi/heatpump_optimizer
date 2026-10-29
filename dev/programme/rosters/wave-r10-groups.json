@@ -10287,7 +10287,8 @@
     "(2) Fix gate-sweep.yml's sweep step: `out=$(python3 -I tools/ci/gate.py --sweep ...)` under the default `bash -e` ends the step on any program exit of 1 before `case` reads the outcome, so `RATE-LIMITED` prints no annotation and `SWEEP-DONE`, rc 1 is red. Fix the step (`|| true` or a condition form) and switch `tests/entities.py` `_gs_step_verdict` to `bash -e -c`; failing test first: that switch alone fails the U0c check on 3 cases.",
     "(3) Countermeasure B: switch `_train_hold_status`, `_pt_trigger`, `_cov_trust`, `_cov_marker` (`tests/entities.py`) and `tests/arch_score.py` `base_runs_the_gate` to `bash -e -c`; under `BASH_ENV` unset, all of them except `_gs_step_verdict` stayed green with `-e` on `tests/entities.py` (`tests/arch_score.py`'s `base_runs_the_gate` too).",
     "(4) Class proposal: a workflow step's meaningful nonzero exit ended by errexit before the step reads it, I1 to I4 as `non_round_instances`, the judge's or orchestrator's to mint.",
-    "From #2849's round-2 fix review (merge at ae74761359af1a7864eb4795e13ddb4694337a12, probe/rev-2849-7794e967 c02f0273): countermeasure A's harness catches a `$?` read inside an `if`/`while` test (8 of 9 adversarial forms) but misses the arithmetic forms `if (( $? != 0 ))` and `(( $? )) && ...`. Neither form exists in origin/main's workflows today, so this is a precondition, not an open instance. Owed: extend the detector to arithmetic `(( ... $? ... ))` tests. Control: a planted workflow step using `if (( $? != 0 ))` after a failing command under errexit is reported (hits=1), and the same step rewritten to capture the status inline (`cmd || rc=$?`) is not (hits=0); one mutant that drops the arithmetic arm makes the planted step pass. Re-derive the bash -c site list at your merge base (the reviewer counted a 15th at the head: tests/entities.py `_raf_batch_outcomes`, already run with -e)."
+    "From #2849's round-2 fix review (merge at ae74761359af1a7864eb4795e13ddb4694337a12, probe/rev-2849-7794e967 c02f0273): countermeasure A's harness catches a `$?` read inside an `if`/`while` test (8 of 9 adversarial forms) but misses the arithmetic forms `if (( $? != 0 ))` and `(( $? )) && ...`. Neither form exists in origin/main's workflows today, so this is a precondition, not an open instance. Owed: extend the detector to arithmetic `(( ... $? ... ))` tests. Control: a planted workflow step using `if (( $? != 0 ))` after a failing command under errexit is reported (hits=1), and the same step rewritten to capture the status inline (`cmd || rc=$?`) is not (hits=0); one mutant that drops the arithmetic arm makes the planted step pass. Re-derive the bash -c site list at your merge base (the reviewer counted a 15th at the head: tests/entities.py `_raf_batch_outcomes`, already run with -e).",
+    "`_train_hold_status`, `_pt_trigger`, `_pt_ds_rc` and `_gs_step_verdict` now build their environment with `_stub_path_env` (`tests/entities.py`). Countermeasure B switches these same helpers to `bash -e -c`, and its \"under `BASH_ENV` unset\" precondition no longer needs a seat to unset anything. Its fixer edits the `subprocess.run` argv and keeps the `env=_stub_path_env(...)` argument. Carry: R10-ERREXIT-COUNTERMEASURES"
    ],
    "resume": {
     "stage": "in-progress",
@@ -10539,9 +10540,9 @@
     "`gate-scoping`: cost: `tests/entities.py`, the one script the scoped gate selects for this diff, needs a `homeassistant` module this seat's interpreter lacks, so the local scoped gate could not run; CI's `gate` is the only judge of it here. Carry: R10-FRICTION-GATE-SCOPING"
    ],
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": null,
-    "commit": null,
+    "commit": "553cee1df10ef3626fbc1c40b268c4e6801b31e3",
     "last_step": null,
     "next_step": "dispatch a seat",
     "note": "wired by the roster seat 2026-10-26 under the owner's completion rule (tvofi 20:20Z)",
