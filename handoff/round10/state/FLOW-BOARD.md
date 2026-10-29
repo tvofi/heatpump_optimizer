@@ -1,16 +1,16 @@
 # Flow board
 
-Window ends 2026-10-29T16:45:17+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
+Window ends 2026-10-29T17:04:04+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
 
 Sources: tree `origin/main`, roster `origin/handoff/audit-r10-roster`, bus `origin/review/*`
 
 | measure | last 1 h | last 24 h |
 |---|---|---|
-| roster groups closed vs takt | 2 / 1.0 | 19 / 24.0 |
+| roster groups closed vs takt | 0 / 1.0 | 19 / 24.0 |
 | fly-ins closed | 0 | 23 |
 | main moves: group-carrying / record / roster-edit / fly-in | 1 / 0 / 0 / 0 | 11 / 5 / 3 / 23 |
 | first-pass fix-review yield | 0/0 (-) | 26/38 (0.68) |
-| blocked-class mix | ci-red:2 | body-claim-wrong:1, body-figure:1, body-head-stale:2, body-stale:1, brief-lint:1, carry-dest-done:1, carry-missing:34, carry-scope:1, carry-undisposed:1, carry-unrouted:1, ci-red:4, ci-unconcluded:4, claim-drift:2, claim-refuted:1, claims:1, class-open:31, class-rule-missing:2, conflict:2, contract-incomplete:1, contract-red:1, control-missing:1, countermeasure-silenced:2, cutover-unsound:1, dangling-owner:1, duplicate-ruling:1, figure-false:1, figure-uncited:1, figure-unverified:1, figure-wrong:3, figures-unverified:1, harness:4, harness-nondeterministic:1, head-moved:2, host-path:1, merge-conflict:6, metric-gamed:2, mutant-survives:4, mutation-survivor:9, mutation-survivors:2, mutation-unpinned:1, mutation-vacuous:16, nondeterministic-arm:1, pin-wrong:1, policy-loosened:1, pr-contract-refused:1, ratchet-unrecorded:1, record-contradicts-diff:1, regression:3, released-early:1, retry-rule-unsound:1, root-cause-detectable:2, root-cause-unanswered:2, root-cause-unrecorded:1, roster-stage-unclassified:1, ruling-change:1, ruling-incomplete:1, ruling-misrouted:1, ruling-refuted:2, ruling-unsound:4, structure-breach:1, unpinned-site:1, verdict-word:2 |
+| blocked-class mix | none | body-claim-wrong:1, body-figure:1, body-head-stale:2, body-stale:1, brief-lint:1, carry-dest-done:1, carry-missing:34, carry-scope:1, carry-undisposed:1, carry-unrouted:1, ci-red:4, ci-unconcluded:4, claim-drift:2, claim-refuted:1, claims:1, class-open:31, class-rule-missing:2, conflict:2, contract-incomplete:1, contract-red:1, control-missing:1, countermeasure-silenced:2, cutover-unsound:1, dangling-owner:1, duplicate-ruling:1, figure-false:1, figure-uncited:1, figure-unverified:1, figure-wrong:3, figures-unverified:1, harness:4, harness-nondeterministic:1, head-moved:2, host-path:1, merge-conflict:6, metric-gamed:2, mutant-survives:4, mutation-survivor:9, mutation-survivors:2, mutation-unpinned:1, mutation-vacuous:16, nondeterministic-arm:1, pin-wrong:1, policy-loosened:1, pr-contract-refused:1, ratchet-unrecorded:1, record-contradicts-diff:1, regression:3, released-early:1, retry-rule-unsound:1, root-cause-detectable:2, root-cause-unanswered:2, root-cause-unrecorded:1, roster-stage-unclassified:1, ruling-change:1, ruling-incomplete:1, ruling-misrouted:1, ruling-refuted:2, ruling-unsound:4, structure-breach:1, unpinned-site:1, verdict-word:2 |
 | lead time per size (h, n/p50/max) | M n=1 p50=19.93 max=19.93 | M n=2 p50=9.19 max=19.93; S n=9 p50=11.07 max=36.68 |
 
 ### WIP by flow lane (snapshot at the window's end)
