@@ -1,5 +1,47 @@
-head 172afa85d2bc2f68b402217981f22cfb26e86b56; each mutant applied, self-test run, file restored (git status clean after)
-review_carry.py `if len(parents_of(repo, sha)) < 2:` -> `if True:` : 14 checks, 3 failed (killed)
-bus.sh `elif [ "$rc" = 0 ]; then` -> `elif false; then` : 94 checks, 1 failed (killed)
-app_approve.sh range walk -> --first-parent : 265 checks, 3 failed (killed)
-app_approve.sh claim-union test `[ "$got" = "$want" ]` -> `true` : 265 checks, 4 failed (killed)
+## mutant A: why = app_approve_carry(...) -> why = None
+ tools/audit/seat/review_carry.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL a hand-resolved conflict merge answers FRESH-REVIEW: got 'CARRY', want 'FRESH-REVIEW'
+  FAIL it names the merge as not automatic: got False, want True
+  FAIL a clean merge carrying a line of its own answers FRESH-REVIEW: got 'CARRY', want 'FRESH-REVIEW'
+  FAIL a claim file resolved dropping a line answers FRESH-REVIEW: got 'CARRY', want 'FRESH-REVIEW'
+  FAIL it names the claim file: got False, want True
+  FAIL an automatic merge that rewrote the branch's hunk context answers FRESH-REVIEW: got 'CARRY', want 'FRESH-REVIEW'
+  FAIL it names the branch's own diff: got False, want True
+review_carry self-test: 26 checks, 7 failed
+restored-clean
+## mutant B: merge predicate if len(parents)<2 -> if True
+ tools/audit/seat/review_carry.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL a merge-only move answers CARRY: got 'FRESH-REVIEW', want 'CARRY'
+  FAIL a re-cut merge of the branch's own previous head answers CARRY: got 'FRESH-REVIEW', want 'CARRY'
+  FAIL a newer main ref does not change the answer: got 'FRESH-REVIEW', want 'CARRY'
+  FAIL it names the merge as not automatic: got False, want True
+  FAIL the same merge, git's automatic result, answers CARRY: got 'FRESH-REVIEW', want 'CARRY'
+  FAIL a claim file resolved to the union of both sides answers CARRY: got 'FRESH-REVIEW', want 'CARRY'
+  FAIL it names the claim file: got False, want True
+  FAIL it names the branch's own diff: got False, want True
+review_carry self-test: 26 checks, 8 failed
+restored-clean
+## mutant C (mine): accept any rc-0 output from app_approve (drop the CARRY: yes prefix check) and treat rc1 as carry
+ tools/audit/seat/review_carry.py | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+  FAIL a hand-resolved conflict merge answers FRESH-REVIEW: got 'CARRY', want 'FRESH-REVIEW'
+  FAIL it names the merge as not automatic: got False, want True
+  FAIL a clean merge carrying a line of its own answers FRESH-REVIEW: got 'CARRY', want 'FRESH-REVIEW'
+  FAIL a claim file resolved dropping a line answers FRESH-REVIEW: got 'CARRY', want 'FRESH-REVIEW'
+  FAIL it names the claim file: got False, want True
+  FAIL an automatic merge that rewrote the branch's hunk context answers FRESH-REVIEW: got 'CARRY', want 'FRESH-REVIEW'
+  FAIL it names the branch's own diff: got False, want True
+review_carry self-test: 26 checks, 7 failed
+restored-clean
+## mutant D (mine): app_approve answering neither -> treated as CARRY (raise Undecidable -> return None)
+review_carry self-test: 26 checks, 0 failed
+## the same mutant, with app_approve.sh absent at its path (what the self-test does not exercise)
+CARRY
+rc=0
+## unmutated, app_approve.sh absent
+review_carry: CANNOT DECIDE: app_approve.sh --carry answered neither (rc 127): bash: /tmp/tmp.UixrCdDNat/wt/tools/audit/seat/../../pr/app_approve.sh: No such file or directory
+rc=2
+3
+restored-clean

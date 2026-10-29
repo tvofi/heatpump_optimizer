@@ -1,0 +1,7 @@
+FIXTURE ok: 93 error(s) hold 258 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
+tools/audit/briefs/orchestrator.md               294  295     4251  4251 
+tools/audit/briefs/fix-review.md                 140  140     2449  2451 
+selftest_wiring: 102 self-testing, 102 wired, 0 unwired
+selftest_wiring: 0 index gap(s)
+STRUCTURE RATCHET PASSED
+TOTAL: 0 error(s) across 50 policy file(s)

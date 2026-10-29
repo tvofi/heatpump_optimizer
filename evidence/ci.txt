@@ -1,1 +1,70 @@
-check-runs on 172afa85d2bc2f68b402217981f22cfb26e86b56 read 2026-10-28 ~21:05 UTC: 7 runs; arm skipped, refresh success x1, cancel-superseded success x1; prelude queued/in_progress, refresh queued, cancel-superseded in_progress. No gate or pr-contract run has concluded on this head.
+123394120002 | gate | completed | success | 2026-10-29T10:30:34Z
+123393758997 | pr-contract / pr-contract | completed | success | 2026-10-29T10:29:46Z
+123393200997 | validate | completed | skipped | 2026-10-29T10:28:26Z
+123393200639 | codeql | completed | skipped | 2026-10-29T10:28:26Z
+123393200316 | hassfest | completed | skipped | 2026-10-29T10:28:26Z
+123393200125 | governance | completed | skipped | 2026-10-29T10:28:26Z
+123393200094 | kernel-points | completed | skipped | 2026-10-29T10:28:26Z
+123393199618 | tests | completed | skipped | 2026-10-29T10:28:26Z
+123393197648 | arch-score / arch-score | completed | success | 2026-10-29T10:28:29Z
+123393197602 | budget-raise-gate / budget-raise-gate | completed | success | 2026-10-29T10:28:28Z
+123393012148 | cancel-superseded | completed | success | 2026-10-29T10:28:05Z
+123393012049 | prelude | completed | success | 2026-10-29T10:28:04Z
+123393011786 | refresh | completed | success | 2026-10-29T10:28:05Z
+123385888599 | gate | completed | failure | 2026-10-29T10:12:16Z
+123385575697 | pr-contract / pr-contract | completed | failure | 2026-10-29T10:11:36Z
+123384979553 | kernel-points | completed | skipped | 2026-10-29T10:10:15Z
+123384979024 | codeql | completed | skipped | 2026-10-29T10:10:14Z
+123384978913 | validate | completed | skipped | 2026-10-29T10:10:14Z
+123384978692 | tests | completed | skipped | 2026-10-29T10:10:14Z
+123384978539 | hassfest | completed | skipped | 2026-10-29T10:10:14Z
+123384978492 | governance | completed | skipped | 2026-10-29T10:10:14Z
+123384976743 | arch-score / arch-score | completed | success | 2026-10-29T10:10:17Z
+123384976588 | budget-raise-gate / budget-raise-gate | completed | success | 2026-10-29T10:10:17Z
+123384859803 | gate | completed | failure | 2026-10-29T10:10:02Z
+123384491887 | tests / ci-ratchet | completed | skipped | 2026-10-29T10:09:10Z
+123384490766 | tests / closures-autofix | completed | skipped | 2026-10-29T10:09:10Z
+123384489819 | pr-contract / pr-contract | completed | failure | 2026-10-29T10:09:13Z
+123376206823 | tests / lane-proofs | completed | success | 2026-10-29T09:50:40Z
+123376206804 | tests / graders-head-copy | completed | success | 2026-10-29T09:50:41Z
+123376206789 | tests / coverage-ratchet | completed | success | 2026-10-29T09:50:41Z
+123373614150 | tests / claims-autofix | completed | skipped | 2026-10-29T09:44:43Z
+123370273917 | CodeQL | completed | success | 2026-10-29T09:37:04Z
+123370131498 | tests / mutation-autofix | completed | skipped | 2026-10-29T09:36:45Z
+123370130441 | tests / mutation-pins | completed | skipped | 2026-10-29T09:36:45Z
+123370092852 | tests / nightly-ha | completed | skipped | 2026-10-29T09:36:39Z
+123370092126 | tests / replay | completed | skipped | 2026-10-29T09:36:39Z
+123370089989 | tests / arch-instrument | completed | success | 2026-10-29T09:36:42Z
+123370089930 | tests / coverage | completed | success | 2026-10-29T09:36:42Z
+123370089891 | tests / fast (3.14) | completed | success | 2026-10-29T09:36:42Z
+123370089830 | tests / typing | completed | success | 2026-10-29T09:36:42Z
+123370089804 | tests / browser | completed | success | 2026-10-29T09:36:42Z
+123370089781 | tests / closures | completed | success | 2026-10-29T09:36:42Z
+123369886079 | governance / record | completed | skipped | 2026-10-29T09:36:11Z
+123369886030 | governance / delivery-status-publish | completed | skipped | 2026-10-29T09:36:11Z
+123369884786 | kernel-points | completed | skipped | 2026-10-29T09:36:11Z
+123369883086 | governance / delivery-status | completed | success | 2026-10-29T09:36:14Z
+123369883051 | arch-score / arch-score | completed | success | 2026-10-29T09:36:15Z
+123369883007 | codeql / Analyze (javascript-typescript) | completed | success | 2026-10-29T09:36:14Z
+123369882980 | tests / mutation | completed | success | 2026-10-29T09:36:14Z
+123369882926 | hassfest / hassfest | completed | success | 2026-10-29T09:36:15Z
+123369882923 | tests / nightly-status | completed | failure | 2026-10-29T09:36:15Z
+123369882915 | governance / env-matrix | completed | success | 2026-10-29T09:36:14Z
+123369882895 | codeql / Analyze (actions) | completed | success | 2026-10-29T09:36:14Z
+123369882889 | tests / closure-scope | completed | success | 2026-10-29T09:36:14Z
+123369882879 | codeql / Analyze (python) | completed | success | 2026-10-29T09:36:14Z
+123369882860 | tests / briefs | completed | success | 2026-10-29T09:36:14Z
+123369882841 | governance / policy-docs | completed | success | 2026-10-29T09:36:14Z
+123369882775 | budget-raise-gate / budget-raise-gate | completed | success | 2026-10-29T09:36:15Z
+123369882647 | governance / instrument-self-tests | completed | success | 2026-10-29T09:36:14Z
+123369882639 | governance / wave-script | completed | success | 2026-10-29T09:36:14Z
+123369882601 | validate / validate-hacs | completed | success | 2026-10-29T09:36:15Z
+123369672414 | prelude | completed | success | 2026-10-29T09:35:46Z
+123369672291 | refresh | completed | success | 2026-10-29T09:35:46Z
+123369672104 | cancel-superseded | completed | success | 2026-10-29T09:35:46Z
+123369670088 | refresh | completed | success | 2026-10-29T09:35:45Z
+123369670082 | cancel-superseded | completed | success | 2026-10-29T09:35:45Z
+123369669386 | prelude | completed | success | 2026-10-29T09:35:45Z
+123369660220 | arm | completed | skipped | 2026-10-29T09:35:41Z
+== latest per name, non-green:
+tests / nightly-status completed failure 2026-10-29T09:36:15Z
