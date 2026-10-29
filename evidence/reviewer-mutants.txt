@@ -1,0 +1,8 @@
+== mutant mut:holdabort ( 1 file changed, 1 deletion(-))
+RESULT remerge-conflict rc=1 named=1 merge_head=no dirty_lines=0 at_origin=yes unforced_release=yes
+RESULT holder-exit merge_head=yes detached=no dirty_lines=2 at_origin=yes
+RESULT holder-kill merge_head=yes detached=no dirty_lines=2 at_origin=yes
+== mutant mut:remergeabort ( 1 file changed, 1 deletion(-))
+RESULT remerge-conflict rc=1 named=1 merge_head=yes dirty_lines=2 at_origin=yes unforced_release=no
+RESULT holder-exit merge_head=no detached=yes dirty_lines=0 at_origin=yes
+RESULT holder-kill merge_head=no detached=yes dirty_lines=0 at_origin=yes
