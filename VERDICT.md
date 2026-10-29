@@ -1,53 +1,46 @@
-Fix review: blocked ef895338c0603c64adcf7ed6b2b25e06c5648b83 class-open: tools/policy/vendor/markdown-it.min.js, a restored file render_md.mjs loads with require(), outside every row's key and named_loads' grammar
+Fix review: blocked 5a119e8af148efbfb5ee3605323b75cd7af4a01c class-open: tools/policy/vendor/markdown-it.min.js, still unkeyed and undispositioned at round 4; re-cut owed
 
-bus-nonce: e7f016c03a11078336cb8db2a086745d
+bus-nonce: e83542ededa392ce8703c448e9029197
 
 ## Round
 
-Review round 3. Round 2 blocked `38422dd15` `class-open` on `budget_raise_gate.py`. The repair is `c8eb2dc51` and `282496dce`, with the record updated in `7d3b78914` and `0ca059dee`. The round-2 seam is closed. One more seam of the same class is open.
+This is review round 4. Round 3 blocked `ef895338c` as `class-open` on `tools/policy/vendor/markdown-it.min.js`. Since `ef895338c` the branch has two first-parent commits:
+- `63789e164` merges `46686b677`, which changes two lines of the RCA record so they name the root-cause contract instead of its path.
+- `5a119e8af` merges `origin/main`.
+
+The PR's three-dot diff stat is the same as at round 3 (`ev/delta-since-round3.txt`). No commit answers the round-3 block.
 
 ## Block
 
-Step 6 (open the class). Round 3's record defines the class as "every restored file a row's grader loads" (record, "Round 3: what a grader names keys it"). Its enumeration rule, `named_loads`, matches only two things: a quoted `.mjs`/`.py`/`.sh` path, or a `path.join` of single-quoted literals. A load written any other way is invisible both to the key (`mjs_closure`) and to the gap census (`grader_gaps`). The census uses the same `named_loads`, so it cannot report what it cannot see.
+**Step 6 (the class).** The class is still open on the seam round 3 named.
+- At this head, `tools/policy/render_md.mjs:13` still loads `require('./vendor/markdown-it.min.js')`.
+- `governance.yml` still restores `tools/policy/vendor` from the base, at lines 144, 1061 and 1171.
+- Neither `ci_predict.py`, the record, nor the PR body names `markdown-it` or a `require()` load (`ev/seam-still-open.txt`).
 
-One such seam at this head:
-- `tools/policy/render_md.mjs:13` loads the vendored parser with `const MarkdownIt = require('./vendor/markdown-it.min.js')` (ev/render_md-require.txt). `render_md.mjs` is in the keys of CORPUS, WAVE CHECK, RULES SYNC and LANE SELF-TEST. The `.js` file is in none of them, because `mjs_closure` skips any path that does not end in `.mjs`/`.py`/`.sh` (ev/class-probe.txt; I ran `mjs_closure` and `grader_hit` per row).
-- `policy-docs`, `env-matrix` and `wave-script` each restore `tools/policy/vendor` (and `.claude/workflows/vendor`) from the base, by explicit pathspec in `agreement_py.restore_specs`. CI therefore always grades with the base's parser.
-- Plant, a commit on top of this head (ev/plant-mdit.diff), editing only `tools/policy/vendor/markdown-it.min.js`: `ci_predict.py --base <head> --only graders` returns rc 0 in 0.5 s and runs no row (ev/plant-mdit-predict.txt).
-- Control (ev/control-rendermd.diff): the same one-line edit to `render_md.mjs` keys the rows and runs them, rc 0 in 28 s (ev/control-rendermd-predict.txt). The predictor runs graders for the parser's loader but not for the parser.
+Round 3's plant, re-run at this head, shows the miss. I edited only the vendored parser, in a commit on top of `5a119e8af` (`ev/plant-mdit.diff`). `ci_predict.py --base 5a119e8af --only graders` returned rc 0 in 0.59 s and ran no row (`ev/plant-mdit-predict.txt`).
 
-A head that bumps the vendored parser and leans on its new parse in the corpus is predicted green. CI then grades it with the base's parser. That is the #2916 shape on a file the jobs restore deliberately. Neither the diff, the record's 42-site seam table, nor the body dispositions it.
+**Re-cut, not repair.** This is the fourth round, so `fix-review.md` says `fixer.md` owes a re-cut, and the brief asked me to judge minimality. The branch has gone well past what the RCA record needs.
+- Each round widened a load grammar: `named_loads` and `mjs_closure` grew to 462 added lines in `ci_predict.py`.
+- Each review then found a restored file the grammar still could not see. Round 2 found `budget_raise_gate.py`; round 3 found `markdown-it.min.js`.
+- A rule that guesses loads from spelling cannot close a class that is defined by the jobs' restore pathspecs.
 
-Repair, either of:
-- widen `named_loads` and `mjs_closure` to `require()`/`createRequire` loads and to any restored extension (`.js`), with a `grader_key_self_test` case that keys `markdown-it.min.js` under CORPUS; or
-- disposition the seam with a reason in the record and the body. Zero round-10 instances plus a cost test would count, as in round 2.
+Re-cut from current `origin/main` with these parts:
+1. The record: cause, process state (c), cost test, figures re-taken at the new head.
+2. One countermeasure that is closed by construction. Key the graders arm on the restore pathspecs that `pinned_runs` already derives from `governance.yml`. A diff touching any restored path runs that job's graders with the head copy against the base copy. This needs no load grammar. Alternatively, the record can decide not to build a countermeasure, with that cost test.
+3. Its self-test, with `markdown-it.min.js` and `budget_raise_gate.py` as plant cases.
 
-My probe is my own instrument, not the finder's (step 9): `ev/classprobe.py`. It lists every tracked, restored basename that appears on any line of any key source, minus the key and `named_loads`' hits, giving 409 lines. I triaged the candidates by hand. Every other one I opened is a comment, a message string or a `field_coverage` table key, not a load. A repo-wide grep finds `require(`/`createRequire` only in `render_md.mjs` (and `require('fs')`). I did not read each of the 409 lines individually.
+Drop `named_loads`, the `grader_gaps` load census and their exempt-site table unless the new key still needs them.
 
 ## Findings
 
-- Class-open: `tools/policy/vendor/markdown-it.min.js` is loaded by `render_md.mjs` through `require()`. Every pinned job restores it, and no row keys it. This needs fixing in this PR (see the block). Carry: R10-RCA-PREPR-HEAD-GRADERS
-- Surviving mutant M14: drop the `path.join` alternative from `NAMED` (rename `path\.join\(` to an unmatchable token), and `grader_key_self_test` still reports 0 failed (ev/mutants-round3.txt). Yet the mutant takes `tools/release/stamp.py`, `tests/delivery_status.py` and `dev/audit/rounds/round4/D6/claims.py` out of the keys of CORPUS, WAVE CHECK, RULES SYNC and LANE SELF-TEST (ev/mutants-round3.txt, key diff). The record lists `path.join(ROOT, 'tools', 'release', 'stamp.py')` as a keyed seam, but no self-test case pins it. The gap row cannot catch the mutant because it reads the same `NAMED`. Add a key case, for example LANE SELF-TEST keyed by `tools/release/stamp.py`. Carry: R10-RCA-PREPR-HEAD-GRADERS
-- The PR body is stale against this head:
-  - Its `## Head note` still says "Round 2" and answers only round 1's block. Round 2's `budget_raise_gate.py` block, round 3's `named_loads` mechanism, the plant re-run and round 3's mutants appear only in the record, not in the body.
-  - The body's cost test still gives "about 13 s" per PR and "Keys hit … any row 30". The record re-took these at round 3 as about 49 s per PR and 40 keyed merges ("pays for itself about 1.9 times over", against 7 in the body).
-  - The `## Mutation proof` table stops at M9, and the self-test row count is still 51.
-  - Bring the body to the head: a round-3 head note, the round-3 cost and key figures, and the round-3 mutants (M10-M13 below kill; M14 above). Carry: R10-RCA-PREPR-HEAD-GRADERS
-- `review_packet.py render` refused `host-path` again (body; record `:4` and `:473`), so no packet was written. The cause is `ref_privacy._leaks`'s bare-substring home match: `/root` occurs inside `roles/root-cause.md`. The passwd home is also `/root`, so overriding `HOME` does not avoid it, and I did not work around it further. The body carries it to R10-RECORD-API-O1. The record states the read-back (`jq` over `dev/programme/rosters/wave-r10-groups.json` printing `carry` and `brief`), which answers round 2's open question about the carry. I did not run that `jq` myself. Carry: R10-RECORD-API-O1
+- Class-open, the block: `tools/policy/vendor/markdown-it.min.js` is restored by `policy-docs`, `env-matrix` and `wave-script`, is loaded by `render_md.mjs` through `require()`, and is in no row's key. A head that edits the parser is predicted green, and CI then grades it with the base's parser. Re-cut as described under `## Block`. Carry: R10-RCA-PREPR-HEAD-GRADERS
+- The PR body's head note is stale (step 7). `## Head note` still says "Round 3". `## Head` names `46686b67727e2e1db00c689ab15e8a9ab8e5a77d` as the head, with a merge-tree against `6493ea362`. The actual head is `5a119e8af148efbfb5ee3605323b75cd7af4a01c` (`ev/pr-body.md`). The re-cut's body must name its own head. Carry: R10-RCA-PREPR-HEAD-GRADERS
+- The review packet still cannot render on a cloud seat. `review_packet.py render` refused `host-path` (home-directory in the body) under both `HOME=/root` and a neutral `HOME`, and wrote no packet. The cause is `ref_privacy.Identity.of_host` adding passwd's `/root`, combined with the bare-substring match; the body's own description of the defect contains `/root`. Under a non-root identity, `body_refusal` returns `None` (`ev/packet-refusal.txt`). This is the defect the body already carries; it is not this PR's. Carry: R10-RECORD-API-O1
 
 ## Evidence
 
-- Head measured: `ef895338c0603c64adcf7ed6b2b25e06c5648b83` (ev/HEAD.txt). `git ls-remote` showed `fix/r10-rca-prepr-head-graders` at this SHA at 00:17Z. The body's `## Head` names this SHA. The merge base is `6493ea362`, which equals origin/main. `git diff <merge-base>...origin/main -- dev/governance/roles/` is empty, so this contract is current.
-- RESULT `grader_key_self_test` at head: 15 ok, 0 FAIL (ev/grader_key_self_test.txt). This matches the record's "Fifteen rows". I did not re-run the full `--self-test` (420 s), and I did not run the record's 292 s plant re-run.
-- RESULT mutants of the round-3 code, run in process from a patched copy of `ci_predict.py` at head (ev/mut.py, ev/mutants-round3.txt):
-  - M10 (`named_loads` not followed in `mjs_closure`): 4 failed. These include the round-2 plant row (`budget_raise_gate.py`) and the gap null control, which lists 15 unkeyed named sites.
-  - M11 (Python imports not followed): 1 failed, the `tests/layout.py` row.
-  - M12 (stale-exempt refusal dropped): 1 failed.
-  - M13 (named-gap enumeration dropped): 1 failed, "a key blind to named files…".
-  - M14 survived (see Findings).
-- Round 2's block is closed: `grader_hit("CORPUS", budget_raise_gate.py)` and `tests/layout.py` are keyed at this head (self-test rows 4-5), and M10 shows the keying is earned by `named_loads`.
-- `git merge-tree --write-tree origin/main ef895338c`: rc 0, tree `4f02d6250`, empty stderr (ev/merge-tree.txt, ev/merge-tree.stderr.txt).
-- `VERSION`, the manifest, `RELEASE_NOTES.md`, `tests/golden`, `*budgets*.json`, `tests/closures.json` and `tests/closure.py` have no three-dot diff from the merge base. Step 4 is not applicable.
-- CI at this head, read at 00:17Z (ev/check-runs.json, ev/workflow-runs.txt): `CI edit` was in progress and `CI code` was queued. No gate check had concluded, and none was red. Step 11 has nothing to answer at this read. The block does not depend on CI. The authored code head `0ca059dee` has no workflow runs of its own (ev/workflow-runs-codehead.txt).
-- Figures not re-derived: round 3's key table (539 merges, 21/32/27/21/4/7/28, any row 40), the 0.7 s unkeyed overhead, the 16.3 s / 49 s weighted cost, the 292 s plant, and the round-2 figures listed in the body.
-- Forward-carry: the body names only the `ref_privacy` carry (see Findings). The proposed `gate-scoping.md` line is stated as needing the owner's approval.
+- Head measured: `5a119e8af148efbfb5ee3605323b75cd7af4a01c` (`ev/HEAD.txt`). Its merge base equals `origin/main` `0265f524e`. `git diff merge-base...origin/main -- dev/governance/roles/` is empty, so the contract is current.
+- Merge: `git merge-tree --write-tree origin/main 5a119e8af` exits 0, so there is no conflict (`ev/merge-tree.txt`). `VERSION`, the manifest, `RELEASE_NOTES.md` and the claim files are untouched.
+- CI on this head, read from the check-runs API when this verdict was written (`ev/check-runs.txt`): 27 runs. Twelve are queued or in progress, including `policy-docs`, `env-matrix`, `mutation` and `pr-contract`'s prerequisites. None has concluded red. Step 11 is not judged, because the block does not depend on it.
+- Review packet: not rendered (see the third finding). I ran the checks directly instead.
+- Not re-taken this round: the body's figures (the 42-site, 10-file census, the key-hit counts and the 16.3 s and 292 s costs). The re-cut must re-take them, so I did not verify them here.
