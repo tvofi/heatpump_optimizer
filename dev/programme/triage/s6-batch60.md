@@ -1,4 +1,4 @@
-# Proposal triage, session s7, batch 60 (P278-P284)
+# Proposal triage, session s7, batch 60 (P278-P285)
 
 The rolling batch (V182) after batch 59 (#2945, merged as
 `66974d47312caa46e9817b9aeae7186e9764e560`). Facts were read at that origin/main.
@@ -329,3 +329,38 @@ and the PATH wiring. No API call is added.
 
 Binding: two exhaustions in two days, each blinding the sweep. The owner's question has no
 answer today, and the cache P248 deferred cannot be sized without one.
+
+## P285: every new PR body misses the main-graded nightly-status line while main's Nightly is red
+
+Verdict: ACCEPT, folded into R10-FLY-PACKET-RED-PATHS (P282) as item 3, with its measured count
+and its second null control. The opener-side variant, which inserts a standard answer line into
+the body, is REJECTED.
+
+Source: `proposals.md` V188 (orchestrator, 2026-10-29T16:58Z). The scheduled Nightly
+40806276912 failed at 02:25Z. Since then `review_packet.py` has refused dispatch on `red-unanswered:
+tests / nightly-status` for #2939, #2951, #2917, #2953, #2954, #2872, #2955, #2956 and #2957,
+each needing a body patch.
+
+Instances:
+- **The same defect as P282.** The packet calls `policy_lint.mjs --pr-body` with no changed
+  paths, so the reporter-input rule cannot exempt the main-graded checks. It is still so at
+  `279578074`: the call has moved to `review_packet.py:392` and `touched` to `:380`, and the
+  fly-in's brief is re-pinned to those lines. P282 measured four
+  refusals by 11:46Z. V188 counts nine for the day, so it is the same cause at a higher rate.
+- **The null control V188 names holds.** #2954's diff (merge base to `refs/pull/2954/head`)
+  touches `.github/workflows/nightly.yml` and `governance.yml`. `policy_lint.mjs` given those
+  paths and the base's existing ones still reports `tests / nightly-status` unanswered. So the
+  fix keeps refusing where the diff touches a reporter's inputs, and the fly-in pins this case.
+
+Accepted: the fly-in's brief gains V188's instances and the #2954-shaped null control. No new
+group: the call site, the inputs and the rule are P282's.
+
+Rejected: the opener inserting a standard answer line. It writes text to satisfy a check the rule
+already exempts, it is a second classifier beside `policy_lint.mjs` (the copy `prepr.sh` refuses),
+and the line would also land on a body whose diff does touch the inputs unless that classifier
+were exact.
+
+Cost: none beyond P282's, which is about 10 lines and one self-test arm.
+
+Binding: nine body-patch rounds in one day from one missing pair of arguments. This raises
+R10-FLY-PACKET-RED-PATHS's priority while main's Nightly stays red.
