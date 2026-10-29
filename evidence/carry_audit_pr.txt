@@ -1,3 +1,0 @@
-NOTE #2925 body item 6799107b: R10-RECORD-API-O1
-BAD-DEST #2925 review 6495961723 item a3103224: R10-RCA-PREPR-HEAD-GRADERS: R10-RCA-PREPR-HEAD-GRADERS is not a group of the roster
-CARRY-AUDIT #2925: 2 finding item(s): 1 routed, 0 unrouted, 1 bad destination(s)

@@ -5,40 +5,53 @@ base: ce5940c0d1d8f611a818d53e7fffcafb48b356c1
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
 ## Gate digest: red
-CodeQL id=123689005144 neutral
-arch-score / arch-score id=123688627649 success
+CodeQL id=123689005144 success
+arch-score / arch-score id=123796556890 in_progress
 arm id=123688419034 skipped
-budget-raise-gate / budget-raise-gate id=123688628036 success
-cancel-superseded id=123688426344 success
-codeql / Analyze (actions) id=123688627844 success
-codeql / Analyze (javascript-typescript) id=123688627927 success
-codeql / Analyze (python) id=123688628032 in_progress
-governance / delivery-status id=123688627930 success
-governance / delivery-status-publish id=123688630856 skipped
-governance / env-matrix id=123688627717 in_progress
-governance / instrument-self-tests id=123688627529 in_progress
-governance / policy-docs id=123688627790 in_progress
-governance / record id=123688629857 skipped
-governance / wave-script id=123688627564 success
-hassfest / hassfest id=123688627825 success
-kernel-points id=123688629803 skipped
-prelude id=123688426673 success
-refresh id=123688426641 success
-tests / arch-instrument id=123688859089 success
-tests / briefs id=123688627864 success
-tests / browser id=123688859090 in_progress
-tests / closure-scope id=123688627720 success
-tests / closures id=123688859070 in_progress
-tests / coverage id=123688859059 in_progress
-tests / fast (3.14) id=123688859093 in_progress
-tests / mutation id=123688627800 success
-tests / mutation-autofix id=123689018734 skipped
-tests / mutation-pins id=123689018442 skipped
-tests / nightly-ha id=123688861271 skipped
-tests / nightly-status id=123688627759 failure
-tests / replay id=123688862085 skipped
-tests / typing id=123688858978 in_progress
-validate / validate-hacs id=123688627575 success
+budget-raise-gate / budget-raise-gate id=123796556857 in_progress
+cancel-superseded id=123795896527 success
+codeql id=123796558120 skipped
+codeql / Analyze (actions) id=123795751678 success
+codeql / Analyze (javascript-typescript) id=123795748578 success
+codeql / Analyze (python) id=123795707926 success
+gate id=123796393899 in_progress
+governance id=123796558340 skipped
+governance / delivery-status id=123795766452 success
+governance / delivery-status-publish id=123795747742 skipped
+governance / env-matrix id=123795707843 success
+governance / instrument-self-tests id=123795707864 success
+governance / policy-docs id=123795743910 success
+governance / record id=123795707981 skipped
+governance / wave-script id=123795763837 success
+hassfest id=123796558244 skipped
+hassfest / hassfest id=123795707932 success
+kernel-points id=123796558960 skipped
+pr-contract / pr-contract id=123796014017 success
+prelude id=123795896335 success
+refresh id=123795896568 success
+tests id=123796558243 skipped
+tests / arch-instrument id=123795708998 success
+tests / briefs id=123795766533 success
+tests / browser id=123795708077 success
+tests / ci-ratchet id=123795710258 skipped
+tests / claims-autofix id=123795709499 skipped
+tests / closure-scope id=123795707555 success
+tests / closures id=123795708043 success
+tests / closures-autofix id=123795710239 skipped
+tests / coverage id=123795708045 success
+tests / coverage-ratchet id=123795710325 success
+tests / fast (3.14) id=123795708351 success
+tests / graders-head-copy id=123795710403 success
+tests / lane-proofs id=123795709822 success
+tests / mutation id=123795741416 success
+tests / mutation-autofix id=123795710163 skipped
+tests / mutation-pins id=123795708878 skipped
+tests / nightly-ha id=123795708325 skipped
+tests / nightly-status id=123795706996 failure
+tests / replay id=123795708075 skipped
+tests / typing id=123795708646 success
+validate id=123796558962 skipped
+validate / validate-hacs id=123795752308 success
 
 ## Refusals
 none
@@ -47,23 +60,29 @@ none
 none
 
 ## carry_audit at the head
-NOTE stale tree: f2daca863fb67409458f788e61839d4460a17ccb lacks origin/main e5ddba1fad5e6eccfeceaeaaa249bc459963405b; roster read at origin/main
-NOTE body item 6799107b: R10-RECORD-API-O1
-CARRY-AUDIT: 1 finding item(s): 1 routed, 0 unrouted, 0 bad destination(s)
+NOTE body item 2a99ef3b: R10-RECORD-API-O1
+NOTE body item 162aa32f: R10-FLY-CIPREDICT-RESTORING: R10-FLY-CIPREDICT-RESTORING resolved on origin/handoff/audit-r10-roster
+CARRY-AUDIT: 2 finding item(s): 2 routed, 0 unrouted, 0 bad destination(s)
 
 ## figure_lint at the head
-unverified git grep -n -- "- name: Restore the check source from the base commit" HEAD -- .github/workflows/
-             `git grep` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
-  ok         python3 -I tools/pr/ci_predict.py --self-test
+ok         python3 -I tools/pr/ci_predict.py --self-test
              `tools/pr/ci_predict.py` is in the tree at this head
+  ok         python3 -I dev/audit/rca/prepr-head-graders/keycount.py 14fbf218d 2026-10-14
+             `dev/audit/rca/prepr-head-graders/keycount.py` is in the tree at this head
+  ok         python3 -I dev/audit/rca/prepr-head-graders/jobtime.py 14fbf218d wave-script policy-docs
+             `dev/audit/rca/prepr-head-graders/jobtime.py` is in the tree at this head
+  ok         bash dev/audit/rca/prepr-head-graders/plant.sh <head> gate <head> <out>
+             `dev/audit/rca/prepr-head-graders/plant.sh` is in the tree at this head
   ok         python3 tests/structure.py
              `tests/structure.py` is in the tree at this head
   ok         python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)
              `tests/closure.py` is in the tree at this head
   ok         tests/entities.py
              `tests/entities.py` is in the tree at this head
+  ok         PYTHONPATH=tests/hastub python3 tests/entities.py
+             `tests/entities.py` is in the tree at this head
 
-FIGURES: 4 resolved, 1 not verified, 0 refused
+FIGURES: 8 resolved, 0 not verified, 0 refused
 
 ## Finder's harness: none named
 ### at the base
