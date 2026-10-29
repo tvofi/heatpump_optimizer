@@ -5,51 +5,51 @@ base: ce5940c0d1d8f611a818d53e7fffcafb48b356c1
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
 ## Gate digest: red
-arch-score / arch-score id=123687978702 success
-budget-raise-gate / budget-raise-gate id=123687995594 success
-cancel-superseded id=123688001428 success
-codeql id=123687923737 skipped
-codeql / Analyze (actions) id=123687963558 success
-codeql / Analyze (javascript-typescript) id=123687982835 success
-codeql / Analyze (python) id=123687956125 success
-gate id=123688862176 queued
-governance id=123687920535 skipped
-governance / delivery-status id=123687981580 success
-governance / delivery-status-publish id=123687960526 skipped
-governance / env-matrix id=123687908938 success
-governance / instrument-self-tests id=123687953838 success
-governance / policy-docs id=123687987765 success
-governance / record id=123687909054 skipped
-governance / wave-script id=123687976731 success
-hassfest id=123687989467 skipped
-hassfest / hassfest id=123687987675 success
-kernel-points id=123687977428 skipped
-pr-contract / pr-contract id=123688500186 success
-prelude id=123687979498 success
-refresh id=123687952508 success
-tests id=123687920966 skipped
-tests / arch-instrument id=123687910067 success
-tests / briefs id=123687908633 success
-tests / browser id=123687910712 success
-tests / ci-ratchet id=123687911707 skipped
-tests / claims-autofix id=123687910689 skipped
-tests / closure-scope id=123687964576 success
-tests / closures id=123687910721 success
-tests / closures-autofix id=123687911912 skipped
-tests / coverage id=123687910046 success
-tests / coverage-ratchet id=123687911893 success
-tests / fast (3.14) id=123687910019 success
-tests / graders-head-copy id=123687911237 success
-tests / lane-proofs id=123687911992 success
-tests / mutation id=123687985891 success
-tests / mutation-autofix id=123687910344 skipped
-tests / mutation-pins id=123687909917 skipped
-tests / nightly-ha id=123687910485 skipped
-tests / nightly-status id=123687907789 failure
-tests / replay id=123687910771 skipped
-tests / typing id=123687910397 success
-validate id=123688001399 skipped
-validate / validate-hacs id=123687955140 success
+arch-score / arch-score id=123694171341 success
+budget-raise-gate / budget-raise-gate id=123694173979 success
+cancel-superseded id=123694176339 success
+codeql id=123694170584 skipped
+codeql / Analyze (actions) id=123694158008 success
+codeql / Analyze (javascript-typescript) id=123694158875 success
+codeql / Analyze (python) id=123694158854 success
+gate id=123694171658 in_progress
+governance id=123694190557 skipped
+governance / delivery-status id=123694157705 success
+governance / delivery-status-publish id=123694158614 skipped
+governance / env-matrix id=123694158829 success
+governance / instrument-self-tests id=123694157432 success
+governance / policy-docs id=123694158678 success
+governance / record id=123694158792 skipped
+governance / wave-script id=123694158101 success
+hassfest id=123694193126 skipped
+hassfest / hassfest id=123694157539 success
+kernel-points id=123694206276 skipped
+pr-contract / pr-contract id=123694579117 in_progress
+prelude id=123694236376 success
+refresh id=123694195148 success
+tests id=123694191083 skipped
+tests / arch-instrument id=123694161884 success
+tests / briefs id=123694158502 success
+tests / browser id=123694160280 success
+tests / ci-ratchet id=123694163092 skipped
+tests / claims-autofix id=123694163201 skipped
+tests / closure-scope id=123694157487 success
+tests / closures id=123694161542 success
+tests / closures-autofix id=123694163281 skipped
+tests / coverage id=123694160878 success
+tests / coverage-ratchet id=123694163135 success
+tests / fast (3.14) id=123694160409 success
+tests / graders-head-copy id=123694163474 success
+tests / lane-proofs id=123694162840 success
+tests / mutation id=123694158576 success
+tests / mutation-autofix id=123694161545 skipped
+tests / mutation-pins id=123694160369 skipped
+tests / nightly-ha id=123694160158 skipped
+tests / nightly-status id=123694157121 failure
+tests / replay id=123694160580 skipped
+tests / typing id=123694161035 success
+validate id=123694171342 skipped
+validate / validate-hacs id=123694158631 success
 
 ## Refusals
 none
@@ -58,7 +58,6 @@ none
 none
 
 ## carry_audit at the head
-NOTE stale tree: 9ce0179f77aa68eab6440c3d85aa92e788936b22 lacks origin/main e5ddba1fad5e6eccfeceaeaaa249bc459963405b; roster read at origin/main
 CARRY-AUDIT: 0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s)
 
 ## figure_lint at the head
