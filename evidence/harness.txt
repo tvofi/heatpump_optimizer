@@ -1,0 +1,42 @@
+== base sweep 1
+owed: 0 key(s) on board 2026-10-29T08:00:00Z; 0 acknowledged, 0 unactioned (standing 2+ sweeps with no live OWED-ACK)
+RESULT base sweep1 rc=0
+== base sweep 2
+owed: 0 key(s) on board 2026-10-29T08:10:00Z; 0 acknowledged, 0 unactioned (standing 2+ sweeps with no live OWED-ACK)
+RESULT base sweep2 rc=0
+== head sweep 1
+owed: 2 key(s) on board 2026-10-29T08:00:00Z; 0 acknowledged, 0 unactioned (standing 2+ sweeps with no live OWED-ACK)
+RESULT head sweep1 rc=0
+== head sweep 2
+owed: 2 key(s) on board 2026-10-29T08:10:00Z; 0 acknowledged, 2 unactioned (standing 2+ sweeps with no live OWED-ACK)
+UNACTIONED
+  #2896  sweeps=2 first=2026-10-29T08:00:00Z (0.2h)
+      -> MERGE-READY: #2896 5f3a5dd6
+      ack: OWED-ACK <UTC> #2896 5f3a5dd6 ttl=1 <next action, by whom; what it waits on>
+  #2933  sweeps=2 first=2026-10-29T08:00:00Z (0.2h)
+      -> BLOCKED-UNFIXED: #2933 1a2b3c4d
+      ack: OWED-ACK <UTC> #2933 1a2b3c4d ttl=1 <next action, by whom; what it waits on>
+RESULT head sweep2 rc=1
+== head: ack #2896 only, sweep 3
+owed: 2 key(s) on board 2026-10-29T08:20:00Z; 1 acknowledged, 1 unactioned (standing 2+ sweeps with no live OWED-ACK)
+  acked #2896 5f3a5dd6 until 09:15Z: merge train lands it after CI
+UNACTIONED
+  #2933  sweeps=3 first=2026-10-29T08:00:00Z (0.3h)
+      -> BLOCKED-UNFIXED: #2933 1a2b3c4d
+      ack: OWED-ACK <UTC> #2933 1a2b3c4d ttl=1 <next action, by whom; what it waits on>
+RESULT head sweep3 rc=1
+== head: non-strict level line
+UNREADABLE: an owed line names no topic or pull request: -> MERGE-READY: #2896 5f3a5dd6 extra
+RESULT head malformed-level rc=0
+== null: board without levels, base vs head
+RESULT null base sweep1 rc=0
+RESULT null base sweep2 rc=1
+RESULT null head sweep1 rc=0
+RESULT null head sweep2 rc=1
+RESULT null: base and head output identical
+owed: 1 key(s) on board 2026-10-29T08:10:00Z; 0 acknowledged, 1 unactioned (standing 2+ sweeps with no live OWED-ACK)
+UNACTIONED
+  #2920  sweeps=2 first=2026-10-29T08:00:00Z (0.2h)
+      -> REVIEW OWED: #2920 5f3a5dd615b5
+      ack: OWED-ACK <UTC> #2920 5f3a5dd615b5 ttl=1 <next action, by whom; what it waits on>
+RESULT head malformed-level rc=2
