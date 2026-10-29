@@ -10151,10 +10151,8 @@ class ExpandedDialog {
    * no position to carry: the new page opens at its top (R10-UX-HEALTH
    * item 3, its first row drawn under the head at the old page's offset). */
   saveScroll(root) {
-    const openBody = root.querySelector("dialog.expanded .dlg-body");
-    const shown = root.querySelector("dialog.expanded .dlg-tab.active");
-    this.scroll = openBody && (!shown || shown.dataset.page === this.activePage())
-      ? openBody.scrollTop : this.scroll || 0;
+    const [body, shown] = [".dlg-body", ".dlg-tab.active"].map((sel) => root.querySelector(`dialog.expanded ${sel}`));
+    if (body && (!shown || shown.dataset.page === this.activePage())) this.scroll = body.scrollTop;
   }
 
   /** Which page an expanded dialog opens on, decided once `anyData` is known
