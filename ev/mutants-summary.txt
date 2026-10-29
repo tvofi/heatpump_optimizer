@@ -1,0 +1,25 @@
+== M1
+  FAIL a8:register_once  [16 registered after two entries; catalog 13; extra=['assign_entity__dup', 'run_optimization__dup', 'set_thermal_parameters__dup']; missing=[]]
+  FAIL hb:positive_control  [a 600 ms spin read as 737.6 ms; dump names the spin: True; py-spy rc=0 names it: False; try 3 of 3 (at most 3)]
+  FAIL hb:positive_control  [a 600 ms spin read as 600.4 ms; dump names the spin: True; py-spy rc=0 names it: False; try 3 of 3 (at most 3)]
+  FAIL gate-sweep.yml: on CI's completion, no concurrency, main's program on the trigger's run id alone, its outcome read from the output's word (SWEEP-DONE / SKIP / SWEEP done, RATE-LIMITED and anything else red), never from the exit code (U0c)  [defects=["program (['SWEEP-DONE run=2 reruns=0'], rc 1) -> step rc 1, want success", "program (['RATE-LIMITED reset_epoch=99; no further re-runs before it'], rc 1) -> step rc 1, want a failure with ::error title=RATE-LIMITED::", "program (['RuntimeError: GET actions/runs/2: 500'], rc 1) -> step rc 1, want a failure with ::error title=sweep failed::"]
+== M5
+  FAIL a8:register_once  [16 registered after two entries; catalog 13; extra=['clear_manual_plan__dup', 'diagnose_interval__dup', 'simulate_plan__dup']; missing=[]]
+  FAIL hb:positive_control  [a 600 ms spin read as 726.5 ms; dump names the spin: True; py-spy rc=0 names it: False; try 3 of 3 (at most 3)]
+  FAIL hb:positive_control  [a 600 ms spin read as 601.0 ms; dump names the spin: True; py-spy rc=0 names it: False; try 3 of 3 (at most 3)]
+  FAIL every `bash -c` / `sh -c` a check runs carries errexit, as GitHub's step shell does, unless it runs no workflow step (countermeasure B)  [read 312 of 312 tracked (INERT left out; beatd.py, INERT, is the excluded arm) sites=19 without errexit=['tools/audit/seat/beatd.py:_stubborn', 'tools/audit/seat/beatd.py:case3', 'tools/audit/seat/beatd.py:pair', 'tools/audit/seat/beatd.py:pair', 'tools/audit/seat/beatd.py:_race', 'tools/audit/seat/beatd.py:_discovery', 'tools/audit/seat/beatd.py:case6_beat', 'tools/audit/seat/beatd.py:case6_beat'] listed and unused=[] plants missed=[]; a step run und
+== M7a
+  FAIL a8:register_once  [16 registered after two entries; catalog 13; extra=['clear_manual_plan__dup', 'set_mode__dup', 'simulate_plan__dup']; missing=[]]
+  FAIL hb:positive_control  [a 600 ms spin read as 755.0 ms; dump names the spin: True; py-spy rc=0 names it: False; try 3 of 3 (at most 3)]
+  FAIL hb:positive_control  [a 600 ms spin read as 605.7 ms; dump names the spin: True; py-spy rc=0 names it: False; try 3 of 3 (at most 3)]
+  FAIL and the errexit check reads the shapes, not one call (null controls)  [cases wrong=['if arith'] empty tree=(0, 0, []) (a green over no block is a skip) shell arm=(2, 2)+2 hits (`shell: python` is not errexit) live batch gate unwrapped=['.github/workflows/a.yml job=record-autofix step=\'Write the rows and push the record branch\': `python3 -I tools/audit/seat/record_row.py  --batch-due --plan-file "$RUNNER_TEMP/plan.json` then `batch=$?`']]
+== M7b
+  FAIL a8:register_once  [16 registered after two entries; catalog 13; extra=['apply_schedule__dup', 'debug_collect__dup', 'set_thermal_parameters__dup']; missing=[]]
+  FAIL hb:positive_control  [a 600 ms spin read as 738.7 ms; dump names the spin: True; py-spy rc=0 names it: False; try 3 of 3 (at most 3)]
+  FAIL hb:positive_control  [a 600 ms spin read as 600.6 ms; dump names the spin: True; py-spy rc=0 names it: False; try 3 of 3 (at most 3)]
+  FAIL and the errexit check reads the shapes, not one call (null controls)  [cases wrong=['arith list', 'if arith'] empty tree=(0, 0, []) (a green over no block is a skip) shell arm=(2, 2)+2 hits (`shell: python` is not errexit) live batch gate unwrapped=['.github/workflows/a.yml job=record-autofix step=\'Write the rows and push the record branch\': `python3 -I tools/audit/seat/record_row.py  --batch-due --plan-file "$RUNNER_TEMP/plan.json` then `batch=$?`']]
+== M8
+  FAIL a8:register_once  [16 registered after two entries; catalog 13; extra=['apply_manual_plan__dup', 'run_optimization__dup', 'set_mode__dup']; missing=[]]
+  FAIL hb:positive_control  [a 600 ms spin read as 726.1 ms; dump names the spin: True; py-spy rc=0 names it: False; try 3 of 3 (at most 3)]
+  FAIL hb:positive_control  [a 600 ms spin read as 602.0 ms; dump names the spin: True; py-spy rc=0 names it: False; try 3 of 3 (at most 3)]
+  FAIL every `bash -c` / `sh -c` a check runs carries errexit, as GitHub's step shell does, unless it runs no workflow step (countermeasure B)  [read 263 of 312 tracked (INERT left out; beatd.py, INERT, is the excluded arm) sites=11 without errexit=[] listed and unused=[] plants missed=['env bash']; a step run under a bare `bash -c` passes a bare call errexit ends on the runner -- use `_GHA_RUN`]

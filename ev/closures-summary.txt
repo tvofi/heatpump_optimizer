@@ -1,0 +1,4 @@
+tests / closures job 123741244321 at 885d4751ade87cd22eebe9eb404b3755674f5083, conclusion success:
+2026-10-29T22:05:10.9572549Z note: tests/entities.py lists 1 file(s) this run did not touch (safe: over-scoped)
+2026-10-29T22:05:10.9592012Z closure: committed closures cover every file this run touched
+2026-10-29T22:05:14.4024600Z closure: no test file defines a symbol production also defines
