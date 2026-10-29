@@ -1,0 +1,13 @@
+diff --git a/tests/nightly_ha.py b/tests/nightly_ha.py
+index e7e9f23de..9bd71d030 100644
+--- a/tests/nightly_ha.py
++++ b/tests/nightly_ha.py
+@@ -2071,8 +2071,6 @@ def _hb_on_hang(checks: Checks, name: str):
+ 
+ def sample_command() -> list[str] | None:
+     """The stall sampler's argv, the pid appended: the interpreter's own unwinder, else py-spy."""
+-    if importlib.util.find_spec("_remote_debugging") is not None:
+-        return [sys.executable, "-c", _STDLIB_SAMPLE]
+     path = f"{IN_DRIVER_DIR}/py-spy"
+     # --nonblocking: a default dump ptrace-stops the process, loop included,
+     # and that pause would be added to the gap it reports.
