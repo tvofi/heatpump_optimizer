@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:valve_charge_demand CLAMP_DROP 4f2d48ae",
+  "killed_by": "tests/features.py",
+  "old": "        min(t, p.buffer_max_temp) for _, top, zone in circuits for t in (top, zone)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`(t) for _, top, zone in circuits for t in (top, zone)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}
