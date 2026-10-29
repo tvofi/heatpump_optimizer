@@ -494,6 +494,9 @@ const PAIRS = [
 // instances only; the barrier pull request classifies every entry the
 // discovery arm prints.
 const SHARED_GRAMMARS = {
+  "(if|elif|while|until)\\b|^!|\\|\\||&&|": "identical:countermeasure A's errexit safe-producer grammar, in entities.py a disclosed port of the frozen finder harness r10_errexit_capture.py (e1a684789), equal to it on six trees in R10-ERREXIT-COUNTERMEASURES",
+  "(if|while|until)\\s+(!)?(?=\\[|test\\b)": "identical:countermeasure A's errexit test-head grammar, in entities.py a disclosed port of the frozen finder harness r10_errexit_capture.py (e1a684789), equal to it on six trees in R10-ERREXIT-COUNTERMEASURES",
+  "(\\w+=|case\\b|\\[|\\[\\[|test\\b|echo\\b|printf\\b|exit\\b|return\\b|local\\b)": "identical:countermeasure A's errexit reader-statement grammar, in entities.py a disclosed port of the frozen finder harness r10_errexit_capture.py (e1a684789), equal to it on six trees in R10-ERREXIT-COUNTERMEASURES",
   "  ([A-Za-z][\\w-]*):": "identical:the job-id scan of a workflow's jobs: block, a disclosed copy of entities.py _workflow_job_ids in the governance-workflow-jobs reader, null-controlled by the 'briefs' job",
   "wave-.*-groups\\.json": "identical:three directory filters over the wave rosters, one listing rule",
   "const VERDICT_CLASSES = \\[([^\\]]*)\\]": "identical:the wave script's verdict-class list extractor, read in three tools",
