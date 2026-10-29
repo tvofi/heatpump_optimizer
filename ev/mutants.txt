@@ -1,0 +1,31 @@
+== mA.log
+6 of 4565 FEATURE CHECKS FAILED
+rc=1
+  FAIL single-zone: the savings reference never charges its valved tank into the cap  [reference refused 27.79 kWh; its tank peaked at 70.0 C]
+  FAIL single-zone: a valved reference costs the unvalved one plus the tank's loss  [valved 27.19 kWh vs unvalved 8.15 + loss bound 5.95]
+  FAIL two-zone: the savings reference never charges its valved tank into the cap  [reference refused 0.00 kWh; its tank peaked at 60.6 C]
+  FAIL two-zone: a valved reference costs the unvalved one plus the tank's loss  [valved 14.92 kWh vs unvalved 9.00 + loss bound 4.84]
+  FAIL single-zone valve: the reference charges the tank onto its curve, never past it  [a 26 C tank over a 25 C slab ends the step at 29.4493 C; the curve is 26.6000 C]
+  FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
+== mB.log
+3 of 4565 FEATURE CHECKS FAILED
+rc=1
+  FAIL the tank law charges to the temperature whose draw is the need  [a 2.0 kW need delivered 1.141 kW the next step from a 25 C tank, 0.896 kW from a 22 C tank below the slab]
+  FAIL single-zone valve: the reference charges the tank onto its curve, never past it  [a 26 C tank over a 25 C slab ends the step at 27.1364 C; the curve is 26.6000 C]
+  FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
+== mC.log
+3 of 4565 FEATURE CHECKS FAILED
+rc=1
+  FAIL single-zone: the terminal cost credits a valved store tank  [a tank left cold is heat bought back, in either zoning]
+  FAIL zoned store census: the terminal cost credits the tank in every zoning (#2500)  [single-zone 0.0000, two-zone -17.3299]
+  FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
+== mD.log
+2 of 4565 FEATURE CHECKS FAILED
+rc=1
+  FAIL single-zone valve: a tank above buffer_max_temp cools at its physical rate  [refused 14.094 kW; the tank gave 17.4000 kW against 3.3061 kW delivered and lost]
+  FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
+== null.log
+1 of 4565 FEATURE CHECKS FAILED
+rc=1
+  FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
+mutants applied to git archive of 6f41ef788f8e2c0fb814f7ed4aab255f391e617b; full tests/features.py per arm

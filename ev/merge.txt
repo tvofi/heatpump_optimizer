@@ -1,0 +1,45 @@
+head 6f41ef788f8e2c0fb814f7ed4aab255f391e617b
+origin/main ee4893758846f93d7acc5eabc06748b787f272e5
+merge-base ee4893758846f93d7acc5eabc06748b787f272e5
+tree(36705cf5e)=cb1450871a345f1e977adbb2a889c826f02419b3 tree(head)=cb1450871a345f1e977adbb2a889c826f02419b3
+$ git merge-tree --write-tree origin/main HEAD
+cb1450871a345f1e977adbb2a889c826f02419b3
+rc=0
+--- bugclasses.json: main -> head
+diff --git a/dev/audit/config/bugclasses.json b/dev/audit/config/bugclasses.json
+index e47bbae28..ff538160f 100644
+--- a/dev/audit/config/bugclasses.json
++++ b/dev/audit/config/bugclasses.json
+@@ -326,7 +326,8 @@
+     "rca": [
+       "R9-P2",
+       "RCA-1499",
+-      "RCA-R8-P2"
++      "RCA-R8-P2",
++      "R10-RCA-BUFFER-STORE"
+     ],
+     "rca_planned": [
+       "R9-F1.11"
+@@ -4534,6 +4535,22 @@
+         "dev/audit/rca/R10-RCA-HEADMOVED.md"
+       ]
+     },
++    "R10-RCA-BUFFER-STORE": {
++      "class": "P2",
++      "level": "instance-or-process",
++      "subject": "a 750 L buffer behind a manual valve plans as if no tank existed: the single-zone step had no valve branch (#2499/#2500) and the terminal cost's store credit sat inside the two-zone branch, while config_flow offered the tank in every zoning",
++      "trigger": "round-10 class P2; the group's roster next step was rca",
++      "date": "2026-10-26",
++      "status": "proposed",
++      "parts_missing": [],
++      "process_state": "(c) _grad_parity covered 3 of the 4 zoning x valve cells (single-zone with valve never built); the base docstring records the missing branch as design; 32 of 33 valve-armed ThermalParameters fixtures declare two_zone_enabled=True and the 33rd feeds battery_view without stepping the model",
++      "countermeasure": "three-arm zoned-store census in tests/features.py (valve response, cap refusal, terminal credit, each in both zonings), registered in tests/entities.py _P2_CENSUSES as zoned_store_valve_live, zoned_store_cap_live, zoned_store_credit_live; 0.001 s median per features.py run against a 15,660 s per-finding fix cost at 0.66 instances per release",
++      "landed": null,
++      "in_tree_home": "dev/audit/rca/R10-RCA-BUFFER-STORE.md",
++      "doc": [
++        "dev/audit/rca/R10-RCA-BUFFER-STORE.md"
++      ]
++    },
+     "R10-RCA-OWED-UNACTIONED": {
+       "class": null,
+       "level": "instance-or-process",
