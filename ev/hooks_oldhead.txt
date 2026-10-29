@@ -1,0 +1,6 @@
+Updated 1 path from d607b2948
+restored: tools/audit/seat/cloud-setup.sh 
+  SELF-TEST FAILED  SessionStart  .claude/hooks/session-start.sh  12 passed, 2 failed
+  ok                PreToolUse    .claude/hooks/pre-edit.sh  22 passed, 0 failed
+  ok                Stop          .claude/hooks/stop-selfcheck.sh  29 passed, 0 failed
+HOOKS REFUSED: 1 of 3 hook(s) checked is not wired, missing, unreadable, or fails its own --self-test
