@@ -1,0 +1,8 @@
+RESULT scenario=A serial=False interleaved=False
+RESULT scenario=B serial=False interleaved=False
+RESULT scenario=C serial=True interleaved=True
+RESULT gated=1
+RESULT l3_differ_total=0 of 3
+RESULT l3_null_differ_total=0 of 3
+RESULT probe_lost_midload=0 count
+RESULT probe_lost_null=0 count
