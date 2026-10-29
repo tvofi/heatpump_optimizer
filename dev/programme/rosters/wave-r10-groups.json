@@ -7224,9 +7224,9 @@
    "architect_note": "",
    "brief": "bus.sh orphans treats a handoff whose patch is already on main (git apply --reverse --check passes on origin/main, forward apply fails) as landed-rewritten/superseded, not stranded. bus.sh content_superseded's M arm requires a byte-identical blob and misses a file that moved on. Evidence: r10-earlycutoff-coverage listed 121.8 h stranded though #2397 merged it (P14). Fold: cloud_relay.sh classifies handoff-no-pr from its own rules; it uses bus.sh orphans' classifier instead (32 of 37 handoff-no-pr refs were noise: 20 body duplicates, 12 already in main); evidence 5 merged handoffs (PRs 2513/2465/2485/2519/2525) reported OWED until archived 22:33.",
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-fly-orphans-rewritten",
-    "commit": null,
+    "commit": "077dee8567ebebc4bac7481c54276348d5bceab3",
     "last_step": null,
     "next_step": "dispatch a fixer (fly-in, lane F)",
     "note": "Fly-in registered by the orchestrator (session s4) under mandate 6319294694; pack ORCHESTRATOR-PROMPT.md revision 19 names the spec.",
