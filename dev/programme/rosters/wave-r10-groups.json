@@ -10332,7 +10332,7 @@
     "From PR #2925 review (R10-RCA-PREPR-HEAD-GRADERS round 1): tools/audit/seat/ref_privacy.py `_leaks` home-directory test is a bare substring match of $HOME, so on cloud seats (HOME=/root) it matches `roles/root-cause.md` and review_packet.py refuses `host-path` and writes no packet. Fix: match HOME only as a path prefix/component (e.g. `HOME + \"/\"` at a word boundary), with a failing-first self-test on the /root vs roles/root-cause.md case and a null control that a real host path still refuses."
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": ""
    },
    "brief": "Fixer for the decisions and measurements the root cause of the 04:53Z installation rate-limit burst (R10-RCA-RATELIMIT-RECUR, PR #2852) left open: carry 1, decision O-1 (M3): count the record path demand as record + enumerate + rest and fix record_burst_replay.py, which underreads by the enumerate share; carry 2, a second M0 pair (gh api rate_limit before and after) around Nightly record-autofix's enumerate step; carry 3, the ref_privacy.py home-directory match has no path-segment boundary (an instrument finding from the #2852 review). Workflow files are code-owned: the owner reviews. Failing test first, each carry's control re-measured at the landing merge base, never carry the quoted figures.",
