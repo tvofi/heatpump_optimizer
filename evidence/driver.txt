@@ -1,3 +1,0 @@
-MERGE-CLAIM: resolved tests/golden/claimed_drift.txt
-driver rc=0
-driver output == head file

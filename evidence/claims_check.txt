@@ -1,0 +1,3 @@
+claims-for: ['# claims-for: 7.0.5'] VERSION: 7.0.5
+claimed: ['coord_all_features', 'coord_dhw', 'coord_grid_fee', 'coord_minimal', 'coord_two_zone']
+claimed AND may-drift: []

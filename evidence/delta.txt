@@ -1,0 +1,37 @@
+parents: 2fda9547ec7f49620efdfee368eb8d19dbadd19b ce5940c0d1d8f611a818d53e7fffcafb48b356c1
+merge-base(P1,P2): 279578074a17cb2c7f527f5e28da0de4e2006db0
+remerge tree: 238f49c4a811e5ceeb61886792eff0f8e6a2c369
+head tree:    238f49c4a811e5ceeb61886792eff0f8e6a2c369
+tests/golden/claimed_drift.txt @ 279578074a17cb2c7f527f5e28da0de4e2006db0: ccd1d1a060c7b995371d514bdee5d8023eb3c71b
+tests/golden/claimed_drift.txt @ 2fda9547ec7f49620efdfee368eb8d19dbadd19b: 582f22ba184f079626f8ba98856e491e80d71771
+tests/golden/claimed_drift.txt @ ce5940c0d1d8f611a818d53e7fffcafb48b356c1: ccd1d1a060c7b995371d514bdee5d8023eb3c71b
+tests/golden/claimed_drift.txt @ c861c0e7b04f86e0626bbc0f8d8ecc7b26bf3b33: 582f22ba184f079626f8ba98856e491e80d71771
+tests/golden/card_claimed_drift.txt @ 279578074a17cb2c7f527f5e28da0de4e2006db0: 1f470c06e75b5d806ccf912e1a612dd000d3d9f3
+tests/golden/card_claimed_drift.txt @ 2fda9547ec7f49620efdfee368eb8d19dbadd19b: 1f470c06e75b5d806ccf912e1a612dd000d3d9f3
+tests/golden/card_claimed_drift.txt @ ce5940c0d1d8f611a818d53e7fffcafb48b356c1: 1f470c06e75b5d806ccf912e1a612dd000d3d9f3
+tests/golden/card_claimed_drift.txt @ c861c0e7b04f86e0626bbc0f8d8ecc7b26bf3b33: 1f470c06e75b5d806ccf912e1a612dd000d3d9f3
+VERSION @ 279578074a17cb2c7f527f5e28da0de4e2006db0: 2be8aeb6b14333c1767b6571ff0f7c9f43ee803b
+VERSION @ 2fda9547ec7f49620efdfee368eb8d19dbadd19b: 2be8aeb6b14333c1767b6571ff0f7c9f43ee803b
+VERSION @ ce5940c0d1d8f611a818d53e7fffcafb48b356c1: 2be8aeb6b14333c1767b6571ff0f7c9f43ee803b
+VERSION @ c861c0e7b04f86e0626bbc0f8d8ecc7b26bf3b33: 2be8aeb6b14333c1767b6571ff0f7c9f43ee803b
+-- delta files (2fda9547ec7f49620efdfee368eb8d19dbadd19b..c861c0e7b04f86e0626bbc0f8d8ecc7b26bf3b33):
+M	dev/audit/config/bugclasses.json
+A	dev/audit/rca/R10-FRICTION-GATE-SCOPING.md
+A	dev/audit/rca/R10-RCA-FRICTION-CLAIM-FALSE.md
+A	dev/audit/rca/claim-false/items.tsv
+A	dev/audit/rca/claim-false/stats_v7.0.5.txt
+A	dev/audit/rca/gate-scoping/friction_lines.py
+A	dev/audit/rca/gate-scoping/friction_lines_88c6ad5.txt
+A	dev/audit/rca/gate-scoping/stats_v7.0.4_88c6ad5.txt
+M	dev/governance/roles/proposal-triage.md
+A	dev/programme/delivery/2956.md
+A	dev/programme/delivery/2957.md
+A	dev/programme/delivery/2958.md
+A	dev/programme/triage/s6-batch60.md
+M	tests/entities.py
+-- files both sides changed since base:
+tests/entities.py
+-- main since P2 touching claim files/VERSION:
+(none above = untouched)
+-- merge-tree vs origin/main e5ddba1fad5e6eccfeceaeaaa249bc459963405b:
+22949bd00f1ef4659712909569bdd79c914eb846
