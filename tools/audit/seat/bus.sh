@@ -5,7 +5,7 @@
 #
 #   bus.sh push-verdict <pr> <VERDICT.md> <evidence dir>       (reviewer)
 #   bus.sh watch [--once] [--post] [--every <seconds>]          (orchestrator)
-#   bus.sh dispatch <pr> <head> <reviewer> [--nonce N] [--model M] [--past-three <reason>]
+#   bus.sh dispatch <pr> <head> <reviewer> [--reviewed-head <sha>] [--nonce N] [--model M] [--past-three <reason>]
 #                   [--harness <path> | --harness-file <file>]
 #   bus.sh confirm <pr> <review commit>                         (orchestrator)
 #   bus.sh post <pr>                                            (orchestrator)
@@ -30,7 +30,13 @@
 # one the reviewer measured, which `app_approve.sh --carry` refuses as a
 # commit of the branch's own, so it costs a re-review (R9-RCA-1990 class E).
 # A verdict posts only against a dispatch's nonce, so this is the one place
-# that can keep the row from landing late.
+# that can keep the row from landing late. `dispatch` also REFUSES TO MINT a
+# nonce for a head whose `review_carry.py <reviewed-head> <head>` answers
+# CARRY -- no branch-authored commit since the head the caller names with
+# --reviewed-head (tvofi, 2026-10-27: "if there are no code changes, the
+# previous review can be carried"). The refusal is what makes the ruling
+# mechanical rather than a judgement a seat can talk itself out of; a
+# `--nonce` re-record mints nothing and is left alone.
 # `orphans` is the handoff family's level-triggered obligation, which `watch`
 # only ever reports once. A `handoff/<t>` whose `handoff-body/<t>` ref exists
 # owed a pull request -- `open_pr.sh` fetches both and fails without the body --
@@ -419,11 +425,12 @@ three_rounds() { # pr past-three-reason -> 0 to dispatch; else why
 # render` writes $S/packets/<pr>-<head>.md, refusing on its mechanical signals, and dispatch
 # names it only once `check` reads that head in it. --harness/--harness-file is the finder's.
 # HPO_BUS_PACKER replaces the renderer (the self-test's stub).
-dispatch() { # pr head reviewer [--nonce N] [--model M] [--past-three <reason>] [--harness P|--harness-file F] -> records, closes, prints the packet and nonce lines
-  local pr=${1:-} h=${2:-} r=${3:-} n="" m=- p3="" row why hk="" hv="" pk prc=0 pmsg="" pkline=""
+dispatch() { # pr head reviewer [--reviewed-head <sha>] [--nonce N] [--model M] [--past-three <reason>] [--harness P|--harness-file F] -> records, closes, prints the packet and nonce lines
+  local pr=${1:-} h=${2:-} r=${3:-} n="" m=- p3="" row why rh="" carry rc hk="" hv="" pk prc=0 pmsg="" pkline=""
   shift 3 2>/dev/null || shift $#
   while [ $# -gt 0 ]; do
     case $1 in
+      --reviewed-head) [[ ${2:-} =~ ^[0-9a-f]{40}$ ]] || die "dispatch: --reviewed-head takes a 40-hex commit"; rh=$2; shift 2 ;;
       --nonce) [[ ${2:-} =~ ^[0-9a-f]{32}$ ]] || die "dispatch: --nonce takes a 32-hex nonce"; n=$2; shift 2 ;;
       --model) [[ ${2:-} =~ ^[A-Za-z0-9._-]+$ ]] || die "dispatch: --model takes one token"; m=$2; shift 2 ;;
       --past-three) [ -n "${2:-}" ] && [ "${2#--}" = "$2" ] || die "dispatch: --past-three needs a reason"; p3=$2; shift 2 ;;
@@ -447,6 +454,25 @@ dispatch() { # pr head reviewer [--nonce N] [--model M] [--past-three <reason>] 
     || die "dispatch: the head $h is not readable in this checkout; fetch it, then dispatch"
   git cat-file -e "$h:$row" 2>/dev/null \
     || die "dispatch: #$pr's head $h carries no $row; the row lands before the review (delivery-status-tracking.md) -- write it and re-push, then dispatch"
+  # THE REVIEW CARRY (tvofi, 2026-10-27: "if there are no code changes, the
+  # previous review can be carried"). A fresh nonce over a head whose range
+  # against the reviewed head the caller names is clean starts a second
+  # reviewer for a proof that did not move. `review_carry.py` answers from the
+  # commit range and app_approve.sh --carry's predicate, so the seat cannot
+  # judge; this refusal is a refusal, not a warning, because a warning is what
+  # let the second reviewer start.
+  # --nonce mints nothing (a relay-minted nonce re-recorded for the seat
+  # fired with it), so it is left alone.
+  if [ -n "$rh" ] && [ -z "$n" ]; then
+    git cat-file -e "$rh^{commit}" 2>/dev/null || git fetch -q "$REMOTE" "$rh" 2>/dev/null
+    carry=$(python3 -I "$ROOT/tools/audit/seat/review_carry.py" "$rh" "$h" \
+              --verdict-only 2>&1); rc=$?
+    if [ "$rc" = 2 ]; then
+      die "dispatch: cannot read the range $rh..$h: ${carry#review_carry: CANNOT DECIDE: }"
+    elif [ "$rc" = 0 ]; then
+      die "dispatch: #$pr's head $h carries no branch-authored commit since the reviewed head $rh (review_carry: CARRY) -- the prior review carries, so no second reviewer is dispatched (tvofi, 2026-10-27)"
+    fi
+  fi
   why=$(three_rounds "$pr" "$p3") || die "dispatch: $why"
   pk=$S/packets/$pr-$h.md
   # THE PACKET IS AN AID, NEVER A GATE ON THE DISPATCH. Two failures are different:
@@ -685,7 +711,7 @@ EOF
 self_test() {
   local W pass=0 fail=0 out rc h1 h2 norow r1 r2 r9 v1 v2 ra rf t tt ev n N0 N1 N1b N1c N2 N9
   local N3 N3b N3c N3d N4 DT fa g1 ro n0 realgit want wanttree
-  local o1 o2 u1 u2 x1 x2 c1 c2 s1 m1 mb f1 f2
+  local o1 o2 u1 u2 x1 x2 c1 c2 s1 m1 mb f1 f2 hm mainadv cbase
   W=$(mktemp -d) || { echo "self-test: no temporary directory"; return 1; }
   ok() { pass=$((pass + 1)); printf '  ok   %s\n' "$1"; }
   bad() { fail=$((fail + 1)); printf '  FAIL %s\n' "$1"; }
@@ -854,6 +880,37 @@ bus-nonce: $N1b" ] && [ "$(grep -c " $N1b " "$W/state/dispatched")" = 2 ] \
   out=$(run dispatch 7 "$h1" cmsg_Z2); rc=$?
   [ $rc = 0 ] && echo "$out" | grep -q '^bus-nonce: '
   expect "dispatch accepts the same pull request once its row is on the head (null control)" $?
+  # THE REVIEW CARRY (R10-REVIEW-CARRY; tvofi, 2026-10-27). A fresh nonce over a
+  # head whose range against the named reviewed head is clean starts a second
+  # reviewer for a proof that did not move. `hm` is a merge-only move (main
+  # advances, the branch merges it); `h2` carries a non-merge commit. One
+  # command, opposite answers: `review_carry.py` decides, dispatch refuses or
+  # mints. origin/main is restored below so the orphans arms keep their base.
+  cbase=$(git -C "$W/seat" rev-parse "origin/main")
+  git -C "$W/seat" checkout -q -b carry-main "$h1"
+  printf 'main moves\n' > "$W/seat/main-move.txt"
+  git -C "$W/seat" add main-move.txt
+  git -C "$W/seat" -c user.name=t -c user.email=t@t commit -q -m "main moves on"
+  mainadv=$(git -C "$W/seat" rev-parse HEAD)
+  git -C "$W/seat" push -q origin HEAD:refs/heads/main
+  git -C "$W/seat" checkout -q -b carry "$h1"
+  git -C "$W/seat" -c user.name=t -c user.email=t@t merge -q --no-ff \
+    -m "Merge remote-tracking branch 'origin/main' into carry" "$mainadv"
+  hm=$(git -C "$W/seat" rev-parse HEAD)
+  out=$(seat dispatch 31 "$hm" cmsg_C1 --reviewed-head "$h1"); rc=$?
+  [ $rc != 0 ] && echo "$out" | grep -q "review_carry: CARRY" \
+    && echo "$out" | grep -q "reviewed head $h1" \
+    && ! echo "$out" | grep -q '^bus-nonce: ' \
+    && [ "$(grep -c "^31 " "$W/state/dispatched")" = 0 ] \
+    && ! python3 -I "$ROOT/tools/audit/seat/ledger.py" --log "$W/ledger/cloud-relay.log" board 2>/dev/null \
+         | grep -q "reviewer-fire 31 "
+  expect "dispatch refuses to mint a nonce over a clean range, naming the reviewed head, and records nothing" $?
+  out=$(seat dispatch 31 "$h2" cmsg_C2 --reviewed-head "$h1"); rc=$?
+  [ $rc = 0 ] && echo "$out" | grep -q '^bus-nonce: ' \
+    && [ "$(grep -c "^31 $h2 " "$W/state/dispatched")" = 1 ]
+  expect "null control: dispatch mints at a head that does carry code" $?
+  git -C "$W/seat" checkout -q main
+  git -C "$W/seat" push -q -f origin "$cbase:refs/heads/main"
   printf 'Fix review: merge %s\n\nbus-nonce: %s\n' "$h1" "$N1" > "$W/merge.md"
   printf 'Fix review: merge %s\n\nbus-nonce: %s\n' "$h1" "$N1b" > "$W/othernonce.md"
   # push-verdict binds the nonce to its dispatch before it proposes. A nonce no
