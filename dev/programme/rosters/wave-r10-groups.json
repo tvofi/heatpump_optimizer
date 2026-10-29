@@ -11170,9 +11170,9 @@
    ],
    "carry": [],
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-fly-instruments-split",
-    "commit": "f5f87c8e34658da7fb0ed7c41eb411a47af3edf5",
+    "commit": "486e65cbd9c8451c01624f13b773feb6d722ad9b",
     "last_step": null,
     "next_step": "review the handoff",
     "note": "Owner order (tvofi, 2026-10-28)",
