@@ -1,0 +1,6 @@
+VERSION/manifest/notes diff (three-dot):
+card_claimed_drift diff:
+VERSION=7.0.5
+#   1. The `claims-for:` line below is machine-read and MUST equal the
+# `claims-for:` stamp below.
+role diff lines: 0

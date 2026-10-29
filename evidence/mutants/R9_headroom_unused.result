@@ -1,7 +1,0 @@
-RESULT R9_headroom_unused: rc=1 FAIL-lines=7 KILLED |   return _methods._mean(a, axis=axis, dtype=dtype,
-      FAIL single-zone valve: charging stops at buffer_max_temp and books the refusal  [tank 72.41 C, refused 0.000 kW]
-      FAIL zoned store census: the cap books what it refuses in every zoning (#2500)  [single-zone 0.0000 kW, two-zone 1.5947 kW]
-      ok   an unresolvable recorded_at FAILS the ratchet, it is not merely noted (#361)
-      FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
-      ok   the ratchet FAILS on an improvement instead of printing a note (#350)
-      ok   a pump command that FAILED is not remembered as done

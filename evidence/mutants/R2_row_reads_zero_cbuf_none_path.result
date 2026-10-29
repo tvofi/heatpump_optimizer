@@ -1,7 +1,0 @@
-RESULT R2_row_reads_zero_cbuf_none_path: rc=1 FAIL-lines=8 KILLED |   return _methods._mean(a, axis=axis, dtype=dtype,
-      FAIL batched simulation is bitwise-identical: single-zone with valve  [first divergences: ['room[0]@1', 'slab[0]@1', 'upper[0]@1', 'lower[0]@1']]
-      FAIL batched jac == scipy 2-point FD bit-for-bit on free variables: single-zone with valve  [gradient differs from scipy's estimate on the 48 free variables (maxabs=8.41e+03)]
-      FAIL single-zone valve: the stability count subdivides for the tank's own row  [one step 26.796 C vs 400 sub-steps 27.649 C]
-      ok   an unresolvable recorded_at FAILS the ratchet, it is not merely noted (#361)
-      FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
-      ok   the ratchet FAILS on an improvement instead of printing a note (#350)
