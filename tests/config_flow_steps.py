@@ -3348,23 +3348,28 @@ async def residual_statement_branches():
     )
     stored_price = options_over(stored_price_entry, FakeHass())
     await stored_price.async_step_entities(None)
+    # An untouched picker is re-submitted as its suggested value; a cleared
+    # one is absent, and that case is refused
+    # (``options_cleared_price_entity_is_refused``).
     result = await submit(
         stored_price,
         "entities",
         {
             const.CONF_PRICE_SOURCE: const.PRICE_SOURCE_ENTITY,
+            const.CONF_PRICE_ENTITY: "sensor.stored_price",
             const.CONF_WEATHER_ENTITY: "weather.home",
         },
     )
     check(
         "opt_entities",
         "happy",
-        "a stored price sensor satisfies the entity source without being re-submitted",
+        "an untouched stored price sensor satisfies the entity source and is kept",
         shows_menu(result, "advanced")
         and not result.get("errors")
-        and stored_price_entry.options.get(const.CONF_PRICE_ENTITY) is None,
+        and stored_price_entry.options.get(const.CONF_PRICE_ENTITY)
+        == "sensor.stored_price",
         f"errors={result.get('errors')} "
-        f"cleared={stored_price_entry.options.get(const.CONF_PRICE_ENTITY)!r}",
+        f"stored={stored_price_entry.options.get(const.CONF_PRICE_ENTITY)!r}",
     )
 
     # The hot_water page's holiday-window validation: the holiday field gets
@@ -7406,6 +7411,249 @@ async def setup_widgets_are_the_registry_rows():
     )
 
 
+# ---------------------------------------------------------------------------
+# R10-CONFIGFLOW-PAGES (D7-s2-56, #2238): every validating options page runs
+# ``_page``'s one sequence. A REJECTED submit re-renders over the cleaned
+# submit, so a stored entity the user cleared shows empty -- not the stored
+# entity the user was removing, which the next submit would silently keep.
+# ---------------------------------------------------------------------------
+#: page -> (stored config opening the page's ``when`` gates, the fields that
+#: make the page refuse). No rejection here reaches the network.
+PAGE_REJECTIONS = {
+    "entities": (
+        {const.CONF_PRICE_SOURCE: const.PRICE_SOURCE_TIBBER},
+        {const.CONF_PRICE_SOURCE: const.PRICE_SOURCE_TIBBER},
+    ),
+    "entities_metering": ({}, {const.CONF_FREQ_CONTROL_MODE: FREQ_MODE_CONTROL}),
+    "comfort": ({}, {const.CONF_MIN_TEMP: 25.0, const.CONF_MAX_TEMP: 18.0}),
+    "hot_water": ({const.CONF_DHW_ENABLED: True}, {const.CONF_DHW_WINDOWS: "nonsense"}),
+    "hot_water_tank": ({}, {const.CONF_DHW_DISINFECTION_MODE: FREQ_MODE_CONTROL}),
+    "building": (
+        {const.CONF_WOOD_FURNACE_ENABLED: True},
+        {
+            const.CONF_WOOD_FURNACE_ENABLED: True,
+            const.CONF_MIXING_VALVE_WRITE_TARGET_KIND: "flow",
+        },
+    ),
+    "grid": ({}, {const.CONF_PEAK_TARIFF_MONTHS: "13-14"}),
+    "grid_connection": ({}, {const.CONF_SILENT_MODE_WINDOWS: "nonsense"}),
+    "grid_fees": ({}, {const.CONF_GRID_FEE_RULES: "nonsense"}),
+}
+
+
+def _page_stored_entities(step, base):
+    """The page's ``_STORED`` rows with every ``when`` gate open, each given
+    a distinct stored entity."""
+    rows = [
+        row
+        for row in config_flow._page_rows(
+            step, {**base, const.CONF_WOOD_FURNACE_ENABLED: True}
+        )
+        if row.default is config_flow._STORED
+    ]
+    return {row.key: f"sensor.stored_{i}" for i, row in enumerate(rows)}
+
+
+async def options_rejected_page_rerenders_the_clear():
+    """A rejected page shows a cleared stored entity as cleared (D7-s2-56)."""
+    R.section("options: a rejected page re-renders what was cleared, not what was stored")
+    total_rows = 0
+    for step, (base, bad) in PAGE_REJECTIONS.items():
+        stored = _page_stored_entities(step, base)
+        total_rows += len(stored)
+        flow = options_over(FakeEntry(data={**base, **stored}), FakeHass())
+        result = await submit(flow, step, bad)
+        stale = sorted(k for k in stored if suggested_value(result, k) is not None)
+        check(
+            f"opt_{step}",
+            "error",
+            f"a rejected {step} submit re-renders each cleared stored entity empty",
+            shows(result, step) and bool(result.get("errors")) and not stale,
+            f"errors={result.get('errors')} rows={len(stored)} still_stored={stale}",
+        )
+        # Null control: the same rejection with nothing cleared shows every
+        # stored entity as stored, so the empty fields above are the clear's.
+        flow = options_over(FakeEntry(data={**base, **stored}), FakeHass())
+        result = await submit(flow, step, {**stored, **bad})
+        if result.get("type") == "form" and result.get("errors"):
+            kept = sorted(k for k in stored if suggested_value(result, k) == stored[k])
+            check(
+                f"opt_{step}",
+                "error",
+                f"a rejected {step} submit that cleared nothing re-renders every stored entity",
+                kept == sorted(stored),
+                f"shown_stored={len(kept)}/{len(stored)}",
+            )
+    # The census asserts its own reach: a page whose _STORED rows vanished
+    # would pass the loop above vacuously.
+    check(
+        "opt_entities",
+        "happy",
+        "the rejected-page census reaches every stored entity row of the nine pages",
+        total_rows >= 30,
+        f"stored rows driven={total_rows}",
+    )
+
+    # A2: a rejected page keeps its description placeholders.
+    hass = FakeHass()
+    currency = config_flow.resolve_currency(hass)
+    fee = {"currency": currency, "fee_bound": f"{config_flow.grid_fee.fee_bound(currency):g}"}
+    for step, want in (
+        ("grid", fee),
+        ("grid_fees", fee),
+        ("hot_water", config_flow._WINDOW_PLACEHOLDERS),
+        ("grid_connection", config_flow._WINDOW_PLACEHOLDERS),
+    ):
+        base, bad = PAGE_REJECTIONS[step]
+        flow = options_over(FakeEntry(data=dict(base)), FakeHass())
+        result = await submit(flow, step, bad)
+        check(
+            f"opt_{step}",
+            "error",
+            f"a rejected {step} form keeps its description placeholders",
+            shows(result, step)
+            and bool(result.get("errors"))
+            and dict(result.get("description_placeholders") or {}) == dict(want),
+            f"placeholders={result.get('description_placeholders')}",
+        )
+
+    # The clear is judged over the submit merged onto the stored config:
+    # turning the wood block off hides its rows, so their absent entities are
+    # kept, not nulled -- the save stores the switch, not a wipe of the block.
+    wood = {
+        const.CONF_WOOD_FURNACE_ENABLED: True,
+        const.CONF_WOOD_TANK_TOP_ENTITY: "sensor.wood_top",
+        const.CONF_WOOD_TANK_BOTTOM_ENTITY: "sensor.wood_bottom",
+    }
+    entry = FakeEntry(data=dict(wood))
+    flow = options_over(entry, FakeHass())
+    await flow.async_step_building(None)
+    result = await submit(flow, "building", {const.CONF_WOOD_FURNACE_ENABLED: False})
+    check(
+        "opt_building",
+        "happy",
+        "turning the wood block off keeps its hidden entities instead of nulling them",
+        shows(result, "building") is False
+        and result.get("type") == "menu"
+        and entry.options.get(const.CONF_WOOD_FURNACE_ENABLED) is False
+        and const.CONF_WOOD_TANK_TOP_ENTITY not in entry.options
+        and const.CONF_WOOD_TANK_BOTTOM_ENTITY not in entry.options,
+        f"type={result.get('type')} options={entry.options}",
+    )
+
+    # grid_connection: a cleared silent-mode window is absent from the
+    # submit and saves as "" (no window), never the stored window. The page
+    # writes that default before ``_page`` lifts any section, so the check
+    # asserts the precondition it relies on: no grid_connection row is grouped.
+    grouped = [
+        row.key
+        for row in config_flow._OPTION_FIELDS
+        if row.step == "grid_connection" and row.group
+    ]
+    entry = FakeEntry(data={const.CONF_SILENT_MODE_WINDOWS: "22:00-06:00"})
+    flow = options_over(entry, FakeHass())
+    await flow.async_step_grid_connection(None)
+    result = await submit(flow, "grid_connection", {const.CONF_MAIN_FUSE_A: 25})
+    check(
+        "opt_grid_connection",
+        "happy",
+        "a cleared silent-mode window saves as no window, on an ungrouped page",
+        not grouped
+        and shows_menu(result, "advanced")
+        and entry.options.get(const.CONF_SILENT_MODE_WINDOWS) == "",
+        f"grouped={grouped} type={result.get('type')} "
+        f"stored={entry.options.get(const.CONF_SILENT_MODE_WINDOWS)!r}",
+    )
+
+
+async def options_cleared_price_entity_is_refused():
+    """A3': clearing the price entity under an entity source is refused.
+
+    The entities page judged ``price_entity_required`` over the submit OR the
+    stored entity, while ``_clear_absent`` nulled the cleared one: the check
+    passed on the entity being removed, and the page saved an entity price
+    source with no price sensor. It now judges what would be stored.
+    """
+    R.section("options: a cleared price entity under an entity source is refused")
+    stored = {
+        const.CONF_PRICE_SOURCE: const.PRICE_SOURCE_ENTITY,
+        const.CONF_PRICE_ENTITY: "sensor.price",
+    }
+    entry = FakeEntry(data={}, options=dict(stored))
+    result = await submit(
+        options_over(entry, FakeHass()),
+        "entities",
+        {const.CONF_PRICE_SOURCE: const.PRICE_SOURCE_ENTITY},
+    )
+    check(
+        "opt_entities",
+        "error",
+        "clearing the stored price entity under an entity source is price_entity_required",
+        shows(result, "entities")
+        and result.get("errors") == {const.CONF_PRICE_ENTITY: "price_entity_required"}
+        and entry.options == stored,
+        f"type={result.get('type')} errors={result.get('errors')} "
+        f"stored={entry.options.get(const.CONF_PRICE_ENTITY)!r}",
+    )
+    # Null control: a replacement entity saves, with no error.
+    entry = FakeEntry(data={}, options=dict(stored))
+    flow = options_over(entry, FakeHass())
+    await flow.async_step_entities(None)
+    result = await submit(
+        flow,
+        "entities",
+        {
+            const.CONF_PRICE_SOURCE: const.PRICE_SOURCE_ENTITY,
+            const.CONF_PRICE_ENTITY: "sensor.other",
+        },
+    )
+    check(
+        "opt_entities",
+        "happy",
+        "replacing the stored price entity saves the new one",
+        shows_menu(result, "advanced")
+        and not result.get("errors")
+        and entry.options.get(const.CONF_PRICE_ENTITY) == "sensor.other",
+        f"type={result.get('type')} errors={result.get('errors')} "
+        f"stored={entry.options.get(const.CONF_PRICE_ENTITY)!r}",
+    )
+    # Second control: switching to Tibber with a token raises no error and
+    # saves the token; the absent price entity is still nulled, as before.
+    entry = FakeEntry(data={}, options=dict(stored))
+    flow = options_over(entry, FakeHass())
+    await flow.async_step_entities(None)
+    real_validate = config_flow.validate_tibber_token
+
+    async def _accept(_hass, _token):
+        return "ok"
+
+    config_flow.validate_tibber_token = _accept
+    try:
+        result = await submit(
+            flow,
+            "entities",
+            {
+                const.CONF_PRICE_SOURCE: const.PRICE_SOURCE_TIBBER,
+                const.CONF_TIBBER_TOKEN: "t",
+            },
+        )
+    finally:
+        config_flow.validate_tibber_token = real_validate
+    check(
+        "opt_entities",
+        "happy",
+        "switching to Tibber with a token saves it and nulls the cleared price entity",
+        shows_menu(result, "advanced")
+        and not result.get("errors")
+        and entry.options.get(const.CONF_TIBBER_TOKEN) == "t"
+        and const.CONF_PRICE_ENTITY in entry.options
+        and entry.options[const.CONF_PRICE_ENTITY] is None,
+        f"type={result.get('type')} errors={result.get('errors')} "
+        f"token={entry.options.get(const.CONF_TIBBER_TOKEN)!r} "
+        f"price_entity={entry.options.get(const.CONF_PRICE_ENTITY, 'ABSENT')!r}",
+    )
+
+
 async def main() -> int:
     if "--self-check" in sys.argv:
         return await self_check()
@@ -7452,6 +7700,8 @@ async def main() -> int:
     await device_prefill_preview_texts()
     await r9_f5_text_and_menu_findings()
     await setup_widgets_are_the_registry_rows()
+    await options_rejected_page_rerenders_the_clear()
+    await options_cleared_price_entity_is_refused()
 
     print()
     LEDGER.print_result_lines()
