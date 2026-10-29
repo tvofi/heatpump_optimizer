@@ -1,0 +1,36 @@
+== pre
+RESULT wizard_fields=46 count
+RESULT in_registry=44 count
+RESULT spelled_twice=44 count
+RESULT disagree=0 count
+RESULT other_wizard_fields=38 count
+RESULT other_in_registry=20 count
+RESULT other_spelled_twice=20 count
+RESULT other_disagree=0 count
+RESULT menu_fallbacks=23 count
+RESULT menu_disagree=0 count
+RESULT golden_equal=1 bool
+RESULT load1=0.60
+    DISAGREES building_extras:heat_pump_cop_nominal
+    DISAGREES thermal:heat_pump_cop_nominal
+RESULT disagree=2 count
+RESULT pages=9 rejected=9 stored_rows=30 stale_slots=27
+RESULT pages=9 rejected=7 stored_rows=30 shown_stored=19
+RESULT type=menu errors=None stored_price_entity=None
+== head
+RESULT wizard_fields=46 count
+RESULT in_registry=44 count
+RESULT spelled_twice=0 count
+RESULT disagree=0 count
+RESULT other_wizard_fields=38 count
+RESULT other_in_registry=20 count
+RESULT other_spelled_twice=0 count
+RESULT other_disagree=0 count
+RESULT menu_fallbacks=23 count
+RESULT menu_disagree=0 count
+RESULT golden_equal=1 bool
+RESULT load1=0.87
+RESULT disagree=0 count
+RESULT pages=9 rejected=9 stored_rows=30 stale_slots=0
+RESULT pages=9 rejected=7 stored_rows=30 shown_stored=19
+RESULT type=form errors=price_entity_required stored_price_entity='sensor.price'
