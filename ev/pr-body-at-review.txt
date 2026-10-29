@@ -1,0 +1,65 @@
+R10-FLY-PACKET-RED-PATHS (triage P282, P285). The review packet's `red-unanswered` signal called `policy_lint.mjs --pr-body` with `--head` and `--red` only, so policy_lint's main-graded-reporter exemption, which reads the diff's paths, never applied: every pull request was refused on main's `tests / nightly-status` red (#2933, #2946, #2948, #2925, and P285's nine). `review_packet.py`'s new `unanswered_reds` writes the diff's paths (`touched`, already computed in `gather`) to `--paths-file`, the base's existing paths (`git diff --name-only --no-renames --diff-filter=a base...head`, as `prepr.sh`'s `body_check` derives them) to `--existing-file`, and passes `--base`. The exemption list is not copied: policy_lint stays its one implementation, as `body_check` keeps it.
+
+Alternatives: copying the reporter list into review_packet.py lost (two implementations of one exemption, the drift `body_check` avoids); having review_packet call `prepr.sh`'s `body_check` lost (a shell function of a 3000-line script, and it reads `HEAD` of the checkout rather than the packet's head).
+
+## Head
+
+`9ce0179f77aa68eab6440c3d85aa92e788936b22` merges the authored code head `f130bd950eb94a5466a510ebdbef81f8eb99912c` and then merges origin/main `ce5940c0d` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
+
+67e55b1abe25bc12ba91afc19c71e81cbc754800, cut from origin/main 553cee1df10ef3626fbc1c40b268c4e6801b31e3 (the dispatched base).
+
+## Mutation proof
+
+Delete `"--paths-file", str(pf),` from `unanswered_reds`'s policy_lint argv (the brief's mutation): `sed -i 's/"--base", base, "--paths-file", str(pf), "--existing-file", str(ef),/"--base", base, "--existing-file", str(ef),/' tools/audit/seat/review_packet.py`, then `python3 -I tools/audit/seat/review_packet.py --self-test` prints `FAIL red-unanswered: main's nightly-status red is not owed by a diff touching only a test file` (both reds reported) and `51 checks, 4 failed` (the reviewer's probe at this head; I did not re-run M1), rc 1; restored, `51 checks, 0 failed`. The site is not added to `dev/audit/harnesses/r10_seat_selftests_mutants.py`: that file is a hot file #2959 holds a merge verdict on (the packet's `hot-file` refusal at the first handoff). The harness additions are owed after #2959 merges. Carry: #2959
+
+### Unpinned sites
+
+The fix reviewer's mutants that survive the self-test at this head, declared:
+
+- M6 (`red_unanswered = []` in `gather`): pinning `gather` means driving `gh` reads; it fails open only through a deliberate edit of the one call line. Carry: R10-FLY-PACKET-RED-PATHS
+- M6b (`touched` passed as `set()`): fails closed in production, because an empty `--paths-file` raises `Unavailable`. Carry: R10-FLY-PACKET-RED-PATHS
+- M8 (`existing = touched`, bypassing `diff_paths`): needs a deliberate edit of the one call line. Carry: R10-FLY-PACKET-RED-PATHS
+- M9 (`existing, touched` unpacked swapped in `gather`): needs a deliberate edit of the one call line. Carry: R10-FLY-PACKET-RED-PATHS
+- M3 (`"--base", base,` dropped): `--base` only feeds policy_lint's red-history range, which needs a real commit range, and the self-test's head is synthetic. Carry: dismissed: --base cannot be pinned without a real commit range in the self-test
+
+## Null control
+
+Self-test arms, driven through policy_lint itself: a body with `## Red checks` `none`, reds `tests / nightly-status` and `typing`:
+- diff touching only `tests/x.py`: `typing` alone (the arm);
+- diff touching `tests/nightly_status.py`: both (null control 1, the reporter's own script);
+- diff touching `.github/workflows/nightly.yml` and `.github/workflows/governance.yml` (#2954's): both, so that refusal is kept (null control 2, P285);
+- no concluded red: nothing read;
+- delivery-status arm, and its null control (the row's path outside the exemption keeps the refusal);
+- UNAVAILABLE arm: a failing `gh`, and a git read that cannot resolve, are unavailable, never a refusal;
+- two `diff_paths` throwaway-checkout arms (the added and existing path sets read from a real throwaway checkout).
+
+The unmodified tree's call (no paths) over the same body reports both reds for the test-file diff: see Figures.
+
+## Figures
+
+- Self-test: `python3 -I tools/audit/seat/review_packet.py --self-test` prints `review_packet self-test: 51 checks, 0 failed` at the head (42 at the base plus the arms above), measured in a detached worktree at the head.
+- Base call vs head call on the fixture body (`## Red checks` none, reds `tests / nightly-status` and `typing`): `node tools/policy/policy_lint.mjs --pr-body body.md --head <a*40> --red "tests / nightly-status" --red typing` (the base's argv) reports both unanswered; adding `--base <b*40> --paths-file paths --existing-file existing` with the paths file naming one added test-file fixture path and an empty existing list (the head's argv) reports `typing` alone.
+- Class seams, rule: `git grep -l -E -- '--red\b' -- 'tools/**' '.github/**' '.claude/**'` (policy_lint.mjs itself excluded), each file's policy_lint call read for `--paths-file`:
+  - `.github/workflows/pr-contract.yml`: passes `--paths-file` and `--existing-file`, already guarded;
+  - `tools/pr/prepr.sh` `body_check`: passes both, already guarded; its self-test calls at `unnamed-red.md` and `plred` pass non-reporter reds (`fast (3.14)`, `mutation`) on purpose pathless, which owes them in either reading;
+  - `tools/audit/seat/body_patch.sh` `contract`: passes both, already guarded;
+  - `tools/audit/seat/record_row.py`: passes `--paths-file`, already guarded;
+  - `tools/ci/alert_list.py`: names `--red` in prose only, no policy_lint call;
+  - `tools/audit/seat/review_packet.py` `gather`: closed in this diff.
+- Scope: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir $D` prints `MODE: SCOPED -- 0 script(s) run`; run_always lines (`env_drift.py --claims-only`, `closure.py selftest`, `layout.py`) green; `python3 tests/structure.py` prints `STRUCTURE RATCHET PASSED`.
+- prepr: `bash tools/pr/prepr.sh <body>` at the head: `ci predict` predicts no closures, fast, wave-script or instrument red; its `closures` step refused in this seat's environment, not on the diff: `tools/audit/seat/seat_venv.sh` exits 2 (`No download found for request: cpython-3.14.7-linux-x86_64-gnu`) and the ambient interpreter is 3.11, so the closure re-derivation was not run here and is left to CI.
+
+## Red checks
+
+- `tests / nightly-status`: grades `main`'s scheduled Nightly, not this branch; this diff touches none of what it reads (its scripts, `ci.yml`, `tests.yml`, `nightly.yml`, `governance.yml`, the plan, `HANDOVER.md`), so by `defect-root-cause.md` its red is the orchestrator's on `main` and owes no answer here.
+
+## Forward-carry
+
+none
+
+## Friction
+
+none
+
+
+
