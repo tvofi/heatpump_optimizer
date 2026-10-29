@@ -1,0 +1,13 @@
+diff --git a/.github/workflows/marketplace.yml b/.github/workflows/marketplace.yml
+index 855b2a6b3..60fc587cc 100644
+--- a/.github/workflows/marketplace.yml
++++ b/.github/workflows/marketplace.yml
+@@ -11,8 +11,6 @@ name: Marketplace
+ # run of this file is ever a source for `gate`. tests/entities.py pins it.
+ 
+ on:
+-  schedule:
+-    - cron: "41 3 * * 1"
+   workflow_dispatch:
+ 
+ permissions: {}
