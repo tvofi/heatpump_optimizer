@@ -11607,6 +11607,55 @@
     "note": "2026-10-29 (triage: dev/programme/triage/s6-batch60.md#P279; triage: dev/programme/triage/s6-batch60.md#P281)"
    },
    "brief": "From triage P279 (orchestrator, 2026-10-29T11:08Z): the tick's TRAIN section reads the train's exit status from `Path(train_log).with_suffix('.rc')` (tools/audit/seat/orchestrator_tick.py:536). The writer is train.sh, which records it as `$state/rc` and as the log line `TRAIN_RC=<n> end=<ts>` (tools/audit/seat/train.sh:396). So in the live layout (--train-log is the state dir's train.log) the `last train exited N` flag never fires: 16 of the 23 runs the live log records ended TRAIN_RC=1, none flagged. The self-test pins the reader's own name, writing `train.rc` beside its fixture log, so it passes. (1) Read the status from the log's last `TRAIN_RC=` line, falling back to the file `rc` in the log's directory; flag nonzero as today. (2) Self-test: the fixture uses train.sh's names (a `TRAIN_RC=1 end=...` last line, and an `rc` file); mutation: restoring the `.rc` suffix read leaves the fixture unflagged and fails the arm; null control: a log ending `TRAIN_RC=0` flags nothing. (3) From triage P281 (orchestrator, 2026-10-29T11:15Z): the live tick's --queue is a hand-kept link that named an Oct 27 queue for 2 days (a stale #2867 line every pass). merge_train.py's add writes a fresh add-queue-<ts>-<pr>.json per run. The train's own record of that path is train.sh's start line `train.sh: queue=<path> ... pid=<n>` (tools/audit/seat/train.sh:378), in the log the tick already reads. With --train-log given and no --queue, `_queue` reads the path from the log's last such line; an explicit --queue still wins, and a named file that is absent is UNREADABLE as today. Self-test: a fixture log with two start lines reads the second queue; mutation: reading the first fails; null control: an explicit --queue is used unchanged. Out of scope: PARK lines as owed obligations (P279 item 1, carried to R10-ORCH-LEDGER) and train.sh. triage: dev/programme/triage/s6-batch60.md#P279 triage: dev/programme/triage/s6-batch60.md#P281"
+  },
+  {
+   "group": "R10-MARKETPLACE-EXTRAS",
+   "lane": "PR",
+   "kind": "production",
+   "class": "production",
+   "severity": "medium",
+   "size": "S",
+   "issues": [
+    2965
+   ],
+   "fixes": [],
+   "findings": [],
+   "wave": 6,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": "D10.md is policy; .github/workflows code-owned (approve under mandate 6329234399)",
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    ".github/workflows/ci.yml",
+    ".github/workflows/validate.yml",
+    ".github/workflows/hassfest.yml",
+    "dev/governance/dimensions/D10.md",
+    "tests/closures.json",
+    "tests/closure.py",
+    "tests/entities.py"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "in-progress",
+    "branch": "handoff/r10-marketplace-extras",
+    "commit": null,
+    "last_step": null,
+    "next_step": "fixer building C5+C6",
+    "note": "2026-10-29 owner: \"It should be clear I want all the optional changes as well\" (investigation report C4-C6; C4 stays in R10-MARKETPLACE)"
+   },
+   "brief": "Owner request, 2026-10-29 (tvofi, verbatim: \"It should be clear I want all the optional changes as well\"): land the optional Marketplace items from the investigation seat's report (issue #2965, section 3). C4 (drop render_readme from hacs.json, fix the tests/entities.py comment) is already in R10-MARKETPLACE's brief and is NOT yours; do not touch hacs.json, release.yml, manifest.json, README.md or docs/.\n(C5) Scheduled validation: the HACS action (.github/workflows/validate.yml) and hassfest (.github/workflows/hassfest.yml) are workflow_call children of ci.yml's umbrella and today run only when CI's workset selects them, so main can go weeks without a current run to cite (the catalog PR must link passing runs). Add a scheduled run of both against main (weekly at minimum; also workflow_dispatch), through the umbrella's existing calling convention rather than duplicating the job bodies, with contents: read and the existing pinned action SHAs. The hassfest image-pull retry rationale in hassfest.yml must keep applying. A scheduled red must be visible (a failing run, never continue-on-error). New tracked files must be classified (tests/closures.json closure or tests/closure.py INERT) or tests/entities.py refuses them. .github/workflows/ is code-owned: say so in the body.\n(C6) Policy: dev/governance/dimensions/D10.md (Home Assistant integration quality scale) gains a Marketplace-readiness item audited each round: archive or release-asset size against the Marketplace's 100 MiB / 50,000-file limit, manifest categories valid, hacs.json keys known, HACS action and hassfest green at the round's baseline, and the catalog listing state. D10.md is policy (CLAUDE.md \"Where the policy is\"): the PR body must say \"this changes what a seat must do\" and that it needs the owner's approving review; keep the owner's own words in the file untouched, add rather than rewrite. Its developers.home-assistant.io URL still resolves; leave it.\nControls: for C5 show the schedule fires via a workflow_dispatch run on your branch (cite the run id and both job conclusions) and a mutation that breaks the schedule's call (e.g. wrong workflow path) fails a check you add or an existing structural check; for C6 brief_lint.mjs / rules_sync --check pass. Do not touch VERSION, the manifest version or a RELEASE_NOTES heading (CLAUDE.md rule 4). Reference: issue #2965 body (full investigation report).\n"
   }
  ]
 }
