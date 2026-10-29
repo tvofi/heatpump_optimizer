@@ -7333,6 +7333,85 @@ async def r9_f5_text_and_menu_findings():
 
 
 # ---------------------------------------------------------------------------
+# R10-CONFIGFLOW-PAGES arm C/C2 (ARCH2-s5-F1, #2238): one setting, one widget.
+# Every setup-flow field whose key has an ``_OPTION_FIELDS`` row renders that
+# row's widget OBJECT, so the two flows cannot offer two ranges for one setting.
+# ---------------------------------------------------------------------------
+#: The flow's steps that render no form when entered bare: two menus, and
+#: ``reconfigure``, which needs a sourced entry and then hands its form to
+#: ``user`` (covered there). Every other ``async_step_*`` is driven, so a new
+#: step joins the census without being listed (reauth was once outside a list).
+NON_FORM_SETUP_STEPS = frozenset({"building", "finish_setup", "reconfigure"})
+
+
+def _schema_leaves(schema):
+    """(marker, widget) for every field, a ``section()``'s fields included."""
+    for marker, value in schema.schema.items():
+        inner = getattr(value, "schema", None)
+        if isinstance(inner, vol.Schema):
+            yield from _schema_leaves(inner)
+        else:
+            yield marker, value
+
+
+async def setup_widgets_are_the_registry_rows():
+    """Each setup field with a registry row delivers that row's widget (``is``)."""
+    R.section("setup flow: every field with an options row renders that row's widget")
+    steps = sorted(
+        name[len("async_step_"):]
+        for name in dir(config_flow.HeatPumpOptimizerConfigFlow)
+        if name.startswith("async_step_")
+    )
+    in_registry, twice, unrendered = 0, [], []
+    for step in steps:
+        flow = config_flow.HeatPumpOptimizerConfigFlow()
+        flow.hass = FakeHass()
+        try:
+            schema = (await getattr(flow, f"async_step_{step}")()).get("data_schema")
+        except Exception as err:  # noqa: BLE001 -- a step that cannot render is reported
+            schema = None
+            if step not in NON_FORM_SETUP_STEPS:
+                unrendered.append(f"{step}:{type(err).__name__}")
+        if schema is None:
+            if step not in NON_FORM_SETUP_STEPS and not any(
+                u.startswith(f"{step}:") for u in unrendered
+            ):
+                unrendered.append(f"{step}:no form")
+            continue
+        for marker, widget in _schema_leaves(schema):
+            key = str(marker)
+            rows = [row for row in config_flow._OPTION_FIELDS if row.key == key]
+            if not rows:
+                continue
+            in_registry += 1
+            if not any(widget is row.widget for row in rows):
+                twice.append(f"{step}:{key}")
+    # The census asserts its own reach: a page that stopped rendering would
+    # pass the identity check vacuously.
+    check(
+        "temperature",
+        "happy",
+        "the setup-widget census renders every step but the declared non-form ones",
+        not unrendered and NON_FORM_SETUP_STEPS <= set(steps),
+        f"unrendered={unrendered} steps={len(steps)}",
+    )
+    check(
+        "temperature",
+        "happy",
+        "the setup-widget census reaches every registry-backed setup field",
+        in_registry >= 66,
+        f"registry-backed setup fields={in_registry}",
+    )
+    check(
+        "temperature",
+        "happy",
+        "no setup field spells a second widget for a setting the options registry declares",
+        not twice,
+        f"{len(twice)} spelled twice: {twice[:12]}",
+    )
+
+
+# ---------------------------------------------------------------------------
 # R10-CONFIGFLOW-PAGES (D7-s2-56, #2238): every validating options page runs
 # ``_page``'s one sequence. A REJECTED submit re-renders over the cleaned
 # submit, so a stored entity the user cleared shows empty -- not the stored
@@ -7620,6 +7699,7 @@ async def main() -> int:
     await config_flow_device_prefill_offer()
     await device_prefill_preview_texts()
     await r9_f5_text_and_menu_findings()
+    await setup_widgets_are_the_registry_rows()
     await options_rejected_page_rerenders_the_clear()
     await options_cleared_price_entity_is_refused()
 

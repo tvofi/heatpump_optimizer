@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:_single_valve_rates CLAMP_DROP b88f46e9",
+  "killed_by": "tests/features.py",
+  "old": "    refused = np.maximum(0.0, dT_buf - dT_cap) * c_buf",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`refused = (0.0) * c_buf`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}
