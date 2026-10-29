@@ -11741,6 +11741,44 @@
     "pr": 2971
    },
    "brief": "HOTFIX (main-graded red blocking the record beat): the Nightly `slow` lane fails on main. Dispatch run 40835853528 (2026-10-29 07:30Z, head 486e65c) job 123320354392, and again run 40948493872 (20:22Z, main e5ddba1fa), print \"3 of 33 ROLLING CHECKS FAILED\":\n  FAIL the learner takes samples  [0 samples over three days]\n  FAIL the learned correction moves towards the real error  [scale went 1.000 -> 1.000, truth 1.35]\n  FAIL learning reduces the comfort breach it exists to fix  [10.39 -> 10.39 degree-hours]\n`tests / nightly-status` reports it on every PR, and record PR #2966's pr-contract is refused for it (its delivery rows are what that check reads), so the record beat cannot merge.\nDo: reproduce it at origin/main locally (the slow lane's rolling script; read .github/workflows/nightly.yml for the exact command and interpreter). Find the cause by bisecting from the last green dispatch of the slow lane (gh run list --workflow nightly.yml); decide whether production (the learner stopped sampling: a real regression, fix it in custom_components with a failing test first) or the harness (the rolling scenario no longer drives the learner). State which, with evidence and a null control (the same rolling run at the last green commit passes). Mutation-prove the fix. Then the PR body's ## Red checks names `gh workflow run nightly.yml --ref main` run id after merge is owed by the orchestrator. Follow dev/governance/roles/fixer.md; push to handoff/r10-nightly-slow-rolling + handoff-body/r10-nightly-slow-rolling; never open the PR. Root cause owes defect-root-cause.md's answer (a cheaper detector than the nightly?) in the body. No Claude footers or session links.\n"
+  },
+  {
+   "group": "R10-FLY-CIPREDICT-RESTORING",
+   "lane": "PR",
+   "kind": "instrument",
+   "class": "fly-in",
+   "severity": "medium",
+   "size": "S",
+   "issues": [
+    2952
+   ],
+   "fixes": [
+    2952
+   ],
+   "findings": [],
+   "wave": 6,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [],
+   "carry": [],
+   "resume": {
+    "stage": "queued"
+   },
+   "brief": "Issue #2952: ci_predict's graders arm does not predict the three restoring jobs outside governance.yml (briefs, pr-contract, budget-raise-gate). Teach tools/pr/ci_predict.py's graders arm to predict each, with a failing test first and a null control, so prepr.sh step 6d names them before the handoff. Destination for #2925's Carry: #2952 (R10-RCA-PREPR-HEAD-GRADERS)."
   }
  ]
 }
