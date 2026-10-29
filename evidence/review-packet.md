@@ -1,46 +1,50 @@
 # Review packet #2962
-head: 34ce6c99b6bf5dd7f64f6b1d78a6eb6a53460d7e
+head: 9ce0179f77aa68eab6440c3d85aa92e788936b22
 base: ce5940c0d1d8f611a818d53e7fffcafb48b356c1
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
 ## Gate digest: red
-CodeQL id=123650214711 neutral
-arch-score / arch-score id=123649821791 success
-arm id=123649553820 skipped
-budget-raise-gate / budget-raise-gate id=123649822018 success
-cancel-superseded id=123649573234 success
-codeql / Analyze (actions) id=123649821902 success
-codeql / Analyze (javascript-typescript) id=123649821700 success
-codeql / Analyze (python) id=123649821514 in_progress
-governance / delivery-status id=123649821815 success
-governance / delivery-status-publish id=123649824420 skipped
-governance / env-matrix id=123649821676 in_progress
-governance / instrument-self-tests id=123649821567 in_progress
-governance / policy-docs id=123649821674 success
-governance / record id=123649823695 skipped
-governance / wave-script id=123649821616 success
-hassfest / hassfest id=123649821487 success
-kernel-points id=123649822651 skipped
-prelude id=123649572544 success
-refresh id=123649573496 success
-tests / arch-instrument id=123650073224 success
-tests / briefs id=123649821706 success
-tests / browser id=123650073247 in_progress
-tests / closure-scope id=123649821800 success
-tests / closures id=123650073342 in_progress
-tests / coverage id=123650073286 success
-tests / coverage-ratchet id=123650536850 success
-tests / fast (3.14) id=123650073446 in_progress
-tests / graders-head-copy id=123650536906 in_progress
-tests / mutation id=123649821952 success
-tests / mutation-autofix id=123650272921 skipped
-tests / mutation-pins id=123650272051 skipped
-tests / nightly-ha id=123650077069 skipped
-tests / nightly-status id=123649821624 failure
-tests / replay id=123650075790 skipped
-tests / typing id=123650073290 in_progress
-validate / validate-hacs id=123649821599 success
+CodeQL id=123662452036 neutral
+arch-score / arch-score id=123662089967 success
+arm id=123661848226 skipped
+budget-raise-gate / budget-raise-gate id=123662090628 success
+cancel-superseded id=123670414205 success
+codeql / Analyze (actions) id=123662090395 success
+codeql / Analyze (javascript-typescript) id=123662090331 success
+codeql / Analyze (python) id=123662090230 in_progress
+governance / delivery-status id=123662090345 success
+governance / delivery-status-publish id=123662093430 skipped
+governance / env-matrix id=123662090176 success
+governance / instrument-self-tests id=123662090050 in_progress
+governance / policy-docs id=123662090039 success
+governance / record id=123662093540 skipped
+governance / wave-script id=123662090261 success
+hassfest / hassfest id=123662089855 success
+kernel-points id=123662092310 skipped
+prelude id=123670414604 in_progress
+refresh id=123670414638 success
+tests / arch-instrument id=123662318852 success
+tests / briefs id=123662090304 success
+tests / browser id=123662318638 success
+tests / ci-ratchet id=123669703820 skipped
+tests / claims-autofix id=123664671858 skipped
+tests / closure-scope id=123662090248 success
+tests / closures id=123662318645 success
+tests / closures-autofix id=123669704839 skipped
+tests / coverage id=123662318765 success
+tests / coverage-ratchet id=123662663331 success
+tests / fast (3.14) id=123662318659 success
+tests / graders-head-copy id=123662663255 success
+tests / lane-proofs id=123664669616 success
+tests / mutation id=123662090238 success
+tests / mutation-autofix id=123662452942 skipped
+tests / mutation-pins id=123662452086 skipped
+tests / nightly-ha id=123662321824 skipped
+tests / nightly-status id=123662090500 failure
+tests / replay id=123662321779 skipped
+tests / typing id=123662318555 success
+validate / validate-hacs id=123662090053 success
 
 ## Refusals
 none
@@ -97,10 +101,10 @@ index 000000000..7384d702f
 @@ -0,0 +1 @@
 +- [#2962](https://github.com/tvofi/heatpump_optimizer/pull/2962) — **open**, review_packet: leave the seat mutant harness to #2959 (R10-FLY-PACKET-RED-PATHS)
 diff --git a/tools/audit/seat/review_packet.py b/tools/audit/seat/review_packet.py
-index d04fd0323..dc7b7c291 100644
+index d04fd0323..cabeea067 100644
 --- a/tools/audit/seat/review_packet.py
 +++ b/tools/audit/seat/review_packet.py
-@@ -310,6 +310,27 @@ def tool(argv: list[str], body: str) -> tuple[int, str]:
+@@ -310,6 +310,41 @@ def tool(argv: list[str], body: str) -> tuple[int, str]:
          os.unlink(f.name)
  
  
@@ -119,16 +123,39 @@ index d04fd0323..dc7b7c291 100644
 +        pf, ef = Path(td, "paths"), Path(td, "existing")
 +        pf.write_text("".join(f"{x}\n" for x in sorted(touched)))
 +        ef.write_text("".join(f"{x}\n" for x in sorted(existing)))
-+        _, out = tool(["node", "tools/policy/policy_lint.mjs", "--pr-body", "{BODY}", "--head", head,
-+                       "--base", base, "--paths-file", str(pf), "--existing-file", str(ef),
-+                       *[x for n in reds for x in ("--red", n)]], body)
++        rc, out = tool(["node", "tools/policy/policy_lint.mjs", "--pr-body", "{BODY}", "--head", head,
++                        "--base", base, "--paths-file", str(pf), "--existing-file", str(ef),
++                        *[x for n in reds for x in ("--red", n)]], body)
++    # A path list policy_lint refuses is not "no unanswered red": the run
++    # stopped before any rule read the body, so the outcome is unknown.
++    if rc and re.search(r"ERROR +\[pr-body\] --(?:paths|existing)-file ", out):
++        raise Unavailable(f"policy_lint refused the diff's path lists: {out[:200]}")
 +    return sorted(n for n in reds if f"check `{n}` is red and `## Red checks` does not name it" in out)
++
++
++def diff_paths(base: str, head: str) -> tuple[set[str], set[str]]:
++    """(touched, existing): the three-dot diff's paths, and those of them the
++    base already had (`--diff-filter=a`), which `unanswered_reds` hands
++    policy_lint as `--existing-file`, so a delivery row the diff adds is read as
++    the pull request's own and not as an input of main's reporter."""
++    span = f"{base}...{head}"
++    return (set(git("diff", "--name-only", "--no-renames", span).split()),
++            set(git("diff", "--name-only", "--no-renames", "--diff-filter=a", span).split()))
 +
 +
  def writes_packet(refusals: list[str]) -> bool:
      """How a render treats its own refusals: written unless it is unpublishable.
  
-@@ -387,11 +408,8 @@ def gather(a) -> dict:
+@@ -377,7 +412,7 @@ def build(facts: dict) -> tuple[list[str], list[str], str]:
+ def gather(a) -> dict:
+     head, main = a.head, a.main
+     base = git("merge-base", main, head).strip()
+-    touched = set(git("diff", "--name-only", "--no-renames", f"{base}...{head}").split())
++    touched, existing = diff_paths(base, head)
+     label, data = (harness_source(a.harness, a.harness_file, base, touched)
+                    if (a.harness or a.harness_file) else ("none named", b""))
+     pr = gh(f"repos/{REPO}/pulls/{a.pr}") or {}
+@@ -387,11 +422,7 @@ def gather(a) -> dict:
      gate = gate_digest(runs)
      crc, cout = tool([sys.executable, "-I", "tools/audit/carry_audit.py", "check", "--body", "{BODY}"], body)
      _, fout = tool(["node", "tools/policy/figure_lint.mjs", "--pr-body", "{BODY}", "--at", head], body)
@@ -137,12 +164,11 @@ index d04fd0323..dc7b7c291 100644
 -        _, pout = tool(["node", "tools/policy/policy_lint.mjs", "--pr-body", "{BODY}", "--head", head,
 -                        *[x for n in gate[2] for x in ("--red", n)]], body)
 -        red_unanswered = sorted(n for n in gate[2] if f"check `{n}` is red and `## Red checks` does not name it" in pout)
-+    existing = set(git("diff", "--name-only", "--no-renames", "--diff-filter=a", f"{base}...{head}").split())
 +    red_unanswered = unanswered_reds(body, head, base, gate[2], touched, existing)
      ident = ref_privacy.Identity.of_host()
      host = [w for w in [ref_privacy.body_refusal(body, ident)] if w]
      host += ref_privacy.content_refusals(ref_privacy.added_lines(base, head, repo()), ident)
-@@ -558,6 +576,22 @@ def _self_test() -> int:
+@@ -558,6 +589,35 @@ def _self_test() -> int:
      check("hot-file reader null: a verdict-ref commit subject is not a verdict",
            verdict_merge_head("d" * 40, read=lambda s: f"verdict 7 {H}\n") is None)
  
@@ -161,8 +187,53 @@ index d04fd0323..dc7b7c291 100644
 +    check("red-unanswered null: #2954's workflow diff still owes nightly-status",
 +          unanswered_reds(unanswering, H, B, both, wf, wf) == both)
 +    check("red-unanswered null: no concluded red reads nothing", unanswered_reds(unanswering, H, B, [], {"tests/x.py"}, set()) == [])
++    # main's other reporter: every pull request adds its own delivery row, which
++    # `--existing-file` keeps from reading as an input of `delivery-status`.
++    ds, row = ["governance / delivery-status"], "dev/programme/delivery/9999.md"
++    check("red-unanswered: main's delivery-status red is not owed by a diff adding only its own delivery row",
++          unanswered_reds(unanswering, H, B, ds, {row}, set()) == [])
++    check("red-unanswered null: a delivery row the base already had owes delivery-status",
++          unanswered_reds(unanswering, H, B, ds, {row}, {row}) == ds)
++    try:
++        unanswered_reds(unanswering, H, B, both, set(), set())
++        ok = False
++    except Unavailable:
++        ok = True
++    check("red-unanswered: a path list policy_lint refuses is UNAVAILABLE, not no unanswered red", ok)
 +
      # The independence arm reads a base blob, so it is driven over a checkout of
      # its own: a self-test must not need the tree it happens to be run in.
      # Built through `tests/throwaway_git.py`, the one way a tracked script
+@@ -640,6 +700,31 @@ def _self_test() -> int:
+         check("repo(): a git read runs in the checkout the working directory is in, not the tool's install",
+               Path(got) == t)
+ 
++        # gather's path lists, over a real three-dot diff: the delivery row the
++        # head adds is touched and not existing, so main's delivery-status red
++        # is owed no answer through the same call gather makes.
++        (t / "kept.txt").write_text("base\n")
++        tgit("add", "-A")
++        tgit("commit", "-q", "-m", "kept")
++        pbase = tgit("rev-parse", "HEAD").strip()
++        (t / "kept.txt").write_text("head\n")
++        (t / "dev/programme/delivery").mkdir(parents=True)
++        (t / row).write_text("row\n")
++        tgit("add", "-A")
++        tgit("commit", "-q", "-m", "head")
++        phead = tgit("rev-parse", "HEAD").strip()
++        here, _REPO_ROOT = os.getcwd(), None
++        try:
++            os.chdir(t)
++            paths = diff_paths(pbase, phead)
++        finally:
++            os.chdir(here)
++            _REPO_ROOT = None
++        check("diff_paths: an added delivery row is touched, and only a file the base had is existing",
++              paths == ({"kept.txt", row}, {"kept.txt"}))
++        check("diff_paths -> red-unanswered: the row the diff adds owes main's delivery-status nothing",
++              unanswered_reds(unanswering, H, B, ds, *paths) == [])
++
+         # UNAVAILABLE is a different outcome from a refusal: a seat that cannot
+         # read the inputs reports rc 3 and writes nothing, and `bus.sh dispatch`
+         # degrades on it. Driven through main(), the path bus.sh calls.
 

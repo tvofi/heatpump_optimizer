@@ -1,39 +1,65 @@
-head 34ce6c99b6bf5dd7f64f6b1d78a6eb6a53460d7e
 == M1
--                       "--base", base, "--paths-file", str(pf), "--existing-file", str(ef),
-+                       "--base", base, "--existing-file", str(ef),
+-                        "--base", base, "--paths-file", str(pf), "--existing-file", str(ef),
++                        "--base", base, "--existing-file", str(ef),
   FAIL red-unanswered: main's nightly-status red is not owed by a diff touching only a test file
-review_packet self-test: 46 checks, 1 failed
+  FAIL red-unanswered: main's delivery-status red is not owed by a diff adding only its own delivery row
+  FAIL red-unanswered: a path list policy_lint refuses is UNAVAILABLE, not no unanswered red
+  FAIL diff_paths -> red-unanswered: the row the diff adds owes main's delivery-status nothing
+review_packet self-test: 51 checks, 4 failed
 == M2
--                       "--base", base, "--paths-file", str(pf), "--existing-file", str(ef),
-+                       "--base", base, "--paths-file", str(pf),
-review_packet self-test: 46 checks, 0 failed
+-                        "--base", base, "--paths-file", str(pf), "--existing-file", str(ef),
++                        "--base", base, "--paths-file", str(pf), 
+  FAIL red-unanswered: main's delivery-status red is not owed by a diff adding only its own delivery row
+  FAIL diff_paths -> red-unanswered: the row the diff adds owes main's delivery-status nothing
+review_packet self-test: 51 checks, 2 failed
+== M3
+-                        "--base", base, "--paths-file", str(pf), "--existing-file", str(ef),
++                        "--paths-file", str(pf), "--existing-file", str(ef),
+review_packet self-test: 51 checks, 0 failed
 == M5
--    existing = set(git("diff", "--name-only", "--no-renames", "--diff-filter=a", f"{base}...{head}").split())
-+    existing = set(git("diff", "--name-only", "--no-renames", "--diff-filter=A", f"{base}...{head}").split())
-review_packet self-test: 46 checks, 0 failed
+-            set(git("diff", "--name-only", "--no-renames", "--diff-filter=a", span).split()))
++            set(git("diff", "--name-only", "--no-renames", "--diff-filter=A", span).split()))
+  FAIL diff_paths: an added delivery row is touched, and only a file the base had is existing
+  FAIL diff_paths -> red-unanswered: the row the diff adds owes main's delivery-status nothing
+review_packet self-test: 51 checks, 2 failed
 == M6
 -    red_unanswered = unanswered_reds(body, head, base, gate[2], touched, existing)
 +    red_unanswered = []
-review_packet self-test: 46 checks, 0 failed
-== M2 behavioural probe (delivery-status red, diff adds its own delivery row, existing empty)
-['governance / delivery-status'] {'dev/programme/delivery/9999.md'} set() -> []
-['governance / delivery-status'] {'dev/programme/delivery/9999.md'} {'dev/programme/delivery/9999.md'} -> ['governance / delivery-status']
--- under M2
-['governance / delivery-status'] {'dev/programme/delivery/9999.md'} set() -> ['governance / delivery-status']
-['governance / delivery-status'] {'dev/programme/delivery/9999.md'} {'dev/programme/delivery/9999.md'} -> ['governance / delivery-status']
-== unmutated self-test
-review_packet self-test: 46 checks, 0 failed
-== base self-test
-review_packet self-test: 42 checks, 0 failed
-== merge-tree
-9fda349b4656c95bd4d752283a062e1a3410ba81
-rc=0
-== class rule
-.github/workflows/pr-contract.yml
-tools/audit/seat/body_patch.sh
-tools/audit/seat/record_row.py
-tools/audit/seat/review_packet.py
-tools/ci/alert_list.py
-tools/policy/policy_lint.mjs
-tools/pr/prepr.sh
+review_packet self-test: 51 checks, 0 failed
+== M6b
+-    red_unanswered = unanswered_reds(body, head, base, gate[2], touched, existing)
++    red_unanswered = unanswered_reds(body, head, base, gate[2], set(), existing)
+review_packet self-test: 51 checks, 0 failed
+== M7
+-        raise Unavailable(f"policy_lint refused the diff's path lists: {out[:200]}")
++        pass  # raise Unavailable(f"policy_lint refused the diff's path lists: {out[:200]}")
+  FAIL red-unanswered: a path list policy_lint refuses is UNAVAILABLE, not no unanswered red
+review_packet self-test: 51 checks, 1 failed
+== M8
+-    touched, existing = diff_paths(base, head)
++    touched = set(git("diff", "--name-only", "--no-renames", f"{base}...{head}").split()); existing = touched
+review_packet self-test: 51 checks, 0 failed
+== M9
+-    touched, existing = diff_paths(base, head)
++    existing, touched = diff_paths(base, head)
+review_packet self-test: 51 checks, 0 failed
+== M10
+-            set(git("diff", "--name-only", "--no-renames", "--diff-filter=a", span).split()))
++            set(git("diff", "--name-only", "--no-renames", span).split()))
+  FAIL diff_paths: an added delivery row is touched, and only a file the base had is existing
+  FAIL diff_paths -> red-unanswered: the row the diff adds owes main's delivery-status nothing
+review_packet self-test: 51 checks, 2 failed
+== M8x
+-    return (set(git("diff", "--name-only", "--no-renames", span).split()),
++    return (set(git("diff", "--name-only", "--no-renames", "--diff-filter=a", span).split()),
+  FAIL diff_paths: an added delivery row is touched, and only a file the base had is existing
+review_packet self-test: 51 checks, 1 failed
+== M11
+-    if rc and re.search(r"ERROR +\[pr-body\] --(?:paths|existing)-file ", out):
++    if False and re.search(r"ERROR +\[pr-body\] --(?:paths|existing)-file ", out):
+  FAIL red-unanswered: a path list policy_lint refuses is UNAVAILABLE, not no unanswered red
+review_packet self-test: 51 checks, 1 failed
+== M12
+-        return []
++        return list(reds)
+review_packet self-test: 51 checks, 0 failed

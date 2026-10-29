@@ -1,0 +1,34 @@
+== null control direct (policy_lint, body Red checks none)
+-- paths: .github/workflows/nightly.yml  existing: .github/workflows/nightly.yml 
+  record   red-history           6 commit(s) between origin/main and this head, every failure conclusion across them: tests / nightly-status
+  ERROR   [pr-body] /tmp/b.md: no `## Mutation proof` section. Every one is content or an explicit "n/a: <reason>"; a missing heading is neither.
+  ERROR   [pr-body] /tmp/b.md: no `## Null control` section. Every one is content or an explicit "n/a: <reason>"; a missing heading is neither.
+rc=0
+-- paths: tools/audit/seat/review_packet.py dev/programme/delivery/2962.md  existing: tools/audit/seat/review_packet.py 
+  record   red-history           6 commit(s) between origin/main and this head, every failure conclusion across them: tests / nightly-status
+  ERROR   [pr-body] /tmp/b.md: no `## Mutation proof` section. Every one is content or an explicit "n/a: <reason>"; a missing heading is neither.
+  ERROR   [pr-body] /tmp/b.md: no `## Null control` section. Every one is content or an explicit "n/a: <reason>"; a missing heading is neither.
+rc=0
+== unanswered_reds via module, nightly.yml-only diff
+['tests / nightly-status']
+[]
+({'tools/audit/seat/review_packet.py', 'dev/programme/delivery/2962.md'}, {'tools/audit/seat/review_packet.py'})
+== merge-tree
+ad95fc783d93dee57ae794baf4ae1684e254f296
+rc=0
+ce5940c0d1d8f611a818d53e7fffcafb48b356c1
+== class rule
+.github/workflows/pr-contract.yml
+tools/audit/seat/body_patch.sh
+tools/audit/seat/record_row.py
+tools/audit/seat/review_packet.py
+tools/ci/alert_list.py
+tools/policy/policy_lint.mjs
+tools/pr/prepr.sh
+== VERSION/claims touched?
+0
+.github/workflows/pr-contract.yml: policy_lint=8 paths-file=3 existing-file=2
+tools/audit/seat/body_patch.sh: policy_lint=10 paths-file=3 existing-file=3
+tools/audit/seat/record_row.py: policy_lint=11 paths-file=1 existing-file=1
+tools/pr/prepr.sh: policy_lint=39 paths-file=4 existing-file=3
+tools/ci/alert_list.py: policy_lint=0 paths-file=0 existing-file=0
