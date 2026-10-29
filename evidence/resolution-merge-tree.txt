@@ -1,0 +1,13 @@
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/entities.py: merged as a set (39 entries)
+  re-run the gate that owns this file before pushing
+8d9b0cedc3d8619c7a89d983a575ccc8468526bc
+100644 6341b938d5020ac0e1cfc8fa8275e8340a531f31 1	tools/audit/seat/sweep_template.md
+100644 450b1c35b90c74ecb22d89688b595d88e1248f7a 2	tools/audit/seat/sweep_template.md
+100644 5abc54e3522771f1e66ecd1960159e75bd5fa3f2 3	tools/audit/seat/sweep_template.md
+
+Auto-merging tests/closures.json
+Auto-merging tools/audit/seat/sweep_template.md
+CONFLICT (content): Merge conflict in tools/audit/seat/sweep_template.md
+ tools/audit/seat/sweep_template.md | 6 +-----
+ 1 file changed, 1 insertion(+), 5 deletions(-)
