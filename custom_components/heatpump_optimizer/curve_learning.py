@@ -26,6 +26,7 @@ was set too hot, never paper over an undersized one by heating.
 from __future__ import annotations
 
 import logging
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
@@ -49,6 +50,17 @@ COMFORT_MARGIN_C = 0.3
 DAYS_PER_STEP = 3
 #: One downward step, K. 3 days x (0.5/7) rounds to ~0.2.
 STEP_K = 0.2
+
+
+def worst_zone_margin_k(
+    zone_temps_c: Iterable[float | None], floor_c: float
+) -> float | None:
+    """One tick of #2's evidence: the coldest measured zone less the floor, K.
+
+    ``None`` when no zone carries a finite reading: no measurement, no evidence.
+    """
+    temps = [t for t in zone_temps_c if t is not None and np.isfinite(t)]
+    return min(temps) - floor_c if temps else None
 
 
 @dataclass
