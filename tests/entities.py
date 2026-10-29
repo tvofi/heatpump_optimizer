@@ -39748,5 +39748,142 @@ R.check(
     "in `record_api_calls.sh`); two different files would share nothing",
 )
 
+# R10-RECORD-API-O1 (dev/audit/rca/ratelimit-recur.md section 5): the two
+# O(window) readers of the GITHUB_TOKEN bucket on every push to main, measured
+# and bounded where the runner reads them. Three properties, each read from the
+# artifact that runs: Nightly's enumerate step prints its own spend (M0's pair,
+# carry 2); the record job's push arm reads `--record` alone, the histogram,
+# filer and sunset running on the weekly schedule, a dispatch and the stamp
+# (decision O-1, carry 1), decided by the window step's own shell, executed
+# here; and the burst replay counts demand as record + enumerate + rest.
+import subprocess as _sp_o1
+import tempfile as _tf_o1
+_O1_NA = _workflow_job(Path(".github/workflows/nightly.yml").read_text(), "record-autofix")
+_O1_STEPS = _O1_NA.split("\n      - ")
+_O1_I = next((i for i, s in enumerate(_O1_STEPS)
+              if s.startswith("name: Enumerate the window's merges")), None)
+
+
+def _o1_m0(step: str, word: str) -> bool:
+    return ("gh api rate_limit" in step and f"RATE_LIMIT enumerate {word}:" in step
+            and "GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}" in step and "|| true" in step)
+
+
+R.check(
+    "Nightly's enumerate step is bracketed by its own M0 pair, the after reading under always()",
+    _O1_I is not None and 0 < _O1_I < len(_O1_STEPS) - 1
+    and _o1_m0(_O1_STEPS[_O1_I - 1], "before") and _o1_m0(_O1_STEPS[_O1_I + 1], "after")
+    and "if: always()" in _O1_STEPS[_O1_I + 1]
+    and not _o1_m0(_O1_STEPS[_O1_I - 1], "after"),
+    "record-autofix's \"Enumerate the window's merges\" reads 1 call a merge on "
+    "GITHUB_TOKEN; without a `gh api rate_limit` reading on each side of it, its "
+    "spend is inferred by splitting interval deltas by step time "
+    "(ratelimit-recur.md section 1.2). The after reading must print when the "
+    "enumeration fails closed, so it carries always()",
+)
+_O1_REC = _workflow_job(Path(".github/workflows/governance.yml").read_text(), "record")
+_O1_RSTEPS = _O1_REC.split("\n      - ")
+_O1_GATE = "steps.window.outputs.report == 'true'"
+
+
+def _o1_if(step: str) -> str:
+    m = _re.search(r"^        if: (.*)$", step, _re.M)
+    return m.group(1) if m else ""
+
+
+_O1_REPORTERS = [s for s in _O1_RSTEPS
+                 if _re.search(r"--(stats|sunset)\b", s) and "--window-cache" in s or "--stats-file" in s]
+_O1_UNGATED = [s.splitlines()[0] for s in _O1_REPORTERS if _O1_GATE not in _o1_if(s)]
+_O1_RECORD = [s for s in _O1_RSTEPS if _re.search(r"--record\b", s) and "--window-cache" in s]
+R.check(
+    "the record job's push arm reads --record alone: --stats, --sunset and the filer wait on the window step's report",
+    len(_O1_REPORTERS) == 3 and not _O1_UNGATED
+    and len(_O1_RECORD) == 1 and _O1_GATE not in _o1_if(_O1_RECORD[0]),
+    f"reporting steps={[s.splitlines()[0] for s in _O1_REPORTERS]}; not gated on `{_O1_GATE}`={_O1_UNGATED}. "
+    "Decision O-1 (ratelimit-recur.md section 4, M3): the histogram's and the "
+    "sunset's 3P reads per push moved to the weekly schedule, a dispatch and the "
+    "stamp; the disposition refusal keeps every push",
+)
+
+
+def _o1_window(event: str, rev: str, root: str) -> dict:
+    step = next(s for s in _O1_RSTEPS if s.startswith("name: Choose the window"))
+    body = step.split("run: |\n", 1)[1]
+    script = "\n".join(l[10:] for l in body.splitlines() if l.startswith("          ") or not l.strip())
+    out = Path(root) / "out.txt"
+    out.write_text("")
+    env = throwaway_git_env()
+    _sp_o1.run(["git", "checkout", "-q", "--detach", rev], cwd=root, check=True, env=env)
+    _sp_o1.run(["bash", "-c", script], cwd=root, check=True, capture_output=True,
+               env={**env, "EVENT": event, "GITHUB_OUTPUT": str(out)})
+    return dict(l.split("=", 1) for l in out.read_text().splitlines() if "=" in l)
+
+
+with _tf_o1.TemporaryDirectory() as _o1_td:
+    _o1_env = throwaway_git_init(_o1_td, "-q", "-b", "main")
+
+    def _o1_git(*a):
+        return _sp_o1.run(["git", *a], cwd=_o1_td, check=True, env=_o1_env,
+                          capture_output=True, text=True).stdout.strip()
+
+    Path(_o1_td, "VERSION").write_text("1.0.0\n")
+    _o1_git("add", "VERSION"); _o1_git("commit", "-q", "-m", "release 1.0.0"); _o1_git("tag", "v1.0.0")
+    _o1_git("commit", "-q", "--allow-empty", "-m", "a merge's work")
+    _o1_plain = _o1_git("rev-parse", "HEAD")
+    Path(_o1_td, "VERSION").write_text("1.0.1\n")
+    _o1_git("commit", "-q", "-am", "release 1.0.1"); _o1_git("tag", "v1.0.1")
+    _o1_stamp = _o1_git("rev-parse", "HEAD")
+    _O1_SEEN = {(ev, which): _o1_window(ev, rev, _o1_td) for ev in ("push", "schedule", "workflow_dispatch")
+                for which, rev in (("plain", _o1_plain), ("stamp", _o1_stamp))}
+_O1_WANT = {
+    ("push", "plain"): ("false", "v1.0.0"), ("push", "stamp"): ("true", "v1.0.0"),
+    ("schedule", "plain"): ("true", "v1.0.0"), ("schedule", "stamp"): ("true", "v1.0.1"),
+    ("workflow_dispatch", "plain"): ("true", "v1.0.0"), ("workflow_dispatch", "stamp"): ("true", "v1.0.1"),
+}
+_O1_GOT = {k: (v.get("report"), v.get("since")) for k, v in _O1_SEEN.items()}
+R.check(
+    "the window step reports on the schedule, a dispatch and the stamp, never an ordinary push",
+    _O1_GOT == _O1_WANT,
+    f"(event, commit) -> (report, since): got {_O1_GOT}, want {_O1_WANT}. An "
+    "ordinary push reads --record alone (O-1); the stamp's own push reports the "
+    "release it closes, so its window is the tag before the stamp, never the "
+    "empty one its own tag opens",
+)
+with _tf_o1.TemporaryDirectory() as _o1_td:
+    _o1_env = throwaway_git_init(_o1_td, "-q", "-b", "main")
+
+    def _o1_at(when: str, *a):
+        return _sp_o1.run(["git", *a], cwd=_o1_td, check=True, capture_output=True, text=True,
+                          env={**_o1_env, "GIT_AUTHOR_DATE": when, "GIT_COMMITTER_DATE": when}).stdout
+
+    _o1_at("2026-01-01T07:00:00Z", "commit", "-q", "--allow-empty", "-m", "release")
+    _o1_at("2026-01-01T07:00:00Z", "tag", "v0.0.1")
+    for _o1_n, _o1_when in ((1, "2026-01-01T08:10:00Z"), (2, "2026-01-01T08:20:00Z")):
+        _o1_at(_o1_when, "checkout", "-q", "-b", f"b{_o1_n}")
+        _o1_at(_o1_when, "commit", "-q", "--allow-empty", "-m", f"work {_o1_n}")
+        _o1_at(_o1_when, "checkout", "-q", "main")
+        _o1_at(_o1_when, "merge", "-q", "--no-ff", "-m", f"Merge pull request #{_o1_n} from o/b{_o1_n}", f"b{_o1_n}")
+    _o1_at("2026-01-01T08:30:00Z", "commit", "-q", "--allow-empty", "-m", "a direct push")
+    _o1_at("2026-01-01T08:30:00Z", "update-ref", "refs/remotes/origin/main", "HEAD")
+    _O1_RUN = _sp_o1.run(
+        [sys.executable, str(Path("dev/audit/harnesses/record_burst_replay.py").resolve()), "v0.0.1",
+         "2026-01-01T08:00:00Z", "2026-01-01T09:00:00Z", "--rest-per-min", "2", "--limit", "100"],
+        cwd=_o1_td, capture_output=True, text=True, env=_o1_env)
+_O1_DEMAND = {m.group(1): tuple(int(x) for x in m.groups()[1:]) for m in _re.finditer(
+    r"^DEMAND (\S+) .*?record (\d+) \+ enumerate (\d+) \+ rest (\d+) = (\d+) of (\d+)", _O1_RUN.stdout, _re.M)}
+# Three pushes over v0.0.1: windows of (W, P, merges) (1,1,1), (2,2,2), (3,2,2).
+# M1's record reads W + 3P a run (4 + 8 + 9), O-1's push arm W (1 + 2 + 3); the
+# enumerate reads one call a merge on every push (1 + 2 + 2), no concurrency
+# group; the rest is the M0 lines' rate over the 60-minute interval (2 x 60).
+R.check(
+    "record_burst_replay counts demand as record + enumerate + rest, never the record job alone",
+    _O1_RUN.returncode == 0
+    and _O1_DEMAND.get("M1") == (21, 5, 120, 146, 100)
+    and _O1_DEMAND.get("O-1") == (6, 5, 120, 131, 100),
+    f"rc={_O1_RUN.returncode}; parsed={_O1_DEMAND}; stderr={_O1_RUN.stderr[-300:]!r}. "
+    "The replay that sized O-1 counted the record job only and underread the "
+    "hour by the enumerate's share (ratelimit-recur.md section 1.2)",
+)
+
 
 sys.exit(R.close("ENTITY CHECKS"))
