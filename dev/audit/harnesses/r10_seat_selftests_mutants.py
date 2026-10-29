@@ -223,6 +223,25 @@ MUTANTS = [
     ("prepr-12", "tools/pr/ci_predict.py",
      '"under-scoped", "inert-siblings", "left-inert", "mutation")',
      '"under-scoped", "inert-siblings", "left-inert")'),
+    # R10-ORCH-REVIEW-PACKET (P229, P256): the handoff-not-applied signal, the
+    # handoff refusals and body_push's call of them; body_push-1/2 are graded by
+    # prepr's self-test (STEP_OF), which drives body_push.
+    ("review_packet-1", "review_packet.py",
+     "return None if is_ancestor(tip, head) else", "return None if not is_ancestor(tip, head) else"),
+    ("review_packet-2", "review_packet.py",
+     "        refusals.append(f\"handoff-not-applied: {facts['handoff']}\")\n", "        pass\n"),
+    ("review_packet-3", "review_packet.py",
+     "if not re.search(rf\"\\bcarry", "if False and re.search(rf\"\\bcarry"),
+    ("review_packet-4", "review_packet.py",
+     '[t, t[:-len("-pr")]] if t.endswith("-pr") else [t]', "[t]"),
+    ("review_packet-5", "review_packet.py",
+     '    out += [f"hot-file: {w}" for w in hot]\n', ""),
+    ("body_push-1", "tools/audit/seat/body_push.sh",
+     '  if [ "$prc" = 1 ]; then\n    echo "body_push: the review packet refuses',
+     '  if false; then\n    echo "body_push: the review packet refuses'),
+    ("body_push-2", "tools/audit/seat/body_push.sh",
+     '  if [ "$prc" = 1 ]; then\n    echo "body_push: the review packet refuses',
+     '  if [ "$prc" != 0 ]; then\n    echo "body_push: the review packet refuses'),
     # #2853's review: the class the copy enumeration missed is a link to an
     # in-tree file it does not name. prepr-11 renames a LISTED entry (the
     # pathspec arm); prepr-13 stops the copy taking the generator's own link
@@ -394,7 +413,8 @@ ENV_MUTANTS = [("S04U", "S04", {"PYTHONUNBUFFERED": "1"})]
 
 # A mutant planted in a file whose self-test is another instrument's step.
 STEP_OF = {"prepr-9": "tools/pr/prepr.sh", "prepr-10": "tools/pr/prepr.sh",
-           "prepr-12": "tools/pr/prepr.sh"}
+           "prepr-12": "tools/pr/prepr.sh", "body_push-1": "tools/pr/prepr.sh",
+           "body_push-2": "tools/pr/prepr.sh"}
 
 # The wrappers' own line is the dispatch to the self-tests they delegate.
 # S08's wrapper now runs both tallies (delivery_row.sh's and its own pushes):
