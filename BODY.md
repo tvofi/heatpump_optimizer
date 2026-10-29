@@ -16,6 +16,10 @@ Alternatives considered:
 
 ## Head
 
+`aaf1d39f9fd45b8fc39b375e44ab2f0bb4a20acd` adds one commit to the previous head, containing only this PR's own row, `dev/programme/delivery/2959.md`. The authored code head is `14adedc434d763e2ba2378b16bcf1211ea280dfd`.
+
+`e930305f79a5fd96c1082e9196aaacba699fcc12` merges origin/main `279578074` into the authored code head `14adedc434d763e2ba2378b16bcf1211ea280dfd` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below).
+
 `14adedc434d763e2ba2378b16bcf1211ea280dfd`, cut from `origin/main` at `88c6ad5bbec69bfe157e04597a74d0c9c3e4775c`.
 
 ## Mutation proof
@@ -57,11 +61,14 @@ The tests carry their own null controls:
 
 ## Red checks
 
-none
+- `tests / nightly-status`: grades `main`'s scheduled Nightly, not this branch; this diff touches none of what it reads (its scripts, `ci.yml`, `tests.yml`, `nightly.yml`, `governance.yml`, the plan, `HANDOVER.md`), so by `defect-root-cause.md` its red is the orchestrator's on `main` and owes no answer here.
 
 ## Forward-carry
 
-none
+Routing of the Fix review's items at `aaf1d39f9fd45b8fc39b375e44ab2f0bb4a20acd` (review 6504339155). Its three `## Findings` bullets carry their own markers (the two reviewer-mutant pins to `R10-FLOW-MAIN-GATE`, the third dismissed); its two `## Evidence` items are routed here:
+
+- Item dde38e84, `tests / nightly-status` red at the head: not a finding on this diff. It grades `main`'s Nightly, which no file in the three-dot diff reaches, and the review's `gate` runs are green. Carry: dismissed: not this diff's, a main-side red the orchestrator owns under defect-root-cause.md (item dde38e84)
+- Item 50a530e7, the packet advisory `HPO_BUS_TRAIN_STATE is unset`: a fact about the dispatching seat's environment (`review_packet.py` reads that variable to name hot-file boards), unrelated to the arms this diff builds, so no group or issue owns it. Carry: dismissed: advisory about the dispatcher's environment, not the diff (item 50a530e7)
 
 ## Friction
 
