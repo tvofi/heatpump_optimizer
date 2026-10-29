@@ -310,6 +310,27 @@ def tool(argv: list[str], body: str) -> tuple[int, str]:
         os.unlink(f.name)
 
 
+def unanswered_reds(body: str, head: str, base: str, reds: list[str],
+                    touched: set[str], existing: set[str]) -> list[str]:
+    """The concluded reds the body's `## Red checks` leaves unanswered, as
+    `policy_lint.mjs --pr-body` decides over the diff's own paths (P282). A
+    reporter that grades main is owed no answer while the diff leaves its inputs
+    alone, and policy_lint reads that from `--paths-file` and `--existing-file`:
+    without them the obligation is restored on purpose, so every pull request
+    would owe one for main's red. The exemption stays policy_lint's alone, as
+    prepr.sh's body_check keeps it."""
+    if not reds:
+        return []
+    with tempfile.TemporaryDirectory() as td:
+        pf, ef = Path(td, "paths"), Path(td, "existing")
+        pf.write_text("".join(f"{x}\n" for x in sorted(touched)))
+        ef.write_text("".join(f"{x}\n" for x in sorted(existing)))
+        _, out = tool(["node", "tools/policy/policy_lint.mjs", "--pr-body", "{BODY}", "--head", head,
+                       "--base", base, "--paths-file", str(pf), "--existing-file", str(ef),
+                       *[x for n in reds for x in ("--red", n)]], body)
+    return sorted(n for n in reds if f"check `{n}` is red and `## Red checks` does not name it" in out)
+
+
 def writes_packet(refusals: list[str]) -> bool:
     """How a render treats its own refusals: written unless it is unpublishable.
 
@@ -387,11 +408,8 @@ def gather(a) -> dict:
     gate = gate_digest(runs)
     crc, cout = tool([sys.executable, "-I", "tools/audit/carry_audit.py", "check", "--body", "{BODY}"], body)
     _, fout = tool(["node", "tools/policy/figure_lint.mjs", "--pr-body", "{BODY}", "--at", head], body)
-    red_unanswered = []
-    if gate[2]:
-        _, pout = tool(["node", "tools/policy/policy_lint.mjs", "--pr-body", "{BODY}", "--head", head,
-                        *[x for n in gate[2] for x in ("--red", n)]], body)
-        red_unanswered = sorted(n for n in gate[2] if f"check `{n}` is red and `## Red checks` does not name it" in pout)
+    existing = set(git("diff", "--name-only", "--no-renames", "--diff-filter=a", f"{base}...{head}").split())
+    red_unanswered = unanswered_reds(body, head, base, gate[2], touched, existing)
     ident = ref_privacy.Identity.of_host()
     host = [w for w in [ref_privacy.body_refusal(body, ident)] if w]
     host += ref_privacy.content_refusals(ref_privacy.added_lines(base, head, repo()), ident)
@@ -557,6 +575,22 @@ def _self_test() -> int:
           verdict_merge_head("d" * 40, read=lambda s: f"Fix review: merge {H}\nevidence: ev/\n") == H)
     check("hot-file reader null: a verdict-ref commit subject is not a verdict",
           verdict_merge_head("d" * 40, read=lambda s: f"verdict 7 {H}\n") is None)
+
+    # red-unanswered over the diff's paths (P282), through policy_lint itself:
+    # main's `nightly-status` red is owed no answer by a diff that leaves its
+    # inputs alone, `typing` beside it is (the arm); a diff touching the
+    # reporter's own script owes both (the null control), and so does #2954's,
+    # which touched the workflow that schedules it.
+    unanswering = f"## Head\n{H}\n\n## Red checks\nnone\n"
+    both = ["tests / nightly-status", "typing"]
+    check("red-unanswered: main's nightly-status red is not owed by a diff touching only a test file",
+          unanswered_reds(unanswering, H, B, both, {"tests/x.py"}, set()) == ["typing"])
+    check("red-unanswered null: a diff touching tests/nightly_status.py owes both",
+          unanswered_reds(unanswering, H, B, both, {"tests/nightly_status.py"}, {"tests/nightly_status.py"}) == both)
+    wf = {".github/workflows/nightly.yml", ".github/workflows/governance.yml"}
+    check("red-unanswered null: #2954's workflow diff still owes nightly-status",
+          unanswered_reds(unanswering, H, B, both, wf, wf) == both)
+    check("red-unanswered null: no concluded red reads nothing", unanswered_reds(unanswering, H, B, [], {"tests/x.py"}, set()) == [])
 
     # The independence arm reads a base blob, so it is driven over a checkout of
     # its own: a self-test must not need the tree it happens to be run in.
