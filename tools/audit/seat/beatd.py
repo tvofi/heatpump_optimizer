@@ -711,7 +711,8 @@ def case3(prog, w):
     """(a)3 over-time reads timeout and its group is gone; in-time reads ok; a heartbeat
     job journals RUNNING past elapsed=0 (null: one with none journals RUNNING once).
     A grandchild ignoring SIGTERM is SIGKILLed after the grace although its leader
-    exited on the TERM, before the beat moves on; null: a leader ignoring it too."""
+    exited on the TERM, before the beat moves on; null: a leader ignoring it too.
+    Both arms read the grace from the PASS dur: not before KILL_GRACE_S, nor long after."""
     import shlex
     s = w / "s3"
     pidf, mark = w / "grandchild.pid", w / "termed"
@@ -724,9 +725,13 @@ def case3(prog, w):
     sp = _passes(s, "slow")
     fp = _passes(s, "fast")
     beats = [x for x in _jr(s) if x.startswith("RUNNING ") and x.split()[2] == "slow"]
-    st_ok, st_gone, _ = _stubborn(prog, w, "stubborn", leader_ignores=False)
+    st_ok, st_gone, st_p = _stubborn(prog, w, "stubborn", leader_ignores=False)
     nl_ok, nl_gone, nl_p = _stubborn(prog, w, "both", leader_ignores=True)
     st_beats = [x for x in _jr(w / "s3-stubborn") if x.startswith("RUNNING ")]
+    # SIGKILL comes KILL_GRACE_S after the TERM at timeout_s=2, never sooner; beatd's own dur
+    def graced(p: list[str]) -> bool:
+        d = int(re.search(r" dur=(\d+) ", p[0]).group(1)) if p else -1
+        return 2 + KILL_GRACE_S <= d <= 2 + KILL_GRACE_S + 5
     return {"over-time job reads timeout": r.returncode == 0 and len(sp) == 1
             and sp[0].endswith("outcome=timeout"),
             "its process group was killed": gone,
@@ -735,9 +740,10 @@ def case3(prog, w):
             "a heartbeat job journals RUNNING past elapsed=0":
             any(int(x.rsplit("=", 1)[1]) >= 1 for x in beats),
             "null: a job with no heartbeat journals RUNNING once": len(st_beats) == 1,
-            "a TERM-ignoring grandchild is killed after its leader exits": st_ok and st_gone,
+            "a TERM-ignoring grandchild is killed after its leader exits": st_ok and st_gone
+            and graced(st_p),
             "null: a leader ignoring TERM too is killed at the grace, rc -9":
-            nl_ok and nl_gone and "rc=-9 " in nl_p[0]}
+            nl_ok and nl_gone and "rc=-9 " in nl_p[0] and graced(nl_p)}
 
 
 def case4(prog, w):
@@ -1115,6 +1121,12 @@ MUTANTS = {
     "m3_no_sigkill_live_leader": (
         "beatd", "                    os.killpg(p.pid, signal.SIGKILL)\n", "                    pass\n",
         "3", "null: a leader ignoring TERM too is killed at the grace, rc -9"),
+    "m3_kill_group_no_grace": (
+        "beatd", "        while time.time() < at:\n", "        while False:\n", "3",
+        "a TERM-ignoring grandchild is killed after its leader exits"),
+    "m3_grace_half_second": (
+        "beatd", "KILL_GRACE_S = 10.0", "KILL_GRACE_S = 0.5", "3",
+        "null: a leader ignoring TERM too is killed at the grace, rc -9"),
     "m3_no_heartbeat": (
         "beatd", "elif hb and now - beat >= hb:", "elif False:", "3",
         "a heartbeat job journals RUNNING past elapsed=0"),
