@@ -1,0 +1,39 @@
+CodeQL	completed	neutral	2026-10-29T16:26:13Z	2026-10-29T16:26:16Z
+arch-score / arch-score	completed	success	2026-10-29T16:25:39Z	2026-10-29T16:26:50Z
+arm	completed	skipped	2026-10-29T16:24:59Z	2026-10-29T16:24:58Z
+budget-raise-gate / budget-raise-gate	completed	success	2026-10-29T16:25:40Z	2026-10-29T16:26:05Z
+cancel-superseded	completed	success	2026-10-29T16:25:02Z	2026-10-29T16:25:11Z
+cancel-superseded	completed	success	2026-10-29T16:25:02Z	2026-10-29T16:25:12Z
+cancel-superseded	completed	success	2026-10-29T16:29:52Z	2026-10-29T16:30:09Z
+codeql / Analyze (actions)	completed	success	2026-10-29T16:25:39Z	2026-10-29T16:26:22Z
+codeql / Analyze (javascript-typescript)	completed	success	2026-10-29T16:25:39Z	2026-10-29T16:26:41Z
+codeql / Analyze (python)	in_progress	-	2026-10-29T16:25:40Z	-
+governance / delivery-status	completed	success	2026-10-29T16:25:39Z	2026-10-29T16:26:02Z
+governance / delivery-status-publish	completed	skipped	2026-10-29T16:25:34Z	2026-10-29T16:25:34Z
+governance / env-matrix	completed	success	2026-10-29T16:25:39Z	2026-10-29T16:29:46Z
+governance / instrument-self-tests	in_progress	-	2026-10-29T16:25:40Z	-
+governance / policy-docs	completed	success	2026-10-29T16:25:39Z	2026-10-29T16:28:13Z
+governance / record	completed	skipped	2026-10-29T16:25:34Z	2026-10-29T16:25:34Z
+governance / wave-script	completed	success	2026-10-29T16:25:39Z	2026-10-29T16:26:20Z
+hassfest / hassfest	completed	success	2026-10-29T16:25:40Z	2026-10-29T16:26:04Z
+kernel-points	completed	skipped	2026-10-29T16:25:33Z	2026-10-29T16:25:32Z
+prelude	completed	success	2026-10-29T16:25:02Z	2026-10-29T16:25:23Z
+prelude	in_progress	-	2026-10-29T16:25:02Z	-
+prelude	in_progress	-	2026-10-29T16:29:52Z	-
+refresh	completed	success	2026-10-29T16:25:02Z	2026-10-29T16:25:29Z
+refresh	completed	success	2026-10-29T16:25:02Z	2026-10-29T16:25:30Z
+refresh	completed	success	2026-10-29T16:29:52Z	2026-10-29T16:30:20Z
+tests / arch-instrument	completed	success	2026-10-29T16:26:12Z	2026-10-29T16:27:14Z
+tests / briefs	completed	success	2026-10-29T16:25:40Z	2026-10-29T16:26:21Z
+tests / browser	completed	success	2026-10-29T16:26:12Z	2026-10-29T16:30:32Z
+tests / closure-scope	completed	success	2026-10-29T16:25:39Z	2026-10-29T16:26:04Z
+tests / closures	in_progress	-	2026-10-29T16:26:12Z	-
+tests / coverage	in_progress	-	2026-10-29T16:26:12Z	-
+tests / fast (3.14)	in_progress	-	2026-10-29T16:26:12Z	-
+tests / mutation	in_progress	-	2026-10-29T16:25:40Z	-
+tests / nightly-ha (2025.2.0)	completed	success	2026-10-29T16:26:12Z	2026-10-29T16:28:53Z
+tests / nightly-ha (stable)	completed	success	2026-10-29T16:26:12Z	2026-10-29T16:29:00Z
+tests / nightly-status	completed	failure	2026-10-29T16:25:39Z	2026-10-29T16:25:52Z
+tests / replay	completed	success	2026-10-29T16:26:12Z	2026-10-29T16:27:40Z
+tests / typing	completed	success	2026-10-29T16:26:12Z	2026-10-29T16:27:34Z
+validate / validate-hacs	completed	success	2026-10-29T16:25:39Z	2026-10-29T16:26:28Z
