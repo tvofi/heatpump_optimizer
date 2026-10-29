@@ -5225,10 +5225,6 @@ function cardStyleBlock(darkMode) {
         background: var(--hpo-surface-2, #f7f9fb);
       }
       .health-support { margin-top: 12px; }
-      /* The inputs span the page in as many columns as fit (owner, item 2). */
-      .health-inputs {
-        display: grid; grid-template-columns: repeat(auto-fill, minmax(18em, 1fr)); gap: 0 12px;
-      }
       /* "What the model has learned" (R9-UX-7): a tabular value and an
          evidence bar per learner, and the internal-gains strip in the
          accent colour. Both wrap under the text on a narrow card. */
@@ -9762,9 +9758,16 @@ function healthDebugHtml(host) {
     `</div>`;
 }
 
+// Scoped to the page that draws it, like RECEIPT_CSS: the card's shared style
+// block and every other page's markup stay as they were. The inputs span the
+// page in as many columns as fit (owner, item 2).
+const HEALTH_CSS = `.health-inputs {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(18em, 1fr)); gap: 0 12px;
+}`;
+
 function healthPageHtml(host) {
   const plan = host.plan;
-  return `<div class="setup-page health-page">
+  return `<style>${HEALTH_CSS}</style><div class="setup-page health-page">
     <div class="health-cols">
       <div class="health-col">${healthPlanHtml(plan)}</div>
       <div class="health-col">${healthLearningHtml(plan)}</div>
