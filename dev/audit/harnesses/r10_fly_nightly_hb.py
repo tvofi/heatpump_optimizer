@@ -34,7 +34,7 @@ from __future__ import annotations
 
 import argparse
 import importlib.util
-import re
+import json
 import shutil
 import subprocess
 import sys
@@ -110,11 +110,14 @@ def run_once(n, run_dir: Path, mode: str, image: str) -> tuple[str, str, bool, s
     cmd = n.docker_command(image, config, driver, 240.0, ["--heartbeat-only"], ("SYS_PTRACE",))
     out = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
     (run_dir / "out.txt").write_text(out.stdout + out.stderr)
-    verdict = re.search(r"(ok|FAIL)\s+hb:positive_control\s+\[([^\]]*)\]", out.stdout + out.stderr)
+    # The lane's own result marker, read by the lane's own reader.
+    markers = n._markers(out)
+    verdict = json.loads(markers[-1]).get("hb:positive_control") if markers else None
     logs = " | ".join(p.read_text().strip().replace("\n", "; ")
                       for p in sorted(config.glob("spy-*.log")) + sorted(config.glob("first.log")))
     hung = "hung call" in logs or "rc=124" in logs or "rc=143" in logs
-    return (verdict.group(1) if verdict else "NONE"), (verdict.group(2) if verdict else ""), hung, logs
+    word = "NONE" if verdict is None else ("ok" if verdict[0] else "FAIL")
+    return word, (verdict[1] if verdict else ""), hung, logs
 
 
 def main() -> int:
