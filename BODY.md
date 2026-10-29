@@ -1,4 +1,4 @@
-Triage batch 60 rules the orchestrator's 2026-10-29T10:24Z roster-push proposal as P278, and its two 11:08Z tick proposals as P279 (train PARKs) and P280 (cloud-seat liveness). It is the next rolling batch under V182, after batch 59 (#2945, merged as `66974d473`).
+Triage batch 60 rules the orchestrator's 2026-10-29T10:24Z roster-push proposal as P278, and its two 11:08Z tick proposals as P279 (train PARKs) and P280 (cloud-seat liveness), and its 11:15Z tick-wiring proposal as P281. It is the next rolling batch under V182, after batch 59 (#2945, merged as `66974d473`).
 - **P278 (retry a roster push refused as non-fast-forward): ACCEPT, narrowed, to R10-ORCH-ROSTER-SCHEMA; the retry is REJECTED.**
   - The two refusals (09:15Z and 09:26Z, `append-group R10-FLY-OWED-LEVELS`) were rc 3. That is `roster_edit.py`'s lint-gate refusal (`:657-660`), which returns before any push. A lost race takes its own path (`:682`), retries up to `PUSH_ATTEMPTS = 3` (`:137`), and refuses with rc 2. `roster_queue.py` retries again on a stale lint checkout or a race (`:122`, `:137`).
   - Reproduced without `--push` and with no rival: brief_lint gives `TOTAL: 2 error(s)`, both in the group's own brief. One sentence cited `orchestrator_tick.py:690` and `owed_unactioned.py:50`, and the linter's clause window (`brief_lint.mjs` `clauseWindow`, `:391`) searched each file for the other's name. A retry would have refused every time.
@@ -18,16 +18,22 @@ Triage batch 60 rules the orchestrator's 2026-10-29T10:24Z roster-push proposal 
   - The instance, #2872 blocked at an unmoved head, is P277's `BLOCKED-UNFIXED: #2872 <head8>`, owed after two sweeps once R10-FLY-OWED-LEVELS lands.
   - The tick's WORKERS section already judges liveness from the work, but the live tick passes it no workers file.
 
+- **P281 (the live tick's `--queue` is a hand-kept link; `--workers-file` is unwired): ACCEPT, narrowed, folded into R10-FLY-TICK-TRAIN-RC.**
+  - The link named an Oct 27 queue for two days, so every pass printed a stale #2867 line. `train.sh` already logs `train.sh: queue=<path> ... pid=<n>` at each start (`:378`, 27 lines in the live log), in the log the tick already reads.
+  - With `--train-log` and no `--queue`, the tick reads the path from that log's last start line. An explicit `--queue` still wins.
+  - Rejected: a stable link kept by `train.sh`, which would be a second record of the same fact. Also rejected: `--workers-file` wiring, because nothing in `tools/audit/seat/` writes a workers file.
+  - No new roster op: the held R10-FLY-TICK-TRAIN-RC group carries it as item 3.
+
 No product behaviour changes: the diff is one markdown file under `dev/programme/triage/`.
 
 ## Head
 
-`cb479a7e57ac7f6b08e33c395e74b6e1e856cd18`; the file is the whole diff against `66974d47312caa46e9817b9aeae7186e9764e560`.
+`b59d5efdb79868151011075a38cedf1a574de8f7`; the file is the whole diff against `66974d47312caa46e9817b9aeae7186e9764e560`.
 
 ## Mutation proof
 
 This file's only consumer is `tools/audit/seat/roster_edit.py`'s triage gate, `ruling_verdict` and `triage_refusal`.
-- On the committed file, `ruling_verdict` reads P278 and P279 as `ACCEPT` and P280 as `REJECT`. `triage_refusal` passes the P278 and P279 carry texts and the R10-FLY-TICK-TRAIN-RC brief and resume note (returns None). A text citing `#P280` is refused as `not an ACCEPT ruling (REJECT)`.
+- On the committed file, `ruling_verdict` reads P278, P279 and P281 as `ACCEPT` and P280 as `REJECT`. `triage_refusal` passes the P278 and P279 carry texts and the R10-FLY-TICK-TRAIN-RC brief and resume note, which cite P279 and P281 (returns None). A text citing `#P280` is refused as `not an ACCEPT ruling (REJECT)`.
 - With P278's `Verdict: ACCEPT` changed to `Verdict: REJECT`, the same carry is refused: `dev/programme/triage/s6-batch60.md#P278 is not an ACCEPT ruling (REJECT)`. The first draft led its verdict line with "REJECT the retry" and would have been refused the same way. It was reordered before commit.
 
 ## Null control
