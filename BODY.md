@@ -1,4 +1,4 @@
-Triage batch 59 rules V185 as P273, V186 as P274, and the orchestrator's 2026-10-29T04:14Z carry_audit proposal as P275. It is the next rolling batch under V182, after batch 58 (#2934, merge-verdicted at `56e61dc9e`).
+Triage batch 59 rules V185 as P273, V186 as P274, the orchestrator's 2026-10-29T04:14Z carry_audit proposal as P275, and its 05:58Z abandoned-merge-worktree proposal as P276. It is the next rolling batch under V182, after batch 58 (#2934, merge-verdicted at `56e61dc9e`).
 - **P273 (V185, card docs may still show the pre-R10-CARD-VOICE setup drawing): REJECT.**
   - V185 asked for a measurement first and a size-S docs fly-in only if something differed. This seat took the measurement, and nothing differs.
   - The premise comes from the card-symbols pre-study (`2cc4d5ebc`, 2026-10-20), written before #2841 merged (2026-10-26). #2841 itself rewrote `docs/dashboard-card.md` and all three `docs/img/model/hydronic-*.svg`.
@@ -14,18 +14,23 @@ Triage batch 59 rules V185 as P273, V186 as P274, and the orchestrator's 2026-10
   - Of the two named PARKs, #2914 `c63349c9` was a correct fire (a "not blocking" note with no `Carry:`). #2887 `da4b2420` was an over-fire ("residual" in a carry title, under `## Evidence`).
   - Option (a) was measured: the low-risk narrowings clear 2 of the 16 `evidence` flags across 396 verdicts. Clearing the rest would also hide #2612 `434dcf9d`, a real unpinned-mutant defect.
   - One held roster op (`append-carry R10-ORCH-REVIEW-PACKET`), released once this file is on main.
+- **P276 (abandoned merge worktrees hold a PR's branch): ACCEPT, narrowed, to a new fly-in R10-FLY-ABORT-OWN-MERGE; options (a) and (b) REJECT.**
+  - The cause is at two producers. `remerge_main.sh:21` exits on `MERGE CONFLICT` without `git merge --abort` (#2935, #2936: `train.log` then shows `NOT released ... contains modified or untracked files`). `pr_args.sh:105`'s `checkout --detach` fails on a conflicted index (#2917, the `upd-` worktree).
+  - Each aborts its own failed merge. Both start from `origin/<branch>` and merge only remote refs, so nothing is lost.
+  - (a) would free another seat's dirty state on a snapshot guess, widening the guard P193 kept. (b) misses all three, which are open PRs that `worktree_gc.sh` keeps "ever".
+  - One held roster op (`append-group R10-FLY-ABORT-OWN-MERGE`), released once this file is on main.
 
 No product behaviour changes: the diff is one markdown file under `dev/programme/triage/`.
 
 ## Head
 
-`8bd0654c12c4d972b8778514e3912036b9526faa`; the file is the whole diff against `b0b2d7697f8c5baaef2c082d9bf3242b57249e68`.
+`3df5b422269d3c5842097b85b6475eedc8d575a9`; the file is the whole diff against `b0b2d7697f8c5baaef2c082d9bf3242b57249e68`.
 
 ## Mutation proof
 
 This file's only consumer is `tools/audit/seat/roster_edit.py`'s triage gate, `ruling_verdict` (line 455).
-- On the committed file, it reads P273 as `REJECT`, and P274 and P275 as `ACCEPT`.
-- A text citing `#P273` is refused as `not an ACCEPT ruling (REJECT)`. The P274 and P275 carry texts pass (`triage_refusal` returns None).
+- On the committed file, it reads P273 as `REJECT`, and P274, P275 and P276 as `ACCEPT`.
+- A text citing `#P273` is refused as `not an ACCEPT ruling (REJECT)`. The P274 and P275 carry texts and the P276 group brief and resume note pass (`triage_refusal` returns None). A resume note naming `triage P276` without the citation was refused before it was fixed.
 
 ## Null control
 
