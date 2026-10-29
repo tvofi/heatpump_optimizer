@@ -231,6 +231,21 @@ EOF
   # TTL, never under GitHub's 60 s poll floor.
   ck "the poll is inside [60 s, 240 s] (POLL_S=${POLL_S:-unset})" \
      "$([ "${POLL_S:-0}" -ge 60 ] && [ "${POLL_S:-0}" -le 240 ] && echo 1 || echo 0)"
+  # ...and the loop sleeps for it: one quiet cycle without CI_WATCH_ONCE, a
+  # stub `sleep` recording its argument. A loop that never sleeps leaves the
+  # record empty and is killed after ~10 s rather than hanging the self-test.
+  mkdir -p "$TMP/sleepbin"
+  printf '#!/bin/bash\nprintf "%%s\\n" "$1" >> "$SLEPT"\n' > "$TMP/sleepbin/sleep"
+  chmod +x "$TMP/sleepbin/sleep"
+  PATH="$TMP/sleepbin:$TMP/bin:$PATH" FIX="$TMP/w2" CI_WATCH_STATE="$TMP/s-sleep" \
+    SLEPT="$TMP/slept" bash "$WATCH" >/dev/null 2>&1 &
+  wp=$!
+  i=0
+  while [ ! -s "$TMP/slept" ] && [ $i -lt 100 ]; do sleep 0.1; i=$((i + 1)); done
+  kill "$wp" 2>/dev/null; wait "$wp" 2>/dev/null
+  slept=$(head -n 1 "$TMP/slept" 2>/dev/null)
+  ck "the loop sleeps POLL_S between cycles (slept ${slept:-never})" \
+     "$([ -n "$slept" ] && [ "$slept" = "$POLL_S" ] && echo 1 || echo 0)"
 
   printf 'ci-watch self-test: %d checks, %d failed\n' "$((passed + failed))" "$failed"
   [ "$failed" = 0 ]
