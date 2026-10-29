@@ -325,10 +325,24 @@ def unanswered_reds(body: str, head: str, base: str, reds: list[str],
         pf, ef = Path(td, "paths"), Path(td, "existing")
         pf.write_text("".join(f"{x}\n" for x in sorted(touched)))
         ef.write_text("".join(f"{x}\n" for x in sorted(existing)))
-        _, out = tool(["node", "tools/policy/policy_lint.mjs", "--pr-body", "{BODY}", "--head", head,
-                       "--base", base, "--paths-file", str(pf), "--existing-file", str(ef),
-                       *[x for n in reds for x in ("--red", n)]], body)
+        rc, out = tool(["node", "tools/policy/policy_lint.mjs", "--pr-body", "{BODY}", "--head", head,
+                        "--base", base, "--paths-file", str(pf), "--existing-file", str(ef),
+                        *[x for n in reds for x in ("--red", n)]], body)
+    # A path list policy_lint refuses is not "no unanswered red": the run
+    # stopped before any rule read the body, so the outcome is unknown.
+    if rc and re.search(r"ERROR +\[pr-body\] --(?:paths|existing)-file ", out):
+        raise Unavailable(f"policy_lint refused the diff's path lists: {out[:200]}")
     return sorted(n for n in reds if f"check `{n}` is red and `## Red checks` does not name it" in out)
+
+
+def diff_paths(base: str, head: str) -> tuple[set[str], set[str]]:
+    """(touched, existing): the three-dot diff's paths, and those of them the
+    base already had (`--diff-filter=a`), which `unanswered_reds` hands
+    policy_lint as `--existing-file`, so a delivery row the diff adds is read as
+    the pull request's own and not as an input of main's reporter."""
+    span = f"{base}...{head}"
+    return (set(git("diff", "--name-only", "--no-renames", span).split()),
+            set(git("diff", "--name-only", "--no-renames", "--diff-filter=a", span).split()))
 
 
 def writes_packet(refusals: list[str]) -> bool:
@@ -398,7 +412,7 @@ def build(facts: dict) -> tuple[list[str], list[str], str]:
 def gather(a) -> dict:
     head, main = a.head, a.main
     base = git("merge-base", main, head).strip()
-    touched = set(git("diff", "--name-only", "--no-renames", f"{base}...{head}").split())
+    touched, existing = diff_paths(base, head)
     label, data = (harness_source(a.harness, a.harness_file, base, touched)
                    if (a.harness or a.harness_file) else ("none named", b""))
     pr = gh(f"repos/{REPO}/pulls/{a.pr}") or {}
@@ -408,7 +422,6 @@ def gather(a) -> dict:
     gate = gate_digest(runs)
     crc, cout = tool([sys.executable, "-I", "tools/audit/carry_audit.py", "check", "--body", "{BODY}"], body)
     _, fout = tool(["node", "tools/policy/figure_lint.mjs", "--pr-body", "{BODY}", "--at", head], body)
-    existing = set(git("diff", "--name-only", "--no-renames", "--diff-filter=a", f"{base}...{head}").split())
     red_unanswered = unanswered_reds(body, head, base, gate[2], touched, existing)
     ident = ref_privacy.Identity.of_host()
     host = [w for w in [ref_privacy.body_refusal(body, ident)] if w]
@@ -591,6 +604,19 @@ def _self_test() -> int:
     check("red-unanswered null: #2954's workflow diff still owes nightly-status",
           unanswered_reds(unanswering, H, B, both, wf, wf) == both)
     check("red-unanswered null: no concluded red reads nothing", unanswered_reds(unanswering, H, B, [], {"tests/x.py"}, set()) == [])
+    # main's other reporter: every pull request adds its own delivery row, which
+    # `--existing-file` keeps from reading as an input of `delivery-status`.
+    ds, row = ["governance / delivery-status"], "dev/programme/delivery/9999.md"
+    check("red-unanswered: main's delivery-status red is not owed by a diff adding only its own delivery row",
+          unanswered_reds(unanswering, H, B, ds, {row}, set()) == [])
+    check("red-unanswered null: a delivery row the base already had owes delivery-status",
+          unanswered_reds(unanswering, H, B, ds, {row}, {row}) == ds)
+    try:
+        unanswered_reds(unanswering, H, B, both, set(), set())
+        ok = False
+    except Unavailable:
+        ok = True
+    check("red-unanswered: a path list policy_lint refuses is UNAVAILABLE, not no unanswered red", ok)
 
     # The independence arm reads a base blob, so it is driven over a checkout of
     # its own: a self-test must not need the tree it happens to be run in.
@@ -673,6 +699,31 @@ def _self_test() -> int:
             _REPO_ROOT = None
         check("repo(): a git read runs in the checkout the working directory is in, not the tool's install",
               Path(got) == t)
+
+        # gather's path lists, over a real three-dot diff: the delivery row the
+        # head adds is touched and not existing, so main's delivery-status red
+        # is owed no answer through the same call gather makes.
+        (t / "kept.txt").write_text("base\n")
+        tgit("add", "-A")
+        tgit("commit", "-q", "-m", "kept")
+        pbase = tgit("rev-parse", "HEAD").strip()
+        (t / "kept.txt").write_text("head\n")
+        (t / "dev/programme/delivery").mkdir(parents=True)
+        (t / row).write_text("row\n")
+        tgit("add", "-A")
+        tgit("commit", "-q", "-m", "head")
+        phead = tgit("rev-parse", "HEAD").strip()
+        here, _REPO_ROOT = os.getcwd(), None
+        try:
+            os.chdir(t)
+            paths = diff_paths(pbase, phead)
+        finally:
+            os.chdir(here)
+            _REPO_ROOT = None
+        check("diff_paths: an added delivery row is touched, and only a file the base had is existing",
+              paths == ({"kept.txt", row}, {"kept.txt"}))
+        check("diff_paths -> red-unanswered: the row the diff adds owes main's delivery-status nothing",
+              unanswered_reds(unanswering, H, B, ds, *paths) == [])
 
         # UNAVAILABLE is a different outcome from a refusal: a seat that cannot
         # read the inputs reports rc 3 and writes nothing, and `bus.sh dispatch`
