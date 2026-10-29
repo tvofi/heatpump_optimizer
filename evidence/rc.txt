@@ -1,0 +1,2 @@
+mut rc=1
+mut2 rc=1
