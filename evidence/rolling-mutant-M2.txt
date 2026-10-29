@@ -1,0 +1,48 @@
+
+=== Closed-loop rolling simulation ===
+
+-- Stability over three days
+  ok   every plan solved
+  ok   the house never runs away
+  ok   comfort holds across three days despite a 25% model error
+  ok   the indoor temperature settles rather than drifting
+  ok   daily cost is stable, not escalating
+  ok   consecutive plans do not contradict each other
+  ok   cheap hours are used more than expensive ones, over three days
+
+-- Hot water over three days
+  ok   hot water is available in every demand window, every day
+  ok   the tank never exceeds its rating during operation
+  ok   the legionella clock advances sensibly
+
+-- Harder conditions
+  ok   two zone: two days stay sound
+  ok   no hot water: two days stay sound
+  ok   model 40% optimistic: two days stay sound
+  ok   model 20% pessimistic: two days stay sound
+  ok   mild and windy: two days stay sound
+  ok   shoulder season: two days stay sound
+  ok   flat prices: two days stay sound
+  ok   short horizon: two days stay sound
+  ok   a tighter-than-configured house is not overheated
+
+-- Self-learning in the loop
+  ok   the learner takes samples
+  FAIL the learned correction moves towards the real error  [scale went 1.000 -> 0.392, truth 1.35]
+  ok   and does not overshoot it
+  ok   the correction converges rather than oscillating
+  FAIL learning reduces the comfort breach it exists to fix  [10.39 -> 31.31 degree-hours]
+  FAIL a correct model is not corrupted by the learner  [scale drifted to 0.300 on a model that was already right]
+
+-- Retention over the long run
+  ok   the retention section measured a live learner
+  ok   the lead-error maps stay at their bucket count, not one key per float
+  ok   the pending-promise list stays under its hard cap
+  ok   the accuracy sample ring keeps its documented size
+  ok   the COP baseline stays within its temperature-bucket count
+  ok   the capacity envelope stays within its bucket count
+  ok   a step-response experiment does not accumulate samples across runs
+  ok   the thermal model retains no simulation side-channels
+
+3 of 33 ROLLING CHECKS FAILED
+exit 1
