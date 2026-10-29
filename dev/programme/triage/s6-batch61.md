@@ -170,7 +170,7 @@ Instances, read from the live relay log and `bus.sh`'s dispatch record:
   reviewer's fire, already printed as owed, so there is no defect here.
 
 Cost and benefit: removing one arm from `review_freeze`, one self-test arm inverted, and one carry.
-Measured, it frees 4 PRs that the relay held for 6 to 56 passes, and #2953 for more than two hours.
+Measured, it frees 4 PRs that the relay held for 6 to 56 passes, and #2953 for about two hours, from 17:07Z until the orchestrator applied it by hand at about 19:05Z.
 
 Accepted, as fly-in R10-FLY-RELAY-FREEZE-REGISTRY:
 1. `review_freeze` returns REVIEW only on a `bus.sh dispatch` record of the PR at the head. The
