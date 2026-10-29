@@ -11472,6 +11472,50 @@
     "note": "2026-10-29 (triage: dev/programme/triage/s6-batch60.md#P283)"
    },
    "brief": "From triage P283 (orchestrator, 2026-10-29T12:00Z): update_pr.sh's STALE CHECKOUT guard (`pr_tools_fresh`, tools/audit/seat/pr_args.sh:166-178) refuses when the checkout holding the running script lags origin/main under tools/audit/seat or tools/pr. It judges the right checkout: all 41 refusals in the relay and tick logs name the orchestrator worktree the relay runs from, never the main checkout. That worktree is stale whenever main moves those paths, and nothing levels it. The relay calls `bash \"$HERE/update_pr.sh\"` from its own checkout (tools/audit/seat/cloud_relay.sh:438), so each tools merge to main refuses the next relayed update until someone bumps the worktree by hand: 13 relay refusals on 2026-10-28 and 2026-10-29. (1) The relay runs update_pr.sh from a tools checkout it owns, never from the checkout its own loop is executing: a worktree it adds once, detached, and before each update call fetches and checks out at origin/main when clean. A dirty or busy one is a named refusal, never clobbered. The relay never moves its own checkout, because bash reads a running script from its file as it goes. (2) Self-test: with the scratch origin's main one tools commit ahead of the relay's checkout, a relayed update runs from the levelled clone and passes the guard; mutation: calling `$HERE/update_pr.sh` again gives the STALE CHECKOUT refusal and fails the arm; null control: a dirty tools clone is refused by name and left untouched. Out of scope: pr_args.sh's guard, which stays as is, and open_pr.sh's manual callers. triage: dev/programme/triage/s6-batch60.md#P283"
+  },
+  {
+   "group": "R10-FLY-GH-CALL-LOG",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "instrument",
+   "severity": "medium",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 6,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "tools/audit/seat/shims/gh",
+    "tools/audit/seat/gh_calls.py",
+    "tools/audit/seat/seat_venv.sh",
+    "tools/audit/seat/INSTRUMENTS.md"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-fly-gh-call-log",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer (fly-in)",
+    "note": "2026-10-29 (triage: dev/programme/triage/s6-batch60.md#P284)"
+   },
+   "brief": "From triage P284 (proposal V187, orchestrator 2026-10-29T16:40Z): the shared token's core REST bucket was spent at about 15:11Z, blinding the sweep and refusing `bus.sh confirm` three times, and no log on the host names the caller. P248 (s6-batch50.md) deferred a cache until a consumer is attributed; this is the second exhaustion, still unattributed. Local callers reach GitHub through the `gh` binary. The one direct HTTP call is `urllib.request.urlopen` in record_row.py (tools/audit/seat/record_row.py:882). (1) A `gh` shim beside seat-python in tools/audit/seat/shims/: it appends one line `<utc> <parent pid> <parent command, first 80 chars> <gh subcommand> <api path or pr/run verb>` to $HPO_STATE_DIR/gh-calls.log, never field values or bodies (`-f`/`-F`/`--input` arguments are dropped), then execs the real gh found on PATH past its own directory; stdin, stdout, exit status and signals pass through unchanged; a log it cannot write is skipped, never fatal. The log is capped (rotate past a fixed size). (2) `seat_venv.sh --install-shims` installs it beside the python shims. Measure which live daemons and seats have the shim directory on PATH and name each that does not. (3) A Python reader beside it, whose `--top [--since <utc>]` mode ranks callers and endpoints by count. (4) Self-test: through the shim, `gh api repos/o/r/pulls` with a stub gh logs one line naming the caller and path and returns the stub's bytes and exit code; a `-f body=secret` argument never reaches the log; mutation: dropping the exec pass-through fails the byte arm; null control: an unwritable log leaves the call's output and status unchanged. New files are classified in tests/closure.py (closure or INERT). Blind spots, stated: cloud seats share the token from another host, and record_row.py's direct read is not counted. Out of scope: a cache or poll changes (R10-ORCH-BEATD, P248). triage: dev/programme/triage/s6-batch60.md#P284"
   }
  ]
 }
