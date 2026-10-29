@@ -21402,11 +21402,13 @@ R.check(
 # A script another script drives in a subprocess reaches the table only
 # through its driver's fold: a change to it re-derives the driver and the
 # child, never every closure (R9-F10.9; this pinned `full` until then).
+# tests/entities.py is the third entry: countermeasure B's pin reads every
+# non-INERT .py under tests/ and tools/, so every such edit re-derives it.
 _A_DRIVEN = _closure.affected(["tests/dst_checks.py"])
 R.check(
     "a change to a subprocess-driven script re-derives its driver and itself",
     _A_DRIVEN["case"] == "scoped"
-    and _A_DRIVEN["rederive"] == ["tests/features.py", "tests/dst_checks.py"],
+    and _A_DRIVEN["rederive"] == ["tests/entities.py", "tests/features.py", "tests/dst_checks.py"],
     f"case={_A_DRIVEN['case']} rederive={_A_DRIVEN['rederive']}",
 )
 # A tests/closures.json change runs the scripts whose entry moved, measured
@@ -21507,11 +21509,13 @@ R.check(
     and _nr_anyway == ["tests/harness_headers.py"],
     f"not run={[r[0] for r in _nr_rows]} ran anyway={_nr_anyway}",
 )
-# The cost claim: one script's closure touched re-derives ONE entry.
-_A_ONE = _closure.affected(["tests/open_meteo.py"])
+# The cost claim: one script's closure touched re-derives ONE entry. The file
+# is a data file one script reads: a script's own .py is in tests/entities.py's
+# closure too, by countermeasure B's read, so it re-derives two.
+_A_ONE = _closure.affected(["tests/typing_budgets.json"])
 R.check(
     "a diff inside one closure re-derives one entry, not eighteen",
-    _A_ONE["case"] == "scoped" and _A_ONE["rederive"] == ["tests/open_meteo.py"],
+    _A_ONE["case"] == "scoped" and _A_ONE["rederive"] == ["tests/typing_ruler.py"],
     f"case={_A_ONE['case']} rederive={_A_ONE['rederive']}",
 )
 # A recording is a real run: card.mjs reads the payload plan_view.py writes,
