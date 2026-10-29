@@ -1,0 +1,15 @@
+== resolution delta: main side 0b17333c2..9071062b0 paths
+ .../learner_room_unread.GUARD_OFF.48542026.json    |   6 +
+ tests/structure_budgets.json                       |   6 +-
+ 13 files changed, 465 insertions(+), 78 deletions(-)
+== b8ea97aef..head vs 0b17333c2..9071062b0 (range-diff of trees)
+941c941
+< index e0a3817ac..a115eb42e 100644
+---
+> index b8fc5250a..35d5d00dd 100644
+946,947c946,947
+< - "class_excess_loc": 17991,
+< + "class_excess_loc": 17986,
+---
+> - "class_excess_loc": 17875,
+> + "class_excess_loc": 17870,
