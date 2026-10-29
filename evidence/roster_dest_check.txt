@@ -1,9 +1,0 @@
-cfp stage in-progress
-playbook stage not-started
-stage queued
-classify_space_steps 1
-classify_dhw_steps 1
-planned_draw_runs 0
-MIN_RUNNING_DRAW_KW 0
-0.05 0
-b521fb19bd4808aca76c54d04794276cadd0cc0c

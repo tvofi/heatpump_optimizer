@@ -1,44 +1,55 @@
 # Review packet #2946
-head: 324755c9f4ef0f270d95f46e40d1613ebd43de7c
+head: 8b0f5c316903372f34e5194a9c5791fd9b8365ee
 base: 66974d47312caa46e9817b9aeae7186e9764e560
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
-## Gate digest: red
-CodeQL id=123373682451 neutral
-arch-score / arch-score id=123373401640 success
-arm id=123373234169 skipped
-budget-raise-gate / budget-raise-gate id=123373401679 success
-cancel-superseded id=123375417453 success
-codeql / Analyze (actions) id=123373401556 success
-codeql / Analyze (javascript-typescript) id=123373401693 success
-codeql / Analyze (python) id=123373401613 in_progress
-governance / delivery-status id=123373401677 success
-governance / delivery-status-publish id=123373403567 skipped
-governance / env-matrix id=123373401789 in_progress
-governance / instrument-self-tests id=123373401627 in_progress
-governance / policy-docs id=123373401570 success
-governance / record id=123373403523 skipped
-governance / wave-script id=123373401603 success
-hassfest / hassfest id=123373401437 success
-kernel-points id=123373402876 skipped
-prelude id=123375417522 in_progress
-refresh id=123375417204 success
-tests / arch-instrument id=123373628267 success
-tests / briefs id=123373401766 success
-tests / browser id=123373628428 success
-tests / closure-scope id=123373401866 success
-tests / closures id=123373628255 in_progress
-tests / coverage id=123373628121 in_progress
-tests / fast (3.14) id=123373628294 in_progress
-tests / mutation id=123373401731 success
-tests / mutation-autofix id=123373720820 skipped
-tests / mutation-pins id=123373719526 skipped
-tests / nightly-ha id=123373630106 skipped
-tests / nightly-status id=123373401665 failure
-tests / replay id=123373629961 skipped
-tests / typing id=123373628326 success
-validate / validate-hacs id=123373401830 success
+## Gate digest: pending
+arch-score / arch-score id=123399260281 success
+budget-raise-gate / budget-raise-gate id=123399189312 success
+cancel-superseded id=123399188470 skipped
+codeql id=123399122442 skipped
+codeql / Analyze (actions) id=123399248630 success
+codeql / Analyze (javascript-typescript) id=123399189642 success
+codeql / Analyze (python) id=123399230408 success
+gate id=123399915061 in_progress
+governance id=123399121754 skipped
+governance / delivery-status id=123399188544 skipped
+governance / delivery-status-publish id=123399188433 skipped
+governance / env-matrix id=123399234928 success
+governance / instrument-self-tests id=123399253703 success
+governance / policy-docs id=123399234999 success
+governance / record id=123399188569 skipped
+governance / wave-script id=123399249334 success
+hassfest id=123399121644 skipped
+hassfest / hassfest id=123399253770 success
+kernel-points id=123399188357 skipped
+pr-contract / pr-contract id=123399630627 success
+prelude id=123399243815 success
+refresh id=123399221695 success
+tests id=123399122085 skipped
+tests / arch-instrument id=123399190785 success
+tests / briefs id=123399230099 success
+tests / browser id=123399191492 success
+tests / ci-ratchet id=123399192746 skipped
+tests / claims-autofix id=123399191851 skipped
+tests / closure-scope id=123399247977 success
+tests / closures id=123399190917 success
+tests / closures-autofix id=123399192248 skipped
+tests / coverage id=123399192080 success
+tests / coverage-ratchet id=123399191917 success
+tests / fast (3.14) id=123399190843 success
+tests / graders-head-copy id=123399192787 skipped
+tests / lane-proofs id=123399192915 skipped
+tests / mutation id=123399249477 success
+tests / mutation-autofix id=123399191662 skipped
+tests / mutation-pins id=123399190818 skipped
+tests / nightly-ha id=123399191069 skipped
+tests / nightly-status id=123399189065 skipped
+tests / replay id=123399192290 skipped
+tests / typing id=123399191440 success
+validate id=123399121709 skipped
+validate / validate-hacs id=123399230427 success
 
 ## Refusals
 none
@@ -47,9 +58,9 @@ none
 none
 
 ## carry_audit at the head
-NOTE body item f8a46325: R10-ARCH-SHAPES-CLASSIFIER
-NOTE body item 392f2e20: R10-ROUND-PLAYBOOK
-NOTE body item 8473434e: R10-CONFIGFLOW-PAGES
+NOTE body item 697b9811: R10-ARCH-SHAPES-CLASSIFIER
+NOTE body item 605bc17a: R10-ROUND-PLAYBOOK
+NOTE body item 841fa6a4: R10-ROUND-PLAYBOOK
 CARRY-AUDIT: 3 finding item(s): 3 routed, 0 unrouted, 0 bad destination(s)
 
 ## figure_lint at the head
@@ -312,4 +323,16 @@ index 8dedad2da..4de8c8849 100644
   "script_runs_full_case_pr": 68,
   "script_runs_per_push": 54
  }
+diff --git a/tests/closures.json b/tests/closures.json
+index 5b8a18073..0b0bf0303 100644
+--- a/tests/closures.json
++++ b/tests/closures.json
+@@ -3956,6 +3956,7 @@
+    "dev/audit/rounds/round10/D7/arch-s3/payload_any_spellings.py",
+    "dev/audit/rounds/round10/D7/arch-s3/payload_census_coverage.py",
+    "dev/audit/rounds/round10/D7/arch-s3/score_delta.py",
++   "dev/audit/rounds/round10/D7/arch2-s5/wizard_widgets.py",
+    "dev/audit/rounds/round10/D7/s1/class_growth.py",
+    "dev/audit/rounds/round10/D7/s2/learner_gates.py",
+    "dev/audit/rounds/round10/D7/s2/sysid_plant.py",
 

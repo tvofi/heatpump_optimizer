@@ -1,0 +1,8 @@
+Check runs on head 8b0f5c316903372f34e5194a9c5791fd9b8365ee (GitHub check-runs API via pull_request_read get_check_runs, 107 runs, all completed at read time):
+- red: pr-contract / pr-contract id=123399193818 (10:31:23-10:32:05Z) and id=123399156518 (10:31:49-10:32:29Z) failure
+- green after the last red: pr-contract / pr-contract id=123399122460 (started 10:39:22Z) success; id=123399630627 (started 10:43:02Z) success
+- red: tests / nightly-status id=123399152069 failure (grades main's nightly lanes; diff does not reach its inputs)
+- gate id=123399915061 success (10:43:41-10:44:15Z); gate id=123399191437, 123399154536, 123399121439 success
+- tests / closures id=123399190917 and id=123399153239 success; tests / mutation success (123399249477, 123399210077)
+- tests / ci-ratchet skipped on both PR runs (123399192746, 123399154873)
+- arch-score, budget-raise-gate, closure-scope, fast (3.14), coverage, coverage-ratchet, typing, browser, briefs, arch-instrument, env-matrix, policy-docs, instrument-self-tests, wave-script, hassfest, validate-hacs, codeql x3: success
