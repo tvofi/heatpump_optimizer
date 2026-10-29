@@ -890,21 +890,14 @@ def _power_errors(
     return {}
 
 
-def _options_suggested_numeric(current: dict[str, Any], key: str) -> Any:
-    """Optional key that suggests the stored value without defaulting it."""
-    if key in current:
-        return vol.Optional(key, description={"suggested_value": current[key]})
-    return vol.Optional(key)
+def _suggested_optional(current: dict[str, Any], key: str) -> Any:
+    """An optional key that suggests the stored value, never defaults it.
 
-
-def _suggested_entity(key: str, current: dict[str, Any]) -> Any:
-    """An entity picker that suggests the stored slot, never defaults it.
-
-    The same two-armed rule as ``_options_suggested_numeric`` beside it, and
-    for the same reason: a ``default`` is refilled by voluptuous for a key the
-    submission left absent, so the stored value rides only as a
-    ``suggested_value``. #1258: the Configure quick-setup page shows an
-    existing entry's wood probes rather than pickers that read as unconfigured.
+    A ``default`` is refilled by voluptuous for a key the submission left
+    absent, so the stored value rides only as a ``suggested_value``. Numeric
+    rows and entity pickers alike: #1258, the Configure quick-setup page shows
+    an existing entry's wood probes rather than pickers that read as
+    unconfigured.
     """
     if key in current:
         return vol.Optional(key, description={"suggested_value": current[key]})
@@ -1218,9 +1211,9 @@ def _quick_setup_schema(
     return vol.Schema(
         {
             **question_fields,
-            _suggested_entity(CONF_WOOD_TANK_TOP_ENTITY, current): _prefill_row(CONF_WOOD_TANK_TOP_ENTITY).widget,
-            _suggested_entity(
-                CONF_WOOD_TANK_BOTTOM_ENTITY, current
+            _suggested_optional(current, CONF_WOOD_TANK_TOP_ENTITY): _prefill_row(CONF_WOOD_TANK_TOP_ENTITY).widget,
+            _suggested_optional(
+                current, CONF_WOOD_TANK_BOTTOM_ENTITY
             ): _prefill_row(CONF_WOOD_TANK_BOTTOM_ENTITY).widget,
             **_questionnaire_fields(current),
         }
@@ -1816,7 +1809,7 @@ def _field_marker(row: _F, current: dict[str, Any], hass: HomeAssistant) -> Any:
                 )
         return vol.Optional(row.key)
     if default is _SUGGESTED:
-        return _options_suggested_numeric(current, row.key)
+        return _suggested_optional(current, row.key)
     if isinstance(default, _Suggested):
         return vol.Optional(
             row.key,

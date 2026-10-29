@@ -15,7 +15,9 @@
 # that are re-executable in CI, so the PRE-PR line this prints is a claim and
 # the re-execution is the proof.
 #
-#   tools/pr/prepr.sh [body.md]   # issue numbers after it are ignored: step 7 derives them
+#   tools/pr/prepr.sh [--verbose] [body.md]   # issue numbers after it are ignored: step 7 derives them
+#     stdout is the verdicts, each refusal's log lines and the result line naming
+#     the full log; --verbose or PREPR_VERBOSE=1 prints the full log there instead
 #   tools/pr/prepr.sh --body-check <abs body.md>   # step 7 alone (body_push.sh)
 #
 # Self-test (used by the `pr-contract` job, and by anyone changing this file):
@@ -3416,18 +3418,77 @@ step "ref privacy" $? "$PRIVACY_LINE"'*) r=0 ;; *) r=1 ;; esac
   st "$r" 0 "and step 7c gates on it, not on 7b's UPSHA"
   rm -rf "${CA:?}"
 
+  # (12) Summary-only stdout (R10-FLY-PREPR-SUMMARY): the main flow's own
+  # say/step/summary functions, driven over a passing step with per-test
+  # chatter and a refusing one. Stdout carries the verdicts, the refusal's
+  # reason and its failing lines, and the result line naming the log; the
+  # chatter reaches the log alone. PREPR_VERBOSE=1 is today's stdout.
+  SM="$ST_ROOT/summary"; mkdir -p "$SM"
+  sfn=$(for f in say refusal_lines step summary_start summary_end; do sed -n "/^$f() {/,/^}/p" <<<"$flow"; done)
+  sdrv() { TMPDIR="$SM" PREPR_VERBOSE="${1:-}" bash -c "$sfn"'
+    rc=0 digest="" ORDER="" PREPR_LOG="" LOG_MARK=0; summary_start
+    echo "tests/chatter.py::test_one PASSED"; step "quiet" 0 "held"
+    echo "tests/chatter.py::test_two PASSED"; echo "AssertionError: the failing line"
+    step "loud" 1 "the refusal reason"; summary_end deadbeef; exit $rc'; }
+  out=$(sdrv); st $? 1 "the summary run keeps the refusal's rc"
+  case "$out" in *test_one*) r=1 ;; *) r=0 ;; esac
+  st "$r" 0 "summary stdout carries no passing step's per-test chatter"
+  case "$out" in *'REFUSE   loud'*'the refusal reason'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "and carries the REFUSE line with its reason (null control: the refusal stays visible)"
+  case "$out" in *'| AssertionError: the failing line'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "and the refusal's failing lines"
+  lg=$(sed -n '$s/.*full log: \([^ ]*\) .*/\1/p' <<<"$out")
+  case "$(tail -1 <<<"$out")" in 'PRE-PR: deadbeef 01 rc=1; full log: '"$SM"/prepr-log.*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "the last line is the result with rc, naming a unique log under TMPDIR"
+  [ -f "$lg" ] && [ -n "$(sed -n '/test_one PASSED/p' "$lg")" ]; st $? 0 "and that log holds the full output"
+  out=$(sdrv 1); case "$out" in *'test_one PASSED'*'REFUSE   loud'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "PREPR_VERBOSE=1 prints the full output on stdout"
+  case "$flow" in *'step "merge-base" 0 "$BASE"
+summary_start'*'summary_end "$(git rev-parse HEAD)"
+exit $rc'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "the main flow starts the summary after step 1 and ends on its result line"
+  rm -rf "${SM:?}"
+
   printf '\n%s passed, %s failed\n' "$st_pass" "$st_fail"
   [ "$st_fail" -eq 0 ] || exit 2
   exit 0
 fi
 
+VA=(); for a in "$@"; do if [ "$a" = --verbose ]; then PREPR_VERBOSE=1; else VA+=("$a"); fi; done
+set -- ${VA[@]+"${VA[@]}"}
 rc=0
 digest=""
 ORDER=""
-say() { printf '  %-8s %-22s %s\n' "$1" "$2" "${3:-}"; }
+# Summary-only stdout (R10-FLY-PREPR-SUMMARY, tvofi 2026-10-28): a seat keeps
+# every tool output in context for each later turn, and the per-test chatter of
+# the steps below cost one day 27.6M cached-read tokens. Once step 1 holds,
+# stdout and stderr go to $PREPR_LOG and fd 3 keeps the real stdout: each
+# verdict line, each refusal's own log lines (`refusal_lines`), and the result
+# line naming the log. `PREPR_VERBOSE=1` or `--verbose` keeps today's stdout.
+# Both pushers that run this mode read its rc alone, never its stdout.
+PREPR_LOG="" LOG_MARK=0
+say() {
+  local l; l=$(printf '  %-8s %-22s %s' "$1" "$2" "${3:-}")
+  printf '%s\n' "$l"; [ -z "$PREPR_LOG" ] || printf '%s\n' "$l" >&3
+  [ -z "$PREPR_LOG" ] || LOG_MARK=$(wc -l <"$PREPR_LOG")
+}
+refusal_lines() { # -> fd 3: the last 40 log lines since the previous verdict
+  [ -n "$PREPR_LOG" ] || return 0
+  tail -n +"$((LOG_MARK + 1))" "$PREPR_LOG" | tail -40 | sed 's/^/    | /' >&3
+}
 step() { # name, rc, detail
   digest="${digest}$2"
-  if [ "$2" -eq 0 ]; then say ok "$1" "${3:-}"; else say REFUSE "$1" "${3:-}"; rc=1; fi
+  if [ "$2" -eq 0 ]; then say ok "$1" "${3:-}"; else refusal_lines; say REFUSE "$1" "${3:-}"; rc=1; fi
+}
+summary_start() { # -> stdout and stderr to $PREPR_LOG, fd 3 the real stdout; none under PREPR_VERBOSE=1
+  [ "${PREPR_VERBOSE:-}" != 1 ] || return 0
+  PREPR_LOG=$(command mktemp "${TMPDIR:-/tmp}/prepr-log.XXXXXXXX") || { PREPR_LOG=""; return 0; }
+  exec 3>&1 >"$PREPR_LOG" 2>&1
+}
+summary_end() { # head sha -> the result line on fd 3, naming the log
+  [ -n "$PREPR_LOG" ] || return 0
+  [ -z "$ORDER" ] || printf '  !!! %s: the push must follow at once (the full warning is in the log)\n' "$ORDER" >&3
+  echo "PRE-PR: $1 $digest rc=$rc; full log: $PREPR_LOG (PREPR_VERBOSE=1 prints it on stdout)" >&3
 }
 
 # --- 0. the body is not in a root other seats write to (`shared_root` above).
@@ -3450,6 +3511,7 @@ if [ -z "$BASE" ]; then
   exit 2
 fi
 step "merge-base" 0 "$BASE"
+summary_start
 
 # --- 1a. no transport file in any commit the branch adds (`transport_in_ancestry`).
 TRANSPORT=$(transport_in_ancestry "$BASE" HEAD)
@@ -3938,4 +4000,5 @@ fi
 rm -f "${UNPINNED_SITES:-}"
 echo
 echo "PRE-PR: $(git rev-parse HEAD) $digest"
+summary_end "$(git rev-parse HEAD)"
 exit $rc
