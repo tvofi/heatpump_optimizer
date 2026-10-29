@@ -1,4 +1,4 @@
-# Proposal triage, session s7, batch 61 (P286-P287)
+# Proposal triage, session s7, batch 61 (P286-P288)
 
 The rolling batch (V182) after batch 60 (#2958, merged as
 `20c205158ec465bd37e65ed1b847f4589b173a73`). Facts were read at origin/main
@@ -131,3 +131,64 @@ a body whose only routes are `dismissed:` passes unchanged.
 Priority, for the orchestrator: R10-FLY-CARRY-DISPOSITION is ready to dispatch now. This ruling
 does not ask to open the batch early. The carry is held with the batch, and the group's own first
 carry already specifies the check.
+
+## P288: a returned handoff shows as held, not owed
+
+Verdict: ACCEPT, re-aimed at the relay's review freeze, as a new fly-in R10-FLY-RELAY-FREEZE-REGISTRY,
+with a carry on R10-FLOW-BODY-ONLY. V191's mechanism, a commit-time comparison in the tick
+confirmed by the cloud session's worker status, is REJECTED. The relay already compares each
+handoff with its PR head on every pass, so the time comparison would be a second, weaker record of
+the same fact.
+
+Source: `proposals.md` V191 (orchestrator, 2026-10-29). Three fixers pushed their handoffs and went
+idle: #2953 at 18:25, #2872 at 17:39 and #2962 at 18:49. The sweep showed them as held while the
+fixer worked, and they waited 20 to 90 minutes.
+
+Instances, read from the live relay log and `bus.sh`'s dispatch record:
+- **#2953 is a false review freeze.** `cloud_relay.sh`'s `handoff_arm` saw `handoff/r10-friction-fixer-md`
+  ahead of the head and printed `HELD-REVIEW #2953` on 44 passes from 17:07Z. The level carries
+  `OWED ... handoff-held ... #2953 REVIEW`, which the tick prints. So the signal was there, but it
+  said a review was in flight. None was: the dispatch record holds no #2953 line. `review_freeze`
+  also counts "a detached worktree of this checkout at <head>" as a review, and the opener's own
+  worktree, `pr/r10-friction-fixer-md/wt` under the state directory, sits detached at that head.
+- **The heuristic over-fires on most PR heads.** 10 `fix/*` branch tips on origin have a detached
+  worktree at that tip right now. Every one is an opener's or updater's own worktree under a
+  state directory's `pr/`, under two different state roots. So a path filter would be fragile.
+  Of the 7 PRs the log ever held as REVIEW, 4 were held with no dispatch record at that head:
+  #2896 (9 passes), #2916 (56), #2933 (6) and #2953 (44). The other 3 had one.
+- **The registry already exists.** `review_freeze`'s own comment says "bus.sh's dispatch record is
+  the worker registry ... so the REVIEW read above is the registry's live-reviewer read". Local
+  reviewers are recorded there too (`local-reviewer-s10` lines). A review started without
+  `bus.sh dispatch` cannot post a verdict, because the nonce is minted by the dispatch.
+- **#2872 was a body-only handoff, which the relay skips in silence.** `handoff-body/r10-cop-partload`
+  moved at 17:38:52Z, while `handoff/r10-cop-partload` equals the head `9b24795b2`. `handoff_arm`
+  continues past any handoff that is an ancestor of the head, so a body-only push prints nothing.
+  R10-FLOW-BODY-ONLY (P233, `not-started`) owns the body-only update. It waits on three groups.
+- **#2962 was applied within a minute.** The relay printed `handoff/r10-fly-packet-red-paths ... is
+  ahead of #2962; updating` at 18:49:37Z, and the dispatch record holds #2962 at the new head
+  `9ce0179f7` at 18:51:24Z. It then printed `OWED reviewer-fire #2962`. The wait was the cloud
+  reviewer's fire, already printed as owed, so there is no defect here.
+
+Cost and benefit: removing one arm from `review_freeze`, one self-test arm inverted, and one carry.
+Measured, it frees 4 PRs that the relay held for 6 to 56 passes, and #2953 for more than two hours.
+
+Accepted, as fly-in R10-FLY-RELAY-FREEZE-REGISTRY:
+1. `review_freeze` returns REVIEW only on a `bus.sh dispatch` record of the PR at the head. The
+   detached-worktree arm is removed.
+2. The HELD-REVIEW stdout line and the `handoff-held` level line name the evidence: the dispatch's
+   nonce prefix and time. A reader then sees which review holds the handoff.
+3. The self-test arm "a detached review worktree at the head holds the handoff"
+   (`cloud_relay.sh:892-895`) is inverted, not deleted: a detached worktree at the head with no
+   dispatch record lets the update through.
+
+Control: the #2953 shape, a handoff ahead of the head, no verdict, no dispatch record and a
+detached worktree at the head, updates. The same with a dispatch record at the head holds it.
+Mutation: restoring the worktree arm fails the inverted arm. Null control: a dispatch of another
+PR at the same head still holds nothing (`:889-890`).
+
+Accepted, as a carry on R10-FLOW-BODY-ONLY: until its body-only update lands, `handoff_arm` owes a
+level line for a body-only handoff it does not apply. The condition is a `handoff-body/<topic>` tip
+committed after the head's commit, while `handoff/<topic>` is an ancestor of the head, so the push
+is never silent.
+
+Not built: a commit-time comparison in the tick, and a read of the cloud session's worker status.
