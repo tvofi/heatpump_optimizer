@@ -5,46 +5,53 @@ base: ce5940c0d1d8f611a818d53e7fffcafb48b356c1
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
 ## Gate digest: red
-CodeQL id=123662452036 neutral
-arch-score / arch-score id=123662089967 success
+CodeQL id=123662452036 success
+arch-score / arch-score id=123683406885 success
 arm id=123661848226 skipped
-budget-raise-gate / budget-raise-gate id=123662090628 success
-cancel-superseded id=123670414205 success
-codeql / Analyze (actions) id=123662090395 success
-codeql / Analyze (javascript-typescript) id=123662090331 success
-codeql / Analyze (python) id=123662090230 in_progress
-governance / delivery-status id=123662090345 success
-governance / delivery-status-publish id=123662093430 skipped
-governance / env-matrix id=123662090176 success
-governance / instrument-self-tests id=123662090050 in_progress
-governance / policy-docs id=123662090039 success
-governance / record id=123662093540 skipped
-governance / wave-script id=123662090261 success
-hassfest / hassfest id=123662089855 success
-kernel-points id=123662092310 skipped
-prelude id=123670414604 in_progress
-refresh id=123670414638 success
-tests / arch-instrument id=123662318852 success
-tests / briefs id=123662090304 success
-tests / browser id=123662318638 success
-tests / ci-ratchet id=123669703820 skipped
-tests / claims-autofix id=123664671858 skipped
-tests / closure-scope id=123662090248 success
-tests / closures id=123662318645 success
-tests / closures-autofix id=123669704839 skipped
-tests / coverage id=123662318765 success
-tests / coverage-ratchet id=123662663331 success
-tests / fast (3.14) id=123662318659 success
-tests / graders-head-copy id=123662663255 success
-tests / lane-proofs id=123664669616 success
-tests / mutation id=123662090238 success
-tests / mutation-autofix id=123662452942 skipped
-tests / mutation-pins id=123662452086 skipped
-tests / nightly-ha id=123662321824 skipped
-tests / nightly-status id=123662090500 failure
-tests / replay id=123662321779 skipped
-tests / typing id=123662318555 success
-validate / validate-hacs id=123662090053 success
+budget-raise-gate / budget-raise-gate id=123683407007 success
+cancel-superseded id=123683431389 success
+codeql id=123683455504 skipped
+codeql / Analyze (actions) id=123683396441 success
+codeql / Analyze (javascript-typescript) id=123683395624 success
+codeql / Analyze (python) id=123683395881 success
+gate id=123684159108 success
+governance id=123683466332 skipped
+governance / delivery-status id=123683397360 success
+governance / delivery-status-publish id=123683397141 skipped
+governance / env-matrix id=123683397453 success
+governance / instrument-self-tests id=123683396293 success
+governance / policy-docs id=123683396705 success
+governance / record id=123683396700 skipped
+governance / wave-script id=123683397678 success
+hassfest id=123683481292 skipped
+hassfest / hassfest id=123683395825 success
+kernel-points id=123683478976 skipped
+pr-contract / pr-contract id=123683772888 success
+prelude id=123683475061 success
+refresh id=123683494583 success
+tests id=123683493584 skipped
+tests / arch-instrument id=123683399936 success
+tests / briefs id=123683395388 success
+tests / browser id=123683400477 success
+tests / ci-ratchet id=123683402734 skipped
+tests / claims-autofix id=123683402690 skipped
+tests / closure-scope id=123683395814 success
+tests / closures id=123683399502 success
+tests / closures-autofix id=123683402218 skipped
+tests / coverage id=123683400258 success
+tests / coverage-ratchet id=123683401309 success
+tests / fast (3.14) id=123683400057 success
+tests / graders-head-copy id=123683401806 success
+tests / lane-proofs id=123683402287 success
+tests / mutation id=123683395845 success
+tests / mutation-autofix id=123683400272 skipped
+tests / mutation-pins id=123683398996 skipped
+tests / nightly-ha id=123683399396 skipped
+tests / nightly-status id=123683396388 failure
+tests / replay id=123683399278 skipped
+tests / typing id=123683400038 success
+validate id=123683407125 skipped
+validate / validate-hacs id=123683396391 success
 
 ## Refusals
 none
@@ -53,6 +60,7 @@ none
 none
 
 ## carry_audit at the head
+NOTE stale tree: 9ce0179f77aa68eab6440c3d85aa92e788936b22 lacks origin/main e5ddba1fad5e6eccfeceaeaaa249bc459963405b; roster read at origin/main
 CARRY-AUDIT: 0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s)
 
 ## figure_lint at the head
