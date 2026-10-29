@@ -15,12 +15,10 @@ git show origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r10-groups.j
 Worktrees in flight (a crashed seat restarts from its branch and note, never from scratch):
 - R10-COP-GATE (stage in-progress, branch `handoff/r10-cop-gate`): `git fetch origin handoff/r10-cop-gate && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-PREPR-CAP (stage carries-open, branch `handoff/r10-prepr-cap`): `git fetch origin handoff/r10-prepr-cap && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-RCA-HEADMOVED (stage carries-open, branch `handoff/r10-rca-headmoved`): `git fetch origin handoff/r10-rca-headmoved && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-CEILING-PROBE (stage in-progress, branch `design/r10-ceiling-probe`): `git fetch origin design/r10-ceiling-probe && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-COP-PARTLOAD (stage in-progress, branch `handoff/r10-cop-partload`): `git fetch origin handoff/r10-cop-partload && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-ORCH-MACHINERY (stage absorbed): no branch pushed yet, so nothing to fetch
 - R10-FLOW-BOARD (stage carries-open, branch `handoff/r10-flow-board`): `git fetch origin handoff/r10-flow-board && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-FLOW-MAIN-GATE (stage carries-open, branch `handoff/r10-flow-main-gate`): `git fetch origin handoff/r10-flow-main-gate && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-OPENPR-ATOMIC (stage carries-open, branch `handoff/r10-fly-openpr-atomic`): `git fetch origin handoff/r10-fly-openpr-atomic && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-RELAY-REVIEW-FF (stage carries-open, branch `handoff/r10-fly-relay-review-ff`): `git fetch origin handoff/r10-fly-relay-review-ff && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-GH-READ-RETRY (stage carries-open, branch `handoff/r10-fly-gh-read-retry`): `git fetch origin handoff/r10-fly-gh-read-retry && git worktree add --detach $SEAT/wt FETCH_HEAD`
@@ -32,17 +30,22 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-FLY-NO-FOOTERS (stage carries-open, branch `handoff/r10-fly-no-footers`): `git fetch origin handoff/r10-fly-no-footers && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-ORCH-REVIEW-PACKET (stage carries-open, branch `handoff/r10-orch-review-packet`): `git fetch origin handoff/r10-orch-review-packet && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-ROUTING-INVARIANTS (stage absorbed, branch `handoff/r10-routing-invariants`): `git fetch origin handoff/r10-routing-invariants && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-SAV-ACTUATION (stage in-progress, branch `handoff/r10-sav-actuation`): `git fetch origin handoff/r10-sav-actuation && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-POOL-INSTRUMENT (stage absorbed, branch `handoff/r10-fly-pool-instrument`): `git fetch origin handoff/r10-fly-pool-instrument && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-RECORD-BEAT (stage absorbed, branch `handoff/r10-fly-record-beat`): `git fetch origin handoff/r10-fly-record-beat && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-996-RUNNER-CLAIMS (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-ARCH-SHAPES-CLASSIFIER (stage queued): no branch pushed yet, so nothing to fetch
-- R10-FRICTION-MUTATION-SURVIVOR (stage absorbed): no branch pushed yet, so nothing to fetch
-- R10-FRICTION-GATE-SCOPING (stage absorbed): no branch pushed yet, so nothing to fetch
+- R10-ERREXIT-COUNTERMEASURES (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-RECORD-API-O1 (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-FRICTION-MUTATION-SURVIVOR (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-FRICTION-GATE-SCOPING (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-ADVISOR-WHATIF (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-STORE-RACES (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-FRICTION-FIXER-MD (stage absorbed): no branch pushed yet, so nothing to fetch
 - R10-FRICTION-CLAIM-FALSE (stage absorbed): no branch pushed yet, so nothing to fetch
 - R10-FLY-NIGHTLY-HB (stage in-progress, branch `fix/r10-fly-nightly-hb`): `git fetch origin fix/r10-fly-nightly-hb && git worktree add --detach $SEAT/wt FETCH_HEAD`
 
-Ready next (after-edges satisfied; nothing open constrains them): R10-996-RUNNER-CLAIMS, R10-ADVISOR-WHATIF, R10-ARCHSCORE-SPELLINGS, R10-BRIEFS-FOLD-D0, R10-CEILING-PROBE, R10-COP-GATE, R10-COP-PARTLOAD, R10-ERREXIT-COUNTERMEASURES, R10-FLOW-BOARD, R10-FLOW-DESIGN-STAGES, R10-FLOW-MAIN-GATE, R10-FLOW-POSTMERGE, R10-FLOW-WIP, R10-FLY-CARRY-DISPOSITION, R10-FLY-DAEMONIZE-ARGV, R10-FLY-LEDGER-SAMPLE, R10-FLY-MANDATE-REVOKE-GUARD, R10-FLY-MUTANT-RESTORE, R10-FLY-NIGHTLY-HB, R10-FLY-NO-FOOTERS, R10-FLY-OPENPR-ATOMIC, R10-FLY-POOL-INSTRUMENT, R10-FLY-PRUNE-REFS, R10-FLY-RECORD-BEAT, R10-FLY-RELAY-REVIEW-FF, R10-FLY-STAMP-CHECK-NOTES, R10-FLY-SUITE-ENV-FLAKES, R10-FLY-TRAIN-DEFAULTS, R10-FLY-WORKTREE-GC, R10-FRICTION-CLAIM-FALSE, R10-FRICTION-FIXER-MD, R10-FRICTION-GATE-SCOPING, R10-FRICTION-MUTATION-SURVIVOR, R10-FRICTION-REGRESSION, R10-MERGE-SUBJECT-CASEARM, R10-NIGHTLY-HB-RESPAWN, R10-ORCH-PLANPAGE, R10-ORCH-REVIEW-PACKET, R10-PREPR-CAP, R10-RCA-HEADMOVED, R10-RECORD-API-O1, R10-REPLAY-REAL-DAY, R10-SAV-ACTUATION, R10-STORE-RACES, R10-TRAIN-OVERLAP-GRADE
+Ready next (after-edges satisfied; nothing open constrains them): R10-996-RUNNER-CLAIMS, R10-ADVISOR-WHATIF, R10-ARCHSCORE-SPELLINGS, R10-BRIEFS-FOLD-D0, R10-CEILING-PROBE, R10-COP-GATE, R10-COP-PARTLOAD, R10-ERREXIT-COUNTERMEASURES, R10-FLOW-BOARD, R10-FLOW-DESIGN-STAGES, R10-FLOW-POSTMERGE, R10-FLOW-WIP, R10-FLY-CARRY-DISPOSITION, R10-FLY-DAEMONIZE-ARGV, R10-FLY-GH-READ-RETRY, R10-FLY-LEDGER-SAMPLE, R10-FLY-MANDATE-REVOKE-GUARD, R10-FLY-MUTANT-RESTORE, R10-FLY-NIGHTLY-HB, R10-FLY-NO-FOOTERS, R10-FLY-OPENPR-ATOMIC, R10-FLY-POOL-INSTRUMENT, R10-FLY-PRUNE-REFS, R10-FLY-RECORD-BEAT, R10-FLY-RELAY-REVIEW-FF, R10-FLY-STAMP-CHECK-NOTES, R10-FLY-SUITE-ENV-FLAKES, R10-FLY-TRAIN-DEFAULTS, R10-FLY-WORKTREE-GC, R10-FRICTION-CLAIM-FALSE, R10-FRICTION-FIXER-MD, R10-FRICTION-GATE-SCOPING, R10-FRICTION-MUTATION-SURVIVOR, R10-FRICTION-REGRESSION, R10-MERGE-SUBJECT-CASEARM, R10-NIGHTLY-HB-RESPAWN, R10-ORCH-LEDGER, R10-ORCH-MACHINERY, R10-ORCH-PLANPAGE, R10-ORCH-REVIEW-PACKET, R10-ORCH-ROSTER-SCHEMA, R10-PREPR-CAP, R10-RECORD-API-O1, R10-REPLAY-REAL-DAY, R10-SAV-ACTUATION, R10-STORE-RACES, R10-TRAIN-OVERLAP-GRADE
 
 ## Resume steps
 
