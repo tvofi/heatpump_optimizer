@@ -1,0 +1,7 @@
+cd /home/user/rev2964 && PATH=/root/v314/bin:$PATH PYTHONPATH=tests/hastub /root/v314/bin/python dev/audit/harnesses/r10_fly_nightly_hb.py --tree /home/user/rev2964 --mode N1 --inproc real --runs 2 --out /root/ev/fly/e_head_N1_real
+  FAIL hb:positive_control  [a 600 ms spin read as 4.8 ms; dump names the spin: False; sampler rc=0 names it: False; try 3 of 3 (at most 3)]
+run 1: FAIL readings=[(False, False, False), (False, False, False), (False, False, False)] gaps_ms=[2.9, 2.4, 4.8] sampler=python
+  FAIL hb:positive_control  [a 600 ms spin read as 1.9 ms; dump names the spin: False; sampler rc=0 names it: False; try 3 of 3 (at most 3)]
+run 2: FAIL readings=[(False, False, False), (False, False, False), (False, False, False)] gaps_ms=[10.1, 2.3, 1.9] sampler=python
+SUMMARY mode=N1 inproc=real python=3.14.6 runs=2 ok=0 fail=2
+EXIT 0

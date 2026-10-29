@@ -1,0 +1,118 @@
+cd /home/user/rev2964 && PATH=/root/v314/bin:$PATH PYTHONPATH=tests/hastub /root/v314/bin/python dev/audit/harnesses/r10_fly_nightly_hb.py --tree /home/user/rev2964 --mode plain --inproc real --runs 5 --out /root/ev/fly/d_head_plain_real
+  ..   hb:positive_control| stall >= 254 ms; loop thread:
+  ..   hb:positive_control|   File "/home/user/rev2964/dev/audit/harnesses/r10_fly_nightly_hb.py", line 211, in <module>
+  ..   hb:positive_control|   File "/home/user/rev2964/dev/audit/harnesses/r10_fly_nightly_hb.py", line 189, in main
+  ..   hb:positive_control|   File "/home/user/rev2964/dev/audit/harnesses/r10_fly_nightly_hb.py", line 164, in run_inproc
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 706, in run_until_complete
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 677, in run_forever
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2056, in _run_once
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
+  ..   hb:positive_control|   File "/home/user/rev2964/tests/nightly_ha.py", line 1907, in _hb_spin
+  ..   hb:positive_control| sampler rc=0:
+  ..   hb:positive_control| Thread 2373
+  ..   hb:positive_control|     _PollLikeSelector.select (/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/selectors.py:398)
+  ..   hb:positive_control|     Popen._communicate (/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/subprocess.py:2153)
+  ..   hb:positive_control|     Popen.communicate (/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/subprocess.py:1221)
+  ..   hb:positive_control|     run (/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/subprocess.py:557)
+  ..   hb:positive_control|     LoopHeartbeat.dump (/home/user/rev2964/tests/nightly_ha.py:1978)
+  ..   hb:positive_control|     LoopHeartbeat._watch (/home/user/rev2964/tests/nightly_ha.py:1963)
+  ..   hb:positive_control| Thread 2372
+  ..   hb:positive_control|     _hb_spin (/home/user/rev2964/tests/nightly_ha.py:1907)
+  ok   hb:positive_control  [a 600 ms spin read as 600.5 ms; dump names the spin: True; sampler rc=0 names it: True; try 1 of 1 (at most 3)]
+run 1: ok readings=[(True, True, True)] gaps_ms=[600.5] sampler=python
+  ..   hb:positive_control| stall >= 255 ms; loop thread:
+  ..   hb:positive_control|   File "/home/user/rev2964/dev/audit/harnesses/r10_fly_nightly_hb.py", line 211, in <module>
+  ..   hb:positive_control|   File "/home/user/rev2964/dev/audit/harnesses/r10_fly_nightly_hb.py", line 189, in main
+  ..   hb:positive_control|   File "/home/user/rev2964/dev/audit/harnesses/r10_fly_nightly_hb.py", line 164, in run_inproc
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 706, in run_until_complete
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 677, in run_forever
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2056, in _run_once
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
+  ..   hb:positive_control|   File "/home/user/rev2964/tests/nightly_ha.py", line 1907, in _hb_spin
+  ..   hb:positive_control| sampler rc=0:
+  ..   hb:positive_control| Thread 2375
+  ..   hb:positive_control|     _PollLikeSelector.select (/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/selectors.py:398)
+  ..   hb:positive_control|     Popen._communicate (/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/subprocess.py:2153)
+  ..   hb:positive_control|     Popen.communicate (/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/subprocess.py:1221)
+  ..   hb:positive_control|     run (/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/subprocess.py:557)
+  ..   hb:positive_control|     LoopHeartbeat.dump (/home/user/rev2964/tests/nightly_ha.py:1978)
+  ..   hb:positive_control|     LoopHeartbeat._watch (/home/user/rev2964/tests/nightly_ha.py:1963)
+  ..   hb:positive_control| Thread 2372
+  ..   hb:positive_control|     _hb_spin (/home/user/rev2964/tests/nightly_ha.py:1907)
+  ok   hb:positive_control  [a 600 ms spin read as 600.5 ms; dump names the spin: True; sampler rc=0 names it: True; try 1 of 1 (at most 3)]
+run 2: ok readings=[(True, True, True)] gaps_ms=[600.5] sampler=python
+  ..   hb:positive_control| stall >= 254 ms; loop thread:
+  ..   hb:positive_control|   File "/home/user/rev2964/dev/audit/harnesses/r10_fly_nightly_hb.py", line 211, in <module>
+  ..   hb:positive_control|   File "/home/user/rev2964/dev/audit/harnesses/r10_fly_nightly_hb.py", line 189, in main
+  ..   hb:positive_control|   File "/home/user/rev2964/dev/audit/harnesses/r10_fly_nightly_hb.py", line 164, in run_inproc
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 706, in run_until_complete
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 677, in run_forever
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2056, in _run_once
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
+  ..   hb:positive_control|   File "/home/user/rev2964/tests/nightly_ha.py", line 1907, in _hb_spin
+  ..   hb:positive_control| sampler rc=0:
+  ..   hb:positive_control| Thread 2381
+  ..   hb:positive_control|     _PollLikeSelector.select (/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/selectors.py:398)
+  ..   hb:positive_control|     Popen._communicate (/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/subprocess.py:2153)
+  ..   hb:positive_control|     Popen.communicate (/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/subprocess.py:1221)
+  ..   hb:positive_control|     run (/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/subprocess.py:557)
+  ..   hb:positive_control|     LoopHeartbeat.dump (/home/user/rev2964/tests/nightly_ha.py:1978)
+  ..   hb:positive_control|     LoopHeartbeat._watch (/home/user/rev2964/tests/nightly_ha.py:1963)
+  ..   hb:positive_control| Thread 2372
+  ..   hb:positive_control|     _hb_spin (/home/user/rev2964/tests/nightly_ha.py:1907)
+  ok   hb:positive_control  [a 600 ms spin read as 600.5 ms; dump names the spin: True; sampler rc=0 names it: True; try 1 of 1 (at most 3)]
+run 3: ok readings=[(True, True, True)] gaps_ms=[600.5] sampler=python
+  ..   hb:positive_control| stall >= 255 ms; loop thread:
+  ..   hb:positive_control|   File "/home/user/rev2964/dev/audit/harnesses/r10_fly_nightly_hb.py", line 211, in <module>
+  ..   hb:positive_control|   File "/home/user/rev2964/dev/audit/harnesses/r10_fly_nightly_hb.py", line 189, in main
+  ..   hb:positive_control|   File "/home/user/rev2964/dev/audit/harnesses/r10_fly_nightly_hb.py", line 164, in run_inproc
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 706, in run_until_complete
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 677, in run_forever
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2056, in _run_once
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
+  ..   hb:positive_control|   File "/home/user/rev2964/tests/nightly_ha.py", line 1907, in _hb_spin
+  ..   hb:positive_control| sampler rc=0:
+  ..   hb:positive_control| Thread 2383
+  ..   hb:positive_control|     _PollLikeSelector.select (/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/selectors.py:398)
+  ..   hb:positive_control|     Popen._communicate (/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/subprocess.py:2153)
+  ..   hb:positive_control|     Popen.communicate (/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/subprocess.py:1221)
+  ..   hb:positive_control|     run (/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/subprocess.py:557)
+  ..   hb:positive_control|     LoopHeartbeat.dump (/home/user/rev2964/tests/nightly_ha.py:1978)
+  ..   hb:positive_control|     LoopHeartbeat._watch (/home/user/rev2964/tests/nightly_ha.py:1963)
+  ..   hb:positive_control| Thread 2372
+  ..   hb:positive_control|     _hb_spin (/home/user/rev2964/tests/nightly_ha.py:1907)
+  ok   hb:positive_control  [a 600 ms spin read as 600.4 ms; dump names the spin: True; sampler rc=0 names it: True; try 1 of 1 (at most 3)]
+run 4: ok readings=[(True, True, True)] gaps_ms=[600.4] sampler=python
+  ..   hb:positive_control| stall >= 255 ms; loop thread:
+  ..   hb:positive_control|   File "/home/user/rev2964/dev/audit/harnesses/r10_fly_nightly_hb.py", line 211, in <module>
+  ..   hb:positive_control|   File "/home/user/rev2964/dev/audit/harnesses/r10_fly_nightly_hb.py", line 189, in main
+  ..   hb:positive_control|   File "/home/user/rev2964/dev/audit/harnesses/r10_fly_nightly_hb.py", line 164, in run_inproc
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 706, in run_until_complete
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 677, in run_forever
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2056, in _run_once
+  ..   hb:positive_control|   File "/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
+  ..   hb:positive_control|   File "/home/user/rev2964/tests/nightly_ha.py", line 1907, in _hb_spin
+  ..   hb:positive_control| sampler rc=0:
+  ..   hb:positive_control| Thread 2390
+  ..   hb:positive_control|     _PollLikeSelector.select (/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/selectors.py:398)
+  ..   hb:positive_control|     Popen._communicate (/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/subprocess.py:2153)
+  ..   hb:positive_control|     Popen.communicate (/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/subprocess.py:1221)
+  ..   hb:positive_control|     run (/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/subprocess.py:557)
+  ..   hb:positive_control|     LoopHeartbeat.dump (/home/user/rev2964/tests/nightly_ha.py:1978)
+  ..   hb:positive_control|     LoopHeartbeat._watch (/home/user/rev2964/tests/nightly_ha.py:1963)
+  ..   hb:positive_control| Thread 2372
+  ..   hb:positive_control|     _hb_spin (/home/user/rev2964/tests/nightly_ha.py:1907)
+  ok   hb:positive_control  [a 600 ms spin read as 600.4 ms; dump names the spin: True; sampler rc=0 names it: True; try 1 of 1 (at most 3)]
+run 5: ok readings=[(True, True, True)] gaps_ms=[600.4] sampler=python
+SUMMARY mode=plain inproc=real python=3.14.6 runs=5 ok=5 fail=0
+EXIT 0
