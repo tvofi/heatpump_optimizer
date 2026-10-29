@@ -1,0 +1,12 @@
+CLOUD FIXER seat for PR #2925 of tvofi/heatpump_optimizer, at head 3efeea2176fa570ae8c52a13996c483f02cb1d52. Never send push notifications. Write no Claude Code footer, no Co-Authored-By or Claude-Session trailer and no claude.ai session link in any commit, pull-request body or comment you produce; check your commits with `git log --format=%B` before pushing.
+Setup: `git fetch --unshallow --tags origin`. The toolchain (venv python, node, gh) is on PATH from the environment. Run anything heavy in the background with Monitor and no timeout. Never wait in one tool call longer than 240 s; poll again instead.
+Role: read dev/governance/roles/fixer.md from main, and follow it exactly, in a worktree of your own cut from origin/main. Fetch 3efeea2176fa570ae8c52a13996c483f02cb1d52 for the base you were given.
+Output: push the code to refs/heads/handoff/r10-fix-2925-r7, then write the PR body and run `bash tools/audit/seat/body_push.sh r10-fix-2925-r7 <body.md>`, which pushes refs/heads/handoff-body/r10-fix-2925-r7; that second push is the return signal. Push nothing else, open no pull request and write no delivery row. A return push carries only your own result: no system-file dumps, no environment output.
+Never write to any branch except your return refs. Never work around a hook or a refusal; report it in your result instead.
+
+Brief (snapshotted when this payload was rendered):
+Fixer seat, PR #2925 (tvofi/heatpump_optimizer), round 7, under dev/governance/roles/fixer.md, at head 3efeea2176fa570ae8c52a13996c483f02cb1d52.
+
+The r6 review returned blocked (verdict/2925): carry-missing: the three restoring jobs outside governance.yml (briefs, pr-contract, budget-raise-gate) are left open in the record and body but carried to no stage.
+
+This is a carry fix only; do not change the code. Per dev/governance/rules/finding-propagation.md: give those three jobs a destination that exists. If a live roster group owns restore-job coverage, carry into its brief on the roster branch handoff/audit-r10-roster (via the roster seat's queue: write the op line and say so in the body) ; otherwise create dev/programme/carries/carry-<N>.json for a destination issue (brief_lint.mjs states the fields; run node tools/policy/brief_lint.mjs). Then end each open-job line in the body and record with `Carry: <GROUP>|#<issue>`, and run python3 tools/audit/carry_audit.py on the body until it reports 0 unrouted. Run prepr.sh, push via the handoff refs, stop at handoff.
