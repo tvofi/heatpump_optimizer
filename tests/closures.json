@@ -1463,6 +1463,7 @@
    "dev/audit/README.md",
    "dev/audit/harnesses/r10_ci_layout_u5/run_part.py",
    "dev/audit/harnesses/r10_ci_layout_u5/unitcheck.py",
+   "dev/audit/harnesses/record_burst_replay.py",
    "dev/audit/rounds/round4/D11/dora_keys.py",
    "dev/audit/rounds/round4/D12/cells.py",
    "dev/audit/rounds/round4/D12/d12lib.py",
@@ -2603,6 +2604,7 @@
    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
    "dev/audit/harnesses/r10_ci_layout_u5/run_part.py",
    "dev/audit/harnesses/r10_ci_layout_u5/unitcheck.py",
+   "dev/audit/harnesses/record_burst_replay.py",
    "dev/audit/rounds/round10/D0/verify_s1_random.py",
    "dev/audit/rounds/round10/D0/verify_s2_shipped.py",
    "dev/audit/rounds/round10/D1/v_m1_own.py",
@@ -3609,6 +3611,7 @@
   ],
   "tests/entities.py": [
    "LICENSE",
+   "dev/audit/harnesses/enumerate_api_calls.py",
    "dev/audit/harnesses/r10_ci_layout_u5/run_part.py",
    "dev/audit/harnesses/r10_ci_layout_u5/unitcheck.py",
    "dev/audit/rounds/round6/D11/fix/codeowners_gap.py",
