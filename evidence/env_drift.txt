@@ -1,0 +1,5 @@
+  ok    wood_two_tank_smart_write is byte-identical to origin/main here
+
+NO UNCLAIMED DRIFT: 56 scenario(s) checked against origin/main
+NO STALE FIXTURE: 56 committed fixture(s) still match what this tree computes
+exit=0

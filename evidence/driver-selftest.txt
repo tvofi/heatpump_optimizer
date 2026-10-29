@@ -1,0 +1,10 @@
+  ok   R1: its anchor occurs exactly once
+  ok   R2: its anchor occurs exactly once
+  ok   R3: its anchor occurs exactly once
+  ok   R4: its anchor occurs exactly once
+  ok   R5: its anchor occurs exactly once
+  ok   R6: its anchor occurs exactly once
+  ok   the grid covers patch and minor for every version
+  ok   the grid comparison counts a planted difference, and none without one
+r10_stamp_round_mutants self-test: 8 checks, 0 failed
+exit=0
