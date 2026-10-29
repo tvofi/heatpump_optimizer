@@ -4924,7 +4924,9 @@
    "rca": [],
    "carry": [
     "From R10-COP-PARTLOAD (handoff/r10-cop-partload at 775ae0340): the inverse conversions still close the loop with heat / cop -- dhw_planner._plan_dhw_min_cost and _clamp_dhw_to_capacity, optimizer._compute_baseline_power, coordinator._dhw_setpoint_sweep. With a derate the forward relation is quadratic in power, so the closed form understates the electrical power needed to deliver a given heat by up to the derate; the exact form is the positive root on the band, and at the default 0 the current ones are exact. A cost-accounting inaccuracy, not a control error: the ceiling and the step share the helper, so every setpoint a plan holds is still met.",
-    "From R10-COP-PARTLOAD (handoff/r10-cop-partload at 775ae0340): D2's item 2 names the quantities the COP step sweeps, and compressor power is not among them, so eight rounds of that step passed a law with no power term. The countermeasure is one sentence in dev/governance/dimensions/D2.md: derive the priced formula's inputs from the device's own control surface and mark each a modelled term, a documented constant or out of scope. It is policy and the owner approves it; this group did not edit it."
+    "From R10-COP-PARTLOAD (handoff/r10-cop-partload at 775ae0340): D2's item 2 names the quantities the COP step sweeps, and compressor power is not among them, so eight rounds of that step passed a law with no power term. The countermeasure is one sentence in dev/governance/dimensions/D2.md: derive the priced formula's inputs from the device's own control surface and mark each a modelled term, a documented constant or out of scope. It is policy and the owner approves it; this group did not edit it.",
+    "The 2.5x CPU cost of the live buffer store, and the 272 s owner-box outlier: a bound or warm start on the planner must earn it (R10-BUFFER-STORE carry, `optimizer.py`). Carry: R10-COP-PARTLOAD",
+    "The inline 35 L buffer fallback in the two-zone and batch steps, left to the group that next prices that family in `optimizer.py`. Carry: R10-COP-PARTLOAD"
    ],
    "architect_note": null,
    "findings": [],
@@ -10706,9 +10708,10 @@
    ],
    "brief": "Store seam races, after R10-BUFFER-STORE (same store seam; ordered behind its running fixer to avoid conflict). Fix the restore-after-await race (#2248): a restore applies persisted state after an await during which a writer changed the same state. Fix the shared-interval order coupling (#2249): two sibling updaters consume one shared interval and the first closes it destructively. Probe the seven per-cycle store-load leads (#2674) and fix or refute each with its harness. Failing test first per fixer.md.",
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": null,
-    "pr": 2960
+    "pr": 2960,
+    "commit": "e5ddba1fad5e6eccfeceaeaaa249bc459963405b"
    },
    "carry": [
     "From r10-buffer-store (code head 173b71ba4, body handoff-body/r10-buffer-store): the store that group makes live costs 2.5x CPU seconds on the owner shape -- benchcpu2.py over the same seeded 10-solve sequence reads 8.560 s -> 22.338 s (per-solve medians 1.123 -> 2.782), while the flat no-buffer null on the same run reads 1.15x (9.611 -> 11.014 s). The production-call channel sits at 1.028x/1.029x (max 1.0295x) of its 1.05x allowance in the two-zone valved families, and the single-zone valved family re-plans (64 objective evaluations against 40, exempt there). A bound or a warm start on the planner must earn the 2.5x. The 272 s owner-box outlier was not reproduced: worst 17.3 s over 5 owner-shape solves, and the doubled-resolution mutant reaches 143.9 s, so the instrument responds but no input shape here produces 272 s.",
