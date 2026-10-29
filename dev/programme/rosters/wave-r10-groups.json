@@ -10472,7 +10472,7 @@
     "`reviewer-head-off` survives `r10_flow_dispatch_mutants.py` at the base and at this head: `dispatch_group`'s \"a reviewer needs --head\" refusal is not pinned by the self-test (the arm that should kill it, `refused(role=\"reviewer\", pr=\"7\")`, is refused for another reason). Carry: R10-FRICTION-MUTATION-SURVIVOR"
    ],
    "resume": {
-    "stage": "absorbed",
+    "stage": "in-progress",
     "branch": null,
     "commit": null,
     "last_step": null,
