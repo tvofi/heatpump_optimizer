@@ -15,17 +15,23 @@ One setting now has one selector object in both flows and in reauth, which the i
 
 ## Head
 
-`fc17b2560857a7da6ce11986c979e314180b56f2`, branch `handoff/r10-configflow-c`. It is one repair commit on the reviewed head `f74f6cbb23649562bcc3db7f6415334707b1fd23`, whose merge base with `origin/main` is `b0b2d7697f8c5baaef2c082d9bf3242b57249e68`. At 2026-10-28T23:52Z `origin/main` is at `6493ea3625900f8361011e0c8f2a3c66885ce7b1`, and `git merge-tree --write-tree origin/main HEAD` reports no conflict, so main was not merged (fixer.md step 6). Every figure below was measured on this head, three-dot against `b0b2d7697`, with `/opt/hpo/venv-ci/bin/python3` (Python 3.14.7) first on `PATH` and `PYTHONPATH=tests/hastub`.
+`8b8b0f2a3caec204474c9799ef73b01065d6b34b`, branch `handoff/r10-configflow-c`. It is one merge commit of `origin/main` at `0265f524e9d4810ee179a58d7f5471151ba1cd22` into the round-2 reviewed code head `fc17b2560857a7da6ce11986c979e314180b56f2`. That repairs the `verdict/2915` `e9eb5259a` block, merge-conflict in `tests/config_flow_steps.py` after arm A (#2912, `ba19d13c4`) merged. The merge base with `origin/main` is now `0265f524e`, and at 2026-10-29T01:51Z `origin/main` is still `0265f524e`. Every figure below was re-taken on this merged head, three-dot against `0265f524e`, with `/opt/hpo/venv-ci/bin/python3` (Python 3.14) first on `PATH` and `PYTHONPATH=tests/hastub`. Figures from earlier rounds are named as such.
+
+**The resolution (orchestrator.md section 6, union).** Both sides of each conflicted hunk are kept whole:
+- After this PR's `setup_widgets_are_the_registry_rows` (with `NON_FORM_SETUP_STEPS` and `_schema_leaves`), the merged file carries arm A's `PAGE_REJECTIONS`, `_page_stored_entities`, `options_rejected_page_rerenders_the_clear` and `options_cleared_price_entity_is_refused`.
+- `main()` awaits all three checks, in this order: `setup_widgets_are_the_registry_rows`, `options_rejected_page_rerenders_the_clear`, `options_cleared_price_entity_is_refused`.
+- Read-back of the merged file: `diff <(git show origin/main:tests/config_flow_steps.py) tests/config_flow_steps.py | grep -c '^<'` prints `0`, so no main line is lost. Against `fc17b2560`'s file it prints `3`. Those 3 are the lines arm A rewrote in the non-conflicting `stored_price_entry` check ("an untouched stored price sensor satisfies the entity source and is kept"). The branch never touched those lines: `diff b0b2d7697 fc17b2560` over the file changes only lines 7330-7408 and 7454. Git took main's side there automatically.
+- `tests/structure_budgets.json` was merged by the ledger driver. This PR merges second of arms A and C, so it owes the merged-tree measurement: `python3 tests/structure.py` on this head reads `RESULT class_excess_loc=17875`, `ok class_excess_loc 17875 <= 17875`, `STRUCTURE RATCHET PASSED`. The merge commit's message quotes the same figure.
+- `config_flow.py` merged without conflict.
 
 ## Mutation proof
 
-The failing test came first. At `f74f6cbb2`, with the repaired census in `tests/config_flow_steps.py` (`setup_widgets_are_the_registry_rows`, driving every `async_step_*`) and that head's `config_flow.py`, the run read `1 of 508 checks FAILED`: `no setup field spells a second widget for a setting the options registry declares [2 spelled twice: ['reauth:tibber_token', 'reauth_confirm:tibber_token']]`, rc 1. After the production change it reads `ALL 508 checks PASSED`, rc 0.
+The failing test came first, in round 2. At `f74f6cbb2`, the repaired census read `1 of 508 checks FAILED` (`2 spelled twice: ['reauth:tibber_token', 'reauth_confirm:tibber_token']`), and it read `ALL 508 checks PASSED` after the production change. That is the round-2 record, not re-taken here.
 
-Each mutant below was applied to this head, run with `python3 tests/config_flow_steps.py`, and restored:
-- M1, the blocked site. `reauth_confirm`'s widget goes back to its own `selector.TextSelector(selector.TextSelectorConfig(type=PASSWORD))`. Result: `1 of 508 checks FAILED`, `2 spelled twice: ['reauth:tibber_token', 'reauth_confirm:tibber_token']`. Killed.
-- M2, the census precondition. `reauth_confirm` returns `async_abort` before its form. Result: `7 of 508 checks FAILED`, including `the setup-widget census renders every step but the declared non-form ones [unrendered=['reauth:no form', 'reauth_confirm:no form'] steps=18]` and `... reaches every registry-backed setup field [registry-backed setup fields=64]`. Killed. A step that stops rendering cannot pass the identity check vacuously.
-- M3, the whole file. `config_flow.py` at the merge base `b0b2d7697`, run under this head's tests. Result: `1 of 508 checks FAILED`, `66 spelled twice`. That is 44 wizard fields, 20 first-screen fields and the 2 reauth fields. Killed.
-- The round-1 mutants (`copy.copy` in `_wizard_fields`, the single `weather_entity`, wood-probe and `dhw_windows` sites) were killed at `f74f6cbb2` (`verdict/2915` ev/m1..m4). This repair leaves those lines alone, and the new census's domain is a superset of the old list's.
+Re-executed on this merged head, where the unmutated baseline is `ALL 534 checks PASSED` with rc 0 (508 from this branch, plus arm A's checks). Each mutant was applied in a separate worktree at this head and run with `python3 tests/config_flow_steps.py`. The file was then restored with `git checkout`, and `git diff --quiet` confirmed it was clean:
+- M1, the blocked site. `reauth_confirm`'s widget goes back to its own `selector.TextSelector(selector.TextSelectorConfig(type=selector.TextSelectorType.PASSWORD))`. Result: rc 1, `1 of 534 checks FAILED`, `no setup field spells a second widget ... [2 spelled twice: ['reauth:tibber_token', 'reauth_confirm:tibber_token']]`. Killed.
+- M2, the census precondition. `reauth_confirm` returns `async_abort(reason="mutant")` before its form. Result: rc 1, `7 of 534 checks FAILED`. These include `the setup-widget census renders every step but the declared non-form ones [unrendered=['reauth:no form', 'reauth_confirm:no form'] steps=18]` and `the setup-widget census reaches every registry-backed setup field [registry-backed setup fields=64]`. Killed.
+- M3, the whole fix. `config_flow.py` is replaced by `origin/main`'s (`0265f524e`: arm A in, this PR out) under this head's tests. Result: rc 1, `1 of 534 checks FAILED`, `66 spelled twice`. Killed.
 
 ## Unpinned sites
 
@@ -33,35 +39,43 @@ none: `python3 tools/pr/ci_predict.py --base origin/main` lists no unpinned site
 
 ## Null control
 
-- M1 under the old domain. The M1 mutant was run with `f74f6cbb2`'s `tests/config_flow_steps.py`, which still has the hand-kept `SETUP_FORM_STEPS`. Result: `ALL 507 checks PASSED`, rc 0. The second reauth widget is invisible to the old list and caught by the new one, so the kill comes from the domain change and not from the run itself.
-- `golden_equal=1` from the finder's harness at this head, and `tests/golden.py` passes under `GOLDEN_MODE=drift` against `b0b2d7697`. No golden moves. Both claim files are byte-identical to the merge base, so nothing is claimed.
-- `disagree=0` from the finder's harness at this head. The repair changes which object renders, not what the object is (`token_surfaces_agree`'s `the three tibber_token surfaces agree on the same mask` passes).
+- M1 under main's tests. The M1 mutant was run with `origin/main`'s `tests/config_flow_steps.py`, which has arm A's checks but not this PR's census. Result: rc 0, `ALL 531 checks PASSED`. Main's file has none of the census's 3 checks (534 - 3 = 531), and the second reauth widget is invisible to it, so the kill above comes from this PR's census, not from the run itself.
+- The finder's harness at `origin/main` reads the defect (`spelled_twice=44`, below), and at this head it reads 0. The difference comes from this diff, not from the harness.
+- `disagree=0` and `golden_equal=1` at this head (harness, below). No golden moves, and both claim files are byte-identical to the merge base.
 
 ## Figures
 
-- The class rule (fixer.md step 8): `sorted(n for n in dir(HeatPumpOptimizerConfigFlow) if n.startswith("async_step_"))`. It returns 18 steps, which are the census's domain (`steps=18` in M2's detail). Each step's disposition:
-  - 15 render a form and are checked.
-  - `building` and `finish_setup` are menus with no fields.
+All figures in this section were re-taken on this merged head unless they are marked as from round 2.
+
+- **The class rule** (fixer.md step 8): `sorted(n for n in dir(HeatPumpOptimizerConfigFlow) if n.startswith("async_step_"))`. It returns 18 steps (`steps=18` in M2's detail). That is the census's domain:
+  - 15 steps render a form and are checked.
+  - `building` and `finish_setup` are menus.
   - `reconfigure` aborts without a sourced entry, and its form is `user`'s, which is checked.
-  - The reviewer's census (`verdict/2915` ev/census_all_steps.py, run unchanged at this head) reads `all_steps_registry_fields=66` and `all_steps_spelled_twice=0`. It read `2` at `f74f6cbb2` (`reauth:tibber_token`, `reauth_confirm:tibber_token`) and `66` at `b0b2d7697`.
-  - Two `async_step_*` in `HeatPumpOptimizerConfigFlow` have registry-backed fields but were missing from the old list: `reauth` and `reauth_confirm`. Both are closed in this diff.
-  - The options flow is out of this class's domain: its pages render from `_OPTION_FIELDS` itself.
-- The finder's harness, `wizard_widgets.py` from `3930b421a` (`$EXPORT/dev/audit/rounds/round10/D7/arch2-s5/wizard_widgets.py`, sha1 `66b390554c0aa54c8960eacb532b04ff827ca8cf`). It was copied into a `git archive` of this head and run as `PYTHONPATH=tests/hastub python3 $EXPORT/dev/audit/rounds/round10/D7/arch2-s5/wizard_widgets.py [--all | --bump heat_pump_cop_nominal]`.
-  - This head: `wizard_fields=46 in_registry=44 spelled_twice=0 disagree=0 golden_equal=1`.
-  - `--all`: `other_in_registry=20 other_spelled_twice=0 other_disagree=0`.
-  - `--bump heat_pump_cop_nominal`: `spelled_twice=0 disagree=0`.
-  - At the base `6d86acc90` and the merge base `b0b2d7697` (`verdict/2915` ev/finder_harness.txt): `spelled_twice=44`, `other_spelled_twice=20`, and `disagree=2` under `--bump`.
-  - The harness does not drive `reauth`. Its `--all` arm reads the first screens only, which is why it read 0 at `f74f6cbb2` while that seam was open. The census above is the instrument for that seam.
-- The scoped gate: `python3 tests/closure.py select --diff b0b2d7697 --workdir $D` prints `MODE: SCOPED -- 13 script(s) run, 20 scoped out.` Every script `scope.run` names exits rc 0 (`arch_score_head`, `config_flow_steps`, `deployment_shape`, `doc_claims`, `entities`, `env_drift`, `features`, `finite_boundary`, `golden`, `harness_headers`, `manual_plan`, `structure`, `typing_ruler`). So do `run.sh`'s `run_always` lines here: `env_drift.py --claims-only b0b2d7697`, `closure.py selftest` and `layout.py`.
-- `tests/config_flow_steps.py` at this head: `ALL 508 checks PASSED`, rc 0 (507 at `f74f6cbb2`, plus the census-precondition check).
-- Architecture score:
-  - `python3 tools/audit/archscore/score.py --diff b0b2d7697` reads `Architecture score: dS +0.5850 IMPROVES`, `literal_clone_copies 185 -> 123 +0.5850`.
-  - The repair alone, `--diff f74f6cbb2`, reads `dS +0.0000 NULL`. It deletes one function and moves no scored metric.
-- Structural ratchet: `python3 tests/structure.py` reads `STRUCTURE RATCHET PASSED` at this head. The re-record in commit `d52036166` writes `class_excess_loc` 18037 -> 17921 in `tests/structure_budgets.json`. That is the file's value: the round-1 body's 18038 -> 17922 was one off at both ends. Arm A re-records the same row, so the second of the two to merge re-measures it on the merged tree and quotes the file's value.
-- `python3 tools/pr/ci_predict.py --base origin/main` prints `CI PREDICT: no closures, fast, wave-script or instrument red predicted against b0b2d7697f8c (a data-file read is not seen)`.
-- Three-dot diffstat: `git diff --stat b0b2d7697...HEAD` reads 4 files changed, 196 insertions(+), 219 deletions(-). The fourth file is `dev/programme/delivery/2915.md`, the orchestrator's row commit.
-- The mutation ledger: no file under `tests/`, `dev/` or `tools/` names `_tibber_token_selector` (`grep -rln _tibber_token_selector tests/ dev/ tools/` prints nothing), so its deletion strands no ledger row.
-- The branch touches none of `VERSION`, `RELEASE_NOTES.md`, the manifest, `tests/golden/claimed_drift.txt` and `tests/golden/card_claimed_drift.txt`: `git diff --name-only b0b2d7697...HEAD -- <those five> | wc -l` prints 0.
+  - `reauth` and `reauth_confirm` were missing from the old hand-kept list. Both were closed in round 2, and M1 confirms they stay closed at this head.
+  - The options flow renders from `_OPTION_FIELDS` itself. The merge brings in arm A's options-page checks, but no new `async_step_*` on `HeatPumpOptimizerConfigFlow` (still 18).
+- **The finder's harness**, `wizard_widgets.py` from `3930b421a` (`$EXPORT/dev/audit/rounds/round10/D7/arch2-s5/wizard_widgets.py`, sha1 `66b390554c0aa54c8960eacb532b04ff827ca8cf`). It was copied into a `git archive` of each tree and run as `PYTHONPATH=tests/hastub python3 $EXPORT/dev/audit/rounds/round10/D7/arch2-s5/wizard_widgets.py [--all | --bump heat_pump_cop_nominal]`:
+
+  | arm | this head | `origin/main` `0265f524e` (the merge base) |
+  |---|---|---|
+  | plain | `wizard_fields=46 in_registry=44 spelled_twice=0 disagree=0 golden_equal=1` | `spelled_twice=44 disagree=0` |
+  | `--all` | `other_wizard_fields=38 other_in_registry=20 other_spelled_twice=0 other_disagree=0` | `other_spelled_twice=20` |
+  | `--bump heat_pump_cop_nominal` | `spelled_twice=0 disagree=0` | `spelled_twice=44 disagree=2` |
+
+- **`tests/config_flow_steps.py`** at this head: `ALL 534 checks PASSED`, rc 0. That includes `the setup-widget census renders every step but the declared non-form ones`, `... reaches every registry-backed setup field`, `no setup field spells a second widget for a setting the options registry declares`, arm A's nine `a rejected <page> submit re-renders each cleared stored entity empty` checks, and `switching to Tibber with a token saves it and nulls the cleared price entity`.
+- **The scoped gate.** `python3 tests/closure.py select --diff 0265f524e --workdir $D` prints `MODE: SCOPED -- 13 script(s) run, 20 scoped out.` over 4 changed files:
+  - `custom_components/heatpump_optimizer/config_flow.py`
+  - `dev/programme/delivery/2915.md`
+  - `tests/config_flow_steps.py`
+  - `tests/structure_budgets.json`
+
+  Every script `scope.run` names exits rc 0, run with `PYTHONPATH=tests/hastub GOLDEN_MODE=drift`: `arch_score_head`, `config_flow_steps`, `deployment_shape`, `doc_claims`, `entities`, `env_drift`, `features`, `finite_boundary`, `golden`, `harness_headers`, `manual_plan`, `structure`, `typing_ruler`. So do the `run_always` lines: `env_drift.py --claims-only 0265f524e`, `closure.py selftest` and `layout.py`.
+- **Structural ratchet:** `python3 tests/structure.py` reads `STRUCTURE RATCHET PASSED`. `class_excess_loc` reads 17875 against the budget 17875. That is the ledger driver's resolution of arm A's re-record (18038 -> 17992) and this PR's (18037 -> 17921), now measured on the merged tree.
+- **Architecture score:**
+  - `python3 tools/audit/archscore/score.py --diff origin/main` reads `Architecture score: dS +0.5850 IMPROVES`, `literal_clone_copies 185 -> 123`. That is the same delta as at round 2, against the new base.
+  - `--diff fc17b2560` reads `dS +2.3483 IMPROVES`, `duplication_copies 35 -> 29`. That delta is main's own content (arm A and the rest) arriving through the merge, not a change this PR authors.
+- **CI prediction:** `python3 tools/pr/ci_predict.py --base origin/main` prints `CI PREDICT: no closures, fast, wave-script or instrument red predicted against 0265f524e9d4 (a data-file read is not seen)`.
+- **Diffstat:** the three-dot `git diff --stat 0265f524e...HEAD` reads `4 files changed, 195 insertions(+), 218 deletions(-)`.
+- **Release files:** the branch touches none of `VERSION`, `RELEASE_NOTES.md`, the manifest, `tests/golden/claimed_drift.txt` and `tests/golden/card_claimed_drift.txt`. `git diff --name-only origin/main...HEAD -- <those five> | wc -l` prints 0.
 
 **#2238's findings, each dispositioned.** There is no closing keyword here; the group's last pull request carries #2238's.
 - D10-s1-51: fixed by #2290.
@@ -76,7 +90,7 @@ none: `python3 tools/pr/ci_predict.py --base origin/main` lists no unpinned site
 
 ## Red checks
 
-none. No check has run on `fc17b2560` yet, and `ci_predict.py --base origin/main` predicts none red. On `f74f6cbb2` no check concluded red (`verdict/2915` ev/ci_state.txt).
+none. No check has run on `8b8b0f2a3` yet, and `ci_predict.py --base origin/main` predicts no red. On `196a75a9f` the one red was `governance / delivery-status` (`DELIVERY STATUS OVERDUE` on rows #2921, #2910, #2873 and #2909, none of them this PR's). `verdict/2915` `e9eb5259a` ev/ci_state.txt records it, and the review found it is not this pull request's.
 
 ## Forward-carry
 
