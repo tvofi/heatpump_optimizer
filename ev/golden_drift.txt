@@ -1,0 +1,6 @@
+         wood_two_tank_smart_write.baseline_cost: 141.474684 vs 120.254283
+         wood_two_tank_smart_write.buffer_temp_trajectory[1]: 35.121364 vs 35.438504
+         wood_two_tank_smart_write.buffer_temp_trajectory[2]: 38.15831 vs 38.733582
+
+NO UNCLAIMED DRIFT: 56 scenario(s) checked against b0b2d7697
+NO STALE FIXTURE: 56 committed fixture(s) still match what this tree computes

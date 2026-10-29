@@ -1,0 +1,23 @@
+=== features block ===
+  ok   single-zone valve: the reference charges the tank onto its curve, never past it
+
+ALL 1 FEATURES BLOCK PASSED
+RESULT null rc=0
+536c536
+<     if mixing_valve.is_throttling(p.mixing_valve_mode):
+---
+>     if False:
+=== features block ===
+  FAIL single-zone valve: the reference charges the tank onto its curve, never past it  [a 26 C tank over a 25 C slab ends the step at 29.4493 C; the curve is 26.6000 C]
+
+1 of 1 FEATURES BLOCK FAILED
+RESULT opt536 rc=1
+1772c1772
+<     if not p.two_zone_enabled:
+---
+>     if False:
+=== features block ===
+  FAIL single-zone valve: the reference charges the tank onto its curve, never past it  [a 26 C tank over a 25 C slab ends the step at 27.1364 C; the curve is 26.6000 C]
+
+1 of 1 FEATURES BLOCK FAILED
+RESULT tm1772 rc=1
