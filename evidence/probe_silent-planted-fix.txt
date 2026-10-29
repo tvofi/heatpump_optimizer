@@ -1,6 +1,0 @@
-RESULT stored 1-5 kW d=0.4 limit 0.4444 read 0.4
-RESULT thermal_model page, max 5->2 (limit 0.3333): errors {'heat_pump_cop_partload_derate': 'partload_derate_above_limit'}
-RESULT pre-fill save, max 5->2: errors {'heat_pump_cop_partload_derate': 'partload_derate_above_limit'}; model reads derate 0.0
-RESULT null d=0.3 max 5->2: pre-fill errors {} page errors {} read 0.3
-RESULT silent over-limit read-as-0 via pre-fill: no
-rc=0
