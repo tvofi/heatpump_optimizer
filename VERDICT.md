@@ -1,51 +1,40 @@
-Fix review: blocked 172afa85d2bc2f68b402217981f22cfb26e86b56 class-open: review_carry.py answers CARRY for a hand-resolved conflict merge (this PR's own 98c6676a8), which app_approve.sh --carry refuses and the new fix-review.md step 12 sentence would carry
+Fix review: merge 33b128eb7f3e01b7f3a4cfe38f864ce2742095de
 
-bus-nonce: 357739f494f0bd9d00313d33c001f85e
+bus-nonce: 829c9561a62a9434ae40ceddebdc70ab
 
 ## Round
 
-First review of this PR at this head.
+This is round 2. Round 1 was `Fix review: blocked 172afa85d2bc2f68b402217981f22cfb26e86b56 class-open` (`origin/review/2933`, also `probe/rev-2933-357739f4`). That is fewer than four rounds, so `fixer.md` owes a repair, not a re-cut. I measured head `33b128eb7f3e01b7f3a4cfe38f864ce2742095de`, which is the head the PR body's `## Head` names.
 
-## Block
+## Block closed
 
-`review_carry.py` decides CARRY from the commit range alone. Any range whose branch-only commits are all merges counts as clean, and the merge's own tree is never compared against git's automatic merge. Its docstring says "a merge authors no code of its own". That is false for a merge whose conflict was resolved by hand. Measured on this PR's own history: `review_carry.py 32221ca27 98c6676a8` prints `review_carry: CARRY` (rc 0). But `git merge-tree` of 98c6676a8's parents conflicts in `tools/pr/app_approve.sh`, and the body says that conflict was resolved by hand in `carry()`. Over the same range, `app_approve.sh --carry` refuses with "98c6676a8… is not the automatic merge of its parents" (rc 1). See ev/carry-disagreement.txt.
+The round-1 block was that `review_carry.py` answered `CARRY` for the hand-resolved merge `98c6676a8`, a range that `app_approve.sh --carry` refuses. The harness used here is the finder's: the round-1 reviewer's instance, plus the class census that round 1's class-open called for. It is not the fixer's.
 
-So two instruments now disagree on the case that matters most. Policy and tooling both act on the weaker of the two:
-- The new fix-review.md step 12 sentence says a `merge` verdict "carries while `review_carry.py <verdicted> <new>` prints `CARRY`". The "Else a main merge is its resolution delta" sentence then never applies to a hand-resolved merge, because CARRY already fired. This contradicts step 13 and orchestrator.md section 7: a hand resolution is a resolution delta for the same reviewer.
-- `bus.sh dispatch --reviewed-head` refuses to mint a nonce on that CARRY. So the reviewer cannot be dispatched over a hand-written conflict resolution, while `app_approve.sh --carry` will still refuse to carry it. The result is a head that neither carries nor can be re-reviewed through the documented path. The alternative is a seat that reads the policy sentence as permission to treat unreviewed resolution code as reviewed.
-- The new orchestrator.md sentence makes this worse: it calls a second reviewer over a clean range "the error, not diligence" and makes review_carry's `CARRY` the arbiter.
-
-The fix is small. `review_carry.py` should count a merge as clean only when its tree equals `git merge-tree --write-tree` of its parents outside the driver files, as app_approve.sh already does, and print FRESH-REVIEW otherwise. Add a self-test fixture for the hand-resolved merge, plus its null control. Alternatively, the two contract sentences could name app_approve.sh's `--carry` as the predicate rather than review_carry.py. None of the existing mutants or self-tests reach this case: all 14 review_carry checks pass with it open.
-
-## Policy judgement (does each changed sentence change what a seat must do?)
-
-fix-review.md:
-- Publish paragraph: the parenthetical about the nonce and the evidence file was dropped. **No change**: the same two obligations move into the closing verdict paragraph.
-- Step 9: the #373/#258 examples were removed. **No change**: they were motivation only, and the rule stands.
-- Step 11: "only the run's own log separates them" was merged with the next sentence. **No change**: the obligation to read the lane's log stays.
-- Step 12, head-moved paragraph: reworded shorter. **No change**.
-- Step 12, carry paragraph: **changes what a seat must do.** The carry predicate moves from orchestrator.md section 11's predicate to `review_carry.py` printing CARRY. It also adds "attaches to the head its first line names". This is the sentence the Block concerns.
-- Closing verdict paragraph: **changes what a seat must do.** It states the verdict first-line grammar, the nonce line, the evidence-file rule, and the cloud seat's probe layout (`ev/`, subject, ref) as obligations of the role file. Before, the role file deferred to the dispatch prompt and web-fix-wave.js. Substantively it matches what cloud_relay.sh enforces, and the cloud_relay self-test pins it.
-
-orchestrator.md:
-- Section 7, the reworded freeze paragraph: mostly no change. **One change**: a new duty forbids dispatching a second reviewer over a range clean against the reviewed head, with review_carry's CARRY as the refusal (see Block).
-- Section 11, the carry bullet: **changes what a seat must do.** "the claim files equal origin/main's" becomes "each claim file a pure union of both sides". This loosens the carry condition, which the body says follows a coordinator addition on 2026-10-27.
-
-Every sentence marked as a change is policy. It needs tvofi's approving review at the head before merging, as the body's ## Approval section already says.
+- Instance (ev/instance.txt). At this head, `review_carry.py 32221ca27 98c6676a8` prints `FRESH-REVIEW` with rc 1 and the reason `not the automatic merge of its parents`. `app_approve.sh --carry` over the same range refuses with the same reason, also rc 1. As a null control, the blocked head's `review_carry.py`, run on the same range in the same tree, prints `CARRY` with rc 0.
+- Class census (ev/census-head.raw, ev/census-head.txt). Scope: the newest 200 main-into-branch merges reachable from `origin/main` `66974d473`, one range `M^1..M` per merge with main pinned to `M^2`, answered by both instruments. Command: `ev/census.sh`, which is the body's Figures command. Result: `136 CARRY CARRY`, `64 FRESH-REVIEW FRESH-REVIEW`, and 0 mixed lines.
+- Census null control (ev/census-null.txt). The same 200 ranges with the blocked head's `review_carry.py` give `136 CARRY CARRY` and `64 CARRY FRESH-REVIEW`, so 64 disagreements. The census can see a disagreement, and at this head it finds none. The body's figure of 63 was taken at `14fbf218d`; the window has since slid by one merge. That is consistent with the body's "re-run, do not carry" note.
+- This PR's own moves (ev/own-ranges.txt). Both instruments agree on all five ranges I tried: `172afa85d..33b128eb7`, `004d445ac..5402c2ba9`, `5402c2ba9..33b128eb7` and `c1a5cd91c..004d445ac`, plus the identity range at this head.
 
 ## Findings
 
-- The Block above: review_carry.py's merge predicate treats a hand-resolved conflict merge as clean, so the step-12 carry sentence, the orchestrator section-7 refusal and `bus.sh dispatch --reviewed-head` all CARRY a resolution no reviewer saw, and app_approve.sh refuses the same range. Carry: R10-REVIEW-CARRY
-- The review packet refused with `hot-file: #2920 holds an unboarded merge verdict and shares tools/audit/seat/cloud_relay.sh` (HPO_BUS_TRAIN_STATE was unset on this seat, so every merge verdict reads as unboarded). This is a merge-train ordering matter for the orchestrator, not a defect in this diff. Carry: dismissed: train-ordering signal for the orchestrator, not a defect of this diff; re-read at merge time.
+- Surviving mutant on the degenerate path. In `review_carry.py`'s `app_approve_carry`, I replaced the `raise Undecidable("app_approve.sh --carry answered neither ...")` branch with `return None`, so that "answered neither" is read as CARRY. `--self-test` still reports `26 checks, 0 failed`, so no fixture reaches the fail-closed branch the body and the docstring claim ("2 when it cannot decide (... `app_approve.sh --carry` answering neither)"). I ran the unmutated behaviour by hand: with `tools/pr/app_approve.sh` moved away, the instrument prints `CANNOT DECIDE ... (rc 127)` and exits 2, while the mutant prints `CARRY` and exits 0 (ev/mutants.txt). So the claim holds at this head, but nothing pins it. Carry: dismissed: the fail-closed behaviour is verified by hand at this head (rc 2), and the unpinned branch is reachable only when app_approve.sh is missing or answers outside its two documented lines, so it does not justify a third review round on an otherwise closed block
 
 ## Evidence
 
-- Reviewed head: 172afa85d2bc2f68b402217981f22cfb26e86b56 (ev/HEAD.txt). The PR body names this head, and its ## Head section explains the one record-only commit above the code head 98c6676a8.
-- Self-tests at the head (ev/selftests.txt): review_carry 14 checks, 0 failed; cloud_relay 280, 0; bus 94, 0; app_approve 265, 0. These match the body's figures.
-- policy_lint: TOTAL 0 error(s) across 50 policy files. fix-review.md is at 140/140 lines and 2449/2451 tokens; orchestrator.md is at 294/295 lines and 4251/4251 tokens. Both are at cap, with no budget file touched.
-- Mutation proof re-run (ev/mutants.txt), with every mutant killed: review_carry merge predicate (3 failed); bus.sh refusal branch (1 failed); app_approve first-parent walk (3 failed); app_approve claim-union test (4 failed). That last mutant is my own and is not in the body. The tree was clean after each restore.
-- `git merge-tree --write-tree origin/main 172afa85d2bc2f68b402217981f22cfb26e86b56` exits 0, tree e8a0658a2: it merges cleanly.
-- VERSION, the manifest version and RELEASE_NOTES.md are untouched against the merge base.
-- CI (ev/ci.txt): at read time no gate or pr-contract run had concluded on this head, only prelude, refresh and cancel-superseded jobs, some queued. CI state was not verified green.
-- Not re-derived: the body's 377-pure/23-not claim-resolution count over 200 main merges. It is a sliding window, and figure_lint lists it as unverified. I did not re-run it, so it is not verified by me.
-- The finder's harness: none is named. This group implements an owner ruling rather than an audit finding, so there is no finder's harness to run at both ends.
+- Mutation proof, re-run at this head with the tree restored after each mutant (ev/mutants.txt):
+  - The delegation removed (`why = None`): 26 checks, 7 failed, the same seven the body lists.
+  - The merge predicate set to `if True:`: 26 checks, 8 failed.
+  - My own mutant, which accepts any rc 0/1 output from app_approve as carry: 26 checks, 7 failed.
+  - My own fail-closed mutant: survives (see Findings).
+- Self-tests at this head (ev/selftests.txt): `review_carry` 26/0, `app_approve` 265/0, `bus` 100/0, `cloud_relay` 284/0. These match the body's merged-head figures.
+- Delta since the blocked head. The only branch-authored non-merge commit is `c1a5cd91c`, which touches `review_carry.py` (delegating to `app_approve.sh --carry`, plus seven fixtures) and a comment in `bus.sh`. The diff-line digest of the branch's own three-dot diff over the code, policy and workflow files is identical at `c1a5cd91c` and at this head (ev/delta-and-merge.txt).
+- Merges in the range (ev/merges-in-range.txt). `8143243c9`, `004d445ac`, `6b65d24a1` and `33b128eb7` are git's automatic merges. `5402c2ba9` is hand-resolved, and I judged its resolution: it takes main's index for `tools/audit/seat/INSTRUMENTS.md`, adds one index line for `review_carry.py`, adds the `--carry` clause to `instruments/app_approve.sh.md`, and adds the new `instruments/review_carry.py.md`. All of it is prose and accurate to the code. `selftest_wiring.py --check` reports `0 unwired` and `0 index gap(s)`.
+- `5402c2ba9..33b128eb7` answers `FRESH-REVIEW` from both instruments, because `6b65d24a1`'s automatic resolution of `tests/golden/claimed_drift.txt` is not a pure line union: main replaced lines. This is the conservative cost the body measured ("the rule can refuse content loss, never pass content a review did not see"). It is not a disagreement.
+- `git merge-tree --write-tree origin/main 33b128eb7f3e01b7f3a4cfe38f864ce2742095de` exits 0 with tree `e1e61c7bb`, which equals the head's tree. origin/main was `66974d473` at the time.
+- Claim files are byte-identical to `origin/main`, and `env_drift.py --claims-only` reports `claims hygiene: origin/main ok`. `VERSION`, the manifest and `RELEASE_NOTES.md` are untouched (three-dot).
+- `policy_lint.mjs` reports `TOTAL: 0 error(s) across 50 policy file(s)`. Under `--budgets`, `fix-review.md` is at 140/140 lines and 2449/2451 tokens, and `orchestrator.md` is at 294/295 lines and 4251/4251 tokens. No budget file is touched. `tests/structure.py` reports `STRUCTURE RATCHET PASSED`. The policy prose is unchanged since round 1, which judged it. It still needs tvofi's approving review at the head, as the body's `## Approval` states.
+- `dev/governance/roles/` on main has no change against this head's merge base, so the contract I followed is current.
+- Finder's harness: none is committed. This group implements an owner ruling, not an audit finding. The harness used here is the round-1 reviewer's instance and census command, which this PR now carries in its body. I ran the census myself (ev/census.sh).
+- CI on this head (ev/ci.txt) was read from the check-runs API at 10:31Z, after every workflow had concluded. The latest run of every check is `success`, `skipped` or `neutral`, except `tests / nightly-status`, which is answered below. `gate` is green (123394120002). The PR head was still `33b128eb7f3e01b7f3a4cfe38f864ce2742095de` at my last read before publishing.
+- Red checks (step 11). At this head `tests / nightly-status` concluded `failure` (job 123369882923): `NIGHTLY FAILED: nightly-ha (stable) failed last night`, from scheduled run 40806276912 on main's head `ee48937`. `pr-contract` first refused twice (123384489819 and 123385575697) because the body's `## Red checks` did not name it while the diff touches `.github/workflows/governance.yml`. I waited rather than verdicting (ev/pr-contract-watch.txt). The body was then edited to name the red: main's `hb:positive_control` runner-load flake, owned by R10-FLY-NIGHTLY-HB, with no cheaper detector. A `pr-contract` run that started after every other workflow had concluded (123393758997, 10:29:46Z) passed, and `gate` passed after it. Per step 11, that green run is the evidence. Independently, this PR's three-dot diff to `governance.yml` is the one added `instrument-self-tests` step and does not touch the nightly lanes. `tests / nightly-status` is not a required check on `main-protect` and does not block.
+- Not re-derived: the body's 377-pure/23-not claim-resolution count over 200 first-parent merges. It is a sliding window and figure_lint marks it unverified. I did not re-run it, so it is not verified by me.

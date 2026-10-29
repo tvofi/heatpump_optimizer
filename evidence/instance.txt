@@ -1,0 +1,16 @@
+## instance at head 33b128eb7
+review_carry: 32221ca27 -> 98c6676a8  main=origin/main
+  branch-only commits: 1
+  why: 98c6676a823a9017da6b8055972925035f565679 is not the automatic merge of its parents
+  98c6676a8  Merge origin/main into handoff/r10-review-carry
+review_carry: FRESH-REVIEW
+rc=1
+CARRY: no 32221ca27fadfcf5735889b24cafa162eb395cd8 -> 98c6676a823a9017da6b8055972925035f565679: 98c6676a823a9017da6b8055972925035f565679 is not the automatic merge of its parents
+rc=1
+## instance with blocked head's review_carry.py
+review_carry: 32221ca27 -> 98c6676a8  main=origin/main
+  branch-only commits: 1
+  why: all 1 branch-only commit(s) are merges
+  98c6676a8  Merge origin/main into handoff/r10-review-carry
+review_carry: CARRY
+rc=0

@@ -1,0 +1,3 @@
+## claim files: head vs origin/main 66974d473 (empty = byte-identical)
+## env_drift claims-only
+claims hygiene: origin/main ok

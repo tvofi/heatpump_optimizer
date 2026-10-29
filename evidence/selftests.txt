@@ -1,11 +1,6 @@
-review_carry self-test: 14 checks, 0 failed
-cloud_relay self-test: 280 checks, 0 failed
-bus self-test: 94 checks, 0 failed
+  ok   it names the branch's own diff
+  ok   an unknown sha cannot decide
+review_carry self-test: 26 checks, 0 failed
 app_approve self-test: 265 checks, 0 failed
-tools/audit/briefs/orchestrator.md               294  295     4251  4251 
-tools/audit/briefs/fix-review.md                 140  140     2449  2451 
-FIXTURE ok: 93 error(s) hold 258 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
-e8a0658a2ed2956fd0ae32d79d9b756428cb219c
-merge-tree rc=0
-version-untouched rc=0
-TOTAL: 0 error(s) across 50 policy file(s)
+bus self-test: 100 checks, 0 failed
+cloud_relay self-test: 284 checks, 0 failed
