@@ -9,10 +9,11 @@ against `origin/main` `14fbf218d`. Every time is UTC. The seat filed no issue.
 **Result: state (c).** 8 measured pull requests in round 10, past the audit-class threshold of 3 in
 one round. The class is I3, which is barriered.
 
-**Countermeasure: built.** `tools/pr/ci_predict.py`'s `graders` arm. A job that restores its check
-source from the base is keyed when the diff changes a path that job's own restore pathspecs cover;
+**Countermeasure: built.** `tools/pr/ci_predict.py`'s `graders` arm. A `governance.yml` job that restores its
+check source from the base is keyed when the diff changes a path that job's own restore pathspecs cover;
 the arm then runs every program that job runs, on CI's merge tree, with the base's copies restored.
-The key is the restore list itself, so the arm needs no model of what a grader loads.
+The key is the restore list itself, so the arm needs no model of what a grader loads. Its scope is
+`governance.yml`'s restoring jobs; the restoring jobs in other workflows are outside it (section 7).
 
 ## 1. The defect, reproduced
 
@@ -226,8 +227,20 @@ keys the graders arm.
 
 - `bugclasses.json` `_rca["R10-RCA-PREPR-HEAD-GRADERS"]`, class I3, in I3's `rca` list.
 - **A policy line, proposed and not made.** `gate-scoping.md`'s "prepr.sh is not CI" section could
-  name the detector: "step 6d's `ci_predict.py --record-self-tests` runs every program a restoring
-  job runs, on CI's tree, when the diff changes a path that job restores". That file is policy, so
-  the owner approves it.
-- **Left open.** `brief_lint.mjs` (`briefs`, tests.yml) and `pr-contract` restore from the base in
-  another workflow; `restore_jobs` reads governance.yml only. No `briefs` instance was measured.
+  name the detector: "step 6d's `ci_predict.py --record-self-tests` runs every program a governance.yml
+  restoring job runs, on CI's tree, when the diff changes a path that job restores". That file is
+  policy, so the owner approves it.
+- **Left open: the restoring jobs outside governance.yml.** The rule that enumerates the class's
+  jobs is `git grep -n -- "- name: Restore the check source from the base commit" HEAD --
+  .github/workflows/`. Outside governance.yml it returns three jobs, each restoring from the base
+  and grading the pull request with that copy, and `restore_jobs` reads governance.yml only:
+  - `briefs` (tests.yml), which runs `brief_lint.mjs`;
+  - `pr-contract` (pr-contract.yml);
+  - `budget-raise-gate` (budget-raise-gate.yml, called from ci.yml on pull requests), which restores
+    `tools/policy/*.py` and runs the base's `tools/policy/budget_raise_gate.py`. It reads live
+    reviews, so a local run of it could only be partial.
+
+  None of the three is predicted by this arm, so a branch editing a file one of them restores is
+  still graded by the base's copy with no local warning. Section 4's census read `briefs`
+  check-runs and counted no `briefs` instance; it did not read `pr-contract` or
+  `budget-raise-gate`, so their instances are unmeasured. This record does not claim them; they need their own group (the round-5 review's split).
