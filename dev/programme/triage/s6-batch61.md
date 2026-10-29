@@ -1,4 +1,4 @@
-# Proposal triage, session s7, batch 61 (P286)
+# Proposal triage, session s7, batch 61 (P286-P287)
 
 The rolling batch (V182) after batch 60 (#2958, merged as
 `20c205158ec465bd37e65ed1b847f4589b173a73`). Facts were read at origin/main
@@ -67,3 +67,67 @@ The tick's self-test arm at `:3688` is inverted, not deleted.
 
 Not built: lane caps, orphan-handoff counting and the ranked `next` list. Those stay with
 R10-FLOW-WIP, which lands after this fly-in on the same two files.
+
+## P287: a handoff preflight should catch paperwork blocks before a reviewer is owed
+
+Verdict: ACCEPT, narrowed to one check, as a carry on R10-FLY-CARRY-DISPOSITION: `body_push.sh`
+runs that group's accepted `carry_audit.py landed` check at the handoff. The proposed packet run
+in `handoff_push.sh` and `update_pr.sh` is REJECTED, because the handoff-time packet already
+exists, and the measured blocks it would catch are mostly not paperwork.
+
+Source: `proposals.md` V190 (orchestrator, 2026-10-29). It says about half of today's review
+rounds blocked on paperwork the packet could have caught at handoff: a carry not landed (#2961,
+#2925), a body not answering a red (#2953, #2954, #2963 nightly), `## Unpinned sites` missing
+(SAV-ACTUATION), and a handoff ref not an ancestor of the head (#2962).
+
+Instances:
+- **The handoff-time packet exists.** `tools/audit/seat/body_push.sh` already runs before the
+  body is pushed, so before any open:
+  - `prepr.sh --fill-red` and `prepr.sh --body-check`, the pr-body lint;
+  - the carry audit;
+  - `review_packet.py handoff` (P256), with refusals `structure`, `hot-file` and
+    `brief-carries`.
+  `handoff_push.sh` is the orchestrator's opener, which runs after the fixer's push.
+  `update_pr.sh` already runs prepr unless the push is exactly the PR's row (its header,
+  `:19-20`). A second packet run in either place re-runs checks the fixer's own push already ran.
+- **The blocks, counted.** The `verdict/*` refs hold 15 `Fix review: blocked` verdicts
+  committed on 2026-10-29 local time. By class: class-open 3, carry-missing 3,
+  class-rule-missing 2, ci-red 2, mutation 3 (survivor, survivors, vacuous), merge-conflict 1,
+  ci-unconcluded 1. Paperwork a static check could catch is 2 of them, not half.
+- **Two carry-missing blocks are mechanical.** #2961 (`carry-missing: not carried to
+  R10-FLY-LEDGER-SAMPLE`) and #2946 round 1 (`not carried to R10-ROUND-PLAYBOOK or
+  R10-ARCH-SHAPES-CLASSIFIER`) each named a live group whose roster carry was not there.
+  `tools/audit/carry_audit.py` routes an item that names an open group (`Dests.check`) and never
+  reads whether the text landed. That is exactly R10-FLY-CARRY-DISPOSITION's first carry
+  (`carry_audit.py landed`, CARRY-MISSING lines, rc 1, `bus.sh dispatch` refuses). P66 measured
+  24 of 33 carry-family blocks in that shape. The group is `not-started`, and its one `after`
+  group, R10-FLY-ORPHANS-REWRITTEN, is `done`. So it is ready to dispatch.
+- **The third carry-missing block is judgement.** #2925 round 6 blocked on three restoring jobs
+  that the record names as open and the body routes nowhere. No body item names them, so no
+  marker check sees them.
+- **The nightly refusals were dispatch refusals, not review rounds.** #2953, #2954 and #2963 are
+  the packet's main-graded `nightly-status` refusal (P282, P285). R10-FLY-PACKET-RED-PATHS
+  (`in-progress`) removes them by passing the diff's paths. At the handoff no PR exists, so no PR
+  red can be read.
+- **The remaining two instances are not what V190 says.** #2962's verdict is `blocked
+  mutation-survivor: dropping --existing-file from unanswered_reds passes the self-test`, not
+  handoff-not-applied, and its ref holds no other verdict. The SAV-ACTUATION instance has no
+  verdict ref to read. `prepr.sh`'s step 6d already refuses a missing `## Unpinned sites`
+  (`:615-618`), and body_push's `--body-check` runs that step.
+
+Cost and benefit: the accepted check is one subcommand call in `body_push.sh`, beside the packet
+call, once the group builds `landed`. It moves 2 of today's 15 blocks to before the open, about
+one review round each. The rejected mechanism would add a packet run to the opener and to every
+update for a measured gain of zero beyond that.
+
+Accepted, as a carry on R10-FLY-CARRY-DISPOSITION: `body_push.sh` runs `carry_audit.py landed` on
+the body at the round roster's branch, beside `review_packet.py handoff`, and refuses on rc 1 with
+the CARRY-MISSING lines. Like the packet call, an unreadable roster (rc 3) is reported and not
+treated as a refusal. Control: the #2961 body against roster `e9e3f93d2` refuses with
+R10-FLY-LEDGER-SAMPLE named. The same body, against a roster copy holding that carry, passes.
+Mutation: routing on the group name alone (today's check) passes the #2961 body. Null control:
+a body whose only routes are `dismissed:` passes unchanged.
+
+Priority, for the orchestrator: R10-FLY-CARRY-DISPOSITION is ready to dispatch now. This ruling
+does not ask to open the batch early. The carry is held with the batch, and the group's own first
+carry already specifies the check.
