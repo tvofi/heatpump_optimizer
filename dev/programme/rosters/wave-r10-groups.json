@@ -11558,6 +11558,47 @@
     "note": "2026-10-29 (triage: dev/programme/triage/s6-batch60.md#P282; triage: dev/programme/triage/s6-batch60.md#P285)"
    },
    "brief": "From triage P282 (orchestrator, 2026-10-29T11:46Z): the review packet's red-unanswered signal refused dispatch for #2933, #2946, #2948 and #2925 on `tests / nightly-status`, a check that grades main and that a body owes no answer unless its diff touches what it reads (dev/governance/rules/defect-root-cause.md). The exemption already exists in policy_lint.mjs's --pr-body, and it applies only when the changed paths are given: with no --paths-file the obligation is restored on purpose (its self-test's `no paths` case, tools/policy/policy_lint.mjs:4447). The packet's `policy_lint.mjs` call passes --pr-body, --head and --red only (tools/audit/seat/review_packet.py:392), though the same function already computes the diff's paths as `touched` (:380). (1) Write `touched` to a --paths-file and the base's existing paths (`git diff --name-only --diff-filter=a base...head`, as prepr.sh's body_check does) to an --existing-file, and pass both, plus --base. Do not copy the exemption list into review_packet.py: prepr.sh keeps one implementation for the same reason. (2) Self-test: a fixture body with no `## Red checks` entry, reds nightly-status and typing, over a diff touching only a test file, reports typing alone; mutation: dropping --paths-file reports both and fails the arm; null control: a diff touching tests/nightly_status.py reports both. (3) From triage P285 (proposal V188): since main's scheduled Nightly failed at 2026-10-29T02:25Z the packet refused nine PRs on `tests / nightly-status` in one day (#2939, #2951, #2917, #2953, #2954, #2872, #2955, #2956, #2957), each needing a body patch. A second null control is real: #2954's diff touches .github/workflows/nightly.yml and governance.yml, and policy_lint given its paths still reports nightly-status owed; the fix keeps that refusal. Overlap: #2939 (R10-ORCH-REVIEW-PACKET) edits the same file in another function; rebase on it if it merges first. triage: dev/programme/triage/s6-batch60.md#P282 triage: dev/programme/triage/s6-batch60.md#P285"
+  },
+  {
+   "group": "R10-FLY-TICK-TRAIN-RC",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "instrument",
+   "severity": "medium",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 6,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "tools/audit/seat/orchestrator_tick.py"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-fly-tick-train-rc",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer (fly-in)",
+    "note": "2026-10-29 (triage: dev/programme/triage/s6-batch60.md#P279; triage: dev/programme/triage/s6-batch60.md#P281)"
+   },
+   "brief": "From triage P279 (orchestrator, 2026-10-29T11:08Z): the tick's TRAIN section reads the train's exit status from `Path(train_log).with_suffix('.rc')` (tools/audit/seat/orchestrator_tick.py:536). The writer is train.sh, which records it as `$state/rc` and as the log line `TRAIN_RC=<n> end=<ts>` (tools/audit/seat/train.sh:396). So in the live layout (--train-log is the state dir's train.log) the `last train exited N` flag never fires: 16 of the 23 runs the live log records ended TRAIN_RC=1, none flagged. The self-test pins the reader's own name, writing `train.rc` beside its fixture log, so it passes. (1) Read the status from the log's last `TRAIN_RC=` line, falling back to the file `rc` in the log's directory; flag nonzero as today. (2) Self-test: the fixture uses train.sh's names (a `TRAIN_RC=1 end=...` last line, and an `rc` file); mutation: restoring the `.rc` suffix read leaves the fixture unflagged and fails the arm; null control: a log ending `TRAIN_RC=0` flags nothing. (3) From triage P281 (orchestrator, 2026-10-29T11:15Z): the live tick's --queue is a hand-kept link that named an Oct 27 queue for 2 days (a stale #2867 line every pass). merge_train.py's add writes a fresh add-queue-<ts>-<pr>.json per run. The train's own record of that path is train.sh's start line `train.sh: queue=<path> ... pid=<n>` (tools/audit/seat/train.sh:378), in the log the tick already reads. With --train-log given and no --queue, `_queue` reads the path from the log's last such line; an explicit --queue still wins, and a named file that is absent is UNREADABLE as today. Self-test: a fixture log with two start lines reads the second queue; mutation: reading the first fails; null control: an explicit --queue is used unchanged. Out of scope: PARK lines as owed obligations (P279 item 1, carried to R10-ORCH-LEDGER) and train.sh. triage: dev/programme/triage/s6-batch60.md#P279 triage: dev/programme/triage/s6-batch60.md#P281"
   }
  ]
 }
