@@ -742,6 +742,13 @@ jobs:
           python3 -I tools/audit/seat/review_packet.py --self-test | tee "$RUNNER_TEMP/review-packet-self-test.txt"
           grep -Eq '^review_packet self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/review-packet-self-test.txt"
 
+      - name: Show the review carry deciding its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/review_carry.py --self-test | tee "$RUNNER_TEMP/review-carry-self-test.txt"
+          grep -Eq '^review_carry self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/review-carry-self-test.txt"
+
       - name: Show the roster editor refusing its own fixtures
         if: ${{ !cancelled() }}
         run: |
