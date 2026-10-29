@@ -10641,7 +10641,8 @@
     "commit": null,
     "last_step": null,
     "next_step": "dispatch a seat",
-    "note": "wired by the roster seat 2026-10-26 under the owner's completion rule (tvofi 20:20Z)"
+    "note": "wired by the roster seat 2026-10-26 under the owner's completion rule (tvofi 20:20Z)",
+    "pr": 2963
    },
    "brief": "The follow-on sub-PR R10-ADVISOR-RESIDUE (#2834) owed and its group was closed without: issue #2257's residual, per #2834's Forward-carry. (1) The Plan page's what-if panel still reads the single-solve monthly cost delta, which moves with the house's start (dev/audit/harnesses/r10_advisor_residue.py, whatif arm); no sound estimator exists in the seam, so either design one or record the owner's acceptance of the copy docs/dashboard-card.md already discloses. (2) Proposal P141 (triage: dev/programme/triage/s6-batch27.md#P141, ACCEPT): move the plan-slot summary builder out of custom_components/heatpump_optimizer/coordinator.py beside its TypedDict in custom_components/heatpump_optimizer/payload.py, behaviour byte-identical; controls as that ruling states (archscore coord_footprint before and after with a whitespace-only null, the fixture captures' slot lists byte-identical, one mutant). Closes #2257."
   },
