@@ -1,3 +1,0 @@
-RESULT from_config({derate:0.5}) on default 1-5 kW band -> 0.0
-RESULT from_config({derate:0.25}) -> 0.25
-  FAIL every configurable parameter is reachable from a config key  [cop_partload_derate]
