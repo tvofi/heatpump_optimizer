@@ -1,0 +1,17 @@
+head reviewed: 3ffdfa633186ab6e9eadfde8bdcc2206cec3421f (refs/pull/2937/head re-read before return: 3ffdfa633186ab6e9eadfde8bdcc2206cec3421f)
+ci-watch.sh --self-test unmutated: 15 checks, 0 failed (ok the loop sleeps POLL_S between cycles (slept 240))
+mutant sleep "$POLL_S" -> sleep 300: FAIL the loop sleeps POLL_S between cycles (slept 300); 15 checks, 1 failed -> killed
+mutant POLL_S=240 -> 300: FAIL the poll is inside [60 s, 240 s] (POLL_S=300); 1 failed -> killed
+mutant sleep "$POLL_S" -> ':' (no sleep): FAIL ... (slept never); 1 failed -> killed
+cloud_dispatch.py --self-test: 87 checks, 0 failed
+r10_flow_dispatch_mutants.py at head: RESULT mutants=33 survived=1 (reviewer-head-off); M0 null-ok; CRASHED: parent-drop topic-to-id head-ignored roster-repo-ignored
+same at base 6493ea362: M0 null-ok, parent-drop CRASHED, run aborts (body: aborted at nonce-altered)
+stop-selfcheck.sh --self-test: 29 passed, 0 failed
+policy_lint --hooks: HOOKS ok: 3 wired hook(s) exist and pass their own --self-test
+proof_watch.py --self-test: 43 checks, 0 failed
+structure.py: STRUCTURE RATCHET PASSED
+entities.py (venv-ci, PYTHONPATH=tests/hastub): ALL 2470 ENTITY CHECKS PASSED (body: 2467 at c9dfba06, pre main-merge)
+closure select: MODE: SCOPED -- 1 script(s) run, 32 scoped out.
+git merge-tree --write-tree origin/main(6493ea362) 3ffdfa633186ab6e9eadfde8bdcc2206cec3421f: exit 0, tree 021c9a2e84ec500c22e45b17ea7ae77e4c98d39a
+VERSION/manifest/RELEASE_NOTES/tests/golden: untouched in three-dot diff
+governance / delivery-status 123178553658: failure, DELIVERY STATUS OVERDUE, overdue rows #2921 #2910 #2873 #2909 only
