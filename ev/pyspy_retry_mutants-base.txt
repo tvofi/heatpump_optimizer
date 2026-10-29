@@ -1,0 +1,3 @@
+M0-null all checks pass
+M1-one-try KILLED by: hb:positive_control survives one hung py-spy sample: a fresh spin answers on try 2, the hang cut at the sample's timeout with the spin held across it | and a try whose sample misses the spin, or names it at rc!=0, is retried, not accepted | the control rests between tries: two tries with a 1 s rest take at least the rest plus both spins | the control survives two hung samples, answering on try 3: HB_CONTROL_TRIES is at least 3 | null control: py-spy that never answers, or never names the spin, still fails hb:positive_control after the last try
+rc=124

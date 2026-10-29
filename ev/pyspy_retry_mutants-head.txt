@@ -1,0 +1,4 @@
+M0-null FAILS: (block did not run: rc=1 'y", line 200, in _hb_stdlib_reads\n    child = subprocess.Popen([sys.executable, "-c", body])\n            ^^^^^^^^^^\nNameError: name \'subprocess\' is not defined. Did you forget to import \'subprocess\'?\n')
+M1-one-try KILLED by: (block did not run: rc=1 'y", line 200, in _hb_stdlib_reads\n    child = subprocess.Popen([sys.executable, "-c", body])\n            ^^^^^^^^^^\nNameError: name \'subprocess\' is not defined. Did you forget to import \'subprocess\'?\n')
+M2-timeout-30: the mutated site occurs 0 times, not once
+rc=1
