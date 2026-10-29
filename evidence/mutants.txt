@@ -1,0 +1,13 @@
+== merge_train-25 merge_train.py: KILLED rc=1 | merge_train self-test: 344 checks, 2 failed
+== merge_train-26 merge_train.py: KILLED rc=1 | merge_train self-test: 344 checks, 1 failed
+== merge_train-27 merge_train.py: KILLED rc=1 | merge_train self-test: 344 checks, 3 failed
+== merge_train-28 merge_train.py: KILLED rc=1 | merge_train self-test: 344 checks, 4 failed
+== merge_train-29 merge_train.py: KILLED rc=1 | merge_train self-test: 344 checks, 1 failed
+== merge_train-30 merge_train.py: KILLED rc=1 | merge_train self-test: 344 checks, 1 failed
+== merge_train-31 merge_train.py: KILLED rc=1 | merge_train self-test: 344 checks, 1 failed
+== merge_train-32 merge_train.py: KILLED rc=1 | merge_train self-test: 344 checks, 1 failed
+== merge_train-33 merge_train.py: KILLED rc=1 | merge_train self-test: 344 checks, 1 failed
+== bus-1 bus.sh: KILLED rc=1 | bus self-test: 104 checks, 4 failed
+== bus-2 bus.sh: KILLED rc=1 | bus self-test: 104 checks, 2 failed
+== bus-3 bus.sh: KILLED rc=1 | bus self-test: 104 checks, 1 failed
+RESULT survivors=0
