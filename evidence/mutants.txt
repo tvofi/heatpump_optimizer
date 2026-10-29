@@ -1,9 +1,14 @@
-== review_packet-1 review_packet.py: KILLED rc=1 | review_packet self-test: 42 checks, 3 failed
-== review_packet-2 review_packet.py: KILLED rc=1 | review_packet self-test: 42 checks, 1 failed
-== review_packet-3 review_packet.py: KILLED rc=1 | IndexError: list index out of range
-== review_packet-4 review_packet.py: KILLED rc=1 | review_packet self-test: 42 checks, 1 failed
-== review_packet-5 review_packet.py: KILLED rc=1 | review_packet self-test: 42 checks, 2 failed
-== body_push-1 tools/audit/seat/body_push.sh: KILLED rc=2 | [1]-  Done                    "$@" >> "$log" 2>&1
-== body_push-2 tools/audit/seat/body_push.sh: KILLED rc=2 | [1]-  Done                    "$@" >> "$log" 2>&1
-RESULT survivors=0
-rc=0
+== M1 handoff_not_applied always passes
+  FAIL handoff-not-applied: #2887's shape (old head merged with main, tip outside) refuses
+  FAIL handoff-not-applied: the `fix/<t>-pr` spelling reads handoff/<t>
+review_packet self-test: 42 checks, 2 failed
+rc=1
+== M2 brief-carries dropped
+  FAIL brief-carries: a body answering carries 1-5 of 6 is refused naming carry 6
+  FAIL handoff: structure and hot-file refuse beside the count, each named
+review_packet self-test: 42 checks, 2 failed
+rc=1
+== M3 -pr spelling dropped
+  FAIL handoff-not-applied: the `fix/<t>-pr` spelling reads handoff/<t>
+review_packet self-test: 42 checks, 1 failed
+rc=1
