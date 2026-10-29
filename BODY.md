@@ -232,6 +232,42 @@ Every check `pr-contract` lists red across this branch's commits:
   crash, so no pin could be measured. Answered by `--pin-killed` run here
   (`ci-autofix.md`: when `mutation-autofix` goes red, run it yourself).
   Same root cause; no separate detector is owed.
+- `governance / instrument-self-tests`: red once, at `67ffb958b` (the
+  orchestrator's delivery-row commit, which adds only
+  `dev/programme/delivery/2917.md`), run 40777080201, job 123129545395.
+  Its failing step is "Show the PR opener (delivery_row.sh's and
+  pr_args.sh's self-tests)": `pr_args self-test: 144 checks, 1 failed`, the
+  one `FAIL   mutant mut:unlock (its line deleted): the holder is still alive
+  when the run returns`. The same `tools/audit/seat/pr_args.sh --self-test`
+  ran twice more in that job on the same tree, in "Show the PR argument
+  builder" and "Show the PR updater", and printed `144 checks, 0 failed`
+  both times, the `mut:unlock` arm `ok`. Cause: a timing race in that
+  mutant arm, not in this diff. With `PR_AFTER_REAP` deleted the lock
+  holder is never signalled, but it still exits by itself once its
+  `os.getppid() == p` poll (every 0.2 s) sees `update_pr.sh` gone; the arm
+  reads `kill -0` on the holder after the run returns, so when that poll
+  wins the race the mutant reads as killed-early and the arm FAILs. This
+  red grades main's instrument and its inputs this diff does not touch:
+  `git diff $(git merge-base origin/main origin/fix/r10-cop-gate)...origin/fix/r10-cop-gate --name-only`
+  names nothing under `tools/` or `.github/`, and `pr_args.sh` is
+  unchanged between `67ffb958b` and origin/main `486e65cbd`. No cheaper
+  detector on this branch's side exists: no seat-side run of this diff
+  could have predicted it, since the same self-test passes on the same
+  tree two runs in three. The defect is the arm's (a liveness read with a
+  0.2 s self-exit window); it is recorded here as a finding for that
+  instrument's owner, not fixed in this PR.
+- `governance / delivery-status`: red once, at `8220bbf72` (the
+  `mutation-autofix` bot's pin commit), run 40791893520, job 123179758416.
+  It runs main's pinned `tests/delivery_status.py --check` (`PINNED:
+  b0b2d7697`) over main's delivery records and printed `DELIVERY STATUS
+  OVERDUE -- 18 rowed, 12 pending, 4 overdue (overdue at 12 commits)`; the
+  four overdue rows are #2921, #2910, #2873 and #2909, none of them this
+  PR. This red grades main and its inputs this diff does not touch: the
+  branch's only delivery file is its own row `dev/programme/delivery/2917.md`,
+  which the check did not list overdue. The job's own log says it "is NOT
+  a required context and a red here blocks no merge". No cheaper detector
+  is owed by this PR: draining overdue rows is the orchestrator's
+  (`delivery-status-tracking.md`), not a seat's.
 - `pr-contract / pr-contract`: the previous body's `## Red checks` said
   `none` and named none of the four above. This body names each. The cheaper
   detector is `tools/pr/prepr.sh` on the body before handoff, which reads
