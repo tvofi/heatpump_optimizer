@@ -19875,14 +19875,23 @@ R.check(
 # exits 1 on a rate limit and on a crash alike (P2a's forward-carry). The
 # step's own text is run under bash with a stand-in `python3` printing each
 # outcome, so the classification is measured, not read.
+def _stub_path_env(bindir, **extra: str) -> "dict[str, str]":
+    """This process's environment with ``bindir`` first on PATH and no BASH_ENV.
+
+    Every ``bash -c`` below finds a stand-in by PATH, and bash sources BASH_ENV
+    before the script: a cloud seat's profile there re-prepended its toolchain,
+    so the real ``python3`` shadowed the stand-in at every tree (#2835)."""
+    env = {k: v for k, v in os.environ.items() if k != "BASH_ENV"}
+    return {**env, "PATH": f"{bindir}{os.pathsep}{os.environ.get('PATH', '')}", **extra}
+
+
 def _gs_step_verdict(script: str, stdout: str, rc: int) -> "tuple[int, str]":
     with tempfile.TemporaryDirectory() as d:
         fake = Path(d) / "python3"
         fake.write_text("#!/bin/sh\nprintf '%s' \"$FAKE_OUT\"\nexit \"$FAKE_RC\"\n")
         fake.chmod(0o755)
         p = _subprocess.run(["bash", "-c", script], capture_output=True, text=True, timeout=30,
-                            env={**os.environ, "PATH": f"{d}:{os.environ.get('PATH', '')}",
-                                 "RUN_ID": "123", "FAKE_OUT": stdout, "FAKE_RC": str(rc)})
+                            env=_stub_path_env(d, RUN_ID="123", FAKE_OUT=stdout, FAKE_RC=str(rc)))
     return p.returncode, p.stdout
 
 
@@ -19963,6 +19972,43 @@ R.check(
     f"gate={_closure.is_gate_file(str(_GS_PATH))}; a sweep keyed on its exit "
     "code reads a rate limit as a crash, and one that reads a crash as done "
     "leaves a stale red `gate` unannounced",
+)
+
+
+# The stand-ins hold under a BASH_ENV that re-prepends a toolchain (#2835): a
+# cloud seat's profile there failed U0c and the delivery_status check at every
+# tree. The control proves the planted profile does shadow a stand-in it reaches.
+def _bash_env_reads() -> "tuple[str, str]":
+    with tempfile.TemporaryDirectory() as h:
+        tool, stub = Path(h, "tool"), Path(h, "stub")
+        for d, word in ((tool, "toolchain"), (stub, "stand-in")):
+            d.mkdir()
+            (d / "python3").write_text(f"#!/bin/sh\necho {word}\n")
+            (d / "python3").chmod(0o755)
+        prof = Path(h, "profile.sh")
+        prof.write_text(f'export PATH="{tool}:$PATH"\n')
+        control = _subprocess.run(["bash", "-c", "python3"], capture_output=True, text=True, timeout=30,
+                                  env={**os.environ, "PATH": f"{stub}:{os.environ.get('PATH', '')}",
+                                       "BASH_ENV": str(prof)}).stdout.strip()
+        held = os.environ.get("BASH_ENV")
+        os.environ["BASH_ENV"] = str(prof)
+        try:
+            _, out = _gs_step_verdict("python3", "stub", 0)
+        finally:
+            if held is None:
+                os.environ.pop("BASH_ENV")
+            else:
+                os.environ["BASH_ENV"] = held
+    return control, out.strip()
+
+
+_BE_CONTROL, _BE_OUT = _bash_env_reads()
+R.check(
+    "a stand-in on PATH wins in a bash -c under a BASH_ENV that re-prepends a toolchain (#2835)",
+    _BE_CONTROL == "toolchain" and _BE_OUT == "stub",
+    f"control={_BE_CONTROL!r} (want 'toolchain': the planted profile shadows a stand-in it reaches) "
+    f"read={_BE_OUT!r} (want the stand-in's 'stub'); a BASH_ENV kept in _stub_path_env lets a seat's "
+    "profile put its python3 ahead of the stand-in, so U0c and delivery_status read red at every tree",
 )
 
 # --- the lane-skip instrument (R9-CI-SKIP) -----------------------------------
@@ -28406,10 +28452,9 @@ def _train_hold_status(code: int, body: str, pitch_rc: int = 0, guard_rc: int = 
         out = t / "out"
         out.write_text("")
         p = subprocess.run(["bash", "-c", run or _HOLD_RUN], cwd=t, capture_output=True, text=True,
-                           env={**os.environ, "PATH": str(bin_) + os.pathsep + os.environ["PATH"],
-                                "RUNNER_TEMP": str(t), "GITHUB_OUTPUT": str(out),
-                                "REPO": "o/r", "TOKEN": "t0k", "APPROVER": approver, "NUM": "42",
-                                "EVENT": "push"})
+                           env=_stub_path_env(bin_, RUNNER_TEMP=str(t), GITHUB_OUTPUT=str(out),
+                                              REPO="o/r", TOKEN="t0k", APPROVER=approver, NUM="42",
+                                              EVENT="push"))
         if calls is not None and (t / "calls.log").exists():
             calls.extend(json.loads(x) for x in (t / "calls.log").read_text().splitlines())
         found = re.findall(r"(?m)^status=(\S+)$", out.read_text())
@@ -28821,9 +28866,8 @@ def _pt_trigger(script: str, planted: str) -> str:
         _head = subprocess.run(_g + ["rev-parse", "HEAD"], capture_output=True, text=True, env=_env).stdout.strip()
         _out = Path(_td, ".out")
         subprocess.run(["bash", "-c", script], cwd=_td, capture_output=True, text=True,
-                       env={**os.environ, "BASE": _base, "HEAD": _head,
-                            "PATH": str(_bin) + os.pathsep + os.environ["PATH"],
-                            "RUNNER_TEMP": _td, "GITHUB_OUTPUT": str(_out)})
+                       env=_stub_path_env(_bin, BASE=_base, HEAD=_head,
+                                          RUNNER_TEMP=_td, GITHUB_OUTPUT=str(_out)))
         _m = re.findall(r"^governance=(\w+)$", _out.read_text() if _out.exists() else "", re.M)
         return _m[-1] if len(_m) == 1 else f"outputs={_m}"
 
@@ -28952,8 +28996,7 @@ def _pt_ds_rc(script: str, head_rc: int, base_rc: int,
             (bindir / "git").stat().st_mode & 0o777,
             (bindir / "python").stat().st_mode & 0o777,
         )
-        env = {**os.environ, "PATH": str(bindir) + os.pathsep + os.environ["PATH"],
-               "RUNNER_TEMP": str(root / "rt")}
+        env = _stub_path_env(bindir, RUNNER_TEMP=str(root / "rt"))
         proc = subprocess.run(["bash", "-e", "-c", script], cwd=root, env=env,
                               capture_output=True, text=True)
         return proc.returncode
