@@ -500,6 +500,11 @@ def _group_checks(check) -> None:
             'mkdir -p "$(dirname "$o")" && printf "# Review packet\\nhead: %s\\n" "$h" > "$o"\n')
         packer.chmod(0o755)
         env["HPO_BUS_PACKER"] = f"sh {packer}"
+        # The head classifier likewise (merge_train.py classify reads check runs over `gh`):
+        # GREEN here; bus.sh's self-test drives its RED, WAIT and unreadable arms.
+        classifier = Path(td) / "classifier"
+        classifier.write_text('#!/bin/sh\necho "GREEN $2 pending: none red: none"\n')
+        env["HPO_BUS_CLASSIFY"] = f"sh {classifier}"
         (work / "dev/programme/delivery").mkdir(parents=True)
         for n in (7, 81):
             (work / f"dev/programme/delivery/{n}.md").write_text(f"- [#{n}](x) **open**\n")
