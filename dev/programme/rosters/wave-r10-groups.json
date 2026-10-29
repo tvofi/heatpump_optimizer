@@ -10680,7 +10680,7 @@
    ],
    "brief": "Store seam races, after R10-BUFFER-STORE (same store seam; ordered behind its running fixer to avoid conflict). Fix the restore-after-await race (#2248): a restore applies persisted state after an await during which a writer changed the same state. Fix the shared-interval order coupling (#2249): two sibling updaters consume one shared interval and the first closes it destructively. Probe the seven per-cycle store-load leads (#2674) and fix or refute each with its harness. Failing test first per fixer.md.",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": null
    },
    "carry": [
