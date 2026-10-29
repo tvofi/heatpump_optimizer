@@ -1,0 +1,22 @@
+HEAD:custom_components/heatpump_optimizer/config_flow.py:125:    CONF_HEAT_PUMP_MAX_POWER,
+HEAD:custom_components/heatpump_optimizer/config_flow.py:126:    CONF_HEAT_PUMP_MIN_POWER,
+HEAD:custom_components/heatpump_optimizer/config_flow.py:127:    CONF_HEAT_PUMP_COP_PARTLOAD_DERATE,
+HEAD:custom_components/heatpump_optimizer/config_flow.py:887:        candidate, current, CONF_HEAT_PUMP_MIN_POWER, DEFAULT_HEAT_PUMP_MIN_POWER
+HEAD:custom_components/heatpump_optimizer/config_flow.py:889:        candidate, current, CONF_HEAT_PUMP_MAX_POWER, DEFAULT_HEAT_PUMP_MAX_POWER
+HEAD:custom_components/heatpump_optimizer/config_flow.py:891:        return {CONF_HEAT_PUMP_MIN_POWER: "min_power_above_max"}
+HEAD:custom_components/heatpump_optimizer/config_flow.py:901:    derate = _effective(candidate, current, CONF_HEAT_PUMP_COP_PARTLOAD_DERATE, 0.0)
+HEAD:custom_components/heatpump_optimizer/config_flow.py:903:        _effective(candidate, current, CONF_HEAT_PUMP_MIN_POWER, DEFAULT_HEAT_PUMP_MIN_POWER),
+HEAD:custom_components/heatpump_optimizer/config_flow.py:904:        _effective(candidate, current, CONF_HEAT_PUMP_MAX_POWER, DEFAULT_HEAT_PUMP_MAX_POWER),
+HEAD:custom_components/heatpump_optimizer/config_flow.py:907:        return {CONF_HEAT_PUMP_COP_PARTLOAD_DERATE: "partload_derate_above_limit"}
+HEAD:custom_components/heatpump_optimizer/config_flow.py:1700:    _F("thermal_model", CONF_HEAT_PUMP_MAX_POWER, _SUGGESTED, _number(1, 20, 0.5, 'kW')),
+HEAD:custom_components/heatpump_optimizer/config_flow.py:1701:    _F("thermal_model", CONF_HEAT_PUMP_MIN_POWER, _SUGGESTED, _number(0, 10, 0.5, 'kW')),
+HEAD:custom_components/heatpump_optimizer/config_flow.py:1702:    _F("thermal_model", CONF_HEAT_PUMP_COP_PARTLOAD_DERATE, _SUGGESTED, _number(0, MAX_HEAT_PUMP_COP_PARTLOAD_DERATE, 0.01)),
+HEAD:custom_components/heatpump_optimizer/config_flow.py:2005:    CONF_HEAT_PUMP_MAX_POWER: DEFAULT_HEAT_PUMP_MAX_POWER,
+HEAD:custom_components/heatpump_optimizer/config_flow.py:2006:    CONF_HEAT_PUMP_MIN_POWER: DEFAULT_HEAT_PUMP_MIN_POWER,
+HEAD:custom_components/heatpump_optimizer/config_flow.py:2175:    if {CONF_HEAT_PUMP_MIN_POWER, CONF_HEAT_PUMP_MAX_POWER} & saved.keys():
+HEAD:custom_components/heatpump_optimizer/const.py:88:# ``CONF_HEAT_PUMP_MAX_POWER`` / ``CONF_HEAT_PUMP_MIN_POWER`` are nameplate limits, and the
+HEAD:custom_components/heatpump_optimizer/const.py:728:CONF_HEAT_PUMP_MAX_POWER: Final = "heat_pump_max_power"  # kW electrical
+HEAD:custom_components/heatpump_optimizer/const.py:729:CONF_HEAT_PUMP_MIN_POWER: Final = "heat_pump_min_power"  # kW electrical
+HEAD:custom_components/heatpump_optimizer/const.py:730:CONF_HEAT_PUMP_COP_PARTLOAD_DERATE: Final = "heat_pump_cop_partload_derate"
+HEAD:custom_components/heatpump_optimizer/modbus_prefill.py:58:    CONF_HEAT_PUMP_MAX_POWER,
+HEAD:custom_components/heatpump_optimizer/modbus_prefill.py:240:        CONF_HEAT_PUMP_MAX_POWER: (

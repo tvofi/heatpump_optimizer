@@ -1,0 +1,14 @@
+a7411d7ad:custom_components/heatpump_optimizer/__init__.py:226:        hass.config_entries.async_update_entry(entry, version=CONFIG_ENTRY_VERSION)
+a7411d7ad:custom_components/heatpump_optimizer/config_flow.py:2565:        self.hass.config_entries.async_update_entry(
+a7411d7ad:custom_components/heatpump_optimizer/config_flow.py:2623:        return self.async_create_entry(
+a7411d7ad:custom_components/heatpump_optimizer/config_flow.py:3105:                self.hass.config_entries.async_update_entry(
+a7411d7ad:custom_components/heatpump_optimizer/config_flow.py:3180:            self.hass.config_entries.async_update_entry(self._entry, unique_id=uid)
+a7411d7ad:custom_components/heatpump_optimizer/config_flow.py:3181:        return self.async_create_entry(title="", data=options)
+a7411d7ad:custom_components/heatpump_optimizer/config_flow.py:3216:        self.hass.config_entries.async_update_entry(
+a7411d7ad:custom_components/heatpump_optimizer/coordinator.py:3883:        self.hass.config_entries.async_update_entry(
+a7411d7ad:custom_components/heatpump_optimizer/coordinator.py:6352:        self.hass.config_entries.async_update_entry(
+a7411d7ad:custom_components/heatpump_optimizer/debugger.py:709:        hass.config_entries.async_update_entry(
+a7411d7ad:custom_components/heatpump_optimizer/repairs.py:56:        return self.async_create_entry(data={})
+a7411d7ad:custom_components/heatpump_optimizer/services.py:850:        hass.config_entries.async_update_entry(
+a7411d7ad:custom_components/heatpump_optimizer/services.py:915:        hass.config_entries.async_update_entry(entry, options=options)
+a7411d7ad:custom_components/heatpump_optimizer/services.py:1067:        hass.config_entries.async_update_entry(entry, options=options)
