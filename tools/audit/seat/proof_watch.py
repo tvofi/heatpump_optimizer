@@ -138,11 +138,18 @@ def _train():
     return merge_train
 
 
+#: Seconds between polls: under a waiting seat's 5-minute prompt-cache TTL, so
+#: the wake that follows a poll does not rewrite its whole context
+#: (R10-FLY-CACHE-PROMPTS), and never under GitHub's 60 s floor (main refuses it).
+POLL_S = 240.0
+POLL_FLOOR_S = 60.0
+
+
 class Watcher:
     """One watch: one pull request, one pinned head, one named check-run."""
 
     def __init__(self, repo: str, pr: int, sha: str, check: str,
-                 poll: float = 300.0, budget_h: float = 6.0,
+                 poll: float = POLL_S, budget_h: float = 6.0,
                  dry: bool = False, mode: str = "app", state: Path = DEFAULT_STATE,
                  merge_script: Path | None = None, approve_script: Path | None = None,
                  run=None, sleep=time.sleep, clock=time.monotonic, say=print,
@@ -375,7 +382,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--head", help="the pinned 40-hex head SHA; never followed")
     ap.add_argument("--check", help="the name of the check-run to wait for")
     ap.add_argument("--repo", default=DEFAULT_REPO, help="owner/repo (default %(default)s)")
-    ap.add_argument("--poll", type=float, default=300.0, help="seconds between polls (default %(default)s)")
+    ap.add_argument("--poll", type=float, default=POLL_S, help="seconds between polls (default %(default)s)")
     ap.add_argument("--budget", type=float, default=6.0, help="hours before aborting (default %(default)s)")
     ap.add_argument("--mode", choices=("app", "owner"), default="app",
                     help="the merge identity merge_pr.sh is handed (default %(default)s)")
@@ -389,6 +396,10 @@ def main(argv: list[str] | None = None) -> int:
         if v is None:
             print(f"proof_watch: REFUSE: {flag} is required (or --self-test)", file=sys.stderr)
             return 2
+    if a.poll < POLL_FLOOR_S:
+        print(f"proof_watch: REFUSE: --poll under GitHub's {POLL_FLOOR_S:.0f} s floor, got {a.poll}",
+              file=sys.stderr)
+        return 2
     if not (len(a.head) == 40 and set(a.head) <= HEX):
         print(f"proof_watch: REFUSE: --head must be the full 40-hex SHA, got '{a.head}'", file=sys.stderr)
         return 2
@@ -412,6 +423,7 @@ def main(argv: list[str] | None = None) -> int:
 # pairs, and the dry-run arm asserts the tree it was given is untouched.
 
 def self_test() -> int:
+    import io
     import shutil
     import tempfile
 
@@ -434,6 +446,17 @@ def self_test() -> int:
         else:
             print(f"FAIL {why} (got {got!r}, want {want!r})")
             fails += 1
+
+    # The cadence (R10-FLY-CACHE-PROMPTS): under the seat's 5-minute prompt-cache
+    # TTL, never under GitHub's 60 s poll floor. The --poll 60 case is the null
+    # control: it passes the poll guard and is refused at --head instead.
+    st(60.0 <= POLL_S <= 240.0, True, "the default poll is inside [60 s, 240 s]")
+    for poll, flag in (("59", "--poll"), ("60", "--head")):
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            rc = main(["--pr", "7", "--head", "short", "--check", "x", "--poll", poll])
+        st((rc, flag in err.getvalue().split("REFUSE: ", 1)[-1][:8]), (2, True),
+           f"--poll {poll} is refused at {flag}")
 
     class Fixture:
         def __init__(self):
