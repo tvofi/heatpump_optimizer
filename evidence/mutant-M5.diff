@@ -1,13 +1,13 @@
 diff --git a/tests/entities.py b/tests/entities.py
-index 266932ec6..2300f5f5c 100644
+index 68fb7e2bf..66f42cd06 100644
 --- a/tests/entities.py
 +++ b/tests/entities.py
-@@ -28150,7 +28150,7 @@ def _raf_review_gated(job: str) -> bool:
- # a harness runs the step under `_GHA_RUN` instead.
- _EX_SHELLS = {None, "bash", "sh"}
- _EX_SAFE = re.compile(
--    r"^(if|elif|while|until)\b|^!|\|\||&&|"
-+    r"^(if|elif|while|until)\b|^!|&&|"
-     r"(^|\s)(then|do|else|\{|\()$|^(fi|done|esac|\}|\))\b|^(else|then|do)\b")
- _EX_TEST_HEAD = re.compile(r"^(if|while|until)\s+(!\s*)?(?=\[|test\b)")
- _EX_READER = re.compile(r"^(\w+=|case\b|\[|\[\[|test\b|echo\b|printf\b|exit\b|return\b|local\b)")
+@@ -28380,7 +28380,7 @@ def _shell_c_defects(sources: "dict[str, str]") -> "list[str]":
+ _SHELL_TRACKED = [f for f in _subprocess.run(
+     ["git", "ls-files", "-z", "--", "tests/*.py", "tools/*.py"],
+     capture_output=True, text=True, check=True).stdout.split("\0") if f]
+-_SHELL_DOMAIN = [f for f in _SHELL_TRACKED if not _closure.is_inert(f)]
++_SHELL_DOMAIN = [f for f in _SHELL_TRACKED]
+ _SHELL_SOURCES = {f: Path(f).read_text() for f in _SHELL_DOMAIN}
+ _SHELL_SITES = _shell_c_sites(_SHELL_SOURCES)
+ _SHELL_PLANTS = {
