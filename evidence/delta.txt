@@ -1,0 +1,9 @@
+merge-tree P1 P2 tree: 821c724dddce3ba055101237760ce2d9b75548e8
+head tree:            821c724dddce3ba055101237760ce2d9b75548e8
+remerge-diff lines: 0
+merge-tree origin/main(2fde526340bdb1da17fa7a5cd8bff283cff2757c) head rc=0
+review_carry: 2a5bd4dd2 -> a361e454f  main=origin/main
+  branch-only commits: 1
+  why: a361e454f1058a44e7c545270dc66a1b8330f3f3 resolves tests/golden/claimed_drift.txt to something other than the union of its parents
+  a361e454f  ci: merge main
+review_carry: FRESH-REVIEW
