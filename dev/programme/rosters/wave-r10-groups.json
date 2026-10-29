@@ -8742,7 +8742,8 @@
     "From #2632 (R10-LOOP-CPU) round 3, correcting the carry above: coverage-ratchet's red in run 39874068348 (package 85.89 % against 96.0 %, 45 modules below 95.0 %) was neither the entities flake nor a flake. It was #2632's own defect, fixed in that PR: tests/features.py left 740 live process-worker children at its exit, and their coverage data files landed after the script's own process exited. tools/coverage/coverage_tree.sh's `measure()` checks `ls \"$WORK/data/$s\"/.coverage.*` the moment `tests/$s.py` returns, so it recorded `features.nodata` with no error, and the ratchet read a package-wide drop. A local run at ab6216ce reproduced the red: `features.nodata` and 85.88 % (18987/22108). A second run printed \"could not combine tests/features.py's data\" instead. The control at fef4a135 read 98.66 % (21801/22097). The seam left here is the instrument's: any measured script whose descendants outlive it loses its whole measurement silently. Make `coverage_tree.sh` refuse a measured script that exited 0 and left no data, or wait for the script's process group before the check, so a red names the script rather than 45 modules. Plant a script that leaves one child writing coverage after its exit; it must read red. Files: tools/coverage/coverage_tree.sh. Re-measure at your merge base.",
     "From #2632 review (item 325975e1): under HASTUB_TZ=Europe/Stockholm, 4 features.py checks fail at base a6620c30 and at the head alike: the house-meter preference check (new since round 1), the naive/aware timestamp check, and the R9-F1.1 N-shared-config pair.",
     "gate-scoping: cost: in this cloud seat `tests/entities.py` reads `2 of 2449 ENTITY CHECKS FAILED` (`gate-sweep.yml` U0c and `graders-head-copy`'s delivery_status case) identically at the merge base `df478d40b`, so a local scoped gate is red for a reason no diff here reaches. Carry: R10-FLY-SUITE-ENV-FLAKES",
-    "`tests/entities.py`'s py-spy stub sizes its call log with `case $(wc -l < calls) in 1)`, and BSD `wc -l` reading stdin pads the count to eight columns, so on macOS the `1)` arm never matches and four `hb:positive_control` checks read red. Control: `printf 'x\\n' | wc -l` on this host prints ` 1`; the same four checks read red at merge base `6fe5170cd` in the round-1 session's baseline log, so the branch under review is not the cause. Precondition for any fix: compare a trimmed count (`tr -d ' '`) so GNU and BSD agree, and keep a planted-defect control that still reads red, so the check is not merely silenced. Re-measure at your own merge base. `tests/entities.py` is outside this group's seam; the group that owns it is open. Carry: R10-FLY-SUITE-ENV-FLAKES"
+    "`tests/entities.py`'s py-spy stub sizes its call log with `case $(wc -l < calls) in 1)`, and BSD `wc -l` reading stdin pads the count to eight columns, so on macOS the `1)` arm never matches and four `hb:positive_control` checks read red. Control: `printf 'x\\n' | wc -l` on this host prints ` 1`; the same four checks read red at merge base `6fe5170cd` in the round-1 session's baseline log, so the branch under review is not the cause. Precondition for any fix: compare a trimmed count (`tr -d ' '`) so GNU and BSD agree, and keep a planted-defect control that still reads red, so the check is not merely silenced. Re-measure at your own merge base. `tests/entities.py` is outside this group's seam; the group that owns it is open. Carry: R10-FLY-SUITE-ENV-FLAKES",
+    "cloud-fixer-prompt: stale: the prompt says the toolchain (venv python) is on PATH from the environment; here python3 was /usr/bin/python3 3.11 and /opt/hpo/venv-ci/bin was not on PATH, so tests/entities.py failed with a 3.12 f-string SyntaxError until run under /opt/hpo/venv-ci/bin/python3. Carry: R10-FLY-SUITE-ENV-FLAKES"
    ],
    "model": {
     "fixer": "sonnet",
@@ -10449,7 +10450,9 @@
    "files": [
     "dev/audit/rca/"
    ],
-   "carry": [],
+   "carry": [
+    "`reviewer-head-off` survives `r10_flow_dispatch_mutants.py` at the base and at this head: `dispatch_group`'s \"a reviewer needs --head\" refusal is not pinned by the self-test (the arm that should kill it, `refused(role=\"reviewer\", pr=\"7\")`, is refused for another reason). Carry: R10-FRICTION-MUTATION-SURVIVOR"
+   ],
    "resume": {
     "stage": "absorbed",
     "branch": null,
@@ -11076,9 +11079,9 @@
    ],
    "carry": [],
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-fly-cache-prompts",
-    "commit": null,
+    "commit": "78c0ac59304d2e54640a1fbb0d34ed81eb3bfe7a",
     "last_step": null,
     "next_step": "fixer dispatched (dispatch/fixer-r10-fly-cache-prompts)",
     "note": "Owner order (tvofi, 2026-10-28)",
