@@ -9445,23 +9445,27 @@ def reachable(name: str) -> str | None:
     Booleans are probed by flipping them away from their default rather than
     by a sentinel value: the mapping coerces with ``bool()``, so any sentinel
     would come back as True and look like a match for every boolean field.
+    A field whose legal range stops at or below 0.5 on the default config
+    (the part-load derate's band limit is 4/9 on 1-5 kW) refuses that
+    sentinel, so 0.25 is tried after it.
     """
     default_value = getattr(ThermalParameters.from_config({}), name)
     if isinstance(default_value, bool):
-        sentinel = not default_value
+        sentinels = [not default_value]
     else:
-        sentinel = 0.5 if default_value != 0.5 else 0.25
+        sentinels = [v for v in (0.5, 0.25) if v != default_value]
     for candidate in dir(hp_const):
         if not candidate.startswith("CONF_"):
             continue
-        try:
-            built = ThermalParameters.from_config(
-                {getattr(hp_const, candidate): sentinel}
-            )
-        except Exception:
-            continue
-        if getattr(built, name, None) == sentinel:
-            return candidate
+        for sentinel in sentinels:
+            try:
+                built = ThermalParameters.from_config(
+                    {getattr(hp_const, candidate): sentinel}
+                )
+            except Exception:
+                continue
+            if getattr(built, name, None) == sentinel:
+                return candidate
     return None
 
 
@@ -71473,6 +71477,25 @@ R.check(
     and _pl_err({_PL_KEY: 0.0}, _pl_narrow) == {}
     and _pl_err({_PL_KEY: 0.19}, {}) == {},
     f"{_pl_err({_PL_KEY: 0.19}, _pl_narrow)}",
+)
+# Round 3: the Modbus pre-fill save is the band's other options writer, and
+# its form has no derate field, so the refusal lands on ``base``. A stored
+# 0.40 is legal on 1-5 kW (limit 4/9) and past it once max power drops to 2.
+_pl_pre = _pl_flow._prefill_errors
+_pl_stored = {"heat_pump_min_power": 1.0, "heat_pump_max_power": 5.0, _PL_KEY: 0.40}
+R.check(
+    "a pre-fill save that narrows the power band refuses a stored part-load "
+    "derate the new band puts past its limit, on base, whichever band key the "
+    "save carries; "
+    "null controls: a derate under the narrowed limit passes, a save touching "
+    "neither band key is not judged on the stored pair, and min above max is "
+    "still named as such",
+    _pl_pre({"heat_pump_max_power": 2.0}, _pl_stored) == {"base": "partload_derate_above_limit"}
+    and _pl_pre({"heat_pump_min_power": 4.0}, _pl_stored) == {"base": "partload_derate_above_limit"}
+    and _pl_pre({"heat_pump_max_power": 2.0}, {**_pl_stored, _PL_KEY: 0.30}) == {}
+    and _pl_pre({"heat_pump_cop_nominal": 3.0}, {**_pl_stored, **_pl_narrow}) == {}
+    and _pl_pre({"heat_pump_max_power": 0.5}, _pl_stored) == {"base": "min_power_above_max"},
+    f"max 5->2: {_pl_pre({'heat_pump_max_power': 2.0}, _pl_stored)}",
 )
 
 

@@ -2119,8 +2119,13 @@ def _prefill_errors(saved: dict[str, Any], current: dict[str, Any]) -> dict[str,
         saved, current
     ):
         errors["base"] = "dhw_min_too_close"
-    if CONF_HEAT_PUMP_MAX_POWER in saved and _power_errors(saved, current):
-        errors["base"] = "min_power_above_max"
+    # Either half of the band moves the derate's limit, and the form shows
+    # neither the floor nor the derate, so each refusal lands on ``base``.
+    if {CONF_HEAT_PUMP_MIN_POWER, CONF_HEAT_PUMP_MAX_POWER} & saved.keys():
+        for problem in (
+            _power_errors(saved, current) or _partload_errors(saved, current)
+        ).values():
+            errors["base"] = problem
     return errors
 
 
