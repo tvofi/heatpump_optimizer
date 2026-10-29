@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/plan_slots.py b/custom_components/heatpump_optimizer/plan_slots.py
+index deac00c60..12dcfcfe8 100644
+--- a/custom_components/heatpump_optimizer/plan_slots.py
++++ b/custom_components/heatpump_optimizer/plan_slots.py
+@@ -74,7 +74,7 @@ def plan_slots(
+                 other_powers[i] for i in span if i < len(other_heating) and other_heating[i]
+             )
+             if shared > 1e-9:
+-                slot["shared_kwh"] = round(shared, 3)
++                pass
+         if reasons:
+             codes = [
+                 reasons[i]
