@@ -7332,10 +7332,11 @@ async def r9_f5_text_and_menu_findings():
 # Every setup-flow field whose key has an ``_OPTION_FIELDS`` row renders that
 # row's widget OBJECT, so the two flows cannot offer two ranges for one setting.
 # ---------------------------------------------------------------------------
-SETUP_FORM_STEPS = (
-    "temperature", "building_extras", "thermal", "zones", "dhw",
-    "weather_sensitivity", "user", "user_sensors", "quick_setup", "building_describe",
-)
+#: The flow's steps that render no form when entered bare: two menus, and
+#: ``reconfigure``, which needs a sourced entry and then hands its form to
+#: ``user`` (covered there). Every other ``async_step_*`` is driven, so a new
+#: step joins the census without being listed (reauth was once outside a list).
+NON_FORM_SETUP_STEPS = frozenset({"building", "finish_setup", "reconfigure"})
 
 
 def _schema_leaves(schema):
@@ -7351,11 +7352,27 @@ def _schema_leaves(schema):
 async def setup_widgets_are_the_registry_rows():
     """Each setup field with a registry row delivers that row's widget (``is``)."""
     R.section("setup flow: every field with an options row renders that row's widget")
-    flow = config_flow.HeatPumpOptimizerConfigFlow()
-    flow.hass = FakeHass()
-    in_registry, twice = 0, []
-    for step in SETUP_FORM_STEPS:
-        schema = (await getattr(flow, f"async_step_{step}")()).get("data_schema")
+    steps = sorted(
+        name[len("async_step_"):]
+        for name in dir(config_flow.HeatPumpOptimizerConfigFlow)
+        if name.startswith("async_step_")
+    )
+    in_registry, twice, unrendered = 0, [], []
+    for step in steps:
+        flow = config_flow.HeatPumpOptimizerConfigFlow()
+        flow.hass = FakeHass()
+        try:
+            schema = (await getattr(flow, f"async_step_{step}")()).get("data_schema")
+        except Exception as err:  # noqa: BLE001 -- a step that cannot render is reported
+            schema = None
+            if step not in NON_FORM_SETUP_STEPS:
+                unrendered.append(f"{step}:{type(err).__name__}")
+        if schema is None:
+            if step not in NON_FORM_SETUP_STEPS and not any(
+                u.startswith(f"{step}:") for u in unrendered
+            ):
+                unrendered.append(f"{step}:no form")
+            continue
         for marker, widget in _schema_leaves(schema):
             key = str(marker)
             rows = [row for row in config_flow._OPTION_FIELDS if row.key == key]
@@ -7369,8 +7386,15 @@ async def setup_widgets_are_the_registry_rows():
     check(
         "temperature",
         "happy",
+        "the setup-widget census renders every step but the declared non-form ones",
+        not unrendered and NON_FORM_SETUP_STEPS <= set(steps),
+        f"unrendered={unrendered} steps={len(steps)}",
+    )
+    check(
+        "temperature",
+        "happy",
         "the setup-widget census reaches every registry-backed setup field",
-        in_registry >= 64,
+        in_registry >= 66,
         f"registry-backed setup fields={in_registry}",
     )
     check(
