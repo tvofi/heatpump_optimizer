@@ -62,6 +62,17 @@ PLACEHOLDER = re.compile(r"\{\{([A-Za-z0-9_]*)\}\}")
 TABLE_ROW = re.compile(r"^\|\s*`([A-Za-z0-9_]+)`\s*\|")
 CITED = re.compile(r"`((?:tools|tests|dev|\.github)/[^`\s{}<>*]+|CLAUDE\.md)[^`]*`")
 HOST = re.compile(HOME_DIR)
+#: What every rendered sweep carries by default (tvofi, 2026-10-28: round 10's
+#: session additions became the template's defaults). One fragment per default
+#: the self-test pins; the template is still the one owner of the wording.
+DEFAULTS = {
+    "record beat: the replan": "tools/plan/replan.py --out",
+    "record beat: the plan page": "tools/audit/seat/plan_page.py --plan",
+    "tick board read unfiltered": "REVIEW OWED",
+    "tick board: owner flags": "OWNER FLAG:",
+    "tick board: design builds": "DESIGN-BUILD:",
+    "train flags": "--overlap --approval-carry --skip-bad --free-holders --bot-prs --pre-flight",
+}
 
 
 class Refused(Exception):
@@ -94,6 +105,11 @@ def body(text: str) -> str:
 def citations(text: str, root: Path) -> list[str]:
     """Every cited tree path that does not exist under root."""
     return sorted({m.group(1) for m in CITED.finditer(text) if not (root / m.group(1)).exists()})
+
+
+def defaults_missing(sweep: str) -> list[str]:
+    """The DEFAULTS a sweep body lacks, by name."""
+    return [name for name, frag in DEFAULTS.items() if frag not in sweep]
 
 
 def value_text(name: str, v) -> str:
@@ -163,16 +179,24 @@ def self_test() -> int:
     tracked = TEMPLATE.read_text(encoding="utf-8")
     names = declared(tracked)
     full = {n: f"<{n}>" for n in names}
-    full["local_seat_cap"] = 8
+    full["plan_slots"] = 10
     try:
         text = render(tracked, full)
-        ok = all(f"<{n}>" in text for n in names if n != "local_seat_cap") and "{{" not in text
+        ok = all(f"<{n}>" in text for n in names if n != "plan_slots") and "{{" not in text
     except Refused as e:
         print(f"    {e}")
         ok = False
     check("the tracked template renders from a complete overlay, every placeholder filled (null control)", ok)
     check("the tracked template cites only paths that exist", citations(tracked, ROOT) == [])
     check("the tracked template's sweep names no host", not HOST.search(body(tracked)))
+    missing = defaults_missing(body(tracked))
+    if missing:
+        print("    missing: " + ", ".join(missing))
+    check("the tracked template's sweep carries every round-10 default", not missing)
+    every = "\n".join(DEFAULTS.values())
+    check("a sweep carrying every default fragment misses none (null control)", defaults_missing(every) == [])
+    check("a sweep without the train flags is reported missing exactly them",
+          defaults_missing(every.replace(DEFAULTS["train flags"], "")) == ["train flags"])
 
     mini = "## Placeholders\n\n| `a` | x |\n| `b` | y |\n\n## Other\n\n" + BEGIN + "\nrun {{a}} then {{b}}\n" + END + "\n"
     check("a minimal template renders (null control for the refusals below)",

@@ -3616,6 +3616,7 @@
    "tools/audit/seat/selftest_wiring.py",
    "tools/audit/seat/sweep_driver.py",
    "tools/audit/seat/sweep_driver_selftest.py",
+   "tools/audit/seat/sweep_render.py",
    "tools/audit/seat/tmp_paths.py",
    "tools/policy/budget_raise_gate.py",
    "tools/policy/figure_lint.mjs",
