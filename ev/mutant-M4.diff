@@ -1,0 +1,16 @@
+diff --git a/.github/workflows/nightly.yml b/.github/workflows/nightly.yml
+index fd46def88..c93438ae8 100644
+--- a/.github/workflows/nightly.yml
++++ b/.github/workflows/nightly.yml
+@@ -746,9 +746,9 @@ jobs:
+               # any count. Waiting is green; a gate that crashed is not.
+               # The `|| batch=$?` is load-bearing: the step runs under `bash -e`,
+               # and a bare call ending 4 would end the step there.
+-              batch=0
+               python3 -I tools/audit/seat/record_row.py \
+-                --batch-due --plan-file "$RUNNER_TEMP/plan.json" --event "$EVENT" || batch=$?
++                --batch-due --plan-file "$RUNNER_TEMP/plan.json" --event "$EVENT"
++              batch=$?
+               if [ "$batch" = 4 ]; then status="batching"; break; fi
+               if [ "$batch" != 0 ]; then status="skip-batch-gate"; break; fi
+               python3 -I tools/audit/seat/record_row.py \

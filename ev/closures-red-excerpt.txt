@@ -1,0 +1,19 @@
+tests / closures, job 123591615668, run 40914547648, head 9d97a52d52e05fd71abc98d47822c1b521447c91 (SCOPE_CASE: full)
+step `python -u tests/closure.py check --in-dir "$RUNNER_TEMP/closures"`:
+INERT READS UNDER-APPROXIMATED: a recording opened an INERT file the
+  committed `inert_reads` does not list for it; the merge fast path
+  would treat a change to it as unread (R9-F10.9d). Re-derive:
+  ./tests/derive_closures.sh --single <script>
+    tests/entities.py: tools/audit/check_scopes.py
+    tests/entities.py: tools/audit/fold_ledger.py
+    tests/entities.py: tools/audit/merge_fastpath.py
+    ... (26 tools/*.py files in the visible tail, ending)
+    tests/entities.py: tools/pr/merge_main_bot.py
+##[error]Process completed with exit code 1.
+
+tests / closures-autofix, job 123603236249:
+  ... remove them from INERT in tests/closure.py, or except them,
+  then re-run this merge -- check refuses this pair on CI.
+closures-autofix: skip-merge-failed -- THE REPAIR DID NOT HAPPEN.
+No commit will be pushed, so waiting for one waits forever.
+##[error]Process completed with exit code 1.

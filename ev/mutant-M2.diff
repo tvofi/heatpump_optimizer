@@ -1,0 +1,13 @@
+diff --git a/tests/entities.py b/tests/entities.py
+index 266932ec6..00ffeb8bb 100644
+--- a/tests/entities.py
++++ b/tests/entities.py
+@@ -28201,7 +28201,7 @@ def _ex_hazards(text: str) -> "tuple[int, list[str]]":
+             cut = head.rfind(";")
+             whole = head[:cut].strip() if cut >= 0 else prev
+             producer = whole.split(";")[-1].strip()
+-            stmt = _EX_TEST_HEAD.sub("", head[cut + 1:].strip())
++            stmt = head[cut + 1:].strip()
+             if (errexit and whole and not _EX_SAFE.search(producer)
+                     and not _EX_SAFE.search(stmt) and (not stmt or _EX_READER.match(stmt))):
+                 hits.append(f"`{producer[:90]}` then `{line[:60]}`")

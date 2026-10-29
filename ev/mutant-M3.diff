@@ -1,0 +1,13 @@
+diff --git a/tests/entities.py b/tests/entities.py
+index 266932ec6..c2b53d86d 100644
+--- a/tests/entities.py
++++ b/tests/entities.py
+@@ -19879,7 +19879,7 @@ R.check(
+ # executing a step's own text runs it under this, never a bare `bash -c`, or a
+ # bare call the step meant to classify ends the runner's step and passes the
+ # harness's (gate-sweep's `out=$(...)`, R10-RCA-HOTFIX-BATCH-ERREXIT's I4).
+-_GHA_RUN = ["bash", "-e", "-c"]
++_GHA_RUN = ["bash", "-c"]
+ 
+ 
+ def _gs_step_verdict(script: str, stdout: str, rc: int) -> "tuple[int, str]":
