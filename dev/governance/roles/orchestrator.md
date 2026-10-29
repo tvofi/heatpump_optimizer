@@ -254,7 +254,8 @@ Take it only when `MODE: FULL` or `scope.run` names `tests/stress.py`
 ## 13. Stamps, budgets, and the two things you may not decide alone
 
 You stamp at your discretion, with `stamp.py --push --push-key ~/.zcode/stamp-deploy.key`,
-never by hand or in a branch; rule 4 binds you.
+never by hand or in a branch; rule 4 binds you. A round's closeout stamp is
+`--round-close <round>`, every other `--bump minor` or `--bump patch` (decision 0016).
 
 **An instrument the programme runs is a tracked, self-tested file; a
 session-local copy is a defect** (tvofi, 2026-10-03; ownership is 0013's). What merges, approves,

@@ -767,6 +767,16 @@ jobs:
           python3 -I tools/audit/seat/r10_roster_ops_mutants.py --self-test | tee "$RUNNER_TEMP/r10-roster-ops-mutants-self-test.txt"
           grep -Eq '^r10_roster_ops_mutants self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/r10-roster-ops-mutants-self-test.txt"
 
+      # stamp.py's round-close sweep (R10-STAMP-ROUND-MAJOR, decision 0016),
+      # for the same reason: CI pins its plants' preconditions and the null
+      # grid's own detector, never the sweep itself.
+      - name: Show the stamp round-close mutation harness pinning its own plants
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/r10_stamp_round_mutants.py --self-test | tee "$RUNNER_TEMP/r10-stamp-round-mutants-self-test.txt"
+          grep -Eq '^r10_stamp_round_mutants self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/r10-stamp-round-mutants-self-test.txt"
+
       # The ledger's mutation sweep (R10-ORCH-LEDGER), for the same reason:
       # CI pins its plants' preconditions, never the sweep itself.
       - name: Show the ledger mutation harness pinning its own plants
