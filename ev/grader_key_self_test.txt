@@ -1,0 +1,15 @@
+  ok   graders key: CORPUS is keyed by an edit to policy_lint.mjs
+  ok   graders key: and by one to a module it imports (counts.mjs)
+  ok   graders key: and not by corpus_excluded.json, data the job does not restore (#2916's repair)
+  ok   graders key: and by budget_raise_gate.py, a program it spawns (review round 2's plant)
+  ok   graders key: and by tests/layout.py, which that program imports
+  ok   graders key: WAVE CHECK is keyed by check-wave-script.mjs, and by policy_lint.mjs, which it imports at run time
+  ok   graders key: FIELD COVERAGE is keyed by its own file, and by policy_lint.mjs, which it spawns with --hooks
+  ok   graders key: and not by render_md.mjs, which only policy_lint.mjs's static imports reach (the 110 s run stays off them)
+  ok   graders key: RULES SYNC is keyed by rules_sync.mjs, CODEOWNERS by codeowners_gap.py alone
+  ok   graders key: every run a pinned job restores is predicted, or exempt with a reason (null control)
+  ok   graders key: CORPUS without env-matrix in its reds is refused: policy_lint_envmatrix.mjs spawns policy_lint.mjs (M7)
+  ok   graders key: the RULES SYNC row dropped leaves rules_sync.mjs --check named as unpredicted
+  ok   graders key: CORPUS without its --hooks mode leaves policy_lint.mjs --hooks named as unpredicted
+  ok   graders key: a key blind to named files leaves budget_raise_gate.py under CORPUS named as unkeyed
+  ok   graders key: an exempt site no grader source holds is refused as stale

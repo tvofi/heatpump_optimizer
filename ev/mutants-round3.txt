@@ -1,0 +1,24 @@
+M10 named_loads not followed in mjs_closure: 4 failed
+    FAIL graders key: and by budget_raise_gate.py, a program it spawns (review round 2's plant)
+    FAIL graders key: and by tests/layout.py, which that program imports
+    FAIL graders key: WAVE CHECK is keyed by check-wave-script.mjs, and by policy_lint.mjs, which it imports at run time
+    FAIL graders key: every run a pinned job restores is predicted, or exempt with a reason (null control) -- ["policy-docs: CODEOWNERS's dev/audit/rounds/round6/D11/fix/codeowners_gap.py:844 names tools/coverage/coverage_tree.sh, restored from the base and outside its key", "policy-docs: CORPUS's tools/policy/policy_lint.mjs:6733 names tools/policy/budget_raise_gate.py, restored from the base and outside its key", "policy-docs: FIELD COVERAGE's tools/policy/field_coverage.mjs:151 names tools/policy/counts.mjs, restored from the base and outside its key", "policy-docs: FIELD COVERAGE's tools/policy/field_coverage.mjs:209 names tools/policy/budget_raise_gate.py, restored from the base and outside its key", "policy-docs: FIELD COVERAGE's tools/policy/field_coverage.mjs:364 names dev/audit/rounds/round6/D11/fix/codeowners_gap.py, restored from the base and outside its key", "policy-docs: FIELD COVERAGE's tools/policy/policy_lint.mjs:397 names tools/policy/counts.mjs, restored from the base and outside its key", "policy-docs: FIELD COVERAGE's tools/policy/policy_lint.mjs:398 names tools/policy/counts.mjs, restored from the base and outside its key", "policy-docs: FIELD COVERAGE's tools/policy/policy_lint.mjs:6733 names tools/policy/budget_raise_gate.py, restored from the base and outside its key", "policy-docs: FIELD COVERAGE's tools/policy/policy_lint.mjs:81 names tools/policy/brief_lint.mjs, restored from the base and outside its key", "policy-docs: RULES SYNC's tools/policy/policy_lint.mjs:6733 names tools/policy/budget_raise_gate.py, restored from the base and outside its key", "wave-script: LANE SELF-TEST's tools/policy/policy_lint.mjs:4694 names tools/release/stamp.py, restored from the base and outside its key", "wave-script: LANE SELF-TEST's tools/policy/policy_lint.mjs:6733 names tools/policy/budget_raise_gate.py, restored from the base and outside its key", "wave-script: WAVE CHECK's tools/policy/check-wave-script.mjs:1551 names tools/policy/policy_lint.mjs, restored from the base and outside its key", "wave-script: WAVE CHECK's tools/policy/check-wave-script.mjs:482 names tools/policy/policy_lint.mjs, restored from the base and outside its key", "wave-script: WAVE CHECK's tools/policy/check-wave-script.mjs:698 names tools/policy/policy_lint.mjs, restored from the base and outside its key"]
+M11 Python imports not followed: 1 failed
+    FAIL graders key: and by tests/layout.py, which that program imports
+M12 stale-exempt refusal dropped: 1 failed
+    FAIL graders key: an exempt site no grader source holds is refused as stale
+M13 named gap enumeration dropped: 1 failed
+    FAIL graders key: a key blind to named files leaves budget_raise_gate.py under CORPUS named as unkeyed
+Traceback (most recent call last):
+  File "ev/mut.py", line 13, in <module>
+    assert src.count(a)==1, (name, src.count(a))
+           ^^^^^^^^^^^^^^^
+AssertionError: ('M14 path.join arm dropped from NAMED', 0)
+M14 path.join arm dropped from NAMED: 0 failed
+M14 key diff CORPUS ['dev/audit/rounds/round4/D6/claims.py', 'tests/delivery_status.py', 'tools/release/stamp.py'] []
+M14 key diff WAVE CHECK ['dev/audit/rounds/round4/D6/claims.py', 'tests/delivery_status.py', 'tools/release/stamp.py'] []
+M14 key diff FIELD COVERAGE [] []
+M14 key diff RULES SYNC ['dev/audit/rounds/round4/D6/claims.py', 'tests/delivery_status.py', 'tools/release/stamp.py'] []
+M14 key diff FRAGMENTS [] []
+M14 key diff CODEOWNERS [] []
+M14 key diff LANE SELF-TEST ['dev/audit/rounds/round4/D6/claims.py', 'tests/delivery_status.py', 'tools/release/stamp.py'] []
