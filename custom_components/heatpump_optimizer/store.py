@@ -463,7 +463,15 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
     "away": {"active": _FLAG, "return_time": _AT0, "migrated_helpers": _FLAG},
     "pump_duty": {
         "written/mode/0": _TEXT, "written/dhw_setpoint/0": _R, "written/space_setpoint/0": _R,
-        **{f"written/{k}/1": _AT for k in ("mode", "dhw_setpoint", "space_setpoint")},
+        # The silent switch (#1911) and the GCHV night-mode registers (#1913)
+        # are held slots on the same record (``pump_arbiter._writable``).
+        "written/silent/0": _FLAG,
+        **{f"written/night_{e}_hour/0": Domain("int", 0, 23) for e in ("start", "end")},
+        **{f"written/night_{e}_minute/0": Domain("int", 0, 59) for e in ("start", "end")},
+        **{f"written/{k}/1": _AT for k in (
+            "mode", "dhw_setpoint", "space_setpoint", "silent",
+            "night_start_hour", "night_start_minute", "night_end_hour", "night_end_minute",
+        )},
     },
     "manual_plan": {
         **{f"{k}_slots": _ABSENT for k in ("space", "dhw")},

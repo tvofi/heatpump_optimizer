@@ -6,6 +6,7 @@
   "_adopt_away_override": "core",
   "_adopt_system_identification": "core",
   "_apply_action": "core",
+  "_write_supply": "core",
   "_apply_buffer_cooling_rate": "core",
   "_apply_comfort_weight": "learning",
   "_apply_cop_scale": "learning",

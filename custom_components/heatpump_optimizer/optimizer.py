@@ -97,6 +97,7 @@ from .thermal_model import (
     _mean_humidity,
     _step_humidity,
     levels_clamped,
+    plan_step_runs,
     planned_draw_runs,
     planned_draws_run,
     project_planned_levels,
@@ -5662,21 +5663,10 @@ class HeatPumpOptimizer:
             if result.displace_schedule and i < len(result.displace_schedule)
             else 0.0
         )
-        # The schedule is the authority; the fallback is the same owner on the
-        # same two circuits, for a result built without the field. Both read
-        # the plan's own running rule, never the meter's threshold, so a step
+        # The plan's own running rule, never the meter's threshold, so a step
         # this action declares off is a step the plan booked no heat for
-        # (R9 D12-s2-01).
-        dhw_power_at_i = (
-            result.dhw_power_schedule[i]
-            if result.dhw_power_schedule and i < len(result.dhw_power_schedule)
-            else 0.0
-        )
-        heat_pump_on = (
-            result.heat_pump_on_schedule[i]
-            if result.heat_pump_on_schedule and i < len(result.heat_pump_on_schedule)
-            else planned_draw_runs(power, dhw_power_at_i)
-        )
+        # (R9 D12-s2-01); one owner for every reader of the plan's switch.
+        heat_pump_on = plan_step_runs(result, i)
 
         p_norm = _power_fraction(power, self.model.params)
 

@@ -44,8 +44,9 @@ A block drops its duty out of :func:`_planned_duty` and again out of
 whatever :func:`_share` and the hot-water lease return, so a blocked
 duty is served as idle and a lease expiry cannot hand it back. The
 arbitration never writes the power switch; :func:`switch_supply` below is
-that switch's one writer, shared by the cycle's plan write and the early
-cut-off (``early_cutoff.py``), so the domain routing has one owner.
+that switch's one writer, shared by the cycle's plan write, the step tick
+(:func:`supply_tick`) and the early cut-off (``early_cutoff.py``), so the
+domain routing has one owner.
 
 **Two transports, one logic.** The Tuya fork offers DHW-only and Heating,
 so the mode is the gate there. The GCHV/Rotenso Modbus package's mode
@@ -106,7 +107,8 @@ both (:func:`_planned_duty`). Turning it off writes nothing.
 
 It acts at step boundaries: a one-minute tick (only while the option is not
 off) re-derives the step, since the solve runs every 30 minutes and a plan
-step is 15.
+step is 15. The power switch has its own one-minute tick, armed by the
+cycle's first switch write whatever the option says (:func:`supply_tick`).
 
 **Observe keeps a ledger**, in observe and in control: per 15-minute step,
 the planned duty against what the pump did, read from what the integration
@@ -127,7 +129,7 @@ import asyncio
 import bisect
 import logging
 from collections import Counter, deque
-from collections.abc import Mapping
+from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta, timezone
 from typing import Any, TypeGuard
@@ -146,6 +148,7 @@ from .const import (
     CONF_BUFFER_TANK_TEMP_ENTITY,
     CONF_FLOOR_RETURN_TEMP_ENTITY,
     CONF_HEAT_PUMP_RETURN_TEMP_ENTITY,
+    CONF_POWER_ENTITY,
     CONF_VALVE_OUTLET_TEMP_ENTITY,
     DOMAIN,
     MODE_AUTO,
@@ -171,6 +174,7 @@ from .thermal_model import (
     flow_setpoint_for_level,
     modulation_floor_flow_c,
     on_threshold_kw,
+    plan_step_runs,
     planned_draw_runs,
     probe_install,
 )
@@ -241,6 +245,11 @@ class ArbiterState:
     loaded: bool = False
     unsubs: list[Any] = field(default_factory=list)
     lock: asyncio.Lock = field(default_factory=asyncio.Lock)
+    #: (step start, the supply the plan commanded for that step): written by
+    #: the cycle's switch write and moved by :func:`supply_tick` (#2492).
+    supply: tuple[datetime, bool] | None = None
+    #: The step tick's listener; dropped only at unload, never by duty mode.
+    supply_unsub: Callable[[], None] | None = None
 
 
 @dataclass(frozen=True)
@@ -344,11 +353,8 @@ def step_duty(result: Any, now: datetime) -> str | None:
     the loop, so the harm was the channel and the second piece of state that
     kept it clean, not a live race.
     """
-    stamps = list(getattr(result, "timestamps", None) or [])
-    i = bisect.bisect_right(stamps, now) - 1
-    # A step covers [stamp, stamp + one plan step): the last one ends where the
-    # next would start, the same half-open rule bisect gives every other step.
-    if i < 0 or (i == len(stamps) - 1 and now - stamps[i] >= timedelta(minutes=PLAN_STEP_MINUTES)):
+    i = _step_index(result, now)
+    if i is None:
         return None
     space = list(result.power_schedule or [])
     dhw = list(getattr(result, "dhw_power_schedule", None) or [])
@@ -358,6 +364,19 @@ def step_duty(result: Any, now: datetime) -> str | None:
     return {(True, True): "both", (True, False): "space", (False, True): "dhw"}.get(
         (s_on, d_on), "idle"
     )
+
+
+def _step_index(result: Any, now: datetime) -> int | None:
+    """The index of the plan step covering ``now``, or ``None`` outside the plan.
+
+    A step covers [stamp, stamp + one plan step): the last one ends where the
+    next would start, the same half-open rule bisect gives every other step.
+    """
+    stamps = list(getattr(result, "timestamps", None) or [])
+    i = bisect.bisect_right(stamps, now) - 1
+    if i < 0 or (i == len(stamps) - 1 and now - stamps[i] >= timedelta(minutes=PLAN_STEP_MINUTES)):
+        return None
+    return i
 
 
 def own(coord: Any, signals: Any) -> Any:
@@ -508,6 +527,28 @@ FLOW_INLET_KEYS = (
 )
 
 
+def _reader(hass: Any, config: Mapping[str, Any]) -> InputReader:
+    """The arbiter's live entity reads, under the install's staleness rules."""
+    cfg = EntryConfig.from_mapping(config)
+    return InputReader(
+        hass, dict(config or {}),
+        enabled=cfg.staleness_watchdog_enabled,
+        scale=cfg.staleness_max_age_scale,
+    )
+
+
+def live_power_kw(hass: Any, config: Mapping[str, Any]) -> float | None:
+    """The pump's measured draw now, kW, or ``None`` when unread.
+
+    Read at each pass, not taken from the cycle's sample: the ledger folds
+    one reading per one-minute tick, and a sample frozen at the cycle made a
+    step's verdict depend on where the cycle fell against the step grid
+    (#2492).
+    """
+    reading = _reader(hass, config).read_power_kw(CONF_POWER_ENTITY)
+    return reading.value if reading.ok else None
+
+
 def _flow_inlet_c(inp: ArbiterInputs) -> float | None:
     """The first fresh reading of :data:`FLOW_INLET_KEYS`, °C, or ``None``.
 
@@ -515,12 +556,7 @@ def _flow_inlet_c(inp: ArbiterInputs) -> float | None:
     unconfigured slot is absent rather than guessed, and a slot left unset
     falls to the next rung.
     """
-    cfg = EntryConfig.from_mapping(inp.config)
-    reader = InputReader(
-        inp.hass, dict(inp.config or {}),
-        enabled=cfg.staleness_watchdog_enabled,
-        scale=cfg.staleness_max_age_scale,
-    )
+    reader = _reader(inp.hass, inp.config)
     readings = (reader.read(key) for key in FLOW_INLET_KEYS)
     return next(
         (reading.value for reading in readings if reading.ok), None
@@ -1126,6 +1162,88 @@ async def switch_supply(hass: Any, entity_id: str, on: bool) -> None:
         _LOGGER.error("Error toggling heat pump switch %s: %s", entity_id, err)
 
 
+def supply_write(on: bool, signals: Any) -> bool | None:
+    """The switch value to write for ``on``, or ``None`` to leave the switch.
+
+    OFF is skipped only when the pump's own mode is cooling or blocks both
+    channels: an empty plan is then this integration's doing, not a decision
+    to stop the pump. A single-channel block (DHW-only, heating-only) still
+    commands OFF, or a summer DHW pulse would leave the supply latched while
+    the tank is supposed to drift.
+    """
+    if on or not ((signals.space_blocked and signals.dhw_blocked) or signals.mode.cooling):
+        return on
+    return None
+
+
+def step_supply(coord: Any, inp: ArbiterInputs, now: datetime) -> bool | None:
+    """The supply the plan commands for the step covering ``now``, or ``None``.
+
+    ``None`` wherever the cycle's own write does not come from the plan's
+    step: a non-plan mode, an experiment's override, a stale or missing plan,
+    or an instant outside it. A live boost on either channel is on, as
+    ``boost.overlay`` makes the action the cycle writes.
+    """
+    if inp.mode not in (MODE_AUTO, MODE_ECONOMY) or inp.plan_stale or inp.plan is None:
+        return None
+    if (inp.action or {}).get("mode") == "system_identification":
+        return None
+    held = boost.held_for(coord)
+    if held.active(boost.CHANNEL_SPACE, now) or held.active(boost.CHANNEL_DHW, now):
+        return True
+    i = _step_index(inp.plan, now)
+    return None if i is None or i >= len(inp.plan.power_schedule or ()) else plan_step_runs(inp.plan, i)
+
+
+def note_supply(
+    coord: Any, on: bool, write: Callable[[bool], Awaitable[None]], now: datetime | None = None,
+) -> None:
+    """Record the cycle's supply command for its step; arm the step tick once.
+
+    ``write`` is the coordinator's gated switch write, the cycle's own, so
+    the tick passes the same cut-off hold and blocked-mode skip it does.
+    """
+    held = state_for(coord)
+    held.supply = (plan_step_start(now or dt_util.now()), on)
+    if held.supply_unsub is not None or not EntryConfig.from_mapping(
+        coord.arbiter_inputs().config
+    ).heat_pump_switch_entity:
+        return
+
+    async def _tick(_now: Any = None) -> None:
+        await supply_tick(coord, write)
+
+    held.supply_unsub = async_track_time_interval(coord.hass, _tick, _TICK)
+
+
+async def supply_tick(
+    coord: Any, write: Callable[[bool], Awaitable[None]], now: datetime | None = None,
+) -> None:
+    """At a step boundary, write the supply where the plan's command changes.
+
+    The cycle writes the switch once per interval, so without this a step
+    change reached the pump only at the next cycle, as late as one interval
+    after the boundary, and a step's duty verdict depended on the cycle's
+    phase against the step grid (#2492). Only a change is written: a step
+    that commands what the last one did leaves the switch alone, so an early
+    cut-off still holds until the next cycle, as ``early_cutoff`` documents.
+    """
+    now = now or dt_util.now()
+    held = state_for(coord)
+    step = plan_step_start(now)
+    if held.supply is None or held.supply[0] == step:
+        return
+    inp = coord.arbiter_inputs()
+    if inp.entry_released:
+        return
+    on = step_supply(coord, inp, now)
+    if on is None:
+        return
+    last, held.supply = held.supply[1], (step, on)
+    if on != last:
+        await write(on)
+
+
 def _pump_off(inp: ArbiterInputs) -> bool:
     """Whether the configured power switch reads off.
 
@@ -1142,6 +1260,9 @@ async def release(coord: Any) -> None:
     """Unload: write the baseline over anything still owned, then let go."""
     release_listeners(coord)
     held = state_for(coord)
+    unsub, held.supply_unsub = held.supply_unsub, None
+    if unsub is not None:
+        unsub()
     inp = coord.arbiter_inputs()
     if held.written and duty_mode(inp.config) == DUTY_CONTROL and inp.mode != MODE_OFF:
         await _command(coord, inp, desired(coord, inp, None, dt_util.now()), dt_util.now())
