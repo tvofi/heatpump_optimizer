@@ -15,8 +15,11 @@ asked again. On 2026-10-28 the critical-path handoff r10-orch-beatd (#2916) stoo
 two handoffs routed to the opener at 10:55Z stood 8 h.
 
 WHAT IT DOES. It reads the tick board's owed family -- every `-> ` line that
-starts `OWED`, `REVIEW OWED:`, `DISPATCH:`, `OWNER FLAG:` or `DESIGN-BUILD:` --
-and keys each on its obligation: the handoff topic, or `#<pr>`. The state file
+starts `OWED`, `REVIEW OWED:`, `DISPATCH:`, `OWNER FLAG:`, `DESIGN-BUILD:`,
+`MERGE-READY:` or `BLOCKED-UNFIXED:` -- and keys each on its obligation: the
+handoff topic, or `#<pr>`. A verdict level (`MERGE-READY: #N <head8>`) carries
+its head8 as the id, so an acknowledgement covers one head and a new head
+re-raises. The state file
 counts the sweeps (distinct boards, by the board's provenance time) each key has
 stood on. A key standing on `--after` sweeps or more is UNACTIONED unless an
 acknowledgement line in an `--acks` file covers it now:
@@ -47,7 +50,7 @@ import re
 import sys
 import tempfile
 
-FAMILY = re.compile(r"^-> (OWED|REVIEW OWED:|DISPATCH:|OWNER FLAG:|DESIGN-BUILD:)")
+FAMILY = re.compile(r"^-> (OWED|REVIEW OWED:|DISPATCH:|OWNER FLAG:|DESIGN-BUILD:|MERGE-READY:|BLOCKED-UNFIXED:)")
 BOARD = re.compile(r"^BOARD measured from origin/main at \S+, (\S+)")
 SHA = re.compile(r"\b[0-9a-f]{12,40}\b")
 REF = re.compile(r"\b(?:refs/heads/)?(?:handoff-body|handoff|design)/(\S+)")
@@ -77,6 +80,9 @@ def key_of(line: str) -> "tuple[str, list[str]]":
     m = re.match(r"REVIEW OWED: (#\d+)", body)
     if m:
         return m.group(1), shas
+    m = re.match(r"(?:MERGE-READY|BLOCKED-UNFIXED): (#\d+) ([0-9a-f]{8})$", body)
+    if m:
+        return m.group(1), [m.group(2)]
     m = re.match(r"OWED handoff: (\S+) ", body)
     if m:
         return m.group(1), shas
@@ -346,6 +352,30 @@ def self_test() -> int:
                          "-> OWED: OWED 2026-10-28T00:53:40Z push-stuck fix-r10-diag-ages 98785 STUCK 1641s"),
                     [pid], state="pid.json", after=1)
         check("null control: a whole non-sha id (a pid) still covers its key", rcj == 0)
+        # P277: the verdict levels, keyed `#<N>` with `<head8>` as the id
+        mr, bu = "-> MERGE-READY: #2896 5f3a5dd6", "-> BLOCKED-UNFIXED: #2933 1a2b3c4d"
+        for name, line, key, h8 in (("MERGE-READY", mr, "#2896", "5f3a5dd6"),
+                                    ("BLOCKED-UNFIXED", bu, "#2933", "1a2b3c4d")):
+            st = f"lv-{name}.json"
+            v0 = t0 + dt.timedelta(hours=5)
+            go(tick(v0, line), state=st)
+            rcl, ol = go(tick(v0 + dt.timedelta(minutes=10), line), state=st)
+            check(f"{name}: keyed {key} on its head8, unactioned on the second sweep",
+                  rcl == 1 and f"{key}  sweeps=2" in ol and f" {key} {h8} ttl=1" in ol)
+            lack = [f"OWED-ACK {(v0 + dt.timedelta(minutes=15)).isoformat()} {key} {h8} "
+                    "merge seat lands it after the train; waits on CI"]
+            rcm, om = go(tick(v0 + dt.timedelta(minutes=20), line), lack, state=st)
+            check(f"{name}: an OWED-ACK on #<N> <head8> covers it", rcm == 0 and "1 acknowledged" in om)
+            moved = line.replace(h8, "9e8d7c6b")
+            rcn, on = go(tick(v0 + dt.timedelta(minutes=30), moved), lack, state=st)
+            check(f"{name}: a new head8 re-raises", rcn == 1 and f"{key}  sweeps=4" in on
+                  and f" {key} 9e8d7c6b ttl=1" in on)
+        _, kv = board(tick(t0, review, mr))
+        check("REVIEW OWED and MERGE-READY on one pull request are one key",
+              set(kv) == {"#2896"} and kv["#2896"]["shas"] == ["5f3a5dd615b5", "5f3a5dd6"])
+        check("null control: a board without the levels keys as before", set(board(
+            tick(t0, beatd, held, disp, review, event))[1]) == {"r10-orch-beatd", "triage-s7-batch49",
+                                                                 "#2896", "#2920"})
         with open(os.path.join(d, "entry.json"), "w", encoding="utf-8") as fh:
             json.dump({"board": None, "keys": {"r10-orch-beatd": {"sweeps": 2}}}, fh)
         check("a malformed state entry: exit 2", go(tick(t0, beatd), state="entry.json")[0] == 2)
