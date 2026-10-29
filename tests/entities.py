@@ -28275,13 +28275,20 @@ R.check(
 # Countermeasure B's pin (R10-RCA-HOTFIX-BATCH-ERREXIT): a check that runs a
 # step's text under a bare `bash -c` measures a shell GitHub never uses, so a
 # bare call the step means to classify passes the check and ends the runner's
-# step (gate-sweep's I4 stayed green that way). Every `["bash"|"sh", ..., "-c"]`
-# list literal in a tracked `.py` under tests/ and tools/ carries an errexit
+# step (gate-sweep's I4 stayed green that way). Every `-c` list literal whose
+# shell is `bash` or `sh` by basename (`/bin/bash`, `env bash` alike) in a
+# tracked `.py` under tests/ and tools/ that is not INERT carries an errexit
 # flag, or runs text that is no `run:` block, keyed by (file, enclosing
 # function). The key does not see what a listed function runs, so a step
 # executed inside one is blinded: a listed function runs one named source, and
 # a new executor belongs in a function of its own. An argv built by anything
-# but a literal is outside the read.
+# but a literal is outside the read. INERT files are outside it by design: the
+# gate never runs one in-process (closure.py refuses an INERT file read and
+# recorded, #357), and every file read here lands in this script's closure, so
+# an edit adding a site selects this script under GATE_SCOPE=auto. A file that
+# leaves INERT because a check starts running it enters the read with it. Gap,
+# measured and left: an INERT tool a check spawns as a child, which
+# `inert_reads` lists and which runs its own scripts, not `run:` blocks.
 _SHELL_NOT_A_STEP = {
     ("tests/throwaway_git.py", "self_test"): "sources tests/throwaway_git.sh",
     ("tests/entities.py", "_cir_once_count"): "two lines of tools/coverage/coverage_tree.sh",
@@ -28301,7 +28308,9 @@ def _shell_c_sites(sources: "dict[str, str]") -> "list[tuple[str, str, bool]]":
                 if isinstance(ch, ast.List) and ch.elts:
                     lits = [e.value for e in ch.elts
                             if isinstance(e, ast.Constant) and isinstance(e.value, str)]
-                    if lits[:1] in (["bash"], ["sh"]) and "-c" in lits:
+                    if lits[:1] in (["env"], ["/usr/bin/env"]):
+                        lits = lits[1:]
+                    if lits and os.path.basename(lits[0]) in ("bash", "sh") and "-c" in lits:
                         out.append((path, fn, any(re.fullmatch(r"-[a-z]*e[a-z]*", t) for t in lits)))
                 walk(ch, fn)
         walk(ast.parse(src), "<module>")
@@ -28313,14 +28322,18 @@ def _shell_c_defects(sources: "dict[str, str]") -> "list[str]":
             if not ee and (f, fn) not in _SHELL_NOT_A_STEP]
 
 
-_SHELL_SOURCES = {f: Path(f).read_text() for f in _subprocess.run(
+_SHELL_TRACKED = [f for f in _subprocess.run(
     ["git", "ls-files", "-z", "--", "tests/*.py", "tools/*.py"],
-    capture_output=True, text=True, check=True).stdout.split("\0") if f}
+    capture_output=True, text=True, check=True).stdout.split("\0") if f]
+_SHELL_DOMAIN = [f for f in _SHELL_TRACKED if not _closure.is_inert(f)]
+_SHELL_SOURCES = {f: Path(f).read_text() for f in _SHELL_DOMAIN}
 _SHELL_SITES = _shell_c_sites(_SHELL_SOURCES)
 _SHELL_PLANTS = {
     "a bare step runner": ("tests/x.py", 'def f(s):\n    run(["bash", "-c", s])\n'),
     "sh, flags apart": ("tools/x.py", 'def g(s):\n    run(["sh", "-x", "-c", s])\n'),
     "a listed name in another file": ("tests/x.py", 'def self_test(s):\n    run(["bash", "-c", s])\n'),
+    "an absolute shell": ("tests/x.py", 'def h(s):\n    run(["/bin/bash", "-c", s])\n'),
+    "env bash": ("tools/x.py", 'def k(s):\n    run(["/usr/bin/env", "bash", "-c", s])\n'),
 }
 _SHELL_PLANT_MISSED = sorted(k for k, (f, src) in _SHELL_PLANTS.items()
                              if _shell_c_defects({f: src}) != [f"{f}:{src[4:src.index('(')]}"])
@@ -28330,8 +28343,11 @@ R.check(
     len(_SHELL_SITES) > len(_SHELL_NOT_A_STEP) and not _shell_c_defects(_SHELL_SOURCES)
     and {(f, fn) for f, fn, ee in _SHELL_SITES if not ee} == set(_SHELL_NOT_A_STEP)
     and not _SHELL_PLANT_MISSED
-    and not _shell_c_defects({"t.py": 'run(["bash", "--noprofile", "--norc", "-eo", "pipefail", "-c", s])'}),
-    f"sites={len(_SHELL_SITES)} without errexit={_shell_c_defects(_SHELL_SOURCES)} "
+    and not _shell_c_defects({"t.py": 'run(["bash", "--noprofile", "--norc", "-eo", "pipefail", "-c", s])'})
+    and "tests/entities.py" in _SHELL_DOMAIN and "tools/audit/judge_batch.py" in _SHELL_DOMAIN
+    and "tools/audit/seat/beatd.py" in _SHELL_TRACKED and "tools/audit/seat/beatd.py" not in _SHELL_DOMAIN,
+    f"read {len(_SHELL_DOMAIN)} of {len(_SHELL_TRACKED)} tracked (INERT left out; beatd.py, "
+    f"INERT, is the excluded arm) sites={len(_SHELL_SITES)} without errexit={_shell_c_defects(_SHELL_SOURCES)} "
     f"listed and unused={sorted(set(_SHELL_NOT_A_STEP) - {(f, fn) for f, fn, ee in _SHELL_SITES if not ee})} "
     f"plants missed={_SHELL_PLANT_MISSED}; a step run under a bare `bash -c` passes a "
     "bare call errexit ends on the runner -- use `_GHA_RUN`",
