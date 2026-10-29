@@ -1,9 +1,9 @@
-NOTE stale tree: 3efeea2176fa570ae8c52a13996c483f02cb1d52 lacks origin/main 3042dcd4f6fccc6b83aa2a956cfd4d4259ebc6ed; roster read at origin/main
-NOTE stale tree: 3efeea2176fa570ae8c52a13996c483f02cb1d52 lacks origin/main 3042dcd4f6fccc6b83aa2a956cfd4d4259ebc6ed; roster read at origin/main
+NOTE stale tree: f2daca863fb67409458f788e61839d4460a17ccb lacks origin/main e5ddba1fad5e6eccfeceaeaaa249bc459963405b; roster read at origin/main
+NOTE stale tree: f2daca863fb67409458f788e61839d4460a17ccb lacks origin/main e5ddba1fad5e6eccfeceaeaaa249bc459963405b; roster read at origin/main
   ok   a carry to a group of the roster is predicted green
-NOTE stale tree: 3efeea2176fa570ae8c52a13996c483f02cb1d52 lacks origin/main 3042dcd4f6fccc6b83aa2a956cfd4d4259ebc6ed; roster read at origin/main
+NOTE stale tree: f2daca863fb67409458f788e61839d4460a17ccb lacks origin/main e5ddba1fad5e6eccfeceaeaaa249bc459963405b; roster read at origin/main
   ok   a carry to a group the roster lacks is predicted red
-NOTE stale tree: 3efeea2176fa570ae8c52a13996c483f02cb1d52 lacks origin/main 3042dcd4f6fccc6b83aa2a956cfd4d4259ebc6ed; roster read at origin/main
+NOTE stale tree: f2daca863fb67409458f788e61839d4460a17ccb lacks origin/main e5ddba1fad5e6eccfeceaeaaa249bc459963405b; roster read at origin/main
   ok   a finding with no carry at all is predicted red
   ok   a file re-added at a path whose move landed is predicted red (rc 1)
   ok   the re-added path under a second commit is predicted red (rc 1)
@@ -55,4 +55,8 @@ NOTE stale tree: 3efeea2176fa570ae8c52a13996c483f02cb1d52 lacks origin/main 3042
   ok   predict reaches the graders arm by name (its call site, not only its helper)
   ok   every JOB value is a name gate.REQUIRED owes
 ci_predict self-test: 0 failed
+
+real	1m42.187s
+user	1m23.475s
+sys	0m16.687s
 rc=0

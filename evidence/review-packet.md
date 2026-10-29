@@ -1,57 +1,44 @@
 # Review packet #2925
-head: 3efeea2176fa570ae8c52a13996c483f02cb1d52
-base: 741cc693219c792a76608b4b898480953a3e0258
+head: f2daca863fb67409458f788e61839d4460a17ccb
+base: ce5940c0d1d8f611a818d53e7fffcafb48b356c1
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
 ## Gate digest: red
-CodeQL id=123462139658 success
-arch-score / arch-score id=123481427189 success
-arm id=123461540040 skipped
-budget-raise-gate / budget-raise-gate id=123481427218 success
-cancel-superseded id=123461542362 success
-codeql id=123481429974 skipped
-codeql / Analyze (actions) id=123461765506 success
-codeql / Analyze (javascript-typescript) id=123461765206 success
-codeql / Analyze (python) id=123461765373 success
-gate id=123482499555 success
-governance id=123481429248 skipped
-governance / delivery-status id=123461765411 success
-governance / delivery-status-publish id=123461767632 skipped
-governance / env-matrix id=123461765402 success
-governance / instrument-self-tests id=123461765535 success
-governance / policy-docs id=123461765451 success
-governance / record id=123461767652 skipped
-governance / wave-script id=123461765477 success
-hassfest id=123481429239 skipped
-hassfest / hassfest id=123461765405 success
-kernel-points id=123481428588 skipped
-pr-contract / pr-contract id=123481999292 success
-prelude id=123461542217 success
-refresh id=123461541860 success
-tests id=123481429548 skipped
-tests / arch-instrument id=123462032752 success
-tests / briefs id=123461765358 success
-tests / browser id=123462033181 success
-tests / ci-ratchet id=123477873179 skipped
-tests / claims-autofix id=123468563914 skipped
-tests / closure-scope id=123461765241 success
-tests / closures id=123462033021 success
-tests / closures-autofix id=123470738061 skipped
-tests / coverage id=123462032776 success
-tests / coverage-ratchet id=123477870382 success
-tests / fast (3.14) id=123462032900 success
-tests / graders-head-copy id=123477871179 success
-tests / lane-proofs id=123477870546 success
-tests / mutation id=123461765186 success
-tests / mutation-autofix id=123462165815 skipped
-tests / mutation-pins id=123462164591 skipped
-tests / nightly-ha id=123462036457 skipped
-tests / nightly-status id=123461765582 failure
-tests / replay id=123462036324 skipped
-tests / typing id=123462032963 success
-validate id=123481428917 skipped
-validate / validate-hacs id=123461765470 success
+CodeQL id=123689005144 neutral
+arch-score / arch-score id=123688627649 success
+arm id=123688419034 skipped
+budget-raise-gate / budget-raise-gate id=123688628036 success
+cancel-superseded id=123688426344 success
+codeql / Analyze (actions) id=123688627844 success
+codeql / Analyze (javascript-typescript) id=123688627927 success
+codeql / Analyze (python) id=123688628032 in_progress
+governance / delivery-status id=123688627930 success
+governance / delivery-status-publish id=123688630856 skipped
+governance / env-matrix id=123688627717 in_progress
+governance / instrument-self-tests id=123688627529 in_progress
+governance / policy-docs id=123688627790 in_progress
+governance / record id=123688629857 skipped
+governance / wave-script id=123688627564 success
+hassfest / hassfest id=123688627825 success
+kernel-points id=123688629803 skipped
+prelude id=123688426673 success
+refresh id=123688426641 success
+tests / arch-instrument id=123688859089 success
+tests / briefs id=123688627864 success
+tests / browser id=123688859090 in_progress
+tests / closure-scope id=123688627720 success
+tests / closures id=123688859070 in_progress
+tests / coverage id=123688859059 in_progress
+tests / fast (3.14) id=123688859093 in_progress
+tests / mutation id=123688627800 success
+tests / mutation-autofix id=123689018734 skipped
+tests / mutation-pins id=123689018442 skipped
+tests / nightly-ha id=123688861271 skipped
+tests / nightly-status id=123688627759 failure
+tests / replay id=123688862085 skipped
+tests / typing id=123688858978 in_progress
+validate / validate-hacs id=123688627575 success
 
 ## Refusals
 none
@@ -60,6 +47,7 @@ none
 none
 
 ## carry_audit at the head
+NOTE stale tree: f2daca863fb67409458f788e61839d4460a17ccb lacks origin/main e5ddba1fad5e6eccfeceaeaaa249bc459963405b; roster read at origin/main
 NOTE body item 6799107b: R10-RECORD-API-O1
 CARRY-AUDIT: 1 finding item(s): 1 routed, 0 unrouted, 0 bad destination(s)
 
@@ -88,7 +76,7 @@ none
 
 ## Three-dot diff
 diff --git a/dev/audit/config/bugclasses.json b/dev/audit/config/bugclasses.json
-index 3b7a64989..14d297486 100644
+index 58fae56c0..b02ecbc1c 100644
 --- a/dev/audit/config/bugclasses.json
 +++ b/dev/audit/config/bugclasses.json
 @@ -1196,7 +1196,8 @@
@@ -126,17 +114,18 @@ index 3b7a64989..14d297486 100644
        "level": "instance-or-process",
 diff --git a/dev/audit/rca/R10-RCA-PREPR-HEAD-GRADERS.md b/dev/audit/rca/R10-RCA-PREPR-HEAD-GRADERS.md
 new file mode 100644
-index 000000000..67999a52e
+index 000000000..1be68675a
 --- /dev/null
 +++ b/dev/audit/rca/R10-RCA-PREPR-HEAD-GRADERS.md
-@@ -0,0 +1,246 @@
+@@ -0,0 +1,249 @@
 +# R10-RCA-PREPR-HEAD-GRADERS: a grader edit every local path passed and CI's base copy refused
 +
 +The root-cause seat for #2916 (R10-ORCH-BEATD arm a), run beside the fix and not inside it (the
 +root-cause role contract, `dev/governance/rules/defect-root-cause.md`). The instances (section 4)
 +were measured on 2026-10-28 against `origin/main` `eab04d0eb`. Section 5's denominator and costs
 +and section 6's demonstration were re-taken on 2026-10-29 at the head the pull-request body names,
-+against `origin/main` `14fbf218d`. Every time is UTC. The seat filed no issue.
++against `origin/main` `14fbf218d`. Every time is UTC. The seat filed no issue; review round 7
++filed #2952 as the destination of section 7's open jobs.
 +
 +**Result: state (c).** 8 measured pull requests in round 10, past the audit-class threshold of 3 in
 +one round. The class is I3, which is barriered.
@@ -366,16 +355,18 @@ index 000000000..67999a52e
 +  jobs is `git grep -n -- "- name: Restore the check source from the base commit" HEAD --
 +  .github/workflows/`. Outside governance.yml it returns three jobs, each restoring from the base
 +  and grading the pull request with that copy, and `restore_jobs` reads governance.yml only:
-+  - `briefs` (tests.yml), which runs `brief_lint.mjs`;
-+  - `pr-contract` (pr-contract.yml);
++  - `briefs` (tests.yml), which runs `brief_lint.mjs`; Carry: #2952
++  - `pr-contract` (pr-contract.yml); Carry: #2952
 +  - `budget-raise-gate` (budget-raise-gate.yml, called from ci.yml on pull requests), which restores
 +    `tools/policy/*.py` and runs the base's `tools/policy/budget_raise_gate.py`. It reads live
-+    reviews, so a local run of it could only be partial.
++    reviews, so a local run of it could only be partial. Carry: #2952
 +
 +  None of the three is predicted by this arm, so a branch editing a file one of them restores is
 +  still graded by the base's copy with no local warning. Section 4's census read `briefs`
 +  check-runs and counted no `briefs` instance; it did not read `pr-contract` or
-+  `budget-raise-gate`, so their instances are unmeasured. This record does not claim them; they need their own group (the round-5 review's split).
++  `budget-raise-gate`, so their instances are unmeasured. This record does not claim them. Their destination is #2952, whose brief is
++  `dev/programme/carries/carry-2952.json`: the enumeration rule as the control, the
++  unmeasured `pr-contract` and `budget-raise-gate` instances as its precondition.
 diff --git a/dev/audit/rca/prepr-head-graders/attribute.sh b/dev/audit/rca/prepr-head-graders/attribute.sh
 new file mode 100755
 index 000000000..b8f8a0c89
@@ -667,6 +658,32 @@ index 000000000..947a1aeb3
 +t0=$(date +%s.%N)
 +PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base "$head" --only graders > "$out" 2>&1; rc=$?
 +echo "rc=$rc seconds=$(echo "$(date +%s.%N) - $t0" | bc)" >> "$out"
+diff --git a/dev/programme/carries/carry-2952.json b/dev/programme/carries/carry-2952.json
+new file mode 100644
+index 000000000..3d05268f3
+--- /dev/null
++++ b/dev/programme/carries/carry-2952.json
+@@ -0,0 +1,20 @@
++{
++  "_comment": [
++    "Carry destination for #2952 (the three restoring jobs outside governance.yml",
++    "that ci_predict.py's graders arm does not key). No live roster group covers",
++    "#2952, so this file is its brief. Shape and required fields:",
++    "dev/governance/rules/finding-propagation.md. Linted by tools/policy/brief_lint.mjs",
++    "(the `briefs` CI job)."
++  ],
++  "issue": 2952,
++  "stage": "#2952, predicting before the pull request the CI red of a branch that edits a program the briefs, pr-contract or budget-raise-gate job restores from the base",
++  "carries": [
++    {
++      "from": "#2925 (R10-RCA-PREPR-HEAD-GRADERS), fix review rounds 5 and 6: the graders arm narrowed to governance.yml's restoring jobs, the other three left open",
++      "effect": "narrows",
++      "control": "Enumeration rule: `git grep -n -- \"- name: Restore the check source from the base commit\" HEAD -- .github/workflows/` returned six jobs at #2925's head 3efeea217 and at origin/main 3042dcd4f alike: governance.yml policy-docs, env-matrix and wave-script, which `restore_jobs` keys (it is given governance.yml's text only), and budget-raise-gate.yml budget-raise-gate, pr-contract.yml pr-contract and tests.yml briefs, which it does not. The arm's null control is its own: `python3 -I tools/pr/ci_predict.py --self-test` prints `ci_predict self-test: 0 failed` on the unmutated tree, and `dev/audit/rca/prepr-head-graders/mutants.py` turns it red when `restored_hit` or `ci_tree_run` is broken. No instance of a red from these three jobs has been measured: #2925's section-4 census read the governance.yml jobs only, so the pr-contract and budget-raise-gate cases are unmeasured, not absent.",
++      "remeasure": "At your merge base, re-run the enumeration rule and take its job set, not the six above; re-read each job's restore pathspecs and the programs its later run steps invoke from the workflow, not from this carry. Before claiming the class closed, plant one edit per job (a branch whose head copy of the restored program differs from the base copy in a way that changes the verdict) and show the arm predicting it, with the unplanted tree as the null.",
++      "brief": "Widen the graders arm in `tools/pr/ci_predict.py` (`restore_jobs`, `grader_runs`, `ci_tree_run`) from governance.yml to every workflow job the enumeration rule returns, keyed on each job's own restore pathspecs, so a branch editing `brief_lint.mjs`, pr-contract's checkers (`policy_lint.mjs`, `figure_lint.mjs`, `preflight.sh`, `prepr.sh`, `carry_audit.py`) or `budget_raise_gate.py` is graded locally by the base copy as CI grades it. Precondition: `budget-raise-gate` reads live pull-request reviews, so a local run of it can only be partial; a prediction for it states which inputs it ran without, and is never reported as a pass. Refused: listing the three jobs by name, which closes the instance and not the class; the arm reads the workflows the enumeration returns."
++    }
++  ]
++}
 diff --git a/dev/programme/delivery/2925.md b/dev/programme/delivery/2925.md
 new file mode 100644
 index 000000000..e72d70236
@@ -674,6 +691,18 @@ index 000000000..e72d70236
 +++ b/dev/programme/delivery/2925.md
 @@ -0,0 +1 @@
 +- [#2925](https://github.com/tvofi/heatpump_optimizer/pull/2925) — **open**, rca(R10-RCA-PREPR-HEAD-GRADERS): root-cause record for a pinned grader the branch edits, graded by CI with the base's copy (R10-RCA-PREPR-HEAD-GRADERS)
+diff --git a/tests/closures.json b/tests/closures.json
+index 6b8a5b958..4a45d79f3 100644
+--- a/tests/closures.json
++++ b/tests/closures.json
+@@ -1514,6 +1514,7 @@
+    "dev/programme/carries/carry-2066.json",
+    "dev/programme/carries/carry-2075.json",
+    "dev/programme/carries/carry-2674.json",
++   "dev/programme/carries/carry-2952.json",
+    "dev/programme/rosters/critical-path.json",
+    "dev/programme/rosters/wave-r9-groups.json",
+    "docs/architecture.md",
 diff --git a/tools/policy/agreement_py.py b/tools/policy/agreement_py.py
 index 32f5c141c..125b5b0e6 100644
 --- a/tools/policy/agreement_py.py
