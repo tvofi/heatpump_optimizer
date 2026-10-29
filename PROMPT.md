@@ -5,7 +5,10 @@ Output: in a fresh directory of your own (`W=$(mktemp -d)`), write verdict.md, w
 Never write to any branch except your return refs. Never work around a hook or a refusal; report it in your result instead.
 
 Brief (snapshotted when this payload was rendered):
-Fix review of tvofi/heatpump_optimizer PR #2935 (R10-FLY-SWEEP-DEFAULTS) at head a39a08f1db5453f79458dadcfe2d975deee664a8, role contract dev/governance/roles/fix-review.md.
-Context: a merge verdict stood at the previous head 89b04b74. Main then conflicted in tools/audit/seat/sweep_template.md; a conflict fixer resolved it (handoff b37742fe) and update_pr.sh merged it plus origin/main. Review the resolution delta 89b04b74..a39a08f1 with the finder's harness, and confirm both sides' clauses of sweep_template.md survive (orchestrator.md section 6: read the merged artifact, not the diff).
-The body now answers tests / nightly-status (grades main; the diff touches none of its inputs). Check that answer against the checks at the head.
-Rules: write paths home-relative; grep -n '/Users/' your VERDICT.md and evidence before publishing and it must print nothing. Line 1 exactly `Fix review: merge <40hex>` or `Fix review: blocked <40hex> <class>: <why>`; line 2 the bus-nonce line. Every bullet, non-blocking included, ends `Carry: <GROUP>|#<issue>|O<n>|dismissed: <reason>`; run `python3 tools/audit/carry_audit.py check` on your own verdict and return only at rc 0. Return by pushing probe/rev-2935-99174f7b as the dispatch prompt says.
+Fix review of tvofi/heatpump_optimizer PR #2933 (R10-REVIEW-CARRY) at head 33b128eb7f3e01b7f3a4cfe38f864ce2742095de. Your role contract is dev/governance/roles/fix-review.md.
+This head is the fixer's answer to the blocked verdict on #2933 (class-open). It holds the fixer's code handoff handoff/r10-review-carry 5402c2ba merged with origin/main.
+Check first that the blocking item is closed at this head, by the finder's harness and never the fixer's. Then review the whole delta since the blocked head adversarially.
+Path rules: write paths home-relative. Run `grep -n '/Users/'` over your VERDICT.md and your evidence before publishing; it must print nothing.
+Verdict format: line 1 is exactly `Fix review: merge <40hex>` or `Fix review: blocked <40hex> <class>: <why>`. Line 2 is the bus-nonce line.
+Carries: every bullet, non-blocking ones included, ends `Carry: <GROUP>|#<issue>|O<n>|dismissed: <reason>`. Run `python3 tools/audit/carry_audit.py check` on your own verdict, and return only at rc 0.
+Return the verdict as the dispatch prompt says.
