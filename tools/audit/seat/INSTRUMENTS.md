@@ -257,12 +257,16 @@ sweep's standing-seat liveness step keep them alive.
   branch, `roster_lib.default_roster_ref`); the head is `--head`, else
   `origin/main`'s tip, never the roster ref's (a reviewer must pass its PR
   head); the environment is the overlay / `HPO_CLOUD_ENV_ID`; a flag it does
-  not consume (`--topic`, `--brief`, `--repo`, `--env-id`, `--out`) refuses;
-  it renders through the same `render` (the payload is the flag path's byte
-  for byte), publishes PAYLOAD.json and PROMPT.md on origin as
-  `dispatch/<role>-<topic>` (fast-forwarded, an identical tree adds nothing, a
-  render refusal pushes nothing) and prints that ref name, the one line a
-  standing trigger is fired with; `dev/audit/harnesses/r10_flow_dispatch_mutants.py`
+  not consume (`--topic`, `--brief`, `--repo`, `--env-id`, `--out`,
+  `--publish`) refuses; it renders through the same `publish_seat` as the flag
+  path's `--publish` (the payload is that path's byte for byte), publishes
+  PAYLOAD.json and PROMPT.md on origin as `dispatch/<role>-<topic>`
+  (fast-forwarded, an identical tree adds nothing, a render refusal pushes
+  nothing) and prints that ref name, the one line a standing trigger is fired
+  with. A published payload's event is a pointer to PROMPT.md on its ref, not
+  the prompt (the runner echoes the event into the orchestrator); `--publish`
+  on the flag path publishes to `dispatch/<role>-<topic>`, else
+  `dispatch/<role>-rev-<PR>`, the same way; `dev/audit/harnesses/r10_flow_dispatch_mutants.py`
   re-runs its mutants. When: dispatching a seat to the cloud runner;
   paste the printed JSON as the trigger update, or fire the standing trigger
   with the printed ref. The measured shape of a cloud seat:
@@ -417,7 +421,9 @@ sweep's standing-seat liveness step keep them alive.
   `handoff-no-pr` lines in `<log>.level` are `ledger.py level`'s fold of
   every `handoff/*` and `handoff-body/*` ref, rewritten every pass: owed unless
   its topic has an open pull request, it is disposed at its sha, or main
-  already carries the change (ancestry, or content: see `ledger.py`), each
+  already carries the change (`ledger.py landed`, the one classifier `bus.sh
+  orphans` asks too: ancestry, clean merges, reverse-apply, content), one line
+  per topic (a body ref rides its code ref's), each
   with its tip's commit time and last opener attempt; a failed PR listing or
   ledger read leaves those lines as they were, since an empty list would make
   every ref look orphaned. Every event the relay owes (`verdict-unposted` at
@@ -702,6 +708,22 @@ sweep's standing-seat liveness step keep them alive.
   roster ref: exit 1 prints one dispatch line and the unowned lines, and a
   run without its `CARRY-SWEEP:` summary is UNREADABLE. Its driver is
   `tick_loop.sh`.
+- `owed_unactioned.py` — says which tick owed lines have outlived a sweep with
+  no live acknowledgement (dev/audit/rca/R10-RCA-OWED-UNACTIONED.md). It reads
+  the board's whole owed family (`-> OWED…`, `REVIEW OWED:`, `DISPATCH:`,
+  `OWNER FLAG:`, `DESIGN-BUILD:`), keys each line on its topic or `#<pr>`, and
+  counts in `--state` the boards each key has stood on. A key standing
+  `--after` (2) sweeps is UNACTIONED unless an `--acks` file holds a live
+  `OWED-ACK <UTC> <key> <id> [ttl=<h>] <reason>` whose id prefixes a sha the
+  key carries now (7+ characters, or the whole of a non-sha ledger id; the
+  tool's own indented `ack:` echo and a `<placeholder>` reason are refused);
+  an acknowledgement lapses after its ttl (default 1 h, at
+  most 12), so a handled line comes back for its handling to be checked, and
+  free queue text covers nothing. When: every sweep, step (5) of
+  `sweep_template.md`. Exit 0 none unactioned, 1 the UNACTIONED block (each
+  with a ready ack line), 2 UNREADABLE: no provenance line, a board older than
+  `--max-board-min`, an owed line it cannot key, an unreadable state.
+  `--self-test` drives it offline.
 - `plan_audit.py` — P3's measuring half (R10-FLOW-AUDIT-PLAN), beside the
   `audit-plan` workflow. `ledger` parses each merged PR's
   `## Architecture score` block with the parser `score.py`'s own report
@@ -1013,6 +1035,38 @@ sweep's standing-seat liveness step keep them alive.
   call from `tick_loop.sh`. Refusal: unknown option, a non-numeric
   `--max-age`. `--self-test` drives both modes over a bare-repo fixture, a
   stale ref and a fresh one.
+- `beatd.py` — the one supervised beat (R10-ORCH-BEATD arm (a)): `run
+  --state S [--jobs FILE] [--once | --for N]` runs a job table, each job on
+  its own thread and process group under `S/beatd/<job>.lock`, SIGTERM at its
+  `timeout_s` and SIGKILL 10 s later unless the group has emptied, its leader
+  gone or not, before the job lock drops; a `class: orch-checkout` job also holds
+  `S/beatd/orch-checkout.lock`, waiting at most `class_wait_s` (default 60)
+  before `outcome=busy`. Every start, heartbeat and pass is a line of
+  `S/beatd/journal.log`. `status` prints one `JOB` line per job (`late` past
+  `interval_s + timeout_s`, `idle` for a watch job with no instance) and the
+  alarms `DOWN`, `ALERT lock-owner-dead`, `ALERT pulse-silent` (a `STOPPED`
+  line of pulse.py's output in `S/beatd/pulse.txt`) and `STALE-CODE behind=`;
+  rc 0, 1 alarm, 2 unreadable. `held` is `beatd.lock`'s one reader for other
+  scripts: rc 0 held, 1 free. A job's env carries `HPO_BEATD_JOB`, the real git
+  as `HPO_REAL_GIT`, `HPO_GIT_SHIM_LOG` and `beatd_shims` first on `PATH`.
+  When: arm (b) lands the job table (`beatd.jobs.json`, absent until then)
+  and the rows; until a supervisor unit is applied it runs under
+  `daemonize.py` and records `supervisor=none`. Refusal (rc 2, `beatd:
+  REFUSE`, zero jobs run): an unknown or missing key, a watch job under 60 s,
+  an unreadable table; a first `git` on `PATH` that is absent, a shim, or does
+  not answer `git version`. A second `run` exits 75, `ALREADY RUNNING`.
+  `--self-test` drives cases (a)1-8 under `/bin/bash`, each with its null
+  control, and plants each `MUTANTS` entry (at least one per case) in a temp
+  copy, four at a time; a crashing mutant fails, it is never a kill.
+- `beatd_shims/git` — the beat jobs' `git`, reached only through the `PATH`
+  `beatd.py` builds (never `shims/`, which the sweep and `roster_queue.py`
+  prepend). A `fetch` or `pull` failing on `cannot lock ref` is re-run at most
+  `HPO_GIT_RETRIES` (default 2) more times, each retry a line of
+  `HPO_GIT_SHIM_LOG`; anything else is `exec`'d unchanged. The real git is
+  `HPO_REAL_GIT` when that is a regular executable file and not a shim, else
+  the first such `git` on `PATH`, any copy recognised by its line-2 marker
+  `# hpo-git-shim`. Refusal: no real git, `git shim: no real git on PATH`, rc
+  127; it never execs itself. Tested by `beatd.py --self-test`, case (a)6.
 - `train.sh` — one invocation shape for `merge_train.py batch`: the seat
   venv first on PATH — an absent venv refuses (naming `seat_venv.sh` to
   build it), it never falls back to ambient python, which on 3.11 refuses
