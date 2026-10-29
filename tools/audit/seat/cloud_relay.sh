@@ -564,6 +564,25 @@ EOF
   mk 8 $h $h $n;           chk "a ref pushed for PR 8 leaves PR 7 with no ref" 2 relay 7 $n $h
   git -C "$t/o.git" update-ref refs/heads/probe/rev-7-${n:0:8} "$(git -C "$t/o.git" rev-parse refs/heads/probe/rev-8-${n:0:8})"
   chk "a commit subject naming PR 8 under PR 7's ref is refused" 2 relay 7 $n $h
+  # THE STATED LAYOUT RELAYS (P200, R10-REVIEW-CARRY). A cloud reviewer reads fix-review.md,
+  # never this script, so the probe is built from the templates that file states -- the ref,
+  # the subject, the first line, the nonce line and ev/ -- and must relay (the verdict file's
+  # name is this header's alone: policy_lint refuses a path not in the tree). A
+  # template the file drops, or one this relay would refuse, fails here instead of on a verdict.
+  doc() { # doc <template regex> : the first backticked span in fix-review.md matching it, placeholders filled
+    grep -o "\`$1[^\`]*\`" "$HERE/../../../dev/governance/roles/fix-review.md" | head -n 1 | tr -d '\`' \
+      | sed -e "s/<pr>/9/g" -e "s/<head40>/$h/g" -e "s/<nonce first 8>/${n:0:8}/g" -e "s/<nonce>/$n/g"; }
+  stated() { local ref subj first nl
+    ref=$(doc 'probe/rev-'); subj=$(doc 'verdict <pr> '); first=$(doc 'Fix review: merge '); nl=$(doc 'bus-nonce: ')
+    grep -q '`ev/`' "$HERE/../../../dev/governance/roles/fix-review.md" || return 3
+    [ -n "$ref" ] && [ -n "$subj" ] && [ -n "$first" ] && [ -n "$nl" ] || return 3
+    case "$ref$subj$first$nl" in *'<'*) return 3;; esac
+    rm -rf "$t/pr"; throwaway_git_init "$t/pr" -q; mkdir "$t/pr/ev"; echo "$h" > "$t/pr/ev/head"
+    printf '%s\n\n%s\n' "$first" "$nl" > "$t/pr/verdict.md"
+    git -C "$t/pr" add -A; git -C "$t/pr" commit -qm "$subj"
+    git -C "$t/o.git" fetch -qf "$t/pr" "HEAD:refs/heads/$ref" || return 3
+    relay 9 $n $h; }
+  chk "the probe layout fix-review.md states relays" 0 stated
   chk "a short head is refused" 2 relay 7 $n ${h%?}
   chk "a short nonce is refused" 2 relay 7 abc $h
   chk "a non-numeric PR is refused" 2 relay x $n $h
