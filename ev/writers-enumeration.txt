@@ -1,0 +1,13 @@
+Reviewer-built enumeration (not the finder's or fixer's): every writer of heat_pump_min_power / heat_pump_max_power / heat_pump_cop_partload_derate
+at 8ecde5f26aaf89d95da32c64e6ca736846479ab8, by grep -n on the CONF_ names, their string values, async_update_entry / async_create_entry / async_migrate_entry,
+then reading each site. A cheap locator collected the sites; the reviewer read config_flow.py 2405-2635 to confirm the reconfigure path.
+
+options  thermal_model / _zones page (config_flow.py:3249, _try_thermal_model_save :3275): _power_errors or _partload_errors   -> guarded (round 2)
+options  modbus_prefill (config_flow.py:3963 -> _prefill_errors :2095, gate :2124):          _power_errors or _partload_errors   -> guarded (round 3, 9e60fcf77)
+setup    device_prefill (config_flow.py:2540 -> _prefill_errors):  same gate; a new entry stores no derate (no setup page shows it) -> limit vs default 0, unreachable
+setup    building_extras (:2756-2770) and thermal (:2792-2801): _power_errors only; a new entry has no stored derate -> unreachable
+reconfigure _async_save_reconfigure (:2552): writes first-screen keys only, no power keys (:2411 returns there before any prefill)
+services.py (entity assign :850, layout :915, apply_schedule :1067), coordinator.async_update_thermal_params (schema has no power keys),
+debugger.py :709, away.py :412, __init__.async_migrate_entry, repairs.py :56: none carries a band key or the derate.
+
+Result: the two writers that can move a band under a stored derate both run _partload_errors at this head. Class closed in code.

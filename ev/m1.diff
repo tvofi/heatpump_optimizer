@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/config_flow.py b/custom_components/heatpump_optimizer/config_flow.py
+index facff396e..ee283d6c8 100644
+--- a/custom_components/heatpump_optimizer/config_flow.py
++++ b/custom_components/heatpump_optimizer/config_flow.py
+@@ -2123,7 +2123,7 @@ def _prefill_errors(saved: dict[str, Any], current: dict[str, Any]) -> dict[str,
+     # neither the floor nor the derate, so each refusal lands on ``base``.
+     if {CONF_HEAT_PUMP_MIN_POWER, CONF_HEAT_PUMP_MAX_POWER} & saved.keys():
+         for problem in (
+-            _power_errors(saved, current) or _partload_errors(saved, current)
++            _power_errors(saved, current)
+         ).values():
+             errors["base"] = problem
+     return errors

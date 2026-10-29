@@ -1,0 +1,4 @@
+review_packet: REFUSE red-unanswered: concluded red check `governance / delivery-status` is not named in ## Red checks
+review_packet: REFUSE host-path: dev/audit/rca/R10-RCA-COP-PARTLOAD.md:3: home-directory in an added line of a tracked file; rewrite it with `ref_privacy.py scrub --write dev/audit/rca/R10-RCA-COP-PARTLOAD.md` or drop the path
+HOME=/root
+The root-cause analysis for #2501. `dev/governance/roles/root-cause.md` wants it in
