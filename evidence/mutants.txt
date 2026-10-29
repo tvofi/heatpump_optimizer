@@ -1,0 +1,18 @@
+M1-reauth-own-widget: rc=1 killed=yes
+      FAIL no setup field spells a second widget for a setting the options registry declares  [2 spelled twice: ['reauth:tibber_token', 'reauth_confirm:tibber_token']]
+    1 of 534 checks FAILED
+M2-user-tibber-own-widget: rc=1 killed=yes
+      FAIL no setup field spells a second widget for a setting the options registry declares  [1 spelled twice: ['user:tibber_token']]
+    1 of 534 checks FAILED
+M3-nameplate-own-widget: rc=1 killed=yes
+      FAIL no setup field spells a second widget for a setting the options registry declares  [1 spelled twice: ['building_extras:heat_pump_cop_nominal']]
+    1 of 534 checks FAILED
+M4-quick-probe-own-widget: rc=1 killed=yes
+      FAIL no setup field spells a second widget for a setting the options registry declares  [1 spelled twice: ['quick_setup:wood_tank_top_entity']]
+    1 of 534 checks FAILED
+M5-reauth-confirm-no-form: rc=1 killed=yes
+      FAIL the three tibber_token surfaces agree on the same mask
+      FAIL that shared mask is the password TextSelector
+      FAIL the setup-widget census renders every step but the declared non-form ones  [unrendered=['reauth:no form', 'reauth_confirm:no form'] steps=18]
+      FAIL the setup-widget census reaches every registry-backed setup field  [registry-backed setup fields=64]
+    4 of 534 checks FAILED
