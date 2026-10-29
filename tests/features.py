@@ -17955,7 +17955,7 @@ R.check(
 )
 
 # D8-s1-01: the space pump's "plan commands heat" is the plan's space-heating
-# steps (optimizer.channel_heating_steps over both channels), not the space
+# steps (thermal_model.channel_heating_steps over both channels), not the space
 # draw against 0.05 kW: a 0.07 kW share on a step the plan runs no pump at
 # commands nothing. Null control: the 0.07 kW share on a step the hot-water
 # share makes run, and the 3 kW steps, still command heat.
@@ -35330,7 +35330,7 @@ def _db_band(coord, solve_time=_DB_T0):
 # D8-s1-01 (R10-ARCH-SHAPES): the plan view said "heating now" on a step the
 # plan's own on schedule calls off -- active_now read the channel's draw
 # against 0.05 kW, the running rule reads the step's whole ask against
-# MIN_RUNNING_DRAW_KW. Both channels now ask optimizer.channel_heating_steps.
+# MIN_RUNNING_DRAW_KW. Both channels now ask thermal_model.channel_heating_steps.
 # Null control: the rows where the step runs keep their verdicts.
 def _ah_active(space0, dhw0):
     plan = _db_plan(_DB_T0)
