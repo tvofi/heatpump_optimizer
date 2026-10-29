@@ -1,0 +1,22 @@
+== head self-test
+owed_unactioned self-test: 37 checks, 0 failed
+== mutant: s/|MERGE-READY:|/|/  (diff lines:  1 file changed, 1 insertion(+), 1 deletion(-))
+FAIL MERGE-READY: keyed #2896 on its head8, unactioned on the second sweep
+FAIL MERGE-READY: an OWED-ACK on #<N> <head8> covers it
+FAIL MERGE-READY: a new head8 re-raises
+FAIL REVIEW OWED and MERGE-READY on one pull request are one key
+owed_unactioned self-test: 37 checks, 4 failed
+== mutant: s/|BLOCKED-UNFIXED:)/)/  (diff lines:  1 file changed, 1 insertion(+), 1 deletion(-))
+FAIL BLOCKED-UNFIXED: keyed #2933 on its head8, unactioned on the second sweep
+FAIL BLOCKED-UNFIXED: an OWED-ACK on #<N> <head8> covers it
+FAIL BLOCKED-UNFIXED: a new head8 re-raises
+owed_unactioned self-test: 37 checks, 3 failed
+== mutant: s/        return m.group(1), \[m.group(2)\]/        pass/  (diff lines:  1 file changed, 1 insertion(+), 1 deletion(-))
+FAIL MERGE-READY: keyed #2896 on its head8, unactioned on the second sweep
+FAIL MERGE-READY: an OWED-ACK on #<N> <head8> covers it
+FAIL MERGE-READY: a new head8 re-raises
+FAIL BLOCKED-UNFIXED: keyed #2933 on its head8, unactioned on the second sweep
+FAIL BLOCKED-UNFIXED: an OWED-ACK on #<N> <head8> covers it
+FAIL BLOCKED-UNFIXED: a new head8 re-raises
+    raise Unreadable(f"an owed line names no topic or pull request: {line[:120]}")
+Unreadable: an owed line names no topic or pull request: -> MERGE-READY: #2896 5f3a5dd6
