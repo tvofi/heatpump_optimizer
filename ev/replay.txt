@@ -1,0 +1,4 @@
+RESULT f53ac2a39 driver_vs_head=EQUAL exact_rule_union_vs_head=DIFF
+RESULT 2fda9547e driver_vs_head=EQUAL exact_rule_union_vs_head=DIFF
+RESULT c861c0e7b driver_vs_head=EQUAL exact_rule_union_vs_head=DIFF
+RESULT 2a5bd4dd2 driver_vs_head=EQUAL exact_rule_union_vs_head=DIFF
