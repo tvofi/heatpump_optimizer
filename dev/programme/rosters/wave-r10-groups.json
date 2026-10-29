@@ -11118,9 +11118,9 @@
    ],
    "carry": [],
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-fly-prepr-summary",
-    "commit": null,
+    "commit": "5b37c6b85d6a2cca6b8dad9e22f3906a5462fd23",
     "last_step": null,
     "next_step": "fixer dispatched (dispatch/fixer-r10-fly-prepr-summary)",
     "note": "Owner order (tvofi, 2026-10-28)",
