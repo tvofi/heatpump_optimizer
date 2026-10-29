@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 2dab5a6c6..77451bf53 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -10944,7 +10944,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+             f"heat pump mode {self._pump_signals.mode.label} cannot heat the house"
+             if self._pump_signals.space_blocked
+             else self._learning_frozen(CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY)
+-        ) or learner_room_unread(getattr(ctx, "_config", None))
++        )
+         if why is not None:
+             self._sysid.abort(why)
+             return

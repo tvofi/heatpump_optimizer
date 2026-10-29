@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 2dab5a6c6..dfcf26b6c 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -9872,7 +9872,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+                     predicted_power_kw=pending.get("power"),
+                     actual_power_kw=self._measured_power,
+                     predicted_temp=pending.get("predicted_temp"),
+-                    actual_temp=actual_now,
++                    actual_temp=ctx._current_state.room_temperature,
+                     # #1935: the tag a post-drift recommendation excludes
+                     # override rows by, rather than guessing at windows.
+                     boost_space=boost.interval_boosted(pending, self),

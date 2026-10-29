@@ -1,0 +1,6 @@
+tests / mutation (job 123210195608) at 5b9dd9b2a4fa1ae079864cff9d31115524328834, log via GitHub MCP get_job_logs:
+    ADDED UNPINNED custom_components/heatpump_optimizer/coordinator.py:9044 GUARD_OFF: if (self._learning_frozen(CONF_INDOOR_TEMP_ENTITY) or learner_room_unrea
+    ADDED UNPINNED custom_components/heatpump_optimizer/coordinator.py:9060 GUARD_OFF: if margin is None:
+    ADDED UNPINNED custom_components/heatpump_optimizer/curve_learning.py:62 BOOLOP: temps = [t for t in zone_temps_c if t is not None and np.isfinite(t)]
+    ADDED UNPINNED custom_components/heatpump_optimizer/curve_learning.py:63 RETURN_DEL: return min(temps) - floor_c if temps else None
+MUTATION TABLE REFUSED -- 3729 unpinned site(s) against 3728 at the ratchet base 0265f524e9d4810ee179a58d7f5471151ba1cd22, 4 of them added by this diff.

@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 2dab5a6c6..d73bcfabc 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -9057,8 +9057,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+             ctx._current_state.upper_floor_temperature,
+             ctx._current_state.lower_floor_temperature,
+         ), floor_c)
+-        if margin is None:
+-            return
+ 
+         day = now.date().isoformat()
+         if self._curve_day and day != self._curve_day:

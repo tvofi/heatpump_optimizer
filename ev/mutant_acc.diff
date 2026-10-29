@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 2dab5a6c6..9b4405837 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -9844,7 +9844,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+             ctx._config.optimization_interval
+             / 60.0
+         )
+-        actual_now = None if learner_room_unread(ctx._config) else ctx._current_state.room_temperature
++        actual_now = ctx._current_state.room_temperature
+         indoor_frozen = self._learning_frozen(CONF_INDOOR_TEMP_ENTITY)
+         if actual_now is not None and indoor_frozen is None:
+             self._accuracy.score_lead_predictions(
