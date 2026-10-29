@@ -1,0 +1,12 @@
+Reviewer's own mutants on tools/release/stamp.py at 3e5b8b7c5b3746230db1920968452931ff5fba1b (beyond the driver's R1-R6), each run via `stamp.py --self-test`, file restored after:
+MUTANT [M1-drop-refuse-in-main: `if nxt is None: raise Refuse(3, ...)` -> `if False:`] FAIL lines=0  (SURVIVES; by reading, nxt=None then reaches version_tuple(None) at rule 3 and crashes with AttributeError before rule 4 or any write: fails closed, as a traceback not a refusal)
+MUTANT [M2-roster_round_at reads ROOT not its root argument] FAIL lines=1 (killed)
+MUTANT [M3-main passes roster round only when --round-close is absent] FAIL lines=0  (SURVIVES; every --round-close refuses "no readable roster": fails closed, the closeout's own --dry-run on main would show it before any write; the main() wiring is pinned only by a source-substring check)
+MUTANT [M4-next_version drops the neither-flag refusal] self-test dies with ValueError: None traceback (killed by crash, not a FAIL line; main()'s argparse guard also covers it)
+CLI at head (VERSION 7.0.5, roster round 10), --dry-run:
+--bump major -> stamp refused (rule 3) ... use --round-close
+--round-close 7 -> refused (rule 3) not above current major 7
+--round-close 9 -> refused (rule 3) disagrees with roster's round 10
+--round-close 10 --bump minor -> refused (rule 3) takes no --bump
+--round-close 10 / --bump minor -> reach rule 1 (HEAD not origin/main), i.e. accepted by next_version
+roster_round_at(.) at head = 10
