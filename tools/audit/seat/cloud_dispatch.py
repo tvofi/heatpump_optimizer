@@ -135,7 +135,7 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
     first = _seat_line(role, repo, pr, head, topic, nonce) + " " + FOOTER_BAN
     setup = ("Setup: `git fetch --unshallow --tags origin`. The session-start `toolchain:` line "
              "says whether venv-ci's python3 is on PATH: on REFUSE, start each Bash call with "
-             "`eval \"$(bash tools/audit/seat/cloud-setup.sh --env-lines)\"`. Run anything heavy in "
+             "`eval \"$(bash .claude/hooks/session-start.sh --env-lines)\"`. Run anything heavy in "
              "the background with Monitor and no timeout. " + WAIT_LINE)
     if role == "reviewer":
         body = (

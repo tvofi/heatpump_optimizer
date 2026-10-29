@@ -25,9 +25,14 @@
 #                           Five merged bodies paid for it in one window
 #                           (dev/audit/rca/R10-RCA-FIXER-MD-KEY.md). Where
 #                           cloud-setup.sh --check refuses, the hook appends
-#                           its --env-lines to CLAUDE_ENV_FILE, which the
-#                           harness sources before each Bash call, and the
-#                           line says which of the two it read.
+#                           its own --env-lines (cloud-setup.sh --variables,
+#                           each exported and quoted) to CLAUDE_ENV_FILE,
+#                           which the harness sources before each Bash call,
+#                           and the line says which of the two it read. The
+#                           lines are built here, not by a new cloud-setup.sh
+#                           flag: CI restores tools/audit/*.sh from main
+#                           before it runs this hook's self-test, so a hook
+#                           calling a flag its own PR adds there fails CI.
 #   being BEHIND main       The fifth and sixth lines, and the trap the other
 #                           three could not see (#1148). They were all present
 #                           and all green while an orchestrator checkout sat
@@ -58,6 +63,13 @@
 set -uo pipefail
 cd "${CLAUDE_PROJECT_DIR:-.}" 2>/dev/null || exit 0
 
+env_lines() { # cloud-setup.sh --variables as lines a shell sources
+  local line
+  bash tools/audit/seat/cloud-setup.sh --variables | while IFS= read -r line; do
+    printf 'export %s=%q\n' "${line%%=*}" "${line#*=}"
+  done
+}
+
 toolchain() { # the `toolchain:` line; a cloud seat is one with $HPO_PREFIX/venv-ci
   local prefix=${HPO_PREFIX:-/opt/hpo} setup=tools/audit/seat/cloud-setup.sh
   if [ ! -d "$prefix/venv-ci" ] || [ ! -f "$setup" ]; then
@@ -66,12 +78,12 @@ toolchain() { # the `toolchain:` line; a cloud seat is one with $HPO_PREFIX/venv
   if bash "$setup" --check >/dev/null 2>&1; then
     echo "OK -- the environment's variables put venv-ci's python3 first"; return
   fi
-  if [ -n "${CLAUDE_ENV_FILE:-}" ] && bash "$setup" --env-lines >> "$CLAUDE_ENV_FILE" 2>/dev/null \
+  if [ -n "${CLAUDE_ENV_FILE:-}" ] && env_lines >> "$CLAUDE_ENV_FILE" 2>/dev/null \
     && bash -c '. "$1" && bash "$2" --check' _ "$CLAUDE_ENV_FILE" "$setup" >/dev/null 2>&1 </dev/null; then
-    echo "EXPORTED -- the environment's variables are unset; $setup --env-lines appended to CLAUDE_ENV_FILE, under which --check reads OK"
+    echo "EXPORTED -- the environment's variables are unset; the hook's --env-lines appended to CLAUDE_ENV_FILE, under which --check reads OK"
     return
   fi
-  echo "REFUSE -- the environment's variables are unset and no CLAUDE_ENV_FILE took them; start each Bash call with: eval \"\$(bash $setup --env-lines)\""
+  echo "REFUSE -- the environment's variables are unset and no CLAUDE_ENV_FILE took them; start each Bash call with: eval \"\$(bash .claude/hooks/session-start.sh --env-lines)\""
 }
 
 report() {
@@ -110,6 +122,10 @@ report() {
   printf 'toolchain:      %s\n' "$(toolchain)"
 }
 
+if [ "${1:-}" = "--env-lines" ]; then
+  env_lines; exit 0
+fi
+
 if [ "${1:-}" = "--self-test" ]; then
   # The report is a pure read of git state, so what a self-test can assert is
   # that it ASKS -- that every one of the seven lines is present and none is
@@ -132,13 +148,16 @@ if [ "${1:-}" = "--self-test" ]; then
   mkdir -p "$T/hpo/venv-ci/bin" "$T/hpo/venv-ha/bin" "$T/sys"
   for f in "$T/hpo/venv-ci/bin/python3" "$T/hpo/venv-ha/bin/python" "$T/sys/python3"; do
     printf '#!/bin/sh\n' > "$f"; chmod +x "$f"; done
-  hook() { env -i HOME="$T" PATH="$T/sys:/usr/bin:/bin" HPO_PREFIX="$T/hpo" "$@" bash -c "$(declare -f toolchain); toolchain" </dev/null; }
+  hook() { env -i HOME="$T" PATH="$T/sys:/usr/bin:/bin" HPO_PREFIX="$T/hpo" "$@" bash -c "$(declare -f env_lines toolchain); toolchain" </dev/null; }
   ans() { if case $1 in "$2"*) true ;; *) false ;; esac; then pass=$((pass+1)); printf '  ok   %s\n' "$3"
           else fail=$((fail+1)); printf '  FAIL %s (got: %s)\n' "$3" "$1"; fi; }
   ans "$(hook)" "REFUSE -- " "no variables and no CLAUDE_ENV_FILE refuses, naming the per-call remedy"
   : > "$T/env.sh"
   ans "$(hook CLAUDE_ENV_FILE="$T/env.sh")" "EXPORTED -- " "no variables with a CLAUDE_ENV_FILE exports into it"
   ans "$(env -i PATH=/usr/bin:/bin bash -c '. "$1"; command -v python3' _ "$T/env.sh")" "$T/hpo/venv-ci/bin/python3" "a shell sourcing the exported file gets venv-ci's python3"
+  : > "$T/sp.sh"; hook PATH="$T/sys:$T/a b:/usr/bin:/bin" CLAUDE_ENV_FILE="$T/sp.sh" >/dev/null
+  ans "$(env -i PATH=/usr/bin:/bin bash -c '. "$1"; echo "$PATH"' _ "$T/sp.sh")" "$T/hpo/venv-ci/bin:$T/sys:$T/a b:" "a PATH entry holding a space survives the exported file"
+  ans "$(env -i HOME="$T" PATH="$T/sys:/usr/bin:/bin" HPO_PREFIX="$T/hpo" bash -c 'eval "$(bash "$1" --env-lines)"; command -v python3' _ "$0" </dev/null)" "$T/hpo/venv-ci/bin/python3" "the REFUSE line's remedy, eval of this hook's --env-lines, gets venv-ci's python3"
   ans "$(hook PATH="$T/hpo/venv-ci/bin:$T/sys:/usr/bin:/bin" HPO_TYPING_PYTHON="$T/hpo/venv-ha/bin/python" OPENBLAS_CORETYPE=Haswell)" "OK -- " "the variables set read OK"
   ans "$(hook HPO_PREFIX="$T/none")" "n/a -- " "no venv-ci is not a cloud seat"
   rm -rf "$T"

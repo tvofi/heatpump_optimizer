@@ -137,8 +137,9 @@ not write a Friction line is not counted.
 ### Built here: the session-start `toolchain:` line (state d)
 
 `.claude/hooks/session-start.sh` runs `cloud-setup.sh --check` in a cloud seat
-(one with `$HPO_PREFIX/venv-ci`). On refusal it appends `cloud-setup.sh
---env-lines` (the profile's guarded lines) to `CLAUDE_ENV_FILE`, which the
+(one with `$HPO_PREFIX/venv-ci`). On refusal it appends its own
+`--env-lines` (`cloud-setup.sh --variables`, each exported and quoted) to
+`CLAUDE_ENV_FILE`, which the
 harness sources before each Bash call, re-checks under that file, and prints
 `EXPORTED`; where no such file takes them it prints `REFUSE` and the per-call
 remedy. `cloud_dispatch.py`'s prompt now points at that line instead of
@@ -152,12 +153,14 @@ line (`grep -c` 0). At the head: `REFUSE` with no `CLAUDE_ENV_FILE`;
 `--check` OK. Null control: under the variables set, `OK`, and the file it was
 handed stays 0 bytes. The hook's self-test drives the four answers on a stub
 prefix; three mutants (the append deleted, the `--check` predicate forced
-true, `--env-lines` deleted) each fail it, and the last also fails
-`cloud-setup.sh --self-test`. What this seat cannot show is a live harness
+true, `--env-lines` deleted) each fail it. The lines are built in the hook
+rather than by a new `cloud-setup.sh` flag because CI's policy-docs job
+restores `tools/audit/*.sh` from main before running the hook's self-test, so
+a hook calling a flag its own PR adds there fails CI (it did, on #2953). What this seat cannot show is a live harness
 sourcing `CLAUDE_ENV_FILE`: the hook that started it is the merge base's.
 The next cloud seat's first `toolchain:` line is that run; `REFUSE` there
 means the harness gave no file, and the remedy it prints still works (shown
-here: `eval` of `--env-lines`, then `--check` OK).
+here: `eval` of the hook's `--env-lines`, then `--check` OK).
 
 ### Refused: keying friction by step
 

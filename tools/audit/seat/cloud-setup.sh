@@ -29,9 +29,9 @@
 # shells; it prepends venv-ci/bin only when absent, so a PATH a caller
 # narrowed (a test's stub directory ahead of the venv) is left alone.
 # Where the variables are unset, .claude/hooks/session-start.sh appends
-# --env-lines to the harness's CLAUDE_ENV_FILE, which the harness sources
-# before each Bash call, and prints its `toolchain:` line either way
-# (dev/audit/rca/R10-RCA-FIXER-MD-KEY.md).
+# --variables, exported and quoted, to the harness's CLAUDE_ENV_FILE, which
+# the harness sources before each Bash call, and prints its `toolchain:` line
+# either way (dev/audit/rca/R10-RCA-FIXER-MD-KEY.md).
 #
 #   cloud-setup.sh --variables   print those variables, one NAME=value a line
 #   cloud-setup.sh --check       in a seat: OK when python3 is venv-ci's,
@@ -40,8 +40,6 @@
 #                                (the golden fixtures' BLAS floats depend on
 #                                it); else REFUSE naming the variables; exit 0
 #                                or 1
-#   cloud-setup.sh --env-lines   the profile's lines on stdout, for a shell
-#                                that sources them (the session-start hook)
 #   cloud-setup.sh --self-test   the profile, variables and check arms, in a temp dir
 set -euo pipefail
 
@@ -124,9 +122,6 @@ self_test() (
   out=$(run HPO_PREFIX="$P" bash "$SELF" --check); rc=$?
   [ "$rc" = 1 ] && case $out in *"REFUSE"*) true ;; *) false ;; esac
   expect "cloud-setup.sh --check exits 1 without them" $?
-  run HPO_PREFIX="$P" bash "$SELF" --env-lines > "$W/env.sh"
-  run bash -c ". \"\$2\"; $fns; check \"\$1\"" _ "$P" "$W/env.sh" >/dev/null
-  expect "check is OK in a shell that sourced --env-lines" $?
   out=$(run bash -c '. "$1"; . "$1"; echo "$PATH"' _ "$W/profile.sh")
   [ "$out" = "$P/venv-ci/bin:$base" ]; expect "the profile sourced twice puts venv-ci/bin on PATH once" $?
   out=$(run BASH_ENV="$W/profile.sh" bash -c 'PATH="$1:$PATH" bash -c python3' _ "$W/stub")
@@ -139,10 +134,9 @@ self_test() (
 case ${1:-} in
   --variables) variables "$PREFIX"; exit 0 ;;
   --check) check "$PREFIX"; exit $? ;;
-  --env-lines) write_profile /dev/stdout "$PREFIX"; exit 0 ;;
   --self-test) self_test; exit $? ;;
   "") ;;
-  *) echo "usage: cloud-setup.sh [--variables | --check | --env-lines | --self-test]" >&2; exit 2 ;;
+  *) echo "usage: cloud-setup.sh [--variables | --check | --self-test]" >&2; exit 2 ;;
 esac
 
 # The tree-rewriting hooks: the hiway-kit plugin's auto-format.py (PostToolUse)
