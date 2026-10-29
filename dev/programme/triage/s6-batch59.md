@@ -178,3 +178,67 @@ hand-dismissal path stays R10-FLY-CARRY-DISPOSITION's (not started).
 
 Binding: 6 verdict-borne PARKs in 5 days at about 1 h of train time each, all catchable by the
 reviewer before return, against about 10 lines in a group already open on the same file.
+
+## P276: abandoned merge worktrees keep holding a PR's branch and stall it
+
+Verdict: ACCEPT, narrowed to the source: each tool aborts the merge it started when that merge
+fails. This goes to a new fly-in, R10-FLY-ABORT-OWN-MERGE. Options (a) and (b) are REJECTED.
+
+Source: the orchestrator's message of 2026-10-29T05:58Z, not yet entered in `proposals.md`. It
+names #2935 (a staged half-merge), #2936 (a 106-file conflicted merge) and #2917 (the
+`upd-fix-r10-cop-gate` worktree).
+
+Instances:
+- **Who left them.** #2935 and #2936 were the train's own recarry worktrees (`merge-s8/state/wt/<pr>`).
+  `train.log` records the recarry stopping on `MERGE CONFLICT` for #2935 (4 lines) and #2936
+  (2 lines). Its own `release_worktrees` then logged `NOT released .../wt/2935 (... contains
+  modified or untracked files, use --force to delete it); remove it by hand`
+  (`merge_train.py:1854-1865`, "Never forced"). The conflict was left in place by
+  `tools/audit/seat/remerge_main.sh:21`, which runs `git reset --hard origin/$BR && git merge
+  origin/main` and on failure only does `echo "MERGE CONFLICT $PR"; exit 1`. There is no
+  `git merge --abort`, so the worktree keeps the branch with a conflicted index, and the next
+  recarry's `worktree add -B` (`merge_train.py:1640`) finds it "already checked out".
+- **The update path.** `update_pr.sh` adds `$WT` at `origin/$BR` (`:59`) and merges the code head
+  and origin/main into it (`:62`, `:64`). Its lock holder leaves the worktree detached on exit
+  with `git checkout -q --detach` (`pr_args.sh:105`, `mut:detach`). On a conflicted index that
+  checkout fails, so the worktree keeps holding the branch, which is the #2917
+  `upd-fix-r10-cop-gate` case.
+- **Nothing is lost by aborting.** Both merges start from origin state: `reset --hard
+  origin/$BR` in remerge_main, `worktree add ... origin/$BR` in update_pr. Both merge only remote
+  refs. A merge abort returns the worktree to `origin/$BR` exactly, so no wip-sync snapshot is
+  needed to prove it safe.
+- **The earlier class.** P193 (V113, 2026-10-26) ruled the clean-holder instances: #2848, held
+  by update_pr's worktree, and advisor-residue. It rejected `--free-holders` as a default. The
+  ledger names 24 holder lines since 2026-10-24. Tonight's three are the dirty subclass that
+  `freeable()` (`merge_train.py:1035-1049`) refuses by design: "an untracked file is somebody's
+  claim".
+
+Accepted (narrowed), as R10-FLY-ABORT-OWN-MERGE (S, sonnet fixer, opus reviewer):
+1. `remerge_main.sh:21`: on a failed merge, run `git -C "$W" merge --abort` (falling back to
+   `reset -q --hard origin/$BR` when no merge is in progress), then print `MERGE CONFLICT`. The
+   worktree is left clean at `origin/$BR`, so the train's `release_worktrees` removes it.
+2. `pr_args.sh:105` (the `detach` path): when `<worktree>/.git`'s `MERGE_HEAD` exists, run
+   `git merge --abort` first, then detach. This is only ever the run's own `$WT`, which
+   `pr_branch_lock` already scopes.
+3. Self-tests: a conflicting fixture merge leaves the worktree clean and detachable
+   (`status --porcelain` empty, HEAD equal to `origin/<branch>`), and a second `worktree add -B
+   <branch>` then succeeds. Mutants dropping either abort fail their arm. Null control: a merge
+   that succeeds is untouched.
+
+Rejected:
+- (a) Freeing another seat's dirty holder when wip-sync holds a snapshot lets one tool discard
+  state it did not create, on an age guess and on proving a snapshot equal to the live index.
+  That widens the very guard P193 kept. Once the two producers abort their own merges, nothing
+  is left for it to free.
+- (b) `worktree_gc.sh` case A already collects merged-PR worktrees, and its keep rule holds an
+  open PR's branch "ever". All three instances were open PRs, so (b)'s first half catches
+  none of them, and its stale-merge abort carries (a)'s risk.
+
+Cost: about 3 lines in each of two scripts, plus a self-test arm each. It runs only on the
+failure path, and needs no new check and no API call. `pr_args.sh` is a file R10-FLOW-BODY-ONLY
+also lists (not started, 14 carries). This is a distinct seam, the lock holder's exit, and the
+fly-in lands first.
+
+Binding: 3 stalls tonight, each costing a PARK or a failed update and a manual
+inspect/abort/detach, all from two failure paths that leave their own merge behind. The fix is a
+few lines at those two producers, with no cross-seat deletion.
