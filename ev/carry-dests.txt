@@ -1,0 +1,5 @@
+NOTE stale tree: 9ce0179f77aa68eab6440c3d85aa92e788936b22 lacks origin/main e5ddba1fad5e6eccfeceaeaaa249bc459963405b; roster read at origin/main
+round_ref: origin/handoff/audit-r10-roster
+R10-FLOW-MAIN-GATE (True, '')
+R10-FLY-PACKET-RED-PATHS (True, 'R10-FLY-PACKET-RED-PATHS resolved on origin/handoff/audit-r10-roster')
+#2959 (False, '#2959 has no owner: no live roster group lists it and there is no dev/programme/carries/carry-2959.json')
