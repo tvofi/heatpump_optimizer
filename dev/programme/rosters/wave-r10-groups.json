@@ -11398,9 +11398,9 @@
    ],
    "carry": [],
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-fly-owed-levels",
-    "commit": null,
+    "commit": "741cc693219c792a76608b4b898480953a3e0258",
     "last_step": null,
     "next_step": "dispatch a fixer (fly-in)",
     "note": "2026-10-29 (triage: dev/programme/triage/s6-batch59.md#P277)",
