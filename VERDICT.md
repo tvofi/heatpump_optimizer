@@ -1,46 +1,58 @@
-Fix review: blocked 5a119e8af148efbfb5ee3605323b75cd7af4a01c class-open: tools/policy/vendor/markdown-it.min.js, still unkeyed and undispositioned at round 4; re-cut owed
+Fix review: blocked 2c62c682d180b6270a42d8c3a9a010fb6dd1ac4c class-open: budget-raise-gate.yml's budget-raise-gate job restores and runs the base's budget_raise_gate.py, outside restore_jobs and undispositioned
 
-bus-nonce: e83542ededa392ce8703c448e9029197
+bus-nonce: 95bc79c3734d0aa5c0ff5360f87b1ea2
 
 ## Round
 
-This is review round 4. Round 3 blocked `ef895338c` as `class-open` on `tools/policy/vendor/markdown-it.min.js`. Since `ef895338c` the branch has two first-parent commits:
-- `63789e164` merges `46686b677`, which changes two lines of the RCA record so they name the root-cause contract instead of its path.
-- `5a119e8af` merges `origin/main`.
+This is review round 5, dispatched past the three-round rule. The head is the fixer's re-cut `7d1fbc055`, carried to `2c62c682d` through two merges: `ca0a400c7` merges origin/main `66974d473`, and `2c62c682d` merges that into the previous PR head.
 
-The PR's three-dot diff stat is the same as at round 3 (`ev/delta-since-round3.txt`). No commit answers the round-3 block.
+All three round-4 points are answered at this head:
+- **Class-open on `markdown-it.min.js`: closed.** The arm now keys on each restoring job's restore pathspecs (`restored_hit`), not on a load grammar. On a commit that edits only `tools/policy/vendor/markdown-it.min.js`, `keyed_jobs` keys all three governance.yml restoring jobs, and each lists the vendored file (`ev/plant-mdit-keyed.txt`). `named_loads`, `mjs_closure`, `grader_hit` and the `GRADER_NAMED_EXEMPT` table are gone.
+- **Stale head note: answered.** `## Head` names `2c62c682d`.
+- **Packet `host-path` refusal: answered.** The packet rendered on this seat with no refusal (`ev/packet.txt`, `ev/review-packet.md`). It stays carried to R10-RECORD-API-O1, as the body says.
+
+The merge delta keeps both RCA records. `dev/audit/config/bugclasses.json` is valid JSON and holds `_rca["R10-RCA-PREPR-HEAD-GRADERS"]` and `_rca["R10-RCA-FRICTION-RESIDUE"]`, and I3's `rca` list cites this record (`ev/bugclasses.txt`).
 
 ## Block
 
-**Step 6 (the class).** The class is still open on the seam round 3 named.
-- At this head, `tools/policy/render_md.mjs:13` still loads `require('./vendor/markdown-it.min.js')`.
-- `governance.yml` still restores `tools/policy/vendor` from the base, at lines 144, 1061 and 1171.
-- Neither `ci_predict.py`, the record, nor the PR body names `markdown-it` or a `require()` load (`ev/seam-still-open.txt`).
+**Step 6 (the class).** I ran the body's own rule, the job that holds the step "Restore the check source from the base commit", over all of `.github/workflows/` instead of only `governance.yml`. It returns three more workflows:
+- `tests.yml:603` (`briefs`)
+- `pr-contract.yml:93` (`pr-contract`)
+- `budget-raise-gate.yml:66` (`budget-raise-gate`)
 
-Round 3's plant, re-run at this head, shows the miss. I edited only the vendored parser, in a commit on top of `5a119e8af` (`ev/plant-mdit.diff`). `ci_predict.py --base 5a119e8af --only graders` returned rc 0 in 0.59 s and ran no row (`ev/plant-mdit-predict.txt`).
+`restore_jobs` reads only `agreement_py.WORKFLOW`, which is `.github/workflows/governance.yml` (`ev/class-open-budget-raise-gate.txt`). The record's `## 7. Recorded` "Left open" line names `briefs` and `pr-contract`. Neither the record nor the body names `budget-raise-gate`.
 
-**Re-cut, not repair.** This is the fourth round, so `fix-review.md` says `fixer.md` owes a re-cut, and the brief asked me to judge minimality. The branch has gone well past what the RCA record needs.
-- Each round widened a load grammar: `named_loads` and `mjs_closure` grew to 462 added lines in `ci_predict.py`.
-- Each review then found a restored file the grammar still could not see. Round 2 found `budget_raise_gate.py`; round 3 found `markdown-it.min.js`.
-- A rule that guesses loads from spelling cannot close a class that is defined by the jobs' restore pathspecs.
+That job is the class exactly:
+- `ci.yml:247-250` calls it on pull requests.
+- Its restore pathspecs (`.claude/workflows/*.py`, `tools/policy/*.py`, `tools/pr/*.py`, `tests/layout.py`) check out the base's `tools/policy/budget_raise_gate.py`.
+- `budget-raise-gate.yml:105-109` then runs that file.
 
-Re-cut from current `origin/main` with these parts:
-1. The record: cause, process state (c), cost test, figures re-taken at the new head.
-2. One countermeasure that is closed by construction. Key the graders arm on the restore pathspecs that `pinned_runs` already derives from `governance.yml`. A diff touching any restored path runs that job's graders with the head copy against the base copy. This needs no load grammar. Alternatively, the record can decide not to build a countermeasure, with that cost test.
-3. Its self-test, with `markdown-it.min.js` and `budget_raise_gate.py` as plant cases.
+A branch that edits `budget_raise_gate.py` is graded by `budget-raise-gate` with the base's copy, and this arm predicts nothing for that job. That is the same file as round 2's seam, which the arm keys only through governance.yml's `policy-docs`.
 
-Drop `named_loads`, the `grader_gaps` load census and their exempt-site table unless the new key still needs them.
+The remedy is a disposition, not more predictor code:
+- Name `budget-raise-gate` in the record's "Left open" line, beside `briefs` and `pr-contract`.
+- Give the open set a destination, as the finding below asks.
+- Alternatively, widen `restore_jobs` to every workflow that holds the step. `budget-raise-gate` reads live reviews, so that run can only be partial.
+
+**Split recommendation.** Do not split the group. The governance.yml arm is sound, mutation-proven and closed over its own population. What is left is one record line and one carry. If the orchestrator would rather not spend another round, the right split is:
+- merge this PR as the governance.yml countermeasure once the record names all four out-of-scope restoring jobs;
+- send the other workflows' restoring jobs to a new group.
+Do not grow this arm again.
 
 ## Findings
 
-- Class-open, the block: `tools/policy/vendor/markdown-it.min.js` is restored by `policy-docs`, `env-matrix` and `wave-script`, is loaded by `render_md.mjs` through `require()`, and is in no row's key. A head that edits the parser is predicted green, and CI then grades it with the base's parser. Re-cut as described under `## Block`. Carry: R10-RCA-PREPR-HEAD-GRADERS
-- The PR body's head note is stale (step 7). `## Head note` still says "Round 3". `## Head` names `46686b67727e2e1db00c689ab15e8a9ab8e5a77d` as the head, with a merge-tree against `6493ea362`. The actual head is `5a119e8af148efbfb5ee3605323b75cd7af4a01c` (`ev/pr-body.md`). The re-cut's body must name its own head. Carry: R10-RCA-PREPR-HEAD-GRADERS
-- The review packet still cannot render on a cloud seat. `review_packet.py render` refused `host-path` (home-directory in the body) under both `HOME=/root` and a neutral `HOME`, and wrote no packet. The cause is `ref_privacy.Identity.of_host` adding passwd's `/root`, combined with the bare-substring match; the body's own description of the defect contains `/root`. Under a non-root identity, `body_refusal` returns `None` (`ev/packet-refusal.txt`). This is the defect the body already carries; it is not this PR's. Carry: R10-RECORD-API-O1
+- Class-open, the block: `budget-raise-gate.yml`'s `budget-raise-gate` job restores and runs the base's `tools/policy/budget_raise_gate.py`. The job is outside `restore_jobs` (governance.yml only) and is not dispositioned in the record or the body. Carry: R10-RCA-PREPR-HEAD-GRADERS
+- The record's "Left open" restoring jobs in other workflows (`briefs` in tests.yml, `pr-contract`) are deferred with no destination. After the block is fixed, `budget-raise-gate` joins them. `finding-propagation.md` requires a later stage's brief to carry them before this merges. Today they are only a sentence in the record. Carry: R10-RCA-PREPR-HEAD-GRADERS
+- The body's `## Red checks` section gives the `nightly-status` answer and then a stray `none.` paragraph about `5a119e8af`'s cancelled `instrument-self-tests`. The section contradicts itself: it answers a red and also says there is none. Fix the wording in the same push as the block. Carry: R10-RCA-PREPR-HEAD-GRADERS
 
 ## Evidence
 
-- Head measured: `5a119e8af148efbfb5ee3605323b75cd7af4a01c` (`ev/HEAD.txt`). Its merge base equals `origin/main` `0265f524e`. `git diff merge-base...origin/main -- dev/governance/roles/` is empty, so the contract is current.
-- Merge: `git merge-tree --write-tree origin/main 5a119e8af` exits 0, so there is no conflict (`ev/merge-tree.txt`). `VERSION`, the manifest, `RELEASE_NOTES.md` and the claim files are untouched.
-- CI on this head, read from the check-runs API when this verdict was written (`ev/check-runs.txt`): 27 runs. Twelve are queued or in progress, including `policy-docs`, `env-matrix`, `mutation` and `pr-contract`'s prerequisites. None has concluded red. Step 11 is not judged, because the block does not depend on it.
-- Review packet: not rendered (see the third finding). I ran the checks directly instead.
-- Not re-taken this round: the body's figures (the 42-site, 10-file census, the key-hit counts and the 16.3 s and 292 s costs). The re-cut must re-take them, so I did not verify them here.
+- Head measured: `2c62c682d180b6270a42d8c3a9a010fb6dd1ac4c` (`ev/HEAD.txt`), from a detached worktree. Merge base is `66974d473`. `git diff merge-base...origin/main -- dev/governance/roles/` is empty, so the contract is current.
+- Merge: `git merge-tree --write-tree origin/main 2c62c682d` exits 0 against origin/main `d24ee8abd` (`ev/merge-tree.txt`). There is no conflict.
+- `VERSION`, the manifest, `RELEASE_NOTES.md` and both claim files are untouched in the three-dot diff.
+- The self-test, re-run at this head: `python3 -I tools/pr/ci_predict.py --self-test` prints `ci_predict self-test: 0 failed` in 118 s (`ev/self-test.txt`).
+- Mutation proof, re-run with `mutants.py .`: M1 bad 5, M2 bad 1, M3 bad 1, M4 bad 1, M5 bad 3. Each FAIL label is the one the body names (`ev/mutants.txt`). No mutant survived.
+- Population, at this head: `grader_gaps` on governance.yml returns `[]`. `pinned_runs` lists 7 policy-docs runs, 1 env-matrix run and 6 wave-script runs (`ev/run-population.txt`).
+- CI on this head: all 68 check runs have completed (`ev/check-runs.txt`). The only red is `tests / nightly-status`. The body answers it as main's and not this diff's, and this diff touches nothing that job reads. `pr-contract / pr-contract` (123427941747) started after that red concluded and is green. `tests / mutation`, `gate`, `policy-docs`, `env-matrix`, `wave-script` and `budget-raise-gate` are green.
+- Not re-taken: the 477 s, 608/609 s and 325 s plant and arm timings, the `jobtime.py` 215.5 s, and the `keycount.py` 584/69/1/71 census with its 57 s and 85 s derivations. These are heavy runs, and the block does not turn on them, so I have not verified them.
+- I re-derived the population of other-workflow restore steps with a scout read of the three workflow files and `ci_predict.py` (reported in this verdict, not committed). I built no harness of my own.
