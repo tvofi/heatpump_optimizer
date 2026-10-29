@@ -596,6 +596,13 @@ jobs:
           python3 -I tools/audit/seat/roster_queue.py --self-test | tee "$RUNNER_TEMP/roster-queue-self-test.txt"
           grep -Eq '^roster_queue self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/roster-queue-self-test.txt"
 
+      - name: Show the owed-line reader refusing a stale board and a lapsed acknowledgement
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/owed_unactioned.py --self-test | tee "$RUNNER_TEMP/owed-unactioned-self-test.txt"
+          grep -Eq '^owed_unactioned self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/owed-unactioned-self-test.txt"
+
       - name: Show the detached launcher refusing its own fixtures
         if: ${{ !cancelled() }}
         run: |
