@@ -28193,7 +28193,9 @@ def _raf_review_gated(job: str) -> bool:
 # The unit is every errexit block in the tree, not one call. A producer that
 # is a condition (`if cmd; then rc=0; else rc=$?; fi`, `cmd || rc=$?`) or a
 # read under `set +e` is exempt; a `$?` in an `if`/`while`/`until` TEST reads
-# the bare producer before it, an `elif` test the `if` condition's.
+# the bare producer before it, an `elif` test the `if` condition's. An
+# arithmetic `(( ... ))` test counts as a test, a departure from the finder
+# harness, which misses it (#2849's round-2 review, this group's carry 5).
 # Reference logic and its finder: dev/audit/harnesses/r10_errexit_capture.py
 # at e1a684789. Gap, measured and left: a producer read through `out=$(...)`
 # and its output is not a `$?` read -- gate-sweep's I4 -- and is caught where
@@ -28202,8 +28204,8 @@ _EX_SHELLS = {None, "bash", "sh"}
 _EX_SAFE = re.compile(
     r"^(if|elif|while|until)\b|^!|\|\||&&|"
     r"(^|\s)(then|do|else|\{|\()$|^(fi|done|esac|\}|\))\b|^(else|then|do)\b")
-_EX_TEST_HEAD = re.compile(r"^(if|while|until)\s+(!\s*)?(?=\[|test\b)")
-_EX_READER = re.compile(r"^(\w+=|case\b|\[|\[\[|test\b|echo\b|printf\b|exit\b|return\b|local\b)")
+_EX_TEST_HEAD = re.compile(r"^(if|while|until)\s+(!\s*)?(?=\[|test\b|\(\()")
+_EX_READER = re.compile(r"^(\w+=|case\b|\[|\[\[|\(\(|test\b|echo\b|printf\b|exit\b|return\b|local\b)")
 
 
 def _ex_run_blocks(root: Path):
@@ -28295,6 +28297,9 @@ _EX_CASES = {  # run text -> the hits it must yield
     "same-line if": ("cmd --gate; if [[ $? -ne 0 ]]; then exit 1; fi\n", 1),
     "elif test": ("if cmd; then :\nelif [ $? = 4 ]; then :\nfi\n", 0),
     "if after or-capture": ("cmd || true\nif [ $? -ne 0 ]; then :; fi\n", 0),
+    "if arith": ("cmd --gate\nif (( $? != 0 )); then exit 1; fi\n", 1),
+    "arith list": ("cmd --gate\n(( $? )) && exit 1\n", 1),
+    "arith after inline capture": ("rc=0; cmd || rc=$?\nif (( rc != 0 )); then exit 1; fi\n", 0),
 }
 _EX_CASES_BAD = sorted(k for k, (t, want) in _EX_CASES.items() if len(_ex_hazards(t)[1]) != want)
 with tempfile.TemporaryDirectory() as _ex_td:
