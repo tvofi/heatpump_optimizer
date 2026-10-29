@@ -11516,6 +11516,47 @@
     "note": "2026-10-29 (triage: dev/programme/triage/s6-batch60.md#P284)"
    },
    "brief": "From triage P284 (proposal V187, orchestrator 2026-10-29T16:40Z): the shared token's core REST bucket was spent at about 15:11Z, blinding the sweep and refusing `bus.sh confirm` three times, and no log on the host names the caller. P248 (s6-batch50.md) deferred a cache until a consumer is attributed; this is the second exhaustion, still unattributed. Local callers reach GitHub through the `gh` binary. The one direct HTTP call is `urllib.request.urlopen` in record_row.py (tools/audit/seat/record_row.py:882). (1) A `gh` shim beside seat-python in tools/audit/seat/shims/: it appends one line `<utc> <parent pid> <parent command, first 80 chars> <gh subcommand> <api path or pr/run verb>` to $HPO_STATE_DIR/gh-calls.log, never field values or bodies (`-f`/`-F`/`--input` arguments are dropped), then execs the real gh found on PATH past its own directory; stdin, stdout, exit status and signals pass through unchanged; a log it cannot write is skipped, never fatal. The log is capped (rotate past a fixed size). (2) `seat_venv.sh --install-shims` installs it beside the python shims. Measure which live daemons and seats have the shim directory on PATH and name each that does not. (3) A Python reader beside it, whose `--top [--since <utc>]` mode ranks callers and endpoints by count. (4) Self-test: through the shim, `gh api repos/o/r/pulls` with a stub gh logs one line naming the caller and path and returns the stub's bytes and exit code; a `-f body=secret` argument never reaches the log; mutation: dropping the exec pass-through fails the byte arm; null control: an unwritable log leaves the call's output and status unchanged. New files are classified in tests/closure.py (closure or INERT). Blind spots, stated: cloud seats share the token from another host, and record_row.py's direct read is not counted. Out of scope: a cache or poll changes (R10-ORCH-BEATD, P248). triage: dev/programme/triage/s6-batch60.md#P284"
+  },
+  {
+   "group": "R10-FLY-PACKET-RED-PATHS",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "instrument",
+   "severity": "medium",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 6,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "tools/audit/seat/review_packet.py"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-fly-packet-red-paths",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer (fly-in)",
+    "note": "2026-10-29 (triage: dev/programme/triage/s6-batch60.md#P282; triage: dev/programme/triage/s6-batch60.md#P285)"
+   },
+   "brief": "From triage P282 (orchestrator, 2026-10-29T11:46Z): the review packet's red-unanswered signal refused dispatch for #2933, #2946, #2948 and #2925 on `tests / nightly-status`, a check that grades main and that a body owes no answer unless its diff touches what it reads (dev/governance/rules/defect-root-cause.md). The exemption already exists in policy_lint.mjs's --pr-body, and it applies only when the changed paths are given: with no --paths-file the obligation is restored on purpose (its self-test's `no paths` case, tools/policy/policy_lint.mjs:4447). The packet's `policy_lint.mjs` call passes --pr-body, --head and --red only (tools/audit/seat/review_packet.py:392), though the same function already computes the diff's paths as `touched` (:380). (1) Write `touched` to a --paths-file and the base's existing paths (`git diff --name-only --diff-filter=a base...head`, as prepr.sh's body_check does) to an --existing-file, and pass both, plus --base. Do not copy the exemption list into review_packet.py: prepr.sh keeps one implementation for the same reason. (2) Self-test: a fixture body with no `## Red checks` entry, reds nightly-status and typing, over a diff touching only a test file, reports typing alone; mutation: dropping --paths-file reports both and fails the arm; null control: a diff touching tests/nightly_status.py reports both. (3) From triage P285 (proposal V188): since main's scheduled Nightly failed at 2026-10-29T02:25Z the packet refused nine PRs on `tests / nightly-status` in one day (#2939, #2951, #2917, #2953, #2954, #2872, #2955, #2956, #2957), each needing a body patch. A second null control is real: #2954's diff touches .github/workflows/nightly.yml and governance.yml, and policy_lint given its paths still reports nightly-status owed; the fix keeps that refusal. Overlap: #2939 (R10-ORCH-REVIEW-PACKET) edits the same file in another function; rebase on it if it merges first. triage: dev/programme/triage/s6-batch60.md#P282 triage: dev/programme/triage/s6-batch60.md#P285"
   }
  ]
 }
