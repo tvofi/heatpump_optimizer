@@ -133,9 +133,10 @@ def _pointer(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, r
 
 def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, brief: str) -> str:
     first = _seat_line(role, repo, pr, head, topic, nonce) + " " + FOOTER_BAN
-    setup = ("Setup: `git fetch --unshallow --tags origin`. The toolchain (venv python, node, gh) "
-             "is on PATH from the environment. Run anything heavy in the background with Monitor "
-             "and no timeout. " + WAIT_LINE)
+    setup = ("Setup: `git fetch --unshallow --tags origin`. The session-start `toolchain:` line "
+             "says whether venv-ci's python3 is on PATH: on REFUSE, start each Bash call with "
+             "`eval \"$(bash tools/audit/seat/cloud-setup.sh --env-lines)\"`. Run anything heavy in "
+             "the background with Monitor and no timeout. " + WAIT_LINE)
     if role == "reviewer":
         body = (
             "Role: read dev/governance/roles/fix-review.md and its rules from main, and follow them "

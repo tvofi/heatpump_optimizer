@@ -18,6 +18,16 @@
 #   the branch              Not the directory. A checkout sitting on a stale
 #                           branch reported current files as missing and cost a
 #                           session a filed defect (HANDOVER, corrections).
+#   the toolchain           A cloud seat's Bash call inherits the agent's
+#                           environment, which no profile or BASH_ENV reaches;
+#                           without the environment's variables `python3` is
+#                           the system 3.11, which cannot parse the suite.
+#                           Five merged bodies paid for it in one window
+#                           (dev/audit/rca/R10-RCA-FIXER-MD-KEY.md). Where
+#                           cloud-setup.sh --check refuses, the hook appends
+#                           its --env-lines to CLAUDE_ENV_FILE, which the
+#                           harness sources before each Bash call, and the
+#                           line says which of the two it read.
 #   being BEHIND main       The fifth and sixth lines, and the trap the other
 #                           three could not see (#1148). They were all present
 #                           and all green while an orchestrator checkout sat
@@ -47,6 +57,22 @@
 #   .claude/hooks/session-start.sh --self-test
 set -uo pipefail
 cd "${CLAUDE_PROJECT_DIR:-.}" 2>/dev/null || exit 0
+
+toolchain() { # the `toolchain:` line; a cloud seat is one with $HPO_PREFIX/venv-ci
+  local prefix=${HPO_PREFIX:-/opt/hpo} setup=tools/audit/seat/cloud-setup.sh
+  if [ ! -d "$prefix/venv-ci" ] || [ ! -f "$setup" ]; then
+    echo "n/a -- no $prefix/venv-ci, not a cloud seat"; return
+  fi
+  if bash "$setup" --check >/dev/null 2>&1; then
+    echo "OK -- the environment's variables put venv-ci's python3 first"; return
+  fi
+  if [ -n "${CLAUDE_ENV_FILE:-}" ] && bash "$setup" --env-lines >> "$CLAUDE_ENV_FILE" 2>/dev/null \
+    && bash -c '. "$1" && bash "$2" --check' _ "$CLAUDE_ENV_FILE" "$setup" >/dev/null 2>&1 </dev/null; then
+    echo "EXPORTED -- the environment's variables are unset; $setup --env-lines appended to CLAUDE_ENV_FILE, under which --check reads OK"
+    return
+  fi
+  echo "REFUSE -- the environment's variables are unset and no CLAUDE_ENV_FILE took them; start each Bash call with: eval \"\$(bash $setup --env-lines)\""
+}
 
 report() {
   local shallow driver branch base behind merges tip
@@ -81,12 +107,13 @@ report() {
   printf 'origin/main at: %s\n' \
     "${tip:-UNKNOWN -- origin/main does not resolve; git fetch origin main}"
   printf 'claim driver:   %s\n' "${driver:-MISSING -- python3 tests/env_drift.py --install-merge-driver}"
+  printf 'toolchain:      %s\n' "$(toolchain)"
 }
 
 if [ "${1:-}" = "--self-test" ]; then
   # The report is a pure read of git state, so what a self-test can assert is
-  # that it ASKS -- that every one of the six lines is present and none is
-  # empty. A hook that silently prints five lines instead of six is the failure
+  # that it ASKS -- that every one of the seven lines is present and none is
+  # empty. A hook that silently prints six lines instead of seven is the failure
   # mode here: nobody reads a missing line.
   out=$(report)
   pass=0; fail=0
@@ -98,6 +125,23 @@ if [ "${1:-}" = "--self-test" ]; then
   st '^behind main:    [0-9]+ commits \(([0-9]+|unknown) merges\)$|^behind main:    UNKNOWN --' "the distance from origin/main is printed as a count, or says it does not resolve"
   st '^origin/main at: .+$'                                            "origin/main's committer date is printed, or says it does not resolve"
   st '^claim driver:   .+$'                                            "the claim driver is printed, or says how to install it"
+  st '^toolchain:      (OK|EXPORTED|REFUSE|n/a) -- '                     "the toolchain state is printed and is one of the four answers"
+  # AND EACH ANSWER IS THE ONE ITS ENVIRONMENT EARNS, driven on a stub prefix:
+  # a hook that printed OK by construction is the defect this line exists for.
+  T=$(mktemp -d)
+  mkdir -p "$T/hpo/venv-ci/bin" "$T/hpo/venv-ha/bin" "$T/sys"
+  for f in "$T/hpo/venv-ci/bin/python3" "$T/hpo/venv-ha/bin/python" "$T/sys/python3"; do
+    printf '#!/bin/sh\n' > "$f"; chmod +x "$f"; done
+  hook() { env -i HOME="$T" PATH="$T/sys:/usr/bin:/bin" HPO_PREFIX="$T/hpo" "$@" bash -c "$(declare -f toolchain); toolchain" </dev/null; }
+  ans() { if case $1 in "$2"*) true ;; *) false ;; esac; then pass=$((pass+1)); printf '  ok   %s\n' "$3"
+          else fail=$((fail+1)); printf '  FAIL %s (got: %s)\n' "$3" "$1"; fi; }
+  ans "$(hook)" "REFUSE -- " "no variables and no CLAUDE_ENV_FILE refuses, naming the per-call remedy"
+  : > "$T/env.sh"
+  ans "$(hook CLAUDE_ENV_FILE="$T/env.sh")" "EXPORTED -- " "no variables with a CLAUDE_ENV_FILE exports into it"
+  ans "$(env -i PATH=/usr/bin:/bin bash -c '. "$1"; command -v python3' _ "$T/env.sh")" "$T/hpo/venv-ci/bin/python3" "a shell sourcing the exported file gets venv-ci's python3"
+  ans "$(hook PATH="$T/hpo/venv-ci/bin:$T/sys:/usr/bin:/bin" HPO_TYPING_PYTHON="$T/hpo/venv-ha/bin/python" OPENBLAS_CORETYPE=Haswell)" "OK -- " "the variables set read OK"
+  ans "$(hook HPO_PREFIX="$T/none")" "n/a -- " "no venv-ci is not a cloud seat"
+  rm -rf "$T"
   # AND THE LINE MUST CARRY THE DISTANCE, not a quantity that reads as healthy.
   # The precise defect #1148 records is that the hook printed `merge-base`, which
   # on an ancestor checkout IS that checkout's own SHA: a substitute -- or a
