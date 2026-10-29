@@ -1,0 +1,4 @@
+head a361e454f1058a44e7c545270dc66a1b8330f3f3 parents 2a5bd4dd2dace72699a1f09709ca35d37e2e505f 2033b876e3ea230b635195f03d2cbb288a0eefb9 base e5ddba1fad5e6eccfeceaeaaa249bc459963405b
+MERGE-CLAIM: resolved tests/golden/claimed_drift.txt
+rc=0
+claim file at head == claimnotes driver output (main's env_drift.py)
