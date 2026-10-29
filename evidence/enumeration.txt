@@ -1,0 +1,23 @@
+== head
+3efeea2176fa570ae8c52a13996c483f02cb1d52:.github/workflows/budget-raise-gate.yml:66:      - name: Restore the check source from the base commit
+3efeea2176fa570ae8c52a13996c483f02cb1d52:.github/workflows/governance.yml:124:      - name: Restore the check source from the base commit
+3efeea2176fa570ae8c52a13996c483f02cb1d52:.github/workflows/governance.yml:1043:      - name: Restore the check source from the base commit
+3efeea2176fa570ae8c52a13996c483f02cb1d52:.github/workflows/governance.yml:1144:      - name: Restore the check source from the base commit
+3efeea2176fa570ae8c52a13996c483f02cb1d52:.github/workflows/pr-contract.yml:93:      - name: Restore the check source from the base commit
+3efeea2176fa570ae8c52a13996c483f02cb1d52:.github/workflows/tests.yml:603:      - name: Restore the check source from the base commit
+== origin/main 3042dcd4f6fccc6b83aa2a956cfd4d4259ebc6ed
+origin/main:.github/workflows/budget-raise-gate.yml:66:      - name: Restore the check source from the base commit
+origin/main:.github/workflows/governance.yml:124:      - name: Restore the check source from the base commit
+origin/main:.github/workflows/governance.yml:1043:      - name: Restore the check source from the base commit
+origin/main:.github/workflows/governance.yml:1144:      - name: Restore the check source from the base commit
+origin/main:.github/workflows/pr-contract.yml:93:      - name: Restore the check source from the base commit
+origin/main:.github/workflows/tests.yml:603:      - name: Restore the check source from the base commit
+== grep -c budget-raise-gate record at 2c62c682d / head
+0
+2
+== restore_jobs reads
+3efeea2176fa570ae8c52a13996c483f02cb1d52:tools/pr/ci_predict.py:524:    """Each governance.yml job that restores its check source from the base."""
+3efeea2176fa570ae8c52a13996c483f02cb1d52:tools/pr/ci_predict.py:544:    """Each program a restoring job runs, from governance.yml's own run text, in
+3efeea2176fa570ae8c52a13996c483f02cb1d52:tools/pr/ci_predict.py:685:    population closed over governance.yml."""
+3efeea2176fa570ae8c52a13996c483f02cb1d52:tools/pr/ci_predict.py:1163:    Key: on this tree's governance.yml, the two files review rounds 2 and 3
+3efeea2176fa570ae8c52a13996c483f02cb1d52:tools/pr/ci_predict.py:1223:    base_files = {".github/workflows/governance.yml": workflow, "g/grade.mjs": grade,
