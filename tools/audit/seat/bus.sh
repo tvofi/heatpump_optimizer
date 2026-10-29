@@ -42,12 +42,14 @@
 # owed a pull request -- `open_pr.sh` fetches both and fails without the body --
 # and is reported in one of three states. IN FLIGHT: its tip is younger than
 # --min-age-h hours (default 2), a lane's own push, silently counted, never a
-# line. STRANDED: no `fix/<t>` or `fix/<t>-pr` head carries the tip, the tip is
-# no ancestor of `main` or a live `fix/*` head, and the change is not already on
-# main. SUPERSEDED: flagged by that ancestry test, but a content-equivalence
-# arm (`content_superseded`) finds main already carries every path the ref's
-# uncovered commits touch -- a recovery rewrote the commit and landed the
-# change under another, so the ref needs pruning, not an opener. Each STRANDED
+# line. STRANDED: no `fix/<t>` or `fix/<t>-pr` head carries the tip, and
+# `ledger.py landed` -- the one classifier, which the relay's level shares --
+# finds neither its commits inside `main` and the live `fix/*` heads (merges
+# with no resolution of their own aside) nor its change on main. SUPERSEDED:
+# flagged by that ancestry test, but main carries the change: the patch applies
+# to main reversed and not forward, or every file it touches is on main
+# (`covered`) -- a recovery rewrote the commit, or another pull request landed
+# the patch, so the ref needs pruning, not an opener. Each STRANDED
 # line names the repair it needs, never works it: `opener` (no pull request:
 # `open_pr.sh`), `update` (its pull request's head is behind the ref:
 # `update_pr.sh`) or `review` (a pull request that diverged from the ref, a
@@ -590,40 +592,9 @@ watch() {
   done
 }
 
-# content_superseded TIP -> rc 0 when main already carries every path the ref's
-# uncovered commits touch, so the ref is SUPERSEDED rather than stranded: a
-# modification byte-identical on main, an addition whose basename main holds (a
-# recovery that moved or renamed the file, e.g. the tools/ -> dev/ restructure),
-# a deletion main already made, a rename to a basename main holds. The ancestry
-# arm asks "is this work inside main"; this one asks "is it on main under
-# another commit" -- a recovery that rewrote the commit leaves a non-ancestral
-# ref whose content main has. Reads the caller's `main`, `main_basenames`, `LF`.
-content_superseded() { # tip -> 0 superseded, 1 stranded
-  local tip=$1 mb st a b base b1 b2
-  mb=$(git merge-base "$main" "$tip") || return 1
-  while IFS=$'\t' read -r st a b; do
-    [ -n "$st" ] || continue
-    case $st in
-      A) base=${a##*/}
-         case $main_basenames in *"$LF$base$LF"*) ;; *) return 1 ;; esac ;;
-      M) b1=$(git rev-parse "$tip:$a" 2>/dev/null) || return 1
-         b2=$(git rev-parse "$main:$a" 2>/dev/null) || return 1
-         [ "$b1" = "$b2" ] || return 1 ;;
-      D) git rev-parse "$main:$a" >/dev/null 2>&1 && return 1 ;;
-      R*) base=${b##*/}
-          case $main_basenames in *"$LF$base$LF"*) ;; *) return 1 ;; esac
-          git rev-parse "$main:$a" >/dev/null 2>&1 && return 1 ;;
-      *) return 1 ;;
-    esac
-  done <<EOF
-$(git diff --name-status "$mb" "$tip")
-EOF
-  return 0
-}
-
 orphans() { # [--min-age-h N] [--no-body] [--no-ancestry] [--no-content] [--exclude-topic T]... -> one ORPHAN line each, rc 1 when any stranded
   local ns=refs/hpo-orphans LF=$'\n' min_age=2 no_body=0 no_ancestry=0 no_content=0 excl=$'\n'
-  local t ref tip main fix_nl fix_heads bodies_nl main_basenames h hit
+  local t ref tip main fix_nl fix_heads bodies_nl landed_nl why hit arms
   local reported=0 superseded=0 nb=0 named=0 anc=0 young=0
   local ct now age_s age_t word dn H bt
   while [ $# -gt 0 ]; do
@@ -655,7 +626,15 @@ orphans() { # [--min-age-h N] [--no-body] [--no-ancestry] [--no-content] [--excl
   fix_nl=$LF"$(git for-each-ref --format='%(refname)' "$ns/fix/")"$LF
   fix_heads=$(git for-each-ref --format='%(objectname)' "$ns/fix/")
   bodies_nl=$LF"$(git for-each-ref --format='%(refname)' "$ns/handoff-body/")"$LF
-  main_basenames=$LF"$(git ls-tree -r --name-only "$main" | sed 's#.*/##')"$LF
+  # LANDED: ledger.py's classifier, the one owner of "main already carries this
+  # tip" (the relay's handoff-no-pr level folds through the same function), asked
+  # once for every handoff tip: `<tip> <why>`, `-` when nothing carries it.
+  arms=()
+  [ "$no_ancestry" = 1 ] && arms+=(--no-ancestry)
+  [ "$no_content" = 1 ] && arms+=(--no-content)
+  landed_nl=$LF"$(git for-each-ref --format='%(objectname)' "$ns/handoff/" \
+    | python3 -I "$ROOT/tools/audit/seat/ledger.py" landed "${arms[@]}" "$main" $fix_heads)"$LF \
+    || die "orphans: ledger.py landed could not classify the handoff tips"
   now=$(date +%s)
   # A while-read over a heredoc, not a pipe: the counters survive the loop.
   while read -r ref tip; do
@@ -679,15 +658,11 @@ orphans() { # [--min-age-h N] [--no-body] [--no-ancestry] [--no-content] [--excl
       esac
     done
     if [ "$hit" = 1 ]; then named=$((named + 1)); continue; fi
-    # DISCHARGED, ancestry half: the tip is inside `main` or a live `fix/*`
-    # head already. Both halves are required; each alone over-reports.
-    if [ "$no_ancestry" != 1 ]; then
-      hit=0
-      for h in "$main" $fix_heads; do
-        git merge-base --is-ancestor "$tip" "$h" && { hit=1; break; }
-      done
-      if [ "$hit" = 1 ]; then anc=$((anc + 1)); continue; fi
-    fi
+    # DISCHARGED, ancestry half: the tip is inside `main` or the live `fix/*`
+    # heads already, or outside them only by clean merges. Both halves are
+    # required; each alone over-reports.
+    why=${landed_nl#*"$LF$tip "}; why=${why%%"$LF"*}
+    case $why in ancestor|merges-only) anc=$((anc + 1)); continue ;; esac
     # AGED: a ref pushed moments ago is a lane's own in-flight handoff, not an
     # orphan. A stamp ahead of the clock reads as young, never as aged.
     ct=$(git log -1 --format=%ct "$tip" 2>/dev/null) || ct=""
@@ -699,9 +674,10 @@ orphans() { # [--min-age-h N] [--no-body] [--no-ancestry] [--no-content] [--excl
     if [ "$((age_s / 3600))" -lt "$min_age" ]; then young=$((young + 1)); continue; fi
     age_t=$((age_s / 360))
     # SUPERSEDED: not ancestral to main, but main already carries the change
-    # (the recovery rewrote the commit). Report it so the ref can be pruned
-    # deliberately; it is not stranded and does not fail the run.
-    if [ "$no_content" != 1 ] && content_superseded "$tip"; then
+    # (the recovery rewrote the commit, or another pull request landed the
+    # patch). Report it so the ref can be pruned deliberately; it is not
+    # stranded and does not fail the run.
+    if [ "$why" = reverse-apply ] || [ "$why" = content ]; then
       printf 'SUPERSEDED %s %s %s.%sh\n' "$t" "$tip" "$((age_t / 10))" "$((age_t % 10))"
       superseded=$((superseded + 1)); continue
     fi
@@ -1209,6 +1185,14 @@ B
     sub=$(printf '100644 blob %s\t%s\n' "$b" "$f" | git -C "$W/seat" mktree)
     printf 'add %s/%s\n' "$d" "$f" | git -C "$W/seat" commit-tree "$(printf '040000 tree %s\t%s\n' "$sub" "$d" | git -C "$W/seat" mktree)" -p "$p"
   }
+  mkf() { # <parent> <file> <content> [<parent2>] -> a commit setting top-level <file> in <parent>'s tree
+    local p=$1 f=$2 b t
+    b=$(printf '%b' "$3" | git -C "$W/seat" hash-object -w --stdin)
+    GIT_INDEX_FILE=$W/mkf.idx git -C "$W/seat" read-tree "$p"
+    GIT_INDEX_FILE=$W/mkf.idx git -C "$W/seat" update-index --add --cacheinfo "100644,$b,$f"
+    t=$(GIT_INDEX_FILE=$W/mkf.idx git -C "$W/seat" write-tree)
+    printf 'set %s\n' "$f" | git -C "$W/seat" commit-tree "$t" -p "$p" ${4:+-p "$4"}
+  }
   mb=$(git -C "$W/seat" rev-parse HEAD)
   # A stranded opener: owed, no pull request, no ancestor of main -> exit 1.
   o1=$(mkc "$mb" orph1)
@@ -1269,6 +1253,51 @@ B
   out=$(run orphans --min-age-h 0 --no-content)
   echo "$out" | grep -qx "ORPHAN orp-super $s1 .* repair=opener"
   expect "the content arm is load-bearing: --no-content reads the same ref as stranded" $?
+  # The earlycutoff shape (#2397): a hunk another pull request landed into a file
+  # main has since changed. The byte-identical arm read it stranded for 121.8 h.
+  b0=$(mkf "$m1" hunk.txt 'a\nb\n'); git -C "$W/seat" push -q origin "$b0:refs/heads/main"
+  e1=$(mkf "$b0" hunk.txt 'a\nb\nblock1\nblock2\n')
+  git -C "$W/seat" push -q origin "$e1:refs/heads/handoff/orp-hunk" "$e1:refs/heads/handoff-body/orp-hunk"
+  m2=$(mkf "$b0" hunk.txt 'z\na\nb\nblock1\nblock2\n'); git -C "$W/seat" push -q origin "$m2:refs/heads/main"
+  out=$(run orphans --min-age-h 0)
+  echo "$out" | grep -qx "SUPERSEDED orp-hunk $e1 .*"
+  expect "a hunk main carries in a file that moved on is SUPERSEDED, not stranded (#2397's shape)" $?
+  # A patch on main, context and all, whose removed line main still holds
+  # elsewhere: only the reverse-apply arm sees it (applies reversed, not forward).
+  r0=$(mkf "$m2" rev.txt 'x\nfi\ny\nfi\np\nq\nr\ns\nt\n'); git -C "$W/seat" push -q origin "$r0:refs/heads/main"
+  r1=$(mkf "$r0" rev.txt 'x\nfi\ny\np\nq\nr\ns\nt\n')
+  git -C "$W/seat" push -q origin "$r1:refs/heads/handoff/orp-rev2" "$r1:refs/heads/handoff-body/orp-rev2"
+  m3=$(mkf "$r0" rev.txt 'x\nfi\ny\np\nq\nr\ns\nT\n'); git -C "$W/seat" push -q origin "$m3:refs/heads/main"
+  out=$(run orphans --min-age-h 0)
+  echo "$out" | grep -qx "SUPERSEDED orp-rev2 $r1 .*"
+  expect "a patch that applies to main reversed and not forward is SUPERSEDED" $?
+  # Null control: the same removal of a line main has NOT removed stays stranded.
+  r2=$(mkf "$r0" rev.txt 'x\ny\nfi\np\nq\nr\ns\nt\n')
+  git -C "$W/seat" push -q origin "$r2:refs/heads/handoff/orp-rev3" "$r2:refs/heads/handoff-body/orp-rev3"
+  out=$(run orphans --min-age-h 0)
+  echo "$out" | grep -qx "ORPHAN orp-rev3 $r2 .* repair=opener"
+  expect "null control: a patch main does not hold stays stranded" $?
+  # The merge-tip shape (a457acaf4): the tip merges a main commit with a commit
+  # a live fix/* head carries; no non-merge commit is outside main and the heads.
+  q1=$(mkf "$m3" mA.txt 'A\n'); git -C "$W/seat" push -q origin "$q1:refs/heads/main"
+  q2=$(mkf "$m3" mB.txt 'B\n')
+  q3=$(mkf "$q2" mA.txt 'A\n' "$q1"); qf=$(mkf "$q3" mC.txt 'C\n')
+  q4=$(git -C "$W/seat" commit-tree "$q3^{tree}" -p "$q2" -p "$q1" -m 'merge main')
+  git -C "$W/seat" push -q origin "$qf:refs/heads/fix/orp-merge-other" \
+    "$q4:refs/heads/handoff/orp-merge" "$q4:refs/heads/handoff-body/orp-merge"
+  out=$(run orphans --min-age-h 0)
+  ! echo "$out" | grep -q "^ORPHAN orp-merge " && ! echo "$out" | grep -q "^SUPERSEDED orp-merge "
+  expect "a tip outside main and the fix heads only by a clean merge is discharged with the ancestry" $?
+  # Null controls: a merge carrying a resolution of its own, and one non-merge
+  # commit outside main and every head, stay stranded.
+  q5=$(mkf "$q3" evil.txt 'E\n'); q5=$(git -C "$W/seat" commit-tree "$q5^{tree}" -p "$q2" -p "$q1" -m 'evil merge')
+  q6=$(mkf "$q2" mD.txt 'D\n')
+  git -C "$W/seat" push -q origin "$q5:refs/heads/handoff/orp-evil" "$q5:refs/heads/handoff-body/orp-evil" \
+    "$q6:refs/heads/handoff/orp-nonm" "$q6:refs/heads/handoff-body/orp-nonm"
+  out=$(run orphans --min-age-h 0)
+  echo "$out" | grep -qx "ORPHAN orp-evil $q5 .*" && echo "$out" | grep -qx "ORPHAN orp-nonm $q6 .*"
+  expect "null control: a merge with its own resolution, or a non-merge commit absent everywhere, stays stranded" $?
+  git -C "$W/seat" push -q origin :refs/heads/handoff/orp-rev3 :refs/heads/handoff/orp-evil :refs/heads/handoff/orp-nonm
   # Green: every stranded ref carries a pull request at its tip now; the
   # superseded ref stays, and neither is stranded -> exit 0.
   git -C "$W/seat" push -q origin "$o1:refs/heads/fix/orph1" \
@@ -1287,6 +1316,15 @@ B
   out=$(run orphans --min-age-h 0); rc=$?
   echo "$out" | grep -qx "ORPHAN orp-force $f2 .* repair=opener" && [ $rc = 1 ]
   expect "a handoff ref rewritten non-fast-forward after a run is still read, at its new tip" $?
+  # Null control: a classifier that cannot answer refuses the run; it never
+  # reads every tip as stranded (a loud list is still a wrong one).
+  mkdir -p "$W/pyfail"; rp=$(command -v python3)
+  printf '#!/bin/sh\ncase "$*" in *ledger.py\ landed*) exit 3 ;; esac\nexec "%s" "$@"\n' "$rp" > "$W/pyfail/python3"
+  chmod +x "$W/pyfail/python3"
+  out=$(PATH=$W/pyfail:$PATH run orphans --min-age-h 0); rc=$?
+  echo "$out" | grep -q "REFUSE: orphans: ledger.py landed could not classify" && [ $rc != 0 ] \
+    && ! echo "$out" | grep -q "^ORPHAN "
+  expect "null control: a classifier that fails refuses orphans, never an all-ORPHAN list" $?
   # Null control: a remote that cannot answer still refuses, never a clean zero.
   out=$(HPO_BUS_REMOTE=$W/nowhere.git run orphans --min-age-h 0); rc=$?
   [ $rc != 0 ] && echo "$out" | grep -q "could not fetch the refs of" && ! echo "$out" | grep -q "^orphans: "

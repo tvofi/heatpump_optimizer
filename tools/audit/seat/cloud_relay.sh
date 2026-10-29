@@ -100,8 +100,9 @@
 #     meanwhile as `OWED <utc> handoff-update <ref> <sha>` in <log>.level. The
 #     `handoff-no-pr` lines there are `ledger.py level`'s fold of every
 #     handoff/* and handoff-body/* ref: owed unless its topic has an open PR,
-#     it is disposed at its sha, or main already carries the change (ancestry
-#     or content), each with its tip's commit time; rewritten every pass, and
+#     it is disposed at its sha, or main already carries the change (`ledger.py
+#     landed`, the classifier bus.sh orphans asks too), one line per topic
+#     (a body ref rides its code ref's), each with its tip's commit time; rewritten every pass, and
 #     a failed PR listing or ledger read leaves them as they were.
 #     HOLD. `<state>/cloud-handoff-hold` lists PR numbers, one per line (blank
 #     lines and `#` lines allowed); only the orchestrator writes or edits it.
@@ -458,11 +459,18 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of 
   level_set handoff-held "$state/cloud-level-held.$$"
   # a handoff or handoff-body ref whose topic has no open PR is OWED on every pass until disposed
   cut -f2 "$state/cloud-prs.$$" | sed -e 's,^fix/,,' -e 's,-pr$,,' > "$state/cloud-topics.$$"
+  # and the merged ones, `<topic> merged=<utc>`: a merge closes a handoff committed by then (RCA section 5.1)
+  { if [ -n "${HPO_RELAY_MERGED:-}" ]; then "$HPO_RELAY_MERGED"
+    else gh pr list -R "$repo" --state merged --limit 200 --json headRefName,mergedAt \
+      -q '.[] | [.headRefName, .mergedAt] | @tsv'; fi; } > "$state/cloud-merged.$$" \
+    || { echo "cloud_relay: could not list merged PRs; the handoff level stays as it was" >&2
+         rm -f "$state/cloud-prs.$$" "$state/cloud-hrefs.$$" "$state/cloud-topics.$$" "$state/cloud-vrefs.$$" "$state/cloud-merged.$$"; return 0; }
+  awk -F'\t' 'NF == 2 { t = $1; sub(/^fix\//, "", t); sub(/-pr$/, "", t); print t " merged=" $2 }' "$state/cloud-merged.$$" >> "$state/cloud-topics.$$"
   # The level is ledger.py's fold (rc 0 none owed, 1 owed, 2 unreadable: the level stays as it was).
   ledger level "$state/cloud-hrefs.$$" "$state/cloud-topics.$$" > "$state/cloud-level-handoff.$$"
   case $? in 0|1) level_set handoff-no-pr "$state/cloud-level-handoff.$$";;
     *) echo "cloud_relay: the ledger could not derive the handoff level; it stays as it was" >&2; rm -f "$state/cloud-level-handoff.$$";; esac
-  rm -f "$state/cloud-prs.$$" "$state/cloud-hrefs.$$" "$state/cloud-topics.$$" "$state/cloud-vrefs.$$"
+  rm -f "$state/cloud-prs.$$" "$state/cloud-hrefs.$$" "$state/cloud-topics.$$" "$state/cloud-vrefs.$$" "$state/cloud-merged.$$"
 }
 
 # THE STUCK ANDON (triage P163; a trial, report-only, removed if it reports no STUCK line in its first
@@ -737,6 +745,7 @@ EOF
   rm -rf "$t/pr"; throwaway_git_init "$t/pr" -q; hc base; mkref fix/topic-a-pr; PRH=$(git -C "$t/pr" rev-parse HEAD)
   printf '%s\t%s\t%s\n' 41 fix/topic-a-pr "$PRH" > "$prs"
   printf '#!/bin/sh\ncat "%s"\n' "$prs" > "$t/lister.sh"; chmod +x "$t/lister.sh"; export HPO_RELAY_PRS=$t/lister.sh
+  : > "$t/merged.tsv"; printf '#!/bin/sh\ncat "%s"\n' "$t/merged.tsv" > "$t/mlister.sh"; chmod +x "$t/mlister.sh"; export HPO_RELAY_MERGED=$t/mlister.sh
   # update stub: records args, advances the PR head to a new commit that contains the handoff
   printf '#!/bin/sh\necho "$1 $2 $(basename "$3" | cut -c1-0) $4 $5" >> "%s/updated"\ncp "$3" "%s/body.seen"\necho "$3" > "%s/body.path"\nprintf "41\\tfix/topic-a-pr\\t%s\\n" > "%s"\n' "$t" "$t" "$t" "$N40" "$prs" > "$ustub"
   printf '#!/bin/sh\necho "$1" >> "%s/approved"\n' "$t" > "$astub"
@@ -924,6 +933,19 @@ EOF
   handoff_arm >/dev/null 2>&1; handoff_arm >/dev/null 2>&1
   chk "after three passes the no-PR ref is owed once (rewritten, never appended)" 0 test "$(grep -c "handoff-no-pr refs/heads/handoff/topic-b" "$LV")" = 1
   chk "the event log carries no level line" 1 grep -q "handoff-no-pr" "$LOG"
+  # one obligation per topic: a no-PR topic's body ref rides its code ref's line (32 of 37 lines were noise, 20 of them body twins)
+  git -C "$t/o.git" update-ref refs/heads/handoff-body/topic-b "$OB"; handoff_arm >/dev/null 2>&1
+  chk "a no-PR topic with a body ref is one line, its code ref's, naming the body" 0 test "$(grep -c "handoff-no-pr refs/heads/handoff.*/topic-b " "$LV")-$(grep -c "handoff-no-pr refs/heads/handoff/topic-b $OB ct=[0-9]* body=$OB" "$LV")" = 1-1
+  git -C "$t/o.git" update-ref -d refs/heads/handoff-body/topic-b
+  # RCA 5.1: a merged PR of the topic closes a handoff committed by its merge; a re-handoff after it stays owed
+  printf 'fix/topic-b-pr\t2099-01-01T00:00:00Z\n' > "$t/merged.tsv"; handoff_arm >/dev/null 2>&1
+  chk "a handoff its topic's merged PR delivered (committed by the merge) is not owed" 1 grep -q "handoff-no-pr refs/heads/handoff/topic-b " "$LV"
+  failm=$t/failm.sh; printf '#!/bin/sh\nexit 1\n' > "$failm"; chmod +x "$failm"
+  HPO_RELAY_MERGED=$failm handoff_arm >/dev/null 2>&1
+  chk "an unlisted merged set leaves the level as it was, never re-owing what a merge closed" 1 grep -q "handoff-no-pr refs/heads/handoff/topic-b " "$LV"
+  printf 'fix/topic-b-pr\t2001-01-01T00:00:00Z\n' > "$t/merged.tsv"; handoff_arm >/dev/null 2>&1
+  chk "null control: a handoff committed after its topic's merge stays owed" 0 grep -q "handoff-no-pr refs/heads/handoff/topic-b $OB " "$LV"
+  : > "$t/merged.tsv"
   git -C "$t/o.git" update-ref refs/heads/handoff/topic-z "$PRH"; handoff_arm >/dev/null 2>&1
   chk "a no-PR handoff ref a live fix/ head carries is not owed (the ledger's ancestry close)" 1 grep -q "handoff/topic-z" "$LV"
   git -C "$t/o.git" update-ref -d refs/heads/handoff/topic-z
