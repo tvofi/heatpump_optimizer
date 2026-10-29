@@ -1,0 +1,12 @@
+5 push(es) to main in [2026-10-26T04:07:04Z, 2026-10-26T05:07:04Z) over v7.0.4..<tip>; enumerate 919 call(s), rest 1134 call(s) at 18.9/min
+DEMAND before 5 run(s): record 8319 + enumerate 919 + rest 1134 = 10372 of 5000 (207 %)
+DEMAND M1     5 run(s): record 3692 + enumerate 919 + rest 1134 = 5745 of 5000 (114 %)
+DEMAND M1+M2  5 run(s): record 3692 + enumerate 919 + rest 1134 = 5745 of 5000 (114 %)  [overhead 30 s, 0.42 s/call]
+DEMAND M1+M2  5 run(s): record 3692 + enumerate 919 + rest 1134 = 5745 of 5000 (114 %)  [overhead 60 s, 0.42 s/call]
+DEMAND M1+M2  5 run(s): record 3692 + enumerate 919 + rest 1134 = 5745 of 5000 (114 %)  [overhead 120 s, 0.42 s/call]
+DEMAND M1+M2  5 run(s): record 3692 + enumerate 919 + rest 1134 = 5745 of 5000 (114 %)  [overhead 240 s, 0.42 s/call]
+DEMAND O-1    5 run(s): record 935 + enumerate 919 + rest 1134 = 2988 of 5000 (59 %)  [overhead 30 s, 0.42 s/call]
+DEMAND O-1    5 run(s): record 935 + enumerate 919 + rest 1134 = 2988 of 5000 (59 %)  [overhead 60 s, 0.42 s/call]
+DEMAND O-1    5 run(s): record 935 + enumerate 919 + rest 1134 = 2988 of 5000 (59 %)  [overhead 120 s, 0.42 s/call]
+DEMAND O-1    5 run(s): record 935 + enumerate 919 + rest 1134 = 2988 of 5000 (59 %)  [overhead 240 s, 0.42 s/call]
+rc=0

@@ -1,0 +1,55 @@
+CodeQL	completed	success	123691769268	2026-10-29T19:47:33Z
+arch-score / arch-score	completed	success	123691420156	2026-10-29T19:48:07Z
+arch-score / arch-score	completed	success	123709435020	2026-10-29T20:22:56Z
+arm	completed	skipped	123691186394	2026-10-29T19:46:20Z
+budget-raise-gate / budget-raise-gate	completed	success	123691420315	2026-10-29T19:47:16Z
+budget-raise-gate / budget-raise-gate	completed	success	123709435141	2026-10-29T20:22:00Z
+cancel-superseded	completed	success	123691198988	2026-10-29T19:46:53Z
+cancel-superseded	completed	success	123691200248	2026-10-29T19:46:48Z
+codeql	completed	skipped	123709438439	2026-10-29T20:21:40Z
+codeql / Analyze (actions)	completed	success	123691420456	2026-10-29T19:47:38Z
+codeql / Analyze (javascript-typescript)	completed	success	123691420328	2026-10-29T19:48:10Z
+codeql / Analyze (python)	completed	success	123691420340	2026-10-29T20:20:37Z
+gate	completed	success	123709260506	2026-10-29T20:23:53Z
+gate	completed	success	123710449721	2026-10-29T20:24:02Z
+governance	completed	skipped	123709436916	2026-10-29T20:21:40Z
+governance / delivery-status	completed	success	123691420430	2026-10-29T19:47:13Z
+governance / delivery-status-publish	completed	skipped	123691423349	2026-10-29T19:46:48Z
+governance / env-matrix	completed	success	123691420404	2026-10-29T19:53:41Z
+governance / instrument-self-tests	completed	success	123691420700	2026-10-29T20:12:03Z
+governance / policy-docs	completed	success	123691420384	2026-10-29T19:50:08Z
+governance / record	completed	skipped	123691423529	2026-10-29T19:46:48Z
+governance / wave-script	completed	success	123691420491	2026-10-29T19:47:18Z
+hassfest	completed	skipped	123709437807	2026-10-29T20:21:40Z
+hassfest / hassfest	completed	success	123691420109	2026-10-29T19:47:13Z
+kernel-points	completed	skipped	123691421918	2026-10-29T19:46:48Z
+kernel-points	completed	skipped	123709437706	2026-10-29T20:21:40Z
+pr-contract / pr-contract	completed	success	123708900393	2026-10-29T20:21:19Z
+pr-contract / pr-contract	completed	success	123710092017	2026-10-29T20:23:38Z
+prelude	completed	success	123691198531	2026-10-29T19:46:48Z
+prelude	completed	success	123691200438	2026-10-29T20:21:39Z
+refresh	completed	success	123691198972	2026-10-29T19:46:47Z
+refresh	completed	success	123691200472	2026-10-29T19:46:52Z
+tests	completed	skipped	123709438607	2026-10-29T20:21:40Z
+tests / arch-instrument	completed	success	123691602153	2026-10-29T20:15:42Z
+tests / briefs	completed	success	123691420428	2026-10-29T19:47:28Z
+tests / browser	completed	success	123691602111	2026-10-29T19:51:32Z
+tests / ci-ratchet	completed	skipped	123703799148	2026-10-29T20:10:48Z
+tests / claims-autofix	completed	skipped	123701319804	2026-10-29T20:06:02Z
+tests / closure-scope	completed	success	123691420722	2026-10-29T19:47:10Z
+tests / closures	completed	success	123691602145	2026-10-29T20:10:48Z
+tests / closures-autofix	completed	skipped	123703799085	2026-10-29T20:10:48Z
+tests / coverage	completed	success	123691602040	2026-10-29T20:03:47Z
+tests / coverage-ratchet	completed	success	123700152895	2026-10-29T20:03:58Z
+tests / fast (3.14)	completed	success	123691602133	2026-10-29T20:06:02Z
+tests / graders-head-copy	completed	success	123700153007	2026-10-29T20:06:39Z
+tests / lane-proofs	completed	success	123706359929	2026-10-29T20:15:53Z
+tests / mutation	completed	success	123691420609	2026-10-29T19:47:34Z
+tests / mutation-autofix	completed	skipped	123691806108	2026-10-29T19:47:34Z
+tests / mutation-pins	completed	skipped	123691805402	2026-10-29T19:47:34Z
+tests / nightly-ha	completed	skipped	123691605761	2026-10-29T19:47:10Z
+tests / nightly-status	completed	failure	123691420727	2026-10-29T19:47:06Z
+tests / replay	completed	skipped	123691604717	2026-10-29T19:47:10Z
+tests / typing	completed	success	123691602098	2026-10-29T19:48:50Z
+validate	completed	skipped	123709437273	2026-10-29T20:21:40Z
+validate / validate-hacs	completed	success	123691420091	2026-10-29T19:47:37Z

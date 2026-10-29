@@ -1,0 +1,35 @@
+diff --git a/.github/workflows/nightly.yml b/.github/workflows/nightly.yml
+index 899f9dd91..7fcd4ba73 100644
+--- a/.github/workflows/nightly.yml
++++ b/.github/workflows/nightly.yml
+@@ -582,7 +582,7 @@ jobs:
+         env:
+           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+         run: |
+-          gh api rate_limit --jq '"RATE_LIMIT enumerate before: \(.resources.core)"' || true
++          gh api rate_limit --jq '"RATE_LIMIT enumerate before: \(.resources.core)"'
+ 
+       - name: Enumerate the window's merges
+         id: enumerate
+@@ -607,7 +607,7 @@ jobs:
+         env:
+           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+         run: |
+-          gh api rate_limit --jq '"RATE_LIMIT enumerate after: \(.resources.core)"' || true
++          gh api rate_limit --jq '"RATE_LIMIT enumerate after: \(.resources.core)"'
+ 
+       # Two installation tokens from one minting routine. The author App's
+       # writes the rows, the pull request and the #201 comment, and merges
+=== RUN
+=== SUMMARY
+  FAIL a10:no_credential  [token(s) in payload: secret-token]
+  FAIL a10:no_precise_location  [1 coordinate(s) beyond 2 dp; ['config.solar.latitude=59.331234 (6 dp)']]
+  FAIL a11:invalid  [service no-op]
+  FAIL a12:migrates  [after=1 expected=7]
+  FAIL a13:currency  [coordinator='SEK' instance='EUR']
+  FAIL Nightly's enumerate step is bracketed by its own M0 pair, the after reading under always()  [record-autofix's "Enumerate the window's merges" reads 1 call a merge on GITHUB_TOKEN; without a `gh api rate_limit` reading on each side of it, its spend is inferred by splitting interval deltas by step time (ratelimit-recur.md section 1.2). The after reading must print when the enumeration fails closed, so it carries always()]
+1 of 2475 ENTITY CHECKS FAILED
+
+real	7m50.245s
+user	6m49.711s
+sys	1m12.832s

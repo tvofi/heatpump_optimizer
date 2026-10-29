@@ -1,0 +1,10 @@
+  FAIL a10:no_credential  [token(s) in payload: secret-token]
+  FAIL a10:no_precise_location  [1 coordinate(s) beyond 2 dp; ['config.solar.latitude=59.331234 (6 dp)']]
+  FAIL a11:invalid  [service no-op]
+  FAIL a12:migrates  [after=1 expected=7]
+  FAIL a13:currency  [coordinator='SEK' instance='EUR']
+ALL 2475 ENTITY CHECKS PASSED
+
+real	8m11.583s
+user	7m1.802s
+sys	1m21.011s

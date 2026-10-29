@@ -1,0 +1,5 @@
+--record 69 call(s) over v7.0.5..origin/main (--window-cache, as the job passes it)
+--stats 192 call(s) over v7.0.5..origin/main (--window-cache, as the job passes it)
+--sunset 0 call(s) over v7.0.5..origin/main (--window-cache, as the job passes it)
+TOTAL 261 call(s) per push to main, before policy-docs, env-matrix and the other jobs
+rc=0

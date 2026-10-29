@@ -1,0 +1,5 @@
+--record 0 call(s) over origin/main..origin/main (--window-cache, as the job passes it)
+--stats 0 call(s) over origin/main..origin/main (--window-cache, as the job passes it)
+--sunset 0 call(s) over origin/main..origin/main (--window-cache, as the job passes it)
+TOTAL 0 call(s) per push to main, before policy-docs, env-matrix and the other jobs
+rc=0
