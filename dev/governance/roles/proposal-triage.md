@@ -24,10 +24,10 @@ benefit is DEFER, never ACCEPT.
 - **REJECT** names the binding cost.
 
 **The ruling** is one `## P<n>: <title>` entry in a batch file under
-`dev/programme/triage/`, carrying `Verdict:`, `Source:`, `Instances:` (each
-counted instance with the command or log reference beside its figure: cite
-it, don't carry it), `Cost:` (the estimate) and `Binding:` (the constraint
-that decides). Read git and local logs first; spare the GitHub API.
+`dev/programme/triage/`: `Verdict:`, `Source:`, `Instances:` (each figure
+beside its command or log: cite, don't carry), `Cost:` (the estimate and
+each capped file's `--budgets` row) and `Binding:`. An ACCEPT runs its rule
+on each instance, result beside it. Git and local logs before the API.
 
 **You do not** implement, edit the roster or merge. The orchestrator routes an
 ACCEPT through `tools/audit/seat/roster_edit.py`, whose text cites the ruling
