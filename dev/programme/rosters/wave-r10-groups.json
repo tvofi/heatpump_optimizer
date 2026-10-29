@@ -11315,6 +11315,48 @@
     "note": "orchestrator registration 2026-10-29"
    },
    "brief": "Make the nightly-ha heartbeat positive control (check_hb_positive_control in tests/nightly_ha.py, failure key hb:positive_control) deterministic on a loaded GitHub runner without weakening what it detects. Measured failure: nightly run 40806276912, job nightly-ha (stable), 2026-10-29: a 600 ms spin read as 5308.8 ms, the dump named the spin but py-spy rc=0 did not, three tries of three, which also failed run:exit_status. First count how often this key has failed across the last 30 nightly runs (gh run list --workflow nightly.yml) and state the rate with that command as its enumerator. Find the cause (sampling window, py-spy attach latency, runner CPU contention) by measurement, not argument. The fix must keep the control a control: demonstrate it still fails on a heartbeat that does not see a real spin (the defect it exists for) and passes on the fixed code, both runs in the body. Widening a timing bound or adding retries alone is not a fix unless the measurement shows the bound was wrong. Respect tests/structure_budgets.json; a raise needs the mandate path in CLAUDE.md rule 2."
+  },
+  {
+   "group": "R10-FLY-ABORT-OWN-MERGE",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "instrument",
+   "severity": "medium",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 6,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "tools/audit/seat/remerge_main.sh",
+    "tools/audit/seat/pr_args.sh"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-fly-abort-own-merge",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer (fly-in)",
+    "note": "2026-10-29 (triage: dev/programme/triage/s6-batch59.md#P276)"
+   },
+   "brief": "From triage P276 (orchestrator 2026-10-29T05:58Z: abandoned merge worktrees hold a PR's branch; #2935 staged half-merge, #2936 106-file conflicted merge, #2917 upd-fix-r10-cop-gate). Cause: the two tools that start a merge leave it behind when it fails. (1) tools/audit/seat/remerge_main.sh line 21 resets the train's recarry worktree to origin/$BR, merges origin/main, and on failure only prints MERGE CONFLICT and exits 1, so the conflicted index keeps the branch checked out; merge_train.py's release_worktrees then logs NOT released (never forced) and the next recarry's `worktree add -B` finds the branch checked out. Fix: on a failed merge run `git -C \"$W\" merge --abort` (fallback `git -C \"$W\" reset -q --hard origin/$BR` when no merge is in progress) before printing MERGE CONFLICT, leaving the worktree clean at origin/$BR. (2) tools/audit/seat/pr_args.sh line 105 (pr_branch_lock's `detach`, mut:detach): `git checkout -q --detach` fails on a conflicted index, so update_pr.sh's $WT keeps the branch. Fix: when the worktree has a MERGE_HEAD, `git merge --abort` first, then detach; only the run's own worktree, as today. Nothing is lost: both merges start from origin/$BR and merge only remote refs. (3) Self-tests: a conflicting fixture merge leaves the worktree with empty `status --porcelain` and HEAD == origin/<branch>, and a second `worktree add -B <branch>` elsewhere succeeds; a mutant dropping either abort fails its arm; null control: a clean merge is untouched. Out of scope: freeing another seat's dirty holder (merge_train --free-holders stays clean-only, P193), worktree_gc.sh changes. Shares pr_args.sh with R10-FLOW-BODY-ONLY on a distinct seam (the lock holder's exit). triage: dev/programme/triage/s6-batch59.md#P276"
   }
  ]
 }
