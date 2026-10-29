@@ -1,0 +1,33 @@
+Fix review: blocked 9ce0179f77aa68eab6440c3d85aa92e788936b22 figure-false: the body's self-test and mutation-proof counts (46 checks; M1 "46 checks, 1 failed") are false at this head (51 checks; M1 fails 4), and the surviving gather mutant M6 is not dispositioned in the body
+
+bus-nonce: 3631cf92b443f9d3360c4db5ccf4548c
+
+## Block
+
+Round 2. The code is sound. The round-1 survivors M2 and M5 are now killed, the null control holds, and the class is closed. The block is the body alone. A body edit fixes it without moving the head, so this verdict's mutant and CI evidence carries to the same SHA.
+
+- The body's figures were not updated after f130bd950 added five self-test checks.  says "`review_packet self-test: 46 checks, 0 failed` at the head (42 at the base plus the four arms above)". At 9ce0179f77aa68eab6440c3d85aa92e788936b22 it prints `51 checks, 0 failed`; the base still prints 42. `## Mutation proof` says M1 gives "`46 checks, 1 failed`". At this head M1 gives `51 checks, 4 failed`. `## Null control` lists the four round-1 arms only. It omits the delivery-status arm and its null, the UNAVAILABLE arm, and the two `diff_paths` throwaway-checkout arms, all of which this head adds.
+- The brief says the body lists the survivor M6 (gather's call replaced by `[]`) under "Unpinned sites". The live PR body (updated 2026-10-29T19:06:46Z, saved as `ev/pr-body-at-review.txt`) has no such section, and M6 appears nowhere in it. The only related text is "prepr's 6d reports the diff adds no unpinned mutation site", and M6 contradicts it. A surviving mutant at a line this PR rewrote has to be declared, so it is not dispositioned.
+
+What would clear it: patch the body so its figures read 51, M1 fails 4, and the null control lists the new arms. Add the M6 disposition (my judgement of it is below). No code change is owed.
+
+## Findings
+
+- Body figures stale at the head (46 vs 51 checks; M1 "1 failed" vs 4), and null-control list missing the five arms f130bd950 added. Carry: R10-FLY-PACKET-RED-PATHS
+- Gather's wiring of `unanswered_reds` is still unpinned and undeclared in the body. These survive: M6 (`red_unanswered = []`); M6b (`touched` passed as `set()`); M8 (gather computes `existing = touched`, bypassing `diff_paths`); M9 (gather unpacks `existing, touched` swapped). My judgement is that it is acceptable as a declared survivor, not as a silent one. Pinning `gather` means driving `gh` reads, and the round-1 remedy ("assert on the rc, or derive existing and touched in a helper the self-test drives") was taken both ways. M6b now fails closed in production, because an empty `--paths-file` raises `Unavailable`. M6, M8 and M9 would fail open or wrong, but only through a deliberate edit of the one call line. The body must declare them under an unpinned-sites disposition. Carry: R10-FLY-PACKET-RED-PATHS
+- The new sites are not added to `dev/audit/harnesses/r10_seat_selftests_mutants.py`, deferred because #2959 holds that hot file (body, `## Mutation proof`). Owed after #2959 merges. Carry: #2959
+- M3 (`"--base", base,` dropped) survives 51/51. `--base` only feeds policy_lint's red-history range, which needs a real commit span, and the self-test's head is synthetic. Carry: dismissed: --base cannot be pinned without a real commit range in the self-test; same disposition as round 1
+
+## Evidence
+
+- Reviewed head 9ce0179f77aa68eab6440c3d85aa92e788936b22 (`ev/HEAD.txt`), from a detached worktree at that SHA. It is still the PR head at 19:11Z. Merge base ce5940c0d1d8f611a818d53e7fffcafb48b356c1, which equals origin/main, so it is 0 behind. The roles diff `merge-base...origin/main -- dev/governance/roles/` is empty, so the contract is current.
+- Diff scope: only `tools/audit/seat/review_packet.py` and `dev/programme/delivery/2962.md` (three-dot). `VERSION`, the manifest, `RELEASE_NOTES.md` and the golden/claim files are untouched (count 0).
+- RESULT self-test at head: `review_packet self-test: 51 checks, 0 failed`; at base: `42 checks, 0 failed` (python 3.11.17, node v22.22.0).
+- RESULT mutants (`ev/mutants.txt`). M7 and M8 were not defined in any material available to this seat: the round-1 verdict `probe/rev-2962-afd24510` names M1, M2, M3, M5 and M6 only. So I defined my own and disclose them as mine. Killed: M1 `--paths-file` dropped, 4 failed. M2 `--existing-file` dropped, 2 failed (round-1 survivor, now killed). M5 `--diff-filter=a`→`A` in `diff_paths`, 2 failed (round-1 survivor, now killed). M7 `raise Unavailable` removed, 1 failed. M10 `--diff-filter=a` dropped, 2 failed. M8x touched list gains `--diff-filter=a`, 1 failed. M11 rc/regex guard disabled, 1 failed. Survived: M3, M6, M6b, M8, M9 (under Findings). M12 (`return []`→`return list(reds)` under `if not reds`) is an equivalent mutant.
+- RESULT null control (my own call through the module, `ev/checks.txt`): a diff of `.github/workflows/nightly.yml` gives `unanswered_reds(..., ['tests / nightly-status'], ...)` = `['tests / nightly-status']`, so it is still refused, and the null holds. This PR's own `diff_paths(base, head)` = `({review_packet.py, delivery/2962.md}, {review_packet.py})` gives `[]`, so the fix applies to itself.
+- Nightly-status line: the diff touches none of what `tests / nightly-status` reads (its scripts, `ci.yml`, `tests.yml`, `nightly.yml`, `governance.yml`, the plan, `HANDOVER.md`). The body's `## Red checks` answer is correct. It is main's red, not this PR's (fix-review.md 11).
+- Class rule re-run: `git grep -l -E -- '--red\b' -- 'tools/**' '.github/**' '.claude/**'` returns the seven files the body names. pr-contract.yml, body_patch.sh, record_row.py and prepr.sh all pass `--paths-file` and `--existing-file`; alert_list.py makes no policy_lint call; review_packet.py is closed here. No seam is open.
+- Merge: `git merge-tree --write-tree origin/main 9ce0179f77aa68eab6440c3d85aa92e788936b22` gives ad95fc783d93dee57ae794baf4ae1684e254f296, rc 0, no conflict.
+- CI on this head (check-runs API, 49 runs, read 19:11Z, `ev/check-runs.txt`): `tests / nightly-status` is failure (main's, see above). `codeql / Analyze (python)`, `governance / instrument-self-tests` and three `prelude` runs are in progress. Everything else is success, skipped or neutral. `tests / mutation` is success; its log was not read. No `pr-contract` run is listed on this SHA.
+- Figures not re-derived: the `prepr.sh` and `closure.py select` / `structure.py` lines. The seat interpreter is 3.11, and I cite CI's heavy runs rather than re-running them.
+- Review packet rendered here (`ev/review-packet.md`): Refusals none, Advisories none, CARRY-AUDIT 0 findings, FIGURES 11 resolved / 1 not verified.
