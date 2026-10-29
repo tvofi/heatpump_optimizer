@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 2dab5a6c6..50eaa4a41 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -9041,7 +9041,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         # 21.0 C defaults): not the curve's doing. No evidence on such days.
+         if self._away_state.active or self._away_state.recovery_active:
+             return
+-        if (self._learning_frozen(CONF_INDOOR_TEMP_ENTITY) or learner_room_unread(ctx._config)) is not None:
++        if self._learning_frozen(CONF_INDOOR_TEMP_ENTITY) is not None:
+             return
+         hour = now.hour + now.minute / 60.0
+         try:
