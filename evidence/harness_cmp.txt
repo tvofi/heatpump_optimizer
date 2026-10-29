@@ -1,0 +1,2 @@
+harness_base.log cells 32 buffer-plan identical to no-buffer twin: 16 differ: 0
+harness_head.log cells 32 buffer-plan identical to no-buffer twin: 0 differ: 16
