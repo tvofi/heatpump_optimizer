@@ -1,0 +1,99 @@
+=== MUTANT custom_components/heatpump_optimizer/coordinator.py:4467
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+CHECK ok the setup census's preconditions: every store built is read at startup, every read lands a previous run's payload, and the loads assign state
+CHECK ok no write in the setup refresh is lost to a store read still in flight (#2248, #2674)
+CHECK ok and the census sees the writers it clears: without the stores' fences, every read held at once differs
+RESULT census_lost_total=0 of 12
+=== MUTANT custom_components/heatpump_optimizer/coordinator.py:6296
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+CHECK ok the setup census's preconditions: every store built is read at startup, every read lands a previous run's payload, and the loads assign state
+CHECK ok no write in the setup refresh is lost to a store read still in flight (#2248, #2674)
+CHECK ok and the census sees the writers it clears: without the stores' fences, every read held at once differs
+RESULT census_lost_total=0 of 12
+=== MUTANT custom_components/heatpump_optimizer/coordinator.py:6324
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+CHECK ok the setup census's preconditions: every store built is read at startup, every read lands a previous run's payload, and the loads assign state
+CHECK ok no write in the setup refresh is lost to a store read still in flight (#2248, #2674)
+CHECK ok and the census sees the writers it clears: without the stores' fences, every read held at once differs
+RESULT census_lost_total=0 of 12
+=== MUTANT custom_components/heatpump_optimizer/coordinator.py:6326
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+CHECK ok the setup census's preconditions: every store built is read at startup, every read lands a previous run's payload, and the loads assign state
+CHECK ok no write in the setup refresh is lost to a store read still in flight (#2248, #2674)
+CHECK ok and the census sees the writers it clears: without the stores' fences, every read held at once differs
+RESULT census_lost_total=0 of 12
+=== MUTANT custom_components/heatpump_optimizer/coordinator.py:8076
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+CHECK ok the setup census's preconditions: every store built is read at startup, every read lands a previous run's payload, and the loads assign state
+CHECK ok no write in the setup refresh is lost to a store read still in flight (#2248, #2674)
+CHECK ok and the census sees the writers it clears: without the stores' fences, every read held at once differs
+RESULT census_lost_total=0 of 12
+=== MUTANT custom_components/heatpump_optimizer/coordinator.py:8124
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+CHECK ok the setup census's preconditions: every store built is read at startup, every read lands a previous run's payload, and the loads assign state
+CHECK ok no write in the setup refresh is lost to a store read still in flight (#2248, #2674)
+CHECK ok and the census sees the writers it clears: without the stores' fences, every read held at once differs
+RESULT census_lost_total=0 of 12
+=== MUTANT custom_components/heatpump_optimizer/coordinator.py:8166
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+CHECK ok the setup census's preconditions: every store built is read at startup, every read lands a previous run's payload, and the loads assign state
+CHECK ok no write in the setup refresh is lost to a store read still in flight (#2248, #2674)
+CHECK ok and the census sees the writers it clears: without the stores' fences, every read held at once differs
+RESULT census_lost_total=0 of 12
+=== MUTANT custom_components/heatpump_optimizer/coordinator.py:8205
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+CHECK ok the setup census's preconditions: every store built is read at startup, every read lands a previous run's payload, and the loads assign state
+CHECK ok no write in the setup refresh is lost to a store read still in flight (#2248, #2674)
+CHECK ok and the census sees the writers it clears: without the stores' fences, every read held at once differs
+RESULT census_lost_total=0 of 12
+=== MUTANT custom_components/heatpump_optimizer/coordinator.py:8372
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+CHECK ok the setup census's preconditions: every store built is read at startup, every read lands a previous run's payload, and the loads assign state
+CHECK ok no write in the setup refresh is lost to a store read still in flight (#2248, #2674)
+CHECK ok and the census sees the writers it clears: without the stores' fences, every read held at once differs
+RESULT census_lost_total=0 of 12
+=== MUTANT custom_components/heatpump_optimizer/coordinator.py:8398
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+CHECK ok the setup census's preconditions: every store built is read at startup, every read lands a previous run's payload, and the loads assign state
+CHECK ok no write in the setup refresh is lost to a store read still in flight (#2248, #2674)
+CHECK ok and the census sees the writers it clears: without the stores' fences, every read held at once differs
+RESULT census_lost_total=0 of 12
+=== MUTANT custom_components/heatpump_optimizer/coordinator.py:8413
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+CHECK ok the setup census's preconditions: every store built is read at startup, every read lands a previous run's payload, and the loads assign state
+CHECK FAIL no write in the setup refresh is lost to a store read still in flight (#2248, #2674)
+CHECK ok and the census sees the writers it clears: without the stores' fences, every read held at once differs
+RESULT census_lost_total=1 of 12
+RESULT census_lost heatpump_optimizer_test_entry_price_model -> _price_learner
+=== MUTANT custom_components/heatpump_optimizer/coordinator.py:9557
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+CHECK ok the setup census's preconditions: every store built is read at startup, every read lands a previous run's payload, and the loads assign state
+CHECK ok no write in the setup refresh is lost to a store read still in flight (#2248, #2674)
+CHECK ok and the census sees the writers it clears: without the stores' fences, every read held at once differs
+RESULT census_lost_total=0 of 12
+=== MUTANT custom_components/heatpump_optimizer/coordinator.py:10903
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+CHECK ok the setup census's preconditions: every store built is read at startup, every read lands a previous run's payload, and the loads assign state
+CHECK ok no write in the setup refresh is lost to a store read still in flight (#2248, #2674)
+CHECK ok and the census sees the writers it clears: without the stores' fences, every read held at once differs
+RESULT census_lost_total=0 of 12
+=== MUTANT custom_components/heatpump_optimizer/dhw_learning.py:240
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+CHECK ok the setup census's preconditions: every store built is read at startup, every read lands a previous run's payload, and the loads assign state
+CHECK ok no write in the setup refresh is lost to a store read still in flight (#2248, #2674)
+CHECK ok and the census sees the writers it clears: without the stores' fences, every read held at once differs
+RESULT census_lost_total=0 of 12
+=== MUTANT custom_components/heatpump_optimizer/legionella.py:213
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+CHECK ok the setup census's preconditions: every store built is read at startup, every read lands a previous run's payload, and the loads assign state
+CHECK FAIL no write in the setup refresh is lost to a store read still in flight (#2248, #2674)
+CHECK ok and the census sees the writers it clears: without the stores' fences, every read held at once differs
+RESULT census_lost_total=1 of 12
+RESULT census_lost heatpump_optimizer_test_entry_dhw_legionella -> _ctx
+=== MUTANT custom_components/heatpump_optimizer/store.py:772
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+CHECK ok the setup census's preconditions: every store built is read at startup, every read lands a previous run's payload, and the loads assign state
+CHECK ok no write in the setup refresh is lost to a store read still in flight (#2248, #2674)
+CHECK ok and the census sees the writers it clears: without the stores' fences, every read held at once differs
+RESULT census_lost_total=0 of 12
+DONE

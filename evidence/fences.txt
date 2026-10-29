@@ -1,0 +1,16 @@
+custom_components/heatpump_optimizer/coordinator.py:4467
+custom_components/heatpump_optimizer/coordinator.py:6296
+custom_components/heatpump_optimizer/coordinator.py:6324
+custom_components/heatpump_optimizer/coordinator.py:6326
+custom_components/heatpump_optimizer/coordinator.py:8076
+custom_components/heatpump_optimizer/coordinator.py:8124
+custom_components/heatpump_optimizer/coordinator.py:8166
+custom_components/heatpump_optimizer/coordinator.py:8205
+custom_components/heatpump_optimizer/coordinator.py:8372
+custom_components/heatpump_optimizer/coordinator.py:8398
+custom_components/heatpump_optimizer/coordinator.py:8413
+custom_components/heatpump_optimizer/coordinator.py:9557
+custom_components/heatpump_optimizer/coordinator.py:10903
+custom_components/heatpump_optimizer/dhw_learning.py:240
+custom_components/heatpump_optimizer/legionella.py:213
+custom_components/heatpump_optimizer/store.py:772

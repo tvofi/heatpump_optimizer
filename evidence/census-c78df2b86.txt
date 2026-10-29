@@ -1,0 +1,9 @@
+CHECK ok the setup census's preconditions: every store built is read at startup, every read lands a previous run's payload, and the loads assign state
+CHECK FAIL no write in the setup refresh is lost to a store read still in flight (#2248, #2674)
+CHECK ok and the census sees the writers it clears: without the stores' fences, every read held at once differs
+RESULT census_stores_held=12 count
+RESULT census_assigned=_accuracy,_away_state,_ctx,_dhw_accuracy,_dhw_learner,_energy_totals,_energy_totals_since,_ledger,_legionella,_optimizer,_price_learner,_score_day,_snapshot_ring,_snapshots_loaded,_thermal_model,heatpump_optimizer.boost._STATES,heatpump_optimizer.price_tiles._BOOKS
+RESULT census_lost_total=2 of 12
+RESULT census_lost heatpump_optimizer_test_entry_dhw_legionella -> _ctx
+RESULT census_lost heatpump_optimizer_test_entry_price_model -> _price_learner
+RESULT census_unfenced_differs=_ctx,_price_learner
