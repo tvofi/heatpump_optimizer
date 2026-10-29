@@ -1,6 +1,0 @@
-== body_push-1
-  FAIL and refuses a body the review packet's handoff refusals refuse, naming the signal and pushing nothing (P256) (got 1, wanted 0)
-420 passed, 1 failed
-== body_push-2
-  FAIL and pushes, saying so, when the handoff refusals cannot be run (rc 3 is never a refusal) (got 1, wanted 0)
-420 passed, 1 failed

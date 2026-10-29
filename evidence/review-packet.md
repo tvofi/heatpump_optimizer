@@ -1,23 +1,53 @@
 # Review packet #2939
-head: 46b2ba5a10195d91c80c93240f9c75b4cd1eed80
-base: 593f57c44fa57490ed757343b9f277ef97ad5ca5
+head: 000eae090f657edf008eaba961398705329c4197
+base: 66974d47312caa46e9817b9aeae7186e9764e560
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
-## Gate digest: pending
-arm id=123149999247 skipped
-cancel-superseded id=123150016985 queued
-prelude id=123150016493 queued
-refresh id=123150016921 queued
+## Gate digest: red
+CodeQL id=123384856897 neutral
+arch-score / arch-score id=123384623368 success
+arm id=123384385955 skipped
+budget-raise-gate / budget-raise-gate id=123384622917 success
+cancel-superseded id=123384389446 success
+codeql / Analyze (actions) id=123384622746 success
+codeql / Analyze (javascript-typescript) id=123384622803 success
+codeql / Analyze (python) id=123384622854 in_progress
+governance / delivery-status id=123384623424 success
+governance / delivery-status-publish id=123384626021 skipped
+governance / env-matrix id=123384623275 in_progress
+governance / instrument-self-tests id=123384623134 in_progress
+governance / policy-docs id=123384623482 success
+governance / record id=123384626248 skipped
+governance / wave-script id=123384623443 success
+hassfest / hassfest id=123384623165 success
+kernel-points id=123384625068 skipped
+prelude id=123384389136 in_progress
+refresh id=123384389566 success
+tests / arch-instrument id=123384823249 success
+tests / briefs id=123384622884 success
+tests / browser id=123384823020 in_progress
+tests / closure-scope id=123384623164 success
+tests / closures id=123384823262 in_progress
+tests / coverage id=123384823344 in_progress
+tests / fast (3.14) id=123384823079 in_progress
+tests / mutation id=123384622902 success
+tests / mutation-autofix id=123384900486 skipped
+tests / mutation-pins id=123384899231 skipped
+tests / nightly-ha id=123384826040 skipped
+tests / nightly-status id=123384622757 failure
+tests / replay id=123384825578 skipped
+tests / typing id=123384823498 success
+validate / validate-hacs id=123384622734 success
 
 ## Refusals
-none
+red-unanswered: concluded red check `tests / nightly-status` is not named in ## Red checks
 
 ## Advisories
 hot-file: HPO_BUS_TRAIN_STATE is unset, so every merge verdict reads unboarded
 
 ## carry_audit at the head
-NOTE body item c7c5cc8b: R10-ORCH-REVIEW-PACKET: R10-ORCH-REVIEW-PACKET resolved on origin/handoff/audit-r10-roster
+NOTE body item c7c5cc8b: R10-ORCH-REVIEW-PACKET
 NOTE body item 5f310c0f: R10-RECORD-API-O1
 CARRY-AUDIT: 2 finding item(s): 2 routed, 0 unrouted, 0 bad destination(s)
 
@@ -141,35 +171,6 @@ index 000000000..82a53df3a
 +++ b/dev/programme/delivery/2939.md
 @@ -0,0 +1 @@
 +- [#2939](https://github.com/tvofi/heatpump_optimizer/pull/2939) — **open**, R10-ORCH-REVIEW-PACKET: review_packet refuses a head lacking its handoff; fixer handoff runs it first (R10-ORCH-REVIEW-PACKET)
-diff --git a/tools/audit/seat/INSTRUMENTS.md b/tools/audit/seat/INSTRUMENTS.md
-index c2a5128fe..a5062d41a 100644
---- a/tools/audit/seat/INSTRUMENTS.md
-+++ b/tools/audit/seat/INSTRUMENTS.md
-@@ -145,7 +145,8 @@ sweep's standing-seat liveness step keep them alive.
-   the code head's ancestry (`prepr.sh` step 1a refuses that). Refusal: a
-   head `tools/pr/ci_predict.py` predicts a closures or `fast` red on, or a
-   checkout with no predictor (R10-HANDOFF-PREPR-BOUNCE M2), is refused
--  before anything is pushed, with each arm's repair printed; a fetch that
-+  before anything is pushed, with each arm's repair printed; so is a PR body
-+  `review_packet.py handoff` refuses (P256); a fetch that
-   half-failed leaves a parentless commit the push refuses as a
-   non-fast-forward — a rewrite is never forced through; the body commit it
-   wrote is read back through `ref_privacy.py guard --commits`, message and
-@@ -203,8 +204,12 @@ sweep's standing-seat liveness step keep them alive.
-   renders its own from its dispatch prompt. Refusal: carry-audit, a `## Head`
-   not naming the head, a `tests/structure.py` refusal at the head merged with
-   main, an unanswered concluded red, a required context concluded failure, a
--  host path, or a hot file shared with an open pull request holding an
--  unboarded merge verdict; a pending check never refuses. A refusal still
-+  host path, a hot file shared with an open pull request holding an
-+  unboarded merge verdict, or a `fix/<t>` head lacking its `handoff/<t>` tip
-+  (`handoff-not-applied`); a pending check never refuses. `handoff`, run by
-+  `body_push.sh` before a PR body is pushed, refuses the structure and
-+  hot-file signals and `brief-carries` (a roster carry the body never names
-+  as `Carry N`). A refusal still
-   WRITES the packet, so a held dispatch never withholds the evidence, except
-   a host path, which writes nothing because the packet carries the diff.
-   Unavailable (rc 3, `UNAVAILABLE`) is a different outcome: the seat cannot
 diff --git a/tools/audit/seat/body_push.sh b/tools/audit/seat/body_push.sh
 index b830a63e1..09742fbee 100644
 --- a/tools/audit/seat/body_push.sh
@@ -194,6 +195,39 @@ index b830a63e1..09742fbee 100644
  else
    echo "body_push: no handoff/$TOPIC on origin, so a result body: the pr-body lint does not apply"
  fi
+diff --git a/tools/audit/seat/instruments/body_push.sh.md b/tools/audit/seat/instruments/body_push.sh.md
+index 8523c480a..cee2b6d4f 100644
+--- a/tools/audit/seat/instruments/body_push.sh.md
++++ b/tools/audit/seat/instruments/body_push.sh.md
+@@ -6,7 +6,8 @@
+   the code head's ancestry (`prepr.sh` step 1a refuses that). Refusal: a
+   head `tools/pr/ci_predict.py` predicts a closures or `fast` red on, or a
+   checkout with no predictor (R10-HANDOFF-PREPR-BOUNCE M2), is refused
+-  before anything is pushed, with each arm's repair printed; a fetch that
++  before anything is pushed, with each arm's repair printed; so is a PR body
++  `review_packet.py handoff` refuses (P256); a fetch that
+   half-failed leaves a parentless commit the push refuses as a
+   non-fast-forward — a rewrite is never forced through; the body commit it
+   wrote is read back through `ref_privacy.py guard --commits`, message and
+diff --git a/tools/audit/seat/instruments/review_packet.py.md b/tools/audit/seat/instruments/review_packet.py.md
+index 24d33aa6c..6dcbd5e42 100644
+--- a/tools/audit/seat/instruments/review_packet.py.md
++++ b/tools/audit/seat/instruments/review_packet.py.md
+@@ -11,8 +11,12 @@
+   renders its own from its dispatch prompt. Refusal: carry-audit, a `## Head`
+   not naming the head, a `tests/structure.py` refusal at the head merged with
+   main, an unanswered concluded red, a required context concluded failure, a
+-  host path, or a hot file shared with an open pull request holding an
+-  unboarded merge verdict; a pending check never refuses. A refusal still
++  host path, a hot file shared with an open pull request holding an
++  unboarded merge verdict, or a `fix/<t>` head lacking its `handoff/<t>` tip
++  (`handoff-not-applied`); a pending check never refuses. `handoff`, run by
++  `body_push.sh` before a PR body is pushed, refuses the structure and
++  hot-file signals and `brief-carries` (a roster carry the body never names
++  as `Carry N`). A refusal still
+   WRITES the packet, so a held dispatch never withholds the evidence, except
+   a host path, which writes nothing because the packet carries the diff.
+   Unavailable (rc 3, `UNAVAILABLE`) is a different outcome: the seat cannot
 diff --git a/tools/audit/seat/review_packet.py b/tools/audit/seat/review_packet.py
 index 3c5c6901b..d04fd0323 100644
 --- a/tools/audit/seat/review_packet.py
@@ -487,10 +521,10 @@ index 3c5c6901b..d04fd0323 100644
          print("review_packet: --head takes a 40-hex sha", file=sys.stderr)
          return 2
 diff --git a/tools/pr/prepr.sh b/tools/pr/prepr.sh
-index 160331dc5..1a19c7c22 100755
+index 5cd48da69..549ef9215 100755
 --- a/tools/pr/prepr.sh
 +++ b/tools/pr/prepr.sh
-@@ -2786,6 +2786,19 @@ https://claude.ai/code/session_011aqzm4YL9jLhU4jLvbkLYE'; got=$(lpush)
+@@ -2788,6 +2788,19 @@ https://claude.ai/code/session_011aqzm4YL9jLhU4jLvbkLYE'; got=$(lpush)
    bbody none none; got=$(lpush)
    grep -q '^rc=0$' <<<"$got" && grep -q '^ref refs/heads/handoff-body/zz-lint$' <<<"$got"
    st $? 0 "and pushes a body the lint passes (null control: the same body without the session link)"
