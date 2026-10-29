@@ -10542,7 +10542,8 @@
     "commit": null,
     "last_step": null,
     "next_step": "dispatch a seat",
-    "note": "wired by the roster seat 2026-10-26 under the owner's completion rule (tvofi 20:20Z)"
+    "note": "wired by the roster seat 2026-10-26 under the owner's completion rule (tvofi 20:20Z)",
+    "pr": 2957
    },
    "brief": "Root-cause seat for issue #2835, the recurring-friction rule id .claude/rules/gate-scoping.md (cited in the Friction section of distinct pull requests in the v7.0.4..origin/main window above threshold). Read each citing body's Friction line, group the instances by the step of dev/governance/rules/gate-scoping.md they name (interpreter, lease, scoped gate, closures), and decide per group whether the rule is unclear, unfollowed, or wrong (process state b, c or d). A rule edit is generated into .claude/rules/ and .cursor/rules/ by node tools/policy/rules_sync.mjs and is capped by dev/governance/config/policy_budgets.json. Re-derive the count at your merge base with node tools/policy/policy_lint.mjs --stats --since v7.0.4; the figure in the issue is a snapshot. Per dev/governance/roles/root-cause.md the key owes a named cause, a process state (a-d), a cost test with numbers, and a countermeasure or a recorded refusal, filed under dev/audit/rca/. A countermeasure that edits a policy file is approved under the orchestrator's mandate (scope all); no step waits on tvofi. Closes the issue on delivery."
   },
