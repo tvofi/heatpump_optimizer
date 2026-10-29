@@ -1,53 +1,123 @@
-R10-FLY-NIGHTLY-HB. `hb:positive_control` (tests/nightly_ha.py `check_hb_positive_control`) failed every try on the 2026-10-29 schedule run 40806276912, job `nightly-ha (stable)`: "a 600 ms spin read as 5308.8 ms; dump names the spin: True; py-spy rc=0 names it: False; try 3 of 3", which also failed `run:exit_status` and turned the nightly red.
+The heartbeat lane's stall sampler moves off py-spy on interpreters that ship CPython's own remote unwinder. The scheduled Nightly 40806276912 (head ee48937) failed `hb:positive_control` on `nightly-ha (stable)` (`FAILED: 2 of 64 checks: ['hb:positive_control', 'run:exit_status']`). py-spy 0.4.2 cannot walk some CPython 3.14.9 Home Assistant processes. Past "Found interpreter" it spins in its stack walk, blocking or not, for the life of the process, so every try of the control is cut at the sample timeout. The manual re-run 40835853528 (head 486e65c) did **not** fail that way: its `nightly-ha (stable)` job 123320354418 passed. Its one red is the `slow` job 123320354392, step "Closed-loop simulation", which this diff does not touch. That run is the one `tests / nightly-status` reads now (`## Red checks`).
 
-**What the failure measured.** The control's spin is held until its sample returns or is cut (`HB_CONTROL_HOLD_S = HB_DUMP_S + timeout + 1.0`). The CI gap is 5308.8 ms = `HB_DUMP_S` 250 ms + the 5000 ms sample timeout + 58.8 ms: every one of the three samples ran to its cut. That separates the three candidate causes the brief names. A late sample on a contended runner returns rc=0 inside the cut (gap under 5250 ms, the sampler section present); a sampling-window miss returns rc=0 without `_hb_spin` at a gap near 600 ms; only a sampler that does not return reads 5250 ms plus overhead, three times out of three. The harness reproduces that number with a py-spy that never returns (5292.5 to 5330.9 ms over 9 base tries) against 600.3 to 600.8 ms with the real py-spy (the null), so the bound was not wrong and widening it, or retrying, would not have rescued it: the retry already ran three fresh spins.
+`sample_command()` in `tests/nightly_ha.py` now returns the stdlib `_remote_debugging.RemoteUnwinder` snippet (`_STDLIB_SAMPLE`), run in a child, wherever `importlib.util.find_spec("_remote_debugging")` finds it (3.14+, the `stable` arm). Elsewhere it returns the staged `py-spy dump --nonblocking`, so the 3.13 floor keeps py-spy, where #2479 measured 0 hangs. Nothing else in `LoopHeartbeat` changes: `HB_CONTROL_TRIES`, `HB_CONTROL_HOLD_S` and the 5 s cut (now `SAMPLE_TIMEOUT_S`) are the same. The control still requires the out-of-process section, `sampler rc=0:`, to name `_hb_spin`, so it keeps its power: N1 to N4 below each still fail it.
 
-**Why py-spy did not return** is the previous fixer seat's container measurement (py-spy 0.4.2 past "Found interpreter" spinning in its stack walk on some CPython 3.14 HA processes, for the process's life; the stdlib unwinder reading those processes). This seat could not re-take it: `docker pull` of the HA image is refused here (Docker Hub 429; the ghcr blob host 403 through the proxy). It is recorded as that seat's finding, not as a figure of this body, and the PR's own `nightly-ha (stable)` arm in `tests.yml` is the real-HA run of this head.
+Round 2 repairs the committed control-power instrument `dev/audit/harnesses/r10_nightly_pyspy_retry_mutants.py`, which round 1's rename broke (commit b8005392b). Its mutant targets follow the renamed names: `self.sample_timeout`, `SAMPLE_TIMEOUT_S`, `sample_timeout=` and `"sampler rc=0:"`. The block it extracts from `tests/entities.py` now runs with every module-level stdlib `import` that precedes it in that file, read by `ast`. When entities.py runs whole, the block sees those same names, so the next stdlib name the block reads does not break the harness again. The harness gains `M11-pyspy-first`, which mutates the new `sample_command()` predicate. The head then merges the live PR branch (67be951d3), which carries 2f033a59a: the group harness's Docker-free `--inproc` arm, which the figures below use.
 
-**The fix.** `sample_command()` makes the stall sampler CPython's own `_remote_debugging.RemoteUnwinder` wherever the interpreter ships it (3.14+, the `stable` arm), run in a child with the same 5 s cut, and the staged `py-spy dump --nonblocking` only where it does not (the 3.13 floor, where #2479 measured no hang). The check is unchanged in what it asserts: in one try the gap is seen, the in-process dump names the spin, and the out-of-process section (now `sampler rc=0:`) names it. Alternatives: a longer timeout or more retries (refused by the brief, and by the measurement above: the sample never returns); a container respawn (R10-NIGHTLY-HB-RESPAWN's option (b), which costs a second HA boot per red and keeps the sampler that fails); an inconclusive verdict on timeout (changes what the control asserts). The sampler swap removes the failing component instead of working around it.
-
-This seat added one commit on 877f4addb: `--inproc real|hung` in the group's harness, so every figure below re-runs without the HA image.
+Alternatives considered. A container respawn (option (b) of R10-NIGHTLY-HB-RESPAWN) lost. The stdlib unwinder read every process py-spy hung on, so a respawn would restart a process that never needed restarting, and would add a second container start to the lane. A longer py-spy timeout lost because the hang does not end. Making the timeout inconclusive lost because it changes what the check asserts. For the harness, hard-coding `import subprocess` into its header lost to the `ast` read: it fixes this instance and breaks again on the block's next stdlib name.
 
 ## Head
 
-2f033a59af4fed89f681cf9d5edcfb89cc714d78 (877f4addb plus the harness's `--inproc` arm). Merge base 486e65cbd9c8451c01624f13b773feb6d722ad9b; `git merge-tree --write-tree origin/main HEAD` reports no conflict at origin/main e5ddba1fad5e6eccfeceaeaaa249bc459963405b (2026-10-29T19:46Z).
+`b23e91e0dfc5042485500b9c11f02b2872c3d752` (handoff/r10-fly-nightly-hb). It is b8005392b, the harness repair on ac7353951, merged with origin/fix/r10-fly-nightly-hb at 67be951d3. Merge base `e5ddba1fad5e6eccfeceaeaaa249bc459963405b`, which `origin/main` still was at 2026-10-29T21:10Z. `git merge-tree --write-tree origin/main HEAD` exits 0, no conflict. Every figure below was taken at this head unless it is marked as an earlier seat's.
 
 ## Mutation proof
 
-Mutant: delete the fix's predicate, the two lines `if importlib.util.find_spec("_remote_debugging") is not None:` / `return [sys.executable, "-c", _STDLIB_SAMPLE]` in `sample_command`, so the sampler is py-spy wherever it is staged.
+Production mutant: delete the fix's predicate in `sample_command()` (`if importlib.util.find_spec("_remote_debugging") is not None:` and its `return`). The sampler is then py-spy wherever it is staged, which is the base's behaviour. Two instruments ran it at this head under CPython 3.14.6:
 
-- `tests/entities.py` (the closure's script for `tests/nightly_ha.py`), under 3.14.6 and under 3.13.17: red under both. 3.13.17: `1 of 2472 ENTITY CHECKS FAILED`, the one being `the stall sampler is the interpreter's own unwinder where it ships one, staged or not; else the staged py-spy, nonblocking; else none` (`['/opt/hpo/py-spy', 'dump', '--nonblocking', '--pid'] / ['/opt/hpo/py-spy', 'dump', '--nonblocking', '--pid'] / None`). 3.14.6: `2 of 2472 ENTITY CHECKS FAILED`, the same check, plus `the lease has one winner, a dead gate is stolen, a live one is not, and run.sh runs unleased`, a gate-lease timing check this diff does not reach, run while three entities.py processes and prepr.sh shared the host; the unmutated head under 3.14.6 passed it in the same window (`ALL 2472 ENTITY CHECKS PASSED`), so it is load, not the mutant, and it is not claimed as a kill.
-- The harness's N4 edit, which is the same predicate: `--mode N4 --inproc hung` under 3.14.6, 2 runs, `ok=0 fail=2`, readings `(True, True, False)` on every try, gaps 5298.3 to 5320.7 ms: the base's failure, back.
+- `PYTHONPATH=tests/hastub python dev/audit/harnesses/r10_nightly_pyspy_retry_mutants.py`, entry `M11-pyspy-first`:
 
-Restored: the mutant ran in a separate worktree; the head is unchanged.
+      M11-pyspy-first KILLED by: the stall sampler is the interpreter's own unwinder where it ships one, staged or not; else the staged py-spy, nonblocking; ...
+
+- `python dev/audit/harnesses/r10_fly_nightly_hb.py --tree <head> --mode N4 --inproc hung --runs 2 --out <dir>`: `SUMMARY mode=N4 inproc=hung python=3.14.6 runs=2 ok=0 fail=2`. Every try reads `(True, True, False)`, with gaps 5290.5 to 5301.9 ms and `sampler=py-spy`. That is the base's failure, back.
+
+The whole mutant harness at this head:
+
+    M0-null all checks pass
+    SUMMARY killed=15 survived=0 null=ok
+    rc=0
+
+The 15 mutants are M1 to M11, X1, X2, X3 and X5, every entry of `MUTANTS` except M0. Each line prints `KILLED by:` with a named check.
+
+Harness mutant (the round-2 repair): remove the import injection from `block()`, i.e. `return "".join(lines[start:end])`, and run M0 alone:
+
+    M0-null FAILS: (block did not run: rc=1 '... NameError: name 'subprocess' is not defined ...')
+    SUMMARY killed=0 survived=0 null=FAIL
+
+That is the reviewer's failure, reproduced: the injection is what makes the null pass. The unrepaired harness at ac7353951 reads `M0-null FAILS: ... NameError ...`, then `M2-timeout-30: the mutated site occurs 0 times, not once`, `rc=1`. That matches `verdict/2964`'s evidence.
 
 ## Null control
 
-The unmodified base 486e65cbd, under the same harness and the same CPython 3.14.6:
+The base is `origin/main` e5ddba1fa, which carries py-spy as its sampler. It ran under the same harness and the same CPython 3.14.6:
 
-- `--mode plain --inproc hung`: 3 runs, `ok=0 fail=3`, every try `(True, True, False)`, gaps 5292.5 to 5330.9 ms: the CI failure's signature (failing test first, at the base).
-- `--mode plain --inproc real`: 10 runs, `ok=10 fail=0`, gaps 600.4 to 600.8 ms: the base passes on a py-spy that answers, so the hung arm, not the harness, is what reddens it.
+- `--mode plain --inproc hung --runs 3`: `ok=0 fail=3`. Every try reads `(True, True, False)`, gaps 5273.9 to 5327.6 ms, `sampler=py-spy`. This is the nightly's signature (CI: 5308.8 ms = `HB_DUMP_S` + the 5 s cut + slack): the failing test first, at the base.
+- `--mode plain --inproc real --runs 10`: `ok=10 fail=0`, gaps 600.3 to 600.6 ms on the runs shown. The base passes on a py-spy that answers, so what reddens it is the hung py-spy, not the harness.
 
-At the head, the control still fails on a heartbeat that does not see a real spin (null controls of the control's power, `--inproc real`, 3.14.6, 2 runs each): N1 the spin stalls nothing, `ok=0 fail=2`, readings `(False, False, False)`; N2 the watcher never dumps, `ok=0 fail=2`, `(True, False, False)`; N3 the sampler reads a pid that does not exist, `ok=0 fail=2`, `(True, True, False)`.
+At the head, the control's power under `--inproc real`, 2 runs each:
+
+- N1 (the spin stalls nothing): `ok=0 fail=2`, readings `(False, False, False)`, gaps 1.6 to 6.5 ms.
+- N2 (the watcher never dumps): `ok=0 fail=2`, `(True, False, False)`.
+- N3 (the sampler reads a pid that does not exist): `ok=0 fail=2`, `(True, True, False)`.
+
+The mutant harness's own null control is M0 at this head (all checks pass). The control for the harness repair is the harness mutant above.
 
 ## Figures
 
-- Nightly history, stamped origin/main e5ddba1 at 2026-10-29T19:46Z. Enumerator: `gh run list --workflow nightly.yml -e schedule -L 100` and `-e workflow_dispatch -L 100` (push runs skip `nightly-ha`: `if: github.event_name != 'push'`), then per run `gh api repos/tvofi/heatpump_optimizer/actions/runs/<id>/jobs` for the two `nightly-ha (<image>)` jobs, and for a failed job its `FAILED: N of M checks: [...]` line (the lane exits 1 on any failed check). The brief's `gh run list --workflow nightly.yml -L 30` returns 30 runs of which 2 are non-push; the enumerator above returns every non-push run that exists, 14, the oldest 39890399205 (2026-10-23). Result: `hb:positive_control` failed in 1 of 14 runs (40806276912, `nightly-ha (stable)`), 1 of 14 `stable` jobs, 0 of 14 `2025.2.0` jobs. Null control of the enumerator: on the one run it counts, the job's own log line is `FAILED: 2 of 64 checks: ['hb:positive_control', 'run:exit_status']`, so it does see the key when it fails; the 27 other jobs concluded `success`.
-- Fix tree, `python3 dev/audit/harnesses/r10_fly_nightly_hb.py --tree <head> --mode plain --inproc hung --runs 3 --out <dir>` under 3.14.6: `ok=3 fail=0`, one try each at 600.3 to 600.6 ms, sampler the interpreter: the py-spy that hangs is no longer the sampler. Null: the same command on the base, `ok=0 fail=3` (## Null control).
-- Fix tree, `--mode plain --inproc real --runs 10` under 3.14.6: `ok=10 fail=0`. Null: the base, same command, `ok=10 fail=0`; the fix costs nothing on a healthy sampler.
-- Fix tree under 3.13.17 (the floor, no `_remote_debugging`): `--inproc real --runs 3` `ok=3 fail=0`, `--inproc hung --runs 2` `ok=0 fail=2`, sampler py-spy: the floor keeps py-spy, and a py-spy hang there would still redden, as it should.
-- Scoped gate: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir <dir>` prints `MODE: SCOPED -- 5 script(s) run, 28 scoped out.`; each of the five (`config_flow_steps.py`, `debug_collect.py`, `doc_claims.py`, `entities.py`, `harness_headers.py`) and the `run_always` lines (`layout.py`, `closure.py selftest`, `env_drift.py --claims-only <merge-base>`) exit 0 under 3.13 with `PYTHONPATH=tests/hastub`; `tests/entities.py` ends `ALL 2472 ENTITY CHECKS PASSED`. Under 3.14.6, where its unwinder arm runs instead of the 3.13 `else`: `ALL 2472 ENTITY CHECKS PASSED`, its unwinder check reading a real spinning child as `(True, True, True)` and the same child outside the spin as `(True, True, False)`.
-- `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
+All at this head, CPython 3.14.6 (uv-installed venv, `tests/requirements-ci.txt` plus `py-spy==0.4.2`). The rule for each `r10_fly_nightly_hb.py` row is its `SUMMARY ... ok= fail=` line, with one row per run; a run is ok when `hb:positive_control` passes on some try. Command form: `python dev/audit/harnesses/r10_fly_nightly_hb.py --tree <worktree> --mode <m> --inproc <real|hung> --runs <n> --out <dir>`.
+
+| tree | mode | inproc | runs | ok | fail |
+|---|---|---|---|---|---|
+| base e5ddba1fa | plain | hung | 3 | 0 | 3 |
+| base e5ddba1fa | plain | real | 10 | 10 | 0 |
+| head | plain | hung | 10 | 10 | 0 |
+| head | plain | real | 10 | 10 | 0 |
+| head | N1 | real | 2 | 0 | 2 |
+| head | N2 | real | 2 | 0 | 2 |
+| head | N3 | real | 2 | 0 | 2 |
+| head | N4 | hung | 2 | 0 | 2 |
+
+- The head's `plain hung` runs read `sampler=python` with gaps 600.3 to 600.4 ms on the runs shown. On the py-spy that never returns, the fix samples with the unwinder and passes on try 1. Null control: the base row on the same hung py-spy, 0 of 3. This measures the sampler in this interpreter, never real Home Assistant (the harness's docstring says the same).
+- Mutant harness: `SUMMARY killed=15 survived=0 null=ok`, rc=0 (`## Mutation proof`). Null control: `M0-null FAILS` at ac7353951, and at this head with the import injection removed.
+- Real-container figures, an earlier seat's and **not re-taken here**: this container's Docker daemon is not running (`docker info` rc=1). They were taken on the same `tests/nightly_ha.py`: `git diff 877f4addb HEAD -- tests/nightly_ha.py` is empty. Image homeassistant/home-assistant:stable 2026.10.4, CPython 3.14.9, digest `sha256:23f4dfbb69ce76315dbc4de7915504f1c2dcecd7ca2648113a493a385972e133`.
+  - Base `--mode probe`: 60 runs, ok 59, fail 1. In the failing process all 3 py-spy calls hung, and the stdlib unwinder answered 6 of 6 times in 0.052 to 0.097 s.
+  - Fix `--mode side`: 30 runs, ok 30, with py-spy beside the unwinder hung on 2.
+- CI at ac7353951, same `nightly_ha.py`, read in `verdict/2964` evidence:
+  - `nightly-ha (stable)` passes `hb:positive_control` on try 1, with the sampler section in the stdlib unwinder's format.
+  - `nightly-ha (2025.2.0)` passes, with py-spy's format: the 3.13 floor still samples with py-spy.
+- Scoped gate: `python tests/closure.py select --diff e5ddba1fad5e6eccfeceaeaaa249bc459963405b --workdir <dir>` printed `MODE: SCOPED -- 5 script(s) run, 28 scoped out`. Each ran at this head with `PYTHONPATH=tests/hastub`:
+  - `tests/entities.py`: `ALL 2473 ENTITY CHECKS PASSED`.
+  - `tests/config_flow_steps.py`: `ALL 534 checks PASSED`.
+  - `tests/debug_collect.py`: `ALL 158 DEBUG COLLECT CHECKS PASSED`.
+  - `tests/doc_claims.py`: `ALL 203 checks PASSED`.
+  - `tests/harness_headers.py`: `ALL 112 HARNESS HEADER CHECKS PASSED`.
+- `run.sh`'s `run_always` lines:
+  - `tests/env_drift.py --claims-only e5ddba1fa`: `claims hygiene: ... ok`.
+  - `tests/closure.py selftest`: `ALL 117 closure shrink pins PASSED`.
+  - `tests/layout.py`: `layout self-test: ok`.
+  - `tests/harness_headers.py`: as above.
+- `python tests/structure.py`: `STRUCTURE RATCHET PASSED`.
+
+Instruments: `dev/audit/harnesses/r10_fly_nightly_hb.py` (the group's, with 2f033a59a's `--inproc` arm) and `dev/audit/harnesses/r10_nightly_pyspy_retry_mutants.py` (repaired here). Both are landed in this PR (fixer.md step 18).
+
+Class seams (step 8). The class is every consumer of a name this diff renamed. Round 1's rule read only `tests/nightly_ha.py` and missed the mutant harness. This round's rule reads the whole tree:
+
+    git grep -n -e 'spy_timeout' -e 'PY_SPY_TIMEOUT_S' -e 'py-spy rc=' -e '_py_spy_path' -e 'py_spy=' -e 'py-spy did not run' -- .
+
+At ac7353951 it returns 8 lines outside `dev/audit/rca/`, 6 of them in `r10_nightly_pyspy_retry_mutants.py`. That is the null control: the rule finds the seam the reviewer named. At this head it returns no line in that harness. The lines it returns:
+
+- `dev/audit/rca/nightly-ha-pyspy-timeout.md` (8 lines) and `dev/programme/carries/carry-201.json:105`: records that recount py-spy-era output, left as written (step 10).
+- `dev/audit/harnesses/r10_fly_nightly_hb.py:71`: `echo "blocking py-spy rc=$?"`. This is that harness's own log line for its blocking-py-spy probe, which really is py-spy, so it is correct as written.
+- Consumers that import `tests/nightly_ha.py`, from `git grep -l nightly_ha -- dev/audit/harnesses`: `r10_fly_nightly_hb.py` and the mutant harness (both run above), and `r10_nightly_pyspy_retry.py`. That last one uses only `nightly_ha._stage` (it has no `LoopHeartbeat` or sampler reference), so it is untouched by the rename.
+
+Round 1's in-file dispositions still hold:
+
+- `sample_command` (the 3.13-floor arm): pinned by the sampler-selection check and by M11 / N4.
+- `stage_py_spy` / `_host_py_spy` and the staging call: needed by the floor arm and the harness's `side` mode.
+- The constant comments: true as written.
+- The `SYS_PTRACE` comment in the heartbeat-only launch: it names only py-spy, but the cap equally serves the stdlib unwinder. Wording only, left for the fix reviewer.
 
 ## Red checks
 
-`tests / nightly-status`: this diff touches none of what it reads (`policy_lint.mjs` `REPORTER_INPUTS`: `tests/nightly_status.py`, `tests/delivery_status.py`, `ci.yml`, `tests.yml`, `nightly.yml`, `governance.yml`, the plan, `HANDOVER.md`; it reads nightly.yml run and job records over the API, never `tests/nightly_ha.py` or the roster). Its red grades `main`. Two runs feed it: schedule 40806276912, red on `nightly-ha (stable)` `hb:positive_control`, which is this PR's subject; and the later main dispatch 40835853528, red on `slow`, step `Closed-loop simulation`, while its `nightly-ha (stable)` passed, a lane this diff does not touch and the orchestrator's on `main`. The cheaper detector for the `hb:positive_control` red: none deterministic exists. The hang is per HA process and was seen on 1 of 14 runs; the pull-request arm of `nightly-ha` in `tests.yml` runs the same control but catches a per-process hang only by chance, at the cost of one HA boot it already pays. The cause is upstream, py-spy 0.4.2 against CPython 3.14 (owner: the py-spy project); the fix stops depending on it where the interpreter ships its own unwinder. After merge, `gh workflow run nightly.yml --ref main` re-grades `main`.
+`tests / nightly-status`: it reads the last verification dispatch, 40835853528 (head 486e65c), whose only failing job is `slow` (job 123320354392, step "Closed-loop simulation"). Its `nightly-ha (stable)` passed. This diff does not touch the closed-loop simulation, so the check is main-graded and stays red after this merge until main's `slow` lane is green. That red is the orchestrator's on main (`defect-root-cause.md`). This PR is the fix for the earlier red, the scheduled 40806276912's `hb:positive_control`, measured above: base 0 of 3 against a hung py-spy, head 10 of 10. Cheaper detector for that hang: none exists. It depends on py-spy 0.4.2 against the CPython build inside the current HA `stable` image, on a real HA process. The stub suite never runs that process, and the nightly lane is the only detector that does. The `--inproc hung` arm now replays the failure's shape without that process.
+
+Carry 1 (the roster's: "fix the flaky nightly; it turned tests / nightly-status red on every PR that touches what that check reads"). Answered for the flake it was registered on: `hb:positive_control`'s py-spy hang, fixed and measured above. Not answered for the check's present red, which is the `slow` lane's closed-loop simulation in 40835853528. That is a distinct failure this diff does not touch, so `nightly-status` stays red until main's `slow` lane is green.
+
+Round 1 broke the committed mutant harness. A cheaper detector did exist there: the class-seam rule, had it read the tree rather than one file, returns the harness's six lines. This round's rule does (`## Figures`). No CI check runs that harness, so no check went red.
 
 ## Forward-carry
 
-- R10-NIGHTLY-HB-RESPAWN's premise (a respawn rescues a py-spy hang) is changed by this fix: its build is owed only if a `stable` nightly on a main carrying this fix again fails `hb:positive_control` with every try's sampler timed out or rc!=0. Carry: `dev/programme/rosters/wave-r10-groups.json` (R10-NIGHTLY-HB-RESPAWN `carry`, commit d63e5544d on this head). Its figures (4 processes, 24 of 24 probes) are the previous seat's and were not re-taken here. Carry: R10-NIGHTLY-HB-RESPAWN
+- The premise of R10-NIGHTLY-HB-RESPAWN changes. The hang is structural per process; the respawn is owed only if a nightly on a main carrying this fix fails `hb:positive_control` again with every try's sampler timed out or rc!=0. It landed in dev/programme/rosters/wave-r10-groups.json as the group's `carry` (commit d63e5544d). That group inherits the control-power instrument `dev/audit/harnesses/r10_nightly_pyspy_retry_mutants.py`, which runs again at this head (`SUMMARY killed=15 survived=0 null=ok`). Carry: R10-NIGHTLY-HB-RESPAWN
 
 ## Friction
 
-- environment.network: cost: `docker pull homeassistant/home-assistant:stable` returned 429 and `ghcr.io/home-assistant/home-assistant:stable` 403 on the blob host, so the group's container harness modes cannot run in a cloud seat; `--inproc` is the workaround that landed in the group's harness. Carry: dismissed: the harness now runs without the image, and the real HA run is the pull request's own nightly-ha arm
-- fixer.md: unclear: `gh api .../actions/jobs/<id>/logs` is refused here (blob host 403), so job logs came through the MCP `get_job_logs`; the per-job count therefore keys on job conclusion plus the failed job's `FAILED:` line rather than on a `hb:positive_control` line in every log (step 3). Carry: dismissed: the count's rule is written in Figures and the enumerator sees the one failure it counts
+- fixer.md-step6: cost: while this seat worked from its dispatched head ac7353951, another seat's commit 2f033a59a reached `handoff/r10-fly-nightly-hb` and was merged into the PR branch. The first push was refused as non-fast-forward. The seat merged the live branch (no conflict) and re-took every figure at the merged head, rather than overwriting the ref. Carry: dismissed: two seats on one topic is the dispatcher's to sequence; the merge kept both seats' commits
+- fixer.md-step5: cost: the seat's container ships CPython 3.11, which cannot parse the tree, and its Docker daemon is not running. The gate and the harnesses were run in a uv-installed CPython 3.14.6 venv. Carry: dismissed: seat environment cost, not a policy defect
