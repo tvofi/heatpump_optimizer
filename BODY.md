@@ -1,0 +1,80 @@
+R10-CONFIGFLOW-PAGES (Product UX, L), arm D, the group's fourth and last pull request in the approved design's order (`design/R10-CONFIGFLOW-PAGES` `32892dc67`, `dev/programme/designs/R10-CONFIGFLOW-PAGES.md`; approve verdict `design-verdict/R10-CONFIGFLOW-PAGES` `3af84d776`). Arms A and A3' (#2912), B (#2913) and C/C2 (#2915) are merged. This one lands the group's carried tripwires and the review's harness carry, and closes the group's issue.
+
+Closes #2238.
+
+**State at the merge base.** The group's bug and its design moves are already on main, so this branch re-measured them rather than re-making them:
+- D7-s2-56 (the bug the brief puts first): the in-tree harness `dev/audit/harnesses/r10_configflow_pages.py` reads `stale_slots=27` of `stored_rows=30` on main before #2912 (`aa1d6720e`) and `stale_slots=0` at this head. Its null arm (`--null`, nothing cleared) reads `shown_stored=19` on both trees. Its `--clear-required` arm reads `type=menu errors=None stored_price_entity=None` before #2912 and `type=form errors=price_entity_required stored_price_entity='sensor.price'` at this head. The failing test, its mutation proof and its controls are #2912's and are on main.
+- ARCH2-s5-F1: the finder's harness reads `spelled_twice=44`, `other_spelled_twice=20`, and `disagree=2` under `--bump heat_pump_cop_nominal` before #2912; it reads `spelled_twice=0`, `other_spelled_twice=0`, `disagree=0` under the same bump at this head, with `golden_equal=1` on both trees.
+
+**What this diff does (arm D and one carry).**
+- `custom_components/heatpump_optimizer/config_flow.py` imported `device_registry as dr` from `homeassistant.helpers` and never read `dr`. The import goes. `archscore.unused_boundary_imports` reads 1 -> 0, and its row in `tests/ci_budgets.json` is lowered 1 -> 0 (carry `c19-dr`, R10-ARCHSCORE-COVERAGE part 3).
+- `archscore.literal_clone_copies` is re-recorded 186 -> 123 in `tests/ci_budgets.json` (carry `literal-clones`, R10-ARCHSCORE-COVERAGE part 4). Merge-base figure 123 (measured at `66974d473`, where the row still recorded 186), head figure 123, drop 63 against the recorded row. The tree's drop is #2915's (arms C and C2). `recorded_at` moves to `4b9ee5377`, the commit both rows were measured at, and the commit message `814f944f1` carries the reason. No other row moves.
+- `dev/audit/rounds/round10/D7/arch2-s5/wizard_widgets.py` is the ARCH2-s5-F1 finder's harness, byte-identical to its copy at `3930b421a` (sha1 `66b390554c0aa54c8960eacb532b04ff827ca8cf`). It lands at the finder's own path, as `verdict/2915`'s carry, so a later seat re-runs F1 from the tree. It sits two levels under `D7/`, so it is outside `tests/harness_headers.py`'s `round*/D*/*.py` discovery glob and inside `tests/closure.py`'s `dev/audit/` INERT prefix. `tests/closure.py select` classifies it with no orphan.
+
+Alternatives (fixer step 17): keep the import and leave the tripwire at 1. That keeps a dead boundary import that the tripwire exists to refuse, so it lost. Land the finder's harness under `dev/audit/harnesses/` with a rename. That would break every citation of the finder's path in #2238's register and in the design note, so it lost too.
+
+**Design carries, discharged across the group.** `a3p-test`, `overlay-08` and `grid-connection-flatten` were discharged by #2912. `ledger-rekey` was discharged by #2912 (arm A's eight rows) and #2913 (arm B's two rows). Arm C's five wizard rows keep their anchors. At this head every `tests/mutation_ledger/killed_by/config_flow.py/` row's symbol resolves to a function or class in `config_flow.py`, 103 rows and 0 unresolved, by an AST walk of the module against each row's `symbol`. `dr1-b-c2-conflict` was resolved in #2915's merge. `c19-dr` and `literal-clones` are discharged here. `close-2238` and `dr1-close-2238-disposition` are discharged by the list below.
+
+**#2238's findings, each dispositioned** (the twelve rows of the issue's findings table):
+- D10-s1-51: fixed by #2290 (R10-SERVICES-GUARD).
+- D2-s2-01: fixed by #2365 and #2368 (R10-PUMP-MODEL).
+- D7-s2-01: fixed by #2527 (R10-FREQ-DEFROST).
+- D7-s2-51 (weakened), D7-s2-52, D7-s2-53 and D7-s2-54: fixed by #2379 (R10-SENSOR-PAYLOAD).
+- D7-s2-55: fixed by #2913 (this group, arm B).
+- D7-s2-56: fixed by #2912 (this group, arm A). Re-measured above.
+- D7-s2-57: fixed by #2819 (R10-ARCH-SHAPES).
+- D7-s2-59: fixed by #2282 (R10-TARIFF).
+- D8-s1-01: fixed by #2819 (R10-ARCH-SHAPES). The finder's harness `dev/audit/rounds/round10/D8/s1/f1_active_now.py` reads `heating_now_while_off=0` and `slot_steps_declared_off=0` at this head. The reason-classifier arm #2819 parked (`park/r10-arch-shapes-classifier` `996b54cf1`) is carried to group R10-ARCH-SHAPES-CLASSIFIER, which is queued.
+
+**The issue's 17 beyond-finding sweep instances.** They are not rows of the findings table. The issue body records them as folded into `dev/audit/config/bugclasses.json` (class P2's `instances`, as `R10 sw:<file>::<symbol>`), where each still stands. Their state at this head:
+- The six with a probe (`classify_space_steps.threshold`, `classify_dhw_steps.threshold`, `FrequencyMap.recommend`, `FrequencyMap.evidence_exhausted`, `_async_learn_buffer_cooling.heating`, `_observe_frequency.watch_active`) still disagree with the owner `thermal_model.planned_draw_runs` on the 0.07 kW step. The finder's `probes_p2.py` stops at its sixth probe at this head with `NameError: name 'defrost_interval' is not defined`, because #2527 extended that predicate. A scratch copy that stops before evaluating the sixth reads `probes_failed=5` of `probes_total=5`. It prints the sixth predicate as `self._commanded_power() > 0.05 and reported >= hz_min and (not defrost_interval(...))`, which keeps the 0.05 copy. The two classifier instances are the parked arm above. The other four are carried below.
+- The eleven clone classes (#7, #16, #17, #18, #30, #31, #32, #36, #39, #40, #41) are P2's F5 family. The enumerator `enumerate_p2.py` reads `F5_clone=24` and `F1_run_threshold=13` at this head. These are carried below.
+
+## Head
+
+`814f944f182c72f218702b1945109c503f290f1d`, branch `handoff/r10-configflow-pages`. Its merge base is `origin/main` `66974d47312caa46e9817b9aeae7186e9764e560`, which was still `origin/main`'s tip at 2026-10-29T09:24Z. Two commits: `4b9ee5377` (the import and the harness) and `814f944f1` (the two budget rows). Every figure was taken at this head, three-dot against `66974d473`, with the seat venv's Python 3.14.7 first on `PATH` and `PYTHONPATH=tests/hastub`. Figures for "before #2912" were taken from a detached checkout of `aa1d6720e` (main's parent of the #2912 merge `ba19d13c4`), with the same harness files copied in.
+
+## Mutation proof
+
+The fix is the dropped import, and its check is the CI ratchet's grade of `tests/ci_budgets.json`. Restoring the import line (`from homeassistant.helpers import device_registry as dr, entity_registry as er, selector`) on this head and grading with `tests/ci_ratchet.py`'s own `compare()` over `archscore_metrics()` printed `GREW  archscore.unused_boundary_imports: 1 (budget 0)` and `grew 1`. At this head it prints `ok    archscore.unused_boundary_imports: 0 (budget 0)` and `grew 0`. The file was restored with `git checkout`, and `git status --short` printed nothing. The `ci-ratchet` job runs the same `compare` in `tests/ci_ratchet.py`'s `main`.
+
+The `literal_clone_copies` row is a downward re-record of a value the tree already measures, so no production line backs it. Its mutation is any new spelled-twice literal, which the same `compare` refuses as growth past 123.
+
+## Null control
+
+- `archscore.unused_boundary_imports`: 1 at the merge base `66974d473` (`vector.measure`), against main's budget of 1. It is 0 at this head. The mutant above, which restores the merge base's line, reads 1 again.
+- `archscore.literal_clone_copies`: 123 at the merge base and 123 at this head. This diff moves no literal.
+- `python3 tools/audit/archscore/score.py --diff 66974d473` reads `Architecture score: dS +0.0000 NULL`, and its one moved line is `unused_boundary_imports 1 -> 0  (gate only)`.
+- D7-s2-56's harness null arm (`--null`) reads `shown_stored=19` before #2912 and at this head.
+
+## Figures
+
+- `PYTHONPATH=tests/hastub python3 dev/audit/harnesses/r10_configflow_pages.py`: `RESULT pages=9 rejected=9 stored_rows=30 stale_slots=27` before #2912; `RESULT pages=9 rejected=9 stored_rows=30 stale_slots=0` at this head.
+- `PYTHONPATH=tests/hastub python3 dev/audit/harnesses/r10_configflow_pages.py --null`: `RESULT pages=9 rejected=7 stored_rows=30 shown_stored=19` on both trees.
+- `PYTHONPATH=tests/hastub python3 dev/audit/harnesses/r10_configflow_pages.py --clear-required`: `RESULT type=menu errors=None stored_price_entity=None` before #2912; `RESULT type=form errors=price_entity_required stored_price_entity='sensor.price'` at this head.
+- `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/arch2-s5/wizard_widgets.py --all` (sha1 `66b390554c0aa54c8960eacb532b04ff827ca8cf`): before #2912 `spelled_twice=44`, `other_spelled_twice=20`, `disagree=0`, `golden_equal=1`. At this head `wizard_fields=46`, `in_registry=44`, `spelled_twice=0`, `other_in_registry=20`, `other_spelled_twice=0`, `disagree=0`, `golden_equal=1`.
+- `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/arch2-s5/wizard_widgets.py --bump heat_pump_cop_nominal`: `disagree=2` before #2912 (`DISAGREES building_extras:heat_pump_cop_nominal`, `DISAGREES thermal:heat_pump_cop_nominal`); `disagree=0` at this head.
+- `vector.measure` from `tools/audit/archscore/vector.py`, at the merge base `66974d473`: `unused_boundary_imports 1`, `literal_clone_copies 123`; at `4b9ee5377` and at this head: `0`, `123`.
+- `tests/ci_budgets.json` rows, from `git diff 66974d473...HEAD -- tests/ci_budgets.json`: `archscore.unused_boundary_imports` 1 -> 0, `archscore.literal_clone_copies` 186 -> 123, `recorded_at` `fd7e289d0` -> `4b9ee5377`, `reason` rewritten. Four lines.
+- `tests/ci_ratchet.py`'s `budget_problems()` over the new table prints `[]`.
+- `python3 tools/audit/archscore/score.py --diff 66974d473`: `Architecture score: dS +0.0000 NULL`, `unused_boundary_imports 1 -> 0  (gate only)`.
+- `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`. No structural budget moves.
+- `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D8/s1/f1_active_now.py`: `heating_now_while_off=0`, `slot_steps_declared_off=0`, `snapshots=36`, `steps=192` at this head.
+- `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-P2/enumerate_p2.py`: `F1_run_threshold=13`, `F2_learner_gate=8`, `F3_cop_law_fork=2`, `F4_entry_resolve=0`, `F5_clone=24`, `F6_hour_clock=2`, `F7_scrub_mixin=1`, `seams_total=50` at this head.
+- `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-P2/probes_p2.py` exits with `NameError: name 'defrost_interval' is not defined` at its sixth probe at this head. A scratch copy that stops before evaluating the sixth reads `probes_failed=5`, `probes_total=5`.
+- The scoped gate: `python3 tests/closure.py select --diff 66974d473` prints `MODE: SCOPED -- 13 script(s) run, 20 scoped out`, with three changed files. `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=66974d473 ./tests/run.sh`: `15 TEST SCRIPT(S) PASSED; 19 SCOPED OUT AND NOT RUN`, rc 0, with `ALL 2470 ENTITY CHECKS PASSED`, `ALL 534 checks PASSED` (`tests/config_flow_steps.py`), `ALL 18 ARCHITECTURE SCORE HEAD CHECKS PASSED`, `ALL 112 HARNESS HEADER CHECKS PASSED` and `STRUCTURE RATCHET PASSED`. The `FAIL` lines in its log are self-test fixtures inside passing scripts. The mutation proof's few-second restore of the import fell inside this run, and that line is the merge base's own text, which passes the same scripts on main.
+- Release files: `git diff --name-only 66974d473...HEAD -- VERSION RELEASE_NOTES.md custom_components/heatpump_optimizer/manifest.json tests/golden/claimed_drift.txt tests/golden/card_claimed_drift.txt` prints nothing.
+- Three-dot diffstat: `git diff --stat 66974d473...HEAD` reads `3 files changed, 162 insertions(+), 5 deletions(-)`.
+
+## Red checks
+
+none. No check has run on this head yet, and `python3 tools/pr/ci_predict.py --base origin/main` prints `CI PREDICT: no closures, fast, wave-script or instrument red predicted against 66974d47312c (a data-file read is not seen)`.
+
+## Forward-carry
+
+- The four probed P2 sweep instances that no group owns (`FrequencyMap.recommend`, `FrequencyMap.evidence_exhausted`, `_async_learn_buffer_cooling.heating`, `_observe_frequency.watch_active`) decide "the plan runs this step" with a 0.05 copy, where the owner `thermal_model.planned_draw_runs` uses `MIN_RUNNING_DRAW_KW`. That is D8-s1-01's fact, and the parked classifier arm is the same move, so they are routed to that group. It lands in `dev/programme/rosters/wave-r10-groups.json`, group R10-ARCH-SHAPES-CLASSIFIER. Carry: R10-ARCH-SHAPES-CLASSIFIER
+- The eleven F5 clone-class sweep instances of #2238 (#7, #16, #17, #18, #30, #31, #32, #36, #39, #40, #41) have no owning group. They stay as class P2's instances in `dev/audit/config/bugclasses.json`, which round 11's D14 sweep reads. That sweep's `probes_p2.py` no longer evaluates its sixth probe (it predates `defrost_interval`, added by #2527), so the next run must bind that name or re-extract the predicate. This changes how round 11's P2 sweep is run. It lands in `dev/programme/rosters/wave-r10-groups.json`, group R10-ROUND-PLAYBOOK. Carry: R10-ROUND-PLAYBOOK
+
+## Friction
+
+- `delivery-status-tracking`: stale: the roster group R10-CONFIGFLOW-PAGES on `handoff/audit-r10-roster` still reads `resume.stage` `not-started`, and the fixer brief told this seat to run D7-s2-56's bug first and then the design's moves, though #2912, #2913 and #2915 had merged all of them. The seat found this from `git log` and re-measured instead of re-making. Carry: R10-CONFIGFLOW-PAGES
