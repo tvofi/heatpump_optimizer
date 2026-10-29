@@ -1,0 +1,13 @@
+diff --git a/.github/workflows/marketplace.yml b/.github/workflows/marketplace.yml
+index 855b2a6b3..edfed8fa7 100644
+--- a/.github/workflows/marketplace.yml
++++ b/.github/workflows/marketplace.yml
+@@ -24,7 +24,7 @@ concurrency:
+ 
+ jobs:
+   hassfest:
+-    uses: ./.github/workflows/hassfest.yml
++    uses: ./.github/workflows/hasfest.yml
+     permissions:
+       contents: read
+   validate:
