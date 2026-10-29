@@ -1,0 +1,6 @@
+origin/main 0265f524e9d4810ee179a58d7f5471151ba1cd22
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/entities.py: merged as a set (38 entries)
+  re-run the gate that owns this file before pushing
+cbeb418996574d36621cea18286046673feef79c
+rc=0

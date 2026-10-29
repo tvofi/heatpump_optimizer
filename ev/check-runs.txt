@@ -1,0 +1,8 @@
+Check runs on 2f8a97c83794d3b583e4456696463e3458f0c732, read from the PR check-runs API at about 01:00Z 2026-10-29 (40 runs).
+failure: governance / delivery-status (123194822704). Log: "DELIVERY STATUS OVERDUE -- 18 rowed, 12 pending, 6 overdue"; every overdue row is another PR (#2926 #2924 #2921 #2910 #2873 #2909); "This check is NOT a required context and a red here blocks no merge."
+in_progress at read: tests / closures, tests / coverage, tests / fast (3.14), governance / instrument-self-tests, codeql / Analyze (python), prelude (run 40796649928); queued: prelude, refresh, cancel-superseded (run 40797501810).
+success: arch-score, budget-raise-gate, codeql actions + js-ts, env-matrix, policy-docs, wave-script, hassfest, arch-instrument, briefs, browser, closure-scope, mutation, nightly-status, typing, validate-hacs, refresh, prelude, cancel-superseded x2.
+neutral: CodeQL. skipped: arm, delivery-status-publish, record, kernel-points, mutation-autofix, mutation-pins, nightly-ha, replay.
+No pr-contract or gate run is listed on this head at read time.
+
+Re-read about 01:15Z (46 runs): tests / closures, tests / coverage and tests / fast (3.14) concluded success. Still in progress: governance / instrument-self-tests (started 00:52:49Z), codeql / Analyze (python), two prelude runs; queued: graders-head-copy, lane-proofs, coverage-ratchet. Skipped: ci-ratchet, closures-autofix, claims-autofix. The only failure is still governance / delivery-status. No pr-contract or gate run listed.
