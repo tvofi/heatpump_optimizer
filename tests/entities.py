@@ -4165,6 +4165,18 @@ _P2_CENSUSES = {
     # runtime-object mixin's included.
     "finite_scrub_resolves_mro": (
         "tests/finite_boundary.py", "a package mixin with runtime base object"),
+    # R10-BUFFER-STORE (#2500): a store capability implemented at one
+    # zoning's seam and silently missing at its sibling -- three arms, so
+    # three entries; the census drives every value of the zoning domain.
+    "zoned_store_valve_live": (
+        "tests/features.py",
+        "zoned store census: the valve moves the tank in every zoning (#2500)"),
+    "zoned_store_cap_live": (
+        "tests/features.py",
+        "zoned store census: the cap books what it refuses in every zoning (#2500)"),
+    "zoned_store_credit_live": (
+        "tests/features.py",
+        "zoned store census: the terminal cost credits the tank in every zoning (#2500)"),
 }
 
 
@@ -18228,6 +18240,10 @@ def _hb_spy_run(*answers: str, rest: float = 0.05) -> tuple[bool, list[dict], in
     with tempfile.TemporaryDirectory() as tmp:
         calls, stub = Path(tmp) / "calls", Path(tmp) / "py-spy"
         cases = "".join(f"  {k}) {_HB_SPY_SAYS[a]} ;;\n" for k, a in enumerate(answers, 1))
+        # `wc` pads its count when it prints no filename column: BSD says
+        # "       1", GNU "1". The case arms need the bare number, or on a BSD
+        # host every call takes the last answer and the multi-answer fixtures
+        # below test nothing.
         stub.write_text(
             f'#!/bin/sh\necho >> "{calls}"\ncase $(wc -l < "{calls}" | tr -d " ") in\n{cases}'
             f"  *) {_HB_SPY_SAYS[answers[-1]]} ;;\nesac\n"

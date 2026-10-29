@@ -244,8 +244,12 @@ jobs:
     runs-on: ubuntu-latest
     # 20, not 10: the seat self-tests below add about four minutes run
     # serially on a seat (pr_args.sh's runs three times, through open_pr.sh
-    # and update_pr.sh), beside the job's three.
-    timeout-minutes: 20
+    # and update_pr.sh), beside the job's three. 30, not 20: beatd.py's
+    # self-test is sleep-bound; with its mutants run serially this job took
+    # 26 min at #2916's ad1ba9adb. They now run four at a time
+    # (MUTANT_WORKERS), the self-test about 4.5 min, so the job is about
+    # 21 min of 30 (#2873's, without it, ran 16.5).
+    timeout-minutes: 30
     env:
       HPO_JOB_GRADES: nothing
     steps:
@@ -820,6 +824,13 @@ jobs:
           set -o pipefail
           bash tools/audit/seat/heartbeat.sh --self-test | tee "$RUNNER_TEMP/heartbeat-self-test.txt"
           grep -Eq '^heartbeat self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/heartbeat-self-test.txt"
+
+      - name: Show the supervised beat refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/beatd.py --self-test | tee "$RUNNER_TEMP/beatd-self-test.txt"
+          grep -Eq '^beatd self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/beatd-self-test.txt"
 
       - name: Show the PR updater (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures
         if: ${{ !cancelled() }}
