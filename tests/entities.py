@@ -19390,6 +19390,9 @@ _NON_GATE_WORKFLOWS = [
     ".github/workflows/pr-contract.yml",
     # Decision 0013 as amended: the budget-raise gate, read for its wiring pins.
     ".github/workflows/budget-raise-gate.yml",
+    # #2965 C5: the weekly caller of hassfest.yml and validate.yml, read for
+    # its wiring pin below.
+    ".github/workflows/marketplace.yml",
 ]
 for _wf in _NON_GATE_WORKFLOWS:
     R.check(
@@ -20094,6 +20097,80 @@ R.check(
         for _wf in [*_NON_GATE_WORKFLOWS, _GOV_WF, _REL_WF]),
     str({_wf: _closure.affected([_wf])["case"]
          for _wf in [*_NON_GATE_WORKFLOWS, _GOV_WF, _REL_WF]}),
+)
+
+# --- the Marketplace validators on a clock (#2965 C5) -----------------------
+#
+# hassfest.yml and validate.yml run under ci.yml only when the prelude's
+# workset names them, so marketplace.yml calls both on a schedule for the
+# catalog PR to link a current run against main. Read from the parsed file:
+# a cron firing at least weekly (any day-of-month and month, so it fires every
+# week) and `workflow_dispatch`, nothing else; exactly the two callers, each
+# `uses:` its own stem's existing file (ci.yml's naming rule) with
+# `contents: read` alone and no inputs or secrets, so the job bodies, pinned
+# SHAs and hassfest's pull retry are CI's own; no `continue-on-error` at the
+# caller, so a scheduled red is a failed run. The design choice it encodes: a
+# separate caller rather than a `schedule` on ci.yml, whose triggers are pinned
+# above and whose every unit a schedule would run.
+_MP_PATH = Path(".github/workflows/marketplace.yml")
+_MP_TEXT = _MP_PATH.read_text() if _MP_PATH.is_file() else ""
+_MP_UNITS = ("hassfest", "validate")
+
+
+def _mp_defects(text: str) -> "list[str]":
+    doc = _yaml.safe_load(text) or {}
+    on = doc.get(True, doc.get("on"))
+    out = []
+    if not isinstance(on, dict) or set(on) != {"schedule", "workflow_dispatch"}:
+        return [f"triggers {sorted(map(str, on or {}))} (want schedule, workflow_dispatch)"]
+    crons = [str((s or {}).get("cron", "")).split() for s in on.get("schedule") or []]
+    if not crons or any(len(c) != 5 or c[2:4] != ["*", "*"] for c in crons):
+        out.append(f"schedule {crons} does not fire every week")
+    if doc.get("permissions") != {}:
+        out.append(f"top-level permissions {doc.get('permissions')} (want {{}})")
+    jobs = doc.get("jobs") or {}
+    if set(jobs) != set(_MP_UNITS):
+        out.append(f"jobs {sorted(jobs)} (want {list(_MP_UNITS)})")
+    for j in _MP_UNITS:
+        job = jobs.get(j) or {}
+        uses = job.get("uses")
+        if uses != f"./.github/workflows/{j}.yml" or not Path(str(uses)).is_file():
+            out.append(f"{j}: uses {uses}")
+        if job.get("permissions") != {"contents": "read"}:
+            out.append(f"{j}: permissions {job.get('permissions')}")
+        extra = set(job) - {"uses", "permissions"}
+        if extra:
+            out.append(f"{j}: also sets {sorted(extra)}")
+    return out
+
+
+_MP_DEFECTS = _mp_defects(_MP_TEXT)
+# Null controls: each mutation below must be named, so a reader that compares
+# nothing fails.
+_MP_PLANTS = {
+    "a wrong workflow path": _MP_TEXT.replace(
+        "uses: ./.github/workflows/hassfest.yml", "uses: ./.github/workflows/hasfest.yml", 1),
+    "a caller off its stem": _MP_TEXT.replace(
+        "uses: ./.github/workflows/validate.yml", "uses: ./.github/workflows/hassfest.yml", 1),
+    "no schedule": _MP_TEXT.replace("  schedule:\n", "  push:\n", 1),
+    "a monthly cron": _MP_TEXT.replace('* * 1"', '1 * 1"', 1),
+    "a red hidden": _MP_TEXT.replace(
+        "    uses: ./.github/workflows/validate.yml\n",
+        "    uses: ./.github/workflows/validate.yml\n    continue-on-error: true\n", 1),
+    "a widened grant": _MP_TEXT.replace(
+        "      contents: read\n  validate:", "      contents: write\n  validate:", 1),
+    "secrets inherited": _MP_TEXT.replace(
+        "    uses: ./.github/workflows/hassfest.yml\n",
+        "    uses: ./.github/workflows/hassfest.yml\n    secrets: inherit\n", 1),
+}
+_MP_PLANT_MISSED = sorted(k for k, t in _MP_PLANTS.items()
+                          if t == _MP_TEXT or not _mp_defects(t))
+R.check(
+    "marketplace.yml runs CI's own hassfest and validate units weekly and on "
+    "dispatch, read-only, a red never hidden (#2965 C5)",
+    bool(_MP_TEXT) and not _MP_DEFECTS and not _MP_PLANT_MISSED,
+    f"defects={_MP_DEFECTS} plants the reader missed={_MP_PLANT_MISSED}; the "
+    "catalog PR links a current passing run of both against main",
 )
 
 # --- what the closure RECORDER sees: child processes (R9 D14-s5-01) --------
