@@ -1,3 +1,5 @@
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7
+R10-COP-PARTLOAD: price the compressor's power in COP, off by default
 R10-COP-PARTLOAD: price the compressor's power in COP, off by default
 
 `ThermalModel.compute_cop` priced a heat pump's efficiency from outdoor
@@ -22,7 +24,7 @@ forward-carried inverse conversions.
 
 ## Head
 
-`8ecde5f26aaf89d95da32c64e6ca736846479ab8` merges the authored code head `2b215e01ecdb0a818f0658a8f539cd5bea3fad29` and then merges origin/main `6493ea362` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
+`9b24795b242862ac8ea4f5f9f1c798cf087fbde7` merges the authored code head `3dbefe25f95cfb70b03e6455cfc0aa320537e173` and then merges origin/main `279578074` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
 
 `e0b5805a07e761ec56648b4320322f81496eb574` is the authored code head, pushed to `handoff/r10-cop-partload`. It is
 five commits on the PR head `ea4630ace` (round 1's code head `c221d2ac4`
@@ -249,6 +251,8 @@ does not fire there.
 
 ## Red checks
 
+- `tests / nightly-status`: grades `main`'s scheduled Nightly, not this branch; this diff touches none of what it reads (its scripts, `ci.yml`, `tests.yml`, `nightly.yml`, `governance.yml`, the plan, `HANDOVER.md`), so by `defect-root-cause.md` its red is the orchestrator's on `main` and owes no answer here.
+
 Lines naming `ad2bf7fd6` were re-run there on this arm64 host (the two
 later commits are a ledger deletion and `c221d2ac4`, which spells three
 sites' product `cop * heat_per_cop_kw(...)`, the value `delivered_heat_kw`
@@ -366,4 +370,5 @@ Architecture score: dS +0.0000 NULL (`python3 tools/audit/archscore/score.py
 --diff origin/main`, origin/main `e8cb7e683`, at `5599dcd19` before the payment,
 at `2f082ee3b` after it, at `54437ac84`, and at `ad2bf7fd6` against origin/main
 `edd7e0e14`; all four print the same line).
+
 

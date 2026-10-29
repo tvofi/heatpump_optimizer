@@ -1,0 +1,72 @@
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/config_flow.py:125:    CONF_HEAT_PUMP_MAX_POWER,
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/config_flow.py:126:    CONF_HEAT_PUMP_MIN_POWER,
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/config_flow.py:127:    CONF_HEAT_PUMP_COP_PARTLOAD_DERATE,
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/config_flow.py:882:def _power_errors(
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/config_flow.py:887:        candidate, current, CONF_HEAT_PUMP_MIN_POWER, DEFAULT_HEAT_PUMP_MIN_POWER
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/config_flow.py:889:        candidate, current, CONF_HEAT_PUMP_MAX_POWER, DEFAULT_HEAT_PUMP_MAX_POWER
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/config_flow.py:891:        return {CONF_HEAT_PUMP_MIN_POWER: "min_power_above_max"}
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/config_flow.py:895:def _partload_errors(
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/config_flow.py:901:    derate = _effective(candidate, current, CONF_HEAT_PUMP_COP_PARTLOAD_DERATE, 0.0)
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/config_flow.py:903:        _effective(candidate, current, CONF_HEAT_PUMP_MIN_POWER, DEFAULT_HEAT_PUMP_MIN_POWER),
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/config_flow.py:904:        _effective(candidate, current, CONF_HEAT_PUMP_MAX_POWER, DEFAULT_HEAT_PUMP_MAX_POWER),
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/config_flow.py:907:        return {CONF_HEAT_PUMP_COP_PARTLOAD_DERATE: "partload_derate_above_limit"}
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/config_flow.py:1700:    _F("thermal_model", CONF_HEAT_PUMP_MAX_POWER, _SUGGESTED, _number(1, 20, 0.5, 'kW')),
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/config_flow.py:1701:    _F("thermal_model", CONF_HEAT_PUMP_MIN_POWER, _SUGGESTED, _number(0, 10, 0.5, 'kW')),
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/config_flow.py:1702:    _F("thermal_model", CONF_HEAT_PUMP_COP_PARTLOAD_DERATE, _SUGGESTED, _number(0, MAX_HEAT_PUMP_COP_PARTLOAD_DERATE, 0.01)),
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/config_flow.py:2005:    CONF_HEAT_PUMP_MAX_POWER: DEFAULT_HEAT_PUMP_MAX_POWER,
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/config_flow.py:2006:    CONF_HEAT_PUMP_MIN_POWER: DEFAULT_HEAT_PUMP_MIN_POWER,
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/config_flow.py:2175:    if {CONF_HEAT_PUMP_MIN_POWER, CONF_HEAT_PUMP_MAX_POWER} & saved.keys():
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/config_flow.py:2177:            _power_errors(saved, current) or _partload_errors(saved, current)
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/config_flow.py:2800:            errors = _power_errors(user_input, self._data)
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/config_flow.py:2817:            errors = _power_errors(user_input, self._data)
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/config_flow.py:3235:            errors = _power_errors(user_input, current) or _partload_errors(user_input, current)
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/modbus_prefill.py:58:    CONF_HEAT_PUMP_MAX_POWER,
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/modbus_prefill.py:240:        CONF_HEAT_PUMP_MAX_POWER: (
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/strings.json:77:          "heat_pump_max_power": "Heat pump max power (kW)",
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/strings.json:78:          "heat_pump_min_power": "Heat pump min power (kW)"
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/strings.json:82:          "heat_pump_max_power": "Electrical input at full output. Caps how much cheap electricity can be stored per hour.",
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/strings.json:83:          "heat_pump_min_power": "Lowest electrical input the pump can run at without cycling on and off."
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/strings.json:95:          "heat_pump_max_power": "Heat pump max power (kW)",
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/strings.json:96:          "heat_pump_min_power": "Heat pump min power (kW)",
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/strings.json:107:          "heat_pump_max_power": "Electrical input at full output. Caps how much cheap electricity can be stored per hour.",
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/strings.json:108:          "heat_pump_min_power": "Lowest electrical input the pump can run at without cycling on and off.",
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/strings.json:345:          "heat_pump_max_power": "Heat pump max power (kW)",
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/strings.json:364:          "heat_pump_max_power": "The pump's unit capacity register, in kW of heat, divided by the nominal COP in force.",
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/strings.json:992:          "heat_pump_max_power": "Heat pump max power (kW)",
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/strings.json:993:          "heat_pump_min_power": "Heat pump min power (kW)",
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/strings.json:1003:          "heat_pump_max_power": "Electrical input at full output. Caps how much cheap electricity can be stored per hour.",
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/strings.json:1004:          "heat_pump_min_power": "Lowest electrical input the pump can run at without cycling on and off.",
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/strings.json:1468:          "heat_pump_max_power": "Heat pump max power (kW)",
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/strings.json:1489:          "heat_pump_max_power": "The pump's unit capacity register, in kW of heat, divided by the nominal COP in force.",
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/translations/en.json:77:          "heat_pump_max_power": "Heat pump max power (kW)",
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/translations/en.json:78:          "heat_pump_min_power": "Heat pump min power (kW)"
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/translations/en.json:82:          "heat_pump_max_power": "Electrical input at full output. Caps how much cheap electricity can be stored per hour.",
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/translations/en.json:83:          "heat_pump_min_power": "Lowest electrical input the pump can run at without cycling on and off."
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/translations/en.json:95:          "heat_pump_max_power": "Heat pump max power (kW)",
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/translations/en.json:96:          "heat_pump_min_power": "Heat pump min power (kW)",
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/translations/en.json:107:          "heat_pump_max_power": "Electrical input at full output. Caps how much cheap electricity can be stored per hour.",
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/translations/en.json:108:          "heat_pump_min_power": "Lowest electrical input the pump can run at without cycling on and off.",
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/translations/en.json:345:          "heat_pump_max_power": "Heat pump max power (kW)",
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/translations/en.json:364:          "heat_pump_max_power": "The pump's unit capacity register, in kW of heat, divided by the nominal COP in force.",
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/translations/en.json:992:          "heat_pump_max_power": "Heat pump max power (kW)",
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/translations/en.json:993:          "heat_pump_min_power": "Heat pump min power (kW)",
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/translations/en.json:1003:          "heat_pump_max_power": "Electrical input at full output. Caps how much cheap electricity can be stored per hour.",
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/translations/en.json:1004:          "heat_pump_min_power": "Lowest electrical input the pump can run at without cycling on and off.",
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/translations/en.json:1468:          "heat_pump_max_power": "Heat pump max power (kW)",
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/translations/en.json:1489:          "heat_pump_max_power": "The pump's unit capacity register, in kW of heat, divided by the nominal COP in force.",
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/translations/sv.json:77:          "heat_pump_max_power": "Värmepump max effekt (kW)",
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/translations/sv.json:78:          "heat_pump_min_power": "Värmepump min effekt (kW)"
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/translations/sv.json:82:          "heat_pump_max_power": "Eleffekt vid full drift. Sätter taket för hur mycket billig el som kan lagras per timme.",
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/translations/sv.json:83:          "heat_pump_min_power": "Lägsta eleffekt pumpen klarar utan att börja starta och stanna."
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/translations/sv.json:95:          "heat_pump_max_power": "Värmepump max effekt (kW)",
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/translations/sv.json:96:          "heat_pump_min_power": "Värmepump min effekt (kW)",
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/translations/sv.json:107:          "heat_pump_max_power": "Eleffekt vid full drift. Sätter taket för hur mycket billig el som kan lagras per timme.",
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/translations/sv.json:108:          "heat_pump_min_power": "Lägsta eleffekt pumpen klarar utan att börja starta och stanna.",
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/translations/sv.json:345:          "heat_pump_max_power": "Värmepump max effekt (kW)",
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/translations/sv.json:364:          "heat_pump_max_power": "Pumpens register för enhetens kapacitet, i kW värme, delat med den nominella COP som gäller.",
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/translations/sv.json:992:          "heat_pump_max_power": "Värmepump max effekt (kW)",
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/translations/sv.json:993:          "heat_pump_min_power": "Värmepump min effekt (kW)",
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/translations/sv.json:1003:          "heat_pump_max_power": "Eleffekt vid full drift. Sätter taket för hur mycket billig el som kan lagras per timme.",
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/translations/sv.json:1004:          "heat_pump_min_power": "Lägsta eleffekt pumpen klarar utan att börja starta och stanna.",
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/translations/sv.json:1468:          "heat_pump_max_power": "Värmepump max effekt (kW)",
+9b24795b242862ac8ea4f5f9f1c798cf087fbde7:custom_components/heatpump_optimizer/translations/sv.json:1489:          "heat_pump_max_power": "Pumpens register för enhetens kapacitet, i kW värme, delat med den nominella COP som gäller.",
