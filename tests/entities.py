@@ -2758,7 +2758,7 @@ R.check(
 )
 # S2 of #193: zero-state series / headroom / plan math at existing
 # coordinator.py module level. Pins AST location (module FunctionDef,
-# not a class method). `_plan_slots` stays on the class (helper cc>15).
+# not a class method). `_plan_slots` left the class for `plan_slots.py` (P141).
 R.section("S2 zero-state helpers at module level (#193)")
 _s2_mod_fns = {
     n.name
@@ -4058,7 +4058,7 @@ def _p2_registry(sources):
              owners=["inputs.py::state_power_kw", "inputs.py::InputReader.read_power_kw"],
              dispositions={}),
         # D8-s1-01 (R10-ARCH-SHAPES): the draw above which a channel counts as
-        # heating is optimizer.CHANNEL_ACTIVE_KW, and whether a channel heats
+        # heating is thermal_model.CHANNEL_ACTIVE_KW, and whether a channel heats
         # at a step is channel_heating_steps (its own draw above the line, on
         # a step planned_draws_run runs). The plan view's active_now, its slot
         # merge, the DHW schedule sensor's fallback, the space pump's plan
@@ -4068,7 +4068,7 @@ def _p2_registry(sources):
         # dispositioned below.
         dict(fact="channel_active_kw", finding="D8-s1-01",
              match=_p2_match_channel_line,
-             owners=["optimizer.py::channel_heating_steps"],
+             owners=["thermal_model.py::channel_heating_steps"],
              dispositions={
                  "accuracy.py::AccuracyTracker.power_ratio":
                      "the same ratio-denominator floor as delivered_ratio, on "
@@ -19422,6 +19422,9 @@ _NON_GATE_WORKFLOWS = [
     ".github/workflows/pr-contract.yml",
     # Decision 0013 as amended: the budget-raise gate, read for its wiring pins.
     ".github/workflows/budget-raise-gate.yml",
+    # #2965 C5: the weekly caller of hassfest.yml and validate.yml, read for
+    # its wiring pin below.
+    ".github/workflows/marketplace.yml",
 ]
 for _wf in _NON_GATE_WORKFLOWS:
     R.check(
@@ -19907,14 +19910,23 @@ R.check(
 # exits 1 on a rate limit and on a crash alike (P2a's forward-carry). The
 # step's own text is run under bash with a stand-in `python3` printing each
 # outcome, so the classification is measured, not read.
+def _stub_path_env(bindir, **extra: str) -> "dict[str, str]":
+    """This process's environment with ``bindir`` first on PATH and no BASH_ENV.
+
+    Every ``bash -c`` below finds a stand-in by PATH, and bash sources BASH_ENV
+    before the script: a cloud seat's profile there re-prepended its toolchain,
+    so the real ``python3`` shadowed the stand-in at every tree (#2835)."""
+    env = {k: v for k, v in os.environ.items() if k != "BASH_ENV"}
+    return {**env, "PATH": f"{bindir}{os.pathsep}{os.environ.get('PATH', '')}", **extra}
+
+
 def _gs_step_verdict(script: str, stdout: str, rc: int) -> "tuple[int, str]":
     with tempfile.TemporaryDirectory() as d:
         fake = Path(d) / "python3"
         fake.write_text("#!/bin/sh\nprintf '%s' \"$FAKE_OUT\"\nexit \"$FAKE_RC\"\n")
         fake.chmod(0o755)
         p = _subprocess.run(["bash", "-c", script], capture_output=True, text=True, timeout=30,
-                            env={**os.environ, "PATH": f"{d}:{os.environ.get('PATH', '')}",
-                                 "RUN_ID": "123", "FAKE_OUT": stdout, "FAKE_RC": str(rc)})
+                            env=_stub_path_env(d, RUN_ID="123", FAKE_OUT=stdout, FAKE_RC=str(rc)))
     return p.returncode, p.stdout
 
 
@@ -19995,6 +20007,43 @@ R.check(
     f"gate={_closure.is_gate_file(str(_GS_PATH))}; a sweep keyed on its exit "
     "code reads a rate limit as a crash, and one that reads a crash as done "
     "leaves a stale red `gate` unannounced",
+)
+
+
+# The stand-ins hold under a BASH_ENV that re-prepends a toolchain (#2835): a
+# cloud seat's profile there failed U0c and the delivery_status check at every
+# tree. The control proves the planted profile does shadow a stand-in it reaches.
+def _bash_env_reads() -> "tuple[str, str]":
+    with tempfile.TemporaryDirectory() as h:
+        tool, stub = Path(h, "tool"), Path(h, "stub")
+        for d, word in ((tool, "toolchain"), (stub, "stand-in")):
+            d.mkdir()
+            (d / "python3").write_text(f"#!/bin/sh\necho {word}\n")
+            (d / "python3").chmod(0o755)
+        prof = Path(h, "profile.sh")
+        prof.write_text(f'export PATH="{tool}:$PATH"\n')
+        control = _subprocess.run(["bash", "-c", "python3"], capture_output=True, text=True, timeout=30,
+                                  env={**os.environ, "PATH": f"{stub}:{os.environ.get('PATH', '')}",
+                                       "BASH_ENV": str(prof)}).stdout.strip()
+        held = os.environ.get("BASH_ENV")
+        os.environ["BASH_ENV"] = str(prof)
+        try:
+            _, out = _gs_step_verdict("python3", "stub", 0)
+        finally:
+            if held is None:
+                os.environ.pop("BASH_ENV")
+            else:
+                os.environ["BASH_ENV"] = held
+    return control, out.strip()
+
+
+_BE_CONTROL, _BE_OUT = _bash_env_reads()
+R.check(
+    "a stand-in on PATH wins in a bash -c under a BASH_ENV that re-prepends a toolchain (#2835)",
+    _BE_CONTROL == "toolchain" and _BE_OUT == "stub",
+    f"control={_BE_CONTROL!r} (want 'toolchain': the planted profile shadows a stand-in it reaches) "
+    f"read={_BE_OUT!r} (want the stand-in's 'stub'); a BASH_ENV kept in _stub_path_env lets a seat's "
+    "profile put its python3 ahead of the stand-in, so U0c and delivery_status read red at every tree",
 )
 
 # --- the lane-skip instrument (R9-CI-SKIP) -----------------------------------
@@ -20080,6 +20129,80 @@ R.check(
         for _wf in [*_NON_GATE_WORKFLOWS, _GOV_WF, _REL_WF]),
     str({_wf: _closure.affected([_wf])["case"]
          for _wf in [*_NON_GATE_WORKFLOWS, _GOV_WF, _REL_WF]}),
+)
+
+# --- the Marketplace validators on a clock (#2965 C5) -----------------------
+#
+# hassfest.yml and validate.yml run under ci.yml only when the prelude's
+# workset names them, so marketplace.yml calls both on a schedule for the
+# catalog PR to link a current run against main. Read from the parsed file:
+# a cron firing at least weekly (any day-of-month and month, so it fires every
+# week) and `workflow_dispatch`, nothing else; exactly the two callers, each
+# `uses:` its own stem's existing file (ci.yml's naming rule) with
+# `contents: read` alone and no inputs or secrets, so the job bodies, pinned
+# SHAs and hassfest's pull retry are CI's own; no `continue-on-error` at the
+# caller, so a scheduled red is a failed run. The design choice it encodes: a
+# separate caller rather than a `schedule` on ci.yml, whose triggers are pinned
+# above and whose every unit a schedule would run.
+_MP_PATH = Path(".github/workflows/marketplace.yml")
+_MP_TEXT = _MP_PATH.read_text() if _MP_PATH.is_file() else ""
+_MP_UNITS = ("hassfest", "validate")
+
+
+def _mp_defects(text: str) -> "list[str]":
+    doc = _yaml.safe_load(text) or {}
+    on = doc.get(True, doc.get("on"))
+    out = []
+    if not isinstance(on, dict) or set(on) != {"schedule", "workflow_dispatch"}:
+        return [f"triggers {sorted(map(str, on or {}))} (want schedule, workflow_dispatch)"]
+    crons = [str((s or {}).get("cron", "")).split() for s in on.get("schedule") or []]
+    if not crons or any(len(c) != 5 or c[2:4] != ["*", "*"] for c in crons):
+        out.append(f"schedule {crons} does not fire every week")
+    if doc.get("permissions") != {}:
+        out.append(f"top-level permissions {doc.get('permissions')} (want {{}})")
+    jobs = doc.get("jobs") or {}
+    if set(jobs) != set(_MP_UNITS):
+        out.append(f"jobs {sorted(jobs)} (want {list(_MP_UNITS)})")
+    for j in _MP_UNITS:
+        job = jobs.get(j) or {}
+        uses = job.get("uses")
+        if uses != f"./.github/workflows/{j}.yml" or not Path(str(uses)).is_file():
+            out.append(f"{j}: uses {uses}")
+        if job.get("permissions") != {"contents": "read"}:
+            out.append(f"{j}: permissions {job.get('permissions')}")
+        extra = set(job) - {"uses", "permissions"}
+        if extra:
+            out.append(f"{j}: also sets {sorted(extra)}")
+    return out
+
+
+_MP_DEFECTS = _mp_defects(_MP_TEXT)
+# Null controls: each mutation below must be named, so a reader that compares
+# nothing fails.
+_MP_PLANTS = {
+    "a wrong workflow path": _MP_TEXT.replace(
+        "uses: ./.github/workflows/hassfest.yml", "uses: ./.github/workflows/hasfest.yml", 1),
+    "a caller off its stem": _MP_TEXT.replace(
+        "uses: ./.github/workflows/validate.yml", "uses: ./.github/workflows/hassfest.yml", 1),
+    "no schedule": _MP_TEXT.replace("  schedule:\n", "  push:\n", 1),
+    "a monthly cron": _MP_TEXT.replace('* * 1"', '1 * 1"', 1),
+    "a red hidden": _MP_TEXT.replace(
+        "    uses: ./.github/workflows/validate.yml\n",
+        "    uses: ./.github/workflows/validate.yml\n    continue-on-error: true\n", 1),
+    "a widened grant": _MP_TEXT.replace(
+        "      contents: read\n  validate:", "      contents: write\n  validate:", 1),
+    "secrets inherited": _MP_TEXT.replace(
+        "    uses: ./.github/workflows/hassfest.yml\n",
+        "    uses: ./.github/workflows/hassfest.yml\n    secrets: inherit\n", 1),
+}
+_MP_PLANT_MISSED = sorted(k for k, t in _MP_PLANTS.items()
+                          if t == _MP_TEXT or not _mp_defects(t))
+R.check(
+    "marketplace.yml runs CI's own hassfest and validate units weekly and on "
+    "dispatch, read-only, a red never hidden (#2965 C5)",
+    bool(_MP_TEXT) and not _MP_DEFECTS and not _MP_PLANT_MISSED,
+    f"defects={_MP_DEFECTS} plants the reader missed={_MP_PLANT_MISSED}; the "
+    "catalog PR links a current passing run of both against main",
 )
 
 # --- what the closure RECORDER sees: child processes (R9 D14-s5-01) --------
@@ -25148,8 +25271,8 @@ _multi_run_payload = {
         {"dhw_power": 1.0},
     ],
     # What the coordinator itself builds for this schedule: a three-step
-    # run collapses to one slot, the trailing step is a second (coordinator
-    # _plan_slots, merged on optimizer.channel_heating_steps).
+    # run collapses to one slot, the trailing step is a second
+    # (plan_slots.plan_slots, merged on thermal_model.channel_heating_steps).
     "dhw_plan": {"slots": [{"start": "t0"}, {"start": "t1"}]},
 }
 _dhw_sched_vs_plan = sensor.DHWScheduleSensor(
@@ -28438,10 +28561,9 @@ def _train_hold_status(code: int, body: str, pitch_rc: int = 0, guard_rc: int = 
         out = t / "out"
         out.write_text("")
         p = subprocess.run(["bash", "-c", run or _HOLD_RUN], cwd=t, capture_output=True, text=True,
-                           env={**os.environ, "PATH": str(bin_) + os.pathsep + os.environ["PATH"],
-                                "RUNNER_TEMP": str(t), "GITHUB_OUTPUT": str(out),
-                                "REPO": "o/r", "TOKEN": "t0k", "APPROVER": approver, "NUM": "42",
-                                "EVENT": "push"})
+                           env=_stub_path_env(bin_, RUNNER_TEMP=str(t), GITHUB_OUTPUT=str(out),
+                                              REPO="o/r", TOKEN="t0k", APPROVER=approver, NUM="42",
+                                              EVENT="push"))
         if calls is not None and (t / "calls.log").exists():
             calls.extend(json.loads(x) for x in (t / "calls.log").read_text().splitlines())
         found = re.findall(r"(?m)^status=(\S+)$", out.read_text())
@@ -28853,9 +28975,8 @@ def _pt_trigger(script: str, planted: str) -> str:
         _head = subprocess.run(_g + ["rev-parse", "HEAD"], capture_output=True, text=True, env=_env).stdout.strip()
         _out = Path(_td, ".out")
         subprocess.run(["bash", "-c", script], cwd=_td, capture_output=True, text=True,
-                       env={**os.environ, "BASE": _base, "HEAD": _head,
-                            "PATH": str(_bin) + os.pathsep + os.environ["PATH"],
-                            "RUNNER_TEMP": _td, "GITHUB_OUTPUT": str(_out)})
+                       env=_stub_path_env(_bin, BASE=_base, HEAD=_head,
+                                          RUNNER_TEMP=_td, GITHUB_OUTPUT=str(_out)))
         _m = re.findall(r"^governance=(\w+)$", _out.read_text() if _out.exists() else "", re.M)
         return _m[-1] if len(_m) == 1 else f"outputs={_m}"
 
@@ -28984,8 +29105,7 @@ def _pt_ds_rc(script: str, head_rc: int, base_rc: int,
             (bindir / "git").stat().st_mode & 0o777,
             (bindir / "python").stat().st_mode & 0o777,
         )
-        env = {**os.environ, "PATH": str(bindir) + os.pathsep + os.environ["PATH"],
-               "RUNNER_TEMP": str(root / "rt")}
+        env = _stub_path_env(bindir, RUNNER_TEMP=str(root / "rt"))
         proc = subprocess.run(["bash", "-e", "-c", script], cwd=root, env=env,
                               capture_output=True, text=True)
         return proc.returncode
@@ -39778,6 +39898,143 @@ R.check(
     f"distinct --window-cache arguments per invocation: {sorted(_WC_FILES)}. "
     "An invocation without it walks the window itself (834 calls against 370 "
     "in `record_api_calls.sh`); two different files would share nothing",
+)
+
+# R10-RECORD-API-O1 (dev/audit/rca/ratelimit-recur.md section 5): the two
+# O(window) readers of the GITHUB_TOKEN bucket on every push to main, measured
+# and bounded where the runner reads them. Three properties, each read from the
+# artifact that runs: Nightly's enumerate step prints its own spend (M0's pair,
+# carry 2); the record job's push arm reads `--record` alone, the histogram,
+# filer and sunset running on the weekly schedule, a dispatch and the stamp
+# (decision O-1, carry 1), decided by the window step's own shell, executed
+# here; and the burst replay counts demand as record + enumerate + rest.
+import subprocess as _sp_o1
+import tempfile as _tf_o1
+_O1_NA = _workflow_job(Path(".github/workflows/nightly.yml").read_text(), "record-autofix")
+_O1_STEPS = _O1_NA.split("\n      - ")
+_O1_I = next((i for i, s in enumerate(_O1_STEPS)
+              if s.startswith("name: Enumerate the window's merges")), None)
+
+
+def _o1_m0(step: str, word: str) -> bool:
+    return ("gh api rate_limit" in step and f"RATE_LIMIT enumerate {word}:" in step
+            and "GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}" in step and "|| true" in step)
+
+
+R.check(
+    "Nightly's enumerate step is bracketed by its own M0 pair, the after reading under always()",
+    _O1_I is not None and 0 < _O1_I < len(_O1_STEPS) - 1
+    and _o1_m0(_O1_STEPS[_O1_I - 1], "before") and _o1_m0(_O1_STEPS[_O1_I + 1], "after")
+    and "if: always()" in _O1_STEPS[_O1_I + 1]
+    and not _o1_m0(_O1_STEPS[_O1_I - 1], "after"),
+    "record-autofix's \"Enumerate the window's merges\" reads 1 call a merge on "
+    "GITHUB_TOKEN; without a `gh api rate_limit` reading on each side of it, its "
+    "spend is inferred by splitting interval deltas by step time "
+    "(ratelimit-recur.md section 1.2). The after reading must print when the "
+    "enumeration fails closed, so it carries always()",
+)
+_O1_REC = _workflow_job(Path(".github/workflows/governance.yml").read_text(), "record")
+_O1_RSTEPS = _O1_REC.split("\n      - ")
+_O1_GATE = "steps.window.outputs.report == 'true'"
+
+
+def _o1_if(step: str) -> str:
+    m = _re.search(r"^        if: (.*)$", step, _re.M)
+    return m.group(1) if m else ""
+
+
+_O1_REPORTERS = [s for s in _O1_RSTEPS
+                 if _re.search(r"--(stats|sunset)\b", s) and "--window-cache" in s or "--stats-file" in s]
+_O1_UNGATED = [s.splitlines()[0] for s in _O1_REPORTERS if _O1_GATE not in _o1_if(s)]
+_O1_RECORD = [s for s in _O1_RSTEPS if _re.search(r"--record\b", s) and "--window-cache" in s]
+R.check(
+    "the record job's push arm reads --record alone: --stats, --sunset and the filer wait on the window step's report",
+    len(_O1_REPORTERS) == 3 and not _O1_UNGATED
+    and len(_O1_RECORD) == 1 and _O1_GATE not in _o1_if(_O1_RECORD[0]),
+    f"reporting steps={[s.splitlines()[0] for s in _O1_REPORTERS]}; not gated on `{_O1_GATE}`={_O1_UNGATED}. "
+    "Decision O-1 (ratelimit-recur.md section 4, M3): the histogram's and the "
+    "sunset's 3P reads per push moved to the weekly schedule, a dispatch and the "
+    "stamp; the disposition refusal keeps every push",
+)
+
+
+def _o1_window(event: str, rev: str, root: str) -> dict:
+    step = next(s for s in _O1_RSTEPS if s.startswith("name: Choose the window"))
+    body = step.split("run: |\n", 1)[1]
+    script = "\n".join(l[10:] for l in body.splitlines() if l.startswith("          ") or not l.strip())
+    out = Path(root) / "out.txt"
+    out.write_text("")
+    env = throwaway_git_env()
+    _sp_o1.run(["git", "checkout", "-q", "--detach", rev], cwd=root, check=True, env=env)
+    _sp_o1.run(["bash", "-c", script], cwd=root, check=True, capture_output=True,
+               env={**env, "EVENT": event, "GITHUB_OUTPUT": str(out)})
+    return dict(l.split("=", 1) for l in out.read_text().splitlines() if "=" in l)
+
+
+with _tf_o1.TemporaryDirectory() as _o1_td:
+    _o1_env = throwaway_git_init(_o1_td, "-q", "-b", "main")
+
+    def _o1_git(*a):
+        return _sp_o1.run(["git", *a], cwd=_o1_td, check=True, env=_o1_env,
+                          capture_output=True, text=True).stdout.strip()
+
+    Path(_o1_td, "VERSION").write_text("1.0.0\n")
+    _o1_git("add", "VERSION"); _o1_git("commit", "-q", "-m", "release 1.0.0"); _o1_git("tag", "v1.0.0")
+    _o1_git("commit", "-q", "--allow-empty", "-m", "a merge's work")
+    _o1_plain = _o1_git("rev-parse", "HEAD")
+    Path(_o1_td, "VERSION").write_text("1.0.1\n")
+    _o1_git("commit", "-q", "-am", "release 1.0.1"); _o1_git("tag", "v1.0.1")
+    _o1_stamp = _o1_git("rev-parse", "HEAD")
+    _O1_SEEN = {(ev, which): _o1_window(ev, rev, _o1_td) for ev in ("push", "schedule", "workflow_dispatch")
+                for which, rev in (("plain", _o1_plain), ("stamp", _o1_stamp))}
+_O1_WANT = {
+    ("push", "plain"): ("false", "v1.0.0"), ("push", "stamp"): ("true", "v1.0.0"),
+    ("schedule", "plain"): ("true", "v1.0.0"), ("schedule", "stamp"): ("true", "v1.0.1"),
+    ("workflow_dispatch", "plain"): ("true", "v1.0.0"), ("workflow_dispatch", "stamp"): ("true", "v1.0.1"),
+}
+_O1_GOT = {k: (v.get("report"), v.get("since")) for k, v in _O1_SEEN.items()}
+R.check(
+    "the window step reports on the schedule, a dispatch and the stamp, never an ordinary push",
+    _O1_GOT == _O1_WANT,
+    f"(event, commit) -> (report, since): got {_O1_GOT}, want {_O1_WANT}. An "
+    "ordinary push reads --record alone (O-1); the stamp's own push reports the "
+    "release it closes, so its window is the tag before the stamp, never the "
+    "empty one its own tag opens",
+)
+with _tf_o1.TemporaryDirectory() as _o1_td:
+    _o1_env = throwaway_git_init(_o1_td, "-q", "-b", "main")
+
+    def _o1_at(when: str, *a):
+        return _sp_o1.run(["git", *a], cwd=_o1_td, check=True, capture_output=True, text=True,
+                          env={**_o1_env, "GIT_AUTHOR_DATE": when, "GIT_COMMITTER_DATE": when}).stdout
+
+    _o1_at("2026-01-01T07:00:00Z", "commit", "-q", "--allow-empty", "-m", "release")
+    _o1_at("2026-01-01T07:00:00Z", "tag", "v0.0.1")
+    for _o1_n, _o1_when in ((1, "2026-01-01T08:10:00Z"), (2, "2026-01-01T08:20:00Z")):
+        _o1_at(_o1_when, "checkout", "-q", "-b", f"b{_o1_n}")
+        _o1_at(_o1_when, "commit", "-q", "--allow-empty", "-m", f"work {_o1_n}")
+        _o1_at(_o1_when, "checkout", "-q", "main")
+        _o1_at(_o1_when, "merge", "-q", "--no-ff", "-m", f"Merge pull request #{_o1_n} from o/b{_o1_n}", f"b{_o1_n}")
+    _o1_at("2026-01-01T08:30:00Z", "commit", "-q", "--allow-empty", "-m", "a direct push")
+    _o1_at("2026-01-01T08:30:00Z", "update-ref", "refs/remotes/origin/main", "HEAD")
+    _O1_RUN = _sp_o1.run(
+        [sys.executable, str(Path("dev/audit/harnesses/record_burst_replay.py").resolve()), "v0.0.1",
+         "2026-01-01T08:00:00Z", "2026-01-01T09:00:00Z", "--rest-per-min", "2", "--limit", "100"],
+        cwd=_o1_td, capture_output=True, text=True, env=_o1_env)
+_O1_DEMAND = {m.group(1): tuple(int(x) for x in m.groups()[1:]) for m in _re.finditer(
+    r"^DEMAND (\S+) .*?record (\d+) \+ enumerate (\d+) \+ rest (\d+) = (\d+) of (\d+)", _O1_RUN.stdout, _re.M)}
+# Three pushes over v0.0.1: windows of (W, P, merges) (1,1,1), (2,2,2), (3,2,2).
+# M1's record reads W + 3P a run (4 + 8 + 9), O-1's push arm W (1 + 2 + 3); the
+# enumerate reads one call a merge on every push (1 + 2 + 2), no concurrency
+# group; the rest is the M0 lines' rate over the 60-minute interval (2 x 60).
+R.check(
+    "record_burst_replay counts demand as record + enumerate + rest, never the record job alone",
+    _O1_RUN.returncode == 0
+    and _O1_DEMAND.get("M1") == (21, 5, 120, 146, 100)
+    and _O1_DEMAND.get("O-1") == (6, 5, 120, 131, 100),
+    f"rc={_O1_RUN.returncode}; parsed={_O1_DEMAND}; stderr={_O1_RUN.stderr[-300:]!r}. "
+    "The replay that sized O-1 counted the record job only and underread the "
+    "hour by the enumerate's share (ratelimit-recur.md section 1.2)",
 )
 
 

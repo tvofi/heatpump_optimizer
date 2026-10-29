@@ -158,6 +158,19 @@ MUTANTS = [
      "if files and any(f in claim_files for f in files):"),
     ("merge_train-10", "merge_train.py", "    return lines[1:]\n", "    return lines\n"),
     ("merge_train-11", "merge_train.py", "t.required(pr_head=not a.main)", "t.required()"),
+    # R10-FLOW-MAIN-GATE carries: V142's infra re-run, and #2577's reviewable-head dispatch refusal.
+    ("merge_train-25", "merge_train.py", "                self.infra_rerun(latest_runs(runs), red)\n", ""),
+    ("merge_train-26", "merge_train.py", "        if red and self.infra_rerun(", "        if False and self.infra_rerun("),
+    ("merge_train-27", "merge_train.py", "        if not hit:\n", "        if not hit and not matched:\n"),
+    ("merge_train-28", "merge_train.py", '[lines[i][len("FAIL "):], *lines[i + 1:end]]', '[lines[i][len("FAIL "):]]'),
+    ("merge_train-29", "merge_train.py", "    if attempt != 1 or not failed:", "    if not failed:"),
+    ("merge_train-30", "merge_train.py", 'if code or att.strip() != "1":', "if code:"),
+    ("merge_train-31", "merge_train.py", "            if self.wall() < due:", "            if False:"),
+    ("merge_train-32", "merge_train.py", "all(m and m.group(1) in infra for m in named)", "all(m for m in named)"),
+    ("merge_train-33", "merge_train.py", "    if epochs:\n        return float(", "    if False:\n        return float("),
+    ("bus-1", "bus.sh", "    0|3) ;;\n", "    0|1|3) ;;\n"),
+    ("bus-2", "bus.sh", "    0|3) ;;\n", "    0) ;;\n"),
+    ("bus-3", "bus.sh", '    *) die "dispatch: cannot classify', '    *) : "dispatch: cannot classify'),
     # Round 2: GitHub's merge under a local driver, and the reviewer's R1-R4.
     ("merge_train-12", "merge_train.py",
      '    drivers = text_merge(run)\n    if drivers is None:\n        return None\n',
@@ -223,6 +236,25 @@ MUTANTS = [
     ("prepr-12", "tools/pr/ci_predict.py",
      '"under-scoped", "inert-siblings", "left-inert", "mutation")',
      '"under-scoped", "inert-siblings", "left-inert")'),
+    # R10-ORCH-REVIEW-PACKET (P229, P256): the handoff-not-applied signal, the
+    # handoff refusals and body_push's call of them; body_push-1/2 are graded by
+    # prepr's self-test (STEP_OF), which drives body_push.
+    ("review_packet-1", "review_packet.py",
+     "return None if is_ancestor(tip, head) else", "return None if not is_ancestor(tip, head) else"),
+    ("review_packet-2", "review_packet.py",
+     "        refusals.append(f\"handoff-not-applied: {facts['handoff']}\")\n", "        pass\n"),
+    ("review_packet-3", "review_packet.py",
+     "if not re.search(rf\"\\bcarry", "if False and re.search(rf\"\\bcarry"),
+    ("review_packet-4", "review_packet.py",
+     '[t, t[:-len("-pr")]] if t.endswith("-pr") else [t]', "[t]"),
+    ("review_packet-5", "review_packet.py",
+     '    out += [f"hot-file: {w}" for w in hot]\n', ""),
+    ("body_push-1", "tools/audit/seat/body_push.sh",
+     '  if [ "$prc" = 1 ]; then\n    echo "body_push: the review packet refuses',
+     '  if false; then\n    echo "body_push: the review packet refuses'),
+    ("body_push-2", "tools/audit/seat/body_push.sh",
+     '  if [ "$prc" = 1 ]; then\n    echo "body_push: the review packet refuses',
+     '  if [ "$prc" != 0 ]; then\n    echo "body_push: the review packet refuses'),
     # #2853's review: the class the copy enumeration missed is a link to an
     # in-tree file it does not name. prepr-11 renames a LISTED entry (the
     # pathspec arm); prepr-13 stops the copy taking the generator's own link
@@ -394,7 +426,8 @@ ENV_MUTANTS = [("S04U", "S04", {"PYTHONUNBUFFERED": "1"})]
 
 # A mutant planted in a file whose self-test is another instrument's step.
 STEP_OF = {"prepr-9": "tools/pr/prepr.sh", "prepr-10": "tools/pr/prepr.sh",
-           "prepr-12": "tools/pr/prepr.sh"}
+           "prepr-12": "tools/pr/prepr.sh", "body_push-1": "tools/pr/prepr.sh",
+           "body_push-2": "tools/pr/prepr.sh"}
 
 # The wrappers' own line is the dispatch to the self-tests they delegate.
 # S08's wrapper now runs both tallies (delivery_row.sh's and its own pushes):

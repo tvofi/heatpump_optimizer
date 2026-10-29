@@ -82,6 +82,7 @@ from heatpump_optimizer.tariff import (
     realised_peak,
 )
 from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator as Coord
+from heatpump_optimizer.plan_slots import plan_slots
 from heatpump_optimizer.dhw_learning import DhwProfileLearner
 from heatpump_optimizer.thermal_model import (
     ThermalModel, ThermalParameters, ThermalState, WeatherSeries)
@@ -13185,6 +13186,217 @@ for _race_name, (_race_load, _race_cmd, _race_read, _race_want) in _RACES.items(
         f"raced {_raced!r}, after the read {_null!r}, want {_race_want!r}",
     )
 
+
+# #2248's class (N-restore-race) over the setup refresh: each store read the
+# constructor spawns is held, alone, while the setup refresh runs, then
+# released, and the coordinator must end where it ends when the read lands
+# first. Alone, because the reads land in no fixed order: one held read's
+# fence must not be what shields a writer of another store. Nothing
+# here lists a load or a writer: the stores are the ones the constructor
+# builds, the reads the ones it spawns, and the state compared is whatever a
+# load assigns -- an attribute or a per-coordinator side table -- diffed
+# against a coordinator whose loads never ran. A new load, or a new writer in
+# the setup refresh, is in the census without a row here; #2674's seven leads
+# are a subset. Preconditions: every store built is read at startup, every
+# read has a previous run's payload to land, and the loads assign something.
+# Null control: the same race with every store's fence (async_wait_for_read)
+# removed must differ, or the window reaches no writer and the census is blind.
+import logging as _src_logging  # noqa: E402
+import weakref as _src_weakref  # noqa: E402
+from unittest import mock as _src_mock  # noqa: E402
+
+from homeassistant.helpers import storage as _src_disk  # noqa: E402
+from homeassistant.util import dt as _src_dt  # noqa: E402
+
+from heatpump_optimizer import boost as _src_boost  # noqa: E402
+from heatpump_optimizer import store as _src_store  # noqa: E402
+
+_SRC_T0 = datetime(2026, 3, 10, 12, 0, tzinfo=timezone.utc)
+_src_clock = [_SRC_T0]
+_src_hold: dict = {"event": None, "only": None, "held": set(), "built": set()}
+_SRC_SENSORS = {"sensor.indoor": 21.0, "sensor.outdoor": -3.0, "sensor.dhw": 50.0,
+                "sensor.power": 1.2, "sensor.buffer": 40.0}
+
+
+class _SrcHass(FakeHass):
+    """Runs what the constructor spawns, so its loads are real tasks."""
+
+    def async_create_task(self, coro, *_a, **_k):
+        task = asyncio.ensure_future(coro)
+        self._tasks.append(task)
+        return task
+
+
+_src_real_load, _src_real_init = _src_disk.Store.async_load, _src_disk.Store.__init__
+
+
+async def _src_held_load(self):
+    if _src_hold["event"] is not None and _src_hold["only"] in (None, self._key):
+        _src_hold["held"].add(self._key)
+        await _src_hold["event"].wait()
+    return await _src_real_load(self)
+
+
+def _src_init(self, *a, **k):
+    _src_real_init(self, *a, **k)
+    _src_hold["built"].add(self._key)
+
+
+def _src_coord(hass_type=_SrcHass, sensors=_SRC_SENSORS):
+    hass = hass_type()
+    for entity, value in sensors.items():
+        hass.states.set(entity, FakeState(str(value)))
+    coord = HeatPumpOptimizerCoordinator(hass, FakeEntry(data={
+        "tibber_token": "x", "weather_entity": "weather.home", "dhw_tank_volume": 200.0,
+        "buffer_tank_volume": 300.0, "indoor_temp_entity": "sensor.indoor",
+        "outdoor_temp_entity": "sensor.outdoor", "dhw_temp_entity": "sensor.dhw",
+        "heat_pump_power_entity": "sensor.power", "buffer_tank_temp_entity": "sensor.buffer"}))
+    hour = _src_clock[0].replace(minute=0)
+    coord._prices = [{"total": round(0.6 + 0.5 * (h % 12) / 12, 4), "level": "NORMAL",
+                      "starts_at": (hour + timedelta(hours=h - 26)).isoformat()} for h in range(74)]
+    coord._weather_forecast = [
+        {"datetime": (_src_clock[0] + timedelta(hours=h)).isoformat(), "temperature": -5.0,
+         "wind_speed": 3.0, "precipitation": 0.0, "humidity": 85.0} for h in range(48)]
+
+    async def _no_fetch():
+        return None
+
+    coord._fetch_tibber_prices = coord._fetch_weather_forecast = _no_fetch
+    coord._fetch_solar_forecast = _no_fetch
+    return hass, coord
+
+
+def _src_canon(o, depth=0):
+    """A comparable value: plain data kept, handles and live machinery named."""
+    if o is None or isinstance(o, (bool, int, float, str)):
+        return o
+    if isinstance(o, datetime):
+        return o.isoformat()
+    if isinstance(o, np.ndarray):
+        return tuple(o.ravel().tolist())
+    if depth > 6 or isinstance(o, (_src_disk.Store, _src_logging.Logger, asyncio.Future)):
+        return type(o).__name__
+    if isinstance(o, dict):
+        return tuple(sorted((str(k), _src_canon(v, depth + 1)) for k, v in o.items()))
+    if isinstance(o, (list, tuple)) or type(o).__name__ == "deque":
+        return tuple(_src_canon(v, depth + 1) for v in o)
+    if isinstance(o, (set, frozenset)):
+        return tuple(sorted(repr(_src_canon(v, depth + 1)) for v in o))
+    if type(o).__module__.startswith(("harness", "homeassistant", "asyncio")) or callable(o):
+        return type(o).__name__
+    fields = getattr(o, "__dict__", None)
+    if fields is None:
+        fields = {s: getattr(o, s, None) for s in getattr(type(o), "__slots__", ())}
+    # A ``*_cache`` or ``*_memo`` field memoises what the rest derive: not state a load replaces.
+    return (type(o).__name__, tuple(sorted(
+        (k, _src_canon(v, depth + 1)) for k, v in fields.items() if not k.endswith(("_cache", "_memo")))))
+
+
+def _src_snapshot(coord):
+    out = {k: _src_canon(v) for k, v in vars(coord).items() if k not in ("hass", "entry", "data")}
+    for name, module in sorted(sys.modules.items()):
+        if name.startswith("heatpump_optimizer."):
+            for attr, table in vars(module).items():
+                if isinstance(table, _src_weakref.WeakKeyDictionary):
+                    out[f"{name}.{attr}"] = _src_canon(table.get(coord))
+    return out
+
+
+async def _src_light(coord):
+    coord._skip_solve_once = True
+    await coord._async_update_data()
+
+
+async def _src_previous_run():
+    """A run before the restart: every store it builds ends with a payload."""
+    hass, coord = _src_coord()
+    await asyncio.gather(*hass._tasks)
+    await _src_light(coord)
+    await _src_boost.set_channel(coord, "dhw", True, refresh=False)
+    for cycle in range(1, 5):
+        _src_clock[0] += timedelta(minutes=15)
+        for entity, drop in (("sensor.dhw", 0.6), ("sensor.buffer", 0.5), ("sensor.indoor", 0.05)):
+            hass.states.set(entity, FakeState(str(_SRC_SENSORS[entity] - drop * cycle)))
+        await coord._async_update_data()
+    await coord._dhw_learner.async_save_draws()
+    await coord._async_save_manual_plan()
+
+
+def _src_restart(disk, *, race, refresh=True, only=None):
+    """The restart on ``disk``; ``race`` holds the read of ``only`` (every read
+    when ``None``) across the setup refresh."""
+    _src_disk._DISK.clear()
+    _src_disk._DISK.update(disk)
+    _src_hold["held"], _src_hold["only"] = set(), only
+
+    async def go():
+        _src_hold["event"] = asyncio.Event()
+        hass, coord = _src_coord()
+        loads = list(hass._tasks)
+        refreshing = asyncio.ensure_future(_src_light(coord) if refresh else asyncio.sleep(0))
+        if race:
+            for _ in range(50):
+                await asyncio.sleep(0)
+        _src_hold["event"].set()
+        await asyncio.gather(refreshing, *loads)
+        return coord
+
+    try:
+        return asyncio.run(go())
+    finally:
+        _src_hold["event"] = None
+
+
+async def _src_no_fence(self):
+    return None
+
+
+with _src_mock.patch.object(_src_dt, "now", lambda *a, **k: _src_clock[0]), \
+        _src_mock.patch.object(_src_dt, "utcnow", lambda *a, **k: _src_clock[0]), \
+        _src_mock.patch.object(_src_disk.Store, "async_load", _src_held_load), \
+        _src_mock.patch.object(_src_disk.Store, "__init__", _src_init), \
+        _src_mock.patch.dict(_src_disk._DISK, clear=True), \
+        _src_mock.patch.dict(_src_disk._VERSIONS):
+    asyncio.run(_src_previous_run())
+    _src_disk_then = dict(_src_disk._DISK)
+    _src_clock[0] += timedelta(days=2)
+    _src_hold["built"] = set()
+    _src_fresh = _src_snapshot(_src_coord(FakeHass)[1])
+    _src_assigned = sorted(k for k, v in _src_snapshot(
+        _src_restart(_src_disk_then, race=False, refresh=False)).items() if _src_fresh.get(k) != v)
+    _src_serial = _src_snapshot(_src_restart(_src_disk_then, race=False))
+    _src_held = set(_src_hold["held"])
+    _src_differ = {"fenced": {}, "unfenced": {}}
+    for _src_key in sorted(_src_held):
+        _src_raced = _src_snapshot(_src_restart(_src_disk_then, race=True, only=_src_key))
+        _src_differ["fenced"][_src_key] = [
+            k for k in _src_assigned if _src_raced[k] != _src_serial[k]]
+    _src_differ = {"fenced": {k: v for k, v in _src_differ["fenced"].items() if v}}
+    with _src_mock.patch.object(_src_store.QuarantiningStore, "async_wait_for_read", _src_no_fence):
+        _src_raced = _src_snapshot(_src_restart(_src_disk_then, race=True))
+        _src_unfenced_serial = _src_snapshot(_src_restart(_src_disk_then, race=False))
+    _src_differ["unfenced"] = [
+        k for k in _src_assigned if _src_raced[k] != _src_unfenced_serial[k]]
+
+R.check(
+    "the setup census's preconditions: every store built is read at startup, every read "
+    "lands a previous run's payload, and the loads assign state",
+    _src_hold["built"] == _src_held and _src_held <= set(_src_disk_then) and bool(_src_assigned),
+    f"built {sorted(_src_hold['built'] - _src_held)} unread; "
+    f"{sorted(_src_held - set(_src_disk_then))} without a payload; assigned {_src_assigned}",
+)
+R.check(
+    "no write in the setup refresh is lost to a store read still in flight (#2248, #2674)",
+    _src_differ["fenced"] == {},
+    f"held read -> state that differs from the serial order: {_src_differ['fenced']}",
+)
+R.check(
+    "and the census sees the writers it clears: without the stores' fences, every read held "
+    "at once differs",
+    bool(_src_differ["unfenced"]),
+    f"unfenced differs in {_src_differ['unfenced']}",
+)
+
 # The special cases exist because each has a consequence beyond itself.
 param_coord._house_heat_loss_samples = 50
 param_coord._apply_house_heat_loss_scale(1.8)
@@ -17954,7 +18166,7 @@ R.check(
 )
 
 # D8-s1-01: the space pump's "plan commands heat" is the plan's space-heating
-# steps (optimizer.channel_heating_steps over both channels), not the space
+# steps (thermal_model.channel_heating_steps over both channels), not the space
 # draw against 0.05 kW: a 0.07 kW share on a step the plan runs no pump at
 # commands nothing. Null control: the 0.07 kW share on a step the hot-water
 # share makes run, and the 3 kW steps, still command heat.
@@ -18139,8 +18351,8 @@ _ts = [datetime(2026, 1, 15, 6, 0, tzinfo=UTC) + timedelta(minutes=15 * i) for i
 _space_p = [2.0, 2.0, 0.0, 0.0]
 _dhw_p = [0.0, 3.0, 3.0, 0.0]
 _prices_p = [1.0] * 4
-_sp_slots = Coord._plan_slots(_ts, _space_p, _prices_p, 0.25, other_powers=_dhw_p)
-_dw_slots = Coord._plan_slots(_ts, _dhw_p, _prices_p, 0.25, other_powers=_space_p)
+_sp_slots = plan_slots(_ts, _space_p, _prices_p, 0.25, other_powers=_dhw_p)
+_dw_slots = plan_slots(_ts, _dhw_p, _prices_p, 0.25, other_powers=_space_p)
 R.check(
     "a slot names the other channel's energy in its shared steps, by hand",
     len(_sp_slots) == 1
@@ -18149,7 +18361,7 @@ R.check(
     and _dw_slots[0].get("shared_kwh") == 0.5,
     f"space {_sp_slots}, dhw {_dw_slots}",
 )
-_solo = Coord._plan_slots(
+_solo = plan_slots(
     _ts, [2.0, 2.0, 0.0, 0.0], _prices_p, 0.25,
     other_powers=[0.0, 0.0, 3.0, 3.0],
 )
@@ -18157,7 +18369,7 @@ R.check(
     "no overlap, no key — captures without sharing are unchanged",
     len(_solo) == 1 and "shared_kwh" not in _solo[0],
 )
-_legacy = Coord._plan_slots(_ts, _space_p, _prices_p, 0.25)
+_legacy = plan_slots(_ts, _space_p, _prices_p, 0.25)
 R.check(
     "callers that pass no other channel get the pre-T3b slot, byte for byte",
     _legacy == [{k: v for k, v in _sp_slots[0].items() if k != "shared_kwh"}],
@@ -35329,7 +35541,7 @@ def _db_band(coord, solve_time=_DB_T0):
 # D8-s1-01 (R10-ARCH-SHAPES): the plan view said "heating now" on a step the
 # plan's own on schedule calls off -- active_now read the channel's draw
 # against 0.05 kW, the running rule reads the step's whole ask against
-# MIN_RUNNING_DRAW_KW. Both channels now ask optimizer.channel_heating_steps.
+# MIN_RUNNING_DRAW_KW. Both channels now ask thermal_model.channel_heating_steps.
 # Null control: the rows where the step runs keep their verdicts.
 def _ah_active(space0, dhw0):
     plan = _db_plan(_DB_T0)
@@ -35365,8 +35577,8 @@ _ah_ts = [_DB_T0 + timedelta(minutes=15 * i) for i in range(len(_ah_steps))]
 _ah_in_slot = [
     [any(sl["start"] <= t.isoformat() < sl["end"] for sl in slots) for t in _ah_ts]
     for slots in (
-        Coord._plan_slots(_ah_ts, _ah_sp, [1.0] * 6, 0.25, other_powers=_ah_dw),
-        Coord._plan_slots(_ah_ts, _ah_dw, [1.0] * 6, 0.25, other_powers=_ah_sp),
+        plan_slots(_ah_ts, _ah_sp, [1.0] * 6, 0.25, other_powers=_ah_dw),
+        plan_slots(_ah_ts, _ah_dw, [1.0] * 6, 0.25, other_powers=_ah_sp),
     )
 ]
 R.check(
@@ -35385,7 +35597,7 @@ R.check(
     "(D8-s1-01): a raw draw of 0.07 kW does not say whether the pump runs",
     _ah_sched.native_value is None
     and not hasattr(_ah_sensor, "CHANNEL_ACTIVE_KW")
-    and "threshold" not in _ah_inspect.signature(Coord._plan_slots).parameters,
+    and "threshold" not in _ah_inspect.signature(plan_slots).parameters,
     f"state {_ah_sched.native_value!r}",
 )
 
@@ -60393,9 +60605,9 @@ R.check(
     f"raised {_sw_err}, released {_sw_rel} short, {_sw_rel_full} full",
 )
 
-# HeatPumpOptimizerCoordinator._plan_slots: the other channel's powers and the
+# plan_slots.plan_slots: the other channel's powers and the
 # reasons, both shorter than the slot.
-_sw_slots, _sw_err = _sw_try(lambda: _SwCoord._plan_slots(
+_sw_slots, _sw_err = _sw_try(lambda: plan_slots(
     _sw_ts, [1.0] * _sw_n, [2.0] * _sw_n, 0.25,
     reasons=["cheap_price"] * 2, other_powers=[1.0] * 2,
 ))
