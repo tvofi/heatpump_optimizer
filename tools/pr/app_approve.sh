@@ -54,12 +54,20 @@
 #     or empty CODEOWNERS refuses. Matching errs toward owning, which refuses;
 #   - the head is still <sha> when re-read after minting, just before the POST.
 #
-# THE CARRY (#1667, D13-s1-02). A verdict at V carries to a later head H only
-# when (1) V is an ancestor of H; (2) every first-parent commit V..H is a
-# two-parent merge of a main commit whose tree is git's automatic merge of its
-# parents (`merge-tree`, outside the driver files below), or a single-parent
-# `ci:` commit that changes only those driver files; and
-# (3) the branch's own diff against its merge base with main is byte-identical
+# THE CARRY (#1667, D13-s1-02; R10-REVIEW-CARRY). A verdict at V carries to a
+# later head H only when (1) V is an ancestor of H; (2) every commit
+# `git rev-list V..H --not main` returns is a merge, or a single-parent `ci:`/
+# bot commit confined to the files its subject names -- a merge authors no
+# code of its own, because what it joins is main's history (outside the
+# range) or branch commits (inside it, refused by this clause), so a merge of
+# the branch's own previous head, which is how update_pr.sh re-cuts a head,
+# is no change (tvofi, 2026-10-27: "if there are no code changes, the
+# previous review can be carried"); (3) each merge's tree is git's automatic
+# merge of its parents outside the driver files below, and it resolves each
+# `merge=claimnotes` file to a pure union of its two parents' lines, because
+# a resolution that drops, adds or rewrites a line is content no review
+# measured; and (4) the branch's own diff against its merge base with main is
+# byte-identical
 # at V and at H, read with two relaxations measured over round 9's window
 # (the literal byte rule carried 0 of its 22 re-verification rounds): each
 # hunk header (line numbers, and the function line git reads from above the
@@ -68,10 +76,10 @@
 # `.gitattributes` gives a merge driver are left out, because stamps and CI
 # bots rewrite those on main and required checks grade them at every head.
 # Anything else -- a rewrite, a commit of the branch's own, one changed byte
-# in a hunk or its context -- keeps today's re-review. Condition (3) is the
-# guard; (1) and (2) name the moves it applies to, and a `ci:` subject buys
-# nothing on its own. The evidence gate then reads V, the head the reviewer
-# measured.
+# in a hunk or its context -- keeps today's re-review. Condition (4) is the
+# guard; (1), (2) and (3) name the moves it applies to, and a `ci:` subject
+# buys nothing on its own. The evidence gate then reads V, the head the
+# reviewer measured.
 #
 # THE SECRETS. The key files are `$HPO_IDENTITY_DIR/identity-approver.appid`
 # and `identity-approver.pem` (default directory `~/.zcode`). The JWT and the
@@ -219,7 +227,7 @@ bot_paths() { # subject -> one pathspec per line, nothing for an unknown subject
 
 # carry <verdict sha> <head sha> <main ref>: prints the reason; 0 only on a carry.
 carry() {
-  local v=$1 h=$2 main=$3 c ps ae subj p mv mh t x y b ba bt e
+  local v=$1 h=$2 main=$3 c ps ae subj p mv mh t x y b ba bt e cp got want
   git merge-base --is-ancestor "$v" "$h" 2>/dev/null || { echo "$v is not an ancestor of $h"; return 1; }
   # Read at main, never at a head: a branch that gave a file a driver would
   # otherwise take it out of the comparisons itself.
@@ -229,21 +237,58 @@ carry() {
   t=$(git show "$main:.gitattributes" 2>/dev/null | awk '!/^#/ && / merge=/ {print ":(exclude)" $1}')
   x=()
   while IFS= read -r p; do [ -z "$p" ] || x[${#x[@]}]=$p; done <<<"$t"
+  # The claim files, the one driver whose resolution a human is expected to
+  # write by hand when the driver refuses. Read at main like the list above,
+  # and keyed on the driver NAME, so a branch that gives another file a driver
+  # cannot move it into this check.
+  cp=$(git show "$main:.gitattributes" 2>/dev/null \
+    | awk '!/^#/ {for (i = 2; i <= NF; i++) if ($i == "merge=claimnotes") {print $1; break}}')
   local bots=""
+  # The whole range, not the first-parent chain: a commit the branch merged in
+  # from another branch is branch-authored too, and it is refused below as a
+  # non-merge commit. `--not "$main"` drops main's own history and nothing
+  # else, so what remains is exactly what the branch authored.
   while IFS=$'\t' read -r c ps ae subj; do
     set -- $ps
     if [ $# -ge 2 ]; then
+      # A merge authors no code of its own: what it joins is main's history
+      # (outside this range) or branch commits (inside it, refused above), so
+      # it is no code change whatever its parents are -- including a merge of
+      # the branch's own previous head, which is the shape update_pr.sh
+      # re-cuts a head into (tvofi, 2026-10-27: "if there are no code changes,
+      # the previous review can be carried"). Two things it can still smuggle
+      # in, and both are read below: content its own resolution added, and a
+      # claim file resolved by hand rather than unioned.
       [ $# -eq 2 ] || { echo "$c merges more than one branch"; return 1; }
-      # A parent off main is a head a seat merged main into and handed off,
-      # which update_pr.sh merged in turn (#2876): it carries, or nothing does.
-      git merge-base --is-ancestor "$2" "$main" || e=$(carry "$v" "$2" "$main") \
-        || { echo "$c merges $2, which is not on $main and does not carry: $e"; return 1; }
+      # A parent off main -- a head a seat merged main into and handed off,
+      # which update_pr.sh merged in turn (#2876) -- needs no check of its
+      # own: the range walks into it, so its commits are read here like the
+      # head's, and its own main merge must be automatic too.
       # A hand-resolved merge can move the branch's change to another place
       # with the same context, which the header-free comparison below cannot
-      # see: the merge must be git's own automatic result.
-      t=$(git merge-tree --write-tree --no-messages "$1" "$2" | head -1)
+      # see: the merge must be git's own automatic result outside the driver
+      # files, whose resolutions the next check reads.
+      # The drivers are quiet here on purpose: a claim driver refusing is what
+      # leaves a human the resolution read below, and printing its refusal
+      # beside a CARRY reads as a contradiction of a check that did pass.
+      t=$(git merge-tree --write-tree --no-messages "$1" "$2" 2>/dev/null | head -1)
+      case $t in
+        ""|*[!0-9a-f]*)
+          echo "$c: git merge-tree wrote no tree for its parents"; return 1 ;;
+      esac
       git diff --quiet "$t" "$c" -- . ${x[@]+"${x[@]}"} \
         || { echo "$c is not the automatic merge of its parents"; return 1; }
+      # A claim file is where a driver refusal leaves a human deciding, and a
+      # pure union of both sides is the only resolution that changes nothing:
+      # it carries the branch's note and main's. A line dropped, added or
+      # rewritten is content no review measured, so it is a change.
+      while IFS= read -r p; do
+        [ -z "$p" ] && continue
+        got=$(git show "$c:$p" 2>/dev/null | awk 'NF' | sort -u)
+        want=$({ git show "$1:$p" 2>/dev/null; git show "$2:$p" 2>/dev/null; } | awk 'NF' | sort -u)
+        [ "$got" = "$want" ] \
+          || { echo "$c resolves $p to something other than the union of its parents"; return 1; }
+      done <<<"$cp"
     elif [[ $subj != ci:* ]] && [ -z "$(bot_paths "$subj")" ]; then
       echo "$c is a commit of the branch's own ($subj)"; return 1
     else
@@ -301,7 +346,7 @@ carry() {
         done <<<"$b"
       fi
     fi
-  done < <(git log --first-parent --format='%H%x09%P%x09%ae%x09%s' "$v..$h")
+  done < <(git log --format='%H%x09%P%x09%ae%x09%s' "$v..$h" --not "$main")
   # What a carried bot commit wrote is no part of the branch's own diff.
   # Each path a bot commit added is excluded as a literal, not a pattern: a
   # pathspec is a glob, and git's default `*` matches across `/`, so one added
@@ -319,7 +364,7 @@ carry() {
   norm() { "${d[@]}" "$1" "$2" -- . ${x[@]+"${x[@]}"} | sed -e '/^index /d' -e 's/^@@ .*/@@/'; }
   cmp -s <(norm "$mv" "$v") <(norm "$mh" "$h") \
     || { echo "the branch's own diff differs: $mv..$v against $mh..$h"; return 1; }
-  echo "only automatic merges from $main, ci: commits and the autofix bot's own, and the branch's own diff compares equal"
+  echo "no branch-authored commit in the range, every merge the automatic one with its claim files a pure union of both sides, and the branch's own diff compares equal"
 }
 
 cleanup() {
@@ -1536,6 +1581,61 @@ carried "$H_TOUCH"; st $? 0 "CARRY: a merge from main that shifted the branch's 
 carried "$H_CTX"; st $? 1 "NO CARRY: a merge from main that changed a context line of the branch's hunk"
 ( cd "$W/clone" && bash "$SELF" --carry "$V_A" "$H_A" origin/main ) >/dev/null 2>&1
 st $? 1 "NO CARRY: a driver the branch gave its own file, since drivers are read at main"
+# A merge of the branch's OWN previous head (#2876's shape, R10-REVIEW-CARRY):
+# update_pr.sh re-cuts a head this way, and the merge authors no commit. The
+# rule that refused it required every merge's second parent to be on main.
+( R="$W/recut"; throwaway_git_init "$R" -q -b main && cd "$R" || exit 2
+  printf 'one\ntwo\nthree\n' > f.txt; git add f.txt; git commit -qm m0
+  git checkout -qb fix; sed -i.bak 's/^two$/TWO/' f.txt; rm f.txt.bak; git commit -qam "fix: own"
+  git rev-parse HEAD > ../recut.v
+  git checkout -q main; printf 'main\n' > g.txt; git add g.txt; git commit -qm m1
+  git checkout -q --detach "$(cat ../recut.v)"; git merge -q --no-ff --no-edit main >/dev/null
+  git rev-parse HEAD > ../recut.m
+  git commit-tree "$(git rev-parse "$(cat ../recut.m)^{tree}")" -p "$(cat ../recut.v)" \
+    -p "$(cat ../recut.m)" -m "Merge commit 'x' into fix" > ../recut.h
+  bash "$SELF" --carry "$(cat ../recut.v)" "$(cat ../recut.h)" main ) > "$W/carry.out" 2>&1
+st $? 0 "CARRY: a re-cut merge of the branch's own previous head (#2876's shape)"
+# The claim files, where a driver refusal leaves a human deciding. Only a pure
+# union of both parents' lines changes nothing; a line dropped, added or
+# rewritten is content no review measured. The driver here refuses loudly, as
+# the real one does, so the check also pins that its refusal is not printed
+# beside a carry that passed.
+R="$W/claims"; throwaway_git_init "$R" -q -b main
+( cd "$R" || exit 2
+  git config merge.claimnotes.name claims
+  git config merge.claimnotes.driver 'sh -c "echo FIXTURE-DRIVER-REFUSED >&2; exit 1"'
+  mkdir -p tests/golden
+  printf 'tests/golden/claimed_drift.txt merge=claimnotes\n' > .gitattributes
+  printf '# note\nc1 # one\nc2 # two\n' > tests/golden/claimed_drift.txt
+  git add -A; git commit -qm main0
+  git checkout -qb fix
+  printf '# note\nc1 # one\nc2 # two\nc3 # three\n' > tests/golden/claimed_drift.txt
+  git commit -qam "fix: own"; git rev-parse HEAD > ../claims.v
+  git checkout -q main
+  printf '# note\nc1 # one\nc2 # two\nc4 # four\n' > tests/golden/claimed_drift.txt
+  git commit -qam "main: its own claim" )
+VC=$(cat "$W/claims.v")
+claim_merge() { # the resolved file as a printf format -> the merge commit
+  ( cd "$R" || exit 2
+    git checkout -q --detach "$VC"
+    git merge -q --no-ff --no-edit main >/dev/null 2>&1 || true
+    printf "$1" > tests/golden/claimed_drift.txt
+    git add tests/golden/claimed_drift.txt
+    git commit -q --no-edit
+    git rev-parse HEAD )
+}
+H_CU=$(claim_merge '# note\nc1 # one\nc2 # two\nc3 # three\nc4 # four\n')
+( cd "$R" && bash "$SELF" --carry "$VC" "$H_CU" main ) > "$W/carry.out" 2>&1
+st $? 0 "CARRY: a claim file resolved to the pure union of both sides"
+st "$(grep -c FIXTURE-DRIVER-REFUSED "$W/carry.out")" 0 "with the refusing driver's own words kept out of the carry"
+H_CD=$(claim_merge '# note\nc1 # one\nc2 # two\nc3 # three\n')
+( cd "$R" && bash "$SELF" --carry "$VC" "$H_CD" main ) > "$W/carry.out" 2>&1
+st $? 1 "NO CARRY: a claim resolution that drops a line"
+st "$(grep -c "union of its parents" "$W/carry.out")" 1 "refused as a claim resolution that is not the union"
+H_CR=$(claim_merge '# note\nc1 # one\nc2 # two\nc3 # three, reworded\nc4 # four\n')
+( cd "$R" && bash "$SELF" --carry "$VC" "$H_CR" main ) > "$W/carry.out" 2>&1
+st $? 1 "NO CARRY: a claim resolution that rewrites a line"
+st "$(grep -c "union of its parents" "$W/carry.out")" 1 "refused as a claim resolution that is not the union"
 EVV="$W/ev-v"; mkdir -p "$EVV"; printf 'fix review at head %s\n' "$V" > "$EVV/verdict.md"
 CARRYV="[$(comment 2 "Fix review: merge $V" "$APPR" NONE "evidence: $EVV")]"
 setpr "$H_MERGE"; mkcase carry open false "$H_MERGE" "$CARRYV"

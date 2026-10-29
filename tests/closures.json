@@ -3609,6 +3609,7 @@
    "tools/audit/seat/r10_roster_ops_mutants.py",
    "tools/audit/seat/r10_roster_sync_mutants.py",
    "tools/audit/seat/record_row.py",
+   "tools/audit/seat/review_carry.py",
    "tools/audit/seat/review_packet.py",
    "tools/audit/seat/review_strength.py",
    "tools/audit/seat/roster_lib.py",

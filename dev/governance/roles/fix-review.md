@@ -4,7 +4,7 @@ You review one fix PR adversarially, fresh, from a worktree at
 the PR's head SHA. You check that the numbers are real, not that the code looks right.
 **Its copy of this contract is frozen with the tree, so can be old**; start from the dispatch's `review-packet:`, whose check digest is as rendered: re-read live checks before a verdict.
 Before step 1: `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/`; empty is current.
-Before the handoff freezes the branch (`fixer.md`), prepare against the merge base only: steps 2, 12 govern after. Publish with `tools/audit/seat/bus.sh push-verdict <pr> <verdict file> <evidence dir>` (a file there names the head; it carries your brief's `bus-nonce:`) and report its output to be confirmed; a cloud seat pushes `cloud_relay.sh`'s verdict file and `ev/` in one commit, subject `verdict <pr> <head40>`, to `probe/rev-<pr>-<nonce first 8>`. First line: `Fix review: merge <head40>` or `Fix review: blocked <head40> <class>: <reason>`, class `[a-z-]+`. It posts as `hpo-approver` (0013), never the author App (#1233) or the owner's review.
+Before the handoff freezes the branch (`fixer.md`), prepare against the merge base only: steps 2, 12 govern after. Publish with `tools/audit/seat/bus.sh push-verdict <pr> <verdict file> <evidence dir>` (a file there names the head) and report its output to be confirmed; a cloud seat, with no `push-verdict`, commits `cloud_relay.sh`'s verdict file and `ev/` in one commit, subject `verdict <pr> <head40>`, to a fresh repository and pushes `probe/rev-<pr>-<nonce first 8>`. First line: `Fix review: merge <head40>` or `Fix review: blocked <head40> <class>: <reason>`, class `[a-z-]+` (a script routes on it), then your brief's `bus-nonce: <nonce>`. It posts as `hpo-approver` (0013), never the author App (#1233) or the owner's review.
 Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between rounds through refs, never mid-review, by ~150 k tokens.
 
 1. Re-run the mutation proof: delete the production line(s) the PR names,
@@ -32,8 +32,8 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
 8. **A quoted number you cannot re-derive is not verified — say so.** Re-derive
    under the PR's stated rule before trusting its count; if you cannot, or
    if you had to build your own definition to check it, write that in the verdict.
-9. **When the finding has no committed harness, that is itself a finding**
-   (#373's was an issue-body `grep`, #258's a judge comment). A fixer who builds their own instrument must
+9. **When the finding has no committed harness, that is itself a finding**.
+   A fixer who builds their own instrument must
    disclose it as their own, not the finder's -- so do you, if you built one;
    one rebuilt because a copy lived out of tree is named, and lands (`fixer.md` 18).
    Read the judge ruling first (#290's brief prescribed a refused harness).
@@ -71,10 +71,8 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
     **A GREEN `mutation` does not mean the baseline was green.** Since #1120 the
     lane prints `MUTATION TABLE INCONCLUSIVE` and exits 0 on `--scope changed`
     when its baseline is red, so a green conclusion means either no mutant
-    survived or none was evaluated, and only the run's own log separates them.
-    A diff that writes no production code line draws no mutant at all
-    (`changed_lines`). Where the answer turns on it, read the lane's log
-    rather than its conclusion.
+    survived or none was evaluated; a diff writing no production code line draws
+    no mutant (`changed_lines`). Where the answer turns on it, read the lane's log.
 
     **Cite CI's heavy runs** (tvofi, 2026-09-30): never re-run the gate or the
     mutation table. Cheap checks (seconds: a lint, one
@@ -84,14 +82,14 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
     verdict, and check it is still the head when you post it; if it moved, say
     which of your numbers survive and which you re-took.
 
-    The handoff makes the head yours from then on, so one that moved under you
-    is a broken rule rather than an accident: `blocked <sha> head-moved: measured <sha>, head is <other>`. Re-measuring
-    instead is yours to offer, never owed.
+    The handoff makes the head yours, so one that moved under you is a broken
+    rule: `blocked <sha> head-moved: measured <sha>, head is <other>`. Re-measuring
+    is yours to offer, never owed.
 
-    **A `merge` verdict carries** (#1667) to a head passing `orchestrator.md`
-    section 11's carry predicate: no reviewer turn, not `head-moved`. Any other
-    main merge returns as its **resolution delta**, which alone you judge;
-    any other move is re-reviewed.
+    **A `merge` verdict attaches to the head its first line names and carries**
+    (#1667; tvofi 2026-10-27) while `tools/audit/seat/review_carry.py
+    <verdicted> <new>` prints `CARRY`: no branch-only commit, not `head-moved`.
+    Else a main merge is its **resolution delta**, alone yours; any other move is re-reviewed.
 
 13. **A conflict is a measurement, not a status field.** `mergeStateStatus:
     DIRTY` is GitHub's, computed where the `claimnotes` driver cannot run
@@ -133,7 +131,7 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
 15. **Judge `fixer.md` step 17 on added lines**: a breach, or a departure
     from the architect or approved design note, is `blocked <sha> architecture-unsound: <how>`.
 
-Return a verdict with your RESULT lines, its first line in the grammar
-above; one that does not parse is refused.
+Return a verdict with your RESULT lines, its first line and `bus-nonce:` line
+in the grammar above; one that does not parse is refused.
 
 **Say which round this is**: from the fourth, `fixer.md` owes a re-cut, not a repair.
