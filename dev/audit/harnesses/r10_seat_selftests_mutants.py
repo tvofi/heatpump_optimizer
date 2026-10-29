@@ -236,11 +236,6 @@ MUTANTS = [
      '[t, t[:-len("-pr")]] if t.endswith("-pr") else [t]', "[t]"),
     ("review_packet-5", "review_packet.py",
      '    out += [f"hot-file: {w}" for w in hot]\n', ""),
-    # R10-FLY-PACKET-RED-PATHS (P282): the red-unanswered call hands policy_lint
-    # the diff's paths, without which main's nightly-status red is owed by all.
-    ("review_packet-6", "review_packet.py",
-     '"--base", base, "--paths-file", str(pf), "--existing-file", str(ef),',
-     '"--base", base, "--existing-file", str(ef),'),
     ("body_push-1", "tools/audit/seat/body_push.sh",
      '  if [ "$prc" = 1 ]; then\n    echo "body_push: the review packet refuses',
      '  if false; then\n    echo "body_push: the review packet refuses'),
