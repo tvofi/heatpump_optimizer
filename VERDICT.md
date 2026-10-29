@@ -1,0 +1,42 @@
+Fix review: merge fb54f0da82238d43b34924cbf0b846d7ca911155
+
+bus-nonce: cdf0736ef22241cc9295d13344c8d756
+
+## Summary
+
+Round 1 of the fix review for PR #2949 (R10-FLY-REFPRIV-HOME-SEGMENT). I reviewed from a detached worktree at fb54f0da82238d43b34924cbf0b846d7ca911155, which is still the live head of `fix/r10-fly-refpriv-home-segment`. I read the role contract from origin/main. `_home_re` fixes the measured trigger, true positives still refuse, the guard and `scrub` agree, both named mutation arms are killed, the head merges cleanly with origin/main, and CI is green apart from the answered `nightly-status`.
+
+## Findings
+
+- The PR's own text names a bare `/root`, so a seat whose HOME is `/root` refuses it. This covers the added comment lines `tools/audit/seat/ref_privacy.py:252` and `:1057`, and the PR body ("a bare `/root`", "`/root.`", "`'/root/wt'`"). This is the guard working as the PR designs it. But it means a cloud seat cannot render this PR's review packet (`review_packet: REFUSE host-path`, so no packet was written: ev/packet-refusal.txt). `ref_privacy.py --check` at the head under the cloud identity reports `2 refused` (ev/check-cloud-identity.txt). A cloud repair push or body edit of #2949 would be refused the same way. The tree already has a convention for this: build such paths from parts (`cloud_dispatch.py:776`, and this PR's own self-test uses `under("root")`). The comments break that convention. The effect ends at the merge, because only added lines are judged, and the orchestrator's merge runs under a non-root identity. Carry: dismissed: the refusal lasts only while #2949 is unmerged and applies only to cloud seats acting on this branch, so a repair round costs more than it buys; if a cloud seat must ever repair this branch, it should first reword both comments to build the path from parts.
+- Two finer mutants of the new production line survive the self-test, and both only bring back over-refusal (the fail-closed direction). (a) Dropping `.` from the lookbehind (`(?<![\w-])`) makes `./root/x` and `../root/x` refuse again. (b) Dropping the `\.[\w-]` lookahead alternative (`(?![\w-])`) makes `/root.d/x` refuse again. No self-test pins either one (ev/mutants.txt, arms 4 and 5). Carry: dismissed: each survivor only brings back a false refusal, never a leak, and the measured trigger and every true-positive case stay killed or refused under both.
+- `tools/pr/ci_predict.py:483-486`, the docstring of `privacy_preds`, still says a seat's run "matches the home as a substring: the root account's home is inside the path of the root-cause role contract". At this head that is false. The code beside it is still right, since it judges with the runner's identity as CI does, but the rationale is stale. The body's sibling search found no such site because it searched for matching code, not prose. Carry: dismissed: the stale text is a comment over code that stays correct; it should be reworded on the next change touching `ci_predict.py`, and it needs no fix pull request of its own.
+- `scrub` does not rewrite a URL-encoded home (`%2Froot%2Fx`), which the guard refuses after decoding. Behaviour is identical at origin/main, so this diff did not introduce it (ev/boundary-main.txt and ev/boundary-head.txt). Carry: dismissed: pre-existing and fail-closed; the guard still refuses the encoded span, so nothing is published.
+
+## Evidence
+
+- HEAD reviewed: fb54f0da82238d43b34924cbf0b846d7ca911155 (ev/HEAD.txt). It matches the head named in the PR body, and `git ls-remote` shows it is still the branch head (ev/head-live.txt). Branch-only commits over merge base d24ee8abd915: 65ad0e0a3 (the fix), da4890040 (the merge of main), and fb54f0da8 (the delivery row only).
+- Role currency: `git diff merge-base...origin/main -- dev/governance/roles/` is not empty (fix-review.md and orchestrator.md changed), so I followed origin/main's fix-review.md.
+- Review packet: `review_packet.py render` refused with `host-path` (the home-directory class in the body and at ref_privacy.py:252 and :1057), so no packet was written, as the brief says it won't be. I re-read the live checks myself instead.
+- Finder's harness (the body_push.sh judgement, `ref_privacy._leaks` under the host identity HOME=/root), run on #2872's `dev/audit/rca/R10-RCA-COP-PARTLOAD.md` from `fix/r10-cop-partload` (ev/finder-harness.txt):
+  - RESULT main refusals=1 [(3, ['home-directory'])]
+  - RESULT head refusals=0 []
+  The "main" side ran at origin/main b87019b8, whose ref_privacy.py and review_packet.py are byte-identical to the merge base's (ev/main-vs-mergebase.txt). The harness script is my own, a thin call into the module (ev/harness.py), because the trigger has no committed harness. The committed self-test pins the trigger's shape.
+- Self-test: at the head, `97 checks, 0 failed`; at origin/main, `92 checks, 0 failed`; head tests with the base's `_leaks` and `scrub`, `97 checks, 2 failed`, with the same two FAIL lines the body quotes (ev/selftest-head.txt, ev/selftest-mergebase.txt, ev/failing-first.txt). All three of the body's figures re-derive.
+- Mutation proof (ev/mutants.txt):
+  - Lookbehind removed: FAIL `a cloud seat's home inside a longer path segment passes`, 1 failed. Killed.
+  - Lookahead removed: FAIL `a sibling extending the home's last segment is not that home`, 1 failed. Killed.
+  - Both removed: 3 failed.
+  - `\.` restored into the lookahead class (the first draft): FAIL `... at a start or after a quote`, 1 failed. Killed.
+  - The survivors are under Findings.
+- Boundary attack (ev/bound.py, my own instrument; ev/boundary-head.txt): RESULT head boundary cases=31 mismatches=2, and neither mismatch is a defect: one is the pre-existing URL-encoded scrub case, the other is my agreement check flagging the account-name scrub of `/Users/tim-x`, which is not a home span.
+  - Still refused: `/root/x`, bare `/root`, `cd /root.`, `'/root/wt'`, `HOME=/root`, `PATH=...:/root/bin`, `file:///root/x`, `"/root"`, `(/root)`, `` `/root/.cache` ``, `/root:`, `/root...`, `/USERS/TIM/x`, `/users/TIM/x`, and `file:///Users/tim/x` in either case.
+  - Now passing: `roles/root-cause.md`, `x/root/y`, `/root-old`, `/root.d/x`, `./root/x`, `../root/x`, `/rootfs/x`, and `/Users/tims/x`. The last is still refused, by `host-path` only (`RESULT sibling ['host-path']`), as the body says.
+  - Scrub and guard: for every span refused as a home at the head except the encoded one, `scrub` rewrites it and the scrubbed text no longer refuses. At origin/main the same battery gives 15 mismatches (ev/boundary-main.txt).
+- Class: `_leaks` and `scrub` are the module's only home-matching sites, and both now call `_home_re`. `home_relative` already requires `h` or `h + "/"`. `HOME_DIR` users (`cloud_dispatch.py`, `sweep_render.py`, `tmp_paths.py`) match a `/Users|home/<name>` grammar, not `$HOME` as a substring. `bus.sh` `home_rel` delegates to `ref_privacy.py path`. I found no other site that substring-matches a home; my greps are in this session's transcript. I did not re-run the body's own sibling grep, because a session hook capped inline searches. My broader greps cover its pattern.
+- VERSION, manifest version and RELEASE_NOTES heading: untouched. The diff touches only `dev/programme/delivery/2949.md` and `tools/audit/seat/ref_privacy.py`. No claim file or golden fixture changes, so the `env_drift.py --all` step has nothing to compare and I did not run it.
+- `git merge-tree --write-tree origin/main fb54f0da8` (origin/main b87019b8): rc=0, tree 62fab1727b40, no conflict (ev/merge-tree.txt).
+- `python3 tests/structure.py` at the head: STRUCTURE RATCHET PASSED (ev/structure-head.txt). No budget, closure or INERT entry moves.
+- CI on the head, from the check-runs API (68 runs): every run is success or skipped except `tests / nightly-status`, which is failure. The body answers it as main's scheduled Nightly, and the diff reaches nothing it reads, so it is not this pull request's. The latest `pr-contract` run (12:07:10Z) started after that red concluded (11:36:28Z) and is success. Gate runs are success. CI's `tests / mutation` is success; I did not read its log, because nothing in this verdict turns on it.
+- Body figures I did not re-derive: the scoped gate line (`MODE: SCOPED -- 1 script(s) run, 32 scoped out.`, `ALL 2470 ENTITY CHECKS PASSED`). Under the contract I cite CI's gate run, which is green, rather than re-running it.
+- Forward-carry: the body says none. That holds, since this fix changes no later stage's procedure.
