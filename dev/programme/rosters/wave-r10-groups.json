@@ -11264,6 +11264,49 @@
     "note": "triage P269, 2026-10-28 (owner-directed)"
    },
    "brief": "From triage P269 (V183, owner-directed by tvofi 2026-10-28T20:20:27Z: train.sh and the merge sweep default to the recommended set, each switchable off; the merge seat's contract names the set). Today the set lives in three disagreeing places: standing-merge.md line 9 (--overlap --bot-prs --approval-carry --skip-bad --free-holders), merge_train.py AUTO_TRAIN_FLAGS (--bot-prs --approval-carry --pre-flight, the sweep/event-started train), and train.sh defaults every flag off. (1) merge_train.py defines RECOMMENDED = (\"--overlap\",\"--approval-carry\",\"--skip-bad\",\"--free-holders\",\"--bot-prs\",\"--pre-flight\") and replaces AUTO_TRAIN_FLAGS with it. (2) train.sh with no subcommand runs batch with the set on; each flag gets an explicit off switch (--no-overlap, --no-approval-carry, --no-skip-bad, --no-free-holders, --no-bot-prs, --no-pre-flight); the old --<flag> spellings stay accepted as no-ops; the launch line prints the effective set. (3) Mandate: with no --mandate, train.sh reads $STATE_DIR/mandate (one line, a comment id) if present and prints `mandate: <id> (from <state-dir>/mandate)`, else `mandate: none (owner reviews only)`; --no-mandate turns it off; the gate (budget_raise_gate.py via _mandate_gate) still checks the id at every merge; no id in code or the tree. (4) merge_train.py sweep starts train.sh with the same defaults. (5) standing-merge.md line 9 names the set by reference (\"train.sh's recommended defaults (RECOMMENDED in merge_train.py)\"), not a flag list. POLICY: standing-merge.md is policy; this group's PR merges only on tvofi's approving review. (6) Controls: a bare launch's --self-test prints all six in its effective set; --no-skip-bad removes exactly that one; the sweep's started argv equals a bare hand launch's; a state dir with a mandate file passes --mandate <id>, one without passes none; mutant dropping a flag from RECOMMENDED fails the effective-set arm; null: an explicit old-style --overlap launch is byte-identical in effect to a bare one. Shares merge_train.py with R10-TRAIN-OVERLAP-GRADE on a distinct seam (argument defaults, not the pause). triage: dev/programme/triage/s6-batch57.md#P269"
+  },
+  {
+   "group": "R10-FLY-NIGHTLY-HB",
+   "lane": "IN",
+   "kind": "fix",
+   "class": "flake",
+   "severity": "medium",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 6,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "tests/nightly_ha.py"
+   ],
+   "carry": [
+    "Registered by the orchestrator 2026-10-29 on the owner request to have a fixer fix the flaky nightly; it turned tests / nightly-status red on every PR that touches what that check reads."
+   ],
+   "resume": {
+    "stage": "in-progress",
+    "branch": "fix/r10-fly-nightly-hb",
+    "commit": null,
+    "last_step": "registered",
+    "next_step": "cloud fixer dispatched",
+    "note": "orchestrator registration 2026-10-29"
+   },
+   "brief": "Make the nightly-ha heartbeat positive control (check_hb_positive_control in tests/nightly_ha.py, failure key hb:positive_control) deterministic on a loaded GitHub runner without weakening what it detects. Measured failure: nightly run 40806276912, job nightly-ha (stable), 2026-10-29: a 600 ms spin read as 5308.8 ms, the dump named the spin but py-spy rc=0 did not, three tries of three, which also failed run:exit_status. First count how often this key has failed across the last 30 nightly runs (gh run list --workflow nightly.yml) and state the rate with that command as its enumerator. Find the cause (sampling window, py-spy attach latency, runner CPU contention) by measurement, not argument. The fix must keep the control a control: demonstrate it still fails on a heartbeat that does not see a real spin (the defect it exists for) and passes on the fixed code, both runs in the body. Widening a timing bound or adding retries alone is not a fix unless the measurement shows the bound was wrong. Respect tests/structure_budgets.json; a raise needs the mandate path in CLAUDE.md rule 2."
   }
  ]
 }
