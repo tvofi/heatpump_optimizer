@@ -1,0 +1,8 @@
+  ok   scrub's placeholders, in order: scratchpad, home, account, temp, session temp
+  ok   scrub leaves another account's home and a public one alone (the null control)
+  ok   a cloud seat's home inside a longer path segment passes
+  ok   and its home as a whole path is still refused, alone, at a start or after a quote
+  ok   a macOS home is unchanged: case-folded, after `file://`, refused (the null control)
+  ok   a sibling extending the home's last segment is not that home
+  ok   scrub rewrites the cloud home only as a whole path
+ref_privacy self-test: 97 checks, 0 failed

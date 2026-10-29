@@ -1,0 +1,6 @@
+ref_privacy --check at HEAD: 28 file(s) with a push site, 12 guarded, 754 line(s) added since d24ee8abd915 judged, 0 refused
+rc=0 at /home/user/wtmain
+ref_privacy: REFUSE tools/audit/seat/ref_privacy.py:252: home-directory in an added line of a tracked file; rewrite it with `ref_privacy.py scrub --write tools/audit/seat/ref_privacy.py` or drop the path
+ref_privacy: REFUSE tools/audit/seat/ref_privacy.py:1057: home-directory in an added line of a tracked file; rewrite it with `ref_privacy.py scrub --write tools/audit/seat/ref_privacy.py` or drop the path
+ref_privacy --check at HEAD: 28 file(s) with a push site, 12 guarded, 29 line(s) added since d24ee8abd915 judged, 2 refused
+rc=0 at /home/user/wt

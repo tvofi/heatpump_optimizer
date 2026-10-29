@@ -1,0 +1,3 @@
+  FAIL a cloud seat's home inside a longer path segment passes: ['home-directory']
+  FAIL a sibling extending the home's last segment is not that home: ['home-directory', 'host-path']
+ref_privacy self-test: 97 checks, 2 failed
