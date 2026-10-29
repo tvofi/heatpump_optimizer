@@ -156,7 +156,6 @@
   "_outage_recovery_active": "grid",
   "_plan_age_minutes": "core",
   "_plan_is_stale": "core",
-  "_plan_slots": "core",
   "_power_headroom": "grid",
   "_predicted_next_room_temp": "core",
   "_price_model": "fetch",
