@@ -1,4 +1,4 @@
-# Proposal triage, session s7, batch 63 (P291)
+# Proposal triage, session s7, batch 63 (P291-P292)
 
 The rolling batch (V182) after batch 62 (#2972, merge verdict at `9742a6e5d`, not yet merged).
 Facts were read at origin/main `2ab53fe90590dee8376e800af2f09fd94bc75703` and in the live train
@@ -60,3 +60,54 @@ ALREADY when a batch forms, plus one merge-skipped entry refused from the pendin
 2. Control: re-added at the same verdict, such an entry joins the next batch. ADDED is logged on
    both sides.
 3. Null control: a `carry` skip at the same verdict stays ALREADY.
+
+## P292: the record body names its reporter reds in a form the review packet does not match
+
+Verdict: ACCEPT, as a new S fly-in, R10-FLY-RECORD-RED-NAMES. The writer and its reader disagree
+on what a check is called, and the writer's self-test pins the writer's form, so both stay green
+while every record pull request is refused at review.
+
+Source: the orchestrator's triage-queue line of 2026-10-29T23:45Z. `record_row.py` writes the
+record body's `## Red checks` with the short names `record`, `nightly-status` and
+`delivery-status`. `review_packet.py` refused #2966 at `850c81c3` as red-unanswered. The proposal:
+emit the full check-run names, with a self-test that feeds the generated body to the reader.
+
+Instances:
+- **The field refusal.** #2966 at `850c81c3`, as the queue line reports it.
+- **Where the full name comes from.** `.github/workflows/ci.yml` calls `tests.yml` from job
+  `tests` (line 175) and `governance.yml` from job `governance` (line 204). None of the called
+  jobs sets a `name:`, so the check-runs read `tests / nightly-status`, `governance /
+  delivery-status` and `governance / record`.
+- **The reader takes that name verbatim.** `review_packet.py` `gate_digest` keys on the
+  check-run's `r["name"]` and passes each red as `--red <name>` to `policy_lint.mjs --pr-body`.
+  That refuses with "check `<name>` is red and `## Red checks` does not name it".
+- **The writer's self-test pins the bad value.** `record_row.py`'s self-test calls
+  `_body_check(body, ["record", "nightly-status", "delivery-status"], ...)`, which is the
+  writer's own short form. The mutation was run in a scratch worktree at origin/main
+  `2ab53fe90`. The self-test is rc 0 as it stands. With the reds changed to the prefixed form,
+  `tests / nightly-status` and `tests / delivery-status`, it is rc 1: "body check passes the
+  generated body over the reporter reds (rc 1: PR-BODY: 2 error(s)...)". So the body the
+  generator writes today fails the reader on the names the reader is given.
+
+Cost: S. Two files: `tools/audit/seat/record_row.py` and
+`tools/audit/seat/instruments/record_row.py.md`. Neither has a `policy_lint.mjs --budgets` row,
+and the `--budgets` output at `2ab53fe90` lists neither. Benefit: every record beat whose
+reporters stand red is refused at review until it lands, and #2966 is that case now.
+
+Binding: the record pull request (#2966) is refused at every beat until this lands. The urgency
+is the coordinator's call. Until then, a reviewer can answer #2966 by hand, by naming the full
+check-run names in its body.
+
+The fix:
+1. The `## Red checks` section names each reporter by its full check-run name, `<caller job> /
+   <job>`, and keeps the short name beside it. A scheduled run of `tests.yml` alone produces the
+   short form.
+2. The full names are defined once in `record_row.py`, and the body text and the self-test both
+   read that definition, never a hand-typed copy.
+3. Self-test: the body check runs with `--red` set to the full names, as `gate_digest` would pass
+   them, and passes.
+4. Mutation: the body reverts to the short names only, and the arm fails. That is rc 1 above.
+5. Null control: the existing stripped-names arm, which replaces the names with "the nightly lane"
+   and "the delivery reporter", still refuses.
+6. Out of scope: `merge_train.NOT_GATING`. It filters ruleset contexts (today only `gate`), not
+   check-run names, so it does not read this name.
