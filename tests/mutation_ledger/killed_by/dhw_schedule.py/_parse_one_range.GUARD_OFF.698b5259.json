@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_schedule.py:_parse_one_range GUARD_OFF 698b5259",
+  "killed_by": "tests/guard_pins.py",
+  "old": "    if m and _parse_day_selector(m.group(1)):",
+  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=1."
+}

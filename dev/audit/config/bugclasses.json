@@ -326,7 +326,8 @@
     "rca": [
       "R9-P2",
       "RCA-1499",
-      "RCA-R8-P2"
+      "RCA-R8-P2",
+      "R10-RCA-BUFFER-STORE"
     ],
     "rca_planned": [
       "R9-F1.11"
@@ -4532,6 +4533,38 @@
       "in_tree_home": "dev/audit/rca/R10-RCA-HEADMOVED.md",
       "doc": [
         "dev/audit/rca/R10-RCA-HEADMOVED.md"
+      ]
+    },
+    "R10-RCA-BUFFER-STORE": {
+      "class": "P2",
+      "level": "instance-or-process",
+      "subject": "a 750 L buffer behind a manual valve plans as if no tank existed: the single-zone step had no valve branch (#2499/#2500) and the terminal cost's store credit sat inside the two-zone branch, while config_flow offered the tank in every zoning",
+      "trigger": "round-10 class P2; the group's roster next step was rca",
+      "date": "2026-10-26",
+      "status": "proposed",
+      "parts_missing": [],
+      "process_state": "(c) _grad_parity covered 3 of the 4 zoning x valve cells (single-zone with valve never built); the base docstring records the missing branch as design; 32 of 33 valve-armed ThermalParameters fixtures declare two_zone_enabled=True and the 33rd feeds battery_view without stepping the model",
+      "countermeasure": "three-arm zoned-store census in tests/features.py (valve response, cap refusal, terminal credit, each in both zonings), registered in tests/entities.py _P2_CENSUSES as zoned_store_valve_live, zoned_store_cap_live, zoned_store_credit_live; 0.001 s median per features.py run against a 15,660 s per-finding fix cost at 0.66 instances per release",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R10-RCA-BUFFER-STORE.md",
+      "doc": [
+        "dev/audit/rca/R10-RCA-BUFFER-STORE.md"
+      ]
+    },
+    "R10-RCA-OWED-UNACTIONED": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "tick OWED lines stood for hours with no action: triage-s7-batch49 and r10-review-carry 5.7 h and 5.6 h host-up, critical-path r10-orch-beatd (#2916) 1.9 h on 2026-10-28; three more past 4 h on the night's sweep log",
+      "trigger": "recurrence (owner corrections 2026-10-18, 10-22, 10-24, 10-28; 6 instances past the 4 h threshold in about 11.4 host-up hours of sweeps)",
+      "date": "2026-10-28",
+      "status": "proposed",
+      "parts_missing": [],
+      "process_state": "(c) the sweep ran (19 board reads 10:40Z-18:55Z) and its unit, a board read, cannot tell a standing, a handled and a failed-handling owed line apart; the board's rc ignores owed lines, its owed view shows 8 of 26, and 15 of 19 reads filtered the block away",
+      "countermeasure": "built: tools/audit/seat/owed_unactioned.py, run in sweep_template.md step (5): exit 1 on every owed key standing 2 sweeps with no live OWED-ACK (lapsing, 1 h default, 12 h cap); fires on today's and the night's boards, null controls quiet, its own echoed output acknowledges nothing, 15 of 15 mutants killed; session orch_sweep.sh fold and the split ledger home are the orchestrator's",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R10-RCA-OWED-UNACTIONED.md",
+      "doc": [
+        "dev/audit/rca/R10-RCA-OWED-UNACTIONED.md"
       ]
     },
     "R10-N-vocabulary-drift": {
