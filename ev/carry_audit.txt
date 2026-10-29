@@ -1,0 +1,5 @@
+NOTE stale tree: f2daca863fb67409458f788e61839d4460a17ccb lacks origin/main 2fde526340bdb1da17fa7a5cd8bff283cff2757c; roster read at origin/main
+NOTE #2925 body item 2a99ef3b: R10-RECORD-API-O1
+NOTE #2925 body item 162aa32f: R10-FLY-CIPREDICT-RESTORING: R10-FLY-CIPREDICT-RESTORING resolved on origin/handoff/audit-r10-roster
+BAD-DEST #2925 review 6495961723 item a3103224: R10-RCA-PREPR-HEAD-GRADERS: R10-RCA-PREPR-HEAD-GRADERS is not a group of the roster or of origin/handoff/audit-r10-roster
+CARRY-AUDIT #2925: 3 finding item(s): 2 routed, 0 unrouted, 1 bad destination(s)

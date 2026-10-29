@@ -1,0 +1,38 @@
+11746:   "group": "R10-FLY-CIPREDICT-RESTORING",
+11747-   "lane": "PR",
+11748-   "kind": "instrument",
+11749-   "class": "fly-in",
+11750-   "severity": "medium",
+11751-   "size": "S",
+11752-   "issues": [
+11753-    2952
+11754-   ],
+11755-   "fixes": [
+11756-    2952
+11757-   ],
+11758-   "findings": [],
+11759-   "wave": 6,
+11760-   "hot_files": [],
+11761-   "fixture": false,
+11762-   "owner_gate": null,
+11763-   "rca": [],
+11764-   "architect_note": "",
+11765-   "effort": "medium",
+11766-   "model": {
+11767-    "fixer": "sonnet",
+11768-    "reviewer": "opus",
+11769-    "rca": null,
+11770-    "runner": "haiku",
+11771-    "record": "sonnet"
+11772-   },
+11773-   "fixerModel": "sonnet",
+11774-   "reviewerModel": "opus",
+11775-   "after": [],
+11776-   "files": [],
+11777-   "carry": [],
+11778-   "resume": {
+11779-    "stage": "queued"
+11780-   },
+11781-   "brief": "Issue #2952: ci_predict's graders arm does not predict the three restoring jobs outside governance.yml (briefs, pr-contract, budget-raise-gate). Teach tools/pr/ci_predict.py's graders arm to predict each, with a failing test first and a null control, so prepr.sh step 6d names them before the handoff. Destination for #2925's Carry: #2952 (R10-RCA-PREPR-HEAD-GRADERS)."
+11782-  }
+11783- ]
