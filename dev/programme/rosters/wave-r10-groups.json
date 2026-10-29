@@ -9571,7 +9571,8 @@
    ],
    "resume": {
     "stage": "in-progress",
-    "branch": "handoff/r10-sav-actuation"
+    "branch": "handoff/r10-sav-actuation",
+    "pr": 2968
    },
    "brief": "R10-SAV-ACTUATION (owner #2492 carry 5, seam 2). Actuate the supply switch at step boundaries from a one-minute tick, so that the plan's step change reaches the pump at the boundary instead of at the next coordinator refresh. Routed from R10-SAV-COMFORT's body (Carry: #2492 (item ea7e7a49)). Size: M until the design note says otherwise. A design note comes first (designer.md), naming the owning seam (actuator writes come from the coordinator or pump_arbiter.py, per fixer.md step 17) and the failing test. After-edge: R10-SAV-COMFORT. issues: [2492]; fixes: [2492] only once the seam closes the carry."
   },
