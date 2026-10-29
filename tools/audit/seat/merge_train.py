@@ -481,6 +481,76 @@ def dirty_repair(files: list[str], claim_files) -> str:
             "the resolution changes reviewed code, so its verdict does not carry")
 
 
+# THE INFRA RE-RUN (V142, triage s6-batch45 P228): main's red that is only the
+# API's rate limit or reachability is re-run once, past the reset, instead of
+# waiting on a hand re-run (the v7.0.5 stamp e8cb7e683, run 40596083060: red
+# 23:10Z, re-run by hand 01:17Z; b281d0325, dev/audit/rca/ratelimit-recur.md).
+INFRA_STRINGS = ("API rate limit exceeded for installation", "RATE-LIMITED reset_epoch=",
+                 "the GitHub API is unreachable")
+#: With no printed reset_epoch, the re-run is due this long after the last
+#: matching job completed: the installation bucket refills hourly.
+INFRA_WAIT_SECONDS = 3600
+LOG_STAMP = re.compile(r"^\ufeff?\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?Z ?")
+RESET_EPOCH = re.compile(r"RATE-LIMITED reset_epoch=(\d+)")
+#: The one reason shape a qualifying `gate` prints (gate.py's judge).
+OWN_FAILURE = re.compile(r"^(.+): failure \(this run\)$")
+
+
+def gate_outcome(log: str) -> "tuple[str, list[str]] | None":
+    """The `gate` job's verdict from its log, the runner's timestamps stripped:
+    ('limited', [outcome line]) for gate.py's RATE-LIMITED exit, ('fail',
+    reasons) for its FAIL -- the text after `FAIL ` on the outcome line, then
+    each following line up to the step's `##[error]` line, which gate.py
+    prints unprefixed -- and None when neither is found."""
+    lines = [LOG_STAMP.sub("", x).rstrip("\r") for x in log.splitlines()]
+    end = next((i for i, x in enumerate(lines) if x.startswith("##[error]")), None)
+    for i in range(end - 1 if end is not None else -1, -1, -1):
+        if lines[i].startswith("RATE-LIMITED reset_epoch="):
+            return "limited", [lines[i]]
+        if lines[i].startswith("FAIL "):
+            return "fail", [lines[i][len("FAIL "):], *lines[i + 1:end]]
+    return None
+
+
+def infra_due(attempt: int, failed: list[dict], logs: dict) -> "tuple[float, list[str]] | None":
+    """V142: (due epoch, matched strings) when a run's red is infrastructure
+    alone and it may be re-run once at or after `due`; None leaves today's red.
+    `failed` is the run's failed jobs (name, id, completed_at), `logs` each
+    job id's log text, None when unreadable. Only attempt 1 qualifies, so the
+    attempt counter is the bound and nothing is kept. Every failed job other
+    than GATE must carry one of INFRA_STRINGS; a failed GATE qualifies when it
+    printed RATE-LIMITED, or when its reasons, read as a set, are at least one
+    and each is `<job>: failure (this run)` naming a matching failed job."""
+    if attempt != 1 or not failed:
+        return None
+    matched, epochs, ended, infra = set(), [], [], set()
+    for j in (j for j in failed if j.get("name") != GATE):
+        log = logs.get(j.get("id")) or ""
+        hit = [s for s in INFRA_STRINGS if s in log]
+        if not hit:
+            return None
+        matched.update(hit)
+        epochs += RESET_EPOCH.findall(log)
+        ended.append(j.get("completed_at") or "")
+        infra.add(j.get("name"))
+    for g in (j for j in failed if j.get("name") == GATE):
+        out = gate_outcome(logs.get(g.get("id")) or "")
+        if out and out[0] == "limited":
+            matched.add("RATE-LIMITED reset_epoch=")
+            epochs += RESET_EPOCH.findall(out[1][0])
+            continue
+        named = [OWN_FAILURE.match(x) for x in (out[1] if out else [])]
+        if not named or not all(m and m.group(1) in infra for m in named):
+            return None
+    if epochs:
+        return float(max(map(int, epochs))), sorted(matched)
+    try:
+        last = max(datetime.datetime.fromisoformat(t.replace("Z", "+00:00")).timestamp() for t in ended)
+    except ValueError:  # no completion time to count from: not judged
+        return None
+    return last + INFRA_WAIT_SECONDS, sorted(matched)
+
+
 # One check-runs read per head every five minutes (tvofi, 2026-10-07: every
 # seat shares one API quota, and it ran out); 24 reads wait two hours.
 POLL_SECONDS = 300
@@ -886,7 +956,7 @@ class Train:
                  approval_carry: bool = False, main_moved_tries: int = 0,
                  bot_prs: bool = False, pre_flight: bool = False,
                  free_holders: bool = False,
-                 clock: "callable" = time.monotonic) -> None:
+                 clock: "callable" = time.monotonic, wall: "callable" = time.time) -> None:
         self.repo, self.state, self.mandate, self.role = repo, state, mandate, role
         if base != "main" and not base.startswith("batch/"):
             raise ValueError(f"--base {base}: main, or a batch/ rehearsal base")
@@ -897,6 +967,7 @@ class Train:
         self.ignore, self.min_runs, self.polls, self.merge_tries = ignore, min_runs, polls, merge_tries
         self.run = run or self._run
         self.sleep, self.log, self.clock = sleep, log, clock
+        self.wall = wall  # epoch seconds: the infra re-run's due time is a reset_epoch (V142)
         self.run = self._reads_retried(self.run)
         # `batch --skip-bad` only: a per-entry Stop is skipped and reported
         # rather than stopping the train. Default (False) stays fail-fast.
@@ -2441,13 +2512,59 @@ class Train:
             elif state == "red":
                 self.log(f"OVERLAP: {self.base} at {tip[:12]} is RED ({', '.join(red)}) {why}; "
                          "--overlap logs it and does not wait")
+                self.infra_rerun(latest_runs(runs), red)
             elif state == "wait":
                 self.log(f"OVERLAP: {self.base} at {tip[:12]} is still running ({', '.join(pending)}): "
                          "a wait, not red; --overlap does not wait")
             return
         red = self.wait_ci(tip, only=req)
+        if red and self.infra_rerun(latest_runs(self._check_runs(tip) or ()), red):
+            self.sleep(POLL_SECONDS)  # the re-run's check runs exist before the next read
+            red = self.wait_ci(tip, only=req)
         if red:
             raise Stop("main", f"{self.base} at {tip[:12]} is not green ({', '.join(red)}) {why}; nothing more lands")
+
+    def infra_rerun(self, latest: dict, red: list[str]) -> bool:
+        """V142, in both main_green arms: each red context's workflow run whose
+        failure is infrastructure alone (`infra_due`) is re-run once, failed
+        jobs only, no sooner than its due time, and logged INFRA-RERUN; before
+        then INFRA-RED names the due time and the red stands. Any read that
+        fails leaves today's red. True when a re-run was requested."""
+        done: set[str] = set()
+        reran = False
+        for name in red:
+            m = RUN_URL.search((latest.get(name) or {}).get("details_url") or "")
+            if not m or m.group(1) in done:
+                continue
+            rid = m.group(1)
+            done.add(rid)
+            code, att = self.run(["gh", "api", f"repos/{self.repo}/actions/runs/{rid}", "--jq", ".run_attempt"])
+            if code or att.strip() != "1":
+                continue
+            code, raw = self.run(["gh", "api", "--paginate", "--jq", ".jobs[]",
+                                  f"repos/{self.repo}/actions/runs/{rid}/jobs?filter=latest&per_page=100"])
+            try:
+                failed = [j for j in (json.loads(x) for x in raw.splitlines() if x.strip())
+                          if j.get("conclusion") == "failure"] if code == 0 else []
+            except ValueError:
+                failed = []
+            logs = {}
+            for j in failed:
+                c, text = self.run(["gh", "api", f"repos/{self.repo}/actions/jobs/{j.get('id')}/logs"])
+                logs[j.get("id")] = None if c else text
+            got = infra_due(1, failed, logs)
+            if got is None:
+                continue
+            due, matched = got
+            if self.wall() < due:
+                at = datetime.datetime.fromtimestamp(due, datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+                self.log(f"INFRA-RED {name} run {rid}: rate-limited, re-run due at {at}")
+                continue
+            code, o = self.run(["gh", "api", "-X", "POST", f"repos/{self.repo}/actions/runs/{rid}/rerun-failed-jobs"])
+            self.log(f"INFRA-RERUN {name} run {rid} attempt 1 ({', '.join(matched)})"
+                     + (f"; the re-run request failed (rc={code}): {o.strip()[-120:]}" if code else ""))
+            reran = reran or code == 0
+        return reran
 
     def unstale(self, h: str) -> None:
         """K15 (b), before a merge attempt: each check-run at <h> queued or in
@@ -3961,6 +4078,7 @@ def _self_test() -> int:
     _stop_self_test(check)
     _read_retry_self_test(check)
     _state_self_test(check, go, merged, throwaway_git_init)
+    _infra_self_test(check)
     _batch_self_test(check)
     _add_self_test(check)
     _queue_self_test(check)
@@ -4594,6 +4712,119 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
           "claimnotes" in dirty_repair(got["claims"], (claim,))
           and "claimnotes" not in dirty_repair(got["content"], (claim,))
           and "does not carry" in dirty_repair(got["content"], (claim,)))
+
+
+def _infra_self_test(check) -> None:
+    """THE INFRA RE-RUN (V142): the v7.0.5 stamp's run 40596083060, its
+    controls and its null controls, as the decision and as main_green acts."""
+    def ts(hm: str) -> float:
+        return datetime.datetime.fromisoformat(f"2026-10-26T{hm}:00+00:00").timestamp()
+
+    rid, gid = "40596083060", 122526090837
+    hacs = {"name": "validate / validate-hacs", "id": 11, "conclusion": "failure", "completed_at": "2026-10-26T22:37:00Z"}
+    envm = {"name": "governance / env-matrix", "id": 12, "conclusion": "failure", "completed_at": "2026-10-26T22:43:00Z"}
+    gate = {"name": GATE, "id": gid, "conclusion": "failure", "completed_at": "2026-10-26T23:10:00Z"}
+    fast = {"name": "tests / fast", "id": 13, "conclusion": "failure", "completed_at": "2026-10-26T22:40:00Z"}
+    ok = {"name": "tests / closures", "id": 14, "conclusion": "success", "completed_at": "2026-10-26T22:30:00Z"}
+
+    def gate_log(*reasons: str) -> str:
+        st = "2026-10-26T23:10:01.1234567Z "
+        return "".join(f"{st}{x}\n" for x in ("##[group]Run python3 tools/ci/gate.py --pr '' --kind push",
+                                               f"FAIL {reasons[0]}", *reasons[1:],
+                                               "##[error]Process completed with exit code 1."))
+    pair = ("governance / env-matrix: failure (this run)", "validate / validate-hacs: failure (this run)")
+    logs = {11: "2026-10-26T22:36:59Z GitHubRatelimitException: API rate limit exceeded for installation ID 4\n",
+            12: "2026-10-26T22:42:58Z the GitHub API is unreachable (HTTP 403)\n",
+            13: "2026-10-26T22:39:59Z AssertionError: 3 != 4\n",
+            gid: gate_log(*pair)}
+    stamp = [hacs, envm, gate]
+    got = infra_due(1, stamp, logs)
+    check("V142: the stamp's shape (validate-hacs and env-matrix on the rate-limit strings, gate FAIL env-matrix "
+          "then validate-hacs unprefixed) is due 3600 s after the last matching job, 23:43Z",
+          got == (ts("23:43"), ["API rate limit exceeded for installation", "the GitHub API is unreachable"]))
+    check("V142: the same fixture with the two reasons in the other order is due alike (the reasons are a set)",
+          infra_due(1, stamp, {**logs, gid: gate_log(*pair[::-1])}) == got)
+    check("V142 null: one failed job on any other failure is not re-run",
+          infra_due(1, [hacs, dict(envm, id=13), gate], logs) is None)
+    check("V142 null: a gate whose first reason names a job that failed on a non-infra cause is not re-run",
+          infra_due(1, [hacs, fast, gate],
+                    {**logs, gid: gate_log("tests / fast: failure (this run)", pair[1])}) is None)
+    for second in ("tests / browser: SKIPPED (this run)", "tests / browser: failure (run 40596000001)",
+                   "tests / browser: failure (this run)"):
+        check(f"V142 null: a gate whose second, unprefixed reason is `{second}` is not re-run",
+              infra_due(1, stamp, {**logs, gid: gate_log(pair[0], second)}) is None)
+    check("V142 null: the same run at attempt 2 is not re-run", infra_due(2, stamp, logs) is None)
+    check("V142 null: an unreadable log, of a unit or of gate, leaves today's red",
+          infra_due(1, stamp, {**logs, 12: None}) is None
+          and infra_due(1, stamp, {**logs, gid: None}) is None)
+    check("V142 null: a gate with no reason (no FAIL outcome line) does not qualify",
+          infra_due(1, stamp, {**logs, gid: "##[error]Process completed with exit code 1.\n"}) is None)
+    epoch = int(ts("23:20"))
+    limited = f"RATE-LIMITED reset_epoch={epoch} repos/o/r/actions/runs\n##[error]reset_epoch={epoch}\n"
+    check("V142: a gate whose outcome is RATE-LIMITED is a matching job and its reset_epoch is the due time",
+          infra_due(1, [hacs, gate], {**logs, gid: limited}) == (float(epoch), [
+              "API rate limit exceeded for installation", "RATE-LIMITED reset_epoch="]))
+    check("V142 null: no failed job, nothing to re-run", infra_due(1, [ok], logs) is None)
+
+    # main_green, in both arms, over a world of that run.
+    url = f"https://github.com/o/r/actions/runs/{rid}/job/{gid}"
+
+    def world(attempt="1", glog=logs[gid], clears=False):
+        w = {"runs": [{"name": GATE, "status": "completed", "conclusion": "failure", "started_at": "1",
+                       "id": 5, "details_url": url, "check_suite": {"id": 1}}], "posts": []}
+
+        def run(argv, cwd=ROOT, stdin=None):
+            a = " ".join(argv)
+            if "check-runs" in a:
+                return 0, "\n".join(json.dumps(c) for c in w["runs"])
+            if "-X" in argv:
+                w["posts"].append(argv[-1])
+                if clears:
+                    w["runs"] = [dict(w["runs"][0], conclusion="success", started_at="2")]
+                return 0, ""
+            if a.endswith(".run_attempt"):
+                return 0, attempt
+            if "/jobs?filter=latest" in a:
+                return 0, "\n".join(json.dumps(j) for j in (hacs, envm, gate, ok))
+            m = re.search(r"/actions/jobs/(\d+)/logs$", a)
+            if m:
+                return 0, {**logs, gid: glog}[int(m.group(1))]
+            return 1, "unexpected"
+        return w, run
+
+    def act(w, run, wall: float, overlap: bool = True) -> "tuple[list[str], str]":
+        lines: list[str] = []
+        with tempfile.TemporaryDirectory() as d:
+            try:
+                Train("o/r", Path(d), None, "", (), 1, run=run, sleep=lambda s: None, log=lines.append, polls=1,
+                      overlap=overlap, base="batch/x", wall=lambda: wall).main_green("a" * 40, [GATE], "revert it")
+                stop = ""
+            except Stop as e:
+                stop = e.why
+        return lines, stop
+
+    rerun = f"repos/o/r/actions/runs/{rid}/rerun-failed-jobs"
+    w, run = world()
+    lines, _ = act(w, run, ts("23:43"))
+    check("V142 --overlap: past the reset the stamp's run is re-run once, failed jobs only, and logged INFRA-RERUN "
+          "with its run id and attempt",
+          w["posts"] == [rerun] and any(x.startswith(f"INFRA-RERUN gate run {rid} attempt 1 (") for x in lines))
+    w, run = world()
+    lines, _ = act(w, run, ts("23:43") - 1)
+    check("V142 --overlap: before the reset nothing is re-run and INFRA-RED names the due time",
+          w["posts"] == [] and f"INFRA-RED gate run {rid}: rate-limited, re-run due at 2026-10-26T23:43:00Z" in lines)
+    w, run = world(attempt="2")
+    lines, _ = act(w, run, ts("23:43"))
+    check("V142 --overlap null: at attempt 2 nothing is re-run and nothing INFRA is logged",
+          w["posts"] == [] and not any(x.startswith("INFRA") for x in lines))
+    w, run = world(clears=True)
+    lines, stop = act(w, run, ts("23:43"), overlap=False)
+    check("V142 blocking: the re-run that clears main lets the wait pass (no stop), one re-run",
+          w["posts"] == [rerun] and stop == "")
+    w, run = world(glog=gate_log(pair[0], "tests / browser: SKIPPED (this run)"))
+    lines, stop = act(w, run, ts("23:43"), overlap=False)
+    check("V142 blocking null: a gate that does not qualify is not re-run and main stops red as today",
+          w["posts"] == [] and "is not green" in stop)
 
 
 def _batch_self_test(check) -> None:
