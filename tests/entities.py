@@ -2758,7 +2758,7 @@ R.check(
 )
 # S2 of #193: zero-state series / headroom / plan math at existing
 # coordinator.py module level. Pins AST location (module FunctionDef,
-# not a class method). `_plan_slots` stays on the class (helper cc>15).
+# not a class method). `_plan_slots` left the class for `plan_slots.py` (P141).
 R.section("S2 zero-state helpers at module level (#193)")
 _s2_mod_fns = {
     n.name
@@ -4058,7 +4058,7 @@ def _p2_registry(sources):
              owners=["inputs.py::state_power_kw", "inputs.py::InputReader.read_power_kw"],
              dispositions={}),
         # D8-s1-01 (R10-ARCH-SHAPES): the draw above which a channel counts as
-        # heating is optimizer.CHANNEL_ACTIVE_KW, and whether a channel heats
+        # heating is thermal_model.CHANNEL_ACTIVE_KW, and whether a channel heats
         # at a step is channel_heating_steps (its own draw above the line, on
         # a step planned_draws_run runs). The plan view's active_now, its slot
         # merge, the DHW schedule sensor's fallback, the space pump's plan
@@ -4068,7 +4068,7 @@ def _p2_registry(sources):
         # dispositioned below.
         dict(fact="channel_active_kw", finding="D8-s1-01",
              match=_p2_match_channel_line,
-             owners=["optimizer.py::channel_heating_steps"],
+             owners=["thermal_model.py::channel_heating_steps"],
              dispositions={
                  "accuracy.py::AccuracyTracker.power_ratio":
                      "the same ratio-denominator floor as delivered_ratio, on "
@@ -25239,8 +25239,8 @@ _multi_run_payload = {
         {"dhw_power": 1.0},
     ],
     # What the coordinator itself builds for this schedule: a three-step
-    # run collapses to one slot, the trailing step is a second (coordinator
-    # _plan_slots, merged on optimizer.channel_heating_steps).
+    # run collapses to one slot, the trailing step is a second
+    # (plan_slots.plan_slots, merged on thermal_model.channel_heating_steps).
     "dhw_plan": {"slots": [{"start": "t0"}, {"start": "t1"}]},
 }
 _dhw_sched_vs_plan = sensor.DHWScheduleSensor(
