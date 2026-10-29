@@ -17,7 +17,18 @@ py-spy cannot read is identified, with the control's verdict on that process.
 
 ``--mode N1|N2|N3`` (a fix tree): null controls. N1 the spin stalls nothing,
 N2 the watcher never dumps, N3 the sampler reads a pid that does not exist;
-each must fail hb:positive_control.
+each must fail hb:positive_control. N4 (the mutation proof) deletes the fix's
+own predicate, so the sampler is py-spy wherever it is staged.
+
+``--inproc real|hung`` runs the tree's own ``_async_hb_control`` in this
+interpreter instead, no Docker, with a py-spy staged where the lane looks: the
+real one, or ``hung``, one that never returns -- the failure the nightly
+measured, whose spin is held to the sample's full timeout (gap about
+HB_DUMP_S + the timeout). A base tree is handed that py-spy; a fix tree finds
+it only where the interpreter has no unwinder, or under N4. Run it under a
+3.14 interpreter to drive the unwinder; ``--mode plain`` edits nothing. It
+needs only the CPython the tree runs on, so it measures the sampler, never real
+Home Assistant.
 
 Needs Docker, the image pulled, py-spy 0.4.2 on PATH, and an image layer holding
 the ``threadpoolctl`` wheel (see r10_nightly_pyspy_retry.py).
@@ -76,7 +87,9 @@ EDITS = {
     "N1": ("    end, bound = start + seconds, start + hold_max\n", "    end, bound = start, start\n"),
     "N2": ("            if stalled >= self.dump_after and not self._stall_dumped:", "            if False:"),
     "N3": ("[*self.sampler, str(os.getpid())]", "[*self.sampler, '999999']"),
+    "N4": ('    if importlib.util.find_spec("_remote_debugging") is not None:\n', "    if False:\n"),
 }
+HUNG = "#!/bin/sh\nexec sleep 600\n"
 
 
 def _load(tree: Path):
@@ -120,14 +133,65 @@ def run_once(n, run_dir: Path, mode: str, image: str) -> tuple[str, str, bool, s
     return word, (verdict[1] if verdict else ""), hung, logs
 
 
+def run_inproc(tree: Path, mode: str, spy: str, stage: Path) -> tuple[str, str]:
+    """One control in this process over the tree's (edited) nightly_ha.py."""
+    import asyncio
+
+    src = (tree / "tests" / "nightly_ha.py").read_text()
+    if mode != "plain":
+        old, new = EDITS[mode]
+        if src.count(old) != 1:
+            raise SystemExit(f"--mode {mode}: the tree has no single {old.strip()!r}")
+        src = src.replace(old, new)
+    sys.path[:0] = [str(tree / "tests"), str(tree / "tests" / "hastub"), str(tree)]
+    mod = type(sys)("nightly_ha")
+    mod.__file__ = str(tree / "tests" / "nightly_ha.py")
+    sys.modules["nightly_ha"] = mod
+    exec(compile(src, mod.__file__, "exec"), mod.__dict__)  # noqa: S102 - the tree's own driver
+    staged = stage / "py-spy"
+    if not staged.exists():
+        if spy == "hung":
+            staged.write_text(HUNG)
+            staged.chmod(0o755)
+        else:
+            real = shutil.which("py-spy")
+            if real is None:
+                raise SystemExit("--inproc real: put py-spy 0.4.2 on PATH")
+            staged.symlink_to(real)
+    mod.IN_DRIVER_DIR = str(stage)
+    kw = {} if hasattr(mod, "sample_command") else {"py_spy": str(staged)}
+    checks = mod.Checks()
+    tries = asyncio.run(mod._async_hb_control(checks, **kw))
+    readings = [mod.hb_control_reading(t) for t in tries]
+    gaps = [round(t["max_gap"] * 1000, 1) for t in tries]
+    sampler = mod.sample_command()[0] if kw == {} and mod.sample_command() else str(staged)
+    word = "FAIL" if "hb:positive_control" in checks.failures() else "ok"
+    return word, f"readings={readings} gaps_ms={gaps} sampler={Path(sampler).name}"
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--tree", type=Path, required=True)
-    ap.add_argument("--mode", choices=("probe", "side", "N1", "N2", "N3"), required=True)
+    ap.add_argument("--mode", choices=("probe", "side", "plain", "N1", "N2", "N3", "N4"),
+                    required=True)
+    ap.add_argument("--inproc", choices=("real", "hung"),
+                    help="run the control in this interpreter, no Docker, with this py-spy staged")
     ap.add_argument("--runs", type=int, default=1)
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--image", default="homeassistant/home-assistant:stable")
     args = ap.parse_args()
+    if args.inproc:
+        if args.mode in ("probe", "side"):
+            raise SystemExit(f"--mode {args.mode} needs the container; --inproc takes plain or N1-N4")
+        args.out.mkdir(parents=True, exist_ok=True)
+        ok = 0
+        for i in range(1, args.runs + 1):
+            verdict, detail = run_inproc(args.tree.resolve(), args.mode, args.inproc, args.out)
+            ok += verdict == "ok"
+            print(f"run {i}: {verdict} {detail}", flush=True)
+        print(f"SUMMARY mode={args.mode} inproc={args.inproc} python={sys.version.split()[0]} "
+              f"runs={args.runs} ok={ok} fail={args.runs - ok}")
+        return 0
     n = _load(args.tree.resolve())
     ok = fail = hung_runs = 0
     for i in range(1, args.runs + 1):
