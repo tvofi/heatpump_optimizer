@@ -1,54 +1,52 @@
 # Review packet #2915
-head: 196a75a9f32d87445f48a266ea37a961bfa1089a
-base: 6493ea3625900f8361011e0c8f2a3c66885ce7b1
+head: cf9341725978140fd3129de026577a68a85eac72
+base: 9071062b03cb5e339fbf4c3b94058063a023fda7
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
-## Gate digest: red
-CodeQL id=123186560483 neutral
-arch-score / arch-score id=123185550239 success
-arm id=123184809280 skipped
-budget-raise-gate / budget-raise-gate id=123185550303 success
-cancel-superseded id=123188189881 success
-codeql / Analyze (actions) id=123185550288 success
-codeql / Analyze (javascript-typescript) id=123185550407 success
-codeql / Analyze (python) id=123185550354 in_progress
-governance / delivery-status id=123185550095 failure
-governance / delivery-status-publish id=123185552223 skipped
-governance / env-matrix id=123185550022 success
-governance / instrument-self-tests id=123185550027 in_progress
-governance / policy-docs id=123185550171 success
-governance / record id=123185552751 skipped
-governance / wave-script id=123185550172 success
-hassfest / hassfest id=123185550146 success
-kernel-points id=123185552355 skipped
-prelude id=123188190330 in_progress
-refresh id=123188189569 success
-tests / arch-instrument id=123186485284 success
-tests / briefs id=123185550091 success
-tests / browser id=123186485206 success
-tests / claims-autofix id=123191367123 skipped
-tests / closure-scope id=123185550360 success
-tests / closures id=123186485214 in_progress
-tests / coverage id=123186485096 in_progress
-tests / fast (3.14) id=123186485126 success
-tests / mutation id=123185550149 success
-tests / mutation-autofix id=123186270993 skipped
-tests / mutation-pins id=123186270979 skipped
-tests / nightly-ha id=123186486798 skipped
-tests / nightly-status id=123185550152 success
-tests / replay id=123186486564 skipped
-tests / typing id=123186485172 success
-validate / validate-hacs id=123185549970 success
+## Gate digest: pending
+CodeQL id=123264965851 neutral
+arch-score / arch-score id=123264748911 success
+arm id=123264655321 skipped
+budget-raise-gate / budget-raise-gate id=123264748878 success
+cancel-superseded id=123264629834 success
+codeql / Analyze (actions) id=123264749027 success
+codeql / Analyze (javascript-typescript) id=123264748915 success
+codeql / Analyze (python) id=123264748961 in_progress
+governance / delivery-status id=123264749060 success
+governance / delivery-status-publish id=123264750884 skipped
+governance / env-matrix id=123264748822 success
+governance / instrument-self-tests id=123264748848 in_progress
+governance / policy-docs id=123264748892 success
+governance / record id=123264750679 skipped
+governance / wave-script id=123264748903 success
+hassfest / hassfest id=123264748806 success
+kernel-points id=123264749728 skipped
+prelude id=123264629519 in_progress
+refresh id=123264629857 success
+tests / arch-instrument id=123264888893 success
+tests / briefs id=123264748862 success
+tests / browser id=123264888917 success
+tests / closure-scope id=123264749015 success
+tests / closures id=123264888748 in_progress
+tests / coverage id=123264888751 in_progress
+tests / fast (3.14) id=123264888926 in_progress
+tests / mutation id=123264748883 success
+tests / mutation-autofix id=123264954521 skipped
+tests / mutation-pins id=123264954168 skipped
+tests / nightly-ha id=123264891316 skipped
+tests / nightly-status id=123264748875 success
+tests / replay id=123264890500 skipped
+tests / typing id=123264888743 success
+validate / validate-hacs id=123264749021 success
 
 ## Refusals
-red-unanswered: concluded red check `governance / delivery-status` is not named in ## Red checks
+none
 
 ## Advisories
 none
 
 ## carry_audit at the head
-NOTE stale tree: 6493ea3625900f8361011e0c8f2a3c66885ce7b1 lacks origin/main 077dee8567ebebc4bac7481c54276348d5bceab3; roster read at origin/main
 NOTE body item c3498e8d: R10-CONFIGFLOW-PAGES
 NOTE body item 4bc1c15e: R10-CONFIGFLOW-PAGES
 CARRY-AUDIT: 2 finding item(s): 2 routed, 0 unrouted, 0 bad destination(s)
@@ -58,22 +56,24 @@ unverified git archive
              `git archive` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
   unverified PYTHONPATH=tests/hastub python3 $EXPORT/dev/audit/rounds/round10/D7/arch2-s5/wizard_widgets.py [--all | --bump heat_pump_cop_nominal]
              the path `$EXPORT/dev/audit/rounds/round10/D7/arch2-s5/wizard_widgets.py` is a template or an expansion, not a literal
-  ok         python3 tests/closure.py select --diff b0b2d7697 --workdir $D
-             `tests/closure.py` is in the tree at this head
   ok         tests/config_flow_steps.py
              `tests/config_flow_steps.py` is in the tree at this head
-  ok         python3 tools/audit/archscore/score.py --diff b0b2d7697
-             `tools/audit/archscore/score.py` is in the tree at this head
+  ok         python3 tests/closure.py select --diff 0b17333c2 --workdir $D
+             `tests/closure.py` is in the tree at this head
+  ok         custom_components/heatpump_optimizer/config_flow.py
+             `custom_components/heatpump_optimizer/config_flow.py` is in the tree at this head
   ok         python3 tests/structure.py
              `tests/structure.py` is in the tree at this head
+  ok         python3 tools/audit/archscore/score.py --diff origin/main
+             `tools/audit/archscore/score.py` is in the tree at this head
   ok         python3 tools/pr/ci_predict.py --base origin/main
              `tools/pr/ci_predict.py` is in the tree at this head
-  unverified git diff --stat b0b2d7697...HEAD
+  unverified git diff --stat 0b17333c2...HEAD
              `git diff` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
-  unverified git diff --name-only b0b2d7697...HEAD -- <those five> | wc -l
+  unverified git diff --name-only origin/main...HEAD -- <those five> | wc -l
              `git diff` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
 
-FIGURES: 5 resolved, 4 not verified, 0 refused
+FIGURES: 6 resolved, 4 not verified, 0 refused
 
 ## Finder's harness: none named
 ### at the base
@@ -86,10 +86,10 @@ none
 
 ## Three-dot diff
 diff --git a/custom_components/heatpump_optimizer/config_flow.py b/custom_components/heatpump_optimizer/config_flow.py
-index bc51e5feb..384a2b4a3 100644
+index 5a8e0b4b7..c1a29607e 100644
 --- a/custom_components/heatpump_optimizer/config_flow.py
 +++ b/custom_components/heatpump_optimizer/config_flow.py
-@@ -1023,13 +1023,6 @@ def _valid_months_spec(spec: Any) -> bool:
+@@ -1016,13 +1016,6 @@ def _valid_months_spec(spec: Any) -> bool:
      return True
  
  
@@ -103,20 +103,20 @@ index bc51e5feb..384a2b4a3 100644
  def _entity_of(
      domain: str | list[str], device_class: str | None = None
  ) -> selector.EntitySelector:
-@@ -1225,10 +1218,10 @@ def _quick_setup_schema(
+@@ -1218,10 +1211,10 @@ def _quick_setup_schema(
      return vol.Schema(
          {
              **question_fields,
--            _suggested_entity(CONF_WOOD_TANK_TOP_ENTITY, current): _entity_of(["sensor"]),
-+            _suggested_entity(CONF_WOOD_TANK_TOP_ENTITY, current): _prefill_row(CONF_WOOD_TANK_TOP_ENTITY).widget,
-             _suggested_entity(
-                 CONF_WOOD_TANK_BOTTOM_ENTITY, current
+-            _suggested_optional(current, CONF_WOOD_TANK_TOP_ENTITY): _entity_of(["sensor"]),
++            _suggested_optional(current, CONF_WOOD_TANK_TOP_ENTITY): _prefill_row(CONF_WOOD_TANK_TOP_ENTITY).widget,
+             _suggested_optional(
+                 current, CONF_WOOD_TANK_BOTTOM_ENTITY
 -            ): _entity_of(["sensor"]),
 +            ): _prefill_row(CONF_WOOD_TANK_BOTTOM_ENTITY).widget,
              **_questionnaire_fields(current),
          }
      )
-@@ -1268,10 +1261,10 @@ def _user_credentials_fields() -> dict[Any, Any]:
+@@ -1261,10 +1254,10 @@ def _user_credentials_fields() -> dict[Any, Any]:
          vol.Required(CONF_NAME, default="Heat Pump Optimizer"): str,
          vol.Optional(
              CONF_PRICE_SOURCE, default=DEFAULT_PRICE_SOURCE
@@ -131,7 +131,7 @@ index bc51e5feb..384a2b4a3 100644
      }
  
  
-@@ -1308,36 +1301,28 @@ def _user_sensors_fields(hass: HomeAssistant) -> dict[Any, Any]:
+@@ -1301,36 +1294,28 @@ def _user_sensors_fields(hass: HomeAssistant) -> dict[Any, Any]:
      ``_user_sensors_sections`` is what the setup page renders (#824).
      """
      return {
@@ -182,7 +182,7 @@ index bc51e5feb..384a2b4a3 100644
      }
  
  
-@@ -1560,7 +1545,7 @@ _OPTION_PAGES: Final[tuple[_P, ...]] = (
+@@ -1553,7 +1538,7 @@ _OPTION_PAGES: Final[tuple[_P, ...]] = (
  _OPTION_FIELDS: Final[tuple[_F, ...]] = (
      # -- entities
      _F("entities", CONF_PRICE_SOURCE, DEFAULT_PRICE_SOURCE, _select(list(PRICE_SOURCES), "price_source"), group="credentials"),
@@ -191,7 +191,7 @@ index bc51e5feb..384a2b4a3 100644
      _F("entities", CONF_PRICE_ENTITY, _STORED, _entity_of('sensor'), group="credentials"),
      _F("entities", CONF_PRICE_VAT, DEFAULT_PRICE_VAT, _number(0.0, 2.0, 0.01), group="credentials"),
      _F("entities", CONF_PRICE_SURCHARGE, DEFAULT_PRICE_SURCHARGE, _number(0.0, 2.0, 0.01), group="credentials"),
-@@ -1937,6 +1922,33 @@ def _prefill_row(key: str) -> _F:
+@@ -1976,6 +1961,33 @@ def _prefill_row(key: str) -> _F:
      return next(row for row in _OPTION_FIELDS if row.key == key)
  
  
@@ -225,7 +225,7 @@ index bc51e5feb..384a2b4a3 100644
  def _prefill_fits(key: str, value: Any) -> bool:
      """A suggestion its own field would accept: a number inside its range.
  
-@@ -2648,37 +2660,18 @@ class HeatPumpOptimizerConfigFlow(
+@@ -2687,37 +2699,18 @@ class HeatPumpOptimizerConfigFlow(
              step_id="temperature",
              errors=errors,
              data_schema=vol.Schema(
@@ -275,7 +275,7 @@ index bc51e5feb..384a2b4a3 100644
              ),
          )
  
-@@ -2749,20 +2742,7 @@ class HeatPumpOptimizerConfigFlow(
+@@ -2788,20 +2781,7 @@ class HeatPumpOptimizerConfigFlow(
          return self.async_show_form(
              step_id="building_extras",
              errors=errors,
@@ -297,7 +297,7 @@ index bc51e5feb..384a2b4a3 100644
          )
  
      async def async_step_thermal(
-@@ -2780,41 +2760,19 @@ class HeatPumpOptimizerConfigFlow(
+@@ -2819,41 +2799,19 @@ class HeatPumpOptimizerConfigFlow(
              step_id="thermal",
              errors=errors,
              data_schema=vol.Schema(
@@ -352,7 +352,7 @@ index bc51e5feb..384a2b4a3 100644
              ),
          )
  
-@@ -2855,49 +2813,22 @@ class HeatPumpOptimizerConfigFlow(
+@@ -2894,49 +2852,22 @@ class HeatPumpOptimizerConfigFlow(
                              "suggested_value": mode == TWO_ZONE_MODE_ON
                          },
                      ): selector.BooleanSelector(),
@@ -418,7 +418,7 @@ index bc51e5feb..384a2b4a3 100644
                  }
              ),
          )
-@@ -2955,54 +2886,22 @@ class HeatPumpOptimizerConfigFlow(
+@@ -2994,54 +2925,22 @@ class HeatPumpOptimizerConfigFlow(
                              )
                          },
                      ): selector.BooleanSelector(),
@@ -488,7 +488,7 @@ index bc51e5feb..384a2b4a3 100644
                  }
              ),
          )
-@@ -3018,16 +2917,13 @@ class HeatPumpOptimizerConfigFlow(
+@@ -3057,16 +2956,13 @@ class HeatPumpOptimizerConfigFlow(
          return self.async_show_form(
              step_id="weather_sensitivity",
              data_schema=vol.Schema(
@@ -512,7 +512,7 @@ index bc51e5feb..384a2b4a3 100644
              ),
          )
  
-@@ -3094,7 +2990,7 @@ class HeatPumpOptimizerConfigFlow(
+@@ -3133,7 +3029,7 @@ class HeatPumpOptimizerConfigFlow(
          return self.async_show_form(
              step_id="reauth_confirm",
              data_schema=vol.Schema(
@@ -529,10 +529,10 @@ index 000000000..50df39242
 @@ -0,0 +1 @@
 +- [#2915](https://github.com/tvofi/heatpump_optimizer/pull/2915) — **open**, fix(config-flow): R10-CONFIGFLOW-PAGES arms C and C2 (ARCH2-s5-F1)
 diff --git a/tests/config_flow_steps.py b/tests/config_flow_steps.py
-index 3dba5f309..716f4a76d 100644
+index 084ab1544..e038b02eb 100644
 --- a/tests/config_flow_steps.py
 +++ b/tests/config_flow_steps.py
-@@ -7327,6 +7327,85 @@ async def r9_f5_text_and_menu_findings():
+@@ -7332,6 +7332,85 @@ async def r9_f5_text_and_menu_findings():
      )
  
  
@@ -615,34 +615,26 @@ index 3dba5f309..716f4a76d 100644
 +    )
 +
 +
- async def main() -> int:
-     if "--self-check" in sys.argv:
-         return await self_check()
-@@ -7372,6 +7451,7 @@ async def main() -> int:
+ # ---------------------------------------------------------------------------
+ # R10-CONFIGFLOW-PAGES (D7-s2-56, #2238): every validating options page runs
+ # ``_page``'s one sequence. A REJECTED submit re-renders over the cleaned
+@@ -7620,6 +7699,7 @@ async def main() -> int:
      await config_flow_device_prefill_offer()
      await device_prefill_preview_texts()
      await r9_f5_text_and_menu_findings()
 +    await setup_widgets_are_the_registry_rows()
+     await options_rejected_page_rerenders_the_clear()
+     await options_cleared_price_entity_is_refused()
  
-     print()
-     LEDGER.print_result_lines()
 diff --git a/tests/structure_budgets.json b/tests/structure_budgets.json
-index d4fd0a0cb..9a399fcc8 100644
+index a115eb42e..35d5d00dd 100644
 --- a/tests/structure_budgets.json
 +++ b/tests/structure_budgets.json
 @@ -1,5 +1,5 @@
  {
-- "class_excess_loc": 18037,
-+ "class_excess_loc": 17921,
+- "class_excess_loc": 17986,
++ "class_excess_loc": 17870,
   "const_modules_over_50": 3,
   "coordinator_attrs": 142,
   "coordinator_multiassigned_attrs": 109,
-@@ -16,6 +16,6 @@
-  "methods_over_150": 16,
-  "methods_over_200": 9,
-  "name_kept_members": 38,
-- "recorded_at": "6eb552157b63d1e98a9653250789d9fe0027b5bc",
-+ "recorded_at": "6d86acc909f7fc465e5736771daf8fa45c1373a4",
-  "seam_cut_total": 423
- }
 
