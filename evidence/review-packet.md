@@ -1,45 +1,45 @@
 # Review packet #2964
-head: ac7353951f00fa953844899eefc85bef14b6b3a0
+head: 67be951d3980dcfa9a2c5ce8b099f9239f3db904
 base: e5ddba1fad5e6eccfeceaeaaa249bc459963405b
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
 ## Gate digest: red
-CodeQL id=123704545156 neutral
-arch-score / arch-score id=123704155696 success
-arm id=123703955172 skipped
-budget-raise-gate / budget-raise-gate id=123704155839 success
-cancel-superseded id=123703970672 success
-codeql / Analyze (actions) id=123704155907 success
-codeql / Analyze (javascript-typescript) id=123704155815 success
-codeql / Analyze (python) id=123704155864 in_progress
-governance / delivery-status id=123704155794 success
-governance / delivery-status-publish id=123704157921 skipped
-governance / env-matrix id=123704155608 in_progress
-governance / instrument-self-tests id=123704155765 in_progress
-governance / policy-docs id=123704155742 success
-governance / record id=123704158832 skipped
-governance / wave-script id=123704155786 success
-hassfest / hassfest id=123704155771 success
-kernel-points id=123704157749 skipped
-prelude id=123703969835 in_progress
-refresh id=123703970032 success
-tests / arch-instrument id=123704385544 success
-tests / briefs id=123704155564 success
-tests / browser id=123704385962 in_progress
-tests / closure-scope id=123704155741 success
-tests / closures id=123704385660 in_progress
-tests / coverage id=123704385835 in_progress
-tests / fast (3.14) id=123704385930 in_progress
-tests / mutation id=123704155746 success
-tests / mutation-autofix id=123704585302 skipped
-tests / mutation-pins id=123704585365 skipped
-tests / nightly-ha (2025.2.0) id=123704385948 in_progress
-tests / nightly-ha (stable) id=123704385991 in_progress
-tests / nightly-status id=123704155694 failure
-tests / replay id=123704388502 skipped
-tests / typing id=123704385766 in_progress
-validate / validate-hacs id=123704155364 success
+CodeQL id=123726596224 neutral
+arch-score / arch-score id=123726258796 success
+arm id=123726057226 skipped
+budget-raise-gate / budget-raise-gate id=123726258866 success
+cancel-superseded id=123726060596 success
+codeql / Analyze (actions) id=123726258458 success
+codeql / Analyze (javascript-typescript) id=123726258723 success
+codeql / Analyze (python) id=123726258537 in_progress
+governance / delivery-status id=123726258935 success
+governance / delivery-status-publish id=123726261078 skipped
+governance / env-matrix id=123726259047 in_progress
+governance / instrument-self-tests id=123726258875 in_progress
+governance / policy-docs id=123726259185 success
+governance / record id=123726260749 skipped
+governance / wave-script id=123726258916 success
+hassfest / hassfest id=123726258893 success
+kernel-points id=123726259966 skipped
+prelude id=123726060658 success
+refresh id=123726060097 success
+tests / arch-instrument id=123726500892 success
+tests / briefs id=123726258712 success
+tests / browser id=123726501399 in_progress
+tests / closure-scope id=123726258599 success
+tests / closures id=123726501129 in_progress
+tests / coverage id=123726500944 in_progress
+tests / fast (3.14) id=123726500891 in_progress
+tests / mutation id=123726258720 success
+tests / mutation-autofix id=123726627386 skipped
+tests / mutation-pins id=123726627588 skipped
+tests / nightly-ha (2025.2.0) id=123726501217 in_progress
+tests / nightly-ha (stable) id=123726501072 in_progress
+tests / nightly-status id=123726258955 failure
+tests / replay id=123726504095 skipped
+tests / typing id=123726500893 in_progress
+validate / validate-hacs id=123726258504 success
 
 ## Refusals
 none
@@ -92,10 +92,10 @@ none
 ## Three-dot diff
 diff --git a/dev/audit/harnesses/r10_fly_nightly_hb.py b/dev/audit/harnesses/r10_fly_nightly_hb.py
 new file mode 100644
-index 000000000..594d8dba1
+index 000000000..2fa6017f8
 --- /dev/null
 +++ b/dev/audit/harnesses/r10_fly_nightly_hb.py
-@@ -0,0 +1,147 @@
+@@ -0,0 +1,211 @@
 +"""R10-FLY-NIGHTLY-HB: the heartbeat container run N times, with the sampler probed.
 +
 +The measurement behind the heartbeat sampler change, as a script over the tree's
@@ -115,7 +115,18 @@ index 000000000..594d8dba1
 +
 +``--mode N1|N2|N3`` (a fix tree): null controls. N1 the spin stalls nothing,
 +N2 the watcher never dumps, N3 the sampler reads a pid that does not exist;
-+each must fail hb:positive_control.
++each must fail hb:positive_control. N4 (the mutation proof) deletes the fix's
++own predicate, so the sampler is py-spy wherever it is staged.
++
++``--inproc real|hung`` runs the tree's own ``_async_hb_control`` in this
++interpreter instead, no Docker, with a py-spy staged where the lane looks: the
++real one, or ``hung``, one that never returns -- the failure the nightly
++measured, whose spin is held to the sample's full timeout (gap about
++HB_DUMP_S + the timeout). A base tree is handed that py-spy; a fix tree finds
++it only where the interpreter has no unwinder, or under N4. Run it under a
++3.14 interpreter to drive the unwinder; ``--mode plain`` edits nothing. It
++needs only the CPython the tree runs on, so it measures the sampler, never real
++Home Assistant.
 +
 +Needs Docker, the image pulled, py-spy 0.4.2 on PATH, and an image layer holding
 +the ``threadpoolctl`` wheel (see r10_nightly_pyspy_retry.py).
@@ -174,7 +185,9 @@ index 000000000..594d8dba1
 +    "N1": ("    end, bound = start + seconds, start + hold_max\n", "    end, bound = start, start\n"),
 +    "N2": ("            if stalled >= self.dump_after and not self._stall_dumped:", "            if False:"),
 +    "N3": ("[*self.sampler, str(os.getpid())]", "[*self.sampler, '999999']"),
++    "N4": ('    if importlib.util.find_spec("_remote_debugging") is not None:\n', "    if False:\n"),
 +}
++HUNG = "#!/bin/sh\nexec sleep 600\n"
 +
 +
 +def _load(tree: Path):
@@ -218,14 +231,65 @@ index 000000000..594d8dba1
 +    return word, (verdict[1] if verdict else ""), hung, logs
 +
 +
++def run_inproc(tree: Path, mode: str, spy: str, stage: Path) -> tuple[str, str]:
++    """One control in this process over the tree's (edited) nightly_ha.py."""
++    import asyncio
++
++    src = (tree / "tests" / "nightly_ha.py").read_text()
++    if mode != "plain":
++        old, new = EDITS[mode]
++        if src.count(old) != 1:
++            raise SystemExit(f"--mode {mode}: the tree has no single {old.strip()!r}")
++        src = src.replace(old, new)
++    sys.path[:0] = [str(tree / "tests"), str(tree / "tests" / "hastub"), str(tree)]
++    mod = type(sys)("nightly_ha")
++    mod.__file__ = str(tree / "tests" / "nightly_ha.py")
++    sys.modules["nightly_ha"] = mod
++    exec(compile(src, mod.__file__, "exec"), mod.__dict__)  # noqa: S102 - the tree's own driver
++    staged = stage / "py-spy"
++    if not staged.exists():
++        if spy == "hung":
++            staged.write_text(HUNG)
++            staged.chmod(0o755)
++        else:
++            real = shutil.which("py-spy")
++            if real is None:
++                raise SystemExit("--inproc real: put py-spy 0.4.2 on PATH")
++            staged.symlink_to(real)
++    mod.IN_DRIVER_DIR = str(stage)
++    kw = {} if hasattr(mod, "sample_command") else {"py_spy": str(staged)}
++    checks = mod.Checks()
++    tries = asyncio.run(mod._async_hb_control(checks, **kw))
++    readings = [mod.hb_control_reading(t) for t in tries]
++    gaps = [round(t["max_gap"] * 1000, 1) for t in tries]
++    sampler = mod.sample_command()[0] if kw == {} and mod.sample_command() else str(staged)
++    word = "FAIL" if "hb:positive_control" in checks.failures() else "ok"
++    return word, f"readings={readings} gaps_ms={gaps} sampler={Path(sampler).name}"
++
++
 +def main() -> int:
 +    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
 +    ap.add_argument("--tree", type=Path, required=True)
-+    ap.add_argument("--mode", choices=("probe", "side", "N1", "N2", "N3"), required=True)
++    ap.add_argument("--mode", choices=("probe", "side", "plain", "N1", "N2", "N3", "N4"),
++                    required=True)
++    ap.add_argument("--inproc", choices=("real", "hung"),
++                    help="run the control in this interpreter, no Docker, with this py-spy staged")
 +    ap.add_argument("--runs", type=int, default=1)
 +    ap.add_argument("--out", type=Path, required=True)
 +    ap.add_argument("--image", default="homeassistant/home-assistant:stable")
 +    args = ap.parse_args()
++    if args.inproc:
++        if args.mode in ("probe", "side"):
++            raise SystemExit(f"--mode {args.mode} needs the container; --inproc takes plain or N1-N4")
++        args.out.mkdir(parents=True, exist_ok=True)
++        ok = 0
++        for i in range(1, args.runs + 1):
++            verdict, detail = run_inproc(args.tree.resolve(), args.mode, args.inproc, args.out)
++            ok += verdict == "ok"
++            print(f"run {i}: {verdict} {detail}", flush=True)
++        print(f"SUMMARY mode={args.mode} inproc={args.inproc} python={sys.version.split()[0]} "
++              f"runs={args.runs} ok={ok} fail={args.runs - ok}")
++        return 0
 +    n = _load(args.tree.resolve())
 +    ok = fail = hung_runs = 0
 +    for i in range(1, args.runs + 1):

@@ -1,8 +1,0 @@
-Check runs read at head ac7353951f00fa953844899eefc85bef14b6b3a0 (PR #2964), via the check-runs API:
-nightly-ha (stable) job 123704385991 success: "ok hb:positive_control [a 600 ms spin read as 600.2 ms; dump names the spin: True; sampler rc=0 names it: True; try 1 of 1 (at most 3)]"; sampler section is the stdlib format ("Thread 1 / _hb_spin (/opt/hpo/nightly_ha.py:1907)"). ALL 64 checks PASSED.
-nightly-ha (2025.2.0) job 123704385948 success: same line passes; sampler section in py-spy format ('Thread 13 (idle): "asyncio_3"') -> the 3.13 floor still samples with py-spy.
-nightly-status job 123704155694 failure: "NIGHTLY FAILED: slow failed in the last verification dispatch. dispatched run 40835853528 ... head 486e65c ... failing jobs: slow". Not a required context.
-Run 40806276912 (scheduled, head ee48937): nightly-ha (stable) failure, "FAILED: 2 of 64 checks: ['hb:positive_control', 'run:exit_status']"; slow success.
-Run 40835853528 (dispatch, head 486e65c): nightly-ha (stable) job 123320354418 SUCCESS; slow job 123320354392 FAILURE at step "Closed-loop simulation".
-In progress at read time: tests / fast (3.14), tests / coverage, tests / closures, governance / instrument-self-tests, codeql / Analyze (python), prelude (run 40946738762). No pr-contract check run on this head.
-All other runs success/skipped/neutral.
