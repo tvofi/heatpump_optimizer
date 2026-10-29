@@ -1,4 +1,4 @@
-# Proposal triage, session s7, batch 60 (P278-P280)
+# Proposal triage, session s7, batch 60 (P278-P281)
 
 The rolling batch (V182) after batch 59 (#2945, merged as
 `66974d47312caa46e9817b9aeae7186e9764e560`). Facts were read at that origin/main.
@@ -146,3 +146,49 @@ Instances:
 Rejected: the per-session liveness line. Its one instance is covered by an S fly-in that can be
 dispatched now. Its mechanism needs a session API the tick does not have, and it would judge
 liveness from the session, where the WORKERS section judges it from the work.
+
+## P281: the live tick's queue is a hand-kept link, and its workers file is unwired
+
+Verdict: ACCEPT, narrowed to the queue read, folded into R10-FLY-TICK-TRAIN-RC (P279). The tick
+takes the queue path from the train's own start line. The stable link the proposal asks
+`train.sh` to keep is REJECTED, and so is wiring `--workers-file` while nothing writes one.
+
+Source: the orchestrator's triage-queue line of 2026-10-29T11:15:08Z. The live tick's `--queue`,
+`train/current-queue.json`, is a symlink kept by hand. It named
+`add-queue-20261027-022550-2867.json` for two days, so every pass printed "stale queue entries
+... #2867". The proposal offers two fixes: `train.sh` keeps a stable link, or the tick reads the
+live pid's queue. It also asks to wire `--workers-file`.
+
+Instances:
+- **The writer already records the path.** `merge_train.py`'s add writes a fresh
+  `add-queue-<ts>-<pr>.json` per run and starts `train.sh --queue <it>`. `train.sh` logs `train.sh:
+  queue=<path> ... pid=<n>` at the start of every run (`train.sh:378`). The live log holds 27 such
+  lines, and its last two name `add-queue-20261029-105739-2933.json` and `...-110724-2933.json`.
+  The tick already reads that log (`--train-log`).
+- **A link would be a second record of the same fact.** It would be kept by a different writer,
+  and the add, sweep and spool paths would each have to keep it right. That is the class that just
+  went stale.
+- **The workers file has no writer.** The WORKERS section reads `seat, pr, head, dispatched_at,
+  agent_kind` (`orchestrator_tick.py`, `--workers-file`). No other file in `tools/audit/seat/`
+  writes or names one: not `cloud_dispatch.py`, not `bus.sh`. Wiring the flag would point the
+  reader at a file nothing produces, so the section would still be empty. Its target cases are
+  owed elsewhere: a blocked PR at an unmoved head under P277, and a live roster stage with no ref
+  under R10-ORCH-LEDGER's `IN-PROGRESS NO LIVE REF` carry.
+
+Accepted (narrowed), folded into R10-FLY-TICK-TRAIN-RC as item 3. With `--train-log` given and no
+`--queue`, the tick's `_queue` reads the path from the log's last `train.sh: queue=` line. An
+explicit `--queue` still wins, and an absent named file is UNREADABLE as today. Self-test: a
+fixture log with two start lines reads the second. Mutation: reading the first fails. Null
+control: an explicit `--queue` is used unchanged.
+
+Rejected: the stable link, as a second record. Also rejected: `--workers-file` wiring without a
+writer. A writer in `cloud_dispatch.py` would be a new proposal with its own instance, and none is
+measured here.
+
+Not a tree change: until the fly-in lands, the live tick's `--queue` should be dropped or
+re-pointed. That is the orchestrator's live wiring, not a ruling.
+
+Cost: about 6 lines in the same section and fixture as P279 item 2, which stays size S.
+
+Binding: two days of a false stale line on every pass, from a link no tool kept, fixed by reading
+the record the train already writes.
