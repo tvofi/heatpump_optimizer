@@ -1,4 +1,4 @@
-# Proposal triage, session s7, batch 60 (P278-P282)
+# Proposal triage, session s7, batch 60 (P278-P283)
 
 The rolling batch (V182) after batch 59 (#2945, merged as
 `66974d47312caa46e9817b9aeae7186e9764e560`). Facts were read at that origin/main.
@@ -238,3 +238,48 @@ Cost: about 10 lines and one self-test arm in one file.
 
 Binding: four dispatch refusals in one day, each needing a hand body patch and a re-triggered
 gate, from a call that drops two arguments its own function already has.
+
+## P283: the pushers' STALE CHECKOUT guard refuses from a current worktree
+
+Verdict: ACCEPT, narrowed, as a new fly-in, R10-FLY-RELAY-TOOLS-LEVEL. The relay runs
+`update_pr.sh` from a tools checkout it keeps level. Both options as proposed are REJECTED:
+(a) is already the behaviour, and (b) would make the guard move the checkout it is running from.
+
+Source: the orchestrator's triage-queue line of 2026-10-29T12:00:46Z. It says the guard judges
+the main checkout even when invoked from the orchestrator worktree, "whose tools are current".
+It refused three times today (11:00Z open #2948, about 11:20Z #2925, 11:52Z #2939), each needing
+a checkout bump or `HPO_ALLOW_STALE_TOOLS=1`.
+
+Instances:
+- **The guard judges the running script's checkout.** `pr_tools_fresh` (`pr_args.sh:166-178`)
+  resolves `dirname "${BASH_SOURCE[0]}"` and counts what origin/main adds under
+  `tools/audit/seat` and `tools/pr`. That is option (a), already in the tree.
+- **The record names only the orchestrator worktree.** Of the `STALE CHECKOUT` refusals in
+  `tick-loop.log` and `cloud-relay.log`, all 41 name the orchestrator worktree's
+  `tools/audit/seat`, and none names the main checkout. It was behind when they fired: for
+  example 3 commits behind `9df0fe679` and 13 behind `53c4b9cb0`. The premise "whose tools are
+  current" did not hold at those moments.
+- **Nothing levels that worktree.** The relay calls `bash "$HERE/update_pr.sh"`, with `HERE` its
+  own directory (`cloud_relay.sh:154`, `:438`). Since 2026-10-29T00:00Z, 9 of main's 23
+  first-parent commits (to `b87019b86`) change the guarded paths. So each tools merge refuses the next relayed
+  update until a hand bump: 13 relay refusals (10 on 2026-10-28, 3 on 2026-10-29).
+- **Why (b) is unsafe.** A guard that fast-forwards its own checkout changes the files of the
+  bash scripts running from it. bash reads a script from its file as it executes, and the relay
+  is one of those scripts.
+
+Accepted (narrowed): the relay runs `update_pr.sh` from a tools checkout it owns, never from the
+checkout its own loop executes. It is a worktree added once and detached. Before each update
+call it is fetched and checked out at origin/main when clean, and a dirty or busy one is a named
+refusal. This is the pattern `roster_queue.py` uses for its lint clone. Self-test: with the
+scratch origin's main one tools commit ahead, the relayed update passes the guard. Mutation:
+calling `$HERE/update_pr.sh` again gives the refusal. Null control: a dirty clone is refused by
+name and left untouched.
+
+Rejected: (a), which is the present behaviour, and (b), a self-moving guard. The guard stays as
+is: it caught a real staleness 41 times. The orchestrator's own manual `open_pr.sh` and
+`update_pr.sh` runs level their checkout first. That is practice, not a tree change.
+
+Cost: about 15 lines in `cloud_relay.sh` and one self-test arm. No change to the guard.
+
+Binding: 13 relayed updates refused in two days, plus the three manual refusals named, from a
+checkout that no caller keeps level.
