@@ -9,7 +9,9 @@ Alternatives considered: for arm 2, keeping the whole prompt in the event and pu
 
 ## Head
 
-505330a7259e63b5f56399db0c26bf1c31e997fa, merge base and origin/main tip b6f6ceca4f0323b24171c45a2a2372ba2e2cbaaa (2026-10-28T21:17Z).
+c9dfba0617d7a50ccd8d6f4f60a7462a59932979, merge base b0b2d7697f8c5baaef2c082d9bf3242b57249e68; origin/main tip 6493ea3625900f8361011e0c8f2a3c66885ce7b1 (2026-10-28T23:59Z), `git merge-tree --write-tree origin/main HEAD` clean, so no merge (fixer.md step 6).
+
+Repair round 1 (review blocked 3d1c405d, `mutation-vacuous`: `ci-watch.sh` `sleep "$POLL_S"`->`sleep 300` survived). The one commit added, c9dfba06, adds a `ci-watch.sh --self-test` arm, "the loop sleeps POLL_S between cycles": one quiet cycle of the real watch loop without `CI_WATCH_ONCE` (the W2 null fixture, fake `gh`), with a stub `sleep` first on PATH that records its argument; the arm reads the first recorded argument and requires it to equal `POLL_S`. A loop that never sleeps leaves the record empty, and the self-test kills the watcher after ~10 s instead of hanging. Alternative considered: a grep for the loop's `sleep "$POLL_S"` line. It lost because it pins the text, not the behaviour, and a reworded call (`sleep ${POLL_S}`) would read as a regression.
 
 ## Mutation proof
 
@@ -18,25 +20,26 @@ Failing tests first, each importing or running the production artifact. Before t
 Mutants at the head, each applied alone and restored (predicates, not tails):
 
 - `dev/audit/harnesses/r10_flow_dispatch_mutants.py` (in tree; extended here): `pointer-ref-dropped` (the ref name dropped from the pointer, the brief's named mutant) failed=4 killed; `pointer-off` failed=4 killed; `publish-ignored` (flag path ignores `--publish`) failed=2 killed; `publish-ref-rev-dropped` failed=2 killed; `wait-line-dropped` failed=1 killed; `claude-md-reread` failed=1 killed; the re-aimed `nonce-altered` failed=4, `topic-to-id` CRASHED, `prompt-wrong` failed=12, `flag-unlisted` failed=2 killed.
-- One-off (scratch), `ci-watch.sh` `POLL_S=240`→`300`: `FAIL the poll is inside [60 s, 240 s] (POLL_S=300)`, 14 checks, 1 failed.
+- One-off (scratch), `ci-watch.sh` `POLL_S=240`→`300`: `FAIL the poll is inside [60 s, 240 s] (POLL_S=300)`, 15 checks, 1 failed.
+- The blocked mutant, `ci-watch.sh` loop `sleep "$POLL_S"`→`sleep 300`: at 3d1c405d (test absent) `ci-watch self-test: 14 checks, 0 failed`, survived; at c9dfba06 `FAIL the loop sleeps POLL_S between cycles (slept 300)`, 15 checks, 1 failed, killed. The loop's `sleep "$POLL_S"` line deleted: survived at 3d1c405d (14 checks, 0 failed), killed at c9dfba06 (`FAIL the loop sleeps POLL_S between cycles (slept never)`, 15 checks, 1 failed).
 - `proof_watch.py` `POLL_S = 240.0`→`300.0`: `FAIL the default poll is inside [60 s, 240 s]`; `if a.poll < POLL_FLOOR_S:`→`if False:`: `FAIL --poll 59 is refused at --poll (got (2, False), want (2, True))`.
 - `.claude/settings.json` without the `git rev-parse` fallback: `FAIL WIRED: a project dir without the hook runs the repository's, found from the cwd (got 0, wanted 3)`; without `[ -f "$f" ] || exit 0`: `FAIL WIRED: no hook anywhere exits 0, never a missing-file error (got 127, wanted 0)`.
 
 ## Null control
 
-`python3 dev/audit/harnesses/r10_flow_dispatch_mutants.py` M0 (unmutated) `failed=0 verdict=null-ok` at the head and at the base. The flag path without `--publish` keeps the whole prompt in its event (self-test: "without --publish the flag path is unchanged"). `proof_watch --poll 60` passes the poll guard and is refused at `--head` instead (self-test arm). The Stop command with the hook in `$CLAUDE_PROJECT_DIR` runs it (`WIRED: the project dir's hook runs`, rc 3 from the stub).
+`python3 dev/audit/harnesses/r10_flow_dispatch_mutants.py` M0 (unmutated) `failed=0 verdict=null-ok` at the head and at the base. The unmutated `ci-watch.sh` passes the new sleep arm (`ok   the loop sleeps POLL_S between cycles (slept 240)`), the null control for its two kills. The flag path without `--publish` keeps the whole prompt in its event (self-test: "without --publish the flag path is unchanged"). `proof_watch --poll 60` passes the poll guard and is refused at `--head` instead (self-test arm). The Stop command with the hook in `$CLAUDE_PROJECT_DIR` runs it (`WIRED: the project dir's hook runs`, rc 3 from the stub).
 
 ## Figures
 
 - `python3 -I tools/audit/seat/cloud_dispatch.py --self-test`: 87 checks, 0 failed at the head.
 - `python3 dev/audit/harnesses/r10_flow_dispatch_mutants.py`: `RESULT mutants=33 survived=1` at the head; the survivor is `reviewer-head-off`, which also survives at the base (`... M0 parent-drop head-ignored roster-repo-ignored reviewer-head-off` at b6f6ceca: `RESULT mutants=4 survived=1`), so it is pre-existing, not this diff's (Forward-carry). At the base the full run aborted at `nonce-altered`, whose pattern already matched nothing there (`git show origin/main:tools/audit/seat/cloud_dispatch.py | grep -cF 'pr=pr, topic=topic, nonce=nonce,'` prints 0); this PR re-aims it.
 - `bash .claude/hooks/stop-selfcheck.sh --self-test`: 29 passed, 0 failed. `node tools/policy/policy_lint.mjs --hooks`: `HOOKS ok: 3 wired hook(s) exist and pass their own --self-test`.
-- `bash tools/audit/seat/ci-watch.sh --self-test`: 14 checks, 0 failed. `python3 tools/audit/seat/proof_watch.py --self-test`: 43 checks, 0 failed.
+- `bash tools/audit/seat/ci-watch.sh --self-test`: 15 checks, 0 failed. `python3 tools/audit/seat/proof_watch.py --self-test`: 43 checks, 0 failed.
 - Pointer length: the self-test asserts each published event under 600 chars (rule: `len(content) < 600`, for a fixer and a reviewer, flag and group paths).
-- Scope: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` prints `MODE: SCOPED -- 1 script(s) run, 32 scoped out`; `scope.run` names `tests/entities.py`, run with `PYTHONPATH=tests/hastub` under `/opt/hpo/venv-ci/bin/python3` (see Friction). `PYTHONPATH=tests/hastub python3 tests/entities.py`: `ALL 2467 ENTITY CHECKS PASSED`. `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`. `PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh`: rc 0 at 505330a7 (`ci predict`: no red predicted).
+- Scope: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` prints `MODE: SCOPED -- 1 script(s) run, 32 scoped out`; `scope.run` names `tests/entities.py`, run with `PYTHONPATH=tests/hastub` under `/opt/hpo/venv-ci/bin/python3` (see Friction). `PYTHONPATH=tests/hastub python3 tests/entities.py`: `ALL 2467 ENTITY CHECKS PASSED`. `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`. `PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh`: rc 0 at c9dfba06 (`ci predict`: no red predicted). Every figure in this list was re-taken at c9dfba06.
 
 Class enumeration (fixer.md step 8), rule: `git grep -nEi "sleep +[0-9]{3}|default=[0-9]{3}\b|(POLL|INTERVAL|WAIT)[A-Z_]*\s*[:=]\s*[0-9]+|five.minute|300 ?s\b" -- tools/audit/seat tools/pr dev/governance .claude` at the base. Seams and dispositions:
-- `ci-watch.sh` `sleep 300`, `proof_watch.py` `--poll` 300: closed here.
+- `ci-watch.sh` `sleep 300`, `proof_watch.py` `--poll` 300: closed here; each pinned on value and on use (ci-watch: the loop's recorded sleep argument; proof_watch: "(l) the wait polls at the configured cadence").
 - `tick_loop.sh` `--interval` 300, `state_docs.py` `BEAT_INTERVAL`, `merge_train.py` `POLL_SECONDS` 300 (owner ruling 2026-10-07: one read per head per five minutes, a shared API quota), `orchestrator_tick.py`'s five-minute cadence: daemons run detached (`daemonize.py`), not waited on by a seat's turn, so no cache wake follows their poll; left as they are.
 - `prepr.sh` `( sleep 300 ) &` (two sites): self-test lane stubs, not a wait; not applicable.
 - `codeql-triage-poll.sh` `sleep 600`/`120`: an owner-run poll, not seat-facing; left.
