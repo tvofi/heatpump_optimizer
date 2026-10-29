@@ -1,45 +1,60 @@
 # Review packet #2917
-head: c9bf05dfe0a1b29eb18dd444a8a32983ea781d77
-base: 66974d47312caa46e9817b9aeae7186e9764e560
+head: f53ac2a3987e8dbf59ebedd0b708731d767aa5ab
+base: 3042dcd4f6fccc6b83aa2a956cfd4d4259ebc6ed
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
 ## Gate digest: red
-CodeQL id=123397110263 neutral
-arch-score / arch-score id=123396748817 success
-arm id=123396517934 skipped
-budget-raise-gate / budget-raise-gate id=123396748851 success
-cancel-superseded id=123396547405 success
-codeql / Analyze (actions) id=123396748497 success
-codeql / Analyze (javascript-typescript) id=123396748532 success
-codeql / Analyze (python) id=123396748528 in_progress
-governance / delivery-status id=123396748628 success
-governance / delivery-status-publish id=123396750460 skipped
-governance / env-matrix id=123396748570 in_progress
-governance / instrument-self-tests id=123396748808 in_progress
-governance / policy-docs id=123396748912 in_progress
-governance / record id=123396750578 skipped
-governance / wave-script id=123396748544 success
-hassfest / hassfest id=123396748487 success
-kernel-points id=123396750265 skipped
-prelude id=123396547293 success
-refresh id=123396547091 success
-tests / arch-instrument id=123396986546 in_progress
-tests / briefs id=123396748475 success
-tests / browser id=123396986509 in_progress
-tests / closure-scope id=123396748454 success
-tests / closures id=123396986872 in_progress
-tests / coverage id=123396986684 in_progress
-tests / fast (3.14) id=123396986568 in_progress
-tests / mutation id=123396748501 in_progress
-tests / nightly-ha id=123396989492 skipped
-tests / nightly-status id=123396748525 failure
-tests / replay id=123396986715 in_progress
-tests / typing id=123396986627 in_progress
-validate / validate-hacs id=123396748493 success
+CodeQL id=123477641748 success
+arch-score / arch-score id=123520051858 success
+arm id=123476990419 skipped
+budget-raise-gate / budget-raise-gate id=123520053208 success
+cancel-superseded id=123520117863 success
+codeql id=123520050588 skipped
+codeql / Analyze (actions) id=123520032808 success
+codeql / Analyze (javascript-typescript) id=123520033480 success
+codeql / Analyze (python) id=123520033735 success
+gate id=123520707738 failure
+governance id=123520049936 skipped
+governance / delivery-status id=123520033186 success
+governance / delivery-status-publish id=123520032927 skipped
+governance / env-matrix id=123520032698 success
+governance / instrument-self-tests id=123520033059 success
+governance / policy-docs id=123520033024 success
+governance / record id=123520033225 skipped
+governance / wave-script id=123520032789 success
+hassfest id=123520051566 skipped
+hassfest / hassfest id=123520033187 success
+kernel-points id=123520050920 skipped
+pr-contract / pr-contract id=123520160162 failure
+prelude id=123520119662 success
+refresh id=123520047973 success
+tests id=123520050424 skipped
+tests / arch-instrument id=123520039608 success
+tests / briefs id=123520033231 success
+tests / browser id=123520039379 success
+tests / ci-ratchet id=123520043152 skipped
+tests / claims-autofix id=123520043517 skipped
+tests / closure-scope id=123520033061 success
+tests / closures id=123520039480 success
+tests / closures-autofix id=123520042361 skipped
+tests / coverage id=123520039876 success
+tests / coverage-ratchet id=123520043745 success
+tests / fast (3.14) id=123520040329 success
+tests / graders-head-copy id=123520044053 success
+tests / lane-proofs id=123520043015 success
+tests / mutation id=123520033270 success
+tests / mutation-autofix id=123520041691 skipped
+tests / mutation-pins id=123520038578 skipped
+tests / nightly-ha id=123520039724 skipped
+tests / nightly-status id=123520033208 failure
+tests / replay id=123520038717 success
+tests / typing id=123520039521 success
+validate id=123520050603 skipped
+validate / validate-hacs id=123520032160 success
 
 ## Refusals
-red-unanswered: concluded red check `tests / nightly-status` is not named in ## Red checks
+required-red: required context `gate` concluded failure at f53ac2a3987e8dbf59ebedd0b708731d767aa5ab
 
 ## Advisories
 none
@@ -952,10 +967,10 @@ index 000000000..ba91c3ef3
 @@ -0,0 +1 @@
 +- [#2917](https://github.com/tvofi/heatpump_optimizer/pull/2917) — **open**, R10-COP-GATE part 1: COP observability state, L3 draw-follows refusal, latch time, draw pairing
 diff --git a/tests/closures.json b/tests/closures.json
-index 5b8a18073..af5ada08b 100644
+index 6b8a5b958..9c6c6da45 100644
 --- a/tests/closures.json
 +++ b/tests/closures.json
-@@ -3696,6 +3696,7 @@
+@@ -3697,6 +3697,7 @@
     "dev/audit/harnesses/r10_cloud_setup_toolchain.py",
     "dev/audit/harnesses/r10_codescan_wait_race.py",
     "dev/audit/harnesses/r10_configflow_pages.py",

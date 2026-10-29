@@ -1,4 +1,0 @@
-job 123396748525 (tests / nightly-status at c9bf05dfe0a1b29eb18dd444a8a32983ea781d77), PINNED: 66974d47312caa46e9817b9aeae7186e9764e560:
-NIGHTLY FAILED: nightly-ha (stable) failed last night.
-  scheduled run 40806276912, 2026-10-29T02:25:38+00:00, head ee48937, run conclusion 'failure'
-This check is NOT one of the required contexts on `main-protect`; a red here does not block a merge.
