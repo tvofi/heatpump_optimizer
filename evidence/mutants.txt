@@ -1,0 +1,35 @@
+== unmutated
+16 passed, 0 failed
+== M1
+  FAIL no variables with a CLAUDE_ENV_FILE exports into it (got: REFUSE -- the environment's variables are unset and no CLAUDE_ENV_FILE took them; start each Bash call with: eval "$(bash .claude/hooks/session-start.sh --env-lines)")
+  FAIL a shell sourcing the exported file gets venv-ci's python3 (got: /usr/bin/python3)
+  FAIL a PATH entry holding a space survives the exported file (got: /.nix-profile/bin:/nix/var/nix/profiles/default/bin:/usr/bin:/bin)
+13 passed, 3 failed
+== M2
+  FAIL no variables and no CLAUDE_ENV_FILE refuses, naming the per-call remedy (got: OK -- the environment's variables put venv-ci's python3 first)
+  FAIL no variables with a CLAUDE_ENV_FILE exports into it (got: OK -- the environment's variables put venv-ci's python3 first)
+  FAIL a shell sourcing the exported file gets venv-ci's python3 (got: /usr/bin/python3)
+  FAIL a PATH entry holding a space survives the exported file (got: /.nix-profile/bin:/nix/var/nix/profiles/default/bin:/usr/bin:/bin)
+12 passed, 4 failed
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+AssertionError: printf 'export %s=%q\\n'
+== M3 (first attempt: substitution string did not match, nothing applied; see the re-run below)
+16 passed, 0 failed
+== M4
+  FAIL the REFUSE line's remedy, eval of this hook's --env-lines, gets venv-ci's python3 (got: /tmp/tmp.24uNCrzUCk/sys/python3)
+15 passed, 1 failed
+== R1-no-export
+  FAIL no variables with a CLAUDE_ENV_FILE exports into it (got: REFUSE -- the environment's variables are unset and no CLAUDE_ENV_FILE took them; start each Bash call with: eval "$(bash .claude/hooks/session-start.sh --env-lines)")
+15 passed, 1 failed
+== R2-no-recheck
+16 passed, 0 failed
+== R3-na-guard
+  FAIL no venv-ci is not a cloud seat (got: REFUSE -- the environment's variables are unset and no CLAUDE_ENV_FILE took them; start each Bash call with: eval "$(bash .claude/hooks/session-start.sh --env-lines)")
+15 passed, 1 failed
+== M3 (%q -> %s)
+  FAIL a PATH entry holding a space survives the exported file (got: /tmp/tmp.lmN4aZRkHV/hpo/venv-ci/bin:/tmp/tmp.lmN4aZRkHV/sys:/tmp/tmp.lmN4aZRkHV/a)
+15 passed, 1 failed
+== partial venv-ci (no bin/python3), CLAUDE_ENV_FILE set
+head:   REFUSE -- the environment's variables are unset and no CLAUD
+R2 mut: EXPORTED -- the environment's variables are unset; the hook'

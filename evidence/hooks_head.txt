@@ -1,0 +1,6 @@
+Updated 1 path from a3ff58e00
+restored: tools/audit/seat/cloud-setup.sh 
+  ok                SessionStart  .claude/hooks/session-start.sh  16 passed, 0 failed
+  ok                PreToolUse    .claude/hooks/pre-edit.sh  22 passed, 0 failed
+  ok                Stop          .claude/hooks/stop-selfcheck.sh  29 passed, 0 failed
+HOOKS ok: 3 wired hook(s) exist and pass their own --self-test

@@ -1,0 +1,38 @@
+$ git merge-tree --write-tree origin/main HEAD
+79336d13390f6981421eb1321c8d76404ee2f36f
+exit=0
+$ VERSION/manifest/notes touched?
+(empty = untouched)
+$ claim files touched?
+(empty)
+$ budgets touched?
+(empty)
+$ closure select
+  MODE: SCOPED -- 0 script(s) run, 33 scoped out.
+  A skipped script is a claim that no changed file is in its measured
+$ structure
+STRUCTURE RATCHET PASSED
+$ entities
+
+ALL 2471 ENTITY CHECKS PASSED
+$ git grep on PATH from the environment
+dev/audit/rca/R10-FRICTION-GATE-SCOPING.md:135:toolchain (venv python, node, gh) is on PATH from the environment".
+dev/audit/rca/R10-RCA-FIXER-MD-KEY.md:67:on PATH from the environment".
+dev/audit/rca/R10-RCA-FIXER-MD-KEY.md:111:- the prompt's claim: `git grep -n "on PATH from the environment"` returns one
+exit=0
+$ git grep -- --env-lines
+.claude/hooks/session-start.sh:28:#                           its own --env-lines (cloud-setup.sh --variables,
+.claude/hooks/session-start.sh:83:    echo "EXPORTED -- the environment's variables are unset; the hook's --env-lines ap
+.claude/hooks/session-start.sh:86:  echo "REFUSE -- the environment's variables are unset and no CLAUDE_ENV_FILE took th
+.claude/hooks/session-start.sh:125:if [ "${1:-}" = "--env-lines" ]; then
+.claude/hooks/session-start.sh:160:  ans "$(env -i HOME="$T" PATH="$T/sys:/usr/bin:/bin" HPO_PREFIX="$T/hpo" bash -c 'ev
+dev/audit/rca/R10-RCA-FIXER-MD-KEY.md:141:`--env-lines` (`cloud-setup.sh --variables`, each exported and quoted) to
+dev/audit/rca/R10-RCA-FIXER-MD-KEY.md:156:true, `--env-lines` deleted) each fail it. The lines are built in the hook
+dev/audit/rca/R10-RCA-FIXER-MD-KEY.md:163:here: `eval` of the hook's `--env-lines`, then `--check` OK).
+tools/audit/seat/cloud_dispatch.py:138:             "`eval \"$(bash .claude/hooks/session-start.sh --env-lines)\"`. Run 
+$ cloud_dispatch self-test
+cloud_dispatch self-test: 87 checks, 0 failed
+$ cloud-setup self-test
+cloud_setup self-test: 13 checks, 0 failed
+$ merged PRs v7.0.4..origin/main
+289
