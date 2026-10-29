@@ -1,0 +1,4 @@
+review_packet.py render (HOME=/root and HOME=/tmp/h): REFUSE host-path: home-directory in the body; no packet written
+body_refusal under a non-root identity:
+None
+151:- **`ref_privacy._leaks` matches the host's home as a bare substring.** The round-1 review found `review_packet.py render` refusing `host-path` on `dev/audit/rca/R10-RCA-PREPR-HEAD-GRADERS.md:4`: 

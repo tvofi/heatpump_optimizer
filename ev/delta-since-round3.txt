@@ -1,0 +1,19 @@
+git log --first-parent ef895338c..5a119e8af148efbfb5ee3605323b75cd7af4a01c
+5a119e8af Merge remote-tracking branch 'origin/main' into fix/r10-rca-prepr-head-graders
+63789e164 Merge commit '46686b67727e2e1db00c689ab15e8a9ab8e5a77d' into fix/r10-rca-prepr-head-graders
+
+PR diff stat, round-3 head vs this head (three-dot vs each merge base): diff of stats is empty
+ dev/audit/config/bugclasses.json              |  19 +-
+ dev/audit/rca/R10-RCA-PREPR-HEAD-GRADERS.md   | 479 ++++++++++++++++++++++++++
+ dev/audit/rca/prepr-head-graders/attribute.sh |  66 ++++
+ dev/audit/rca/prepr-head-graders/demo.sh      |  36 ++
+ dev/audit/rca/prepr-head-graders/keycount.py  |  47 +++
+ dev/programme/delivery/2925.md                |   1 +
+ tools/policy/agreement_py.py                  |   9 +-
+ tools/policy/policy_lint.mjs                  |   2 +-
+ tools/pr/ci_predict.py                        | 462 ++++++++++++++++++++++---
+ 9 files changed, 1069 insertions(+), 52 deletions(-)
+
+46686b677:
+ dev/audit/rca/R10-RCA-PREPR-HEAD-GRADERS.md | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
