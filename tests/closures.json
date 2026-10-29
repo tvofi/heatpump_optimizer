@@ -3663,6 +3663,7 @@
    "dev/audit/harnesses/r10_archscore_any_spellings.py",
    "dev/audit/harnesses/r10_band_census.py",
    "dev/audit/harnesses/r10_briefs_fold_placement.mjs",
+   "dev/audit/harnesses/r10_buffer_store.py",
    "dev/audit/harnesses/r10_card_harmony.mjs",
    "dev/audit/harnesses/r10_card_voice_states.mjs",
    "dev/audit/harnesses/r10_carry_parser_mutants.py",
