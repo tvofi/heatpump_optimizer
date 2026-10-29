@@ -3,7 +3,9 @@
 - `owed_unactioned.py` — says which tick owed lines have outlived a sweep with
   no live acknowledgement (dev/audit/rca/R10-RCA-OWED-UNACTIONED.md). It reads
   the board's whole owed family (`-> OWED…`, `REVIEW OWED:`, `DISPATCH:`,
-  `OWNER FLAG:`, `DESIGN-BUILD:`), keys each line on its topic or `#<pr>`, and
+  `OWNER FLAG:`, `DESIGN-BUILD:`, `MERGE-READY:`, `BLOCKED-UNFIXED:`), keys
+  each line on its topic or `#<pr>` (a verdict level's head8 is its id, so a
+  new head re-raises), and
   counts in `--state` the boards each key has stood on. A key standing
   `--after` (2) sweeps is UNACTIONED unless an `--acks` file holds a live
   `OWED-ACK <UTC> <key> <id> [ttl=<h>] <reason>` whose id prefixes a sha the
