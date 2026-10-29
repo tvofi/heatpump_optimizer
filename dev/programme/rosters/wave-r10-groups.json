@@ -10496,7 +10496,8 @@
     "commit": null,
     "last_step": null,
     "next_step": "dispatch a seat",
-    "note": "wired by the roster seat 2026-10-26 under the owner's completion rule (tvofi 20:20Z)"
+    "note": "wired by the roster seat 2026-10-26 under the owner's completion rule (tvofi 20:20Z)",
+    "pr": 2961
    },
    "brief": "Root-cause seat for issue #2840, the recurring-friction key mutation-survivor (verdict class at threshold in the v7.0.4..origin/main window). Distinct from issue #2410's mutation family and issue #2660's mutation-vacuous, both on R10-RCA-FRICTION-RESIDUE: read that group's output first and do not re-derive what it records. The subject is why heads reached review with survivors that tests/mutation_table.py --pin-killed would have reported before handoff. Re-derive the count at your merge base with node tools/policy/policy_lint.mjs --stats --since v7.0.4; the figure in the issue is a snapshot. Per dev/governance/roles/root-cause.md the key owes a named cause, a process state (a-d), a cost test with numbers, and a countermeasure or a recorded refusal, filed under dev/audit/rca/. A countermeasure that edits a policy file is approved under the orchestrator's mandate (scope all); no step waits on tvofi. Closes the issue on delivery."
   },
