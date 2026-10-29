@@ -11956,6 +11956,10 @@ check("without an indoor reading the corner now label is absent",
   check("Assign on the power meter opens the Setup picker for that slot",
     pw.c.dialog.page === "setup" && pw.c.setup.pickerKey === "heat_pump_power_entity",
     `${pw.c.dialog.page} ${pw.c.setup.pickerKey}`);
+  // P08 (carry 5): and draws it -- a press that only set the state would leave
+  // the Health page on screen until something else re-rendered.
+  check("Assign redraws the dialog on the Setup page",
+    /setup-page/.test(pw.html()) && !/health-page"/.test(pw.html()));
 
   const sig1 = c._signature();
   const s2 = healthStates();
