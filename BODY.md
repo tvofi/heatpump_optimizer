@@ -1,4 +1,4 @@
-Triage batch 59 rules V185 as P273, V186 as P274, the orchestrator's 2026-10-29T04:14Z carry_audit proposal as P275, and its 05:58Z abandoned-merge-worktree proposal as P276. It is the next rolling batch under V182, after batch 58 (#2934, merge-verdicted at `56e61dc9e`).
+Triage batch 59 rules V185 as P273, V186 as P274, the orchestrator's 2026-10-29T04:14Z carry_audit proposal as P275, its 05:58Z abandoned-merge-worktree proposal as P276, and its P277 (owed family omits verdict levels). It is the next rolling batch under V182, after batch 58 (#2934, merge-verdicted at `56e61dc9e`).
 - **P273 (V185, card docs may still show the pre-R10-CARD-VOICE setup drawing): REJECT.**
   - V185 asked for a measurement first and a size-S docs fly-in only if something differed. This seat took the measurement, and nothing differs.
   - The premise comes from the card-symbols pre-study (`2cc4d5ebc`, 2026-10-20), written before #2841 merged (2026-10-26). #2841 itself rewrote `docs/dashboard-card.md` and all three `docs/img/model/hydronic-*.svg`.
@@ -19,18 +19,22 @@ Triage batch 59 rules V185 as P273, V186 as P274, the orchestrator's 2026-10-29T
   - Each aborts its own failed merge. Both start from `origin/<branch>` and merge only remote refs, so nothing is lost.
   - (a) would free another seat's dirty state on a snapshot guess, widening the guard P193 kept. (b) misses all three, which are open PRs that `worktree_gc.sh` keeps "ever".
   - One held roster op (`append-group R10-FLY-ABORT-OWN-MERGE`), released once this file is on main.
+- **P277 (the tick's MERGE-READY and BLOCKED-UNFIXED lines are outside the owed family): ACCEPT, as a new fly-in R10-FLY-OWED-LEVELS.**
+  - `owed_unactioned.py:50`'s `FAMILY` gains both kinds, keyed `#<N>` with `<head8>` as the id, with a self-test arm and mutant for each. `sweep_template.md` already runs the tool, so it needs no change.
+  - Measured from the `verdict/*` refs: blocked #2933, #2925 and #2872 and merge-verdicted #2896 and #2939 stood 5-11 h. Main's merges fell from 9 in the 23Z hour to 1-2 an hour.
+  - One held roster op (`append-group R10-FLY-OWED-LEVELS`), released once this file is on main.
 
 No product behaviour changes: the diff is one markdown file under `dev/programme/triage/`.
 
 ## Head
 
-`3df5b422269d3c5842097b85b6475eedc8d575a9`; the file is the whole diff against `b0b2d7697f8c5baaef2c082d9bf3242b57249e68`.
+`5ad92aecd1263af29d00ede9976826c3b7143c5e`; the file is the whole diff against `b0b2d7697f8c5baaef2c082d9bf3242b57249e68`.
 
 ## Mutation proof
 
 This file's only consumer is `tools/audit/seat/roster_edit.py`'s triage gate, `ruling_verdict` (line 455).
-- On the committed file, it reads P273 as `REJECT`, and P274, P275 and P276 as `ACCEPT`.
-- A text citing `#P273` is refused as `not an ACCEPT ruling (REJECT)`. The P274 and P275 carry texts and the P276 group brief and resume note pass (`triage_refusal` returns None). A resume note naming `triage P276` without the citation was refused before it was fixed.
+- On the committed file, it reads P273 as `REJECT`, and P274-P277 as `ACCEPT`.
+- A text citing `#P273` is refused as `not an ACCEPT ruling (REJECT)`. The P274 and P275 carry texts and the P276 and P277 group briefs and resume notes pass (`triage_refusal` returns None). A resume note naming `triage P276` without the citation was refused before it was fixed.
 
 ## Null control
 
