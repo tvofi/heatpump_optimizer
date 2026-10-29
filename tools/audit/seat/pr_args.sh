@@ -87,9 +87,12 @@ pr_branch_lock() { # <lock-file> <branch> <worktree> [detach]: hold the branch's
   # field `drain` once the run has ended. With
   # `detach` it then leaves <worktree> detached, still holding the lock: never under a push and never
   # under the next run, and a SIGKILLed run's too, whose own trap never runs (#2513, #2544, #2547).
+  # A merge the run left stopped on a conflict is aborted first, since `checkout --detach` refuses a
+  # conflicted index and the worktree kept the branch (P276, #2917): the run's merges start at
+  # origin/<branch> and merge only remote refs, so the abort loses nothing.
   local k=$(($(date +%s) + 20))
   PR_PUSH_LOCK=$1.push
-  python3 -I -c 'import fcntl, os, signal, sys, time
+  python3 -I -c 'import fcntl, os, signal, subprocess, sys, time
 os.closerange(3, 1024)
 for s in (signal.SIGTERM, signal.SIGINT, signal.SIGHUP): signal.signal(s, signal.SIG_IGN)  # mut:holdsig
 end = []
@@ -102,7 +105,9 @@ f.truncate(0); f.write("%d %d %d\n" % (p, os.getpid(), start)); f.flush()
 while os.getppid() == p and not end: time.sleep(0.2)  # mut:watch
 f.truncate(0); f.write("%d %d %d drain\n" % (p, os.getpid(), start)); f.flush()
 fcntl.flock(open(sys.argv[1] + ".push", "a"), fcntl.LOCK_EX)  # mut:drain
-if sys.argv[2:] and sys.argv[2] == "detach" and os.path.isdir(sys.argv[3]): import subprocess; subprocess.call(["git", "-C", sys.argv[3], "checkout", "-q", "--detach"])  # mut:detach
+det = sys.argv[2:] and sys.argv[2] == "detach" and os.path.isdir(sys.argv[3])
+if det and subprocess.call(["git", "-C", sys.argv[3], "rev-parse", "-q", "--verify", "MERGE_HEAD"], stdout=subprocess.DEVNULL) == 0: subprocess.call(["git", "-C", sys.argv[3], "merge", "--abort"])  # mut:holdabort
+if det: subprocess.call(["git", "-C", sys.argv[3], "checkout", "-q", "--detach"])  # mut:detach
 sys.exit(0)' "$1" ${4:+"$4" "$3"} </dev/null >/dev/null 2>&1 & LKP=$!
   PR_REAP_SPARE=$LKP
   PR_AFTER_REAP='{ kill -USR1 "$LKP"; wait "$LKP"; } 2>/dev/null || :'  # mut:unlock
@@ -1221,6 +1226,68 @@ STUB
   cp "$t/body.md" "$t/b.md"; run detach update_pr.sh fix/x - "$t/b.md"
   git -C "$t/s$i/pr/upd-fix-x" symbolic-ref -q HEAD >/dev/null
   ck "  mutant mut:detach (its line deleted): the worktree still holds fix/x" $?
+  # A run whose merge stops on a conflict leaves no merge behind (R10-FLY-ABORT-OWN-MERGE, P276:
+  # #2935's half-merge, #2936's conflicted 106-file merge held their branches). fix/k and
+  # handoff/k both change `a` from base, so update_pr.sh's merge of the code sha stops conflicted;
+  # the holder aborts that merge, then detaches. Nothing is lost: the merge started from
+  # origin/fix/k and merged only remote refs.
+  if [ ! -e "$t/fixk" ]; then
+    git -C "$o" checkout -q -b fix/k "$base" && printf 'k-branch\n' > "$o/a" && git -C "$o" commit -qam k-branch \
+      && git -C "$o" checkout -q -b handoff/k "$base" && printf 'k-code\n' > "$o/a" && git -C "$o" commit -qam k-code \
+      && git -C "$o" checkout -q main && touch "$t/fixk"
+  fi
+  kmerge() { # <mutant>: update_pr.sh on fix/k with the conflicting code sha; its worktree in $t/kwt
+    cp "$t/body.md" "$t/b.md"; HANDOFF_TOPIC=k run "$1" update_pr.sh fix/k "$(git -C "$o" rev-parse handoff/k)" "$t/b.md"
+    echo "$t/s$i/pr/upd-fix-k" > "$t/kwt"; git -C "$m" fetch -q origin fix/k; rm -rf "$t/kadd"
+  }
+  kclean() { # the worktree clean, detached at origin/fix/k, and a second worktree add -B fix/k elsewhere succeeds
+    local w; w=$(cat "$t/kwt")
+    [ "$(cat "$t/rc")" != 0 ] && [ -z "$(git -C "$w" status --porcelain)" ] && ! git -C "$w" symbolic-ref -q HEAD >/dev/null \
+      && [ "$(git -C "$w" rev-parse HEAD)" = "$(git -C "$m" rev-parse origin/fix/k)" ] \
+      && git -C "$m" worktree add -q -B fix/k "$t/kadd" origin/fix/k 2>/dev/null \
+      && git -C "$m" worktree remove "$t/kadd"
+  }
+  kmerge -; kclean
+  ck "update_pr: a run whose merge stops conflicted leaves its worktree clean, detached at origin/fix/k, and fix/k free for a second worktree" $?
+  kmerge holdabort; ! kclean
+  ck "  mutant mut:holdabort (its line deleted): the conflicted merge stays, and the worktree still holds fix/k" $?
+  cp "$t/body.md" "$t/b.md"; run - update_pr.sh fix/x "$code" "$t/b.md"
+  git -C "$t/s$i/pr/upd-fix-x" merge-base --is-ancestor "$code" HEAD && [ -z "$(git -C "$t/s$i/pr/upd-fix-x" status --porcelain)" ]
+  ck "null control: a run whose merge is clean keeps the merged code head under its HEAD, nothing aborted or reset" $?
+  # remerge_main.sh, the merge train's recarry, the same way: a conflicting main leaves its worktree
+  # clean at origin/<branch>, so the train's unforced release_worktrees removes it. Its own origin,
+  # since main must move: rk at base changes `a` one way, main the other; rc merges cleanly.
+  if [ ! -e "$t/rmo" ]; then
+    { throwaway_git_init "$t/rmo" -q -b main && printf 'a\n' > "$t/rmo/a" && git -C "$t/rmo" add a && git -C "$t/rmo" commit -qm base \
+      && git -C "$t/rmo" branch rk && git -C "$t/rmo" branch rc && mkdir -p "$t/rmo/tools/pr" \
+      && printf '#!/bin/bash\necho stub-push-refused; exit 1\n' > "$t/rmo/tools/pr/app_push.sh" \
+      && git -C "$t/rmo" add tools && git -C "$t/rmo" commit -qm stub && printf 'main\n' > "$t/rmo/a" && git -C "$t/rmo" commit -qam main \
+      && git -C "$t/rmo" checkout -q rk && printf 'rk\n' > "$t/rmo/a" && git -C "$t/rmo" commit -qam rk \
+      && git -C "$t/rmo" checkout -q rc && printf 'c\n' > "$t/rmo/c" && git -C "$t/rmo" add c && git -C "$t/rmo" commit -qm rc \
+      && git -C "$t/rmo" checkout -q main && throwaway_git_clone -q "$t/rmo" "$t/rmm" && mkdir -p "$t/rmm/tools/audit/seat" \
+      && touch "$t/rmo-ok"; } >/dev/null 2>&1
+  fi
+  rmrun() { # <mutant|-> <branch>: remerge_main.sh on <branch> in worktree $t/rmw; the output in $t/out
+    local g; git -C "$t/rmm" worktree remove --force "$t/rmw" 2>/dev/null; rm -rf "$t/rmw"; git -C "$t/rmm" worktree prune
+    for g in remerge_main.sh pr_args.sh; do grep -v "# mut:$1\$" "$src/$g" > "$t/rmm/tools/audit/seat/$g"; done
+    git -C "$t/rmm" fetch -q origin "$2" && git -C "$t/rmm" worktree add -q -B "$2" "$t/rmw" "origin/$2" \
+      && bash "$t/rmm/tools/audit/seat/remerge_main.sh" 7 "$t/rmw" "$2" "$t/body.md" > "$t/out" 2>&1
+    echo $? > "$t/rc"
+  }
+  rmfree() { # MERGE CONFLICT named, the worktree clean at origin/rk, removed unforced, and rk free for a second worktree
+    grep -qF "MERGE CONFLICT 7" "$t/out" && [ -z "$(git -C "$t/rmw" status --porcelain)" ] \
+      && [ "$(git -C "$t/rmw" rev-parse HEAD)" = "$(git -C "$t/rmm" rev-parse origin/rk)" ] \
+      && git -C "$t/rmm" worktree remove "$t/rmw" 2>/dev/null \
+      && git -C "$t/rmm" worktree add -q -B rk "$t/rmadd" origin/rk 2>/dev/null && git -C "$t/rmm" worktree remove "$t/rmadd"
+  }
+  [ -e "$t/rmo-ok" ]; ck "remerge_main fixture: an origin whose main conflicts with rk" $?
+  rmrun - rk; rmfree
+  ck "remerge_main: a conflicting main is named MERGE CONFLICT and leaves the worktree clean at origin/rk, released unforced, rk free" $?
+  rmrun remergeabort rk; ! rmfree
+  ck "  mutant mut:remergeabort (its line deleted): the conflicted merge stays, and the worktree is not released" $?
+  rmrun - rc; ! grep -qF "MERGE CONFLICT" "$t/out" && [ "$(git -C "$t/rmw" rev-parse HEAD^2)" = "$(git -C "$t/rmm" rev-parse origin/main)" ] \
+    && [ "$(git -C "$t/rmw" rev-parse HEAD^1)" = "$(git -C "$t/rmm" rev-parse origin/rc)" ]
+  ck "null control: remerge_main on a clean merge keeps that merge (HEAD's parents origin/rc and origin/main), nothing aborted" $?
   # The push's auto-maintenance runs in the foreground (#2825 round 1: a `git fetch` in the push
   # daemonized `git gc --auto`, which kept the push's fd 9, and so its lock, after the push). The
   # fixture's git has auto-maintenance off (throwaway_git); fix/g's stub push turns gc.auto back on
