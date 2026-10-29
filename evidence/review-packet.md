@@ -5,41 +5,53 @@ base: 279578074a17cb2c7f527f5e28da0de4e2006db0
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
 ## Gate digest: red
-CodeQL id=123619479935 neutral
-arch-score / arch-score id=123619026829 success
+CodeQL id=123619479935 success
+arch-score / arch-score id=123683354934 success
 arm id=123618736926 skipped
-budget-raise-gate / budget-raise-gate id=123619027034 success
-cancel-superseded id=123624594263 success
-codeql / Analyze (actions) id=123619027074 success
-codeql / Analyze (javascript-typescript) id=123619027313 success
-codeql / Analyze (python) id=123619027143 in_progress
-governance / delivery-status id=123619026833 success
-governance / delivery-status-publish id=123619030667 skipped
-governance / env-matrix id=123619026725 success
-governance / instrument-self-tests id=123619026965 in_progress
-governance / policy-docs id=123619026908 success
-governance / record id=123619029997 skipped
-governance / wave-script id=123619027609 success
-hassfest / hassfest id=123619027174 success
-kernel-points id=123619029107 skipped
-prelude id=123624594569 in_progress
-refresh id=123624594766 success
-tests / arch-instrument id=123619325628 success
-tests / briefs id=123619027048 success
-tests / browser id=123619325574 success
-tests / claims-autofix id=123624086012 skipped
-tests / closure-scope id=123619027294 success
-tests / closures id=123619325579 in_progress
-tests / coverage id=123619325578 in_progress
-tests / fast (3.14) id=123619325561 success
-tests / mutation id=123619026871 success
-tests / mutation-autofix id=123619432631 skipped
-tests / mutation-pins id=123619432259 skipped
-tests / nightly-ha id=123619329586 skipped
-tests / nightly-status id=123619027284 failure
-tests / replay id=123619328512 skipped
-tests / typing id=123619325682 success
-validate / validate-hacs id=123619027166 success
+budget-raise-gate / budget-raise-gate id=123683345280 success
+cancel-superseded id=123683347491 success
+codeql id=123683354662 skipped
+codeql / Analyze (actions) id=123683285259 success
+codeql / Analyze (javascript-typescript) id=123683285989 success
+codeql / Analyze (python) id=123683285673 success
+gate id=123684256014 success
+governance id=123683294357 skipped
+governance / delivery-status id=123683286337 success
+governance / delivery-status-publish id=123683285466 skipped
+governance / env-matrix id=123683285575 success
+governance / instrument-self-tests id=123683284954 success
+governance / policy-docs id=123683285034 success
+governance / record id=123683286568 skipped
+governance / wave-script id=123683284933 success
+hassfest id=123683294791 skipped
+hassfest / hassfest id=123683362825 success
+kernel-points id=123683341977 skipped
+pr-contract / pr-contract id=123683897010 success
+prelude id=123683293577 success
+refresh id=123683360118 success
+tests id=123683295124 skipped
+tests / arch-instrument id=123683288553 success
+tests / briefs id=123683286300 success
+tests / browser id=123683286660 success
+tests / ci-ratchet id=123683289965 skipped
+tests / claims-autofix id=123683288938 skipped
+tests / closure-scope id=123683285524 success
+tests / closures id=123683287789 success
+tests / closures-autofix id=123683289151 skipped
+tests / coverage id=123683287657 success
+tests / coverage-ratchet id=123683288993 success
+tests / fast (3.14) id=123683288299 success
+tests / graders-head-copy id=123683288989 success
+tests / lane-proofs id=123683289329 success
+tests / mutation id=123683285428 success
+tests / mutation-autofix id=123683288746 skipped
+tests / mutation-pins id=123683286736 skipped
+tests / nightly-ha id=123683288253 skipped
+tests / nightly-status id=123683284816 failure
+tests / replay id=123683288596 skipped
+tests / typing id=123683287591 success
+validate id=123683293841 skipped
+validate / validate-hacs id=123683285847 success
 
 ## Refusals
 none
@@ -48,7 +60,7 @@ none
 none
 
 ## carry_audit at the head
-NOTE body item 9638579f: R10-FLY-LEDGER-SAMPLE
+NOTE body item 88e6cff9: R10-FLY-LEDGER-SAMPLE
 NOTE body item b53aef9e: dismissed:a record recounts, it is not rewritten; the correction lives where the cause is named
 NOTE body item 0968efad: R10-FRICTION-MUTATION-SURVIVOR
 NOTE body item 503618af: R10-FLY-LEDGER-SAMPLE
