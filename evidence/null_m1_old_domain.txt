@@ -477,7 +477,7 @@ Invalid per-day DHW window 'x' for dhw_windows_sun (Invalid window 'x' (expected
   ok   every listed fallback is the value the form shows while the key is absent
 
 -- options: an untouched page does not reload
-/tmp/tmp.UBPN89GyPk/head/tests/harness.py:561: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
+/root/wt/tests/harness.py:561: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
   callback()
 RuntimeWarning: Enable tracemalloc to get the object allocation traceback
   ok   never saved page by page: only the pages posting a behaviour-changing default reload
@@ -612,15 +612,15 @@ RuntimeWarning: Enable tracemalloc to get the object allocation traceback
 
 -- setup flow: every field with an options row renders that row's widget
   ok   the setup-widget census reaches every registry-backed setup field
-  FAIL no setup field spells a second widget for a setting the options registry declares  [1 spelled twice: ['user:weather_entity']]
+  ok   no setup field spells a second widget for a setting the options registry declares
 
-RESULT flow_checks_covered=483/484 checks
+RESULT flow_checks_covered=484/484 checks
 RESULT step_user happy=7/7 error_branches=11/11
 RESULT step_user_sensors happy=2/2 error_branches=0/0
 RESULT step_finish_setup happy=5/5 error_branches=0/0
 RESULT step_quick_setup happy=4/4 error_branches=0/0
 RESULT step_finish_now happy=1/1 error_branches=0/0
-RESULT step_temperature happy=3/4 error_branches=12/12
+RESULT step_temperature happy=4/4 error_branches=12/12
 RESULT step_building happy=1/1 error_branches=0/0
 RESULT step_building_describe happy=3/3 error_branches=0/0
 RESULT step_building_extras happy=1/1 error_branches=1/1
@@ -662,5 +662,5 @@ RESULT reconfigure_round_trips=1
 RESULT options_close_round_trips=1
 RESULT duplicate_aborts=1
 
-1 of 507 checks FAILED
-rc=1
+ALL 507 checks PASSED
+rc=0

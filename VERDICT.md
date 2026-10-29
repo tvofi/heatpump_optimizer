@@ -1,35 +1,45 @@
-Fix review: blocked f74f6cbb23649562bcc3db7f6415334707b1fd23 class-open: reauth_confirm tibber_token spells a second widget for a registry-backed setting
+Fix review: blocked 196a75a9f32d87445f48a266ea37a961bfa1089a merge-conflict: tests/config_flow_steps.py conflicts with origin/main 0265f524e after arm A (#2912) merged
 
-bus-nonce: 5b8ea55477ed7080db60e6cc4e79d22b
+bus-nonce: a3739c1d9669513e7839f6118c9dc87c
 
 ## Block
 
-The class the PR states, in its test's own header, is "every setup-flow field whose key has an `_OPTION_FIELDS` row renders that row's widget OBJECT". `async_step_reauth_confirm` (config_flow.py, reached by `async_step_reauth`) is a setup-flow form whose only field, `CONF_TIBBER_TOKEN`, has a registry row (`_F("entities", CONF_TIBBER_TOKEN, '', _tibber_token_selector(), ...)`). That row's widget is built a second time: `{vol.Required(CONF_TIBBER_TOKEN): _tibber_token_selector()}`. The site is not in the diff, and the body does not disposition it. `SETUP_FORM_STEPS` enumerates 10 of the flow's 13 form-rendering steps and leaves out `reauth`/`reauth_confirm`. The test's predicate therefore has an unguarded domain, and the finder's `--all` arm also stops at the first screens, so both read 0 while the seam is open. A reviewer-built census over every `async_step_*` of `HeatPumpOptimizerConfigFlow` reads `all_steps_spelled_twice=2` (`reauth:tibber_token`, `reauth_confirm:tibber_token`) at this head. With the one-line swap `_prefill_row(CONF_TIBBER_TOKEN).widget` it reads `0` (that swap was not pushed). `reconfigure` routes through `async_step_user`, so it is covered by C2. Repair: make that swap, add `reauth_confirm` to `SETUP_FORM_STEPS` (the reach floor moves with it), or disposition the site in the body with its reason.
+Round 2 (a repair after `verdict/2915` class-open). The authored repair is sound and the round-1 class is closed (see Evidence). Main moved while this review ran. At the start of the review, `git merge-tree --write-tree origin/main 196a75a9f` against `077dee856` exited 0 (ev/merge_tree.txt). At verdict time `origin/main` is `0265f524e`, which includes arm A's merge `ba19d13c4` (#2912, which touches `tests/config_flow_steps.py` in `8bdab62ce`, `d1dc4a480` and `9d043f781`). The same command now exits 1 with `CONFLICT (content): Merge conflict in tests/config_flow_steps.py` (ev/merge_tree_final.txt). That is not a claim file, so I cannot know the merged result is correct (fix-review.md step 13). The head did not move; only the base did.
 
-Round: first fix review of this PR as far as this seat can see (no earlier verdict was read).
+The ledger driver printed `LEDGER-MERGE: resolved tests/structure_budgets.json` (`class_excess_loc: 18037 + both deltas = 17875`). That path is settled by the driver, but the body says the second of A and C to merge re-measures that row on the merged tree.
+
+To unblock: merge origin/main into the branch and resolve `tests/config_flow_steps.py`, keeping arm A's checks and this PR's `setup_widgets_are_the_registry_rows` and its `main()` call. Then re-run `tests/config_flow_steps.py` and `tests/structure.py` on the merged tree, and quote the measured `class_excess_loc`. A re-review then judges only the resolution delta.
 
 ## Findings
 
-- The finder's harness `wizard_widgets.py` (sha1 66b390554c0aa54c8960eacb532b04ff827ca8cf) exists only at `3930b421a`, which only `refs/tags/archive/handoff-audit-r10-arch2-s5` reaches. No branch or tree path holds it. The fixer and this reviewer both ran an out-of-tree copy, so the group's later arms (B merge resolution, arm D) depend on an archive tag for the instrument the body re-runs on the merged tree. It should land under `dev/audit/rounds/round10/D7/arch2-s5/` (fix-review.md 9, fixer.md 18). Carry: R10-CONFIGFLOW-PAGES
-
-- The body quotes the \`class_excess_loc\` re-record as 18038 -> 17922. The diff to \`tests/structure_budgets.json\` writes 18037 -> 17921, so the quoted figure and the recorded one differ by one at both ends. The ratchet passes at the head, but this seat did not re-derive the row. The second of arm A and this PR to merge re-measures that row on the merged tree, as the body says, and should quote the file's value. Carry: R10-CONFIGFLOW-PAGES
+- The finder's harness `wizard_widgets.py` (sha1 `66b390554c0aa54c8960eacb532b04ff827ca8cf`) still lives only at `3930b421a` and is not in the tree. It is not in the R10-CONFIGFLOW-PAGES roster brief at origin/main either (searched `dev/programme/rosters/wave-r10-groups.json` for `wizard_widgets` and `66b390554`: no match). It is owed for arm B's merge resolution and for arm D. Carry: R10-CONFIGFLOW-PAGES
+- `class_excess_loc` in `tests/structure_budgets.json` was resolved by the ledger driver to 17875 across arms A and C. It has not been measured on a merged tree. Whichever lands second owes `tests/structure.py` on the merged tree and the measured value in its commit message. Carry: R10-CONFIGFLOW-PAGES
 
 ## Evidence
 
-- Head measured: f74f6cbb23649562bcc3db7f6415334707b1fd23. It is still the PR head at verdict time (`refs/pull/2915/head`), and the dispatch head is the same SHA. Role contracts: `git diff merge-base...origin/main -- dev/governance/roles/` is empty. The review packet reported no refusals and no advisories, and `CARRY-AUDIT` read 1 routed, 0 unrouted.
-- Finder's harness (from `3930b421a`, run in this seat's worktrees on Python 3.14.7 /opt/hpo/venv-ci; ev/finder_harness.txt):
-  - base 6d86acc90 and merge base b0b2d7697: RESULT wizard_fields=46 in_registry=44 spelled_twice=44 disagree=0 golden_equal=1. `--all` gives other_in_registry=20 other_spelled_twice=20 other_disagree=0. `--bump heat_pump_cop_nominal` gives disagree=2.
-  - head: RESULT spelled_twice=0 disagree=0 golden_equal=1. `--all` gives other_spelled_twice=0. `--bump` gives disagree=0. Every figure the body quotes for the harness re-derives.
-- Mutation proof (ev/mut*.txt), with each mutant restored afterwards:
-  - base config_flow.py under head tests: `1 of 507 checks FAILED`, 64 spelled twice, rc=1.
-  - `copy.copy` in `_wizard_fields`: FAILED, rc=1.
-  - single C2 site `weather_entity` back to `_entity_of("weather")`: FAILED (`user:weather_entity`).
-  - single wood probe back to `_entity_of(["sensor"])`: FAILED (`quick_setup:wood_tank_top_entity`).
-  - `dhw_windows` given its own TextSelector: FAILED (`dhw:dhw_windows`).
-  - No mutant survived.
-- Head tests: `PYTHONPATH=tests/hastub python3 tests/config_flow_steps.py` reports ALL 507 checks PASSED, rc=0 (ev/steps_head.txt).
-- Null control: golden_equal=1 at both ends and disagree=0 at both ends. The three-dot diff vs b0b2d7697 touches none of VERSION, RELEASE_NOTES.md, manifest.json, claimed_drift.txt, card_claimed_drift.txt (count 0). No golden moves and nothing is claimed.
-- Figures: three-dot stat 6d86acc90...d52036166 reads 3 files changed, 169 insertions(+), 210 deletions(-), which matches the body. `score.py --diff b0b2d7697` reads `Architecture score: dS +0.5850 IMPROVES`, literal_clone_copies 185 -> 123, which matches the body. `tests/structure.py` at head reads STRUCTURE RATCHET PASSED. The figures `PRE-PR` and `ci_predict` were not re-run.
-- Merge: `git merge-tree --write-tree origin/main f74f6cbb23649562bcc3db7f6415334707b1fd23` exits 0, with no MERGE-CLAIM marker.
-- CI on the head (ev/ci_state.txt): no check run concluded red. coverage, closures, fast (3.14), codeql python and instrument-self-tests were still in progress at read time. The verdict does not turn on them.
-- Reviewer-built instrument, disclosed as the reviewer's own and not the finder's: ev/census_all_steps.py. It drives every `async_step_*` with no input and checks widget identity against `_OPTION_FIELDS` (ev/reviewer_census.txt). Merge base: 66/66 spelled twice. Head: 2/66. Head plus the one-line reauth swap: 0/66.
+- Head measured: `196a75a9f32d87445f48a266ea37a961bfa1089a` (ev/HEAD.txt). It is the PR's head at verdict time, and the body's `## Head` names it. Roles diff merge-base...origin/main is empty, so the contract is current.
+- RESULT config_flow_steps head: `ALL 508 checks PASSED`, rc 0 (ev/cfs_head.txt). That includes `no setup field spells a second widget for a setting the options registry declares`.
+- Class closure, round 1's `class-open: reauth_confirm tibber_token`. The census domain is now every `async_step_*` of `HeatPumpOptimizerConfigFlow` minus the declared `NON_FORM_SETUP_STEPS` = {building, finish_setup, reconfigure}, and it asserts its own reach.
+  - My independent static enumeration is every widget construction in `config_flow.py` outside `_OPTION_FIELDS` (`_number(`, `_entity_of(`, `_select(`, `selector.*Selector(`, the solar factories). It returns only keys absent from the registry: after_save; building_structure/era/foundation, heated_area_m2 and upper/lower emitter (the shared `_building_question_fields`); the quick-setup question booleans (two_zone, buffer_tank, dhw_tank, wood_furnace, wood_buffer_tank); dhw_enabled; prefill_device. Every one tested `in {row.key for row in _OPTION_FIELDS}` is False.
+  - `_tibber_token_selector` has no remaining reference in custom_components or tests. The PASSWORD TextSelector is built only on the registry row (config_flow.py:1548).
+  - The only other flow, `repairs.py`'s `DhwSetpointRepairFlow`, renders one form with no data_schema and does not import config_flow (read by a scout worker). The options flow renders from `_OPTION_FIELDS` itself.
+  - Result: the class is closed across reauth and every other form site.
+- Mutants, each applied to the head, run with `tests/config_flow_steps.py`, then restored:
+  - m1, reauth_confirm spells its own TextSelector(PASSWORD): `1 of 508 checks FAILED`, `['reauth:tibber_token', 'reauth_confirm:tibber_token']`. Killed.
+  - m2, `_wizard_fields` copies the row widget: `1 of 508 FAILED`, 44 spelled twice. Killed.
+  - m3, a new unlisted `async_step_zz_probe` spells `_number` for price_weight: `1 of 508 FAILED`, `['zz_probe:price_weight']`. Killed. This shows a new step joins the census without being listed.
+  - m4, `user` price_entity back to `_entity_of("sensor")`: `1 of 508 FAILED`, `['user:price_entity']`. Killed.
+  - Outputs are in ev/m1_*.txt to ev/m4_*.txt.
+- Null control, re-run: m1 under `f74f6cbb2`'s `tests/config_flow_steps.py` (the old hand-kept domain) gives `ALL 507 checks PASSED`, rc 0 (ev/null_m1_old_domain.txt). This matches the body: the kill comes from the domain change.
+- Structure: `STRUCTURE RATCHET PASSED`, `class_excess_loc=17921` at the head. With config_flow.py at `b0b2d7697` it reads 18037, `FAIL ... (+116)` (ev/structure_base_configflow.txt). The drop is earned by the deleted wizard spellings.
+- Archscore:
+  - `--diff b0b2d7697` gives `dS +0.5850 IMPROVES`, `literal_clone_copies 185 -> 123`.
+  - `--diff f74f6cbb2` gives `dS +0.0000 NULL`.
+  - Both match the body.
+- VERSION, RELEASE_NOTES.md, manifest and both claim files: `git diff --name-only b0b2d7697...HEAD` over the five prints 0.
+- Figures I did not re-derive: the finder's harness lines (`wizard_fields=46 in_registry=44 spelled_twice=0 disagree=0 golden_equal=1`, `--all`, `--bump`). The harness is not in the tree and I did not fetch `3930b421a`. The census's `steps=18` and `registry-backed fields>=66` pass as asserted.
+- CI on the head, all concluded (ev/ci_state.txt): every check is success or skipped except `governance / delivery-status` = failure.
+  - Its log reads `DELIVERY STATUS OVERDUE` on rows #2921, #2910, #2873 and #2909, none of them this PR's. The log states: "This check is NOT a required context and a red here blocks no merge."
+  - This PR's own row `dev/programme/delivery/2915.md` is not among the overdue rows. Under fix-review.md step 11 the red is not this pull request's, and it owes no `## Red checks` answer.
+  - `review_packet.py` nevertheless refused `red-unanswered` on it (ev/review-packet.md). Evidence only.
+- The forward-carry for arm D (the `device_registry as dr` import and `unused_boundary_imports` 1 -> 0; re-record `literal_clone_copies`) is in the roster at origin/main as a "Forward-carried precondition" (ev/roster_carry.txt).
