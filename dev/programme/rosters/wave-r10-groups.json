@@ -8360,9 +8360,10 @@
    "rca": [],
    "architect_note": "",
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": null,
-    "pr": 2916
+    "pr": 2916,
+    "commit": "0b17333c2fec9bf65f1ddb62c92f132aca13f522"
    },
    "brief": "Re-cut of R10-ORCH-MACHINERY (orchestrator decision under mandate 6329234399, 2026-10-23): the old group bundled concerns with different owners; this group owns one of them. Inputs: the approved design at handoff/orch-machinery 09174d94e24faa0a02cda531164ec55ac2c49577 (dev/audit/design/orch-machinery/DESIGN.md, read from the ref) with its round-3 review at review/orch-machinery-design 0bd5d12f0d13690a509e350e81efc1a63c9c1639, and the designer note on design/R10-ORCH-MACHINERY at 2fc665c61 (dev/programme/designs/R10-ORCH-MACHINERY.md, sections 3 and 4). Concern B, the supervised beat and its job table (note section 3 row B). Design: one revision pass, re-measured at current main against 09174d94e (carry 20 premise: the approved design stands); no full new design. The design was read 1503 commits before the note's base, so re-measure its premises (cloud_relay.sh, orchestrator_tick.py, tick_loop.sh, state_docs.py, roster_lib.py, roster_sync.py, plan_page.py all moved) before building. Scope: (2) One supervised beat with per-job timeouts and single-instance locks, writing the journal the sweep's liveness rule reads, with the relay's handoff arm as its own job and its bound above the measured run; the in-tree sweep template changes in the same pull request so the double start the design names cannot occur. The handoff job writes the ledger's dispositions, so this group follows R10-ORCH-LEDGER and R10-ORCH-DISPATCH-REG. Carry 13 is copied here whole; parts (0), (1) and (3) are this group's. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, the scoped gate and the structure ratchet before the push."
   },
