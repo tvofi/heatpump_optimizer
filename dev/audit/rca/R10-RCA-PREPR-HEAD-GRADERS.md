@@ -1,7 +1,7 @@
 # R10-RCA-PREPR-HEAD-GRADERS: a grader edit every local path passed and CI's base copy refused
 
 The root-cause seat for #2916 (R10-ORCH-BEATD arm a). It ran beside the fix
-(`handoff/r10-orch-beatd` `c991d64cd`) and not inside it (`dev/governance/roles/root-cause.md`,
+(`handoff/r10-orch-beatd` `c991d64cd`) and not inside it (the root-cause role contract,
 `dev/governance/rules/defect-root-cause.md`). Measured 2026-10-28 from 17:30Z to 18:40Z against
 `origin/main` `eab04d0eb`. Every time is UTC. Every CI figure was read from the Actions API in that
 window. The seat filed no issue and did not edit #2916's branch.
@@ -470,7 +470,7 @@ Mutation proof is in the pull-request body.
   not cost it. Adding it is one `GRADERS` row, its key, and tests.yml in `pinned_runs`.
 - **Carried, not fixed here.** The round-1 review found `review_packet.py render` refusing
   `host-path` on this record because `ref_privacy._leaks` matches the host's home as a bare
-  substring: under `HOME=/root` (a cloud seat) every citation of `dev/governance/roles/root-cause.md`
+  substring: under the root account's home (a cloud seat) every citation of the root-cause role contract's path
   matches. It is an instrument defect in `tools/audit/seat/ref_privacy.py`, outside this record's
   class; it is carried to R10-RECORD-API-O1, the open group that owns that file. That group's
   roster `brief` and `carry` in `dev/programme/rosters/wave-r10-groups.json` already hold it, from
