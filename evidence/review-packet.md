@@ -1,6 +1,416 @@
+# Review packet #2917
+head: a361e454f1058a44e7c545270dc66a1b8330f3f3
+base: 2033b876e3ea230b635195f03d2cbb288a0eefb9
+
+Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
+
+## Gate digest: red
+CodeQL id=123766604046 neutral
+arch-score / arch-score id=123766373849 success
+budget-raise-gate / budget-raise-gate id=123766374426 success
+cancel-superseded id=123775204175 queued
+codeql / Analyze (actions) id=123766374220 success
+codeql / Analyze (javascript-typescript) id=123766374382 success
+codeql / Analyze (python) id=123766374268 in_progress
+governance / delivery-status id=123766374377 success
+governance / delivery-status-publish id=123766376292 skipped
+governance / env-matrix id=123766374379 success
+governance / instrument-self-tests id=123766374522 in_progress
+governance / policy-docs id=123766374438 success
+governance / record id=123766376096 skipped
+governance / wave-script id=123766374296 success
+hassfest / hassfest id=123766374570 success
+kernel-points id=123766376640 skipped
+prelude id=123775204001 in_progress
+refresh id=123775204348 queued
+tests / arch-instrument id=123767166459 success
+tests / briefs id=123766374152 success
+tests / browser id=123767166582 success
+tests / closure-scope id=123766374057 success
+tests / closures id=123767166589 in_progress
+tests / coverage id=123767166354 in_progress
+tests / fast (3.14) id=123767166641 in_progress
+tests / mutation id=123766374504 in_progress
+tests / nightly-ha id=123767169315 skipped
+tests / nightly-status id=123766374102 failure
+tests / replay id=123767168580 skipped
+tests / typing id=123767166535 success
+validate / validate-hacs id=123766374008 success
+
+## Refusals
+none
+
+## Advisories
+none
+
+## carry_audit at the head
+NOTE body item 8e11a43d: R10-COP-GATE
+NOTE body item a8c294f4: R10-COP-GATE
+NOTE body item bdb8b040: R10-COP-GATE
+NOTE body item 67905fec: R10-COP-GATE
+NOTE body item b73ff537: R10-COP-GATE
+NOTE body item cfcf943f: R10-COP-GATE
+NOTE body item 4a8f4129: R10-COP-GATE
+NOTE body item bfe8d487: R10-COP-GATE
+CARRY-AUDIT: 8 finding item(s): 8 routed, 0 unrouted, 0 bad destination(s)
+
+## figure_lint at the head
+ok         tools/audit/seat/seat_venv.sh
+             `tools/audit/seat/seat_venv.sh` is in the tree at this head
+  ok         python3 tests/closure.py select --diff b6f6ceca4f0323b24171c45a2a2372ba2e2cbaaa --workdir D
+             `tests/closure.py` is in the tree at this head
+  ok         tests/stress.py
+             `tests/stress.py` is in the tree at this head
+  unverified PYTHONPATH=tests/hastub GOLDEN_REF=b6f6ceca4f0323b24171c45a2a2372ba2e2cbaaa python3 tests/<script>
+             the path `tests/<script>` is a template or an expansion, not a literal
+  unverified node
+             node with no script argument
+  ok         tests/finite_boundary.py
+             `tests/finite_boundary.py` is in the tree at this head
+  ok         PYTHONPATH=tests/hastub python3 tests/finite_boundary.py
+             `tests/finite_boundary.py` is in the tree at this head
+  unverified python3 -m coverage run --include='*/store.py' tests/finite_boundary.py
+             python3 runs an inline script rather than a file
+  unverified python3 -m coverage report
+             python3 runs an inline script rather than a file
+  ok         dev/audit/harnesses/r10_cop_gate.py
+             `dev/audit/harnesses/r10_cop_gate.py` is in the tree at this head
+  ok         PYTHONPATH=tests/hastub python3 dev/audit/harnesses/r10_cop_gate.py
+             `dev/audit/harnesses/r10_cop_gate.py` is in the tree at this head
+  unverified git archive
+             `git archive` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
+  ok         dev/audit/rounds/round10/study-ident/owner_rows.py
+             `dev/audit/rounds/round10/study-ident/owner_rows.py` is in the tree at this head
+  ok         dev/audit/harnesses/cop_duty_floor.py
+             `dev/audit/harnesses/cop_duty_floor.py` is in the tree at this head
+  ok         python3 tools/audit/archscore/score.py --diff b6f6ceca4f0323b24171c45a2a2372ba2e2cbaaa
+             `tools/audit/archscore/score.py` is in the tree at this head
+  ok         PYTHONPATH=tests/hastub python3 tests/structure.py
+             `tests/structure.py` is in the tree at this head
+  ok         PYTHONPATH=tests/hastub python3 tests/mutation_table.py --pin-killed --base origin/main
+             `tests/mutation_table.py` is in the tree at this head
+  ok         PYTHONPATH=tests/hastub python3 tests/features.py
+             `tests/features.py` is in the tree at this head
+  ok         PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py
+             `tools/pr/ci_predict.py` is in the tree at this head
+
+FIGURES: 14 resolved, 5 not verified, 0 refused
+
+## Finder's harness: none named
+### at the base
+not run
+### at the head
+not run
+
+## Mutation-ledger diff
+diff --git a/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.as_dict.RETURN_DEL.62858a00.json b/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.as_dict.RETURN_DEL.62858a00.json
+new file mode 100644
+index 000000000..9889b2605
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.as_dict.RETURN_DEL.62858a00.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/accuracy.py:MeasuredCop.as_dict RETURN_DEL 62858a00",
++  "killed_by": "tests/features.py",
++  "old": "        return {\"cop\": self.cop, \"curve_dhw\": self.curve_dhw, \"dhw_temp\": self.dhw_temp, \"at\": at}",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
++}
+diff --git a/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.as_dict.RETURN_DEL.6f8909cf.json b/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.as_dict.RETURN_DEL.6f8909cf.json
+deleted file mode 100644
+index 45b224539..000000000
+--- a/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.as_dict.RETURN_DEL.6f8909cf.json
++++ /dev/null
+@@ -1,6 +0,0 @@
+-{
+-  "anchor": "custom_components/heatpump_optimizer/accuracy.py:MeasuredCop.as_dict RETURN_DEL 6f8909cf",
+-  "killed_by": "tests/features.py",
+-  "old": "        return {\"cop\": self.cop, \"curve_dhw\": self.curve_dhw, \"dhw_temp\": self.dhw_temp}",
+-  "reason": "Recorded by `mutation_table.py --pin-killed` against 47b083b03a9dcbfb1e33679dc5f7d3313a5fed49: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+-}
+diff --git a/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.from_dict.BOOLOP.4cb095ac.json b/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.from_dict.BOOLOP.4cb095ac.json
+deleted file mode 100644
+index 92fe18ad9..000000000
+--- a/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.from_dict.BOOLOP.4cb095ac.json
++++ /dev/null
+@@ -1,6 +0,0 @@
+-{
+-  "anchor": "custom_components/heatpump_optimizer/accuracy.py:MeasuredCop.from_dict BOOLOP 4cb095ac",
+-  "killed_by": "tests/features.py",
+-  "old": "        if temp is not None and not np.isfinite(temp):",
+-  "reason": "Recorded by `mutation_table.py --pin-killed` against 47b083b03a9dcbfb1e33679dc5f7d3313a5fed49: BOOLOP (`if temp is not None or not np.isfinite(temp):`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+-}
+diff --git a/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.from_dict.GUARD_OFF.4cb095ac.json b/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.from_dict.GUARD_OFF.4cb095ac.json
+deleted file mode 100644
+index 2740799f8..000000000
+--- a/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.from_dict.GUARD_OFF.4cb095ac.json
++++ /dev/null
+@@ -1,6 +0,0 @@
+-{
+-  "anchor": "custom_components/heatpump_optimizer/accuracy.py:MeasuredCop.from_dict GUARD_OFF 4cb095ac",
+-  "killed_by": "tests/features.py",
+-  "old": "        if temp is not None and not np.isfinite(temp):",
+-  "reason": "Hand-recorded by the #2066 fixer at 4bf7bdde1 against the ratchet base b2b6acd64, not by `--pin-killed` (whose baselines need CI's Linux floats). `GUARD_OFF` (if False:) flips the condition of tests/features.py's R.check \"an unreadable stored COP record loads as no measurement, whole\" -- the new check \"a non-finite tank temperature drops the record whole\" reads False: switching the guard off keeps cop 2.0 with a nan temperature. Measured by copying the package, rewriting that one line to the operator's own text and re-evaluating the check's condition: baseline True, mutant as stated (evidence table in the pull request's body, `## Unpinned sites`). CI's `--pin-killed` at a pull_request head re-measures the driver itself."
+-}
+diff --git a/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.from_dict.GUARD_OFF.649d9952.json b/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.from_dict.GUARD_OFF.649d9952.json
+new file mode 100644
+index 000000000..8d9f32542
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.from_dict.GUARD_OFF.649d9952.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/accuracy.py:MeasuredCop.from_dict GUARD_OFF 649d9952",
++  "killed_by": "tests/features.py",
++  "old": "        if (temp is not None and not np.isfinite(temp)) or (raw.get(\"at\") is not None and at is None):",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
++}
+diff --git a/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.from_dict.RETURN_DEL.7c227e9b.json b/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.from_dict.RETURN_DEL.7c227e9b.json
+deleted file mode 100644
+index 2dc963923..000000000
+--- a/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.from_dict.RETURN_DEL.7c227e9b.json
++++ /dev/null
+@@ -1,6 +0,0 @@
+-{
+-  "anchor": "custom_components/heatpump_optimizer/accuracy.py:MeasuredCop.from_dict RETURN_DEL 7c227e9b",
+-  "killed_by": "tests/features.py",
+-  "old": "        return cls(cop=cop, curve_dhw=dhw, dhw_temp=temp)",
+-  "reason": "Recorded by `mutation_table.py --pin-killed` against 47b083b03a9dcbfb1e33679dc5f7d3313a5fed49: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+-}
+diff --git a/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.from_dict.RETURN_DEL.81cd12e3.json b/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.from_dict.RETURN_DEL.81cd12e3.json
+new file mode 100644
+index 000000000..99b0be279
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.from_dict.RETURN_DEL.81cd12e3.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/accuracy.py:MeasuredCop.from_dict RETURN_DEL 81cd12e3",
++  "killed_by": "tests/features.py",
++  "old": "        return cls(cop=cop, curve_dhw=dhw, dhw_temp=temp, at=at)",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.judge_ratio.GUARD_OFF.602baa33.json b/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.judge_ratio.GUARD_OFF.602baa33.json
+new file mode 100644
+index 000000000..b1e54f706
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.judge_ratio.GUARD_OFF.602baa33.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/accuracy.py:MeasuredCop.judge_ratio GUARD_OFF 602baa33",
++  "killed_by": "tests/features.py",
++  "old": "        if follows is False:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
++}
+diff --git a/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.judge_ratio.RETURN_DEL.4c7c13c0.json b/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.judge_ratio.RETURN_DEL.4c7c13c0.json
+deleted file mode 100644
+index 9a98ff8de..000000000
+--- a/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.judge_ratio.RETURN_DEL.4c7c13c0.json
++++ /dev/null
+@@ -1,6 +0,0 @@
+-{
+-  "anchor": "custom_components/heatpump_optimizer/accuracy.py:MeasuredCop.judge_ratio RETURN_DEL 4c7c13c0",
+-  "killed_by": "tests/features.py",
+-  "old": "        return None if follows else COP_REFUSED_OFF_ASK",
+-  "reason": "Recorded by `mutation_table.py --pin-killed` against 47b083b03a9dcbfb1e33679dc5f7d3313a5fed49: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+-}
+diff --git a/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.residual.BOOLOP.460915d8.json b/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.residual.BOOLOP.460915d8.json
+new file mode 100644
+index 000000000..6a037103b
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.residual.BOOLOP.460915d8.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/accuracy.py:MeasuredCop.residual BOOLOP 460915d8",
++  "killed_by": "tests/features.py",
++  "old": "        if self.curve_dhw and self.dhw_temp is not None:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`if self.curve_dhw or self.dhw_temp is not None:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
++}
+diff --git a/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.residual.CMP_BOUND.92047180.json b/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.residual.CMP_BOUND.92047180.json
+new file mode 100644
+index 000000000..99a932ad3
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.residual.CMP_BOUND.92047180.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/accuracy.py:MeasuredCop.residual CMP_BOUND 92047180",
++  "killed_by": "tests/features.py",
++  "old": "        if outdoor is None or self.cop is None or self.at is None or utc_elapsed_seconds(self.at, since) <= 0.0:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`if outdoor is None or self.cop is None or self.at is None or utc_elapsed_seconds(self.at, since) < 0.0:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
++}
+diff --git a/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.residual.GUARD_OFF.460915d8.json b/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.residual.GUARD_OFF.460915d8.json
+new file mode 100644
+index 000000000..634115f14
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.residual.GUARD_OFF.460915d8.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/accuracy.py:MeasuredCop.residual GUARD_OFF 460915d8",
++  "killed_by": "tests/features.py",
++  "old": "        if self.curve_dhw and self.dhw_temp is not None:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
++}
+diff --git a/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.residual.GUARD_OFF.92047180.json b/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.residual.GUARD_OFF.92047180.json
+new file mode 100644
+index 000000000..51459c6fa
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.residual.GUARD_OFF.92047180.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/accuracy.py:MeasuredCop.residual GUARD_OFF 92047180",
++  "killed_by": "tests/features.py",
++  "old": "        if outdoor is None or self.cop is None or self.at is None or utc_elapsed_seconds(self.at, since) <= 0.0:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
++}
+diff --git a/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.residual.RETURN_DEL.dfd25e72.json b/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.residual.RETURN_DEL.dfd25e72.json
+new file mode 100644
+index 000000000..aa448a757
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.residual.RETURN_DEL.dfd25e72.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/accuracy.py:MeasuredCop.residual RETURN_DEL dfd25e72",
++  "killed_by": "tests/features.py",
++  "old": "        return round(float(self.cop) - float(modelled), 3)",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
++}
+diff --git a/tests/mutation_ledger/killed_by/accuracy.py/cop_observability.GUARD_OFF.ac5ca5ae.json b/tests/mutation_ledger/killed_by/accuracy.py/cop_observability.GUARD_OFF.ac5ca5ae.json
+new file mode 100644
+index 000000000..95594139b
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/accuracy.py/cop_observability.GUARD_OFF.ac5ca5ae.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/accuracy.py:cop_observability GUARD_OFF ac5ca5ae",
++  "killed_by": "tests/features.py",
++  "old": "    if measured_heat:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
++}
+diff --git a/tests/mutation_ledger/killed_by/accuracy.py/cop_observability.GUARD_OFF.c1dafc5f.json b/tests/mutation_ledger/killed_by/accuracy.py/cop_observability.GUARD_OFF.c1dafc5f.json
+new file mode 100644
+index 000000000..c64de4327
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/accuracy.py/cop_observability.GUARD_OFF.c1dafc5f.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/accuracy.py:cop_observability GUARD_OFF c1dafc5f",
++  "killed_by": "tests/features.py",
++  "old": "    if follows is None:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
++}
+diff --git a/tests/mutation_ledger/killed_by/accuracy.py/cop_observability.GUARD_OFF.f1e23bc3.json b/tests/mutation_ledger/killed_by/accuracy.py/cop_observability.GUARD_OFF.f1e23bc3.json
+new file mode 100644
+index 000000000..5a0eee47e
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/accuracy.py/cop_observability.GUARD_OFF.f1e23bc3.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/accuracy.py:cop_observability GUARD_OFF f1e23bc3",
++  "killed_by": "tests/features.py",
++  "old": "    if not electric:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
++}
+diff --git a/tests/mutation_ledger/killed_by/accuracy.py/cop_observability.RETURN_DEL.e75e96f9.json b/tests/mutation_ledger/killed_by/accuracy.py/cop_observability.RETURN_DEL.e75e96f9.json
+new file mode 100644
+index 000000000..57131144a
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/accuracy.py/cop_observability.RETURN_DEL.e75e96f9.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/accuracy.py:cop_observability RETURN_DEL e75e96f9",
++  "killed_by": "tests/features.py",
++  "old": "    return COP_DRAW_FOLLOWS if follows else COP_NOT_MEASURABLE",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
++}
+diff --git a/tests/mutation_ledger/killed_by/accuracy.py/pairs_interval.CMP_BOUND.62f6b3b0.json b/tests/mutation_ledger/killed_by/accuracy.py/pairs_interval.CMP_BOUND.62f6b3b0.json
+new file mode 100644
+index 000000000..fa4e849d2
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/accuracy.py/pairs_interval.CMP_BOUND.62f6b3b0.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/accuracy.py:pairs_interval CMP_BOUND 62f6b3b0",
++  "killed_by": "tests/features.py",
++  "old": "    return 0.05 <= elapsed_h <= 2.0",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`return 0.05 < elapsed_h <= 2.0`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2. Each of the 2 sites under this anchor was killed."
++}
+diff --git a/tests/mutation_ledger/killed_by/accuracy.py/pairs_interval.RETURN_DEL.62f6b3b0.json b/tests/mutation_ledger/killed_by/accuracy.py/pairs_interval.RETURN_DEL.62f6b3b0.json
+new file mode 100644
+index 000000000..9d1813586
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/accuracy.py/pairs_interval.RETURN_DEL.62f6b3b0.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/accuracy.py:pairs_interval RETURN_DEL 62f6b3b0",
++  "killed_by": "tests/features.py",
++  "old": "    return 0.05 <= elapsed_h <= 2.0",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=12."
++}
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._record_accuracy.GUARD_OFF.6cac1c2f.json b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._record_accuracy.GUARD_OFF.6cac1c2f.json
+new file mode 100644
+index 000000000..d7fa362d9
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._record_accuracy.GUARD_OFF.6cac1c2f.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._record_accuracy GUARD_OFF 6cac1c2f",
++  "killed_by": "tests/features.py",
++  "old": "            if pairs_interval(elapsed):",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=9."
++}
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._record_accuracy.GUARD_OFF.b36c07ff.json b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._record_accuracy.GUARD_OFF.b36c07ff.json
+new file mode 100644
+index 000000000..cf6a9c195
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._record_accuracy.GUARD_OFF.b36c07ff.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._record_accuracy GUARD_OFF b36c07ff",
++  "killed_by": "tests/features.py",
++  "old": "        if pending is not None and pending.get(\"split\") is not None and pairs_interval(_utc_age_seconds(now, pending[\"when\"]) / 3600.0):",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=5."
++}
+diff --git a/tests/mutation_ledger/killed_by/sensor.py/ObservedCOPSensor._waiting_for.GUARD_OFF.204c8b17.json b/tests/mutation_ledger/killed_by/sensor.py/ObservedCOPSensor._waiting_for.GUARD_OFF.204c8b17.json
+new file mode 100644
+index 000000000..ecb786441
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/sensor.py/ObservedCOPSensor._waiting_for.GUARD_OFF.204c8b17.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/sensor.py:ObservedCOPSensor._waiting_for GUARD_OFF 204c8b17",
++  "killed_by": "tests/entities.py",
++  "old": "        if data.get(\"cop_observability\") == COP_NOT_MEASURABLE:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/thermal_model.py/InstallCapability.cop_electric.RETURN_DEL.1cbe4cb2.json b/tests/mutation_ledger/killed_by/thermal_model.py/InstallCapability.cop_electric.RETURN_DEL.1cbe4cb2.json
+new file mode 100644
+index 000000000..71d1cda3f
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/thermal_model.py/InstallCapability.cop_electric.RETURN_DEL.1cbe4cb2.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:InstallCapability.cop_electric RETURN_DEL 1cbe4cb2",
++  "killed_by": "tests/features.py",
++  "old": "        return self.electric_counter if self.heat_counter else self.measured_power",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
++}
+diff --git a/tests/mutation_ledger/survivor_triage/accuracy.py/MeasuredCop.judge_ratio.RETURN_DEL.d7923b87.json b/tests/mutation_ledger/survivor_triage/accuracy.py/MeasuredCop.judge_ratio.RETURN_DEL.d7923b87.json
+new file mode 100644
+index 000000000..511f45f00
+--- /dev/null
++++ b/tests/mutation_ledger/survivor_triage/accuracy.py/MeasuredCop.judge_ratio.RETURN_DEL.d7923b87.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/accuracy.py:MeasuredCop.judge_ratio RETURN_DEL d7923b87",
++  "old": "        return None",
++  "reason": "Equivalent (RETURN_DEL, `return None` -> `pass`): the statement is the last one in MeasuredCop.judge_ratio, after `if` arms that each return, so deleting it lets the method fall off its own end and return None -- the same value, on every input, to every reader. Measured by the R10-COP-GATE repair seat's `mutation_table.py --pin-killed --base origin/main` over every driver in play (tests/features.py, tests/entities.py, tests/finite_boundary.py, tests/stress.py among them): the site lived, against 15 of the 21 new sites killed in the same drive, among them this method's own `if follows is False` guard (killed by tests/features.py).",
++  "verdict": "equivalent"
++}
+
+
+## Three-dot diff
 diff --git a/custom_components/heatpump_optimizer/accuracy.py b/custom_components/heatpump_optimizer/accuracy.py
+index 859cf60eb..aa71a3969 100644
 --- a/custom_components/heatpump_optimizer/accuracy.py
 +++ b/custom_components/heatpump_optimizer/accuracy.py
+@@ -781,6 +781,12 @@ def heat_loss_refit(
      }
  
  
@@ -13,6 +423,7 @@ diff --git a/custom_components/heatpump_optimizer/accuracy.py b/custom_component
  # -- the COP learner's last word -------------------------------------------
  
  #: Why the COP learner turned an interval away: one code per guard of
+@@ -810,6 +816,33 @@ COP_REFUSED_UNALIGNED = "unaligned_meters"
  #: (``MeasuredCop.judge_ratio``).
  COP_ASK_TOLERANCE = 0.15
  
@@ -46,6 +457,7 @@ diff --git a/custom_components/heatpump_optimizer/accuracy.py b/custom_component
  
  @dataclass
  class MeasuredCop:
+@@ -822,6 +855,10 @@ class MeasuredCop:
      included. The curve *choice* is kept rather than the modelled value: the
      residual is taken at the settling sample's own outdoor temperature.
  
@@ -56,6 +468,7 @@ diff --git a/custom_components/heatpump_optimizer/accuracy.py b/custom_component
      ``refusal`` is one of the ``COP_REFUSED_*`` codes for the latest interval
      (``None`` once one folds). It is not persisted, and diagnostics publish it
      (:func:`diagnostics_view`): the observed-COP sensor is unavailable exactly
+@@ -833,6 +870,7 @@ class MeasuredCop:
      curve_dhw: bool = False
      dhw_temp: float | None = None
      refusal: str | None = None
@@ -63,6 +476,7 @@ diff --git a/custom_components/heatpump_optimizer/accuracy.py b/custom_component
  
      @staticmethod
      def judge_floor(asked_kw: float, drawn_kw: float, params: Any) -> str | None:
+@@ -850,12 +888,12 @@ class MeasuredCop:
  
          ``ewma`` is the walking ratio BEFORE this interval, so an interval
          cannot vouch for itself. ``COP_REFUSED_TRACKING``: a one-off blip off
@@ -81,6 +495,7 @@ diff --git a/custom_components/heatpump_optimizer/accuracy.py b/custom_component
          -- the ask and the draw both clear the nameplate third -- and is
          otherwise ``COP_REFUSED_NO_EVIDENCE``. So no install folds a departure
          base refused before the evidence says the draw follows its ask; one
+@@ -863,22 +901,46 @@ class MeasuredCop:
          """
          if abs(ratio - ewma) / max(ewma, 1e-6) > COP_TRACKING_ERROR_GATE:
              return COP_REFUSED_TRACKING
@@ -132,6 +547,7 @@ diff --git a/custom_components/heatpump_optimizer/accuracy.py b/custom_component
  
      @classmethod
      def from_dict(cls, raw: Any) -> MeasuredCop:
+@@ -891,13 +953,14 @@ class MeasuredCop:
          try:
              cop, dhw = float(raw["cop"]), raw.get("curve_dhw") is True
              temp = None if raw.get("dhw_temp") is None else float(raw["dhw_temp"])
@@ -148,6 +564,7 @@ diff --git a/custom_components/heatpump_optimizer/accuracy.py b/custom_component
  
  
  def diagnostics_view(record: MeasuredCop, params: Any, draw: DrawRange | None) -> dict[str, Any]:
+@@ -912,6 +975,7 @@ def diagnostics_view(record: MeasuredCop, params: Any, draw: DrawRange | None) -
      return {
          "last_refusal": record.refusal,
          "measured_cop": record.cop,
@@ -156,8 +573,10 @@ diff --git a/custom_components/heatpump_optimizer/accuracy.py b/custom_component
          "draw_follows_ask": follows_ask(draw),
      }
 diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index a8dd19c65..88ac5122a 100644
 --- a/custom_components/heatpump_optimizer/coordinator.py
 +++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -234,6 +234,8 @@ from .accuracy import (
      COP_REFUSED_UNALIGNED,
      LEAD_BUCKETS,
      MeasuredCop,
@@ -166,6 +585,7 @@ diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_compon
      AccuracySample,
      AccuracyTracker,
      delivered_ratio,
+@@ -5082,7 +5084,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
          )
          if not np.isfinite(observed_cop) or observed_cop <= 0.1:
              return COP_REFUSED_OBSERVED
@@ -174,6 +594,7 @@ diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_compon
  
          alpha = COP_LEARNING_ALPHA
          new_scale = (1.0 - alpha) * self._cop_scale + alpha * target_scale
+@@ -7660,6 +7662,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
          ctx = _ctx_of(self)
          ring = self._snapshot_ring
          snaps = ring.snapshots
@@ -181,6 +602,7 @@ diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_compon
          return {
              "dhw_cooling_rate": round(self._dhw_learner.cooling_rate, 3),
              "dhw_cooling_samples": self._dhw_learner.cooling_samples,
+@@ -7689,6 +7692,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
              "cop_scale": round(self._cop_scale, 3),
              "cop_samples": self._cop_samples,
              "measured_cop": self._measured_cop.cop,
@@ -193,6 +615,7 @@ diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_compon
              "defrost_derate": self._defrost.factor(
                  ctx._current_state.outdoor_temperature, self._current_humidity()
              ),
+@@ -9749,7 +9758,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
          # the same timestamp. Inert until a supply slot is mapped.
          _fold_flow_lift(self, now)
          power_frozen = self._learning_frozen(CONF_POWER_ENTITY)  # read once: the defrost settlement below gates on it too
@@ -206,6 +629,7 @@ diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_compon
  
          # T5 #16: settle every matured lead-time promise against the same
          # measured temperature the one-step sample below uses. The window
+@@ -9783,7 +9797,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
              elapsed = _utc_age_seconds(now, pending["when"]) / 3600.0
              # Only pair up predictions with the interval they were actually
              # about; a restart or a long gap makes the pairing meaningless.
@@ -214,6 +638,7 @@ diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_compon
                  price = pending.get("price")  # None: no price covered it (#2229)
                  sample = AccuracySample(
                      when=now,
+@@ -9811,35 +9825,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                  # T4a: observed-minus-modelled COP rides on the sample, so
                  # the snapshots' accuracy tags and #12's history both see
                  # efficiency, not just temperature error.
@@ -256,6 +681,7 @@ diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_compon
                  # D7-03/D7-05: skip the accuracy sample when ``indoor_frozen``
                  # above is set — open window, external heat, pump fault, or
                  # an unusable indoor sensor. Energy below is still
+@@ -9865,6 +9857,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
              # heating alone made every hot-water charge look like the unit
              # under-delivering, which fed straight into the defrost derate.
              "power": self._commanded_power(),
@@ -265,8 +691,10 @@ diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_compon
              "dhw_power": float(self._current_action.get("dhw_power", 0.0)),
              # T6: why the plan wanted this interval's draw, captured at
 diff --git a/custom_components/heatpump_optimizer/payload.py b/custom_components/heatpump_optimizer/payload.py
+index bd6d9f7c9..ff71705b9 100644
 --- a/custom_components/heatpump_optimizer/payload.py
 +++ b/custom_components/heatpump_optimizer/payload.py
+@@ -795,6 +795,11 @@ class LearningView(TypedDict, total=False):
      cop_scale: float
      cop_samples: int
      measured_cop: float | None
@@ -279,8 +707,10 @@ diff --git a/custom_components/heatpump_optimizer/payload.py b/custom_components
      defrost_samples: int
      defrost_measured_samples: int
 diff --git a/custom_components/heatpump_optimizer/sensor.py b/custom_components/heatpump_optimizer/sensor.py
+index c9e498069..01a1d9d41 100644
 --- a/custom_components/heatpump_optimizer/sensor.py
 +++ b/custom_components/heatpump_optimizer/sensor.py
+@@ -22,6 +22,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
  
  from . import narrative
  from . import topology
@@ -288,6 +718,7 @@ diff --git a/custom_components/heatpump_optimizer/sensor.py b/custom_components/
  from .const import (
      CONF_BUFFER_TANK_TEMP_ENTITY,
      CONF_DHW_TEMP_ENTITY,
+@@ -1685,6 +1686,10 @@ class ObservedCOPSensor(
          data = self._data()
          if not data.get("measured_power_available"):
              return "measured_power_entity"
@@ -298,6 +729,7 @@ diff --git a/custom_components/heatpump_optimizer/sensor.py b/custom_components/
          if self._payload_number() is None:
              # A power entity is not a COP: the learner needs the pump to run,
              # against a known outdoor temperature, for long enough to divide.
+@@ -1699,6 +1704,12 @@ class ObservedCOPSensor(
              "waiting_for": self._waiting_for,
              _cop: data.get(_cop),
              "cop_samples": data.get("cop_samples"),
@@ -311,8 +743,10 @@ diff --git a/custom_components/heatpump_optimizer/sensor.py b/custom_components/
              # and modelled can be compared side by side. The previous source,
              # current_action["cop"], is a key nothing ever writes.
 diff --git a/custom_components/heatpump_optimizer/store.py b/custom_components/heatpump_optimizer/store.py
+index 1b77e6672..88e32d123 100644
 --- a/custom_components/heatpump_optimizer/store.py
 +++ b/custom_components/heatpump_optimizer/store.py
+@@ -330,7 +330,7 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
          **{f"{k}_samples": _COUNT for k in ("buffer_cooling", "house_heat_loss", "lower_floor_loss", "cop")},
          # MeasuredCop.from_dict: the learner refuses a COP at or under 0.1 before rounding.
          "measured_cop/cop": Domain("real", 0.1, null=True),
@@ -322,8 +756,10 @@ diff --git a/custom_components/heatpump_optimizer/store.py b/custom_components/h
          "vent_cusum/stat": Domain("real", 0.0, round(c.VENT_CUSUM_THRESHOLD_C * STAT_CAP_FACTOR, 4)),
          "cop_health_cusum/stat": Domain("real", 0.0, round(c.COP_HEALTH_THRESHOLD * STAT_CAP_FACTOR, 4)),
 diff --git a/custom_components/heatpump_optimizer/thermal_model.py b/custom_components/heatpump_optimizer/thermal_model.py
+index db56cf4a0..aede981f7 100644
 --- a/custom_components/heatpump_optimizer/thermal_model.py
 +++ b/custom_components/heatpump_optimizer/thermal_model.py
+@@ -1303,13 +1303,22 @@ class InstallCapability:
      ``writes`` is a subset of ``switch``, ``setpoint`` and ``frequency``.
      ``measured_power`` is a power entity. ``frequency`` is a frequency
      entity or sensor, read or write. ``measured_heat`` is a thermal power
@@ -347,6 +783,7 @@ diff --git a/custom_components/heatpump_optimizer/thermal_model.py b/custom_comp
  
      def can_duty_cycle(self) -> bool:
          """A sub-minimum average is realizable.
+@@ -1371,6 +1380,8 @@ def probe_install(config: Any) -> InstallCapability:
          measured_heat=bool(
              cfg.get(const.CONF_HEAT_ENERGY_ENTITY) or cfg.get(const.CONF_THERMAL_POWER_ENTITY)
          ),
@@ -357,8 +794,10 @@ diff --git a/custom_components/heatpump_optimizer/thermal_model.py b/custom_comp
  
 diff --git a/dev/audit/harnesses/r10_cop_gate.py b/dev/audit/harnesses/r10_cop_gate.py
 new file mode 100644
+index 000000000..8f416f6e3
 --- /dev/null
 +++ b/dev/audit/harnesses/r10_cop_gate.py
+@@ -0,0 +1,131 @@
 +#!/usr/bin/env python3
 +"""R10-COP-GATE (#2262): COP observability on an install without a heat meter.
 +
@@ -491,8 +930,10 @@ new file mode 100644
 +if __name__ == "__main__":
 +    main()
 diff --git a/dev/audit/rounds/round10/study-ident/owner_rows.py b/dev/audit/rounds/round10/study-ident/owner_rows.py
+index 9667938b2..655684e5e 100644
 --- a/dev/audit/rounds/round10/study-ident/owner_rows.py
 +++ b/dev/audit/rounds/round10/study-ident/owner_rows.py
+@@ -234,7 +234,8 @@ def main():
      n_replay = sum(sum(c.values()) for c in per_bin_day.values())
      for label, rate in (("production", (tl.get("cop_samples") or 0) / max(span_days, 1e-9)),
                          ("replay", n_replay / max(span_days, 1e-9))):
@@ -504,12 +945,16 @@ diff --git a/dev/audit/rounds/round10/study-ident/owner_rows.py b/dev/audit/roun
              mu = a.t_mean + a.t_slope * day
 diff --git a/dev/programme/delivery/2917.md b/dev/programme/delivery/2917.md
 new file mode 100644
+index 000000000..ba91c3ef3
 --- /dev/null
 +++ b/dev/programme/delivery/2917.md
+@@ -0,0 +1 @@
 +- [#2917](https://github.com/tvofi/heatpump_optimizer/pull/2917) — **open**, R10-COP-GATE part 1: COP observability state, L3 draw-follows refusal, latch time, draw pairing
 diff --git a/tests/closures.json b/tests/closures.json
+index ee4fce1c1..5fc94e543 100644
 --- a/tests/closures.json
 +++ b/tests/closures.json
+@@ -3719,6 +3719,7 @@
     "dev/audit/harnesses/r10_cloud_setup_toolchain.py",
     "dev/audit/harnesses/r10_codescan_wait_race.py",
     "dev/audit/harnesses/r10_configflow_pages.py",
@@ -518,8 +963,10 @@ diff --git a/tests/closures.json b/tests/closures.json
     "dev/audit/harnesses/r10_dead_rate_limit.py",
     "dev/audit/harnesses/r10_demand_overbook.py",
 diff --git a/tests/entities.py b/tests/entities.py
+index 6a6dead25..4e28b9055 100644
 --- a/tests/entities.py
 +++ b/tests/entities.py
+@@ -4077,7 +4077,7 @@ def _p2_registry(sources):
                       "a temperature gap in K (target minus room), not a power",
                   "coordinator.py::HeatPumpOptimizerCoordinator._maybe_run_fuse_advisor":
                       "a comfort shortfall in K (the fuse advisor's breach), not a power",
@@ -528,6 +975,7 @@ diff --git a/tests/entities.py b/tests/entities.py
                       "an elapsed time in hours (the pairing window's lower edge), not a power",
                   "dhw_learning.py::DhwProfileLearner.async_learn_usage":
                       "a tank draw intensity in K/h, not a power",
+@@ -6139,6 +6139,37 @@ R.check(
      == "measured_power_entity",
  )
  
@@ -565,6 +1013,7 @@ diff --git a/tests/entities.py b/tests/entities.py
  # --- a failed refresh reaches every entity ----------------------------------
  R.section("A failed refresh reaches every entity")
  
+@@ -12379,7 +12410,8 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
      ),
      "ObservedCOPSensor": frozenset({
          "cop_samples", "cop_scale", "defrost_buckets", "defrost_derate",
@@ -575,8 +1024,10 @@ diff --git a/tests/entities.py b/tests/entities.py
      "OptimizationScoreSensor": frozenset(),  # scores + price_tiles; #405
      "OptimizationStatusSensor": frozenset({
 diff --git a/tests/features.py b/tests/features.py
+index 2a9af43a6..c86c95e14 100644
 --- a/tests/features.py
 +++ b/tests/features.py
+@@ -60709,6 +60709,8 @@ _P3_FILES = (
      # against moved here from ``_cop_reference_curve``, so its calls stay
      # under the rule instead of leaving it with the move.
      "flow_meter.py",
@@ -585,6 +1036,7 @@ diff --git a/tests/features.py b/tests/features.py
  )
  _P3_ALLOWED = {
      # (file, function, callee, first argument): why the current humidity
+@@ -60722,9 +60724,9 @@ _P3_ALLOWED = {
          "the same reference, at the supply a metered interval ran at",
      ("coordinator.py", "_cop_reference_curve", "compute_cop_dhw", "outdoor"):
          "the same reference, for a hot-water interval",
@@ -596,6 +1048,7 @@ diff --git a/tests/features.py b/tests/features.py
          "the same residual, for a space interval",
      ("coordinator.py", "_run_system_identification", "compute_cop",
       "state.outdoor_temperature"): "the experiment step running now",
+@@ -67301,6 +67303,168 @@ R.check(
  )
  
  
@@ -764,6 +1217,7 @@ diff --git a/tests/features.py b/tests/features.py
  # R9-UX-6: money and memory -- the receipt, the capacity line, the replay
  # ---------------------------------------------------------------------------
  from harness import FakeEntry as _ux6_Entry, FakeHass as _ux6_Hass  # noqa: E402
+@@ -67936,7 +68100,16 @@ for _dr_label, _dr_args in (
      )
  
  
@@ -781,6 +1235,7 @@ diff --git a/tests/features.py b/tests/features.py
  def _dr_coord(**extra):
      c = _DrCoord(FakeHass(), _dr_entry(data={
          "tibber_token": "x", "weather_entity": "weather.home", **extra}))
+@@ -67946,7 +68119,7 @@ def _dr_coord(**extra):
  
  
  _dr_cycle = _dr_coord()
@@ -789,6 +1244,7 @@ diff --git a/tests/features.py b/tests/features.py
  R.check(
      "the per-cycle settlement folds one running sample: (drawn, space asked)",
      list(_dr_cycle._accuracy.draw.samples) == [(2.3, 6.0)],
+@@ -67959,14 +68132,14 @@ for _dr_label, _dr_mut in (
  ):
      _dr_c = _dr_coord()
      _dr_mut(_dr_c)
@@ -805,6 +1261,7 @@ diff --git a/tests/features.py b/tests/features.py
  R.check(
      "and folds nothing for an interval whose closed window saw a defrost",
      len(_dr_frost._accuracy.draw.samples) == 0,
+@@ -68251,7 +68424,7 @@ def _bst_coord(**extra):
      c._current_action = {"power": 6.0, "dhw_power": 0.0}
      c._measured_power = 2.3
      _bst_pa.state_for(c).written["space_setpoint"] = (40.0, _BST_T0)
@@ -814,8 +1271,10 @@ diff --git a/tests/features.py b/tests/features.py
  
  
 diff --git a/tests/finite_boundary.py b/tests/finite_boundary.py
+index 0a23a3789..b91409b92 100644
 --- a/tests/finite_boundary.py
 +++ b/tests/finite_boundary.py
+@@ -1723,7 +1723,7 @@ def _a6_enrich(coord, t0) -> None:
          dhw_slots=None, expires_at=_A4_NOW + _dt.timedelta(hours=6), created_at=t0)
      coord._away_state.migrated_helpers = True
      coord._flow_bias.bias_k, coord._flow_bias.samples = 2.5, 4
@@ -825,8 +1284,10 @@ diff --git a/tests/finite_boundary.py b/tests/finite_boundary.py
      for name, low in (("hourly_profile", 0.5), ("profile_weekday", 0.75), ("profile_weekend", 0.25)):
          # Dyadic, mean exactly 1: the loader's renormalisation is the identity
 diff --git a/tests/golden/claimed_drift.txt b/tests/golden/claimed_drift.txt
+index ccd1d1a06..582f22ba1 100644
 --- a/tests/golden/claimed_drift.txt
 +++ b/tests/golden/claimed_drift.txt
+@@ -67,6 +67,15 @@
  # env_drift --all against origin/main df478d40b in one environment: exactly
  # these five move, in that one key, "present on one side only". The committed
  # files were patched in that path alone; no other leaf was re-recorded.
@@ -842,6 +1303,7 @@ diff --git a/tests/golden/claimed_drift.txt b/tests/golden/claimed_drift.txt
  # R10-CARD-VOICE: describe_setup publishes the wood-coil option itself as
  # `dhw_wood_coil_configured`, beside the model's `dhw_wood_coil` gate, so the
  # card can say "configured, not modelled". Direction: ADD-ONLY, one leaf in
+@@ -122,16 +131,11 @@
  # one was restored.
  #
  #
@@ -863,6 +1325,7 @@ diff --git a/tests/golden/claimed_drift.txt b/tests/golden/claimed_drift.txt
  # may-drift: winter_two_zone_no_dhw -- #1208 polish-every-candidate, owner
  # ruling #1208 comment 208bed25 (option (a)): the move's margin is inside the
  # noise band (objective rel -1.3365e-03, predicted_cost rel +8.39e-03),
+@@ -216,8 +220,7 @@
  # byte-identical on the dev box), runner-conditional for the same reason;
  # judged keys still fail. Remove when drift lanes are pinned or the polish
  # improvement scale leaves 5e-5-2e-2.
@@ -872,6 +1335,7 @@ diff --git a/tests/golden/claimed_drift.txt b/tests/golden/claimed_drift.txt
  # the runner's union by the owner's ruling (i) on the options recorded in
  # #1207 comment 1ec15c8 (2026-09-20): 625 leaves moved on the CI
  # x86_64/py3.14 runner only (as recorded on that comment; byte-identical
+@@ -763,11 +766,11 @@
  # was re-recorded: a claim excuses drift but not a structurally stale fixture
  # (`env_drift --all`'s `rot.failed`), which is the `tests / fast` red that
  # patch answers.
@@ -888,6 +1352,7 @@ diff --git a/tests/golden/claimed_drift.txt b/tests/golden/claimed_drift.txt
  # R10-BUFFER-STORE (#2887 review 1): behind a valve the savings reference
  # charges its tank only to the configured curve (`valve_charge_demand`) and
  # prices its draw at the tank's flow COP (`_reference_cop`), as the step
+@@ -782,12 +785,3 @@ coord_two_zone  # R10-HOUSE-GRADE (#2816): data.insight.scores.envelope_drivers
  # valve_storage_low_target, whose plan leaves move too: the reference's energy
  # anchors three of the space solve's starts, so a valved plan can land in
  # another basin. Unvalved fixtures do not move.
@@ -901,8 +1366,10 @@ diff --git a/tests/golden/claimed_drift.txt b/tests/golden/claimed_drift.txt
 -valve_storage_low_target  # R10-BUFFER-STORE: tank-aware savings reference; baseline_cost DOWN 195.205 -> 111.103 here; plan leaves move with the reference-anchored starts
 -valve_storage_small_tank  # R10-BUFFER-STORE: tank-aware savings reference; baseline_cost DOWN 151.266 -> 128.078 here, predicted_savings and deferred_energy_cost with it
 diff --git a/tests/golden/coord_all_features.json b/tests/golden/coord_all_features.json
+index 0545d231a..931c703fe 100644
 --- a/tests/golden/coord_all_features.json
 +++ b/tests/golden/coord_all_features.json
+@@ -106,6 +106,8 @@
     "evidence": [],
     "watched_buckets": 0
    },
@@ -911,6 +1378,7 @@ diff --git a/tests/golden/coord_all_features.json b/tests/golden/coord_all_featu
    "cop_samples": 0,
    "cop_scale": 1.0,
    "currency": "SEK",
+@@ -374,6 +376,7 @@
    "lower_floor_temperature": 21.0,
    "max_temperature": 23.0,
    "measured_cop": null,
@@ -918,6 +1386,7 @@ diff --git a/tests/golden/coord_all_features.json b/tests/golden/coord_all_featu
    "measured_energy": null,
    "measured_heat_output_kw": null,
    "measured_house_power": null,
+@@ -2171,7 +2174,10 @@
      "defrost_buckets": [],
      "defrost_derate": 1.0,
      "defrost_samples": 0,
@@ -929,8 +1398,10 @@ diff --git a/tests/golden/coord_all_features.json b/tests/golden/coord_all_featu
     },
     "native_value": null
 diff --git a/tests/golden/coord_dhw.json b/tests/golden/coord_dhw.json
+index 84078c1fc..9f29db493 100644
 --- a/tests/golden/coord_dhw.json
 +++ b/tests/golden/coord_dhw.json
+@@ -106,6 +106,8 @@
     "evidence": [],
     "watched_buckets": 0
    },
@@ -939,6 +1410,7 @@ diff --git a/tests/golden/coord_dhw.json b/tests/golden/coord_dhw.json
    "cop_samples": 0,
    "cop_scale": 1.0,
    "currency": "SEK",
+@@ -374,6 +376,7 @@
    "lower_floor_temperature": 21.0,
    "max_temperature": 23.0,
    "measured_cop": null,
@@ -946,6 +1418,7 @@ diff --git a/tests/golden/coord_dhw.json b/tests/golden/coord_dhw.json
    "measured_energy": null,
    "measured_heat_output_kw": null,
    "measured_house_power": null,
+@@ -2092,7 +2095,10 @@
      "defrost_buckets": [],
      "defrost_derate": 1.0,
      "defrost_samples": 0,
@@ -957,8 +1430,10 @@ diff --git a/tests/golden/coord_dhw.json b/tests/golden/coord_dhw.json
     },
     "native_value": null
 diff --git a/tests/golden/coord_grid_fee.json b/tests/golden/coord_grid_fee.json
+index 74b69a15c..3087f9e10 100644
 --- a/tests/golden/coord_grid_fee.json
 +++ b/tests/golden/coord_grid_fee.json
+@@ -96,6 +96,8 @@
     "evidence": [],
     "watched_buckets": 0
    },
@@ -967,6 +1442,7 @@ diff --git a/tests/golden/coord_grid_fee.json b/tests/golden/coord_grid_fee.json
    "cop_samples": 0,
    "cop_scale": 1.0,
    "currency": "SEK",
+@@ -309,6 +311,7 @@
    "lower_floor_temperature": 21.0,
    "max_temperature": 23.0,
    "measured_cop": null,
@@ -974,6 +1450,7 @@ diff --git a/tests/golden/coord_grid_fee.json b/tests/golden/coord_grid_fee.json
    "measured_energy": null,
    "measured_heat_output_kw": null,
    "measured_house_power": null,
+@@ -1931,7 +1934,10 @@
      "defrost_buckets": [],
      "defrost_derate": 1.0,
      "defrost_samples": 0,
@@ -985,8 +1462,10 @@ diff --git a/tests/golden/coord_grid_fee.json b/tests/golden/coord_grid_fee.json
     },
     "native_value": null
 diff --git a/tests/golden/coord_minimal.json b/tests/golden/coord_minimal.json
+index bc4938d73..bccc3b3a7 100644
 --- a/tests/golden/coord_minimal.json
 +++ b/tests/golden/coord_minimal.json
+@@ -96,6 +96,8 @@
     "evidence": [],
     "watched_buckets": 0
    },
@@ -995,6 +1474,7 @@ diff --git a/tests/golden/coord_minimal.json b/tests/golden/coord_minimal.json
    "cop_samples": 0,
    "cop_scale": 1.0,
    "currency": "SEK",
+@@ -309,6 +311,7 @@
    "lower_floor_temperature": 21.0,
    "max_temperature": 23.0,
    "measured_cop": null,
@@ -1002,6 +1482,7 @@ diff --git a/tests/golden/coord_minimal.json b/tests/golden/coord_minimal.json
    "measured_energy": null,
    "measured_heat_output_kw": null,
    "measured_house_power": null,
+@@ -1931,7 +1934,10 @@
      "defrost_buckets": [],
      "defrost_derate": 1.0,
      "defrost_samples": 0,
@@ -1013,8 +1494,10 @@ diff --git a/tests/golden/coord_minimal.json b/tests/golden/coord_minimal.json
     },
     "native_value": null
 diff --git a/tests/golden/coord_two_zone.json b/tests/golden/coord_two_zone.json
+index 321cc5250..20caa9416 100644
 --- a/tests/golden/coord_two_zone.json
 +++ b/tests/golden/coord_two_zone.json
+@@ -106,6 +106,8 @@
     "evidence": [],
     "watched_buckets": 0
    },
@@ -1023,6 +1506,7 @@ diff --git a/tests/golden/coord_two_zone.json b/tests/golden/coord_two_zone.json
    "cop_samples": 0,
    "cop_scale": 1.0,
    "currency": "SEK",
+@@ -319,6 +321,7 @@
    "lower_floor_temperature": 21.0,
    "max_temperature": 23.0,
    "measured_cop": null,
@@ -1030,6 +1514,7 @@ diff --git a/tests/golden/coord_two_zone.json b/tests/golden/coord_two_zone.json
    "measured_energy": null,
    "measured_heat_output_kw": null,
    "measured_house_power": null,
+@@ -1977,7 +1980,10 @@
      "defrost_buckets": [],
      "defrost_derate": 1.0,
      "defrost_samples": 0,
@@ -1042,8 +1527,10 @@ diff --git a/tests/golden/coord_two_zone.json b/tests/golden/coord_two_zone.json
     "native_value": null
 diff --git a/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.as_dict.RETURN_DEL.62858a00.json b/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.as_dict.RETURN_DEL.62858a00.json
 new file mode 100644
+index 000000000..9889b2605
 --- /dev/null
 +++ b/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.as_dict.RETURN_DEL.62858a00.json
+@@ -0,0 +1,6 @@
 +{
 +  "anchor": "custom_components/heatpump_optimizer/accuracy.py:MeasuredCop.as_dict RETURN_DEL 62858a00",
 +  "killed_by": "tests/features.py",
@@ -1052,8 +1539,10 @@ new file mode 100644
 +}
 diff --git a/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.as_dict.RETURN_DEL.6f8909cf.json b/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.as_dict.RETURN_DEL.6f8909cf.json
 deleted file mode 100644
+index 45b224539..000000000
 --- a/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.as_dict.RETURN_DEL.6f8909cf.json
 +++ /dev/null
+@@ -1,6 +0,0 @@
 -{
 -  "anchor": "custom_components/heatpump_optimizer/accuracy.py:MeasuredCop.as_dict RETURN_DEL 6f8909cf",
 -  "killed_by": "tests/features.py",
@@ -1062,8 +1551,10 @@ deleted file mode 100644
 -}
 diff --git a/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.from_dict.BOOLOP.4cb095ac.json b/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.from_dict.BOOLOP.4cb095ac.json
 deleted file mode 100644
+index 92fe18ad9..000000000
 --- a/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.from_dict.BOOLOP.4cb095ac.json
 +++ /dev/null
+@@ -1,6 +0,0 @@
 -{
 -  "anchor": "custom_components/heatpump_optimizer/accuracy.py:MeasuredCop.from_dict BOOLOP 4cb095ac",
 -  "killed_by": "tests/features.py",
@@ -1072,8 +1563,10 @@ deleted file mode 100644
 -}
 diff --git a/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.from_dict.GUARD_OFF.4cb095ac.json b/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.from_dict.GUARD_OFF.4cb095ac.json
 deleted file mode 100644
+index 2740799f8..000000000
 --- a/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.from_dict.GUARD_OFF.4cb095ac.json
 +++ /dev/null
+@@ -1,6 +0,0 @@
 -{
 -  "anchor": "custom_components/heatpump_optimizer/accuracy.py:MeasuredCop.from_dict GUARD_OFF 4cb095ac",
 -  "killed_by": "tests/features.py",
@@ -1082,8 +1575,10 @@ deleted file mode 100644
 -}
 diff --git a/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.from_dict.GUARD_OFF.649d9952.json b/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.from_dict.GUARD_OFF.649d9952.json
 new file mode 100644
+index 000000000..8d9f32542
 --- /dev/null
 +++ b/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.from_dict.GUARD_OFF.649d9952.json
+@@ -0,0 +1,6 @@
 +{
 +  "anchor": "custom_components/heatpump_optimizer/accuracy.py:MeasuredCop.from_dict GUARD_OFF 649d9952",
 +  "killed_by": "tests/features.py",
@@ -1092,8 +1587,10 @@ new file mode 100644
 +}
 diff --git a/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.from_dict.RETURN_DEL.7c227e9b.json b/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.from_dict.RETURN_DEL.7c227e9b.json
 deleted file mode 100644
+index 2dc963923..000000000
 --- a/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.from_dict.RETURN_DEL.7c227e9b.json
 +++ /dev/null
+@@ -1,6 +0,0 @@
 -{
 -  "anchor": "custom_components/heatpump_optimizer/accuracy.py:MeasuredCop.from_dict RETURN_DEL 7c227e9b",
 -  "killed_by": "tests/features.py",
@@ -1102,8 +1599,10 @@ deleted file mode 100644
 -}
 diff --git a/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.from_dict.RETURN_DEL.81cd12e3.json b/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.from_dict.RETURN_DEL.81cd12e3.json
 new file mode 100644
+index 000000000..99b0be279
 --- /dev/null
 +++ b/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.from_dict.RETURN_DEL.81cd12e3.json
+@@ -0,0 +1,6 @@
 +{
 +  "anchor": "custom_components/heatpump_optimizer/accuracy.py:MeasuredCop.from_dict RETURN_DEL 81cd12e3",
 +  "killed_by": "tests/features.py",
@@ -1112,8 +1611,10 @@ new file mode 100644
 +}
 diff --git a/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.judge_ratio.GUARD_OFF.602baa33.json b/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.judge_ratio.GUARD_OFF.602baa33.json
 new file mode 100644
+index 000000000..b1e54f706
 --- /dev/null
 +++ b/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.judge_ratio.GUARD_OFF.602baa33.json
+@@ -0,0 +1,6 @@
 +{
 +  "anchor": "custom_components/heatpump_optimizer/accuracy.py:MeasuredCop.judge_ratio GUARD_OFF 602baa33",
 +  "killed_by": "tests/features.py",
@@ -1122,8 +1623,10 @@ new file mode 100644
 +}
 diff --git a/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.judge_ratio.RETURN_DEL.4c7c13c0.json b/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.judge_ratio.RETURN_DEL.4c7c13c0.json
 deleted file mode 100644
+index 9a98ff8de..000000000
 --- a/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.judge_ratio.RETURN_DEL.4c7c13c0.json
 +++ /dev/null
+@@ -1,6 +0,0 @@
 -{
 -  "anchor": "custom_components/heatpump_optimizer/accuracy.py:MeasuredCop.judge_ratio RETURN_DEL 4c7c13c0",
 -  "killed_by": "tests/features.py",
@@ -1132,8 +1635,10 @@ deleted file mode 100644
 -}
 diff --git a/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.residual.BOOLOP.460915d8.json b/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.residual.BOOLOP.460915d8.json
 new file mode 100644
+index 000000000..6a037103b
 --- /dev/null
 +++ b/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.residual.BOOLOP.460915d8.json
+@@ -0,0 +1,6 @@
 +{
 +  "anchor": "custom_components/heatpump_optimizer/accuracy.py:MeasuredCop.residual BOOLOP 460915d8",
 +  "killed_by": "tests/features.py",
@@ -1142,8 +1647,10 @@ new file mode 100644
 +}
 diff --git a/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.residual.CMP_BOUND.92047180.json b/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.residual.CMP_BOUND.92047180.json
 new file mode 100644
+index 000000000..99a932ad3
 --- /dev/null
 +++ b/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.residual.CMP_BOUND.92047180.json
+@@ -0,0 +1,6 @@
 +{
 +  "anchor": "custom_components/heatpump_optimizer/accuracy.py:MeasuredCop.residual CMP_BOUND 92047180",
 +  "killed_by": "tests/features.py",
@@ -1152,8 +1659,10 @@ new file mode 100644
 +}
 diff --git a/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.residual.GUARD_OFF.460915d8.json b/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.residual.GUARD_OFF.460915d8.json
 new file mode 100644
+index 000000000..634115f14
 --- /dev/null
 +++ b/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.residual.GUARD_OFF.460915d8.json
+@@ -0,0 +1,6 @@
 +{
 +  "anchor": "custom_components/heatpump_optimizer/accuracy.py:MeasuredCop.residual GUARD_OFF 460915d8",
 +  "killed_by": "tests/features.py",
@@ -1162,8 +1671,10 @@ new file mode 100644
 +}
 diff --git a/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.residual.GUARD_OFF.92047180.json b/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.residual.GUARD_OFF.92047180.json
 new file mode 100644
+index 000000000..51459c6fa
 --- /dev/null
 +++ b/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.residual.GUARD_OFF.92047180.json
+@@ -0,0 +1,6 @@
 +{
 +  "anchor": "custom_components/heatpump_optimizer/accuracy.py:MeasuredCop.residual GUARD_OFF 92047180",
 +  "killed_by": "tests/features.py",
@@ -1172,8 +1683,10 @@ new file mode 100644
 +}
 diff --git a/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.residual.RETURN_DEL.dfd25e72.json b/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.residual.RETURN_DEL.dfd25e72.json
 new file mode 100644
+index 000000000..aa448a757
 --- /dev/null
 +++ b/tests/mutation_ledger/killed_by/accuracy.py/MeasuredCop.residual.RETURN_DEL.dfd25e72.json
+@@ -0,0 +1,6 @@
 +{
 +  "anchor": "custom_components/heatpump_optimizer/accuracy.py:MeasuredCop.residual RETURN_DEL dfd25e72",
 +  "killed_by": "tests/features.py",
@@ -1182,8 +1695,10 @@ new file mode 100644
 +}
 diff --git a/tests/mutation_ledger/killed_by/accuracy.py/cop_observability.GUARD_OFF.ac5ca5ae.json b/tests/mutation_ledger/killed_by/accuracy.py/cop_observability.GUARD_OFF.ac5ca5ae.json
 new file mode 100644
+index 000000000..95594139b
 --- /dev/null
 +++ b/tests/mutation_ledger/killed_by/accuracy.py/cop_observability.GUARD_OFF.ac5ca5ae.json
+@@ -0,0 +1,6 @@
 +{
 +  "anchor": "custom_components/heatpump_optimizer/accuracy.py:cop_observability GUARD_OFF ac5ca5ae",
 +  "killed_by": "tests/features.py",
@@ -1192,8 +1707,10 @@ new file mode 100644
 +}
 diff --git a/tests/mutation_ledger/killed_by/accuracy.py/cop_observability.GUARD_OFF.c1dafc5f.json b/tests/mutation_ledger/killed_by/accuracy.py/cop_observability.GUARD_OFF.c1dafc5f.json
 new file mode 100644
+index 000000000..c64de4327
 --- /dev/null
 +++ b/tests/mutation_ledger/killed_by/accuracy.py/cop_observability.GUARD_OFF.c1dafc5f.json
+@@ -0,0 +1,6 @@
 +{
 +  "anchor": "custom_components/heatpump_optimizer/accuracy.py:cop_observability GUARD_OFF c1dafc5f",
 +  "killed_by": "tests/features.py",
@@ -1202,8 +1719,10 @@ new file mode 100644
 +}
 diff --git a/tests/mutation_ledger/killed_by/accuracy.py/cop_observability.GUARD_OFF.f1e23bc3.json b/tests/mutation_ledger/killed_by/accuracy.py/cop_observability.GUARD_OFF.f1e23bc3.json
 new file mode 100644
+index 000000000..5a0eee47e
 --- /dev/null
 +++ b/tests/mutation_ledger/killed_by/accuracy.py/cop_observability.GUARD_OFF.f1e23bc3.json
+@@ -0,0 +1,6 @@
 +{
 +  "anchor": "custom_components/heatpump_optimizer/accuracy.py:cop_observability GUARD_OFF f1e23bc3",
 +  "killed_by": "tests/features.py",
@@ -1212,8 +1731,10 @@ new file mode 100644
 +}
 diff --git a/tests/mutation_ledger/killed_by/accuracy.py/cop_observability.RETURN_DEL.e75e96f9.json b/tests/mutation_ledger/killed_by/accuracy.py/cop_observability.RETURN_DEL.e75e96f9.json
 new file mode 100644
+index 000000000..57131144a
 --- /dev/null
 +++ b/tests/mutation_ledger/killed_by/accuracy.py/cop_observability.RETURN_DEL.e75e96f9.json
+@@ -0,0 +1,6 @@
 +{
 +  "anchor": "custom_components/heatpump_optimizer/accuracy.py:cop_observability RETURN_DEL e75e96f9",
 +  "killed_by": "tests/features.py",
@@ -1222,8 +1743,10 @@ new file mode 100644
 +}
 diff --git a/tests/mutation_ledger/killed_by/accuracy.py/pairs_interval.CMP_BOUND.62f6b3b0.json b/tests/mutation_ledger/killed_by/accuracy.py/pairs_interval.CMP_BOUND.62f6b3b0.json
 new file mode 100644
+index 000000000..fa4e849d2
 --- /dev/null
 +++ b/tests/mutation_ledger/killed_by/accuracy.py/pairs_interval.CMP_BOUND.62f6b3b0.json
+@@ -0,0 +1,6 @@
 +{
 +  "anchor": "custom_components/heatpump_optimizer/accuracy.py:pairs_interval CMP_BOUND 62f6b3b0",
 +  "killed_by": "tests/features.py",
@@ -1232,8 +1755,10 @@ new file mode 100644
 +}
 diff --git a/tests/mutation_ledger/killed_by/accuracy.py/pairs_interval.RETURN_DEL.62f6b3b0.json b/tests/mutation_ledger/killed_by/accuracy.py/pairs_interval.RETURN_DEL.62f6b3b0.json
 new file mode 100644
+index 000000000..9d1813586
 --- /dev/null
 +++ b/tests/mutation_ledger/killed_by/accuracy.py/pairs_interval.RETURN_DEL.62f6b3b0.json
+@@ -0,0 +1,6 @@
 +{
 +  "anchor": "custom_components/heatpump_optimizer/accuracy.py:pairs_interval RETURN_DEL 62f6b3b0",
 +  "killed_by": "tests/features.py",
@@ -1242,8 +1767,10 @@ new file mode 100644
 +}
 diff --git a/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._record_accuracy.GUARD_OFF.6cac1c2f.json b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._record_accuracy.GUARD_OFF.6cac1c2f.json
 new file mode 100644
+index 000000000..d7fa362d9
 --- /dev/null
 +++ b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._record_accuracy.GUARD_OFF.6cac1c2f.json
+@@ -0,0 +1,6 @@
 +{
 +  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._record_accuracy GUARD_OFF 6cac1c2f",
 +  "killed_by": "tests/features.py",
@@ -1252,8 +1779,10 @@ new file mode 100644
 +}
 diff --git a/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._record_accuracy.GUARD_OFF.b36c07ff.json b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._record_accuracy.GUARD_OFF.b36c07ff.json
 new file mode 100644
+index 000000000..cf6a9c195
 --- /dev/null
 +++ b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._record_accuracy.GUARD_OFF.b36c07ff.json
+@@ -0,0 +1,6 @@
 +{
 +  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._record_accuracy GUARD_OFF b36c07ff",
 +  "killed_by": "tests/features.py",
@@ -1262,8 +1791,10 @@ new file mode 100644
 +}
 diff --git a/tests/mutation_ledger/killed_by/sensor.py/ObservedCOPSensor._waiting_for.GUARD_OFF.204c8b17.json b/tests/mutation_ledger/killed_by/sensor.py/ObservedCOPSensor._waiting_for.GUARD_OFF.204c8b17.json
 new file mode 100644
+index 000000000..ecb786441
 --- /dev/null
 +++ b/tests/mutation_ledger/killed_by/sensor.py/ObservedCOPSensor._waiting_for.GUARD_OFF.204c8b17.json
+@@ -0,0 +1,6 @@
 +{
 +  "anchor": "custom_components/heatpump_optimizer/sensor.py:ObservedCOPSensor._waiting_for GUARD_OFF 204c8b17",
 +  "killed_by": "tests/entities.py",
@@ -1272,8 +1803,10 @@ new file mode 100644
 +}
 diff --git a/tests/mutation_ledger/killed_by/thermal_model.py/InstallCapability.cop_electric.RETURN_DEL.1cbe4cb2.json b/tests/mutation_ledger/killed_by/thermal_model.py/InstallCapability.cop_electric.RETURN_DEL.1cbe4cb2.json
 new file mode 100644
+index 000000000..71d1cda3f
 --- /dev/null
 +++ b/tests/mutation_ledger/killed_by/thermal_model.py/InstallCapability.cop_electric.RETURN_DEL.1cbe4cb2.json
+@@ -0,0 +1,6 @@
 +{
 +  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:InstallCapability.cop_electric RETURN_DEL 1cbe4cb2",
 +  "killed_by": "tests/features.py",
@@ -1282,8 +1815,10 @@ new file mode 100644
 +}
 diff --git a/tests/mutation_ledger/survivor_triage/accuracy.py/MeasuredCop.judge_ratio.RETURN_DEL.d7923b87.json b/tests/mutation_ledger/survivor_triage/accuracy.py/MeasuredCop.judge_ratio.RETURN_DEL.d7923b87.json
 new file mode 100644
+index 000000000..511f45f00
 --- /dev/null
 +++ b/tests/mutation_ledger/survivor_triage/accuracy.py/MeasuredCop.judge_ratio.RETURN_DEL.d7923b87.json
+@@ -0,0 +1,6 @@
 +{
 +  "anchor": "custom_components/heatpump_optimizer/accuracy.py:MeasuredCop.judge_ratio RETURN_DEL d7923b87",
 +  "old": "        return None",
@@ -1291,22 +1826,26 @@ new file mode 100644
 +  "verdict": "equivalent"
 +}
 diff --git a/tests/structure_budgets.json b/tests/structure_budgets.json
+index 60df7b5b4..b76cfb616 100644
 --- a/tests/structure_budgets.json
 +++ b/tests/structure_budgets.json
+@@ -1,5 +1,5 @@
  {
-- "class_excess_loc": 17814,
-+ "class_excess_loc": 17806,
+- "class_excess_loc": 17732,
++ "class_excess_loc": 17724,
   "const_modules_over_50": 3,
   "coordinator_attrs": 142,
   "coordinator_multiassigned_attrs": 109,
+@@ -11,9 +11,9 @@
   "functions_cc_over_25": 8,
   "import_cycle_modules": 0,
   "max_cc": 44,
-- "max_class_loc": 8155,
-+ "max_class_loc": 8147,
+- "max_class_loc": 8073,
++ "max_class_loc": 8065,
   "max_method_loc": 373,
 - "methods_over_150": 16,
 + "methods_over_150": 15,
   "methods_over_200": 8,
   "name_kept_members": 38,
-  "recorded_at": "b6f6ceca4f0323b24171c45a2a2372ba2e2cbaaa",
+  "recorded_at": "88c6ad5bbec69bfe157e04597a74d0c9c3e4775c",
+
