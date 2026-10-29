@@ -1,61 +1,44 @@
-Fix review: blocked a5b8603b2fd49196105b4238a205b39a038f6944 ci-unconcluded: tests / mutation refused 9 added unpinned sites and both mutation-pins shards were still running 3.5 h after the push
+Fix review: merge 6f41ef788f8e2c0fb814f7ed4aab255f391e617b
 
-bus-nonce: d83aee5bc851ad16a2e522c6b295aa0a
+bus-nonce: 916d0eba64fc3650d9c43818205b05fa
 
-## Block
+## Scope
 
-Round: fix review 2 of this group (fix review 1 blocked `fa6eb482b` class-open).
-
-This blocks on CI that has not concluded. It does not block on a defect in the authored work: every check I ran on the authored change passes (see `## Evidence`). `fix-review.md` step 11 says a red check can be judged only once all of the head's workflows have concluded. At 2026-10-29T00:51Z, at head `a5b8603b2fd49196105b4238a205b39a038f6944` (unchanged since dispatch), the head's CI read:
-
-- `tests / mutation` (job 123109077767): `MUTATION TABLE REFUSED -- 3760 unpinned site(s) against 3758 at the ratchet base b0b2d7697f8c..., 9 of them added by this diff`. The 9 include `optimizer.py:536 GUARD_OFF` and `thermal_model.py:1772 GUARD_OFF`, which the body lists as "Open, survivor on CI".
-- `tests / mutation-pins (1)` (job 123111705393) and `(2)` (job 123111705308): `in_progress` since about 21:27Z, and still running at 00:51Z. These shards decide whether CI kills those two survivors. No `mutation-autofix` commit has landed.
-- `prelude` (job 123103594775): `FAIL run(s) [40769797152] still adding sources after 8700 s`. `gate` (job 123169165710): `FAIL prelude: failure`.
-
-Re-review owes only a CI read. Once the pin shards conclude, either:
-
-- (a) `mutation-autofix` pins the killed sites and the mutation lane goes green on the bot head, and `prelude`/`gate` go green on a re-run; that is a merge, or
-- (b) a pin shard still reads `536 GUARD_OFF -- lives` or `1772 GUARD_OFF -- lives`. That contradicts my local kill below and is a real block: those sites need a CI-reachable killing check.
+PR #2887 (R10-BUFFER-STORE), head `6f41ef788f8e2c0fb814f7ed4aab255f391e617b`, reviewed under `dev/governance/roles/fix-review.md` from main (`git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` is empty). This is a resolution-delta review: the previous head conflicted with main on `dev/audit/config/bugclasses.json` and carried a stale `## Head`. Fix review 1 blocked `fa6eb482b` (class-open). I cannot tell from the tree how many reviews came between that one and this head, so I give no round number. The fix's mutation proof and the finder's harness were re-run at this head.
 
 ## Findings
 
-- The body no longer describes the head. `## Head` describes `ff71ecaa8` as the authored code head and never mentions `6ff573112`, the commit that adds `single-zone valve: the reference charges the tank onto its curve, never past it` to `tests/features.py`. `## Unpinned sites` and `## Red checks` still say `optimizer.py:536 GUARD_OFF` and `thermal_model.py:1772 GUARD_OFF` are open CI survivors and "this check stays red at this head until each has a killing check or a triage". At this head both have a killing check: I killed both with it (Evidence). The error runs in the safe direction: the head is better than the body says. The `## Red checks` account of `tests / mutation` should name `6ff573112` when the body is next re-taken. Carry: R10-BUFFER-STORE (the fixer's body at its next head)
-- Instrument false positive: `tools/audit/seat/review_packet.py render` refused `host-path` and wrote no packet. Its message was `dev/audit/rca/R10-RCA-BUFFER-STORE.md:9: home-directory in an added line`, and line 9's only match is the substring `/root` inside `dev/governance/roles/root-cause.md`. This seat's `$HOME` is `/root`, and `ref_privacy.py`'s host-identity match takes `$HOME` verbatim with no path-boundary check. So on any cloud seat whose home is `/root`, every diff citing `roles/root-cause.md` refuses the packet. I did not work around it: no packet was rendered, and the review ran by hand from the PR body and the live checks. Carry: R10-REF-PRIVACY
+- `review_packet.py render --pr 2887 --head 6f41ef788f8e2c0fb814f7ed4aab255f391e617b` refuses `host-path: dev/audit/rca/R10-RCA-BUFFER-STORE.md:9: home-directory` and writes no packet. The line has no home path. This container runs as the root account, whose home directory is the bare top-level `root` directory (the password database's entry, which still applies with `HOME` overridden), and `ref_privacy._leaks` case-folds and substring-matches the homes, so the text `root-cause.md` in the `dev/governance/roles` directory matches. The refusal is a false positive caused by this cloud host, not a defect in the PR. Any cloud seat running as root will refuse every PR that names the role contract `root-cause.md`. I checked every signal the packet carries myself; see Evidence. Carry: dismissed: instrument false positive caused by this cloud host (the root account's home path substring-matching the role contract `root-cause.md`), not this PR's; reported here for the orchestrator to route to the ref_privacy owner
+- The body's `## Unpinned sites` and `## Red checks` still say `optimizer.py:536 GUARD_OFF` and `thermal_model.py:1772 GUARD_OFF` are "Open, survivor on CI" and that `tests / mutation` "stays red at this head". Both claims are out of date. The bot commit `a4c411762` (`ci: pin killed mutants`) records both as `killed_by: tests/features.py`: `_thermostat_demand.GUARD_OFF.b20c137a` (failed=6) and `_valve_draw_circuits.GUARD_OFF.d85c286a` (failed=3). The `tests / mutation` job 123229140243 at this head reads `MUTATION TABLE PASSED`. My own mutants mA and mB (below) also kill both. Carry: dismissed: superseded at this head by a4c411762's pins and the head's green, non-inconclusive mutation run; the body is stale in the pessimistic direction only
 
 ## Evidence
 
-- Head measured: `a5b8603b2fd49196105b4238a205b39a038f6944`, which is the PR head at dispatch and at 00:51Z (`ev/checks_at_verdict.txt`). Merge base `b0b2d7697`, which equals `origin/main`. The `dev/governance/roles/` diff from the merge base to `origin/main` is empty, so this contract is current.
-- Merge: `git merge-tree --write-tree origin/main a5b8603b2` exits 0 with tree `79a984f46` and no conflicting path (`ev/merge_tree.txt`).
-- Step 1, mutation proof at this head. Each mutant was applied to a `git archive` of the head and run through `tools/audit/seat/features_block.py` under the CI venv (numpy 2.4.6, scipy 1.17.1; `ev/mut.sh`, `ev/mut2.sh`):
-  - RESULT null rc=0
-  - RESULT opt536 rc=1 (`optimizer.py:536` -> `if False:`): 29.4493 C against the 26.6000 C curve
-  - RESULT tm1772 rc=1 (`thermal_model.py:1772` -> `if False:`): 27.1364 C
-  - Over the rework block (13 checks):
-    - RESULT null2 rc=0
-    - RESULT m8 rc=1 (`1756` headroom clamp dropped): `refused 14.094 kW`, the body's figure
-    - RESULT m3 rc=1 (`1824` cap dropped): `refused 0.000 kW; the tank ended at nan C`, the body's figure
-  - Files: `ev/mutants.txt`, `ev/mutants2.txt`.
-- Step 2, the finder's harness. `dev/audit/harnesses/r10_setpoint_boost.py` has sha1 `878ce05bcd06` at both ends. I ran it unmodified from each tree's archive, at the base `b0b2d7697` and at the head. Both rc=0, `failures 0`.
-  - Base: every 750 L plan hash equals its 0 L twin's (`identical plan` 8 spread, 14 flat), so the finding reproduces.
-  - Head: no 750 L hash equals its twin's.
-  - Null: all 16 no-buffer rows are byte-identical between the two ends.
-  - Files: `ev/setpoint_base.txt`, `ev/setpoint_m_null.txt`.
-- Body figures I did not re-derive at this head:
-  - `savings` on the 750 L cells now reads 8.85, 1.68 and 3.11 for the body's three cells. The body quotes 8.83, 1.66 and 2.88, taken at `baff727d1` and labelled so.
-  - The 1.7 flat set-point cells read -9.35 and -8.52, against the -6.89 that the dismissed "understated savings" carry quotes. The direction (understated) holds, but the size is this head's figure, not the body's.
-- Step 3, null control: `r10_buffer_store.py reference` (harness sha1 `1ed68fea6f69`) at both ends, rc=0 both (`ev/harness_reference.txt`).
-  - Unvalved reference: 8.15 / 9.00 kWh at both ends.
-  - Valved reference: 8.15 / 14.92 at the base, 8.10 / 7.99 at the head.
-  - Refused heat: 0.00 everywhere.
-  - All of these match the body's figures at `baff727d1`.
-- Step 4, claims: `GOLDEN_MODE=drift GOLDEN_REF=b0b2d7697 tests/golden.py` reads `NO UNCLAIMED DRIFT: 56 scenario(s) checked against b0b2d7697` and `NO STALE FIXTURE` (`ev/golden_drift.txt`). `claims-for: 7.0.5` equals `VERSION`. `card_claimed_drift.txt` is untouched.
-- Step 5: the three-dot diff touches none of `VERSION`, `RELEASE_NOTES.md` or `manifest.json` (`ev/static.txt`).
-- Step 6, class: I ran the body's rule, `git grep -n "\.simulate_step(\|compute_cop(" -- custom_components` (`ev/ratchet_census.txt`). Every hit is either named in the body or falls under its blanket clause. `coordinator._capacity_caps`, `_max_pump_rise` and `flow_meter.space_reference_cop` price at outdoor COP in every zoning at the base too, and none sizes a valved step's power. No seam is open.
-- Step 10: the carries are present on `handoff/audit-r10-roster` at the SHAs the body names (`ev/carries.txt`): the two R10-STORE-RACES carries (35 L fallback; over-booking residual) at `5704c4048`, the CPU carry at `b5ea7fda7a9e`, and the R10-FLOW-POSTMERGE carry at `c0dbb4585d68`. The CPU carry is quoted there at the earlier head `173b71ba4` (2.5x).
-- Step 14: every budget move in the three-dot diff is downward:
-  - `class_excess_loc` 18037 -> 17981
-  - `functions_cc_over_15` 28 -> 27
-  - `methods_over_200` 9 -> 8
-  - `stress_budgets` `summer/2z/space/wood-two-tank` ratio 7.64 -> 2.2
-  - `tests/structure.py` at the head reads `STRUCTURE RATCHET PASSED`. No raise, so there is no budget-raise to judge.
-- CI at this head, other than the block above: 32 check runs `success`, including `tests / fast (3.14)`, `pr-contract`, `arch-score`, `tests / closures` and `tests / coverage`. `prelude` failed on the "still adding sources after 8700 s" scheduling timeout, which the body already answers at `cd731ff0d`. It is a CI wait, not this diff.
+- RESULT merge-forward: `git merge-tree --write-tree origin/main 6f41ef788` exits 0 with tree `cb1450871a34`. origin/main `ee4893758` is the merge base, so the head contains main. `36705cf5e` (main merged into the code head) and the PR head have identical trees (`ev/merge.txt`).
+- RESULT bugclasses.json resolution: no row from main was dropped. Without drivers, the merge of `a4c411762` and `ee4893758` conflicts on `dev/audit/config/bugclasses.json`, `tests/closures.json` and `tests/structure_budgets.json`. The head's `bugclasses.json` against main's `ee4893758` is additions only: `R10-RCA-BUFFER-STORE` appended to `P2.rca`, plus the `R10-RCA-BUFFER-STORE` class entry. A leaf-by-leaf comparison finds 2600 leaves in main and 2612 at the head, 0 lost, and 1 changed (`/P2/rca`, which was extended). That delta is byte-for-byte the branch's own delta over its pre-merge base `b0b2d7697` (the `+`/`-` lines diff empty). The whole reviewed range is the same 55 files, +1738/-208, as the branch's three-dot range.
+- RESULT `## Head`: the body's first `## Head` paragraph names `6f41ef788f8e2c0fb814f7ed4aab255f391e617b`, the head I measured. `refs/pull/2887/head` was still `6f41ef788f8e2c0fb814f7ed4aab255f391e617b` at verdict time.
+- RESULT mutation proof (step 1): full `tests/features.py` (4565 checks) on a `git archive` of the head per arm, CI's pinned numpy 2.4.6 and scipy 1.17.1, Python 3.11 (`ev/mutants.txt`, `ev/mutant_run.sh`). The null fails 1 check, `and the path that proceeds still stamps a resolvable recorded_at (#363)` (`recorded_at = 'unknown'`). That check fails because a git archive has no `.git`, and it fails the same way in every arm. Each mutant adds kills beyond it:
+  - mA `optimizer.py:536` router valve guard set to `if False:`: 5 more. `single-zone: the savings reference never charges its valved tank into the cap` [refused 27.79 kWh; tank 70.0 C] reproduces fix review 1's class-open figures, and both zonings' `valved reference costs the unvalved one plus the tank's loss` fail.
+  - mB `thermal_model.py:1772` `_valve_draw_circuits` zoning guard set to `if False:`: 2 more, `the tank law charges to the temperature whose draw is the need` and `single-zone valve: the reference charges the tank onto its curve, never past it`.
+  - mC terminal store credit re-gated to `buffer_is_store and two_zone_enabled` (the original #2500 defect): 2 more, `single-zone: the terminal cost credits a valved store tank` and `zoned store census: the terminal cost credits the tank in every zoning (#2500)` [single-zone 0.0000, two-zone -17.3299].
+  - mD `headroom_k` clamp dropped (`thermal_model.py:1756`): 1 more, `single-zone valve: a tank above buffer_max_temp cools at its physical rate` [refused 14.094 kW].
+  - KILLED 4 of 4, SURVIVED 0.
+- RESULT finder's harness (step 2): `dev/audit/harnesses/r10_setpoint_boost.py`, sha1 `878ce05bcd060e151dcf3631cac7109a71d7fe85` at both trees, run unmodified from each tree's `git archive` (`ev/harness_base.log`, `ev/harness_head.log`, `ev/harness_cmp.txt`).
+  - Base `ee4893758`: 16 of 16 buffer plans are byte-identical to their no-buffer twins. That is the finding, reproduced.
+  - Head: 0 of 16 identical.
+  - Null: the 16 no-buffer rows are byte-identical between base and head.
+  - `failures 0` and rc=0 at both ends.
+- Figures quoted at `baff727d1` move a little at this head. The head reads `savings` spread (0.6, no DHW, set-point) 8.85 (body 8.83), flat (0.6, no DHW, duty) 1.67 (1.66), flat (1.7, no DHW, duty) 3.11 (2.88), and flat (1.7, set-point) 750 L -9.35 (the body's forward-carry cites -6.89). The body heads these figures `at baff727d1` and does not claim them at this head; main's later merges sit between. The -9.35 is in the same direction as the dismissed comfort carry (savings understated, never inflated), so that disposition holds. I did not re-run the fixer's own `r10_buffer_store.py`, so the figures the body quotes from it stay unverified at this head.
+- RESULT class (step 6): the body's rule `git grep -n "\.simulate_step(\|compute_cop(" -- custom_components` at the head hits away, coordinator (7), diagnosis, flow_meter, optimizer (5), sensor (2), sysid (4), thermal_model (9) and topology (`ev/seam_census.txt`). Every file is named in the body's disposition except `flow_meter.py:142`. That hit is a heat-meter COP reference (`model.compute_cop(outdoor_c)` when no supply temperature is known), which falls under the body's "a reading for a sensor" clause and sizes no valved step. No open seam.
+- RESULT checks (steps 4, 5, 14):
+  - `tests/structure.py` at the head reads `STRUCTURE RATCHET PASSED`.
+  - `VERSION`, `manifest.json` and `RELEASE_NOTES.md` are untouched against main (empty diff).
+  - `claims-for: 7.0.5` equals `VERSION` 7.0.5, and `card_claimed_drift.txt` is unchanged.
+  - `budget-raise-gate` is green, and the only stress-budget move is the earlier `ratio` lowering.
+  - The golden drift and claim figures are CI's (`tests / fast (3.14)` green); I did not re-run them.
+- RESULT forward-carry (step 10): `handoff/audit-r10-roster` tip `R10-STORE-RACES.carry` still holds all three entries from this group: the CPU cost, the two homes of the 35 L fallback, and the #2887 / #2499 over-booking residual with its harness and close-or-refute instruction (`ev/carry.txt`). `5704c4048`, `d6217f814a7c` and `b5ea7fda7a9e` are ancestors of that tip.
+- RESULT CI at the head (step 11), read from the commit's check-runs API (`ev/check_runs.txt`):
+  - Every run concluded success, neutral or skipped, with no failure. That includes `tests / fast (3.14)`, `tests / closures`, `tests / coverage`, `tests / mutation`, `governance / instrument-self-tests`, `arch-score` and `budget-raise-gate`.
+  - `tests / mutation` job 123229140243 prints `MUTATION TABLE PASSED`, not INCONCLUSIVE, with `3719 unpinned site(s) ... 3727 at the ratchet base ee4893758` (`ev/ci_mutation_job_123229140243.log`).
+  - `pr-contract / pr-contract` (job 123248470967) started 03:38:53Z, after the last lane concluded, and is green. The earlier heads' reds are named and answered in `## Red checks`, and that run checked the body.
+  - The `gate` aggregate also concluded success once every other run had finished.
+- Review packet: not rendered (Findings, first bullet). I re-checked by hand what its signals stand for: the head note (correct), structure (passes), red-unanswered and required-red (no red at this head), and the carry audit (pr-contract green).
