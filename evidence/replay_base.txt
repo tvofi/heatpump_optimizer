@@ -1,0 +1,8 @@
+5 push(es) to main in [2026-10-26T04:07:04Z, 2026-10-26T05:07:04Z) over v7.0.4..<tip>
+before  5 run(s), 8319 call(s)
+M1      5 run(s), 3692 call(s)
+M1+M2   5 run(s), 3692 call(s)  [overhead 30 s, 0.42 s/call]
+M1+M2   5 run(s), 3692 call(s)  [overhead 60 s, 0.42 s/call]
+M1+M2   5 run(s), 3692 call(s)  [overhead 120 s, 0.42 s/call]
+M1+M2   5 run(s), 3692 call(s)  [overhead 240 s, 0.42 s/call]
+rc=0

@@ -1,0 +1,26 @@
+diff --git a/dev/audit/harnesses/record_burst_replay.py b/dev/audit/harnesses/record_burst_replay.py
+index 2c23873b0..022000af8 100644
+--- a/dev/audit/harnesses/record_burst_replay.py
++++ b/dev/audit/harnesses/record_burst_replay.py
+@@ -139,7 +139,7 @@ def main():
+           f"enumerate {enum} call(s), rest {rest} call(s) at {a.rest_per_min:g}/min")
+     print(demand("before", n, sum(3 * w + 6 * p for w, p in costs), enum, rest, a.limit))
+     print(demand("M1", n, sum(w + 3 * p for w, p in costs), enum, rest, a.limit))
+-    for shape, cost in (("M1+M2", lambda w, p: w + 3 * p), ("O-1", lambda w, p: w)):
++    for shape, cost in (("M1+M2", lambda w, p: w + 3 * p), ("O-1", lambda w, p: w + 3 * p)):
+         for overhead in (30, 60, 120, 240):
+             runs = replay_grouped(burst, timeline, since, overhead, 0.42, cost)
+             print(demand(shape, len(runs), sum(c for _, c in runs), enum, rest, a.limit,
+=== RUN
+=== SUMMARY
+  FAIL a10:no_credential  [token(s) in payload: secret-token]
+  FAIL a10:no_precise_location  [1 coordinate(s) beyond 2 dp; ['config.solar.latitude=59.331234 (6 dp)']]
+  FAIL a11:invalid  [service no-op]
+  FAIL a12:migrates  [after=1 expected=7]
+  FAIL a13:currency  [coordinator='SEK' instance='EUR']
+  FAIL record_burst_replay counts demand as record + enumerate + rest, never the record job alone  [rc=0; parsed={'before': (48, 5, 120, 173, 100), 'M1': (21, 5, 120, 146, 100), 'M1+M2': (21, 5, 120, 146, 100), 'O-1': (21, 5, 120, 146, 100)}; stderr=''. The replay that sized O-1 counted the record job only and underread the hour by the enumerate's share (ratelimit-recur.md section 1.2)]
+1 of 2475 ENTITY CHECKS FAILED
+
+real	7m47.598s
+user	6m44.994s
+sys	1m10.778s

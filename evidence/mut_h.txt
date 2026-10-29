@@ -1,0 +1,26 @@
+diff --git a/.github/workflows/governance.yml b/.github/workflows/governance.yml
+index 843b62a42..771a9dcab 100644
+--- a/.github/workflows/governance.yml
++++ b/.github/workflows/governance.yml
+@@ -1457,7 +1457,7 @@ jobs:
+ 
+       - name: Rules that have outlived their reason
+         id: sunset
+-        if: always() && steps.window.outputs.report == 'true'
++        if: always()
+         env:
+           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+         run: if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --sunset --since "${{ steps.window.outputs.since }}" --window-cache "$RUNNER_TEMP/window.json"; else node tools/policy/policy_lint.mjs --sunset --since "${{ steps.window.outputs.since }}" --window-cache "$RUNNER_TEMP/window.json"; fi|| true
+=== RUN
+=== SUMMARY
+  FAIL a10:no_credential  [token(s) in payload: secret-token]
+  FAIL a10:no_precise_location  [1 coordinate(s) beyond 2 dp; ['config.solar.latitude=59.331234 (6 dp)']]
+  FAIL a11:invalid  [service no-op]
+  FAIL a12:migrates  [after=1 expected=7]
+  FAIL a13:currency  [coordinator='SEK' instance='EUR']
+  FAIL the record job's push arm reads --record alone: --stats, --sunset and the filer wait on the window step's report  [reporting steps=['name: Friction and verdict histograms', 'name: File the recurring-friction issues the histogram named', 'name: Rules that have outlived their reason']; not gated on `steps.window.outputs.report == 'true'`=['name: Rules that have outlived their reason']. Decision O-1 (ratelimit-recur.md section 4, M3): the histogram's and the sunset's 3P reads per push moved to the weekly schedule, a dispatch and the stamp; the disposition refusal keeps every push]
+1 of 2475 ENTITY CHECKS FAILED
+
+real	8m11.201s
+user	7m7.755s
+sys	1m13.999s

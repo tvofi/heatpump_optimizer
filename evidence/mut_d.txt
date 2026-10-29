@@ -1,0 +1,26 @@
+diff --git a/.github/workflows/governance.yml b/.github/workflows/governance.yml
+index 843b62a42..ec3807577 100644
+--- a/.github/workflows/governance.yml
++++ b/.github/workflows/governance.yml
+@@ -1363,7 +1363,7 @@ jobs:
+             *)
+               if git rev-parse -q --verify HEAD^ >/dev/null && ! git diff --quiet HEAD^ HEAD -- VERSION; then
+                 REPORT=true
+-                SINCE=$(git describe --tags --abbrev=0 --match 'v*' HEAD^ 2>/dev/null || echo "$SINCE")
++                SINCE=$(git describe --tags --abbrev=0 --match 'v*' HEAD 2>/dev/null || echo "$SINCE")
+               fi ;;
+           esac
+           if [ -z "$SINCE" ]; then SINCE=$(git rev-list --max-parents=0 HEAD | tail -1); fi
+=== RUN
+=== SUMMARY
+  FAIL a10:no_credential  [token(s) in payload: secret-token]
+  FAIL a10:no_precise_location  [1 coordinate(s) beyond 2 dp; ['config.solar.latitude=59.331234 (6 dp)']]
+  FAIL a11:invalid  [service no-op]
+  FAIL a12:migrates  [after=1 expected=7]
+  FAIL a13:currency  [coordinator='SEK' instance='EUR']
+  FAIL the window step reports on the schedule, a dispatch and the stamp, never an ordinary push  [(event, commit) -> (report, since): got {('push', 'plain'): ('false', 'v1.0.0'), ('push', 'stamp'): ('true', 'v1.0.1'), ('schedule', 'plain'): ('true', 'v1.0.0'), ('schedule', 'stamp'): ('true', 'v1.0.1'), ('workflow_dispatch', 'plain'): ('true', 'v1.0.0'), ('workflow_dispatch', 'stamp'): ('true', 'v1.0.1')}, want {('push', 'plain'): ('false', 'v1.0.0'), ('push', 'stamp'): ('true', 'v1.0.0'), ('schedule', 'plain'): ('true', 'v1.0.0'), ('schedule', 'stamp'): ('true', 'v1.0.1'), ('workflow_dispatch', 'plain'): ('true', 'v1.0.0'), ('workflow_dispatch', 'stamp'): ('true', 'v1.0.1')}. An ordinary push reads --record alone (O-1); the stamp's own push reports the release it closes, so its window is the tag before the stamp, never the empty one its own tag opens]
+1 of 2475 ENTITY CHECKS FAILED
+
+real	8m6.297s
+user	7m3.110s
+sys	1m15.610s
