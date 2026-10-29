@@ -1,0 +1,48 @@
+#!/bin/bash
+# hpo-git-shim
+# The beat's git (R10-ORCH-BEATD arm (a)). Only beatd.py puts this directory on
+# PATH, first, for a job's process tree; nothing else reaches it. Line 2 is the
+# marker every copy is recognised by, read with builtins only.
+#
+# The real git is resolved once: HPO_REAL_GIT when it is a regular executable
+# file and not a shim; else the first `git` on PATH that is a regular
+# executable file and not a shim (an empty entry is `.`), canonicalised by
+# `cd .. && pwd -P`. It is exported, so a child never walks PATH again. No real
+# git: one line, rc 127. The shim never execs itself.
+#
+# A `fetch` or `pull` whose stderr holds `cannot lock ref` is re-run at most
+# HPO_GIT_RETRIES (default 2) more times, 1 s then 2 s apart; only the last
+# attempt's stderr is printed, and each retry appends
+# `<utc> retry=<n> rc=<rc> <sub>` to HPO_GIT_SHIM_LOG. Every other command is
+# exec'd unchanged. Tested by beatd.py's self-test, case (a)6.
+is_shim() { local l1= l2=; { IFS= read -r l1; IFS= read -r l2; } < "$1" 2>/dev/null; [ "$l2" = '# hpo-git-shim' ]; }
+usable() { [ -f "$1" ] && [ -x "$1" ] && ! is_shim "$1"; }
+real=${HPO_REAL_GIT:-}
+if [ -n "$real" ] && ! usable "$real"; then real=; fi
+if [ -z "$real" ]; then
+  ifs=$IFS; IFS=:
+  for d in $PATH; do
+    [ -n "$d" ] || d=.
+    if usable "$d/git"; then real=$(cd "$d" && pwd -P)/git; break; fi
+  done
+  IFS=$ifs
+fi
+[ -n "$real" ] || { echo "git shim: no real git on PATH" >&2; exit 127; }
+export HPO_REAL_GIT=$real
+sub=; skip=0
+for a in "$@"; do
+  if [ $skip = 1 ]; then skip=0; continue; fi
+  case $a in -C|-c|--git-dir|--work-tree|--namespace) skip=1;; -*) ;; *) sub=$a; break;; esac
+done
+case $sub in fetch|pull) ;; *) exec "$real" "$@";; esac
+err=$(mktemp "${TMPDIR:-/tmp}/hpo-git-shim.XXXXXX") || exec "$real" "$@"
+n=0; max=${HPO_GIT_RETRIES:-2}
+while :; do
+  "$real" "$@" 2>"$err"; rc=$?
+  if [ $rc = 0 ] || [ $n -ge "$max" ] || ! grep -q 'cannot lock ref' "$err"; then
+    cat "$err" >&2; rm -f "$err"; exit $rc
+  fi
+  n=$((n + 1))
+  [ -z "${HPO_GIT_SHIM_LOG:-}" ] || printf '%s retry=%d rc=%d %s\n' "$(date -u +%FT%TZ)" "$n" "$rc" "$sub" >> "$HPO_GIT_SHIM_LOG"
+  sleep $n
+done
