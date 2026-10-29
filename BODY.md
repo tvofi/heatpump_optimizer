@@ -1,4 +1,4 @@
-Triage batch 60 rules the orchestrator's 2026-10-29T10:24Z roster-push proposal as P278, and its two 11:08Z tick proposals as P279 (train PARKs) and P280 (cloud-seat liveness), and its 11:15Z tick-wiring proposal as P281. It is the next rolling batch under V182, after batch 59 (#2945, merged as `66974d473`).
+Triage batch 60 rules the orchestrator's 2026-10-29T10:24Z roster-push proposal as P278, and its two 11:08Z tick proposals as P279 (train PARKs) and P280 (cloud-seat liveness), its 11:15Z tick-wiring proposal as P281, and its 11:46Z review-packet proposal as P282. It is the next rolling batch under V182, after batch 59 (#2945, merged as `66974d473`).
 - **P278 (retry a roster push refused as non-fast-forward): ACCEPT, narrowed, to R10-ORCH-ROSTER-SCHEMA; the retry is REJECTED.**
   - The two refusals (09:15Z and 09:26Z, `append-group R10-FLY-OWED-LEVELS`) were rc 3. That is `roster_edit.py`'s lint-gate refusal (`:657-660`), which returns before any push. A lost race takes its own path (`:682`), retries up to `PUSH_ATTEMPTS = 3` (`:137`), and refuses with rc 2. `roster_queue.py` retries again on a stale lint checkout or a race (`:122`, `:137`).
   - Reproduced without `--push` and with no rival: brief_lint gives `TOTAL: 2 error(s)`, both in the group's own brief. One sentence cited `orchestrator_tick.py:690` and `owed_unactioned.py:50`, and the linter's clause window (`brief_lint.mjs` `clauseWindow`, `:391`) searched each file for the other's name. A retry would have refused every time.
@@ -24,16 +24,23 @@ Triage batch 60 rules the orchestrator's 2026-10-29T10:24Z roster-push proposal 
   - Rejected: a stable link kept by `train.sh`, which would be a second record of the same fact. Also rejected: `--workers-file` wiring, because nothing in `tools/audit/seat/` writes a workers file.
   - No new roster op: the held R10-FLY-TICK-TRAIN-RC group carries it as item 3.
 
+- **P282 (the review packet owes main-graded reds an answer): ACCEPT, reframed, as a new fly-in R10-FLY-PACKET-RED-PATHS.**
+  - The exemption already lives in `policy_lint.mjs --pr-body`, and it applies only when it is given the changed paths. With none it restores the obligation on purpose (`:4447`).
+  - `review_packet.py:331` calls it with `--pr-body`, `--head` and `--red` only, although `touched` (`:321`) holds the diff's paths. So #2933, #2946, #2948 and #2925 were refused on `tests / nightly-status`.
+  - Reproduced: the same body with reds nightly-status and typing reports both without paths, and only typing with a `--paths-file`.
+  - The fix passes `--paths-file`, `--existing-file` and `--base` as `prepr.sh` does. Rejected: a second exemption list (`prepr.sh:1239` refuses the copy).
+  - One held roster op (`append-group R10-FLY-PACKET-RED-PATHS`), released once this file is on main.
+
 No product behaviour changes: the diff is one markdown file under `dev/programme/triage/`.
 
 ## Head
 
-`b59d5efdb79868151011075a38cedf1a574de8f7`; the file is the whole diff against `66974d47312caa46e9817b9aeae7186e9764e560`.
+`db24084c3ba22fe3d57c4a218bb7a71bbd42b93a`; the file is the whole diff against `66974d47312caa46e9817b9aeae7186e9764e560`.
 
 ## Mutation proof
 
 This file's only consumer is `tools/audit/seat/roster_edit.py`'s triage gate, `ruling_verdict` and `triage_refusal`.
-- On the committed file, `ruling_verdict` reads P278, P279 and P281 as `ACCEPT` and P280 as `REJECT`. `triage_refusal` passes the P278 and P279 carry texts and the R10-FLY-TICK-TRAIN-RC brief and resume note, which cite P279 and P281 (returns None). A text citing `#P280` is refused as `not an ACCEPT ruling (REJECT)`.
+- On the committed file, `ruling_verdict` reads P278, P279, P281 and P282 as `ACCEPT` and P280 as `REJECT`. `triage_refusal` passes the P278 and P279 carry texts and the R10-FLY-TICK-TRAIN-RC brief and resume note, which cite P279 and P281, and the R10-FLY-PACKET-RED-PATHS brief and note (returns None). A text citing `#P280` is refused as `not an ACCEPT ruling (REJECT)`.
 - With P278's `Verdict: ACCEPT` changed to `Verdict: REJECT`, the same carry is refused: `dev/programme/triage/s6-batch60.md#P278 is not an ACCEPT ruling (REJECT)`. The first draft led its verdict line with "REJECT the retry" and would have been refused the same way. It was reordered before commit.
 
 ## Null control
@@ -47,6 +54,7 @@ This file's only consumer is `tools/audit/seat/roster_edit.py`'s triage gate, `r
 - The carry text was linted by appending it to a copy of the roster at `68406609a` (group R10-ORCH-ROSTER-SCHEMA): `TOTAL: 0 error(s)`.
 - P279: `grep -o 'TRAIN_RC=[0-9]*'` over the live train log gives 7 `TRAIN_RC=0` and 16 `TRAIN_RC=1`. `grep -o 'PARK #[0-9]* [a-z-]*'` gives #2939 findings, #2933 policy and findings, #2881 findings, #2880 policy and #2876 findings. The train state dir holds `rc` and `skipped.json`, and no `train.rc`.
 - P279's carry and group were linted on a roster copy. The only error is the group's citation of this not-yet-merged file (`not in the tree`), which clears on merge.
+- P282: `node tools/policy/policy_lint.mjs --pr-body <batch-59 body> --head <main> --red 'tests / nightly-status' --red typing` reports both unanswered. With `--paths-file` (one triage path) and an empty `--existing-file` added, it reports only `typing`.
 - Roster tip: R10-FLY-ABORT-OWN-MERGE and both batch-59 carries landed at 09:15Z (`79542c319`, `539b4b5e2`, `13aa34d67`). R10-FLY-OWED-LEVELS is absent.
 
 ## Red checks
