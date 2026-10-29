@@ -7590,7 +7590,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         on = bool(self._current_action.get("heat_pump_on", False))
         await self._write_supply(on)
         # Between cycles the step tick writes each step's change (#2492).
-        pump_arbiter.note_supply(self, on, self._write_supply)
+        pump_arbiter.note_supply(pump_arbiter.state_for(self), pump_arbiter.SupplyWiring(self.arbiter_inputs, boost.held_for(self), self._write_supply), on)
         # The ECL110 displace command
         await self.async_publish_current_action(reason="scheduled_update")
 

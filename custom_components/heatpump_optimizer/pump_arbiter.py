@@ -1176,49 +1176,59 @@ def supply_write(on: bool, signals: Any) -> bool | None:
     return None
 
 
-def step_supply(coord: Any, inp: ArbiterInputs, now: datetime) -> bool | None:
+def step_supply(inp: ArbiterInputs, boosts: Any, now: datetime) -> bool | None:
     """The supply the plan commands for the step covering ``now``, or ``None``.
 
     ``None`` wherever the cycle's own write does not come from the plan's
     step: a non-plan mode, an experiment's override, a stale or missing plan,
-    or an instant outside it. A live boost on either channel is on, as
-    ``boost.overlay`` makes the action the cycle writes.
+    or an instant outside it. A live boost on either channel (``boosts``, the
+    coordinator's ``boost.BoostState``) is on, as ``boost.overlay`` makes the
+    action the cycle writes.
     """
     if inp.mode not in (MODE_AUTO, MODE_ECONOMY) or inp.plan_stale or inp.plan is None:
         return None
     if (inp.action or {}).get("mode") == "system_identification":
         return None
-    held = boost.held_for(coord)
-    if held.active(boost.CHANNEL_SPACE, now) or held.active(boost.CHANNEL_DHW, now):
+    if boosts.active(boost.CHANNEL_SPACE, now) or boosts.active(boost.CHANNEL_DHW, now):
         return True
     i = _step_index(inp.plan, now)
     return None if i is None or i >= len(inp.plan.power_schedule or ()) else plan_step_runs(inp.plan, i)
 
 
-def note_supply(
-    coord: Any, on: bool, write: Callable[[bool], Awaitable[None]], now: datetime | None = None,
-) -> None:
+@dataclass(frozen=True)
+class SupplyWiring:
+    """What the step tick reads and writes through; built by :func:`note_supply`.
+
+    Plain values, as ``early_cutoff`` takes them: the coordinator's
+    published ``arbiter_inputs`` builder, its boost record and its gated
+    switch write, never the coordinator itself.
+    """
+
+    inputs: Callable[[], ArbiterInputs]
+    boosts: Any
+    write: Callable[[bool], Awaitable[None]]
+
+
+def note_supply(held: ArbiterState, wiring: SupplyWiring, on: bool, now: datetime | None = None) -> None:
     """Record the cycle's supply command for its step; arm the step tick once.
 
-    ``write`` is the coordinator's gated switch write, the cycle's own, so
-    the tick passes the same cut-off hold and blocked-mode skip it does.
+    ``wiring.write`` is the coordinator's gated switch write, the cycle's
+    own, so the tick passes the same cut-off hold and blocked-mode skip.
     """
-    held = state_for(coord)
     held.supply = (plan_step_start(now or dt_util.now()), on)
-    if held.supply_unsub is not None or not EntryConfig.from_mapping(
-        coord.arbiter_inputs().config
-    ).heat_pump_switch_entity:
+    if held.supply_unsub is not None:
+        return
+    inp = wiring.inputs()
+    if not EntryConfig.from_mapping(inp.config).heat_pump_switch_entity:
         return
 
     async def _tick(_now: Any = None) -> None:
-        await supply_tick(coord, write)
+        await supply_tick(held, wiring)
 
-    held.supply_unsub = async_track_time_interval(coord.hass, _tick, _TICK)
+    held.supply_unsub = async_track_time_interval(inp.hass, _tick, _TICK)
 
 
-async def supply_tick(
-    coord: Any, write: Callable[[bool], Awaitable[None]], now: datetime | None = None,
-) -> None:
+async def supply_tick(held: ArbiterState, wiring: SupplyWiring, now: datetime | None = None) -> None:
     """At a step boundary, write the supply where the plan's command changes.
 
     The cycle writes the switch once per interval, so without this a step
@@ -1229,19 +1239,25 @@ async def supply_tick(
     cut-off still holds until the next cycle, as ``early_cutoff`` documents.
     """
     now = now or dt_util.now()
-    held = state_for(coord)
     step = plan_step_start(now)
     if held.supply is None or held.supply[0] == step:
         return
-    inp = coord.arbiter_inputs()
+    inp = wiring.inputs()
     if inp.entry_released:
         return
-    on = step_supply(coord, inp, now)
+    on = step_supply(inp, wiring.boosts, now)
     if on is None:
         return
     last, held.supply = held.supply[1], (step, on)
     if on != last:
-        await write(on)
+        await wiring.write(on)
+
+
+def release_supply(held: ArbiterState) -> None:
+    """Unload: drop the step tick; idempotent."""
+    unsub, held.supply_unsub = held.supply_unsub, None
+    if unsub is not None:
+        unsub()
 
 
 def _pump_off(inp: ArbiterInputs) -> bool:
@@ -1260,9 +1276,7 @@ async def release(coord: Any) -> None:
     """Unload: write the baseline over anything still owned, then let go."""
     release_listeners(coord)
     held = state_for(coord)
-    unsub, held.supply_unsub = held.supply_unsub, None
-    if unsub is not None:
-        unsub()
+    release_supply(held)
     inp = coord.arbiter_inputs()
     if held.written and duty_mode(inp.config) == DUTY_CONTROL and inp.mode != MODE_OFF:
         await _command(coord, inp, desired(coord, inp, None, dt_util.now()), dt_util.now())
