@@ -1,0 +1,14 @@
+diff --git a/tests/rolling.py b/tests/rolling.py
+index 0cbdc3c07..71fc67953 100644
+--- a/tests/rolling.py
++++ b/tests/rolling.py
+@@ -230,7 +230,8 @@ def run_rolling(
+             # The estimator keys off wall-clock time, so the clock is moved to
+             # the simulated instant before each observation.
+             dt_util.freeze(now + timedelta(hours=DT))
+-            learner._current_state = state
++            import dataclasses as _dc
++            learner._current_state = _dc.replace(state, room_temperature=21.0)  # MUTANT M2
+             learner._current_action = {"power": space_power, "dhw_power": dhw_power}
+             learner._weather_forecast = [
+                 {
