@@ -1,0 +1,13 @@
+diff --git a/.github/workflows/gate-sweep.yml b/.github/workflows/gate-sweep.yml
+index eac1d5ebc..0485111b8 100644
+--- a/.github/workflows/gate-sweep.yml
++++ b/.github/workflows/gate-sweep.yml
+@@ -46,7 +46,7 @@ jobs:
+         run: |
+           set -uo pipefail
+           [[ "$RUN_ID" =~ ^[0-9]+$ ]] || { echo "::error title=sweep refused::run id malformed"; exit 1; }
+-          out=$(python3 -I tools/ci/gate.py --sweep --run "$RUN_ID" 2>&1) || true
++          out=$(python3 -I tools/ci/gate.py --sweep --run "$RUN_ID" 2>&1)
+           printf '%s\n' "$out"
+           last=$(printf '%s\n' "$out" | tail -n 1)
+           case "${last%% *}" in

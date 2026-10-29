@@ -1,0 +1,13 @@
+diff --git a/tests/entities.py b/tests/entities.py
+index 266932ec6..2300f5f5c 100644
+--- a/tests/entities.py
++++ b/tests/entities.py
+@@ -28150,7 +28150,7 @@ def _raf_review_gated(job: str) -> bool:
+ # a harness runs the step under `_GHA_RUN` instead.
+ _EX_SHELLS = {None, "bash", "sh"}
+ _EX_SAFE = re.compile(
+-    r"^(if|elif|while|until)\b|^!|\|\||&&|"
++    r"^(if|elif|while|until)\b|^!|&&|"
+     r"(^|\s)(then|do|else|\{|\()$|^(fi|done|esac|\}|\))\b|^(else|then|do)\b")
+ _EX_TEST_HEAD = re.compile(r"^(if|while|until)\s+(!\s*)?(?=\[|test\b)")
+ _EX_READER = re.compile(r"^(\w+=|case\b|\[|\[\[|test\b|echo\b|printf\b|exit\b|return\b|local\b)")
