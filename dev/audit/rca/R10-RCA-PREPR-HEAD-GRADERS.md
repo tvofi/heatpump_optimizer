@@ -190,7 +190,17 @@ no verdict changes.
 Each plant is a commit on top of this head, graded with `--base` the head itself so only the plant
 is in the diff (`--only graders`, the three runs side by side, so their times are contended):
 
-PLANT_TABLE
+| plant | predictor | result | s |
+|---|---|---|---|
+| a comment appended to `tools/policy/vendor/markdown-it.min.js` (review round 3's seam) | round 4's head `5a119e8af` | rc 0, no row run: the miss | 0.7 |
+| the same | this head | rc 0: all three jobs keyed and every run made, green (a comment changes no verdict) | 609 |
+| `budget_raise_gate.py`'s `JUSTIFICATION_SCORE` accepting `Arch score`, `prepr/raise/good.md` using that spelling (review round 2's seam) | this head | **rc 1**, `PREDICT governance / policy-docs GRADER policy_lint.mjs REFUSED by the base's copy, over tools/policy/budget_raise_gate.py: FIXTURE VACUOUS: the raise-justification arm on prepr/raise/good.md drew 1 error(s)` | 608 |
+| the same | `5a119e8af` | rc 1, the same refusal on `policy-docs` and, by its row's model, on `env-matrix` | 325 |
+
+On the gate plant the new arm ran env-matrix's own matrix program on CI's tree and it passed, where
+round 3's arm reported env-matrix red because its CORPUS row was modelled as reaching that job. No
+CI run of this plant exists, so which is right was not measured; the new arm's answer is a run, not
+a model.
 
 ### Self-test
 
