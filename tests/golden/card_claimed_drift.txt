@@ -789,6 +789,10 @@ score_open  # R10-HOUSE-GRADE (#2816): the House row's explanation rewritten and
 # carries the options flow's role label; the COP rows read one copState; each
 # model row gains a hover naming its figure; the diagnostics copy and the
 # insight row's Show change; a debug collection row is added. health_page is
-# the one state that renders that page. The other 44 states were rendered
-# and stayed identical.
+# the one state that renders that page. score_open moves because the
+# headline score's hover now names every sub-score's metric in plain words,
+# not only the house's when it has drivers (the owner's hover spec, carry 14);
+# it is the state that renders the score with its hover. The other 43 states
+# were rendered and stayed identical.
 health_page  # R10-UX-HEALTH: the Health page's layout, labels, COP and learner rows, copy and debug row
+score_open  # R10-UX-HEALTH: the score hover names each sub-score's metric

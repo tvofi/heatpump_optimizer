@@ -9014,7 +9014,9 @@ function headlineHtml(plan, cfg, scoreOpen) {
       title:
         L("headline.score_title") +
         (breakdown ? `\n${breakdown}` : "") +
-        parts.filter((p) => p.drivers).map((p) => `\n${L(`score.part_${p.key}`)}`).join("") +
+        // Every part's metric in plain words, beside its grade and reason or
+        // drivers above (the owner's hover spec).
+        parts.map((p) => `\n${L(`score.part_${p.key}`)}`).join("") +
         `\n${L("headline.score_click_hint")}`,
       label: L("headline.score"),
       value: `${Math.round(score)}/100`,
@@ -9172,7 +9174,8 @@ function restartRows(plan) {
   const rows = [];
   if (refit && finiteNum(refit.scale)) {
     rows.push(row("adopt_refit",
-      L("advisor.refit_title", { to: Number(refit.scale).toFixed(2), from: Number(attrs.current_scale).toFixed(2) }),
+      L("advisor.refit_title", { to: Number(refit.scale).toFixed(2),
+        from: readNumber(attrs.current_scale) === null ? "—" : readNumber(attrs.current_scale).toFixed(2) }),
       L("advisor.refit_detail", { days: Number(refit.settled_days).toFixed(1), pairs: refit.pairs })));
   } else if (refit) {
     rows.push(row("", L("advisor.refit_wait_title"),
@@ -9201,13 +9204,13 @@ function advisorRows(host) {
       };
     }),
     advisorRow(plan, "dhw", (to, attrs) => {
-      const from = Number(attrs.current_setpoint);
-      if (!Number.isFinite(to) || !Number.isFinite(from) || to === from) return null;
+      const from = readNumber(attrs.current_setpoint);
+      if (!Number.isFinite(to) || from === null || to === from) return null;
       const perDay = dhwCostPerDay(attrs.candidates, from) - dhwCostPerDay(attrs.candidates, to);
       // The money is interpolated off the sweep. The write is the recommended
       // setpoint the sensor publishes, never that interpolation.
-      const recommended = Number(attrs.recommended_setpoint);
-      const write = Number.isFinite(recommended) ? recommended : to;
+      const recommended = readNumber(attrs.recommended_setpoint);
+      const write = recommended !== null ? recommended : to;
       return {
         value: perDay > 0 ? perDay * DAYS_PER_MONTH : null,
         act: "apply_dhw", target: write,
@@ -9215,8 +9218,8 @@ function advisorRows(host) {
       };
     }),
     advisorRow(plan, "valve", (to, attrs) => {
-      const from = Number(attrs.configured_target);
-      if (!Number.isFinite(to) || !Number.isFinite(from) || Math.abs(to - from) < 0.5) return null;
+      const from = readNumber(attrs.configured_target);
+      if (!Number.isFinite(to) || from === null || Math.abs(to - from) < 0.5) return null;
       const target = Math.min(30, Math.max(0, Math.round(to * 2) / 2));
       return {
         value: null, target,

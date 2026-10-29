@@ -3937,6 +3937,26 @@ const restartStates = (patch = {}) => {
   await press(vhp.c, '[data-act="apply_valve"]');
   check("the valve target is clamped to 30 °C",
     vhp.calls[0] && vhp.calls[0][2].manual_setpoint === 30, JSON.stringify(vhp.calls));
+  // R10-SCORES' carry to R10-UX-HEALTH: an attribute the backend published as
+  // None is no reading, never a measured 0 (`Number(null)` is 0).
+  const nr = inboxStates();
+  nr[`${PFX}_dhw_setpoint_advisor`].attributes.recommended_setpoint = null;
+  const nrp = mkInbox(nr);
+  await press(nrp.c, '[data-act="apply_dhw"]');
+  check("a null recommended setpoint writes the advisor's state, never 0",
+    nrp.calls[0] && nrp.calls[0][2].dhw_setpoint === 48 && /55 → 48 °C/.test(nrp.html()), JSON.stringify(nrp.calls));
+  const nc = inboxStates();
+  nc[`${PFX}_dhw_setpoint_advisor`].attributes.current_setpoint = null;
+  check("a null current hot-water setpoint is no row, not a move from 0",
+    !/data-act="apply_dhw"/.test(mkInbox(nc).html()));
+  const nv = inboxStates();
+  nv[`${PFX}_valve_target_recommendation`].attributes.configured_target = null;
+  check("a null configured valve target is no row, not a move from 0",
+    !/data-act="apply_valve"/.test(mkInbox(nv).html()));
+  const ns = restartStates({ current_scale: null });
+  const nsRow = mkInbox(ns).html().split('class="adv-inbox-row').find((r) => /data-act="adopt_refit"/.test(r)) || "";
+  check("a null current scale reads as a dash in the refit row, not 0.00",
+    /—/.test(nsRow) && !/0\.00/.test(nsRow), nsRow.slice(0, 300));
 
   await press(c, '[data-act="assign"]');
   check("Assign sensor opens the setup picker for the gap's top slot",
@@ -12183,6 +12203,19 @@ check("without an indoor reading the corner now label is absent",
       /Optimization score<span class="adv-sub">Still learning the house&#39;s heat loss\.|Optimization score<span class="adv-sub">Still learning the house's heat loss\./.test(scoreRow),
       scoreRow.slice(scoreRow.indexOf("Optimization score"), scoreRow.indexOf("Optimization score") + 120));
 
+    // Carry 14: the score's hover explains every sub-score's metric, not
+    // only the house's, beside each grade and its reason.
+    const sh = healthStates();
+    sh[`${PFX}_plan_optimization_score`] = { state: "62", last_updated: "t1", attributes: {
+      envelope: 55, machine: null, operation: 70, reasons: { machine: "cop_watch_learning" }, envelope_drivers: [] } };
+    const hv = mkHealth(sh);
+    hv.c.dialog.page = "plan";
+    hv.c._render();
+    const hoverHtml = hv.html();
+    const partsMissing = ["envelope", "machine", "operation"].filter((k) =>
+      !hoverHtml.includes(fn("STRINGS").en[`score.part_${k}`].replace(/&/g, "&amp;").replace(/"/g, "&quot;").slice(0, 40)));
+    check("UX-HEALTH F: the score hover explains every sub-score's metric",
+      partsMissing.length === 0, `missing ${partsMissing.join(",")}`);
     const copRow = (cop) => rowOf(modelOf(modelStates({ cop })), "cop");
     const young = copRow({ scale: 1.0, watched_buckets: 0, alarm: false });
     check("UX-HEALTH E: an unwatched COP is a dash with the reason, never Normal",
