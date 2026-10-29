@@ -126,8 +126,10 @@ governance.yml):
 
 The null control, a pathspec no path matches, keys 0 merges.
 
-**Run cost per job**, re-taken on this head against `14fbf218d` (`ci_tree_run` per job, every
-`grader_runs` program, all rc 0):
+**Run cost per job**, re-taken on this head against `14fbf218d` with `python3 -I
+dev/audit/rca/prepr-head-graders/jobtime.py 14fbf218d wave-script policy-docs` (`ci_tree_run` per
+job, every `grader_runs` program, all rc 0); env-matrix's is the arm's whole run
+(`ci_predict.py --base origin/main --only graders`, the three jobs side by side):
 
 | job | wall | dominated by |
 |---|---|---|
@@ -187,8 +189,9 @@ no verdict changes.
 
 ### Demonstration
 
-Each plant is a commit on top of this head, graded with `--base` the head itself so only the plant
-is in the diff (`--only graders`, the three runs side by side, so their times are contended):
+Each plant is `dev/audit/rca/prepr-head-graders/plant.sh <head> <mdit|gate> <predictor> <out>`: a
+commit on top of this head, graded with `--base` the head itself so only the plant is in the diff
+(`--only graders`). The four runs shared the host, so their times are contended.
 
 | plant | predictor | result | s |
 |---|---|---|---|
