@@ -1,0 +1,16 @@
+== HEAD
+_async_learn_house_heat_loss: reads_room=True consults_learner_room_unread=True
+_async_learn_lower_floor_loss: reads_room=False consults_learner_room_unread=False
+_track_curve_comfort: reads_room=True consults_learner_room_unread=True
+_inputs_unhealthy: reads_room=False consults_learner_room_unread=False
+_record_accuracy: reads_room=True consults_learner_room_unread=True
+_record_quiet_comfort_period: reads_room=False consults_learner_room_unread=False
+_run_system_identification: reads_room=True consults_learner_room_unread=True
+== 2d151b5c8
+_async_learn_house_heat_loss: reads_room=True consults_learner_room_unread=True
+_async_learn_lower_floor_loss: reads_room=False consults_learner_room_unread=False
+_track_curve_comfort: reads_room=True consults_learner_room_unread=False
+_inputs_unhealthy: reads_room=False consults_learner_room_unread=False
+_record_accuracy: reads_room=True consults_learner_room_unread=False
+_record_quiet_comfort_period: reads_room=False consults_learner_room_unread=False
+_run_system_identification: reads_room=True consults_learner_room_unread=True
