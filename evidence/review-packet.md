@@ -5,39 +5,54 @@ base: 279578074a17cb2c7f527f5e28da0de4e2006db0
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
 ## Gate digest: red
-CodeQL id=123580539734 neutral
-arch-score / arch-score id=123580168004 success
+CodeQL id=123580539734 success
+arch-score / arch-score id=123671650362 success
 arm id=123579813674 skipped
-budget-raise-gate / budget-raise-gate id=123580168414 success
-cancel-superseded id=123582637197 success
-codeql / Analyze (actions) id=123580168688 success
-codeql / Analyze (javascript-typescript) id=123580169500 success
-codeql / Analyze (python) id=123580168692 in_progress
-governance / delivery-status id=123580168803 success
-governance / delivery-status-publish id=123580163796 skipped
-governance / env-matrix id=123580169085 success
-governance / instrument-self-tests id=123580169643 in_progress
-governance / policy-docs id=123580168826 success
-governance / record id=123580163659 skipped
-governance / wave-script id=123580168817 success
-hassfest / hassfest id=123580168789 success
-kernel-points id=123580145317 skipped
-prelude id=123582636616 in_progress
-refresh id=123582637124 success
-tests / arch-instrument id=123580492583 success
-tests / briefs id=123580169316 success
-tests / browser id=123580492896 success
-tests / closure-scope id=123580169301 success
-tests / closures id=123580492659 in_progress
-tests / coverage id=123580492274 in_progress
-tests / fast (3.14) id=123580492360 in_progress
-tests / mutation id=123580169365 in_progress
-tests / nightly-ha (2025.2.0) id=123580492976 success
-tests / nightly-ha (stable) id=123580492742 success
-tests / nightly-status id=123580169165 failure
-tests / replay id=123580492754 success
-tests / typing id=123580492266 success
-validate / validate-hacs id=123580168211 success
+budget-raise-gate / budget-raise-gate id=123671579701 success
+cancel-superseded id=123671578563 success
+codeql id=123671591706 skipped
+codeql / Analyze (actions) id=123671579488 success
+codeql / Analyze (javascript-typescript) id=123671632607 success
+codeql / Analyze (python) id=123671580557 success
+gate id=123671582270 in_progress
+governance id=123671593216 skipped
+governance / delivery-status id=123671579386 success
+governance / delivery-status-publish id=123671580167 skipped
+governance / env-matrix id=123671579147 success
+governance / instrument-self-tests id=123671631423 success
+governance / policy-docs id=123671579409 success
+governance / record id=123671579770 skipped
+governance / wave-script id=123671653069 success
+hassfest id=123671535868 skipped
+hassfest / hassfest id=123671579392 success
+kernel-points id=123671583461 skipped
+pr-contract / pr-contract id=123672013104 in_progress
+prelude id=123671651942 success
+refresh id=123671581318 success
+tests id=123671579786 skipped
+tests / arch-instrument id=123671581024 success
+tests / briefs id=123671579139 success
+tests / browser id=123671580756 success
+tests / ci-ratchet id=123671581985 skipped
+tests / claims-autofix id=123671581703 skipped
+tests / closure-scope id=123671657071 success
+tests / closures id=123671581152 success
+tests / closures-autofix id=123671582909 skipped
+tests / coverage id=123671580475 success
+tests / coverage-ratchet id=123671582757 success
+tests / fast (3.14) id=123671580438 success
+tests / graders-head-copy id=123671582339 success
+tests / lane-proofs id=123671581663 success
+tests / mutation id=123671581155 success
+tests / mutation-autofix id=123671581990 skipped
+tests / mutation-pins id=123671581484 skipped
+tests / nightly-ha (2025.2.0) id=123671581542 success
+tests / nightly-ha (stable) id=123671580648 success
+tests / nightly-status id=123671581256 failure
+tests / replay id=123671580653 success
+tests / typing id=123671580745 success
+validate id=123671563815 skipped
+validate / validate-hacs id=123671656939 success
 
 ## Refusals
 none
@@ -46,19 +61,56 @@ none
 none
 
 ## carry_audit at the head
-NOTE body item a0b71528: R10-COP-PARTLOAD
-NOTE body item 1b6e92ef: R10-COP-PARTLOAD
+NOTE stale tree: 9b24795b242862ac8ea4f5f9f1c798cf087fbde7 lacks origin/main ce5940c0d1d8f611a818d53e7fffcafb48b356c1; roster read at origin/main
+NOTE body item da494b64: R10-COP-PARTLOAD
+NOTE body item e1a68b88: R10-COP-PARTLOAD
 CARRY-AUDIT: 2 finding item(s): 2 routed, 0 unrouted, 0 bad destination(s)
 
 ## figure_lint at the head
-ok         PYTHONPATH=tests/hastub:custom_components:tests python3 dev/audit/harnesses/r10_cop_partload.py
-             `dev/audit/harnesses/r10_cop_partload.py` is in the tree at this head
-  ok         PYTHONPATH=tests/hastub python3 tests/env_drift.py --all
+unverified (answered under `## Red checks`). Every other script is `ok`. That includes
+             no segment of this names a program this check knows
+  unverified `ALL 4593 FEATURE CHECKS PASSED`, `ALL 113 STRESS CHECKS PASSED`,
+             no segment of this names a program this check knows
+  unverified `ALL 84 OPTIMALITY CHECKS PASSED`, `ALL 2470 ENTITY CHECKS PASSED` and
+             no segment of this names a program this check knows
+  unverified `ALL 108 FINITE BOUNDARY CHECKS PASSED`.
+             no segment of this names a program this check knows
+  unverified `tests / closures`, `tests / coverage` and `tests / typing` succeeded;
+             no segment of this names a program this check knows
+  unverified `tests / mutation` was still running.
+             no segment of this names a program this check knows
+  unverified `CI PREDICT: no closures, fast, wave-script or instrument red predicted
+             no segment of this names a program this check knows
+  unverified against 279578074a17`.
+             no segment of this names a program this check knows
+  unverified `Architecture score: dS +0.0000 NULL`.
+             no segment of this names a program this check knows
+  unverified cells cheaper 13 dearer 3`
+             no segment of this names a program this check knows
+  unverified cells cheaper 11 dearer 1`
+             no segment of this names a program this check knows
+  unverified `spread d=0.112: cells 16 heat short max 0.0822`
+             no segment of this names a program this check knows
+  ok         python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"
+             `tests/closure.py` is in the tree at this head
+  ok         GATE_SCOPE=auto GOLDEN_MODE=drift PYTHONPATH=tests/hastub bash tests/run.sh
+             `tests/run.sh` is in the tree at this head
+  ok         tests/harness_headers.py
+             `tests/harness_headers.py` is in the tree at this head
+  ok         PYTHONPATH=tests/hastub python3 tests/env_drift.py --all origin/main
              `tests/env_drift.py` is in the tree at this head
   ok         python3 tests/structure.py
              `tests/structure.py` is in the tree at this head
+  ok         PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main
+             `tools/pr/ci_predict.py` is in the tree at this head
+  ok         python3 tools/audit/archscore/score.py --diff origin/main
+             `tools/audit/archscore/score.py` is in the tree at this head
+  ok         PYTHONPATH=tests/hastub:custom_components:tests python3 dev/audit/harnesses/r10_cop_partload.py
+             `dev/audit/harnesses/r10_cop_partload.py` is in the tree at this head
+  unverified python3 $SCRATCH/cpu.py <tree>
+             the path `$SCRATCH/cpu.py` is a template or an expansion, not a literal
 
-FIGURES: 3 resolved, 0 not verified, 0 refused
+FIGURES: 8 resolved, 13 not verified, 0 refused
 
 ## Finder's harness: none named
 ### at the base
@@ -1409,7 +1461,7 @@ index 000000000..0fa3dd20e
 @@ -0,0 +1,234 @@
 +# R10-RCA-COP-PARTLOAD: the COP law priced no compressor power for six releases
 +
-+The root-cause analysis for #2501. `dev/governance/roles/root-cause.md` wants it in
++The root-cause analysis for #2501. `dev/governance/roles~-cause.md` wants it in
 +a separate seat beside the fix. The orchestrator directed this one instead: the
 +group's next step is `rca`, and the fixer seat wrote it, so the independence the
 +contract asks for is weaker than usual and the reviewer should weigh that when

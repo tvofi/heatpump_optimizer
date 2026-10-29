@@ -1,0 +1,72 @@
+partload: outdoor 5.0 supply 35.0 model COP 3.325 powers [1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0]
+  null (UA inf, aux 0): min ratio 1.0000
+  UAc  2.5 UAe 1.0 aux 0.03: ratio [1.0, 0.962, 0.928, 0.898, 0.872, 0.848, 0.827, 0.808] best at 1.50 kW
+  UAc  2.5 UAe 1.0 aux 0.06: ratio [1.0, 0.966, 0.934, 0.906, 0.88, 0.857, 0.837, 0.817] best at 1.50 kW
+  UAc  2.5 UAe 1.0 aux 0.15: ratio [1.0, 0.98, 0.956, 0.932, 0.909, 0.887, 0.867, 0.849] best at 1.50 kW
+  UAc  2.5 UAe 2.0 aux 0.03: ratio [1.0, 0.973, 0.947, 0.924, 0.902, 0.883, 0.865, 0.848] best at 1.50 kW
+  UAc  2.5 UAe 2.0 aux 0.06: ratio [1.0, 0.977, 0.954, 0.932, 0.912, 0.893, 0.875, 0.859] best at 1.50 kW
+  UAc  2.5 UAe 2.0 aux 0.15: ratio [1.0, 0.993, 0.978, 0.961, 0.943, 0.926, 0.909, 0.893] best at 1.50 kW
+  UAc  2.5 UAe 4.0 aux 0.03: ratio [1.0, 0.979, 0.959, 0.94, 0.922, 0.905, 0.889, 0.875] best at 1.50 kW
+  UAc  2.5 UAe 4.0 aux 0.06: ratio [1.0, 0.984, 0.967, 0.949, 0.932, 0.916, 0.901, 0.886] best at 1.50 kW
+  UAc  2.5 UAe 4.0 aux 0.15: ratio [1.0, 1.0, 0.991, 0.979, 0.965, 0.951, 0.937, 0.923] best at 2.00 kW
+  UAc  5.0 UAe 1.0 aux 0.03: ratio [1.0, 0.967, 0.937, 0.91, 0.887, 0.865, 0.845, 0.827] best at 1.50 kW
+  UAc  5.0 UAe 1.0 aux 0.06: ratio [1.0, 0.971, 0.944, 0.919, 0.896, 0.874, 0.855, 0.837] best at 1.50 kW
+  UAc  5.0 UAe 1.0 aux 0.15: ratio [1.0, 0.986, 0.966, 0.945, 0.925, 0.905, 0.887, 0.87] best at 1.50 kW
+  UAc  5.0 UAe 2.0 aux 0.03: ratio [1.0, 0.98, 0.96, 0.941, 0.923, 0.906, 0.891, 0.876] best at 1.50 kW
+  UAc  5.0 UAe 2.0 aux 0.06: ratio [1.0, 0.984, 0.967, 0.95, 0.933, 0.917, 0.902, 0.888] best at 1.50 kW central
+  UAc  5.0 UAe 2.0 aux 0.15: ratio [1.0, 1.0, 0.991, 0.979, 0.965, 0.951, 0.938, 0.924] best at 2.00 kW
+  UAc  5.0 UAe 4.0 aux 0.03: ratio [1.0, 0.987, 0.973, 0.96, 0.946, 0.934, 0.922, 0.91] best at 1.50 kW
+  UAc  5.0 UAe 4.0 aux 0.06: ratio [1.0, 0.992, 0.981, 0.969, 0.957, 0.945, 0.933, 0.922] best at 1.50 kW
+  UAc  5.0 UAe 4.0 aux 0.15: ratio [0.992, 1.0, 0.998, 0.992, 0.983, 0.974, 0.964, 0.954] best at 2.00 kW
+  UAc 10.0 UAe 1.0 aux 0.03: ratio [1.0, 0.97, 0.942, 0.917, 0.895, 0.874, 0.856, 0.839] best at 1.50 kW
+  UAc 10.0 UAe 1.0 aux 0.06: ratio [1.0, 0.974, 0.949, 0.926, 0.904, 0.884, 0.866, 0.849] best at 1.50 kW
+  UAc 10.0 UAe 1.0 aux 0.15: ratio [1.0, 0.989, 0.972, 0.953, 0.934, 0.916, 0.898, 0.882] best at 1.50 kW
+  UAc 10.0 UAe 2.0 aux 0.03: ratio [1.0, 0.983, 0.966, 0.95, 0.935, 0.92, 0.906, 0.893] best at 1.50 kW
+  UAc 10.0 UAe 2.0 aux 0.06: ratio [1.0, 0.988, 0.974, 0.959, 0.945, 0.931, 0.917, 0.905] best at 1.50 kW
+  UAc 10.0 UAe 2.0 aux 0.15: ratio [0.996, 1.0, 0.995, 0.985, 0.974, 0.962, 0.951, 0.939] best at 2.00 kW
+  UAc 10.0 UAe 4.0 aux 0.03: ratio [1.0, 0.991, 0.981, 0.971, 0.96, 0.95, 0.941, 0.931] best at 1.50 kW
+  UAc 10.0 UAe 4.0 aux 0.06: ratio [1.0, 0.996, 0.989, 0.981, 0.971, 0.962, 0.953, 0.944] best at 1.50 kW
+  UAc 10.0 UAe 4.0 aux 0.15: ratio [0.985, 0.998, 1.0, 0.997, 0.992, 0.986, 0.978, 0.971] best at 2.50 kW
+partload: grid 27 plants; ratio at p_max >= 0.808, at p_min >= 0.985
+burst: return 30.0 supply at p_min 33.29 at p_max 38.75 rise 5.45 K (null rise 0.00 K); tree flow_lift_factor 1.0000 -> 0.8998 (ratio 0.8998); Carnot ratio across the rise 0.8533
+solves: central plant derate 0.112 term in tree True
+  spread (0.6, 750.0, False, True) | d=0.0 plan d6ae0236010d kWh 13.8 short 0.0421 cost/plant-kWh 0.0769 gain-vs-flat +0.3671 | d=0.112 plan bf8ed10eb6ce kWh 12.8 short 0.0447 cost/plant-kWh 0.0761 gain-vs-flat +0.3735
+  spread (0.6, 750.0, False, False) | d=0.0 plan c94001f1a492 kWh 13.5 short 0.0738 cost/plant-kWh 0.0778 gain-vs-flat +0.3599 | d=0.112 plan ab7f0c9f4864 kWh 12.7 short 0.0444 cost/plant-kWh 0.0761 gain-vs-flat +0.3737
+  spread (0.6, 750.0, True, True) | d=0.0 plan 6fd40c349a02 kWh 12.1 short 0.1049 cost/plant-kWh 0.0800 gain-vs-flat +0.3419 | d=0.112 plan fb4492970cdf kWh 12.8 short 0.0407 cost/plant-kWh 0.0761 gain-vs-flat +0.3739
+  spread (0.6, 750.0, True, False) | d=0.0 plan 5fcc5989fa5f kWh 13.5 short 0.0957 cost/plant-kWh 0.0795 gain-vs-flat +0.3458 | d=0.112 plan d085e6a523c5 kWh 12.4 short 0.0441 cost/plant-kWh 0.0762 gain-vs-flat +0.3729
+  spread (0.6, 0.0, False, True) | d=0.0 plan ee44a8355370 kWh 10.5 short 0.1019 cost/plant-kWh 0.0811 gain-vs-flat +0.3328 | d=0.112 plan 0090bb551401 kWh 9.8 short 0.0388 cost/plant-kWh 0.0766 gain-vs-flat +0.3696
+  spread (0.6, 0.0, False, False) | d=0.0 plan 477bc2a78a31 kWh 10.5 short 0.1076 cost/plant-kWh 0.0818 gain-vs-flat +0.3266 | d=0.112 plan dd83d222324c kWh 9.8 short 0.0436 cost/plant-kWh 0.0769 gain-vs-flat +0.3669
+  spread (0.6, 0.0, True, True) | d=0.0 plan 1c8758e40733 kWh 10.6 short 0.0978 cost/plant-kWh 0.0812 gain-vs-flat +0.3321 | d=0.112 plan 3dd51011c625 kWh 9.8 short 0.0399 cost/plant-kWh 0.0768 gain-vs-flat +0.3682
+  spread (0.6, 0.0, True, False) | d=0.0 plan edfccaf7ba1e kWh 10.5 short 0.1052 cost/plant-kWh 0.0818 gain-vs-flat +0.3266 | d=0.112 plan 354eda4ded5d kWh 9.8 short 0.0429 cost/plant-kWh 0.0770 gain-vs-flat +0.3662
+  spread (1.7, 750.0, False, True) | d=0.0 plan 60807666d54e kWh 26.3 short 0.0496 cost/plant-kWh 0.0884 gain-vs-flat +0.2728 | d=0.112 plan ab8b4dc5ff1d kWh 27.8 short 0.0326 cost/plant-kWh 0.0909 gain-vs-flat +0.2515
+  spread (1.7, 750.0, False, False) | d=0.0 plan a0731214b828 kWh 22.9 short 0.0700 cost/plant-kWh 0.0833 gain-vs-flat +0.3141 | d=0.112 plan d3bec04d39bb kWh 24.7 short 0.0684 cost/plant-kWh 0.0834 gain-vs-flat +0.3140
+  spread (1.7, 750.0, True, True) | d=0.0 plan 505dca62e451 kWh 25.6 short 0.0581 cost/plant-kWh 0.0860 gain-vs-flat +0.2918 | d=0.112 plan 15124d0733e0 kWh 24.8 short 0.0670 cost/plant-kWh 0.0843 gain-vs-flat +0.3063
+  spread (1.7, 750.0, True, False) | d=0.0 plan 19ce2077ef89 kWh 22.6 short 0.0828 cost/plant-kWh 0.0837 gain-vs-flat +0.3114 | d=0.112 plan e91bee0c6333 kWh 24.8 short 0.0695 cost/plant-kWh 0.0838 gain-vs-flat +0.3100
+  spread (1.7, 0.0, False, True) | d=0.0 plan 3530889131ad kWh 24.3 short 0.1064 cost/plant-kWh 0.0829 gain-vs-flat +0.3179 | d=0.112 plan 6b28e4387a11 kWh 24.4 short 0.0797 cost/plant-kWh 0.0821 gain-vs-flat +0.3242
+  spread (1.7, 0.0, False, False) | d=0.0 plan 492f0ce07a40 kWh 24.2 short 0.1093 cost/plant-kWh 0.0831 gain-vs-flat +0.3157 | d=0.112 plan bd0538f9c94b kWh 24.3 short 0.0822 cost/plant-kWh 0.0818 gain-vs-flat +0.3268
+  spread (1.7, 0.0, True, True) | d=0.0 plan 830ac32c1a5e kWh 24.1 short 0.1065 cost/plant-kWh 0.0833 gain-vs-flat +0.3146 | d=0.112 plan cbe4feb3f7f0 kWh 24.3 short 0.0805 cost/plant-kWh 0.0824 gain-vs-flat +0.3217
+  spread (1.7, 0.0, True, False) | d=0.0 plan 1ead059f6417 kWh 24.0 short 0.1089 cost/plant-kWh 0.0835 gain-vs-flat +0.3125 | d=0.112 plan caaa6f103521 kWh 24.3 short 0.0816 cost/plant-kWh 0.0823 gain-vs-flat +0.3222
+spread d=0.0: cells 16 heat short max 0.1093 gain-vs-flat min +0.2728 max +0.3671 cells where flat wins 0
+spread d=0.112: cells 16 heat short max 0.0822 gain-vs-flat min +0.2515 max +0.3739 cells where flat wins 0
+spread term vs none: cost per plant kWh change min -0.0598 max +0.0293 cells cheaper 13 dearer 3
+  flat (0.6, 750.0, False, True) | d=0.0 plan 5c5e0ca03667 kWh 8.1 short 0.1062 cost/plant-kWh 0.1359 gain-vs-flat -0.1189 | d=0.112 plan 34bb2d4a782f kWh 2.9 short 0.0977 cost/plant-kWh 0.1347 gain-vs-flat -0.1083
+  flat (0.6, 750.0, False, False) | d=0.0 plan e15ce94120f1 kWh 10.6 short 0.0004 cost/plant-kWh 0.1216 gain-vs-flat -0.0004 | d=0.112 plan 214a69d31141 kWh 10.7 short 0.0000 cost/plant-kWh 0.1215 gain-vs-flat -0.0000
+  flat (0.6, 750.0, True, True) | d=0.0 plan 64b7fbc8c63e kWh 10.5 short 0.0000 cost/plant-kWh 0.1215 gain-vs-flat -0.0000 | d=0.112 plan 5fb524bd3ce5 kWh 10.9 short 0.0000 cost/plant-kWh 0.1215 gain-vs-flat -0.0000
+  flat (0.6, 750.0, True, False) | d=0.0 plan f1996df1b750 kWh 10.6 short 0.0001 cost/plant-kWh 0.1215 gain-vs-flat -0.0001 | d=0.112 plan bb8ed18a2396 kWh 10.7 short 0.0000 cost/plant-kWh 0.1215 gain-vs-flat -0.0000
+  flat (0.6, 0.0, False, True) | d=0.0 plan 0ebf5b334158 kWh 13.1 short 0.0000 cost/plant-kWh 0.1215 gain-vs-flat -0.0000 | d=0.112 plan 365abe6cacea kWh 3.0 short 0.0963 cost/plant-kWh 0.1345 gain-vs-flat -0.1066
+  flat (0.6, 0.0, False, False) | d=0.0 plan d2db0bb55633 kWh 13.0 short 0.0810 cost/plant-kWh 0.1322 gain-vs-flat -0.0881 | d=0.112 plan d102d7ce7672 kWh 12.8 short 0.0000 cost/plant-kWh 0.1215 gain-vs-flat -0.0000
+  flat (0.6, 0.0, True, True) | d=0.0 plan 9372028671c1 kWh 12.8 short 0.0000 cost/plant-kWh 0.1215 gain-vs-flat -0.0000 | d=0.112 plan 5fb524bd3ce5 kWh 10.9 short 0.0000 cost/plant-kWh 0.1215 gain-vs-flat -0.0000
+  flat (0.6, 0.0, True, False) | d=0.0 plan 3ff5ff726851 kWh 12.6 short 0.0789 cost/plant-kWh 0.1319 gain-vs-flat -0.0856 | d=0.112 plan 480cb313ec31 kWh 12.2 short 0.0000 cost/plant-kWh 0.1215 gain-vs-flat -0.0000
+  flat (1.7, 750.0, False, True) | d=0.0 plan 9ffd3516de68 kWh 36.2 short 0.0041 cost/plant-kWh 0.1220 gain-vs-flat -0.0041 | d=0.112 plan 39d7839fc155 kWh 35.3 short 0.0011 cost/plant-kWh 0.1216 gain-vs-flat -0.0011
+  flat (1.7, 750.0, False, False) | d=0.0 plan 48c5677c4e33 kWh 27.1 short 0.0057 cost/plant-kWh 0.1222 gain-vs-flat -0.0058 | d=0.112 plan cd8bf17cebec kWh 28.0 short 0.0034 cost/plant-kWh 0.1219 gain-vs-flat -0.0034
+  flat (1.7, 750.0, True, True) | d=0.0 plan bee2b40a329d kWh 36.2 short 0.0044 cost/plant-kWh 0.1220 gain-vs-flat -0.0043 | d=0.112 plan f09abf0c795f kWh 31.5 short 0.0000 cost/plant-kWh 0.1215 gain-vs-flat +0.0000
+  flat (1.7, 750.0, True, False) | d=0.0 plan 962b81f08918 kWh 27.0 short 0.0052 cost/plant-kWh 0.1221 gain-vs-flat -0.0052 | d=0.112 plan 93b98a6806d4 kWh 27.1 short 0.0035 cost/plant-kWh 0.1219 gain-vs-flat -0.0035
+  flat (1.7, 0.0, False, True) | d=0.0 plan 3c9b0325eb7c kWh 35.2 short 0.0000 cost/plant-kWh 0.1215 gain-vs-flat -0.0000 | d=0.112 plan 3c9b0325eb7c kWh 35.2 short 0.0000 cost/plant-kWh 0.1215 gain-vs-flat -0.0000
+  flat (1.7, 0.0, False, False) | d=0.0 plan 5669449efeef kWh 34.7 short 0.0525 cost/plant-kWh 0.1282 gain-vs-flat -0.0554 | d=0.112 plan 578826922553 kWh 33.5 short 0.0012 cost/plant-kWh 0.1216 gain-vs-flat -0.0012
+  flat (1.7, 0.0, True, True) | d=0.0 plan 90e923dca30c kWh 35.2 short 0.0000 cost/plant-kWh 0.1215 gain-vs-flat -0.0000 | d=0.112 plan 5df031265d42 kWh 35.6 short 0.0000 cost/plant-kWh 0.1215 gain-vs-flat +0.0000
+  flat (1.7, 0.0, True, False) | d=0.0 plan 5849f773447e kWh 35.3 short 0.0521 cost/plant-kWh 0.1282 gain-vs-flat -0.0549 | d=0.112 plan c744baa365fd kWh 34.9 short 0.0012 cost/plant-kWh 0.1216 gain-vs-flat -0.0012
+flat d=0.0: cells 16 heat short max 0.1062 gain-vs-flat min -0.1189 max -0.0000 cells where flat wins 16
+flat d=0.112: cells 16 heat short max 0.0977 gain-vs-flat min -0.1083 max +0.0000 cells where flat wins 14
+flat term vs none: cost per plant kWh change min -0.0810 max +0.1066 cells cheaper 11 dearer 1
+failures 0
+rc=0

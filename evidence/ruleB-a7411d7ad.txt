@@ -1,0 +1,11 @@
+a7411d7ad:custom_components/heatpump_optimizer/config_flow.py:882:def _power_errors(
+a7411d7ad:custom_components/heatpump_optimizer/config_flow.py:895:def _partload_errors(
+a7411d7ad:custom_components/heatpump_optimizer/config_flow.py:2095:def _prefill_errors(saved: dict[str, Any], current: dict[str, Any]) -> dict[str, str]:
+a7411d7ad:custom_components/heatpump_optimizer/config_flow.py:2122:    if CONF_HEAT_PUMP_MAX_POWER in saved and _power_errors(saved, current):
+a7411d7ad:custom_components/heatpump_optimizer/config_flow.py:2535:        errors = _prefill_errors(saved, {**_ABSENT_FALLBACKS, **self._data})
+a7411d7ad:custom_components/heatpump_optimizer/config_flow.py:2763:            errors = _power_errors(user_input, self._data)
+a7411d7ad:custom_components/heatpump_optimizer/config_flow.py:2793:            errors = _power_errors(user_input, self._data)
+a7411d7ad:custom_components/heatpump_optimizer/config_flow.py:3249:        outcome = await self._try_thermal_model_save(user_input)
+a7411d7ad:custom_components/heatpump_optimizer/config_flow.py:3262:    async def _try_thermal_model_save(
+a7411d7ad:custom_components/heatpump_optimizer/config_flow.py:3270:            errors = _power_errors(user_input, current) or _partload_errors(user_input, current)
+a7411d7ad:custom_components/heatpump_optimizer/config_flow.py:3958:        errors = _prefill_errors(saved, current)
