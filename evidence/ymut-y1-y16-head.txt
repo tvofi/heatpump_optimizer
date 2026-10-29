@@ -1,0 +1,4 @@
+BASELINE (3) 8 checks, not-true: []
+RESULT y1_kill_group_no_grace: KILLED; red=['(3) a TERM-ignoring grandchild is killed after its leader exits']; crash=[]
+RESULT y16_grace_half_second: KILLED; red=['(3) a TERM-ignoring grandchild is killed after its leader exits', '(3) null: a leader ignoring TERM too is killed at the grace, rc -9']; crash=[]
+rc=0

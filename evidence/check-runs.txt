@@ -1,7 +1,8 @@
-check-runs API (pull_request_read get_check_runs) for PR #2916 head ca2dc27d74252606afb264c514585f9ea0e405b5, read ~23:20Z 2026-10-28; 37 runs.
-success: tests/typing, tests/browser, tests/arch-instrument, budget-raise-gate, codeql/Analyze (javascript-typescript), codeql/Analyze (actions), tests/briefs, governance/policy-docs, arch-score, tests/nightly-status, hassfest, tests/closure-scope, validate-hacs, governance/env-matrix, tests/mutation, governance/delivery-status, governance/wave-script, prelude, cancel-superseded x2, refresh x2
-neutral: CodeQL
-skipped: tests/mutation-autofix, tests/mutation-pins, tests/nightly-ha, tests/replay, governance/delivery-status-publish, governance/record, kernel-points, arm
-in_progress: tests/closures, tests/coverage, tests/fast (3.14), governance/instrument-self-tests, codeql/Analyze (python), prelude (run 40784411505)
-failure/cancelled: none
-no pr-contract or gate run concluded on this head at read time
+Check runs on 2f8a97c83794d3b583e4456696463e3458f0c732, read from the PR check-runs API at about 01:00Z 2026-10-29 (40 runs).
+failure: governance / delivery-status (123194822704). Log: "DELIVERY STATUS OVERDUE -- 18 rowed, 12 pending, 6 overdue"; every overdue row is another PR (#2926 #2924 #2921 #2910 #2873 #2909); "This check is NOT a required context and a red here blocks no merge."
+in_progress at read: tests / closures, tests / coverage, tests / fast (3.14), governance / instrument-self-tests, codeql / Analyze (python), prelude (run 40796649928); queued: prelude, refresh, cancel-superseded (run 40797501810).
+success: arch-score, budget-raise-gate, codeql actions + js-ts, env-matrix, policy-docs, wave-script, hassfest, arch-instrument, briefs, browser, closure-scope, mutation, nightly-status, typing, validate-hacs, refresh, prelude, cancel-superseded x2.
+neutral: CodeQL. skipped: arm, delivery-status-publish, record, kernel-points, mutation-autofix, mutation-pins, nightly-ha, replay.
+No pr-contract or gate run is listed on this head at read time.
+
+Re-read about 01:15Z (46 runs): tests / closures, tests / coverage and tests / fast (3.14) concluded success. Still in progress: governance / instrument-self-tests (started 00:52:49Z), codeql / Analyze (python), two prelude runs; queued: graders-head-copy, lane-proofs, coverage-ratchet. Skipped: ci-ratchet, closures-autofix, claims-autofix. The only failure is still governance / delivery-status. No pr-contract or gate run listed.
