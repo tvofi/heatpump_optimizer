@@ -1,0 +1,566 @@
+Collecting homeassistant
+  Using cached homeassistant-2026.2.3-py3-none-any.whl.metadata (4.8 kB)
+Collecting aiodns==4.0.0 (from homeassistant)
+  Using cached aiodns-4.0.0-py3-none-any.whl.metadata (7.7 kB)
+Collecting aiohasupervisor==0.3.3 (from homeassistant)
+  Using cached aiohasupervisor-0.3.3-py3-none-any.whl.metadata (5.0 kB)
+Collecting aiohttp==3.13.3 (from homeassistant)
+  Using cached aiohttp-3.13.3-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (8.1 kB)
+Collecting aiohttp_cors==0.8.1 (from homeassistant)
+  Using cached aiohttp_cors-0.8.1-py3-none-any.whl.metadata (20 kB)
+Collecting aiohttp-fast-zlib==0.3.0 (from homeassistant)
+  Using cached aiohttp_fast_zlib-0.3.0-py3-none-any.whl.metadata (5.7 kB)
+Collecting aiohttp-asyncmdnsresolver==0.1.1 (from homeassistant)
+  Using cached aiohttp_asyncmdnsresolver-0.1.1-py3-none-any.whl.metadata (16 kB)
+Collecting aiozoneinfo==0.2.3 (from homeassistant)
+  Using cached aiozoneinfo-0.2.3-py3-none-any.whl.metadata (5.4 kB)
+Collecting annotatedyaml==1.0.2 (from homeassistant)
+  Using cached annotatedyaml-1.0.2-cp313-cp313-manylinux_2_36_x86_64.whl.metadata (4.2 kB)
+Collecting astral==2.2 (from homeassistant)
+  Using cached astral-2.2-py2.py3-none-any.whl.metadata (1.5 kB)
+Collecting async-interrupt==1.2.2 (from homeassistant)
+  Using cached async_interrupt-1.2.2-py3-none-any.whl.metadata (4.9 kB)
+Collecting attrs==25.4.0 (from homeassistant)
+  Using cached attrs-25.4.0-py3-none-any.whl.metadata (10 kB)
+Collecting atomicwrites-homeassistant==1.4.1 (from homeassistant)
+  Using cached atomicwrites_homeassistant-1.4.1-py2.py3-none-any.whl.metadata (6.0 kB)
+Collecting audioop-lts==0.2.1 (from homeassistant)
+  Using cached audioop_lts-0.2.1-cp313-abi3-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (1.6 kB)
+Collecting awesomeversion==25.8.0 (from homeassistant)
+  Using cached awesomeversion-25.8.0-py3-none-any.whl.metadata (9.8 kB)
+Collecting bcrypt==5.0.0 (from homeassistant)
+  Using cached bcrypt-5.0.0-cp39-abi3-manylinux_2_34_x86_64.whl.metadata (10 kB)
+Collecting certifi>=2021.5.30 (from homeassistant)
+  Using cached certifi-2026.10.23-py3-none-any.whl.metadata (2.5 kB)
+Collecting ciso8601==2.3.3 (from homeassistant)
+  Using cached ciso8601-2.3.3-cp313-cp313-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl.metadata (24 kB)
+Collecting cronsim==2.7 (from homeassistant)
+  Using cached cronsim-2.7-py3-none-any.whl.metadata (6.9 kB)
+Collecting fnv-hash-fast==1.6.0 (from homeassistant)
+  Using cached fnv_hash_fast-1.6.0-cp313-cp313-manylinux_2_36_x86_64.whl.metadata (4.9 kB)
+Collecting hass-nabucasa==1.12.0 (from homeassistant)
+  Using cached hass_nabucasa-1.12.0-py3-none-any.whl.metadata (4.3 kB)
+Collecting httpx==0.28.1 (from homeassistant)
+  Using cached httpx-0.28.1-py3-none-any.whl.metadata (7.1 kB)
+Collecting home-assistant-bluetooth==1.13.1 (from homeassistant)
+  Using cached home_assistant_bluetooth-1.13.1-py3-none-any.whl.metadata (5.4 kB)
+Collecting ifaddr==0.2.0 (from homeassistant)
+  Using cached ifaddr-0.2.0-py3-none-any.whl.metadata (4.9 kB)
+Collecting Jinja2==3.1.6 (from homeassistant)
+  Using cached jinja2-3.1.6-py3-none-any.whl.metadata (2.9 kB)
+Collecting lru-dict==1.3.0 (from homeassistant)
+  Using cached lru-dict-1.3.0.tar.gz (13 kB)
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+Collecting PyJWT==2.10.1 (from homeassistant)
+  Using cached PyJWT-2.10.1-py3-none-any.whl.metadata (4.0 kB)
+Collecting cryptography==46.0.5 (from homeassistant)
+  Using cached cryptography-46.0.5-cp311-abi3-manylinux_2_34_x86_64.whl.metadata (5.7 kB)
+Collecting Pillow==12.0.0 (from homeassistant)
+  Using cached pillow-12.0.0-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl.metadata (8.8 kB)
+Collecting propcache==0.4.1 (from homeassistant)
+  Using cached propcache-0.4.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (13 kB)
+Collecting pyOpenSSL==25.3.0 (from homeassistant)
+  Using cached pyopenssl-25.3.0-py3-none-any.whl.metadata (17 kB)
+Collecting orjson==3.11.5 (from homeassistant)
+  Using cached orjson-3.11.5-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (41 kB)
+Collecting packaging>=23.1 (from homeassistant)
+  Using cached packaging-26.3-py3-none-any.whl.metadata (3.5 kB)
+Collecting psutil-home-assistant==0.0.1 (from homeassistant)
+  Using cached psutil_home_assistant-0.0.1-py3-none-any.whl.metadata (882 bytes)
+Collecting python-slugify==8.0.4 (from homeassistant)
+  Using cached python_slugify-8.0.4-py2.py3-none-any.whl.metadata (8.5 kB)
+Collecting PyYAML==6.0.3 (from homeassistant)
+  Using cached pyyaml-6.0.3-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (2.4 kB)
+Collecting requests==2.32.5 (from homeassistant)
+  Using cached requests-2.32.5-py3-none-any.whl.metadata (4.9 kB)
+Collecting securetar==2025.2.1 (from homeassistant)
+  Using cached securetar-2025.2.1-py3-none-any.whl.metadata (2.2 kB)
+Collecting SQLAlchemy==2.0.41 (from homeassistant)
+  Using cached sqlalchemy-2.0.41-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (9.6 kB)
+Collecting standard-aifc==3.13.0 (from homeassistant)
+  Using cached standard_aifc-3.13.0-py3-none-any.whl.metadata (969 bytes)
+Collecting standard-telnetlib==3.13.0 (from homeassistant)
+  Using cached standard_telnetlib-3.13.0-py3-none-any.whl.metadata (868 bytes)
+Collecting typing-extensions<5.0,>=4.15.0 (from homeassistant)
+  Using cached typing_extensions-4.16.0-py3-none-any.whl.metadata (3.3 kB)
+Collecting ulid-transform==1.5.2 (from homeassistant)
+  Using cached ulid_transform-1.5.2-cp313-cp313-manylinux_2_36_x86_64.whl.metadata (5.6 kB)
+Collecting urllib3>=2.0 (from homeassistant)
+  Using cached urllib3-2.8.0-py3-none-any.whl.metadata (7.4 kB)
+Collecting uv==0.9.26 (from homeassistant)
+  Using cached uv-0.9.26-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (11 kB)
+Collecting voluptuous==0.15.2 (from homeassistant)
+  Using cached voluptuous-0.15.2-py3-none-any.whl.metadata (20 kB)
+Collecting voluptuous-serialize==2.7.0 (from homeassistant)
+  Using cached voluptuous_serialize-2.7.0-py3-none-any.whl.metadata (1.9 kB)
+Collecting voluptuous-openapi==0.2.0 (from homeassistant)
+  Using cached voluptuous_openapi-0.2.0-py3-none-any.whl.metadata (1.7 kB)
+Collecting yarl==1.22.0 (from homeassistant)
+  Using cached yarl-1.22.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (75 kB)
+Collecting webrtc-models==0.3.0 (from homeassistant)
+  Using cached webrtc_models-0.3.0-py3-none-any.whl.metadata (2.9 kB)
+Collecting zeroconf==0.148.0 (from homeassistant)
+  Using cached zeroconf-0.148.0-cp313-cp313-manylinux_2_36_x86_64.whl.metadata (6.3 kB)
+Collecting pycares<6,>=5.0.0 (from aiodns==4.0.0->homeassistant)
+  Using cached pycares-5.2.1-cp313-cp313-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl.metadata (4.1 kB)
+Collecting mashumaro<4.0,>=3.11 (from aiohasupervisor==0.3.3->homeassistant)
+  Using cached mashumaro-3.23-py3-none-any.whl.metadata (22 kB)
+Collecting aiohappyeyeballs>=2.5.0 (from aiohttp==3.13.3->homeassistant)
+  Using cached aiohappyeyeballs-2.7.1-py3-none-any.whl.metadata (5.9 kB)
+Collecting aiosignal>=1.4.0 (from aiohttp==3.13.3->homeassistant)
+  Using cached aiosignal-1.4.0-py3-none-any.whl.metadata (3.7 kB)
+Collecting frozenlist>=1.1.1 (from aiohttp==3.13.3->homeassistant)
+  Using cached frozenlist-1.8.0-cp313-cp313-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl.metadata (20 kB)
+Collecting multidict<7.0,>=4.5 (from aiohttp==3.13.3->homeassistant)
+  Using cached multidict-6.9.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.3 kB)
+Collecting idna>=2.0 (from yarl==1.22.0->homeassistant)
+  Using cached idna-3.20-py3-none-any.whl.metadata (7.2 kB)
+Collecting tzdata>=2024.1 (from aiozoneinfo==0.2.3->homeassistant)
+  Using cached tzdata-2026.6-py2.py3-none-any.whl.metadata (1.4 kB)
+Collecting pytz (from astral==2.2->homeassistant)
+  Using cached pytz-2026.6-py2.py3-none-any.whl.metadata (22 kB)
+Collecting cffi>=2.0.0 (from cryptography==46.0.5->homeassistant)
+  Using cached cffi-2.1.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (2.5 kB)
+Collecting fnvhash<0.3,>=0.1 (from fnv-hash-fast==1.6.0->homeassistant)
+  Using cached fnvhash-0.2.1-py3-none-any.whl.metadata (1.6 kB)
+Collecting acme==5.2.2 (from hass-nabucasa==1.12.0->homeassistant)
+  Using cached acme-5.2.2-py3-none-any.whl.metadata (1.3 kB)
+Collecting async_timeout>=4 (from hass-nabucasa==1.12.0->homeassistant)
+  Using cached async_timeout-5.0.1-py3-none-any.whl.metadata (5.1 kB)
+Collecting grpcio<2,>=1.75.1 (from hass-nabucasa==1.12.0->homeassistant)
+  Using cached grpcio-1.85.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (3.8 kB)
+Collecting icmplib<4,>=3 (from hass-nabucasa==1.12.0->homeassistant)
+  Using cached icmplib-3.0.4-py3-none-any.whl.metadata (19 kB)
+Collecting josepy<3,>=2 (from hass-nabucasa==1.12.0->homeassistant)
+  Using cached josepy-2.2.0-py3-none-any.whl.metadata (1.7 kB)
+Collecting pycognito==2024.5.1 (from hass-nabucasa==1.12.0->homeassistant)
+  Using cached pycognito-2024.5.1-py3-none-any.whl.metadata (24 kB)
+Collecting snitun==0.45.1 (from hass-nabucasa==1.12.0->homeassistant)
+  Using cached snitun-0.45.1-py3-none-any.whl.metadata (6.4 kB)
+Collecting sentence-stream<2,>=1.2.0 (from hass-nabucasa==1.12.0->homeassistant)
+  Using cached sentence_stream-1.4.0-py3-none-any.whl.metadata (5.2 kB)
+Collecting pyrfc3339 (from acme==5.2.2->hass-nabucasa==1.12.0->homeassistant)
+  Using cached pyrfc3339-2.1.1-py3-none-any.whl.metadata (2.7 kB)
+Collecting habluetooth>=3.0 (from home-assistant-bluetooth==1.13.1->homeassistant)
+  Using cached habluetooth-7.1.2-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.4 kB)
+Collecting anyio (from httpx==0.28.1->homeassistant)
+  Using cached anyio-4.15.1-py3-none-any.whl.metadata (4.7 kB)
+Collecting httpcore==1.* (from httpx==0.28.1->homeassistant)
+  Using cached httpcore-1.0.9-py3-none-any.whl.metadata (21 kB)
+Collecting MarkupSafe>=2.0 (from Jinja2==3.1.6->homeassistant)
+  Using cached markupsafe-3.0.4-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (2.7 kB)
+Collecting psutil (from psutil-home-assistant==0.0.1->homeassistant)
+  Using cached psutil-7.2.2-cp36-abi3-manylinux2010_x86_64.manylinux_2_12_x86_64.manylinux_2_28_x86_64.whl.metadata (22 kB)
+Collecting boto3>=1.10.49 (from pycognito==2024.5.1->hass-nabucasa==1.12.0->homeassistant)
+  Using cached boto3-1.43.122-py3-none-any.whl.metadata (6.6 kB)
+Collecting envs>=1.3 (from pycognito==2024.5.1->hass-nabucasa==1.12.0->homeassistant)
+  Using cached envs-1.4-py3-none-any.whl.metadata (842 bytes)
+Collecting text-unidecode>=1.3 (from python-slugify==8.0.4->homeassistant)
+  Using cached text_unidecode-1.3-py2.py3-none-any.whl.metadata (2.4 kB)
+Collecting charset_normalizer<4,>=2 (from requests==2.32.5->homeassistant)
+  Using cached charset_normalizer-3.5.2-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (46 kB)
+Collecting greenlet>=1 (from SQLAlchemy==2.0.41->homeassistant)
+  Using cached greenlet-3.5.6-cp313-cp313-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl.metadata (3.8 kB)
+Collecting standard-chunk (from standard-aifc==3.13.0->homeassistant)
+  Using cached standard_chunk-3.13.0-py3-none-any.whl.metadata (860 bytes)
+Collecting h11>=0.16 (from httpcore==1.*->httpx==0.28.1->homeassistant)
+  Using cached h11-0.16.0-py3-none-any.whl.metadata (8.3 kB)
+Collecting regex>=2024.11.6 (from sentence-stream<2,>=1.2.0->hass-nabucasa==1.12.0->homeassistant)
+  Using cached regex-2026.9.29-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (40 kB)
+Collecting botocore<1.44.0,>=1.43.122 (from boto3>=1.10.49->pycognito==2024.5.1->hass-nabucasa==1.12.0->homeassistant)
+  Using cached botocore-1.43.122-py3-none-any.whl.metadata (5.6 kB)
+Collecting jmespath<2.0.0,>=0.7.1 (from boto3>=1.10.49->pycognito==2024.5.1->hass-nabucasa==1.12.0->homeassistant)
+  Using cached jmespath-1.1.0-py3-none-any.whl.metadata (7.6 kB)
+Collecting s3transfer<0.20.0,>=0.19.0 (from boto3>=1.10.49->pycognito==2024.5.1->hass-nabucasa==1.12.0->homeassistant)
+  Using cached s3transfer-0.19.3-py3-none-any.whl.metadata (1.7 kB)
+Collecting python-dateutil<3.0.0,>=2.1 (from botocore<1.44.0,>=1.43.122->boto3>=1.10.49->pycognito==2024.5.1->hass-nabucasa==1.12.0->homeassistant)
+  Using cached python_dateutil-2.9.0.post0-py2.py3-none-any.whl.metadata (8.4 kB)
+Collecting six>=1.5 (from python-dateutil<3.0.0,>=2.1->botocore<1.44.0,>=1.43.122->boto3>=1.10.49->pycognito==2024.5.1->hass-nabucasa==1.12.0->homeassistant)
+  Using cached six-1.17.0-py2.py3-none-any.whl.metadata (1.7 kB)
+Collecting pycparser (from cffi>=2.0.0->cryptography==46.0.5->homeassistant)
+  Using cached pycparser-3.12-py3-none-any.whl.metadata (9.7 kB)
+Collecting bleak>=3.0.2 (from habluetooth>=3.0->home-assistant-bluetooth==1.13.1->homeassistant)
+  Using cached bleak-3.0.2-py3-none-any.whl.metadata (4.7 kB)
+Collecting bleak-retry-connector>=4.7.1 (from habluetooth>=3.0->home-assistant-bluetooth==1.13.1->homeassistant)
+  Using cached bleak_retry_connector-4.7.1-py3-none-any.whl.metadata (7.3 kB)
+Collecting bluetooth-adapters>=2.4.0 (from habluetooth>=3.0->home-assistant-bluetooth==1.13.1->homeassistant)
+  Using cached bluetooth_adapters-2.4.0-py3-none-any.whl.metadata (5.3 kB)
+Collecting bluetooth-auto-recovery>=1.6.4 (from habluetooth>=3.0->home-assistant-bluetooth==1.13.1->homeassistant)
+  Using cached bluetooth_auto_recovery-1.6.4-py3-none-any.whl.metadata (5.5 kB)
+Collecting bluetooth-data-tools>=1.29.24 (from habluetooth>=3.0->home-assistant-bluetooth==1.13.1->homeassistant)
+  Using cached bluetooth_data_tools-1.29.24-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (7.4 kB)
+Collecting btsocket>=0.3.0 (from habluetooth>=3.0->home-assistant-bluetooth==1.13.1->homeassistant)
+  Using cached btsocket-0.3.0-py2.py3-none-any.whl.metadata (7.0 kB)
+Collecting dbus-fast>=5.0.22 (from habluetooth>=3.0->home-assistant-bluetooth==1.13.1->homeassistant)
+  Using cached dbus_fast-5.2.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (11 kB)
+Collecting aiooui>=0.1.1 (from bluetooth-adapters>=2.4.0->habluetooth>=3.0->home-assistant-bluetooth==1.13.1->homeassistant)
+  Using cached aiooui-0.1.11-py3-none-any.whl.metadata (6.5 kB)
+Collecting uart-devices>=0.1.0 (from bluetooth-adapters>=2.4.0->habluetooth>=3.0->home-assistant-bluetooth==1.13.1->homeassistant)
+  Using cached uart_devices-0.1.1-py3-none-any.whl.metadata (4.9 kB)
+Collecting usb-devices>=0.4.5 (from bluetooth-adapters>=2.4.0->habluetooth>=3.0->home-assistant-bluetooth==1.13.1->homeassistant)
+  Using cached usb_devices-0.5.1-py3-none-any.whl.metadata (5.3 kB)
+Collecting PyRIC>=0.1.6.3 (from bluetooth-auto-recovery>=1.6.4->habluetooth>=3.0->home-assistant-bluetooth==1.13.1->homeassistant)
+  Using cached PyRIC-0.1.6.3.tar.gz (870 kB)
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+INFO: pip is looking at multiple versions of bluetooth-data-tools to determine which version is compatible with other requirements. This could take a while.
+Collecting habluetooth>=3.0 (from home-assistant-bluetooth==1.13.1->homeassistant)
+  Using cached habluetooth-7.0.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.4 kB)
+  Using cached habluetooth-6.26.11-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.4 kB)
+Collecting bluetooth-data-tools>=1.29.23 (from habluetooth>=3.0->home-assistant-bluetooth==1.13.1->homeassistant)
+  Using cached bluetooth_data_tools-1.29.23-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (7.4 kB)
+Collecting habluetooth>=3.0 (from home-assistant-bluetooth==1.13.1->homeassistant)
+  Using cached habluetooth-6.26.10-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.4 kB)
+  Using cached habluetooth-6.26.9-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.4 kB)
+INFO: pip is still looking at multiple versions of bluetooth-data-tools to determine which version is compatible with other requirements. This could take a while.
+  Using cached habluetooth-6.26.8-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.4 kB)
+  Using cached habluetooth-6.26.7-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.4 kB)
+Collecting bluetooth-data-tools>=1.29.21 (from habluetooth>=3.0->home-assistant-bluetooth==1.13.1->homeassistant)
+  Using cached bluetooth_data_tools-1.29.22-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (7.4 kB)
+INFO: This is taking longer than usual. You might need to provide the dependency resolver with stricter constraints to reduce runtime. See https://pip.pypa.io/warnings/backtracking for guidance. If you want to abort this run, press Ctrl + C.
+  Using cached bluetooth_data_tools-1.29.21.tar.gz (21 kB)
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+Collecting habluetooth>=3.0 (from home-assistant-bluetooth==1.13.1->homeassistant)
+  Using cached habluetooth-6.26.6-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.4 kB)
+  Using cached habluetooth-6.26.5-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.4 kB)
+Collecting bluetooth-data-tools>=1.29.18 (from habluetooth>=3.0->home-assistant-bluetooth==1.13.1->homeassistant)
+  Using cached bluetooth_data_tools-1.29.20.tar.gz (20 kB)
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+  Using cached bluetooth_data_tools-1.29.19.tar.gz (20 kB)
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+  Using cached bluetooth_data_tools-1.29.18.tar.gz (20 kB)
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+Collecting habluetooth>=3.0 (from home-assistant-bluetooth==1.13.1->homeassistant)
+  Using cached habluetooth-6.26.4-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.4 kB)
+  Using cached habluetooth-6.26.3-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.4 kB)
+  Using cached habluetooth-6.26.2.tar.gz (116 kB)
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+  Using cached habluetooth-6.26.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.4 kB)
+  Using cached habluetooth-6.26.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.4 kB)
+  Using cached habluetooth-6.25.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.4 kB)
+  Using cached habluetooth-6.25.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.4 kB)
+  Using cached habluetooth-6.24.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.4 kB)
+  Using cached habluetooth-6.23.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.4 kB)
+  Using cached habluetooth-6.23.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.4 kB)
+  Using cached habluetooth-6.22.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.4 kB)
+  Using cached habluetooth-6.21.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.4 kB)
+  Using cached habluetooth-6.20.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.4 kB)
+  Using cached habluetooth-6.19.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.4 kB)
+  Using cached habluetooth-6.19.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.4 kB)
+  Using cached habluetooth-6.18.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.4 kB)
+  Using cached habluetooth-6.17.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.4 kB)
+  Using cached habluetooth-6.16.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.4 kB)
+  Using cached habluetooth-6.15.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.4 kB)
+  Using cached habluetooth-6.14.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.4 kB)
+  Using cached habluetooth-6.13.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.4 kB)
+  Using cached habluetooth-6.12.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.4 kB)
+  Using cached habluetooth-6.11.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.4 kB)
+  Using cached habluetooth-6.10.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.4 kB)
+  Using cached habluetooth-6.9.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.4 kB)
+  Using cached habluetooth-6.8.3-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.4 kB)
+  Using cached habluetooth-6.8.2-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.4 kB)
+  Using cached habluetooth-6.8.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.4 kB)
+  Using cached habluetooth-6.8.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.4 kB)
+  Using cached habluetooth-6.7.9-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.4 kB)
+  Using cached habluetooth-6.7.8-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.4 kB)
+  Using cached habluetooth-6.7.7-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.4 kB)
+  Using cached habluetooth-6.7.6-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.4 kB)
+  Using cached habluetooth-6.7.5-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.4 kB)
+  Using cached habluetooth-6.7.4-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.4 kB)
+  Using cached habluetooth-6.7.3-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.4 kB)
+  Using cached habluetooth-6.7.2-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.4 kB)
+Collecting bluetooth-data-tools>=1.29.7 (from habluetooth>=3.0->home-assistant-bluetooth==1.13.1->homeassistant)
+  Using cached bluetooth_data_tools-1.29.17.tar.gz (19 kB)
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+  Using cached bluetooth_data_tools-1.29.16.tar.gz (20 kB)
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+  Using cached bluetooth_data_tools-1.29.15.tar.gz (19 kB)
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+  Using cached bluetooth_data_tools-1.29.14.tar.gz (19 kB)
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+  Using cached bluetooth_data_tools-1.29.13.tar.gz (19 kB)
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+  Using cached bluetooth_data_tools-1.29.12.tar.gz (19 kB)
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+  Using cached bluetooth_data_tools-1.29.11.tar.gz (19 kB)
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+  Using cached bluetooth_data_tools-1.29.10.tar.gz (19 kB)
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+  Using cached bluetooth_data_tools-1.29.9.tar.gz (19 kB)
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+  Using cached bluetooth_data_tools-1.29.8.tar.gz (19 kB)
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+  Using cached bluetooth_data_tools-1.29.7.tar.gz (19 kB)
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+Collecting habluetooth>=3.0 (from home-assistant-bluetooth==1.13.1->homeassistant)
+  Using cached habluetooth-6.7.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.4 kB)
+  Using cached habluetooth-6.7.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.4 kB)
+  Using cached habluetooth-6.6.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.4 kB)
+  Using cached habluetooth-6.6.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.4 kB)
+  Using cached habluetooth-6.5.0.tar.gz (70 kB)
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+  Using cached habluetooth-6.4.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.4 kB)
+  Using cached habluetooth-6.3.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.4 kB)
+  Using cached habluetooth-6.3.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.4 kB)
+  Using cached habluetooth-6.2.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.4 kB)
+  Using cached habluetooth-6.2.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.4 kB)
+  Using cached habluetooth-6.1.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.4 kB)
+Collecting bluetooth-data-tools>=1.28.0 (from habluetooth>=3.0->home-assistant-bluetooth==1.13.1->homeassistant)
+  Using cached bluetooth_data_tools-1.29.6-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (7.4 kB)
+  Using cached bluetooth_data_tools-1.29.5-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (7.4 kB)
+  Using cached bluetooth_data_tools-1.29.4.tar.gz (18 kB)
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+  Using cached bluetooth_data_tools-1.29.3.tar.gz (18 kB)
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+  Using cached bluetooth_data_tools-1.29.2.tar.gz (18 kB)
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+  Using cached bluetooth_data_tools-1.29.1.tar.gz (18 kB)
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+  Using cached bluetooth_data_tools-1.29.0.tar.gz (18 kB)
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+  Using cached bluetooth_data_tools-1.28.4-cp313-cp313-manylinux_2_36_x86_64.whl.metadata (5.2 kB)
+Downloading homeassistant-2026.2.3-py3-none-any.whl (51.2 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 51.2/51.2 MB 1.7 MB/s  0:00:32
+Downloading aiodns-4.0.0-py3-none-any.whl (11 kB)
+Downloading aiohasupervisor-0.3.3-py3-none-any.whl (40 kB)
+Downloading aiohttp-3.13.3-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (1.7 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.7/1.7 MB 3.6 MB/s  0:00:00
+Downloading orjson-3.11.5-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (138 kB)
+Downloading yarl-1.22.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (377 kB)
+Downloading aiohttp_asyncmdnsresolver-0.1.1-py3-none-any.whl (13 kB)
+Using cached aiohttp_cors-0.8.1-py3-none-any.whl (25 kB)
+Using cached aiohttp_fast_zlib-0.3.0-py3-none-any.whl (8.6 kB)
+Using cached aiozoneinfo-0.2.3-py3-none-any.whl (8.0 kB)
+Downloading annotatedyaml-1.0.2-cp313-cp313-manylinux_2_36_x86_64.whl (69 kB)
+Using cached astral-2.2-py2.py3-none-any.whl (30 kB)
+Using cached async_interrupt-1.2.2-py3-none-any.whl (8.9 kB)
+Using cached atomicwrites_homeassistant-1.4.1-py2.py3-none-any.whl (7.1 kB)
+Downloading attrs-25.4.0-py3-none-any.whl (67 kB)
+Downloading audioop_lts-0.2.1-cp313-abi3-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl (82 kB)
+Using cached awesomeversion-25.8.0-py3-none-any.whl (15 kB)
+Using cached bcrypt-5.0.0-cp39-abi3-manylinux_2_34_x86_64.whl (278 kB)
+Downloading ciso8601-2.3.3-cp313-cp313-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl (41 kB)
+Using cached cronsim-2.7-py3-none-any.whl (14 kB)
+Downloading cryptography-46.0.5-cp311-abi3-manylinux_2_34_x86_64.whl (4.5 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 4.5/4.5 MB 1.4 MB/s  0:00:03
+Downloading fnv_hash_fast-1.6.0-cp313-cp313-manylinux_2_36_x86_64.whl (14 kB)
+Downloading hass_nabucasa-1.12.0-py3-none-any.whl (89 kB)
+Using cached webrtc_models-0.3.0-py3-none-any.whl (7.5 kB)
+Downloading acme-5.2.2-py3-none-any.whl (94 kB)
+Downloading home_assistant_bluetooth-1.13.1-py3-none-any.whl (7.9 kB)
+Using cached httpx-0.28.1-py3-none-any.whl (73 kB)
+Using cached ifaddr-0.2.0-py3-none-any.whl (12 kB)
+Using cached jinja2-3.1.6-py3-none-any.whl (134 kB)
+Downloading pillow-12.0.0-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (7.0 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 7.0/7.0 MB 833.6 kB/s  0:00:08
+Downloading propcache-0.4.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (204 kB)
+Using cached psutil_home_assistant-0.0.1-py3-none-any.whl (6.3 kB)
+Using cached pycognito-2024.5.1-py3-none-any.whl (26 kB)
+Downloading PyJWT-2.10.1-py3-none-any.whl (22 kB)
+Downloading pyopenssl-25.3.0-py3-none-any.whl (57 kB)
+Using cached python_slugify-8.0.4-py2.py3-none-any.whl (10 kB)
+Downloading pyyaml-6.0.3-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (801 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 801.6/801.6 kB 1.8 MB/s  0:00:00
+Downloading requests-2.32.5-py3-none-any.whl (64 kB)
+Downloading securetar-2025.2.1-py3-none-any.whl (11 kB)
+Downloading snitun-0.45.1-py3-none-any.whl (51 kB)
+Downloading sqlalchemy-2.0.41-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (3.2 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 3.2/3.2 MB 1.1 MB/s  0:00:02
+Using cached standard_aifc-3.13.0-py3-none-any.whl (10 kB)
+Using cached standard_telnetlib-3.13.0-py3-none-any.whl (10.0 kB)
+Downloading ulid_transform-1.5.2-cp313-cp313-manylinux_2_36_x86_64.whl (49 kB)
+Downloading uv-0.9.26-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (23.3 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 23.3/23.3 MB 1.0 MB/s  0:00:22
+Downloading voluptuous-0.15.2-py3-none-any.whl (31 kB)
+Downloading voluptuous_openapi-0.2.0-py3-none-any.whl (10 kB)
+Downloading voluptuous_serialize-2.7.0-py3-none-any.whl (7.8 kB)
+Downloading zeroconf-0.148.0-cp313-cp313-manylinux_2_36_x86_64.whl (2.1 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.1/2.1 MB 885.2 kB/s  0:00:02
+Downloading charset_normalizer-3.5.2-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (254 kB)
+Using cached fnvhash-0.2.1-py3-none-any.whl (18 kB)
+Downloading grpcio-1.85.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (7.4 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 7.4/7.4 MB 1.2 MB/s  0:00:06
+Using cached httpcore-1.0.9-py3-none-any.whl (78 kB)
+Using cached icmplib-3.0.4-py3-none-any.whl (30 kB)
+Using cached idna-3.20-py3-none-any.whl (69 kB)
+Using cached josepy-2.2.0-py3-none-any.whl (29 kB)
+Downloading mashumaro-3.23-py3-none-any.whl (78 kB)
+Downloading multidict-6.9.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (336 kB)
+Downloading pycares-5.2.1-cp313-cp313-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl (229 kB)
+Downloading sentence_stream-1.4.0-py3-none-any.whl (14 kB)
+Using cached typing_extensions-4.16.0-py3-none-any.whl (45 kB)
+Using cached urllib3-2.8.0-py3-none-any.whl (135 kB)
+Using cached aiohappyeyeballs-2.7.1-py3-none-any.whl (15 kB)
+Using cached aiosignal-1.4.0-py3-none-any.whl (7.5 kB)
+Downloading async_timeout-5.0.1-py3-none-any.whl (6.2 kB)
+Downloading boto3-1.43.122-py3-none-any.whl (140 kB)
+Downloading botocore-1.43.122-py3-none-any.whl (16.2 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 16.2/16.2 MB 1.5 MB/s  0:00:10
+Using cached jmespath-1.1.0-py3-none-any.whl (20 kB)
+Using cached python_dateutil-2.9.0.post0-py2.py3-none-any.whl (229 kB)
+Downloading s3transfer-0.19.3-py3-none-any.whl (90 kB)
+Downloading certifi-2026.10.23-py3-none-any.whl (135 kB)
+Downloading cffi-2.1.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (221 kB)
+Using cached envs-1.4-py3-none-any.whl (10 kB)
+Downloading frozenlist-1.8.0-cp313-cp313-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl (234 kB)
+Downloading greenlet-3.5.6-cp313-cp313-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl (623 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 623.8/623.8 kB 1.5 MB/s  0:00:00
+Using cached h11-0.16.0-py3-none-any.whl (37 kB)
+Downloading habluetooth-6.1.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (714 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 714.1/714.1 kB 1.8 MB/s  0:00:00
+Downloading bluetooth_data_tools-1.28.4-cp313-cp313-manylinux_2_36_x86_64.whl (140 kB)
+Using cached bleak-3.0.2-py3-none-any.whl (146 kB)
+Using cached bleak_retry_connector-4.7.1-py3-none-any.whl (19 kB)
+Using cached bluetooth_adapters-2.4.0-py3-none-any.whl (20 kB)
+Using cached aiooui-0.1.11-py3-none-any.whl (343 kB)
+Using cached bluetooth_auto_recovery-1.6.4-py3-none-any.whl (13 kB)
+Using cached btsocket-0.3.0-py2.py3-none-any.whl (14 kB)
+Downloading dbus_fast-5.2.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (896 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 896.5/896.5 kB 1.7 MB/s  0:00:00
+Downloading markupsafe-3.0.4-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (23 kB)
+Using cached packaging-26.3-py3-none-any.whl (129 kB)
+Downloading regex-2026.9.29-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (807 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 807.9/807.9 kB 2.5 MB/s  0:00:00
+Using cached six-1.17.0-py2.py3-none-any.whl (11 kB)
+Using cached text_unidecode-1.3-py2.py3-none-any.whl (78 kB)
+Downloading tzdata-2026.6-py2.py3-none-any.whl (348 kB)
+Using cached uart_devices-0.1.1-py3-none-any.whl (4.8 kB)
+Using cached usb_devices-0.5.1-py3-none-any.whl (5.4 kB)
+Using cached anyio-4.15.1-py3-none-any.whl (132 kB)
+Using cached psutil-7.2.2-cp36-abi3-manylinux2010_x86_64.manylinux_2_12_x86_64.manylinux_2_28_x86_64.whl (155 kB)
+Downloading pycparser-3.12-py3-none-any.whl (62 kB)
+Downloading pyrfc3339-2.1.1-py3-none-any.whl (6.5 kB)
+Downloading pytz-2026.6-py2.py3-none-any.whl (506 kB)
+Using cached standard_chunk-3.13.0-py3-none-any.whl (4.9 kB)
+Building wheels for collected packages: lru-dict, PyRIC
+  Building wheel for lru-dict (pyproject.toml): started
+  Building wheel for lru-dict (pyproject.toml): finished with status 'done'
+  Created wheel for lru-dict: filename=lru_dict-1.3.0-cp313-cp313-linux_x86_64.whl size=30050 sha256=88c56c1116dfa8bb9914e77609a07c3958842df02136c52c503fb5ad88910e05
+  Stored in directory: /root/.cache/pip/wheels/ba/bd/ab/f0f7fbce8f8129c864c232547eb51631fd4396fa1832bb764b
+  Building wheel for PyRIC (pyproject.toml): started
+  Building wheel for PyRIC (pyproject.toml): finished with status 'done'
+  Created wheel for PyRIC: filename=pyric-0.1.6.3-py2.py3-none-any.whl size=407977 sha256=525b88b276fd0f011a91d232a2d8a80f0094b6b925d95c3298be3aef571d1d4f
+  Stored in directory: /root/.cache/pip/wheels/b4/9d/e8/a9ecfc2003f256579ac6b252c19a68ad41533502ef58e7e689
+Successfully built lru-dict PyRIC
+Installing collected packages: text-unidecode, standard-telnetlib, standard-chunk, pytz, PyRIC, ifaddr, ciso8601, btsocket, zeroconf, voluptuous, uv, usb-devices, urllib3, ulid-transform, uart-devices, tzdata, typing-extensions, six, regex, PyYAML, python-slugify, pyrfc3339, PyJWT, pycparser, psutil, propcache, Pillow, packaging, orjson, multidict, MarkupSafe, lru-dict, jmespath, idna, icmplib, h11, greenlet, frozenlist, fnvhash, envs, dbus-fast, cronsim, charset_normalizer, certifi, bcrypt, awesomeversion, audioop-lts, attrs, atomicwrites-homeassistant, async_timeout, async-interrupt, astral, aiooui, aiohappyeyeballs, yarl, voluptuous-serialize, voluptuous-openapi, standard-aifc, SQLAlchemy, sentence-stream, requests, python-dateutil, psutil-home-assistant, mashumaro, Jinja2, httpcore, grpcio, fnv-hash-fast, cffi, bleak, anyio, annotatedyaml, aiozoneinfo, aiosignal, webrtc-models, pycares, httpx, cryptography, botocore, bluetooth-adapters, aiohttp, snitun, securetar, s3transfer, pyOpenSSL, josepy, bluetooth-data-tools, bluetooth-auto-recovery, bleak-retry-connector, aiohttp-fast-zlib, aiohttp_cors, aiohasupervisor, aiodns, habluetooth, boto3, aiohttp-asyncmdnsresolver, acme, pycognito, home-assistant-bluetooth, hass-nabucasa, homeassistant
+
+Successfully installed Jinja2-3.1.6 MarkupSafe-3.0.4 Pillow-12.0.0 PyJWT-2.10.1 PyRIC-0.1.6.3 PyYAML-6.0.3 SQLAlchemy-2.0.41 acme-5.2.2 aiodns-4.0.0 aiohappyeyeballs-2.7.1 aiohasupervisor-0.3.3 aiohttp-3.13.3 aiohttp-asyncmdnsresolver-0.1.1 aiohttp-fast-zlib-0.3.0 aiohttp_cors-0.8.1 aiooui-0.1.11 aiosignal-1.4.0 aiozoneinfo-0.2.3 annotatedyaml-1.0.2 anyio-4.15.1 astral-2.2 async-interrupt-1.2.2 async_timeout-5.0.1 atomicwrites-homeassistant-1.4.1 attrs-25.4.0 audioop-lts-0.2.1 awesomeversion-25.8.0 bcrypt-5.0.0 bleak-3.0.2 bleak-retry-connector-4.7.1 bluetooth-adapters-2.4.0 bluetooth-auto-recovery-1.6.4 bluetooth-data-tools-1.28.4 boto3-1.43.122 botocore-1.43.122 btsocket-0.3.0 certifi-2026.10.23 cffi-2.1.1 charset_normalizer-3.5.2 ciso8601-2.3.3 cronsim-2.7 cryptography-46.0.5 dbus-fast-5.2.0 envs-1.4 fnv-hash-fast-1.6.0 fnvhash-0.2.1 frozenlist-1.8.0 greenlet-3.5.6 grpcio-1.85.0 h11-0.16.0 habluetooth-6.1.0 hass-nabucasa-1.12.0 home-assistant-bluetooth-1.13.1 homeassistant-2026.2.3 httpcore-1.0.9 httpx-0.28.1 icmplib-3.0.4 idna-3.20 ifaddr-0.2.0 jmespath-1.1.0 josepy-2.2.0 lru-dict-1.3.0 mashumaro-3.23 multidict-6.9.1 orjson-3.11.5 packaging-26.3 propcache-0.4.1 psutil-7.2.2 psutil-home-assistant-0.0.1 pyOpenSSL-25.3.0 pycares-5.2.1 pycognito-2024.5.1 pycparser-3.12 pyrfc3339-2.1.1 python-dateutil-2.9.0.post0 python-slugify-8.0.4 pytz-2026.6 regex-2026.9.29 requests-2.32.5 s3transfer-0.19.3 securetar-2025.2.1 sentence-stream-1.4.0 six-1.17.0 snitun-0.45.1 standard-aifc-3.13.0 standard-chunk-3.13.0 standard-telnetlib-3.13.0 text-unidecode-1.3 typing-extensions-4.16.0 tzdata-2026.6 uart-devices-0.1.1 ulid-transform-1.5.2 urllib3-2.8.0 usb-devices-0.5.1 uv-0.9.26 voluptuous-0.15.2 voluptuous-openapi-0.2.0 voluptuous-serialize-2.7.0 webrtc-models-0.3.0 yarl-1.22.0 zeroconf-0.148.0
