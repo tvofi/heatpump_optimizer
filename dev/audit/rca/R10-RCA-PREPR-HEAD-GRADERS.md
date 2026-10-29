@@ -4,7 +4,8 @@ The root-cause seat for #2916 (R10-ORCH-BEATD arm a), run beside the fix and not
 root-cause role contract, `dev/governance/rules/defect-root-cause.md`). The instances (section 4)
 were measured on 2026-10-28 against `origin/main` `eab04d0eb`. Section 5's denominator and costs
 and section 6's demonstration were re-taken on 2026-10-29 at the head the pull-request body names,
-against `origin/main` `14fbf218d`. Every time is UTC. The seat filed no issue.
+against `origin/main` `14fbf218d`. Every time is UTC. The seat filed no issue; review round 7
+filed #2952 as the destination of section 7's open jobs.
 
 **Result: state (c).** 8 measured pull requests in round 10, past the audit-class threshold of 3 in
 one round. The class is I3, which is barriered.
@@ -234,13 +235,15 @@ keys the graders arm.
   jobs is `git grep -n -- "- name: Restore the check source from the base commit" HEAD --
   .github/workflows/`. Outside governance.yml it returns three jobs, each restoring from the base
   and grading the pull request with that copy, and `restore_jobs` reads governance.yml only:
-  - `briefs` (tests.yml), which runs `brief_lint.mjs`;
-  - `pr-contract` (pr-contract.yml);
+  - `briefs` (tests.yml), which runs `brief_lint.mjs`; Carry: #2952
+  - `pr-contract` (pr-contract.yml); Carry: #2952
   - `budget-raise-gate` (budget-raise-gate.yml, called from ci.yml on pull requests), which restores
     `tools/policy/*.py` and runs the base's `tools/policy/budget_raise_gate.py`. It reads live
-    reviews, so a local run of it could only be partial.
+    reviews, so a local run of it could only be partial. Carry: #2952
 
   None of the three is predicted by this arm, so a branch editing a file one of them restores is
   still graded by the base's copy with no local warning. Section 4's census read `briefs`
   check-runs and counted no `briefs` instance; it did not read `pr-contract` or
-  `budget-raise-gate`, so their instances are unmeasured. This record does not claim them; they need their own group (the round-5 review's split).
+  `budget-raise-gate`, so their instances are unmeasured. This record does not claim them. Their destination is #2952, whose brief is
+  `dev/programme/carries/carry-2952.json`: the enumeration rule as the control, the
+  unmeasured `pr-contract` and `budget-raise-gate` instances as its precondition.
