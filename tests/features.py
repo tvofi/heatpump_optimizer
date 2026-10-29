@@ -44724,6 +44724,147 @@ R.check(
     "as a simulation failure",
 )
 
+# #2508: with NO indoor temperature entity there is no observed room.
+# `_update_current_state` leaves ``ThermalState.room_temperature`` at its
+# 21.0 C constructor default, and ``_learning_frozen`` deliberately passes an
+# unconfigured slot -- so before this fix the learner folds a residual
+# between two constants and persists a coefficient fitted to neither. The
+# learner must not admit the sample. Null controls: the configured indoor
+# entity still learns (its unconfigured *power* slot is passed for the same
+# reason, and must not now freeze anything), and the lower-floor learner --
+# whose observable is its own zone's sensor -- is untouched by the guard.
+_t2_hl_no_indoor = _t2_house(observed=21.0, indoor_temp_entity=None)
+_t2_no_indoor_reader = InputReader(
+    _t2_hl_no_indoor.hass, _t2_hl_no_indoor.effective_config,
+)
+_t2_no_indoor_reader.read("indoor_temp_entity")
+_t2_hl_no_indoor._input_health = _t2_no_indoor_reader.health
+_t2_drive(_t2_hl_no_indoor, "_async_learn_house_heat_loss")
+_t2_no_indoor_view = _t2_hl_no_indoor._input_health_view()
+R.check(
+    "#2508: no indoor temperature entity freezes the house heat-loss learner "
+    "with a visible reason instead of fitting the 21.0 C default",
+    _t2_hl_no_indoor._house_heat_loss_samples == 0
+    and _t2_hl_no_indoor._house_heat_loss_scale == 1.0
+    and _t2_hl_no_indoor._learner_freeze_reason
+    == "not_configured:indoor_temp_entity"
+    and _t2_no_indoor_view["learner_freeze_reason"]
+    == "not_configured:indoor_temp_entity"
+    and _t2_no_indoor_view["learners_frozen"] is True,
+    f"samples {_t2_hl_no_indoor._house_heat_loss_samples} scale "
+    f"{_t2_hl_no_indoor._house_heat_loss_scale!r} reason "
+    f"{_t2_hl_no_indoor._learner_freeze_reason!r} view {_t2_no_indoor_view!r}",
+)
+_t2_hl_indoor_ok = _t2_house(observed=20.9)
+_t2_drive(_t2_hl_indoor_ok, "_async_learn_house_heat_loss")
+R.check(
+    "#2508 null control: a configured indoor entity still learns, and its "
+    "unconfigured power slot does not freeze it",
+    _t2_hl_indoor_ok._house_heat_loss_samples == 1
+    and _t2_hl_indoor_ok._learner_freeze_reason is None,
+    f"samples {_t2_hl_indoor_ok._house_heat_loss_samples} reason "
+    f"{_t2_hl_indoor_ok._learner_freeze_reason!r}",
+)
+# The freeze enters `_replay_gate` as its raw reason, so the cycle also
+# leaves no heat-counter span clean; the configured house is the control.
+_t2_span_clean = {
+    name: _asyncio.run(coord._async_learn_house_heat_loss(coord._close_fabric_interval()))
+    for name, coord in (
+        ("no_indoor", _t2_house(observed=21.0, indoor_temp_entity=None)),
+        ("indoor", _t2_house(observed=20.9)),
+    )
+}
+R.check(
+    "#2508: a cycle with no indoor entity leaves no heat-counter span clean; "
+    "a configured one does",
+    _t2_span_clean == {"no_indoor": False, "indoor": True},
+    f"span clean {_t2_span_clean!r}",
+)
+from heatpump_optimizer.thermal_model import learner_room_unread as _lru  # noqa: E402
+R.check(
+    "#2508: a caller that cannot see the entry (config None) invents no "
+    "freeze; an empty entry is unconfigured",
+    _lru(None) is None and _lru({}) == "not_configured:indoor_temp_entity",
+    f"None -> {_lru(None)!r}, {{}} -> {_lru({})!r} -- the sysid stand-down "
+    "passes getattr(ctx, '_config', None), and a host modelling only the "
+    "fields it reads must not be frozen",
+)
+_t2_lo_no_indoor = _t2_house(
+    two_zone=True, lower=19.9, indoor_temp_entity=None,
+)
+_t2_drive(_t2_lo_no_indoor, "_async_learn_lower_floor_loss")
+R.check(
+    "#2508 guard: the lower-floor learner still learns with no indoor entity "
+    "(its observable is the lower zone's own sensor)",
+    _t2_lo_no_indoor._lower_floor_loss_samples == 1,
+    f"samples {_t2_lo_no_indoor._lower_floor_loss_samples} reason "
+    f"{_t2_lo_no_indoor._learner_freeze_reason!r}",
+)
+
+# #2508's other room readers: #16's lead-time accuracy and #2's curve-comfort
+# margin also read ``room_temperature`` behind a ``_learning_frozen`` that
+# passes the unconfigured slot. The freeze is stubbed open on both arms, so
+# the indoor entity is the one lever; the configured arm is the null control.
+from homeassistant.util import dt as _t2_dt  # noqa: E402
+
+
+def _t2_room_readers(**config):
+    c = _t2_coord(curve_learning_enabled=True, **config)
+    c._learning_frozen = lambda *keys: None
+    c._mode = "auto"
+    now = datetime(2026, 1, 21, 6, 0, tzinfo=UTC)
+    c._accuracy.note_lead_prediction(now - timedelta(minutes=10), 1.0, 21.5)
+    c._pending_prediction = {"when": now - timedelta(minutes=30), "power": 1.0,
+                             "predicted_temp": 21.5}
+    _t2_dt.freeze(now)
+    try:
+        c._record_accuracy()
+        c._track_curve_comfort(now)
+    finally:
+        _t2_dt.freeze(None)
+    return {
+        "lead_scored": not c._accuracy.lead_pending,
+        "sample_room": [s.actual_temp for s in c._accuracy.samples],
+        "curve_worst": c._curve_day_worst,
+    }
+
+
+_t2_rr_none = _t2_room_readers()
+_t2_rr_ok = _t2_room_readers(indoor_temp_entity="sensor.indoor")
+R.check(
+    "#2508: with no indoor entity no lead promise settles against the 21.0 C "
+    "default, the interval sample keeps its power with no room, and no "
+    "curve-comfort margin is booked; a configured entity does all three",
+    _t2_rr_none == {"lead_scored": False, "sample_room": [None], "curve_worst": None}
+    and _t2_rr_ok["lead_scored"] and _t2_rr_ok["sample_room"] == [21.0]
+    and _t2_rr_ok["curve_worst"] is not None,
+    f"no indoor {_t2_rr_none!r}, indoor {_t2_rr_ok!r}",
+)
+from heatpump_optimizer.curve_learning import worst_zone_margin_k as _wzm  # noqa: E402
+R.check(
+    "#2508: the curve-comfort margin is the coldest finite zone less the floor, "
+    "and no finite zone is no evidence",
+    _wzm((20.0, None, float("nan"), 19.5), 19.0) == 0.5
+    and _wzm((None, float("nan")), 19.0) is None,
+    f"{_wzm((20.0, None, float('nan'), 19.5), 19.0)!r}, "
+    f"{_wzm((None, float('nan')), 19.0)!r}",
+)
+_t2_nan_zones = _t2_coord(curve_learning_enabled=True, indoor_temp_entity="sensor.indoor")
+_t2_nan_zones._learning_frozen = lambda *keys: None
+_t2_nan_zones._current_state = _dc_replace(
+    _t2_nan_zones._current_state, room_temperature=float("nan"),
+    upper_floor_temperature=float("nan"), lower_floor_temperature=float("nan"),
+)
+try:
+    _t2_nan_tick = _t2_nan_zones._track_curve_comfort(datetime(2026, 1, 21, 6, 0, tzinfo=UTC))
+except Exception as _t2_nan_err:  # noqa: BLE001 - the check reports it
+    _t2_nan_tick = _t2_nan_err
+R.check(
+    "#2508: a curve-comfort tick with no finite zone books nothing and raises nothing",
+    _t2_nan_tick is None and _t2_nan_zones._curve_day_worst is None,
+    f"tick {_t2_nan_tick!r} day worst {_t2_nan_zones._curve_day_worst!r}",
+)
+
 _t2_hl_mild = _t2_house(outdoor=16.0)
 _t2_drive(_t2_hl_mild, "_async_learn_house_heat_loss")
 R.check(
@@ -58515,6 +58656,8 @@ def _p5_contaminate(c, how):
         c._pump_signals = _dc_replace(
             s, mode=_p5_pump_mode.capability("cool"), mode_observed=True
         )
+    elif how == "indoor_unconfigured":
+        with_config(c, {"indoor_temp_entity": None})
 
 
 def _p5_night(how):
@@ -58587,6 +58730,18 @@ R.check(
     f"{_p5_nights!r} -- the experiment fits UA from these very samples, so a "
     "tick of wood-stove heat, a defrost's missing heat, an open window or a "
     "pinned room reading is what a +21 % adopted UA was made of",
+)
+# #2508: with no indoor entity the room is the 21.0 C constructor default,
+# which ``_learning_frozen`` passes as an unconfigured slot; the experiment
+# fits UA from that room, so it stands down on ``learner_room_unread``.
+_p5_no_indoor = _p5_night("indoor_unconfigured")
+R.check(
+    "#2508: a sysid night whose config has no indoor entity aborts as "
+    "not_configured:indoor_temp_entity and records nothing",
+    _p5_no_indoor["entered_step"] and _p5_no_indoor["recorded"] == 0
+    and _p5_no_indoor["phase"] == _SysIdModule.PHASE_ABORTED
+    and _p5_no_indoor["reason"] == "not_configured:indoor_temp_entity",
+    f"{_p5_no_indoor!r} -- the null control is the clean night above",
 )
 _p5_cool = _p5_night("cool_mode")
 R.check(

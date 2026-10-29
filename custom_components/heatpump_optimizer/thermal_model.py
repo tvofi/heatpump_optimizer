@@ -1421,6 +1421,40 @@ def levels_clamped(config: Any) -> bool:
 #: kilowatts a switch-plus-setpoint install cannot deliver (#1955).
 UNMETERED_POWER_FREEZE = "unmetered_power"
 
+#: Freeze reason when the house-heat-loss learner has no observed room
+#: (#2508): the indoor temperature entity is not configured, so
+#: ``ThermalState.room_temperature`` is still its 21.0 C constructor default.
+INDOOR_UNCONFIGURED_FREEZE = f"not_configured:{const.CONF_INDOOR_TEMP_ENTITY}"
+
+
+def learner_room_unread(config: Any) -> str | None:
+    """The house-learner freeze when no indoor temperature entity is configured.
+
+    ``_learning_frozen`` passes an unconfigured slot on purpose, and must: an
+    install without an *optional* sensor would otherwise never learn anything,
+    and the slots it protects there (power, outdoor, thermal power) are
+    regressors the replay can do without. The house heat-loss learner's
+    observed variable IS the room, so its absence removes the measurement
+    rather than one term of it -- ``_update_current_state`` writes
+    ``room_temperature`` only under ``if indoor.ok``, leaving the constructor
+    default to be replayed and compared as if it had been read. A configured
+    slot is left to ``_learning_frozen``, which freezes on any unusable
+    reading of it.
+
+    ``None`` is "no configuration to inspect", not "empty configuration": a
+    caller that cannot see the entry answers ``None`` rather than inventing a
+    freeze, so a host modelling only the fields a seam reads (the sysid
+    harness) is not silently frozen.
+    """
+    if config is None:
+        return None
+    cfg = config or {}
+    return (
+        INDOOR_UNCONFIGURED_FREEZE
+        if not cfg.get(const.CONF_INDOOR_TEMP_ENTITY)
+        else None
+    )
+
 
 def learner_unmetered(config: Any) -> str | None:
     """The house-learner freeze, or ``None`` when learning stands.
