@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow._entities_errors RETURN_DEL 421708f2#2",
+  "old": "            return errors",
+  "reason": "Equivalent (RETURN_DEL, the second `return errors` in _entities_errors -> `pass`): it is the arm of `if not (submit.get(CONF_TIBBER_TOKEN) or current.get(CONF_TIBBER_TOKEN)):`, so it runs only when submit's token is falsy. Deleting it falls through to `submitted = submit.get(CONF_TIBBER_TOKEN)`, which is that same falsy value, so `if submitted and ...` is false, validate_tibber_token is never called, and the closing `return errors` returns the same dict holding the same tibber_token_required entry. submit and current are plain dicts, so the extra `.get` has no side effect: same value, on every input, to every reader. Measured by the R10-CONFIGFLOW-PAGES arm-A fixer: `mutation_table.py --anchor '<this anchor>' --no-reach-skip` (Python 3.14.7) drove the mutant through all 12 drivers whose closure holds config_flow.py, tests/config_flow_steps.py among them, and printed `LIVES`, beside the comment-only null control surviving every driver. The first `return errors` in the same function (the price_entity_required arm, #1 of this text) is killed and pinned under killed_by, which is the positive control.",
+  "verdict": "equivalent"
+}
