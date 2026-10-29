@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/plan_slots.py b/custom_components/heatpump_optimizer/plan_slots.py
+index deac00c60..35a94d911 100644
+--- a/custom_components/heatpump_optimizer/plan_slots.py
++++ b/custom_components/heatpump_optimizer/plan_slots.py
+@@ -90,7 +90,7 @@ def plan_slots(
+ 
+     for i, on in enumerate(heating):
+         if on:
+-            if start_idx is None:
++            if False:
+                 start_idx = i
+         elif start_idx is not None:
+             close(i)

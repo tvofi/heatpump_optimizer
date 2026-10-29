@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/thermal_model.py b/custom_components/heatpump_optimizer/thermal_model.py
+index db56cf4a0..ced02b09f 100644
+--- a/custom_components/heatpump_optimizer/thermal_model.py
++++ b/custom_components/heatpump_optimizer/thermal_model.py
+@@ -1253,7 +1253,7 @@ def channel_heating_steps(channel_kw: Any, other_kw: Any = None) -> list[bool]:
+         given = np.asarray(other_kw, dtype=float)[: len(channel)]
+         other[: len(given)] = given
+     runs = planned_draws_run(channel, other)
+-    return [bool(on and kw > CHANNEL_ACTIVE_KW) for kw, on in zip(channel, runs)]
++    return [bool(on and kw >= CHANNEL_ACTIVE_KW) for kw, on in zip(channel, runs)]
+ 
+ def planned_draw_runs(
+     space_kw: float,
