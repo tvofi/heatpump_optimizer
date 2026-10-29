@@ -2758,7 +2758,7 @@ R.check(
 )
 # S2 of #193: zero-state series / headroom / plan math at existing
 # coordinator.py module level. Pins AST location (module FunctionDef,
-# not a class method). `_plan_slots` stays on the class (helper cc>15).
+# not a class method). `_plan_slots` left the class for `plan_slots.py` (P141).
 R.section("S2 zero-state helpers at module level (#193)")
 _s2_mod_fns = {
     n.name
@@ -25116,8 +25116,8 @@ _multi_run_payload = {
         {"dhw_power": 1.0},
     ],
     # What the coordinator itself builds for this schedule: a three-step
-    # run collapses to one slot, the trailing step is a second (coordinator
-    # _plan_slots, merged on optimizer.channel_heating_steps).
+    # run collapses to one slot, the trailing step is a second
+    # (plan_slots.plan_slots, merged on optimizer.channel_heating_steps).
     "dhw_plan": {"slots": [{"start": "t0"}, {"start": "t1"}]},
 }
 _dhw_sched_vs_plan = sensor.DHWScheduleSensor(
