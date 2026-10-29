@@ -66482,11 +66482,35 @@ R.check(
 )
 R.check(
     "the accuracy residual reads the latch only for the interval it folded in: "
-    "an interval opened after the fold gets none (#2262 seam 3), one opened "
-    "before it gets observed minus modelled",
+    "an interval opened at or after the fold gets none (#2262 seam 3), one "
+    "opened before it gets observed minus modelled",
     _cg_t._measured_cop.residual(_cg_at + timedelta(minutes=1), 8.0, _cg_t._thermal_model) is None
+    and _cg_t._measured_cop.residual(_cg_at, 8.0, _cg_t._thermal_model) is None
     and _cg_t._measured_cop.residual(_cg_at - timedelta(minutes=30), 8.0, _cg_t._thermal_model)
     == round(_cg_t._measured_cop.cop - _cg_t._thermal_model.compute_cop(8.0), 3),
+)
+# The residual is referenced to the curve the COP was observed on: the
+# hot-water curve only where the fold said so AND named its tank temperature.
+_cg_model = _cg_t._thermal_model
+_cg_space, _cg_dhw = _cf_MC(), _cf_MC()
+_cg_space.record(3.0, False, 50.0, _cg_at)
+_cg_dhw.record(3.0, True, 50.0, _cg_at)
+_cg_since = _cg_at - timedelta(minutes=30)
+R.check(
+    "the residual subtracts the curve the COP folded on: a space-heating fold "
+    "that happens to carry a tank temperature reads the space curve, a "
+    "hot-water fold the hot-water curve at its tank temperature",
+    _cg_model.compute_cop_dhw(8.0, 50.0) != _cg_model.compute_cop(8.0)
+    and _cg_space.residual(_cg_since, 8.0, _cg_model) == round(3.0 - _cg_model.compute_cop(8.0), 3)
+    and _cg_dhw.residual(_cg_since, 8.0, _cg_model) == round(3.0 - _cg_model.compute_cop_dhw(8.0, 50.0), 3),
+    f"space {_cg_space.residual(_cg_since, 8.0, _cg_model)!r}, dhw {_cg_dhw.residual(_cg_since, 8.0, _cg_model)!r}",
+)
+from heatpump_optimizer.accuracy import pairs_interval as _cg_pairs  # noqa: E402
+R.check(
+    "a pending prediction pairs with the interval that closed from 3 minutes to "
+    "2 hours old, both ends included; a re-run sooner or a gap longer pairs nothing",
+    _cg_pairs(0.05) and _cg_pairs(2.0) and _cg_pairs(1.0)
+    and not _cg_pairs(0.049) and not _cg_pairs(2.001),
 )
 
 
