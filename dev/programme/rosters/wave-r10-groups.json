@@ -12312,6 +12312,49 @@
     "note": "split from R10-ARCH-DOCS, lever L4, tvofi 2026-10-30 (#201 comment 6527969942)"
    },
    "brief": "Split from R10-ARCH-DOCS by lever L4 (tvofi, 2026-10-30, #201 comment 6527969942). This is arm A of triage P261, which the owner already approved dispatching past the 2026-10-17 last-stage ruling on 2026-10-28T17:47Z. This group has no after-edges. R10-ARCH-DOCS keeps arm B, the verification of R10-ARCH-DOCS-FIRST's markers, as the last stage of round 10; it will run this group's checker at the true merge base and resolve only the delta.\n\n1. Wiring test: a tree instrument that resolves every path, instrument, workflow job, event kind and diagram node that docs/architecture.md and the developer onboarding name, at HEAD. Use brief_lint.mjs or a small checker in the suite's gate. It goes red on a fixture that renames or removes a named element, and stays green on a null control.\n2. Target-marker resolver: lists every unresolved `[target: G]` marker R10-ARCH-DOCS-FIRST left, with its group's roster stage. Red fixture: a marker naming a done group. Null control: one naming a not-started group passes. Arm B, not this group, makes 'no unresolved marker on main' a hard check.\n3. P40: a check that the committed card figures match what they depict.\nClassify every new tracked file (closure or INERT). Follow dev/governance/roles/fixer.md. Part of #201; refers to #2395 (it stays open for arm B). triage: dev/programme/triage/s6-batch52.md#P261"
+  },
+  {
+   "group": "R10-HOTFIX-AWAY-SETBACK",
+   "lane": "CORE",
+   "kind": "bug",
+   "class": "correctness",
+   "severity": "high",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 1,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "custom_components/heatpump_optimizer/away.py",
+    "tests/features.py",
+    "tests/closure.py"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-hotfix-away-setback",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer (hotfix, ahead of the queue)",
+    "note": "live user finding tvofi 2026-10-30; #201 comment 6528614583"
+   },
+   "brief": "Hotfix from a live user finding (tvofi, 2026-10-30, #201 comment 6528614583): with away mode on, the plan kept heating slots. The investigation probe's report is BODY.md at handoff-body/r10-live-away-heating aa6e5db30ba6fe7cb4a2f1016c271ae9bf260af2; read it in full. Its harness is carried in that report. Defect measured there: while away and not recovering, away.solve_bands sets target_temp, min_temp and the day and night comfort fields to the away target, but not the weekend comfort fields or the holiday comfort fields. So the optimizer's per-step comfort pair (the weekend and holiday branches of _comfort_pair in optimizer.py) replaces the away setback on Saturdays, Sundays and holiday dates: Saturday comfort reads 21.0 where it should read 16.0. Fix: in away.solve_bands, while away and not recovering, also set comfort_temp_day_weekend, comfort_temp_night_weekend, holiday_comfort_day and holiday_comfort_night to the away target wherever they are configured. Extend the away module's field tuple and setback-config protocol to match. Failing test first, in tests/features.py, through solve_bands and the optimizer's comfort-bounds builder, never a re-implemented formula. Controls: the weekend and holiday arms read Saturday comfort equal to the away target; null control: away off keeps the weekend and holiday values; recovery_active keeps today's behaviour, which drops the setback (whether it should is a design question for tvofi, not this fix). One mutant per added field. Commit the probe's harness as a new file in the harnesses directory under dev/audit, named after the probe topic, classified in tests/closure.py, and run it at both ends: before, the weekend and holiday rows read Sat 21.0; after, 16.0; every other row is unchanged. No goldens are expected to move. Out of scope: a state listener on the away presence entity, which belongs to R10-LIVESTATE's coordinator move. Its finding is carried there."
   }
  ]
 }
