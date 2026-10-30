@@ -1,0 +1,3 @@
+## BASE 4d2f32b2e bare launch
+rc=0
+argv: -u tools/audit/seat/merge_train.py batch /tmp/tmp.ZOOhP9xTSA/queue.json --repo x/r --state-dir /tmp/tmp.ZOOhP9xTSA/state --min-runs 1 
