@@ -8247,6 +8247,7 @@ class _LearnPersist:
     _house_heat_loss_anchor = Coord._house_heat_loss_anchor
     _heat_loss_anchors = Coord._heat_loss_anchors
     _reanchor_house_heat_loss_scale = Coord._reanchor_house_heat_loss_scale
+    _void_heat_loss_learners = Coord._void_heat_loss_learners
     _apply_learner_payloads = Coord._apply_learner_payloads
 
     def __init__(self, store) -> None:
@@ -12928,6 +12929,189 @@ R.check(
     _fabric_lower_samples(19.9, house_first=True)
     == _fabric_lower_samples(19.9, house_first=False) == 1,
     "the split learner compared the current state against itself",
+)
+
+
+# --- R10-HOTFIX-LEARNER-INPUTS: a zone-sensor swap and the reset action ------
+#
+# Each heat-loss learner fits its residual on one zone sensor: the scale on
+# the indoor (upper zone) one, the ratio on the lower floor's. Evidence fitted
+# against one sensor says nothing about a sensor in another place, so a
+# changed entity id voids that learner, and the reset button and service void
+# either or both -- one void path, ``_void_heat_loss_learners``. Real
+# coordinators over the stock two-zone house, every expectation a property.
+from homeassistant.config_entries import ConfigEntryState as _li_state  # noqa: E402
+from harness import FakeServiceCall as _li_call  # noqa: E402
+from heatpump_optimizer import services as _li_services  # noqa: E402
+
+R.section("A zone-sensor swap and the reset action void the heat-loss learners")
+
+_LI_CFG = dict(_RA_CFG, indoor_temp_entity="sensor.indoor")
+_LI_LEARNED = (_RA_S, _RA_R, _RA_NS, _RA_NR)
+
+
+def _li_state_of(c):
+    return (c._house_heat_loss_scale, c._lower_floor_loss_ratio,
+            c._house_heat_loss_samples, c._lower_floor_loss_samples)
+
+
+def _li_swap(cfg_now, store=None):
+    store = store or _ra_learned(_LI_CFG)
+    saves = store.saves
+    c = _ra_reload(cfg_now, store)
+    return _li_state_of(c), store.saves - saves, store
+
+
+_li_lower, _li_lower_saves, _ = _li_swap(dict(_LI_CFG, lower_floor_temp_entity="sensor.t6"))
+R.check(
+    "a lower-floor sensor swap voids the ratio and leaves the scale intact",
+    _li_lower == (_RA_S, 1.0, _RA_NS, 0) and _li_lower_saves == 1,
+    f"(scale, ratio, samples) {_li_lower}, {_li_lower_saves} save(s)",
+)
+_li_indoor, _li_indoor_saves, _ = _li_swap(dict(_LI_CFG, indoor_temp_entity="sensor.bthome"))
+R.check(
+    "an indoor sensor swap voids the scale and leaves the ratio intact",
+    _li_indoor == (1.0, _RA_R, 0, _RA_NR) and _li_indoor_saves == 1,
+    f"(scale, ratio, samples) {_li_indoor}, {_li_indoor_saves} save(s)",
+)
+# The owner's move: T6 from indoor to lower floor, a room sensor as indoor.
+_li_both, _, _ = _li_swap(dict(_LI_CFG, indoor_temp_entity="sensor.bthome",
+                               lower_floor_temp_entity="sensor.indoor"))
+R.check(
+    "moving a sensor from indoor to the lower floor voids both learners",
+    _li_both == (1.0, 1.0, 0, 0),
+    f"(scale, ratio, samples) {_li_both}",
+)
+# Null control: an options change touching neither zone sensor.
+_li_null, _li_null_saves, _ = _li_swap(dict(_LI_CFG, outdoor_temp_entity="sensor.other_outdoor",
+                                            comfort_weight=3.0))
+R.check(
+    "an unrelated options change keeps both learners verbatim and writes nothing",
+    _li_null == _LI_LEARNED and _li_null_saves == 0,
+    f"(scale, ratio, samples) {_li_null}, {_li_null_saves} save(s)",
+)
+# A store from before the record proves nothing about which sensor it fitted:
+# the load adopts the ids in force, it does not void.
+_li_old = _ra_learned(_LI_CFG)
+_li_old.saved = {k: v for k, v in _li_old.saved.items() if k != "heat_loss_zone_entities"}
+_li_pre, _li_pre_saves, _ = _li_swap(dict(_LI_CFG, lower_floor_temp_entity="sensor.t6"), _li_old)
+R.check(
+    "a store without recorded zone sensors keeps both learners and adopts the ids",
+    _li_pre == _LI_LEARNED and _li_pre_saves == 1
+    and _li_old.saved.get("heat_loss_zone_entities", {}).get("lower_floor_temp_entity") == "sensor.t6",
+    f"(scale, ratio, samples) {_li_pre}, adopted {_li_old.saved.get('heat_loss_zone_entities')!r}",
+)
+# And a second load over the same sensors keeps what the first one left.
+_li_twice, _li_twice_saves, _ = _li_swap(dict(_LI_CFG, lower_floor_temp_entity="sensor.t6"),
+                                        _ra_reload(dict(_LI_CFG, lower_floor_temp_entity="sensor.t6"),
+                                                   _ra_learned(_LI_CFG))._thermal_learning_store)
+R.check(
+    "a reload over the swapped sensor voids nothing more",
+    _li_twice == (_RA_S, 1.0, _RA_NS, 0) and _li_twice_saves == 0,
+    f"(scale, ratio, samples) {_li_twice}, {_li_twice_saves} save(s)",
+)
+
+
+def _li_others(c):
+    """Every learner's persisted shape but the two heat-loss learners' and the save stamp."""
+    out = c._learner_snapshot_payloads()
+    out["thermal_learning"] = {k: v for k, v in out["thermal_learning"].items() if k not in (
+        "house_heat_loss_scale", "house_heat_loss_samples", "lower_floor_loss_ratio",
+        "lower_floor_loss_samples", "updated_at")}
+    return out
+
+
+def _li_reset(learners=None):
+    c = _ra_reload(_LI_CFG, _ra_learned(_LI_CFG))
+    c._apply_cop_scale(1.13)
+    c._comfort_learner.evidence = -1.4
+    before = _li_others(c)
+    _aio.run(c.async_reset_heat_loss_learners(*([learners] if learners else [])))
+    return c, before
+
+
+_li_r, _li_r_before = _li_reset()
+_li_r_after = _ra_reload(_LI_CFG, _li_r._thermal_learning_store)
+R.check(
+    "the reset returns both learners to 1.0 with no samples, and saves it",
+    _li_state_of(_li_r) == _li_state_of(_li_r_after) == (1.0, 1.0, 0, 0)
+    and _li_r._thermal_params.house_heat_loss_scale == 1.0
+    and _li_r._thermal_params.lower_floor_heat_loss_learned == _li_r._thermal_params.lower_floor_heat_loss,
+    f"live {_li_state_of(_li_r)}, reloaded {_li_state_of(_li_r_after)}",
+)
+R.check(
+    "the reset leaves the comfort weight and the DHW, COP and defrost learners as they were",
+    _li_others(_li_r) == _li_r_before and _li_r._cop_scale == 1.13
+    and _li_r._comfort_learner.evidence == -1.4,
+    str({k: (v, _li_r_before.get(k)) for k, v in _li_others(_li_r).items() if v != _li_r_before.get(k)})[:600],
+)
+_li_one, _ = _li_reset(("lower_floor_loss_ratio",))
+R.check(
+    "resetting the ratio alone leaves the scale and its samples intact",
+    _li_state_of(_li_one) == (_RA_S, 1.0, _RA_NS, 0),
+    f"(scale, ratio, samples) {_li_state_of(_li_one)}",
+)
+_li_one_s, _ = _li_reset(("house_heat_loss_scale",))
+R.check(
+    "resetting the scale alone leaves the ratio and its samples intact",
+    _li_state_of(_li_one_s) == (1.0, _RA_R, 0, _RA_NR),
+    f"(scale, ratio, samples) {_li_state_of(_li_one_s)}",
+)
+
+
+async def _li_service(data, store):
+    """The service over a loaded coordinator, with the refresh it asks for counted."""
+    hass = FakeHass({})
+    entry = _ra_entry(data=_LI_CFG, entry_id="li_service")
+    coord = _ra_coord(_LI_CFG, store)
+    await coord._async_load_thermal_learning()
+    refreshes = []
+
+    async def _refresh(*_a, **_k):
+        refreshes.append(_li_state_of(coord))
+
+    coord.async_request_refresh = _refresh
+    entry.state = _li_state.LOADED
+    entry.runtime_data = coord
+    hass.config_entries.entries.append(entry)
+    answer = await _li_services.handle_reset_heat_loss(
+        hass, _li_call("heatpump_optimizer", "reset_heat_loss_learners",
+                       _li_services.SERVICE_SCHEMA_RESET_HEAT_LOSS(data)))
+    return _li_state_of(coord), refreshes, answer
+
+
+_li_svc_both = _aio.run(_li_service({}, _ra_learned(_LI_CFG)))
+_li_svc_one = _aio.run(_li_service({"learners": ["lower_floor_loss_ratio"]}, _ra_learned(_LI_CFG)))
+R.check(
+    "the service resets both by default, then re-plans on the reset values",
+    _li_svc_both[0] == (1.0, 1.0, 0, 0) and _li_svc_both[1] == [(1.0, 1.0, 0, 0)],
+    f"state {_li_svc_both[0]}, refreshes {_li_svc_both[1]}, answer {_li_svc_both[2]}",
+)
+R.check(
+    "the service's learners field resets one learner alone",
+    _li_svc_one[0] == (_RA_S, 1.0, _RA_NS, 0) and len(_li_svc_one[1]) == 1,
+    f"state {_li_svc_one[0]}, answer {_li_svc_one[2]}",
+)
+try:
+    _li_services.SERVICE_SCHEMA_RESET_HEAT_LOSS({"learners": ["cop_scale"]})
+    _li_refused = False
+except Exception:  # vol.Invalid
+    _li_refused = True
+R.check("the service refuses a learner it does not reset", _li_refused)
+
+# After a reset the next fold starts from the configuration: the reset
+# coordinator and one that never learned take the same interval to the same
+# ratio, one sample each.
+_li_fold = _two_zone_learner(lower_entity="sensor.lower", ratio=2.4)
+_li_fold._lower_floor_loss_samples = 90
+_aio.run(_li_fold.async_reset_heat_loss_learners())
+_li_fresh = _two_zone_learner(lower_entity="sensor.lower")
+_li_fold_got = _drive_lower(_li_fold, observed_lower=19.6)
+_li_fresh_got = _drive_lower(_li_fresh, observed_lower=19.6)
+R.check(
+    "the next fold after a reset starts from the configuration",
+    _li_fold_got == _li_fresh_got and _li_fold_got[1] == 1 and _li_fold_got[0] != 1.0,
+    f"reset {_li_fold_got} vs never learned {_li_fresh_got}",
 )
 
 
@@ -25432,6 +25616,7 @@ _HPO_MOVED = (
     "handle_clear_manual_plan",
     "handle_restore_snapshot",
     "handle_diagnose_interval",
+    "handle_reset_heat_loss",
     "_manual_targets",
     "_loaded_entries",
     "_loaded_coordinators",
@@ -25502,6 +25687,7 @@ _HPO_SERVICE_MAP = {
     "restore_learned_snapshot": "handle_restore_snapshot",
     "diagnose_interval": "handle_diagnose_interval",
     "debug_collect": "handle_debug_collect",
+    "reset_heat_loss_learners": "handle_reset_heat_loss",
 }
 _hpo_hass = FakeHass()
 _asyncio.run(_ha_setup_component(_integ, _hpo_hass))
@@ -43828,6 +44014,8 @@ _RC2_ROWS = [
 _RC2_ROWS += [
     (_rc2_button.ResetComfortWeightButton, "async_press", (), ("comfort", -1.9),
      ("coordinator._comfort_learner.evidence", 0.0)),
+    (_rc2_button.ResetHeatLossButton, "async_press", (), ("heat-loss", 1.8),
+     ("coordinator._house_heat_loss_scale", 1.0)),
     (_rc2_button.ForceOptimizationButton, "async_press", (), ("mode", "auto"), None),
     (_rc2_button.DiagnoseIntervalButton, "async_press", (), ("mode", "auto"), None),
     (_rc2_button.SystemIdentificationButton, "async_press", (), ("mode", "auto"), None),
@@ -43850,6 +44038,7 @@ _RC2_SETTERS = {
     "async_apply_manual_plan": "saves the plan before it asks for the refresh",
     "async_clear_manual_plan": "saves the clear before it asks for the refresh",
     "async_reset_comfort_weight": "row: the reset button",
+    "async_reset_heat_loss_learners": "row: the heat-loss reset button",
     "async_restore_learned_snapshot": "restores from the store it reads",
     "async_arm_system_identification": "in memory by design: arms tonight's run",
     "async_update_thermal_params": "the call's fields persist into entry "
@@ -43901,6 +44090,9 @@ async def _rc2_prelude(coord, what, value):
     elif what == "comfort":
         coord._comfort_learner.evidence = value
         await coord._async_save_accuracy()
+    elif what == "heat-loss":
+        coord._apply_house_heat_loss_scale(value)
+        await coord._async_save_thermal_learning()
     elif isinstance(what, str) and what.startswith("block-"):
         boost_mod.held_for(coord).set(
             what.removeprefix("block-"), value, _rc2_dt_util.now(), block=True,
@@ -43915,6 +44107,7 @@ async def _rc2_boot(entry):
     coord = HeatPumpOptimizerCoordinator(FakeHass(), entry)
     coord.hass.config_entries.entries.append(entry)
     await coord._async_load_accuracy()
+    await coord._async_load_thermal_learning()
     await boost_mod.restore_session(
         coord, coord._adopt_away_override, coord._config, coord._entity_state
     )
@@ -59782,6 +59975,8 @@ _P5_DISPOSED = {
     "_async_load_thermal_learning": "restore from the store",
     "_load_t4b_learners": "restore from the store",
     "_reanchor_house_heat_loss_scale": "re-expresses a restored scale (#86)",
+    "_void_heat_loss_learners": "voids evidence (a sensor swap, a nameplate edit, "
+    "the reset action); no evidence enters",
     # #2261: the COP fold's tail. _fold_measured_cop consults the freeze, and
     # a heat counter's span folds only when that consult passed on every cycle
     # of the span (_async_learn_heat_span); the two below it are fed only here.

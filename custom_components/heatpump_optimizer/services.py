@@ -56,6 +56,7 @@ from .const import (
     DEFAULT_DHW_MIN_TEMP,
     DEFAULT_DHW_SETPOINT,
     DHW_MIN_TEMP_SETPOINT_MARGIN,
+    HEAT_LOSS_LEARNERS,
     CONF_TOPOLOGY_LAYOUT,
     CONF_TOPOLOGY_POSITIONS,
     SERVICE_APPLY_SCHEDULE,
@@ -65,6 +66,7 @@ from .const import (
     SERVICE_CLEAR_MANUAL_PLAN,
     SERVICE_DEBUG_COLLECT,
     SERVICE_DIAGNOSE_INTERVAL,
+    SERVICE_RESET_HEAT_LOSS,
     SERVICE_RESTORE_SNAPSHOT,
     SERVICE_RUN_OPTIMIZATION,
     SERVICE_SET_AWAY,
@@ -284,6 +286,14 @@ SERVICE_SCHEMA_RESTORE_SNAPSHOT = vol.Schema(
         vol.Optional("entry_id"): cv.string,
         # #1936: the drift advisor's two restart points.
         vol.Optional("source", default="snapshot"): vol.In(("snapshot", "refit")),
+    }
+)
+
+SERVICE_SCHEMA_RESET_HEAT_LOSS = vol.Schema(
+    {
+        vol.Optional("entry_id"): cv.string,
+        # Empty or absent: both learners.
+        vol.Optional("learners", default=list): [vol.In(HEAT_LOSS_LEARNERS)],
     }
 )
 
@@ -1154,6 +1164,17 @@ async def handle_clear_manual_plan(hass: HomeAssistant, call: ServiceCall) -> di
         cleared.append(entry_id)
     return {"cleared": cleared}
 
+async def handle_reset_heat_loss(hass: HomeAssistant, call: ServiceCall) -> dict[str, Any]:
+    """Return the named heat-loss learners (default both) to the configuration and re-plan."""
+    data = dict(call.data)
+    learners = tuple(data.get("learners") or HEAT_LOSS_LEARNERS)
+    reset: list[str] = []
+    for entry_id, coord in _manual_targets(hass, data.get("entry_id")):
+        await coord.async_reset_heat_loss_learners(learners)
+        await coord.async_request_refresh()
+        reset.append(entry_id)
+    return {"reset": reset, "learners": list(learners)}
+
 async def handle_restore_snapshot(hass: HomeAssistant, call: ServiceCall) -> dict[str, Any]:
     """Roll the learners back to the newest trustworthy snapshot (#42).
 
@@ -1303,6 +1324,13 @@ def async_register_services(hass: HomeAssistant) -> None:
         SERVICE_RESTORE_SNAPSHOT,
         partial(handle_restore_snapshot, hass),
         schema=SERVICE_SCHEMA_RESTORE_SNAPSHOT,
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_RESET_HEAT_LOSS,
+        partial(handle_reset_heat_loss, hass),
+        schema=SERVICE_SCHEMA_RESET_HEAT_LOSS,
         supports_response=SupportsResponse.OPTIONAL,
     )
     hass.services.async_register(

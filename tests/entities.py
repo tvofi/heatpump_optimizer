@@ -7284,6 +7284,17 @@ R.check(
     "weight unpublished until the next cycle",
 )
 
+heat_loss_reset = button.ResetHeatLossButton(coord, ENTRY)
+heat_loss_reset.hass = EagerHass()
+coord.refreshes.clear()
+coord.on_refresh = lambda: "reset_heat_loss" in coord.pressed
+asyncio.run(heat_loss_reset.async_press())
+R.check(
+    "the heat-loss reset button reaches the coordinator, then asks for one refresh",
+    "reset_heat_loss" in coord.pressed and coord.refreshes == [True],
+    f"pressed={coord.pressed} refreshes={coord.refreshes}",
+)
+
 
 # ===========================================================================
 # Options flow
@@ -12859,6 +12870,7 @@ _CLUSTER_PREFIXES: dict[str, dict[str, str]] = {
         "learning_finalize_debug": "Learning ",
         "learning_run_system_identification": "Learning ",
         "learning_reset_comfort_weight": "Learning ",
+        "learning_reset_heat_loss": "Learning ",
     },
     "switch": {"dhw_boost": "DHW "},
 }
