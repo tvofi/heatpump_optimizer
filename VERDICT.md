@@ -1,34 +1,41 @@
-Fix review: blocked e456ff01323580d4390f964483a17dbdb6cff5bf carry-missing: not carried to R10-TRAIN-OVERLAP-GRADE (the _batch admission head-set seam is only in the PR body)
+Fix review: blocked e456ff01323580d4390f964483a17dbdb6cff5bf ci-red: governance / instrument-self-tests fails on queue_pre_flight self-test 1 of 43, caused by this diff's Train.freeable ancestor check
 
-bus-nonce: 4b9ff89de09908e6764b8c59cecaa178
+bus-nonce: ef0c5a905a607435061c32014019e0cc
 
 ## Block
 
-Round 1. Measured at head e456ff01323580d4390f964483a17dbdb6cff5bf (still the live head of fix/r10-train-overlap-grade-p3 at verdict time, ev/head-live.txt).
+Round 2, at the same head as round 1 (e456ff01323580d4390f964483a17dbdb6cff5bf). The head is still live on fix/r10-train-overlap-grade-p3 (ev/head-live.txt).
 
-fix-review.md step 10 / finding-propagation.md "Enforcement": the producing PR does not merge until its carry is in the tree, and the body names the file and the roster branch SHA. The body's second `## Forward-carry` item (`_batch` admission reads a PR head's CI with main's required set, `self.required()` at merge_train.py:3054 feeding `admit` at 3065/3068; the P34 class's sibling seam, latent while `PR_ONLY` is `()`, control: the M9 world driven through `batch`) ends `Carry: R10-TRAIN-OVERLAP-GRADE`. But it is not written to that group. At `handoff/audit-r10-roster` 22622ddf6aab0651ca50c5e7d4d1d194bdaa886d, group R10-TRAIN-OVERLAP-GRADE has 20 carries. The only one naming `pr_head` is carry 3 (the original P34 serial-wait finding). No carry names the admission head set (ev/roster-22622ddf.txt). The body gives no roster SHA for it. As finding-propagation.md says, a sibling seam in a running stage goes to a new issue filed by this PR or to a carry file. Neither exists, so this finding lives only in the PR body.
+The round-1 block (carry-missing) is cleared. Carry 21 of R10-TRAIN-OVERLAP-GRADE at handoff/audit-r10-roster 78c0bb77b052649fe08c99df98b226b8e3cb8f8a records the `_batch` admission head-set seam. Its control is stated as a precondition, and it lists the round-1 survivors R3, R5, R8 and R9 (ev/roster-78c0bb77-carry21.txt). 78c0bb77 is an ancestor of the roster tip.
 
-To clear: write the admission seam, with its control as a precondition, into the group's roster entry on handoff/audit-r10-roster (or file the issue or carry file), and name the SHA in the body. No code change is needed for this block. The other two forward-carry items are already in the tree: carries 7 and 10 (part 3), and carry 2's "pass --approval-carry in the live launch".
+New block: the head's `governance / instrument-self-tests` check (job 124070275423) concluded **failure** at 13:11:17Z, with `queue_pre_flight self-test: 43 checks, 1 failed` and `##[error]Process completed with exit code 1.` (ev/instrument-self-tests.log). The failing check is `... and one whose HEAD is not origin/<branch> still PARKs (unpushed work)` (tools/audit/seat/queue_pre_flight.py:429).
+
+This PR causes the failure:
+- I ran `python3 tools/audit/seat/queue_pre_flight.py --self-test` at the head and got 43 checks, 1 failed (ev/qpf-head.txt).
+- I ran the same command with only `merge_train.py` swapped back to 507a9ec2 and got 43 checks, 0 failed (ev/qpf-base.txt).
+
+queue_pre_flight.py:241 calls `Train.freeable`. Its fixture stub answers any argv containing `merge-base` with rc 0 (queue_pre_flight.py:326). So the new `merge-base --is-ancestor` probe in `freeable` reads "HEAD 1.. is an ancestor of origin 2..", and the holder is freed instead of parked.
+
+This is also an open class (step 6). The body's class rule for P184 lists no caller of `Train.freeable`, and queue_pre_flight is a second caller that the diff neither touches nor dispositions.
+
+To clear: update queue_pre_flight's fixture so `--is-ancestor` answers non-ancestor for that arm. Add a twin arm in which an ancestor holder passes under `--free-holders`, mirroring merge_train's P184 pair. Then name the red check and its answer in the body (defect-root-cause.md's second trigger). The cheaper detector is `python3 tools/audit/seat/queue_pre_flight.py --self-test`, which takes seconds locally. The body's `## Red checks: none` predates CI.
 
 ## Findings
 
-- Surviving mutant R3: in `Train.serial`, the `except Stop:` arm's `if item.pop("sweep_after", False): self.sweep_bots()` replaced by `pass` leaves the self-test at 376 checks, 0 failed. The body claims "serial sweeps after its merge (or when it stops)", and the stop half is unpinned. Owed: a fixture where a critical-path entry stops (e.g. ci red) under --bot-prs and the record PR still merges. Carry: R10-TRAIN-OVERLAP-GRADE
-- Surviving mutant R9: `policy_refusal`'s `... or ms == "BLOCKED"` dropped leaves 0 failed. The body states that "BLOCKED with every required context green" parks and is offered to the approval carry, but every fixture arm uses reviewDecision REVIEW_REQUIRED or a red/pending context, so the BLOCKED+APPROVED+all-green branch (the #2580 train-27 instance itself) has no test. Owed: a pstate(rd="APPROVED") arm with all required contexts green, carried and not carried. Carry: R10-TRAIN-OVERLAP-GRADE
-- Surviving mutant R5: `rd != "CHANGES_REQUESTED"` changed to `True` leaves 0 failed. No arm pins that a CHANGES_REQUESTED refusal parks without an approval carry. Owed: one null arm. Carry: R10-TRAIN-OVERLAP-GRADE
-- Surviving mutant R8: `_critical`'s `except Exception: return False` changed to `return True` leaves 0 failed. Both self-test drivers inject `critical=lambda it: False`, so the live roster reader `_critical` (roster_lib.reader_ref / show_roster / group_for_branch / critical_path_groups, once-per-run cache) is never executed by any test. The "anything unread is nothing critical" claim is unmeasured. Owed: an arm driving `_critical` with a stub roster_lib, both a raising read and a critical/non-critical mapping. Carry: R10-TRAIN-OVERLAP-GRADE
-- No finder harness exists for these carries (the instances are train logs on the orchestrator's host). The body discloses this, and the self-test fixtures are the measurement. I built no harness of my own beyond the mutation driver named under Evidence. Carry: dismissed: instrument carries with no committed finder harness; fixtures are the measurement, as the body's Friction item records
+- New surviving mutant: in `land`, `if approval and not carried:` changed to `if approval:` leaves 376 checks, 0 failed. Nothing pins that the approval carry is offered only once per landing. Owed: an arm in which a second policy refusal after a carried approval parks without a second carry. Carry: R10-TRAIN-OVERLAP-GRADE
+- New surviving mutant: in `policy_refusal`, the green set `("SUCCESS", "SKIPPED", "NEUTRAL")` narrowed to `("SUCCESS",)` leaves 0 failed. No arm has a required context reading SKIPPED or NEUTRAL, so such a context would read as pending and retry forever without a test noticing. Owed: one arm with a SKIPPED required context and a missing review that parks. Carry: R10-TRAIN-OVERLAP-GRADE
+- New surviving mutant: `policy_refusal`'s `n not in self.ignore` dropped from the red list leaves 0 failed. No arm pins that an `--ignore`d red context does not park the car. Owed: one null arm. Carry: R10-TRAIN-OVERLAP-GRADE
+- Round-1 survivors re-confirmed at this head: R3 (serial's `except Stop:` sweep, my R-a), R5 (CHANGES_REQUESTED, R-d), R9 (BLOCKED+APPROVED, R-e) and R8 (`_critical` except, R-j). All are already written in carry 21 at 78c0bb77. Carry: R10-TRAIN-OVERLAP-GRADE
+- No finder harness exists: the instances are train logs on the orchestrator's host. The body discloses this, and the fixtures are the measurement. The only instrument I built is the mutation driver, a one-off scratch script outside the tree. Carry: dismissed: instrument carries with no committed finder harness; the fixtures are the measurement, as the body's Friction item records
 
 ## Evidence
 
-- RESULT head self-test: `python3 tools/audit/seat/merge_train.py --self-test` prints `merge_train self-test: 376 checks, 0 failed` (ev/selftest-head.txt). This matches the body.
-- RESULT base self-test: the 89ccf732 file prints `merge_train self-test: 355 checks, 0 failed` (ev/selftest-base.txt). This matches the body.
-- RESULT figure: 16 added `check(` call sites (ev/checks.txt), as the body says.
-- RESULT class rule re-run (body's awk rules, E = `def _self_test`): `"gh", "pr", "merge"` returns 2 sites (1263 sweep_bots, 2010 land), `.required(` returns 3 sites (1883 serial pr_head=True, 2072 policy_refusal pr_head=True, 3054 _batch main's set) and `self.sweep_bots()` returns 6 sites. All three match the body, and every site is in the diff or dispositioned (3054 by the forward-carry that is the Block).
-- Mutation proof re-run by me (my own driver, scratchpad mut.py, exact single-occurrence replace into a copy, `--self-test`; ev/mutants.txt). The body's mutants M1 (7 failed), M2 (2), M3 (2), M4 (5), M6 (3), M7 (2), M8 (1), M9 (1) and M10 (3; the body says 1, and my M10 also reddens the pre-existing and P184-null refusal arms because it inverts rather than drops the guard) all redden. My own extras: R1 red-as-pending (1 failed), R2 wait-without-continue (2), R4 batch post-merge sweep off (1), R6 sweep_bots returns None (1), R7 sweep on every attempt (2) all redden. The survivors R3, R5, R8 and R9 are under Findings. M5 and M12 were not re-run.
-- RESULT gate checks run locally at the head: `tests/structure.py` prints STRUCTURE RATCHET PASSED. `PYTHONPATH=tests/hastub tests/harness_headers.py` prints ALL 112 HARNESS HEADER CHECKS PASSED. `tests/env_drift.py --claims-only 507a9ec2` returns rc 0.
-- Steps 4/5: the diff touches no claim file, golden, VERSION, manifest or RELEASE_NOTES.md (three-dot vs merge base 507a9ec2: 3 files, merge_train.py, its instrument .md and delivery row 2992.md).
-- Step 13: `git merge-tree --write-tree origin/main e456ff01` returns rc 0 (tree 4a8247e8), with origin/main at 507a9ec2, which is the merge base. There is no conflict.
-- Role files: `git diff <mb>...origin/main -- dev/governance/roles/` is empty, so the contract is current.
-- Step 14: archscore dS +0.0000 NULL per body; no budget, ledger, closures or INERT moved. Nothing is gamed.
-- CI on this head, re-read live from check-runs: nothing is red. Completed successes include mutation, closure-scope, briefs, typing, browser, env-matrix, arch-score, policy-docs, delivery-status and nightly-status. CodeQL is neutral. Still in progress at verdict time: tests / fast (3.14), tests / closures, tests / coverage, governance / instrument-self-tests and codeql / Analyze (python). With no red check, step 11 owes nothing. The pending runs do not change this block.
-- Step 15: the P34 head-set read moved into `serial` (one writer) and the widened approval carry reuses `_carry_owner_approval` rather than a second path. These are sound, and no architecture breach was found on added lines.
+- RESULT head self-test: `merge_train self-test: 376 checks, 0 failed` (ev/selftest-head.txt), as the body says.
+- RESULT mutation proof, re-run by me with exact single-occurrence replaces into a copy and `--self-test` (ev/mutants.txt). Every body mutant is killed: M1 (7 failed), M2 (2), M3 (2), M4 (5), M6 (3), M7 (2), M8 (1), M9 (1), M10 (1) and M12 (1). My own extras killed: R-b swept-once (2), R-f wait->park (2), R-i unreadable->park (1), R-k BOT returns None (1), R-l batch post-sweep (1) and R-m freeable unreadable (1). Survivors are listed under Findings. M5 and M7b were not re-run.
+- RESULT gate checks at the head: `tests/structure.py` prints STRUCTURE RATCHET PASSED; `tests/harness_headers.py` prints ALL 112 HARNESS HEADER CHECKS PASSED; `tests/env_drift.py --claims-only 507a9ec2` exits 0 (ev/checks.txt).
+- Steps 4 and 5: the diff touches no claim file, golden, VERSION, manifest or RELEASE_NOTES.md. The three-dot diff covers 3 files.
+- Step 13: `git merge-tree --write-tree origin/main HEAD` exits 0 with tree e96e69f3, where origin/main is 1afdef88. There is no conflict.
+- Role files: `git diff <mb>...origin/main -- dev/governance/roles/` is empty.
+- CI re-read live from check-runs: `governance / instrument-self-tests` failed (the Block). Successes include tests / fast (3.14), closures, mutation, closure-scope, typing, browser, briefs, env-matrix, arch-score, policy-docs, delivery-status and nightly-status. Still running at verdict time: tests / coverage, codeql / Analyze (python) and a second prelude.
+- Step 14: the body reports archscore dS +0.0000 NULL, and no budget, ledger, closures or INERT moved.
+- Step 15: the P34 head-set read in `serial` and the widened carry through `_carry_owner_approval` are sound.
