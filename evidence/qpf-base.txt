@@ -1,0 +1,5 @@
+  ok   a verdict that is not 40-hex is a FAIL, the train's queue wording
+  ok   a pull request that is not open is a FAIL
+  ok   an unreadable pull request is a FAIL
+  ok   and a 404 on it is a FAIL after exactly 1 read (no retry masks a refusal)
+queue_pre_flight self-test: 43 checks, 0 failed
