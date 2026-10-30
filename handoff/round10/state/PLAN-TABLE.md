@@ -351,7 +351,7 @@ Role: dev/governance/roles/root-cause.md. |  |
 | R10-README-GRAPHICS | PR | 1 | in-progress | - | sonnet/opus | - | the Home Assistant Marketplace repository page does not show the front-page README graphics. |  |
 | R10-HOTFIX-LEARNER-INPUTS | CORE | 1 | not-started | - | opus/opus | - | Measure-first hotfix from a live user finding (tvofi, 2026-10-30). |  |
 | R10-FACTORY-RESET | CORE | 2 | not-started | - | opus/opus | - | Owner request (tvofi, 2026-10-30): "There should also be an option to reset all parameters to factory integration defaults if there currently is none". |  |
-| R10-WOOD-NOTIFY | CORE | 1 | not-started | - | opus/opus | - | Owner request (tvofi, 2026-10-30): "A Blueprint that sends app notifications when the wood cheaper than pump is expected to turn on during the day, along wit... |  |
+| R10-WOOD-NOTIFY | CORE | 1 | in-progress | - | opus/opus | - | Owner request (tvofi, 2026-10-30): "A Blueprint that sends app notifications when the wood cheaper than pump is expected to turn on during the day, along wit... |  |
 | R10-USER-DOCS-FINAL | DOCS | 3 | not-started | - | opus/opus | - | Owner request (tvofi, 2026-10-30): "does the plan currently cover an update of all user facing documentation at the end of the plan, to make sure all feature... |  |
 
 ## ETA
