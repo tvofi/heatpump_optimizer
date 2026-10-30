@@ -40,7 +40,9 @@ Each of the roster row's nine carries, by its index in the row (the brief's numb
 
 ## Head
 
-a0abddcdf8de3ab983669b599c3a1d1d27770464 (merge base 507a9ec264eb373b132248d752259254d8a9fa4d = origin/main at 2026-10-30T13:07:47Z).
+dd93edd4316910b7362724692da2e1ad16cd9691, a fast-forward of the handoff a0abddcdf8de3ab983669b599c3a1d1d27770464: origin/main e77418f9b48f89421bd72b0ab511c057341c7fa4 merged in, then two repair commits (merge base e77418f9b48f89421bd72b0ab511c057341c7fa4, `date -u` 2026-10-30).
+
+Repair of open_pr's refusal: prepr's CI predict named `tests / closures` SELF-TEST READS INERT for `tools/plan/durations.json` and `tools/plan/replan.py`. `state_docs.py --self-test` (run by `tests/entities.py`) builds the plan page from the real roster, so it imports `replan` and opens `durations.json`: a real read, not an over-eager record. Re-classified rather than `--apply-inert` (which cannot clear a read the host really records): both go to `INERT_EXCEPT` in `tests/closure.py` and join `tests/entities.py`'s closure; the `tools/plan/` prefix stays INERT. The same record showed `tools/audit/seat/plan_page.py` read too (`closure.py merge` refused it), so it is excepted alike. The self-test is untouched.
 
 ## Mutation proof
 
@@ -81,6 +83,10 @@ a0abddcdf8de3ab983669b599c3a1d1d27770464 (merge base 507a9ec264eb373b132248d7522
 - `python3 tests/structure.py` → `STRUCTURE RATCHET PASSED`.
 - `python3 tools/audit/archscore/score.py --diff 507a9ec26` → `Architecture score: dS +0.0000 NULL`.
 - `python3 -I tools/audit/seat/sweep_render.py --self-test` → `sweep_render self-test: 24 checks, 0 failed`.
+
+- Repair, rule: the INERT-vs-read pair is what `python3 tools/pr/ci_predict.py --only self-test-reads --record-self-tests` prints. Before: 2 PREDICT lines (durations.json, replan.py). After: `bash tools/pr/prepr.sh` → `ci predict ... no closures, fast, wave-script or instrument red predicted` and `PRE-PR: dd93edd4... rc=0` at this head.
+- Repair, recording: `tests/derive_closures.sh --single tests/entities.py` exited 1 because the one failing check was `every tracked file is either measured or deliberately classified` naming exactly durations.json and replan.py (all other `FAIL` lines in the log are planted null controls inside passing checks). Recorded with `--record-only --out-dir`, then `closure.py merge --partial --allow-failures` (the tool's documented two-step), which added three files to the closure (plan_page.py, durations.json, replan.py). The recorded `rc` was then restored to 0, because the same script re-run on the merged closure prints `ALL 2488 ENTITY CHECKS PASSED` (null control: the same run before the merge printed `1 of 2488 ENTITY CHECKS FAILED`). The recording was made on Linux in this container, not CI's canonical host; CI re-records `closures`, and `prepr` skips its closures step as unscoped (`tests/closure.py` changed).
+- `python3 tests/structure.py` at this head → `STRUCTURE RATCHET PASSED`. `git log --format=%B origin/main..HEAD | grep -ci "claude\|co-authored"` → 0.
 
 ## Red checks
 
