@@ -86,6 +86,9 @@ MUTANTS = [
     ("cloud_dispatch-10", "cloud_dispatch.py",
      "Wait for CI on this head only by re-running \"\n            f\"`python3 tools/audit/seat/merge_train.py classify {head}`",
      "Wait for CI on this head \"\n            f\"somehow"),
+    # r10-flow-design-stages-p2 E: the setup line's toolchain check.
+    ("cloud_dispatch-11", "cloud_dispatch.py",
+     'f"`{SETUP_CHECK}`, and on REFUSE stop: report its line as your result and start no work. "', '""'),
     ("S03", "cloud_relay.sh", 'if [ -f "$led" ] && grep -qxF "$ref $sha" "$led"; then',
      'if [ -f "$led" ] && ! grep -qxF "$ref $sha" "$led"; then'),
     ("S04", "daemonize.py", '"-u" not in run_argv[1:2]:', '"-u" in run_argv[1:2]:'),

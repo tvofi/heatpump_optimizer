@@ -121,6 +121,10 @@ COMMITTING_ROLES = ("fixer", "probe")
 WIP_NS = "handoff-wip"
 
 
+#: The toolchain check a seat runs before any work (#2709): REFUSE stops the seat.
+SETUP_CHECK = "bash tools/audit/seat/cloud-setup.sh --check"
+
+
 #: A seat's prompt cache lives 5 min: a wait past it rewrites the whole context on
 #: the next turn (R10-FLY-CACHE-PROMPTS). 240 s stays under it; GitHub's 60 s poll
 #: floor stays the lower bound.
@@ -159,7 +163,9 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
            f"user.email {SEAT_EMAIL}`. ") if role in COMMITTING_ROLES else ""
     setup = ("Setup: `git fetch --unshallow --tags origin`. " + pin + "The session-start `toolchain:` line "
              "says whether venv-ci's python3 is on PATH: on REFUSE, start each Bash call with "
-             "`eval \"$(bash .claude/hooks/session-start.sh --env-lines)\"`. Run anything heavy in "
+             "`eval \"$(bash .claude/hooks/session-start.sh --env-lines)\"`. Then run "
+             f"`{SETUP_CHECK}`, and on REFUSE stop: report its line as your result and start no work. "
+             "Run anything heavy in "
              "the background with Monitor and no timeout. " + WAIT_LINE)
     if role == "reviewer":
         body = (
@@ -971,6 +977,8 @@ def self_test() -> int:
           all(WAIT_LINE in t and "240 s" in WAIT_LINE for t in prompts.values()))
     check("the fixer reads its role file, not CLAUDE.md, which the harness already loaded",
           "dev/governance/roles/fixer.md" in prompts["fixer"] and "CLAUDE.md" not in prompts["fixer"])
+    check("every role's setup line runs the toolchain check and stops on its REFUSE (#2709)",
+          all(f"`{SETUP_CHECK}`, and on REFUSE stop" in t.splitlines()[1] for t in prompts.values()))
     rv = prompts["reviewer"]
     check("the reviewer waits for CI only by re-running merge_train.py classify, 60 s apart, until 0, 1 or 2",
           f"`python3 tools/audit/seat/merge_train.py classify {head}` in the background, at least 60 s" in rv

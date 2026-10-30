@@ -37,7 +37,8 @@
   the toolchain (`PATH` with `/opt/hpo/venv-ci/bin`, `BASH_ENV`,
   `HPO_TYPING_PYTHON`, `OPENBLAS_CORETYPE`) comes from the environment's
   variables, not from a profile the seat sources, so the prompt says only
-  that it is on `PATH`; the seat starts off `main` in a shallow clone
+  that it is on `PATH`, and the setup line runs `cloud-setup.sh --check`
+  and stops the seat on its REFUSE; the seat starts off `main` in a shallow clone
   (`git fetch --unshallow --tags origin` first); the return signal is a
   pushed ref: `probe/rev-<pr>-<nonce first 8>` for a reviewer (see
   `cloud_relay.sh`: a cloud reviewer never runs `bus.sh`, whose dispatch record
