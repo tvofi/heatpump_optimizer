@@ -1,0 +1,5 @@
+own-A-drop-final-return: TypeError: 'NoneType' object is not subscriptable
+own-B-drop-final-attempt: TypeError: 'NoneType' object is not subscriptable
+own-C-retry-4xx: ghapi self-test: 32 checks, 1 failed
+own-D-no-backoff: ghapi self-test: 32 checks, 1 failed
+own-E-broaden: ghapi self-test: 32 checks, 1 failed
