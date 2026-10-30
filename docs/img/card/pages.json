@@ -1,0 +1,75 @@
+{
+  "_comment": "Written by HPO_PAGES_OUT=docs/img/card node tests/card_browser.mjs beside the pictures it takes; tests/card_browser.mjs compares the live card to it (P40) and tests/doc_claims.py compares each PNG to it. Never edit by hand.",
+  "figures": {
+    "tile-light.png": {
+      "width": 900,
+      "height": 866,
+      "structure": "41632c2c073d954f"
+    },
+    "plan-light.png": {
+      "width": 1056,
+      "height": 792,
+      "structure": "f55c665ed0d6f3c7"
+    },
+    "plan-why-light.png": {
+      "width": 1056,
+      "height": 792,
+      "structure": "c595d50cf91af7f6"
+    },
+    "setup-light.png": {
+      "width": 1056,
+      "height": 714,
+      "structure": "5d1eaaf120c1d002"
+    },
+    "savings-light.png": {
+      "width": 1056,
+      "height": 164,
+      "structure": "07e4bcc9dd8c2456"
+    },
+    "advisor-light.png": {
+      "width": 1056,
+      "height": 708,
+      "structure": "f6e80bdb46caba23"
+    },
+    "health-light.png": {
+      "width": 1056,
+      "height": 792,
+      "structure": "1c76c65ce6e7146e"
+    },
+    "tile-dark.png": {
+      "width": 900,
+      "height": 866,
+      "structure": "41632c2c073d954f"
+    },
+    "plan-dark.png": {
+      "width": 1056,
+      "height": 792,
+      "structure": "f55c665ed0d6f3c7"
+    },
+    "plan-why-dark.png": {
+      "width": 1056,
+      "height": 792,
+      "structure": "c595d50cf91af7f6"
+    },
+    "setup-dark.png": {
+      "width": 1056,
+      "height": 714,
+      "structure": "5d1eaaf120c1d002"
+    },
+    "savings-dark.png": {
+      "width": 1056,
+      "height": 164,
+      "structure": "07e4bcc9dd8c2456"
+    },
+    "advisor-dark.png": {
+      "width": 1056,
+      "height": 708,
+      "structure": "f6e80bdb46caba23"
+    },
+    "health-dark.png": {
+      "width": 1056,
+      "height": 792,
+      "structure": "1c76c65ce6e7146e"
+    }
+  }
+}
