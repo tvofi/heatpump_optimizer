@@ -1,0 +1,5 @@
+phase  0 verdicts: ['delivered', 'space-instead', 'delivered', 'delivered', 'space-instead', 'delivered', 'delivered', 'space-instead', 'delivered', 'space-instead', 'delivered', 'delivered', 'delivered', 'delivered', 'space-instead', 'delivered']
+phase  0 writes:   [(0, 'turn_on'), (15, 'turn_off'), (30, 'turn_on'), (60, 'turn_off'), (90, 'turn_on'), (105, 'turn_off'), (120, 'turn_on'), (135, 'turn_off'), (150, 'turn_off'), (180, 'turn_on'), (210, 'turn_off'), (225, 'turn_on'), (240, 'turn_on')]
+phase 14 verdicts: ['idle-instead', 'space-instead', 'delivered', 'delivered', 'space-instead', 'delivered', 'delivered', 'space-instead', 'delivered', 'space-instead', 'delivered', 'delivered', 'delivered', 'delivered', 'space-instead', 'delivered']
+phase 14 writes:   [(14, 'turn_on'), (15, 'turn_off'), (30, 'turn_on'), (44, 'turn_on'), (60, 'turn_off'), (74, 'turn_off'), (90, 'turn_on'), (104, 'turn_on'), (105, 'turn_off'), (120, 'turn_on'), (134, 'turn_on'), (135, 'turn_off'), (164, 'turn_off'), (180, 'turn_on'), (194, 'turn_on'), (210, 'turn_off'), (224, 'turn_off'), (225, 'turn_on')]
+AGREE: yes
