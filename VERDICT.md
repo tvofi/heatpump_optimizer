@@ -1,21 +1,19 @@
-Fix review: merge 3fbbb46f67f3905a804f458068fb3cf8a266e9e3
+Fix review: merge 87e5c30f7c30f9d52381a8e19d341c2bdddc8f65
 
-bus-nonce: c502181048e664dcf028247916a56588
-
-Round 1 of this head (supersedes the 87e5c30f dispatch). Record PR: two markdown files, no production code, so no mutation proof of its own and no claim, VERSION or budget movement.
+bus-nonce: 7956f76de68eebb94364201b34297869
 
 ## Findings
 
-- P294's APPROVAL-OWED condition (BLOCKED + REVIEW_REQUIRED + a merge at the head) also holds while a required check is still running or red, and the catch-all's UNKNOWN row is a transient GitHub value right after a push. The ruling's null controls (DIRTY, stale head, APPROVED+CLEAN) name no row for BLOCKED/REVIEW_REQUIRED with a pending or red required check, nor for a one-pass UNKNOWN, so the fixer may ship a level that flags before approval is actually the missing step. The fixer should add those two null-control rows. Carry: R10-FLY-TICK-APPROVAL-OWED
+- The ruling's sample is not reproducible from the verdict refs as they stand: #2955's ref tip (`077584681`, merge of 502b0df) no longer holds item `158ad202` ("NOT one of the required contexts on main-protect and does not block a merge"). It sits in the superseded merge verdict `885d4751` of the same ref's history. The fixer of the carry must build the #2955 fixture from that commit's VERDICT.md, not the tip. Carry: R10-FLY-CARRY-DISPOSITION
+- A flagged item the ruling does not list: #2955's current verdict, item `2471d3e6` ("None. The merge resolution is a pure union; nothing is deferred or owed."), is flagged `non-blocking` outside `## Evidence`; a statement that nothing is owed is read as a deferral. Null-control candidate for the carry's classifier work. Carry: R10-FLY-CARRY-DISPOSITION
 
 ## Evidence
 
-- Rulings vs proposal-triage.md: each is one `## P<n>` entry with Verdict, Source, Instances, Cost and Binding; ACCEPT names a destination. P293 lands on R10-FLY-CARRY-DISPOSITION, which exists on the roster. P294 names a new group; its roster op is the orchestrator's (held, per the body). Roles are unchanged on main (empty three-dot diff over dev/governance/roles/).
-- P293 sample re-run: I fetched verdict/2936..2974 and ran the 30 merge verdicts through carry_audit.items(text, True) from 043b111d0. 9 flagged (7 evidence, 2 non-blocking), 7 evidence items in 5 verdicts (#2937, #2939, #2955, #2959, #2969): matches the body. The #2955 item (158ad202) is in that PR's earlier verdict commit c8ff9d8a6; the ref's tip 077584681 no longer holds it, so a re-run on today's refs reads 6 in 4. Item texts for the other six match the ruling's classes (4 does-not-block, 1 code-span minor, 2 advisory).
-- Null controls named in the ruling exist: the #2465-shape and deferral rows at carry_audit.py self-test lines 1021 and 1034; NOT_REQUIRED, NONBLOCK and CODE_SPAN exist as cited.
-- P294 code facts at origin/main 1148ee635: prs() --json lacks reviewDecision (lines 552-554); verdict_levels at 653, MERGE-READY at 689, BLOCKED-UNFIXED at 691; owed_unactioned.py FAMILY at line 53 lists MERGE-READY and BLOCKED-UNFIXED only. verdict/2962, 2976 and 2977 commit times (20:56+01, 03:02+01, 02:18+01) and merge heads match the body.
-- Merge with origin/main: git merge-tree --write-tree exits 0 (ev/merge-tree.txt).
-- Delivery row dev/programme/delivery/2980.md is present, one line, open.
-- carry_audit at the head: 0 findings in the packet; the body's Forward-carry is none, correct for a record PR. figure_lint: 1 resolved, 1 unverified (git log flags), 0 refused. The body says the diff is one markdown file; it is two (the delivery row is the other).
-- CI at the head (check-runs API, read live): no red run. Completed ones are success or skipped; closures, browser, fast, coverage, env-matrix and instrument-self-tests were still in progress, so the gate is not concluded. Not re-run.
-- VERSION, manifest version and RELEASE_NOTES heading untouched (diff touches two files only).
+- RESULT diff: two files only, `dev/programme/triage/s6-batch64.md` (new) and `dev/programme/delivery/2980.md` (new, one `open` row for #2980 in the same shape as #2974's); no code, VERSION, manifest, notes or claim file touched.
+- RESULT sample: re-ran `carry_audit.items(text, True)` (module at head, identical to the base for this file's purpose) over the 30 highest-numbered `verdict/<pr>` refs opening `Fix review: merge`, #2936 to #2974 (ev/flagged.txt). 9 flagged, matching the ruling's 9. 6 are in `## Evidence`, not 7: #2937 19d896fa, #2939 3c055bc1 and f76b3ac3, #2959 dde38e84 and 50a530e7, #2969 c21695db all re-derive and are measurements. The seventh (#2955 158ad202) is the superseded text above. The other 3 flagged are non-blocking items (#2947, #2955, #2971), which the ruling counts as 2. Class counts A 4 / B 2 / C 1 stand if 158ad202 is taken from `885d475`; I did not re-derive that item from the tip.
+- RESULT null control: the ruling names four controls that must stay findings (#2465 row, deferral row, new "not this pull request's" row, `minor` drift outside the span) and puts them in the carry, not in this PR; nothing to run here. The rejected arm is justified by the two self-test rows it names.
+- RESULT destination: `R10-FLY-CARRY-DISPOSITION` is in `dev/programme/rosters/wave-r10-groups.json` at origin/main, stage `not-started`, and its brief names `carry_audit.py`'s classifier. The carry text is in the ruling for `roster_edit.py` to cite; this PR does not edit the roster (the contract forbids it).
+- RESULT carry_audit: the packet prints `CARRY-AUDIT: 0 finding item(s)` and `FIGURES: 0 refused` at the head.
+- RESULT merge: `git merge-tree --write-tree origin/main 87e5c30f7c30f9d52381a8e19d341c2bdddc8f65` exits 0 (ev/merge-tree.txt). Roles directory unchanged on main since the merge base.
+- RESULT CI: check-runs API on the head shows no failed run; success on mutation, closure-scope, delivery-status, nightly-status, budget-raise-gate, briefs, hassfest, wave-script and CodeQL. Still in progress when read: tests fast/closures/coverage/typing/browser/arch-instrument, governance policy-docs/env-matrix/instrument-self-tests, arch-score. Not re-run (cite CI's heavy runs).
+- RESULT cost claim: the ruling states `carry_audit.py` has no `--budgets` row; not re-derived by me.
