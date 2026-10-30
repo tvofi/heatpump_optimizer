@@ -1198,6 +1198,28 @@ GH
   rowless rowreset
   [ "$(cat "$t/opwt")" = branch ] && [ "$(cat "$t/rowpushed")" = 0 ]
   ck "  mutant mut:rowreset (its line deleted): the row commit stays unpushed on the branch in the opener's worktree (the defect)" $?
+  # A conflicted main merge was left in the opener's worktree, and pr_release_wt kept it as dirty
+  # work (carry 8); the opener now aborts its own merge and refuses, and the clean worktree, which
+  # origin never had, is removed with its branch. main gains a conflicting `b` for this arm only.
+  git -C "$o" checkout -q main && printf 'main b\n' > "$o/b" && git -C "$o" add b && git -C "$o" commit -q -m "main b" \
+    && git -C "$o" update-ref refs/heads/handoff-body/q "$body" && git -C "$o" branch -f handoff/q "$codeR"
+  mconf() { # <mutant>
+    local sd=$t/mconf-$1 g
+    rm -rf "$sd"; mkdir -p "$sd"; sd=$(cd "$sd" && pwd -P); git -C "$m" worktree prune; git -C "$m" branch -qD fix/q 2>/dev/null
+    for g in open_pr.sh update_pr.sh delivery_row.sh pr_args.sh pr_cap.py; do
+      if [ "$1" = - ]; then cp "$src/$g" "$m/tools/audit/seat/$g"; else grep -v "# mut:$1\$" "$src/$g" > "$m/tools/audit/seat/$g"; fi
+    done
+    HPO_STATE_DIR=$sd BR=fix/q BR_FIXED=1 bash "$m/tools/audit/seat/open_pr.sh" q "$codeR" T G > "$t/outq" 2>&1; echo $? > "$t/rcq"
+    [ -d "$sd/pr/q/wt" ] && echo kept > "$t/wtq" || echo gone > "$t/wtq"
+    git -C "$m" worktree remove --force "$sd/pr/q/wt" 2>/dev/null; git -C "$m" worktree prune; git -C "$m" branch -qD fix/q 2>/dev/null; true
+  }
+  mconf -
+  [ "$(cat "$t/rcq")" != 0 ] && grep -qF "open_pr: REFUSE: merging origin/main into $codeR conflicts" "$t/outq" && [ "$(cat "$t/wtq")" = gone ]
+  ck "open_pr: a main merge that conflicts is aborted and refused, and its clean worktree is removed" $?
+  mconf mergeabort
+  [ "$(cat "$t/wtq")" = kept ] && grep -qF "it is dirty" "$t/outq"
+  ck "  mutant mut:mergeabort (its line deleted): the conflicted worktree is kept as dirty work (the defect)" $?
+  git -C "$o" reset -q --hard HEAD~1; git -C "$o" branch -qD handoff/q; git -C "$o" update-ref -d refs/heads/handoff-body/q
   racerun oplock; [ "$(cat "$t/rcu")" != 75 ] && ! grep -qF "update_pr: BUSY" "$t/outu" && [ "$(cat "$t/rco")" = 0 ] && [ "$(cat "$t/rowpushed")" = 1 ]
   ck "  mutant mut:oplock (its line deleted): update_pr.sh takes the branch (not BUSY); the unpushed-work refusal alone keeps the row" $?
   racerun oplock+unpushed; [ "$(cat "$t/rco")" != 0 ] && grep -qF "is not the committed tip" "$t/outo" && [ "$(cat "$t/rowpushed")" = 0 ]

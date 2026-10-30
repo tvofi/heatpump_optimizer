@@ -55,7 +55,12 @@ git show "$PR_BT:BODY.md" > $D/body.md
 python3 -I "$SEAT/pr_cap.py" info --repo $R  # mut:openinfo
 git worktree add -q -b $BR $WT $C
 cd $WT
-git fetch -q origin main; git -c user.name=tvofi -c user.email=70032254+tvofi@users.noreply.github.com merge -q --no-edit origin/main
+git fetch -q origin main
+# A conflicted merge is this run's own, not authored work: abort it, so pr_release_wt reads a clean
+# tree and removes the worktree origin never had, rather than keeping it as dirty (carry 8).
+MERGE_OK=; git -c user.name=tvofi -c user.email=70032254+tvofi@users.noreply.github.com merge -q --no-edit origin/main && MERGE_OK=1
+[ -n "$MERGE_OK" ] || git merge --abort  # mut:mergeabort
+[ -n "$MERGE_OK" ] || pr_refuse "merging origin/main into $C conflicts; merge it into handoff/$T, then re-run"
 PYTHONPATH="$PRT" python3 - $D/body.md $(git rev-parse HEAD) $C $(git rev-parse --short origin/main) <<'E0'
 import sys; from head_note import prefix
 p,H,C,M=sys.argv[1:5]; s=open(p).read()

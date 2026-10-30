@@ -24,6 +24,8 @@
   (#2625, #2629); only a close that fails prints `ROWLESS`, for
   `update_pr.sh`'s `ensure_row`. The PR is created only after the body
   contract passes: `app_push.sh` runs `prepr.sh` and the `ref_privacy` guard
-  before its push.
+  before its push. A main merge that conflicts is aborted and refused
+  (`merging origin/main into <sha> conflicts`), so the clean worktree is
+  released instead of kept as dirty.
   `--self-test` runs `delivery_row.sh`'s, then
   `pr_args.sh`'s.
