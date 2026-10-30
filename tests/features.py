@@ -73382,9 +73382,8 @@ async def _sa_guarded(guard=None):
     armed = _sa_pa.async_track_time_interval
     _sa_pa.async_track_time_interval = lambda _h, fn, _i: (ticks.append(fn), (lambda: dropped.append(fn)))[1]
     hass = FakeHass({"switch.hp": FakeState("off", last_updated=_SA_T0)})
-    coord = Coord(hass, FakeEntry(data={
-        **_LC_DATA, "heat_pump_switch_entity": "switch.hp", "pump_duty_mode": "observe",
-    }))
+    switch = {} if guard == "no_switch" else {"heat_pump_switch_entity": "switch.hp"}
+    coord = Coord(hass, FakeEntry(data={**_LC_DATA, **switch, "pump_duty_mode": "observe"}))
     coord._mode = "auto"
     coord._optimization_result = _sa_plan()
     try:
@@ -73407,6 +73406,11 @@ async def _sa_guarded(guard=None):
             coord._last_optimization = now - timedelta(days=1)
         elif guard == "released":
             coord._entry_released = True
+        elif guard == "short":
+            # The power schedule ends a step before the stamps do; the switch
+            # schedule still names step 1, so only the length guard leaves it.
+            coord._optimization_result = SimpleNamespace(
+                **{**vars(_sa_plan()), "power_schedule": [1.5], "heat_pump_on_schedule": [True, False]})
         for tick in list(ticks):
             await tick(now)
         writes = [service for domain, service, _d in hass.services.calls if domain == "switch"]
@@ -73420,7 +73424,8 @@ async def _sa_guarded(guard=None):
         _sa_pa.async_track_time_interval = armed
 
 
-_sa_g = {g: _asyncio.run(_sa_guarded(g)) for g in (None, "boost", "sysid", "comfort", "stale", "released", "unload")}
+_sa_g = {g: _asyncio.run(_sa_guarded(g)) for g in (
+    None, "boost", "sysid", "comfort", "stale", "released", "short", "unload", "no_switch")}
 R.check(
     "the step tick writes the plan's OFF at a boundary when nothing holds the cycle's write off the plan",
     _sa_g[None][0] == ["turn_off"],
@@ -73432,6 +73437,7 @@ for _sa_name, _sa_key in (
     ("a fixed (comfort) mode", "comfort"),
     ("a stale plan", "stale"),
     ("a released entry", "released"),
+    ("a step past the plan's power schedule", "short"),
 ):
     R.check(
         f"the step tick writes nothing at a boundary under {_sa_name}",
@@ -73442,6 +73448,11 @@ R.check(
     "unload drops the one step tick two cycles armed",
     _sa_g["unload"][1] is True and _sa_g["unload"][2] is True and _sa_g[None][2] is False,
     f"unload {_sa_g['unload']}; kept {_sa_g[None]}",
+)
+R.check(
+    "an install with no supply switch arms no step tick, where one with a switch arms it",
+    _sa_g["no_switch"][:2] == ([], False) and _sa_g[None][1] is True,
+    f"no switch {_sa_g['no_switch']}; switch {_sa_g[None]}",
 )
 # The pump_duty record's held slots are declared, every one the arbiter can
 # write: the silent switch (D15 L5) and the GCHV night registers (#1913).
