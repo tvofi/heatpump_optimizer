@@ -1,0 +1,5 @@
+A	tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._dhw_probe_temperature.GUARD_OFF.bc450a12.json
+A	tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._fold_measured_cop.BOOLOP.d3d77cdd.json
+A	tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._fold_measured_cop.GUARD_OFF.d3d77cdd.json
+A	tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._learning_frozen.BOOLOP.a70a3ddd.json
+A	tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._learning_frozen.GUARD_OFF.a70a3ddd.json
