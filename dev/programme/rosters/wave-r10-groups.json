@@ -10067,7 +10067,7 @@
     "branch": null,
     "commit": null,
     "last_step": null,
-    "next_step": "dispatch a fixer (no after-groups)",
+    "next_step": "done: merged in #2837 (f6784210c)",
     "note": null
    }
   },
