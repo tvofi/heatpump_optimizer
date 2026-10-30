@@ -1,0 +1,3 @@
+UNROUTED #3001 review 6527309416 item c4431278 (## Evidence) [evidence]: "- Disposition-stage count in the live roster: 11 at both the head and the base, under the body's own rule (DIS"
+UNROUTED #3001 review 6527309416 item 3de8ca1d (## Evidence) [evidence]: '- Forward-carry: every residual in the body routes to a group (carry_audit: 5 routed, 0 unrouted).'
+CARRY-AUDIT #3001: 7 finding item(s): 5 routed, 2 unrouted, 0 bad destination(s)
