@@ -3877,7 +3877,7 @@
     "branch": "handoff/r10-policy-lint-family",
     "commit": "5c9828fe5e5521a9c24a095daf3cf83263d67f9a",
     "last_step": null,
-    "next_step": "dispatch a fixer once every `after` group is done",
+    "next_step": "done: merged in #2669 (5c9828fe5)",
     "note": null,
     "pr": 2669
    },
