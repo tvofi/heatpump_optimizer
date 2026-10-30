@@ -6,13 +6,14 @@ The record is `dev/audit/rca/R10-RCA-PREPR-HEAD-GRADERS.md`; `dev/audit/config/b
 
 ## Delta since the last body
 
-The last body described `7d1fbc055`. The arm code (`tools/pr/ci_predict.py`, `tools/policy/`, the drivers) is byte-identical at this head; `git diff 7d1fbc055 HEAD -- tools/pr/ci_predict.py tools/policy dev/audit/rca/prepr-head-graders` prints nothing. The delta `3efeea217...7af0ba5f9` is two round-7 commits, merged here by `bf897ca30` and `f2daca863`:
-- `c78ea804e` marks the record's section 7 lines for the three restoring jobs outside governance.yml (`briefs` in tests.yml, `pr-contract`, `budget-raise-gate`) `Carry: #2952`, and adds `dev/programme/carries/carry-2952.json`, #2952's brief: the enumeration rule as the control, the unmeasured `pr-contract` and `budget-raise-gate` instances as the precondition. No code changes.
-- `7af0ba5f9` records `tests/closures.json` for that new carry file, because `tests/entities.py` reads every carry file and refused it as unclassified.
+The last body described `f2daca863`. Round 8 blocked it carry-missing: the destination group R10-FLY-CIPREDICT-RESTORING had a brief that contradicted `carry-2952.json`. The orchestrator's roster edit-brief now puts the carry's brief, control, precondition and refusal into the group's brief, at roster `0cdedcc9c02ebf52c96d14ffe5425ba9270efa8e` on `handoff/audit-r10-roster` (its `brief` contains "Refused: listing the three jobs by name"). A live group covers #2952, so `brief_lint.mjs` refuses a carry file there. This head is one commit on `f2daca863`:
+- deletes `dev/programme/carries/carry-2952.json` and its `tests/closures.json` entry;
+- rewrites the record's section 7 `Carry:` markers to name R10-FLY-CIPREDICT-RESTORING and its destination sentence to cite the group and roster SHA.
+The arm code is byte-identical; `git diff f2daca863 HEAD -- tools/pr/ci_predict.py tools/policy dev/audit/rca/prepr-head-graders` prints nothing.
 
 ## Head
 
-`f2daca863fb67409458f788e61839d4460a17ccb`, measured against `origin/main` `2fde52634` (2026-10-29), merge-base `ce5940c0d`. `git merge-tree --write-tree origin/main HEAD` exits 0: no conflict. `VERSION`, the manifest, `RELEASE_NOTES.md` and both claim files are untouched.
+`34abdd2eabf88c3083537bf7315cb1a2b6768317`, measured against `origin/main` `043b111d0` (2026-10-30), merge-base `ce5940c0d`. `VERSION`, the manifest, `RELEASE_NOTES.md` and both claim files are untouched.
 
 ## Mutation proof
 
@@ -29,7 +30,7 @@ Run with `python3 -I dev/audit/rca/prepr-head-graders/mutants.py .`. Each mutant
 - No real run line has an unmapped token. A planted `$ODD` token and a dropped exemption are each named as a gap.
 - `corpus_excluded.json` keys no job, and a restored path the base tip lacks keys no job.
 - `keycount.py`'s null pathspec keys 0 of 584 merges.
-- The two round-7 commits change no code: the carry file keys no restoring job.
+- The round-8 commit changes no code: the `git diff f2daca863 HEAD` above prints nothing.
 
 ## Figures
 
@@ -42,12 +43,12 @@ Run with `python3 -I dev/audit/rca/prepr-head-graders/mutants.py .`. Each mutant
 
 ## Red checks
 
-none
+- `tests / nightly-status`: graded on main, not by this branch; the diff touches no workflow, test or production file it reads.
 
 ## Forward-carry
 
-- `review_packet.py render` refuses `host-path` on a cloud seat: `ref_privacy.Identity.of_host` adds the account's home from passwd and matches it as a bare substring. An instrument defect in `tools/audit/seat/ref_privacy.py`, outside this class. Carry: R10-RECORD-API-O1
-- The three restoring jobs outside governance.yml (`briefs`, `pr-contract`, `budget-raise-gate`) are not predicted by the graders arm; their instances are unmeasured. Carry: #2952
+- `review_packet.py render` refuses `host-path` on a cloud seat: `ref_privacy.Identity.of_host` adds the account's home from passwd and matches it as a bare substring. An instrument defect in `tools/audit/seat/ref_privacy.py`, outside this class. Carry: dismissed: R10-RECORD-API-O1, its former destination, is done and no live group covers `ref_privacy.py`; not this class, reported for the orchestrator to route
+- The three restoring jobs outside governance.yml (`briefs`, `pr-contract`, `budget-raise-gate`) are not predicted by the graders arm; their instances are unmeasured. The group's brief carries the enumeration rule as the control, the unmeasured instances as the precondition and the refusal to list the three by name. Carry: R10-FLY-CIPREDICT-RESTORING (roster `0cdedcc9c02ebf52c96d14ffe5425ba9270efa8e` on `handoff/audit-r10-roster`)
 
 ## Friction
 
