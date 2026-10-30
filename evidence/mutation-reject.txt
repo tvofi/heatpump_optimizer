@@ -1,0 +1,1 @@
+REJECT dev/programme/triage/s6-batch66.md#P297 is not an ACCEPT ruling (REJECT)
