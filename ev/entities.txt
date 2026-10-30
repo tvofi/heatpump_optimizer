@@ -1,0 +1,3 @@
+  ok   a red script whose output has no FAIL line still names its reason
+  ok   run_script returns the stdout whose FAIL line names the red check (#1134)
+ALL 2483 ENTITY CHECKS PASSED
