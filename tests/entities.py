@@ -4077,7 +4077,7 @@ def _p2_registry(sources):
                      "a temperature gap in K (target minus room), not a power",
                  "coordinator.py::HeatPumpOptimizerCoordinator._maybe_run_fuse_advisor":
                      "a comfort shortfall in K (the fuse advisor's breach), not a power",
-                 "coordinator.py::HeatPumpOptimizerCoordinator._record_accuracy":
+                 "accuracy.py::pairs_interval":
                      "an elapsed time in hours (the pairing window's lower edge), not a power",
                  "dhw_learning.py::DhwProfileLearner.async_learn_usage":
                      "a tank draw intensity in K/h, not a power",
@@ -6137,6 +6137,37 @@ R.check(
         FakeCoordinator({**DATA, "measured_power_available": False}), ENTRY
     ).extra_state_attributes.get("waiting_for")
     == "measured_power_entity",
+)
+
+# R10-COP-GATE (#2262): where the draw does not follow the plan's ask and no
+# heat reading exists, a latched COP is no reading of this install: the sensor
+# waits for a heat meter instead of showing it. A heat counter's open span is
+# its own code beside a measured COP, never a refusal, and the latch's time
+# rides with it.
+_cg_cop = {
+    obs: sensor.ObservedCOPSensor(FakeCoordinator({
+        **DATA, "measured_cop": 2.4, "cop_observability": obs,
+        "cop_refusal": "span_open" if obs == "heat_metered" else "draw_off_ask",
+        "measured_cop_at": "2026-10-24T03:00:00+00:00",
+    }), ENTRY)
+    for obs in ("not_measurable", "heat_metered", "draw_follows_plan")
+}
+_cg_view = {
+    obs: (ent.available, ent.extra_state_attributes.get("waiting_for"),
+          ent.extra_state_attributes.get("last_refusal"),
+          ent.extra_state_attributes.get("measured_at"))
+    for obs, ent in _cg_cop.items()
+}
+R.check(
+    "a COP not measurable here waits for a heat meter; a heat-metered COP "
+    "between span closes stays measured with span_open as its code; a draw "
+    "that follows the plan keeps its COP (null); each carries its fold time",
+    _cg_view == {
+        "not_measurable": (False, "heat_meter", "draw_off_ask", "2026-10-24T03:00:00+00:00"),
+        "heat_metered": (True, None, "span_open", "2026-10-24T03:00:00+00:00"),
+        "draw_follows_plan": (True, None, "draw_off_ask", "2026-10-24T03:00:00+00:00"),
+    },
+    f"{_cg_view!r}",
 )
 
 # --- a failed refresh reaches every entity ----------------------------------
@@ -12379,7 +12410,8 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
     ),
     "ObservedCOPSensor": frozenset({
         "cop_samples", "cop_scale", "defrost_buckets", "defrost_derate",
-        "defrost_samples", "modelled_cop", "waiting_for"
+        "defrost_samples", "modelled_cop", "waiting_for",
+        "measured_at", "last_refusal", "observability",  # R10-COP-GATE (#2262)
     }),
     "OptimizationScoreSensor": frozenset(),  # scores + price_tiles; #405
     "OptimizationStatusSensor": frozenset({
@@ -19952,6 +19984,13 @@ R.check(
 # exits 1 on a rate limit and on a crash alike (P2a's forward-carry). The
 # step's own text is run under bash with a stand-in `python3` printing each
 # outcome, so the classification is measured, not read.
+# GitHub's shell for a `run:` block that names none: `bash -e {0}`. A harness
+# executing a step's own text runs it under this, never a bare `bash -c`, or a
+# bare call the step meant to classify ends the runner's step and passes the
+# harness's (gate-sweep's `out=$(...)`, R10-RCA-HOTFIX-BATCH-ERREXIT's I4).
+_GHA_RUN = ["bash", "-e", "-c"]
+
+
 def _stub_path_env(bindir, **extra: str) -> "dict[str, str]":
     """This process's environment with ``bindir`` first on PATH and no BASH_ENV.
 
@@ -19967,7 +20006,7 @@ def _gs_step_verdict(script: str, stdout: str, rc: int) -> "tuple[int, str]":
         fake = Path(d) / "python3"
         fake.write_text("#!/bin/sh\nprintf '%s' \"$FAKE_OUT\"\nexit \"$FAKE_RC\"\n")
         fake.chmod(0o755)
-        p = _subprocess.run(["bash", "-c", script], capture_output=True, text=True, timeout=30,
+        p = _subprocess.run([*_GHA_RUN, script], capture_output=True, text=True, timeout=30,
                             env=_stub_path_env(d, RUN_ID="123", FAKE_OUT=stdout, FAKE_RC=str(rc)))
     return p.returncode, p.stdout
 
@@ -20064,7 +20103,7 @@ def _bash_env_reads() -> "tuple[str, str]":
             (d / "python3").chmod(0o755)
         prof = Path(h, "profile.sh")
         prof.write_text(f'export PATH="{tool}:$PATH"\n')
-        control = _subprocess.run(["bash", "-c", "python3"], capture_output=True, text=True, timeout=30,
+        control = _subprocess.run([*_GHA_RUN, "python3"], capture_output=True, text=True, timeout=30,
                                   env={**os.environ, "PATH": f"{stub}:{os.environ.get('PATH', '')}",
                                        "BASH_ENV": str(prof)}).stdout.strip()
         held = os.environ.get("BASH_ENV")
@@ -21546,11 +21585,13 @@ R.check(
 # A script another script drives in a subprocess reaches the table only
 # through its driver's fold: a change to it re-derives the driver and the
 # child, never every closure (R9-F10.9; this pinned `full` until then).
+# tests/entities.py is the third entry: countermeasure B's pin reads every
+# non-INERT .py under tests/ and tools/, so every such edit re-derives it.
 _A_DRIVEN = _closure.affected(["tests/dst_checks.py"])
 R.check(
     "a change to a subprocess-driven script re-derives its driver and itself",
     _A_DRIVEN["case"] == "scoped"
-    and _A_DRIVEN["rederive"] == ["tests/features.py", "tests/dst_checks.py"],
+    and _A_DRIVEN["rederive"] == ["tests/entities.py", "tests/features.py", "tests/dst_checks.py"],
     f"case={_A_DRIVEN['case']} rederive={_A_DRIVEN['rederive']}",
 )
 # A tests/closures.json change runs the scripts whose entry moved, measured
@@ -21651,11 +21692,13 @@ R.check(
     and _nr_anyway == ["tests/harness_headers.py"],
     f"not run={[r[0] for r in _nr_rows]} ran anyway={_nr_anyway}",
 )
-# The cost claim: one script's closure touched re-derives ONE entry.
-_A_ONE = _closure.affected(["tests/open_meteo.py"])
+# The cost claim: one script's closure touched re-derives ONE entry. The file
+# is a data file one script reads: a script's own .py is in tests/entities.py's
+# closure too, by countermeasure B's read, so it re-derives two.
+_A_ONE = _closure.affected(["tests/typing_budgets.json"])
 R.check(
     "a diff inside one closure re-derives one entry, not eighteen",
-    _A_ONE["case"] == "scoped" and _A_ONE["rederive"] == ["tests/open_meteo.py"],
+    _A_ONE["case"] == "scoped" and _A_ONE["rederive"] == ["tests/typing_ruler.py"],
     f"case={_A_ONE['case']} rederive={_A_ONE['rederive']}",
 )
 # A recording is a real run: card.mjs reads the payload plan_view.py writes,
@@ -28320,28 +28363,244 @@ def _raf_review_gated(job: str) -> bool:
     return bool(hits) and g > 0 and all(h > g for h in hits) and bool(post)
 
 
+# The `--require-green` call must survive the step's shell, and so must every
+# exit a step means to read. GitHub runs a `run:` block under errexit -- the
+# default shell is `bash -e {0}`, `shell: bash` is `bash --noprofile --norc
+# -eo pipefail {0}`, `shell: sh` is `sh -e {0}`, and a `set -uo pipefail` line
+# does not clear `-e` -- so a `$?` read after a BARE simple command is dead
+# code for every nonzero exit: errexit ends the STEP with that exit first.
+# Twice this reached main (R10-RCA-HOTFIX-BATCH-ERREXIT): the guard's
+# `guard --require-green; rc=$?` (run 38553291314, exit 3, no
+# `AUTOMERGE:` line), and the batch gate's bare `--batch-due` then `batch=$?`
+# (job 121376503388, exit 4) after the barrier pinned only the first call.
+# The unit is every errexit block in the tree, not one call. A producer that
+# is a condition (`if cmd; then rc=0; else rc=$?; fi`, `cmd || rc=$?`) or a
+# read under `set +e` is exempt; a `$?` in an `if`/`while`/`until` TEST reads
+# the bare producer before it, an `elif` test the `if` condition's. An
+# arithmetic `(( ... ))` test counts as a test, a departure from the finder
+# harness, which misses it (#2849's round-2 review, this group's carry 5).
+# Reference logic and its finder: dev/audit/harnesses/r10_errexit_capture.py
+# at e1a684789. Gap, measured and left: a producer read through `out=$(...)`
+# and its output is not a `$?` read -- gate-sweep's I4 -- and is caught where
+# a harness runs the step under `_GHA_RUN` instead.
+_EX_SHELLS = {None, "bash", "sh"}
+_EX_SAFE = re.compile(
+    r"^(if|elif|while|until)\b|^!|\|\||&&|"
+    r"(^|\s)(then|do|else|\{|\()$|^(fi|done|esac|\}|\))\b|^(else|then|do)\b")
+_EX_TEST_HEAD = re.compile(r"^(if|while|until)\s+(!\s*)?(?=\[|test\b|\(\()")
+_EX_READER = re.compile(r"^(\w+=|case\b|\[|\[\[|\(\(|test\b|echo\b|printf\b|exit\b|return\b|local\b)")
+
+
+def _ex_run_blocks(root: Path):
+    """(file, job, step, run text) for every errexit `run:` block under root."""
+    for f in sorted([*(root / ".github" / "workflows").glob("*.yml"),
+                     *(root / ".github" / "actions").glob("*/action.yml")]):
+        doc = _yaml.safe_load(f.read_text()) or {}
+        wdef = ((doc.get("defaults") or {}).get("run") or {}).get("shell")
+        jobs = doc.get("jobs") or {}
+        if "runs" in doc:  # a composite action
+            jobs = {"(composite)": {"steps": (doc["runs"] or {}).get("steps") or []}}
+        for jname, job in jobs.items():
+            jdef = (((job or {}).get("defaults") or {}).get("run") or {}).get("shell", wdef)
+            for i, step in enumerate((job or {}).get("steps") or []):
+                if "run" in step and step.get("shell", jdef) in _EX_SHELLS:
+                    yield (f.relative_to(root).as_posix(), jname,
+                           step.get("name") or f"step {i}", str(step["run"]))
+
+
+def _ex_hazards(text: str) -> "tuple[int, list[str]]":
+    """(`$?` reads examined, the reads errexit makes dead) in one errexit block:
+    comment lines dropped, continuations joined, the producer the statement
+    before the read on its line, else the line before."""
+    lines, cur = [], ""
+    for raw in text.split("\n"):
+        s = raw.strip()
+        if not cur and (not s or s.startswith("#")):
+            continue
+        if s.endswith("\\"):
+            cur += s[:-1] + " "
+            continue
+        lines.append((cur + s).strip())
+        cur = ""
+    if cur:
+        lines.append(cur.strip())
+    reads, hits, errexit, prev = 0, [], True, ""
+    for line in lines:
+        if re.match(r"^set\s+(\+e\b|\+o\s+errexit\b)", line):
+            errexit = False
+        elif re.match(r"^set\s+(-[a-z]*e|-o\s+errexit\b)", line):
+            errexit = True
+        for m in re.finditer(r"\$\?", line):
+            reads += 1
+            head = line[:m.start()]
+            cut = head.rfind(";")
+            whole = head[:cut].strip() if cut >= 0 else prev
+            producer = whole.split(";")[-1].strip()
+            stmt = _EX_TEST_HEAD.sub("", head[cut + 1:].strip())
+            if (errexit and whole and not _EX_SAFE.search(producer)
+                    and not _EX_SAFE.search(stmt) and (not stmt or _EX_READER.match(stmt))):
+                hits.append(f"`{producer[:90]}` then `{line[:60]}`")
+        prev = line
+    return reads, hits
+
+
+def _ex_scan(root: Path) -> "tuple[int, int, list[str]]":
+    blocks = reads = 0
+    out = []
+    for f, job, name, run in _ex_run_blocks(root):
+        blocks += 1
+        n, hs = _ex_hazards(run)
+        reads += n
+        out += [f"{f} job={job} step={name!r}: {h}" for h in hs]
+    return blocks, reads, out
+
+
+_EX_BLOCKS, _EX_READS, _EX_HITS = _ex_scan(Path("."))
+R.check(
+    "no errexit `run:` block reads `$?` after a bare producer (the unit is "
+    "every workflow and composite action, R10-RCA-HOTFIX-BATCH-ERREXIT A)",
+    _EX_BLOCKS > 0 and _EX_READS > 0 and not _EX_HITS,
+    f"blocks={_EX_BLOCKS} reads={_EX_READS} hits={_EX_HITS}; errexit ends the "
+    "step with the producer's exit before the read -- wrap the producer in a "
+    "condition (`if cmd; then rc=0; else rc=$?; fi`, or `rc=0; cmd || rc=$?`)",
+)
+_EX_CASES = {  # run text -> the hits it must yield
+    "bare then capture": ("set -uo pipefail\ncmd --batch-due\nbatch=$?\n", 1),
+    "same line": ("guard --require-green; rc=$?\ncase $rc in 0) ;; esac\n", 1),
+    "case on $?": ("cmd\ncase $? in 4) exit 0 ;; esac\n", 1),
+    "or-capture": ("batch=0\ncmd --batch-due || batch=$?\n", 0),
+    "if/else": ("if guard --require-green; then rc=0; else rc=$?; fi\n", 0),
+    "else line": ("if cmd; then\n  :\nelse\n  pitch=$?\nfi\n", 0),
+    "set +e": ("set +e\ncmd\nrc=$?\nset -e\n", 0),
+    "comment between": ("cmd \\\n  --flag\n# why\nrc=$?\n", 1),
+    "if test -ne": ("cmd --gate\nif [ $? -ne 0 ]; then exit 1; fi\n", 1),
+    "if test quoted": ("cmd --gate\nif [ \"$?\" = 4 ]; then :; fi\n", 1),
+    "if test builtin": ("cmd --gate\nif test $? -eq 4; then :; fi\n", 1),
+    "while test": ("cmd --gate\nwhile [ $? = 4 ]; do cmd; done\n", 1),
+    "same-line if": ("cmd --gate; if [[ $? -ne 0 ]]; then exit 1; fi\n", 1),
+    "elif test": ("if cmd; then :\nelif [ $? = 4 ]; then :\nfi\n", 0),
+    "if after or-capture": ("cmd || true\nif [ $? -ne 0 ]; then :; fi\n", 0),
+    "if arith": ("cmd --gate\nif (( $? != 0 )); then exit 1; fi\n", 1),
+    "arith list": ("cmd --gate\n(( $? )) && exit 1\n", 1),
+    "arith after inline capture": ("rc=0; cmd || rc=$?\nif (( rc != 0 )); then exit 1; fi\n", 0),
+}
+_EX_CASES_BAD = sorted(k for k, (t, want) in _EX_CASES.items() if len(_ex_hazards(t)[1]) != want)
+with tempfile.TemporaryDirectory() as _ex_td:
+    _ex_wf = Path(_ex_td) / ".github" / "workflows"
+    _ex_wf.mkdir(parents=True)
+    _EX_EMPTY = _ex_scan(Path(_ex_td))
+    _ex_wf.joinpath("a.yml").write_text(_yaml.safe_dump({"jobs": {"j": {"steps": [
+        {"name": "py", "shell": "python", "run": "x\nrc=$?\n"},
+        {"name": "bash", "shell": "bash", "run": "x\nrc=$?\n"},
+        {"name": "default", "run": "x\nrc=$?\n"}]}}}))
+    _EX_SHELL_ARM = _ex_scan(Path(_ex_td))
+    # The live batch gate, its condition unwrapped back to the defect's form.
+    _ex_wf.joinpath("a.yml").write_text(_NIGHTLY_YML.replace(
+        "batch=0\n", "", 1).replace(" || batch=$?", "\n            batch=$?", 1))
+    _EX_PLANT = _ex_scan(Path(_ex_td))
+R.check(
+    "and the errexit check reads the shapes, not one call (null controls)",
+    not _EX_CASES_BAD and _EX_EMPTY == (0, 0, [])
+    and (_EX_SHELL_ARM[0], len(_EX_SHELL_ARM[2])) == (2, 2)
+    and len(_EX_PLANT[2]) == 1 and "record-autofix" in _EX_PLANT[2][0],
+    f"cases wrong={_EX_CASES_BAD} empty tree={_EX_EMPTY} (a green over no "
+    f"block is a skip) shell arm={_EX_SHELL_ARM[:2]}+{len(_EX_SHELL_ARM[2])} "
+    f"hits (`shell: python` is not errexit) live batch gate unwrapped="
+    f"{_EX_PLANT[2]}",
+)
+
+
+# Countermeasure B's pin (R10-RCA-HOTFIX-BATCH-ERREXIT): a check that runs a
+# step's text under a bare `bash -c` measures a shell GitHub never uses, so a
+# bare call the step means to classify passes the check and ends the runner's
+# step (gate-sweep's I4 stayed green that way). Every `-c` list literal whose
+# shell is `bash` or `sh` by basename (`/bin/bash`, `env bash` alike) in a
+# tracked `.py` under tests/ and tools/ that is not INERT carries an errexit
+# flag, or runs text that is no `run:` block, keyed by (file, enclosing
+# function). The key does not see what a listed function runs, so a step
+# executed inside one is blinded: a listed function runs one named source, and
+# a new executor belongs in a function of its own. An argv built by anything
+# but a literal is outside the read. INERT files are outside it by design: the
+# gate never runs one in-process (closure.py refuses an INERT file read and
+# recorded, #357), and every file read here lands in this script's closure, so
+# an edit adding a site selects this script under GATE_SCOPE=auto. A file that
+# leaves INERT because a check starts running it enters the read with it. Gap,
+# measured and left: an INERT tool a check spawns as a child, which
+# `inert_reads` lists and which runs its own scripts, not `run:` blocks.
+_SHELL_NOT_A_STEP = {
+    ("tests/throwaway_git.py", "self_test"): "sources tests/throwaway_git.sh",
+    ("tests/entities.py", "_cir_once_count"): "two lines of tools/coverage/coverage_tree.sh",
+    ("tools/audit/judge_batch.py", "run"): "a judge's own command line",
+}
+
+
+def _shell_c_sites(sources: "dict[str, str]") -> "list[tuple[str, str, bool]]":
+    """(file, enclosing function, errexit) for every `-c` shell list literal."""
+    out = []
+    for path, src in sorted(sources.items()):
+        def walk(node, fn):
+            for ch in ast.iter_child_nodes(node):
+                if isinstance(ch, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    walk(ch, ch.name)
+                    continue
+                if isinstance(ch, ast.List) and ch.elts:
+                    lits = [e.value for e in ch.elts
+                            if isinstance(e, ast.Constant) and isinstance(e.value, str)]
+                    if lits[:1] in (["env"], ["/usr/bin/env"]):
+                        lits = lits[1:]
+                    if lits and os.path.basename(lits[0]) in ("bash", "sh") and "-c" in lits:
+                        out.append((path, fn, any(re.fullmatch(r"-[a-z]*e[a-z]*", t) for t in lits)))
+                walk(ch, fn)
+        walk(ast.parse(src), "<module>")
+    return out
+
+
+def _shell_c_defects(sources: "dict[str, str]") -> "list[str]":
+    return [f"{f}:{fn}" for f, fn, ee in _shell_c_sites(sources)
+            if not ee and (f, fn) not in _SHELL_NOT_A_STEP]
+
+
+_SHELL_TRACKED = [f for f in _subprocess.run(
+    ["git", "ls-files", "-z", "--", "tests/*.py", "tools/*.py"],
+    capture_output=True, text=True, check=True).stdout.split("\0") if f]
+_SHELL_DOMAIN = [f for f in _SHELL_TRACKED if not _closure.is_inert(f)]
+_SHELL_SOURCES = {f: Path(f).read_text() for f in _SHELL_DOMAIN}
+_SHELL_SITES = _shell_c_sites(_SHELL_SOURCES)
+_SHELL_PLANTS = {
+    "a bare step runner": ("tests/x.py", 'def f(s):\n    run(["bash", "-c", s])\n'),
+    "sh, flags apart": ("tools/x.py", 'def g(s):\n    run(["sh", "-x", "-c", s])\n'),
+    "a listed name in another file": ("tests/x.py", 'def self_test(s):\n    run(["bash", "-c", s])\n'),
+    "an absolute shell": ("tests/x.py", 'def h(s):\n    run(["/bin/bash", "-c", s])\n'),
+    "env bash": ("tools/x.py", 'def k(s):\n    run(["/usr/bin/env", "bash", "-c", s])\n'),
+}
+_SHELL_PLANT_MISSED = sorted(k for k, (f, src) in _SHELL_PLANTS.items()
+                             if _shell_c_defects({f: src}) != [f"{f}:{src[4:src.index('(')]}"])
+R.check(
+    "every `bash -c` / `sh -c` a check runs carries errexit, as GitHub's step "
+    "shell does, unless it runs no workflow step (countermeasure B)",
+    len(_SHELL_SITES) > len(_SHELL_NOT_A_STEP) and not _shell_c_defects(_SHELL_SOURCES)
+    and {(f, fn) for f, fn, ee in _SHELL_SITES if not ee} == set(_SHELL_NOT_A_STEP)
+    and not _SHELL_PLANT_MISSED
+    and not _shell_c_defects({"t.py": 'run(["bash", "--noprofile", "--norc", "-eo", "pipefail", "-c", s])'})
+    and "tests/entities.py" in _SHELL_DOMAIN and "tools/audit/judge_batch.py" in _SHELL_DOMAIN
+    and "tools/audit/seat/beatd.py" in _SHELL_TRACKED and "tools/audit/seat/beatd.py" not in _SHELL_DOMAIN,
+    f"read {len(_SHELL_DOMAIN)} of {len(_SHELL_TRACKED)} tracked (INERT left out; beatd.py, "
+    f"INERT, is the excluded arm) sites={len(_SHELL_SITES)} without errexit={_shell_c_defects(_SHELL_SOURCES)} "
+    f"listed and unused={sorted(set(_SHELL_NOT_A_STEP) - {(f, fn) for f, fn, ee in _SHELL_SITES if not ee})} "
+    f"plants missed={_SHELL_PLANT_MISSED}; a step run under a bare `bash -c` passes a "
+    "bare call errexit ends on the runner -- use `_GHA_RUN`",
+)
+
+
 # The merge is the beat's own, pinned to the head the guard judged (#2029
 # review, round 1): a `PUT .../merge` whose payload carries that `sha`, after
 # the guard's `--require-green` call, and never GitHub's auto-merge, which
 # merges later on a head nobody judged.
-#
-# The `--require-green` call must survive the step's shell. GitHub runs a
-# `run:` block under `bash -e`, so a BARE `guard --require-green; rc=$?`
-# ends the STEP with the guard's own exit -- 3 while a required check still
-# runs, 1 on a refusal -- before the `case` after it can turn either into
-# `say ...; exit 0`. Every pending or refused beat then reddens the job the
-# report step is the one meant to decide (measured: run 38553291314, exit 3,
-# no `AUTOMERGE:` line). A condition is exempt from `-e`, so the exit reaches
-# the case; `if guard --require-green; then rc=0; else rc=$?; fi` captures it.
-_RAF_BARE_GREEN = re.compile(r"(?m)^\s*guard --require-green\b")
-
-
 def _raf_merge_pinned(job: str) -> bool:
     g = job.find("guard --require-green")
     put = job.find('"$API/repos/$REPO/pulls/$NUM/merge"')
     return (0 < g < put
             and "if guard --require-green" in job
-            and _RAF_BARE_GREEN.search(job) is None
             and '{"sha": sys.argv[1], "merge_method": "merge"}' in job
             and "AutoMerge" not in job)
 
@@ -28602,7 +28861,7 @@ def _train_hold_status(code: int, body: str, pitch_rc: int = 0, guard_rc: int = 
         (bin_ / "curl").chmod(0o755)
         out = t / "out"
         out.write_text("")
-        p = subprocess.run(["bash", "-c", run or _HOLD_RUN], cwd=t, capture_output=True, text=True,
+        p = subprocess.run([*_GHA_RUN, run or _HOLD_RUN], cwd=t, capture_output=True, text=True,
                            env=_stub_path_env(bin_, RUNNER_TEMP=str(t), GITHUB_OUTPUT=str(out),
                                               REPO="o/r", TOKEN="t0k", APPROVER=approver, NUM="42",
                                               EVENT="push"))
@@ -29016,7 +29275,7 @@ def _pt_trigger(script: str, planted: str) -> str:
         subprocess.run(_g + ["commit", "-qm", "head"], check=True, env=_env)
         _head = subprocess.run(_g + ["rev-parse", "HEAD"], capture_output=True, text=True, env=_env).stdout.strip()
         _out = Path(_td, ".out")
-        subprocess.run(["bash", "-c", script], cwd=_td, capture_output=True, text=True,
+        subprocess.run([*_GHA_RUN, script], cwd=_td, capture_output=True, text=True,
                        env=_stub_path_env(_bin, BASE=_base, HEAD=_head,
                                           RUNNER_TEMP=_td, GITHUB_OUTPUT=str(_out)))
         _m = re.findall(r"^governance=(\w+)$", _out.read_text() if _out.exists() else "", re.M)
@@ -30501,7 +30760,7 @@ def _cov_trust(check_run: str, marker: "str | None", base: str) -> "tuple[bool, 
             (_tmp / "coverage-base" / ".measured-by").write_text(marker)
         _out = _tmp / "out"
         _out.write_text("")
-        subprocess.run(["bash", "-c", check_run], capture_output=True, text=True,
+        subprocess.run([*_GHA_RUN, check_run], capture_output=True, text=True,
                        env={**os.environ, "RUNNER_TEMP": str(_tmp), "BASE": base,
                             "GITHUB_OUTPUT": str(_out)})
         return ("trusted=true" in _out.read_text(), (_tmp / "coverage-base").exists())
@@ -30512,7 +30771,7 @@ def _cov_marker(stage_run: str, event: str, ref: str) -> str:
     with tempfile.TemporaryDirectory() as _t:
         _tmp = Path(_t)
         (_tmp / "w" / "out" / "per").mkdir(parents=True)
-        subprocess.run(["bash", "-c", stage_run], capture_output=True, text=True,
+        subprocess.run([*_GHA_RUN, stage_run], capture_output=True, text=True,
                        env={**os.environ, "RUNNER_TEMP": str(_tmp),
                             "W5P_WORK": str(_tmp / "w"), "GITHUB_EVENT_NAME": event,
                             "GITHUB_REF": ref})
@@ -40008,7 +40267,7 @@ def _o1_window(event: str, rev: str, root: str) -> dict:
     out.write_text("")
     env = throwaway_git_env()
     _sp_o1.run(["git", "checkout", "-q", "--detach", rev], cwd=root, check=True, env=env)
-    _sp_o1.run(["bash", "-c", script], cwd=root, check=True, capture_output=True,
+    _sp_o1.run([*_GHA_RUN, script], cwd=root, check=True, capture_output=True,
                env={**env, "EVENT": event, "GITHUB_OUTPUT": str(out)})
     return dict(l.split("=", 1) for l in out.read_text().splitlines() if "=" in l)
 
