@@ -6678,7 +6678,7 @@
     "branch": "handoff/r10-flow-arch-planner",
     "commit": "f38f91852ea0251a9043378f76f907794874b2be",
     "last_step": null,
-    "next_step": "dispatch a fixer once every after group is done",
+    "next_step": "done: merged in #2633 (f38f91852)",
     "note": "Lean flow study 2026-10-21 (owner-adopted)",
     "pr": 2633
    }
