@@ -88,6 +88,7 @@ from .payload import (
     REASON_PUMP_MODE,
 )
 from .thermal_model import (
+    CHANNEL_ACTIVE_KW,
     TANK_ROOM_AMBIENT_TEMP,
     MIN_RUNNING_DRAW_KW,
     ThermalModel,
@@ -96,6 +97,7 @@ from .thermal_model import (
     WeatherSeries,
     _mean_humidity,
     _step_humidity,
+    channel_heating_steps,
     levels_clamped,
     plan_step_runs,
     planned_draw_runs,
@@ -1387,33 +1389,6 @@ def idle_codes(
     codes[_padded(caps, n) <= threshold] = REASON_IDLE_FUSE
     codes[_padded(other, n) > threshold] = REASON_IDLE_OTHER
     return list(codes.tolist())
-
-
-#: A channel's own draw above which a plan step counts that channel as heating,
-#: in kW: the idle line ``classify_space_steps`` and ``classify_dhw_steps`` code
-#: their idle reasons against, and the line a plan view merges slots on. It sits
-#: under ``MIN_RUNNING_DRAW_KW`` because the pump's running rule is the step's
-#: WHOLE ask, space plus DHW; a channel can carry a share of a running step.
-CHANNEL_ACTIVE_KW = 0.05
-
-
-def channel_heating_steps(channel_kw: Any, other_kw: Any = None) -> list[bool]:
-    """Which plan steps a channel heats at, in the plan's own terms (D8-s1-01).
-
-    Its own draw above :data:`CHANNEL_ACTIVE_KW`, on a step the plan runs the
-    pump at all (``planned_draws_run`` over both channels): a channel is never
-    "heating now" on a step the plan's on schedule calls off. The plan views'
-    ``active_now`` and slot merge read this, so neither can count a step the
-    on schedule calls off. An ``other`` series shorter than ``channel`` draws
-    nothing past its end.
-    """
-    channel = np.asarray(channel_kw, dtype=float)
-    other = np.zeros_like(channel)
-    if other_kw is not None:
-        given = np.asarray(other_kw, dtype=float)[: len(channel)]
-        other[: len(given)] = given
-    runs = planned_draws_run(channel, other)
-    return [bool(on and kw > CHANNEL_ACTIVE_KW) for kw, on in zip(channel, runs)]
 
 
 def classify_space_steps(
