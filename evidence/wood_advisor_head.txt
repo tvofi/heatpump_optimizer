@@ -1,0 +1,4 @@
+
+-- The blueprint's templates against a fixture state -- NOT RENDERED: jinja2 is not installed
+
+ALL 20 wood-advisor checks PASSED
