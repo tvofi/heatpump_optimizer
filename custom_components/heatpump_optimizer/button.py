@@ -34,7 +34,7 @@ from .entity import HeatPumpOptimizerEntity, off_the_action
 
 _LOGGER = logging.getLogger(__name__)
 
-# The coordinator is the serialization point, not this semaphore: the solve
+# The coordinator is the serialization point, not this semaphore: the solve (null control)
 # guards itself on ``_optimization_running`` and every other press's setter
 # is a single write. The optimize-now press must await its solve to answer
 # the tap (#1644, D10-s1-02), and under a held slot that wait queues the
