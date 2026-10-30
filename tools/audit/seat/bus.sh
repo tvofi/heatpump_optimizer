@@ -426,7 +426,7 @@ three_rounds() { # pr past-three-reason -> 0 to dispatch; else why
 # names it only once `check` reads that head in it. --harness/--harness-file is the finder's.
 # HPO_BUS_PACKER replaces the renderer (the self-test's stub).
 dispatch() { # pr head reviewer [--reviewed-head <sha>] [--nonce N] [--model M] [--past-three <reason>] [--harness P|--harness-file F] -> records, closes, prints the packet and nonce lines
-  local pr=${1:-} h=${2:-} r=${3:-} n="" m=- p3="" row why rh="" carry rc hk="" hv="" pk prc=0 pmsg="" pkline=""
+  local pr=${1:-} h=${2:-} r=${3:-} n="" m=- p3="" row why rh="" carry rc hk="" hv="" pk prc=0 pmsg="" pkline="" cls
   shift 3 2>/dev/null || shift $#
   while [ $# -gt 0 ]; do
     case $1 in
@@ -454,6 +454,19 @@ dispatch() { # pr head reviewer [--reviewed-head <sha>] [--nonce N] [--model M] 
     || die "dispatch: the head $h is not readable in this checkout; fetch it, then dispatch"
   git cat-file -e "$h:$row" 2>/dev/null \
     || die "dispatch: #$pr's head $h carries no $row; the row lands before the review (delivery-status-tracking.md) -- write it and re-push, then dispatch"
+  # THE REVIEWABLE HEAD (K15 (d); the #2577 carry, built by R10-FLOW-MAIN-GATE).
+  # A head where a required context's latest run concluded failure is not
+  # reviewable. merge_train.py's `classify`, the one owner of that state, answers
+  # RED (rc 1) and the dispatch refuses, naming the contexts; GREEN (0) and WAIT
+  # (3, a run still in flight) dispatch. Unreadable (2: the ruleset or the check
+  # runs) refuses too, never read as green. HPO_BUS_CLASSIFY replaces the
+  # command (the self-tests' stub).
+  cls=$(${HPO_BUS_CLASSIFY:-python3 "$ROOT/tools/audit/seat/merge_train.py"} classify "$h" --repo "$REPO" 2>&1); rc=$?
+  case $rc in
+    0|3) ;;
+    1) die "dispatch: #$pr's head $h is not reviewable: a required context's latest run there concluded failure ($(printf '%s\n' "$cls" | sed -n 's/^RED .* red: //p')) -- repair the head, then dispatch" ;;
+    *) die "dispatch: cannot classify #$pr's head $h, so no reviewer is dispatched (an unread head is never green): $(printf '%s\n' "$cls" | grep -v '^[[:space:]]*$' | tail -n 1)" ;;
+  esac
   # THE REVIEW CARRY (tvofi, 2026-10-27: "if there are no code changes, the
   # previous review can be carried"). A fresh nonce over a head whose range
   # against the reviewed head the caller names is clean starts a second
@@ -765,6 +778,18 @@ while [ $# -gt 0 ]; do case $1 in --head) h=$2; shift 2 ;; --out) o=$2; shift 2 
 mkdir -p "$(dirname "$o")" && printf '# Review packet\nhead: %s\n' "${BUS_PACK_HEAD:-$h}" > "$o"
 P
   export BUS_TEST_PACKS=$W/packs
+  # The head classifier stub (merge_train.py classify): GREEN unless BUS_CLASSIFY_RC says otherwise.
+  cat > "$W/classifier" <<'P'
+printf '%s|' "$@" >> "$BUS_TEST_CLASSIFIES"; echo >> "$BUS_TEST_CLASSIFIES"
+case ${BUS_CLASSIFY_RC:-0} in
+  0) echo "GREEN $2 pending: none red: none" ;;
+  1) echo "RED $2 pending: none red: tests / fast gate" ;;
+  3) echo "WAIT $2 pending: gate red: none" ;;
+  *) echo "REFUSE proof: could not read main-protect-checks's required contexts; no proof is judged against a guessed list" ;;
+esac
+exit "${BUS_CLASSIFY_RC:-0}"
+P
+  export BUS_TEST_CLASSIFIES=$W/classifies
   export BUS_TEST_CALLS=$W/calls BUS_TEST_LAST=$W/last
   : > "$W/calls"
   # BUS_ID picks the identity directory: $W/ap holds the approver's key (the
@@ -779,7 +804,7 @@ P
   RH=$HOME
   run() { (cd "$W/seat" && HPO_BUS_STATE=$W/state HPO_BUS_POSTER=$W/poster HPO_BUS_REPO=o/r \
            HPO_BUS_LEDGER=$W/ledger/cloud-relay.log HPO_BUS_GH="bash $W/ghstub" HPO_BUS_PACKER="bash $W/packer" \
-           HPO_STATE_DIR=${HPO_STATE_DIR:-$RH/.local/state/hpo} HOME=$W \
+           HPO_BUS_CLASSIFY="bash $W/classifier" HPO_STATE_DIR=${HPO_STATE_DIR:-$RH/.local/state/hpo} HOME=$W \
            HPO_IDENTITY_DIR=${BUS_ID:-$W/ap} bash "$ROOT/tools/audit/seat/bus.sh" "$@") 2>&1; }
   seat() { BUS_ID=$W/noid run "$@"; }
   calls() { grep -c . "$W/calls"; }
@@ -1406,6 +1431,23 @@ B
   [ $rc = 0 ] && echo "$out" | grep -q "^review-packet: unavailable -- review_packet: UNAVAILABLE: planted: no gh$" \
     && [ "$(grep -c . "$W/state/dispatched")" = "$((n + 2))" ]
   expect "a renderer this seat cannot run dispatches, names no packet, and says why" $?
+  # THE REVIEWABLE HEAD (K15 (d)): the classifier's RED refuses and records nothing;
+  # its GREEN and WAIT dispatch (the null controls); an unreadable answer refuses.
+  n=$(grep -c . "$W/state/dispatched")
+  out=$(BUS_CLASSIFY_RC=1 run dispatch 7 "$h1" cmsg_K); rc=$?
+  [ $rc != 0 ] && echo "$out" | grep -q "is not reviewable: .*(tests / fast gate)" \
+    && [ "$(grep -c . "$W/state/dispatched")" = "$n" ] && tail -n 1 "$W/classifies" | grep -qx "classify|$h1|--repo|o/r|"
+  expect "a head whose required context concluded failure (classify RED) is not dispatched, and nothing is recorded" $?
+  out=$(BUS_CLASSIFY_RC=0 run dispatch 7 "$h1" cmsg_K); rc=$?
+  [ $rc = 0 ] && echo "$out" | grep -q '^bus-nonce: ' && [ "$(grep -c . "$W/state/dispatched")" = "$((n + 1))" ]
+  expect "null control: the same dispatch at a GREEN-classified head mints and records" $?
+  out=$(BUS_CLASSIFY_RC=3 run dispatch 7 "$h1" cmsg_K); rc=$?
+  [ $rc = 0 ] && [ "$(grep -c . "$W/state/dispatched")" = "$((n + 2))" ]
+  expect "a head still in flight (classify WAIT) is reviewable and dispatches" $?
+  out=$(BUS_CLASSIFY_RC=2 run dispatch 7 "$h1" cmsg_K); rc=$?
+  [ $rc != 0 ] && echo "$out" | grep -q "cannot classify .*never green): REFUSE proof" \
+    && [ "$(grep -c . "$W/state/dispatched")" = "$((n + 2))" ]
+  expect "an unreadable classification refuses the dispatch, never green" $?
   out=$(run dispatch 7 "$h1" cmsg_P --harness a --harness-file b); rc=$?
   [ $rc != 0 ] && echo "$out" | grep -q "takes one path, once"; expect "dispatch takes one finder's harness, never two" $?
   out=$(python3 -I "$ROOT/tools/audit/seat/review_packet.py" --self-test 2>&1) \

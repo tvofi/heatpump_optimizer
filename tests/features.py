@@ -82,6 +82,7 @@ from heatpump_optimizer.tariff import (
     realised_peak,
 )
 from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator as Coord
+from heatpump_optimizer.plan_slots import plan_slots
 from heatpump_optimizer.dhw_learning import DhwProfileLearner
 from heatpump_optimizer.thermal_model import (
     ThermalModel, ThermalParameters, ThermalState, WeatherSeries)
@@ -18175,7 +18176,7 @@ R.check(
 )
 
 # D8-s1-01: the space pump's "plan commands heat" is the plan's space-heating
-# steps (optimizer.channel_heating_steps over both channels), not the space
+# steps (thermal_model.channel_heating_steps over both channels), not the space
 # draw against 0.05 kW: a 0.07 kW share on a step the plan runs no pump at
 # commands nothing. Null control: the 0.07 kW share on a step the hot-water
 # share makes run, and the 3 kW steps, still command heat.
@@ -18360,8 +18361,8 @@ _ts = [datetime(2026, 1, 15, 6, 0, tzinfo=UTC) + timedelta(minutes=15 * i) for i
 _space_p = [2.0, 2.0, 0.0, 0.0]
 _dhw_p = [0.0, 3.0, 3.0, 0.0]
 _prices_p = [1.0] * 4
-_sp_slots = Coord._plan_slots(_ts, _space_p, _prices_p, 0.25, other_powers=_dhw_p)
-_dw_slots = Coord._plan_slots(_ts, _dhw_p, _prices_p, 0.25, other_powers=_space_p)
+_sp_slots = plan_slots(_ts, _space_p, _prices_p, 0.25, other_powers=_dhw_p)
+_dw_slots = plan_slots(_ts, _dhw_p, _prices_p, 0.25, other_powers=_space_p)
 R.check(
     "a slot names the other channel's energy in its shared steps, by hand",
     len(_sp_slots) == 1
@@ -18370,7 +18371,7 @@ R.check(
     and _dw_slots[0].get("shared_kwh") == 0.5,
     f"space {_sp_slots}, dhw {_dw_slots}",
 )
-_solo = Coord._plan_slots(
+_solo = plan_slots(
     _ts, [2.0, 2.0, 0.0, 0.0], _prices_p, 0.25,
     other_powers=[0.0, 0.0, 3.0, 3.0],
 )
@@ -18378,7 +18379,7 @@ R.check(
     "no overlap, no key — captures without sharing are unchanged",
     len(_solo) == 1 and "shared_kwh" not in _solo[0],
 )
-_legacy = Coord._plan_slots(_ts, _space_p, _prices_p, 0.25)
+_legacy = plan_slots(_ts, _space_p, _prices_p, 0.25)
 R.check(
     "callers that pass no other channel get the pre-T3b slot, byte for byte",
     _legacy == [{k: v for k, v in _sp_slots[0].items() if k != "shared_kwh"}],
@@ -35550,7 +35551,7 @@ def _db_band(coord, solve_time=_DB_T0):
 # D8-s1-01 (R10-ARCH-SHAPES): the plan view said "heating now" on a step the
 # plan's own on schedule calls off -- active_now read the channel's draw
 # against 0.05 kW, the running rule reads the step's whole ask against
-# MIN_RUNNING_DRAW_KW. Both channels now ask optimizer.channel_heating_steps.
+# MIN_RUNNING_DRAW_KW. Both channels now ask thermal_model.channel_heating_steps.
 # Null control: the rows where the step runs keep their verdicts.
 def _ah_active(space0, dhw0):
     plan = _db_plan(_DB_T0)
@@ -35586,8 +35587,8 @@ _ah_ts = [_DB_T0 + timedelta(minutes=15 * i) for i in range(len(_ah_steps))]
 _ah_in_slot = [
     [any(sl["start"] <= t.isoformat() < sl["end"] for sl in slots) for t in _ah_ts]
     for slots in (
-        Coord._plan_slots(_ah_ts, _ah_sp, [1.0] * 6, 0.25, other_powers=_ah_dw),
-        Coord._plan_slots(_ah_ts, _ah_dw, [1.0] * 6, 0.25, other_powers=_ah_sp),
+        plan_slots(_ah_ts, _ah_sp, [1.0] * 6, 0.25, other_powers=_ah_dw),
+        plan_slots(_ah_ts, _ah_dw, [1.0] * 6, 0.25, other_powers=_ah_sp),
     )
 ]
 R.check(
@@ -35606,7 +35607,7 @@ R.check(
     "(D8-s1-01): a raw draw of 0.07 kW does not say whether the pump runs",
     _ah_sched.native_value is None
     and not hasattr(_ah_sensor, "CHANNEL_ACTIVE_KW")
-    and "threshold" not in _ah_inspect.signature(Coord._plan_slots).parameters,
+    and "threshold" not in _ah_inspect.signature(plan_slots).parameters,
     f"state {_ah_sched.native_value!r}",
 )
 
@@ -60614,9 +60615,9 @@ R.check(
     f"raised {_sw_err}, released {_sw_rel} short, {_sw_rel_full} full",
 )
 
-# HeatPumpOptimizerCoordinator._plan_slots: the other channel's powers and the
+# plan_slots.plan_slots: the other channel's powers and the
 # reasons, both shorter than the slot.
-_sw_slots, _sw_err = _sw_try(lambda: _SwCoord._plan_slots(
+_sw_slots, _sw_err = _sw_try(lambda: plan_slots(
     _sw_ts, [1.0] * _sw_n, [2.0] * _sw_n, 0.25,
     reasons=["cheap_price"] * 2, other_powers=[1.0] * 2,
 ))
