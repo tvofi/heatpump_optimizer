@@ -3206,14 +3206,18 @@ class Train:
 # once per head (SWEEP_SEEN): a train that stopped on it is not refed it every
 # pass, and a new head is a new entry. Every merge stays the train's, which
 # approves before it merges: a posted merge verdict is not an approval.
-AUTO_TRAIN_FLAGS = ("--bot-prs", "--approval-carry", "--pre-flight")
+# The recommended flag set (tvofi, 2026-10-28, P269): train.sh runs it by default,
+# each flag switched off by --no-<flag>, and the sweep's started train is a bare
+# launch. The merge seat's contract names it by reference; train.sh reads this line.
+RECOMMENDED = ("--overlap", "--approval-carry", "--skip-bad", "--free-holders", "--bot-prs", "--pre-flight")
 SWEEP_SEEN = "sweep-added.json"  # {pr: the head the sweep handed to `add`}
 
 
 def auto_train_argv(repo: str, state: "str | Path", mandate: "str | None") -> "list[str]":
-    """The train.sh a sweep's or an event's `add` starts when none is live."""
+    """The train.sh a sweep's or an event's `add` starts when none is live: a bare
+    launch, so it runs RECOMMENDED and reads the state dir's mandate file itself."""
     return ["bash", str(ROOT / "tools/audit/seat/train.sh"), "--repo", repo, "--state-dir", str(state),
-            *AUTO_TRAIN_FLAGS, *(["--mandate", mandate] if mandate else [])]
+            *(["--mandate", mandate] if mandate else [])]
 
 
 def sweep(t: Train, train_argv: "list[str]", add=train_add, ledger_log: "str | None" = None) -> int:
@@ -4698,7 +4702,7 @@ def _queue_self_test(check) -> None:
         for p in sleepers:
             p.kill()
             p.wait()
-    # The CLI: `sweep` and `add --auto` hand the AUTO_TRAIN_FLAGS train to the same seam.
+    # The CLI: `sweep` and `add --auto` hand the bare-launch train (RECOMMENDED by default) to the same seam.
     g, seen_argv = globals(), []
     real_sweep, real_add = g["sweep"], g["train_add"]
     g["sweep"] = lambda t, argv, **kw: seen_argv.append(("sweep", t.mandate, argv)) or 0
@@ -4710,10 +4714,16 @@ def _queue_self_test(check) -> None:
     finally:
         g["sweep"], g["train_add"] = real_sweep, real_add
     want_argv = auto_train_argv("o/r", tmp.name, "M")
-    check("sweep's CLI: one sweep under the mandate, its started train train.sh " + " ".join(AUTO_TRAIN_FLAGS)
-          + " --mandate", rc1 == 0 and seen_argv[0] == ("sweep", "M", want_argv)
+    check("sweep's CLI: one sweep under the mandate, its started train a bare hand launch of train.sh "
+          "(--repo --state-dir --mandate, no flag: RECOMMENDED is train.sh's default)",
+          rc1 == 0 and seen_argv[0] == ("sweep", "M", want_argv)
           and want_argv[1].endswith("tools/audit/seat/train.sh")
-          and all(f in want_argv for f in ("--bot-prs", "--approval-carry", "--pre-flight")))
+          and want_argv[2:] == ["--repo", "o/r", "--state-dir", tmp.name, "--mandate", "M"]
+          and auto_train_argv("o/r", tmp.name, None)[2:] == ["--repo", "o/r", "--state-dir", tmp.name])
+    check("RECOMMENDED is the owner's six, each a flag batch accepts",
+          set(RECOMMENDED) == {"--overlap", "--approval-carry", "--skip-bad", "--free-holders",
+                               "--bot-prs", "--pre-flight"} and len(RECOMMENDED) == 6
+          and all(_parser().parse_args(["batch", "q.json", f]) for f in RECOMMENDED))
     check("add --auto (bus.sh's event add): the same started train, the comment left for admit_add to fill; "
           "--auto with `--` flags is refused",
           rc2 == 0 and seen_argv[1] == ("add", {"pr": 7, "verdict": hx("1"), "verdict_comment": None},
@@ -6604,12 +6614,12 @@ def _parser() -> argparse.ArgumentParser:
     ad.add_argument("verdict")
     ad.add_argument("--verdict-comment", help="the verdict comment's id, quoted in a mandate approval")
     ad.add_argument("--auto", action="store_true",
-                    help="a started train gets the AUTO_TRAIN_FLAGS (" + " ".join(AUTO_TRAIN_FLAGS)
-                         + ") and --mandate, as the sweep's does: bus.sh's post calls this")
+                    help="a started train is a bare train.sh launch (RECOMMENDED by default) with --mandate, "
+                         "as the sweep's is: bus.sh's post calls this")
     sw = sub.add_parser("sweep", parents=[common],
                         help="the backstop: `add` every head `queue` admits that this sweep never added at that "
-                             "head, unless the ledger holds an open train-stop; a started train gets "
-                             + " ".join(AUTO_TRAIN_FLAGS))
+                             "head, unless the ledger holds an open train-stop; a started train is a bare "
+                             "train.sh launch, which runs RECOMMENDED")
     sw.add_argument("--mandate", help="passed to the started train; omit to never approve a code-owned head")
     sw.add_argument("--state-dir", default=train_opts.get_default("state_dir"))
     w = sub.add_parser("wait-ci", parents=[common])
