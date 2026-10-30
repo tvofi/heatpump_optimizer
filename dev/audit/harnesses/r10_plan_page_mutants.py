@@ -111,6 +111,8 @@ MUTANTS = [
     ("state-unavailable-where-none", STATE,
      "    return ({} if held else {page_path: text}), why", "    return {}, why"),
     ("state-unread-exits-1", STATE, "rc = 1 if unread else 0", "rc = 0"),
+    ("state-crash-guard", STATE,
+     'if r.returncode != 1 or "PLAN UNAVAILABLE" not in text:', "if False:"),
     ("unavailable-no-figures", PAGE,
      "f'<div class=\"stat\"><b>—</b><span>{e(v)}</span></div>'",
      "f'<div class=\"stat\"><b>0</b><span>{e(v)}</span></div>'"),
