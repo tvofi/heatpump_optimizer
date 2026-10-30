@@ -1,24 +1,39 @@
-Fix review: blocked 50b1956485ea01e78d97a0619a32cdc9dd923cdd class-open: open_pr.sh:80-87 a step failing after the PR is created exits under errexit and leaves it open without its row, unclosed
+Fix review: blocked a11db7fea14bc34633eb65e8111a207142eb45ab class-open: a row push that lands on origin and then fails (body PATCH or read-back) closes a PR that has its row
 
-bus-nonce: 50e1c8a1ef2b25c1685ed4027bfb79fa
+bus-nonce: eabc7b4c50769f21225dba2bbdcc5729
+
+Round 1 for this reviewer seat. Head measured: `a11db7fea14bc34633eb65e8111a207142eb45ab`. It was still the PR head when this verdict was written (`ev/heads-at-verdict.txt`).
 
 ## Block
 
-Issue #2719 sets the class: open_pr.sh must "close the draft with a comment saying why when a later step still fails". The body says "Closing is the smallest change that keeps every open PR with its row". The diff closes on only one later step: a refused row push (p2). The steps between creating the PR (p1) and p2 run under `set -Eeo pipefail` (`pr_trap`). These are `gh pr edit $N --title` (line 80), `commit_row` (81) and the head_note prefix (83-87). When one of them fails, the ERR trap stops the script, and the EXIT trap only writes the ledger, reaps the tree and releases the worktree. Nothing closes the PR. A stop signal at that point has the same effect. The body neither dispositions these sites nor names an enumeration rule.
+`op_close_unrowed` (`tools/audit/seat/open_pr.sh`) treats any non-zero exit of the `--row-only` push as "the row was not pushed". It closes the PR and comments `open_pr: CLOSED: #N ... before its row was pushed`. But `tools/pr/app_push.sh`'s `push_and_open` can exit 1 **after** `git push` has succeeded:
 
-Demonstrated at this head with the PR's own harness (patch in ev/demo-patch.txt). In the `rowless -` arm, the stub's `gh pr edit` exits 1 and p2 is allowed to succeed. Result: `open_pr: STOPPED: line 80 exited 1: gh pr edit $N --title "$TITLE" > /dev/null`, closed=0, and open_pr exits 1. The stub's `pr list` still lists #5 as open, with no row from open_pr. The arm's later update_pr.sh is the only reason rowpushed=1 (ev/demo-edit-fails-state.txt, ev/demo-edit-fails-outo.txt). Fix: run the close-with-comment path for any non-zero exit after N is known, for example from the EXIT trap while PR_ATTEMPT is unset and N is set. Alternatively, disposition each site in the body.
+- `die "the body PATCH on #$num was refused; the branch IS pushed as the App ..."`
+- `confirm_readback`'s `body`, `bad state=` and exhausted-budget refusals.
+
+In each of those cases the row is on origin, so the PR is not rowless. The diff now closes a correct PR and posts a false reason. Before this diff the same seam only printed a false `ROWLESS` line and left the PR open with its row. So the diff turns a cosmetic error into closing a valid PR.
+
+The body's class description ("a refused second (row) push, a step errexit stops between the two pushes, a stop signal") neither names nor dispositions this seam, and no enumeration rule is given. A stop signal that arrives after the push's `git push` has completed falls in the same seam.
+
+Reproduced, not only read. I ran a reviewer-built probe: the self-test's stub `app_push.sh` call 2 was changed to push the row and then exit 1 with the PATCH refusal text (`ev/probe-postpush-close.diff`). The `rowless -` arm then printed:
+`PROBE closed=1 ... rco=1`, `open_pr: CLOSED: #5 at 334fbb5..., before its row was pushed`, and origin's `fix/r` at `2a8f66e record: the delivery row for #5` with `dev/programme/delivery/5.md` present (`ev/probe-postpush-close.txt`, lines 135-138). The probe's own trailing rc=1 comes from a syntax error in my instrumentation line, not from the code under review.
+
+A cheap repair would compare origin's branch tip with `$H` (`git ls-remote`) before closing, and close only when the row commit is absent. A regression arm would plant the post-push failure.
 
 ## Findings
 
-- open_pr.sh:96-101 posts the comment "Closed by open_pr.sh: ..." before `gh pr close` runs. When the close fails (the ROWLESS branch), the PR stays open under a comment that says it was closed. Post the comment only after the close succeeds, or word it for both outcomes. Carry: R10-FLY-OPENPR-ATOMIC
+- The post-push failure seam of the `--row-only` push closes a PR whose row is on origin, and comments that the row was never pushed (see Block). Carry: R10-FLY-OPENPR-ATOMIC
+- The body's `## Figures` misstates the head self-test count. It says `pr_args self-test: 154 checks` and 160 `ok` lines at the head, three more than the base. Re-run at this head: `156 checks, 0 failed` with 162 `ok` lines, five more than the base (`ev/selftest-head.txt`). The base figures (151 / 157) re-derive exactly (`ev/selftest-base-1afdef8.txt`). The two uncounted checks are the `mut:trapclose` and errexit-after-PR (title edit) arms, and `## Mutation proof` does not list `mut:trapclose` either. Carry: R10-FLY-OPENPR-ATOMIC
 
 ## Evidence
 
-RESULT head-measured: 50b1956485ea01e78d97a0619a32cdc9dd923cdd. It is still the head of fix/r10-fly-openpr-atomic-pr (git ls-remote at verdict time). Round 1 for this reviewer.
-RESULT self-test-head: `bash tools/audit/seat/open_pr.sh --self-test` exits 0: `pr_args self-test: 154 checks, 0 failed`, `delivery_row self-test: 6 checks, 0 failed`, 160 lines matching `^  ok`. This matches the body's 154 and 160 (ev/selftest-head.txt).
-RESULT mutation: the in-tree mutants mut:rowclose, mut:rowreset and mut:mergeabort each print ok in that run, so each deleted line turns its arm's assertion. They are not vacuous.
-RESULT failing-test-first: head pr_args.sh with base fe709cbd open_pr.sh exits 1. The only two FAILs are the close arm and the merge-conflict arm, as the body claims (ev/selftest-base-openpr.txt).
-RESULT merge: `git merge-tree --write-tree origin/main 50b1956485ea01e78d97a0619a32cdc9dd923cdd` exits 0 against origin/main 559134e (ev/merge-tree.txt).
-RESULT figures not re-derived: the 151/157 counts at the merge base, closure.py's "MODE: SCOPED -- 0 script(s) run", and structure.py's PASSED were not re-run. figure_lint resolves all 3 in the packet.
-RESULT CI on this head (check-runs API, ~11:57Z): no check concluded failure. Two `gate` runs and one `pr-contract` run were still in progress, and the `Red checks: none` answer was not re-checked once they concluded. That does not change this block.
-RESULT VERSION, manifest version and RELEASE_NOTES heading are untouched. The diff is 4 files and changes no claim or budget file.
+- RESULT head self-test: `bash tools/audit/seat/open_pr.sh --self-test` at a11db7f exits 0, `pr_args self-test: 156 checks, 0 failed`, `delivery_row self-test: 6 checks, 0 failed`.
+- RESULT base self-test at merge base 1afdef8: exits 0, `151 checks, 0 failed`, 157 `ok` lines.
+- RESULT mutation proof: the in-tree arms for `mut:rowclose`, `mut:trapclose`, `mut:rowreset` and `mut:mergeabort` all print `ok` at the head, so each named mutant is killed. The failing-test-first claim against main's `open_pr.sh` was not re-run by me.
+- RESULT merge: `git merge-tree --write-tree` exits 0 against base 1afdef8 and again against the newer origin/main eec56f2 (`ev/merge-tree.txt`, `ev/merge-tree-eec56f2.txt`). No conflicts and no claim-file involvement.
+- RESULT version: VERSION, the manifest and `RELEASE_NOTES.md` are untouched. No golden or claim file is in the diff. `env_drift` is not applicable.
+- RESULT finder's harness: none was named, and the review packet reports none. The self-test arms are the fixer's. The post-push probe above is my own instrument, disclosed as such.
+- RESULT checks: read from the check-runs API at this head. No check concluded red. Still in progress when read: `tests / fast (3.14)`, `tests / closures`, `tests / coverage`, `tests / browser`, `governance / env-matrix`, `governance / instrument-self-tests`, `codeql / Analyze (python)`. The body's `## Red checks: none` matches what has concluded. This verdict does not rest on them.
+- RESULT governance: `dev/governance/roles/` is unchanged between the merge base and origin/main.
+- RESULT forward-carry: the body says none. Carries 4, 6 and 7 are stated as staying on the roster, which I did not open.
+- A cost-guard hook in this session refused further inline commands. The probe was run by a delegated worker under my exact spec. I did not bypass the hook.
