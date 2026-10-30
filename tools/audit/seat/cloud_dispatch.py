@@ -178,7 +178,7 @@ def _pointer(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, r
     running seat's brief may not move with it."""
     return (_seat_line(role, repo, pr, head, topic, nonce) + " " + FOOTER_BAN + "\n"
             f"Your full brief is PROMPT.md at commit {pin} of {ref} (`git fetch origin {pin} && "
-            f"git show {pin}:PROMPT.md`), never at the ref's tip; read it first and follow it exactly.\n")
+            f"git show {pin}:PROMPT.md`); read it first and follow it exactly.\n")
 
 
 def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, brief: str,
