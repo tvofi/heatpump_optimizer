@@ -6117,7 +6117,7 @@
     "branch": "fix/r10-flow-jidoka-p2",
     "commit": "53c4b9cb0de45bbfadb19ea6adbe15dd7d7034e1",
     "last_step": null,
-    "next_step": "p1 landed (#2838, 2026-10-26T04:40Z). PR #2853 is open at fa18c13d2 for the p2 slice (error-proofing second slice); handoff/r10-flow-jidoka-p2 1fc98acd is its ancestor. Review owed, then land; the carries #2825 and #2838 routed here are on this group's carry list.",
+    "next_step": "done: merged in #2853 (53c4b9cb0)",
     "note": "Decision 0012 (moratorium) was revoked by decision 0014 on 2026-10-21; the brief's 0012 reference binds nothing.",
     "pr": 2853
    }
