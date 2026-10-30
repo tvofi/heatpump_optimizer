@@ -1,0 +1,12 @@
+Architecture score: dS +0.0403 IMPROVES
+  card_clone_copies 108 -> 105  +0.0403
+== card_drift
+  identical  history_no_power
+  identical  history_unavailable
+  identical  history_pending
+
+card_drift: 2 state(s) moved and claimed, 43 identical
+== env claims
+claims hygiene: origin/main ok
+== closure select
+  MODE: SCOPED -- 12 script(s) run, 21 scoped out.
