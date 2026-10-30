@@ -600,11 +600,14 @@ def _group_checks(check) -> None:
                 return dispatch_group(role, group, model, repo_dir=str(work), **{"environ": env, **kw})
 
         def refused(*a, **kw):
+            return bool(reason(*a, **kw))
+
+        def reason(*a, **kw) -> str:  # the refusal's text, "" when the dispatch passed
             try:
                 dispatch(*a, **kw)
-            except Refusal:
-                return True
-            return False
+            except Refusal as e:
+                return str(e) or "refused"
+            return ""
 
         @contextlib.contextmanager
         def _env(extra):  # main() reads os.environ, as the orchestrator's shell gives it
@@ -630,7 +633,8 @@ def _group_checks(check) -> None:
               dispatch("R10-BIG", design_exempt="approved prototype on record") == "dispatch/fixer-r10-big")
         check("a designer for an S group is refused (only L and XL take a design)",
               refused("R10-X", "designer") and refused("R10-X", "design-reviewer"))
-        check("a design reviewer with no design/<group> to review is refused", refused("R10-BIG", "design-reviewer"))
+        check("a design reviewer with no design/<group> to review is refused, for that reason",
+              reason("R10-BIG", "design-reviewer") == "no design/R10-BIG on origin to review")
         ref = dispatch("R10-BIG", "designer")
         dtext = fetched(ref, "PROMPT.md")
         check("a designer's ref is dispatch/designer-<group>, pins the base SHA and names its contract",
@@ -762,7 +766,8 @@ def _group_checks(check) -> None:
         registry = lambda: (bus_state / "dispatched").read_text().splitlines() if (bus_state / "dispatched").exists() else []
         check("a reviewer needs its pr, as on the flag path, and records nothing",
               refused(role="reviewer", head=tip) and registry() == [])
-        check("a reviewer needs its PR head", refused(role="reviewer", pr="7"))
+        check("a reviewer needs its PR head, and is refused for that reason",
+              "pass --head" in reason(role="reviewer", pr="7") and registry() == [])
         check("a reviewer dispatch with no nonce mints one through bus.sh dispatch and renders",
               dispatch(role="reviewer", head=rhead, pr="7") == "dispatch/reviewer-r10-x")
         rec = (registry() or [""])[-1].split()
@@ -1037,9 +1042,10 @@ def self_test() -> int:
           and "never step-push to\nhandoff/t-1" not in fx and "never step-push to handoff/t-1" in fx
           and f"except your return refs and {wip}." in fx)
     check("the fixer deletes the step ref only after body_push.sh succeeds",
-          fx.index("body_push.sh t-1") < fx.index(f"`git push origin :{wip}`"))
+          0 <= fx.find("body_push.sh t-1") < fx.find(f"`git push origin :{wip}`"))
     check("the fixer merges a moved origin/main and reruns prepr.sh before it pushes the handoff",
-          fx.index("`git merge origin/main`, rerun `tools/pr/prepr.sh`") < fx.index("push the code to refs/heads/handoff/t-1"))
+          0 <= fx.find("`git merge origin/main`, rerun `tools/pr/prepr.sh`")
+          < fx.find("push the code to refs/heads/handoff/t-1"))
     check("no other role is licensed a step ref (null control)",
           all(WIP_NS not in t for r, t in prompts.items() if r != "fixer"))
     ident = f"`git config user.name {SEAT_NAME} && git config user.email {SEAT_EMAIL}`"
@@ -1070,6 +1076,8 @@ def self_test() -> int:
     check("a blank reviewer nonce is refused", refused(nonce="  "))
     check("a reviewer without --pr is refused", refused(pr=""))
     check("a fixer without --topic is refused", refused("fixer", topic=""))
+    check("a design reviewer without the 40-hex design tip is refused on the flag path",
+          refused("design-reviewer", design="") and not refused("design-reviewer", design=head))
     check("a topic with a slash is refused", refused("probe", topic="a/b"))
     check("a missing environment id is refused", refused(env_id=""))
     check("a missing model is refused", refused(model=""))
