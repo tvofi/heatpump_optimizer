@@ -1,0 +1,13 @@
+diff --git a/.github/workflows/release.yml b/.github/workflows/release.yml
+index 7cabba06b..032078ecf 100644
+--- a/.github/workflows/release.yml
++++ b/.github/workflows/release.yml
+@@ -159,7 +159,7 @@ jobs:
+           # custom_components/heatpump_optimizer -- and only tracked files,
+           # so no __pycache__ or local file of the runner reaches it.
+           git archive --format=zip -o "${RUNNER_TEMP}/${ASSET}" \
+-            "${GITHUB_SHA}:custom_components/heatpump_optimizer"
++            "${GITHUB_SHA}"
+ 
+       - name: Check the integration ZIP
+         run: |

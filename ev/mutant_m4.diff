@@ -1,0 +1,14 @@
+diff --git a/.github/workflows/release.yml b/.github/workflows/release.yml
+index 7cabba06b..e0e8938c9 100644
+--- a/.github/workflows/release.yml
++++ b/.github/workflows/release.yml
+@@ -171,9 +171,6 @@ jobs:
+           problems = []
+           if hacs.get("zip_release") is not True:
+               problems.append("hacs.json does not set zip_release to true")
+-          if hacs.get("filename") != asset:
+-              problems.append(f"hacs.json names {hacs.get('filename')!r}, "
+-                              f"this workflow uploads {asset!r}")
+           with zipfile.ZipFile(path) as z:
+               infos = z.infolist()
+               names = {i.filename for i in infos}

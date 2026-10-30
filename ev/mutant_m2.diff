@@ -1,0 +1,12 @@
+diff --git a/.github/workflows/release.yml b/.github/workflows/release.yml
+index 7cabba06b..52aa410ff 100644
+--- a/.github/workflows/release.yml
++++ b/.github/workflows/release.yml
+@@ -205,7 +205,6 @@ jobs:
+           # publishing the draft creates the tag there. On a tag push the tag
+           # exists and --target is ignored by GitHub for an existing tag.
+           gh release create "${TAG}" "${RUNNER_TEMP}/${ASSET}" \
+-            --draft \
+             --target "${GITHUB_SHA}" \
+             --title "${TAG}" \
+             --notes-file /tmp/notes.md

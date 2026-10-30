@@ -1,0 +1,13 @@
+diff --git a/.github/workflows/release.yml b/.github/workflows/release.yml
+index 7cabba06b..101045b6a 100644
+--- a/.github/workflows/release.yml
++++ b/.github/workflows/release.yml
+@@ -216,7 +216,7 @@ jobs:
+         run: |
+           set -euo pipefail
+           if ! gh release view "${TAG}" --json assets --jq '.assets[].name' \
+-              | grep -Fqx "${ASSET}"; then
++              | grep -Fqx "${ASSET}" || true; then
+             echo "::error::release ${TAG} does not carry ${ASSET}; left as a draft, not published" >&2
+             exit 1
+           fi
