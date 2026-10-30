@@ -39,7 +39,7 @@ class StorageComponent:
     """One thermal store, expressed in battery terms."""
 
     name: str
-    #: kWh/°C
+    #: kWh/°C (null control)
     capacity_kwh_per_c: float
     temperature: float
     min_temperature: float
