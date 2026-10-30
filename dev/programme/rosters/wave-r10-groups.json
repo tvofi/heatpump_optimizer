@@ -11355,7 +11355,7 @@
     "Part 2 of this group, owed. PR #3010 (merged a44a740e) landed P269 only: the RECOMMENDED train flag set. The folded R10-FLOW-POSTMERGE brief (the after-merge bookkeeping in merge_pr.sh and merge_train.py) and its sub-carries were neither implemented nor measured there, because the fold landed after that seat was dispatched. That was the orchestrator's disposition under mandate 6329234399, which #3010's round-2 review accepted. A part 2 fixer implements the folded brief as written in this group's entry, on a fresh branch from main. Also owed (triage batch 76, P312): when the train drains its spool into the next batch, order by an explicit train.sh add priority, then critical-path entries, then arrival order. Control for P312: a spool holding a non-priority entry ahead of a HOTFIX entry drains the HOTFIX first."
    ],
    "resume": {
-    "stage": "done",
+    "stage": "carries-open",
     "branch": "handoff/r10-fly-train-defaults",
     "commit": "a44a740eba03f1982251d3608ee2c08e8fa777bd",
     "last_step": null,
