@@ -235,15 +235,15 @@ keys the graders arm.
   jobs is `git grep -n -- "- name: Restore the check source from the base commit" HEAD --
   .github/workflows/`. Outside governance.yml it returns three jobs, each restoring from the base
   and grading the pull request with that copy, and `restore_jobs` reads governance.yml only:
-  - `briefs` (tests.yml), which runs `brief_lint.mjs`; Carry: #2952
-  - `pr-contract` (pr-contract.yml); Carry: #2952
+  - `briefs` (tests.yml), which runs `brief_lint.mjs`; Carry: R10-FLY-CIPREDICT-RESTORING
+  - `pr-contract` (pr-contract.yml); Carry: R10-FLY-CIPREDICT-RESTORING
   - `budget-raise-gate` (budget-raise-gate.yml, called from ci.yml on pull requests), which restores
     `tools/policy/*.py` and runs the base's `tools/policy/budget_raise_gate.py`. It reads live
-    reviews, so a local run of it could only be partial. Carry: #2952
+    reviews, so a local run of it could only be partial. Carry: R10-FLY-CIPREDICT-RESTORING
 
   None of the three is predicted by this arm, so a branch editing a file one of them restores is
   still graded by the base's copy with no local warning. Section 4's census read `briefs`
   check-runs and counted no `briefs` instance; it did not read `pr-contract` or
-  `budget-raise-gate`, so their instances are unmeasured. This record does not claim them. Their destination is #2952, whose brief is
-  `dev/programme/carries/carry-2952.json`: the enumeration rule as the control, the
+  `budget-raise-gate`, so their instances are unmeasured. This record does not claim them. Their destination is the roster group R10-FLY-CIPREDICT-RESTORING (#2952), whose
+  `brief` (roster `0cdedcc9c02ebf52c96d14ffe5425ba9270efa8e` on `handoff/audit-r10-roster`) holds the enumeration rule as the control and the
   unmeasured `pr-contract` and `budget-raise-gate` instances as its precondition.
