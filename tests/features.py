@@ -72630,23 +72630,35 @@ from heatpump_optimizer.thermal_model import (  # noqa: E402
 )
 _pli_p = _pl_model(0.15).params
 _pli_grid = np.linspace(0.0, 6.5, 1301)
-_pli_back = _pli_fwd(_pli_p, _pli_inv(_pli_p, _pli_fwd(_pli_p, _pli_grid)))
+# Raise on an invalid sqrt: past the parabola's vertex the on-band branch is
+# computed and discarded, and must not warn on every hot-water clamp step.
+with np.errstate(all="raise"):
+    _pli_back = _pli_fwd(_pli_p, _pli_inv(_pli_p, _pli_fwd(_pli_p, _pli_grid)))
+    _pli_far = _pli_inv(_pli_p, np.linspace(0.0, 50.0, 11))
 _pli_err = float(np.max(np.abs(_pli_back - _pli_fwd(_pli_p, _pli_grid))))
 _pli_x = 2.5
 _pli_day = _pli_inv(_pli_p, 60.0, hours=24.0)
+# The band's edges are taken exactly, not through the root, whose float at the
+# edge can land an ulp off: the floor on a 2-6 kW band at 0.3, and max power on
+# a 1.5-5 kW band at 0.4, where 5 * 0.6 / 0.6 is exactly 5.
+_pli_edges = (_pli_inv(_pl_model(0.3, 2.0, 6.0).params, 2.0),
+              _pli_inv(_pl_model(0.4).params, 3.0))
 R.check(
     "the inverse conversion returns the draw whose derated heat is the heat "
     "asked for, below the floor, on the band and past max power, to 1e-12; "
-    "on the band it needs more power than heat / cop; a day's energy converts "
+    "on the band it needs more power than heat / cop; the band's edges are "
+    "exact and a fixed-speed band inverts to itself; a day's energy converts "
     "as 24 h of its mean draw; "
     "null control: a zero derate hands the quotient back unchanged",
     _pli_err < 1e-12 and float(_pli_inv(_pli_p, 3.0)) > 3.0
-    and _pli_inv(_pli_p, 1.0) == 1.0
+    and _pli_inv(_pli_p, 1.0) == 1.0 and _pli_edges == (2.0, 5.0)
+    and float(_pli_far[-1]) == 50.0 / 0.85
+    and _pli_inv(_pl_model(0.12, 3.0, 3.0).params, 2.0) == 2.0
     and abs(_pli_day - 24.0 * float(_pli_inv(_pli_p, 2.5))) < 1e-9
     and _pli_inv(_pl_model(0.0).params, _pli_x) is _pli_x
     and _pli_inv(_pl_model(0.0).params, 60.0, hours=24.0) == 60.0,
     f"round trip {_pli_err:.2e} on band {float(_pli_inv(_pli_p, 3.0)):.4f} "
-    f"day {_pli_day:.4f}",
+    f"day {_pli_day:.4f} edges {_pli_edges}",
 )
 
 
