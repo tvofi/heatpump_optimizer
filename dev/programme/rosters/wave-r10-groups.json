@@ -11703,9 +11703,9 @@
    ],
    "carry": [],
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-stamp-round-major",
-    "commit": null,
+    "commit": "c92a95bc80a84b864643d3a90c75796a19398147",
     "last_step": null,
     "next_step": "fixer building (cloud cse_01MwNjECAn1N3YdipPSQkrTB)",
     "note": "2026-10-29 owner: \"each full audit round means a new major version, and it should match the round number on closeout, so the programme closeout release will be v10.0.0\"",
