@@ -441,6 +441,19 @@ MUTANTS = [
     ("ghapi-2", "tools/ci/ghapi.py", "        if not nxt:\n            return out\n", "        return out\n"),
     # P2a glue: the extra request headers alert_list's SARIF read is bound through.
     ("ghapi-3", "tools/ci/ghapi.py", "        req.add_header(k, v)\n", "        pass\n"),
+    # R10-FLY-GH-READ-RETRY carry 7 (#2859): a GET retries a transport failure like a 5xx;
+    # one mutant per TRANSPORT member, the arm, the budget's raise and the retry itself.
+    ("ghapi-4", "tools/ci/ghapi.py", "        except TRANSPORT:\n", "        except ():\n"),
+    ("ghapi-5", "tools/ci/ghapi.py", "(urllib.error.URLError, http.client.HTTPException, ConnectionError, TimeoutError)",
+     "(http.client.HTTPException, ConnectionError, TimeoutError)"),
+    ("ghapi-6", "tools/ci/ghapi.py", "(urllib.error.URLError, http.client.HTTPException, ConnectionError, TimeoutError)",
+     "(urllib.error.URLError, ConnectionError, TimeoutError)"),
+    ("ghapi-7", "tools/ci/ghapi.py", "(urllib.error.URLError, http.client.HTTPException, ConnectionError, TimeoutError)",
+     "(urllib.error.URLError, http.client.HTTPException, TimeoutError)"),
+    ("ghapi-8", "tools/ci/ghapi.py", "(urllib.error.URLError, http.client.HTTPException, ConnectionError, TimeoutError)",
+     "(urllib.error.URLError, http.client.HTTPException, ConnectionError)"),
+    ("ghapi-9", "tools/ci/ghapi.py", "            if nap is None:\n                raise\n", "            if False:\n                raise\n"),
+    ("ghapi-10", "tools/ci/ghapi.py", "    for nap in RETRY_5XX + (None,):\n", "    for nap in (None,):\n"),
     ("prelude-1", "tools/ci/prelude.py", 'return (KP if ctx.get("label") == KP else "label")', 'return "code"'),
     ("prelude-2", "tools/ci/prelude.py", 'if r["id"] < ctx["run_id"] and r["status"] in UNFINISHED)',
      'if r["status"] in UNFINISHED)'),
