@@ -9087,7 +9087,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             entry = self._capacity_envelope.get(int(np.floor(outdoor / 3.0)))
             if entry is None or int(entry[1]) < CAPACITY_MIN_SAMPLES:
                 continue
-            hum = float(humidity[i]) if humidity is not None and i < len(humidity) else None
+            hum = float(humidity[i]) if humidity is not None and i <= len(humidity) else None
             cop_i = max(model.compute_cop(float(outdoor), humidity=hum), 1e-6)
             cap_i = float(np.clip(power_for_heat_per_cop_kw(model.params, float(entry[0]) / cop_i), floor, p_max))
             if cap_i < p_max - 1e-9:
