@@ -1,8 +1,0 @@
-RESULT R4 rc=1 ['3 of 4622 FEATURE CHECKS FAILED']
-  ok   an unresolvable recorded_at FAILS the ratchet, it is not merely noted (#361)
-  FAIL a cooling mode does NOT switch the pump off  [both channels are hard-zeroed by the block, so 'the plan is empty' is this integration's own doing — cutting the supply would defeat the cooling the owner selected, from a feature documented as read-only]
-  FAIL nor does cooling-plus-DHW: summer cooling must survive an idle DHW plan
-  ok   the ratchet FAILS on an improvement instead of printing a note (#350)
-  ok   a pump command that FAILED is not remembered as done
-  FAIL the step tick writes nothing at a step the plan turns off while the pump's mode blocks both channels  [{'06:00': ['turn_off'], '06:15': ['turn_on']}]
-3 of 4622 FEATURE CHECKS FAILED

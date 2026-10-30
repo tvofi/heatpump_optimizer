@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/pump_arbiter.py b/custom_components/heatpump_optimizer/pump_arbiter.py
+index 28e1f706e..e67072cb5 100644
+--- a/custom_components/heatpump_optimizer/pump_arbiter.py
++++ b/custom_components/heatpump_optimizer/pump_arbiter.py
+@@ -1240,7 +1240,7 @@ async def supply_tick(held: ArbiterState, wiring: SupplyWiring, now: datetime |
+     """
+     now = now or dt_util.now()
+     step = plan_step_start(now)
+-    if held.supply is None or held.supply[0] == step:
++    if False:
+         return
+     inp = wiring.inputs()
+     if inp.entry_released:
