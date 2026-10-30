@@ -927,7 +927,7 @@ function checkNamedDocs(budget) {
     severity: 'error',
     check: 'named-docs',
     where: rel,
-    message: `is named by ${src} but has no cap in ${BUDGET_FILE}, so prose moved into it leaves the corpus and buys headroom in every cap at once. Bring it under a POLICY_GLOBS pattern so a cap on it is actually compared, or add it to CORPUS_EXCLUDED with a reason. A cap alone does not do it: a cap on a file no glob matches is refused by checkOrphanCaps precisely because it measures nothing.`,
+    message: `is named by ${src} but has no cap in ${BUDGET_FILE}, so prose moved into it leaves the corpus and buys headroom in every cap at once. Bring it under a POLICY_GLOBS pattern so a cap on it is actually compared, or exclude it with a reason in ${CORPUS_EXCLUDED_DATA}'s \`excluded\` -- not in this file's CORPUS_EXCLUDED, which a pull request's CI run grades with the base's copy of, so an entry only this branch writes there is never read (#2609, #2916). A cap alone does not do it: a cap on a file no glob matches is refused by checkOrphanCaps precisely because it measures nothing.`,
   }))
 }
 
