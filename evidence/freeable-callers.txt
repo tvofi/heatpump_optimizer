@@ -1,5 +1,0 @@
-tools/audit/seat/instruments/queue_pre_flight.py.md:14:  holder `Train.freeable` clears.
-tools/audit/seat/queue_pre_flight.py:48:             passed under the train's `--free-holders` when `Train.freeable`
-tools/audit/seat/queue_pre_flight.py:105:        # `Train.freeable` clears. Standalone, both PARK as before.
-tools/audit/seat/queue_pre_flight.py:241:        if held is not None and not (self.free_holders and self.t.freeable(held, branch) is None):
-tools/audit/seat/queue_pre_flight.py:336:            if "status" in argv and "--porcelain" in argv:  # Train.freeable's reads
