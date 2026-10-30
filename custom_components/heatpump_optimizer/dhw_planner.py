@@ -1736,7 +1736,7 @@ class DhwPlanner:
                     ),
                 )
                 room_kw = added_power_for_heat_per_cop_kw(
-                    params, plan[j], float(room_c[j_local]) * c_dhw / max(dt * cop_room, 1e-6))
+                    params, plan[j], float(room_c[j_local]) * c_dhw / (dt * cop_room))
                 add = min(
                     float(np.clip(needed, min_run_power, headroom[j_local])),
                     room_kw,
