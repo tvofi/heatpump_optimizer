@@ -1,0 +1,3 @@
+4653:  FAIL away sets back the weekend and holiday comfort pairs too: Saturday day and night read the away target  [Saturday [14:00, 03:00] comfort {('weekend', 'away'): [16.0, 16.0], ('weekend', 'home'): [21.0, 19.5], ('weekend', 'recovering'): [21.0, 19.5], ('holiday', 'away'): [16.0, 19.5], ('holiday', 'home'): [21.0, 19.5], ('holiday', 'recovering'): [21.0, 19.5]}]
+5958:1 of 4607 FEATURE CHECKS FAILED
+5959:rc=1
