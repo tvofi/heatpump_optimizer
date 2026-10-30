@@ -1,6 +1,6 @@
 # Flow board
 
-Window ends 2026-10-30T16:48:12+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
+Window ends 2026-10-30T16:49:47+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
 
 Sources: tree `origin/main`, roster `origin/handoff/audit-r10-roster`, bus `origin/review/*`
 
@@ -8,16 +8,16 @@ Sources: tree `origin/main`, roster `origin/handoff/audit-r10-roster`, bus `orig
 |---|---|---|
 | roster groups closed vs takt | 1 / 1.0 | 27 / 24.0 |
 | fly-ins closed | 0 | 13 |
-| main moves: group-carrying / record / roster-edit / fly-in | 1 / 1 / 0 / 0 | 19 / 5 / 2 / 13 |
-| first-pass fix-review yield | 0/1 (0.00) | 33/43 (0.77) |
-| blocked-class mix | mutation-unpinned:1, mutation-vacuous:1 | body-stale:5, carry-missing:10, ci-red:5, class-open:2, class-rule-missing:2, figure-false:2, figure-wrong:1, instrument-broken:4, mutation-survivor:2, mutation-unpinned:1, mutation-vacuous:6, stale-reference:2 |
+| main moves: group-carrying / record / roster-edit / fly-in | 1 / 0 / 0 / 0 | 19 / 5 / 2 / 13 |
+| first-pass fix-review yield | 0/0 (-) | 33/43 (0.77) |
+| blocked-class mix | mutation-vacuous:1 | body-stale:5, carry-missing:10, ci-red:5, class-open:2, class-rule-missing:2, figure-false:2, figure-wrong:1, instrument-broken:4, mutation-survivor:2, mutation-unpinned:1, mutation-vacuous:6, stale-reference:2 |
 | lead time per size (h, n/p50/max) | M n=1 p50=2.78 max=2.78 | L n=1 p50=15.18 max=15.18; M n=8 p50=12.01 max=83.96; S n=10 p50=6.75 max=16.35 |
 
 ### WIP by flow lane (snapshot at the window's end)
 
 | A critical path | B product | C process | F fly-in |
 |---|---|---|---|
-| 3 | 37 | 3 | 10 |
+| 3 | 38 | 3 | 10 |
 
 ## Rules
 
