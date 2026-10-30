@@ -5025,7 +5025,9 @@
    "fixture": true,
    "owner_gate": "mandated approval under 6175172275",
    "rca": [],
-   "carry": [],
+   "carry": [
+    "The stuck andon must report stalled progress, not elapsed time (P211/V131, from three healthy pushes it raised: #2876 pid 85023 at 2295 s, #2854 pid 55046 at 1919 s while its whole tree advanced +3.4 s CPU per 20 s, and pid 19711 at about 37 min). `tools/audit/seat/cloud_relay.sh`'s `stuck_arm()` reports any `upd-*.lock` held past `HPO_PUSH_STUCK_SECS` (900) -- but a dead holder's flock is released by the kernel, so it can only ever report a live run, and `tests/gate_lock.py:53-56` records that a prepr routinely runs past 1800 s. Keep the 900 s age floor; report a lock past it only when the summed utime+stime of its recorded run pid's process tree (the descendants of field 1 of the lock file, `pr_args.sh:85`) has not advanced by more than 0.2 s between two consecutive passes; the first sighting past the bound stores the sample and prints nothing (one pass of delay, never less); sample the tree, not the pid, because the holder sleeps in a 0.2 s poll (`pr_args.sh:102`) and the run's shell waits on its child; an unreadable sample keeps today's line with `cpu=?`, so the change cannot silence the alarm where it cannot measure; the line keeps its shape and gains the delta (`STUCK <branch> <pid> <age>s cpu+<delta>`), and says \"no CPU advance\", not \"hung\", because a push waiting on I/O is flat too; a released lock is never read, unchanged. REJECTED in the same ruling: raising the threshold and lengthening `gate_lock`'s lease -- a prepr takes a pool slot held for the life of its run, not the exclusive lease (`tests/gate_lock.py:53-56`), and the lease covers only the machine-measuring scripts (recorded at 936.3 s and 241.1 s against 1800). Self-test arms: an advancing tree prints no line after the bound; a flat tree across two passes prints it; a run under the bound with a sample prints nothing (null control). triage: dev/programme/triage/s6-batch40.md#P211"
+   ],
    "architect_note": null,
    "findings": [],
    "wave": 2,
