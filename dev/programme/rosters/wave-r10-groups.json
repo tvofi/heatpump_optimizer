@@ -11934,7 +11934,7 @@
    ],
    "carry": [],
    "resume": {
-    "stage": "not-started",
+    "stage": "done",
     "branch": "handoff/r10-fly-relay-freeze-registry",
     "commit": null,
     "last_step": null,
