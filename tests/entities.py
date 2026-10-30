@@ -18149,7 +18149,7 @@ R.check(
 )
 
 
-_HB_BOTH = "in _hb_spin\npy-spy rc=0:\nThread 1 (active+gil)\n    _hb_spin (nightly_ha.py:1)\n"
+_HB_BOTH = "in _hb_spin\nsampler rc=0:\nThread 1 (active+gil)\n    _hb_spin (nightly_ha.py:1)\n"
 
 
 def _hb_ctl(gap: float, dump: str = _HB_BOTH) -> bool:
@@ -18163,10 +18163,10 @@ def _hb_ctl(gap: float, dump: str = _HB_BOTH) -> bool:
 _HB_C = _nightly.HB_CONTROL_S
 R.check(
     "hb:positive_control passes at the spin, and fails just under it, "
-    "without the spin's frame, or without py-spy's own rc=0 section naming it",
+    "without the spin's frame, or without the sampler's own rc=0 section naming it",
     _hb_ctl(_HB_C) and not _hb_ctl(_HB_C - 0.001) and not _hb_ctl(_HB_C, "idle")
-    and not _hb_ctl(_HB_C, "in _hb_spin\npy-spy rc=1:\nPermission denied\n")
-    and not _hb_ctl(_HB_C, "in _hb_spin\npy-spy rc=0:\nThread 1 (idle)\n"),
+    and not _hb_ctl(_HB_C, "in _hb_spin\nsampler rc=1:\nPermission denied\n")
+    and not _hb_ctl(_HB_C, "in _hb_spin\nsampler rc=0:\nThread 1 (idle)\n"),
     "check_hb_positive_control arms",
 )
 
@@ -18179,13 +18179,13 @@ def _hb_tries(*tries: tuple[float, str]) -> bool:
     return "hb:positive_control" not in c.failures()
 
 
-_HB_SPIED_ONLY = "py-spy rc=0:\n    _hb_spin (nightly_ha.py:1)\n"
+_HB_SPIED_ONLY = "sampler rc=0:\n    _hb_spin (nightly_ha.py:1)\n"
 R.check(
     "hb:positive_control passes on any one try that reads all three, and never "
     "on three readings split across tries",
-    _hb_tries((_HB_C, "py-spy did not run: TimeoutExpired"), (_HB_C, _HB_BOTH))
+    _hb_tries((_HB_C, "sampler did not run: TimeoutExpired"), (_HB_C, _HB_BOTH))
     and not _hb_tries((_HB_C, "in _hb_spin\n"), (_HB_C - 0.1, _HB_SPIED_ONLY))
-    and not _hb_tries((_HB_C - 0.1, _HB_BOTH), (_HB_C, "in _hb_spin\npy-spy rc=1:\n")),
+    and not _hb_tries((_HB_C - 0.1, _HB_BOTH), (_HB_C, "in _hb_spin\nsampler rc=1:\n")),
     "check_hb_positive_control over tries",
 )
 
@@ -18220,7 +18220,7 @@ def _hb_spy_run(*answers: str, rest: float = 0.05) -> tuple[bool, list[dict], in
         c = _nightly.Checks()
         began = _time.monotonic()
         tries = asyncio.run(_nightly._async_hb_control(
-            c, rest=rest, py_spy=str(stub), spy_timeout=_HB_SPY_T, dump_after=0.2,
+            c, rest=rest, sampler=[str(stub)], sample_timeout=_HB_SPY_T, dump_after=0.2,
         ))
         took = _time.monotonic() - began
         made = len(calls.read_text().splitlines()) if calls.exists() else 0
@@ -18280,26 +18280,100 @@ R.check(
     "the control's retry is bounded: each sample cut short of the old 30 s, each "
     "spin held at most one sample's timeout, under the hang bound",
     _nightly.HB_CONTROL_TRIES >= 2
-    and _nightly.PY_SPY_TIMEOUT_S < 30
-    and _nightly.HB_DUMP_S + _nightly.PY_SPY_TIMEOUT_S <= _nightly.HB_CONTROL_HOLD_S
+    and _nightly.SAMPLE_TIMEOUT_S < 30
+    and _nightly.HB_DUMP_S + _nightly.SAMPLE_TIMEOUT_S <= _nightly.HB_CONTROL_HOLD_S
     < _nightly.HB_HANG_S,
-    f"tries={_nightly.HB_CONTROL_TRIES} timeout={_nightly.PY_SPY_TIMEOUT_S}s "
+    f"tries={_nightly.HB_CONTROL_TRIES} timeout={_nightly.SAMPLE_TIMEOUT_S}s "
     f"hold={_nightly.HB_CONTROL_HOLD_S}s hang={_nightly.HB_HANG_S}s",
 )
-# The real boot passes no spy_timeout (pinned above), so the lane's cut is the
+# The real boot passes no sample_timeout (pinned above), so the lane's cut is the
 # constructor default: a default of 30 s would put the base's cost back.
 _hb_whole = _nightly.HB_CONTROL_TRIES * (_nightly.HB_CONTROL_HOLD_S + _nightly.HB_CONTROL_REST_S)
 R.check(
-    "the real lane cuts py-spy at PY_SPY_TIMEOUT_S, and the whole control, every "
+    "the real lane cuts the sampler at SAMPLE_TIMEOUT_S, and the whole control, every "
     "try hung, is bounded under 22 s",
-    _inspect.signature(_nightly.LoopHeartbeat).parameters["spy_timeout"].default
-    is _nightly.PY_SPY_TIMEOUT_S
-    and "spy_timeout" not in _inspect.getsource(_nightly._async_hb_measure)
+    _inspect.signature(_nightly.LoopHeartbeat).parameters["sample_timeout"].default
+    is _nightly.SAMPLE_TIMEOUT_S
+    and "sample_timeout" not in _inspect.getsource(_nightly._async_hb_measure)
     and _hb_whole < 22.0,
-    f"default spy_timeout="
-    f"{_inspect.signature(_nightly.LoopHeartbeat).parameters['spy_timeout'].default}; "
+    f"default sample_timeout="
+    f"{_inspect.signature(_nightly.LoopHeartbeat).parameters['sample_timeout'].default}; "
     f"whole control {_hb_whole:.2f}s",
 )
+# R10-FLY-NIGHTLY-HB: py-spy 0.4.2 hung, blocking or not, for the life of some
+# CPython 3.14.9 HA processes, so every try of the control failed; the
+# interpreter's own remote unwinder read those processes. The lane samples with
+# that unwinder wherever the interpreter ships it, and with py-spy only where
+# it does not (the 3.13 floor).
+def _hb_sampler_with(unwinder: bool, staged: bool) -> list[str] | None:
+    util, find, access = _nightly.importlib.util, _nightly.importlib.util.find_spec, _nightly.os.access
+    util.find_spec = lambda name, *a: (
+        (object() if unwinder else None) if name == "_remote_debugging" else find(name, *a)
+    )
+    _nightly.os.access = lambda path, mode: staged if str(path).endswith("/py-spy") else access(path, mode)
+    try:
+        return _nightly.sample_command()
+    finally:
+        util.find_spec, _nightly.os.access = find, access
+
+
+_hb_stdlib = [sys.executable, "-c", _nightly._STDLIB_SAMPLE]
+_hb_pyspy = [f"{_nightly.IN_DRIVER_DIR}/py-spy", "dump", "--nonblocking", "--pid"]
+R.check(
+    "the stall sampler is the interpreter's own unwinder where it ships one, staged or "
+    "not; else the staged py-spy, nonblocking; else none",
+    _hb_sampler_with(True, True) == _hb_stdlib and _hb_sampler_with(True, False) == _hb_stdlib
+    and _hb_sampler_with(False, True) == _hb_pyspy and _hb_sampler_with(False, False) is None,
+    f"{_hb_sampler_with(True, True)} / {_hb_sampler_with(False, True)} / {_hb_sampler_with(False, False)}",
+)
+
+
+import contextlib as _hb_contextlib  # noqa: E402
+
+
+def _hb_stdlib_reads(spin: bool) -> str:
+    """The stdlib sample of a child that is, or is not, inside a function named ``_hb_spin``.
+
+    The sample runs in this process against its own child: a sampler reading
+    its parent, as the lane's does, needs CAP_SYS_PTRACE under Yama's default
+    ptrace_scope, which the heartbeat container is given and this host is not.
+    """
+    body = "def _hb_spin():\n    while True: pass\n" + ("_hb_spin()\n" if spin else "while True: pass\n")
+    child = subprocess.Popen([sys.executable, "-c", body])
+    try:
+        _time.sleep(0.5)
+        out, argv = _io.StringIO(), sys.argv
+        sys.argv = ["-c", str(child.pid)]
+        try:
+            with _hb_contextlib.redirect_stdout(out):
+                exec(_nightly._STDLIB_SAMPLE, {})  # noqa: S102 - the lane's own snippet
+        finally:
+            sys.argv = argv
+        return out.getvalue()
+    finally:
+        child.kill()
+        child.wait()
+
+
+if _nightly.importlib.util.find_spec("_remote_debugging") is not None:
+    _hb_in, _hb_out = _hb_stdlib_reads(True), _hb_stdlib_reads(False)
+    _hb_reads = (
+        _nightly.hb_control_reading({"max_gap": _HB_C, "dumps": ["in _hb_spin\nsampler rc=0:\n" + _hb_in]}),
+        _nightly.hb_control_reading({"max_gap": _HB_C, "dumps": ["in _hb_spin\nsampler rc=0:\n" + _hb_out]}),
+    )
+    R.check(
+        "the stdlib sample of a real spinning process reads as the spin to the control, "
+        "and of the same process outside it does not",
+        _hb_reads[0] == (True, True, True) and _hb_reads[1] == (True, True, False),
+        f"spinning: {_hb_reads[0]} {_hb_in[-160:]!r}; idle: {_hb_reads[1]} {_hb_out[-160:]!r}",
+    )
+else:
+    R.check(
+        "the stdlib sample of a real spinning process reads as the spin to the control "
+        "(this interpreter has no remote unwinder: the lane samples it with py-spy)",
+        _hb_sampler_with(False, True) == _hb_pyspy,
+        f"{sys.version.split()[0]} has no _remote_debugging",
+    )
 _hb_cmd = _nightly.docker_command(
     "img", Path("/c"), Path("/d"), 9.0, ["--heartbeat-only"], caps=("SYS_PTRACE",)
 )
@@ -18337,7 +18411,7 @@ R.check(
     "every heartbeat scenario dwells before it settles, and py-spy never pauses the loop",
     _nightly.HB_DWELL_S >= 1.0
     and "asyncio.sleep(HB_DWELL_S)" in _inspect.getsource(_nightly._async_hb_settle)
-    and '"--nonblocking"' in _inspect.getsource(_nightly.LoopHeartbeat.dump),
+    and '"--nonblocking"' in _inspect.getsource(_nightly.sample_command),
     f"HB_DWELL_S={_nightly.HB_DWELL_S}",
 )
 R.check(
