@@ -1,8 +1,0 @@
-  3623 unpinned site(s) of 6579 candidate sites, 3620 at the ratchet base e77418f9b48f89421bd72b0ab511c057341c7fa4; the ledger agrees with the deterministic inventory
-MUTATION TABLE -- scope changed: 1 production file(s) whose code this diff adds or modifies
-PIN KILLED -- 3 new unpinned site(s) against e77418f9b48f89421bd72b0ab511c057341c7fa4 to drive
-  3 mutant(s) over 1 file(s); drivers in play: tests/arch_score_head.py, tests/config_flow_steps.py, tests/debug_collect.py, tests/deployment_shape.py, tests/doc_claims.py, tests/entities.py, tests/env_drift.py, tests/features.py, tests/finite_boundary.py, tests/harness_headers.py, tests/structure.py, tests/typing_ruler.py
-  ref-driven drivers compare against 'e77418f9b48f89421bd72b0ab511c057341c7fa4' (run.sh's GOLDEN_REF resolution)
-
-MUTATION TABLE REFUSED -- no full-line comment in any file in the pool, so the run has no null control and no verdict can be told apart from a driver reacting to the diff itself
-rc=1
