@@ -360,6 +360,12 @@ def apply_override_payload(state: AwayState, payload: dict[str, Any]) -> AwaySta
                    migrated_helpers=bool(payload.get("migrated_helpers")))
 
 
+def published_under(state: AwayState, view: Mapping[str, Any]) -> bool:
+    """Whether ``view``, a published payload, was built under ``state``'s override."""
+    return (bool(view.get("away_override_active")) == state.override_active
+            and view.get("away_override_return_time") == state.override_return_iso)
+
+
 async def persist_override(coord: _AwayCoord, state: AwayState) -> None:
     """Save ``state`` -- the coordinator's away state, passed in (#1739)."""
     try:

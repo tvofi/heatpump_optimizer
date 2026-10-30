@@ -5841,23 +5841,20 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     async def _async_first_refresh_light(self) -> Payload:
         """The setup-time refresh: publish something valid without solving.
 
-        Runs at most once per setup, when ``async_setup_entry`` set
-        ``_skip_solve_once``. Two cases:
+        Runs once per setup, when ``async_setup_entry`` set ``_skip_solve_once``,
+        after the session restore; the background refresh setup schedules solves.
 
-        * After an in-process reload the unload handler passed the previous
-          plan through ``_reload_handover``; ages are recomputed, with no
-          fetches at all — an options save must not wait on Tibber. The
-          background refresh scheduled at the end of setup replaces it with
-          a freshly solved plan within the first cycle.
-        * On a genuinely fresh start there is nothing to hand over, so the
-          cheap reads run — live sensor state, prices, weather — and the
-          payload is built without a plan. Only the solve and its dependents
-          (actuation, accuracy pairing, drift heartbeat) are skipped: none
-          of them makes sense before a plan exists.
+        * After an in-process reload, the plan the unload handler passed through
+          ``_reload_handover``, its ages recomputed and nothing fetched (an options
+          save must not wait on Tibber) -- unless it was published under another
+          away override than the restored one: the reload cancelled that solve.
+        * Otherwise the cheap reads run (sensors, prices, weather) and the payload
+          is built without a plan, so the solve's dependents (actuation, accuracy
+          pairing, drift heartbeat) wait for the background refresh.
         """
-        handover = self._reload_handover
-        self._reload_handover = None
-        if handover is not None:
+        handover, self._reload_handover = self._reload_handover, None
+        await boost.session_restored(self)
+        if handover is not None and away_mode.published_under(self._away_state, handover):
             _LOGGER.debug(
                 "First refresh republishes the pre-reload plan; the real "
                 "solve follows in the background"
@@ -9608,6 +9605,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
     async def _resolve_away(self) -> None:
         """Work out whether the house is empty, and when it must be warm again."""
+        await boost.session_restored(self)  # read after the stored override lands, as writers do (L3)
         ctx = getattr(self, "_ctx", self)
         config = away_mode.config_from_mapping(ctx._config)
         now = dt_util.now()
