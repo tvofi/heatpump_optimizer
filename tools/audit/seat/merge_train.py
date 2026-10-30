@@ -161,7 +161,9 @@ have printed it) and the train continues with the next entry; the run closes
 with `<state-dir>/skipped.json` ([{pr, phase, reason}...]) and a
 `SKIP REPORT: N skipped of M` line, and the exit code is 1 -- the queue ran
 to its end, but a caller that treats rc 0 as "nothing to look at" must be
-told some entries were left behind. Two Stops are never skippable: a red
+told some entries were left behind. An entry skipped and then re-added and
+merged by the same train is cured (`CURED #<pr>` line): it leaves
+skipped.json, the report's count and the exit code. Two Stops are never skippable: a red
 MAIN (the step-0 gate and the merge guard's re-read stay global -- a proof
 on a red main blames its entries), and a Stop arriving AFTER the merge API
 call, which is fatal for its entry alone: logged `SKIP #<pr> post-merge`,
@@ -2697,7 +2699,16 @@ class Train:
 
     def skip_report(self, total: int) -> None:
         """`--skip-bad`'s closing report: the skipped list under the state dir
-        and one line the orchestrator's tooling can grep."""
+        and one line the orchestrator's tooling can grep. An entry this train
+        skipped and later merged (re-added, P291) is cured: its rows leave the
+        list, the report and `batch`'s rc. Called past `_batch`'s last
+        `self.skipped[mine:]` read, so no batch's offset moves under it."""
+        seen = getattr(self, "_seen", {})
+        cured = sorted({int(s["pr"]) for s in self.skipped
+                        if (seen.get(str(s["pr"])) or {}).get("state") == "merged"})
+        if cured:
+            self.log("CURED " + " ".join("#%d" % n for n in cured) + ": skipped earlier, merged by this train")
+            self.skipped = [s for s in self.skipped if int(s["pr"]) not in cured]
         (self.state / "skipped.json").write_text(json.dumps(self.skipped, indent=2) + "\n")
         self.log(f"SKIP REPORT: {len(self.skipped)} skipped of {total}")
 
@@ -5752,6 +5763,7 @@ def _batch_self_test(check) -> None:
                 if w["reports"] < 2:
                     return
                 w["readded"] = True
+                w["skip_json_b2"] = json.loads((state / "skipped.json").read_text())  # before the cure
                 rehead(2)
                 rehead(3)  # ... a GITHUB_TOKEN tip: batch 3 routes it serial, past the skipped filter
                 w["bot_heads"] = {w["heads"][3]: "ci: pin killed mutants"}
@@ -5785,7 +5797,7 @@ def _batch_self_test(check) -> None:
     check("P291 the merge skip carries its environment class: SKIP #5 merge: [BRANCH-POLICY], and "
           "skipped.json's row names the class and the verdict it was skipped at",
           said("SKIP #5 merge: [BRANCH-POLICY] not merged after")
-          and any(r["pr"] == 5 and r.get("class") == "BRANCH-POLICY" and r.get("verdict") for r in w["skip_json"] or []))
+          and any(r["pr"] == 5 and r.get("class") == "BRANCH-POLICY" and r.get("verdict") for r in w.get("skip_json_b2", [])))
     check("P189 null control: a ci-skipped entry re-added at the SAME verdict (#6), and an entry this train "
           "merged (#4), are ALREADY on both sides -- `add` spools nothing, the drain runs neither",
           [any(ln.startswith(f"ALREADY #{n}:") for ln in adds) for n in (6, 4)] == [True, True]
@@ -5849,6 +5861,111 @@ def _batch_self_test(check) -> None:
           add_rc == [0, 0] and add_said[0].startswith("ADDED #7") and add_said[1].startswith("ALREADY #8:")
           and more and [int(e["pr"]) for e in bs[-1]] == [7] and "ADDED #7: batch 2 of this train" in drain_said
           and any(ln.startswith("ALREADY #8:") for ln in drain_said))
+
+    def live_add(w, n):  # the REAL train_add against the live train's state dir, admit_add passed
+        al: list[str] = []
+        ta = Train("o/r", w["state"], None, "", (), 1, run=stub(w), log=al.append)
+        ta.admit_add = lambda item: None
+        return train_add(ta, {"pr": n, "verdict": w["heads"][n]}, ["true"], launch=lambda *a: (0, "no")), al
+
+    # A DRAINED entry's record: #2 is added while batch 1 runs, so it enters by
+    # the drain alone (queue_take writes its record), never by the first
+    # batches. Re-added while its batch runs, and again after it merges, it is
+    # ALREADY from `add` and from the drain.
+    def drained(w):
+        def on_log(ln):
+            if ln.startswith("BATCH t pid="):
+                w["first"] = live_add(w, 2)
+            elif ln.startswith("BATCH t-b2 "):
+                w["running"] = live_add(w, 2)
+            elif ln.startswith("#2 MERGED"):
+                w["at_merge"] = True
+            elif w.get("at_merge") and "after" not in w:  # the next line: the merge is recorded
+                w["after"] = live_add(w, 2)
+                with queue_lock(w["state"]):  # the drain's side: past add, straight to the spool
+                    spool_append(w["state"], {"pr": 2, "verdict": w["heads"][2]})
+        w["on_log"] = on_log
+    w = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}}, batches=[[1]], setup=drained)
+    check("a drained entry (#2, added while batch 1 ran) re-added while its batch runs and after it merges is "
+          "ALREADY from `add` both times and from the drain; it merges once",
+          w["first"][0] == 0 and w["first"][1][0].startswith("ADDED #2")
+          and w.get("running", (1, [""]))[1][0].startswith("ALREADY #2: still to run in this train")
+          and w.get("after", (1, [""]))[1][0].startswith("ALREADY #2: merged by this train")
+          and "ALREADY #2: merged by this train; not queued twice" in w["lines"]
+          and sorted(w["merged"]) == [1, 2] and w["rc"] == 0)
+    # An old-code train (started before QUEUE_SEEN existed) wrote QUEUE_PENDING
+    # only: an `add` against it reads those as pending, as before.
+    with tempfile.TemporaryDirectory() as d:
+        st, ol = Path(d), []
+        to = Train("o/r", st, None, "", (), 1, run=lambda *a, **k: (0, ""), log=ol.append)
+        to.admit_add = lambda item: None
+        (st / QUEUE_OPEN).write_text(f"{os.getpid()}\n")
+        (st / QUEUE_PENDING).write_text("[9]\n")
+        old_rc = [train_add(to, {"pr": n, "verdict": V7}, ["true"], launch=lambda *a: (0, "no")) for n in (9, 10)]
+    check("an add against an old-code train (QUEUE_PENDING only, live pid) reads its pending as held: #9 ALREADY; "
+          "null control: #10, not in it, is ADDED",
+          old_rc == [0, 0] and ol[0].startswith("ALREADY #9: still to run in this train")
+          and ol[1].startswith("ADDED #10"))
+    # --overlap with an EARLIER batch's skip: #2 (a workflow, serial) is
+    # skipped at its merge by the branch policy in batch 1 and re-added once
+    # the approval lands; batch 2 recarries it up front, it merges, and the
+    # train's report no longer counts it (cured).
+    def overlap_readd(w):
+        main_moved(w)
+        w["remerge"] = True
+        w["policy_refuse"] = {2}
+
+        def on_log(ln):
+            if ln.startswith("SKIP REPORT") and "readded" not in w:
+                w["readded"] = True
+                w["policy_refuse"].discard(2)
+                with queue_lock(w["state"]):
+                    spool_append(w["state"], {"pr": 2, "verdict": w["heads"][2]})
+        w["on_log"] = on_log
+    w = go({1: {".github/workflows/t.yml": "x\n"}, 2: {".github/workflows/u.yml": "y\n"}}, base="main",
+           setup=overlap_readd, overlap=True, skip_bad=True)
+    b2 = next((i for i, ln in enumerate(w["lines"]) if ln.startswith("BATCH t-b2 ")), len(w["lines"]))
+    check("--overlap: an entry an EARLIER batch skipped, re-added, is recarried up front in its new batch "
+          "(only this batch's skips filter the list) and merges",
+          "OVERLAP: recarrying #2 up front, their pull_request runs fire together" in w["lines"][b2:]
+          and sorted(w["merged"]) == [1, 2] and any(ln.startswith("SKIP #2 ") for ln in w["lines"][:b2]))
+    check("skipped-then-merged is cured: CURED #2, skipped.json and SKIP REPORT drop it, rc 0; "
+          "null control: batch 1's own report still counted it",
+          "CURED #2: skipped earlier, merged by this train" in w["lines"] and w["skip_json"] == []
+          and w["rc"] == 0 and "SKIP REPORT: 1 skipped of 2" in w["lines"][:b2]
+          and "SKIP REPORT: 0 skipped of 3" in w["lines"])
+    # A rehearsal's serial entry (#2, past the ratchet with #1) is neither
+    # merged nor skipped: `ran`. QUEUE_PENDING (review_packet.train_boarded's
+    # read) lists pending only, so it is not boarded once its batch ended.
+    def ran_probe(w):
+        def on_log(ln):
+            if ln.startswith("BATCH t-b2 "):
+                import importlib.util
+                spec = importlib.util.spec_from_file_location("_rp_probe", ROOT / "tools/audit/seat/review_packet.py")
+                rp = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(rp)
+                was = os.environ.get("HPO_BUS_TRAIN_STATE")
+                os.environ["HPO_BUS_TRAIN_STATE"] = str(w["state"])
+                try:
+                    w["boarded"] = rp.train_boarded()
+                finally:
+                    if was is None:
+                        os.environ.pop("HPO_BUS_TRAIN_STATE", None)
+                    else:
+                        os.environ["HPO_BUS_TRAIN_STATE"] = was
+                w["pending_view"] = json.loads((w["state"] / QUEUE_PENDING).read_text())
+                w["seen_view"] = json.loads((w["state"] / QUEUE_SEEN).read_text())
+                w["ran_add"] = live_add(w, 2)
+        w["on_log"] = on_log
+    w = go({1: unit, 2: {"units/b": "b\n"}, 3: {"c.txt": "C\n"}}, batches=[[1, 2], [3]], setup=ran_probe)
+    sv = w.get("seen_view", {})
+    check("a rehearsal's serial entry not run is recorded `ran`: QUEUE_PENDING lists pending only ([3], not "
+          "merged #1 or ran #2), train_boarded reports it not boarded, and a re-add is ALREADY; "
+          "null control: #3, still to run, is boarded",
+          any("rehearsal: serial #2 not run" in ln for ln in w["lines"])
+          and sv.get("2", {}).get("state") == "ran" and sv.get("1", {}).get("state") == "merged"
+          and w.get("pending_view") == [3] and w.get("boarded") == {3}
+          and w.get("ran_add", (1, [""]))[1][0].startswith("ALREADY #2: run by this train"))
     flat = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}})
     nested = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}}, batches=[[1, 2]])
     shas = lambda xs: [re.sub(r"\b[0-9a-f]{8,40}\b", "<sha>", x) for x in xs]  # noqa: E731

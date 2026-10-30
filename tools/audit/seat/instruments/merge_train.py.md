@@ -68,7 +68,8 @@
   admitted again at a new verdict head, and at the same one when the skip was
   the environment's (`[HOLDER]`, or `[BRANCH-POLICY]`: every merge attempt
   refused by GitHub's base-branch policy). `skipped.json`'s rows name the
-  verdict. `dev/audit/harnesses/r10_train_overlap_grade_p2_mutants.py` holds
+  verdict; an entry skipped and then merged by the same train is cured
+  (`CURED #<pr>`), out of `skipped.json`, `SKIP REPORT` and the exit code. `dev/audit/harnesses/r10_train_overlap_grade_p2_mutants.py` holds
   one mutant per arm of that rule. A
   policy head batches like any other: under a `--mandate` naming the mandate's
   comment id, in force for policy merging, the train posts the citing approval
