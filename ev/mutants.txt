@@ -1,0 +1,11 @@
+== ghapi-1 tools/ci/ghapi.py: KILLED rc=1 | ghapi self-test: 32 checks, 1 failed
+== ghapi-2 tools/ci/ghapi.py: KILLED rc=1 | ghapi self-test: 32 checks, 2 failed
+== ghapi-3 tools/ci/ghapi.py: KILLED rc=1 | ghapi self-test: 32 checks, 1 failed
+== ghapi-4 tools/ci/ghapi.py: KILLED rc=1 | ghapi self-test: 32 checks, 8 failed
+== ghapi-5 tools/ci/ghapi.py: KILLED rc=1 | ghapi self-test: 32 checks, 2 failed
+== ghapi-6 tools/ci/ghapi.py: KILLED rc=1 | ghapi self-test: 32 checks, 2 failed
+== ghapi-7 tools/ci/ghapi.py: KILLED rc=1 | ghapi self-test: 32 checks, 2 failed
+== ghapi-8 tools/ci/ghapi.py: KILLED rc=1 | ghapi self-test: 32 checks, 2 failed
+== ghapi-9 tools/ci/ghapi.py: KILLED rc=1 | ghapi self-test: 32 checks, 4 failed
+== ghapi-10 tools/ci/ghapi.py: KILLED rc=1 | ghapi self-test: 32 checks, 12 failed
+RESULT survivors=0

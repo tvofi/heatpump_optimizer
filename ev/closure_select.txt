@@ -1,0 +1,2 @@
+  MODE: FULL -- every test script runs, nothing is scoped out.
+  reason: tools/ci/ghapi.py changes the gate itself, so every closure is suspect

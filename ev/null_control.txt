@@ -1,0 +1,9 @@
+FAIL a truncated read then a 200 on a GET answers the 200: got ('IncompleteRead(0 bytes read, 48262 more expected)', 1), want ((200, {}, {'ok': True}), 2)
+FAIL a truncated read that persists raises the last failure after two retries: got 1, want 3
+FAIL a reset mid-read then a 200 on a GET answers the 200: got ("ConnectionResetError(104, 'reset')", 1), want ((200, {}, {'ok': True}), 2)
+FAIL a reset mid-read that persists raises the last failure after two retries: got 1, want 3
+FAIL a timeout mid-read then a 200 on a GET answers the 200: got ("TimeoutError('timed out')", 1), want ((200, {}, {'ok': True}), 2)
+FAIL a timeout mid-read that persists raises the last failure after two retries: got 1, want 3
+FAIL a connection reset then a 200 on a GET answers the 200: got ("URLError(ConnectionResetError(104, 'reset'))", 1), want ((200, {}, {'ok': True}), 2)
+FAIL a connection reset that persists raises the last failure after two retries: got 1, want 3
+ghapi self-test: 32 checks, 8 failed

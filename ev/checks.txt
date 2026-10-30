@@ -1,0 +1,4 @@
+Check runs at head edf1cba7cda43790435d1d4b5aa1b3b24562912a (pull_request_read get_check_runs, 55 runs, read live):
+every run completed; conclusions success or skipped only; none failure/cancelled/timed_out.
+gate 124135042439 success (15:01:51Z, run 41076494702); gate 124134313272 success (run 41065272644);
+pr-contract 124134694531 success (15:01:08Z, after every other run concluded); tests / mutation success; arch-score success; budget-raise-gate success.

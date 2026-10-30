@@ -1,0 +1,23 @@
+M1 drop 'or nap is None':
+M2 except Exception:
+FAIL a non-transport exception raises: got 'returned', want 'raised'
+ghapi self-test: 32 checks, 1 failed
+M3 extra retry:
+FAIL a 5xx that persists is returned after two retries, not looped: got (503, 4), want (503, 3)
+FAIL a truncated read that persists raises the last failure after two retries: got 4, want 3
+FAIL a reset mid-read that persists raises the last failure after two retries: got 4, want 3
+FAIL a timeout mid-read that persists raises the last failure after two retries: got 4, want 3
+M4 5xx never retried:
+FAIL a 502 then a 200 on a GET answers the 200: got 502, want 200
+FAIL after one retry: got 1, want 2
+FAIL and a backoff before it: got False, want True
+FAIL a 5xx that persists is returned after two retries, not looped: got (503, 1), want (503, 3)
+M5 TRANSPORT += BaseException-ish (Exception):
+FAIL a non-transport exception raises: got 'returned', want 'raised'
+ghapi self-test: 32 checks, 1 failed
+M1 full:
+  File "/root/wt/tools/ci/ghapi.py", line 260, in self_test
+    check("a 5xx that persists is returned after two retries, not looped", (get("x")[0], len(calls)), (503, 3))
+                                                                            ~~~~~~~~^^^
+TypeError: 'NoneType' object is not subscriptable
+rc-nonzero
