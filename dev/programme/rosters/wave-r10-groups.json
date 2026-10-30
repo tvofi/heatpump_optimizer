@@ -12023,6 +12023,50 @@
     "note": "2026-10-29 owner request (tvofi chose option a in session); investigation by an opus seat against contributors.home-assistant.io/marketplace and home-assistant/core marketplace source"
    },
    "brief": "Owner request, 2026-10-29 (tvofi chose option (a)): adapt the integration for the Home Assistant Marketplace, which replaces HACS in core from 2026.11 and keeps the hacs/default catalog, hacs.json and the HACS validation action. Measured by the investigation seat at main e5ddba1fa: the v7.0.5 tag archive unpacks to 112.6 MiB in 7,928 files (dev/ alone 83.4 MiB), over the Marketplace's 100 MiB download limit (the maximum-download-size constant in home-assistant/core's marketplace source, defined in its repositories base module around lines 173 to 195 upstream, not in this tree), so every install falls back to per-file GitHub API fetches; the installed integration folder is 4.2 MiB. Re-measure both at your merge base. (1) Release asset: hacs.json gains the ZIP-release flag set true and a filename naming the asset; .github/workflows/release.yml builds a ZIP of the contents of custom_components/heatpump_optimizer (files at the archive root, as the Marketplace's zip install expects) and uploads it to the published release. This reverses the option-C-declined note in release.yml; replace that note with the reason (Marketplace size limit) rather than deleting the history silently. A release whose asset is missing must fail the workflow, never publish. Do not touch VERSION, the manifest version or a RELEASE_NOTES heading (CLAUDE.md rule 4). (2) manifest.json gains the categories heat pumps and air conditioning (under climate) and energy prices (under energy), spelled as the Marketplace category list in the upstream document at contributors.home-assistant.io/marketplace, keyed in hassfest's order; the HACS action's categories warning on main must go away. (3) README.md and docs (index.html, setup.md, dashboard-card.md) describe installing from the Marketplace on 2026.11 and later and from HACS before it, with the My-link badge for adding a HACS repository; docs/index.html changes in the same PR because tests/doc_claims.py pins its README anchor. (4) Drop the unknown render_readme key from hacs.json and fix the comment in tests/entities.py that describes it. Controls: the built ZIP unpacks under 100 MiB and contains manifest.json at its root; a null control shows the repository archive is still over 100 MiB (the asset, not a shrink, is the fix); hassfest and the HACS action pass at the head; a mutation that names the wrong asset filename in hacs.json fails a check you add. Owner-only follow-ups, recorded in the body and not done here: the hacs/default catalog PR from tvofi's personal account after a release carries this, and a 2026.11 beta install test."
+  },
+  {
+   "group": "R10-CATALOG-PR",
+   "lane": "PR",
+   "kind": "owner-step",
+   "class": "owner-step",
+   "severity": "medium",
+   "size": "S",
+   "issues": [
+    2965
+   ],
+   "fixes": [],
+   "findings": [],
+   "wave": 7,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": "tvofi personal account opens the hacs/default PR",
+   "rca": [],
+   "architect_note": "",
+   "effort": "low",
+   "model": {
+    "fixer": null,
+    "reviewer": null,
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": null,
+   "reviewerModel": null,
+   "after": [
+    "R10-MARKETPLACE",
+    "R10-STAMP-ROUND-MAJOR"
+   ],
+   "files": [],
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": "after the v10.0.0 closeout stamp: open the hacs/default catalog PR as tvofi",
+    "note": "2026-10-29 owner: \"Open the catalog PR once v10.0.0 is stamped and this round is closed out instead\". Reference: issue #2965; the full reference stays out of tree beside the seat's group files"
+   },
+   "brief": "Owner directive 2026-10-29: open the Home Assistant Marketplace catalog PR once round 10 is closed out and v10.0.0 is stamped, not before. Preconditions: R10-MARKETPLACE merged (ZIP-release asset, manifest categories, install docs) and R10-STAMP-ROUND-MAJOR merged; the v10.0.0 release is published with the heatpump_optimizer.zip asset attached, and that ZIP unpacks under 100 MiB with manifest.json at its root; the HACS action and hassfest pass at the v10.0.0 tag. Step: from the personal tvofi account (never an org, never the hpo-author App), fork hacs/default, add tvofi/heatpump_optimizer to the integration list in sorted position, and open the PR filling its template with links to the v10.0.0 release and the passing HACS-action and hassfest runs. Read the PR back, link it on issue #2965, and record its URL in this group's resume. Never delete or rename the repository while listed. Reference: the investigation seat's full report is issue #2965's body (its requirements table, risks, owner-only items O1-O4 are in that body)."
   }
  ]
 }
