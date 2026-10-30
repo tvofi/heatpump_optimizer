@@ -1,15 +1,12 @@
-CLOUD FIXER seat for PR #2968 of tvofi/heatpump_optimizer, at head 5affc1af8694e02964c84f2218eaefd3792dd515. Never send push notifications. Write no Claude Code footer, no Co-Authored-By or Claude-Session trailer and no claude.ai session link in any commit, pull-request body or comment you produce; check your commits with `git log --format=%B` before pushing.
+CLOUD FIXER seat for PR #2968 of tvofi/heatpump_optimizer, at head ddf75aaf8651c502794de257bbc76c044282f102. Never send push notifications. Write no Claude Code footer, no Co-Authored-By or Claude-Session trailer and no claude.ai session link in any commit, pull-request body or comment you produce; check your commits with `git log --format=%B` before pushing.
 Setup: `git fetch --unshallow --tags origin`. The session-start `toolchain:` line says whether venv-ci's python3 is on PATH: on REFUSE, start each Bash call with `eval "$(bash .claude/hooks/session-start.sh --env-lines)"`. Run anything heavy in the background with Monitor and no timeout. Never wait in one tool call longer than 240 s; poll again instead.
-Role: read dev/governance/roles/fixer.md from main, and follow it exactly, in a worktree of your own cut from origin/main. Fetch 5affc1af8694e02964c84f2218eaefd3792dd515 for the base you were given.
+Role: read dev/governance/roles/fixer.md from main, and follow it exactly, in a worktree of your own cut from origin/main. Fetch ddf75aaf8651c502794de257bbc76c044282f102 for the base you were given.
 Output: push the code to refs/heads/handoff/r10-sav-actuation, then write the PR body and run `bash tools/audit/seat/body_push.sh r10-sav-actuation <body.md>`, which pushes refs/heads/handoff-body/r10-sav-actuation; that second push is the return signal. Push nothing else, open no pull request and write no delivery row. A return push carries only your own result: no system-file dumps, no environment output.
 Never write to any branch except your return refs. Never work around a hook or a refusal; report it in your result instead.
 
 Brief (snapshotted when this payload was rendered):
-FIXER seat (body only), PR #2968 (R10-SAV-ACTUATION), handoff refs/heads/handoff/r10-sav-actuation at 5affc1af8694e02964c84f2218eaefd3792dd515. Your contract is dev/governance/roles/fixer.md.
-update_pr.sh refused to move the PR to this handoff because tools/pr/prepr.sh REFUSEs: "2 unpinned site(s) the diff adds and no section headed exactly `## Unpinned sites`".
-Do this:
-1. Run prepr against the handoff merged with origin/main, using the body at handoff-body/r10-sav-actuation, and list the two sites.
-2. Add a `## Unpinned sites` section that gives each site its key and disposition (fixer.md step 7d). Pin a site with a killed mutant where you can; record a disposition only where you can't.
-3. Push the code to handoff/r10-sav-actuation and the body to handoff-body/r10-sav-actuation.
-4. Run prepr again until it is green.
-Do not touch the PR head, VERSION or the claim files.
+FIXER seat, group R10-SAV-ACTUATION, PR #2968 (branch fix/r10-sav-actuation), live head ddf75aaf8651c502794de257bbc76c044282f102. Contract: dev/governance/roles/fixer.md at origin/main; steps 2-8 re-execute after any merge.
+Blocked verdict (verdict/2968, review/2968 at c4e9f6a3, probe/rev-2968-eb46adc3): ci-red: tests / mutation is red on two added unpinned sites, custom_components pump_arbiter.py:1195 CMP_BOUND and :1222 GUARD_OFF, which both survive tests/features.py at this head, so the body's left-to-mutation-autofix disposition cannot clear them (mutation-autofix pins kills only; ci-autofix.md "A survivor").
+Previous round's block (10 h earlier, d26a00aa): mutation-vacuous on step_supply boost, sysid and non-plan-mode guards, supply_tick entry_released guard, release_supply. Do not regress those.
+Do: write a test that kills each surviving mutant through the production path (not a re-implementation of the formula; tests/README.md), demonstrate each killed (mutant applied -> test red; restored -> green), pin both sites, re-run the scoped gate and tests/structure.py, update the body's ## Red checks mutation line with the measured kills. If a site is genuinely unreachable/equivalent, delete the dead guard or justify equivalence with the measurement, never leave it to autofix.
+Return: push handoff/r10-sav-actuation (code, descending from ddf75aaf) and handoff-body/r10-sav-actuation via body_push.sh. Never open/edit the PR.
