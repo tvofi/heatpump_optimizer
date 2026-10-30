@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:partload_factor CLAMP_DROP e648cdad",
+  "killed_by": "tests/features.py",
+  "old": "    x = min(max(x, 0.0), 1.0) if np.ndim(x) == 0 else np.clip(x, 0.0, 1.0)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`x = (max(x, 0.0)) if np.ndim(x) == 0 else np.clip(x, 0.0, 1.0)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2. Each of the 3 sites under this anchor was killed."
+}
