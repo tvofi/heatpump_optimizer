@@ -1,0 +1,2 @@
+def check_initial_setup_menu() -> None:
+def check_simulate_plan_fields() -> None:
