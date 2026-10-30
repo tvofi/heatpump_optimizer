@@ -1,7 +1,7 @@
 R10-FLY-OPENPR-ATOMIC (#2719, fly-in, lane F). `open_pr.sh` creates the PR on its first push (p1) and pushes the PR's own delivery row on its second (p2). When any step after p1 failed, the PR stayed open with no row. Now, once `N` is known, the EXIT trap runs `op_close_unrowed` first. This covers every exit before `PR_ATTEMPT=opened`: a refused row push, a step errexit stops (the title edit, `commit_row`, the head note), or a stop signal. That single path reaps the row push, returns the opener's worktree to the pushed head, and closes the draft. Only after the close succeeds does it post a comment, read back by `tools/pr/gh_comment.py`, that quotes the refusal or the `STOPPED` line (`open_pr: CLOSED: #N`). A close that fails prints `ROWLESS` and posts no comment, so `update_pr.sh`'s `ensure_row` can add the row later. The refused-row-push branch now only sets `OP_WHY` and exits; the old inline close is gone, so there is no second copy. `pr_args.sh`'s `pr_stopped` keeps its report in `PR_STOPPED_AT`, and the close quotes it. A conflicted `origin/main` merge is aborted and refused, so `pr_release_wt` removes the clean worktree.
 
 Carries (roster group R10-FLY-OPENPR-ATOMIC, numbered as `review_packet.py` numbers them):
-- Carry 1 (#2625/#2629, the rowless PR): closed in this diff, for every exit after the PR exists rather than only a refused row push. The self-test replays a refused row push and a failing title edit.
+- Carry 1 (#2625/#2629, the rowless PR): closed in this diff, for every exit after the PR exists rather than only a refused row push. The self-test replays a refused row push, a failing title edit, and a row push that lands and then fails.
 - Carry 2 (P-D, the exit-trap release): already on main (`pr_exit_trap` with `PR_TIDY` = `pr_release_wt`) and unchanged. `op_close_unrowed` runs before it in the same trap.
 - Carry 3 (detach as the opener's last step): already on main. `pr_release_wt` runs in the EXIT trap after the last push, and this diff adds no push after it.
 - Carry 4 (P71, default the Closes list from roster `fixes`): not in this diff. It needs `roster_lib` at the default ref inside the opener and can be done separately, so it stays on the roster.
@@ -12,50 +12,56 @@ Carries (roster group R10-FLY-OPENPR-ATOMIC, numbered as `review_packet.py` numb
 
 ## Re-cut
 
-The body was replaced at round four (fixer.md, "Past three rounds"). The review at `50b19564` was blocked because a step failing between p1 and p2 left the PR open (`open_pr.sh` lines 80-87 at that head). Its finding was that the closing comment was posted before `gh pr close`. Both are closed here, through one EXIT-trap path. Every figure below was re-taken in this pass.
+The row push can fail after its own `git push` has landed. `app_push.sh`'s `push_and_open` refuses a body PATCH or a read-back only after it has pushed, and a stop signal can arrive past the push. So, when `H` (the row commit) is set, `op_close_unrowed` first reads origin's branch tip with `git ls-remote`. It closes `#N` only when that tip is readable and is not `H`. When origin's tip is `H`, `#N` keeps its row and stays open. The run then exits non-zero and prints `open_pr: ROW LANDED: #N has its row on origin at <H>, but the row push then failed (exit status <rc>); #N is left open: <why>` (`op_row_landed`). A tip that cannot be read does not count as absent either, so `#N` is left open there too, with a `ROWLESS` line saying origin was not read.
+
+## Re-cut
+
+The body was replaced at round four (fixer.md, "Past three rounds"). The round-five review at `a11db7fe` was blocked: a row push that landed on origin and then failed closed a PR that had its row, with a comment saying the row was never pushed. That is closed here. Every figure below was re-taken in this pass.
 
 ## Head
 
-`4d6538d7fd65f9d268590e034b0aa2b4fbdb1c19`: one commit on `50b1956485ea01e78d97a0619a32cdc9dd923cdd`, merge base with origin/main `e8cb7e68302b1d350bb8219fea99e911170af030`.
+`083905bdf9650faf4743dbde95f991aac5fc78bd`: one commit on `a11db7fea14bc34633eb65e8111a207142eb45ab`, merge base with origin/main `1afdef8872a5da2eedff32916c1095e114198fae`. `git merge-tree --write-tree origin/main HEAD` exits 0 against origin/main `e77418f9b48f89421bd72b0ab511c057341c7fa4` (2026-10-30T13:55:11Z).
 
 ## Mutation proof
 
 These are in-tree mutants in `pr_args.sh`'s self-test (`bash tools/audit/seat/open_pr.sh --self-test`). Each one deletes its `# mut:<name>` line, and each prints `ok` at the head:
+- `mut:roworigin` (new) deletes the line in `op_close_unrowed` that compares origin's tip with `H`. The arm is `mutant mut:roworigin (its line deleted): the PR whose row is on origin is closed as rowless (the defect)`.
 - `mut:trapclose` deletes the line that registers `op_close_unrowed` in the EXIT trap once `N` is known. The arm is `mutant mut:trapclose (its line deleted): a failing title edit leaves the PR open, unclosed and without its row (the defect)`.
-- `mut:rowclose` deletes the `gh pr close` line. The arm is `mutant mut:rowclose (its line deleted): the PR stays open without its row (the defect), under no comment saying it closed; the next update_pr.sh lands it`. It now also asserts that no comment was posted, which pins the finding.
-- `mut:rowreset` (the reset to the pushed head) and `mut:mergeabort` are unchanged.
+- `mut:rowclose` deletes the `gh pr close` line. The arm is `mutant mut:rowclose (its line deleted): the PR stays open without its row (the defect), under no comment saying it closed; the next update_pr.sh lands it`.
+- `mut:rowreset` and `mut:mergeabort` are unchanged.
 
-Red, then green restored:
-- The head's tree with the `# mut:trapclose` line deleted from `open_pr.sh` itself (`grep -v '# mut:trapclose$'`), run with `bash tools/audit/seat/open_pr.sh --self-test`, gives `pr_args self-test: 156 checks, 3 failed` and rc=1. The FAILs:
-  - `open_pr: a refused row push closes the PR with a read-back comment naming the refusal, and leaves no stranded worktree`. One path serves both triggers, so p2's close goes too.
-  - `mutant mut:rowclose ...`
-  - `open_pr: a step errexit stops after the PR exists (its title edit) closes it with a read-back comment naming the stop`
-- Restored: the unmodified head gives `pr_args self-test: 156 checks, 0 failed` and rc=0.
+Red, then green restored, for `mut:roworigin`. The head's tree with the `# mut:roworigin` line deleted from `open_pr.sh` itself (`grep -v '# mut:roworigin$'`) gives `pr_args self-test: 158 checks, 1 failed` and rc=1. The FAIL is `open_pr: a row push that lands on origin and then fails leaves the PR open with its row, and says so`. With the line restored, the run gives `158 checks, 0 failed` and rc=0.
 
-Failing test first: the head's tree with `open_pr.sh` taken from `50b19564` gives `pr_args self-test: 156 checks, 2 failed` and rc=1. The two FAILs are the title-edit arm (the review's demo: the stub's `gh pr edit` exits 1, and the PR is left open and unclosed) and `mutant mut:rowclose ...`, which fails because the old code posted "Closed by open_pr.sh" before a close that then failed (the finding).
+Failing test first. The new arms, run with `open_pr.sh` at `a11db7fe`, give `pr_args self-test: 158 checks, 1 failed` and rc=1. The FAIL is the same post-push arm. That is the review's probe (`ev/probe-postpush-close.diff`) made an in-tree arm: the stub's call 2 pushes the row and then exits 1 with the body-PATCH refusal text (the `p2postfail` flag).
 
 ## Null control
 
-At the head, the success path (`racerun -`) still lands the row and detaches the worktree, and no close happens. These arms pass: `open_pr: an update_pr.sh on its branch during its second push is BUSY, and the PR's row reaches origin` and `open_pr: a successful open leaves its worktree detached at the pushed head`. The guard `[ -z "${PR_ATTEMPT:-}" ] || return 0` is what keeps an opened PR open. The unmodified tree (`open_pr.sh` at `50b19564`) leaves the PR open after a failing title edit, as the FAIL above shows.
+The rowless arm (`rowless -`: the stub refuses before it pushes, so origin's tip stays at p1, not `H`) still asserts `closed=1`, the read-back comment and `rowpushed=0`, and prints `ok`: `open_pr: a refused row push closes the PR with a read-back comment naming the refusal, and leaves no stranded worktree`. The origin check therefore does not keep a rowless PR open. The success path (`racerun -`) still lands the row, detaches the worktree, and closes nothing; its two arms print `ok`. The new arm asserts `closed=0`, `commented=0`, `rowpushed=1`, rc≠0, the `ROW LANDED` line quoting `body PATCH on #5 was refused`, no `CLOSED` line, and a detached worktree. Under `mut:roworigin` the same scenario closes (`closed=1`, `open_pr: CLOSED: #5 at`), which is what the mutant arm asserts.
 
 ## Figures
 
-- Self-test at the head: `bash tools/audit/seat/open_pr.sh --self-test` exits 0. It prints `delivery_row self-test: 6 checks, 0 failed` and `pr_args self-test: 156 checks, 0 failed`. `grep -c '^  ok'` of that output gives 162. At `50b19564` the reviewer measured 154 and 160. The two new checks are the title-edit arm and its `mut:trapclose` mutant.
-- The same self-test with `open_pr.sh` from `50b19564`: rc=1, 2 failed (named above).
-- The same self-test with the `# mut:trapclose` line deleted: rc=1, 3 failed (named above).
-- Class seams. The rule that enumerates them is every top-level step from the assignment of `N` to `PR_ATTEMPT=opened`: `awk '/^N=\$\(grep/{f=1} f{print NR": "$0} f&&/^PR_ATTEMPT=opened/{exit}' tools/audit/seat/open_pr.sh`. The awk prints lines 103-124. Disposition of each:
-  - The `N=` assignment (103): no PR number yet. It runs before the trap that closes, which is out of this group's class.
-  - The trap registration (104).
-  - The title edit and ready (105), `commit_row` (106), `H=` (107), the head-note prefix (108-113), `RO=` (114), the row push and its wait (115-116), and the refusal branch (117-122): each exits through the EXIT trap registered at 104, and so through `op_close_unrowed`. This is closed in this diff.
-  - `PR_PUSHED=$H` (123) and the marker (124): the row has been pushed by then.
-  - A stop signal anywhere in that range runs the same EXIT trap (`pr_exit_trap`'s contract: TERM, INT and HUP included). `op_close_unrowed` calls `pr_reap` before it closes, so an interrupted row push ends first.
-  - The self-test drives two of these triggers: the refused row push and the failing title edit. The rest share the trap by construction and have no arm of their own.
-- Scope: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"` prints `MODE: SCOPED -- 0 script(s) run, 33 scoped out.`
+- Self-test at the head: `bash tools/audit/seat/open_pr.sh --self-test` exits 0. It prints `delivery_row self-test: 6 checks, 0 failed` and `pr_args self-test: 158 checks, 0 failed`. `grep -c '^  ok'` of that output gives 164: 158 plus delivery_row's 6. At `a11db7fe` the reviewer measured 156 and 162. The two new checks are the post-push arm and its `mut:roworigin` mutant. Null control for the count: the red runs below print 163 `ok` lines, because one check is a FAIL.
+- The same self-test with `open_pr.sh` from `a11db7fe`: rc=1, `158 checks, 1 failed` (named above).
+- The same self-test with the `# mut:roworigin` line deleted: rc=1, `158 checks, 1 failed` (named above).
+- Class seams, part one: the exits between the PR's existence and its row. The rule is `awk '/^N=\$\(grep/{f=1} f{print NR": "$0} f&&/^PR_ATTEMPT=opened/{exit}' tools/audit/seat/open_pr.sh`, which prints lines 122-143. Disposition of each:
+  - The `N=` assignment (122): no PR number yet, and it runs before the trap that closes.
+  - The trap registration (123).
+  - The title edit (124), `commit_row` (125), `H=` (126), the head-note prefix (127-132), `RO=` (133), the row push and its wait (134-135), and the refusal branch (136-141): each exits through the EXIT trap and so through `op_close_unrowed`. Before `H` is set (124-125), no row exists, so the PR closes. From 126 on, the PR closes only when origin's tip is readable and is not `H`. These are closed in this diff.
+  - `PR_PUSHED=$H` (142) and the marker (143): the row has been pushed by then.
+  - A stop signal anywhere in that range runs the same EXIT trap (`pr_exit_trap`: TERM, INT and HUP included). `pr_reap` ends an interrupted row push before origin is read.
+- Class seams, part two: the review's seam, a row push that exits non-zero after its `git push` succeeded. The rule enumerates every refusal in `app_push.sh`'s `push_and_open` after the `push_rc` check, plus `confirm_readback`'s: `{ awk '/\[ "\$push_rc" = 0 \]/{f=1;next} f&&/^}/{exit} f&&/die "/{print "app_push.sh:"NR}' tools/pr/app_push.sh; awk '/^confirm_readback\(\)/{f=1} f&&/^}/{exit} f&&/die "/{print "app_push.sh:"NR" (confirm_readback)"}' tools/pr/app_push.sh; }`. It returns 8 sites: 537, 541, 545, 548 and `confirm_readback`'s 350, 351, 364, 366. Disposition: each is closed in this diff. The close keys on origin's tip, not on which refusal fired, so any exit after the push leaves the PR open when origin holds `H`. The self-test drives 548, the body-PATCH refusal. 537 and 541 (the POST path) are not reached under `--row-only`, because the PR already exists. A stop signal past the push is the same seam and is covered by the same tip read. The one case left unproven: a tip that cannot be read leaves the PR open with a `ROWLESS` line, and no arm drives it.
+- Part two's enumeration, the scope and the structure runs were made by a delegated worker under the exact commands given here, because a session cost-guard hook refused further inline commands; the hook was not bypassed.
+- Scope: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"` prints `MODE: SCOPED -- 0 script(s) run, 33 scoped out.`, and `scope.run` is empty.
 - Structure: `python3 tests/structure.py` prints `STRUCTURE RATCHET PASSED`.
+- `VERSION`, the manifest, `RELEASE_NOTES.md` and the golden and claim files: `git diff --stat $(git merge-base origin/main HEAD)...HEAD -- VERSION RELEASE_NOTES.md tests/golden` prints nothing.
+
+## Unpinned sites
+
+- The unreadable-tip branch (`tip=unread`) in `op_close_unrowed`, and its `ROWLESS` message in `op_row_landed`: no arm drives an `ls-remote` failure. That branch only leaves the PR open and exits non-zero; it never closes. A `tools/` site needs an in-tree mutant harness, and none is added for it here.
 
 ## Red checks
 
-none. No CI has run on `4d6538d7`. On `50b19564` the check-runs the review read showed no failure, and some were still in progress.
+none. No CI has run on `083905bd`. On `a11db7fe` the review read no check concluded red.
 
 ## Forward-carry
 
