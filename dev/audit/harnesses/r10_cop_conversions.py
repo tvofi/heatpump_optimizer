@@ -14,9 +14,11 @@ one of the conversion helpers themselves; a product of such terms
 printed, so ``take / (cop * dt)`` is one hit, not two. Each line is
 ``file:line:function:DIV|MUL:ROUTED|PLAIN: expression``; the function
 anchors the hit when a line shifts. ``ROUTED`` marks a hit that goes through
-a helper: an argument of one, or a product with one's result
-(``cop * heat_per_cop_kw(...)``). The last lines are ``RESULT hits=<n>`` and
-``RESULT plain=<n>``.
+a helper: an argument of one, or an expression with a helper call in an
+operand (``cop * heat_per_cop_kw(...)``). Every call of a helper is printed
+too, as ``CALL:ROUTED``, so a conversion written as one call
+(``delivered_heat_kw(params, cop, p)``) is still a listed seam. The last two
+lines count the hits, and the PLAIN ones among them.
 
 The rule is lexical by design: it over-fires on COP-named constants that are
 not a coefficient of performance (``COP_HEALTH_THRESHOLD``), which a
@@ -33,7 +35,10 @@ from pathlib import Path
 
 _COP = re.compile(r"cop", re.I)
 _NOT_COP = re.compile(r"copy|scope", re.I)
-HELPERS = {"heat_per_cop_kw", "power_for_heat_per_cop_kw", "delivered_heat_kw"}
+HELPERS = {
+    "heat_per_cop_kw", "power_for_heat_per_cop_kw",
+    "added_power_for_heat_per_cop_kw", "delivered_heat_kw",
+}
 _WRAPPERS = {"max", "min", "float", "abs", "maximum", "minimum"}
 
 
@@ -84,8 +89,12 @@ def scan(root: Path) -> list[str]:
             elif isinstance(node, ast.AugAssign):
                 kind = _hit(node.op, node.target, node.value)
                 pair = (node.target, node.value)
+            if _helper_call(node):
+                out.append((str(rel), node.lineno, f"{rel}:{node.lineno}:{func}:"
+                            f"CALL:ROUTED: {ast.unparse(node)}"))
             if kind and not inside:
-                route = "ROUTED" if routed or any(map(_helper_call, pair)) else "PLAIN"
+                via = any(_helper_call(n) for side in pair for n in ast.walk(side))
+                route = "ROUTED" if routed or via else "PLAIN"
                 out.append((str(rel), node.lineno, f"{rel}:{node.lineno}:{func}:"
                             f"{kind}:{route}: {ast.unparse(node)}"))
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
