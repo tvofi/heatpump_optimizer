@@ -1,13 +1,16 @@
-CLOUD FIXER seat for tvofi/heatpump_optimizer, topic r10-arch-docs-wiring, at head cf4f6b7a660f5b61e0f2b933bd18647fe3ba90c7. Never send push notifications. Write no Claude Code footer, no Co-Authored-By or Claude-Session trailer and no claude.ai session link in any commit, pull-request body or comment you produce; check your commits with `git log --format=%B` before pushing.
+CLOUD FIXER seat for tvofi/heatpump_optimizer, topic r10-arch-docs-wiring, at head 2352b3d28983880c90f6a7620bf55ab98189ede0. Never send push notifications. Write no Claude Code footer, no Co-Authored-By or Claude-Session trailer and no claude.ai session link in any commit, pull-request body or comment you produce; check your commits with `git log --format=%B` before pushing.
 Setup: `git fetch --unshallow --tags origin`. The session-start `toolchain:` line says whether venv-ci's python3 is on PATH: on REFUSE, start each Bash call with `eval "$(bash .claude/hooks/session-start.sh --env-lines)"`. Run anything heavy in the background with Monitor and no timeout. Never wait in one tool call longer than 240 s; poll again instead.
-Role: read dev/governance/roles/fixer.md from main, and follow it exactly, in a worktree of your own cut from origin/main. Fetch cf4f6b7a660f5b61e0f2b933bd18647fe3ba90c7 for the base you were given.
+Role: read dev/governance/roles/fixer.md from main, and follow it exactly, in a worktree of your own cut from origin/main. Fetch 2352b3d28983880c90f6a7620bf55ab98189ede0 for the base you were given.
 Output: push the code to refs/heads/handoff/r10-arch-docs-wiring, then write the PR body and run `bash tools/audit/seat/body_push.sh r10-arch-docs-wiring <body.md>`, which pushes refs/heads/handoff-body/r10-arch-docs-wiring; that second push is the return signal. Push nothing else, open no pull request and write no delivery row. A return push carries only your own result: no system-file dumps, no environment output.
 Never write to any branch except your return refs. Never work around a hook or a refusal; report it in your result instead.
 
 Brief (snapshotted when this payload was rendered):
-Split from R10-ARCH-DOCS by lever L4 (tvofi, 2026-10-30, #201 comment 6527969942). This is arm A of triage P261, which the owner already approved dispatching past the 2026-10-17 last-stage ruling on 2026-10-28T17:47Z. This group has no after-edges. R10-ARCH-DOCS keeps arm B, the verification of R10-ARCH-DOCS-FIRST's markers, as the last stage of round 10; it will run this group's checker at the true merge base and resolve only the delta.
+FIXER seat (handoff repair), group R10-ARCH-DOCS-WIRING, topic r10-arch-docs-wiring. Current handoff head 2352b3d28983880c90f6a7620bf55ab98189ede0, body at handoff-body/r10-arch-docs-wiring df4eb222. Contract: dev/governance/roles/fixer.md at origin/main.
 
-1. Wiring test: a tree instrument that resolves every path, instrument, workflow job, event kind and diagram node that docs/architecture.md and the developer onboarding name, at HEAD. Use brief_lint.mjs or a small checker in the suite's gate. It goes red on a fixture that renames or removes a named element, and stays green on a null control.
-2. Target-marker resolver: lists every unresolved `[target: G]` marker R10-ARCH-DOCS-FIRST left, with its group's roster stage. Red fixture: a marker naming a done group. Null control: one naming a not-started group passes. Arm B, not this group, makes 'no unresolved marker on main' a hard check.
-3. P40: a check that the committed card figures match what they depict.
-Classify every new tracked file (closure or INERT). Follow dev/governance/roles/fixer.md. Part of #201; refers to #2395 (it stays open for arm B). triage: dev/programme/triage/s6-batch52.md#P261
+The orchestrator's open was refused by tools/pr/prepr.sh with: `REFUSE agreement lane: AGREEMENT REFUSED: one concept, readers that disagree or a grammar written twice and unregistered`. Every other step passed: self-test 429/0, ref privacy, temp paths, field coverage.
+
+Do EXACTLY this:
+1. Fetch your head, merge origin/main in, and run tools/pr/prepr.sh to read the agreement lane's full output (tools/policy/agreement.mjs).
+2. Fix it at its seam. If your checker or resolver parses a grammar another reader already parses (target markers, doc paths, event kinds), reuse that reader or register the grammar once in tools/policy/agreement.mjs, with its fixture. Never weaken the lane.
+3. Re-run prepr clean: agreement, unpinned sites and CI predict.
+4. Push the new head to handoff/r10-arch-docs-wiring and the updated body via body_push.sh. Never open a PR.
