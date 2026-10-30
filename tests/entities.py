@@ -1284,8 +1284,10 @@ R.check(
     f"the census is {_arch_diagram_want}",
 )
 
-# HACS renders this README inside Home Assistant -- `hacs.json` asks for it,
-# and hacs/integration's `async_get_info_file_contents` reads README.md -- so
+# HACS renders this README inside Home Assistant -- hacs/integration's
+# `async_get_info_file_contents` reads README.md for every repository, with no
+# `hacs.json` key asking for it (`render_readme` is not a key HACS knows, and
+# R10-MARKETPLACE dropped it from `hacs.json`) -- so
 # the README has a second renderer, and it is much weaker than GitHub's.
 # hacs/frontend's repository dashboard passes it to `<ha-markdown>` with no
 # `allow-svg`, which is home-assistant/frontend's markdown-worker: plain
@@ -33261,11 +33263,12 @@ R.check(
     "replaces, because `gh release create` uses it. Anything beyond these "
     "three is scope this job does not use and should not hold",
 )
-# The subject honesty is the other half of the approval: option C (build an
-# artefact) is declined because HACS installs from the ref, so the attested
-# subject must be the tag's tree itself -- a digest recomputable by anyone
-# from the tag -- and never a zip, an upload, or an asset the release does
-# not carry. The pins are the wiring that makes that claim checkable: the
+# The subject honesty is the other half of the approval: the attested subject
+# is the tag's tree itself -- a digest recomputable by anyone from the tag --
+# and never a built file. #960 declined option C (build an artefact) because
+# HACS installed from the ref; R10-MARKETPLACE reversed that for the
+# Marketplace's 100 MiB download limit and added `heatpump_optimizer.zip`
+# (pinned below), but the attestation still names the tree, not the asset. The pins are the wiring that makes that claim checkable: the
 # digest step serialises the tag with `git archive`, and the attestation
 # carries that digest under `subject-digest`, pinned by its own SHA.
 _REL_ATTEST_PIN = re.search(
@@ -33283,8 +33286,141 @@ R.check(
     f"subject-path present={'subject-path:' in _REL_JOB} (must be False); the "
     "digest step serialises the tag's tree and the attestation carries that "
     "sha256 -- `subject-path` would bind the statement to a built file, which "
-    "is the overclaim #960 exists to remove while the artefact build stays "
-    "declined",
+    "is not what #960 approved: the attestation covers the tree, of which "
+    "the release asset is one subtree",
+)
+
+# --- the release asset the Marketplace installs (R10-MARKETPLACE) ------------
+#
+# The Home Assistant Marketplace, HACS's successor in core from 2026.11,
+# refuses a download over 100 MiB, and this repository's tag archive is over
+# it; with `zip_release` it downloads the release asset `hacs.json` names
+# under `filename` instead. Three things make that true, each pinned here:
+#   * `hacs.json` sets `zip_release` and names exactly the asset release.yml
+#     uploads (the job's `ASSET`), and holds no key HACS does not know -- a
+#     wrong `filename` installs nothing, and the Marketplace says only that
+#     the asset is missing;
+#   * the build and check steps, RUN in a scratch repository, produce a ZIP
+#     with the integration's manifest.json at its root and no
+#     custom_components/ prefix, and the check refuses a `hacs.json` naming
+#     another file;
+#   * the release is created as a draft carrying the asset, and published by
+#     a later step that reads the asset back, so a release without its asset
+#     fails the run and is never published.
+# Design choice, said out loud (fixer.md step 11): the asset name is stated
+# once in the workflow and once in hacs.json, and this check pins them equal,
+# rather than the workflow reading hacs.json, so that a wrong `filename` is
+# refused here instead of being uploaded under the wrong name.
+_HACS_KEYS = {"name", "content_in_root", "zip_release", "filename",
+              "hide_default_branch", "country", "homeassistant", "hacs",
+              "persistent_directory"}
+_REL_DOC = _yaml.safe_load(Path(_REL_WF).read_text()) or {}
+_REL_JOBD = ((_REL_DOC.get("jobs") or {}).get("release") or {})
+_REL_ASSET = (_REL_JOBD.get("env") or {}).get("ASSET")
+_REL_STEPS = {str((_s or {}).get("name")): _i for _i, _s in
+              enumerate(_REL_JOBD.get("steps") or [])}
+_REL_RUN = {str((_s or {}).get("name")): str((_s or {}).get("run") or "")
+            for _s in _REL_JOBD.get("steps") or []}
+_HACS_DOC = json.loads(Path("hacs.json").read_text())
+
+
+def _rel_hacs_defects(hacs: dict, asset: "str | None") -> "list[str]":
+    out: "list[str]" = []
+    if hacs.get("zip_release") is not True:
+        out.append(f"zip_release is {hacs.get('zip_release')!r}, not true")
+    if not asset or hacs.get("filename") != asset:
+        out.append(f"hacs.json filename {hacs.get('filename')!r} is not the "
+                   f"asset release.yml uploads ({asset!r})")
+    if set(hacs) - _HACS_KEYS:
+        out.append(f"keys HACS does not know: {sorted(set(hacs) - _HACS_KEYS)}")
+    return out
+
+
+def _rel_zip_defects(build: str, check: str, asset: str) -> "list[str]":
+    """Run the build and check steps in a scratch repository."""
+    import zipfile
+    out: "list[str]" = []
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = Path(tmp) / "repo"
+        files = {"hacs.json": json.dumps({"zip_release": True,
+                                          "filename": asset}),
+                 "custom_components/heatpump_optimizer/manifest.json":
+                     json.dumps({"domain": "heatpump_optimizer"}),
+                 "custom_components/heatpump_optimizer/sub/a.py": "x = 1\n",
+                 "dev/big.txt": "outside the integration\n"}
+        for rel, body in files.items():
+            (repo / rel).parent.mkdir(parents=True, exist_ok=True)
+            (repo / rel).write_text(body)
+        git = ["git", "-c", "user.name=t", "-c", "user.email=t@t"]
+        env = throwaway_git_init(repo, "-q")
+        subprocess.run(git + ["add", "-A"], cwd=repo, check=True, env=env)
+        subprocess.run(git + ["commit", "-qm", "t"], cwd=repo, check=True,
+                       env=env)
+        sha = subprocess.run(["git", "rev-parse", "HEAD"], cwd=repo, env=env,
+                             check=True, capture_output=True,
+                             text=True).stdout.strip()
+
+        def run(script: str) -> int:
+            e = dict(os.environ, RUNNER_TEMP=tmp, ASSET=asset, GITHUB_SHA=sha)
+            return subprocess.run(["bash", "--noprofile", "--norc", "-eo",
+                                   "pipefail", "-c", script], cwd=repo, env=e,
+                                  capture_output=True, text=True).returncode
+        if run(build) != 0:
+            return ["the build step fails"]
+        zpath = Path(tmp) / asset
+        names = set(zipfile.ZipFile(zpath).namelist()) if zpath.is_file() else set()
+        if "manifest.json" not in names or "sub/a.py" not in names \
+                or any(n.startswith(("custom_components/", "dev/")) for n in names):
+            out.append(f"the ZIP holds {sorted(names)}, not the integration "
+                       "folder's files at its root")
+        if run(check) != 0:
+            out.append("the check step refuses a correct ZIP")
+        (repo / "hacs.json").write_text(json.dumps(
+            {"zip_release": True, "filename": "wrong.zip"}))
+        if run(check) == 0:
+            out.append("the check step passes a hacs.json naming another file")
+    return out
+
+
+R.check(
+    "hacs.json names the release asset release.yml uploads, with zip_release",
+    not _rel_hacs_defects(_HACS_DOC, _REL_ASSET),
+    "; ".join(_rel_hacs_defects(_HACS_DOC, _REL_ASSET)) or "holds",
+)
+# Null control: the same reader refuses a wrong filename, so the pass above
+# is the files agreeing, not the reader passing everything.
+R.check(
+    "the hacs.json asset reader refuses a filename release.yml does not upload",
+    bool(_rel_hacs_defects(dict(_HACS_DOC, filename="wrong.zip"), _REL_ASSET)),
+    "a hacs.json naming wrong.zip read as clean",
+)
+_REL_ZIP_DEFECTS = _rel_zip_defects(
+    _REL_RUN.get("Build the integration ZIP", "exit 1"),
+    _REL_RUN.get("Check the integration ZIP", "exit 1"),
+    _REL_ASSET or "unset.zip")
+R.check(
+    "the release ZIP holds the integration folder at its root, and its check "
+    "refuses a hacs.json naming another file",
+    not _REL_ZIP_DEFECTS,
+    "; ".join(_REL_ZIP_DEFECTS) or "holds",
+)
+_REL_ORDER = [_REL_STEPS.get(_n) for _n in (
+    "Build the integration ZIP", "Check the integration ZIP",
+    "Create the GitHub release", "Publish the release once its asset is on it",
+    "Digest the tag's tree")]
+_REL_CREATE = _REL_RUN.get("Create the GitHub release", "")
+_REL_PUBLISH = _REL_RUN.get("Publish the release once its asset is on it", "")
+R.check(
+    "the release is a draft carrying the asset until a later step reads the "
+    "asset back and publishes it",
+    None not in _REL_ORDER and _REL_ORDER == sorted(_REL_ORDER)
+    and "--draft" in _REL_CREATE and "${ASSET}" in _REL_CREATE
+    and "--draft=false" not in _REL_CREATE
+    and "--json assets" in _REL_PUBLISH and "--draft=false" in _REL_PUBLISH
+    and _REL_PUBLISH.index("--json assets") < _REL_PUBLISH.index("--draft=false"),
+    f"step order {_REL_ORDER}; create has --draft={'--draft' in _REL_CREATE} "
+    f"asset={'${ASSET}' in _REL_CREATE}; publish reads assets="
+    f"{'--json assets' in _REL_PUBLISH} then publishes",
 )
 
 # --- the two instruments beside the gate: coverage and mutation (#195) -------

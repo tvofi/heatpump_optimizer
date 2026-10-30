@@ -314,10 +314,28 @@ installing rather than discover it after:
 > [!IMPORTANT]
 > **Home Assistant 2025.2.0 and Python 3.13 are the minimum, and that was a
 > breaking change.** An installation on an older Home Assistant stops being
-> offered updates through HACS. Why the floor sits exactly there is in
+> offered updates through the Marketplace or HACS. Why the floor sits exactly there is in
 > [docs/architecture.md](docs/architecture.md).
 
-### HACS (recommended)
+[![Open your Home Assistant instance and open this repository.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=tvofi&repository=heatpump_optimizer&category=integration)
+
+### Home Assistant Marketplace (2026.11 and later)
+
+The Marketplace replaces HACS in Home Assistant itself from 2026.11. Each
+release carries `heatpump_optimizer.zip`, the integration folder alone, and
+the Marketplace installs from that asset. The button above is the short way
+to open this repository in your own Home Assistant: it does steps 1 and 2 for
+you, in the Marketplace from 2026.11 and in HACS before it.
+
+1. Add this repository to the Marketplace as a custom repository.
+2. Install **Heat Pump Cost Optimizer**.
+3. Restart Home Assistant.
+4. Go to **Settings → Devices & services → Add integration → Heat Pump Cost
+   Optimizer**.
+
+### HACS (before 2026.11)
+
+Before 2026.11 the same four steps run in HACS:
 
 1. Add this repository to HACS as a custom repository.
 2. Install **Heat Pump Cost Optimizer**.
@@ -366,7 +384,8 @@ things are left behind on purpose, because deleting them is your call:
   uses the card; a card left on a dashboard shows "Custom element doesn't
   exist" afterwards.
 
-Then uninstall the code: in HACS, open **Heat Pump Cost Optimizer** and choose
+Then uninstall the code: in the Marketplace (HACS before 2026.11), open
+**Heat Pump Cost Optimizer** and choose
 **Remove** (for a manual install, delete `custom_components/heatpump_optimizer`),
 and restart Home Assistant. Nothing needs doing on Tibber's side — the token was
 only ever stored in the entry — though you can revoke it at
