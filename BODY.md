@@ -31,13 +31,20 @@ Carries moved here:
 - Carry 1 (coffee button): already pinned by `check_coffee_button`, which R10-ARCH-DOCS-FIRST landed with a red case per placement and the light/dark token comparison. It is green at this head, so nothing was rebuilt.
 - Carry 2: `resolveCited`'s canon lookup has not landed, so the `dev/README.md` entry stays and `corpus_excluded.json`'s `_comment` now carries its reason.
 
+4. **Handoff repair: one kebab-word grammar.** `tools/pr/prepr.sh`'s agreement lane refused the earlier head 2352b3d28 with `UNREGISTERED "[a-z][a-z0-9-]*" in .claude/workflows/figure_lint.mjs, tests/doc_claims.py`. In doc_claims that shape was the diagram selector that sends a label's first segment to the job resolver. That was a second spelling of a grammar doc_claims already carries: `_ARG`'s bare-word arm, the lower-case kebab word. It is now named once, as `_WORD`, and both `_ARG` and the selector read it. figure_lint's copy is a different concept: a `gh` subcommand word passed to `gh <word...> --help`. Only the doc_claims copy was a duplicate, so nothing was registered in `agreement.mjs`.
+   - Design choice: the selector stays lower-case kebab, not the workflow job-id grammar `[A-Za-z][\w-]*` that `agreement.mjs` registers for the jobs-block scan. Under the job-id grammar, `dev/README.md`'s sequence-diagram node `PUT` reaches the job resolver and is a false finding (mutant M8). The selector decides only which label is a job node; `job()` decides whether that job exists.
+   - The clean fixture gains a `PUT` node, so the selector's case rule is pinned in the gate and not only by the live page.
+
+5. **Handoff repair: doc_claims.py's closure.** The same prepr run refused `closures` as UNDER-SCOPED once agreement was clean. The doc-wiring arm opens each script the pages pass an argument to, and the workflows. The card-figure arm opens `docs/img/card/pages.json` and every page PNG. `./tests/derive_closures.sh --single tests/doc_claims.py` printed 16 such files as `INERT ... actually read by tests` and exited 1: 13 under `docs/img/card/`, plus `bus.sh`, `cloud_relay.sh` and `heartbeat.sh` under `tools/audit/seat/`. They move to `tests/closure.py`'s `INERT_EXCEPT`, the route #2298 and R10-ARCH-DOCS-FIRST took. The re-record then exited 0 and added 21 paths to `tests/closures.json`: those 16, and 5 that were never INERT (`ledger.py`, `tests/gate_lock.py`, `tools/policy/rules_sync.mjs`, `ci.yml`, `tests.yml`).
+
 Alternatives not taken:
 - A new `tests/doc_wiring.py` script would split arm W from the predicates it shares (`_units`, `_MARKER`, `_FENCE`) and add a gate script to classify.
 - Extending `brief_lint.mjs` lost too: it lints roster briefs and reads neither page.
+- For the handoff repair, registering `[a-z][a-z0-9-]*` as `not-a-concept` would have cleared the lane but left doc_claims spelling its kebab word twice. Reusing `_CHECK_NAME`'s `[\w-]+` job atom, or the job-id grammar, lost to M8: either one turns `PUT` into a false finding.
 
 ## Head
 
-2352b3d28983880c90f6a7620bf55ab98189ede0 (base cf4f6b7a660f5b61e0f2b933bd18647fe3ba90c7, origin/main at 2026-10-30)
+ec5d7a93e59e740ce4ee75b043ae15a6a981fc31 (base cc930cdd1a3cfb005ba7ec557f4451ff5e53e364, origin/main at 2026-10-30T18:26Z). Main was merged into 2352b3d28, then two handoff-repair commits were added: the grammar (389c3baee) and the closure record (this head).
 
 ## Mutation proof
 
@@ -48,6 +55,12 @@ Each mutant was applied in turn to `tests/doc_claims.py` at the head, and `PYTHO
 - M4, `if sizes[n] != want:` -> `if False:`: FAIL `red fixture: a figure regenerated without its record is a finding`
 - M5, job predicate `if not block` -> `if False`: FAIL `red fixture: a removed workflow job in a diagram node is a finding`
 - M6, `None if ms.group(2) in syms(` -> `None if True or ms.group(2) in syms(`: FAIL `red fixture: a removed class is a finding`
+- M7, the diagram job selector `if flows and _WORD.fullmatch(segs[0]):` -> `if flows and False:`: FAIL `red fixture: a removed workflow job in a diagram node is a finding`
+- M8, the same selector widened to the job atom: `if flows and re.fullmatch(r"[\w-]+", segs[0]):`. This FAILs three checks:
+  - `every named element resolves in the artifact that defines it, or a marker covers it`: ``dev/README.md: job `ci / PUT` names no job of .github/workflows/ci.yml``
+  - `the clean fixture resolves every class and leaves only the marked kind pending (null control)`
+  - `a marked element that does not resolve is pending, not a finding (null control)`
+- M1-M6 were taken at 2352b3d28. The merged delta touches none of their lines, since main's delta changes no path under `tests/doc_claims.py`, `tests/card_browser.mjs`, `docs/img` or the card frontend (`git diff --quiet 2352b3d28 HEAD~1 -- tests/doc_claims.py tests/card_browser.mjs docs/img custom_components/heatpump_optimizer/frontend && echo UNCHANGED` prints UNCHANGED). M7-M8 were run at this head.
 - card_browser.mjs P40 is pinned in-run by `P40 red case: a figure one pixel taller than the page is stale; the run's own figures are not (null control)`, which calls the same `figureDrift`.
 
 ## Null control
@@ -58,7 +71,8 @@ Each mutant was applied in turn to `tests/doc_claims.py` at the head, and `PYTHO
 
 ## Figures
 
-Each count is printed by `PYTHONPATH=tests/hastub:tests:custom_components python3 tests/doc_claims.py` at the head unless the line names another command.
+Each count is printed by `PYTHONPATH=tests/hastub:tests:custom_components python3 tests/doc_claims.py` at the head unless the line names another command. The class counts and the marker census were re-taken at this head. The perturbation rows and the card-figure rows were taken at 2352b3d28 with the previous seat's scratch drivers, and are carried, not re-taken: main's delta touches none of their inputs (the UNCHANGED command under `## Mutation proof`). The handoff repair leaves the selector's verdict on both pages unchanged: `doc_claims.py`'s full output before and after the repair, at the merged tree, compared by `diff before.txt after.txt && echo IDENTICAL`, printed IDENTICAL.
+- Agreement: `node tools/policy/agreement.mjs --only discovery` at 2352b3d28 merged with main and without the repair printed `UNREGISTERED "[a-z][a-z0-9-]*" in .claude/workflows/figure_lint.mjs, tests/doc_claims.py` (the null control). At this head it prints `RESULT divergent=0 unregistered=0 dead=0 refused=0` and `AGREEMENT ok`.
 - Named elements checked, by class: the anchor line `every class of named element is read on these pages`. Rule: one count per `judge` call in `named_element_findings`, over the two pages. At this head: file 132, module 19, ledger kind 19, job 11, symbol 9, argument 6, service 3; findings 0, pending 5.
 - Markers: the anchor line `the resolver reads every marker arm W reads`, plus `python3 tests/doc_claims.py --markers`. At this head, against the tree's roster copy: 25 of 28 due. Every due marker names a group whose roster stage is `done`. The 3 not due name R10-COP-GATE (in-progress) and R10-FLOW-TOOLKIT-MODEL (not-started).
 - Perturbations of the real pages and artifacts, applied in memory, through `named_element_findings` (scratch driver). Null (head): 0 findings.
@@ -78,8 +92,8 @@ Each count is printed by `PYTHONPATH=tests/hastub:tests:custom_components python
     - gate_lock.py `needs-lease`->`needs_lease`: 1 finding
   - Removing `reviewer-fire` from `KINDS` yields 0 findings and moves it to pending, because the kind list is under `[target: R10-ORCH-MACHINERY]`. That is the case arm B makes hard.
 - Card figures: a scratch canvas pixel diff, not in the tree, against the base's committed PNGs, after `HPO_PAGES_OUT=<scratch> node tests/card_browser.mjs`. Size mismatched: advisor 1056x616 -> 708, savings 158 -> 164, setup 552 -> 714, each in both themes. Size equal: tile, plan, plan-why, health. Pixels differing at equal size: plan 30-31%, plan-why 30%, tile 10-13%, health 80%.
-- `python3 tests/structure.py`: STRUCTURE RATCHET PASSED. `python3 tests/entities.py`: ALL ENTITY CHECKS PASSED. `node tests/card_browser.mjs`: ALL BROWSER CHECKS PASSED, with both P40 lines ok.
-- Scope: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` prints `MODE: SCOPED -- 2 script(s) run`, naming tests/doc_claims.py and tests/entities.py; both were run. `tools/pr/ci_predict.py --base origin/main`: no closures, fast, wave-script or instrument red predicted. It says itself that it does not see a data-file read: doc_claims now reads docs/img/card/pages.json, the card PNGs, ledger.py, the workflows and services.yaml, so an `UNDER-SCOPED` repair by closures-autofix is possible.
+- `python3 tests/structure.py`: STRUCTURE RATCHET PASSED. `python3 tests/entities.py`: ALL ENTITY CHECKS PASSED. `node tests/card_browser.mjs` at 2352b3d28: ALL BROWSER CHECKS PASSED, with both P40 lines ok. Its inputs are UNCHANGED since, by the command under `## Mutation proof`.
+- Scope (at this head): `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` prints `MODE: FULL`, `reason: tests/closure.py changes the gate itself`. Run here: `tests/run.sh`'s four `run_always` lines (`env_drift.py --claims-only <merge base>`, `closure.py selftest`, `layout.py`, `harness_headers.py`), plus tests/doc_claims.py and tests/entities.py, which the diff edits or which pin it. Each exited 0. The rest is CI's. At 389c3baee, before the closure commit, the mode was `MODE: SCOPED -- 2 script(s) run`. `tools/pr/ci_predict.py --base origin/main`, at this head against cc930cdd1a3c: no closures, fast, wave-script or instrument red predicted. It says itself that it does not see a data-file read: doc_claims now reads docs/img/card/pages.json, the card PNGs, ledger.py, the workflows and services.yaml, so prepr.sh's `closures` step measured what ci_predict could not, and item 5 repaired it before the handoff.
 
 ## Red checks
 
