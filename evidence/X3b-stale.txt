@@ -1,3 +1,0 @@
-head ddf75aaf8651c502794de257bbc76c044282f102
-1 of 4596 FEATURE CHECKS FAILED
-  FAIL the step tick writes nothing at a boundary under a stale plan  [(['turn_off'], True, False)]
