@@ -1,0 +1,15 @@
+head 9cb4919101475766b2c92ec38e51a2d1c0a8a867
+merge-base d99cadb1235a5e40e250466e656c41c7ce88e641 origin/main d99cadb1235a5e40e250466e656c41c7ce88e641
+ dev/audit/config/bugclasses.json             |  16 ++
+ dev/audit/rca/R10-RCA-FRICTION-REGRESSION.md | 249 +++++++++++++++++++++++++++
+ dev/audit/rca/regression/items.tsv           |   4 +
+ dev/audit/rca/regression/stats_v7.0.4.txt    |  91 ++++++++++
+ dev/governance/roles/fixer.md                |  14 +-
+ dev/programme/delivery/3000.md               |   1 +
+ 6 files changed, 368 insertions(+), 7 deletions(-)
+--- merge-tree
+93ea2c00c4633830e58031724fbb755258d8c1b6
+rc=0
+--- role drift lines: 0
+--- window
+card commits 7 of 332

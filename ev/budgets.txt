@@ -1,0 +1,11 @@
+tools/audit/briefs/fixer.md                      314  315     5216  5216 
+dev/governance/roles/architect-planner.md         85   85     1261  1261 
+dev/governance/roles/designer.md                  60   60      878   878 
+dev/governance/roles/design-review.md             53   53      778   778 
+dev/governance/roles/standing-dispatch.md         39   39      509   509 
+dev/governance/roles/standing-merge.md            37   37      507   507 
+dev/governance/dimensions/D15.md                  36   37      689   690 
+dev/governance/roles/proposal-triage.md           36   36      489   489 
+dev/governance/roles/standing-roster.md           27   27      368   368 
+dev/governance/roles/standing-tick.md             26   26      330   330 
+rc=0
