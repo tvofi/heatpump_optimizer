@@ -61,7 +61,15 @@
   `batch` also takes several batches in one queue (a list of lists), run in
   order on one train, each with its own admission, proof and merges; between
   two it drains what `train.sh add` spooled into one more batch, never into a
-  batch in proof, and a batch that stops ends the train (`NOT RUN` lines). A
+  batch in proof, and a batch that stops ends the train (`NOT RUN` lines).
+  `add` and that drain apply one admission rule (`already_held`, over the
+  live train's `queue.seen.json`): a pull request still to run, spooled,
+  merged or run by this train is `ALREADY` on both sides; one it skipped is
+  admitted again at a new verdict head, and at the same one when the skip was
+  the environment's (`[HOLDER]`, or `[BRANCH-POLICY]`: every merge attempt
+  refused by GitHub's base-branch policy). `skipped.json`'s rows name the
+  verdict. `dev/audit/harnesses/r10_train_overlap_grade_p2_mutants.py` holds
+  one mutant per arm of that rule. A
   policy head batches like any other: under a `--mandate` naming the mandate's
   comment id, in force for policy merging, the train posts the citing approval
   step 5 requires (`policy_approve`); a budget raise still goes serial.
