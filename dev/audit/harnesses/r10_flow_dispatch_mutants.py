@@ -91,7 +91,7 @@ MUTANTS = [
      "text = (_pointer(role, repo, pr, head, topic, nonce, publish_ref, pin) if False"),
     ("publish-ignored", "        if args.publish:", "        if False:"),
     ("publish-ref-rev-dropped", 'key = topic or (f"rev-{pr}"', 'key = topic or (f"{pr}"'),
-    ("wait-line-dropped", '"and no timeout. " + WAIT_LINE)', '"and no timeout.")'),
+    ("wait-line-dropped", 'Monitor and no timeout. " + WAIT_LINE)', 'Monitor and no timeout.")'),
     ("claude-md-reread", "roles/fixer.md from main, and follow it exactly",
      "roles/fixer.md and CLAUDE.md from main, and follow them exactly"),
     ("cli-pr-truncated", 'head=args.head or "", pr=args.pr,', "head=args.head or \"\", pr=(args.pr or '')[:1],"),
