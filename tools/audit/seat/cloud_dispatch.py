@@ -172,7 +172,12 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
             "written unless the signal is `host-path`; re-read the live checks either way. "
             "Verify each claim adversarially: mutate the fix and check the tests fail, and check "
             "every figure in the body at this head. Check that it merges with origin/main "
-            "(`git merge-tree --write-tree`) and read CI on this head from the check-runs API.\n"
+            "(`git merge-tree --write-tree`). Wait for CI on this head only by re-running "
+            f"`python3 tools/audit/seat/merge_train.py classify {head}` in the background, at least 60 s "
+            "between runs, until it exits 0 (GREEN), 1 (RED) or 2 (unreadable: say so in the verdict); "
+            "3 is WAIT, so run it again. Never wait with `pgrep` or `pkill`, whose `-f` pattern matches "
+            "the waiter's own command line, nor on a context the ruleset does not require, such as "
+            "`prelude`.\n"
             f"Output: in a fresh directory of your own (`W=$(mktemp -d)`), write verdict.md, whose first line is "
             f"exactly `Fix review: merge {head}` or `Fix review: blocked {head} <class>: <reason>` (no brackets; "
             f"the class is lower-case letters and dashes), in the format the role file gives, "
@@ -966,6 +971,14 @@ def self_test() -> int:
           all(WAIT_LINE in t and "240 s" in WAIT_LINE for t in prompts.values()))
     check("the fixer reads its role file, not CLAUDE.md, which the harness already loaded",
           "dev/governance/roles/fixer.md" in prompts["fixer"] and "CLAUDE.md" not in prompts["fixer"])
+    rv = prompts["reviewer"]
+    check("the reviewer waits for CI only by re-running merge_train.py classify, 60 s apart, until 0, 1 or 2",
+          f"`python3 tools/audit/seat/merge_train.py classify {head}` in the background, at least 60 s" in rv
+          and "exits 0 (GREEN), 1 (RED) or 2 (unreadable: say so in the verdict)" in rv and "3 is WAIT" in rv)
+    check("the reviewer is forbidden a pgrep or pkill waiter and a context the ruleset does not require",
+          "Never wait with `pgrep` or `pkill`" in rv and "such as\n`prelude`" not in rv and "such as `prelude`" in rv)
+    check("no other role is told to wait on merge_train.py classify (null control)",
+          all("merge_train.py classify" not in t and "pgrep" not in t for r, t in prompts.items() if r != "reviewer"))
     wip, fx = f"refs/heads/{WIP_NS}/t-1", prompts["fixer"]
     check("the fixer step-pushes fast-forward to handoff-wip/<topic>, never to handoff/, and the tail allows it",
           f"push each verified step, fast-forward only, to {wip} before any wait" in fx

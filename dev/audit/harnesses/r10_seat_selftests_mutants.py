@@ -82,6 +82,10 @@ MUTANTS = [
     ("cloud_dispatch-7", "cloud_dispatch.py", 'delete the step ref: `git push origin :refs/heads/{WIP_NS}/{topic}`. ', ""),
     ("cloud_dispatch-8", "cloud_dispatch.py", "run, `git merge origin/main`, rerun", "run, rerun"),
     ("cloud_dispatch-9", "cloud_dispatch.py", 'if role in COMMITTING_ROLES else ""', 'if False else ""'),
+    # r10-flow-design-stages-p2 D: the reviewer's one CI waiter that ends.
+    ("cloud_dispatch-10", "cloud_dispatch.py",
+     "Wait for CI on this head only by re-running \"\n            f\"`python3 tools/audit/seat/merge_train.py classify {head}`",
+     "Wait for CI on this head \"\n            f\"somehow"),
     ("S03", "cloud_relay.sh", 'if [ -f "$led" ] && grep -qxF "$ref $sha" "$led"; then',
      'if [ -f "$led" ] && ! grep -qxF "$ref $sha" "$led"; then'),
     ("S04", "daemonize.py", '"-u" not in run_argv[1:2]:', '"-u" in run_argv[1:2]:'),
