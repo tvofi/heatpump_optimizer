@@ -1,4 +1,4 @@
-"""The domain's thirteen services: schemas, handlers and registration.
+"""The domain's fourteen services: schemas, handlers and registration.
 
 Moved verbatim from ``__init__.py`` (#222, the decomposition program's
 opener; the block used to be ``_async_register_services`` and the module
