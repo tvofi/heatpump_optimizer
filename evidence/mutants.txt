@@ -1,0 +1,12 @@
+Reviewer's targeted mutants at f6ff3e5637796ced6dd6bf84b1b4bc07b3c70767 (worktree /tmp/claude-0/wm), driven through ev/cg_check.py,
+an extract of tests/features.py's new check (same fixtures, verbatim body) plus four boundary ages (2, 4, 118, 121 min).
+Ages: 1 min, 30 min, 3 h, 2 min, 4 min, 118 min, 121 min -> (accuracy samples, draw readings)
+unmutated: (0,0) (1,1) (0,0) (0,0) (1,1) (1,1) (0,0)  RESULT check PASS
+m10 coordinator.py:9800 if pairs_interval(elapsed): -> if True:      (1,0) (1,1) (1,0) ...  FAIL (killed)
+drawguard coordinator.py:9765 drop pairs_interval term               (0,1) (1,1) (0,1) ...  FAIL (killed)
+m8 accuracy.py:787 0.05 -> 0.0                                       (1,1) (1,1) (0,0) ...  FAIL (killed)
+accuracy.py:787 0.05 -> 0.01                                         FAIL (killed)
+accuracy.py:787 2.0 -> 4.0                                           3 h -> (1,1) FAIL (killed)
+accuracy.py:787 2.0 -> 2.9                                           3 h -> (1,1) FAIL (killed)
+accuracy.py:787 return True                                          FAIL (killed)
+accuracy.py:787 return False (null arm)                              30 min -> (0,0) FAIL (killed)

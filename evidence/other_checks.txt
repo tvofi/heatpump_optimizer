@@ -1,0 +1,8 @@
+At f6ff3e5637796ced6dd6bf84b1b4bc07b3c70767 (worktree /tmp/claude-0/wt):
+claims hygiene: 2ab53fe90590dee8376e800af2f09fd94bc75703 ok
+STRUCTURE RATCHET PASSED
+git diff 2ab53fe90...f6ff3e56 -- VERSION manifest.json RELEASE_NOTES.md: 0 lines (untouched)
+git diff 836198dbb 30cdaacfe -- tests/golden/claimed_drift.txt: 0 lines
+roles diff merge-base...origin/main: 0 lines (contract current)
+review_carry.py a361e454f f6ff3e56: review_carry: a361e454f -> f6ff3e563  main=origin/main
+review_carry: FRESH-REVIEW
