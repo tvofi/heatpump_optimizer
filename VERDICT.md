@@ -1,48 +1,57 @@
-Fix review: blocked d26a00aa259136d652ffe19066145a4e1acc97e9 mutation-vacuous: step_supply boost, sysid and non-plan-mode guards, supply_tick entry_released guard and release's release_supply survive deletion
+Fix review: blocked ddf75aaf8651c502794de257bbc76c044282f102 ci-red: tests / mutation is red on two added unpinned sites, pump_arbiter.py:1195 CMP_BOUND and :1222 GUARD_OFF, which both survive tests/features.py at this head, so the body's left-to-mutation-autofix disposition cannot clear them
 
-bus-nonce: d8583904af17eafd76803076ae5d2bfa
+bus-nonce: eb46adc353be3bb6b9c8bc1ae428724e
 
 ## Block
 
-Round 1 of review. The new step tick is a second actuator of the supply switch, firing between cycles. Its guards exist so that it does not override a command the plan did not give. Deleting any one of them leaves every check green. This head's checks pin the tick only in auto mode, with no boost, no experiment and a fresh plan.
+Round: this is the review of the round-4 head (merge delta fd6103038..ddf75aaf8651c502794de257bbc76c044282f102, three-dot against origin/main aced25893). review_carry.py prints FRESH-REVIEW: the delta carries branch-only commits f841c6f7e, 0a3077976, 1a7150482 and 5affc1af8.
 
-Each mutant ran in a fresh detached worktree of d26a00aa2 (driver: `ev/mutant_driver.py`, one `str.replace` asserted to match exactly once). The unmutated null passes everything (`ALL 4581 FEATURE CHECKS PASSED`, `ev/full_NULL.txt`). Each mutant below also leaves `tests/features.py` fully green: its single red was `recorded_at = 'unknown'`, from a non-git copy in the first drive, and the null in a real worktree is clean. Each also leaves green `block_duty.py`, `boost_drift_replay.py`, `guard_pins.py`, `manual_plan.py`, `debug_collect.py`, `deployment_shape.py` and `finite_boundary.py` (`ev/closure_*.txt`, `ev/full_X*.txt`):
+`tests / mutation` (check run 123981124883) concluded `failure` at this head. Its log reads `MUTATION TABLE REFUSED -- 3618 unpinned site(s) against 3622 at the ratchet base aced25893..., 2 of them added by this diff`. The two added sites are:
+- `ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:1195 CMP_BOUND`, the bound `i >= len(inp.plan.power_schedule or ())` in `step_supply`.
+- `ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:1222 GUARD_OFF`, the no-switch-entity return in `note_supply`.
 
-- X1 `pump_arbiter.py:1192` (step_supply: a live boost is on), with the branch body deleted. Path: the user presses boost on a step the plan keeps off, and at the next boundary whose plan command is off the tick writes OFF under a live boost.
-- X2 `pump_arbiter.py:1190` (step_supply: a `system_identification` action returns None), deleted. Path: a step-response experiment's switch command is overwritten by the plan's at the first boundary where they differ.
-- X3 `pump_arbiter.py:1188` (non-plan mode or stale plan returns None), narrowed to `inp.plan is None`. Path: comfort/boost/off modes, or a plan `_apply_action` refuses to actuate as stale, get the plan's switch written by the tick.
-- X4 `pump_arbiter.py:1246` (`supply_tick`: `if inp.entry_released: return`), deleted. Path: a write after unload (#237 class).
-- X5 `pump_arbiter.py:1279` (`release`: `release_supply(held)`), deleted. Path: the tick's interval listener outlives unload.
+The body's final `## Unpinned sites` hands both to `mutation-autofix`, saying no pin and no survivor are claimed. That lane can only pin a mutant that some driver kills. I ran both mutants at this head (ev/U1195-cmpbound.txt, ev/U1222-guardoff.txt): `i >=` became `i >`, and the guard became `if False:`. Each time `tests/features.py` printed `ALL 4596 FEATURE CHECKS PASSED` with rc=0. The body's own pin-drive paragraph also says both "live under every driver". So the disposition the body gives cannot turn the check green. The red stays until one of two things happens:
+- a check is added that kills each mutant, or
+- the fixer proposes a survivor_triage verdict for each in the body, and a reviewer judges it. ci-autofix.md does not let that triage be automated.
 
-`grep -n 'supply_tick|step_supply|note_supply|release_supply|SupplyWiring|supply_write' tests/` finds no test reaching them, apart from one barrier reason string in `tests/entities.py`. The body's `## Unpinned sites` lists 1188/1190/1192/1246 GUARD_OFF (and others) as "pinned by `mutation-autofix`". That lane pins only killed mutants, and these survive, so the claim does not hold. They will surface as survivors, which `ci-autofix.md` forbids triaging automatically.
-
-What would clear it: checks in the "supply switch at step boundaries" section, each a red under its mutant above:
-- a live boost across a boundary whose plan step is off writes no OFF;
-- a `system_identification` action is not overwritten at a boundary;
-- a fixed mode, and a stale plan, write nothing between cycles;
-- a released entry writes nothing;
-- unload drops the tick.
-
-Then re-run M1–M6 and these mutants.
+The brief's check 3, CI green at the head, therefore fails.
 
 ## Findings
 
-- No committed finder harness for carry 5 seam 2. The roster's carry (main `dev/programme/rosters/wave-r10-groups.json`, group R10-SAV-ACTUATION) states the control in words: phase 0 vs 14 min with identical duty verdicts, plus one mutant per seam, and names no instrument. `dev/audit/harnesses/r10_sav_actuation_phase.py` is the fixer's own, and the body calls it "the owner's instrument for this carry" rather than disclosing it as the fixer's build (fix-review step 9). I ran it unchanged, sha1 d8871c1b96466f7d0d16df9ecc15454512d6adc5, at both ends: `AGREE: yes` at d26a00aa2, `AGREE: no` at 88c6ad5bb (`ev/harness_both_ends.txt`). It implements the roster's words faithfully; the body's wording should say it is the fixer's build when the branch is next touched. Carry: dismissed: the control is the roster's own text, the instrument lands in the tree and reproduces at both ends
-- The ledger residue the body forward-carries is real and is the larger part of the remaining misbooking. At the head the harness books every idle step that follows an ON step `space-instead`, at both phases: steps 1, 4, 7, 9 and 14 of `s-ss--s-s---ss-s`, so 5 of 16 verdicts are wrong. The base books 10 of 16 wrong at phase 0. The fix improves this but does not close it; the residue is phase-independent, so carry 5's control holds. Carry: #2492
-- `coordinator.py` `_write_supply`'s `elif switch_entity:` GUARD_OFF survivor only logs. I agree it is equivalent in behaviour, but the body leaves the `survivor_triage` disposition to the reviewer, and it needs a recorded verdict rather than an implicit one. Carry: R10-SAV-ACTUATION
+- The body records two contradictory `## Unpinned sites` sections.
+  - One is spliced into the middle of the Mutation proof paragraph: "The ledger drive (`## Unpinned sites`` `PYTHONPATH=...`". It lists 1195, 1222 and `coordinator.py:7525 GUARD_OFF`, each with a proposed `equivalent` triage.
+  - The final section lists only 1195 and 1222, gives them to `mutation-autofix`, and says "no survivor is claimed".
+  - The repair is one section that matches the head: either a killing check, or a proposed triage per site for the reviewer to judge.
+  - Carry: R10-SAV-ACTUATION
+- `## Red checks` and `## Figures` give stale counts for `tests / mutation` at this head.
+  - Red checks says it "stays red on the 13 under ## Unpinned sites", and Figures cites "the 24 unpinned sites" (28 before the pin commit).
+  - At this head the lane names 2 added sites.
+  - The red check at this head needs its own line under `## Red checks`.
+  - Carry: R10-SAV-ACTUATION
+- `thermal_model.plan_step_runs`: the body says its five mutation sites were "for mutation-autofix's lane or the next round". The ledger diff at this head adds `plan_step_runs.GUARD_OFF.e5c45a76` and `plan_step_runs.RETURN_DEL.f0f14778` killed pins. The body's sentence is not updated to say which of the five are now pinned.
+  - Carry: R10-SAV-ACTUATION
 
 ## Evidence
 
-- Head reviewed: d26a00aa259136d652ffe19066145a4e1acc97e9 (`ev/HEAD.txt`). Still the PR head at 23:19 UTC (`git ls-remote`). Merge base e5ddba1fa equals origin/main; the code head is 3e9763e8a on 88c6ad5bb.
-- Roles diff `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/`: empty, so the contract is current.
-- Review packet rendered: no refusals, no advisories; carry_audit 2 items, both routed; figure_lint 8 resolved, 2 not verified (the two `git grep` figures, which I re-ran: `ev/greps.txt` matches the body's census).
-- Mutation proof M1–M6 re-run on the standalone copy of the section (`ev/section_standalone.py`, lines 73104–73227 of `tests/features.py` with its preamble; `ev/mutants_section.txt`). Every one is red on exactly the checks the body names: M1, M2 and M6 fail 2 of 4 (phase agreement and boundary writes); M3 fails 2 (boundary writes and cut-off hold); M4 fails 1 (phase agreement); M5 fails 1 (`['written/silent/0']`). Unmutated: 4 of 4 pass. Per the roster, the coordinator, tick and ledger-read seams each turn control (a) red (M1, M2/M6, M4). The early_cutoff seam is unchanged in code apart from a docstring; its guard is M3 on the change-only rule.
-- More mutants on the section only (`ev/mutants_extra_section.txt`): X6 (tick body not awaited) is red. X7 (cut-off `allow_on` bypassed in `_write_supply`), X8 (blocked-mode OFF skip forced) and X9 (step past `power_schedule`) are green on the section. X7 and X8 are code moved from `_apply_action`, whose earlier pins features.py killed, and were not re-driven on the full suite here. Only X1–X5 under `## Block` were run against the full closure scripts.
-- Null control and the both-ends harness: as under Findings. Base phase-0 writes land only at cycles; head writes land at boundaries.
-- Possible tick refusal of ON under `early_cutoff.MIN_OFF` with a stale record: checked and not reachable. An OFF step lasts 15 min and `MIN_OFF` is 10 min, so the tick's next ON boundary always falls after the hold.
-- `git merge-tree --write-tree origin/main HEAD`: exit 0, tree fe5b6f600e19 (`ev/merge_tree.txt`).
-- VERSION, manifest, RELEASE_NOTES.md and both claim files untouched three-dot (`ev/version_untouched.txt`). `env_drift.py --all`: `NO UNCLAIMED DRIFT: 56 scenario(s)`, `NO STALE FIXTURE: 56` (`ev/env_drift.txt`).
-- Structure: `STRUCTURE RATCHET PASSED`. The budget diff only lowers `class_excess_loc` 17814→17801 and `max_class_loc` 8155→8153, earned by `supply_write` leaving the coordinator class and the inline `get_current_action` rule becoming `plan_step_runs` (`ev/structure.txt`). Archscore `--diff 88c6ad5bb HEAD`: `dS +0.0000 NULL` (`ev/archscore.txt`). I did not re-derive the body's quoted first-cut `coord_footprint 2409->2430`.
-- CI on d26a00aa2 at 23:19 UTC from the check-runs API: fast (3.14), closures, coverage, coverage-ratchet, typing, briefs, policy-docs, instrument-self-tests, env-matrix, arch-score, arch-instrument, replay, browser, lane-proofs, wave-script, delivery-status, closure-scope, hassfest, validate-hacs and budget-raise-gate are green. `mutation` is red, answered in the body as red by construction on the unpinned sites. `nightly-status` is red; it is main-graded and the diff touches neither `nightly.yml` nor `tests/nightly_status.py`. `mutation-pins (1)` and `(4)` were still in progress (2, 3, 5 green). codeql python was cancelled; it is not a required check and does not block. No `pr-contract` run is listed on this head.
-- Body figures I could not re-derive: the local mutation drive's "30 mutants, 4 killed, 25 not started, 1 survived" at 3bc559015 (not re-run; heavy), and the 484 s features.py timing.
-- Interpreter: /opt/hpo/venv-ci/bin/python (CPython 3.14.7; numpy 2.4.6, scipy 1.17.1, voluptuous 0.16.0, matching `tests/requirements-ci.txt`).
+- RESULT head-measured ddf75aaf8651c502794de257bbc76c044282f102 (ev/HEAD.txt). `git ls-remote origin refs/heads/fix/r10-sav-actuation` still printed this SHA at 09:41:57 UTC.
+- RESULT delta-production: the branch's own diff of `custom_components/` is byte-for-byte the same at fd6103038 (three-dot against its own merge base 2f28a21ca) and at this head (three-dot against aced25893). No production line changed in the delta. The delta is tests/features.py's guard checks (`_sa_guarded`) and ledger pins.
+- RESULT X0-null: unmutated head, `ALL 4596 FEATURE CHECKS PASSED` rc=0. The body quotes 4578 for the earlier head `1a7150482`. The 18-check difference is main's merged checks plus this round's 12-check section. I did not re-derive that split.
+- RESULT X1-boost: live-boost return deleted. 1 of 4596 failed, only "... under a live boost across a boundary whose plan step is off".
+- RESULT X2-sysid: system_identification guard deleted. 1 of 4596 failed, only "... under a system_identification action".
+- RESULT X3a-mode: mode term dropped. 1 of 4596 failed, only "... under a fixed (comfort) mode".
+- RESULT X3b-stale: plan_stale term dropped. 1 of 4596 failed, only "... under a stale plan".
+- RESULT X4-released: `if inp.entry_released: return` deleted. 1 of 4596 failed, only "... under a released entry".
+- RESULT X5-release: `release_supply(held)` deleted from `release`. 1 of 4596 failed, only "unload drops the one step tick two cycles armed".
+- RESULT X6-armonce: the arm-once guard deleted. 1 of 4596 failed on the same unload check.
+- Mutation proof X1 to X6 reproduces exactly as the body states. The null run writes `['turn_off']`, so each empty write list is the guard's doing. I ran the whole tests/features.py per mutant with ev/drive.py, not the body's standalone section.
+- RESULT U1195-cmpbound and U1222-guardoff: both survive, rc=0, 4596 passed (see Block).
+- Claim files: tests/golden/claimed_drift.txt and card_claimed_drift.txt are byte-identical to origin/main at this head. The branch claims nothing, so they resolve as main's claims (claim-files.md). VERSION, manifest.json and RELEASE_NOTES.md are untouched three-dot (ev/merge-and-claims.txt).
+- Merge: `git merge-tree --write-tree origin/main ddf75aaf8651c502794de257bbc76c044282f102` exits 0 with tree 477bcfb32. There is no conflict and no MERGE-CLAIM line.
+- CI at this head, read from the check-runs API at about 09:35 to 09:42 UTC:
+  - Success: tests/fast (3.14), closures, arch-instrument, typing, replay, browser, briefs, closure-scope, nightly-status, arch-score, budget-raise-gate, hassfest, validate-hacs, env-matrix, policy-docs, wave-script, delivery-status, and codeql actions and javascript-typescript.
+  - Failure: tests/mutation.
+  - Still in progress: mutation-pins (1), coverage, instrument-self-tests, codeql python.
+  - No `pr-contract` run appears among this head's check runs.
+- RESULT mutation-pins: `tests / mutation-pins (1)` (check run 123981348573) was `in_progress` at 09:42 UTC. A bot pin commit would move the head, and this verdict names ddf75aaf8651c502794de257bbc76c044282f102 only.
+- Unverified: I re-derived none of the body's figures that describe earlier heads (structure deltas, archscore dS, the phase harness AGREE lines, ci_predict counts). They do not bear on the delta, since production code is unchanged, and the scoped CI lanes are green.
+- Finder's harness: the packet names none. The body's phase harness dev/audit/harnesses/r10_sav_actuation_phase.py is disclosed as the fixer's own build, and an earlier round reviewed it. I did not re-run it, because no production line changed in this delta.
