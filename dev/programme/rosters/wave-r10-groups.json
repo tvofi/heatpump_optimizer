@@ -929,7 +929,7 @@
     "branch": "fix/r10-loop-cpu",
     "commit": "7108101d71211772c2f45f67b240ee3663e3446e",
     "last_step": null,
-    "next_step": "dispatch a fixer once every `after` group is done",
+    "next_step": "done: merged in #2632 (7108101d7)",
     "note": null,
     "pr": 2632
    },
