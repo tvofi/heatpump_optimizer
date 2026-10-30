@@ -42241,7 +42241,6 @@ from heatpump_optimizer.wood_fuel import (
     cheaper_hour_count as _wf_count,
     liters_to_kwh as _wf_liters,
     useful_kwh_m3 as _wf_useful,
-    wood_cheaper as _wf_cheaper,
     wood_fuel_ready as _wf_ready,
     wood_furnace_inferred as _wf_inferred,
     wood_furnace_on as _wf_on,
@@ -42300,11 +42299,11 @@ _wf_no_price = dict(_wf_cfg, wood_price_sek_m3=0.0)
 R.check("price 0 is not ready", not _wf_ready(_wf_no_price))
 R.check(
     "idle plan is not cheaper",
-    not _wf_cheaper(1.0, [2.0], [3.0], [False]),
+    _wf_count(1.0, [2.0], [3.0], [False]) == 0,
 )
 R.check(
     "one hour the plan runs the pump, and wood is cheaper, is on",
-    _wf_cheaper(1.0, [4.0], [2.0], [True]),
+    _wf_count(1.0, [4.0], [2.0], [True]) > 0,
 )
 R.check(
     "that hour counts",

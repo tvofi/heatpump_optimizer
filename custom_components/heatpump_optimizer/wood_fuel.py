@@ -483,10 +483,13 @@ def build_wood_fuel_view(
         except (KeyError, ValueError):
             sek = None
     ready = wood_fuel_ready(config)
+    count = 0
     cheap: list[bool] = []
     if ready and sek is not None:
-        cheap = cheaper_steps(sek, prices, _cops(outdoor, cop_at), runs)
-    count = sum(cheap)
+        cops = _cops(outdoor, cop_at)
+        count = cheaper_hour_count(sek, prices, cops, runs)
+        if count:
+            cheap = cheaper_steps(sek, prices, cops, runs)
     cheaper = count > 0
     slots = detected_wood_slots(timestamps, forecast_kw) if suppressing else []
     view: WoodFuel = {
