@@ -6038,7 +6038,7 @@
     "branch": "handoff/r10-flow-dispatch",
     "commit": "b980e2fa0ff80e1ba96923de8475c160addc1939",
     "last_step": null,
-    "next_step": "dispatch a fixer once every after group is done",
+    "next_step": "done: merged in #2577 (b980e2fa0)",
     "note": "Lean flow study 2026-10-21 (owner-adopted)"
    }
   },
