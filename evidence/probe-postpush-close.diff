@@ -1,0 +1,21 @@
+diff --git a/tools/audit/seat/pr_args.sh b/tools/audit/seat/pr_args.sh
+index 7fe375888..c4215ca92 100644
+--- a/tools/audit/seat/pr_args.sh
++++ b/tools/audit/seat/pr_args.sh
+@@ -1096,7 +1096,7 @@ D=$STUB_DIR; printf '%s\n' "$*" >> "$D/argv"; [ "$1" != --row-only ] || shift
+ wt=$2; br=$3; n=$(( $(cat "$D/n" 2>/dev/null || echo 0) + 1 )); echo $n > "$D/n"
+ case $n in
+   1) git -C "$wt" push -q origin "$br" || exit 1; echo "app_push: PUSHED to $br; pull request #5 is open"; exit 0 ;;
+-  2) [ ! -e "$D/p2fail" ] || { echo "app_push: REFUSE: the body did not pass tools/pr/prepr.sh"; exit 1; }
++  2) [ ! -e "$D/p2fail" ] || { git -C "$wt" push -q origin "$br"; echo "app_push: REFUSE: the body did not pass tools/pr/prepr.sh -- the body PATCH on #5 was refused; the branch IS pushed as the App"; exit 1; }
+      : > "$D/p2started"; k=0; while [ ! -e "$D/release" ] && [ $k -lt 400 ]; do sleep 0.05; k=$((k + 1)); done
+      [ "$(git -C "$wt" rev-parse HEAD)" = "$(git -C "$wt" rev-parse --verify "refs/heads/$br" 2>/dev/null)" ] \
+        || { echo "app_push: REFUSE: worktree HEAD is not the committed tip of '$br'"; exit 1; }
+@@ -1192,6 +1192,7 @@ GH
+     reap; git -C "$m" worktree remove --force "$sd/pr/r/wt" 2>/dev/null; git -C "$m" worktree remove --force "$sd/pr/upd-fix-r" 2>/dev/null; true
+   }
+   rowless -
++  echo "PROBE closed=$(cat "$t/closed") rowpushed_after_update=$(cat "$t/rowpushed") rco=$(cat "$t/rco")"; grep -E 'CLOSED|ROWLESS' "$t/outo" | sed 's/^/PROBE-OUT /'; for f in "$t"/rowless--stub/comment; do sed 's/^/PROBE-COMMENT /' "$f"; done 2>/dev/null; git -C "$o" log -1 --format='PROBE-ORIGIN-FIXR %H %s' fix/r 2>/dev/null; git -C "$o" ls-tree -r --name-only fix/r 2>/dev/null | grep delivery | sed 's/^/PROBE-ORIGIN-FILE /'
+   [ "$(cat "$t/rco")" != 0 ] && grep -qF "open_pr: CLOSED: #5 at" "$t/outo" && grep -qF "identical=True" "$t/outo" \
+     && [ "$(cat "$t/closed")" = 1 ] && [ "$(cat "$t/why")" = 1 ] && [ "$(cat "$t/opwt")" = detached ] \
+     && ! grep -qF ROWLESS "$t/outo" && grep -qF "no open pull request at fix/r" "$t/outu" && [ "$(cat "$t/rowpushed")" = 0 ]

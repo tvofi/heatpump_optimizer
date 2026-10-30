@@ -1,1 +1,0 @@
-closed=0 rco=1 rowpushed=1
