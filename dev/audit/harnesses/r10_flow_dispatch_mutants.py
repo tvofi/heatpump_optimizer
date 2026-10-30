@@ -54,7 +54,7 @@ F = ROOT / REL
 MUTANTS = [
     ("M0", None, None),
     ("tree-skip", "    if tip and _git(repo_dir, \"rev-parse\"", "    if False and _git(repo_dir, \"rev-parse\""),
-    ("brief-drop", 'brief=group.get("brief") or ""', 'brief=""'),
+    ("brief-drop", 'brief=group_brief(group))', 'brief="")'),
     ("parent-drop", '*(["-p", tip] if tip else [])', "*[]"),
     ("nonce-altered", "**args, nonce=nonce)\n    except Refusal:", "**args, nonce=nonce + \"0\")\n    except Refusal:"),
     ("topic-to-id", 'ref = dispatch_ref(role, topic, "")', 'ref = dispatch_ref(role, group_id, "")'),

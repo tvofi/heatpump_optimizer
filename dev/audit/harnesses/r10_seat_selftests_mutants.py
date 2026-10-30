@@ -73,6 +73,9 @@ MUTANTS = [
      'nonce) + "\\n"\n            f"Your full brief'),
     ("cloud_dispatch-3", "cloud_dispatch.py", "            return parent[0]\n", "            pass\n"),
     ("cloud_dispatch-4", "cloud_dispatch.py", "if publish_ref and not is_head(pin):", "if False:"),
+    # r10-flow-design-stages-p2 B: a group's carries reach its PROMPT.md.
+    ("cloud_dispatch-5", "cloud_dispatch.py",
+     '    parts += [f"Carry {i}: {c}" for i, c in enumerate(group.get("carry") or [])]\n', ""),
     ("S03", "cloud_relay.sh", 'if [ -f "$led" ] && grep -qxF "$ref $sha" "$led"; then',
      'if [ -f "$led" ] && ! grep -qxF "$ref $sha" "$led"; then'),
     ("S04", "daemonize.py", '"-u" not in run_argv[1:2]:', '"-u" in run_argv[1:2]:'),

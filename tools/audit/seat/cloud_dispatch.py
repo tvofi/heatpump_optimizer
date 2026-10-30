@@ -10,8 +10,8 @@
 
 THE GROUP PATH (`--group`, or `dispatch_group()` for a caller that hosts it) takes
 a role, a roster group and a model. The roster at REF (default: the round's
-roster branch, roster_lib.default_roster_ref) gives the brief, the topic (the
-group's branch) and the repository; the head is --head, else origin/main's tip,
+roster branch, roster_lib.default_roster_ref) gives the brief (`group_brief`: its
+brief, `After:` and carries), the topic (the group's branch) and the repository; the head is --head, else origin/main's tip,
 never the roster ref's (a seat forks from main, not from the roster branch); a
 reviewer needs --head (the PR head) and takes its nonce from `bus.sh dispatch`, which
 mints one or re-records --nonce; the environment id comes from the overlay /
@@ -349,6 +349,15 @@ def _snapshot(repo_dir: str, ref: str, prompt: str) -> str:
     return _publish(repo_dir, ref, {"PROMPT.md": prompt})
 
 
+def group_brief(group: dict) -> str:
+    """What a group's seat is briefed with: the roster brief, then `After:` the groups it
+    follows, then each carry as `Carry <i>:`, verbatim, `<i>` its 0-based index in the
+    roster's list (the index a brief or a verdict cites a carry by)."""
+    parts = [(group.get("brief") or "").rstrip("\n"), "After: " + (", ".join(group.get("after") or []) or "none")]
+    parts += [f"Carry {i}: {c}" for i, c in enumerate(group.get("carry") or [])]
+    return "\n\n".join(p for p in parts if p) + "\n"
+
+
 def dispatch_ref(role: str, topic: str, pr: str) -> str:
     """`dispatch/<role>-<topic>`, or `dispatch/<role>-rev-<PR>` for a seat with no topic."""
     key = topic or (f"rev-{pr}" if pr.isdigit() else "")
@@ -430,7 +439,7 @@ def dispatch_group(role: str, group_id: str, model: str, *, repo_dir: str = ".",
         if not design:
             raise Refusal(f"no design/{group_id} on origin to review")
     args = dict(design=design, env_id=known["env_id"], model=model, repo=roster.get("repo") or known["repo"],
-                pr=pr, topic=topic, brief=group.get("brief") or "")
+                pr=pr, topic=topic, brief=group_brief(group))
     head = head or _git(repo_dir, "rev-parse", f"{HEAD_REF}^{{commit}}").strip()
     if role == "reviewer":
         render(role, head, **args, nonce=BUS_PROBE_NONCE)  # every other refusal, before the bus records
@@ -517,7 +526,10 @@ def _group_checks(check) -> None:
         grp = {"group": "R10-X", "brief": "Fix the thing in tools/x.py.\n", "resume": {"branch": "handoff/r10-x"}}
         bad = {"group": "R10-BAD", "brief": "cd " + users + "someone/work"}
         big = {"group": "R10-BIG", "size": "L", "brief": "Redesign tools/y.py.\n"}
-        land([grp, bad, big])
+        two = {"group": "R10-TWO", "brief": "Two things.\n", "after": ["R10-X", "R10-BIG"],
+               "carry": ["First, verbatim.", "Second; tools/z.py."]}
+        cbad = {"group": "R10-CBAD", "brief": "Clean.\n", "carry": ["fine", "cd " + users + "someone/work"]}
+        land([grp, bad, big, two, cbad])
         git(work, "remote", "add", "origin", str(origin))
         tip = git(work, "rev-parse", "origin/main").strip()
 
@@ -582,7 +594,7 @@ def _group_checks(check) -> None:
         check("a fixer is dispatched once the verdict approves the current design tip (null control)",
               dispatch("R10-BIG") == "dispatch/fixer-r10-big")
         brief = work / "brief.txt"
-        brief.write_text(grp["brief"])
+        brief.write_text(group_brief(grp))  # what the group path briefs, so the two payloads can agree
         flags = ["--role", "fixer", "--head", tip, "--topic", "r10-x", "--brief", str(brief),
                  "--env-id", "env_x", "--model", "m-1", "--repo", "owner/name"]
         plain, old = io.StringIO(), io.StringIO()
@@ -610,6 +622,15 @@ def _group_checks(check) -> None:
               rc0 == 0 and content(plain.getvalue()) == msg)
         check("the roster brief is inlined and the roster tip is the head",
               "Fix the thing in tools/x.py." in msg and tip in msg)
+        check("a group with no carry renders its brief and `After:` alone (the null control for the carries)",
+              msg.endswith("\nBrief (snapshotted when this payload was rendered):\n"
+                           "Fix the thing in tools/x.py.\n\nAfter: none\n") and "Carry " not in msg)
+        twotext = fetched(dispatch("R10-TWO"), "PROMPT.md")
+        check("a group's two carries render numbered by roster index and verbatim, after its brief and `After:`",
+              twotext.endswith("Two things.\n\nAfter: R10-X, R10-BIG\n\nCarry 0: First, verbatim.\n\n"
+                               "Carry 1: Second; tools/z.py.\n"))
+        check("a host path inside a carry refuses as one in the brief does, and pushes nothing",
+              refused("R10-CBAD") and "r10-cbad" not in git(work, "ls-remote", str(origin)))
         check("a re-dispatch of the same brief moves no ref", dispatch() == line
               and git(work, "ls-remote", str(origin), "refs/heads/" + line).split()[0]
               == git(work, "rev-parse", "FETCH_HEAD").strip())

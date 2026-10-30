@@ -8,7 +8,9 @@
   flag, an overlay JSON (`--overlay` / `$HPO_CLOUD_OVERLAY`) or `HPO_CLOUD_*`,
   never from the tree. `--role R --group G --model M` is the one-call path
   (`dispatch_group()` for a host such as the beat): the brief, topic and
-  repository come from the roster at `--roster-ref` (default the round's roster
+  repository come from the roster at `--roster-ref` (the brief is the group's
+  brief, then `After:` its predecessors, then each carry verbatim as
+  `Carry <i>:`, `<i>` its 0-based roster index; default the round's roster
   branch, `roster_lib.default_roster_ref`); the head is `--head`, else
   `origin/main`'s tip, never the roster ref's (a reviewer must pass its PR
   head); the environment is the overlay / `HPO_CLOUD_ENV_ID`; a flag it does
