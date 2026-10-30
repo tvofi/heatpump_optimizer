@@ -19,32 +19,11 @@
 #
 # The state names are the ones `node tests/card_drift.mjs --list` prints.
 #
-# claims-for: 7.0.5
+# claims-for: 7.1.0
 #
-# v7.0.5: Round-10 close-out: 226 merges of audited fixes, roster batches, triage rulings and records since v7.0.4. The stamp empties the list; the
+# v7.1.0: Round-10 merge train: claim-carry barrier, train admission, COP gate and part-load, Health tab, Marketplace. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
-# R10-CARD-VOICE (the owner's prototype 1, probe/card-symbols-design, and the
-# harmony study's carries, probe/card-harmony-design): 44 of the 45 states
-# move; editor_schema renders no card stylesheet and does not. Measured by
-# stripping the one stylesheet node from both sides of card_drift's diff
-# against da12aa37d and sequence-diffing what is left:
-#   - the six that render the setup page (setup_single_buffer, setup_two_tank,
-#     setup_coil, layout_editing_dragged, layout_editing_tidy,
-#     picker_open_filtered) gain a type disc on each card's corner, a <title>
-#     naming each box with its type, the coil's words and accent pipe, a
-#     Configure button on every card (cards 15 to 44 units taller, so boxes,
-#     ports and pipes move down), and the line above the drawing;
-#   - every state that opens the dialog moves its inline font-size 12.00px ->
-#     14.00px (DIALOG_FONT_PX_MIN, H1); savings_empty also swaps its
-#     <p class="savings-empty"> for the card's <div class="empty"> (H3c), and
-#     savings_page its receipt stylesheet's text-sm fallbacks 14px -> 13px (C1);
-#   - the ten card-face states move in stylesheet text only (the caption
-#     floors, the badge and button rules, H2-H4): the card injects ONE <style>
-#     block and card_drift captures the whole shadow root.
-# savings_page, savings_empty, health_page, setup_not_published and
-# advisor_empty are new in this branch (the five views the harmony study
-# found no state pinned); each renders on both sides and moves as above.
 
 # R10-SCORES (#2258): a sub-score published as null renders as "—" and the
 # reason the coordinator names in `reasons` (here none is published, so the
@@ -780,7 +759,6 @@
 # whatever the fixture publishes, and the driver line and the headline's
 # parenthetical follow the fixture's own scores. The other 44 states were
 # rendered and stayed identical.
-score_open  # R10-HOUSE-GRADE (#2816): the House row's explanation rewritten and its driver line added
 
 # R10-UX-HEALTH (#2253, #2260, #2263, #2809, #2815; owner report 2026-10-14):
 # the Health page is re-laid and re-worded. Its plan and learning blocks move
@@ -794,5 +772,3 @@ score_open  # R10-HOUSE-GRADE (#2816): the House row's explanation rewritten and
 # not only the house's when it has drivers (the owner's hover spec, carry 14);
 # it is the state that renders the score with its hover. The other 43 states
 # were rendered and stayed identical.
-health_page  # R10-UX-HEALTH: the Health page's layout, labels, COP and learner rows, copy and debug row
-score_open  # R10-UX-HEALTH: the score hover names each sub-score's metric
