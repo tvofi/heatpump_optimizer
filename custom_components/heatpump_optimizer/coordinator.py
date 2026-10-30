@@ -880,7 +880,7 @@ def _fold_flow_lift(coord: Any, now: datetime) -> None:
     if _cop_fold_blocked(coord):
         return
     a = heat_energy.meter_of(coord).attribution(coord._commanded_split())
-    if a.space + a.dhw <= 1e-6 or heat_energy.dhw_share(a) > coord._COP_CURVE_SHARE:
+    if a.space + a.dhw < 1e-6 or heat_energy.dhw_share(a) > coord._COP_CURVE_SHARE:
         return
     curve = curve_supply_temp(
         coord._thermal_model,

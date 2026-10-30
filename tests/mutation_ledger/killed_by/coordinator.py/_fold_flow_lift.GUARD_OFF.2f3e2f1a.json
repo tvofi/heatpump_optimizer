@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_fold_flow_lift GUARD_OFF 2f3e2f1a",
-  "killed_by": "tests/features.py",
-  "old": "    if a.space + a.dhw <= 1e-6 or heat_energy.dhw_share(a) > coord._COP_CURVE_SHARE:",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
-}
