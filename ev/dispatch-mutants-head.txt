@@ -1,0 +1,3 @@
+    FAIL the reviewer's publish ref is dispatch/reviewer-rev-7
+    FAIL a reviewer's flag-path --publish publishes to dispatch/reviewer-rev-<PR> and points there
+abort: wait-line-dropped's pattern occurs 0 times

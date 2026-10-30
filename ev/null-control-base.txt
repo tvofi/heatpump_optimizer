@@ -1,0 +1,11 @@
+usage: cloud_dispatch.py [-h] --role {reviewer,fixer,probe} [--head HEAD]
+                         [--group GROUP] [--roster-ref ROSTER_REF] [--pr PR]
+                         [--topic TOPIC] [--nonce NONCE] [--brief BRIEF]
+                         [--env-id ENV_ID] [--model MODEL] [--repo REPO]
+                         [--overlay OVERLAY] [--out OUT] [--publish]
+cloud_dispatch.py: error: argument --role: invalid choice: 'designer' (choose from 'reviewer', 'fixer', 'probe')
+rc=2
+    FAIL the reviewer's publish ref is dispatch/reviewer-rev-7
+    FAIL a reviewer's flag-path --publish publishes to dispatch/reviewer-rev-<PR> and points there
+abort: wait-line-dropped's pattern occurs 0 times
+rc=0
