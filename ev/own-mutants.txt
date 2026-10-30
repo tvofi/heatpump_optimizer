@@ -1,0 +1,19 @@
+R1 merged/ran falls through to admit KILLED rc=1
+      FAIL live queue: entries added while a batch is in proof never join it -- they run as the NEXT batch, proved on their own; one the train already holds is ALREADY, not run twice
+      FAIL P291 batch-4 replay: entries this train skipped and re-added at new verdict heads (#2, #3), and a merge skip by GitHub's branch policy re-added at its reviewed head (#5), are ADDED by `add` and
+      FAIL P189 null control: a ci-skipped entry re-added at the SAME verdict (#6), and an entry this train merged (#4), are ALREADY on both sides -- `add` spools nothing, the drain runs neither
+R2 BRANCH_POLICY_SAID never matches KILLED rc=1
+      FAIL P291 batch-4 replay: entries this train skipped and re-added at new verdict heads (#2, #3), and a merge skip by GitHub's branch policy re-added at its reviewed head (#5), are ADDED by `add` and
+      FAIL P291 the merge skip carries its environment class: SKIP #5 merge: [BRANCH-POLICY], and skipped.json's row names the class and the verdict it was skipped at
+R3 cure any skipped entry with a record, not only merged KILLED rc=1
+      FAIL --skip-bad: a queue of [good, bad, good] merges the two goods, reports the bad, and rc is non-zero -- the queue ran to its end with an entry left behind
+      FAIL a skip carries its block class in the line and in skipped.json
+      FAIL --skip-bad (--main-moved-tries 0): a Stop after the merge API call is fatal for that entry only -- logged post-merge, never retried, and the next entry is neither merged nor re-proved onto the 
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/d382206d-592d-5aba-8f62-6026ab277d46/scratchpad/rmut.py", line 27, in <module>
+    dst.unlink()
+    ~~~~~~~~~~^^
+  File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/pathlib/__init__.py", line 1042, in unlink
+    os.unlink(self)
+    ~~~~~~~~~^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/tmp/tmp.4HUOUQBm5z/wt/tools/audit/seat/_rmut_3.py'
