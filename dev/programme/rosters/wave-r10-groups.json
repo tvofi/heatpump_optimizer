@@ -12090,7 +12090,9 @@
     "R10-USER-DOCS-FINAL"
    ],
    "files": [],
-   "carry": [],
+   "carry": [
+    "From PR #3014 (R10-README-GRAPHICS; handoff-body/r10-readme-graphics b402df52): a real Home Assistant 2026.11 instance could not be reached from the fixer's seat. The fix's Marketplace evidence is a replica of the sanitizer and URL-rewrite pipeline (dev/audit/harnesses/r10_readme_marketplace_pipeline.mjs), not the shipped bundle. Owed at closeout: after the first stamped tag that contains #3014, capture the repository's Marketplace page in a real Home Assistant 2026.11 install, in light and in dark OS colour scheme, and confirm every README figure renders, with a ./-relative dark source resolving to the tag's raw URL. Control: an absolute-URL image renders in both before and after. An owner or tvofi step if no seat can reach an instance."
+   ],
    "resume": {
     "stage": "not-started",
     "branch": null,
