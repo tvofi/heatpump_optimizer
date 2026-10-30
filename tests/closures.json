@@ -3877,6 +3877,7 @@
    "dev/audit/harnesses/r10_cloud_setup_toolchain.py",
    "dev/audit/harnesses/r10_codescan_wait_race.py",
    "dev/audit/harnesses/r10_configflow_pages.py",
+   "dev/audit/harnesses/r10_cop_gate.py",
    "dev/audit/harnesses/r10_critpath_archive_parity.py",
    "dev/audit/harnesses/r10_dead_rate_limit.py",
    "dev/audit/harnesses/r10_demand_overbook.py",

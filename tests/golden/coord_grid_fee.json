@@ -96,6 +96,8 @@
    "evidence": [],
    "watched_buckets": 0
   },
+  "cop_observability": "no_electric_meter",
+  "cop_refusal": null,
   "cop_samples": 0,
   "cop_scale": 1.0,
   "currency": "SEK",
@@ -309,6 +311,7 @@
   "lower_floor_temperature": 21.0,
   "max_temperature": 23.0,
   "measured_cop": null,
+  "measured_cop_at": null,
   "measured_energy": null,
   "measured_heat_output_kw": null,
   "measured_house_power": null,
@@ -1931,7 +1934,10 @@
     "defrost_buckets": [],
     "defrost_derate": 1.0,
     "defrost_samples": 0,
+    "last_refusal": null,
+    "measured_at": null,
     "modelled_cop": 3.32,
+    "observability": "no_electric_meter",
     "waiting_for": "measured_power_entity"
    },
    "native_value": null
