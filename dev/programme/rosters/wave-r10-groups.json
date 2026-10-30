@@ -1904,7 +1904,7 @@
    ],
    "architect_note": "ARCHITECT NOTE (orchestrator.md section 5, binding under fixer.md step 17). Hot files and their serial chain: coordinator.py (position 25 of 25; before you: R10-LEARNER-ETA, R10-HEAT-METER; next: none). Owning seam in this group: the COP eligibility and its published state. Shape: a published reason, no threshold change. Touch only the owning seam named here; a hunk outside it is a new conflict surface and needs the orchestrator's after-edge first. Start from the previous group's merge, and re-run fixer.md steps 2-8 after any rebase.",
    "resume": {
-    "stage": "done",
+    "stage": "carries-open",
     "branch": "handoff/r10-cop-gate",
     "commit": "507a9ec264eb373b132248d752259254d8a9fa4d",
     "last_step": null,
