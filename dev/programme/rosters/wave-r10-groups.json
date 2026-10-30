@@ -5878,7 +5878,7 @@
     "branch": "handoff/r10-flow-body-patch",
     "commit": "8a4c438e7d9a6e2c492a1733d658d96b7b1eedcf",
     "last_step": null,
-    "next_step": "dispatch a fixer once every after group is done",
+    "next_step": "done: merged in #2578 (8a4c438e7)",
     "note": "Lean flow study 2026-10-21 (owner-adopted)"
    }
   },
