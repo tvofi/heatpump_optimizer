@@ -2158,7 +2158,7 @@ def null_control(path: Path) -> dict | None:
         return None
     for tok in toks:
         ln = tok.start[0]
-        if tok.type == tokenize.COMMENT and lines[ln - 1].strip() == tok.string:
+        if tok.type == tokenize.COMMENT:
             try:
                 rel = str(path.relative_to(ROOT))
             except ValueError:
