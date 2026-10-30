@@ -5,7 +5,7 @@ root-cause role contract, `dev/governance/rules/defect-root-cause.md`). The inst
 were measured on 2026-10-28 against `origin/main` `eab04d0eb`. Section 5's denominator and costs
 and section 6's demonstration were re-taken on 2026-10-29 at the head the pull-request body names,
 against `origin/main` `14fbf218d`. Every time is UTC. The seat filed no issue; review round 7
-filed #2952 as the destination of section 7's open jobs.
+opened a carry for section 7's open jobs, which now lives in the roster group R10-FLY-CIPREDICT-RESTORING.
 
 **Result: state (c).** 8 measured pull requests in round 10, past the audit-class threshold of 3 in
 one round. The class is I3, which is barriered.
@@ -244,6 +244,6 @@ keys the graders arm.
   None of the three is predicted by this arm, so a branch editing a file one of them restores is
   still graded by the base's copy with no local warning. Section 4's census read `briefs`
   check-runs and counted no `briefs` instance; it did not read `pr-contract` or
-  `budget-raise-gate`, so their instances are unmeasured. This record does not claim them. Their destination is the roster group R10-FLY-CIPREDICT-RESTORING (#2952), whose
+  `budget-raise-gate`, so their instances are unmeasured. This record does not claim them. Their destination is the roster group R10-FLY-CIPREDICT-RESTORING, whose
   `brief` (roster `0cdedcc9c02ebf52c96d14ffe5425ba9270efa8e` on `handoff/audit-r10-roster`) holds the enumeration rule as the control and the
   unmeasured `pr-contract` and `budget-raise-gate` instances as its precondition.
