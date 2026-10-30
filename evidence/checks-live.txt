@@ -1,0 +1,45 @@
+## Gate digest: green
+CodeQL id=123938539603 success
+arch-score / arch-score id=123938275969 success
+arm id=123938176031 skipped
+budget-raise-gate / budget-raise-gate id=123938275886 success
+cancel-superseded id=123938174449 success
+codeql / Analyze (actions) id=123938275928 success
+codeql / Analyze (javascript-typescript) id=123938275871 success
+codeql / Analyze (python) id=123938275887 success
+gate id=123950646509 success
+governance / delivery-status id=123938276064 success
+governance / delivery-status-publish id=123938277818 skipped
+governance / env-matrix id=123938276094 success
+governance / instrument-self-tests id=123938276126 success
+governance / policy-docs id=123938276120 success
+governance / record id=123938277837 skipped
+governance / wave-script id=123938276125 success
+hassfest / hassfest id=123938275883 success
+kernel-points id=123938277492 skipped
+pr-contract / pr-contract id=123950439663 success
+prelude id=123938174174 success
+refresh id=123938174396 success
+tests / arch-instrument id=123938427657 success
+tests / briefs id=123938275914 success
+tests / browser id=123938427604 success
+tests / ci-ratchet id=123946185131 skipped
+tests / claims-autofix id=123945710458 skipped
+tests / closure-scope id=123938276076 success
+tests / closures id=123938427652 success
+tests / closures-autofix id=123946185514 skipped
+tests / coverage id=123938427803 success
+tests / coverage-ratchet id=123942961131 success
+tests / fast (3.14) id=123938427705 success
+tests / graders-head-copy id=123942961212 success
+tests / lane-proofs id=123945709145 success
+tests / mutation id=123938276114 success
+tests / mutation-autofix id=123938477403 skipped
+tests / mutation-pins id=123938477827 skipped
+tests / nightly-ha id=123938429454 skipped
+tests / nightly-status id=123938276059 success
+tests / replay id=123938429937 skipped
+tests / typing id=123938427591 success
+validate / validate-hacs id=123938275795 success
+
+## Refusals
