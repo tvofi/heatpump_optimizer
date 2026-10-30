@@ -9810,7 +9810,9 @@
    "carry": [
     "From #2712 (R10-DEMAND-OVERBOOK) friction item R10-PIN-DRIVE-INCONCLUSIVE (verdict/2712 at 9d5c6afe, finding-propagation.md): the tests/mutation_table.py --pin-killed baseline defect it records belongs to this group's mutation_table.py scope; settle it here. Item text from the #2712 body ## Friction: R10-PIN-DRIVE-INCONCLUSIVE: cost: `tests/mutation_table.py --pin-killed` with a red `tests/entities.py` baseline prints `MUTATION TABLE INCONCLUSIVE` and then reports every remaining site `lives` with `5 survived`, the wording of a real survivor; four of those five were killed once `entities.py` was left out (three by `tests/features.py`, one by `tests/typing_ruler.py`). Carry: R10-FLOW-JIDOKA",
     "Measure first (#2840, main ruling under mandate 6329234399, 2026-10-26): recurring mutation-survivor friction, exactly 3 at threshold 3. Name the 3 PRs and their survivors. If they share a cause in tests/mutation_table.py, fix it here. If each survivor was answered in its own PR with no shared cause, record the refusal with that evidence, because ci-autofix.md forbids automating survivor triage. Part of #2840.",
-    "From #2961 (R10-FRICTION-MUTATION-SURVIVOR record), countermeasure C: `mutation-autofix` must go red when its measurement leaves an added site alive, naming each such site in its summary line. Acceptance: red on #2817's `4fbe4c6a5` measurement shape (`N pinned, 2 left unpinned`); green on `0 left unpinned`; quiet on `skip-head-moved`. This also answers this group's own #2840 carry: the survivors share one cause, which lives in the autofix's status vocabulary, not in `--pin-killed`; #2579 and #2820 are hand mutants under `tools/` with no shared cause. See that record's section 7. Re-measure against your own merge base."
+    "From #2961 (R10-FRICTION-MUTATION-SURVIVOR record), countermeasure C: `mutation-autofix` must go red when its measurement leaves an added site alive, naming each such site in its summary line. Acceptance: red on #2817's `4fbe4c6a5` measurement shape (`N pinned, 2 left unpinned`); green on `0 left unpinned`; quiet on `skip-head-moved`. This also answers this group's own #2840 carry: the survivors share one cause, which lives in the autofix's status vocabulary, not in `--pin-killed`; #2579 and #2820 are hand mutants under `tools/` with no shared cause. See that record's section 7. Re-measure against your own merge base.",
+    "Lands in `dev/programme/rosters/wave-r10-groups.json`, group `R10-FLY-LEDGER-SAMPLE`'s `carry`. Landed on `handoff/audit-r10-roster` at `edd149d14` (roster_edit append-carry). Countermeasure C \u2014 `mutation-autofix` reddens when its measurement leaves an added site alive, naming each site in its summary line; acceptance: red on #2817's `4fbe4c6a5` measurement shape (`N pinned, 2 left unpinned`), green on `0 left unpinned`, quiet on `skip-head-moved` \u2014 and the answer to the group's own #2840 carry (\"the survivors share a cause, in the autofix's status vocabulary, not in `--pin-killed`; #2579 and #2820 are `tools/` hand mutants with no shared cause\"): record section 7. Carry: R10-FLY-LEDGER-SAMPLE",
+    "`.claude/rules/ci-autofix.md`: contradiction: the rule said to act when `mutation-autofix` goes red, and `closure.AUTOFIX_QUIET` keeps it green on every survivor path (#2817, #2832, #2912). Carry: R10-FLY-LEDGER-SAMPLE"
    ],
    "model": {
     "fixer": "sonnet",
@@ -10508,9 +10510,9 @@
     "`reviewer-head-off` survives `r10_flow_dispatch_mutants.py` at the base and at this head: `dispatch_group`'s \"a reviewer needs --head\" refusal is not pinned by the self-test (the arm that should kill it, `refused(role=\"reviewer\", pr=\"7\")`, is refused for another reason). Carry: R10-FRICTION-MUTATION-SURVIVOR"
    ],
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": null,
-    "commit": null,
+    "commit": "13871b7aa4a1218e4523d10d7c348c08eef4dd57",
     "last_step": null,
     "next_step": "dispatch a seat",
     "note": "wired by the roster seat 2026-10-26 under the owner's completion rule (tvofi 20:20Z)",
