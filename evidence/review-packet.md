@@ -1,47 +1,55 @@
 # Review packet #2977
-head: 9f0e4478d5413192a34603698fedaa9dfd3cd93a
-base: 043b111d01c90ecb1220980df1d363c0b50bb37f
+head: 967abc3e9c7ca6d224ba5d55cee77145d109ea3b
+base: 1148ee635e8278ebbb033b524d54001b2a89218c
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
-## Gate digest: red
-CodeQL id=123829578971 neutral
-arch-score / arch-score id=123829399418 success
-arm id=123829266870 skipped
-budget-raise-gate / budget-raise-gate id=123829399452 success
-cancel-superseded id=123829268149 success
-codeql / Analyze (actions) id=123829399369 success
-codeql / Analyze (javascript-typescript) id=123829399424 success
-codeql / Analyze (python) id=123829399354 in_progress
-governance / delivery-status id=123829399450 success
-governance / delivery-status-publish id=123829401133 skipped
-governance / env-matrix id=123829399421 in_progress
-governance / instrument-self-tests id=123829399492 in_progress
-governance / policy-docs id=123829399373 success
-governance / record id=123829401463 skipped
-governance / wave-script id=123829399387 success
-hassfest / hassfest id=123829399308 success
-kernel-points id=123829401399 skipped
-prelude id=123829268073 in_progress
-refresh id=123829267847 success
-tests / arch-instrument id=123829691352 success
-tests / briefs id=123829399403 success
-tests / browser id=123829691241 in_progress
-tests / closure-scope id=123829399345 success
-tests / closures id=123829691286 in_progress
-tests / coverage id=123829691202 in_progress
-tests / fast (3.14) id=123829691270 in_progress
-tests / mutation id=123829399408 success
-tests / mutation-autofix id=123829724467 skipped
-tests / mutation-pins id=123829723474 skipped
-tests / nightly-ha id=123829693693 skipped
-tests / nightly-status id=123829399476 failure
-tests / replay id=123829692983 skipped
-tests / typing id=123829692182 in_progress
-validate / validate-hacs id=123829399334 success
+## Gate digest: green
+CodeQL id=123951892505 success
+arch-score / arch-score id=123951662185 success
+arm id=123951529675 skipped
+budget-raise-gate / budget-raise-gate id=123951662271 success
+cancel-superseded id=123951527607 success
+codeql / Analyze (actions) id=123951661987 success
+codeql / Analyze (javascript-typescript) id=123951661950 success
+codeql / Analyze (python) id=123951662001 success
+gate id=123965140490 success
+governance / delivery-status id=123951662428 success
+governance / delivery-status-publish id=123951664362 skipped
+governance / env-matrix id=123951662061 success
+governance / instrument-self-tests id=123951662042 success
+governance / policy-docs id=123951662396 success
+governance / record id=123951663473 skipped
+governance / wave-script id=123951662106 success
+hassfest / hassfest id=123951661961 success
+kernel-points id=123951663771 skipped
+pr-contract / pr-contract id=123964939570 success
+prelude id=123951527379 success
+refresh id=123951527708 success
+tests / arch-instrument id=123951811222 success
+tests / briefs id=123951662045 success
+tests / browser id=123951811158 success
+tests / ci-ratchet id=123961791376 skipped
+tests / claims-autofix id=123955936575 skipped
+tests / closure-scope id=123951662003 success
+tests / closures id=123951811291 success
+tests / closures-autofix id=123957794910 skipped
+tests / coverage id=123951811325 success
+tests / coverage-ratchet id=123961789473 success
+tests / fast (3.14) id=123951811250 success
+tests / graders-head-copy id=123961789429 success
+tests / lane-proofs id=123961789494 success
+tests / mutation id=123951662027 success
+tests / mutation-autofix id=123951921573 skipped
+tests / mutation-pins id=123951920391 skipped
+tests / nightly-ha id=123951812982 skipped
+tests / nightly-status id=123951662005 success
+tests / replay id=123951813747 skipped
+tests / typing id=123951811177 success
+validate / validate-hacs id=123951662010 success
 
 ## Refusals
-red-unanswered: concluded red check `tests / nightly-status` is not named in ## Red checks
+none
 
 ## Advisories
 none
