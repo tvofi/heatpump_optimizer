@@ -677,6 +677,28 @@ INERT_EXCEPT = (
     # doc_claims.py's recorded closure.
     "docs/img/brand/coffee.svg",
     "dev/programme/rosters/wave-r10-groups.json",
+    # R10-ARCH-DOCS-WIRING: the card-figure arm opens the page-figure record and
+    # every page PNG it lists, to read the IHDR against it (the two light PNGs
+    # the image-size arm already opens are above), and the doc-wiring arm opens
+    # each script the two pages pass an argument to, to find that argument as a
+    # word of it. Same route: the prefixes stay INERT, the files move to
+    # doc_claims.py's recorded closure.
+    "docs/img/card/pages.json",
+    "docs/img/card/advisor-dark.png",
+    "docs/img/card/health-dark.png",
+    "docs/img/card/health-light.png",
+    "docs/img/card/plan-dark.png",
+    "docs/img/card/plan-light.png",
+    "docs/img/card/plan-why-dark.png",
+    "docs/img/card/savings-dark.png",
+    "docs/img/card/savings-light.png",
+    "docs/img/card/setup-dark.png",
+    "docs/img/card/setup-light.png",
+    "docs/img/card/tile-dark.png",
+    "docs/img/card/tile-light.png",
+    "tools/audit/seat/bus.sh",
+    "tools/audit/seat/cloud_relay.sh",
+    "tools/audit/seat/heartbeat.sh",
     "DISCLAIMER.md",
     "blueprints/automation/charge_ev_from_grid_headroom.yaml",
     "blueprints/automation/economy_mode_on_price_peak.yaml",
