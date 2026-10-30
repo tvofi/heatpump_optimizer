@@ -9941,7 +9941,7 @@
     "branch": "handoff/r10-house-grade",
     "commit": "b2a7e44932d1b5513643e9c5fac998c2a73cd24b",
     "last_step": "PR head 253dc4867 (code f1f67bec2, body ref 0ed3c466d) is fully green: 55 check-runs, 39 success, 16 skipped, 0 pending, 0 failure; tests / fast and tests / mutation both success",
-    "next_step": "a reviewer is owed at 253dc4867; do not re-push",
+    "next_step": "done: merged in #2876 (b2a7e4493)",
     "note": null,
     "pr": 2876
    }
