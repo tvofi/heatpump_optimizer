@@ -6626,7 +6626,7 @@
     "branch": "handoff/r10-flow-yield-probe",
     "commit": "a9db47846647a516fbdb544c55c59a416875309f",
     "last_step": null,
-    "next_step": "dispatch a fixer once every after group is done",
+    "next_step": "done: merged in #2579 (a9db47846)",
     "note": "Lean flow study 2026-10-21 (owner-adopted)"
    }
   },
