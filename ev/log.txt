@@ -1,0 +1,6 @@
+6e89bf7f902f701170b3393e8eaa6d27f23d73e6 0667d6615595c5216ca63e902108dfa9750aa79b record: the delivery row for #2978
+0667d6615595c5216ca63e902108dfa9750aa79b fbe478bbaae37e945ab4f8b24a6bfdc77d4961a2 043b111d01c90ecb1220980df1d363c0b50bb37f Merge remote-tracking branch 'origin/main' into fix/r10-train-overlap-grade
+fbe478bbaae37e945ab4f8b24a6bfdc77d4961a2 72cfd9049889c0af1e445466cb862b18f4755e5a closures: harness_headers reads the new admission mutant harness (ci_predict --apply-inert)
+72cfd9049889c0af1e445466cb862b18f4755e5a b252d177e4204dbd87971b41e5355c42650d58e5 merge_train: a pre-flight PARK at recarry is a HOLDER skip; the admission mutants
+043b111d01c90ecb1220980df1d363c0b50bb37f 8b3d4308202474e29fb83591995d6fdfb72a36fe 850c81c3fbc76a509adbfb5195774ad3d4adecff Merge pull request #2966 from tvofi/record/autofix
+8b3d4308202474e29fb83591995d6fdfb72a36fe da066609fb1f076333d064f5f49612998253f7ce b67f169250a367d11a436d4c8d8c26d122ee7ee3 Merge pull request #2964 from tvofi/fix/r10-fly-nightly-hb

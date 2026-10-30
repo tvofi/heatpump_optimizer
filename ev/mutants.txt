@@ -1,0 +1,42 @@
+M0 PASS: the unmutated head
+M1 KILLED: the drain applies the shared rule, not the any-seen rule
+    FAIL live queue: entries added while a batch is in proof never join it -- they run as the NEXT batch, proved on their own; one the train already holds is ALREADY, not run twice
+    FAIL P291 batch-4 replay: entries this train skipped and re-added at new verdict heads (#2, #3), and a merge skip by GitHub's branch policy re-added at its reviewed head (#5), are ADDED by `add` and b
+    FAIL P189 HOLDER arm: an entry skipped [HOLDER] and re-added at the SAME verdict is ADDED by `add` and by the drain (batch 2), and a ci-skipped one at the same verdict is ALREADY on both sides
+M2 KILLED: a skip takes the entry out of the pending layer
+    FAIL P291 batch-4 replay: entries this train skipped and re-added at new verdict heads (#2, #3), and a merge skip by GitHub's branch policy re-added at its reviewed head (#5), are ADDED by `add` and b
+M3 KILLED: a BRANCH-POLICY skip is re-admitted at the same verdict
+    FAIL P291 batch-4 replay: entries this train skipped and re-added at new verdict heads (#2, #3), and a merge skip by GitHub's branch policy re-added at its reviewed head (#5), are ADDED by `add` and b
+M4 KILLED: a HOLDER skip is re-admitted at the same verdict
+    FAIL P189 HOLDER arm, pre-flight: a PARK at `recarry` (the worktree holder) is recorded skipped [HOLDER] with its verdict, so a same-verdict re-add is admitted; a `carry` PARK is skipped with no class
+    FAIL P189 HOLDER arm: an entry skipped [HOLDER] and re-added at the SAME verdict is ADDED by `add` and by the drain (batch 2), and a ci-skipped one at the same verdict is ALREADY on both sides
+M5 KILLED: the same-verdict exception holds in the drain too, not in add only
+    FAIL P291 batch-4 replay: entries this train skipped and re-added at new verdict heads (#2, #3), and a merge skip by GitHub's branch policy re-added at its reviewed head (#5), are ADDED by `add` and b
+    FAIL P189 HOLDER arm: an entry skipped [HOLDER] and re-added at the SAME verdict is ADDED by `add` and by the drain (batch 2), and a ci-skipped one at the same verdict is ALREADY on both sides
+M6 KILLED: every merge attempt refused by the branch policy is classed BRANCH-POLICY
+    FAIL P291 batch-4 replay: entries this train skipped and re-added at new verdict heads (#2, #3), and a merge skip by GitHub's branch policy re-added at its reviewed head (#5), are ADDED by `add` and b
+    FAIL P291 the merge skip carries its environment class: SKIP #5 merge: [BRANCH-POLICY], and skipped.json's row names the class and the verdict it was skipped at
+M7 KILLED: a skipped entry at a new verdict is admitted
+    FAIL P291 batch-4 replay: entries this train skipped and re-added at new verdict heads (#2, #3), and a merge skip by GitHub's branch policy re-added at its reviewed head (#5), are ADDED by `add` and b
+M8 KILLED: an earlier batch's skip never drops a re-added serial entry
+    FAIL P291 batch-4 replay: entries this train skipped and re-added at new verdict heads (#2, #3), and a merge skip by GitHub's branch policy re-added at its reviewed head (#5), are ADDED by `add` and b
+M9 KILLED: a merge is recorded merged
+    FAIL live queue: entries added while a batch is in proof never join it -- they run as the NEXT batch, proved on their own; one the train already holds is ALREADY, not run twice
+M10 KILLED: null control: an entry still to run is ALREADY
+    FAIL P291 batch-4 replay: entries this train skipped and re-added at new verdict heads (#2, #3), and a merge skip by GitHub's branch policy re-added at its reviewed head (#5), are ADDED by `add` and b
+    FAIL null control: an entry still in the live batch (#5, #6 re-added as batch 2 starts) is ALREADY from the pending layer, rc 0, nothing spooled
+    FAIL add is idempotent: a pull request spooled, or in the live train's batches, is ALREADY -- rc 0, nothing spooled twice, nothing started
+    FAIL add refused: the admission's rule is printed (ADD REFUSED #9 carry: ...), rc 1, nothing spooled
+M11 KILLED: add reads the live train's record
+    FAIL P291 batch-4 replay: entries this train skipped and re-added at new verdict heads (#2, #3), and a merge skip by GitHub's branch policy re-added at its reviewed head (#5), are ADDED by `add` and b
+    FAIL P189 null control: a ci-skipped entry re-added at the SAME verdict (#6), and an entry this train merged (#4), are ALREADY on both sides -- `add` spools nothing, the drain runs neither
+    FAIL null control: an entry still in the live batch (#5, #6 re-added as batch 2 starts) is ALREADY from the pending layer, rc 0, nothing spooled
+    FAIL P189 HOLDER arm: an entry skipped [HOLDER] and re-added at the SAME verdict is ADDED by `add` and by the drain (batch 2), and a ci-skipped one at the same verdict is ALREADY on both sides
+M12 KILLED: a spooled entry is ALREADY
+    FAIL add is idempotent: a pull request spooled, or in the live train's batches, is ALREADY -- rc 0, nothing spooled twice, nothing started
+    FAIL add refused: the admission's rule is printed (ADD REFUSED #9 carry: ...), rc 1, nothing spooled
+    FAIL null control: a head carrying a non-main delta past its verdict is refused by the `carry` rule (app_approve.sh's own CARRY: no), nothing spooled
+M13 KILLED: a pre-flight PARK at recarry is a HOLDER skip
+    FAIL P189 HOLDER arm, pre-flight: a PARK at `recarry` (the worktree holder) is recorded skipped [HOLDER] with its verdict, so a same-verdict re-add is admitted; a `carry` PARK is skipped with no class
+MUTANTS: 14 run, 0 not as required
+rc=0
