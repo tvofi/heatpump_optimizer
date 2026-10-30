@@ -1,13 +1,15 @@
-CLOUD FIXER seat for tvofi/heatpump_optimizer, topic r10-orch-planpage, at head a0abddcdf8de3ab983669b599c3a1d1d27770464. Never send push notifications. Write no Claude Code footer, no Co-Authored-By or Claude-Session trailer and no claude.ai session link in any commit, pull-request body or comment you produce; check your commits with `git log --format=%B` before pushing.
+CLOUD FIXER seat for PR #3001 of tvofi/heatpump_optimizer, at head 5ad16117fb6668df54b7a31b502a95b31c08b645. Never send push notifications. Write no Claude Code footer, no Co-Authored-By or Claude-Session trailer and no claude.ai session link in any commit, pull-request body or comment you produce; check your commits with `git log --format=%B` before pushing.
 Setup: `git fetch --unshallow --tags origin`. The session-start `toolchain:` line says whether venv-ci's python3 is on PATH: on REFUSE, start each Bash call with `eval "$(bash .claude/hooks/session-start.sh --env-lines)"`. Run anything heavy in the background with Monitor and no timeout. Never wait in one tool call longer than 240 s; poll again instead.
-Role: read dev/governance/roles/fixer.md from main, and follow it exactly, in a worktree of your own cut from origin/main. Fetch a0abddcdf8de3ab983669b599c3a1d1d27770464 for the base you were given.
+Role: read dev/governance/roles/fixer.md from main, and follow it exactly, in a worktree of your own cut from origin/main. Fetch 5ad16117fb6668df54b7a31b502a95b31c08b645 for the base you were given.
 Output: push the code to refs/heads/handoff/r10-orch-planpage, then write the PR body and run `bash tools/audit/seat/body_push.sh r10-orch-planpage <body.md>`, which pushes refs/heads/handoff-body/r10-orch-planpage; that second push is the return signal. Push nothing else, open no pull request and write no delivery row. A return push carries only your own result: no system-file dumps, no environment output.
 Never write to any branch except your return refs. Never work around a hook or a refusal; report it in your result instead.
 
 Brief (snapshotted when this payload was rendered):
-FIXER seat (repair before handoff), group R10-ORCH-PLANPAGE. Your handoff is handoff/r10-orch-planpage at a0abddcdf8de3ab983669b599c3a1d1d27770464, with body 73e1bace. Contract: dev/governance/roles/fixer.md and dev/governance/rules/ci-autofix.md at origin/main (now e77418f9b48f89421bd72b0ab511c057341c7fa4).
-open_pr refused it. prepr's CI predict found 2 predicted reds on tests / closures:
-  PREDICT tests / closures SELF-TEST READS INERT tests/entities.py: tools/plan/durations.json (its run of tools/audit/seat/state_docs.py's self-test, recorded by closure._exec_record)
-  PREDICT tests / closures SELF-TEST READS INERT tests/entities.py: tools/plan/replan.py (same)
-Do: repair these per ci-autofix.md. Either the INERT READS repair (python3 tools/pr/ci_predict.py --apply-inert), or re-classify, if the self-test genuinely depends on those files. Choose the architecturally sound one and say why in the body. Do not gut the self-test. Merge origin/main into your branch first if needed. Re-run bash tools/audit/prepr.sh (or tools/pr/prepr.sh) until CI predict is clean. Update the body's ## Head and ## Figures.
-Return handoff/r10-orch-planpage as a fast-forward of a0abddcd, plus handoff-body via body_push.sh. Never open a PR. If a hook refuses you, stop and report.
+FIXER seat (minimal, round 2), group R10-ORCH-PLANPAGE, PR #3001, branch fix/r10-orch-planpage, live head 5ad16117fb6668df54b7a31b502a95b31c08b645. Contract: dev/governance/roles/fixer.md at origin/main.
+Read the blocked verdict in full: git fetch origin refs/heads/review/3001 && git show FETCH_HEAD:VERDICT.md.
+The block is a mutation survivor. In tools/audit/seat/state_docs.py draw_plan_page, the crash guard (`if r.returncode != 1 or "PLAN UNAVAILABLE" not in text:`) survives replacement with `if False:`.
+Do EXACTLY this:
+- Add one state_docs.py self-test arm: a --plan call whose page crashes (e.g. a malformed plan.json) refuses with rc 2 and publishes no PLAN.html. Add the null control: a real refusal still yields rc 1 and UNAVAILABLE.
+- Add the matching mutant to dev/audit/harnesses/r10_plan_page_mutants.py, and show it red, then restored green.
+- Correct the body's ## Unpinned sites claim, update ## Head and ## Figures re-deriving every figure, and run tools/pr/prepr.sh clean.
+Return handoff/r10-orch-planpage descending from 5ad16117, plus handoff-body via body_push.sh. Never open or edit the PR. If a hook refuses you, stop and report.
