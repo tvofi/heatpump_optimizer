@@ -1,33 +1,29 @@
-Fix review: blocked fca6e07bb4189f6cb9768ea499a9ff818c7f8ea9 body-stale: the body describes the previous change (ROWLESS on a refused row push, 144 checks, no mut:rowclose), not this diff's close-on-refusal
+Fix review: blocked 50b1956485ea01e78d97a0619a32cdc9dd923cdd figure-wrong: body says the head self-test has one arm more than the merge base; it has three more (151 to 154)
 
-bus-nonce: 00451e136f519ed599922e9b8d976097
+bus-nonce: 81a3f6d8784483c8ba64d7d64969fdb4
 
-## Round
-
-Round 1 for this head. Measured head: fca6e07bb4189f6cb9768ea499a9ff818c7f8ea9. Merge base and origin/main: 039eee1dc9c210edd31a6e1a806f4ceb9c0d048b. The roles diff from the merge base to main is empty, so the contract is current.
+Round: 1 (first review of this PR). Measured head: 50b1956485ea01e78d97a0619a32cdc9dd923cdd, base fe709cbd269c7c53eb1c846a0be7f39c7dab06ac (merge base = origin/main at review time).
 
 ## Block
 
-The diff (46d225b21, then the row commit fca6e07bb) makes a refused row push **close** the PR, after posting a comment that gh_comment.py reads back, and print `open_pr: CLOSED: #N`. ROWLESS is now printed only when the close itself fails. The PR body describes the change that already merged before this one:
-
-- Paragraph 2 and carry 1 say a refused row push "prints `open_pr: ROWLESS: #N is open ...`" and that `update_pr.sh fix/r -` then "exits 0 with `dev/programme/delivery/5.md` on origin". At this head the self-test asserts the opposite. The main `rowless -` arm requires `! grep -qF ROWLESS`, `no open pull request at fix/r` and `rowpushed = 0`.
-- `## Mutation proof` does not name `mut:rowclose`, which is this diff's one new production mutant. It still describes `mut:rowreset` as "`update_pr.sh` refuses `(unpushed work`", but this diff removed that assertion from the arm.
-- `## Figures` says "144 checks, 0 failed" at the head and says "5 changed files". At this head I measured `pr_args self-test: 152 checks, 0 failed` (ev/self-test-head.txt), and the three-dot diff has 4 files. The figures were taken at `f2f569d4c`/`0ce0c6f8b`, and neither commit is in this PR's range.
-- `## Head` names dispatch base `ed1c9045` and figures taken at `f2f569d4c`, not this range.
-
-Under fix-review.md step 8, none of the body's figures is verified at this head. Its stated behaviour contradicts the code and the tests, so the body has to be re-cut for this diff before it can be reviewed.
+The body's Figures section says: "self-test at the head: ... exits 0, and every arm prints `ok` (one arm more than at the merge base, the new close arm)". Re-derived: the merge base prints `pr_args self-test: 151 checks, 0 failed` and the head prints `pr_args self-test: 154 checks, 0 failed`, so the head has three arms more. That fits the diff: the base had two arms (rowless and its rowreset mutant). The head has five: the close arm, the rowclose mutant, the rowreset mutant, the merge-conflict arm and the mergeabort mutant. The figure is false, and the record must not carry it (fix-review.md step 8). A body edit fixes it without moving the head. Fix the finding below in the same round.
 
 ## Findings
 
-- A re-run after a CLOSED exit cannot open, but the closing comment and the CLOSED line tell the seat to do exactly that ("Re-run `open_pr.sh <topic>` once the handoff body answers it"). After the close, `pr_release_wt` (pr_args.sh:150) detaches the worktree and keeps both `$D/wt` and the local branch, because origin holds the branch. On the re-run, `open_pr.sh:37` either renames BR to `$BR-pr` or keeps it, and `open_pr.sh:52` `git worktree add -q -b $BR $WT $C` then fails. It fails with `'…/wt' already exists` when BR was renamed, and with `a branch named … already exists` under BR_FIXED (ev/rerun-repro.sh and ev/rerun-repro.txt reproduce this with real git). Even once both are cleared, the re-run pushes again to a branch whose closed PR still exists. The old recovery path (`update_pr.sh … -` plus ensure_row) is also gone for a closed PR: the arm asserts that `update_pr.sh` answers `no open pull request at fix/r`. So the fix turns a recoverable rowless PR into a closed PR with no scripted recovery. The `rowless -` arm should run the prescribed re-run and require it to open, or the close path should remove the worktree and local branch and the re-run path should handle an existing remote branch. Carry: R10-FLY-OPENPR-ATOMIC
-- The rewritten `mut:rowreset` arm now asserts only `opwt = branch` and `rowpushed = 0`. Because the fixed path also leaves `rowpushed = 0`, only `opwt` discriminates the mutant. That is adequate today, but the arm no longer pins the #2625 refusal it is named for. The body should say so, or the arm should keep a discriminating second assertion. Carry: R10-FLY-OPENPR-ATOMIC
+- Surviving mutant: deleting `PR_ATTEMPT=closed,PR=$N` (open_pr.sh:104) leaves the head self-test at 154 checks, 0 failed, exit 0 (ev/mutant-attempt.txt). The body claims "The ledger attempt records `closed,PR=<n>`", but no test pins it. Without that line, a closed PR's handoff ref records `unopened` in the ledger. The tick's DISPATCH line (`last attempt ...,unopened`) would then tell the dispatcher that no PR was ever opened. Pin it with a `# mut:` marker and an arm in the rowless replay that reads the ledger attempt, or drop the claim from the body. Carry: R10-FLY-OPENPR-ATOMIC
+- Weak pin: replacing the reason extraction `{ grep -E 'REFUSE' $D/p2.log || tail -n 20 $D/p2.log; }` (open_pr.sh:97) with a bare `tail -n 20` survives (ev/mutant-whyreason.txt, 154 checks, 0 failed). The stub's p2.log is shorter than 20 lines, so the tail fallback quotes the refusal anyway. In this test the mutant is equivalent, but against a real prepr log longer than 20 lines it is not. Make the stub's p2.log longer than 20 lines with the REFUSE line early, or record that the case is accepted as equivalent. Carry: R10-FLY-OPENPR-ATOMIC
 
 ## Evidence
 
-- RESULT self-test head: `bash tools/audit/seat/pr_args.sh --self-test` at fca6e07bb gives `pr_args self-test: 152 checks, 0 failed`, exit 0. The arms `open_pr: a refused row push closes the PR with a read-back comment naming the refusal…`, `mutant mut:rowclose` and `mutant mut:rowreset` read ok (ev/self-test-head.txt). The built-in mutant arm deletes the `# mut:rowclose` line and requires that the PR stays open, so mutation step 1 is not vacuous for that line.
-- RESULT merge: `git merge-tree --write-tree origin/main fca6e07bb` exits 0 with tree 5dc093db27d1822650a7aee9edd372dd5c859a24 and no conflict, because the head already contains origin/main 039eee1dc (ev/merge-tree.txt).
-- RESULT VERSION: VERSION, the manifest version and the RELEASE_NOTES heading are untouched. The diff covers only tools/audit/seat/{open_pr.sh,pr_args.sh,instruments/open_pr.sh.md} and dev/programme/delivery/2989.md. No golden or claim file is touched, so `env_drift` has nothing to compare.
-- RESULT CI at review time: 39 check-runs on the head and none red. These were still in progress: tests / fast (3.14), tests / closures, tests / browser, tests / graders-head-copy, governance / env-matrix, governance / instrument-self-tests, codeql / Analyze (python) and prelude. No pr-contract run was listed. Step 11 therefore has nothing to answer yet. I did not wait for completion because the block does not turn on CI.
-- No finder's harness is named (the packet says "none named"). The finding is a tooling flow, and the self-test fixture is the fixer's own instrument.
-- The packet's carry_audit reports 1 item, routed to R10-FLOW-BODY-ONLY (the V64 auto-open carry, unchanged by this diff). figure_lint resolves 15 of 15, but only checks that the paths exist, not the numbers.
-- The head is unchanged at verdict time: the PR API reports head.sha fca6e07bb4189f6cb9768ea499a9ff818c7f8ea9.
+- RESULT head self-test: `bash tools/audit/seat/open_pr.sh --self-test` at 50b1956485ea01e78d97a0619a32cdc9dd923cdd: pr_args 154 checks, 0 failed; delivery_row 6 checks, 0 failed; exit 0 (ev/selftest-head.txt).
+- RESULT base self-test at fe709cbd2: pr_args 151 checks, 0 failed; exit 0 (ev/selftest-base.txt).
+- RESULT failing test first: the head's tree with origin/main's open_pr.sh gives 154 checks, 2 failed, exit 1. The only FAILs are the close arm and the merge-conflict arm (ev/selftest-main-openpr.txt). This matches the body.
+- RESULT named mutants (rowclose, rowreset, mergeabort): their arms pass at the head, so each mutant produces the defect the body describes.
+- RESULT own mutants at the head: deleting the `pr_refuse` line after the merge abort (line 63) gives 1 FAIL, the merge-conflict arm (killed). Deleting the gh_comment.py post (lines 100-101) gives 1 FAIL, the close arm (killed). The ledger-attempt mutant and the reason-grep mutant survive (see Findings). Files: ev/mutant-*.txt.
+- Finder's harness: none is named, and the review packet says so. The finding is tooling, and the in-tree self-test with `# mut:` markers is the instrument.
+- Merge with main: `git merge-tree --write-tree origin/main 50b1956485ea01e78d97a0619a32cdc9dd923cdd` exits 0 (tree cde818d4f13026683050c79c3e5d2b62ceb7aa16), with no conflict.
+- The role diff `git diff $(merge-base)...origin/main -- dev/governance/roles/` is empty, so the contract is current.
+- VERSION, the manifest and RELEASE_NOTES.md are untouched (three-dot diff empty). No golden or claim files are touched, and no budget is moved.
+- The body's Head section names 50b1956485ea01e78d97a0619a32cdc9dd923cdd and the code head f32c80504, which is an ancestor of the head. Confirmed.
+- CI on this head, read live from check-runs: no check concluded red. tests / closures, governance / instrument-self-tests and codeql / Analyze (python) were still in progress at read time. tests / mutation is green, but a shell-only diff draws no Python mutant, so it says nothing about these lines. The body's "Red checks: none" is consistent so far.
+- Forward-carry: none claimed. The out-of-group carries 4, 6 and 7, and carry 8's handoff_push.sh seams, are stated as staying on the roster.
