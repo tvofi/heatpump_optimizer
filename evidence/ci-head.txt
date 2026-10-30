@@ -1,0 +1,7 @@
+check-runs on 18c9d3193e4aafd3a7997e125fc6e164ef8343d6 (read 2026-10-30 ~07:05Z via pull_request_read get_check_runs, 68 runs):
+red: tests / nightly-status (job 123936146906, run 40969117981) -- the only concluded failure
+latest run 41017154303: gate success (07:00:34Z), pr-contract success (07:00:08Z), arch-score success, budget-raise-gate success
+hassfest / hassfest success (Integrations: 1, Invalid integrations: 0; manifest validated)
+validate / validate-hacs success; its repository dump lists "render_readme": false among HACS's manifest fields and release v7.0.5 "assets": []
+mutation success; closures, closure-scope, fast (3.14), coverage, typing, browser, codeql x3 success
+two older 'gate' rows (runs 40969117981, 40969117097) shown in_progress: superseded by run 41017154303
