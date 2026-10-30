@@ -73218,6 +73218,8 @@ async def _sa_guarded(guard=None):
         coord._last_optimization = _SA_T0
         _sa_boost.adopt_plan(coord, {"heat_pump_on": True, "power": 1.5})
         await coord._apply_action()
+        if guard == "unload":
+            await coord._apply_action()  # a second cycle arms nothing more
         hass.services.calls.clear()
         now = _SA_T0 + timedelta(minutes=15)
         _sa_dt.freeze(now)
@@ -73263,7 +73265,7 @@ for _sa_name, _sa_key in (
         f"{_sa_g[_sa_key]}",
     )
 R.check(
-    "unload drops the step tick the cycle armed",
+    "unload drops the one step tick two cycles armed",
     _sa_g["unload"][1] is True and _sa_g["unload"][2] is True and _sa_g[None][2] is False,
     f"unload {_sa_g['unload']}; kept {_sa_g[None]}",
 )
