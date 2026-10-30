@@ -1,19 +1,15 @@
-Fix review: merge 87e5c30f7c30f9d52381a8e19d341c2bdddc8f65
+Fix review: merge 3fbbb46f67f3905a804f458068fb3cf8a266e9e3
 
-bus-nonce: 7956f76de68eebb94364201b34297869
-
-## Findings
-
-- The ruling's sample is not reproducible from the verdict refs as they stand: #2955's ref tip (`077584681`, merge of 502b0df) no longer holds item `158ad202` ("NOT one of the required contexts on main-protect and does not block a merge"). It sits in the superseded merge verdict `885d4751` of the same ref's history. The fixer of the carry must build the #2955 fixture from that commit's VERDICT.md, not the tip. Carry: R10-FLY-CARRY-DISPOSITION
-- A flagged item the ruling does not list: #2955's current verdict, item `2471d3e6` ("None. The merge resolution is a pure union; nothing is deferred or owed."), is flagged `non-blocking` outside `## Evidence`; a statement that nothing is owed is read as a deferral. Null-control candidate for the carry's classifier work. Carry: R10-FLY-CARRY-DISPOSITION
+bus-nonce: ca0fbc7ccb3e0289d0c896aaa59a35e4
 
 ## Evidence
-
-- RESULT diff: two files only, `dev/programme/triage/s6-batch64.md` (new) and `dev/programme/delivery/2980.md` (new, one `open` row for #2980 in the same shape as #2974's); no code, VERSION, manifest, notes or claim file touched.
-- RESULT sample: re-ran `carry_audit.items(text, True)` (module at head, identical to the base for this file's purpose) over the 30 highest-numbered `verdict/<pr>` refs opening `Fix review: merge`, #2936 to #2974 (ev/flagged.txt). 9 flagged, matching the ruling's 9. 6 are in `## Evidence`, not 7: #2937 19d896fa, #2939 3c055bc1 and f76b3ac3, #2959 dde38e84 and 50a530e7, #2969 c21695db all re-derive and are measurements. The seventh (#2955 158ad202) is the superseded text above. The other 3 flagged are non-blocking items (#2947, #2955, #2971), which the ruling counts as 2. Class counts A 4 / B 2 / C 1 stand if 158ad202 is taken from `885d475`; I did not re-derive that item from the tip.
-- RESULT null control: the ruling names four controls that must stay findings (#2465 row, deferral row, new "not this pull request's" row, `minor` drift outside the span) and puts them in the carry, not in this PR; nothing to run here. The rejected arm is justified by the two self-test rows it names.
-- RESULT destination: `R10-FLY-CARRY-DISPOSITION` is in `dev/programme/rosters/wave-r10-groups.json` at origin/main, stage `not-started`, and its brief names `carry_audit.py`'s classifier. The carry text is in the ruling for `roster_edit.py` to cite; this PR does not edit the roster (the contract forbids it).
-- RESULT carry_audit: the packet prints `CARRY-AUDIT: 0 finding item(s)` and `FIGURES: 0 refused` at the head.
-- RESULT merge: `git merge-tree --write-tree origin/main 87e5c30f7c30f9d52381a8e19d341c2bdddc8f65` exits 0 (ev/merge-tree.txt). Roles directory unchanged on main since the merge base.
-- RESULT CI: check-runs API on the head shows no failed run; success on mutation, closure-scope, delivery-status, nightly-status, budget-raise-gate, briefs, hassfest, wave-script and CodeQL. Still in progress when read: tests fast/closures/coverage/typing/browser/arch-instrument, governance policy-docs/env-matrix/instrument-self-tests, arch-score. Not re-run (cite CI's heavy runs).
-- RESULT cost claim: the ruling states `carry_audit.py` has no `--budgets` row; not re-derived by me.
+- Head measured: 3fbbb46f67f3905a804f458068fb3cf8a266e9e3, the PR head at read time. origin/main is 1148ee635, which the head already contains.
+- Three-dot diff against the merge base: 2 files, +166, both new: `dev/programme/delivery/2980.md` and `dev/programme/triage/s6-batch64.md`. No production code, VERSION, manifest, RELEASE_NOTES or claim file is touched.
+- `git merge-tree --write-tree origin/main 3fbbb46f67f3905a804f458068fb3cf8a266e9e3` exits 0 with tree 2ff52bac6 and no conflict.
+- `carry_audit.py pr 2980` prints `CARRY-AUDIT #2980: 1 finding item(s): 1 routed, 0 unrouted, 0 bad destination(s)`. The routed item is f4edc070 from review 6516963008, dismissed in the body's "Review item routing" section.
+- The body's "Head" section names 3fbbb46f67f3905a804f458068fb3cf8a266e9e3 and the authored code head 74ce3b18. The diff from 043b111d0 to 74ce3b18 is the one triage file, 165 insertions, as the body says. The body describes this head.
+- Mutation proof, re-run here: `roster_edit.ruling_verdict` on the committed file returns ACCEPT for P293 and P294. With `Verdict: ACCEPT` changed to `Verdict: REJECT`, it returns REJECT for both. The ruling is therefore read by its consumer.
+- RESULT: P293 and P294 ACCEPT/ACCEPT on the file; REJECT/REJECT on the mutant.
+- CI from the check-runs API on this head: no red. `pr-contract / pr-contract` succeeded after the last push. Succeeded: `tests / fast (3.14)`, `tests / mutation`, `tests / coverage`, `governance / policy-docs`, `governance / delivery-status`, `governance / instrument-self-tests`, `arch-score`, `budget-raise-gate`. The `gate` roll-up was still running at read time.
+- I did not re-derive the P293 sample counts (9 flagged, 7 under Evidence, 5 verdicts). They need the remote `verdict/<pr>` refs, and the body states the rule. The proposal's mechanics hold on the file's text, which I read in full. Round 1 of this record PR at this head; no fixer re-cut is owed.
+- No finder's harness exists for a triage record; none is owed.
