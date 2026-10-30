@@ -1,0 +1,12 @@
+ALL 2488 ENTITY CHECKS PASSED
+########## scoped gate ##########
+  MODE: SCOPED -- 1 script(s) run, 32 scoped out.
+  closure. The claim is re-checked by the FULL unscoped suite that runs
+  gate. Set GATE_SCOPE=full to run everything here and now.
+tools/audit/briefs/fixer.md                      314  315     5216  5216 
+ dev/governance/roles/fixer.md | 2 --
+ 1 file changed, 2 deletions(-)
+TOTAL: 0 error(s) across 50 policy file(s)
+RULES-SYNC ok: every generated rule is the generated form of its source
+
+[exited with code 0]
