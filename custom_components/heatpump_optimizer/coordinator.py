@@ -335,6 +335,7 @@ from .thermal_model import (
     mold_safe_room_floor,
     learner_unmetered,
     on_threshold_kw,
+    plan_step_runs,
     planned_draw_runs,
     probe_install,
     reanchor_heat_loss,
@@ -2750,16 +2751,7 @@ def _apply_result_payload(
                         if result.displace_schedule and idx < len(result.displace_schedule)
                         else 0.0
                     ),
-                    "heat_pump_on": (
-                        result.heat_pump_on_schedule[idx]
-                        if result.heat_pump_on_schedule and idx < len(result.heat_pump_on_schedule)
-                        else planned_draw_runs(
-                            p,
-                            result.dhw_power_schedule[idx]
-                            if idx < len(result.dhw_power_schedule or ())
-                            else 0.0,
-                        )
-                    ),
+                    "heat_pump_on": plan_step_runs(result, idx),
                 }
                 for idx, (ts, p, s, pr, rt, ut, lt, sg) in enumerate(zip(
                     result.timestamps,
@@ -3766,7 +3758,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             thermal=self._thermal_model,
             params=ctx._thermal_params,
             action=self._current_action,
-            measured_power_kw=self._measured_power,
+            measured_power_kw=pump_arbiter.live_power_kw(self.hass, ctx._config),
             disinfecting=getattr(
                 getattr(self._legionella, "disinfect", None), "memo", None
             )
@@ -7514,22 +7506,23 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                           self._plan_age_minutes() or 0.0, self._solve_failures)
             return
 
-        # A cut-off holds the pump off for MIN_OFF across an early refresh.
-        heat_pump_on = early_cutoff.allow_on(early_cutoff.state_for(self), bool(self._current_action.get("heat_pump_on", False)))
+        on = bool(self._current_action.get("heat_pump_on", False))
+        await self._write_supply(on)
+        # Between cycles the step tick writes each step's change (#2492).
+        pump_arbiter.note_supply(pump_arbiter.state_for(self), pump_arbiter.SupplyWiring(self.arbiter_inputs, boost.held_for(self), self._write_supply), on)
+        # The ECL110 displace command
+        await self.async_publish_current_action(reason="scheduled_update")
 
-        # Skip OFF only when cooling or both channels are blocked. A
-        # single-channel heat block (DHW-only, heating-only) still
-        # commands OFF on an empty plan — otherwise a summer DHW pulse
-        # leaves the supply latched while the tank is supposed to drift.
-        both_blocked = (
-            self._pump_signals.space_blocked and self._pump_signals.dhw_blocked
-        )
-        skip_off = (not heat_pump_on) and (
-            both_blocked or self._pump_signals.mode.cooling
-        )
+    async def _write_supply(self, on: bool) -> None:
+        """Write the supply switch: the cycle's and the step tick's one gate.
+
+        A cut-off holds the pump off for MIN_OFF across an early refresh.
+        """
+        value = pump_arbiter.supply_write(
+            early_cutoff.allow_on(early_cutoff.state_for(self), on), self._pump_signals)
         switch_entity = getattr(self, "_ctx", self)._config.heat_pump_switch_entity
-        if switch_entity and not skip_off:
-            await pump_arbiter.switch_supply(self.hass, switch_entity, heat_pump_on)
+        if switch_entity and value is not None:
+            await pump_arbiter.switch_supply(self.hass, switch_entity, value)
         elif switch_entity:
             _LOGGER.debug(
                 "Not switching %s off: mode %s is cooling or blocks both "
@@ -7538,9 +7531,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 switch_entity,
                 self._pump_signals.mode.label,
             )
-
-        # The ECL110 displace command
-        await self.async_publish_current_action(reason="scheduled_update")
     # ------------------------------------------------------------------
     # Published state
     # ------------------------------------------------------------------

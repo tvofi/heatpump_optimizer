@@ -105,11 +105,12 @@ def closure(root, reader):
     return sorted(seen)
 
 
-def restore_specs(text):
-    """The wave-script restore step's pathspecs, as written."""
-    job = re.search(rf"^  {re.escape(JOB)}:\n(.*?)(?=^  [a-z][\w-]*:\n|\Z)", text, re.M | re.S)
+def restore_specs(text, name=JOB):
+    """A job's restore step pathspecs, as written: wave-script's by default;
+    tools/pr/ci_predict.py reads policy-docs' the same way."""
+    job = re.search(rf"^  {re.escape(name)}:\n(.*?)(?=^  [a-z][\w-]*:\n|\Z)", text, re.M | re.S)
     if not job:
-        raise ValueError(f"no `{JOB}` job")
+        raise ValueError(f"no `{name}` job")
     step = re.search(r"- name: Restore the check source from the base commit\n(.*?)(?=\n      - |\Z)",
                      job.group(1), re.S)
     if not step:

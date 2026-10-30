@@ -40183,7 +40183,8 @@ _R10_COVERING_ALLOWED = {
                                                "entry is documented extrapolation, never published as current"),
     ("early_cutoff.py", "_planned_room"): (1, "index-bounded against the plan's own trajectory"),
     ("pump_arbiter.py", "_planned_room"): (1, "its caller's step_duty is None past the plan end"),
-    ("pump_arbiter.py", "step_duty"): (1, "returns None past the plan's last step"),
+    ("pump_arbiter.py", "_step_index"): (1, "returns None past the plan's last step; "
+                                             "step_duty and step_supply read it (#2492)"),
     ("pump_arbiter.py", "_share"): (1, "bounded by the plan's last step"),
 }
 
