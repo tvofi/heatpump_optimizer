@@ -1,4 +1,0 @@
-guard-removed rc [0, 0] fails 0 SURVIVED []
-held-before-done rc [1, 0] fails 6 KILLED ["FAIL held: a disposition stage is its own class, naming the group it went to (got: ('ready', 'ready', '—'))", "FAIL defect 5: an absorbed group is not rendered done or delivered (got: {'g': 'R9-HELD', 'lane': 'Core model', 'st': 'ready', 'label': 'ready', 'pr': '—', 'tier': 1, 'issues': [], 'blk': [], 'desc': 'Does R9-HELD.', 'crit': False, 'wave': 1, 'start': '2026-01-05T00:00:00Z', 'finish': '2026-01-05T13:06:00Z'})"]
-strip-counts-old rc [1, 1] fails 2 KILLED ["FAIL the fixture arms ran to the end (got: KeyError: 'n_held')", '1 self-test check(s) failed: plan page: the first --plan call exits 0 (got: state_docs: REFUSED: plan_page.py failed rc 1: Traceback (most recent call last):']
-absorbed-into-dropped rc [1, 0] fails 1 KILLED ["FAIL held: a disposition stage is its own class, naming the group it went to (got: ('held', 'absorbed', '—'))"]

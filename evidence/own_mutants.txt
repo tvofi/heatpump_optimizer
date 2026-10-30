@@ -1,0 +1,8 @@
+OWN mutant=guard-rc-only :: 1 self-test check(s) failed: plan page: a crashing page refuses with rc 2 and publishes no PLAN.html (got: (1, '34c8878fcf74dbbe95b1e81d40448e1a415989d0', 'state_docs: PLAN.html UNAVAILABLE: Traceback (most recent call last):; publishing the UNAVAILABLE page\n'))
+OWN mutant=guard-text-only :: state_docs self-test: all checks passed
+OWN mutant=guard-and :: 1 self-test check(s) failed: plan page: a crashing page refuses with rc 2 and publishes no PLAN.html (got: (1, '8f07c0fc776193e77c8a063cfaaca55ad818c3bb', 'state_docs: PLAN.html UNAVAILABLE: Traceback (most recent call last):; publishing the UNAVAILABLE page\n'))
+OWN mutant=guard-always :: 2 self-test check(s) failed: plan page: a stale plan keeps the last good page at the ref, exit 1 (got: (2, True, 'uilt from roster blob 7937235b54d4, but main:dev/programme/rosters/wave-r9-groups.json is now 7325b1aba192; re-run tools/plan/replan.py --out <plan.json>\n  freshness: plan.json is stale: built from roster blob 7937235b54d4, but main:dev/programme/rosters/wave-r9-groups.json is now 7325b1aba192; re-\n')), plan page: with no page at the ref, the UNAVAILABLE page is published (got: (2, ''))
+# equivalence of guard-text-only (scout read, state_docs.py:547 and plan_page.py:557-608):
+# staging is a fresh TemporaryDirectory per call; plan_page.py writes --html only before rc 0 or rc 1 (_refuse).
+# Every rc other than 0/1 (argparse/p.error rc 2) writes no page, so "PLAN UNAVAILABLE" in text implies rc in {0,1}.
+# Dropping `r.returncode != 1` is therefore an equivalent mutant, not a survivor.
