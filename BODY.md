@@ -1,26 +1,46 @@
-Design review: revise ce5ca88b architecture-unsound, harness
+Design review: revise ce5ca88b harness
 
-Reviewed: design note and Appendix A harness in handoff-body/r10-cop-gate-vent at ce5ca88b394bd2013d58f0f3d740aecf673826fe, against origin/main 507a9ec264eb373b132248d752259254d8a9fa4d (detached, clean tree). Round 1 of 3.
+Reviewed: round-2 design note at handoff-body/r10-cop-gate-vent 6eb360d0 (BODY.md byte-identical to handoff-body/r10-cop-gate-vent-r2 a91f1811), with its Appendix A harness. Run against the payload head eec56f24 (detached worktree, clean); custom_components/ has no diff from 1afdef88, the note's measured SHA, so line numbers carry. Round 2 of 3. The verdict line names ce5ca88b because the brief fixes that string. The design under review is 6eb360d0.
 
 ## Reproduction
 
-Appendix A, extracted verbatim and run as `PYTHONPATH=tests/hastub python3 r10_cop_gate_vent.py` under venv-ci at 507a9ec: output is byte-identical to the note's measured block (`diff` empty), all three arms, including the CUSUM null rows (0 trips per 30 d at sigma 0.05/0.10/0.15, 1.12 [0-3] at 0.20, front-only null 0), the learners arm's null (latch clear) and mutant (vent branch dropped) columns, and the latch arm. The harness moves under its own perturbation on the learners arm.
+Appendix A, extracted verbatim, run with `PYTHONPATH=tests/hastub python3 r10_cop_gate_vent.py` under venv-ci at eec56f24 (33 s). Every line of the note's measured block appears verbatim in the output:
+- the cop-under-a-window arm: inferred 0.500 clamp against a null of 1.056 [0.989-1.120]; flow and span 1.000 at null and both k;
+- draw-range: slope 0.996/1.003/1.009, observed0 max 2.453/2.576/2.698;
+- buffer: g=0 at 1.0000 both; g=0.0005 1.2946→1.3058; g=0.002 2.1781→2.2233.
 
-Accepted as measured: the CUSUM readings (L2 bias not reproduced synthetically; no `VENT_CUSUM_*` tuning in this group), the finding that COP, DHW, buffer and sysid all stop on the latch today, and carry 9 (latch on, on, off, off reads ventilation, ventilation, None, None: the reason resets each cycle).
+The cusum table, including its null rows (0/0/0/1.12 [0-3]; front-only 0), the learners arm and the latch arm are unchanged from round 1.
 
-## Revise points
+## Round-1 revise points
 
-1. `custom_components/heatpump_optimizer/flow_meter.py:120-122` (`cop_evidence`), the COP row of the design table — architecture-unsound. The note says a window corrupts nothing in the COP fold because the fold divides delivered heat by draw. That holds only when heat is measured. Without a heat measurement `cop_evidence` sets observed COP to modelled COP times commanded over electrical: the delivered heat is *assumed* to be the plan's ask. A window cools the room, so at a fixed flow command the emitters deliver more and the draw rises above the ask; that interval folds as a COP drop at an unchanged true COP. The ratio gates do not exclude it: `MeasuredCop.judge_ratio` (`accuracy.py:884`) folds any ratio within `COP_ASK_TOLERANCE` (0.15, `accuracy.py:817`) of 1 whatever the draw evidence, and the blip gate `COP_TRACKING_ERROR_GATE` is 0.3 (`const.py:261`) against a walking EWMA, so a gradual window-driven departure passes it. The fix wanted: split the COP decision on heat evidence. Lift the vent freeze for the measured-heat folds only, meaning a counter span (`_async_learn_heat_span`, `coordinator.py:1098`, which today inherits the refusal at `coordinator.py:5017`) or a measured flow heat. Keep the freeze on the inferred path, or show with a harness arm, including a null, that a window does not move the inferred fold under the tolerance and tracking gates.
-2. `coordinator.py:9760` (the draw-range `power_frozen`, which the note lists for `room_air=False`) — architecture-unsound, same cause. `draw_range.fold` builds the follows-ask evidence that `judge_ratio` reads. A window-driven draw above the ask, folded there, is evidence about the house and not the pump. Decide this site together with point 1 and say why. It may stay frozen, or be lifted only where the draw is judged against measured heat.
-3. Evidence plan — harness. No arm measures any lifted learner's *output* under a window, only whether each learner gets past the freeze gate. For COP (inferred path) and draw-range, "stop freezing" is argued, not measured. Add an arm per lifted learner that feeds a window-shaped interval through the production fold with the latch clear and the window present, and reports the learned quantity's movement against a no-window null. If a learner's output does not move, the lift is measured. If it moves, that learner keeps the freeze.
+1. COP split on heat evidence: **answered.** I read `_fold_measured_cop` (`coordinator.py:4999-5062`). The freeze at :5017 precedes the counter exit at :5040 and the hoisted `heat_kw` read at :5048. `judge_ratio` is skipped when `heat_kw` is set. The proposed `room_air=not measured_heat` gates the same evidence the fold uses on the same cycle. The arm shows the measured-heat folds hold at 1.000 under both windows while the inferred tail, fed the same draws, walks to the clamp, which is a valid positive control. Coupling checked: the flow bias reaches modelled COP only through `compute_cop` → `curve_flow_temp` (`thermal_model.py:2621-2641`), and only on the no-measured-heat branch. `space_reference_cop` (`flow_meter.py:127-143`) uses measured `last_supply_c` when heat is measured. So the lifted folds do not inherit a window through the flow bias.
+2. draw-range `power_frozen` (:9760) stays frozen: **answered**, measured (max +5 %/+10 %) and argued (no consumer judges draw against measured heat; the defrost settlement at :9850 is unchanged).
+3. Output arms per lifted learner: **answered for COP; open for `_fold_flow_lift`** (the revise point below).
 
-DHW (`dhw_learning.py:371` via the wired callable at `coordinator.py:3405`), `_freq_fold_blocked` (`coordinator.py:1152`), `_fold_flow_lift` (`coordinator.py:878`, outdoor key only, supply against the curve) and `_dhw_probe_temperature` (`coordinator.py:9926`) are not affected by points 1–3. Their lift stands as designed. The seam is right: one owner of `_learning_frozen` (`coordinator.py:6574`), and the `room_air` keyword with a fail-closed default is the shape to keep. Alternatives 1–3 lost for the reasons the note gives. Sibling designs checked: design/r10-ceiling-probe edits the sysid abort only, and design/R10-HEAT-METER names the freeze but does not edit `_learning_frozen`. Neither claims this seam.
+Carried notes: the site count is corrected (13 call sites plus the DHW callable, :9780 named). The buffer is settled from the topology and kept frozen (`mixing_valve.py:57-59`, `pump_schedule.py`; the arm moves at g > 0). The counter refusal code is asserted in failing test 1. All answered.
+
+## Revise point
+
+1. `coordinator.py:878` (`_fold_flow_lift`), the site table's "room_air=False (accepted round 1)" row, and "Unchanged from round 1", which says "none of their inputs is room air: … supply against the curve" — harness. The brief for this round requires each lifted learner to show its output movement against a no-window null. This learner is lifted on argument alone, and the argument does not hold.
+
+   The residual is measured supply minus `curve_supply_temp(model, outdoor, target)` (`coordinator.py:886-893`). The curve side is room-independent, but the supply side is not. At a fixed delivered heat (the plant runs a commanded power), emitter water temperature is room temperature plus Q/UA_em. So a window that cools the room by ΔT lowers supply by about ΔT. On a pump with room compensation it moves supply the other way. In both cases the room air enters through the emitter.
+
+   The learned quantity matters. `bias_k` is a persisted EWMA (`flow_lift.py:180-200`, clamp ±15 K) and it prices every plan step through `flow_lift_factor` (`thermal_model.py:3871`, via `flow_curve_bias` pushed at `coordinator.py:3931`).
+
+   The note's own window model fixes the flow temperature, so an arm built on it would read flat by construction. That cannot settle it.
+
+   Fix wanted: add an arm that runs the production `FlowCurveBias.observe` (or `_fold_flow_lift`) on 30 days of the existing window scenario, with two plant laws:
+   - (a) commanded heat, with supply = room + Q/UA_em + ΔT_design/2;
+   - (b) the curve held, the note's model, as the by-construction null.
+
+   Report `bias_k` at k = 0.00 / 0.15 / 0.30 over 8 seeds. If (a) moves `bias_k` beyond its no-window null, :878 keeps the default freeze (the note's own rule from point 3). Otherwise the lift is measured.
+
+Not revise points: DHW (`async_learn_dynamics` takes only `dhw_temp`, and its ambient term is the constant `TANK_ROOM_AMBIENT_TEMP`, `dhw_learning.py:42,417`) and `_dhw_probe_temperature` (a tank probe) read no room air, so a window arm would be identity by construction. Their lift stands on inspection.
 
 ## Notes for the fixer (carried, not revise points)
 
-- The note's "15 sites" is a raw grep count. It includes the `def` at `coordinator.py:6574` and the substring hit `boost.space_learning_frozen` at `coordinator.py:6651`. The real count is 13 call sites plus the DHW callable at `coordinator.py:3405`. The note never names `coordinator.py:9780` (`_record_accuracy`'s indoor freeze for lead-prediction scoring). It keeps the default and so the freeze, which is right, but the next note should name it. Carry: R10-COP-GATE (item E)
-- Buffer row: the note leaves the decision conditional on the fixer finding no pump-off house circulation path without a mixing valve (`coordinator.py:5316-5323`). The next note should settle this by reading the topology, not leave it to the fixer. Carry: R10-COP-GATE (item E)
-- On a ventilation latch, the counter-span COP never reaches `COP_REFUSED_SPAN_OPEN`, because the freeze check at `coordinator.py:5017` runs before the counter check. Lifting the freeze there changes which refusal code is published for counter installs. The failing test should assert the code, not only fold or no fold. Carry: R10-COP-GATE (item E)
-- Carry 9 confirmed closed by reproduction. Carry: dismissed: freeze reason resets each cycle (item 9)
+- `coordinator.py:1152`: `_freq_fold_blocked` already ignores the vent latch. It returns `bool(frozen and ":" in frozen)` (:1153), and `"ventilation"` carries no colon (`coordinator.py:6642`), so boost and the tail reasons pass too. The note's `room_air=False` there is a no-op, and its mutation target ":1152 back to default fails its row" is an equivalent mutant no test can kill. Drop the edit and that mutant, and record in the PR body that the site already lifts. Carry: R10-COP-GATE (item E)
+- The flow-heat COP lift fails closed only if `heat_output_kw` is None whenever the reading is stale. `observe_temps` (`flow_lift.py:154-178`) stores what `read_heat_output_kw` returns each cycle. The failing test should include a stale thermal-power entity, with the latch set, and assert `COP_REFUSED_FROZEN`. Carry: R10-COP-GATE (item E)
+- Carry: dismissed: freeze reason resets each cycle (item 9)
 
-Seat tokens: subagent locator 35927; main-loop count not reported by the harness.
+Seat tokens: subagent locator 37108; main-loop count not reported by the harness.
