@@ -47,8 +47,7 @@ pr_handoff_tips "$T" 1
 # signal's included, `opened,PR=<n>` or `unopened` (bash's $? in an EXIT trap after a TERM is the
 # last command's, so it names no signal), so a killed opener shows on its handoff-no-pr line.
 python3 -I "$SEAT/ledger.py" attempt "refs/heads/handoff/$T" "$PR_HT" started || true
-OP_LEDGER='python3 -I "$SEAT/ledger.py" attempt "refs/heads/handoff/$T" "$PR_HT" "${PR_ATTEMPT:-unopened}" || :'
-pr_exit_trap "$OP_LEDGER"
+pr_exit_trap 'python3 -I "$SEAT/ledger.py" attempt "refs/heads/handoff/$T" "$PR_HT" "${PR_ATTEMPT:-unopened}" || :'
 # Once #N exists, the EXIT trap runs this first (#2719): any exit before PR_ATTEMPT says the PR is
 # opened with its row -- a refused row push, any step errexit stops between the two pushes, a stop
 # signal -- reaps the row push, returns the worktree to the pushed head and closes #N. The comment,
@@ -120,7 +119,7 @@ if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _pu
 pr_wait $! $D/p1.log
 PR_PUSHED=$(git rev-parse HEAD)
 N=$(grep -oE 'pull request #[0-9]+' $D/p1.log | head -1 | grep -oE '[0-9]+')
-pr_exit_trap "op_close_unrowed; $OP_LEDGER"  # mut:trapclose
+pr_exit_trap "op_close_unrowed; $PR_EXIT_FIRST"  # mut:trapclose
 gh pr edit $N --title "$TITLE" >/dev/null; gh pr ready $N --undo >/dev/null 2>&1 || true
 commit_row . $N "$(row_line $N $R "$TITLE" "$G")" >/dev/null
 H=$(git rev-parse HEAD)

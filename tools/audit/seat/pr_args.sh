@@ -253,6 +253,7 @@ pr_exit_trap() { # [<command>]: on every exit, a stop signal's included, run <co
   # PR_TIDY runs once the tree is reaped and while the branch lock is still held: open_pr.sh's
   # pr_release_wt, which must not race an update_pr.sh that detaches the same worktree (P-D).
   local first=${1:+$1; }
+  PR_EXIT_FIRST=${1:-}  # a later call runs its own command before this one: "<cmd>; $PR_EXIT_FIRST"
   trap "${first}"'pr_reap; eval "${PR_TIDY:-:}"; eval "${PR_AFTER_REAP:-:}"' EXIT  # mut:exitreap
 }
 pr_own_group() { # <command...>: exec <command> as the leader of a process group of its own
