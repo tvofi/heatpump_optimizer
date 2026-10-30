@@ -94,7 +94,9 @@ def seams() -> list[tuple[int, str, str]]:
 def plant(admitted: bool) -> HeatPumpOptimizerCoordinator:
     coord = HeatPumpOptimizerCoordinator(
         FakeHass({}),
-        FakeEntry(data={"tibber_token": "x", "weather_entity": "weather.home"}),
+        # An indoor sensor, or the learner arm measures #2508's freeze.
+        FakeEntry(data={"tibber_token": "x", "weather_entity": "weather.home",
+                        "indoor_temp_entity": "sensor.indoor"}),
     )
     coord._apply_house_heat_loss_scale(START)
     coord._snapshot_ring.alarmed = True

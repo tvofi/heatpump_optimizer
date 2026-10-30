@@ -1193,7 +1193,7 @@ class DHWScheduleSensor(_DHWEntityMixin, HeatPumpOptimizerSensorBase):
             schedule = self.coordinator.data.get("dhw_schedule", [])
             if schedule:
                 # #1644 (D8-s1-02): a period is one of the plan's own slots
-                # (coordinator _plan_slots, merged on channel_heating_steps),
+                # (plan_slots.plan_slots, merged on channel_heating_steps),
                 # so this count is DHW Heating Plan's slot count. The
                 # coordinator publishes dhw_plan beside every non-empty
                 # dhw_schedule; a payload without it has no period count to
