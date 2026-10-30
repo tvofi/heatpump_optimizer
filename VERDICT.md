@@ -1,39 +1,46 @@
-Fix review: blocked 7c43d8fb1505320e2b10d7c122dab3215ebd085c mutation-unpinned: the three button.py sites the diff adds stay unpinned because mutation-autofix reports skip-measure-failed, so tests / mutation stays red with no repair path
+Fix review: blocked feacede17c5e1eb6b7e399bf87a2efea3ea79cc7 gate-red: tests / mutation still refuses at this head on the null-control arm, which only a change to the code-owned tests/mutation_table.py can clear, and the body routes that fix to a roster that does not hold it
 
-bus-nonce: b8365800b79795f88651d7eca094d1d0
+bus-nonce: d451491dae5ebba811d19c1650d604fa
 
 ## Block
 
-- `tests / mutation` (job 124122284888) concluded failure at this head: `MUTATION TABLE REFUSED -- 3623 unpinned site(s) against 3620 at the ratchet base e77418f9b`. The three sites are `button.py:226 GUARD_OFF`, `:228 GUARD_OFF` and `:230 RETURN_DEL`. The diff deletes the three old pins and records none.
-- The body answers the red with "mutation-autofix pins killed sites after the push". It did not. `tests / mutation-autofix` (job 124123187126) concluded failure with `AUTOFIX: skip-measure-failed -- THE REPAIR DID NOT HAPPEN. No commit will be pushed`. `ci-autofix.md` says a red autofix job means no bot commit comes and the repair is the seat's. `pinned by mutation-autofix` stays a prediction until a `mutation-pins` log or `--pin-killed` kills the site.
-- The body already knew the tool path refuses. Its `## Unpinned sites` says `--pin-killed` and `--anchor` refuse with `no full-line comment in any file in the pool`. I reproduced that refusal at this head (ev/pin_killed.txt, rc=1). So the CI autofix was bound to fail for the same reason, and the handoff relied on a repair the fixer had already seen refuse.
-- `tests / mutation-autofix` is red and is not named in `## Red checks`. `review_packet.py` also refuses `red-unanswered` on `tests / mutation`, because the body names it only as `mutation`. That is the spelling `policy_lint.mjs` keys on.
-- What clears this: commit dispositions for the three sites under `tests/mutation_ledger/` that `tests / mutation` accepts at a new head. That can be hand-written `killed_by` records backed by the hand kills the body reports (I re-confirmed one of them below), or an instrument fix that lets `--pin-killed` run on `button.py`. Then name `tests / mutation` and `tests / mutation-autofix` in `## Red checks` with their answers.
+- `tests / mutation` (job 124161424410) concluded failure at feacede17c5e1eb6b7e399bf87a2efea3ea79cc7. Its log reads `3620 unpinned site(s) of 6579 candidate sites, 3620 at the ratchet base ca0a6cfbc`, so the round-1 ratchet block is cleared. It then stops at `MUTATION TABLE REFUSED -- no full-line comment in any file in the pool, so the run has no null control`. The required `gate` check needs every unit through `pr-contract`, and `tools/ci/gate.py` exempts no `mutation` unit, so this head cannot go green.
+- The body says so itself under `## Red checks`: "It is still red ... Not repaired in this head". Under `## Forward-carry` it says "this PR needs that fix merged first, or the orchestrator's call".
+- Cause confirmed at the head: `null_control` (tests/mutation_table.py:2136-2165) takes only a whole-line comment whose full line, indentation included, is under 60 characters. No such line exists in `button.py`. Line 43 is 66 characters. Line 109 is short only once stripped, and with its 12-space indent it is over 60. The diff does not touch tests/mutation_table.py, and neither does main since the merge base.
+- The forward-carry is not where the body says it is. The body routes the null-control gap to "dev/programme/rosters/wave-r10-groups.json on handoff/audit-r10-roster". At that ref (a7393655c, 2026-10-30 16:49 +0100) the roster carries the P9 localStorage leak and the "driving scale" widget, but nothing on the `null_control` 60-character cap, `--pin-killed` refusing this pool, or #2997 (step 10).
+- What clears this:
+  - (a) an instrument fix to `null_control` merged to main first (code-owned; the orchestrator assigns it), then this PR merged with main and `tests / mutation` green; or
+  - (b) the orchestrator's recorded call on merging over this unit.
+  - In either case, the gap has to be on the roster first. Writing a `button.py` comment to fit the tool is what the body rightly declined to do.
 
 ## Findings
 
-- Instrument gap: `mutation_table.py --pin-killed`/`--anchor` and `mutation-autofix` refuse to pin any site in a file pool with no full-line comment (`button.py` here). Every such diff then ends with `tests / mutation` red and no automated repair, and `ci-autofix.md`'s table lists `mutation-autofix` as the repair for unpinned sites without naming this case. Carry: R10-UX-HEALTH
-- The P9 storage-reset and chart collision are withheld. The body's own forward-carry routes them; I did not open the roster at `handoff/audit-r10-roster` to confirm the precondition (step 10), because the block above stops the review first. Carry: R10-UX-HEALTH
-- The "driving scale" widget is not built and waits on orchestrator confirmation, per the body. Carry: R10-UX-HEALTH
-- #2499 stays open: the no-meter over-booking (body figure plan/deliv 1.908) is not met. I did not re-derive that figure. Carry: #2499
+- Instrument gap: `null_control` in tests/mutation_table.py accepts only a whole-line comment whose line is under 60 characters, with no recorded reason for the cap. Any pull request whose changed pool holds no such line fails `tests / mutation` and `--pin-killed`/`mutation-autofix` whatever it pins. `ci-autofix.md`'s table omits this case. It is not on the roster yet. Carry: R10-UX-HEALTH
+- The cheaper detector the body names is not built: a `null_for` pre-check over the pool in `prepr.sh` step 6d / `tools/pr/ci_predict.py`. Without it the refusal first shows in CI (defect-root-cause.md, second trigger). Carry: R10-UX-HEALTH
+- The three ledger rows were made with an out-of-tree scratch script, `python3 hand_pin.py`. `figure_lint` reads it as `unverified ... does not look like a path in this tree`. Decision 0013 says reusable instruments land in tree, never only in /tmp. The fix to `null_control` should make it unnecessary. Until then, a pool-specific null-control override for `--pin-killed` would be the instrument. Carry: R10-UX-HEALTH
+- P9 grid state leak (carry 17) and the 375-px chart collision it hides: withheld by the body. It is present on the roster. Carry: R10-UX-HEALTH
+- The "driving scale" widget is not built and waits on orchestrator confirmation. It is present on the roster. Carry: R10-UX-HEALTH
+- #2499 no-meter over-booking (body: plan/deliv 1.908) is not met. I did not re-derive that figure. Carry: #2499
 
 ## Evidence
 
-- Round: first review of #2997. Head measured: 7c43d8fb1505320e2b10d7c122dab3215ebd085c, the PR head when read. The base is origin/main e77418f9b48f89421bd72b0ab511c057341c7fa4, which is also the merge base. `dev/governance/roles/` does not differ between the merge base and main.
-- `git merge-tree --write-tree origin/main <head>`: rc=0, tree a40fbbec5b3f, no conflicts (ev/merge_tree.txt).
-- VERSION, the manifest and RELEASE_NOTES are untouched. No claim file is touched.
-- RESULT head: `node tests/card.mjs` ALL CARD CHECKS PASSED. `tests/debug_collect.py` ALL 159 DEBUG COLLECT CHECKS PASSED.
-- RESULT mutation proof, each mutant run in its own worktree at the head (ev/mut-*.txt):
-  - Delete `host._render();` in `openSetupSlot`: 2 CARD CHECK(S) FAILED, as the body says (the new check plus the pre-existing Assign redraw check).
-  - `b.cfgPage = L(page)`: 1 CARD CHECK(S) FAILED.
-  - `healthModelTitle` returns the metric alone: 2 CARD CHECK(S) FAILED (hover spec en and sv).
-  - button.py final branch returns `debug_collect`: 1 of 159 DEBUG COLLECT CHECKS FAILED.
-  - All four match the body.
-- Class: the only setter of `waiting_for` values is `button.py:227/229`. No card, translation or doc consumer exists at the head, so the #2809 class is one seam. The hover test enumerates every `data-model-row` the page draws and asserts 6.
-- CI at review time:
-  - Red: `tests / mutation` and `tests / mutation-autofix`.
-  - Green: `tests / browser`, `typing`, `arch-instrument`, `arch-score`, `budget-raise-gate`, `delivery-status`, `policy-docs`, `env-matrix`, `hassfest`, `validate-hacs`, `briefs`, `closure-scope`, `nightly-status` and `mutation-pins (1)`.
-  - Still in progress: `tests / fast (3.14)`, `closures`, `coverage`, `governance / instrument-self-tests` and `codeql / Analyze (python)`.
-  - No `pr-contract` run is listed on this head. The red checks above are read from the check-runs API, not from the body.
+- Round 2 of #2997. Round 1 (probe/rev-2997-b8365800, f7452d867) blocked 7c43d8fb1 as `mutation-unpinned`.
+- `review_carry.py 7c43d8fb1 feacede17` prints FRESH-REVIEW. Of the three branch-only commits, one carries code: 7fed51072, three `killed_by` rows only. The other two are merges.
+- Dispatch note: PROMPT.md at dispatch/reviewer-rev-2997 (d551c6dbd) still names head 7c43d8fb1 and nonce b8365800. The scheduled task names head feacede17c5e1eb6b7e399bf87a2efea3ea79cc7 and nonce d451491d, and feacede17c5e1eb6b7e399bf87a2efea3ea79cc7 is refs/pull/2997/head. So this review is of feacede17c5e1eb6b7e399bf87a2efea3ea79cc7, under that nonce, by the brief's procedure.
+- Head measured: feacede17c5e1eb6b7e399bf87a2efea3ea79cc7, the PR head when read. The packet's base is d99cadb12. origin/main is ca0a6cfbc, which is also the merge base. `dev/governance/roles/` does not differ between the merge base and main.
+- `git merge-tree --write-tree origin/main feacede17c5e1eb6b7e399bf87a2efea3ea79cc7`: rc=0, tree a661b9dfd, no conflicts (ev/merge_tree.txt).
+- VERSION, the manifest, RELEASE_NOTES and both claim files are untouched (three-dot).
+- Pins re-killed by hand in a worktree at feacede17c5e1eb6b7e399bf87a2efea3ea79cc7 through `tests/debug_collect.py`, with PYTHONPATH=tests/hastub (ev/mut-pins.txt):
+  - Baseline: ALL 159 PASSED, rc=0.
+  - 226 GUARD_OFF: AttributeError, rc=1.
+  - 228 GUARD_OFF: 1 of 159 FAILED, rc=1.
+  - 230 RETURN_DEL: 2 of 159 FAILED, rc=1.
+  - Null control button.py:43 + " (null control)": ALL 159 PASSED, rc=0.
+  - All match the body and the three rows' `reason` fields.
+- The behavioural mutants (openSetupSlot render, cfgPage fallback, healthModelTitle, button final branch) were verified in round 1 at 7c43d8fb1. No production or test line moved since; only ledger rows and main merges.
+- `tests / mutation-autofix` at this head is green: `skip-not-unpinned -- nothing owed to a human`. `mutation-pins (1)` is green.
+- CI at review time: red `tests / mutation`. Green: browser, typing, arch-instrument, arch-score, budget-raise-gate, delivery-status, policy-docs, env-matrix, wave-script, hassfest, validate-hacs, briefs, closure-scope, nightly-status, mutation-autofix and mutation-pins. In progress: `tests / fast (3.14)`, closures, coverage, `governance / instrument-self-tests` and `codeql / Analyze (python)`. No `pr-contract` or `gate` run is listed yet. The red above is read from the check-runs API.
+- `## Red checks` names and answers both round-1 reds. It names a cheaper detector, which is not built (see Findings).
 - Not re-derived: the scoped-gate count (16 run, 17 scoped out), the #2499 harness figures and the P9 grid counts (850/1190 pairs, 30 entries). I have not verified them.
-- No finder's harness is named for these carries (the packet says "none named"). The figures I checked are the four mutants and the merge.
+- No finder's harness is named (the packet says "none named"). I built no instrument.
+- carry_audit.py check was not run on this verdict: the session's frugal-routing hook (guard_inline.py) refused the call, and I did not work around it.

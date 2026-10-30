@@ -1,3 +1,0 @@
-  ok    openHaLink falls back to the whole integration when the registry refuses
-
-ALL CARD CHECKS PASSED
