@@ -367,9 +367,23 @@ R.check(
     and lit == {}
     and available is True
     and held_collector.final
-    and button.available is False
-    and button.extra_state_attributes == {"waiting_for": "debug_collect"},
+    and button.available is False,
     f"dark={dark} lit={lit} available={available} final={held_collector.final}",
+)
+# #2809: a finished collection with the option on is dark for another reason
+# than the option-off case -- it waits for the action's start, not the option
+# it already has. Perturbation: the same collector not final names nothing.
+final_reason = button.extra_state_attributes
+held_collector.final = False
+open_reason = button.extra_state_attributes
+held_collector.final = True
+R.check(
+    "the finalize button on a finished collection names the action's start, "
+    "not the option that is already on",
+    final_reason == {"waiting_for": "debug_collect_start"}
+    and final_reason != dark
+    and open_reason == {},
+    f"final={final_reason} open={open_reason} off={dark}",
 )
 
 
