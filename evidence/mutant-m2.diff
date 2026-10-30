@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/away.py b/custom_components/heatpump_optimizer/away.py
+index d66951e6e..d02cfac34 100644
+--- a/custom_components/heatpump_optimizer/away.py
++++ b/custom_components/heatpump_optimizer/away.py
+@@ -331,7 +331,7 @@ def solve_bands(
+     solve and a write landing while it runs survives (#1517).
+     """
+     config = {
+-        n: v for n in _OPT_FIELDS if (v := getattr(opt_config, n)) is not None
++        n: getattr(opt_config, n) for n in _OPT_FIELDS
+     }
+     dhw = {n: getattr(thermal_params, n) for n in _DHW_FIELDS}
+     if state is not None and state.active and not state.recovery_active:

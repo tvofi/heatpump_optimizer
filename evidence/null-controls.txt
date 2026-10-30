@@ -1,0 +1,18 @@
+== /home/user/base
+RESULT weekend home (21.0, 19.5, 21.0, 19.0, 21.0, None, ['comfort_temp_day', 'comfort_temp_night', 'min_temp', 'target_temp'])
+RESULT weekend away16 (21.0, 19.5, 16.0, 16.0, 21.0, None, ['comfort_temp_day', 'comfort_temp_night', 'min_temp', 'target_temp'])
+RESULT weekend away22 (21.0, 19.5, 21.0, 19.0, 21.0, None, ['comfort_temp_day', 'comfort_temp_night', 'min_temp', 'target_temp'])
+RESULT weekend recovering (21.0, 19.5, 21.0, 19.0, 21.0, None, ['comfort_temp_day', 'comfort_temp_night', 'min_temp', 'target_temp'])
+RESULT unconfigured home (21.0, 19.5, 21.0, 19.0, None, None, ['comfort_temp_day', 'comfort_temp_night', 'min_temp', 'target_temp'])
+RESULT unconfigured away16 (16.0, 16.0, 16.0, 16.0, None, None, ['comfort_temp_day', 'comfort_temp_night', 'min_temp', 'target_temp'])
+RESULT unconfigured away22 (22.0, 22.0, 21.0, 19.0, None, None, ['comfort_temp_day', 'comfort_temp_night', 'min_temp', 'target_temp'])
+RESULT unconfigured recovering (21.0, 19.5, 21.0, 19.0, None, None, ['comfort_temp_day', 'comfort_temp_night', 'min_temp', 'target_temp'])
+== /home/user/rev
+RESULT weekend home (21.0, 19.5, 21.0, 19.0, 21.0, None, ['comfort_temp_day', 'comfort_temp_day_weekend', 'comfort_temp_night', 'comfort_temp_night_weekend', 'min_temp', 'target_temp'])
+RESULT weekend away16 (16.0, 16.0, 16.0, 16.0, 16.0, None, ['comfort_temp_day', 'comfort_temp_day_weekend', 'comfort_temp_night', 'comfort_temp_night_weekend', 'min_temp', 'target_temp'])
+RESULT weekend away22 (22.0, 22.0, 21.0, 19.0, 22.0, None, ['comfort_temp_day', 'comfort_temp_day_weekend', 'comfort_temp_night', 'comfort_temp_night_weekend', 'min_temp', 'target_temp'])
+RESULT weekend recovering (21.0, 19.5, 21.0, 19.0, 21.0, None, ['comfort_temp_day', 'comfort_temp_day_weekend', 'comfort_temp_night', 'comfort_temp_night_weekend', 'min_temp', 'target_temp'])
+RESULT unconfigured home (21.0, 19.5, 21.0, 19.0, None, None, ['comfort_temp_day', 'comfort_temp_night', 'min_temp', 'target_temp'])
+RESULT unconfigured away16 (16.0, 16.0, 16.0, 16.0, None, None, ['comfort_temp_day', 'comfort_temp_night', 'min_temp', 'target_temp'])
+RESULT unconfigured away22 (22.0, 22.0, 21.0, 19.0, None, None, ['comfort_temp_day', 'comfort_temp_night', 'min_temp', 'target_temp'])
+RESULT unconfigured recovering (21.0, 19.5, 21.0, 19.0, None, None, ['comfort_temp_day', 'comfort_temp_night', 'min_temp', 'target_temp'])

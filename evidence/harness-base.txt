@@ -1,0 +1,14 @@
+RESULT arm=away space_slots=0 space_kwh=0.0 first=- last=- weekend_slots=0 peak_kw=0.0 dhw_slots=6 dhw_kwh=4.43 room_min=17.37 room_max=22.13 comfort_fri=16.0 comfort_sat=16.0 floor_sat=16.0 status=optimal
+RESULT arm=null_away_off space_slots=6 space_kwh=2.99 first=Sat 00:45 last=Sat 02:00 weekend_slots=6 peak_kw=2.61 dhw_slots=35 dhw_kwh=9.98 room_min=17.84 room_max=22.13 comfort_fri=21.0 comfort_sat=21.0 floor_sat=17.0 status=optimal
+RESULT arm=away_off_setpoint21 space_slots=35 space_kwh=20.41 first=Sat 00:15 last=Sun 04:45 weekend_slots=35 peak_kw=4.43 dhw_slots=35 dhw_kwh=9.98 room_min=19.12 room_max=22.13 comfort_fri=21.0 comfort_sat=21.0 floor_sat=17.0 status=optimal
+RESULT arm=null_flat space_slots=0 space_kwh=0.0 first=- last=- weekend_slots=0 peak_kw=0.0 dhw_slots=4 dhw_kwh=3.78 room_min=17.37 room_max=22.13 comfort_fri=16.0 comfort_sat=16.0 floor_sat=16.0 status=optimal
+RESULT arm=indoor18 space_slots=19 space_kwh=6.84 first=Sun 00:15 last=Sun 04:45 weekend_slots=19 peak_kw=2.04 dhw_slots=6 dhw_kwh=4.43 room_min=16.0 room_max=18.36 comfort_fri=16.0 comfort_sat=16.0 floor_sat=16.0 status=optimal
+RESULT arm=weekend space_slots=0 space_kwh=0.0 first=- last=- weekend_slots=0 peak_kw=0.0 dhw_slots=6 dhw_kwh=4.43 room_min=17.37 room_max=22.13 comfort_fri=16.0 comfort_sat=21.0 floor_sat=16.0 status=optimal
+RESULT arm=weekend_flat space_slots=0 space_kwh=0.0 first=- last=- weekend_slots=0 peak_kw=0.0 dhw_slots=4 dhw_kwh=3.78 room_min=17.37 room_max=22.13 comfort_fri=16.0 comfort_sat=21.0 floor_sat=16.0 status=optimal
+RESULT arm=weekend_away_off space_slots=6 space_kwh=2.99 first=Sat 00:45 last=Sat 02:00 weekend_slots=6 peak_kw=2.61 dhw_slots=35 dhw_kwh=9.98 room_min=17.84 room_max=22.13 comfort_fri=21.0 comfort_sat=21.0 floor_sat=17.0 status=optimal
+RESULT arm=holiday space_slots=0 space_kwh=0.0 first=- last=- weekend_slots=0 peak_kw=0.0 dhw_slots=6 dhw_kwh=4.43 room_min=17.37 room_max=22.13 comfort_fri=16.0 comfort_sat=21.0 floor_sat=16.0 status=optimal
+RESULT arm=recovery space_slots=6 space_kwh=2.99 first=Sat 00:45 last=Sat 02:00 weekend_slots=6 peak_kw=2.61 dhw_slots=35 dhw_kwh=9.98 room_min=17.84 room_max=22.13 comfort_fri=21.0 comfort_sat=21.0 floor_sat=17.0 status=optimal
+VERDICT setpoint moves the space plan
+VERDICT away removes all space heating
+VERDICT weekend/holiday comfort REPLACES the away target (Sat 21.0 / 21.0 vs 16.0); extra space slots in this house: none
+rc=0
