@@ -2035,9 +2035,6 @@ class ModelStatusSensor(HeatPumpOptimizerSensorBase):
                 "samples": data.get("cop_samples"),
                 "alarm": bool(cop_health.get("alarm")),
                 "watched_buckets": cop_health.get("watched_buckets"),
-                # The observed-COP sensor is unavailable exactly when the
-                # install is not measurable, which hides its attributes; the
-                # card reads the same three keys here (R10-COP-GATE).
                 "cop_observability": data.get("cop_observability"),
                 "cop_refusal": data.get("cop_refusal"),
                 "measured_cop_at": data.get("measured_cop_at"),
