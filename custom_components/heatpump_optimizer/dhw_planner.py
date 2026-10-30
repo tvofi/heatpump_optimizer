@@ -48,6 +48,9 @@ from .thermal_model import (
     _step_humidity,
     dhw_coil_draw_reduction,
     dhw_draw_scale,
+    delivered_heat_kw,
+    heat_per_cop_kw,
+    power_for_heat_per_cop_kw,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -1441,7 +1444,7 @@ class DhwPlanner:
 
         best: np.ndarray | None = None
         for _ in range(2):
-            energy_max = np.maximum(p_dhw_max * cop * dt, 1e-9)
+            energy_max = np.maximum(cop * heat_per_cop_kw(params, p_dhw_max) * dt, 1e-9)
             # Shortfall slack keeps the program feasible when the requirement
             # simply cannot be met (cold start, undersized pump); it is priced
             # far above any real electricity cost so it is only ever used as a
@@ -1506,7 +1509,9 @@ class DhwPlanner:
             if solution is None:  # pragma: no cover - success implies a vector
                 return best
             energy = np.asarray(solution[:n_steps], dtype=float)
-            best = np.clip(energy / (cop * dt), 0.0, p_dhw_max)
+            best = np.clip(
+                power_for_heat_per_cop_kw(params, energy / (cop * dt)), 0.0, p_dhw_max
+            )
 
             # Refine the COP estimate against the tank temperatures this plan
             # actually produces, so the cost ranking reflects reality.
@@ -1872,7 +1877,9 @@ class DhwPlanner:
             q_draw = float(draw_rates[i]) * dhw_draw_scale(temp, inlet)
             q_loss = ua * (temp - TANK_ROOM_AMBIENT_TEMP)
             headroom_c = float(ceiling[i]) - temp
-            allowed = (headroom_c * capacity / dt + q_draw + q_loss) / cop
+            allowed = power_for_heat_per_cop_kw(
+                params, (headroom_c * capacity / dt + q_draw + q_loss) / cop
+            )
             plan[i] = float(np.clip(plan[i], 0.0, max(0.0, allowed)))
 
             # Stepped through the same simulation the planners use, so the
@@ -1880,7 +1887,7 @@ class DhwPlanner:
             temp = float(
                 self.model.simulate_dhw_step(
                     dhw_temp=temp,
-                    dhw_power_thermal=cop * plan[i],
+                    dhw_power_thermal=delivered_heat_kw(params, cop, plan[i]),
                     hour_of_day=0.0,
                     dt_hours=dt,
                     draw_power=float(draw_rates[i]),

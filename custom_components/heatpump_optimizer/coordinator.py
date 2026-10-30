@@ -338,6 +338,7 @@ from .thermal_model import (
     planned_draw_runs,
     probe_install,
     reanchor_heat_loss,
+    power_for_heat_per_cop_kw,
 )
 from .dhw_schedule import (
     DHWWindowError,
@@ -4084,10 +4085,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 * max(0.5 * (t + params.dhw_min_temp) - TANK_ROOM_AMBIENT_TEMP, 0.0)
                 * 24.0
             )
-            cop = max(
-                float(self._thermal_model.compute_cop_dhw(outdoor, t)), 0.5
-            )
-            cost_day = (standby_kwh + draw_day_kwh) / cop * mean_price
+            cop = max(float(self._thermal_model.compute_cop_dhw(outdoor, t)), 0.5)
+            cost_day = mean_price * power_for_heat_per_cop_kw(
+                params, (standby_kwh + draw_day_kwh) / cop, hours=24.0)
             # Can a tank at this setpoint cover the heaviest window from
             # its usable band at all?
             usable_kwh = c_dhw * max(t - params.dhw_min_temp, 0.0)

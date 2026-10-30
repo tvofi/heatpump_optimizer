@@ -106,6 +106,7 @@ from .thermal_model import (
     valve_charge_demand,
     weather_or_calm,
     wood_share,
+    power_for_heat_per_cop_kw,
 )
 from .tariff import (
     CapacityTariff,
@@ -5335,7 +5336,7 @@ class HeatPumpOptimizer:
             # power is what determines energy use; a clamp burnt
             # min_electrical_power * 24 h per day on a house needing no heat.
             # Nor a clip at 0: the demand is floored at 0 above, the COP at 1.
-            power = min(required_thermal / cop, p.max_electrical_power)
+            power = min(power_for_heat_per_cop_kw(p, required_thermal / cop), p.max_electrical_power)
             baseline_power[i] = power
 
             state = self.model.simulate_step(
