@@ -6850,7 +6850,7 @@
     "branch": "handoff/r10-flow-toolkit-measure",
     "commit": "a6620c30adcdf0d9529ee66977694bfa2a06d5c3",
     "last_step": null,
-    "next_step": "dispatch a fixer once every after group is done",
+    "next_step": "done: merged in #2645 (a6620c30a)",
     "note": "Lean flow study 2026-10-21 (owner-adopted)"
    }
   },
