@@ -40475,4 +40475,71 @@ R.check(
 )
 
 
+# R10-UX-HEALTH arm A, the backend end: every key an InputReader read takes --
+# the keys the Input Problem sensor's `input_ages_minutes` and `problems`
+# publish, which the card labels from `health.input_<key>` -- is an entity
+# field of the options flow, so the card's table (held equal to strings.json
+# by tests/card.mjs) names every input the backend can report. The keys are
+# enumerated at the call sites: a `CONF_*` name, or a `for key in <tuple>`
+# over `CONF_*` names; any other argument is listed, so a read keyed some
+# third way refuses rather than going unseen.
+_UXH_PKG = Path("custom_components/heatpump_optimizer")
+_UXH_CONST = {
+    (n.target if isinstance(n, ast.AnnAssign) else n.targets[0]).id: n.value.value
+    for n in ast.parse((_UXH_PKG / "const.py").read_text()).body
+    if (isinstance(n, ast.AnnAssign) and isinstance(n.target, ast.Name)
+        or isinstance(n, ast.Assign) and len(n.targets) == 1 and isinstance(n.targets[0], ast.Name))
+    and isinstance(n.value, ast.Constant) and isinstance(n.value.value, str)
+}
+_UXH_READS = {"read", "read_state", "read_bool", "read_power_kw", "read_flow_kg_s"}
+_uxh_keys: set[str] = set()
+_uxh_odd: list[str] = []
+for _uxh_f in sorted(_UXH_PKG.glob("*.py")):
+    _uxh_tree = ast.parse(_uxh_f.read_text())
+    _uxh_tuples = {
+        n.targets[0].id: [e.id for e in n.value.elts if isinstance(e, ast.Name)]
+        for n in ast.walk(_uxh_tree)
+        if isinstance(n, ast.Assign) and len(n.targets) == 1 and isinstance(n.targets[0], ast.Name)
+        and isinstance(n.value, ast.Tuple)
+    }
+    _uxh_loops = {
+        g.target.id: g.iter.id for g in ast.walk(_uxh_tree)
+        if isinstance(g, (ast.comprehension, ast.For)) and isinstance(g.target, ast.Name) and isinstance(g.iter, ast.Name)
+    }
+    for _uxh_c in ast.walk(_uxh_tree):
+        if not (isinstance(_uxh_c, ast.Call) and isinstance(_uxh_c.func, ast.Attribute)
+                and _uxh_c.func.attr in _UXH_READS and _uxh_c.args):
+            continue
+        _uxh_arg = _uxh_c.args[0]
+        # `const.CONF_X` is the name `CONF_X`; any other shape is listed.
+        _uxh_a = _uxh_arg.attr if isinstance(_uxh_arg, ast.Attribute) else getattr(_uxh_arg, "id", ast.dump(_uxh_arg))
+        # InputReader's own methods hand their `key` on, and a module's `read`
+        # handed the reader itself reads inside that module: both are
+        # enumerated at their own call sites.
+        if (_uxh_f.name == "inputs.py" and _uxh_a == "key") or _uxh_a == "reader":
+            continue
+        _uxh_names = [_uxh_a] if _uxh_a.startswith("CONF_") else _uxh_tuples.get(_uxh_loops.get(_uxh_a, ""), [])
+        if not _uxh_names or any(n not in _UXH_CONST for n in _uxh_names):
+            _uxh_odd.append(f"{_uxh_f.name}:{_uxh_c.lineno} {_uxh_a}")
+        _uxh_keys.update(_UXH_CONST[n] for n in _uxh_names if n in _UXH_CONST)
+_UXH_FIELDS: set[str] = set()
+
+
+def _uxh_walk(node: object) -> None:
+    if isinstance(node, dict):
+        for k, v in node.items():
+            if k == "data" and isinstance(v, dict):
+                _UXH_FIELDS.update(f for f in v if f.endswith("_entity"))
+            _uxh_walk(v)
+
+
+_uxh_walk(json.loads((_UXH_PKG / "strings.json").read_text())["options"])
+R.check(
+    "every InputReader key is an options-flow entity field, so the Health card has its label",
+    len(_uxh_keys) >= 20 and not _uxh_odd and _uxh_keys <= _UXH_FIELDS,
+    f"{len(_uxh_keys)} keys; not options fields: {sorted(_uxh_keys - _UXH_FIELDS)}; "
+    f"reads keyed some other way: {_uxh_odd}",
+)
+
+
 sys.exit(R.close("ENTITY CHECKS"))

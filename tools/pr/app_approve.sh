@@ -64,8 +64,9 @@
 # is no change (tvofi, 2026-10-27: "if there are no code changes, the
 # previous review can be carried"); (3) each merge's tree is git's automatic
 # merge of its parents outside the driver files below, and it resolves each
-# `merge=claimnotes` file to a pure union of its two parents' lines, because
-# a resolution that drops, adds or rewrites a line is content no review
+# `merge=claimnotes` file to a pure union of its two parents' lines or to
+# exactly what main's claim driver writes on them (P290), because any other
+# resolution that drops, adds or rewrites a line is content no review
 # measured; and (4) the branch's own diff against its merge base with main is
 # byte-identical
 # at V and at H, read with two relaxations measured over round 9's window
@@ -225,6 +226,23 @@ bot_paths() { # subject -> one pathspec per line, nothing for an unknown subject
   esac
 }
 
+# claim_driver_wrote <main ref> <merge> <parent 1> <parent 2> <path>: 0 only when
+# main's claim driver resolves <path> at (merge base, parent 1, parent 2) and its
+# output is byte-equal to <path> at <merge>. Quiet, like merge-tree in `carry`.
+claim_driver_wrote() {
+  local m=$1 c=$2 a=$3 b=$4 p=$5 o d r=1
+  o=$(git merge-base "$a" "$b" 2>/dev/null) || return 1
+  d=$(mktemp -d) || return 1
+  git show "$m:tests/env_drift.py" > "$d/driver.py" 2>/dev/null \
+    && { git show "$o:$p" > "$d/O" 2>/dev/null || :; } \
+    && { git show "$a:$p" > "$d/A" 2>/dev/null || :; } \
+    && { git show "$b:$p" > "$d/B" 2>/dev/null || :; } \
+    && python3 -I "$d/driver.py" --merge-claim-file "$d/O" "$d/A" "$d/B" 7 "$p" >/dev/null 2>&1 \
+    && git show "$c:$p" 2>/dev/null | cmp -s - "$d/A" && r=0
+  rm -rf "$d"
+  return $r
+}
+
 # carry <verdict sha> <head sha> <main ref>: prints the reason; 0 only on a carry.
 carry() {
   local v=$1 h=$2 main=$3 c ps ae subj p mv mh t x y b ba bt e cp got want
@@ -282,12 +300,20 @@ carry() {
       # pure union of both sides is the only resolution that changes nothing:
       # it carries the branch's note and main's. A line dropped, added or
       # rewritten is content no review measured, so it is a change.
+      # Git's own resolution is the other one that changes nothing, and the
+      # driver does not union: it takes the claim list from the side that
+      # changed it, so a claim main cleared stays cleared (P290). So the file
+      # also passes byte-equal to what main's driver writes on the parents'
+      # merge base and the two parents. Main's driver, as main's
+      # `.gitattributes` above: a branch's own driver would grade itself.
+      # A driver refusal (both sides rewrote the claim list) writes nothing
+      # that can match, which leaves the union deciding.
       while IFS= read -r p; do
         [ -z "$p" ] && continue
         got=$(git show "$c:$p" 2>/dev/null | awk 'NF' | sort -u)
         want=$({ git show "$1:$p" 2>/dev/null; git show "$2:$p" 2>/dev/null; } | awk 'NF' | sort -u)
-        [ "$got" = "$want" ] \
-          || { echo "$c resolves $p to something other than the union of its parents"; return 1; }
+        [ "$got" = "$want" ] || claim_driver_wrote "$main" "$c" "$1" "$2" "$p" \
+          || { echo "$c resolves $p to something other than the union of its parents or main's driver output on them"; return 1; }
       done <<<"$cp"
     elif [[ $subj != ci:* ]] && [ -z "$(bot_paths "$subj")" ]; then
       echo "$c is a commit of the branch's own ($subj)"; return 1
@@ -364,7 +390,7 @@ carry() {
   norm() { "${d[@]}" "$1" "$2" -- . ${x[@]+"${x[@]}"} | sed -e '/^index /d' -e 's/^@@ .*/@@/'; }
   cmp -s <(norm "$mv" "$v") <(norm "$mh" "$h") \
     || { echo "the branch's own diff differs: $mv..$v against $mh..$h"; return 1; }
-  echo "no branch-authored commit in the range, every merge the automatic one with its claim files a pure union of both sides, and the branch's own diff compares equal"
+  echo "no branch-authored commit in the range, every merge the automatic one with its claim files a pure union of both sides or main's driver output on them, and the branch's own diff compares equal"
 }
 
 cleanup() {
@@ -1636,6 +1662,49 @@ H_CR=$(claim_merge '# note\nc1 # one\nc2 # two\nc3 # three, reworded\nc4 # four\
 ( cd "$R" && bash "$SELF" --carry "$VC" "$H_CR" main ) > "$W/carry.out" 2>&1
 st $? 1 "NO CARRY: a claim resolution that rewrites a line"
 st "$(grep -c "union of its parents" "$W/carry.out")" 1 "refused as a claim resolution that is not the union"
+# The real driver (P290): it takes the claim list from the one side that
+# changed it, so a claim main cleared stays cleared and the union rule above
+# refuses git's own resolution. A merge whose claim file is exactly what main's
+# driver writes on (merge base, first parent, second parent) carries; one
+# hand-added claim line beside that output does not.
+RD="$W/claimdrv"; throwaway_git_init "$RD" -q -b main
+( cd "$RD" || exit 2
+  git config merge.claimnotes.name claims
+  git config merge.claimnotes.driver 'python3 tests/env_drift.py --merge-claim-file %O %A %B %L %P'
+  mkdir -p tests/golden
+  cp "$(cd "$(dirname "$SELF")/../.." && pwd)/tests/env_drift.py" tests/env_drift.py
+  printf 'tests/golden/claimed_drift.txt merge=claimnotes\n' > .gitattributes
+  printf '# note\n# claims-for: 1.0.0\nc1 # one\n' > tests/golden/claimed_drift.txt
+  git add -A; git commit -qm main0
+  git checkout -qb fix
+  printf '# note\n# the fix keeps c1\n# claims-for: 1.0.0\nc1 # one\n' > tests/golden/claimed_drift.txt
+  git commit -qam "fix: own"; git rev-parse HEAD > ../claimdrv.v
+  git checkout -q main
+  printf '# note\n# main clears c1\n# claims-for: 1.0.0\n' > tests/golden/claimed_drift.txt
+  git commit -qam "main: clears c1" )
+VD=$(cat "$W/claimdrv.v")
+H_DR=$( cd "$RD" && git checkout -q --detach "$VD" && git merge -q --no-ff --no-edit main >/dev/null 2>&1 \
+  && git rev-parse HEAD )
+st "$( cd "$RD" && git show "$H_DR:tests/golden/claimed_drift.txt" | grep -c '^c1')" 0 \
+  "the fixture's driver resolved the merge, keeping main's cleared claim cleared"
+( cd "$RD" && bash "$SELF" --carry "$VD" "$H_DR" main ) > "$W/carry.out" 2>&1
+st $? 0 "CARRY: a claim file resolved by main's driver, which is not the union"
+H_DA=$( cd "$RD" && git checkout -q --detach "$VD" && git merge -q --no-ff --no-edit --no-commit main >/dev/null 2>&1
+  printf 'c9 # by hand\n' >> tests/golden/claimed_drift.txt; git add tests/golden/claimed_drift.txt
+  git commit -q --no-edit && git rev-parse HEAD )
+( cd "$RD" && bash "$SELF" --carry "$VD" "$H_DA" main ) > "$W/carry.out" 2>&1
+st $? 1 "NO CARRY: the driver's resolution with one hand-added claim line"
+st "$(grep -c "union of its parents" "$W/carry.out")" 1 "refused as neither the union nor the driver's output"
+# The driver is main's, never the head's: a branch whose own driver writes
+# nothing (so its output is the first parent's file) cannot carry a merge that
+# dropped main's side of the claim file by hand.
+VF=$( cd "$RD" && git checkout -q --detach "$VD" && printf 'import sys\nsys.exit(0)\n' > tests/env_drift.py \
+  && git commit -qam "fix: a driver that writes nothing" && git rev-parse HEAD )
+H_DF=$( cd "$RD" && git checkout -q --detach "$VF" && git merge -q --no-ff --no-edit --no-commit main >/dev/null 2>&1
+  git checkout "$VF" -- tests/golden/claimed_drift.txt; git commit -q --no-edit && git rev-parse HEAD )
+( cd "$RD" && bash "$SELF" --carry "$VF" "$H_DF" main ) > "$W/carry.out" 2>&1
+st $? 1 "NO CARRY: main's side dropped by hand, which only the head's own driver would write"
+st "$(grep -c "union of its parents" "$W/carry.out")" 1 "refused on main's driver, not the head's"
 EVV="$W/ev-v"; mkdir -p "$EVV"; printf 'fix review at head %s\n' "$V" > "$EVV/verdict.md"
 CARRYV="[$(comment 2 "Fix review: merge $V" "$APPR" NONE "evidence: $EVV")]"
 setpr "$H_MERGE"; mkcase carry open false "$H_MERGE" "$CARRYV"
