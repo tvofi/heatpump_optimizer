@@ -272,9 +272,9 @@
  {
   "id": "C31",
   "source": "docs/configuration.md",
-  "claim": "every documented Range (91 rows) is the NumberSelector min/max the rendered options page actually carries",
+  "claim": "every documented Range (92 rows) is the NumberSelector min/max the rendered options page actually carries",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "91 compared, mismatches=[]",
+  "result": "92 compared, mismatches=[]",
   "verdict": "true",
   "truth": ""
  },
@@ -373,7 +373,7 @@
   "source": "manifest.json",
   "claim": "manifest version equals VERSION",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "documented='7.0.5' measured='7.0.5'",
+  "result": "documented='7.1.0' measured='7.1.0'",
   "verdict": "true",
   "truth": ""
  },
@@ -992,7 +992,7 @@
  {
   "id": "C111",
   "source": "README.md + docs/*.md",
-  "claim": "every external link answers 200 to a HEAD request (17 links)",
+  "claim": "every external link answers 200 to a HEAD request (19 links)",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py --links",
   "result": "not run: pass --links",
   "verdict": "unverifiable",

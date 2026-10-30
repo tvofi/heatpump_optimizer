@@ -745,6 +745,17 @@ def self_test() -> int:
     check("a done group stays settled under a matching open pull request",
           "L-GONE" not in by, by)
 
+    # The design steps' words (decision 0014) are derivable: the merge of the
+    # group's pull request closes them to done, an open one makes them in-progress.
+    dz = {"groups": [{"group": "D-ONE", "resume": {"stage": "design", "branch": "handoff/d-one"}},
+                     {"group": "D-TWO", "resume": {"stage": "design-review", "branch": "handoff/d-two"}}]}
+    dch, dsk, _ = derive(dz, [PR(41, MERGED, "handoff/d-one", "4" * 40, "## Friction\n\n- none\n"),
+                              PR(42, OPEN, "handoff/d-two", None, "")])
+    dby = {c.group: c for c in dch}
+    check("a merge closes a design stage to done; an open pull request makes design-review in-progress",
+          dby.get("D-ONE") is not None and dby["D-ONE"].stage == "done"
+          and dby.get("D-TWO") is not None and dby["D-TWO"].stage == "in-progress" and not dsk, (dby, dsk))
+
     # The reader half of the vocabulary barrier: a word the registry does not
     # classify is skipped with that reason and never derived, while a
     # classified word in the same fixture still derives -- so the skip is the

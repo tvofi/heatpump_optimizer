@@ -6697,6 +6697,12 @@ _grad_parity(False, label="single-zone DHW-pinned bounds shoulder",
 _grad_parity(True, valve="manual", label="two-zone capped bounds summer-cool",
              weather_p="summer_cool", bounds_over="capped",
              state_over={"room_temperature": 21.5})
+# R10-COP-PARTLOAD: the part-load derate is elementwise on the batch's power
+# rows; the twins must stay bitwise with it on, in both zonings.
+_grad_parity(False, label="single-zone part-load derate",
+             param_over={"cop_partload_derate": 0.15})
+_grad_parity(True, valve="manual", label="two-zone part-load derate",
+             param_over={"cop_partload_derate": 0.15})
 # Mutation anchor: the batch twin once applied the Carnot lift below the
 # reference flow temperature (a boost the scalar never grants) and once
 # let np.where's both-arms division poison states with 0/0 NaN -- each
@@ -9441,23 +9447,27 @@ def reachable(name: str) -> str | None:
     Booleans are probed by flipping them away from their default rather than
     by a sentinel value: the mapping coerces with ``bool()``, so any sentinel
     would come back as True and look like a match for every boolean field.
+    A field whose legal range stops at or below 0.5 on the default config
+    (the part-load derate's band limit is 4/9 on 1-5 kW) refuses that
+    sentinel, so 0.25 is tried after it.
     """
     default_value = getattr(ThermalParameters.from_config({}), name)
     if isinstance(default_value, bool):
-        sentinel = not default_value
+        sentinels = [not default_value]
     else:
-        sentinel = 0.5 if default_value != 0.5 else 0.25
+        sentinels = [v for v in (0.5, 0.25) if v != default_value]
     for candidate in dir(hp_const):
         if not candidate.startswith("CONF_"):
             continue
-        try:
-            built = ThermalParameters.from_config(
-                {getattr(hp_const, candidate): sentinel}
-            )
-        except Exception:
-            continue
-        if getattr(built, name, None) == sentinel:
-            return candidate
+        for sentinel in sentinels:
+            try:
+                built = ThermalParameters.from_config(
+                    {getattr(hp_const, candidate): sentinel}
+                )
+            except Exception:
+                continue
+            if getattr(built, name, None) == sentinel:
+                return candidate
     return None
 
 
@@ -60709,6 +60719,8 @@ _P3_FILES = (
     # against moved here from ``_cop_reference_curve``, so its calls stay
     # under the rule instead of leaving it with the move.
     "flow_meter.py",
+    # R10-COP-GATE (#2262): the accuracy residual moved to MeasuredCop.residual.
+    "accuracy.py",
 )
 _P3_ALLOWED = {
     # (file, function, callee, first argument): why the current humidity
@@ -60722,9 +60734,9 @@ _P3_ALLOWED = {
         "the same reference, at the supply a metered interval ran at",
     ("coordinator.py", "_cop_reference_curve", "compute_cop_dhw", "outdoor"):
         "the same reference, for a hot-water interval",
-    ("coordinator.py", "_record_accuracy", "compute_cop_dhw", "sample.outdoor_temp"):
+    ("accuracy.py", "residual", "compute_cop_dhw", "outdoor"):
         "the residual of the interval that just ended",
-    ("coordinator.py", "_record_accuracy", "compute_cop", "sample.outdoor_temp"):
+    ("accuracy.py", "residual", "compute_cop", "outdoor"):
         "the same residual, for a space interval",
     ("coordinator.py", "_run_system_identification", "compute_cop",
      "state.outdoor_temperature"): "the experiment step running now",
@@ -67301,6 +67313,195 @@ R.check(
 )
 
 
+# ---------------------------------------------------------------------------
+R.section("R10-COP-GATE (#2262): COP observability, the latch's time, and the draw pairing")
+
+# Without a heat reading the ratio of draw to ask is a COP only while the draw
+# follows the ask. Once the running-draw window shows it does not
+# (follows_ask False), an interval that lands within COP_ASK_TOLERANCE of its
+# ask only happened to: a pump whose own controller (or a flow set-point) sets
+# the draw folds nothing, while one whose draw follows still folds.
+from heatpump_optimizer import accuracy as _cg_acc  # noqa: E402
+
+
+def _cg_fold_near_ask(window_pairs, n=12):
+    coord = _cf_coord()
+    coord._accuracy.draw = _cf_window(window_pairs)
+    coord._cop_ratio_ewma = 1.0
+    for _ in range(n):
+        coord._current_action = {"power": 2.1, "dhw_power": 0.0}
+        coord._measured_power = 2.2  # 4.8 % over the ask: inside the tolerance
+        coord._current_state.outdoor_temperature = 8.0
+        coord._learn_measured_cop(coord._accuracy.draw)
+    return coord
+
+
+_cg_selfset = _cg_fold_near_ask([(a, 2.2) for a, _ in _cf_prop])
+_cg_follows = _cg_fold_near_ask([(a, 1.3 * a) for a, _ in _cf_prop])
+R.check(
+    "a draw the window shows ignores its ask folds nothing, even within the ask "
+    "tolerance; a draw that follows its ask still folds every interval (null)",
+    _cf_drm.follows_ask(_cg_selfset._accuracy.draw) is False
+    and _cg_selfset._cop_samples == 0
+    and _cf_last(_cg_selfset, "refusal") == _cg_acc.COP_REFUSED_OFF_ASK
+    and _cf_drm.follows_ask(_cg_follows._accuracy.draw) is True
+    and _cg_follows._cop_samples == 12,
+    f"self-set {_cg_selfset._cop_samples}/12 ({_cf_last(_cg_selfset, 'refusal')}); "
+    f"follows {_cg_follows._cop_samples}/12",
+)
+
+# The observability state the payload publishes: a heat reading (the heat
+# counter, or the thermal power entity) measures the COP whatever the draw
+# does; without one, the draw window decides; without an electrical figure to
+# divide by there is none. A heat counter divides by its electric counter.
+_cg_obs = _cg_acc.cop_observability
+R.check(
+    "cop_observability: heat metered beats a draw that ignores the ask; no "
+    "electrical figure is no COP; the draw window decides the rest",
+    _cg_obs(electric=True, measured_heat=True, follows=False) == "heat_metered"
+    and _cg_obs(electric=False, measured_heat=True, follows=True) == "no_electric_meter"
+    and _cg_obs(electric=True, measured_heat=False, follows=False) == "not_measurable"
+    and _cg_obs(electric=True, measured_heat=False, follows=True) == "draw_follows_plan"
+    and _cg_obs(electric=True, measured_heat=False, follows=None) == "awaiting_draw_evidence",
+)
+
+
+def _cg_install_obs(selfset=True, **extra):
+    cfg = dict(_L5_CFG, heat_pump_max_power=14.0, heat_pump_min_power=1.0, **extra)
+    coord = _Coord(_FakeHass(dict(_CF_STATES)), _FakeEntry(data=cfg))
+    coord._accuracy.draw = _cf_window([(a, 2.2 if selfset else 1.3 * a) for a, _ in _cf_prop])
+    return coord._learning_view()["cop_observability"]
+
+
+_cg_states = {
+    "power, self-set draw": _cg_install_obs(),
+    "power, following draw": _cg_install_obs(selfset=False),
+    "thermal power, self-set draw": _cg_install_obs(heat_pump_thermal_power_entity="sensor.heat_kw"),
+    "heat counter, no electric counter": _cg_install_obs(heat_pump_heat_energy_entity="sensor.heat_kwh"),
+    "heat counter and electric counter": _cg_install_obs(
+        heat_pump_heat_energy_entity="sensor.heat_kwh", heat_pump_energy_entity="sensor.elec_kwh"),
+}
+R.check(
+    "the coordinator's state: a self-set draw with no heat reading is not "
+    "measurable, a thermal-power install never is, and a heat counter without "
+    "an electric counter has nothing to divide by",
+    _cg_states == {
+        "power, self-set draw": "not_measurable",
+        "power, following draw": "draw_follows_plan",
+        "thermal power, self-set draw": "heat_metered",
+        "heat counter, no electric counter": "no_electric_meter",
+        "heat counter and electric counter": "heat_metered",
+    },
+    f"{_cg_states!r}",
+)
+
+# The latch outlives every later refusal, so the time it folded is kept with
+# it, round-trips the store, and a record stored before the instant was loads
+# with its age unknown, never now.
+_cg_t = _cf_coord()
+_cf_learn(_cg_t, 2.0, 1)
+_cg_at = _cg_t._measured_cop.at
+_cg_back = _cf_MC.from_dict(_cg_t._measured_cop.as_dict())
+R.check(
+    "a folded COP carries the instant it folded, through the store and back; an "
+    "old record loads with no instant, and a malformed one drops whole",
+    _cg_at is not None and _cg_back.at == _cg_at and _cg_back.cop == _cg_t._measured_cop.cop
+    and _cf_MC.from_dict({"cop": 2.0}).at is None and _cf_MC.from_dict({"cop": 2.0}).cop == 2.0
+    and _cf_MC.from_dict({"cop": 2.0, "at": "not a time"}).cop is None,
+    f"at {_cg_at!r} -> {_cg_back.at!r}",
+)
+R.check(
+    "the accuracy residual reads the latch only for the interval it folded in: "
+    "an interval opened at or after the fold gets none (#2262 seam 3), one "
+    "opened before it gets observed minus modelled",
+    _cg_t._measured_cop.residual(_cg_at + timedelta(minutes=1), 8.0, _cg_t._thermal_model) is None
+    and _cg_t._measured_cop.residual(_cg_at, 8.0, _cg_t._thermal_model) is None
+    and _cg_t._measured_cop.residual(_cg_at - timedelta(minutes=30), 8.0, _cg_t._thermal_model)
+    == round(_cg_t._measured_cop.cop - _cg_t._thermal_model.compute_cop(8.0), 3),
+)
+# The residual is referenced to the curve the COP was observed on: the
+# hot-water curve only where the fold said so AND named its tank temperature.
+_cg_model = _cg_t._thermal_model
+_cg_space, _cg_dhw = _cf_MC(), _cf_MC()
+_cg_space.record(3.0, False, 50.0, _cg_at)
+_cg_dhw.record(3.0, True, 50.0, _cg_at)
+_cg_since = _cg_at - timedelta(minutes=30)
+R.check(
+    "the residual subtracts the curve the COP folded on: a space-heating fold "
+    "that happens to carry a tank temperature reads the space curve, a "
+    "hot-water fold the hot-water curve at its tank temperature",
+    _cg_model.compute_cop_dhw(8.0, 50.0) != _cg_model.compute_cop(8.0)
+    and _cg_space.residual(_cg_since, 8.0, _cg_model) == round(3.0 - _cg_model.compute_cop(8.0), 3)
+    and _cg_dhw.residual(_cg_since, 8.0, _cg_model) == round(3.0 - _cg_model.compute_cop_dhw(8.0, 50.0), 3),
+    f"space {_cg_space.residual(_cg_since, 8.0, _cg_model)!r}, dhw {_cg_dhw.residual(_cg_since, 8.0, _cg_model)!r}",
+)
+from heatpump_optimizer.accuracy import pairs_interval as _cg_pairs  # noqa: E402
+R.check(
+    "a pending prediction pairs with the interval that closed from 3 minutes to "
+    "2 hours old, both ends included; a re-run sooner or a gap longer pairs nothing",
+    _cg_pairs(0.05) and _cg_pairs(2.0) and _cg_pairs(1.0)
+    and not _cg_pairs(0.049) and not _cg_pairs(2.001),
+)
+
+
+# The meter read at a cycle closes the interval the PREVIOUS cycle's plan
+# governed; _record_accuracy runs after the solve adopted the next action, so
+# the draw window pairs each reading with the pending prediction's ask, never
+# the next step's.
+def _cg_pair(next_ask):
+    coord = _cf_coord()
+    coord._current_state.outdoor_temperature = 8.0
+    coord._current_action = {"power": 1.5, "dhw_power": 0.0}
+    coord._measured_power = 1.5
+    coord._record_accuracy()
+    coord._pending_prediction["when"] -= timedelta(minutes=30)
+    coord._measured_cop.record(3.0, False, None, coord._pending_prediction["when"] - timedelta(hours=5))
+    coord._current_action = {"power": next_ask, "dhw_power": 0.0}
+    coord._measured_power = 1.5
+    coord._record_accuracy()
+    last = coord._accuracy.samples[-1] if coord._accuracy.samples else None
+    return list(coord._accuracy.draw.samples), getattr(last, "cop_residual", "<none>")
+
+
+_cg_moved, _cg_moved_res = _cg_pair(3.0)
+_cg_same, _ = _cg_pair(1.5)
+R.check(
+    "the draw window pairs the closed interval's reading with that interval's "
+    "own ask (1.5 kW), not the 3.0 kW the solve adopted next; an unchanged ask "
+    "pairs alike (null); a COP latched hours earlier leaves the sample's "
+    "residual empty",
+    _cg_moved == [(1.5, 1.5)] and _cg_same == [(1.5, 1.5)] and _cg_moved_res is None,
+    f"moved {_cg_moved!r} residual {_cg_moved_res!r}; same {_cg_same!r}",
+)
+
+
+# Both readers of a pending prediction -- the accuracy sample and the draw
+# window -- go through pairs_interval, so a prediction older than the window or
+# a re-run inside it pairs neither; one 30 minutes old pairs both (null).
+def _cg_aged(age):
+    coord = _cf_coord()
+    coord._current_state.outdoor_temperature = 8.0
+    coord._current_action = {"power": 1.5, "dhw_power": 0.0}
+    coord._measured_power = 1.5
+    coord._record_accuracy()
+    coord._pending_prediction["when"] -= age
+    coord._record_accuracy()
+    return len(coord._accuracy.samples), len(coord._accuracy.draw.samples)
+
+
+_cg_ages = {
+    "1 min": _cg_aged(timedelta(minutes=1)),
+    "30 min": _cg_aged(timedelta(minutes=30)),
+    "3 h": _cg_aged(timedelta(hours=3)),
+}
+R.check(
+    "a pending prediction a minute or three hours old pairs neither an accuracy "
+    "sample nor a draw reading; one 30 minutes old pairs both (null)",
+    _cg_ages == {"1 min": (0, 0), "30 min": (1, 1), "3 h": (0, 0)},
+    f"{_cg_ages!r}",
+)
+
+
 # R9-UX-6: money and memory -- the receipt, the capacity line, the replay
 # ---------------------------------------------------------------------------
 from harness import FakeEntry as _ux6_Entry, FakeHass as _ux6_Hass  # noqa: E402
@@ -67936,7 +68137,16 @@ for _dr_label, _dr_args in (
     )
 
 
-# The fold, from the coordinator's per-cycle settlement.
+# The fold, from the coordinator's per-cycle settlement. The meter read at a
+# cycle closes the interval the previous cycle's prediction governed (#2262),
+# so a settlement is two cycles half an hour apart: the first records the
+# prediction, the second folds the reading against it.
+def _dr_settle(c):
+    c._record_accuracy()
+    c._pending_prediction["when"] -= timedelta(minutes=30)
+    c._record_accuracy()
+
+
 def _dr_coord(**extra):
     c = _DrCoord(FakeHass(), _dr_entry(data={
         "tibber_token": "x", "weather_entity": "weather.home", **extra}))
@@ -67946,7 +68156,7 @@ def _dr_coord(**extra):
 
 
 _dr_cycle = _dr_coord()
-_dr_cycle._record_accuracy()
+_dr_settle(_dr_cycle)
 R.check(
     "the per-cycle settlement folds one running sample: (drawn, space asked)",
     list(_dr_cycle._accuracy.draw.samples) == [(2.3, 6.0)],
@@ -67959,14 +68169,14 @@ for _dr_label, _dr_mut in (
 ):
     _dr_c = _dr_coord()
     _dr_mut(_dr_c)
-    _dr_c._record_accuracy()
+    _dr_settle(_dr_c)
     R.check(
         f"and folds nothing under {_dr_label}",
         len(_dr_c._accuracy.draw.samples) == 0,
     )
 _dr_frost = _dr_coord()
 _dr_frost._defrost_window.close = lambda now: _DrDefrost(events=1, observed=True)
-_dr_frost._record_accuracy()
+_dr_settle(_dr_frost)
 R.check(
     "and folds nothing for an interval whose closed window saw a defrost",
     len(_dr_frost._accuracy.draw.samples) == 0,
@@ -68251,7 +68461,7 @@ def _bst_coord(**extra):
     c._current_action = {"power": 6.0, "dhw_power": 0.0}
     c._measured_power = 2.3
     _bst_pa.state_for(c).written["space_setpoint"] = (40.0, _BST_T0)
-    c._record_accuracy()
+    _dr_settle(c)
     return list(getattr(c._accuracy.draw, "commands", [None]))
 
 
@@ -72162,6 +72372,250 @@ R.check(
     "than falling back to the commanded inference (null control: a fresh one folds)",
     _tp_cop_stale == _TP_FROZEN and _tp_cop_fresh != _TP_FROZEN,
     f"stale {_tp_cop_stale!r} fresh {_tp_cop_fresh!r}",
+)
+
+
+# --- R10-COP-PARTLOAD: COP falls with compressor power ------------------------
+# Synthetic throughout. ``cop_partload_derate`` is the share of COP lost at max
+# power against min power (dev/audit/harnesses/r10_cop_partload.py measures it
+# on an independent cycle model). 0 is the default and must price exactly
+# ``cop * power``, so every plan is byte-identical to one with no term.
+from heatpump_optimizer.const import (  # noqa: E402
+    CONF_HEAT_PUMP_COP_PARTLOAD_DERATE as _PL_KEY,
+)
+from heatpump_optimizer.thermal_model import (  # noqa: E402
+    partload_factor as _pl_factor,
+    delivered_heat_kw as _pl_heat_of,
+)
+
+
+def _pl_model(derate, p_min=1.5, p_max=5.0):
+    return ThermalModel(ThermalParameters(
+        min_electrical_power=p_min, max_electrical_power=p_max,
+        cop_partload_derate=derate))
+
+
+_pl = _pl_model(0.12)
+_pl_f = [float(_pl_factor(_pl.params, x)) for x in (0.0, 1.0, 1.5, 3.25, 5.0, 6.0)]
+R.check(
+    "the part-load factor is 1 at and below the modulation floor, 1 - derate at "
+    "max power and linear between; a fixed-speed band prices no slope",
+    _pl_f == [1.0, 1.0, 1.0, 1.0 - 0.12 * 0.5, 1.0 - 0.12, 1.0 - 0.12]
+    and _pl_factor(_pl_model(0.12, 3.0, 3.0).params, 3.0) == 1.0,
+    f"{_pl_f}",
+)
+_pl_cop = _pl.compute_cop(5.0)
+_pl_heat = [float(_pl_heat_of(_pl.params, _pl_cop, x)) for x in (1.5, 5.0)]
+_pl_heat0 = [_pl_heat_of(_pl_model(0.0).params, _pl_cop, x) for x in (1.5, 5.0)]
+R.check(
+    "pump heat at max power carries the derate and at the floor does not; "
+    "null control: a zero derate is exactly cop * power",
+    abs(_pl_heat[1] - _pl_cop * 5.0 * 0.88) < 1e-12 and _pl_heat[0] == _pl_cop * 1.5
+    and _pl_heat0 == [_pl_cop * 1.5, _pl_cop * 5.0],
+    f"derated {_pl_heat} plain {_pl_heat0}",
+)
+_pl_state = ThermalState(room_temperature=20.0, slab_temperature=21.0,
+                         outdoor_temperature=0.0)
+_pl_step = {d: _pl_model(d).simulate_step(_pl_state, 5.0, 0.0, dt_hours=0.25).slab_temperature
+            for d in (0.0, 0.2)}
+_pl_floor = {d: _pl_model(d).simulate_step(_pl_state, 1.5, 0.0, dt_hours=0.25).slab_temperature
+             for d in (0.0, 0.2)}
+R.check(
+    "a step at max power warms the slab less with the derate on, and stays a "
+    "float; "
+    "null control: a step at the floor is unchanged",
+    _pl_step[0.2] < _pl_step[0.0] and type(_pl_step[0.2]) is float
+    and _pl_floor[0.2] == _pl_floor[0.0],
+    f"max {_pl_step} floor {_pl_floor}",
+)
+_pl_cfg = {
+    v: ThermalParameters.from_config({_PL_KEY: v}).cop_partload_derate
+    for v in (0.0, 0.1, 0.5, -0.1, 0.9, "x", None, float("nan"))
+}
+from heatpump_optimizer.thermal_model import _partload_derate as _pl_read  # noqa: E402
+R.check(
+    "a configured derate inside [0, 0.5] is taken; a negative, oversized, "
+    "non-numeric or NaN one refuses to the 0 default; the reader alone keeps "
+    "0.5 and refuses the float above it, and on the default 1-5 kW band 0.5 is "
+    "past band / (band + p_max) = 4/9 and refuses too",
+    _pl_cfg[0.0] == 0.0 and _pl_cfg[0.1] == 0.1 and _pl_cfg[0.5] == 0.0
+    and _pl_read(0.5) == 0.5 and _pl_read(float(np.nextafter(0.5, 1.0))) == 0.0
+    and all(_pl_cfg[v] == 0.0 for v in (-0.1, 0.9, "x", None))
+    and _pl_cfg[next(k for k in _pl_cfg if isinstance(k, float) and k != k)] == 0.0
+    and ThermalParameters.from_config({}).cop_partload_derate == 0.0,
+    f"{_pl_cfg}",
+)
+
+
+def _pl_ceiling(derate):
+    p = ThermalParameters(min_electrical_power=1.5, max_electrical_power=5.0,
+                          cop_partload_derate=derate)
+    p.mixing_valve_mode, p.buffer_tank_volume = "manual", 750.0
+    p.cop_flow_carnot = True
+    return _PvOpt(ThermalModel(p), _PvOptCfg())._buffer_charge_ceiling(-15.0)
+
+
+_pl_ceil = {d: _pl_ceiling(d) for d in (0.0, 0.3)}
+R.check(
+    "the buffer's charge ceiling prices the pump's max-power output with the "
+    "derate: a derated pump stops charging at a cooler tank in deep cold",
+    _pl_ceil[0.3] < _pl_ceil[0.0],
+    f"{_pl_ceil}",
+)
+
+_PL_FLAT = np.full(96, 1.6)
+_PL_T0 = datetime(2026, 1, 12, 20, 0, tzinfo=UTC)
+
+
+def _pl_solve(derate, prices):
+    p = ThermalParameters(min_electrical_power=1.5, max_electrical_power=5.0,
+                          cop_partload_derate=derate, dhw_enabled=False,
+                          house_heat_loss_scale=1.7)
+    return _PvOpt(ThermalModel(p), _PvOptCfg()).optimize(
+        inputs=solve_inputs(
+            initial_state=ThermalState(
+                room_temperature=20.0, upper_floor_temperature=20.0,
+                lower_floor_temperature=20.0, slab_temperature=20.5,
+                outdoor_temperature=5.0, buffer_tank_temperature=24.0,
+                dhw_temperature=48.0),
+            prices=prices, outdoor_temps=np.full(96, 5.0), start_time=_PL_T0,
+        ))
+
+
+def _pl_peak_share(result):
+    plan = np.asarray(result.power_schedule, float)
+    return float(plan[plan >= 4.0].sum() / plan.sum())
+
+
+_pl_flat0, _pl_flat1 = _pl_solve(0.0, _PL_FLAT), _pl_solve(0.15, _PL_FLAT)
+R.check(
+    "at a flat price the derate moves the plan off max power: the share of kWh "
+    "planned at 4 kW or more falls",
+    _pl_peak_share(_pl_flat1) < _pl_peak_share(_pl_flat0),
+    f"d=0 {_pl_peak_share(_pl_flat0):.3f} d=0.15 {_pl_peak_share(_pl_flat1):.3f}",
+)
+
+
+def _pl_dhw_step(derate, kw):
+    """Hot-water tank temperature after one 15-minute step at ``kw``."""
+    temps = np.array([45.0, 0.0])
+    _pl_model(derate).extend_dhw_temps(
+        temps, 0, np.array([kw]), np.array([5.0]), np.zeros(1), dt_hours=0.25)
+    return float(temps[1])
+
+
+_pl_dhw_hi = {d: _pl_dhw_step(d, 5.0) for d in (0.0, 0.2)}
+_pl_dhw_lo = {d: _pl_dhw_step(d, 1.5) for d in (0.0, 0.2)}
+R.check(
+    "a hot-water schedule carries the derate too: the same electrical power "
+    "warms the tank less with the term on; "
+    "null control: at the modulation floor the tank is unchanged",
+    _pl_dhw_hi[0.2] < _pl_dhw_hi[0.0] and _pl_dhw_lo[0.2] == _pl_dhw_lo[0.0],
+    f"max {_pl_dhw_hi} floor {_pl_dhw_lo}",
+)
+
+
+def _pl_dhw_traj(derate, kw=5.0):
+    """DHW temperature after one step of the full space + hot-water path."""
+    out = _pl_model(derate).simulate_trajectory_with_dhw(
+        ThermalState(room_temperature=20.0, upper_floor_temperature=20.0,
+                     lower_floor_temperature=20.0, slab_temperature=20.5,
+                     outdoor_temperature=5.0, buffer_tank_temperature=24.0,
+                     dhw_temperature=45.0),
+        np.zeros(1), np.full(1, kw), _WS(np.full(1, 5.0)),
+        start_hour=20.0, dt_hours=0.25)
+    return float(out[4][-1])
+
+
+_pl_traj = {d: _pl_dhw_traj(d) for d in (0.0, 0.2)}
+_pl_traj_lo = {d: _pl_dhw_traj(d, 1.5) for d in (0.0, 0.2)}
+R.check(
+    "the full trajectory's hot-water track prices the same conversion as the "
+    "step twin: the derated tank ends cooler; "
+    "null control: at the modulation floor the track is unchanged",
+    _pl_traj[0.2] < _pl_traj[0.0] and _pl_traj_lo[0.2] == _pl_traj_lo[0.0],
+    f"max {_pl_traj} floor {_pl_traj_lo}",
+)
+
+
+# R10-COP-PARTLOAD round 2: heat = cop * P * (1 - d * (P - p_min) / band) has
+# slope cop * (1 - d * (band + p_max) / band) at p_max, so a derate at or above
+# band / (band + p_max) buys less heat with more power at the top of the band.
+# Every construction path refuses it (``ThermalParameters.clamp``), and the
+# options page names it. Narrow band 4-5 kW: the limit is 1/6.
+from heatpump_optimizer import config_flow as _pl_flow  # noqa: E402
+_pl_lim = 1.0 / 6.0
+_pl_grid = np.linspace(4.0, 5.0, 2001)
+
+
+def _pl_kept(derate, p_min=4.0, p_max=5.0):
+    """The derate a direct construction and from_config each keep."""
+    direct = ThermalParameters(min_electrical_power=p_min, max_electrical_power=p_max,
+                               cop_partload_derate=derate).cop_partload_derate
+    cfg = ThermalParameters.from_config({
+        "heat_pump_min_power": p_min, "heat_pump_max_power": p_max, _PL_KEY: derate,
+    }).cop_partload_derate
+    return direct, cfg
+
+
+from heatpump_optimizer.thermal_model import (  # noqa: E402
+    partload_derate_limit as _pl_limit,
+)
+_pl_below = float(np.nextafter(_pl_lim, 0.0))
+_pl_heat_below = _pl_heat_of(_pl_model(_pl_below, 4.0, 5.0).params, 3.0, _pl_grid)
+R.check(
+    "a part-load derate at or above band / (band + p_max) is refused on every "
+    "construction path, so delivered heat never falls with power: on a 4-5 kW "
+    "band 0.19 and the limit itself read 0, the float just below it is kept and "
+    "heat rises across the band there; "
+    "null controls: 0 stays 0 and is exactly cop * power, the default 1-5 kW "
+    "band keeps 0.19, and a fixed-speed band (or one with no positive span to "
+    "divide by) has no limit, its factor being 1",
+    _pl_kept(0.19) == (0.0, 0.0) and _pl_kept(_pl_lim) == (0.0, 0.0)
+    and _pl_kept(_pl_below) == (_pl_below, _pl_below)
+    and bool(np.all(np.diff(_pl_heat_below) > 0.0))
+    and _pl_kept(0.0) == (0.0, 0.0)
+    and np.array_equal(_pl_heat_of(_pl_model(0.0, 4.0, 5.0).params, 3.0, _pl_grid),
+                       3.0 * _pl_grid)
+    and _pl_kept(0.19, 1.0, 5.0) == (0.19, 0.19)
+    and _pl_kept(0.2, 3.0, 3.0) == (0.2, 0.2)
+    and _pl_limit(-2.0, -1.0) == float("inf"),
+    f"4-5: 0.19 {_pl_kept(0.19)} limit {_pl_kept(_pl_lim)} below {_pl_kept(_pl_below)}; "
+    f"1-5: 0.19 {_pl_kept(0.19, 1.0, 5.0)}",
+)
+_pl_err = getattr(_pl_flow, "_partload_errors", lambda c, cur: {})
+_pl_narrow = {"heat_pump_min_power": 4.0, "heat_pump_max_power": 5.0}
+R.check(
+    "the thermal-model options page refuses a derate at or above the band's "
+    "limit on the derate field, judged against the stored band when the page "
+    "posts only the derate; "
+    "null controls: 0 and the default band's 0.19 pass",
+    _pl_err({_PL_KEY: 0.19}, _pl_narrow) == {_PL_KEY: "partload_derate_above_limit"}
+    and _pl_err({**_pl_narrow, _PL_KEY: 0.19}, {}) == {_PL_KEY: "partload_derate_above_limit"}
+    and _pl_err({_PL_KEY: _pl_lim}, _pl_narrow) == {_PL_KEY: "partload_derate_above_limit"}
+    and _pl_err({_PL_KEY: _pl_below}, _pl_narrow) == {}
+    and _pl_err({_PL_KEY: 0.0}, _pl_narrow) == {}
+    and _pl_err({_PL_KEY: 0.19}, {}) == {},
+    f"{_pl_err({_PL_KEY: 0.19}, _pl_narrow)}",
+)
+# Round 3: the Modbus pre-fill save is the band's other options writer, and
+# its form has no derate field, so the refusal lands on ``base``. A stored
+# 0.40 is legal on 1-5 kW (limit 4/9) and past it once max power drops to 2.
+_pl_pre = _pl_flow._prefill_errors
+_pl_stored = {"heat_pump_min_power": 1.0, "heat_pump_max_power": 5.0, _PL_KEY: 0.40}
+R.check(
+    "a pre-fill save that narrows the power band refuses a stored part-load "
+    "derate the new band puts past its limit, on base, whichever band key the "
+    "save carries; "
+    "null controls: a derate under the narrowed limit passes, a save touching "
+    "neither band key is not judged on the stored pair, and min above max is "
+    "still named as such",
+    _pl_pre({"heat_pump_max_power": 2.0}, _pl_stored) == {"base": "partload_derate_above_limit"}
+    and _pl_pre({"heat_pump_min_power": 4.0}, _pl_stored) == {"base": "partload_derate_above_limit"}
+    and _pl_pre({"heat_pump_max_power": 2.0}, {**_pl_stored, _PL_KEY: 0.30}) == {}
+    and _pl_pre({"heat_pump_cop_nominal": 3.0}, {**_pl_stored, **_pl_narrow}) == {}
+    and _pl_pre({"heat_pump_max_power": 0.5}, _pl_stored) == {"base": "min_power_above_max"},
+    f"max 5->2: {_pl_pre({'heat_pump_max_power': 2.0}, _pl_stored)}",
 )
 
 

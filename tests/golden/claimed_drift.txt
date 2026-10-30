@@ -54,49 +54,11 @@
 # about one release's diff, it does not expire with the stamp and is not part
 # of the inherited-claims comparison.
 #
-# claims-for: 7.0.5
+# claims-for: 7.1.0
 #
-# v7.0.5: Round-10 close-out: 226 merges of audited fixes, roster batches, triage rulings and records since v7.0.4. The stamp empties the list; the
+# v7.1.0: Round-10 merge train: claim-carry barrier, train admission, COP gate and part-load, Health tab, Marketplace. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
-# R10-ADVISOR-RESIDUE (#2257): the grid view gains `recent_kwh_price`, the
-# ledger's recent kWh price the advisors' monthly rows are priced at, so each
-# coord fixture's data gains that one key, null (no interval has settled in
-# a fixture's ledger); nothing else moves, the hot-water sweep included (with
-# no recent price it prices at the feed's window, as before). Measured with
-# env_drift --all against origin/main df478d40b in one environment: exactly
-# these five move, in that one key, "present on one side only". The committed
-# files were patched in that path alone; no other leaf was re-recorded.
-# R10-CARD-VOICE: describe_setup publishes the wood-coil option itself as
-# `dhw_wood_coil_configured`, beside the model's `dhw_wood_coil` gate, so the
-# card can say "configured, not modelled". Direction: ADD-ONLY, one leaf in
-# setup_topology on sensors.space_heating_plan and sensors.dhw_heating_plan,
-# false in all five (no capture switches the option on). Measured with
-# tests/env_drift.py --all against origin/main da12aa37d in one environment:
-# exactly these five move, 2 leaves each, "present on one side only"; no plan,
-# schedule, price, cost or solver leaf moves. The committed files were patched
-# in exactly those 10 paths from golden.capture_coordinator at the head (a
-# json round-trip of each file is byte-identical before the patch); no other
-# leaf was re-recorded.
-# R10-LEARNER-ETA (#2260): the learning view gains `learner_progress`, so each
-# coord fixture's data gains that one key and its 24 leaves (house counting at
-# zero samples toward its gate, the other three off, no
-# eta_days anywhere), and the model status sensor publishes the same subtree
-# as its learner_progress attribute (the Health tab's source); nothing else
-# moves. Measured with env_drift --all against origin/main ab00437c9 in one
-# environment: exactly these five move, in those two keys, "present on one side
-# only". The committed files were patched in those paths from a head
-# recording; no other leaf was re-recorded.
-# R10-SCORES (#2258): every coord fixture runs with zero heat-loss samples, so
-# the house grade is dashed (`heat_loss_learning`) instead of graded off the
-# configured prior: insight.scores.envelope and the score sensor's envelope
-# attribute move 58.3 -> null, and both gain `reasons`; insight gains
-# `model_restart` (no alarm: refit and restore null, current_scale 1.0).
-# Measured with env_drift --all against origin/main 86425b9ad in one
-# environment: exactly these five move, 5 leaves each; the other scenarios are
-# byte-identical or may-drift fixtures that did not move. The committed files
-# were patched in exactly those 17 structural paths from a head recording; no
-# other leaf was re-recorded.
 # may-drift: flat_prices -- #1208 polish-every-candidate, owner ruling #1208 comment 208bed25
 # (option (a)): the move's margin is inside the noise band (objective rel
 # -1.2171e-03, deterministic on one box), so which runner sees it move is the
@@ -122,16 +84,11 @@
 # one was restored.
 #
 #
-# (R10-BUFFER-STORE suspends valve_storage_smart_write's may-drift entry for its claim below; restore it,
-#  verbatim, when the stamp empties the list) valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
-# (R10-BUFFER-STORE suspends wood_two_tank's may-drift entry for its claim below; restore it,
-#  verbatim, when the stamp empties the list) wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
-# (R10-BUFFER-STORE suspends wood_two_tank_smart_write's may-drift entry for its claim below; restore it,
-#  verbatim, when the stamp empties the list) wood_two_tank_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
-# (R10-BUFFER-STORE suspends wood_coil's may-drift entry for its claim below; restore it,
-#  verbatim, when the stamp empties the list) wood_coil -- machine-sensitive; the DHW plan can reach it, per local optimum
-# (R10-BUFFER-STORE suspends valve_upper_direct_slab's may-drift entry for its claim below; restore it,
-#  verbatim, when the stamp empties the list) valve_upper_direct_slab -- machine-sensitive; the DHW plan can reach it, per local optimum
+# may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
+# may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
+# may-drift: wood_two_tank_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
+# may-drift: wood_coil -- machine-sensitive; the DHW plan can reach it, per local optimum
+# may-drift: valve_upper_direct_slab -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: winter_two_zone_no_dhw -- #1208 polish-every-candidate, owner
 # ruling #1208 comment 208bed25 (option (a)): the move's margin is inside the
 # noise band (objective rel -1.3365e-03, predicted_cost rel +8.39e-03),
@@ -216,8 +173,7 @@
 # byte-identical on the dev box), runner-conditional for the same reason;
 # judged keys still fail. Remove when drift lanes are pinned or the polish
 # improvement scale leaves 5e-5-2e-2.
-# (R10-BUFFER-STORE suspends valve_storage's may-drift entry for its claim below; restore it,
-#  verbatim, when the stamp empties the list) valve_storage -- #1207 keep-gate (2e-2 -> 2e-5), widened to
+# may-drift: valve_storage -- #1207 keep-gate (2e-2 -> 2e-5), widened to
 # the runner's union by the owner's ruling (i) on the options recorded in
 # #1207 comment 1ec15c8 (2026-09-20): 625 leaves moved on the CI
 # x86_64/py3.14 runner only (as recorded on that comment; byte-identical
@@ -763,11 +719,6 @@
 # was re-recorded: a claim excuses drift but not a structurally stale fixture
 # (`env_drift --all`'s `rot.failed`), which is the `tests / fast` red that
 # patch answers.
-coord_all_features  # R10-HOUSE-GRADE (#2816): data.insight.scores.envelope_drivers and sensors.optimization_score.extra_state_attributes.envelope_drivers added
-coord_dhw  # R10-HOUSE-GRADE (#2816): data.insight.scores.envelope_drivers and sensors.optimization_score.extra_state_attributes.envelope_drivers added
-coord_grid_fee  # R10-HOUSE-GRADE (#2816): data.insight.scores.envelope_drivers and sensors.optimization_score.extra_state_attributes.envelope_drivers added
-coord_minimal  # R10-HOUSE-GRADE (#2816): data.insight.scores.envelope_drivers and sensors.optimization_score.extra_state_attributes.envelope_drivers added
-coord_two_zone  # R10-HOUSE-GRADE (#2816): data.insight.scores.envelope_drivers and sensors.optimization_score.extra_state_attributes.envelope_drivers added
 # R10-BUFFER-STORE (#2887 review 1): behind a valve the savings reference
 # charges its tank only to the configured curve (`valve_charge_demand`) and
 # prices its draw at the tank's flow COP (`_reference_cop`), as the step
@@ -782,12 +733,3 @@ coord_two_zone  # R10-HOUSE-GRADE (#2816): data.insight.scores.envelope_drivers 
 # valve_storage_low_target, whose plan leaves move too: the reference's energy
 # anchors three of the space solve's starts, so a valved plan can land in
 # another basin. Unvalved fixtures do not move.
-valve_storage_smart_write  # R10-BUFFER-STORE: tank-aware savings reference; baseline_cost DOWN 146.865 -> 129.695 here; no plan key judged
-valve_upper_direct_slab  # R10-BUFFER-STORE: tank-aware savings reference; baseline_cost UP 125.709 -> 126.782 here; no plan key judged
-wood_coil  # R10-BUFFER-STORE: tank-aware savings reference; baseline_cost DOWN 150.751 -> 129.566 here; no plan key judged
-wood_two_tank  # R10-BUFFER-STORE: tank-aware savings reference; baseline_cost DOWN 141.475 -> 120.254 here; no plan key judged
-wood_two_tank_smart_write  # R10-BUFFER-STORE: tank-aware savings reference; baseline_cost DOWN 141.475 -> 120.254 here; no plan key judged
-valve_storage  # R10-BUFFER-STORE: tank-aware savings reference; baseline_cost DOWN 146.865 -> 129.695 here; no plan key judged
-valve_storage_flat_prices  # R10-BUFFER-STORE: tank-aware savings reference; baseline_cost DOWN 113.116 -> 102.374 here; plan leaves move with the reference-anchored starts
-valve_storage_low_target  # R10-BUFFER-STORE: tank-aware savings reference; baseline_cost DOWN 195.205 -> 111.103 here; plan leaves move with the reference-anchored starts
-valve_storage_small_tank  # R10-BUFFER-STORE: tank-aware savings reference; baseline_cost DOWN 151.266 -> 128.078 here, predicted_savings and deferred_energy_cost with it

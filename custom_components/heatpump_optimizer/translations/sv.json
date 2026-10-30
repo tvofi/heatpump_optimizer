@@ -302,8 +302,8 @@
           "dhw_tank": "Varmvattenberedare",
           "wood_furnace": "Vedpanna",
           "wood_buffer_tank": "Vedpannans tank",
-          "wood_tank_top_entity": "Givare, toppen av vedtanken (valfri)",
-          "wood_tank_bottom_entity": "Givare, botten av vedtanken (valfri)",
+          "wood_tank_top_entity": "Vedtankens toppgivare (valfri)",
+          "wood_tank_bottom_entity": "Vedtankens bottengivare (valfri)",
           "building_structure": "Vad huset är byggt av",
           "building_era": "Ungefär när det byggdes",
           "building_foundation": "Grundläggning",
@@ -991,6 +991,7 @@
           "heat_pump_cop_nominal": "Värmepumpens nominella COP",
           "heat_pump_max_power": "Värmepump max effekt (kW)",
           "heat_pump_min_power": "Värmepump min effekt (kW)",
+          "heat_pump_cop_partload_derate": "Värmepumpens COP-förlust vid maxeffekt",
           "after_save": "Efter sparande"
         },
         "data_description": {
@@ -1001,6 +1002,7 @@
           "heat_pump_cop_nominal": "Enheter värme per enhet el under normala förhållanden. Se databladet; 3 till 4 är vanligt för luft/vatten, 4 till 5 för bergvärme.",
           "heat_pump_max_power": "Eleffekt vid full drift. Sätter taket för hur mycket billig el som kan lagras per timme.",
           "heat_pump_min_power": "Lägsta eleffekt pumpen klarar utan att börja starta och stanna.",
+          "heat_pump_cop_partload_derate": "Andel av verkningsgraden som går förlorad vid maxeffekt jämfört med mineffekt, som bråkdel (0,1 = 10 %). Större värmeflöden kräver större temperaturskillnad över värmeväxlarna. 0 låter effekten vara utan inverkan på COP; vanliga luft/vatten-pumpar förlorar 0,05 till 0,15. Ingen värmemätare behövs. Håll den under band / (band + maxeffekt), där bandet är max- minus mineffekt, annars sjunker värmen när effekten stiger.",
           "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst."
         }
       },
@@ -1081,8 +1083,8 @@
           "dhw_tank": "Varmvattenberedare",
           "wood_furnace": "Vedpanna",
           "wood_buffer_tank": "Vedpannans tank",
-          "wood_tank_top_entity": "Givare, toppen av vedtanken (valfri)",
-          "wood_tank_bottom_entity": "Givare, botten av vedtanken (valfri)",
+          "wood_tank_top_entity": "Vedtankens toppgivare (valfri)",
+          "wood_tank_bottom_entity": "Vedtankens bottengivare (valfri)",
           "building_structure": "Vad huset är byggt av",
           "building_era": "Ungefär när det byggdes",
           "building_foundation": "Grundläggning",
@@ -1517,6 +1519,7 @@
       "night_above_day": "Nattemperaturen ligger över dagtemperaturen.",
       "day_window_empty": "Dagen skulle sluta innan den börjar, så ingen dagperiod blir kvar alls.",
       "comfort_outside_band": "Dag- och nattkomforttemperaturer måste ligga inom komfortbandet",
+      "partload_derate_above_limit": "Den här COP-förlusten är för brant för effektbandet: levererad värme skulle sjunka när effekten närmar sig max. Håll den under band / (band + maxeffekt), där bandet är max- minus mineffekt: under 0,44 för en pump på 1–5 kW, under 0,17 för en på 4–5 kW.",
       "min_power_above_max": "Värmepumpens lägsta effekt ligger över dess högsta.",
       "stored_value_out_of_range": "Det här värdet ligger utanför det intervall fältet normalt godtar. Intervallet har vidgats så att sidan ändå går att spara – kontrollera värdet och ändra det om det ser fel ut.",
       "flow_target_needs_two_zone": "\"Framledningstemperatur\" beräknas från tvåzonsmodellens egen flödeskurva, som denna anläggning inte har konfigurerad. Konfigurera tvåzonsmodellen först, eller lämna detta på \"Inomhustemperatur\".",

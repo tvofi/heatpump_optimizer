@@ -3937,6 +3937,26 @@ const restartStates = (patch = {}) => {
   await press(vhp.c, '[data-act="apply_valve"]');
   check("the valve target is clamped to 30 °C",
     vhp.calls[0] && vhp.calls[0][2].manual_setpoint === 30, JSON.stringify(vhp.calls));
+  // R10-SCORES' carry to R10-UX-HEALTH: an attribute the backend published as
+  // None is no reading, never a measured 0 (`Number(null)` is 0).
+  const nr = inboxStates();
+  nr[`${PFX}_dhw_setpoint_advisor`].attributes.recommended_setpoint = null;
+  const nrp = mkInbox(nr);
+  await press(nrp.c, '[data-act="apply_dhw"]');
+  check("a null recommended setpoint writes the advisor's state, never 0",
+    nrp.calls[0] && nrp.calls[0][2].dhw_setpoint === 48 && /55 → 48 °C/.test(nrp.html()), JSON.stringify(nrp.calls));
+  const nc = inboxStates();
+  nc[`${PFX}_dhw_setpoint_advisor`].attributes.current_setpoint = null;
+  check("a null current hot-water setpoint is no row, not a move from 0",
+    !/data-act="apply_dhw"/.test(mkInbox(nc).html()));
+  const nv = inboxStates();
+  nv[`${PFX}_valve_target_recommendation`].attributes.configured_target = null;
+  check("a null configured valve target is no row, not a move from 0",
+    !/data-act="apply_valve"/.test(mkInbox(nv).html()));
+  const ns = restartStates({ current_scale: null });
+  const nsRow = mkInbox(ns).html().split('class="adv-inbox-row').find((r) => /data-act="adopt_refit"/.test(r)) || "";
+  check("a null current scale reads as a dash in the refit row, not 0.00",
+    /—/.test(nsRow) && !/0\.00/.test(nsRow), nsRow.slice(0, 300));
 
   await press(c, '[data-act="assign"]');
   check("Assign sensor opens the setup picker for the gap's top slot",
@@ -11913,7 +11933,7 @@ check("without an indoor reading the corner now label is absent",
     ["price", "weather", "indoor", "control"].map((k) => `${k}=${(done(k) || [])[1]}`).join(" "));
   check("a missing power meter is recommended with an Assign action; insight sensors have a Show action",
     (done("power") || [])[1] === "false" && /data-act="assign" data-key="heat_pump_power_entity"/.test(page)
-    && /data-check="insight"[\s\S]*?data-act="settings"/.test(page));
+    && /data-check="insight"[\s\S]*?data-act="show_entities"/.test(page));
   check("the insight-sensor row carries no invented count", !/\d+ insight sensors/.test(page));
   const noPrice = healthStates();
   noPrice[`${PFX}_optimization_status`].attributes.prices_available = 0;
@@ -11928,7 +11948,7 @@ check("without an indoor reading the corner now label is absent",
   try {
     if (btn) await Promise.all((btn._listeners.click || []).map((f) => f({ stopPropagation() {}, detail: 1 })));
   } finally { ctx.history = NAV.history; }
-  check("pressing it opens /config/integrations/integration/heatpump_optimizer",
+  check("pressing it with no entry to fetch for opens /config/integrations/integration/heatpump_optimizer",
     hist.includes("/config/integrations/integration/heatpump_optimizer"), JSON.stringify(hist));
   const pw = mkHealth(healthStates());
   const assignBtn = pw.c.shadowRoot.querySelector('[data-check="power"] [data-act="assign"]');
@@ -11936,6 +11956,10 @@ check("without an indoor reading the corner now label is absent",
   check("Assign on the power meter opens the Setup picker for that slot",
     pw.c.dialog.page === "setup" && pw.c.setup.pickerKey === "heat_pump_power_entity",
     `${pw.c.dialog.page} ${pw.c.setup.pickerKey}`);
+  // P08 (carry 5): and draws it -- a press that only set the state would leave
+  // the Health page on screen until something else re-rendered.
+  check("Assign redraws the dialog on the Setup page",
+    /setup-page/.test(pw.html()) && !/health-page"/.test(pw.html()));
 
   const sig1 = c._signature();
   const s2 = healthStates();
@@ -11965,6 +11989,8 @@ check("without an indoor reading the corner now label is absent",
       internal_gains_kw: [0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.4, 0.4, 0.3, 0.3, 0.3, 0.3,
         0.3, 0.3, 0.3, 0.3, 0.4, 0.5, 0.6, 0.5, 0.4, 0.3, 0.2, 0.2],
       ...over } };
+    // A power meter, so the house's heat loss is observable (R10-UX-HEALTH D).
+    s[DEFAULT_SPACE].attributes.setup_topology.slots[2].entity = "sensor.hp_power";
     return s;
   };
   const modelOf = (states, lang) => {
@@ -12094,6 +12120,249 @@ check("without an indoor reading the corner now label is absent",
     wordsFor(undefined, "unknown_unit") === "Unknown unit" && wordsFor("sv-SE", "unknown_unit") === "Okänd enhet",
     `${wordsFor(undefined, "unknown_unit")} / ${wordsFor("sv-SE", "unknown_unit")}`);
 
+  // R10-UX-HEALTH (owner report 2026-10-14). Item 1: every input row carries
+  // the integration's role label, from the card's one table, and that table
+  // equals the options flow's own labels in each language.
+  {
+    const lab = healthStates();
+    lab[BIN].attributes.input_ages_minutes = { wood_tank_top_entity: 3, heat_pump_supply_temp_entity: 2, mystery_entity: 5 };
+    lab[DEFAULT_SPACE].attributes.setup_topology.slots.push(
+      { key: "mystery_entity", label: "x", place: "heat_pump", entity: "sensor.my_thing", domains: ["sensor"] });
+    const rowText = (html, key) => (new RegExp(`data-health-input="${key}"[\\s\\S]*?</div>`).exec(pageOf(html)) || [""])[0];
+    const en = mkHealth(lab).html(), svh = mkHealth(lab, "sv-SE").html();
+    check("UX-HEALTH A: input rows carry the options flow's role labels in English",
+      /Wood tank top sensor/.test(rowText(en, "wood_tank_top_entity"))
+      && /Supply \(flow\) water temperature/.test(rowText(en, "heat_pump_supply_temp_entity"))
+      && !/wood tank top|heat pump supply temp/.test(pageOf(en)), rowText(en, "wood_tank_top_entity"));
+    check("UX-HEALTH A: and in Swedish, the wood pair from its owning page",
+      /Vedtankens toppgivare/.test(rowText(svh, "wood_tank_top_entity"))
+      && /Framledningstemperatur/.test(rowText(svh, "heat_pump_supply_temp_entity")), rowText(svh, "wood_tank_top_entity"));
+    check("UX-HEALTH A: a key the table does not name reads Input with its entity id, never a name from the key",
+      /Input<span class="adv-sub">sensor\.my_thing/.test(rowText(en, "mystery_entity")) && !/mystery/.test(rowText(en, "mystery_entity").replace(/data-health-input="mystery_entity"/, "")),
+      rowText(en, "mystery_entity"));
+    // The equality: one label per options-flow field per language, the
+    // owning page's (never the quick_setup / modbus_prefill shortcuts), and
+    // the card's label is it less the language's optional marker.
+    const SHORTCUT = new Set(["quick_setup", "modbus_prefill"]);
+    const STRIP = { en: [" (optional)"], sv: [" (valfri)", " (valfritt)"] };
+    const FILES = { en: "custom_components/heatpump_optimizer/strings.json",
+      sv: "custom_components/heatpump_optimizer/translations/sv.json" };
+    const tbl = fn("STRINGS");
+    for (const lang of ["en", "sv"]) {
+      const json = JSON.parse(fs.readFileSync(FILES[lang], "utf8"));
+      const fields = {};
+      const walk = (n, path) => {
+        if (!n || typeof n !== "object") return;
+        for (const [k, v] of Object.entries(n)) {
+          if (k === "data" && v && typeof v === "object") {
+            for (const [f, l] of Object.entries(v)) {
+              if (f.endsWith("_entity") && typeof l === "string") (fields[f] ||= []).push([path.concat(k), l]);
+            }
+          }
+          walk(v, path.concat(k));
+        }
+      };
+      walk(json.options, ["options"]);
+      walk(json.config, ["config"]);
+      const strip = (l) => STRIP[lang].reduce((t, m) => (t.endsWith(m) ? t.slice(0, -m.length) : t), l);
+      const twoLabels = Object.entries(fields).filter(([, occ]) => new Set(occ.map(([, l]) => l)).size > 1).map(([f]) => f);
+      check(`UX-HEALTH A: every options-flow entity field has one label in ${lang}`,
+        Object.keys(fields).length > 0 && twoLabels.length === 0, `two labels: ${twoLabels.join(", ")}`);
+      const owning = (occ) => (occ.find(([p]) => !p.some((x) => SHORTCUT.has(x))) || occ[0])[1];
+      const off = Object.entries(fields).filter(([f, occ]) => tbl[lang][`health.input_${f}`] !== strip(owning(occ)))
+        .map(([f, occ]) => `${f}: card "${tbl[lang][`health.input_${f}`]}" vs "${strip(owning(occ))}"`);
+      const extra = Object.keys(tbl[lang]).filter((k) => /^health\.input_.+_entity$/.test(k) && !(k.slice(13) in fields));
+      check(`UX-HEALTH A: the card's ${lang} input labels are the options flow's, marker stripped, and no others`,
+        off.length === 0 && extra.length === 0, `${off.join("; ")} | extra ${extra.join(",")}`);
+    }
+  }
+
+  // Item 5: what a learner's phase is (learner_progress), and one COP reading
+  // behind both rows that show it.
+  {
+    const metered = modelStates;
+    const unmetered = modelStates();
+    unmetered[DEFAULT_SPACE].attributes.setup_topology.slots[2].entity = null;
+    const lp = (house) => ({ heat_loss: { scale: 1.0, samples: 3, learned: false }, learner_progress: { house } });
+    const settling = rowOf(modelOf(metered(lp({ phase: "settling", progress: 0.5, eta_days: 12, samples: 40 }))), "heat_loss");
+    check("UX-HEALTH D: a settling learner shows its progress and never a day figure",
+      /Settling on its value: 50 %/.test(settling) && !/day/i.test(settling), settling);
+    const counting = rowOf(modelOf(metered(lp({ phase: "counting", progress: 0.25, eta_days: 12, samples: 5 }))), "heat_loss");
+    check("UX-HEALTH D: a counting learner shows its progress and the days until its gate",
+      /25 %/.test(counting) && /About 12 days until learned/.test(counting), counting);
+    const waiting = rowOf(modelOf(metered(lp({ phase: "waiting", progress: null, waiting_for: "colder", samples: 0 }))), "heat_loss");
+    check("UX-HEALTH D: a waiting learner says what it waits for in words",
+      /Waiting: it learns when it is cold enough outside/.test(waiting) && !/colder/.test(waiting), waiting);
+    check("UX-HEALTH D: a learner that is off has no row",
+      !/data-model-row="gains"/.test(modelOf(metered({ learner_progress: { gains: { phase: "off", samples: 0 } } }))));
+    const nometer = rowOf(modelOf(unmetered), "heat_loss");
+    check("UX-HEALTH D: with no power meter the heat loss is not called learned",
+      /Not observable without a power meter/.test(nometer) && !/Learned from/.test(nometer), nometer);
+    check("UX-HEALTH D: a metered install's learned heat loss still says learned (null control)",
+      /Learned from 21 samples/.test(rowOf(modelOf(metered()), "heat_loss")));
+    const sc = healthStates();
+    sc[`${PFX}_plan_optimization_score`].attributes.reasons.overall = "heat_loss_learning";
+    const scoreRow = pageOf(mkHealth(sc).html());
+    check("UX-HEALTH D: the waiting score says its own sensor's reason",
+      /Optimization score<span class="adv-sub">Still learning the house&#39;s heat loss\.|Optimization score<span class="adv-sub">Still learning the house's heat loss\./.test(scoreRow),
+      scoreRow.slice(scoreRow.indexOf("Optimization score"), scoreRow.indexOf("Optimization score") + 120));
+
+    // Carry 14: the score's hover explains every sub-score's metric, not
+    // only the house's, beside each grade and its reason.
+    const sh = healthStates();
+    sh[`${PFX}_plan_optimization_score`] = { state: "62", last_updated: "t1", attributes: {
+      envelope: 55, machine: null, operation: 70, reasons: { machine: "cop_watch_learning" }, envelope_drivers: [] } };
+    const hv = mkHealth(sh);
+    hv.c.dialog.page = "plan";
+    hv.c._render();
+    const hoverHtml = hv.html();
+    const partsMissing = ["envelope", "machine", "operation"].filter((k) =>
+      !hoverHtml.includes(fn("STRINGS").en[`score.part_${k}`].replace(/&/g, "&amp;").replace(/"/g, "&quot;").slice(0, 40)));
+    check("UX-HEALTH F: the score hover explains every sub-score's metric",
+      partsMissing.length === 0, `missing ${partsMissing.join(",")}`);
+    const copRow = (cop) => rowOf(modelOf(modelStates({ cop })), "cop");
+    const young = copRow({ scale: 1.0, watched_buckets: 0, alarm: false });
+    check("UX-HEALTH E: an unwatched COP is a dash with the reason, never Normal",
+      !/Normal/.test(young) && /—/.test(young) && /Not enough COP data yet/.test(young), young);
+    for (const obs of ["not_measurable", "no_electric_meter"]) {
+      const r = copRow({ scale: 1.0, watched_buckets: 3, alarm: false, cop_observability: obs });
+      check(`UX-HEALTH E: ${obs} reads as such even with watched buckets, never Normal`,
+        !/Normal/.test(r) && r.includes(fn("STRINGS").en[`health.cop_reason_${obs}`].replace(/'/g, "&#39;").slice(0, 30))
+        || (!/Normal/.test(r) && r.includes(fn("STRINGS").en[`health.cop_reason_${obs}`].slice(0, 30))), r);
+    }
+    const span = copRow({ scale: 1.0, watched_buckets: 0, cop_refusal: "span_open" });
+    check("UX-HEALTH E: a refusal reads in words, not as its code",
+      /Waiting for the meter span to close/.test(span) && !/span_open/.test(span), span);
+    const odd = copRow({ scale: 1.0, watched_buckets: 0, cop_refusal: "zz_new_code" });
+    check("UX-HEALTH E: an unknown refusal code reads as not enough data, never raw",
+      /Not enough COP data yet/.test(odd) && !/zz_new_code/.test(odd), odd);
+    const both = copRow({ scale: 1.0, watched_buckets: 0, cop_observability: "awaiting_draw_evidence", cop_refusal: "duty_floor" });
+    check("UX-HEALTH E: the learner's own refusal is said before the gate's wait for draw evidence",
+      /ran too little/.test(both) && !/Waiting to see whether/.test(both), both);
+    const awaiting = copRow({ scale: 1.0, watched_buckets: 0, cop_observability: "awaiting_draw_evidence" });
+    check("UX-HEALTH E: with no refusal the gate's wait for draw evidence is said",
+      /Waiting to see whether the power draw follows the plan/.test(awaiting), awaiting);
+    const aged = copRow({ scale: 0.97, watched_buckets: 2, measured_cop_at: new Date(FROZEN - 2 * 3600e3).toISOString() });
+    check("UX-HEALTH E: the latched COP shows its age", /Measured 2 h ago/.test(aged), aged);
+    check("UX-HEALTH E: a watched COP still reads Normal (null control)",
+      /Normal \(COP scale 0\.97\)/.test(copRow({ scale: 0.97, watched_buckets: 2, alarm: false })));
+    const hm = copRow({ scale: 1.02, watched_buckets: 3, cop_observability: "heat_metered", cop_refusal: "span_open" });
+    check("UX-HEALTH E: a heat-metered COP with an open span stays Normal and names its meter (carry 11)",
+      /Normal \(COP scale 1\.02\)/.test(hm) && /Measured by the heat meter/.test(hm), hm);
+    const nm = modelStates({ cop: { scale: 1.0, watched_buckets: 3, cop_observability: "not_measurable" } });
+    const nmPage = pageOf(mkHealth(nm).html());
+    const learnCop = (/Heat pump COP<span class="adv-sub">([^<]*)</.exec(nmPage) || [])[1] || "";
+    check("UX-HEALTH E: the learning row says the same COP reason as the model row",
+      /^Not measurable here/.test(learnCop) && !/Needs a power meter/.test(nmPage), learnCop);
+    // Every code the COP gate and the heat counter publish has words in both
+    // languages; the count is asserted non-zero so a grep miss cannot pass.
+    const pySrc = ["accuracy.py", "heat_energy.py"].map((f) => fs.readFileSync(`custom_components/heatpump_optimizer/${f}`, "utf8")).join("\n");
+    const copCodes = [...pySrc.matchAll(/^(?:COP_(?:HEAT|DRAW|NOT|NO_ELECTRIC)[A-Z_]*|COP_REFUSED_[A-Z_]+|SPAN_REFUSED_[A-Z_]+) = "(\w+)"/gm)].map((m) => m[1]);
+    for (const lang of ["en", "sv"]) {
+      const missing = copCodes.filter((c) => !fn("STRINGS")[lang][`health.cop_reason_${c}`]);
+      check(`UX-HEALTH E: every published COP code has its own ${lang} words`,
+        copCodes.length > 0 && missing.length === 0, `${copCodes.length} codes; missing ${missing.join(",")}`);
+    }
+  }
+
+  // Items 4 and 7, and #2809/#2815: Show lands on this entry's entities;
+  // Download diagnostics saves the entry's file through the authenticated
+  // endpoint and falls back to the entry page; the debug collection row.
+  {
+    const ENTRY_ID = "01HEALTHENTRY";
+    const callWS = async (m) => ({ entity_id: m.entity_id, config_entry_id: ENTRY_ID });
+    const pressAct = async (h, act) => {
+      const b = h.c.shadowRoot.querySelector(`[data-act="${act}"]`);
+      if (b) await Promise.all((b._listeners.click || []).map((f) => f({ stopPropagation() {}, detail: 1 })));
+      return !!b;
+    };
+    const tick = () => new Promise((r) => setTimeout(r, 0));
+    const went = [];
+    const savedNav = ctx.navigateTo;
+    ctx.navigateTo = (p, d) => went.push([p, d]);
+    try {
+      const sh = mkHealth(healthStates());
+      sh.c.hass = { ...sh.c.hass, callWS };
+      await pressAct(sh, "show_entities");
+      await tick();
+      check("UX-HEALTH G: Show opens this entry's entity table, disabled entities included",
+        went.some(([p]) => p === fn("haLink")("entities", ENTRY_ID)), JSON.stringify(went));
+      const savedURL = ctx.URL, savedTimeout = ctx.setTimeout;
+      ctx.URL = { createObjectURL: () => "blob:hpo-diag", revokeObjectURL() {} };
+      ctx.setTimeout = () => 0;
+      try {
+        for (const [status, ok] of [[200, true], [403, false]]) {
+          went.length = 0;
+          const fetched = [];
+          const dg = mkHealth(healthStates());
+          dg.c.hass = { ...dg.c.hass, callWS,
+            fetchWithAuth: async (path) => { fetched.push(path); return { ok, status, blob: async () => "{}" }; } };
+          await pressAct(dg, "diagnostics");
+          await tick();
+          check(`UX-HEALTH G: Download diagnostics fetches the entry's endpoint (${status})`,
+            fetched[0] === `/api/diagnostics/config_entry/${ENTRY_ID}`, JSON.stringify(fetched));
+          check(ok ? "UX-HEALTH G: a 200 saves the file through navigateTo's download mode"
+            : "UX-HEALTH G: a refused fetch falls back to the entry page",
+          ok ? went.length === 1 && went[0][0] === "blob:hpo-diag" && /\.json$/.test(went[0][1] || "")
+            : went.length === 1 && went[0][0] === fn("haLink")("options", ENTRY_ID) && !went[0][1], JSON.stringify(went));
+        }
+      } finally {
+        if (savedURL === undefined) delete ctx.URL; else ctx.URL = savedURL;
+        ctx.setTimeout = savedTimeout;
+      }
+    } finally { ctx.navigateTo = savedNav; }
+    // navigateTo's download mode clicks an anchor and pushes no route.
+    {
+      const savedDoc = ctx.document, savedHist = ctx.history;
+      const pushed = [], made = [];
+      ctx.document = { createElement: (t) => { const a = { tag: t, click() { a.clicked = true; } }; made.push(a); return a; } };
+      ctx.history = { pushState: (_a, _b, p) => pushed.push(p) };
+      try { fn("navigateTo")("blob:x", "f.json"); } finally { ctx.document = savedDoc; ctx.history = savedHist; }
+      check("UX-HEALTH G: navigateTo's download mode saves through an anchor and pushes no route",
+        made.length === 1 && made[0].href === "blob:x" && made[0].download === "f.json" && made[0].clicked && pushed.length === 0,
+        JSON.stringify({ made, pushed }));
+    }
+
+    const FINAL = { active: false, final: true, rows: 40, bytes: 9000, started_at: new Date(FROZEN - 864e5).toISOString() };
+    const debugPage = async (answer) => {
+      const calls = [];
+      const h = mkHealth(healthStates());
+      h.c.hass = { ...h.c.hass, callWS,
+        callService: async (...a) => { calls.push(a); return typeof answer === "function" ? answer(a) : answer; } };
+      h.c._debugAt = 0;
+      h.c._render();
+      for (let i = 0; i < 4; i++) await tick();
+      return { h, calls, state: () => (/data-debug="(\w+)"/.exec(h.html()) || [])[1] };
+    };
+    const fin = await debugPage({ context: { id: "c" }, response: { debug: { [ENTRY_ID]: FINAL } } });
+    check("UX-HEALTH H: the collection status is asked of debug_collect with a response, for this entry",
+      fin.calls.some((a) => a[1] === "debug_collect" && a[2].action === "status" && a[2].entry_id === ENTRY_ID && a[5] === true),
+      JSON.stringify(fin.calls));
+    check("UX-HEALTH H: a finished collection reads finished with its records",
+      fin.state() === "final" && /Finished with 40 records/.test(fin.h.html()), fin.state());
+    const before = fin.calls.length;
+    await pressAct(fin.h, "debug_start");
+    check("UX-HEALTH H: the first Start on a finished collection only says it would discard it",
+      fin.calls.length === before && /discards the finished collection/.test(fin.h.html()));
+    await pressAct(fin.h, "debug_start");
+    check("UX-HEALTH H: the second Start starts it",
+      fin.calls.slice(before).some((a) => a[1] === "debug_collect" && a[2].action === "start"), JSON.stringify(fin.calls.slice(before)));
+    for (const [what, answer] of [["flat at the top level", { final: true, rows: 40 }],
+      ["without the response wrapper", { debug: { [ENTRY_ID]: FINAL } }],
+      ["keyed by another entry", { context: {}, response: { debug: { OTHER: FINAL } } }]]) {
+      check(`UX-HEALTH H: a status ${what} reads off, never finished`, (await debugPage(answer)).state() === "off");
+    }
+    const act = await debugPage({ response: { debug: { [ENTRY_ID]: { ...FINAL, active: true, final: false } } } });
+    check("UX-HEALTH H: an active collection shows no Start",
+      act.state() === "active" && !/data-act="debug_start"/.test(act.h.html()));
+  }
+
+  // P08/P41: a place the Setup page names is labelled through placeLabel,
+  // and an id it has no label for stays as itself rather than going blank.
+  check("placeLabel names a known place and keeps an unknown id as itself",
+    fn("placeLabel")("wood_tank") === fn("STRINGS").en["places.wood_tank"] && fn("placeLabel")("garage_loop") === "garage_loop",
+    `${fn("placeLabel")("wood_tank")} / ${fn("placeLabel")("garage_loop")}`);
+
   // The other four tabs still render.
   for (const [page_, marker] of [["plan", /stat-row|tile/], ["setup", /setup-page/],
     ["savings", /savings/i], ["advisor", /advisor-page/]]) {
@@ -12183,15 +12452,13 @@ check("without an indoor reading the corner now label is absent",
 {
   const ENTRY = "01JDEEPLINKENTRY";
   const BARE = "/config/integrations/integration/heatpump_optimizer";
-  const PENDING = {
-    "health:settings": { group: "R10-UX-HEALTH", path: BARE },
-    "health:diagnostics": { group: "R10-UX-HEALTH", path: BARE },
-  };
+  const PENDING = {};
   const haLink = fn("haLink");
   const BIN = "binary_sensor.heat_pump_optimizer_input_problem";
   // Every `act` branch the card's source can dispatch, by name.
   const ACTS = ["assign", "apply_dhw", "apply_valve", "try_degree", "adopt_refit",
-    "restore_snapshot", "settings", "open_options", "dismiss_feedback", "diagnostics", "add", "remove"];
+    "restore_snapshot", "show_entities", "open_options", "dismiss_feedback", "diagnostics", "debug_start",
+    "add", "remove"];
   const srcActs = [...new Set([...cardSrc.matchAll(/\bact\s*===\s*"([a-z_]+)"/g)].map((m) => m[1])
     .concat([...cardSrc.matchAll(/data-act="([a-z_]+)"/g)].map((m) => m[1])))].sort();
   const sourceOnly = srcActs.filter((a) => !ACTS.includes(a));
@@ -12681,6 +12948,12 @@ check("without an indoor reading the corner now label is absent",
           { key: "outdoor_temp_entity", label: "Outdoor temperature",
             priced: false, reason: "weather_backed" }] };
       } },
+    // R10-UX-HEALTH H: the debug collection row finished (its Start arms a
+    // confirm) and off (its Start starts).
+    { name: "health+debug_final", page: "health", prep: (c) => {
+      c._debug = { active: false, final: true, rows: 40, bytes: 9000, started_at: null };
+      c._debugAt = Date.now(); c._render(); } },
+    { name: "health+debug_off", page: "health", prep: (c) => { c._debug = null; c._debugAt = Date.now(); c._render(); } },
     { name: "setup+picker", page: "setup", prep: (c) => press(c, ".setup-hit") },
     { name: "setup+layout", page: "setup", prep: (c) => press(c, ".layout-edit-toggle") },
     { name: "editor", make: () => {
