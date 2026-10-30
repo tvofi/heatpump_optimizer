@@ -1,0 +1,12 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 092064f91..7c3234aa8 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -9605,7 +9605,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+ 
+     async def _resolve_away(self) -> None:
+         """Work out whether the house is empty, and when it must be warm again."""
+-        await boost.session_restored(self)  # read after the stored override lands, as writers do (L3)
+         ctx = getattr(self, "_ctx", self)
+         config = away_mode.config_from_mapping(ctx._config)
+         now = dt_util.now()

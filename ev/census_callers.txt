@@ -1,0 +1,18 @@
+custom_components/heatpump_optimizer/coordinator.py:1187:    share = draw_range.space_share(a.space, a.dhw)
+custom_components/heatpump_optimizer/coordinator.py:5779:            boost.apply(
+custom_components/heatpump_optimizer/coordinator.py:6217:            boost.note_mode_boost_ended(self)
+custom_components/heatpump_optimizer/coordinator.py:6648:        if boost.space_learning_frozen(self):
+custom_components/heatpump_optimizer/coordinator.py:9808:                    boost_space=boost.interval_boosted(pending, self),
+custom_components/heatpump_optimizer/coordinator.py:9876:            "boost_space": boost.space_boost_active(self),
+custom_components/heatpump_optimizer/coordinator.py:10011:        if boost.space_boost_active(self):
+custom_components/heatpump_optimizer/coordinator.py:10100:        dhw_share = heat_energy.dhw_share(
+custom_components/heatpump_optimizer/draw_range.py:326:    return running_kw(draw, drawn_kw) * space_share(*split) if space_served else 0.0
+custom_components/heatpump_optimizer/optimizer.py:5320:                w_i = wood_share(
+custom_components/heatpump_optimizer/pump_arbiter.py:43:A block drops its duty out of :func:`_planned_duty` and again out of
+custom_components/heatpump_optimizer/pump_arbiter.py:105:both (:func:`_planned_duty`). Turning it off writes nothing.
+custom_components/heatpump_optimizer/pump_arbiter.py:688:    silent = _silent_target(coord, inp, now)
+custom_components/heatpump_optimizer/pump_arbiter.py:1065:    if boost.release_blocked(coord, inp, now):
+custom_components/heatpump_optimizer/pump_arbiter.py:1066:        await boost.persist(coord)
+custom_components/heatpump_optimizer/pump_arbiter.py:1068:        inp, held, _without_block(coord, _planned_duty(coord, inp, now), now), now,
+custom_components/heatpump_optimizer/pump_arbiter.py:1076:        desired(coord, inp, _without_block(coord, _share(coord, inp, duty, now), now), now),
+custom_components/heatpump_optimizer/thermal_model.py:1955:        w = wood_share(T_w, T_buf, flow_set, floor_temp)
