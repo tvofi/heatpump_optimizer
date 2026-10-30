@@ -1721,7 +1721,7 @@ class DhwPlanner:
                     0.5,
                 )
                 needed = added_power_for_heat_per_cop_kw(
-                    params, plan[j], float(deficit[b]) * c_dhw / max(dt * cop_j, 1e-6))
+                    params, plan[j], float(deficit[b]) * c_dhw / (dt * cop_j))
                 # The room bound is sized against the HIGHEST COP that could
                 # apply at this step, not the marginal one used to size the
                 # need: the simulation delivers `compute_cop_dhw` thermal kWh
