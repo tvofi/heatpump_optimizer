@@ -347,7 +347,7 @@ Role: dev/governance/roles/root-cause.md. |  |
 | R10-FLY-SEAT-ALIVE-ID | IN | 1 | not-started | - | sonnet/opus | - | From triage P299 (orchestrator s8, 2026-10-30T09:33Z), re-routing two carries R10-ORCH-BEATD closed without building (done at #2916; `git grep 'seat-alive' -... |  |
 | R10-FLY-BUS-BASH32 | IN | 1 | not-started | - | sonnet/opus | - | From triage P303 (orchestrator s8, 2026-10-30T09:54Z): tools/audit/seat/bus.sh orphans dies on macOS /bin/bash 3.2.57 under `set -uo pipefail` (line 135) wit... |  |
 | R10-ARCH-DOCS-WIRING | DOCS | 1 | in-progress | - | opus/opus | - | Split from R10-ARCH-DOCS by lever L4 (tvofi, 2026-10-30, #201 comment 6527969942). |  |
-| R10-HOTFIX-AWAY-SETBACK | CORE | 1 | not-started | - | opus/opus | - | Hotfix from a live user finding (tvofi, 2026-10-30, #201 comment 6528614583): with away mode on, the plan kept heating slots. |  |
+| R10-HOTFIX-AWAY-SETBACK | CORE | 1 | in-progress | - | opus/opus | - | Hotfix from a live user finding (tvofi, 2026-10-30, #201 comment 6528614583): with away mode on, the plan kept heating slots. |  |
 | R10-HOTFIX-AWAY-LIVE | CORE | 1 | not-started | - | opus/opus | - | Hotfix from a live user defect (tvofi, 2026-10-30): the away switch's override persisted in the away store (active, with a return time) while the coordinator... |  |
 | R10-README-GRAPHICS | PR | 1 | not-started | - | sonnet/opus | - | the Home Assistant Marketplace repository page does not show the front-page README graphics. |  |
 | R10-HOTFIX-LEARNER-INPUTS | CORE | 1 | not-started | - | opus/opus | - | Measure-first hotfix from a live user finding (tvofi, 2026-10-30). |  |
