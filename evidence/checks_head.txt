@@ -1,0 +1,5 @@
+check-runs at c2578bfa2cbdb6e367cc77cd58afbd52378f3d00 (read 2026-10-30, PR check-runs API): total 42, all completed;
+conclusion success or skipped for every run, none failure/cancelled/timed_out.
+gate 123988136700 success; pr-contract 123987849328 success (started 09:25:05Z, after every other run concluded);
+validate-hacs 123973049309 success; hassfest 123973049429 success; mutation 123973049233 success;
+nightly-status 123973049267 success; budget-raise-gate success; arch-score success.

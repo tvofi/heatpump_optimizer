@@ -1,19 +1,12 @@
-== ls-tree E total
-119233983
-== ls-tree E dev
-88090351
-== archive tar E
-125255680
-== archive tar H
-125317120
-== zip H subdir
-1405314
-== ls-tree H subdir
-4317629
-== unzip
-Archive:  /tmp/hpo.zip
-  Length      Date    Time    Name
----------  ---------- -----   ----
-    19340  2026-10-30 07:01   __init__.py
-    39461  2026-10-30 07:01   accuracy.py
-  4317629                     105 files
+tracked e5ddba1fa: 119233983
+dev e5ddba1fa: 88090351
+tar e5ddba1fa: 125255680
+tar e5cdf4316: 125265920
+tar HEAD c2578bf: 125562880
+zip HEAD: 1406807
+unpacked HEAD: 4322263
+unpacked e5cdf4316: 4317032
+zip e5cdf4316: 1404633
+      639  2026-10-30 10:02   manifest.json
+C111 external links:
+27
