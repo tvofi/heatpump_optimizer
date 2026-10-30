@@ -116,7 +116,7 @@ class VirtualBattery:
     @property
     def charge_rate_kw(self) -> float:
         """Thermal charge rate: what the compressor can actually put in."""
-        return max(self.cop, 0.1) * self.charge_heat_per_cop_kw
+        return (self.cop) * self.charge_heat_per_cop_kw
 
     @property
     def discharge_rate_kw(self) -> float:
