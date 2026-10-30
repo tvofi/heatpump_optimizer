@@ -6,11 +6,11 @@ The record is `dev/audit/rca/R10-RCA-PREPR-HEAD-GRADERS.md`; `dev/audit/config/b
 
 ## Delta since the last body
 
-The last body described `f2daca863`. The arm code (`tools/pr/ci_predict.py`, `tools/policy/`, the drivers) is byte-identical at this head; `git diff 7d1fbc055 HEAD -- tools/pr/ci_predict.py tools/policy dev/audit/rca/prepr-head-graders` prints nothing. The delta `f2daca863...34abdd2ea` is one commit, `34abdd2ea`: it routes the record's section 7 lines for the three restoring jobs outside governance.yml (`briefs` in tests.yml, `pr-contract`, `budget-raise-gate`) to the roster group R10-FLY-CIPREDICT-RESTORING (#2952; its brief is on `handoff/audit-r10-roster` at `0cdedcc9c`) instead of a carry file, and removes `dev/programme/carries/carry-2952.json` and its `tests/closures.json` entry, since the roster brief now holds the enumeration rule. No code changes.
+The last body described `34abdd2ea`; PR head `5a1d1e097` merged main after it. The arm code (`tools/pr/ci_predict.py`, `tools/policy/`, the drivers) is unchanged; `git diff 5a1d1e097 HEAD -- tools/pr/ci_predict.py tools/policy dev/audit/rca/prepr-head-graders` prints nothing. The delta since PR head `5a1d1e097`, the round-9 block, is one commit, `7e2346d0e`, in `dev/audit/rca/R10-RCA-PREPR-HEAD-GRADERS.md` only: the two lines that named the issue number now state the destination as the roster group R10-FLY-CIPREDICT-RESTORING, the carry having once pointed at an issue and now living in that group. No code changes.
 
 ## Head
 
-`34abdd2eabf88c3083537bf7315cb1a2b6768317` (code tip of `handoff/r10-rca-prepr-head-graders`; its first parent is PR head `f2daca863`), measured against `origin/main` `2fde52634` (2026-10-29), merge-base `ce5940c0d`. `git merge-tree --write-tree origin/main HEAD` exits 0: no conflict. `VERSION`, the manifest, `RELEASE_NOTES.md` and both claim files are untouched.
+`7e2346d0e385aa9a72cd5ce4374801d0ef9f43c2` (code tip of `handoff/r10-rca-prepr-head-graders`), measured against `origin/main` `c0a1d4635` (2026-10-30), merge-base `26c9d22a3`. `git merge-tree --write-tree origin/main HEAD` exits 0: no conflict. `VERSION`, the manifest, `RELEASE_NOTES.md` and both claim files are untouched.
 
 ## Mutation proof
 
@@ -27,7 +27,7 @@ Run with `python3 -I dev/audit/rca/prepr-head-graders/mutants.py .`. Each mutant
 - No real run line has an unmapped token. A planted `$ODD` token and a dropped exemption are each named as a gap.
 - `corpus_excluded.json` keys no job, and a restored path the base tip lacks keys no job.
 - `keycount.py`'s null pathspec keys 0 of 584 merges.
-- `34abdd2ea` changes no code: `git diff f2daca863 34abdd2ea --stat` names only the record, the removed carry file and `tests/closures.json`.
+- `7e2346d0e` changes no code: `git diff 5a1d1e097 7e2346d0e --stat` names only the record.
 
 ## Figures
 
