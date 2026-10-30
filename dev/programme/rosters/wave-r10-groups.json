@@ -12453,6 +12453,49 @@
     "note": "2026-10-30 owner request (tvofi): README graphics in the HA Marketplace; pre-study at handoff-body/r10-readme-graphics"
    },
    "brief": "Owner request, 2026-10-30 (tvofi): the Home Assistant Marketplace repository page does not show the front-page README graphics. Pre-study at handoff-body/r10-readme-graphics, measured against homeassistant 2026.11.0b1 and home-assistant-frontend 20261028.1. Its core finding: the Marketplace sanitizer (js-xss safeAttrValue in the frontend markdown worker) blanks every src and href that is not absolute and does not start with ./ or ../ or /, before its URL rewriter runs. So every repository-relative image and link in README.md renders broken, and mermaid fences show as plain code. (1) Prefix every repository-relative link and image target in README.md with ./ so GitHub, tools/site/build_docs.mjs and the Marketplace all resolve it. (2) For each mermaid block in README.md, commit a pre-rendered PNG (2x, opaque, light) rendered with the mermaid pinned in tools/site through Chromium on the pattern of docs/img/readme/render.mjs. Place it as a ./ markdown image directly above the block, and close that block's details element. The setup-flow block stays identical to docs/configuration.md and docs/setup.md. (3) Add an arm to tests/doc_claims.py that refuses a bare-relative src, href or srcset in README.md, and refuses a mermaid block whose figure is missing or whose recorded source hash (a sidecar manifest the generator writes) differs from the block. Show a planted one-character block edit red, a planted prefix removal red, and the unchanged tree green. (4) Classify the new manifest and figures as reads of tests/doc_claims.py in tests/closure.py, the route docs/img/brand/coffee.svg took. Finder's harness: a replica of the Marketplace markdown pipeline under dev/audit/harnesses/, red at the base and green at the head, with an absolute-URL image as the null control. Out of scope: picture elements with dark sources (needs a code-owned tools/site/ change), docs other than README.md, VERSION and release notes. Must merge before R10-ARCH-DOCS and R10-CATALOG-PR: the Marketplace fetches README.md at the release tag, so only a stamped release shows the fix."
+  },
+  {
+   "group": "R10-HOTFIX-LEARNER-INPUTS",
+   "lane": "CORE",
+   "kind": "bug",
+   "class": "correctness",
+   "severity": "high",
+   "size": "M",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 1,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/thermal_model.py",
+    "tests/features.py"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-hotfix-learner-inputs",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a local fixer (measure first)",
+    "note": "live user finding tvofi 2026-10-30; probe handoff-body/r10-live-plan-energy 7c4e639e"
+   },
+   "brief": "Measure-first hotfix from a live user finding (tvofi, 2026-10-30). The owner's two-zone house plans about 67 kWh of space heat a day at 20-22 C indoor and about 6 C outdoor. The probe report at handoff-body/r10-live-plan-energy 7c4e639e49214592ef2ef2ddd48df522a3efd2cd shows the plan follows from an effective UA of 0.641 kW/K. That is the configured nameplates times a learned house_heat_loss_scale of 1.2356, times a learned lower_floor_loss_ratio of 1.943; the ratio alone adds about 17 kWh a day. Two candidate learner-input defects, to measure and fix at their seam. (1) The heat-loss learner takes the configured heat-pump power entity as metered evidence (the stored basis reads metered). The owner's entity is the pump's own estimated power draw, not a meter. If the integration cannot tell an estimate from a meter, an overstating estimate inflates UA by the same factor. Measure how the basis is assigned and whether an estimate-class entity is, or can be, recognised. If it can, give an estimated basis lower trust, or none, and state the rule. (2) Changing indoor_temp_entity or lower_floor_temp_entity does not void the heat-loss scale or the lower-floor ratio, so evidence fitted against one sensor carries over to a sensor in a different place. The owner moved T6 from indoor to lower floor. Void the affected learner's evidence on an entity-id change, through the same path as the basis voiding in the house-heat-loss re-anchor. Failing tests first, through the production coordinator, never a re-implemented formula. Controls: an entity swap resets the affected learner's samples and confidence and leaves the other learner untouched; null control: an unrelated options change leaves both learners intact; for (1), a meter-class entity keeps today's behaviour. One mutant per gate. Out of scope: the preheat_weather label, carried to R10-ARCH-SHAPES-CLASSIFIER, and the owner's own nameplate values."
   }
  ]
 }
