@@ -1,0 +1,8 @@
+docs/img/readme/mermaid-how-the-pieces-fit-dark.png: PNG image data, 2296 x 806, 8-bit/color RGB, non-interlaced
+docs/img/readme/mermaid-how-the-pieces-fit.png:      PNG image data, 2296 x 806, 8-bit/color RGB, non-interlaced
+docs/img/readme/mermaid-one-interval-dark.png:       PNG image data, 2296 x 1434, 8-bit/color RGB, non-interlaced
+docs/img/readme/mermaid-one-interval.png:            PNG image data, 2296 x 1434, 8-bit/color RGB, non-interlaced
+docs/img/readme/mermaid-setup-flow-dark.png:         PNG image data, 2296 x 5986, 8-bit/color RGB, non-interlaced
+docs/img/readme/mermaid-setup-flow.png:              PNG image data, 2296 x 5986, 8-bit/color RGB, non-interlaced
+docs/img/readme/how-it-works-dark.png:               PNG image data, 2400 x 880, 8-bit/color RGBA, non-interlaced
+docs/img/readme/how-it-works.png:                    PNG image data, 2400 x 880, 8-bit/color RGBA, non-interlaced
