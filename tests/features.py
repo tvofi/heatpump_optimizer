@@ -67096,6 +67096,25 @@ R.check(
     _cf_sw[0][1] == 0.0 and _cf_sw[1].observed and _cf_sw[2] == 0 and _cf_all[2] == 1,
     f"switch-back {_cf_sw} / all-space {_cf_all}",
 )
+# Both of the gate's bounds at equality, through the real dwell. A window of
+# exactly 1e-6 h (3.6 ms) is the "no weight" bound and folds nothing; 2e-6 h
+# folds (null). A hot-water share of exactly _COP_CURVE_SHARE (0.15 h of 1 h)
+# is still the space curve's duty and folds; 0.16 h does not (null).
+_cf_w0, _cf_w1 = _cf_fl_window(0.0, 1e-6), _cf_fl_window(0.0, 2e-6)
+R.check(
+    "the flow-lift gate's no-weight bound is inclusive: a 1e-6 h window "
+    "folds nothing, a 2e-6 h window folds one (null)",
+    _cf_w0[1].space + _cf_w0[1].dhw == 1e-6 and _cf_w0[2] == 0 and _cf_w1[2] == 1,
+    f"1e-6 h {_cf_w0} / 2e-6 h {_cf_w1}",
+)
+_cf_s15, _cf_s16 = _cf_fl_window(0.15, 0.85), _cf_fl_window(0.16, 0.84)
+R.check(
+    "a hot-water share exactly at the curve share still folds; just above "
+    "it does not (null)",
+    _cf_he.dhw_share(_cf_s15[1]) == Coord._COP_CURVE_SHARE
+    and _cf_s15[2] == 1 and _cf_s16[2] == 0,
+    f"0.15 {_cf_s15} / 0.16 {_cf_s16}",
+)
 
 # The refusal is published where Home Assistant does not hide it: the
 # observed-COP sensor is unavailable exactly while this is the explanation,
