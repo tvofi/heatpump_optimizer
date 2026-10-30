@@ -3214,7 +3214,10 @@ NAMED_DOCS = ("docs/architecture.md", "dev/README.md")
 PKG_REL = "custom_components/heatpump_optimizer"
 LEDGER = "tools/audit/seat/ledger.py"
 _FILE = re.compile(r"(?<![\w/.-])((?:[\w.-]+/)*[\w-]+\.(?:py|sh|mjs|js|json|ya?ml|md|toml))(?![\w/-])")
-_ARG = re.compile(r"--[a-z][\w-]*|[a-z][a-z0-9]*(?:-[a-z0-9]+)*")
+# the lower-case kebab word: an argument after a script, and the diagram node that names a job; the job resolver,
+# not this shape, decides whether that job exists
+_WORD = re.compile(r"[a-z][a-z0-9]*(?:-[a-z0-9]+)*")
+_ARG = re.compile(r"--[a-z][\w-]*|" + _WORD.pattern)
 _CAMEL = re.compile(r"(?<![\w.])([A-Z][a-z0-9]+(?:[A-Z][a-z0-9]*)+)(?:\.([a-z_]\w*))?")
 _CHECK_NAME = re.compile(r"([\w-]+) / ([\w-]+)(?: \(([^)]+)\))?")
 _KIND = re.compile(r"[a-z]+(?:-[a-z]+)+")
@@ -3391,7 +3394,7 @@ def named_element_findings(docs: dict[str, str], tree: set[str], read
                     have = set(re.findall(r"^([a-z_]\w*):", read(f"{PKG_REL}/services.yaml") or "", re.M))
                     for svc in re.findall(r"[a-z_]+", lab[len("services:"):].replace("<br/>", " ")):
                         judge(doc, groups, f"service `{svc}`", None if svc in have else f"is not in {PKG_REL}/services.yaml")
-                if flows and re.fullmatch(r"[a-z][a-z0-9-]*", segs[0]):
+                if flows and _WORD.fullmatch(segs[0]):
                     stem = flows[0].rsplit("/", 1)[-1][:-4]
                     job(doc, groups, stem, segs[0], None)
             for line in body.splitlines():
@@ -3559,6 +3562,7 @@ def check_named_elements() -> None:
             "- The ledger, `tools/audit/seat/ledger.py`:\n  - kinds: `handoff-no-pr`, `train-stop`\n"
             "  - later: `record-owed` [target: R10-A]\n\n"
             "```mermaid\nflowchart LR\n    w[\"ci.yml: the umbrella\"] --> p[\"prelude<br/>kind\"]\n    p --> g[\"gate\"]\n"
+            "    g --> q[\"PUT\"]\n"
             "    m[\"mod.py<br/>ThingOne.run\"] -- \"services: do_it\" --> x[\"x.sh --once\"]\n    l[\"mod · mod\"] --> m\n```\n\n"
             "```mermaid\nsequenceDiagram\n    participant A as a\n    Note over A: handoff-no-pr closes, record-owed opens\n```\n")
     clean, pend, n = named_element_findings({"dev/README.md": base}, t, files.get)
