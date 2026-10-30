@@ -46,8 +46,9 @@ meter — is optional and can be pointed at later from the options pages.
 ## Adding the integration
 
 **Settings → Devices & services → Add integration → Heat Pump Cost
-Optimizer** (from HACS or a manual install; see the
-[README](../README.md#installation) for both).
+Optimizer** (from the Home Assistant Marketplace on 2026.11 and later, from
+HACS before it, or a manual install; see the
+[README](../README.md#installation) for all three).
 
 The first two screens are the only required answers in the whole flow. After
 them, the flow asks how you want to finish, and each of the three answers
