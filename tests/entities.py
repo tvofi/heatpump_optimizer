@@ -6170,6 +6170,31 @@ R.check(
     f"{_cg_view!r}",
 )
 
+# R10-COP-GATE part 5 (A): the observed-COP sensor is unavailable exactly when
+# the install is not measurable, so Home Assistant hides its attributes from
+# the card; the model status sensor's ``cop`` row carries the same three keys
+# under their own names, copied from the learning view, never re-derived.
+_cg_keys = ("cop_observability", "cop_refusal", "measured_cop_at")
+_cg_status_view = {
+    obs: {
+        k: sensor.ModelStatusSensor(FakeCoordinator(ent.coordinator.data), ENTRY)
+        .extra_state_attributes["cop"].get(k, "<absent>")
+        for k in _cg_keys
+    }
+    for obs, ent in _cg_cop.items()
+}
+R.check(
+    "the model status sensor's cop row carries cop_observability, "
+    "cop_refusal and measured_cop_at as the learning view publishes them, "
+    "while the not-measurable observed-COP sensor is unavailable",
+    not _cg_cop["not_measurable"].available
+    and all(
+        _cg_status_view[obs] == {k: ent.coordinator.data[k] for k in _cg_keys}
+        for obs, ent in _cg_cop.items()
+    ),
+    f"{_cg_status_view!r}",
+)
+
 # --- a failed refresh reaches every entity ----------------------------------
 R.section("A failed refresh reaches every entity")
 
