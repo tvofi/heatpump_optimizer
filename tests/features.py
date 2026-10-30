@@ -6697,6 +6697,12 @@ _grad_parity(False, label="single-zone DHW-pinned bounds shoulder",
 _grad_parity(True, valve="manual", label="two-zone capped bounds summer-cool",
              weather_p="summer_cool", bounds_over="capped",
              state_over={"room_temperature": 21.5})
+# R10-COP-PARTLOAD: the part-load derate is elementwise on the batch's power
+# rows; the twins must stay bitwise with it on, in both zonings.
+_grad_parity(False, label="single-zone part-load derate",
+             param_over={"cop_partload_derate": 0.15})
+_grad_parity(True, valve="manual", label="two-zone part-load derate",
+             param_over={"cop_partload_derate": 0.15})
 # Mutation anchor: the batch twin once applied the Carnot lift below the
 # reference flow temperature (a boost the scalar never grants) and once
 # let np.where's both-arms division poison states with 0/0 NaN -- each
@@ -9441,23 +9447,27 @@ def reachable(name: str) -> str | None:
     Booleans are probed by flipping them away from their default rather than
     by a sentinel value: the mapping coerces with ``bool()``, so any sentinel
     would come back as True and look like a match for every boolean field.
+    A field whose legal range stops at or below 0.5 on the default config
+    (the part-load derate's band limit is 4/9 on 1-5 kW) refuses that
+    sentinel, so 0.25 is tried after it.
     """
     default_value = getattr(ThermalParameters.from_config({}), name)
     if isinstance(default_value, bool):
-        sentinel = not default_value
+        sentinels = [not default_value]
     else:
-        sentinel = 0.5 if default_value != 0.5 else 0.25
+        sentinels = [v for v in (0.5, 0.25) if v != default_value]
     for candidate in dir(hp_const):
         if not candidate.startswith("CONF_"):
             continue
-        try:
-            built = ThermalParameters.from_config(
-                {getattr(hp_const, candidate): sentinel}
-            )
-        except Exception:
-            continue
-        if getattr(built, name, None) == sentinel:
-            return candidate
+        for sentinel in sentinels:
+            try:
+                built = ThermalParameters.from_config(
+                    {getattr(hp_const, candidate): sentinel}
+                )
+            except Exception:
+                continue
+            if getattr(built, name, None) == sentinel:
+                return candidate
     return None
 
 
@@ -72335,6 +72345,250 @@ R.check(
     "than falling back to the commanded inference (null control: a fresh one folds)",
     _tp_cop_stale == _TP_FROZEN and _tp_cop_fresh != _TP_FROZEN,
     f"stale {_tp_cop_stale!r} fresh {_tp_cop_fresh!r}",
+)
+
+
+# --- R10-COP-PARTLOAD: COP falls with compressor power ------------------------
+# Synthetic throughout. ``cop_partload_derate`` is the share of COP lost at max
+# power against min power (dev/audit/harnesses/r10_cop_partload.py measures it
+# on an independent cycle model). 0 is the default and must price exactly
+# ``cop * power``, so every plan is byte-identical to one with no term.
+from heatpump_optimizer.const import (  # noqa: E402
+    CONF_HEAT_PUMP_COP_PARTLOAD_DERATE as _PL_KEY,
+)
+from heatpump_optimizer.thermal_model import (  # noqa: E402
+    partload_factor as _pl_factor,
+    delivered_heat_kw as _pl_heat_of,
+)
+
+
+def _pl_model(derate, p_min=1.5, p_max=5.0):
+    return ThermalModel(ThermalParameters(
+        min_electrical_power=p_min, max_electrical_power=p_max,
+        cop_partload_derate=derate))
+
+
+_pl = _pl_model(0.12)
+_pl_f = [float(_pl_factor(_pl.params, x)) for x in (0.0, 1.0, 1.5, 3.25, 5.0, 6.0)]
+R.check(
+    "the part-load factor is 1 at and below the modulation floor, 1 - derate at "
+    "max power and linear between; a fixed-speed band prices no slope",
+    _pl_f == [1.0, 1.0, 1.0, 1.0 - 0.12 * 0.5, 1.0 - 0.12, 1.0 - 0.12]
+    and _pl_factor(_pl_model(0.12, 3.0, 3.0).params, 3.0) == 1.0,
+    f"{_pl_f}",
+)
+_pl_cop = _pl.compute_cop(5.0)
+_pl_heat = [float(_pl_heat_of(_pl.params, _pl_cop, x)) for x in (1.5, 5.0)]
+_pl_heat0 = [_pl_heat_of(_pl_model(0.0).params, _pl_cop, x) for x in (1.5, 5.0)]
+R.check(
+    "pump heat at max power carries the derate and at the floor does not; "
+    "null control: a zero derate is exactly cop * power",
+    abs(_pl_heat[1] - _pl_cop * 5.0 * 0.88) < 1e-12 and _pl_heat[0] == _pl_cop * 1.5
+    and _pl_heat0 == [_pl_cop * 1.5, _pl_cop * 5.0],
+    f"derated {_pl_heat} plain {_pl_heat0}",
+)
+_pl_state = ThermalState(room_temperature=20.0, slab_temperature=21.0,
+                         outdoor_temperature=0.0)
+_pl_step = {d: _pl_model(d).simulate_step(_pl_state, 5.0, 0.0, dt_hours=0.25).slab_temperature
+            for d in (0.0, 0.2)}
+_pl_floor = {d: _pl_model(d).simulate_step(_pl_state, 1.5, 0.0, dt_hours=0.25).slab_temperature
+             for d in (0.0, 0.2)}
+R.check(
+    "a step at max power warms the slab less with the derate on, and stays a "
+    "float; "
+    "null control: a step at the floor is unchanged",
+    _pl_step[0.2] < _pl_step[0.0] and type(_pl_step[0.2]) is float
+    and _pl_floor[0.2] == _pl_floor[0.0],
+    f"max {_pl_step} floor {_pl_floor}",
+)
+_pl_cfg = {
+    v: ThermalParameters.from_config({_PL_KEY: v}).cop_partload_derate
+    for v in (0.0, 0.1, 0.5, -0.1, 0.9, "x", None, float("nan"))
+}
+from heatpump_optimizer.thermal_model import _partload_derate as _pl_read  # noqa: E402
+R.check(
+    "a configured derate inside [0, 0.5] is taken; a negative, oversized, "
+    "non-numeric or NaN one refuses to the 0 default; the reader alone keeps "
+    "0.5 and refuses the float above it, and on the default 1-5 kW band 0.5 is "
+    "past band / (band + p_max) = 4/9 and refuses too",
+    _pl_cfg[0.0] == 0.0 and _pl_cfg[0.1] == 0.1 and _pl_cfg[0.5] == 0.0
+    and _pl_read(0.5) == 0.5 and _pl_read(float(np.nextafter(0.5, 1.0))) == 0.0
+    and all(_pl_cfg[v] == 0.0 for v in (-0.1, 0.9, "x", None))
+    and _pl_cfg[next(k for k in _pl_cfg if isinstance(k, float) and k != k)] == 0.0
+    and ThermalParameters.from_config({}).cop_partload_derate == 0.0,
+    f"{_pl_cfg}",
+)
+
+
+def _pl_ceiling(derate):
+    p = ThermalParameters(min_electrical_power=1.5, max_electrical_power=5.0,
+                          cop_partload_derate=derate)
+    p.mixing_valve_mode, p.buffer_tank_volume = "manual", 750.0
+    p.cop_flow_carnot = True
+    return _PvOpt(ThermalModel(p), _PvOptCfg())._buffer_charge_ceiling(-15.0)
+
+
+_pl_ceil = {d: _pl_ceiling(d) for d in (0.0, 0.3)}
+R.check(
+    "the buffer's charge ceiling prices the pump's max-power output with the "
+    "derate: a derated pump stops charging at a cooler tank in deep cold",
+    _pl_ceil[0.3] < _pl_ceil[0.0],
+    f"{_pl_ceil}",
+)
+
+_PL_FLAT = np.full(96, 1.6)
+_PL_T0 = datetime(2026, 1, 12, 20, 0, tzinfo=UTC)
+
+
+def _pl_solve(derate, prices):
+    p = ThermalParameters(min_electrical_power=1.5, max_electrical_power=5.0,
+                          cop_partload_derate=derate, dhw_enabled=False,
+                          house_heat_loss_scale=1.7)
+    return _PvOpt(ThermalModel(p), _PvOptCfg()).optimize(
+        inputs=solve_inputs(
+            initial_state=ThermalState(
+                room_temperature=20.0, upper_floor_temperature=20.0,
+                lower_floor_temperature=20.0, slab_temperature=20.5,
+                outdoor_temperature=5.0, buffer_tank_temperature=24.0,
+                dhw_temperature=48.0),
+            prices=prices, outdoor_temps=np.full(96, 5.0), start_time=_PL_T0,
+        ))
+
+
+def _pl_peak_share(result):
+    plan = np.asarray(result.power_schedule, float)
+    return float(plan[plan >= 4.0].sum() / plan.sum())
+
+
+_pl_flat0, _pl_flat1 = _pl_solve(0.0, _PL_FLAT), _pl_solve(0.15, _PL_FLAT)
+R.check(
+    "at a flat price the derate moves the plan off max power: the share of kWh "
+    "planned at 4 kW or more falls",
+    _pl_peak_share(_pl_flat1) < _pl_peak_share(_pl_flat0),
+    f"d=0 {_pl_peak_share(_pl_flat0):.3f} d=0.15 {_pl_peak_share(_pl_flat1):.3f}",
+)
+
+
+def _pl_dhw_step(derate, kw):
+    """Hot-water tank temperature after one 15-minute step at ``kw``."""
+    temps = np.array([45.0, 0.0])
+    _pl_model(derate).extend_dhw_temps(
+        temps, 0, np.array([kw]), np.array([5.0]), np.zeros(1), dt_hours=0.25)
+    return float(temps[1])
+
+
+_pl_dhw_hi = {d: _pl_dhw_step(d, 5.0) for d in (0.0, 0.2)}
+_pl_dhw_lo = {d: _pl_dhw_step(d, 1.5) for d in (0.0, 0.2)}
+R.check(
+    "a hot-water schedule carries the derate too: the same electrical power "
+    "warms the tank less with the term on; "
+    "null control: at the modulation floor the tank is unchanged",
+    _pl_dhw_hi[0.2] < _pl_dhw_hi[0.0] and _pl_dhw_lo[0.2] == _pl_dhw_lo[0.0],
+    f"max {_pl_dhw_hi} floor {_pl_dhw_lo}",
+)
+
+
+def _pl_dhw_traj(derate, kw=5.0):
+    """DHW temperature after one step of the full space + hot-water path."""
+    out = _pl_model(derate).simulate_trajectory_with_dhw(
+        ThermalState(room_temperature=20.0, upper_floor_temperature=20.0,
+                     lower_floor_temperature=20.0, slab_temperature=20.5,
+                     outdoor_temperature=5.0, buffer_tank_temperature=24.0,
+                     dhw_temperature=45.0),
+        np.zeros(1), np.full(1, kw), _WS(np.full(1, 5.0)),
+        start_hour=20.0, dt_hours=0.25)
+    return float(out[4][-1])
+
+
+_pl_traj = {d: _pl_dhw_traj(d) for d in (0.0, 0.2)}
+_pl_traj_lo = {d: _pl_dhw_traj(d, 1.5) for d in (0.0, 0.2)}
+R.check(
+    "the full trajectory's hot-water track prices the same conversion as the "
+    "step twin: the derated tank ends cooler; "
+    "null control: at the modulation floor the track is unchanged",
+    _pl_traj[0.2] < _pl_traj[0.0] and _pl_traj_lo[0.2] == _pl_traj_lo[0.0],
+    f"max {_pl_traj} floor {_pl_traj_lo}",
+)
+
+
+# R10-COP-PARTLOAD round 2: heat = cop * P * (1 - d * (P - p_min) / band) has
+# slope cop * (1 - d * (band + p_max) / band) at p_max, so a derate at or above
+# band / (band + p_max) buys less heat with more power at the top of the band.
+# Every construction path refuses it (``ThermalParameters.clamp``), and the
+# options page names it. Narrow band 4-5 kW: the limit is 1/6.
+from heatpump_optimizer import config_flow as _pl_flow  # noqa: E402
+_pl_lim = 1.0 / 6.0
+_pl_grid = np.linspace(4.0, 5.0, 2001)
+
+
+def _pl_kept(derate, p_min=4.0, p_max=5.0):
+    """The derate a direct construction and from_config each keep."""
+    direct = ThermalParameters(min_electrical_power=p_min, max_electrical_power=p_max,
+                               cop_partload_derate=derate).cop_partload_derate
+    cfg = ThermalParameters.from_config({
+        "heat_pump_min_power": p_min, "heat_pump_max_power": p_max, _PL_KEY: derate,
+    }).cop_partload_derate
+    return direct, cfg
+
+
+from heatpump_optimizer.thermal_model import (  # noqa: E402
+    partload_derate_limit as _pl_limit,
+)
+_pl_below = float(np.nextafter(_pl_lim, 0.0))
+_pl_heat_below = _pl_heat_of(_pl_model(_pl_below, 4.0, 5.0).params, 3.0, _pl_grid)
+R.check(
+    "a part-load derate at or above band / (band + p_max) is refused on every "
+    "construction path, so delivered heat never falls with power: on a 4-5 kW "
+    "band 0.19 and the limit itself read 0, the float just below it is kept and "
+    "heat rises across the band there; "
+    "null controls: 0 stays 0 and is exactly cop * power, the default 1-5 kW "
+    "band keeps 0.19, and a fixed-speed band (or one with no positive span to "
+    "divide by) has no limit, its factor being 1",
+    _pl_kept(0.19) == (0.0, 0.0) and _pl_kept(_pl_lim) == (0.0, 0.0)
+    and _pl_kept(_pl_below) == (_pl_below, _pl_below)
+    and bool(np.all(np.diff(_pl_heat_below) > 0.0))
+    and _pl_kept(0.0) == (0.0, 0.0)
+    and np.array_equal(_pl_heat_of(_pl_model(0.0, 4.0, 5.0).params, 3.0, _pl_grid),
+                       3.0 * _pl_grid)
+    and _pl_kept(0.19, 1.0, 5.0) == (0.19, 0.19)
+    and _pl_kept(0.2, 3.0, 3.0) == (0.2, 0.2)
+    and _pl_limit(-2.0, -1.0) == float("inf"),
+    f"4-5: 0.19 {_pl_kept(0.19)} limit {_pl_kept(_pl_lim)} below {_pl_kept(_pl_below)}; "
+    f"1-5: 0.19 {_pl_kept(0.19, 1.0, 5.0)}",
+)
+_pl_err = getattr(_pl_flow, "_partload_errors", lambda c, cur: {})
+_pl_narrow = {"heat_pump_min_power": 4.0, "heat_pump_max_power": 5.0}
+R.check(
+    "the thermal-model options page refuses a derate at or above the band's "
+    "limit on the derate field, judged against the stored band when the page "
+    "posts only the derate; "
+    "null controls: 0 and the default band's 0.19 pass",
+    _pl_err({_PL_KEY: 0.19}, _pl_narrow) == {_PL_KEY: "partload_derate_above_limit"}
+    and _pl_err({**_pl_narrow, _PL_KEY: 0.19}, {}) == {_PL_KEY: "partload_derate_above_limit"}
+    and _pl_err({_PL_KEY: _pl_lim}, _pl_narrow) == {_PL_KEY: "partload_derate_above_limit"}
+    and _pl_err({_PL_KEY: _pl_below}, _pl_narrow) == {}
+    and _pl_err({_PL_KEY: 0.0}, _pl_narrow) == {}
+    and _pl_err({_PL_KEY: 0.19}, {}) == {},
+    f"{_pl_err({_PL_KEY: 0.19}, _pl_narrow)}",
+)
+# Round 3: the Modbus pre-fill save is the band's other options writer, and
+# its form has no derate field, so the refusal lands on ``base``. A stored
+# 0.40 is legal on 1-5 kW (limit 4/9) and past it once max power drops to 2.
+_pl_pre = _pl_flow._prefill_errors
+_pl_stored = {"heat_pump_min_power": 1.0, "heat_pump_max_power": 5.0, _PL_KEY: 0.40}
+R.check(
+    "a pre-fill save that narrows the power band refuses a stored part-load "
+    "derate the new band puts past its limit, on base, whichever band key the "
+    "save carries; "
+    "null controls: a derate under the narrowed limit passes, a save touching "
+    "neither band key is not judged on the stored pair, and min above max is "
+    "still named as such",
+    _pl_pre({"heat_pump_max_power": 2.0}, _pl_stored) == {"base": "partload_derate_above_limit"}
+    and _pl_pre({"heat_pump_min_power": 4.0}, _pl_stored) == {"base": "partload_derate_above_limit"}
+    and _pl_pre({"heat_pump_max_power": 2.0}, {**_pl_stored, _PL_KEY: 0.30}) == {}
+    and _pl_pre({"heat_pump_cop_nominal": 3.0}, {**_pl_stored, **_pl_narrow}) == {}
+    and _pl_pre({"heat_pump_max_power": 0.5}, _pl_stored) == {"base": "min_power_above_max"},
+    f"max 5->2: {_pl_pre({'heat_pump_max_power': 2.0}, _pl_stored)}",
 )
 
 

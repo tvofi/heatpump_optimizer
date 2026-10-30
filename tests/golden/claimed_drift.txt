@@ -785,3 +785,4 @@ coord_two_zone  # R10-COP-GATE (#2262): data.measured_cop_at|cop_refusal|cop_obs
 # valve_storage_low_target, whose plan leaves move too: the reference's energy
 # anchors three of the space solve's starts, so a valved plan can land in
 # another basin. Unvalved fixtures do not move.
+config_flow # R10-COP-PARTLOAD: the heat_pump_cop_partload_derate option joins the options table and its seeded copy; keys added, no value moved

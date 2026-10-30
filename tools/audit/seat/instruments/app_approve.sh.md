@@ -4,7 +4,8 @@
   exact head SHA, only on a `merge` verdict for that SHA from an allowlisted
   account (`--carry` re-approves a carried verdict: no branch-authored commit
   in `git rev-list <verdict>..<head> --not main`, every merge git's automatic
-  one and each `claimnotes` file a pure union of its parents' lines). When:
+  one and each `claimnotes` file a pure union of its parents' lines or main's
+claim-driver output on them). When:
   landing a
   non-code-owned verdicted PR whose head the reviewer measured. Refusal: a
   head SHA that is not the PR's current head, or a verdict whose SHA or

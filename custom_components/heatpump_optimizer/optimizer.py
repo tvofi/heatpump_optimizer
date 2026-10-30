@@ -102,6 +102,7 @@ from .thermal_model import (
     plan_step_runs,
     planned_draw_runs,
     planned_draws_run,
+    delivered_heat_kw,
     project_planned_levels,
     valve_charge_demand,
     weather_or_calm,
@@ -5114,13 +5115,13 @@ class HeatPumpOptimizer:
         # as the settlement caps themselves.
         q_house = max(0.0, u_house * (target - out_mean) - p.internal_gains)
         ua_tank = p.buffer_tank_heat_loss_coefficient
-        p_max = p.max_electrical_power
 
         def net(temp: float) -> float:
             cop = self.model.marginal_cop(
                 out_mean, "buffer", store_temp=temp, humidity=humidity
             )
-            return p_max * cop - q_house - ua_tank * max(0.0, temp - TANK_ROOM_AMBIENT_TEMP)
+            heat: float = delivered_heat_kw(p, cop, p.max_electrical_power)
+            return heat - q_house - ua_tank * max(0.0, temp - TANK_ROOM_AMBIENT_TEMP)
 
         if net(hi) > 0.0:
             return hi
