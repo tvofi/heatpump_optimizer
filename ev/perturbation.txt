@@ -1,0 +1,7 @@
+head ddd88d3ede589217e60d8cefb06ff48c3f2fe75a
+record_row.py --self-test as committed: rc 0 (all checks passed)
+reds = [governance / record, tests / nightly-status, governance / delivery-status]: 1 failed, PR-BODY 3 error(s)
+reds = [tests / nightly-status, tests / delivery-status] (the ruling's spelling): 1 failed, PR-BODY 2 error(s)
+roster_edit.ruling_verdict: P291 ACCEPT, P292 ACCEPT, P293 None; triage_refusal on P291/P292 citations None; with verdict DEFER refused "is not an ACCEPT ruling (DEFER)"
+git merge-tree --write-tree origin/main ddd88d3ede589217e60d8cefb06ff48c3f2fe75a: rc 0, tree 673eb35984a6a7987f6349931a32dbbc52747a4f
+three-dot diff: dev/programme/delivery/2974.md, dev/programme/triage/s6-batch63.md
