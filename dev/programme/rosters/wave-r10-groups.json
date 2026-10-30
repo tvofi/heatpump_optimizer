@@ -10492,7 +10492,7 @@
     "Land the drafted countermeasures of dev/audit/rca/R10-RCA-FRICTION-RESIDUE.md (#2896) that are policy tooling. tvofi approved them on 2026-10-29, verbatim: \"All of these are approved.\" (1) #2436, section 4: a derived `other (untaught)` family in policy_lint's statsFamilies (every histogram key not in VERDICT_CLASSES, members computed at read time, the #2410 subtraction applied); control: every taught row prints byte-identically, and a window with no untaught word prints no row. (2) #2437, section 5: declare the `root-cause` family {root-cause-unanswered, root-cause-detectable, root-cause-unrecorded}; control as recorded there (union 6 PRs, family 3 after subtraction). (3) #2429, section 7: in ci-autofix.md, a bound on the wait (if mutation-pins has not concluded by the next tests / mutation conclusion, the pin is owed by the handoff and the body says unmeasured), and a body says pinned only when --pin-killed ran on this head. Re-measure each demonstration at your merge base with node tools/policy/policy_lint.mjs --stats --since v7.0.4; the record's figures are snapshots. Policy edits obey the caps in dev/governance/config/policy_budgets.json (ratchet-budgets.md). Closes #2436, #2437 and #2429 when landed."
    ],
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": null,
     "commit": null,
     "last_step": null,
