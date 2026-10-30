@@ -1253,13 +1253,22 @@ class InstallCapability:
     ``writes`` is a subset of ``switch``, ``setpoint`` and ``frequency``.
     ``measured_power`` is a power entity. ``frequency`` is a frequency
     entity or sensor, read or write. ``measured_heat`` is a thermal power
-    entity (fold e). (a), (c), (d) and (e) all read this probe.
+    entity or a heat counter (fold e). ``heat_counter`` is the heat counter
+    alone and ``electric_counter`` the electric counter its span divides by.
+    (a), (c), (d) and (e) all read this probe.
     """
 
     writes: frozenset[str]
     measured_power: bool
     frequency: bool
     measured_heat: bool = False
+    heat_counter: bool = False
+    electric_counter: bool = False
+
+    def cop_electric(self) -> bool:
+        """An electrical figure a COP divides by: a heat counter's span reads
+        the electric counter, every other reading the power entity (#2262)."""
+        return self.electric_counter if self.heat_counter else self.measured_power
 
     def can_duty_cycle(self) -> bool:
         """A sub-minimum average is realizable.
@@ -1321,6 +1330,8 @@ def probe_install(config: Any) -> InstallCapability:
         measured_heat=bool(
             cfg.get(const.CONF_HEAT_ENERGY_ENTITY) or cfg.get(const.CONF_THERMAL_POWER_ENTITY)
         ),
+        heat_counter=bool(cfg.get(const.CONF_HEAT_ENERGY_ENTITY)),
+        electric_counter=bool(cfg.get(const.CONF_ENERGY_ENTITY)),
     )
 
 
