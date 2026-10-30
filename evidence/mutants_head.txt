@@ -108,13 +108,12 @@ RESULT mutant=state-unavailable-where-none rc=1 fails=1 verdict=killed
     FAIL 1 self-test check(s) failed: plan page: with no page at the ref, the UNAVAILABLE page is published 
 RESULT mutant=state-unread-exits-1 rc=1 fails=1 verdict=killed
     FAIL 2 self-test check(s) failed: plan page: a stale plan keeps the last good page at the ref, exit 1 
+RESULT mutant=state-crash-guard rc=1 fails=1 verdict=killed
+    FAIL 1 self-test check(s) failed: plan page: a crashing page refuses with rc 2 and publishes no PLAN.html 
 RESULT mutant=unavailable-no-figures rc=1 fails=4 verdict=killed
     FAIL a fresh plan recording no duration model is refused: the UNAVAILABLE page 
     FAIL a fresh plan that check_plan refuses is refused: the UNAVAILABLE page 
     FAIL a stale plan is refused: the UNAVAILABLE page names the freshness rule 
     FAIL an unfetchable roster ref is refused: the UNAVAILABLE page names it 
 RESULT survived=0
-
-real	1m31.551s
-user	1m7.950s
-sys	0m19.749s
+rc=0

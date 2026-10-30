@@ -1,2 +1,0 @@
-mirrored handoff/round9/state/RESUME-CURRENT.md -> /tmp/tmp1p7u4gpw/sync-mirror/RESUME-CURRENT.md
-state_docs self-test: all checks passed

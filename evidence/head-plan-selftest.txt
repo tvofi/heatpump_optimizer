@@ -1,2 +1,0 @@
-wrote /tmp/tmp587f1sxs/page.html: 8 groups, closure 2026-01-05T22:16:00Z
-plan_page self-test: 60 checks, 0 failed
