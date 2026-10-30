@@ -12,7 +12,7 @@ R10-COP-GATE part 5: the residual carries, items A and C of the brief. Part of #
 
 ## Head
 
-a35f5524f7c31ffe818c7bfa0d95590b5e5429ef (handoff/r10-cop-gate-p5), measured 2026-10-30T13:41Z against origin/main 507a9ec26. Base: origin/main 507a9ec264eb373b132248d752259254d8a9fa4d (merge base 507a9ec26).
+7790838ea6c196cae64f9737a55d5532d74fd55e (handoff/r10-cop-gate-p5; merge of origin/main ca0a6cfbc2e5538e6e2220793831443719ff6e98 into a35f5524f7c31ffe818c7bfa0d95590b5e5429ef), measured 2026-10-30T16:31Z against origin/main ca0a6cfb. Base: origin/main ca0a6cfbc2e5538e6e2220793831443719ff6e98 (merge base ca0a6cfb). The merge conflicted only in `tests/golden/claimed_drift.txt`; resolved by hand to main's file plus this branch's five `coord_*` claims, `claims-for: 7.1.0`.
 
 ## Mutation proof
 
@@ -26,18 +26,19 @@ a35f5524f7c31ffe818c7bfa0d95590b5e5429ef (handoff/r10-cop-gate-p5), measured 202
 
 ## Figures
 
-- `PYTHONPATH=tests/hastub python3 tests/entities.py`: `ALL 2485 ENTITY CHECKS PASSED` at the head. The mutant above gives 1 of 2485 failed.
-- `PYTHONPATH=tests/hastub python3 tests/features.py`: `ALL 4606 FEATURE CHECKS PASSED` at the head. Without the C fix, 1 of 4606 failed (above).
-- `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"`: `MODE: SCOPED`. Every script `scope.run` names was run with `PYTHONPATH=tests/hastub` and `GOLDEN_MODE=drift`, and each exited 0 at the head.
+- `PYTHONPATH=tests/hastub python3 tests/entities.py`: `ALL 2485 ENTITY CHECKS PASSED` at the merge head. The mutant above gives 1 of 2485 failed.
+- `PYTHONPATH=tests/hastub python3 tests/features.py`: `ALL 4606 FEATURE CHECKS PASSED` at the merge head. Without the C fix, 1 of 4606 failed (above).
+- `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"`: `MODE: SCOPED`. Every script `scope.run` names was run with `PYTHONPATH=tests/hastub` and `GOLDEN_MODE=drift`, and each exited 0 at the merge head.
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`. `class_excess_loc` moved down by one, because module-level helper lines count in the coordinator's span and the `_fold_flow_lift` gate is one line shorter. The change is recorded by `python3 tests/structure.py --record` in this branch's last commit, with the row named in the commit message.
 - `GOLDEN_MODE=drift PYTHONPATH=tests/hastub python3 tests/golden.py`: `NO UNCLAIMED DRIFT` and `NO STALE FIXTURE` (56 each). Five `coord_*` fixtures gained the three keys under `sensors.model_status.extra_state_attributes.cop`. Each key was grafted from that fixture's own committed `data` block, so no float was re-recorded on this host. The five are claimed in `tests/golden/claimed_drift.txt` as additions only.
 - `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main`: `no closures, fast, wave-script or instrument red predicted`, and 2 unpinned sites (below).
 - The finder's instrument for C (the round-4 fixer's 5-check probe cited in #2854's body) is not in the tree. Its switch-back arm and both null arms are ported into `tests/features.py` (`_cf_fl_window`, plus the existing no-dwell check), and the before and after results are the mutation and null figures above.
 - Class enumeration (fixer.md step 8): the rule is `grep -n "_commanded_split()" custom_components/heatpump_optimizer/coordinator.py`. At this head it returns 8 sites, each with a disposition. `_fold_flow_lift` is closed in this diff. Already attributed through `heat_energy`: `_interval_measured_heat_kw` (`meter.attribution(split)`), `_replay_gate` (`heat_energy.close_span(meter, ..., split, ...)`, where the meter splits by its own dwell) and `_cop_reference_curve` (`meter_of(self).attribution(...)`). Not a duty gate: `_commanded_power` (the total, space plus hot water). Gated on the live mode instead: `_propagated_slab`'s `draw_range.space_draw_kw(...)` (`space_served=signals.space_heat or not signals.mode_observed`). Two distinct leads, carried and not fixed here: `_interval_space_power` splits a metered draw by the plan's split, and `_record_accuracy`'s pending `split` feeds `draw_range.fold`'s running-space filter. Both are the same plan-versus-dwell shape on a power attribution rather than a curve duty, and both lie outside this group's owning seam (the architect note: COP eligibility and its published state).
+- Merge re-run at 7790838e: `python3 tests/env_drift.py --claims-only $(git merge-base origin/main HEAD)` printed `claims hygiene: ca0a6cfb... ok`; `python3 tests/closure.py select` printed `MODE: SCOPED -- 22 script(s) run, 11 scoped out`, and every script in `scope.run` plus `tests/card.mjs`, `tests/card_drift.mjs` and `tests/layout.py` exited 0 under `GOLDEN_MODE=drift`; `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`. `git diff origin/main -- tests/golden/claimed_drift.txt` adds exactly the five `coord_*` claim lines.
 
 ## Unpinned sites
 
-- `custom_components/heatpump_optimizer/coordinator.py:883 GUARD_OFF`: killed. Replacing the whole gate condition with `if False:` (run by hand on `tests/features.py` at the head, since `tests/mutation_table.py --scope changed` refuses on the ratchet count) fails `a hot-water-dominant window under a space plan folds no flow-bias sample; an all-space window folds one (null)`: 2 of 4606 FEATURE CHECKS FAILED against a green baseline.
+- `custom_components/heatpump_optimizer/coordinator.py:883 GUARD_OFF`: killed. Replacing the whole gate condition with `if False:` (run by hand on `tests/features.py` at the merge head, since `tests/mutation_table.py --scope changed` refuses on the ratchet count) fails `a hot-water-dominant window under a space plan folds no flow-bias sample; an all-space window folds one (null)`: 2 of 4606 FEATURE CHECKS FAILED against a green baseline.
 - `custom_components/heatpump_optimizer/coordinator.py:883 CMP_BOUND*2`: lives, both mutants. `<=` to `<` on `a.space + a.dhw <= 1e-6` and `>` to `>=` on `dhw_share(a) > _COP_CURVE_SHARE` each left `ALL 4606 FEATURE CHECKS PASSED` (run by hand on `tests/features.py`, mutant applied to a copy of the head). Both bounds are exact-equality edges (a zero-length dwell sum, a share exactly at the curve threshold) that no fixture constructs, and the line they sit on replaces one that carried the same two comparisons, so no behaviour on those edges changed. Carry: pinning needs fixtures at those two equalities; left to `mutation-autofix` and the nightly, which mutate `custom_components/`.
 
 ## Red checks
