@@ -19,12 +19,13 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-CEILING-PROBE (stage in-progress, branch `design/r10-ceiling-probe`): `git fetch origin design/r10-ceiling-probe && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-COP-PARTLOAD (stage carries-open, branch `handoff/r10-cop-partload`): `git fetch origin handoff/r10-cop-partload && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLOW-BOARD (stage carries-open, branch `handoff/r10-flow-board`): `git fetch origin handoff/r10-flow-board && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-FLOW-DESIGN-STAGES (stage in-progress, branch `handoff/r10-flow-design-stages`): `git fetch origin handoff/r10-flow-design-stages && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-OPENPR-ATOMIC (stage carries-open, branch `handoff/r10-fly-openpr-atomic`): `git fetch origin handoff/r10-fly-openpr-atomic && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-RELAY-REVIEW-FF (stage carries-open, branch `handoff/r10-fly-relay-review-ff`): `git fetch origin handoff/r10-fly-relay-review-ff && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-FLY-GH-READ-RETRY (stage carries-open, branch `handoff/r10-fly-gh-read-retry`): `git fetch origin handoff/r10-fly-gh-read-retry && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-TRAIN-OVERLAP-GRADE (stage carries-open, branch `handoff/r10-train-overlap-grade`): `git fetch origin handoff/r10-train-overlap-grade && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-NIGHTLY-HB-RESPAWN (stage queued, branch `handoff/r10-nightly-hb-respawn`): `git fetch origin handoff/r10-nightly-hb-respawn && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-ORCH-LEDGER (stage carries-open): no branch pushed yet, so nothing to fetch
+- R10-ORCH-PLANPAGE (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-ORCH-ROSTER-SCHEMA (stage carries-open, branch `handoff/r10-roster-schema`): `git fetch origin handoff/r10-roster-schema && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-SUITE-ENV-FLAKES (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-FLY-NO-FOOTERS (stage carries-open, branch `handoff/r10-fly-no-footers`): `git fetch origin handoff/r10-fly-no-footers && git worktree add --detach $SEAT/wt FETCH_HEAD`
@@ -32,11 +33,11 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-SAV-ACTUATION (stage in-progress, branch `handoff/r10-sav-actuation`): `git fetch origin handoff/r10-sav-actuation && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-996-RUNNER-CLAIMS (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-ARCH-SHAPES-CLASSIFIER (stage queued): no branch pushed yet, so nothing to fetch
+- R10-FRICTION-REGRESSION (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-FLY-PACKET-RED-PATHS (stage in-progress, branch `handoff/r10-fly-packet-red-paths`): `git fetch origin handoff/r10-fly-packet-red-paths && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-CIPREDICT-RESTORING (stage queued): no branch pushed yet, so nothing to fetch
-- R10-MARKETPLACE (stage in-progress, branch `handoff/r10-marketplace`): `git fetch origin handoff/r10-marketplace && git worktree add --detach $SEAT/wt FETCH_HEAD`
 
-Ready next (after-edges satisfied; nothing open constrains them): R10-996-RUNNER-CLAIMS, R10-ARCHSCORE-SPELLINGS, R10-BRIEFS-FOLD-D0, R10-CEILING-PROBE, R10-CLOSEOUT-CLEANUP, R10-COP-GATE, R10-COP-PARTLOAD, R10-FLOW-BOARD, R10-FLOW-DESIGN-STAGES, R10-FLOW-POSTMERGE, R10-FLOW-WIP, R10-FLY-CANCEL-SWEEP, R10-FLY-CARRY-DISPOSITION, R10-FLY-CIPREDICT-RESTORING, R10-FLY-DAEMONIZE-ARGV, R10-FLY-GH-CALL-LOG, R10-FLY-GH-READ-RETRY, R10-FLY-LEDGER-SAMPLE, R10-FLY-MANDATE-REVOKE-GUARD, R10-FLY-MUTANT-RESTORE, R10-FLY-NO-FOOTERS, R10-FLY-OPENPR-ATOMIC, R10-FLY-PACKET-RED-PATHS, R10-FLY-RECORD-RED-NAMES, R10-FLY-RELAY-FREEZE-REGISTRY, R10-FLY-RELAY-REVIEW-FF, R10-FLY-RELAY-TOOLS-LEVEL, R10-FLY-STAMP-CHECK-NOTES, R10-FLY-SUITE-ENV-FLAKES, R10-FLY-TICK-TRAIN-RC, R10-FLY-TRAIN-DEFAULTS, R10-FRICTION-REGRESSION, R10-MARKETPLACE, R10-MERGE-SUBJECT-CASEARM, R10-NIGHTLY-HB-RESPAWN, R10-ORCH-LEDGER, R10-ORCH-PLANPAGE, R10-ORCH-REVIEW-PACKET, R10-ORCH-ROSTER-SCHEMA, R10-PREPR-CAP, R10-REPLAY-REAL-DAY, R10-SAV-ACTUATION, R10-TRAIN-OVERLAP-GRADE
+Ready next (after-edges satisfied; nothing open constrains them): R10-996-RUNNER-CLAIMS, R10-ARCHSCORE-SPELLINGS, R10-BRIEFS-FOLD-D0, R10-CATALOG-PR, R10-CEILING-PROBE, R10-CLOSEOUT-CLEANUP, R10-COP-GATE, R10-COP-PARTLOAD, R10-FLOW-BOARD, R10-FLOW-DESIGN-STAGES, R10-FLOW-POSTMERGE, R10-FLOW-WIP, R10-FLY-CANCEL-SWEEP, R10-FLY-CARRY-DISPOSITION, R10-FLY-CARRY-DOC-CONTEXT, R10-FLY-CIPREDICT-RESTORING, R10-FLY-DAEMONIZE-ARGV, R10-FLY-GH-CALL-LOG, R10-FLY-LEDGER-SAMPLE, R10-FLY-MANDATE-REVOKE-GUARD, R10-FLY-MUTANT-RESTORE, R10-FLY-NO-FOOTERS, R10-FLY-OPENPR-ATOMIC, R10-FLY-PACKET-RED-PATHS, R10-FLY-RECORD-RED-NAMES, R10-FLY-RELAY-FREEZE-REGISTRY, R10-FLY-RELAY-REVIEW-FF, R10-FLY-RELAY-TOOLS-LEVEL, R10-FLY-STAMP-CHECK-NOTES, R10-FLY-SUITE-ENV-FLAKES, R10-FLY-TICK-TRAIN-RC, R10-FLY-TRAIN-DEFAULTS, R10-FRICTION-REGRESSION, R10-MERGE-SUBJECT-CASEARM, R10-NIGHTLY-HB-RESPAWN, R10-ORCH-LEDGER, R10-ORCH-PLANPAGE, R10-ORCH-REVIEW-PACKET, R10-ORCH-ROSTER-SCHEMA, R10-PREPR-CAP, R10-REPLAY-REAL-DAY, R10-SAV-ACTUATION, R10-TRAIN-OVERLAP-GRADE
 
 ## Resume steps
 
