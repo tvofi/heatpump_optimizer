@@ -3738,6 +3738,7 @@
    "dev/audit/harnesses/r10_flow_autotrain_live.py",
    "dev/audit/harnesses/r10_flow_autotrain_mutants.sh",
    "dev/audit/harnesses/r10_flow_dispatch_mutants.py",
+   "dev/audit/harnesses/r10_fly_nightly_hb.py",
    "dev/audit/harnesses/r10_fly_orphans_landed.sh",
    "dev/audit/harnesses/r10_ftol_cell_search.py",
    "dev/audit/harnesses/r10_gate_defer_race.py",
