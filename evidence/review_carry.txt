@@ -1,6 +1,6 @@
-review_carry: 891b8b783 -> 27bb23875  main=origin/main
+review_carry: 27bb23875 -> f44cef1f2  main=origin/main
   branch-only commits: 2
-  why: f4dc68a4811fbc80b26b1c31f329f65b8f7db53e is not the automatic merge of its parents
-  f4dc68a48  Merge origin/main into fix/r10-cop-partload
-  27bb23875  Merge commit 'f4dc68a4811fbc80b26b1c31f329f65b8f7db53e' into fix/r10-cop-partload
+  why: f44cef1f257979538fb581bc897e779c7e59664e resolves tests/golden/claimed_drift.txt to something other than the union of its parents
+  7d9ac8b81  Merge origin/main into fix/r10-cop-partload (claim list: main's plus config_flow)
+  f44cef1f2  Merge commit '7d9ac8b81d4caf13da90796c3d5d699750b7e721' into fix/r10-cop-partload
 review_carry: FRESH-REVIEW

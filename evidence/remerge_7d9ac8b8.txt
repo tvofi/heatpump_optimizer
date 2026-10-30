@@ -1,0 +1,44 @@
+LEDGER-MERGE: resolved tests/structure_budgets.json
+  class_excess_loc: 17732 + both deltas = 17672
+  re-run the gate that owns this file before pushing
+MERGE-CLAIM: refused tests/golden/claimed_drift.txt
+CONFLICTING CLAIMS: both sides rewrote the claim list -- this
+branch claims ['coord_all_features', 'coord_dhw', 'coord_grid_fee', 'coord_minimal', 'coord_two_zone'] and the merge
+brings in ['config_flow', 'coord_all_features', 'coord_dhw', 'coord_grid_fee', 'coord_minimal', 'coord_two_zone', 'valve_storage', 'valve_storage_flat_prices', 'valve_storage_low_target', 'valve_storage_small_tank', 'valve_storage_smart_write', 'valve_upper_direct_slab', 'wood_coil', 'wood_two_tank', 'wood_two_tank_smart_write']. A claim excuses
+one release's golden diff and is written for that diff alone, so
+merging two lists would reinstate a claim one side deleted and
+excuse a drift by accident. Resolve it by hand: keep the claims
+that describe THIS branch's diff and delete the rest.
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/harness_headers.py: merged as a set (910 entries)
+  re-run the gate that owns this file before pushing
+commit 7d9ac8b81d4caf13da90796c3d5d699750b7e721
+Merge: 1148ee635 27bb23875
+Author: fixer <f@x>
+Date:   Fri Oct 30 06:00:56 2026 +0000
+
+    Merge origin/main into fix/r10-cop-partload (claim list: main's plus config_flow)
+
+diff --git a/tests/golden/claimed_drift.txt b/tests/golden/claimed_drift.txt
+remerge CONFLICT (content): Merge conflict in tests/golden/claimed_drift.txt
+index 459a9664c..b49a2ff52 100644
+--- a/tests/golden/claimed_drift.txt
++++ b/tests/golden/claimed_drift.txt
+@@ -785,17 +785,4 @@ coord_two_zone  # R10-COP-GATE (#2262): data.measured_cop_at|cop_refusal|cop_obs
+ # valve_storage_low_target, whose plan leaves move too: the reference's energy
+ # anchors three of the space solve's starts, so a valved plan can land in
+ # another basin. Unvalved fixtures do not move.
+-<<<<<<< tests/golden/claimed_drift.txt (this branch)
+-=======
+-valve_storage_smart_write  # R10-BUFFER-STORE: tank-aware savings reference; baseline_cost DOWN 146.865 -> 129.695 here; no plan key judged
+-valve_upper_direct_slab  # R10-BUFFER-STORE: tank-aware savings reference; baseline_cost UP 125.709 -> 126.782 here; no plan key judged
+-wood_coil  # R10-BUFFER-STORE: tank-aware savings reference; baseline_cost DOWN 150.751 -> 129.566 here; no plan key judged
+-wood_two_tank  # R10-BUFFER-STORE: tank-aware savings reference; baseline_cost DOWN 141.475 -> 120.254 here; no plan key judged
+-wood_two_tank_smart_write  # R10-BUFFER-STORE: tank-aware savings reference; baseline_cost DOWN 141.475 -> 120.254 here; no plan key judged
+-valve_storage  # R10-BUFFER-STORE: tank-aware savings reference; baseline_cost DOWN 146.865 -> 129.695 here; no plan key judged
+-valve_storage_flat_prices  # R10-BUFFER-STORE: tank-aware savings reference; baseline_cost DOWN 113.116 -> 102.374 here; plan leaves move with the reference-anchored starts
+-valve_storage_low_target  # R10-BUFFER-STORE: tank-aware savings reference; baseline_cost DOWN 195.205 -> 111.103 here; plan leaves move with the reference-anchored starts
+-valve_storage_small_tank  # R10-BUFFER-STORE: tank-aware savings reference; baseline_cost DOWN 151.266 -> 128.078 here, predicted_savings and deferred_energy_cost with it
+-
+ config_flow # R10-COP-PARTLOAD: the heat_pump_cop_partload_derate option joins the options table and its seeded copy; keys added, no value moved
+->>>>>>> tests/golden/claimed_drift.txt (incoming)
