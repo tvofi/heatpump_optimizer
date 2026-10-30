@@ -28,6 +28,10 @@
 # first, HPO_TYPING_PYTHON and OPENBLAS_CORETYPE. The profile is for login
 # shells; it prepends venv-ci/bin only when absent, so a PATH a caller
 # narrowed (a test's stub directory ahead of the venv) is left alone.
+# Where the variables are unset, .claude/hooks/session-start.sh appends
+# --variables, exported and quoted, to the harness's CLAUDE_ENV_FILE, which
+# the harness sources before each Bash call, and prints its `toolchain:` line
+# either way (dev/audit/rca/R10-RCA-FIXER-MD-KEY.md).
 #
 #   cloud-setup.sh --variables   print those variables, one NAME=value a line
 #   cloud-setup.sh --check       in a seat: OK when python3 is venv-ci's,

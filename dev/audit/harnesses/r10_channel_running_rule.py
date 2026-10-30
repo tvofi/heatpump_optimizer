@@ -12,7 +12,7 @@ It hands every reader one synthetic plan whose steps straddle both lines and
 counts, per reader, the steps (or periods) it calls heating on a step
 ``planned_draws_run`` calls off:
 
-- ``coordinator.HeatPumpOptimizerCoordinator._plan_slots``, space and DHW (the
+- ``plan_slots.plan_slots``, space and DHW (the
   published slot lists; ``slot_steps_declared_off``);
 - ``optimizer.classify_space_steps`` / ``classify_dhw_steps`` (a non-idle
   reason on such a step; ``reason_steps_declared_off``);
@@ -34,7 +34,7 @@ from datetime import UTC, datetime, timedelta
 import numpy as np
 
 from heatpump_optimizer import optimizer, sensor
-from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator as Coord
+from heatpump_optimizer.plan_slots import plan_slots
 from heatpump_optimizer.thermal_model import planned_draws_run
 
 # Each pair is (space kW, DHW kW): over and under 0.05 on each channel, with a
@@ -64,7 +64,7 @@ def main() -> None:
 
     slot_hits = 0
     for mine, other in ((space, dhw), (dhw, space)):
-        for slot in Coord._plan_slots(
+        for slot in plan_slots(
             ts, list(mine), prices, 0.25, other_powers=list(other)
         ):
             slot_hits += sum(
