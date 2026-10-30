@@ -2,9 +2,10 @@
 """R10-PLAN-ARTIFACT: each behaviour plan_page.py's self-test pins dies alone.
 
 Each mutant is one exact one-occurrence replacement in
-tools/audit/seat/plan_page.py or tools/plan/replan.py (the freshness rule the
-page shares). The driver applies one, runs `plan_page.py --self-test` (and
-`replan.py --self-test` too, for a replan.py mutant and for M0), restores
+tools/audit/seat/plan_page.py, tools/plan/replan.py (the freshness rule the
+page shares) or tools/audit/seat/state_docs.py (which publishes the page).
+The driver applies one, runs `plan_page.py --self-test` (and the mutated
+file's own `--self-test` too, and every one for M0), restores
 the file byte for byte, and refuses to start on a file with uncommitted edits.
 Metric, one line per mutant:
 
@@ -40,6 +41,7 @@ def repo_root(start):
 ROOT = repo_root(__file__)
 PAGE = "tools/audit/seat/plan_page.py"
 PLAN = "tools/plan/replan.py"
+STATE = "tools/audit/seat/state_docs.py"
 
 MUTANTS = [
     ("M0", PAGE, None, None),
@@ -77,6 +79,41 @@ MUTANTS = [
     # R10-PLAN-PRIO: the Tier column is the plan's computed dispatch priority.
     ("tier-column", PAGE,
      '{r["tier"] if r["tier"] is not None else "—"}', '"—"'),
+    # R10-ORCH-PLANPAGE: the scratch generator's five defects (orch-machinery
+    # DESIGN.md S8, 6.7), each mutant restoring its pre-fix shape.
+    ("defect-1-hardcoded-override", PAGE,
+     "    G = roster_lib.groups_of(roster)\n    PG = plan[\"groups\"]",
+     "    G = roster_lib.groups_of(roster)\n    G.update({g: {**G[g], \"resume\": "
+     "{\"stage\": \"not-started\"}} for g in list(G)[:1]})\n    PG = plan[\"groups\"]"),
+    ("defect-2-scratch-graph", PAGE,
+     "blk = [a for a in entry.get(\"after\") or [] if a in G and a not in done]",
+     "blk = [a for a in {\"R9-READY\": [\"R9-LIVE\"]}.get(g, entry.get(\"after\") or [])"
+     " if a in G and a not in done]"),
+    ("defect-3-count-wrong-set", PAGE,
+     "open_iss = (\"—\" if snap.get(\"offline\") else str(sum(",
+     "open_iss = (\"—\" if snap.get(\"offline\") else str(len(snap[\"issues\"]) - 1 + 0 * sum("),
+    ("defect-4-sha8-as-pr", PAGE,
+     "label, pr = f\"merged at {commit[:8]}\", \"merged\"",
+     "label, pr = f\"merged at {commit[:8]}\", f\"#{commit[:8]}\""),
+    ("defect-5-absorbed-as-done", PAGE,
+     "            st = \"held\"\n", "            st = \"done\"\n"),
+    ("held-label", PAGE,
+     "label = _stage(entry) + (f\" into {short(into)}\" if into else \"\") + sfx",
+     "label = \"delivered\" + sfx"),
+    ("unavailable-page-written", PAGE,
+     "    Path(html_out).write_text(unavailable_page(what), encoding=\"utf-8\")\n",
+     "    pass\n"),
+    ("state-page-published", STATE, "        return {page_path: text}, None",
+     "        return {}, None"),
+    ("state-keeps-last-good", STATE,
+     "    return ({} if held else {page_path: text}), why",
+     "    return {page_path: text}, why"),
+    ("state-unavailable-where-none", STATE,
+     "    return ({} if held else {page_path: text}), why", "    return {}, why"),
+    ("state-unread-exits-1", STATE, "rc = 1 if unread else 0", "rc = 0"),
+    ("unavailable-no-figures", PAGE,
+     "f'<div class=\"stat\"><b>—</b><span>{e(v)}</span></div>'",
+     "f'<div class=\"stat\"><b>0</b><span>{e(v)}</span></div>'"),
 ]
 
 
@@ -88,7 +125,7 @@ def fail_name(line: str) -> str:
 
 def main(argv: list[str]) -> int:
     want = set(argv)
-    for rel in (PAGE, PLAN):
+    for rel in (PAGE, PLAN, STATE):
         if subprocess.run(["git", "-C", str(ROOT), "diff", "--quiet", "--", rel]).returncode:
             print(f"refused: {rel} has uncommitted edits")
             return 2
@@ -107,10 +144,13 @@ def main(argv: list[str]) -> int:
                 path.write_text(text.replace(old, new), encoding="utf-8")
             runs = [subprocess.run([sys.executable, "-I", str(ROOT / s), "--self-test"],
                                    capture_output=True, text=True)
-                    for s in (PAGE, PLAN) if s == PAGE or rel == PLAN or old is None]
+                    for s in (PAGE, PLAN, STATE) if s == PAGE or s == rel or old is None]
         finally:
             path.write_bytes(orig)
         fails = [ln for r in runs for ln in r.stdout.splitlines() if ln.startswith("FAIL")]
+        # state_docs.py reports its failures on one line, comma-joined.
+        fails += [f"FAIL {ln}" for r in runs for ln in r.stdout.splitlines()
+                  if re.match(r"\d+ self-test check\(s\) failed: ", ln)]
         rc = max(r.returncode for r in runs)
         if name == "M0":
             verdict = "null" if rc == 0 and not fails else "SURVIVED"
