@@ -12312,12 +12312,13 @@
     "Moved from R10-ARCH-DOCS carry 2 (L4 split): From #2609's merge verdict (review/2609 0d370ca08, comment 6340625591): dev/governance/config/corpus_excluded.json lists dev/README.md as a bare path, and its reason sits only in commit 7ae69419e and the PR body. When the resolveCited canon lookup lands, drop the entry. If the entry stays, give the file its reason."
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r10-arch-docs-wiring",
     "commit": null,
     "last_step": null,
     "next_step": "dispatch a fixer",
-    "note": "split from R10-ARCH-DOCS, lever L4, tvofi 2026-10-30 (#201 comment 6527969942)"
+    "note": "split from R10-ARCH-DOCS, lever L4, tvofi 2026-10-30 (#201 comment 6527969942)",
+    "pr": 3011
    },
    "brief": "Split from R10-ARCH-DOCS by lever L4 (tvofi, 2026-10-30, #201 comment 6527969942). This is arm A of triage P261, which the owner already approved dispatching past the 2026-10-17 last-stage ruling on 2026-10-28T17:47Z. This group has no after-edges. R10-ARCH-DOCS keeps arm B, the verification of R10-ARCH-DOCS-FIRST's markers, as the last stage of round 10; it will run this group's checker at the true merge base and resolve only the delta.\n\n1. Wiring test: a tree instrument that resolves every path, instrument, workflow job, event kind and diagram node that docs/architecture.md and the developer onboarding name, at HEAD. Use brief_lint.mjs or a small checker in the suite's gate. It goes red on a fixture that renames or removes a named element, and stays green on a null control.\n2. Target-marker resolver: lists every unresolved `[target: G]` marker R10-ARCH-DOCS-FIRST left, with its group's roster stage. Red fixture: a marker naming a done group. Null control: one naming a not-started group passes. Arm B, not this group, makes 'no unresolved marker on main' a hard check.\n3. P40: a check that the committed card figures match what they depict.\nClassify every new tracked file (closure or INERT). Follow dev/governance/roles/fixer.md. Part of #201; refers to #2395 (it stays open for arm B). triage: dev/programme/triage/s6-batch52.md#P261"
   },
