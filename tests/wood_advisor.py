@@ -155,4 +155,124 @@ R.check(
     "a guard that skipped every hour would hide the real comparison",
 )
 
+R.section("Today's cheaper windows and the lighting window")
+
+# Driven through the production view builder. A ready config at 1275 SEK/m3
+# of mixed packed wood at 75 % burns at 1275 / (1700 * 0.75) = 1.0 SEK/kWh;
+# with a flat COP of 3 the pump's heat costs price / 3, so wood is cheaper
+# exactly on the steps priced above 3.0.
+from datetime import datetime as _dt, timedelta as _td, timezone as _tz
+
+from heatpump_optimizer import binary_sensor as _bs
+from heatpump_optimizer.wood_fuel import build_wood_fuel_view
+
+_WOOD_READY = {
+    "wood_tank_top_entity": "sensor.wood_tank_top",
+    "external_heat_enabled": True,
+    "wood_type": "mixed",
+    "wood_packing": "packed",
+    "wood_price_sek_m3": 1275.0,
+    "wood_furnace_efficiency": 75.0,
+}
+_DAY0 = _dt(2026, 1, 15, 0, 0, tzinfo=_tz.utc)
+# 30 hourly steps: today and the first six hours of tomorrow.
+_STAMPS = [_DAY0 + _td(hours=i) for i in range(30)]
+
+
+def _view(cheap_steps, off_steps=(), config=None):
+    n = len(_STAMPS)
+    return build_wood_fuel_view(
+        _WOOD_READY if config is None else config,
+        prices=[4.0 if i in cheap_steps else 1.0 for i in range(n)],
+        outdoor=[0.0] * n,
+        runs=[i not in off_steps for i in range(n)],
+        cop_at=lambda _t: 3.0,
+        timestamps=_STAMPS,
+        forecast_kw=[],
+        suppressing=False,
+        local_tz=_tz.utc,
+    )
+
+
+def _iso(hour, minute=0):
+    return (_DAY0 + _td(hours=hour, minutes=minute)).isoformat()
+
+
+def _lighting(view):
+    return view.get("lighting_start"), view.get("lighting_end")
+
+
+# Two cheaper runs today (06-08 and 17-20), a cheaper step at 12 while the
+# pump is planned off, and a cheaper step tomorrow at 02.
+_two = _view({6, 7, 12, 17, 18, 19, 26}, off_steps={12})
+R.check(
+    "a day with two cheaper runs gives two windows, each contiguous run once",
+    _two.get("cheaper_windows")
+    == [
+        {"start": _iso(6), "end": _iso(8)},
+        {"start": _iso(17), "end": _iso(20)},
+    ],
+    repr(_two.get("cheaper_windows")),
+)
+R.check(
+    "the lighting window opens the default 60 min before the first window "
+    "and closes at its start",
+    _lighting(_two) == (_iso(5), _iso(6)),
+    repr(_lighting(_two)),
+)
+_lead90 = _view({6, 7}, config={**_WOOD_READY, "wood_lighting_lead_minutes": 90})
+R.check(
+    "the lead time is the configured option",
+    _lighting(_lead90) == (_iso(4, 30), _iso(6)),
+    repr(_lighting(_lead90)),
+)
+_now_open = _view({0, 1})
+R.check(
+    "a window open at the plan's first step lights now, never in the past",
+    _lighting(_now_open) == (_iso(0), _iso(0)),
+    repr(_lighting(_now_open)),
+)
+_pump_off = _view({12}, off_steps={12})
+R.check(
+    "a cheaper step while the pump is planned off is not a window",
+    _pump_off.get("cheaper_windows", []) == [] and _lighting(_pump_off) == (None, None),
+    repr(_pump_off.get("cheaper_windows")),
+)
+_tomorrow = _view({26})
+R.check(
+    "a cheaper step tomorrow is counted but is not one of today's windows",
+    _tomorrow.get("cheaper_windows", []) == []
+    and _tomorrow.get("cheaper_hour_count") == 1,
+    repr(_tomorrow.get("cheaper_windows")),
+)
+_never = _view(set())
+R.check(
+    "null control: a day wood never beats the pump gives no windows and no "
+    "lighting window",
+    _never.get("cheaper_windows", []) == []
+    and _lighting(_never) == (None, None)
+    and _never.get("cheaper_hour_count") == 0,
+    repr(_never),
+)
+_attrs = _bs.WoodCheaperBinarySensor(
+    FakeCoordinator({"wood_fuel": _two}), ENTRY
+).extra_state_attributes
+R.check(
+    "the wood sensor publishes the windows and the lighting window as attributes",
+    _attrs.get("cheaper_windows") == _two["cheaper_windows"]
+    and (_attrs.get("lighting_start"), _attrs.get("lighting_end"))
+    == (_iso(5), _iso(6)),
+    repr(_attrs),
+)
+_null_attrs = _bs.WoodCheaperBinarySensor(
+    FakeCoordinator({"wood_fuel": _never}), ENTRY
+).extra_state_attributes
+R.check(
+    "and with no window it publishes an empty list and no lighting window",
+    _null_attrs.get("cheaper_windows") == []
+    and (_null_attrs.get("lighting_start"), _null_attrs.get("lighting_end"))
+    == (None, None),
+    repr(_null_attrs),
+)
+
 sys.exit(R.close("wood-advisor checks"))
