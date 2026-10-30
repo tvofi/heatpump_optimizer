@@ -107,6 +107,7 @@ from .thermal_model import (
     weather_or_calm,
     wood_share,
     power_for_heat_per_cop_kw,
+    added_power_for_heat_per_cop_kw,
 )
 from .tariff import (
     CapacityTariff,
@@ -4168,7 +4169,8 @@ class HeatPumpOptimizer:
                 store_temp=self.model.params.buffer_max_temp,
                 humidity=_step_humidity(humidity, int(i)),
             )
-            allowed = float(schedule[i]) - float(refused[i]) / max(cop_i, 1e-6)
+            allowed = float(schedule[i]) + added_power_for_heat_per_cop_kw(
+                self.model.params, float(schedule[i]), -float(refused[i]) / max(cop_i, 1e-6))
             # Slightly under, or float noise re-trips the same step and burns
             # a repair round confirming it.
             new_cap = max(0.0, allowed) * 0.999

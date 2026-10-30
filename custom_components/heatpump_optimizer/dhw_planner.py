@@ -48,6 +48,7 @@ from .thermal_model import (
     _step_humidity,
     dhw_coil_draw_reduction,
     dhw_draw_scale,
+    added_power_for_heat_per_cop_kw,
     delivered_heat_kw,
     heat_per_cop_kw,
     power_for_heat_per_cop_kw,
@@ -390,7 +391,8 @@ class DhwPlanner:
                 # see dhw_coil_draw_reduction for why the two must agree.
                 inlet_temp=p.dhw_inlet_reference,
             )
-        baseline_dhw = np.full(n_steps, (baseline_draw + standby_loss) / cop_dhw)
+        baseline_dhw = np.full(
+            n_steps, power_for_heat_per_cop_kw(p, (baseline_draw + standby_loss) / cop_dhw))
         # All three figures are piecewise in the PV surplus, like the objective.
         # The baseline house would self-consume the same sun, so pricing only
         # the optimized plan that way would manufacture fictitious savings.
@@ -662,7 +664,7 @@ class DhwPlanner:
                     ),
                     0.5,
                 )
-                rise = p_dhw_run * cop * dt / c_dhw
+                rise = delivered_heat_kw(params, cop, p_dhw_run) * dt / c_dhw
                 drawn = float(draw_rates[nxt]) * dt / c_dhw
                 need = (need + drawn - gain - rise) / max(decay, 1e-6)
                 if need > boost_top:
@@ -1653,7 +1655,8 @@ class DhwPlanner:
         # The tank's own per-step decay, the same factor the linear program
         # uses: heat added now is worth less later, so the ceiling bound
         # below can price how much of a top-up still survives at each step.
-        decay, _ = _tank_decay(self.model.params.dhw_tank_heat_loss_coefficient, dt, c_dhw)
+        params = self.model.params
+        decay, _ = _tank_decay(params.dhw_tank_heat_loss_coefficient, dt, c_dhw)
         # Breaches no ceiling-legal top-up can close. Skipped rather than
         # returned on: a demand window later in the day is not helped by
         # giving up at the first step the tank cannot quite reach, and a
@@ -1724,7 +1727,8 @@ class DhwPlanner:
                     ),
                     0.5,
                 )
-                needed = float(deficit[b]) * c_dhw / max(dt * cop_j, 1e-6)
+                needed = added_power_for_heat_per_cop_kw(
+                    params, plan[j], float(deficit[b]) * c_dhw / max(dt * cop_j, 1e-6))
                 # The room bound is sized against the HIGHEST COP that could
                 # apply at this step, not the marginal one used to size the
                 # need: the simulation delivers `compute_cop_dhw` thermal kWh
@@ -1738,7 +1742,8 @@ class DhwPlanner:
                         humidity=_step_humidity(humidity, j),
                     ),
                 )
-                room_kw = float(room_c[j_local]) * c_dhw / max(dt * cop_room, 1e-6)
+                room_kw = added_power_for_heat_per_cop_kw(
+                    params, plan[j], float(room_c[j_local]) * c_dhw / max(dt * cop_room, 1e-6))
                 add = min(
                     float(np.clip(needed, min_run_power, headroom[j_local])),
                     room_kw,
@@ -2091,9 +2096,8 @@ class DhwPlanner:
 
         # Fraction of stored heat lost per hour of storage: raising the tank by
         # ΔT stores C·ΔT kWh but adds U·ΔT kW of standby loss.
-        loss_rate_per_hour = (
-            self.model.params.dhw_tank_heat_loss_coefficient / c_dhw
-        )
+        params = self.model.params
+        loss_rate_per_hour = params.dhw_tank_heat_loss_coefficient / c_dhw
 
         unreachable: set[int] = set()
         temps: np.ndarray | None = None
@@ -2152,7 +2156,9 @@ class DhwPlanner:
                         humidity=_step_humidity(humidity, j),
                     ),
                 )
-                spare_thermal_kwh = (p_dhw_max - plan[j]) * cop * dt
+                spare_thermal_kwh = (
+                    heat_per_cop_kw(params, p_dhw_max) - heat_per_cop_kw(params, plan[j])
+                ) * cop * dt
                 # Heat added at step j raises every later tank temperature, so
                 # the ceiling has to be respected across the whole stretch the
                 # heat is stored for — not just at step j. With a per-step
@@ -2171,7 +2177,7 @@ class DhwPlanner:
                 )
                 if take <= 1e-6:
                     continue
-                plan[j] += take / (cop * dt)
+                plan[j] += added_power_for_heat_per_cop_kw(params, plan[j], take / (cop * dt))
                 # Never plan a run below the pump's practical minimum: a
                 # fraction of a kW cannot be delivered by an on/off DHW valve.
                 if 0.0 < plan[j] < min_run_power:
