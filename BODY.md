@@ -14,7 +14,7 @@ Refs #2492. Not closed here: carry 5 seam 2's two owed controls are met (Null co
 
 ## Head
 
-`3e9763e8a9a157cef592168ff04ba4691297280e` (the code of `3bc559015` plus one ledger-only commit pinning four killed sites) on merge base `88c6ad5bbec69bfe157e04597a74d0c9c3e4775c`, which was origin/main's tip when the gate ran (`date -u`: Thu Oct 29 16:11:44 UTC 2026). Every figure below is taken at `3bc559015`, whose tree this head carries unchanged outside `tests/mutation_ledger/killed_by/`, unless it names the merge base or this head; `## Unpinned sites` and the `mutation` red are taken at this head. origin/main has since moved to `e5ddba1fa` (`date -u`: Thu Oct 29 20:50 UTC 2026); `git merge-tree --write-tree origin/main HEAD` reports no conflict.
+`1a7150482145938296fd54385129147fedef6742`: the reviewed head `d26a00aa2` plus three commits, `R10-SAV-ACTUATION: pin the step tick's guards against a write the plan did not give` and `R10-SAV-ACTUATION: unload drops the one step tick two cycles armed` (checks in `tests/features.py` only), and `mutation ledger: pin thirteen killed sites` (files under `tests/mutation_ledger/killed_by/` only). No production line changed since `d26a00aa2`, whose merge base is `e5ddba1fad5e6eccfeceaeaaa249bc459963405b`. Figures taken at the earlier code head `3bc559015` (on `88c6ad5bb`) say so; the guard checks, the X mutants, `## Unpinned sites` and the `mutation` red are taken at this head. origin/main is at `2ab53fe90590` (`date -u`: Fri Oct 30 01:17 UTC 2026); `git merge-tree --write-tree origin/main HEAD` reports no conflict, so the branch is not merged forward (fixer.md step 6).
 
 ## Mutation proof
 
@@ -29,36 +29,39 @@ Each mutant deletes or neuters one seam's production line in a fresh worktree of
 
 The unmutated head: `ALL 4578 FEATURE CHECKS PASSED` (`tests/features.py` in the scoped gate, Figures). The mutant driver is a scratch script, not committed: each mutant is one `str.replace` asserted to match exactly once.
 
+**Round 2: the step tick's guards (fix review `blocked` at `d26a00aa2`, mutation-vacuous).** The section "supply switch at step boundaries" gains `_sa_guarded`: the REAL coordinator runs one `_apply_action` at 06:00 (step 0, plan on, the cycle writes ON and arms the tick), then the armed tick fires at 06:15 (step 1, plan off). The null control is the run with nothing perturbed, where the tick writes `['turn_off']`; each guard's check perturbs one input and asserts the tick writes nothing. Each mutant is one `str.replace` on `pump_arbiter.py`, asserted to match exactly once, run against the section standalone (`tests/features.py`'s preamble plus the section and the five module-level names it reads), then restored:
+
+- X1, `step_supply`'s live-boost branch (`if boosts.active(...): return True`) deleted: red on `the step tick writes nothing at a boundary under a live boost across a boundary whose plan step is off` (`['turn_off']`).
+- X2, `step_supply`'s `system_identification` guard deleted: red on `... under a system_identification action`.
+- X3, the mode/stale/plan guard narrowed to `if inp.plan is None:`: red on `... under a fixed (comfort) mode` and `... under a stale plan`. Split: X3a (mode term dropped) is red on the comfort check alone, X3b (`inp.plan_stale` dropped) on the stale check alone.
+- X4, `supply_tick`'s `if inp.entry_released: return` deleted: red on `... under a released entry`.
+- X5, `release`'s `release_supply(held)` deleted: red on `unload drops the one step tick two cycles armed`.
+- X6, `note_supply`'s arm-once guard (`if held.supply_unsub is not None: return`, the ledger's `pump_arbiter.py:1219 GUARD_OFF` survivor) deleted: red on the same check -- the unload run takes two cycles, and the second arms a listener `release_supply` never drops (`dropped != ticks`).
+
+Each mutant is red on exactly the check named and no other; the unmutated section prints `ALL 12 FEATURE CHECKS PASSED`, and the null run (`guard=None`) writes `['turn_off']`, so each check's empty write list is the guard's doing, not a tick that never fired. The ledger drive (`## Unpinned sites`) independently records the 1188, 1190, 1192 and 1246 sites killed by `tests/features.py`. X5's line carries no ledger operator, so its proof is this mutant alone.
+
 ## Unpinned sites
 
-`PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main` at 3e9763e8a9a1 lists 24 sites the diff adds. A local `python3 tests/mutation_table.py --pin-killed --base origin/main --jobs 3 --budget-minutes 65` at `3bc559015` drove 30 mutants: 4 killed and are pinned under `tests/mutation_ledger/killed_by/` in commit `3e9763e8a` (`coordinator.py:7605 BOOLOP` and `GUARD_OFF`, `pump_arbiter.py:377 BOOLOP` by `tests/features.py`; `pump_arbiter.py:357 GUARD_OFF` by `tests/guard_pins.py`), so they need no entry; 25 were not started for the budget (each `tests/features.py` run takes about 484 s here) and 1 survived. Every remaining site is under `custom_components/`, the tree `mutation-autofix`'s lane mutates, so each is **pinned by `mutation-autofix`** after the push; the seam lines among them are already killed by M1-M6 above:
+`PYTHONPATH=tests/hastub python3 tests/mutation_table.py --pin-killed --base origin/main --scripts tests/features.py --jobs 4 --budget-minutes 60` at the guard-check commit (no production change since): `PIN KILLED: 13 pinned, 13 left unpinned (8 survived, 5 not started for the budget, ...)`. Its null control (`coordinator.py:504 NULL_COMMENT`) survived and the `tests/features.py` baseline read `rc=0 failed=0`. The 13 are committed under `tests/mutation_ledger/killed_by/` (`pump_arbiter.py` 377 CMP_BOUND x2, 377 GUARD_OFF, 379 RETURN_DEL, 1174 BOOLOP and GUARD_OFF, 1188, 1190 and 1192 GUARD_OFF, 1195 RETURN_DEL, 1246, 1252 and 1259 GUARD_OFF). The four sites the review named as surviving (1188, 1190, 1192, 1246) are among them. `--scripts` was narrowed to `tests/features.py`, the one driver that reaches the step tick (no other script in `tests/` names `supply_tick`, `step_supply` or `note_supply`); a survivor there may still die under another driver in CI's lane.
 
-- `custom_components/heatpump_optimizer/pump_arbiter.py:377 CMP_BOUND*2`: pinned by `mutation-autofix` (not started in the local drive's budget)
-- `custom_components/heatpump_optimizer/pump_arbiter.py:377 GUARD_OFF`: pinned by `mutation-autofix` (not started in the local drive's budget)
-- `custom_components/heatpump_optimizer/pump_arbiter.py:379 RETURN_DEL`: pinned by `mutation-autofix` (not started in the local drive's budget)
-- `custom_components/heatpump_optimizer/pump_arbiter.py:549 RETURN_DEL`: pinned by `mutation-autofix` (not started in the local drive's budget)
-- `custom_components/heatpump_optimizer/pump_arbiter.py:1174 BOOLOP`: pinned by `mutation-autofix` (not started in the local drive's budget)
-- `custom_components/heatpump_optimizer/pump_arbiter.py:1174 GUARD_OFF`: pinned by `mutation-autofix` (not started in the local drive's budget)
-- `custom_components/heatpump_optimizer/pump_arbiter.py:1176 RETURN_DEL`: pinned by `mutation-autofix` (not started in the local drive's budget)
-- `custom_components/heatpump_optimizer/pump_arbiter.py:1188 GUARD_OFF`: pinned by `mutation-autofix` (not started in the local drive's budget)
-- `custom_components/heatpump_optimizer/pump_arbiter.py:1190 GUARD_OFF`: pinned by `mutation-autofix` (not started in the local drive's budget)
-- `custom_components/heatpump_optimizer/pump_arbiter.py:1192 GUARD_OFF`: pinned by `mutation-autofix` (not started in the local drive's budget)
-- `custom_components/heatpump_optimizer/pump_arbiter.py:1195 CMP_BOUND`: pinned by `mutation-autofix` (not started in the local drive's budget)
-- `custom_components/heatpump_optimizer/pump_arbiter.py:1195 RETURN_DEL`: pinned by `mutation-autofix` (not started in the local drive's budget)
-- `custom_components/heatpump_optimizer/pump_arbiter.py:1219 GUARD_OFF`: pinned by `mutation-autofix` (not started in the local drive's budget)
-- `custom_components/heatpump_optimizer/pump_arbiter.py:1222 GUARD_OFF`: pinned by `mutation-autofix` (not started in the local drive's budget)
-- `custom_components/heatpump_optimizer/pump_arbiter.py:1243 GUARD_OFF`: pinned by `mutation-autofix` (not started in the local drive's budget)
-- `custom_components/heatpump_optimizer/pump_arbiter.py:1246 GUARD_OFF`: pinned by `mutation-autofix` (not started in the local drive's budget)
-- `custom_components/heatpump_optimizer/pump_arbiter.py:1249 GUARD_OFF`: pinned by `mutation-autofix` (not started in the local drive's budget)
-- `custom_components/heatpump_optimizer/pump_arbiter.py:1252 GUARD_OFF`: pinned by `mutation-autofix` (not started in the local drive's budget)
-- `custom_components/heatpump_optimizer/pump_arbiter.py:1259 GUARD_OFF`: pinned by `mutation-autofix` (not started in the local drive's budget)
-- `custom_components/heatpump_optimizer/thermal_model.py:1335 BOOLOP`: pinned by `mutation-autofix` (not started in the local drive's budget)
-- `custom_components/heatpump_optimizer/thermal_model.py:1335 CMP_BOUND`: pinned by `mutation-autofix` (not started in the local drive's budget)
-- `custom_components/heatpump_optimizer/thermal_model.py:1335 GUARD_OFF`: pinned by `mutation-autofix` (not started in the local drive's budget)
-- `custom_components/heatpump_optimizer/thermal_model.py:1338 CMP_BOUND`: pinned by `mutation-autofix` (not started in the local drive's budget)
-- `custom_components/heatpump_optimizer/thermal_model.py:1338 RETURN_DEL`: pinned by `mutation-autofix` (not started in the local drive's budget)
+Survivors, each **not pinned and not triaged here** (a triage is a verdict the reviewer judges, and none is automated, `ci-autofix.md`); each is the next round's or the reviewer's call:
 
-The one survivor, `custom_components/heatpump_optimizer/coordinator.py:7607 GUARD_OFF` (`_write_supply`'s `elif switch_entity:`), is not among the predictor's sites; its branch only logs a debug line, so the mutant is equivalent in behaviour and no check can kill it short of asserting on a log line. It is named here rather than triaged, and the reviewer decides whether it owes a `survivor_triage` verdict.
+- `custom_components/heatpump_optimizer/coordinator.py:7607 GUARD_OFF` (`_write_supply`'s `elif switch_entity:`): the branch only logs a debug line; equivalent in behaviour. The review asked for a recorded verdict; proposed `survivor_triage` verdict `equivalent`, not written in this round because it needs the reviewer's agreement first.
+- `custom_components/heatpump_optimizer/pump_arbiter.py:549 RETURN_DEL` (`live_power_kw`'s `return reading.value if reading.ok else None`): not analysed this round.
+- `custom_components/heatpump_optimizer/pump_arbiter.py:1176 RETURN_DEL` (`supply_write`'s trailing `return None`): deleting it returns `None` implicitly, equivalent.
+- `custom_components/heatpump_optimizer/pump_arbiter.py:1195 CMP_BOUND` (`i >= len(...)` bound): not analysed this round; the test plan is as long as its timestamps, so the bound is not reached.
+- `custom_components/heatpump_optimizer/pump_arbiter.py:1219 GUARD_OFF` (`note_supply`'s arm-once guard): a live defect under the mutant -- each cycle armed a listener unload never dropped. Now killed by X6 (`unload drops the one step tick two cycles armed`, committed after the drive); its ledger pin is left to `mutation-autofix`, which pins a killed site, since a second local drive did not fit this round's time.
+- `custom_components/heatpump_optimizer/pump_arbiter.py:1222 GUARD_OFF` (`note_supply`'s no-switch-entity return): with no switch the gated write writes nothing.
+- `custom_components/heatpump_optimizer/pump_arbiter.py:1243 GUARD_OFF` (`supply_tick`'s same-step return): within a step `step_supply` returns the step's own command, so the change-only rule writes nothing.
+- `custom_components/heatpump_optimizer/pump_arbiter.py:1249 GUARD_OFF` (`if on is None: return`): with the guard off, `None != last` writes `None` through `supply_write`, which skips it.
+
+Not started for the budget (`plan_step_runs`), each pinned by `mutation-autofix` if killed, else a survivor for the next round:
+
+- `custom_components/heatpump_optimizer/thermal_model.py:1335 BOOLOP`: not started in the local drive's budget
+- `custom_components/heatpump_optimizer/thermal_model.py:1335 CMP_BOUND`: not started in the local drive's budget
+- `custom_components/heatpump_optimizer/thermal_model.py:1335 GUARD_OFF`: not started in the local drive's budget
+- `custom_components/heatpump_optimizer/thermal_model.py:1338 CMP_BOUND`: not started in the local drive's budget
+- `custom_components/heatpump_optimizer/thermal_model.py:1338 RETURN_DEL`: not started in the local drive's budget
 
 ## Null control
 
@@ -70,9 +73,15 @@ The same block at the merge base `88c6ad5bb` (the base's production code, this b
 
 At the head all four pass. An install with no silent row writes no `silent` leaf (`pump_arbiter._entities` gives the slot `None`), so its record reads 0 off-domain leaves at both ends.
 
+## Roster carries
+
+- Carry 1 (carry 5 seam 2 controls, from #2745): (a) the phase 0 / 14 min install books identical verdicts from step 1 (check 1 of the section; `AGREE: yes` at the head, `AGREE: no` at the base, Figures); (b) one mutant per seam, M1, M2/M6 and M4 each turning (a) red (Mutation proof).
+- Carry 2 (D15 L5): `written/silent` and the night slots declared in the `pump_duty` domain; 0 off-domain leaves with a silent row at the head, 3 silent leaves at the base; no silent row writes no leaf; M5 removes the declaration and is red (Null control, Mutation proof).
+- Carry 3 (actuate at step boundaries, design note first): the step tick, its design note at the top of this body, and in round 2 a check per tick guard (X1-X6).
+
 ## Figures
 
-- Cycle-phase control, the owner's instrument for this carry: `PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/harnesses/r10_sav_actuation_phase.py` (sha1 `d8871c1b96466f7d0d16df9ecc15454512d6adc5`) prints `AGREE: yes` at the head and `AGREE: no` at the merge base (the same file copied into a detached worktree of `88c6ad5bb`; it uses no symbol the fix added). Its rule: the per-step ledger verdicts of the two installs, compared from step 1.
+- Cycle-phase control, the fixer's own build of the roster's control (the roster states the control in words and names no instrument): `PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/harnesses/r10_sav_actuation_phase.py` (sha1 `d8871c1b96466f7d0d16df9ecc15454512d6adc5`) prints `AGREE: yes` at the head and `AGREE: no` at the merge base (the same file copied into a detached worktree of `88c6ad5bb`; it uses no symbol the fix added). Its rule: the per-step ledger verdicts of the two installs, compared from step 1.
 - The same install as checks: `PYTHONPATH=tests/hastub python3 tests/features.py`, section "supply switch at step boundaries": 4 of 4 pass at the head; at the merge base, the section run alone, 3 of 4 fail (Null control).
 - Off-domain `pump_duty` leaves with a silent row: `store.off_domain` over a record holding every slot of `pump_arbiter._SLOTS + _NIGHT_SLOTS` (the census check in that section) reads `[]` at the head; at the merge base it lists `written/silent`, `written/silent/0`, `written/silent/1` and the twelve night-slot leaves.
 - Sibling census of the switch's writers: `git grep -n 'switch_supply(' -- custom_components/` returns the definition and two callers, `coordinator.py` in `_write_supply` (the cycle and the tick) and `early_cutoff.py` in `on_room_event` (a one-time OFF, held across a kept step by the change-only rule: check 3, mutant M3). Each is dispositioned; none is open.
@@ -83,6 +92,8 @@ At the head all four pass. An install with no silent row writes no `silent` leaf
 - CI prediction: `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main` prints `no closures, fast, wave-script or instrument red predicted against 88c6ad5bbec6` and the 24 unpinned sites under `## Unpinned sites` (28 before the pin commit); before the stale-pin commit it predicted 7 `ledger` reds (STALE PIN on the lines this branch moved).
 - `node tools/policy/brief_lint.mjs` and `node tools/policy/policy_lint.mjs --budgets` exit 0.
 
+- Round 2, this head: `bash tools/pr/prepr.sh <body>` prints `rc=0` (`gate mode MODE: SCOPED`). The whole `tests/features.py` ran as the pin drive's baseline at the guard-check commit, `rc=0 failed=0 484s`; the last commit's one-check change (the unload run takes two cycles) was run on the section standalone, `ALL 12 FEATURE CHECKS PASSED`, not the whole script. `python3 tests/structure.py` prints `STRUCTURE RATCHET PASSED`.
+
 ## Architecture score
 
 n/a: `dS +0.0000 NULL`, no metric moved (Figures).
@@ -92,7 +103,7 @@ n/a: `dS +0.0000 NULL`, no metric moved (Figures).
 - `tests/entities.py`, in this branch's own local scoped gate at `0816441c4` (never pushed): `1 of 2470 ENTITY CHECKS FAILED`, the R10 N-no-expiry barrier, `mismatch {('pump_arbiter.py', 'step_duty'): (0, 1), ('pump_arbiter.py', '_step_index'): (1, 0)}`. The covering lookup moved from `step_duty` into `_step_index`; the reasoned entry moved with it, same count and same reason (commit `31cffb76d`). The cheaper detector is that barrier itself, run alone (about 11 minutes here) instead of after the whole gate; no new one is owed.
 - `ledger` (predicted, never run red): 7 STALE PINs on lines this branch moved, repaired by deleting the pin files as `ci_predict.py` instructs (commit `f5dd21351`). The predictor is the cheaper detector and it fired before any push.
 - `tests / nightly-status`: main-graded. It reports `nightly.yml`'s runs on `main` (`MAIN_STATE_REPORTERS` in `tools/policy/policy_lint.mjs`), and this diff touches neither that workflow nor its reporter `tests/nightly_status.py`: `git diff --name-only 88c6ad5bbec69bfe157e04597a74d0c9c3e4775c...HEAD -- .github/workflows/nightly.yml tests/nightly_status.py` prints nothing. A red there grades `main`, not this head.
-- `mutation` at 3e9763e8a9a1: red by construction on the 24 site(s) under `## Unpinned sites`; mutation-autofix pins killed sites after the push.
+- `tests / mutation` (`d26a00aa2`, the review's head): red on unpinned sites, four of them guards no check killed (the review's block). Answered: checks added and 13 sites pinned at this head; it stays red on the 13 under `## Unpinned sites` until they are pinned by CI's lane or triaged. The cheaper detector is `mutation_table.py --pin-killed` run locally before the handoff (about 484 s per `tests/features.py` mutant here, so a 26-site drive costs about an hour on four cores); this round ran it, and the round-1 drive's budget left the guard sites unstarted, which is how they reached review.
 
 ## Forward-carry
 
