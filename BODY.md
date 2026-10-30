@@ -1,214 +1,168 @@
-# Design note, round 2: r10-cop-gate-vent (R10-COP-GATE item E, carries 8 and 9)
+# Design note, round 3: r10-cop-gate-vent (R10-COP-GATE item E, carries 8 and 9)
 
-Tree measured: origin/main 1afdef8872a5da2eedff32916c1095e114198fae. Every line number below was re-measured there. Round 1: handoff-body/r10-cop-gate-vent at ce5ca88b. Review: `Design review: revise` at handoff-body/r10-cop-gate-vent-drev.
+Tree measured: origin/main e77418f9b48f89421bd72b0ab511c057341c7fa4. `custom_components/` has no diff from 1afdef88 (round 2's measured SHA), so every line number carries; each one cited new here was re-read at e77418f9. Round 2: handoff-body/r10-cop-gate-vent at 6eb360d0. Review: `Design review: revise` at handoff-body/r10-cop-gate-vent-drev c8fba463.
 
-## Deviation (unchanged from round 1)
+## Deviation (unchanged)
 
-The payload gives this seat the probe role: read-only, no code to any ref. **Nothing was pushed to `design/R10-COP-GATE-vent`, so there is no design SHA.** The harness source is in Appendix A, ready to commit as `dev/audit/harnesses/r10_cop_gate_vent.py`. Whoever commits it owes the `tests/closure.py` classification. The payload names the return ref `handoff-body/r10-cop-gate-vent-r2`, and the brief asks for a fast-forward of `handoff-body/r10-cop-gate-vent`. This body is pushed to both.
+The payload gives this seat the probe role: read-only, with no code pushed to any ref. **Nothing was pushed to `design/R10-COP-GATE-vent`, so there is no design SHA.** The harness source is in Appendix A, ready to commit as `dev/audit/harnesses/r10_cop_gate_vent.py`. Whoever commits it owes the `tests/closure.py` classification.
 
-## What changed since round 1
+The payload names the return ref `handoff-body/r10-cop-gate-vent-r3`, and the brief names `handoff-body/r10-cop-gate-vent`. This body is pushed to both, as in round 2.
 
-| review point | round 1 | round 2 | evidence |
-|---|---|---|---|
-| 1. COP (`flow_meter.py:105` `cop_evidence`) | lift the freeze for every COP fold | **split on heat evidence.** Lift only where the heat is measured: a counter span, or a measured flow heat. **The inferred path keeps the freeze.** | arm `cop under a window`: the inferred fold moves to the `COP_SCALE_MIN` clamp (0.500), against a null of 1.056 [0.989-1.120]. The flow-heat and counter-span folds read 1.000 at the null and in both windows. |
-| 2. draw-range `power_frozen` (`coordinator.py:9760`) | lift (`room_air=False`) | **stays frozen** (default) | arm `draw_range.fold under a window`: the metered range moves. No consumer judges the draw against measured heat, so a lift limited to measured heat has no site to apply to. |
-| 3. harness | gate-pass only | three new arms (COP, draw-range, buffer). Each feeds a window-shaped interval through the production fold with the latch clear and reports against a no-window null. | Appendix A |
-| carried: buffer row | conditional on the fixer | **settled from the topology: stays frozen** (reverses round 1) | topology read below, plus arm `buffer cooling under a window` |
-| carried: site count | "15 sites" | 13 call sites plus the DHW callable, `coordinator.py:9780` named | site table below |
-| carried: counter-span refusal code | not addressed | the failing test asserts `COP_REFUSED_SPAN_OPEN` | evidence plan |
+## The revise point: `_fold_flow_lift` (`coordinator.py:878`) keeps the default freeze
 
-## Measured (Appendix A at 1afdef8; `PYTHONPATH=tests/hastub python3 r10_cop_gate_vent.py`, venv-ci)
+Round 2 lifted `:878` on argument alone. This round runs the arm the reviewer specified, and by the note's own rule the arm reverses the lift.
 
-The cusum, learners and latch arms are byte-identical to round 1. The reviewer reproduced them, and they are not repeated here. The new arms:
+### Arm: `_fold_flow_lift under a window` (Appendix A, `arm_flow_window`)
+
+- **Driver.** The production `coordinator._fold_flow_lift` runs once per 30-min interval for 30 days (1440 cycles, at the default `optimization_interval` of 30 min). It goes through every gate: a fresh supply set by `FlowCurveBias.observe_temps`, the power floor, `_learning_frozen` with the latch clear, `_cop_fold_blocked`, and the space-dominant split. The curve is the production `curve_supply_temp`, which gives 22.42 °C at -10 °C and a target of 21.0. Every cycle folds (1440/1440).
+- **Scenario.** This is round 2's window scenario: default `ThermalParameters` (UA 0.15 kW/K, C 10 kWh/K), -10 °C outdoors, and a window of +k kW/K from 19:00 for 3 h every second day. Supply noise is ±0.3 K, over 8 seeds.
+- **Law (a), the reviewer's.** The emitters deliver the commanded hold heat q0 = UA·31 K whatever the room does. Supply = room + q0/UA_em + ΔT_design/2.
+  - UA_em is the model's own: nameplate × COP_nominal / `emitter_design_delta_t`, the same UA the curve is built on.
+  - ΔT_design is a 5 K flow-return spread. It is a constant offset, so it enters the null and the window arms equally, and every reading below is taken against its own null.
+- **Law (b), the null by construction.** The curve is held: supply = curve + ΔT_design/2, independent of the room.
+- **Law (a2), a sensitivity, not the rule.** The plan replans each interval, asking q0 + C·(target − room)/6 h (capped at the nameplate heat). A room the window has cooled is reheated, and the extra heat raises supply, which pushes the other way.
+- **Positive check of today's gate.** The same driver with the latch set folds 0 times (law a, k = 0.30).
+
+### Measured (Appendix A at e77418f9; `PYTHONPATH=tests/hastub python3 r10_cop_gate_vent.py`, venv-ci, 36 s)
 
 ```
-## cop under a window, latch clear (cop_scale after 30 d; truth 1.000; 8 seeds mean [min-max]; folds; folds on an interval the window raised by >0.5 %)
-inferred draw-evidence=none    k=0.00 scale=1.056 [0.989-1.120] folds=1440 window-folds=0
-inferred draw-evidence=none    k=0.15 scale=0.500 [0.500-0.501] folds=1434 window-folds=1396
-inferred draw-evidence=none    k=0.30 scale=0.500 [0.500-0.500] folds=1266 window-folds=1228
-inferred draw-evidence=follows k=0.00 scale=1.056 [0.989-1.120] folds=1440 window-folds=0
-inferred draw-evidence=follows k=0.15 scale=0.500 [0.500-0.501] folds=1440 window-folds=1402
-inferred draw-evidence=follows k=0.30 scale=0.500 [0.500-0.500] folds=1440 window-folds=1402
-flow     draw-evidence=none    k=0.00 scale=1.000 [1.000-1.000] folds=1440 window-folds=0
-flow     draw-evidence=none    k=0.15 scale=1.000 [1.000-1.000] folds=1440 window-folds=1402
-flow     draw-evidence=none    k=0.30 scale=1.000 [1.000-1.000] folds=1440 window-folds=1402
-span     draw-evidence=none    k=0.00 scale=1.000 [1.000-1.000] folds=1440 window-folds=0
-span     draw-evidence=none    k=0.15 scale=1.000 [1.000-1.000] folds=1440 window-folds=1402
-span     draw-evidence=none    k=0.30 scale=1.000 [1.000-1.000] folds=1440 window-folds=1402
-(window k=0.15: excess peak +9.5%, 30-d mean +4.02%, intervals over COP_ASK_TOLERANCE 0)
-(window k=0.30: excess peak +18.5%, 30-d mean +7.83%, intervals over COP_ASK_TOLERANCE 158)
-(window excess at k=0.30: peak +18.5%, mean over perturbed intervals +8.0%; k=0.15 peak +9.5%)
-## draw_range.fold under a window, frozen=False (8 seeds: slope mean [min-max]; follows; engaged; planned)
-k=0.00 slope=0.996 [0.991-0.999] follows=['True'] engaged=[False] planned=['None'] observed0=(1.1880120058874524, 2.453458215500379)
-k=0.15 slope=1.003 [0.998-1.006] follows=['True'] engaged=[False] planned=['None'] observed0=(1.2348907444636494, 2.575870658737858)
-k=0.30 slope=1.009 [1.004-1.012] follows=['True'] engaged=[False] planned=['None'] observed0=(1.2715628489730775, 2.6978193797111185)
-## buffer cooling under a window, latch clear (learned C/h after 30 d; samples)
-g=0.0000kW/K k=0.00 rate=1.0000 samples=1440
-g=0.0000kW/K k=0.30 rate=1.0000 samples=1440
-g=0.0005kW/K k=0.00 rate=1.2946 samples=1440
-g=0.0005kW/K k=0.30 rate=1.3058 samples=1440
-g=0.0020kW/K k=0.00 rate=2.1781 samples=1440
-g=0.0020kW/K k=0.30 rate=2.2233 samples=1440
+## _fold_flow_lift under a window, latch clear (bias_k K after 30 d; 8 seeds: final mean [min-max] | 30-d mean [min-max] | run min..max; folds)
+law=a  k=0.00 final=+2.518 [+2.364..+2.626] mean=+2.496 [+2.483..+2.511] run=+2.181..+3.112 folds=1440
+law=a  k=0.15 final=+0.710 [+0.556..+0.817] mean=+0.835 [+0.821..+0.849] run=+0.111..+3.112 folds=1440
+law=a  k=0.30 final=-0.889 [-1.043..-0.782] mean=-0.651 [-0.665..-0.637] run=-1.814..+3.112 folds=1440
+law=b  k=0.00 final=+2.518 [+2.364..+2.626] mean=+2.496 [+2.483..+2.511] run=+2.181..+3.112 folds=1440
+law=b  k=0.15 final=+2.518 [+2.364..+2.626] mean=+2.496 [+2.483..+2.511] run=+2.181..+3.112 folds=1440
+law=b  k=0.30 final=+2.518 [+2.364..+2.626] mean=+2.496 [+2.483..+2.511] run=+2.181..+3.112 folds=1440
+law=a2 k=0.00 final=+2.518 [+2.364..+2.626] mean=+2.496 [+2.483..+2.511] run=+2.181..+3.112 folds=1440
+law=a2 k=0.15 final=+2.503 [+2.349..+2.611] mean=+2.420 [+2.406..+2.434] run=+2.020..+3.112 folds=1440
+law=a2 k=0.30 final=+2.489 [+2.335..+2.597] mean=+2.346 [+2.332..+2.361] run=+1.762..+3.112 folds=1440
+(law a k=0.15: room min 18.50 C, 30-d mean 19.33 C, last 19.31 C)
+(law a k=0.30: room min 16.30 C, 30-d mean 17.83 C, last 17.82 C)
+(law a2 k=0.15: room min 19.91 C, 30-d mean 20.84 C, last 20.99 C)
+(law a2 k=0.30: room min 18.87 C, 30-d mean 20.69 C, last 20.98 C)
+(curve at -10.0 C, target 21.0: 22.42 C; latch set, law a k=0.30: folds=0)
+(priced at -10.0 C; cop_flow_reference_temp=35.0 C)
+(plant 25 C, bias +2.58 K, factor 1.0000: a/0.15 shift -1.662 K factor +0.00%; a/0.30 shift -3.148 K factor +0.00%; a2/0.15 shift -0.077 K factor +0.00%; a2/0.30 shift -0.151 K factor +0.00%; b/0.30 shift +0.000 K factor +0.00%)
+(plant 40 C, bias +17.58 K, factor 0.9146: a/0.15 shift -1.662 K factor +2.89%; a/0.30 shift -3.148 K factor +5.65%; a2/0.15 shift -0.077 K factor +0.13%; a2/0.30 shift -0.151 K factor +0.25%; b/0.30 shift +0.000 K factor +0.00%)
+(plant 50 C, bias +27.58 K, factor 0.7865: a/0.15 shift -1.662 K factor +2.32%; a/0.30 shift -3.148 K factor +4.51%; a2/0.15 shift -0.077 K factor +0.10%; a2/0.30 shift -0.151 K factor +0.20%; b/0.30 shift +0.000 K factor +0.00%)
 ```
-
-### What the new arms model
-
-- **Window.** A first-order room with the default `ThermalParameters` (UA 0.15 kW/K, C 10 kWh/K), at -10 °C outdoors (outside the 0–4 °C frost band) and 21 °C indoors.
-  - Emitter UA is backed out of the steady load at `emitter_design_delta_t`.
-  - The flow temperature is **fixed**. A window adds `k` kW/K from 19:00 for 3 h every second day.
-  - The cooler room makes the emitters take `(1+d)` times the heat. The compressor draws `(1+d)` times the power at an **unchanged true COP**.
-  - Peak `d` is +9.5 % at k = 0.15 and +18.5 % at k = 0.30.
-  - With a fixed flow, a 12 h room constant and no room compensation, the room never fully recovers between events (30-day mean `d` of +4.0 % and +7.8 %). This is a strong scenario and is stated as one. The inferred conclusion does not depend on it: each folded interval moves the scale by about `COP_LEARNING_ALPHA · d`, and nothing pulls it back (below).
-- **COP.** 1440 intervals go through the production `_fold_measured_cop`:
-  - with `_flow_bias.heat_output_kw` None (inferred);
-  - with it set to the true heat (flow);
-  - through `_fold_cop_evidence`, the tail `_async_learn_heat_span` calls, on counter deltas (span).
-
-  Draw evidence is either none, or a window whose evidence says the draw follows the ask. There are 8 seeds of ±3 % draw noise. The rows report `cop_scale`, whose truth is 1.000.
-- **Draw-range.** The production `draw_range.fold` with `frozen=False` takes a price-shaped ask of 1.2/1.6/2.4 kW, a draw of ask × (1+d) with ±3 % noise, and 8 seeds.
-- **Buffer.** The production `_async_learn_buffer_cooling` runs on pump-off 30-min intervals. A 35 L tank (rate about 1 °C/h at the 25 K reference) loses heat to its room, and with conductance `g` kW/K to emitters at the room's temperature, which the window lowers.
 
 ### Readings
 
-1. **The inferred COP fold moves; the measured-heat folds do not.** The inferred fold (`cop_evidence`, `heat_kw is None`) assumes the delivered heat was the ask. It folds the window's extra draw as a COP drop, whatever the draw evidence says:
-   - Every window interval passes the gates (folds 1434/1440 and 1440/1440). At k = 0.15 not one interval exceeds `COP_ASK_TOLERANCE`, so `judge_ratio` folds each within the tolerance. The tracking gate (0.3) never fires on a departure that grows over 6 intervals.
-   - The target is the current scale times `commanded/electrical`, so the fold has no fixed point to return to (`coordinator.py:5078-5081`, the "correction alone" note). The scale walks to the `COP_SCALE_MIN` clamp (`const.py:252`, 0.5).
-   - The no-window null walks only by noise: 1.056 [0.989-1.120].
-   - The flow-heat and span folds divide measured heat by measured draw. They read exactly 1.000 at the null and at both window strengths, while folding every interval.
-   - **The inferred rows are this harness's positive control.** One production tail, fed the same draws, moves when its heat is assumed and holds when its heat is measured.
-2. **Draw-range moves.**
-   - The learned metered range `observed()` goes from (1.19, 2.45) kW at the null to (1.23, 2.58) at k = 0.15 and (1.27, 2.70) at k = 0.30, seed 0: the max is +5 % and +10 %.
-   - `follows_ask` does not flip: the slope goes 0.996 → 1.009, True throughout. `engaged` stays False here, so `planned()` stays None in this scenario.
-   - The quantity the latch and `planned_range` read still moves.
-3. **Buffer.**
-   - At `g` = 0, which is the modelled no-valve topology (below), the rate holds at 1.0000 with or without the window. This is true by construction.
-   - At `g` > 0 it moves against its own null: 1.2946 → 1.3058 (+0.011 °C/h) at g = 0.0005 kW/K, and 2.1781 → 2.2233 (+0.045 °C/h) at g = 0.002.
-   - `BUFFER_COOLING_ALPHA_UP` (0.02) absorbs a leakier-looking tank slowly but does not refuse it.
+1. **Law (a) moves `bias_k` well beyond its no-window null.**
 
-## Decisions
+   | k (kW/K) | 30-day mean `bias_k`, 8 seeds | final value |
+   |---|---|---|
+   | 0.00 (null) | +2.496 [+2.483..+2.511] | — |
+   | 0.15 | +0.835 [+0.821..+0.849], a shift of −1.66 K | +0.710 |
+   | 0.30 | −0.651 [−0.665..−0.637], a shift of −3.15 K | −0.889 |
 
-### Point 1: COP splits on heat evidence
+   The seed ranges are disjoint from the null by more than 1.6 K. The run minimum reaches −1.81 K against a null minimum of +2.18.
+2. **Part of law (a)'s shift is the room's lasting drop, not only the window events.** With the heat held at q0 and nothing restoring the room, the room's 30-day mean is 19.33 °C at k = 0.15 and 17.83 °C at k = 0.30. This is the reviewer's law, stated as the strong case.
+3. **Law (a2) also moves beyond its null, even with the room recovering** (room 30-day mean 20.84 and 20.69 °C).
+   - 30-day mean +2.420 [+2.406..+2.434] at k = 0.15 and +2.346 [+2.332..+2.361] at k = 0.30, against +2.496 [+2.483..+2.511].
+   - Its shifts are −0.08 and −0.15 K. They are small, but outside the null's seed range.
+4. **Law (b) is identical to the null to the last digit at both k.** Its flatness is a property of the model, not evidence. This is the reviewer's point about round 2's window model, now measured.
+5. **The price.** `bias_k` reaches the plan as `flow_curve_bias` (`coordinator.py:3931`), which is added to `curve_flow_temp` (`thermal_model.py:2641`). `flow_lift_factor` reads curve + bias only above `cop_flow_reference_temp` (35.0 °C).
+   - In this house the 22–25 °C supply is below the reference, so the shift costs nothing (factor +0.00 % at every k).
+   - On a plant whose supply sits at 40 °C (bias +17.58 K), the same additive shifts move the priced COP factor:
+     - law (a): +2.89 % at k = 0.15 and +5.65 % at k = 0.30;
+     - law (a2): +0.13 % and +0.25 %.
+   - At 50 °C: law (a) +2.32 % and +4.51 %; law (a2) +0.10 % and +0.20 %.
+   - Under a window the learner reads a cooler supply as a curve set lower, and the plan then prices every step at a COP that is too high.
+   - These rows apply the 25 °C scenario's shift to hotter plants. That is exact under law (a), because supply = room + Q/UA_em + const moves by the room's move at any offset.
 
-| COP path | where | the window | freeze |
-|---|---|---|---|
-| counter span | `_async_learn_heat_span` (`coordinator.py:1079`), gated per cycle through `_fold_measured_cop` reaching `COP_REFUSED_SPAN_OPEN` (`coordinator.py:5041`), which `clean["cop"]` reads (`coordinator.py:5565`) | heat and electricity are both counter deltas. Arm: 1.000 against a null of 1.000. | **lifted** |
-| measured flow heat | `_fold_measured_cop` with `self._flow_bias.heat_output_kw` not None (read at `coordinator.py:5048`). `judge_ratio` is skipped and `cop_evidence` divides the measured heat. | Arm: 1.000 against a null of 1.000. | **lifted** |
-| inferred | `_fold_measured_cop` with no heat reading: `cop_evidence`'s `modelled_cop · commanded / electrical` | a window's extra draw folds as a COP drop. Arm: 0.500 (clamp) against a null of 1.056. | **kept** |
+### Decision
 
-**Shape.**
+The rule (round 2, point 3) is that a learner whose output moves under a window keeps the freeze. Law (a) moves `bias_k` beyond its no-window null, and so does law (a2). **`coordinator.py:878` keeps the default `room_air=True`.** No edit at `:878`.
 
-```python
-# _fold_measured_cop, replacing coordinator.py:5017-5018 and hoisting the read at :5048
-heat_kw = self._flow_bias.heat_output_kw
-measured_heat = heat_energy.meter_of(self).counter or heat_kw is not None
-if self._learning_frozen(CONF_POWER_ENTITY, CONF_OUTDOOR_TEMP_ENTITY, CONF_THERMAL_POWER_ENTITY,
-                         room_air=not measured_heat):
-    return COP_REFUSED_FROZEN
-```
+- **Cost.** No flow-bias sample is taken while the latch is set. The bias is an installation property on a 0.1 EWMA with no time pressure, and the latch is the same one the house learner sits behind.
+- **Inherited risk.** Round 2's argument ("supply against the curve, on the outdoor key") was wrong where the reviewer said it was. The outdoor key names the curve's input, but the supply side reads the room through the emitter.
 
-- The read at `:5048` becomes the hoisted `heat_kw`, so the gate and the fold judge the same evidence on the same cycle.
-- A stale or unread thermal-power entity leaves `heat_kw` None. That interval is inferred and stays frozen, so the gate fails closed.
-- The counter span needs no edit of its own:
-  - `heat_energy.close_span` (`heat_energy.py:489`) folds the COP on `ev.clean["cop"]` alone (`heat_energy.py:513`).
-  - The house and lower-floor flags of that span still carry the vent freeze through their own gates (`coordinator.py:5437`, `:5601`), so the span's fabric replay stays frozen while its COP folds.
+## The reviewer's carried notes, settled
 
-**The refusal code changes for counter installs (reviewer's carried note).** Today, with the latch set, a counter install's per-cycle COP refusal is `learners_frozen`, because the freeze check at `:5017` comes before the counter check at `:5040-5041`. After the change it is `span_open`, and the span folds at its close. The failing test asserts the code (below).
+1. **`coordinator.py:1152` (`_freq_fold_blocked`) already lifts.** Re-read at e77418f9: `frozen = coord._learning_frozen(CONF_POWER_ENTITY)` then `return bool(frozen and ":" in frozen)` (`:1152-1153`), and the vent branch returns `"ventilation"` with no colon (`coordinator.py:6641-6642`).
+   - **The `room_air=False` edit at `:1152` is dropped, and so is its mutant**, an equivalent mutant no test can kill.
+   - The PR body records that the site already lifts through its own colon predicate. Boost and the tail reasons pass there too.
+2. **The flow-heat COP lift must fail closed on a stale thermal-power reading.** This is added as failing test 2b (below): a stale thermal-power entity with the latch set must give `COP_REFUSED_FROZEN`.
+   - `observe_temps` stores whatever `read_heat_output_kw` returns each cycle (`flow_lift.py:154-178`). The test, not this note, establishes that a stale entity yields `None`.
+   - If it does not, the fixer gates `measured_heat` on the reading being fresh, rather than on `is not None`, and says so in the PR body.
+3. Carry: dismissed: freeze reason resets each cycle (item 9). The latch arm (Appendix A) reads `ventilation` → `None` across consecutive cycles, unchanged.
 
-### Point 2: draw-range `power_frozen` stays frozen
+## Unchanged (accepted by review in rounds 1–2; nothing here edits them)
 
-`coordinator.py:9760` keeps the default `room_air=True`. This is decided together with point 1, for three reasons:
+- **Point 1: COP splits on heat evidence.** The counter span and measured flow heat are lifted, and the inferred path is kept frozen. The shape is `room_air=not measured_heat` with the hoisted `heat_kw` (`coordinator.py:5017`, `:5048`).
+  - Evidence: the `cop under a window` arm. At e77418f9 it is byte-identical to round 2's measured block (diffed): inferred 0.500 against a null of 1.056 [0.989-1.120], flow and span 1.000.
+- **Point 2: draw-range `power_frozen` (`coordinator.py:9760`) stays frozen.** The arm is byte-identical.
+- **The buffer stays frozen, settled from the topology.** The arm is byte-identical.
+- **The DHW callable (`:3405`) and `_dhw_probe_temperature` (`:9926`) lift** (review: "their lift stands on inspection").
+- **The seam.** `_learning_frozen(self, *keys: str, room_air: bool = True) -> str | None`, where `room_air=False` skips only the `ventilation` branch.
+  - The default fails closed. The house learner's pass-through, `learner_freeze_reason` and the ranking are unchanged.
+  - The alternatives lost as in round 1.
+- **sysid keeps its abort.** There is no `VENT_CUSUM_*` tuning.
+- The cusum, learners and latch arms are reproduced unchanged at e77418f9.
 
-1. The fold's learned quantity moves under a window (reading 2).
-2. Nothing downstream judges the draw against measured heat, so "lift only where the draw is judged against measured heat" names no site. The consumers are:
-   - `follows_ask`, read by `judge_ratio` (the inferred path only, which point 1 keeps frozen) and by `cop_observability` (`coordinator.py:7699`, diagnostics);
-   - `planned` / `planned_range`, the range the plan may book;
-   - `space_draw_kw` (`coordinator.py:1010`), the slab estimate.
-
-   None reads a heat measurement. Lifting `power_frozen` on measured-heat installs would only feed window-shaped draws into the plan's booking range.
-3. The same `power_frozen` gates the defrost settlement at `coordinator.py:9850` (`power_frozen in (None, "defrosting")`). Keeping the default leaves that unchanged.
-
-Point 1's measured-heat lift does not need draw-range evidence, because `judge_ratio` is not consulted when `heat_kw` is present, and a counter install's span does not consult it either.
-
-### Buffer row: stays frozen (reverses round 1), settled from the topology
-
-- **Topology.** `mixing_valve.py:57-59`: `THROTTLING_MODES` = manual, smart_read, smart_write. The only non-throttling mode is `none`, and with it the only valid layout is `no_valve`: `const.py:436-446` (`topology_layout_valid`) and `topology.py:407-417` (edges heat_pump→buffer_tank→upper_zone, plus lower_zone on two-zone installs).
-  - The throttling modes are already refused by the learner (`coordinator.py:5323-5324`).
-  - In `no_valve` the model makes the tank a pass-through: emitter draw is the pump's heat (`thermal_model.py:3349-3352`, `:3390-3392`). So the **modelled** pump-off draw is zero.
-- **The hardware.** The space circulation pump is not a model term. Per `pump_schedule.py:1-27` and `translations/en.json:839-844`, it runs in every slot except those that are "provably idle and warm". On a `no_valve` install, a pump-off interval with circulation running therefore drains the buffer into the emitters at room temperature, and the learner's own docstring names this contamination (`coordinator.py:5292-5294`).
-- **The rule.** The arm at `g` > 0 moves against its null, so by point 3's rule (a learner whose output moves keeps the freeze) the buffer keeps it.
-- **Cost.** Standby-loss samples on a buffer whose rate has a volume-derived prior. This is small.
-
-## Site table (13 call sites plus the DHW callable; `coordinator.py` at 1afdef8)
-
-`grep -n "_learning_frozen" coordinator.py` also hits the `def` at `:6574`, the substring `boost.space_learning_frozen` at `:6651`, and comments at `:1044`, `:6481`, `:6525` and `:9906`. None of them is a call.
+## Site table (13 call sites plus the DHW callable; `coordinator.py` at e77418f9, line numbers equal to 1afdef8)
 
 | line | function (def line) | keys | decision |
 |---|---|---|---|
-| 878 | `_fold_flow_lift` (839) | outdoor | `room_air=False` (accepted round 1) |
-| 1152 | `_freq_fold_blocked` (1136) | power | `room_air=False` (accepted round 1) |
-| 3405 | DHW callable, `frozen=` in the `DhwProfileLearner` wiring (nested def at 3391) | — | `functools.partial(self._learning_frozen, room_air=False)` (accepted round 1) |
+| 878 | `_fold_flow_lift` (839) | outdoor | **default** (reversed this round: arm above) |
+| 1152 | `_freq_fold_blocked` (1136) | power | **no edit**: already lifts through `":" in frozen` (carried note 1) |
+| 3405 | DHW callable, `frozen=` in the `DhwProfileLearner` wiring (nested def at 3391) | — | `functools.partial(self._learning_frozen, room_air=False)` |
 | 5017 | `_fold_measured_cop` (4999) | power, outdoor, thermal power | `room_air=not measured_heat` (point 1) |
-| 5311 | `_async_learn_buffer_cooling` (5287) | buffer | **default** (reversed, above) |
-| 5437 | `_async_learn_house_heat_loss` (5410) | indoor, outdoor, thermal power | default: it is the room-air learner and feeds the detector |
-| 5601 | `_async_learn_lower_floor_loss` (5571) | indoor, outdoor, lower floor, thermal power | default: room temperature |
-| 8971 | `_track_curve_comfort` (8952) | indoor | default: room temperature |
-| 9388 | `_inputs_unhealthy` (9386) | indoor, outdoor, power | default: snapshot health keeps its meaning |
-| 9760 | `_record_accuracy` (9737), draw-range `power_frozen` | power | **default** (point 2) |
-| 9780 | `_record_accuracy` (9737), `indoor_frozen` for lead-prediction scoring | indoor | default: scores the room against a prediction, so a window is exactly what it must not score |
-| 9926 | `_dhw_probe_temperature` (9886) | DHW | `room_air=False` (accepted round 1) |
-| 10773 | `_record_quiet_comfort_period` (10766) | indoor | default: room temperature |
-| 10858 | `_run_system_identification` (10840) | indoor, outdoor | default: abort (R10-CEILING-PROBE F1's question) |
+| 5311 | `_async_learn_buffer_cooling` (5287) | buffer | default |
+| 5437 | `_async_learn_house_heat_loss` (5410) | indoor, outdoor, thermal power | default |
+| 5601 | `_async_learn_lower_floor_loss` (5571) | indoor, outdoor, lower floor, thermal power | default |
+| 8971 | `_track_curve_comfort` (8952) | indoor | default |
+| 9388 | `_inputs_unhealthy` (9386) | indoor, outdoor, power | default |
+| 9760 | `_record_accuracy` (9737), draw-range `power_frozen` | power | default (point 2) |
+| 9780 | `_record_accuracy` (9737), `indoor_frozen` | indoor | default |
+| 9926 | `_dhw_probe_temperature` (9886) | DHW | `room_air=False` |
+| 10773 | `_record_quiet_comfort_period` (10766) | indoor | default |
+| 10858 | `_run_system_identification` (10840) | indoor, outdoor | default: abort |
 
-So `room_air=False` is now passed at four call sites (878, 1152, 9926, and 5017 conditionally) plus the DHW callable. Nine call sites keep the default.
-
-## Unchanged from round 1 (accepted by review)
-
-- **The seam.** One owner, `_learning_frozen` (`coordinator.py:6574`). The signature becomes `_learning_frozen(self, *keys: str, room_air: bool = True) -> str | None`, and `room_air=False` skips only the `ventilation` branch. The default fails closed, and every other branch keeps its order.
-- **Invariants.**
-  - The house learner's vent pass-through is unchanged.
-  - `learner_freeze_reason` still reads `ventilation` while the house learner is latched.
-  - Ventilation still ranks below an unusable input and above boost.
-- **The alternatives and why each lost.** Caller-side filtering loses boost and the tail reasons below it and spreads the reason string. A `_fabric_frozen()` fails open. Key-scoping changes what keys mean for `_inputs_unhealthy`.
-
-  The new `room_air=not measured_heat` argument is the same keyword carrying a per-interval value. It is not a fourth shape.
-- **sysid keeps its abort.** DHW, `_freq_fold_blocked`, `_fold_flow_lift` and `_dhw_probe_temperature` lift as designed (review: "their lift stands").
-
-  This round adds no window arm for these four. The review ruled them unaffected by points 1–3, and none of their inputs is room air: a tank probe, a kW-per-Hz map, and supply against the curve on the outdoor key. If the reviewer reads point 3 as covering them too, that is the open item for round 3.
-- **No `VENT_CUSUM_*` tuning.** The L2 bias does not reproduce synthetically, and the next step is the owner's residual series (`debug_collect start`).
+After this round:
+- `room_air=False` is passed at one call site (`:9926`), plus the DHW callable.
+- `room_air=not measured_heat` is passed at one site (`:5017`).
+- `:1152` is not edited.
+- The other ten call sites keep the default.
 
 ## Evidence plan, by file
 
 **Failing test** in `tests/features.py`, beside the existing `_vent_cusum.tripped` cases, all with the latch set:
 
-1. **Counter install** (`heat_energy.meter_of(c).counter` truthy): after `_learn_measured_cop`, `c._measured_cop.refusal == COP_REFUSED_SPAN_OPEN`. Today it reads `COP_REFUSED_FROZEN` (`learners_frozen`). It must assert the code, not only fold or no fold.
-2. **Measured flow heat** (`_flow_bias.heat_output_kw` set): `_fold_measured_cop` folds, so `_cop_samples` rises by 1. It does not return `COP_REFUSED_FROZEN`.
+1. **Counter install** (`heat_energy.meter_of(c).counter` truthy): after `_learn_measured_cop`, `c._measured_cop.refusal == COP_REFUSED_SPAN_OPEN`. Today it reads `COP_REFUSED_FROZEN`. The test asserts the code, not only whether a fold happened.
+2. **Measured flow heat** (`_flow_bias.heat_output_kw` set): `_fold_measured_cop` folds (`_cop_samples` + 1).
+   - 2b: a configured thermal-power entity whose state is stale, run through the cycle's real `observe_temps` read, gives `COP_REFUSED_FROZEN` (carried note 2).
 3. **Inferred** (no heat reading): `_fold_measured_cop` still returns `COP_REFUSED_FROZEN`.
 4. DHW runs, and `_dhw_probe_temperature` returns the probe.
-5. Buffer, draw-range (`draw_range.fold` sees `frozen=True`), sysid, house and lower-floor still freeze or abort on `ventilation`.
+5. Buffer, draw-range (`draw_range.fold` sees `frozen=True`), sysid, house and lower floor still freeze or abort on `ventilation`. **New this round:** `_fold_flow_lift` with a fresh supply above the power floor leaves `_flow_bias.samples` unchanged. This one passes at the base and must keep passing; it pins the reversal.
 
 **Finder's harness:** Appendix A, committed as `dev/audit/harnesses/r10_cop_gate_vent.py`.
-- At both ends, the `cop under a window` arm must read 1.000 for flow and span against a null of 1.000, and the inferred rows must still move (the positive control). This is a property of the fold tail, which this group does not edit, so it must not change.
-- The learners arm must read, at the head:
-  - COP on an inferred install: `refused:learners_frozen`. The harness's COP probe is inferred, so this row is unchanged.
-  - DHW: `runs`.
-  - buffer: `frozen:ventilation`.
-  - sysid: `aborted:ventilation`.
-- The fixer extends the learners arm with a counter and a flow-heat COP row, which must read `span_open` and `passes freeze` at the head and `refused:learners_frozen` at the base.
+- **At both ends:**
+  - `cop under a window`: flow and span read 1.000, and inferred still moves.
+  - `_fold_flow_lift under a window`: law (a) moves against its null, law (b) equals it, and the latch-set row folds 0.
+  - These are properties of folds this group does not edit, so neither may change.
+- **The learners arm at the head:**
+  - inferred COP `refused:learners_frozen`;
+  - DHW `runs`;
+  - buffer `frozen:ventilation`;
+  - sysid `aborted:ventilation`.
+- **The fixer adds rows** for counter COP and flow-heat COP: `span_open` and `passes freeze` at the head, `refused:learners_frozen` at the base.
 
-**Null control.**
-- Latch clear: every learner passes at both ends.
-- `k=0.00` in each window arm.
+**Null control.** Latch clear, and `k=0.00` in each window arm. Law (b) is the flow arm's by-construction null.
 
 **Mutation proof targets** (one mutant per gate):
 - the `room_air` guard on the vent branch: fails tests 1, 2 and 4;
 - `room_air=not measured_heat` → `True`: fails tests 1 and 2;
-- `room_air=not measured_heat` → `False`: fails test 3;
-- each of `:878`, `:1152`, `:9926` and the `:3405` partial back to default: fails its row;
-- `:5311` and `:9760` set to `room_air=False`: fail test 5's rows.
+- `room_air=not measured_heat` → `False`: fails tests 3 and 2b;
+- `:9926` and the `:3405` partial back to default: fail test 4's rows;
+- `:878`, `:5311` and `:9760` set to `room_air=False`: fail test 5's rows.
+- Dropped: `:1152` (equivalent mutant, carried note 1) and `:878` back to default (it is the default).
 
-**Goldens:** none expected to move. No solver output depends on the freeze.
+**Goldens:** none expected to move.
 
-**Hot files and serial position:** `coordinator.py`. #2262's COP observability edits `_fold_measured_cop` and must serialize with this item. R10-CEILING-PROBE F1 owns the sysid abort.
+**Hot files and serial position:** `coordinator.py`. #2262's COP observability edits `_fold_measured_cop` and serializes with this item. R10-CEILING-PROBE F1 owns the sysid abort.
 
 ## Notes for the fixer
 
@@ -216,12 +170,13 @@ So `room_air=False` is now passed at four call sites (878, 1152, 9926, and 5017 
 - Carry: R10-COP-GATE (item E)
 - Carry: R10-CEILING-PROBE (item F1)
 - Carry: dismissed: freeze reason resets each cycle (item 9)
-- The inferred COP fold has no restoring force. Its target is the current scale times the observed correction, so any persistent draw-over-ask bias walks the scale to a clamp: 0.5 here, within 30 days. That is why the inferred path keeps the freeze. It is also a property of the fold beyond windows, outside this group, and it goes to the COP fold's own brief by `finding-propagation.md`, not to an issue.
-- The draw-range `observed()` max moved by up to +10 % under a window without `follows_ask` flipping. Lifting `:9760` later needs a consumer that judges draws against measured heat, which none does today.
+- The inferred COP fold has no restoring force (round 2). It goes to the COP fold's own brief by `finding-propagation.md`.
+- Lifting `:9760` later needs a consumer that judges draws against measured heat. None exists today.
+- **New.** `_fold_flow_lift` reads room air through the emitter whenever the plant runs a commanded power. Any later proposal to lift `:878` needs a window arm with the plant law the install actually runs. Round 2's fixed-flow model reads flat by construction.
 
-Seat tokens: subagent locators 50301 + 20961; main-loop count not reported by the harness.
+Seat tokens: subagent locator 35175; main-loop count not reported by the harness.
 
-## Appendix A: harness source (scratchpad `r10_cop_gate_vent.py`, not committed)
+## Appendix A: harness source (scratchpad `r10_cop_gate_vent.py`, not committed; rounds 1–2 arms unchanged, round 3 adds `room_series`, `run_flow`, `arm_flow_window`)
 
 ```python
 #!/usr/bin/env python3
@@ -569,9 +524,121 @@ async def arm_buffer_window() -> list[str]:
     return out
 
 
+# --- round 3: the window through _fold_flow_lift (coordinator.py:878) ---
+SPREAD_K = 5.0      # flow-return design spread; supply = mean water + spread/2
+
+
+def room_series(k_vent: float, law: str, days: int = 30) -> list[tuple[float, float]]:
+    """Per 30-min interval, (room degC, emitter heat kW) under a plant law.
+
+    a   commanded heat: the emitters deliver the nominal hold heat q0 whatever
+        the room does (the reviewer's law); a window cools the room and the
+        room recovers only on the house's own constant.
+    a2  sensitivity, not the rule: the plan replans each interval, asking q0
+        plus C*(target-room)/6 h, capped at the nameplate heat.
+    b   the curve held (round 2's model): the flow temperature is fixed, so
+        supply is room-independent by construction (the null by construction).
+    Same window as round 2: +k_vent kW/K from 19:00 for 3 h every second day."""
+    q0 = UA * DESIGN_DT
+    u_em = q0 / P.emitter_design_delta_t_floored
+    t_flow = ROOM_C + q0 / u_em
+    qmax = P.max_electrical_power * P.cop_nominal_floored
+    room, out = ROOM_C, []
+    for i in range(int(days * 24 / DT_H)):
+        hour, day = (i * DT_H) % 24, int(i * DT_H // 24)
+        k = k_vent if (day % 2 == 0 and 19 <= hour < 22) else 0.0
+        if law == "a":
+            q = q0
+        elif law == "a2":
+            q = min(q0 + C * max(ROOM_C - room, 0.0) / 6.0, qmax)
+        for _ in range(30):
+            if law == "b":
+                q = u_em * (t_flow - room)
+            room += (q - (UA + k) * (room - OUT_C)) * (1 / 60) / C
+        out.append((room, q))
+    return out
+
+
+def flow_coordinator():
+    c = coordinator()
+    ctx = getattr(c, "_ctx", c)
+    ctx._current_state.outdoor_temperature = OUT_C
+    return c, ctx
+
+
+def run_flow(law: str, k_vent: float, seed: int, *, latch: bool = False) -> tuple[float, float, float, float, int, float]:
+    """30 d of cycles through the production _fold_flow_lift, latch clear.
+
+    Supply under law a/a2: room + Q/UA_em + SPREAD_K/2, with UA_em the model's
+    own (nameplate x COP_nominal / emitter_design_delta_t, the curve's), so the
+    no-window supply sits SPREAD_K/2 above the curve. Under law b: the curve
+    plus SPREAD_K/2. +-0.3 K sensor noise per sample. Returns (final bias_k,
+    30-d mean, min, max, folds, curve)."""
+    c, ctx = flow_coordinator()
+    c._vent_cusum.tripped = latch
+    p = c._thermal_model.params
+    ua_em = p.max_electrical_power * p.cop_nominal_floored / p.emitter_design_delta_t_floored
+    from heatpump_optimizer.flow_lift import curve_supply_temp
+    from heatpump_optimizer.coordinator import _fold_flow_lift
+    curve = curve_supply_temp(c._thermal_model, OUT_C, c.target_temperature)
+    cop = c._thermal_model.compute_cop(OUT_C)
+    rng = np.random.default_rng(seed)
+    hist, folds = [], 0
+    now = datetime.now(timezone.utc)
+    for room, q in room_series(k_vent, law):
+        supply = (curve if law == "b" else room + q / ua_em) + SPREAD_K / 2 + rng.normal(0, 0.3)
+        c._current_action = {"power": q / cop, "dhw_power": 0.0}
+        c._flow_bias.observe_temps(supply, None, None)
+        before = c._flow_bias.samples
+        _fold_flow_lift(c, now)
+        folds += c._flow_bias.samples != before
+        hist.append(c._flow_bias.bias_k)
+    return hist[-1], float(np.mean(hist)), min(hist), max(hist), folds, curve
+
+
+def arm_flow_window() -> list[str]:
+    out = ["## _fold_flow_lift under a window, latch clear (bias_k K after 30 d; 8 seeds: final mean [min-max] | 30-d mean [min-max] | run min..max; folds)"]
+    means = {}
+    for law in ("a", "b", "a2"):
+        for k in (0.0, 0.15, 0.30):
+            res = [run_flow(law, k, s) for s in range(8)]
+            fi, mn = [r[0] for r in res], [r[1] for r in res]
+            means[law, k] = float(np.mean(mn))
+            out.append(f"law={law:2s} k={k:.2f} final={np.mean(fi):+.3f} [{min(fi):+.3f}..{max(fi):+.3f}] "
+                       f"mean={np.mean(mn):+.3f} [{min(mn):+.3f}..{max(mn):+.3f}] "
+                       f"run={min(r[2] for r in res):+.3f}..{max(r[3] for r in res):+.3f} folds={res[0][4]}")
+    for law in ("a", "a2"):
+        for k in (0.15, 0.30):
+            rs = room_series(k, law)
+            out.append(f"(law {law} k={k:.2f}: room min {min(r for r, _ in rs):.2f} C, 30-d mean {np.mean([r for r, _ in rs]):.2f} C, last {rs[-1][0]:.2f} C)")
+    c, _ = flow_coordinator()
+    out.append(f"(curve at {OUT_C} C, target {c.target_temperature}: {run_flow('b', 0.0, 0)[5]:.2f} C; "
+               f"latch set, law a k=0.30: folds={run_flow('a', 0.30, 0, latch=True)[4]})")
+    # What a shift costs where it is priced: flow_lift_factor reads curve +
+    # bias only above cop_flow_reference_temp, so price each arm's 30-d mean
+    # shift (window minus its own no-window null) on plants at 25/40/50 C.
+    m = c._thermal_model
+    curve = m.curve_flow_temp(OUT_C)
+    out.append(f"(priced at {OUT_C} C; cop_flow_reference_temp={m.params.cop_flow_reference_temp} C)")
+    for plant in (25.0, 40.0, 50.0):
+        b0 = plant - curve
+        m.params.flow_curve_bias = b0
+        f0 = m.flow_lift_factor(OUT_C, m.curve_flow_temp(OUT_C))
+        row = []
+        for law, k in (("a", 0.15), ("a", 0.30), ("a2", 0.15), ("a2", 0.30), ("b", 0.30)):
+            d = means[law, k] - means[law, 0.0]
+            m.params.flow_curve_bias = b0 + d
+            f = m.flow_lift_factor(OUT_C, m.curve_flow_temp(OUT_C))
+            row.append(f"{law}/{k:.2f} shift {d:+.3f} K factor {f / f0 - 1:+.2%}")
+        out.append(f"(plant {plant:.0f} C, bias {b0:+.2f} K, factor {f0:.4f}: " + "; ".join(row) + ")")
+    m.params.flow_curve_bias = 0.0
+    return out
+
+
 async def main() -> None:
     lines = (arm_cusum() + await arm_learners() + await arm_latch()
-             + arm_cop_window() + arm_draw_window() + await arm_buffer_window())
+             + arm_cop_window() + arm_draw_window() + await arm_buffer_window()
+             + arm_flow_window())
     print("\n".join(lines))
 
 
