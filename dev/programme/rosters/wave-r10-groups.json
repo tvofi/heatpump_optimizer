@@ -3718,7 +3718,7 @@
     "branch": "fix/r10-sav-comfort",
     "commit": "34cd75bf1fe506334611ba6c074c223317370e67",
     "last_step": null,
-    "next_step": "PR #2745 is open at 3b55da2c6, the savings figures on the owner's baseline specification; handoff/r10-sav-comfort-r4 c91cc71f carries the same work with main merged. Review owed, then land.",
+    "next_step": "done: merged in #2745 (34cd75bf1)",
     "note": null,
     "pr": 2745
    },
