@@ -1,0 +1,15 @@
+MUTANT event-filter:   FAIL a merge_group or push run on this branch is never cancelled: got [39090491271], want []   FAIL sweep: a push run on main and a push run on a PR branch are never cancelled: got [91, 101, 102], want [101, 102] cancel_superseded self-test: 30 checks, 2 failed 
+MUTANT sweep-main-skip: cancel_superseded self-test: 30 checks, 0 failed 
+MUTANT sweep-event-skip: cancel_superseded self-test: 30 checks, 0 failed 
+MUTANT bot-head:   FAIL sweep: a bot-authored live head cancels nothing: got [101, 102], want [] cancel_superseded self-test: 30 checks, 1 failed 
+MUTANT fork-pr:   FAIL sweep: a fork PR head is not swept: got [101, 102], want [] cancel_superseded self-test: 30 checks, 1 failed 
+MUTANT fork-run: cancel_superseded self-test: 30 checks, 0 failed 
+MUTANT live-bound: cancel_superseded self-test: 30 checks, 0 failed 
+MUTANT dryrun:   FAIL --dry-run posts nothing: got ['repos/tvofi/heatpump_optimizer/actions/runs/39090491271/cancel', 'repos/tvofi/heatpump_optimizer/actions/runs/39090494028/cancel'], want []   FAIL an unreadable listing cancels nothing and exits 0: got (0, ['repos/tvofi/heatpump_optimizer/actions/runs/39090491271/cancel', 'repos/tvofi/heatpump_optimizer/actions/runs/39090494028/cancel']), want (0, []) cancel_superseded self-test: 30 checks, 2 failed 
+MUTANT unreadable-prs: cancel_superseded self-test: 30 checks, 0 failed 
+MUTANT unreadable-runs: cancel_superseded self-test: 30 checks, 0 failed 
+MUTANT status-active: cancel_superseded self-test: 30 checks, 0 failed 
+MUTANT commit-unreadable: cancel_superseded self-test: 30 checks, 0 failed 
+MUTANT bot-detect: cancel_superseded self-test: 30 checks, 0 failed 
+MUTANT sweep-dryrun:   FAIL sweep --dry-run posts nothing: got ['repos/tvofi/heatpump_optimizer/actions/runs/101/cancel', 'repos/tvofi/heatpump_optimizer/actions/runs/102/cancel'], want []   FAIL sweep: an unreadable answer cancels nothing and exits 0: got (0, ['repos/tvofi/heatpump_optimizer/actions/runs/101/cancel', 'repos/tvofi/heatpump_optimizer/actions/runs/102/cancel']), want (0, []) cancel_superseded self-test: 30 checks, 2 failed 
+MUTANT ghost-cancel(fixed):   FAIL sweep: a run on a branch with no open PR is a ghost, never cancelled: got ([95, 101, 102], [95]), want ([101, 102], [95])   FAIL sweep: a fork PR head is not swept: got [101, 102, 103], want [] cancel_superseded self-test: 30 checks, 2 failed 
