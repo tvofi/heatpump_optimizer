@@ -8558,7 +8558,7 @@
    "rca": [],
    "architect_note": "",
    "resume": {
-    "stage": "not-started",
+    "stage": "done",
     "branch": null
    },
    "brief": "Fly-in carved out of R10-ORCH-MACHINERY's re-cut (orchestrator decision under mandate 6329234399, 2026-10-23; note on design/R10-ORCH-MACHINERY at 2fc665c61, section 3 row G): one module, one defect, no dependency on the ledger, beat or page. worktree_gc.sh must leave alone a worktree holding an unpushed commit, as its header promises (the carry has the instance). Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, the scoped gate and the structure ratchet before the push."
