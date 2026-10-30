@@ -73372,6 +73372,77 @@ R.check(
     [w for w in _sa_wc if 34 < w[0] < 60] == [],
     f"{_sa_wc}",
 )
+# The tick is a second writer of the switch, between cycles, so it writes only
+# where the cycle's own write would have come from the plan's step. One cycle
+# writes step 0's ON; the tick at step 1, whose plan command is off, writes OFF
+# unless ``guard`` holds the cycle's write off the plan. Each guard's null
+# control is the unguarded run, which writes the OFF.
+async def _sa_guarded(guard=None):
+    ticks, dropped = [], []
+    armed = _sa_pa.async_track_time_interval
+    _sa_pa.async_track_time_interval = lambda _h, fn, _i: (ticks.append(fn), (lambda: dropped.append(fn)))[1]
+    hass = FakeHass({"switch.hp": FakeState("off", last_updated=_SA_T0)})
+    coord = Coord(hass, FakeEntry(data={
+        **_LC_DATA, "heat_pump_switch_entity": "switch.hp", "pump_duty_mode": "observe",
+    }))
+    coord._mode = "auto"
+    coord._optimization_result = _sa_plan()
+    try:
+        _sa_dt.freeze(_SA_T0)
+        coord._last_optimization = _SA_T0
+        _sa_boost.adopt_plan(coord, {"heat_pump_on": True, "power": 1.5})
+        await coord._apply_action()
+        if guard == "unload":
+            await coord._apply_action()  # a second cycle arms nothing more
+        hass.services.calls.clear()
+        now = _SA_T0 + timedelta(minutes=15)
+        _sa_dt.freeze(now)
+        if guard == "boost":
+            _sa_boost.held_for(coord).until[_sa_boost.CHANNEL_SPACE] = now + timedelta(hours=1)
+        elif guard == "sysid":
+            coord._current_action = {**coord._current_action, "mode": "system_identification"}
+        elif guard == "comfort":
+            coord._mode = "comfort"
+        elif guard == "stale":
+            coord._last_optimization = now - timedelta(days=1)
+        elif guard == "released":
+            coord._entry_released = True
+        for tick in list(ticks):
+            await tick(now)
+        writes = [service for domain, service, _d in hass.services.calls if domain == "switch"]
+        held = _sa_pa.state_for(coord)
+        armed_before = held.supply_unsub is not None and not dropped
+        if guard == "unload":
+            await _sa_pa.release(coord)
+        return writes, armed_before, dropped == ticks and held.supply_unsub is None
+    finally:
+        _sa_dt.freeze(None)
+        _sa_pa.async_track_time_interval = armed
+
+
+_sa_g = {g: _asyncio.run(_sa_guarded(g)) for g in (None, "boost", "sysid", "comfort", "stale", "released", "unload")}
+R.check(
+    "the step tick writes the plan's OFF at a boundary when nothing holds the cycle's write off the plan",
+    _sa_g[None][0] == ["turn_off"],
+    f"{_sa_g[None]}",
+)
+for _sa_name, _sa_key in (
+    ("a live boost across a boundary whose plan step is off", "boost"),
+    ("a system_identification action", "sysid"),
+    ("a fixed (comfort) mode", "comfort"),
+    ("a stale plan", "stale"),
+    ("a released entry", "released"),
+):
+    R.check(
+        f"the step tick writes nothing at a boundary under {_sa_name}",
+        _sa_g[_sa_key][0] == [],
+        f"{_sa_g[_sa_key]}",
+    )
+R.check(
+    "unload drops the one step tick two cycles armed",
+    _sa_g["unload"][1] is True and _sa_g["unload"][2] is True and _sa_g[None][2] is False,
+    f"unload {_sa_g['unload']}; kept {_sa_g[None]}",
+)
 # The pump_duty record's held slots are declared, every one the arbiter can
 # write: the silent switch (D15 L5) and the GCHV night registers (#1913).
 _sa_record = {"written": {
