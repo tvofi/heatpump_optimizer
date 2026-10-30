@@ -253,6 +253,7 @@ pr_exit_trap() { # [<command>]: on every exit, a stop signal's included, run <co
   # PR_TIDY runs once the tree is reaped and while the branch lock is still held: open_pr.sh's
   # pr_release_wt, which must not race an update_pr.sh that detaches the same worktree (P-D).
   local first=${1:+$1; }
+  PR_EXIT_FIRST=${1:-}  # a later call runs its own command before this one: "<cmd>; $PR_EXIT_FIRST"
   trap "${first}"'pr_reap; eval "${PR_TIDY:-:}"; eval "${PR_AFTER_REAP:-:}"' EXIT  # mut:exitreap
 }
 pr_own_group() { # <command...>: exec <command> as the leader of a process group of its own
@@ -1097,6 +1098,7 @@ wt=$2; br=$3; n=$(( $(cat "$D/n" 2>/dev/null || echo 0) + 1 )); echo $n > "$D/n"
 case $n in
   1) git -C "$wt" push -q origin "$br" || exit 1; echo "app_push: PUSHED to $br; pull request #5 is open"; exit 0 ;;
   2) [ ! -e "$D/p2fail" ] || { echo "app_push: REFUSE: the body did not pass tools/pr/prepr.sh"; exit 1; }
+     [ ! -e "$D/p2postfail" ] || { git -C "$wt" push -q origin "$br" || exit 1; echo "app_push: REFUSE: the body PATCH on #5 was refused; the branch IS pushed as the App"; exit 1; }
      : > "$D/p2started"; k=0; while [ ! -e "$D/release" ] && [ $k -lt 400 ]; do sleep 0.05; k=$((k + 1)); done
      [ "$(git -C "$wt" rev-parse HEAD)" = "$(git -C "$wt" rev-parse --verify "refs/heads/$br" 2>/dev/null)" ] \
        || { echo "app_push: REFUSE: worktree HEAD is not the committed tip of '$br'"; exit 1; }
@@ -1172,14 +1174,14 @@ sys.exit(99)
 GH
   mkdir -p "$t/rowless-bin" && cp "$t/rowless-gh" "$t/rowless-bin/gh" && chmod +x "$t/rowless-bin/gh"
   cp "$src/../../pr/gh_comment.py" "$m/tools/pr/gh_comment.py"
-  rowless() { # <mutant> [edit: the title edit after the PR exists fails, not the row push]
+  rowless() { # <mutant> [edit: the title edit after the PR exists fails, not the row push | postpush: the row push lands, then fails]
     local sd=$t/rowless-$1${2:-} sdir=$t/rowless-$1${2:-}-stub g
     rm -rf "$sd" "$sdir"; mkdir -p "$sdir" "$sd"; sd=$(cd "$sd" && pwd -P)
     git -C "$m" worktree prune; git -C "$m" branch -qD fix/r 2>/dev/null; git -C "$o" branch -qD fix/r 2>/dev/null
     for g in open_pr.sh update_pr.sh delivery_row.sh pr_args.sh pr_cap.py; do
       if [ "$1" = - ]; then cp "$src/$g" "$m/tools/audit/seat/$g"; else grep -v "# mut:$1\$" "$src/$g" > "$m/tools/audit/seat/$g"; fi
     done
-    if [ "${2:-}" = edit ]; then touch "$sdir/editfail"; else touch "$sdir/p2fail"; fi
+    case ${2:-} in edit) touch "$sdir/editfail" ;; postpush) touch "$sdir/p2postfail" ;; *) touch "$sdir/p2fail" ;; esac
     touch "$sdir/p3ok"; cp "$t/body.md" "$t/bR.md"
     PATH="$t/rowless-bin:$PATH" HPO_STATE_DIR=$sd STUB_DIR=$sdir BR=fix/r BR_FIXED=1 bash "$m/tools/audit/seat/open_pr.sh" r "$codeR" T G > "$t/outo" 2>&1; echo $? > "$t/rco"
     git -C "$sd/pr/r/wt" symbolic-ref -q HEAD >/dev/null 2>&1 && echo branch > "$t/opwt" || echo detached > "$t/opwt"
@@ -1210,6 +1212,17 @@ GH
   rowless trapclose edit
   [ "$(cat "$t/rco")" != 0 ] && [ "$(cat "$t/closed")" = 0 ] && [ "$(cat "$t/commented")" = 0 ] && ! grep -qF "open_pr: CLOSED" "$t/outo"
   ck "  mutant mut:trapclose (its line deleted): a failing title edit leaves the PR open, unclosed and without its row (the defect)" $?
+  # A row push can fail after its git push landed (app_push.sh's refused body PATCH, its read-back
+  # refusals, a stop signal past the push): origin then holds the row, so the PR is not rowless and
+  # the opener leaves it open, saying the push failed after the row landed (#2989's review).
+  rowless - postpush
+  [ "$(cat "$t/rco")" != 0 ] && [ "$(cat "$t/closed")" = 0 ] && [ "$(cat "$t/commented")" = 0 ] && [ "$(cat "$t/rowpushed")" = 1 ] \
+    && grep -qF "open_pr: ROW LANDED: #5 has its row on origin at" "$t/outo" && grep -qF "body PATCH on #5 was refused" "$t/outo" \
+    && ! grep -qF "open_pr: CLOSED" "$t/outo" && [ "$(cat "$t/opwt")" = detached ]
+  ck "open_pr: a row push that lands on origin and then fails leaves the PR open with its row, and says so" $?
+  rowless roworigin postpush
+  [ "$(cat "$t/closed")" = 1 ] && grep -qF "open_pr: CLOSED: #5 at" "$t/outo"
+  ck "  mutant mut:roworigin (its line deleted): the PR whose row is on origin is closed as rowless (the defect)" $?
   rowless rowreset
   [ "$(cat "$t/opwt")" = branch ] && [ "$(cat "$t/rowpushed")" = 0 ]
   ck "  mutant mut:rowreset (its line deleted): the row commit stays unpushed on the branch in the opener's worktree (the defect)" $?
