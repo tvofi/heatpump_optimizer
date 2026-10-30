@@ -1,0 +1,14 @@
+diff --git a/tests/mutation_table.py b/tests/mutation_table.py
+index 08c345714..5250ddf24 100644
+--- a/tests/mutation_table.py
++++ b/tests/mutation_table.py
+@@ -2158,7 +2158,8 @@ def null_control(path: Path) -> dict | None:
+         return None
+     for tok in toks:
+         ln = tok.start[0]
+-        if tok.type == tokenize.COMMENT and lines[ln - 1].strip() == tok.string:
++        if (tok.type == tokenize.COMMENT and lines[ln - 1].strip() == tok.string
++                and len(lines[ln - 1]) < 60):
+             try:
+                 rel = str(path.relative_to(ROOT))
+             except ValueError:
