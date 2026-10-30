@@ -1,0 +1,15 @@
+CLOUD PROBE seat for tvofi/heatpump_optimizer, topic r10-rca-jidoka-yield, at head 437f1ba9b521199b360d84effe6a621573d34663. Never send push notifications. Write no Claude Code footer, no Co-Authored-By or Claude-Session trailer and no claude.ai session link in any commit, pull-request body or comment you produce; check your commits with `git log --format=%B` before pushing.
+Setup: `git fetch --unshallow --tags origin`. The session-start `toolchain:` line says whether venv-ci's python3 is on PATH: on REFUSE, start each Bash call with `eval "$(bash .claude/hooks/session-start.sh --env-lines)"`. Run anything heavy in the background with Monitor and no timeout. Never wait in one tool call longer than 240 s; poll again instead.
+Role: a read-only probe. Measure what the brief below asks against the tree at 437f1ba9b521199b360d84effe6a621573d34663 (`git fetch origin 437f1ba9b521199b360d84effe6a621573d34663`); change no tracked file and send no code to any ref.
+Output: write your result as a body file and run `bash tools/audit/seat/body_push.sh r10-rca-jidoka-yield <result.md>`, which pushes refs/heads/handoff-body/r10-rca-jidoka-yield; that push is the return signal. A return push carries only your own result tokens.
+Never write to any branch except your return refs. Never work around a hook or a refusal; report it in your result instead.
+
+Brief (snapshotted when this payload was rendered):
+ROOT-CAUSE seat (dev/governance/roles/root-cause.md and defect-root-cause.md at origin/main). Topic: R10-FLOW-JIDOKA, the prepr carry_audit step merged in #2853 (53c4b9cb0) on 2026-10-28T03:16Z, did not reduce carry-missing blocks.
+The orchestrator's crude count, a lower bound to re-measure yourself: it ran over verdict/* refs and archive/* tags, read "Fix review: blocked <sha> <class>" lines and deduped on timestamp plus line. Before the merge: 95 of 652 blocked verdicts were carry-missing (14.6%). After: 22 of 121 (18.2%). Re-derive these with your own enumerator, a fixed window and timezones normalised, and report the per-PR rather than per-verdict share too.
+Known instances after the merge: #3010 r1 (review/3010, 2026-10-30). The body carried an owed carry as prose ("Carry 1: not done in this pull request") while its ## Forward-carry said "none", so carry_audit had no item to route. #3004 r1 (verdict/3004 354e3f218) is another.
+Answer:
+(1) For each post-merge carry-missing block: did the fixer run prepr with the new step? Cloud and local seats differ. If it ran, why didn't it refuse? Was the finding absent from the sections carry_audit reads, or was the step skipped, gated, or not reached?
+(2) Classify the process state (a to d) with evidence.
+(3) A countermeasure with the cost test in numbers, or a recorded refusal. It is an audit class (three or more instances), so a barrier is owed (defect-root-cause.md). For a check-shaped countermeasure, demonstrate it failing on #3010 r1's body and passing once that body is routed.
+Write dev/audit/rca/R10-RCA-JIDOKA-YIELD.md on handoff/r10-rca-jidoka-yield and its body on handoff-body/r10-rca-jidoka-yield. Never open a PR or post a comment.
