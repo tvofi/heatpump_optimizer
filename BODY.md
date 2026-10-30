@@ -37,8 +37,8 @@ a35f5524f7c31ffe818c7bfa0d95590b5e5429ef (handoff/r10-cop-gate-p5), measured 202
 
 ## Unpinned sites
 
-- `coordinator.py` `_fold_flow_lift` attribution gate, GUARD_OFF: value-checked. Removing the guard folds the switch-back window, which fails `a hot-water-dominant window under a space plan folds no flow-bias sample`.
-- `coordinator.py` `_fold_flow_lift` attribution gate, CMP_BOUND on `a.space + a.dhw <= 1e-6` and on `dhw_share(a) > _COP_CURVE_SHARE`: left to `mutation-autofix`, whose lane mutates `custom_components/`. The pre-existing line it replaces carried the same two comparisons.
+- `custom_components/heatpump_optimizer/coordinator.py:883 GUARD_OFF`: killed. Replacing the whole gate condition with `if False:` (run by hand on `tests/features.py` at the head, since `tests/mutation_table.py --scope changed` refuses on the ratchet count) fails `a hot-water-dominant window under a space plan folds no flow-bias sample; an all-space window folds one (null)`: 2 of 4606 FEATURE CHECKS FAILED against a green baseline.
+- `custom_components/heatpump_optimizer/coordinator.py:883 CMP_BOUND*2`: lives, both mutants. `<=` to `<` on `a.space + a.dhw <= 1e-6` and `>` to `>=` on `dhw_share(a) > _COP_CURVE_SHARE` each left `ALL 4606 FEATURE CHECKS PASSED` (run by hand on `tests/features.py`, mutant applied to a copy of the head). Both bounds are exact-equality edges (a zero-length dwell sum, a share exactly at the curve threshold) that no fixture constructs, and the line they sit on replaces one that carried the same two comparisons, so no behaviour on those edges changed. Carry: pinning needs fixtures at those two equalities; left to `mutation-autofix` and the nightly, which mutate `custom_components/`.
 
 ## Red checks
 
