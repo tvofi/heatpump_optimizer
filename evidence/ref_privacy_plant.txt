@@ -1,0 +1,5 @@
+ref_privacy: REFUSE tools/audit/seat/cloud_dispatch.py:123: host-path in an added line of a tracked file; rewrite it with `ref_privacy.py scrub --write tools/audit/seat/cloud_dispatch.py` or drop the path
+ref_privacy --check at HEAD: 28 file(s) with a push site, 12 guarded, 320 line(s) added since a9ba3022e321 judged, 1 refused
+rc=1
+RESULT carry host path refused: the rendered payload names a home directory (a planted home directory); write the brief with repo-relative paths
+RESULT carry host path refused: the rendered payload names a home directory (a planted home directory); write the brief with repo-relative paths

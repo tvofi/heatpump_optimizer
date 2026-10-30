@@ -1,0 +1,23 @@
+== S02 cloud_dispatch.py: KILLED rc=1 | Refusal: head must be exactly 40 lowercase hex digits
+== cloud_dispatch-1 cloud_dispatch.py: KILLED rc=1 | cloud_dispatch self-test: 124 checks, 1 failed
+== cloud_dispatch-2 cloud_dispatch.py: KILLED rc=1 | cloud_dispatch self-test: 124 checks, 3 failed
+== cloud_dispatch-3 cloud_dispatch.py: KILLED rc=1 | cloud_dispatch self-test: 124 checks, 1 failed
+== cloud_dispatch-4 cloud_dispatch.py: KILLED rc=1 | cloud_dispatch self-test: 124 checks, 2 failed
+== cloud_dispatch-5 cloud_dispatch.py: KILLED rc=1 | cloud_dispatch self-test: 124 checks, 2 failed
+== cloud_dispatch-6 cloud_dispatch.py: KILLED rc=1 | cloud_dispatch self-test: 124 checks, 1 failed
+== cloud_dispatch-7 cloud_dispatch.py: KILLED rc=1 | cloud_dispatch self-test: 124 checks, 1 failed
+== cloud_dispatch-8 cloud_dispatch.py: KILLED rc=1 | cloud_dispatch self-test: 124 checks, 1 failed
+== cloud_dispatch-9 cloud_dispatch.py: KILLED rc=1 | cloud_dispatch self-test: 124 checks, 1 failed
+== cloud_dispatch-10 cloud_dispatch.py: KILLED rc=1 | cloud_dispatch self-test: 124 checks, 1 failed
+== cloud_dispatch-11 cloud_dispatch.py: KILLED rc=1 | cloud_dispatch self-test: 124 checks, 1 failed
+== cloud_dispatch-12 cloud_dispatch.py: KILLED rc=1 | cloud_dispatch self-test: 124 checks, 2 failed
+== cloud_dispatch-13 cloud_dispatch.py: KILLED rc=1 | Refusal: R10-M rules sonnet for its fixer (roster model.fixer); --model claude-sonnet-5-5 is not sonnet
+== cloud_dispatch-14 cloud_dispatch.py: KILLED rc=1 | Refusal: R10-BIG is size L: no approved `Design review: approve <sha>` at design-verdict/R10-BIG names the current design/R10-BIG tip (decision 0014). Run the designer and design reviewer, or pass --design-exempt <reason> where an approved design, pre-study or prototype is already on record
+== cloud_dispatch-15 cloud_dispatch.py: KILLED rc=1 | cloud_dispatch self-test: 124 checks, 4 failed
+== cloud_dispatch-16 cloud_dispatch.py: KILLED rc=1 | cloud_dispatch self-test: 124 checks, 1 failed
+== cloud_dispatch-17 cloud_dispatch.py: KILLED rc=1 | cloud_dispatch self-test: 124 checks, 1 failed
+== cloud_dispatch-18 cloud_dispatch.py: KILLED rc=1 | cloud_dispatch self-test: 124 checks, 1 failed
+== cloud_dispatch-19 cloud_dispatch.py: KILLED rc=1 | cloud_dispatch self-test: 124 checks, 1 failed
+== cloud_dispatch-20 cloud_dispatch.py: KILLED rc=1 | cloud_dispatch self-test: 124 checks, 3 failed
+RESULT survivors=0
+rc=0
