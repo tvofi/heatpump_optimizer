@@ -27,7 +27,8 @@
 pr_refuse() { printf '%s: REFUSE: %s\n' "${PR_NAME:-pr}" "$*" >&2; exit 1; }
 pr_stopped() { # <status> <line> <command>: the ERR trap's report
   [ "${BASH_SUBSHELL:-0}" = 0 ] || return 0
-  printf '%s: STOPPED: line %s exited %s: %s\n' "${PR_NAME:-pr}" "$2" "$1" "$3" >&2
+  PR_STOPPED_AT="line $2 exited $1: $3"  # what a runner's EXIT trap may quote (open_pr.sh's close)
+  printf '%s: STOPPED: %s\n' "${PR_NAME:-pr}" "$PR_STOPPED_AT" >&2
   # 75 is BUSY to a caller (cloud_relay.sh retries it and records nothing), and only pr_lock_busy
   # says it: a step that happens to exit 75 under errexit is a stop like any other (#2469).
   [ "$1" != 75 ] || exit 1  # mut:busy75
@@ -252,6 +253,7 @@ pr_exit_trap() { # [<command>]: on every exit, a stop signal's included, run <co
   # PR_TIDY runs once the tree is reaped and while the branch lock is still held: open_pr.sh's
   # pr_release_wt, which must not race an update_pr.sh that detaches the same worktree (P-D).
   local first=${1:+$1; }
+  PR_EXIT_FIRST=${1:-}  # a later call runs its own command before this one: "<cmd>; $PR_EXIT_FIRST"
   trap "${first}"'pr_reap; eval "${PR_TIDY:-:}"; eval "${PR_AFTER_REAP:-:}"' EXIT  # mut:exitreap
 }
 pr_own_group() { # <command...>: exec <command> as the leader of a process group of its own
@@ -1096,6 +1098,7 @@ wt=$2; br=$3; n=$(( $(cat "$D/n" 2>/dev/null || echo 0) + 1 )); echo $n > "$D/n"
 case $n in
   1) git -C "$wt" push -q origin "$br" || exit 1; echo "app_push: PUSHED to $br; pull request #5 is open"; exit 0 ;;
   2) [ ! -e "$D/p2fail" ] || { echo "app_push: REFUSE: the body did not pass tools/pr/prepr.sh"; exit 1; }
+     [ ! -e "$D/p2postfail" ] || { git -C "$wt" push -q origin "$br" || exit 1; echo "app_push: REFUSE: the body PATCH on #5 was refused; the branch IS pushed as the App"; exit 1; }
      : > "$D/p2started"; k=0; while [ ! -e "$D/release" ] && [ $k -lt 400 ]; do sleep 0.05; k=$((k + 1)); done
      [ "$(git -C "$wt" rev-parse HEAD)" = "$(git -C "$wt" rev-parse --verify "refs/heads/$br" 2>/dev/null)" ] \
        || { echo "app_push: REFUSE: worktree HEAD is not the committed tip of '$br'"; exit 1; }
@@ -1146,29 +1149,105 @@ STUB
   ck "  mutant mut:oprowonly (its line deleted): the row push runs the full prepr" $?
   # A refused row push (#2625, #2629: prepr refused p2 on a red CI reported after p1) left the row
   # commit unpushed in the opener's worktree, on the branch, and update_pr.sh refused it as unpushed
-  # work. The opener now returns its worktree to the pushed head and releases it, so the next
-  # update_pr.sh adds the row (delivery_row.sh's ensure_row) and the PR ends with it.
-  rowless() { # <mutant>
-    local sd=$t/rowless-$1 sdir=$t/rowless-$1-stub g
+  # work; the PR stayed open without its row. The opener now returns its worktree to the pushed head,
+  # releases it, and closes the PR with a read-back comment saying why, so the tick never finds an
+  # open PR without its row. This arm's gh records the close and answers gh_comment.py's post and
+  # read-back; `pr list` finds the PR only while it is open, as the real `--state open` does.
+  cat > "$t/rowless-gh" <<'GH'
+#!/usr/bin/env python3
+import json, os, sys
+d = os.environ["STUB_DIR"]; a = sys.argv[1:]; j = " ".join(a)
+if a[:2] == ["pr", "close"]:
+    open(os.path.join(d, "closed"), "w").write(j + "\n"); sys.exit(0)
+if a[:2] == ["pr", "list"]:
+    print("" if os.path.exists(os.path.join(d, "closed")) else 5); sys.exit(0)
+if a[:2] == ["pr", "view"]: print("a title"); sys.exit(0)
+if a[:2] == ["pr", "edit"]: sys.exit(1 if os.path.exists(os.path.join(d, "editfail")) else 0)
+if a[:2] == ["pr", "ready"]: sys.exit(0)
+if "--head" in a: print(5); sys.exit(0)
+if a[:1] == ["api"] and "--input" in a:
+    body = json.load(open(a[a.index("--input") + 1]))["body"]
+    open(os.path.join(d, "comment"), "w").write(body); print(json.dumps({"id": 1, "html_url": "u"})); sys.exit(0)
+if a[:1] == ["api"] and a[1].endswith("/issues/comments/1"):
+    print(json.dumps({"id": 1, "body": open(os.path.join(d, "comment")).read()})); sys.exit(0)
+sys.exit(99)
+GH
+  mkdir -p "$t/rowless-bin" && cp "$t/rowless-gh" "$t/rowless-bin/gh" && chmod +x "$t/rowless-bin/gh"
+  cp "$src/../../pr/gh_comment.py" "$m/tools/pr/gh_comment.py"
+  rowless() { # <mutant> [edit: the title edit after the PR exists fails, not the row push | postpush: the row push lands, then fails]
+    local sd=$t/rowless-$1${2:-} sdir=$t/rowless-$1${2:-}-stub g
     rm -rf "$sd" "$sdir"; mkdir -p "$sdir" "$sd"; sd=$(cd "$sd" && pwd -P)
     git -C "$m" worktree prune; git -C "$m" branch -qD fix/r 2>/dev/null; git -C "$o" branch -qD fix/r 2>/dev/null
     for g in open_pr.sh update_pr.sh delivery_row.sh pr_args.sh pr_cap.py; do
       if [ "$1" = - ]; then cp "$src/$g" "$m/tools/audit/seat/$g"; else grep -v "# mut:$1\$" "$src/$g" > "$m/tools/audit/seat/$g"; fi
     done
-    touch "$sdir/p2fail" "$sdir/p3ok"; cp "$t/body.md" "$t/bR.md"
-    HPO_STATE_DIR=$sd STUB_DIR=$sdir BR=fix/r BR_FIXED=1 bash "$m/tools/audit/seat/open_pr.sh" r "$codeR" T G > "$t/outo" 2>&1; echo $? > "$t/rco"
+    case ${2:-} in edit) touch "$sdir/editfail" ;; postpush) touch "$sdir/p2postfail" ;; *) touch "$sdir/p2fail" ;; esac
+    touch "$sdir/p3ok"; cp "$t/body.md" "$t/bR.md"
+    PATH="$t/rowless-bin:$PATH" HPO_STATE_DIR=$sd STUB_DIR=$sdir BR=fix/r BR_FIXED=1 bash "$m/tools/audit/seat/open_pr.sh" r "$codeR" T G > "$t/outo" 2>&1; echo $? > "$t/rco"
     git -C "$sd/pr/r/wt" symbolic-ref -q HEAD >/dev/null 2>&1 && echo branch > "$t/opwt" || echo detached > "$t/opwt"
-    HPO_STATE_DIR=$sd STUB_DIR=$sdir bash "$m/tools/audit/seat/update_pr.sh" fix/r - "$t/bR.md" > "$t/outu" 2>&1; echo $? > "$t/rcu"
+    [ -e "$sdir/closed" ] && echo 1 > "$t/closed" || echo 0 > "$t/closed"
+    if [ "${2:-}" = edit ]; then grep -qF 'Closed by open_pr.sh' "$sdir/comment" 2>/dev/null && grep -qF 'exited 1: gh pr edit' "$sdir/comment"
+    else grep -qF 'was refused' "$sdir/comment" 2>/dev/null && grep -qF 'did not pass tools/pr/prepr.sh' "$sdir/comment"; fi && echo 1 > "$t/why" || echo 0 > "$t/why"
+    [ -e "$sdir/comment" ] && echo 1 > "$t/commented" || echo 0 > "$t/commented"
+    PATH="$t/rowless-bin:$PATH" HPO_STATE_DIR=$sd STUB_DIR=$sdir bash "$m/tools/audit/seat/update_pr.sh" fix/r - "$t/bR.md" > "$t/outu" 2>&1; echo $? > "$t/rcu"
     git -C "$o" cat-file -e fix/r:dev/programme/delivery/5.md 2>/dev/null && echo 1 > "$t/rowpushed" || echo 0 > "$t/rowpushed"
     reap; git -C "$m" worktree remove --force "$sd/pr/r/wt" 2>/dev/null; git -C "$m" worktree remove --force "$sd/pr/upd-fix-r" 2>/dev/null; true
   }
   rowless -
-  [ "$(cat "$t/rco")" != 0 ] && grep -qF "open_pr: ROWLESS: #5 is open" "$t/outo" && [ "$(cat "$t/opwt")" = detached ] \
-    && [ "$(cat "$t/rcu")" = 0 ] && [ "$(cat "$t/rowpushed")" = 1 ]
-  ck "open_pr: a refused row push leaves no stranded worktree, says the PR is rowless, and the next update_pr.sh lands the row" $?
+  [ "$(cat "$t/rco")" != 0 ] && grep -qF "open_pr: CLOSED: #5 at" "$t/outo" && grep -qF "identical=True" "$t/outo" \
+    && [ "$(cat "$t/closed")" = 1 ] && [ "$(cat "$t/why")" = 1 ] && [ "$(cat "$t/opwt")" = detached ] \
+    && ! grep -qF ROWLESS "$t/outo" && grep -qF "no open pull request at fix/r" "$t/outu" && [ "$(cat "$t/rowpushed")" = 0 ]
+  ck "open_pr: a refused row push closes the PR with a read-back comment naming the refusal, and leaves no stranded worktree" $?
+  rowless rowclose
+  [ "$(cat "$t/closed")" = 0 ] && grep -qF "open_pr: ROWLESS: #5 is open" "$t/outo" && [ "$(cat "$t/opwt")" = detached ] \
+    && [ "$(cat "$t/rcu")" = 0 ] && [ "$(cat "$t/rowpushed")" = 1 ] && [ "$(cat "$t/commented")" = 0 ]
+  ck "  mutant mut:rowclose (its line deleted): the PR stays open without its row (the defect), under no comment saying it closed; the next update_pr.sh lands it" $?
+  # Any step errexit stops once the PR exists closes it the same way, through the same EXIT-trap
+  # path (#2719's review: a failing title edit left the PR open, unclosed and without its row).
+  rowless - edit
+  [ "$(cat "$t/rco")" != 0 ] && grep -qF "open_pr: STOPPED: line" "$t/outo" && grep -qF "open_pr: CLOSED: #5 at" "$t/outo" \
+    && [ "$(cat "$t/closed")" = 1 ] && [ "$(cat "$t/why")" = 1 ] && [ "$(cat "$t/opwt")" = detached ] \
+    && ! grep -qF ROWLESS "$t/outo" && grep -qF "no open pull request at fix/r" "$t/outu" && [ "$(cat "$t/rowpushed")" = 0 ]
+  ck "open_pr: a step errexit stops after the PR exists (its title edit) closes it with a read-back comment naming the stop" $?
+  rowless trapclose edit
+  [ "$(cat "$t/rco")" != 0 ] && [ "$(cat "$t/closed")" = 0 ] && [ "$(cat "$t/commented")" = 0 ] && ! grep -qF "open_pr: CLOSED" "$t/outo"
+  ck "  mutant mut:trapclose (its line deleted): a failing title edit leaves the PR open, unclosed and without its row (the defect)" $?
+  # A row push can fail after its git push landed (app_push.sh's refused body PATCH, its read-back
+  # refusals, a stop signal past the push): origin then holds the row, so the PR is not rowless and
+  # the opener leaves it open, saying the push failed after the row landed (#2989's review).
+  rowless - postpush
+  [ "$(cat "$t/rco")" != 0 ] && [ "$(cat "$t/closed")" = 0 ] && [ "$(cat "$t/commented")" = 0 ] && [ "$(cat "$t/rowpushed")" = 1 ] \
+    && grep -qF "open_pr: ROW LANDED: #5 has its row on origin at" "$t/outo" && grep -qF "body PATCH on #5 was refused" "$t/outo" \
+    && ! grep -qF "open_pr: CLOSED" "$t/outo" && [ "$(cat "$t/opwt")" = detached ]
+  ck "open_pr: a row push that lands on origin and then fails leaves the PR open with its row, and says so" $?
+  rowless roworigin postpush
+  [ "$(cat "$t/closed")" = 1 ] && grep -qF "open_pr: CLOSED: #5 at" "$t/outo"
+  ck "  mutant mut:roworigin (its line deleted): the PR whose row is on origin is closed as rowless (the defect)" $?
   rowless rowreset
-  [ "$(cat "$t/opwt")" = branch ] && grep -qF "(unpushed work" "$t/outu" && [ "$(cat "$t/rowpushed")" = 0 ]
-  ck "  mutant mut:rowreset (its line deleted): the row commit stays unpushed on the branch and update_pr.sh refuses it (the defect)" $?
+  [ "$(cat "$t/opwt")" = branch ] && [ "$(cat "$t/rowpushed")" = 0 ]
+  ck "  mutant mut:rowreset (its line deleted): the row commit stays unpushed on the branch in the opener's worktree (the defect)" $?
+  # A conflicted main merge was left in the opener's worktree, and pr_release_wt kept it as dirty
+  # work (carry 8); the opener now aborts its own merge and refuses, and the clean worktree, which
+  # origin never had, is removed with its branch. main gains a conflicting `b` for this arm only.
+  git -C "$o" checkout -q main && printf 'main b\n' > "$o/b" && git -C "$o" add b && git -C "$o" commit -q -m "main b" \
+    && git -C "$o" update-ref refs/heads/handoff-body/q "$body" && git -C "$o" branch -f handoff/q "$codeR"
+  mconf() { # <mutant>
+    local sd=$t/mconf-$1 g
+    rm -rf "$sd"; mkdir -p "$sd"; sd=$(cd "$sd" && pwd -P); git -C "$m" worktree prune; git -C "$m" branch -qD fix/q 2>/dev/null
+    for g in open_pr.sh update_pr.sh delivery_row.sh pr_args.sh pr_cap.py; do
+      if [ "$1" = - ]; then cp "$src/$g" "$m/tools/audit/seat/$g"; else grep -v "# mut:$1\$" "$src/$g" > "$m/tools/audit/seat/$g"; fi
+    done
+    HPO_STATE_DIR=$sd BR=fix/q BR_FIXED=1 bash "$m/tools/audit/seat/open_pr.sh" q "$codeR" T G > "$t/outq" 2>&1; echo $? > "$t/rcq"
+    [ -d "$sd/pr/q/wt" ] && echo kept > "$t/wtq" || echo gone > "$t/wtq"
+    git -C "$m" worktree remove --force "$sd/pr/q/wt" 2>/dev/null; git -C "$m" worktree prune; git -C "$m" branch -qD fix/q 2>/dev/null; true
+  }
+  mconf -
+  [ "$(cat "$t/rcq")" != 0 ] && grep -qF "open_pr: REFUSE: merging origin/main into $codeR conflicts" "$t/outq" && [ "$(cat "$t/wtq")" = gone ]
+  ck "open_pr: a main merge that conflicts is aborted and refused, and its clean worktree is removed" $?
+  mconf mergeabort
+  [ "$(cat "$t/wtq")" = kept ] && grep -qF "it is dirty" "$t/outq"
+  ck "  mutant mut:mergeabort (its line deleted): the conflicted worktree is kept as dirty work (the defect)" $?
+  git -C "$o" reset -q --hard HEAD~1; git -C "$o" branch -qD handoff/q; git -C "$o" update-ref -d refs/heads/handoff-body/q
   racerun oplock; [ "$(cat "$t/rcu")" != 75 ] && ! grep -qF "update_pr: BUSY" "$t/outu" && [ "$(cat "$t/rco")" = 0 ] && [ "$(cat "$t/rowpushed")" = 1 ]
   ck "  mutant mut:oplock (its line deleted): update_pr.sh takes the branch (not BUSY); the unpushed-work refusal alone keeps the row" $?
   racerun oplock+unpushed; [ "$(cat "$t/rco")" != 0 ] && grep -qF "is not the committed tip" "$t/outo" && [ "$(cat "$t/rowpushed")" = 0 ]
