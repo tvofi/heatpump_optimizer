@@ -24,15 +24,28 @@ permissions:
   contents: write
 
 # Build provenance (#960, D11-07 option B, owner-approved this wave): every
-# release gains a signed attestation of the tag's tree. The subject is honest
-# about what this repository ships -- no artefact exists and none is built
-# (option C declined: HACS installs from the ref), so the attested subject is
-# the tag's tree itself, serialised deterministically as the `git archive`
-# tar of the tag and digested with sha256. A verifier reproduces the digest
-# with `git archive --format=tar <tag> | sha256sum` and compares it against
-# the attestation; nothing in the statement claims a downloadable asset, and
-# the Signed-Releases scorecard row stays an honest PARTIAL for exactly that
-# reason.
+# release gains a signed attestation of the tag's tree, serialised
+# deterministically as the `git archive` tar of the tag and digested with
+# sha256. A verifier reproduces the digest with
+# `git archive --format=tar <tag> | sha256sum` and compares it against the
+# attestation.
+#
+# The release asset (R10-MARKETPLACE, owner's option (a), 2026-10-29). #960
+# declined option C -- build an artefact -- because HACS installed from the
+# ref. That reason expired with the Home Assistant Marketplace, which replaces
+# HACS in core from 2026.11: it refuses a download over 100 MiB (core
+# marketplace `MAX_DOWNLOAD_SIZE`), and the tag archive of this repository is
+# over it, because dev/ alone is most of it -- so every install fell back to
+# one GitHub API fetch per file. So each release now carries
+# `heatpump_optimizer.zip`: the integration folder's own files at the archive
+# root, which is what a `zip_release` install unpacks into
+# custom_components/heatpump_optimizer. `hacs.json` names it under `filename`,
+# and tests/entities.py pins the two names equal. The release is created as a
+# draft carrying the asset and published only once the asset is read back on
+# it, so a release without its asset fails this run and is never published.
+# The attested subject stays the tag's tree: the asset is that tree's
+# custom_components/heatpump_optimizer subtree, packed by `git archive` from
+# the same commit.
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -54,6 +67,11 @@ jobs:
       contents: write
       id-token: write
       attestations: write
+    env:
+      # The release asset's name. hacs.json's `filename` must equal it: the
+      # Marketplace downloads the asset of that name, and tests/entities.py
+      # and the check step below both refuse a mismatch.
+      ASSET: heatpump_optimizer.zip
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
@@ -133,18 +151,76 @@ jobs:
             echo "See RELEASE_NOTES.md for ${TAG}." > /tmp/notes.md
           fi
 
+      - name: Build the integration ZIP
+        run: |
+          set -euo pipefail
+          # `<commit>:<path>` archives that subtree with its files at the
+          # archive root -- the layout a `zip_release` install unpacks into
+          # custom_components/heatpump_optimizer -- and only tracked files,
+          # so no __pycache__ or local file of the runner reaches it.
+          git archive --format=zip -o "${RUNNER_TEMP}/${ASSET}" \
+            "${GITHUB_SHA}:custom_components/heatpump_optimizer"
+
+      - name: Check the integration ZIP
+        run: |
+          set -euo pipefail
+          python3 - "${RUNNER_TEMP}/${ASSET}" <<'EOF'
+          import json, os, sys, zipfile
+          path, asset = sys.argv[1], os.environ["ASSET"]
+          hacs = json.load(open("hacs.json"))
+          problems = []
+          if hacs.get("zip_release") is not True:
+              problems.append("hacs.json does not set zip_release to true")
+          if hacs.get("filename") != asset:
+              problems.append(f"hacs.json names {hacs.get('filename')!r}, "
+                              f"this workflow uploads {asset!r}")
+          with zipfile.ZipFile(path) as z:
+              infos = z.infolist()
+              names = {i.filename for i in infos}
+              unpacked = sum(i.file_size for i in infos)
+              manifest = (json.loads(z.read("manifest.json"))
+                          if "manifest.json" in names else {})
+          if manifest.get("domain") != "heatpump_optimizer":
+              problems.append("manifest.json of this integration is not at "
+                              "the archive root")
+          # The Marketplace's download limit is 100 MiB; both the download
+          # and what it unpacks to stay under it.
+          limit = 100 * 1024 * 1024
+          for what, size in (("download", os.path.getsize(path)),
+                             ("unpacked", unpacked)):
+              if size >= limit:
+                  problems.append(f"{what} size {size} is not under {limit}")
+          for p in problems:
+              print(f"::error::{p}")
+          sys.exit(1 if problems else 0)
+          EOF
+
       - name: Create the GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # On dispatch the tag does not exist yet; --target pins it to
-          # the commit this run checked out, and gh creates tag+release
-          # in one go. On a tag push the tag exists and --target is
-          # ignored by GitHub for an existing tag.
-          gh release create "${TAG}" \
+          # As a DRAFT carrying the asset: the next step publishes it only
+          # once the asset is read back. On dispatch the tag does not exist
+          # yet; --target pins it to the commit this run checked out, and
+          # publishing the draft creates the tag there. On a tag push the tag
+          # exists and --target is ignored by GitHub for an existing tag.
+          gh release create "${TAG}" "${RUNNER_TEMP}/${ASSET}" \
+            --draft \
             --target "${GITHUB_SHA}" \
             --title "${TAG}" \
             --notes-file /tmp/notes.md
+
+      - name: Publish the release once its asset is on it
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if ! gh release view "${TAG}" --json assets --jq '.assets[].name' \
+              | grep -Fqx "${ASSET}"; then
+            echo "::error::release ${TAG} does not carry ${ASSET}; left as a draft, not published" >&2
+            exit 1
+          fi
+          gh release edit "${TAG}" --draft=false
 
       - name: Digest the tag's tree
         run: |
@@ -165,8 +241,8 @@ jobs:
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           # The subject NAME is the honest claim: the tag's source tree,
-          # git-archive serialised -- not an artefact, not a zip, nothing
-          # downloadable. `subject-digest` is the sha256 the previous step
+          # git-archive serialised -- not the release asset, which is one
+          # subtree of it. `subject-digest` is the sha256 the previous step
           # computed over exactly that serialisation.
           subject-name: "tvofi/heatpump_optimizer ${{ env.TAG }} source tree (git archive tar)"
           subject-digest: "sha256:${{ env.TREE_SHA256 }}"
