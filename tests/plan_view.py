@@ -54,7 +54,6 @@ class Fake:
     _dhw_accuracy = dhw_acc
     _build_plan_views = Coord._build_plan_views
     _dhw_confidence_band = Coord._dhw_confidence_band
-    _plan_slots = staticmethod(Coord._plan_slots)
 views = Fake()._build_plan_views(r)
 
 for key in ("space_plan","dhw_plan"):
