@@ -1,44 +1,44 @@
 # Review packet #2978
-head: 6e89bf7f902f701170b3393e8eaa6d27f23d73e6
-base: 043b111d01c90ecb1220980df1d363c0b50bb37f
+head: 882da1e01b3d209cf7f8b6c02427166e7c0c7655
+base: 26c9d22a3c37a1b48f8561d061ae58b03eef5b54
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
 ## Gate digest: red
-CodeQL id=123831380600 neutral
-arch-score / arch-score id=123831132358 success
-arm id=123830965773 skipped
-budget-raise-gate / budget-raise-gate id=123831132593 success
-cancel-superseded id=123830972245 success
-codeql / Analyze (actions) id=123831132332 success
-codeql / Analyze (javascript-typescript) id=123831132417 success
-codeql / Analyze (python) id=123831132422 in_progress
-governance / delivery-status id=123831132360 success
-governance / delivery-status-publish id=123831134170 skipped
-governance / env-matrix id=123831132294 in_progress
-governance / instrument-self-tests id=123831132411 in_progress
-governance / policy-docs id=123831132572 in_progress
-governance / record id=123831133937 skipped
-governance / wave-script id=123831132390 success
-hassfest / hassfest id=123831132449 success
-kernel-points id=123831133428 skipped
-prelude id=123830972113 success
-refresh id=123830971862 success
-tests / arch-instrument id=123831277619 in_progress
-tests / briefs id=123831132286 success
-tests / browser id=123831277524 in_progress
-tests / closure-scope id=123831132213 success
-tests / closures id=123831277545 in_progress
-tests / coverage id=123831277528 in_progress
-tests / fast (3.14) id=123831277515 in_progress
-tests / mutation id=123831132236 success
-tests / mutation-autofix id=123831393670 skipped
-tests / mutation-pins id=123831392351 skipped
-tests / nightly-ha id=123831278855 skipped
-tests / nightly-status id=123831132239 failure
-tests / replay id=123831278567 skipped
-tests / typing id=123831277540 in_progress
-validate / validate-hacs id=123831132140 success
+CodeQL id=123861907251 neutral
+arch-score / arch-score id=123861683846 success
+arm id=123861551083 skipped
+budget-raise-gate / budget-raise-gate id=123861683895 success
+cancel-superseded id=123861556701 success
+codeql / Analyze (actions) id=123861683994 success
+codeql / Analyze (javascript-typescript) id=123861683916 success
+codeql / Analyze (python) id=123861684054 in_progress
+governance / delivery-status id=123861683983 success
+governance / delivery-status-publish id=123861685692 skipped
+governance / env-matrix id=123861683946 success
+governance / instrument-self-tests id=123861683960 in_progress
+governance / policy-docs id=123861683984 success
+governance / record id=123861685686 skipped
+governance / wave-script id=123861683954 success
+hassfest / hassfest id=123861683853 success
+kernel-points id=123861684930 skipped
+prelude id=123861556916 in_progress
+refresh id=123861556800 success
+tests / arch-instrument id=123861856575 success
+tests / briefs id=123861683999 success
+tests / browser id=123861856512 success
+tests / closure-scope id=123861684022 success
+tests / closures id=123861856518 in_progress
+tests / coverage id=123861856446 in_progress
+tests / fast (3.14) id=123861856480 in_progress
+tests / mutation id=123861684043 success
+tests / mutation-autofix id=123861927334 skipped
+tests / mutation-pins id=123861927199 skipped
+tests / nightly-ha id=123861857999 skipped
+tests / nightly-status id=123861683942 failure
+tests / replay id=123861858058 skipped
+tests / typing id=123861856543 success
+validate / validate-hacs id=123861683864 success
 
 ## Refusals
 red-unanswered: concluded red check `tests / nightly-status` is not named in ## Red checks
@@ -47,6 +47,7 @@ red-unanswered: concluded red check `tests / nightly-status` is not named in ## 
 none
 
 ## carry_audit at the head
+NOTE stale tree: 882da1e01b3d209cf7f8b6c02427166e7c0c7655 lacks origin/main 13871b7aa4a1218e4523d10d7c348c08eef4dd57; roster read at origin/main
 CARRY-AUDIT: 0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s)
 
 ## figure_lint at the head
@@ -79,10 +80,10 @@ none
 ## Three-dot diff
 diff --git a/dev/audit/harnesses/r10_train_overlap_grade_p2_mutants.py b/dev/audit/harnesses/r10_train_overlap_grade_p2_mutants.py
 new file mode 100644
-index 000000000..064e37e3a
+index 000000000..6cd50a5d7
 --- /dev/null
 +++ b/dev/audit/harnesses/r10_train_overlap_grade_p2_mutants.py
-@@ -0,0 +1,114 @@
+@@ -0,0 +1,129 @@
 +#!/usr/bin/env python3
 +"""R10-TRAIN-OVERLAP-GRADE part 2: one mutant per arm of merge_train.py's one
 +admission rule (`already_held`, P129 as amended by P189 and P291), against its
@@ -156,6 +157,21 @@ index 000000000..064e37e3a
 +    ("M12", "a spooled entry is ALREADY", '    if pr in spooled:\n        return', '    if False:\n        return'),
 +    ("M13", "a pre-flight PARK at recarry is a HOLDER skip",
 +     '            cls = HOLDER if step == "recarry" else None', '            cls = None'),
++    ("M14", "the drain writes a drained entry's record (X7)",
++     '                self._seen[str(int(e["pr"]))] = {"verdict": e.get("verdict"), "state": "pending"}',
++     '                pass'),
++    ("M15", "an old-code train's queue.pending.json reads as pending (X1)",
++     '        return {str(int(n)): {"state": "pending"} for n in json.loads((state / QUEUE_PENDING).read_text())}',
++     '        return {}'),
++    ("M16", "the overlap up-front recarry filters by this batch's skips only (X2)",
++     '                todo = [a for a in serial if a["pr"] not in {s["pr"] for s in self.skipped[mine:]}',
++     '                todo = [a for a in serial if a["pr"] not in {s["pr"] for s in self.skipped}'),
++    ("M17", "queue.pending.json lists pending entries only (X5)",
++     'for n, r in seen.items() if r.get("state") == "pending")', 'for n, r in seen.items())'),
++    ("M18", "a completed batch's unmerged, unskipped entry is marked ran (X3)",
++     '                        self.seen_mark(int(e["pr"]), "ran")', '                        pass'),
++    ("M19", "a skipped-then-merged entry is cured from the skip report",
++     '            self.skipped = [s for s in self.skipped if int(s["pr"]) not in cured]', '            pass'),
 +]
 +
 +
@@ -217,10 +233,10 @@ index 2671377dd..7194cff3a 100644
     "dev/audit/harnesses/r10_train_raise_hold_replay.py",
     "dev/audit/harnesses/r10_train_upgrade_mutants.py",
 diff --git a/tools/audit/seat/instruments/merge_train.py.md b/tools/audit/seat/instruments/merge_train.py.md
-index 4ce430257..d5afb80c8 100644
+index 4ce430257..fe97947bf 100644
 --- a/tools/audit/seat/instruments/merge_train.py.md
 +++ b/tools/audit/seat/instruments/merge_train.py.md
-@@ -61,7 +61,15 @@
+@@ -61,7 +61,16 @@
    `batch` also takes several batches in one queue (a list of lists), run in
    order on one train, each with its own admission, proof and merges; between
    two it drains what `train.sh add` spooled into one more batch, never into a
@@ -232,16 +248,28 @@ index 4ce430257..d5afb80c8 100644
 +  admitted again at a new verdict head, and at the same one when the skip was
 +  the environment's (`[HOLDER]`, or `[BRANCH-POLICY]`: every merge attempt
 +  refused by GitHub's base-branch policy). `skipped.json`'s rows name the
-+  verdict. `dev/audit/harnesses/r10_train_overlap_grade_p2_mutants.py` holds
++  verdict; an entry skipped and then merged by the same train is cured
++  (`CURED #<pr>`), out of `skipped.json`, `SKIP REPORT` and the exit code. `dev/audit/harnesses/r10_train_overlap_grade_p2_mutants.py` holds
 +  one mutant per arm of that rule. A
    policy head batches like any other: under a `--mandate` naming the mandate's
    comment id, in force for policy merging, the train posts the citing approval
    step 5 requires (`policy_approve`); a budget raise still goes serial.
 diff --git a/tools/audit/seat/merge_train.py b/tools/audit/seat/merge_train.py
-index 02ffc447d..57ab85a87 100644
+index 02ffc447d..c1998b076 100644
 --- a/tools/audit/seat/merge_train.py
 +++ b/tools/audit/seat/merge_train.py
-@@ -217,7 +217,8 @@ THE LIVE QUEUE (R10-TRAIN-UPGRADE; tvofi, 2026-10-24). `batch` runs its batches
+@@ -161,7 +161,9 @@ have printed it) and the train continues with the next entry; the run closes
+ with `<state-dir>/skipped.json` ([{pr, phase, reason}...]) and a
+ `SKIP REPORT: N skipped of M` line, and the exit code is 1 -- the queue ran
+ to its end, but a caller that treats rc 0 as "nothing to look at" must be
+-told some entries were left behind. Two Stops are never skippable: a red
++told some entries were left behind. An entry skipped and then re-added and
++merged by the same train is cured (`CURED #<pr>` line): it leaves
++skipped.json, the report's count and the exit code. Two Stops are never skippable: a red
+ MAIN (the step-0 gate and the merge guard's re-read stay global -- a proof
+ on a red main blames its entries), and a Stop arriving AFTER the merge API
+ call, which is fatal for its entry alone: logged `SKIP #<pr> post-merge`,
+@@ -217,7 +219,8 @@ THE LIVE QUEUE (R10-TRAIN-UPGRADE; tvofi, 2026-10-24). `batch` runs its batches
  in order and, between two, drains `<state-dir>/queue-add.jsonl` -- what `add`
  appended while a batch ran -- into one more batch; a batch in proof is never
  changed. `add` (train.sh add) takes the state dir's flock, is a no-op for a pull
@@ -251,7 +279,7 @@ index 02ffc447d..57ab85a87 100644
  `Train.admit_add` (ADD REFUSED #<pr> <rule>: <why>), then spools the entry for
  the live train or, with none, starts one over it. A batch that stops ends the
  train (NOT RUN lines); spooled entries stay for the next. One train per state
-@@ -674,6 +675,12 @@ STALE_VERDICT_CARRY = "STALE-VERDICT-CARRY"  # the verdict sha no longer carries
+@@ -674,6 +677,12 @@ STALE_VERDICT_CARRY = "STALE-VERDICT-CARRY"  # the verdict sha no longer carries
  ROW_MISSING = "ROW-MISSING"          # no delivery row in the three-dot diff
  BOT_ROUTE = "bot-head"               # batch: a GITHUB_TOKEN tip goes serial, where its recarry cures it
  MAIN_MOVED = "MAIN-MOVED"            # origin/main moved under a settled head or a proof
@@ -264,7 +292,7 @@ index 02ffc447d..57ab85a87 100644
  
  
  class MainMoved(Stop):
-@@ -791,7 +798,8 @@ def budget_fixture(budgets: "dict | None", argv: list[str], base: str) -> "tuple
+@@ -791,7 +800,8 @@ def budget_fixture(budgets: "dict | None", argv: list[str], base: str) -> "tuple
  QUEUE_LOCK = "queue.lock"            # the flock every reader and writer below takes
  QUEUE_OPEN = "queue.open"            # the live train's pid: the queue accepts adds
  QUEUE_SPOOL = "queue-add.jsonl"      # one entry per line, appended by `add`
@@ -274,7 +302,7 @@ index 02ffc447d..57ab85a87 100644
  ADD_SETTLE_SECONDS = 10              # how long `add` waits on a train.sh starting, or one closing
  
  
-@@ -872,6 +880,55 @@ def spool_append(state: Path, entry: dict) -> None:
+@@ -872,6 +882,55 @@ def spool_append(state: Path, entry: dict) -> None:
          fh.write(json.dumps(entry, sort_keys=True) + "\n")
  
  
@@ -330,7 +358,7 @@ index 02ffc447d..57ab85a87 100644
  def launch_detached(argv: "list[str]", state: Path) -> "tuple[int, str]":
      """Start train.sh detached (its own session: `add` returns, the train goes
      on) and wait up to ADD_SETTLE_SECONDS for it to take train.pid. (pid, "")
-@@ -895,7 +952,8 @@ def train_add(t: "Train", item: dict, train_argv: "list[str]", launch=launch_det
+@@ -895,7 +954,8 @@ def train_add(t: "Train", item: dict, train_argv: "list[str]", launch=launch_det
      """`add`: load one verdicted pull request into the state dir's live train,
      or start that train. Under QUEUE_LOCK, in order: a pull request already in
      the live train's running or later batches, or already spooled, is a no-op
@@ -340,7 +368,7 @@ index 02ffc447d..57ab85a87 100644
      must pass (`ADD REFUSED #<pr> <rule>: <why>`, rc 1); a live train gets the
      entry in its spool, which it drains as its NEXT batch (`ADDED`); with none,
      `<train_argv> --queue <file>` starts one over the entry (and anything a
-@@ -907,12 +965,10 @@ def train_add(t: "Train", item: dict, train_argv: "list[str]", launch=launch_det
+@@ -907,12 +967,10 @@ def train_add(t: "Train", item: dict, train_argv: "list[str]", launch=launch_det
          live = read_pid(t.state / QUEUE_OPEN)
          live = live if pid_alive(live) else None
          spooled, _bad = spool_read(t.state)
@@ -357,7 +385,7 @@ index 02ffc447d..57ab85a87 100644
              return 0
          why = t.admit_add(item)
          if why:
-@@ -943,7 +999,8 @@ def train_add(t: "Train", item: dict, train_argv: "list[str]", launch=launch_det
+@@ -943,7 +1001,8 @@ def train_add(t: "Train", item: dict, train_argv: "list[str]", launch=launch_det
              t.log(f"ADD REFUSED #{pr} start: train.sh did not start ({why})")
              return 2
          (t.state / QUEUE_OPEN).write_text(f"{pid}\n")
@@ -367,7 +395,7 @@ index 02ffc447d..57ab85a87 100644
          t.log(f"STARTED train.sh pid {pid} over {' '.join('#%d' % int(e['pr']) for e in queue)}; queue {qf.name}")
          return 0
  
-@@ -1889,6 +1946,7 @@ class Train:
+@@ -1889,6 +1948,7 @@ class Train:
                            "--jq", '"\\(.state) \\(.mergeCommit.oid)"')
              if st.startswith("MERGED"):
                  self.log(f"#{pr} {st}")
@@ -375,7 +403,7 @@ index 02ffc447d..57ab85a87 100644
                  break
              # Every refusal is logged with GitHub's own words (train-b5, #2290:
              # eight silent attempts, "not merged" and no reason). One that says
-@@ -1897,7 +1955,8 @@ class Train:
+@@ -1897,7 +1957,8 @@ class Train:
              if BASE_MOVED.search(said):
                  raise MainMoved("merge", f"GitHub refused the merge because the base moved: {said}")
          else:
@@ -385,7 +413,7 @@ index 02ffc447d..57ab85a87 100644
          owner, name = self.repo.split("/")
          q = ('query={repository(owner:"%s",name:"%s"){pullRequest(number:%d){closingIssuesReferences(first:10)'
               "{nodes{number state}}}}}" % (owner, name, pr))
-@@ -2046,7 +2105,15 @@ class Train:
+@@ -2046,7 +2107,15 @@ class Train:
                  keep.append(item)
                  continue
              self.log(f"PARK #{item.get('pr')} {step}: {why}")
@@ -402,7 +430,7 @@ index 02ffc447d..57ab85a87 100644
          (self.state / "skipped.json").write_text(json.dumps(self.skipped, indent=2) + "\n")
          self.log(f"PRE-FLIGHT: {len(keep)} of {len(queue)} admitted")
          return keep
-@@ -2606,10 +2673,27 @@ class Train:
+@@ -2606,14 +2675,40 @@ class Train:
          brackets when the shape is a known one) and collected for skipped.json.
          A red main is never skippable: the caller re-raises it."""
          self.log(f"SKIP #{pr} {phase}: " + (f"[{cls}] {why}" if cls else why))
@@ -431,7 +459,21 @@ index 02ffc447d..57ab85a87 100644
  
      def skip_report(self, total: int) -> None:
          """`--skip-bad`'s closing report: the skipped list under the state dir
-@@ -2630,7 +2714,6 @@ class Train:
+-        and one line the orchestrator's tooling can grep."""
++        and one line the orchestrator's tooling can grep. An entry this train
++        skipped and later merged (re-added, P291) is cured: its rows leave the
++        list, the report and `batch`'s rc. Called past `_batch`'s last
++        `self.skipped[mine:]` read, so no batch's offset moves under it."""
++        seen = getattr(self, "_seen", {})
++        cured = sorted({int(s["pr"]) for s in self.skipped
++                        if (seen.get(str(s["pr"])) or {}).get("state") == "merged"})
++        if cured:
++            self.log("CURED " + " ".join("#%d" % n for n in cured) + ": skipped earlier, merged by this train")
++            self.skipped = [s for s in self.skipped if int(s["pr"]) not in cured]
+         (self.state / "skipped.json").write_text(json.dumps(self.skipped, indent=2) + "\n")
+         self.log(f"SKIP REPORT: {len(self.skipped)} skipped of {total}")
+ 
+@@ -2630,7 +2725,6 @@ class Train:
              self.log(f"TRAIN STOPPED {e}")
              return 1
          self.skipped = []
@@ -439,7 +481,7 @@ index 02ffc447d..57ab85a87 100644
          total = 0
          self._queue = {"batches": batches, "next": 0, "closed": False}
          try:
-@@ -2646,7 +2729,10 @@ class Train:
+@@ -2646,7 +2740,10 @@ class Train:
                      self.hold_release()
                  if stopped:
                      return 1
@@ -451,19 +493,19 @@ index 02ffc447d..57ab85a87 100644
                      self.log("TRAIN DONE")
                      return 1 if self.skipped else 0
                  self.log(f"BATCH DONE {name}: {len(batches) - k - 1} more batch(es) on this train, next "
-@@ -2663,17 +2749,16 @@ class Train:
+@@ -2663,17 +2760,16 @@ class Train:
              if held not in (None, os.getpid(), os.getppid()) and pid_alive(held):
                  raise Stop("queue", f"a live train (pid {held}) holds {self.state / QUEUE_OPEN}; one train per state dir")
              (self.state / QUEUE_OPEN).write_text(f"{os.getpid()}\n")
 -            self._queue_pending(batches)
--
--    def _queue_pending(self, batches: "list[list[dict]]") -> None:
--        (self.state / QUEUE_PENDING).write_text(
--            json.dumps(sorted(int(e["pr"]) for b in batches for e in b)) + "\n")
 +            self._seen = {str(int(e["pr"])): {"verdict": e.get("verdict"), "state": "pending"}
 +                          for b in batches for e in b}
 +            queue_seen_write(self.state, self._seen)
  
+-    def _queue_pending(self, batches: "list[list[dict]]") -> None:
+-        (self.state / QUEUE_PENDING).write_text(
+-            json.dumps(sorted(int(e["pr"]) for b in batches for e in b)) + "\n")
+-
 -    def queue_take(self, batches: "list[list[dict]]", k: int, seen: "set[int]") -> bool:
 +    def queue_take(self, batches: "list[list[dict]]", k: int) -> bool:
          """Between batches: drain the spool into ONE new batch after those still
@@ -477,7 +519,7 @@ index 02ffc447d..57ab85a87 100644
          with queue_lock(self.state):
              added, bad = spool_read(self.state)
              (self.state / QUEUE_SPOOL).unlink(missing_ok=True)
-@@ -2681,19 +2766,20 @@ class Train:
+@@ -2681,19 +2777,20 @@ class Train:
                  self.log(f"ADD UNREADABLE (dropped): {ln[:160]}")
              fresh = []
              for e in added:
@@ -504,7 +546,7 @@ index 02ffc447d..57ab85a87 100644
              return True
  
      def queue_close(self) -> None:
-@@ -2707,8 +2793,8 @@ class Train:
+@@ -2707,8 +2804,8 @@ class Train:
          batches, k = q["batches"], q["next"]
          with queue_lock(self.state):
              if read_pid(self.state / QUEUE_OPEN) == os.getpid():
@@ -515,7 +557,7 @@ index 02ffc447d..57ab85a87 100644
              left, _bad = spool_read(self.state)
          for b in batches[k:]:
              self.log("NOT RUN " + " ".join("#%d" % int(e["pr"]) for e in b) + ": the train stopped before this batch")
-@@ -2817,6 +2903,7 @@ class Train:
+@@ -2817,6 +2914,7 @@ class Train:
          self.hold_armed = True
          self.hold_refresh()  # before the sweep: the record beat waits for the batch
          self.branches: list[str] = []
@@ -523,7 +565,7 @@ index 02ffc447d..57ab85a87 100644
          try:
              mf = _fastpath()
              self.sweep_bots()  # before the base is read: a record PR merged now is under every proof
-@@ -2852,7 +2939,7 @@ class Train:
+@@ -2852,7 +2950,7 @@ class Train:
                  self.run(["git", "fetch", "-q", "origin", self.base])
                  rb = self.git("rev-parse", f"origin/{self.base}")
                  # A bot-routed head still contains main now; it recarries at its turn.
@@ -532,7 +574,7 @@ index 02ffc447d..57ab85a87 100644
                          and BOT_ROUTE not in a["route"]]
                  self.log(f"OVERLAP: recarrying {', '.join('#%d' % a['pr'] for a in todo)} up front, "
                           "their pull_request runs fire together")
-@@ -2927,7 +3014,7 @@ class Train:
+@@ -2927,7 +3025,7 @@ class Train:
                      recover = recover and phase != "post-merge"
                      self.skip(a["pr"], phase, s.why, s.cls)
              order = {int(item["pr"]): i for i, item in enumerate(queue)}
@@ -541,7 +583,7 @@ index 02ffc447d..57ab85a87 100644
              later = sorted([a for a in serial + dropped if a["pr"] not in bad], key=lambda a: order[a["pr"]])
              if lone and later and self.real:
                  # A red push run must point at one merge: the unproved one is graded alone.
-@@ -4971,6 +5058,8 @@ def _batch_self_test(check) -> None:
+@@ -4971,6 +5069,8 @@ def _batch_self_test(check) -> None:
                  return 0, "77 completed" if w["review_reads"] > w.get("review_pending", 0) else "77 in_progress"
              if argv[:3] == ["gh", "pr", "merge"]:
                  n, h = int(argv[3]), argv[-1]
@@ -550,7 +592,7 @@ index 02ffc447d..57ab85a87 100644
                  if w.get("review_reads", 0) <= w.get("review_pending", 0):  # base-branch policy: the run is not over
                      w["refused"] = w.get("refused", 0) + 1
                      return 1, "the base branch policy prohibits the merge"
-@@ -5066,8 +5155,8 @@ def _batch_self_test(check) -> None:
+@@ -5066,8 +5166,8 @@ def _batch_self_test(check) -> None:
              lines: list[str] = []
              t = Train("o/r", Path(d) / "state", mandate, "the orchestrator", ignore, 1, run=stub(w),
                        sleep=lambda s: (w.setdefault("slept", []).append(s), w.get("on_sleep", lambda: None)()),
@@ -561,7 +603,7 @@ index 02ffc447d..57ab85a87 100644
              q = ([{"pr": n, "verdict": w["heads"][n]} for n in prs] if batches is None
                   else [[{"pr": n, "verdict": w["heads"][n]} for n in b] for b in batches])
              rc = t.batch(q, "t")
-@@ -5624,10 +5713,142 @@ def _batch_self_test(check) -> None:
+@@ -5624,10 +5724,248 @@ def _batch_self_test(check) -> None:
            w["rc"] == 0 and list(w["merged"]) == [1, 2, 3, 4]
            and "c.txt" not in w["proof_names"][0] and "d.txt" not in w["proof_names"][0]
            and [b for b, _ in w["pushed"]] == ["batch/t-1", "batch/t-b2-1"]
@@ -605,6 +647,7 @@ index 02ffc447d..57ab85a87 100644
 +                if w["reports"] < 2:
 +                    return
 +                w["readded"] = True
++                w["skip_json_b2"] = json.loads((state / "skipped.json").read_text())  # before the cure
 +                rehead(2)
 +                rehead(3)  # ... a GITHUB_TOKEN tip: batch 3 routes it serial, past the skipped filter
 +                w["bot_heads"] = {w["heads"][3]: "ci: pin killed mutants"}
@@ -638,7 +681,7 @@ index 02ffc447d..57ab85a87 100644
 +    check("P291 the merge skip carries its environment class: SKIP #5 merge: [BRANCH-POLICY], and "
 +          "skipped.json's row names the class and the verdict it was skipped at",
 +          said("SKIP #5 merge: [BRANCH-POLICY] not merged after")
-+          and any(r["pr"] == 5 and r.get("class") == "BRANCH-POLICY" and r.get("verdict") for r in w["skip_json"] or []))
++          and any(r["pr"] == 5 and r.get("class") == "BRANCH-POLICY" and r.get("verdict") for r in w.get("skip_json_b2", [])))
 +    check("P189 null control: a ci-skipped entry re-added at the SAME verdict (#6), and an entry this train "
 +          "merged (#4), are ALREADY on both sides -- `add` spools nothing, the drain runs neither",
 +          [any(ln.startswith(f"ALREADY #{n}:") for ln in adds) for n in (6, 4)] == [True, True]
@@ -702,6 +745,111 @@ index 02ffc447d..57ab85a87 100644
 +          add_rc == [0, 0] and add_said[0].startswith("ADDED #7") and add_said[1].startswith("ALREADY #8:")
 +          and more and [int(e["pr"]) for e in bs[-1]] == [7] and "ADDED #7: batch 2 of this train" in drain_said
 +          and any(ln.startswith("ALREADY #8:") for ln in drain_said))
++
++    def live_add(w, n):  # the REAL train_add against the live train's state dir, admit_add passed
++        al: list[str] = []
++        ta = Train("o/r", w["state"], None, "", (), 1, run=stub(w), log=al.append)
++        ta.admit_add = lambda item: None
++        return train_add(ta, {"pr": n, "verdict": w["heads"][n]}, ["true"], launch=lambda *a: (0, "no")), al
++
++    # A DRAINED entry's record: #2 is added while batch 1 runs, so it enters by
++    # the drain alone (queue_take writes its record), never by the first
++    # batches. Re-added while its batch runs, and again after it merges, it is
++    # ALREADY from `add` and from the drain.
++    def drained(w):
++        def on_log(ln):
++            if ln.startswith("BATCH t pid="):
++                w["first"] = live_add(w, 2)
++            elif ln.startswith("BATCH t-b2 "):
++                w["running"] = live_add(w, 2)
++            elif ln.startswith("#2 MERGED"):
++                w["at_merge"] = True
++            elif w.get("at_merge") and "after" not in w:  # the next line: the merge is recorded
++                w["after"] = live_add(w, 2)
++                with queue_lock(w["state"]):  # the drain's side: past add, straight to the spool
++                    spool_append(w["state"], {"pr": 2, "verdict": w["heads"][2]})
++        w["on_log"] = on_log
++    w = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}}, batches=[[1]], setup=drained)
++    check("a drained entry (#2, added while batch 1 ran) re-added while its batch runs and after it merges is "
++          "ALREADY from `add` both times and from the drain; it merges once",
++          w["first"][0] == 0 and w["first"][1][0].startswith("ADDED #2")
++          and w.get("running", (1, [""]))[1][0].startswith("ALREADY #2: still to run in this train")
++          and w.get("after", (1, [""]))[1][0].startswith("ALREADY #2: merged by this train")
++          and "ALREADY #2: merged by this train; not queued twice" in w["lines"]
++          and sorted(w["merged"]) == [1, 2] and w["rc"] == 0)
++    # An old-code train (started before QUEUE_SEEN existed) wrote QUEUE_PENDING
++    # only: an `add` against it reads those as pending, as before.
++    with tempfile.TemporaryDirectory() as d:
++        st, ol = Path(d), []
++        to = Train("o/r", st, None, "", (), 1, run=lambda *a, **k: (0, ""), log=ol.append)
++        to.admit_add = lambda item: None
++        (st / QUEUE_OPEN).write_text(f"{os.getpid()}\n")
++        (st / QUEUE_PENDING).write_text("[9]\n")
++        old_rc = [train_add(to, {"pr": n, "verdict": V7}, ["true"], launch=lambda *a: (0, "no")) for n in (9, 10)]
++    check("an add against an old-code train (QUEUE_PENDING only, live pid) reads its pending as held: #9 ALREADY; "
++          "null control: #10, not in it, is ADDED",
++          old_rc == [0, 0] and ol[0].startswith("ALREADY #9: still to run in this train")
++          and ol[1].startswith("ADDED #10"))
++    # --overlap with an EARLIER batch's skip: #2 (a workflow, serial) is
++    # skipped at its merge by the branch policy in batch 1 and re-added once
++    # the approval lands; batch 2 recarries it up front, it merges, and the
++    # train's report no longer counts it (cured).
++    def overlap_readd(w):
++        main_moved(w)
++        w["remerge"] = True
++        w["policy_refuse"] = {2}
++
++        def on_log(ln):
++            if ln.startswith("SKIP REPORT") and "readded" not in w:
++                w["readded"] = True
++                w["policy_refuse"].discard(2)
++                with queue_lock(w["state"]):
++                    spool_append(w["state"], {"pr": 2, "verdict": w["heads"][2]})
++        w["on_log"] = on_log
++    w = go({1: {".github/workflows/t.yml": "x\n"}, 2: {".github/workflows/u.yml": "y\n"}}, base="main",
++           setup=overlap_readd, overlap=True, skip_bad=True)
++    b2 = next((i for i, ln in enumerate(w["lines"]) if ln.startswith("BATCH t-b2 ")), len(w["lines"]))
++    check("--overlap: an entry an EARLIER batch skipped, re-added, is recarried up front in its new batch "
++          "(only this batch's skips filter the list) and merges",
++          "OVERLAP: recarrying #2 up front, their pull_request runs fire together" in w["lines"][b2:]
++          and sorted(w["merged"]) == [1, 2] and any(ln.startswith("SKIP #2 ") for ln in w["lines"][:b2]))
++    check("skipped-then-merged is cured: CURED #2, skipped.json and SKIP REPORT drop it, rc 0; "
++          "null control: batch 1's own report still counted it",
++          "CURED #2: skipped earlier, merged by this train" in w["lines"] and w["skip_json"] == []
++          and w["rc"] == 0 and "SKIP REPORT: 1 skipped of 2" in w["lines"][:b2]
++          and "SKIP REPORT: 0 skipped of 3" in w["lines"])
++    # A rehearsal's serial entry (#2, past the ratchet with #1) is neither
++    # merged nor skipped: `ran`. QUEUE_PENDING (review_packet.train_boarded's
++    # read) lists pending only, so it is not boarded once its batch ended.
++    def ran_probe(w):
++        def on_log(ln):
++            if ln.startswith("BATCH t-b2 "):
++                import importlib.util
++                spec = importlib.util.spec_from_file_location("_rp_probe", ROOT / "tools/audit/seat/review_packet.py")
++                rp = importlib.util.module_from_spec(spec)
++                spec.loader.exec_module(rp)
++                was = os.environ.get("HPO_BUS_TRAIN_STATE")
++                os.environ["HPO_BUS_TRAIN_STATE"] = str(w["state"])
++                try:
++                    w["boarded"] = rp.train_boarded()
++                finally:
++                    if was is None:
++                        os.environ.pop("HPO_BUS_TRAIN_STATE", None)
++                    else:
++                        os.environ["HPO_BUS_TRAIN_STATE"] = was
++                w["pending_view"] = json.loads((w["state"] / QUEUE_PENDING).read_text())
++                w["seen_view"] = json.loads((w["state"] / QUEUE_SEEN).read_text())
++                w["ran_add"] = live_add(w, 2)
++        w["on_log"] = on_log
++    w = go({1: unit, 2: {"units/b": "b\n"}, 3: {"c.txt": "C\n"}}, batches=[[1, 2], [3]], setup=ran_probe)
++    sv = w.get("seen_view", {})
++    check("a rehearsal's serial entry not run is recorded `ran`: QUEUE_PENDING lists pending only ([3], not "
++          "merged #1 or ran #2), train_boarded reports it not boarded, and a re-add is ALREADY; "
++          "null control: #3, still to run, is boarded",
++          any("rehearsal: serial #2 not run" in ln for ln in w["lines"])
++          and sv.get("2", {}).get("state") == "ran" and sv.get("1", {}).get("state") == "merged"
++          and w.get("pending_view") == [3] and w.get("boarded") == {3}
++          and w.get("ran_add", (1, [""]))[1][0].startswith("ALREADY #2: run by this train"))
      flat = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}})
      nested = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}}, batches=[[1, 2]])
      shas = lambda xs: [re.sub(r"\b[0-9a-f]{8,40}\b", "<sha>", x) for x in xs]  # noqa: E731
