@@ -1,0 +1,2 @@
+tests/golden/claimed_drift.txt byte-identical to origin/main aced25893
+tests/golden/card_claimed_drift.txt byte-identical to origin/main aced25893

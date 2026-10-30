@@ -1,3 +1,2 @@
-  ok   seam_cut_total 422 <= 422
 
 STRUCTURE RATCHET PASSED
