@@ -1,0 +1,1388 @@
+git merge-tree --write-tree origin/main b63829d1c163aff58823157d7691894f46301ae5
+5f065ed1ac0924b3a5ef1d5f88cf45ce5505a268
+exit=0
+remerge-diff of 9800ed8ca and b63829d1c: empty (clean automatic merges)
+9800ed8ca
+LEDGER-MERGE: resolved tests/closures.json
+  closures.tests/entities.py: merged as a set (535 entries)
+  re-run the gate that owns this file before pushing
+LEDGER-MERGE: resolved dev/audit/config/bugclasses.json
+b63829d1c
+
+diff --git a/dev/audit/harnesses/r10_plan_page_mutants.py b/dev/audit/harnesses/r10_plan_page_mutants.py
+remerge CONFLICT (add/add): Merge conflict in dev/audit/harnesses/r10_plan_page_mutants.py
+index aa86df8c5..97be0c21b 100644
+--- a/dev/audit/harnesses/r10_plan_page_mutants.py
++++ b/dev/audit/harnesses/r10_plan_page_mutants.py
+@@ -2,16 +2,10 @@
+ """R10-PLAN-ARTIFACT: each behaviour plan_page.py's self-test pins dies alone.
+ 
+ Each mutant is one exact one-occurrence replacement in
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-tools/audit/seat/plan_page.py or tools/plan/replan.py (the freshness rule the
+-page shares). The driver applies one, runs `plan_page.py --self-test` (and
+-`replan.py --self-test` too, for a replan.py mutant and for M0), restores
+-=======
+ tools/audit/seat/plan_page.py, tools/plan/replan.py (the freshness rule the
+ page shares) or tools/audit/seat/state_docs.py (which publishes the page).
+ The driver applies one, runs `plan_page.py --self-test` (and the mutated
+ file's own `--self-test` too, and every one for M0), restores
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+ the file byte for byte, and refuses to start on a file with uncommitted edits.
+ Metric, one line per mutant:
+ 
+@@ -47,10 +41,7 @@ def repo_root(start):
+ ROOT = repo_root(__file__)
+ PAGE = "tools/audit/seat/plan_page.py"
+ PLAN = "tools/plan/replan.py"
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-=======
+ STATE = "tools/audit/seat/state_docs.py"
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+ 
+ MUTANTS = [
+     ("M0", PAGE, None, None),
+@@ -88,8 +79,6 @@ MUTANTS = [
+     # R10-PLAN-PRIO: the Tier column is the plan's computed dispatch priority.
+     ("tier-column", PAGE,
+      '{r["tier"] if r["tier"] is not None else "—"}', '"—"'),
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-=======
+     # R10-ORCH-PLANPAGE: the scratch generator's five defects (orch-machinery
+     # DESIGN.md S8, 6.7), each mutant restoring its pre-fix shape.
+     ("defect-1-hardcoded-override", PAGE,
+@@ -127,7 +116,6 @@ MUTANTS = [
+     ("unavailable-no-figures", PAGE,
+      "f'<div class=\"stat\"><b>—</b><span>{e(v)}</span></div>'",
+      "f'<div class=\"stat\"><b>0</b><span>{e(v)}</span></div>'"),
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+ ]
+ 
+ 
+@@ -139,11 +127,7 @@ def fail_name(line: str) -> str:
+ 
+ def main(argv: list[str]) -> int:
+     want = set(argv)
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-    for rel in (PAGE, PLAN):
+-=======
+     for rel in (PAGE, PLAN, STATE):
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+         if subprocess.run(["git", "-C", str(ROOT), "diff", "--quiet", "--", rel]).returncode:
+             print(f"refused: {rel} has uncommitted edits")
+             return 2
+@@ -162,12 +146,6 @@ def main(argv: list[str]) -> int:
+                 path.write_text(text.replace(old, new), encoding="utf-8")
+             runs = [subprocess.run([sys.executable, "-I", str(ROOT / s), "--self-test"],
+                                    capture_output=True, text=True)
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-                    for s in (PAGE, PLAN) if s == PAGE or rel == PLAN or old is None]
+-        finally:
+-            path.write_bytes(orig)
+-        fails = [ln for r in runs for ln in r.stdout.splitlines() if ln.startswith("FAIL")]
+-=======
+                     for s in (PAGE, PLAN, STATE) if s == PAGE or s == rel or old is None]
+         finally:
+             path.write_bytes(orig)
+@@ -175,7 +153,6 @@ def main(argv: list[str]) -> int:
+         # state_docs.py reports its failures on one line, comma-joined.
+         fails += [f"FAIL {ln}" for r in runs for ln in r.stdout.splitlines()
+                   if re.match(r"\d+ self-test check\(s\) failed: ", ln)]
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+         rc = max(r.returncode for r in runs)
+         if name == "M0":
+             verdict = "null" if rc == 0 and not fails else "SURVIVED"
+diff --git a/dev/audit/harnesses/r10_seat_selftests_mutants.py b/dev/audit/harnesses/r10_seat_selftests_mutants.py
+remerge CONFLICT (add/add): Merge conflict in dev/audit/harnesses/r10_seat_selftests_mutants.py
+index d16b02f7a..207b354f3 100644
+--- a/dev/audit/harnesses/r10_seat_selftests_mutants.py
++++ b/dev/audit/harnesses/r10_seat_selftests_mutants.py
+@@ -400,8 +400,6 @@ MUTANTS = [
+     ("ghapi-2", "tools/ci/ghapi.py", "        if not nxt:\n            return out\n", "        return out\n"),
+     # P2a glue: the extra request headers alert_list's SARIF read is bound through.
+     ("ghapi-3", "tools/ci/ghapi.py", "        req.add_header(k, v)\n", "        pass\n"),
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-=======
+     # R10-FLY-GH-READ-RETRY carry 7 (#2859): a GET retries a transport failure like a 5xx;
+     # one mutant per TRANSPORT member, the arm, the budget's raise and the retry itself.
+     ("ghapi-4", "tools/ci/ghapi.py", "        except TRANSPORT:\n", "        except ():\n"),
+@@ -415,7 +413,6 @@ MUTANTS = [
+      "(urllib.error.URLError, http.client.HTTPException, ConnectionError)"),
+     ("ghapi-9", "tools/ci/ghapi.py", "            if nap is None:\n                raise\n", "            if False:\n                raise\n"),
+     ("ghapi-10", "tools/ci/ghapi.py", "    for nap in RETRY_5XX + (None,):\n", "    for nap in (None,):\n"),
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+     ("prelude-1", "tools/ci/prelude.py", 'return (KP if ctx.get("label") == KP else "label")', 'return "code"'),
+     ("prelude-2", "tools/ci/prelude.py", 'if r["id"] < ctx["run_id"] and r["status"] in UNFINISHED)',
+      'if r["status"] in UNFINISHED)'),
+diff --git a/dev/governance/roles/fixer.md b/dev/governance/roles/fixer.md
+remerge CONFLICT (add/add): Merge conflict in dev/governance/roles/fixer.md
+index ab07ba4d3..8f7fae7e1 100644
+--- a/dev/governance/roles/fixer.md
++++ b/dev/governance/roles/fixer.md
+@@ -61,18 +61,11 @@ fix, handoff) through refs, never mid-task, by ~150 k tokens (S, M), ~300 k (L,
+ 
+    Key on the **mode line**, never the count (`CLAUDE.md` rule 1). Run what
+    `scope.run` and `tests/run.sh`'s `run_always` lines name, with
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-   `PYTHONPATH=tests/hastub`, leaving the rest to CI; `tests/README.md`
+-   ("The scoped gate") says why. So `MODE: FULL` reports a diff the gate cannot scope — often a gate file or a
+-   doc — not an instruction to reproduce CI. An untracked scratch file is one:
+-   keep the body outside the worktree.
+-=======
+    `PYTHONPATH=tests/hastub`, leaving the rest to CI (`tests/README.md`, "The
+    scoped gate"): `MODE: FULL` is a diff the gate cannot scope (a gate file,
+    a doc, a scratch file: keep the body out), not CI to reproduce.
+    **No scope selects `card_browser.mjs`**, which CI runs past the handoff:
+    run it on a `GRID_SURFACE` diff (recipe: `web-fragments.md`; #2841).
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+ 
+    **Running locally does not discharge CI.** What `scope.run` names is green,
+    every red `prepr.sh` step 6d predicts is repaired before the handoff
+@@ -167,14 +160,8 @@ fix, handoff) through refs, never mid-task, by ~150 k tokens (S, M), ~300 k (L,
+     seam each candidate method carries in the map.
+ 
+ 13. **`tests/hastub` is not Home Assistant, and a green test may pin the stub.**
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-    `tests/ha_contract.py` records what each stub symbol is — faithful,
+-    divergent, simplified, unverified, or a holder — and runs its contracts
+-    against both the stub and, nightly, the real package. **Before asserting
+-=======
+     `tests/ha_contract.py` records each stub symbol's fidelity and runs its
+     contracts against both the stub and, nightly, the real package. **Before asserting
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+     that a test proves a production property, check whether the stub is what
+     satisfied it.**
+ 
+diff --git a/dev/programme/delivery/2925.md b/dev/programme/delivery/2925.md
+remerge CONFLICT (add/add): Merge conflict in dev/programme/delivery/2925.md
+index 272ff0769..fc798a33b 100644
+--- a/dev/programme/delivery/2925.md
++++ b/dev/programme/delivery/2925.md
+@@ -1,5 +1 @@
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-- [#2925](https://github.com/tvofi/heatpump_optimizer/pull/2925) — **open**, rca(R10-RCA-PREPR-HEAD-GRADERS): root-cause record for a pinned grader the branch edits, graded by CI with the base's copy (R10-RCA-PREPR-HEAD-GRADERS)
+-=======
+ - [#2925](https://github.com/tvofi/heatpump_optimizer/pull/2925) — **merged `08f26aa`**, rca(R10-RCA-PREPR-HEAD-GRADERS): root-cause record for a pinned grader the branch edits, graded by CI with the base's copy.
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+diff --git a/dev/programme/delivery/2962.md b/dev/programme/delivery/2962.md
+remerge CONFLICT (add/add): Merge conflict in dev/programme/delivery/2962.md
+index 3fdfc945e..d2eb0e70a 100644
+--- a/dev/programme/delivery/2962.md
++++ b/dev/programme/delivery/2962.md
+@@ -1,5 +1 @@
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-- [#2962](https://github.com/tvofi/heatpump_optimizer/pull/2962) — **open**, review_packet: leave the seat mutant harness to #2959 (R10-FLY-PACKET-RED-PATHS)
+-=======
+ - [#2962](https://github.com/tvofi/heatpump_optimizer/pull/2962) — **merged `cc930cd`**, review_packet: leave the seat mutant harness to #2959 (R10-FLY-PACKET-RED-PATHS).
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+diff --git a/dev/programme/delivery/2987.md b/dev/programme/delivery/2987.md
+remerge CONFLICT (add/add): Merge conflict in dev/programme/delivery/2987.md
+index 89efaf64f..05a2bb24e 100644
+--- a/dev/programme/delivery/2987.md
++++ b/dev/programme/delivery/2987.md
+@@ -1,5 +1 @@
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-- [#2987](https://github.com/tvofi/heatpump_optimizer/pull/2987) — **open**, triage: s8 batch 70 (P304 ruling) (R10-TRIAGE-S6)
+-=======
+ - [#2987](https://github.com/tvofi/heatpump_optimizer/pull/2987) — **merged `cf4f6b7`**, triage: s8 batch 70 (P304 ruling).
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+diff --git a/dev/programme/delivery/2992.md b/dev/programme/delivery/2992.md
+remerge CONFLICT (add/add): Merge conflict in dev/programme/delivery/2992.md
+index 8182ac0af..31b5464d5 100644
+--- a/dev/programme/delivery/2992.md
++++ b/dev/programme/delivery/2992.md
+@@ -1,5 +1 @@
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-- [#2992](https://github.com/tvofi/heatpump_optimizer/pull/2992) — **open**, R10-TRAIN-OVERLAP-GRADE part 3: park a base-policy refusal with its read reason; record-PR sweep on refusal and after a critical-path entry (R10-TRAIN-OVERLAP-GRADE)
+-=======
+ - [#2992](https://github.com/tvofi/heatpump_optimizer/pull/2992) — **merged `e035c66`**, R10-TRAIN-OVERLAP-GRADE part 3: park a base-policy refusal with its read reason; record-PR sweep on refusal and after a critical-path entry.
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+diff --git a/dev/programme/delivery/2994.md b/dev/programme/delivery/2994.md
+remerge CONFLICT (add/add): Merge conflict in dev/programme/delivery/2994.md
+index f75e6d5f9..8de7f4eb1 100644
+--- a/dev/programme/delivery/2994.md
++++ b/dev/programme/delivery/2994.md
+@@ -1,5 +1 @@
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-- [#2994](https://github.com/tvofi/heatpump_optimizer/pull/2994) — **open**, R10-FLOW-DESIGN-STAGES: mechanise the design and design-review steps (R10-FLOW-DESIGN-STAGES)
+-=======
+ - [#2994](https://github.com/tvofi/heatpump_optimizer/pull/2994) — **merged `ca0a6cf`**, R10-FLOW-DESIGN-STAGES: mechanise the design and design-review steps (R10-FLOW-DESIGN-STAGES).
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+diff --git a/tests/closure.py b/tests/closure.py
+remerge CONFLICT (add/add): Merge conflict in tests/closure.py
+index 68a8feab5..bba004d32 100644
+--- a/tests/closure.py
++++ b/tests/closure.py
+@@ -598,8 +598,6 @@ INERT_EXCEPT = (
+     "dev/audit/harnesses/r10_ci_layout_u5/run_part.py",
+     "dev/audit/harnesses/r10_ci_layout_u5/unitcheck.py",
+     "tools/pr/codeql_scope.py",
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-=======
+     # R10-ORCH-PLANPAGE: state_docs.py's self-test (which tests/entities.py runs)
+     # builds the plan page from the real roster, so it imports the plan model and
+     # opens its measured durations. CI predict (self-test-reads) found both INERT
+@@ -610,7 +608,6 @@ INERT_EXCEPT = (
+     # Also read by that self-test (the page renderer replan feeds): tools/audit/seat/
+     # stays INERT, this file joins the recorded closure.
+     "tools/audit/seat/plan_page.py",
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+     # R9-RO-6: the device-fixture scripts moved under tools/devices/, which is
+     # INERT. tests/entities.py and tests/features.py import them, so an edit
+     # selects those scripts. Left inside the prefix they would be declared
+diff --git a/tools/audit/seat/INSTRUMENTS.md b/tools/audit/seat/INSTRUMENTS.md
+remerge CONFLICT (add/add): Merge conflict in tools/audit/seat/INSTRUMENTS.md
+index b0f97ae1b..c45039bb1 100644
+--- a/tools/audit/seat/INSTRUMENTS.md
++++ b/tools/audit/seat/INSTRUMENTS.md
+@@ -86,10 +86,7 @@ sweep's standing-seat liveness step keep them alive.
+ - [`record_row.py`](instruments/record_row.py.md) — the record-autofix generator
+ - [`ref_privacy.py`](instruments/ref_privacy.py.md) — the one owner of what a push may say about the host (#2310)
+ - [`remerge_main.sh`](instruments/remerge_main.sh.md) — merges origin/main into an open PR (claimnotes merge driver), drops inherited claims, pushes as the App with `app_push.sh --recarry`
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+ - [`cancel_superseded.py sweep`](instruments/cancel_superseded.py.md) — cancels each open PR branch's active runs at a superseded head (`tools/pr/cancel_superseded.py`, one predicate), never a live-head, main, non-PR-event or bot-head run; ghosts reported; the sweep's step 4e
+-=======
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+ - [`run_twins.py`](instruments/run_twins.py.md) — counts a workflow's cancelled `pull_request` runs that sat beside a same-SHA sibling (two events at one head, not a supersession)
+ - [`resume_doc.py`](instruments/resume_doc.py.md) — generates the resume markdown from the roster plus live PR state, under a byte budget
+ - [`review_carry.py`](instruments/review_carry.py.md) — answers, from two shas and their commit range, whether a moved head still needs its own review
+diff --git a/tools/audit/seat/instruments/open_pr.sh.md b/tools/audit/seat/instruments/open_pr.sh.md
+remerge CONFLICT (add/add): Merge conflict in tools/audit/seat/instruments/open_pr.sh.md
+index 4f05dd524..2be796319 100644
+--- a/tools/audit/seat/instruments/open_pr.sh.md
++++ b/tools/audit/seat/instruments/open_pr.sh.md
+@@ -18,8 +18,6 @@
+   refused push names its log. It holds the branch's `upd-<branch>.lock` from
+   before its worktree to its second push, so a concurrent `update_pr.sh` is BUSY
+   (75) and cannot detach the worktree under the PR's row (#2547-#2549).
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-=======
+   Once the PR exists, any exit before its row is pushed -- a refused second
+   (row) push, a step errexit stops between the two pushes, a stop signal --
+   runs one EXIT-trap path (`op_close_unrowed`): it returns the worktree to the
+@@ -36,6 +34,5 @@
+   before its push. A main merge that conflicts is aborted and refused
+   (`merging origin/main into <sha> conflicts`), so the clean worktree is
+   released instead of kept as dirty.
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+   `--self-test` runs `delivery_row.sh`'s, then
+   `pr_args.sh`'s.
+diff --git a/tools/audit/seat/instruments/plan_page.py.md b/tools/audit/seat/instruments/plan_page.py.md
+remerge CONFLICT (add/add): Merge conflict in tools/audit/seat/instruments/plan_page.py.md
+index 96ceff1e2..3ee9211c0 100644
+--- a/tools/audit/seat/instruments/plan_page.py.md
++++ b/tools/audit/seat/instruments/plan_page.py.md
+@@ -10,12 +10,6 @@
+   not-done groups projected to close at the last carrying group's finish
+   (closed ones dropped, unplanned ones flat), omitted with a note when `gh`
+   is absent. When: after a replan at a wave
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-  edge. Refusal: a plan `replan.stale_reason` calls stale (its roster blob
+-  is not the roster's at its ref now; an `origin/` ref is fetched first) or
+-  `replan.check_plan` refuses -- exit 1, nothing written. `--check` of
+-  replan.py applies the same freshness rule.
+-=======
+   edge, through `state_docs.py --plan`, which publishes it as `PLAN.html`
+   beside the plan table. A group whose stage is a human disposition is
+   `held`, never merged or ready. Refusal: a plan `replan.stale_reason` calls
+@@ -26,4 +20,3 @@
+   replan.py applies the same freshness rule. `--self-test` carries the
+   scratch generator's five defects as fixtures, each killed by its mutant in
+   `dev/audit/harnesses/r10_plan_page_mutants.py`.
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+diff --git a/tools/audit/seat/instruments/state_docs.py.md b/tools/audit/seat/instruments/state_docs.py.md
+remerge CONFLICT (add/add): Merge conflict in tools/audit/seat/instruments/state_docs.py.md
+index 52d06f530..c6f486560 100644
+--- a/tools/audit/seat/instruments/state_docs.py.md
++++ b/tools/audit/seat/instruments/state_docs.py.md
+@@ -16,13 +16,10 @@
+   files, and an already-current tip, which is reported and left alone. The
+   commit is plumbing over a temp index, so the calling checkout's index is
+   never touched.
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-=======
+   `--plan PLAN_JSON` adds `PLAN.html`, `plan_page.py`'s page over that plan,
+   to the same commit; a refused page keeps the last good one at the ref (or
+   publishes the UNAVAILABLE page where there is none) and the call exits 1
+   after pushing the other docs. The beat runs no replan, so passes no `--plan`.
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+   `state_docs.py beat` is the same instrument on a loop, and it lives here
+   rather than in a session's scratch for decision 0013's reason — an
+   instrument the programme runs belongs where a later session can test it. A
+diff --git a/tools/audit/seat/open_pr.sh b/tools/audit/seat/open_pr.sh
+remerge CONFLICT (add/add): Merge conflict in tools/audit/seat/open_pr.sh
+index 20537e3f1..8d8a8ddcb 100755
+--- a/tools/audit/seat/open_pr.sh
++++ b/tools/audit/seat/open_pr.sh
+@@ -6,15 +6,10 @@
+ # Successor of handoff_push.sh's open path: always merges origin/main, names the roster group in the row.
+ # The row push (p2) asks app_push.sh for --row-only, so an open runs one full prepr, not two (P53),
+ # and lands seconds after the PR rather than a prepr later, before CI on p1 can report a red the body
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-# was never asked to answer (#2625, #2629). A refused row push returns the worktree to the pushed head
+-# and says ROWLESS: update_pr.sh's ensure_row adds the row on its next run. Every exit's last act,
+-=======
+ # was never asked to answer (#2625, #2629). Once the PR exists, any exit before its row is pushed (a
+ # refused row push, a step errexit stops, a stop signal) returns the worktree to the pushed head and
+ # closes the PR with a comment saying why, so no PR stays open without its row (CLOSED; a close that
+ # fails says ROWLESS, and update_pr.sh's ensure_row adds the row; #2719). Every exit's last act,
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+ # under the branch lock, is pr_release_wt (pr_args.sh): the worktree is detached at the pushed head,
+ # removed with its branch when origin never had it, or kept and named (P-D, P64, P72).
+ # The tools are refused when origin/main is ahead of their checkout under tools/ (pr_tools_fresh).
+@@ -53,8 +48,6 @@ pr_handoff_tips "$T" 1
+ # last command's, so it names no signal), so a killed opener shows on its handoff-no-pr line.
+ python3 -I "$SEAT/ledger.py" attempt "refs/heads/handoff/$T" "$PR_HT" started || true
+ pr_exit_trap 'python3 -I "$SEAT/ledger.py" attempt "refs/heads/handoff/$T" "$PR_HT" "${PR_ATTEMPT:-unopened}" || :'
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-=======
+ # Once #N exists, the EXIT trap runs this first (#2719): any exit before PR_ATTEMPT says the PR is
+ # opened with its row -- a refused row push, any step errexit stops between the two pushes, a stop
+ # signal -- reaps the row push, returns the worktree to the pushed head and closes #N. The comment,
+@@ -96,7 +89,6 @@ op_row_landed() { # <rc> <origin tip|unread>: the row push failed, and origin ho
+   printf '%s: ROW LANDED: #%s has its row on origin at %s, but the row push then failed (exit status %s); #%s is left open: %s\n' \
+     "$PR_NAME" "$N" "$H" "$1" "$N" "${OP_WHY:-${PR_STOPPED_AT:-a stop signal after the push}}" >&2
+ }
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+ git fetch -q origin handoff/$T handoff-body/$T main
+ pr_tools_fresh
+ pr_code_in_handoff "$C" "$T"
+@@ -105,16 +97,12 @@ git show "$PR_BT:BODY.md" > $D/body.md
+ python3 -I "$SEAT/pr_cap.py" info --repo $R  # mut:openinfo
+ git worktree add -q -b $BR $WT $C
+ cd $WT
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-git fetch -q origin main; git -c user.name=tvofi -c user.email=70032254+tvofi@users.noreply.github.com merge -q --no-edit origin/main
+-=======
+ git fetch -q origin main
+ # A conflicted merge is this run's own, not authored work: abort it, so pr_release_wt reads a clean
+ # tree and removes the worktree origin never had, rather than keeping it as dirty (carry 8).
+ MERGE_OK=; git -c user.name=tvofi -c user.email=70032254+tvofi@users.noreply.github.com merge -q --no-edit origin/main && MERGE_OK=1
+ [ -n "$MERGE_OK" ] || git merge --abort  # mut:mergeabort
+ [ -n "$MERGE_OK" ] || pr_refuse "merging origin/main into $C conflicts; merge it into handoff/$T, then re-run"
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+ PYTHONPATH="$PRT" python3 - $D/body.md $(git rev-parse HEAD) $C $(git rev-parse --short origin/main) <<'E0'
+ import sys; from head_note import prefix
+ p,H,C,M=sys.argv[1:5]; s=open(p).read()
+@@ -131,10 +119,7 @@ if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _pu
+ pr_wait $! $D/p1.log
+ PR_PUSHED=$(git rev-parse HEAD)
+ N=$(grep -oE 'pull request #[0-9]+' $D/p1.log | head -1 | grep -oE '[0-9]+')
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-=======
+ pr_exit_trap "op_close_unrowed; $PR_EXIT_FIRST"  # mut:trapclose
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+ gh pr edit $N --title "$TITLE" >/dev/null; gh pr ready $N --undo >/dev/null 2>&1 || true
+ commit_row . $N "$(row_line $N $R "$TITLE" "$G")" >/dev/null
+ H=$(git rev-parse HEAD)
+@@ -148,14 +133,9 @@ RO=--row-only  # mut:oprowonly
+ { pr_push_hold; PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash "$_push" $RO $R $WT $BR $D/body.md $ISS > $D/p2.log 2>&1 & } 9>>"${PR_PUSH_LOCK:-/dev/null}"
+ rc=0; wait $! || rc=$?
+ if [ "$rc" != 0 ]; then
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-  git reset -q --hard "$PR_PUSHED"  # mut:rowreset
+-  printf '%s: ROWLESS: #%s is open at %s without its row; update_pr.sh %s - <body> adds it (delivery_row.sh ensure_row)\n' "$PR_NAME" "$N" "$PR_PUSHED" "$BR" >&2
+-=======
+   # The exit below closes #N unless origin took the row (op_close_unrowed); this names the refusal.
+   OP_WHY="the row push was refused:
+ $({ grep -E 'REFUSE' $D/p2.log || tail -n 20 $D/p2.log; } 2>/dev/null || :)"
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+   pr_push_failed $D/p2.log
+ fi
+ PR_PUSHED=$H
+diff --git a/tools/audit/seat/orchestrator_tick.py b/tools/audit/seat/orchestrator_tick.py
+remerge CONFLICT (add/add): Merge conflict in tools/audit/seat/orchestrator_tick.py
+index 313267fe8..8252c040a 100644
+--- a/tools/audit/seat/orchestrator_tick.py
++++ b/tools/audit/seat/orchestrator_tick.py
+@@ -1178,13 +1178,9 @@ class Tick:
+         """`DESIGN OWED:` an eligible group (size L or XL, decision 0014) whose
+         every `after` group is done or dispatched, still undispatched itself,
+         with no `design/<group>` ref: the designer starts when the last
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-        predecessor dispatches, not when it merges. A failed ref read is
+-=======
+         predecessor dispatches, not when it merges. The line names the age
+         since that dispatch and a `CP` mark when the group is on the roster
+         critical path (`roster_lib.critical_path`). A failed ref read is
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+         UNREADABLE, never an empty owed list."""
+         code, o = self.git(["ls-remote", "origin", "refs/heads/design/*"])
+         if code:
+@@ -1193,10 +1189,7 @@ class Tick:
+         have = {l.split()[1][len("refs/heads/design/"):].lower() for l in o.splitlines()
+                 if len(l.split()) >= 2 and l.split()[1].startswith("refs/heads/design/")}
+         groups, open_g = rl.groups_of(roster), rl.open_groups(roster)
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-=======
+         critical = set(rl.critical_path(roster))
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+         for gid, g in groups.items():
+             stage = (g.get("resume") or {}).get("stage")
+             if gid not in open_g or not rl.needs_design(g) or gid.lower() in have:
+@@ -1206,10 +1199,6 @@ class Tick:
+             if any(a in open_g and ((groups[a].get("resume") or {}).get("stage") in UNBLOCKABLE_STAGES)
+                    for a in (g.get("after") or []) if a in groups):
+                 continue  # a predecessor is not dispatched yet
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-            self.line(S, f"DESIGN OWED: {gid} (size {g.get('size')}) -- last predecessor dispatched, "
+-                         f"no design/{gid}; dispatch the designer", flag=True)
+-=======
+             cp = " CP" if gid in critical else ""
+             self.line(S, f"DESIGN OWED:{cp} {gid} (size {g.get('size')}) -- last predecessor dispatched "
+                          f"{self._dispatch_age(rl, groups, g)}, no design/{gid}; dispatch the designer",
+@@ -1236,7 +1225,6 @@ class Tick:
+         if not ages:
+             return "(age unknown)"
+         return f"{int(min(ages).total_seconds() // 3600)}h ago"
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+ 
+     def design_builds(self, S: str, rl, roster: dict) -> None:
+         """`DESIGN-BUILD:` every pass for an approved design whose roster group
+@@ -4063,11 +4051,7 @@ def self_test() -> int:
+         ow, ow_un = oboard(), oboard(ls_rc=1)
+         a, f = check("DESIGN OWED", [
+             ("an L group whose last predecessor dispatched and that has no design ref is owed one",
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-             [x.split()[2] for x in ow] == ["R10-L1"]),
+-=======
+              len(ow) == 1 and " R10-L1 " in ow[0]),
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+             ("null controls: a predecessor not dispatched, a design ref, an S group and a dispatched group owe nothing",
+              not any(g in x for x in ow for g in ("R10-L2", "R10-L3", "R10-S1", "R10-L4"))),
+             ("an unreadable ref listing is UNREADABLE and owes nothing it cannot know",
+@@ -4075,8 +4059,6 @@ def self_test() -> int:
+         ])
+         total, failed = total + a, failed + f
+ 
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-=======
+         # ---- DESIGN OWED carries the dispatch age and a CP mark ----
+         aroster = {"groups": [
+             {"group": "R10-P", "size": "S", "resume": {"stage": "in-progress", "branch": "handoff/r10-p"}},
+@@ -4107,7 +4089,6 @@ def self_test() -> int:
+         ])
+         total, failed = total + a, failed + f
+ 
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+         # ---- the null control: an all-clear board, empty list, exit 0 ----
+         rfile.write_text(json.dumps({"groups": [
+             {"group": "A", "resume": {"stage": "done"}},
+diff --git a/tools/audit/seat/plan_page.py b/tools/audit/seat/plan_page.py
+remerge CONFLICT (add/add): Merge conflict in tools/audit/seat/plan_page.py
+index 30236d0f0..4c5c8b060 100644
+--- a/tools/audit/seat/plan_page.py
++++ b/tools/audit/seat/plan_page.py
+@@ -23,12 +23,6 @@ JSON file of the same shape: {"issues": [{number, title, state}],
+ "open_prs": [{number, head_ref, title}], "merged_prs": [{number, title,
+ head_ref, merge_commit_sha, merged_at}]}).
+ 
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-REFUSALS (exit 1, nothing written): a plan `replan.stale_reason` calls stale
+--- its roster blob is not the roster's blob at the ref now -- and a plan
+-`replan.check_plan` refuses. The freshness rule is replan.py's, so `--check`
+-and this page cannot disagree about which plans are current.
+-=======
+ REFUSALS (exit 1): a plan `replan.stale_reason` calls stale -- its roster
+ blob is not the roster's blob at the ref now --, a plan `replan.check_plan`
+ refuses, a plan recording no duration model, and an `origin/` roster ref that
+@@ -38,7 +32,6 @@ UNAVAILABLE page to `--html`: a heading naming what could not be read, every
+ figure a dash, no table -- never a page of zeros, and never a stale page left
+ in place as if current. `state_docs.py --plan` publishes this page beside the
+ plan table, keeping the last good page at the state ref when one exists.
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+ 
+ Status classes, one per group:
+   done     resume.stage in roster_lib.DONE_STAGES; labelled with the PR it
+@@ -48,13 +41,10 @@ Status classes, one per group:
+            plan starts it later than the replan instant);
+   partial  a merged `R<N>-GROUP:` titled PR delivered part of an open group;
+   blocked  an `after` target is not done, and nothing of it merged;
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-=======
+   held     resume.stage is a human disposition (roster_lib.DISPOSITION:
+            absorbed, carries-open, deferred, ...), labelled with that word and,
+            for an absorbed group, the group it went to (`absorbed_into`); it is
+            neither merged nor ready to dispatch;
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+   ready    everything else.
+ A branch answers for a group by `roster_lib.group_for_branch`, then by its
+ last segment against the tails of the roster's `resume.branch` values (with a
+@@ -230,13 +220,10 @@ def build_rows(roster: dict, plan: dict, snap: dict) -> list:
+                 label, pr = f"merged at {commit[:8]}", "merged"
+             else:
+                 label, pr = "folded into another group (no merge of its own)", "merged"
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-=======
+         elif _stage(entry) in roster_lib.DISPOSITION:
+             st = "held"
+             into = entry.get("absorbed_into")
+             label = _stage(entry) + (f" into {short(into)}" if into else "") + sfx
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+         elif _stage(entry) in replan.LIVE_STAGES:
+             st = "live"
+             queued = not pg.get("inherited") and pg["start"] > start0
+@@ -478,11 +465,7 @@ def render(roster: dict, roster_src: str, plan: dict, snap: dict) -> str:
+     chain = plan["critical_path"]
+     waves_of = {g: w["wave"] for w in plan["waves"] for g in w["groups"]}
+     counts = {k: sum(1 for r in rows if r["st"] == k)
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-              for k in ("done", "live", "ready", "partial", "blocked")}
+-=======
+               for k in _STRIP}
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+     open_iss = ("—" if snap.get("offline") else str(sum(
+         1 for i in snap["issues"]
+         if i["state"] == "OPEN" and i["number"] != TRACKING_ISSUE)))
+@@ -553,8 +536,6 @@ def render(roster: dict, roster_src: str, plan: dict, snap: dict) -> str:
+     return page
+ 
+ 
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-=======
+ def unavailable_page(what: str) -> str:
+     """The refusal page: what could not be read, every figure a dash, no
+     table. A reader sees that the plan is unknown, not that it is empty."""
+@@ -577,7 +558,6 @@ def _refuse(html_out: str, what: str, detail: list) -> int:
+     return 1
+ 
+ 
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+ # ---------------------------------------------------------------------- cli
+ 
+ def main(argv=None, fetch=fetch_github) -> int:
+@@ -606,36 +586,17 @@ def main(argv=None, fetch=fetch_github) -> int:
+                             f"+refs/heads/{ref[7:]}:refs/remotes/{ref}"],
+                            capture_output=True, text=True)
+         if r.returncode:
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-            print(f"plan_page: refused: cannot fetch {ref} to test freshness: "
+-                  f"{r.stderr.strip()[:200]} (--no-fetch reads it as it is)",
+-                  file=sys.stderr)
+-            return 1
+-=======
+             return _refuse(a.html, f"cannot fetch {ref} to test freshness",
+                            [r.stderr.strip()[:200], "--no-fetch reads it as it is"])
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+     bad = replan.check_plan(plan)
+     stale = replan.stale_reason(plan, a.repo, ref, a.roster_path)
+     if stale:
+         bad.append(f"freshness: {stale}")
+     if bad:
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-        print(f"plan_page: refused, nothing written: {len(bad)} violation(s)",
+-              file=sys.stderr)
+-        for b in bad:
+-            print(f"  {b}", file=sys.stderr)
+-        return 1
+-    if "model" not in plan["generated"]:
+-        print("plan_page: refused, nothing written: plan.json records no duration "
+-              "model (generated.model); re-run tools/plan/replan.py", file=sys.stderr)
+-        return 1
+-=======
+         return _refuse(a.html, f"{len(bad)} plan violation(s): {bad[0]}", bad)
+     if "model" not in plan["generated"]:
+         return _refuse(a.html, "plan.json records no duration model "
+                        "(generated.model); re-run tools/plan/replan.py", [])
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+     path = roster_lib.roster_path(a.repo, ref, a.roster_path)
+     roster = roster_lib.show_roster(a.repo, ref, path)
+     snap = (json.loads(Path(a.github_snapshot).read_text(encoding="utf-8"))
+@@ -682,10 +643,7 @@ def _self_test() -> int:
+         grp("R9-PART", "UX"),
+         grp("R9-BLOCK", "UX", after=("R9-LIVE",)),
+         grp("R9-READY", "IN", after=("R9-DONE-SHA",), issues=(13,), fixes=(13,)),
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-=======
+         dict(grp("R9-HELD", "IN", stage="absorbed"), absorbed_into="R9-DONE-SHA"),
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+     ]}
+     snap = {
+         "issues": [{"number": 11, "title": "eleven", "state": "CLOSED"},
+@@ -735,175 +693,6 @@ def _self_test() -> int:
+     check("an open issue on a done group or none is excluded and counted",
+           pr_["other"] == {6, 99} and set(pr_["close_at"]) == {1, 2, 4}, pr_)
+ 
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-    with throwaway_git_environ(), tempfile.TemporaryDirectory() as td:
+-        repo = Path(td) / "repo"
+-        rpath = repo / roster_lib.ROSTERS_DIR / "wave-r9-groups.json"
+-        rpath.parent.mkdir(parents=True)
+-        throwaway_git_init(repo, "-q", "-b", "main")
+-
+-        def commit(r: dict) -> None:
+-            rpath.write_text(json.dumps(r), encoding="utf-8")
+-            subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
+-            subprocess.run(["git", "-C", str(repo), "commit", "-q", "-m", "r"], check=True)
+-        commit(roster)
+-        r_, ref_, blob_ = replan.load_roster(str(repo), "main")
+-        plan = replan.build_plan(r_, durations, dict(replan.DEFAULT_CAPS), start,
+-                                 "v1.0.0", ref_, blob_)
+-        planf, snapf = Path(td) / "plan.json", Path(td) / "snap.json"
+-        planf.write_text(json.dumps(plan), encoding="utf-8")
+-        snapf.write_text(json.dumps(snap), encoding="utf-8")
+-
+-        rows = {r["g"]: r for r in build_rows(roster, plan, snap)}
+-        st = {g: (r["st"], r["label"], r["pr"]) for g, r in rows.items()}
+-        check("done: the PR is found by merge commit",
+-              st["R9-DONE-SHA"] == ("done", "merged PR #21", "#21"), st["R9-DONE-SHA"])
+-        check("done: the PR is found by branch when no merge commit matches",
+-              st["R9-DONE-BR"] == ("done", "merged PR #22", "#22"), st["R9-DONE-BR"])
+-        check("done: no PR found falls back to the commit's sha8",
+-              st["R9-DONE-NONE"] == ("done", "merged at cccccccc", "merged"),
+-              st["R9-DONE-NONE"])
+-        check("live", st["R9-LIVE"][0] == "live" and st["R9-LIVE"][1] == "in-progress",
+-              st["R9-LIVE"])
+-        check("the open PR maps by the branch-tail fallback",
+-              st["R9-LIVE"][2] == "#31", st["R9-LIVE"])
+-        check("the fallback is needed: roster_lib alone does not map it",
+-              roster_lib.group_for_branch(roster, "handoff/r9-live-g-pr") is None)
+-        check("an open PR whose branch names no group maps by its title",
+-              st["R9-READY"][2] == "#32", st["R9-READY"])
+-        check("a title naming two groups maps to neither",
+-              "#33" not in st["R9-PART"][2] + st["R9-READY"][2], st["R9-PART"])
+-        check("partial: a merged R9-PART: title on an open group",
+-              st["R9-PART"][:2] == ("partial", "part merged #23, residual open"),
+-              st["R9-PART"])
+-        check("blocked: an after target not done",
+-              st["R9-BLOCK"][:2] == ("blocked", "waiting on LIVE"), st["R9-BLOCK"])
+-        check("ready: its only after target is done", st["R9-READY"][0] == "ready",
+-              st["R9-READY"])
+-        check("blocked-by is the roster's after less the done groups",
+-              rows["R9-BLOCK"]["blk"] == ["R9-LIVE"] and rows["R9-READY"]["blk"] == [],
+-              (rows["R9-BLOCK"]["blk"], rows["R9-READY"]["blk"]))
+-
+-        page = render(roster, f"main:{roster_lib.ROSTERS_DIR}/wave-r9-groups.json",
+-                      plan, snap)
+-        check("a closed issue's chip is struck",
+-              '<span class="chip closer closed" title="eleven">#11</span>' in page)
+-        check("an open issue's chip is not",
+-              '<span class="chip" title="twelve">#12</span>' in page
+-              and '<span class="chip closer" title="thirteen">#13</span>' in page)
+-        for cls, want in (("done", 3), ("live", 1), ("ready", 1), ("partial", 1),
+-                          ("blocked", 1)):
+-            check(f"rows carry the {cls} class", page.count(f'<tr class="{cls}"') == want,
+-                  page.count(f'<tr class="{cls}"'))
+-            check(f"the summary strip counts {cls}",
+-                  f"<b>{want}</b><span>{_STRIP[cls]}</span>" in page)
+-        check("the open-issue count leaves out the tracking issue",
+-              "<b>2</b><span>open issues" in page)
+-        check("every template field is filled", "{{" not in page,
+-              re.findall(r"\{\{\w+\}\}", page))
+-        check("the round comes from the roster path", "<h1>Round 9 Fix Plan</h1>" in page)
+-        model = plan["generated"]["model"]
+-        check("the methodology states the plan's sizes and live fraction",
+-              f"S {model['sizes_hours']['S']:g} h" in page
+-              and f"{model['live_remaining_fraction'] * 100:g}%" in page)
+-        check("every open group has a bar; no done group does",
+-              all(f'data-name="{short(g)}"' in page for g in rows if rows[g]["st"] != "done")
+-              and 'data-name="DONE-SHA"' not in page)
+-        check("critical-path groups carry the mark",
+-              all(rows[g]["crit"] for g in plan["critical_path"])
+-              and page.count('class="critmark"') == len(plan["critical_path"]))
+-        check("every open group's tier is shown, and a merged group's is not",
+-              all(f'<td class="tier">{rows[g]["tier"]}</td>' in page
+-                  for g in rows if rows[g]["tier"] is not None)
+-              and all(rows[g]["tier"] is None for g in rows if rows[g]["st"] == "done")
+-              and '<td class="tier">—</td>' in page
+-              and '<th title="dispatch tier' in page,
+-              {g: rows[g]["tier"] for g in rows})
+-        check("the critical path is tier 0 and production tier 1",
+-              all(rows[g]["tier"] == 0 for g in plan["critical_path"])
+-              and any(rows[g]["tier"] == 1 for g in rows if rows[g]["st"] != "done"),
+-              {g: rows[g]["tier"] for g in rows})
+-        check("a planned stamp is drawn", 'class="stampline"' in page)
+-        check("the filter and hide-merged controls ship",
+-              'id="hide-done"' in page and 'data-f="blocked"' in page)
+-        check("no machine path in the page", not re.search(r"/(home|Users|tmp)/", page))
+-        # The caption's figure is the links the chart draws, not the ones it
+-        # leaves to the marks: two fixtures where those differ, one each way.
+-        links = max(0, len(plan["critical_path"]) - 1)
+-        check("the caption counts the links drawn (none drawn, one left)",
+-              page.count('class="critline"') == 0 and links == 1
+-              and f"0 of {links} critical-path links are drawn" in page,
+-              re.findall(r"\d+ of \d+ critical-path links", page))
+-        apart = json.loads(json.dumps(plan))
+-        apart["groups"]["R9-BLOCK"]["lane"] = "Product UX"  # adjacent lane: drawn
+-        page2 = render(roster, f"main:{roster_lib.ROSTERS_DIR}/wave-r9-groups.json",
+-                       apart, snap)
+-        check("the caption counts the links drawn (one drawn, none left)",
+-              page2.count('class="critline"') == 1
+-              and f"1 of {links} critical-path links are drawn" in page2,
+-              re.findall(r"\d+ of \d+ critical-path links", page2))
+-
+-        sec = issues_section(roster, plan, snap)
+-        check("the issues chart is the first section, drawn from the open set",
+-              0 <= page.find("Projected open issues") < page.find("<h2>Swimlanes")
+-              and "2 open now" in page and "1 other open issues" in page
+-              and sec.count("<polyline") == 1, re.findall(r"\d+ open now", page))
+-        no_gh = {"issues": [], "open_prs": [], "merged_prs": [], "offline": True}
+-        check("no GitHub state: the chart is omitted with a note",
+-              "Omitted" in issues_section(roster, plan, no_gh)
+-              and "<polyline" not in issues_section(roster, plan, no_gh))
+-
+-        out = Path(td) / "page.html"
+-        argv = ["--plan", str(planf), "--html", str(out), "--repo", str(repo),
+-                "--github-snapshot", str(snapf)]
+-        check("a fresh plan renders (null control)",
+-              main(argv, fetch=fetch_refused) == 0 and out.is_file())
+-        out.unlink()
+-
+-        def no_gh_binary(_repo):
+-            raise FileNotFoundError("gh")
+-        try:
+-            with contextlib.redirect_stderr(io.StringIO()):
+-                rc = main(argv[:-2], fetch=no_gh_binary)
+-        except Exception as exc:  # a crash is the failure this check names
+-            rc = f"raised {type(exc).__name__}"
+-        check("no gh binary: the page is still written, chart omitted, no crash",
+-              rc == 0 and out.is_file() and "Omitted" in out.read_text(encoding="utf-8"), rc)
+-        out.unlink(missing_ok=True)
+-
+-        def refused(variant: dict, why: str) -> tuple:
+-            """main on a fresh variant of the plan: rc, a file, the refusal."""
+-            vf = Path(td) / "variant.json"
+-            vf.write_text(json.dumps(variant), encoding="utf-8")
+-            err = io.StringIO()
+-            try:
+-                with contextlib.redirect_stderr(err):
+-                    rc = main(["--plan", str(vf)] + argv[2:], fetch=fetch_refused)
+-            except Exception as exc:  # a refusal that crashes is not one
+-                rc = f"raised {type(exc).__name__}"
+-            return rc, out.exists(), why in err.getvalue()
+-        modelless = json.loads(json.dumps(plan))
+-        del modelless["generated"]["model"]
+-        check("a fresh plan recording no duration model is refused, nothing written",
+-              refused(modelless, "generated.model") == (1, False, True),
+-              refused(modelless, "generated.model"))
+-        violating = json.loads(json.dumps(plan))
+-        violating["summary"]["stamps"] += 1
+-        check("the violating variant is fresh: only check_plan can refuse it",
+-              replan.stale_reason(violating, str(repo)) is None
+-              and replan.check_plan(violating))
+-        check("a fresh plan that check_plan refuses is refused, nothing written",
+-              refused(violating, "summary: stamp count") == (1, False, True),
+-              refused(violating, "summary: stamp count"))
+-        moved = json.loads(json.dumps(roster))
+-        moved["groups"][3]["resume"]["stage"] = "done"
+-        commit(moved)
+-        rc = main(argv, fetch=fetch_refused)
+-        check("a stale plan is refused, nothing written",
+-              rc == 1 and not out.exists(), (rc, out.exists()))
+-        check("and replan --check refuses the same plan",
+-              bool(replan.stale_reason(plan, str(repo))))
+-=======
+     # A crash mid-arm is a failure of its own, reported with the checks that
+     # failed before it (a mutant that breaks the renderer reads as killed).
+     try:
+@@ -1130,7 +919,6 @@ def _self_test() -> int:
+                   bool(replan.stale_reason(plan, str(repo))))
+     except Exception as exc:  # noqa: BLE001 -- reported, never swallowed
+         check("the fixture arms ran to the end", False, f"{type(exc).__name__}: {exc}")
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+     print(f"plan_page self-test: {n[0]} checks, {len(fails)} failed")
+     for f in fails:
+         print("FAIL", f)
+@@ -1138,12 +926,8 @@ def _self_test() -> int:
+ 
+ 
+ _STRIP = {"done": "groups merged", "live": "fixers working", "ready": "ready, not started",
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-          "blocked": "waiting on a group", "partial": "part merged, residual open"}
+-=======
+           "blocked": "waiting on a group", "partial": "part merged, residual open",
+           "held": "held by a disposition"}
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+ 
+ # The page. `{{name}}` is filled by `render`; every value is escaped there.
+ _TEMPLATE = """<!doctype html>
+@@ -1188,10 +972,7 @@ svg{display:block;font-family:var(--mono)}
+ .bar.ready{fill:var(--ready-bg);stroke:var(--ready)}
+ .bar.blocked{fill:var(--blocked-bg);stroke:var(--blocked)}
+ .bar.partial{fill:var(--partial-bg);stroke:var(--partial);stroke-dasharray:3 2}
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-=======
+ .bar.held{fill:var(--blocked-bg);stroke:var(--blocked);stroke-dasharray:1 2}
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+ .bar.crit{stroke:var(--accent);stroke-width:2.2}
+ .barlab{fill:var(--fg);font-size:10.5px;paint-order:stroke;stroke:var(--panel);stroke-width:3;stroke-linejoin:round}
+ .critline{fill:none;stroke:var(--accent);stroke-width:1.6;stroke-dasharray:4 3;opacity:.85}
+@@ -1224,10 +1005,7 @@ td.d{min-width:260px;max-width:440px}
+ .pill.ready{background:var(--ready-bg);color:var(--ready);border-color:var(--ready)}
+ .pill.blocked{background:var(--blocked-bg);color:var(--blocked);border-color:var(--blocked)}
+ .pill.partial{background:var(--partial-bg);color:var(--partial);border-color:var(--partial);border-style:dashed}
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-=======
+ .pill.held{background:var(--blocked-bg);color:var(--blocked);border-color:var(--blocked);border-style:dotted}
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+ .chip{display:inline-block;font:.76rem var(--mono);border:1px solid var(--line);border-radius:4px;padding:0 5px;margin:0 3px 3px 0}
+ .chip.closer{border-color:var(--fg);font-weight:600}
+ .chip.closed{text-decoration:line-through;color:var(--muted)}
+@@ -1252,10 +1030,7 @@ td.d{min-width:260px;max-width:440px}
+   <div class="stat"><b>{{n_ready}}</b><span>ready, not started</span></div>
+   <div class="stat"><b>{{n_blocked}}</b><span>waiting on a group</span></div>
+   <div class="stat"><b>{{n_partial}}</b><span>part merged, residual open</span></div>
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-=======
+   <div class="stat"><b>{{n_held}}</b><span>held by a disposition</span></div>
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+   <div class="stat"><b>{{open_iss}}</b><span>open issues (excl. #{{tracking}})</span></div>
+   <div class="stat end"><b>{{end}}</b><span>projected programme close</span></div>
+ </div>
+@@ -1269,10 +1044,7 @@ td.d{min-width:260px;max-width:440px}
+     <span><i style="background:var(--ready-bg);border-color:var(--ready)"></i>ready</span>
+     <span><i style="background:var(--blocked-bg);border-color:var(--blocked)"></i>waiting</span>
+     <span><i style="background:var(--partial-bg);border-color:var(--partial);border-style:dashed"></i>part merged</span>
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-=======
+     <span><i style="background:var(--blocked-bg);border-color:var(--blocked);border-style:dotted"></i>held</span>
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+     <span><i style="background:transparent;border-color:var(--accent);border-width:2px"></i>critical path (◆ marks each link)</span>
+     <span><i style="background:transparent;border-color:var(--done);border-style:dashed"></i>planned stamp</span>
+     <span><i style="background:transparent;border:0;border-top:2px solid var(--accent)"></i>groups in flight above the {{slots}}-slot cap line</span>
+@@ -1289,10 +1061,7 @@ td.d{min-width:260px;max-width:440px}
+     <button type="button" data-f="ready" aria-pressed="false">Ready</button>
+     <button type="button" data-f="blocked" aria-pressed="false">Waiting</button>
+     <button type="button" data-f="partial" aria-pressed="false">Part merged</button>
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-=======
+     <button type="button" data-f="held" aria-pressed="false">Held</button>
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+     <button type="button" data-f="done" aria-pressed="false">Merged</button>
+     <label class="chk"><input type="checkbox" id="hide-done"> Hide merged</label>
+   </div>
+diff --git a/tools/audit/seat/pr_args.sh b/tools/audit/seat/pr_args.sh
+remerge CONFLICT (add/add): Merge conflict in tools/audit/seat/pr_args.sh
+index a8e129b7a..5a3050123 100644
+--- a/tools/audit/seat/pr_args.sh
++++ b/tools/audit/seat/pr_args.sh
+@@ -27,12 +27,8 @@
+ pr_refuse() { printf '%s: REFUSE: %s\n' "${PR_NAME:-pr}" "$*" >&2; exit 1; }
+ pr_stopped() { # <status> <line> <command>: the ERR trap's report
+   [ "${BASH_SUBSHELL:-0}" = 0 ] || return 0
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-  printf '%s: STOPPED: line %s exited %s: %s\n' "${PR_NAME:-pr}" "$2" "$1" "$3" >&2
+-=======
+   PR_STOPPED_AT="line $2 exited $1: $3"  # what a runner's EXIT trap may quote (open_pr.sh's close)
+   printf '%s: STOPPED: %s\n' "${PR_NAME:-pr}" "$PR_STOPPED_AT" >&2
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+   # 75 is BUSY to a caller (cloud_relay.sh retries it and records nothing), and only pr_lock_busy
+   # says it: a step that happens to exit 75 under errexit is a stop like any other (#2469).
+   [ "$1" != 75 ] || exit 1  # mut:busy75
+@@ -257,10 +253,7 @@ pr_exit_trap() { # [<command>]: on every exit, a stop signal's included, run <co
+   # PR_TIDY runs once the tree is reaped and while the branch lock is still held: open_pr.sh's
+   # pr_release_wt, which must not race an update_pr.sh that detaches the same worktree (P-D).
+   local first=${1:+$1; }
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-=======
+   PR_EXIT_FIRST=${1:-}  # a later call runs its own command before this one: "<cmd>; $PR_EXIT_FIRST"
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+   trap "${first}"'pr_reap; eval "${PR_TIDY:-:}"; eval "${PR_AFTER_REAP:-:}"' EXIT  # mut:exitreap
+ }
+ pr_own_group() { # <command...>: exec <command> as the leader of a process group of its own
+@@ -1105,10 +1098,7 @@ wt=$2; br=$3; n=$(( $(cat "$D/n" 2>/dev/null || echo 0) + 1 )); echo $n > "$D/n"
+ case $n in
+   1) git -C "$wt" push -q origin "$br" || exit 1; echo "app_push: PUSHED to $br; pull request #5 is open"; exit 0 ;;
+   2) [ ! -e "$D/p2fail" ] || { echo "app_push: REFUSE: the body did not pass tools/pr/prepr.sh"; exit 1; }
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-=======
+      [ ! -e "$D/p2postfail" ] || { git -C "$wt" push -q origin "$br" || exit 1; echo "app_push: REFUSE: the body PATCH on #5 was refused; the branch IS pushed as the App"; exit 1; }
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+      : > "$D/p2started"; k=0; while [ ! -e "$D/release" ] && [ $k -lt 400 ]; do sleep 0.05; k=$((k + 1)); done
+      [ "$(git -C "$wt" rev-parse HEAD)" = "$(git -C "$wt" rev-parse --verify "refs/heads/$br" 2>/dev/null)" ] \
+        || { echo "app_push: REFUSE: worktree HEAD is not the committed tip of '$br'"; exit 1; }
+@@ -1159,12 +1149,6 @@ STUB
+   ck "  mutant mut:oprowonly (its line deleted): the row push runs the full prepr" $?
+   # A refused row push (#2625, #2629: prepr refused p2 on a red CI reported after p1) left the row
+   # commit unpushed in the opener's worktree, on the branch, and update_pr.sh refused it as unpushed
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-  # work. The opener now returns its worktree to the pushed head and releases it, so the next
+-  # update_pr.sh adds the row (delivery_row.sh's ensure_row) and the PR ends with it.
+-  rowless() { # <mutant>
+-    local sd=$t/rowless-$1 sdir=$t/rowless-$1-stub g
+-=======
+   # work; the PR stayed open without its row. The opener now returns its worktree to the pushed head,
+   # releases it, and closes the PR with a read-back comment saying why, so the tick never finds an
+   # open PR without its row. This arm's gh records the close and answers gh_comment.py's post and
+@@ -1192,18 +1176,11 @@ GH
+   cp "$src/../../pr/gh_comment.py" "$m/tools/pr/gh_comment.py"
+   rowless() { # <mutant> [edit: the title edit after the PR exists fails, not the row push | postpush: the row push lands, then fails]
+     local sd=$t/rowless-$1${2:-} sdir=$t/rowless-$1${2:-}-stub g
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+     rm -rf "$sd" "$sdir"; mkdir -p "$sdir" "$sd"; sd=$(cd "$sd" && pwd -P)
+     git -C "$m" worktree prune; git -C "$m" branch -qD fix/r 2>/dev/null; git -C "$o" branch -qD fix/r 2>/dev/null
+     for g in open_pr.sh update_pr.sh delivery_row.sh pr_args.sh pr_cap.py; do
+       if [ "$1" = - ]; then cp "$src/$g" "$m/tools/audit/seat/$g"; else grep -v "# mut:$1\$" "$src/$g" > "$m/tools/audit/seat/$g"; fi
+     done
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-    touch "$sdir/p2fail" "$sdir/p3ok"; cp "$t/body.md" "$t/bR.md"
+-    HPO_STATE_DIR=$sd STUB_DIR=$sdir BR=fix/r BR_FIXED=1 bash "$m/tools/audit/seat/open_pr.sh" r "$codeR" T G > "$t/outo" 2>&1; echo $? > "$t/rco"
+-    git -C "$sd/pr/r/wt" symbolic-ref -q HEAD >/dev/null 2>&1 && echo branch > "$t/opwt" || echo detached > "$t/opwt"
+-    HPO_STATE_DIR=$sd STUB_DIR=$sdir bash "$m/tools/audit/seat/update_pr.sh" fix/r - "$t/bR.md" > "$t/outu" 2>&1; echo $? > "$t/rcu"
+-=======
+     case ${2:-} in edit) touch "$sdir/editfail" ;; postpush) touch "$sdir/p2postfail" ;; *) touch "$sdir/p2fail" ;; esac
+     touch "$sdir/p3ok"; cp "$t/body.md" "$t/bR.md"
+     PATH="$t/rowless-bin:$PATH" HPO_STATE_DIR=$sd STUB_DIR=$sdir BR=fix/r BR_FIXED=1 bash "$m/tools/audit/seat/open_pr.sh" r "$codeR" T G > "$t/outo" 2>&1; echo $? > "$t/rco"
+@@ -1213,19 +1190,10 @@ GH
+     else grep -qF 'was refused' "$sdir/comment" 2>/dev/null && grep -qF 'did not pass tools/pr/prepr.sh' "$sdir/comment"; fi && echo 1 > "$t/why" || echo 0 > "$t/why"
+     [ -e "$sdir/comment" ] && echo 1 > "$t/commented" || echo 0 > "$t/commented"
+     PATH="$t/rowless-bin:$PATH" HPO_STATE_DIR=$sd STUB_DIR=$sdir bash "$m/tools/audit/seat/update_pr.sh" fix/r - "$t/bR.md" > "$t/outu" 2>&1; echo $? > "$t/rcu"
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+     git -C "$o" cat-file -e fix/r:dev/programme/delivery/5.md 2>/dev/null && echo 1 > "$t/rowpushed" || echo 0 > "$t/rowpushed"
+     reap; git -C "$m" worktree remove --force "$sd/pr/r/wt" 2>/dev/null; git -C "$m" worktree remove --force "$sd/pr/upd-fix-r" 2>/dev/null; true
+   }
+   rowless -
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-  [ "$(cat "$t/rco")" != 0 ] && grep -qF "open_pr: ROWLESS: #5 is open" "$t/outo" && [ "$(cat "$t/opwt")" = detached ] \
+-    && [ "$(cat "$t/rcu")" = 0 ] && [ "$(cat "$t/rowpushed")" = 1 ]
+-  ck "open_pr: a refused row push leaves no stranded worktree, says the PR is rowless, and the next update_pr.sh lands the row" $?
+-  rowless rowreset
+-  [ "$(cat "$t/opwt")" = branch ] && grep -qF "(unpushed work" "$t/outu" && [ "$(cat "$t/rowpushed")" = 0 ]
+-  ck "  mutant mut:rowreset (its line deleted): the row commit stays unpushed on the branch and update_pr.sh refuses it (the defect)" $?
+-=======
+   [ "$(cat "$t/rco")" != 0 ] && grep -qF "open_pr: CLOSED: #5 at" "$t/outo" && grep -qF "identical=True" "$t/outo" \
+     && [ "$(cat "$t/closed")" = 1 ] && [ "$(cat "$t/why")" = 1 ] && [ "$(cat "$t/opwt")" = detached ] \
+     && ! grep -qF ROWLESS "$t/outo" && grep -qF "no open pull request at fix/r" "$t/outu" && [ "$(cat "$t/rowpushed")" = 0 ]
+@@ -1280,7 +1248,6 @@ GH
+   [ "$(cat "$t/wtq")" = kept ] && grep -qF "it is dirty" "$t/outq"
+   ck "  mutant mut:mergeabort (its line deleted): the conflicted worktree is kept as dirty work (the defect)" $?
+   git -C "$o" reset -q --hard HEAD~1; git -C "$o" branch -qD handoff/q; git -C "$o" update-ref -d refs/heads/handoff-body/q
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+   racerun oplock; [ "$(cat "$t/rcu")" != 75 ] && ! grep -qF "update_pr: BUSY" "$t/outu" && [ "$(cat "$t/rco")" = 0 ] && [ "$(cat "$t/rowpushed")" = 1 ]
+   ck "  mutant mut:oplock (its line deleted): update_pr.sh takes the branch (not BUSY); the unpushed-work refusal alone keeps the row" $?
+   racerun oplock+unpushed; [ "$(cat "$t/rco")" != 0 ] && grep -qF "is not the committed tip" "$t/outo" && [ "$(cat "$t/rowpushed")" = 0 ]
+diff --git a/tools/audit/seat/state_docs.py b/tools/audit/seat/state_docs.py
+remerge CONFLICT (add/add): Merge conflict in tools/audit/seat/state_docs.py
+index 41cb775be..545ba1e04 100644
+--- a/tools/audit/seat/state_docs.py
++++ b/tools/audit/seat/state_docs.py
+@@ -4,12 +4,8 @@
+     python3 tools/audit/seat/state_docs.py [--repo OWNER/REPO] \
+         [--roster-ref GITREF [--roster-path PATH] | --roster-file PATH] \
+         [--checkout DIR] [--state-ref BR] [--pr-state FILE] \
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-        [--mirror DIR] [--push] [--message M]
+-=======
+         [--mirror DIR] [--push] [--message M] \
+         [--plan PLAN_JSON [--github-snapshot FILE]]
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+     python3 tools/audit/seat/state_docs.py beat [the same flags] \
+         [--watch-ref REF] [--interval SECONDS] [--tip-file PATH] [--once]
+     python3 tools/audit/seat/state_docs.py --self-test
+@@ -39,8 +35,6 @@ Stateless like the other seat tools: every input is a flag, nothing about a
+ session or a machine is hardcoded, stdlib only, and the four generators
+ are RUN, never re-implemented -- their logic lives in exactly one place.
+ 
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-=======
+ `--plan` adds the plan page: `plan_page.py` draws that plan.json (the one
+ `tools/plan/replan.py` just wrote) as `PLAN.html`, published in the same
+ commit as `PLAN-TABLE.md` -- one ref, one durable path. A page that refuses
+@@ -50,7 +44,6 @@ one, and carries the UNAVAILABLE page when it holds none; either way the call
+ publishes the other docs and exits 1, so the caller sees the plan unread. The
+ beat runs no replan, so it never passes `--plan`.
+ 
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+ `beat` is the recurring half of tvofi's 2026-10-09 instruction that the state
+ docs are regenerated continuously rather than at session end. It replaces the
+ session-local loop an orchestrator kept in its own scratch directory, which is
+@@ -79,12 +72,9 @@ pass then regenerates the docs for it; a sync that refuses (an unreadable
+ from __future__ import annotations
+ 
+ import argparse
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-=======
+ import contextlib
+ import datetime as dt
+ import io
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+ import json
+ import os
+ import subprocess
+@@ -111,11 +101,8 @@ BEAT_INTERVAL = 300.0
+ #: evidence, the older state docs -- is carried, never touched.
+ DOC_NAMES = ("PLAN-TABLE.md", "FLOW-BOARD.md", "RESUME-CURRENT.md",
+              "NEXT-SESSION-PROMPT.md")
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-=======
+ #: `--plan`'s page, in the write set only on a call that draws it.
+ PLAN_PAGE = "PLAN.html"
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+ 
+ 
+ class State(NamedTuple):
+@@ -453,8 +440,6 @@ def run_self_test() -> int:
+         return self_test()
+ 
+ 
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-=======
+ def draw_plan_page(a, staging: Path, page_path: str, prev: str | None):
+     """`plan_page.py` over `--plan`: (staged {path: text}, refusal or None).
+ 
+@@ -485,7 +470,6 @@ def draw_plan_page(a, staging: Path, page_path: str, prev: str | None):
+     return ({} if held else {page_path: text}), why
+ 
+ 
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+ # --------------------------------------------------------------------- main
+ def parser(beat_mode: bool = False) -> argparse.ArgumentParser:
+     """One flag surface for both forms: `beat` adds only the loop's own
+@@ -514,14 +498,11 @@ def parser(beat_mode: bool = False) -> argparse.ArgumentParser:
+                    help="push the state ref; without it this is a dry run")
+     p.add_argument("--message")
+     p.add_argument("--self-test", action="store_true")
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-=======
+     if not beat_mode:
+         p.add_argument("--plan",
+                        help="plan.json to draw as PLAN.html (plan_page.py)")
+         p.add_argument("--github-snapshot",
+                        help="GitHub state for the plan page instead of gh")
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+     if beat_mode:
+         p.add_argument("--watch-ref", default=WATCH_REF,
+                        help="the full ref name a pass reads at origin")
+@@ -560,20 +541,6 @@ def main(argv=None) -> int:
+         st8 = state_of(roster_round_of(a))
+         state_ref = a.state_ref or st8.ref
+         print(f"round state: {state_ref} at {st8.dir}/")
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-        with tempfile.TemporaryDirectory() as st:
+-            staged = generate(a.repo, roster_args, a.checkout, a.pr_state,
+-                              Path(st), st8.dir)
+-        for path in sorted(staged):
+-            print(f"generated {path}: "
+-                  f"{len(staged[path].encode('utf-8'))} bytes")
+-        prev = remote_tip(a.checkout, f"refs/heads/{state_ref}")
+-        tree = write_tree(a.checkout, staged, prev, st8.write_set)
+-        if prev:
+-            changed = run(["git", "diff-tree", "-r", "--name-only", prev,
+-                           tree], cwd=a.checkout).split()
+-            bad = sorted(p for p in changed if p not in st8.write_set)
+-=======
+         write_set = st8.write_set
+         prev = remote_tip(a.checkout, f"refs/heads/{state_ref}")
+         unread = None
+@@ -593,7 +560,6 @@ def main(argv=None) -> int:
+             changed = run(["git", "diff-tree", "-r", "--name-only", prev,
+                            tree], cwd=a.checkout).split()
+             bad = sorted(p for p in changed if p not in write_set)
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+             if bad:  # unreachable while write_tree's guard holds; checked
+                 raise Refuse(  # again here, before any commit exists to push
+                     f"the commit would touch paths outside the write set: "
+@@ -602,19 +568,11 @@ def main(argv=None) -> int:
+                 print(f"already current: {state_ref} at {prev[:12]} carries "
+                       "these bytes; nothing to commit or push")
+                 mirror_files(staged, a.mirror)
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-                return 0
+-        else:
+-            names = run(["git", "ls-tree", "-r", "--name-only", tree],
+-                        cwd=a.checkout).split()
+-            if sorted(names) != sorted(st8.write_set):
+-=======
+                 return rc
+         else:
+             names = run(["git", "ls-tree", "-r", "--name-only", tree],
+                         cwd=a.checkout).split()
+             if sorted(names) != sorted(write_set):
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+                 raise Refuse(f"the first commit on {state_ref} would carry "
+                              f"{sorted(names)}, not exactly the write set")
+         message = a.message or (
+@@ -634,19 +592,13 @@ def main(argv=None) -> int:
+         else:
+             print(f"ready: would push {state_ref} at {commit} (no --push)")
+         mirror_files(staged, a.mirror)
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-        return 0
+-=======
+         return rc
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+     except Refuse as e:
+         print(f"state_docs: REFUSED: {e}", file=sys.stderr)
+         return 2
+ 
+ 
+ # ---------------------------------------------------------------- self-test
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-=======
+ def plan_page_arms(root: Path, ok, git) -> None:
+     """`--plan`: the page in the same commit as the plan table; a refused
+     page keeps the last good one at the ref, or publishes the UNAVAILABLE
+@@ -742,7 +694,6 @@ def plan_page_arms(root: Path, ok, git) -> None:
+        (rc, tip_of("crash-state"), err.getvalue()[-300:]))
+ 
+ 
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+ def self_test() -> int:
+     """Offline: tmp dirs and fixture repos, no network in any arm."""
+     sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tests"))
+@@ -836,10 +787,7 @@ def self_test() -> int:
+            == sorted(Path(p).name for p in WRITE_SET))
+         ok("parent is the previous tip",
+            state0 in git("-C", str(bare), "log", "--format=%P", "-1", tip))
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-=======
+         plan_page_arms(root, ok, git)
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+         # THE GUARD: a write outside the four files refuses, in both the
+         # direct check and a real write_tree call over the live tip.
+         try:
+diff --git a/tools/audit/seat/sweep_render.py b/tools/audit/seat/sweep_render.py
+remerge CONFLICT (add/add): Merge conflict in tools/audit/seat/sweep_render.py
+index dfc6a997a..6ff465e85 100644
+--- a/tools/audit/seat/sweep_render.py
++++ b/tools/audit/seat/sweep_render.py
+@@ -67,11 +67,7 @@ HOST = re.compile(HOME_DIR)
+ #: the self-test pins; the template is still the one owner of the wording.
+ DEFAULTS = {
+     "record beat: the replan": "tools/plan/replan.py --out",
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-    "record beat: the plan page": "tools/audit/seat/plan_page.py --plan",
+-=======
+     "record beat: the plan page": "state_docs.py --push --mirror {{state_mirror}} --plan {{plan_json}}",
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+     "tick board read unfiltered": "REVIEW OWED",
+     "tick board: owner flags": "OWNER FLAG:",
+     "tick board: design builds": "DESIGN-BUILD:",
+diff --git a/tools/audit/seat/sweep_template.md b/tools/audit/seat/sweep_template.md
+remerge CONFLICT (add/add): Merge conflict in tools/audit/seat/sweep_template.md
+index 73267b025..0a2ddacef 100644
+--- a/tools/audit/seat/sweep_template.md
++++ b/tools/audit/seat/sweep_template.md
+@@ -35,13 +35,8 @@ rendered text that no overlay value supplied.
+ | `seat_ledger` | the session's seat ledger file, updated every sweep |
+ | `plan_slots` | `replan.py --slots`: concurrent fixer slots the plan schedules (10 unless the owner set another) |
+ | `plan_seats` | `replan.py --seats`: seats the plan may use (99 unless the owner set another) |
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-| `plan_json` | the plan JSON `replan.py --out` writes and `plan_page.py --plan` reads |
+-| `plan_page` | the plan page `plan_page.py --html` writes, republished at the same path |
+-=======
+ | `plan_json` | the plan JSON `replan.py --out` writes and `state_docs.py --plan` draws |
+ | `plan_page` | the plan page, `PLAN.html` in the state mirror (`state_docs.py --plan` writes it), republished at the same path |
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+ | `state_mirror` | the directory `state_docs.py --mirror` writes |
+ | `tick_alive` | the tick seat's liveness file, touched every pass |
+ | `tick_log` | the tick seat's log |
+@@ -67,21 +62,13 @@ ORCHESTRATOR SWEEP, round {{round}}, repository {{repo}}. Read {{seat_ledger}} f
+ 
+ (4) After each merge (`dev/governance/roles/nudge.md` steps 12 and 18): `tools/audit/seat/roster_edit.py set-stage` for a roster group, one #201 comment through `tools/pr/gh_comment.py` with its read-back, `tools/audit/worktree_gc.sh {{repo}}`, the issues the merge commit closed read back (`dev/governance/roles/orchestrator.md` section 4), and the finished seat's worktrees under {{seat_root}} and its scratch removed.
+ 
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-(4b) Record beat, every sweep, merge or none: `tools/audit/seat/state_docs.py --push --mirror {{state_mirror}}`, then `python3 tools/plan/replan.py --out {{plan_json}} --slots {{plan_slots}} --seats {{plan_seats}}`, then `python3 tools/audit/seat/plan_page.py --plan {{plan_json}} --html {{plan_page}}`, republished at the same path.
+-=======
+ (4b) Record beat, every sweep, merge or none: `python3 tools/plan/replan.py --out {{plan_json}} --slots {{plan_slots}} --seats {{plan_seats}}`, then `tools/audit/seat/state_docs.py --push --mirror {{state_mirror}} --plan {{plan_json}}`, which publishes the plan page as `PLAN.html` in the plan table's commit at the state ref and mirrors it as {{plan_page}}, republished at the same path. Exit 1 there is the page UNAVAILABLE (the other docs are still pushed; the ref keeps the last good page): re-run the replan, never hand-run `plan_page.py` around the refusal.
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+ 
+ (4c) Open pull requests. Reconcile every open pull request to one bucket, with its reason: in train, review out, fixer out, CI wait, or owner-held; none waits without one; critical path first.
+ 
+ (4d) Queue priority, for the train, review, fixer and CI queues alike: a push to main; then critical path and hotfix; then production pull requests with instrument pull requests saving 12 h or more; then other instruments by savings. A group's critical-path standing is the roster's `critical` list (`tools/audit/seat/roster_lib.py` `critical_path`); the gate order is `tools/pr/gate_priority.py`'s.
+ 
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+ (4e) CI capacity. Cancel each superseded workflow run, one whose head is no longer its pull request's head: read `gh run list --json databaseId,headSha,headBranch,status,event` against each open pull request's `headRefOid`, and `gh run cancel` the stale ones. Never cancel a run on main or on a critical-path or hotfix pull request's live head. `tools/pr/cancel_superseded.py` does the same from inside one workflow run, and its `sweep --repo R` does it from here, for every open pull request in one pass (never a main or push-event run, never a bot-authored live head).
+-=======
+-(4e) CI capacity. Cancel each superseded workflow run, one whose head is no longer its pull request's head: read `gh run list --json databaseId,headSha,headBranch,status,event` against each open pull request's `headRefOid`, and `gh run cancel` the stale ones. Never cancel a run on main or on a critical-path or hotfix pull request's live head. `tools/pr/cancel_superseded.py` does the same from inside one workflow run.
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+ 
+ (5) Tick watcher. If {{tick_alive}} is missing or older than {{tick_stale_min}} minutes, the tick seat has died: start a new one in the background on `dev/governance/roles/standing-tick.md`, whose prompt is the contents of {{tick_brief}}; it runs `tools/audit/seat/orchestrator_tick.py`. Log the restart in {{seat_ledger}}. Read {{tick_log}}'s newest pass unfiltered: every `OWED`, `REVIEW OWED`, `DISPATCH:`, `OWNER FLAG:` and `DESIGN-BUILD:` line, none truncated, and give each an action this sweep (`dev/governance/roles/standing-tick.md`); the tick only lists, the sweep acts (`tools/audit/seat/INSTRUMENTS.md`, `orchestrator_tick.py`). The `pulse.py` lines step (1b) printed name each consumer whose owed input is waiting on it (opener, verdict router or train, state beat, a standing seat's queue): drive that consumer before the rest of the sweep, and log it in {{seat_ledger}}; `UNREADABLE` is not a clean board. Then run `python3 -I tools/audit/seat/owed_unactioned.py --tick {{tick_log}} --state {{orch_scratch}}/owed-unactioned.json --acks {{seat_ledger}}`: it reads the tick's whole owed family (never a `grep | head` or `tail` of it) and exits 1 on each owed line that has stood two sweeps with no live `OWED-ACK` line. Each such line gets its action this sweep, or an `OWED-ACK` line in {{seat_ledger}} naming its next action and what it waits on; an acknowledgement lapses after its ttl, so the next sweep re-checks the handling. The sweep is not done while it exits 1, and its 2 is `UNREADABLE`, never clean (`dev/audit/rca/R10-RCA-OWED-UNACTIONED.md`).
+ 
+diff --git a/tools/ci/ghapi.py b/tools/ci/ghapi.py
+remerge CONFLICT (add/add): Merge conflict in tools/ci/ghapi.py
+index 0d3e780e8..5afe52a98 100644
+--- a/tools/ci/ghapi.py
++++ b/tools/ci/ghapi.py
+@@ -14,12 +14,8 @@ there that imports urllib (contract item 2), stdlib only.
+     post(path, body=None)  -> Resp
+     paginate(path, params) -> list       every item of every page, Link-followed
+ 
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-A GET retries a 5xx twice (RETRY_5XX backoffs) before answering. A non-2xx
+-=======
+ A GET retries a 5xx or a TRANSPORT failure twice (RETRY_5XX backoffs) before
+ answering, or raising the last transport failure. A non-2xx
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+ answer is returned, never raised, so the caller names it -- except a
+ RATE LIMIT (A1 item 4): a 403 or 429 whose body says the rate limit was
+ exceeded raises `RateLimited`, carrying `reset_epoch` from `X-RateLimit-Reset`
+@@ -31,10 +27,7 @@ is GITHUB_TOKEN, else GH_TOKEN.
+ """
+ from __future__ import annotations
+ 
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-=======
+ import http.client
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+ import json
+ import os
+ import re
+@@ -45,16 +38,12 @@ import urllib.parse
+ import urllib.request
+ 
+ API = os.environ.get("GITHUB_API_URL", "https://api.github.com").rstrip("/")
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-RETRY_5XX = (2, 6)      # GET only: the backoffs, in seconds, before each retry of a 5xx answer
+-=======
+ RETRY_5XX = (2, 6)      # GET only: the backoffs, in seconds, before each retry of a 5xx or TRANSPORT failure
+ #: A failure with no answer that a later read can ride out: a connection that failed
+ #: (URLError; HTTPError, its subclass, is an answer and _request catches it first), a
+ #: response cut short in r.read() (IncompleteRead, an HTTPException), a reset, a timeout.
+ #: gh_read.urllib_wait's transport set, which tools/ci may not import (contract item 2).
+ TRANSPORT = (urllib.error.URLError, http.client.HTTPException, ConnectionError, TimeoutError)
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+ MAX_PAGES = 50          # 5000 items at per_page=100: far past any head's runs; a Link loop ends here
+ _NEXT = re.compile(r'<([^>]+)>;\s*rel="next"')
+ 
+@@ -120,18 +109,6 @@ def _sleep(seconds: float) -> None:
+ 
+ 
+ def get(path: str, params=None, headers=None):
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-    """A 5xx is GitHub's transient (M-5b: a gate FAILed on one HTTP 502), so a GET retries it
+-    after each backoff in RETRY_5XX and then returns what it got; any other status, a rate limit
+-    included, answers at once. A POST is never retried."""
+-    resp = _request("GET", path, params, headers=headers)
+-    for nap in RETRY_5XX:
+-        if resp[0] < 500:
+-            break
+-        _sleep(nap)
+-        resp = _request("GET", path, params, headers=headers)
+-    return resp
+-=======
+     """A 5xx is GitHub's transient (M-5b: a gate FAILed on one HTTP 502), and so is a TRANSPORT
+     failure (#2859: prelude red on one IncompleteRead), so a GET retries either after each
+     backoff in RETRY_5XX and then returns what it got, or raises the last transport failure; any
+@@ -146,7 +123,6 @@ def get(path: str, params=None, headers=None):
+             if resp[0] < 500 or nap is None:
+                 return resp
+         _sleep(nap)
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+ 
+ 
+ def post(path: str, body=None):
+@@ -285,8 +261,6 @@ def self_test() -> int:
+             calls.clear()
+             _open = lambda req: (calls.append(req), serve(502, b"")(req))[1]  # noqa: E731
+             check("a POST is never retried (a re-run request is not repeated)", (post("x")[0], len(calls)), (502, 1))
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+-=======
+ 
+             # A transport failure is a 5xx's transient (#2859's prelude: IncompleteRead out of
+             # r.read(), green twice at the next head): a GET retries it alike, and after the
+@@ -338,7 +312,6 @@ def self_test() -> int:
+                 check("a non-transport exception raises", "returned", "raised")
+             except ValueError:
+                 check("a non-transport exception raises at once (null control)", len(calls), 1)
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+         finally:
+             _sleep = saved_sleep
+         _open = serve(200, b"{}")
+diff --git a/tools/pr/cancel_superseded.py b/tools/pr/cancel_superseded.py
+remerge CONFLICT (add/add): Merge conflict in tools/pr/cancel_superseded.py
+index dbde87a55..88245ebbc 100644
+--- a/tools/pr/cancel_superseded.py
++++ b/tools/pr/cancel_superseded.py
+@@ -3,10 +3,7 @@
+ 
+     python3 -I tools/pr/cancel_superseded.py run --repo OWNER/REPO --workflow tests.yml \
+         --pr N --head-sha SHA --branch BRANCH --run-id ID --sender LOGIN [--dry-run]
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+     python3 -I tools/pr/cancel_superseded.py sweep --repo OWNER/REPO [--dry-run]
+-=======
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+     python3 tools/pr/cancel_superseded.py --self-test
+ 
+ R10-CI-CONCURRENCY. A workflow's `concurrency:` group cancels a pull request's
+@@ -34,7 +31,6 @@ IT CANCELS NOTHING UNLESS ALL OF THESE HOLD, and prints which one failed:
+ An unreadable answer from GitHub cancels nothing. Always exits 0 when it ran
+ (fail-soft: the cancel is an optimisation, never a gate).
+ 
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+ `sweep` (P266) is the same rule applied from OUTSIDE any run, by the orchestrator's
+ pass: while the newer run is still queued for a runner it cancels nothing from
+ inside, so the superseded first push of a two-push open stayed active. One
+@@ -53,19 +49,14 @@ reported as a ghost, never cancelled. Prints one line per action and
+ `CANCEL-SWEEP: cancelled n, kept m (live head), skipped k (bot head / not a PR),
+ ghosts g`. A critical-path or hotfix superseded run stays cancellable.
+ 
+-=======
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+ `concurrency:` is unchanged and still models the bot rule (`tests/entities.py`).
+ The workflow job runs the BASE's copy of this program with `actions: write`.
+ """
+ from __future__ import annotations
+ 
+ import argparse
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+ import contextlib
+ import io
+-=======
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+ import json
+ import subprocess
+ import sys
+@@ -73,10 +64,7 @@ import sys
+ BOT = "github-actions[bot]"
+ ACTIVE = ("queued", "in_progress", "waiting", "pending", "requested")
+ EVENTS = ("pull_request", "workflow_dispatch")
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+ PAGE, MAX_PAGES = 100, 10
+-=======
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+ 
+ 
+ def candidates(runs: list[dict], *, live_sha: str, branch: str, run_id: int) -> list[int]:
+@@ -145,7 +133,6 @@ def run(a: argparse.Namespace, api=gh) -> int:
+     return 0
+ 
+ 
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+ def sweep_plan(prs: list[dict], runs: list[dict], bot_heads: set[str], *, repo: str) -> dict:
+     """Pure part of `sweep`: {"cancel": ids, "kept": n, "skipped": n, "ghosts": [ids]}.
+ 
+@@ -246,8 +233,6 @@ def sweep(a: argparse.Namespace, api=gh) -> int:
+     return 0
+ 
+ 
+-=======
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+ # --- self-test ---------------------------------------------------------------
+ # The recorded pair: run 39090494028 (Tests, pull_request, sender
+ # github-actions[bot], attempt 2 by hpo-runs[bot], head 3b76e0b0) and the
+@@ -333,7 +318,6 @@ def self_test() -> int:
+     ns.dry_run = False
+     check("an unreadable listing cancels nothing and exits 0",
+           (run(ns, lambda a, m="GET": None), posts), (0, []))
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+     # sweep: the #2927 shape (two superseded first-push runs, the live head's run queued).
+     S_OLD, S_LIVE = "e" * 40, "f" * 40
+     sb = "fix/two-push"
+@@ -460,8 +444,6 @@ def self_test() -> int:
+         sweep(sns, pstub)
+     check("sweep: a listing still full after MAX_PAGES prints a truncated line",
+           "truncated: runs status=queued" in buf.getvalue(), True)
+-=======
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+     print(f"cancel_superseded self-test: {n} checks, {fails} failed")
+     return 1 if fails else 0
+ 
+@@ -478,15 +460,11 @@ def main(argv: list[str]) -> int:
+     r.add_argument("--run-id", type=int, required=True)
+     r.add_argument("--event", default="pull_request")
+     r.add_argument("--dry-run", action="store_true")
+-<<<<<<< 9800ed8ca (Merge commit '041e2c80f6997f24d49f3c6ced24927898e53f16' into fix/r10-fly-cancel-sweep)
+     w = sub.add_parser("sweep")
+     w.add_argument("--repo", required=True)
+     w.add_argument("--dry-run", action="store_true")
+     a = ap.parse_args(argv[1:])
+     return sweep(a) if a.cmd == "sweep" else run(a)
+-=======
+-    return run(ap.parse_args(argv[1:]))
+->>>>>>> 437f1ba9b (Merge pull request #2989 from tvofi/fix/r10-fly-openpr-atomic-pr)
+ 
+ 
+ if __name__ == "__main__":
+review_carry 4cd6cac6 -> head:
+review_carry: FRESH-REVIEW
