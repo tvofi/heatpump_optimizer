@@ -2203,7 +2203,7 @@
     "branch": "handoff/r10-pre-edit-hook",
     "commit": "0570b86e9351dfeda88d630093cfe4d442a6d664",
     "last_step": null,
-    "next_step": "dispatch a fixer once every `after` group is done",
+    "next_step": "done: merged in #2323 (0570b86e9)",
     "note": null
    },
    "brief": "D11-s1-01: the pre-edit hook decides the release-notes branch for Edit and Write but not MultiEdit (16 seams, 1 escape; `dev/audit/rounds/round10/D14/I3/hook_shape_seams.py` at d23205d13).\n\nForward-carried (finding-propagation.md): (1) Null control: the clean arm reads 0 escapes and the perturbed arm 2.\n\nIdentity and flow: the seat pushes refs only, through tools/audit/seat/handoff_push.sh and tools/audit/seat/bus.sh; every GitHub write is the orchestrator's (decisions 0011 and 0013). Work from fresh origin/main in your own worktree under your ABSOLUTE scratch directory; stop only PIDs you started. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, `GATE_SCOPE` auto, tests/structure.py before push. Every figure above is a snapshot at the finding's baseline: re-derive it at your merge base. Owner gate: code-owned: .claude/hooks/. Models: fixer sonnet, reviewer opus. Closing: the pull request names every issue in this group's `issues` in prose with a closing keyword only for those in `fixes`, and Part of for the rest; the orchestrator verifies each intended issue closed after the merge."
