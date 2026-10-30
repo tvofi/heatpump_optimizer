@@ -369,6 +369,11 @@ def self_test() -> int:
     res = sw(runs=sruns + [push_main, push_pr, _r(92, S_OLD, "schedule", branch="main")])
     check("sweep: main and non-PR-event runs count as skipped, not as ghosts",
           (res["skipped"], res["ghosts"]), (3, []))
+    # only the `b == "main"` disjunct can skip these: both events are in EVENTS and the repo matches.
+    res = sw(runs=sruns + [_r(93, S_OLD, "workflow_dispatch", "queued", "main"),
+                           _r(94, S_OLD, "pull_request", "queued", "main")])
+    check("sweep: a PR-event run on main is skipped by the branch test alone, not a ghost, never cancelled",
+          (res["skipped"], res["ghosts"], res["cancel"]), (2, [], [101, 102]))
     spost: list[str] = []
     author = {"login": "hpo-author[bot]", "name": "x"}
 
