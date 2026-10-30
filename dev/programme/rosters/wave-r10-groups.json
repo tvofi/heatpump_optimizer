@@ -12163,6 +12163,49 @@
     "note": "2026-10-30 (triage: dev/programme/triage/s6-batch64.md#P294)"
    },
    "brief": "From triage P294 (orchestrator, 2026-10-30): orchestrator_tick.py verdict_levels() prints MERGE-READY only for a merge verdict at the head with mergeStateStatus CLEAN or UNSTABLE, and BLOCKED-UNFIXED for a blocked verdict; a merge verdict at the head of an unapproved PR (BLOCKED, REVIEW_REQUIRED) prints nothing, so #2962, #2976 and #2977 stood 11 h, 5 h and 5 h with no tick line. prs() does not fetch reviewDecision. (1) prs() asks for reviewDecision. (2) verdict_levels adds `APPROVAL-OWED: #N <head8>` (flagged): merge verdict at the current head, mergeStateStatus BLOCKED, reviewDecision REVIEW_REQUIRED. (3) Catch-all barrier `UNLEVELLED: #N <head8> <mergeStateStatus>/<reviewDecision>` (flagged): a merge verdict at the current head matching none of MERGE-READY, APPROVAL-OWED or a documented non-actionable state (DIRTY, BEHIND, draft; named in the docstring). (4) owed_unactioned.py FAMILY adds APPROVAL-OWED: and UNLEVELLED:. Failing test first: BLOCKED + REVIEW_REQUIRED + merge at head prints APPROVAL-OWED (prints nothing today). Mutation: dropping the APPROVAL-OWED arm fails that row; dropping the catch-all fails a row with a state no arm handles (UNKNOWN, or BLOCKED under APPROVED) that must print UNLEVELLED. Null controls: a stale-head merge verdict prints neither; DIRTY prints neither; APPROVED + CLEAN prints MERGE-READY only. From the #2980 review (verdict 27582ac91, finding 1): APPROVAL-OWED's condition also holds while a required check is pending or red, and UNKNOWN is a transient GitHub value right after a push. Add two null-control rows: BLOCKED + REVIEW_REQUIRED + merge at head with a required check pending or red prints neither APPROVAL-OWED nor UNLEVELLED (the tick's gate/check lines own it; decide whether the level reads the required-check state already fetched for MERGE-READY, or names the check in the line); and a one-pass UNKNOWN prints no UNLEVELLED (UNKNOWN joins the documented non-actionable states, or UNLEVELLED fires only on a state seen on two passes). The mutation row for the catch-all then uses BLOCKED under APPROVED, not UNKNOWN. Root cause: no separate seat; the idle-PR class's seat is dev/audit/rca/R10-RCA-OWED-UNACTIONED.md, process state (c); the catch-all is this class's barrier. triage: dev/programme/triage/s6-batch64.md#P294"
+  },
+  {
+   "group": "R10-FLY-SEAT-ALIVE-ID",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "instrument",
+   "severity": "high",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 6,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "tools/audit/seat/pulse.py",
+    "tools/audit/seat/sweep_template.md",
+    "tools/audit/seat/instruments/pulse.py.md"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-fly-seat-alive-id",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer (fly-in; audit-class barrier for alive-file liveness, 4 instances in r10)",
+    "note": "2026-10-30 (triage: dev/programme/triage/s6-batch68.md#P299); re-routes P46 and P97 from R10-ORCH-BEATD (done at #2916, both unbuilt)"
+   },
+   "brief": "From triage P299 (orchestrator s8, 2026-10-30T09:33Z), re-routing two carries R10-ORCH-BEATD closed without building (done at #2916; `git grep 'seat-alive' -- tools/audit/seat/pulse.py` = 0 at b646e8306): P46 (triage: dev/programme/triage/s6-batch2.md#P46) and P97 (triage: dev/programme/triage/s6-batch21.md#P97). Audit class, 4 instances in round 10: an alive file written by a process that is not the seat the board names (P188 x2, the w41 dispatch loop script, P204 two triage writers, P299 pid 29401: a 41 h orphan loop kept merge.alive fresh with no merge seat, and the board printed `ok merge seat beat 50s ago` across a session handover). (1) P46: tools/audit/seat/pulse.py gains `--seat-alive SEAT=FILE[:MIN]` (STOPPED past MIN or the seat's STANDING cadence, UNREADABLE when absent), and tools/audit/seat/sweep_template.md step (1b) runs it. (2) P97: liveness is read from one alive entry per seat id under each role (`<role>.alive.d/<id>` or equivalent, the fixer's choice, documented in instruments/pulse.py.md); two fresh ids of one role print `DUPLICATE seat <role>: <id> <id>`. (3) P299: the per-role file alone never makes a role live. A role whose per-role file is fresh while no id entry is fresh prints `FOREIGN <role>: unattributed beat`; a fresh id entry that is not the newest launch line for the role without a stop line, in the ledger given by `--launch-ledger FILE` (format `<ts> <nonce> <role> ...` / `<ts> <nonce> stop`, the orchestrator's out-of-tree launch-ledger script), prints `FOREIGN <role>: <id> (newest launch <nonce>)`. Both are STOPPED-class, never ok. Failing test first: a fresh per-role file with no id entry prints ok today (no arm) and must print FOREIGN. Controls: a stale id entry is STOPPED; a fresh entry under the newest unstopped launch is ok even when an older launch of the role has no stop line (null; DUPLICATE is (2)'s line, not FOREIGN); a fresh entry under an older id gives FOREIGN; two fresh ids give DUPLICATE, one fresh plus one stale does not (null). Mutation: one mutant per arm (per-role fallback restored; newest-launch comparison dropped; DUPLICATE count dropped). Not in scope: P63's generation token (stranded on R10-ORCH-BEATD; the orchestrator re-routes or drops it), and the orchestrator's out-of-tree sweep-script nonce check (sent to it by P299). triage: dev/programme/triage/s6-batch68.md#P299"
   }
  ]
 }
