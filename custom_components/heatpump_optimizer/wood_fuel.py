@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable, Mapping, Sequence
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, tzinfo
 from typing import Any
 
 from .drift import utc_elapsed_seconds
@@ -12,16 +12,18 @@ from .const import (
     CONF_EXTERNAL_HEAT_ENTITY,
     CONF_WOOD_FURNACE_EFFICIENCY,
     CONF_WOOD_FURNACE_ENABLED,
+    CONF_WOOD_LIGHTING_LEAD_MINUTES,
     CONF_WOOD_PACKING,
     CONF_WOOD_PRICE_SEK_M3,
     CONF_WOOD_TANK_BOTTOM_ENTITY,
     CONF_WOOD_TANK_TOP_ENTITY,
     CONF_WOOD_TYPE,
     DEFAULT_MIN_TEMP,
+    DEFAULT_WOOD_LIGHTING_LEAD_MINUTES,
     WOOD_TANK_MAX_TEMP,
 )
 from .const import finite_float
-from .payload import NightAdvice, WoodFuel, WoodSlot
+from .payload import NightAdvice, WoodFuel, WoodSlot, WoodWindow
 
 WOOD_KWH_M3 = {
     "birch": {"packed": 1900.0, "loose": 1140.0},
@@ -115,27 +117,80 @@ def wood_fuel_ready(config: Mapping[str, Any]) -> bool:
     return price > 0.0 and 10.0 <= eff <= 95.0
 
 
+def cheaper_steps(
+    wood_sek: float,
+    prices: Sequence[object],
+    cops: Sequence[object],
+    runs: Sequence[bool],
+) -> list[bool]:
+    """Per step: the plan runs the pump and its heat costs more than wood's.
+
+    ``runs`` is the plan's own on schedule (``heat_pump_on_schedule``): a
+    step it calls off buys no pump heat for wood to undercut (D8-s1-01).
+    A step with no usable COP is never cheaper.
+    """
+    out: list[bool] = []
+    for price, cop, on in zip(prices, cops, runs, strict=False):
+        cop_f = finite_float(cop, 0.0)
+        out.append(
+            bool(on)
+            and cop_f > 0.0
+            and wood_sek < finite_float(price, 0.0) / cop_f
+        )
+    return out
+
+
 def cheaper_hour_count(
     wood_sek: float,
     prices: Sequence[object],
     cops: Sequence[object],
     runs: Sequence[bool],
 ) -> int:
-    """Steps the plan runs the pump at whose heat costs more than wood's.
+    """Steps the plan runs the pump at whose heat costs more than wood's."""
+    return sum(cheaper_steps(wood_sek, prices, cops, runs))
 
-    ``runs`` is the plan's own on schedule (``heat_pump_on_schedule``): a
-    step it calls off buys no pump heat for wood to undercut (D8-s1-01).
+
+def cheaper_windows(
+    timestamps: Sequence[datetime],
+    cheaper: Sequence[bool],
+    local_tz: tzinfo | None,
+) -> list[tuple[datetime, datetime]]:
+    """Today's contiguous runs of ``cheaper`` steps as (start, end).
+
+    Today is the local calendar day of the plan's first step; a run crossing
+    midnight ends there. A step's end is the next step's start, so a plan of
+    one step has no measurable step and yields none.
     """
-    n = 0
-    for price, cop, on in zip(prices, cops, runs, strict=False):
-        if not on:
+    if len(timestamps) < 2:
+        return []
+
+    def day(ts: datetime) -> object:
+        return (ts.astimezone(local_tz) if local_tz is not None else ts).date()
+
+    today = day(timestamps[0])
+    step = timestamps[1] - timestamps[0]
+    out: list[tuple[datetime, datetime]] = []
+    for ts, cheap in zip(timestamps, cheaper, strict=False):
+        if day(ts) != today:
+            break
+        if not cheap:
             continue
-        cop_f = finite_float(cop, 0.0)
-        if cop_f <= 0.0:
-            continue
-        if wood_sek < finite_float(price, 0.0) / cop_f:
-            n += 1
-    return n
+        if out and out[-1][1] == ts:
+            out[-1] = (out[-1][0], ts + step)
+        else:
+            out.append((ts, ts + step))
+    return out
+
+
+def lighting_window(
+    first_start: datetime, now: datetime, lead_minutes: float
+) -> tuple[datetime, datetime]:
+    """When to light so the furnace is up to temperature as the window opens.
+
+    Opens ``lead_minutes`` before the window and closes at its start; never
+    opens before ``now``, so a window already open means "light now".
+    """
+    return max(first_start - timedelta(minutes=lead_minutes), now), first_start
 
 
 def _scan_wood_night(
@@ -204,15 +259,6 @@ def night_advice(
             "reason": "expensive next day and a full tank",
         }
     return {"action": "none", "text": "", "when": None, "reason": ""}
-
-
-def wood_cheaper(
-    wood_sek: float,
-    prices: Sequence[object],
-    cops: Sequence[object],
-    runs: Sequence[bool],
-) -> bool:
-    return cheaper_hour_count(wood_sek, prices, cops, runs) > 0
 
 
 def _iso(ts: object) -> str:
@@ -412,8 +458,13 @@ def build_wood_fuel_view(
     suppressing: bool,
     wood_tank_temperature: float | None = None,
     comfort_min: float | None = None,
+    local_tz: tzinfo | None = None,
 ) -> WoodFuel:
-    """Ready/cheaper/slots. cheaper is False when not ready."""
+    """Ready/cheaper/slots. cheaper is False when not ready.
+
+    ``cheaper_windows`` and the lighting window are present only while
+    today has a cheaper window, so a view without one is unchanged.
+    """
     wtype = config.get(CONF_WOOD_TYPE)
     packing = config.get(CONF_WOOD_PACKING)
     price = finite_float(config.get(CONF_WOOD_PRICE_SEK_M3))
@@ -432,12 +483,11 @@ def build_wood_fuel_view(
         except (KeyError, ValueError):
             sek = None
     ready = wood_fuel_ready(config)
-    count = 0
-    cheaper = False
+    cheap: list[bool] = []
     if ready and sek is not None:
-        cops = _cops(outdoor, cop_at)
-        count = cheaper_hour_count(sek, prices, cops, runs)
-        cheaper = wood_cheaper(sek, prices, cops, runs)
+        cheap = cheaper_steps(sek, prices, _cops(outdoor, cop_at), runs)
+    count = sum(cheap)
+    cheaper = count > 0
     slots = detected_wood_slots(timestamps, forecast_kw) if suppressing else []
     view: WoodFuel = {
         "ready": ready,
@@ -451,6 +501,7 @@ def build_wood_fuel_view(
         "cheaper_hour_count": count,
         "slots": slots,
     }
+    _attach_windows(view, config, timestamps, cheap, local_tz)
     _attach_night_advice(
         view,
         config,
@@ -463,6 +514,36 @@ def build_wood_fuel_view(
         comfort_min,
     )
     return view
+
+
+def _attach_windows(
+    view: WoodFuel,
+    config: Mapping[str, Any],
+    timestamps: Sequence[datetime],
+    cheap: Sequence[bool],
+    local_tz: tzinfo | None,
+) -> None:
+    runs = cheaper_windows(timestamps, cheap, local_tz)
+    if not runs:
+        return
+
+    def iso(ts: datetime) -> str:
+        return (ts.astimezone(local_tz) if local_tz is not None else ts).isoformat()
+
+    windows: list[WoodWindow] = [
+        {"start": iso(start), "end": iso(end)} for start, end in runs
+    ]
+    lead = max(
+        0.0,
+        finite_float(
+            config.get(CONF_WOOD_LIGHTING_LEAD_MINUTES),
+            DEFAULT_WOOD_LIGHTING_LEAD_MINUTES,
+        ),
+    )
+    light_start, light_end = lighting_window(runs[0][0], timestamps[0], lead)
+    view["cheaper_windows"] = windows
+    view["lighting_start"] = iso(light_start)
+    view["lighting_end"] = iso(light_end)
 
 
 def _attach_night_advice(
@@ -504,6 +585,7 @@ def wood_fuel_from_parts(
     thermal_model: Any,
     current_state: Any,
     result: Any,
+    local_tz: tzinfo | None = None,
 ) -> WoodFuel:
     """The published wood-fuel view from the coordinator's parts (#1739).
 
@@ -535,4 +617,5 @@ def wood_fuel_from_parts(
         suppressing=suppressing,
         wood_tank_temperature=getattr(current_state, "wood_tank_temperature", None),
         comfort_min=getattr(opt_config, "min_temp", None),
+        local_tz=local_tz,
     )

@@ -7969,6 +7969,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             thermal_model=self._thermal_model,
             current_state=ctx._current_state,
             result=result,
+            local_tz=dt_util.DEFAULT_TIME_ZONE,
         )
         # Only surface the manual-plan key while an override is actually active,
         # so a plan-free solve (the golden fixtures included) is byte-for-byte

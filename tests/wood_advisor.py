@@ -168,7 +168,7 @@ from heatpump_optimizer.wood_fuel import build_wood_fuel_view
 
 _WOOD_READY = {
     "wood_tank_top_entity": "sensor.wood_tank_top",
-    "external_heat_enabled": True,
+    "external_heat_detection_enabled": True,
     "wood_type": "mixed",
     "wood_packing": "packed",
     "wood_price_sek_m3": 1275.0,
@@ -245,6 +245,25 @@ R.check(
     and _tomorrow.get("cheaper_hour_count") == 1,
     repr(_tomorrow.get("cheaper_windows")),
 )
+_CET = _tz(_td(hours=1))
+_local = build_wood_fuel_view(
+    _WOOD_READY,
+    prices=[4.0 if i in (22, 23) else 1.0 for i in range(30)],
+    outdoor=[0.0] * 30,
+    runs=[True] * 30,
+    cop_at=lambda _t: 3.0,
+    timestamps=_STAMPS,
+    forecast_kw=[],
+    suppressing=False,
+    local_tz=_CET,
+)
+R.check(
+    "today is the local day: at UTC+1 the 23:00 UTC step is tomorrow, and the "
+    "window is published in local time",
+    _local.get("cheaper_windows")
+    == [{"start": "2026-01-15T23:00:00+01:00", "end": "2026-01-16T00:00:00+01:00"}],
+    repr(_local.get("cheaper_windows")),
+)
 _never = _view(set())
 R.check(
     "null control: a day wood never beats the pump gives no windows and no "
@@ -274,5 +293,173 @@ R.check(
     == (None, None),
     repr(_null_attrs),
 )
+
+R.section("The wood-window notification blueprint")
+
+# Read as Home Assistant reads it: ``!input`` is a reference to a declared
+# input. Every declared input is used and every reference is declared, so an
+# input renamed on one side only is refused.
+import pathlib as _pl
+
+import yaml as _yaml
+
+_BP_NAME = "notify_wood_cheaper_window.yaml"
+_BP_TEXT = (
+    _pl.Path(__file__).resolve().parent.parent / "blueprints" / "automation" / _BP_NAME
+).read_text()
+
+
+class _Input(str):
+    pass
+
+
+class _BpLoader(_yaml.SafeLoader):
+    pass
+
+
+_BpLoader.add_constructor(
+    "!input", lambda loader, node: _Input(loader.construct_scalar(node))
+)
+_BP = _yaml.load(_BP_TEXT, Loader=_BpLoader)
+
+
+def _refs(node):
+    if isinstance(node, _Input):
+        yield str(node)
+    elif isinstance(node, dict):
+        for v in node.values():
+            yield from _refs(v)
+    elif isinstance(node, list):
+        for v in node:
+            yield from _refs(v)
+
+
+_declared = set(_BP["blueprint"]["input"])
+_used = set(_refs({k: v for k, v in _BP.items() if k != "blueprint"}))
+R.check(
+    "every declared blueprint input is referenced, and every reference declared",
+    bool(_declared) and _declared == _used,
+    f"declared-only {sorted(_declared - _used)}, undeclared {sorted(_used - _declared)}",
+)
+R.check(
+    "the blueprint names its own import URL and its author, as its siblings do",
+    _BP["blueprint"]["source_url"].endswith("/blueprints/automation/" + _BP_NAME)
+    and _BP["blueprint"]["author"] == "tvofi",
+    repr((_BP["blueprint"].get("source_url"), _BP["blueprint"].get("author"))),
+)
+R.check(
+    "it listens to the wood sensor's window attribute and a daily time",
+    {(t.get("platform"), t.get("attribute")) for t in _BP["trigger"]}
+    == {("time", None), ("state", "cheaper_windows")},
+    repr(_BP["trigger"]),
+)
+
+# The templates, rendered against the production sensor's attributes. CI's
+# fast lane installs no jinja2 (tests/requirements-ci.txt), so this arm runs
+# where it is installed: the HA helpers below are the few the blueprint calls,
+# shaped as Home Assistant's are, with local time fixed at UTC.
+try:
+    from jinja2.nativetypes import NativeEnvironment as _Env
+except ImportError:
+    _Env = None
+R.section(
+    "The blueprint's templates against a fixture state"
+    + ("" if _Env is not None else " -- NOT RENDERED: jinja2 is not installed")
+)
+if _Env is not None:
+
+    def _ts(value):
+        if isinstance(value, (int, float)):
+            return float(value)
+        return _dt.fromisoformat(str(value)).timestamp()
+
+    def _render(template, ctx):
+        env = _Env()
+        env.filters["timestamp_custom"] = lambda ts, fmt: _dt.fromtimestamp(
+            ts, _tz.utc
+        ).strftime(fmt)
+        env.filters["slugify"] = lambda s: "_".join(str(s).lower().split())
+        env.globals.update(
+            as_timestamp=_ts,
+            state_attr=lambda eid, attr: ctx["_attrs"].get(attr),
+            now=lambda: ctx["_now"],
+            today_at=lambda hms: ctx["_now"].replace(
+                hour=int(hms[:2]), minute=int(hms[3:5]), second=0
+            ),
+            device_attr=lambda dev, attr: "Pixel 8",
+        )
+        if not isinstance(template, str):
+            return template
+        return env.from_string(template).render(
+            **{k: v for k, v in ctx.items() if not k.startswith("_")}
+        )
+
+    def _run(attrs, now, trigger):
+        defaults = {
+            k: v.get("default") for k, v in _BP["blueprint"]["input"].items()
+        }
+        defaults["notify_device"] = "device-1"
+        ctx = {"_attrs": attrs, "_now": now, "trigger": trigger}
+        for name, tpl in _BP["variables"].items():
+            ctx[name] = _render(
+                defaults[str(tpl)] if isinstance(tpl, _Input) else tpl, ctx
+            )
+
+        def cond(c):
+            if isinstance(c, str):
+                return _render(c, ctx) is True
+            parts = [cond(x) for x in c["conditions"]]
+            return any(parts) if c["condition"] == "or" else all(parts)
+
+        sent = all(cond(c) for c in _BP["condition"])
+        action = _BP["action"][0]
+        return sent, {
+            "action": _render(action["action"], ctx),
+            "title": _render(defaults[str(action["data"]["title"])], ctx),
+            "message": _render(defaults[str(action["data"]["message"])], ctx),
+        }
+
+    class _State:
+        def __init__(self, attrs):
+            self.attributes = attrs
+
+    _daily = {"id": "daily"}
+    _sent, _note = _run(_attrs, _DAY0.replace(hour=6), _daily)
+    R.check(
+        "on a day with two windows the daily send fires and names both windows "
+        "and the lighting window in local time",
+        _sent
+        and "06:00–08:00, 17:00–20:00" in _note["message"]
+        and "between 05:00 and 06:00" in _note["message"]
+        and _note["action"] == "notify.mobile_app_pixel_8",
+        repr((_sent, _note)),
+    )
+    _sent_null, _ = _run(_null_attrs, _DAY0.replace(hour=6), _daily)
+    R.check(
+        "null control: on a day with no cheaper window it stays silent",
+        _sent_null is False,
+        repr(_sent_null),
+    )
+    _first_only = {**_attrs, "cheaper_windows": _attrs["cheaper_windows"][:1]}
+    _replan = {
+        "id": "replan",
+        "from_state": _State(_first_only),
+        "to_state": _State(_attrs),
+    }
+    _sent_new, _ = _run(_attrs, _DAY0.replace(hour=10), _replan)
+    R.check(
+        "a replan that brings a new upcoming window after the send time follows up",
+        _sent_new is True,
+        repr(_sent_new),
+    )
+    _same = {**_replan, "from_state": _State(_attrs)}
+    _sent_same, _ = _run(_attrs, _DAY0.replace(hour=10), _same)
+    _sent_early, _ = _run(_attrs, _DAY0.replace(hour=5), _replan)
+    R.check(
+        "and one whose windows did not change, or that lands before the send "
+        "time, does not",
+        _sent_same is False and _sent_early is False,
+        repr((_sent_same, _sent_early)),
+    )
 
 sys.exit(R.close("wood-advisor checks"))
