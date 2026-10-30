@@ -1,0 +1,24 @@
+#2919	2026-10-28T21:25:49Z	mutation-vacuous	sites=0	autofix-claim=False	
+#2916	2026-10-28T23:21:38Z	mutation-vacuous	sites=0	autofix-claim=False	
+#2937	2026-10-28T22:06:09Z	mutation-vacuous	sites=0	autofix-claim=False	
+#2912	2026-10-28T18:54:48Z	mutation-survivor	sites=1	autofix-claim=False	config_flow.py:3490 RETURN_DEL
+#2920	2026-10-28T18:11:49Z	mutation-vacuous	sites=0	autofix-claim=False	
+#2873	2026-10-28T02:56:03Z	mutation-vacuous	sites=0	autofix-claim=False	
+#2832	2026-10-25T21:55:35Z	mutation-vacuous	sites=2	autofix-claim=True	legionella.py:345 CMP_BOUND ; legionella.py:655 BOOLOP
+#2817	2026-10-25T18:24:13Z	mutation-survivor	sites=4	autofix-claim=True	coordinator.py:6278 GUARD_OFF ; coordinator.py:6303 GUARD_OFF ; coordinator.py:6306 GUARD_OFF ; coordinator.py:6331 GUARD_OFF
+#2697	2026-10-24T11:07:35Z	mutation-vacuous	sites=0	autofix-claim=False	
+#2697	2026-10-24T16:05:10Z	mutation-vacuous	sites=0	autofix-claim=False	
+#2820	2026-10-25T17:18:20Z	mutation-survivor	sites=0	autofix-claim=False	
+#2712	2026-10-24T23:48:23Z	mutation-vacuous	sites=0	autofix-claim=False	
+#2709	2026-10-24T14:01:08Z	mutation-vacuous	sites=0	autofix-claim=False	
+#2632	2026-10-23T06:11:42Z	mutation-unpinned	sites=2	autofix-claim=False	coordinator.py:9553 RETURN_DEL ; coordinator.py:9568 RETURN_DEL
+#2645	2026-10-23T03:55:48Z	mutation-vacuous	sites=0	autofix-claim=False	
+#2647	2026-10-23T05:44:33Z	mutation-vacuous	sites=0	autofix-claim=False	
+#2629	2026-10-22T23:52:27Z	unpinned-site	sites=0	autofix-claim=False	
+#2528	2026-10-21T14:36:00Z	vacuous-test	sites=0	autofix-claim=False	
+#2528	2026-10-21T20:43:20Z	vacuous-test	sites=0	autofix-claim=False	
+#2580	2026-10-21T17:11:40Z	mutation-vacuous	sites=0	autofix-claim=False	
+#2579	2026-10-21T22:23:02Z	mutation-survivor	sites=0	autofix-claim=False	
+#2579	2026-10-22T10:17:03Z	mutation-survivor	sites=0	autofix-claim=False	
+#2579	2026-10-22T13:08:40Z	mutation-survivor	sites=0	autofix-claim=False	
+#2605	2026-10-22T10:30:57Z	mutation-vacuous	sites=0	autofix-claim=False	

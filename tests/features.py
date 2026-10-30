@@ -60709,6 +60709,8 @@ _P3_FILES = (
     # against moved here from ``_cop_reference_curve``, so its calls stay
     # under the rule instead of leaving it with the move.
     "flow_meter.py",
+    # R10-COP-GATE (#2262): the accuracy residual moved to MeasuredCop.residual.
+    "accuracy.py",
 )
 _P3_ALLOWED = {
     # (file, function, callee, first argument): why the current humidity
@@ -60722,9 +60724,9 @@ _P3_ALLOWED = {
         "the same reference, at the supply a metered interval ran at",
     ("coordinator.py", "_cop_reference_curve", "compute_cop_dhw", "outdoor"):
         "the same reference, for a hot-water interval",
-    ("coordinator.py", "_record_accuracy", "compute_cop_dhw", "sample.outdoor_temp"):
+    ("accuracy.py", "residual", "compute_cop_dhw", "outdoor"):
         "the residual of the interval that just ended",
-    ("coordinator.py", "_record_accuracy", "compute_cop", "sample.outdoor_temp"):
+    ("accuracy.py", "residual", "compute_cop", "outdoor"):
         "the same residual, for a space interval",
     ("coordinator.py", "_run_system_identification", "compute_cop",
      "state.outdoor_temperature"): "the experiment step running now",
@@ -67301,6 +67303,168 @@ R.check(
 )
 
 
+# ---------------------------------------------------------------------------
+R.section("R10-COP-GATE (#2262): COP observability, the latch's time, and the draw pairing")
+
+# Without a heat reading the ratio of draw to ask is a COP only while the draw
+# follows the ask. Once the running-draw window shows it does not
+# (follows_ask False), an interval that lands within COP_ASK_TOLERANCE of its
+# ask only happened to: a pump whose own controller (or a flow set-point) sets
+# the draw folds nothing, while one whose draw follows still folds.
+from heatpump_optimizer import accuracy as _cg_acc  # noqa: E402
+
+
+def _cg_fold_near_ask(window_pairs, n=12):
+    coord = _cf_coord()
+    coord._accuracy.draw = _cf_window(window_pairs)
+    coord._cop_ratio_ewma = 1.0
+    for _ in range(n):
+        coord._current_action = {"power": 2.1, "dhw_power": 0.0}
+        coord._measured_power = 2.2  # 4.8 % over the ask: inside the tolerance
+        coord._current_state.outdoor_temperature = 8.0
+        coord._learn_measured_cop(coord._accuracy.draw)
+    return coord
+
+
+_cg_selfset = _cg_fold_near_ask([(a, 2.2) for a, _ in _cf_prop])
+_cg_follows = _cg_fold_near_ask([(a, 1.3 * a) for a, _ in _cf_prop])
+R.check(
+    "a draw the window shows ignores its ask folds nothing, even within the ask "
+    "tolerance; a draw that follows its ask still folds every interval (null)",
+    _cf_drm.follows_ask(_cg_selfset._accuracy.draw) is False
+    and _cg_selfset._cop_samples == 0
+    and _cf_last(_cg_selfset, "refusal") == _cg_acc.COP_REFUSED_OFF_ASK
+    and _cf_drm.follows_ask(_cg_follows._accuracy.draw) is True
+    and _cg_follows._cop_samples == 12,
+    f"self-set {_cg_selfset._cop_samples}/12 ({_cf_last(_cg_selfset, 'refusal')}); "
+    f"follows {_cg_follows._cop_samples}/12",
+)
+
+# The observability state the payload publishes: a heat reading (the heat
+# counter, or the thermal power entity) measures the COP whatever the draw
+# does; without one, the draw window decides; without an electrical figure to
+# divide by there is none. A heat counter divides by its electric counter.
+_cg_obs = _cg_acc.cop_observability
+R.check(
+    "cop_observability: heat metered beats a draw that ignores the ask; no "
+    "electrical figure is no COP; the draw window decides the rest",
+    _cg_obs(electric=True, measured_heat=True, follows=False) == "heat_metered"
+    and _cg_obs(electric=False, measured_heat=True, follows=True) == "no_electric_meter"
+    and _cg_obs(electric=True, measured_heat=False, follows=False) == "not_measurable"
+    and _cg_obs(electric=True, measured_heat=False, follows=True) == "draw_follows_plan"
+    and _cg_obs(electric=True, measured_heat=False, follows=None) == "awaiting_draw_evidence",
+)
+
+
+def _cg_install_obs(selfset=True, **extra):
+    cfg = dict(_L5_CFG, heat_pump_max_power=14.0, heat_pump_min_power=1.0, **extra)
+    coord = _Coord(_FakeHass(dict(_CF_STATES)), _FakeEntry(data=cfg))
+    coord._accuracy.draw = _cf_window([(a, 2.2 if selfset else 1.3 * a) for a, _ in _cf_prop])
+    return coord._learning_view()["cop_observability"]
+
+
+_cg_states = {
+    "power, self-set draw": _cg_install_obs(),
+    "power, following draw": _cg_install_obs(selfset=False),
+    "thermal power, self-set draw": _cg_install_obs(heat_pump_thermal_power_entity="sensor.heat_kw"),
+    "heat counter, no electric counter": _cg_install_obs(heat_pump_heat_energy_entity="sensor.heat_kwh"),
+    "heat counter and electric counter": _cg_install_obs(
+        heat_pump_heat_energy_entity="sensor.heat_kwh", heat_pump_energy_entity="sensor.elec_kwh"),
+}
+R.check(
+    "the coordinator's state: a self-set draw with no heat reading is not "
+    "measurable, a thermal-power install never is, and a heat counter without "
+    "an electric counter has nothing to divide by",
+    _cg_states == {
+        "power, self-set draw": "not_measurable",
+        "power, following draw": "draw_follows_plan",
+        "thermal power, self-set draw": "heat_metered",
+        "heat counter, no electric counter": "no_electric_meter",
+        "heat counter and electric counter": "heat_metered",
+    },
+    f"{_cg_states!r}",
+)
+
+# The latch outlives every later refusal, so the time it folded is kept with
+# it, round-trips the store, and a record stored before the instant was loads
+# with its age unknown, never now.
+_cg_t = _cf_coord()
+_cf_learn(_cg_t, 2.0, 1)
+_cg_at = _cg_t._measured_cop.at
+_cg_back = _cf_MC.from_dict(_cg_t._measured_cop.as_dict())
+R.check(
+    "a folded COP carries the instant it folded, through the store and back; an "
+    "old record loads with no instant, and a malformed one drops whole",
+    _cg_at is not None and _cg_back.at == _cg_at and _cg_back.cop == _cg_t._measured_cop.cop
+    and _cf_MC.from_dict({"cop": 2.0}).at is None and _cf_MC.from_dict({"cop": 2.0}).cop == 2.0
+    and _cf_MC.from_dict({"cop": 2.0, "at": "not a time"}).cop is None,
+    f"at {_cg_at!r} -> {_cg_back.at!r}",
+)
+R.check(
+    "the accuracy residual reads the latch only for the interval it folded in: "
+    "an interval opened at or after the fold gets none (#2262 seam 3), one "
+    "opened before it gets observed minus modelled",
+    _cg_t._measured_cop.residual(_cg_at + timedelta(minutes=1), 8.0, _cg_t._thermal_model) is None
+    and _cg_t._measured_cop.residual(_cg_at, 8.0, _cg_t._thermal_model) is None
+    and _cg_t._measured_cop.residual(_cg_at - timedelta(minutes=30), 8.0, _cg_t._thermal_model)
+    == round(_cg_t._measured_cop.cop - _cg_t._thermal_model.compute_cop(8.0), 3),
+)
+# The residual is referenced to the curve the COP was observed on: the
+# hot-water curve only where the fold said so AND named its tank temperature.
+_cg_model = _cg_t._thermal_model
+_cg_space, _cg_dhw = _cf_MC(), _cf_MC()
+_cg_space.record(3.0, False, 50.0, _cg_at)
+_cg_dhw.record(3.0, True, 50.0, _cg_at)
+_cg_since = _cg_at - timedelta(minutes=30)
+R.check(
+    "the residual subtracts the curve the COP folded on: a space-heating fold "
+    "that happens to carry a tank temperature reads the space curve, a "
+    "hot-water fold the hot-water curve at its tank temperature",
+    _cg_model.compute_cop_dhw(8.0, 50.0) != _cg_model.compute_cop(8.0)
+    and _cg_space.residual(_cg_since, 8.0, _cg_model) == round(3.0 - _cg_model.compute_cop(8.0), 3)
+    and _cg_dhw.residual(_cg_since, 8.0, _cg_model) == round(3.0 - _cg_model.compute_cop_dhw(8.0, 50.0), 3),
+    f"space {_cg_space.residual(_cg_since, 8.0, _cg_model)!r}, dhw {_cg_dhw.residual(_cg_since, 8.0, _cg_model)!r}",
+)
+from heatpump_optimizer.accuracy import pairs_interval as _cg_pairs  # noqa: E402
+R.check(
+    "a pending prediction pairs with the interval that closed from 3 minutes to "
+    "2 hours old, both ends included; a re-run sooner or a gap longer pairs nothing",
+    _cg_pairs(0.05) and _cg_pairs(2.0) and _cg_pairs(1.0)
+    and not _cg_pairs(0.049) and not _cg_pairs(2.001),
+)
+
+
+# The meter read at a cycle closes the interval the PREVIOUS cycle's plan
+# governed; _record_accuracy runs after the solve adopted the next action, so
+# the draw window pairs each reading with the pending prediction's ask, never
+# the next step's.
+def _cg_pair(next_ask):
+    coord = _cf_coord()
+    coord._current_state.outdoor_temperature = 8.0
+    coord._current_action = {"power": 1.5, "dhw_power": 0.0}
+    coord._measured_power = 1.5
+    coord._record_accuracy()
+    coord._pending_prediction["when"] -= timedelta(minutes=30)
+    coord._measured_cop.record(3.0, False, None, coord._pending_prediction["when"] - timedelta(hours=5))
+    coord._current_action = {"power": next_ask, "dhw_power": 0.0}
+    coord._measured_power = 1.5
+    coord._record_accuracy()
+    last = coord._accuracy.samples[-1] if coord._accuracy.samples else None
+    return list(coord._accuracy.draw.samples), getattr(last, "cop_residual", "<none>")
+
+
+_cg_moved, _cg_moved_res = _cg_pair(3.0)
+_cg_same, _ = _cg_pair(1.5)
+R.check(
+    "the draw window pairs the closed interval's reading with that interval's "
+    "own ask (1.5 kW), not the 3.0 kW the solve adopted next; an unchanged ask "
+    "pairs alike (null); a COP latched hours earlier leaves the sample's "
+    "residual empty",
+    _cg_moved == [(1.5, 1.5)] and _cg_same == [(1.5, 1.5)] and _cg_moved_res is None,
+    f"moved {_cg_moved!r} residual {_cg_moved_res!r}; same {_cg_same!r}",
+)
+
+
 # R9-UX-6: money and memory -- the receipt, the capacity line, the replay
 # ---------------------------------------------------------------------------
 from harness import FakeEntry as _ux6_Entry, FakeHass as _ux6_Hass  # noqa: E402
@@ -67936,7 +68100,16 @@ for _dr_label, _dr_args in (
     )
 
 
-# The fold, from the coordinator's per-cycle settlement.
+# The fold, from the coordinator's per-cycle settlement. The meter read at a
+# cycle closes the interval the previous cycle's prediction governed (#2262),
+# so a settlement is two cycles half an hour apart: the first records the
+# prediction, the second folds the reading against it.
+def _dr_settle(c):
+    c._record_accuracy()
+    c._pending_prediction["when"] -= timedelta(minutes=30)
+    c._record_accuracy()
+
+
 def _dr_coord(**extra):
     c = _DrCoord(FakeHass(), _dr_entry(data={
         "tibber_token": "x", "weather_entity": "weather.home", **extra}))
@@ -67946,7 +68119,7 @@ def _dr_coord(**extra):
 
 
 _dr_cycle = _dr_coord()
-_dr_cycle._record_accuracy()
+_dr_settle(_dr_cycle)
 R.check(
     "the per-cycle settlement folds one running sample: (drawn, space asked)",
     list(_dr_cycle._accuracy.draw.samples) == [(2.3, 6.0)],
@@ -67959,14 +68132,14 @@ for _dr_label, _dr_mut in (
 ):
     _dr_c = _dr_coord()
     _dr_mut(_dr_c)
-    _dr_c._record_accuracy()
+    _dr_settle(_dr_c)
     R.check(
         f"and folds nothing under {_dr_label}",
         len(_dr_c._accuracy.draw.samples) == 0,
     )
 _dr_frost = _dr_coord()
 _dr_frost._defrost_window.close = lambda now: _DrDefrost(events=1, observed=True)
-_dr_frost._record_accuracy()
+_dr_settle(_dr_frost)
 R.check(
     "and folds nothing for an interval whose closed window saw a defrost",
     len(_dr_frost._accuracy.draw.samples) == 0,
@@ -68251,7 +68424,7 @@ def _bst_coord(**extra):
     c._current_action = {"power": 6.0, "dhw_power": 0.0}
     c._measured_power = 2.3
     _bst_pa.state_for(c).written["space_setpoint"] = (40.0, _BST_T0)
-    c._record_accuracy()
+    _dr_settle(c)
     return list(getattr(c._accuracy.draw, "commands", [None]))
 
 
