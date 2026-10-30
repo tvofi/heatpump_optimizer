@@ -2475,7 +2475,7 @@ def site_findings(src: str | None, root: pathlib.Path = ROOT,
     rows = set(re.findall(r"^\|\s*\[[^\]]+\]\(([^)]+)\)", rsec.get("documentation", ""), flags=re.M))
     # The README may link the product page by its published Pages URL; that is
     # the same document the page's data-doc names by its source path.
-    rows = {"docs/index.html" if t.startswith(SITE_PUBLISHED) else t for t in rows}
+    rows = {"docs/index.html" if t.startswith(SITE_PUBLISHED) else os.path.normpath(t) for t in rows}
     docs = {a["data-doc"] for _, a in p.tags if a.get("data-doc")}
     st["docs"] = len(docs)
     errs += [("docs", f"README Documentation row missing from the page: {x}") for x in sorted(rows - docs)]
@@ -2656,7 +2656,7 @@ def check_docs_subpages() -> None:
     R.check("the build exits 0 with no FAIL line", b["rc"] == 0 and not b["fails"],
             "; ".join(b["fails"][:4]) + (f" (+{len(b['fails']) - 4})" if len(b["fails"]) > 4 else ""))
     # the README row set is derived, so a new row is built and a missing one fails; the product page is not one
-    rows = set(re.findall(r"^\|\s*\[[^\]]+\]\(([^)#]+\.md)\)", _site_sections(README).get("documentation", ""), flags=re.M))
+    rows = {os.path.normpath(r) for r in re.findall(r"^\|\s*\[[^\]]+\]\(([^)#]+\.md)\)", _site_sections(README).get("documentation", ""), flags=re.M)}
     missing = sorted((rows | {"README.md"}) - set(b["pages"]))
     R.check("every README Documentation row is a built page", not missing, ", ".join(missing))
     bad = [f"{n}: {m}" for n, h in sorted(b["html"].items()) for _, m in subpage_findings(h)]
@@ -3213,7 +3213,7 @@ def coffee_button_findings(readme: str, index_html: str, built: dict[str, str], 
         m = None
     if not m:
         out.append("README.md: no button linking " + COFFEE + " above the first section")
-    elif m.group(1) not in tree:
+    elif m.group(1).removeprefix("./") not in tree:
         out.append(f"README.md: the button's image {m.group(1)} is not a tracked file")
     foot = re.search(r"<footer\b[^>]*>.*?</footer>", index_html, re.S)
     if not (foot and _COFFEE_A.search(foot.group(0))):
@@ -3331,6 +3331,146 @@ def check_coffee_button() -> None:
                 any(".bg in light" in g for g in coffee_button_findings(README, page, built, tree, off, css)))
 
 
+# ---------------------------------------------------------------------------
+# Arm 1d -- README.md in the Home Assistant Marketplace (R10-README-GRAPHICS)
+# ---------------------------------------------------------------------------
+#
+# The Marketplace renders README.md through the frontend's markdown worker: marked, then js-xss, whose safeAttrValue
+# blanks every `src` and `href` that is not absolute, `#`, `/`, `./` or `../` -- BEFORE the URL rewriter that would pin a
+# relative target to the installed ref runs -- and which has no mermaid at all. Both are invisible on GitHub. The
+# finder's replica of that pipeline is dev/audit/harnesses/r10_readme_marketplace_pipeline.mjs; this arm is the barrier.
+#
+# Design choice, said here so the next seat does not read it as a bug: the figure check compares SOURCES, not pixels. A
+# PNG's bytes do not reproduce across machines (fonts, rasteriser: the reason value-bearing goldens are claimed), so the
+# manifest the generator writes (docs/img/readme/render_mermaid.mjs) records the sha256 of each mermaid block's text and of
+# each PNG, and the arm refuses a block or a PNG that moved without the other. Regenerate to repair.
+
+FIGURES_MANIFEST = "docs/img/readme/mermaid_figures.json"
+_SAFE_SRC = ("http://", "https://", "mailto:", "tel:", "data:image/", "ftp://", "./", "../", "#", "/")  # xss lib/default.js:176-194
+_MD_TARGET = re.compile(r"\]\(\s*<?([^)\s>]*)")
+_MD_REFDEF = re.compile(r"^ {0,3}\[[^\]\n]+\]:\s*<?(\S+?)>?(?:\s|$)", re.M)
+_HTML_ATTR = re.compile(r"""\s(src|href|srcset)\s*=\s*(?:"([^"]*)"|'([^']*)')""", re.I)
+_MERMAID_FENCE = re.compile(r"^```mermaid\n(.*?)^```", re.M | re.S)
+# the figure directly above a block's <details>: the light PNG as the <img>, the dark one as a prefers-color-scheme source
+_PICTURE_ABOVE = re.compile(
+    r'<picture>\n<source media="\(prefers-color-scheme: dark\)" srcset="([^"\s]+)">\n<img src="([^"\s]+)" alt="[^"\n]+">\n</picture>\n\n\Z')
+
+
+def _marketplace_blanks(target: str) -> bool:
+    """js-xss's safeAttrValue for `src` and `href`: True when it would blank `target` (an empty one included)."""
+    return not target.strip().startswith(_SAFE_SRC)
+
+
+def readme_figure_findings(readme: str, manifest: dict | None, png_sha) -> list[str]:
+    """What the Marketplace would blank or show as raw code in `readme`; `png_sha(path)` is a file's sha256 or None."""
+    import hashlib
+    out = []
+    prose = _FENCE.sub("", readme)
+    prose = re.sub(r"`[^`\n]+`", "", prose)
+    targets = _MD_TARGET.findall(prose) + _MD_REFDEF.findall(prose)
+    for m in _HTML_ATTR.finditer(prose):
+        v = m.group(2) if m.group(2) is not None else m.group(3)
+        targets += [(x.split() or [""])[0] for x in v.split(",")] if m.group(1).lower() == "srcset" else [v]
+    bare = sorted({x for x in targets if _marketplace_blanks(x)})
+    if bare:
+        out.append(f"README.md: the Marketplace blanks {len(bare)} bare-relative target(s), prefix each with ./: {bare[:4]}")
+    blocks = [(m.start(), m.group(1)) for m in _MERMAID_FENCE.finditer(readme)]
+    figs = (manifest or {}).get("figures")
+    if not isinstance(figs, list):
+        return out + [f"{FIGURES_MANIFEST} is absent or has no figures list"]
+    if len(figs) != len(blocks):
+        out.append(f"{len(blocks)} mermaid block(s) in README.md, {len(figs)} manifest figure(s)")
+    for i, (pos, body) in enumerate(blocks[:len(figs)]):
+        png, dark = figs[i].get("png", ""), figs[i].get("png_dark", "")
+        if hashlib.sha256(body.encode()).hexdigest() != figs[i].get("block_sha256"):
+            out.append(f"mermaid block {i + 1}: its text differs from the one {png} was rendered from; rerun render_mermaid.mjs")
+        if not dark:
+            out.append(f"mermaid block {i + 1}: the manifest names no dark variant")
+        for path, key in ((png, "png_sha256"), (dark, "png_dark_sha256")):
+            if not path:
+                continue
+            have = png_sha(path)
+            if have is None:
+                out.append(f"mermaid block {i + 1}: {path} is not a tracked file")
+            elif have != figs[i].get(key):
+                out.append(f"mermaid block {i + 1}: {path} differs from the PNG the manifest recorded; rerun render_mermaid.mjs")
+        opens = list(re.finditer(r"<details\b[^>]*>", readme[:pos]))
+        det = opens[-1] if opens else None
+        if det is None or "</details>" in readme[det.end():pos]:
+            out.append(f"mermaid block {i + 1}: it sits in no <details>")
+            continue
+        if re.search(r"\bopen\b", det.group(0)):
+            out.append(f"mermaid block {i + 1}: its <details> is open, so the Marketplace shows the raw source")
+        above = _PICTURE_ABOVE.search(readme[:det.start()])
+        if not above or (above.group(1), above.group(2)) != ("./" + dark, "./" + png):
+            out.append(f"mermaid block {i + 1}: no <picture> of ./{png} with the dark source ./{dark} directly above its <details>")
+    return out
+
+
+def check_readme_marketplace() -> None:
+    import hashlib
+    R.section("README.md in the Home Assistant Marketplace: relative targets and mermaid figures (R10-README-GRAPHICS)")
+
+    def sha_of(path: str) -> str | None:
+        f = ROOT / path
+        return hashlib.sha256(f.read_bytes()).hexdigest() if f.is_file() else None
+
+    mf = ROOT / FIGURES_MANIFEST
+    manifest = json.loads(mf.read_text()) if mf.is_file() else None
+    errs = readme_figure_findings(README, manifest, sha_of)
+    R.check("README.md has no bare-relative target and each mermaid block has its current figure above a closed <details>",
+            not errs, "; ".join(errs[:4]) + (f" (+{len(errs) - 4})" if len(errs) > 4 else ""))
+    built = docs_build()["html"].get("readme.html", "")
+    R.check("the built readme page resolves every <picture> srcset and src to its docs/-relative image, none left ./-prefixed",
+            built.count('srcset="img/readme/mermaid-') == len(manifest["figures"]) and "./docs/" not in built
+            and built.count('<img src="img/readme/mermaid-') == len(manifest["figures"]), f"{built.count('srcset=')} srcset(s)")
+    n = len(_MERMAID_FENCE.findall(README))
+    R.check("README.md draws mermaid blocks and the manifest lists as many figures (anchor)",
+            n > 0 and manifest is not None and len(manifest["figures"]) == n, f"{n} block(s)")
+    R.check("the predicate blanks what js-xss blanks and keeps what it keeps (anchor)",
+            all(_marketplace_blanks(x) for x in ("docs/a.png", "", "docs/x.md#y", "img.png"))
+            and not any(_marketplace_blanks(x) for x in ("./a", "../a", "/a", "#a", "https://e/x", "mailto:a@b", "data:image/png;base64,x")))
+
+    def planted(what: str, text: str, key: str, man=manifest, sha=sha_of) -> None:
+        got = readme_figure_findings(text, man, sha)
+        changed = text != README or man is not manifest or sha is not sha_of
+        R.check(f"red case: {what} is a finding", changed and any(key in g for g in got), repr(got[:2]))
+
+    first = _MERMAID_FENCE.search(README)
+    edited = README[:first.start(1)] + README[first.start(1)].swapcase() + README[first.start(1) + 1:]
+    planted("a one-character edit of a mermaid block", edited, "its text differs")
+    planted("a ./ prefix removed from an image", README.replace("](./docs/img/", "](docs/img/", 1), "bare-relative")
+    planted("a ./ prefix removed from a link", README.replace("](./docs/architecture.md)", "](docs/architecture.md)", 1), "bare-relative")
+    planted("a bare <img src>", README + '\n<img src="docs/img/x.png">\n', "bare-relative")
+    planted("a bare <source srcset>", README + '\n<source srcset="./y.png 1x, docs/img/x.png 2x">\n', "bare-relative")
+    planted("a bare reference-style definition", README + "\n[ref]: docs/y.md\n", "bare-relative")
+    picture = re.compile(r"<picture>\n<source [^\n]*mermaid-how-the-pieces-fit-dark\.png\">\n[^\n]*\n</picture>\n\n")
+    planted("the figure deleted", picture.sub("", README, count=1), "directly above")
+    planted("a light-only figure (no dark <source>)", re.sub(r"<picture>\n<source [^\n]*mermaid-setup-flow-dark\.png\">\n(<img [^\n]*\n)</picture>", r"\1", README, count=1),
+            "directly above")
+    planted("a dark <source> pointing at the light PNG", README.replace("mermaid-one-interval-dark.png", "mermaid-one-interval.png", 1), "directly above")
+    planted("a bare-relative dark srcset", README.replace('srcset="./docs/img/readme/mermaid-setup-flow-dark.png"', 'srcset="docs/img/readme/mermaid-setup-flow-dark.png"', 1),
+            "bare-relative")
+    planted("a manifest figure with no dark variant", README, "names no dark variant",
+            man={**manifest, "figures": [{k: v for k, v in manifest["figures"][0].items() if k != "png_dark"}] + manifest["figures"][1:]})
+    planted("a dark PNG that is not the recorded one", README, "differs from the PNG",
+            sha=lambda p: "0" * 64 if p.endswith("-dark.png") else sha_of(p))
+    planted("a dark PNG that is missing", README, "-dark.png is not a tracked file", sha=lambda p: None if p.endswith("-dark.png") else sha_of(p))
+    planted("an open <details>", README.replace("<details>\n<summary><b>The setup flow", "<details open>\n<summary><b>The setup flow", 1),
+            "is open")
+    planted("a PNG that is not the recorded one", README, "differs from the PNG", sha=lambda p: "0" * 64)
+    planted("a PNG that is missing", README, "not a tracked file", sha=lambda p: None)
+    planted("a manifest entry with no block", README, "manifest figure",
+            man={**manifest, "figures": list(manifest["figures"]) + [manifest["figures"][0]]})
+    planted("no manifest", README, "no figures list", man={})
+    # passes when fixed: the planted block edit is red above; the generator's bookkeeping (its new hash) makes it green
+    regen = {**manifest, "figures": [dict(f) for f in manifest["figures"]]}
+    for f, m in zip(regen["figures"], _MERMAID_FENCE.finditer(edited)):
+        f["block_sha256"] = hashlib.sha256(m.group(1).encode()).hexdigest()
+    R.check("regenerating the manifest after the planted block edit is green again (the repair path)",
+            not [g for g in readme_figure_findings(edited, regen, sha_of) if "its text differs" in g])
+
+
 def main() -> int:
     check_figures()
     check_product_page()
@@ -3367,6 +3507,7 @@ def main() -> int:
     check_image_dimensions()
     check_doc_wiring()
     check_coffee_button()
+    check_readme_marketplace()
     return R.close("checks")
 
 

@@ -1214,6 +1214,13 @@
    "docs/img/model/make_model_figures.py",
    "docs/img/model/marginal-cop.svg",
    "docs/img/readme/how-it-works.png",
+   "docs/img/readme/mermaid-how-the-pieces-fit-dark.png",
+   "docs/img/readme/mermaid-how-the-pieces-fit.png",
+   "docs/img/readme/mermaid-one-interval-dark.png",
+   "docs/img/readme/mermaid-one-interval.png",
+   "docs/img/readme/mermaid-setup-flow-dark.png",
+   "docs/img/readme/mermaid-setup-flow.png",
+   "docs/img/readme/mermaid_figures.json",
    "docs/img/setup/01-first-screen.png",
    "docs/img/setup/03-menu.png",
    "docs/img/setup/04-quick-setup.png",
@@ -3940,6 +3947,7 @@
    "dev/audit/harnesses/r10_raise_paths.sh",
    "dev/audit/harnesses/r10_ratio_anchor.py",
    "dev/audit/harnesses/r10_rca_name_kept_plant.py",
+   "dev/audit/harnesses/r10_readme_marketplace_pipeline.mjs",
    "dev/audit/harnesses/r10_recarry_head.py",
    "dev/audit/harnesses/r10_registry_leak.py",
    "dev/audit/harnesses/r10_relay_owed_class_reach.py",
@@ -4767,7 +4775,7 @@
   },
   "tests/doc_claims.py": {
    "rc": 0,
-   "seconds": 8.6
+   "seconds": 41.2
   },
   "tests/dst_checks.py": {
    "rc": 0,
