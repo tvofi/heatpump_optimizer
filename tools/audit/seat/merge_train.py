@@ -4022,6 +4022,22 @@ def _self_test() -> int:
     check("policy refusal for a missing review, no --approval-carry: parked at once with the reason",
           rc == 1 and n7(calls) == 1 and "reviewDecision REVIEW_REQUIRED" in lines[-1]
           and "no approval carried: --approval-carry or --mandate is not given" in lines[-1])
+    # A required context GitHub reports SKIPPED or NEUTRAL is green to the
+    # ruleset: it is no pending check, so the missing review parks at once.
+    for concl in ("SKIPPED", "NEUTRAL"):
+        rc, lines, calls = go({"merge_outs": [POL_REF] * 3, "merge": ["OPEN None"] * 3,
+                               "policy_state": pstate(rd="REVIEW_REQUIRED", fast=("COMPLETED", concl))})
+        check(f"policy refusal with the required context {concl} and a missing review: parked at once, "
+              "the context read as green, not pending",
+              rc == 1 and n7(calls) == 1 and "every required context is green" in lines[-1])
+    # An --ignore'd required context (nightly-status, red in every pstate)
+    # grades main, so it parks nothing: the other one still running waits.
+    rc, lines, calls = go({"required": "fast\nnightly-status\n", "merge_outs": [POL_REF],
+                           "merge": ["OPEN None", "MERGED " + "e" * 40],
+                           "policy_state": pstate(fast=("IN_PROGRESS", None))})
+    check("policy refusal null (--ignore): an ignored red required context parks nothing; "
+          "the running one waits and the next attempt merges",
+          rc == 0 and n7(calls) == 2 and not any("red at" in ln for ln in lines))
 
     def pol_world(**over):  # fresh per arm: a clean recarry H0 -> H1 of a non-code-owned entry
         return dict({"contains": [False], "heads": [H0, H1], "merge_outs": [POL_REF] * 3,
@@ -4035,6 +4051,12 @@ def _self_test() -> int:
           "the approval carry, and the next attempt merges",
           rc == 0 and n7(calls) == 2 and any("approved (carry) at " + H1[:8] in ln for ln in lines)
           and "Carried by the train's clean recarry from " + H0 in w["carry_body"])
+    # The carry is offered once per landing: a second approval-class refusal
+    # after a carried approval parks, naming no second carry.
+    rc, lines, calls = go(pol_world(merge=["OPEN None"] * 3), mandate=CB, approval_carry=True)
+    check("carry 2: a second policy refusal after a carried approval parks without a second carry",
+          rc == 1 and n7(calls) == 2 and "not merged after 2 attempt(s): parked" in lines[-1]
+          and sum("approved (carry)" in ln for ln in lines) == 1)
     APPR = {"login": APPROVER_LOGIN, "id": 2, "type": "Bot"}
     for over, why in (({"carry_delta": (H0, H1, f"{ROW_DIR}/7.md\n")}, "names branch-own"),
                       ({"reviews": [dict(owner_review(H0, NOW), id=RID, user=APPR)]}, "no owner APPROVED review"),
