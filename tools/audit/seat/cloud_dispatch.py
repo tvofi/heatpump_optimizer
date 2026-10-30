@@ -133,9 +133,10 @@ def _pointer(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, r
 
 def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, brief: str) -> str:
     first = _seat_line(role, repo, pr, head, topic, nonce) + " " + FOOTER_BAN
-    setup = ("Setup: `git fetch --unshallow --tags origin`. The toolchain (venv python, node, gh) "
-             "is on PATH from the environment. Run anything heavy in the background with Monitor "
-             "and no timeout. " + WAIT_LINE)
+    setup = ("Setup: `git fetch --unshallow --tags origin`. The session-start `toolchain:` line "
+             "says whether venv-ci's python3 is on PATH: on REFUSE, start each Bash call with "
+             "`eval \"$(bash .claude/hooks/session-start.sh --env-lines)\"`. Run anything heavy in "
+             "the background with Monitor and no timeout. " + WAIT_LINE)
     if role == "reviewer":
         body = (
             "Role: read dev/governance/roles/fix-review.md and its rules from main, and follow them "
@@ -499,6 +500,11 @@ def _group_checks(check) -> None:
             'mkdir -p "$(dirname "$o")" && printf "# Review packet\\nhead: %s\\n" "$h" > "$o"\n')
         packer.chmod(0o755)
         env["HPO_BUS_PACKER"] = f"sh {packer}"
+        # The head classifier likewise (merge_train.py classify reads check runs over `gh`):
+        # GREEN here; bus.sh's self-test drives its RED, WAIT and unreadable arms.
+        classifier = Path(td) / "classifier"
+        classifier.write_text('#!/bin/sh\necho "GREEN $2 pending: none red: none"\n')
+        env["HPO_BUS_CLASSIFY"] = f"sh {classifier}"
         (work / "dev/programme/delivery").mkdir(parents=True)
         for n in (7, 81):
             (work / f"dev/programme/delivery/{n}.md").write_text(f"- [#{n}](x) **open**\n")

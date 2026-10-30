@@ -81,4 +81,12 @@
   to a root-cause seat), and re-read. `unstale <sha>` runs that step alone;
   `classify <sha>` prints GREEN (rc 0), RED (rc 1) or WAIT (rc 3) over a pull
   request's required contexts (`--main`: less the PR-only ones), rc 2 when
-  unreadable — a head is reviewable unless RED.
+  unreadable — a head is reviewable unless RED, which `bus.sh dispatch`
+  enforces. A required context red at main's tip whose workflow run is at
+  attempt 1 and failed on infrastructure alone (every failed job but `gate`
+  logs an API rate-limit or unreachable string, and `gate` printed
+  RATE-LIMITED or only `<job>: failure (this run)` reasons naming those jobs)
+  is re-run once, failed jobs only, in both main-gate arms: logged
+  `INFRA-RERUN <context> run <id> attempt 1`, never before the printed
+  `reset_epoch` (else an hour after the last such job), and until then
+  `INFRA-RED ... re-run due at <time>` with the red standing (V142).
