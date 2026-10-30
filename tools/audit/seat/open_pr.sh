@@ -6,9 +6,10 @@
 # Successor of handoff_push.sh's open path: always merges origin/main, names the roster group in the row.
 # The row push (p2) asks app_push.sh for --row-only, so an open runs one full prepr, not two (P53),
 # and lands seconds after the PR rather than a prepr later, before CI on p1 can report a red the body
-# was never asked to answer (#2625, #2629). A refused row push returns the worktree to the pushed head
-# and closes the PR with a comment saying why, so no PR stays open without its row (CLOSED; a close
-# that fails says ROWLESS, and update_pr.sh's ensure_row adds the row). Every exit's last act,
+# was never asked to answer (#2625, #2629). Once the PR exists, any exit before its row is pushed (a
+# refused row push, a step errexit stops, a stop signal) returns the worktree to the pushed head and
+# closes the PR with a comment saying why, so no PR stays open without its row (CLOSED; a close that
+# fails says ROWLESS, and update_pr.sh's ensure_row adds the row; #2719). Every exit's last act,
 # under the branch lock, is pr_release_wt (pr_args.sh): the worktree is detached at the pushed head,
 # removed with its branch when origin never had it, or kept and named (P-D, P64, P72).
 # The tools are refused when origin/main is ahead of their checkout under tools/ (pr_tools_fresh).
@@ -46,7 +47,30 @@ pr_handoff_tips "$T" 1
 # signal's included, `opened,PR=<n>` or `unopened` (bash's $? in an EXIT trap after a TERM is the
 # last command's, so it names no signal), so a killed opener shows on its handoff-no-pr line.
 python3 -I "$SEAT/ledger.py" attempt "refs/heads/handoff/$T" "$PR_HT" started || true
-pr_exit_trap 'python3 -I "$SEAT/ledger.py" attempt "refs/heads/handoff/$T" "$PR_HT" "${PR_ATTEMPT:-unopened}" || :'
+OP_LEDGER='python3 -I "$SEAT/ledger.py" attempt "refs/heads/handoff/$T" "$PR_HT" "${PR_ATTEMPT:-unopened}" || :'
+pr_exit_trap "$OP_LEDGER"
+# Once #N exists, the EXIT trap runs this first (#2719): any exit before PR_ATTEMPT says the PR is
+# opened with its row -- a refused row push, any step errexit stops between the two pushes, a stop
+# signal -- reaps the row push, returns the worktree to the pushed head and closes #N. The comment,
+# read back by gh_comment.py, is posted only once the close succeeds; a close that fails says ROWLESS.
+op_close_unrowed() {
+  local rc=$? why closed=0
+  [ -z "${PR_ATTEMPT:-}" ] || return 0
+  pr_reap
+  git -C "$WT" reset -q --hard "$PR_PUSHED" || :  # mut:rowreset
+  why=${OP_WHY:-${PR_STOPPED_AT:-no step reported a stop: a stop signal, or exit status $rc}}
+  gh pr close "$N" -R $R >/dev/null && closed=1 || :  # mut:rowclose
+  if [ "$closed" != 1 ]; then
+    printf '%s: ROWLESS: #%s is open at %s without its row, and closing it failed; update_pr.sh %s - <body> adds it (delivery_row.sh ensure_row)\n' "$PR_NAME" "$N" "$PR_PUSHED" "$BR" >&2
+    return 0
+  fi
+  PR_ATTEMPT=closed,PR=$N
+  printf 'Closed by open_pr.sh: it created this pull request and stopped before pushing its own delivery row (`dev/programme/delivery/%s.md`), so it would have stayed open without its row. Why:\n\n```\n%s\n```\n\nRe-run `open_pr.sh %s` once the handoff body answers it.\n' \
+    "$N" "$why" "$T" > $D/close.md || :
+  python3 "$PRT/gh_comment.py" post --repo $R --issue "$N" --body-file $D/close.md >&2 \
+    || echo "$PR_NAME: #$N is closed, but its comment saying why was not read back" >&2
+  printf '%s: CLOSED: #%s at %s, before its row was pushed; re-run open_pr.sh once the body answers it\n' "$PR_NAME" "$N" "$PR_PUSHED" >&2
+}
 git fetch -q origin handoff/$T handoff-body/$T main
 pr_tools_fresh
 pr_code_in_handoff "$C" "$T"
@@ -77,6 +101,7 @@ if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _pu
 pr_wait $! $D/p1.log
 PR_PUSHED=$(git rev-parse HEAD)
 N=$(grep -oE 'pull request #[0-9]+' $D/p1.log | head -1 | grep -oE '[0-9]+')
+pr_exit_trap "op_close_unrowed; $OP_LEDGER"  # mut:trapclose
 gh pr edit $N --title "$TITLE" >/dev/null; gh pr ready $N --undo >/dev/null 2>&1 || true
 commit_row . $N "$(row_line $N $R "$TITLE" "$G")" >/dev/null
 H=$(git rev-parse HEAD)
@@ -90,22 +115,9 @@ RO=--row-only  # mut:oprowonly
 { pr_push_hold; PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash "$_push" $RO $R $WT $BR $D/body.md $ISS > $D/p2.log 2>&1 & } 9>>"${PR_PUSH_LOCK:-/dev/null}"
 rc=0; wait $! || rc=$?
 if [ "$rc" != 0 ]; then
-  git reset -q --hard "$PR_PUSHED"  # mut:rowreset
-  # A PR the row push left without its row is closed, not left open for the tick to find (#2625,
-  # #2629): its comment, read back by gh_comment.py, says why; re-running open_pr.sh once the body
-  # answers the refusal opens it afresh. Only a close that fails leaves it ROWLESS and open.
-  { grep -E 'REFUSE' $D/p2.log || tail -n 20 $D/p2.log; } > $D/p2.why 2>/dev/null || :
-  printf 'Closed by open_pr.sh: the push of this pull request'\''s own delivery row (`dev/programme/delivery/%s.md`) was refused, so it would stay open without its row. The refusal:\n\n```\n%s\n```\n\nRe-run `open_pr.sh %s` once the handoff body answers it.\n' \
-    "$N" "$(cat $D/p2.why)" "$T" > $D/close.md
-  python3 "$PRT/gh_comment.py" post --repo $R --issue "$N" --body-file $D/close.md >&2 \
-    || echo "$PR_NAME: the closing comment on #$N was not read back; the close goes ahead" >&2
-  closed=0; gh pr close "$N" -R $R >/dev/null && closed=1  # mut:rowclose
-  if [ "$closed" = 1 ]; then
-    PR_ATTEMPT=closed,PR=$N
-    printf '%s: CLOSED: #%s at %s, its row push refused; re-run open_pr.sh once the body answers it\n' "$PR_NAME" "$N" "$PR_PUSHED" >&2
-  else
-    printf '%s: ROWLESS: #%s is open at %s without its row, and closing it failed; update_pr.sh %s - <body> adds it (delivery_row.sh ensure_row)\n' "$PR_NAME" "$N" "$PR_PUSHED" "$BR" >&2
-  fi
+  # The exit below closes #N (op_close_unrowed); this names the refusal for its comment.
+  OP_WHY="the row push was refused:
+$({ grep -E 'REFUSE' $D/p2.log || tail -n 20 $D/p2.log; } 2>/dev/null || :)"
   pr_push_failed $D/p2.log
 fi
 PR_PUSHED=$H
