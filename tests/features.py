@@ -73701,4 +73701,322 @@ R.check(
     f"{_he_l9_good.get('healthy')} {_he_l9_good.get('unhealthy_input')!r}",
 )
 
+R.section("supply switch at step boundaries (#2492, R10-SAV-ACTUATION)")
+# The cycle wrote the power switch once per interval, so a plan step's change
+# reached the pump at the next cycle, and a step's duty verdict depended on
+# where the cycle fell against the step grid. A synthetic install runs the
+# REAL coordinator's ``_apply_action`` at cycle phase 0 and 14 min, every
+# interval timer the arbiter arms fires each minute, the switch's writes are
+# applied to its state, and the meter follows the switch. The cycle's own
+# power sample is taken at the cycle, as ``_update_current_state`` takes it.
+from homeassistant.util import dt as _sa_dt
+from heatpump_optimizer import boost as _sa_boost
+from heatpump_optimizer import pump_arbiter as _sa_pa
+from heatpump_optimizer import store as _sa_store
+
+_SA_T0 = datetime(2026, 1, 10, 6, 0, tzinfo=UTC)
+_SA_DUTIES = "s-ss--s-s---ss-s"
+
+
+def _sa_plan():
+    n = len(_SA_DUTIES)
+    return SimpleNamespace(
+        timestamps=[_SA_T0 + timedelta(minutes=15 * i) for i in range(n)],
+        power_schedule=[1.5 if c == "s" else 0.0 for c in _SA_DUTIES],
+        dhw_power_schedule=[0.0] * n,
+        optimal_setpoints=[21.0] * n,
+    )
+
+
+async def _sa_install(phase, room_cut_at=None):
+    """Verdicts and switch writes of one synthetic install at cycle ``phase``."""
+    ticks = []
+    armed = _sa_pa.async_track_time_interval
+    _sa_pa.async_track_time_interval = lambda _h, fn, _i: (ticks.append(fn), (lambda: None))[1]
+    hass = FakeHass({
+        "switch.hp": FakeState("off", last_updated=_SA_T0),
+        "sensor.hp_power": FakeState("0.0", unit="kW", last_updated=_SA_T0),
+    })
+    coord = Coord(hass, FakeEntry(data={
+        **_LC_DATA, "heat_pump_switch_entity": "switch.hp",
+        "heat_pump_power_entity": "sensor.hp_power", "pump_duty_mode": "observe",
+    }))
+    coord._mode = "auto"
+    plan = coord._optimization_result = _sa_plan()
+    writes = []
+    try:
+        for m in range(15 * len(_SA_DUTIES) + 1):
+            now = _SA_T0 + timedelta(minutes=m)
+            _sa_dt.freeze(now)
+            if m % 30 == phase:
+                coord._last_optimization = now
+                coord._measured_power = float(hass.states.get("sensor.hp_power").state)
+                i = min(m // 15, len(_SA_DUTIES) - 1)
+                _sa_boost.adopt_plan(coord, {"heat_pump_on": _SA_DUTIES[i] == "s", "power": plan.power_schedule[i]})
+                await coord._apply_action()
+            if m == room_cut_at:
+                # An early cut-off, as ``early_cutoff.on_room_event`` writes it.
+                await _sa_pa.switch_supply(hass, "switch.hp", False)
+            for tick in list(ticks):
+                await tick(now)
+            for domain, service, _data in hass.services.calls:
+                if domain == "switch":
+                    writes.append((m, service))
+                    hass.states.set("switch.hp", FakeState(
+                        "on" if service == "turn_on" else "off", last_updated=now))
+            hass.services.calls.clear()
+            on = hass.states.get("switch.hp").state == "on"
+            hass.states.set("sensor.hp_power", FakeState("1.5" if on else "0.0", unit="kW", last_updated=now))
+        verdicts = [r["verdict"] for r in _sa_pa.diagnostics_view(coord)["ledger"]["steps"]]
+    finally:
+        _sa_dt.freeze(None)
+        _sa_pa.async_track_time_interval = armed
+    return verdicts, writes
+
+
+_sa_v0, _sa_w0 = _asyncio.run(_sa_install(0))
+_sa_v14, _sa_w14 = _asyncio.run(_sa_install(14))
+# Step 0 precedes the phase-14 install's first cycle, so it is the one step
+# the two installs may book apart.
+R.check(
+    "a synthetic install at cycle phase 0 and at 14 min books identical duty verdicts (#2492)",
+    len(_sa_v0) == len(_SA_DUTIES) and _sa_v0[1:] == _sa_v14[1:],
+    f"phase 0: {_sa_v0}; phase 14: {_sa_v14}",
+)
+_sa_boundaries = [m for m, _s in _sa_w14 if m % 15 == 0]
+R.check(
+    "the step tick writes the switch at the boundary of each step whose command changes",
+    [m // 15 for m in _sa_boundaries]
+    == [i for i in range(1, len(_SA_DUTIES)) if (_SA_DUTIES[i] == "s") != (_SA_DUTIES[i - 1] == "s")],
+    f"{_sa_w14}",
+)
+# A cut the cycle did not write holds across a step the plan keeps on: the
+# tick writes a change, never the same command again (early_cutoff.py).
+_sa_vc, _sa_wc = _asyncio.run(_sa_install(0, room_cut_at=34))
+R.check(
+    "an early cut-off holds across a step boundary the plan keeps on",
+    [w for w in _sa_wc if 34 < w[0] < 60] == [],
+    f"{_sa_wc}",
+)
+# The tick is a second writer of the switch, between cycles, so it writes only
+# where the cycle's own write would have come from the plan's step. One cycle
+# writes step 0's ON; the tick at step 1, whose plan command is off, writes OFF
+# unless ``guard`` holds the cycle's write off the plan. Each guard's null
+# control is the unguarded run, which writes the OFF.
+async def _sa_guarded(guard=None):
+    ticks, dropped = [], []
+    armed = _sa_pa.async_track_time_interval
+    _sa_pa.async_track_time_interval = lambda _h, fn, _i: (ticks.append(fn), (lambda: dropped.append(fn)))[1]
+    hass = FakeHass({"switch.hp": FakeState("off", last_updated=_SA_T0)})
+    switch = {} if guard == "no_switch" else {"heat_pump_switch_entity": "switch.hp"}
+    coord = Coord(hass, FakeEntry(data={**_LC_DATA, **switch, "pump_duty_mode": "observe"}))
+    coord._mode = "auto"
+    coord._optimization_result = _sa_plan()
+    try:
+        _sa_dt.freeze(_SA_T0)
+        coord._last_optimization = _SA_T0
+        _sa_boost.adopt_plan(coord, {"heat_pump_on": True, "power": 1.5})
+        await coord._apply_action()
+        if guard == "unload":
+            await coord._apply_action()  # a second cycle arms nothing more
+        hass.services.calls.clear()
+        now = _SA_T0 + timedelta(minutes=15)
+        _sa_dt.freeze(now)
+        if guard == "boost":
+            _sa_boost.held_for(coord).until[_sa_boost.CHANNEL_SPACE] = now + timedelta(hours=1)
+        elif guard == "sysid":
+            coord._current_action = {**coord._current_action, "mode": "system_identification"}
+        elif guard == "comfort":
+            coord._mode = "comfort"
+        elif guard == "stale":
+            coord._last_optimization = now - timedelta(days=1)
+        elif guard == "released":
+            coord._entry_released = True
+        elif guard == "short":
+            # The power schedule ends a step before the stamps do; the switch
+            # schedule still names step 1, so only the length guard leaves it.
+            coord._optimization_result = SimpleNamespace(
+                **{**vars(_sa_plan()), "power_schedule": [1.5], "heat_pump_on_schedule": [True, False]})
+        for tick in list(ticks):
+            await tick(now)
+        writes = [service for domain, service, _d in hass.services.calls if domain == "switch"]
+        held = _sa_pa.state_for(coord)
+        armed_before = held.supply_unsub is not None and not dropped
+        if guard == "unload":
+            await _sa_pa.release(coord)
+        return writes, armed_before, dropped == ticks and held.supply_unsub is None
+    finally:
+        _sa_dt.freeze(None)
+        _sa_pa.async_track_time_interval = armed
+
+
+_sa_g = {g: _asyncio.run(_sa_guarded(g)) for g in (
+    None, "boost", "sysid", "comfort", "stale", "released", "short", "unload", "no_switch")}
+R.check(
+    "the step tick writes the plan's OFF at a boundary when nothing holds the cycle's write off the plan",
+    _sa_g[None][0] == ["turn_off"],
+    f"{_sa_g[None]}",
+)
+for _sa_name, _sa_key in (
+    ("a live boost across a boundary whose plan step is off", "boost"),
+    ("a system_identification action", "sysid"),
+    ("a fixed (comfort) mode", "comfort"),
+    ("a stale plan", "stale"),
+    ("a released entry", "released"),
+    ("a step past the plan's power schedule", "short"),
+):
+    R.check(
+        f"the step tick writes nothing at a boundary under {_sa_name}",
+        _sa_g[_sa_key][0] == [],
+        f"{_sa_g[_sa_key]}",
+    )
+R.check(
+    "unload drops the one step tick two cycles armed",
+    _sa_g["unload"][1] is True and _sa_g["unload"][2] is True and _sa_g[None][2] is False,
+    f"unload {_sa_g['unload']}; kept {_sa_g[None]}",
+)
+R.check(
+    "an install with no supply switch arms no step tick, where one with a switch arms it",
+    _sa_g["no_switch"][:2] == ([], False) and _sa_g[None][1] is True,
+    f"no switch {_sa_g['no_switch']}; switch {_sa_g[None]}",
+)
+# The tick writes through the cycle's gate, ``_write_supply``, never around
+# it: the cut-off's MIN_OFF hold and the blocked-mode OFF skip each hold the
+# tick's write, and each null control is the same run with the gate inactive.
+from heatpump_optimizer import early_cutoff as _sa_ec
+
+
+async def _sa_gate_tick(cut=False, blocked=False):
+    """The switch writes of the 06:00 and 06:15 ticks, through the real coordinator.
+
+    A cycle at 05:45 writes ON; the 06:00 step is off and the 06:15 step on.
+    With ``cut``, an early cut-off is on record at 06:10, as ``on_room_event``
+    records it; with ``blocked``, the pump's mode blocks both channels.
+    """
+    ticks = []
+    armed = _sa_pa.async_track_time_interval
+    _sa_pa.async_track_time_interval = lambda _h, fn, _i: (ticks.append(fn), (lambda: None))[1]
+    hass = FakeHass({"switch.hp": FakeState("off", last_updated=_SA_T0)})
+    coord = Coord(hass, FakeEntry(data={**_LC_DATA, "heat_pump_switch_entity": "switch.hp", "pump_duty_mode": "observe"}))
+    coord._mode = "auto"
+    t0 = _SA_T0 - timedelta(minutes=15)
+    duties = "s-ss"
+    coord._optimization_result = SimpleNamespace(
+        timestamps=[t0 + timedelta(minutes=15 * i) for i in range(len(duties))],
+        power_schedule=[1.5 if c == "s" else 0.0 for c in duties],
+        dhw_power_schedule=[0.0] * len(duties),
+        optimal_setpoints=[21.0] * len(duties),
+    )
+    try:
+        _sa_dt.freeze(t0)
+        coord._last_optimization = t0
+        _sa_boost.adopt_plan(coord, {"heat_pump_on": True, "power": 1.5})
+        await coord._apply_action()
+        if blocked:
+            coord._pump_signals = PumpSignals(
+                mode=pump_mode.ModeCapability(key="off", label="Off", space_heat=False, dhw=False),
+                mode_observed=True)
+        writes = {}
+        for minutes in (15, 30):
+            now = t0 + timedelta(minutes=minutes)
+            if cut and minutes == 30:
+                _sa_ec.state_for(coord).cut_at = _SA_T0 + timedelta(minutes=10)
+            hass.services.calls.clear()
+            _sa_dt.freeze(now)
+            for tick in list(ticks):
+                await tick(now)
+            writes[now.strftime("%H:%M")] = [s for d, s, _d in hass.services.calls if d == "switch"]
+        return writes
+    finally:
+        _sa_dt.freeze(None)
+        _sa_pa.async_track_time_interval = armed
+
+
+_sa_cut, _sa_open = _asyncio.run(_sa_gate_tick(cut=True)), _asyncio.run(_sa_gate_tick())
+R.check(
+    "the step tick inside MIN_OFF of an early cut-off writes no turn_on at a step the plan turns on",
+    "turn_on" not in _sa_cut["06:15"],
+    f"{_sa_cut}",
+)
+R.check(
+    "null control: the same tick with no cut on record turns the switch on as the plan says",
+    _sa_open["06:15"] == ["turn_on"],
+    f"{_sa_open}",
+)
+_sa_blk = _asyncio.run(_sa_gate_tick(blocked=True))
+R.check(
+    "the step tick writes nothing at a step the plan turns off while the pump's mode blocks both channels",
+    _sa_blk["06:00"] == [],
+    f"{_sa_blk}",
+)
+R.check(
+    "null control: the same tick in a mode that blocks nothing writes the plan's OFF",
+    _sa_open["06:00"] == ["turn_off"],
+    f"{_sa_open}",
+)
+# The tick acts on a new step only: inside a step it writes nothing, though
+# the step's command changes under it, as when a boost starts mid-step
+# (``supply_tick``'s new-step guard). A cycle at 07:00 writes the plan's OFF;
+# a boost starts at 07:05. The null control is the 07:15 boundary, where the
+# same tick writes the boost's ON.
+async def _sa_mid_step():
+    ticks = []
+    armed = _sa_pa.async_track_time_interval
+    _sa_pa.async_track_time_interval = lambda _h, fn, _i: (ticks.append(fn), (lambda: None))[1]
+    hass = FakeHass({"switch.hp": FakeState("off", last_updated=_SA_T0)})
+    coord = Coord(hass, FakeEntry(data={**_LC_DATA, "heat_pump_switch_entity": "switch.hp", "pump_duty_mode": "observe"}))
+    coord._mode = "auto"
+    coord._optimization_result = _sa_plan()
+    t0 = _SA_T0 + timedelta(hours=1)
+    try:
+        _sa_dt.freeze(t0)
+        coord._last_optimization = t0
+        _sa_boost.adopt_plan(coord, {"heat_pump_on": False, "power": 0.0})
+        await coord._apply_action()
+        writes = {"07:00": [s for d, s, _d in hass.services.calls if d == "switch"]}
+        hass.states.set("switch.hp", FakeState("off", last_updated=t0))
+        _sa_boost.held_for(coord).until[_sa_boost.CHANNEL_SPACE] = t0 + timedelta(hours=1)
+        for minutes in (6, 10, 15):
+            now = t0 + timedelta(minutes=minutes)
+            hass.services.calls.clear()
+            _sa_dt.freeze(now)
+            for tick in list(ticks):
+                await tick(now)
+            writes[now.strftime("%H:%M")] = [s for d, s, _d in hass.services.calls if d == "switch"]
+        return writes
+    finally:
+        _sa_dt.freeze(None)
+        _sa_pa.async_track_time_interval = armed
+
+
+_sa_mid = _asyncio.run(_sa_mid_step())
+R.check(
+    "the step tick writes nothing inside a step whose boost starts mid-step",
+    _sa_mid["07:00"] == ["turn_off"] and _sa_mid["07:06"] == [] and _sa_mid["07:10"] == [],
+    f"{_sa_mid}",
+)
+R.check(
+    "null control: the same tick at the next boundary writes the boost's ON",
+    _sa_mid["07:15"] == ["turn_on"],
+    f"{_sa_mid}",
+)
+# The pump_duty record's held slots are declared, every one the arbiter can
+# write: the silent switch (D15 L5) and the GCHV night registers (#1913).
+_sa_record = {"written": {
+    **{slot: [v, _SA_T0.isoformat()] for slot, v in (
+        ("mode", "Heating"), ("dhw_setpoint", 50.0), ("space_setpoint", 35.0), ("silent", True),
+        ("night_start_hour", 22), ("night_start_minute", 0), ("night_end_hour", 6), ("night_end_minute", 30),
+    )},
+}}
+R.check(
+    "every slot the pump arbiter persists is declared in the pump_duty store domain",
+    sorted(_sa_record["written"]) == sorted(_sa_pa._SLOTS + _sa_pa._NIGHT_SLOTS)
+    and _sa_store.off_domain("heatpump_optimizer_e_pump_duty", _sa_record) == []
+    and _sa_store.off_domain(
+        "heatpump_optimizer_e_pump_duty", {"written": {"silent": ["on", _SA_T0.isoformat()]}}
+    ) == ["written/silent/0"],
+    f"{_sa_store.off_domain('heatpump_optimizer_e_pump_duty', _sa_record)}",
+)
+
+
 sys.exit(R.close("FEATURE CHECKS"))

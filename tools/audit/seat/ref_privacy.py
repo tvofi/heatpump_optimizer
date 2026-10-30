@@ -411,7 +411,9 @@ PUSHERS = {
     "tools/audit/seat/cloud_dispatch.py": (GUARDED, "the group path publishes dispatch/<role>-<topic> "
                                            "(a roster branch tail), ref_privacy.refusal on the ref and message; "
                                            "its reviewer prompt names probe/rev-<pr>-<nonce8> from a PR number "
-                                           "and 8 hex digits, under a constant seat identity"),
+                                           "and 8 hex digits, under a constant seat identity; its fixer prompt names "
+                                           "handoff-wip/<topic> step pushes, judged by the seat's own guard "
+                                           "like any push"),
     ".claude/workflows/audit-find.js": ("prompt", "an agent prompt naming handoff/audit-r<round>-... "
                                         "refs from round and box numbers"),
     ".claude/workflows/audit-plan.js": ("prompt", "an agent prompt naming the constant plan/r<round> "

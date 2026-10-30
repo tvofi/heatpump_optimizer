@@ -4,7 +4,8 @@
     python3 tools/audit/seat/state_docs.py [--repo OWNER/REPO] \
         [--roster-ref GITREF [--roster-path PATH] | --roster-file PATH] \
         [--checkout DIR] [--state-ref BR] [--pr-state FILE] \
-        [--mirror DIR] [--push] [--message M]
+        [--mirror DIR] [--push] [--message M] \
+        [--plan PLAN_JSON [--github-snapshot FILE]]
     python3 tools/audit/seat/state_docs.py beat [the same flags] \
         [--watch-ref REF] [--interval SECONDS] [--tip-file PATH] [--once]
     python3 tools/audit/seat/state_docs.py --self-test
@@ -34,6 +35,15 @@ Stateless like the other seat tools: every input is a flag, nothing about a
 session or a machine is hardcoded, stdlib only, and the four generators
 are RUN, never re-implemented -- their logic lives in exactly one place.
 
+`--plan` adds the plan page: `plan_page.py` draws that plan.json (the one
+`tools/plan/replan.py` just wrote) as `PLAN.html`, published in the same
+commit as `PLAN-TABLE.md` -- one ref, one durable path. A page that refuses
+(a stale or violating plan, an unreadable roster) is the UNAVAILABLE page: the
+ref keeps the last good PLAN.html, with its own snapshot time, when it holds
+one, and carries the UNAVAILABLE page when it holds none; either way the call
+publishes the other docs and exits 1, so the caller sees the plan unread. The
+beat runs no replan, so it never passes `--plan`.
+
 `beat` is the recurring half of tvofi's 2026-10-09 instruction that the state
 docs are regenerated continuously rather than at session end. It replaces the
 session-local loop an orchestrator kept in its own scratch directory, which is
@@ -62,6 +72,9 @@ pass then regenerates the docs for it; a sync that refuses (an unreadable
 from __future__ import annotations
 
 import argparse
+import contextlib
+import datetime as dt
+import io
 import json
 import os
 import subprocess
@@ -88,6 +101,8 @@ BEAT_INTERVAL = 300.0
 #: evidence, the older state docs -- is carried, never touched.
 DOC_NAMES = ("PLAN-TABLE.md", "FLOW-BOARD.md", "RESUME-CURRENT.md",
              "NEXT-SESSION-PROMPT.md")
+#: `--plan`'s page, in the write set only on a call that draws it.
+PLAN_PAGE = "PLAN.html"
 
 
 class State(NamedTuple):
@@ -425,6 +440,36 @@ def run_self_test() -> int:
         return self_test()
 
 
+def draw_plan_page(a, staging: Path, page_path: str, prev: str | None):
+    """`plan_page.py` over `--plan`: (staged {path: text}, refusal or None).
+
+    A refusal stages the UNAVAILABLE page only where the state ref holds no
+    PLAN.html; otherwise nothing is staged and the last good page is carried.
+    """
+    target = staging / PLAN_PAGE
+    cmd = [sys.executable, str(SEAT / "plan_page.py"), "--plan", a.plan,
+           "--html", str(target), "--repo", a.checkout, "--gh-repo", a.repo]
+    if a.roster_path:
+        cmd += ["--roster-path", a.roster_path]
+    if a.github_snapshot:
+        cmd += ["--github-snapshot", a.github_snapshot]
+    r = subprocess.run(cmd, cwd=a.checkout, capture_output=True, text=True)
+    text = target.read_text(encoding="utf-8") if target.exists() else ""
+    if r.returncode == 0 and text.strip():
+        return {page_path: text}, None
+    if r.returncode != 1 or "PLAN UNAVAILABLE" not in text:
+        raise Refuse(f"plan_page.py failed rc {r.returncode}: "
+                     f"{(r.stderr or r.stdout).strip()[:400]}")
+    why = (r.stderr.strip().splitlines() or ["refused"])[0]
+    held = bool(prev) and subprocess.run(
+        ["git", "-C", a.checkout, "cat-file", "-e", f"{prev}:{page_path}"],
+        capture_output=True).returncode == 0
+    print(f"state_docs: {PLAN_PAGE} UNAVAILABLE: {why}; "
+          + ("the state ref keeps its last good page" if held
+             else "publishing the UNAVAILABLE page"), file=sys.stderr)
+    return ({} if held else {page_path: text}), why
+
+
 # --------------------------------------------------------------------- main
 def parser(beat_mode: bool = False) -> argparse.ArgumentParser:
     """One flag surface for both forms: `beat` adds only the loop's own
@@ -453,6 +498,11 @@ def parser(beat_mode: bool = False) -> argparse.ArgumentParser:
                    help="push the state ref; without it this is a dry run")
     p.add_argument("--message")
     p.add_argument("--self-test", action="store_true")
+    if not beat_mode:
+        p.add_argument("--plan",
+                       help="plan.json to draw as PLAN.html (plan_page.py)")
+        p.add_argument("--github-snapshot",
+                       help="GitHub state for the plan page instead of gh")
     if beat_mode:
         p.add_argument("--watch-ref", default=WATCH_REF,
                        help="the full ref name a pass reads at origin")
@@ -491,18 +541,25 @@ def main(argv=None) -> int:
         st8 = state_of(roster_round_of(a))
         state_ref = a.state_ref or st8.ref
         print(f"round state: {state_ref} at {st8.dir}/")
+        write_set = st8.write_set
+        prev = remote_tip(a.checkout, f"refs/heads/{state_ref}")
+        unread = None
         with tempfile.TemporaryDirectory() as st:
             staged = generate(a.repo, roster_args, a.checkout, a.pr_state,
                               Path(st), st8.dir)
+            if a.plan:
+                write_set += (f"{st8.dir}/{PLAN_PAGE}",)
+                page, unread = draw_plan_page(a, Path(st), write_set[-1], prev)
+                staged.update(page)
+        rc = 1 if unread else 0
         for path in sorted(staged):
             print(f"generated {path}: "
                   f"{len(staged[path].encode('utf-8'))} bytes")
-        prev = remote_tip(a.checkout, f"refs/heads/{state_ref}")
-        tree = write_tree(a.checkout, staged, prev, st8.write_set)
+        tree = write_tree(a.checkout, staged, prev, write_set)
         if prev:
             changed = run(["git", "diff-tree", "-r", "--name-only", prev,
                            tree], cwd=a.checkout).split()
-            bad = sorted(p for p in changed if p not in st8.write_set)
+            bad = sorted(p for p in changed if p not in write_set)
             if bad:  # unreachable while write_tree's guard holds; checked
                 raise Refuse(  # again here, before any commit exists to push
                     f"the commit would touch paths outside the write set: "
@@ -511,11 +568,11 @@ def main(argv=None) -> int:
                 print(f"already current: {state_ref} at {prev[:12]} carries "
                       "these bytes; nothing to commit or push")
                 mirror_files(staged, a.mirror)
-                return 0
+                return rc
         else:
             names = run(["git", "ls-tree", "-r", "--name-only", tree],
                         cwd=a.checkout).split()
-            if sorted(names) != sorted(st8.write_set):
+            if sorted(names) != sorted(write_set):
                 raise Refuse(f"the first commit on {state_ref} would carry "
                              f"{sorted(names)}, not exactly the write set")
         message = a.message or (
@@ -535,13 +592,108 @@ def main(argv=None) -> int:
         else:
             print(f"ready: would push {state_ref} at {commit} (no --push)")
         mirror_files(staged, a.mirror)
-        return 0
+        return rc
     except Refuse as e:
         print(f"state_docs: REFUSED: {e}", file=sys.stderr)
         return 2
 
 
 # ---------------------------------------------------------------- self-test
+def plan_page_arms(root: Path, ok, git) -> None:
+    """`--plan`: the page in the same commit as the plan table; a refused
+    page keeps the last good one at the ref, or publishes the UNAVAILABLE
+    page where there is none; both exit 1. A roster at a ref, because the
+    plan's freshness is a blob at a ref (replan.stale_reason)."""
+    sys.path.insert(0, str(SEAT.parents[1] / "plan"))
+    import replan
+    from throwaway_git import throwaway_git_clone, throwaway_git_init
+    seed, bare, drv = root / "pseed", root / "p.git", root / "pdrv"
+    rel = f"{roster_lib.ROSTERS_DIR}/wave-r9-groups.json"
+    (seed / rel).parent.mkdir(parents=True)
+    groups = [{"group": "R9-P", "lane": "IN", "kind": "defect", "size": "S",
+               "issues": [], "fixes": [], "after": [], "brief": "fixture P.",
+               "resume": {"stage": "not-started"}}]
+    (seed / rel).write_text(json.dumps({"groups": groups}), encoding="utf-8")
+    throwaway_git_init(seed, "-q", "-b", "main")
+    git("-C", str(seed), "add", "-A")
+    git("-C", str(seed), "commit", "-q", "-m", "plan roster")
+    throwaway_git_clone(seed, bare, "-q", "--bare")
+    throwaway_git_clone(bare, drv, "-q")
+    durations = json.loads((SEAT.parents[1] / "plan" / "durations.json")
+                           .read_text(encoding="utf-8"))
+    r_, ref_, blob_ = replan.load_roster(str(drv), "main")
+    plan = replan.build_plan(r_, durations, dict(replan.DEFAULT_CAPS),
+                             dt.datetime(2026, 1, 5), "v1.0.0", ref_, blob_)
+    planf, snapf = root / "plan.json", root / "psnap.json"
+    planf.write_text(json.dumps(plan), encoding="utf-8")
+    snapf.write_text(json.dumps({"issues": [], "open_prs": [], "merged_prs": []}),
+                     encoding="utf-8")
+    mirror, prs = root / "pmirror", root / "pprs.json"
+    prs.write_text("[]", encoding="utf-8")
+    argv = ["--checkout", str(drv), "--roster-ref", "main", "--pr-state", str(prs),
+            "--plan", str(planf),
+            "--github-snapshot", str(snapf), "--mirror", str(mirror), "--push"]
+    state_ref, sdir, write_set = state_of(9)
+    page_path = f"{sdir}/{PLAN_PAGE}"
+
+    def at(tip, path):
+        r = subprocess.run(["git", "-C", str(bare), "show", f"{tip}:{path}"],
+                           capture_output=True, text=True)
+        return r.stdout if r.returncode == 0 else None
+
+    def tip_of(ref):
+        r = subprocess.run(["git", "-C", str(bare), "rev-parse", "-q", "--verify",
+                            f"refs/heads/{ref}"], capture_output=True, text=True)
+        return r.stdout.strip() or "no-such-ref"
+
+    err = io.StringIO()
+    with contextlib.redirect_stderr(err):
+        rc = main(argv)
+    ok("plan page: the first --plan call exits 0", rc == 0, err.getvalue()[-600:])
+    if rc:
+        return
+    tip1 = tip_of(state_ref)
+    good = at(tip1, page_path) or ""
+    ok("plan page: a fresh plan draws PLAN.html in the plan table's commit",
+       rc == 0 and "Fix Plan" in good and "UNAVAILABLE" not in good
+       and at(tip1, write_set[0]) is not None, (rc, good[:200]))
+    ok("plan page: the mirror carries PLAN.html",
+       (mirror / PLAN_PAGE).read_text(encoding="utf-8") == good)
+    ok("plan page: without --plan the write set holds no PLAN.html (null control)",
+       page_path not in write_set)
+    # The roster moves under the plan: plan_page refuses it as stale.
+    groups[0]["resume"]["stage"] = "in-progress"
+    (drv / rel).write_text(json.dumps({"groups": groups}), encoding="utf-8")
+    git("-C", str(drv), "commit", "-q", "-am", "roster moved")
+    err = io.StringIO()
+    with contextlib.redirect_stderr(err):
+        rc = main(argv)
+    tip2 = tip_of(state_ref)
+    ok("plan page: a stale plan keeps the last good page at the ref, exit 1",
+       rc == 1 and tip2 != tip1 and at(tip2, page_path) == good
+       and "keeps its last good page" in err.getvalue(),
+       (rc, tip2 == tip1, err.getvalue()[-300:]))
+    with contextlib.redirect_stderr(io.StringIO()):
+        rc = main(argv + ["--state-ref", "fresh-state"])
+    first = at(tip_of("fresh-state"), page_path) or ""
+    ok("plan page: with no page at the ref, the UNAVAILABLE page is published",
+       rc == 1 and "<h1>PLAN UNAVAILABLE — " in first and "<table" not in first,
+       (rc, first[:200]))
+    # A crash is not a refusal: plan_page.py dies on a malformed plan.json
+    # with a traceback, rc 1 and no page. That must refuse with rc 2 and
+    # publish nothing, not an empty PLAN.html at exit 1.
+    badf = root / "bad-plan.json"
+    badf.write_text("{", encoding="utf-8")
+    crash_argv = [str(badf) if x == str(planf) else x for x in argv]
+    err = io.StringIO()
+    with contextlib.redirect_stderr(err):
+        rc = main(crash_argv + ["--state-ref", "crash-state"])
+    ok("plan page: a crashing page refuses with rc 2 and publishes no PLAN.html",
+       rc == 2 and tip_of("crash-state") == "no-such-ref"
+       and "plan_page.py failed rc 1" in err.getvalue(),
+       (rc, tip_of("crash-state"), err.getvalue()[-300:]))
+
+
 def self_test() -> int:
     """Offline: tmp dirs and fixture repos, no network in any arm."""
     sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tests"))
@@ -635,6 +787,7 @@ def self_test() -> int:
            == sorted(Path(p).name for p in WRITE_SET))
         ok("parent is the previous tip",
            state0 in git("-C", str(bare), "log", "--format=%P", "-1", tip))
+        plan_page_arms(root, ok, git)
         # THE GUARD: a write outside the four files refuses, in both the
         # direct check and a real write_tree call over the live tip.
         try:
