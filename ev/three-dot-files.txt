@@ -1,0 +1,6 @@
+.github/workflows/gate-sweep.yml
+dev/programme/delivery/2955.md
+tests/arch_score.py
+tests/closures.json
+tests/entities.py
+tools/policy/agreement.mjs
