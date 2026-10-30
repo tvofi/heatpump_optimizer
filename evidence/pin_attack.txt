@@ -1,0 +1,8 @@
+RESULT same-brief re-dispatch pin unchanged: True
+RESULT ref moved: True pins differ: True
+RESULT first seat's pinned PROMPT.md unchanged after re-dispatch: True
+RESULT pin1 ancestor of moved tip: True
+RESULT second pin reads second brief: True
+RESULT model-only change keeps pin: True
+RESULT identical re-dispatch after model change pin: False 60fe66aa bdd17eb3
+RESULT payload size 977 stub 612

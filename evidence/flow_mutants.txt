@@ -1,0 +1,142 @@
+RESULT mutant=M0 failed=0 verdict=null-ok
+RESULT mutant=tree-skip failed=2 verdict=killed
+    FAIL the published event is a stub pinning the commit holding PROMPT.md by SHA, never the ref's tip
+    FAIL a re-dispatch of the same brief moves no ref
+RESULT mutant=brief-drop failed=8 verdict=killed
+    FAIL a group's two carries render numbered by roster index and verbatim, after its brief and `After:`
+    FAIL a host path inside a carry refuses as one in the brief does, and pushes nothing
+    FAIL a re-dispatch of the same brief moves no ref
+    FAIL a changed brief fast-forwards the ref
+    FAIL a host path in a roster brief refuses and pushes nothing
+    FAIL by default the brief is the round's roster branch's and the head is main's tip, not that branch's
+    FAIL an explicit roster ref is read, not the round's roster branch
+    FAIL the --group CLI passes --head and --roster-ref through
+RESULT mutant=parent-drop failed=-1 verdict=CRASHED
+RESULT mutant=nonce-altered failed=3 verdict=killed
+    FAIL a re-dispatch of the same brief moves no ref
+    FAIL the worker registry records the reviewer: pr, head, seat, nonce, time and the model
+    FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through
+RESULT mutant=topic-to-id failed=-1 verdict=CRASHED
+    FAIL a group dispatch prints one short line, the ref name
+    FAIL a fixer for an L group is dispatched with --design-exempt (the reason is the orchestrator's)
+    FAIL a fixer is dispatched once the verdict approves the current design tip (null control)
+    FAIL the printed line round-trips to a payload byte-identical to the flag path's --publish
+    FAIL a fixer on the ruled family passes, by full id or alias (null control)
+    FAIL a role the roster rules no model for is not checked (a probe on R10-M runs on any model)
+    FAIL a reviewer dispatch with no nonce mints one through bus.sh dispatch and renders
+RESULT mutant=render-host-off failed=6 verdict=killed
+    FAIL a macOS home in the brief is refused
+    FAIL a linux home in the brief is refused
+    FAIL a public account's home in the brief is refused
+    FAIL a home path in the nonce is refused
+    FAIL a host path inside a carry refuses as one in the brief does, and pushes nothing
+    FAIL a host path in a roster brief refuses and pushes nothing
+RESULT mutant=privacy-off failed=1 verdict=killed
+    FAIL _publish itself refuses a ref that would publish the host, and pushes nothing
+RESULT mutant=head-ignored failed=-1 verdict=CRASHED
+RESULT mutant=prompt-wrong failed=20 verdict=killed
+    FAIL a designer's ref is dispatch/designer-<group>, pins the base SHA and names its contract
+    FAIL the designer's text allows design/<group> alone and no pull request, in its own words
+    FAIL a design reviewer pins the design tip and the base, names its contract and its one ref
+    FAIL the published event is a stub pinning the commit holding PROMPT.md by SHA, never the ref's tip
+    FAIL the stub keeps the seat line and the footer ban inline; PROMPT.md is the whole prompt
+    FAIL the stub payload is far smaller than the prompt: under 1 KB whole, the brief absent, the SHA present
+    FAIL without --publish the flag path is unchanged: the whole prompt in its event, nothing published
+    FAIL the roster brief is inlined and the roster tip is the head
+    FAIL a group with no carry renders its brief and `After:` alone (the null control for the carries)
+    FAIL a group's two carries render numbered by roster index and verbatim, after its brief and `After:`
+    FAIL a re-dispatch of the same brief moves no ref
+    FAIL a changed brief fast-forwards the ref
+    FAIL the worker registry records the reviewer: pr, head, seat, nonce, time and the model
+    FAIL a reviewer is dispatched at the PR head passed, not at a ref's tip
+    FAIL the reviewer's brief carries the packet render at the dispatched head for the seat's own machine
+    FAIL a reviewer's flag-path --publish publishes to dispatch/reviewer-rev-<PR> and points there
+    FAIL by default the brief is the round's roster branch's and the head is main's tip, not that branch's
+    FAIL an explicit roster ref is read, not the round's roster branch
+    FAIL the --group CLI passes --head and --roster-ref through
+    FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through
+RESULT mutant=roster-repo-ignored failed=-1 verdict=CRASHED
+RESULT mutant=roster-ref-main failed=3 verdict=killed
+    FAIL by default the brief is the round's roster branch's and the head is main's tip, not that branch's
+    FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through
+    FAIL a nonce the relay minted is re-recorded by the seat fired with it, with its model, minting none
+RESULT mutant=head-from-roster-ref failed=1 verdict=killed
+    FAIL by default the brief is the round's roster branch's and the head is main's tip, not that branch's
+RESULT mutant=reviewer-head-off failed=1 verdict=killed
+    FAIL a reviewer needs its PR head, and is refused for that reason
+RESULT mutant=explicit-roster-ref-ignored failed=2 verdict=killed
+    FAIL an explicit roster ref is read, not the round's roster branch
+    FAIL the --group CLI passes --head and --roster-ref through
+RESULT mutant=cli-head-dropped failed=5 verdict=killed
+    FAIL --group forwards --head to dispatch_group
+    FAIL the --group CLI passes --head and --roster-ref through
+    FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through
+    FAIL a nonce the relay minted is re-recorded by the seat fired with it, with its model, minting none
+    FAIL a re-dispatch from a second clone fast-forwards the existing ref
+RESULT mutant=cli-roster-ref-dropped failed=2 verdict=killed
+    FAIL --group forwards --roster-ref to dispatch_group
+    FAIL the --group CLI passes --head and --roster-ref through
+RESULT mutant=fetch-skipped failed=-1 verdict=CRASHED
+    FAIL a re-dispatch of the same brief moves no ref
+RESULT mutant=cli-role-fixed failed=3 verdict=killed
+    FAIL --group forwards --role to dispatch_group
+    FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through
+    FAIL a nonce the relay minted is re-recorded by the seat fired with it, with its model, minting none
+RESULT mutant=cli-pr-dropped failed=3 verdict=killed
+    FAIL --group forwards --pr to dispatch_group
+    FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through
+    FAIL a nonce the relay minted is re-recorded by the seat fired with it, with its model, minting none
+RESULT mutant=cli-nonce-dropped failed=3 verdict=killed
+    FAIL --group forwards --nonce to dispatch_group
+    FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through
+    FAIL a nonce the relay minted is re-recorded by the seat fired with it, with its model, minting none
+RESULT mutant=cli-group-fixed failed=2 verdict=killed
+    FAIL --group forwards --group to dispatch_group
+    FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through
+RESULT mutant=cli-model-fixed failed=3 verdict=killed
+    FAIL --group forwards --model to dispatch_group
+    FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through
+    FAIL a nonce the relay minted is re-recorded by the seat fired with it, with its model, minting none
+RESULT mutant=cli-overlay-dropped failed=3 verdict=killed
+    FAIL --group forwards --overlay to dispatch_group
+    FAIL the --group CLI passes --head and --roster-ref through
+    FAIL a re-dispatch from a second clone fast-forwards the existing ref
+RESULT mutant=group-refusal-off failed=7 verdict=killed
+    FAIL --group refuses --brief (exit 2, nothing dispatched)
+    FAIL --group refuses --design (exit 2, nothing dispatched)
+    FAIL --group refuses --env-id (exit 2, nothing dispatched)
+    FAIL --group refuses --out (exit 2, nothing dispatched)
+    FAIL --group refuses --publish (exit 2, nothing dispatched)
+    FAIL --group refuses --repo (exit 2, nothing dispatched)
+    FAIL --group refuses --topic (exit 2, nothing dispatched)
+RESULT mutant=env-id-forwarded-as-none failed=1 verdict=killed
+    FAIL --group forwards --env-id to dispatch_group
+RESULT mutant=flag-unlisted failed=2 verdict=killed
+    FAIL every flag the parser accepts has a --group disposition in GROUP_FLAGS, and no other
+    FAIL --group forwards --extra to dispatch_group
+RESULT mutant=pointer-ref-dropped failed=3 verdict=killed
+    FAIL a published fixer's event is a stub: the seat line, the footer ban and PROMPT.md at the pinned SHA
+    FAIL a published reviewer's event is a stub: the seat line, the footer ban and PROMPT.md at the pinned SHA
+    FAIL the published event is a stub pinning the commit holding PROMPT.md by SHA, never the ref's tip
+RESULT mutant=pointer-off failed=-1 verdict=CRASHED
+    FAIL a published fixer's event is a stub: the seat line, the footer ban and PROMPT.md at the pinned SHA
+    FAIL a published reviewer's event is a stub: the seat line, the footer ban and PROMPT.md at the pinned SHA
+    FAIL the published event is a stub pinning the commit holding PROMPT.md by SHA, never the ref's tip
+    FAIL the stub keeps the seat line and the footer ban inline; PROMPT.md is the whole prompt
+    FAIL the stub payload is far smaller than the prompt: under 1 KB whole, the brief absent, the SHA present
+RESULT mutant=publish-ignored failed=2 verdict=killed
+    FAIL the printed line round-trips to a payload byte-identical to the flag path's --publish
+    FAIL a reviewer's flag-path --publish publishes to dispatch/reviewer-rev-<PR> and points there
+RESULT mutant=publish-ref-rev-dropped failed=2 verdict=killed
+    FAIL the reviewer's publish ref is dispatch/reviewer-rev-7
+    FAIL a reviewer's flag-path --publish publishes to dispatch/reviewer-rev-<PR> and points there
+RESULT mutant=wait-line-dropped failed=1 verdict=killed
+    FAIL every role's prompt caps one tool call's wait under the 5-minute prompt-cache TTL (R10-FLY-CACHE-PROMPTS)
+RESULT mutant=claude-md-reread failed=1 verdict=killed
+    FAIL the fixer reads its role file, not CLAUDE.md, which the harness already loaded
+RESULT mutant=cli-pr-truncated failed=3 verdict=killed
+    FAIL --group forwards --pr to dispatch_group
+    FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through
+    FAIL a nonce the relay minted is re-recorded by the seat fired with it, with its model, minting none
+RESULT mutants=33 survived=0
+rc=0
