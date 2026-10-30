@@ -7351,7 +7351,7 @@
     "branch": "handoff/r10-fly-depgraph-stale",
     "commit": "1a7ba47b860451b1bb4144be4a32b2463a72e493",
     "last_step": null,
-    "next_step": "dispatch a fixer (fly-in, lane F)",
+    "next_step": "done: merged in #2811 (1a7ba47b8)",
     "note": "Fly-in registered by the orchestrator (session s4) under mandate 6319294694; pack ORCHESTRATOR-PROMPT.md revision 19 names the spec.",
     "pr": 2811
    }
