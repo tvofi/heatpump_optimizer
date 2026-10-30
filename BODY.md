@@ -1,282 +1,67 @@
-# R10-README-GRAPHICS: pre-study, round 2 of 3 (revises e995b815 per design review fe1d5b7f)
+README graphics in the Home Assistant Marketplace (R10-README-GRAPHICS, owner request tvofi 2026-10-30). Architect note: handoff-body/r10-readme-graphics 2e536d1396486ba55eb798039bc0412086b26b2f (approved: handoff-body/r10-readme-graphics-drev 9e3073142).
 
-Round 2 changes only "## Roster entry" and adds the reviewer's carries to the fixer notes. Everything else is round 1, unchanged.
+The Marketplace's markdown worker (marked, then js-xss) blanks every `src`/`href` that is not absolute, `#`, `/`, `./` or `../`, before its URL rewriter runs, and has no mermaid. So the banner, the coffee button, the card chart, the how-it-works figure and all 28 document links were broken, and the three mermaid fences showed as raw code. The fix: every repository-relative README target gains `./`; each mermaid block gets a `<picture>` of committed 2x PNGs (light `<img>`, dark `<source media="(prefers-color-scheme: dark)">`) directly above its now-closed `<details>`; a `tests/doc_claims.py` arm keeps both true. Dark mode is in scope by tvofi's ruling of 2026-10-30 ("dark mode should absolutely not be scoped out"), relayed by the orchestrator, who also relayed the approval of the code-owned tools/site/ head under mandate 6329234399. Only a stamped tag shows the fix, and only to users who install or update to it: an installed v7.1.0 keeps the broken page, and any stamp after this merge carries it, not specifically v10.0.0.
 
-Seat: cloud probe, read-only. Tree: `d99cadb1235a5e40e250466e656c41c7ce88e641` (= origin/main, v7.1.0).
-Roster read: `origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r10-groups.json`.
-Upstream measured: `homeassistant==2026.11.0b1` wheel (core `marketplace` integration) and the
-`home-assistant-frontend==20261028.1` wheel it pins, plus upstream frontend sources at tag `20261028.1`.
-No tracked file changed; no PR opened.
+Landed from the note's carries here, not carried: P1/P4 (the harness and the product-page check, both in the diff), P5 (the manifest records both hashes per figure and the arm refuses a mismatch of either; regenerate-then-green shown under Mutation proof), P6 (the generator header states the install: `npm ci --prefix tools/site`, `npm ci --prefix tests/pwlane` with `playwright install chromium`, `NODE_PATH`, `MERMAID_JS`, `HPO_CHROMIUM`), the `<picture>` dark sources (by tvofi's ruling). Other readers of README relative targets adjusted in the diff: tests/entities.py's hero-image regexp (now `./docs/img/card/card-plan-chart.png`), tests/doc_claims.py's coffee-button tracked-file check (strips `./`) and the two Documentation-row sets (normalised).
 
-## Summary
+Closes: none (owner request; roster group R10-README-GRAPHICS, no issue).
 
-The owner's report is right, and the main cause is not mermaid. **Every repository-relative image
-and link in README.md is blanked by the Marketplace's sanitizer before the URL rewriter runs.**
-That means the banner, the coffee button, the card chart and the how-it-works figure, and every
-relative doc link. The fix is mechanical: prefix each relative target with `./`. GitHub renders
-`./docs/...` exactly like `docs/...`, and the Marketplace sanitizer lets `./` through.
-The mermaid diagrams are the second cause. They render as raw text in a `<pre>`. The fix is a
-committed PNG for each diagram plus a source-hash drift check.
-Recommended: a new M group, lane PR, ordered before R10-ARCH-DOCS so v10.0.0 carries it. The
-Marketplace fetches the README **at the release tag**, so nothing shows until a release ships.
+## Head
 
-## 1. Inventory: README.md at d99cadb12
+3d8a848fde9f0e6de81d69120d2fadd915075bca
 
-GitHub rendering is "yes" for all of them today.
+## Mutation proof
 
-| line | kind | target | size |
-|---|---|---|---|
-| 1 | md image, relative | docs/img/readme/banner.png | 2560x640 PNG, 69 KB (SVG source beside it) |
-| 11-14 | md image, absolute | img.shields.io badges | external SVG |
-| 16 | md image, relative | docs/img/brand/coffee.svg | 816 B SVG |
-| 22 | md image, relative | docs/img/card/card-plan-chart.png | 1864x1700 PNG, 237 KB |
-| 120-169 | `<details open>` + mermaid `flowchart LR` | "How the pieces fit" | inline |
-| 320 | md image, absolute | my.home-assistant.io HACS badge | external SVG |
-| 402-428 | `<details open>` + mermaid `flowchart TD` | setup flow; pinned identical to configuration.md and setup.md by tests/doc_claims.py around line 2574 | inline |
-| 805 | md image, relative | docs/img/readme/how-it-works.png | 2400x880 PNG, 173 KB; a `-dark.png` variant exists but is unused |
-| 807-838 | `<details open>` + mermaid `sequenceDiagram` | "One optimization interval" | inline |
+Production line mutated, `PYTHONPATH=tests/hastub python3 tests/doc_claims.py`, restored after each:
+- README.md at the merge base (`git show cc930cdd1:README.md`): FAIL `README.md has no bare-relative target and each mermaid block has its current figure above a closed <details>` (17 distinct bare targets named), plus the four red-case checks whose planted edit no longer differs. 5 of 219 FAILED.
+- One link `(./docs/ecl110.md)` to `(docs/ecl110.md)`: FAIL on the same check, naming `docs/ecl110.md`. 1 of 219.
+- `flowchart LR` to `flowchart RL` in the first block, nothing regenerated: FAIL on the same check, `mermaid block 1: its text differs`. 1 of 219.
+- tools/site/build_docs.mjs, `path.posix.normalize(m[1])` back to `m[1]`: FAIL `every README Documentation row is a built page` and `product page: a docs card for a built document linked to GitHub is refused`. 2 of 219.
+- A `<source>` removed from one picture (light-only): FAIL the same check, `no <picture> of ./...setup-flow.png with the dark source ...`, plus the built-page check and two red-case checks. 4 of 226.
+- Dark srcset `./` removed: FAIL the same check naming `docs/img/readme/mermaid-one-interval-dark.png` as bare-relative. 1 of 226.
+- A dark PNG replaced by the light one: FAIL `mermaid block 3: ...-dark.png differs from the PNG the manifest recorded`. 1 of 226.
+- tools/site/build_docs.mjs, `return rawImages(tokens[idx].content)` back to `return tokens[idx].content`: FAIL `the built readme page resolves every <picture> srcset and src to its docs/-relative image, none left ./-prefixed`. 1 of 226.
+- Passes when fixed: the same block edit followed by `node docs/img/readme/render_mermaid.mjs` (mermaid 12.2.0, playwright 1.64.1): ALL 226 PASSED, then restored.
+Planted-red controls in the arm itself (each a `red case:` check): a light-only figure, a dark source pointing at the light PNG, a bare-relative dark srcset, a manifest figure with no dark variant, a dark PNG hash differing, a dark PNG missing, block one-character edit, `./` removed from an image and from a link, a bare `<img src>`, a bare `<source srcset>`, a bare reference definition, the figure line deleted, an open `<details>`, a PNG hash differing, a PNG missing, a manifest entry with no block, no manifest. Green null: the unchanged tree.
 
-The README has no `<picture>`, no inline `<svg>` and no GIF. It also has 28 relative markdown
-links (`docs/*.md`, `NOTICE`, ...), and they fail the same way as the images.
-The existing renderer is docs/img/readme/make_readme_figures.py (fontTools) with
-docs/img/readme/render.mjs (Playwright PNG).
+## Null control
 
-## 2. What the Marketplace renders, with evidence
+Finder's harness, a replica of the Marketplace pipeline (marked 15.0.4 + xss 1.0.15 under the worker's allow-list, rewrite rule of `rewrite-html-urls.ts`; not the shipped bundle): `HPO_PIPELINE_MODULES=<node_modules> node dev/audit/harnesses/r10_readme_marketplace_pipeline.mjs --readme <file>`.
+- Base (`git show cc930cdd1:README.md`): relative_images=4 resolved=0; relative_links=28 resolved=0; rc=1 (red).
+- Head 3d8a848fde9f0e6de81d69120d2fadd915075bca: relative_images=7 resolved=7; relative_links=28 resolved=28; picture_sources=3 resolved=3; rc=0 (green). The 7 are the 4 original images and the 3 light `<img>`s.
+- Base: picture_sources=0 resolved=0. A README whose only source has a bare srcset (`docs/d.png`): picture_sources=1 resolved=0, rc=1.
+- Picture handling in the replica (srcset survives only if every candidate passes xss's test, markdown-worker.ts:21-43; the rewriter resolves source[srcset], rewrite-html-urls.ts:29-56): `RESULT control srcset_bare=stripped srcset_dot=kept light_img=ok` at base and head. So in the Marketplace a `./` dark source is kept and resolves to the pinned ref's raw URL; a bare one is dropped while the light `<img>` of the same picture still renders. The browser picks the source by the OS/browser `prefers-color-scheme`, not by Home Assistant's own theme setting; so an HA in a theme that differs from the OS shows the OS-chosen PNG on the HA background (opaque PNGs, both read acceptably).
+- GitHub keeps the picture: `gh api -X POST markdown` with `context=tvofi/heatpump_optimizer` on the README's exact `<picture>` form returns it wrapped in `<themed-picture>` with source and srcset unchanged (`./` paths), which is GitHub's own theme switch. Not a screenshot.
+- Null control, an absolute-URL image, at both ends: absolute_images=5 resolved=5 on the base and on the head, and a one-line absolute-only README resolves 1 of 1, rc=0. The harness's own controls read `bare=blank dot=ok absolute=ok` at both ends, so it can go red.
+- mermaid_fences=3 plain_code=3 at both ends: fences stay raw code in the Marketplace, which is why the PNGs exist.
 
-The pipeline:
+## Figures
 
-1. **Backend fetch.** `homeassistant/components/marketplace/repositories/base.py`:
-   - :720 `additional_info = await async_get_readme_contents()`.
-   - :1884-1930 `get_documentation` fetches
-     `raw.githubusercontent.com/{full_name}/{target_version}/README.md`. `target_version` is the
-     installed version, else `last_version` (the release `tag_name`, :1599), else the commit.
-   - The only transform is `<svg` to `<disabled`. Nothing is rewritten.
-2. **Frontend renderer.** `ha-marketplace-repository-dashboard` (bundle `42233.4256c55c2225a8eb.js`,
-   around byte 32840) renders
-   `<ha-markdown .content=${readme} .rewriteUrl=${readmeUrl} lazy-images>`.
-   `allow-svg` and `breaks` are not set.
-3. **Pre-step.** Module 73003 export `t` protects code, HTML and links, and autolinks `#N`.
-   It does not rewrite URLs.
-4. **Markdown and sanitizer.** `src/resources/markdown-worker.ts` uses `marked`
-   (`gfm: true`, `ha-markdown-element.ts:97`). Each token then goes through js-xss `filterXSS`,
-   with the default allow-list extended at :55-74 by `picture`, `source[src,srcset,sizes,media,type]`
-   and others.
-5. **URL rewrite, after sanitizing.** `src/common/dom/rewrite-html-urls.ts:29-56` rewrites
-   `a[href]`, `img[src]`, `source[src|srcset]` with module 73003 export `E` (bundle byte ~47331).
-   - Absolute, `#` and `//` targets are untouched.
-   - Anything else resolves against
-     `raw.githubusercontent.com/{full_name}/{installed_version || available_version || default_branch}/`,
-     or `github.com/.../blob/...` for `.md` targets.
+- Relative targets prefixed: `grep -o '](\./' README.md | wc -l` prints 35 at the head and 0 on the base (`git show cc930cdd1:README.md | grep -o '](\./' | wc -l`): 28 links, 4 images, 3 new figures; a bare target left: `grep -n -E '\]\(' README.md | grep -v -E '\]\((https?:|#|mailto|\./)'` prints nothing.
+- Figure sizes: `file docs/img/readme/mermaid-*.png`: light and dark, each 2296x806, 2296x1434, 2296x5986 (the setup flow is tall; 1100 CSS px container at 2x, inside the Marketplace's ~1150 px).
+- GitHub still renders: `gh api -X POST markdown` with `context=tvofi/heatpump_optimizer` on `![b](./docs/img/readme/banner.png)` and `[c](./docs/setup.md)` returns them with the `./` path unchanged; the browser resolves it against the README's URL exactly as it resolves the bare path. This is the API's rendering, not a screenshot of the repository page.
+- Dark variant: mermaid `dark` theme on docs/site/docs.css's dark `--bg` (#0b1a28), opaque RGB, read back for the sequence diagram and the setup flow. PNG bytes are not reproducible across runs (the light setup-flow PNG re-rendered with different bytes in this session), which is why the arm compares source and file hashes recorded together, not a re-render.
+- Product page: `tests/doc_claims.py` builds the docs through tools/site/build_docs.mjs; the build exits 0 with no FAIL line and every Documentation row is a built page. build_docs.mjs resolved `./` in links and images but read the Documentation table's row targets verbatim, so the `./` rows were not matched: one line, `src: path.posix.normalize(m[1])`. tools/site/ stays code-owned (`.github/CODEOWNERS`: `/tools/site/ @tvofi`, and `/tests/closure.py @tvofi`), so the head still merges only on tvofi's approving review; the orchestrator relayed the approval, which is not a review. The second change there is `rawImages` in the raw-HTML rules: the page is served from docs/, so a raw `<img src>`/`<source srcset>` naming `./docs/img/...` would break on the product page; it resolves each candidate as the image rule does (or errors, naming the file). Checked: the built readme page carries `srcset="img/readme/mermaid-...-dark.png"` three times and no `./docs/`. The `<picture>` there follows the OS color scheme, not the site's own theme toggle.
+- Gate: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` prints `MODE: FULL`, reason `tests/closure.py changes the gate itself`. The brief requires the closure.py classification, so CI runs the full suite; I ran the doc_claims.py arm (226 checks pass) and `python3 tests/structure.py` (passes) locally.
+- Closure record: `tests/derive_closures.sh --single tests/doc_claims.py` (Darwin, `--single` per gate-scoping.md): 175 files at the base to 182 at the head (manifest, three light and three dark PNGs), plus `tools/pr/ci_predict.py --apply-inert` for harness_headers.py's INERT READS of the new harness.
 
-The rules, with evidence:
+## Red checks
 
-| question | answer | evidence |
-|---|---|---|
-| **relative paths** | **Broken for bare `docs/...`; working for `./docs/...` and `/docs/...`** | js-xss `safeAttrValue` keeps `src`/`href` only when it starts with `http://`, `https://`, `mailto:`, `tel:`, `data:image/`, `ftp://`, `./`, `../`, `#` or `/`, else `""`. Shipped worker `markdown-worker.7ccc00a11f740769.js` byte 11805; same in xss `lib/default.js:176-194`. The rewriter then turns `""` into the bare ref directory, which is not an image. Replica run below. |
-| mermaid | Not supported: shows as plain code text | No mermaid in `frontend_latest/*.js` (grep: none). marked emits `<pre><code class="language-mermaid">`; the allow-list has `code:[]`, so the class is stripped. Replica: 3 of 3 blocks are plain `<pre><code>`. |
-| SVG | Inline `<svg>` stripped. SVG **as `<img>` works** | Backend `<svg` to `<disabled`; no `svg` in the normal allow-list (`markdown-worker.ts:78-90`, svg only under `allowSvg`). raw.githubusercontent serves `.svg` as `image/svg+xml` with `CSP: sandbox`, which does not stop `<img>` rendering. Chromium loaded `coffee.svg` at naturalWidth 178 through `./`. |
-| `<picture>` / dark sources | Allowed and working, given `./` paths | `picture: []` and `source[...media, srcset]` at :55-74. `srcset` parts must each pass `safeAttrValue` (:21-43), so bare relative paths drop the whole `srcset`. Chromium with `colorScheme: dark` picked `how-it-works-dark.png`, and `light` picked the light one. Follows the OS/browser `prefers-color-scheme`, not HA's own theme picker. GitHub's `#gh-dark-mode-only` fragment is not honoured: both images would show. |
-| `<details>`/`<summary>` | Allowed (`details[open]`, `summary`) | js-xss default allow-list (bundle bytes ~8482-9250). |
-| `<img>` attributes | `src, alt, title, width, height, loading` only | Same allow-list: no `class`, `style`, `align`, `srcset` on `<img>`. |
-| max width | Page `.content{max-width:1200px}` with `--ha-space-4` padding; `img{max-width:100%}` inside `ha-card` | Bundle 42233 byte ~40396; `ha-markdown.ts:75-79`. About 1150 CSS px usable, so 2x PNGs near 2300 px wide are right. |
+none yet at this head (CI not run). Local only: `tests/harness_headers.py` rewrites `dev/audit/rounds/round4/D6/claims.json` and `claims.md` when run (the known churn, gate-scoping.md); restored, not committed.
 
-**Replica run.** This is not the shipped bundle: marked 15 + xss 1 + jsdom, using the worker's
-allow-list and export `E` as transcribed, with ref `v7.1.0`. Rendered in Chromium 1280x1400.
+## Unpinned sites
 
-| case | images that loaded | relative `href`s | mermaid |
-|---|---|---|---|
-| current README | none of `banner`, `coffee`, `card-plan-chart`, `how-it-works`; every `src` is the bare ref directory | all 28 become the bare ref directory | plain text |
-| README with `./` prefixes (sed only) | banner 2560, coffee 178, card chart 1864, how-it-works 2400 | resolve | unchanged |
+- tools/site/build_docs.mjs, `path.posix.normalize(m[1])`: tools/ site, outside mutation-autofix's `custom_components/` lane. Disposition: a value check. The mutation above (reverting it) turns `every README Documentation row is a built page` red.
+- docs/img/readme/render_mermaid.mjs: a generator under docs/, executed only by a seat with a browser; its output is pinned by the arm (block hash and PNG hash), and the regenerate-then-green run above is its demonstration.
 
-Shields and my.home-assistant badges stayed 0 because this sandbox's proxy refuses those hosts
-(CONNECT 403). That is an environment limit, not a Marketplace rule.
+## Forward-carry
 
-The harness lives in this seat's scratchpad and is not tracked. The fixer rebuilds it as the
-finder's harness (see section 5).
+- Real HA 2026.11 instance (the note's P2): not reachable from this seat; the replica transcribes the pipeline and is not the bundle. Carry: R10-CATALOG-PR in `dev/programme/rosters/wave-r10-groups.json` (owner step: a screenshot of the Marketplace repository page at the first stamped tag after this merge).
+- Figures compared to what they depict (P3): the manifest binds each PNG to its block's text hash; nothing compares the drawn picture to the diagram semantically. Carry: R10-ARCH-DOCS (the P40 check).
+- Product page (P7): each README diagram appears as the static `<picture>` plus the live mermaid inside a closed `<details>` (summary ends `(diagram source)`); the build passes and I did not screenshot it. The picture follows the OS color scheme, not the site's own theme toggle. Carry: R10-ARCH-DOCS (verify the built page reads acceptably).
+- `docs/img/readme/how-it-works.png`, the existing figure under the How it works heading, has an unused `-dark.png` variant and is a plain image, so it stays light-only here. Carry: R10-ARCH-DOCS (make it a `<picture>` too if tvofi wants it).
+- Group ordering: add R10-README-GRAPHICS to the `after` lists of R10-ARCH-DOCS and R10-CATALOG-PR (the note's routed decision). Carry: R10-ARCH-DOCS.
 
-## 3. Design
+## Friction
 
-**A. Relative targets (the main fix).** Rewrite every repository-relative markdown link and image
-target in README.md from `path` to `./path`.
-
-- GitHub resolves both forms the same way.
-- tools/site/build_docs.mjs resolves through `path.posix.join(dirname(CUR), ...)`, which normalizes
-  `./`. So the product-page build is unchanged.
-- The Marketplace rewriter pins each target to the installed or available version, so images
-  always match the README's version.
-
-Alternatives that lost:
-
-- **Absolute raw URLs pinned to a tag.** Each release needs an edit, and that edit would have to
-  happen after the stamp (CLAUDE.md rule 4 keeps versions out of branches). It drifts by
-  construction.
-- **Absolute URLs on `main`.** The images stop matching the installed version. Also,
-  tools/site/build_docs.mjs turns an absolute image into a text badge and flags absolute raw HTML
-  sources as third-party (S11). The product page would lose its figures.
-- **Leading `/`.** It passes the sanitizer too, but GitHub's README view and build_docs.mjs treat
-  it differently from a relative path.
-
-**B. Mermaid.** For each of the three mermaid blocks:
-
-1. Commit a pre-rendered PNG (2x, opaque, light theme, matching the docs/img/readme/ house style).
-2. Insert it as a markdown image (`./` path) directly above the block.
-3. Change the block's `<details open>` to `<details>`, with a summary naming it as the diagram
-   source.
-
-Result: GitHub shows the figure with the live mermaid one click away. The Marketplace shows the
-figure with the raw code folded away. The setup-flow block stays byte-identical in all three docs,
-so doc_claims' identity anchor is untouched. The README remains the single source.
-
-- **Rendering.** Use the pinned mermaid in tools/site (package.json, Dependabot-watched) inside
-  Chromium, following docs/img/readme/render.mjs. A new generator script goes beside it. No
-  mermaid-cli/puppeteer dependency is added.
-- **Drift check (the regeneration guard).** Byte-comparing PNGs cannot reproduce across machines
-  (fonts and rasteriser, the same reason value-bearing goldens are claimed). So the check compares
-  **sources**:
-  - The generator writes a sidecar manifest mapping each figure to the sha256 of its README mermaid
-    block text.
-  - A new arm in tests/doc_claims.py re-extracts each block and refuses on any of: a hash mismatch,
-    a missing PNG, a block with no figure directly above it, or a manifest entry with no block.
-  - The arm also refuses any bare-relative `src`/`href`/`srcset` target in README.md, using the
-    js-xss predicate transcribed with its upstream citation. This makes finding A a barrier, not a
-    one-off.
-  - Both checks are self-tested in the arm's style:
-    - a planted one-character block edit goes red;
-    - a planted `./` removal goes red;
-    - the null control (unchanged tree) stays green.
-- **Light/dark.** The opaque light-background PNGs read correctly on both GitHub and HA themes, and
-  that is the recommended default.
-  `<picture>` with a `prefers-color-scheme: dark` source is measured to work on both sites. It is
-  left out of this group because build_docs.mjs passes raw HTML through without path resolution:
-  a relative `srcset` inside `<picture>` would break on the product page (it is served from docs/).
-  Enabling it means editing tools/site/, which is code-owned. Carry it as an owner option, not
-  scope.
-
-Alternatives for B that lost:
-
-- **Replace mermaid with images only.** The setup-flow identity arm would need a second source of
-  truth outside README. The product page would also lose its live, theme-switching diagrams
-  (build_docs.mjs renders `pre.mermaid` with its own theme toggle).
-- **Inline SVG.** The backend and the sanitizer both strip it.
-- **SVG figure via `<img>`.** It renders, but mermaid SVG relies on `foreignObject` HTML labels and
-  web fonts that an `<img>` context cannot load. Text would fall back or clip.
-
-**Policy notes.**
-
-- **D5/D6.** No claim text changes. The new figures depict existing diagrams, which R10-ARCH-DOCS
-  already owns verifying (its P40 fold: committed figures compared to what they depict).
-- README.md is outside writing-for-agents.md, which rules only the development record.
-- **Closures.** The docs/ prefix stays INERT. The manifest and the new PNGs become reads of
-  tests/doc_claims.py, so they join that script's explicit list in tests/closure.py (the route
-  coffee.svg and how-it-works.png took). tests/entities.py then stays green with no INERT edit.
-- No `*_budgets.json` raise is expected: the change adds no production code.
-
-## 4. Programme placement
-
-- **Fold or new?**
-  - R10-CATALOG-PR is an owner-step with no files and an owner gate (tvofi personal account), so it
-    cannot carry code.
-  - R10-ARCH-DOCS is L, the last stage, after-gated on most of the round, and docs-verification
-    in scope. Folding this in would delay a user-visible Marketplace defect to the round's end and
-    widen an L.
-  - R10-MARKETPLACE is done (#2973).
-  - **Verdict: a new group, M, lane PR** (the Marketplace lane).
-- **Ordering.**
-  - after: none. Its predecessors R10-MARKETPLACE and R10-ARCH-DOCS-FIRST have both merged.
-  - **Add it to R10-ARCH-DOCS's `after`**, so the closeout verifies the figures and v10.0.0 is cut
-    with it.
-  - **Add it to R10-CATALOG-PR's `after`**, so the catalog PR is not opened on a README the store
-    renders broken.
-- **Hot files.** README.md, shared with R10-ARCH-DOCS (not started) and tests/doc_claims.py.
-- **Size: M.** A mechanical link pass, a generator, three figures, one doc_claims arm with its
-  controls, and closure entries. Not L, so designer.md does not require a design seat; this note
-  stands as its architect note.
-
-### Notes for the fixer
-
-- Carry: R10-README-GRAPHICS (item P1). The finder's harness is a replica of the HA
-  2026.11.0b1/frontend 20261028.1 pipeline: marked gfm, the worker allow-list, the rewrite rule.
-  Rebuild it under dev/audit/harnesses/ and cite the upstream lines above. Show it red at the base
-  (no repository image resolves) and green at the head. The null control is an absolute-URL image,
-  which passes at both ends.
-- Carry: R10-README-GRAPHICS (item P2). Verify with a real 2026.11 instance if one is reachable:
-  the replica transcribes but is not the bundle. A screenshot of the Marketplace repository page at
-  a pre-release tag is the strongest evidence.
-- Carry: R10-ARCH-DOCS (item P3). The new mermaid figures are committed figures that the P40 check
-  compares to what they depict.
-- Carry: dismissed: product page unaffected by dot prefixes (item P4). build_docs.mjs normalizes
-  `./` (resolveHref and the image rule both use `path.posix.join`). Re-run its doc_claims arm
-  anyway.
-
-- Carry: R10-README-GRAPHICS (item P2, reviewer's restatement). The design review could not execute the shipped markdown worker (session classifier refused), so every rule was checked statically only. The fixer must obtain a real HA 2026.11 instance or a screenshot of the Marketplace repository page at a pre-release tag; a replica alone is not enough.
-- Carry: R10-README-GRAPHICS (item P5). The source hash binds the block text to the manifest, not to the PNG. Record each PNG's sha256 in the manifest too and have the arm refuse a manifest whose PNG hash differs from the file. Self-test it, and show regenerate -> green after the planted drift, so "passes when fixed" is shown, not only "red on drift".
-- Carry: R10-README-GRAPHICS (item P6). The generator needs the tools/site mermaid (package.json pins 12.2.0, installed by `npm ci --prefix tools/site`, run in pages.yml only) plus Playwright. State in the generator's header how a seat installs both.
-- Carry: R10-README-GRAPHICS (item P7). On the product page the README diagrams appear twice: the static light PNG, plus live mermaid inside a closed `<details>`. Confirm with a build_docs run that this reads acceptably, or note it for the owner's `<picture>`/tools/site option.
-- Carry: R10-README-GRAPHICS (item P8). The fix note must state that only a stamped tag shows the fix (any stamp after the merge, not specifically v10.0.0), and only to users who install or update to it; an installed v7.1.0 keeps the broken page.
-- Carry: dismissed: sibling documents unaffected (item P9). The Marketplace fetches README.md only: no info.md, and hacs.json has no render_readme.
-- Routed: decision orchestrator: add this group to R10-ARCH-DOCS's and R10-CATALOG-PR's `after`. Decision owner: `<picture>` dark sources (code-owned tools/site/ change), and whether to stamp as soon as this merges.
-
-Probe-seat process note: a session-local inline-search guard (frugal plugin) refused two inline
-searches. The seat did not work around it: it delegated those reads to a read-only sub-seat, as
-the guard's own message directs.
-
-## Roster entry
-
-`files` is the design's actual edit set. render.mjs is not edited (the new generator goes beside it), so it is dropped. New paths are named exactly; the three PNG names are the fixer's to rename within docs/img/readme/. No workflow file is edited: the drift arm lives in tests/doc_claims.py, which tests.yml already runs through the scoped gate, so the CI wiring is the tests/closure.py classification (reads of doc_claims.py, the coffee.svg route) and nothing else. `hot_files` adds tests/doc_claims.py (shared with R10-ARCH-DOCS) and tests/closure.py (also in `files` of the not-started R10-MERGE-SUBJECT-CASEARM).
-
-Linted by appending this entry to a scratch copy of the roster at origin/handoff/audit-r10-roster and running `node tools/policy/brief_lint.mjs <copy>`: exit 0, 0 errors, 6 warnings, all pre-existing R10-FLY-* groups, none for this group.
-
-```json
-{
- "group": "R10-README-GRAPHICS",
- "lane": "PR",
- "kind": "production",
- "class": "docs",
- "severity": "medium",
- "size": "M",
- "issues": [],
- "fixes": [],
- "findings": [],
- "hot_files": [
-  "README.md",
-  "tests/doc_claims.py",
-  "tests/closure.py"
- ],
- "fixture": false,
- "owner_gate": null,
- "rca": [],
- "architect_note": "handoff-body/r10-readme-graphics",
- "effort": "medium",
- "model": {
-  "fixer": "sonnet",
-  "reviewer": "opus",
-  "rca": null,
-  "runner": "haiku",
-  "record": "sonnet"
- },
- "fixerModel": "sonnet",
- "reviewerModel": "opus",
- "after": [],
- "files": [
-  "README.md",
-  "docs/img/readme/render_mermaid.mjs",
-  "docs/img/readme/mermaid_figures.json",
-  "docs/img/readme/mermaid-how-the-pieces-fit.png",
-  "docs/img/readme/mermaid-setup-flow.png",
-  "docs/img/readme/mermaid-one-interval.png",
-  "dev/audit/harnesses/r10_readme_marketplace_pipeline.mjs",
-  "tests/doc_claims.py",
-  "tests/closure.py"
- ],
- "carry": [],
- "resume": {
-  "stage": "not-started",
-  "branch": null,
-  "commit": null,
-  "last_step": null,
-  "next_step": "dispatch fixer; add this group to the after lists of R10-ARCH-DOCS and R10-CATALOG-PR",
-  "note": "2026-10-30 owner request (tvofi): README graphics in the HA Marketplace; pre-study at handoff-body/r10-readme-graphics"
- },
- "brief": "Owner request, 2026-10-30 (tvofi): the Home Assistant Marketplace repository page does not show the front-page README graphics. Pre-study at handoff-body/r10-readme-graphics, measured against homeassistant 2026.11.0b1 and home-assistant-frontend 20261028.1. Its core finding: the Marketplace sanitizer (js-xss safeAttrValue in the frontend markdown worker) blanks every src and href that is not absolute and does not start with ./ or ../ or /, before its URL rewriter runs. So every repository-relative image and link in README.md renders broken, and mermaid fences show as plain code. (1) Prefix every repository-relative link and image target in README.md with ./ so GitHub, tools/site/build_docs.mjs and the Marketplace all resolve it. (2) For each mermaid block in README.md, commit a pre-rendered PNG (2x, opaque, light) rendered with the mermaid pinned in tools/site through Chromium on the pattern of docs/img/readme/render.mjs. Place it as a ./ markdown image directly above the block, and close that block's details element. The setup-flow block stays identical to docs/configuration.md and docs/setup.md. (3) Add an arm to tests/doc_claims.py that refuses a bare-relative src, href or srcset in README.md, and refuses a mermaid block whose figure is missing or whose recorded source hash (a sidecar manifest the generator writes) differs from the block. Show a planted one-character block edit red, a planted prefix removal red, and the unchanged tree green. (4) Classify the new manifest and figures as reads of tests/doc_claims.py in tests/closure.py, the route docs/img/brand/coffee.svg took. Finder's harness: a replica of the Marketplace markdown pipeline under dev/audit/harnesses/, red at the base and green at the head, with an absolute-URL image as the null control. Out of scope: picture elements with dark sources (needs a code-owned tools/site/ change), docs other than README.md, VERSION and release notes. Must merge before R10-ARCH-DOCS and R10-CATALOG-PR: the Marketplace fetches README.md at the release tag, so only a stamped release shows the fix."
-}
-```
+none.
