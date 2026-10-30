@@ -35,8 +35,8 @@ rendered text that no overlay value supplied.
 | `seat_ledger` | the session's seat ledger file, updated every sweep |
 | `plan_slots` | `replan.py --slots`: concurrent fixer slots the plan schedules (10 unless the owner set another) |
 | `plan_seats` | `replan.py --seats`: seats the plan may use (99 unless the owner set another) |
-| `plan_json` | the plan JSON `replan.py --out` writes and `plan_page.py --plan` reads |
-| `plan_page` | the plan page `plan_page.py --html` writes, republished at the same path |
+| `plan_json` | the plan JSON `replan.py --out` writes and `state_docs.py --plan` draws |
+| `plan_page` | the plan page, `PLAN.html` in the state mirror (`state_docs.py --plan` writes it), republished at the same path |
 | `state_mirror` | the directory `state_docs.py --mirror` writes |
 | `tick_alive` | the tick seat's liveness file, touched every pass |
 | `tick_log` | the tick seat's log |
@@ -62,7 +62,7 @@ ORCHESTRATOR SWEEP, round {{round}}, repository {{repo}}. Read {{seat_ledger}} f
 
 (4) After each merge (`dev/governance/roles/nudge.md` steps 12 and 18): `tools/audit/seat/roster_edit.py set-stage` for a roster group, one #201 comment through `tools/pr/gh_comment.py` with its read-back, `tools/audit/worktree_gc.sh {{repo}}`, the issues the merge commit closed read back (`dev/governance/roles/orchestrator.md` section 4), and the finished seat's worktrees under {{seat_root}} and its scratch removed.
 
-(4b) Record beat, every sweep, merge or none: `tools/audit/seat/state_docs.py --push --mirror {{state_mirror}}`, then `python3 tools/plan/replan.py --out {{plan_json}} --slots {{plan_slots}} --seats {{plan_seats}}`, then `python3 tools/audit/seat/plan_page.py --plan {{plan_json}} --html {{plan_page}}`, republished at the same path.
+(4b) Record beat, every sweep, merge or none: `python3 tools/plan/replan.py --out {{plan_json}} --slots {{plan_slots}} --seats {{plan_seats}}`, then `tools/audit/seat/state_docs.py --push --mirror {{state_mirror}} --plan {{plan_json}}`, which publishes the plan page as `PLAN.html` in the plan table's commit at the state ref and mirrors it as {{plan_page}}, republished at the same path. Exit 1 there is the page UNAVAILABLE (the other docs are still pushed; the ref keeps the last good page): re-run the replan, never hand-run `plan_page.py` around the refusal.
 
 (4c) Open pull requests. Reconcile every open pull request to one bucket, with its reason: in train, review out, fixer out, CI wait, or owner-held; none waits without one; critical path first.
 
