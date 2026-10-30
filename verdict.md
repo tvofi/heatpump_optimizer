@@ -1,0 +1,30 @@
+Fix review: blocked 4cd6cac6495a2d7ac1a452fad6bc8e9eceef1c75 mutation-vacuous: sweep_plan's b == "main" skip disjunct survives (round-1 sweep-main-skip mutant still unpinned)
+
+bus-nonce: 67106b260d33b8210232687687357059
+
+Round 2 (previous head a3b3a42cab6ef5a43a691738376be7648d079b5b, blocked carry-missing at verdict/3004 354e3f218). Reviewed from a detached worktree at 4cd6cac6495a2d7ac1a452fad6bc8e9eceef1c75; merge base cc930cdd1; dev/governance/roles/ unchanged against origin/main (empty three-dot diff). Round 3 would still be a repair, not a re-cut.
+
+## Block
+
+Round 1 listed the sweep-main-skip mutant as surviving, and the brief asks for every round-1 unpinned mutant to be pinned. At this head, dropping only the `b == "main"` disjunct from `if b == "main" or r.get("event") not in EVENTS or (hr and hr != repo):` in `sweep_plan` (tools/pr/cancel_superseded.py) still leaves the self-test at `43 checks, 0 failed` (ev/mutants.txt). The new arm "main and non-PR-event runs count as skipped, not as ghosts" catches only the event half, because its main fixtures are `push` and `schedule` runs, which the event filter skips anyway. The disjunct has an effect you can observe: a queued `workflow_dispatch` run on main gives `skipped 1, ghosts 0` at the head, but `skipped 0, ghosts [50]` under the mutant (ev/main-skip-probe.txt). So the sweep reports a main run as a ghost, which is the count corruption the body says this skip prevents. The body's claims "every unpinned sweep mutant is pinned" and "main/event skip dropped: 1 FAIL" are true only for dropping the whole skip, and false for the main half. Fix: add one arm with a `workflow_dispatch` (or `pull_request`) run on `main` that expects it to be skipped and not counted as a ghost, and re-run this mutant. No production change is needed.
+
+## Findings
+
+- `commit-only-cancel-prs` survives: if the commit-read guard `if any((by_id[i].get("head_branch") == h.get("ref")) for i in first["cancel"]):` is replaced by `if True:`, the self-test still gives 43 checks, 0 failed (ev/mutants.txt). Behaviour stays correct, but the stated API cost bound ("one commit read per open PR with something to cancel", in the body, the docstring and the instrument page) is not pinned, so a regression to one commit read per open PR would pass. Fix: add an end-to-end arm that counts `/commits/` calls with two open PRs, one of which has nothing to cancel. Carry: R10-FLY-CANCEL-SWEEP
+- `pr-open-state` survives: dropping the `state == "open"` test in `sweep_plan` does not change the result, because the listing already asks for `state=open`. This is defensive redundancy and no wrong result is reachable. Carry: dismissed: the pulls listing is queried with state=open, so the guard is unreachable redundancy
+- tools/pr/cancel_superseded.py is code-owned (.github/CODEOWNERS:75), so it merges only on @tvofi's approving review. This is flagged as the brief asks and is not a block. Carry: dismissed: the merge gate is the code-owner review, not this seat
+
+## Evidence
+
+- RESULT self-test at head: `cancel_superseded self-test: 43 checks, 0 failed` (ev/selftest-head.txt), which matches the body.
+- RESULT round-1 mutants re-run at head (ev/mutants.txt, script ev/mut.py): eight are now pinned, with the arms failing: sweep-event-skip 1 FAIL, fork-run 1, live-bound 1, unreadable-prs 2, unreadable-runs 1, status-active 1, commit-unreadable 1, bot-detect 2 (plus bot-detect-name 1). One survives: sweep-main-skip (0 FAIL, see Block).
+- RESULT pagination and statuses: no-pagination 2 FAIL, no-truncation-line 1, truncated-flag 1, statuses cut to ACTIVE[:3] 1 FAIL. The sweep lists all five ACTIVE statuses (queued, in_progress, waiting, pending, requested), pages 100 at a time up to MAX_PAGES=10, and prints `CANCEL-SWEEP: truncated: <listing> still full after 10 pages; counts are a lower bound`. This settles round-1 finding 3.
+- RESULT other arms: bot-skip-plan 3 FAIL, kept-count 2, ghost-add 1. The EVENTS-widened mutant is pinned by the self-test's own arm.
+- API cost bound: stated in the body (## API cost bound), the module docstring and tools/audit/seat/instruments/cancel_superseded.py.md, as "1 PR listing + 5 run listings + one commit read per open PR with something to cancel + one POST per cancel". This matches the code (one listing() per ACTIVE status). It settles round-1 finding 2. Its commit-read clause is unpinned (see Findings).
+- Forward-carry: under mandate 6329234399 the body routes roster carry 9e7ba7aae (tier module, config file, train pause/resume) to R10-FLY-CANCEL-SWEEP PART 2. I accept that disposition as the brief instructs. The packet's carry_audit: 1 routed, 0 unrouted, 0 bad destinations.
+- Null control: the "sweep null" arm (only live-head runs cancels nothing) passes, and the restored tree gives 43 checks, 0 failed.
+- Merge: `git merge-tree --write-tree origin/main 4cd6cac6495a2d7ac1a452fad6bc8e9eceef1c75` exits 0 with tree 5cfdac70a, no conflict (ev/merge-tree.txt). VERSION, the manifest, RELEASE_NOTES.md and tests/golden/ are untouched.
+- Structure: STRUCTURE RATCHET PASSED. Scope: `MODE: SCOPED -- 1 script(s) run, 32 scoped out.` (ev/structure.txt, ev/closure-mode.txt). The self-test runs in CI at governance.yml:360.
+- Head: the body's ## Head names 4cd6cac6495a2d7ac1a452fad6bc8e9eceef1c75, and that is the head I measured.
+- CI at 4cd6cac6495a2d7ac1a452fad6bc8e9eceef1c75, read from the check-runs API (ev/checks-at-head.txt): no check is red. Still in progress: instrument-self-tests (the job that was red at a3b3a42cab), coverage, closures, codeql python and one prelude run, so their outcomes are unverified. At the previous head the body answers the instrument-self-tests red as "cause not established, cheaper detector none". That is an answer, and whether the red persists is up to the orchestrator's CI read. No prelude or pr-contract red from HTTP 502 was seen at this head.
+- No finder's harness is named (instrument group). I built no harness beyond the mutants and the one probe listed.
