@@ -9661,7 +9661,7 @@
    ],
    "carry": [],
    "resume": {
-    "stage": "absorbed",
+    "stage": "done",
     "branch": "handoff/r10-fly-record-beat",
     "note": "absorbed into R10-FLOW-POSTMERGE (consolidation audit 2026-10-25, tvofi existing-groups-first); brief and #2801 carried there"
    },
