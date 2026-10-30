@@ -2798,7 +2798,7 @@
     "branch": "handoff/r10-briefs-fold",
     "commit": "b24cfe517bd95d30911c43184cf62e2ac781aa19",
     "last_step": null,
-    "next_step": "dispatch a fixer once every `after` group is done",
+    "next_step": "done: merged in #2631 (b24cfe517)",
     "note": null,
     "pr": 2631
    },
