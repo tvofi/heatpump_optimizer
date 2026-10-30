@@ -34,6 +34,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-996-RUNNER-CLAIMS (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-ARCH-SHAPES-CLASSIFIER (stage queued): no branch pushed yet, so nothing to fetch
 - R10-FRICTION-REGRESSION (stage carries-open): no branch pushed yet, so nothing to fetch
+- R10-FLY-TRAIN-DEFAULTS (stage in-progress, branch `handoff/r10-fly-train-defaults`): `git fetch origin handoff/r10-fly-train-defaults && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-CIPREDICT-RESTORING (stage queued): no branch pushed yet, so nothing to fetch
 - R10-FLY-CANCEL-SWEEP (stage in-progress, branch `handoff/r10-fly-cancel-sweep`): `git fetch origin handoff/r10-fly-cancel-sweep && git worktree add --detach $SEAT/wt FETCH_HEAD`
 

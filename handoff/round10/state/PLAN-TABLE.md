@@ -324,7 +324,7 @@ Role: dev/governance/roles/root-cause.md. |  |
 | R10-FLY-PREPR-SUMMARY | IN | 1 | done | - | sonnet/opus | - | Owner order (tvofi, 2026-10-28). |  |
 | R10-FLY-INSTRUMENTS-SPLIT | IN | 1 | done | - | sonnet/opus | - | Owner order (tvofi, 2026-10-28). |  |
 | R10-FLY-MUTANT-RESTORE | IN | 1 | not-started | - | sonnet/opus | - | From triage P247 (V161, fixer s10 #2903): the mutant harnesses under dev/audit/harnesses/*_mutants.py mutate a tracked file in place and restore it in `final... |  |
-| R10-FLY-TRAIN-DEFAULTS | IN | 1 | not-started | #2715, #2719, #2801 | sonnet/opus | - | From triage P269 (V183, owner-directed by tvofi 2026-10-28T20:20:27Z: train.sh and the merge sweep default to the recommended set, each switchable off; the m... |  |
+| R10-FLY-TRAIN-DEFAULTS | IN | 1 | in-progress | #2715, #2719, #2801 | sonnet/opus | - | From triage P269 (V183, owner-directed by tvofi 2026-10-28T20:20:27Z: train.sh and the merge sweep default to the recommended set, each switchable off; the m... |  |
 | R10-FLY-NIGHTLY-HB | IN | 1 | done | - | opus/opus | - | Make the nightly-ha heartbeat positive control (check_hb_positive_control in tests/nightly_ha.py, failure key hb:positive_control) deterministic on a loaded... |  |
 | R10-FLY-ABORT-OWN-MERGE | IN | 1 | done | - | sonnet/opus | - | From triage P276 (orchestrator 2026-10-29T05:58Z: abandoned merge worktrees hold a PR's branch; #2935 staged half-merge, #2936 106-file conflicted merge, #29... |  |
 | R10-FLY-OWED-LEVELS | IN | 1 | done | - | sonnet/opus | - | From triage P277 (orchestrator, measured 2026-10-29T08:10Z): the tick prints flagged `MERGE-READY: #N <head8>` and `BLOCKED-UNFIXED: #N <head8>` lines (orche... |  |
