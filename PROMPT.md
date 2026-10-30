@@ -6,8 +6,9 @@ Never write to any branch except your return refs. Never work around a hook or a
 
 Brief (snapshotted when this payload was rendered):
 REVIEWER seat for record PR #3007 (triage s8 batch 74: ruling P308), head 76e025ff0e7f0645dfee4b8118286d40aed0b69d. Contract: dev/governance/roles/fix-review.md at origin/main, applied to a record PR. The diff should be the new file dev/programme/triage/s6-batch74.md plus the PR's own delivery row. Check:
-- P307's DEFER ruling cites only what its sources hold. Spot-check the 601 TRAIN HOLD lines, the 8 BOT MERGED lines and the 15 skips against the train log it names, if that log is in the tree; otherwise check that the ruling states where they came from.
-- Every finding line carries its Carry: marker.
-- No roster op is implied.
-- The body passes the contract, and gate and CI are green at the head.
+- P308 (ACCEPT, narrowed: carry_audit stops treating `## Evidence` items as findings unless they open with an explicit lead or carry a Carry: marker). Re-run tools/audit/carry_audit.py on #2987, #3001 and #3002 as the ruling did, and confirm each named item trips on the word the ruling states.
+- The null controls it carries are stated precisely enough for the host fixer: an unmarked `## Findings` item is still refused; an Evidence item opening `Follow-up:` is still a finding; an Evidence Carry: is still checked for its destination.
+- What it gives up (the #2441 and #2465 fixture rows flipping to pass) is stated and justified.
+- Its one roster op is the carry b74-P308 to R10-FLY-RELAY-REVIEW-FF. Check that the destination exists and is not done.
+- Every finding line carries its Carry: marker; the body passes the contract; gate and CI are green at the head.
 Put your verdict on the probe ref your bus nonce names.
