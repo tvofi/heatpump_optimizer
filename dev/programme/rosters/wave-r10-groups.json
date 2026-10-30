@@ -10518,7 +10518,8 @@
     "dev/audit/rca/"
    ],
    "carry": [
-    "`reviewer-head-off` survives `r10_flow_dispatch_mutants.py` at the base and at this head: `dispatch_group`'s \"a reviewer needs --head\" refusal is not pinned by the self-test (the arm that should kill it, `refused(role=\"reviewer\", pr=\"7\")`, is refused for another reason). Carry: R10-FRICTION-MUTATION-SURVIVOR"
+    "`reviewer-head-off` survives `r10_flow_dispatch_mutants.py` at the base and at this head: `dispatch_group`'s \"a reviewer needs --head\" refusal is not pinned by the self-test (the arm that should kill it, `refused(role=\"reviewer\", pr=\"7\")`, is refused for another reason). Carry: R10-FRICTION-MUTATION-SURVIVOR",
+    "Issue #2942, the recurring-friction key mutation (family), refiled by the governance cron after #2410 closed with R10-RCA-FRICTION-RESIDUE (#2896), belongs to this seat beside #2840 (orchestrator routing 2026-10-29, owner request). Read dev/audit/rca/R10-RCA-FRICTION-RESIDUE.md first: state whether the refiling is the same cause (then the countermeasure there failed: process state c) or a new one, and answer it in this group's record."
    ],
    "resume": {
     "stage": "done",
