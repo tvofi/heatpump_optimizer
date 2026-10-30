@@ -1,0 +1,1 @@
+2448:  ok   every `bash -c` / `sh -c` a check runs carries errexit, as GitHub's step shell does, unless it runs no workflow step (countermeasure B)
