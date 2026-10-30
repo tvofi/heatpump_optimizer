@@ -288,6 +288,11 @@
   ok   null control: an entry still in the live batch (#5, #6 re-added as batch 2 starts) is ALREADY from the pending layer, rc 0, nothing spooled
   ok   P189 HOLDER arm, pre-flight: a PARK at `recarry` (the worktree holder) is recorded skipped [HOLDER] with its verdict, so a same-verdict re-add is admitted; a `carry` PARK is skipped with no class
   ok   P189 HOLDER arm: an entry skipped [HOLDER] and re-added at the SAME verdict is ADDED by `add` and by the drain (batch 2), and a ci-skipped one at the same verdict is ALREADY on both sides
+  ok   a drained entry (#2, added while batch 1 ran) re-added while its batch runs and after it merges is ALREADY from `add` both times and from the drain; it merges once
+  ok   an add against an old-code train (QUEUE_PENDING only, live pid) reads its pending as held: #9 ALREADY; null control: #10, not in it, is ADDED
+  ok   --overlap: an entry an EARLIER batch skipped, re-added, is recarried up front in its new batch (only this batch's skips filter the list) and merges
+  ok   skipped-then-merged is cured: CURED #2, skipped.json and SKIP REPORT drop it, rc 0; null control: batch 1's own report still counted it
+  ok   a rehearsal's serial entry not run is recorded `ran`: QUEUE_PENDING lists pending only ([3], not merged #1 or ran #2), train_boarded reports it not boarded, and a re-add is ALREADY; null control: #3, still to run, is boarded
   ok   live queue NULL CONTROL: a one-batch queue, flat or nested, with nothing added runs the train as before -- the same lines and the same calls (shas aside: each world commits afresh), and no queue line among them
   ok   one train per state dir: a queue another live train holds refuses this one before anything is read or merged
   ok   queue_batches refuses a mix of entries and batches, naming the rule
@@ -349,5 +354,5 @@
 REFUSE add: --auto is the started train's flags; give it or `-- <train.sh flags>`, not both
   ok   sweep's CLI: one sweep under the mandate, its started train train.sh --bot-prs --approval-carry --pre-flight --mandate
   ok   add --auto (bus.sh's event add): the same started train, the comment left for admit_add to fill; --auto with `--` flags is refused
-merge_train self-test: 350 checks, 0 failed
+merge_train self-test: 355 checks, 0 failed
 rc=0
