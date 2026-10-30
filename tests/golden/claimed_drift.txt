@@ -58,6 +58,7 @@
 #
 # v7.1.0: Round-10 merge train: claim-carry barrier, train admission, COP gate and part-load, Health tab, Marketplace. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
+config_flow # r10-wood-notify: the wood_lighting_lead_minutes option joins the seeded wood group; one key added, no value moved
 #
 # may-drift: flat_prices -- #1208 polish-every-candidate, owner ruling #1208 comment 208bed25
 # (option (a)): the move's margin is inside the noise band (objective rel
