@@ -7604,7 +7604,7 @@
     "branch": "handoff/r10-fly-budget-leaf",
     "commit": "1787ffd08979dd21d525258cfc9ebd30c4455f72",
     "last_step": null,
-    "next_step": "dispatch a fixer (fly-in, lane F)",
+    "next_step": "done: merged in #2591 (1787ffd08)",
     "note": "Fly-in registered by the orchestrator (session s4) under mandate 6319294694 for #2591."
    }
   },
