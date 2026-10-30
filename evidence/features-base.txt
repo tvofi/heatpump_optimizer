@@ -1,0 +1,4 @@
+  ok   a pending prediction pairs with the interval that closed from 3 minutes to 2 hours old, both ends included; a re-run sooner or a gap longer pairs nothing
+  ok   a pending prediction a minute or three hours old pairs neither an accuracy sample nor a draw reading; one 30 minutes old pairs both (null)
+ALL 4586 FEATURE CHECKS PASSED
+rc=0
