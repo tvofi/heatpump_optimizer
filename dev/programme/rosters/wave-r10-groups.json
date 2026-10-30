@@ -1707,7 +1707,7 @@
     "branch": "handoff/r10-arch-shapes",
     "commit": "4f3c7302046eccd1f869724a6de2cbf6f8183418",
     "last_step": null,
-    "next_step": "PR #2819 is open at af7ec86f4, which is an ancestor of this ref: the handoff branch has main merged in (1f82fee49, #2856) and the PR head does not. Update the PR head to 04669d82f, or resolve the conflict on the PR, then review.",
+    "next_step": "done: merged in #2819 (4f3c73020)",
     "note": null,
     "pr": 2819
    },
