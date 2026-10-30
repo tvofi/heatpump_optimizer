@@ -10612,7 +10612,7 @@
     "branch": "handoff/r10-diag-ages",
     "commit": "beb570c817c4efcae0d5f6f4bba52f3383baf8db",
     "last_step": "Handoff pushed at ec2384f70: the three #2814 residues (input ages re-based from input_ages_at to the export; plan_stale re-judged at the export with plan_stale_limit_minutes; self_tests_at stored with the results and stated in the manifest), the structure re-record (class_excess_loc 18079->18078, max_class_loc 8236->8235, no raise) and 107 lines of failing-first checks in tests/debug_collect.py (144 checks). Scoped gate MODE: SCOPED -- 27 script(s) run, 6 scoped out; 5 red scripts, all reproduced at merge base 6fe5170cd in the same environment (card V8 OOM, strict golden, entities BSD wc -l padding, optimality closed claim, the stress shoulder measurement); golden in drift mode rc 0. prepr PRE-PR clean, 0 refusals.",
-    "next_step": "Review owed at the handoff tip (fix-review from a detached worktree, the finder harness). Body on handoff-body/r10-diag-ages; open the PR after the verdict. One forward-carry to R10-FLY-SUITE-ENV-FLAKES (the entities py-spy stub BSD wc -l padding).",
+    "next_step": "done: merged in #2873 (beb570c81)",
     "note": "wired by the roster seat 2026-10-26 under the owner's completion rule (tvofi 20:20Z)",
     "pr": 2873
    },
