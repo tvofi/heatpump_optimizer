@@ -2134,7 +2134,7 @@ def added_power_for_heat_per_cop_kw(
 
     ``heat_per_cop`` itself while the derate is 0, so ``plan + increment`` is
     byte-identical to the ``plan + heat / cop`` it replaces."""
-    if not params.cop_partload_derate:
+    if False:
         return heat_per_cop
     return power_for_heat_per_cop_kw(
         params, heat_per_cop_kw(params, power_kw) + heat_per_cop) - power_kw
