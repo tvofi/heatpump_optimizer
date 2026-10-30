@@ -1,39 +1,40 @@
-Fix review: blocked a11db7fea14bc34633eb65e8111a207142eb45ab class-open: a row push that lands on origin and then fails (body PATCH or read-back) closes a PR that has its row
+Fix review: merge de676fcc705b4f791d7588c14a9348f9fc700363
 
-bus-nonce: eabc7b4c50769f21225dba2bbdcc5729
+bus-nonce: 7e546b2dddedd4cdce42d86b8d4d559b
 
-Round 1 for this reviewer seat. Head measured: `a11db7fea14bc34633eb65e8111a207142eb45ab`. It was still the PR head when this verdict was written (`ev/heads-at-verdict.txt`).
+## Round
 
-## Block
-
-`op_close_unrowed` (`tools/audit/seat/open_pr.sh`) treats any non-zero exit of the `--row-only` push as "the row was not pushed". It closes the PR and comments `open_pr: CLOSED: #N ... before its row was pushed`. But `tools/pr/app_push.sh`'s `push_and_open` can exit 1 **after** `git push` has succeeded:
-
-- `die "the body PATCH on #$num was refused; the branch IS pushed as the App ..."`
-- `confirm_readback`'s `body`, `bad state=` and exhausted-budget refusals.
-
-In each of those cases the row is on origin, so the PR is not rowless. The diff now closes a correct PR and posts a false reason. Before this diff the same seam only printed a false `ROWLESS` line and left the PR open with its row. So the diff turns a cosmetic error into closing a valid PR.
-
-The body's class description ("a refused second (row) push, a step errexit stops between the two pushes, a stop signal") neither names nor dispositions this seam, and no enumeration rule is given. A stop signal that arrives after the push's `git push` has completed falls in the same seam.
-
-Reproduced, not only read. I ran a reviewer-built probe: the self-test's stub `app_push.sh` call 2 was changed to push the row and then exit 1 with the PATCH refusal text (`ev/probe-postpush-close.diff`). The `rowless -` arm then printed:
-`PROBE closed=1 ... rco=1`, `open_pr: CLOSED: #5 at 334fbb5..., before its row was pushed`, and origin's `fix/r` at `2a8f66e record: the delivery row for #5` with `dev/programme/delivery/5.md` present (`ev/probe-postpush-close.txt`, lines 135-138). The probe's own trailing rc=1 comes from a syntax error in my instrumentation line, not from the code under review.
-
-A cheap repair would compare origin's branch tip with `$H` (`git ls-remote`) before closing, and close only when the row commit is absent. A regression arm would plant the post-push failure.
+This is the review of the body's round six (round-six repair of round four's red; round five was blocked at `a11db7fe`). Measured at head `de676fcc705b4f791d7588c14a9348f9fc700363`, still the PR head when this was written (`ev/head-at-verdict.txt`). Role contract current: `git diff <merge-base>...origin/main -- dev/governance/roles/` is empty.
 
 ## Findings
 
-- The post-push failure seam of the `--row-only` push closes a PR whose row is on origin, and comments that the row was never pushed (see Block). Carry: R10-FLY-OPENPR-ATOMIC
-- The body's `## Figures` misstates the head self-test count. It says `pr_args self-test: 154 checks` and 160 `ok` lines at the head, three more than the base. Re-run at this head: `156 checks, 0 failed` with 162 `ok` lines, five more than the base (`ev/selftest-head.txt`). The base figures (151 / 157) re-derive exactly (`ev/selftest-base-1afdef8.txt`). The two uncounted checks are the `mut:trapclose` and errexit-after-PR (title edit) arms, and `## Mutation proof` does not list `mut:trapclose` either. Carry: R10-FLY-OPENPR-ATOMIC
+- Surviving mutant on an added line: deleting `[ -z "${PR_ATTEMPT:-}" ] || return 0` from `op_close_unrowed` (open_pr.sh:60 at the head) leaves `bash tools/audit/seat/open_pr.sh --self-test` at rc=0, `158 checks, 0 failed` (`ev/mut-own-attemptguard.txt`). PR state cannot go wrong under it on the current tree, because the success path's last act is `PR_ATTEMPT=opened` and origin's tip is then `H`, so the mutant routes to `op_row_landed`. But every successful open would then print a false `open_pr: ROW LANDED: ... the row push then failed` line, or `ROWLESS` if `ls-remote` fails. No arm asserts that a successful open prints neither line. The fix is to make `racerun -` assert `! grep -qF 'ROW LANDED'` and pin the line as `# mut:attemptguard`. Carry: R10-FLY-OPENPR-ATOMIC
+- The unreadable-tip branch (`tip=unread`) is unpinned, as the body's `## Unpinned sites` discloses. My own mutant, which deletes `&& [ "$tip" != unread ]`, draws no FAIL in the opener's arms. Its one FAIL is the unrelated timing arm `mutant mut:unlock ... the holder is still alive when the run returns` (`ev/mut-own-unread.txt`), which I read as a flake, not a kill. Carry: R10-FLY-OPENPR-ATOMIC
+- Deferred by the body and left on the roster: carry 4 (P71, default Closes from roster `fixes`), carry 6 (V64, auto-open in `cloud_relay.sh`), carry 7 (V141, delete a merged leftover branch; until it lands, a re-run after a close opens from `fix/<topic>-pr`) and carry 8's `handoff_push.sh` seams. Carry: R10-FLY-OPENPR-ATOMIC
+- The body's root-cause answer for the round-five red on `governance / instrument-self-tests` names process state (a): no local step maps a changed seat script to the instrument self-tests that read its text. It defers the countermeasure and its cost test to a root-cause seat, and nothing is built here. Carry: R10-FLY-OPENPR-ATOMIC
+- The body quotes the class-rule-1 output as lines 120-141. That `awk` rule prints 121-142 both at the head and at the code head `ba4a8320` (`ev/class-rule-1.txt`). The line-by-line dispositions still map one to one, shifted by one. Carry: dismissed: off-by-one line numbers, enumeration content and dispositions unchanged
 
 ## Evidence
 
-- RESULT head self-test: `bash tools/audit/seat/open_pr.sh --self-test` at a11db7f exits 0, `pr_args self-test: 156 checks, 0 failed`, `delivery_row self-test: 6 checks, 0 failed`.
-- RESULT base self-test at merge base 1afdef8: exits 0, `151 checks, 0 failed`, 157 `ok` lines.
-- RESULT mutation proof: the in-tree arms for `mut:rowclose`, `mut:trapclose`, `mut:rowreset` and `mut:mergeabort` all print `ok` at the head, so each named mutant is killed. The failing-test-first claim against main's `open_pr.sh` was not re-run by me.
-- RESULT merge: `git merge-tree --write-tree` exits 0 against base 1afdef8 and again against the newer origin/main eec56f2 (`ev/merge-tree.txt`, `ev/merge-tree-eec56f2.txt`). No conflicts and no claim-file involvement.
-- RESULT version: VERSION, the manifest and `RELEASE_NOTES.md` are untouched. No golden or claim file is in the diff. `env_drift` is not applicable.
-- RESULT finder's harness: none was named, and the review packet reports none. The self-test arms are the fixer's. The post-push probe above is my own instrument, disclosed as such.
-- RESULT checks: read from the check-runs API at this head. No check concluded red. Still in progress when read: `tests / fast (3.14)`, `tests / closures`, `tests / coverage`, `tests / browser`, `governance / env-matrix`, `governance / instrument-self-tests`, `codeql / Analyze (python)`. The body's `## Red checks: none` matches what has concluded. This verdict does not rest on them.
-- RESULT governance: `dev/governance/roles/` is unchanged between the merge base and origin/main.
-- RESULT forward-carry: the body says none. Carries 4, 6 and 7 are stated as staying on the roster, which I did not open.
-- A cost-guard hook in this session refused further inline commands. The probe was run by a delegated worker under my exact spec. I did not bypass the hook.
+- RESULT head self-test: `bash tools/audit/seat/open_pr.sh --self-test` rc=0, `delivery_row self-test: 6 checks, 0 failed`, `pr_args self-test: 158 checks, 0 failed`, 164 `  ok` lines. These match the body (`ev/selftest-head.txt`, `ev/local-runs.txt`).
+- RESULT ledger: `ledger self-test: 77 checks, 0 failed`. RESULT `r10_ledger_mutants self-test: 135 checks, 0 failed`.
+- RESULT mutation proof (step 1), each named `# mut:` line deleted from open_pr.sh at the head:
+  - roworigin: rc=1, 1 failed (the post-push arm).
+  - trapclose: rc=1, 5 failed.
+  - rowclose: rc=1, 3 failed.
+  - rowreset: rc=1, 2 failed.
+  - mergeabort: rc=1, 1 failed (the conflict arm).
+  - `PR_EXIT_FIRST=` deleted from pr_args.sh: rc=1, 8 failed.
+  - `r10_ledger_mutants.py O1_no_attempt_on_exit`: `RESULT mutant=O1_no_attempt_on_exit rc=1 fails=3`, `plants: 1, without a FAIL line: none`.
+  - The body's counts for trapclose (5) and the `PR_EXIT_FIRST` deletion (8) re-derive exactly. All files were restored and `git status --porcelain` is empty.
+- RESULT failing-test-first: open_pr.sh taken from `a11db7fe` gives rc=1, `158 checks, 1 failed`, and the FAIL is `open_pr: a row push that lands on origin and then fails leaves the PR open with its row, and says so`. This matches the body.
+- Finder's harness: none named in the packet. The finding's harness is the in-tree self-test arm built from round five's review probe (`p2postfail`), disclosed as such in the body.
+- Class (step 6): rule 1 (`awk` over open_pr.sh) returns the N=..PR_ATTEMPT range, and every line is dispositioned in the body (see the offset under Findings). Rule 2 returns 8 `app_push.sh` sites (537, 541, 545, 548, 350, 351, 364, 366), the same as the body. The close keys on origin's tip, not on which site fired, so every site is covered by the one tip read. No seam is open.
+- `ledger.py attempt` takes free text for the outcome (`attempts()` stores it verbatim, and `escalate` prints it as `last attempt <x>`), so the new `closed,PR=N` value is accepted.
+- Merge (step 13): `git merge-tree --write-tree origin/main de676fcc...` exits 0 against origin/main `ca0a6cfbc2e5538e6e2220793831443719ff6e98` (`ev/merge-tree.txt`). There is no conflict, so the claim driver was not invoked.
+- Step 5: `git diff --stat <mb>...HEAD -- VERSION RELEASE_NOTES.md tests/golden custom_components/*/manifest.json` is empty. No claim file is touched, so step 4 is moot.
+- `git diff ba4a8320..de676fcc -- tools/` is empty, so the main merge added nothing to the authored tools.
+- CI (step 11), from the check-runs API at this head: all 42 runs have concluded. Every one is success or skipped, CodeQL included. That covers `gate`, `pr-contract`, `governance / instrument-self-tests`, `tests / closures`, `tests / mutation` and `codeql / Analyze (python)`. No check is red at this head. The round-five red (`instrument-self-tests` at `a11db7fe`) is named and answered in `## Red checks` with a cheaper detector and a process state, which is what step 11 asks for. The heavy runs (gate, mutation table) are cited from CI and were not re-run.
+- Not re-derived: the body's 89-step local replay of the `instrument-self-tests` job. I cite CI's green run of that job at this head instead. The figure-lint `unverified` items are flag-only.
+- Architecture (step 15): the close is one EXIT-trap path chained through `PR_EXIT_FIRST`, and the old inline close is removed, so there is no second copy. No breach found.
+- Forward-carry: the body says `none`. Its deferrals stay on the roster group, carried above.

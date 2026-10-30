@@ -1,0 +1,22 @@
+121: N=$(grep -oE 'pull request #[0-9]+' $D/p1.log | head -1 | grep -oE '[0-9]+')
+122: pr_exit_trap "op_close_unrowed; $PR_EXIT_FIRST"  # mut:trapclose
+123: gh pr edit $N --title "$TITLE" >/dev/null; gh pr ready $N --undo >/dev/null 2>&1 || true
+124: commit_row . $N "$(row_line $N $R "$TITLE" "$G")" >/dev/null
+125: H=$(git rev-parse HEAD)
+126: PYTHONPATH="$PRT" python3 - $D/body.md $H $N $C <<'E'
+127: import sys; from head_note import prefix
+128: p,H,N,C=sys.argv[1:5]; s=open(p).read()
+129: s=prefix(s,"`%s` adds one commit to the previous head, containing only this PR's own row, `dev/programme/delivery/%s.md`. The authored code head is `%s`.\n\n"%(H,N,C))
+130: open(p,'w').write(s)
+131: E
+132: RO=--row-only  # mut:oprowonly
+133: { pr_push_hold; PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash "$_push" $RO $R $WT $BR $D/body.md $ISS > $D/p2.log 2>&1 & } 9>>"${PR_PUSH_LOCK:-/dev/null}"
+134: rc=0; wait $! || rc=$?
+135: if [ "$rc" != 0 ]; then
+136:   # The exit below closes #N unless origin took the row (op_close_unrowed); this names the refusal.
+137:   OP_WHY="the row push was refused:
+138: $({ grep -E 'REFUSE' $D/p2.log || tail -n 20 $D/p2.log; } 2>/dev/null || :)"
+139:   pr_push_failed $D/p2.log
+140: fi
+141: PR_PUSHED=$H
+142: PR_ATTEMPT=opened,PR=$N
