@@ -1172,6 +1172,32 @@ class Tick:
             else:
                 self.line(S, f"{gid}: in progress (stage {stage})")
         self.design_builds(S, rl, roster)
+        self.designs_owed(S, rl, roster)
+
+    def designs_owed(self, S: str, rl, roster: dict) -> None:
+        """`DESIGN OWED:` an eligible group (size L or XL, decision 0014) whose
+        every `after` group is done or dispatched, still undispatched itself,
+        with no `design/<group>` ref: the designer starts when the last
+        predecessor dispatches, not when it merges. A failed ref read is
+        UNREADABLE, never an empty owed list."""
+        code, o = self.git(["ls-remote", "origin", "refs/heads/design/*"])
+        if code:
+            self.unreadable(S, "designs owed", o.strip()[-100:])
+            return
+        have = {l.split()[1][len("refs/heads/design/"):].lower() for l in o.splitlines()
+                if len(l.split()) >= 2 and l.split()[1].startswith("refs/heads/design/")}
+        groups, open_g = rl.groups_of(roster), rl.open_groups(roster)
+        for gid, g in groups.items():
+            stage = (g.get("resume") or {}).get("stage")
+            if gid not in open_g or not rl.needs_design(g) or gid.lower() in have:
+                continue
+            if stage not in UNBLOCKABLE_STAGES + ("design",):
+                continue  # already past the design step
+            if any(a in open_g and ((groups[a].get("resume") or {}).get("stage") in UNBLOCKABLE_STAGES)
+                   for a in (g.get("after") or []) if a in groups):
+                continue  # a predecessor is not dispatched yet
+            self.line(S, f"DESIGN OWED: {gid} (size {g.get('size')}) -- last predecessor dispatched, "
+                         f"no design/{gid}; dispatch the designer", flag=True)
 
     def design_builds(self, S: str, rl, roster: dict) -> None:
         """`DESIGN-BUILD:` every pass for an approved design whose roster group
@@ -3977,6 +4003,32 @@ def self_test() -> int:
             ("null control: a revise verdict owes no build", db_rev == []),
             ("PLAN prints it every pass", any(x.startswith("DESIGN-BUILD: R10-G1 ") for x in db_plan)),
             ("an unreadable ref listing is UNREADABLE", any("UNREADABLE: approved designs" in x for x in db_un)),
+        ])
+        total, failed = total + a, failed + f
+
+        # ---- DESIGN OWED (decision 0014) ----
+        oroster = {"groups": [
+            {"group": "R10-P", "size": "S", "resume": {"stage": "in-progress"}},
+            {"group": "R10-Q", "size": "S", "resume": {"stage": "not-started"}},
+            {"group": "R10-L1", "size": "L", "after": ["R10-P"], "resume": {"stage": "not-started"}},
+            {"group": "R10-L2", "size": "XL", "after": ["R10-Q"], "resume": {"stage": "not-started"}},
+            {"group": "R10-L3", "size": "L", "after": ["R10-P"], "resume": {"stage": "not-started"}},
+            {"group": "R10-S1", "size": "S", "after": ["R10-P"], "resume": {"stage": "not-started"}},
+            {"group": "R10-L4", "size": "L", "after": ["R10-P"], "resume": {"stage": "in-progress"}}]}
+
+        def oboard(ls_rc=0, ls_out=f"{A40}\trefs/heads/design/R10-L3\n"):
+            t = tick()
+            t._git.h.insert(0, (("ls-remote", "refs/heads/design/*"), ls_rc, ls_out))
+            t.designs_owed("PLAN", rlm, oroster)
+            return flagged(t.sections.get("PLAN", []))
+        ow, ow_un = oboard(), oboard(ls_rc=1)
+        a, f = check("DESIGN OWED", [
+            ("an L group whose last predecessor dispatched and that has no design ref is owed one",
+             [x.split()[2] for x in ow] == ["R10-L1"]),
+            ("null controls: a predecessor not dispatched, a design ref, an S group and a dispatched group owe nothing",
+             not any(g in x for x in ow for g in ("R10-L2", "R10-L3", "R10-S1", "R10-L4"))),
+            ("an unreadable ref listing is UNREADABLE and owes nothing it cannot know",
+             any("UNREADABLE: designs owed" in x for x in ow_un) and not any(x.startswith("DESIGN OWED") for x in ow_un)),
         ])
         total, failed = total + a, failed + f
 
