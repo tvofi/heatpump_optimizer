@@ -1,4 +1,4 @@
-# Proposal triage, session s7, batch 64 (P293)
+# Proposal triage, session s7, batch 64 (P293-P294)
 
 The rolling batch (V182) after batch 63 (#2974, merge verdict at `ddd88d3ed`, not yet merged).
 Facts were read at origin/main `043b111d0` and on the remote `verdict/<pr>` refs.
@@ -84,3 +84,82 @@ The carry:
    freed. Re-measure on the next 30 merge verdicts after the fix lands. If class B is still the
    only over-fire left and runs above 2 in 30, the lever is `review_packet.py` naming its
    environment advisories as such, not a carry_audit word list.
+
+## P294: the tick never names a merge verdict that is waiting on its approval
+
+Verdict: ACCEPT, extended, as a new S fly-in, R10-FLY-TICK-APPROVAL-OWED. The proposal's level is
+accepted as written. One catch-all line is added: it is the countermeasure for the class, and the
+new level alone does not give one. No separate root-cause seat is owed. The reasons are under
+Binding.
+
+Source: the orchestrator's message of 2026-10-30, P294. `verdict_levels()` prints MERGE-READY only
+for a `merge` verdict at the head on a PR whose `mergeStateStatus` is CLEAN or UNSTABLE. Approval is
+what turns a code-owned PR from BLOCKED/REVIEW_REQUIRED to CLEAN, so a merge verdict at the head
+of an unapproved PR prints nothing. The proposal: add `APPROVAL-OWED: #N <head8>` for BLOCKED +
+REVIEW_REQUIRED + a merge at the head; `owed_unactioned.py`'s `FAMILY` parses it; and the
+self-test gets a red arm.
+
+Instances, read at origin/main `1148ee635`:
+- **The gap is in the code.** In `tools/audit/seat/orchestrator_tick.py`, `verdict_levels`
+  (line 653) has two arms:
+  - line 689, `kind == "merge" and at == head and ms in ("CLEAN", "UNSTABLE")`, which prints
+    MERGE-READY;
+  - line 691, `kind == "blocked" and at == head`, which prints BLOCKED-UNFIXED.
+  A merge at the head while BLOCKED falls through both and prints nothing. The docstring (lines
+  654-660) states the level's purpose: "#2401 sat merge-ready ... unacted, because only events
+  reached it".
+- **The PR list does not carry the state the new level needs.** `prs()` (line 552) asks for
+  `number,headRefOid,headRefName,isDraft,mergeStateStatus,title,createdAt,updatedAt,author`, and
+  `reviewDecision` is not among them. So the fix has to add the field, not only an arm.
+- **The three PRs, on the verdict refs.**
+  - `verdict/2962` reads `Fix review: merge 9ce0179f`, committed 2026-10-29T19:56Z.
+  - `verdict/2976` reads `Fix review: merge 1381df1f`, committed 2026-10-30T02:02Z.
+  - `verdict/2977` reads `Fix review: merge 9f0e4478`, committed 2026-10-30T01:18Z.
+  The orchestrator gives their standing ages as 11 h, 5 h and 5 h. #2976 now reads
+  `reviewDecision: APPROVED`, `CLEAN` at that same head (one `gh pr view`). So the approval was
+  the only thing missing.
+- **`FAMILY`** in `tools/audit/seat/owed_unactioned.py` (line 53) lists `MERGE-READY:` and
+  `BLOCKED-UNFIXED:`, and no third level.
+
+Cost: S. The work is one `--json` field, one arm, and one catch-all arm in `verdict_levels`, plus
+one alternative in `FAMILY` and self-test rows in both files. Neither file has a `policy_lint.mjs
+--budgets` row: the `--budgets` output at `1148ee635` names neither of them. Benefit, measured:
+21 PR-hours of merge-verdicted heads stood with no tick line (11 + 5 + 5) before the owner asked.
+
+Binding:
+- **The root-cause question.** Neither trigger in `defect-root-cause.md` fires: nothing reached a
+  release, and no check went red. The recurrence rule in `CLAUDE.md` ("at roughly the third
+  instance it is root-cause.md") does fire on the idle-PR class. That class already has its
+  root-cause seat, `dev/audit/rca/R10-RCA-OWED-UNACTIONED.md` (2026-10-28, the #2916 instance).
+  Its countermeasure acts on owed lines the tick prints. This instance is a PR state for which the
+  tick prints no line at all, so no countermeasure keyed on printed lines can see it.
+- **Process state: (c), as the orchestrator reads it.** The tick ran and was read, and the level
+  meant to name every actionable verdicted PR did not produce that result for one state. A third
+  instance of the same class, after a seat already ruled on it, owes a barrier rather than a
+  second seat. So the countermeasure is the catch-all line below, built in this group. It moves
+  the class from "a missing level is silent" to "a missing level prints". That is the
+  check-shaped demonstration `defect-root-cause.md` asks for, held by the red arm and its
+  mutation.
+- **Dispatch.** The group dispatches ahead of other instrument fly-ins. Each hour a verdicted PR
+  waits unnamed is an hour of the round's closure, and two of the three instances (#2976, #2977)
+  were round-10 work.
+
+The fix:
+1. `prs()` asks for `reviewDecision` too.
+2. `verdict_levels` gains `APPROVAL-OWED: #N <head8>` (flagged). It fires on a `merge` verdict at
+   the current head where `mergeStateStatus` is BLOCKED and `reviewDecision` is REVIEW_REQUIRED.
+3. The catch-all is `UNLEVELLED: #N <head8> <mergeStateStatus>/<reviewDecision>` (flagged). It
+   fires on a `merge` verdict at the current head that matches none of MERGE-READY,
+   APPROVAL-OWED or a documented non-actionable state. The non-actionable states are DIRTY (the
+   existing null-control row), BEHIND and a draft; each is named in the docstring. A future state
+   that the levels miss then prints, instead of standing silent.
+4. `owed_unactioned.py`'s `FAMILY` adds `APPROVAL-OWED:` and `UNLEVELLED:`.
+5. Red arm: a board with #N BLOCKED, REVIEW_REQUIRED and a merge verdict at its head prints
+   `APPROVAL-OWED: #N`. Under the current code it prints nothing, so the arm fails there. The
+   failing test comes first.
+6. Mutation:
+   - dropping the APPROVAL-OWED arm fails the red arm, which then prints `UNLEVELLED` instead;
+   - dropping the catch-all fails a row with a real state no arm handles (`mergeStateStatus:
+     UNKNOWN`, or BLOCKED under APPROVED) that must print `UNLEVELLED`.
+7. Null controls: a merge verdict at a stale head prints neither line (the existing #41 row
+   still holds); DIRTY prints neither line; an APPROVED + CLEAN PR prints MERGE-READY only.
