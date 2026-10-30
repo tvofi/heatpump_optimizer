@@ -12196,7 +12196,9 @@
     "tools/audit/seat/sweep_template.md",
     "tools/audit/seat/instruments/pulse.py.md"
    ],
-   "carry": [],
+   "carry": [
+    "From P302 (queue 2026-10-30T09:49Z, retire the orchestrator's session-local sweep). - Step (1b) of `tools/audit/seat/sweep_template.md` runs `pulse.py --seat-alive` once per standing seat the session runs, from a new `seat_alives` placeholder (`SEAT=FILE[:MIN]` entries, documented in the placeholder table). It does not hard-code four. - A seat in the overlay with no alive entry is UNREADABLE, never skipped. - Basis: the local `orch_sweep.sh` watched 3 of 4 standing seats (merge, triage, roster; no tick, no dispatch). It is retired onto the rendered template once this group lands. - Control: `sweep_render.py` over a fixture overlay with five seats renders five `--seat-alive` arguments. Null: an overlay with none renders step (1b) without the flag and does not fail. - Mutant: hard-code four, and the five-seat row fails. triage: dev/programme/triage/s6-batch69.md#P302"
+   ],
    "resume": {
     "stage": "not-started",
     "branch": "handoff/r10-fly-seat-alive-id",
