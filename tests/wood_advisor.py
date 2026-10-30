@@ -262,6 +262,16 @@ R.check(
     == [{"start": "2026-01-15T23:00:00+01:00", "end": "2026-01-16T00:00:00+01:00"}],
     repr(_local.get("cheaper_windows")),
 )
+from heatpump_optimizer.wood_fuel import cheaper_windows as _cheaper_windows
+
+_one_step = _cheaper_windows(_STAMPS[:1], [True], _tz.utc)
+R.check(
+    "a one-step plan has no measurable step, so it gives no window (and does "
+    "not index a second stamp)",
+    _one_step == [] and _cheaper_windows(_STAMPS[:2], [True, False], _tz.utc)
+    == [(_STAMPS[0], _STAMPS[1])],
+    repr(_one_step),
+)
 _never = _wood_view(set())
 R.check(
     "null control: a day wood never beats the pump gives no windows and no "
@@ -392,11 +402,12 @@ if _Env is not None:
             **{k: v for k, v in ctx.items() if not k.startswith("_")}
         )
 
-    def _run(attrs, now, trigger):
+    def _run(attrs, now, trigger, **inputs):
         defaults = {
             k: v.get("default") for k, v in _BP["blueprint"]["input"].items()
         }
         defaults["notify_device"] = "device-1"
+        defaults.update(inputs)
         ctx = {"_attrs": attrs, "_now": now, "trigger": trigger}
         for name, tpl in _BP["variables"].items():
             ctx[name] = _render(
@@ -458,6 +469,62 @@ if _Env is not None:
         "time, does not",
         _sent_same is False and _sent_early is False,
         repr((_sent_same, _sent_early)),
+    )
+    _sent_off, _ = _run(_attrs, _DAY0.replace(hour=10), _replan, notify_on_replan=False)
+    R.check(
+        "with the follow-up input off, the same new window sends nothing",
+        _sent_off is False,
+        repr(_sent_off),
+    )
+    _sent_open, _ = _run(_attrs, _DAY0.replace(hour=17, minute=30), _replan)
+    R.check(
+        "a new window that is already open when the replan lands sends nothing",
+        _sent_open is False,
+        repr(_sent_open),
+    )
+
+    def _reshaped(windows):
+        return {**_replan, "from_state": _State({**_attrs, "cheaper_windows": windows})}
+
+    _w1, _w2 = _attrs["cheaper_windows"]
+    _reshapes = {
+        "end moved 15 min": [_w1, {**_w2, "end": _at(19, 45)}],
+        "start moved 15 min": [_w1, {**_w2, "start": _at(17, 15)}],
+        "split by one off step": [
+            _w1, {"start": _at(17), "end": _at(18)}, {"start": _at(19), "end": _at(20)},
+        ],
+    }
+    _reshape_sent = {
+        k: _run(_attrs, _DAY0.replace(hour=10), _reshaped(v))[0]
+        for k, v in _reshapes.items()
+    }
+    R.check(
+        "a replan that only moves or splits an announced window, so it still "
+        "overlaps one, sends nothing",
+        not any(_reshape_sent.values()),
+        repr(_reshape_sent),
+    )
+    _late_attrs = {
+        **_attrs,
+        "cheaper_windows": [_w1, {"start": _at(22), "end": _at(23)}],
+    }
+    _late_replan = {
+        "id": "replan",
+        "from_state": _State({**_attrs, "cheaper_windows": [_w1]}),
+        "to_state": _State(_late_attrs),
+    }
+    _late_before = _run(_late_attrs, _DAY0.replace(hour=20, minute=30), _late_replan)[0]
+    _late_after = _run(_late_attrs, _DAY0.replace(hour=21, minute=30), _late_replan)[0]
+    _late_set = _run(
+        _late_attrs, _DAY0.replace(hour=21, minute=30), _late_replan,
+        followup_until="23:59:00",
+    )[0]
+    R.check(
+        "no follow-up after the configured time (default 21:00), and one when "
+        "the time is set later",
+        _BP["blueprint"]["input"]["followup_until"]["default"] == "21:00:00"
+        and _late_before is True and _late_after is False and _late_set is True,
+        repr((_late_before, _late_after, _late_set)),
     )
 
 sys.exit(R.close("wood-advisor checks"))
