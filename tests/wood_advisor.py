@@ -179,7 +179,7 @@ _DAY0 = _dt(2026, 1, 15, 0, 0, tzinfo=_tz.utc)
 _STAMPS = [_DAY0 + _td(hours=i) for i in range(30)]
 
 
-def _view(cheap_steps, off_steps=(), config=None):
+def _wood_view(cheap_steps, off_steps=(), config=None):
     n = len(_STAMPS)
     return build_wood_fuel_view(
         _WOOD_READY if config is None else config,
@@ -203,7 +203,7 @@ def _lighting(view):
 
 # Two cheaper runs today (06-08 and 17-20), a cheaper step at 12 while the
 # pump is planned off, and a cheaper step tomorrow at 02.
-_two = _view({6, 7, 12, 17, 18, 19, 26}, off_steps={12})
+_two = _wood_view({6, 7, 12, 17, 18, 19, 26}, off_steps={12})
 R.check(
     "a day with two cheaper runs gives two windows, each contiguous run once",
     _two.get("cheaper_windows")
@@ -219,25 +219,25 @@ R.check(
     _lighting(_two) == (_iso(5), _iso(6)),
     repr(_lighting(_two)),
 )
-_lead90 = _view({6, 7}, config={**_WOOD_READY, "wood_lighting_lead_minutes": 90})
+_lead90 = _wood_view({6, 7}, config={**_WOOD_READY, "wood_lighting_lead_minutes": 90})
 R.check(
     "the lead time is the configured option",
     _lighting(_lead90) == (_iso(4, 30), _iso(6)),
     repr(_lighting(_lead90)),
 )
-_now_open = _view({0, 1})
+_now_open = _wood_view({0, 1})
 R.check(
     "a window open at the plan's first step lights now, never in the past",
     _lighting(_now_open) == (_iso(0), _iso(0)),
     repr(_lighting(_now_open)),
 )
-_pump_off = _view({12}, off_steps={12})
+_pump_off = _wood_view({12}, off_steps={12})
 R.check(
     "a cheaper step while the pump is planned off is not a window",
     _pump_off.get("cheaper_windows", []) == [] and _lighting(_pump_off) == (None, None),
     repr(_pump_off.get("cheaper_windows")),
 )
-_tomorrow = _view({26})
+_tomorrow = _wood_view({26})
 R.check(
     "a cheaper step tomorrow is counted but is not one of today's windows",
     _tomorrow.get("cheaper_windows", []) == []
@@ -262,7 +262,7 @@ R.check(
     == [{"start": "2026-01-15T23:00:00+01:00", "end": "2026-01-16T00:00:00+01:00"}],
     repr(_local.get("cheaper_windows")),
 )
-_never = _view(set())
+_never = _wood_view(set())
 R.check(
     "null control: a day wood never beats the pump gives no windows and no "
     "lighting window",
