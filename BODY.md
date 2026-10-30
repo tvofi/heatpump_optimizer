@@ -152,14 +152,23 @@ At the head, one run per script that `scope.run` names. `card.mjs` and
 
 The #2809 rewrite deletes three ledger pins: `RETURN_DEL.3dca65c8`,
 `GUARD_OFF.85c924c9` and `BOOLOP.85c924c9` on the old guarded line. The
-predictor named them as stale, so they are removed by hand. Each new site is
-left to `mutation-autofix`, whose lane covers `custom_components/`.
+predictor named them as stale, so they are removed by hand.
 
-- `button.py:226 GUARD_OFF` (`if collector is None:`): pinned by `mutation-autofix`.
-- `button.py:228 GUARD_OFF` (`if collector.final:`): pinned by `mutation-autofix`.
-  The value check that should kill it is `the finalize button on a finished
-  collection names the action's start…` in `tests/debug_collect.py`.
-- `button.py:230 RETURN_DEL` (`return {}`): pinned by `mutation-autofix`.
+`mutation_table.py --pin-killed` and `--anchor` both refuse on this diff
+(`no full-line comment in any file in the pool`: `button.py` has no short
+whole-line comment to carry the null control), so the three mutants were
+driven by hand against `tests/debug_collect.py`: baseline `ALL 159 DEBUG
+COLLECT CHECKS PASSED`; each mutant applied to `button.py`, the script run
+with `PYTHONPATH=tests/hastub`, the file restored. All three are killed;
+`mutation-autofix` records the ledger pin after the push.
+
+- `custom_components/heatpump_optimizer/button.py:226 GUARD_OFF` (`if collector is None:` -> `if False:`): killed by
+  `tests/debug_collect.py` (the next line raises `AttributeError` on `None`).
+- `custom_components/heatpump_optimizer/button.py:228 GUARD_OFF` (`if collector.final:` -> `if False:`): killed by
+  `tests/debug_collect.py` (1 of 159 checks failed, the finalize button on a
+  finished collection).
+- `custom_components/heatpump_optimizer/button.py:230 RETURN_DEL` (`return {}` -> `pass`): killed by
+  `tests/debug_collect.py` (2 of 159 checks failed).
 
 ## Red checks
 
