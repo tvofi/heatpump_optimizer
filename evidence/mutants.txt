@@ -1,0 +1,23 @@
+== M1 CP always on
+  FAIL DESIGN OWED age and CP: null control: a non-critical group prints no CP mark
+orchestrator_tick self-test: 223 checks, 1 failed
+== M2 CP always off
+  FAIL DESIGN OWED age and CP: a critical-path group carries the CP mark
+orchestrator_tick self-test: 223 checks, 1 failed
+== M3 age -> (age unknown)
+  FAIL DESIGN OWED age and CP: a group with no design ref prints the age since its predecessor dispatched
+orchestrator_tick self-test: 223 checks, 1 failed
+== M4 max instead of min
+orchestrator_tick self-test: 223 checks, 0 failed
+== M5 unreadable ref yields 0h (drop code check)
+orchestrator_tick self-test: 223 checks, 0 failed
+== M6 critical = empty set
+  FAIL DESIGN OWED age and CP: a critical-path group carries the CP mark
+orchestrator_tick self-test: 223 checks, 1 failed
+== M7 base production code with head tests (test-first)
+ tools/audit/seat/orchestrator_tick.py | 6 ++----
+ 1 file changed, 2 insertions(+), 4 deletions(-)
+  FAIL DESIGN OWED age and CP: a group with no design ref prints the age since its predecessor dispatched
+  FAIL DESIGN OWED age and CP: a critical-path group carries the CP mark
+  FAIL DESIGN OWED age and CP: an unreadable dispatch ref says the age is unknown, not a number
+orchestrator_tick self-test: 223 checks, 3 failed
