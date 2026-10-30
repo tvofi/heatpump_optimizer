@@ -14,7 +14,7 @@ No product behaviour changes: the diff is one markdown file under `dev/programme
 
 ## Head
 
-`b40577dde489a9f3844697708ab215a2f1c85b4c`; the file is the whole diff against `b646e8306`.
+`231b9f8d1530241e92a870f878fd2f81502ce03d` (tree-identical to the re-cut `b40577dd`, committed on top of the first cut `1670b98d7`); the file is the whole diff against `b646e8306`.
 
 ## Mutation proof
 
