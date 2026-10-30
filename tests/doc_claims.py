@@ -3346,6 +3346,7 @@ def check_coffee_button() -> None:
 # each PNG, and the arm refuses a block or a PNG that moved without the other. Regenerate to repair.
 
 FIGURES_MANIFEST = "docs/img/readme/mermaid_figures.json"
+STATIC_FIGURES = (("docs/img/readme/how-it-works.png", "docs/img/readme/how-it-works-dark.png"),)
 _SAFE_SRC = ("http://", "https://", "mailto:", "tel:", "data:image/", "ftp://", "./", "../", "#", "/")  # xss lib/default.js:176-194
 _MD_TARGET = re.compile(r"\]\(\s*<?([^)\s>]*)")
 _MD_REFDEF = re.compile(r"^ {0,3}\[[^\]\n]+\]:\s*<?(\S+?)>?(?:\s|$)", re.M)
@@ -3374,6 +3375,11 @@ def readme_figure_findings(readme: str, manifest: dict | None, png_sha) -> list[
     bare = sorted({x for x in targets if _marketplace_blanks(x)})
     if bare:
         out.append(f"README.md: the Marketplace blanks {len(bare)} bare-relative target(s), prefix each with ./: {bare[:4]}")
+    for light, dark in STATIC_FIGURES:  # hand-made figures: a light/dark pair, no source block to hash
+        if not re.search(r'<picture>\n<source media="\(prefers-color-scheme: dark\)" srcset="\./' + re.escape(dark)
+                         + r'">\n<img src="\./' + re.escape(light) + r'" alt="[^"\n]+">\n</picture>', readme):
+            out.append(f"README.md: no <picture> of ./{light} with the dark source ./{dark}")
+        out += [f"{f} is not a tracked file" for f in (light, dark) if png_sha(f) is None]
     blocks = [(m.start(), m.group(1)) for m in _MERMAID_FENCE.finditer(readme)]
     figs = (manifest or {}).get("figures")
     if not isinstance(figs, list):
@@ -3449,6 +3455,10 @@ def check_readme_marketplace() -> None:
     planted("a light-only figure (no dark <source>)", re.sub(r"<picture>\n<source [^\n]*mermaid-setup-flow-dark\.png\">\n(<img [^\n]*\n)</picture>", r"\1", README, count=1),
             "directly above")
     planted("a dark <source> pointing at the light PNG", README.replace("mermaid-one-interval-dark.png", "mermaid-one-interval.png", 1), "directly above")
+    planted("the how-it-works figure light-only (no dark <source>)",
+            re.sub(r"<source [^\n]*how-it-works-dark\.png\">\n", "", README, count=1), "how-it-works.png with the dark source")
+    planted("the how-it-works dark PNG missing", README, "how-it-works-dark.png is not a tracked file",
+            sha=lambda p: None if p.endswith("how-it-works-dark.png") else sha_of(p))
     planted("a bare-relative dark srcset", README.replace('srcset="./docs/img/readme/mermaid-setup-flow-dark.png"', 'srcset="docs/img/readme/mermaid-setup-flow-dark.png"', 1),
             "bare-relative")
     planted("a manifest figure with no dark variant", README, "names no dark variant",

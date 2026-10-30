@@ -688,7 +688,7 @@ INERT_EXCEPT = (
     "docs/img/brand/coffee.svg",
     # R10-README-GRAPHICS: the Marketplace arm of tests/doc_claims.py opens the manifest and hashes each mermaid
     # figure it names, light and dark, to refuse a block or a PNG that moved without the other. Same route as coffee.svg above:
-    # the docs/ prefix stays INERT, and the seven files move to doc_claims.py's recorded closure.
+    # the docs/ prefix stays INERT, and the eight files move to doc_claims.py's recorded closure.
     "docs/img/readme/mermaid_figures.json",
     "docs/img/readme/mermaid-how-the-pieces-fit.png",
     "docs/img/readme/mermaid-setup-flow.png",
@@ -696,6 +696,7 @@ INERT_EXCEPT = (
     "docs/img/readme/mermaid-how-the-pieces-fit-dark.png",
     "docs/img/readme/mermaid-setup-flow-dark.png",
     "docs/img/readme/mermaid-one-interval-dark.png",
+    "docs/img/readme/how-it-works-dark.png",
     "dev/programme/rosters/wave-r10-groups.json",
     "DISCLAIMER.md",
     "blueprints/automation/charge_ev_from_grid_headroom.yaml",

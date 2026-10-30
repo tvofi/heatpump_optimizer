@@ -1213,6 +1213,7 @@
    "docs/img/model/dhw-store-decay.svg",
    "docs/img/model/make_model_figures.py",
    "docs/img/model/marginal-cop.svg",
+   "docs/img/readme/how-it-works-dark.png",
    "docs/img/readme/how-it-works.png",
    "docs/img/readme/mermaid-how-the-pieces-fit-dark.png",
    "docs/img/readme/mermaid-how-the-pieces-fit.png",
@@ -4778,7 +4779,7 @@
   },
   "tests/doc_claims.py": {
    "rc": 0,
-   "seconds": 41.2
+   "seconds": 11.4
   },
   "tests/dst_checks.py": {
    "rc": 0,

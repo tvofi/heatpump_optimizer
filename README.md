@@ -812,7 +812,10 @@ hard-coded to the entity ids the examples assume.
 
 ## How it works
 
-![One optimization interval: prices, weather and sensors feed the coordinator; the optimizer solves 24 hours ahead; the heat pump is switched and the plan published](./docs/img/readme/how-it-works.png)
+<picture>
+<source media="(prefers-color-scheme: dark)" srcset="./docs/img/readme/how-it-works-dark.png">
+<img src="./docs/img/readme/how-it-works.png" alt="One optimization interval: prices, weather and sensors feed the coordinator; the optimizer solves 24 hours ahead; the heat pump is switched and the plan published">
+</picture>
 
 <picture>
 <source media="(prefers-color-scheme: dark)" srcset="./docs/img/readme/mermaid-one-interval-dark.png">
