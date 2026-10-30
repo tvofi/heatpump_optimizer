@@ -32,14 +32,21 @@ cancel_superseded: unreadable answer; cancelling nothing
   ok   sweep null: only live-head runs cancels nothing
   ok   sweep: a fork PR head is not swept
   ok   sweep mutant: without the event filter the push run IS cancelled (the arm detects it)
-cancel_superseded: cancelled 101
-cancel_superseded: cancelled 102
-CANCEL-SWEEP: cancelled 2, kept 1 (live head), skipped 0 (bot head / not a PR), ghosts 0
+  ok   sweep: a run at an older head with a HIGHER id than the live head's run is never cancelled
+  ok   sweep: a finished run is neither kept, a ghost, skipped nor cancelled
+  ok   sweep: a pending or requested run at a superseded head is cancelled
+  ok   sweep: a run from a fork head repository on a PR branch's name is never cancelled
+  ok   sweep: main and non-PR-event runs count as skipped, not as ghosts
   ok   sweep end to end: POSTs exactly the two old runs
-cancel_superseded: would cancel 101
-cancel_superseded: would cancel 102
-CANCEL-SWEEP: cancelled 2, kept 1 (live head), skipped 0 (bot head / not a PR), ghosts 0
   ok   sweep --dry-run posts nothing
 CANCEL-SWEEP: unreadable answer; cancelling nothing
   ok   sweep: an unreadable answer cancels nothing and exits 0
-cancel_superseded self-test: 30 checks, 0 failed
+  ok   sweep: an unreadable pulls answer cancels nothing and says unreadable, not a zero count
+  ok   sweep: an unreadable runs answer cancels nothing and says unreadable, not a zero count
+  ok   sweep: an unreadable commit answer cancels nothing and says unreadable, not a zero count
+  ok   sweep end to end: a live head authored by the bot ({'login': 'github-actions[bot]', 'name': 'x'}) cancels nothing
+  ok   sweep end to end: a live head authored by the bot ({'login': 'u', 'name': 'github-actions[bot]'}) cancels nothing
+  ok   sweep end to end: every ACTIVE status is listed, so pending and requested runs are POSTed
+  ok   sweep: a full page is followed by the next page, and a short page stops
+  ok   sweep: a listing still full after MAX_PAGES prints a truncated line
+cancel_superseded self-test: 43 checks, 0 failed

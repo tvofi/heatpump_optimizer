@@ -1,4 +1,0 @@
-roster faf2d1c02
-[
- "Re-homed from R10-TRAIN-OVERLAP-GRADE carries 16-17 (P267/P268; audit at main 89ccf7326 found neither the tier module nor its config file in the tree, and no live group building them). This group now owns building the CI-priority tier module and its config file (tier order and knobs only; the group-to-class mapping is read from the roster through the roster library, R10-ORCH-ROSTER-SCHEMA owning those fields), plus the merge train's pause/resume of the lowest-priority PR's CI when a head job has queued 5 minutes or more (a paused-record file, at most once per 5 minutes, resume on exit and at start), with the controls written in TRAIN-OVERLAP-GRADE carries 16-17. Consumers R10-FLOW-WIP, R10-FLOW-TOOLKIT-MODEL and R10-ORCH-LEDGER stay after-edged on it. Carry: R10-FLY-CANCEL-SWEEP"
-]
