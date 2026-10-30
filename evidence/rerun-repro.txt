@@ -1,4 +1,0 @@
-fatal: '../wt' already exists
-exit 128
-fatal: a branch named 'fix/t' already exists
-exit 255

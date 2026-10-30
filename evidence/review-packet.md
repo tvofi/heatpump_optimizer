@@ -1,46 +1,46 @@
 # Review packet #2989
-head: fca6e07bb4189f6cb9768ea499a9ff818c7f8ea9
-base: 039eee1dc9c210edd31a6e1a806f4ceb9c0d048b
+head: 50b1956485ea01e78d97a0619a32cdc9dd923cdd
+base: fe709cbd269c7c53eb1c846a0be7f39c7dab06ac
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
 ## Gate digest: pending
-CodeQL id=124025344375 neutral
-arch-score / arch-score id=124024671693 success
-arm id=124024493856 skipped
-budget-raise-gate / budget-raise-gate id=124024671709 success
-cancel-superseded id=124024501719 success
-codeql / Analyze (actions) id=124024671849 success
-codeql / Analyze (javascript-typescript) id=124024671785 success
-codeql / Analyze (python) id=124024671778 in_progress
-governance / delivery-status id=124024671655 success
-governance / delivery-status-publish id=124024674310 skipped
-governance / env-matrix id=124024671758 in_progress
-governance / instrument-self-tests id=124024671623 in_progress
-governance / policy-docs id=124024671735 success
-governance / record id=124024674429 skipped
-governance / wave-script id=124024671850 success
-hassfest / hassfest id=124024671816 success
-kernel-points id=124024673437 skipped
-prelude id=124024501311 in_progress
-refresh id=124024501767 success
-tests / arch-instrument id=124024891965 success
-tests / briefs id=124024672045 success
-tests / browser id=124024892017 in_progress
-tests / closure-scope id=124024671832 success
-tests / closures id=124024892086 in_progress
-tests / coverage id=124024892175 success
-tests / coverage-ratchet id=124025449165 in_progress
-tests / fast (3.14) id=124024892132 in_progress
-tests / graders-head-copy id=124025449203 in_progress
-tests / mutation id=124024671789 success
-tests / mutation-autofix id=124025004090 skipped
-tests / mutation-pins id=124025003878 skipped
-tests / nightly-ha id=124024894300 skipped
-tests / nightly-status id=124024671964 success
-tests / replay id=124024894912 skipped
-tests / typing id=124024892070 in_progress
-validate / validate-hacs id=124024671803 success
+CodeQL id=124035281220 neutral
+arch-score / arch-score id=124035014184 success
+arm id=124034798246 skipped
+budget-raise-gate / budget-raise-gate id=124035013893 success
+cancel-superseded id=124034796245 success
+codeql / Analyze (actions) id=124035014173 success
+codeql / Analyze (javascript-typescript) id=124035014052 success
+codeql / Analyze (python) id=124035014059 in_progress
+governance / delivery-status id=124035014155 success
+governance / delivery-status-publish id=124035016267 skipped
+governance / env-matrix id=124035014385 in_progress
+governance / instrument-self-tests id=124035014166 in_progress
+governance / policy-docs id=124035014308 success
+governance / record id=124035015794 skipped
+governance / wave-script id=124035014161 success
+hassfest / hassfest id=124035013798 success
+kernel-points id=124035016398 skipped
+prelude id=124034795844 success
+refresh id=124034796201 success
+tests / arch-instrument id=124035231519 success
+tests / briefs id=124035013987 success
+tests / browser id=124035231618 in_progress
+tests / closure-scope id=124035014096 success
+tests / closures id=124035231919 in_progress
+tests / coverage id=124035231590 success
+tests / coverage-ratchet id=124035550175 success
+tests / fast (3.14) id=124035231575 in_progress
+tests / graders-head-copy id=124035550241 in_progress
+tests / mutation id=124035014260 success
+tests / mutation-autofix id=124035317060 skipped
+tests / mutation-pins id=124035315460 skipped
+tests / nightly-ha id=124035234174 skipped
+tests / nightly-status id=124035014061 success
+tests / replay id=124035234126 skipped
+tests / typing id=124035231630 in_progress
+validate / validate-hacs id=124035013733 success
 
 ## Refusals
 none
@@ -49,42 +49,17 @@ none
 hot-file: HPO_BUS_TRAIN_STATE is unset, so every merge verdict reads unboarded
 
 ## carry_audit at the head
-NOTE body item 0d71c7f0: R10-FLOW-BODY-ONLY
-CARRY-AUDIT: 1 finding item(s): 1 routed, 0 unrouted, 0 bad destination(s)
+CARRY-AUDIT: 0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s)
 
 ## figure_lint at the head
-ok         bash tools/audit/seat/pr_args.sh --self-test
-             `tools/audit/seat/pr_args.sh` is in the tree at this head
-  ok         bash tools/audit/seat/handoff_push.sh --self-test
-             `tools/audit/seat/handoff_push.sh` is in the tree at this head
-  ok         python3 -I tools/pr/ci_predict.py --self-test
-             `tools/pr/ci_predict.py` is in the tree at this head
-  ok         python3 -I tests/throwaway_git.py --check
-             `tests/throwaway_git.py` is in the tree at this head
-  ok         tools/pr/ci_predict.py
-             `tools/pr/ci_predict.py` is in the tree at this head
-  ok         custom_components/heatpump_optimizer/away.py
-             `custom_components/heatpump_optimizer/away.py` is in the tree at this head
-  ok         python3 tools/pr/ci_predict.py --rekey-body <body> --from HEAD~1
-             `tools/pr/ci_predict.py` is in the tree at this head
+ok         bash tools/audit/seat/open_pr.sh --self-test
+             `tools/audit/seat/open_pr.sh` is in the tree at this head
   ok         python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"
              `tests/closure.py` is in the tree at this head
-  ok         tests/run.sh
-             `tests/run.sh` is in the tree at this head
   ok         python3 tests/structure.py
              `tests/structure.py` is in the tree at this head
-  ok         bash tools/pr/prepr.sh <this body>
-             `tools/pr/prepr.sh` is in the tree at this head
-  ok         PYTHONPATH=tests/hastub python3 tests/entities.py
-             `tests/entities.py` is in the tree at this head
-  ok         python3 tools/audit/archscore/score.py --diff $(git merge-base origin/main HEAD)
-             `tools/audit/archscore/score.py` is in the tree at this head
-  ok         PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main
-             `tools/pr/ci_predict.py` is in the tree at this head
-  ok         bash tools/audit/seat/pr_args.sh --pushers
-             `tools/audit/seat/pr_args.sh` is in the tree at this head
 
-FIGURES: 15 resolved, 0 not verified, 0 refused
+FIGURES: 3 resolved, 0 not verified, 0 refused
 
 ## Finder's harness: none named
 ### at the base
@@ -104,10 +79,10 @@ index 000000000..c8d824057
 @@ -0,0 +1 @@
 +- [#2989](https://github.com/tvofi/heatpump_optimizer/pull/2989) — **open**, R10-FLY-OPENPR-ATOMIC: close a PR whose row push is refused, with a read-back comment saying why (R10-FLY-OPENPR-ATOMIC)
 diff --git a/tools/audit/seat/instruments/open_pr.sh.md b/tools/audit/seat/instruments/open_pr.sh.md
-index c2bc94162..72ff2a02c 100644
+index c2bc94162..ea430aa46 100644
 --- a/tools/audit/seat/instruments/open_pr.sh.md
 +++ b/tools/audit/seat/instruments/open_pr.sh.md
-@@ -18,5 +18,12 @@
+@@ -18,5 +18,14 @@
    refused push names its log. It holds the branch's `upd-<branch>.lock` from
    before its worktree to its second push, so a concurrent `update_pr.sh` is BUSY
    (75) and cannot detach the worktree under the PR's row (#2547-#2549).
@@ -117,11 +92,13 @@ index c2bc94162..72ff2a02c 100644
 +  (#2625, #2629); only a close that fails prints `ROWLESS`, for
 +  `update_pr.sh`'s `ensure_row`. The PR is created only after the body
 +  contract passes: `app_push.sh` runs `prepr.sh` and the `ref_privacy` guard
-+  before its push.
++  before its push. A main merge that conflicts is aborted and refused
++  (`merging origin/main into <sha> conflicts`), so the clean worktree is
++  released instead of kept as dirty.
    `--self-test` runs `delivery_row.sh`'s, then
    `pr_args.sh`'s.
 diff --git a/tools/audit/seat/open_pr.sh b/tools/audit/seat/open_pr.sh
-index 440874229..876ab91a8 100755
+index 440874229..6ad8bada9 100755
 --- a/tools/audit/seat/open_pr.sh
 +++ b/tools/audit/seat/open_pr.sh
 @@ -7,7 +7,8 @@
@@ -134,7 +111,21 @@ index 440874229..876ab91a8 100755
  # under the branch lock, is pr_release_wt (pr_args.sh): the worktree is detached at the pushed head,
  # removed with its branch when origin never had it, or kept and named (P-D, P64, P72).
  # The tools are refused when origin/main is ahead of their checkout under tools/ (pr_tools_fresh).
-@@ -85,7 +86,21 @@ RO=--row-only  # mut:oprowonly
+@@ -54,7 +55,12 @@ git show "$PR_BT:BODY.md" > $D/body.md
+ python3 -I "$SEAT/pr_cap.py" info --repo $R  # mut:openinfo
+ git worktree add -q -b $BR $WT $C
+ cd $WT
+-git fetch -q origin main; git -c user.name=tvofi -c user.email=70032254+tvofi@users.noreply.github.com merge -q --no-edit origin/main
++git fetch -q origin main
++# A conflicted merge is this run's own, not authored work: abort it, so pr_release_wt reads a clean
++# tree and removes the worktree origin never had, rather than keeping it as dirty (carry 8).
++MERGE_OK=; git -c user.name=tvofi -c user.email=70032254+tvofi@users.noreply.github.com merge -q --no-edit origin/main && MERGE_OK=1
++[ -n "$MERGE_OK" ] || git merge --abort  # mut:mergeabort
++[ -n "$MERGE_OK" ] || pr_refuse "merging origin/main into $C conflicts; merge it into handoff/$T, then re-run"
+ PYTHONPATH="$PRT" python3 - $D/body.md $(git rev-parse HEAD) $C $(git rev-parse --short origin/main) <<'E0'
+ import sys; from head_note import prefix
+ p,H,C,M=sys.argv[1:5]; s=open(p).read()
+@@ -85,7 +91,21 @@ RO=--row-only  # mut:oprowonly
  rc=0; wait $! || rc=$?
  if [ "$rc" != 0 ]; then
    git reset -q --hard "$PR_PUSHED"  # mut:rowreset
@@ -158,7 +149,7 @@ index 440874229..876ab91a8 100755
  fi
  PR_PUSHED=$H
 diff --git a/tools/audit/seat/pr_args.sh b/tools/audit/seat/pr_args.sh
-index ba3b2f4c7..96b8ade66 100644
+index ba3b2f4c7..29f83d9c6 100644
 --- a/tools/audit/seat/pr_args.sh
 +++ b/tools/audit/seat/pr_args.sh
 @@ -1146,8 +1146,30 @@ STUB
@@ -194,7 +185,7 @@ index ba3b2f4c7..96b8ade66 100644
    rowless() { # <mutant>
      local sd=$t/rowless-$1 sdir=$t/rowless-$1-stub g
      rm -rf "$sd" "$sdir"; mkdir -p "$sdir" "$sd"; sd=$(cd "$sd" && pwd -P)
-@@ -1156,19 +1178,26 @@ STUB
+@@ -1156,19 +1178,48 @@ STUB
        if [ "$1" = - ]; then cp "$src/$g" "$m/tools/audit/seat/$g"; else grep -v "# mut:$1\$" "$src/$g" > "$m/tools/audit/seat/$g"; fi
      done
      touch "$sdir/p2fail" "$sdir/p3ok"; cp "$t/body.md" "$t/bR.md"
@@ -224,6 +215,28 @@ index ba3b2f4c7..96b8ade66 100644
 -  ck "  mutant mut:rowreset (its line deleted): the row commit stays unpushed on the branch and update_pr.sh refuses it (the defect)" $?
 +  [ "$(cat "$t/opwt")" = branch ] && [ "$(cat "$t/rowpushed")" = 0 ]
 +  ck "  mutant mut:rowreset (its line deleted): the row commit stays unpushed on the branch in the opener's worktree (the defect)" $?
++  # A conflicted main merge was left in the opener's worktree, and pr_release_wt kept it as dirty
++  # work (carry 8); the opener now aborts its own merge and refuses, and the clean worktree, which
++  # origin never had, is removed with its branch. main gains a conflicting `b` for this arm only.
++  git -C "$o" checkout -q main && printf 'main b\n' > "$o/b" && git -C "$o" add b && git -C "$o" commit -q -m "main b" \
++    && git -C "$o" update-ref refs/heads/handoff-body/q "$body" && git -C "$o" branch -f handoff/q "$codeR"
++  mconf() { # <mutant>
++    local sd=$t/mconf-$1 g
++    rm -rf "$sd"; mkdir -p "$sd"; sd=$(cd "$sd" && pwd -P); git -C "$m" worktree prune; git -C "$m" branch -qD fix/q 2>/dev/null
++    for g in open_pr.sh update_pr.sh delivery_row.sh pr_args.sh pr_cap.py; do
++      if [ "$1" = - ]; then cp "$src/$g" "$m/tools/audit/seat/$g"; else grep -v "# mut:$1\$" "$src/$g" > "$m/tools/audit/seat/$g"; fi
++    done
++    HPO_STATE_DIR=$sd BR=fix/q BR_FIXED=1 bash "$m/tools/audit/seat/open_pr.sh" q "$codeR" T G > "$t/outq" 2>&1; echo $? > "$t/rcq"
++    [ -d "$sd/pr/q/wt" ] && echo kept > "$t/wtq" || echo gone > "$t/wtq"
++    git -C "$m" worktree remove --force "$sd/pr/q/wt" 2>/dev/null; git -C "$m" worktree prune; git -C "$m" branch -qD fix/q 2>/dev/null; true
++  }
++  mconf -
++  [ "$(cat "$t/rcq")" != 0 ] && grep -qF "open_pr: REFUSE: merging origin/main into $codeR conflicts" "$t/outq" && [ "$(cat "$t/wtq")" = gone ]
++  ck "open_pr: a main merge that conflicts is aborted and refused, and its clean worktree is removed" $?
++  mconf mergeabort
++  [ "$(cat "$t/wtq")" = kept ] && grep -qF "it is dirty" "$t/outq"
++  ck "  mutant mut:mergeabort (its line deleted): the conflicted worktree is kept as dirty work (the defect)" $?
++  git -C "$o" reset -q --hard HEAD~1; git -C "$o" branch -qD handoff/q; git -C "$o" update-ref -d refs/heads/handoff-body/q
    racerun oplock; [ "$(cat "$t/rcu")" != 75 ] && ! grep -qF "update_pr: BUSY" "$t/outu" && [ "$(cat "$t/rco")" = 0 ] && [ "$(cat "$t/rowpushed")" = 1 ]
    ck "  mutant mut:oplock (its line deleted): update_pr.sh takes the branch (not BUSY); the unpushed-work refusal alone keeps the row" $?
    racerun oplock+unpushed; [ "$(cat "$t/rco")" != 0 ] && grep -qF "is not the committed tip" "$t/outo" && [ "$(cat "$t/rowpushed")" = 0 ]
