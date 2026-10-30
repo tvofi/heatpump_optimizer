@@ -52,7 +52,7 @@ if [ "${1:-}" = "--self-test" ]; then
   touches_policy 'tests/plan_prices.py'                        ; st $? 1 "a suite-only turn does not run the linter"
   touches_policy 'CLAUDE.md'                                   ; st $? 0 "a CLAUDE.md turn runs it"
   touches_policy '.claude/rules/gate-scoping.md'               ; st $? 0 "a rule turn runs it"
-  touches_policy 'tools/audit/briefs/fixer.md'                 ; st $? 0 "a contract turn runs it"
+  touches_policy 'dev/governance/roles/fixer.md'               ; st $? 0 "a contract turn runs it"
   touches_policy '.github/workflows/governance.yml'            ; st $? 0 "a workflow turn runs it"
   touches_policy 'docs/HANDOVER.md'                            ; st $? 0 "the handover runs it"
   touches_policy 'docs/plan-2026-09-open-issues.md'            ; st $? 1 "another docs/ file does not -- the prefix list names only the handover there"
