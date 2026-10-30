@@ -1,0 +1,3 @@
+RESULT inverse round-trip: 138 configs, worst heat-space residual 1.137e-13 at (0.5, 12.0, 1e-09, 24.0, 4.2869891866981613e-16)
+RESULT inverse monotone non-decreasing: True max jump 9.722117200361424e-05
+RESULT null control zero-derate mismatches: 0

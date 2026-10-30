@@ -1,0 +1,18 @@
+applied M1 custom_components/heatpump_optimizer/dhw_planner.py
+diff --git a/custom_components/heatpump_optimizer/dhw_planner.py b/custom_components/heatpump_optimizer/dhw_planner.py
+index ce99569e2..5e138c330 100644
+--- a/custom_components/heatpump_optimizer/dhw_planner.py
++++ b/custom_components/heatpump_optimizer/dhw_planner.py
+@@ -1510,7 +1510,7 @@ class DhwPlanner:
+                 return best
+             energy = np.asarray(solution[:n_steps], dtype=float)
+             best = np.clip(
+-                power_for_heat_per_cop_kw(params, energy / (cop * dt)), 0.0, p_dhw_max
++                energy / (cop * dt), 0.0, p_dhw_max
+             )
+ 
+             # Refine the COP estimate against the tank temperatures this plan
+--- FAIL lines
+  FAIL the hot-water LP's plan, simulated with the derate, reaches the floor it was solved against: its last-step draw is the root, not heat / cop; and capped below that draw it sizes its energy ceiling by the derated heat; null control: with no derate the floor is met at a lower draw  [{0.0: (1.3173572521277677, 58.0), 0.2: (1.3173572521277677, 57.75719657919737)} capped {0.0: (2.0, 58.30384212309522), 0.2: (1.9000000000000001, 57.812197305744945)}]
+1 of 4610 FEATURE CHECKS FAILED
+rc=1

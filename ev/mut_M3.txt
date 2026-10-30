@@ -1,0 +1,20 @@
+applied M3 custom_components/heatpump_optimizer/dhw_planner.py
+diff --git a/custom_components/heatpump_optimizer/dhw_planner.py b/custom_components/heatpump_optimizer/dhw_planner.py
+index ce99569e2..12cf684aa 100644
+--- a/custom_components/heatpump_optimizer/dhw_planner.py
++++ b/custom_components/heatpump_optimizer/dhw_planner.py
+@@ -1877,9 +1877,7 @@ class DhwPlanner:
+             q_draw = float(draw_rates[i]) * dhw_draw_scale(temp, inlet)
+             q_loss = ua * (temp - TANK_ROOM_AMBIENT_TEMP)
+             headroom_c = float(ceiling[i]) - temp
+-            allowed = power_for_heat_per_cop_kw(
+-                params, (headroom_c * capacity / dt + q_draw + q_loss) / cop
+-            )
++            allowed = (headroom_c * capacity / dt + q_draw + q_loss) / cop
+             plan[i] = float(np.clip(plan[i], 0.0, max(0.0, allowed)))
+ 
+             # Stepped through the same simulation the planners use, so the
+--- FAIL lines
+  FAIL the hot-water clamp's truncated steps land on their ceiling in the derated simulation, not short of it or past it, at a draw above the plain quotient's; null control: with no derate they land there too  [{0.0: (1.567629785296185, 52.0, 52.0), 0.2: (1.567629785296185, 51.88408999784252, 51.80332249688288)}]
+1 of 4610 FEATURE CHECKS FAILED
+rc=1

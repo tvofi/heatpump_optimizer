@@ -1,0 +1,18 @@
+applied M5 custom_components/heatpump_optimizer/optimizer.py
+diff --git a/custom_components/heatpump_optimizer/optimizer.py b/custom_components/heatpump_optimizer/optimizer.py
+index d629361c7..3ec56a37c 100644
+--- a/custom_components/heatpump_optimizer/optimizer.py
++++ b/custom_components/heatpump_optimizer/optimizer.py
+@@ -5336,7 +5336,7 @@ class HeatPumpOptimizer:
+             # power is what determines energy use; a clamp burnt
+             # min_electrical_power * 24 h per day on a house needing no heat.
+             # Nor a clip at 0: the demand is floored at 0 above, the COP at 1.
+-            power = min(power_for_heat_per_cop_kw(p, required_thermal / cop), p.max_electrical_power)
++            power = min(required_thermal / cop, p.max_electrical_power)
+             baseline_power[i] = power
+ 
+             state = self.model.simulate_step(
+--- FAIL lines
+  FAIL the savings baseline buys a derated pump's heat at the power that delivers it: on the band its draw rises with the derate; null control: a draw below the modulation floor is unchanged  [cold {0.0: 3.238095238095239, 0.2: 3.238095238095239} mild {0.0: 0.14285714285714288, 0.2: 0.14285714285714288}]
+1 of 4610 FEATURE CHECKS FAILED
+rc=1
