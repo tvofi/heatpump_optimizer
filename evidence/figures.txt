@@ -1,0 +1,19 @@
+== ls-tree E total
+119233983
+== ls-tree E dev
+88090351
+== archive tar E
+125255680
+== archive tar H
+125317120
+== zip H subdir
+1405314
+== ls-tree H subdir
+4317629
+== unzip
+Archive:  /tmp/hpo.zip
+  Length      Date    Time    Name
+---------  ---------- -----   ----
+    19340  2026-10-30 07:01   __init__.py
+    39461  2026-10-30 07:01   accuracy.py
+  4317629                     105 files
