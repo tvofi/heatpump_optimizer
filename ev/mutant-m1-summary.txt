@@ -1,0 +1,2 @@
+4651:KeyError: 'comfort_temp_day'
+4652:rc=1

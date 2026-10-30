@@ -1,0 +1,5 @@
+4649:  ok   and RECOVERY ends it, because recovery is the plan buying heat back
+4653:  ok   away sets back the weekend and holiday comfort pairs too: Saturday day and night read the away target
+4654:  ok   and away off, or recovering, keeps the configured weekend and holiday pairs (the null control)
+5958:ALL 4607 FEATURE CHECKS PASSED
+5959:rc=0

@@ -1,0 +1,12 @@
+diff --git a/custom_components/heatpump_optimizer/away.py b/custom_components/heatpump_optimizer/away.py
+index d66951e6e..b7c11bba4 100644
+--- a/custom_components/heatpump_optimizer/away.py
++++ b/custom_components/heatpump_optimizer/away.py
+@@ -338,7 +338,6 @@ def solve_bands(
+         target = state.target_temperature or DEFAULT_AWAY_TEMPERATURE
+         floor = state.dhw_min_temperature or DEFAULT_AWAY_DHW_MIN_TEMP
+         config = {
+-            **dict.fromkeys(config, target),
+             "target_temp": min(config["target_temp"], target),
+             "min_temp": min(config["min_temp"], target),
+         }
