@@ -1,4 +1,6 @@
-# R10-README-GRAPHICS: pre-study (designer.md pre-study shape, decision 0014)
+# R10-README-GRAPHICS: pre-study, round 2 of 3 (revises e995b815 per design review fe1d5b7f)
+
+Round 2 changes only "## Roster entry" and adds the reviewer's carries to the fixer notes. Everything else is round 1, unchanged.
 
 Seat: cloud probe, read-only. Tree: `d99cadb1235a5e40e250466e656c41c7ce88e641` (= origin/main, v7.1.0).
 Roster read: `origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r10-groups.json`.
@@ -206,41 +208,75 @@ Alternatives for B that lost:
   `./` (resolveHref and the image rule both use `path.posix.join`). Re-run its doc_claims arm
   anyway.
 
+- Carry: R10-README-GRAPHICS (item P2, reviewer's restatement). The design review could not execute the shipped markdown worker (session classifier refused), so every rule was checked statically only. The fixer must obtain a real HA 2026.11 instance or a screenshot of the Marketplace repository page at a pre-release tag; a replica alone is not enough.
+- Carry: R10-README-GRAPHICS (item P5). The source hash binds the block text to the manifest, not to the PNG. Record each PNG's sha256 in the manifest too and have the arm refuse a manifest whose PNG hash differs from the file. Self-test it, and show regenerate -> green after the planted drift, so "passes when fixed" is shown, not only "red on drift".
+- Carry: R10-README-GRAPHICS (item P6). The generator needs the tools/site mermaid (package.json pins 12.2.0, installed by `npm ci --prefix tools/site`, run in pages.yml only) plus Playwright. State in the generator's header how a seat installs both.
+- Carry: R10-README-GRAPHICS (item P7). On the product page the README diagrams appear twice: the static light PNG, plus live mermaid inside a closed `<details>`. Confirm with a build_docs run that this reads acceptably, or note it for the owner's `<picture>`/tools/site option.
+- Carry: R10-README-GRAPHICS (item P8). The fix note must state that only a stamped tag shows the fix (any stamp after the merge, not specifically v10.0.0), and only to users who install or update to it; an installed v7.1.0 keeps the broken page.
+- Carry: dismissed: sibling documents unaffected (item P9). The Marketplace fetches README.md only: no info.md, and hacs.json has no render_readme.
+- Routed: decision orchestrator: add this group to R10-ARCH-DOCS's and R10-CATALOG-PR's `after`. Decision owner: `<picture>` dark sources (code-owned tools/site/ change), and whether to stamp as soon as this merges.
+
 Probe-seat process note: a session-local inline-search guard (frugal plugin) refused two inline
 searches. The seat did not work around it: it delegated those reads to a read-only sub-seat, as
 the guard's own message directs.
 
 ## Roster entry
 
-Linted by appending this entry to a scratch copy of the roster at
-origin/handoff/audit-r10-roster and running `node tools/policy/brief_lint.mjs <copy>`. Result:
-exit 0, with no error or warning for this group. All 6 warnings printed belong to pre-existing
-R10-FLY-* groups.
+`files` is the design's actual edit set. render.mjs is not edited (the new generator goes beside it), so it is dropped. New paths are named exactly; the three PNG names are the fixer's to rename within docs/img/readme/. No workflow file is edited: the drift arm lives in tests/doc_claims.py, which tests.yml already runs through the scoped gate, so the CI wiring is the tests/closure.py classification (reads of doc_claims.py, the coffee.svg route) and nothing else. `hot_files` adds tests/doc_claims.py (shared with R10-ARCH-DOCS) and tests/closure.py (also in `files` of the not-started R10-MERGE-SUBJECT-CASEARM).
+
+Linted by appending this entry to a scratch copy of the roster at origin/handoff/audit-r10-roster and running `node tools/policy/brief_lint.mjs <copy>`: exit 0, 0 errors, 6 warnings, all pre-existing R10-FLY-* groups, none for this group.
 
 ```json
 {
-  "group": "R10-README-GRAPHICS",
-  "lane": "PR",
-  "kind": "production",
-  "class": "docs",
-  "severity": "medium",
-  "size": "M",
-  "issues": [],
-  "fixes": [],
-  "findings": [],
-  "hot_files": ["README.md"],
-  "fixture": false,
-  "owner_gate": null,
-  "rca": [],
-  "architect_note": "handoff-body/r10-readme-graphics",
-  "effort": "medium",
-  "model": {"fixer": "sonnet", "reviewer": "opus", "rca": null, "runner": "haiku", "record": "sonnet"},
-  "fixerModel": "sonnet",
-  "reviewerModel": "opus",
-  "after": [],
-  "files": ["README.md", "tests/doc_claims.py", "tests/closure.py", "docs/img/readme/render.mjs"],
-  "carry": [],
-  "resume": {"stage": "not-started", "branch": null, "commit": null, "last_step": null, "next_step": "dispatch fixer; add this group to the after lists of R10-ARCH-DOCS and R10-CATALOG-PR", "note": "2026-10-30 owner request (tvofi): README graphics in the HA Marketplace; pre-study at handoff-body/r10-readme-graphics"},
-  "brief": "Owner request, 2026-10-30 (tvofi): the Home Assistant Marketplace repository page does not show the front-page README graphics. Pre-study at handoff-body/r10-readme-graphics, measured against homeassistant 2026.11.0b1 and home-assistant-frontend 20261028.1. Its core finding: the Marketplace sanitizer (js-xss safeAttrValue in the frontend markdown worker) blanks every src and href that is not absolute and does not start with ./ or ../ or /, before its URL rewriter runs. So every repository-relative image and link in README.md renders broken, and mermaid fences show as plain code. (1) Prefix every repository-relative link and image target in README.md with ./ so GitHub, tools/site/build_docs.mjs and the Marketplace all resolve it. (2) For each mermaid block in README.md, commit a pre-rendered PNG (2x, opaque, light) rendered with the mermaid pinned in tools/site through Chromium on the pattern of docs/img/readme/render.mjs. Place it as a ./ markdown image directly above the block, and close that block's details element. The setup-flow block stays identical to docs/configuration.md and docs/setup.md. (3) Add an arm to tests/doc_claims.py that refuses a bare-relative src, href or srcset in README.md, and refuses a mermaid block whose figure is missing or whose recorded source hash (a sidecar manifest the generator writes) differs from the block. Show a planted one-character block edit red, a planted prefix removal red, and the unchanged tree green. (4) Classify the new manifest and figures as reads of tests/doc_claims.py in tests/closure.py, the route docs/img/brand/coffee.svg took. Finder's harness: a replica of the Marketplace markdown pipeline under dev/audit/harnesses/, red at the base and green at the head, with an absolute-URL image as the null control. Out of scope: picture elements with dark sources (needs a code-owned tools/site/ change), docs other than README.md, VERSION and release notes. Must merge before R10-ARCH-DOCS and R10-CATALOG-PR: the Marketplace fetches README.md at the release tag, so only a stamped release shows the fix."
+ "group": "R10-README-GRAPHICS",
+ "lane": "PR",
+ "kind": "production",
+ "class": "docs",
+ "severity": "medium",
+ "size": "M",
+ "issues": [],
+ "fixes": [],
+ "findings": [],
+ "hot_files": [
+  "README.md",
+  "tests/doc_claims.py",
+  "tests/closure.py"
+ ],
+ "fixture": false,
+ "owner_gate": null,
+ "rca": [],
+ "architect_note": "handoff-body/r10-readme-graphics",
+ "effort": "medium",
+ "model": {
+  "fixer": "sonnet",
+  "reviewer": "opus",
+  "rca": null,
+  "runner": "haiku",
+  "record": "sonnet"
+ },
+ "fixerModel": "sonnet",
+ "reviewerModel": "opus",
+ "after": [],
+ "files": [
+  "README.md",
+  "docs/img/readme/render_mermaid.mjs",
+  "docs/img/readme/mermaid_figures.json",
+  "docs/img/readme/mermaid-how-the-pieces-fit.png",
+  "docs/img/readme/mermaid-setup-flow.png",
+  "docs/img/readme/mermaid-one-interval.png",
+  "dev/audit/harnesses/r10_readme_marketplace_pipeline.mjs",
+  "tests/doc_claims.py",
+  "tests/closure.py"
+ ],
+ "carry": [],
+ "resume": {
+  "stage": "not-started",
+  "branch": null,
+  "commit": null,
+  "last_step": null,
+  "next_step": "dispatch fixer; add this group to the after lists of R10-ARCH-DOCS and R10-CATALOG-PR",
+  "note": "2026-10-30 owner request (tvofi): README graphics in the HA Marketplace; pre-study at handoff-body/r10-readme-graphics"
+ },
+ "brief": "Owner request, 2026-10-30 (tvofi): the Home Assistant Marketplace repository page does not show the front-page README graphics. Pre-study at handoff-body/r10-readme-graphics, measured against homeassistant 2026.11.0b1 and home-assistant-frontend 20261028.1. Its core finding: the Marketplace sanitizer (js-xss safeAttrValue in the frontend markdown worker) blanks every src and href that is not absolute and does not start with ./ or ../ or /, before its URL rewriter runs. So every repository-relative image and link in README.md renders broken, and mermaid fences show as plain code. (1) Prefix every repository-relative link and image target in README.md with ./ so GitHub, tools/site/build_docs.mjs and the Marketplace all resolve it. (2) For each mermaid block in README.md, commit a pre-rendered PNG (2x, opaque, light) rendered with the mermaid pinned in tools/site through Chromium on the pattern of docs/img/readme/render.mjs. Place it as a ./ markdown image directly above the block, and close that block's details element. The setup-flow block stays identical to docs/configuration.md and docs/setup.md. (3) Add an arm to tests/doc_claims.py that refuses a bare-relative src, href or srcset in README.md, and refuses a mermaid block whose figure is missing or whose recorded source hash (a sidecar manifest the generator writes) differs from the block. Show a planted one-character block edit red, a planted prefix removal red, and the unchanged tree green. (4) Classify the new manifest and figures as reads of tests/doc_claims.py in tests/closure.py, the route docs/img/brand/coffee.svg took. Finder's harness: a replica of the Marketplace markdown pipeline under dev/audit/harnesses/, red at the base and green at the head, with an absolute-URL image as the null control. Out of scope: picture elements with dark sources (needs a code-owned tools/site/ change), docs other than README.md, VERSION and release notes. Must merge before R10-ARCH-DOCS and R10-CATALOG-PR: the Marketplace fetches README.md at the release tag, so only a stamped release shows the fix."
 }
 ```
