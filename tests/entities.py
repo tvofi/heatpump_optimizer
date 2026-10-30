@@ -4077,7 +4077,7 @@ def _p2_registry(sources):
                      "a temperature gap in K (target minus room), not a power",
                  "coordinator.py::HeatPumpOptimizerCoordinator._maybe_run_fuse_advisor":
                      "a comfort shortfall in K (the fuse advisor's breach), not a power",
-                 "coordinator.py::HeatPumpOptimizerCoordinator._record_accuracy":
+                 "accuracy.py::pairs_interval":
                      "an elapsed time in hours (the pairing window's lower edge), not a power",
                  "dhw_learning.py::DhwProfileLearner.async_learn_usage":
                      "a tank draw intensity in K/h, not a power",
@@ -6137,6 +6137,37 @@ R.check(
         FakeCoordinator({**DATA, "measured_power_available": False}), ENTRY
     ).extra_state_attributes.get("waiting_for")
     == "measured_power_entity",
+)
+
+# R10-COP-GATE (#2262): where the draw does not follow the plan's ask and no
+# heat reading exists, a latched COP is no reading of this install: the sensor
+# waits for a heat meter instead of showing it. A heat counter's open span is
+# its own code beside a measured COP, never a refusal, and the latch's time
+# rides with it.
+_cg_cop = {
+    obs: sensor.ObservedCOPSensor(FakeCoordinator({
+        **DATA, "measured_cop": 2.4, "cop_observability": obs,
+        "cop_refusal": "span_open" if obs == "heat_metered" else "draw_off_ask",
+        "measured_cop_at": "2026-10-24T03:00:00+00:00",
+    }), ENTRY)
+    for obs in ("not_measurable", "heat_metered", "draw_follows_plan")
+}
+_cg_view = {
+    obs: (ent.available, ent.extra_state_attributes.get("waiting_for"),
+          ent.extra_state_attributes.get("last_refusal"),
+          ent.extra_state_attributes.get("measured_at"))
+    for obs, ent in _cg_cop.items()
+}
+R.check(
+    "a COP not measurable here waits for a heat meter; a heat-metered COP "
+    "between span closes stays measured with span_open as its code; a draw "
+    "that follows the plan keeps its COP (null); each carries its fold time",
+    _cg_view == {
+        "not_measurable": (False, "heat_meter", "draw_off_ask", "2026-10-24T03:00:00+00:00"),
+        "heat_metered": (True, None, "span_open", "2026-10-24T03:00:00+00:00"),
+        "draw_follows_plan": (True, None, "draw_off_ask", "2026-10-24T03:00:00+00:00"),
+    },
+    f"{_cg_view!r}",
 )
 
 # --- a failed refresh reaches every entity ----------------------------------
@@ -12379,7 +12410,8 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
     ),
     "ObservedCOPSensor": frozenset({
         "cop_samples", "cop_scale", "defrost_buckets", "defrost_derate",
-        "defrost_samples", "modelled_cop", "waiting_for"
+        "defrost_samples", "modelled_cop", "waiting_for",
+        "measured_at", "last_refusal", "observability",  # R10-COP-GATE (#2262)
     }),
     "OptimizationScoreSensor": frozenset(),  # scores + price_tiles; #405
     "OptimizationStatusSensor": frozenset({
