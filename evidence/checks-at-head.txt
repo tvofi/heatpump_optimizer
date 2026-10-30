@@ -1,0 +1,4 @@
+check-runs API at 4cd6cac6495a2d7ac1a452fad6bc8e9eceef1c75, read 2026-10-30 ~18:35Z (38 runs):
+no run concluded failure. in_progress: governance / instrument-self-tests, tests / coverage, tests / closures, codeql / Analyze (python), prelude (run 41106826721).
+success: tests / fast (3.14), tests / mutation, tests / browser, tests / typing, arch-instrument, briefs, closure-scope, nightly-status, delivery-status, env-matrix, policy-docs, wave-script, budget-raise-gate, arch-score, hassfest, validate-hacs, codeql actions + js-ts, cancel-superseded x2, refresh x2, prelude (run 41106825228).
+neutral: CodeQL. skipped: claims-autofix, mutation-pins, mutation-autofix, replay, nightly-ha, delivery-status-publish, record, kernel-points, arm.

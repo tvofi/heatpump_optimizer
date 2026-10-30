@@ -1,0 +1,3 @@
+head {'cancel': [], 'kept': 0, 'skipped': 1, 'ghosts': []}
+mutant drop b==main {'cancel': [], 'kept': 0, 'skipped': 0, 'ghosts': [50]}
+mutant drop whole skip {'cancel': [], 'kept': 0, 'skipped': 0, 'ghosts': [50]}
