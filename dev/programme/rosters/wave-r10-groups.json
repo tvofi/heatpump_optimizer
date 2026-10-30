@@ -12206,6 +12206,47 @@
     "note": "2026-10-30 (triage: dev/programme/triage/s6-batch68.md#P299); re-routes P46 and P97 from R10-ORCH-BEATD (done at #2916, both unbuilt)"
    },
    "brief": "From triage P299 (orchestrator s8, 2026-10-30T09:33Z), re-routing two carries R10-ORCH-BEATD closed without building (done at #2916; `git grep 'seat-alive' -- tools/audit/seat/pulse.py` = 0 at b646e8306): P46 (triage: dev/programme/triage/s6-batch2.md#P46) and P97 (triage: dev/programme/triage/s6-batch21.md#P97). Audit class, 4 instances in round 10: an alive file written by a process that is not the seat the board names (P188 x2, the w41 dispatch loop script, P204 two triage writers, P299 pid 29401: a 41 h orphan loop kept merge.alive fresh with no merge seat, and the board printed `ok merge seat beat 50s ago` across a session handover). (1) P46: tools/audit/seat/pulse.py gains `--seat-alive SEAT=FILE[:MIN]` (STOPPED past MIN or the seat's STANDING cadence, UNREADABLE when absent), and tools/audit/seat/sweep_template.md step (1b) runs it. (2) P97: liveness is read from one alive entry per seat id under each role (`<role>.alive.d/<id>` or equivalent, the fixer's choice, documented in instruments/pulse.py.md); two fresh ids of one role print `DUPLICATE seat <role>: <id> <id>`. (3) P299: the per-role file alone never makes a role live. A role whose per-role file is fresh while no id entry is fresh prints `FOREIGN <role>: unattributed beat`; a fresh id entry that is not the newest launch line for the role without a stop line, in the ledger given by `--launch-ledger FILE` (format `<ts> <nonce> <role> ...` / `<ts> <nonce> stop`, the orchestrator's out-of-tree launch-ledger script), prints `FOREIGN <role>: <id> (newest launch <nonce>)`. Both are STOPPED-class, never ok. Failing test first: a fresh per-role file with no id entry prints ok today (no arm) and must print FOREIGN. Controls: a stale id entry is STOPPED; a fresh entry under the newest unstopped launch is ok even when an older launch of the role has no stop line (null; DUPLICATE is (2)'s line, not FOREIGN); a fresh entry under an older id gives FOREIGN; two fresh ids give DUPLICATE, one fresh plus one stale does not (null). Mutation: one mutant per arm (per-role fallback restored; newest-launch comparison dropped; DUPLICATE count dropped). Not in scope: P63's generation token (stranded on R10-ORCH-BEATD; the orchestrator re-routes or drops it), and the orchestrator's out-of-tree sweep-script nonce check (sent to it by P299). triage: dev/programme/triage/s6-batch68.md#P299"
+  },
+  {
+   "group": "R10-FLY-BUS-BASH32",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "instrument",
+   "severity": "high",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 6,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "tools/audit/seat/bus.sh"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-fly-bus-bash32",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer (fly-in; pulse's opener arm is UNREADABLE every pass on the orchestrator's host)",
+    "note": "2026-10-30 (triage: dev/programme/triage/s6-batch69.md#P303)"
+   },
+   "brief": "From triage P303 (orchestrator s8, 2026-10-30T09:54Z): tools/audit/seat/bus.sh orphans dies on macOS /bin/bash 3.2.57 under `set -uo pipefail` (line 135) with `arms[@]: unbound variable` when neither --no-ancestry nor --no-content is given (lines 645-649: `arms=()`, then `\"${arms[@]}\"` to ledger.py landed), so pulse.py's opener arm reads UNREADABLE every pass and orphaned handoffs are invisible. Introduced by d0f6de273 (2026-10-28, R10-FLY-ORPHANS-REWRITTEN) against the rule bus.sh itself states (line 134: 'Plain variables, no arrays: macOS /bin/bash 3.2 rejects an empty array under -u'; the same sentence is in body_push.sh line 11 and seat_venv.sh line 41). (1) Fix: `${arms[@]+\"${arms[@]}\"}` at the ledger.py call (or plain variables, per the file's rule). (2) Class barrier, static because CI's bash 5 expands an empty array under -u cleanly and a run-time test there passes on the defect: a check in an existing self-test family CI runs (the fixer picks the home and names it) that refuses a bare `\"${name[@]}\"` in tools/**/*.sh files running under `set -u`, unless guarded with `${name[@]+...}` or the line carries an allow marker stating why the array is never empty. (3) Classify every site `git grep -nE '\"\\$\\{[A-Za-z_]+\\[@\\]\\}\"' -- 'tools/**/*.sh'` lists at the base (at b646e8306: body_patch.sh line 98; cloud_relay.sh line 439; pr_args.sh lines 172, 239, 242; cloud-setup.sh lines 64 and 103-119; bus.sh line 649): guard it or mark it never-empty with the reason. Failing test first: the static check over bus.sh at the base refuses line 649. Controls: the guarded form passes; an allow-marked never-empty site passes (null); a file without `set -u` is not judged (null). Where a macOS bash 3.2 is available, also run `bus.sh orphans` with no flags and record rc 0 in the body (evidence, not the control). Mutation: dropping the static check's guard recognition refuses the fixed line; dropping the check lets the base line through. triage: dev/programme/triage/s6-batch69.md#P303"
   }
  ]
 }
