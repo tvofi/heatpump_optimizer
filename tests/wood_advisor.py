@@ -231,11 +231,11 @@ R.check(
     _lighting(_now_open) == (_at(0), _at(0)),
     repr(_lighting(_now_open)),
 )
-_pump_off = _wood_view({12}, off_steps={12})
+_off_day = _wood_view({12}, off_steps={12})
 R.check(
     "a cheaper step while the pump is planned off is not a window",
-    _pump_off.get("cheaper_windows", []) == [] and _lighting(_pump_off) == (None, None),
-    repr(_pump_off.get("cheaper_windows")),
+    _off_day.get("cheaper_windows", []) == [] and _lighting(_off_day) == (None, None),
+    repr(_off_day.get("cheaper_windows")),
 )
 _tomorrow = _wood_view({26})
 R.check(
@@ -332,12 +332,12 @@ def _refs(node):
             yield from _refs(v)
 
 
-_declared = set(_BP["blueprint"]["input"])
+_bp_inputs = set(_BP["blueprint"]["input"])
 _used = set(_refs({k: v for k, v in _BP.items() if k != "blueprint"}))
 R.check(
     "every declared blueprint input is referenced, and every reference declared",
-    bool(_declared) and _declared == _used,
-    f"declared-only {sorted(_declared - _used)}, undeclared {sorted(_used - _declared)}",
+    bool(_bp_inputs) and _bp_inputs == _used,
+    f"declared-only {sorted(_bp_inputs - _used)}, undeclared {sorted(_used - _bp_inputs)}",
 )
 R.check(
     "the blueprint names its own import URL and its author, as its siblings do",
