@@ -1,0 +1,3 @@
+train.sh self-test: effective set of a bare launch: --overlap|--approval-carry|--skip-bad|--free-holders|--bot-prs|--pre-flight
+train.sh self-test: ok (5 refusals shown, root and options reach the child, a bare launch runs the six-flag recommended set, --no-<flag> and the mandate file switch it, the child's exit is the train's, a stop reaps the tree, merge_train.py first, add takes no pidfile)
+rc=0
