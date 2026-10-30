@@ -598,6 +598,16 @@ INERT_EXCEPT = (
     "dev/audit/harnesses/r10_ci_layout_u5/run_part.py",
     "dev/audit/harnesses/r10_ci_layout_u5/unitcheck.py",
     "tools/pr/codeql_scope.py",
+    # R10-ORCH-PLANPAGE: state_docs.py's self-test (which tests/entities.py runs)
+    # builds the plan page from the real roster, so it imports the plan model and
+    # opens its measured durations. CI predict (self-test-reads) found both INERT
+    # and read. Same route as codeql_scope.py above: the tools/plan/ prefix stays
+    # INERT, the two files move to the recorded closure.
+    "tools/plan/replan.py",
+    "tools/plan/durations.json",
+    # Also read by that self-test (the page renderer replan feeds): tools/audit/seat/
+    # stays INERT, this file joins the recorded closure.
+    "tools/audit/seat/plan_page.py",
     # R9-RO-6: the device-fixture scripts moved under tools/devices/, which is
     # INERT. tests/entities.py and tests/features.py import them, so an edit
     # selects those scripts. Left inside the prefix they would be declared
