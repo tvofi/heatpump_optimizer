@@ -1,7 +1,5 @@
-tests / mutation, check run 124107634626, head f41e5a5f4a674977970d63400b38cac3f6f321cf, concluded success 15:04 UTC:
-  PIN NOT REPRODUCED custom_components/heatpump_optimizer/pump_arbiter.py:supply_tick GUARD_OFF dcaaed0d: pinned to tests/harness_headers.py, LIVES -- a human re-pins, triages or adds the test; the pin is untouched
-PIN RE-VERIFICATION: 7 reproduced, 1 not reproduced, 0 not re-verified
-  LIVES custom_components/heatpump_optimizer/pump_arbiter.py:1243 GUARD_OFF
-  1 survivor(s) of 8 evaluated = 12.5%, cap 20.0%
-    custom_components/heatpump_optimizer/pump_arbiter.py:1243 GUARD_OFF: if held.supply is None or held.supply[0] == step:
+tests / mutation, check run 124231070335, head 708e4679ec512068c69d1f34145b379823c488da (merge ff022dc65 into cc930cdd1)
+2026-10-30T18:56:54Z PIN RE-VERIFICATION: 8 reproduced, 0 not reproduced, 0 not re-verified
+  ok    custom_components/heatpump_optimizer/pump_arbiter.py:1243 GUARD_OFF  -- killed by tests/features.py
+  0 survivor(s) of 8 evaluated = 0.0%, cap 20.0%
 MUTATION TABLE PASSED

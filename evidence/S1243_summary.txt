@@ -1,2 +1,0 @@
-features_S1243_features.py.log:ALL 4622 FEATURE CHECKS PASSED
-features_S1243_harness_headers.py.log:ALL 112 HARNESS HEADER CHECKS PASSED
