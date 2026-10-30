@@ -8,7 +8,7 @@ Brief (snapshotted when this payload was rendered):
 FIXER seat (round 3), group R10-UX-HEALTH, PR #2997, branch fix/r10-ux-health-p2, live head feacede17c5e1eb6b7e399bf87a2efea3ea79cc7. Contract: dev/governance/roles/fixer.md and dev/governance/rules/ci-autofix.md at origin/main.
 Read the blocked verdict in full: git fetch origin refs/heads/review/2997 && git show FETCH_HEAD:VERDICT.md.
 The block is gate-red. tests / mutation refuses with "no full-line comment in any file in the pool, so the run has no null control". null_control in tests/mutation_table.py (about lines 2136-2165 at the head) accepts only a whole-line comment whose full line, indentation included, is under 60 characters, and button.py has none.
-ORCHESTRATOR RULING (mandate 6329234399): fix the instrument in THIS PR. That is the architecturally sound route; padding button.py with a comment to fit the tool is refused. tests/mutation_table.py is not code-owned.
+ORCHESTRATOR RULING (mandate 6329234399): fix the instrument in THIS PR. That is the architecturally sound route; padding button.py with a comment to fit the tool is refused. tests/mutation_table.py IS code-owned (.github/CODEOWNERS); the orchestrator approves the head as tvofi under mandate 6329234399, so keep the change minimal and fully justified in the body (CODEOWNERS explains why the file stays owned: the mutation jobs install and run it).
 Do:
 - Failing test first in mutation_table's self-test: a pool whose only comment lines are indented, or longer than the cap, still finds a null control (measure the indent-stripped length, and justify any cap that remains with a stated reason). Add a null arm: a pool with no comment at all still refuses.
 - Add a mutant that restores the old predicate, and show it red, then green.
