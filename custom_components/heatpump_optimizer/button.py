@@ -223,7 +223,7 @@ class DebugFinalizeButton(_OptimizerButtonBase):
         Health row is the surface a person sees.
         """
         collector = debugger.collector_for(self.coordinator)
-        if collector is None:
+        if False:
             return {"waiting_for": "debug_collect"}
         if collector.final:
             return {"waiting_for": "debug_collect_start"}
