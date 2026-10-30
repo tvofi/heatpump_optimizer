@@ -6,7 +6,7 @@
   exactly one `CARRY`/`FRESH-REVIEW` (`git rev-list --count <reviewed>..<new>
   --not origin/main`; CARRY needs zero, or every commit in it a merge, and
   then `tools/pr/app_approve.sh --carry` carrying the range — each merge
-  git's automatic one, claim files a pure union, the branch's own diff equal
+  git's automatic one, claim files a pure union or main's driver output, the branch's own diff equal
   — asked, never copied, so the two cannot answer one range oppositely; a
   merge of the branch's own previous head, update_pr.sh's re-cut, passes,
   and a hand-resolved conflict does not). When: before
