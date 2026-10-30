@@ -5,49 +5,62 @@ base: 26c9d22a3c37a1b48f8561d061ae58b03eef5b54
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
 ## Gate digest: red
-CodeQL id=123861907251 neutral
-arch-score / arch-score id=123861683846 success
+CodeQL id=123861907251 success
+arch-score / arch-score id=123946060085 success
 arm id=123861551083 skipped
-budget-raise-gate / budget-raise-gate id=123861683895 success
-cancel-superseded id=123861556701 success
-codeql / Analyze (actions) id=123861683994 success
-codeql / Analyze (javascript-typescript) id=123861683916 success
-codeql / Analyze (python) id=123861684054 in_progress
-governance / delivery-status id=123861683983 success
-governance / delivery-status-publish id=123861685692 skipped
-governance / env-matrix id=123861683946 success
-governance / instrument-self-tests id=123861683960 in_progress
-governance / policy-docs id=123861683984 success
-governance / record id=123861685686 skipped
-governance / wave-script id=123861683954 success
-hassfest / hassfest id=123861683853 success
-kernel-points id=123861684930 skipped
-prelude id=123861556916 in_progress
-refresh id=123861556800 success
-tests / arch-instrument id=123861856575 success
-tests / briefs id=123861683999 success
-tests / browser id=123861856512 success
-tests / closure-scope id=123861684022 success
-tests / closures id=123861856518 in_progress
-tests / coverage id=123861856446 in_progress
-tests / fast (3.14) id=123861856480 in_progress
-tests / mutation id=123861684043 success
-tests / mutation-autofix id=123861927334 skipped
-tests / mutation-pins id=123861927199 skipped
-tests / nightly-ha id=123861857999 skipped
-tests / nightly-status id=123861683942 failure
-tests / replay id=123861858058 skipped
-tests / typing id=123861856543 success
-validate / validate-hacs id=123861683864 success
+budget-raise-gate / budget-raise-gate id=123946030577 success
+cancel-superseded id=123946029790 success
+codeql id=123946049762 skipped
+codeql / Analyze (actions) id=123946030492 success
+codeql / Analyze (javascript-typescript) id=123946074814 success
+codeql / Analyze (python) id=123946030771 success
+gate id=123946621553 queued
+governance id=123946041281 skipped
+governance / delivery-status id=123946030761 success
+governance / delivery-status-publish id=123946031050 skipped
+governance / env-matrix id=123946030472 success
+governance / instrument-self-tests id=123946030874 success
+governance / policy-docs id=123946074800 success
+governance / record id=123946030957 skipped
+governance / wave-script id=123946030633 success
+hassfest id=123946009511 skipped
+hassfest / hassfest id=123946059910 success
+kernel-points id=123946030224 skipped
+pr-contract / pr-contract id=123946377414 success
+prelude id=123946030029 success
+refresh id=123946079907 success
+tests id=123946037867 skipped
+tests / arch-instrument id=123946031986 success
+tests / briefs id=123946030572 success
+tests / browser id=123946031610 success
+tests / ci-ratchet id=123946033001 skipped
+tests / claims-autofix id=123946033650 skipped
+tests / closure-scope id=123946030770 success
+tests / closures id=123946031335 success
+tests / closures-autofix id=123946032477 skipped
+tests / coverage id=123946031842 success
+tests / coverage-ratchet id=123946032646 success
+tests / fast (3.14) id=123946032074 success
+tests / graders-head-copy id=123946032768 success
+tests / lane-proofs id=123946033149 success
+tests / mutation id=123946030540 success
+tests / mutation-autofix id=123946032162 skipped
+tests / mutation-pins id=123946031594 skipped
+tests / nightly-ha id=123946032013 skipped
+tests / nightly-status id=123946030911 failure
+tests / replay id=123946031494 skipped
+tests / typing id=123946031543 success
+validate id=123946009816 skipped
+validate / validate-hacs id=123946030511 success
 
 ## Refusals
-red-unanswered: concluded red check `tests / nightly-status` is not named in ## Red checks
+none
 
 ## Advisories
 none
 
 ## carry_audit at the head
-NOTE stale tree: 882da1e01b3d209cf7f8b6c02427166e7c0c7655 lacks origin/main 13871b7aa4a1218e4523d10d7c348c08eef4dd57; roster read at origin/main
+NOTE stale tree: 882da1e01b3d209cf7f8b6c02427166e7c0c7655 lacks origin/main 1148ee635e8278ebbb033b524d54001b2a89218c; roster read at origin/main
 CARRY-AUDIT: 0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s)
 
 ## figure_lint at the head
@@ -59,10 +72,10 @@ ok         python3 tools/audit/seat/merge_train.py --self-test
              `tests/structure.py` is in the tree at this head
   ok         tests/entities.py
              `tests/entities.py` is in the tree at this head
-  ok         PYTHONPATH=tests/hastub python3 tests/entities.py
-             `tests/entities.py` is in the tree at this head
   ok         python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir <dir>
              `tests/closure.py` is in the tree at this head
+  ok         PYTHONPATH=tests/hastub python3 tests/entities.py
+             `tests/entities.py` is in the tree at this head
   unverified git grep -n "QUEUE_PENDING\|QUEUE_SEEN\|already_held(\|queue_seen_read(" -- tools/ .github/ tests/
              `git grep` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
 
