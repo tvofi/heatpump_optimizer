@@ -73809,6 +73809,52 @@ R.check(
     _sa_open["06:00"] == ["turn_off"],
     f"{_sa_open}",
 )
+# The tick acts on a new step only: inside a step it writes nothing, though
+# the step's command changes under it, as when a boost starts mid-step
+# (``supply_tick``'s new-step guard). A cycle at 07:00 writes the plan's OFF;
+# a boost starts at 07:05. The null control is the 07:15 boundary, where the
+# same tick writes the boost's ON.
+async def _sa_mid_step():
+    ticks = []
+    armed = _sa_pa.async_track_time_interval
+    _sa_pa.async_track_time_interval = lambda _h, fn, _i: (ticks.append(fn), (lambda: None))[1]
+    hass = FakeHass({"switch.hp": FakeState("off", last_updated=_SA_T0)})
+    coord = Coord(hass, FakeEntry(data={**_LC_DATA, "heat_pump_switch_entity": "switch.hp", "pump_duty_mode": "observe"}))
+    coord._mode = "auto"
+    coord._optimization_result = _sa_plan()
+    t0 = _SA_T0 + timedelta(hours=1)
+    try:
+        _sa_dt.freeze(t0)
+        coord._last_optimization = t0
+        _sa_boost.adopt_plan(coord, {"heat_pump_on": False, "power": 0.0})
+        await coord._apply_action()
+        writes = {"07:00": [s for d, s, _d in hass.services.calls if d == "switch"]}
+        hass.states.set("switch.hp", FakeState("off", last_updated=t0))
+        _sa_boost.held_for(coord).until[_sa_boost.CHANNEL_SPACE] = t0 + timedelta(hours=1)
+        for minutes in (6, 10, 15):
+            now = t0 + timedelta(minutes=minutes)
+            hass.services.calls.clear()
+            _sa_dt.freeze(now)
+            for tick in list(ticks):
+                await tick(now)
+            writes[now.strftime("%H:%M")] = [s for d, s, _d in hass.services.calls if d == "switch"]
+        return writes
+    finally:
+        _sa_dt.freeze(None)
+        _sa_pa.async_track_time_interval = armed
+
+
+_sa_mid = _asyncio.run(_sa_mid_step())
+R.check(
+    "the step tick writes nothing inside a step whose boost starts mid-step",
+    _sa_mid["07:00"] == ["turn_off"] and _sa_mid["07:06"] == [] and _sa_mid["07:10"] == [],
+    f"{_sa_mid}",
+)
+R.check(
+    "null control: the same tick at the next boundary writes the boost's ON",
+    _sa_mid["07:15"] == ["turn_on"],
+    f"{_sa_mid}",
+)
 # The pump_duty record's held slots are declared, every one the arbiter can
 # write: the silent switch (D15 L5) and the GCHV night registers (#1913).
 _sa_record = {"written": {
