@@ -326,7 +326,8 @@
     "rca": [
       "R9-P2",
       "RCA-1499",
-      "RCA-R8-P2"
+      "RCA-R8-P2",
+      "R10-RCA-BUFFER-STORE"
     ],
     "rca_planned": [
       "R9-F1.11"
@@ -4518,6 +4519,54 @@
         "dev/audit/rca/R10-RCA-HOTFIX-BATCH-ERREXIT.md"
       ]
     },
+    "R10-RCA-HEADMOVED": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "#2389 head-moved (rework): 75 re-verifications after a merge verdict on 55 PRs (21 after the relay freeze #2792); the carry refused a merge of a seat's own handed-off main merge whose own patch was unchanged",
+      "trigger": "recurrence (#2389, rework arm at 19 PRs against 3; owner asked for the write-up 2026-10-18)",
+      "date": "2026-10-28",
+      "status": "proposed",
+      "parts_missing": [],
+      "process_state": "(c) carry() reads one hop of history; (b) nudge.md section 2 carry-first, 6 instances; (a) no freeze on non-roster heads for the orchestrator's own pushes, 2 after the split",
+      "countermeasure": "CM-1 built: carry() carries a second parent off main when that parent carries in turn (8 of 75 flip to CARRY: yes, standing cost within self-test noise); CM-3, section 11's file-disjointness clause, is the owner's decision",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R10-RCA-HEADMOVED.md",
+      "doc": [
+        "dev/audit/rca/R10-RCA-HEADMOVED.md"
+      ]
+    },
+    "R10-RCA-BUFFER-STORE": {
+      "class": "P2",
+      "level": "instance-or-process",
+      "subject": "a 750 L buffer behind a manual valve plans as if no tank existed: the single-zone step had no valve branch (#2499/#2500) and the terminal cost's store credit sat inside the two-zone branch, while config_flow offered the tank in every zoning",
+      "trigger": "round-10 class P2; the group's roster next step was rca",
+      "date": "2026-10-26",
+      "status": "proposed",
+      "parts_missing": [],
+      "process_state": "(c) _grad_parity covered 3 of the 4 zoning x valve cells (single-zone with valve never built); the base docstring records the missing branch as design; 32 of 33 valve-armed ThermalParameters fixtures declare two_zone_enabled=True and the 33rd feeds battery_view without stepping the model",
+      "countermeasure": "three-arm zoned-store census in tests/features.py (valve response, cap refusal, terminal credit, each in both zonings), registered in tests/entities.py _P2_CENSUSES as zoned_store_valve_live, zoned_store_cap_live, zoned_store_credit_live; 0.001 s median per features.py run against a 15,660 s per-finding fix cost at 0.66 instances per release",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R10-RCA-BUFFER-STORE.md",
+      "doc": [
+        "dev/audit/rca/R10-RCA-BUFFER-STORE.md"
+      ]
+    },
+    "R10-RCA-OWED-UNACTIONED": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "tick OWED lines stood for hours with no action: triage-s7-batch49 and r10-review-carry 5.7 h and 5.6 h host-up, critical-path r10-orch-beatd (#2916) 1.9 h on 2026-10-28; three more past 4 h on the night's sweep log",
+      "trigger": "recurrence (owner corrections 2026-10-18, 10-22, 10-24, 10-28; 6 instances past the 4 h threshold in about 11.4 host-up hours of sweeps)",
+      "date": "2026-10-28",
+      "status": "proposed",
+      "parts_missing": [],
+      "process_state": "(c) the sweep ran (19 board reads 10:40Z-18:55Z) and its unit, a board read, cannot tell a standing, a handled and a failed-handling owed line apart; the board's rc ignores owed lines, its owed view shows 8 of 26, and 15 of 19 reads filtered the block away",
+      "countermeasure": "built: tools/audit/seat/owed_unactioned.py, run in sweep_template.md step (5): exit 1 on every owed key standing 2 sweeps with no live OWED-ACK (lapsing, 1 h default, 12 h cap); fires on today's and the night's boards, null controls quiet, its own echoed output acknowledges nothing, 15 of 15 mutants killed; session orch_sweep.sh fold and the split ledger home are the orchestrator's",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R10-RCA-OWED-UNACTIONED.md",
+      "doc": [
+        "dev/audit/rca/R10-RCA-OWED-UNACTIONED.md"
+      ]
+    },
     "R10-N-vocabulary-drift": {
       "class": "N-vocabulary-drift",
       "level": "class",
@@ -4534,6 +4583,56 @@
       "in_tree_home": "dev/audit/rca/R10-N-vocabulary-drift.md",
       "doc": [
         "dev/audit/rca/R10-N-vocabulary-drift.md"
+      ]
+    },
+    "R10-RCA-CLOSURE-ARGV": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "#2883 red trigger x2: tests / closures INERT READS UNDER-APPROXIMATED on tests/entities.py for reads a changed tool's self-test makes when entities runs it (state_docs spawning merge_throughput.py; roster_lib.blob_at's self-test putting two roster paths on git's argv, which closure._exec_record files as reads); ci_predict.py, whose unit is the static import edge, was quiet on both heads",
+      "trigger": "2 (red check): run 40548660478 at 8f05b74d4 and check-run 122599859589 at 71987ff1e (35 min 10 s FULL), closures-autofix skip-manual-repair-owed, round-3 review blocked",
+      "date": "2026-10-28",
+      "status": "proposed",
+      "parts_missing": [],
+      "process_state": "(c) prepr.sh step 6d ran and passed on both heads; its unit, a top-level import edge, does not reach a read a gate script's run of a changed self-test makes; the cheaper detector (--single, 868-913 s) is in no local path by the heavy-scripts rule",
+      "countermeasure": "ci_predict.py SELF-TEST READS (--record-self-tests, passed by prepr 6d): each changed self-testing file a host's source runs is recorded by closure._exec_record and graded as the host's record by closure.check (0.5-29 s a file; 63.4 s over the 15 of 300 R10 PRs that touch one) against 2 demonstrated reds at about 85 min each in 7 days",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R10-RCA-CLOSURE-ARGV.md",
+      "doc": [
+        "dev/audit/rca/R10-RCA-CLOSURE-ARGV.md"
+      ]
+    },
+    "R10-RCA-FRICTION-RESIDUE": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "five recurring-friction keys measured at 6eb552157 -- carry-missing 26 PRs / 30 entries, the untaught-class `other` route 52 / 67 over 46 words, the root-cause family 6 / 6 over three words, ci-autofix 3 / 3 and finding-propagation 5 / 5 -- and the carry destination is prose no producing seat may write",
+      "trigger": "assigned by the orchestrator under mandate 6329234399 when R10-RCA-FRICTION went done (PR #2561); group R10-RCA-FRICTION-RESIDUE",
+      "date": "2026-10-27",
+      "status": "proposed",
+      "parts_missing": [
+        "A1 and A2 are a code change in brief_lint.mjs and a merge-step fold, neither in this record's pull request; the derived `other` family, the `root-cause` family, the ci-autofix wait bound and measured-pin rule, and the carry-control enumerator lint are policy or policy-tooling changes, drafted in the record and awaiting the owner"
+      ],
+      "process_state": "(d) carry-missing: the destination is sound, but the producing seat's writable artefact moved with the rosters -- the no-argument rosterIssues() indexes 1 of the 76 live-group issues, so a carry file at a covered issue is accepted instead of refused; (c) other and root-cause: the keying rules are obeyed and the threshold's unit is the spelling, so one obligation splits across 46 untaught words or three root-cause words",
+      "countermeasure": "A1 rosterIssues() reads dev/programme/rosters (1 -> 76 indexed; carry-2492 refused, control 999999 accepted); A2 a merge-time fold writes each body item's id into the destination group's brief, with a post-fold id assertion; B a derived `other (untaught)` family (union 52 PRs, family 46 after the #2410 subtraction); C a `root-cause` family (union 6, family 3); D a recorded refusal for harness and class-open with its cost test; E a ci-autofix wait bound and a measured-pin rule; F a carry-control enumerator lint. B-F are drafted, not landed",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R10-RCA-FRICTION-RESIDUE.md",
+      "doc": [
+        "dev/audit/rca/R10-RCA-FRICTION-RESIDUE.md"
+      ]
+    },
+    "R10-RCA-FRICTION-CLAIM-FALSE": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "recurring-friction key claim-false (#2907), 4 PRs / 8 entries in v7.0.5..origin/main at 88c6ad5bb: 18 blocking items, of which a triage ruling's rule never run on its own instance or a Cost that read no cap (3 rounds, 287 min, each the verdict's only block), typed or carried citations (5 items, no round on their own), a second V-id writer (2, closed by P219) and #2883's class-open residue (6)",
+      "trigger": "recurring-friction issue #2907 filed by the governance cron; group R10-FRICTION-CLAIM-FALSE",
+      "date": "2026-10-29",
+      "status": "proposed",
+      "parts_missing": [],
+      "process_state": "(a) for the rule replay and the cap read: proposal-triage.md required Instances cited and Cost as an estimate, and neither a run of the ruling's rule on its instances nor a cap read; (b) for typed citations (cite it, don't carry it existed); (d) for the V-ids, already countermeasured by P219",
+      "countermeasure": "proposal-triage.md: an ACCEPT runs its rule on each instance, result beside it, and Cost carries each capped file's --budgets row (paid inside the 489-token cap); a citation-resolving lint over triage batches and bodies refused by the cost test (at most 1 round saved in the window); P219 held, 0 of 52 headings in batches 45-59 carry an id",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R10-RCA-FRICTION-CLAIM-FALSE.md",
+      "doc": [
+        "dev/audit/rca/R10-RCA-FRICTION-CLAIM-FALSE.md"
       ]
     }
   },

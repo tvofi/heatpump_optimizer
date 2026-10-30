@@ -570,6 +570,20 @@ jobs:
         with:
           python-version: "3.13"
 
+      # THE ENUMERATE'S SPEND, READ (dev/audit/rca/ratelimit-recur.md, the
+      # second M0 pair). The step below reads one call a merge of the window
+      # on GITHUB_TOKEN, the bucket every required check shares, and the
+      # governance record job's two readings could only infer its share by
+      # splitting their interval by step time. These two print it: the
+      # bucket before the enumeration and after it, as the record job's
+      # `RATE_LIMIT before:`/`after:` lines do. `rate_limit` is not counted
+      # against the limit; a log line, never a gate (`|| true`).
+      - name: GITHUB_TOKEN rate limit before the enumeration
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api rate_limit --jq '"RATE_LIMIT enumerate before: \(.resources.core)"' || true
+
       - name: Enumerate the window's merges
         id: enumerate
         env:
@@ -585,6 +599,15 @@ jobs:
           python3 -I tools/audit/seat/record_row.py \
             --enumerate --repo "$REPO" --since "$SINCE" \
             > "$RUNNER_TEMP/merges.json"
+
+      # The after reading prints when the enumeration fails closed too: a
+      # window that could not be read spent calls all the same.
+      - name: GITHUB_TOKEN rate limit after the enumeration
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api rate_limit --jq '"RATE_LIMIT enumerate after: \(.resources.core)"' || true
 
       # Two installation tokens from one minting routine. The author App's
       # writes the rows, the pull request and the #201 comment, and merges
@@ -946,6 +969,25 @@ jobs:
                     || echo "::warning::dismissing the approver App's review $rid on #$NUM failed"
                 done
           }
+          HEAD=$(pr_field 'd["head"]["sha"]') || {
+            echo "::warning::record pull request #$NUM is unreadable"; say skip-unread; exit 0; }
+          if ! guard; then
+            echo "::warning::the automerge guard refused #$NUM at $HEAD; it keeps the manual review"
+            dismiss_bot; say refused; exit 0
+          fi
+          if [ -n "$APPROVER" ]; then
+            # One approving review per head: a held beat sees the same head again.
+            have=$(curl -fsS -H "$AUTH" -H "$ACCEPT" "$API/repos/$REPO/pulls/$NUM/reviews?per_page=100" \
+              | python3 -I -c 'import sys,json; h=sys.argv[1]; print(any(r.get("state")=="APPROVED" and r.get("commit_id")==h and (r.get("user") or {}).get("login")=="hpo-approver[bot]" for r in json.load(sys.stdin)))' "$HEAD") \
+              || { say skip-unread; exit 0; }
+            if [ "$have" != True ]; then
+              python3 -I -c 'import json,sys; print(json.dumps({"commit_id": sys.argv[1], "event": "APPROVE", "body": "Automerge guard: row-only record pull request at " + sys.argv[1] + "; tools/audit/seat/record_row.py --automerge-check passed (tvofi, 2026-10-07)."}))' "$HEAD" \
+                > "$RUNNER_TEMP/review.json"
+              curl -fsS -o /dev/null -X POST -H "Authorization: Bearer $APPROVER" -H "$ACCEPT" \
+                -d @"$RUNNER_TEMP/review.json" "$API/repos/$REPO/pulls/$NUM/reviews" || {
+                echo "::warning::the approver App's review on #$NUM was refused"; say skip-review-refused; exit 0; }
+            fi
+          fi
           # THE TRAIN HOLD (R10-TRAIN-HOLD, issue #2302). A merge train
           # merges pull requests itself, and a record pull request landing
           # from this beat while it waits on CI moves main under it: #2291,
@@ -956,7 +998,7 @@ jobs:
           # its closing line (hold_refresh/hold_release). The ref points at a
           # commit made at publication, whose committer date is the age here:
           # younger than HOLD_MAX_AGE_S is a live train, so the pull request
-          # stays open for a later beat; at or past it the hold is stale (a
+          # is not merged here; at or past it the hold is stale (a
           # crashed train moved nothing, so no rows went overdue) and this
           # beat proceeds. The train refreshes the ref on every queue item,
           # every recarry and before every CI-wait sleep, so the longest gap
@@ -969,7 +1011,13 @@ jobs:
           # "No commit found for SHA" for an absent ref (measured live
           # 2026-10-20), not 404, so both arms are the silent absence; any
           # other code is logged. record_row.py's own --automerge-check is
-          # untouched.
+          # untouched. AFTER the guard and the approver App's review, before
+          # the pitch and the merge (V118): only a merge moves main, and the
+          # train's --bot-prs sweep merges on the guard alone and leaves the
+          # review to this beat, so a hold ahead of the review left a record
+          # pull request unreviewed while trains ran back to back (#2856,
+          # about 3 h). A held beat still dismisses on a refusal and posts
+          # the one approving review per head; it never merges.
           HOLD_REF=train-hold
           HOLD_MAX_AGE_S=3600
           hold_code=$(curl -sS -o "$RUNNER_TEMP/train-hold.json" -w '%{http_code}' \
@@ -998,25 +1046,6 @@ jobs:
             esac
           elif [ "$hold_code" != 404 ] && [ "$hold_code" != 422 ]; then
             echo "::warning::the train hold is unreadable (HTTP $hold_code); treated as absent"
-          fi
-          HEAD=$(pr_field 'd["head"]["sha"]') || {
-            echo "::warning::record pull request #$NUM is unreadable"; say skip-unread; exit 0; }
-          if ! guard; then
-            echo "::warning::the automerge guard refused #$NUM at $HEAD; it keeps the manual review"
-            dismiss_bot; say refused; exit 0
-          fi
-          if [ -n "$APPROVER" ]; then
-            # One approving review per head: a held beat sees the same head again.
-            have=$(curl -fsS -H "$AUTH" -H "$ACCEPT" "$API/repos/$REPO/pulls/$NUM/reviews?per_page=100" \
-              | python3 -I -c 'import sys,json; h=sys.argv[1]; print(any(r.get("state")=="APPROVED" and r.get("commit_id")==h and (r.get("user") or {}).get("login")=="hpo-approver[bot]" for r in json.load(sys.stdin)))' "$HEAD") \
-              || { say skip-unread; exit 0; }
-            if [ "$have" != True ]; then
-              python3 -I -c 'import json,sys; print(json.dumps({"commit_id": sys.argv[1], "event": "APPROVE", "body": "Automerge guard: row-only record pull request at " + sys.argv[1] + "; tools/audit/seat/record_row.py --automerge-check passed (tvofi, 2026-10-07)."}))' "$HEAD" \
-                > "$RUNNER_TEMP/review.json"
-              curl -fsS -o /dev/null -X POST -H "Authorization: Bearer $APPROVER" -H "$ACCEPT" \
-                -d @"$RUNNER_TEMP/review.json" "$API/repos/$REPO/pulls/$NUM/reviews" || {
-                echo "::warning::the approver App's review on #$NUM was refused"; say skip-review-refused; exit 0; }
-            fi
           fi
           # THE PITCH (R10-FLOW-RECORD-PITCH, Lean study K6). A record merge
           # moves main under every open head, so a push beat leaves the pull

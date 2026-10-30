@@ -39,12 +39,28 @@ HREF=$(printf '%s\n' "$HREF" | awk 'NF { print $1; exit }')
 if [ -n "$HREF" ]; then
   [ "$HREF" = "$(git -C "$ROOT" rev-parse HEAD)" ] || { echo "body_push: handoff/$TOPIC is at ${HREF:0:12}, this checkout at $(git -C "$ROOT" rev-parse --short=12 HEAD); push the code, then the body" >&2; exit 1; }
   ABS=$(cd "$(dirname "$BODY")" && pwd)/$(basename "$BODY")
+  # The `mutation` red an unpinned site makes is derived, so it is written into
+  # `## Red checks` before the lint, not refused at the open (P67).
+  (cd "$ROOT" && bash "$HERE/../../pr/prepr.sh" --fill-red "$ABS")
   if ! LINT=$(cd "$ROOT" && bash "$HERE/../../pr/prepr.sh" --body-check "$ABS" 2>&1); then
     printf '%s\n' "$LINT" >&2
     echo "body_push: the pr-body lint refuses this body (above), as open_pr.sh's prepr step 7 would; repair it and push again" >&2
     exit 1
   fi
   printf '%s\n' "$LINT" | tail -1
+  # The review packet's refusals that need no CI run (P256): structure merged
+  # with main, hot-file and brief-carries, answered here rather than after the
+  # open. rc 3 is a seat that cannot read their inputs: said, never a refusal.
+  # HPO_HANDOFF_PACKER replaces the checker (prepr's self-test stub).
+  prc=0
+  PK=$(cd "$ROOT" && ${HPO_HANDOFF_PACKER:-python3 -I "$HERE/review_packet.py"} handoff --topic "$TOPIC" --body "$ABS" 2>&1) || prc=$?
+  printf '%s\n' "$PK"
+  if [ "$prc" = 1 ]; then
+    echo "body_push: the review packet refuses this head at the handoff (above); answer each, push the code, then the body" >&2
+    exit 1
+  elif [ "$prc" != 0 ]; then
+    echo "body_push: the review packet's handoff refusals were not run (rc $prc, above); dispatch still runs structure and hot-file" >&2
+  fi
 else
   echo "body_push: no handoff/$TOPIC on origin, so a result body: the pr-body lint does not apply"
 fi

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/curve_learning.py:CurveLearner._step_down CLAMP_DROP 8722b9f9",
+  "killed_by": "tests/features.py",
+  "old": "        step = min(STEP_K, max_now)",
+  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`step = (STEP_K)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

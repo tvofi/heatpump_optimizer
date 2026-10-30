@@ -88,6 +88,7 @@ from .payload import (
     REASON_PUMP_MODE,
 )
 from .thermal_model import (
+    CHANNEL_ACTIVE_KW,
     TANK_ROOM_AMBIENT_TEMP,
     MIN_RUNNING_DRAW_KW,
     ThermalModel,
@@ -96,10 +97,12 @@ from .thermal_model import (
     WeatherSeries,
     _mean_humidity,
     _step_humidity,
+    channel_heating_steps,
     levels_clamped,
     planned_draw_runs,
     planned_draws_run,
     project_planned_levels,
+    valve_charge_demand,
     weather_or_calm,
     wood_share,
 )
@@ -429,6 +432,19 @@ def _thermostat_demand_single(
     ) / dt
 
 
+def _reference_cop(
+    model: ThermalModel, state: ThermalState, outdoor_temp: float,
+    humidity: float | None,
+) -> float:
+    """The COP the reference's step prices its draw at, as the step does:
+    behind a valve the tank is the flow temperature."""
+    valved = mixing_valve.is_throttling(model.params.mixing_valve_mode)
+    return model.compute_cop(
+        outdoor_temp, humidity=humidity,
+        flow_temp=state.buffer_tank_temperature if valved else None,
+    )
+
+
 def _thermostat_demand_two_zone(
     model: ThermalModel,
     state: ThermalState,
@@ -491,13 +507,43 @@ def _thermostat_demand_two_zone(
     # demand the way an outdoor-reset curve does. The zones then settle at
     # slightly different temperatures, which is what the real system does
     # too, and inter-zone transfer pulls them back together.
-    thermal = q_upper + q_floor
+    return q_upper + q_floor
 
-    # Replace what the buffer tank leaks so it does not sag over the day.
-    thermal += p.buffer_tank_heat_loss_coefficient * max(
-        0.0, state.buffer_tank_temperature - TANK_ROOM_AMBIENT_TEMP
+
+def _thermostat_demand(
+    model: ThermalModel,
+    state: ThermalState,
+    target: float,
+    outdoor_temp: float,
+    wind_speed: float,
+    precipitation: float,
+    solar_radiation: float,
+    dt: float,
+    k_slab: float,
+) -> float:
+    """Thermal power the reference thermostat's pump makes this step.
+
+    The zoning's demand is what the emitters need. Behind a valve the pump
+    charges the tank, never the emitters, so the need goes through the tank
+    law the step's own draw inverts (``valve_charge_demand``). Unvalved, the
+    two-zone reference also replaces what the buffer tank leaks so it does
+    not sag over the day.
+    """
+    p = model.params
+    zoned = _thermostat_demand_two_zone if p.two_zone_enabled else _thermostat_demand_single
+    need = zoned(
+        model, state, target, outdoor_temp, wind_speed, precipitation,
+        solar_radiation, dt, k_slab,
     )
-    return thermal
+    if mixing_valve.is_throttling(p.mixing_valve_mode):
+        return valve_charge_demand(
+            model, state, need, outdoor_temp, wind_speed, precipitation, dt
+        )
+    if p.two_zone_enabled:
+        need += p.buffer_tank_heat_loss_coefficient * max(
+            0.0, state.buffer_tank_temperature - TANK_ROOM_AMBIENT_TEMP
+        )
+    return need
 
 
 # The comfort penalty on breaching the user's minimum temperature is quadratic,
@@ -1342,33 +1388,6 @@ def idle_codes(
     codes[_padded(caps, n) <= threshold] = REASON_IDLE_FUSE
     codes[_padded(other, n) > threshold] = REASON_IDLE_OTHER
     return list(codes.tolist())
-
-
-#: A channel's own draw above which a plan step counts that channel as heating,
-#: in kW: the idle line ``classify_space_steps`` and ``classify_dhw_steps`` code
-#: their idle reasons against, and the line a plan view merges slots on. It sits
-#: under ``MIN_RUNNING_DRAW_KW`` because the pump's running rule is the step's
-#: WHOLE ask, space plus DHW; a channel can carry a share of a running step.
-CHANNEL_ACTIVE_KW = 0.05
-
-
-def channel_heating_steps(channel_kw: Any, other_kw: Any = None) -> list[bool]:
-    """Which plan steps a channel heats at, in the plan's own terms (D8-s1-01).
-
-    Its own draw above :data:`CHANNEL_ACTIVE_KW`, on a step the plan runs the
-    pump at all (``planned_draws_run`` over both channels): a channel is never
-    "heating now" on a step the plan's on schedule calls off. The plan views'
-    ``active_now`` and slot merge read this, so neither can count a step the
-    on schedule calls off. An ``other`` series shorter than ``channel`` draws
-    nothing past its end.
-    """
-    channel = np.asarray(channel_kw, dtype=float)
-    other = np.zeros_like(channel)
-    if other_kw is not None:
-        given = np.asarray(other_kw, dtype=float)[: len(channel)]
-        other[: len(given)] = given
-    runs = planned_draws_run(channel, other)
-    return [bool(on and kw > CHANNEL_ACTIVE_KW) for kw, on in zip(channel, runs)]
 
 
 def classify_space_steps(
@@ -2636,26 +2655,26 @@ class HeatPumpOptimizer:
                 (params.lower_floor_thermal_mass, "lower", caps["room"], 1.0),
                 (params.slab_thermal_mass, "slab", caps["slab"], 1.0),
             )
-            if params.buffer_is_store:
-                # Only with a valve, and only a tank big enough to matter.
-                # Without a valve the tank cannot be charged, so adding it
-                # here would put a constant in the objective -- it would not
-                # change which plan wins, but it would move every reported
-                # number for no reason. A tiny tank (item 27) holds less than
-                # one step of heat, and crediting it has the solver planning
-                # around noise.
-                stores = stores + (
-                    (
-                        params.buffer_tank_thermal_mass,
-                        "buffer",
-                        caps["buffer"],
-                        buffer_survival,
-                    ),
-                )
         else:
             stores = (
                 (params.room_thermal_mass, "room", caps["room"], 1.0),
                 (params.slab_thermal_mass, "slab", caps["slab"], 1.0),
+            )
+        if params.buffer_is_store:
+            # Only with a valve, and only a tank big enough to matter.
+            # Without a valve the tank cannot be charged, so adding it
+            # here would put a constant in the objective -- it would not
+            # change which plan wins, but it would move every reported
+            # number for no reason. A tiny tank (item 27) holds less than
+            # one step of heat, and crediting it has the solver planning
+            # around noise.
+            stores = stores + (
+                (
+                    params.buffer_tank_thermal_mass,
+                    "buffer",
+                    caps["buffer"],
+                    buffer_survival,
+                ),
             )
 
         row_cost, term_spec = _terminal_row_cost(
@@ -5261,16 +5280,10 @@ class HeatPumpOptimizer:
 
         for i in range(n_steps):
             target = targets[i]
-            if p.two_zone_enabled:
-                required_thermal = _thermostat_demand_two_zone(
-                    self.model, state, target, outdoor_temps[i], wind_speeds[i],
-                    precipitation[i], solar_radiation[i], dt, k_slab,
-                )
-            else:
-                required_thermal = _thermostat_demand_single(
-                    self.model, state, target, outdoor_temps[i], wind_speeds[i],
-                    precipitation[i], solar_radiation[i], dt, k_slab,
-                )
+            required_thermal = _thermostat_demand(
+                self.model, state, target, outdoor_temps[i], wind_speeds[i],
+                precipitation[i], solar_radiation[i], dt, k_slab,
+            )
 
             # A thermostat's house receives a furnace burn too, and its
             # sensor sees the warmth: the reference backs off by the free
@@ -5315,7 +5328,7 @@ class HeatPumpOptimizer:
             required_thermal = max(0.0, required_thermal - ext_i)
 
             hum_i = hums[i]
-            cop = self.model.compute_cop(outdoor_temps[i], humidity=hum_i)
+            cop = _reference_cop(self.model, state, outdoor_temps[i], hum_i)
             # No lower clamp to ``min_electrical_power``: a pump that cannot
             # modulate that low cycles on and off, and over a step the average
             # power is what determines energy use; a clamp burnt

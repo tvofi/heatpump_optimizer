@@ -3,7 +3,7 @@
 
     python3 -I tools/audit/seat/cloud_dispatch.py --role reviewer|fixer|probe \
         --head <40-hex> [--pr N] [--topic T] [--nonce N] [--brief FILE] \
-        [--env-id ID] [--model M] [--repo OWNER/NAME] [--overlay FILE] [--out FILE]
+        [--env-id ID] [--model M] [--repo OWNER/NAME] [--overlay FILE] [--out FILE] [--publish]
     python3 -I tools/audit/seat/cloud_dispatch.py --role reviewer|fixer|probe --group G --model M \
         [--roster-ref REF] [--head <40-hex>] [--pr N] [--nonce N] [--overlay FILE]
     python3 -I tools/audit/seat/cloud_dispatch.py --self-test
@@ -16,10 +16,13 @@ never the roster ref's (a seat forks from main, not from the roster branch); a
 reviewer needs --head (the PR head) and takes its nonce from `bus.sh dispatch`, which
 mints one or re-records --nonce; the environment id comes from the overlay /
 $HPO_CLOUD_ENV_ID. The
-payload is rendered by the same `render` as the flag path, so it is the flag
-path's byte for byte, and is published, with its prompt, on origin as
+payload is rendered by the same `publish_seat` as the flag path's --publish, so it
+is that path's byte for byte, and is published, with its prompt, on origin as
 `dispatch/<role>-<topic>` (PAYLOAD.json, PROMPT.md); the one line printed is that
-ref name. A standing trigger whose prompt fetches the ref it is fired with
+ref name. A published payload's event is a pointer to PROMPT.md on the ref, never
+the prompt itself (the runner echoes the event; R10-FLY-CACHE-PROMPTS). --publish
+does the same on the flag path, to `dispatch/<role>-<topic>`, else
+`dispatch/<role>-rev-<PR>`, and prints the payload as without it. A standing trigger whose prompt fetches the ref it is fired with
 needs nothing else. A render refusal (below) pushes nothing.
 
 WHAT IT RENDERS. The whole `job_config.ccr` object a cloud runner's trigger
@@ -100,20 +103,40 @@ FOOTER_BAN = ("Write no Claude Code footer, no Co-Authored-By or Claude-Session 
               "with `git log --format=%B` before pushing.")
 
 
+#: A seat's prompt cache lives 5 min: a wait past it rewrites the whole context on
+#: the next turn (R10-FLY-CACHE-PROMPTS). 240 s stays under it; GitHub's 60 s poll
+#: floor stays the lower bound.
+WAIT_LINE = "Never wait in one tool call longer than 240 s; poll again instead."
+
+
 class Refusal(Exception):
     pass
 
 
-def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, brief: str) -> str:
+def _seat_line(role: str, repo: str, pr: str, head: str, topic: str, nonce: str) -> str:
     who = {"reviewer": "CLOUD REVIEWER", "fixer": "CLOUD FIXER", "probe": "CLOUD PROBE"}[role]
     subject = f"PR #{pr} of {repo}, at head {head}" if pr else f"{repo}, topic {topic}, at head {head}"
     first = f"{who} seat for {subject}."
     if nonce:
         first += f" Bus nonce: {nonce}."
-    first += " Never send push notifications. " + FOOTER_BAN
-    setup = ("Setup: `git fetch --unshallow --tags origin`. The toolchain (venv python, node, gh) "
-             "is on PATH from the environment. Run anything heavy in the background with Monitor "
-             "and no timeout.")
+    return first + " Never send push notifications."
+
+
+def _pointer(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, ref: str) -> str:
+    """The event a published seat is fired with: who it is, and where its prompt is.
+    The runner echoes the event into every view of the trigger, so the whole prompt
+    there was paid for several times over; PROMPT.md on the ref is paid once."""
+    return (_seat_line(role, repo, pr, head, topic, nonce) + "\n"
+            f"Your full brief is PROMPT.md at origin ref {ref} (`git fetch origin {ref} && git show "
+            "FETCH_HEAD:PROMPT.md`); read it first and follow it exactly.\n")
+
+
+def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, brief: str) -> str:
+    first = _seat_line(role, repo, pr, head, topic, nonce) + " " + FOOTER_BAN
+    setup = ("Setup: `git fetch --unshallow --tags origin`. The session-start `toolchain:` line "
+             "says whether venv-ci's python3 is on PATH: on REFUSE, start each Bash call with "
+             "`eval \"$(bash .claude/hooks/session-start.sh --env-lines)\"`. Run anything heavy in "
+             "the background with Monitor and no timeout. " + WAIT_LINE)
     if role == "reviewer":
         body = (
             "Role: read dev/governance/roles/fix-review.md and its rules from main, and follow them "
@@ -153,7 +176,7 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
             "That ref is the return signal. Do not post comments, approve or merge.")
     elif role == "fixer":
         body = (
-            "Role: read dev/governance/roles/fixer.md and CLAUDE.md from main, and follow them exactly, "
+            "Role: read dev/governance/roles/fixer.md from main, and follow it exactly, "
             f"in a worktree of your own cut from origin/main. Fetch {head} for the base you were given.\n"
             f"Output: push the code to refs/heads/handoff/{topic}, then write the PR body and run "
             f"`bash tools/audit/seat/body_push.sh {topic} <body.md>`, which pushes "
@@ -176,7 +199,8 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
 
 
 def render(role: str, head: str, *, env_id: str, model: str, repo: str, pr: str = "",
-           topic: str = "", nonce: str = "", brief: str = "") -> dict:
+           topic: str = "", nonce: str = "", brief: str = "", publish_ref: str = "") -> dict:
+    """The payload; with `publish_ref`, its event is the pointer to that ref (`publish_seat`)."""
     if role not in ROLES:
         raise Refusal(f"role must be one of {', '.join(ROLES)}")
     if not is_head(head or ""):
@@ -193,7 +217,8 @@ def render(role: str, head: str, *, env_id: str, model: str, repo: str, pr: str 
             raise Refusal(f"no {name}: pass a flag, an overlay entry or its HPO_CLOUD_* variable")
     if not re.fullmatch(r"[\w.-]+/[\w.-]+", repo):
         raise Refusal("repo must be OWNER/NAME")
-    text = _prompt(role, repo, pr, head, topic, nonce, brief)
+    text = (_pointer(role, repo, pr, head, topic, nonce, publish_ref) if publish_ref
+            else _prompt(role, repo, pr, head, topic, nonce, brief))
     payload = {"job_config": {"ccr": {
         "environment_id": env_id,
         "session_context": {
@@ -260,6 +285,24 @@ def _publish(repo_dir: str, ref: str, files: dict[str, str]) -> None:
     _git(repo_dir, "push", "-q", "origin", f"{commit}:refs/heads/{ref}")
 
 
+def dispatch_ref(role: str, topic: str, pr: str) -> str:
+    """`dispatch/<role>-<topic>`, or `dispatch/<role>-rev-<PR>` for a seat with no topic."""
+    key = topic or (f"rev-{pr}" if pr.isdigit() else "")
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", key):
+        raise Refusal("a published seat needs a topic (letters, digits, . _ -) or a --pr")
+    return f"{DISPATCH_NS}/{role}-{key}"
+
+
+def publish_seat(repo_dir: str, ref: str, role: str, head: str, **args) -> dict:
+    """Publish the seat's whole prompt as PROMPT.md, with the payload firing it, on `ref`;
+    return that payload, whose event is the pointer to the ref. Both render first, so
+    every `render` refusal pushes nothing."""
+    prompt = render(role, head, **args)["job_config"]["ccr"]["events"][0]["data"]["message"]["content"]
+    payload = render(role, head, **args, publish_ref=ref)
+    _publish(repo_dir, ref, {"PAYLOAD.json": json.dumps(payload), "PROMPT.md": prompt})
+    return payload
+
+
 def dispatch_group(role: str, group_id: str, model: str, *, repo_dir: str = ".",
                    roster_ref: str | None = None, head: str = "", pr: str = "", nonce: str = "",
                    overlay: str | None = None, environ=None) -> str:
@@ -292,12 +335,9 @@ def dispatch_group(role: str, group_id: str, model: str, *, repo_dir: str = ".",
     if role == "reviewer":
         render(role, head, **args, nonce=BUS_PROBE_NONCE)  # every other refusal, before the bus records
         nonce = _bus_dispatch(repo_dir, pr, head, model, nonce, environ)
-    payload = render(role, head, **args, nonce=nonce)
-    ref = f"{DISPATCH_NS}/{role}-{topic}"
+    ref = dispatch_ref(role, topic, "")
     try:
-        _publish(repo_dir, ref, {
-            "PAYLOAD.json": json.dumps(payload),
-            "PROMPT.md": payload["job_config"]["ccr"]["events"][0]["data"]["message"]["content"]})
+        publish_seat(repo_dir, ref, role, head, **args, nonce=nonce)
     except Refusal:
         if role == "reviewer":  # the bus closed reviewer-fire for a seat that was never fired
             subprocess.run([sys.executable, "-I", str(HERE / "ledger.py"), *_ledger_log(environ), "open",
@@ -410,14 +450,23 @@ def _group_checks(check) -> None:
               line == "dispatch/fixer-r10-x" and "\n" not in line and " " not in line)
         brief = work / "brief.txt"
         brief.write_text(grp["brief"])
-        old = io.StringIO()
-        with contextlib.redirect_stdout(old):
-            rc = main(["--role", "fixer", "--head", tip, "--topic", "r10-x", "--brief", str(brief),
-                       "--env-id", "env_x", "--model", "m-1", "--repo", "owner/name"])
-        check("the printed line round-trips to a payload byte-identical to today's flag path",
+        flags = ["--role", "fixer", "--head", tip, "--topic", "r10-x", "--brief", str(brief),
+                 "--env-id", "env_x", "--model", "m-1", "--repo", "owner/name"]
+        plain, old = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(plain):
+            rc0 = main(flags)
+        with contextlib.chdir(work), contextlib.redirect_stdout(old):
+            rc = main([*flags, "--publish"])
+        check("the printed line round-trips to a payload byte-identical to the flag path's --publish",
               rc == 0 and fetched(line, "PAYLOAD.json") == old.getvalue().rstrip("\n"))
-        msg = json.loads(fetched(line, "PAYLOAD.json"))["job_config"]["ccr"]["events"][0]["data"]["message"]["content"]
-        check("the ref carries the prompt the payload carries", fetched(line, "PROMPT.md") == msg)
+        content = lambda text: json.loads(text)["job_config"]["ccr"]["events"][0]["data"]["message"]["content"]
+        msg = fetched(line, "PROMPT.md")
+        ptr = content(fetched(line, "PAYLOAD.json"))
+        check("the published payload's event is the pointer to the ref, under 600 chars; PROMPT.md is the prompt",
+              len(ptr) < 600 and f"origin ref {line} (`git fetch origin {line} && git show FETCH_HEAD:PROMPT.md`)"
+              in ptr and tip in ptr and msg.startswith("CLOUD FIXER") and msg not in ptr)
+        check("without --publish the flag path is unchanged: the whole prompt in its event, nothing published",
+              rc0 == 0 and content(plain.getvalue()) == msg)
         check("the roster brief is inlined and the roster tip is the head",
               "Fix the thing in tools/x.py." in msg and tip in msg)
         check("a re-dispatch of the same brief moves no ref", dispatch() == line
@@ -451,6 +500,11 @@ def _group_checks(check) -> None:
             'mkdir -p "$(dirname "$o")" && printf "# Review packet\\nhead: %s\\n" "$h" > "$o"\n')
         packer.chmod(0o755)
         env["HPO_BUS_PACKER"] = f"sh {packer}"
+        # The head classifier likewise (merge_train.py classify reads check runs over `gh`):
+        # GREEN here; bus.sh's self-test drives its RED, WAIT and unreadable arms.
+        classifier = Path(td) / "classifier"
+        classifier.write_text('#!/bin/sh\necho "GREEN $2 pending: none red: none"\n')
+        env["HPO_BUS_CLASSIFY"] = f"sh {classifier}"
         (work / "dev/programme/delivery").mkdir(parents=True)
         for n in (7, 81):
             (work / f"dev/programme/delivery/{n}.md").write_text(f"- [#{n}](x) **open**\n")
@@ -516,6 +570,17 @@ def _group_checks(check) -> None:
             published = False
         check("_publish itself refuses a ref that would publish the host, and pushes nothing",
               not published and "someone" not in git(work, "ls-remote", str(origin)))
+        out = io.StringIO()
+        with contextlib.chdir(work), contextlib.redirect_stdout(out):
+            rc = main(["--role", "reviewer", "--head", rhead, "--pr", "7", "--nonce", "abc123", "--publish",
+                       "--env-id", "env_x", "--model", "m-1", "--repo", "owner/name"])
+        try:
+            msg = fetched("dispatch/reviewer-rev-7", "PROMPT.md")
+        except subprocess.CalledProcessError:
+            msg = ""
+        check("a reviewer's flag-path --publish publishes to dispatch/reviewer-rev-<PR> and points there",
+              rc == 0 and "git fetch origin dispatch/reviewer-rev-7 " in content(out.getvalue())
+              and msg.startswith("CLOUD REVIEWER") and "Bus nonce: abc123." in msg)
         # Two sources, never one: the roster from the round's roster branch
         # (O17), the head from main. The branch is one commit ahead of main
         # with its own brief, so either swap shows.
@@ -603,6 +668,7 @@ def _flag_checks(check) -> None:
     import contextlib
     import io
     dests = {a.dest for a in _parser()._actions if a.dest != "help"}
+    switches = {a.dest for a in _parser()._actions if a.nargs == 0 and a.dest != "help"}
     check("every flag the parser accepts has a --group disposition in GROUP_FLAGS, and no other",
           dests == set(GROUP_FLAGS))
     calls: list = []
@@ -613,6 +679,8 @@ def _flag_checks(check) -> None:
             base = {"role": "fixer", "group": "G-BASE", "model": "m-base"}
             value = "probe" if dest == "role" else f"value-of-{dest}"
             argv = [x for k, v in {**base, dest: value}.items() for x in ("--" + k.replace("_", "-"), v)]
+            if dest in switches:  # a switch takes no value
+                argv = argv[:-1]
             calls.clear()
             with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
                 rc = main(argv)
@@ -682,6 +750,22 @@ def self_test() -> int:
           all(sum(FOOTER_BAN in line for line in t.splitlines()) == 1 for t in prompts.values()))
     check("and no rendered prompt carries the attribution it bans (ref_privacy's classes: the null control)",
           all(ref_privacy.attribution(t) == [] for t in prompts.values()))
+    check("every role's prompt caps one tool call's wait under the 5-minute prompt-cache TTL (R10-FLY-CACHE-PROMPTS)",
+          all(WAIT_LINE in t and "240 s" in WAIT_LINE for t in prompts.values()))
+    check("the fixer reads its role file, not CLAUDE.md, which the harness already loaded",
+          "dev/governance/roles/fixer.md" in prompts["fixer"] and "CLAUDE.md" not in prompts["fixer"])
+    for role, ref in (("fixer", "dispatch/fixer-t-1"), ("reviewer", "dispatch/reviewer-rev-7")):
+        a = dict(pr="7" if role == "reviewer" else "", topic="" if role == "reviewer" else "t-1",
+                 nonce="abc123" if role == "reviewer" else "")
+        check(f"the {role}'s publish ref is {ref}", dispatch_ref(role, a["topic"], a["pr"]) == ref)
+        ptr = render(role, head, **base, **a, publish_ref=ref)["job_config"]["ccr"]["events"][0]["data"][
+            "message"]["content"]
+        check(f"a published {role}'s event is a pointer: under 600 chars, names the ref, the head and PROMPT.md",
+              len(ptr) < 600 and f"git fetch origin {ref} && git show FETCH_HEAD:PROMPT.md" in ptr
+              and head in ptr and FOOTER_BAN not in ptr and len(ptr) < len(prompts[role]))
+    check("a reviewer's pointer carries its nonce", "abc123" in render(
+        "reviewer", head, **base, pr="7", nonce="abc123", publish_ref="dispatch/reviewer-rev-7")[
+        "job_config"]["ccr"]["events"][0]["data"]["message"]["content"])
     check("a 39-hex head is refused", refused(h=head[:-1]))
     check("a 41-hex head is refused", refused(h=head + "0"))
     check("an upper-case head is refused", refused(h=head.upper()))
@@ -723,6 +807,7 @@ GROUP_FLAGS = {
     "repo": "the roster gives the repository",
     "env_id": "the environment id comes from the overlay or $HPO_CLOUD_ENV_ID",
     "out": "--group publishes the payload to its ref and prints the ref name",
+    "publish": "--group always publishes",
 }
 
 
@@ -742,6 +827,8 @@ def _parser() -> argparse.ArgumentParser:
     ap.add_argument("--repo")
     ap.add_argument("--overlay")
     ap.add_argument("--out")
+    ap.add_argument("--publish", action="store_true", help="publish PROMPT.md to dispatch/<role>-<topic or "
+                    "rev-PR> and fire the seat with a pointer to it")
     return ap
 
 
@@ -768,8 +855,12 @@ def main(argv: list[str]) -> int:
                 brief = Path(args.brief).read_text()
             except OSError as e:
                 raise Refusal(f"unreadable brief: {e.__class__.__name__}")
-        payload = render(args.role, args.head, pr=args.pr, topic=args.topic, nonce=args.nonce,
-                         brief=brief, **_config(args))
+        known = dict(pr=args.pr, topic=args.topic, nonce=args.nonce, brief=brief, **_config(args))
+        if args.publish:
+            payload = publish_seat(".", dispatch_ref(args.role, args.topic, args.pr), args.role, args.head,
+                                   **known)
+        else:
+            payload = render(args.role, args.head, **known)
     except Refusal as e:
         print(f"cloud_dispatch: refused: {e}", file=sys.stderr)
         return 2

@@ -74,7 +74,6 @@ from .payload import (
     Narrative,
     Payload,
     PlanSettingsView,
-    PlanSlot,
     PlanViews,
     PowerHeadroom,
     Pv,
@@ -235,6 +234,8 @@ from .accuracy import (
     COP_REFUSED_UNALIGNED,
     LEAD_BUCKETS,
     MeasuredCop,
+    cop_observability,
+    pairs_interval,
     AccuracySample,
     AccuracyTracker,
     delivered_ratio,
@@ -249,7 +250,7 @@ from . import issues, setpoint_check
 from . import quiet_windows
 from . import price_tiles
 from .pump_mode import ModeCapability
-from .pump_signals import PumpSignals
+from .pump_signals import PumpSignals, resistive_carve_out
 from .manual_plan import (
     CHANNEL_DHW,
     CHANNEL_SPACE,
@@ -265,6 +266,7 @@ from .price_model import (
     pull_prices,
 )
 from .sysid import HousePlant, SysIdConfig, SystemIdentification, adoption_decision, step_detached
+from .plan_slots import plan_slots
 from .plan_step import PLAN_STEP_MINUTES, plan_step_start
 from .tariff import CapacityTariff, PeakTracker
 from .grid_fee import (
@@ -279,7 +281,7 @@ from .dhw_draws import labels_for
 from .dhw_learning import DHW_PROFILE_STORE_VERSION, DhwProfileLearner
 from .legionella import LegionellaGuard
 from .disinfection import DisinfectionSwitch
-from .curve_learning import CurveLearner
+from .curve_learning import CurveLearner, worst_zone_margin_k
 from .currency import declared_currency, resolve_currency
 from .drift import utc_shift
 from .drift import Cusum, stored_instant, utc_step_starts
@@ -323,11 +325,13 @@ from .thermal_model import (
     ThermalModel,
     ThermalParameters,
     ThermalState,
+    channel_heating_steps,
     is_sunlit_interval,
     heat_loss_anchor_pair,
     heat_loss_basis,
     heat_loss_basis_voids,
     learner_newton_step,
+    learner_room_unread,
     mold_safe_room_floor,
     learner_unmetered,
     on_threshold_kw,
@@ -352,7 +356,6 @@ from .optimizer import (
     OptimizationResult,
     SolveInputs,
     SolveLimits,
-    channel_heating_steps,
     optimize_in_process,
     slab_settlement_cap,
 )
@@ -730,6 +733,21 @@ def forecast_outdoor_now(forecast: list[dict[str, Any]], now: datetime) -> float
 # consecutive failures, raises a repair issue.
 PLAN_STALE_INTERVALS = 3
 PLAN_STALE_FLOOR_MINUTES = 90.0
+
+
+def plan_stale_limit_minutes(config: Any) -> float | None:
+    """The plan age, in minutes, past which a plan solved every cycle is stale.
+
+    ``None`` when ``config`` carries no readable ``optimization_interval``:
+    a caller that only displays the verdict then keeps the one it was given
+    rather than inventing a limit.
+    """
+    interval = getattr(config, "optimization_interval", None)
+    if isinstance(interval, bool) or not isinstance(interval, (int, float)):
+        return None
+    return max(PLAN_STALE_INTERVALS * interval, PLAN_STALE_FLOOR_MINUTES)
+
+
 SOLVE_FAILURE_ISSUE_COUNT = 3
 # Consecutive in-process fallbacks before the GIL solve is skipped and the
 # last plan is kept (#783). The first N still degrade: a slow plan beats none
@@ -2923,17 +2941,17 @@ def _refit_disagrees(advice: Mapping[str, Any], scale: float) -> bool:
 
 
 def envelope_score(
-    params: ThermalParameters, samples: int, advice: Mapping[str, Any]
-) -> tuple[float | None, str | None]:
-    """The house grade (#65) and, when it is None, the one code saying why.
+    params: ThermalParameters,
+    samples: int,
+    advice: Mapping[str, Any],
+    config: Mapping[str, Any],
+) -> tuple[float | None, str | None, list[dict[str, Any]]]:
+    """The house grade (#65), the code saying why it is None, and its drivers.
 
-    The time constant ``envelope_thermal_mass / loss`` in hours, placed on a
-    log scale between the shortest and the longest any shipped preset
-    derives (``presets.envelope_band_hours``). ``loss`` is the model's own
-    whole-house figure, both zones with the learned split -- the one the
-    Health tab publishes (#2239) -- and the mass is the one the dynamics
-    store, slab and zones included, so the grade is the house the model
-    simulates, as measured. The codes, in precedence (#2258):
+    ``presets.house_grade``: the model's own whole-house loss, both zones
+    with the learned split -- the one the Health tab publishes (#2239) --
+    and the mass the dynamics store, against the configured type and era
+    (#2816). The codes, in precedence (#2258):
     nothing to grade; the learner still walking from its prior; a refit
     of settled evidence outside its band of the learned scale.
     """
@@ -2943,14 +2961,13 @@ def envelope_score(
     # The loss is rounded to 1e-4 kW/K, so a house with no loss reads 0.0.
     loss = _effective_house_heat_loss(params, scale)
     if loss <= 0.0 or params.envelope_thermal_mass <= 0.0:
-        return None, "no_house_model"
+        return None, "no_house_model", []
     if not house_loss_converged(samples):
-        return None, "heat_loss_learning"
+        return None, "heat_loss_learning", []
     if _refit_disagrees(advice, scale):
-        return None, "heat_loss_refit_disagrees"
-    low_h, high_h = presets.envelope_band_hours()
-    tau_h = params.envelope_thermal_mass / loss
-    return float(np.clip(np.log(tau_h / low_h) / np.log(high_h / low_h), 0.0, 1.0)) * 100.0, None
+        return None, "heat_loss_refit_disagrees", []
+    grade, drivers = presets.house_grade(params, scale, config)
+    return grade, None, drivers
 
 
 def machine_score(
@@ -2973,7 +2990,7 @@ def operation_reason(score_day: Mapping[str, Any]) -> str:
 
 
 def compose_scores(
-    envelope: tuple[float | None, str | None],
+    envelope: tuple[float | None, str | None, list[dict[str, Any]]],
     machine: tuple[float | None, str | None],
     operation: tuple[float | None, str | None],
 ) -> Scores:
@@ -2982,19 +2999,24 @@ def compose_scores(
     Envelope is the house; it stays in the breakdown. Overall is machine and
     operation only -- averaging the house in is how a DHW-only cheap-hour plan
     reads as 5/100. None is no evidence and is never 0: each None carries one
-    code in ``reasons`` (#2258), and a grade carries none.
+    code in ``reasons`` (#2258), and a grade carries none. The house grade's
+    drivers ride ``envelope_drivers`` (#2816).
     """
-    parts = {"envelope": envelope, "machine": machine, "operation": operation}
+    house = envelope[:2]
+    parts = {"envelope": house, "machine": machine, "operation": operation}
     reasons = {key: why for key, (_grade, why) in parts.items() if why is not None}
     available = [g for g, _why in (machine, operation) if g is not None]
     if not available:
         reasons["overall"] = "first_scored_day"
     return {
-        "envelope": None if envelope[0] is None else round(envelope[0], 1),
+        "envelope": None if house[0] is None else round(house[0], 1),
         "machine": None if machine[0] is None else round(machine[0], 1),
         "operation": None if operation[0] is None else round(operation[0], 1),
         "overall": round(float(np.mean(available)), 1) if available else None,
         "reasons": reasons,
+        "envelope_drivers": [
+            {"code": d["code"], "points": round(d["points"], 1)} for d in envelope[2]
+        ],
     }
 
 
@@ -4451,88 +4473,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         except Exception as err:
             _LOGGER.debug("Could not persist learned thermal parameters: %s", err)
 
-    @staticmethod
-    def _plan_slots(
-        timestamps: list[datetime],
-        powers: list[float],
-        prices: list[float],
-        dt_hours: float,
-        reasons: list[str] | None = None,
-        other_powers: list[float] | None = None,
-    ) -> list[PlanSlot]:
-        """Collapse a per-step power schedule into contiguous heating slots.
-
-        The step schedule is what the optimizer produces, but what a person
-        wants to see is "the pump runs from 02:00 to 04:30 and that costs 4.20".
-        Consecutive steps the channel heats at (``channel_heating_steps``) are
-        merged into one slot and summarised with their energy, price and cost.
-
-        Each slot also carries the reason code that dominates it, so an
-        unexpected slot is no longer indistinguishable from a bug.
-
-        ``other_powers`` is the OTHER channel's schedule (hot water when
-        these are space steps, and vice versa). Where both are active in
-        the same step the pump is time-sharing the quarter hour — a
-        deliberate relaxation, not double-booking — and the slot says so
-        via ``shared_kwh``: the other channel's energy inside this slot's
-        shared steps. Zero-overlap slots carry no key, so captures without
-        overlap are unchanged.
-        """
-        slots: list[PlanSlot] = []
-        start_idx: int | None = None
-        heating = channel_heating_steps(powers, other_powers)
-        other_heating = channel_heating_steps(other_powers or [], powers)
-
-        def close(end_idx: int) -> None:
-            assert start_idx is not None
-            span = list(range(start_idx, end_idx))
-            energy = sum(powers[i] for i in span) * dt_hours
-            cost = sum(powers[i] * prices[i] for i in span) * dt_hours
-            end_ts = (
-                timestamps[end_idx]
-                if end_idx < len(timestamps)
-                else timestamps[-1] + timedelta(hours=dt_hours)
-            )
-            duration = len(span) * dt_hours
-            slot: PlanSlot = {
-                "start": timestamps[start_idx].isoformat(),
-                "end": end_ts.isoformat(),
-                "duration_hours": round(duration, 2),
-                "avg_power_kw": round(energy / duration, 2) if duration else 0.0,
-                "energy_kwh": round(energy, 3),
-                "avg_price": (round(cost / energy, 4) if energy > 1e-9 else 0.0),
-                "cost": round(cost, 2),
-            }
-            if other_powers is not None:
-                shared = dt_hours * sum(
-                    other_powers[i] for i in span if i < len(other_heating) and other_heating[i]
-                )
-                if shared > 1e-9:
-                    slot["shared_kwh"] = round(shared, 3)
-            if reasons:
-                codes = [
-                    reasons[i]
-                    for i in span
-                    if i < len(reasons) and reasons[i] != "idle"
-                ]
-                if codes:
-                    # The most frequent code within the slot, which reads
-                    # better than a list when a slot spans two motivations.
-                    slot["reason"] = max(set(codes), key=codes.count)
-                    slot["reasons"] = sorted(set(codes))
-            slots.append(slot)
-
-        for i, on in enumerate(heating):
-            if on:
-                if start_idx is None:
-                    start_idx = i
-            elif start_idx is not None:
-                close(i)
-                start_idx = None
-        if start_idx is not None:
-            close(len(powers))
-        return slots
-
     def _dhw_confidence_band(
         self, dhw_temp: list[float | None], dt_hours: float
     ) -> tuple[list[float | None], list[float | None]]:
@@ -4621,7 +4561,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         raw_space = [p if p is not None else 0.0 for p in space_power]
         raw_dhw = [p if p is not None else 0.0 for p in dhw_power]
 
-        space_slots = self._plan_slots(
+        space_slots = plan_slots(
             timestamps,
             raw_space,
             raw_prices,
@@ -4629,7 +4569,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             reasons=result.space_reasons,
             other_powers=raw_dhw,
         )
-        dhw_slots = self._plan_slots(
+        dhw_slots = plan_slots(
             timestamps,
             raw_dhw,
             raw_prices,
@@ -5144,7 +5084,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         )
         if not np.isfinite(observed_cop) or observed_cop <= 0.1:
             return COP_REFUSED_OBSERVED
-        self._measured_cop.record(observed_cop, cop_curve_dhw, cop_dhw_temp)
+        self._measured_cop.record(observed_cop, cop_curve_dhw, cop_dhw_temp, dt_util.now())
 
         alpha = COP_LEARNING_ALPHA
         new_scale = (1.0 - alpha) * self._cop_scale + alpha * target_scale
@@ -5192,6 +5132,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "problem_inputs": health.problem_entity_ids,
             "problem_messages": health.problem_messages(),
             "input_ages_minutes": health.ages(),
+            "input_ages_at": health.read_at,
             "learners_frozen": reason is not None,
             "learner_freeze_reason": reason,
         }
@@ -5491,14 +5432,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         """
         ctx = getattr(self, "_ctx", self)
         observed = ctx._current_state.room_temperature
-        heat_kw, clean, frozen, fold = _replay_gate(self, interval, span_heat_kw, self._learning_frozen(
-            CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY, CONF_THERMAL_POWER_ENTITY
-        ))
-        # "ventilation" is the one freeze reason this method must look
-        # past: the ventilation detector below is what CLEARS it, and it
-        # needs the residual to see the window close. Every other reason
-        # (stale sensors, external heat) makes the residual itself
-        # untrustworthy, detector included.
+        # #2508: no room entity is the raw freeze, so it ranks before the
+        # ventilation pass-through below and leaves no counter span clean.
+        raw = learner_room_unread(ctx._config) or self._learning_frozen(
+            CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY, CONF_THERMAL_POWER_ENTITY)
+        heat_kw, clean, frozen, fold = _replay_gate(self, interval, span_heat_kw, raw)
+        # "ventilation" is the one reason to look past: the detector below
+        # clears it and needs the residual to see the window close. Any other
+        # reason makes the residual untrustworthy, detector included.
         vent_only = frozen == "ventilation"
         if frozen and not vent_only:
             self._learner_freeze_reason = frozen
@@ -7548,10 +7489,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     def _plan_is_stale(self) -> bool:
         """True when the plan is older than three solve cycles (min 90 min)."""
         age = self._plan_age_minutes()
-        if age is None:
-            return False
-        interval = self.effective_config.optimization_interval
-        return age > max(PLAN_STALE_INTERVALS * interval, PLAN_STALE_FLOOR_MINUTES)
+        limit = plan_stale_limit_minutes(self.effective_config)
+        return age is not None and limit is not None and age > limit
 
     async def _apply_action(self) -> None:
         """Apply current action as (heat_pump_on, displace_value)."""
@@ -7723,6 +7662,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         ctx = _ctx_of(self)
         ring = self._snapshot_ring
         snaps = ring.snapshots
+        install = probe_install(ctx._config)
         return {
             "dhw_cooling_rate": round(self._dhw_learner.cooling_rate, 3),
             "dhw_cooling_samples": self._dhw_learner.cooling_samples,
@@ -7752,6 +7692,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "cop_scale": round(self._cop_scale, 3),
             "cop_samples": self._cop_samples,
             "measured_cop": self._measured_cop.cop,
+            "measured_cop_at": None if self._measured_cop.at is None else self._measured_cop.at.isoformat(),
+            "cop_refusal": self._measured_cop.refusal,
+            "cop_observability": cop_observability(
+                electric=install.cop_electric(), measured_heat=install.measured_heat,
+                follows=draw_range.follows_ask(self._accuracy.draw),
+            ),
             "defrost_derate": self._defrost.factor(
                 ctx._current_state.outdoor_temperature, self._current_humidity()
             ),
@@ -9017,12 +8963,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # An away setback sits deliberately below the normal floor this
         # tracker reads (the lowered floor lives only inside the solve's
         # snapshot/unwind envelope), so every vacation would read as a
-        # comfort miss and wipe the learned bias. Same for a tripped
-        # window detector or stale sensor: the dip is real but it is not
-        # the curve's doing. No evidence is collected on such days.
+        # comfort miss and wipe the learned bias. Same for a tripped window
+        # detector, a stale sensor or none (#2508: room and upper zone are
+        # 21.0 C defaults): not the curve's doing. No evidence on such days.
         if self._away_state.active or self._away_state.recovery_active:
             return
-        if self._learning_frozen(CONF_INDOOR_TEMP_ENTITY) is not None:
+        if (self._learning_frozen(CONF_INDOOR_TEMP_ENTITY) or learner_room_unread(ctx._config)) is not None:
             return
         hour = now.hour + now.minute / 60.0
         try:
@@ -9033,18 +8979,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             floor_c = float(ctx._opt_config.get_temp_bounds(hour)[0])
         except Exception:  # noqa: BLE001 - evidence, never operations
             return
-        temps = [
-            t
-            for t in (
-                ctx._current_state.room_temperature,
-                ctx._current_state.upper_floor_temperature,
-                ctx._current_state.lower_floor_temperature,
-            )
-            if t is not None and np.isfinite(t)
-        ]
-        if not temps:
+        margin = worst_zone_margin_k((
+            ctx._current_state.room_temperature,
+            ctx._current_state.upper_floor_temperature,
+            ctx._current_state.lower_floor_temperature,
+        ), floor_c)
+        if margin is None:
             return
-        margin = min(temps) - floor_c
 
         day = now.date().isoformat()
         if self._curve_day and day != self._curve_day:
@@ -9817,20 +9758,25 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # the same timestamp. Inert until a supply slot is mapped.
         _fold_flow_lift(self, now)
         power_frozen = self._learning_frozen(CONF_POWER_ENTITY)  # read once: the defrost settlement below gates on it too
-        draw_range.fold(self._accuracy.draw, self._measured_power, self._commanded_split(), ctx._thermal_params, frozen=power_frozen is not None, distorted=_cop_fold_blocked(self), defrost=defrost_window.any_defrost, command=pump_arbiter.flow_command(self))
+        # The meter read now closes the interval ``pending`` governed, so the
+        # draw pairs with that interval's ask and set-point, not the action the
+        # solve just adopted for the next one (#2262), within the window the
+        # accuracy pairing below trusts; a prediction recording no split is none.
+        if pending is not None and pending.get("split") is not None and pairs_interval(_utc_age_seconds(now, pending["when"]) / 3600.0):
+            draw_range.fold(self._accuracy.draw, self._measured_power, pending["split"], ctx._thermal_params, frozen=power_frozen is not None, distorted=_cop_fold_blocked(self), defrost=defrost_window.any_defrost, command=pending.get("flow_command"))
 
         # T5 #16: settle every matured lead-time promise against the same
         # measured temperature the one-step sample below uses. The window
         # is the sampling cadence itself — score only on the default
         # half-hour and every bucket whose lead is not a multiple of a
-        # coarser configured interval starves forever. A stale or frozen
-        # indoor sensor scores nothing: a frozen reading is not a
-        # measurement, and an EWMA poisoned by one persists for weeks.
+        # coarser configured interval starves forever. A stale, frozen or
+        # unconfigured (#2508: the 21.0 C default) indoor sensor scores no
+        # room: none is a measurement, and an EWMA poisoned persists weeks.
         interval_h = (
             ctx._config.optimization_interval
             / 60.0
         )
-        actual_now = ctx._current_state.room_temperature
+        actual_now = None if learner_room_unread(ctx._config) else ctx._current_state.room_temperature
         indoor_frozen = self._learning_frozen(CONF_INDOOR_TEMP_ENTITY)
         if actual_now is not None and indoor_frozen is None:
             self._accuracy.score_lead_predictions(
@@ -9851,14 +9797,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             elapsed = _utc_age_seconds(now, pending["when"]) / 3600.0
             # Only pair up predictions with the interval they were actually
             # about; a restart or a long gap makes the pairing meaningless.
-            if 0.05 <= elapsed <= 2.0:
+            if pairs_interval(elapsed):
                 price = pending.get("price")  # None: no price covered it (#2229)
                 sample = AccuracySample(
                     when=now,
                     predicted_power_kw=pending.get("power"),
                     actual_power_kw=self._measured_power,
                     predicted_temp=pending.get("predicted_temp"),
-                    actual_temp=ctx._current_state.room_temperature,
+                    actual_temp=actual_now,
                     # #1935: the tag a post-drift recommendation excludes
                     # override rows by, rather than guessing at windows.
                     boost_space=boost.interval_boosted(pending, self),
@@ -9879,35 +9825,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 # T4a: observed-minus-modelled COP rides on the sample, so
                 # the snapshots' accuracy tags and #12's history both see
                 # efficiency, not just temperature error.
-                if (
-                    self._measured_cop.cop is not None
-                    and sample.outdoor_temp is not None
-                ):
-                    try:
-                        # v5.3.0: subtract the curve the observation was
-                        # actually referenced to. Recomputing the space curve
-                        # for a hot-water interval would put back exactly the
-                        # mismatch ``_cop_reference_curve`` removes — the
-                        # residual would show ~16 % and nothing would be wrong
-                        # with the pump. Without a mode entity the flag is
-                        # never set and this is the v5.1.5 expression.
-                        if (
-                            self._measured_cop.curve_dhw
-                            and self._measured_cop.dhw_temp is not None
-                        ):
-                            modelled = self._thermal_model.compute_cop_dhw(
-                                sample.outdoor_temp, self._measured_cop.dhw_temp
-                            )
-                        else:
-                            modelled = self._thermal_model.compute_cop(
-                                sample.outdoor_temp
-                            )
-                        sample.cop_residual = round(
-                            float(self._measured_cop.cop) - float(modelled),
-                            3,
-                        )
-                    except Exception:  # noqa: BLE001 - tag is best-effort
-                        sample.cop_residual = None
+                # Only a COP folded on this interval (MeasuredCop.residual).
+                try:
+                    sample.cop_residual = self._measured_cop.residual(
+                        pending["when"], sample.outdoor_temp, self._thermal_model
+                    )
+                except Exception:  # noqa: BLE001 - tag is best-effort
+                    sample.cop_residual = None
                 # D7-03/D7-05: skip the accuracy sample when ``indoor_frozen``
                 # above is set — open window, external heat, pump fault, or
                 # an unusable indoor sensor. Energy below is still
@@ -9933,6 +9857,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # heating alone made every hot-water charge look like the unit
             # under-delivering, which fed straight into the defrost derate.
             "power": self._commanded_power(),
+            "split": self._commanded_split(),
+            "flow_command": pump_arbiter.flow_command(self),
             "space_power": float(self._current_action.get("power", 0.0)),
             "dhw_power": float(self._current_action.get("dhw_power", 0.0)),
             # T6: why the plan wanted this interval's draw, captured at
@@ -10124,9 +10050,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         circuit to draw (``heat_energy.attribution``). That is stated in the
         sensor attributes rather than presented as measured.
 
-        The immersion carve-out stays METER-DRIVEN, deliberately: #1067's
+        The resistive carve-out stays METER-DRIVEN, deliberately: #1067's
         heater flags say an element is running, never how many kilowatts it
-        took, and these lines must sum to the metered energy.
+        took, and these lines must sum to the metered energy. The flags name
+        the line and ``resistive_carve_out`` measures the kWh over the latch
+        threshold, never over the plan's ask (#2729).
         """
         # No price covered the interval (#2229): the energy totals take its
         # kWh and no cost; NaN, which the ledger refuses line by line, keeps
@@ -10200,26 +10128,21 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # receipts, and the fee never contaminates the spot column the
         # contract comparison settles on.
         fee = finite_float(pending.get("grid_fee"), 0.0)
-        # T4a #11: while the immersion element runs, the draw beyond what
-        # the plan commanded is resistive heat. Its kWh are CARVED OUT of
-        # the spot line, not booked on top of it — the lines must sum to
-        # the metered energy, or every cross-line total overstates. The
-        # fee line keeps the full energy: resistive kWh pay the grid fee
-        # like any other.
-        immersion_excess = 0.0
-        if (
-            self._immersion_active
-            and sample.actual_power_kw is not None
-            and sample.actual_power_kw > planned_total
-        ):
-            immersion_excess = min(
-                energy,
-                max(
-                    0.0,
-                    (sample.actual_power_kw - planned_total) * elapsed_hours,
-                ),
-            )
-        metered = energy - immersion_excess
+        # T4a #11: resistive kWh are CARVED OUT of the spot line, not booked
+        # on top of it — the lines must sum to the metered energy, or every
+        # cross-line total overstates. The fee line keeps the full energy:
+        # resistive kWh pay the grid fee like any other.
+        ctx = getattr(self, "_ctx", self)
+        resistive_line, resistive_kwh = resistive_carve_out(
+            self._pump_signals.electric_heat,
+            latched=self._immersion_active,
+            immersion_element=ctx._config.immersion_feedback_enabled,
+            actual_kw=sample.actual_power_kw,
+            threshold_kw=float(ctx._thermal_params.max_electrical_power)
+            * IMMERSION_FACTOR,
+            hours=elapsed_hours,
+        ) or ("", 0.0)
+        metered = energy - resistive_kwh
         self._ledger.add(when, "spot", kwh=metered, sek=metered * spot)
         # T6: the same metered kWh again, partitioned by WHY the plan drew
         # them — the space share under the space slot's reason, the DHW
@@ -10239,12 +10162,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             self._ledger.add(when, f"reason:{reason}", kwh=kwh, sek=kwh * spot)
         if fee:
             self._ledger.add(when, "grid_fee", kwh=energy, sek=energy * fee)
-        if immersion_excess > 1e-6:
+        if resistive_line:
             self._ledger.add(
-                when,
-                "immersion",
-                kwh=immersion_excess,
-                sek=immersion_excess * spot,
+                when, resistive_line, kwh=resistive_kwh, sek=resistive_kwh * spot
             )
         self._schedule_ledger_save()
 
@@ -10458,8 +10378,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         return compose_scores(
             envelope_score(
                 getattr(self, "_ctx", self)._thermal_params,
-                self._house_heat_loss_samples,
-                advice,
+                self._house_heat_loss_samples, advice,
+                getattr(self, "_ctx", self)._config,
             ),
             machine_score(self._cop_baseline, self._cop_health_cusum.stat),
             (operation, None if operation is not None else operation_reason(self._score_day)),
@@ -10930,13 +10850,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             return
         # #1523: the experiment is a heat-loss learner, so it stands down on
         # the house learner's own freeze (external heat, a defrost, an open
-        # window, an unusable room or outdoor reading, the pump's freezes,
-        # which ``_learning_frozen`` ranks first) and on a mode that cannot heat.
+        # window, an unusable or unconfigured room or outdoor reading) and on
+        # a mode that cannot heat. The room half is ``learner_room_unread``.
         why = (
             f"heat pump mode {self._pump_signals.mode.label} cannot heat the house"
             if self._pump_signals.space_blocked
             else self._learning_frozen(CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY)
-        )
+        ) or learner_room_unread(getattr(ctx, "_config", None))
         if why is not None:
             self._sysid.abort(why)
             return
@@ -11243,7 +11163,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "min_dhw_temperature": _sim_dhw_low(simulated),
             "baseline_min_dhw_temperature": _sim_dhw_low(result),
             "dhw_slots": len(
-                self._plan_slots(
+                plan_slots(
                     simulated.timestamps,
                     list(simulated.dhw_power_schedule or []),
                     list(simulated.prices),
@@ -11252,7 +11172,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 )
             ),
             "space_slots": len(
-                self._plan_slots(
+                plan_slots(
                     simulated.timestamps,
                     list(simulated.power_schedule),
                     list(simulated.prices),

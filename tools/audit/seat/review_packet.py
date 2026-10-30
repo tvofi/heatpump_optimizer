@@ -4,6 +4,7 @@
     review_packet.py render --pr N --head SHA --out FILE [--main REF]
                             [--harness PATH | --harness-file FILE] [--harness-arg A]...
     review_packet.py check FILE --head SHA     (rc 1: the packet names another head)
+    review_packet.py handoff --topic T --body FILE [--main REF] [--roster-ref REF]
     review_packet.py --self-test
 
 `bus.sh dispatch` renders it (owner ruling tvofi 2026-10-24, card 8) and names
@@ -36,8 +37,16 @@ REFUSALS (rc 1, each named by its signal), all mechanical:
   required-red     a required context's latest run concluded failure;
   host-path        the body or an added line names this host (`ref_privacy.py`);
   hot-file         the diff shares a HOT_FILES path with an open pull request
-                   whose merge verdict is at its head and not on the train.
+                   whose merge verdict is at its head and not on the train;
+  handoff-not-applied  the PR's branch is `fix/<t>` or `fix/<t>-pr`, `handoff/<t>`
+                   exists on origin, and its tip is not an ancestor of the head.
 A pending check never refuses. Every other finding prints as an advisory.
+
+AT THE HANDOFF (P256). `body_push.sh` runs `handoff` at the code head before
+the body is pushed, so a fixer answers before the open what dispatch would
+refuse after it: `structure` and `hot-file` as above, and `brief-carries`, each
+carry on the group's roster entry (the round roster, `group_for_branch` of
+`handoff/<topic>`) not named `Carry N` in the body. Same exit codes as `render`.
 
 EVIDENCE IS NEVER WITHHELD. A refusal that leaves the packet truthful still
 WRITES it and then exits 1, so whoever holds a refused dispatch reads the same
@@ -119,7 +128,8 @@ HOT_FILES = ("tools/audit/seat/pr_args.sh", "tools/audit/seat/update_pr.sh",
              "dev/audit/harnesses/r10_seat_selftests_mutants.py")
 RED = {"failure", "cancelled", "timed_out", "action_required", "startup_failure"}
 LEDGER = "tests/mutation_ledger"
-SIGNALS = ("carry-audit", "head-note", "structure", "red-unanswered", "required-red", "host-path", "hot-file")
+SIGNALS = ("carry-audit", "head-note", "structure", "red-unanswered", "required-red", "host-path", "hot-file",
+           "handoff-not-applied")
 
 
 def git(*a: str, cwd: Path | None = None, check: bool = True) -> str:
@@ -185,6 +195,39 @@ def hot_file_refusals(paths: set[str], open_prs: list[dict], boarded: set[int], 
         if p.get("merge_verdict_head") == p["head"] and p["number"] not in boarded:
             out.append(f"#{p['number']} holds an unboarded merge verdict and shares {', '.join(shared)}")
     return out
+
+
+def handoff_topics(branch: str) -> list[str]:
+    """The handoff topics a pull request's branch can carry: `fix/<t>` or
+    `fix/<t>-pr`, `open_pr.sh`'s two spellings; none for any other shape."""
+    t = branch[len("fix/"):] if branch.startswith("fix/") else ""
+    return [x for x in ([t, t[:-len("-pr")]] if t.endswith("-pr") else [t]) if x]
+
+
+def handoff_not_applied(branch: str, head: str, tip_of, is_ancestor) -> str | None:
+    """Why `head` lacks its own handoff (P229), or None. `tip_of(topic)` is
+    `handoff/<topic>`'s tip on origin or None; the first topic with a ref
+    decides. A branch of another shape, or no handoff ref, is never refused."""
+    for t in handoff_topics(branch):
+        tip = tip_of(t)
+        if tip:
+            return None if is_ancestor(tip, head) else f"handoff/{t} {tip} is not an ancestor of {head}"
+    return None
+
+
+def origin_handoff_tip(topic: str) -> str | None:
+    tip = git("ls-remote", "origin", f"refs/heads/handoff/{topic}").split()
+    if not tip:
+        return None
+    git("fetch", "-q", "origin", f"refs/heads/handoff/{topic}")
+    return tip[0]
+
+
+def is_ancestor(a: str, b: str) -> bool:
+    r = subprocess.run(["git", "merge-base", "--is-ancestor", a, b], cwd=repo(), capture_output=True, text=True)
+    if r.returncode not in (0, 1):
+        raise Unavailable(f"git merge-base --is-ancestor {a} {b}: {r.stderr.strip()[:200]}")
+    return r.returncode == 0
 
 
 def verdict_merge_head(sha: str, read=None) -> str | None:
@@ -277,6 +320,23 @@ def writes_packet(refusals: list[str]) -> bool:
     return not any(r.startswith("host-path:") for r in refusals)
 
 
+def unnamed_carries(body: str, n: int) -> list[int]:
+    """The 1-based indexes of a group's `n` roster carries the body never names
+    as `Carry N` (any case, `[N]` too). A count, not a judgement: whether the
+    named carry is answered well is the reviewer's."""
+    return [i for i in range(1, n + 1)
+            if not re.search(rf"\bcarry\s*\[?{i}\]?(?![0-9])", body, re.I)]
+
+
+def handoff_refusals(structure: str | None, hot: list[str], unnamed: list[int]) -> list[str]:
+    """The refusals that need no CI run: the packet's `structure` and `hot-file`,
+    and the handoff's `brief-carries` count (P256). One spelling for both callers."""
+    out = [f"structure: tests/structure.py refuses the head merged with main: {structure}"] if structure else []
+    out += [f"hot-file: {w}" for w in hot]
+    out += [f"brief-carries: carry {i} is not named in the body (`Carry N`)" for i in unnamed]
+    return out
+
+
 # ------------------------------------------------------------------- the packet
 def build(facts: dict) -> tuple[list[str], list[str], str]:
     """(refusals, advisories, packet text) from gathered facts; pure."""
@@ -287,16 +347,15 @@ def build(facts: dict) -> tuple[list[str], list[str], str]:
         refusals.append("carry-audit: carry_audit.py check returned 1 on the body")
     if not head_note_ok(body, head):
         refusals.append(f"head-note: ## Head does not name the dispatched head {head}")
-    if facts["structure"]:
-        refusals.append(f"structure: tests/structure.py refuses the head merged with main: {facts['structure']}")
+    refusals += handoff_refusals(facts["structure"], facts["hot"], [])
     for n in facts["red_unanswered"]:
         refusals.append(f"red-unanswered: concluded red check `{n}` is not named in ## Red checks")
     for n in sorted(set(reds) & set(REQUIRED)):
         refusals.append(f"required-red: required context `{n}` concluded failure at {head}")
     for w in facts["host"]:
         refusals.append(f"host-path: {w}")
-    for w in facts["hot"]:
-        refusals.append(f"hot-file: {w}")
+    if facts.get("handoff"):
+        refusals.append(f"handoff-not-applied: {facts['handoff']}")
     advisories = [a for a in facts.get("advisories", [])]
     parts = [
         f"# Review packet #{facts['pr']}",
@@ -321,7 +380,9 @@ def gather(a) -> dict:
     touched = set(git("diff", "--name-only", "--no-renames", f"{base}...{head}").split())
     label, data = (harness_source(a.harness, a.harness_file, base, touched)
                    if (a.harness or a.harness_file) else ("none named", b""))
-    body = gh(f"repos/{REPO}/pulls/{a.pr}").get("body") or ""
+    pr = gh(f"repos/{REPO}/pulls/{a.pr}") or {}
+    body = pr.get("body") or ""
+    handoff = handoff_not_applied((pr.get("head") or {}).get("ref") or "", head, origin_handoff_tip, is_ancestor)
     runs = gh(f"repos/{REPO}/commits/{head}/check-runs?per_page=100").get("check_runs", [])
     gate = gate_digest(runs)
     crc, cout = tool([sys.executable, "-I", "tools/audit/carry_audit.py", "check", "--body", "{BODY}"], body)
@@ -334,22 +395,12 @@ def gather(a) -> dict:
     ident = ref_privacy.Identity.of_host()
     host = [w for w in [ref_privacy.body_refusal(body, ident)] if w]
     host += ref_privacy.content_refusals(ref_privacy.added_lines(base, head, repo()), ident)
-    open_prs, boarded = [], set()
-    if touched & set(HOT_FILES):
-        for p in gh(f"repos/{REPO}/pulls?state=open&per_page=100"):
-            files = [f["filename"] for f in gh(f"repos/{REPO}/pulls/{p['number']}/files?per_page=100")]
-            tip = git("ls-remote", "origin", f"refs/heads/verdict/{p['number']}", check=False).split()
-            merge_head = None
-            if tip and not git("fetch", "-q", "origin", f"refs/heads/verdict/{p['number']}", check=False):
-                merge_head = verdict_merge_head(tip[0])
-            open_prs.append({"number": p["number"], "head": p["head"]["sha"], "files": files,
-                             "merge_verdict_head": merge_head})
-        boarded = train_boarded()
+    open_prs, boarded = hot_prs(touched)
     return {
         "pr": a.pr, "head": head, "base": base, "body": body, "gate": gate,
         "carry_rc": crc, "carry_out": cout, "figure_out": fout,
         "structure": None if a.no_structure else structure_at_merge(main, head),
-        "red_unanswered": red_unanswered, "host": host,
+        "red_unanswered": red_unanswered, "host": host, "handoff": handoff,
         "hot": hot_file_refusals(touched, open_prs, boarded, a.pr),
         "advisories": [] if os.environ.get("HPO_BUS_TRAIN_STATE") or not open_prs
         else ["hot-file: HPO_BUS_TRAIN_STATE is unset, so every merge verdict reads unboarded"],
@@ -359,6 +410,51 @@ def gather(a) -> dict:
         "ledger_diff": git("diff", f"{base}...{head}", "--", LEDGER),
         "diff": git("diff", f"{base}...{head}"),
     }
+
+
+def hot_prs(touched: set[str]) -> tuple[list[dict], set[int]]:
+    """(open pull requests, boarded numbers) the hot-file rule reads; no read
+    at all when the diff touches no hot file."""
+    open_prs: list[dict] = []
+    if not touched & set(HOT_FILES):
+        return open_prs, set()
+    for p in gh(f"repos/{REPO}/pulls?state=open&per_page=100"):
+        files = [f["filename"] for f in gh(f"repos/{REPO}/pulls/{p['number']}/files?per_page=100")]
+        tip = git("ls-remote", "origin", f"refs/heads/verdict/{p['number']}", check=False).split()
+        merge_head = None
+        if tip and not git("fetch", "-q", "origin", f"refs/heads/verdict/{p['number']}", check=False):
+            merge_head = verdict_merge_head(tip[0])
+        open_prs.append({"number": p["number"], "head": p["head"]["sha"], "files": files,
+                         "merge_verdict_head": merge_head})
+    return open_prs, train_boarded()
+
+
+def handoff(a) -> int:
+    """`handoff`: the refusals a fixer answers before the push (P256), at this
+    checkout's HEAD. `head-note` is prepr's own at the same push (`--body-check`
+    hands policy_lint `--head HEAD`), and the CI-dependent ones stay at dispatch
+    (card 5), so this runs `structure`, `hot-file` and `brief-carries`."""
+    import roster_lib
+    head = git("rev-parse", "HEAD").strip()
+    body = Path(a.body).read_text()
+    touched = set(git("diff", "--name-only", "--no-renames", f"{git('merge-base', a.main, head).strip()}...{head}").split())
+    ref = a.roster_ref or roster_lib.round_ref(roster_lib.git_in(str(repo())))
+    if not ref:
+        raise Unavailable("roster_lib.round_ref names no round roster branch")
+    git("fetch", "-q", "--no-tags", "origin", f"+refs/heads/{ref.removeprefix('origin/')}:refs/remotes/{ref}")
+    try:
+        roster = roster_lib.show_roster(str(repo()), ref)
+    except Exception as e:  # noqa: BLE001 -- an unread roster is not an empty one
+        raise Unavailable(f"cannot read the roster at {ref}: {e}")
+    gid = roster_lib.group_for_branch(roster, f"handoff/{a.topic}")
+    carries = len(roster_lib.groups_of(roster)[gid].get("carry") or []) if gid else 0
+    open_prs, boarded = hot_prs(touched)
+    refusals = handoff_refusals(structure_at_merge(a.main, head),
+                                hot_file_refusals(touched, open_prs, boarded, 0), unnamed_carries(body, carries))
+    for x in refusals:
+        print(f"review_packet: REFUSE {x}", file=sys.stderr)
+    print(f"review-packet handoff: {gid or 'no group'} at {head[:12]}, {carries} carries, {len(refusals)} refused")
+    return 1 if refusals else 0
 
 
 def train_boarded() -> set[int]:
@@ -436,6 +532,21 @@ def _self_test() -> int:
     check("write-on-refusal: one host path beside other refusals still writes nothing",
           not writes_packet(["required-red: gate", "host-path: a home directory"]))
 
+    # brief-carries (P256): every index on the group's roster entry is named.
+    six = "".join(f"Carry {i}: answered.\n" for i in range(1, 6))
+    check("brief-carries: a body answering carries 1-5 of 6 is refused naming carry 6",
+          unnamed_carries(six, 6) == [6]
+          and handoff_refusals(None, [], unnamed_carries(six, 6)) == ["brief-carries: carry 6 is not named in the body (`Carry N`)"])
+    check("brief-carries null: the same body with carry 6 dispositioned passes",
+          unnamed_carries(six + "Carry 6: carried to R10-X.\n", 6) == [])
+    check("brief-carries null: a group with no carries passes", unnamed_carries("", 0) == [])
+    check("brief-carries: `carry 1` does not name carry 10, and `Carry [10]` does",
+          unnamed_carries("Carry 1: x\n", 10)[-1] == 10 and 10 not in unnamed_carries("Carry [10]: x\n", 10))
+    check("handoff: structure and hot-file refuse beside the count, each named",
+          [r.split(":")[0] for r in handoff_refusals("max_class_loc", ["#9 x"], [2])]
+          == ["structure", "hot-file", "brief-carries"])
+    check("handoff null: a clean head refuses nothing", handoff_refusals(None, [], []) == [])
+
     prs = [{"number": 9, "head": H, "files": [HOT_FILES[0]], "merge_verdict_head": H}]
     check("hot-file arm: an unboarded merge verdict sharing a hot file refuses",
           len(hot_file_refusals({HOT_FILES[0]}, prs, set(), 7)) == 1)
@@ -486,6 +597,31 @@ def _self_test() -> int:
         except SystemExit as e:
             ok = "inside the tree" in str(e)
         check("independence: --harness-file inside the checkout is refused", ok)
+
+        # handoff-not-applied (P229), over real ancestry: #2887's shape is the
+        # bot's merge of the OLD head with main, the fixer's handoff tip outside it.
+        def commit(msg: str, *parents: str) -> str:
+            tree = tgit("rev-parse", f"{parents[0]}^{{tree}}").strip()
+            return tgit("commit-tree", tree, *[x for p in parents for x in ("-p", p)], "-m", msg).strip()
+        old = commit("old head", base)
+        tip = commit("handoff tip", old)
+        mainc = commit("main moves", base)
+        stale, fresh = commit("merge old head + main", old, mainc), commit("merge tip + main", tip, mainc)
+
+        def anc(a: str, b: str) -> bool:
+            return subprocess.run(["git", "merge-base", "--is-ancestor", a, b], cwd=t, env=denv).returncode == 0
+        tips = {"g": tip}.get
+        check("handoff-not-applied: #2887's shape (old head merged with main, tip outside) refuses",
+              (handoff_not_applied("fix/g", stale, tips, anc) or "").startswith(f"handoff/g {tip} is not an ancestor of {stale}")
+              and refused("handoff-not-applied", handoff=handoff_not_applied("fix/g", stale, tips, anc)))
+        check("handoff-not-applied: the `fix/<t>-pr` spelling reads handoff/<t>",
+              handoff_not_applied("fix/g-pr", stale, tips, anc) is not None)
+        check("handoff-not-applied null: a head containing the handoff tip renders",
+              handoff_not_applied("fix/g", fresh, tips, anc) is None)
+        check("handoff-not-applied null: a pull request with no handoff ref renders",
+              handoff_not_applied("fix/nohandoff", stale, tips, anc) is None)
+        check("handoff-not-applied null: a branch not spelled fix/<t> renders",
+              handoff_not_applied("g", stale, tips, anc) is None and handoff_not_applied("feat/g", stale, tips, anc) is None)
 
         # WHICH CHECKOUT, pinned by a read, not by a comment: every git read
         # goes through `repo()`, and `repo()` is the working directory's
@@ -562,6 +698,11 @@ def main(argv: list[str]) -> int:
     g.add_argument("--harness-file")
     r.add_argument("--harness-arg", action="append", default=[])
     r.add_argument("--no-structure", action="store_true", help="skip the structure merge check (self-test only)")
+    h = sub.add_parser("handoff")
+    h.add_argument("--topic", required=True)
+    h.add_argument("--body", required=True)
+    h.add_argument("--main", default="origin/main")
+    h.add_argument("--roster-ref")
     c = sub.add_parser("check")
     c.add_argument("packet")
     c.add_argument("--head", required=True)
@@ -572,6 +713,12 @@ def main(argv: list[str]) -> int:
             print(f"review_packet: REFUSE stale: {a.packet} names head {got}, not {a.head}", file=sys.stderr)
             return 1
         return 0
+    if a.cmd == "handoff":
+        try:
+            return handoff(a)
+        except Unavailable as e:
+            print(f"review_packet: UNAVAILABLE: {e}", file=sys.stderr)
+            return 3
     if not re.fullmatch(r"[0-9a-f]{40}", a.head):
         print("review_packet: --head takes a 40-hex sha", file=sys.stderr)
         return 2

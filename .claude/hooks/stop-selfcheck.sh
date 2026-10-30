@@ -52,7 +52,7 @@ if [ "${1:-}" = "--self-test" ]; then
   touches_policy 'tests/plan_prices.py'                        ; st $? 1 "a suite-only turn does not run the linter"
   touches_policy 'CLAUDE.md'                                   ; st $? 0 "a CLAUDE.md turn runs it"
   touches_policy '.claude/rules/gate-scoping.md'               ; st $? 0 "a rule turn runs it"
-  touches_policy 'tools/audit/briefs/fixer.md'                 ; st $? 0 "a contract turn runs it"
+  touches_policy 'dev/governance/roles/fixer.md'               ; st $? 0 "a contract turn runs it"
   touches_policy '.github/workflows/governance.yml'            ; st $? 0 "a workflow turn runs it"
   touches_policy 'docs/HANDOVER.md'                            ; st $? 0 "the handover runs it"
   touches_policy 'docs/plan-2026-09-open-issues.md'            ; st $? 1 "another docs/ file does not -- the prefix list names only the handover there"
@@ -153,7 +153,23 @@ if [ "${1:-}" = "--self-test" ]; then
     e2e_err 0 "$T" 1 'optimizer.py' "END TO END: a mutation arm is named and the turn still ends"
     git -C "$T" checkout -- custom_components/heatpump_optimizer/optimizer.py >/dev/null 2>&1
     e2e_err 0 "$T" 0 'optimizer.py' "END TO END: and nothing is said once the arm is restored (null control)"
-    rm -rf "$T"
+
+    # THE COMMAND THAT WIRES THIS FILE, read from settings.json and run as the
+    # harness runs it. A session whose project dir is not this repository (an
+    # orchestrator in a scratch workspace) has no hook at "$CLAUDE_PROJECT_DIR";
+    # the command finds the repository's own from its cwd, else does nothing,
+    # and never fails the turn on a path (R10-FLY-CACHE-PROMPTS). The scratch
+    # repository's hook is a stub exiting 3, so "ran it" and "skipped" differ.
+    CMD=$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["hooks"]["Stop"][0]["hooks"][0]["command"])' \
+          "$(dirname -- "$0")/../settings.json")
+    E=$(mktemp -d); mkdir -p "$T/.claude/hooks"; printf 'exit 3\n' >"$T/.claude/hooks/stop-selfcheck.sh"
+    wired() { # want-rc, cwd, project-dir, label
+      (cd "$2" && printf '{}' | CLAUDE_PROJECT_DIR="$3" sh -c "$CMD" >/dev/null 2>&1); st $? "$1" "$4"
+    }
+    wired 3 "$T" "$T" "WIRED: the project dir's hook runs"
+    wired 3 "$T" "$E" "WIRED: a project dir without the hook runs the repository's, found from the cwd"
+    wired 0 "$E" "$E" "WIRED: no hook anywhere exits 0, never a missing-file error"
+    rm -rf "$T" "$E"
   else
     # A box without a working `git init` cannot drive these. Say so rather than
     # counting the end-to-end cases as silent passes: a skipped drive that claims its pins is the

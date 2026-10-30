@@ -12,7 +12,7 @@ does (its `run:` text, under `bash -e`, with RUNNER_TEMP set, a throwaway
 HOME and no inherited PYTHONUNBUFFERED) and must exit 0 for each. S01..S38,
 and each per-file id (<file>-<n>), plant one production-line mutant in one
 file -- outside that file's self-test function -- and run only the step
-that names the file: a killed mutant reddens the step, and the same step on
+that names the file (or the one STEP_OF names): a killed mutant reddens the step, and the same step on
 the unmutated file must pass first (NOT RUN otherwise). S04U is S04 run with
 PYTHONUNBUFFERED=1 in the step's environment, as a Linux container sets it.
 S35-S37 are #2444's three unpinned push lines in handoff_push.sh, S38 its
@@ -158,6 +158,19 @@ MUTANTS = [
      "if files and any(f in claim_files for f in files):"),
     ("merge_train-10", "merge_train.py", "    return lines[1:]\n", "    return lines\n"),
     ("merge_train-11", "merge_train.py", "t.required(pr_head=not a.main)", "t.required()"),
+    # R10-FLOW-MAIN-GATE carries: V142's infra re-run, and #2577's reviewable-head dispatch refusal.
+    ("merge_train-25", "merge_train.py", "                self.infra_rerun(latest_runs(runs), red)\n", ""),
+    ("merge_train-26", "merge_train.py", "        if red and self.infra_rerun(", "        if False and self.infra_rerun("),
+    ("merge_train-27", "merge_train.py", "        if not hit:\n", "        if not hit and not matched:\n"),
+    ("merge_train-28", "merge_train.py", '[lines[i][len("FAIL "):], *lines[i + 1:end]]', '[lines[i][len("FAIL "):]]'),
+    ("merge_train-29", "merge_train.py", "    if attempt != 1 or not failed:", "    if not failed:"),
+    ("merge_train-30", "merge_train.py", 'if code or att.strip() != "1":', "if code:"),
+    ("merge_train-31", "merge_train.py", "            if self.wall() < due:", "            if False:"),
+    ("merge_train-32", "merge_train.py", "all(m and m.group(1) in infra for m in named)", "all(m for m in named)"),
+    ("merge_train-33", "merge_train.py", "    if epochs:\n        return float(", "    if False:\n        return float("),
+    ("bus-1", "bus.sh", "    0|3) ;;\n", "    0|1|3) ;;\n"),
+    ("bus-2", "bus.sh", "    0|3) ;;\n", "    0) ;;\n"),
+    ("bus-3", "bus.sh", '    *) die "dispatch: cannot classify', '    *) : "dispatch: cannot classify'),
     # Round 2: GitHub's merge under a local driver, and the reviewer's R1-R4.
     ("merge_train-12", "merge_train.py",
      '    drivers = text_merge(run)\n    if drivers is None:\n        return None\n',
@@ -184,6 +197,71 @@ MUTANTS = [
     # r10-ci-layout-p2-u9a: the merge-main bot's pin chain under ci.yml's names.
     ("merge_main_bot-1", "tools/pr/merge_main_bot.py", 'PIN_CHAIN = re.compile(r"^tests / (?:',
      'PIN_CHAIN = re.compile(r"^(?:'),
+    # R10-FLOW-JIDOKA (p2): prepr.sh's ref_privacy step, wave-script trigger, D6
+    # claims register (6g), body-push figure lint and --fill-red. prepr-9 and
+    # prepr-10 plant in another file; STEP_OF names the step that grades them.
+    # prepr-10 is the import 6g's comparison must not need: on a python3 with
+    # no voluptuous (CI's) it also reddens the text-keyed refusal arms.
+    ("prepr-1", "tools/pr/prepr.sh",
+     'PRIVACY_LINE=$(privacy_line)\nstep "ref privacy" $? "$PRIVACY_LINE"\n',
+     'PRIVACY_LINE=""\nstep "ref privacy" 0 "$PRIVACY_LINE"\n'),
+    ("prepr-2", "tools/pr/prepr.sh",
+     'echo "REFUSE ref_privacy: $vline"; fi\n  [ "$r" -ne 0 ] || r=$vr\n',
+     'echo "REFUSE ref_privacy: $vline"; fi\n'),
+    ("prepr-3", "tools/pr/prepr.sh",
+     "groups.json\ndev/governance/roles/*.md\ndev/governance/dimensions/*.md'\n", "groups.json'\n"),
+    ("prepr-4", "tools/pr/prepr.sh",
+     '  CLAIMS_REG=$(claims_reg_line "$CR.paths" "$CR")\n  case $? in\n',
+     '  CLAIMS_REG=""; (exit 3)\n  case $? in\n'),
+    ("prepr-5", "tools/pr/prepr.sh",
+     '  for f in claims.json claims.md; do cmp -s "$2/.was/$f" "$d/$f" || stale="$stale $f"; done\n', ''),
+    ("prepr-6", "tools/pr/prepr.sh",
+     'echo "REFUSE figures: $(tail -1 <<<"$fout")"; fi\n  [ "$r" -ne 0 ] || r=$fr\n',
+     'echo "REFUSE figures: $(tail -1 <<<"$fout")"; fi\n'),
+    ("prepr-7", "tools/pr/prepr.sh",
+     '  case "$sec" in *mutation*) echo "\\`## Red checks\\` already names mutation; nothing written"; return 3 ;; esac\n', ''),
+    ("prepr-8", "tools/pr/prepr.sh",
+     '  [ "$n" -gt 0 ] || { echo "the diff adds no unpinned mutation site; nothing written"; return 3; }\n', ''),
+    ("prepr-9", "tools/audit/seat/body_push.sh",
+     '  (cd "$ROOT" && bash "$HERE/../../pr/prepr.sh" --fill-red "$ABS")\n', ''),
+    ("prepr-10", "tests/harness_headers.py",
+     'sys.path.insert(0, "tests")\n', 'sys.path.insert(0, "tests")\nfrom harness import Results\n'),
+    # R10-FLOW-JIDOKA (p2, round 3): 6g copies only what the generator reads,
+    # so a renamed entry must refuse the copy; and --fill-red asks the
+    # predictor one arm. prepr-12 plants in ci_predict.py; STEP_OF names the
+    # step that grades it.
+    ("prepr-11", "tools/pr/prepr.sh",
+     "CLAIMS_INPUTS='README.md\nDISCLAIMER.md\nLICENSE\nNOTICE\n",
+     "CLAIMS_INPUTS='README.md\nDISCLAIMER.md\nLICENSE\nNOTICE_MOVED\n"),
+    ("prepr-12", "tools/pr/ci_predict.py",
+     '"under-scoped", "inert-siblings", "left-inert", "mutation")',
+     '"under-scoped", "inert-siblings", "left-inert")'),
+    # R10-ORCH-REVIEW-PACKET (P229, P256): the handoff-not-applied signal, the
+    # handoff refusals and body_push's call of them; body_push-1/2 are graded by
+    # prepr's self-test (STEP_OF), which drives body_push.
+    ("review_packet-1", "review_packet.py",
+     "return None if is_ancestor(tip, head) else", "return None if not is_ancestor(tip, head) else"),
+    ("review_packet-2", "review_packet.py",
+     "        refusals.append(f\"handoff-not-applied: {facts['handoff']}\")\n", "        pass\n"),
+    ("review_packet-3", "review_packet.py",
+     "if not re.search(rf\"\\bcarry", "if False and re.search(rf\"\\bcarry"),
+    ("review_packet-4", "review_packet.py",
+     '[t, t[:-len("-pr")]] if t.endswith("-pr") else [t]', "[t]"),
+    ("review_packet-5", "review_packet.py",
+     '    out += [f"hot-file: {w}" for w in hot]\n', ""),
+    ("body_push-1", "tools/audit/seat/body_push.sh",
+     '  if [ "$prc" = 1 ]; then\n    echo "body_push: the review packet refuses',
+     '  if false; then\n    echo "body_push: the review packet refuses'),
+    ("body_push-2", "tools/audit/seat/body_push.sh",
+     '  if [ "$prc" = 1 ]; then\n    echo "body_push: the review packet refuses',
+     '  if [ "$prc" != 0 ]; then\n    echo "body_push: the review packet refuses'),
+    # #2853's review: the class the copy enumeration missed is a link to an
+    # in-tree file it does not name. prepr-11 renames a LISTED entry (the
+    # pathspec arm); prepr-13 stops the copy taking the generator's own link
+    # targets, which the unlisted-target arm grades.
+    ("prepr-13", "tools/pr/prepr.sh",
+     '    done < <(cd "$2" && python3 -I "$CLAIMS_GEN" --print-link-targets 2>/dev/null)\n',
+     '    done < /dev/null\n'),
     # r10-ci-layout-p2-u9a (B3): the stamp reads the push gate; Tests is the pre-umbrella fallback only.
     ("stamp-1", "tools/release/stamp.py", "    if not ci:\n        return None\n", "    return None\n"),
     ("stamp-2", "tools/release/stamp.py", 'concl = g[0].get("conclusion") if g else', 'concl = r.get("conclusion") if g else'),
@@ -291,6 +369,7 @@ MUTANTS = [
     ("cloud_relay-28", "cloud_relay.sh",
      'level_line handoff-held "refs/heads/handoff/$topic" "$hs" "#$pr $why" >> "$state/cloud-level-held.$$"; continue',
      'continue'),
+    ("cloud_relay-34", "cloud_relay.sh", '|| { echo UNREAD; return 0; }', '|| { return 1; }'),
     # R10-UPDATE-PR-SIGNALS (#2549): the update in the loop's own process group again
     ("cloud_relay-29", "cloud_relay.sh", '    pr_own_group "${upd[@]}" "$br"', '    "${upd[@]}" "$br"'),
     # R10-UPDATE-PR-SIGNALS carry 6 (P163): the STUCK andon's age, its bound, its held test, its wiring
@@ -344,6 +423,11 @@ MUTANTS = [
 
 # Mutants run with extra step environment: (name, base mutant, env).
 ENV_MUTANTS = [("S04U", "S04", {"PYTHONUNBUFFERED": "1"})]
+
+# A mutant planted in a file whose self-test is another instrument's step.
+STEP_OF = {"prepr-9": "tools/pr/prepr.sh", "prepr-10": "tools/pr/prepr.sh",
+           "prepr-12": "tools/pr/prepr.sh", "body_push-1": "tools/pr/prepr.sh",
+           "body_push-2": "tools/pr/prepr.sh"}
 
 # The wrappers' own line is the dispatch to the self-tests they delegate.
 # S08's wrapper now runs both tallies (delivery_row.sh's and its own pushes):
@@ -452,7 +536,7 @@ def main(want: list[str]) -> int:
         if not clean(path):
             print(f"== {name}: {file} has uncommitted edits; the restore would erase them")
             return 2
-        _, run = step_for(file)
+        _, run = step_for(STEP_OF.get(name, file))
         # The null control per mutant: the same step on the unmutated file
         # must pass, or a red below says nothing about the mutant.
         key = (run, tuple(sorted(extra.items())))

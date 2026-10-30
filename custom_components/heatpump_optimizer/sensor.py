@@ -22,6 +22,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import narrative
 from . import topology
+from .accuracy import COP_NOT_MEASURABLE
 from .const import (
     CONF_BUFFER_TANK_TEMP_ENTITY,
     CONF_DHW_TEMP_ENTITY,
@@ -1193,7 +1194,7 @@ class DHWScheduleSensor(_DHWEntityMixin, HeatPumpOptimizerSensorBase):
             schedule = self.coordinator.data.get("dhw_schedule", [])
             if schedule:
                 # #1644 (D8-s1-02): a period is one of the plan's own slots
-                # (coordinator _plan_slots, merged on channel_heating_steps),
+                # (plan_slots.plan_slots, merged on channel_heating_steps),
                 # so this count is DHW Heating Plan's slot count. The
                 # coordinator publishes dhw_plan beside every non-empty
                 # dhw_schedule; a payload without it has no period count to
@@ -1685,6 +1686,10 @@ class ObservedCOPSensor(
         data = self._data()
         if not data.get("measured_power_available"):
             return "measured_power_entity"
+        if data.get("cop_observability") == COP_NOT_MEASURABLE:
+            # #2262: the draw does not follow the plan's ask, so its ratio to
+            # the ask is no COP; only a heat reading measures one here.
+            return "heat_meter"
         if self._payload_number() is None:
             # A power entity is not a COP: the learner needs the pump to run,
             # against a known outdoor temperature, for long enough to divide.
@@ -1699,6 +1704,12 @@ class ObservedCOPSensor(
             "waiting_for": self._waiting_for,
             _cop: data.get(_cop),
             "cop_samples": data.get("cop_samples"),
+            # The latch outlives every later refusal, so its time is part of
+            # the reading; the refusal is the latest interval's own code
+            # (``span_open``: a heat counter's span still open, not a refusal).
+            "measured_at": data.get("measured_cop_at"),
+            "last_refusal": data.get("cop_refusal"),
+            "observability": data.get("cop_observability"),
             # The same curve the Estimated COP sensor publishes, so observed
             # and modelled can be compared side by side. The previous source,
             # current_action["cop"], is a key nothing ever writes.

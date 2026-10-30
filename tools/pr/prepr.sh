@@ -15,7 +15,9 @@
 # that are re-executable in CI, so the PRE-PR line this prints is a claim and
 # the re-execution is the proof.
 #
-#   tools/pr/prepr.sh [body.md]   # issue numbers after it are ignored: step 7 derives them
+#   tools/pr/prepr.sh [--verbose] [body.md]   # issue numbers after it are ignored: step 7 derives them
+#     stdout is the verdicts, each refusal's log lines and the result line naming
+#     the full log; --verbose or PREPR_VERBOSE=1 prints the full log there instead
 #   tools/pr/prepr.sh --body-check <abs body.md>   # step 7 alone (body_push.sh)
 #
 # Self-test (used by the `pr-contract` job, and by anyone changing this file):
@@ -260,6 +262,132 @@ figures_check() { # body file
   if test -f .claude/workflows/figure_lint.mjs; then node .claude/workflows/figure_lint.mjs --pr-body "$1"; else node tools/policy/figure_lint.mjs --pr-body "$1"; fi
 }
 
+# Step 3f7's whole body, and --body-check's: `instrument-self-tests` runs
+# `ref_privacy.py --check`, which judges every line the diff adds for a host
+# path and every push site for its registry entry. prepr never called it, and
+# #2625 (an unregistered push site) and #2735, #2738 and #2741 (home paths in
+# docs-only batch files) each went red in CI on it (triage s6-batch9 P78).
+# Under a second; it reads the diff from the merge base, never the whole tree.
+privacy_line() { # -> one line; rc 0 nothing refused, 1 refused
+  local out r
+  out=$(python3 -I tools/audit/seat/ref_privacy.py --check 2>&1); r=$?
+  [ "$r" -eq 0 ] && { tail -1 <<<"$out"; return 0; }
+  printf '%s-- %s' "$(grep -m3 '^ref_privacy: REFUSE' <<<"$out" | sed 's/^ref_privacy: REFUSE //' | tr '\n' ';')" "$(tail -1 <<<"$out")"
+  return 1
+}
+
+# Step 4's trigger: what check-wave-script.mjs reads, as `pinned_touched` globs.
+# The briefs are `briefListing()`'s two directories; the pre-move briefs glob
+# matched no file, so a role-contract-only diff printed `skip` and went red on
+# CI's unconditional job (#2736, P75).
+WAVE_INPUTS='.claude/workflows/web-fix-wave.js
+tools/policy/check-wave-script.mjs
+.claude/workflows/wave-*-groups.json
+dev/governance/roles/*.md
+dev/governance/dimensions/*.md'
+
+# Step 6g's whole body: the D6 claims register `tests/harness_headers.py`
+# executes in `fast`, rerun on a copy of the tree when the diff touches the
+# documents it reads. #2609 (ff83a3d7) moved README.md's link count, ran prepr
+# with PREPR_SKIP_CLOSURES=1, and reached CI with claims.json and claims.md
+# stale. The generator writes into the tree it runs in, so it runs on a copy
+# and the committed files are compared, never rewritten.
+CLAIMS_DOCS='README.md
+docs/*.md'
+CLAIMS_GEN=dev/audit/rounds/round4/D6/claims.py
+# What the copy must hold: `git archive` of the whole tree writes 135 MB, of
+# which dev/audit's round evidence is 82 MB the generator never opens, and it
+# cost 2.7-3.7 s of the step's 7.4-8.2 s of CPU (R10-FLOW-JIDOKA's review,
+# 2026-10-26) where a copy of these entries costs 0.2 s. Each is a read in
+# `claims.py`, not a guess: the files and docs it parses, the package it
+# imports and scans, the `tests` modules it puts on `sys.path`, its own
+# directory (which holds the committed register it is compared against), and
+# the targets outside `docs/` that its C108/C110 arms `exists()`-test. A
+# renamed entry makes `git archive` refuse the whole pathspec, so a short copy
+# fails the step loudly: it never grades a tree the generator did not read.
+# THIS LIST IS NOT THE GENERATOR'S WHOLE READ SET, and treating it as one was
+# #2853's review: C108 resolves every relative link in the docs against the
+# copy root, and that set is data -- whatever path a documentation edit names.
+# `claims_reg_line` therefore also copies the link targets the generator
+# itself reports (`--print-link-targets`), so a link to an in-tree file this
+# list does not name still resolves in the copy. Keep this list to the
+# generator's own imports and parses; the link targets are derived.
+CLAIMS_INPUTS='README.md
+DISCLAIMER.md
+LICENSE
+NOTICE
+VERSION
+hacs.json
+docs
+.github/workflows
+custom_components
+tests/README.md
+tests/harness.py
+tests/golden.py
+tests/entities.py
+tests/rolling.py
+tests/profiles.py
+tests/hastub
+dev/README.md
+dev/archive/README.md
+dev/archive/backlog.md
+tools/audit/archscore/ABOUT.md
+dev/audit/rounds/round4/D6'
+claims_reg_line() { # changed-paths file, tree copy -> one line; rc 0 current, 1 stale, 3 skipped
+  local d out r f stale="" hdr
+  pinned_touched "$1" "$CLAIMS_DOCS" || { echo "no change to README.md or docs/*.md"; return 3; }
+  [ -f "$2/$CLAIMS_GEN" ] || { echo "no $CLAIMS_GEN in the tree"; return 3; }
+  d=$(dirname "$2/$CLAIMS_GEN")
+  # The verdict is the generator's output against the register committed
+  # beside it. A copy holding the generator but not the register would compare
+  # against nothing and read as stale, so it is named instead.
+  [ -f "$d/claims.json" ] && [ -f "$d/claims.md" ] \
+    || { echo "the copy has no committed $d/claims.json and claims.md beside $CLAIMS_GEN, so nothing was compared"; return 1; }
+  # THE COPY HOLDS EVERY TARGET THE DOCS LINK TO, not only the generator's
+  # enumerated inputs. C108 resolves each relative link with `.exists()`
+  # against the copy root, so a documentation edit that links an in-tree file
+  # the enumeration does not name was graded broken in the copy though the
+  # repository held it -- and the refusal's own remedy re-records the tree,
+  # which changes nothing (#2853's review). The target list comes from the
+  # generator's own extractor (`--print-link-targets`, run before its heavy
+  # imports), so the copy step cannot drift from what C108 resolves; each
+  # missing target is taken from HEAD, so the copy resolves exactly as a
+  # whole-tree `git archive HEAD` copy does, and a target the repository lacks
+  # is still graded broken. Today's targets are all in CLAIMS_INPUTS, so an
+  # ordinary docs diff adds no archive here. The normalisation is done in the
+  # shell, not by spawning an interpreter per target: a `python3 -I -c` here
+  # cost this check 2.84-3.12 s of CPU across the 84 targets and put it over the
+  # owner's 5 s cap (#2853's round-2 review). A leading `..` still escapes the
+  # copy the way `os.path.normpath` refused it; a `docs/../x` form is left as
+  # written, which `test -e` and git both resolve.
+  local repo=$PWD t rel
+  if [ -f "$repo/$CLAIMS_GEN" ] && grep -q -e '--print-link-targets' "$2/$CLAIMS_GEN" 2>/dev/null; then
+    while IFS= read -r t; do
+      [ -n "$t" ] || continue
+      rel=${t#./}; case $rel in /*|..|../*) continue;; esac
+      [ -n "$rel" ] || continue
+      [ -e "$2/$rel" ] && continue
+      [ -n "$(git -C "$repo" ls-tree --name-only HEAD -- "$rel" 2>/dev/null)" ] || continue
+      { git -C "$repo" archive HEAD -- "$rel" 2>/dev/null | tar -x -C "$2" 2>/dev/null; } || true
+    done < <(cd "$2" && python3 -I "$CLAIMS_GEN" --print-link-targets 2>/dev/null)
+  fi
+  mkdir -p "$2/.was"
+  cp "$d/claims.json" "$d/claims.md" "$2/.was/"
+  out=$(cd "$2" && PYTHONPATH=tests/hastub python3 "$CLAIMS_GEN" 2>&1); r=$?
+  [ "$r" -eq 0 ] || { echo "$CLAIMS_GEN exited $r: $(tail -1 <<<"$out")"; return 1; }
+  for f in claims.json claims.md; do cmp -s "$2/.was/$f" "$d/$f" || stale="$stale $f"; done
+  hdr=$(python3 -I -c 'import contextlib, io, sys; sys.path[:0] = ["tests", "tests/hastub"]; from pathlib import Path
+with contextlib.redirect_stdout(io.StringIO()): import harness_headers as h
+e, g = h.expected_from(Path(sys.argv[1])), h.printed_from(sys.stdin.read())
+print(" ".join(f"{k}={g.get(k)} (header {v})" for k, v in e.items() if g.get(k) != v))' "$2/$CLAIMS_GEN" <<<"$out") \
+    || { echo "the header comparison did not run"; return 1; }
+  if [ -n "$stale$hdr" ]; then
+    echo "${stale:+committed${stale} not what $CLAIMS_GEN writes; }${hdr:+header RESULT moved: $hdr; }re-run it and commit"
+    return 1
+  fi
+  echo "$CLAIMS_GEN rewrites claims.json and claims.md byte-identical, its header RESULTs hold"
+}
+
 # Steps 6a and 6b: the two failures CI already repairs, refused before the push.
 # `claims-autofix` and `closures-autofix` fire only after `fast` or `closures`
 # has gone red, so every repair they make costs a gate run, a held-run approval
@@ -434,7 +562,9 @@ PY
 }
 
 # Step 6d's whole body: tools/pr/ci_predict.py over the three-dot diff, read
-# statically -- no test, recording or mutant runs, so it costs seconds where
+# statically -- no test or mutant runs, and the one recording is a changed
+# file's own self-test a gate script runs (SELF-TEST READS, the fifth
+# argument), so it costs seconds where
 # step 6b's recordings cost the scoped scripts' run time and are left to CI
 # under the owner's heavy-scripts rule (2026-10-07). It predicts `closures`'s
 # UNDER-SCOPED and INERT READS, entities' unclassified file and
@@ -448,13 +578,16 @@ PY
 # has `mutation-autofix` pin them after the push, so the step lists them into
 # a file and step 7's `unpinned_line` asks the body for each one's disposition.
 # Every PREDICT line prints above the step line; the step line is the last.
-predict_line() { # base ref, [file the unpinned site keys are written to], [body file]; rc 0 none, 1 predicted, 3 skipped
-  local out r
+predict_line() { # base ref, [file the unpinned site keys are written to], [body file], [one arm to run], [record]; rc 0 none, 1 predicted, 3 skipped
+  local out r only="" rec=""
   if [ ! -f tools/pr/ci_predict.py ]; then
     echo "tools/pr/ci_predict.py is not in this tree"; return 3
   fi
   local bf=""; [ -n "${3:-}" ] && [ -f "$3" ] && bf=$3   # pr-contract's carry check, when a body exists
-  out=$(PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base "$1" ${bf:+--body "$bf"} 2>&1); r=$?
+  [ -n "${4:-}" ] && only="--only $4"   # a caller that needs one arm's answer, not every arm's
+  [ -n "${5:-}" ] && rec="--record-self-tests"   # 6d itself: the one arm that runs code (SELF-TEST READS)
+  # shellcheck disable=SC2086 # $only is empty or exactly "--only <arm>"; $rec is empty or one flag
+  out=$(PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base "$1" ${bf:+--body "$bf"} $only $rec 2>&1); r=$?
   [ -n "${2:-}" ] && printf '%s\n' "$out" \
     | sed -nE 's/^PREDICT tests \/ mutation +ADDED UNPINNED ([^ ]+ [A-Z_]+(\*[0-9]+)?): .*/\1/p' > "$2"
   case "$r" in
@@ -490,6 +623,37 @@ unpinned_line() { # body, site-key file; rc 0 disposed, 1 refused, 3 none owed
     echo "\`## Unpinned sites\` omits: ${missing%; }"; return 1
   fi
   echo "\`## Unpinned sites\` disposes of all $n site(s) step 6d listed"
+}
+
+# `--fill-red`'s whole body (triage s6-batch8 P67). An unpinned site is a red
+# `mutation` by construction (`body_line` feeds it), and 5 of 28 opens bounced
+# on "check `mutation` is red and `## Red checks` does not name it", a median
+# 49 min each. The red is derived exactly, so it is written, not asked for:
+# one line, only when a site is listed and the section lacks the name
+# (policy_lint's own test, a substring). Nothing else is ever written.
+fill_red() { # body file, site-key file, head sha; rc 0 wrote the line, 3 nothing written, 1 failed
+  local n sec t
+  n=$(grep -c . "$2" 2>/dev/null); n=${n:-0}
+  [ "$n" -gt 0 ] || { echo "the diff adds no unpinned mutation site; nothing written"; return 3; }
+  grep -q '^## Red checks[[:space:]]*$' "$1" || { echo "no \`## Red checks\` section; nothing written"; return 3; }
+  sec=$(awk '/^## /{on=($0 ~ /^## Red checks[[:space:]]*$/); next} on' "$1")
+  case "$sec" in *mutation*) echo "\`## Red checks\` already names mutation; nothing written"; return 3 ;; esac
+  t=$(mktemp)
+  awk -v L="- \`mutation\` at ${3:0:12}: red by construction on the $n site(s) under \`## Unpinned sites\`; mutation-autofix pins killed sites after the push." '
+    function out(  i, last, w) {
+      for (i = 1; i <= k; i++) if (b[i] ~ /[^[:space:]]/) { last = i; w = w b[i] }
+      gsub(/[`.[:space:]]/, "", w)
+      if (tolower(w) == "none") last = 0
+      for (i = 1; i <= last; i++) print b[i]
+      if (!last) print ""
+      print L; print ""; k = 0
+    }
+    /^## / { if (on) out(); on = ($0 ~ /^## Red checks[[:space:]]*$/); print; next }
+    on { b[++k] = $0; next }
+    { print }
+    END { if (on) out() }' "$1" > "$t" && mv -f "$t" "$1" \
+    || { rm -f "$t"; echo "the body could not be rewritten; nothing written"; return 1; }
+  echo "wrote \`mutation\` under \`## Red checks\` for $n unpinned site(s)"
 }
 
 # Steps 6a and 6b whole, as the lines the step prints: the step is `step
@@ -1397,6 +1561,9 @@ fi
 # four bodies this gate passed went red there (R10-RCA-BODY-CHECK-PARITY).
 # Step 7's preflight runs too, with pr-contract's roster-derived intended list
 # (`preflight_body`): #2838's `Closes #2428` passed this gate and went red there.
+# Step 7a's figure lint runs too (`figures_check`, a function of the body: 6 of
+# 152 handoff-body tips failed it first at the open), and step 3f7's
+# `privacy_line` over the code head being handed off.
 if [ "${1:-}" = "--body-check" ]; then
   [ -f "${2:-}" ] || { echo "REFUSE pr-body: no body at ${2:-}"; exit 2; }
   BASE=$(git merge-base origin/main HEAD 2>/dev/null) || { echo "REFUSE pr-body: HEAD has no merge base with origin/main; fetch it"; exit 1; }
@@ -1413,7 +1580,27 @@ if [ "${1:-}" = "--body-check" ]; then
   pout=$(preflight_body "$2" dev/programme/rosters); pr=$?
   if [ "$pr" -eq 0 ]; then echo "preflight ok"; else echo "REFUSE preflight: $(grep -m1 'REFUSE' <<<"$pout" | sed 's/^ *REFUSE *//')"; fi
   [ "$r" -ne 0 ] || r=$pr
+  fout=$(figures_check "$2" 2>&1); fr=$?
+  if [ "$fr" -eq 0 ]; then echo "figures ok: $(tail -1 <<<"$fout")"; else echo "REFUSE figures: $(tail -1 <<<"$fout")"; fi
+  [ "$r" -ne 0 ] || r=$fr
+  vline=$(privacy_line); vr=$?
+  if [ "$vr" -eq 0 ]; then echo "ref_privacy ok: $vline"; else echo "REFUSE ref_privacy: $vline"; fi
+  [ "$r" -ne 0 ] || r=$vr
   exit "$r"
+fi
+
+# `body_push.sh`'s second entry point: `prepr.sh --fill-red <body.md>` runs
+# step 6d's predictor over HEAD and `fill_red` on the body. It never refuses:
+# a predictor that did not run lists no site, so nothing is written. It asks
+# the predictor one arm -- `mutation`, the only one whose sites it writes --
+# because the other arms cost 4 s of the 5 s a seat's added check may take
+# (eight others when measured, R10-FLOW-JIDOKA's review, 2026-10-26).
+if [ "${1:-}" = "--fill-red" ]; then
+  [ -f "${2:-}" ] || { echo "fill-red: no body at ${2:-}"; exit 2; }
+  S=$(mktemp)
+  predict_line origin/main "$S" "" mutation >/dev/null 2>&1
+  echo "fill-red: $(fill_red "$2" "$S" "$(git rev-parse HEAD)")"
+  rm -f "$S"; exit 0
 fi
 
 # --- the class: an early-exit grep reading a pipe under pipefail ---------------
@@ -2601,6 +2788,19 @@ https://claude.ai/code/session_011aqzm4YL9jLhU4jLvbkLYE'; got=$(lpush)
   bbody none none; got=$(lpush)
   grep -q '^rc=0$' <<<"$got" && grep -q '^ref refs/heads/handoff-body/zz-lint$' <<<"$got"
   st $? 0 "and pushes a body the lint passes (null control: the same body without the session link)"
+  # P256: body_push runs the review packet's handoff refusals after the lint;
+  # a refusal (rc 1) pushes nothing, a seat that cannot run them (rc 3) pushes.
+  printf '#!/bin/bash\necho "review_packet: REFUSE brief-carries: carry 6 is not named in the body" >&2; exit %s\n' 1 > "$PDX/pk1"
+  printf '#!/bin/bash\necho "review_packet: UNAVAILABLE: no roster" >&2; exit %s\n' 3 > "$PDX/pk3"
+  was=$(git --git-dir="$PDX/bodies.git" rev-parse refs/heads/handoff-body/zz-lint)
+  got=$(HPO_HANDOFF_PACKER="bash $PDX/pk1" lpush)
+  grep -q 'REFUSE brief-carries: carry 6' <<<"$got" && grep -q '^rc=1$' <<<"$got" \
+    && [ "$(git --git-dir="$PDX/bodies.git" rev-parse refs/heads/handoff-body/zz-lint)" = "$was" ]
+  st $? 0 "and refuses a body the review packet's handoff refusals refuse, naming the signal and pushing nothing (P256)"
+  got=$(HPO_HANDOFF_PACKER="bash $PDX/pk3" lpush)
+  grep -q 'were not run (rc 3' <<<"$got" && grep -q '^rc=0$' <<<"$got" \
+    && [ "$(git --git-dir="$PDX/bodies.git" rev-parse refs/heads/handoff-body/zz-lint)" != "$was" ]
+  st $? 0 "and pushes, saying so, when the handoff refusals cannot be run (rc 3 is never a refusal)"
   (cd "$PDX/r" && git push -q -f origin pinert:refs/heads/handoff/zz-lint); got=$(lpush)
   grep -q 'push the code, then the body' <<<"$got" && grep -q '^rc=1$' <<<"$got"
   st $? 0 "and refuses a body pushed from a checkout that is not the head at handoff/<topic>"
@@ -2668,6 +2868,55 @@ https://claude.ai/code/session_011aqzm4YL9jLhU4jLvbkLYE'; got=$(lpush)
   unpinned_line "$PDX/b7.md" "$PDX/k12" >/dev/null; st $? 0 "and passes the same key named whole (null control)"
   : > "$PDX/none"
   unpinned_line "$PDX/b0.md" "$PDX/none" >/dev/null; st $? 3 "7d owes nothing when the diff adds no site"
+  # --fill-red (P67): the `mutation` red step 6d's sites make, written into
+  # `## Red checks`, judged by policy_lint's own red arm before and after.
+  plred() { if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --pr-body "$1" --head "$ZERO" --red mutation >/dev/null 2>&1; else node tools/policy/policy_lint.mjs --pr-body "$1" --head "$ZERO" --red mutation >/dev/null 2>&1; fi; }
+  cp "$D/good-none.md" "$PDX/gn.md"; cp "$D/good-none.md" "$PDX/gn0.md"
+  fill_red "$PDX/gn.md" "$PDX/none" "$ZERO" >/dev/null; st $? 3 "fill_red writes nothing when step 6d listed no site (null control)"
+  cmp -s "$PDX/gn.md" "$PDX/gn0.md"; st $? 0 "and leaves the body byte-identical"
+  plred "$PDX/gn.md"; st $? 1 "and a body not naming the mutation red stays refused (null control)"
+  fill_red "$PDX/gn.md" "$PDX/sites" "$ZERO" >/dev/null; st $? 0 "fill_red writes the mutation line when step 6d listed sites"
+  plred "$PDX/gn.md"; st $? 0 "and policy_lint's red arm then passes the body"
+  awk '/^## /{on=($0 ~ /^## Red checks/); next} on && /^none$/' "$PDX/gn.md" | grep -c . >"$PDX/n" ; st "$(cat "$PDX/n")" 0 "and the line replaces the section's \`none\`"
+  cp "$PDX/gn.md" "$PDX/gn1.md"; fill_red "$PDX/gn.md" "$PDX/sites" "$ZERO" >/dev/null
+  st $? 3 "a body already naming mutation is left alone"; cmp -s "$PDX/gn.md" "$PDX/gn1.md"; st $? 0 "byte-identical"
+  printf '## Red checks\n\n- `fast (3.14)`: answered.\n\n## Friction\n\nnone\n' > "$PDX/fr.md"
+  fill_red "$PDX/fr.md" "$PDX/sites" "$ZERO" >/dev/null
+  awk '/^## Red checks/{f=1} f' "$PDX/fr.md" | head -5 | grep -c -e 'fast (3.14)' -e '^- `mutation` at 000000000000: red by construction on the 3 site' >"$PDX/n"
+  st "$(cat "$PDX/n")" 2 "a section with an answer keeps it and gains the line below it"
+  printf '## Red checks\n\nnone\n' > "$PDX/fr0.md"
+  got=$(cd "$PDX/r" && git checkout -q -f pmut && bash "$OLDPWD/tools/pr/prepr.sh" --fill-red "$PDX/fr0.md"; grep -c 'mutation' "$PDX/fr0.md")
+  st "$(tail -1 <<<"$got")" 1 "--fill-red at the pmut head predicts its sites and writes the line"
+  case "$(cat tools/audit/seat/body_push.sh)" in *'--fill-red "$ABS"'*'--body-check "$ABS"'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "body_push runs --fill-red on the body before the --body-check lint"
+  # One arm, not every arm: `--fill-red` writes only the `mutation` red, and
+  # the other arms cost 4 s of the 5 s an added check may take. A `--only` value
+  # ci_predict does not name makes argparse exit 2, so the arm is always run.
+  case "$(sed -n '/^if \[ "${1:-}" = "--fill-red" \]/,/^fi$/p' "$PREPR_PATH")" in
+    *'predict_line origin/main "$S" "" mutation'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "--fill-red asks the predictor one arm, the only one whose sites it writes"
+  got=$(python3 -I -c "import sys; sys.path.insert(0, 'tools/pr'); import ci_predict as c; print(' '.join(c.ARMS))" 2>&1); r=$?
+  case "$got" in *' mutation'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "and ci_predict names that arm, so --only cannot select none"
+  # SELF-TEST READS is opt-in, so 6d's wiring is the countermeasure
+  # (dev/audit/rca/R10-RCA-CLOSURE-ARGV.md): dropping either line disconnects it silently.
+  case "$(grep -F 'PREDICT_LINE=$(predict_line origin/main' "$PREPR_PATH")" in
+    *'"${1:-}" "" record)'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "6d asks the predictor to record each changed file's own self-test (SELF-TEST READS)"
+  case "$(sed -n '/^predict_line() {/,/^}/p' "$PREPR_PATH")" in
+    *'[ -n "${5:-}" ] && rec="--record-self-tests"'*'$only $rec 2>&1'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "and predict_line turns its fifth argument into --record-self-tests on the predictor's command line"
+  # Step 3f7 (P78): a host path in a line the diff adds is refused, named by
+  # file and line; the same line made home-relative passes. Built, never spelled.
+  hp=$(printf '%s/%s/%s/proj' '' Users alice)
+  (cd "$PDX/r" && $G checkout -q -f -b pleak origin/main && mkdir -p docs && printf 'x\nsee %s\n' "$hp" > docs/zz_leak.md \
+    && $G add -A && $G commit -qm pleak && $G checkout -q -b phome origin/main && printf 'x\nsee ~/proj\n' > docs/zz_leak.md \
+    && $G add -A && $G commit -qm phome) >/dev/null 2>&1
+  got=$(cd "$PDX/r" && git checkout -q pleak && privacy_line); r=$?
+  st "$r" 1 "privacy_line refuses a host path in an added line"
+  case "$got" in *'docs/zz_leak.md:2: host-path'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "and names the file and line"
+  (cd "$PDX/r" && git checkout -q phome && privacy_line >/dev/null); st $? 0 "the same line made home-relative passes (null control)"
   rm -rf "$PDX"
   rm -rf "$CLM"
   rm -rf "$FB"
@@ -2761,6 +3010,116 @@ PY
   printf '%s\n' README.md docs/HANDOVER.md > "$WF/changed"
   pinned_touched "$WF/changed" "$(pinned_paths .github/workflows/*.yml)"
   st $? 1 "a change to no pinned path touches none (null control)"
+  printf '%s\n' dev/governance/roles/fixer.md > "$WF/changed"
+  pinned_touched "$WF/changed" "$WAVE_INPUTS"; st $? 0 "a diff touching one role contract runs step 4's wave-script (P75)"
+  printf '%s\n' dev/governance/dimensions/D3.md > "$WF/changed"
+  pinned_touched "$WF/changed" "$WAVE_INPUTS"; st $? 0 "and one touching a dimension brief"
+  printf '%s\n' README.md > "$WF/changed"
+  pinned_touched "$WF/changed" "$WAVE_INPUTS"; st $? 1 "a diff touching only README.md still skips it (null control)"
+  # Step 6g, over a stub generator in the real one's place: the comparison is
+  # what is under test, and the real register needs the whole tree.
+  CG=$(mktemp -d); mkdir -p "$CG/$(dirname "$CLAIMS_GEN")"; cg=$CG/$(dirname "$CLAIMS_GEN")
+  printf '"""\n    RESULT links=1\n"""\nimport pathlib\nn = pathlib.Path("README.md").read_text().count("](")\nd = pathlib.Path("%s")\n(d / "claims.json").write_text(f"{n}\\n")\n(d / "claims.md").write_text(f"| C108 | {n} |\\n")\nprint(f"RESULT links={n} links")\n' \
+    "$(dirname "$CLAIMS_GEN")" > "$CG/$CLAIMS_GEN"
+  printf '[a](b)\n' > "$CG/README.md"; printf '1\n' > "$cg/claims.json"; printf '| C108 | 1 |\n' > "$cg/claims.md"
+  printf '%s\n' tools/x.py > "$WF/changed"
+  claims_reg_line "$WF/changed" "$CG" >/dev/null; st $? 3 "6g skips a diff touching neither README.md nor docs/*.md"
+  printf '%s\n' docs/x.md > "$WF/changed"
+  claims_reg_line "$WF/changed" "$CG" >/dev/null; st $? 0 "6g passes a docs diff whose register the generator rewrites byte-identical (null control)"
+  printf '[a](b) [c](d)\n' > "$CG/README.md"; printf '%s\n' README.md > "$WF/changed"
+  # Every refusal arm keys on the refusal's own text as well as its rc: the
+  # header comparison failing to import also returns 1, and on the governance
+  # job's python3 (no voluptuous) it once passed this arm for that reason.
+  got=$(claims_reg_line "$WF/changed" "$CG"); r=$?
+  case "$got" in *'re-run it and commit') ;; *) r="$r ($got)" ;; esac
+  st "$r" 1 "6g refuses a README link added without re-recording (#2609)"
+  case "$got" in *'claims.json claims.md'*'links=2 (header 1)'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "and names the stale files and the moved header RESULT"
+  printf 'raise SystemExit(4)\n' > "$CG/$CLAIMS_GEN"
+  got=$(claims_reg_line "$WF/changed" "$CG"); r=$?
+  case "$got" in *"exited 4"*) ;; *) r="$r ($got)" ;; esac
+  st "$r" 1 "6g refuses when the generator fails, never passes it"
+  # The comparison imports tests/harness_headers.py's parsers on whatever
+  # python3 runs prepr. Pinned with the Home Assistant stack blocked, so a
+  # seat whose venv has voluptuous still sees an import that needs it.
+  python3 -I -c 'import contextlib, io, sys
+class Block:
+    def find_spec(self, name, path=None, target=None):
+        if name.split(".")[0] in ("voluptuous", "homeassistant"): raise ModuleNotFoundError(name)
+sys.meta_path.insert(0, Block()); sys.path[:0] = ["tests", "tests/hastub"]
+with contextlib.redirect_stdout(io.StringIO()): import harness_headers as h
+h.expected_from, h.printed_from' >/dev/null 2>&1
+  st $? 0 "6g's header parsers import without voluptuous or homeassistant (the governance job's python3)"
+  # 6g copies only what the generator reads, so a renamed input must refuse the
+  # copy instead of grading a short one: `git archive` fails the whole
+  # pathspec on a path it cannot match, which is the arm just above's message.
+  # shellcheck disable=SC2086 # CLAIMS_INPUTS is one path per line
+  git ls-tree -r --name-only HEAD -- $CLAIMS_INPUTS "$CLAIMS_GEN" > "$WF/arch" 2>/dev/null
+  miss=""
+  for p in $CLAIMS_INPUTS "$CLAIMS_GEN"; do
+    grep -q -e "^$p\$" -e "^$p/" "$WF/arch" || miss="$miss $p"
+  done
+  st "$miss" "" "6g's copy pathspec names only paths HEAD holds (a rename refuses the copy, never grades short)"
+  # THE CLASS #2853's REVIEW FOUND: a documentation link to an in-tree file the
+  # enumeration does not name. The copy below is narrow (the generator and the
+  # doc, no tools/), the target is tracked in the repository, and the register
+  # is the one a whole-tree run records (one link, none broken). claims_reg_line
+  # must take the target from the generator's own --print-link-targets and
+  # reproduce that register; prepr-13 drops the loop and this arm reds.
+  QT=$(mktemp -d); QC=$(mktemp -d)
+  throwaway_git_init "$QT" -q -b main
+  mkdir -p "$QT/dev/audit/rounds/round4/D6" "$QT/docs" "$QT/tools/x"
+  cat >"$QT/dev/audit/rounds/round4/D6/claims.py" <<'STUB'
+"""Fixture for step 6g's link targets: C108 resolves each relative link.
+    RESULT links=1
+    RESULT broken=0
+"""
+import pathlib, re, sys
+root = pathlib.Path(".")
+def links():
+    out = []
+    for f in ["README.md"] + [str(p) for p in sorted(root.glob("docs/*.md"))]:
+        if not (root / f).is_file():
+            continue
+        for m in re.finditer(r"\[[^\]]*\]\(([^)\s]+)\)", (root / f).read_text()):
+            t = m.group(1)
+            if t.startswith("http") or t.startswith("#"):
+                continue
+            b = t.split("#")[0]
+            if b:
+                out.append((f, pathlib.Path(f).parent / b))
+    return out
+if "--print-link-targets" in sys.argv:
+    for _f, _p in links():
+        print(_p)
+    raise SystemExit(0)
+_ls = links()
+_broken = [str(p) for _f, p in _ls if not p.exists()]
+_d = pathlib.Path("dev/audit/rounds/round4/D6")
+(_d / "claims.json").write_text(f"{len(_ls)} {len(_broken)}\n")
+(_d / "claims.md").write_text(f"| C108 | {len(_ls)} {_broken} |\n")
+print(f"RESULT links={len(_ls)}")
+print(f"RESULT broken={len(_broken)}")
+STUB
+  printf '[i](../tools/x/UNLISTED.md)\n' >"$QT/docs/x.md"
+  printf 'the target the enumeration never named\n' >"$QT/tools/x/UNLISTED.md"
+  ( cd "$QT" && throwaway_git_env && git add -A && git commit -qm fixture ) >/dev/null 2>&1
+  mkdir -p "$QC/dev/audit/rounds/round4/D6" "$QC/docs"
+  cp "$QT/dev/audit/rounds/round4/D6/claims.py" "$QC/dev/audit/rounds/round4/D6/"
+  cp "$QT/docs/x.md" "$QC/docs/"
+  printf '1 0\n' >"$QC/dev/audit/rounds/round4/D6/claims.json"
+  printf '| C108 | 1 [] |\n' >"$QC/dev/audit/rounds/round4/D6/claims.md"
+  # The header comparison imports the real parsers from `tests/` under the
+  # caller's cwd; the throwaway repository borrows them read-only.
+  ln -s "$PWD/tests" "$QT/tests"
+  printf '%s\n' docs/x.md >"$WF/changed"
+  ( cd "$QT" && claims_reg_line "$WF/changed" "$QC" ) >/dev/null 2>&1
+  st $? 0 "6g copies a link target the enumeration does not name, so an unlisted link passes (#2853)"
+  printf '[i](../tools/x/GONE.md)\n' >"$QC/docs/x.md"
+  ( cd "$QT" && claims_reg_line "$WF/changed" "$QC" ) >/dev/null 2>&1
+  st $? 1 "and a target the repository lacks is not copied, so the register is refused (null control)"
+  rm -rf "$QT" "$QC"
+  rm -rf "$CG"
   rm -rf "${WF:?}"
 
   printf 'Closes #999\n' | if test -f tools/audit/preflight.sh; then bash tools/audit/preflight.sh >/dev/null 2>&1; else bash tools/pr/preflight.sh >/dev/null 2>&1; fi
@@ -3041,9 +3400,21 @@ EOF
   case "$flow" in *'preflight_body "$BODY" dev/programme/rosters "$@"
   step "preflight" $?'*) r=0 ;; *) r=1 ;; esac
   st "$r" 0 "step 7's preflight derives the intended list and refuses on its rc"
-  case "$(sed -n '/^if \[ "${1:-}" = "--body-check" \]/,/^fi$/p' "$PREPR_PATH")" in
+  bc=$(sed -n '/^if \[ "${1:-}" = "--body-check" \]/,/^fi$/p' "$PREPR_PATH")
+  case "$bc" in
     *'pout=$(preflight_body "$2" dev/programme/rosters); pr=$?'*'[ "$r" -ne 0 ] || r=$pr'*) r=0 ;; *) r=1 ;; esac
   st "$r" 0 "and --body-check runs the same preflight and refuses on its rc"
+  case "$bc" in *'fout=$(figures_check "$2" 2>&1); fr=$?'*'[ "$r" -ne 0 ] || r=$fr'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "--body-check runs step 7a's figure lint and refuses on its rc (carry 8)"
+  case "$bc" in *'vline=$(privacy_line); vr=$?'*'[ "$r" -ne 0 ] || r=$vr'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "--body-check runs privacy_line and refuses on its rc (P78)"
+  case "$flow" in *'PRIVACY_LINE=$(privacy_line)
+step "ref privacy" $? "$PRIVACY_LINE"'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "step 3f7 runs privacy_line and refuses on its rc"
+  case "$flow" in *'|| pinned_touched /tmp/prepr-wv.$$ "$WAVE_INPUTS"; then'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "step 4 keys its wave-script run on WAVE_INPUTS"
+  case "$flow" in *'CLAIMS_REG=$(claims_reg_line "$CR.paths" "$CR")'*'*) step "claims register" 1 "$CLAIMS_REG" ;;'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "step 6g runs claims_reg_line and refuses on its rc"
 
   # (11) Step 7c reads the pull request's head ref fetched now (`reds_head_sha`),
   # not 7b's unfetched mirror. The clone has no mirror of `fix`, which the
@@ -3060,18 +3431,77 @@ EOF
   st "$r" 0 "and step 7c gates on it, not on 7b's UPSHA"
   rm -rf "${CA:?}"
 
+  # (12) Summary-only stdout (R10-FLY-PREPR-SUMMARY): the main flow's own
+  # say/step/summary functions, driven over a passing step with per-test
+  # chatter and a refusing one. Stdout carries the verdicts, the refusal's
+  # reason and its failing lines, and the result line naming the log; the
+  # chatter reaches the log alone. PREPR_VERBOSE=1 is today's stdout.
+  SM="$ST_ROOT/summary"; mkdir -p "$SM"
+  sfn=$(for f in say refusal_lines step summary_start summary_end; do sed -n "/^$f() {/,/^}/p" <<<"$flow"; done)
+  sdrv() { TMPDIR="$SM" PREPR_VERBOSE="${1:-}" bash -c "$sfn"'
+    rc=0 digest="" ORDER="" PREPR_LOG="" LOG_MARK=0; summary_start
+    echo "tests/chatter.py::test_one PASSED"; step "quiet" 0 "held"
+    echo "tests/chatter.py::test_two PASSED"; echo "AssertionError: the failing line"
+    step "loud" 1 "the refusal reason"; summary_end deadbeef; exit $rc'; }
+  out=$(sdrv); st $? 1 "the summary run keeps the refusal's rc"
+  case "$out" in *test_one*) r=1 ;; *) r=0 ;; esac
+  st "$r" 0 "summary stdout carries no passing step's per-test chatter"
+  case "$out" in *'REFUSE   loud'*'the refusal reason'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "and carries the REFUSE line with its reason (null control: the refusal stays visible)"
+  case "$out" in *'| AssertionError: the failing line'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "and the refusal's failing lines"
+  lg=$(sed -n '$s/.*full log: \([^ ]*\) .*/\1/p' <<<"$out")
+  case "$(tail -1 <<<"$out")" in 'PRE-PR: deadbeef 01 rc=1; full log: '"$SM"/prepr-log.*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "the last line is the result with rc, naming a unique log under TMPDIR"
+  [ -f "$lg" ] && [ -n "$(sed -n '/test_one PASSED/p' "$lg")" ]; st $? 0 "and that log holds the full output"
+  out=$(sdrv 1); case "$out" in *'test_one PASSED'*'REFUSE   loud'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "PREPR_VERBOSE=1 prints the full output on stdout"
+  case "$flow" in *'step "merge-base" 0 "$BASE"
+summary_start'*'summary_end "$(git rev-parse HEAD)"
+exit $rc'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "the main flow starts the summary after step 1 and ends on its result line"
+  rm -rf "${SM:?}"
+
   printf '\n%s passed, %s failed\n' "$st_pass" "$st_fail"
   [ "$st_fail" -eq 0 ] || exit 2
   exit 0
 fi
 
+VA=(); for a in "$@"; do if [ "$a" = --verbose ]; then PREPR_VERBOSE=1; else VA+=("$a"); fi; done
+set -- ${VA[@]+"${VA[@]}"}
 rc=0
 digest=""
 ORDER=""
-say() { printf '  %-8s %-22s %s\n' "$1" "$2" "${3:-}"; }
+# Summary-only stdout (R10-FLY-PREPR-SUMMARY, tvofi 2026-10-28): a seat keeps
+# every tool output in context for each later turn, and the per-test chatter of
+# the steps below cost one day 27.6M cached-read tokens. Once step 1 holds,
+# stdout and stderr go to $PREPR_LOG and fd 3 keeps the real stdout: each
+# verdict line, each refusal's own log lines (`refusal_lines`), and the result
+# line naming the log. `PREPR_VERBOSE=1` or `--verbose` keeps today's stdout.
+# Both pushers that run this mode read its rc alone, never its stdout.
+PREPR_LOG="" LOG_MARK=0
+say() {
+  local l; l=$(printf '  %-8s %-22s %s' "$1" "$2" "${3:-}")
+  printf '%s\n' "$l"; [ -z "$PREPR_LOG" ] || printf '%s\n' "$l" >&3
+  [ -z "$PREPR_LOG" ] || LOG_MARK=$(wc -l <"$PREPR_LOG")
+}
+refusal_lines() { # -> fd 3: the last 40 log lines since the previous verdict
+  [ -n "$PREPR_LOG" ] || return 0
+  tail -n +"$((LOG_MARK + 1))" "$PREPR_LOG" | tail -40 | sed 's/^/    | /' >&3
+}
 step() { # name, rc, detail
   digest="${digest}$2"
-  if [ "$2" -eq 0 ]; then say ok "$1" "${3:-}"; else say REFUSE "$1" "${3:-}"; rc=1; fi
+  if [ "$2" -eq 0 ]; then say ok "$1" "${3:-}"; else refusal_lines; say REFUSE "$1" "${3:-}"; rc=1; fi
+}
+summary_start() { # -> stdout and stderr to $PREPR_LOG, fd 3 the real stdout; none under PREPR_VERBOSE=1
+  [ "${PREPR_VERBOSE:-}" != 1 ] || return 0
+  PREPR_LOG=$(command mktemp "${TMPDIR:-/tmp}/prepr-log.XXXXXXXX") || { PREPR_LOG=""; return 0; }
+  exec 3>&1 >"$PREPR_LOG" 2>&1
+}
+summary_end() { # head sha -> the result line on fd 3, naming the log
+  [ -n "$PREPR_LOG" ] || return 0
+  [ -z "$ORDER" ] || printf '  !!! %s: the push must follow at once (the full warning is in the log)\n' "$ORDER" >&3
+  echo "PRE-PR: $1 $digest rc=$rc; full log: $PREPR_LOG (PREPR_VERBOSE=1 prints it on stdout)" >&3
 }
 
 # --- 0. the body is not in a root other seats write to (`shared_root` above).
@@ -3094,6 +3524,7 @@ if [ -z "$BASE" ]; then
   exit 2
 fi
 step "merge-base" 0 "$BASE"
+summary_start
 
 # --- 1a. no transport file in any commit the branch adds (`transport_in_ancestry`).
 TRANSPORT=$(transport_in_ancestry "$BASE" HEAD)
@@ -3289,6 +3720,11 @@ heavy_run /tmp/prepr-tp.$$ python3 -I tools/audit/seat/tmp_paths.py --self-test 
 step "temp paths" $? "$(tail -1 /tmp/prepr-tp.$$)"
 rm -f /tmp/prepr-tp.$$
 
+# --- 3f7. no host path in an added line, no unregistered push site: the
+# `ref_privacy --check` `instrument-self-tests` runs (`privacy_line` above).
+PRIVACY_LINE=$(privacy_line)
+step "ref privacy" $? "$PRIVACY_LINE"
+
 # --- 3g. every grader a pinned job runs has a local path here, or a reason,
 # and the reader understood every pinned job (`pinned_verdict` above).
 VERDICT=$(pinned_verdict "$PREPR_PATH" .github/workflows/*.yml)
@@ -3322,21 +3758,19 @@ rm -f /tmp/prepr-st.$$
 # unmeasured -- but a local gate that skips exactly when the change is in scope
 # teaches a seat that the check is covered when it is not.
 # THE BRIEFS ARE A FOURTH INPUT, and the same shape repeated once more (#1062):
-# the checker parses every backticked verdict example out of tools/audit/briefs/
+# the checker parses every backticked verdict example out of the briefs
 # against VERDICT_RE, so a briefs-only branch that shortened one example was
-# printed `skip` here and went red on CI's unconditional job.
-if [ "$PIN_TOUCHED" -eq 0 ] || ! git diff --quiet "$BASE"...HEAD -- \
-     .claude/workflows/web-fix-wave.js \
-     .claude/workflows/check-wave-script.mjs \
-     tools/policy/check-wave-script.mjs \
-     '.claude/workflows/wave-*-groups.json' \
-     'tools/audit/briefs/*.md'; then
+# printed `skip` here and went red on CI's unconditional job (`WAVE_INPUTS`).
+# A list that does not derive runs the step.
+if [ "$PIN_TOUCHED" -eq 0 ] || ! diff_paths "$BASE" /tmp/prepr-wv.$$ \
+     || pinned_touched /tmp/prepr-wv.$$ "$WAVE_INPUTS"; then
   if test -f .claude/workflows/check-wave-script.mjs; then node .claude/workflows/check-wave-script.mjs >/tmp/prepr-wave.$$ 2>&1; else node tools/policy/check-wave-script.mjs >/tmp/prepr-wave.$$ 2>&1; fi
   step "wave-script" $? "$(tail -1 /tmp/prepr-wave.$$)"
   rm -f /tmp/prepr-wave.$$
 else
   say skip "wave-script" "no change to the script, the checker, the rosters, the briefs or a pinned path"
 fi
+rm -f /tmp/prepr-wv.$$
 
 # --- 5. VERSION, the manifest and the notes heading are untouched.
 # Versions are assigned after the merge by tools/release/stamp.py. A branch that
@@ -3383,9 +3817,12 @@ else
   esac
 fi
 
-# --- 6d. the CI reds a static read of the diff predicts (`predict_line`).
+# --- 6d. the CI reds a static read of the diff predicts (`predict_line`), and
+# the reads each changed file's own self-test makes in a gate script that runs
+# it, recorded by CI's recorder (SELF-TEST READS, dev/audit/rca/R10-RCA-CLOSURE-ARGV.md):
+# seconds per such file, none on a diff that changes none.
 UNPINNED_SITES=/tmp/prepr-unpinned.$$
-PREDICT_LINE=$(predict_line origin/main "$UNPINNED_SITES" "${1:-}")
+PREDICT_LINE=$(predict_line origin/main "$UNPINNED_SITES" "${1:-}" "" record)
 case $? in
   3) say skip "ci predict" "$PREDICT_LINE" ;;
   0) step "ci predict" 0 "$PREDICT_LINE" ;;
@@ -3431,6 +3868,25 @@ case $? in
   0) step "throwaway git" 0 "$THROWAWAY_LINE" ;;
   *) step "throwaway git" 1 "$THROWAWAY_LINE" ;;
 esac
+
+# --- 6g. the D6 claims register `fast` byte-compares, when the diff touches
+# what it reads (`claims_reg_line` above), closures skipped or not. It grades
+# the committed tree, on a copy.
+CR=$(mktemp -d)
+if ! diff_paths "$BASE" "$CR.paths"; then
+  step "claims register" 1 "the changed-path list did not derive from $BASE...HEAD, so the register was not compared"
+elif pinned_touched "$CR.paths" "$CLAIMS_DOCS" && ! { # shellcheck disable=SC2086 # CLAIMS_INPUTS is one path per line
+    git archive HEAD -- $CLAIMS_INPUTS "$CLAIMS_GEN" 2>"$CR.arch" | tar -x -C "$CR"; }; then
+  step "claims register" 1 "HEAD could not be copied to run $CLAIMS_GEN on, so nothing was compared: $(tail -1 "$CR.arch")"
+else
+  CLAIMS_REG=$(claims_reg_line "$CR.paths" "$CR")
+  case $? in
+    3) say skip "claims register" "$CLAIMS_REG" ;;
+    0) step "claims register" 0 "$CLAIMS_REG" ;;
+    *) step "claims register" 1 "$CLAIMS_REG" ;;
+  esac
+fi
+rm -rf "$CR" "$CR.paths" "$CR.arch"
 
 # --- 7. the body, when one was passed.
 BODY="${1:-}"
@@ -3557,4 +4013,5 @@ fi
 rm -f "${UNPINNED_SITES:-}"
 echo
 echo "PRE-PR: $(git rev-parse HEAD) $digest"
+summary_end "$(git rev-parse HEAD)"
 exit $rc
