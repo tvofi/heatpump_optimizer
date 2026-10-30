@@ -1,6 +1,6 @@
 # `cancel_superseded.py sweep`
 
-- `python3 -I tools/pr/cancel_superseded.py sweep --repo OWNER/REPO [--dry-run]` --
+- `cancel_superseded.py sweep` (`python3 -I tools/pr/cancel_superseded.py sweep --repo OWNER/REPO [--dry-run]`) --
   cancels, per open same-repo pull request branch, the active (queued, in progress,
   waiting, pending, requested) `pull_request` / `workflow_dispatch` runs at a head other than the live
   one, using `candidates()`. Never a live-head run, a run on main, any other event,
