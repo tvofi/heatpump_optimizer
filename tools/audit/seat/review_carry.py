@@ -18,7 +18,8 @@ change. Zero, or a count whose commits are all merges, is no branch-authored
 commit; what a merge can still author is its resolution, so the range then
 carries only where `tools/pr/app_approve.sh --carry` carries it -- each merge
 git's own automatic merge of its parents outside main's driver files, each
-claim file the pure union of both sides, and the branch's own diff equal at
+claim file the pure union of both sides or main's claim-driver output on
+them, and the branch's own diff equal at
 both heads -- and this prints CARRY. A merge of the branch's own previous
 head, the shape update_pr.sh re-cuts one into, passes all three. A
 hand-resolved conflict, a line a merge adds of its own, or a main change that
@@ -114,7 +115,8 @@ APP_APPROVE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
 def app_approve_carry(repo, reviewed, new, main):
     """-> None when app_approve.sh --carry carries reviewed -> new, else its
     reason: each merge git's automatic one outside main's driver files, each
-    claim file the pure union of both sides, the branch's own diff equal."""
+    claim file the pure union of both sides or main's claim-driver output on
+    them, the branch's own diff equal."""
     proc = subprocess.run(["bash", APP_APPROVE, "--carry", reviewed, new, main],
                           cwd=repo, capture_output=True, text=True)
     out = proc.stdout.strip()
@@ -411,8 +413,8 @@ def self_test():
     v, _, _, _ = answer(reviewed2, auto, main=main_q)
     check("the same merge, git's automatic result, answers CARRY", v, CARRY)
     # A claim file (main's `merge=claimnotes`) is left out of the tree
-    # comparison and must resolve to the pure union of both sides, as
-    # app_approve.sh --carry requires.
+    # comparison and must resolve to the pure union of both sides (or main's
+    # driver output on them), as app_approve.sh --carry requires.
     _t(seat, "checkout", "-q", "-b", "main-claim", main_c)
     with open(os.path.join(seat, "claims.txt"), "w") as fh:
         fh.write("base-claim\nmain-claim\n")
