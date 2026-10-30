@@ -1,0 +1,19 @@
+class rule: git grep -l -- '--carry' -- tools/ .github/ at 9f0e4478d5413192a34603698fedaa9dfd3cd93a
+tools/audit/seat/bus.sh
+tools/audit/seat/instruments/app_approve.sh.md
+tools/audit/seat/instruments/merge_train.py.md
+tools/audit/seat/instruments/queue_pre_flight.py.md
+tools/audit/seat/instruments/review_carry.py.md
+tools/audit/seat/ledger.py
+tools/audit/seat/merge_train.py
+tools/audit/seat/orchestrator_tick.py
+tools/audit/seat/queue_pre_flight.py
+tools/audit/seat/review_carry.py
+tools/audit/seat/row_position.py
+tools/policy/policy_lint.mjs
+tools/pr/app_approve.sh
+tools/pr/merge_main_bot.py
+count=14
+
+git grep -n "other than the union" (outside app_approve.sh):
+dev/programme/triage/s6-batch62.md:26:  ... to something other than the union of its parents" refusal). `review_carry.py` asks

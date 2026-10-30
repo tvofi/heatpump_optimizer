@@ -1,0 +1,3 @@
+RESULT null driver-refusal union-resolution rc=0 :: CARRY: yes abe63681b033606473312b696285e063d95765d0 -> 65d165ed0be267eaaa6aeb9f41908bed7818b71a: no branch-authored comm
+RESULT null driver-refusal ours-only rc=1 :: CARRY: no abe63681b033606473312b696285e063d95765d0 -> 19b193beea163f8aed63f06b73d7f75f6759d176: 19b193beea163f8aed63f06b73d7f75f6759d176 resolves tests/golden/claimed_drift.txt to something other than
+RESULT null driver-refusal union+hand rc=1 :: CARRY: no abe63681b033606473312b696285e063d95765d0 -> 643f8c68bb49d1c64e5a4478bae735459b534856: 643f8c68bb49d1c64e5a4478bae735459b534856 resolves tests/golden/claimed_drift.txt to something other than
