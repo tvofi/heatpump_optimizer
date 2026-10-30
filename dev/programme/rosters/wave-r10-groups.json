@@ -5923,7 +5923,7 @@
     "branch": "handoff/r10-flow-design-policy",
     "commit": "6077bf70e",
     "last_step": null,
-    "next_step": "dispatch a fixer once every after group is done",
+    "next_step": "done: merged in #2586 (6077bf70e)",
     "note": "Lean flow study 2026-10-21 (owner-adopted)"
    }
   },
