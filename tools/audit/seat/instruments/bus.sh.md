@@ -22,4 +22,8 @@
   head is unfit: rc 1, a named signal) refuses the dispatch and records
   nothing; a packet this seat cannot RENDER (rc 3, `UNAVAILABLE`: no checkout,
   no `gh`, no token, an unwritable path) dispatches anyway, names no packet,
-  and says why in `review-packet: unavailable -- <reason>`.
+  and says why in `review-packet: unavailable -- <reason>`. A head is
+  dispatched only when `merge_train.py classify` reads it reviewable: RED (a
+  required context's latest run concluded failure) or an unreadable answer
+  refuses and records nothing; GREEN and WAIT dispatch (`$HPO_BUS_CLASSIFY`
+  replaces the command in self-tests).

@@ -908,6 +908,13 @@ INERT_EXCEPT = (
     # UNDER-APPROXIMATED -- so it leaves the prefix the way record_row.py did,
     # and an edit to the train selects tests/entities.py.
     "tools/audit/seat/merge_train.py",
+    # R10-RECORD-API-O1: tests/entities.py runs the burst replay to pin that
+    # it counts demand as record + enumerate + rest. The dev/audit/harnesses/
+    # prefix kept it INERT while entities.py opens it, and closures-autofix
+    # refused the merge, skip-merge-failed on this pair (job 123595508827).
+    # It leaves the prefix the way the U5 harnesses did; enumerate_api_calls.py
+    # stays INERT, read only by the replay's child under inert_reads.
+    "dev/audit/harnesses/record_burst_replay.py",
 )
 
 
