@@ -1,0 +1,1 @@
+CARRY: yes 9f0e4478d5413192a34603698fedaa9dfd3cd93a -> 967abc3e9c7ca6d224ba5d55cee77145d109ea3b: no branch-authored commit in the range, every merge the automatic one with its claim files a pure union of both sides or main's driver output on them, and the branch's own diff compares equal

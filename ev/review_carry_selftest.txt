@@ -1,0 +1,4 @@
+  ok   an automatic merge that rewrote the branch's hunk context answers FRESH-REVIEW
+  ok   it names the branch's own diff
+  ok   an unknown sha cannot decide
+review_carry self-test: 26 checks, 0 failed
