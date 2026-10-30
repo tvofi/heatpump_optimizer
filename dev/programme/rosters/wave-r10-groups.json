@@ -7016,7 +7016,7 @@
     "branch": "handoff/r10-flow-audit-plan",
     "commit": "6f44346080d2630563a2cda08bd158ca50a1d23e",
     "last_step": null,
-    "next_step": "dispatch a fixer once every after group is done",
+    "next_step": "done: merged in #2869 (6f4434608)",
     "note": "Lean flow study 2026-10-21 (owner-adopted)",
     "pr": 2869
    }
