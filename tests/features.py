@@ -73708,6 +73708,80 @@ R.check(
     _sa_g["no_switch"][:2] == ([], False) and _sa_g[None][1] is True,
     f"no switch {_sa_g['no_switch']}; switch {_sa_g[None]}",
 )
+# The tick writes through the cycle's gate, ``_write_supply``, never around
+# it: the cut-off's MIN_OFF hold and the blocked-mode OFF skip each hold the
+# tick's write, and each null control is the same run with the gate inactive.
+from heatpump_optimizer import early_cutoff as _sa_ec
+
+
+async def _sa_gate_tick(cut=False, blocked=False):
+    """The switch writes of the 06:00 and 06:15 ticks, through the real coordinator.
+
+    A cycle at 05:45 writes ON; the 06:00 step is off and the 06:15 step on.
+    With ``cut``, an early cut-off is on record at 06:10, as ``on_room_event``
+    records it; with ``blocked``, the pump's mode blocks both channels.
+    """
+    ticks = []
+    armed = _sa_pa.async_track_time_interval
+    _sa_pa.async_track_time_interval = lambda _h, fn, _i: (ticks.append(fn), (lambda: None))[1]
+    hass = FakeHass({"switch.hp": FakeState("off", last_updated=_SA_T0)})
+    coord = Coord(hass, FakeEntry(data={**_LC_DATA, "heat_pump_switch_entity": "switch.hp", "pump_duty_mode": "observe"}))
+    coord._mode = "auto"
+    t0 = _SA_T0 - timedelta(minutes=15)
+    duties = "s-ss"
+    coord._optimization_result = SimpleNamespace(
+        timestamps=[t0 + timedelta(minutes=15 * i) for i in range(len(duties))],
+        power_schedule=[1.5 if c == "s" else 0.0 for c in duties],
+        dhw_power_schedule=[0.0] * len(duties),
+        optimal_setpoints=[21.0] * len(duties),
+    )
+    try:
+        _sa_dt.freeze(t0)
+        coord._last_optimization = t0
+        _sa_boost.adopt_plan(coord, {"heat_pump_on": True, "power": 1.5})
+        await coord._apply_action()
+        if blocked:
+            coord._pump_signals = PumpSignals(
+                mode=pump_mode.ModeCapability(key="off", label="Off", space_heat=False, dhw=False),
+                mode_observed=True)
+        writes = {}
+        for minutes in (15, 30):
+            now = t0 + timedelta(minutes=minutes)
+            if cut and minutes == 30:
+                _sa_ec.state_for(coord).cut_at = _SA_T0 + timedelta(minutes=10)
+            hass.services.calls.clear()
+            _sa_dt.freeze(now)
+            for tick in list(ticks):
+                await tick(now)
+            writes[now.strftime("%H:%M")] = [s for d, s, _d in hass.services.calls if d == "switch"]
+        return writes
+    finally:
+        _sa_dt.freeze(None)
+        _sa_pa.async_track_time_interval = armed
+
+
+_sa_cut, _sa_open = _asyncio.run(_sa_gate_tick(cut=True)), _asyncio.run(_sa_gate_tick())
+R.check(
+    "the step tick inside MIN_OFF of an early cut-off writes no turn_on at a step the plan turns on",
+    "turn_on" not in _sa_cut["06:15"],
+    f"{_sa_cut}",
+)
+R.check(
+    "null control: the same tick with no cut on record turns the switch on as the plan says",
+    _sa_open["06:15"] == ["turn_on"],
+    f"{_sa_open}",
+)
+_sa_blk = _asyncio.run(_sa_gate_tick(blocked=True))
+R.check(
+    "the step tick writes nothing at a step the plan turns off while the pump's mode blocks both channels",
+    _sa_blk["06:00"] == [],
+    f"{_sa_blk}",
+)
+R.check(
+    "null control: the same tick in a mode that blocks nothing writes the plan's OFF",
+    _sa_open["06:00"] == ["turn_off"],
+    f"{_sa_open}",
+)
 # The pump_duty record's held slots are declared, every one the arbiter can
 # write: the silent switch (D15 L5) and the GCHV night registers (#1913).
 _sa_record = {"written": {
