@@ -1836,7 +1836,7 @@
     "branch": "fix/r10-heat-meter-pr",
     "commit": "ea36188c30ff9b8e5f48e8181eacc837b002a07a",
     "last_step": null,
-    "next_step": "PR #2854 is open at 7e9fea6ac (pin killed mutants); handoff/r10-heat-meter db4493c3e is its ancestor. Review owed, then land.",
+    "next_step": "done: merged in #2854 (ea36188c3)",
     "note": null,
     "pr": 2854
    },
