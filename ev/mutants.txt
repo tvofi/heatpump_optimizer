@@ -1,0 +1,6 @@
+RESULT mutant M1: app_approve self-test: 271 checks, 1 failed :: FAIL CARRY: a claim file resolved by main's driver, which is not the union (got '1', want '0');
+RESULT mutant M2: app_approve self-test: 271 checks, 2 failed :: FAIL NO CARRY: main's side dropped by hand, which only the head's own driver would write (got '0', want '1');FAIL refused on main's driver, not the head's (got '0', want '1');
+RESULT mutant M3: app_approve self-test: 271 checks, 4 failed :: FAIL NO CARRY: the driver's resolution with one hand-added claim line (got '0', want '1');FAIL refused as neither the union nor the driver's output (got '0', want '1');FAIL NO CARRY: main's side dropped by hand, which only the head's own driver would write (got '0', want '1');FAIL refused on main's 
+RESULT mutant M4-base-is-ours: app_approve self-test: 271 checks, 1 failed :: FAIL CARRY: a claim file resolved by main's driver, which is not the union (got '1', want '0');
+RESULT mutant M5-swap-sides: app_approve self-test: 271 checks, 3 failed :: FAIL CARRY: a claim file resolved by main's driver, which is not the union (got '1', want '0');FAIL NO CARRY: main's side dropped by hand, which only the head's own driver would write (got '0', want '1');FAIL refused on main's driver, not the head's (got '0', want '1');
+RESULT mutant M6-ignore-driver-exit: app_approve self-test: 271 checks, 0 failed :: 
