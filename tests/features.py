@@ -42408,7 +42408,6 @@ _wf_not_ready = _wf_view(
     cop_at=lambda _t: 2.0,
     timestamps=[],
     forecast_kw=[],
-    suppressing=False,
 )
 R.check(
     "data wood_fuel cheaper is false when not ready",
@@ -42514,7 +42513,6 @@ _wf_soc_kwargs = dict(
     cop_at=lambda _t: 3.0,
     timestamps=_wf_stamps,
     forecast_kw=[],
-    suppressing=False,
 )
 _wf_light_view = _wf_view(
     _wf_cfg,
@@ -42566,7 +42564,6 @@ _wf_skip_view = _wf_view(
     cop_at=lambda _t: 3.0,
     timestamps=_wf_stamps,
     forecast_kw=[],
-    suppressing=False,
     wood_tank_temperature=87.4,
     comfort_min=19.0,
 )

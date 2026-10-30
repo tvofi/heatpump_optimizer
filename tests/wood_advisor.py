@@ -189,7 +189,6 @@ def _view(cheap_steps, off_steps=(), config=None):
         cop_at=lambda _t: 3.0,
         timestamps=_STAMPS,
         forecast_kw=[],
-        suppressing=False,
         local_tz=_tz.utc,
     )
 
@@ -254,7 +253,6 @@ _local = build_wood_fuel_view(
     cop_at=lambda _t: 3.0,
     timestamps=_STAMPS,
     forecast_kw=[],
-    suppressing=False,
     local_tz=_CET,
 )
 R.check(

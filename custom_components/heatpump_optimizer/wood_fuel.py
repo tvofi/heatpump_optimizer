@@ -455,13 +455,14 @@ def build_wood_fuel_view(
     cop_at: Callable[[float], object],
     timestamps: Sequence[datetime],
     forecast_kw: list[float],
-    suppressing: bool,
     wood_tank_temperature: float | None = None,
     comfort_min: float | None = None,
     local_tz: tzinfo | None = None,
 ) -> WoodFuel:
     """Ready/cheaper/slots. cheaper is False when not ready.
 
+    ``forecast_kw`` is the detector's free-heat forecast, empty while it is
+    not suppressing, so detected slots exist only while it suppresses.
     ``cheaper_windows`` and the lighting window are present only while
     today has a cheaper window, so a view without one is unchanged.
     """
@@ -491,7 +492,7 @@ def build_wood_fuel_view(
         if count:
             cheap = cheaper_steps(sek, prices, cops, runs)
     cheaper = count > 0
-    slots = detected_wood_slots(timestamps, forecast_kw) if suppressing else []
+    slots = detected_wood_slots(timestamps, forecast_kw)
     view: WoodFuel = {
         "ready": ready,
         "cheaper": cheaper,
@@ -598,8 +599,7 @@ def wood_fuel_from_parts(
     """
     n = len(result.timestamps) if result is not None else 0
     det = external_heat
-    suppressing = bool(det.suppressing)
-    if result is not None and suppressing:
+    if result is not None and det.suppressing:
         forecast_kw = det.forecast_free_heat(
             n,
             opt_config.dt_hours,
@@ -617,7 +617,6 @@ def wood_fuel_from_parts(
         cop_at=thermal_model.compute_cop,
         timestamps=list(result.timestamps) if result is not None else [],
         forecast_kw=forecast_kw,
-        suppressing=suppressing,
         wood_tank_temperature=getattr(current_state, "wood_tank_temperature", None),
         comfort_min=getattr(opt_config, "min_temp", None),
         local_tz=local_tz,
