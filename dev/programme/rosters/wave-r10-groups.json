@@ -3262,7 +3262,7 @@
     "branch": "handoff/r10-deeplink-handlers",
     "commit": "575dad30d9172dc77acf252bcc7c58b25948c457",
     "last_step": null,
-    "next_step": "dispatch a fixer once every after group is done",
+    "next_step": "done: merged in #2452 (575dad30d)",
     "note": "merged #2452 575dad30"
    }
   },
