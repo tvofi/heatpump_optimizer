@@ -647,11 +647,8 @@ class DhwPlanner:
             # leave it at the charge limit when the ramp starts — and with
             # the limit honoured a summer plan legitimately parks the tank at
             # ~37 °C. The repair stage does find the ramp from the cycle's
-            # own requirement, so this is belt and braces rather than the
-            # only thing holding the cycle up; it is cheap, it is what the
-            # linear program needs to seed a sensible shape, and it states
-            # the obligation where the ramp is computed instead of leaving it
-            # to be rediscovered.
+            # own requirement; this is belt and braces, and the shape the
+            # linear program needs as its seed.
             need = boost_top
             for m in range(legionella_step - 1, -1, -1):
                 # The transition from the END of step m to the END of step
@@ -1692,14 +1689,10 @@ class DhwPlanner:
             # ENFORCED: heat the tank cannot hold later is refused, not
             # stored, so a top-up displaces the plan's own later charging
             # instead of stacking on top of it, and the capacity clamp below
-            # performs exactly that displacement. Stating the bound over
-            # the whole tail instead — the first cut of this change — made
-            # every later step sitting ON the charge limit read as zero
-            # room, the suffix-minimum carried that zero back over every
-            # earlier candidate, and the repair refused every top-up there
-            # was: a 24 h matrix went from a worst deficit of 0.03 °C to
-            # 1.11 °C, inside a demand window, with no cycle due, and the
-            # run-up to a disinfection cycle was refused the same way.
+            # performs exactly that displacement. Bounded over the whole
+            # tail, every later step ON the charge limit reads as zero room
+            # and the suffix-minimum carries that zero back over every
+            # earlier candidate, refusing every top-up there is.
             gap = ceiling[lo : b + 1] - temps[lo + 1 : b + 2]
             if decay > 1e-6:
                 weight = np.power(decay, np.arange(b + 1 - lo))
