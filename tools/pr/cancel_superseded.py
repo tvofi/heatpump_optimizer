@@ -34,7 +34,12 @@ An unreadable answer from GitHub cancels nothing. Always exits 0 when it ran
 `sweep` (P266) is the same rule applied from OUTSIDE any run, by the orchestrator's
 pass: while the newer run is still queued for a runner it cancels nothing from
 inside, so the superseded first push of a two-push open stayed active. One
-open-PR listing and one runs listing per active status; per open same-repo PR
+open-PR listing and one runs listing per ACTIVE status (every status in `ACTIVE`,
+pending and requested included), each paged `PAGE` at a time up to `MAX_PAGES`
+pages, with a `CANCEL-SWEEP: truncated` line when the last page is still full.
+API cost per sweep: 1 PR listing + 5 run listings (one page each below 100 items;
+at most MAX_PAGES pages per listing) + one commit read per open PR with something
+to cancel + one POST per cancel. Per open same-repo PR
 branch it cancels what `candidates()` selects against the live head (no run at
 the live head yet: every active run at another head). It never cancels a run at
 the live head, a run on main, or an event outside `EVENTS` (push, workflow_run,
@@ -50,6 +55,8 @@ The workflow job runs the BASE's copy of this program with `actions: write`.
 from __future__ import annotations
 
 import argparse
+import contextlib
+import io
 import json
 import subprocess
 import sys
@@ -57,6 +64,7 @@ import sys
 BOT = "github-actions[bot]"
 ACTIVE = ("queued", "in_progress", "waiting", "pending", "requested")
 EVENTS = ("pull_request", "workflow_dispatch")
+PAGE, MAX_PAGES = 100, 10
 
 
 def candidates(runs: list[dict], *, live_sha: str, branch: str, run_id: int) -> list[int]:
@@ -163,19 +171,38 @@ def sweep_plan(prs: list[dict], runs: list[dict], bot_heads: set[str], *, repo: 
     return {"cancel": sorted(cancel), "kept": kept, "skipped": skipped, "ghosts": sorted(ghosts)}
 
 
+def listing(api, path: str, query: dict, key: str | None = None) -> "tuple[list | None, bool]":
+    """(items, truncated): every page up to MAX_PAGES; (None, False) when a page is unreadable."""
+    out: list = []
+    for pg in range(1, MAX_PAGES + 1):
+        args = [path] + [x for k, v in {**query, "per_page": PAGE, "page": pg}.items()
+                         for x in ("-f", f"{k}={v}")]
+        got = api(args)
+        rs = got.get(key) if key and isinstance(got, dict) else got
+        if not isinstance(rs, list):
+            return None, False
+        out += rs
+        if len(rs) < PAGE:
+            return out, False
+    return out, True
+
+
 def sweep(a: argparse.Namespace, api=gh) -> int:
-    prs = api([f"repos/{a.repo}/pulls", "-f", "state=open", "-f", "per_page=100"])
+    prs, cut = listing(api, f"repos/{a.repo}/pulls", {"state": "open"})
+    truncated = ["pulls"] * cut
     runs: list[dict] = []
-    for st in ("queued", "in_progress", "waiting"):
-        got = api([f"repos/{a.repo}/actions/runs", "-f", f"status={st}", "-f", "per_page=100"])
-        rs = got.get("workflow_runs") if isinstance(got, dict) else None
+    for st in ACTIVE:
+        rs, cut = listing(api, f"repos/{a.repo}/actions/runs", {"status": st}, "workflow_runs")
         if rs is None:
             prs = None
             break
+        truncated += [f"runs status={st}"] * cut
         runs += rs
     if not isinstance(prs, list):
         print("CANCEL-SWEEP: unreadable answer; cancelling nothing")
         return 0
+    for t in truncated:
+        print(f"CANCEL-SWEEP: truncated: {t} still full after {MAX_PAGES} pages; counts are a lower bound")
     bot_heads: set[str] = set()
     first = sweep_plan(prs, runs, set(), repo=a.repo)
     if first["cancel"]:
@@ -324,29 +351,94 @@ def self_test() -> int:
         EVENTS = saved
     check("sweep mutant: without the event filter the push run IS cancelled (the arm detects it)",
           91 in mutant, True)
+    # sweep, pinned arm by arm (each names the mutant it kills).
+    check("sweep: a run at an older head with a HIGHER id than the live head's run is never cancelled",
+          sw(runs=sruns + [_r(110, S_OLD, branch=sb)])["cancel"], [101, 102])
+    done = _r(96, S_OLD, status="completed", branch=sb)
+    res = sw(runs=sruns + [done, _r(97, S_LIVE, status="completed", branch=sb),
+                           _r(98, S_OLD, status="completed", branch="fix/no-pr"),
+                           _r(99, S_OLD, status="completed", branch="main")])
+    check("sweep: a finished run is neither kept, a ghost, skipped nor cancelled",
+          (res["cancel"], res["kept"], res["ghosts"], res["skipped"]), ([101, 102], 1, [], 0))
+    check("sweep: a pending or requested run at a superseded head is cancelled",
+          sw(runs=[_r(81, S_OLD, status="pending", branch=sb), _r(82, S_OLD, status="requested", branch=sb),
+                   sruns[2]])["cancel"], [81, 82])
+    forkrun = {**_r(83, S_OLD, branch=sb), "head_repository": {"full_name": "x/fork"}}
+    check("sweep: a run from a fork head repository on a PR branch's name is never cancelled",
+          sw(runs=sruns + [forkrun])["cancel"], [101, 102])
+    res = sw(runs=sruns + [push_main, push_pr, _r(92, S_OLD, "schedule", branch="main")])
+    check("sweep: main and non-PR-event runs count as skipped, not as ghosts",
+          (res["skipped"], res["ghosts"]), (3, []))
     spost: list[str] = []
+    author = {"login": "hpo-author[bot]", "name": "x"}
 
-    def sstub(args, method="GET"):
+    def sstub(args, method="GET", prs=None, fail=(), runs=None):
+        q = {args[i].split("=")[0]: args[i].split("=")[1] for i in range(2, len(args), 2) if "=" in args[i]}
         if args[0].endswith("/pulls"):
-            return sprs
+            return None if "pulls" in fail else (sprs if prs is None else prs)
         if args[0].endswith("/actions/runs") and method == "GET":
-            st = args[2].split("=")[1]
-            return {"workflow_runs": [r for r in sruns if r["status"] == st]}
+            if "runs" in fail and q["status"] == "waiting":
+                return None
+            return {"workflow_runs": [r for r in (sruns if runs is None else runs)
+                                      if r["status"] == q["status"] and q["page"] == "1"]}
         if "/commits/" in args[0]:
-            return {"author": {"login": "hpo-author[bot]"}}
+            return None if "commit" in fail else {"author": {"login": author["login"]},
+                                                   "commit": {"author": {"name": author["name"]}}}
         spost.append(args[0])
         return {}
+
+    def quiet(a, **kw):
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            rc = sweep(a, lambda x, m="GET": sstub(x, m, **kw))
+        return rc, sorted(spost), buf.getvalue()
     sns = argparse.Namespace(repo=REPO, dry_run=False)
-    check("sweep end to end: POSTs exactly the two old runs",
-          (sweep(sns, sstub), sorted(spost)),
-          (0, sorted(f"repos/{REPO}/actions/runs/{i}/cancel" for i in (101, 102))))
+    want = sorted(f"repos/{REPO}/actions/runs/{i}/cancel" for i in (101, 102))
+    rc, got, out = quiet(sns)
+    check("sweep end to end: POSTs exactly the two old runs", (rc, got), (0, want))
     spost.clear()
     sns.dry_run = True
-    sweep(sns, sstub)
+    quiet(sns)
     check("sweep --dry-run posts nothing", spost, [])
     sns.dry_run = False
     check("sweep: an unreadable answer cancels nothing and exits 0",
           (sweep(sns, lambda a, m="GET": None), spost), (0, []))
+    for what in ("pulls", "runs", "commit"):
+        spost.clear()
+        rc, got, out = quiet(sns, fail=(what,))
+        check(f"sweep: an unreadable {what} answer cancels nothing and says unreadable, not a zero count",
+              (rc, got, "unreadable" in out, "cancelled 0" in out), (0, [], True, False))
+    for who in ({"login": BOT, "name": "x"}, {"login": "u", "name": BOT}):
+        author.update(who)
+        spost.clear()
+        check(f"sweep end to end: a live head authored by the bot ({who}) cancels nothing",
+              quiet(sns)[1], [])
+    author.update({"login": "hpo-author[bot]", "name": "x"})
+    spost.clear()
+    quiet(sns, runs=[_r(81, S_OLD, status="pending", branch=sb), _r(82, S_OLD, status="requested", branch=sb),
+                     sruns[2]])
+    check("sweep end to end: every ACTIVE status is listed, so pending and requested runs are POSTed",
+          sorted(spost), sorted(f"repos/{REPO}/actions/runs/{i}/cancel" for i in (81, 82)))
+    # pagination: a full page 1 must be followed by page 2; a still-full last page is reported.
+    seen: list[str] = []
+    full = [_r(300 + i, S_LIVE, branch=sb) for i in range(PAGE)]
+
+    def pstub(args, method="GET"):
+        pg = [x for x in args if x.startswith("page=")][0]
+        seen.append(pg)
+        if args[0].endswith("/pulls"):
+            return sprs
+        return {"workflow_runs": full if pg == "page=1" or "always" in seen else []}
+    with contextlib.redirect_stdout(io.StringIO()):
+        sweep(sns, pstub)
+    check("sweep: a full page is followed by the next page, and a short page stops", "page=2" in seen, True)
+    seen.clear()
+    seen.append("always")
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        sweep(sns, pstub)
+    check("sweep: a listing still full after MAX_PAGES prints a truncated line",
+          "truncated: runs status=queued" in buf.getvalue(), True)
     print(f"cancel_superseded self-test: {n} checks, {fails} failed")
     return 1 if fails else 0
 
