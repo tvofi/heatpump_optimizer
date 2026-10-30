@@ -54,58 +54,11 @@
 # about one release's diff, it does not expire with the stamp and is not part
 # of the inherited-claims comparison.
 #
-# claims-for: 7.0.5
+# claims-for: 7.1.0
 #
-# v7.0.5: Round-10 close-out: 226 merges of audited fixes, roster batches, triage rulings and records since v7.0.4. The stamp empties the list; the
+# v7.1.0: Round-10 merge train: claim-carry barrier, train admission, COP gate and part-load, Health tab, Marketplace. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
-# R10-ADVISOR-RESIDUE (#2257): the grid view gains `recent_kwh_price`, the
-# ledger's recent kWh price the advisors' monthly rows are priced at, so each
-# coord fixture's data gains that one key, null (no interval has settled in
-# a fixture's ledger); nothing else moves, the hot-water sweep included (with
-# no recent price it prices at the feed's window, as before). Measured with
-# env_drift --all against origin/main df478d40b in one environment: exactly
-# these five move, in that one key, "present on one side only". The committed
-# files were patched in that path alone; no other leaf was re-recorded.
-# R10-COP-GATE (#2262): the payload gains `measured_cop_at` (when the latched
-# COP folded), `cop_refusal` (the latest interval's refusal code) and
-# `cop_observability` (accuracy.cop_observability), and the observed-COP
-# sensor publishes them as `measured_at`, `last_refusal` and `observability`.
-# Direction: ADD-ONLY, six leaves per coord fixture: null, null and
-# "no_electric_meter" in all five (no capture configures a power entity). The
-# committed files were patched in exactly those 30 paths from
-# golden.capture_coordinator at the head (a json round-trip of each file is
-# byte-identical before the patch); no other leaf was re-recorded.
-# R10-CARD-VOICE: describe_setup publishes the wood-coil option itself as
-# `dhw_wood_coil_configured`, beside the model's `dhw_wood_coil` gate, so the
-# card can say "configured, not modelled". Direction: ADD-ONLY, one leaf in
-# setup_topology on sensors.space_heating_plan and sensors.dhw_heating_plan,
-# false in all five (no capture switches the option on). Measured with
-# tests/env_drift.py --all against origin/main da12aa37d in one environment:
-# exactly these five move, 2 leaves each, "present on one side only"; no plan,
-# schedule, price, cost or solver leaf moves. The committed files were patched
-# in exactly those 10 paths from golden.capture_coordinator at the head (a
-# json round-trip of each file is byte-identical before the patch); no other
-# leaf was re-recorded.
-# R10-LEARNER-ETA (#2260): the learning view gains `learner_progress`, so each
-# coord fixture's data gains that one key and its 24 leaves (house counting at
-# zero samples toward its gate, the other three off, no
-# eta_days anywhere), and the model status sensor publishes the same subtree
-# as its learner_progress attribute (the Health tab's source); nothing else
-# moves. Measured with env_drift --all against origin/main ab00437c9 in one
-# environment: exactly these five move, in those two keys, "present on one side
-# only". The committed files were patched in those paths from a head
-# recording; no other leaf was re-recorded.
-# R10-SCORES (#2258): every coord fixture runs with zero heat-loss samples, so
-# the house grade is dashed (`heat_loss_learning`) instead of graded off the
-# configured prior: insight.scores.envelope and the score sensor's envelope
-# attribute move 58.3 -> null, and both gain `reasons`; insight gains
-# `model_restart` (no alarm: refit and restore null, current_scale 1.0).
-# Measured with env_drift --all against origin/main 86425b9ad in one
-# environment: exactly these five move, 5 leaves each; the other scenarios are
-# byte-identical or may-drift fixtures that did not move. The committed files
-# were patched in exactly those 17 structural paths from a head recording; no
-# other leaf was re-recorded.
 # may-drift: flat_prices -- #1208 polish-every-candidate, owner ruling #1208 comment 208bed25
 # (option (a)): the move's margin is inside the noise band (objective rel
 # -1.2171e-03, deterministic on one box), so which runner sees it move is the
@@ -766,11 +719,6 @@
 # was re-recorded: a claim excuses drift but not a structurally stale fixture
 # (`env_drift --all`'s `rot.failed`), which is the `tests / fast` red that
 # patch answers.
-coord_all_features  # R10-COP-GATE (#2262): data.measured_cop_at|cop_refusal|cop_observability and sensors.observed_cop.extra_state_attributes.measured_at|last_refusal|observability added
-coord_dhw  # R10-COP-GATE (#2262): data.measured_cop_at|cop_refusal|cop_observability and sensors.observed_cop.extra_state_attributes.measured_at|last_refusal|observability added
-coord_grid_fee  # R10-COP-GATE (#2262): data.measured_cop_at|cop_refusal|cop_observability and sensors.observed_cop.extra_state_attributes.measured_at|last_refusal|observability added
-coord_minimal  # R10-COP-GATE (#2262): data.measured_cop_at|cop_refusal|cop_observability and sensors.observed_cop.extra_state_attributes.measured_at|last_refusal|observability added
-coord_two_zone  # R10-COP-GATE (#2262): data.measured_cop_at|cop_refusal|cop_observability and sensors.observed_cop.extra_state_attributes.measured_at|last_refusal|observability added
 # R10-BUFFER-STORE (#2887 review 1): behind a valve the savings reference
 # charges its tank only to the configured curve (`valve_charge_demand`) and
 # prices its draw at the tank's flow COP (`_reference_cop`), as the step
@@ -785,4 +733,3 @@ coord_two_zone  # R10-COP-GATE (#2262): data.measured_cop_at|cop_refusal|cop_obs
 # valve_storage_low_target, whose plan leaves move too: the reference's energy
 # anchors three of the space solve's starts, so a valved plan can land in
 # another basin. Unvalved fixtures do not move.
-config_flow # R10-COP-PARTLOAD: the heat_pump_cop_partload_derate option joins the options table and its seeded copy; keys added, no value moved
