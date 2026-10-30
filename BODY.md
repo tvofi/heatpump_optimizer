@@ -2,7 +2,7 @@ Adds `cancel_superseded.py sweep --repo R [--dry-run]` (triage P266, V180): canc
 
 ## Head
 
-041e2c80f6997f24d49f3c6ced24927898e53f16 (on 4cd6cac6495a2d7ac1a452fad6bc8e9eceef1c75; round 3, one arm)
+a44b8c7afa4e175ef50b9fcf0e889b3ae0be5423 (on b63829d1c163aff58823157d7691894f46301ae5; round 4, one instrument-page line)
 
 ## Mutation proof
 
@@ -40,11 +40,19 @@ The diff adds only tools/pr/cancel_superseded.py code, outside the lane `mutatio
 
 ## Red checks
 
-`governance / instrument-self-tests` was red at the previous head a3b3a42cab (job 124198564586, 17:01-17:25Z). Cause not established: the job log is only readable through the last 2000 lines (the blob download is refused by the proxy, 403), and in those lines every self-test reports 0 failed and the alert_list mutants are all refused; the failing step lies above the readable tail. Not shown to be this program: its self-test (governance.yml:360) is the 30-check run that passed for the reviewer, and now 43 checks, 0 failed here. Cheaper detector: none identified, since the failing step is unread; the orchestrator's CI read at the new head decides whether the red persists.
+`governance / instrument-self-tests` is this diff's own red at b63829d1c163 (review/3004, ci-red). The round-3 body said it was not this program's; that was wrong. Cause: `python3 tools/audit/seat/selftest_wiring.py --check` (governance.yml:499) printed `MISMATCH tools/audit/seat/instruments/cancel_superseded.py.md: the index line's name is not the one its entry opens with`, 1 index gap. INSTRUMENTS.md indexes the page as `cancel_superseded.py sweep`, while the entry's first bullet opened with the full command (`python3 -I tools/pr/cancel_superseded.py sweep ...`), and ENTRY_RE reads that first backticked name. Fix: the bullet now opens with `cancel_superseded.py sweep` and keeps the command in parentheses; the instrument code is unchanged.
+
+Control: with the edit, `selftest_wiring.py --check` prints `0 index gap(s)`; with the page reverted to b63829d1c163 it prints the MISMATCH line and `1 index gap(s)`; re-applied, `0 index gap(s)`.
+
+Root-cause trigger (red check a cheaper detector could have run): the cheaper detector is `selftest_wiring.py --check` before handoff. prepr ran it: its `ci predict` step calls `wiring_preds` (tools/pr/ci_predict.py), which runs `--check` but keeps only lines starting `  UNWIRED `, so MISMATCH, UNINDEXED, DUPLICATE and MISSING lines were discarded and it printed `no ... instrument red predicted`, here and at every earlier round. Process state: the detector existed and ran, and its filter was narrower than the check. Countermeasure not built in this re-cut (three-round rule, one-line scope); it is one change, `wiring_preds` returning every gap line naming a changed file, with a planted-MISMATCH arm in ci_predict's `--self-test`. Carried to the orchestrator below, owed as its own group.
 
 ## Round 3
 
 Answers the round-2 block (sweep-main-skip survivor) with one self-test arm and no production change. The reviewer's non-block `commit-only-cancel-prs` finding (commit-read cost bound unpinned) is carried to Part 2 below, per the brief's exact scope; `pr-open-state` is dismissed as in the verdict.
+
+## Round 4
+
+Answers the round-3 ci-red block with one line of tools/audit/seat/instruments/cancel_superseded.py.md; no production code, test or budget change. The head merges origin/main (437f1ba9b521).
 
 ## Forward-carry
 
@@ -56,4 +64,4 @@ none
 
 ## Prepr
 
-`tools/pr/prepr.sh` at 041e2c80f: all ok (MODE: SCOPED; mutants, field coverage, register check and self-test skipped as unreached by the diff; wave-script 224 passed, 0 failed). No red check at this round.
+`tools/pr/prepr.sh` (no closures skip; the closures step is left to CI as on this seat type) at a44b8c7afa4e: MODE: SCOPED; ci predict ok; wave-script 224 passed, 0 failed; unpinned sites skip (no unpinned mutation site); `python3 tests/structure.py` passed. Carry check: roster at 9e7ba7aae holds R10-FLY-CANCEL-SWEEP.
