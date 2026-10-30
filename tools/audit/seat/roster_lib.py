@@ -49,6 +49,12 @@ STAGE_KIND = (
     ("not-started", "derivable"),
     ("planned", "derivable"),
     ("queued", "derivable"),
+    # The two design steps (decision 0014): a designer or design reviewer is
+    # working the group. Derivable, not a live claim: no pull request exists
+    # at either, so no read rewrites them, and the planner's LIVE view stays
+    # its own four words.
+    ("design", "derivable"),
+    ("design-review", "derivable"),
     ("in-progress", "derivable"),
     ("in-flight", "derivable"),
     ("fixing", "derivable"),
@@ -423,6 +429,18 @@ def branch_of(group: dict) -> str:
             or "handoff/" + str(group.get("group") or "").lower())
 
 
+#: The sizes whose fixer waits for an approved design (decision 0014).
+DESIGN_SIZES = ("L", "XL")
+
+
+def needs_design(group: dict) -> bool:
+    """Whether the group is eligible for the designer and design reviewer: size
+    L or XL. A group with an approved design, pre-study or prototype already on
+    record is exempt at the dispatch (`cloud_dispatch --design-exempt`), where the
+    orchestrator states the reason; the roster carries no such marker."""
+    return group.get("size") in DESIGN_SIZES
+
+
 def norm_group(s: str) -> str:
     """A roster group id or branch tail normalized for comparison:
     lowercased with ``_`` written as ``-``. `group_for_branch` and the
@@ -574,6 +592,9 @@ def _self_test() -> int:
     check("a done stage is neither live nor a disposition",
           not set(DONE_STAGES) & set(LIVE) and not set(DONE_STAGES) & set(DISPOSITION),
           (DONE_STAGES, LIVE, DISPOSITION))
+    check("the design steps' stages are derivable and not live (decision 0014)",
+          {"design", "design-review"} <= set(DERIVABLE) and not {"design", "design-review"} & set(LIVE),
+          (DERIVABLE, LIVE))
     check("the live view is the planner's own four words (no figure moves)",
           LIVE == ("in-progress", "fixing", "review", "in-review"), LIVE)
     check("the size vocabulary is the model's own keys",
