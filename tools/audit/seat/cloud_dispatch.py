@@ -946,8 +946,8 @@ def main(argv: list[str]) -> int:
             if not args.model:
                 raise Refusal("--group needs --model")
             print(dispatch_group(args.role, args.group, args.model, roster_ref=args.roster_ref,
-                                 head=args.head or "", pr=args.pr, nonce=args.nonce, overlay=args.overlay,
-                                 design_exempt=args.design_exempt))
+                                 head=args.head or "", pr=args.pr, design_exempt=args.design_exempt,
+                                 nonce=args.nonce, overlay=args.overlay))
             return 0
         if not args.head:
             raise Refusal("--head is required without --group")
