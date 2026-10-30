@@ -1,6 +1,0 @@
-== unperturbed
-PASS every InputReader key is an options-flow entity field, so the Health card has its label :: 29 keys; not options fields: []; reads keyed some other way: []
-== perturbed CONF_ZZ
-FAIL every InputReader key is an options-flow entity field, so the Health card has its label :: 30 keys; not options fields: ['zz_probe_entity']; reads keyed some other way: []
-== perturbed k[x]
-FAIL every InputReader key is an options-flow entity field, so the Health card has its label :: 29 keys; not options fields: []; reads keyed some other way: ["flow_meter.py:154 Subscript(value=Name(id='k', ctx=Load()), slice=Constant(value='x'), ctx=Load())"]

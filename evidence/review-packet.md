@@ -1,47 +1,55 @@
 # Review packet #2976
-head: 1381df1f5b25e2e3585035c8fceaec1bce3dcdc2
-base: 043b111d01c90ecb1220980df1d363c0b50bb37f
+head: ebbdcaa6792fcd5326a30b15fc733f94dada3512
+base: 1148ee635e8278ebbb033b524d54001b2a89218c
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
-## Gate digest: red
-CodeQL id=123827050796 neutral
-arch-score / arch-score id=123826850295 success
-arm id=123826699289 skipped
-budget-raise-gate / budget-raise-gate id=123826850218 success
-cancel-superseded id=123826704372 success
-codeql / Analyze (actions) id=123826850132 success
-codeql / Analyze (javascript-typescript) id=123826850155 success
-codeql / Analyze (python) id=123826850197 in_progress
-governance / delivery-status id=123826850287 success
-governance / delivery-status-publish id=123826851981 skipped
-governance / env-matrix id=123826850253 in_progress
-governance / instrument-self-tests id=123826850211 in_progress
-governance / policy-docs id=123826850297 in_progress
-governance / record id=123826851733 skipped
-governance / wave-script id=123826850209 success
-hassfest / hassfest id=123826850062 success
-kernel-points id=123826851714 skipped
-prelude id=123826704685 in_progress
-refresh id=123826704874 success
-tests / arch-instrument id=123827003438 success
-tests / briefs id=123826850337 success
-tests / browser id=123827003436 in_progress
-tests / closure-scope id=123826850278 success
-tests / closures id=123827003491 in_progress
-tests / coverage id=123827003401 in_progress
-tests / fast (3.14) id=123827003392 in_progress
-tests / mutation id=123826850300 success
-tests / mutation-autofix id=123827095444 skipped
-tests / mutation-pins id=123827094658 skipped
-tests / nightly-ha id=123827005242 skipped
-tests / nightly-status id=123826850393 failure
-tests / replay id=123827005134 skipped
-tests / typing id=123827003372 success
-validate / validate-hacs id=123826850002 success
+## Gate digest: green
+CodeQL id=123938539603 success
+arch-score / arch-score id=123938275969 success
+arm id=123938176031 skipped
+budget-raise-gate / budget-raise-gate id=123938275886 success
+cancel-superseded id=123938174449 success
+codeql / Analyze (actions) id=123938275928 success
+codeql / Analyze (javascript-typescript) id=123938275871 success
+codeql / Analyze (python) id=123938275887 success
+gate id=123950646509 success
+governance / delivery-status id=123938276064 success
+governance / delivery-status-publish id=123938277818 skipped
+governance / env-matrix id=123938276094 success
+governance / instrument-self-tests id=123938276126 success
+governance / policy-docs id=123938276120 success
+governance / record id=123938277837 skipped
+governance / wave-script id=123938276125 success
+hassfest / hassfest id=123938275883 success
+kernel-points id=123938277492 skipped
+pr-contract / pr-contract id=123950439663 success
+prelude id=123938174174 success
+refresh id=123938174396 success
+tests / arch-instrument id=123938427657 success
+tests / briefs id=123938275914 success
+tests / browser id=123938427604 success
+tests / ci-ratchet id=123946185131 skipped
+tests / claims-autofix id=123945710458 skipped
+tests / closure-scope id=123938276076 success
+tests / closures id=123938427652 success
+tests / closures-autofix id=123946185514 skipped
+tests / coverage id=123938427803 success
+tests / coverage-ratchet id=123942961131 success
+tests / fast (3.14) id=123938427705 success
+tests / graders-head-copy id=123942961212 success
+tests / lane-proofs id=123945709145 success
+tests / mutation id=123938276114 success
+tests / mutation-autofix id=123938477403 skipped
+tests / mutation-pins id=123938477827 skipped
+tests / nightly-ha id=123938429454 skipped
+tests / nightly-status id=123938276059 success
+tests / replay id=123938429937 skipped
+tests / typing id=123938427591 success
+validate / validate-hacs id=123938275795 success
 
 ## Refusals
-red-unanswered: concluded red check `tests / nightly-status` is not named in ## Red checks
+none
 
 ## Advisories
 none
@@ -1378,7 +1386,7 @@ index bd3768261..958876ccb 100644
    // R9-UI-3 review (theme-contrast): Home Assistant reports
    // hass.themes.darkMode false for any theme without a dark mode, so a
 diff --git a/tests/closures.json b/tests/closures.json
-index 2671377dd..7fa040c17 100644
+index 9828d4baf..097789898 100644
 --- a/tests/closures.json
 +++ b/tests/closures.json
 @@ -580,11 +580,13 @@
@@ -1404,10 +1412,10 @@ index 2671377dd..7fa040c17 100644
     "tools/audit/seat/r10_roster_ops_mutants.py",
     "tools/audit/seat/r10_roster_sync_mutants.py",
 diff --git a/tests/entities.py b/tests/entities.py
-index a57938583..cd00e2615 100644
+index fec657d42..d268d8839 100644
 --- a/tests/entities.py
 +++ b/tests/entities.py
-@@ -40080,4 +40080,71 @@ R.check(
+@@ -40112,4 +40112,71 @@ R.check(
  )
  
  
