@@ -11502,7 +11502,9 @@
    "files": [
     "tools/audit/seat/cloud_relay.sh"
    ],
-   "carry": [],
+   "carry": [
+    "Folded from R10-FLY-RELAY-FREEZE-REGISTRY into R10-FLY-RELAY-TOOLS-LEVEL (shared seam cloud_relay.sh; orchestrator s8 under mandate 6329234399, lever L2 approved by tvofi 2026-10-30, #201 comment 6527969942). Its brief and carries are carried whole and owed in the same pull request. Additional files in scope: tools/audit/seat/instruments/cloud_relay.sh.md. BRIEF: From triage P288 (proposal V191, orchestrator 2026-10-29): cloud_relay.sh's review_freeze holds a handoff as REVIEW on a bus.sh dispatch record of the PR at its head, or on any detached worktree of the checkout at that head. The opener's and updater's own worktrees under a state directory's pr/ sit detached at the PR head, so the second arm over-fires: #2953 was printed HELD-REVIEW on 44 relay passes from 17:07Z with no dispatch record, and of the 7 PRs the live relay log ever held as REVIEW, 4 had no dispatch record at that head (#2896, #2916, #2933, #2953). The dispatch record is the worker registry, as review_freeze's own comment says, and local reviewers are recorded there too. (1) review_freeze returns REVIEW only on a dispatch record of the PR at the head; the detached-worktree arm is removed. (2) The HELD-REVIEW stdout line and the handoff-held level line name the evidence, the dispatch's nonce prefix and time. (3) The self-test arm `a detached review worktree at the head holds the handoff` (cloud_relay.sh:892-895) is inverted, not deleted: a detached worktree at the head with no dispatch record updates. Control: the #2953 shape (handoff ahead, no verdict, no dispatch record, a detached worktree at the head) updates; the same with a dispatch record at the head holds. Mutation: restoring the worktree arm fails the inverted arm. Null control: a dispatch of another PR at the same head holds nothing (cloud_relay.sh:889-890). Out of scope: the body-only handoff (R10-FLOW-BODY-ONLY). triage: dev/programme/triage/s6-batch61.md#P288"
+   ],
    "resume": {
     "stage": "not-started",
     "branch": "handoff/r10-fly-relay-tools-level",
