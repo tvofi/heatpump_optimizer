@@ -13013,11 +13013,12 @@ R.check(
 
 
 def _li_others(c):
-    """Every learner's persisted shape but the two heat-loss learners' and the save stamp."""
+    """Every learner's persisted shape but the two heat-loss learners', the zone-total
+    anchor their ratio enters (re-derived on save), and the save stamp."""
     out = c._learner_snapshot_payloads()
     out["thermal_learning"] = {k: v for k, v in out["thermal_learning"].items() if k not in (
         "house_heat_loss_scale", "house_heat_loss_samples", "lower_floor_loss_ratio",
-        "lower_floor_loss_samples", "updated_at")}
+        "lower_floor_loss_samples", "house_heat_loss_anchor", "updated_at")}
     return out
 
 
@@ -13043,7 +13044,8 @@ R.check(
     "the reset leaves the comfort weight and the DHW, COP and defrost learners as they were",
     _li_others(_li_r) == _li_r_before and _li_r._cop_scale == 1.13
     and _li_r._comfort_learner.evidence == -1.4,
-    str({k: (v, _li_r_before.get(k)) for k, v in _li_others(_li_r).items() if v != _li_r_before.get(k)})[:600],
+    str(sorted(f"{k}/{f}" for k, v in _li_others(_li_r).items() for f in set(v) | set(_li_r_before[k])
+               if v.get(f) != _li_r_before[k].get(f))),
 )
 _li_one, _ = _li_reset(("lower_floor_loss_ratio",))
 R.check(

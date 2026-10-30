@@ -7242,7 +7242,7 @@ R.section("Buttons")
 
 buttons = collect(button)
 btn_by_name = {display_name("button", b): b for b in buttons}
-R.check("five buttons are added", len(buttons) == 5, str(len(buttons)))
+R.check("six buttons are added", len(buttons) == 6, str(len(buttons)))
 for name in (
     "Optimize Now",
     "Learning Run System Identification",
@@ -15034,6 +15034,7 @@ _svc_coord.async_clear_manual_plan = _svc_record("clear_manual")
 _svc_coord.async_restore_learned_snapshot = _svc_record("restore", True)
 _svc_coord.async_set_away = _svc_record("set_away")
 _svc_coord.async_diagnose_interval = _svc_record("diagnose", {"residual": None})
+_svc_coord.async_reset_heat_loss_learners = _svc_record("reset_heat_loss")
 
 
 def _svc_call(service, payload=None):
@@ -15386,6 +15387,14 @@ R.check(
     _restored["restored"] == [_svc_entry.entry_id],
 )
 
+_heat_loss_reset = _svc_call(const.SERVICE_RESET_HEAT_LOSS, {"learners": ["lower_floor_loss_ratio"]})
+R.check(
+    "reset_heat_loss_learners reaches the coordinator and reports what it reset",
+    "reset_heat_loss" in _svc_log
+    and _heat_loss_reset == {"reset": [_svc_entry.entry_id], "learners": ["lower_floor_loss_ratio"]},
+    str(_heat_loss_reset),
+)
+
 _diag = _svc_call(const.SERVICE_DIAGNOSE_INTERVAL)
 R.check(
     "diagnose_interval returns the per-entry report",
@@ -15423,6 +15432,7 @@ _svc_covered = {
     const.SERVICE_RESTORE_SNAPSHOT,
     const.SERVICE_DIAGNOSE_INTERVAL,
     const.SERVICE_DEBUG_COLLECT,
+    const.SERVICE_RESET_HEAT_LOSS,
 }
 R.check(
     "every registered service was invoked above",
