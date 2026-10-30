@@ -53,10 +53,18 @@ pr_exit_trap "$OP_LEDGER"
 # opened with its row -- a refused row push, any step errexit stops between the two pushes, a stop
 # signal -- reaps the row push, returns the worktree to the pushed head and closes #N. The comment,
 # read back by gh_comment.py, is posted only once the close succeeds; a close that fails says ROWLESS.
+# A row push can fail after its git push landed (app_push.sh's refused body PATCH or read-back, a stop
+# past the push), so origin's tip is read first: #N closes only when origin lacks the row commit $H;
+# when origin holds it, #N stays open with its row and the failure is named (ROW LANDED; #2989's review).
 op_close_unrowed() {
-  local rc=$? why closed=0
+  local rc=$? why closed=0 tip
   [ -z "${PR_ATTEMPT:-}" ] || return 0
   pr_reap
+  # Unread (ls-remote failed) is not absent: #N is left open, and the message says origin was not read.
+  if [ -n "${H:-}" ]; then
+    tip=$(git -C "$WT" ls-remote origin "refs/heads/$BR") && tip=${tip%%[[:space:]]*} || tip=unread
+    [ "$tip" != "$H" ] && [ "$tip" != unread ] || { op_row_landed "$rc" "$tip"; return 0; }  # mut:roworigin
+  fi
   git -C "$WT" reset -q --hard "$PR_PUSHED" || :  # mut:rowreset
   why=${OP_WHY:-${PR_STOPPED_AT:-no step reported a stop: a stop signal, or exit status $rc}}
   gh pr close "$N" -R $R >/dev/null && closed=1 || :  # mut:rowclose
@@ -70,6 +78,17 @@ op_close_unrowed() {
   python3 "$PRT/gh_comment.py" post --repo $R --issue "$N" --body-file $D/close.md >&2 \
     || echo "$PR_NAME: #$N is closed, but its comment saying why was not read back" >&2
   printf '%s: CLOSED: #%s at %s, before its row was pushed; re-run open_pr.sh once the body answers it\n' "$PR_NAME" "$N" "$PR_PUSHED" >&2
+}
+op_row_landed() { # <rc> <origin tip|unread>: the row push failed, and origin holds the row commit $H or was not read
+  PR_ATTEMPT=opened,PR=$N
+  if [ "$2" = unread ]; then
+    printf '%s: ROWLESS: #%s is left open: the row push failed (exit status %s) and origin'"'"'s %s could not be read, so its row is unknown; update_pr.sh %s - <body> adds a missing one (delivery_row.sh ensure_row): %s\n' \
+      "$PR_NAME" "$N" "$1" "$BR" "$BR" "${OP_WHY:-${PR_STOPPED_AT:-a stop signal}}" >&2
+    return 0
+  fi
+  PR_PUSHED=$H
+  printf '%s: ROW LANDED: #%s has its row on origin at %s, but the row push then failed (exit status %s); #%s is left open: %s\n' \
+    "$PR_NAME" "$N" "$H" "$1" "$N" "${OP_WHY:-${PR_STOPPED_AT:-a stop signal after the push}}" >&2
 }
 git fetch -q origin handoff/$T handoff-body/$T main
 pr_tools_fresh
@@ -115,7 +134,7 @@ RO=--row-only  # mut:oprowonly
 { pr_push_hold; PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash "$_push" $RO $R $WT $BR $D/body.md $ISS > $D/p2.log 2>&1 & } 9>>"${PR_PUSH_LOCK:-/dev/null}"
 rc=0; wait $! || rc=$?
 if [ "$rc" != 0 ]; then
-  # The exit below closes #N (op_close_unrowed); this names the refusal for its comment.
+  # The exit below closes #N unless origin took the row (op_close_unrowed); this names the refusal.
   OP_WHY="the row push was refused:
 $({ grep -E 'REFUSE' $D/p2.log || tail -n 20 $D/p2.log; } 2>/dev/null || :)"
   pr_push_failed $D/p2.log
