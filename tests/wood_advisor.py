@@ -193,7 +193,7 @@ def _wood_view(cheap_steps, off_steps=(), config=None):
     )
 
 
-def _iso(hour, minute=0):
+def _at(hour, minute=0):
     return (_DAY0 + _td(hours=hour, minutes=minute)).isoformat()
 
 
@@ -208,27 +208,27 @@ R.check(
     "a day with two cheaper runs gives two windows, each contiguous run once",
     _two.get("cheaper_windows")
     == [
-        {"start": _iso(6), "end": _iso(8)},
-        {"start": _iso(17), "end": _iso(20)},
+        {"start": _at(6), "end": _at(8)},
+        {"start": _at(17), "end": _at(20)},
     ],
     repr(_two.get("cheaper_windows")),
 )
 R.check(
     "the lighting window opens the default 60 min before the first window "
     "and closes at its start",
-    _lighting(_two) == (_iso(5), _iso(6)),
+    _lighting(_two) == (_at(5), _at(6)),
     repr(_lighting(_two)),
 )
 _lead90 = _wood_view({6, 7}, config={**_WOOD_READY, "wood_lighting_lead_minutes": 90})
 R.check(
     "the lead time is the configured option",
-    _lighting(_lead90) == (_iso(4, 30), _iso(6)),
+    _lighting(_lead90) == (_at(4, 30), _at(6)),
     repr(_lighting(_lead90)),
 )
 _now_open = _wood_view({0, 1})
 R.check(
     "a window open at the plan's first step lights now, never in the past",
-    _lighting(_now_open) == (_iso(0), _iso(0)),
+    _lighting(_now_open) == (_at(0), _at(0)),
     repr(_lighting(_now_open)),
 )
 _pump_off = _wood_view({12}, off_steps={12})
@@ -278,7 +278,7 @@ R.check(
     "the wood sensor publishes the windows and the lighting window as attributes",
     _attrs.get("cheaper_windows") == _two["cheaper_windows"]
     and (_attrs.get("lighting_start"), _attrs.get("lighting_end"))
-    == (_iso(5), _iso(6)),
+    == (_at(5), _at(6)),
     repr(_attrs),
 )
 _null_attrs = _bs.WoodCheaperBinarySensor(
