@@ -679,6 +679,19 @@ def plan_page_arms(root: Path, ok, git) -> None:
     ok("plan page: with no page at the ref, the UNAVAILABLE page is published",
        rc == 1 and "<h1>PLAN UNAVAILABLE — " in first and "<table" not in first,
        (rc, first[:200]))
+    # A crash is not a refusal: plan_page.py dies on a malformed plan.json
+    # with a traceback, rc 1 and no page. That must refuse with rc 2 and
+    # publish nothing, not an empty PLAN.html at exit 1.
+    badf = root / "bad-plan.json"
+    badf.write_text("{", encoding="utf-8")
+    crash_argv = [str(badf) if x == str(planf) else x for x in argv]
+    err = io.StringIO()
+    with contextlib.redirect_stderr(err):
+        rc = main(crash_argv + ["--state-ref", "crash-state"])
+    ok("plan page: a crashing page refuses with rc 2 and publishes no PLAN.html",
+       rc == 2 and tip_of("crash-state") == "no-such-ref"
+       and "plan_page.py failed rc 1" in err.getvalue(),
+       (rc, tip_of("crash-state"), err.getvalue()[-300:]))
 
 
 def self_test() -> int:
