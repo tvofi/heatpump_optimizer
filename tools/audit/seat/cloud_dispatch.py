@@ -19,8 +19,11 @@ $HPO_CLOUD_ENV_ID. The
 payload is rendered by the same `publish_seat` as the flag path's --publish, so it
 is that path's byte for byte, and is published, with its prompt, on origin as
 `dispatch/<role>-<topic>` (PAYLOAD.json, PROMPT.md); the one line printed is that
-ref name. A published payload's event is a pointer to PROMPT.md on the ref, never
-the prompt itself (the runner echoes the event; R10-FLY-CACHE-PROMPTS). --publish
+ref name. A published payload's event is a stub, never the prompt itself (the
+runner echoes the event; R10-FLY-CACHE-PROMPTS): the seat line, the footer ban,
+and the commit holding PROMPT.md, pinned by SHA, never by the moving ref. The
+prompt is committed first, alone, and PAYLOAD.json on top of it, since a commit
+cannot name its own SHA. --publish
 does the same on the flag path, to `dispatch/<role>-<topic>`, else
 `dispatch/<role>-rev-<PR>`, and prints the payload as without it. A standing trigger whose prompt fetches the ref it is fired with
 needs nothing else. A render refusal (below) pushes nothing.
@@ -38,8 +41,9 @@ $HPO_CLOUD_OVERLAY, a JSON object with `environment_id`, `model`, `repo`), else
 $HPO_CLOUD_ENV_ID / $HPO_CLOUD_MODEL / $HPO_CLOUD_REPO. One of the three is
 required: a missing value is a refusal, not a default that goes stale.
 
-THE BRIEF is read and INLINED at render time, because the runner snapshots the
-message at `run`: a brief edited afterwards reaches no running seat.
+THE BRIEF is read and INLINED at render time, into the event or, published, into
+PROMPT.md at the pinned commit: either way a brief edited afterwards reaches no
+running seat, since a re-dispatch only moves the ref past that commit.
 
 WHAT IT REFUSES (exit 2, nothing printed on stdout):
   * a head that is not exactly 40 lowercase hex digits;
@@ -126,13 +130,15 @@ def _seat_line(role: str, repo: str, pr: str, head: str, topic: str, nonce: str)
     return first + " Never send push notifications."
 
 
-def _pointer(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, ref: str) -> str:
-    """The event a published seat is fired with: who it is, and where its prompt is.
-    The runner echoes the event into every view of the trigger, so the whole prompt
-    there was paid for several times over; PROMPT.md on the ref is paid once."""
-    return (_seat_line(role, repo, pr, head, topic, nonce) + "\n"
-            f"Your full brief is PROMPT.md at origin ref {ref} (`git fetch origin {ref} && git show "
-            "FETCH_HEAD:PROMPT.md`); read it first and follow it exactly.\n")
+def _pointer(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, ref: str, pin: str) -> str:
+    """The event a published seat is fired with: who it is, the footer ban, and the
+    commit its prompt is at. The runner echoes the event into every view of the
+    trigger, so the whole prompt there was paid for several times over; PROMPT.md is
+    paid once. `pin` is a SHA, never `ref`: a re-dispatch moves the ref, and a
+    running seat's brief may not move with it."""
+    return (_seat_line(role, repo, pr, head, topic, nonce) + " " + FOOTER_BAN + "\n"
+            f"Your full brief is PROMPT.md at commit {pin} of {ref} (`git fetch origin {pin} && "
+            f"git show {pin}:PROMPT.md`), never at the ref's tip; read it first and follow it exactly.\n")
 
 
 def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, brief: str,
@@ -226,8 +232,9 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
 
 def render(role: str, head: str, *, env_id: str, model: str, repo: str, pr: str = "",
            topic: str = "", nonce: str = "", brief: str = "", publish_ref: str = "",
-           design: str = "") -> dict:
-    """The payload; with `publish_ref`, its event is the pointer to that ref (`publish_seat`)."""
+           design: str = "", pin: str = "") -> dict:
+    """The payload; with `publish_ref`, its event is the stub naming PROMPT.md at commit
+    `pin` of that ref (`publish_seat`)."""
     if role not in ROLES:
         raise Refusal(f"role must be one of {', '.join(ROLES)}")
     if not is_head(head or ""):
@@ -246,7 +253,9 @@ def render(role: str, head: str, *, env_id: str, model: str, repo: str, pr: str 
             raise Refusal(f"no {name}: pass a flag, an overlay entry or its HPO_CLOUD_* variable")
     if not re.fullmatch(r"[\w.-]+/[\w.-]+", repo):
         raise Refusal("repo must be OWNER/NAME")
-    text = (_pointer(role, repo, pr, head, topic, nonce, publish_ref) if publish_ref
+    if publish_ref and not is_head(pin):
+        raise Refusal("a published seat's stub needs the 40-hex commit holding its PROMPT.md")
+    text = (_pointer(role, repo, pr, head, topic, nonce, publish_ref, pin) if publish_ref
             else _prompt(role, repo, pr, head, topic, nonce, brief, design))
     payload = {"job_config": {"ccr": {
         "environment_id": env_id,
@@ -291,27 +300,53 @@ def _topic_of(group: dict) -> str:
     return roster_lib.branch_of(group).removeprefix("handoff/")
 
 
-def _publish(repo_dir: str, ref: str, files: dict[str, str]) -> None:
-    """Append one commit holding `files` to `refs/heads/<ref>` on origin.
-
-    The first commit has no parent; later ones fast-forward, so a re-dispatch
-    needs no force-push. An identical tree adds no commit. A fetch that fails
-    for any reason but a missing ref refuses: a parentless commit would only be
-    refused by the push as a non-fast-forward, never rewritten."""
+def _tip(repo_dir: str, ref: str) -> str:
+    """The tip of `refs/heads/<ref>` on origin, fetched, or "" when there is none.
+    A ref that would publish the host refuses before anything is read or pushed."""
     why = ref_privacy.refusal(ref, (("the dispatch message", f"dispatch: {ref}"),))
     if why:
         raise Refusal(f"the dispatch ref would publish the host: {why}")
     tip = _git(repo_dir, "ls-remote", "origin", f"refs/heads/{ref}").split()[:1]
     if tip:
         _git(repo_dir, "fetch", "-q", "origin", f"refs/heads/{ref}")
+    return tip[0] if tip else ""
+
+
+def _tree(repo_dir: str, files: dict[str, str]) -> str:
     entries = "".join(f"100644 blob {_git(repo_dir, 'hash-object', '-w', '--stdin', stdin=text).strip()}\t{name}\n"
                       for name, text in sorted(files.items()))
-    tree = _git(repo_dir, "mktree", stdin=entries).strip()
-    if tip and _git(repo_dir, "rev-parse", f"{tip[0]}^{{tree}}").strip() == tree:
-        return
-    commit = _git(repo_dir, *_SEAT, "commit-tree", tree, *(["-p", tip[0]] if tip else []),
+    return _git(repo_dir, "mktree", stdin=entries).strip()
+
+
+def _publish(repo_dir: str, ref: str, files: dict[str, str]) -> str:
+    """Append one commit holding `files` to `refs/heads/<ref>` on origin; return the tip.
+
+    The first commit has no parent; later ones fast-forward, so a re-dispatch
+    needs no force-push. An identical tree adds no commit. A fetch that fails
+    for any reason but a missing ref refuses: a parentless commit would only be
+    refused by the push as a non-fast-forward, never rewritten."""
+    tip = _tip(repo_dir, ref)
+    tree = _tree(repo_dir, files)
+    if tip and _git(repo_dir, "rev-parse", f"{tip}^{{tree}}").strip() == tree:
+        return tip
+    commit = _git(repo_dir, *_SEAT, "commit-tree", tree, *(["-p", tip] if tip else []),
                   "-m", f"dispatch: {ref}").strip()
     _git(repo_dir, "push", "-q", "origin", f"{commit}:refs/heads/{ref}")
+    return commit
+
+
+def _snapshot(repo_dir: str, ref: str, prompt: str) -> str:
+    """The commit of `ref` holding PROMPT.md alone, which a stub pins: the tip's parent
+    when the tip already publishes this prompt over it (a re-dispatch moves nothing),
+    else a new commit appended to the ref."""
+    tip = _tip(repo_dir, ref)
+    if tip:
+        parent = _git(repo_dir, "log", "-1", "--format=%P", tip).split()[:1]
+        if parent and _git(repo_dir, "rev-parse", f"{parent[0]}^{{tree}}").strip() == _tree(
+                repo_dir, {"PROMPT.md": prompt}) and _git(repo_dir, "rev-parse", f"{tip}:PROMPT.md") \
+                == _git(repo_dir, "rev-parse", f"{parent[0]}:PROMPT.md"):
+            return parent[0]
+    return _publish(repo_dir, ref, {"PROMPT.md": prompt})
 
 
 def dispatch_ref(role: str, topic: str, pr: str) -> str:
@@ -323,11 +358,13 @@ def dispatch_ref(role: str, topic: str, pr: str) -> str:
 
 
 def publish_seat(repo_dir: str, ref: str, role: str, head: str, **args) -> dict:
-    """Publish the seat's whole prompt as PROMPT.md, with the payload firing it, on `ref`;
-    return that payload, whose event is the pointer to the ref. Both render first, so
-    every `render` refusal pushes nothing."""
+    """Publish the seat's whole prompt as PROMPT.md on `ref`, then the payload firing it
+    on top; return that payload, whose event is the stub pinning the prompt's commit.
+    The prompt renders first, so every `render` refusal, the host-path one on the
+    published PROMPT.md included, pushes nothing; the stub adds only a ref, which
+    `_tip` judges before its first read."""
     prompt = render(role, head, **args)["job_config"]["ccr"]["events"][0]["data"]["message"]["content"]
-    payload = render(role, head, **args, publish_ref=ref)
+    payload = render(role, head, **args, publish_ref=ref, pin=_snapshot(repo_dir, ref, prompt))
     _publish(repo_dir, ref, {"PAYLOAD.json": json.dumps(payload), "PROMPT.md": prompt})
     return payload
 
@@ -558,9 +595,17 @@ def _group_checks(check) -> None:
         content = lambda text: json.loads(text)["job_config"]["ccr"]["events"][0]["data"]["message"]["content"]
         msg = fetched(line, "PROMPT.md")
         ptr = content(fetched(line, "PAYLOAD.json"))
-        check("the published payload's event is the pointer to the ref, under 600 chars; PROMPT.md is the prompt",
-              len(ptr) < 600 and f"origin ref {line} (`git fetch origin {line} && git show FETCH_HEAD:PROMPT.md`)"
-              in ptr and tip in ptr and msg.startswith("CLOUD FIXER") and msg not in ptr)
+        _pin = re.search(r"at commit ([0-9a-f]{40}) of ", ptr)
+        pin = _pin.group(1) if _pin else ""
+        check("the published event is a stub pinning the commit holding PROMPT.md by SHA, never the ref's tip",
+              pin and f"of {line} (`git fetch origin {pin} && git show {pin}:PROMPT.md`)" in ptr
+              and "FETCH_HEAD" not in ptr and git(work, "show", f"{pin}:PROMPT.md") == msg
+              and git(work, "rev-parse", "FETCH_HEAD^").strip() == pin)
+        check("the stub keeps the seat line and the footer ban inline; PROMPT.md is the whole prompt",
+              ptr.startswith("CLOUD FIXER seat for owner/name, topic r10-x, at head " + tip + ".")
+              and FOOTER_BAN in ptr and msg.startswith("CLOUD FIXER") and msg not in ptr)
+        check("the stub payload is far smaller than the prompt: under 1 KB whole, the brief absent, the SHA present",
+              len(fetched(line, "PAYLOAD.json")) < 1024 < len(msg) and "Fix the thing" not in ptr and pin in ptr)
         check("without --publish the flag path is unchanged: the whole prompt in its event, nothing published",
               rc0 == 0 and content(plain.getvalue()) == msg)
         check("the roster brief is inlined and the roster tip is the head",
@@ -573,7 +618,12 @@ def _group_checks(check) -> None:
         dispatch()
         git(work, "fetch", "-q", str(origin), "refs/heads/" + line)
         check("a changed brief fast-forwards the ref",
-              git(work, "rev-parse", "FETCH_HEAD^").strip() == first and "Changed." in fetched(line, "PROMPT.md"))
+              git(work, "merge-base", "--is-ancestor", first, "FETCH_HEAD") == ""
+              and git(work, "rev-parse", "FETCH_HEAD").strip() != first and "Changed." in fetched(line, "PROMPT.md"))
+        stale = git(work, "show", f"{pin}:PROMPT.md")
+        check("a seat fired with the first stub still reads the first brief at its pinned commit after the re-dispatch",
+              "Fix the thing in tools/x.py." in stale and "Changed." not in stale
+              and pin not in content(fetched(line, "PAYLOAD.json")))
         check("the dispatch ref is on origin only once the render passed (null control for the refusals)",
               git(work, "ls-remote", str(origin), "refs/heads/dispatch/*").lower().count("r10-big") == 3
               and git(work, "ls-remote", str(origin), "refs/heads/dispatch/*").count("r10-x") == 1)
@@ -676,7 +726,7 @@ def _group_checks(check) -> None:
         except subprocess.CalledProcessError:
             msg = ""
         check("a reviewer's flag-path --publish publishes to dispatch/reviewer-rev-<PR> and points there",
-              rc == 0 and "git fetch origin dispatch/reviewer-rev-7 " in content(out.getvalue())
+              rc == 0 and " of dispatch/reviewer-rev-7 (`git fetch origin " in content(out.getvalue())
               and msg.startswith("CLOUD REVIEWER") and "Bus nonce: abc123." in msg)
         # Two sources, never one: the roster from the round's roster branch
         # (O17), the head from main. The branch is one commit ahead of main
@@ -750,7 +800,8 @@ def _group_checks(check) -> None:
             again = None
         git(work, "fetch", "-q", str(origin), "refs/heads/" + line)
         check("a re-dispatch from a second clone fast-forwards the existing ref",
-              again == line and git(work, "rev-parse", "FETCH_HEAD^").strip() == tip_before)
+              again == line and git(work, "rev-parse", "FETCH_HEAD").strip() != tip_before
+              and git(work, "merge-base", "--is-ancestor", tip_before, "FETCH_HEAD") == "")
 
 
 
@@ -855,13 +906,17 @@ def self_test() -> int:
         a = dict(pr="7" if role == "reviewer" else "", topic="" if role == "reviewer" else "t-1",
                  nonce="abc123" if role == "reviewer" else "")
         check(f"the {role}'s publish ref is {ref}", dispatch_ref(role, a["topic"], a["pr"]) == ref)
-        ptr = render(role, head, **base, **a, publish_ref=ref)["job_config"]["ccr"]["events"][0]["data"][
-            "message"]["content"]
-        check(f"a published {role}'s event is a pointer: under 600 chars, names the ref, the head and PROMPT.md",
-              len(ptr) < 600 and f"git fetch origin {ref} && git show FETCH_HEAD:PROMPT.md" in ptr
-              and head in ptr and FOOTER_BAN not in ptr and len(ptr) < len(prompts[role]))
-    check("a reviewer's pointer carries its nonce", "abc123" in render(
-        "reviewer", head, **base, pr="7", nonce="abc123", publish_ref="dispatch/reviewer-rev-7")[
+        pin = "fedcba9876543210" * 2 + "fedcba98"
+        ptr = render(role, head, **base, **a, publish_ref=ref, pin=pin)["job_config"]["ccr"]["events"][0][
+            "data"]["message"]["content"]
+        check(f"a published {role}'s event is a stub: the seat line, the footer ban and PROMPT.md at the pinned SHA",
+              ptr.startswith(_seat_line(role, "owner/name", a["pr"], head, a["topic"], a["nonce"]))
+              and f"git fetch origin {pin} && git show {pin}:PROMPT.md" in ptr and f"of {ref} " in ptr
+              and sum(FOOTER_BAN in x for x in ptr.splitlines()) == 1 and len(ptr) < len(prompts[role]))
+        check(f"a published {role} with no 40-hex pin is refused", refused(role, publish_ref=ref, pin="")
+              and refused(role, publish_ref=ref, pin=ref) and not refused(role, publish_ref=ref, pin=pin))
+    check("a reviewer's stub carries its nonce", "abc123" in render(
+        "reviewer", head, **base, pr="7", nonce="abc123", publish_ref="dispatch/reviewer-rev-7", pin=head)[
         "job_config"]["ccr"]["events"][0]["data"]["message"]["content"])
     check("a 39-hex head is refused", refused(h=head[:-1]))
     check("a 41-hex head is refused", refused(h=head + "0"))

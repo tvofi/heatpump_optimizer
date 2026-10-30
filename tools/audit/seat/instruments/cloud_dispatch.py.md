@@ -18,16 +18,20 @@
   PAYLOAD.json and PROMPT.md on origin as `dispatch/<role>-<topic>`
   (fast-forwarded, an identical tree adds nothing, a render refusal pushes
   nothing) and prints that ref name, the one line a standing trigger is fired
-  with. A published payload's event is a pointer to PROMPT.md on its ref, not
-  the prompt (the runner echoes the event into the orchestrator); `--publish`
+  with. A published payload's event is a stub, not the prompt (the runner
+  echoes the event into the orchestrator): the seat line and the footer ban
+  inline, and PROMPT.md at the commit that holds it, pinned by SHA and never
+  by the moving ref (PROMPT.md is committed alone, PAYLOAD.json on top);
+  `--publish`
   on the flag path publishes to `dispatch/<role>-<topic>`, else
   `dispatch/<role>-rev-<PR>`, the same way; `dev/audit/harnesses/r10_flow_dispatch_mutants.py`
   re-runs its mutants. When: dispatching a seat to the cloud runner;
   paste the printed JSON as the trigger update, or fire the standing trigger
   with the printed ref. The measured shape of a cloud seat:
   every trigger update resends the full ccr and then `run`s it, never a
-  patch; the brief is snapshotted at `run`, so it is inlined at render time,
-  an edit afterwards reaches no running seat, and overlapping runs are fine;
+  patch; the brief is snapshotted at `run`, so it is inlined at render time
+  (into the event, or into PROMPT.md at the pinned commit), an edit afterwards
+  reaches no running seat, and overlapping runs are fine;
   the toolchain (`PATH` with `/opt/hpo/venv-ci/bin`, `BASH_ENV`,
   `HPO_TYPING_PYTHON`, `OPENBLAS_CORETYPE`) comes from the environment's
   variables, not from a profile the seat sources, so the prompt says only
