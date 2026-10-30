@@ -3666,7 +3666,7 @@
     "branch": "handoff/r10-rca-structure-blind",
     "commit": "f0a4acac7984",
     "last_step": null,
-    "next_step": "dispatch a fixer once every after group is done",
+    "next_step": "done: merged in #2415 (f0a4acac7)",
     "note": null
    }
   },
