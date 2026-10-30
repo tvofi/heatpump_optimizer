@@ -485,7 +485,7 @@
     "branch": "handoff/r10-currency",
     "commit": "27b59c9f7975d1526529fe5aff21e8243caf19c5",
     "last_step": null,
-    "next_step": "dispatch a fixer once every `after` group is done",
+    "next_step": "done: merged in #2620 (27b59c9f7)",
     "note": null,
     "pr": 2620
    },
