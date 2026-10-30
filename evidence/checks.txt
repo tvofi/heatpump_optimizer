@@ -1,0 +1,8 @@
+check( call sites: 16
+STRUCTURE RATCHET PASSED
+ModuleNotFoundError: No module named 'homeassistant'
+env_drift claims-only rc=0
+ 3 files changed, 339 insertions(+), 54 deletions(-)
+4a8247e8cd71e19f457ccdfc805c1dce3768f23c
+merge-tree rc=0 (origin/main 507a9ec264eb373b132248d752259254d8a9fa4d)
+ALL 112 HARNESS HEADER CHECKS PASSED
