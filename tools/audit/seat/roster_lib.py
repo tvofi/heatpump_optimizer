@@ -49,6 +49,12 @@ STAGE_KIND = (
     ("not-started", "derivable"),
     ("planned", "derivable"),
     ("queued", "derivable"),
+    # The two design steps (decision 0014): a designer or design reviewer is
+    # working the group. Derivable, not a live claim: no pull request exists
+    # at either, so no read rewrites them, and the planner's LIVE view stays
+    # its own four words.
+    ("design", "derivable"),
+    ("design-review", "derivable"),
     ("in-progress", "derivable"),
     ("in-flight", "derivable"),
     ("fixing", "derivable"),
@@ -421,6 +427,18 @@ def branch_of(group: dict) -> str:
     `handoff/<group id lowercased>`."""
     return ((group.get("resume") or {}).get("branch")
             or "handoff/" + str(group.get("group") or "").lower())
+
+
+#: The sizes whose fixer waits for an approved design (decision 0014).
+DESIGN_SIZES = ("L", "XL")
+
+
+def needs_design(group: dict) -> bool:
+    """Whether the group is eligible for the designer and design reviewer: size
+    L or XL. A group with an approved design, pre-study or prototype already on
+    record is exempt at the dispatch (`cloud_dispatch --design-exempt`), where the
+    orchestrator states the reason; the roster carries no such marker."""
+    return group.get("size") in DESIGN_SIZES
 
 
 def norm_group(s: str) -> str:
