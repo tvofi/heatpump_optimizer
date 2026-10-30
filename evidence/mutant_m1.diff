@@ -1,0 +1,11 @@
+diff --git a/hacs.json b/hacs.json
+index 31a6627ed..47f50e91e 100644
+--- a/hacs.json
++++ b/hacs.json
+@@ -2,5 +2,5 @@
+   "name": "Heat Pump Cost Optimizer",
+   "homeassistant": "2025.2.0",
+   "zip_release": true,
+-  "filename": "heatpump_optimizer.zip"
++  "filename": "heatpump-optimizer.zip"
+ }
