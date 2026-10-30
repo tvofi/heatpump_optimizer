@@ -1,0 +1,4 @@
+eea1d6108 2026-10-30T13:38:31+01:00 roster_edit set-stage R10-COP-PARTLOAD (tools/audit/seat/roster_edit.py)
+c3a7bfd9a 2026-10-30T13:38:12+01:00 roster_edit set-stage R10-UX-HEALTH (tools/audit/seat/roster_edit.py)
+d920e6bec 2026-10-30T13:37:53+01:00 roster_edit set-stage R10-COP-GATE (tools/audit/seat/roster_edit.py)
+dc112dce2 2026-10-30T13:36:23+01:00 roster_sync: derive stages from pull requests (tools/audit/seat/roster_sync.py)
