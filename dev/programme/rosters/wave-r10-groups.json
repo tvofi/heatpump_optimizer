@@ -12080,7 +12080,8 @@
    "reviewerModel": null,
    "after": [
     "R10-MARKETPLACE",
-    "R10-STAMP-ROUND-MAJOR"
+    "R10-STAMP-ROUND-MAJOR",
+    "R10-README-GRAPHICS"
    ],
    "files": [],
    "carry": [],
