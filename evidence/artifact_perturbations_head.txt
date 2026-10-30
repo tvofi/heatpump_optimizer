@@ -1,0 +1,10 @@
+
+NULL findings 0 pending 5 {'symbol': 9, 'file': 132, 'module': 19, 'service': 3, 'argument': 6, 'job': 11, 'ledger kind': 19}
+ci.yml job prelude: 1 finding(s) ['dev/README.md: job `ci / prelude` names no job of .github/workflows/ci.yml']
+tests.yml matrix 3.14: 1 finding(s) ['dev/README.md: job `tests / fast (3.14)` names a matrix value the job does not carry']
+bus.sh push-verdict: 1 finding(s) ['dev/README.md: `tools/audit/seat/bus.sh push-verdict` is an argument the script never reads']
+heartbeat.sh --once: 1 finding(s) ['dev/README.md: `heartbeat.sh --once` is an argument the script never reads']
+ledger KINDS handoff-no-pr: 0 finding(s) []
+services.yaml simulate_plan: 1 finding(s) ['docs/architecture.md: service `simulate_plan` is not in custom_components/heatpump_optimizer/services.yaml']
+module sysid removed: 1 ['docs/architecture.md: module `sysid` is no module of custom_components/heatpump_optimizer']
+class InputReader renamed in custom_components/heatpump_optimizer/inputs.py: 2 ['docs/architecture.md: `inputs.InputReader` is not defined in custom_components/heatpump_optimizer/inputs.py', 'docs/architecture.md: `InputReader` is not defined in custom_components/heatpump_optimizer/inputs.py']

@@ -1,0 +1,36 @@
+
+=== doc claims vs code facts (#1413) ===
+DUE docs/architecture.md:371 [target: R10-PARAMS-OWNER] R10-PARAMS-OWNER=done
+DUE docs/architecture.md:372 [target: R10-LIVESTATE] R10-LIVESTATE=done
+DUE docs/architecture.md:373 [target: R10-ARCH-SHAPES] R10-ARCH-SHAPES=done
+DUE docs/architecture.md:374 [target: R10-SENSOR-PAYLOAD] R10-SENSOR-PAYLOAD=done
+DUE docs/architecture.md:375 [target: R10-HEAT-METER] R10-HEAT-METER=done
+    docs/architecture.md:376 [target: R10-COP-GATE] R10-COP-GATE=in-progress
+DUE docs/architecture.md:377 [target: R10-SCORES] R10-SCORES=done
+DUE docs/architecture.md:378 [target: R10-LEARNER-ETA] R10-LEARNER-ETA=done
+DUE docs/architecture.md:379 [target: R10-CONFIGFLOW-PAGES] R10-CONFIGFLOW-PAGES=done
+DUE dev/README.md:166 [target: R10-CI-LAYOUT-P2] R10-CI-LAYOUT-P2=done
+DUE dev/README.md:177 [target: R10-CI-LAYOUT-P2; owner step] R10-CI-LAYOUT-P2=done
+DUE dev/README.md:204 [retired-by: R10-CI-LAYOUT-P2] R10-CI-LAYOUT-P2=done
+DUE dev/README.md:205 [retired-by: R10-CI-LAYOUT-P2] R10-CI-LAYOUT-P2=done
+DUE dev/README.md:206 [target: R10-CI-LAYOUT-P2] R10-CI-LAYOUT-P2=done
+DUE dev/README.md:229 [target: R10-CI-LAYOUT-P2; owner step] R10-CI-LAYOUT-P2=done
+DUE dev/README.md:243 [target: R10-ORCH-MACHINERY] R10-ORCH-MACHINERY=done
+DUE dev/README.md:250 [target: R10-ORCH-MACHINERY] R10-ORCH-MACHINERY=done
+DUE dev/README.md:254 [target: R10-FLOW-RELAY-HOLD] R10-FLOW-RELAY-HOLD=done
+DUE dev/README.md:255 [target: R10-PLAN-ARTIFACT] R10-PLAN-ARTIFACT=done
+    dev/README.md:256 [target: R10-FLOW-TOOLKIT-MEASURE, R10-FLOW-TOOLKIT-MODEL] R10-FLOW-TOOLKIT-MEASURE=done, R10-FLOW-TOOLKIT-MODEL=not-started
+DUE dev/README.md:288 [target: R10-ORCH-MACHINERY] R10-ORCH-MACHINERY=done
+DUE dev/README.md:289 [target: R10-ORCH-MACHINERY] R10-ORCH-MACHINERY=done
+DUE dev/README.md:290 [target: R10-ORCH-MACHINERY] R10-ORCH-MACHINERY=done
+DUE dev/README.md:291 [target: R10-ORCH-MACHINERY] R10-ORCH-MACHINERY=done
+DUE dev/README.md:303 [target: R10-FLOW-RELAY-HOLD] R10-FLOW-RELAY-HOLD=done
+    dev/README.md:308 [target: R10-PLAN-ARTIFACT, R10-FLOW-TOOLKIT-MODEL] R10-PLAN-ARTIFACT=done, R10-FLOW-TOOLKIT-MODEL=not-started
+DUE dev/README.md:309 [target: R10-FLOW-TOOLKIT-MEASURE] R10-FLOW-TOOLKIT-MEASURE=done
+DUE dev/README.md:349 [target: R10-ORCH-MACHINERY] R10-ORCH-MACHINERY=done
+UNRESOLVED dev/README.md: ledger kind `stage-mismatch`, though R10-ORCH-MACHINERY landed
+UNRESOLVED dev/README.md: ledger kind `absorb-edge-missing`, though R10-ORCH-MACHINERY landed
+UNRESOLVED dev/README.md: ledger kind `record-owed`, though R10-ORCH-MACHINERY landed
+UNRESOLVED dev/README.md: ledger kind `record-owed` in a diagram note, though R10-ORCH-MACHINERY landed
+UNRESOLVED dev/README.md: ledger kind `record-owed` in a diagram note, though R10-ORCH-MACHINERY landed
+25 of 28 marker(s) due
