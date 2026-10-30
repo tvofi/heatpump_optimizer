@@ -12400,12 +12400,13 @@
    ],
    "carry": [],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r10-hotfix-away-live",
     "commit": null,
     "last_step": null,
     "next_step": "fixer dispatched",
-    "note": "live user defect tvofi 2026-10-30: away override persisted but not in live state"
+    "note": "live user defect tvofi 2026-10-30: away override persisted but not in live state",
+    "pr": 3015
    },
    "brief": "Hotfix from a live user defect (tvofi, 2026-10-30): the away switch's override persisted in the away store (active, with a return time) while the coordinator's live away view, which the solve reads, reported away off, so the plan heated as if home (66.7 kWh over 24 h). Reproduce through the production coordinator (restore then resolve, switch then refresh, set-point reload then refresh), find which path drops the override, and fix it at the owning seam so the live state equals the resolved override. Controls: after each path the solve's bands carry the away target; null: an inactive store leaves the solve unchanged; an override past its return expires as today. One mutant per gate. The weekend and holiday setback override is the separate group R10-HOTFIX-AWAY-SETBACK."
   },
@@ -12452,12 +12453,13 @@
    ],
    "carry": [],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": null,
     "commit": null,
     "last_step": null,
     "next_step": "dispatch fixer; add this group to the after lists of R10-ARCH-DOCS and R10-CATALOG-PR",
-    "note": "2026-10-30 owner request (tvofi): README graphics in the HA Marketplace; pre-study at handoff-body/r10-readme-graphics"
+    "note": "2026-10-30 owner request (tvofi): README graphics in the HA Marketplace; pre-study at handoff-body/r10-readme-graphics",
+    "pr": 3014
    },
    "brief": "Owner request, 2026-10-30 (tvofi): the Home Assistant Marketplace repository page does not show the front-page README graphics. Pre-study at handoff-body/r10-readme-graphics, measured against homeassistant 2026.11.0b1 and home-assistant-frontend 20261028.1. Its core finding: the Marketplace sanitizer (js-xss safeAttrValue in the frontend markdown worker) blanks every src and href that is not absolute and does not start with ./ or ../ or /, before its URL rewriter runs. So every repository-relative image and link in README.md renders broken, and mermaid fences show as plain code. (1) Prefix every repository-relative link and image target in README.md with ./ so GitHub, tools/site/build_docs.mjs and the Marketplace all resolve it. (2) For each mermaid block in README.md, commit a pre-rendered PNG (2x, opaque, light) rendered with the mermaid pinned in tools/site through Chromium on the pattern of docs/img/readme/render.mjs. Place it as a ./ markdown image directly above the block, and close that block's details element. The setup-flow block stays identical to docs/configuration.md and docs/setup.md. (3) Add an arm to tests/doc_claims.py that refuses a bare-relative src, href or srcset in README.md, and refuses a mermaid block whose figure is missing or whose recorded source hash (a sidecar manifest the generator writes) differs from the block. Show a planted one-character block edit red, a planted prefix removal red, and the unchanged tree green. (4) Classify the new manifest and figures as reads of tests/doc_claims.py in tests/closure.py, the route docs/img/brand/coffee.svg took. Finder's harness: a replica of the Marketplace markdown pipeline under dev/audit/harnesses/, red at the base and green at the head, with an absolute-URL image as the null control. Dark mode is IN scope (tvofi, 2026-10-30: \"dark mode should absolutely not be scoped out. you have your mandate\"). Each figure also gets a dark PNG and is placed as a picture element with a prefers-color-scheme dark source and a light img fallback. The code-owned tools/site/ change this needs is approved by the orchestrator as tvofi under mandate 6329234399. The Marketplace replica shows what the picture element renders there, and the drift arm requires both variants. Out of scope: docs other than README.md, VERSION and release notes. Must merge before R10-ARCH-DOCS and R10-CATALOG-PR: the Marketplace fetches README.md at the release tag, so only a stamped release shows the fix."
   },
