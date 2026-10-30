@@ -1,0 +1,4 @@
+  FAIL DESIGN OWED: an L group whose last predecessor dispatched and that has no design ref is owed one
+  FAIL DESIGN OWED: null controls: a predecessor not dispatched, a design ref, an S group and a dispatched group owe nothing
+orchestrator_tick self-test: 218 checks, 2 failed
+rc=1
