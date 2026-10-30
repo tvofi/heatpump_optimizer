@@ -13,7 +13,10 @@
   `Carry <i>:`, `<i>` its 0-based roster index; default the round's roster
   branch, `roster_lib.default_roster_ref`); the head is `--head`, else
   `origin/main`'s tip, never the roster ref's (a reviewer must pass its PR
-  head); the environment is the overlay / `HPO_CLOUD_ENV_ID`; a flag it does
+  head); a `--model` outside the family the roster rules for the role (the
+  group's `model.fixer` / `model.reviewer`, else `fixerModel` /
+  `reviewerModel`) refuses in one line, and a role it rules nothing for passes;
+  the environment is the overlay / `HPO_CLOUD_ENV_ID`; a flag it does
   not consume (`--topic`, `--brief`, `--repo`, `--env-id`, `--out`,
   `--publish`) refuses; it renders through the same `publish_seat` as the flag
   path's `--publish` (the payload is that path's byte for byte), publishes

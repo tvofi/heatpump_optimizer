@@ -55,7 +55,8 @@ WHAT IT REFUSES (exit 2, nothing printed on stdout):
     host-path grammar): the payload is published to the runner, and a seat's
     prompt may not name the machine it was written on;
   * an unreadable brief;
-  * with --group: a group the roster does not name, a roster that cannot be read,
+  * with --group: a model outside the family the roster rules for the role
+    (`model_refusal`), a group the roster does not name, a roster that cannot be read,
     a reviewer without --head, a ref name that would publish the host
     (ref_privacy.refusal), and any flag the group path does not consume
     (--topic, --brief, --repo, --env-id, --out; GROUP_FLAGS gives each its reason).
@@ -133,6 +134,30 @@ WAIT_LINE = "Never wait in one tool call longer than 240 s; poll again instead."
 
 class Refusal(Exception):
     pass
+
+
+#: The roster key a role's model is ruled under: the group's `model` table, else its
+#: `<key>Model` field (roster_lib's shape). The values are the roster's, routed by
+#: judgement per group (tvofi 2026-10-24 card 9); this table only names the key. A
+#: role with no key (the probe, the design steps) has no ruling to enforce.
+MODEL_KEY = {"fixer": "fixer", "reviewer": "reviewer"}
+
+
+def _family(model: str) -> str:
+    """`claude-sonnet-5-5` and `sonnet` are one model family; an unknown name is itself."""
+    m = re.search(r"haiku|sonnet|opus|fable", model.lower())
+    return m.group(0) if m else model.lower()
+
+
+def model_refusal(role: str, group: dict, model: str) -> str | None:
+    """Why `model` may not run `role` for `group`, in one line, or None when the roster
+    rules no model for it or the model is of the family it rules."""
+    key = MODEL_KEY.get(role)
+    table = group.get("model") if isinstance(group.get("model"), dict) else {}
+    ruled = key and (table.get(key) or group.get(f"{key}Model"))
+    if not ruled or _family(model) == _family(ruled):
+        return None
+    return f"{group.get('group')} rules {ruled} for its {role} (roster model.{key}); --model {model} is not {ruled}"
 
 
 def _seat_line(role: str, repo: str, pr: str, head: str, topic: str, nonce: str) -> str:
@@ -453,6 +478,9 @@ def dispatch_group(role: str, group_id: str, model: str, *, repo_dir: str = ".",
     group = roster_lib.groups_of(roster).get(group_id)
     if group is None:
         raise Refusal(f"{group_id} is not a group of the roster at {roster_ref}")
+    why = model_refusal(role, group, model)
+    if why:
+        raise Refusal(why)
     environ = os.environ if environ is None else environ
     known = _config(argparse.Namespace(overlay=overlay, env_id=None, model=model, repo=None), environ)
     topic = group_id if role in DESIGN_ROLES else _topic_of(group)
@@ -561,13 +589,15 @@ def _group_checks(check) -> None:
         two = {"group": "R10-TWO", "brief": "Two things.\n", "after": ["R10-X", "R10-BIG"],
                "carry": ["First, verbatim.", "Second; tools/z.py."]}
         cbad = {"group": "R10-CBAD", "brief": "Clean.\n", "carry": ["fine", "cd " + users + "someone/work"]}
-        land([grp, bad, big, two, cbad])
+        ruled = {"group": "R10-M", "brief": "Model.\n", "model": {"fixer": "sonnet", "reviewer": "opus"}}
+        legacy = {"group": "R10-L", "brief": "Legacy.\n", "fixerModel": "opus"}
+        land([grp, bad, big, two, cbad, ruled, legacy])
         git(work, "remote", "add", "origin", str(origin))
         tip = git(work, "rev-parse", "origin/main").strip()
 
-        def dispatch(group="R10-X", role="fixer", **kw):
+        def dispatch(group="R10-X", role="fixer", model="m-1", **kw):
             with contextlib.redirect_stderr(io.StringIO()):  # roster_lib's absent-branch note
-                return dispatch_group(role, group, "m-1", repo_dir=str(work), **{"environ": env, **kw})
+                return dispatch_group(role, group, model, repo_dir=str(work), **{"environ": env, **kw})
 
         def refused(*a, **kw):
             try:
@@ -657,6 +687,20 @@ def _group_checks(check) -> None:
         check("a group with no carry renders its brief and `After:` alone (the null control for the carries)",
               msg.endswith("\nBrief (snapshotted when this payload was rendered):\n"
                            "Fix the thing in tools/x.py.\n\nAfter: none\n") and "Carry " not in msg)
+        try:
+            dispatch("R10-M", model="claude-opus-5-5")
+            why = ""
+        except Refusal as e:
+            why = str(e)
+        check("a fixer on a model the roster does not rule for the group refuses, in one line naming both",
+              "R10-M rules sonnet for its fixer" in why and "claude-opus-5-5" in why and "\n" not in why
+              and "r10-m" not in git(work, "ls-remote", str(origin)))
+        check("a fixer on the ruled family passes, by full id or alias (null control)",
+              dispatch("R10-M", model="claude-sonnet-5-5") == dispatch("R10-M", model="sonnet") == "dispatch/fixer-r10-m")
+        check("the legacy <role>Model field rules where the model table is absent",
+              refused("R10-L", model="claude-sonnet-5-5") and dispatch("R10-L", model="claude-opus-5-5"))
+        check("a role the roster rules no model for is not checked (a probe on R10-M runs on any model)",
+              dispatch("R10-M", "probe", model="claude-haiku-5-5") == "dispatch/probe-r10-m")
         twotext = fetched(dispatch("R10-TWO"), "PROMPT.md")
         check("a group's two carries render numbered by roster index and verbatim, after its brief and `After:`",
               twotext.endswith("Two things.\n\nAfter: R10-X, R10-BIG\n\nCarry 0: First, verbatim.\n\n"

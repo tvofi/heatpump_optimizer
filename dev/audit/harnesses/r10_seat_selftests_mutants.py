@@ -89,6 +89,9 @@ MUTANTS = [
     # r10-flow-design-stages-p2 E: the setup line's toolchain check.
     ("cloud_dispatch-11", "cloud_dispatch.py",
      'f"`{SETUP_CHECK}`, and on REFUSE stop: report its line as your result and start no work. "', '""'),
+    # r10-flow-design-stages-p2 F: the roster's model ruling, enforced at the dispatch.
+    ("cloud_dispatch-12", "cloud_dispatch.py", "if not ruled or _family(model) == _family(ruled):", "if True:"),
+    ("cloud_dispatch-13", "cloud_dispatch.py", "if not ruled or _family(model) == _family(ruled):", "if not ruled:"),
     ("S03", "cloud_relay.sh", 'if [ -f "$led" ] && grep -qxF "$ref $sha" "$led"; then',
      'if [ -f "$led" ] && ! grep -qxF "$ref $sha" "$led"; then'),
     ("S04", "daemonize.py", '"-u" not in run_argv[1:2]:', '"-u" in run_argv[1:2]:'),
