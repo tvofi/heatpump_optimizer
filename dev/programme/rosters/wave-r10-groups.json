@@ -12067,6 +12067,48 @@
     "note": "2026-10-29 owner: \"Open the catalog PR once v10.0.0 is stamped and this round is closed out instead\". Reference: issue #2965; the full reference stays out of tree beside the seat's group files"
    },
    "brief": "Owner directive 2026-10-29: open the Home Assistant Marketplace catalog PR once round 10 is closed out and v10.0.0 is stamped, not before. Preconditions: R10-MARKETPLACE merged (ZIP-release asset, manifest categories, install docs) and R10-STAMP-ROUND-MAJOR merged; the v10.0.0 release is published with the heatpump_optimizer.zip asset attached, and that ZIP unpacks under 100 MiB with manifest.json at its root; the HACS action and hassfest pass at the v10.0.0 tag. Step: from the personal tvofi account (never an org, never the hpo-author App), fork hacs/default, add tvofi/heatpump_optimizer to the integration list in sorted position, and open the PR filling its template with links to the v10.0.0 release and the passing HACS-action and hassfest runs. Read the PR back, link it on issue #2965, and record its URL in this group's resume. Never delete or rename the repository while listed. Reference: the investigation seat's full report is issue #2965's body (its requirements table, risks, owner-only items O1-O4 are in that body)."
+  },
+  {
+   "group": "R10-FLY-CANCEL-SWEEP",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "instrument",
+   "severity": "medium",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 6,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "tools/pr/cancel_superseded.py",
+    "tools/audit/seat/INSTRUMENTS.md"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-fly-cancel-sweep",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer (fly-in)",
+    "note": "triage P266, 2026-10-28 (owner-directed)"
+   },
+   "brief": "From triage P266 (V180, owner-directed by tvofi 2026-10-28: the account's concurrent-job limit is the CI bottleneck; cancel superseded runs). tools/pr/cancel_superseded.py cancels a branch's older-head runs only from INSIDE the newer run (ci.yml line 154), so while that run is queued for a runner it cancels nothing: #2927 runs 40751731241/40751736668 at dad80f255 and #2928 runs 40752875163/40752880041 at 582d0e694 stayed active until a manual pass at 19:21Z, each the superseded first push of open_pr.sh's two-push open (lines 70 and 84). (1) Add `cancel_superseded.py sweep --repo R [--dry-run]` reusing candidates() (line 48): one open-PR listing (number, head sha, head repo) and one runs listing per active status (queued, in_progress, waiting); per open same-repo PR branch cancel what candidates() selects against the live head (with no run yet at the live head, every active run at another head on that branch). (2) NEVER cancel: a run at the live head (same-SHA twins included); a run on main; any push, workflow_run, schedule or pull_request_target event (train-hold, beat and record pushes are untouched by construction); a branch whose live-head commit is authored by github-actions[bot] (the autofix rule, a98d5a05a). A run on a branch with no open PR is reported as a ghost, never cancelled. (3) One line per action and `CANCEL-SWEEP: cancelled n, kept m (live head), skipped k (bot head / not a PR), ghosts g`; an unreadable answer cancels nothing and exits 0. (4) The orchestrator's sweep runs it each pass (R10-ORCH-BEATD may adopt it as a job later). (5) --self-test arms beside the existing ones: the #2927 shape cancels both old runs and keeps the queued live one; a bot-authored live head cancels nothing; a push run on main and a no-PR branch run are never cancelled; mutant dropping the event filter cancels the push fixture and fails; null: only live-head runs cancels nothing. INSTRUMENTS.md row. Code-owned (.github/CODEOWNERS:75): merges on tvofi's approving review. Not carried: a new file under tools/audit/seat/ (one predicate, one owner); a one-push open_pr.sh (the row needs the number the first push creates). (6) Owner's amendments to V181 (2026-10-28T19:44:50Z to 19:59:53Z, as clarified): every instrument that schedules or cancels CI reads one priority setting, a CI-priority configuration file under the audit config directory, read through a reader module beside the seat instruments (neither exists in the tree yet; they land with the group triage P267 names) (triage: dev/programme/triage/s6-batch56.md#P267 as amended by triage: dev/programme/triage/s6-batch57.md#P268), and each group's mapping only from the roster through roster_lib; the sweep honours never_cancel's main-push (a superseded run is dead work, so CP and hotfix superseded runs remain cancellable unless the owner widens it). If the reader is not on main when this group lands, the sweep's own event filter (item 2) already keeps main-push runs, and it calls the reader once it exists; it does not wait on that group. triage: dev/programme/triage/s6-batch55.md#P266"
   }
  ]
 }
