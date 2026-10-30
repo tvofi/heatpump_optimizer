@@ -99,3 +99,8 @@ n/a: `dS +0.0000 NULL`, no metric moved (Figures).
 ## Friction
 
 - seat-venv-pin: cost: `tools/audit/seat/seat_venv.sh` pins CPython 3.14.7 (`tests/typing_budgets.json`), which uv cannot download in this container (`No download found for request: cpython-3.14.7-linux-x86_64-gnu`), and the script refuses the `HPO_PYTHON=/usr/bin/python3.13` override the same way; the gate ran on a scratch 3.13.17 venv built from `tests/requirements-ci.txt`, so the mypy census was not run here. Carry: dismissed: environment-only, the typing census runs in CI
+
+## Unpinned sites
+
+- `custom_components/heatpump_optimizer/pump_arbiter.py:1195 CMP_BOUND` -- the `i >= len(inp.plan.power_schedule or ())` bound in `step_supply`. Disposition: left to `mutation-autofix`, whose lane mutates `custom_components/` and pins a killed mutant after the push; no pin is claimed here, and no survivor is claimed either.
+- `custom_components/heatpump_optimizer/pump_arbiter.py:1222 GUARD_OFF` -- the `if not EntryConfig.from_mapping(inp.config).heat_pump_switch_entity: return` guard in `note_supply` (no tick is armed without a switch entity). Disposition: left to `mutation-autofix` on the same terms; no pin or survivor is claimed here.
