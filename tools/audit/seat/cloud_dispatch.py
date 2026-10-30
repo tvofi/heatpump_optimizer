@@ -110,6 +110,17 @@ FOOTER_BAN = ("Write no Claude Code footer, no Co-Authored-By or Claude-Session 
               "with `git log --format=%B` before pushing.")
 
 
+#: The identity a dispatch commit and a writing seat's own commits carry: a noreply
+#: address, which ref_privacy's host-email class passes, never the host's default.
+SEAT_NAME, SEAT_EMAIL = "seat", "seat@users.noreply.github.com"
+#: The roles that commit in their own checkout, and so pin that identity first.
+COMMITTING_ROLES = ("fixer", "probe")
+#: Where a cloud fixer pushes each verified step (`<WIP_NS>/<topic>`), so an idle
+#: container holds no unpushed work. Neither cloud_relay.sh's handoff arm nor
+#: `bus.sh orphans` lists the prefix, so a step push moves no pull request.
+WIP_NS = "handoff-wip"
+
+
 #: A seat's prompt cache lives 5 min: a wait past it rewrites the whole context on
 #: the next turn (R10-FLY-CACHE-PROMPTS). 240 s stays under it; GitHub's 60 s poll
 #: floor stays the lower bound.
@@ -144,7 +155,9 @@ def _pointer(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, r
 def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, brief: str,
             design: str = "") -> str:
     first = _seat_line(role, repo, pr, head, topic, nonce) + " " + FOOTER_BAN
-    setup = ("Setup: `git fetch --unshallow --tags origin`. The session-start `toolchain:` line "
+    pin = (f"Before any commit, pin the seat identity: `git config user.name {SEAT_NAME} && git config "
+           f"user.email {SEAT_EMAIL}`. ") if role in COMMITTING_ROLES else ""
+    setup = ("Setup: `git fetch --unshallow --tags origin`. " + pin + "The session-start `toolchain:` line "
              "says whether venv-ci's python3 is on PATH: on REFUSE, start each Bash call with "
              "`eval \"$(bash .claude/hooks/session-start.sh --env-lines)\"`. Run anything heavy in "
              "the background with Monitor and no timeout. " + WAIT_LINE)
@@ -181,17 +194,24 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
             f"parentless commit with a private index and touches no branch of your checkout: "
             f"`R=$(git rev-parse --show-toplevel); G=$(git rev-parse --absolute-git-dir); mkdir -p $W/pr && "
             f"cp -r $W/verdict.md $W/ev $W/pr/ && cd $W/pr && T=$(GIT_DIR=$G GIT_INDEX_FILE=$W/idx GIT_WORK_TREE=$W/pr "
-            f"sh -c 'git add -A -f . && git write-tree') && C=$(GIT_DIR=$G git -c user.name=seat "
-            f"-c user.email=seat@users.noreply.github.com commit-tree $T -m \"verdict {pr} {head}\") && "
+            f"sh -c 'git add -A -f . && git write-tree') && C=$(GIT_DIR=$G git -c user.name={SEAT_NAME} "
+            f"-c user.email={SEAT_EMAIL} commit-tree $T -m \"verdict {pr} {head}\") && "
             f"git -C $R push -q origin $C:refs/heads/probe/rev-{pr}-{nonce.strip()[:8]}`. "
             "That ref is the return signal. Do not post comments, approve or merge.")
     elif role == "fixer":
         body = (
             "Role: read dev/governance/roles/fixer.md from main, and follow it exactly, "
             f"in a worktree of your own cut from origin/main. Fetch {head} for the base you were given.\n"
-            f"Output: push the code to refs/heads/handoff/{topic}, then write the PR body and run "
+            f"Output: push each verified step, fast-forward only, to refs/heads/{WIP_NS}/{topic} before "
+            f"any wait on a background run, so an idle container loses nothing; never step-push to "
+            f"handoff/{topic}, whose move updates the pull request. Before the handoff, when origin/main "
+            "has moved since your last `tools/pr/prepr.sh` run, `git merge origin/main`, rerun "
+            "`tools/pr/prepr.sh` (the body check included) and fix what it refuses; hand off only on a "
+            "clean run (an unmoved main needs no second run: say so in the body). Then push the code to "
+            f"refs/heads/handoff/{topic}, then write the PR body and run "
             f"`bash tools/audit/seat/body_push.sh {topic} <body.md>`, which pushes "
-            f"refs/heads/handoff-body/{topic}; that second push is the return signal. Push nothing "
+            f"refs/heads/handoff-body/{topic}; that second push is the return signal. Once it succeeds, "
+            f"delete the step ref: `git push origin :refs/heads/{WIP_NS}/{topic}`. Push nothing "
             "else, open no pull request and write no delivery row. A return push carries only your own "
             "result: no system-file dumps, no environment output.")
     elif role == "designer":
@@ -222,7 +242,8 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
             f"Output: write your result as a body file and run `bash tools/audit/seat/body_push.sh "
             f"{topic} <result.md>`, which pushes refs/heads/handoff-body/{topic}; that push is the "
             "return signal. A return push carries only your own result tokens.")
-    tail = ("Never write to any branch except your return refs. Never work around a hook or a refusal; "
+    refs = f"your return refs and refs/heads/{WIP_NS}/{topic}" if role == "fixer" else "your return refs"
+    tail = (f"Never write to any branch except {refs}. Never work around a hook or a refusal; "
             "report it in your result instead.")
     text = "\n".join([first, setup, body, tail]) + "\n"
     if brief:
@@ -285,7 +306,7 @@ DISPATCH_NS = "dispatch"
 #: ref, whose tip is the roster branch a fixer must not fork from.
 HEAD_REF = roster_lib.MAIN_REF
 #: Identity of the commit that carries a dispatch (a constant, never the host's).
-_SEAT = ("-c", "user.name=seat", "-c", "user.email=seat@users.noreply.github.com")
+_SEAT = ("-c", f"user.name={SEAT_NAME}", "-c", f"user.email={SEAT_EMAIL}")
 
 
 def _git(repo_dir: str, *argv: str, stdin: str | None = None) -> str:
@@ -738,6 +759,28 @@ def _group_checks(check) -> None:
             published = False
         check("_publish itself refuses a ref that would publish the host, and pushes nothing",
               not published and "someone" not in git(work, "ls-remote", str(origin)))
+        # A step push matches no glob the handoff machinery lists, read from its own source.
+        globs = (re.findall(r"'(refs/heads/handoff[^'*]*\*)'", (HERE / "cloud_relay.sh").read_text())
+                 + re.findall(r'"\+(refs/heads/handoff[^:"*]*\*):', (HERE / "bus.sh").read_text()))
+        git(work, "push", "-q", str(origin), f"{tip}:refs/heads/{WIP_NS}/r10-x", f"{tip}:refs/heads/handoff/r10-x")
+        listed = git(work, "ls-remote", str(origin), *globs)
+        check("a handoff-wip push is invisible to cloud_relay.sh's handoff arm and bus.sh orphans; handoff/ is not (null)",
+              len(globs) == 4 and f"refs/heads/{WIP_NS}/" not in listed and "refs/heads/handoff/r10-x" in listed)
+        git(work, "push", "-q", str(origin), f":refs/heads/{WIP_NS}/r10-x", ":refs/heads/handoff/r10-x")
+        # The pinned identity passes ref_privacy --commits; a machine's domain does not (null control).
+        bare_env = {k: v for k, v in os.environ.items() if not k.startswith(("GIT_AUTHOR_", "GIT_COMMITTER_"))}
+
+        def judged(email):
+            repo = Path(td) / f"ident-{len(email)}"
+            throwaway_git_init(repo, "-q")
+            subprocess.run(["git", "-C", str(repo), "-c", f"user.name={SEAT_NAME}", "-c", f"user.email={email}",
+                            "commit", "-q", "--allow-empty", "-m", "a step"], env=bare_env, check=True)
+            r = subprocess.run([sys.executable, "-I", str(HERE / "ref_privacy.py"), "guard", "--ref",
+                                f"{WIP_NS}/r10-x", "--commits", "HEAD", "-C", str(repo)],
+                               capture_output=True, text=True, env=bare_env)
+            return r.returncode, git(repo, "log", "-1", "--format=%ae")
+        check("ref_privacy guards a handoff-wip push like any: the pinned identity passes, a .local one refuses (null)",
+              judged(SEAT_EMAIL) == (0, SEAT_EMAIL + "\n") and judged("seat@build.local")[0] == 3)
         out = io.StringIO()
         with contextlib.chdir(work), contextlib.redirect_stdout(out):
             rc = main(["--role", "reviewer", "--head", rhead, "--pr", "7", "--nonce", "abc123", "--publish",
@@ -923,6 +966,21 @@ def self_test() -> int:
           all(WAIT_LINE in t and "240 s" in WAIT_LINE for t in prompts.values()))
     check("the fixer reads its role file, not CLAUDE.md, which the harness already loaded",
           "dev/governance/roles/fixer.md" in prompts["fixer"] and "CLAUDE.md" not in prompts["fixer"])
+    wip, fx = f"refs/heads/{WIP_NS}/t-1", prompts["fixer"]
+    check("the fixer step-pushes fast-forward to handoff-wip/<topic>, never to handoff/, and the tail allows it",
+          f"push each verified step, fast-forward only, to {wip} before any wait" in fx
+          and "never step-push to\nhandoff/t-1" not in fx and "never step-push to handoff/t-1" in fx
+          and f"except your return refs and {wip}." in fx)
+    check("the fixer deletes the step ref only after body_push.sh succeeds",
+          fx.index("body_push.sh t-1") < fx.index(f"`git push origin :{wip}`"))
+    check("the fixer merges a moved origin/main and reruns prepr.sh before it pushes the handoff",
+          fx.index("`git merge origin/main`, rerun `tools/pr/prepr.sh`") < fx.index("push the code to refs/heads/handoff/t-1"))
+    check("no other role is licensed a step ref (null control)",
+          all(WIP_NS not in t for r, t in prompts.items() if r != "fixer"))
+    ident = f"`git config user.name {SEAT_NAME} && git config user.email {SEAT_EMAIL}`"
+    check("the fixer and the probe pin the seat's noreply identity in the setup line, no other role does (null)",
+          all((ident in t.splitlines()[1]) == (r in COMMITTING_ROLES) for r, t in prompts.items())
+          and set(COMMITTING_ROLES) == {"fixer", "probe"})
     for role, ref in (("fixer", "dispatch/fixer-t-1"), ("reviewer", "dispatch/reviewer-rev-7")):
         a = dict(pr="7" if role == "reviewer" else "", topic="" if role == "reviewer" else "t-1",
                  nonce="abc123" if role == "reviewer" else "")

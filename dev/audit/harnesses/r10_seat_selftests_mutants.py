@@ -76,6 +76,12 @@ MUTANTS = [
     # r10-flow-design-stages-p2 B: a group's carries reach its PROMPT.md.
     ("cloud_dispatch-5", "cloud_dispatch.py",
      '    parts += [f"Carry {i}: {c}" for i, c in enumerate(group.get("carry") or [])]\n', ""),
+    # r10-flow-design-stages-p2 C: the fixer's step ref, its delete, the pre-handoff merge, the identity pin.
+    ("cloud_dispatch-6", "cloud_dispatch.py", 'fast-forward only, to refs/heads/{WIP_NS}/{topic} before',
+     'fast-forward only, to refs/heads/handoff/{topic} before'),
+    ("cloud_dispatch-7", "cloud_dispatch.py", 'delete the step ref: `git push origin :refs/heads/{WIP_NS}/{topic}`. ', ""),
+    ("cloud_dispatch-8", "cloud_dispatch.py", "run, `git merge origin/main`, rerun", "run, rerun"),
+    ("cloud_dispatch-9", "cloud_dispatch.py", 'if role in COMMITTING_ROLES else ""', 'if False else ""'),
     ("S03", "cloud_relay.sh", 'if [ -f "$led" ] && grep -qxF "$ref $sha" "$led"; then',
      'if [ -f "$led" ] && ! grep -qxF "$ref $sha" "$led"; then'),
     ("S04", "daemonize.py", '"-u" not in run_argv[1:2]:', '"-u" in run_argv[1:2]:'),

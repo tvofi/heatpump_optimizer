@@ -43,7 +43,13 @@
   `cloud_relay.sh`: a cloud reviewer never runs `bus.sh`, whose dispatch record
   lives on the orchestrator's machine and refuses "unknown nonce" anywhere
   else, and a seat may not write a record it did not mint), `handoff/<topic>`
-  plus `handoff-body/<topic>` for a fixer, `handoff-body/<topic>` for a probe,
+  plus `handoff-body/<topic>` for a fixer (which pushes each verified step,
+  fast-forward only, to `handoff-wip/<topic>`, a prefix neither
+  `cloud_relay.sh`'s handoff arm nor `bus.sh orphans` lists, merges a moved
+  `origin/main` and reruns `prepr.sh` before the handoff, and deletes the step
+  ref once `body_push.sh` succeeds; a seat that dies leaves that one ref),
+  `handoff-body/<topic>` for a probe; a fixer or probe pins the noreply seat
+  identity before its first commit,
   and a return push carries only the seat's own result tokens: a push
   carrying system-file dumps is refused; the session is reachable one way,
   by `SendMessage` to it, and nothing comes back on that channel. Refusal: a
