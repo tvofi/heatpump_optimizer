@@ -18,5 +18,12 @@
   refused push names its log. It holds the branch's `upd-<branch>.lock` from
   before its worktree to its second push, so a concurrent `update_pr.sh` is BUSY
   (75) and cannot detach the worktree under the PR's row (#2547-#2549).
+  A refused second (row) push returns the worktree to the pushed head and
+  closes the draft with a comment, read back by `gh_comment.py`, quoting the
+  refusal (`open_pr: CLOSED: #N`), so no PR stays open without its row
+  (#2625, #2629); only a close that fails prints `ROWLESS`, for
+  `update_pr.sh`'s `ensure_row`. The PR is created only after the body
+  contract passes: `app_push.sh` runs `prepr.sh` and the `ref_privacy` guard
+  before its push.
   `--self-test` runs `delivery_row.sh`'s, then
   `pr_args.sh`'s.
