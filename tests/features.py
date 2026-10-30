@@ -8053,7 +8053,7 @@ class _CopGate:
         self._flow_bias = flow_lift.FlowCurveBias()
         self.cop_health_calls: list = []
 
-    def _learning_frozen(self, *entities):
+    def _learning_frozen(self, *entities, room_air=True):
         return None
 
     def _observe_cop_health(self, observed_cop, dhw_curve=False):
@@ -22129,12 +22129,12 @@ _t9 = datetime(2026, 1, 21, 6, 0, tzinfo=UTC)
 _c9._accuracy.note_lead_prediction(_t9 - timedelta(minutes=10), 1.0, 21.0)
 _dt5.freeze(_t9)
 try:
-    _c9._learning_frozen = lambda key: "stale"
+    _c9._learning_frozen = lambda key, **_kw: "stale"
     _c9._record_accuracy()
     _frozen_kept = (
         len(_c9._accuracy.lead_pending) == 1 and _c9._accuracy.sigma(1.0) == 0.0
     )
-    _c9._learning_frozen = lambda key: None
+    _c9._learning_frozen = lambda key, **_kw: None
     _c9._record_accuracy()
     _live_scored = (
         not _c9._accuracy.lead_pending
@@ -45570,7 +45570,7 @@ from homeassistant.util import dt as _t2_dt  # noqa: E402
 
 def _t2_room_readers(**config):
     c = _t2_coord(curve_learning_enabled=True, **config)
-    c._learning_frozen = lambda *keys: None
+    c._learning_frozen = lambda *keys, **_kw: None
     c._mode = "auto"
     now = datetime(2026, 1, 21, 6, 0, tzinfo=UTC)
     c._accuracy.note_lead_prediction(now - timedelta(minutes=10), 1.0, 21.5)
@@ -45610,7 +45610,7 @@ R.check(
     f"{_wzm((None, float('nan')), 19.0)!r}",
 )
 _t2_nan_zones = _t2_coord(curve_learning_enabled=True, indoor_temp_entity="sensor.indoor")
-_t2_nan_zones._learning_frozen = lambda *keys: None
+_t2_nan_zones._learning_frozen = lambda *keys, **_kw: None
 _t2_nan_zones._current_state = _dc_replace(
     _t2_nan_zones._current_state, room_temperature=float("nan"),
     upper_floor_temperature=float("nan"), lower_floor_temperature=float("nan"),
@@ -56053,7 +56053,7 @@ R.check(
 
 # _track_curve_comfort folds YESTERDAY's worst margin when a new day starts.
 _p8s_cc = _Coord(_FakeHass(), _FakeEntry(data={**_P8_CFG, "curve_learning_enabled": True}))
-_p8s_cc._learning_frozen = lambda key: None
+_p8s_cc._learning_frozen = lambda key, **_kw: None
 _p8s_days = []
 _p8s_cc._curve_learner = _p8s_ns(
     bias=0.0,
@@ -67091,7 +67091,7 @@ R.check(
     f"{_cf_diag._coordinator_snapshot(_cf_ref).get('cop_learner')}",
 )
 _cf_frz = _cf_coord()
-_cf_frz._learning_frozen = lambda *entities: "stale_inputs"
+_cf_frz._learning_frozen = lambda *entities, **_kw: "stale_inputs"
 _cf_learn(_cf_frz, 2.2)
 _cf_none = _cf_coord()
 _cf_none._measured_power = None
@@ -73680,7 +73680,7 @@ def _he_heartbeat(reasons):
     c = _t2_coord()
     c._snapshots_loaded = True
     feed = iter(reasons)
-    c._learning_frozen = lambda *keys: next(feed)
+    c._learning_frozen = lambda *keys, **_kw: next(feed)
     saves = []
 
     async def _save():
