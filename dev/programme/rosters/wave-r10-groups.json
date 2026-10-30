@@ -11873,6 +11873,48 @@
     "note": "2026-10-29 (triage: dev/programme/triage/s6-batch61.md#P286)"
    },
    "brief": "From triage P286 (proposal V189, orchestrator 2026-10-29): the owner restated the soft cap on 2026-10-29 as 6-10 open pull requests gating only a new group's dispatch, while pr_cap.py's dispatch-gate counts roster groups whose resume stage is in-progress (wip_groups, WIP_STAGE); it printed WIP 11/6 with 12 pull requests open. (1) dispatch_gate counts open pull requests through counted, the rule info already uses; HPO_WIP_CAP (default 6) is the soft cap and a new env var (default 10) the hard cap. Below the soft cap it passes; from the soft cap to the hard cap it refuses unless --over-cap gives a reason; at or above the hard cap it refuses unless the reason begins `critical path:` (orchestrator.md section 5's standing exemption). An open-PR list it cannot read is a refusal, never zero. The in-progress group count stays on the line as information. Opening or updating a pull request is never refused, as now. (2) The tick's cap line (orchestrator_tick.py:607-608) prints `CAP: open PRs M/6 soft, 10 hard (WIP groups N)`; its self-test arm at orchestrator_tick.py:3688 (a board far over the old open cap) is inverted, not deleted. (3) The first bullet of orchestrator.md section 5 and the two instrument notes are rewritten to the new rule; section 5 is policy, merged on tvofi's approving review or under mandate 6329234399. Binding: orchestrator.md is at its cap (`policy_lint.mjs --budgets` at origin/main e5ddba1fa: 294 of 295 lines, 4251 of 4251 tokens), so the section 5 rewrite must not grow it. Controls: 11 groups in progress with 5 open PRs passes; 11 open PRs without --over-cap refuses; 7 open PRs with a non-critical-path reason passes; 11 open PRs with that reason refuses; 11 open PRs with `critical path: G` passes; an unread PR list refuses. Mutation: substituting the group count for the open-PR count fails the first two arms. Null control: open_pr at 20 open PRs is still not refused (pr_cap.py:290-291). Out of scope: lane caps, orphan-handoff counting and the ranked next list (R10-FLOW-WIP). triage: dev/programme/triage/s6-batch61.md#P286"
+  },
+  {
+   "group": "R10-FLY-RELAY-FREEZE-REGISTRY",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "instrument",
+   "severity": "medium",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 6,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "tools/audit/seat/cloud_relay.sh",
+    "tools/audit/seat/instruments/cloud_relay.sh.md"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-fly-relay-freeze-registry",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer (fly-in)",
+    "note": "2026-10-29 (triage: dev/programme/triage/s6-batch61.md#P288)"
+   },
+   "brief": "From triage P288 (proposal V191, orchestrator 2026-10-29): cloud_relay.sh's review_freeze holds a handoff as REVIEW on a bus.sh dispatch record of the PR at its head, or on any detached worktree of the checkout at that head. The opener's and updater's own worktrees under a state directory's pr/ sit detached at the PR head, so the second arm over-fires: #2953 was printed HELD-REVIEW on 44 relay passes from 17:07Z with no dispatch record, and of the 7 PRs the live relay log ever held as REVIEW, 4 had no dispatch record at that head (#2896, #2916, #2933, #2953). The dispatch record is the worker registry, as review_freeze's own comment says, and local reviewers are recorded there too. (1) review_freeze returns REVIEW only on a dispatch record of the PR at the head; the detached-worktree arm is removed. (2) The HELD-REVIEW stdout line and the handoff-held level line name the evidence, the dispatch's nonce prefix and time. (3) The self-test arm `a detached review worktree at the head holds the handoff` (cloud_relay.sh:892-895) is inverted, not deleted: a detached worktree at the head with no dispatch record updates. Control: the #2953 shape (handoff ahead, no verdict, no dispatch record, a detached worktree at the head) updates; the same with a dispatch record at the head holds. Mutation: restoring the worktree arm fails the inverted arm. Null control: a dispatch of another PR at the same head holds nothing (cloud_relay.sh:889-890). Out of scope: the body-only handoff (R10-FLOW-BODY-ONLY). triage: dev/programme/triage/s6-batch61.md#P288"
   }
  ]
 }
