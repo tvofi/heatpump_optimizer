@@ -1,12 +1,20 @@
-Fix review: merge d2877bb236f0b79ceb4e8a6b21143e2b12a42f41
+Fix review: merge 94ad84c84cbf1fbe70866ce8110bd4a68308a1ca
 
-bus-nonce: 5a0522f2a36303fea9089b1981d3b0c3
+bus-nonce: 53307b224bb2f83f0735290be8c55b6e
+
+## Scope
+
+Delta review d2877bb2..94ad84c84cbf1fbe70866ce8110bd4a68308a1ca, three-dot against main (2d151411f). Head = merge(d50f6446d, 2d151411f); d50f6446d = merge(d2877bb23, c0a1d4635). Both merges are of main only.
+
+## Findings
+
+- The head's tests/golden/claimed_drift.txt is not a literal union with main's: main (2d151411f) carries 14 bare claim lines (5 R10-HOUSE-GRADE coord_*, 9 R10-BUFFER-STORE valve/wood fixtures), the head carries only this PR's 5 R10-COP-GATE lines, and the BUFFER-STORE may-drift entries are restored as plain "may-drift:" lines. The file is byte-identical to d2877bb23's (empty diff d2877bb23..head on both claim files), so this is the shape the prior merge verdict already covered and is not new in this delta; claims-for stays 7.0.5 = VERSION and env_drift --claims-only origin/main prints "claims hygiene: origin/main ok". Merging the PR into main removes those 14 main lines (git merge-tree is clean). Carry: dismissed: unchanged since the approved d2877bb2, claim lines excuse only the diff that wrote them and the hygiene check passes against origin/main
 
 ## Evidence
-- RESULT delta: head tree f8d794aa9d9327c0ead0896c1149341d58e1335b is byte-identical to the tree of `git merge-tree --write-tree a361e454 043b111d` (the approved head merged with main). No production line is authored on top of the merge; the only branch-only commit is the main merge d2877bb23.
-- RESULT merge-tree: `git merge-tree --write-tree origin/main d2877bb236f0b79ceb4e8a6b21143e2b12a42f41` exits 0, no conflict (origin/main 043b111d). Driver notes: LEDGER-MERGE resolved tests/closures.json (inert_reads merged as a set).
-- RESULT claim file: tests/golden/claimed_drift.txt at head is byte-identical to a361e454's (sha1 b666993f); main's side is unchanged since the merge base, so the three-way result is the branch's own claim set (five coord_* R10-COP-GATE claims, six may-drift entries restored). card_claimed_drift.txt is identical on all three. `env_drift.py --check` at the head worktree exits 0: "NO STALE FIXTURE: 5 committed fixture(s) still match"; five coord_* claims report "not captured in this mode" (unjudged), the same as at a361e454.
-- review_carry.py prints FRESH-REVIEW because it keys on "resolves claimed_drift.txt to other than the union of the parents"; that is the branch's own prior resolution (commit 3f33c6796 message), which the approved a361e454 already carried, not new content. Hence this delta review.
-- RESULT VERSION: 7.0.5 at main, a361e454 and head; VERSION, manifest and notes heading untouched.
-- CI at head (check-runs API): gate success (both runs), pr-contract success, arch-score success, budget-raise-gate success, tests fast/closures/coverage/replay/typing/browser/arch-instrument/lane-proofs success, CodeQL success; skipped jobs are the scoped-out ones. No red check, so no root-cause answer is owed.
-- Not re-run: the full gate and mutation table (cited from CI per the role). The mutation proof of the substantive fix was reviewed at a361e454 and the head adds no production change.
+
+- Production/non-claim diff: the PR diff (merge-base with 2d151411f .. head) excluding the two claim files versus the same diff at d2877bb2 (vs its own main merge-base) is identical but for one hunk-header line offset (@@ -3724 vs -3725); same 45 files in both. No production change in the delta. ev/nonclaim-diff.delta.
+- card_claimed_drift.txt: no change d2877bb2..head, no claim lines either side of the diff. claimed_drift.txt: no change d2877bb2..head (ev/claimfile-delta-lines.txt = 0). No claim reinstated or dropped in this delta; claims-for 7.0.5 equals VERSION 7.0.5 on both.
+- env_drift.py --claims-only origin/main: claims hygiene ok (ev/claims-hygiene.txt).
+- git merge-tree --write-tree origin/main head: clean, exit 0 (ev/merge-tree.txt).
+- Body: its ## Head section names 94ad84c84cbf1fbe70866ce8110bd4a68308a1ca as the orchestrator's recarry of main; consistent with the tree. The figures in the body are for the authored code, unchanged.
+- CI at this head (check-runs read at review time): success: replay, typing, arch-instrument, closure-scope, briefs, arch-score, budget-raise-gate, hassfest, validate-hacs, wave-script, delivery-status, codeql actions and javascript. Still in progress when read: tests / fast (3.14), closures, coverage, browser, mutation, governance / policy-docs, instrument-self-tests, env-matrix, codeql python. Failed: tests / nightly-status only, which grades main's scheduled Nightly and is not a required check and does not block (the body's Red checks section says the same). No completed red attributable to the branch; the in-progress legs are not confirmed green by this review.
