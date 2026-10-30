@@ -1,0 +1,6 @@
+  why: 967abc3e9c7ca6d224ba5d55cee77145d109ea3b resolves tests/golden/claimed_drift.txt to something other than the union of its parents
+  967abc3e9  Merge remote-tracking branch 'origin/main' into fix/r10-fly-carry-claim-driver
+review_carry: FRESH-REVIEW
+  ok   it names the branch's own diff
+  ok   an unknown sha cannot decide
+review_carry self-test: 26 checks, 0 failed
