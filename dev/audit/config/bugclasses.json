@@ -4634,6 +4634,22 @@
       "doc": [
         "dev/audit/rca/R10-RCA-FRICTION-CLAIM-FALSE.md"
       ]
+    },
+    "R10-RCA-FRICTION-REGRESSION": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "recurring-friction key regression (#2860), 3 PRs / 3 entries in v7.0.4..origin/main at 507a9ec26 (977 min to next verdict, upper bound): three mechanisms under one untaught word -- #2698 a fix's own rule left open on its mirror branch, #2825 a revision's arm driving a pid kill where a group kill escaped, #2841 tests / browser red, a lane no local scope selects",
+      "trigger": "recurring-friction issue #2860 filed by the governance cron; group R10-FRICTION-REGRESSION",
+      "date": "2026-10-30",
+      "status": "proposed",
+      "parts_missing": [],
+      "process_state": "(c) for #2841: fixer.md step 5 followed (leaving the rest to CI), and card_browser.mjs, NOT_A_TEST, first runs on CI past the handoff; (b) for #2698's unmeasured 'consistently', the class-open residue under its standing refusal; none for #2825, the fix review being the cheapest detector",
+      "countermeasure": "fixer.md step 5: no scope selects card_browser.mjs, run it on a GRID_SURFACE diff (paid inside the 5216-token cap); a closure.py browser line and a CI hold on tests / browser refused by the cost test",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R10-RCA-FRICTION-REGRESSION.md",
+      "doc": [
+        "dev/audit/rca/R10-RCA-FRICTION-REGRESSION.md"
+      ]
     }
   },
   "N-registry-leak": {
