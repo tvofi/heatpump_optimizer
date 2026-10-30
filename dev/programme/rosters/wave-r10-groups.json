@@ -12120,6 +12120,49 @@
     "note": "triage P266, 2026-10-28 (owner-directed)"
    },
    "brief": "From triage P266 (V180, owner-directed by tvofi 2026-10-28: the account's concurrent-job limit is the CI bottleneck; cancel superseded runs). tools/pr/cancel_superseded.py cancels a branch's older-head runs only from INSIDE the newer run (ci.yml line 154), so while that run is queued for a runner it cancels nothing: #2927 runs 40751731241/40751736668 at dad80f255 and #2928 runs 40752875163/40752880041 at 582d0e694 stayed active until a manual pass at 19:21Z, each the superseded first push of open_pr.sh's two-push open (lines 70 and 84). (1) Add `cancel_superseded.py sweep --repo R [--dry-run]` reusing candidates() (line 48): one open-PR listing (number, head sha, head repo) and one runs listing per active status (queued, in_progress, waiting); per open same-repo PR branch cancel what candidates() selects against the live head (with no run yet at the live head, every active run at another head on that branch). (2) NEVER cancel: a run at the live head (same-SHA twins included); a run on main; any push, workflow_run, schedule or pull_request_target event (train-hold, beat and record pushes are untouched by construction); a branch whose live-head commit is authored by github-actions[bot] (the autofix rule, a98d5a05a). A run on a branch with no open PR is reported as a ghost, never cancelled. (3) One line per action and `CANCEL-SWEEP: cancelled n, kept m (live head), skipped k (bot head / not a PR), ghosts g`; an unreadable answer cancels nothing and exits 0. (4) The orchestrator's sweep runs it each pass (R10-ORCH-BEATD may adopt it as a job later). (5) --self-test arms beside the existing ones: the #2927 shape cancels both old runs and keeps the queued live one; a bot-authored live head cancels nothing; a push run on main and a no-PR branch run are never cancelled; mutant dropping the event filter cancels the push fixture and fails; null: only live-head runs cancels nothing. INSTRUMENTS.md row. Code-owned (.github/CODEOWNERS:75): merges on tvofi's approving review. Not carried: a new file under tools/audit/seat/ (one predicate, one owner); a one-push open_pr.sh (the row needs the number the first push creates). (6) Owner's amendments to V181 (2026-10-28T19:44:50Z to 19:59:53Z, as clarified): every instrument that schedules or cancels CI reads one priority setting, a CI-priority configuration file under the audit config directory, read through a reader module beside the seat instruments (neither exists in the tree yet; they land with the group triage P267 names) (triage: dev/programme/triage/s6-batch56.md#P267 as amended by triage: dev/programme/triage/s6-batch57.md#P268), and each group's mapping only from the roster through roster_lib; the sweep honours never_cancel's main-push (a superseded run is dead work, so CP and hotfix superseded runs remain cancellable unless the owner widens it). If the reader is not on main when this group lands, the sweep's own event filter (item 2) already keeps main-push runs, and it calls the reader once it exists; it does not wait on that group. triage: dev/programme/triage/s6-batch55.md#P266"
+  },
+  {
+   "group": "R10-FLY-TICK-APPROVAL-OWED",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "instrument",
+   "severity": "high",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 6,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "tools/audit/seat/orchestrator_tick.py",
+    "tools/audit/seat/owed_unactioned.py",
+    "tools/audit/seat/instruments/orchestrator_tick.py.md"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-fly-tick-approval-owed",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer (fly-in; ahead of other instrument fly-ins: verdicted PRs stood unnamed 21 PR-hours)",
+    "note": "2026-10-30 (triage: dev/programme/triage/s6-batch64.md#P294)"
+   },
+   "brief": "From triage P294 (orchestrator, 2026-10-30): orchestrator_tick.py verdict_levels() prints MERGE-READY only for a merge verdict at the head with mergeStateStatus CLEAN or UNSTABLE, and BLOCKED-UNFIXED for a blocked verdict; a merge verdict at the head of an unapproved PR (BLOCKED, REVIEW_REQUIRED) prints nothing, so #2962, #2976 and #2977 stood 11 h, 5 h and 5 h with no tick line. prs() does not fetch reviewDecision. (1) prs() asks for reviewDecision. (2) verdict_levels adds `APPROVAL-OWED: #N <head8>` (flagged): merge verdict at the current head, mergeStateStatus BLOCKED, reviewDecision REVIEW_REQUIRED. (3) Catch-all barrier `UNLEVELLED: #N <head8> <mergeStateStatus>/<reviewDecision>` (flagged): a merge verdict at the current head matching none of MERGE-READY, APPROVAL-OWED or a documented non-actionable state (DIRTY, BEHIND, draft; named in the docstring). (4) owed_unactioned.py FAMILY adds APPROVAL-OWED: and UNLEVELLED:. Failing test first: BLOCKED + REVIEW_REQUIRED + merge at head prints APPROVAL-OWED (prints nothing today). Mutation: dropping the APPROVAL-OWED arm fails that row; dropping the catch-all fails a row with a state no arm handles (UNKNOWN, or BLOCKED under APPROVED) that must print UNLEVELLED. Null controls: a stale-head merge verdict prints neither; DIRTY prints neither; APPROVED + CLEAN prints MERGE-READY only. From the #2980 review (verdict 27582ac91, finding 1): APPROVAL-OWED's condition also holds while a required check is pending or red, and UNKNOWN is a transient GitHub value right after a push. Add two null-control rows: BLOCKED + REVIEW_REQUIRED + merge at head with a required check pending or red prints neither APPROVAL-OWED nor UNLEVELLED (the tick's gate/check lines own it; decide whether the level reads the required-check state already fetched for MERGE-READY, or names the check in the line); and a one-pass UNKNOWN prints no UNLEVELLED (UNKNOWN joins the documented non-actionable states, or UNLEVELLED fires only on a state seen on two passes). The mutation row for the catch-all then uses BLOCKED under APPROVED, not UNKNOWN. Root cause: no separate seat; the idle-PR class's seat is dev/audit/rca/R10-RCA-OWED-UNACTIONED.md, process state (c); the catch-all is this class's barrier. triage: dev/programme/triage/s6-batch64.md#P294"
   }
  ]
 }
