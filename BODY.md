@@ -16,7 +16,7 @@ VERSION, the manifest version and the RELEASE_NOTES headings are untouched.
 
 ## Head
 
-e1913fbfca2dab4bcb5fd61ca7a576c2964f9297, forked from origin/main e5ddba1fad5e6eccfeceaeaaa249bc459963405b.
+3e5b8b7c5b3746230db1920968452931ff5fba1b (the code is e1913fbfca2dab4bcb5fd61ca7a576c2964f9297; the head adds only the delivery row `dev/programme/delivery/2969.md`), forked from origin/main e5ddba1fad5e6eccfeceaeaaa249bc459963405b.
 
 ## Mutation proof
 
@@ -49,11 +49,18 @@ Failing test first: with the arms added and no implementation, `python3 tools/re
 
 ## Red checks
 
-none. `prepr.sh`'s CI predictor named two predicted reds before the handoff (`governance / instrument-self-tests` UNWIRED, `tests / closures` INERT READS), both caused by this branch's new driver. Both are repaired in this diff: the self-test is wired, and `--apply-inert` wrote the entry. The predictor is the cheaper detector, and it caught them. Locally, `policy_lint`'s budget lane also refused an intermediate head that added a sentence to `orchestrator.md` past its token cap. That sentence was reverted, and the cap reads as at the merge base.
+`tests / nightly-status`: red at this head, and it is not this PR's. `tests/nightly_status.py` reads the last concluded *scheduled* run of `nightly.yml` and grades its jobs; it names no other workflow file (the only `.yml` it reads is `nightly.yml`). The last scheduled Nightly, run 304 on main at `ee48937` (2026-10-29, merge of #2913), concluded `failure`, so the tick is red on every open PR. The diff's `governance.yml` change is one added step in `instrument-self-tests` (`Show the stamp round-close mutation harness pinning its own plants`). `governance.yml` is on `REPORTER_INPUTS` as a path, but it is not an input to this reporter's reading: the change touches no `nightly.yml` run, job or conclusion, so it alters neither what nightly-status reads nor how it grades. The red is main's, owed by the orchestrator on the default branch (`defect-root-cause.md`: fix the nightly lane and dispatch Nightly on main).
+
+Cheaper detector and its standing cost: none new is owed. The detector that already exists is nightly-status itself, which runs on every PR in seconds on stdlib only (its standing cost); it fired on the nightly failure, which is its purpose. A detector earlier than that would be a run of the Nightly lanes on each PR, which costs the nightly lane's full runtime (hours, run 304 took 3.6 h) per PR to catch a cause that is not in the PR's diff; the cost test (`cost(countermeasure) < cost(defect) x P(recurrence)`) fails on those numbers. Recorded as: none exists cheaper than the gate that found it, and the cause is outside this diff.
+
+`gate` and `pr-contract` were red on earlier heads of this PR because this body failed the contract (`## Red checks` did not answer `tests / nightly-status`; `## Forward-carry` named no destination). This body repairs that; no code changed.
+
+Earlier, `prepr.sh`'s CI predictor named two predicted reds before the handoff (`governance / instrument-self-tests` UNWIRED, `tests / closures` INERT READS), both caused by this branch's new driver. Both are repaired in this diff: the self-test is wired, and `--apply-inert` wrote the entry. The predictor is the cheaper detector, and it caught them. Locally, `policy_lint`'s budget lane also refused an intermediate head that added a sentence to `orchestrator.md` past its token cap. That sentence was reverted, and the cap reads as at the merge base.
 
 ## Forward-carry
 
-none
+- The verdict's `## Evidence` item c21695db records a measurement at this head, not a finding: nothing in it is owed. Carry: dismissed: evidence measurement, not a finding (item c21695db)
+  Destination file: `dev/programme/delivery/2969.md` (this PR's own row; nothing further is owed).
 
 ## Friction
 
