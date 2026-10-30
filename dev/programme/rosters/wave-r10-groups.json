@@ -5373,7 +5373,7 @@
     "branch": "handoff/r10-replay-cap",
     "commit": "290712ec0d342e3fa9b96e4533615024bc4c05b7",
     "last_step": null,
-    "next_step": "dispatch a fixer",
+    "next_step": "done: merged in #2548 (290712ec0)",
     "note": null
    }
   },
