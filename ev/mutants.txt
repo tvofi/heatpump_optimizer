@@ -1,0 +1,16 @@
+M1 restored_hit keys nothing: bad 5; 5 FAIL
+    FAIL tools/policy/vendor/markdown-it.min.js keys every restoring job -- []
+    FAIL tools/policy/budget_raise_gate.py keys every restoring job -- []
+    FAIL an exclusion written into the restored grader is predicted red (#2916's shape) -- []
+    FAIL an edit to a vendored file the grader requires is predicted red (round 3's markdown-it.min.js) -- []
+    FAIL an edit to a gate the grader spawns is predicted red (round 2's budget_raise_gate.py) -- []
+M2 restored_hit ignores the base tip: bad 1; 1 FAIL
+    FAIL a restored path the base tip lacks keys no job (nothing to restore it from)
+M3 grader_runs drops no exemption: bad 1; 1 FAIL
+    FAIL the arm makes every pinned run but the agreement arm's and the exempt -- {('wave-script', 'fold_ledger.py
+M4 predict's graders entry removed: bad 1; 1 FAIL
+    FAIL predict reaches the graders arm by name (its call site, not only its helper) -- []
+M5 ci_tree_run restores nothing: bad 3; 3 FAIL
+    FAIL an exclusion written into the restored grader is predicted red (#2916's shape) -- []
+    FAIL an edit to a vendored file the grader requires is predicted red (round 3's markdown-it.min.js) -- []
+    FAIL an edit to a gate the grader spawns is predicted red (round 2's budget_raise_gate.py) -- []
