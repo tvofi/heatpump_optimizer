@@ -25,7 +25,11 @@
   `gh_comment.py`, quoting the refusal or the `STOPPED` line
   (`open_pr: CLOSED: #N`), so no PR stays open without its row (#2625, #2629,
   #2719); only a close that fails prints `ROWLESS`, for `update_pr.sh`'s
-  `ensure_row`. The PR is created only after the body
+  `ensure_row`. A row push can fail after its `git push` landed (a refused
+  body PATCH or read-back, a stop past the push), so the path reads origin's
+  tip first and closes only when origin lacks the row commit; when origin
+  holds it, the PR stays open and the run exits non-zero naming the failure
+  (`open_pr: ROW LANDED: #N`). The PR is created only after the body
   contract passes: `app_push.sh` runs `prepr.sh` and the `ref_privacy` guard
   before its push. A main merge that conflicts is aborted and refused
   (`merging origin/main into <sha> conflicts`), so the clean worktree is
