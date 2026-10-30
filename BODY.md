@@ -44,7 +44,7 @@ Alternatives not taken:
 
 ## Head
 
-ec5d7a93e59e740ce4ee75b043ae15a6a981fc31 (base cc930cdd1a3cfb005ba7ec557f4451ff5e53e364, origin/main at 2026-10-30T18:26Z). Main was merged into 2352b3d28, then two handoff-repair commits were added: the grammar (389c3baee) and the closure record (this head).
+fc907699e24dfbb28ae390fa26443c74303eb39e (base cc930cdd1a3cfb005ba7ec557f4451ff5e53e364, origin/main at 2026-10-30T18:26Z). Main was merged into 2352b3d28, then two handoff-repair commits were added: the grammar (389c3baee), the closure record (75b30a4e28e8e5ee8573720043c31f570f1e345f) and the carry-1645 re-anchor (this head, fc907699e24dfbb28ae390fa26443c74303eb39e).
 
 ## Mutation proof
 
@@ -97,7 +97,14 @@ Each count is printed by `PYTHONPATH=tests/hastub:tests:custom_components python
 
 ## Red checks
 
-none
+`tests / briefs` was red at the previous head (75b30a4e28e8e5ee8573720043c31f570f1e345f): `dev/programme/carries/carry-1645.json` cited `tests/doc_claims.py:476` for `check_initial_setup_menu` and `tests/doc_claims.py:565` for `check_simulate_plan_fields`; this PR's two added imports (`collections`, `itertools`) shifted both, and `brief_lint` refused with "'check_simulate_plan_fields' not found near tests/doc_claims.py:476; found at line 570 instead".
+
+Root-cause trigger (red-check, `defect-root-cause.md`): answered.
+- Cause: a diff that moves lines in a file a carry cites by line number. A carry's `path:line` is data the code does not know it is.
+- Process state: a check exists (`brief_lint`, CI job `briefs`) but prepr step 3f runs it only when a pinned path changed (`pinned_touched`), and `tests/doc_claims.py` is not pinned, so prepr skipped it ("no pinned path changed, so CI's briefs job reads this head's copy") and the first run reached CI to find it.
+- Cheaper detector: a local `node tools/policy/brief_lint.mjs` before handoff (this round's step 2), or prepr step 3f extended to run when the diff touches any file a carry or roster `path:line` cites. Standing cost: one `brief_lint` run, about 2.5 minutes of one core on this machine, per handoff whose diff touches a cited file; the extension would add a carry-and-roster citation scan (seconds) to every prepr.
+- Countermeasure decision: not built in this PR. It is a prepr change in a code-owned instrument, outside this group's seam; recorded here for the orchestrator to triage as a proposal (one occurrence so far; not yet a recurring class).
+- Fix at this head: both citations re-anchored (476 to 479, 565 to 570); `node tools/policy/brief_lint.mjs` exits 0 and prints `carry-1645.json: 0 error(s), 0 warning(s)`. The ten remaining `ERROR` lines in its output are in wave-1 rosters and fixtures, cite wave-1 groups, not a file this diff touches, and do not fail the run (exit 0). The roster has no `tests/doc_claims.py:<line>` citation (grep of `handoff/audit-r10-roster` and this head's `wave-r10-groups.json`), so no edit-brief is owed.
 
 ## Forward-carry
 
