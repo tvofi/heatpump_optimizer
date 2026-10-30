@@ -9171,10 +9171,7 @@
    "fixerModel": "sonnet",
    "reviewerModel": "opus",
    "group": "R10-CLOSEOUT-CLEANUP",
-   "after": [
-    "R10-FLY-PRUNE-REFS",
-    "R10-FLY-WORKTREE-GC"
-   ],
+   "after": [],
    "files": [
     "tools/audit/seat/prune_refs.py",
     "tools/audit/worktree_gc.sh",
