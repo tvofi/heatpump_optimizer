@@ -89,7 +89,10 @@ def is_head(head: str) -> bool:
     """Exactly 40 lowercase hex digits (not a regex: the grammar is policy_lint's to own)."""
     return len(head) == 40 and set(head) <= LOWER_HEX
 
-ROLES = ("reviewer", "fixer", "probe")
+ROLES = ("reviewer", "fixer", "probe", "designer", "design-reviewer")
+#: The design steps' roles (decision 0014): topic is the roster group id, and each
+#: writes one ref family through `bus.sh`.
+DESIGN_ROLES = ("designer", "design-reviewer")
 #: The tools a cloud seat is allowed; the same for every role (measured shape).
 ALLOWED_TOOLS = ["preset:default", "Bash", "Glob", "Grep", "Read", "Write",
                  "BashOutput", "KillBash", "Monitor"]
@@ -114,7 +117,8 @@ class Refusal(Exception):
 
 
 def _seat_line(role: str, repo: str, pr: str, head: str, topic: str, nonce: str) -> str:
-    who = {"reviewer": "CLOUD REVIEWER", "fixer": "CLOUD FIXER", "probe": "CLOUD PROBE"}[role]
+    who = {"reviewer": "CLOUD REVIEWER", "fixer": "CLOUD FIXER", "probe": "CLOUD PROBE",
+           "designer": "CLOUD DESIGNER", "design-reviewer": "CLOUD DESIGN REVIEWER"}[role]
     subject = f"PR #{pr} of {repo}, at head {head}" if pr else f"{repo}, topic {topic}, at head {head}"
     first = f"{who} seat for {subject}."
     if nonce:
@@ -131,7 +135,8 @@ def _pointer(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, r
             "FETCH_HEAD:PROMPT.md`); read it first and follow it exactly.\n")
 
 
-def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, brief: str) -> str:
+def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, brief: str,
+            design: str = "") -> str:
     first = _seat_line(role, repo, pr, head, topic, nonce) + " " + FOOTER_BAN
     setup = ("Setup: `git fetch --unshallow --tags origin`. The session-start `toolchain:` line "
              "says whether venv-ci's python3 is on PATH: on REFUSE, start each Bash call with "
@@ -183,6 +188,27 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
             f"refs/heads/handoff-body/{topic}; that second push is the return signal. Push nothing "
             "else, open no pull request and write no delivery row. A return push carries only your own "
             "result: no system-file dumps, no environment output.")
+    elif role == "designer":
+        body = (
+            "Role: read dev/governance/roles/designer.md from main, and follow it exactly. The base "
+            f"is {head} (`git fetch origin {head}`); name it in the note. Write no production code.\n"
+            f"Output: write the note as design.md in a directory of your own and run `bash "
+            f"tools/audit/seat/bus.sh push-design {topic} <design.md>`, which pushes "
+            f"refs/heads/design/{topic}; that push is the return signal, and the design/{topic} tip "
+            "is the SHA you hand off. You may push only to that ref. Open no pull request, push no "
+            "handoff ref and write no delivery row.")
+    elif role == "design-reviewer":
+        body = (
+            "Role: read dev/governance/roles/design-review.md from main, and follow it exactly. "
+            f"Review the design at refs/heads/design/{topic}, SHA {design}: "
+            f"`git fetch origin {design}` and open a detached worktree there. The base the note names "
+            f"is judged against {head}. Rerun nothing; there is no code.\n"
+            f"Output: write verdict.md, whose first line is exactly `Design review: approve {design}` or "
+            f"`Design review: revise {design} <class>` (the class is lower-case letters and dashes), "
+            f"and run `bash tools/audit/seat/bus.sh push-design-verdict {topic} <verdict.md>`, which "
+            f"pushes refs/heads/design-verdict/{topic} and refuses a design that has moved; that push "
+            "is the return signal. You may push only to that ref. Write no design, open no pull "
+            "request and push no code.")
     else:
         body = (
             "Role: a read-only probe. Measure what the brief below asks against the tree at "
@@ -199,7 +225,8 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
 
 
 def render(role: str, head: str, *, env_id: str, model: str, repo: str, pr: str = "",
-           topic: str = "", nonce: str = "", brief: str = "", publish_ref: str = "") -> dict:
+           topic: str = "", nonce: str = "", brief: str = "", publish_ref: str = "",
+           design: str = "") -> dict:
     """The payload; with `publish_ref`, its event is the pointer to that ref (`publish_seat`)."""
     if role not in ROLES:
         raise Refusal(f"role must be one of {', '.join(ROLES)}")
@@ -211,14 +238,16 @@ def render(role: str, head: str, *, env_id: str, model: str, repo: str, pr: str 
         if not pr.isdigit():
             raise Refusal("a reviewer needs --pr <number>")
     elif not topic.strip() or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", topic):
-        raise Refusal("a fixer or probe needs --topic (letters, digits, . _ -)")
+        raise Refusal("a fixer, probe or design seat needs --topic (letters, digits, . _ -)")
+    if role == "design-reviewer" and not is_head(design or ""):
+        raise Refusal("a design reviewer needs --design <the 40-hex design/<topic> tip it reviews>")
     for name, val in (("environment id", env_id), ("model", model), ("repo", repo)):
         if not (val or "").strip():
             raise Refusal(f"no {name}: pass a flag, an overlay entry or its HPO_CLOUD_* variable")
     if not re.fullmatch(r"[\w.-]+/[\w.-]+", repo):
         raise Refusal("repo must be OWNER/NAME")
     text = (_pointer(role, repo, pr, head, topic, nonce, publish_ref) if publish_ref
-            else _prompt(role, repo, pr, head, topic, nonce, brief))
+            else _prompt(role, repo, pr, head, topic, nonce, brief, design))
     payload = {"job_config": {"ccr": {
         "environment_id": env_id,
         "session_context": {
@@ -303,9 +332,29 @@ def publish_seat(repo_dir: str, ref: str, role: str, head: str, **args) -> dict:
     return payload
 
 
+def design_tip(repo_dir: str, group_id: str) -> str:
+    """The 40-hex tip of `design/<group>` on origin, or "" when the designer has pushed none."""
+    out = _git(repo_dir, "ls-remote", "origin", f"refs/heads/design/{group_id}").split()[:1]
+    return out[0] if out else ""
+
+
+def design_approved(repo_dir: str, group_id: str) -> bool:
+    """Whether `design-verdict/<group>` reads `Design review: approve <sha>` at the tip
+    `design/<group>` holds now: an approval of a design that has since moved is not one."""
+    tip = design_tip(repo_dir, group_id)
+    if not tip:
+        return False
+    vref = f"refs/heads/design-verdict/{group_id}"
+    if not _git(repo_dir, "ls-remote", "origin", vref).split():
+        return False
+    _git(repo_dir, "fetch", "-q", "origin", vref)
+    first = _git(repo_dir, "show", "FETCH_HEAD:verdict.md").split("\n", 1)[0]
+    return first == f"Design review: approve {tip}"
+
+
 def dispatch_group(role: str, group_id: str, model: str, *, repo_dir: str = ".",
                    roster_ref: str | None = None, head: str = "", pr: str = "", nonce: str = "",
-                   overlay: str | None = None, environ=None) -> str:
+                   overlay: str | None = None, environ=None, design_exempt: str = "") -> str:
     """Render the seat for `group_id` from the roster, publish it, return its ref name.
 
     The roster at `roster_ref` of `repo_dir` (default: the round's roster
@@ -328,8 +377,22 @@ def dispatch_group(role: str, group_id: str, model: str, *, repo_dir: str = ".",
         raise Refusal(f"{group_id} is not a group of the roster at {roster_ref}")
     environ = os.environ if environ is None else environ
     known = _config(argparse.Namespace(overlay=overlay, env_id=None, model=model, repo=None), environ)
-    topic = _topic_of(group)
-    args = dict(env_id=known["env_id"], model=model, repo=roster.get("repo") or known["repo"],
+    topic = group_id if role in DESIGN_ROLES else _topic_of(group)
+    design = ""
+    if role == "fixer" and roster_lib.needs_design(group) and not design_exempt.strip():
+        if not design_approved(repo_dir, group_id):
+            raise Refusal(f"{group_id} is size {group.get('size')}: no approved `Design review: approve "
+                          f"<sha>` at design-verdict/{group_id} names the current design/{group_id} tip "
+                          "(decision 0014). Run the designer and design reviewer, or pass "
+                          "--design-exempt <reason> where an approved design, pre-study or prototype "
+                          "is already on record")
+    if role in DESIGN_ROLES and not roster_lib.needs_design(group):
+        raise Refusal(f"{group_id} is size {group.get('size')}: only L and XL groups take a design (decision 0014)")
+    if role == "design-reviewer":
+        design = design_tip(repo_dir, group_id)
+        if not design:
+            raise Refusal(f"no design/{group_id} on origin to review")
+    args = dict(design=design, env_id=known["env_id"], model=model, repo=roster.get("repo") or known["repo"],
                 pr=pr, topic=topic, brief=group.get("brief") or "")
     head = head or _git(repo_dir, "rev-parse", f"{HEAD_REF}^{{commit}}").strip()
     if role == "reviewer":
@@ -416,7 +479,8 @@ def _group_checks(check) -> None:
             git(work, "fetch", "-q", str(origin), "+main:refs/remotes/origin/main")
         grp = {"group": "R10-X", "brief": "Fix the thing in tools/x.py.\n", "resume": {"branch": "handoff/r10-x"}}
         bad = {"group": "R10-BAD", "brief": "cd " + users + "someone/work"}
-        land([grp, bad])
+        big = {"group": "R10-BIG", "size": "L", "brief": "Redesign tools/y.py.\n"}
+        land([grp, bad, big])
         git(work, "remote", "add", "origin", str(origin))
         tip = git(work, "rev-parse", "origin/main").strip()
 
@@ -448,6 +512,38 @@ def _group_checks(check) -> None:
         line = dispatch()
         check("a group dispatch prints one short line, the ref name",
               line == "dispatch/fixer-r10-x" and "\n" not in line and " " not in line)
+        # The design steps (decision 0014).
+        check("a fixer for an L group with no design ref is refused",
+              refused("R10-BIG") and not git(work, "ls-remote", "origin", "refs/heads/dispatch/fixer-r10-big").strip())
+        check("a fixer for an L group is dispatched with --design-exempt (the reason is the orchestrator's)",
+              dispatch("R10-BIG", design_exempt="approved prototype on record") == "dispatch/fixer-r10-big")
+        check("a designer for an S group is refused (only L and XL take a design)",
+              refused("R10-X", "designer") and refused("R10-X", "design-reviewer"))
+        check("a design reviewer with no design/<group> to review is refused", refused("R10-BIG", "design-reviewer"))
+        ref = dispatch("R10-BIG", "designer")
+        dtext = fetched(ref, "PROMPT.md")
+        check("a designer's ref is dispatch/designer-<group>, pins the base SHA and names its contract",
+              ref == "dispatch/designer-R10-BIG" and tip in dtext
+              and "dev/governance/roles/designer.md" in dtext)
+        check("the designer's text allows design/<group> alone and no pull request, in its own words",
+              "bus.sh push-design R10-BIG" in dtext and "refs/heads/design/R10-BIG" in dtext
+              and "only to that ref" in dtext and "Open no pull request" in dtext
+              and "send no code to any ref" not in dtext)
+        git(work, "push", "-q", "origin", f"{tip}:refs/heads/design/R10-BIG")
+        rref = dispatch("R10-BIG", "design-reviewer")
+        rtext = fetched(rref, "PROMPT.md")
+        check("a design reviewer pins the design tip and the base, names its contract and its one ref",
+              rref == "dispatch/design-reviewer-R10-BIG" and f"Design review: approve {tip}" in rtext
+              and tip in rtext and "dev/governance/roles/design-review.md" in rtext
+              and "push-design-verdict R10-BIG" in rtext and "only to that ref" in rtext)
+        check("a fixer is still refused with a design and no verdict", refused("R10-BIG", design_exempt=""))
+        _publish(str(work), "design-verdict/R10-BIG", {"verdict.md": f"Design review: revise {tip} class-open\n"})
+        check("a fixer is refused on a `revise` verdict", refused("R10-BIG"))
+        _publish(str(work), "design-verdict/R10-BIG", {"verdict.md": f"Design review: approve {'a' * 40}\n"})
+        check("a fixer is refused on an approval of a design that has since moved", refused("R10-BIG"))
+        _publish(str(work), "design-verdict/R10-BIG", {"verdict.md": f"Design review: approve {tip}\n"})
+        check("a fixer is dispatched once the verdict approves the current design tip (null control)",
+              dispatch("R10-BIG") == "dispatch/fixer-r10-big")
         brief = work / "brief.txt"
         brief.write_text(grp["brief"])
         flags = ["--role", "fixer", "--head", tip, "--topic", "r10-x", "--brief", str(brief),
@@ -479,7 +575,8 @@ def _group_checks(check) -> None:
         check("a changed brief fast-forwards the ref",
               git(work, "rev-parse", "FETCH_HEAD^").strip() == first and "Changed." in fetched(line, "PROMPT.md"))
         check("the dispatch ref is on origin only once the render passed (null control for the refusals)",
-              git(work, "ls-remote", str(origin), "refs/heads/dispatch/*").count("\n") == 1)
+              git(work, "ls-remote", str(origin), "refs/heads/dispatch/*").lower().count("r10-big") == 3
+              and git(work, "ls-remote", str(origin), "refs/heads/dispatch/*").count("r10-x") == 1)
         check("a host path in a roster brief refuses and pushes nothing",
               refused("R10-BAD") and "r10-bad" not in git(work, "ls-remote", str(origin)))
         check("a group the roster does not name refuses", refused("R10-NOPE"))
@@ -744,7 +841,7 @@ def self_test() -> int:
           all(r in render("fixer", head, **base, topic="t-1")["job_config"]["ccr"]["events"][0]
               ["data"]["message"]["content"] for r in ("handoff/t-1", "handoff-body/t-1")))
     check("a probe renders without a nonce", not refused("probe", nonce=""))
-    prompts = {r: render(r, head, **base, pr="7", topic="t-1", nonce="abc123")["job_config"]["ccr"]["events"][0]
+    prompts = {r: render(r, head, **base, pr="7", topic="t-1", nonce="abc123", design=head)["job_config"]["ccr"]["events"][0]
                ["data"]["message"]["content"] for r in ROLES}
     check("every role's prompt states the footer ban in one line (R10-FLY-NO-FOOTERS)",
           all(sum(FOOTER_BAN in line for line in t.splitlines()) == 1 for t in prompts.values()))
@@ -801,7 +898,8 @@ def self_test() -> int:
 #: self-test drives each entry through main() and refuses a flag missing here.
 GROUP_FLAGS = {
     "role": None, "group": None, "model": None, "head": None, "roster_ref": None,
-    "pr": None, "nonce": None, "overlay": None,
+    "pr": None, "nonce": None, "overlay": None, "design_exempt": None,
+    "design": "dispatch_group reads the tip of design/<group> on origin",
     "topic": "the roster gives the topic (the group's branch)",
     "brief": "the roster gives the brief",
     "repo": "the roster gives the repository",
@@ -821,6 +919,9 @@ def _parser() -> argparse.ArgumentParser:
     ap.add_argument("--pr", default="")
     ap.add_argument("--topic", default="")
     ap.add_argument("--nonce", default="")
+    ap.add_argument("--design", default="", help="a design reviewer's reviewed design/<topic> tip (flag path)")
+    ap.add_argument("--design-exempt", default="", help="a fixer dispatch for an L/XL group whose approved "
+                    "design, pre-study or prototype is already on record: the reason")
     ap.add_argument("--brief")
     ap.add_argument("--env-id")
     ap.add_argument("--model")
@@ -845,7 +946,8 @@ def main(argv: list[str]) -> int:
             if not args.model:
                 raise Refusal("--group needs --model")
             print(dispatch_group(args.role, args.group, args.model, roster_ref=args.roster_ref,
-                                 head=args.head or "", pr=args.pr, nonce=args.nonce, overlay=args.overlay))
+                                 head=args.head or "", pr=args.pr, design_exempt=args.design_exempt,
+                                 nonce=args.nonce, overlay=args.overlay))
             return 0
         if not args.head:
             raise Refusal("--head is required without --group")
@@ -855,7 +957,7 @@ def main(argv: list[str]) -> int:
                 brief = Path(args.brief).read_text()
             except OSError as e:
                 raise Refusal(f"unreadable brief: {e.__class__.__name__}")
-        known = dict(pr=args.pr, topic=args.topic, nonce=args.nonce, brief=brief, **_config(args))
+        known = dict(pr=args.pr, topic=args.topic, nonce=args.nonce, brief=brief, design=args.design, **_config(args))
         if args.publish:
             payload = publish_seat(".", dispatch_ref(args.role, args.topic, args.pr), args.role, args.head,
                                    **known)

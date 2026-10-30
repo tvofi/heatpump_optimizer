@@ -52,3 +52,16 @@
   `cloud-setup.sh`'s idempotent profile, the container's `BASH_ENV` puts the venv
   python ahead of the test stubs, so a cloud seat runs `tests/entities.py` (and
   anything else resolving `homeassistant`) with `env -u BASH_ENV`.
+
+Design roles (decision 0014): `--role designer` and `--role design-reviewer`
+take the roster group id as the topic (`dispatch/designer-<group>`,
+`dispatch/design-reviewer-<group>`); only L and XL groups are accepted. The
+designer may push only `design/<group>` (through `bus.sh push-design`) and
+opens no pull request; the design reviewer may push only
+`design-verdict/<group>` and is pinned to the `design/<group>` tip read from
+origin at the dispatch (`--design` on the flag path). Each role's text says so.
+A `fixer` dispatch for an L or XL group is refused unless
+`design-verdict/<group>` reads `Design review: approve <sha>` at the current
+design tip, or `--design-exempt <reason>` names an approved design, pre-study
+or prototype already on record. The tick board's `DESIGN OWED:` line lists the
+groups whose designer is due.
