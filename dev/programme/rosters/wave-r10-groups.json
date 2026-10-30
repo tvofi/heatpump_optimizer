@@ -12356,6 +12356,49 @@
     "note": "live user finding tvofi 2026-10-30; #201 comment 6528614583"
    },
    "brief": "Hotfix from a live user finding (tvofi, 2026-10-30, #201 comment 6528614583): with away mode on, the plan kept heating slots. The investigation probe's report is BODY.md at handoff-body/r10-live-away-heating aa6e5db30ba6fe7cb4a2f1016c271ae9bf260af2; read it in full. Its harness is carried in that report. Defect measured there: while away and not recovering, away.solve_bands sets target_temp, min_temp and the day and night comfort fields to the away target, but not the weekend comfort fields or the holiday comfort fields. So the optimizer's per-step comfort pair (the weekend and holiday branches of _comfort_pair in optimizer.py) replaces the away setback on Saturdays, Sundays and holiday dates: Saturday comfort reads 21.0 where it should read 16.0. Fix: in away.solve_bands, while away and not recovering, also set comfort_temp_day_weekend, comfort_temp_night_weekend, holiday_comfort_day and holiday_comfort_night to the away target wherever they are configured. Extend the away module's field tuple and setback-config protocol to match. Failing test first, in tests/features.py, through solve_bands and the optimizer's comfort-bounds builder, never a re-implemented formula. Controls: the weekend and holiday arms read Saturday comfort equal to the away target; null control: away off keeps the weekend and holiday values; recovery_active keeps today's behaviour, which drops the setback (whether it should is a design question for tvofi, not this fix). One mutant per added field. Commit the probe's harness as a new file in the harnesses directory under dev/audit, named after the probe topic, classified in tests/closure.py, and run it at both ends: before, the weekend and holiday rows read Sat 21.0; after, 16.0; every other row is unchanged. No goldens are expected to move. Out of scope: a state listener on the away presence entity, which belongs to R10-LIVESTATE's coordinator move. Its finding is carried there."
+  },
+  {
+   "group": "R10-HOTFIX-AWAY-LIVE",
+   "lane": "CORE",
+   "kind": "bug",
+   "class": "correctness",
+   "severity": "critical",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 1,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "custom_components/heatpump_optimizer/away.py",
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "tests/features.py"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-hotfix-away-live",
+    "commit": null,
+    "last_step": null,
+    "next_step": "fixer dispatched",
+    "note": "live user defect tvofi 2026-10-30: away override persisted but not in live state"
+   },
+   "brief": "Hotfix from a live user defect (tvofi, 2026-10-30): the away switch's override persisted in the away store (active, with a return time) while the coordinator's live away view, which the solve reads, reported away off, so the plan heated as if home (66.7 kWh over 24 h). Reproduce through the production coordinator (restore then resolve, switch then refresh, set-point reload then refresh), find which path drops the override, and fix it at the owning seam so the live state equals the resolved override. Controls: after each path the solve's bands carry the away target; null: an inactive store leaves the solve unchanged; an override past its return expires as today. One mutant per gate. The weekend and holiday setback override is the separate group R10-HOTFIX-AWAY-SETBACK."
   }
  ]
 }
