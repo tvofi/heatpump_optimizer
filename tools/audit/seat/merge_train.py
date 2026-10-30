@@ -2105,9 +2105,15 @@ class Train:
                 keep.append(item)
                 continue
             self.log(f"PARK #{item.get('pr')} {step}: {why}")
-            self.skipped.append({"pr": item.get("pr"), "phase": "pre-flight", "reason": f"{step}: {why}",
-                                 "verdict": item.get("verdict")})
-            self.seen_mark(item.get("pr"), "skipped")
+            row = {"pr": item.get("pr"), "phase": "pre-flight", "reason": f"{step}: {why}",
+                   "verdict": item.get("verdict")}
+            # PreFlight parks at `recarry` for one cause, the worktree holder
+            # (`worktree_holder`): the environment's, so P189's exception reaches it.
+            cls = HOLDER if step == "recarry" else None
+            if cls:
+                row["class"] = cls
+            self.skipped.append(row)
+            self.seen_mark(item.get("pr"), "skipped", cls)
         (self.state / "skipped.json").write_text(json.dumps(self.skipped, indent=2) + "\n")
         self.log(f"PRE-FLIGHT: {len(keep)} of {len(queue)} admitted")
         return keep
@@ -5809,6 +5815,35 @@ def _batch_self_test(check) -> None:
         tt._queue = {"batches": bs, "next": 1, "closed": False}
         more = tt.queue_take(bs, 1)
         drain_said = hl[len(add_said):]
+    # ... and a pre-flight PARK at `recarry` (PreFlight's worktree holder) is
+    # that HOLDER skip, recorded with its class; a `carry` PARK has none.
+    class _PF:
+        def __init__(self, *a, **k):
+            pass
+
+        def entry(self, item):
+            return ("PARK", "recarry", "held by /other/wt") if item["pr"] == 7 else ("PARK", "carry", "CARRY: no")
+    with tempfile.TemporaryDirectory() as d:
+        pl: list[str] = []
+        tp = Train("o/r", Path(d), None, "", (), 1, run=lambda *a, **k: (0, ""), log=pl.append, pre_flight=True)
+        (Path(d) / QUEUE_OPEN).write_text(f"{os.getpid()}\n")
+        tp._queue = {"batches": [], "next": 0, "closed": False}
+        tp._seen = {"7": {"verdict": V7, "state": "pending"}, "8": {"verdict": V7, "state": "pending"}}
+        real_pf, sys.modules["queue_pre_flight"] = sys.modules.get("queue_pre_flight"), type(sys)("queue_pre_flight")
+        sys.modules["queue_pre_flight"].PreFlight = _PF
+        try:
+            kept = tp.preflight([{"pr": 7, "verdict": V7}, {"pr": 8, "verdict": V7}])
+        finally:
+            if real_pf is None:
+                sys.modules.pop("queue_pre_flight", None)
+            else:
+                sys.modules["queue_pre_flight"] = real_pf
+        rec = queue_seen_read(Path(d))
+    check("P189 HOLDER arm, pre-flight: a PARK at `recarry` (the worktree holder) is recorded skipped [HOLDER] "
+          "with its verdict, so a same-verdict re-add is admitted; a `carry` PARK is skipped with no class",
+          kept == [] and rec["7"] == {"verdict": V7, "state": "skipped", "class": HOLDER}
+          and rec["8"] == {"verdict": V7, "state": "skipped"}
+          and already_held(7, V7, rec, set()) is None and bool(already_held(8, V7, rec, set())))
     check("P189 HOLDER arm: an entry skipped [HOLDER] and re-added at the SAME verdict is ADDED by `add` and "
           "by the drain (batch 2), and a ci-skipped one at the same verdict is ALREADY on both sides",
           add_rc == [0, 0] and add_said[0].startswith("ADDED #7") and add_said[1].startswith("ALREADY #8:")
