@@ -9072,14 +9072,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         floor = CAPACITY_FLOOR_FRACTION * p_max
         caps = np.full(len(outdoor_temps), p_max, dtype=float)
         any_cap = False
+        model = model or self._thermal_model
         for i, outdoor in enumerate(outdoor_temps):
             entry = self._capacity_envelope.get(int(np.floor(outdoor / 3.0)))
             if entry is None or int(entry[1]) < CAPACITY_MIN_SAMPLES:
                 continue
-            has_hum = humidity is not None and i < len(humidity)
-            hum = float(humidity[i]) if has_hum else None
-            cop_i = max((model or self._thermal_model).compute_cop(float(outdoor), humidity=hum), 1e-6)
-            cap_i = float(np.clip(float(entry[0]) / cop_i, floor, p_max))
+            hum = float(humidity[i]) if humidity is not None and i < len(humidity) else None
+            cop_i = max(model.compute_cop(float(outdoor), humidity=hum), 1e-6)
+            cap_i = float(np.clip(power_for_heat_per_cop_kw(model.params, float(entry[0]) / cop_i), floor, p_max))
             if cap_i < p_max - 1e-9:
                 caps[i] = cap_i
                 any_cap = True

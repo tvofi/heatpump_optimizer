@@ -2140,6 +2140,22 @@ def power_for_heat_per_cop_kw(
     return float(power) if np.ndim(heat_per_cop) == 0 else power
 
 
+def added_power_for_heat_per_cop_kw(
+    params: ThermalParameters, power_kw: Any, heat_per_cop: Any
+) -> Any:
+    """The draw to add to ``power_kw`` so its heat per unit of COP grows by
+    ``heat_per_cop`` (negative: falls by it): a top-up, or a cut, of a step
+    already planned. On the band one kW more buys less heat at a higher draw,
+    so the increment is not the plain quotient's even where the total is.
+
+    ``heat_per_cop`` itself while the derate is 0, so ``plan + increment`` is
+    byte-identical to the ``plan + heat / cop`` it replaces."""
+    if not params.cop_partload_derate:
+        return heat_per_cop
+    return power_for_heat_per_cop_kw(
+        params, heat_per_cop_kw(params, power_kw) + heat_per_cop) - power_kw
+
+
 def delivered_heat_kw(params: ThermalParameters, cop: Any, electrical_power: Any) -> Any:
     """Heat the pump delivers at ``cop`` and ``electrical_power``, space or hot
     water: ``cop`` times :func:`heat_per_cop_kw`, the one association every
