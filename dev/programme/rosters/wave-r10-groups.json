@@ -6318,7 +6318,7 @@
     "branch": "handoff/r10-flow-pull",
     "commit": "fc7173fe7876e9973a170675d25337a810a40c59",
     "last_step": null,
-    "next_step": "dispatch a fixer once every after group is done",
+    "next_step": "done: merged in #2628 (fc7173fe7)",
     "note": "Lean flow study 2026-10-21 (owner-adopted)"
    }
   },
