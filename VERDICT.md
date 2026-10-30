@@ -1,0 +1,42 @@
+Fix review: blocked 6e89bf7f902f701170b3393e8eaa6d27f23d73e6 mutation-vacuous: queue_take's record write for a drained entry, the old queue.pending.json fallback and _batch's overlap-recarry skip filter all survive deletion
+
+bus-nonce: dcdf815177864e0b1314bffc2afa4672
+
+Round 1 of review for PR #2978 (R10-TRAIN-OVERLAP-GRADE part 2). Measured at 6e89bf7f902f701170b3393e8eaa6d27f23d73e6, from a detached worktree at that head.
+
+## Block
+
+fix-review.md step 1. I deleted production lines the PR adds, and the self-test (350 checks) stays fully green for three of them. Each one carries behaviour the body claims:
+
+- X7: delete `self._seen[str(int(e["pr"]))] = {"verdict": ..., "state": "pending"}` in `Train.queue_take`. RESULT: SURVIVED, rc 0. Without that line, an entry the drain admits has no record. `already_held` then admits a re-add of it while its batch is running, and admits it again after it merges, because `seen_mark` is a no-op for an entry with no record. That is the "never run twice" half of the one admission rule. Today only first-batch entries pin it (`live queue`'s `ALREADY #1`), never a drained one.
+- X1: delete the `queue_seen_read` fallback that reads an old-code train's `queue.pending.json` as pending. RESULT: SURVIVED. The body says an `add` against the running old-code train (pid 34197) "behaves as before rather than refusing nothing". No check pins that.
+- X2: revert the first `self.skipped[mine:]` site (the OVERLAP up-front recarry list in `_batch`) to `self.skipped`. RESULT: SURVIVED. M8 pins only the serial-tail site. The body says both sites are filtered by this batch's own skips.
+
+The repair is a self-test arm for each one, plus a mutant per arm in `dev/audit/harnesses/r10_train_overlap_grade_p2_mutants.py`: a drained entry re-added while its batch runs and after it merges, an add against a state dir that holds only `queue.pending.json` with a live pid, and an earlier-batch skip re-admitted with overlap recarry on.
+
+## Findings
+
+- X7 survives: no check pins a drained entry's record (`queue_take` → `self._seen[...] = pending`), so a re-add of a drained entry while it runs or after it merges is unguarded by the suite. Carry: R10-TRAIN-OVERLAP-GRADE
+- X1 survives: the old-code-train fallback in `queue_seen_read` (which the brief flagged as going beyond the brief) has no arm. Carry: R10-TRAIN-OVERLAP-GRADE
+- X2 survives: the `_batch` overlap-recarry filter (`self.skipped[mine:]` at the `todo = [...]` line, which the brief flagged as going beyond the brief) has no arm. Only the tail filter (M8) is pinned. Carry: R10-TRAIN-OVERLAP-GRADE
+- X5 survives: `queue_seen_write` deriving `queue.pending.json` as pending-only is unpinned. The body's claim that `review_packet.train_boarded` "correctly reads a skipped entry as not boarded" has no check, in either self-test. Carry: R10-TRAIN-OVERLAP-GRADE
+- X3 survives: the "ran" mark for a completed batch's entries that were neither merged nor skipped is unpinned. Admission is equivalent, since `pending` and `ran` are both held, but the entry stays in `queue.pending.json`, so `train_boarded` reports it boarded after its batch ended. Carry: R10-TRAIN-OVERLAP-GRADE
+- The body's `## Red checks` says `none` while `tests / nightly-status` concluded failure on this head, and `review_packet.py` refuses `red-unanswered`. On the brief's ruling this red is main's: the diff touches only merge_train.py, its instrument page, a new harness, closures.json and the delivery row, none of which nightly-status reads. The body still owes the line naming it, so that the packet passes. Carry: R10-TRAIN-OVERLAP-GRADE
+- An entry skipped and then re-admitted and merged later in the same train is still counted in `self.skipped`. So it stays in `skipped.json`, in `SKIP REPORT: N skipped`, and in `batch`'s rc 1, which now over-reports skips the train itself cured. Carry: R10-TRAIN-OVERLAP-GRADE
+- `BRANCH-POLICY` same-verdict re-admission has no bound. When the policy refusal is a missing code-owner approval that has not landed, each re-add (`add --auto`, a hand re-add) costs another `merge_tries` refusals in a later batch. Carry 2 (park on a missing approval before attempting) is still open and would bound it. Carry: R10-TRAIN-OVERLAP-GRADE
+- `review_packet.train_boarded` reads `queue.pending.json` without `QUEUE_LOCK`, and `queue_seen_write` now rewrites it (non-atomic `write_text`) on every skip and merge, not only between batches. A torn read falls back to an empty set. Carry: dismissed: pre-existing unlocked reader; a torn read only drops boarded entries from an advisory packet line for one render, and atomic replace is a cheap optional hardening, not a defect of this PR
+
+## Evidence
+
+- RESULT `python3 tools/audit/seat/merge_train.py --self-test` at 6e89bf7f902f701170b3393e8eaa6d27f23d73e6: `merge_train self-test: 350 checks, 0 failed`, rc 0 (ev/selftest.txt). This matches the body's figure.
+- RESULT `python3 dev/audit/harnesses/r10_train_overlap_grade_p2_mutants.py` at 6e89bf7f902f701170b3393e8eaa6d27f23d73e6: `MUTANTS: 14 run, 0 not as required`. M0 passes and M1–M13 are killed, each on the checks the body names (ev/mutants.txt). This matches the body.
+- RESULT, reviewer's own mutants (ev/extra_mutants.py, built by me through the fixer harness's `one()`, not the finder's): X1 SURVIVED, X2 SURVIVED, X3 SURVIVED, X4 KILLED, X5 SURVIVED, X6 SURVIVED, X7 SURVIVED (ev/extra_mutants.txt). X6 (the owner-pid guard in `seen_mark`) is equivalent in a single-process self-test; I read it as sound and it is not a finding.
+- Batch-4 replay (train 20261029-193537-b4). The `P291 batch-4 replay` arm reproduces the shape: skips at new verdicts (#2, #3) and a BRANCH-POLICY merge skip re-added at its same head (#5) are ADDED by `add` and by the drain, and land in batch 3. Its log matches triage s6-batch63 P291's instances (#2917/#2872/#2961 new heads, #2970 same head 2a25229f). I did not re-run the base-side failing test the body describes; its claim that the arms fail at `2ab53fe90` is not re-derived here.
+- Null controls, all green at the head: an entry pending or in the live batch (#5, #6 as batch 2 starts) is ALREADY, rc 0, nothing spooled; a ci-skipped entry at the same head (#6) is ALREADY on both sides; a merged entry (#4) is ALREADY on both sides; a carry PARK at the same verdict stays ALREADY. M10 and M11 kill them, so they are not vacuous.
+- Fallback logic, read: an old-code train never removes skips from `queue.pending.json`, so a new `add` reads them as pending and refuses as before. The logic is correct as read but untested (X1 above).
+- Finder's harness: none is committed for this group. The packet says "Finder's harness: none named". The only harness is the fixer's own mutant runner, which the body discloses as its own.
+- Head: the PR body's `## Head` describes this head. 6e89bf7f902f701170b3393e8eaa6d27f23d73e6 adds only `dev/programme/delivery/2978.md` on top of 0667d661 (diff-stat checked), and 0667d661 merges origin/main 043b111d0 into fbe478bb with merge_train.py unchanged by the merge. `git diff --quiet 72cfd904 fbe478bb -- merge_train.py harness` exits 0, as claimed. refs/pull/2978/head re-read at write time (ev/head-at-post.txt).
+- Merge: `git merge-tree --write-tree origin/main 6e89bf7f902f701170b3393e8eaa6d27f23d73e6` gives tree a44f0e72, rc 0, no conflict (ev/merge-tree.txt). origin/main is 043b111d0, which is the PR's base.
+- Carries: the roster (handoff/audit-r10-roster ce28de56, group R10-TRAIN-OVERLAP-GRADE) holds 18 carries, and the body dispositions all 18 by index plus P291 (handoff/triage-s7-batch63). Closed here: 9, 13, 15 and P291. Part 1: 1 and 7. Superseded or taken: 5, 6, 10. Open: 2, 3, 4, 8, 11, 12(b), 14, 16, 17, 18. `git grep pr_head=True -- merge_train.py` returns nothing, as carry 4's disposition says.
+- `python3 tests/structure.py` at the head: STRUCTURE RATCHET PASSED (ev/structure.txt). The diff does not touch VERSION, the manifest or the RELEASE_NOTES heading, and it does not touch the claim files.
+- CI at the head, read from check-runs: `tests / nightly-status` concluded failure; on the brief's ruling that red is main's (see Findings for the body line it owes). Still in progress when I read them: `tests / closures`, `tests / coverage`, `tests / fast (3.14)`, `governance / instrument-self-tests`, `codeql / Analyze (python)`. The rest are success or skipped, and `tests / mutation` is green. Its `--scope changed` lane draws mutants only on changed production lines; I did not read its log, and the block does not turn on it.
