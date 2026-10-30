@@ -336,7 +336,7 @@ Role: dev/governance/roles/root-cause.md. |  |
 | R10-MARKETPLACE-EXTRAS | PR | 1 | done | #2965 | opus/opus | yes: D10.md is policy; .github/workflows code-owned (approve under mandate 6329234399) | land the optional Marketplace items from the investigation seat's report (issue #2965, section 3). |  |
 | R10-STAMP-ROUND-MAJOR | PR | 1 | in-progress | - | opus/opus | yes: tools/release is code-owned (approve under mandate 6329234399) | Fixer seat (dev/governance/roles/fixer.md), new group R10-STAMP-ROUND-MAJOR, tvofi/heatpump_optimizer, fork from origin/main e5ddba1fad5e6eccfeceaeaaa249bc45... |  |
 | R10-NIGHTLY-SLOW-ROLLING | PR | 1 | done | - | opus/opus | - | HOTFIX (main-graded red blocking the record beat): the Nightly `slow` lane fails on main. |  |
-| R10-FLY-CIPREDICT-RESTORING | PR | 1 | queued | **#2952** | sonnet/opus | - | Issue #2952: ci_predict's graders arm does not predict the three restoring jobs outside governance.yml (briefs, pr-contract, budget-raise-gate). |  |
+| R10-FLY-CIPREDICT-RESTORING | PR | 1 | queued | **#2952** | sonnet/opus | - | Issue #2952: ci_predict's graders arm does not grade the restoring jobs outside governance.yml. |  |
 | R10-FLY-CARRY-CLAIM-DRIVER | IN | 1 | in-progress | - | sonnet/opus | - | From triage P290 (orchestrator queue line 2026-10-29T22:30Z): critical-path #2917's merge verdict never carries across a main move. |  |
 
 ## ETA
