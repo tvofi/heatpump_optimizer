@@ -5772,7 +5772,7 @@
     "branch": "handoff/r10-flow-andon",
     "commit": "fea3d3ca6171e255711e7642579e5cfdbe085c3b",
     "last_step": null,
-    "next_step": "dispatch a fixer once every after group is done",
+    "next_step": "done: merged in #2582 (fea3d3ca6)",
     "note": "Lean flow study 2026-10-21 (owner-adopted)"
    }
   },
