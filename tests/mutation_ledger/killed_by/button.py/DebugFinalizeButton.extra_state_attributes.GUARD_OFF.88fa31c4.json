@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/button.py:DebugFinalizeButton.extra_state_attributes GUARD_OFF 88fa31c4",
+  "killed_by": "tests/debug_collect.py",
+  "old": "        if collector is None:",
+  "reason": "Driven by hand with `mutation_table.py`'s own `inventory`, `killed` and `pin_entry`, because `--pin-killed` refused this pool (no whole-line comment under 60 chars to carry its null control); the null control, button.py:43 plus ' (null control)', lived: GUARD_OFF (`if False:`) took tests/debug_collect.py from rc=0 failed=0 to rc=1 failed=1."
+}
