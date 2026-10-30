@@ -592,6 +592,9 @@ def _self_test() -> int:
     check("a done stage is neither live nor a disposition",
           not set(DONE_STAGES) & set(LIVE) and not set(DONE_STAGES) & set(DISPOSITION),
           (DONE_STAGES, LIVE, DISPOSITION))
+    check("the design steps' stages are derivable and not live (decision 0014)",
+          {"design", "design-review"} <= set(DERIVABLE) and not {"design", "design-review"} & set(LIVE),
+          (DERIVABLE, LIVE))
     check("the live view is the planner's own four words (no figure moves)",
           LIVE == ("in-progress", "fixing", "review", "in-review"), LIVE)
     check("the size vocabulary is the model's own keys",
