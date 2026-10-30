@@ -1,6 +1,6 @@
 {
   "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:step_supply RETURN_DEL 7f5bc4e7",
-  "killed_by": "tests/features.py",
+  "killed_by": "tests/typing_ruler.py",
   "old": "    return None if i is None or i >= len(inp.plan.power_schedule or ()) else plan_step_runs(inp.plan, i)",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
 }
