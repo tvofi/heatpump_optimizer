@@ -1,0 +1,12 @@
+ custom_components/heatpump_optimizer/thermal_model.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+features exit=1
+  FAIL the part-load factor is 1 at and below the modulation floor, 1 - derate at max power and linear between; a fixed-speed band prices no slope  [[1.0, 1.0, 1.0, 1.0, 1.0, 1.0]]
+  FAIL pump heat at max power carries the derate and at the floor does not; null control: a zero derate is exactly cop * power  [derated [4.9875, 16.625] plain [4.9875, 16.625]]
+  FAIL a step at max power warms the slab less with the derate on, and stays a float; null control: a step at the floor is unchanged  [max {0.0: 21.681875, 0.2: 21.681875} floor {0.0: 21.1765625, 0.2: 21.1765625}]
+  FAIL the buffer's charge ceiling prices the pump's max-power output with the derate: a derated pump stops charging at a cooler tank in deep cold  [{0.0: 66.39976057806052, 0.3: 66.39976057806052}]
+  FAIL at a flat price the derate moves the plan off max power: the share of kWh planned at 4 kW or more falls  [d=0 0.387 d=0.15 0.387]
+  FAIL a hot-water schedule carries the derate too: the same electrical power warms the tank less with the term on; null control: at the modulation floor the tank is unchanged  [max {0.0: 58.7971794010558, 0.2: 58.7971794010558} floor {0.0: 49.08665382031674, 0.2: 49.08665382031674}]
+  FAIL the full trajectory's hot-water track prices the same conversion as the step twin: the derated tank ends cooler; null control: at the modulation floor the track is unchanged  [max {0.0: 58.139711868588265, 0.2: 58.139711868588265} floor {0.0: 48.429186287849205, 0.2: 48.429186287849205}]
+7 of 4596 FEATURE CHECKS FAILED
+after restore: []
