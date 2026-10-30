@@ -427,7 +427,7 @@
     "branch": "handoff/r10-input-staleness",
     "commit": null,
     "last_step": null,
-    "next_step": "dispatch a fixer once every `after` group is done",
+    "next_step": "done: merged in #2683 (d0ae3ca9f)",
     "note": null,
     "pr": 2683
    },
