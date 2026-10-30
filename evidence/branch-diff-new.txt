@@ -1,99 +1,5 @@
-# Review packet #2978
-head: 882da1e01b3d209cf7f8b6c02427166e7c0c7655
-base: 26c9d22a3c37a1b48f8561d061ae58b03eef5b54
-
-Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
-
-## Gate digest: red
-CodeQL id=123861907251 success
-arch-score / arch-score id=123946060085 success
-arm id=123861551083 skipped
-budget-raise-gate / budget-raise-gate id=123946030577 success
-cancel-superseded id=123946029790 success
-codeql id=123946049762 skipped
-codeql / Analyze (actions) id=123946030492 success
-codeql / Analyze (javascript-typescript) id=123946074814 success
-codeql / Analyze (python) id=123946030771 success
-gate id=123946621553 queued
-governance id=123946041281 skipped
-governance / delivery-status id=123946030761 success
-governance / delivery-status-publish id=123946031050 skipped
-governance / env-matrix id=123946030472 success
-governance / instrument-self-tests id=123946030874 success
-governance / policy-docs id=123946074800 success
-governance / record id=123946030957 skipped
-governance / wave-script id=123946030633 success
-hassfest id=123946009511 skipped
-hassfest / hassfest id=123946059910 success
-kernel-points id=123946030224 skipped
-pr-contract / pr-contract id=123946377414 success
-prelude id=123946030029 success
-refresh id=123946079907 success
-tests id=123946037867 skipped
-tests / arch-instrument id=123946031986 success
-tests / briefs id=123946030572 success
-tests / browser id=123946031610 success
-tests / ci-ratchet id=123946033001 skipped
-tests / claims-autofix id=123946033650 skipped
-tests / closure-scope id=123946030770 success
-tests / closures id=123946031335 success
-tests / closures-autofix id=123946032477 skipped
-tests / coverage id=123946031842 success
-tests / coverage-ratchet id=123946032646 success
-tests / fast (3.14) id=123946032074 success
-tests / graders-head-copy id=123946032768 success
-tests / lane-proofs id=123946033149 success
-tests / mutation id=123946030540 success
-tests / mutation-autofix id=123946032162 skipped
-tests / mutation-pins id=123946031594 skipped
-tests / nightly-ha id=123946032013 skipped
-tests / nightly-status id=123946030911 failure
-tests / replay id=123946031494 skipped
-tests / typing id=123946031543 success
-validate id=123946009816 skipped
-validate / validate-hacs id=123946030511 success
-
-## Refusals
-none
-
-## Advisories
-none
-
-## carry_audit at the head
-NOTE stale tree: 882da1e01b3d209cf7f8b6c02427166e7c0c7655 lacks origin/main 1148ee635e8278ebbb033b524d54001b2a89218c; roster read at origin/main
-CARRY-AUDIT: 0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s)
-
-## figure_lint at the head
-ok         python3 tools/audit/seat/merge_train.py --self-test
-             `tools/audit/seat/merge_train.py` is in the tree at this head
-  ok         python3 dev/audit/harnesses/r10_train_overlap_grade_p2_mutants.py
-             `dev/audit/harnesses/r10_train_overlap_grade_p2_mutants.py` is in the tree at this head
-  ok         python3 tests/structure.py
-             `tests/structure.py` is in the tree at this head
-  ok         tests/entities.py
-             `tests/entities.py` is in the tree at this head
-  ok         python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir <dir>
-             `tests/closure.py` is in the tree at this head
-  ok         PYTHONPATH=tests/hastub python3 tests/entities.py
-             `tests/entities.py` is in the tree at this head
-  unverified git grep -n "QUEUE_PENDING\|QUEUE_SEEN\|already_held(\|queue_seen_read(" -- tools/ .github/ tests/
-             `git grep` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
-
-FIGURES: 6 resolved, 1 not verified, 0 refused
-
-## Finder's harness: none named
-### at the base
-not run
-### at the head
-not run
-
-## Mutation-ledger diff
-none
-
-## Three-dot diff
 diff --git a/dev/audit/harnesses/r10_train_overlap_grade_p2_mutants.py b/dev/audit/harnesses/r10_train_overlap_grade_p2_mutants.py
 new file mode 100644
-index 000000000..6cd50a5d7
 --- /dev/null
 +++ b/dev/audit/harnesses/r10_train_overlap_grade_p2_mutants.py
 @@ -0,0 +1,129 @@
@@ -228,16 +134,14 @@ index 000000000..6cd50a5d7
 +    sys.exit(main(sys.argv[1:]))
 diff --git a/dev/programme/delivery/2978.md b/dev/programme/delivery/2978.md
 new file mode 100644
-index 000000000..5693ea7ff
 --- /dev/null
 +++ b/dev/programme/delivery/2978.md
 @@ -0,0 +1 @@
 +- [#2978](https://github.com/tvofi/heatpump_optimizer/pull/2978) — **open**, R10-TRAIN-OVERLAP-GRADE part 2: one admission rule for add and the batch drain (R10-TRAIN-OVERLAP-GRADE)
 diff --git a/tests/closures.json b/tests/closures.json
-index 2671377dd..7194cff3a 100644
 --- a/tests/closures.json
 +++ b/tests/closures.json
-@@ -3815,6 +3815,7 @@
+@@ -3969,6 +3969,7 @@
     "dev/audit/harnesses/r10_tick_train_mutants.sh",
     "dev/audit/harnesses/r10_tick_which_roster.py",
     "dev/audit/harnesses/r10_title_seam.sh",
@@ -246,7 +150,6 @@ index 2671377dd..7194cff3a 100644
     "dev/audit/harnesses/r10_train_raise_hold_replay.py",
     "dev/audit/harnesses/r10_train_upgrade_mutants.py",
 diff --git a/tools/audit/seat/instruments/merge_train.py.md b/tools/audit/seat/instruments/merge_train.py.md
-index 4ce430257..fe97947bf 100644
 --- a/tools/audit/seat/instruments/merge_train.py.md
 +++ b/tools/audit/seat/instruments/merge_train.py.md
 @@ -61,7 +61,16 @@
@@ -268,7 +171,6 @@ index 4ce430257..fe97947bf 100644
    comment id, in force for policy merging, the train posts the citing approval
    step 5 requires (`policy_approve`); a budget raise still goes serial.
 diff --git a/tools/audit/seat/merge_train.py b/tools/audit/seat/merge_train.py
-index 02ffc447d..c1998b076 100644
 --- a/tools/audit/seat/merge_train.py
 +++ b/tools/audit/seat/merge_train.py
 @@ -161,7 +161,9 @@ have printed it) and the train continues with the next entry; the run closes
@@ -866,4 +768,3 @@ index 02ffc447d..c1998b076 100644
      flat = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}})
      nested = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}}, batches=[[1, 2]])
      shas = lambda xs: [re.sub(r"\b[0-9a-f]{8,40}\b", "<sha>", x) for x in xs]  # noqa: E731
-
