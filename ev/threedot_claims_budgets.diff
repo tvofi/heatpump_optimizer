@@ -1,0 +1,20 @@
+diff --git a/tests/golden/claimed_drift.txt b/tests/golden/claimed_drift.txt
+index 582f22ba1..b49a2ff52 100644
+--- a/tests/golden/claimed_drift.txt
++++ b/tests/golden/claimed_drift.txt
+@@ -785,3 +785,4 @@ coord_two_zone  # R10-COP-GATE (#2262): data.measured_cop_at|cop_refusal|cop_obs
+ # valve_storage_low_target, whose plan leaves move too: the reference's energy
+ # anchors three of the space solve's starts, so a valved plan can land in
+ # another basin. Unvalved fixtures do not move.
++config_flow # R10-COP-PARTLOAD: the heat_pump_cop_partload_derate option joins the options table and its seeded copy; keys added, no value moved
+diff --git a/tests/structure_budgets.json b/tests/structure_budgets.json
+index b76cfb616..a81608f11 100644
+--- a/tests/structure_budgets.json
++++ b/tests/structure_budgets.json
+@@ -1,5 +1,5 @@
+ {
+- "class_excess_loc": 17724,
++ "class_excess_loc": 17672,
+  "const_modules_over_50": 3,
+  "coordinator_attrs": 142,
+  "coordinator_multiassigned_attrs": 109,
