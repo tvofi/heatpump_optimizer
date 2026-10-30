@@ -57,13 +57,14 @@ Design choices:
 
 ## Head
 
-31da5f026563cbf2091b2e5e87005607b9d4cbfb, cut from origin/main
-507a9ec264eb373b132248d752259254d8a9fa4d (merge base; main's tip at
-2026-10-30T13:33Z).
-The tests and mutants ran at 855d1bbac6b04e4675fc93c4db4dabbb68dedca7. The
-head commit after it only deletes the three stale ledger pins under
-`tests/mutation_ledger/killed_by/button.py/`, as `body_push.sh`'s predictor
-required.
+7fed51072fac2bef5068d53e618ba4ba308eda46, a fast-forward of the reviewed
+head 7c43d8fb1505320e2b10d7c122dab3215ebd085c by one commit that adds the
+three `killed_by` rows under `tests/mutation_ledger/killed_by/button.py/` and
+nothing else. Merge base e77418f9b48f89421bd72b0ab511c057341c7fa4. origin/main
+was at 3fc19b0f6e375793fcbc71d7f88232b173b0604f at 2026-10-30T14:55Z;
+`git merge-tree --write-tree origin/main HEAD` exits 0 (no conflict), so main
+was not merged in (`fixer.md` step 6). The tests, mutants and gate in this
+body ran at 7fed51072.
 
 ## Mutation proof
 
@@ -101,19 +102,35 @@ Unmodified tree: origin/main at the merge base, with this head's
 
 ## Figures
 
+- Mutation rows, `python3 hand_pin.py` (scratch; drives the three sites
+  with `mutation_table.inventory`, `anchor_sites`, `killed`, `pin_entry`):
+  baseline `tests/debug_collect.py` rc=0 failed=0 (`ALL 159 DEBUG COLLECT
+  CHECKS PASSED`); null control button.py:43 rc=0 failed=0, `killed=False`;
+  226 GUARD_OFF rc=1 failed=1, 228 GUARD_OFF rc=1 failed=1, 230 RETURN_DEL
+  rc=1 failed=2, each `killed=True`. Had a site lived, `killed` would read
+  False and no row would be written (the script writes only on True).
+- Sites in scope, rule: `inventory([button.py])` filtered to lines 225-230
+  of `DebugFinalizeButton.extra_state_attributes`: 3 sites, the 3 above. The
+  CI lane's own enumeration agrees: `3 mutant(s) over 1 file(s)` in the
+  local `--scope changed` run.
+- Unpinned count, `python3 tests/mutation_table.py --scope changed --base
+  origin/main --max 10 --jobs 3` at 7fed51072: `3620 unpinned site(s) ...
+  3620 at the ratchet base`; at 7c43d8fb1 the reviewer's run read 3623, so
+  the ratchet arm separates the two heads. rc=1 on the null-control refusal.
 - Scoped gate, `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"`:
   `MODE: SCOPED -- 16 script(s) run, 17 scoped out.` Each of the 16 was run
-  at the head with `PYTHONPATH=tests/hastub` and passed. Their summary lines
+  at 7fed51072 with `PYTHONPATH=tests/hastub` and passed. Their summary lines
   are in Gate.
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
 - #2499, `PYTHONPATH=tests/hastub:custom_components:tests python3 dev/audit/harnesses/r10_demand_overbook.py`
-  at the head, arm `nometer_half`: `scale 1.858` (true 1.0) and `plan/deliv
-  1.908`. The null arm reads `plan/deliv 1.165`; `meter_half_oracle` reads
-  1.016. This head changes no learner or optimizer line, so the figure is the
+  re-run at 7fed51072, arm `nometer_half`: `scale 1.858` (true 1.0) and
+  `plan/deliv 1.908`. The null arm reads `plan/deliv 1.165`;
+  `meter_half_oracle` reads 1.016. Round 1 read the same three at 855d1bbac.
+  This head changes no learner or optimizer line, so the figure is the
   base's. The carry recorded 1.828 / 1.936 at d6ab12b4; the drift is the
   solver's environment, not a change. Over-booking on a no-meter install is
   not met.
-- P9 grid, `node tests/card_browser.mjs` with `P9_DEBUG=1`, at the merge base
+- P9 grid, not re-taken in round 2 (this round adds only ledger rows; no card or browser-test line moved since round 1, which measured it at its merge base 507a9ec26), `node tests/card_browser.mjs` with `P9_DEBUG=1`, at that merge base
   with and without the storage reset (`localStorage.clear(); sessionStorage.clear()`
   after each `page.goto` in `p9Grid`):
   - Without the reset, all browser checks pass: 850 box-intersecting pairs
@@ -129,14 +146,13 @@ Unmodified tree: origin/main at the merge base, with this head's
 
 ## Gate
 
-At the head, one run per script that `scope.run` names. `card.mjs` and
-`card_drift.mjs` take the plan payload `tests/plan_view.py` writes.
+At 7fed51072, one run per script that `scope.run` names, with `PYTHONPATH=tests/hastub` and `GOLDEN_MODE=drift`. `card.mjs` and `card_drift.mjs` take the plan payload `tests/plan_view.py` writes.
 - `tests/arch_score_head.py`: exit 0, `ALL 18 ARCHITECTURE SCORE HEAD CHECKS PASSED`
 - `tests/config_flow_steps.py`: exit 0, `ALL 534 checks PASSED`
 - `tests/debug_collect.py`: exit 0, `ALL 159 DEBUG COLLECT CHECKS PASSED`
 - `tests/deployment_shape.py`: exit 0, `ALL DEPLOYMENT SHAPE CHECKS PASSED`
 - `tests/doc_claims.py`: exit 0, `ALL 203 checks PASSED`
-- `tests/entities.py`: exit 0, `ALL 2484 ENTITY CHECKS PASSED`
+- `tests/entities.py`: exit 0, `ALL 2488 ENTITY CHECKS PASSED`
 - `tests/env_drift.py`: exit 0, `NO STALE FIXTURE: 5 committed fixture(s) still match what this tree computes`
 - `tests/features.py`: exit 0, `ALL 4605 FEATURE CHECKS PASSED`
 - `tests/finite_boundary.py`: exit 0, `ALL 108 FINITE BOUNDARY CHECKS PASSED`
@@ -150,33 +166,79 @@ At the head, one run per script that `scope.run` names. `card.mjs` and
 
 ## Unpinned sites
 
-The #2809 rewrite deletes three ledger pins: `RETURN_DEL.3dca65c8`,
-`GUARD_OFF.85c924c9` and `BOOLOP.85c924c9` on the old guarded line. The
-predictor named them as stale, so they are removed by hand.
+Round 2. The three sites the #2809 rewrite adds now carry `killed_by` rows.
 
-`mutation_table.py --pin-killed` and `--anchor` both refuse on this diff
-(`no full-line comment in any file in the pool`: `button.py` has no short
-whole-line comment to carry the null control), so the three mutants were
-driven by hand against `tests/debug_collect.py`: baseline `ALL 159 DEBUG
-COLLECT CHECKS PASSED`; each mutant applied to `button.py`, the script run
-with `PYTHONPATH=tests/hastub`, the file restored. All three are killed;
-`mutation-autofix` records the ledger pin after the push.
+`mutation_table.py --pin-killed` still refuses this pool (`no full-line
+comment in any file in the pool`): `null_control` takes only a whole-line
+comment shorter than 60 characters, and every whole-line comment in
+`button.py` is longer. So the three mutants were driven with the tool's own
+functions instead, not with a copy of its rules: `inventory([button.py])`
+for the sites and their `new` text, `anchor_sites` for the anchors,
+`killed` (a red run naming more failing checks than the baseline, a
+traceback counting one) for the verdict, and `pin_entry`/`ledger_relpath`/
+`row_text` for the rows. Each row's `reason` says it was driven by hand and
+why. The run carries the null control the tool could not find: button.py:43
+(`# (parallel-updates, Silver): ...`) plus ` (null control)`, driven through
+`tests/debug_collect.py`, lived (rc=0, failed=0). `--normalize` leaves the
+rows unchanged.
 
 - `custom_components/heatpump_optimizer/button.py:226 GUARD_OFF` (`if collector is None:` -> `if False:`): killed by
-  `tests/debug_collect.py` (the next line raises `AttributeError` on `None`).
+  `tests/debug_collect.py`, rc=0 failed=0 -> rc=1 failed=1 (the next line
+  raises `AttributeError` on `None`, which `failing_count` counts as one).
+  Anchor `GUARD_OFF 88fa31c4`.
 - `custom_components/heatpump_optimizer/button.py:228 GUARD_OFF` (`if collector.final:` -> `if False:`): killed by
-  `tests/debug_collect.py` (1 of 159 checks failed, the finalize button on a
-  finished collection).
+  `tests/debug_collect.py`, rc=1 failed=1 (the finalize button on a
+  finished collection). Anchor `GUARD_OFF 7cf2cf8c`.
 - `custom_components/heatpump_optimizer/button.py:230 RETURN_DEL` (`return {}` -> `pass`): killed by
-  `tests/debug_collect.py` (2 of 159 checks failed).
+  `tests/debug_collect.py`, rc=1 failed=2. Anchor `RETURN_DEL fc97300a`.
+
+No site lives, so no test was added and no `-- lives` line is owed.
 
 ## Red checks
 
-No check went red on this branch except as below. The P9 reset, which would turn
-`tests / browser` red, is withheld rather than handed off red.
-- `mutation` at 31da5f026563: red by construction on the 3 site(s) under `## Unpinned sites`; mutation-autofix pins killed sites after the push.
+- `tests / mutation` at 7c43d8fb1: red, `MUTATION TABLE REFUSED -- 3623
+  unpinned site(s) against 3620`. Cause: the round-1 handoff deleted the three
+  stale pins and relied on `mutation-autofix` to record the new ones, which
+  could not happen (below). Answer: the three rows in this head. Run locally
+  at 7fed51072 with CI's command (`python3 tests/mutation_table.py --scope
+  changed --base origin/main --max 10 --jobs 3`), the ratchet line now reads
+  `3620 unpinned site(s) of 6579 candidate sites, 3620 at the ratchet base
+  e77418f9b`. **It is still red**: the same run then stops at `MUTATION TABLE
+  REFUSED -- no full-line comment in any file in the pool`, because its
+  sampled lane draws only `button.py` sites and `null_control` finds no
+  comment under 60 characters there. Pins cannot clear that arm; only an
+  instrument change can (`tests/mutation_table.py`, code-owned by the owner),
+  or a `button.py` comment written to fit the tool, which I did not add
+  because it would shape the code to the grader. Not repaired in this head;
+  see Forward-carry. The cheaper detector: `null_for` over the pool, which
+  `prepr.sh` step 6d / `ci_predict.py` could run in seconds before the
+  handoff; it does not today, so this refusal first shows in CI.
+- `tests / mutation-autofix` at 7c43d8fb1: red, `AUTOFIX:
+  skip-measure-failed -- THE REPAIR DID NOT HAPPEN`. Cause: it drives
+  `--pin-killed`, which refuses the same pool for the same null-control
+  reason, so no bot commit came. Answer: the rows were recorded here
+  (`ci-autofix.md`: when mutation-autofix goes red, the repair is the
+  seat's). The cheaper detector is the same `null_for` pre-check; round 1
+  had already seen `--pin-killed` refuse locally and should have named this
+  red instead of predicting the bot's commit.
+- No other check went red on this branch. The P9 reset, which would turn
+  `tests / browser` red, is withheld rather than handed off red.
 
 ## Forward-carry
+
+- **The mutation null-control gap.** `null_control` in
+  `tests/mutation_table.py` takes only a whole-line comment under 60
+  characters, a cap with no recorded reason (2fe38a487). A pool whose files
+  hold none -- `button.py` at this head -- refuses both `--pin-killed` (so
+  `mutation-autofix` goes `skip-measure-failed`) and the sampled lane of
+  `tests / mutation`, so a pull request touching only such a file cannot go
+  green whatever it pins. A fallback to any whole-line comment is safe: the
+  null control fails closed if a driver notices it. The file is code-owned,
+  outside this group's seam, so it is not changed here; this PR needs that fix
+  merged first, or the orchestrator's call. `ci-autofix.md`'s table also omits
+  this case. Carry: R10-UX-HEALTH
+    (dev/programme/rosters/wave-r10-groups.json on handoff/audit-r10-roster)
+  (R10-UX-HEALTH; orchestrator assigns the instrument fix).
 
 - **P9 grid state leak (carry 17), with the collision it hides.**
   - `p9Grid` mounts every state of a cell in one browser context. The
