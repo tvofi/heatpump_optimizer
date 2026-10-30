@@ -7798,7 +7798,7 @@
     "branch": "handoff/r10-nightly-pyspy-retry",
     "commit": "2c0c4749499f5c3b85867120e41226e279a94164",
     "last_step": null,
-    "next_step": "dispatch a fixer",
+    "next_step": "done: merged in #2605 (2c0c47494)",
     "note": "Plan amendment registered by the orchestrator (s4) under mandate 6329234399 at 2026-10-22T05:35Z; dispatch as soon as the roster unfreezes."
    }
   },
