@@ -9620,7 +9620,7 @@
    ],
    "carry": [],
    "resume": {
-    "stage": "absorbed",
+    "stage": "done",
     "branch": "handoff/r10-fly-pool-instrument",
     "note": "absorbed into R10-FLOW-DESIGN-STAGES (consolidation audit 2026-10-25, tvofi existing-groups-first); brief and #2800 carried there; land as that group's first PR"
    },
