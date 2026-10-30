@@ -1,0 +1,39 @@
+== M0
+applied M0 custom_components/heatpump_optimizer/thermal_model.py
+  FAIL the inverse conversion returns the draw whose derated heat is the heat asked for, below the floor, on the band and past max power, to 1e-12; on the band it needs more power than heat / cop; the band's edges are exact and a 
+  FAIL the savings baseline buys a derated pump's heat at the power that delivers it: on the band its draw rises with the derate; null control: a draw below the modulation floor is unchanged  [cold {0.0: 3.238095238095239, 0.2: 3.
+  FAIL the hot-water clamp's truncated steps land on their ceiling in the derated simulation, not short of it or past it, at a draw above the plain quotient's; null control: with no derate they land there too  [{0.0: (1.5676297852
+  FAIL the hot-water LP's plan, simulated with the derate, reaches the floor it was solved against: its last-step draw is the root, not heat / cop; and capped below that draw it sizes its energy ceiling by the derated heat; null c
+  FAIL the setpoint sweep prices a day's hot water at the draw that delivers it: with a floorless band every candidate costs more under the derate; null control: the zero-derate costs are the plain quotient's  [{0.0: [3.97, 4.16, 
+5 of 4610 FEATURE CHECKS FAILED
+rc=1
+== M1
+applied M1 custom_components/heatpump_optimizer/dhw_planner.py
+  FAIL the hot-water LP's plan, simulated with the derate, reaches the floor it was solved against: its last-step draw is the root, not heat / cop; and capped below that draw it sizes its energy ceiling by the derated heat; null c
+1 of 4610 FEATURE CHECKS FAILED
+rc=1
+== M2
+applied M2 custom_components/heatpump_optimizer/dhw_planner.py
+  FAIL the hot-water LP's plan, simulated with the derate, reaches the floor it was solved against: its last-step draw is the root, not heat / cop; and capped below that draw it sizes its energy ceiling by the derated heat; null c
+1 of 4610 FEATURE CHECKS FAILED
+rc=1
+== M3
+applied M3 custom_components/heatpump_optimizer/dhw_planner.py
+  FAIL the hot-water clamp's truncated steps land on their ceiling in the derated simulation, not short of it or past it, at a draw above the plain quotient's; null control: with no derate they land there too  [{0.0: (1.5676297852
+1 of 4610 FEATURE CHECKS FAILED
+rc=1
+== M4
+applied M4 custom_components/heatpump_optimizer/dhw_planner.py
+  FAIL the hot-water clamp's truncated steps land on their ceiling in the derated simulation, not short of it or past it, at a draw above the plain quotient's; null control: with no derate they land there too  [{0.0: (1.5676297852
+1 of 4610 FEATURE CHECKS FAILED
+rc=1
+== M5
+applied M5 custom_components/heatpump_optimizer/optimizer.py
+  FAIL the savings baseline buys a derated pump's heat at the power that delivers it: on the band its draw rises with the derate; null control: a draw below the modulation floor is unchanged  [cold {0.0: 3.238095238095239, 0.2: 3.
+1 of 4610 FEATURE CHECKS FAILED
+rc=1
+== M6
+applied M6 custom_components/heatpump_optimizer/coordinator.py
+  FAIL the setpoint sweep prices a day's hot water at the draw that delivers it: with a floorless band every candidate costs more under the derate; null control: the zero-derate costs are the plain quotient's  [{0.0: [3.97, 4.16, 
+1 of 4610 FEATURE CHECKS FAILED
+rc=1
