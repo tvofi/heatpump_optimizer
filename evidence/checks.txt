@@ -1,4 +1,0 @@
-Live check-runs at f2daca863fb67409458f788e61839d4460a17ccb (get_check_runs, 81 runs, all completed):
-only red: tests / nightly-status id=123795706996 failure (19:41:31Z)
-last pr-contract / pr-contract id=123796954155 success, started 23:32:44Z, after the last red concluded
-gate id=123797245735 success; gate id=123796393899 success; arch-score, budget-raise-gate success

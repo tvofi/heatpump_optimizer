@@ -1,5 +1,0 @@
-/opt/hpo/venv-ci/bin/python3
-Python 3.14.7
-  ok   predict reaches the graders arm by name (its call site, not only its helper)
-  ok   every JOB value is a name gate.REQUIRED owes
-ci_predict self-test: 0 failed

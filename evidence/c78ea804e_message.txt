@@ -1,6 +1,0 @@
-c78ea804ee07c4b7e21322597cd25335dac29748 rca(R10-RCA-PREPR-HEAD-GRADERS): the three restoring jobs outside governance.yml carried to #2952 (review round 6)
-dev/programme/carries/carry-2952.json is #2952's brief: the enumeration
-rule as the control, the unmeasured pr-contract and budget-raise-gate
-instances as the precondition. The record's section 7 lines end in
-Carry: #2952. No code changes.
-
