@@ -3,6 +3,7 @@
 
     python3 -I tools/pr/cancel_superseded.py run --repo OWNER/REPO --workflow tests.yml \
         --pr N --head-sha SHA --branch BRANCH --run-id ID --sender LOGIN [--dry-run]
+    python3 -I tools/pr/cancel_superseded.py sweep --repo OWNER/REPO [--dry-run]
     python3 tools/pr/cancel_superseded.py --self-test
 
 R10-CI-CONCURRENCY. A workflow's `concurrency:` group cancels a pull request's
@@ -29,6 +30,19 @@ IT CANCELS NOTHING UNLESS ALL OF THESE HOLD, and prints which one failed:
     the calling run (its id is lower: a newer head's run is never cancelled).
 An unreadable answer from GitHub cancels nothing. Always exits 0 when it ran
 (fail-soft: the cancel is an optimisation, never a gate).
+
+`sweep` (P266) is the same rule applied from OUTSIDE any run, by the orchestrator's
+pass: while the newer run is still queued for a runner it cancels nothing from
+inside, so the superseded first push of a two-push open stayed active. One
+open-PR listing and one runs listing per active status; per open same-repo PR
+branch it cancels what `candidates()` selects against the live head (no run at
+the live head yet: every active run at another head). It never cancels a run at
+the live head, a run on main, or an event outside `EVENTS` (push, workflow_run,
+schedule, pull_request_target), nor on a branch whose live head was authored by
+`github-actions[bot]` (the autofix rule). A run on a branch with no open PR is
+reported as a ghost, never cancelled. Prints one line per action and
+`CANCEL-SWEEP: cancelled n, kept m (live head), skipped k (bot head / not a PR),
+ghosts g`. A critical-path or hotfix superseded run stays cancellable.
 
 `concurrency:` is unchanged and still models the bot rule (`tests/entities.py`).
 The workflow job runs the BASE's copy of this program with `actions: write`.
@@ -108,6 +122,87 @@ def run(a: argparse.Namespace, api=gh) -> int:
         print(f"cancel_superseded: cancelled {rid}" if ok is not None
               else f"cancel_superseded: could not cancel {rid}")
     print(f"cancel_superseded: {len(ids)} superseded run(s) of {a.workflow} on {a.branch}")
+    return 0
+
+
+def sweep_plan(prs: list[dict], runs: list[dict], bot_heads: set[str], *, repo: str) -> dict:
+    """Pure part of `sweep`: {"cancel": ids, "kept": n, "skipped": n, "ghosts": [ids]}.
+
+    `prs` are open pull requests (number, head.sha, head.ref, head.repo); `bot_heads`
+    the live-head shas whose commit was authored by github-actions[bot]."""
+    live = {}
+    for pr in prs:
+        h = pr.get("head") or {}
+        if pr.get("state", "open") == "open" and (h.get("repo") or {}).get("full_name") == repo and h.get("ref"):
+            live[h["ref"]] = h.get("sha")
+    cancel, kept, skipped, ghosts = [], 0, 0, []
+    by_branch: dict[str, list[dict]] = {}
+    for r in runs:
+        if r.get("status") not in ACTIVE:
+            continue
+        b = r.get("head_branch")
+        hr = (r.get("head_repository") or {}).get("full_name")
+        if b == "main" or r.get("event") not in EVENTS or (hr and hr != repo):
+            skipped += 1
+            continue
+        if b not in live:
+            ghosts.append(int(r["id"]))
+            continue
+        by_branch.setdefault(b, []).append(r)
+    for b, rs in sorted(by_branch.items()):
+        sha = live[b]
+        kept += sum(1 for r in rs if r.get("head_sha") == sha)
+        # A run at the live head bounds the cancel by id (an older head's run only);
+        # with none yet, every active run at another head is superseded.
+        bound = max([int(r["id"]) for r in rs if r.get("head_sha") == sha] or [sys.maxsize])
+        ids = candidates(rs, live_sha=sha, branch=b, run_id=bound)
+        if sha in bot_heads:
+            skipped += len(ids)
+            continue
+        cancel += ids
+    return {"cancel": sorted(cancel), "kept": kept, "skipped": skipped, "ghosts": sorted(ghosts)}
+
+
+def sweep(a: argparse.Namespace, api=gh) -> int:
+    prs = api([f"repos/{a.repo}/pulls", "-f", "state=open", "-f", "per_page=100"])
+    runs: list[dict] = []
+    for st in ("queued", "in_progress", "waiting"):
+        got = api([f"repos/{a.repo}/actions/runs", "-f", f"status={st}", "-f", "per_page=100"])
+        rs = got.get("workflow_runs") if isinstance(got, dict) else None
+        if rs is None:
+            prs = None
+            break
+        runs += rs
+    if not isinstance(prs, list):
+        print("CANCEL-SWEEP: unreadable answer; cancelling nothing")
+        return 0
+    bot_heads: set[str] = set()
+    first = sweep_plan(prs, runs, set(), repo=a.repo)
+    if first["cancel"]:
+        # the live-head author is read only for the PRs that have something to cancel
+        by_id = {int(r["id"]): r for r in runs}
+        for pr in prs:
+            h = pr.get("head") or {}
+            if any((by_id[i].get("head_branch") == h.get("ref")) for i in first["cancel"]):
+                c = api([f"repos/{a.repo}/commits/{h.get('sha')}"])
+                if not isinstance(c, dict):
+                    print("CANCEL-SWEEP: unreadable commit; cancelling nothing")
+                    return 0
+                if ((c.get("author") or {}).get("login") == BOT
+                        or ((c.get("commit") or {}).get("author") or {}).get("name") == BOT):
+                    bot_heads.add(h.get("sha"))
+    res = sweep_plan(prs, runs, bot_heads, repo=a.repo)
+    for rid in res["cancel"]:
+        if a.dry_run:
+            print(f"cancel_superseded: would cancel {rid}")
+            continue
+        ok = api([f"repos/{a.repo}/actions/runs/{rid}/cancel"], "POST")
+        print(f"cancel_superseded: cancelled {rid}" if ok is not None
+              else f"cancel_superseded: could not cancel {rid}")
+    for rid in res["ghosts"]:
+        print(f"cancel_superseded: ghost {rid} (no open pull request on its branch)")
+    print(f"CANCEL-SWEEP: cancelled {len(res['cancel'])}, kept {res['kept']} (live head), "
+          f"skipped {res['skipped']} (bot head / not a PR), ghosts {len(res['ghosts'])}")
     return 0
 
 
@@ -196,6 +291,62 @@ def self_test() -> int:
     ns.dry_run = False
     check("an unreadable listing cancels nothing and exits 0",
           (run(ns, lambda a, m="GET": None), posts), (0, []))
+    # sweep: the #2927 shape (two superseded first-push runs, the live head's run queued).
+    S_OLD, S_LIVE = "e" * 40, "f" * 40
+    sb = "fix/two-push"
+    sprs = [{"number": 7, "state": "open", "head": {"sha": S_LIVE, "ref": sb, "repo": {"full_name": REPO}}}]
+    sruns = [_r(101, S_OLD, status="in_progress", branch=sb), _r(102, S_OLD, "workflow_dispatch", "queued", sb),
+             _r(103, S_LIVE, status="queued", branch=sb)]
+
+    def sw(prs=sprs, runs=sruns, bots=()):
+        return sweep_plan(prs, runs, set(bots), repo=REPO)
+    check("sweep: the #2927 shape cancels both old runs and keeps the queued live one",
+          (sw()["cancel"], sw()["kept"]), ([101, 102], 1))
+    check("sweep: with no run yet at the live head every active run at another head is cancelled",
+          sw(runs=sruns[:2])["cancel"], [101, 102])
+    check("sweep: a bot-authored live head cancels nothing", sw(bots=[S_LIVE])["cancel"], [])
+    push_main = _r(90, S_OLD, "push", branch="main")
+    push_pr = _r(91, S_OLD, "push", branch=sb)
+    check("sweep: a push run on main and a push run on a PR branch are never cancelled",
+          sw(runs=sruns + [push_main, push_pr])["cancel"], [101, 102])
+    ghost = _r(95, S_OLD, branch="fix/no-pr")
+    res = sw(runs=sruns + [ghost])
+    check("sweep: a run on a branch with no open PR is a ghost, never cancelled",
+          (res["cancel"], res["ghosts"]), ([101, 102], [95]))
+    check("sweep null: only live-head runs cancels nothing", sw(runs=[sruns[2], _r(104, S_LIVE, branch=sb)])["cancel"], [])
+    check("sweep: a fork PR head is not swept", sw(prs=[{**sprs[0], "head": {**sprs[0]["head"], "repo": {"full_name": "x/fork"}}}])["cancel"], [])
+    # mutant: dropping the event filter makes the push fixtures cancellable, so the arm above would fail.
+    global EVENTS
+    saved, EVENTS = EVENTS, EVENTS + ("push",)
+    try:
+        mutant = sw(runs=sruns + [push_pr])["cancel"]
+    finally:
+        EVENTS = saved
+    check("sweep mutant: without the event filter the push run IS cancelled (the arm detects it)",
+          91 in mutant, True)
+    spost: list[str] = []
+
+    def sstub(args, method="GET"):
+        if args[0].endswith("/pulls"):
+            return sprs
+        if args[0].endswith("/actions/runs") and method == "GET":
+            st = args[2].split("=")[1]
+            return {"workflow_runs": [r for r in sruns if r["status"] == st]}
+        if "/commits/" in args[0]:
+            return {"author": {"login": "hpo-author[bot]"}}
+        spost.append(args[0])
+        return {}
+    sns = argparse.Namespace(repo=REPO, dry_run=False)
+    check("sweep end to end: POSTs exactly the two old runs",
+          (sweep(sns, sstub), sorted(spost)),
+          (0, sorted(f"repos/{REPO}/actions/runs/{i}/cancel" for i in (101, 102))))
+    spost.clear()
+    sns.dry_run = True
+    sweep(sns, sstub)
+    check("sweep --dry-run posts nothing", spost, [])
+    sns.dry_run = False
+    check("sweep: an unreadable answer cancels nothing and exits 0",
+          (sweep(sns, lambda a, m="GET": None), spost), (0, []))
     print(f"cancel_superseded self-test: {n} checks, {fails} failed")
     return 1 if fails else 0
 
@@ -212,7 +363,11 @@ def main(argv: list[str]) -> int:
     r.add_argument("--run-id", type=int, required=True)
     r.add_argument("--event", default="pull_request")
     r.add_argument("--dry-run", action="store_true")
-    return run(ap.parse_args(argv[1:]))
+    w = sub.add_parser("sweep")
+    w.add_argument("--repo", required=True)
+    w.add_argument("--dry-run", action="store_true")
+    a = ap.parse_args(argv[1:])
+    return sweep(a) if a.cmd == "sweep" else run(a)
 
 
 if __name__ == "__main__":
