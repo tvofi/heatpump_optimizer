@@ -2950,7 +2950,7 @@
     "branch": "handoff/r10-replay-lane",
     "commit": "0280e6efdf57878c4108dd2ec3883559122d7ebb",
     "last_step": null,
-    "next_step": "dispatch a fixer once every `after` group is done",
+    "next_step": "done: merged in #2514 (0280e6efd)",
     "note": null
    },
    "brief": "Land the replay lane fully (tvofi, 2026-10-14): a real recorded day from the owner's install, exported through the allowlist into a new fixture under tests/replay/, and the lane gated nightly. The only fixture today is tests/replay/synthetic-dhw-only.json. #2205 (the slow-lane CPU doubling) is closed: its RCA (dev/audit/rca/R10-RCA-2205.md) refused a per-PR lane and the cap was re-centred by #2217.\n\nForward-carried (finding-propagation.md): (1) The new fixture is a new tracked file: classify it. (2) D14-s3 (the nightly-replay seat) re-runs on the real day once it has landed.\n\nIdentity and flow: the seat pushes refs only, through tools/audit/seat/handoff_push.sh and tools/audit/seat/bus.sh; every GitHub write is the orchestrator's (decisions 0011 and 0013). Work from fresh origin/main in your own worktree under your ABSOLUTE scratch directory; stop only PIDs you started. Follow dev/governance/roles/fixer.md: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim, `GATE_SCOPE` auto, tests/structure.py before push. Every figure above is a snapshot at the finding's baseline: re-derive it at your merge base. Owner gate: code-owned: .github/workflows/. Models: fixer opus, reviewer opus. Closing: the pull request names every issue in this group's `issues` in prose with a closing keyword only for those in `fixes`, and Part of for the rest; the orchestrator verifies each intended issue closed after the merge."
