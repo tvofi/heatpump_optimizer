@@ -1,0 +1,120 @@
+RESULT mutant=M0 rc=0 fails=0 verdict=null
+RESULT mutant=live rc=1 fails=5 verdict=killed
+    FAIL live 
+    FAIL rows carry the live class 
+    FAIL the summary strip counts live 
+    FAIL rows carry the ready class 
+    FAIL the summary strip counts ready 
+RESULT mutant=blocked rc=1 fails=5 verdict=killed
+    FAIL blocked: an after target not done 
+    FAIL rows carry the ready class 
+    FAIL the summary strip counts ready 
+    FAIL rows carry the blocked class 
+    FAIL the summary strip counts blocked 
+RESULT mutant=partial rc=1 fails=5 verdict=killed
+    FAIL partial: a merged R9-PART: title on an open group 
+    FAIL rows carry the ready class 
+    FAIL the summary strip counts ready 
+    FAIL rows carry the partial class 
+    FAIL the summary strip counts partial 
+RESULT mutant=blocked-by-less-done rc=1 fails=7 verdict=killed
+    FAIL ready: its only after target is done 
+    FAIL defect 2: the blockers are the roster's after, never a scratch graph 
+    FAIL blocked-by is the roster's after less the done groups 
+    FAIL rows carry the ready class 
+    FAIL the summary strip counts ready 
+    FAIL rows carry the blocked class 
+    FAIL the summary strip counts blocked 
+RESULT mutant=pr-by-merge-commit rc=1 fails=1 verdict=killed
+    FAIL done: the PR is found by merge commit 
+RESULT mutant=pr-by-branch rc=1 fails=1 verdict=killed
+    FAIL done: the PR is found by branch when no merge commit matches 
+RESULT mutant=pr-sha8-fallback rc=1 fails=1 verdict=killed
+    FAIL done: no PR found falls back to the commit's sha8 
+RESULT mutant=branch-tail-fallback rc=1 fails=1 verdict=killed
+    FAIL the open PR maps by the branch-tail fallback 
+RESULT mutant=title-fallback rc=1 fails=1 verdict=killed
+    FAIL an open PR whose branch names no group maps by its title 
+RESULT mutant=closed-strike rc=1 fails=1 verdict=killed
+    FAIL a closed issue's chip is struck 
+RESULT mutant=tracking-excluded rc=1 fails=1 verdict=killed
+    FAIL defect 3: the open-issue count is the open set less the tracking issue 
+RESULT mutant=page-refuses-stale rc=1 fails=1 verdict=killed
+    FAIL a stale plan is refused: the UNAVAILABLE page names the freshness rule 
+RESULT mutant=freshness-rule rc=1 fails=6 verdict=killed
+    FAIL a stale plan is refused: the UNAVAILABLE page names the freshness rule 
+    FAIL and replan --check refuses the same plan 
+    FAIL a roster commit after the replan makes the plan stale: 
+    FAIL --check exits 1 on a stale plan: rc=0 
+    FAIL the unmutated copy's self-test exits 0 (null control): rc=1
+    FAIL self-test fails when freshness is deleted: anchor 'if have != want:' occurs 0 times in 'def stale_reason(plan: dict, repo: str, ref: str | None = None,'
+RESULT mutant=stamp-on-axis rc=1 fails=1 verdict=killed
+    FAIL a planned stamp is drawn 
+RESULT mutant=B-model-record-refusal rc=1 fails=1 verdict=killed
+    FAIL a fresh plan recording no duration model is refused: the UNAVAILABLE page 
+RESULT mutant=C-check_plan-refusal rc=1 fails=1 verdict=killed
+    FAIL a fresh plan that check_plan refuses is refused: the UNAVAILABLE page 
+RESULT mutant=D-caption-drawn-count rc=1 fails=2 verdict=killed
+    FAIL the caption counts the links drawn (none drawn, one left) 
+    FAIL the caption counts the links drawn (one drawn, none left) 
+RESULT mutant=E-explicit-ref-wins rc=1 fails=3 verdict=killed
+    FAIL an explicit ref is read instead of generated.roster_ref: plan.json is stale: built from roster blob dccca9ab346d, but main:dev/programme/rosters/wave-r9-groups.json is now 50dff6acba6a; re-run tools/plan/replan.py --out <plan.json>
+    FAIL --check --roster-ref passes the plan at the ref it names: rc=1
+    FAIL the unmutated copy's self-test exits 0 (null control): rc=1
+RESULT mutant=tier-column rc=1 fails=1 verdict=killed
+    FAIL every open group's tier is shown, and a merged group's is not 
+RESULT mutant=defect-1-hardcoded-override rc=1 fails=6 verdict=killed
+    FAIL done: the PR is found by merge commit 
+    FAIL ready: its only after target is done 
+    FAIL defect 1: every row's status is the roster's own stage 
+    FAIL defect 2: the blockers are the roster's after, never a scratch graph 
+    FAIL blocked-by is the roster's after less the done groups 
+    FAIL the fixture arms ran to the end 
+RESULT mutant=defect-2-scratch-graph rc=1 fails=7 verdict=killed
+    FAIL ready: its only after target is done 
+    FAIL defect 2: the blockers are the roster's after, never a scratch graph 
+    FAIL blocked-by is the roster's after less the done groups 
+    FAIL rows carry the ready class 
+    FAIL the summary strip counts ready 
+    FAIL rows carry the blocked class 
+    FAIL the summary strip counts blocked 
+RESULT mutant=defect-3-count-wrong-set rc=1 fails=1 verdict=killed
+    FAIL defect 3: the open-issue count is the open set less the tracking issue 
+RESULT mutant=defect-4-sha8-as-pr rc=1 fails=2 verdict=killed
+    FAIL done: no PR found falls back to the commit's sha8 
+    FAIL defect 4: a done group with no merged PR names its sha8, never #sha8 
+RESULT mutant=defect-5-absorbed-as-done rc=1 fails=8 verdict=killed
+    FAIL held: a disposition stage is its own class, naming the group it went to 
+    FAIL defect 1: every row's status is the roster's own stage 
+    FAIL defect 5: an absorbed group is not rendered done or delivered 
+    FAIL rows carry the done class 
+    FAIL the summary strip counts done 
+    FAIL rows carry the held class 
+    FAIL the summary strip counts held 
+    FAIL every open group's tier is shown, and a merged group's is not 
+RESULT mutant=held-label rc=1 fails=2 verdict=killed
+    FAIL held: a disposition stage is its own class, naming the group it went to 
+    FAIL defect 5: an absorbed group is not rendered done or delivered 
+RESULT mutant=unavailable-page-written rc=1 fails=4 verdict=killed
+    FAIL a fresh plan recording no duration model is refused: the UNAVAILABLE page 
+    FAIL a fresh plan that check_plan refuses is refused: the UNAVAILABLE page 
+    FAIL a stale plan is refused: the UNAVAILABLE page names the freshness rule 
+    FAIL an unfetchable roster ref is refused: the UNAVAILABLE page names it 
+RESULT mutant=state-page-published rc=1 fails=1 verdict=killed
+    FAIL 1 self-test check(s) failed: plan page: the first --plan call exits 0 
+RESULT mutant=state-keeps-last-good rc=1 fails=1 verdict=killed
+    FAIL 1 self-test check(s) failed: plan page: a stale plan keeps the last good page at the ref, exit 1 
+RESULT mutant=state-unavailable-where-none rc=1 fails=1 verdict=killed
+    FAIL 1 self-test check(s) failed: plan page: with no page at the ref, the UNAVAILABLE page is published 
+RESULT mutant=state-unread-exits-1 rc=1 fails=1 verdict=killed
+    FAIL 2 self-test check(s) failed: plan page: a stale plan keeps the last good page at the ref, exit 1 
+RESULT mutant=unavailable-no-figures rc=1 fails=4 verdict=killed
+    FAIL a fresh plan recording no duration model is refused: the UNAVAILABLE page 
+    FAIL a fresh plan that check_plan refuses is refused: the UNAVAILABLE page 
+    FAIL a stale plan is refused: the UNAVAILABLE page names the freshness rule 
+    FAIL an unfetchable roster ref is refused: the UNAVAILABLE page names it 
+RESULT survived=0
+
+real	1m31.551s
+user	1m7.950s
+sys	0m19.749s
