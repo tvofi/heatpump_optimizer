@@ -40235,7 +40235,7 @@ def _o1_window(event: str, rev: str, root: str) -> dict:
     out.write_text("")
     env = throwaway_git_env()
     _sp_o1.run(["git", "checkout", "-q", "--detach", rev], cwd=root, check=True, env=env)
-    _sp_o1.run(["bash", "-c", script], cwd=root, check=True, capture_output=True,
+    _sp_o1.run([*_GHA_RUN, script], cwd=root, check=True, capture_output=True,
                env={**env, "EVENT": event, "GITHUB_OUTPUT": str(out)})
     return dict(l.split("=", 1) for l in out.read_text().splitlines() if "=" in l)
 
