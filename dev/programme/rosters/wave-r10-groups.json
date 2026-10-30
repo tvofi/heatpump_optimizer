@@ -9235,7 +9235,7 @@
     "branch": null,
     "commit": "2b274fe06d2b62610d2e84e5be63260cf198f527",
     "last_step": null,
-    "next_step": "dispatch a fixer",
+    "next_step": "done: merged in #2894 (2b274fe06)",
     "note": null,
     "pr": 2894
    }
