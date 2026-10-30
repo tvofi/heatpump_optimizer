@@ -11307,7 +11307,8 @@
    "severity": "medium",
    "size": "S",
    "issues": [
-    2715
+    2715,
+    2719
    ],
    "fixes": [],
    "findings": [],
