@@ -1,0 +1,20 @@
+head ebbdcaa6792fcd5326a30b15fc733f94dada3512
+verdicted 1381df1f5b25e2e3585035c8fceaec1bce3dcdc2
+main 1148ee635e8278ebbb033b524d54001b2a89218c
+base(V,M) 043b111d01c90ecb1220980df1d363c0b50bb37f
+head tree: d9b353a6f92e614ce48f0cc09566b28cd19e603f
+--- git merge-tree --write-tree 1381df1f5b25e2e3585035c8fceaec1bce3dcdc2 1148ee635e8278ebbb033b524d54001b2a89218c (claimnotes + ledger drivers installed)
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/entities.py: merged as a set (43 entries)
+  re-run the gate that owns this file before pushing
+d9b353a6f92e614ce48f0cc09566b28cd19e603f
+exit=0
+--- git merge-tree --write-tree origin/main ebbdcaa6792fcd5326a30b15fc733f94dada3512
+d9b353a6f92e614ce48f0cc09566b28cd19e603f
+exit=0
+--- review_carry
+review_carry: 1381df1f5 -> ebbdcaa67  main=origin/main
+  branch-only commits: 1
+  why: ebbdcaa6792fcd5326a30b15fc733f94dada3512 resolves tests/golden/claimed_drift.txt to something other than the union of its parents
+  ebbdcaa67  Merge remote-tracking branch 'origin/main' into fix/r10-ux-health
+review_carry: FRESH-REVIEW

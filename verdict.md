@@ -1,0 +1,23 @@
+Fix review: merge ebbdcaa6792fcd5326a30b15fc733f94dada3512
+
+bus-nonce: 7168a89edbbdfcc596d666460d42f168
+
+## Scope
+
+Resolution delta only: 1381df1f5b25e2e3585035c8fceaec1bce3dcdc2 (my earlier merge verdict) to ebbdcaa6792fcd5326a30b15fc733f94dada3512, a two-parent merge of 1381df1f5 and main 1148ee635 (the main merge of #2917, R10-COP-GATE). Review round: resolution re-review after a merge verdict, not a fourth fix round. `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` is empty (origin/main is an ancestor of the head), so the contract I followed is current.
+
+## Evidence
+
+- RESULT resolution: `git merge-tree --write-tree 1381df1f5 1148ee635`, run with the `claimnotes` and ledger drivers installed, writes tree d9b353a6f92e614ce48f0cc09566b28cd19e603f, exit 0, stderr `LEDGER-MERGE: resolved tests/closures.json` and no `MERGE-CLAIM: refused`. The head's tree is d9b353a6f92e614ce48f0cc09566b28cd19e603f too, so the merge is the automatic one with no hand edits, as the body's `## Head` says (ev/merge.txt).
+- RESULT branch diff unchanged: for each of the 9 files the branch changes from its fork point 043b111d0, `git diff 043b111d0 1381df1f5 -- <f>` equals `git diff 1148ee635 ebbdcaa67 -- <f>` once hunk headers are stripped, so the merge leaves the reviewed change as it was (9 equal, 0 DIFF; ev/claims.txt).
+- RESULT claims (claim-files.md): `tests/golden/claimed_drift.txt` is byte-identical between the branch's fork point and 1381df1f5, so the branch claims nothing there. At the head it is byte-identical to main 1148ee635: main's five R10-COP-GATE (#2262) claims, nothing dropped. The R10-HOUSE-GRADE and R10-BUFFER-STORE lines from the fork point are not carried over: main removed them, and the branch never wrote them. `tests/golden/card_claimed_drift.txt` was not changed by main since the fork point. Head minus main is exactly the branch's own addition, the `health_page` and `score_open` lines with their note. So each list is main's claims plus this branch's own, with none inherited and none dropped.
+- RESULT review_carry: `tools/audit/seat/review_carry.py 1381df1f5 ebbdcaa67` prints FRESH-REVIEW, "resolves tests/golden/claimed_drift.txt to something other than the union of its parents". The resolution is correct, as the RESULT claims entry above shows. The refusal comes from the instrument, which I record under Findings.
+- RESULT merge with main: `git merge-tree --write-tree origin/main ebbdcaa67` writes the head's own tree, exit 0, no conflict. origin/main is 1148ee635, the head's second parent.
+- RESULT VERSION, `manifest.json` and `RELEASE_NOTES.md`: none differs between 1148ee635 and the head.
+- CI at this head, read from the PR's check-runs API: 42 check runs, every one concluded either `success` or `skipped`. None is red, so step 11 owes no answer. `pr-contract` succeeded at 07:43:20Z after the last workflow finished, and `gate` succeeded at 07:43:45Z. The review packet rendered at this head lists no refusals and no advisories (ev/checks-live.txt, ev/review-packet.md).
+- Head is still current: the PR's head.sha read before writing this verdict is ebbdcaa6792fcd5326a30b15fc733f94dada3512, `mergeable_state` clean.
+- Not re-derived: I did not re-take the body's figures from my earlier verdict at 1381df1f5 (mutation table, null controls, card drift, archscore dS). The resolution delta leaves the branch's diff byte-identical, so they carry over. I did not re-run the gate or the mutation table here (step 11: cite CI's heavy runs).
+
+## Findings
+
+- review_carry.py, through `tools/pr/app_approve.sh --carry`, refuses a correct claim-file resolution. Its claim check (`app_approve.sh` around line 286) wants the merge's claim file to equal the sorted union of the two parents' lines. It ignores the merge base. So when main removes claim lines (a stamp emptying them) that the branch only carries unchanged from its fork point, the right three-way result is main's file. The check reads that as "not the union" and returns FRESH-REVIEW. If the merge matched the check, the stale claims would come back. claim-files.md calls that exact defect the reason `merge=union` is refused. Measured here: base..branch identical, base..main differs, head == main == the driver's automatic merge, and the check still refused. The cost is a reviewer seat for every open PR whose next main merge comes after a stamp that changed a claim file. Fix: compare against the three-way result (base plus each side's additions, minus each side's deletions), or against the driver-installed `merge-tree` output, as for the other files. Its test (`app_approve.sh` around line 1599) needs a case where main deleted a claim line. Carry: R10-FLY-CARRY-DOC-CONTEXT
