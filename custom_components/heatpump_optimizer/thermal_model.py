@@ -1472,6 +1472,39 @@ def heat_loss_basis(config: Any, earned: bool = False) -> str:
     return const.HEAT_LOSS_BASES[2 if earned and cap.measured_heat else 1 if cap.measured_power else 0]
 
 
+#: The temperature entity each heat-loss learner fits its residual on, by
+#: config key (R10-HOTFIX-LEARNER-INPUTS): the scale the indoor (upper zone)
+#: sensor, the ratio the lower floor's. Evidence fitted against one sensor
+#: says nothing about a sensor in another place.
+HEAT_LOSS_ZONE_ENTITIES: dict[str, str] = {
+    const.CONF_INDOOR_TEMP_ENTITY: const.HEAT_LOSS_LEARNERS[0],
+    const.CONF_LOWER_FLOOR_TEMP_ENTITY: const.HEAT_LOSS_LEARNERS[1],
+}
+
+
+def heat_loss_zone_entities(config: Any) -> dict[str, str | None]:
+    """The ``HEAT_LOSS_ZONE_ENTITIES`` ids configured now, ``None`` where unset."""
+    cfg = config or {}
+    return {key: cfg.get(key) or None for key in HEAT_LOSS_ZONE_ENTITIES}
+
+
+def heat_loss_entity_voids(stored: Mapping[str, Any], live: Mapping[str, Any]) -> tuple[str, ...]:
+    """The learners whose zone entity id changed since their evidence was saved.
+
+    ``stored`` and ``live`` are the thermal-learning payload as saved and as
+    the configuration writes it now; each holds ``heat_loss_zone_entities``.
+    An added or removed entity is a change. A store from before the record,
+    or a key it does not hold, voids nothing: the next save adopts the ids.
+    """
+    was, now = stored.get("heat_loss_zone_entities"), live.get("heat_loss_zone_entities") or {}
+    if not isinstance(was, Mapping):
+        return ()
+    return tuple(
+        learner for key, learner in HEAT_LOSS_ZONE_ENTITIES.items()
+        if key in was and (was[key] or None) != now.get(key)
+    )
+
+
 def heat_loss_basis_voids(stored: Any, basis: str) -> bool:
     """Whether evidence fitted on ``stored`` is void on ``basis`` (an earlier one)."""
     bases = const.HEAT_LOSS_BASES

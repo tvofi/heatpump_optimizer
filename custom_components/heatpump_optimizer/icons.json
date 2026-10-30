@@ -43,6 +43,9 @@
       "learning_reset_comfort_weight": {
         "default": "mdi:restore"
       },
+      "learning_reset_heat_loss": {
+        "default": "mdi:home-thermometer-outline"
+      },
       "learning_run_system_identification": {
         "default": "mdi:flask-outline"
       },
@@ -326,6 +329,9 @@
     },
     "diagnose_interval": {
       "service": "mdi:stethoscope"
+    },
+    "reset_heat_loss_learners": {
+      "service": "mdi:home-thermometer-outline"
     },
     "restore_learned_snapshot": {
       "service": "mdi:backup-restore"
