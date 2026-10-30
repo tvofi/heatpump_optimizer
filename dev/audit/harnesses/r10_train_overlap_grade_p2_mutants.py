@@ -71,6 +71,21 @@ MUTANTS = [
     ("M12", "a spooled entry is ALREADY", '    if pr in spooled:\n        return', '    if False:\n        return'),
     ("M13", "a pre-flight PARK at recarry is a HOLDER skip",
      '            cls = HOLDER if step == "recarry" else None', '            cls = None'),
+    ("M14", "the drain writes a drained entry's record (X7)",
+     '                self._seen[str(int(e["pr"]))] = {"verdict": e.get("verdict"), "state": "pending"}',
+     '                pass'),
+    ("M15", "an old-code train's queue.pending.json reads as pending (X1)",
+     '        return {str(int(n)): {"state": "pending"} for n in json.loads((state / QUEUE_PENDING).read_text())}',
+     '        return {}'),
+    ("M16", "the overlap up-front recarry filters by this batch's skips only (X2)",
+     '                todo = [a for a in serial if a["pr"] not in {s["pr"] for s in self.skipped[mine:]}',
+     '                todo = [a for a in serial if a["pr"] not in {s["pr"] for s in self.skipped}'),
+    ("M17", "queue.pending.json lists pending entries only (X5)",
+     'for n, r in seen.items() if r.get("state") == "pending")', 'for n, r in seen.items())'),
+    ("M18", "a completed batch's unmerged, unskipped entry is marked ran (X3)",
+     '                        self.seen_mark(int(e["pr"]), "ran")', '                        pass'),
+    ("M19", "a skipped-then-merged entry is cured from the skip report",
+     '            self.skipped = [s for s in self.skipped if int(s["pr"]) not in cured]', '            pass'),
 ]
 
 
