@@ -5183,8 +5183,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if HEAT_LOSS_LEARNERS[1] in learners:
             self._apply_lower_floor_loss_ratio(DEFAULT_LOWER_FLOOR_LOSS_RATIO)
             self._lower_floor_loss_samples = 0
-        if learners:
-            _LOGGER.warning("Learned %s reset to the configuration: %s", ", ".join(learners), why)
+        for learner in learners:
+            _LOGGER.warning("Learned %s reset to the configuration: %s", learner, why)
         return bool(learners)
 
     async def async_reset_heat_loss_learners(self, learners: Sequence[str] = HEAT_LOSS_LEARNERS) -> None:
