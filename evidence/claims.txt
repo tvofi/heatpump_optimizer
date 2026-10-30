@@ -1,0 +1,5 @@
+claimed_drift.txt: diff main(1148ee635e8278ebbb033b524d54001b2a89218c) vs head: 0 lines
+card_claimed_drift.txt: 0 lines
+three-dot tests/golden vs origin/main: 0 lines
+branch (eab) vs its fork point claim file: 0 lines
+merge-tree origin/main vs head: clean 3f3ed0c980ebef5bc1a0b73202eb0ce2f9e9e2a7
