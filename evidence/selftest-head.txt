@@ -1,0 +1,45 @@
+  ok   recorded pair 39090494028/39091600343: the old bot-sent run and its dispatch are selected
+  ok   the calling run itself is never selected
+  ok   a same-SHA twin of the live head is never cancelled
+  ok   a run on the live head only is never cancelled (nothing older at another SHA)
+  ok   a bot-sent newer run cancels nothing
+  ok   a dispatch is not a caller
+  ok   a run on main is never cancelled
+  ok   a run on another branch is never cancelled
+  ok   a merge_group or push run on this branch is never cancelled
+  ok   a finished run is not cancelled
+  ok   a newer head's run (higher id) is never cancelled
+  ok   a caller on a branch named main cancels nothing, though main has older runs
+  ok   stale head: a run that is not on the live head cancels nothing
+  ok   a closed pull request cancels nothing
+  ok   a fork head cancels nothing
+  ok   an unreadable pull request cancels nothing
+cancel_superseded: cancelled 39090491271
+cancel_superseded: cancelled 39090494028
+cancel_superseded: 2 superseded run(s) of tests.yml on fix/r10-leaf-imports
+  ok   end to end: cancels exactly the two old runs by POST
+cancel_superseded: would cancel 39090491271
+cancel_superseded: would cancel 39090494028
+cancel_superseded: 2 superseded run(s) of tests.yml on fix/r10-leaf-imports
+  ok   --dry-run posts nothing
+cancel_superseded: unreadable answer; cancelling nothing
+  ok   an unreadable listing cancels nothing and exits 0
+  ok   sweep: the #2927 shape cancels both old runs and keeps the queued live one
+  ok   sweep: with no run yet at the live head every active run at another head is cancelled
+  ok   sweep: a bot-authored live head cancels nothing
+  ok   sweep: a push run on main and a push run on a PR branch are never cancelled
+  ok   sweep: a run on a branch with no open PR is a ghost, never cancelled
+  ok   sweep null: only live-head runs cancels nothing
+  ok   sweep: a fork PR head is not swept
+  ok   sweep mutant: without the event filter the push run IS cancelled (the arm detects it)
+cancel_superseded: cancelled 101
+cancel_superseded: cancelled 102
+CANCEL-SWEEP: cancelled 2, kept 1 (live head), skipped 0 (bot head / not a PR), ghosts 0
+  ok   sweep end to end: POSTs exactly the two old runs
+cancel_superseded: would cancel 101
+cancel_superseded: would cancel 102
+CANCEL-SWEEP: cancelled 2, kept 1 (live head), skipped 0 (bot head / not a PR), ghosts 0
+  ok   sweep --dry-run posts nothing
+CANCEL-SWEEP: unreadable answer; cancelling nothing
+  ok   sweep: an unreadable answer cancels nothing and exits 0
+cancel_superseded self-test: 30 checks, 0 failed
