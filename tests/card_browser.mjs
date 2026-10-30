@@ -513,6 +513,77 @@ function healthPageStates(st, now) {
   };
 }
 
+/** R10-UX-HEALTH items 2 and 3, measured at a phone's width and a desktop's,
+ * in both themes: the input rows span the page in a grid, and the Health
+ * page's first row is not drawn under the dialog's head -- on open, and
+ * again after a page switch from a scrolled page. "Under" is read by
+ * hit-testing the row's own top edge: whatever the browser paints there must
+ * be the row. */
+async function healthLayout({ browser, check, plan }) {
+  const FROZEN = Date.parse(plan.dhw_plan.forecast[0].t) + 6 * HOUR;
+  const states = healthPageStates(pageStates(plan), FROZEN);
+  for (const theme of ["light", "dark"]) {
+    for (const width of [375, 1280]) {
+      const ctx = await browser.newContext({ viewport: { width, height: 800 }, deviceScaleFactor: 1,
+        colorScheme: theme, reducedMotion: "reduce" });
+      await ctx.clock.setFixedTime(FROZEN);
+      const page = await ctx.newPage();
+      try {
+        await page.goto("about:blank");
+        await page.addScriptTag({ path: CARD_SRC });
+        await page.evaluate(([themeCss, st, dark]) => {
+          const style = document.createElement("style");
+          style.textContent = `html{${themeCss};background:var(--primary-background-color)}` +
+            `body{margin:0;font-family:"Liberation Sans",Arial,sans-serif;color:var(--primary-text-color)}` +
+            `heatpump-optimizer-card{display:block}`;
+          document.head.appendChild(style);
+          const card = document.createElement("heatpump-optimizer-card");
+          document.body.appendChild(card);
+          card.setConfig({ type: "custom:heatpump-optimizer-card" });
+          card.hass = { states: st, language: "en", themes: { darkMode: dark } };
+          card._onCardClick({});
+          card.dialog.page = "health";
+          card._render();
+          window.__card = card;
+        }, [THEMES[theme], states, theme === "dark"]);
+        await page.waitForTimeout(150);
+        const measure = () => page.evaluate(() => {
+          const r = window.__card.shadowRoot;
+          const hp = r.querySelector("dialog[open] .health-page");
+          const first = hp && hp.querySelector(".health-row");
+          if (!first) return null;
+          const fr = first.getBoundingClientRect();
+          const hit = r.elementFromPoint(fr.left + fr.width / 2, fr.top + 2);
+          const grid = hp.querySelector(".health-inputs");
+          const rows = grid ? [...grid.querySelectorAll("[data-health-input]")].map((n) => n.getBoundingClientRect()) : [];
+          return { clear: !!hit && (hit === first || first.contains(hit)), hit: hit ? `${hit.tagName}.${hit.className}` : "none",
+            top: Math.round(fr.top), share: grid ? grid.getBoundingClientRect().width / hp.getBoundingClientRect().width : 0,
+            perLine: rows.filter((b) => Math.abs(b.top - (rows[0] || b).top) < 1).length };
+        });
+        const opened = await measure();
+        // Press the Plan tab, scroll its body, and press Health again: the
+        // route a user takes, through the tabs' own handler.
+        const tab = (id) => page.evaluate((id) => window.__card.shadowRoot.querySelector(`dialog[open] .dlg-tab[data-page="${id}"]`).click(), id);
+        await tab("plan");
+        await page.evaluate(() => { window.__card.shadowRoot.querySelector("dialog[open] .dlg-body").scrollTop = 400; });
+        await tab("health");
+        await page.waitForTimeout(150);
+        const back = await measure();
+        const tag = `${theme} ${width}px`;
+        check(`UX-HEALTH C: the Health page's first row is not under the dialog head on open (${tag})`,
+          !!opened && opened.clear, JSON.stringify(opened));
+        check(`UX-HEALTH C: nor after a switch back from a scrolled page (${tag})`, !!back && back.clear, JSON.stringify(back));
+        if (width >= 1280) {
+          check(`UX-HEALTH B: the input grid spans the page, several rows to a line (${tag})`,
+            !!opened && opened.share >= 0.9 && opened.perLine >= 2, JSON.stringify(opened));
+        }
+      } finally {
+        await ctx.close();
+      }
+    }
+  }
+}
+
 async function cardPages({ browser, check, plan, out }) {
   const FROZEN = Date.parse(plan.dhw_plan.forecast[0].t) + 6 * HOUR;
   const states = pageStates(plan);
@@ -2673,6 +2744,7 @@ try {
   // plan's and the chart has a past and a future. Written only under
   // HPO_PAGES_OUT; checked always.
   await cardPages({ browser, check, plan, out: process.env.HPO_PAGES_OUT });
+  await healthLayout({ browser, check, plan });
 
   // R9-UI-3 review (theme-contrast): Home Assistant reports
   // hass.themes.darkMode false for any theme without a dark mode, so a

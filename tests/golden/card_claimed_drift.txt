@@ -781,3 +781,18 @@
 # parenthetical follow the fixture's own scores. The other 44 states were
 # rendered and stayed identical.
 score_open  # R10-HOUSE-GRADE (#2816): the House row's explanation rewritten and its driver line added
+
+# R10-UX-HEALTH (#2253, #2260, #2263, #2809, #2815; owner report 2026-10-14):
+# the Health page is re-laid and re-worded. Its plan and learning blocks move
+# above the inputs, which become their own grid under a page-scoped style
+# (HEALTH_CSS, so the card's shared stylesheet does not move); each input row
+# carries the options flow's role label; the COP rows read one copState; each
+# model row gains a hover naming its figure; the diagnostics copy and the
+# insight row's Show change; a debug collection row is added. health_page is
+# the one state that renders that page. score_open moves because the
+# headline score's hover now names every sub-score's metric in plain words,
+# not only the house's when it has drivers (the owner's hover spec, carry 14);
+# it is the state that renders the score with its hover. The other 43 states
+# were rendered and stayed identical.
+health_page  # R10-UX-HEALTH: the Health page's layout, labels, COP and learner rows, copy and debug row
+score_open  # R10-UX-HEALTH: the score hover names each sub-score's metric
