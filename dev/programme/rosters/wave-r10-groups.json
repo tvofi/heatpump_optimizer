@@ -9604,9 +9604,10 @@
     "Carry 5, seam 2: actuate the supply switch at step boundaries from a one-minute tick, rather than at the cycle phase. Its owed controls are a synthetic install with the cycle phase at 0 and at 14 min that books identical duty verdicts, and one mutant per seam. It moves the actuator edge (`coordinator._apply_action`, `early_cutoff`, `pump_arbiter.switch_supply`) and needs a design note first. Main's roster, `dev/programme/rosters/wave-r10-groups.json`, holds the group for it, R10-SAV-ACTUATION (after R10-SAV-COMFORT, issues [2492]), whose `carry` already records both controls. Carry: R10-SAV-ACTUATION"
    ],
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-sav-actuation",
-    "pr": 2968
+    "pr": 2968,
+    "commit": "5d4e0bcfb88413ddf9ca7f0884c36bbec9235447"
    },
    "brief": "R10-SAV-ACTUATION (owner #2492 carry 5, seam 2). Actuate the supply switch at step boundaries from a one-minute tick, so that the plan's step change reaches the pump at the boundary instead of at the next coordinator refresh. Routed from R10-SAV-COMFORT's body (Carry: #2492 (item ea7e7a49)). Size: M until the design note says otherwise. A design note comes first (designer.md), naming the owning seam (actuator writes come from the coordinator or pump_arbiter.py, per fixer.md step 17) and the failing test. After-edge: R10-SAV-COMFORT. issues: [2492]; fixes: [2492] only once the seam closes the carry."
   },
