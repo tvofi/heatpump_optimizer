@@ -5,7 +5,13 @@ Output: push the code to refs/heads/handoff/r10-sav-actuation, then write the PR
 Never write to any branch except your return refs. Never work around a hook or a refusal; report it in your result instead.
 
 Brief (snapshotted when this payload was rendered):
-Fixer seat (dev/governance/roles/fixer.md), roster group R10-SAV-ACTUATION, PR #2968 of tvofi/heatpump_optimizer. Your handoff code 1a7150482145938296fd54385129147fedef6742 (handoff/r10-sav-actuation) cannot be merged onto the PR branch fix/r10-sav-actuation at fd6103038c008a60747eaba9f4acc219ed03ade5: update_pr.sh stops on an add/add conflict in tests/mutation_ledger/killed_by/pump_arbiter.py/supply_write.GUARD_OFF.92bdc254.json.
-1. On handoff/r10-sav-actuation, merge origin/fix/r10-sav-actuation (fd6103038c008a60747eaba9f4acc219ed03ade5) in and resolve that ledger entry so it records the kill your new test makes (re-run the mutant to establish it; never hand-edit a verdict you did not measure). Then merge origin/main in as well.
-2. Run tools/audit/prepr.sh until it passes, push handoff/r10-sav-actuation, and re-publish BODY.md with tools/audit/seat/body_push.sh describing the new tip. Never push the PR branch: the orchestrator moves the head.
-Finish within 60 minutes. Put no Claude footers anywhere. Commit as hpo-fixer <70032254+tvofi@users.noreply.github.com>; never author as Claude.
+FIXER seat, PR #2968 (R10-SAV-ACTUATION), branch fix/r10-sav-actuation; your contract is dev/governance/roles/fixer.md.
+Your handoff, refs/heads/handoff/r10-sav-actuation at 5affc1af8694e02964c84f2218eaefd3792dd515, contains the PR head. But update_pr.sh stopped at its origin/main merge on an add/add conflict, because main's 2d151411f ("ci: record nightly kills") adds the same files:
+  tests/mutation_ledger/killed_by/pump_arbiter.py/supply_tick.GUARD_OFF.aa236a67.json
+  tests/mutation_ledger/killed_by/pump_arbiter.py/supply_write.GUARD_OFF.92bdc254.json
+Do this:
+1. Start from the handoff and merge current origin/main.
+2. Resolve both files by re-measuring the mutant, not by choosing a side.
+3. Re-run steps 2-8 of fixer.md (the mutation gate included).
+4. Push handoff/r10-sav-actuation with tools/audit/seat/handoff_push.sh, and push handoff-body/r10-sav-actuation with BODY.md at the new head.
+5. Never push the PR branch yourself.
