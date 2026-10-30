@@ -1,0 +1,1 @@
+RECORD PR CLAIMS: three-dot touches neither card nor solver fixtures, so both claim lists must be empty. Empty the lists.
