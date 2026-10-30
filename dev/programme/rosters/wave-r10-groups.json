@@ -12503,7 +12503,7 @@
     "Owner request (tvofi, 2026-10-30): \"I can't find an option to reset the learners, that should be added asap\". The only existing route is the restore_learned_snapshot service, which restores a snapshot or a refit and never returns to the nameplate. The comfort weight alone has a reset button.\n\nAdd a user-facing reset of the thermal heat-loss learners. house_heat_loss_scale and lower_floor_loss_ratio return to 1.0, their samples and confidence are voided, and the anchor and basis are re-set from the current nameplate config. It goes through the same single void path as item (2)'s entity-swap reset.\n\nExpose it two ways:\n- a button entity beside \"Learning Reset Comfort Weight\";\n- a service with entry_id and an optional learners list, defaulting to both.\nAfter a reset, request a refresh.\n\nControls:\n- both learners at 1.0 with 0 samples after a reset;\n- the next fold starts from the nameplate;\n- null control: the comfort weight and the DHW, COP and defrost learners are untouched;\n- a single-learner reset leaves the other learner intact.\nOne mutant per gate."
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r10-hotfix-learner-inputs",
     "commit": null,
     "last_step": null,
