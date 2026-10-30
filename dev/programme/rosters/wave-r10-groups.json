@@ -4938,9 +4938,9 @@
    "findings": [],
    "wave": 2,
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-cop-partload",
-    "commit": "f4415303e012a4851585ff366441b0c4f88ac661",
+    "commit": "d1c7708c2af2f5e0215bd8efc3978ebfd009fb0a",
     "last_step": "Handoff pushed at 775ae0340: the term at the seven priced forward sites and the two hot-water sites, the structure re-record (class_excess_loc 18082; the naive shape measures 18111, so the shape pays 29 lines and the rise over the base is 3), the golden config_flow re-record and its claim, the buffer-ceiling triage re-anchor, the harness INERT read, the RCA at dev/audit/rca/R10-RCA-COP-PARTLOAD.md, and the two audit header blocks. Scoped gate MODE: SCOPED -- 30 script(s) run, 3 scoped out; its reds are classified against 3b4180dcc in the body's ## Red checks -- golden 55/56, the stress shoulder economics and the card.mjs V8 OOM reproduce at the base, harness_headers was fixed in dc67636b2 and re-runs green, and the stress production-call channel is this branch's, named there for the owner's pass.",
     "next_step": "PR #2872 open at the merge-forwarded head f4415303e (main 524c1896b merged, no hand resolution; structure.py and entities.py re-run green: 18070<=18070, ALL 2467). Body on handoff-body/r10-cop-partload (fa3905d28); update_pr advanced the branch and the ## Head note. Review owed at f4415303e from a detached worktree with the finder's harness. Two checks are owner-gated rather than fixer-gated: tests / fast (3.14) (13 stress production-call scenarios 1.050x-1.063x past the 1.05 allowance, work counts vouching 1.000x) and budget-raise-gate (class_excess_loc 18067->18070; ## Raise justification carries dS +0.0000 NULL and the rejected naive shape at 18099). Under mandate 6329234399 the budget-raise arm is mine to rule once the reviewer confirms no payment improves the architecture; the stress allowance is not, and it waits for tvofi.",
     "note": null,
@@ -7866,9 +7866,9 @@
    "architect_note": "",
    "brief": "Barrier owed by a third instance (6077bf70e, 143e2d0ac, a2576fcb2): `merge_train.py batch --overlap` merged #2586 onto a tree no CI had checked, because the at_head guard lets the batch's own merges move main and the ruleset is non-strict. Process state (c); cost test passes: at least 1.5 h of red main per instance, about once a week, against roughly 16 s per merge for the check. Own the overlap guard in tools/audit/seat/merge_train.py: before merging a car whose base moved by the batch's own merges, grade the would-be merge tree with policy_lint and, where applicable, structure.py. A red goes to the existing recarry-and-wait path. The prototype is the ratchet-on-merge script in the semmerge RCA seat directory (outside the tree; the fixer is handed its path); it must use the train's driver-free text merge, not the ledger driver. Repair-car admission (forward-carry, 2026-10-22T04:30Z): the tool's only way to admit a car while main is red is --overlap, so the repair car for a red main (#2595) had to run as a one-car --overlap batch. The barrier must keep a repair-car admission path that does not reopen the overlap gap: either a named --repair flag that admits one car onto a red main, or overlap allowed only when the batch has one car. Control: a car whose merge tree is red under the grade is held and recarried; the unmodified green car merges. Considered and rejected, not owed: the ruleset's strict up-to-date rule (cost), and per-file cap headroom minimums (only lowers the odds). Owner ruling 2026-10-22T05:20Z: trains run with --overlap as long as each PR's CI has run on its current head; this group is the in-tool barrier for that rule. Carry: #2595's RCA item is re-routed here from R10-POLICY-LINT-FAMILY.",
    "resume": {
-    "stage": "in-review",
+    "stage": "done",
     "branch": "handoff/r10-train-overlap-grade",
-    "commit": "4db1d3e28f0dff50f6916e39d52efed0ce856d0a",
+    "commit": "89ccf73266a8dcfc0e8d4f45ad6583b0cb622db6",
     "last_step": null,
     "next_step": "dispatch a fixer",
     "note": "Plan amendment registered by the orchestrator (s4) under mandate 6329234399 at 2026-10-22T04:00Z; roster seat applied after the freeze lifted.",
