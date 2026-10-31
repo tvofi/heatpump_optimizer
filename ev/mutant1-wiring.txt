@@ -1,0 +1,2 @@
+  FAIL a planted MISMATCH on a changed instrument page is predicted red
+ci_predict self-test: 1 failed
