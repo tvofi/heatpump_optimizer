@@ -1,0 +1,2 @@
+  FAIL an unpinned site in a comment-free file is refused, rc=1
+ci_predict self-test: 1 failed

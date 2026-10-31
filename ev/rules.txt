@@ -1,0 +1,3 @@
+same dev/governance/rules/ci-autofix.md
+same .claude/rules/ci-autofix.md
+same .cursor/rules/ci-autofix.mdc
