@@ -50912,6 +50912,10 @@ class _G8Opt:
         self.min_temp = 19.0
         self.comfort_temp_day = 21.0
         self.comfort_temp_night = 19.5
+        self.comfort_temp_day_weekend = None
+        self.comfort_temp_night_weekend = None
+        self.holiday_comfort_day = None
+        self.holiday_comfort_night = None
 
 
 class _G8Therm:
@@ -50985,6 +50989,62 @@ R.check(
     "below the absolute floor",
     _g8_env == {"home": 17.5, "away": 15.0, "both": 16.5},
     f"widened floors {_g8_env}",
+)
+
+# The weekend and holiday comfort pairs replace the day/night pair per step
+# (``_comfort_pair``), so a setback that leaves them configured is undone on
+# every Saturday, Sunday and holiday date: 21.0 read where away said 16.0
+# (r10-live-away-heating, 2026-10-30). Driven through the production config,
+# solve_bands and the optimizer's own comfort-bounds builder.
+_g8_sat = datetime(2026, 10, 31)  # a Saturday
+
+
+def _g8_sat_comfort(holiday=False, **state_kw):
+    """Saturday 14:00 and 03:00 comfort targets one solve plans with."""
+    sched = (
+        {"holiday_dates": frozenset({_g8_sat.date()}),
+         "holiday_comfort_day": 21.0, "holiday_comfort_night": 19.5}
+        if holiday else
+        {"comfort_temp_day_weekend": 21.0, "comfort_temp_night_weekend": 19.5}
+    )
+    cfg = _MbCfg(horizon_hours=1, **sched)
+    bands, _ = _g8_away.solve_bands(
+        cfg, _G8Therm(), _g8_away.AwayState(**state_kw)
+    )
+    opt = _MbOpt(
+        ThermalModel(ThermalParameters.from_config(_mb_profiles.house())),
+        _dc_replace(cfg, **bands),
+    )
+    targets, _, _ = opt._build_comfort_bounds(
+        np.array([14.0, 3.0]), 2, None, None,
+        [_g8_sat.replace(hour=14), _g8_sat.replace(hour=3)],
+    )
+    return [float(t) for t in targets]
+
+
+_g8_sat_rows = {
+    (arm, kind): _g8_sat_comfort(holiday=arm == "holiday", **kw)
+    for arm in ("weekend", "holiday")
+    for kind, kw in (
+        ("away", {"active": True, "target_temperature": 16.0}),
+        ("home", {"active": False}),
+        ("recovering", {"active": True, "recovery_active": True,
+                        "target_temperature": 16.0}),
+    )
+}
+R.check(
+    "away sets back the weekend and holiday comfort pairs too: Saturday day "
+    "and night read the away target",
+    _g8_sat_rows[("weekend", "away")] == [16.0, 16.0]
+    and _g8_sat_rows[("holiday", "away")] == [16.0, 16.0],
+    f"Saturday [14:00, 03:00] comfort {_g8_sat_rows!r}",
+)
+R.check(
+    "and away off, or recovering, keeps the configured weekend and holiday "
+    "pairs (the null control)",
+    all(_g8_sat_rows[(arm, kind)] == [21.0, 19.5]
+        for arm in ("weekend", "holiday") for kind in ("home", "recovering")),
+    f"Saturday [14:00, 03:00] comfort {_g8_sat_rows!r}",
 )
 
 # The same race through the production cycle: the writes are injected at the
