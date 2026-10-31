@@ -1,0 +1,40 @@
+39c39
+< index b4b07c4ea..b3b1f4e1a 100644
+---
+> index c904b9e0e..17ec4c86a 100644
+42c42
+< @@ -339,6 +339,7 @@ from .thermal_model import (
+---
+> @@ -342,6 +342,7 @@ from .thermal_model import (
+50c50
+< @@ -4075,10 +4076,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+---
+> @@ -4078,10 +4079,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+64c64
+< @@ -9068,14 +9068,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+---
+> @@ -9076,14 +9076,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+285c285
+< index 3fb84bc92..da779ce62 100644
+---
+> index 07d5f48cb..3632ea56c 100644
+288c288
+< @@ -2106,6 +2106,56 @@ def heat_per_cop_kw(params: ThermalParameters, electrical_power: Any) -> Any:
+---
+> @@ -2139,6 +2139,56 @@ def heat_per_cop_kw(params: ThermalParameters, electrical_power: Any) -> Any:
+345c345
+< @@ -3348,9 +3398,7 @@ class ThermalModel:
+---
+> @@ -3381,9 +3431,7 @@ class ThermalModel:
+356c356
+< @@ -3966,9 +4014,7 @@ class ThermalModel:
+---
+> @@ -3999,9 +4047,7 @@ class ThermalModel:
+368c368
+< index 3e5c55705..3c7070fd2 100644
+---
+> index 0e1dc5f32..f3ba4fc76 100644
+371c371
+< @@ -72978,6 +72978,363 @@ R.check(
+---
+> @@ -73304,6 +73304,363 @@ R.check(

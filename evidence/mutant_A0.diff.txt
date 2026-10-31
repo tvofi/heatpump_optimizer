@@ -1,0 +1,17 @@
+ 1 file changed, 1 insertion(+), 4 deletions(-)
+diff --git a/custom_components/heatpump_optimizer/thermal_model.py b/custom_components/heatpump_optimizer/thermal_model.py
+index 3632ea56c..9cc083c58 100644
+--- a/custom_components/heatpump_optimizer/thermal_model.py
++++ b/custom_components/heatpump_optimizer/thermal_model.py
+@@ -2183,10 +2183,7 @@ def added_power_for_heat_per_cop_kw(
+ 
+     ``heat_per_cop`` itself while the derate is 0, so ``plan + increment`` is
+     byte-identical to the ``plan + heat / cop`` it replaces."""
+-    if not params.cop_partload_derate:
+-        return heat_per_cop
+-    return power_for_heat_per_cop_kw(
+-        params, heat_per_cop_kw(params, power_kw) + heat_per_cop) - power_kw
++    return heat_per_cop
+ 
+ 
+ def delivered_heat_kw(params: ThermalParameters, cop: Any, electrical_power: Any) -> Any:
