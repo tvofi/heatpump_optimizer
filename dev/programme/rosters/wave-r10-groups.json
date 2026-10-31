@@ -12555,7 +12555,9 @@
     "custom_components/heatpump_optimizer/coordinator.py",
     "tests/features.py"
    ],
-   "carry": [],
+   "carry": [
+    "From PR (R10-HOTFIX-LEARNER-INPUTS; handoff-body/r10-hotfix-learner-inputs 746894af), the learners scope of a factory reset: the single void path for heat-loss learners is `HeatPumpOptimizerCoordinator.async_reset_heat_loss_learners(learners)`, which waits for the thermal store's read, calls `_void_heat_loss_learners` and saves. Learner names are `const.HEAT_LOSS_LEARNERS`. The caller requests the refresh: off the action for an entity, awaited for a service (`tests/features.py`'s RC2 rows refuse an entity action that awaits the solve). Any snapshot taken before the reset must be taken before this call. Re-measure at your merge base: the method lands with the hotfix PR; if it is not on main when this group starts, it is owed by that PR first."
+   ],
    "resume": {
     "stage": "not-started",
     "branch": "handoff/r10-factory-reset",
