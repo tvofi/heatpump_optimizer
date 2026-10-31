@@ -95,7 +95,7 @@ PLANTS = {
     "C6": (DROP, DROP + '    if not g["carry"]:\n        del g["carry"]\n'),
     "C7": (DROP, DROP.replace(')]', ') - 1]')),
     "C8": ('    g = _need(roster, group)\n    del g["carry"]',
-           f'    {DETACHED}\n    del g["carry"]'),
+           f'    {DETACHED}\n    g.setdefault("carry", [])\n    del g["carry"]'),
     "P1": ('p.error("drop-carry takes an index or --match, not both")', "pass"),
     "P2": ('p.error(f"{a.op} needs an index or --match")', "pass"),
     "P3": ('p.error("--match is a drop-carry flag")', "pass"),
