@@ -317,9 +317,9 @@ installing rather than discover it after:
 ## Installation
 
 > [!IMPORTANT]
-> **Home Assistant 2025.2.0 and Python 3.13 are the minimum, and that was a
-> breaking change.** An installation on an older Home Assistant stops being
-> offered updates through the Marketplace or HACS. Why the floor sits exactly there is in
+> **Home Assistant 2025.2.0 and Python 3.13 are the minimum.** An installation
+> on an older Home Assistant is not offered updates through the Marketplace or
+> HACS. Why the floor sits exactly there is in
 > [docs/architecture.md](./docs/architecture.md).
 
 [![Open your Home Assistant instance and open this repository.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=tvofi&repository=heatpump_optimizer&category=integration)

@@ -169,12 +169,11 @@ house* and gets charged for the electricity it wasted; a plan that coasts into a
 windy evening predicts a cold house and a comfort penalty. Both are avoided
 because they are genuinely more expensive.
 
-Earlier versions added explicit anticipation terms on top. They double-counted
-physics the simulation already had — and one was a *negative* cost that paid the
-plan to burn electricity before bad weather, present only on the space path, so
-simply enabling hot water changed the space objective. Removing both made
-shoulder-season plans 4–6% cheaper at identical comfort. The solar forecast
-still shapes the solver's initial guess, where a wrong hunch costs nothing.
+The objective carries no separate anticipation term on top of this. Such a
+term would count physics the simulation already has a second time, and a
+weather bonus is a *negative* cost: it pays the plan to burn electricity before
+bad weather. The solar forecast shapes only the solver's initial guess, where a
+wrong hunch costs nothing.
 
 ### The terminal cost, and why it needs caps
 
@@ -1082,10 +1081,10 @@ Two caveats are worth stating plainly:
   roughly normal power while delivering almost no heat, which reads as a
   perfectly performing unit — and its error is biased optimistic, because the
   gaps it measures are dominated by the pump drawing *less* than commanded. Its
-  upper clamp is now 1.0 rather than 1.05: this is a model of a loss, and no
-  defrost cycle makes a heat pump exceed its own curve. An existing learned
-  derate survives the upgrade — its buckets are kept and simply re-clamped, so
-  the careful half of what it learned is not thrown away. Measured duty then
+  upper clamp is 1.0: this is a model of a loss, and no defrost cycle makes a
+  heat pump exceed its own curve. A stored derate that loads with a bucket
+  outside 0.55–1.0 keeps that bucket, clamped into the range, so the careful
+  half of what it learned is not thrown away. Measured duty then
   takes each bucket over, but only once enough intervals have been counted
   there to be worth more than what was already learned; until then the two are
   compared and the more careful of them stands. A single quiet interval cannot
