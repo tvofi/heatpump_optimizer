@@ -8,7 +8,7 @@ Not adopted, dispositions: ci_layout_p0, gh_read_retry, heat_meter, nightly_pysp
 
 ## Head
 
-9a1a9835face80adc635d2ba31da0a34a146bb41 on origin/main 7539d1675d7fc8b5020f90b395f4bb0c3485d5b3 (unmoved since the last `tools/pr/prepr.sh` run, which exited 0 at this head; no second run).
+37f800f9a29343b76960d1a0675da182db605ba6 on origin/main a7dd7f50d67e0c3819956b15ef95d77f4f6ebfc0 (the code head 9a1a9835face80adc635d2ba31da0a34a146bb41 merged with main; the merge changed no file the diff touches beyond what main carried, and the last `tools/pr/prepr.sh` run at the code head exited 0).
 
 ## Mutation proof
 
@@ -34,7 +34,7 @@ none. Two predicted reds were repaired before the handoff: `ci predict` closures
 
 ## Forward-carry
 
-none, except the five shell harnesses above, which land in `dev/programme/triage/s6-batch49.md#P247` as the open remainder. Carry: dev/programme/triage/s6-batch49.md
+none, except the five shell harnesses above (r10_flow_autotrain, r10_pusher_reap_launch, r10_tick_train, r10_train_raise_hold, r9_ro12_batch), which restore by `git checkout --` per mutant and keep the kill gap; no live roster group owns them (read at origin/handoff/audit-r10-roster 61d29e166: R10-FLOW-AUTOTRAIN is done, R10-MUTANT-SKIP is done) and triage P247 narrowed the group to the Python guard, so the Not-adopted paragraph above is their recorded disposition. Carry: dismissed: triage P247 (dev/programme/triage/s6-batch49.md) narrowed R10-FLY-MUTANT-RESTORE to the Python guard and dispositioned the five shell harnesses as not covered, no shell twin of the guard exists, and this diff records that; a finder who reproduces a kill-left mutant on one files it under defect-root-cause.md
 
 ## Friction
 
