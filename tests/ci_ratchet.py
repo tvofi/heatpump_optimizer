@@ -637,6 +637,15 @@ def derive(metrics_dir: Path, runs_json: Path | None,
     return derived
 
 
+def record_table(budgets: dict, derived: dict, head: str, reason: str) -> dict:
+    """The table `--record` writes: every derived metric, stamped. A band is a
+    bound sized from measured noise, not a derived value: a re-record carries
+    it over unchanged."""
+    return {**{k: v for k, v in derived.items()},
+            **{k: budgets[k] for k in BAND_KEYS if k in budgets},
+            "recorded_at": head, "reason": reason}
+
+
 def compare(budgets: dict, derived: dict) -> tuple[list[str], int]:
     grew = []
     lines = []
@@ -1077,6 +1086,12 @@ def self_test() -> int:
        and budget_problems({**bt, "critical_path_minutes_band": -0.1}) != []
        and budget_problems({**bt, "critical_path_minutes_band": float("nan")}) != [],
        f"{budget_problems(bt)}")
+    rt = record_table(bt, {"critical_path_minutes": 35.317, "script_runs_per_push": 53},
+                      "h" * 40, "r")
+    ck("--record carries the band over unchanged and re-records every derived metric",
+       rt == {"critical_path_minutes": 35.317, "critical_path_minutes_band": 1.3,
+              "script_runs_per_push": 53, "recorded_at": "h" * 40, "reason": "r"},
+       f"{rt}")
 
     print(f"ci-ratchet self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0
@@ -1142,11 +1157,7 @@ def main(argv: list[str] | None = None) -> int:
         head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT,
                               capture_output=True, text=True,
                               check=True).stdout.strip()
-        # A band is a bound sized from measured noise, not a derived value:
-        # a re-record carries it over unchanged.
-        table = {**{k: v for k, v in derived.items()},
-                 **{k: budgets[k] for k in BAND_KEYS if k in budgets},
-                 "recorded_at": head, "reason": record_reason}
+        table = record_table(budgets, derived, head, record_reason)
         problems = budget_problems(table)
         if problems:
             for p in problems:
