@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -160,18 +161,37 @@ def self_test():
             dst.write_text(src_text)
             dst.chmod(0o755)
 
+        # Hermetic PATH: the shim and the stub, plus a dir of symlinks to the few
+        # utilities the shim runs. Never /usr/bin or /bin, where a host may carry
+        # a real gh (the CI runner does; a Mac does not).
+        tools = w / "tools"
+        tools.mkdir()
+        for tool in ("ps", "tr", "cut", "wc", "mv", "date", "cat", "sh"):
+            found = shutil.which(tool)
+            if found:
+                (tools / tool).symlink_to(found)
+        hermetic = f"{w / 'own'}:{w / 'real'}:{tools}"
+
+        def gh_on(path):
+            """Every executable gh a shell would meet on `path`, in order (not just the first)."""
+            return [f"{d}/gh" for d in path.split(":") if d and os.access(f"{d}/gh", os.X_OK) and Path(f"{d}/gh").is_file()]
+
+        def hermetic_ok(path, shim_dir):
+            """The guard: the only gh on the PATH is the shim under test, or none."""
+            return gh_on(path) in ([], [f"{shim_dir}/gh"])
+
         good = SHIM.read_text()
         install(good)
         log = w / "state" / "gh-calls.log"
         (w / "state").mkdir()
 
-        def run(args, state=None, shim_text=None, stdin=b"IN\n", env_extra=None):
+        def run(args, state=None, shim_text=None, stdin=b"IN\n", env_extra=None, path=None):
             if shim_text is not None:
                 install(shim_text)
-            env = {"PATH": f"{w / 'own'}:{w / 'real'}:/usr/bin:/bin",
+            env = {"PATH": path or hermetic,
                    "HPO_STATE_DIR": str(state or w / "state"), "HOME": str(w)}
             env.update(env_extra or {})
-            r = subprocess.run([str(w / "own" / "gh"), *args], input=stdin, capture_output=True, env=env)
+            r = subprocess.run([str(w / "own" / "gh"), *args], input=stdin, capture_output=True, env=env, timeout=60)
             return r
 
         r = run(["api", "repos/o/r/pulls", "-f", "body=secret"])
@@ -225,10 +245,32 @@ def self_test():
               not (rm.stdout == want and rm.returncode == 7))
         install(good)
 
-        # a shim is never its own real gh
+        # a shim is never its own real gh. The PATH is hermetic: no real gh on any host.
         (w / "real" / "gh").unlink()
-        r4 = run(["api", "x"])
+        no_gh_path = f"{w / 'own'}:{tools}"
+        check("the hermetic guard: the only gh is the shim, or none, on the arm's PATH",
+              hermetic_ok(no_gh_path, w / "own") and gh_on(no_gh_path) == [f"{w / 'own'}/gh"])
+        r4 = run(["api", "x"], path=no_gh_path)
         check("no real gh: one line, rc 127, no self-exec", r4.returncode == 127 and b"no real gh" in r4.stderr)
+
+        # planted defect (the CI red, reproduced on a host with no /usr/bin/gh): a fake
+        # executable gh ahead of /usr/bin. The old PATH shape finds it and the old
+        # arm goes red; the hermetic shape never sees it and stays green.
+        decoy = w / "decoy"
+        decoy.mkdir()
+        (decoy / "gh").write_text("#!/bin/sh\necho DECOY\n")
+        (decoy / "gh").chmod(0o755)
+        old_path = f"{w / 'own'}:{w / 'real'}:{decoy}:/usr/bin:/bin"
+        r5 = run(["api", "x"], path=old_path)
+        check("control: with a fake gh on the old-style PATH the old arm is red (the shim execs it)",
+              not (r5.returncode == 127 and b"no real gh" in r5.stderr) and b"DECOY" in r5.stdout)
+        check("control: the same fake gh is invisible to the hermetic PATH, the arm stays green",
+              run(["api", "x"], path=no_gh_path).returncode == 127)
+        # mutation of the guard: a PATH that lets the fake gh in must be refused by it
+        check("mutation: a PATH that includes the fake gh fails the hermetic guard",
+              not hermetic_ok(f"{no_gh_path}:{decoy}", w / "own"))
+        check("mutation: the old-style PATH fails the hermetic guard",
+              not hermetic_ok(old_path, w / "own"))
 
         # reader
         sample = ["2026-10-29T15:00:00Z 1 bus.sh confirm api repos/o/r/pulls",
