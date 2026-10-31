@@ -1,0 +1,10 @@
+# base: be9f30ec91868579268c720fa940d511b618d825 (tree == origin/main 14ed13551 outside dev/programme/designs)
+## null: python3 tests/doc_claims.py
+(first attempt died: OSError ENOSPC in a temp dir, host disk at 100 %; re-run:)
+ALL 255 checks PASSED
+exit 0
+## plant: appended 'This option is new in v9 and previously did nothing.' to docs/configuration.md
+exit 0
+ALL 255 checks PASSED
+## git status after restore:
+(empty = clean)

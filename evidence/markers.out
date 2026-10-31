@@ -1,0 +1,52 @@
+## README marker census, null
+25 of 28 marker(s) due
+## plant: '<!-- [target: R10-COP-GATE] -->' on its own line under README ## Entities
+    README.md:532 [target: R10-COP-GATE] R10-COP-GATE=in-progress
+DUE dev/README.md:166 [target: R10-CI-LAYOUT-P2] R10-CI-LAYOUT-P2=done
+DUE dev/README.md:177 [target: R10-CI-LAYOUT-P2; owner step] R10-CI-LAYOUT-P2=done
+DUE dev/README.md:204 [retired-by: R10-CI-LAYOUT-P2] R10-CI-LAYOUT-P2=done
+DUE dev/README.md:205 [retired-by: R10-CI-LAYOUT-P2] R10-CI-LAYOUT-P2=done
+DUE dev/README.md:206 [target: R10-CI-LAYOUT-P2] R10-CI-LAYOUT-P2=done
+DUE dev/README.md:229 [target: R10-CI-LAYOUT-P2; owner step] R10-CI-LAYOUT-P2=done
+DUE dev/README.md:243 [target: R10-ORCH-MACHINERY] R10-ORCH-MACHINERY=done
+DUE dev/README.md:250 [target: R10-ORCH-MACHINERY] R10-ORCH-MACHINERY=done
+DUE dev/README.md:254 [target: R10-FLOW-RELAY-HOLD] R10-FLOW-RELAY-HOLD=done
+DUE dev/README.md:255 [target: R10-PLAN-ARTIFACT] R10-PLAN-ARTIFACT=done
+    dev/README.md:256 [target: R10-FLOW-TOOLKIT-MEASURE, R10-FLOW-TOOLKIT-MODEL] R10-FLOW-TOOLKIT-MEASURE=done, R10-FLOW-TOOLKIT-MODEL=not-started
+DUE dev/README.md:288 [target: R10-ORCH-MACHINERY] R10-ORCH-MACHINERY=done
+DUE dev/README.md:289 [target: R10-ORCH-MACHINERY] R10-ORCH-MACHINERY=done
+DUE dev/README.md:290 [target: R10-ORCH-MACHINERY] R10-ORCH-MACHINERY=done
+DUE dev/README.md:291 [target: R10-ORCH-MACHINERY] R10-ORCH-MACHINERY=done
+DUE dev/README.md:303 [target: R10-FLOW-RELAY-HOLD] R10-FLOW-RELAY-HOLD=done
+    dev/README.md:308 [target: R10-PLAN-ARTIFACT, R10-FLOW-TOOLKIT-MODEL] R10-PLAN-ARTIFACT=done, R10-FLOW-TOOLKIT-MODEL=not-started
+DUE dev/README.md:309 [target: R10-FLOW-TOOLKIT-MEASURE] R10-FLOW-TOOLKIT-MEASURE=done
+DUE dev/README.md:349 [target: R10-ORCH-MACHINERY] R10-ORCH-MACHINERY=done
+UNRESOLVED dev/README.md: ledger kind `stage-mismatch`, though R10-ORCH-MACHINERY landed
+UNRESOLVED dev/README.md: ledger kind `absorb-edge-missing`, though R10-ORCH-MACHINERY landed
+UNRESOLVED dev/README.md: ledger kind `record-owed`, though R10-ORCH-MACHINERY landed
+UNRESOLVED dev/README.md: ledger kind `record-owed` in a diagram note, though R10-ORCH-MACHINERY landed
+UNRESOLVED dev/README.md: ledger kind `record-owed` in a diagram note, though R10-ORCH-MACHINERY landed
+25 of 29 marker(s) due
+  ok   the build exits 0 with no FAIL line
+  ok   a minimal tree builds: its README and its one row, exit 0, no FAIL line (baseline)
+  ok   a build that dies without a FAIL line is red, naming its exit
+       (8 mermaid block(s), 29 marker(s), 25 note(s))
+       (25 of 29 marker(s) name only done groups: python3 tests/doc_claims.py --markers lists them)
+ALL 255 checks PASSED
+## md_tables null
+RESULT doc_files_checked=8 count
+RESULT doc_swallowed_prose_lines=0 count
+RESULT doc_orphaned_table_rows=0 count
+RESULT doc_misrendered_lines=0 count
+## plant: own-line comment marker above README:686 (Wood Cheaper Than Heat Pump row)
+RESULT doc_files_checked=8 count
+RESULT doc_swallowed_prose_lines=0 count
+RESULT doc_orphaned_table_rows=1 count
+RESULT doc_misrendered_lines=1 count
+## plant: same marker inline in the row's last cell
+RESULT doc_files_checked=8 count
+RESULT doc_swallowed_prose_lines=0 count
+RESULT doc_orphaned_table_rows=0 count
+RESULT doc_misrendered_lines=0 count
+## git status after restore:
+(empty = clean)

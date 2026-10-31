@@ -1,0 +1,31 @@
+used to                14
+\bused to\b            13
+no longer              7
+since (v[0-9]|version) 5
+v[0-9]+\.[0-9]         20
+#[0-9]{3,}             10
+new in                 1
+previously             1
+\bnow\b                69
+\bround [0-9]          0
+renamed from           3
+as before              6
+until v[0-9]           3
+R[0-9]+-               0
+
+# history hits outside README ## Entities (README)
+116: Home Assistant.** Since v5.0.0 entity names
+310:  it (#942): a grey-box f
+461:setup arrived in v6.6.5 — an install
+538:compatibility duplicate (#1669).
+542:Since v5.0.0 the display 
+593:d from Hot Water Cost by #174; existing inst
+619:from Hot Water Energy by #174; existing inst
+630:olar Radiation sensor in v5.0.0 |
+641: from Mixed Hot Water by #174 |
+665:Since #1335 that list is e
+668:compatibility duplicate (#1669): Upper Floor
+1031:'s own heat curve. Since v4.1.0 the ECL110 s
+
+# bare "used to" that is not the word
+685:C supply. Refused together wit

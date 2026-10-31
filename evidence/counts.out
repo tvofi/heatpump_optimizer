@@ -1,0 +1,13 @@
+
+entities 82 Counter({'sensor': 62, 'binary_sensor': 6, 'button': 6, 'switch': 6, 'climate': 1, 'datetime': 1})
+entities nodhw 82
+services 14
+services.yaml 14 True
+setup steps 15
+option page titles 25
+_OPTION_PAGES 23 _OPTION_FIELDS 205
+option labels 216
+blueprints 4
+events ['EVENT_MONTHLY_RECEIPT', 'EVENT_COMFORT_AT_RISK', 'EVENT_INPUT_STALE', 'EVENT_PLAN_STALE', 'EVENT_MANUAL_PLAN_RELEASED']
+tabs ['advisor', 'health', 'plan', 'savings', 'setup']
+issues 26 exceptions 31
