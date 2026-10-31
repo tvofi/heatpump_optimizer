@@ -1,0 +1,12 @@
+MUTANT M1-head-not-hs: cloud_relay self-test: 294 checks, 2 failed
+  FAIL a body whose Code: names the current handoff head updates (null control) (rc=2, want 0)
+  FAIL and the stale line is gone (rc=0, want 1)
+MUTANT M2-refuse-first: cloud_relay self-test: 294 checks, 0 failed
+MUTANT M3-no-stale-levelset: cloud_relay self-test: 294 checks, 1 failed
+  FAIL and owes one handoff-body-stale line at the handoff tip, naming the body's head (rc=1, want 0)
+MUTANT M4-stale-records-failed: cloud_relay self-test: 294 checks, 4 failed
+  FAIL and owes one handoff-body-stale line at the handoff tip, naming the body's head (rc=1, want 0)
+  FAIL and records no failed update (rc=1, want 0)
+  FAIL a body whose Code: names the current handoff head updates (null control) (rc=2, want 0)
+MUTANT M5-no-cat-output: cloud_relay self-test: 294 checks, 0 failed
+MUTANT M6-code-first: cloud_relay self-test: 294 checks, 0 failed
