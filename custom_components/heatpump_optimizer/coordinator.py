@@ -3208,7 +3208,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         boost.spawn_restore_session(
             self, self._spawn, self._adopt_away_override, config, self._entity_state
         )
-        away_mode.watch_away_inputs(hass, entry, config, self.async_request_refresh)
 
     @callback
     def _release_registrations(self) -> None:
