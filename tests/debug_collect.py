@@ -1283,16 +1283,21 @@ def _raw_doc(token="secretvalue123", **states):
         price_series_entity=None, states=states)
 
 
-_leaked = _sealed(_raw_doc(**{"sensor.a": [["t", "secretvalue123", None, None]]}))
+# A copy in a string is dropped with it; a number cannot be, so its copy refuses.
+_copied = _sealed(_raw_doc(**{"sensor.a": [["t", "secretvalue123", None, None]]}))
+_leaked = _sealed(_raw_doc(123456789, **{"sensor.a": [["t", 123456789, None, None]]}))
 # Six characters is the shortest dropped value the leak check looks for again.
-_leaked_six = _sealed(_raw_doc("abc123", **{"sensor.a": [["t", "abc123", None, None]]}))
-_short = _sealed(_raw_doc("abc12", **{"sensor.a": [["t", "abc12", None, None]]}))
+_leaked_six = _sealed(_raw_doc(123456, **{"sensor.a": [["t", 123456, None, None]]}))
+_short = _sealed(_raw_doc(12345, **{"sensor.a": [["t", 12345, None, None]]}))
 _unfit = _sealed(_raw_doc(plainkey=[["t", "1", None, None]]))
 _ok = _sealed(_raw_doc(**{"sensor.a": [["t", "1", None, None]]}))
 R.check(
-    "replay_doc.seal refuses a document where a dropped credential survives elsewhere, "
-    "and one whose sanitised form still breaks a rule, and writes a clean one",
-    isinstance(_leaked, replay_doc.Refused) and "1 dropped credential value(s)" in str(_leaked)
+    "replay_doc.seal drops a string copy of a dropped credential, refuses a document "
+    "where a copy survives as a number (naming its place, not its value), and one whose "
+    "sanitised form still breaks a rule, and writes a clean one",
+    isinstance(_copied, dict) and "secretvalue123" not in json.dumps(_copied)
+    and isinstance(_leaked, replay_doc.Refused) and "1 dropped credential value(s)" in str(_leaked)
+    and ".state" in str(_leaked) and "123456789" not in str(_leaked)
     and isinstance(_leaked_six, replay_doc.Refused) and isinstance(_short, dict)
     and isinstance(_unfit, replay_doc.Refused)
     and "states.plainkey: not an entity id" in str(_unfit)

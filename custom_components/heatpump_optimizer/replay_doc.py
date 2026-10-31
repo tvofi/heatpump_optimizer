@@ -119,6 +119,10 @@ PRICE_SOURCE_ENTITY = "entity"
 #: The shortest dropped value a leak check searches the rest of a payload for:
 #: a shorter one matches ordinary words and numbers by chance.
 LEAK_MIN_CHARS = 6
+#: Words Home Assistant writes as a state, which a device also writes under a
+#: credential-named attribute it cannot fill (``serial_number: unavailable``):
+#: no credential, and searching for one refuses every day an input went away.
+STATE_WORDS = frozenset({"unknown", "unavailable", "none", "null", "true", "false"})
 
 
 class Refused(ValueError):
@@ -630,18 +634,67 @@ def document(
     }, str(entry.get("entry_id") or ""))
 
 
+def _copy(value: str) -> re.Pattern[str]:
+    """``value`` as a whole token: not a digit or letter run's middle, so a
+    dropped ``4829137`` is no copy inside ``14829137.5``."""
+    return re.compile(rf"(?<![A-Za-z0-9]){re.escape(value)}(?![A-Za-z0-9])")
+
+
+def _drop_copies(node: object, copies: list[re.Pattern[str]]) -> object:
+    """``node`` with every string holding a copy of a dropped value nulled."""
+    if isinstance(node, dict):
+        return {k: _drop_copies(v, copies) for k, v in node.items()}
+    if isinstance(node, list):
+        return [_drop_copies(v, copies) for v in node]
+    if isinstance(node, str) and any(c.search(node) for c in copies):
+        return None
+    return node
+
+
+_ROW_FIELDS = ("updated", "state", "attributes", "reported")
+
+
+def _copy_places(node: object, copies: list[re.Pattern[str]], path: str = "") -> set[str]:
+    """Where a copy survives, as a place and never the value: a state row's
+    field by name (``states[<masked id>].attributes.<key>``), list items as ``[]``."""
+    if path == "states" and isinstance(node, dict):
+        return _row_places(node, copies)
+    if isinstance(node, dict):
+        found: set[str] = set()
+        for key, value in node.items():
+            found |= ({f"{path or '<top>'}: a key"} if any(c.search(str(key)) for c in copies)
+                      else _copy_places(value, copies, f"{path}.{key}" if path else str(key)))
+        return found
+    if isinstance(node, list):
+        return set().union(*(_copy_places(v, copies, f"{path}[]") for v in node))
+    hit = not isinstance(node, bool) and node is not None \
+        and any(c.search(json.dumps(node)) for c in copies)
+    return {path} if hit else set()
+
+
+def _row_places(states: Json, copies: list[re.Pattern[str]]) -> set[str]:
+    return {place for eid, rows in states.items() for row in (rows or [])
+            for field, cell in zip(_ROW_FIELDS, row if isinstance(row, list) else [])
+            for place in _copy_places(cell, copies, f"states[{eid}].{field}")}
+
+
 def seal(raw: Json, conf: frozenset[str]) -> Json:
-    """``raw`` sanitised, or ``Refused`` when a dropped value survives elsewhere in
-    it or the result still breaks a rule of ``refusals`` -- an unmasked id or an
-    address-like token among them."""
+    """``raw`` sanitised, every string holding a copy of a dropped value dropped
+    too; ``Refused`` when a copy survives where it cannot be dropped (a number,
+    a key) -- naming its place, never the value -- or the result still breaks a
+    rule of ``refusals``, an unmasked id or an address-like token among them."""
     dropped: list[str] = []
     clean = sanitise(raw, conf, dropped)
+    copies = [_copy(v) for v in sorted({s for s in dropped if len(s) >= LEAK_MIN_CHARS
+                                         and s.lower() not in STATE_WORDS})]
+    clean = cast(Json, _drop_copies(clean, copies))
     blob = json.dumps(clean, sort_keys=True)
-    leaked = sorted({s for s in dropped if len(s) >= LEAK_MIN_CHARS and s in blob})
+    leaked = [c for c in copies if c.search(blob)]
     if leaked:
+        places = sorted(_copy_places(clean, leaked))
         raise Refused(
             f"refusing to write: {len(leaked)} dropped credential value(s) "
-            "survive elsewhere in the payload"
+            "survive elsewhere in the payload, at " + (", ".join(places[:8]) or "a key")
         )
     left = refusals(clean, conf)
     if left:

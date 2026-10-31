@@ -607,7 +607,7 @@ def sanitiser_checks(paths: list[Path]) -> list[tuple[str, bool, str]]:
     res.append(("control:sanitise_clears",
                 not export.violations(export.sanitise(raw, conf, dropped), conf),
                 f"dropped {len(dropped)} value(s)"))
-    return res + leak_probes() + tibber_price_checks() + recorder_checks() + mask_checks()
+    return res + leak_probes() + tibber_price_checks() + recorder_checks() + mask_checks() + leak_copy_checks()
 
 
 #: The review of #1508's leak probe (the first eleven): shapes of private data a recorder
@@ -1152,6 +1152,66 @@ def mask_checks() -> list[tuple[str, bool, str]]:
                 why[:300]))
     res.append(("mask:null_committed_fixture_passes_the_check",
                 not export.check_file(FIXTURES / "synthetic-dhw-only.json"), "check_file"))
+    return res
+
+
+#: An invented Tibber token: letters first, no run of four digits, short enough
+#: to pass as a unit -- so a copy of it in a kept attribute is not dropped by its
+#: shape, only by the leak check.
+_TOKEN = "Tk9xQzR2bXcK"
+
+
+def _sealed(states: dict, entry_data: dict) -> tuple[dict | None, str]:
+    """``replay_doc.document`` then ``seal``, as both writers call them."""
+    import export
+
+    raw = export._doc.document(
+        time_zone="UTC", window=("2026-01-15T00:00:00+00:00", "2026-01-16T00:00:00+00:00"),
+        recorder_schema=48, entry={"entry_id": "01JX", "data": entry_data, "options": {}},
+        inputs=[k for k in states if k != "sensor.hpo_out"], published=["sensor.hpo_out"],
+        price_series_entity=None, states=states)
+    try:
+        return export._doc.seal(raw, export.entry_keys(*export.default_const_paths())), ""
+    except export._doc.Refused as err:
+        return None, str(err)
+
+
+def leak_copy_checks() -> list[tuple[str, bool, str]]:
+    """A value dropped as a credential, with a copy elsewhere: a copy in a kept
+    string is dropped too; one that cannot be dropped (a number) is refused,
+    naming where it sits and never the value; and a dropped word Home
+    Assistant uses as a state is not a credential to search for."""
+    t = "2026-01-15T01:00:00+00:00"
+    row = lambda state, attrs: [t, state, attrs, None]  # noqa: E731
+    base = {"indoor_temp_entity": "sensor.indoor", "outdoor_temp_entity": "sensor.outdoor"}
+    res = []
+    # The token in the entry and, by an integration that copies it, in a unit.
+    doc, why = _sealed({"sensor.indoor": [row("21.5", {"unit_of_measurement": _TOKEN})],
+                        "sensor.outdoor": [row("-3.0", None)], "sensor.hpo_out": []},
+                       {**base, "tibber_token": _TOKEN})
+    res.append(("leak_copy:string_copy_in_attribute_dropped",
+                doc is not None and _TOKEN not in json.dumps(doc)
+                and doc["states"]["sensor.indoor_temp"][0][2] == {"unit_of_measurement": None},
+                why or "sealed"))
+    # A numeric PIN, its number also a recorded attribute: refused with the place.
+    doc, why = _sealed({"sensor.indoor": [row("21.5", {"temperature": 4829137})],
+                        "sensor.outdoor": [row("-3.0", None)], "sensor.hpo_out": []},
+                       {**base, "door_pin": 4829137})
+    res.append(("leak_copy:number_copy_refused_naming_its_place_not_its_value",
+                doc is None and "states[sensor.indoor_temp].attributes.temperature" in why
+                and "4829137" not in why, why))
+    # The null control: the number inside a longer one is no copy of it.
+    doc, why = _sealed({"sensor.indoor": [row("21.5", {"temperature": 14829137.5})],
+                        "sensor.outdoor": [row("-3.0", None)], "sensor.hpo_out": []},
+                       {**base, "door_pin": 4829137})
+    res.append(("leak_copy:null_number_inside_a_longer_one_sealed", doc is not None, why))
+    # A device's serial attribute reading "unavailable", and states that do.
+    doc, why = _sealed({"sensor.indoor": [row("unavailable", {"serial_number": "unavailable"})],
+                        "sensor.outdoor": [row("unknown", {"serial": "unknown"})],
+                        "sensor.hpo_out": []}, base)
+    res.append(("leak_copy:state_words_under_a_credential_key_not_searched",
+                doc is not None and doc["states"]["sensor.indoor_temp"][0][1] == "unavailable",
+                why or "sealed"))
     return res
 
 
