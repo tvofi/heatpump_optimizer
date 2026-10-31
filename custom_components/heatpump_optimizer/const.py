@@ -675,6 +675,8 @@ SERVICE_RESTORE_SNAPSHOT: Final = "restore_learned_snapshot"
 SERVICE_DIAGNOSE_INTERVAL: Final = "diagnose_interval"
 #: #1939 — start, stop or read an entry's debug collection.
 SERVICE_DEBUG_COLLECT: Final = "debug_collect"
+#: R10-HOTFIX-LEARNER-INPUTS — the heat-loss learners back to the configuration.
+SERVICE_RESET_HEAT_LOSS: Final = "reset_heat_loss_learners"
 MANUAL_PLAN_STORE_VERSION: Final = 1
 # A full solve is seconds of CPU. Dragging a slider must not trigger one per
 # pixel, so simulation requests are rate-limited to this interval.
@@ -1424,6 +1426,9 @@ LOWER_FLOOR_LOSS_RATIO_MAX: Final = 3.0
 # selector, where no interval is space-only. A counter install folds the
 # scale at span close alone, so it mixes nothing.
 HEAT_LOSS_BASES: Final = ("commanded", "metered", "measured_heat")
+#: The heat-loss learners by their store key: what the one void path
+#: (``_void_heat_loss_learners``) resets and the reset action's ``learners`` offers.
+HEAT_LOSS_LEARNERS: Final = ("house_heat_loss_scale", "lower_floor_loss_ratio")
 
 # DHW demand window defaults
 DEFAULT_DHW_SCHEDULE_ENABLED: Final = True
