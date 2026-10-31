@@ -177,22 +177,46 @@ function nonTemplateMerges(log) {
 // One step of the quote reader at text[i]: how many characters there are quoted
 // text (the quote marks included, a Python triple quote read as one mark), or 0,
 // so a bracket there opens nothing. In a JS file a backtick opens a template
-// literal; a `${}` slot in it is read as the literal's text.
+// literal and a `/` where an expression starts a regex literal (its `[]` class
+// holding a `/`). An interpolation slot -- a template's `${`, a Python
+// f-string's `{` (not `{{`) -- is code again until the `}` that closes it,
+// then the string resumes: a quote, a bracket or a string in the slot is the
+// slot's, as the language reads it (Python 3.12 reads an f-string's own quote
+// mark in a slot as a nested string).
+const fresh = () => ({ q: '', esc: false, f: false, slots: [] })
 function quoted(st, text, i, kind) {
   const c = text[i]
   if (st.q) {
-    if (st.esc) st.esc = false
-    else if (c === '\\') st.esc = true
-    else if (text.startsWith(st.q, i)) { const k = st.q.length; st.q = ''; return k }
+    if (st.esc) { st.esc = false; return 1 }
+    if (c === '\\') { st.esc = true; return 1 }
+    if (text.startsWith(st.q, i)) { const k = st.q.length; st.q = ''; st.f = false; return k }
+    const slot = st.q === '`' ? text.startsWith('${', i) && 2 : st.f && c === '{' && (text[i + 1] === '{' ? -2 : 1)
+    if (slot < 0) return 2
+    if (slot) { st.slots.push({ q: st.q, f: st.f, depth: 0 }); st.q = ''; st.f = false; return slot }
     return 1
   }
-  if (c === '"' || c === "'") { st.q = text.startsWith(c.repeat(3), i) ? c.repeat(3) : c; return st.q.length }
+  const top = st.slots[st.slots.length - 1]
+  if (top && c === '{') top.depth++
+  else if (top && c === '}' && !top.depth--) { st.slots.pop(); st.q = top.q; st.f = top.f; return 1 }
+  if (c === '"' || c === "'") {
+    st.q = text.startsWith(c.repeat(3), i) ? c.repeat(3) : c
+    st.f = kind === 'py' && /(?<![\w])[rRbBuU]?[fF][rR]?$/.test(text.slice(Math.max(0, i - 3), i))
+    return st.q.length
+  }
   if (c === '`' && kind === 'js') { st.q = c; return 1 }
+  if (c === '/' && kind === 'js' && !'/*'.includes(text[i + 1]) && /(?:^|[(,=:[!&|?{};+\-*%<>~^\n]|\breturn)\s*$/.test(text.slice(Math.max(0, i - 8), i))) {
+    for (let j = i + 1, cls = false; j < text.length && text[j] !== '\n'; j++) {
+      if (text[j] === '\\') j++
+      else if (text[j] === '[') cls = true
+      else if (text[j] === ']') cls = false
+      else if (text[j] === '/' && !cls) return j + 1 - i
+    }
+  }
   return 0
 }
-// Whether a quote holds its line ends: a Python triple quote and a JS template
-// literal do; any other quote ends with its line.
-const spansLines = (st) => st.q.length === 3 || st.q === '`'
+// Whether a quote holds its line ends: a Python triple quote, a JS template
+// literal and a slot of either do; any other quote ends with its line.
+const spansLines = (st) => st.q.length === 3 || st.q === '`' || st.slots.length > 0
 // Where a comment that opens at text[i], outside a quote, ends by the file's
 // language (`kind`), or -1 where none opens: Python's `#`, a shell or Markdown
 // word's leading `#` and JS's `//` end before their line end; JS's `/* */` past
@@ -208,10 +232,10 @@ function commentEnd(kind, text, i) {
 // The innermost bracket still open at `at`, read from `from` with the reader
 // the extent uses, or -1.
 function openAt(text, from, at, kind) {
-  const open = []; let st = { q: '', esc: false }
+  const open = []; let st = fresh()
   for (let i = from; i < at; i++) {
     const c = text[i]
-    if (c === '\n' && !spansLines(st)) { st = { q: '', esc: false }; continue }
+    if (c === '\n' && !spansLines(st)) { st = fresh(); continue }
     const n = quoted(st, text, i, kind)
     if (n) { i += n - 1; continue }
     const e = commentEnd(kind, text, i)
@@ -248,12 +272,12 @@ function callExtent(text, at, kind) {
   let b = openAt(text, ps, at, kind)
   if (b < 0 && kind !== 'sh' && ps > 0) b = openAt(text, 0, at, kind)
   const start = b < 0 ? ls : b
-  let depth = 0; let st = { q: '', esc: false }
+  let depth = 0; let st = fresh()
   for (let i = start + (b < 0 ? 0 : 1); i < text.length; i++) {
     const c = text[i]
     if (c === '\n') {
       if (spansLines(st)) continue
-      st = { q: '', esc: false }
+      st = fresh()
       const next = text.indexOf('\n', i + 1)
       if (kind === 'sh' && !text.slice(i + 1, next < 0 ? text.length : next).trim()) return text.slice(start, i)
       if (b < 0 && !depth && text[i - 1] !== '\\') return text.slice(start, i)
@@ -852,6 +876,26 @@ async function selfTest() {
   // The file's start is read only where the statement opens no bracket: a regex
   // literal holding a backtick above an argv wrapped after its program moves
   // nothing of the call the statement's own bracket holds, as at main.
+  // The rest of the lexer class the matrix in r10_merge_subject_argv_seam.mjs
+  // enumerates: a closer in a slot holding the string's own quote or a nested
+  // template, and in a regex literal or its class, after `merge`.
+  const LEXED = [
+    ['an f-string slot holding its own quote', 'tools/x.py', (v) => `run(["gh", "pr", "${v}", n, f"{d[")"]}",\n    "--subject", s])\n`],
+    ['a template slot holding a template', 'tools/x.mjs', (v) => "execFileSync('gh', ['pr', '" + v + "', n, `${f(`)`)}`,\n  '--subject', s])\n"],
+    ['a template slot holding an object literal and a template', 'tools/x.mjs', (v) => "execFileSync('gh', ['pr', '" + v + "', n, `${ {a: 1}[`)`] }`,\n  '--subject', s])\n"],
+    ['a regex literal', 'tools/x.mjs', (v) => `execFileSync('gh', ['pr', '${v}', n, /\\)/,\n  '--subject', s])\n`],
+    ['a regex class holding a slash', 'tools/x.mjs', (v) => `execFileSync('gh', ['pr', '${v}', n, /[/)]/,\n  '--subject', s])\n`],
+  ]
+  for (const [what, f, src] of LEXED) {
+    probes.push([`lexer: a closer in ${what} after "merge" does not end the call, its subject refused`, guard([], { ...writers, [f]: src('merge') }).length === 1])
+    probes.push([`null control: ${what} running pr view is not a merge call`, !guard([], { ...writers, [f]: src('view') }).length])
+  }
+  probes.push(['null control: a division is no regex literal, and an f-string\'s {{ opens no slot, so the next statement\'s flag is not the call\'s',
+    !guard([], { ...writers, 'tools/x.mjs': 'x = (a / b) / c\ncmd = "gh pr merge 9"\nother("--subject", s)\n' }).length
+    && !guard([], { ...writers, 'tools/x.py': 'x = f"{{ ("\ncmd = "gh pr merge 9"\nother("--subject", s)\n' }).length])
+  probes.push(['null control: a template slot holds its line ends and its own braces, so a bracket in or after it opens nothing',
+    !guard([], { ...writers, 'tools/x.mjs': 'x = `${\n  y\n}(`\ncmd = "gh pr merge 9"\nother("--subject", s)\n' }).length
+    && !guard([], { ...writers, 'tools/x.mjs': 'x = `${ {a: 1}.a }`\ncmd = "gh pr merge 9"\nother("--subject", s)\n' }).length])
   probes.push(['a prose parenthesis left open above a blank line opens nothing for a shell or prose call: its --subject is refused',
     ['tools/x.md', 'tools/x.sh'].every((f) => guard([], { ...writers, [f]: 'Merge it by hand (see the note\n\ngh pr merge 9 --subject x\n' }).length === 1)])
   probes.push(['a lexer state carried from the file start does not move a call its statement\'s bracket holds: its --subject is refused',

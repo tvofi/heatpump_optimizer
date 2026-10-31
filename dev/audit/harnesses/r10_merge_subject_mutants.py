@@ -13,7 +13,8 @@ to anchor the line) and L5 the program read again, RV rows each site a
 shared part (GAP, OPTIONS) stands in, one site at a time, P rows the statement
 read the open bracket comes from (P1 restores the line-local scan, P5 the
 re-read from the file start, P6 that re-read always, P7 in every kind), C rows the
-comment reader, J rows the JS block comment and template literal, G rows GAP's comment and literal-join arms, K rows the skip
+comment reader, J rows the JS block comment, template literal, slot and regex literal, F rows the
+f-string slot, G rows GAP's comment and literal-join arms, K rows the skip
 of a closer in the lead that matches nothing on its line. A survivor prints
 `N of N` and no FAIL. Expected survivors: Y9, Y10, each dispositioned in the
 PR body. A `NOT APPLIED` line means the mutated text moved.
@@ -34,9 +35,9 @@ M = {
 'K1 a closer in the lead ends the call (the skip deleted)':("      if (i < at) { depth = 0; continue }\n",""),
 'K2 a closer in the lead skipped, its depth kept':("if (i < at) { depth = 0; continue }","if (i < at) continue"),
 'M8 start always line start':("const start = b < 0 ? ls : b","const start = ls"),
-'M10 quotes not read':('  if (c === \'"\' || c === "\'") { st.q = text.startsWith(c.repeat(3), i) ? c.repeat(3) : c; return st.q.length }\n',''),
-'M11 escapes not read':("    else if (c === '\\\\') st.esc = true\n",''),
-'M12 blank-line state reset removed':("      st = { q: '', esc: false }\n      const next","      const next"),
+'M10 quotes not read':('  if (c === \'"\' || c === "\'") {\n','  if (false) {\n'),
+'M11 escapes not read':("    if (c === '\\\\') { st.esc = true; return 1 }\n",''),
+'M12 blank-line state reset removed':("      st = fresh()\n      const next","      const next"),
 'M13 pop on close before at removed':("    else if (')]}'.includes(c)) open.pop()\n",""),
 'X1 backward quote skip':("    if (n) { i += n - 1; continue }\n    const e = commentEnd(kind, text, i)\n    if (e >= 0) { i = e - 1; continue }\n    if ('([{'.includes(c)) open.push(i)","    const e = commentEnd(kind, text, i)\n    if (e >= 0) { i = e - 1; continue }\n    if ('([{'.includes(c)) open.push(i)"),
 'X2 forward quote skip':("    if (n) { i += n - 1; continue }\n    const e = commentEnd(kind, text, i)\n    if (e >= 0) { i = e - 1; continue }\n    if ('([{'.includes(c)) depth++","    const e = commentEnd(kind, text, i)\n    if (e >= 0) { i = e - 1; continue }\n    if ('([{'.includes(c)) depth++"),
@@ -44,7 +45,7 @@ M = {
 'X4 depth++ deleted':("if ('([{'.includes(c)) depth++","if ('([{'.includes(c)) {}"),
 'X5 forward from open bracket':("start + (b < 0 ? 0 : 1)","start"),
 'X6 first match only':("text.matchAll(new RegExp(MERGE_CALL.source, 'g'))","[text.match(MERGE_CALL)].filter(Boolean)"),
-'Y1 close quote not cleared':("    else if (text.startsWith(st.q, i)) { const k = st.q.length; st.q = ''; return k }",'    else if (text.startsWith(st.q, i)) { const k = st.q.length; return k }'),
+'Y1 close quote not cleared':("if (text.startsWith(st.q, i)) { const k = st.q.length; st.q = ''; st.f = false; return k }",'if (text.startsWith(st.q, i)) { const k = st.q.length; return k }'),
 'Y2 line number off by one':("text.slice(0, m.index).split('\\n').length}","text.slice(0, m.index).split('\\n').length - 1}"),
 'Y3 no line-end check for backslash nor open (always continue)':("      if (b < 0 && !depth && text[i - 1] !== '\\\\') return text.slice(start, i)\n",""),
 'Y4 open.length ignored at line end':("if (b < 0 && !depth &&","if (!depth &&"),
@@ -66,7 +67,7 @@ M = {
 'R24 SUBJECT_ARG: commitHeadline/commitBody dropped': ('  String.raw`|\\bcommit_(?:title|message)\\b|\\bcommit(?:Headline|Body)\\b`)', '  String.raw`|\\bcommit_(?:title|message)\\b`)'),
 'R25 GAP: whitespace narrowed to one literal space':('const GAP = String.raw`(?:\\s|\\\\\\n|,|(?:#|\\/\\/)[^\\n]*\\n|\\/\\*[\\s\\S]*?\\*\\/|["\'${\'`\'}][^\\S\\n]*["\'${\'`\'}])+`','const GAP = String.raw`(?: |\\\\\\n|,|(?:#|\\/\\/)[^\\n]*\\n|\\/\\*[\\s\\S]*?\\*\\/|["\'${\'`\'}][^\\S\\n]*["\'${\'`\'}])+`'),
 'R26 GAP: one separator only, no run':('const GAP = String.raw`(?:\\s|\\\\\\n|,|(?:#|\\/\\/)[^\\n]*\\n|\\/\\*[\\s\\S]*?\\*\\/|["\'${\'`\'}][^\\S\\n]*["\'${\'`\'}])+`','const GAP = String.raw`(?:\\s|\\\\\\n|,|(?:#|\\/\\/)[^\\n]*\\n|\\/\\*[\\s\\S]*?\\*\\/|["\'${\'`\'}][^\\S\\n]*["\'${\'`\'}])`'),
-'T1 triple quote not one mark':('  if (c === \'"\' || c === "\'") { st.q = text.startsWith(c.repeat(3), i) ? c.repeat(3) : c; return st.q.length }','  if (c === \'"\' || c === "\'") { st.q = false ? c.repeat(3) : c; return st.q.length }'),
+'T1 triple quote not one mark':("    st.q = text.startsWith(c.repeat(3), i) ? c.repeat(3) : c\n","    st.q = c\n"),
 'T2 a line end inside a triple quote ends the call':('      if (spansLines(st)) continue\n',''),
 'B1 a blank line ends a bracketed call in every file':("    const text = read(f); const kind = /\\.py$/.test(f) ? 'py' : /\\.(mjs|js|cjs)$/.test(f) ? 'js' : 'sh'","    const text = read(f); const kind = 'sh'"),
 'Y6 calls.push deleted':('      calls.push(f)\n', ''),
@@ -92,7 +93,7 @@ M = {
 'L5 the program read again (gh by name only)':("const MERGE_CALL = new RegExp(`${LEAD}${word('pr')}${OPTIONS}${GAP}${word('merge')}` +", "const MERGE_CALL = new RegExp(`(gh${LINE_GAP})${word('pr')}${OPTIONS}${GAP}${word('merge')}` +"),
 'RV2 GAP narrowed at pr->merge':("const MERGE_CALL = new RegExp(`${LEAD}${word('pr')}${OPTIONS}${GAP}${word('merge')}` +", "const MERGE_CALL = new RegExp(`${LEAD}${word('pr')}${OPTIONS}\\\\s+${word('merge')}` +"),
 'RV5 no options between pr and merge':("const MERGE_CALL = new RegExp(`${LEAD}${word('pr')}${OPTIONS}${GAP}${word('merge')}` +", "const MERGE_CALL = new RegExp(`${LEAD}${word('pr')}${GAP}${word('merge')}` +"),
-'T3 a triple quote closed by one quote mark':("    else if (text.startsWith(st.q, i)) { const k = st.q.length; st.q = ''; return k }","    else if (c === st.q[0]) { const k = st.q.length; st.q = ''; return k }"),
+'T3 a triple quote closed by one quote mark':("if (text.startsWith(st.q, i)) { const k = st.q.length; st.q = ''; st.f = false; return k }","if (c === st.q[0]) { const k = st.q.length; st.q = ''; st.f = false; return k }"),
 'R11g VALUE: the bracketed subscript dropped':('const VALUE = String.raw`(?:"[^"\\n]*"|\'[^\'\\n]*\'|${\'`\'}[^${\'`\'}\\n]*${\'`\'}|${SLOT}|\\[[^[\\]\\n]*\\]|\\([^()\\n]*\\)|\\$(?![{(])|[^\\s,\'"${\'`\'}()[\\]{}$])+`','const VALUE = String.raw`(?:"[^"\\n]*"|\'[^\'\\n]*\'|${\'`\'}[^${\'`\'}\\n]*${\'`\'}|${SLOT}|\\([^()\\n]*\\)|\\$(?![{(])|[^\\s,\'"${\'`\'}()[\\]{}$])+`'),
 'R11h VALUE: the call arguments dropped':('const VALUE = String.raw`(?:"[^"\\n]*"|\'[^\'\\n]*\'|${\'`\'}[^${\'`\'}\\n]*${\'`\'}|${SLOT}|\\[[^[\\]\\n]*\\]|\\([^()\\n]*\\)|\\$(?![{(])|[^\\s,\'"${\'`\'}()[\\]{}$])+`','const VALUE = String.raw`(?:"[^"\\n]*"|\'[^\'\\n]*\'|${\'`\'}[^${\'`\'}\\n]*${\'`\'}|${SLOT}|\\[[^[\\]\\n]*\\]|\\$(?![{(])|[^\\s,\'"${\'`\'}()[\\]{}$])+`'),
 'R11i VALUE: a lone $ dropped':('const VALUE = String.raw`(?:"[^"\\n]*"|\'[^\'\\n]*\'|${\'`\'}[^${\'`\'}\\n]*${\'`\'}|${SLOT}|\\[[^[\\]\\n]*\\]|\\([^()\\n]*\\)|\\$(?![{(])|[^\\s,\'"${\'`\'}()[\\]{}$])+`','const VALUE = String.raw`(?:"[^"\\n]*"|\'[^\'\\n]*\'|${\'`\'}[^${\'`\'}\\n]*${\'`\'}|${SLOT}|\\[[^[\\]\\n]*\\]|\\([^()\\n]*\\)|[^\\s,\'"${\'`\'}()[\\]{}$])+`'),
@@ -106,7 +107,7 @@ M = {
 'P6 a Python or JS open bracket read from the file start always':("  let b = openAt(text, ps, at, kind)\n  if (b < 0 && kind !== 'sh' && ps > 0) b = openAt(text, 0, at, kind)\n","  let b = openAt(text, kind === 'sh' ? ps : 0, at, kind)\n"),
 'P7 the file-start re-read in a shell or prose file too':("if (b < 0 && kind !== 'sh' && ps > 0)","if (b < 0 && ps > 0)"),
 'P2 the statement start never moves back':('  for (let p; ps > 0 && (p','  for (let p; false && (p'),
-'P3 the backward read resets no quote at a line end':("    if (c === '\\n' && !spansLines(st)) { st = { q: '', esc: false }; continue }\n",''),
+'P3 the backward read resets no quote at a line end':("    if (c === '\\n' && !spansLines(st)) { st = fresh(); continue }\n",''),
 'P4 the backward read resets a triple quote at a line end':("    if (c === '\\n' && !spansLines(st)) { st","    if (c === '\\n' && true) { st"),
 'C1 the backward read skips no comment':("    const e = commentEnd(kind, text, i)\n    if (e >= 0) { i = e - 1; continue }\n    if ('([{'.includes(c)) open.push(i)","    if ('([{'.includes(c)) open.push(i)"),
 'C2 the forward read skips no comment':("    const e = commentEnd(kind, text, i)\n    if (e >= 0) { i = e - 1; continue }\n    if ('([{'.includes(c)) depth++","    if ('([{'.includes(c)) depth++"),
@@ -116,6 +117,14 @@ M = {
 'J2 a JS block comment ends at its line end':("const e = text.indexOf('*/', i + 2); return e < 0 ? text.length : e + 2","const e = text.indexOf('\\n', i); return e < 0 ? text.length : e"),
 'J3 no JS template literal':("  if (c === '`' && kind === 'js') { st.q = c; return 1 }\n",''),
 'J4 a template literal ends with its line':("const spansLines = (st) => st.q.length === 3 || st.q === '`'","const spansLines = (st) => st.q.length === 3"),
+"J5 no JS regex literal":("  if (c === '/' && kind === 'js' && !'/*'.includes(text[i + 1])","  if (false && c === '/' && kind === 'js' && !'/*'.includes(text[i + 1])"),
+"J6 a JS regex literal wherever a slash stands":("&& /(?:^|[(,=:[!&|?{};+\\-*%<>~^\\n]|\\breturn)\\s*$/.test(text.slice(Math.max(0, i - 8), i))","&& true"),
+"J7 a regex class not read":("      else if (text[j] === '[') cls = true\n",""),
+"J8 no template slot":("const slot = st.q === '`' ? text.startsWith('${', i) && 2 :","const slot = st.q === '`' ? false :"),
+"F1 no f-string slot":("st.f && c === '{' && (text[i + 1] === '{' ? -2 : 1)","false"),
+"F2 an f-string's {{ opens a slot":("(text[i + 1] === '{' ? -2 : 1)","1"),
+"F3 a slot's line end resets the reader":(" || st.slots.length > 0\n","\n"),
+"F4 a slot's own brace closes it":("if (top && c === '{') top.depth++","if (top && c === '{') top.depth += 0"),
 'C5 a shell # opens a comment anywhere':("(kind === 'py' || !i || /\\s/.test(text[i - 1]))",'(true)'),
 }
 try:
