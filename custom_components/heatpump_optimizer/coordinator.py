@@ -4715,8 +4715,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         leaves neither the reading nor the ask a space figure (``ran_hot_water``).
         """
         commanded_space, dhw_share = self._commanded_split()
-        if heat_energy.ran_hot_water(heat_energy.meter_of(self).attribution((commanded_space, dhw_share))):
-            return None
         if not getattr(self, "_ctx", self)._config.heat_pump_power_entity:
             return commanded_space
         # #1067: the pump's own heaters join the immersion latch, for the
