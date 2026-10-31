@@ -242,6 +242,16 @@ def space_heat_kw(heat_kw: float | None, a: Attribution, integrated: bool) -> fl
     return heat_kw if a.dhw <= 0.0 < a.space else None
 
 
+def ran_hot_water(a: Attribution) -> bool:
+    """Whether the dwell saw the pump on hot water within the interval.
+
+    A meter reading taken at the close is then not the interval's space
+    figure, whatever the plan asked. An unobserved interval says nothing
+    here: the caller's own plan rule stands.
+    """
+    return a.observed and a.dhw > 0.0
+
+
 def cop_duty(a: Attribution, share_limit: float) -> str | None:
     """The curve a COP sample is judged against: one duty, or ``None`` for a blend."""
     total = a.space + a.dhw
