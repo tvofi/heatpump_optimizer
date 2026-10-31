@@ -1,4 +1,4 @@
-# Proposal triage, session s9, batch 93 (P333, P334)
+# Proposal triage, session s9, batch 93 (P333, P334, P335)
 
 The rolling batch after batch 92. Facts were read at origin/main `7539d1675` and at the round's
 roster branch, `origin/handoff/audit-r10-roster`.
@@ -115,3 +115,62 @@ The carry:
 4. **One mutant.** Drop the strip, and the `@` row returns rc 2.
 5. **Out of scope.** `edit-brief` already reads `@file` through `_text` (line 273), and
    `append-carry`'s bare-text behaviour is its documented form. Neither changes.
+
+## P335: the merge seat queues `set-stage done` over a carry that landed after the PR was cut
+
+Verdict: ACCEPT as already ruled. This is P305 (`s6-batch71.md`): the #2733 undelivered remainder
+and P305's amendment on R10-ORCH-ROSTER-SCHEMA. Neither is built, and that barrier group was
+itself closed over them today. No new carry. The merge-seat check as filed is REJECTED.
+- **The class.** A group is written `done` while its roster carries are undelivered. A done group
+  drops out of replan and dispatch, and refuses later carries.
+  - P305 counted five instances in round 10.
+  - Today adds two:
+    - **R10-WOOD-NOTIFY (the filing).** #3016 merged at `a7dd7f50`, and the merge seat queued
+      `done`, although the #3048-review carry had landed at `00e74d290`. It was caught: the group
+      reads `carries-open` at `dd3779695`.
+    - **R10-ORCH-ROSTER-SCHEMA itself.** At 15:43Z `a396c2a83` set it to `in-progress`. At 15:53Z
+      `roster_sync` (`52aea59b1`, "derive stages from pull requests") rewrote that derivable stage
+      to `done`, because PR #2880 had merged. The group holds the unbuilt #2733 invariants, the
+      #2733 remainder and P305's amendment. `git grep -ci mark-carry origin/main -- tools` still
+      prints nothing.
+- **Why the filed check is rejected.**
+  - **It guards one of the two writers.** A check in the merge seat's post-merge step, in
+    `standing-merge.md` or the instrument it calls, guards only the writer that seat drives. It
+    does not stop `roster_sync`'s derivation, which closed the barrier group today with no merge
+    seat involved.
+  - **It has nothing reliable to read.** "Compare the roster carry count against the carries the
+    merged body answers" needs a delivered marker. Without one, the comparison is a reading of
+    prose. That marker is `mark-carry`, the unbuilt half of the remainder, which is P305's reason
+    for rejecting a refusal.
+  - **The design already places the check.** It goes in both writers, through one shared
+    predicate: `op_set_stage` (`roster_edit.py` line 154 at `a7dd7f50d`), and `roster_sync`
+    emitting `carries-open` where it now emits `done` (P305's amendment; #2733's design).
+- **Owed now (operations, not a carry).**
+  - `set-stage R10-ORCH-ROSTER-SCHEMA carries-open` is released in the roster queue, at line 719.
+    It undoes `52aea59b1`. `roster_sync` leaves `carries-open` alone (`PROTECTED_STAGES`,
+    `roster_sync.py` lines 96-99), so the correction holds.
+  - P305's ask stands, and it is now overdue: dispatch the #2733 remainder (`mark-carry`, the
+    `roster_sync` arm and the `set-stage done` predicate) alone, ahead of the group's other
+    carries.
+  - Until it lands, the merge seat's interim practice is a hand step. Before queueing `done`, read
+    the group's carries on the roster branch, not only the pending queue lines. That is the
+    orchestrator's instruction to the seat, not a policy edit.
+
+Source: the orchestrator s9's triage-queue line of 2026-10-31T18:30:00Z (slip, caught before it
+landed).
+
+Instances:
+- R10-WOOD-NOTIFY: `00e74d290` (carry), `a7dd7f50` (merge), and `dd3779695` (repair to
+  `carries-open`).
+- R10-ORCH-ROSTER-SCHEMA: `a396c2a83` (`in-progress`, 15:43Z), then `52aea59b1` (`done`, 15:53Z).
+  The commits are found with `git log origin/handoff/audit-r10-roster` and
+  `git show <c> -- dev/programme/rosters/wave-r10-groups.json`.
+
+Cost of the filed check: one roster read per merge plus `standing-merge.md` text. That file is
+policy, at 36 of 37 lines and 501 of 507 tokens, and P330 already claims its headroom. The check
+still misses `roster_sync`. The remedy costs one queue line now, and the dispatch of a remainder
+that is already sized S.
+
+Binding: a check in one of two writers, with no delivered marker to read, against a design that
+already puts one predicate in both. Its own barrier group was closed by the writer the check
+would not cover.
