@@ -686,6 +686,17 @@ INERT_EXCEPT = (
     # docs/ and dev/programme/ prefixes stay INERT, the two files move to
     # doc_claims.py's recorded closure.
     "docs/img/brand/coffee.svg",
+    # R10-README-GRAPHICS: the Marketplace arm of tests/doc_claims.py opens the manifest and hashes each mermaid
+    # figure it names, light and dark, to refuse a block or a PNG that moved without the other. Same route as coffee.svg above:
+    # the docs/ prefix stays INERT, and the eight files move to doc_claims.py's recorded closure.
+    "docs/img/readme/mermaid_figures.json",
+    "docs/img/readme/mermaid-how-the-pieces-fit.png",
+    "docs/img/readme/mermaid-setup-flow.png",
+    "docs/img/readme/mermaid-one-interval.png",
+    "docs/img/readme/mermaid-how-the-pieces-fit-dark.png",
+    "docs/img/readme/mermaid-setup-flow-dark.png",
+    "docs/img/readme/mermaid-one-interval-dark.png",
+    "docs/img/readme/how-it-works-dark.png",
     "dev/programme/rosters/wave-r10-groups.json",
     # R10-ARCH-DOCS-WIRING: the card-figure arm opens the page-figure record and
     # every page PNG it lists, to read the IHDR against it (the two light PNGs
