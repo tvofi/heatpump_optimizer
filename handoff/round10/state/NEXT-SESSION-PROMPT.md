@@ -40,6 +40,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-FLY-CANCEL-SWEEP (stage carries-open, branch `handoff/r10-fly-cancel-sweep`): `git fetch origin handoff/r10-fly-cancel-sweep && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-TICK-APPROVAL-OWED (stage in-progress, branch `handoff/r10-fly-tick-approval-owed`): `git fetch origin handoff/r10-fly-tick-approval-owed && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-BUS-BASH32 (stage in-progress, branch `handoff/r10-fly-bus-bash32`): `git fetch origin handoff/r10-fly-bus-bash32 && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-FACTORY-RESET (stage in-progress, branch `handoff/r10-factory-reset`): `git fetch origin handoff/r10-factory-reset && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-WOOD-NOTIFY (stage in-progress, branch `handoff/r10-wood-notify`): `git fetch origin handoff/r10-wood-notify && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-CIPREDICT-GAPS (stage in-progress): no branch pushed yet, so nothing to fetch
 

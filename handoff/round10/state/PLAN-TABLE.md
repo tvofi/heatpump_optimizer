@@ -346,7 +346,7 @@ Role: dev/governance/roles/root-cause.md. |  |
 | R10-HOTFIX-AWAY-LIVE | CORE | 1 | done | - | opus/opus | - | Hotfix from a live user defect (tvofi, 2026-10-30): the away switch's override persisted in the away store (active, with a return time) while the coordinator... |  |
 | R10-README-GRAPHICS | PR | 1 | done | - | sonnet/opus | - | the Home Assistant Marketplace repository page does not show the front-page README graphics. |  |
 | R10-HOTFIX-LEARNER-INPUTS | CORE | 1 | done | - | opus/opus | - | Measure-first hotfix from a live user finding (tvofi, 2026-10-30). |  |
-| R10-FACTORY-RESET | CORE | 1 | not-started | - | opus/opus | - | Owner request (tvofi, 2026-10-30): "There should also be an option to reset all parameters to factory integration defaults if there currently is none". |  |
+| R10-FACTORY-RESET | CORE | 1 | in-progress | - | opus/opus | - | Owner request (tvofi, 2026-10-30): "There should also be an option to reset all parameters to factory integration defaults if there currently is none". |  |
 | R10-WOOD-NOTIFY | CORE | 1 | in-progress | - | opus/opus | - | Owner request (tvofi, 2026-10-30): "A Blueprint that sends app notifications when the wood cheaper than pump is expected to turn on during the day, along wit... |  |
 | R10-USER-DOCS-FINAL | DOCS | 4 | not-started | - | opus/opus | - | Owner request (tvofi, 2026-10-30): "does the plan currently cover an update of all user facing documentation at the end of the plan, to make sure all feature... |  |
 | R10-FLY-BEAT-FETCH-RACE | FLY | 1 | done | - | sonnet/opus | - | Defect, measured twice on 2026-10-30 (19:2xZ and 21:2xZ): the detached state_docs.py beat died with roster_edit.Refuse from fetch_origin in tools/audit/seat/... |  |
