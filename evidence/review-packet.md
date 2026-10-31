@@ -1,44 +1,44 @@
 # Review packet #3001
-head: 92a57dd44cb9d137d6faa86a2fd281011c26d0d7
-base: ca0a6cfbc2e5538e6e2220793831443719ff6e98
+head: 5ad16117fb6668df54b7a31b502a95b31c08b645
+base: d99cadb1235a5e40e250466e656c41c7ce88e641
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
 ## Gate digest: pending
-CodeQL id=124186579964 neutral
-arch-score / arch-score id=124186213980 success
-arm id=124186003785 skipped
-budget-raise-gate / budget-raise-gate id=124186213869 success
-cancel-superseded id=124186003267 success
-codeql / Analyze (actions) id=124186213122 success
-codeql / Analyze (javascript-typescript) id=124186213121 success
-codeql / Analyze (python) id=124186213201 in_progress
-governance / delivery-status id=124186213594 success
-governance / delivery-status-publish id=124186216610 skipped
-governance / env-matrix id=124186213513 success
-governance / instrument-self-tests id=124186213615 in_progress
-governance / policy-docs id=124186213476 success
-governance / record id=124186214881 skipped
-governance / wave-script id=124186213485 success
-hassfest / hassfest id=124186213048 success
-kernel-points id=124186214644 skipped
-prelude id=124186003750 in_progress
-refresh id=124186003781 success
-tests / arch-instrument id=124186537623 in_progress
-tests / briefs id=124186214069 success
-tests / browser id=124186537430 success
-tests / closure-scope id=124186214121 success
-tests / closures id=124186537616 in_progress
-tests / coverage id=124186537482 in_progress
-tests / fast (3.14) id=124186537485 in_progress
-tests / mutation id=124186214306 success
-tests / mutation-autofix id=124186895790 skipped
-tests / mutation-pins id=124186893363 skipped
-tests / nightly-ha id=124186539854 skipped
-tests / nightly-status id=124186214281 success
-tests / replay id=124186539574 skipped
-tests / typing id=124186537575 success
-validate / validate-hacs id=124186213864 success
+CodeQL id=124155865766 neutral
+arch-score / arch-score id=124155541179 success
+arm id=124155389160 skipped
+budget-raise-gate / budget-raise-gate id=124155541531 success
+cancel-superseded id=124155320668 success
+codeql / Analyze (actions) id=124155541173 success
+codeql / Analyze (javascript-typescript) id=124155541325 success
+codeql / Analyze (python) id=124155541175 in_progress
+governance / delivery-status id=124155541729 success
+governance / delivery-status-publish id=124155544302 skipped
+governance / env-matrix id=124155541684 success
+governance / instrument-self-tests id=124155541567 in_progress
+governance / policy-docs id=124155541592 success
+governance / record id=124155545091 skipped
+governance / wave-script id=124155541816 success
+hassfest / hassfest id=124155541357 success
+kernel-points id=124155542772 skipped
+prelude id=124155321576 in_progress
+refresh id=124155321308 success
+tests / arch-instrument id=124155779213 in_progress
+tests / briefs id=124155541342 success
+tests / browser id=124155779097 success
+tests / closure-scope id=124155541284 success
+tests / closures id=124155779118 in_progress
+tests / coverage id=124155779110 in_progress
+tests / fast (3.14) id=124155779142 in_progress
+tests / mutation id=124155541469 success
+tests / mutation-autofix id=124156007525 skipped
+tests / mutation-pins id=124156005630 skipped
+tests / nightly-ha id=124155782048 skipped
+tests / nightly-status id=124155541515 success
+tests / replay id=124155781010 skipped
+tests / typing id=124155779248 success
+validate / validate-hacs id=124155540905 success
 
 ## Refusals
 none
@@ -107,7 +107,7 @@ none
 
 ## Three-dot diff
 diff --git a/dev/audit/harnesses/r10_plan_page_mutants.py b/dev/audit/harnesses/r10_plan_page_mutants.py
-index 141b5a5d0..97be0c21b 100644
+index 141b5a5d0..34817ace9 100644
 --- a/dev/audit/harnesses/r10_plan_page_mutants.py
 +++ b/dev/audit/harnesses/r10_plan_page_mutants.py
 @@ -2,9 +2,10 @@
@@ -132,7 +132,7 @@ index 141b5a5d0..97be0c21b 100644
  
  MUTANTS = [
      ("M0", PAGE, None, None),
-@@ -77,6 +79,43 @@ MUTANTS = [
+@@ -77,6 +79,41 @@ MUTANTS = [
      # R10-PLAN-PRIO: the Tier column is the plan's computed dispatch priority.
      ("tier-column", PAGE,
       '{r["tier"] if r["tier"] is not None else "—"}', '"—"'),
@@ -168,15 +168,13 @@ index 141b5a5d0..97be0c21b 100644
 +    ("state-unavailable-where-none", STATE,
 +     "    return ({} if held else {page_path: text}), why", "    return {}, why"),
 +    ("state-unread-exits-1", STATE, "rc = 1 if unread else 0", "rc = 0"),
-+    ("state-crash-guard", STATE,
-+     'if r.returncode != 1 or "PLAN UNAVAILABLE" not in text:', "if False:"),
 +    ("unavailable-no-figures", PAGE,
 +     "f'<div class=\"stat\"><b>—</b><span>{e(v)}</span></div>'",
 +     "f'<div class=\"stat\"><b>0</b><span>{e(v)}</span></div>'"),
  ]
  
  
-@@ -88,7 +127,7 @@ def fail_name(line: str) -> str:
+@@ -88,7 +125,7 @@ def fail_name(line: str) -> str:
  
  def main(argv: list[str]) -> int:
      want = set(argv)
@@ -185,7 +183,7 @@ index 141b5a5d0..97be0c21b 100644
          if subprocess.run(["git", "-C", str(ROOT), "diff", "--quiet", "--", rel]).returncode:
              print(f"refused: {rel} has uncommitted edits")
              return 2
-@@ -107,10 +146,13 @@ def main(argv: list[str]) -> int:
+@@ -107,10 +144,13 @@ def main(argv: list[str]) -> int:
                  path.write_text(text.replace(old, new), encoding="utf-8")
              runs = [subprocess.run([sys.executable, "-I", str(ROOT / s), "--self-test"],
                                     capture_output=True, text=True)
@@ -857,7 +855,7 @@ index 5773ef700..4c5c8b060 100644
      <label class="chk"><input type="checkbox" id="hide-done"> Hide merged</label>
    </div>
 diff --git a/tools/audit/seat/state_docs.py b/tools/audit/seat/state_docs.py
-index 430c45716..545ba1e04 100644
+index 430c45716..ce93fc22a 100644
 --- a/tools/audit/seat/state_docs.py
 +++ b/tools/audit/seat/state_docs.py
 @@ -4,7 +4,8 @@
@@ -997,7 +995,7 @@ index 430c45716..545ba1e04 100644
                  raise Refuse(f"the first commit on {state_ref} would carry "
                               f"{sorted(names)}, not exactly the write set")
          message = a.message or (
-@@ -535,13 +592,108 @@ def main(argv=None) -> int:
+@@ -535,13 +592,95 @@ def main(argv=None) -> int:
          else:
              print(f"ready: would push {state_ref} at {commit} (no --push)")
          mirror_files(staged, a.mirror)
@@ -1089,25 +1087,12 @@ index 430c45716..545ba1e04 100644
 +    ok("plan page: with no page at the ref, the UNAVAILABLE page is published",
 +       rc == 1 and "<h1>PLAN UNAVAILABLE — " in first and "<table" not in first,
 +       (rc, first[:200]))
-+    # A crash is not a refusal: plan_page.py dies on a malformed plan.json
-+    # with a traceback, rc 1 and no page. That must refuse with rc 2 and
-+    # publish nothing, not an empty PLAN.html at exit 1.
-+    badf = root / "bad-plan.json"
-+    badf.write_text("{", encoding="utf-8")
-+    crash_argv = [str(badf) if x == str(planf) else x for x in argv]
-+    err = io.StringIO()
-+    with contextlib.redirect_stderr(err):
-+        rc = main(crash_argv + ["--state-ref", "crash-state"])
-+    ok("plan page: a crashing page refuses with rc 2 and publishes no PLAN.html",
-+       rc == 2 and tip_of("crash-state") == "no-such-ref"
-+       and "plan_page.py failed rc 1" in err.getvalue(),
-+       (rc, tip_of("crash-state"), err.getvalue()[-300:]))
 +
 +
  def self_test() -> int:
      """Offline: tmp dirs and fixture repos, no network in any arm."""
      sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tests"))
-@@ -635,6 +787,7 @@ def self_test() -> int:
+@@ -635,6 +774,7 @@ def self_test() -> int:
             == sorted(Path(p).name for p in WRITE_SET))
          ok("parent is the previous tip",
             state0 in git("-C", str(bare), "log", "--format=%P", "-1", tip))

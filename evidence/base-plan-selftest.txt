@@ -1,0 +1,2 @@
+wrote /tmp/tmp_2sb_33c/page.html: 7 groups, closure 2026-01-05T22:16:00Z
+plan_page self-test: 51 checks, 0 failed

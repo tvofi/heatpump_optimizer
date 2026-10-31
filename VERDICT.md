@@ -1,54 +1,45 @@
-Fix review: merge 92a57dd44cb9d137d6faa86a2fd281011c26d0d7
+Fix review: blocked 5ad16117fb6668df54b7a31b502a95b31c08b645 mutation-survivor: state_docs.py draw_plan_page crash guard survives deletion
 
-bus-nonce: 38c07b7f1c7364987610b661778b1c2a
+bus-nonce: 75eca8dfacef63e4da7d4f68b78fa85b
 
-Round: 2, the second review of this PR. The round-1 block was `mutation-survivor` at 5ad16117f (verdict/3001 02508be7f). Measured head: 92a57dd44cb9d137d6faa86a2fd281011c26d0d7. At verdict time this is still `refs/heads/fix/r10-orch-planpage` and `refs/pull/3001/head` (`git ls-remote`). Merge base: ca0a6cfbc2e5538e6e2220793831443719ff6e98. The roles diff from the base to origin/main is empty, so the contract is current.
+Round: first review of this PR. Measured head: 5ad16117fb6668df54b7a31b502a95b31c08b645 (still the branch tip at verdict time, `git ls-remote`). Merge base d99cadb1235a5e40e250466e656c41c7ce88e641. Roles diff base...origin/main: empty (contract current).
+
+## Block
+
+The body's `## Unpinned sites` says every production site added in `plan_page.py` and `state_docs.py` is pinned by `r10_plan_page_mutants.py`. One is not. In `tools/audit/seat/state_docs.py` `draw_plan_page`, replacing
+
+    if r.returncode != 1 or "PLAN UNAVAILABLE" not in text:
+
+with `if False:` leaves both `plan_page.py --self-test` and `state_docs.py --self-test` at rc 0 with no FAIL line (ev/own-mutants.txt: `guard-removed rc [0, 0] fails 0 SURVIVED`). That line is the only thing that separates a refusal from a crash. Without it, a `plan_page.py` traceback (rc 1, no file written) is treated as a refusal. On a state ref with no PLAN.html, that publishes an empty `PLAN.html` with exit 1 instead of refusing with exit 2. The fix is one self-test arm: a `--plan` call whose page crashes (for example a malformed plan.json) must refuse with rc 2 and publish no PLAN.html. Then add the matching mutant to the harness.
 
 ## Findings
 
-- The PR body's `## Mutation proof` and `## Figures` are stale at this head. They say `RESULT survived=0` "over its 32 entries (M0 plus 31 mutants)", and the new-mutant list does not name `state-crash-guard`. At this head the harness prints 33 verdict lines (M0 plus 32 mutants), and the extra one is the round-2 `state-crash-guard` mutant (killed). `## Head` names 59598f9b7 but does not say what it changes. The count is explained by the round-2 commit, so it is not a false claim about the code. The body should still name the mutant and 33 entries before the merge. Carry: R10-ORCH-PLANPAGE
-- The round-1 findings are re-checked at this head, and none is settled by this PR. Each is still routed as in the body's `## Forward-carry` (carry_audit at the head: 5 routed, 0 unrouted).
-  - The `replan.py` `is_done` vs `held` mismatch remains. Carry: R10-ORCH-ROSTER-SCHEMA
-  - Stamp cadence (carry 7) is residual. Carry: R10-ORCH-PLANPAGE
-  - The flow board as a page section (carries 8, 9 and 13(6)) is residual and needs the orchestrator's ruling. Carry: R10-ORCH-PLANPAGE
-  - The orchestrator.md line (carry 5) is absent. Carry: R10-ORCH-LEDGER
-  - Retiring the out-of-tree `gen.py`/`tpl.html` under design 8's N4 rule is the orchestrator's. Carry: R10-ORCH-PLANPAGE
+- The crash guard in `state_docs.py` `draw_plan_page` (`r.returncode != 1 or "PLAN UNAVAILABLE" not in text`) is unpinned. The deletion mutant survives, as described under Block. The body's claim that all added sites are pinned is therefore false at this head. Carry: R10-ORCH-PLANPAGE
+- The `tools/plan/replan.py` `is_done` vs `held` mismatch: the 11 `carries-open` groups are scheduled as work but rendered held. The body routes this to the roster schema, and I confirm it is still open. Carry: R10-ORCH-ROSTER-SCHEMA
+- Stamp cadence (carry 7) is residual, as the body says. Carry: R10-ORCH-PLANPAGE
+- The flow board as a page section (carries 8, 9, 13(6)) is residual and needs the orchestrator's ruling. Carry: R10-ORCH-PLANPAGE
+- The orchestrator.md line (carry 5) is absent at the merge base. Carry: R10-ORCH-LEDGER
+- Retiring the out-of-tree `gen.py`/`tpl.html` under design 8's N4 rule is the orchestrator's. Carry: R10-ORCH-PLANPAGE
 
 ## Evidence
 
-- **Round-1 block resolved.** 59598f9b7 adds the self-test arm `plan page: a crashing page refuses with rc 2 and publishes no PLAN.html`. It runs a `--plan` call over a malformed `bad-plan.json` (`{`) and requires three things: rc == 2, no `crash-state` ref at the bare remote, and `plan_page.py failed rc 1` on stderr.
-- **The harness pins the `if False:` mutant.** `r10_plan_page_mutants.py` gains `state-crash-guard` (`if r.returncode != 1 or "PLAN UNAVAILABLE" not in text:` → `if False:`). Re-run at the head (ev/mutants_head.txt): `RESULT mutant=state-crash-guard rc=1 fails=1 verdict=killed`, with FAIL `plan page: a crashing page refuses with rc 2 and publishes no PLAN.html`.
-- **Full harness at the head (ev/mutants_head.txt).** M0 is `rc=0 fails=0 verdict=null`. All 32 other mutants are killed, and the run ends `RESULT survived=0` with exit 0.
-- **Null control: a real refusal still yields rc 1 and UNAVAILABLE.** The pre-existing arms still pass at the head (`state_docs self-test: all checks passed`, ev/selftest_head.txt):
-  - `a stale plan keeps the last good page at the ref, exit 1`
-  - `with no page at the ref, the UNAVAILABLE page is published`
-- **The null-control arms bite.** My own mutant `guard-always` (`if True:`, ev/own_mutants.txt) makes every refusal a crash. It fails exactly those two arms with rc 2, so they distinguish a refusal from a crash.
-- **My own mutants on the guard (ev/own_mutants.txt), each restored byte for byte, worktree clean afterwards:**
-  - `guard-rc-only` (drops the text test): killed by the crash arm. It got rc 1 and published the UNAVAILABLE page over a traceback.
-  - `guard-and` (`or` → `and`): killed by the crash arm.
-  - `guard-always`: killed, 2 fails, as above.
-  - `guard-text-only` (drops `r.returncode != 1`): passes the self-test, but it is an equivalent mutant, not a survivor.
-- **Why `guard-text-only` is equivalent.** Staging is a fresh `tempfile.TemporaryDirectory()` per call (state_docs.py:547). `plan_page.py` writes `--html` only before returning 0 or returning 1 via `_refuse`. Every other exit writes no page: argparse/`p.error` rc 2, and uncaught exceptions rc 1. So "PLAN UNAVAILABLE" in the staged text already implies rc 0 or 1. I located this with a read-only scout and confirmed it against the code it quoted. This is evidence only. The redundant disjunct is harmless.
-- **Self-tests at the head:**
-  - `plan_page.py --self-test`: `60 checks, 0 failed`, which matches the body.
+- Mutation proof, re-run at the head (`python3 dev/audit/harnesses/r10_plan_page_mutants.py`, ev/mutants-head.txt): 32 verdict lines. M0 is `rc=0 fails=0 verdict=null`, every other mutant is killed, and the run ends `RESULT survived=0` (real 1m31s). The body's figure matches.
+- My own targeted mutants (ev/own-mutants.txt), each restored byte for byte:
+  - `held-before-done` (disposition branch disabled): KILLED, 6 fails.
+  - `strip-counts-old` (old five-key counts): KILLED.
+  - `absorbed-into-dropped`: KILLED.
+  - `guard-removed`: SURVIVED (see Block).
+- Self-tests:
+  - `plan_page.py --self-test`: `51 checks, 0 failed` at the merge base and `60 checks, 0 failed` at the head (ev/base-plan-selftest.txt, ev/head-plan-selftest.txt). Matches the body.
   - `state_docs.py --self-test`: `all checks passed`.
-- **Ratchet and hygiene:**
+  - `sweep_render.py --self-test`: `24 checks, 0 failed`.
   - `tests/structure.py`: `STRUCTURE RATCHET PASSED`.
-  - `tests/env_drift.py --claims-only`: `claims hygiene: origin/main ok`.
-  - VERSION, the manifest, RELEASE_NOTES.md and both claim files are untouched in the three-dot diff (0 paths).
-  - `git log --format=%B` over the branch, grepped for claude/co-authored, gives 0.
-- **Merge check.** `git merge-tree --write-tree origin/main 92a57dd44…` (origin/main cf4f6b7a6) exits rc 0, with no conflict and no MERGE-CLAIM line (ev/merge-tree.txt, ev/merge-tree.err).
-- **Round-2 commit scope.** The diff between round 1 and round 2 in authored code is 59598f9b7 alone: 15 lines across `state_docs.py` and the harness. 92a57dd44 and d2bbb2322 are merges of that commit and of origin/main ca0a6cfbc. The three-dot diff shows only the PR's 10 files.
-- **CI at this head (check-runs API, 16:50 UTC).**
-  - No check run has a red conclusion. Every completed run is success, skipped or neutral (CodeQL). That includes `tests / mutation`, `arch-score`, `budget-raise-gate`, `tests / closure-scope`, `governance / delivery-status` and `governance / env-matrix`.
-  - Still in progress: `tests / closures`, `tests / fast (3.14)`, `tests / coverage`, `tests / arch-instrument`, `governance / instrument-self-tests`, `codeql / Analyze (python)`, and the second `prelude`.
-  - So no red-check answer is owed yet, and the body's `## Red checks: none` is consistent so far.
-  - Under the contract I cite CI's heavy runs and did not re-run the gate.
-  - The commit-status API shows 0 statuses, so I saw no `pr-contract` run on this head.
-- **Figures I did not re-derive** (heavy or gate runs, CI's to cite):
-  - entities.py `ALL 2484/2488 ENTITY CHECKS PASSED`
-  - closure select `MODE: SCOPED -- 1 script(s) run`
-  - archscore `dS +0.0000 NULL`
-  - the prepr/ci_predict before/after lines
-- **Finder's harness.** None is named in the packet. This is a governance-tooling group, and its harness is the in-tree `r10_plan_page_mutants.py`. I re-ran it and planted my own mutants above, and I disclose those mutants as mine.
-- The review packet was rendered at this head: no refusals, no advisories, FIGURES 17 resolved, 2 not verified, 0 refused (ev/review-packet.md).
+- Disposition-stage count in the live roster: 11 at both the head and the base, under the body's own rule (DISPOSITION = deferred, refused, refuted, absorbed, carries-open). A fresh live plan rendered at the head shows 11 `pill held` rows.
+- Refusal attack: `--roster-ref nosuchref` and a missing `--roster-path` each exit 1 and write the UNAVAILABLE page. A malformed plan.json crashes without a page; that is not in the body's refusal list, and it is the case the unpinned guard handles.
+- Diff stat: the body's 487+/203- is the authored handoff a0abddcdf against its base. At this head the three-dot diff stat is 501+/203-. The difference is the repair commits plus the delivery row, so the figure is explicable rather than wrong.
+- Figures I did not re-derive: entities.py `ALL 2484/2488 ENTITY CHECKS PASSED`, closure select `MODE: SCOPED -- 1 script(s) run`, archscore `dS +0.0000 NULL`, and the prepr/ci_predict before/after lines. I did not run these heavy or gate runs; under the contract they are CI's to cite.
+- `git merge-tree --write-tree origin/main 5ad16117fb6668df54b7a31b502a95b31c08b645` (origin/main ca0a6cfbc): rc 0, no conflict, no MERGE-CLAIM line.
+- VERSION, the manifest and RELEASE_NOTES.md are untouched in the three-dot diff. No claim file is touched. A grep of branch commit messages for claude/co-authored gives 0.
+- CI at this head, from the check-runs API at verdict time: no red conclusion. Still in progress: tests / closures, tests / fast (3.14), tests / coverage, tests / arch-instrument, codeql / Analyze (python), and the second prelude. Every completed check is success, skipped or neutral (CodeQL), so no red-check answer is owed yet. The `## Red checks: none` in the body is consistent so far.
+- The finder's harness: none is named in the packet. This is a governance-tooling group, and its harness is the in-tree `r10_plan_page_mutants.py`, which the fixer extended. I re-ran it and also planted my own mutants above.
+- Forward-carry: every residual in the body routes to a group (carry_audit: 5 routed, 0 unrouted).
