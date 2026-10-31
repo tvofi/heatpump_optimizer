@@ -76,9 +76,9 @@ PLANTS = {
         (SRC, "            if stage != \"in-progress\" or resume.get(\"pr\") != pr.number:",
               "            if False:  # M2")],
     "M3_merged_without_commit": [
-        (SRC, "        changes.append(Change(gid, \"done\", pr.number, pr.merge_commit,\n"
+        (SRC, "        changes.append(Change(gid, closed, pr.number, pr.merge_commit,\n"
               "                              stage, pr.state))",
-              "        changes.append(Change(gid, \"done\", pr.number, None,\n"
+              "        changes.append(Change(gid, closed, pr.number, None,\n"
               "                              stage, pr.state))  # M3")],
     "M4_carry_to_done_appended": [
         (SRC, "                elif not roster_lib.is_open(g):",

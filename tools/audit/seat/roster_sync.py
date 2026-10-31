@@ -15,7 +15,9 @@ stale stages. This step is that comparison, run every pass by
   MERGED   a group whose branch answers for a merged pull request is `done` at
            that merge commit (`resume.commit`); a merge first observed in this
            pass also has its body's `Carry: <GROUP>` items appended to the
-           destination group's `carry` array.
+           destination group's `carry` array. A group that still owes a
+           carry (`roster_lib.pending_carries`) is written `carries-open`
+           instead, the rule `roster_edit.py set-stage` shares (#2733).
   OPEN     a group whose branch answers for an open pull request is
            `in-progress`, with the number in `resume.pr`.
   no PR    a branch with no open or merged pull request makes no change:
@@ -285,7 +287,8 @@ class Change(NamedTuple):
     state: str
 
 
-def derive(roster: dict, prs: list[PR]) -> tuple[list[Change], list[tuple], list[PR]]:
+def derive(roster: dict, prs: list[PR], legacy: dict | None = None
+           ) -> tuple[list[Change], list[tuple], list[PR]]:
     """(changes, skips, transitions): the stage writes a read supports, the
     groups a human disposition protected, and the merged pull requests whose
     group moves to done in this pass -- the only bodies read for `Carry:`.
@@ -295,7 +298,10 @@ def derive(roster: dict, prs: list[PR]) -> tuple[list[Change], list[tuple], list
     claim (`review`, `in-review`) is left alone while its pull request is open
     and closed to `done` on the merge -- the transition that keeps a merged
     group from being stranded open. Every other derivable stage follows the
-    read: an open pull request makes it `in-progress`, a merge makes it `done`.
+    read: an open pull request makes it `in-progress`, a merge makes it `done`
+    -- or `carries-open` while the group still owes a carry
+    (`roster_lib.closing_stage` over `legacy`, the roster's cut-over carries:
+    the one rule `roster_edit.py set-stage` applies too; #2733 (b)).
     """
     by_group = matches(roster, prs)
     changes: list[Change] = []
@@ -329,7 +335,8 @@ def derive(roster: dict, prs: list[PR]) -> tuple[list[Change], list[tuple], list
         # A transition only: a group already done is a settled record, and its
         # commit is not re-recorded (the tick checks a done commit is in main;
         # a pull request's head is, once merged).
-        changes.append(Change(gid, "done", pr.number, pr.merge_commit,
+        closed, _ = roster_lib.closing_stage(g, "done", legacy or {})
+        changes.append(Change(gid, closed, pr.number, pr.merge_commit,
                               stage, pr.state))
         transitions.append(pr)
     return changes, skips, transitions
@@ -563,7 +570,11 @@ def sync(a) -> int:
         rel = roster_lib.roster_path(a.checkout, base, a.roster_path)
         roster = json.loads(run(["git", "-C", a.checkout, "show",
                                  f"{base}:{rel}"]))
-        changes, skips, transitions = derive(roster, prs)
+        try:
+            legacy = roster_lib.read_legacy(a.checkout, rel)
+        except roster_lib.RosterNotFound as e:
+            raise Refuse(f"the carry cut-over is unreadable: {e}")
+        changes, skips, transitions = derive(roster, prs, legacy)
         for gid, why in invalid_commits(a.checkout, roster):
             print(f"roster_sync: RECORD-INVALID {gid} {why}")
         # The carries are judged against the roster this pass will write: a
@@ -578,8 +589,12 @@ def sync(a) -> int:
                 print(f"roster_sync: {c.group}: record PR #{c.pr} for stage "
                       f"{c.stage}")
             else:
+                owed = roster_lib.pending_carries(
+                    roster_lib.groups_of(roster)[c.group], legacy)
                 print(f"roster_sync: {c.group}: stage {c.was} -> {c.stage}"
                       + (f" at {c.merge_commit[:12]}" if c.merge_commit else "")
+                      + (f" ({len(owed)} pending carries)"
+                         if c.stage == "carries-open" else "")
                       + f" (PR #{c.pr} {c.state})")
         for s in skips:
             why = s[3] if len(s) > 3 else "a human disposition"
@@ -609,7 +624,7 @@ def sync(a) -> int:
             # Re-derive on the bytes this write path is about to replace --
             # on every attempt of a push race -- so the edit is computed from
             # the file it lands in, never an older read.
-            changes, _, transitions = derive(roster, prs)
+            changes, _, transitions = derive(roster, prs, legacy)
             projected = copy.deepcopy(roster)
             apply_plan(projected, changes, [])
             appends, _ = carry_plan(projected, transitions, a.repo, a.pr_state)
@@ -781,6 +796,30 @@ def self_test() -> int:
     check("a classified stage beside it still derives (null control)",
           by.get("L-OK") is not None and by["L-OK"].stage == "in-progress",
           by)
+
+    # THE CARRY LEDGER (#2733 (b), carry 31): a merge over a group that still
+    # owes a carry writes carries-open, through roster_lib.closing_stage --
+    # the predicate roster_edit's set-stage shares -- and a group whose carries
+    # are all marked or legacy is written done. The body's carries are still
+    # read: the transition is a merge either way.
+    owed = {"groups": [
+        {"group": "C-OWES", "carry": ["owed one", "x [implemented: 0123abcd]"],
+         "resume": {"stage": "in-progress", "branch": "handoff/c-owes"}},
+        {"group": "C-PAID", "carry": ["legacy one", "y [dismissed: dup]"],
+         "resume": {"stage": "in-progress", "branch": "handoff/c-paid"}},
+    ]}
+    got_changes, _, got_tr = derive(owed, [
+        PR(51, MERGED, "handoff/c-owes", "5" * 40, ""),
+        PR(52, MERGED, "handoff/c-paid", "6" * 40, ""),
+    ], {"C-PAID": frozenset({"legacy one"})})
+    by = {c.group: c for c in got_changes}
+    check("a merge over a pending carry writes carries-open, with its commit",
+          by.get("C-OWES") is not None and by["C-OWES"].stage == "carries-open"
+          and by["C-OWES"].merge_commit == "5" * 40, by)
+    check("a merge with every carry marked or legacy writes done (null control)",
+          by.get("C-PAID") is not None and by["C-PAID"].stage == "done", by)
+    check("both merges are transitions whose bodies are read for carries",
+          sorted(p.number for p in got_tr) == [51, 52], got_tr)
 
 
 

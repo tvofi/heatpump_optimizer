@@ -749,6 +749,15 @@ function checkShape(groups, findings) {
     } else if (typeof g.resume.stage !== 'string' || !g.resume.stage.trim()) {
       bad(label, '`resume.stage` is missing or is not a non-empty string')
     }
+    // #2733's second invariant: a live group lists at least one issue. A
+    // warning, not an error, so roster_edit's --push gate and a fly-in's
+    // registration are never blocked; read only on a group of the
+    // orchestrator's schema (one carrying `issues` or `fixes`), and live is
+    // this linter's own rule: every stage but STAGE_SKIP.
+    const wired = ['issues', 'fixes'].filter((k) => Array.isArray(g[k]))
+    if (wired.length && g.resume?.stage !== STAGE_SKIP && wired.every((k) => g[k].length === 0)) {
+      findings.push({ group: label, severity: 'warning', kind: 'issues', message: 'a live group lists no issue in `issues` or `fixes` (#2733 invariant 2)' })
+    }
     // lintAfterEdges skips a non-array `after` rather than walking its
     // characters, so without this a string here would pass in silence.
     if (g.after !== undefined && !Array.isArray(g.after)) {
@@ -1085,6 +1094,30 @@ function assertAcceptanceFixture(name, label, opts, required) {
   return 0
 }
 
+// #2733's second invariant, a WARNING by design (so neither roster_edit's
+// --push lint gate nor a fly-in registration is blocked): a live group lists
+// at least one issue in `issues` or `fixes`. Driven in memory, both ways: the
+// issueless live group warns; one that gains an issue, a done group and a
+// group of another schema (no `issues`/`fixes` keys) do not.
+function assertIssuelessWarning() {
+  const g = (group, stage, extra) => ({ group, brief: 'probe', resume: { stage }, ...extra })
+  const findings = []
+  checkShape([
+    g('bare', 'not-started', { issues: [], fixes: [] }),
+    g('issued', 'not-started', { issues: [], fixes: [7] }),
+    g('closed', STAGE_SKIP, { issues: [], fixes: [] }),
+    g('other-schema', 'pending', {}),
+  ], findings)
+  const warned = findings.filter((f) => f.severity === 'warning' && f.kind === 'issues').map((f) => f.group)
+  const errors = findings.filter((f) => f.severity === 'error')
+  if (warned.join() === 'bare' && errors.length === 0) {
+    console.log('\nISSUELESS ok: a live group with no issue warns; one with an issue, a done group and another schema do not')
+    return 0
+  }
+  console.log(`\nISSUELESS VACUOUS: warned [${warned}] errors ${errors.length}; want [bare] and 0`)
+  return 1
+}
+
 // SYMBOL_GREP_EXCLUDE, bounded by the tree in both directions. The ceiling
 // refuses an entry that names nothing, which is the dead weight the archive
 // created and nothing caught. The floor refuses the deletion of an entry the
@@ -1331,6 +1364,7 @@ function main() {
     acceptanceRc += assertDriverGuard()
     acceptanceRc += assertGrepExcludeBounded()
     acceptanceRc += assertLocateOldFirst()
+    acceptanceRc += assertIssuelessWarning()
     acceptanceRc += assertRosterIssues()
     acceptanceRc += assertCarryFixtures()
   }
