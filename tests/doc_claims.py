@@ -50,6 +50,8 @@ from __future__ import annotations
 
 import ast
 import importlib.util
+import collections
+import itertools
 import json
 import os
 import pathlib
@@ -3036,23 +3038,29 @@ def roster_stages(path: pathlib.Path = ROSTER) -> dict[str, str] | None:
     return {g["group"]: (g.get("resume") or {}).get("stage", "") for g in json.loads(path.read_text())["groups"]}
 
 
-def _units(text: str) -> list[tuple[str, bool]]:
-    """(unit, under a marked heading) for prose outside fences: a list item, a table row, a heading or a paragraph."""
-    out: list[tuple[str, bool]] = []
-    heads: list[tuple[int, bool]] = []
+def _groups(text: str, kind: str = "target") -> list[str]:
+    """The roster groups every well-formed marker of `kind` in `text` names."""
+    return [g for m in _MARKER.finditer(text) if m.group(1) == kind for g in m.group(2).split(", ")]
+
+
+def _units(text: str) -> list[tuple[str, list[str]]]:
+    """(unit, groups of the marked headings above it) for prose outside fences: a list item, a table row, a heading
+    or a paragraph."""
+    out: list[tuple[str, list[str]]] = []
+    heads: list[tuple[int, list[str]]] = []
     cur: list[str] = []
 
     def flush() -> None:
         if cur:
-            out.append(("\n".join(cur), any(m for _, m in heads)))
+            out.append(("\n".join(cur), [g for _, gs in heads for g in gs]))
             cur.clear()
 
     for line in _FENCE.sub("", text).splitlines():
         h = re.match(r"(#+)\s", line)
         if h:
             flush()
-            heads[:] = [x for x in heads if x[0] < len(h.group(1))] + [(len(h.group(1)), bool(_MARKER.search(line)))]
-            out.append((line, any(m for _, m in heads)))
+            heads[:] = [x for x in heads if x[0] < len(h.group(1))] + [(len(h.group(1)), _groups(line))]
+            out.append((line, [g for _, gs in heads for g in gs]))
         elif not line.strip():
             flush()
         elif line.lstrip().startswith("|") or re.match(r"\s*(?:[-*+]|\d+\.)\s", line):
@@ -3169,12 +3177,10 @@ def doc_wiring_findings(docs: dict[str, str], tree: set[str], roster, style_docs
         if stages is None:
             out.append(f"{len(groups)} marker(s) present and no roster to resolve them against")
         else:
-            for name, kind, g in groups:
-                if g not in stages:
-                    out.append(f"{name}: [{kind}: {g}] names no group in the roster")
-                elif stages[g] == "done":
-                    # (c) report-only: resolving is R10-ARCH-DOCS's end-of-round predicate
-                    notes.append(f"{name}: [{kind}: {g}] names a done group; R10-ARCH-DOCS resolves it")
+            out += [f"{name}: [{kind}: {g}] names no group in the roster" for name, kind, g in groups if g not in stages]
+            # (c) report-only: resolving is R10-ARCH-DOCS's end-of-round predicate
+            notes += [f"{r['doc']}:{r['line']}: {r['marker']} names only done groups; R10-ARCH-DOCS resolves it"
+                      for r in marker_census(docs, stages) if r["due"]]
     # (e) no hex colour and no init directive inside a mermaid block
     for name, text in {**(style_docs or {}), **docs}.items():
         for info, body in _FENCE.findall(text):
@@ -3184,6 +3190,228 @@ def doc_wiring_findings(docs: dict[str, str], tree: set[str], roster, style_docs
                 if "%%{init" in body:
                     out.append(f"{name}: a mermaid block carries an %%{{init}} directive")
     return out, notes
+
+
+def marker_census(docs: dict[str, str], stages: dict[str, str]) -> list[dict]:
+    """Every marker in the documents, in order, with each named group's roster stage (`absent` when the roster has
+    no such group). `due`: every group it names is done, so the marker is unresolved (R10-ARCH-DOCS-WIRING item 2).
+    A marker quoted in inline code is the grammar being described, not a marker."""
+    rows = []
+    for name, text in docs.items():
+        bare = re.sub(r"`[^`\n]+`", lambda m: " " * len(m.group(0)), text)
+        for m in _MARKER.finditer(bare):
+            st = {g: stages.get(g, "absent") for g in m.group(2).split(", ")}
+            rows.append({"doc": name, "line": bare.count("\n", 0, m.start()) + 1, "marker": m.group(0),
+                         "stages": st, "due": all(v == "done" for v in st.values())})
+    return rows
+
+
+# (f)-(i): what the architecture page and the onboarding name beyond a path -- a command's arguments, a module's
+# symbols, a workflow job, a ledger kind, a diagram node -- each resolved in the artifact that defines it (fixer.md
+# step 11), never in a list kept here. Read from these two only: README.md names the user's own files
+# (`configuration.yaml`), which no tree resolves.
+NAMED_DOCS = ("docs/architecture.md", "dev/README.md")
+PKG_REL = "custom_components/heatpump_optimizer"
+LEDGER = "tools/audit/seat/ledger.py"
+_FILE = re.compile(r"(?<![\w/.-])((?:[\w.-]+/)*[\w-]+\.(?:py|sh|mjs|js|json|ya?ml|md|toml))(?![\w/-])")
+# the lower-case kebab word: an argument after a script, and the diagram node that names a job; the job resolver,
+# not this shape, decides whether that job exists
+_WORD = re.compile(r"[a-z][a-z0-9]*(?:-[a-z0-9]+)*")
+_ARG = re.compile(r"--[a-z][\w-]*|" + _WORD.pattern)
+_CAMEL = re.compile(r"(?<![\w.])([A-Z][a-z0-9]+(?:[A-Z][a-z0-9]*)+)(?:\.([a-z_]\w*))?")
+_CHECK_NAME = re.compile(r"([\w-]+) / ([\w-]+)(?: \(([^)]+)\))?")
+_KIND = re.compile(r"[a-z]+(?:-[a-z]+)+")
+_KIND_NOTE = re.compile(r"\b([a-z]+(?:-[a-z]+)+) (?:opens|closes)\b|\bopens ([a-z]+(?:-[a-z]+)+)")
+_LABEL = re.compile(r"\b[A-Za-z_]\w*\s*(?:\(\[|\[\(|\(\(|\{\{|\[\[|\[|\(|\{)\"([^\"]*)\"|--\s*\"([^\"]*)\"\s*-+>|\|\"([^\"]*)\"\|")
+
+
+def _symbols(src: str) -> dict[str, set[str]]:
+    """Top-level name -> its method names (empty for a function or an assignment)."""
+    out: dict[str, set[str]] = {}
+    for n in ast.parse(src).body:
+        if isinstance(n, ast.ClassDef):
+            out[n.name] = {m.name for m in n.body if isinstance(m, (ast.FunctionDef, ast.AsyncFunctionDef))}
+        elif isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            out[n.name] = set()
+        elif isinstance(n, (ast.Assign, ast.AnnAssign)):
+            for t in n.targets if isinstance(n, ast.Assign) else [n.target]:
+                if isinstance(t, ast.Name):
+                    out[t.id] = set()
+    return out
+
+
+def _matrix_values(job: str) -> set[str]:
+    """Every scalar under a job's `strategy.matrix`, comments dropped: what a check name's `(...)` suffix can carry."""
+    m = re.search(r"^( *)matrix:[ \t]*$", job, re.M)
+    out: set[str] = set()
+    for line in job[m.end():].splitlines()[1:] if m else []:
+        if line.strip() and len(line) - len(line.lstrip()) <= len(m.group(1)):
+            break
+        item = line.split("#", 1)[0].strip().removeprefix("-").strip()
+        rhs = item.split(":", 1)[1] if ":" in item else item
+        out |= {v.strip(" \"'") for v in re.split(r"[\[\],]", rhs)} - {""}
+    return out
+
+
+def _ledger_kinds(src: str | None) -> set[str]:
+    """The keys of ledger.py's KINDS table, the one registry of obligation kinds; empty when it cannot be read."""
+    for n in ast.parse(src or "").body:
+        if isinstance(n, ast.Assign) and any(isinstance(t, ast.Name) and t.id == "KINDS" for t in n.targets):
+            return set(ast.literal_eval(n.value))
+    return set()
+
+
+def named_element_findings(docs: dict[str, str], tree: set[str], read
+                           ) -> tuple[list[str], list[tuple], collections.Counter]:
+    """(findings, pending, checked) for every element the documents name; `checked` counts them by class. `read(path)` is a tracked file's text or None.
+
+    An element that does not resolve is a finding, unless a marker covers it -- its unit, a heading above it, its
+    diagram label, or (a kind a diagram note names) the marked line that lists it -- when it is `pending`
+    (doc, groups, element), the delta R10-ARCH-DOCS resolves once those groups land. A command's argument resolves
+    when the script's text holds it as a word: a renamed subcommand or flag is caught, a reworded help text is not.
+    """
+    out: list[str] = []
+    pending: list[tuple] = []
+    checked: collections.Counter = collections.Counter()
+    bases: dict[str, list[str]] = {}
+    for p in tree:
+        bases.setdefault(p.rsplit("/", 1)[-1], []).append(p)
+    sym_cache: dict[str, dict[str, set[str]]] = {}
+
+    def files(tok: str) -> list[str]:
+        if tok in tree:
+            return [tok]
+        if "/" not in tok:
+            return sorted(bases.get(tok, []))
+        return sorted(p for p in tree if p.endswith("/" + tok))
+
+    def syms(path: str) -> dict[str, set[str]]:
+        if path not in sym_cache:
+            sym_cache[path] = _symbols(read(path) or "")
+        return sym_cache[path]
+
+    def judge(doc: str, groups: list[str] | None, element: str, problem: str | None) -> None:
+        checked[_element_class(element)] += 1
+        # None: under a retired-by marker, where an absent element is what the marker states
+        if problem is None or groups is None:
+            return
+        if groups:
+            pending.append((doc, tuple(dict.fromkeys(groups)), element))
+        else:
+            out.append(f"{doc}: {element} {problem}")
+
+    def file_and_args(doc: str, groups: list[str] | None, text: str, prose: bool) -> list[str]:
+        """Resolve each file token in `text` and the arguments that follow it; returns the resolved files.
+
+        In prose a bare config-format name (`pyproject.toml`) is not resolved: the page also names other projects'
+        files. A token closed by punctuation takes no arguments."""
+        found: list[str] = []
+        toks = text.split()
+        for i, raw in enumerate(toks):
+            tok = re.sub(r":\d+(?:-\d+)?$|[:,;.]$", "", raw)
+            if not _FILE.fullmatch(tok) or (prose and "/" not in tok and not re.search(r"\.(?:py|sh|mjs|js|md)$", tok)):
+                continue
+            hits = files(tok)
+            judge(doc, groups, f"`{tok}`", None if hits else "names no tracked file")
+            found += hits
+            for arg in itertools.takewhile(_ARG.fullmatch, toks[i + 1:] if raw == tok else []):
+                word = re.compile(r"(?<![\w-])" + re.escape(arg) + r"(?![\w-])")
+                judge(doc, groups, f"`{tok} {arg}`",
+                      None if any(word.search(read(h) or "") for h in hits) else "is an argument the script never reads")
+        return found
+
+    def job(doc: str, groups: list[str], stem: str, name: str, matrix: str | None) -> None:
+        text = read(f".github/workflows/{stem}.yml")
+        block = re.search(r"^  " + re.escape(name) + r":\s*\n(.*?)(?=^  [\w-]+:\s*$|\Z)", text or "", re.M | re.S)
+        problem = (f"names no workflow .github/workflows/{stem}.yml" if text is None
+                   else f"names no job of .github/workflows/{stem}.yml" if not block
+                   else "names a matrix value the job does not carry" if matrix and matrix not in _matrix_values(block.group(1))
+                   else None)
+        judge(doc, groups, f"job `{stem} / {name}" + (f" ({matrix})" if matrix else "") + "`", problem)
+
+    kinds = _ledger_kinds(read(LEDGER))
+    for doc in NAMED_DOCS:
+        text = docs.get(doc)
+        if text is None:
+            continue
+        # prose: a check name, a command, a module's symbol
+        for unit, heads in _units(text):
+            groups = None if _groups(unit, "retired-by") else heads + _groups(unit)
+            for span in re.findall(r"`([^`\n]+)`", unit):
+                cn = _CHECK_NAME.fullmatch(span)
+                if cn:
+                    job(doc, groups, *cn.groups())
+                    continue
+                file_and_args(doc, groups, span, True)
+                ms = re.fullmatch(r"([a-z_]\w*)\.([A-Za-z_]\w*)", span)
+                if ms and not _FILE.fullmatch(span) and f"{PKG_REL}/{ms.group(1)}.py" in tree:
+                    judge(doc, groups, f"`{span}`", None if ms.group(2) in syms(f"{PKG_REL}/{ms.group(1)}.py")
+                          else f"is not defined in {PKG_REL}/{ms.group(1)}.py")
+        # prose: the kinds listed under a list item naming the ledger
+        declared: dict[str, list[str]] = {}
+        stack: list[tuple[int, str]] = []
+        heads: list[tuple[int, list[str]]] = []
+        for line in _FENCE.sub("", text).splitlines():
+            h = re.match(r"(#+)\s", line)
+            if h:
+                heads[:] = [x for x in heads if x[0] < len(h.group(1))] + [(len(h.group(1)), _groups(line))]
+                stack.clear()
+                continue
+            li = re.match(r"(\s*)(?:[-*+]|\d+\.)\s", line)
+            if not li:
+                continue
+            ind = len(li.group(1))
+            stack[:] = [x for x in stack if x[0] < ind]
+            if any("ledger.py" in t for _, t in stack):
+                groups = [g for _, gs in heads for g in gs] + _groups(line + "".join(t for _, t in stack))
+                for k in re.findall(r"`([^`\n]+)`", line):
+                    if _KIND.fullmatch(k):
+                        declared[k] = groups
+                        judge(doc, groups, f"ledger kind `{k}`", None if k in kinds else f"is not a key of {LEDGER}'s KINDS")
+            stack.append((ind, line))
+        # diagrams: node and edge labels, sequence notes
+        for info, body in _FENCE.findall(text):
+            if info.strip() != "mermaid":
+                continue
+            labels = [next(x for x in m if x) for m in _LABEL.findall(body) if any(m)]
+            named = [f for lab in labels for seg in re.split(r"<br/?>", lab) for f in file_and_args(doc, _groups(lab), seg, False)]
+            flows = [f for f in named if re.fullmatch(r"\.github/workflows/[\w-]+\.yml", f)]
+            for lab in labels:
+                groups = _groups(lab)
+                segs = [x.strip() for x in re.split(r"<br/?>", lab)]
+                pys = [h for f in _FILE.findall(lab) for h in files(f) if h.startswith(PKG_REL + "/") and h.endswith(".py")]
+                for cm in _CAMEL.finditer(lab) if pys else ():
+                    owner = next((syms(f)[cm.group(1)] for f in pys if cm.group(1) in syms(f)), None)
+                    judge(doc, groups, f"`{cm.group(0)}`",
+                          f"is not defined in {', '.join(pys)}" if owner is None
+                          else f"is no method of {cm.group(1)}" if cm.group(2) and cm.group(2) not in owner else None)
+                for seg in segs:
+                    if re.fullmatch(r"[a-z_]\w*(?: · [a-z_]\w*)+", seg):
+                        for mod in seg.split(" · "):
+                            judge(doc, groups, f"module `{mod}`", None if f"{PKG_REL}/{mod}.py" in tree
+                                  or any(p.startswith(f"{PKG_REL}/{mod}/") for p in tree) else f"is no module of {PKG_REL}")
+                if lab.startswith("services:"):
+                    have = set(re.findall(r"^([a-z_]\w*):", read(f"{PKG_REL}/services.yaml") or "", re.M))
+                    for svc in re.findall(r"[a-z_]+", lab[len("services:"):].replace("<br/>", " ")):
+                        judge(doc, groups, f"service `{svc}`", None if svc in have else f"is not in {PKG_REL}/services.yaml")
+                if flows and _WORD.fullmatch(segs[0]):
+                    stem = flows[0].rsplit("/", 1)[-1][:-4]
+                    job(doc, groups, stem, segs[0], None)
+            for line in body.splitlines():
+                if re.match(r"\s*[Nn]ote\b", line):
+                    for k in (a or b for a, b in _KIND_NOTE.findall(line)):
+                        judge(doc, declared.get(k, []), f"ledger kind `{k}` in a diagram note",
+                              None if k in kinds else f"is not a key of {LEDGER}'s KINDS")
+    return out, pending, checked
+
+
+def _element_class(element: str) -> str:
+    """`a.py` file, `a.py --x` argument, `m.Sym` symbol, or the leading word: job, ledger kind, module, service."""
+    if not element.startswith("`"):
+        return element.split(" `", 1)[0]
+    body = element.strip("`")
+    return "argument" if " " in body else "file" if _FILE.fullmatch(body) else "symbol"
+
 
 
 COFFEE = "https://buymeacoffee.com/rpgshcwb2tp"
@@ -3305,6 +3533,151 @@ def check_doc_wiring() -> None:
     R.check("a marker with no roster file to resolve it is a finding", any("no roster" in g for g in got), repr(got))
 
 
+def _read_tracked(tree: set[str]):
+    return lambda path: (ROOT / path).read_text() if path in tree and (ROOT / path).is_file() else None
+
+
+def check_named_elements() -> None:
+    R.section("doc wiring: every instrument, job, kind, symbol and diagram node the two pages name (R10-ARCH-DOCS-WIRING)")
+    tree = _tracked()
+    docs = {p: (ROOT / p).read_text() for p in NAMED_DOCS if (ROOT / p).is_file()}
+    errs, pending, checked = named_element_findings(docs, tree, _read_tracked(tree))
+    want = ("file", "argument", "symbol", "job", "ledger kind", "module", "service")
+    R.check("every class of named element is read on these pages (anchor)", all(checked[k] for k in want),
+            ", ".join(f"{k} {checked[k]}" for k in want))
+    R.check("every named element resolves in the artifact that defines it, or a marker covers it", not errs,
+            "; ".join(errs[:4]) + (f" (+{len(errs) - 4})" if len(errs) > 4 else ""))
+    for doc, groups, element in pending:
+        print(f"       pending: {doc}: {element} [target: {', '.join(groups)}]")
+
+    t = {".github/workflows/ci.yml", ".github/workflows/tests.yml", "tools/x.sh", f"{PKG_REL}/mod.py",
+         f"{PKG_REL}/services.yaml", LEDGER}
+    files = {".github/workflows/ci.yml": "jobs:\n  prelude:\n    runs-on: x\n  gate:\n    needs: [prelude]\n",
+             ".github/workflows/tests.yml": 'jobs:\n  fast:\n    strategy:\n      matrix:\n        python-version: ["3.14"]\n',
+             "tools/x.sh": "case $1 in\n  pass) ;;\n  --once) ;;\nesac\n",
+             f"{PKG_REL}/mod.py": "class ThingOne:\n    def run(self):\n        pass\n",
+             f"{PKG_REL}/services.yaml": "do_it:\n  name: x\n",
+             LEDGER: 'KINDS = {"handoff-no-pr": "derived", "train-stop": "event"}\n'}
+    base = ("# D\n\n- `tools/x.sh pass` runs it, under `tests / fast (3.14)`; it calls `mod.ThingOne`.\n"
+            "- The ledger, `tools/audit/seat/ledger.py`:\n  - kinds: `handoff-no-pr`, `train-stop`\n"
+            "  - later: `record-owed` [target: R10-A]\n\n"
+            "```mermaid\nflowchart LR\n    w[\"ci.yml: the umbrella\"] --> p[\"prelude<br/>kind\"]\n    p --> g[\"gate\"]\n"
+            "    g --> q[\"PUT\"]\n"
+            "    m[\"mod.py<br/>ThingOne.run\"] -- \"services: do_it\" --> x[\"x.sh --once\"]\n    l[\"mod · mod\"] --> m\n```\n\n"
+            "```mermaid\nsequenceDiagram\n    participant A as a\n    Note over A: handoff-no-pr closes, record-owed opens\n```\n")
+    clean, pend, n = named_element_findings({"dev/README.md": base}, t, files.get)
+    R.check("the clean fixture resolves every class and leaves only the marked kind pending (null control)",
+            not clean and all(n[k] for k in want) and {e for _, _, e in pend} ==
+            {"ledger kind `record-owed`", "ledger kind `record-owed` in a diagram note"}, repr((clean, pend, n)))
+    plants = (
+        ("a renamed script", "`tools/x.sh pass`", "`tools/y.sh pass`", "names no tracked file"),
+        ("a renamed subcommand", "`tools/x.sh pass`", "`tools/x.sh push`", "never reads"),
+        ("a removed flag in a diagram node", "x.sh --once", "x.sh --twice", "never reads"),
+        ("a renamed workflow in a diagram node", "ci.yml: the", "cx.yml: the", "names no tracked file"),
+        ("a removed workflow job in a diagram node", 'g["gate"]', 'g["gat"]', "names no job"),
+        ("a check name's matrix value", "(3.14)", "(3.15)", "matrix value"),
+        ("a removed class", "`mod.ThingOne`", "`mod.ThingTwo`", "not defined"),
+        ("a removed method in a diagram node", "ThingOne.run", "ThingOne.walk", "no method"),
+        ("a removed module in a module list", "mod · mod", "mod · gone", "no module"),
+        ("a removed service on an edge", "services: do_it", "services: undo_it", "services.yaml"),
+        ("a removed ledger kind in a list", "`train-stop`", "`train-halt`", "KINDS"),
+        ("a removed ledger kind in a diagram note", "handoff-no-pr closes", "handoff-gone closes", "KINDS"),
+    )
+    for what, old, new_, key in plants:
+        doc = base.replace(old, new_)
+        got, _, _ = named_element_findings({"dev/README.md": doc}, t, files.get)
+        R.check(f"red fixture: {what} is a finding", doc != base and any(key in g for g in got), repr(got))
+    got, pend, _ = named_element_findings({"dev/README.md": base.replace("`tools/x.sh pass` runs it",
+                                           "`tools/y.sh pass` runs it [target: R10-A]")}, t, files.get)
+    R.check("a marked element that does not resolve is pending, not a finding (null control)",
+            not got and any(e == "`tools/y.sh`" for _, _, e in pend), repr((got, pend)))
+
+
+def check_marker_census() -> None:
+    R.section("target-marker resolver: every marker with its group's roster stage (R10-ARCH-DOCS-WIRING item 2)")
+    docs = {p: (ROOT / p).read_text() for p in WIRING_DOCS if (ROOT / p).is_file()}
+    stages = roster_stages()
+    rows = marker_census(docs, stages or {})
+    R.check("the resolver reads every marker arm W reads (anchor)",
+            len(rows) == sum(len(_MARKER.findall(re.sub(r"`[^`\n]+`", "", t))) for t in docs.values()) > 0, str(len(rows)))
+    print(f"       ({sum(r['due'] for r in rows)} of {len(rows)} marker(s) name only done groups: "
+          "python3 tests/doc_claims.py --markers lists them)")
+    stub = {"R10-A": "not-started", "R10-B": "done"}
+    doc = "# T\n\n- `a.py` lands [target: R10-A]\n- quoted: `[target: R10-B]`\n"
+    null = marker_census({"d.md": doc}, stub)
+    red = marker_census({"d.md": doc.replace("[target: R10-A]\n", "[target: R10-B]\n")}, stub)
+    both = marker_census({"d.md": doc.replace("[target: R10-A]\n", "[target: R10-B, R10-A]\n")}, stub)
+    R.check("null control: a marker naming a not-started group is listed and not due; a quoted one is not a marker",
+            [(r["line"], r["due"]) for r in null] == [(3, False)], repr(null))
+    R.check("red fixture: a marker naming a done group is due", [r["due"] for r in red] == [True], repr(red))
+    R.check("a marker naming a done and a not-started group is not due until both land", [r["due"] for r in both] == [False],
+            repr(both))
+
+
+def print_marker_census(argv: list[str]) -> int:
+    """`--markers [--roster FILE]`: every marker, its groups' stages, and what each due one still leaves unresolved.
+    Exit 1 while any marker is due. FILE defaults to this tree's roster; the live one is on handoff/audit-r10-roster."""
+    roster = pathlib.Path(argv[argv.index("--roster") + 1]) if "--roster" in argv else ROSTER
+    stages = roster_stages(roster)
+    if stages is None:
+        print(f"no roster at {roster}")
+        return 2
+    docs = {p: (ROOT / p).read_text() for p in WIRING_DOCS if (ROOT / p).is_file()}
+    tree = _tracked()
+    _, pending, _ = named_element_findings(docs, tree, _read_tracked(tree))
+    rows = marker_census(docs, stages)
+    for r in rows:
+        print(f"{'DUE ' if r['due'] else '    '}{r['doc']}:{r['line']} {r['marker']} "
+              + ", ".join(f"{g}={v}" for g, v in r["stages"].items()))
+    for doc, groups, element in pending:
+        if all(stages.get(g) == "done" for g in groups):
+            print(f"UNRESOLVED {doc}: {element}, though {', '.join(groups)} landed")
+    due = sum(r["due"] for r in rows)
+    print(f"{due} of {len(rows)} marker(s) due")
+    return 1 if due else 0
+
+
+# P40: the committed pictures of the card's pages are of the card this tree ships. tests/card_browser.mjs takes the
+# pages and compares each one's size and element structure to docs/img/card/pages.json, which it writes beside the
+# pictures (HPO_PAGES_OUT); this arm ties that record to the committed files, so neither moves without the other.
+CARD_FIGURES = ROOT / "docs" / "img" / "card"
+
+
+def card_figure_findings(recorded: dict[str, dict], sizes: dict[str, tuple[int, int] | None]) -> list[str]:
+    """`recorded`: pages.json's figures; `sizes`: each committed `<page>-<light|dark>.png` -> its PNG header size."""
+    out = [f"{n}: committed and not in pages.json" for n in sorted(set(sizes) - set(recorded))]
+    out += [f"{n}: in pages.json and not committed" for n in sorted(set(recorded) - set(sizes))]
+    for n in sorted(set(sizes) & set(recorded)):
+        want = (recorded[n].get("width"), recorded[n].get("height"))
+        if sizes[n] != want:
+            out.append(f"{n}: the PNG is {sizes[n]}, pages.json records {want}")
+    for n in sorted(recorded):
+        twin = n.replace("-light.png", "-dark.png")
+        if twin != n and twin in recorded and recorded[n].get("structure") != recorded[twin].get("structure"):
+            out.append(f"{n}: its dark twin records another page structure")
+    return out
+
+
+def check_card_figures() -> None:
+    R.section("P40: the committed card page figures are the pages tests/card_browser.mjs recorded")
+    man = CARD_FIGURES / "pages.json"
+    recorded = json.loads(man.read_text())["figures"] if man.is_file() else {}
+    sizes = {p.name: png_size(p) for p in sorted(CARD_FIGURES.glob("*.png")) if re.search(r"-(?:light|dark)\.png$", p.name)}
+    R.check("pages.json records the tile and every page in both themes (anchor)", len(recorded) >= 14, str(len(recorded)))
+    bad = card_figure_findings(recorded, sizes)
+    R.check("every committed page figure is recorded at its own size, and each theme pair is one page", not bad,
+            "; ".join(bad[:4]))
+    rec = {"a-light.png": {"width": 10, "height": 20, "structure": "s"}, "a-dark.png": {"width": 10, "height": 20, "structure": "s"}}
+    ok = {"a-light.png": (10, 20), "a-dark.png": (10, 20)}
+    R.check("null control: a record matching its files is clean", not card_figure_findings(rec, ok))
+    for what, r, z, key in (
+            ("a figure regenerated without its record", rec, {**ok, "a-dark.png": (10, 24)}, "pages.json records"),
+            ("a figure with no record", rec, {**ok, "b-light.png": (1, 1)}, "not in pages.json"),
+            ("a record with no figure", rec, {"a-light.png": (10, 20)}, "not committed"),
+            ("a theme pair of two pages", {**rec, "a-dark.png": {**rec["a-dark.png"], "structure": "t"}}, ok, "dark twin")):
+        R.check(f"red fixture: {what} is a finding", any(key in g for g in card_figure_findings(r, z)))
+
+
 def check_coffee_button() -> None:
     R.section("Buy Me a Coffee button in its three places (owner, 2026-10-22)")
     built = docs_build()["html"]
@@ -3366,9 +3739,12 @@ def main() -> int:
     check_service_count_comments()
     check_image_dimensions()
     check_doc_wiring()
+    check_named_elements()
+    check_marker_census()
+    check_card_figures()
     check_coffee_button()
     return R.close("checks")
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(print_marker_census(sys.argv) if "--markers" in sys.argv else main())
