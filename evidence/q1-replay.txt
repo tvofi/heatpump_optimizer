@@ -1,0 +1,23 @@
+legacy at cut-over: 498 carries over 206 groups
+RESULT c20128748 2026-10-31T01:36:43+01:00 R10-ARCH-DOCS-WIRING: was=in-progress pending_at_parent=0 head-code=stays done | roster_sync: derive stages from pull requests (tools/audit/s | derive branch=handoff/r10-arch-docs-wiring
+RESULT c20128748 2026-10-31T01:36:43+01:00 R10-HOTFIX-AWAY-SETBACK: was=in-progress pending_at_parent=0 head-code=stays done | roster_sync: derive stages from pull requests (tools/audit/s | derive branch=handoff/r10-hotfix-away-setback
+RESULT 61dbafded 2026-10-31T02:53:13+01:00 R10-FLY-BEAT-FETCH-RACE: was=in-progress pending_at_parent=0 head-code=stays done | roster_sync: derive stages from pull requests (tools/audit/s | no branch: closing_stage direct
+RESULT 987c02ecf 2026-10-31T06:25:45+01:00 R10-HOTFIX-AWAY-LIVE: was=in-progress pending_at_parent=0 head-code=stays done | roster_edit set-stage R10-HOTFIX-AWAY-LIVE (tools/audit/seat | 
+RESULT 993edeab9 2026-10-31T06:30:38+01:00 R10-FLY-CANCEL-SWEEP: was=in-progress pending_at_parent=1 head-code=REFUSED->carries-open | roster_sync: derive stages from pull requests (tools/audit/s | derive branch=handoff/r10-fly-cancel-sweep
+RESULT 9ea71f191 2026-10-31T08:18:24+01:00 R10-README-GRAPHICS: was=in-progress pending_at_parent=0 head-code=stays done | roster_edit set-stage R10-README-GRAPHICS (tools/audit/seat/ | 
+RESULT 47276f22b 2026-10-31T13:18:56+01:00 R10-SAV-ACTUATION: was=carries-open pending_at_parent=0 head-code=stays done | roster_edit set-stage R10-SAV-ACTUATION (tools/audit/seat/ro | 
+RESULT 2daf045e6 2026-10-31T13:29:02+01:00 R10-HOTFIX-LEARNER-INPUTS: was=in-progress pending_at_parent=0 head-code=stays done | roster_sync: derive stages from pull requests (tools/audit/s | derive branch=handoff/r10-hotfix-learner-inputs
+RESULT 265b97165 2026-10-31T14:47:14+01:00 R10-FLY-BASH-KILL-GUARD: was=not-started pending_at_parent=0 head-code=stays done | roster_edit set-stage R10-FLY-BASH-KILL-GUARD (tools/audit/s | 
+RESULT fdcb7681a 2026-10-31T14:48:41+01:00 R10-FLY-RELAY-TOOLS-LEVEL: was=not-started pending_at_parent=0 head-code=stays done | roster_edit set-stage R10-FLY-RELAY-TOOLS-LEVEL (tools/audit | 
+RESULT 5d621e5dd 2026-10-31T14:50:09+01:00 R10-RCA-JIDOKA-YIELD: was=not-started pending_at_parent=0 head-code=stays done | roster_edit set-stage R10-RCA-JIDOKA-YIELD (tools/audit/seat | 
+RESULT 350851064 2026-10-31T14:52:30+01:00 R10-FLOW-WIP: was=not-started pending_at_parent=0 head-code=stays done | roster_edit set-stage R10-FLOW-WIP (tools/audit/seat/roster_ | 
+RESULT 8ee9b4890 2026-10-31T15:22:21+01:00 R10-FLOW-BODY-ONLY: was=in-progress pending_at_parent=17 head-code=REFUSED->carries-open | roster_sync: derive stages from pull requests (tools/audit/s | derive branch=handoff/r10-flow-body-only
+RESULT 435a8f280 2026-10-31T15:44:44+01:00 R10-FLY-TICK-APPROVAL-OWED: was=in-progress pending_at_parent=0 head-code=stays done | roster_sync: derive stages from pull requests (tools/audit/s | derive branch=handoff/r10-fly-tick-approval-owed
+RESULT 266615365 2026-10-31T15:56:29+01:00 R10-HOTFIX-PREHEAT-LABEL: was=not-started pending_at_parent=0 head-code=stays done | roster_edit set-stage R10-HOTFIX-PREHEAT-LABEL (tools/audit/ | 
+RESULT 4bfa98778 2026-10-31T16:07:06+01:00 R10-NIGHTLY-HB-RESPAWN: was=queued pending_at_parent=0 head-code=stays done | roster_edit set-stage R10-NIGHTLY-HB-RESPAWN (tools/audit/se | 
+RESULT 52aea59b1 2026-10-31T16:53:12+01:00 R10-PREPR-CAP: was=in-progress pending_at_parent=4 head-code=REFUSED->carries-open | roster_sync: derive stages from pull requests (tools/audit/s | derive branch=handoff/r10-prepr-cap
+RESULT 52aea59b1 2026-10-31T16:53:12+01:00 R10-ORCH-ROSTER-SCHEMA: was=in-progress pending_at_parent=33 head-code=REFUSED->carries-open | roster_sync: derive stages from pull requests (tools/audit/s | derive branch=handoff/r10-roster-schema
+RESULT 8df6d71f5 2026-10-31T17:00:10+01:00 R10-FLY-RELAY-REVIEW-FF: was=in-progress pending_at_parent=17 head-code=REFUSED->carries-open | roster_sync: derive stages from pull requests (tools/audit/s | derive branch=handoff/r10-fly-relay-review-ff
+RESULT 4c22df260 2026-10-31T18:40:08+01:00 R10-FLY-CIPREDICT-GAPS: was=in-progress pending_at_parent=0 head-code=stays done | roster_sync: derive stages from pull requests (tools/audit/s | no branch: closing_stage direct
+RESULT a3553d6d5 2026-10-31T19:29:50+01:00 R10-WOOD-NOTIFY: was=in-progress pending_at_parent=4 head-code=REFUSED->carries-open | roster_sync: derive stages from pull requests (tools/audit/s | derive branch=handoff/r10-wood-notify
+RESULT done-flips today: 21; would now be carries-open: 6 ['R10-FLY-CANCEL-SWEEP', 'R10-FLOW-BODY-ONLY', 'R10-PREPR-CAP', 'R10-ORCH-ROSTER-SCHEMA', 'R10-FLY-RELAY-REVIEW-FF', 'R10-WOOD-NOTIFY']
