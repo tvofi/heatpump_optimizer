@@ -9228,7 +9228,9 @@
    "fixerModel": "sonnet",
    "reviewerModel": "opus",
    "group": "R10-CLOSEOUT-CLEANUP",
-   "after": [],
+   "after": [
+    "R10-AUDIT-COVERAGE-ENDGAME"
+   ],
    "files": [
     "tools/audit/seat/prune_refs.py",
     "tools/audit/worktree_gc.sh",
