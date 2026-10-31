@@ -516,12 +516,9 @@ keeps its exact aspect ratio rather than being squeezed to fill the space, since
 it is drawn with `preserveAspectRatio="none"` and constraining its height would
 stretch every axis label sideways.
 
-Earlier versions sized the dialog from a fixed guess at how tall the surrounding
-chrome would be. That guess stopped being true as the editor grew, and the extra
-content rendered outside the dialog's own background — worse on short, wide
-desktop windows, because that is where the height-derived branch of the old
-formula won. Nothing depends on guessing the chrome now, so a panel added later
-costs a scrollbar rather than spilled content.
+Nothing in the sizing guesses how tall the surrounding chrome is, so a panel
+that does not fit costs a scrollbar, never content spilling outside the
+dialog's own background.
 
 ## The savings page
 
@@ -858,7 +855,7 @@ Restart or reload the dashboard afterwards.
 
 Only one copy of the card can be active: a custom element name can be claimed
 once per page, and the first copy to load keeps it. A second copy — usually a
-manual install left under `/local/` from an earlier version — therefore wins
+manual install left under `/local/` — therefore wins
 permanently, and every upgrade after it loads and is ignored. New features
 appear to be missing even though the files on disk are current.
 
@@ -957,10 +954,10 @@ series:                                  # optional, initial per-series visibili
 The plan sensors pin the object id `sensor.heat_pump_optimizer_*`, so the
 prefix is fixed regardless of the device name. A stock install produces
 `sensor.heat_pump_optimizer_plan_space_heating` and
-`sensor.heat_pump_optimizer_plan_dhw_heating`. An install upgraded from before
-the ids moved to that `plan_` family keeps its registry ids (the same two names
-with the older suffix order, ending `_space_heating_plan` and
-`_dhw_heating_plan`); the card resolves both.
+`sensor.heat_pump_optimizer_plan_dhw_heating`. Home Assistant keeps an
+entity's registry id once it is assigned, so an entry registered with the other
+suffix order, ending `_space_heating_plan` and `_dhw_heating_plan`, keeps those
+ids; the card resolves both.
 
 You normally do not need to configure either option. The card resolves entities
 in this order:
@@ -970,9 +967,8 @@ in this order:
    is a stable marker published by the integration, so renaming an entity does
    not break the card.
 3. Any `sensor` whose id ends in `plan_space_heating` / `plan_dhw_heating` /
-   `solar_irradiance` (current), or the older `space_heating_plan` /
-   `dhw_heating_plan` (for installs upgraded from before the ids moved, and for
-   integration versions older than 2.6.1).
+   `solar_irradiance`, or in the other suffix order, `space_heating_plan` /
+   `dhw_heating_plan`.
 
 If nothing is found the card names the id it looked for, so check
 **Developer Tools → States** and set the option explicitly.

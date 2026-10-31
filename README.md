@@ -317,9 +317,9 @@ installing rather than discover it after:
 ## Installation
 
 > [!IMPORTANT]
-> **Home Assistant 2025.2.0 and Python 3.13 are the minimum, and that was a
-> breaking change.** An installation on an older Home Assistant stops being
-> offered updates through the Marketplace or HACS. Why the floor sits exactly there is in
+> **Home Assistant 2025.2.0 and Python 3.13 are the minimum.** An installation
+> on an older Home Assistant is not offered updates through the Marketplace or
+> HACS. Why the floor sits exactly there is in
 > [docs/architecture.md](./docs/architecture.md).
 
 [![Open your Home Assistant instance and open this repository.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=tvofi&repository=heatpump_optimizer&category=integration)
@@ -681,7 +681,7 @@ Heating Schedule, DHW Setpoint Advisor and Plan DHW Heating (next 24 h).
 | External Heat Source | Something other than the heat pump is heating the tanks | Evidence in attributes |
 | Away Mode | The away setback is active | Return time and recovery state in attributes |
 | Mold Floor Breach | The measured room sits below the mold-safe floor the plan promises | Diagnostic; on when the measured room is below the mold floor by the configured margin (default 0.5 °C), typically because space heating is blocked. `floor_c`, `shortfall_c` and `space_blocked` in attributes |
-| Wood Cheaper Than Heat Pump | Burning wood costs less per kWh than running the heat pump | Disabled by default. Unavailable until the furnace is on, a wood-tank probe is set, external-heat detection or the DHW wood coil is on, type and packing are set, the billed price per m³ is greater than 0 (no silent default), and furnace efficiency is 10–95 %. A usable wood tank alone is not enough. Price and cheaper-hour count in attributes |
+| Wood Cheaper Than Heat Pump | Burning wood costs less per kWh than running the heat pump | Disabled by default. Unavailable until the furnace is on, a wood-tank probe is set, external-heat detection or the DHW wood coil is on, type and packing are set, the billed price per m³ is greater than 0 (no silent default), and furnace efficiency is 10–95 %. A usable wood tank alone is not enough. Attributes: `sek_per_kwh` (wood's price per kWh), `cheaper_hour_count`, `cheaper_windows` (today's runs of planned heat-pump steps whose heat costs more than wood's, each a `start` and `end` in local time) and `lighting_start` / `lighting_end` (when to light the furnace: from the wood page's lead time before the first window, never before the plan's current step, to that window's start). On a day with no cheaper window, `cheaper_windows` is empty and both lighting times are empty |
 
 ### Buttons (6 total)
 
@@ -817,6 +817,7 @@ from Settings → Automations & Scenes → Blueprints → Import Blueprint:
 - [Economy mode through the evening price peak](https://raw.githubusercontent.com/tvofi/heatpump_optimizer/main/blueprints/automation/economy_mode_on_price_peak.yaml) — switches the optimizer's mode when the current electricity price crosses your expensive threshold, and back when it falls.
 - [Notify when a manual plan takes over](https://raw.githubusercontent.com/tvofi/heatpump_optimizer/main/blueprints/automation/notify_on_manual_plan.yaml) — raises a persistent notification while an `apply_manual_plan` override pins the heating slots.
 - [Notifications](https://raw.githubusercontent.com/tvofi/heatpump_optimizer/main/blueprints/automation/notifications.yaml) — sends the optimizer's documented events (monthly receipt, comfort at risk, stale input, stale plan, released manual plan) to a notify target, with quiet hours.
+- [Notify when wood beats the heat pump today](https://raw.githubusercontent.com/tvofi/heatpump_optimizer/main/blueprints/automation/notify_wood_cheaper_window.yaml) — a morning phone notification naming today's cheaper-than-pump windows and when to light the furnace, with an optional follow-up after a replan; silent on a day with none.
 
 Each blueprint takes the sensor and thresholds as inputs, so nothing is
 hard-coded to the entity ids the examples assume.
