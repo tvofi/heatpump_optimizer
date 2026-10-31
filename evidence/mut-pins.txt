@@ -1,5 +1,0 @@
-baseline:  ALL 159 DEBUG COLLECT CHECKS PASSED  rc=0
-RETURN_DEL 230: -        return {} +        pass  =>  2 of 159 DEBUG COLLECT CHECKS FAILED  rc=1
-GUARD_OFF 226: -        if collector is None: +        if False:  =>        ^^^^^^^^^^^^^^^ AttributeError: 'NoneType' object has no attribute 'final'  rc=1
-GUARD_OFF 228: -        if collector.final: +        if False:  =>  1 of 159 DEBUG COLLECT CHECKS FAILED  rc=1
-NULL_COMMENT 43:  =>  ALL 159 DEBUG COLLECT CHECKS PASSED  rc=0
