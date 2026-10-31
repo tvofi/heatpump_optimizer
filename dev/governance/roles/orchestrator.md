@@ -229,8 +229,7 @@ Through the roster seat, on `standing-roster.md`'s terms.
   with no reviewer turn (tvofi, 2026-10-01): `tools/pr/app_approve.sh --carry
   <verdict> <head>` reports carried, the files `git diff --name-only <verdict>
   <head>` names miss the branch's own diff other than its own delivery row,
-  or each commit of the branch's own it names leaves the reviewed patch as it
-  was (Lever L6). Anything else is a resolution delta for the same reviewer.
+  or keep its patch (L6). Else, a resolution delta for the same reviewer.
 - CI green at the verdicted head, landed onto a green `main` by
   `tools/audit/seat/merge_train.py batch` (tvofi, 2026-10-07), the only bypass:
   a proved batch merges while `main`'s tree equals its proof's; one entry merges

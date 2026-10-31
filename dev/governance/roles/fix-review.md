@@ -88,13 +88,9 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
 
     **A `merge` verdict attaches to the head its first line names and carries**
     (#1667; tvofi 2026-10-27) while `tools/audit/seat/review_carry.py
-    <verdicted> <new>` prints `CARRY`, not `head-moved`: the pull request's
-    patch against its merge base at the new head is the one you reviewed
-    (Lever L6, tvofi 2026-10-30) -- a main absorb changing no PR line, a revert
-    with its re-apply, its delivery row, a bot commit inside its paths, main's
-    rewrite of prose context in a `.md` file. CI runs at every head; a red one
-    never carries. Else a main merge is its **resolution delta**, alone yours;
-    any other move is re-reviewed.
+    <verdicted> <new>` prints `CARRY`: the PR's patch is the one reviewed
+    (L6), not `head-moved`; a red CI never carries.
+    Else a main merge is its **resolution delta**, alone yours; any other move is re-reviewed.
 
 13. **A conflict is a measurement, not a status field.** `mergeStateStatus:
     DIRTY` is GitHub's, computed where the `claimnotes` driver cannot run
