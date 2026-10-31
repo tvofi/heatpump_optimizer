@@ -1,9 +1,9 @@
-NOTE stale tree: 86501f71dcdd7841aad715682f4ca16e9c7f28df lacks origin/main 14ed135512e3d7db899081f2c2639ce5674b8f2a; roster read at origin/main
-NOTE stale tree: 86501f71dcdd7841aad715682f4ca16e9c7f28df lacks origin/main 14ed135512e3d7db899081f2c2639ce5674b8f2a; roster read at origin/main
+NOTE stale tree: 73e5d43eea6b6d8ca4bba0313d12e230814595d8 lacks origin/main 7539d1675d7fc8b5020f90b395f4bb0c3485d5b3; roster read at origin/main
+NOTE stale tree: 73e5d43eea6b6d8ca4bba0313d12e230814595d8 lacks origin/main 7539d1675d7fc8b5020f90b395f4bb0c3485d5b3; roster read at origin/main
   ok   a carry to a group of the roster is predicted green
-NOTE stale tree: 86501f71dcdd7841aad715682f4ca16e9c7f28df lacks origin/main 14ed135512e3d7db899081f2c2639ce5674b8f2a; roster read at origin/main
+NOTE stale tree: 73e5d43eea6b6d8ca4bba0313d12e230814595d8 lacks origin/main 7539d1675d7fc8b5020f90b395f4bb0c3485d5b3; roster read at origin/main
   ok   a carry to a group the roster lacks is predicted red
-NOTE stale tree: 86501f71dcdd7841aad715682f4ca16e9c7f28df lacks origin/main 14ed135512e3d7db899081f2c2639ce5674b8f2a; roster read at origin/main
+NOTE stale tree: 73e5d43eea6b6d8ca4bba0313d12e230814595d8 lacks origin/main 7539d1675d7fc8b5020f90b395f4bb0c3485d5b3; roster read at origin/main
   ok   a finding with no carry at all is predicted red
   ok   a file re-added at a path whose move landed is predicted red (rc 1)
   ok   the re-added path under a second commit is predicted red (rc 1)
@@ -44,6 +44,8 @@ NOTE stale tree: 86501f71dcdd7841aad715682f4ca16e9c7f28df lacks origin/main 14ed
   ok   null control: a pool holding a commented file predicts nothing
   ok   a mixed pool still has a null control
   ok   an empty pool predicts nothing
+  ok   an unpinned site in a comment-free file is refused, rc=1
+  ok   null control: the same site in a commented file is no refusal, rc=0
   ok   tools/policy/vendor/markdown-it.min.js keys every restoring job
   ok   tools/policy/budget_raise_gate.py keys every restoring job
   ok   dev/governance/config/corpus_excluded.json keys no job (a data file CI reads as the branch has it)
@@ -61,3 +63,4 @@ NOTE stale tree: 86501f71dcdd7841aad715682f4ca16e9c7f28df lacks origin/main 14ed
   ok   predict reaches the graders arm by name (its call site, not only its helper)
   ok   every JOB value is a name gate.REQUIRED owes
 ci_predict self-test: 0 failed
+rc=0
