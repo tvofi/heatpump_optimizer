@@ -344,6 +344,7 @@ def load_dests(repo: Path = ROOT, ref: str | None = None, briefs_dir: str | None
     # A carry file's destination issue is its own `issue` field (brief_lint.mjs
     # owns the file-name grammar and refuses a name that disagrees with it).
     round_roster = None
+    git = roster_lib.git_in(str(repo))
     if ref:
         roster = roster_lib.show_roster(str(repo), ref)
         r = subprocess.run(["git", "-C", str(repo), "ls-tree", "--name-only", ref, CARRIES_DIR + "/"],
@@ -351,7 +352,6 @@ def load_dests(repo: Path = ROOT, ref: str | None = None, briefs_dir: str | None
         texts = [subprocess.run(["git", "-C", str(repo), "show", f"{ref}:{n}"], capture_output=True,
                                 text=True).stdout for n in r.stdout.split() if n.endswith(".json")]
     else:
-        git = roster_lib.git_in(str(repo))
         # A checkout behind origin/main reads main's roster, not its own stale
         # one (P98: a detached checkout 387 commits behind refused groups open
         # on main). One containing it keeps its tree, so a pull request's own
@@ -367,11 +367,14 @@ def load_dests(repo: Path = ROOT, ref: str | None = None, briefs_dir: str | None
         else:
             roster = roster_lib.load_roster_file(str(repo / roster_lib.roster_path(str(repo))))
         texts = [p.read_text() for p in sorted((repo / CARRIES_DIR).glob("*.json"))]
-        # The tree's roster lags the round's branch (finding-propagation.md);
-        # a branch this clone lacks is skipped, which only narrows what passes.
-        rref = roster_lib.round_ref(git)
-        if rref and not git(["rev-parse", "--verify", "--quiet", rref + "^{commit}"])[0]:
-            round_roster = (rref, roster_lib.show_roster(str(repo), rref))
+    # The roster at main, or at an explicit ref, lags the round's branch
+    # (finding-propagation.md counts a carry landed there), on either path
+    # (P319: the pre-flight's explicit origin/main parked two carries the round
+    # branch held); a branch this clone lacks is skipped, which only narrows
+    # what passes, and a ref that is the round's own is not read twice.
+    rref = roster_lib.round_ref(git)
+    if rref and rref != ref and not git(["rev-parse", "--verify", "--quiet", rref + "^{commit}"])[0]:
+        round_roster = (rref, roster_lib.show_roster(str(repo), rref))
     carry = set()
     for t in texts:
         try:
@@ -711,6 +714,13 @@ def _self_test() -> int:
     r = run(plant.rstrip() + " Carry: R10-BRANCH\n", d=load_dests(Path(gtmp.name)))
     check("load_dests reads the round ref: a group only there passes, the note naming it",
           r["b"] == 0 and any(rnd[0] in n for x in r["rows"] for n in x["notes"]))
+    # P319: an explicit ref (the pre-flight's origin/main) reads the round ref too.
+    r = run(plant.rstrip() + " Carry: R10-BRANCH\n", d=load_dests(Path(gtmp.name), "origin/main"))
+    check("load_dests at an explicit origin/main routes a group only on the round ref (P319)", r["b"] == 0)
+    r = run(plant.rstrip() + " Carry: R10-NEITHER\n", d=load_dests(Path(gtmp.name), "origin/main"))
+    check("... a group on neither is still BAD-DEST at an explicit ref (null control)", r["b"] == 1)
+    r = run(plant.rstrip() + " Carry: R10-BRDONE\n", d=load_dests(Path(gtmp.name), "origin/main"))
+    check("... and a group done on the round ref is still refused at an explicit ref", r["b"] == 1)
     git("update-ref", "-d", "refs/remotes/" + rnd[0])
     r = run(plant.rstrip() + " Carry: R10-BRANCH\n", d=load_dests(Path(gtmp.name)))
     check("... and a clone without that ref refuses it (null control)", r["b"] == 1)

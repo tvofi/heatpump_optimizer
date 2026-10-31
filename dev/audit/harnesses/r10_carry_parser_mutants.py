@@ -247,6 +247,8 @@ MUTANTS = [
     # ... and a shallow clone, whose rc 1 may be its graft, keeps it too
     ("B2-shallow", B2_SHALLOW, "        shallow = False"),
     ("B2-shallow-always", B2_SHALLOW, "        shallow = True"),
+    # load_dests: P319, the round ref is read on the explicit-ref path too
+    ("P319-ref-path", "    if rref and rref != ref and not git(", "    if rref and not ref and not git("),
 ]
 
 
