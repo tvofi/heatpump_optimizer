@@ -1,0 +1,8 @@
+60d59
+<   [ -z "${PR_ATTEMPT:-}" ] || return 0
+RESULT own-mutant=attempt-guard-deleted rc=0 pr_args self-test: 158 checks, 0 failed
+65c65
+<     [ "$tip" != "$H" ] && [ "$tip" != unread ] || { op_row_landed "$rc" "$tip"; return 0; }  # mut:roworigin
+---
+RESULT own-mutant=unread-treated-absent rc=1 pr_args self-test: 158 checks, 1 failed
+0
