@@ -3,7 +3,8 @@
 - `owed_unactioned.py` — says which tick owed lines have outlived a sweep with
   no live acknowledgement (dev/audit/rca/R10-RCA-OWED-UNACTIONED.md). It reads
   the board's whole owed family (`-> OWED…`, `REVIEW OWED:`, `DISPATCH:`,
-  `OWNER FLAG:`, `DESIGN-BUILD:`, `MERGE-READY:`, `BLOCKED-UNFIXED:`), keys
+  `OWNER FLAG:`, `DESIGN-BUILD:`, `MERGE-READY:`, `BLOCKED-UNFIXED:`, `APPROVAL-OWED:` (queue the PR for the train,
+  which posts the approval), `UNLEVELLED:` (read the state by hand), `REVIEW STALLED:` (re-fire the reviewer)), keys
   each line on its topic or `#<pr>` (a verdict level's head8 is its id, so a
   new head re-raises), and
   counts in `--state` the boards each key has stood on. A key standing
