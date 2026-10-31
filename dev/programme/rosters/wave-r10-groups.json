@@ -12470,9 +12470,9 @@
    ],
    "carry": [],
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": null,
-    "commit": null,
+    "commit": "cabfaadc3a13f61eaf0303918c7b1d5beda9c07c",
     "last_step": null,
     "next_step": "dispatch fixer; add this group to the after lists of R10-ARCH-DOCS and R10-CATALOG-PR",
     "note": "2026-10-30 owner request (tvofi): README graphics in the HA Marketplace; pre-study at handoff-body/r10-readme-graphics",
