@@ -4322,7 +4322,8 @@ def check_surface_coverage() -> None:
 # version (a minimum Home Assistant release, the fork's attribution) goes in STATELESS_EXEMPT with its reason.
 # Round 3 (fix review of #3048 at 6d24f3ac6): "previous/old" + a thing that changes between releases (behaviour,
 # default, version, form, layout, formula, name, id, suffix), "older" + an install or integration, and "silently" + a
-# past-tense verb. Bare "previous" and "old" stay out: "the previous day", "the previous answer" and "the old plan
+# past-tense verb; then "historical default/form" and "before this/that/it was", the opening of a recounted change
+# ("Before this was shared, the simulation charged ..."). Bare "previous" and "old" stay out: "the previous day", "the previous answer" and "the old plan
 # stands" state what happens now, and "an older Home Assistant" / "older than three solve cycles" compare, not recount.
 _HISTORY = re.compile(r"(?i:\bnew in\b|\bsince (?:v\d|version\b|#\d)|\bpreviously\b|\bno longer\b|\bused to\b"
                       r"|\buntil v\d|\bas before\b|\brenamed from\b|\bround \d"
@@ -4330,6 +4331,8 @@ _HISTORY = re.compile(r"(?i:\bnew in\b|\bsince (?:v\d|version\b|#\d)|\bpreviousl
                       r"|\b(?:versions?|releases?)\s+(?:older|newer)\s+than\b"
                       r"|\bupgraded\s+from\b|\bthe\s+upgrade\b|\bbreaking\s+change\b"
                       r"|\b(?:is|are)\s+now\b(?:[^.;\n]|\.\d|\n(?!\s*\n)){0,40}?\brather\s+than\b"
+                      r"|\bbefore\s+(?:this|that|it)\s+(?:was|were)\b"
+                      r"|\bhistorical\s+(?:[\w-]+\s+)?(?:defaults?|forms?|behaviou?rs?)\b"
                       r"|\b(?:previous|old)\s+(?:behaviou?rs?|defaults?|versions?|releases?|forms?|layouts?|formulas?"
                       r"|names?|ids?|suffix(?:es)?)\b"
                       r"|\bolder\s+(?:integrations?|setups?|installs?|installations?|registry|ids?|suffix(?:es)?)\b"
@@ -4404,7 +4407,10 @@ def check_stateless() -> None:
                   "Installs that stored the previous default strings keep them.",
                   "The card tries the old suffix after the current one.",
                   "Older integrations publish none of them.", "An install that kept older registry ids is covered.",
-                  "The term silently evaluated to zero for many installs."):
+                  "The term silently evaluated to zero for many installs.",
+                  "Before this was shared, the simulation charged the buffer.",
+                  "Some labels read SEK, which is the historical default.",
+                  "The fit degrades to the historical two-column form."):
         got = stateless_findings({"probe.md": f"# T\n\n{plant}\n"}, ())
         R.check(f"red fixture: {plant!r} is exactly one finding", len(got) == 1, repr(got))
     R.check("null control: the widened terms' current-behaviour neighbours (\"back to now rather than\", \"the older "
