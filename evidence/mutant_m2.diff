@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/away.py b/custom_components/heatpump_optimizer/away.py
+index 8374c5823..8c3e38ea7 100644
+--- a/custom_components/heatpump_optimizer/away.py
++++ b/custom_components/heatpump_optimizer/away.py
+@@ -309,8 +309,6 @@ def config_from_mapping(config: Mapping[str, Any]) -> AwayConfig:
+ #: (unconfigured) is not a band and stays out.
+ _OPT_FIELDS = (
+     "target_temp", "min_temp", "comfort_temp_day", "comfort_temp_night",
+-    "comfort_temp_day_weekend", "comfort_temp_night_weekend",
+-    "holiday_comfort_day", "holiday_comfort_night",
+ )
+ _DHW_FIELDS = ("dhw_min_temp", "dhw_idle_min_temp")
+ 
