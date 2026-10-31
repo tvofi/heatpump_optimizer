@@ -12997,7 +12997,8 @@
     "R10-FACTORY-RESET",
     "R10-WOOD-NOTIFY",
     "R10-ARCH-DOCS-WIRING",
-    "R10-USER-DOCS-FINAL"
+    "R10-USER-DOCS-FINAL",
+    "R10-ARCH-SHAPES-CLASSIFIER"
    ],
    "resume": {
     "stage": "not-started",
