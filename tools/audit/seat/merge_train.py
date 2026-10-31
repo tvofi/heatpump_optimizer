@@ -6,8 +6,9 @@
         [--state-dir DIR] [--min-runs N]
     python3 tools/audit/seat/merge_train.py batch <queue.json> [run's options]
         [--base main|batch/<name>] [--tag TAG] [--skip-bad] [--overlap]
-    python3 tools/audit/seat/merge_train.py add <pr> <verdict> [--verdict-comment ID]
+    python3 tools/audit/seat/merge_train.py add <pr> <verdict> [--verdict-comment ID] [--front]
         [--state-dir DIR] [--repo OWNER/REPO] [--mandate ID] [--auto | -- <train.sh flags>]
+    python3 tools/audit/seat/merge_train.py add <pr> --remove | --front [--state-dir DIR]
     python3 tools/audit/seat/merge_train.py wait-ci <40-hex sha> [--min-runs N]
     python3 tools/audit/seat/merge_train.py queue <out.json | -> [--repo OWNER/REPO]
     python3 tools/audit/seat/merge_train.py sweep [--mandate ID] [--state-dir DIR] [--repo OWNER/REPO]
@@ -226,7 +227,11 @@ changed. `add` (train.sh add) takes the state dir's flock, is a no-op for a pull
 request the live train or the spool already holds (ALREADY: `already_held`,
 the one rule the drain applies too, over `queue.seen.json`), runs
 `Train.admit_add` (ADD REFUSED #<pr> <rule>: <why>), then spools the entry for
-the live train or, with none, starts one over it. A batch that stops ends the
+the live train or, with none, starts one over it. `add --front` puts the entry
+first in the next batch (a spooled one is moved there) and `add --remove` drops
+a spooled one, each under the same flock with every other spool line kept
+byte-identical, printing the spool order read back (P112: never a hand edit of
+queue-add.jsonl). A batch that stops ends the
 train (NOT RUN lines); spooled entries stay for the next. One train per state
 dir: `queue.open` names it, and a second is refused. Step 5's approval is
 posted by the train itself (`policy_approve`) under a --mandate id in force for
@@ -6740,6 +6745,18 @@ def _spool_edit_self_test(check, stub, H: str) -> None:
         check("P112 --front on a new entry: admitted, spooled first, the order read back printed",
               rc == 0 and [e["pr"] for e in spool_read(st)[0]] == [15, 13, 11, 12, 14]
               and said[-1].endswith("spool read back: #15 #13 #11 #12 #14"))
+        st = spool3()
+        started: list = []
+
+        def launch(argv, state):
+            started.append(json.loads(Path(argv[argv.index("--queue") + 1]).read_text()))
+            return os.getpid(), ""
+        t = Train("o/r", st, None, "", (), 1, run=stub({"pr": 16}), log=lambda m: None)
+        rc = train_add(t, {"pr": 16, "verdict": H, "verdict_comment": "42"}, ["train.sh"], launch=launch,
+                       settle=0.1, front=True)
+        check("P112 --front with no live train: the train it starts runs the entry FIRST, then what the "
+              "stopped train left spooled, in order",
+              rc == 0 and len(started) == 1 and [e["pr"] for e in started[0]] == [16, 11, 12, 13])
         st = spool3(extra="not json\n")
         before = lines_of(st)
         rc, out = cli(st, "--remove", "12")
