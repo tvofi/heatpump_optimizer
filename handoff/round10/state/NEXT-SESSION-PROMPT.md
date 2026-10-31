@@ -28,7 +28,6 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-ORCH-LEDGER (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-ORCH-PLANPAGE (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-ORCH-ROSTER-SCHEMA (stage carries-open, branch `handoff/r10-roster-schema`): `git fetch origin handoff/r10-roster-schema && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-FLY-DAEMONIZE-ARGV (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-FLY-SUITE-ENV-FLAKES (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-FLY-NO-FOOTERS (stage carries-open, branch `handoff/r10-fly-no-footers`): `git fetch origin handoff/r10-fly-no-footers && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-ORCH-REVIEW-PACKET (stage carries-open, branch `handoff/r10-orch-review-packet`): `git fetch origin handoff/r10-orch-review-packet && git worktree add --detach $SEAT/wt FETCH_HEAD`
@@ -41,7 +40,6 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-FLY-TRAIN-DEFAULTS (stage carries-open, branch `handoff/r10-fly-train-defaults-p2`): `git fetch origin handoff/r10-fly-train-defaults-p2 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-GH-CALL-LOG (stage in-progress, branch `handoff/r10-fly-gh-call-log`): `git fetch origin handoff/r10-fly-gh-call-log && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-CIPREDICT-RESTORING (stage queued): no branch pushed yet, so nothing to fetch
-- R10-FLY-RECORD-RED-NAMES (stage in-progress, branch `handoff/r10-fly-record-red-names`): `git fetch origin handoff/r10-fly-record-red-names && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-CANCEL-SWEEP (stage carries-open, branch `handoff/r10-fly-cancel-sweep`): `git fetch origin handoff/r10-fly-cancel-sweep && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-TICK-APPROVAL-OWED (stage carries-open, branch `handoff/r10-fly-tick-approval-owed`): `git fetch origin handoff/r10-fly-tick-approval-owed && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-SEAT-ALIVE-ID (stage in-progress, branch `handoff/r10-fly-seat-alive-id`): `git fetch origin handoff/r10-fly-seat-alive-id && git worktree add --detach $SEAT/wt FETCH_HEAD`
@@ -53,7 +51,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-AUDIT-COVERAGE-ENDGAME (stage queued): no branch pushed yet, so nothing to fetch
 - R10-FLY-CLOSURE-MAJOR (stage in-progress): no branch pushed yet, so nothing to fetch
 
-Ready next (after-edges satisfied; nothing open constrains them): R10-996-RUNNER-CLAIMS, R10-ARCHSCORE-SPELLINGS, R10-BRIEFS-FOLD-D0, R10-CEILING-PROBE, R10-COP-PARTLOAD, R10-FACTORY-RESET, R10-FLOW-BOARD, R10-FLOW-DESIGN-STAGES, R10-FLY-BUS-BASH32, R10-FLY-CANCEL-SWEEP, R10-FLY-CARRY-DOC-CONTEXT, R10-FLY-CIPREDICT-RESTORING, R10-FLY-CLOSURE-MAJOR, R10-FLY-DAEMONIZE-ARGV, R10-FLY-GH-CALL-LOG, R10-FLY-LEDGER-SAMPLE, R10-FLY-MANDATE-REVOKE-GUARD, R10-FLY-MUTANT-RESTORE, R10-FLY-NO-FOOTERS, R10-FLY-OPENPR-ATOMIC, R10-FLY-RECORD-RED-NAMES, R10-FLY-RELAY-DELIVERED-GUARD, R10-FLY-ROW-HEAD-CARRY, R10-FLY-SEAT-ALIVE-ID, R10-FLY-STAMP-CHECK-NOTES, R10-FLY-STANDING-CONTRACTS, R10-FLY-SUITE-ENV-FLAKES, R10-FLY-TICK-APPROVAL-OWED, R10-FLY-TRAIN-DEFAULTS, R10-FRICTION-REGRESSION, R10-HOTFIX-AWAY-PRESENCE, R10-MERGE-SUBJECT-CASEARM, R10-ORCH-PLANPAGE, R10-ORCH-REVIEW-PACKET, R10-ORCH-ROSTER-SCHEMA, R10-PREPR-CAP, R10-REPLAY-REAL-DAY, R10-TRAIN-OVERLAP-GRADE, R10-USER-DOCS-FINAL, R10-UX-HEALTH, R10-WOOD-NOTIFY
+Ready next (after-edges satisfied; nothing open constrains them): R10-996-RUNNER-CLAIMS, R10-ARCHSCORE-SPELLINGS, R10-BRIEFS-FOLD-D0, R10-CEILING-PROBE, R10-COP-PARTLOAD, R10-FACTORY-RESET, R10-FLOW-BOARD, R10-FLOW-DESIGN-STAGES, R10-FLY-BUS-BASH32, R10-FLY-CANCEL-SWEEP, R10-FLY-CARRY-DOC-CONTEXT, R10-FLY-CIPREDICT-RESTORING, R10-FLY-CLOSURE-MAJOR, R10-FLY-GH-CALL-LOG, R10-FLY-LEDGER-SAMPLE, R10-FLY-MANDATE-REVOKE-GUARD, R10-FLY-MUTANT-RESTORE, R10-FLY-NO-FOOTERS, R10-FLY-OPENPR-ATOMIC, R10-FLY-RELAY-DELIVERED-GUARD, R10-FLY-ROW-HEAD-CARRY, R10-FLY-SEAT-ALIVE-ID, R10-FLY-STAMP-CHECK-NOTES, R10-FLY-STANDING-CONTRACTS, R10-FLY-SUITE-ENV-FLAKES, R10-FLY-TICK-APPROVAL-OWED, R10-FLY-TRAIN-DEFAULTS, R10-FRICTION-REGRESSION, R10-HOTFIX-AWAY-PRESENCE, R10-MERGE-SUBJECT-CASEARM, R10-ORCH-PLANPAGE, R10-ORCH-REVIEW-PACKET, R10-ORCH-ROSTER-SCHEMA, R10-PREPR-CAP, R10-REPLAY-REAL-DAY, R10-TRAIN-OVERLAP-GRADE, R10-USER-DOCS-FINAL, R10-UX-HEALTH, R10-WOOD-NOTIFY
 
 ## Resume steps
 
