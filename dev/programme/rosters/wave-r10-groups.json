@@ -12580,7 +12580,7 @@
     "R10-FACTORY-RESET's learners scope: the single void path its brief names is `HeatPumpOptimizerCoordinator.async_reset_heat_loss_learners(learners)`, which waits for the thermal store's read, calls `_void_heat_loss_learners` and saves. Learner names are `const.HEAT_LOSS_LEARNERS`. The caller asks for the refresh, off the action for an entity and awaited for a service (`tests/features.py`'s RC2 rows refuse an entity action that awaits the solve). Its snapshot before the reset must be taken before this call. Carry: R10-FACTORY-RESET"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r10-factory-reset",
     "commit": null,
     "last_step": null,
