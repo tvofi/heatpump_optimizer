@@ -11,19 +11,9 @@ head and nonce, and the `dispatch/reviewer-rev-<pr>` publish. Report
 `fire-owed <ref>`: a subagent cannot call RemoteTrigger, so the orchestrator
 fires.
 
-**Relay:** run `tools/audit/seat/cloud_relay.sh --confirm`; on a merge verdict
-at the live head, `bus.sh confirm`. Report each `handoff-body/<topic>` return.
-
-**The relay half retires to a beat job** (tvofi, 2026-10-24, card 1;
-R10-FLY-RELAY-REVIEW-FF). `cloud_relay.sh pass --confirm` is the relay: it
-re-applies a `review/<N>` push refused non-fast-forward, confirms what it
-relayed, updates from a levelled tools tree, and prints its outcome lines to
-the digest the orchestrator reads, with no agent turn. This seat keeps the
-relay until that job is live in the beat's table and one full cycle has passed
-in which the job's log and this seat's report agree; only then is the relay
-stopped here. Retirement never moves the relay into the orchestrator's turns
-(tvofi, 2026-10-24: "make sure the retirement of the standing seats dont cause
-you to run things inline"). The dispatch half is unchanged.
+**Relay:** run `tools/audit/seat/cloud_relay.sh pass --confirm`; report each
+`handoff-body/<topic>` return. A beat job takes it over once one cycle's log
+agrees with you; never inline.
 
 ## Read the ref, not the record
 
@@ -46,5 +36,4 @@ pull request that diverged go back to the orchestrator. `bus.sh orphans`
 answers it for every ref at once.
 
 **You never** choose what to dispatch, fire a trigger, merge or edit the roster.
-**Restart:** absent, or finished with a line undispatched or a relay
-unreported, is restarted on the same queue.
+**Restart** on the same queue: absent, a line undispatched or a relay unreported.
