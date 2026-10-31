@@ -13,7 +13,7 @@ from homeassistant import config_entries
 from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.data_entry_flow import section
-from homeassistant.helpers import device_registry as dr, entity_registry as er, selector
+from homeassistant.helpers import entity_registry as er, selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.translation import async_get_translations
 from homeassistant.helpers.typing import UNDEFINED, UndefinedType
@@ -124,6 +124,7 @@ from .const import (
     CONF_HEAT_PUMP_COP_NOMINAL,
     CONF_HEAT_PUMP_MAX_POWER,
     CONF_HEAT_PUMP_MIN_POWER,
+    CONF_HEAT_PUMP_COP_PARTLOAD_DERATE,
     CONF_UPPER_FLOOR_THERMAL_MASS,
     CONF_LOWER_FLOOR_THERMAL_MASS,
     CONF_UPPER_FLOOR_HEAT_LOSS,
@@ -197,6 +198,7 @@ from .const import (
     DEFAULT_HEAT_PUMP_COP_NOMINAL,
     DEFAULT_HEAT_PUMP_MAX_POWER,
     DEFAULT_HEAT_PUMP_MIN_POWER,
+    MAX_HEAT_PUMP_COP_PARTLOAD_DERATE,
     DEFAULT_UPPER_FLOOR_THERMAL_MASS,
     DEFAULT_LOWER_FLOOR_THERMAL_MASS,
     DEFAULT_UPPER_FLOOR_HEAT_LOSS,
@@ -417,7 +419,7 @@ from . import (
     topology,
 )
 from .wood_fuel import wood_furnace_on
-from .thermal_model import ThermalParameters, _dhw_enabled_from_config
+from .thermal_model import ThermalParameters, _dhw_enabled_from_config, partload_derate_limit
 from .currency import money_scale, resolve_currency
 from .dhw_schedule import (
     ERROR_TOO_SHORT as DHW_ERROR_TOO_SHORT,
@@ -887,6 +889,22 @@ def _power_errors(
         candidate, current, CONF_HEAT_PUMP_MAX_POWER, DEFAULT_HEAT_PUMP_MAX_POWER
     ):
         return {CONF_HEAT_PUMP_MIN_POWER: "min_power_above_max"}
+    return {}
+
+
+def _partload_errors(
+    candidate: dict[str, Any], current: dict[str, Any]
+) -> dict[str, str]:
+    """A part-load derate at or above its band's limit makes delivered heat
+    fall with power at the top of the band (``partload_derate_limit``), and
+    the model would refuse it to 0 unseen; the form says so on the field."""
+    derate = _effective(candidate, current, CONF_HEAT_PUMP_COP_PARTLOAD_DERATE, 0.0)
+    limit = partload_derate_limit(
+        _effective(candidate, current, CONF_HEAT_PUMP_MIN_POWER, DEFAULT_HEAT_PUMP_MIN_POWER),
+        _effective(candidate, current, CONF_HEAT_PUMP_MAX_POWER, DEFAULT_HEAT_PUMP_MAX_POWER),
+    )
+    if derate >= limit:  # the limit is positive, so 0 always passes
+        return {CONF_HEAT_PUMP_COP_PARTLOAD_DERATE: "partload_derate_above_limit"}
     return {}
 
 
@@ -1681,6 +1699,7 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     _F("thermal_model", CONF_HEAT_PUMP_COP_NOMINAL, _SUGGESTED, _number(1.5, 6.0, 0.1)),
     _F("thermal_model", CONF_HEAT_PUMP_MAX_POWER, _SUGGESTED, _number(1, 20, 0.5, 'kW')),
     _F("thermal_model", CONF_HEAT_PUMP_MIN_POWER, _SUGGESTED, _number(0, 10, 0.5, 'kW')),
+    _F("thermal_model", CONF_HEAT_PUMP_COP_PARTLOAD_DERATE, _SUGGESTED, _number(0, MAX_HEAT_PUMP_COP_PARTLOAD_DERATE, 0.01)),
     # -- thermal_model_zones
     _F("thermal_model_zones", CONF_TWO_ZONE_MODE, _Suggested(TWO_ZONE_MODE_AUTO), _select(list(TWO_ZONE_MODES), 'two_zone_mode'), group="mode"),
     _F("thermal_model_zones", CONF_UPPER_FLOOR_THERMAL_MASS, _SUGGESTED, _number(*RANGE_ZONE_THERMAL_MASS, 0.5, 'kWh/°C'), group="zones"),
@@ -2151,8 +2170,13 @@ def _prefill_errors(saved: dict[str, Any], current: dict[str, Any]) -> dict[str,
         saved, current
     ):
         errors["base"] = "dhw_min_too_close"
-    if CONF_HEAT_PUMP_MAX_POWER in saved and _power_errors(saved, current):
-        errors["base"] = "min_power_above_max"
+    # Either half of the band moves the derate's limit, and the form shows
+    # neither the floor nor the derate, so each refusal lands on ``base``.
+    if {CONF_HEAT_PUMP_MIN_POWER, CONF_HEAT_PUMP_MAX_POWER} & saved.keys():
+        for problem in (
+            _power_errors(saved, current) or _partload_errors(saved, current)
+        ).values():
+            errors["base"] = problem
     return errors
 
 
@@ -3208,7 +3232,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         current = self._current
         if user_input is not None:
             user_input = _flatten_section_input(user_input)
-            errors = _power_errors(user_input, self._current)
+            errors = _power_errors(user_input, current) or _partload_errors(user_input, current)
             if not errors:
                 saved = dict(user_input)
                 _disarm_preset_on_derived_edit(saved, self._current)

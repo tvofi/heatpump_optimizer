@@ -991,6 +991,7 @@
           "heat_pump_cop_nominal": "Heat pump nominal COP",
           "heat_pump_max_power": "Heat pump max power (kW)",
           "heat_pump_min_power": "Heat pump min power (kW)",
+          "heat_pump_cop_partload_derate": "Heat pump COP loss at max power",
           "after_save": "After saving"
         },
         "data_description": {
@@ -1001,6 +1002,7 @@
           "heat_pump_cop_nominal": "Units of heat produced per unit of electricity under normal conditions. Check the data sheet; 3 to 4 is typical for air-to-water, 4 to 5 for ground source.",
           "heat_pump_max_power": "Electrical input at full output. Caps how much cheap electricity can be stored per hour.",
           "heat_pump_min_power": "Lowest electrical input the pump can run at without cycling on and off.",
+          "heat_pump_cop_partload_derate": "Share of efficiency lost running at max power rather than min power, as a fraction (0.1 = 10 %). Larger heat flows need larger temperature differences across the heat exchangers. 0 leaves power out of the COP; typical air-to-water units lose 0.05 to 0.15. A heat meter is not needed. Keep it below band / (band + max power), band being max minus min power, or heat would fall as power rises.",
           "after_save": "Saving writes through immediately; this chooses where the dialog goes next."
         }
       },
@@ -1519,6 +1521,7 @@
       "night_above_day": "The night temperature is above the day temperature.",
       "day_window_empty": "The day would end at or before it starts, leaving no daytime period at all.",
       "comfort_outside_band": "Day and night comfort temperatures must sit inside the comfort band",
+      "partload_derate_above_limit": "This COP loss is too steep for the power band: delivered heat would fall as power rises towards maximum. Keep it below band / (band + maximum power), where band is maximum minus minimum power: below 0.44 for a 1-5 kW pump, below 0.17 for a 4-5 kW one.",
       "min_power_above_max": "The heat pump's minimum power is above its maximum power.",
       "stored_value_out_of_range": "This value is outside the range this field normally accepts. The range was widened so the page can still be saved — check the value, and correct it if it looks wrong.",
       "flow_target_needs_two_zone": "\"Flow temperature\" derives from the two-zone building model's own flow curve, which this entry does not have configured. Configure the two-zone model first, or leave this at \"Indoor temperature\".",
@@ -2048,6 +2051,9 @@
       "learning_reset_comfort_weight": {
         "name": "Learning Reset Comfort Weight"
       },
+      "learning_reset_heat_loss": {
+        "name": "Learning Reset Heat Loss"
+      },
       "learning_run_system_identification": {
         "name": "Learning Run System Identification"
       },
@@ -2463,6 +2469,20 @@
         "source": {
           "name": "Restart point",
           "description": "The weekly snapshot (default), or the drift advisor's heat-loss refit."
+        }
+      }
+    },
+    "reset_heat_loss_learners": {
+      "name": "Reset Heat Loss Learning",
+      "description": "Return the learned house heat loss scale and the learned lower floor loss ratio to 1.0, so the plan uses the heat loss values in the settings as they stand, and the learners start collecting evidence again from there. Use this after you have corrected those settings, moved a temperature sensor, or when the learned values have visibly gone wrong. Only these two are reset: the comfort weight, the hot water, COP and defrost learners are left as they are. The plan is recalculated straight away.",
+      "fields": {
+        "entry_id": {
+          "name": "Config entry",
+          "description": "Restrict the reset to one config entry. Leave empty to reset every configured heat pump."
+        },
+        "learners": {
+          "name": "Learners",
+          "description": "Which to reset: the house heat loss scale, the lower floor loss ratio, or both. Leave empty to reset both."
         }
       }
     },

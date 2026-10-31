@@ -675,6 +675,8 @@ SERVICE_RESTORE_SNAPSHOT: Final = "restore_learned_snapshot"
 SERVICE_DIAGNOSE_INTERVAL: Final = "diagnose_interval"
 #: #1939 — start, stop or read an entry's debug collection.
 SERVICE_DEBUG_COLLECT: Final = "debug_collect"
+#: R10-HOTFIX-LEARNER-INPUTS — the heat-loss learners back to the configuration.
+SERVICE_RESET_HEAT_LOSS: Final = "reset_heat_loss_learners"
 MANUAL_PLAN_STORE_VERSION: Final = 1
 # A full solve is seconds of CPU. Dragging a slider must not trigger one per
 # pixel, so simulation requests are rate-limited to this interval.
@@ -727,6 +729,7 @@ CONF_SLAB_HEAT_TRANSFER: Final = "slab_heat_transfer"  # kW/°C
 CONF_HEAT_PUMP_COP_NOMINAL: Final = "heat_pump_cop_nominal"
 CONF_HEAT_PUMP_MAX_POWER: Final = "heat_pump_max_power"  # kW electrical
 CONF_HEAT_PUMP_MIN_POWER: Final = "heat_pump_min_power"  # kW electrical
+CONF_HEAT_PUMP_COP_PARTLOAD_DERATE: Final = "heat_pump_cop_partload_derate"
 
 # Two-zone model parameters
 #
@@ -1195,6 +1198,12 @@ DEFAULT_SLAB_HEAT_TRANSFER: Final = 0.8  # kW/°C - slab to room
 DEFAULT_HEAT_PUMP_COP_NOMINAL: Final = 3.5
 DEFAULT_HEAT_PUMP_MAX_POWER: Final = 5.0  # kW
 DEFAULT_HEAT_PUMP_MIN_POWER: Final = 1.0  # kW
+#: COP share lost at max power against min power. 0 prices no part-load
+#: effect: without a heat meter the slope is not observable on an install.
+DEFAULT_HEAT_PUMP_COP_PARTLOAD_DERATE: Final = 0.0
+#: Upper bound on the configured derate; the plant grid of
+#: dev/audit/harnesses/r10_cop_partload.py spans 0.03-0.19 at fixed lift.
+MAX_HEAT_PUMP_COP_PARTLOAD_DERATE: Final = 0.5
 
 # Two-zone defaults
 DEFAULT_UPPER_FLOOR_THERMAL_MASS: Final = 3.0  # kWh/°C - lighter (radiators + air)
@@ -1417,6 +1426,9 @@ LOWER_FLOOR_LOSS_RATIO_MAX: Final = 3.0
 # selector, where no interval is space-only. A counter install folds the
 # scale at span close alone, so it mixes nothing.
 HEAT_LOSS_BASES: Final = ("commanded", "metered", "measured_heat")
+#: The heat-loss learners by their store key: what the one void path
+#: (``_void_heat_loss_learners``) resets and the reset action's ``learners`` offers.
+HEAT_LOSS_LEARNERS: Final = ("house_heat_loss_scale", "lower_floor_loss_ratio")
 
 # DHW demand window defaults
 DEFAULT_DHW_SCHEDULE_ENABLED: Final = True

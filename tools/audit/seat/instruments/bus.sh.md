@@ -22,4 +22,16 @@
   head is unfit: rc 1, a named signal) refuses the dispatch and records
   nothing; a packet this seat cannot RENDER (rc 3, `UNAVAILABLE`: no checkout,
   no `gh`, no token, an unwritable path) dispatches anyway, names no packet,
-  and says why in `review-packet: unavailable -- <reason>`.
+  and says why in `review-packet: unavailable -- <reason>`. A head is
+  dispatched only when `merge_train.py classify` reads it reviewable: RED (a
+  required context's latest run concluded failure) or an unreadable answer
+  refuses and records nothing; GREEN and WAIT dispatch (`$HPO_BUS_CLASSIFY`
+  replaces the command in self-tests).
+
+The design steps (decision 0014) write the same append-only way:
+`bus.sh push-design <topic> <design.md>` adds `design.md` to `design/<topic>`;
+`bus.sh push-design-verdict <topic> <verdict.md>` adds `verdict.md` to
+`design-verdict/<topic>`. The topic is the roster group id. The verdict's first
+line is `Design review: approve <sha>` or `Design review: revise <sha> <class>`,
+and `<sha>` must be the current tip of `design/<topic>`: a design that moved
+under the review is refused, and so is a topic with no design ref.

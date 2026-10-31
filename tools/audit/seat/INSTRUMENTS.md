@@ -54,7 +54,7 @@ sweep's standing-seat liveness step keep them alive.
 - [`ci-watch.sh`](instruments/ci-watch.sh.md) — watches open PRs' check states and alerts only on NEW states (per-PR signature file)
 - [`ci_critpath.py`](instruments/ci_critpath.py.md) — one workflow run's critical path from its job and step timestamps (each job's queue, duration and longest step), its `needs:` read from the run's own head
 - [`cloud-setup.sh`](instruments/cloud-setup.sh.md) — the cloud seat environment's setup script (interpreter, CI-run pinning)
-- [`cloud_dispatch.py`](instruments/cloud_dispatch.py.md) — renders the whole cloud-runner trigger payload
+- [`cloud_dispatch.py`](instruments/cloud_dispatch.py.md) — renders the whole cloud-runner trigger payload (reviewer, fixer, probe, designer, design-reviewer)
 - [`cloud_relay.sh`](instruments/cloud_relay.sh.md) — the orchestrator's half of a cloud reviewer's return
 - [`codeql-triage-poll.sh`](instruments/codeql-triage-poll.sh.md) — polls until GitHub attaches the #1769 evidence-alerts, dismisses them, re-runs CodeQL
 - [`daemonize.py`](instruments/daemonize.py.md) — detaches one long-running instrument from the session that started it
@@ -86,8 +86,10 @@ sweep's standing-seat liveness step keep them alive.
 - [`record_row.py`](instruments/record_row.py.md) — the record-autofix generator
 - [`ref_privacy.py`](instruments/ref_privacy.py.md) — the one owner of what a push may say about the host (#2310)
 - [`remerge_main.sh`](instruments/remerge_main.sh.md) — merges origin/main into an open PR (claimnotes merge driver), drops inherited claims, pushes as the App with `app_push.sh --recarry`
+- [`cancel_superseded.py sweep`](instruments/cancel_superseded.py.md) — cancels each open PR branch's active runs at a superseded head (`tools/pr/cancel_superseded.py`, one predicate), never a live-head, main, non-PR-event or bot-head run; ghosts reported; the sweep's step 4e
 - [`run_twins.py`](instruments/run_twins.py.md) — counts a workflow's cancelled `pull_request` runs that sat beside a same-SHA sibling (two events at one head, not a supersession)
 - [`resume_doc.py`](instruments/resume_doc.py.md) — generates the resume markdown from the roster plus live PR state, under a byte budget
+- [`review_carry.py`](instruments/review_carry.py.md) — answers, from two shas and their commit range, whether a moved head still needs its own review
 - [`review_strength.py`](instruments/review_strength.py.md) — real-catch blocks per reviewed PR, incidence and first-pass share from the `review/*` bus and its `archive/review/*` tags, over git only (no REST), per window and per stratum
 - [`roster_edit.py`](instruments/roster_edit.py.md) — the safe roster edit
 - [`roster_lib.py`](instruments/roster_lib.py.md) — shared roster parsing and wave logic (depth, critical path, open groups, the branch-to-group lookup)
