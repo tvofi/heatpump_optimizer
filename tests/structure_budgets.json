@@ -11,11 +11,11 @@
  "functions_cc_over_25": 8,
  "import_cycle_modules": 0,
  "max_cc": 44,
- "max_class_loc": 8057,
+ "max_class_loc": 8056,
  "max_method_loc": 373,
  "methods_over_150": 15,
  "methods_over_200": 8,
  "name_kept_members": 38,
- "recorded_at": "14ed135512e3d7db899081f2c2639ce5674b8f2a",
+ "recorded_at": "460d7754f48630a9fa0d84c31be78bc78d71c02b",
  "seam_cut_total": 422
 }
