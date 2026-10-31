@@ -4331,7 +4331,7 @@ def _blank(m: re.Match) -> str:
 def stateless_text(text: str) -> str:
     """The prose a reader reads as a statement: fences, inline code, HTML comments and link targets blanked, line
     breaks kept so a hit keeps its line number."""
-    text = re.sub(r"^```.*?^```", _blank, text, flags=re.M | re.S)
+    text = _FENCE.sub(_blank, text)
     text = _COMMENT.sub(_blank, text)
     text = re.sub(r"`[^`\n]+`", _blank, text)
     text = re.sub(r"(?<=\])\([^)\s]*(?:\s+\"[^\"]*\")?\)", _blank, text)
