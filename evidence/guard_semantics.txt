@@ -1,0 +1,3 @@
+[X]
+[--no-ancestry][--no-content][sp ace][X]
+GNU bash, version 5.2.21(1)-release (x86_64-pc-linux-gnu)

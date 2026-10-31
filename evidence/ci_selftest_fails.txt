@@ -1,0 +1,155 @@
+6722:2026-10-31T20:33:52.1500481Z app_push self-test: 201 checks, 0 failed
+7000:2026-10-31T20:34:18.7237491Z app_approve self-test: 271 checks, 0 failed
+7049:2026-10-31T20:34:19.0514022Z merge_main_bot self-test: 42 checks, 0 failed
+7108:2026-10-31T20:34:19.1088995Z cancel_superseded self-test: 44 checks, 0 failed
+7155:2026-10-31T20:34:19.2703972Z depgraph self-test: 22 checks, 0 failed
+7219:2026-10-31T20:34:22.3617673Z app_comment self-test: 57 checks, 0 failed
+7336:2026-10-31T20:34:42.8591094Z bus self-test: 110 checks, 0 failed
+7340:2026-10-31T20:34:42.8638033Z [36;1mgrep -Eq '^budget_raise_gate self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/brg-self-test.txt"[0m
+7582:2026-10-31T20:34:46.2365961Z budget_raise_gate self-test: 237 checks, 0 failed
+7586:2026-10-31T20:34:46.2464790Z [36;1mgrep -Eq '^codeql_scope self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/cqs-self-test.txt"[0m
+7687:2026-10-31T20:34:46.4042802Z codeql_scope self-test: 90 checks, 0 failed
+7693:2026-10-31T20:34:46.4140447Z [36;1mgrep -Eq '^merge_fastpath self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/mfp-self-test.txt"[0m
+7704:2026-10-31T20:34:46.4777721Z merge_fastpath self-test: 4 checks, 0 failed
+7708:2026-10-31T20:34:46.4906425Z [36;1mgrep -Eq '^plan_audit self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/pa-self-test.txt"[0m
+7740:2026-10-31T20:34:46.7138935Z plan_audit self-test: 27 checks, 0 failed
+7799:2026-10-31T20:34:46.7780598Z tmp_paths self-test: 50 checks, 0 failed
+7916:2026-10-31T20:34:48.8642097Z ref_privacy self-test: 97 checks, 0 failed
+7921:2026-10-31T20:34:49.3594766Z [36;1mgrep -Eq '^sweep_render self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/sr-self-test.txt"[0m
+7923:2026-10-31T20:34:49.3597759Z [36;1mgrep -Eq '^policy_reread_check self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/prc-self-test.txt"[0m
+7952:2026-10-31T20:34:49.4197033Z sweep_render self-test: 24 checks, 0 failed
+7968:2026-10-31T20:34:49.4654433Z policy_reread_check self-test: 15 checks, 0 failed
+7972:2026-10-31T20:34:49.4749975Z [36;1mgrep -Eq '^orchestrator_tick self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/ot-self-test.txt"[0m
+7977:2026-10-31T20:34:50.0404066Z orchestrator_tick self-test: 235 checks, 0 failed
+7981:2026-10-31T20:34:50.0612674Z [36;1mgrep -Eq '^selftest_wiring self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/sw-self-test.txt"[0m
+8013:2026-10-31T20:34:50.1179345Z selftest_wiring self-test: 26 checks, 0 failed
+8019:2026-10-31T20:34:50.2143380Z [36;1mgrep -Eq '^review_strength self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/review-strength-self-test.txt"[0m
+8143:2026-10-31T20:34:54.7342599Z review_strength self-test: 116 checks, 0 failed
+8147:2026-10-31T20:34:54.7474642Z [36;1mgrep -Eq '^ci_critpath self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/ci-critpath-self-test.txt"[0m
+8149:2026-10-31T20:34:54.7476174Z [36;1mgrep -Eq '^flow_metrics self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/flow-metrics-self-test.txt"[0m
+8181:2026-10-31T20:34:54.8234876Z ci_critpath self-test: 27 checks, 0 failed
+8198:2026-10-31T20:34:55.6472456Z flow_metrics self-test: 16 checks, 0 failed
+8202:2026-10-31T20:34:55.6613661Z [36;1mgrep -Eq '^body_patch self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/body-patch-self-test.txt"[0m
+8260:2026-10-31T20:35:00.2545303Z FAIL mutant lint changed nothing
+8263:2026-10-31T20:35:01.2788247Z FAIL MUTANT policy_lint arm deleted: the refused body is now SENT (got '0', want '1')
+8272:2026-10-31T20:35:04.6109919Z body_patch self-test: 64 checks, 1 failed
+8490:2026-10-31T20:35:10.0515404Z worktree_gc self-test: 66 checks, 0 failed
+8631:2026-10-31T20:35:16.3055828Z self-test: 0 failed
+8686:2026-10-31T20:35:35.9172524Z approve_held_runs self-test: 42 checks, 0 failed
+8687:2026-10-31T20:35:36.0983893Z gate_priority self-test: 12 checks, 0 failed
+8694:2026-10-31T20:35:36.1209050Z head_note self-test: 6 checks, 0 failed
+8921:2026-10-31T20:35:36.4099112Z agreement_py self-test: 7 checks, 0 failed
+8926:2026-10-31T20:35:36.9744037Z [36;1mgrep -Eq '^ci-watch self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/ci-watch-self-test.txt"[0m
+8946:2026-10-31T20:35:37.6467255Z ci-watch self-test: 15 checks, 0 failed
+8950:2026-10-31T20:35:37.6553176Z [36;1mgrep -Eq '^cloud_dispatch self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/cloud-dispatch-self-test.txt"[0m
+9079:2026-10-31T20:35:41.5592891Z cloud_dispatch self-test: 124 checks, 0 failed
+9083:2026-10-31T20:35:41.5772468Z [36;1mgrep -Eq '^cloud_relay self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/cloud-relay-self-test.txt"[0m
+9382:2026-10-31T20:36:19.2083958Z cloud_relay self-test: 294 checks, 0 failed
+9386:2026-10-31T20:36:19.2432191Z [36;1mgrep -Eq '^ledger self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/ledger-self-test.txt"[0m
+9472:2026-10-31T20:36:21.3674904Z ledger self-test: 77 checks, 0 failed
+9476:2026-10-31T20:36:21.3795443Z [36;1mgrep -Eq '^roster_queue self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/roster-queue-self-test.txt"[0m
+9482:2026-10-31T20:36:21.7651606Z roster_queue self-test: 17 checks, 0 failed
+9486:2026-10-31T20:36:21.7771448Z [36;1mgrep -Eq '^owed_unactioned self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/owed-unactioned-self-test.txt"[0m
+9491:2026-10-31T20:36:21.8297916Z owed_unactioned self-test: 46 checks, 0 failed
+9520:2026-10-31T20:36:22.0897013Z [36;1mgrep -Eq '^delivery_row self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/delivery-row-self-test.txt"[0m
+9531:2026-10-31T20:36:22.2075886Z delivery_row self-test: 6 checks, 0 failed
+9551:2026-10-31T20:36:22.2736680Z [36;1mgrep -Eq '^features_block self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/features-block-self-test.txt"[0m
+9557:2026-10-31T20:36:22.2966350Z features_block self-test: 1 checks, 0 failed
+9561:2026-10-31T20:36:22.3060126Z [36;1mgrep -Eq '^delivery_row self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/handoff-push-self-test.txt"[0m
+9562:2026-10-31T20:36:22.3060869Z [36;1mgrep -Eq '^handoff_push self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/handoff-push-self-test.txt"[0m
+9573:2026-10-31T20:36:22.4363018Z delivery_row self-test: 6 checks, 0 failed
+9580:2026-10-31T20:36:23.5084753Z handoff_push self-test: 6 checks, 0 failed
+9584:2026-10-31T20:36:23.5158196Z [36;1mgrep -Eq '^handover_prompt self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/handover-prompt-self-test.txt"[0m
+9589:2026-10-31T20:36:23.5590025Z handover_prompt self-test: 15 checks, 0 failed
+9593:2026-10-31T20:36:23.5702953Z [36;1mgrep -Eq '^merge_pr self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/merge-pr-self-test.txt"[0m
+9616:2026-10-31T20:36:24.8300899Z merge_pr self-test: 18 checks, 0 failed
+9620:2026-10-31T20:36:24.8355305Z [36;1mgrep -Eq '^moved_paths self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/moved-paths-self-test.txt"[0m
+9636:2026-10-31T20:36:24.8792898Z moved_paths self-test: 11 checks, 0 failed
+9640:2026-10-31T20:36:24.8900617Z [36;1mgrep -Eq '^delivery_row self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/open-pr-self-test.txt"[0m
+9641:2026-10-31T20:36:24.8901297Z [36;1mgrep -Eq '^pr_args self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/open-pr-self-test.txt"[0m
+9652:2026-10-31T20:36:25.0191985Z delivery_row self-test: 6 checks, 0 failed
+9705:2026-10-31T20:37:05.6002982Z   FAIL   mutant mut:grace (the KILL line deleted): the TERM-proof child survives
+9825:2026-10-31T20:39:27.1779028Z   ok   pr_cap.py --self-test: its tally says 0 failed
+9826:2026-10-31T20:39:27.3301455Z pr_args self-test: 158 checks, 1 failed
+9831:2026-10-31T20:39:27.3427383Z [36;1mgrep -Eq '^plan_table self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/plan-table-self-test.txt"[0m
+9837:2026-10-31T20:39:27.3849623Z plan_table self-test: 25 checks, 0 failed
+9841:2026-10-31T20:39:27.3961647Z [36;1mgrep -Eq '^plan_page self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/plan-page-self-test.txt"[0m
+9848:2026-10-31T20:39:27.5568576Z plan_page self-test: 60 checks, 0 failed
+9852:2026-10-31T20:39:27.5697599Z [36;1mgrep -Eq '^pr_args self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/pr-args-self-test.txt"[0m
+9909:2026-10-31T20:40:07.9333134Z   FAIL   mutant mut:grace (the KILL line deleted): the TERM-proof child survives
+10029:2026-10-31T20:42:31.1726308Z   ok   pr_cap.py --self-test: its tally says 0 failed
+10030:2026-10-31T20:42:31.3172559Z pr_args self-test: 158 checks, 1 failed
+10035:2026-10-31T20:42:31.3288113Z [36;1mgrep -Eq '^pr_cap self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/pr-cap-self-test.txt"[0m
+10062:2026-10-31T20:42:31.3747353Z pr_cap self-test: 21 checks, 0 failed
+10066:2026-10-31T20:42:31.3847927Z [36;1mgrep -Eq '^proof_watch self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/proof-watch-self-test.txt"[0m
+10115:2026-10-31T20:42:31.4742950Z proof_watch self-test: 43 checks, 0 failed
+10157:2026-10-31T20:42:31.5603136Z [36;1mgrep -Eq '^pulse self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/pulse-self-test.txt"[0m
+10199:2026-10-31T20:42:31.8454833Z pulse self-test: 37 checks, 0 failed
+10208:2026-10-31T20:42:32.3256894Z gh_read self-test: 122 checks, 0 failed
+10213:2026-10-31T20:42:32.3443814Z [36;1mgrep -Eq '^resume_doc self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/resume-doc-self-test.txt"[0m
+10220:2026-10-31T20:42:32.3902976Z resume_doc self-test: 14 checks, 0 failed
+10224:2026-10-31T20:42:32.4015667Z [36;1mgrep -Eq '^review_packet self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/review-packet-self-test.txt"[0m
+10280:2026-10-31T20:42:33.4588353Z review_packet self-test: 51 checks, 0 failed
+10284:2026-10-31T20:42:33.4698629Z [36;1mgrep -Eq '^review_carry self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/review-carry-self-test.txt"[0m
+10315:2026-10-31T20:42:34.2553501Z review_carry self-test: 26 checks, 0 failed
+10319:2026-10-31T20:42:34.2655513Z [36;1mgrep -Eq '^roster_edit self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/roster-edit-self-test.txt"[0m
+10545:2026-10-31T20:42:40.4969749Z roster_edit self-test: 131 checks, 0 failed
+10549:2026-10-31T20:42:40.5106249Z [36;1mgrep -Eq '^r10_roster_ops_mutants self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/r10-roster-ops-mutants-self-test.txt"[0m
+10653:2026-10-31T20:42:40.9599971Z r10_roster_ops_mutants self-test: 99 checks, 0 failed
+10657:2026-10-31T20:42:40.9672582Z [36;1mgrep -Eq '^r10_stamp_round_mutants self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/r10-stamp-round-mutants-self-test.txt"[0m
+10670:2026-10-31T20:42:41.1521152Z r10_stamp_round_mutants self-test: 8 checks, 0 failed
+10674:2026-10-31T20:42:41.1662877Z [36;1mgrep -Eq '^r10_ledger_mutants self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/r10-ledger-mutants-self-test.txt"[0m
+10814:2026-10-31T20:42:41.9292004Z r10_ledger_mutants self-test: 135 checks, 0 failed
+10818:2026-10-31T20:42:41.9413467Z [36;1mgrep -Eq '^roster_lib self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/roster-lib-self-test.txt"[0m
+10823:2026-10-31T20:42:42.2276809Z roster_lib self-test: 52 checks, 0 failed
+10827:2026-10-31T20:42:42.2391845Z [36;1mgrep -Eq '^roster_sync self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/roster-sync-self-test.txt"[0m
+10832:2026-10-31T20:42:42.9959152Z roster_sync self-test: 75 checks, 0 failed
+10836:2026-10-31T20:42:43.0119324Z [36;1mgrep -Eq '^run_twins self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/run-twins-self-test.txt"[0m
+10845:2026-10-31T20:42:43.0467789Z run_twins self-test: 4 checks, 0 failed
+10849:2026-10-31T20:42:43.0570288Z [36;1mgrep -Eq '^seat_venv self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/seat-venv-self-test.txt"[0m
+10875:2026-10-31T20:42:43.4878576Z seat_venv self-test: 21 checks, 0 failed
+10879:2026-10-31T20:42:43.4931224Z [36;1mgrep -Eq '^cloud_setup self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/cloud-setup-self-test.txt"[0m
+10897:2026-10-31T20:42:43.5637766Z cloud_setup self-test: 13 checks, 0 failed
+11098:2026-10-31T20:42:50.5687260Z [36;1mgrep -Eq '^tick_loop self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/tick-loop-self-test.txt"[0m
+11120:2026-10-31T20:42:57.5658645Z tick_loop self-test: 17 checks, 0 failed
+11124:2026-10-31T20:42:57.5717012Z [36;1mgrep -Eq '^heartbeat self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/heartbeat-self-test.txt"[0m
+11136:2026-10-31T20:42:59.0156774Z heartbeat self-test: 7 checks, 0 failed
+11140:2026-10-31T20:42:59.0212508Z [36;1mgrep -Eq '^beatd self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/beatd-self-test.txt"[0m
+11264:2026-10-31T20:47:33.1712819Z beatd self-test: 119 checks, 0 failed
+11268:2026-10-31T20:47:33.1802093Z [36;1mgrep -Eq '^delivery_row self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/update-pr-self-test.txt"[0m
+11269:2026-10-31T20:47:33.1802765Z [36;1mgrep -Eq '^pr_args self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/update-pr-self-test.txt"[0m
+11280:2026-10-31T20:47:33.3385365Z delivery_row self-test: 6 checks, 0 failed
+11333:2026-10-31T20:48:13.8945760Z   FAIL   mutant mut:grace (the KILL line deleted): the TERM-proof child survives
+11453:2026-10-31T20:50:35.1637856Z   ok   pr_cap.py --self-test: its tally says 0 failed
+11454:2026-10-31T20:50:35.3092885Z pr_args self-test: 158 checks, 1 failed
+11459:2026-10-31T20:50:35.3223517Z [36;1mgrep -Eq '^offline_spy self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/offline-spy-self-test.txt"[0m
+11474:2026-10-31T20:50:35.7197806Z offline_spy self-test: 10 checks, 0 failed
+11607:2026-10-31T20:50:36.3252767Z [36;1mgrep -Eq '^ghapi self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/ghapi-self-test.txt"[0m
+11612:2026-10-31T20:50:36.3839161Z ghapi self-test: 32 checks, 0 failed
+11616:2026-10-31T20:50:36.3975309Z [36;1mgrep -Eq '^prelude self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/prelude-self-test.txt"[0m
+11621:2026-10-31T20:50:36.4730360Z prelude self-test: 38 checks, 0 failed
+11625:2026-10-31T20:50:36.4870242Z [36;1mgrep -Eq '^gate self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/gate-self-test.txt"[0m
+11630:2026-10-31T20:50:36.5705376Z gate self-test: 37 checks, 0 failed
+11634:2026-10-31T20:50:36.5866304Z [36;1mgrep -Eq '^sweep self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/sweep-self-test.txt"[0m
+11639:2026-10-31T20:50:36.6177687Z sweep self-test: 23 checks, 0 failed
+11643:2026-10-31T20:50:36.6278037Z [36;1mgrep -Eq '^alert_list self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/alert-list-self-test.txt"[0m
+11674:2026-10-31T20:50:36.6675228Z alert_list self-test: 25 checks, 0 failed
+11678:2026-10-31T20:50:36.6746470Z [36;1mgrep -Eq '^ruleset_cutover self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/ruleset-cutover-self-test.txt"[0m
+11683:2026-10-31T20:50:36.9466505Z ruleset_cutover self-test: 101 checks, 0 failed
+11687:2026-10-31T20:50:36.9623838Z [36;1mgrep -Eq '^sweep_driver self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/sweep-driver-self-test.txt"[0m
+11692:2026-10-31T20:50:37.0089963Z sweep_driver self-test: 20 checks, 0 failed
+11696:2026-10-31T20:50:37.0198366Z [36;1mgrep -Eq '^ci_probe self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/ci-probe-self-test.txt"[0m
+11701:2026-10-31T20:50:38.2050020Z ci_probe self-test: 55 checks, 0 failed
+11705:2026-10-31T20:50:38.2213359Z [36;1mgrep -Eq '^codescan_wait self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/codescan-wait-self-test.txt"[0m
+11729:2026-10-31T20:50:38.2939590Z codescan_wait self-test: 17 checks, 0 failed
+11733:2026-10-31T20:50:38.3077211Z [36;1mgrep -Eq '^ci_predict self-test: 0 failed$' "$RUNNER_TEMP/ci-predict-self-test.txt"[0m
+11798:2026-10-31T20:52:13.9148361Z ci_predict self-test: 0 failed
+11802:2026-10-31T20:52:13.9295491Z [36;1mgrep -Eq '^local_alerts self-test: 0 failed$' "$RUNNER_TEMP/local-alerts-self-test.txt"[0m
+11813:2026-10-31T20:52:13.9852440Z local_alerts self-test: 0 failed
+11825:2026-10-31T20:52:14.0860240Z    alert_list self-test: 25 checks, 2 failed
+11829:2026-10-31T20:52:14.1413872Z    alert_list self-test: 25 checks, 2 failed
+11832:2026-10-31T20:52:14.1912211Z    alert_list self-test: 25 checks, 1 failed
+11860:2026-10-31T20:52:14.4905404Z    alert_list self-test: 25 checks, 12 failed
+11864:2026-10-31T20:52:14.5392192Z    alert_list self-test: 25 checks, 2 failed
+11871:2026-10-31T20:52:14.5895056Z    alert_list self-test: 25 checks, 5 failed
+11874:2026-10-31T20:52:14.6408995Z    alert_list self-test: 25 checks, 1 failed

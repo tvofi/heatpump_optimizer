@@ -1,0 +1,74 @@
+=== MUTANT M1-no-guard
+FAIL the guarded form passes: got [(3, 'f ${arms[@]+"${arms[@]}"} x')], want []
+bare_array self-test: FAILED
+self-test rc=1
+FAIL the guarded form passes: got [(3, 'f ${arms[@]+"${arms[@]}"} x')], want []
+bare_array self-test: FAILED
+FAIL no tracked tools/**/*.sh script under set -u expands a bare "${array[@]}"
+FAIL bare_array: the guarded form passes (control)
+FAIL bare_array: its own self-test passes
+ROWS-FAILED 3
+base bus.sh hits: 1
+=== MUTANT M2-no-check
+FAIL a bare expansion under set -u is refused: got 0, want 1
+FAIL a marker with no reason does not excuse: got 0, want 1
+FAIL set -euo counts as set -u: got 0, want 1
+FAIL a guard on one array does not excuse another on the line: got 0, want 1
+FAIL a guard names its own array: got 0, want 1
+bare_array self-test: FAILED
+self-test rc=1
+FAIL a bare expansion under set -u is refused: got 0, want 1
+FAIL a marker with no reason does not excuse: got 0, want 1
+FAIL set -euo counts as set -u: got 0, want 1
+FAIL a guard on one array does not excuse another on the line: got 0, want 1
+FAIL a guard names its own array: got 0, want 1
+bare_array self-test: FAILED
+FAIL bare_array: the base bus.sh call is refused
+FAIL bare_array: its own self-test passes
+ROWS-FAILED 2
+base bus.sh hits: 0
+=== MUTANT M3-set-u-exact
+FAIL a bare expansion under set -u is refused: got 0, want 1
+FAIL a marker with no reason does not excuse: got 0, want 1
+FAIL set -euo counts as set -u: got 0, want 1
+FAIL a guard on one array does not excuse another on the line: got 0, want 1
+FAIL a guard names its own array: got 0, want 1
+bare_array self-test: FAILED
+self-test rc=1
+FAIL a bare expansion under set -u is refused: got 0, want 1
+FAIL a marker with no reason does not excuse: got 0, want 1
+FAIL set -euo counts as set -u: got 0, want 1
+FAIL a guard on one array does not excuse another on the line: got 0, want 1
+FAIL a guard names its own array: got 0, want 1
+bare_array self-test: FAILED
+FAIL bare_array: the base bus.sh call is refused
+FAIL bare_array: its own self-test passes
+ROWS-FAILED 2
+base bus.sh hits: 0
+=== MUTANT M4-empty-marker
+FAIL a marker with no reason does not excuse: got 0, want 1
+bare_array self-test: FAILED
+self-test rc=1
+FAIL a marker with no reason does not excuse: got 0, want 1
+bare_array self-test: FAILED
+FAIL bare_array: its own self-test passes
+ROWS-FAILED 1
+base bus.sh hits: 1
+=== MUTANT M5-any-guard
+FAIL a guard names its own array: got 0, want 1
+bare_array self-test: FAILED
+self-test rc=1
+FAIL a guard names its own array: got 0, want 1
+bare_array self-test: FAILED
+FAIL bare_array: its own self-test passes
+ROWS-FAILED 1
+base bus.sh hits: 1
+=== MUTANT M6-no-comment-skip
+FAIL a comment line is skipped: got [(3, '# f "${a[@]}"')], want []
+bare_array self-test: FAILED
+self-test rc=1
+FAIL a comment line is skipped: got [(3, '# f "${a[@]}"')], want []
+bare_array self-test: FAILED
+FAIL bare_array: its own self-test passes
+ROWS-FAILED 1
+base bus.sh hits: 1

@@ -1,0 +1,8 @@
+origin/main a7dd7f50d67e0c3819956b15ef95d77f4f6ebfc0
+96b3b0b9c31b5d3ac64ff5e449a581887b0ee359
+merge-tree rc=0
+identical-to-main tests/golden/claimed_drift.txt
+identical-to-main tests/golden/card_claimed_drift.txt
+identical-to-main VERSION
+identical-to-main RELEASE_NOTES.md
+identical-to-main custom_components/heatpump_optimizer/manifest.json

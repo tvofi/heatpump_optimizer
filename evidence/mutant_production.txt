@@ -1,0 +1,8 @@
+ tools/audit/seat/bus.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+=== production mutant: bus.sh guard reverted (committed in scratch)
+tools/audit/seat/bus.sh:654: | python3 -I "$ROOT/tools/audit/seat/ledger.py" landed "${arms[@]}" "$main" $fix_heads)"$LF \
+check rc=1
+FAIL no tracked tools/**/*.sh script under set -u expands a bare "${array[@]}"
+ROWS-FAILED 1
+6a988a237f91a853d006f7908e41cfbd30bc9bc9
