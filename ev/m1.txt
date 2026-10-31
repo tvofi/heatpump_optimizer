@@ -1,0 +1,2 @@
+  FAIL verdict levels: BLOCKED + REVIEW_REQUIRED + merge at the head: APPROVAL-OWED, flagged, and nothing else
+orchestrator_tick self-test: 230 checks, 1 failed

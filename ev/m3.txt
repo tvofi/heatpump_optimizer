@@ -1,0 +1,4 @@
+FAIL UNLEVELLED: keyed #3029 on its head8, unactioned on the second sweep
+FAIL UNLEVELLED: an OWED-ACK on #<N> <head8> covers it
+FAIL UNLEVELLED: a new head8 re-raises
+owed_unactioned self-test: 43 checks, 3 failed
