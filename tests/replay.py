@@ -103,6 +103,7 @@ import io
 import json
 import math
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -606,7 +607,7 @@ def sanitiser_checks(paths: list[Path]) -> list[tuple[str, bool, str]]:
     res.append(("control:sanitise_clears",
                 not export.violations(export.sanitise(raw, conf, dropped), conf),
                 f"dropped {len(dropped)} value(s)"))
-    return res + leak_probes() + tibber_price_checks()
+    return res + leak_probes() + tibber_price_checks() + recorder_checks() + mask_checks()
 
 
 #: The review of #1508's leak probe (the first eleven): shapes of private data a recorder
@@ -640,6 +641,10 @@ LEAK_PROBES = {
     "n11_host_path_unit": {"unit_of_measurement": "home.local/api/x"},
     "entry_n13_text_in_entity_key": {"weather_entity": "Storgatan 12 Stockholm"},
     "n14_mac_no_colons": {"options": ["aabbccddeeff"]},
+    # The owner's street address (R10-REPLAY-REAL-DAY): a street and its house
+    # number as a text state, and free text in an entry key the allowlist keeps.
+    "state_street_number": {"state": "Exempelgatan 12B"},
+    "entry_free_text": {"ecl110_state_topic": "Anna Exempel"},
 }
 PROBE_ENTITY = "sensor.heat_pump_power"
 
@@ -744,11 +749,13 @@ def _tibber_export(rows: list[tuple], entry: dict, price_entity: str | None = No
 
     def patched(series=series):
         out = series()
-        for row in rows:
+        # Each sensor's prices sit a whole krona apart, so the masked document's
+        # ``sensor.price`` rows name the sensor they were read from.
+        for i, row in enumerate(rows):
             if row[0] not in unrecorded:
                 out[row[0]] = [(synthesize.DAY + timedelta(hours=h),
                                 "unavailable" if row[0] in unavailable
-                                else f"{0.8 + h / 100:.3f}",
+                                else f"{i + 1 + h / 100:.3f}",
                                 {"unit_of_measurement": "SEK/kWh",
                                  "state_class": "measurement"}) for h in range(-1, 24)]
         return out
@@ -770,7 +777,10 @@ def _tibber_export(rows: list[tuple], entry: dict, price_entity: str | None = No
                     Path(tmp), db, 1, (synthesize.DAY + timedelta(days=1)).date().isoformat(),
                     None, [], price_entity)
         chosen = payload["price_series_entity"]
-        return f"{chosen} rows={len(payload['states'].get(chosen) or [])}"
+        series_rows = payload["states"].get(chosen) or [] if chosen else []
+        prices = [float(r[1]) for r in series_rows if _num(r[1]) is not None]
+        source = rows[int(prices[-1]) - 1][0] if prices else chosen
+        return f"{source} rows={len(series_rows)}"
     except SystemExit as err:
         return f"refused: {err}"
     finally:
@@ -813,6 +823,320 @@ def tibber_price_checks() -> list[tuple[str, bool, str]]:
             lambda o: o.startswith("None rows=")),
     }
     return [(f"tibber_price:{name}", ok(out), out) for name, (out, ok) in cases.items()]
+
+
+# --- the recorder a ``recorder: db_url`` names, and the masked document --------
+#
+# R10-REPLAY-REAL-DAY: the owner's recorder is MariaDB, named by
+# configuration.yaml's ``recorder: db_url``, beside a stale SQLite file; the
+# export read the SQLite file and wrote a near-empty day its own check passed.
+# These drive ``export.build_export`` over the synthetic install with the
+# MySQL driver replaced by a DB-API double over the same rows: no server.
+
+#: Invented credentials; the checks below require that neither leaves the export.
+_DB_USER, _DB_PASSWORD = "hpo_reader", "Invented-Pa55word-91"
+_DB_URL = f"mysql://{_DB_USER}:{_DB_PASSWORD}@core-mariadb/homeassistant?charset=utf8mb4"
+_CONFIGURATION_YAML = (
+    "homeassistant:\n  name: Exempel\n\n"
+    "recorder:\n  purge_keep_days: 10\n  db_url: !secret recorder_db_url  # MariaDB add-on\n"
+    "\nhistory:\n"
+)
+
+
+class _FakeMySQL:
+    """A DB-API module standing in for ``MySQLdb``: each connection runs its
+    ``%s`` statements on a SQLite copy of the recorder, opened read-only, and
+    records them; anything but a SELECT or the read-only session is an error."""
+
+    def __init__(self, backing: Path, fail: str | None = None) -> None:
+        self.backing, self.fail = backing, fail
+        self.statements: list[str] = []
+        self.kwargs: dict = {}
+
+    def connect(self, **kwargs):
+        self.kwargs = kwargs
+        if self.fail:
+            raise RuntimeError(self.fail)
+        return _FakeConnection(self, _sqlite_ro(self.backing))
+
+
+def _sqlite_ro(path: Path):
+    import sqlite3
+
+    return sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+
+
+class _FakeConnection:
+    def __init__(self, module: _FakeMySQL, conn) -> None:
+        self.module, self.conn = module, conn
+
+    def cursor(self):
+        return _FakeCursor(self)
+
+    def close(self) -> None:
+        self.conn.close()
+
+
+class _FakeCursor:
+    READ_ONLY = ("SET SESSION TRANSACTION READ ONLY", "START TRANSACTION READ ONLY")
+
+    def __init__(self, conn: _FakeConnection) -> None:
+        self.conn, self.description, self._rows = conn, None, []
+
+    def execute(self, sql: str, params=()) -> None:
+        self.conn.module.statements.append(sql)
+        if sql in self.READ_ONLY:
+            return
+        if not sql.lstrip().upper().startswith("SELECT") or "?" in sql:
+            raise RuntimeError("the double runs SELECTs in the %s paramstyle only")
+        cur = self.conn.conn.execute(sql.replace("%s", "?"), tuple(params))
+        self.description, self._rows = cur.description, cur.fetchall()
+
+    def fetchall(self):
+        return list(self._rows)
+
+    def close(self) -> None:
+        pass
+
+
+def _mariadb_install(tmp: Path, *, url_line: str | None = "!secret recorder_db_url",
+                     empty_window: bool = False) -> Path:
+    """The owner's layout, invented: a synthetic recorder moved to where the
+    MariaDB double reads it, a stale SQLite file of two early-2025 rows left at
+    ``home-assistant_v2.db``, and configuration.yaml naming the database."""
+    import shutil
+    import sqlite3
+    import synthesize
+
+    db = synthesize.write_install(tmp)
+    backing = tmp / "mariadb-backing.db"
+    shutil.copy(db, backing)
+    stale = sqlite3.connect(db)
+    stale.execute("DELETE FROM states WHERE state_id NOT IN "
+                  "(SELECT MIN(state_id) FROM states GROUP BY metadata_id LIMIT 2)")
+    stale.execute("UPDATE states SET last_updated_ts = 1736500000.0, last_reported_ts = NULL")
+    stale.commit()
+    stale.close()
+    if empty_window:
+        conn = sqlite3.connect(backing)
+        start = synthesize.DAY.timestamp()
+        conn.execute("DELETE FROM states WHERE last_updated_ts >= ?", (start,))
+        conn.execute("UPDATE states SET last_reported_ts = NULL")
+        conn.commit()
+        conn.close()
+    if url_line is not None:
+        (tmp / "configuration.yaml").write_text(
+            _CONFIGURATION_YAML.replace("!secret recorder_db_url", url_line))
+        (tmp / "secrets.yaml").write_text(f'recorder_db_url: "{_DB_URL}"\nother: x\n')
+    return backing
+
+
+def _export_mariadb(fake: _FakeMySQL | None, tmp: Path, db: Path | None = None,
+                    db_url: str | None = None) -> tuple[dict | None, str]:
+    """``export.main`` over ``tmp`` with ``MySQLdb`` (and ``pymysql``) replaced
+    by ``fake``, None for neither installed: the document and every line it
+    printed, or None and the refusal."""
+    import export
+    import synthesize
+
+    saved = {m: sys.modules.get(m) for m in ("MySQLdb", "pymysql")}
+    sys.modules["MySQLdb"] = fake  # type: ignore[assignment]
+    sys.modules["pymysql"] = None  # type: ignore[assignment]
+    out = tmp / "out.json"
+    argv = ["--config-dir", str(tmp), "--days", "1",
+            "--end", (synthesize.DAY + timedelta(days=1)).date().isoformat(), "--out", str(out)]
+    argv += ["--db", str(db)] if db else []
+    argv += ["--db-url", db_url] if db_url else []
+    printed = io.StringIO()
+    try:
+        with contextlib.redirect_stdout(printed), contextlib.redirect_stderr(printed):
+            export.main(argv)
+        return json.loads(out.read_text()), printed.getvalue()
+    except SystemExit as err:
+        return None, printed.getvalue() + f"refused: {err}"
+    finally:
+        for name, module in saved.items():
+            if module is None:
+                sys.modules.pop(name, None)
+            else:
+                sys.modules[name] = module
+
+
+def _in_window(doc: dict) -> dict[str, int]:
+    """Rows of each input stamped inside the window, updated or reported."""
+    start = _ts(doc["window"]["start"])
+    return {eid: sum(1 for r in doc["states"].get(eid, [])
+                     if _ts(r[0]) >= start or (r[3] and _ts(r[3]) >= start))
+            for eid in doc["inputs"]}
+
+
+def recorder_checks() -> list[tuple[str, bool, str]]:
+    import export
+
+    res = []
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        fake = _FakeMySQL(_mariadb_install(tmp))
+        doc, printed = _export_mariadb(fake, tmp)
+        counts = _in_window(doc) if doc else {}
+        res.append(("recorder:db_url_whole_day_read",
+                    bool(counts) and all(counts.values()) and sum(counts.values()) > 500,
+                    printed[-300:] if doc is None else f"in-window rows {sorted(counts.items())}"))
+        passed = [s for s in fake.statements if s not in _FakeCursor.READ_ONLY]
+        res.append(("recorder:db_url_read_only_session_selects_only",
+                    fake.statements[:1] == [_FakeCursor.READ_ONLY[0]] and bool(passed)
+                    and all(s.lstrip().upper().startswith("SELECT") for s in passed),
+                    f"{len(fake.statements)} statement(s), first {fake.statements[:1]}"))
+        res.append(("recorder:db_url_secret_resolved",
+                    fake.kwargs.get("user") == _DB_USER
+                    and fake.kwargs.get("password") == _DB_PASSWORD
+                    and fake.kwargs.get("host") == "core-mariadb"
+                    and fake.kwargs.get("database") == "homeassistant",
+                    f"keys {sorted(fake.kwargs)}"))
+        written = (tmp / "out.json").read_text() if doc else ""
+        res.append(("recorder:db_url_credentials_never_printed",
+                    doc is not None and "core-mariadb" in printed
+                    and not any(c in printed + written for c in (_DB_PASSWORD, _DB_USER)),
+                    "printed and written text searched for the user and the password"))
+        failed, why = _export_mariadb(_FakeMySQL(tmp / "mariadb-backing.db",
+                                                 fail=f"denied for {_DB_USER}:{_DB_PASSWORD}"), tmp)
+        res.append(("recorder:db_url_connect_refusal_names_no_credential",
+                    failed is None and "core-mariadb" in why
+                    and not any(c in why for c in (_DB_PASSWORD, _DB_USER)), why[-200:]))
+        flag, _ = _export_mariadb(fake, tmp, db_url=_DB_URL.replace("homeassistant", "hadb"))
+        res.append(("recorder:db_url_flag_read", flag is not None
+                    and fake.kwargs.get("database") == "hadb", str(fake.kwargs.get("database"))))
+        missing, why = _export_mariadb(None, tmp)
+        res.append(("recorder:db_url_driver_missing_refused_by_name",
+                    missing is None and "MySQLdb" in why and "pymysql" in why, why[-200:]))
+        # The owner's layout read the old way: the stale SQLite file alone.
+        stale, why = _export_mariadb(fake, tmp, db=tmp / "home-assistant_v2.db")
+        res.append(("recorder:stale_sqlite_near_empty_day_refused",
+                    stale is None and "home-assistant_v2.db" in why
+                    and "sensor.outdoor_temp" in why, why[-300:]))
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        fake = _FakeMySQL(_mariadb_install(tmp, empty_window=True))
+        doc, why = _export_mariadb(fake, tmp)
+        res.append(("recorder:db_url_emptied_window_refused_naming_inputs_and_recorder",
+                    doc is None and "mysql://core-mariadb/homeassistant" in why
+                    and "sensor.outdoor_temp" in why and "sensor.price" in why, why[-300:]))
+    # configuration.yaml's spellings of the URL, and an install without one.
+    cases = {
+        "inline_quoted": ("recorder:\n  db_url: 'mysql://u:p@h/db'\n", None, "mysql://u:p@h/db"),
+        "inline_plain": ("recorder:\n    auto_purge: true\n    db_url: mysql://u:p@h/db # x\n",
+                         None, "mysql://u:p@h/db"),
+        "secret": ("recorder:\n  db_url: !secret rec\n", "rec: mysql://u:p@h/db\n",
+                   "mysql://u:p@h/db"),
+        "include": ("recorder: !include recorder.yaml\n", None, "mysql://u:p@h/inc"),
+        "nested_key_ignored": ("other:\n  recorder:\n    db_url: mysql://u:p@h/no\n", None, None),
+        "no_db_url": ("recorder:\n  purge_keep_days: 3\nlogger:\n  db_url: x\n", None, None),
+        "no_file": (None, None, None),
+    }
+    for name, (config, secrets, want) in cases.items():
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            if config is not None:
+                (tmp / "configuration.yaml").write_text(config)
+            if secrets is not None:
+                (tmp / "secrets.yaml").write_text(secrets)
+            (tmp / "recorder.yaml").write_text("db_url: \"mysql://u:p@h/inc\"\n")
+            got = export.recorder_url(tmp) if hasattr(export, "recorder_url") else "absent"
+            res.append((f"recorder:url_from_configuration:{name}", got == want,
+                        "matched" if got == want else "differs"))
+    return res
+
+
+#: An invented street address, in every place the owner's real one can hide.
+_STREET = "exempelgatan_12"
+
+
+def mask_checks() -> list[tuple[str, bool, str]]:
+    import export
+    import synthesize
+
+    res = []
+    fixture = json.loads((FIXTURES / "synthetic-dhw-only.json").read_text())
+    ids = set(fixture["states"]) | set(fixture["inputs"]) | set(fixture["published"])
+    entry_ids = {k: v for k, v in fixture["entry"]["data"].items() if k.endswith("_entity")}
+    res.append(("mask:entry_entities_renamed_to_their_role",
+                entry_ids.get("price_entity") == "sensor.price"
+                and entry_ids.get("outdoor_temp_entity") == "sensor.outdoor_temp"
+                and entry_ids.get("heat_pump_mode_entity") == "select.heat_pump_mode"
+                and set(entry_ids.values()) <= ids, str(sorted(entry_ids.values()))))
+    res.append(("mask:published_ids_hashed",
+                all(re.match(r"^[a-z_]+\.e_[0-9a-f]{10}$", p) for p in fixture["published"])
+                and len(fixture["published"]) == 2, str(fixture["published"])))
+
+    # An install whose ids carry the street: the price sensor and a published entity.
+    series, data, published = synthesize._series, synthesize.ENTRY_DATA, synthesize.PUBLISHED
+    price_id, pub_id = f"sensor.nordpool_{_STREET}", f"sensor.{_STREET}_heat_pump_action"
+
+    def patched(series=series):
+        out = series()
+        out[price_id] = out.pop("sensor.nordpool_kwh_se3_sek")
+        out[pub_id] = out.pop("sensor.heat_pump_optimizer_heat_pump_action")
+        for eid, rows in out.items():
+            out[eid] = [(t, st, {**a, "friendly_name": "Exempelgatan 12 " + eid[:6]})
+                        for t, st, a in rows]
+        return out
+
+    synthesize._series = patched
+    synthesize.ENTRY_DATA = {**data, "price_entity": price_id}
+    synthesize.PUBLISHED = (pub_id, published[1])
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            db = synthesize.write_install(Path(tmp))
+            payload = export.build_export(
+                Path(tmp), db, 1, (synthesize.DAY + timedelta(days=1)).date().isoformat(),
+                None, [], None)
+        blob = json.dumps(payload).lower()
+        outcome = "written"
+    except SystemExit as err:
+        payload, blob, outcome = None, "", f"refused: {err}"
+    finally:
+        synthesize._series, synthesize.ENTRY_DATA, synthesize.PUBLISHED = series, data, published
+    res.append(("mask:street_in_entity_ids_and_names_absent_from_export",
+                payload is not None and "exempelgatan" not in blob
+                and payload["entry"]["data"]["price_entity"] == "sensor.price"
+                and "sensor.price" in payload["states"], outcome))
+
+    # Put back by hand: the check refuses, naming the class and never the token.
+    planted = json.loads(json.dumps(fixture))
+    planted["states"][f"sensor.{_STREET}_power"] = planted["states"].pop("sensor.heat_pump_power")
+    planted["entry"]["data"]["heat_pump_power_entity"] = f"sensor.{_STREET}_power"
+    found = export.check_file(_written(planted), export.entry_keys(*export.default_const_paths()))
+    joined = "; ".join(found)
+    res.append(("mask:check_refuses_unmapped_id_naming_class_not_token",
+                "not masked" in joined and "address-like" in joined
+                and "exempelgatan" not in joined.lower(), joined[:300]))
+    texted = json.loads(json.dumps(fixture))
+    texted["states"][sorted(texted["states"])[0]][0][1] = "Exempelgatan 12"
+    found = export.check_file(_written(texted), export.entry_keys(*export.default_const_paths()))
+    joined = "; ".join(found)
+    res.append(("mask:check_refuses_address_text_naming_class_not_token",
+                "address-like" in joined and "exempelgatan" not in joined.lower(), joined[:300]))
+    # seal() on a document that skipped the mask.
+    unmasked = json.loads(json.dumps(planted))
+    try:
+        export._doc.seal(unmasked, export.entry_keys(*export.default_const_paths()))
+        why = "sealed"
+    except export._doc.Refused as err:
+        why = str(err)
+    res.append(("mask:seal_refuses_unmapped_id_naming_class_not_token",
+                why != "sealed" and "not masked" in why and "exempelgatan" not in why.lower(),
+                why[:300]))
+    res.append(("mask:null_committed_fixture_passes_the_check",
+                not export.check_file(FIXTURES / "synthetic-dhw-only.json"), "check_file"))
+    return res
+
+
+def _written(doc: dict) -> Path:
+    """``doc`` in a file of its own, for ``export.check_file``."""
+    handle = tempfile.NamedTemporaryFile("w", suffix=".json", delete=False)
+    with handle:
+        json.dump(doc, handle)
+    return Path(handle.name)
 
 
 def synthetic_reproduces() -> tuple[str, bool, str]:

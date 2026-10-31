@@ -934,13 +934,14 @@ R.check(
 )
 R.check(
     "the replay half carries the entry's inputs and what it publishes, read through the "
-    "recorder's history API: the state in force at the window's start, then the window",
-    set(replay["states"]) == {"sensor.indoor", "sensor.outdoor", "sensor.nordpool",
-                              "sensor.hpo_plan"}
-    and replay["published"] == ["sensor.hpo_plan"]
+    "recorder's history API: the state in force at the window's start, then the window; "
+    "every id masked to its role, and what it publishes to the entry-keyed hash",
+    set(replay["states"]) == {"sensor.indoor_temp", "sensor.outdoor_temp", "sensor.price",
+                              replay_doc.hashed_id("sensor.hpo_plan", "rp")}
+    and replay["published"] == [replay_doc.hashed_id("sensor.hpo_plan", "rp")]
     and replay["price_series_entity"] is None
-    and [row[1] for row in replay["states"]["sensor.outdoor"]] == ["-3.5"]
-    and len(replay["states"]["sensor.indoor"]) == 24
+    and [row[1] for row in replay["states"]["sensor.outdoor_temp"]] == ["-3.5"]
+    and len(replay["states"]["sensor.indoor_temp"]) == 24
     and replay["recorder_schema"] == ha_recorder.Recorder.schema_version
     and replay["time_zone"] == "Europe/Stockholm",
     str({k: replay.get(k) for k in ("published", "price_series_entity", "window")}),
@@ -969,7 +970,7 @@ R.check(
     not a10.failures(), str(a10.results),
 )
 planted = json.loads(json.dumps(replay))
-planted["states"]["sensor.indoor"][0][2] = {"access_token": TOKEN}
+planted["states"]["sensor.indoor_temp"][0][2] = {"access_token": TOKEN}
 planted_found = export.violations(planted, CONF)
 R.check(
     "the null control: a credential planted back into the generated replay half is "
@@ -1018,9 +1019,11 @@ tibber = asyncio.run(_replay_download(
     price_source="tibber", tibber=[("sensor.electricity_price_home", "96a14971")]))
 R.check(
     "with the Tibber source the replay half takes the price series from the Tibber "
-    "price sensor, the export's own choice",
-    tibber["debug"]["replay"]["price_series_entity"] == "sensor.electricity_price_home"
-    and "sensor.electricity_price_home" in tibber["debug"]["replay"]["states"],
+    "price sensor, the export's own choice, masked as the price series (the entry's "
+    "own price_entity holds sensor.price)",
+    tibber["debug"]["replay"]["price_series_entity"] == "sensor.price_series"
+    and "sensor.price_series" in tibber["debug"]["replay"]["states"]
+    and "electricity_price_home" not in json.dumps(tibber["debug"]["replay"]),
     str(tibber["debug"]["manifest"].get("replay")),
 )
 no_price = asyncio.run(_replay_download(price_source="tibber"))
@@ -1040,7 +1043,7 @@ R.check(
     "newest shorter window that fits, and the bundle stays inline",
     "inline" not in short["debug"] and short["debug"]["replay"] is not None
     and short["debug"]["replay"]["window"]["start"] == (T0 + timedelta(hours=18)).isoformat()
-    and len(short["debug"]["replay"]["states"]["sensor.indoor"]) == 7
+    and len(short["debug"]["replay"]["states"]["sensor.indoor_temp"]) == 7
     and debugger.download_bytes(short["debug"]) + debugger.DOWNLOAD_HEADROOM_BYTES
     <= whole_size - 1,
     str(short["debug"].get("manifest", {}).get("replay")),
@@ -1277,7 +1280,7 @@ R.check(
     and isinstance(_unfit, replay_doc.Refused)
     and "states.plainkey: not an entity id" in str(_unfit)
     and isinstance(_ok, dict) and _ok["entry"]["data"] == {}
-    and _ok["states"] == {"sensor.a": [["t", "1", None, None]]},
+    and _ok["states"] == {replay_doc.hashed_id("sensor.a", ""): [["t", "1", None, None]]},
     f"{_leaked if isinstance(_leaked, replay_doc.Refused) else type(_leaked).__name__} "
     f"{_unfit!r}",
 )
