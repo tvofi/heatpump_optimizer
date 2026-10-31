@@ -31,6 +31,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-FLY-SUITE-ENV-FLAKES (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-FLY-NO-FOOTERS (stage carries-open, branch `handoff/r10-fly-no-footers`): `git fetch origin handoff/r10-fly-no-footers && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-ORCH-REVIEW-PACKET (stage carries-open, branch `handoff/r10-orch-review-packet`): `git fetch origin handoff/r10-orch-review-packet && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-FLY-LEDGER-SAMPLE (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-996-RUNNER-CLAIMS (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-ARCH-SHAPES-CLASSIFIER (stage queued): no branch pushed yet, so nothing to fetch
 - R10-FRICTION-REGRESSION (stage carries-open): no branch pushed yet, so nothing to fetch

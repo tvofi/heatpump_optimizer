@@ -285,7 +285,7 @@ Role: dev/governance/roles/root-cause.md. |  |
 | R10-RCA-CODESCAN-WAIT | IN | 1 | done | - | sonnet/opus | - | Root-cause seat, topic r10-rca-codescan-wait. |  |
 | R10-GATE-DEFER | IN | 1 | done | - | opus/opus | yes: code-owned CI: mandated approval under 6329234399 | Fixer brief, critical path, owner's word: fixing the gate race is top priority. |  |
 | R10-TRAIN-UPGRADE | IN | 1 | done | - | opus/opus | yes: mandated approval under 6329234399 | Owner-ordered (tvofi 2026-10-24, prioritized): upgrade tools/audit/seat/merge_train.py so that (1) policy and triage-record heads batch with code under a val... |  |
-| R10-FLY-LEDGER-SAMPLE | IN | 1 | not-started | #2802 | sonnet/opus | - | triage: dev/programme/triage/s6-batch16.md#P85. |  |
+| R10-FLY-LEDGER-SAMPLE | IN | 1 | in-progress | #2802 | sonnet/opus | - | triage: dev/programme/triage/s6-batch16.md#P85. |  |
 | R10-MERGE-SUBJECT-CASEARM | IN | 1 | not-started | #2803 | opus/opus | yes: policy: tools/policy/agreement.mjs is in POLICY_GLOBS; tvofi approves under the mandate | Split from #2697 under the three-round rule (orchestrator ruling 2026-10-25, mandate 6329234399). |  |
 | R10-HOUSE-GRADE | IN | 1 | done | #2258, #2816 | opus/opus | - | From D15 triage (#2816, medium, a spec gap; the coordinator's ruling 2026-10-25). |  |
 | R10-LEGIONELLA-COMPLETION | IN | 1 | done | - | opus/opus | - | GROUP R10-LEGIONELLA-COMPLETION (new, size S, triage: dev/programme/triage/s6-batch24.md#P120). |  |
