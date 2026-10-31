@@ -1,0 +1,4 @@
+RESULT base flag='--self-test': out=[  ok   append mode: a relaunch extends the log, first run intact SELF-TEST PASS ] marker=MISSING
+RESULT base flag='': out=[daemonize: detached pid 1011 log /tmp/tmp.yzbEGt5HaP/l.base.988 ] marker=arg1
+RESULT head flag='--self-test': out=[daemonize: detached pid 1021 log /tmp/tmp.yzbEGt5HaP/l.head.988 ] marker=arg1 --self-test
+RESULT head flag='': out=[daemonize: detached pid 1034 log /tmp/tmp.yzbEGt5HaP/l.head.988 ] marker=arg1

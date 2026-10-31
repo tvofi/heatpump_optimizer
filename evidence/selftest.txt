@@ -1,0 +1,21 @@
+usage: daemonize.py [-h] --log LOG [--cwd CWD] [--env K=V]
+                    [--path-prepend PATH_PREPEND]
+                    ...
+daemonize.py: error: usage: daemonize.py --log LOG [--cwd DIR] [--env K=V]... [--path-prepend DIR] -- CMD [ARG]...
+  ok   `-- CMD` parses to CMD, the `--` dropped
+  ok   options before `--` still parse
+  ok   a later `--` belongs to the command
+  ok   the bare form without `--` still parses
+  ok   an empty command after `--` is refused
+  ok   --self-test as argv[1] selects the self-test
+  ok   --self-test after `--` is the wrapped command's, not ours
+  ok   --self-test as a later option is not ours
+  ok   no arguments do not select the self-test
+daemonize: child pid 1041
+  ok   banner is the log's first line and names a pid
+  ok   banner's pid is the pid the parent returned
+  ok   child output reached the log unflushed (fork/setsid/dup2/-u)
+  ok   the logged argv carries the prepended -u
+  ok   banner precedes the child's output in the log
+  ok   append mode: a relaunch extends the log, first run intact
+SELF-TEST PASS
