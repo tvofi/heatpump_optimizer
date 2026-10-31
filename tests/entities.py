@@ -6925,9 +6925,16 @@ R.check(
     _wf_ready_entity.available is True,
 )
 R.check(
-    "cheaper attributes are sek_per_kwh and cheaper_hour_count",
+    "cheaper attributes are sek_per_kwh, cheaper_hour_count and the "
+    "windows, empty while the view carries none",
     _wf_ready_entity.extra_state_attributes
-    == {"sek_per_kwh": 0.6, "cheaper_hour_count": 1},
+    == {
+        "sek_per_kwh": 0.6,
+        "cheaper_hour_count": 1,
+        "cheaper_windows": [],
+        "lighting_start": None,
+        "lighting_end": None,
+    },
 )
 
 # Mold Floor Breach (#1495). The floor is the one the solve enforces -- the
@@ -7267,7 +7274,7 @@ R.section("Buttons")
 
 buttons = collect(button)
 btn_by_name = {display_name("button", b): b for b in buttons}
-R.check("five buttons are added", len(buttons) == 5, str(len(buttons)))
+R.check("six buttons are added", len(buttons) == 6, str(len(buttons)))
 for name in (
     "Optimize Now",
     "Learning Run System Identification",
@@ -7307,6 +7314,17 @@ R.check(
     f"pressed={coord.pressed} refreshes={coord.refreshes} -- the setter no "
     "longer refreshes, so a press without its own refresh leaves the reset "
     "weight unpublished until the next cycle",
+)
+
+heat_loss_reset = button.ResetHeatLossButton(coord, ENTRY)
+heat_loss_reset.hass = EagerHass()
+coord.refreshes.clear()
+coord.on_refresh = lambda: "reset_heat_loss" in coord.pressed
+asyncio.run(heat_loss_reset.async_press())
+R.check(
+    "the heat-loss reset button reaches the coordinator, then asks for one refresh",
+    "reset_heat_loss" in coord.pressed and coord.refreshes == [True],
+    f"pressed={coord.pressed} refreshes={coord.refreshes}",
 )
 
 
@@ -12526,7 +12544,8 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
     }),
     "VentilationBinarySensor": frozenset({"evidence"}),
     "WoodCheaperBinarySensor": frozenset({
-        "cheaper_hour_count", "sek_per_kwh"
+        "cheaper_hour_count", "cheaper_windows", "lighting_end",
+        "lighting_start", "sek_per_kwh"
     }),
     "WoodBurnAdvisorSensor": frozenset({"action", "reason", "when"}),
 }
@@ -12884,6 +12903,7 @@ _CLUSTER_PREFIXES: dict[str, dict[str, str]] = {
         "learning_finalize_debug": "Learning ",
         "learning_run_system_identification": "Learning ",
         "learning_reset_comfort_weight": "Learning ",
+        "learning_reset_heat_loss": "Learning ",
     },
     "switch": {"dhw_boost": "DHW "},
 }
@@ -15047,6 +15067,7 @@ _svc_coord.async_clear_manual_plan = _svc_record("clear_manual")
 _svc_coord.async_restore_learned_snapshot = _svc_record("restore", True)
 _svc_coord.async_set_away = _svc_record("set_away")
 _svc_coord.async_diagnose_interval = _svc_record("diagnose", {"residual": None})
+_svc_coord.async_reset_heat_loss_learners = _svc_record("reset_heat_loss")
 
 
 def _svc_call(service, payload=None):
@@ -15399,6 +15420,14 @@ R.check(
     _restored["restored"] == [_svc_entry.entry_id],
 )
 
+_heat_loss_reset = _svc_call(const.SERVICE_RESET_HEAT_LOSS, {"learners": ["lower_floor_loss_ratio"]})
+R.check(
+    "reset_heat_loss_learners reaches the coordinator and reports what it reset",
+    "reset_heat_loss" in _svc_log
+    and _heat_loss_reset == {"reset": [_svc_entry.entry_id], "learners": ["lower_floor_loss_ratio"]},
+    str(_heat_loss_reset),
+)
+
 _diag = _svc_call(const.SERVICE_DIAGNOSE_INTERVAL)
 R.check(
     "diagnose_interval returns the per-entry report",
@@ -15436,6 +15465,7 @@ _svc_covered = {
     const.SERVICE_RESTORE_SNAPSHOT,
     const.SERVICE_DIAGNOSE_INTERVAL,
     const.SERVICE_DEBUG_COLLECT,
+    const.SERVICE_RESET_HEAT_LOSS,
 }
 R.check(
     "every registered service was invoked above",
@@ -40302,6 +40332,9 @@ _R10_LOG_ALLOWED_BY_REASON = {
     "once per event by the function's own state (a refit, an issue raised, a "
     "rollback per alarm, a malformed month closed so it is not retried)": {
         ("coordinator.py", "_reanchor_house_heat_loss_scale"): 2,
+        # One line per learner voided: a sensor swap, voided once because the
+        # save records the new id, or a reset the user asked for.
+        ("coordinator.py", "_void_heat_loss_learners"): 1,
         ("coordinator.py", "_raise_cop_issue"): 1,
         ("coordinator.py", "_async_watch_learning_drift"): 1, ("ledger.py", "roll_receipts"): 1,
     },

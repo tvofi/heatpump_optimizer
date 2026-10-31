@@ -810,6 +810,7 @@
               "external_heat_min_rise": "Temperature rise that counts as evidence",
               "valve_outlet_temp_entity": "Temperature after the wood/heat-pump mixing valve (optional)",
               "wood_furnace_efficiency": "Furnace efficiency",
+              "wood_lighting_lead_minutes": "Light the furnace this long before a cheaper window",
               "wood_furnace_enabled": "Wood furnace",
               "wood_packing": "Packing",
               "wood_price_sek_m3": "Price per cubic metre",
@@ -826,6 +827,7 @@
               "external_heat_min_rise": "Raise this if normal operation triggers it. Missing a fire costs one unnecessary heating cycle; wrongly assuming one can leave you without hot water.",
               "valve_outlet_temp_entity": "Temperature of the blended flow leaving the valve that mixes wood and heat-pump water. With the tank sensors it tells the plan how much of the heating a fire is covering right now, so electric heat can stand down by that much instead of all-or-nothing.",
               "wood_furnace_efficiency": "Share of the wood's energy that reaches the tank, percent.",
+              "wood_lighting_lead_minutes": "How long before a window where wood beats the heat pump to light the furnace, so it is past its warm-up and charging the tank as the window opens. Sets the lighting window on the Wood Cheaper Than Heat Pump sensor.",
               "wood_furnace_enabled": "Off hides the wood probes, detection and fuel price; stored values are kept. A lone 500 L tank volume does not turn this on.",
               "wood_packing": "Packed is stacked (travad); loose is dumped (stjälpt) and billed at 0.60 of packed.",
               "wood_price_sek_m3": "What you pay per billed cubic metre. Empty keeps the cheaper-than-pump sensor unavailable — there is no silent default.",
@@ -2051,6 +2053,9 @@
       "learning_reset_comfort_weight": {
         "name": "Learning Reset Comfort Weight"
       },
+      "learning_reset_heat_loss": {
+        "name": "Learning Reset Heat Loss"
+      },
       "learning_run_system_identification": {
         "name": "Learning Run System Identification"
       },
@@ -2466,6 +2471,20 @@
         "source": {
           "name": "Restart point",
           "description": "The weekly snapshot (default), or the drift advisor's heat-loss refit."
+        }
+      }
+    },
+    "reset_heat_loss_learners": {
+      "name": "Reset Heat Loss Learning",
+      "description": "Return the learned house heat loss scale and the learned lower floor loss ratio to 1.0, so the plan uses the heat loss values in the settings as they stand, and the learners start collecting evidence again from there. Use this after you have corrected those settings, moved a temperature sensor, or when the learned values have visibly gone wrong. Only these two are reset: the comfort weight, the hot water, COP and defrost learners are left as they are. The plan is recalculated straight away.",
+      "fields": {
+        "entry_id": {
+          "name": "Config entry",
+          "description": "Restrict the reset to one config entry. Leave empty to reset every configured heat pump."
+        },
+        "learners": {
+          "name": "Learners",
+          "description": "Which to reset: the house heat loss scale, the lower floor loss ratio, or both. Leave empty to reset both."
         }
       }
     },

@@ -810,6 +810,7 @@
               "external_heat_min_rise": "Temperaturökning som räknas som bevis",
               "valve_outlet_temp_entity": "Temperatur efter shunten mellan ved- och värmepumpstank (valfri)",
               "wood_furnace_efficiency": "Pannverkningsgrad",
+              "wood_lighting_lead_minutes": "Tänd pannan så här länge före ett billigare fönster",
               "wood_furnace_enabled": "Vedpanna",
               "wood_packing": "Packning",
               "wood_price_sek_m3": "Pris per kubikmeter",
@@ -826,6 +827,7 @@
               "external_heat_min_rise": "Höj om normal drift utlöser den. Att missa en brasa kostar en onödig uppvärmningscykel; att felaktigt anta en kan lämna dig utan varmvatten.",
               "valve_outlet_temp_entity": "Temperaturen på det blandade flödet som lämnar ventilen som blandar ved- och värmepumpsvatten. Tillsammans med tankgivarna talar den om hur stor del av uppvärmningen en brasa täcker just nu, så att elvärmen kan stå tillbaka lika mycket i stället för allt eller inget.",
               "wood_furnace_efficiency": "Andel av vedens energi som når tanken, i procent.",
+              "wood_lighting_lead_minutes": "Hur långt innan ett fönster där ved är billigare än värmepumpen pannan ska tändas, så att den är förbi uppeldningen och laddar tanken när fönstret börjar. Styr tändfönstret på sensorn Ved billigare än värmepump.",
               "wood_furnace_enabled": "Av döljer vedgivare, detektering och bränslepris; sparade värden ligger kvar. En ensam volym på 500 L slår inte på detta.",
               "wood_packing": "Tvad (travad) eller stjälpt. Stjälpt räknas som 0,60 av tvad.",
               "wood_price_sek_m3": "Vad du betalar per fakturerad kubikmeter. Tomt fält gör givaren Ved billigare än värmepump otillgänglig — det finns inget tyst förval.",
@@ -2051,6 +2053,9 @@
       "learning_reset_comfort_weight": {
         "name": "Inlärning återställ komfortvikt"
       },
+      "learning_reset_heat_loss": {
+        "name": "Inlärning återställ värmeförlust"
+      },
       "learning_run_system_identification": {
         "name": "Inlärning kör systemidentifiering"
       },
@@ -2466,6 +2471,20 @@
         "source": {
           "name": "Omstartspunkt",
           "description": "Veckokopian (standard), eller driftrådgivarens omanpassning av värmeförlusten."
+        }
+      }
+    },
+    "reset_heat_loss_learners": {
+      "name": "Återställ värmeförlustinlärning",
+      "description": "Återställ den inlärda värmeförlustskalan för huset och det inlärda förlustförhållandet för nedervåningen till 1,0, så att planen använder värmeförlustvärdena i inställningarna som de står, och inlärningen börjar samla underlag igen därifrån. Använd detta när du har rättat de inställningarna, flyttat en temperaturgivare, eller när de inlärda värdena uppenbart har blivit fel. Bara dessa två återställs: komfortvikten och inlärningen för varmvatten, COP och avfrostning lämnas som de är. Planen räknas om direkt.",
+      "fields": {
+        "entry_id": {
+          "name": "Konfigurationspost",
+          "description": "Begränsa återställningen till en konfigurationspost. Lämna tomt för att återställa alla konfigurerade värmepumpar."
+        },
+        "learners": {
+          "name": "Inlärning",
+          "description": "Vad som ska återställas: värmeförlustskalan för huset, förlustförhållandet för nedervåningen, eller båda. Lämna tomt för att återställa båda."
         }
       }
     },
