@@ -1,37 +1,49 @@
-Fix review: blocked 42b228ec7e13ac30e49739d738dad374aa729da2 figure-wrong: the body's Figures count of README ](./ targets is 35, it is 31 at this head
+Fix review: merge 42b228ec7e13ac30e49739d738dad374aa729da2
 
-bus-nonce: c1ba19cb6925a39b0a5f7de7334fd59c
+bus-nonce: aafb80a56fd11fd21772fa7bb5839125
 
-Round 1. Reviewed from a detached worktree at 42b228ec7e13ac30e49739d738dad374aa729da2 (live head re-read before writing: unchanged). Contract dev/governance/roles/fix-review.md at origin/main; `git diff <merge-base>...origin/main -- dev/governance/roles/` touches only standing-merge.md, so fix-review.md is current.
+## Verdict
 
-## Block
-
-The PR body's `## Figures` states: "`grep -o '](\./' README.md | wc -l` prints 35 at the head ... 28 links, 4 images, 3 new figures". At 42b228ec7 (and at the code head 17ee47eef and at 08d1b3d5c) the same command prints **31**: 28 links plus 3 markdown images (banner, coffee, card chart). The how-it-works figure and the three mermaid figures are now `<picture>` HTML, so they carry `src="./`/`srcset="./` (8 attributes) and no `](./`. 35 is the count of the pre-dark-mode revision, when the how-it-works figure and the three mermaid PNGs were markdown images; the body was not re-taken after the `<picture>` conversion. The base figure (0) and the "no bare target left" grep (prints nothing) re-derive correctly.
-
-Repair is body-only and does not move the head: re-take that figure (and its breakdown) at the head. While editing, the `## Red checks` line "none yet at this head (CI not run)" is stale: CI has now concluded green at this head with no red check. Everything else below was verified and survives an unchanged head.
+Round 1. Group R10-README-GRAPHICS, PR #3014, reviewed at head 42b228ec7e13ac30e49739d738dad374aa729da2 (code head 17ee47eef93a682ba9c08489c03048441a6c58bf), merge base 437f1ba9b521199b360d84effe6a621573d34663, in a detached worktree. The head was unchanged when this verdict was written (`git ls-remote`, ev/head-at-post.txt). Contract: dev/governance/roles/fix-review.md at origin/main. Since the merge base, main changed only standing-merge.md under roles/, not fix-review.md.
 
 ## Findings
 
-- The D6 claims register's C108/C110 counts (83 links, 21 images) no longer include `<picture>` images: the how-it-works light/dark pair and the six mermaid PNGs are outside C110's "every image the documentation embeds exists". Their existence is held instead by the new doc_claims arm (my mutants deleting mermaid-one-interval-dark.png and how-it-works-dark.png both turn it red). Carry: dismissed: existence is pinned by the tests/doc_claims.py arm, shown by two killed mutants; the register regenerates byte-identical at the head.
-- render_mermaid.mjs is not executed in CI and has no self-test of its own; its output is pinned by the manifest's block and PNG hashes, and the body shows regenerate-then-green. Carry: dismissed: the approved design note 2e536d13 (roster entry) defines the CI wiring as the tests/closure.py classification of the manifest and PNGs as doc_claims.py reads, not a CI run of the generator.
-- tools/site/build_docs.mjs and tests/closure.py are code-owned (`/tools/site/ @tvofi`, `/tests/closure.py @tvofi`); the orchestrator's relayed approval is not a review, so this head merges only on tvofi's approving review. Flagged per the brief, not blocked on. Carry: dismissed: enforced at merge by main-protect-checks' code-owner rule.
+- The fix is verified only against a replica of the Marketplace pipeline, not against a real Home Assistant 2026.11 instance (design note P2). Still owed after the merge: a screenshot of the Marketplace repository page at the first stamped tag that contains #3014, in light and dark OS colour scheme, with an absolute-URL image as the control. The roster carry exists on origin/handoff/audit-r10-roster (1e9f14dd3) and states its control. Carry: R10-CATALOG-PR
+- On the product page, `<picture>` follows the OS colour scheme, not the site's theme toggle. Nothing compares a drawn PNG semantically with its mermaid block (P3/P40). Both are owed by a later verification. The roster carry exists, states both checks, and keeps dark mode in scope. R10-README-GRAPHICS is in R10-ARCH-DOCS's `after` list. Carry: R10-ARCH-DOCS
+- tools/site/build_docs.mjs and tests/closure.py are code-owned (`@tvofi`), so the merge still needs tvofi's approving review at this head. The orchestrator's relayed approval is not a review. Flagged as the brief asks, not blocking. Carry: dismissed: enforced at merge by main-protect-checks' code-owner rule, not by this PR
 
 ## Evidence
 
-- CI: `merge_train.py classify 42b228ec7...` -> `GREEN ... pending: none red: none`, exit 0 (ev/ci_classify.txt). Review packet: gate digest green, refusals none, CARRY-AUDIT 4 routed / 0 unrouted (ev/review-packet.md). No red check at this head, so no root-cause trigger to answer.
-- Merge: `git merge-tree --write-tree origin/main(5d4e0bcfb) 42b228ec7` exit 0, tree d36663cfd; `LEDGER-MERGE: resolved tests/closures.json` (inert_reads set merge). No conflict (ev/merge_tree.txt).
-- Finder's harness (dev/audit/harnesses/r10_readme_marketplace_pipeline.mjs, marked 15.0.4 + xss 1.0.15 installed by me), ev/harness.txt:
-  - RESULT base 437f1ba9b: relative_images=4 resolved=0; relative_links=28 resolved=0; picture_sources=0; absolute_images=5 resolved=5; rc=1 (red).
-  - RESULT head: relative_images=7 resolved=7; relative_links=28 resolved=28; picture_sources=4 resolved=4; absolute_images=5 resolved=5; rc=0 (green).
-  - RESULT null control (one absolute-URL image README): absolute_images=1 resolved=1, rc=0; controls `bare=blank dot=ok absolute=ok`, `srcset_bare=stripped srcset_dot=kept light_img=ok` at both ends.
-  - RESULT my perturbation (head with one dark srcset made bare): picture_sources=4 resolved=3, rc=1, so the harness moves under its own perturbation.
-  - mermaid_fences=3 plain_code=3 at both ends, as the body states.
-- tests/doc_claims.py at the head: ALL 228 checks PASSED (ev/doc_claims_head.txt).
-- Mutation proof, 13 mutants, each restored after (ev/mutations.txt), all killed: one link `./` removed (1 FAIL); setup-flow light-only (4); how-it-works light-only (2); mermaid-one-interval-dark.png deleted (1); how-it-works-dark.png deleted (2); dark PNG replaced by the light one (1); first block `flowchart LR`->`RL` without regenerating (1); dark srcset made bare (1); dark source media changed to `prefers-color-scheme: light` (1, mine); how-it-works dark source pointed at the light PNG (2, mine); build_docs.mjs `path.posix.normalize(m[1])`->`m[1]` (2); build_docs.mjs `rawImages(...)` reverted (1); hero image `./` removed (1, mine). The "passes when fixed" regenerate run is covered in-tree by the arm's own check "regenerating the manifest after the planted block edit is green again"; I did not re-render PNGs.
-- Dark mode: each of the four figures is a `<picture>` with a light `<img>` and a `(prefers-color-scheme: dark)` `<source>`; the how-it-works figure is included and uses the pre-existing how-it-works-dark.png (differs from the light PNG). Held to the brief's owner ruling, which supersedes the note's scoping-out of `<picture>`.
-- Figures re-derived at the head: base count 0; no bare target left; PNG sizes 2296x806, 2296x1434, 2296x5986, light and dark, RGB (opaque); every PNG sha256 equals mermaid_figures.json's; doc_claims.py closure 175 -> 183 entries in tests/closures.json; D6 register regenerated with `claims.py` at the head: no diff against the committed claims.json/claims.md (C108 83, C110 21) (ev/claims_regen.txt). The 35 figure is the block above (ev/figure_35.txt).
-- Not re-derived: the GitHub markdown API `<themed-picture>` rendering. This seat's proxy refuses `POST /markdown` (sessions are bound to repository-scoped endpoints). Unverified by me, not refuted.
-- Closure classification: the eight new or newly-read docs/img/readme files are on INERT_EXCEPT and in doc_claims.py's recorded closure (the coffee.svg route the note prescribes); render_mermaid.mjs stays under the INERT docs/ prefix; the harness is in harness_headers.py's inert_reads; tests/entities.py hero regexp updated to `./` (green in CI).
-- build_docs.mjs: row targets normalised with path.posix.normalize; raw `<img src>`/`<source srcset>` resolved to docs/-relative or refused; both mutants above prove each line is pinned.
-- Forward-carry read back on handoff/audit-r10-roster at ce4dac44e: R10-CATALOG-PR carry index 0 (real HA 2026.11 Marketplace page at the first stamped tag with #3014, light and dark, absolute-URL image as control) and R10-ARCH-DOCS carry index 8 (figures vs what they depict; product page in both site themes under both OS schemes). R10-README-GRAPHICS is in both groups' `after` lists. Both state their control as a precondition.
-- VERSION, the manifest version and the RELEASE_NOTES heading are untouched by the three-dot diff. No golden or claim file moved.
+- RESULT ci: `merge_train.py classify 42b228ec7…` prints `GREEN … pending: none red: none`, twice, the second time just before writing (ev/ci-classify.txt). The packet's gate digest lists no refusal, and pr-contract, gate, mutation and closures all show success. So there is no red check, and step 11 has no trigger. The body's Red checks section says CI concluded green with no red, which is correct.
+- RESULT merge: `git merge-tree --write-tree origin/main 42b228ec7` exits 0 with tree 90b2fd195. The `LEDGER-MERGE: resolved tests/closures.json` driver merged the set. No conflict, and no `MERGE-CLAIM` line.
+- RESULT finder harness, dev/audit/harnesses/r10_readme_marketplace_pipeline.mjs with marked@15.0.4 and xss@1.0.15 (ev/harness-base-head.txt):
+  - Base README (437f1ba9b): relative_images=4 resolved=0, relative_links=28 resolved=0, picture_sources=0, rc=1 (red).
+  - Head: relative_images=7/7, relative_links=28/28, picture_sources=4/4, absolute_images=5/5, rc=0 (green).
+  - Null control, a README holding only an absolute-URL image: 1/1, rc=0.
+  - Controls at both ends: `bare=blank dot=ok absolute=ok`, `srcset_bare=stripped srcset_dot=kept light_img=ok`. mermaid_fences=3 plain_code=3.
+  - Every figure matches the body.
+  - The harness was rebuilt in-tree from the finder's out-of-tree copy, as the design note required (P1). The body names it as the replica under P1 of the note's carries.
+- RESULT mutation, `PYTHONPATH=tests/hastub python3 tests/doc_claims.py`: 228/228 pass at the head (ev/doc_claims-head.txt). Each mutant below was restored after its run (ev/mutants.txt).
+  - Base README: 10 fail, naming 17 bare targets.
+  - Setup-flow dark `<source>` removed (light-only figure): 4 fail.
+  - how-it-works dark `<source>` removed: 2 fail.
+  - My own mutant, how-it-works dark srcset pointed at the light PNG: 2 fail.
+  - build_docs `rawImages` reverted: 1 fail, on the built-page check.
+  - build_docs `path.posix.normalize` reverted: 2 fail.
+  - Dark PNG replaced by the light one (planted drift): 1 fail, naming the manifest mismatch.
+  - `<details open>`: 1 fail.
+  - Mermaid block edited without regenerating: 1 fail.
+  - One link made bare: 1 fail.
+  - My own mutant, dark source `media` set to light: 1 fail.
+  - how-it-works-dark.png deleted (missing dark PNG): 2 fail.
+  - No mutant survived.
+  - "Passes when fixed" is self-tested in the arm (manifest regenerated, then green). I did not re-run the generator, which needs Chromium and mermaid. The body's live regenerate-then-green run is cited, not re-taken.
+- The generator docs/img/readme/render_mermaid.mjs is tracked, and its header states the install (P6). CI reaches it through the doc_claims arm, which tests.yml runs. Per the design note the closure classification is that wiring, and no workflow edit was designed. The generator itself does not execute in CI. The arm pins its output by block hash and PNG hash.
+- Dark mode: every `<picture>` has a light `<img>` and a `prefers-color-scheme: dark` `<source>`. That includes the how-it-works figure, which uses the existing how-it-works-dark.png. I viewed two dark PNGs: they are genuine mermaid dark-theme renders on #0b1a28 and read well. PNG sizes match the body: 2296x806, 2296x1434, 2296x5986 (ev/png-sizes.txt).
+- Not re-derived: the claim that GitHub's markdown API wraps `<picture>` in `<themed-picture>`. This session's GitHub API access is repository-scoped, and POST /markdown was refused (ev/github-markdown-api.txt). `<picture>` with prefers-color-scheme is GitHub's documented form, but I did not verify it.
+- D6 register: `claims.py` re-run at the head leaves claims.json and claims.md byte-identical: C108 "83 links, broken=[]" and C110 "21 images, missing=[]" (ev/claims-gate-structure.txt). The body's explanation holds: how-it-works is now a `<picture>`, so it is no longer counted as a markdown image.
+- Closure: `tests/closure.py select` prints `MODE: FULL`, reason `tests/closure.py changes the gate itself`. The 8 new files plus how-it-works-dark.png sit in INERT_EXCEPT and in doc_claims.py's recorded closure, and the harness is under harness_headers' INERT READS. Every closures.json movement traces to a file this change reads (step 14). The `seconds` bump comes from the measured run time. `tests/structure.py` prints STRUCTURE RATCHET PASSED.
+- build_docs.mjs: `path.posix.normalize` removes the `./` from Documentation rows. `rawImages` resolves `./docs/img/...` to `img/...` and refuses any target outside docs/. The arm's built-page check confirms 3 mermaid srcsets and no leftover `./docs/`. That check counts only mermaid sources: the how-it-works light-only mutant did not trip it, but the README check caught that mutant.
+- VERSION, the manifest version, RELEASE_NOTES.md and both claim files are untouched at the merge base…head range.
+- Dispatch note body repair: the Figures line reads 31, "28 links plus 3 markdown images". I re-took it: `grep -o '](\./' README.md | wc -l` gives 31 at the head and 0 at the base. The Red checks line ("CI concluded green … no red") matches classify. I could not diff the body against its previous revision (no edit history through this seat's tools), so "nothing else changed" is unverified. The rest of the body is consistent with the head as measured above.
+- Class: the design note dismisses sibling documents (P9): the Marketplace fetches README.md only, and hacs.json has no render_readme. The class is one seam, README.md's relative targets and figures, and the arm enumerates every md, refdef and HTML src/href/srcset target in it.

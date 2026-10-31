@@ -1,0 +1,47 @@
+MUTANT base-README rc=1 10 of 228 checks FAILED
+  FAIL README.md has no bare-relative target and each mermaid block has its current figure above a closed <details>  [README.md: the Marketplace blanks 17 bare-relative target(s), prefix each with ./: ['DISCLAIMER.md', '
+  FAIL the built readme page resolves every <picture> srcset and src to its docs/-relative image, none left ./-prefixed  [0 srcset(s)]
+  FAIL red case: a ./ prefix removed from an image is a finding  [["README.md: the Marketplace blanks 17 bare-relative target(s), prefix each with ./: ['DISCLAIMER.md', 'LICENSE', 'NOTICE', 'dev/README.md']", 'README.md:
+  FAIL red case: a ./ prefix removed from a link is a finding  [["README.md: the Marketplace blanks 17 bare-relative target(s), prefix each with ./: ['DISCLAIMER.md', 'LICENSE', 'NOTICE', 'dev/README.md']", 'README.md: n
+?? tools/site/node_modules/
+MUTANT setup-flow-light-only rc=1 4 of 228 checks FAILED
+  FAIL README.md has no bare-relative target and each mermaid block has its current figure above a closed <details>  [mermaid block 2: no <picture> of ./docs/img/readme/mermaid-setup-flow.png with the dark source ./docs/
+  FAIL the built readme page resolves every <picture> srcset and src to its docs/-relative image, none left ./-prefixed  [3 srcset(s)]
+  FAIL red case: a light-only figure (no dark <source>) is a finding  [['mermaid block 2: no <picture> of ./docs/img/readme/mermaid-setup-flow.png with the dark source ./docs/img/readme/mermaid-setup-flow-dark.png direct
+  FAIL red case: a bare-relative dark srcset is a finding  [['mermaid block 2: no <picture> of ./docs/img/readme/mermaid-setup-flow.png with the dark source ./docs/img/readme/mermaid-setup-flow-dark.png directly above it
+?? tools/site/node_modules/
+MUTANT how-it-works-light-only rc=1 2 of 228 checks FAILED
+  FAIL README.md has no bare-relative target and each mermaid block has its current figure above a closed <details>  [README.md: no <picture> of ./docs/img/readme/how-it-works.png with the dark source ./docs/img/readme/h
+  FAIL red case: the how-it-works figure light-only (no dark <source>) is a finding  [['README.md: no <picture> of ./docs/img/readme/how-it-works.png with the dark source ./docs/img/readme/how-it-works-dark.png']]
+?? tools/site/node_modules/
+MUTANT how-it-works-dark-points-light rc=1 2 of 228 checks FAILED
+  FAIL README.md has no bare-relative target and each mermaid block has its current figure above a closed <details>  [README.md: no <picture> of ./docs/img/readme/how-it-works.png with the dark source ./docs/img/readme/h
+  FAIL red case: the how-it-works figure light-only (no dark <source>) is a finding  [['README.md: no <picture> of ./docs/img/readme/how-it-works.png with the dark source ./docs/img/readme/how-it-works-dark.png']]
+?? tools/site/node_modules/
+MUTANT build-rawImages-revert rc=1 1 of 228 checks FAILED
+  FAIL the built readme page resolves every <picture> srcset and src to its docs/-relative image, none left ./-prefixed  [4 srcset(s)]
+?? tools/site/node_modules/
+MUTANT build-normalize-revert rc=1 2 of 228 checks FAILED
+  FAIL every README Documentation row is a built page  [DISCLAIMER.md, docs/architecture.md, docs/automations.md, docs/configuration.md, docs/dashboard-card.md, docs/ecl110.md, docs/how-it-works.md, docs/setup.md]
+  FAIL product page: a docs card for a built document linked to GitHub is refused
+?? tools/site/node_modules/
+MUTANT dark-png-replaced rc=1 1 of 228 checks FAILED
+  FAIL README.md has no bare-relative target and each mermaid block has its current figure above a closed <details>  [mermaid block 3: docs/img/readme/mermaid-one-interval-dark.png differs from the PNG the manifest recor
+?? tools/site/node_modules/
+MUTANT details-open rc=1 1 of 228 checks FAILED
+  FAIL README.md has no bare-relative target and each mermaid block has its current figure above a closed <details>  [mermaid block 3: its <details> is open, so the Marketplace shows the raw source]
+?? tools/site/node_modules/
+MUTANT block-edit-no-regen rc=1 1 of 228 checks FAILED
+  FAIL README.md has no bare-relative target and each mermaid block has its current figure above a closed <details>  [mermaid block 1: its text differs from the one docs/img/readme/mermaid-how-the-pieces-fit.png was rend
+?? tools/site/node_modules/
+MUTANT one-link-bare rc=1 1 of 228 checks FAILED
+  FAIL README.md has no bare-relative target and each mermaid block has its current figure above a closed <details>  [README.md: the Marketplace blanks 1 bare-relative target(s), prefix each with ./: ['docs/ecl110.md']]
+?? tools/site/node_modules/
+MUTANT media-light rc=1 1 of 228 checks FAILED
+  FAIL README.md has no bare-relative target and each mermaid block has its current figure above a closed <details>  [mermaid block 3: no <picture> of ./docs/img/readme/mermaid-one-interval.png with the dark source ./doc
+?? tools/site/node_modules/
+MUTANT how-it-works-dark-deleted rc=1 2 of 228 checks FAILED
+  FAIL every image resolves, names its path under docs/ and has alt text  [image data-repo 'docs/img/readme/how-it-works-dark.png' is not in the tree]
+  FAIL README.md has no bare-relative target and each mermaid block has its current figure above a closed <details>  [docs/img/readme/how-it-works-dark.png is not a tracked file]
+?? tools/site/node_modules/
+DONE

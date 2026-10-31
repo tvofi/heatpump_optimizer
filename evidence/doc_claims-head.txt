@@ -336,4 +336,3 @@
   ok   regenerating the manifest after the planted block edit is green again (the repair path)
 
 ALL 228 checks PASSED
-rc=0
