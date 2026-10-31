@@ -1,0 +1,20 @@
+  ok   stub bytes (stdout, stdin forwarded) pass through the shim
+  ok   the stub's stderr and exit code pass through
+  ok   one log line naming parent and path
+  ok   a -f body=secret argument never reaches the log
+  ok   -X value, --input value and query string are dropped
+  ok   a pr call logs its verb
+  ok   a glued -f value is dropped
+  ok   -f/-F values placed before the path are dropped, the path still found
+  ok   null control: an unwritable log leaves output and status unchanged
+  skip unwritable-directory arm (running as a user who can write anyway)
+  ok   a log past the cap is rotated to .1
+  ok   mutant: the exec line is present in the shim being mutated
+  ok   mutation: dropping the exec pass-through fails the byte arm
+  ok   no real gh: one line, rc 127, no self-exec
+  ok   top ranks callers and endpoints by count
+  ok   --since drops earlier lines
+  ok   a malformed --since is refused
+  ok   coverage reads the shim marker, not the name
+  ok   a real gh ahead of the shim reads as not logged
+gh_calls self-test: 18 checks, 0 failed

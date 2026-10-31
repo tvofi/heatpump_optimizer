@@ -1,0 +1,29 @@
+== drop-exec rc=1
+  FAIL stub bytes (stdout, stdin forwarded) pass through the shim
+  FAIL the stub's stderr and exit code pass through
+  FAIL null control: an unwritable log leaves output and status unchanged
+  FAIL mutant: the exec line is present in the shim being mutated
+gh_calls self-test: 18 checks, 4 failed
+== drop-fF rc=1
+  FAIL -f/-F values placed before the path are dropped, the path still found
+gh_calls self-test: 18 checks, 1 failed
+== fatal-log rc=1
+  FAIL null control: an unwritable log leaves output and status unchanged
+gh_calls self-test: 18 checks, 1 failed
+== no-isshim rc=124
+== no-rotate rc=1
+  FAIL a log past the cap is rotated to .1
+gh_calls self-test: 18 checks, 1 failed
+== no-query-cut rc=1
+  FAIL -X value, --input value and query string are dropped
+gh_calls self-test: 18 checks, 1 failed
+== no-skip-input rc=0
+gh_calls self-test: 18 checks, 0 failed
+== no-skip-X rc=1
+  FAIL -X value, --input value and query string are dropped
+gh_calls self-test: 18 checks, 1 failed
+== no-clean rc=0
+gh_calls self-test: 18 checks, 0 failed
+== no-ppid-cmd rc=1
+  FAIL one log line naming parent and path
+gh_calls self-test: 18 checks, 1 failed

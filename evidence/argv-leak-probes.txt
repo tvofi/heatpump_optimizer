@@ -1,0 +1,14 @@
+/bin/bash -c source /root/.claude/shell-snapshots/snapshot-bash-1793468636134-de api repos/o/r
+/bin/bash -c source /root/.claude/shell-snapshots/snapshot-bash-1793468636134-de api repos/o/r
+/bin/bash -c source /root/.claude/shell-snapshots/snapshot-bash-1793468636134-de api repos/o/r
+/bin/bash -c source /root/.claude/shell-snapshots/snapshot-bash-1793468636134-de pr view
+/bin/bash -c source /root/.claude/shell-snapshots/snapshot-bash-1793468636134-de api graphql
+/bin/bash -c source /root/.claude/shell-snapshots/snapshot-bash-1793468636134-de pr create
+/bin/bash -c source /root/.claude/shell-snapshots/snapshot-bash-1793468636134-de issue comment
+/bin/bash -c source /root/.claude/shell-snapshots/snapshot-bash-1793468636134-de api repos/o/r
+/bin/bash -c source /root/.claude/shell-snapshots/snapshot-bash-1793468636134-de api repos/o/r
+/bin/bash -c source /root/.claude/shell-snapshots/snapshot-bash-1793468636134-de search prs
+/bin/bash -c source /root/.claude/shell-snapshots/snapshot-bash-1793468636134-de run view
+/bin/bash -c source /root/.claude/shell-snapshots/snapshot-bash-1793468636134-de api repos/o/r
+/bin/bash -c source /root/.claude/shell-snapshots/snapshot-bash-1793468636134-de api repos/o/r
+/bin/bash -c source /root/.claude/shell-snapshots/snapshot-bash-1793468636134-de pr view
