@@ -6,7 +6,7 @@ YAML — the integration is configured entirely through Home Assistant's UI, and
 this page follows the same order the UI does.
 
 - [Initial setup](#initial-setup) — the questions asked once, when you add the integration
-- [Changing settings later](#changing-settings-later) — the 23 options pages behind two menus
+- [Changing settings later](#changing-settings-later) — the 24 options pages behind two menus
 - [The hydronic layout catalog](#the-hydronic-layout-catalog) — which plumbing arrangements are modelled
 - [Services](#services) — every service and its fields
 
@@ -241,9 +241,10 @@ solved within one optimization interval.
 
 **Settings → Devices & services → Heat Pump Optimizer → Configure.**
 
-There are **23 pages**: eight on the first menu, and fifteen more behind
+There are **24 pages**: eight on the first menu, and sixteen more behind
 **Advanced settings**. One of the eight — *Your system, as configured* — is
-read-only. Each page saves on its own, so changing one setting never touches
+read-only, and the last advanced page, *Reset to factory defaults*, is an
+action behind a confirmation rather than settings. Each page saves on its own, so changing one setting never touches
 another page's values. Every page also ends with one shared navigation
 control, described once here rather than twenty-three times below:
 
@@ -279,6 +280,7 @@ control, described once here rather than twenty-three times below:
 | Fuse and peak guards | Main fuse, the fuse cap, the live peak guard, the heat pump's silent mode |
 | Transfer fees and contract | DSO product, per-kWh fees, the fixed-contract comparison |
 | Heat curve control (ECL110) | MQTT topics and displace limits |
+| Reset to factory defaults | The settings, the learned values, or both, back to a fresh installation; undone by `restore_learned_snapshot` |
 
 ### Your system, as configured
 
@@ -882,6 +884,36 @@ is set — an install without an ECL110 never touches these topics. See
 | Largest upward offset | 20 °C | 0–30, 0.5 steps | How far it may be shifted up when storing cheap heat. |
 | Controller response time | 1.5 h | 0.25–6.0, 0.25 steps | Roughly how long the controller takes to act on a new offset, so the optimizer does not ask for changes faster than the system can follow. |
 
+### Reset to factory defaults
+
+Returns the entry to the state of a fresh installation. Pick the scope and
+tick the confirmation; submitted unticked, the menu comes back and nothing
+changes, and closing the dialog cancels.
+
+| Setting | Default | Choices | What it means |
+|---|---|---|---|
+| What to reset | Settings and learned values | Settings · Learned values · Settings and learned values | Which half of the entry goes back to a fresh installation, or both. |
+| Yes, reset | off | on/off | The confirmation. Nothing changes unless it is ticked. |
+
+- **Settings**: every setting on these pages returns to its default. Kept, so
+  the optimizer stays connected to the house: every assigned entity, the zone
+  and emitter topology (the two-zone switch is written as the settings in force
+  imply it), the hot-water tank, valve and wood-furnace layout, the price and
+  solar-forecast sources and the Tibber token, the plant diagram, the ECL110
+  MQTT wiring, the pre-fill device and the main fuse.
+- **Learned values**: every learner starts again from the settings: the heat
+  loss scale and lower-floor ratio, the comfort weight, COP, buffer and hot
+  water cooling, the hot water profile and draws, defrost, the heat curve, the
+  price shape, the plant learners and the prediction accuracy history. The
+  billed peaks, the energy ledger, the operating mode, the frequency
+  watchdog's stand-down and any manual plan or override are kept.
+- **Both**.
+
+A snapshot of every learned store and of the settings the reset drops is taken
+first. Until the next weekly snapshot, about a week, `restore_learned_snapshot`
+undoes the reset, with the sensors as they are now. The entry then reloads and
+plans again straight away.
+
 ---
 
 ## The hydronic layout catalog
@@ -946,11 +978,12 @@ feeding the buffer tank — its heat is folded in rather than stored separately.
 
 ## Services
 
-14 services are registered under the `heatpump_optimizer` domain. The nine
-that act on a specific config entry also accept an optional `entry_id`; omitting
-it applies the call to every loaded entry, which is what a single-heat-pump
-install wants. Of those nine, `assign_entity`, `apply_topology`,
-`apply_schedule` and `debug_collect` write configuration back into the entry —
+15 services are registered under the `heatpump_optimizer` domain. The ten
+that act on a specific config entry also accept an `entry_id`: optional on
+nine, where omitting it applies the call to every loaded entry, which is what a
+single-heat-pump install wants, and required on `factory_reset`. Of those ten,
+`assign_entity`, `apply_topology`, `apply_schedule`, `debug_collect` and
+`factory_reset` write configuration back into the entry —
 `debug_collect`'s start turns the collection option on, which reloads the
 entry — and the other five act on the running coordinator. `run_optimization`,
 `set_away`, `set_mode`, `set_thermal_parameters` and `simulate_plan` always act
@@ -975,6 +1008,7 @@ or is not loaded — fails with a validation error rather than doing nothing.
 | `clear_manual_plan` | `entry_id` | optional |
 | `restore_learned_snapshot` | `entry_id` | optional |
 | `reset_heat_loss_learners` | `learners`, `entry_id` | optional |
+| `factory_reset` | `entry_id`, `scope` (both required) | optional |
 | `diagnose_interval` | `entry_id` | optional |
 | `debug_collect` | `action` (required), `entry_id` | optional |
 
@@ -1089,7 +1123,8 @@ breach a hard floor, and the legionella clock is never skipped.
 weekly snapshot — the manual counterpart of the drift watchdog. When no
 snapshot qualifies (healthy inputs and in-band accuracy at capture time are
 required) the call fails with an error instead of answering with an empty
-restore.
+restore. Until the next weekly snapshot after a factory reset, it undoes that
+reset instead: every learned store and the dropped settings come back.
 **`reset_heat_loss_learners`** returns the learned house heat loss scale and the
 learned lower floor loss ratio to 1.0, so the plan uses the heat loss values in
 the settings as they stand, and the learners start collecting evidence again
@@ -1099,6 +1134,10 @@ comfort weight and the hot-water, COP and defrost learners are left alone. The
 **Learning Reset Heat Loss** button resets both. Changing the indoor or the
 lower-floor temperature sensor resets the learner fitted on it the same way,
 because evidence fitted against one sensor says nothing about another.
+**`factory_reset`** returns one entry's `scope` — `settings`, `learners` or
+`both` — to its defaults, exactly as
+[Reset to factory defaults](#reset-to-factory-defaults) does, and answers with
+the entry and the scope. Within a week of it, `restore_learned_snapshot` undoes it.
 **`diagnose_interval`** attributes the last interval's temperature error
 input by input and publishes the result on the Prediction Accuracy sensor.
 **`debug_collect`** takes `action`: `start`, `stop` or `status`. Collect a week of debug data is the learning page's option that turns the collection on. `start` turns
