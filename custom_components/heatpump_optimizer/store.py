@@ -465,7 +465,6 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
         "written/mode/0": _TEXT, "written/dhw_setpoint/0": _R, "written/space_setpoint/0": _R,
         # The silent switch (#1911) and the GCHV night-mode registers (#1913)
         # are held slots on the same record (``pump_arbiter._writable``).
-        "written/silent/0": _FLAG,
         **{f"written/night_{e}_hour/0": Domain("int", 0, 23) for e in ("start", "end")},
         **{f"written/night_{e}_minute/0": Domain("int", 0, 59) for e in ("start", "end")},
         **{f"written/{k}/1": _AT for k in (
