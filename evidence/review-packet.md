@@ -1,43 +1,53 @@
 # Review packet #3022
-head: 2e4f3ebe0811a3b1a079c41ec269233ac5395871
-base: 861f949ae85884801bee7cd94e9307bf546c9046
+head: d5ce36c662d21c6376cad6701d77f6c5ad15fe4d
+base: cabfaadc3a13f61eaf0303918c7b1d5beda9c07c
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
-## Gate digest: pending
-CodeQL id=124433035015 neutral
-arch-score / arch-score id=124433252260 success
-budget-raise-gate / budget-raise-gate id=124433252147 success
-cancel-superseded id=124435704891 success
-codeql / Analyze (actions) id=124433252185 success
-codeql / Analyze (javascript-typescript) id=124433252164 success
-codeql / Analyze (python) id=124433252275 in_progress
-governance / delivery-status id=124433252250 success
-governance / delivery-status-publish id=124433253608 skipped
-governance / env-matrix id=124433252303 success
-governance / instrument-self-tests id=124433252321 in_progress
-governance / policy-docs id=124433252268 success
-governance / record id=124433253341 skipped
-governance / wave-script id=124433252410 success
-hassfest / hassfest id=124433252115 success
-kernel-points id=124433253159 skipped
-prelude id=124435704681 in_progress
-refresh id=124435704889 success
-tests / arch-instrument id=124434039041 in_progress
-tests / briefs id=124433252094 success
-tests / browser id=124434039065 success
-tests / closure-scope id=124433252312 success
-tests / closures id=124434039098 in_progress
-tests / coverage id=124434039045 in_progress
-tests / fast (3.14) id=124434039090 in_progress
-tests / mutation id=124433252269 in_progress
-tests / nightly-ha id=124432760012 skipped
-tests / nightly-ha (2025.2.0) id=124434039131 success
-tests / nightly-ha (stable) id=124434039189 success
-tests / nightly-status id=124433252240 success
-tests / replay id=124434039107 success
-tests / typing id=124434039043 success
-validate / validate-hacs id=124433252093 success
+## Gate digest: green
+CodeQL id=124476215872 success
+arch-score / arch-score id=124476117410 success
+arm id=124476054089 skipped
+budget-raise-gate / budget-raise-gate id=124476117363 success
+cancel-superseded id=124476035635 success
+codeql / Analyze (actions) id=124476117400 success
+codeql / Analyze (javascript-typescript) id=124476117443 success
+codeql / Analyze (python) id=124476117465 success
+gate id=124485274847 success
+governance / delivery-status id=124476117373 success
+governance / delivery-status-publish id=124476118209 skipped
+governance / env-matrix id=124476117405 success
+governance / instrument-self-tests id=124476117343 success
+governance / policy-docs id=124476117484 success
+governance / record id=124476118386 skipped
+governance / wave-script id=124476117372 success
+hassfest / hassfest id=124476117401 success
+kernel-points id=124476118157 skipped
+pr-contract / pr-contract id=124485155256 success
+prelude id=124476035958 success
+refresh id=124476035843 success
+tests / arch-instrument id=124476193450 success
+tests / briefs id=124476117486 success
+tests / browser id=124476193605 success
+tests / ci-ratchet id=124481949694 skipped
+tests / claims-autofix id=124479607796 skipped
+tests / closure-scope id=124476117470 success
+tests / closures id=124476193511 success
+tests / closures-autofix id=124481842568 skipped
+tests / coverage id=124476193411 success
+tests / coverage-ratchet id=124481948731 success
+tests / fast (3.14) id=124476193464 success
+tests / graders-head-copy id=124481948688 success
+tests / lane-proofs id=124482356335 success
+tests / mutation id=124476117462 success
+tests / mutation-autofix id=124485156190 skipped
+tests / mutation-pins id=124485156353 skipped
+tests / nightly-ha (2025.2.0) id=124476193512 success
+tests / nightly-ha (stable) id=124476193430 success
+tests / nightly-status id=124476117435 success
+tests / replay id=124476193491 success
+tests / typing id=124476193433 success
+validate / validate-hacs id=124476117359 success
 
 ## Refusals
 none
@@ -194,10 +204,10 @@ index 000000000..d6d377e51
 
 ## Three-dot diff
 diff --git a/README.md b/README.md
-index 4d291dcb2..f0997caf3 100644
+index 8bc921ac2..2b2412ad5 100644
 --- a/README.md
 +++ b/README.md
-@@ -501,7 +501,7 @@ Every field and its range is documented in
+@@ -511,7 +511,7 @@ Every field and its range is documented in
  
  ### Your first week
  
@@ -206,7 +216,7 @@ index 4d291dcb2..f0997caf3 100644
    optimization interval (30 minutes by default). Add the dashboard card and you
    can see what it intends to do.
  - **Day one.** If you want the commissioning step test, first switch on *Allow a
-@@ -675,13 +675,14 @@ Heating Schedule, DHW Setpoint Advisor and Plan DHW Heating (next 24 h).
+@@ -685,13 +685,14 @@ Heating Schedule, DHW Setpoint Advisor and Plan DHW Heating (next 24 h).
  | Mold Floor Breach | The measured room sits below the mold-safe floor the plan promises | Diagnostic; on when the measured room is below the mold floor by the configured margin (default 0.5 °C), typically because space heating is blocked. `floor_c`, `shortfall_c` and `space_blocked` in attributes |
  | Wood Cheaper Than Heat Pump | Burning wood costs less per kWh than running the heat pump | Disabled by default. Unavailable until the furnace is on, a wood-tank probe is set, external-heat detection or the DHW wood coil is on, type and packing are set, the billed price per m³ is greater than 0 (no silent default), and furnace efficiency is 10–95 %. A usable wood tank alone is not enough. Price and cheaper-hour count in attributes |
  
@@ -222,16 +232,16 @@ index 4d291dcb2..f0997caf3 100644
  | Learning Finalize Debug Collection | End the week of debug data now, so Download diagnostics carries it final. Unavailable unless *Collect a week of debug data* is on and the collection has not already stopped |
  | Prediction Accuracy Diagnose Last Interval | Explain the last interval's temperature error input by input, on the Prediction Accuracy sensor |
  
-@@ -753,7 +754,7 @@ that deliver them.
+@@ -763,7 +764,7 @@ that deliver them.
  
  ## Services
  
 -13 services are registered under the `heatpump_optimizer` domain. Field-level
 +14 services are registered under the `heatpump_optimizer` domain. Field-level
  detail for each — including all 31 fields of `set_thermal_parameters` — is in
- [docs/configuration.md](docs/configuration.md). Worked automation examples — an
+ [docs/configuration.md](./docs/configuration.md). Worked automation examples — an
  EV charger following the Cost Power Headroom sensor, mode switching on price — are in
-@@ -770,6 +771,7 @@ EV charger following the Cost Power Headroom sensor, mode switching on price —
+@@ -780,6 +781,7 @@ EV charger following the Cost Power Headroom sensor, mode switching on price —
  | `apply_manual_plan` | Pin exact run slots for up to 20 hours; the optimizer plans around them, and safety still releases any it cannot honour | Optional |
  | `clear_manual_plan` | Drop the manual plan and return to fully automatic planning | Optional |
  | `restore_learned_snapshot` | Roll every learner back to the last weekly snapshot taken with healthy inputs | Optional |
@@ -321,7 +331,7 @@ index 7302a27d4..9597b56d8 100644
  # DHW demand window defaults
  DEFAULT_DHW_SCHEDULE_ENABLED: Final = True
 diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
-index bd7a38ab2..ca7965e4a 100644
+index b4b07c4ea..075ac67b5 100644
 --- a/custom_components/heatpump_optimizer/coordinator.py
 +++ b/custom_components/heatpump_optimizer/coordinator.py
 @@ -119,6 +119,7 @@ from .const import (
@@ -341,7 +351,7 @@ index bd7a38ab2..ca7965e4a 100644
      learner_newton_step,
      learner_room_unread,
      mold_safe_room_floor,
-@@ -1458,7 +1461,7 @@ HOUSE_LOSS_SAMPLE_BOUNDS_H = (HOUSE_LOSS_MIN_SAMPLE_HOURS, HOUSE_LOSS_MAX_SAMPLE
+@@ -1457,7 +1460,7 @@ HOUSE_LOSS_SAMPLE_BOUNDS_H = (HOUSE_LOSS_MIN_SAMPLE_HOURS, HOUSE_LOSS_MAX_SAMPLE
  # ``HOUSE_LOSS_ALPHA * _LEARNER_TRUST_REGION`` of it (``learner_newton_step``).
  HOUSE_LOSS_MAX_STEP = 0.05
  # What the re-anchor reads back; a store missing any is adopted on load.
@@ -350,7 +360,7 @@ index bd7a38ab2..ca7965e4a 100644
  # Residuals beyond this are a door left open, a wood stove, or a sensor glitch
  # rather than a heat loss error.
  HOUSE_LOSS_MAX_RESIDUAL = 1.0  # °C
-@@ -4248,11 +4251,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+@@ -4247,11 +4250,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
              except (TypeError, ValueError, OverflowError) as err:
                  _LOGGER.debug("Could not load lower floor loss ratio: %s", err)
  
@@ -363,7 +373,7 @@ index bd7a38ab2..ca7965e4a 100644
          _had_anchor = all(k in stored for k in _HEAT_LOSS_ANCHOR_KEYS)
          _reanchored = self._reanchor_house_heat_loss_scale(stored)
          if _reanchored or not _had_anchor:
-@@ -4383,10 +4382,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+@@ -4382,10 +4381,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
          return {
              "buffer_cooling_rate": self._buffer_cooling_rate,
              "buffer_cooling_samples": self._buffer_cooling_samples,
@@ -375,7 +385,7 @@ index bd7a38ab2..ca7965e4a 100644
              **self._heat_loss_anchors(),
              "house_heat_loss_scale": self._house_heat_loss_scale,
              "house_heat_loss_samples": self._house_heat_loss_samples,
-@@ -5171,14 +5167,31 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+@@ -5170,14 +5166,31 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
          self._lower_floor_loss_ratio = float(np.clip(ratio, LOWER_FLOOR_LOSS_RATIO_MIN, LOWER_FLOOR_LOSS_RATIO_MAX))
          _publish_params(self, lower_floor_loss_ratio=self._lower_floor_loss_ratio)
  
@@ -409,7 +419,7 @@ index bd7a38ab2..ca7965e4a 100644
          """
          p = getattr(self, "_ctx", self)._thermal_params
          if p.two_zone_enabled:
-@@ -5196,19 +5209,16 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+@@ -5195,19 +5208,16 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
              "lower_floor_loss_anchor": ctx._thermal_params.lower_floor_heat_loss
              if ctx._thermal_params.two_zone_enabled else None,
              "house_heat_loss_basis": heat_loss_basis(ctx._config, heat_energy.meter_of(self).earned),
@@ -434,7 +444,7 @@ index bd7a38ab2..ca7965e4a 100644
  
          * **Threshold gate.** Below a ``HOUSE_LOSS_MAX_STEP`` change of the
            total and of the nameplate split the store is kept verbatim: below
-@@ -5223,26 +5233,25 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+@@ -5222,26 +5232,25 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
          A basis earlier than the one in force (G-ID-3: a power meter added, or
          a measured heat earned, ``_async_earn_heat_basis``) voids both
          learners' evidence, so the law runs at zero confidence. A stored
@@ -471,7 +481,7 @@ index bd7a38ab2..ca7965e4a 100644
          if void:
              self._house_heat_loss_samples = self._lower_floor_loss_samples = 0
          phi = (house_loss_confidence(self._house_heat_loss_samples), house_loss_confidence(self._lower_floor_loss_samples))
-@@ -5262,7 +5271,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+@@ -5261,7 +5270,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
              _LOGGER.warning(
                  "Learned house heat loss scale %.3f (fitted against %.4f kW/°C, %d samples) cannot be "
                  "expressed against the newly configured %.4f kW/°C: resetting to the configuration",
@@ -480,7 +490,7 @@ index bd7a38ab2..ca7965e4a 100644
              )
              self._house_heat_loss_samples, phi = 0, (0.0, phi[1])
          _LOGGER.info(
-@@ -5270,7 +5279,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+@@ -5269,7 +5278,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
              "against the configured UA %.4f -> %.4f kW/°C (confidence %.2f, %.2f; "
              "evidence voided by a later basis: %s)",
              self._house_heat_loss_scale, new_scale, ratio, new_ratio,
@@ -489,7 +499,7 @@ index bd7a38ab2..ca7965e4a 100644
          )
          self._apply_house_heat_loss_scale(new_scale)
          self._apply_lower_floor_loss_ratio(new_ratio)
-@@ -9325,18 +9334,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+@@ -9321,18 +9330,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
              # pre-T7 snapshot restores it to inert. The fallback latch does
              # NOT ride this path — see _async_load_thermal_learning.
              self._freq_map = FrequencyMap()
@@ -895,7 +905,7 @@ index 000000000..00655d1d1
 +    ):
 +        print(f"swap   {name:<38} (scale, ratio, n_scale, n_ratio, UA kW/K) = {reload(cfg, **kw)}")
 diff --git a/dev/audit/rounds/round4/D6/claims.json b/dev/audit/rounds/round4/D6/claims.json
-index 884f80777..6fd87a2b0 100644
+index 730fc10a6..b6df29eea 100644
 --- a/dev/audit/rounds/round4/D6/claims.json
 +++ b/dev/audit/rounds/round4/D6/claims.json
 @@ -2,9 +2,9 @@
@@ -1037,7 +1047,7 @@ index 884f80777..6fd87a2b0 100644
    "truth": ""
   },
 diff --git a/dev/audit/rounds/round4/D6/claims.md b/dev/audit/rounds/round4/D6/claims.md
-index 4dd228422..bc15c9d37 100644
+index 3c3796370..1e353093f 100644
 --- a/dev/audit/rounds/round4/D6/claims.md
 +++ b/dev/audit/rounds/round4/D6/claims.md
 @@ -4,11 +4,11 @@ Generated by `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.
@@ -1214,10 +1224,10 @@ index bba7b039c..8fd441ab2 100644
  input by input and publishes the result on the Prediction Accuracy sensor.
  **`debug_collect`** takes `action`: `start`, `stop` or `status`. Collect a week of debug data is the learning page's option that turns the collection on. `start` turns
 diff --git a/tests/closures.json b/tests/closures.json
-index 2fca6b586..20f964b2b 100644
+index 6f93af714..b08e69482 100644
 --- a/tests/closures.json
 +++ b/tests/closures.json
-@@ -3862,6 +3862,7 @@
+@@ -3870,6 +3870,7 @@
     "dev/audit/harnesses/hpo_ci_container_setup.sh",
     "dev/audit/harnesses/j5_gil.py",
     "dev/audit/harnesses/k1725_blas_kernel_gap.py",
@@ -1226,10 +1236,10 @@ index 2fca6b586..20f964b2b 100644
     "dev/audit/harnesses/pulse_replay.py",
     "dev/audit/harnesses/r10_2205_replay_cost_arms.py",
 diff --git a/tests/entities.py b/tests/entities.py
-index ce6775ffb..725bb4fda 100644
+index d70832183..c0bcaec43 100644
 --- a/tests/entities.py
 +++ b/tests/entities.py
-@@ -7242,7 +7242,7 @@ R.section("Buttons")
+@@ -7267,7 +7267,7 @@ R.section("Buttons")
  
  buttons = collect(button)
  btn_by_name = {display_name("button", b): b for b in buttons}
@@ -1238,7 +1248,7 @@ index ce6775ffb..725bb4fda 100644
  for name in (
      "Optimize Now",
      "Learning Run System Identification",
-@@ -7284,6 +7284,17 @@ R.check(
+@@ -7309,6 +7309,17 @@ R.check(
      "weight unpublished until the next cycle",
  )
  
@@ -1256,7 +1266,7 @@ index ce6775ffb..725bb4fda 100644
  
  # ===========================================================================
  # Options flow
-@@ -12859,6 +12870,7 @@ _CLUSTER_PREFIXES: dict[str, dict[str, str]] = {
+@@ -12884,6 +12895,7 @@ _CLUSTER_PREFIXES: dict[str, dict[str, str]] = {
          "learning_finalize_debug": "Learning ",
          "learning_run_system_identification": "Learning ",
          "learning_reset_comfort_weight": "Learning ",
@@ -1264,7 +1274,7 @@ index ce6775ffb..725bb4fda 100644
      },
      "switch": {"dhw_boost": "DHW "},
  }
-@@ -15022,6 +15034,7 @@ _svc_coord.async_clear_manual_plan = _svc_record("clear_manual")
+@@ -15047,6 +15059,7 @@ _svc_coord.async_clear_manual_plan = _svc_record("clear_manual")
  _svc_coord.async_restore_learned_snapshot = _svc_record("restore", True)
  _svc_coord.async_set_away = _svc_record("set_away")
  _svc_coord.async_diagnose_interval = _svc_record("diagnose", {"residual": None})
@@ -1272,7 +1282,7 @@ index ce6775ffb..725bb4fda 100644
  
  
  def _svc_call(service, payload=None):
-@@ -15374,6 +15387,14 @@ R.check(
+@@ -15399,6 +15412,14 @@ R.check(
      _restored["restored"] == [_svc_entry.entry_id],
  )
  
@@ -1287,7 +1297,7 @@ index ce6775ffb..725bb4fda 100644
  _diag = _svc_call(const.SERVICE_DIAGNOSE_INTERVAL)
  R.check(
      "diagnose_interval returns the per-entry report",
-@@ -15411,6 +15432,7 @@ _svc_covered = {
+@@ -15436,6 +15457,7 @@ _svc_covered = {
      const.SERVICE_RESTORE_SNAPSHOT,
      const.SERVICE_DIAGNOSE_INTERVAL,
      const.SERVICE_DEBUG_COLLECT,
@@ -1295,7 +1305,7 @@ index ce6775ffb..725bb4fda 100644
  }
  R.check(
      "every registered service was invoked above",
-@@ -40277,6 +40299,9 @@ _R10_LOG_ALLOWED_BY_REASON = {
+@@ -40302,6 +40324,9 @@ _R10_LOG_ALLOWED_BY_REASON = {
      "once per event by the function's own state (a refit, an issue raised, a "
      "rollback per alarm, a malformed month closed so it is not retried)": {
          ("coordinator.py", "_reanchor_house_heat_loss_scale"): 2,
@@ -1306,7 +1316,7 @@ index ce6775ffb..725bb4fda 100644
          ("coordinator.py", "_async_watch_learning_drift"): 1, ("ledger.py", "roll_receipts"): 1,
      },
 diff --git a/tests/features.py b/tests/features.py
-index d8b045083..7bd929ee9 100644
+index 3e5c55705..77cf581ef 100644
 --- a/tests/features.py
 +++ b/tests/features.py
 @@ -8247,6 +8247,7 @@ class _LearnPersist:
@@ -1556,7 +1566,7 @@ index d8b045083..7bd929ee9 100644
  R.section("Runtime parameter updates")
  
  import asyncio
-@@ -25432,6 +25665,7 @@ _HPO_MOVED = (
+@@ -25435,6 +25668,7 @@ _HPO_MOVED = (
      "handle_clear_manual_plan",
      "handle_restore_snapshot",
      "handle_diagnose_interval",
@@ -1564,7 +1574,7 @@ index d8b045083..7bd929ee9 100644
      "_manual_targets",
      "_loaded_entries",
      "_loaded_coordinators",
-@@ -25502,6 +25736,7 @@ _HPO_SERVICE_MAP = {
+@@ -25505,6 +25739,7 @@ _HPO_SERVICE_MAP = {
      "restore_learned_snapshot": "handle_restore_snapshot",
      "diagnose_interval": "handle_diagnose_interval",
      "debug_collect": "handle_debug_collect",
@@ -1572,7 +1582,7 @@ index d8b045083..7bd929ee9 100644
  }
  _hpo_hass = FakeHass()
  _asyncio.run(_ha_setup_component(_integ, _hpo_hass))
-@@ -43828,6 +44063,8 @@ _RC2_ROWS = [
+@@ -43831,6 +44066,8 @@ _RC2_ROWS = [
  _RC2_ROWS += [
      (_rc2_button.ResetComfortWeightButton, "async_press", (), ("comfort", -1.9),
       ("coordinator._comfort_learner.evidence", 0.0)),
@@ -1581,7 +1591,7 @@ index d8b045083..7bd929ee9 100644
      (_rc2_button.ForceOptimizationButton, "async_press", (), ("mode", "auto"), None),
      (_rc2_button.DiagnoseIntervalButton, "async_press", (), ("mode", "auto"), None),
      (_rc2_button.SystemIdentificationButton, "async_press", (), ("mode", "auto"), None),
-@@ -43850,6 +44087,7 @@ _RC2_SETTERS = {
+@@ -43853,6 +44090,7 @@ _RC2_SETTERS = {
      "async_apply_manual_plan": "saves the plan before it asks for the refresh",
      "async_clear_manual_plan": "saves the clear before it asks for the refresh",
      "async_reset_comfort_weight": "row: the reset button",
@@ -1589,7 +1599,7 @@ index d8b045083..7bd929ee9 100644
      "async_restore_learned_snapshot": "restores from the store it reads",
      "async_arm_system_identification": "in memory by design: arms tonight's run",
      "async_update_thermal_params": "the call's fields persist into entry "
-@@ -43901,6 +44139,9 @@ async def _rc2_prelude(coord, what, value):
+@@ -43904,6 +44142,9 @@ async def _rc2_prelude(coord, what, value):
      elif what == "comfort":
          coord._comfort_learner.evidence = value
          await coord._async_save_accuracy()
@@ -1599,7 +1609,7 @@ index d8b045083..7bd929ee9 100644
      elif isinstance(what, str) and what.startswith("block-"):
          boost_mod.held_for(coord).set(
              what.removeprefix("block-"), value, _rc2_dt_util.now(), block=True,
-@@ -43915,6 +44156,7 @@ async def _rc2_boot(entry):
+@@ -43918,6 +44159,7 @@ async def _rc2_boot(entry):
      coord = HeatPumpOptimizerCoordinator(FakeHass(), entry)
      coord.hass.config_entries.entries.append(entry)
      await coord._async_load_accuracy()
@@ -1607,7 +1617,7 @@ index d8b045083..7bd929ee9 100644
      await boost_mod.restore_session(
          coord, coord._adopt_away_override, coord._config, coord._entity_state
      )
-@@ -59842,6 +60084,8 @@ _P5_DISPOSED = {
+@@ -59845,6 +60087,8 @@ _P5_DISPOSED = {
      "_async_load_thermal_learning": "restore from the store",
      "_load_t4b_learners": "restore from the store",
      "_reanchor_house_heat_loss_scale": "re-expresses a restored scale (#86)",
