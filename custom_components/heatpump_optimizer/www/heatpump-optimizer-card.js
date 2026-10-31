@@ -231,10 +231,10 @@ const STRINGS = {
     "health.cop_reason_span_too_long": "The meter span ran too long to use.",
     "health.metric_heat_loss": "How fast the house loses heat, in watts per degree of difference between inside and outside. Higher is a leakier house; with no samples it is the settings' estimate.",
     "health.metric_solar": "How much of the sun's heat the windows let in, against the settings. Above 1 lets in more; with no samples it is the settings' value.",
-    "health.metric_lower": "The lower floor's heat loss as a share of the settings' estimate.",
-    "health.metric_tank": "How fast the hot-water tank cools when the pump is off, in °C per hour. Lower is better insulated.",
+    "health.metric_lower": "The lower floor's heat loss as a share of the settings' estimate. Above 100 % loses more; with no samples it is the settings' estimate.",
+    "health.metric_tank": "How fast the hot-water tank cools when the pump is off, in °C per hour. Lower is better insulated; with no samples it is the default rate.",
     "health.metric_cop": "Whether the heat pump still delivers as much heat per kWh as it used to. A dash means it is not yet watched.",
-    "health.metric_gains": "Heat from people, cooking and appliances by hour of day, which the plan counts as free heating.",
+    "health.metric_gains": "Heat from people, cooking and appliances by hour of day, in kW, which the plan counts as free heating. Higher bars are more free heat; with no samples the plan counts none.",
     "health.debug_title": "Debug collection",
     "health.debug_off": "Off. When a bug report asks for one, Start records a week of cycles into the diagnostics file.",
     "health.debug_active": "Collecting: {rows} records so far, about {days} days left.",
@@ -1073,10 +1073,10 @@ const STRINGS = {
     "health.cop_reason_span_too_long": "Mätarens intervall blev för långt för att användas.",
     "health.metric_heat_loss": "Hur snabbt huset förlorar värme, i watt per grads skillnad mellan inne och ute. Högre är ett otätare hus; utan mätningar är det inställningarnas uppskattning.",
     "health.metric_solar": "Hur mycket av solens värme fönstren släpper in, mot inställningarna. Över 1 släpper in mer; utan mätningar är det inställningarnas värde.",
-    "health.metric_lower": "Nedre våningens värmeförlust som andel av inställningarnas uppskattning.",
-    "health.metric_tank": "Hur snabbt varmvattentanken svalnar när pumpen står still, i °C per timme. Lägre är bättre isolerat.",
+    "health.metric_lower": "Nedre våningens värmeförlust som andel av inställningarnas uppskattning. Över 100 % förlorar mer; utan mätningar är det inställningarnas uppskattning.",
+    "health.metric_tank": "Hur snabbt varmvattentanken svalnar när pumpen står still, i °C per timme. Lägre är bättre isolerat; utan mätningar är det standardvärdet.",
     "health.metric_cop": "Om värmepumpen fortfarande ger lika mycket värme per kWh som förut. Ett streck betyder att den inte bevakas än.",
-    "health.metric_gains": "Värme från människor, matlagning och apparater per timme, som planen räknar som gratis uppvärmning.",
+    "health.metric_gains": "Värme från människor, matlagning och apparater per timme, i kW, som planen räknar som gratis uppvärmning. Högre staplar är mer gratis värme; utan mätningar räknar planen ingen.",
     "health.debug_title": "Felsökningsinsamling",
     "health.debug_off": "Av. När en felrapport ber om det spelar Starta in en vecka av cykler i diagnostikfilen.",
     "health.debug_active": "Samlar in: {rows} poster hittills, ungefär {days} dagar kvar.",
@@ -9559,11 +9559,17 @@ function healthLearningHtml(plan) {
   return rows.length ? `<div class="health-learning"><h3 class="health-h">${esc(L("health.learning"))}</h3>${rows.join("")}</div>` : "";
 }
 
-/** One learner row: what it is, its evidence in words, its value and a bar.
- * Its hover says what the figure is (`health.metric_<id>`). */
+/** A model row's hover, by the owner's spec: what the figure is in plain
+ * words (`health.metric_<id>`, which also says what no data means), then the
+ * row's current reason -- its learner phase, its evidence or its COP reason. */
+function healthModelTitle(id, reason) {
+  return [L(`health.metric_${id}`), reason].filter(Boolean).join("\n");
+}
+
+/** One learner row: what it is, its evidence in words, its value and a bar. */
 function healthModelRow(id, title, detail, value, share, tone) {
   const pct = Math.round(Math.max(0, Math.min(1, Number(share) || 0)) * 100);
-  return `<div class="health-row model-row" data-model-row="${id}" data-tone="${tone || "ok"}" title="${esc(L(`health.metric_${id}`))}">` +
+  return `<div class="health-row model-row" data-model-row="${id}" data-tone="${tone || "ok"}" title="${esc(healthModelTitle(id, detail))}">` +
     `<span class="adv-text">${esc(title)}<span class="adv-sub">${esc(detail)}</span></span>` +
     `<span class="model-value">${esc(value)}</span>` +
     `<span class="model-bar" aria-hidden="true"><span style="width:${pct}%"></span></span></div>`;
@@ -9586,9 +9592,10 @@ function healthGainsRow(gains, learning) {
   const bars = kw.map((g, h) => `<span class="gains-bar" title="${String(h).padStart(2, "0")}:00" ` +
     `style="height:${top > 0 ? Math.max(4, Math.round((g / top) * 100)) : 4}%"></span>`).join("");
   const peak = L("health.model_gains_peak", { kw: top.toFixed(1), hh: String(at).padStart(2, "0") });
-  return `<div class="health-row model-row" data-model-row="gains" data-tone="ok" title="${esc(L("health.metric_gains"))}">` +
+  const detail = learning ? `${learning.text} ${peak}` : peak;
+  return `<div class="health-row model-row" data-model-row="gains" data-tone="ok" title="${esc(healthModelTitle("gains", detail))}">` +
     `<span class="adv-text">${esc(L("health.model_gains"))}<span class="adv-sub">` +
-    `${esc(learning ? `${learning.text} ${peak}` : peak)}</span></span>` +
+    `${esc(detail)}</span></span>` +
     `<span class="gains-strip" aria-hidden="true">${bars}</span></div>`;
 }
 

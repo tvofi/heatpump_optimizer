@@ -857,10 +857,10 @@ def _fold_flow_lift(coord: Any, now: datetime) -> None:
     * the draw not distorted — ``_cop_fold_blocked``, not a restatement of
       it: a resistive element or a capped compressor is running the plant at
       a supply temperature the compressor did not choose;
-    * a space-dominant commanded split, at the same ``_COP_CURVE_SHARE``
-      threshold the efficiency reference uses. The curve is a SPACE heating
-      curve; a hot-water interval runs the supply at the tank's charge
-      temperature and says nothing about where the space curve sits.
+    * a space-dominant interval by its attribution (the mode dwell where
+      observed, else the commanded split), at the efficiency reference's
+      ``_COP_CURVE_SHARE``: the curve is a SPACE heating curve, and a hot-water
+      interval runs the supply at the tank's charge temperature.
 
     ``now`` is unused for arithmetic and taken anyway: this is called from
     ``_record_accuracy``'s per-cycle block beside ``_observe_frequency``,
@@ -881,9 +881,8 @@ def _fold_flow_lift(coord: Any, now: datetime) -> None:
         return
     if _cop_fold_blocked(coord):
         return
-    space, dhw = coord._commanded_split()
-    total = space + dhw
-    if total <= 1e-6 or dhw / total > coord._COP_CURVE_SHARE:
+    a = heat_energy.meter_of(coord).attribution(coord._commanded_split())
+    if a.space + a.dhw <= 1e-6 or heat_energy.dhw_share(a) > coord._COP_CURVE_SHARE:
         return
     curve = curve_supply_temp(
         coord._thermal_model,
@@ -3395,7 +3394,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             entry.entry_id,
             lambda: _ctx_of(self)._thermal_params,
             publish=functools.partial(_publish_params, self),
-            frozen=self._learning_frozen,
+            frozen=functools.partial(self._learning_frozen, room_air=False),
             heating_active=lambda: bool(planned().get("dhw_heating_active", False)),
             # The live detector, never a solve's copy of it: no solve runs
             # in comfort, boost or off to refresh one (#1736 H4).
@@ -5006,7 +5005,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # counters' deltas, so a counter is exempt here; its floor is judged there.
         if self._measured_power is None and not heat_energy.meter_of(self).counter:
             return COP_REFUSED_NO_POWER
-        if self._learning_frozen(CONF_POWER_ENTITY, CONF_OUTDOOR_TEMP_ENTITY, CONF_THERMAL_POWER_ENTITY):
+        heat_kw = self._flow_bias.heat_output_kw  # read first: an open window moves no measured heat
+        if self._learning_frozen(CONF_POWER_ENTITY, CONF_OUTDOOR_TEMP_ENTITY, CONF_THERMAL_POWER_ENTITY, room_air=heat_kw is None and not heat_energy.meter_of(self).counter):
             return COP_REFUSED_FROZEN
 
         commanded = self._commanded_power()
@@ -5037,7 +5037,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # against a walking ratio EWMA (a fixed gate deadlocks on a true
         # efficiency past it); a draw off the ask needs draw_range's
         # evidence. A measured heat (fold e) leaves the gates nothing to judge.
-        heat_kw = self._flow_bias.heat_output_kw
         ratio = float(cast(float, self._measured_power)) / max(commanded, 1e-6)  # the two guards leave a power here
         # Seeded at 1.0, the model's own expectation, and gated against the
         # value BEFORE this sample updates it, so a first-sample blip cannot
@@ -6563,7 +6562,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         """
         _publish_params(self, **self._model_corrections(dt_util.now()))
 
-    def _learning_frozen(self, *keys: str) -> str | None:
+    def _learning_frozen(self, *keys: str, room_air: bool = True) -> str | None:
         """Why learning should be skipped this interval, or ``None``.
 
         Fail closed. A learner that pauses for an hour loses an hour of
@@ -6629,8 +6628,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                     return f"{reading.problem}:{key}"
         # #26: training on an open window teaches a phantom heat loss the
         # house does not have — measured in °C-scale residuals, far above
-        # any learning signal.
-        if self._vent_cusum.tripped:
+        # any learning signal. ``room_air=False``: a learner reading no room air.
+        if room_air and self._vent_cusum.tripped:
             return "ventilation"
         # #1935: boost space heating — either surface — actuates heat the
         # plan's trajectory never assumed, so the plant state the interval
@@ -9913,7 +9912,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             return None
         if not np.isfinite(value):
             return None
-        if self._learning_frozen(CONF_DHW_TEMP_ENTITY) is not None:
+        if self._learning_frozen(CONF_DHW_TEMP_ENTITY, room_air=False) is not None:
             return None
         return value
 

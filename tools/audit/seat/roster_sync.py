@@ -548,7 +548,10 @@ def sync(a) -> int:
                          "branch to push; give --roster-ref to write")
         prs, note = load_prs(a.repo, a.pr_state, a.limit)
         print(f"roster_sync: {note}")
-        roster_edit.fetch_origin(a.checkout)
+        try:
+            roster_edit.fetch_origin(a.checkout)
+        except roster_edit.Refuse as e:  # not this module's class: it would
+            raise Refuse(str(e))         # escape and kill a beat's loop
         ref, branch = target(a.checkout, a.roster_ref, a.branch, a.roster_path)
         msg = a.message or (f"roster_sync: derive stages from pull requests "
                             f"({SELF})")

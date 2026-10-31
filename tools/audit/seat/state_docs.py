@@ -1188,6 +1188,46 @@ def self_test() -> int:
         ok("sync arm 3: a second --apply pass returns 0", rc == 0, rc)
         ok("sync arm 3: and moves nothing (byte-identical roster)",
            roster_tip() == tip and roster_bytes() == before)
+        # ARM 4 -- a ref-lock race in the sync pass's fetch (another process
+        # moved a remote-tracking ref mid-fetch) must not end the beat: one
+        # race is retried inside the pass; a race outlasting the bound is a
+        # refused pass (rc 2, retried at the next interval), not a traceback.
+        re_ = roster_sync.roster_edit
+        real_once, real_sleep = re_._fetch_once, re_.time.sleep
+        race = (1, "", "error: cannot lock ref 'refs/remotes/origin/train-hold'"
+                       ": is at " + "a" * 40 + " but expected " + "b" * 40 + "\n")
+        calls = []
+
+        def racing(n_races):
+            def once(checkout):
+                calls.append(1)
+                return race if len(calls) <= n_races else real_once(checkout)
+            return once
+
+        re_.time.sleep = lambda _s: None
+        try:
+            re_._fetch_once = racing(1)
+            tipfile.unlink(missing_ok=True)
+            try:
+                rc = main(sync_argv + ["--apply"])
+            except BaseException as e:  # noqa: BLE001 - the defect: a crash
+                rc = f"raised {type(e).__name__}: {e}"
+            ok("sync arm 4: the beat outlives one injected lock race", rc == 0, rc)
+            ok("sync arm 4: the race was retried once, not skipped",
+               len(calls) == 2, len(calls))
+            calls.clear()
+            re_._fetch_once = racing(10 ** 6)
+            tipfile.unlink(missing_ok=True)
+            try:
+                rc = main(sync_argv + ["--apply"])
+            except BaseException as e:  # noqa: BLE001 - the defect: a crash
+                rc = f"raised {type(e).__name__}: {e}"
+            ok("sync arm 4: a persistent race is a refused pass (rc 2), no crash",
+               rc == 2, rc)
+            ok("sync arm 4: and stops at the bound",
+               len(calls) == re_.FETCH_ATTEMPTS, len(calls))
+        finally:
+            re_._fetch_once, re_.time.sleep = real_once, real_sleep
 
     # --- which round (R10-TICK d) ------------------------------------------
     # The state ref and dir follow the roster's round. A ref carrying round
