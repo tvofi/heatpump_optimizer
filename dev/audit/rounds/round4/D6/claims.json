@@ -263,18 +263,18 @@
  {
   "id": "C30",
   "source": "docs/configuration.md",
-  "claim": "every documented Default (89 rows) is the default the rendered options page actually carries",
+  "claim": "every documented Default (92 rows) is the default the rendered options page actually carries",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "89 compared, mismatches=[]",
+  "result": "92 compared, mismatches=[]",
   "verdict": "true",
   "truth": ""
  },
  {
   "id": "C31",
   "source": "docs/configuration.md",
-  "claim": "every documented Range (92 rows) is the NumberSelector min/max the rendered options page actually carries",
+  "claim": "every documented Range (101 rows) is the NumberSelector min/max the rendered options page actually carries",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "92 compared, mismatches=[]",
+  "result": "101 compared, mismatches=[]",
   "verdict": "true",
   "truth": ""
  },
@@ -965,9 +965,9 @@
  {
   "id": "C108",
   "source": "README.md + docs/*.md",
-  "claim": "every relative link resolves (83 links)",
+  "claim": "every relative link resolves (85 links)",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "83 links, broken=[], of which removed-by-the-export=[]",
+  "result": "85 links, broken=[], of which removed-by-the-export=[]",
   "verdict": "true",
   "truth": ""
  },
