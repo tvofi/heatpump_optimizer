@@ -4711,9 +4711,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         flow meter measures the interval's heat instead (#2016). The hot
         water subtracted is ``_commanded_split``'s, which zeroes a channel the
         observed mode cannot serve: a phantom allocation would bias every
-        sample low, in one direction (v5.3.0).
+        sample low, in one direction (v5.3.0). An interval whose mode dwell
+        saw hot water carries neither: the reading at its close and the ask
+        each stand for a space duty the pump left (``heat_energy.ran_hot_water``).
         """
         commanded_space, dhw_share = self._commanded_split()
+        if heat_energy.ran_hot_water(heat_energy.meter_of(self).attribution((commanded_space, dhw_share))):
+            return None
         if not getattr(self, "_ctx", self)._config.heat_pump_power_entity:
             return commanded_space
         # #1067: the pump's own heaters join the immersion latch, for the
@@ -9749,7 +9753,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # draw pairs with that interval's ask and set-point, not the action the
         # solve just adopted for the next one (#2262), within the window the
         # accuracy pairing below trusts; a prediction recording no split is none.
-        if pending is not None and pending.get("split") is not None and pairs_interval(_utc_age_seconds(now, pending["when"]) / 3600.0):
+        # A dwell that saw hot water left no running-space or idle reading (#2262).
+        if pending is not None and pending.get("split") is not None and pairs_interval(_utc_age_seconds(now, pending["when"]) / 3600.0) and not heat_energy.ran_hot_water(heat_energy.meter_of(self).attribution(pending["split"])):
             draw_range.fold(self._accuracy.draw, self._measured_power, pending["split"], ctx._thermal_params, frozen=power_frozen is not None, distorted=_cop_fold_blocked(self), defrost=defrost_window.any_defrost, command=pending.get("flow_command"))
 
         # T5 #16: settle every matured lead-time promise against the same
