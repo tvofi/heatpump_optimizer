@@ -43,8 +43,12 @@
   the round-10 orchestrator, 2026-10-18): `MERGE-READY: #N <head8>` for a
   merge verdict at the current head on a CLEAN or UNSTABLE PR, and
   `BLOCKED-UNFIXED: #N <head8>` for a blocked verdict at the current head with
-  no `handoff/<topic>` tip committed after it. A verdict at a stale head prints
-  neither; comments it cannot read print UNREADABLE. One comments read per
+  no `handoff/<topic>` tip committed after it; `APPROVAL-OWED: #N <head8>` for a
+  merge verdict at the head on a BLOCKED, REVIEW_REQUIRED PR (queue it for the
+  train, which posts the approval); and `UNLEVELLED: #N <head8> <state>/<decision>`
+  for a merge verdict at the head in any other state, except a draft, DIRTY,
+  BEHIND, UNKNOWN, or a head with a pending, red or absent check (one_pr's
+  gate lines own those). A verdict at a stale head prints none; comments it cannot read print UNREADABLE. One comments read per
   open PR per pass. A queue entry is unmerged only when its PR is in the open
   set (one `gh pr list --state open` per pass, TRAIN and REPLAN alike), never
   from a `pulls/<n>` `.state`, which reads `closed` for a merged PR: a queue

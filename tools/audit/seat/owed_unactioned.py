@@ -16,10 +16,12 @@ two handoffs routed to the opener at 10:55Z stood 8 h.
 
 WHAT IT DOES. It reads the tick board's owed family -- every `-> ` line that
 starts `OWED`, `REVIEW OWED:`, `DISPATCH:`, `OWNER FLAG:`, `DESIGN-BUILD:`,
-`MERGE-READY:` or `BLOCKED-UNFIXED:` -- and keys each on its obligation: the
+`MERGE-READY:`, `BLOCKED-UNFIXED:`, `APPROVAL-OWED:` or `UNLEVELLED:` -- and keys each on its obligation: the
 handoff topic, or `#<pr>`. A verdict level (`MERGE-READY: #N <head8>`) carries
 its head8 as the id, so an acknowledgement covers one head and a new head
-re-raises. The state file
+re-raises. `APPROVAL-OWED:` means queue the PR for the train, which posts the
+approval itself; `UNLEVELLED:` means a merge verdict at the head in a state no level
+names, to be read by hand. The state file
 counts the sweeps (distinct boards, by the board's provenance time) each key has
 stood on. A key standing on `--after` sweeps or more is UNACTIONED unless an
 acknowledgement line in an `--acks` file covers it now:
@@ -50,7 +52,7 @@ import re
 import sys
 import tempfile
 
-FAMILY = re.compile(r"^-> (OWED|REVIEW OWED:|DISPATCH:|OWNER FLAG:|DESIGN-BUILD:|MERGE-READY:|BLOCKED-UNFIXED:)")
+FAMILY = re.compile(r"^-> (OWED|REVIEW OWED:|DISPATCH:|OWNER FLAG:|DESIGN-BUILD:|MERGE-READY:|BLOCKED-UNFIXED:|APPROVAL-OWED:|UNLEVELLED:)")
 BOARD = re.compile(r"^BOARD measured from origin/main at \S+, (\S+)")
 SHA = re.compile(r"\b[0-9a-f]{12,40}\b")
 REF = re.compile(r"\b(?:refs/heads/)?(?:handoff-body|handoff|design)/(\S+)")
@@ -80,7 +82,10 @@ def key_of(line: str) -> "tuple[str, list[str]]":
     m = re.match(r"REVIEW OWED: (#\d+)", body)
     if m:
         return m.group(1), shas
-    m = re.match(r"(?:MERGE-READY|BLOCKED-UNFIXED): (#\d+) ([0-9a-f]{8})$", body)
+    m = re.match(r"(?:MERGE-READY|BLOCKED-UNFIXED|APPROVAL-OWED): (#\d+) ([0-9a-f]{8})$", body)
+    if m:
+        return m.group(1), [m.group(2)]
+    m = re.match(r"UNLEVELLED: (#\d+) ([0-9a-f]{8}) \S+$", body)
     if m:
         return m.group(1), [m.group(2)]
     m = re.match(r"OWED handoff: (\S+) ", body)
@@ -354,8 +359,11 @@ def self_test() -> int:
         check("null control: a whole non-sha id (a pid) still covers its key", rcj == 0)
         # P277: the verdict levels, keyed `#<N>` with `<head8>` as the id
         mr, bu = "-> MERGE-READY: #2896 5f3a5dd6", "-> BLOCKED-UNFIXED: #2933 1a2b3c4d"
+        ao, ul = "-> APPROVAL-OWED: #3022 0a1b2c3d", "-> UNLEVELLED: #3029 4e5f6a7b BLOCKED/APPROVED"
         for name, line, key, h8 in (("MERGE-READY", mr, "#2896", "5f3a5dd6"),
-                                    ("BLOCKED-UNFIXED", bu, "#2933", "1a2b3c4d")):
+                                    ("BLOCKED-UNFIXED", bu, "#2933", "1a2b3c4d"),
+                                    ("APPROVAL-OWED", ao, "#3022", "0a1b2c3d"),
+                                    ("UNLEVELLED", ul, "#3029", "4e5f6a7b")):
             st = f"lv-{name}.json"
             v0 = t0 + dt.timedelta(hours=5)
             go(tick(v0, line), state=st)

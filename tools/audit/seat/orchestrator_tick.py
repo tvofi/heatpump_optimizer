@@ -551,7 +551,7 @@ class Tick:
         S = "PRS"
         code, o = self.gh(["pr", "list", "--repo", self.repo, "--limit", "200",
                            "--json", "number,headRefOid,headRefName,isDraft,"
-                           "mergeStateStatus,title,createdAt,updatedAt,author"])
+                           "mergeStateStatus,reviewDecision,title,createdAt,updatedAt,author"])
         if code:
             self.unreadable(S, "open pull requests", o.strip()[-120:])
             return
@@ -656,8 +656,20 @@ class Tick:
         only events reached it). From the approver App's newest `Fix review:`:
           MERGE-READY: #N <head8>      merge at the current head, CLEAN or UNSTABLE;
           BLOCKED-UNFIXED: #N <head8>  blocked at the current head, and no
-                                       handoff/<topic> tip committed after it.
-        A verdict at an older head prints neither line."""
+                                       handoff/<topic> tip committed after it;
+          APPROVAL-OWED: #N <head8>    merge at the current head, BLOCKED and
+                                       REVIEW_REQUIRED: queue the PR for the
+                                       train, which posts the approval itself;
+          UNLEVELLED: #N <head8> <mergeStateStatus>/<reviewDecision>
+                                       the catch-all barrier: a merge verdict at
+                                       the current head in a state no line above
+                                       covers (BLOCKED under APPROVED, say).
+        A verdict at an older head prints none of these. Documented
+        non-actionable states, which print nothing: a draft, DIRTY and BEHIND
+        (a repair owns them), UNKNOWN (GitHub's transient value right after a
+        push), and any state while one_pr saw a pending, red or absent check
+        at the head (its gate lines own it; the check state is one_pr's, read
+        from `_unsettled`, so no second API read)."""
         pw = _module("proof_watch_tick", "tools/audit/seat/proof_watch.py")  # the identity and the grammar
         allow = self._verdict_authors(pw)
         if allow is None:
@@ -686,8 +698,17 @@ class Tick:
             first = (v.get("body") or "").split("\n", 1)[0].rstrip("\r")
             kind, at = pw.parse_verdict(first) or ("", "")
             ms = (pr.get("mergeStateStatus") or "").upper()
+            rd = (pr.get("reviewDecision") or "").upper()
             if kind == "merge" and at == head and ms in ("CLEAN", "UNSTABLE"):
                 self.line(S, f"MERGE-READY: #{n} {head[:8]}", flag=True)
+            elif kind == "merge" and at == head:
+                if (pr.get("isDraft") or ms in ("DIRTY", "BEHIND", "UNKNOWN")
+                        or getattr(self, "_unsettled", {}).get(n)):
+                    continue
+                if ms == "BLOCKED" and rd == "REVIEW_REQUIRED":
+                    self.line(S, f"APPROVAL-OWED: #{n} {head[:8]}", flag=True)
+                else:
+                    self.line(S, f"UNLEVELLED: #{n} {head[:8]} {ms}/{rd}", flag=True)
             elif kind == "blocked" and at == head:
                 newer = self._handoff_newer(pr.get("headRefName") or "", v.get("created_at") or "")
                 if newer is None:
@@ -786,12 +807,15 @@ class Tick:
                required: "list[str] | None") -> None:
         n, head = pr["number"], pr.get("headRefOid") or ""
         runs = self.check_runs(head)
+        self._unsettled = getattr(self, "_unsettled", {})
         if runs is None:
             self.unreadable(S, f"check runs at #{n}", "api read failed")
             run, red = [], []
+            self._unsettled[n] = True
         else:
             latest = self.latest(runs)
             _, run, red = self.judge(latest)
+            self._unsettled[n] = bool(run or red or not runs)
             if not runs:
                 self.line(S, f"#{n}: ZERO check runs at head (the bot-push "
                              "shape: run approve_held_runs.sh, not a fixer)",
@@ -2220,8 +2244,8 @@ def run_obj(name, status="completed", conclusion="success",
             "completed_at": iso(done) if status == "completed" else None}
 
 
-def pr_obj(n, head, ms="CLEAN", branch=None) -> dict:
-    return {"number": n, "headRefOid": head, "headRefName": branch or f"fix/{n}",
+def pr_obj(n, head, ms="CLEAN", branch=None, rd="", draft=False) -> dict:
+    return {"reviewDecision": rd, "isDraft": draft, "number": n, "headRefOid": head, "headRefName": branch or f"fix/{n}",
             "mergeStateStatus": ms, "title": "t", "createdAt": iso(NOW),
             "updatedAt": iso(NOW)}
 
@@ -3780,12 +3804,14 @@ def self_test() -> int:
         def vc(cid, body, at=vt, user=apr):
             return {"id": cid, "user": user, "created_at": at, "body": body}
 
-        def vboard(specs, handoffs=None, fail=()):  # [(n, ms, [comments])], {topic: commit-epoch}
+        def vboard(specs, handoffs=None, fail=(), unsettled=()):  # [(n, ms[:rd], [comments])], {topic: commit-epoch}
             heads = {n: f"{n:040x}" for n, *_ in specs}
             extra = [((f"issues/{n}/comments?per_page=100",), 1 if n in fail else 0,
                       "HTTP 502" if n in fail else json.dumps([cs])) for n, _, cs in specs]
-            board = [pr_obj(n, heads[n], ms=ms) for n, ms, _ in specs]
+            board = [pr_obj(n, heads[n], ms=ms.split(":")[0], rd=(ms.split(":") + [""])[1],
+                            draft=ms.endswith(":DRAFT")) for n, ms, _ in specs]
             t = tick(prs=board, gh_extra=extra)
+            t._unsettled = {n: True for n in unsettled}
             for topic, ct in (handoffs or {}).items():
                 t._git.on(("ls-remote", f"refs/heads/handoff/{topic}"), out=f"{'7' * 40}\trefs/heads/handoff/{topic}\n")
             t._git.on(("ls-remote",), out="")
@@ -3810,6 +3836,20 @@ def self_test() -> int:
         stale_fix, _ = vboard([(48, "BLOCKED", [vc(10, f"Fix review: blocked {h(48)} harness: x")])],
                               handoffs={"48": int((NOW - datetime.timedelta(hours=2)).timestamp())})
         unread, _ = vboard([(49, "CLEAN", [])], fail=(49,))
+        owed, _ = vboard([
+            (60, "BLOCKED:REVIEW_REQUIRED", [vc(100 + 60, f"Fix review: merge {h(60)}")]),
+            (61, "BLOCKED:REVIEW_REQUIRED", [vc(161, f"Fix review: merge {old_h}")]),
+            (62, "DIRTY:REVIEW_REQUIRED", [vc(162, f"Fix review: merge {h(62)}")]),
+            (63, "CLEAN:APPROVED", [vc(163, f"Fix review: merge {h(63)}")]),
+            (64, "BLOCKED:APPROVED", [vc(164, f"Fix review: merge {h(64)}")]),
+            (65, "UNKNOWN:REVIEW_REQUIRED", [vc(165, f"Fix review: merge {h(65)}")]),
+            (66, "BEHIND:REVIEW_REQUIRED", [vc(166, f"Fix review: merge {h(66)}")]),
+            (67, "BLOCKED:DRAFT", [vc(167, f"Fix review: merge {h(67)}")]),
+            (68, "BLOCKED:REVIEW_REQUIRED", [vc(168, f"Fix review: merge {h(68)}")]),
+            (69, "BLOCKED:APPROVED", [vc(169, f"Fix review: merge {h(69)}")]),
+        ], unsettled=(68, 69))
+        otx = [l["text"] for l in owed]
+        lvl = lambda n: [x for x in otx if x.startswith(("APPROVAL-OWED", "UNLEVELLED", "MERGE-READY")) and f"#{n} " in x]
         a, f = check("verdict levels", [
             ("a merge verdict at the current head, CLEAN: MERGE-READY, flagged",
              any(l["flag"] and l["text"] == f"MERGE-READY: #40 {h(40)[:8]}" for l in lines)),
@@ -3832,6 +3872,16 @@ def self_test() -> int:
              any(l["text"] == f"BLOCKED-UNFIXED: #48 {h(48)[:8]}" for l in stale_fix)),
             ("comments it cannot read are UNREADABLE, never silence",
              any(l["flag"] and "UNREADABLE: verdicts on #49" in l["text"] for l in unread)),
+            ("BLOCKED + REVIEW_REQUIRED + merge at the head: APPROVAL-OWED, flagged, and nothing else",
+             any(l["flag"] and l["text"] == f"APPROVAL-OWED: #60 {h(60)[:8]}" for l in owed) and len(lvl(60)) == 1),
+            ("null control: a stale-head merge verdict prints neither APPROVAL-OWED nor UNLEVELLED", not lvl(61)),
+            ("null control: DIRTY prints neither", not lvl(62)),
+            ("null control: APPROVED + CLEAN prints MERGE-READY only", lvl(63) == [f"MERGE-READY: #63 {h(63)[:8]}"]),
+            ("the catch-all: BLOCKED under APPROVED prints UNLEVELLED with the state",
+             lvl(64) == [f"UNLEVELLED: #64 {h(64)[:8]} BLOCKED/APPROVED"]),
+            ("null control: a one-pass UNKNOWN, BEHIND and a draft print neither", not (lvl(65) or lvl(66) or lvl(67))),
+            ("null control: a required check pending or red prints neither level",
+             not (lvl(68) or lvl(69))),
         ])
         total, failed = total + a, failed + f
         # R10-FLOW-AUTOTRAIN-R2: the grammar is proof_watch.parse_verdict's. A grammar
