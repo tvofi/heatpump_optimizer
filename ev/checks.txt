@@ -1,0 +1,32 @@
+head e5cbb1a9aa2099efd7d9237ef1069d2f81996047
+merge-base 7539d1675d7fc8b5020f90b395f4bb0c3485d5b3  origin/main 9a9659c4f4577c419683b1646d86ee6ebfb772be
+## merge-tree
+34cb8f65f62cec44322ff114933a9e31476b1802
+rc=0
+## claim files vs origin/main
+identical rc=0
+## VERSION/manifest/notes in three-dot
+(none above = untouched)
+## structure
+STRUCTURE RATCHET PASSED
+## closure select
+  MODE: SCOPED -- 6 script(s) run, 27 scoped out.
+## delivery row
+@@ -0,0 +1 @@
++- [#3048](https://github.com/tvofi/heatpump_optimizer/pull/3048) — **open**, R10-USER-DOCS-FINAL: user docs final (R10-USER-DOCS-FINAL)
+## --markers --user
+4 user-doc marker(s), 0 due
+rc=1
+## surfaces
+      4 blueprint
+     10 card_option
+      6 card_view
+     82 entity
+      5 event
+    205 option
+     23 option_page
+     26 repair
+     14 service
+    102 setup_field
+     15 setup_step
+494
