@@ -24,15 +24,17 @@ starts an item without a bullet. A FINDING item:
   body     anything under `## Forward-carry` or `## Friction` but `none` or
            `n/a: <reason>`; elsewhere, an item whose heading or first words
            match LEAD (out of scope, residual, distinct finding, follow-up ...);
-  verdict  a comment whose first line is `Fix review: <word> <sha>`: an item
-           saying NONBLOCK (non-blocking, not a block, minor, deferred ...)
-           anywhere; else, outside a section holding the block (a heading
-           naming a block, or any heading of a `blocked` verdict), one under a
-           NOTE_HEADING (residual, owed, instrument findings ...) or led by LEAD.
-  evidence a verdict's `## Evidence` section: an item led by LEAD, under a
-           lead, saying DEFERRED (for a later, follow-up, residual ...), or
-           saying NONBLOCK outside the clause that calls its check not a
-           required one ("not a required context and does not block").
+  verdict  a comment whose first line is `Fix review: <word> <sha>`. In a
+           FINDINGS SECTION (a heading opening with FINDINGS_HEADING's words:
+           Findings, Friction, Block, Residuals, Follow-ups ...), and in every
+           section of a `blocked` verdict but `## Evidence`: an item saying
+           NONBLOCK (non-blocking, not a block, minor, deferred ...) outside an
+           owner-approval merge condition and a negated deferral ("nothing is
+           deferred"); else, outside a section holding the block, one under a
+           NOTE_HEADING (residual, owed ...) or led by LEAD.
+  structural  `## Evidence` of any verdict, and every other section of a merge
+           verdict (P308, P314): only an item led by LEAD, under a lead, or
+           carrying a `Carry:` marker; no word inside it is read.
   both     a paragraph that is finding-shaped and ends in `:` is a lead: its
            bullets are the items, it is not one. The bus trailer, `RESULT`
            lines and the attribution line never are.
@@ -101,18 +103,28 @@ CARRY_SECTIONS = ("forward-carry", "friction")
 NONE_ITEM = re.compile(r"^\W*(?:none|n/a)\W*$|^\W*n/a\s*:", re.I)
 # Not a finding wherever it sits: attribution, the bus trailer, raw RESULT lines.
 TRAILER = re.compile(r"^\W*(?:\U0001f916|Co-Authored-By|bus:|Evidence:|RESULT\b)", re.I)
-# A verdict's `## Evidence` section. NONBLOCK is read there too (a nit or a
-# defect left in place says "not blocking" under any heading), except in the
-# clause saying its check is not a required one and, joined by `,` or `and`
-# alone, does not block: a check's state, not a note. Only that clause is
-# freed; a NONBLOCK word anywhere else in its sentence, or one leading a `:`,
-# is read. An item opening with LEAD, under a lead, or saying DEFERRED is a finding.
+# A verdict's `## Evidence` section, and every section of a merge verdict but a
+# findings section, is read by its structure alone (P308, P314): a check's
+# state or a measurement there says "not blocking" or "deferred" as often as a
+# finding does, and the word tuning that freed one shape at a time (P293, P306)
+# parked the train on the next. An item there is a finding only when it opens
+# with LEAD, sits under a lead, or carries a `Carry:` marker.
 EVIDENCE_HEADING = re.compile(r"evidence\b", re.I)
-NOT_REQUIRED = re.compile(r"not (?:a )?required (?:context|check)(?:,?\s+(?:and\s+)?(?:it\s+)?"
-                          r"(?:does not block|is not blocking|not blocking|non-?blocking)(?!\s*:))?", re.I)
-DEFERRED = re.compile(r"follow-?up|(?:for|to|in|until) (?:a |the )?later\b|out of scope|not fixed here"
-                      r"|known[- ]open|distinct finding|residual|caveat|observation|still (?:has|have|needs?) to",
-                      re.I)  # NONBLOCK's own words (deferred, minor, advisory ...) are read beside it
+# A findings section: its heading OPENS with one of these words (a declared
+# grammar, CARRY 5: `## Body (steps 7, 10, non-blocking note 1)` holds check
+# results, not findings, though a NONBLOCK word sits in it). A block heading
+# (BLOCK_HEADING, not NONBLOCK) is one too.
+FINDINGS_HEADING = re.compile(r"^\W*(?:findings?\b|friction\b|residuals?\b|non-?blocking|not blocking"
+                              r"|follow-?ups?\b|out of scope|deferred\b|owed\b|notes?\b|caveats?\b"
+                              r"|observations?\b|instrument findings|carry\b)", re.I)
+# An owner-approval merge condition (P329): the sentence naming an approving
+# review at (or before) the merge, and the one bare sentence after it saying it
+# does not block on that, are a merge condition, not a non-blocking note.
+APPROVAL = re.compile(r"\bapproving review\b.*\b(?:at|before) (?:the )?merge\b", re.I)
+APPROVAL_BARE = re.compile(r"\s*(?:this (?:review|verdict) |this is |it )?(?:flag(?:s|ged)(?: that)?,? (?:and )?)?"
+                           r"(?:does not block(?: on it)?|not a block)\s*[.;]?\s*$", re.I)
+# A negated deferral, "nothing is deferred or owed", defers nothing (#2955 2471d3e6).
+NOTHING = re.compile(r"\bnothing (?:is|was|remains)\b[^.;]*", re.I)
 # The words a seat uses for "this is not done here". LEAD keys an item's first
 # words (or, in a body, its section heading); NONBLOCK flags a verdict item
 # wherever it says so, and is what a blocking section still lets through.
@@ -128,6 +140,8 @@ BLOCK_HEADING = re.compile(r"\bblock", re.I)
 
 CARRY = re.compile(r"(?<![\w-])Carry:")
 ITEM_REF = re.compile(r"\(item\s+([0-9a-f]{8})\)")
+# `Carry: <dest> (item <id>, supersedes <old>)` (P296): retires <old> for that item alone.
+SUPERSEDES = re.compile(r"\(item\s+([0-9a-f]{8}),\s*supersedes\s+([^\s),]+)\)")
 # a code span as CommonMark closes one: a backtick run closes only on a run of
 # exactly its own length, on its line or a later one of the same item
 CODE_SPAN = re.compile(r"(?<!`)(`+)(?!`)[\s\S]*?(?<!`)\1(?!`)")
@@ -137,6 +151,23 @@ BRIEF_TOK = re.compile(r"\AO(\d+)(?:-[a-z0-9][a-z0-9-]*)?\Z")
 
 
 # ------------------------------------------------------------------ parsing
+def freed(t: str) -> str:
+    """<t> less what reads NONBLOCK without being a note: each APPROVAL sentence
+    (split on `.` and `;`) with the APPROVAL_BARE sentence right after it, and
+    each NOTHING clause."""
+    out, after = [], False
+    for part in re.split(r"(?<=[.;])", t):
+        if APPROVAL.search(part):
+            after = True
+            continue
+        if after and APPROVAL_BARE.match(part):  # only the one sentence after it
+            after = False
+            continue
+        after = False
+        out.append(part)
+    return NOTHING.sub(" ", "".join(out))
+
+
 def items(text: str, verdict: bool) -> list[dict]:
     """The finding-shaped items of one markdown text, in order:
     {"id", "section", "text", "flagged"} (every item; `flagged` marks the
@@ -190,29 +221,30 @@ def items(text: str, verdict: bool) -> list[dict]:
             cur.append(ln)
     flush()
 
-    lead_flag = False
+    lead_flag, lead_sec = False, None
     blocked_verdict = text.split(None, 3)[2:3] == ["blocked"]  # read only for a verdict
     for it in out:
         sec = it["section"]
         t = it["text"]
         first = re.sub(r"^[\s>*_`-]*(?:\d+[.)]\s*)?[*_`]*", "", t)
-        if it["kind"] != "bullet":
+        # a lead's bullets end at a non-bullet, and at its section's end (CARRY 3, #2645)
+        if it["kind"] != "bullet" or sec != lead_sec:
             lead_flag = False
         inherited = lead_flag  # a non-bullet has just reset it
         why = ""
+        # The block is owed in this pull request, so a section that holds it
+        # -- a block heading, or any heading of a `blocked` verdict -- makes
+        # nothing a note unless it says it is not the block.
+        block_sec = BLOCK_HEADING.search(sec) and not NONBLOCK.search(sec)
         if TRAILER.match(first) or VERDICT.match(first):
             pass
-        elif verdict and EVIDENCE_HEADING.match(sec):
-            claims = NOT_REQUIRED.sub(" ", t)
-            why = ("lead" if LEAD.match(first) else "evidence" if DEFERRED.search(t) or NONBLOCK.search(claims)
-                   else "under lead" if inherited else "")
+        elif verdict and (EVIDENCE_HEADING.match(sec)
+                          or not (blocked_verdict or block_sec or FINDINGS_HEADING.match(sec))):
+            why = ("lead" if LEAD.match(first) else "under lead" if inherited
+                   else "carry" if carry_segments(t) else "")
         elif verdict:
-            # The block is owed in this pull request, so a section that holds it
-            # -- a block heading, or any heading of a `blocked` verdict -- makes
-            # nothing a note unless it says it is not the block.
-            block_sec = BLOCK_HEADING.search(sec) and not NONBLOCK.search(sec)
             note_sec = NONBLOCK.search(sec) if blocked_verdict else NOTE_HEADING.search(sec)
-            why = ("non-blocking" if NONBLOCK.search(t) else "" if block_sec
+            why = ("non-blocking" if NONBLOCK.search(freed(t)) else "" if block_sec
                    else "section" if note_sec else "lead" if LEAD.match(first)
                    else "under lead" if inherited else "")
         elif sec.lower() in CARRY_SECTIONS:
@@ -224,7 +256,7 @@ def items(text: str, verdict: bool) -> list[dict]:
         it["why"] = why
         it["lead"] = False
         if it["kind"] == "para" and t.endswith(":") and flagged:
-            lead_flag, it["lead"] = True, True  # a lead: its bullets carry
+            lead_flag, lead_sec, it["lead"] = True, sec, True  # a lead: its bullets carry
             flagged = False
         it["flagged"] = flagged
         it["id"] = hashlib.sha1(re.sub(r"\s+", " ", t).encode()).hexdigest()[:8]
@@ -246,17 +278,21 @@ def carry_segments(text: str) -> list[str]:
     return segs
 
 
-def carry_refs(text: str) -> "tuple[list[str], dict[str, list[str]]]":
-    """The destinations of <text>'s markers, and each item id a marker names
-    with every destination the markers naming it name: an id counts only as
-    `(item <id>)` inside a marker's own segment."""
-    found, refs = [], {}
+def carry_refs(text: str) -> "tuple[list[str], dict[str, list[str]], dict[str, list]]":
+    """The destinations of <text>'s markers; each item id a marker names, with
+    every destination the markers naming it name (an id counts only as
+    `(item <id>)` or `(item <id>, supersedes <old>)` inside a marker's own
+    segment); and each superseded token, `(old, its marker's destinations)`."""
+    found, refs, sups = [], {}, {}
     for seg in carry_segments(text):
         ds = seg_dests(seg)
         found += ds
         for ref in ITEM_REF.findall(seg):
             refs.setdefault(ref, []).extend(ds)
-    return found, refs
+        for ref, old in SUPERSEDES.findall(seg):
+            refs.setdefault(ref, []).extend(ds)
+            sups.setdefault(ref, []).append((old.strip("`*_.:"), ds))
+    return found, refs, sups
 
 
 def carry_dests(text: str) -> list[str]:
@@ -395,29 +431,39 @@ def finding_rows(body: str, comments: list[dict]) -> "tuple[list[dict], dict]":
         b = c.get("body") or ""
         if VERDICT.match(b.lstrip()):
             texts.append((f"review {c.get('id')}", b, True))
-    rows, refs = [], {}
+    rows, refs, sups = [], {}, {}
     for where, text, verdict in texts:
         for it in items(text, verdict):
-            ds, named = carry_refs(it["text"])
+            ds, named, sup = carry_refs(it["text"])
             for ref, rds in named.items():
                 refs.setdefault(ref, []).extend(rds)
+            for ref, olds in sup.items():
+                sups.setdefault(ref, []).extend(olds)
             if it["flagged"]:
                 rows.append({"where": where, **it, "dests": ds})
-    return rows, refs
+    return rows, refs, sups
 
 
 def audit(body: str, comments: list[dict], dests: Dests) -> dict:
     """Every finding item of a body and its verdict comments, each with its
     disposition: routed (with its destinations), unrouted, or bad."""
-    rows, refs = finding_rows(body, comments)
+    rows, refs, sups = finding_rows(body, comments)
     for r in rows:
         r["dests"] = r["dests"] + refs.get(r["id"], [])
         bad, notes = [], []
+        # A supersede retires a bad token of this item only, printed, never dropped silently; one
+        # naming a valid destination is refused, so a live routing cannot be undone by it (P296).
+        for old, new in sups.get(r["id"], []):
+            if dests.check(old)[0]:
+                bad.append(f"{old}: a supersede names a valid destination (item {r['id']}); only a bad one retires")
+            elif old in r["dests"]:
+                r["dests"] = [t for t in r["dests"] if t != old]
+                notes.append(f"{old} superseded by {', '.join(new) or '-'} (item {r['id']})")
         for tok in r["dests"]:
             ok, note = dests.check(tok)
             (notes if ok else bad).append(f"{tok}: {note}" if note else tok)
         r["bad"], r["notes"] = bad, notes
-        r["status"] = "unrouted" if not r["dests"] else ("bad" if bad else "routed")
+        r["status"] = "bad" if bad else "unrouted" if not r["dests"] else "routed"
     return {"rows": rows}
 
 
@@ -996,8 +1042,8 @@ def _self_test() -> int:
                                "Non-blocking:", "Not blocking:", "Caveat:", "Observation:", "Deferred:",
                                "Advisory:", "Minor:", "A follow-up:", "An observation:", "One caveat:",
                                "Two follow-ups:", "Three caveats:")]
-    item_grammar += [(f"NONBLOCK reads {w!r} mid-sentence", head,
-                      verdict_of("merge", f"## Verified\n\n- the check is {w} here.\n"), [("non-blocking", U)])
+    item_grammar += [(f"NONBLOCK reads {w!r} mid-sentence in a findings section", head,
+                      verdict_of("merge", f"## Findings\n\n- the check is {w} here.\n"), [("non-blocking", U)])
                      for w in ("not blocking", "not a block", "neither blocks", "does not block", "not owed here",
                                "owed to the record", "minor", "advisory", "a secondary note", "deferred")]
     item_grammar += [(f"NOTE_HEADING reads {w!r}", head, verdict_of("merge", f"## {w}\n\n- a re-booking.\n"),
@@ -1013,7 +1059,7 @@ def _self_test() -> int:
         ("under Friction a `word:` line without the kind's colon continues the item",
          head + "## Friction\n\n- a: unclear: x\nNote: this continues it. Carry: R10-LIVE\n", (), [("section", R_)]),
         ("a verdict naming a short SHA is read", head,
-         [{"id": 50, "body": "Fix review: merge abc1234\n\n## Verified\n\n- a minor note.\n"}], [("non-blocking", U)]),
+         [{"id": 50, "body": "Fix review: merge abc1234\n\n## Findings\n\n- a minor note.\n"}], [("non-blocking", U)]),
     ]
     item_grammar += [("a numbered list item is a bullet",
                       head + "## Friction\n\n1. a: unclear: x.\n2. b: cost: y. Carry: R10-LIVE\n", (),
@@ -1026,31 +1072,38 @@ def _self_test() -> int:
                           "and does not block the PR (tests.yml:2775).\n"), []),
         ("... `not required check` reads too", head,
          verdict_of("merge", "## Evidence\n\n- composed-proof is not required check and does not block.\n"), []),
-        ("under the Evidence heading a check that does not block, not said to be unrequired, is a note", head,
-         verdict_of("merge", "## Evidence\n\n- composed-proof is queued and does not block the PR.\n"),
-         [("evidence", U)]),
-        ("the carve-out is its clause's: a nit after it is a finding (#2441's shape)", head,
+        ("P308: under the Evidence heading a check that does not block is no finding, unrequired or not", head,
+         verdict_of("merge", "## Evidence\n\n- composed-proof is queued and does not block the PR.\n"), []),
+        # #2441's and #2465's rows flip (P308): a defect handed on belongs under `## Findings`, or opens
+        # with a lead, where it is read; under Evidence only the structure is.
+        ("P308: #2441's shape under the Evidence heading passes (a nit belongs under ## Findings)", head,
          verdict_of("merge", "## Evidence\n\n- composed-proof is not a required check and does not block. One nit, "
-                    "not blocking: the usage string still lists the arm names by hand.\n"), [("evidence", U)]),
-        ("a defect left in place, not blocking, under the Evidence heading is a finding (#2465's shape)", head,
+                    "not blocking: the usage string still lists the arm names by hand.\n"), []),
+        ("P308: #2465's shape under the Evidence heading passes (a defect handed on opens with a lead)", head,
          verdict_of("merge", "## Evidence\n\n- A hand-set fractional floor is written 0.27 K low and the check "
+                    "re-raises the issue; the selector cannot produce it, so it is not blocking.\n"), []),
+        ("... the same #2465 sentence under ## Findings is a finding (null control)", head,
+         verdict_of("merge", "## Findings\n\n- A hand-set fractional floor is written 0.27 K low and the check "
                     "re-raises the issue; the selector cannot produce it, so it is not blocking.\n"),
-         [("evidence", U)]),
+         [("non-blocking", U)]),
         ("the Evidence heading reads in any case and with words after it", head,
          verdict_of("merge", "## EVIDENCE (not findings)\n\n- nightly-status: not a required check, not blocking.\n"),
          []),
         ("a heading that only mentions evidence is not the Evidence heading", head,
          verdict_of("merge", "## Notes on evidence\n\n- nightly-status: not a required check, not blocking.\n"),
          [("non-blocking", U)]),
-        ("a heading whose first word only starts `evidence` is not the Evidence heading", head,
-         verdict_of("merge", "## Evidenced claims\n\n- nightly-status: not a required check, not blocking.\n"),
+        ("a heading whose first word only starts `evidence` is not the Evidence heading (a blocked verdict reads it)",
+         head, verdict_of("blocked", "## Evidenced claims\n\n- nightly-status: not a required check, not blocking.\n"),
          [("non-blocking", U)]),
-        ("a deferral under the Evidence heading is a finding", head,
-         verdict_of("merge", "## Evidence\n\n- M4 survives, not blocking, noted for a later tightening.\n"),
-         [("evidence", U)]),
-        ("... and routed by its own Carry: it passes (null control)", head,
-         verdict_of("merge", "## Evidence\n\n- M4 survives, noted for a later tightening. "
-                    "Carry: dismissed: fail-closed survivor\n"), [("evidence", R_)]),
+        ("P308: a deferral word under the Evidence heading is not read", head,
+         verdict_of("merge", "## Evidence\n\n- M4 survives, not blocking, noted for a later tightening.\n"), []),
+        ("P308: an Evidence item carrying Carry: <live group> routes", head,
+         verdict_of("merge", "## Evidence\n\n- M4 survives, noted for a later tightening. Carry: R10-LIVE\n"),
+         [("carry", R_)]),
+        ("P308: an Evidence item carrying Carry: <done group> is a bad destination", head,
+         verdict_of("merge", "## Evidence\n\n- M4 survives. Carry: R10-OVER\n"), [("carry", "bad")]),
+        ("P308: an Evidence item opening `Follow-up:` is a finding (null control)", head,
+         verdict_of("merge", "## Evidence\n\n- Follow-up: the census misses one.\n"), [("lead", U)]),
         ("a LEAD opening under the Evidence heading is a finding", head,
          verdict_of("merge", "## Evidence\n\n- Residual: the census misses one.\n"), [("lead", U)]),
         ("a lead's bullets under the Evidence heading are findings", head,
@@ -1062,20 +1115,20 @@ def _self_test() -> int:
         ("a time `later` under the Evidence heading is no deferral", head,
          verdict_of("merge", "## Evidence\n\n- a run 2.5 s later takes the lock.\n"), []),
     ]
-    item_grammar += [(f"DEFERRED reads {w!r} under the Evidence heading", head,
-                      verdict_of("merge", f"## Evidence\n\n- the check is {w} here.\n"), [("evidence", U)])
+    item_grammar += [(f"P308: {w!r} under the Evidence heading is not read", head,
+                      verdict_of("merge", f"## Evidence\n\n- the check is {w} here.\n"), [])
                      for w in ("a follow-up", "out of scope", "not fixed here", "known-open",
                                "a distinct finding", "residual", "for later", "moved to a later round",
                                "fixed in the later pass", "left until later", "a caveat", "an observation",
                                "still has to", "still have to", "still needs to", "deferred", "advisory",
                                "minor", "a secondary note", "owed to the record", "not owed here")]
-    item_grammar += [("a `;` ends a sentence: a nit after a not-required check's clause is a finding", head,
-                      verdict_of("merge", "## Evidence\n\n- composed-proof is not a required check; "
-                                 "one nit, not blocking: x.\n"), [("evidence", U)])]
+    item_grammar += [("under ## Findings a nit after a not-required check is a finding", head,
+                      verdict_of("merge", "## Findings\n\n- composed-proof is not a required check; "
+                                 "one nit, not blocking: x.\n"), [("non-blocking", U)])]
     # The carve-out frees the check's own clause, never its sentence: each
     # nit or defect sharing a sentence with it is a finding (round 2's attack).
-    item_grammar += [(f"a {k} beside a not-required check's clause is a finding", head,
-                      verdict_of("merge", f"## Evidence\n\n- {v}\n"), [("evidence", U)]) for k, v in (
+    item_grammar += [(f"under ## Findings a {k} beside a not-required check is a finding", head,
+                      verdict_of("merge", f"## Findings\n\n- {v}\n"), [("non-blocking", U)]) for k, v in (
         ("nit", "nightly-status is not a required check, and one nit is not blocking: the usage string."),
         ("minor defect", "composed-proof is not a required check and a minor defect stays, not blocking."),
         ("defect", "The guard misses a deleted ref, which is not a required check to fix, so not blocking."),
@@ -1089,6 +1142,103 @@ def _self_test() -> int:
                       [])]
     item_grammar += [("a later-stage compound is no deferral", head,
                       verdict_of("merge", "## Evidence\n\n- I found no later-stage finding.\n"), [])]
+    # The field items (tools/audit/carry_audit_fixtures.json, verbatim): each was flagged at
+    # origin/main 7539d1675 and is no finding -- P308's four, P293's class A and C, P329's #3005 and
+    # #3013, CARRY 5's #2683 `## Body (steps 7, 10, non-blocking note 1)` four, #2955's "None."
+    fx = json.loads((ROOT / "tools/audit/carry_audit_fixtures.json").read_text())
+    item_grammar += [(f"field item {i} (#{x['pr']} {x['verdict']}, ## {x['section']}) is no finding", head,
+                      verdict_of(x["verdict"], f"## {x['section']}\n\n{x['text']}\n"), [])
+                     for i, x in sorted(fx["items"].items())]
+    ap = fx["items"]["fccf8846"]["text"]
+    item_grammar += [
+        # P314: a merge verdict's every section but a findings section is read by its structure.
+        ("P314: #3013's code-owner note under a merge verdict's ## Findings is still read", head,
+         verdict_of("merge", "## Findings\n\n- `away.py` is code-owned, and a defect in it does not block.\n"),
+         [("non-blocking", U)]),
+        ("P314: a merge verdict's Summary item with a NONBLOCK word is no finding", head,
+         verdict_of("merge", "## Summary\n\n- the docs-only diff does not block on the nightly lane.\n"), []),
+        ("P314: a Summary line opening `Follow-up:` is a finding (null control)", head,
+         verdict_of("merge", "## Summary\n\nFollow-up: the census misses one.\n"), [("lead", U)]),
+        ("P314: a blocked verdict's Summary item keeps today's reading (null control)", head,
+         verdict_of("blocked", "## Summary\n\n- a minor defect stays.\n"), [("non-blocking", U)]),
+        ("CARRY 5: a heading that only holds a non-blocking word is no findings section (#2683)", head,
+         verdict_of("merge", "## Body (steps 7, 10, non-blocking note 1)\n\n- `figure_lint` printed 0 refused.\n"), []),
+        ("CARRY 5: a heading opening with a findings word is one (null control)", head,
+         verdict_of("merge", "## Non-blocking notes (steps 7, 10)\n\n- `figure_lint` printed 0 refused.\n"),
+         [("section", U)]),
+        # P329: an owner-approval merge condition, and its one bare sentence, read no NONBLOCK.
+        ("a blocked verdict's own first line is not a finding, whatever it says", head,
+         [{"id": 48, "body": f"Fix review: blocked {'d' * 40} harness: a minor note\n\n## Block\n\n- x.\n"}], []),
+        ("P314: a block heading in a merge verdict still reads NONBLOCK", head,
+         verdict_of("merge", "## Block\n\n- a minor nit stays.\n"), [("non-blocking", U)]),
+        ("P329: a bare `does not block` sentence with no approval before it is read (null control)", head,
+         verdict_of("merge", "## Findings\n\n- A defect in x stays. It does not block.\n"), [("non-blocking", U)]),
+        ("P329: only the one sentence right after the approval is freed", head,
+         verdict_of("merge", "## Findings\n\n- x.py needs tvofi's approving review at merge. A defect in y stays. "
+                    "It does not block.\n"), [("non-blocking", U)]),
+        ("P329: #3013's approval note under ## Findings clears", head,
+         verdict_of("merge", f"## Findings\n\n{ap}\n"), []),
+        ("P329: the approval note in a blocked verdict clears", head,
+         verdict_of("blocked", "## Notes\n\n- x.py is code-owned, so tvofi's approving review is required at merge. "
+                    "This review does not block on it.\n"), []),
+        ("P329: the approval sentence then a defect left in place stays a finding (null control)", head,
+         verdict_of("blocked", "## Notes\n\n- x.py is code-owned, so tvofi's approving review is required at merge. "
+                    "A defect in y is left in place, not blocking.\n"), [("non-blocking", U)]),
+        ("P329: code-owned with a defect that does not block stays a finding (null control)", head,
+         verdict_of("blocked", "## Notes\n\n- x.py is code-owned and a defect in it does not block.\n"),
+         [("non-blocking", U)]),
+        ("P329: #2281's line under a residual heading stays a finding (null control)", head,
+         verdict_of("merge", "## Residuals (not blocking)\n\n- tests.yml line 3908 comment names the removed "
+                    "roster_lib.ROSTER_PATH. It is code-owned and routed to TICK-ORCH.\n"), [("section", U)]),
+        ("a negated deferral, `nothing is deferred or owed`, is no finding (#2955 2471d3e6)", head,
+         verdict_of("merge", "## Findings\n\n- None. Nothing is deferred.\n"), []),
+        ("... a deferral is still one (null control)", head,
+         verdict_of("merge", "## Findings\n\n- A defect in x is deferred.\n"), [("non-blocking", U)]),
+        # CARRY 3: a lead's bullets end at its section's end.
+        ("CARRY 3: a lead's bullets in a later section do not inherit it (#2645)", head,
+         verdict_of("blocked", "## Notes\n\nTwo more survivors. Neither blocks, but:\n\n- s1.\n\n"
+                    "## Brief checklist\n\n- the brief names the file.\n"), [("under lead", U)]),
+        ("CARRY 3: a LEAD bullet under a checklist heading still counts (null control)", head,
+         verdict_of("blocked", "## Notes\n\nTwo more survivors. Neither blocks, but:\n\n- s1.\n\n"
+                    "## Brief checklist\n\n- Residual: the census misses one.\n"), [("under lead", U), ("lead", U)]),
+    ]
+    item_grammar += [(f"FINDINGS_HEADING reads {w!r}: its NONBLOCK item is a finding", head,
+                      verdict_of("merge", f"## {w}\n\n- a minor nit stays.\n"), [("non-blocking", U)])
+                     for w in ("Findings", "Friction", "Block", "Residuals", "Non-blocking", "Not blocking (x)",
+                               "Follow-ups", "Out of scope", "Deferred", "Owed", "Notes", "Caveats", "Observations",
+                               "Instrument findings", "Carry forward", "What blocks the merge")]
+    item_grammar += [(f"P329: the bare {w!r} after an approval sentence is freed", head,
+                      verdict_of("blocked", f"## Notes\n\n- x.py needs tvofi's approving review {m} merge. {w}\n"), [])
+                     for m, w in (("at", "This is not a block."), ("before the", "It does not block on it."),
+                                  ("at the", "This verdict flagged that and does not block."))]
+    item_grammar += [(f"a negated deferral reads {w!r}", head,
+                      verdict_of("merge", f"## Findings\n\n- None. Nothing {w} deferred.\n"), [])
+                     for w in ("is", "was", "remains")]
+    # P296: `Carry: <dest> (item <id>, supersedes <old>)` retires a bad <old> for that item alone.
+    def sup_rows(old_dest: str, marker: str, other: str = "") -> dict:
+        vc = verdict_of("merge", f"## Findings\n\n- a minor nit stays. Carry: {old_dest}\n{other}")
+        iid = ([x["id"] for x in items(vc[0]["body"], True) if x["flagged"]] + [""])[0]
+        res = run(head + "## Forward-carry\n\n- " + marker.replace("<id>", iid) + "\n", vc)
+        # a mutant that reads no row fails these checks, never crashes them
+        return {r["id"]: r for r in res["rows"] if r["where"].startswith("review")}.get(
+            iid, {"id": iid, "status": None, "notes": [], "bad": []})
+    r = sup_rows("R10-OVER", "Carry: R10-LIVE (item <id>, supersedes R10-OVER)")
+    check("P296: a bad destination superseded for its item routes (the #2925 and #2962 shape)", r["status"] == "routed")
+    check("... and the retired token prints as a NOTE, never dropped silently",
+          "R10-OVER superseded by R10-LIVE (item " + r["id"] + ")" in r["notes"])
+    r = sup_rows("R10-OVER", "Carry: R10-LIVE (item <id>, supersedes `R10-OVER`)")
+    check("P296: a backticked superseded token reads as the bare token", r["status"] == "routed")
+    r = sup_rows("R10-OVER", "Carry: R10-LIVE (item <id>)")
+    check("P296 null control: without `supersedes` the item stays bad", r["status"] == "bad")
+    r = sup_rows("R10-LIVE", "Carry: R10-LIVE (item <id>, supersedes R10-LIVE)")
+    check("P296: a supersede of a valid destination is refused, naming the item",
+          r["status"] == "bad" and any("a supersede names a valid destination (item " + r["id"] in b for b in r["bad"]))
+    r = sup_rows("R10-OVER", "Carry: R10-INVENTED (item <id>, supersedes R10-OVER)")
+    check("P296: a supersede whose new destination is bad stays bad", r["status"] == "bad")
+    r = sup_rows("R10-OVER", "Carry: R10-LIVE (item 0badc0de, supersedes R10-OVER)")
+    check("P296: a supersede naming another item's id leaves this item bad", r["status"] == "bad")
+    flagged_2645 = [x["id"] for x in items(fx["verdict_2645"]["whole"], True) if x["flagged"]]
+    check("CARRY 3: #2645's round-1 blocked verdict flags at most one item (8 at 7539d1675)", len(flagged_2645) <= 1)
     for name, text, comments, want in item_grammar:
         got = sorted((x["why"], x["status"]) for x in run(text, comments)["rows"])
         check(f"items: {name}", got == sorted(want))

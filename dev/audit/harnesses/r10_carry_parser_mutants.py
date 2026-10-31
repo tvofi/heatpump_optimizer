@@ -58,11 +58,11 @@ def repo_root(start):
 ROOT = repo_root(__file__)
 REL = "tools/audit/carry_audit.py"
 F = ROOT / REL
-PARSER = ("items", "carry_segments", "carry_refs", "carry_dests", "seg_dests", "finding_rows", "audit",
+PARSER = ("freed", "items", "carry_segments", "carry_refs", "carry_dests", "seg_dests", "finding_rows", "audit",
           "ledger_unrouted")
 PATTERNS = ("HEADING", "BULLET", "TABLE_SEP", "FRICTION_ENTRY", "VERDICT", "CARRY_SECTIONS", "NONE_ITEM",
-            "TRAILER", "EVIDENCE_HEADING", "NOT_REQUIRED", "DEFERRED", "NONBLOCK", "LEAD", "NOTE_HEADING", "BLOCK_HEADING", "CARRY", "ITEM_REF", "CODE_SPAN",
-            "GROUP_TOK", "ISSUE_TOK", "BRIEF_TOK", "LEDGER_FINDING")
+            "TRAILER", "EVIDENCE_HEADING", "FINDINGS_HEADING", "APPROVAL", "APPROVAL_BARE", "NOTHING", "NONBLOCK", "LEAD", "NOTE_HEADING", "BLOCK_HEADING", "CARRY", "ITEM_REF", "CODE_SPAN",
+            "GROUP_TOK", "ISSUE_TOK", "BRIEF_TOK", "LEDGER_FINDING", "SUPERSEDES")
 
 # load_dests' stale-tree test: the lines the B2 mutants perturb
 B2_SHALLOW = '        shallow = git(["rev-parse", "--is-shallow-repository"])[1].strip() == "true"'
@@ -110,35 +110,54 @@ MUTANTS = [
     ("I-first", '        first = re.sub(r"^[\\s>*_`-]*(?:\\d+[.)]\\s*)?[*_`]*", "", t)', '        first = t'),
     ("I-first-num", '(?:\\d+[.)]\\s*)?[*_`]*", "", t)', '[*_`]*", "", t)'),
     ("I-first-emph", '(?:\\d+[.)]\\s*)?[*_`]*", "", t)', '(?:\\d+[.)]\\s*)?", "", t)'),
-    ("I-lead-reset", '        if it["kind"] != "bullet":\n            lead_flag = False', '        if False:\n            lead_flag = False'),
+    ("I-lead-reset", '        if it["kind"] != "bullet" or sec != lead_sec:\n            lead_flag = False', '        if False:\n            lead_flag = False'),
     ("I-inh-flag", "        inherited = lead_flag  #", "        inherited = False  #"),
     ("I-trailer", "        if TRAILER.match(first) or VERDICT.match(first):", "        if VERDICT.match(first):"),
     ("I-verdict-line", "        if TRAILER.match(first) or VERDICT.match(first):", "        if TRAILER.match(first):"),
     ("I-verdict", "        elif verdict:\n", "        elif False:\n"),
-    # items(): evidence (r10-verdict-item-barrier)
-    ("I-ev-verdict", "        elif verdict and EVIDENCE_HEADING.match(sec):", "        elif EVIDENCE_HEADING.match(sec):"),
-    ("I-ev-heading", "        elif verdict and EVIDENCE_HEADING.match(sec):", "        elif False:"),
+    # items(): the structural branch (P308 Evidence, P314 a merge verdict's other sections)
+    ("I-ev-verdict", "        elif verdict and (EVIDENCE_HEADING.match(sec)", "        elif (EVIDENCE_HEADING.match(sec)"),
+    ("I-ev-heading", "        elif verdict and (EVIDENCE_HEADING.match(sec)\n", "        elif verdict and (False\n"),
     ("I-ev-match", "EVIDENCE_HEADING.match(sec)", "EVIDENCE_HEADING.search(sec)"),
-    ("I-ev-lead", 'why = ("lead" if LEAD.match(first) else "evidence"', 'why = ("lead" if False else "evidence"'),
-    ("I-ev-deferred", 'else "evidence" if DEFERRED.search(t) or', 'else "evidence" if False or'),
-    ("I-ev-nonblock", " or NONBLOCK.search(claims)\n", "\n"),
-    ("I-ev-claims", "NONBLOCK.search(claims)", "NONBLOCK.search(t)"),
-    ("I-ev-carve", 'claims = NOT_REQUIRED.sub(" ", t)', "claims = t"),
-    # the open form (round 1): the carve-out freed its whole sentence
-    ("I-ev-sentence", 'claims = NOT_REQUIRED.sub(" ", t)',
-     'claims = " ".join(x for x in re.split(r"(?<=[.;!?])\\s+", t) if not NOT_REQUIRED.search(x))'),
-    ("P-notreq-a", 'r"not (?:a )?required', 'r"not required'),
-    ("P-notreq-clause", '(?:context|check)(?:,?', '(?:context|check)(?:QQ,?'),
-    ("P-notreq-comma", '(?:context|check)(?:,?\\s+', '(?:context|check)(?:\\s+'),
-    ("P-notreq-and", '(?:and\\s+)?(?:it', '(?:it'),
-    ("P-notreq-it", '(?:it\\s+)?"', '"'),
-    ("P-notreq-colon", '(?!\\s*:))?", re.I)', ')?", re.I)'),
-    ("I-ev-inh", 'else "under lead" if inherited else "")\n        elif verdict:', 'else "under lead" if False else "")\n        elif verdict:'),
-    ("I-bsec-block", "            block_sec = BLOCK_HEADING.search(sec) and not", "            block_sec = True and not"),
+    ("P314-merge-only", "or not (blocked_verdict or block_sec or FINDINGS_HEADING.match(sec))):", "or False):"),
+    ("P314-blocked", "or not (blocked_verdict or block_sec or", "or not (False or block_sec or"),
+    ("P314-block-sec", "or not (blocked_verdict or block_sec or", "or not (blocked_verdict or"),
+    ("P314-findings", "or block_sec or FINDINGS_HEADING.match(sec))):", "or block_sec)):"),
+    ("I-ev-lead", 'why = ("lead" if LEAD.match(first) else "under lead" if inherited\n                   else "carry"',
+     'why = ("lead" if False else "under lead" if inherited\n                   else "carry"'),
+    ("I-ev-inh", 'else "under lead" if inherited\n                   else "carry"', 'else "under lead" if False\n                   else "carry"'),
+    # P308's own mutant: the word clause restored in the structural branch
+    ("P308-restore", 'why = ("lead" if LEAD.match(first) else "under lead" if inherited\n                   else "carry"',
+     'why = ("lead" if LEAD.match(first) else "evidence" if NONBLOCK.search(t) else "under lead" if inherited\n                   else "carry"'),
+    # P296: drop the old-must-be-invalid test; drop the item-id scoping
+    ("P296-pattern", r'),\s*supersedes\s+(', r'),supersedes\s+('),
+    ("P296-findall", "SUPERSEDES.findall(seg)", 'SUPERSEDES.findall("")'),
+    ("P296-strip", 'old.strip("`*_.:")', "old"),
+    ("P296-filter", '[t for t in r["dests"] if t != old]', '[t for t in r["dests"] if True]'),
+    ("P296-valid", "            if dests.check(old)[0]:", "            if False:"),
+    ("P296-scope", '        for old, new in sups.get(r["id"], []):', '        for old, new in [x for v in sups.values() for x in v]:'),
+    ("P296-retire", '            elif old in r["dests"]:', '            elif False:'),
+    ("P296-ref", "            refs.setdefault(ref, []).extend(ds)\n            sups.setdefault", "            sups.setdefault"),
+    ("P296-merge", "                sups.setdefault(ref, []).extend(olds)", "                pass"),
+    ("P308-carry", 'else "carry" if carry_segments(t) else "")', 'else "")'),
+    # P329's strip and the negated deferral
+    ("P329-strip", "NONBLOCK.search(freed(t))", "NONBLOCK.search(t)"),
+    ("P329-approval", "        if APPROVAL.search(part):", "        if False:"),
+    ("P329-bare", "        if after and APPROVAL_BARE.match(part):", "        if after:"),
+    ("P329-bare-after", "        if after and APPROVAL_BARE.match(part):", "        if APPROVAL_BARE.match(part):"),
+    ("P329-cont-approval", "            after = True\n            continue", "            after = True\n            pass"),
+    ("P329-cont-bare", "            after = False\n            continue", "            after = False\n            pass"),
+    ("P329-once", "        after = False\n        out.append(part)", "        out.append(part)"),
+    ("P329-split", 're.split(r"(?<=[.;])", t)', '[t]'),
+    ("P329-nothing", 'return NOTHING.sub(" ", "".join(out))', 'return "".join(out)'),
+    # CARRY 3: a lead's bullets end at its section's end
+    ("C3-section", 'if it["kind"] != "bullet" or sec != lead_sec:', 'if it["kind"] != "bullet":'),
+    ("C3-record", 'lead_flag, lead_sec, it["lead"] = True, sec, True', 'lead_flag, it["lead"] = True, True'),
+    ("I-bsec-block", "        block_sec = BLOCK_HEADING.search(sec) and not", "        block_sec = True and not"),
     ("I-bsec-nonblock", " and not NONBLOCK.search(sec)\n", "\n"),
     ("I-nsec", "NONBLOCK.search(sec) if blocked_verdict else NOTE_HEADING.search(sec)", "NOTE_HEADING.search(sec)"),
     ("I-nsec-b", "NONBLOCK.search(sec) if blocked_verdict else NOTE_HEADING.search(sec)", "NONBLOCK.search(sec)"),
-    ("I-why-nb", 'why = ("non-blocking" if NONBLOCK.search(t) else', 'why = ("non-blocking" if False else'),
+    ("I-why-nb", 'why = ("non-blocking" if NONBLOCK.search(freed(t)) else', 'why = ("non-blocking" if False else'),
     ("I-why-block", '"" if block_sec\n', '"" if False\n'),
     ("I-why-note", '"section" if note_sec else "lead" if LEAD.match(first)\n                   else "under', '"section" if False else "lead" if LEAD.match(first)\n                   else "under'),
     ("I-why-vlead", 'else "lead" if LEAD.match(first)\n                   else "under lead" if inherited else "")\n        elif', 'else "lead" if False\n                   else "under lead" if inherited else "")\n        elif'),
@@ -169,7 +188,7 @@ MUTANTS = [
     # carry_refs / carry_dests: the segment scope (M15), the destinations kept
     ("M15", "        for ref in ITEM_REF.findall(seg):", "        for ref in ITEM_REF.findall(text):"),
     ("R-found", "        found += ds\n", "        found += []\n"),
-    ("R-extend", "            refs.setdefault(ref, []).extend(ds)", "            refs.setdefault(ref, ds)"),
+    ("R-extend", "ITEM_REF.findall(seg):\n            refs.setdefault(ref, []).extend(ds)", "ITEM_REF.findall(seg):\n            refs.setdefault(ref, ds)"),
     ("R-seg", "        ds = seg_dests(seg)", "        ds = seg_dests(seg.split(\"(\", 1)[0])"),
     ("R-dests", "    return carry_refs(text)[0]", "    return carry_refs(text)[1]"),
     # seg_dests: the rest, dismissed, the split, each token predicate
@@ -207,8 +226,8 @@ MUTANTS = [
     ("A-union-off", '        r["dests"] = r["dests"] + refs.get(r["id"], [])', "        pass"),
     ("A-bad", "            (notes if ok else bad).append(", "            notes.append("),
     ("A-note", '(f"{tok}: {note}" if note else tok)', "(tok)"),
-    ("A-status-u", 'r["status"] = "unrouted" if not r["dests"] else', 'r["status"] = "unrouted" if False else'),
-    ("A-status-b", '("bad" if bad else "routed")', '("routed")'),
+    ("A-status-u", '"unrouted" if not r["dests"] else "routed"', '"unrouted" if False else "routed"'),
+    ("A-status-b", 'r["status"] = "bad" if bad else', 'r["status"] = "bad" if False else'),
     # ledger_unrouted: the key and the marker
     ("L-key", "            if LEDGER_FINDING.search(ln) and not carry_dests(ln)]", "            if not carry_dests(ln)]"),
     ("L-carry", "            if LEDGER_FINDING.search(ln) and not carry_dests(ln)]", "            if LEDGER_FINDING.search(ln)]"),
