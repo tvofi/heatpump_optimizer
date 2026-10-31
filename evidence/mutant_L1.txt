@@ -1,5 +1,0 @@
-mutant L1 at 958b4af8eee134728986d92d2220f1dfadbab255
-ALL 134 DST / QUARTER-GRID CHECKS PASSED
-  FAIL the anti-legionella run-up walks back along the heat a derated pump delivers at its run power: each step lifts the tank less, so the floor before the cycle starts higher; null control: no derate, the plain walk  [[0.0, 9.943, 39.1521, 0.0] vs [0.0, 9.943, 39.1521, 0.0]]
-1 of 4637 FEATURE CHECKS FAILED
-rc=1

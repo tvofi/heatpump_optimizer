@@ -1,5 +1,0 @@
-mutant B1 at 958b4af8eee134728986d92d2220f1dfadbab255
-ALL 134 DST / QUARTER-GRID CHECKS PASSED
-  FAIL the always-hot hot-water baseline buys its mean draw at the power that delivers it: on a floorless band the derate raises it; null control: below a 1 kW modulation floor, where real installs run it, unchanged  [{(0.0, 0.0): 0.33412629366236823, (0.0, 1.0): 0.33412629366236823, (0.4, 0.0): 0.33412629366236823, (0.4, 1.0): 0.33412629366236823}]
-1 of 4637 FEATURE CHECKS FAILED
-rc=1

@@ -1,48 +1,42 @@
 # Review packet #3006
-head: 958b4af8eee134728986d92d2220f1dfadbab255
-base: 5d4e0bcfb88413ddf9ca7f0884c36bbec9235447
+head: a6be5baa55e41507a7dec1ffec7b88a660167e15
+base: 2fc0e95b2f3ccfedc03975a801f0960fbc9bbc84
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
 ## Gate digest: red
-CodeQL id=124382723220 success
-arch-score / arch-score id=124382554044 success
-arm id=124382416647 skipped
-budget-raise-gate / budget-raise-gate id=124382553983 failure
-cancel-superseded id=124382419934 success
-codeql / Analyze (actions) id=124382553973 success
-codeql / Analyze (javascript-typescript) id=124382553935 success
-codeql / Analyze (python) id=124382554037 success
-governance / delivery-status id=124382554043 success
-governance / delivery-status-publish id=124382556571 skipped
-governance / env-matrix id=124382554022 success
-governance / instrument-self-tests id=124382554098 success
-governance / policy-docs id=124382554040 success
-governance / record id=124382555370 skipped
-governance / wave-script id=124382554063 success
-hassfest / hassfest id=124382553798 success
-kernel-points id=124382555269 skipped
-prelude id=124382420174 in_progress
-refresh id=124382420063 success
-tests / arch-instrument id=124382697930 success
-tests / briefs id=124382553904 success
-tests / browser id=124382697991 success
-tests / ci-ratchet id=124392148128 skipped
-tests / claims-autofix id=124389094874 skipped
-tests / closure-scope id=124382553910 success
-tests / closures id=124382698017 success
-tests / closures-autofix id=124392147424 skipped
-tests / coverage id=124382697863 success
-tests / coverage-ratchet id=124390217806 success
-tests / fast (3.14) id=124382697976 success
-tests / graders-head-copy id=124390217867 success
-tests / lane-proofs id=124390217713 success
-tests / mutation id=124382553998 in_progress
-tests / nightly-ha id=124382699552 skipped
-tests / nightly-status id=124382553977 success
-tests / replay id=124382697989 success
-tests / typing id=124382697890 success
-validate / validate-hacs id=124382554029 success
+CodeQL id=124531405741 neutral
+arch-score / arch-score id=124531257077 success
+arm id=124531191863 skipped
+budget-raise-gate / budget-raise-gate id=124531257194 failure
+cancel-superseded id=124531195779 success
+codeql / Analyze (actions) id=124531257002 success
+codeql / Analyze (javascript-typescript) id=124531256967 success
+codeql / Analyze (python) id=124531256995 in_progress
+governance / delivery-status id=124531257085 success
+governance / delivery-status-publish id=124531258176 skipped
+governance / env-matrix id=124531257053 success
+governance / instrument-self-tests id=124531257042 in_progress
+governance / policy-docs id=124531257062 success
+governance / record id=124531258058 skipped
+governance / wave-script id=124531257215 success
+hassfest / hassfest id=124531256997 success
+kernel-points id=124531258079 skipped
+prelude id=124531195922 success
+refresh id=124531195909 success
+tests / arch-instrument id=124531352342 success
+tests / briefs id=124531256980 success
+tests / browser id=124531352375 success
+tests / closure-scope id=124531257074 success
+tests / closures id=124531352354 in_progress
+tests / coverage id=124531352334 in_progress
+tests / fast (3.14) id=124531352316 in_progress
+tests / mutation id=124531257007 in_progress
+tests / nightly-ha id=124531353735 skipped
+tests / nightly-status id=124531257301 success
+tests / replay id=124531352353 success
+tests / typing id=124531352407 success
+validate / validate-hacs id=124531257060 success
 
 ## Refusals
 none
@@ -125,6 +119,10 @@ unverified - `battery.py:charge_rate_kw`: the factor is `charge_heat_per_cop_kw`
              `tests/stress.py` is in the tree at this head
   ok         python3 tests/structure.py --record
              `tests/structure.py` is in the tree at this head
+  ok         python3 tests/structure.py
+             `tests/structure.py` is in the tree at this head
+  ok         tests/structure.py
+             `tests/structure.py` is in the tree at this head
   ok         python3 tools/audit/archscore/score.py --diff cf4f6b7a660f5b61e0f2b933bd18647fe3ba90c7 HEAD
              `tools/audit/archscore/score.py` is in the tree at this head
   ok         node tools/policy/policy_lint.mjs
@@ -134,7 +132,7 @@ unverified - `battery.py:charge_rate_kw`: the factor is `charge_heat_per_cop_kw`
   ok         PYTHONPATH=tests/hastub:custom_components:tests python3 -u dev/audit/harnesses/r10_cop_partload.py
              `dev/audit/harnesses/r10_cop_partload.py` is in the tree at this head
 
-FIGURES: 12 resolved, 25 not verified, 0 refused
+FIGURES: 14 resolved, 25 not verified, 0 refused
 
 ## Finder's harness: none named
 ### at the base
@@ -191,6 +189,18 @@ index 000000000..a913f9e42
 +  "old": "            cap_i = float(np.clip(power_for_heat_per_cop_kw(model.params, float(entry[0]) / cop_i), floor, p_max))",
 +  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`cap_i = float((power_for_heat_per_cop_kw(model.params, float(entry[0]) / cop_i)))`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
 +}
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._capacity_caps.CMP_BOUND.a5d8d969.json b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._capacity_caps.CMP_BOUND.a5d8d969.json
+deleted file mode 100644
+index 23fe60e39..000000000
+--- a/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._capacity_caps.CMP_BOUND.a5d8d969.json
++++ /dev/null
+@@ -1,6 +0,0 @@
+-{
+-  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._capacity_caps CMP_BOUND a5d8d969",
+-  "killed_by": "tests/features.py",
+-  "old": "            has_hum = humidity is not None and i < len(humidity)",
+-  "reason": "Recorded by `mutation_table.py --drain`: CMP_BOUND (`has_hum = humidity is not None and i <= len(humidity)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+-}
 diff --git a/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._capacity_caps.CMP_BOUND.f3835ba8.json b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._capacity_caps.CMP_BOUND.f3835ba8.json
 new file mode 100644
 index 000000000..e8771f19c
@@ -448,7 +458,7 @@ index 7de0ea626..516320016 100644
 +        charge_heat_per_cop_kw=heat_per_cop_kw(params, params.max_electrical_power),
      )
 diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
-index bd7a38ab2..637b692f8 100644
+index b4b07c4ea..b3b1f4e1a 100644
 --- a/custom_components/heatpump_optimizer/coordinator.py
 +++ b/custom_components/heatpump_optimizer/coordinator.py
 @@ -339,6 +339,7 @@ from .thermal_model import (
@@ -459,7 +469,7 @@ index bd7a38ab2..637b692f8 100644
  )
  from .dhw_schedule import (
      DHWWindowError,
-@@ -4076,10 +4077,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+@@ -4075,10 +4076,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                  * max(0.5 * (t + params.dhw_min_temp) - TANK_ROOM_AMBIENT_TEMP, 0.0)
                  * 24.0
              )
@@ -473,7 +483,7 @@ index bd7a38ab2..637b692f8 100644
              # Can a tank at this setpoint cover the heaviest window from
              # its usable band at all?
              usable_kwh = c_dhw * max(t - params.dhw_min_temp, 0.0)
-@@ -9072,14 +9072,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+@@ -9068,14 +9068,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
          floor = CAPACITY_FLOOR_FRACTION * p_max
          caps = np.full(len(outdoor_temps), p_max, dtype=float)
          any_cap = False
@@ -948,22 +958,22 @@ index 000000000..6b32abbe0
 @@ -0,0 +1 @@
 +- [#3006](https://github.com/tvofi/heatpump_optimizer/pull/3006) — **open**, R10-COP-PARTLOAD part 2: inverse conversions and residual carries (R10-COP-PARTLOAD)
 diff --git a/tests/closures.json b/tests/closures.json
-index b7ecbc71e..53c3b5153 100644
+index 6f93af714..0683edda8 100644
 --- a/tests/closures.json
 +++ b/tests/closures.json
-@@ -3883,6 +3883,7 @@
+@@ -3912,6 +3912,7 @@
     "dev/audit/harnesses/r10_cloud_setup_toolchain.py",
     "dev/audit/harnesses/r10_codescan_wait_race.py",
     "dev/audit/harnesses/r10_configflow_pages.py",
 +   "dev/audit/harnesses/r10_cop_conversions.py",
     "dev/audit/harnesses/r10_cop_gate.py",
+    "dev/audit/harnesses/r10_cop_gate_vent.py",
     "dev/audit/harnesses/r10_cop_partload.py",
-    "dev/audit/harnesses/r10_cop_partload_equiv.py",
 diff --git a/tests/features.py b/tests/features.py
-index 1a6ca7cc5..4bd8f4ba4 100644
+index 3e5c55705..3c7070fd2 100644
 --- a/tests/features.py
 +++ b/tests/features.py
-@@ -72619,6 +72619,363 @@ R.check(
+@@ -72978,6 +72978,363 @@ R.check(
  )
  
  
@@ -1375,6 +1385,18 @@ index 000000000..a913f9e42
 +  "old": "            cap_i = float(np.clip(power_for_heat_per_cop_kw(model.params, float(entry[0]) / cop_i), floor, p_max))",
 +  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`cap_i = float((power_for_heat_per_cop_kw(model.params, float(entry[0]) / cop_i)))`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
 +}
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._capacity_caps.CMP_BOUND.a5d8d969.json b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._capacity_caps.CMP_BOUND.a5d8d969.json
+deleted file mode 100644
+index 23fe60e39..000000000
+--- a/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._capacity_caps.CMP_BOUND.a5d8d969.json
++++ /dev/null
+@@ -1,6 +0,0 @@
+-{
+-  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._capacity_caps CMP_BOUND a5d8d969",
+-  "killed_by": "tests/features.py",
+-  "old": "            has_hum = humidity is not None and i < len(humidity)",
+-  "reason": "Recorded by `mutation_table.py --drain`: CMP_BOUND (`has_hum = humidity is not None and i <= len(humidity)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+-}
 diff --git a/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._capacity_caps.CMP_BOUND.f3835ba8.json b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._capacity_caps.CMP_BOUND.f3835ba8.json
 new file mode 100644
 index 000000000..e8771f19c
@@ -1592,13 +1614,13 @@ index 000000000..ba5634306
 +  "verdict": "equivalent"
 +}
 diff --git a/tests/structure_budgets.json b/tests/structure_budgets.json
-index 061d4aef7..e431536c7 100644
+index f735922a4..ad931aedd 100644
 --- a/tests/structure_budgets.json
 +++ b/tests/structure_budgets.json
 @@ -1,5 +1,5 @@
  {
-- "class_excess_loc": 17659,
-+ "class_excess_loc": 17657,
+- "class_excess_loc": 17656,
++ "class_excess_loc": 17654,
   "const_modules_over_50": 3,
   "coordinator_attrs": 142,
   "coordinator_multiassigned_attrs": 109,
@@ -1606,14 +1628,14 @@ index 061d4aef7..e431536c7 100644
   "functions_cc_over_25": 8,
   "import_cycle_modules": 0,
   "max_cc": 44,
-- "max_class_loc": 8063,
-+ "max_class_loc": 8062,
+- "max_class_loc": 8061,
++ "max_class_loc": 8060,
   "max_method_loc": 373,
   "methods_over_150": 15,
   "methods_over_200": 8,
   "name_kept_members": 38,
-- "recorded_at": "88c6ad5bbec69bfe157e04597a74d0c9c3e4775c",
-+ "recorded_at": "cf4f6b7a660f5b61e0f2b933bd18647fe3ba90c7",
+- "recorded_at": "5d4e0bcfb88413ddf9ca7f0884c36bbec9235447",
++ "recorded_at": "be7584c4904e243ffb48c166be39221623d81415",
   "seam_cut_total": 422
  }
 

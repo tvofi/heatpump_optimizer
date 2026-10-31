@@ -1,5 +1,0 @@
-mutant G1 at 958b4af8eee134728986d92d2220f1dfadbab255
-ALL 134 DST / QUARTER-GRID CHECKS PASSED
-  FAIL the cheapest-first planner buys a derated pump's heat at the draw that delivers it: one block lands the tank where the zero-derate block does, at a higher draw; capped, its spare heat is the derated heat the cap delivers and the floor is still met; null control: with no derate the same tank and the plain draw  [{0.0: ([0.0, 0.0, 0.0, 1.813084], 54.56541885372521), 0.2: ([0.0, 0.0, 0.0, 1.813084], 54.152370673544794)} capped {0.0: ([0.0, 0.0, 0.712548, 1.5], 56.09418813375787), 0.2: ([0.0, 0.0, 0.759502, 1.5], 56.122510110506674)}]
-1 of 4637 FEATURE CHECKS FAILED
-rc=1
