@@ -7431,7 +7431,8 @@
    "rca": [],
    "after": [
     "R10-ORCH-PLANPAGE",
-    "R10-FLOW-TOOLKIT-MEASURE"
+    "R10-FLOW-TOOLKIT-MEASURE",
+    "R10-FLY-CANCEL-SWEEP"
    ],
    "carry": [
     "Null control: on the study's pinned input (shadow roster at base f424d993d and its simulate_rules.py) the in-tree model reproduces the study's out-of-tree simulate.py outputs: 86, 91 and 97 h at in-progress lead factors 1, 2 and 3 with effects on, and 92 h with effects off. A rule perturbation (drop the chain reservation) must move the figure where the study says it does (75 to 77 h at effects x2).",
