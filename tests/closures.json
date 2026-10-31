@@ -3984,6 +3984,7 @@
    "dev/audit/harnesses/r10_review_strength_mutants.py",
    "dev/audit/harnesses/r10_roster_push_race.sh",
    "dev/audit/harnesses/r10_roster_sync_base.py",
+   "dev/audit/harnesses/r10_row_head_carry.py",
    "dev/audit/harnesses/r10_sav_actuation_phase.py",
    "dev/audit/harnesses/r10_sav_baseline.py",
    "dev/audit/harnesses/r10_sav_baseline_mutants.py",
