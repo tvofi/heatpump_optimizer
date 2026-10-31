@@ -1916,7 +1916,7 @@
     "branch": "handoff/r10-cop-gate",
     "commit": "507a9ec264eb373b132248d752259254d8a9fa4d",
     "last_step": null,
-    "next_step": "dispatch a fixer once every `after` group is done",
+    "next_step": "part D design approved: design/R10-COP-GATE 72902290 (design-verdict 02629d63c, 11:00Z 10-31); dispatch the part D fixer when R10-CEILING-PROBE merges",
     "note": null,
     "pr": 2975
    },
