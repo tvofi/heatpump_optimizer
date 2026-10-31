@@ -1,5 +1,0 @@
-mutant V1 at 958b4af8eee134728986d92d2220f1dfadbab255
-ALL 134 DST / QUARTER-GRID CHECKS PASSED
-  FAIL the virtual battery's charge rate is the heat the pump delivers at nameplate, derate included; null control: no derate, power times COP  [{0.0: 15.0, 0.2: 15.0}]
-1 of 4637 FEATURE CHECKS FAILED
-rc=1
