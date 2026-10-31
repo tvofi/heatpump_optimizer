@@ -1,0 +1,7 @@
+## P4 recomputed band vs the plan's own band
+  twelfth sample (solved configured, mapped learned): 3.0 kW step on its own band 42.50 degC, on the recomputed band 55.00 degC
+  lapse (solved learned, mapped configured): 3.0 kW step on its own band 55.00 degC, on the recomputed band 42.50 degC
+  null, a band that did not change: 42.50 vs 42.50 degC
+## P5 experiment power on the plan's band
+  probe step at configured top 5.0 kW: learned band 55.00, configured band 55.00 degC
+  fit step 2.2583 kW (sysid sizer, F1): learned band 45.73, configured band 37.86 degC

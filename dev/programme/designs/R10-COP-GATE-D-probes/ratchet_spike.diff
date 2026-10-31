@@ -1,0 +1,111 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index b4b07c4ea..f5be2869e 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -2052,6 +2052,7 @@ class SolveRecord:
+     config: OptimizationConfig
+     params: ThermalParameters
+     inputs: SolveInputs
++    band: dict[str, Any] = field(default_factory=dict)
+ 
+     def optimizer(self) -> HeatPumpOptimizer:
+         return HeatPumpOptimizer(ThermalModel(self.params), self.config)
+@@ -5876,7 +5877,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+             _raise_update_failed("update_failed", f"Error updating data: {err}", err, error=str(err))
+ 
+     def _solve_hubs(
+-        self, n_steps: int, *, banded: bool
++        self, n_steps: int, *, banded: bool, band: dict[str, Any] | None = None
+     ) -> tuple[OptimizationConfig, ThermalParameters, ThermalState]:
+         """Private copies of the three hubs with this moment's solve values.
+ 
+@@ -5926,6 +5927,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         now = dt_util.now()
+         params = replace(
+             copy.deepcopy(ctx._thermal_params),
++            **draw_range.band_fields(band or draw_range.solve_band(self._accuracy.draw, ctx._thermal_params)),
+             **dhw_bands,
+             **self._model_corrections(now),
+             **self._dhw_plan_fields(now),
+@@ -5960,7 +5962,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         """
+         ctx = getattr(self, "_ctx", self)
+         n = len(horizon.prices)
+-        config, params, state = self._solve_hubs(n, banded=True)
++        band = draw_range.solve_band(self._accuracy.draw, ctx._thermal_params)
++        config, params, state = self._solve_hubs(n, banded=True, band=band)
+         space_pins, dhw_pins = self._manual_pins(solve_now, n)
+         # The opt-in fuse guard (#3): a hard per-step ceiling on heat pump
+         # power at what the fuse leaves after the rest of the house.
+@@ -6015,7 +6018,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+                 off_steps=quiet.off_steps,
+                 quiet_actions=quiet.actions,
+             ),
+-        ))
++        ), band)
+ 
+     async def async_run_optimization(self) -> str | None:
+         """Run the MPC optimization.
+@@ -6129,7 +6132,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+ 
+             self._record_manual_release(result, pinned_override)
+ 
+-            self._optimization_result = result
++            self._optimization_result = replace(result, solve_band=record.band)
+             self._last_optimization = dt_util.now()
+             if self._solve_failures >= SOLVE_FAILURE_ISSUE_COUNT:
+                 ir.async_delete_issue(self.hass, DOMAIN, "solve_failures")
+@@ -7684,6 +7687,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+                 electric=install.cop_electric(), measured_heat=install.measured_heat,
+                 follows=draw_range.follows_ask(self._accuracy.draw),
+             ),
++            "pump_max_power": getattr(self._optimization_result, "solve_band", None),
+             "defrost_derate": self._defrost.factor(
+                 ctx._current_state.outdoor_temperature, self._current_humidity()
+             ),
+diff --git a/custom_components/heatpump_optimizer/draw_range.py b/custom_components/heatpump_optimizer/draw_range.py
+index 7873f4453..19aec4ddd 100644
+--- a/custom_components/heatpump_optimizer/draw_range.py
++++ b/custom_components/heatpump_optimizer/draw_range.py
+@@ -284,6 +284,16 @@ class DrawRange:
+         return out
+ 
+ 
++def solve_band(draw: DrawRange | None, params: Any) -> dict[str, Any]:
++    """Spike stub."""
++    return {"planned_min_kw": params.min_electrical_power, "planned_max_kw": params.max_electrical_power}
++
++
++def band_fields(band: dict[str, Any]) -> dict[str, Any]:
++    """Spike stub."""
++    return {"min_electrical_power": band["planned_min_kw"], "max_electrical_power": band["planned_max_kw"]}
++
++
+ def running_kw(draw: DrawRange | None, drawn_kw: float) -> float:
+     """``drawn_kw`` where it is the compressor running, else ``0.0``.
+ 
+diff --git a/custom_components/heatpump_optimizer/optimizer.py b/custom_components/heatpump_optimizer/optimizer.py
+index f019fe6a0..052e07697 100644
+--- a/custom_components/heatpump_optimizer/optimizer.py
++++ b/custom_components/heatpump_optimizer/optimizer.py
+@@ -1752,6 +1752,8 @@ class OptimizationResult:
+     #: Absent (None) keeps ``step_duty``'s duty-cycle reading. Not a
+     #: caller argument: the plan carries the floor it was solved under.
+     duty_floor_kw: float | None = None
++    #: The band this plan was solved on (R10-COP-GATE D); empty = the hub's.
++    solve_band: dict[str, Any] = field(default_factory=dict)
+ 
+ 
+ @dataclass
+diff --git a/custom_components/heatpump_optimizer/pump_arbiter.py b/custom_components/heatpump_optimizer/pump_arbiter.py
+index 28e1f706e..0b0a62fc7 100644
+--- a/custom_components/heatpump_optimizer/pump_arbiter.py
++++ b/custom_components/heatpump_optimizer/pump_arbiter.py
+@@ -486,6 +486,7 @@ def _step_kw(result: Any, now: datetime) -> float | None:
+ 
+ def _band_kw(inp: ArbiterInputs) -> tuple[Any, Any]:
+     """``(p_min, p_max)`` from the model when the params snapshot lacks them."""
++    band = getattr(inp.plan, "solve_band", None) or {}
+     params = inp.params
+     thermal_params = getattr(inp.thermal, "params", None)
+     p_min = getattr(params, "min_electrical_power", None)

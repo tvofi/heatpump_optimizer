@@ -1,0 +1,9 @@
+# python3 tests/structure.py with ratchet_spike.diff applied at dc18f2f8 (custom_components identical to origin/main 05c0d6d5); stubs only, the line shape of fix (a)
+RESULT class_excess_loc=17659 count
+RESULT coordinator_attrs=142 count
+RESULT coordinator_multiassigned_attrs=109 count
+RESULT max_class_loc=8064 count
+RESULT seam_cut_total=422 count
+FAIL class_excess_loc 17659 > 17656 (+3)
+FAIL max_class_loc 8064 > 8061 (+3)
+# unpatched at the same tree: class_excess_loc 17656, max_class_loc 8061, coordinator_attrs 142, coordinator_multiassigned_attrs 109, seam_cut_total 422 (all at budget)
