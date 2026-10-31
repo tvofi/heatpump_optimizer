@@ -942,10 +942,12 @@ def _self_test() -> int:
     throwaway_git_clone(origin, drv, "-q")
 
     def edit(op, group, value, push=True, branch="edit-1", lint_cwd=None,
-             at_sha=None, field=None, value_opt=None, match=None, wt="wt"):
+             at_sha=None, field=None, value_opt=None, match=None, wt="wt",
+             rest=()):
         args = [op, group]
         if value is not None:
             args += [value]
+        args += list(rest)
         if field:
             args += ["--field", field]
         if match is not None:
@@ -1303,6 +1305,78 @@ def _self_test() -> int:
           and carry_of("R9-B") == [])
     check("append-carry then drop-carry is byte-identical",
           bytes_at() == before_carry)
+
+    # THE CARRY LEDGER (#2733, carries 10 and 31). mark-carry discharges one
+    # carry with a mark; set-stage done over a pending carry writes
+    # carries-open through roster_lib.closing_stage, the predicate roster_sync
+    # shares. On a branch of its own, so the byte pins above are untouched.
+    def said(call):
+        out, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            rc = sysrc(call)
+        return rc, out.getvalue() + err.getvalue()
+
+    def mark(*rest, match=None):
+        return said(lambda: edit("mark-carry", "R9-B",
+                                 None if match is not None else rest[0],
+                                 branch="mark-1", match=match,
+                                 rest=rest if match is not None else rest[1:]))
+
+    def at_mark(group):
+        return next(g for g in branch_roster("mark-1")["groups"]
+                    if g["group"] == group)
+
+    for text in ("carry one", "carry two", "carry three"):
+        edit("append-carry", "R9-B", text, branch="mark-1")
+    rc, out = mark("0", "implemented", "0123abcd")
+    check("mark-carry by index appends the implemented mark",
+          rc == 0 and at_mark("R9-B")["carry"][0]
+          == "carry one [implemented: 0123abcd]", (rc, out[-300:]))
+    rc, out = mark("moved", "R9-A", match="carry two")
+    check("mark-carry by --match appends the moved mark",
+          rc == 0 and at_mark("R9-B")["carry"][1] == "carry two [moved: R9-A]",
+          (rc, out[-300:]))
+    t0 = tip("mark-1")
+    for name, args, why in (
+            ("a carry already marked", ("0", "dismissed", "again"), "already marked"),
+            ("an unknown mark", ("2", "shipped", "0123abcd"), "mark is one of"),
+            ("implemented without a sha", ("2", "implemented", "main"), "needs a sha"),
+            ("moved to no group", ("2", "moved", "R9-ZZ"), "names no group"),
+            ("moved to itself", ("2", "moved", "R9-B"), "to itself"),
+            ("dismissed with no reason", ("2", "dismissed"), "needs a reason")):
+        rc, out = mark(*args)
+        check(f"mark-carry refuses {name}", rc not in (0, None) and why in out,
+              (rc, out[-300:]))
+    check("refused mark-carry moved nothing", tip("mark-1") == t0)
+    rc, out = said(lambda: edit("set-stage", "R9-B", "done", branch="mark-1"))
+    check("set-stage done over a pending carry writes carries-open and says so",
+          rc == 0 and at_mark("R9-B")["resume"]["stage"] == "carries-open"
+          and "set-stage R9-B: done -> carries-open (1 pending carries)" in out,
+          (rc, at_mark("R9-B")["resume"], out[-300:]))
+    mark("2", "dismissed", "a duplicate of carry two")
+    rc, out = said(lambda: edit("set-stage", "R9-B", "done", branch="mark-1"))
+    check("set-stage done with every carry marked writes done (null control)",
+          rc == 0 and at_mark("R9-B")["resume"]["stage"] == "done",
+          (rc, at_mark("R9-B")["resume"], out[-300:]))
+    # The cut-over: a carry on a closed group at the cut-over commit is legacy
+    # and never pending; one appended after it is.
+    edit("set-stage", "R9-A", "done", branch="mark-1")
+    edit("append-carry", "R9-A", "legacy carry", branch="mark-1")
+    saved = dict(roster_lib.CARRY_CUTOVER)
+    roster_lib.CARRY_CUTOVER[FIXTURE_ROSTER] = tip("mark-1")
+    try:
+        rc, out = said(lambda: edit("set-stage", "R9-A", "done", branch="mark-1"))
+        check("a legacy carry alone leaves set-stage done as done (null control)",
+              rc == 0 and at_mark("R9-A")["resume"]["stage"] == "done",
+              (rc, out[-300:]))
+        edit("append-carry", "R9-A", "post-cut-over carry", branch="mark-1")
+        rc, out = said(lambda: edit("set-stage", "R9-A", "done", branch="mark-1"))
+        check("a carry after the cut-over is pending beside a legacy one",
+              rc == 0 and at_mark("R9-A")["resume"]["stage"] == "carries-open"
+              and "(1 pending carries)" in out, (rc, out[-300:]))
+    finally:
+        roster_lib.CARRY_CUTOVER.clear()
+        roster_lib.CARRY_CUTOVER.update(saved)
 
     # THE ROUND-TRIP REGRESSION. The roster's canonical bytes are indent=1,
     # ASCII-escaped, no trailing newline (the file at the fixplan ref). A dump

@@ -782,6 +782,30 @@ def self_test() -> int:
           by.get("L-OK") is not None and by["L-OK"].stage == "in-progress",
           by)
 
+    # THE CARRY LEDGER (#2733 (b), carry 31): a merge over a group that still
+    # owes a carry writes carries-open, through roster_lib.closing_stage --
+    # the predicate roster_edit's set-stage shares -- and a group whose carries
+    # are all marked or legacy is written done. The body's carries are still
+    # read: the transition is a merge either way.
+    owed = {"groups": [
+        {"group": "C-OWES", "carry": ["owed one", "x [implemented: 0123abcd]"],
+         "resume": {"stage": "in-progress", "branch": "handoff/c-owes"}},
+        {"group": "C-PAID", "carry": ["legacy one", "y [dismissed: dup]"],
+         "resume": {"stage": "in-progress", "branch": "handoff/c-paid"}},
+    ]}
+    got_changes, _, got_tr = derive(owed, [
+        PR(51, MERGED, "handoff/c-owes", "5" * 40, ""),
+        PR(52, MERGED, "handoff/c-paid", "6" * 40, ""),
+    ], {"C-PAID": frozenset({"legacy one"})})
+    by = {c.group: c for c in got_changes}
+    check("a merge over a pending carry writes carries-open, with its commit",
+          by.get("C-OWES") is not None and by["C-OWES"].stage == "carries-open"
+          and by["C-OWES"].merge_commit == "5" * 40, by)
+    check("a merge with every carry marked or legacy writes done (null control)",
+          by.get("C-PAID") is not None and by["C-PAID"].stage == "done", by)
+    check("both merges are transitions whose bodies are read for carries",
+          sorted(p.number for p in got_tr) == [51, 52], got_tr)
+
 
 
     def build(tmp: Path, lint_src: str) -> tuple[Path, Path, Path]:

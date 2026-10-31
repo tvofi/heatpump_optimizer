@@ -1094,6 +1094,38 @@ def _self_test() -> int:
     check("carry_dests stops at prose", carry_dests("Carry: R10-LIVE because it owns x") == ["R10-LIVE"])
     check("carry_dests reads dismissed whole", carry_dests("Carry: dismissed: host load")
           == ["dismissed:host load"])
+    # THE ROSTER ARM (#2733 invariants 1 and 3; carries 23, 24, 26, 27). A
+    # pending carry on a closed group is STRANDED; an open issue no live group
+    # lists is reported, #201 never. Pure: the CLI only reads the roster, its
+    # cut-over and an issue list into it.
+    rr = {"groups": [
+        {"group": "S-DONE", "issues": [2733], "fixes": [], "resume": {"stage": "done"},
+         "carry": ["legacy owed", "owed after", "paid [implemented: 0123abcd]"]},
+        {"group": "S-ABS", "issues": [], "fixes": [], "carry": ["folded"],
+         "resume": {"stage": "absorbed", "absorbed_into": "S-LIVE"}},
+        {"group": "S-PAID", "issues": [2855], "fixes": [], "resume": {"stage": "done"},
+         "carry": ["x [dismissed: a duplicate]"]},
+        {"group": "S-LIVE", "issues": [2429], "fixes": [2500], "resume": {"stage": "carries-open"},
+         "carry": ["live owed"]},
+    ]}
+    lines = roster_report(rr, {"S-DONE": frozenset({"legacy owed"})}, {201, 2429, 2500, 2733, 2855, 2875})
+    stranded_l = [ln for ln in lines if ln.startswith("STRANDED")]
+    check("roster: a pending post-cut-over carry on a done group is STRANDED, with its index",
+          any(ln.startswith("STRANDED S-DONE (done) carry[1]") for ln in stranded_l))
+    check("roster: a carry on an absorbed group is STRANDED and names absorbed_into",
+          any(ln.startswith("STRANDED S-ABS (absorbed into S-LIVE) carry[0]") for ln in stranded_l))
+    check("roster (null): a legacy carry, a marked carry and an open group's carry are not STRANDED",
+          len(stranded_l) == 2)
+    check("roster: an open issue listed only by done groups is reported with them",
+          "ISSUE-STRANDED #2733 listed only by closed group(s): S-DONE" in lines
+          and "ISSUE-STRANDED #2855 listed only by closed group(s): S-PAID" in lines)
+    check("roster: an open issue no group lists is reported", "ISSUE-UNLISTED #2875" in lines)
+    check("roster (null): an issue a live group lists, in issues or fixes, and #201 are not reported",
+          not [ln for ln in lines if re.search(r"#(2429|2500|201)\b", ln)])
+    check("roster: with no issue list the issue arm reports nothing, never a guess",
+          not [ln for ln in roster_report(rr, {}, None) if ln.startswith("ISSUE")])
+    check("roster: open_issues reads gh's JSON, numbers or objects, and drops pull requests",
+          open_issue_numbers('[1, {"number": 2}, {"number": 3, "pull_request": {}}]') == {1, 2})
     print(f"carry_audit self-test: {passed + failed} checks, {failed} failed")
     tmp.cleanup()
     return 1 if failed else 0

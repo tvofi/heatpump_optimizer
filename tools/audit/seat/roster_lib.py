@@ -606,6 +606,42 @@ def _self_test() -> int:
           schema_refuses(lambda: read_durations("/nonexistent-hpo-root")),
           "read_durations returned on a missing file")
 
+    # THE CARRY LEDGER (#2733). One predicate decides whether a group still
+    # holds a carry; set-stage, the reconciler and carry_audit's STRANDED arm
+    # all read it.
+    cg = {"group": "G", "resume": {"stage": "done"},
+          "carry": ["old one", "new one",
+                    "done one [implemented: 0123abcd]",
+                    "gone one [moved: R10-X]", "nope [dismissed: a duplicate]"]}
+    legacy = legacy_carries({"groups": [
+        cg | {"carry": ["old one"]},
+        {"group": "OPEN", "resume": {"stage": "in-progress"}, "carry": ["new one"]}]})
+    check("legacy: a carry on a closed group at the cut-over is legacy; an "
+          "open group's carry at the cut-over is not",
+          legacy == {"G": frozenset({"old one"})}, legacy)
+    check("pending: unmarked and not legacy is pending; each of the three "
+          "marks discharges a carry", pending_carries(cg, legacy) == [1],
+          pending_carries(cg, legacy))
+    check("pending: with no cut-over every unmarked carry is pending",
+          pending_carries(cg, {}) == [0, 1], pending_carries(cg, {}))
+    check("a mark is read only at the end of the carry, in its own grammar",
+          carry_mark("x [implemented: 0123abcd]") == ("implemented", "0123abcd")
+          and carry_mark("x [implemented: 0123abcd] and more") is None
+          and carry_mark("x [shipped: 0123abcd]") is None)
+    check("closing: done with a pending carry is written carries-open",
+          closing_stage(cg, "done", legacy) == ("carries-open", [1]),
+          closing_stage(cg, "done", legacy))
+    check("closing (null): done with every carry marked or legacy stays done",
+          closing_stage(cg | {"carry": cg["carry"][:1] + cg["carry"][2:]},
+                        "done", legacy) == ("done", []))
+    check("closing (null): a stage other than done is never rewritten",
+          closing_stage(cg, "in-progress", legacy) == ("in-progress", []))
+    got = [(s[0], s[2]) for s in stranded({"groups": [
+        cg, cg | {"group": "AB", "resume": {"stage": "absorbed"}},
+        cg | {"group": "CO", "resume": {"stage": "carries-open"}}]}, legacy)]
+    check("stranded: a pending carry on a done or absorbed group, never on an "
+          "open one", got == [("G", 1), ("AB", 0), ("AB", 1)], got)
+
     check("non-rosters are ignored",
           newest_roster(["README.md", "wave-r9-groups.json.bak"]) is None)
     with throwaway_git_environ(), tempfile.TemporaryDirectory() as td:
