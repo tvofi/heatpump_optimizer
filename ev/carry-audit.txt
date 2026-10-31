@@ -1,0 +1,8 @@
+# carry_audit at head 5c7375001 (live comments + this verdict)
+NOTE review 6452041129 item bd4a24eb: R10-ROSTER-BATCH24
+NOTE review 999999999 item af6c07ef: R10-ROSTER-BATCH24
+NOTE review 999999999 item 38a73997: R10-ROSTER-BATCH24
+CARRY-AUDIT: 3 finding item(s): 3 routed, 0 unrouted, 0 bad destination(s)
+# live PR alone (this verdict not yet posted)
+UNROUTED #2878 review 6452041129 item bd4a24eb (## Settled: the head is 2 commits behind the roster ref, and that is neutral) [non-blocking]: '`git rev-list --count HEAD..origin/handoff/audit-r10-roster` is 2. The commits are `7322d0deb set-stage R10-PR'
+CARRY-AUDIT #2878: 1 finding item(s): 0 routed, 1 unrouted, 0 bad destination(s)

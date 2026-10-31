@@ -1,0 +1,17 @@
+# measurements at head 5c73750010e6b8836728268bba47c969eb4be90f
+## three-dot numstat vs merge-base a0e7664ea6485b9ad8f68d164cd255ec4fd51fb9
+1	0	dev/programme/delivery/2878.md
+259	49	dev/programme/rosters/wave-r10-groups.json
+## no-merge count origin/main..HEAD
+      77
+## HEAD..origin/handoff/audit-r10-roster
+2
+8f7e252fe roster_edit set-stage R10-ORCH-REVIEW-PACKET (tools/audit/seat/roster_edit.py)
+7322d0deb roster_edit set-stage R10-PREPR-CAP (tools/audit/seat/roster_edit.py)
+## blobs
+main 582f75be3a84fed858d94bc17487b7f577da4229
+HEAD eb7252e2edf3889e3b51fd46b38a62d51cc6c173
+2b1fefed1 c20ee1a87b60778b69867dc7f1a67f671cd7c664
+ref-tip 1bc4b944667753a746b6fef43e21ae610c97399e
+## delivery row
+- [#2878](https://github.com/tvofi/heatpump_optimizer/pull/2878) — **open**, roster: round-10 batch 24 (R10-ROSTER-BATCH24)
