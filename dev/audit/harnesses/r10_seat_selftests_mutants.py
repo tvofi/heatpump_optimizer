@@ -297,6 +297,11 @@ MUTANTS = [
     ("review_packet-9", "review_packet.py", 'if rc and re.search(r"ERROR', 'if False and rc and re.search(r"ERROR'),
     ("review_packet-10", "review_packet.py", '    if not branch:\n        return ""\n', '    if False:\n        return ""\n'),
     ("review_packet-11", "review_packet.py", '"## Before you return the verdict (P275)",', '"## Close",'),
+    # R10-ORCH-REVIEW-PACKET carry 12 (L5): the carry-landed signal's two tests and its handoff arm.
+    ("review_packet-12", "review_packet.py", "        if not on_roster(sha):\n", "        if False:\n"),
+    ("review_packet-13", "review_packet.py", "        elif carries_at(sha) < n:\n", "        elif False:\n"),
+    ("review_packet-14", "review_packet.py", "    return out + (unlanded or [])", "    return out"),
+    ("review_packet-15", "review_packet.py", '    refusals += facts.get("unlanded", [])\n', ""),
     ("body_push-1", "tools/audit/seat/body_push.sh",
      '  if [ "$prc" = 1 ]; then\n    echo "body_push: the review packet refuses',
      '  if false; then\n    echo "body_push: the review packet refuses'),
