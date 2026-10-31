@@ -33,18 +33,9 @@ the Linux-recorded (`strace`-only) inert dimension: the bot merges
 INERT READS from CI recordings too (#1886, R9-CI-1). On `skip-failed-recording` a
 named script (or its driven child) stopped while recorded: fix it first, as re-deriving records the same truncation.
 
-**A survivor is red on this job, not green.** `mutation-autofix` pins kills only,
-so a site no driver kills stays unpinned and `tests / mutation` stays red (#2840).
-It used to leave the job green (`changed`) beside a pushed commit, and #2817, #2832
-and #2912 each read that as nothing owed. When the measurement it applied
-(`changed`, `skip-nothing-killed`) left an added site alive, the job's summary line
-names each such site (`mutation_table.survivor_sites`, `closure.autofix_report`) and
-the job is red; the kills are pushed all the same. A `skip-head-moved` measurement
-stays quiet, since the newer head's run measures it, and a site cut for the budget
-or timed out is no survivor, since a later run drives it. `pinned by
-mutation-autofix` stays a prediction until a `mutation-pins` log or `--pin-killed`
-kills the site; a `-- lives` line is the seat's. The red means that no bot commit
-disposes the survivor, not that none comes: **survivor triage stays manual** (below).
+**A survivor is red.** A site no driver kills stays unpinned (#2840). When the applied
+measurement left an added site alive, the job pushes the kills, goes red and names each
+site; `skip-head-moved` and budget cuts stay quiet. Triage stays manual.
 
 **What green means — read the summary line, not the tick.** Green is
 `changed` (repaired and pushed, with no survivor named), `skip-clean` or `skip-not-under-scoped` (no
@@ -88,9 +79,7 @@ a `GITHUB_TOKEN` push's `pull_request` runs are held `action_required`, so the r
 until approved: all three jobs approve them (kept until M-3), fail-soft without their
 secrets, when an App push or body edit cures it. Absent is not green (`orchestrator.md` section 11).
 
-When `mutation-autofix` goes red on a status, run `--pin-killed` yourself; when it
-goes red naming survivors, its commit is pushed, and each named site needs a killing
-check or a `survivor_triage` verdict. A `ci: pin killed mutants`
+When `mutation-autofix` goes red, run `--pin-killed` yourself. A `ci: pin killed mutants`
 stales the body's `## Red checks` `mutation` line; the reviewer re-checks it. Do not automate survivor triage,
 golden drift, structure budgets, `no-copies`, orphan → `INERT`, or briefs lint. A new selectable script with **no** recording is
 not UNDER-SCOPED — add it to a derive lane or `--single` it; autofix cannot invent a trace.
