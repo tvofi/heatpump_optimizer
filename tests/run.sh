@@ -383,9 +383,12 @@ run_always() {
     WAIT_UNRUN=""
     leased "$@" > "$WORKDIR/$id.log" 2>&1 || rc=$?
     finished=$(date +%s)
+    # The word follows the marker test: a wait past its bound is no pass.
+    local word=ok
+    [ "$rc" -eq 0 ] || word=FAILED
+    [ -z "$WAIT_UNRUN" ] || word=SKIP
     printf '  [%s] %-6s %s (%ss)\n' \
-      "$(date +%H:%M:%S)" "$([ "$rc" -eq 0 ] && echo ok || echo FAILED)" \
-      "$*" "$((finished - started))"
+      "$(date +%H:%M:%S)" "$word" "$*" "$((finished - started))"
   fi
   finished=$(date +%s)
   if [ -n "$WAIT_UNRUN" ]; then
