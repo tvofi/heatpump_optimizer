@@ -354,7 +354,7 @@ Role: dev/governance/roles/root-cause.md. |  |
 | R10-FACTORY-RESET | CORE | 2 | not-started | - | opus/opus | - | Owner request (tvofi, 2026-10-30): "There should also be an option to reset all parameters to factory integration defaults if there currently is none". |  |
 | R10-WOOD-NOTIFY | CORE | 1 | in-progress | - | opus/opus | - | Owner request (tvofi, 2026-10-30): "A Blueprint that sends app notifications when the wood cheaper than pump is expected to turn on during the day, along wit... |  |
 | R10-USER-DOCS-FINAL | DOCS | 3 | not-started | - | opus/opus | - | Owner request (tvofi, 2026-10-30): "does the plan currently cover an update of all user facing documentation at the end of the plan, to make sure all feature... |  |
-| R10-FLY-BEAT-FETCH-RACE | FLY | 1 | not-started | - | sonnet/opus | - | Defect, measured twice on 2026-10-30 (19:2xZ and 21:2xZ): the detached state_docs.py beat died with roster_edit.Refuse from fetch_origin in tools/audit/seat/... |  |
+| R10-FLY-BEAT-FETCH-RACE | FLY | 1 | in-progress | - | sonnet/opus | - | Defect, measured twice on 2026-10-30 (19:2xZ and 21:2xZ): the detached state_docs.py beat died with roster_edit.Refuse from fetch_origin in tools/audit/seat/... |  |
 | R10-FLY-CIPREDICT-GAPS | FLY | 1 | not-started | - | sonnet/opus | - | Two reds prepr's CI-predict step should have predicted and did not, both in tools/pr/ci_predict.py, the cheaper detector for CI reds (defect-root-cause.md). |  |
 
 ## ETA
