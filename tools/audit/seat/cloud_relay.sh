@@ -581,8 +581,9 @@ noreturn_arm() {
   local now sha ref topic t age r rs moved
   case $lim$win in *[!0-9]*) echo "cloud_relay: HPO_RELAY_NORETURN_SECS/WINDOW must be seconds; the level stays" >&2; return 0;; esac
   mkdir -p "$state" || return 0
-  git ls-remote origin 'refs/heads/dispatch/fixer-*' 'refs/heads/handoff/*' 'refs/heads/handoff-wip/*' \
-    'refs/heads/handoff-body/*' 'refs/heads/fix/*' > "$state/cloud-nr.$$" \
+  # Only the dispatch refs are listed by glob; each candidate's return refs are asked by name, so no
+  # glob here lists a handoff-wip step ref (cloud_dispatch.py pins that no handoff arm sees one).
+  git ls-remote origin 'refs/heads/dispatch/fixer-*' > "$state/cloud-nr.$$" \
     && git fetch -q origin '+refs/heads/dispatch/fixer-*:refs/hpo-relay/dispatch/fixer-*' 2>/dev/null \
     || { echo "cloud_relay: the dispatch refs could not be read; the no-return level stays" >&2; rm -f "$state/cloud-nr.$$"; return 0; }
   now=$(date +%s); : > "$state/cloud-level-nr.$$"
@@ -592,8 +593,10 @@ noreturn_arm() {
     age=$((now - t))
     [ "$age" -gt "$lim" ] && [ "$age" -le "$win" ] || continue  # mut:noreturnage
     moved=
+    git ls-remote origin "refs/heads/handoff/$topic" "refs/heads/handoff-wip/$topic" "refs/heads/handoff-body/$topic" \
+      "refs/heads/fix/$topic-pr" "refs/heads/fix/$topic" > "$state/cloud-nrr.$$" || { moved=unread; }
     for r in handoff/$topic handoff-wip/$topic handoff-body/$topic fix/$topic-pr fix/$topic; do
-      rs=$(awk -v r="refs/heads/$r" '$2 == r { print $1; exit }' "$state/cloud-nr.$$")
+      rs=$(awk -v r="refs/heads/$r" '$2 == r { print $1; exit }' "$state/cloud-nrr.$$")
       [ -n "$rs" ] || continue
       git cat-file -e "$rs^{commit}" 2>/dev/null || git fetch -q origin "refs/heads/$r" 2>/dev/null
       [ "$(git log -1 --format=%ct "$rs" 2>/dev/null || echo 0)" -gt "$t" ] && { moved=1; break; }  # mut:noreturnmoved
@@ -603,7 +606,7 @@ noreturn_arm() {
     level_line seat-no-return "$ref" "$sha" "SEAT ENDED NO RETURN $topic $((age / 3600))h" >> "$state/cloud-level-nr.$$"
   done < "$state/cloud-nr.$$"
   level_set seat-no-return "$state/cloud-level-nr.$$"
-  rm -f "$state/cloud-nr.$$"
+  rm -f "$state/cloud-nr.$$" "$state/cloud-nrr.$$"
 }
 
 pass() { # [--confirm] [--log FILE] [--loop [--interval N]]
