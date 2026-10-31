@@ -1,0 +1,5 @@
+  pinned   custom_components/heatpump_optimizer/coordinator.py:4718 GUARD_OFF: if False:
+  pinned   custom_components/heatpump_optimizer/coordinator.py:9751 GUARD_OFF: if False:
+  pinned   custom_components/heatpump_optimizer/heat_energy.py:252 BOOLOP: return a.observed or a.dhw > 0.0
+  pinned   custom_components/heatpump_optimizer/heat_energy.py:252 CMP_BOUND: return a.observed and a.dhw >= 0.0
+  pinned   custom_components/heatpump_optimizer/heat_energy.py:252 RETURN_DEL: pass
