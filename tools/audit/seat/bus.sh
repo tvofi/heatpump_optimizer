@@ -199,6 +199,12 @@ dispatch_binding() { # verdict-file pr head -> 0 when the nonce binds to (pr, he
   [ "$rh" = "$3" ] || { printf 'nonce %s was dispatched at head %s, not the head %s this verdict names; mint a fresh dispatch at this head with bus.sh dispatch %s %s <reviewer>' "$n" "$rh" "$3" "$2" "$3"; return 1; }
   return 0
 }
+bot_only() { # head -> rc 0 when the commits in <remote>/main..head are all, and at least one, dependabot[bot]'s
+  local a
+  git fetch -q "$REMOTE" main 2>/dev/null
+  a=$(git log --format=%an "$REMOTE/main..$1" 2>/dev/null) || return 1
+  [ -n "$a" ] && [ -z "$(grep -vxF 'dependabot[bot]' <<< "$a")" ]  # mut:botonly
+}
 numeric() { case $1 in ''|*[!0-9]*) return 1 ;; esac; return 0; }
 approver_key() { # -> the hpo-approver App's private key on this machine, or a non-zero exit
   local k=${HPO_IDENTITY_DIR:-$HOME/.zcode}/identity-approver.pem
@@ -492,8 +498,16 @@ dispatch() { # pr head reviewer [--reviewed-head <sha>] [--nonce N] [--model M] 
   git cat-file -e "$h^{commit}" 2>/dev/null || git fetch -q "$REMOTE" "$h" 2>/dev/null
   git cat-file -e "$h^{commit}" 2>/dev/null \
     || die "dispatch: the head $h is not readable in this checkout; fetch it, then dispatch"
-  git cat-file -e "$h:$row" 2>/dev/null \
-    || die "dispatch: #$pr's head $h carries no $row; the row lands before the review (delivery-status-tracking.md) -- write it and re-push, then dispatch"
+  # A head whose every commit over main is dependabot[bot]'s (P100) takes no row commit: one moves
+  # it off the bot's head and reddens pr-contract against dependabot_contract.mjs (#2773, #2678).
+  # Its row is the orchestrator's on main, so it is read at origin/main; any other head reads its own.
+  if bot_only "$h"; then
+    git cat-file -e "$REMOTE/main:$row" 2>/dev/null \
+      || die "dispatch: #$pr's head $h is dependabot[bot]'s alone and $REMOTE/main carries no $row; land the row on main (a commit on the bot's head reddens pr-contract), then dispatch"
+  else
+    git cat-file -e "$h:$row" 2>/dev/null \
+      || die "dispatch: #$pr's head $h carries no $row; the row lands before the review (delivery-status-tracking.md) -- write it and re-push, then dispatch"
+  fi
   # THE REVIEWABLE HEAD (K15 (d); the #2577 carry, built by R10-FLOW-MAIN-GATE).
   # A head where a required context's latest run concluded failure is not
   # reviewable. merge_train.py's `classify`, the one owner of that state, answers
@@ -637,6 +651,19 @@ watch() {
     esac
     shift
   done
+  # One watcher per state directory (P102): two re-baseline over each other and one misses a
+  # tip (#2780 r4, 0.6 h). The lock is a directory holding the holder's pid; a dead pid's is
+  # taken over; the exit trap releases it.
+  local lk=$S/watch.lock holder
+  mkdir -p "$S" || die "watch: no state directory $S"
+  if ! mkdir "$lk" 2>/dev/null; then
+    holder=$(cat "$lk/pid" 2>/dev/null)
+    if [ -n "$holder" ] && kill -0 "$holder" 2>/dev/null; then  # mut:watchlock
+      die "watch: another watcher (pid $holder) holds $lk; stop it or let it run"
+    fi
+  fi
+  echo "$$" > "$lk/pid"
+  trap 'rm -rf "$S/watch.lock"' EXIT
   while :; do
     watch_once "$post"; rc=$?
     [ $rc = 3 ] || return $rc
@@ -945,6 +972,26 @@ bus-nonce: $N1b" ] && [ "$(grep -c " $N1b " "$W/state/dispatched")" = 2 ] \
   out=$(run dispatch 7 "$h1" cmsg_Z2); rc=$?
   [ $rc = 0 ] && echo "$out" | grep -q '^bus-nonce: '
   expect "dispatch accepts the same pull request once its row is on the head (null control)" $?
+  # P100: a dependabot-only head reads its row on origin/main; any other head reads its own.
+  mb0=$(git -C "$W/seat" ls-remote origin refs/heads/main | cut -f1); git -C "$W/seat" fetch -q origin main
+  bot() { GIT_AUTHOR_NAME=${3:-dependabot[bot]} git -C "$W/seat" \
+            commit-tree "$(git -C "$W/seat" rev-parse "$1^{tree}")" -p "$1" -m "$2"; }
+  hb=$(bot "$mb0" "bump x")
+  out=$(run dispatch 41 "$hb" cmsg_B0); rc=$?
+  [ $rc != 0 ] && echo "$out" | grep -q "dependabot\[bot\]'s alone and origin/main carries no $ROW_DIR/41.md"
+  expect "null control: a dependabot-only head with its row nowhere is refused (P100)" $?
+  rb41=$(printf -- '- [#41](https://github.com/o/r/pull/41) — **open**\n' | git -C "$W/seat" hash-object -w --stdin)
+  rt41=$(git -C "$W/seat" ls-tree "$mb0" | grep -v "	dev$"; printf '040000 tree %s\tdev\n' "$(printf '040000 tree %s\tprogramme\n' "$(printf '040000 tree %s\tdelivery\n' "$(printf '100644 blob %s\t41.md\n' "$rb41" | git -C "$W/seat" mktree)" | git -C "$W/seat" mktree)" | git -C "$W/seat" mktree)")
+  m41=$(printf '%s\n' "$rt41" | git -C "$W/seat" mktree); m41=$(git -C "$W/seat" -c user.name=t -c user.email=t@t commit-tree "$m41" -p "$mb0" -m "row 41")
+  git -C "$W/seat" push -q origin "$m41:refs/heads/main"; hb=$(bot "$m41" "bump y")
+  out=$(run dispatch 41 "$hb" cmsg_B1); rc=$?
+  [ $rc = 0 ] && echo "$out" | grep -q '^bus-nonce: '
+  expect "a dependabot-only head with its row on origin/main is dispatched (P100)" $?
+  hb=$(bot "$(bot "$mb0" "a hand fix" t)" "bump z")  # cut before the row landed on main
+  out=$(run dispatch 41 "$hb" cmsg_B2); rc=$?
+  [ $rc != 0 ] && echo "$out" | grep -q "carries no $ROW_DIR/41.md"
+  expect "a head with one non-bot commit and its row only on origin/main is refused (P100)" $?
+  git -C "$W/seat" push -q -f origin "$mb0:refs/heads/main"; git -C "$W/seat" fetch -q origin main
   # THE REVIEW CARRY (R10-REVIEW-CARRY; tvofi, 2026-10-27). A fresh nonce over a
   # head whose range against the named reviewed head is clean starts a second
   # reviewer for a proof that did not move. `hm` is a merge-only move (main
@@ -1551,6 +1598,16 @@ B
   out=$(cd "$W/seat" && run push-design-verdict R10-G9 "$W/dverd.md"); rc=$?
   [ $rc != 0 ] && echo "$out" | grep -q "no design/R10-G9"; expect "a verdict for a topic with no design ref is refused" $?
 
+  # P102: a second watcher over the same state directory refuses, naming the holder; a dead
+  # holder's lock is taken over; the lock is gone once a watcher exits.
+  sleep 30 & wl=$!; mkdir -p "$W/state/watch.lock"; echo "$wl" > "$W/state/watch.lock/pid"
+  out=$(run watch --once 2>&1); rc=$?
+  [ $rc != 0 ] && echo "$out" | grep -q "another watcher (pid $wl) holds"
+  expect "watch --once under a live watcher's lock refuses and names its pid (P102)" $?
+  kill "$wl"; wait "$wl" 2>/dev/null
+  out=$(run watch --once 2>&1); rc=$?
+  [ $rc = 0 ] && [ ! -e "$W/state/watch.lock" ]
+  expect "null control: a dead watcher's lock is taken over, the pass runs, and its exit releases the lock" $?
   [ -n "${BUS_KEEP:-}" ] && echo "kept $W" || rm -rf "$W"
   printf 'bus self-test: %s checks, %s failed\n' "$((pass + fail))" "$fail"
   [ "$fail" = 0 ]

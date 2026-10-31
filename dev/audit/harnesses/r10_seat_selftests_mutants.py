@@ -216,6 +216,8 @@ MUTANTS = [
     ("bus-4", "bus.sh", '  why=$(carry_gate "$v") || die "push-verdict: $why"\n', ''),
     ("bus-5", "bus.sh", '  why=$(python3 -I "$ROOT/tools/audit/seat/ref_privacy.py" body-lines "$v") \\\n', '  why=$(true) \\\n'),
     ("bus-6", "bus.sh", 'git -c http.postBuffer=524288000 push -q "$REMOTE"', 'git push -q "$REMOTE"'),
+    ("bus-7", "bus.sh", '[ -n "$a" ] && [ -z "$(grep -vxF \'dependabot[bot]\' <<< "$a")" ]  # mut:botonly', '[ -n "$a" ]'),
+    ("bus-8", "bus.sh", 'if [ -n "$holder" ] && kill -0 "$holder" 2>/dev/null; then  # mut:watchlock', 'if false; then'),
     # carry_audit.py check reads no roster for a verdict with no finding item (bus.sh's step grades it:
     # its scratch origin holds no roster until the carry rows plant one).
     ("carry_audit-1", "tools/audit/carry_audit.py",

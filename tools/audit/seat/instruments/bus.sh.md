@@ -40,3 +40,8 @@ under the review is refused, and so is a topic with no design ref.
   one whose finding items name no valid `Carry:` (`carry_audit.py check` at
   origin/main and the round's roster branch, as the train's pre-flight reads
   them); its push carries a 500 MB `http.postBuffer` (#2563's HTTP 400).
+  `dispatch` reads a head's own delivery row, except a head whose every
+  commit over origin/main is `dependabot[bot]`'s: its row is read on
+  origin/main (a row commit on the bot's head reddens `pr-contract`).
+  `watch` holds `<state>/watch.lock` (a directory naming its pid): a second
+  watcher refuses naming the holder; a dead pid's lock is taken over.
