@@ -13210,7 +13210,9 @@ for _race_name, (_race_load, _race_cmd, _race_read, _race_want) in _RACES.items(
 # are a subset. Preconditions: every store built is read at startup, every
 # read has a previous run's payload to land, and the loads assign something.
 # Null control: the same race with every store's fence (async_wait_for_read)
-# removed must differ, or the window reaches no writer and the census is blind.
+# and the session-restore gate the setup refresh awaits (boost.session_restored,
+# R10-HOTFIX-AWAY-LIVE) removed must differ, or the window reaches no writer
+# and the census is blind.
 import logging as _src_logging  # noqa: E402
 import weakref as _src_weakref  # noqa: E402
 from unittest import mock as _src_mock  # noqa: E402
@@ -13382,7 +13384,8 @@ with _src_mock.patch.object(_src_dt, "now", lambda *a, **k: _src_clock[0]), \
         _src_differ["fenced"][_src_key] = [
             k for k in _src_assigned if _src_raced[k] != _src_serial[k]]
     _src_differ = {"fenced": {k: v for k, v in _src_differ["fenced"].items() if v}}
-    with _src_mock.patch.object(_src_store.QuarantiningStore, "async_wait_for_read", _src_no_fence):
+    with _src_mock.patch.object(_src_store.QuarantiningStore, "async_wait_for_read", _src_no_fence), \
+            _src_mock.patch.object(_src_boost, "session_restored", _src_no_fence):
         _src_raced = _src_snapshot(_src_restart(_src_disk_then, race=True))
         _src_unfenced_serial = _src_snapshot(_src_restart(_src_disk_then, race=False))
     _src_differ["unfenced"] = [
@@ -72000,6 +72003,104 @@ R.check(
     "the restore gate settles when the restore never starts (closed, or "
     "cancelled before its first step): a user write still lands",
     _ls_aio.run(_ls_unstarted_restore(False)) and _ls_aio.run(_ls_unstarted_restore(True)),
+)
+
+
+# R10-HOTFIX-AWAY-LIVE (tvofi, 2026-10-30): the away override was on disk and
+# not in the plan. Each path that carries it, through the production coordinator:
+# a resolve that runs before the restore lands, and a reload whose handover was
+# published before the switch's own solve could (an options save cancels it).
+_al_disk: dict = {}
+
+
+async def _al_load(store, what):
+    return dict(_al_disk) if "away" in what else None
+
+
+async def _al_save(coord, state):
+    _al_disk.update(away_mode._override_payload(state))
+
+
+async def _al_noop(*args, **kwargs):
+    return None
+
+
+def _al_coord(hass, **kwargs):
+    """A coordinator over the restore-only hass, its setup reads stubbed out."""
+    coord = Coord(hass, _LsEntry(data={
+        "tibber_token": "x", "weather_entity": "weather.home", "away_temperature": 15.0}), **kwargs)
+    for name in ("_update_current_state", "_fetch_tibber_prices", "_fetch_weather_forecast",
+                 "_fetch_solar_forecast", "_async_learn_price_shape"):
+        setattr(coord, name, _al_noop)
+    return coord
+
+
+def _al_bands(coord):
+    """The comfort day band and floor the solve plans with, and away_active."""
+    cfg = coord._solve_hubs(8, banded=True)[0]
+    return cfg.comfort_temp_day, cfg.min_temp, coord._away_state.active
+
+
+async def _al_reload(switch):
+    """The last publish, the switch or not, a reload: the first publish and solve."""
+    _al_disk.clear()
+    _al_disk.update(away_mode.empty_override(), migrated_helpers=True)
+    hass = _LsRestoreHass()
+    old = _al_coord(hass)
+    await hass.restores[0]
+    published = old._build_data_dict()
+    published["last_optimization"] = dt_util.now() - timedelta(minutes=14)
+    if switch:
+        await old.async_set_away(active=True, return_time=(
+            dt_util.now() + timedelta(hours=24)).isoformat(), refresh=False)
+    new = _al_coord(hass, skip_first_solve=True, reload_handover=published)
+    first = await new._async_update_data()
+    await new._resolve_away()
+    return (first is published, first.get("away_override_active"), _al_bands(new),
+            new._opt_config.comfort_temp_day)
+
+
+async def _al_resolve_first(return_in_h):
+    """A stored override, and a resolve before the restore's task has run a step."""
+    _al_disk.clear()
+    _al_disk.update(active=True, migrated_helpers=True, return_time=(
+        dt_util.now() + timedelta(hours=return_in_h)).isoformat())
+    coord = _al_coord(_LsRestoreHass())
+    await coord._resolve_away()
+    return _al_bands(coord), coord._away_state.override_active
+
+
+_al_saved = (away_mode.load_mapping, away_mode.persist_override)
+away_mode.load_mapping, away_mode.persist_override = _al_load, _al_save
+try:
+    _al_on, _al_off = _ls_aio.run(_al_reload(True)), _ls_aio.run(_al_reload(False))
+    _al_first, _al_lapsed = _ls_aio.run(_al_resolve_first(24.0)), _ls_aio.run(_al_resolve_first(-1.0))
+finally:
+    away_mode.load_mapping, away_mode.persist_override = _al_saved
+R.check(
+    "R10-HOTFIX-AWAY-LIVE a reload after the away switch, before its solve "
+    "published, drops the home handover: the first publish carries the restored "
+    "override and the first solve plans the away band",
+    not _al_on[0] and _al_on[1] is True and _al_on[2][0] == 15.0 and _al_on[2][2] is True,
+    str(_al_on),
+)
+R.check(
+    "R10-HOTFIX-AWAY-LIVE null control: with the store inactive the handover is "
+    "republished and the solve keeps the configured band",
+    _al_off[0] and not _al_off[1] and _al_off[2][0] == _al_off[3] and _al_off[2][2] is False,
+    str(_al_off),
+)
+R.check(
+    "R10-HOTFIX-AWAY-LIVE a resolve run before the session restore lands waits "
+    "for it, and plans the stored override's away band",
+    _al_first[0][0] == 15.0 and _al_first[0][2] is True and _al_first[1] is True,
+    str(_al_first),
+)
+R.check(
+    "R10-HOTFIX-AWAY-LIVE a stored override whose return has passed still "
+    "expires at the resolve: home band, override off",
+    _al_lapsed[0][2] is False and _al_lapsed[1] is False and _al_lapsed[0][0] != 15.0,
+    str(_al_lapsed),
 )
 
 
