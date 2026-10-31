@@ -1,4 +1,4 @@
-# Proposal triage, session s9, batch 95 (P345-P347)
+# Proposal triage, session s9, batch 95 (P345-P348)
 
 The rolling batch after batch 94. Batch 94's refs were pushed without a PR and its opener was in
 flight, so this ruling did not move that head. Facts were read at origin/main `a7dd7f50d` and at
@@ -222,3 +222,77 @@ Binding:
   proposal would need a measured per-row input map showing that a change to those files cannot
   move the rows that take the 23-74 min, with the minutes it would save. The open-time re-run of
   a self-test the fixer already ran at the same head is the dropped reuse question, not this one.
+
+## P348: bus.sh dispatch's review-carry refusal carries a blocked verdict
+
+Verdict: ACCEPT, as a carry on R10-FLY-RAISE-REVIEWABLE (P345, `not-started`; it lands with this
+batch). Both are refusals in the same function, `bus.sh dispatch`, that stop a review the head
+needs. One fixer and one review take both. The carry is in the group JSON's `carry` list.
+
+Source: the orchestrator s9's triage-queue line of 2026-10-31T21:45:00Z (`s7/triage-queue-s7.txt`
+line 39).
+
+Instances:
+- **The refusal** (`tools/audit/seat/bus.sh` at `a7dd7f50d`):
+  - Lines 484-494: when `--reviewed-head <rh>` is given and no `--nonce`,
+    `review_carry.py "$rh" "$h" --verdict-only` answering CARRY (rc 0) dies: "the prior review
+    carries, so no second reviewer is dispatched".
+  - `review_carry.py` reads only the commit range (its docstring: "THE TEST IS A COMMIT RANGE").
+    It never reads what the prior review decided.
+  - The ruling it implements is "if there are no code changes, the previous review can be
+    carried" (tvofi, 2026-10-27). A blocked review carried leaves nothing to merge, so carrying
+    it blocks the answer the review asked for.
+- **#3045 round 3 at `9ef51b82`:** a metric-gamed block was answered by a body re-take with the
+  head unmoved. The dispatch went out only by omitting `--reviewed-head`, which also drops the
+  check for the case it exists for.
+- **The shape's frequency**, over all 493 `verdict/<pr>` refs (fetched to `refs/scratch-v/*`,
+  then `git log --format='%cI %s'`, matching `verdict: #N Fix review: <v> <head>`):
+  - 1184 verdicts, 437 of them blocked.
+  - 97 verdicts sit at a head an earlier verdict on the same PR had blocked.
+  - 38 of those fall after the refusal landed (`6f905c40f`, 2026-10-27T19:05Z), for example
+    #2962 `9ce0179f`, #3010 `d538f2da` and #3014 `42b228ec`, each blocked and then merged at the
+    same head.
+  - Each one dispatched with `--reviewed-head` would have been refused. The dispatch seat's
+    brief names `--reviewed-head <blocked head>` for exactly these round-2 reviews
+    (`s9/seat-dispatch/STATE-HANDOFF.md` line 17, #3048).
+  - The 97 can include same-verdict replays. The figure counts verdict commits, not distinct
+    reviews.
+- **Rule run on each kind:**
+  - #3045 r3 (blocked at the head, body-only answer): mints. Correct.
+  - A merge verdict at `rh` and a clean range: still refused. Correct; this is the null control,
+    the ruling's case.
+
+Cost:
+- In `bus.sh`, about 10 lines: a `verdict_at <pr> <rh>` reader of `verdict/<pr>`'s history,
+  beside `blocked_rounds` (lines 396-403), which already reads that ref.
+  - The CARRY refusal fires only when the latest verdict naming `rh` is `merge`.
+  - A blocked verdict, or none, mints, and prints `review-carry: <rh> was blocked, so a fresh
+    review is owed`.
+  - An unreadable ref refuses, as `blocked_rounds`' callers do.
+- Three self-test rows beside the carry rows (around line 930): blocked at `rh` mints; merge at
+  `rh` refuses (null control); unreadable refuses.
+- One clause in `dev/governance/roles/orchestrator.md` line 172: "against a reviewed head whose
+  verdict was merge". That is a policy file. It merges on tvofi's approving review or under
+  mandate 6329234399, which is in force with scope all.
+- `bus.sh` has no `policy_lint.mjs --budgets` row. Whether `orchestrator.md`'s role cap has room
+  for the clause is the fixer's to check with `--budgets`; if it has none, the fixer cuts an
+  equal amount of text.
+
+Binding:
+- The refusal blocks the one review a blocked verdict asks for, and the shape occurred 38 times
+  in four days.
+- The workaround disables the check entirely.
+- The fix is about 10 lines in a function the same group already opens. The benefit clearly
+  outweighs the cost.
+
+The carry:
+P348: in `tools/audit/seat/bus.sh` `dispatch`, the review-carry refusal (lines 484-494 at
+`a7dd7f50d`) fires only when the latest verdict naming the reviewed head in `verdict/<pr>`'s
+history is `merge`. Read it with a `verdict_at` beside `blocked_rounds`. A blocked verdict, or
+none, mints and prints `review-carry: <rh> was blocked, so a fresh review is owed`. An unreadable
+ref refuses. Basis: #3045 round 3 at `9ef51b82`, dispatched only by omitting `--reviewed-head`; 38
+verdicts since `6f905c40f` sit at a head an earlier verdict had blocked. Rows: blocked at `rh` with
+a clean range mints; null control: merge at `rh` with a clean range refuses (CARRY); unreadable
+refuses. One mutant drops the verdict test, and the blocked row fails. Amend
+`dev/governance/roles/orchestrator.md` line 172 with "against a reviewed head whose verdict was
+merge". triage: dev/programme/triage/s6-batch95.md#P348
