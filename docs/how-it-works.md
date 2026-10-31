@@ -667,15 +667,14 @@ pump alternates within the step either way.
 ## Weather
 
 Solar gain is only as good as the irradiance behind it, and most weather
-integrations never publish an irradiance field, so the term silently evaluated
-to zero for many installs. There are three sources, tried in this order:
+integrations publish no irradiance field, so a forecast without one gives a
+solar gain of zero. There are three sources, tried in this order:
 
 1. **A local irradiance sensor**, if configured. A real measurement at the
    actual site beats a model, so this wins outright.
 2. **Open-Meteo**, if *Solar irradiance source* is set to it. Pick the location on
    the map in the configurator; no API key or account is needed.
-3. **The weather entity's forecast**, the previous behaviour and still the
-   default.
+3. **The weather entity's forecast**, the default.
 
 Open-Meteo is used through two endpoints because they do different jobs:
 
@@ -884,8 +883,9 @@ efficiency look worse — a single-tank model would charge the modelled COP
 for water the pump never made — and cannot eat the buffer's
 safe-temperature headroom, so the plan keeps charging cheap hours right through
 a burn. Heat still in the wood tank at day's end counts in the savings
-settlement and the thermal-battery view, up to 95 °C. Without the probe, or if
-it goes stale, everything falls back to the previous behaviour.
+settlement and the thermal-battery view, up to 95 °C. Without the probe, or
+while it is stale, the wood tank is not a store of its own: the model keeps the
+one buffer tank, and a burn is the bounded free heat described above.
 
 If your hot water tank refills **through a coil immersed in the wood tank**,
 enable that option on the heating-system page: refill water then enters
