@@ -12527,9 +12527,9 @@
     "Owner request (tvofi, 2026-10-30): \"I can't find an option to reset the learners, that should be added asap\". The only existing route is the restore_learned_snapshot service, which restores a snapshot or a refit and never returns to the nameplate. The comfort weight alone has a reset button.\n\nAdd a user-facing reset of the thermal heat-loss learners. house_heat_loss_scale and lower_floor_loss_ratio return to 1.0, their samples and confidence are voided, and the anchor and basis are re-set from the current nameplate config. It goes through the same single void path as item (2)'s entity-swap reset.\n\nExpose it two ways:\n- a button entity beside \"Learning Reset Comfort Weight\";\n- a service with entry_id and an optional learners list, defaulting to both.\nAfter a reset, request a refresh.\n\nControls:\n- both learners at 1.0 with 0 samples after a reset;\n- the next fold starts from the nameplate;\n- null control: the comfort weight and the DHW, COP and defrost learners are untouched;\n- a single-learner reset leaves the other learner intact.\nOne mutant per gate."
    ],
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-hotfix-learner-inputs",
-    "commit": null,
+    "commit": "0cae227c329f24d859c10db94b9dbd8a6368d11c",
     "last_step": null,
     "next_step": "dispatch a local fixer (measure first)",
     "note": "live user finding tvofi 2026-10-30; probe handoff-body/r10-live-plan-energy 7c4e639e",
@@ -12576,7 +12576,8 @@
     "tests/features.py"
    ],
    "carry": [
-    "From PR (R10-HOTFIX-LEARNER-INPUTS; handoff-body/r10-hotfix-learner-inputs 746894af), the learners scope of a factory reset: the single void path for heat-loss learners is `HeatPumpOptimizerCoordinator.async_reset_heat_loss_learners(learners)`, which waits for the thermal store's read, calls `_void_heat_loss_learners` and saves. Learner names are `const.HEAT_LOSS_LEARNERS`. The caller requests the refresh: off the action for an entity, awaited for a service (`tests/features.py`'s RC2 rows refuse an entity action that awaits the solve). Any snapshot taken before the reset must be taken before this call. Re-measure at your merge base: the method lands with the hotfix PR; if it is not on main when this group starts, it is owed by that PR first."
+    "From PR (R10-HOTFIX-LEARNER-INPUTS; handoff-body/r10-hotfix-learner-inputs 746894af), the learners scope of a factory reset: the single void path for heat-loss learners is `HeatPumpOptimizerCoordinator.async_reset_heat_loss_learners(learners)`, which waits for the thermal store's read, calls `_void_heat_loss_learners` and saves. Learner names are `const.HEAT_LOSS_LEARNERS`. The caller requests the refresh: off the action for an entity, awaited for a service (`tests/features.py`'s RC2 rows refuse an entity action that awaits the solve). Any snapshot taken before the reset must be taken before this call. Re-measure at your merge base: the method lands with the hotfix PR; if it is not on main when this group starts, it is owed by that PR first.",
+    "R10-FACTORY-RESET's learners scope: the single void path its brief names is `HeatPumpOptimizerCoordinator.async_reset_heat_loss_learners(learners)`, which waits for the thermal store's read, calls `_void_heat_loss_learners` and saves. Learner names are `const.HEAT_LOSS_LEARNERS`. The caller asks for the refresh, off the action for an entity and awaited for a service (`tests/features.py`'s RC2 rows refuse an entity action that awaits the solve). Its snapshot before the reset must be taken before this call. Carry: R10-FACTORY-RESET"
    ],
    "resume": {
     "stage": "not-started",
