@@ -11,8 +11,9 @@ triple quote, B the code-file test, R rows each named part and sub-part of
 MERGE_CALL and SUBJECT_ARG, L rows the lead (the program position, read only
 to anchor the line) and L5 the program read again, RV rows each site a
 shared part (GAP, OPTIONS) stands in, one site at a time, P rows the statement
-read the open bracket comes from (P1 restores the line-local scan), C rows the
-comment reader, G rows GAP's comment and literal-join arms, K rows the skip
+read the open bracket comes from (P1 restores the line-local scan, P5 the
+statement read in a Python or JS file), C rows the
+comment reader, J rows the JS block comment and template literal, G rows GAP's comment and literal-join arms, K rows the skip
 of a closer in the lead that matches nothing on its line. A survivor prints
 `N of N` and no FAIL. Expected survivors: Y9, Y10, each dispositioned in the
 PR body. A `NOT APPLIED` line means the mutated text moved.
@@ -37,8 +38,8 @@ M = {
 'M11 escapes not read':("    else if (c === '\\\\') st.esc = true\n",''),
 'M12 blank-line state reset removed':("      st = { q: '', esc: false }\n      const next","      const next"),
 'M13 pop on close before at removed':("    else if (')]}'.includes(c)) open.pop()\n",""),
-'X1 backward quote skip':("    if (n) { i += n - 1; continue }\n    if (commentAt(kind, text, i)) { const e = text.indexOf('\\n', i); if (e < 0) break; i = e - 1; continue }\n    if ('([{'.includes(c)) open.push(i)","    if (commentAt(kind, text, i)) { const e = text.indexOf('\\n', i); if (e < 0) break; i = e - 1; continue }\n    if ('([{'.includes(c)) open.push(i)"),
-'X2 forward quote skip':("    if (n) { i += n - 1; continue }\n    if (commentAt(kind, text, i)) { const e = text.indexOf('\\n', i); if (e < 0) break; i = e - 1; continue }\n    if ('([{'.includes(c)) depth++","    if (commentAt(kind, text, i)) { const e = text.indexOf('\\n', i); if (e < 0) break; i = e - 1; continue }\n    if ('([{'.includes(c)) depth++"),
+'X1 backward quote skip':("    if (n) { i += n - 1; continue }\n    const e = commentEnd(kind, text, i)\n    if (e >= 0) { i = e - 1; continue }\n    if ('([{'.includes(c)) open.push(i)","    const e = commentEnd(kind, text, i)\n    if (e >= 0) { i = e - 1; continue }\n    if ('([{'.includes(c)) open.push(i)"),
+'X2 forward quote skip':("    if (n) { i += n - 1; continue }\n    const e = commentEnd(kind, text, i)\n    if (e >= 0) { i = e - 1; continue }\n    if ('([{'.includes(c)) depth++","    const e = commentEnd(kind, text, i)\n    if (e >= 0) { i = e - 1; continue }\n    if ('([{'.includes(c)) depth++"),
 'X3 push deleted':("open.push(i)","void 0"),
 'X4 depth++ deleted':("if ('([{'.includes(c)) depth++","if ('([{'.includes(c)) {}"),
 'X5 forward from open bracket':("start + (open.length ? 1 : 0)","start"),
@@ -101,13 +102,18 @@ M = {
 'G3 GAP: the block comment dropped':('const GAP = String.raw`(?:\\s|\\\\\\n|,|(?:#|\\/\\/)[^\\n]*\\n|\\/\\*[\\s\\S]*?\\*\\/|["\'${\'`\'}][^\\S\\n]*["\'${\'`\'}])+`','const GAP = String.raw`(?:\\s|\\\\\\n|,|(?:#|\\/\\/)[^\\n]*\\n|["\'${\'`\'}][^\\S\\n]*["\'${\'`\'}])+`'),
 'G4 GAP: the adjacent-literal join dropped':('const GAP = String.raw`(?:\\s|\\\\\\n|,|(?:#|\\/\\/)[^\\n]*\\n|\\/\\*[\\s\\S]*?\\*\\/|["\'${\'`\'}][^\\S\\n]*["\'${\'`\'}])+`','const GAP = String.raw`(?:\\s|\\\\\\n|,|(?:#|\\/\\/)[^\\n]*\\n|\\/\\*[\\s\\S]*?\\*\\/)+`'),
 'P1 the open bracket read on the line of pr only (the line-local scan)':('  for (let i = ps; i < at; i++) {','  for (let i = ls; i < at; i++) {'),
+'P5 a Python or JS open bracket read from the statement, not the file start':("let ps = kind === 'sh' ? ls : 0",'let ps = ls'),
 'P2 the statement start never moves back':('  for (let p; ps > 0 && (p','  for (let p; false && (p'),
-'P3 the backward read resets no quote at a line end':("    if (c === '\\n' && st.q.length !== 3) { st = { q: '', esc: false }; continue }\n",''),
-'P4 the backward read resets a triple quote at a line end':("    if (c === '\\n' && st.q.length !== 3) { st","    if (c === '\\n' && true) { st"),
-'C1 the backward read skips no comment':("    if (commentAt(kind, text, i)) { const e = text.indexOf('\\n', i); if (e < 0) break; i = e - 1; continue }\n    if ('([{'.includes(c)) open.push(i)","    if ('([{'.includes(c)) open.push(i)"),
-'C2 the forward read skips no comment':("    if (commentAt(kind, text, i)) { const e = text.indexOf('\\n', i); if (e < 0) break; i = e - 1; continue }\n    if ('([{'.includes(c)) depth++","    if ('([{'.includes(c)) depth++"),
+'P3 the backward read resets no quote at a line end':("    if (c === '\\n' && !spansLines(st)) { st = { q: '', esc: false }; continue }\n",''),
+'P4 the backward read resets a triple quote at a line end':("    if (c === '\\n' && !spansLines(st)) { st","    if (c === '\\n' && true) { st"),
+'C1 the backward read skips no comment':("    const e = commentEnd(kind, text, i)\n    if (e >= 0) { i = e - 1; continue }\n    if ('([{'.includes(c)) open.push(i)","    if ('([{'.includes(c)) open.push(i)"),
+'C2 the forward read skips no comment':("    const e = commentEnd(kind, text, i)\n    if (e >= 0) { i = e - 1; continue }\n    if ('([{'.includes(c)) depth++","    if ('([{'.includes(c)) depth++"),
 "C3 a Python '#' opens a comment only at a word's start":("(kind === 'py' || !i ||",'(false || !i ||'),
 'C4 no JS line comment':("kind === 'js' ? text.startsWith('//', i) :","kind === 'js' ? false :"),
+'J1 no JS block comment':("if (kind === 'js' && text.startsWith('/*', i))",'if (false)'),
+'J2 a JS block comment ends at its line end':("const e = text.indexOf('*/', i + 2); return e < 0 ? text.length : e + 2","const e = text.indexOf('\\n', i); return e < 0 ? text.length : e"),
+'J3 no JS template literal':("  if (c === '`' && kind === 'js') { st.q = c; return 1 }\n",''),
+'J4 a template literal ends with its line':("const spansLines = (st) => st.q.length === 3 || st.q === '`'","const spansLines = (st) => st.q.length === 3"),
 'C5 a shell # opens a comment anywhere':("(kind === 'py' || !i || /\\s/.test(text[i - 1]))",'(true)'),
 }
 try:
