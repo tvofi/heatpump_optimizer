@@ -1,2 +1,0 @@
-  FAIL verdict levels: null control: a one-pass UNKNOWN, BEHIND and a draft print neither
-orchestrator_tick self-test: 230 checks, 1 failed
