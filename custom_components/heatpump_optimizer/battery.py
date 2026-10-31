@@ -31,6 +31,7 @@ from typing import Any
 
 from .const import WOOD_TANK_MAX_TEMP
 from .payload import Battery, BatteryComponent
+from .thermal_model import heat_per_cop_kw
 
 
 @dataclass
@@ -93,6 +94,9 @@ class VirtualBattery:
     charge_power_kw: float = 0.0
     #: COP at current conditions, needed to convert electrical to thermal.
     cop: float = 3.0
+    #: ``heat_per_cop_kw`` at ``charge_power_kw``: the draw itself, less the
+    #: part-load derate at that draw.
+    charge_heat_per_cop_kw: float = 0.0
 
     @property
     def stored_kwh(self) -> float:
@@ -112,7 +116,7 @@ class VirtualBattery:
     @property
     def charge_rate_kw(self) -> float:
         """Thermal charge rate: what the compressor can actually put in."""
-        return self.charge_power_kw * max(self.cop, 0.1)
+        return max(self.cop, 0.1) * self.charge_heat_per_cop_kw
 
     @property
     def discharge_rate_kw(self) -> float:
@@ -381,4 +385,5 @@ def build(
         components=components,
         charge_power_kw=params.max_electrical_power,
         cop=cop,
+        charge_heat_per_cop_kw=heat_per_cop_kw(params, params.max_electrical_power),
     )
