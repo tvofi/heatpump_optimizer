@@ -335,6 +335,7 @@ from .thermal_model import (
     mold_safe_room_floor,
     learner_unmetered,
     on_threshold_kw,
+    plan_step_runs,
     planned_draw_runs,
     probe_install,
     reanchor_heat_loss,
@@ -855,10 +856,10 @@ def _fold_flow_lift(coord: Any, now: datetime) -> None:
     * the draw not distorted — ``_cop_fold_blocked``, not a restatement of
       it: a resistive element or a capped compressor is running the plant at
       a supply temperature the compressor did not choose;
-    * a space-dominant commanded split, at the same ``_COP_CURVE_SHARE``
-      threshold the efficiency reference uses. The curve is a SPACE heating
-      curve; a hot-water interval runs the supply at the tank's charge
-      temperature and says nothing about where the space curve sits.
+    * a space-dominant interval by its attribution (the mode dwell where
+      observed, else the commanded split), at the efficiency reference's
+      ``_COP_CURVE_SHARE``: the curve is a SPACE heating curve, and a hot-water
+      interval runs the supply at the tank's charge temperature.
 
     ``now`` is unused for arithmetic and taken anyway: this is called from
     ``_record_accuracy``'s per-cycle block beside ``_observe_frequency``,
@@ -879,9 +880,8 @@ def _fold_flow_lift(coord: Any, now: datetime) -> None:
         return
     if _cop_fold_blocked(coord):
         return
-    space, dhw = coord._commanded_split()
-    total = space + dhw
-    if total <= 1e-6 or dhw / total > coord._COP_CURVE_SHARE:
+    a = heat_energy.meter_of(coord).attribution(coord._commanded_split())
+    if a.space + a.dhw <= 1e-6 or heat_energy.dhw_share(a) > coord._COP_CURVE_SHARE:
         return
     curve = curve_supply_temp(
         coord._thermal_model,
@@ -2751,16 +2751,7 @@ def _apply_result_payload(
                         if result.displace_schedule and idx < len(result.displace_schedule)
                         else 0.0
                     ),
-                    "heat_pump_on": (
-                        result.heat_pump_on_schedule[idx]
-                        if result.heat_pump_on_schedule and idx < len(result.heat_pump_on_schedule)
-                        else planned_draw_runs(
-                            p,
-                            result.dhw_power_schedule[idx]
-                            if idx < len(result.dhw_power_schedule or ())
-                            else 0.0,
-                        )
-                    ),
+                    "heat_pump_on": plan_step_runs(result, idx),
                 }
                 for idx, (ts, p, s, pr, rt, ut, lt, sg) in enumerate(zip(
                     result.timestamps,
@@ -3767,7 +3758,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             thermal=self._thermal_model,
             params=ctx._thermal_params,
             action=self._current_action,
-            measured_power_kw=self._measured_power,
+            measured_power_kw=pump_arbiter.live_power_kw(self.hass, ctx._config),
             disinfecting=getattr(
                 getattr(self._legionella, "disinfect", None), "memo", None
             )
@@ -7515,22 +7506,23 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                           self._plan_age_minutes() or 0.0, self._solve_failures)
             return
 
-        # A cut-off holds the pump off for MIN_OFF across an early refresh.
-        heat_pump_on = early_cutoff.allow_on(early_cutoff.state_for(self), bool(self._current_action.get("heat_pump_on", False)))
+        on = bool(self._current_action.get("heat_pump_on", False))
+        await self._write_supply(on)
+        # Between cycles the step tick writes each step's change (#2492).
+        pump_arbiter.note_supply(pump_arbiter.state_for(self), pump_arbiter.SupplyWiring(self.arbiter_inputs, boost.held_for(self), self._write_supply), on)
+        # The ECL110 displace command
+        await self.async_publish_current_action(reason="scheduled_update")
 
-        # Skip OFF only when cooling or both channels are blocked. A
-        # single-channel heat block (DHW-only, heating-only) still
-        # commands OFF on an empty plan — otherwise a summer DHW pulse
-        # leaves the supply latched while the tank is supposed to drift.
-        both_blocked = (
-            self._pump_signals.space_blocked and self._pump_signals.dhw_blocked
-        )
-        skip_off = (not heat_pump_on) and (
-            both_blocked or self._pump_signals.mode.cooling
-        )
+    async def _write_supply(self, on: bool) -> None:
+        """Write the supply switch: the cycle's and the step tick's one gate.
+
+        A cut-off holds the pump off for MIN_OFF across an early refresh.
+        """
+        value = pump_arbiter.supply_write(
+            early_cutoff.allow_on(early_cutoff.state_for(self), on), self._pump_signals)
         switch_entity = getattr(self, "_ctx", self)._config.heat_pump_switch_entity
-        if switch_entity and not skip_off:
-            await pump_arbiter.switch_supply(self.hass, switch_entity, heat_pump_on)
+        if switch_entity and value is not None:
+            await pump_arbiter.switch_supply(self.hass, switch_entity, value)
         elif switch_entity:
             _LOGGER.debug(
                 "Not switching %s off: mode %s is cooling or blocks both "
@@ -7539,9 +7531,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 switch_entity,
                 self._pump_signals.mode.label,
             )
-
-        # The ECL110 displace command
-        await self.async_publish_current_action(reason="scheduled_update")
     # ------------------------------------------------------------------
     # Published state
     # ------------------------------------------------------------------
