@@ -12689,9 +12689,9 @@
     "From the verdict on #3048 at e5cbb1a9aa2099efd7d9237ef1069d2f81996047 (hpo-approver 18:14Z, review 633e4ec9; orchestrator s9 2026-10-31): the design wanted a <!-- [target: R10-WOOD-NOTIFY] --> marker on the \"Wood Cheaper Than Heat Pump\" row. It is absent, because dev/programme/rosters/wave-r10-groups.json on main holds no R10-WOOD-NOTIFY entry, so a marker there reads red under marker_placement_findings. The stale-attribute signal therefore rests on this group's carry udf-wood-homes, which says to document the window attributes. Its \"resolve the marker\" clause now finds no marker: document the attributes directly in the row, and add the marker only once the group's entry is on main's roster file. Carry: R10-WOOD-NOTIFY"
    ],
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-wood-notify",
-    "commit": null,
+    "commit": "a7dd7f50d67e0c3819956b15ef95d77f4f6ebfc0",
     "last_step": null,
     "next_step": "dispatch a fixer",
     "note": "owner request tvofi 2026-10-30",
