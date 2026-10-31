@@ -28054,7 +28054,7 @@ try:
         "hpo_bare_array", _closure.ROOT / "tools" / "audit" / "seat" / "bare_array.py")
     _ba = _ba_util.module_from_spec(_ba_spec)
     _ba_spec.loader.exec_module(_ba)
-    _ba_hits = _ba.scan()
+    _ba_hits = _ba.scan("HEAD")  # git show reads blobs: no file under tools/ is opened, so none joins this script's closure
     _ba_head = "#!/bin/bash\nset -uo pipefail\n"
     # bus.sh orphans at the base (3759d49a5): the unguarded call that died.
     _ba_base = _ba_head + 'x | python3 -I ledger.py landed "${arms[@]}" "$main" $fix_heads\n'
