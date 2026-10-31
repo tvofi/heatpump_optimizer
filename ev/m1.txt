@@ -1,0 +1,2 @@
+  FAIL verdict levels: P328: dispatched at the head, no verdict, tip 100 min old: REVIEW STALLED with the minutes, flagged
+orchestrator_tick self-test: 235 checks, 1 failed

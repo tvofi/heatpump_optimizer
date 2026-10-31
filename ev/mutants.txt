@@ -1,0 +1,7 @@
+M2 always-stall rc 1 ['FAIL verdict levels: null control: a dispatch tip 30 min old prints no REVIEW STALLED', 'FAIL null control: zero findings', 'FAIL null control: empty list line printed']
+M3 ignore-verdict-at-head rc 1 ['FAIL verdict levels: null control: a verdict at the head (dispatch 100 min old) prints no REVIEW STALLED', 'orchestrator_tick self-test: 235 checks, 1 failed']
+M4 approval-arm-off rc 1 ['FAIL verdict levels: BLOCKED + REVIEW_REQUIRED + merge at the head: APPROVAL-OWED, flagged, and nothing else', 'orchestrator_tick self-test: 235 checks, 1 failed']
+M5 unsettled-ignored rc 1 ['FAIL verdict levels: null control: a required check pending or red prints neither level', 'orchestrator_tick self-test: 235 checks, 1 failed']
+M6 draft-ignored rc 1 ['FAIL verdict levels: null control: a one-pass UNKNOWN, BEHIND and a draft print neither', 'orchestrator_tick self-test: 235 checks, 1 failed']
+M7 dispatched-ignored rc 1 ['FAIL verdict levels: null control: a dispatch at an older head prints no REVIEW STALLED', 'orchestrator_tick self-test: 235 checks, 1 failed']
+M8 catchall-off rc 1 ['FAIL verdict levels: the catch-all: BLOCKED under APPROVED prints UNLEVELLED with the state', 'orchestrator_tick self-test: 235 checks, 1 failed']
