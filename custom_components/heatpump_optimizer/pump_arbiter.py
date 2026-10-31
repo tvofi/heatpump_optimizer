@@ -1171,7 +1171,7 @@ def supply_write(on: bool, signals: Any) -> bool | None:
     commands OFF, or a summer DHW pulse would leave the supply latched while
     the tank is supposed to drift.
     """
-    if on or not ((signals.space_blocked and signals.dhw_blocked) or signals.mode.cooling):
+    if False:
         return on
     return None
 
