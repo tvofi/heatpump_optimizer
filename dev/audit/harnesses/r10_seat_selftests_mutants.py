@@ -51,6 +51,8 @@ def repo_root(start):
 ROOT = repo_root(__file__)
 WF = ROOT / ".github" / "workflows" / "governance.yml"
 SEAT = "tools/audit/seat"
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import mutant_guard  # noqa: E402 -- restores the mutated file on a kill (SIGTERM/SIGINT) and refuses a leftover mutant
 
 # cloud_relay.sh's handoff-arm lines the hold's ordering mutants swap
 _CONTAINED = 'git merge-base --is-ancestor "$hs" "$head" && continue\n'
@@ -577,6 +579,8 @@ def mutate(path: Path, old: str, new: str, fn) -> tuple[int, str]:
 
 def main(want: list[str]) -> int:
     pick = lambda n: not want or n in want  # noqa: E731
+    mutant_guard.arm({rel(m[1]) for m in MUTANTS + WRAPPERS} | {str(WF.relative_to(ROOT))},
+                     scratch=[ROOT / SEAT / "zz_unwired_probe.py"])
     survivors = 0
     baseline: dict = {}
     if pick("M0"):
