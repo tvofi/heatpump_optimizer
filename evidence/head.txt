@@ -1,0 +1,4 @@
+measured head: f2ac08446177e47caec306e9975b063a123c5501
+f2ac08446177e47caec306e9975b063a123c5501	refs/heads/fix/triage-s6-batch40-pr
+f2ac08446177e47caec306e9975b063a123c5501	refs/pull/2886/head
+OPEN f2ac08446177e47caec306e9975b063a123c5501 app/hpo-author

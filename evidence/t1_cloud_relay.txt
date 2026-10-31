@@ -1,0 +1,35 @@
+468	# THE STUCK ANDON (triage P163; a trial, report-only, removed if it reports no STUCK line in its first
+469	# 48 h). A branch lock (pr_args.sh's pr_branch_lock) held longer than HPO_PUSH_STUCK_SECS (default
+470	# 900) is a run or its push that has not ended: `push-stuck <branch> <pid>` on the level, its why
+471	# `STUCK <branch> <pid> <age>s`, where <branch> is the lock's name (update_pr.sh's worktree name, `/`
+472	# as `-`), <pid> the run's and <age> from the start epoch its holder recorded -- never the file's
+473	# mtime, which the drain mark rewrites. A released lock keeps its text, so only a lock held now is
+474	# read, by trying it (LOCK_NB) once its age is past the bound: a run that starts in that moment
+475	# reads BUSY, exit 75, and is retried as any BUSY is. A lock with no start recorded has no age and
+476	# is not reported. Reaping is update_pr.sh's; this reports only. Unreadable: the level stays.
+477	STUCK_PY='import fcntl, os, sys, time
+478	lim, d = int(sys.argv[1]), sys.argv[2]; now = int(time.time())
+479	def held(f):
+480	  try: fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+481	  except BlockingIOError: return True
+482	  fcntl.flock(f, fcntl.LOCK_UN); return False
+483	for n in sorted(os.listdir(d)) if os.path.isdir(d) else []:
+484	  if not (n.startswith("upd-") and n.endswith(".lock")): continue
+485	  try:
+486	    f = open(os.path.join(d, n)); w = f.read().split()
+487	    run, start = int(w[0]), int(w[2])
+488	  except (OSError, IndexError, ValueError): continue
+489	  if now - start <= lim: continue
+490	  if not held(f): continue
+491	  print(n[4:-5], run, now - start)'
+492	stuck_arm() { # one pass over the branch locks: each held past HPO_PUSH_STUCK_SECS is push-stuck on the level
+493	  local state=${HPO_STATE_DIR:-$HOME/.local/state/hpo} b p a
+494	  mkdir -p "$state" || return 0
+495	  python3 -I -c "$STUCK_PY" "${HPO_PUSH_STUCK_SECS:-900}" "$state/pr" > "$state/cloud-stuck.$$" \
+496	    || { echo "cloud_relay: the branch locks could not be read (HPO_PUSH_STUCK_SECS='${HPO_PUSH_STUCK_SECS:-900}'); the level stays" >&2; rm -f "$state/cloud-stuck.$$"; return 0; }
+497	  : > "$state/cloud-level-stuck.$$"
+498	  while read -r b p a; do
+499	    level_line push-stuck "$b" "$p" "STUCK $b $p ${a}s" >> "$state/cloud-level-stuck.$$"; echo "cloud_relay: STUCK $b $p ${a}s"
+500	  done < "$state/cloud-stuck.$$"
+501	  rm -f "$state/cloud-stuck.$$"; level_set push-stuck "$state/cloud-level-stuck.$$"
+502	}
