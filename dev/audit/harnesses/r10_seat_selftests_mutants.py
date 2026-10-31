@@ -109,6 +109,8 @@ MUTANTS = [
     ("S03", "cloud_relay.sh", 'if [ -f "$led" ] && grep -qxF "$ref $sha" "$led"; then',
      'if [ -f "$led" ] && ! grep -qxF "$ref $sha" "$led"; then'),
     ("S04", "daemonize.py", '"-u" not in run_argv[1:2]:', '"-u" in run_argv[1:2]:'),
+    # r10-fly-daemonize-argv: `--self-test` selects the self-test only as argv[1].
+    ("daemonize-1", "daemonize.py", 'return argv[:1] == ["--self-test"]', 'return "--self-test" in argv'),
     ("S05", "delivery_row.sh", 'if [ -n "${4:-}" ]; then', 'if [ -z "${4:-}" ]; then'),
     ("S06", "failure_logs.sh", 'if [ -z "$jid" ]; then', 'if [ -n "$jid" ]; then'),
     ("S07", "features_block.py", 'i = source.rindex("\\n", 0, source.index(start)) + 1',
