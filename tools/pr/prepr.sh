@@ -2788,6 +2788,10 @@ https://claude.ai/code/session_011aqzm4YL9jLhU4jLvbkLYE'; got=$(lpush)
   bbody none none; got=$(lpush)
   grep -q '^rc=0$' <<<"$got" && grep -q '^ref refs/heads/handoff-body/zz-lint$' <<<"$got"
   st $? 0 "and pushes a body the lint passes (null control: the same body without the session link)"
+  git --git-dir="$PDX/bodies.git" log -1 --format=%B refs/heads/handoff-body/zz-lint | grep -qx "Code: $(cd "$PDX/r" && git rev-parse HEAD)"
+  st $? 0 "and that body's commit names the handoff head it describes in a Code: trailer (V147)"
+  git --git-dir="$PDX/bodies.git" log -1 --format=%B refs/heads/handoff-body/zz-pnull | grep -q '^Code:'
+  st $? 1 "a result body, with no handoff/<topic>, names no Code: (null control)"
   # P256: body_push runs the review packet's handoff refusals after the lint;
   # a refusal (rc 1) pushes nothing, a seat that cannot run them (rc 3) pushes.
   printf '#!/bin/bash\necho "review_packet: REFUSE brief-carries: carry 6 is not named in the body" >&2; exit %s\n' 1 > "$PDX/pk1"
