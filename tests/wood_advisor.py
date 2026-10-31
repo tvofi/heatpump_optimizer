@@ -544,11 +544,17 @@ if _Env is not None:
         "to_state": _State(_flush_attrs),
     }
     _sent_flush = _run(_flush_attrs, _DAY0.replace(hour=10), _flush)[0]
+    _before_attrs = {**_attrs, "cheaper_windows": [_w1, {"start": _at(16), "end": _at(17)}, _w2]}
+    _sent_before = _run(
+        _before_attrs, _DAY0.replace(hour=10),
+        {**_flush, "to_state": _State(_before_attrs)},
+    )[0]
     R.check(
-        "a new window flush against an announced one (20:00 after 17:00-20:00) "
-        "shares no time with it, so it is new and follows up",
-        _sent_flush is True,
-        repr(_sent_flush),
+        "a new window flush against an announced one, after it (20:00-21:00 "
+        "against 17:00-20:00) or before it (16:00-17:00), shares no time with "
+        "it, so it is new and follows up",
+        _sent_flush is True and _sent_before is True,
+        repr((_sent_flush, _sent_before)),
     )
     _late_attrs = {
         **_attrs,
