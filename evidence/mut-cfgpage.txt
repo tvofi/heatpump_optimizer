@@ -1,0 +1,17 @@
+ custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+diff --git a/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js b/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
+index 7d764017d..1b44770fa 100644
+--- a/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
++++ b/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
+@@ -3698,7 +3698,7 @@ function setupSvgHtml(topo, ctx) {
+     // button that cannot say which step it opens says what it is for,
+     // rather than "undefined".
+     const page = SETUP_CONFIGURE_PAGE[b.place];
+-    b.cfgPage = page ? L(page) : placeLabel(b.place);
++    b.cfgPage = L(page);
+     const cfgW = inner - 2 * SETUP_CHIP_PAD;
+     b.cfgLines = wrapText(b.cfgPage, cfgW, cfgW, 3, 11);
+     b.cfgH = SETUP_CHIP_H + SETUP_CHIP_LINE * (b.cfgLines.length - 1);
+rc=1
+1 CARD CHECK(S) FAILED

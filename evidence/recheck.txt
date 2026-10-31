@@ -1,8 +1,0 @@
-recheck 2026-10-30T23:52:44Z
-roster tip a8344f5a52b9cbe5c9329fc2aeeb31422db09ef4
-5832ceb58e6f1e79aba0f6273f50d1b4a928819a	refs/heads/fix/r10-ux-health-p2
-a8344f5a52b9cbe5c9329fc2aeeb31422db09ef4	refs/heads/handoff/audit-r10-roster
-5832ceb58e6f1e79aba0f6273f50d1b4a928819a	refs/pull/2997/head
-null_for/2997/CIPREDICT-GAPS hits at roster tip: 0
-WAIT 5832ceb58e6f1e79aba0f6273f50d1b4a928819a pending: gate red: none
-classify rc=3
