@@ -36,7 +36,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-ARCH-SHAPES-CLASSIFIER (stage queued): no branch pushed yet, so nothing to fetch
 - R10-FRICTION-REGRESSION (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-FLY-MUTANT-RESTORE (stage in-progress, branch `handoff/r10-fly-mutant-restore`): `git fetch origin handoff/r10-fly-mutant-restore && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-FLY-TRAIN-DEFAULTS (stage carries-open, branch `handoff/r10-fly-train-defaults`): `git fetch origin handoff/r10-fly-train-defaults && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-FLY-TRAIN-DEFAULTS (stage carries-open, branch `handoff/r10-fly-train-defaults-p2`): `git fetch origin handoff/r10-fly-train-defaults-p2 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-GH-CALL-LOG (stage in-progress, branch `handoff/r10-fly-gh-call-log`): `git fetch origin handoff/r10-fly-gh-call-log && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-CIPREDICT-RESTORING (stage queued): no branch pushed yet, so nothing to fetch
 - R10-FLY-RECORD-RED-NAMES (stage in-progress, branch `handoff/r10-fly-record-red-names`): `git fetch origin handoff/r10-fly-record-red-names && git worktree add --detach $SEAT/wt FETCH_HEAD`
