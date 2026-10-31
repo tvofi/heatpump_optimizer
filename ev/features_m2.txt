@@ -1,0 +1,46 @@
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+  ok   an unresolvable recorded_at FAILS the ratchet, it is not merely noted (#361)
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+  ok   the ratchet FAILS on an improvement instead of printing a note (#350)
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+  ok   a pump command that FAILED is not remembered as done
+Traceback (most recent call last):
+Traceback (most recent call last):
+  FAIL R10-HOTFIX-AWAY-PRESENCE null control: a change that leaves the interpreted away state or the holiday dates as they were asks for no refresh  [{'person zone work -> school': (['async_request_refresh'], 1), 'person home -> home (attributes)': (['async_request_refresh'], 1), 'person unavailable -> home': (['async_request_refresh'], 1), 'occupancy on -> on': (['async_request_refresh'], 1), 'holiday calendar on -> on, same span': (['async_request_refresh'], 1), 'holiday calendar off -> off, a new span': (['async_request_refresh'], 1)}]
+1 of 4666 FEATURE CHECKS FAILED
+rc=1

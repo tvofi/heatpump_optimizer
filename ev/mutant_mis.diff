@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/away.py b/custom_components/heatpump_optimizer/away.py
+index 8d68cdf0d..836ee225c 100644
+--- a/custom_components/heatpump_optimizer/away.py
++++ b/custom_components/heatpump_optimizer/away.py
+@@ -225,7 +225,7 @@ def interpret_presence(
+ def _away_of(entity_id: str, state: Any) -> bool:
+     """Whether ``state`` reads as away, as :func:`resolve` would read it (None: home)."""
+     attrs = dict(getattr(state, "attributes", None) or {})
+-    return interpret_presence(getattr(state, "state", None), entity_id, attrs) is True
++    return interpret_presence(getattr(state, "state", None), entity_id, attrs)
+ 
+ 
+ def watch_away_inputs(
