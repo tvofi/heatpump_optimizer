@@ -1,9 +1,0 @@
-  ok   a holiday toggle being on means away
-  ok   a per-day override beats holiday, weekly and default together
-  ok   a day with no override keeps the holiday-first behaviour it has today
-  ok   away sets back the weekend and holiday comfort pairs too: Saturday day and night read the away target
-  ok   and away off, or recovering, keeps the configured weekend and holiday pairs (the null control)
-  ok   R10-HOTFIX-AWAY-LIVE a reload after the away switch, before its solve published, drops the home handover: the first publish carries the restored override and the first solve plans the away band
-  ok   R10-HOTFIX-AWAY-LIVE null control: with the store inactive the handover is republished and the solve keeps the configured band
-  ok   R10-HOTFIX-AWAY-LIVE a resolve run before the session restore lands waits for it, and plans the stored override's away band
-  ok   R10-HOTFIX-AWAY-LIVE a stored override whose return has passed still expires at the resolve: home band, override off

@@ -1,42 +1,42 @@
 # Review packet #3015
-head: b7c376a3228f1c0b9a794c5f6cc5f71a29fdae4f
-base: 18b788ac20af17ecfe83c552420926fbcb05290b
+head: a85aea80db2b5af603fe813658cc75800bc05daf
+base: a9ba3022e32178c5fb4376b4f333be88544ce94d
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
 ## Gate digest: pending
-CodeQL id=124402003106 neutral
-arch-score / arch-score id=124401864406 success
-arm id=124401743741 skipped
-budget-raise-gate / budget-raise-gate id=124401864388 success
-cancel-superseded id=124401742752 success
-codeql / Analyze (actions) id=124401863887 success
-codeql / Analyze (javascript-typescript) id=124401863912 success
-codeql / Analyze (python) id=124401864020 in_progress
-governance / delivery-status id=124401864240 success
-governance / delivery-status-publish id=124401865150 skipped
-governance / env-matrix id=124401864174 success
-governance / instrument-self-tests id=124401864129 in_progress
-governance / policy-docs id=124401864268 success
-governance / record id=124401865089 skipped
-governance / wave-script id=124401864290 success
-hassfest / hassfest id=124401863855 success
-kernel-points id=124401865111 skipped
-prelude id=124401742962 success
-refresh id=124401742931 success
-tests / arch-instrument id=124401985235 success
-tests / briefs id=124401864045 success
-tests / browser id=124401985111 success
-tests / closure-scope id=124401864000 success
-tests / closures id=124401985201 in_progress
-tests / coverage id=124401985220 in_progress
-tests / fast (3.14) id=124401985184 in_progress
-tests / mutation id=124401864077 in_progress
-tests / nightly-ha id=124401986242 skipped
-tests / nightly-status id=124401863974 success
-tests / replay id=124401985145 success
-tests / typing id=124401985133 success
-validate / validate-hacs id=124401863875 success
+CodeQL id=124316496115 neutral
+arch-score / arch-score id=124316163930 success
+arm id=124315977482 skipped
+budget-raise-gate / budget-raise-gate id=124316163505 success
+cancel-superseded id=124315987570 success
+codeql / Analyze (actions) id=124316163397 success
+codeql / Analyze (javascript-typescript) id=124316163509 success
+codeql / Analyze (python) id=124316163421 in_progress
+governance / delivery-status id=124316163534 success
+governance / delivery-status-publish id=124316165962 skipped
+governance / env-matrix id=124316163463 in_progress
+governance / instrument-self-tests id=124316163394 in_progress
+governance / policy-docs id=124316163324 in_progress
+governance / record id=124316165256 skipped
+governance / wave-script id=124316163599 success
+hassfest / hassfest id=124316163499 success
+kernel-points id=124316164655 skipped
+prelude id=124315987769 in_progress
+refresh id=124315987465 success
+tests / arch-instrument id=124316523176 success
+tests / briefs id=124316163743 success
+tests / browser id=124316523352 in_progress
+tests / closure-scope id=124316163683 success
+tests / closures id=124316523250 in_progress
+tests / coverage id=124316523347 in_progress
+tests / fast (3.14) id=124316523187 in_progress
+tests / mutation id=124316163866 in_progress
+tests / nightly-ha id=124316525888 skipped
+tests / nightly-status id=124316163648 success
+tests / replay id=124316523255 success
+tests / typing id=124316523180 success
+validate / validate-hacs id=124316163590 success
 
 ## Refusals
 none
@@ -47,7 +47,7 @@ none
 ## carry_audit at the head
 NOTE body item 7c4444b2: dismissed:cosmetic until the first solve, and resolving in setup would start the process worker there
 NOTE body item 60966b4c: dismissed:landed in-tree, in the census header in tests/features.py
-NOTE body item da82aad9: dismissed:R10-HOTFIX-AWAY-SETBACK merged as #3013 (18b788ac2); merge-tree against main is clean; the semantic overlap in away.py is the reviewer's to check
+NOTE body item d3433891: R10-HOTFIX-AWAY-SETBACK: R10-HOTFIX-AWAY-SETBACK resolved on origin/handoff/audit-r10-roster
 CARRY-AUDIT: 3 finding item(s): 3 routed, 0 unrouted, 0 bad destination(s)
 
 ## figure_lint at the head
@@ -55,8 +55,6 @@ ok         tests/features.py
              `tests/features.py` is in the tree at this head
   ok         PYTHONPATH=tests/hastub python3 tests/features.py
              `tests/features.py` is in the tree at this head
-  ok         tests/structure.py
-             `tests/structure.py` is in the tree at this head
   ok         python3 tests/structure.py --record
              `tests/structure.py` is in the tree at this head
   ok         python3 tests/structure.py
@@ -70,7 +68,7 @@ ok         tests/features.py
   ok         tests/stress.py
              `tests/stress.py` is in the tree at this head
 
-FIGURES: 9 resolved, 0 not verified, 0 refused
+FIGURES: 8 resolved, 0 not verified, 0 refused
 
 ## Finder's harness: none named
 ### at the base
@@ -119,10 +117,10 @@ index 000000000..5db7fd88d
 
 ## Three-dot diff
 diff --git a/custom_components/heatpump_optimizer/away.py b/custom_components/heatpump_optimizer/away.py
-index d66951e6e..8374c5823 100644
+index bd03159c4..b0872e7eb 100644
 --- a/custom_components/heatpump_optimizer/away.py
 +++ b/custom_components/heatpump_optimizer/away.py
-@@ -373,6 +373,12 @@ def apply_override_payload(state: AwayState, payload: dict[str, Any]) -> AwaySta
+@@ -360,6 +360,12 @@ def apply_override_payload(state: AwayState, payload: dict[str, Any]) -> AwaySta
                     migrated_helpers=bool(payload.get("migrated_helpers")))
  
  
@@ -136,10 +134,10 @@ index d66951e6e..8374c5823 100644
      """Save ``state`` -- the coordinator's away state, passed in (#1739)."""
      try:
 diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
-index bd7a38ab2..c34106942 100644
+index 88ac5122a..092064f91 100644
 --- a/custom_components/heatpump_optimizer/coordinator.py
 +++ b/custom_components/heatpump_optimizer/coordinator.py
-@@ -5833,23 +5833,20 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+@@ -5841,23 +5841,20 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
      async def _async_first_refresh_light(self) -> Payload:
          """The setup-time refresh: publish something valid without solving.
  
@@ -176,7 +174,7 @@ index bd7a38ab2..c34106942 100644
              _LOGGER.debug(
                  "First refresh republishes the pre-reload plan; the real "
                  "solve follows in the background"
-@@ -9598,6 +9595,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+@@ -9608,6 +9605,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
  
      async def _resolve_away(self) -> None:
          """Work out whether the house is empty, and when it must be warm again."""
@@ -192,7 +190,7 @@ index 000000000..06fa98d1c
 @@ -0,0 +1 @@
 +- [#3015](https://github.com/tvofi/heatpump_optimizer/pull/3015) — **open**, HOTFIX R10-HOTFIX-AWAY-LIVE: the away override survives an entry reload and the restore (R10-HOTFIX-AWAY-LIVE)
 diff --git a/tests/features.py b/tests/features.py
-index d8b045083..d348d25d0 100644
+index d82394cf4..ec6f5f8c7 100644
 --- a/tests/features.py
 +++ b/tests/features.py
 @@ -13210,7 +13210,9 @@ for _race_name, (_race_load, _race_cmd, _race_read, _race_want) in _RACES.items(
@@ -216,7 +214,7 @@ index d8b045083..d348d25d0 100644
          _src_raced = _src_snapshot(_src_restart(_src_disk_then, race=True))
          _src_unfenced_serial = _src_snapshot(_src_restart(_src_disk_then, race=False))
      _src_differ["unfenced"] = [
-@@ -71955,6 +71958,104 @@ R.check(
+@@ -71895,6 +71898,104 @@ R.check(
  )
  
  
@@ -358,13 +356,13 @@ index 000000000..5db7fd88d
 +  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
 +}
 diff --git a/tests/structure_budgets.json b/tests/structure_budgets.json
-index 061d4aef7..dfdc1677a 100644
+index a81608f11..92f9709a1 100644
 --- a/tests/structure_budgets.json
 +++ b/tests/structure_budgets.json
 @@ -1,5 +1,5 @@
  {
-- "class_excess_loc": 17659,
-+ "class_excess_loc": 17657,
+- "class_excess_loc": 17672,
++ "class_excess_loc": 17670,
   "const_modules_over_50": 3,
   "coordinator_attrs": 142,
   "coordinator_multiassigned_attrs": 109,
@@ -372,14 +370,14 @@ index 061d4aef7..dfdc1677a 100644
   "functions_cc_over_25": 8,
   "import_cycle_modules": 0,
   "max_cc": 44,
-- "max_class_loc": 8063,
-+ "max_class_loc": 8061,
+- "max_class_loc": 8065,
++ "max_class_loc": 8063,
   "max_method_loc": 373,
   "methods_over_150": 15,
   "methods_over_200": 8,
   "name_kept_members": 38,
 - "recorded_at": "88c6ad5bbec69bfe157e04597a74d0c9c3e4775c",
-+ "recorded_at": "5d4e0bcfb88413ddf9ca7f0884c36bbec9235447",
++ "recorded_at": "cc930cdd1a3cfb005ba7ec557f4451ff5e53e364",
   "seam_cut_total": 422
  }
 

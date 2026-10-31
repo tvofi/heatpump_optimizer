@@ -1,0 +1,41 @@
+custom_components/heatpump_optimizer/coordinator.py:3135:    away_state = _view("_away_state")
+custom_components/heatpump_optimizer/coordinator.py:3584:        self._away_state = away_mode.AwayState()
+custom_components/heatpump_optimizer/coordinator.py:5857:        if handover is not None and away_mode.published_under(self._away_state, handover):
+custom_components/heatpump_optimizer/coordinator.py:5916:                ctx._opt_config, ctx._thermal_params, self._away_state,
+custom_components/heatpump_optimizer/coordinator.py:7942:        data = {**data, **_fold_away(self._away_state, data)}
+custom_components/heatpump_optimizer/coordinator.py:8966:        if self._away_state.active or self._away_state.recovery_active:
+custom_components/heatpump_optimizer/coordinator.py:9598:        parsed = away_mode._parse_return_time(self._away_state.override_return_iso)
+custom_components/heatpump_optimizer/coordinator.py:9599:        active, ret = away_mode.expire_override(self._away_state.override_active, parsed, now)
+custom_components/heatpump_optimizer/coordinator.py:9600:        if active != self._away_state.override_active or ret != parsed:
+custom_components/heatpump_optimizer/coordinator.py:9601:            self._away_state = replace(self._away_state, override_active=active,
+custom_components/heatpump_optimizer/coordinator.py:9603:            self._spawn(away_mode.persist_override(self, self._away_state))
+custom_components/heatpump_optimizer/coordinator.py:9614:        written = self._away_state
+custom_components/heatpump_optimizer/coordinator.py:9629:        if self._away_state is written:
+custom_components/heatpump_optimizer/coordinator.py:9630:            self._away_state = replace(resolved, migrated_helpers=written.migrated_helpers)
+custom_components/heatpump_optimizer/coordinator.py:9634:        self._away_state = away_mode.apply_override_payload(self._away_state, payload)
+custom_components/heatpump_optimizer/coordinator.py:9635:        return self._away_state
+custom_components/heatpump_optimizer/coordinator.py:9646:        on = active if active is not None else self._away_state.override_active
+custom_components/heatpump_optimizer/coordinator.py:9647:        iso = None if active is False else self._away_state.override_return_iso
+custom_components/heatpump_optimizer/coordinator.py:9652:        self._away_state = replace(self._away_state, override_active=on,
+custom_components/heatpump_optimizer/coordinator.py:9654:        await away_mode.persist_override(self, self._away_state)
+custom_components/heatpump_optimizer/coordinator.py:11013:                len(horizon.prices), banded=_whatif_banded(self._away_state)
+custom_components/heatpump_optimizer/datetime.py:44:        return _parse_return_time(self.coordinator.away_state.override_return_iso)
+custom_components/heatpump_optimizer/switch.py:130:        return bool(self.coordinator.away_state.override_active)
+custom_components/heatpump_optimizer/boost.py:238:def held_for(coord: Any) -> BoostState:
+custom_components/heatpump_optimizer/boost.py:259:    return held_for(coord).active(CHANNEL_SPACE, now or dt_util.now())
+custom_components/heatpump_optimizer/boost.py:283:    held = held_for(coord)
+custom_components/heatpump_optimizer/boost.py:302:    end = held_for(coord).until.get(CHANNEL_SPACE)
+custom_components/heatpump_optimizer/boost.py:315:    held_for(coord).space_settle_until = utc_shift(
+custom_components/heatpump_optimizer/boost.py:392:    held = held_for(coord)
+custom_components/heatpump_optimizer/boost.py:431:        held = held_for(coord)
+custom_components/heatpump_optimizer/boost.py:451:    held = held_for(coord)
+custom_components/heatpump_optimizer/boost.py:523:    held_for(coord).set(channel, active, dt_util.now())
+custom_components/heatpump_optimizer/boost.py:536:        held_for(coord).blocked.pop(channel, None)
+custom_components/heatpump_optimizer/boost.py:538:        held_for(coord).set(channel, active, now, block=True)
+custom_components/heatpump_optimizer/boost.py:656:    held = held_for(coord)
+custom_components/heatpump_optimizer/coordinator.py:7499:        await _best_effort_cycle_step(lambda: early_cutoff.arm(early_cutoff.state_for(self), self.arbiter_inputs, boost.held_for(self), _ctx_of(self)._opt_config, self.entry.async_on_unload), "Early cut-off arm skipped: %s")
+custom_components/heatpump_optimizer/pump_arbiter.py:673:    held = boost.held_for(coord)
+custom_components/heatpump_optimizer/pump_arbiter.py:740:    held = boost.held_for(coord)
+custom_components/heatpump_optimizer/pump_arbiter.py:754:    held = boost.held_for(coord)
+custom_components/heatpump_optimizer/pump_arbiter.py:1089:    held = boost.held_for(coord)
+custom_components/heatpump_optimizer/switch.py:164:        held = boost.held_for(self.coordinator)
