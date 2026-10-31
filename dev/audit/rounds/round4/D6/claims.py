@@ -51,7 +51,7 @@ against a document that is CORRECT.
     RESULT claims_false=0
     RESULT claims_stale=0
     RESULT claims_unverifiable=2    (1 with --links; the checker runs the default)
-    RESULT config_defaults_compared=89   (76 until #937's rows landed; 82
+    RESULT config_defaults_compared=90   (76 until #937's rows landed; 82
                                          until #1067's solver half documented
                                          the flow-curve lift option's default;
                                          83 until #1067's silent-mode half
@@ -70,7 +70,10 @@ against a document that is CORRECT.
                                          fields document no defaults; 89 with
                                          #1495's mold-floor breach warning
                                          margin, a NumberSelector Default row
-                                         on the Comfort and temperatures table)
+                                         on the Comfort and temperatures table;
+                                         90 with R10-FACTORY-RESET's "What to
+                                         reset", a select Default row on the
+                                         Reset to factory defaults table)
     RESULT config_ranges_compared=92     (76 until #937's rows landed; 86
                                          until #1067's silent-mode half
                                          documented the derate's range; 87
