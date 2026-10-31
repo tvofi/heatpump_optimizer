@@ -1,62 +1,53 @@
-Fix review: merge 708e4679ec512068c69d1f34145b379823c488da
+Fix review: blocked 9fe3c4cf81465123f5dc6b360a30df7631f75974 mutation-vacuous: the step tick's gate (MIN_OFF hold and blocked-mode OFF skip) is unchecked, a tick wired around _write_supply passes all 4617 checks
 
-bus-nonce: 3082e2f222540589af92539907307e47
+bus-nonce: 5f6e06db0a86b7121fa306fdf794c9f9
 
-## Summary
+## Block
 
-This is review round 5 of PR #2968 (group R10-SAV-ACTUATION), after the minimal re-cut. Round 4 blocked `f41e5a5f4` as mutation-vacuous. That block is cleared at this head:
+Review round 3 of PR #2968 (earlier blocks: `d26a00aa2` mutation-vacuous, `c4e9f6a3`/`ddf75aaf` ci-red). This review measured head `9fe3c4cf81465123f5dc6b360a30df7631f75974` from a detached worktree.
 
-- `supply_tick`'s new-step guard (`pump_arbiter.py:1243`) is now killed by a named test, and I reproduced the kill.
-- The ledger pin now names the file that actually kills it, `tests/features.py`.
+The PR says the tick goes through the same gate as the cycle. The design note says the gated write is `_write_supply`, "which both the cycle and the tick call". The `note_supply` docstring says "the tick passes the same cut-off hold and blocked-mode skip". The new `early_cutoff.py` module docstring says "a step the plan turns on passes :func:`allow_on` like the cycle's". No check holds that claim.
 
-The production diff has not changed since round 4. The delta f41e5a5f..708e4679 has two branch-only commits, `ee74febe6` (tests/features.py +46) and `e401ef65e` (one ledger row), plus two clean merges.
-
-One thing still has to happen before the train merges this. The required `gate` check is red at this head because `codeql / Analyze (python)` was cancelled at its 45-minute timeout. That leg needs a rerun and the gate needs to go green (see Findings).
+- Mutant R3 (mine): `coordinator.py`, in `_apply_action`'s `pump_arbiter.SupplyWiring(self.arbiter_inputs, boost.held_for(self), self._write_supply)`, replaces `self._write_supply` with `lambda on: pump_arbiter.switch_supply(self.hass, getattr(self, "_ctx", self)._config.heat_pump_switch_entity, on)`. The tick still writes at every boundary, but it no longer goes through `early_cutoff.allow_on` or `pump_arbiter.supply_write`.
+  - The whole `PYTHONPATH=tests/hastub python3 tests/features.py` prints `ALL 4617 FEATURE CHECKS PASSED` (rc=0).
+  - The mutation is one `str.replace`, asserted to match exactly once, in a fresh worktree (`ev/mutant_driver.py`, `ev/mutant_R3.res`, `ev/features_R3.log`).
+- Why nothing fails: the only cut-off case, `an early cut-off holds across a step boundary the plan keeps on`, writes its cut with a direct `_sa_pa.switch_supply(hass, "switch.hp", False)` call. It never records an `early_cutoff` cut, so `allow_on` has nothing to hold. That check covers the tick's change-only rule (M3), not the gate.
+  - No case drives the tick while the pump's signals block both channels or report cooling.
+  - R1 (the gate removed inside `_write_supply`) is killed only by the cycle's check, `the coordinator's cycle inside MIN_OFF of a cut does not turn the switch on`.
+- Consequence: the tick runs at every step boundary between cycles. If a later change wires it around the gate, the tick can turn the compressor back on inside `MIN_OFF` (10 min) of an early cut, or write OFF in a mode where the cycle skips OFF. No check would go red.
+- What clears it: one `_sa_guarded`-style case per gate arm, driven through the real coordinator. Its null control is the same run with the gate inactive.
+  - Arm 1: an `early_cutoff` cut recorded at 06:10, and a plan step turning ON at 06:15, inside `MIN_OFF`. Assert the tick writes no `turn_on`.
+  - Arm 2: `_pump_signals` with both channels blocked (or cooling), and a step turning OFF. Assert the tick writes nothing.
+  - Show R3 red on both.
 
 ## Findings
 
-- The required `gate` check (run 124255886403) is red at this head. Its only FAIL is `codeql / Analyze (python): cancelled (this run)`.
-  - That leg (run 124231070581) ran from 18:11:19 to 18:56:29 UTC, 45:10, so it hit `codeql.yml`'s `timeout-minutes: 45`. The workflow's own comment records the same runner-load cancellation three times on 2026-10-20.
-  - This round's diff adds a test and a ledger row, which CodeQL's python leg does not take meaningfully longer to analyse. I read this as an infrastructure transient, not a defect in this PR.
-  - The body does not name it. It still describes round 4, before this run existed.
-  - No rerun appeared in 20 minutes of polling, to 19:26 UTC (`ev/rerun_poll.txt`). Gate-sweep reruns only a red `gate` once a run's own gate is green, so it does not rerun a cancelled CodeQL leg.
-  - Root-cause classes are not postable yet: `pr-contract` (19:02:04, success) started before `gate` concluded red (19:03:25).
-  - Owed before the merge: rerun the CodeQL python leg so `gate` goes green, or name the timeout as a transient under `## Red checks`. Carry: R10-SAV-ACTUATION
-- The body does not describe this head's own change. Round 4 raised the same point.
-  - `## Re-cut`, `## Mutation proof`, `## Figures` and `## Unpinned sites` still describe `343f2abcf`: mutant R3, 4621 checks, "No pin is owed".
-  - Only `## Head` names `e401ef65e` and `708e4679e`.
-  - The mid-step guard check, its GUARD_OFF mutation proof, the null control and the ledger re-pin from `tests/harness_headers.py` to `tests/features.py` are not stated anywhere in the body.
-  - `fixer.md` step 7 requires every executed number at the head. The figures below re-derive them, so this does not block. Carry: R10-SAV-ACTUATION
-- The re-pinned row's `reason` says GUARD_OFF took `tests/features.py` to `failed=3`. At this head I measured `2 of 4624`: the new check and its null control. The `killed_by` file is correct, and CI's re-verification reproduces it. I did not establish where the third failure came from; it may be a count taken at `e401ef65e` before the main merge. Carry: dismissed: the reason string is narrative, the killer and the kill reproduce at the head
-- The duty-ledger residue from earlier rounds is unchanged: the first reading of an OFF step after an ON step is booked from the previous step's tail. The body routes it to #2492, and this PR says `Refs`. Carry: #2492
+- The step tick's gate has no check of its own: mutant R3 (the tick wired around `_write_supply`) survives all of `tests/features.py`. This is the block above, owed by the fixer before the next handoff. Carry: R10-SAV-ACTUATION
+- The duty ledger books the first reading of an OFF step after an ON step from the previous step's tail. Both phases book such a step `space-instead` at the head (`ev/harness_head.txt`). The control is phase independence, and it holds. A settle window on the ledger's run fold is still owed. The body routes it to #2492, which the PR leaves open (`Refs`). I confirmed the residue in the harness output. Carry: #2492
 
 ## Evidence
 
-- RESULT head-measured 708e4679ec512068c69d1f34145b379823c488da (`ev/HEAD.txt`). `git ls-remote` still printed it as the branch head at 19:26 UTC.
-- The roles diff since the merge base is empty, so the contract is current. Merge base and origin/main are both `cc930cdd1`.
-- RESULT delta. `review_carry.py f41e5a5f4 HEAD` prints FRESH-REVIEW, because of the two code-carrying branch-only commits `ee74febe6` and `e401ef65e` (`ev/review_carry.txt`).
-  - The branch's production diff (`custom_components/`, three-dot against each merge base) is identical at `f41e5a5f4` and at this head.
-  - `git show --remerge-diff` is empty for both merges `cbbdf6ae1` and `708e4679e`, so neither carries a hand resolution.
-- RESULT NULL: `PYTHONPATH=tests/hastub python3 tests/features.py` at the head prints `ALL 4624 FEATURE CHECKS PASSED`, rc=0 (`ev/features_head.log`).
-- RESULT GUARD_OFF at `pump_arbiter.py:1243`: `if held.supply is None or held.supply[0] == step:` becomes `if False:` in a separate copy of the head tree (`ev/mutant_GUARD_OFF.diff`).
-  - `tests/features.py` prints `2 of 4624 FEATURE CHECKS FAILED`, rc=1 (`ev/features_GUARD_OFF.log`). It fails on exactly two checks:
-    - `FAIL the step tick writes nothing inside a step whose boost starts mid-step [{'07:00': ['turn_off'], '07:06': ['turn_on'], '07:10': [], '07:15': []}]`
-    - `FAIL null control: the same tick at the next boundary writes the boost's ON [...]`
-  - The mutant writes the boost's ON mid-step at 07:06, and then nothing at the 07:15 boundary. That is exactly the behaviour the guard prevents. Unmutated, the null control writes `['turn_on']` at 07:15, so the empty mid-step writes come from the guard and not from a tick that never fired.
-- RESULT harness_headers under GUARD_OFF: `ALL 112 HARNESS HEADER CHECKS PASSED`, rc=0 (`ev/harness_headers_GUARD_OFF.log`). This confirms the old pin to `tests/harness_headers.py` was false and the new one is right.
-- RESULT CI pin re-verification (`tests / mutation`, run 124231070335, `ev/ci_mutation_log_excerpt.txt`):
-  - `PIN RE-VERIFICATION: 8 reproduced, 0 not reproduced`.
-  - `ok pump_arbiter.py:1243 GUARD_OFF -- killed by tests/features.py`.
-  - `0 survivor(s) of 8 evaluated`, then `MUTATION TABLE PASSED`.
-  - Round 4's `PIN NOT REPRODUCED` line is gone.
-- No round-4-accepted finding regressed. Production code is byte-identical, and round 4's kills on R1, R3 and R4 rest on checks that stay `ok` in the 4624-check head run. CI re-verified the other pins on this PR's sites: `coordinator.py:7525` GUARD_OFF/BOOLOP, `pump_arbiter.py:377` BOOLOP and `:1222` GUARD_OFF, and `thermal_model.py:1320` and `:1323`.
-- RESULT merge: `git merge-tree --write-tree origin/main HEAD` rc=0, tree `b8b5fed15a59`. There is no conflict and no MERGE-CLAIM line (`ev/merge_tree.txt`).
-- RESULT version and claims: `VERSION`, `manifest.json`, `RELEASE_NOTES.md` and both claim files are untouched three-dot.
+- RESULT head-measured 9fe3c4cf81465123f5dc6b360a30df7631f75974 (`ev/HEAD.txt`).
+- RESULT merge: `git merge-tree --write-tree origin/main <head>` rc=0, tree `f3117c16`. origin/main `89ccf7326` is the merge base, so the head is 0 behind (`ev/merge_tree.txt`). Roles diff since the merge base is empty, so this contract is current.
+- RESULT mutation proof. Each mutant is one exact-once `str.replace` in its own worktree, and the whole `tests/features.py` runs (`ev/mutant_*.res`).
+  - The unmutated head prints `ALL 4617 FEATURE CHECKS PASSED`. The body says 4598; main's merge added checks.
+  - Y1 (`i >=` -> `i >` in `step_supply`): `1 of 4617`, on `... under a step past the plan's power schedule`, as the body says.
+  - Y2 (`note_supply`'s no-switch guard -> `if False:`): `1 of 4617`, on `an install with no supply switch arms no step tick ...`, as the body says.
+  - M3 (`if on != last:` -> `if True:`): `3 of 4617`. It fails the two checks the body names plus the round-2 live-boost check, which was added after M3 was first measured.
+  - M4 (the ledger reads `self._measured_power`): `1 of 4617`, on the phase-0/14 check, as the body says.
+  - R1 (mine, `allow_on` dropped in `_write_supply`): `1 of 4617`, on the cycle's MIN_OFF check.
+  - R2 (mine, `plan_step_runs` fallback ignores the hot-water draw): `1 of 4617`, on R9-F2.4 P2.
+  - R3: survives (Block).
+- RESULT harness. There is no finder harness: the roster states the control in words, and the body discloses `dev/audit/harnesses/r10_sav_actuation_phase.py` as the fixer's own build. Its sha1 is `d8871c1b...`, as the body says.
+  - I ran it at the head: `AGREE: yes`.
+  - I copied it into a detached worktree of the current merge base `89ccf7326`: `AGREE: no` (`ev/harness_*.txt`).
+  - The body's base was `88c6ad5bb`; the outcome is the same at both bases.
+- RESULT class census. `git grep -n 'switch_supply('` returns the definition plus the callers in `coordinator._write_supply` and `early_cutoff.on_room_event`. `git grep -n 'heat_pump_on_schedule\|plan_step_runs('` returns `optimizer.get_current_action`, `coordinator._apply_result_payload`, `pump_arbiter.step_supply`, the field in `optimizer.py` and `wood_fuel.py`. Both match the body's Figures (`ev/cheap_checks.txt`).
+  - `coordinator.py:4904` (`ExternalHeatObservation`) still reads the cycle-sampled `_measured_power`. That is the per-cycle external-heat observer, not the duty ledger, so it is outside this seam.
 - RESULT structure: `python3 tests/structure.py` prints `STRUCTURE RATCHET PASSED`.
-- RESULT CI at the head, read from the check-runs API at 19:05 UTC once every run had concluded (`ev/check_runs.txt`):
-  - Success: fast (3.14), closures, coverage, coverage-ratchet, arch-instrument, instrument-self-tests, typing, replay, browser, lane-proofs, graders-head-copy, briefs, closure-scope, mutation, arch-score, budget-raise-gate, env-matrix, policy-docs, wave-script, delivery-status, nightly-status, hassfest, validate-hacs, prelude, pr-contract, and codeql actions and javascript-typescript.
-  - Red: `gate` only, from the cancelled `codeql / Analyze (python)` (`ev/gate_log_excerpt.txt`; see Findings).
-  - The CI workflow run 41104632649 concluded `cancelled`.
-- Review packet: rendered locally (`ev/review-packet.md`). No refusals and no advisories. carry_audit routed 2 of 2. figure_lint resolved 7 of 7. No finder harness is named; earlier rounds disclosed the phase harness as the fixer's own build. I did not re-run it, because production code is unchanged since round 3.
-- Not re-derived: the body's figures for `343f2abcf` (4621 checks, R3 at 2 of 4621, the 28-script scoped gate, `ci_predict` output). Round 4's reviewer re-took R3 on the same production code.
-- Scope: as the brief directs, this round opened no new scope beyond the delta and the round-4 block.
+  - Budgets move down only: `class_excess_loc` 17672->17659 and `max_class_loc` 8065->8063 at this merge base.
+  - The movement is earned: the OFF-skip decision moved into the pure `pump_arbiter.supply_write`, and the inline plan-switch rule became `thermal_model.plan_step_runs`.
+- RESULT archscore: `score.py --diff 89ccf7326 HEAD` prints `Architecture score: dS +0.0000 NULL`.
+- RESULT version: `VERSION`, the manifest, `RELEASE_NOTES.md` and both claim files are untouched by the three-dot diff.
+- RESULT CI at the head, as read at 12:41 UTC (`ev/check_runs.txt`): no check concluded red. Still running: `tests / fast (3.14)`, `tests / coverage`, `tests / closures`, `tests / mutation`, `codeql / Analyze (python)` and one `prelude`. Everything else that concluded is success, skipped or neutral. The R3 mutant is outside the mutation lane's operators (BOOLOP, GUARD_OFF, CMP_BOUND, RETURN_DEL), so a green lane would not cover it.
+- Not re-derived: the body's `ci_predict.py` unpinned count (24), and the 484 s timing.

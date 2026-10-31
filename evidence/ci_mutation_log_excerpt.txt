@@ -1,5 +1,0 @@
-tests / mutation, check run 124231070335, head 708e4679ec512068c69d1f34145b379823c488da (merge ff022dc65 into cc930cdd1)
-2026-10-30T18:56:54Z PIN RE-VERIFICATION: 8 reproduced, 0 not reproduced, 0 not re-verified
-  ok    custom_components/heatpump_optimizer/pump_arbiter.py:1243 GUARD_OFF  -- killed by tests/features.py
-  0 survivor(s) of 8 evaluated = 0.0%, cap 20.0%
-MUTATION TABLE PASSED

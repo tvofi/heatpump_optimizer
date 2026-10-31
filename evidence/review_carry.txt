@@ -1,8 +1,0 @@
-review_carry: f41e5a5f4 -> 708e4679e  main=origin/main
-  branch-only commits: 4
-  why: 2 of 4 branch-only commit(s) carry code
-  ee74febe6  features: the step tick writes nothing inside a step whose boost starts mid-step
-  e401ef65e  ledger: re-pin supply_tick's new-step guard to tests/features.py
-  cbbdf6ae1  Merge commit 'e401ef65ef10270e7a85229ee9a625b99ba9f874' into fix/r10-sav-actuation
-  708e4679e  Merge remote-tracking branch 'origin/main' into fix/r10-sav-actuation
-review_carry: FRESH-REVIEW
