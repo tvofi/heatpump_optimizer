@@ -1,4 +1,4 @@
-![Heat Pump Cost Optimizer: model-predictive heating control for Home Assistant](docs/img/readme/banner.png)
+![Heat Pump Cost Optimizer: model-predictive heating control for Home Assistant](./docs/img/readme/banner.png)
 
 # Heat Pump Cost Optimizer for Home Assistant
 
@@ -13,17 +13,17 @@ hours.
 [![Python: 3.13+](https://img.shields.io/badge/Python-3.13%2B-026aa8.svg)](https://www.python.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-d2601f.svg)](https://github.com/tvofi/heatpump_optimizer/blob/main/LICENSE)
 
-[![Buy me a coffee](docs/img/brand/coffee.svg)][coffee]
+[![Buy me a coffee](./docs/img/brand/coffee.svg)][coffee]
 
 [coffee]: https://buymeacoffee.com/rpgshcwb2tp
 
 [Product page](https://tvofi.github.io/heatpump_optimizer/): the project at a glance, every sentence of it quoted from this README and the docs.
 
-![The dashboard card's plan chart: 24 hours of spot price, forecast temperature and solar, over the heating and hot-water slots the optimizer chose](docs/img/card/card-plan-chart.png)
+![The dashboard card's plan chart: 24 hours of spot price, forecast temperature and solar, over the heating and hot-water slots the optimizer chose](./docs/img/card/card-plan-chart.png)
 
 *The next 24 hours as the optimizer sees them — price, forecast, solar, and the
 slots it picked for heating and for hot water. Screenshot of the shipped card
-against a solved plan; [docs/dashboard-card.md](docs/dashboard-card.md) reads
+against a solved plan; [docs/dashboard-card.md](./docs/dashboard-card.md) reads
 every mark on it.*
 
 ## Acknowledgement
@@ -36,7 +36,7 @@ ECL110 heat-curve path are all originally strutsfarm's work; the companion
 [**strutsfarm/ecl110**](https://github.com/strutsfarm/ecl110) project provides
 the MQTT interface this integration drives. Versions 2.3.0 onward were developed
 in this fork. Both projects are MIT licensed. The formal attribution is recorded
-in [NOTICE](NOTICE), and [LICENSE](LICENSE) is kept as the verbatim MIT text.
+in [NOTICE](./NOTICE), and [LICENSE](./LICENSE) is kept as the verbatim MIT text.
 
 ## At a glance
 
@@ -117,8 +117,13 @@ tells you which.
 and Swedish) and follow your Home Assistant language, without touching entity ids
 or history. Monetary units follow your instance currency.
 
-<details open>
-<summary><b>How the pieces fit</b> — inputs, coordinator, self-learning, outputs</summary>
+<picture>
+<source media="(prefers-color-scheme: dark)" srcset="./docs/img/readme/mermaid-how-the-pieces-fit-dark.png">
+<img src="./docs/img/readme/mermaid-how-the-pieces-fit.png" alt="How the pieces fit: price, weather and sensor inputs feed the coordinator's price and thermal models, the optimizer and the safety layer; self-learning tunes the models; outputs are entities, the heat pump and the dashboard card">
+</picture>
+
+<details>
+<summary><b>How the pieces fit</b> — inputs, coordinator, self-learning, outputs (diagram source)</summary>
 
 ```mermaid
 flowchart LR
@@ -246,7 +251,7 @@ Each path in full: [Switch and climate entity](#switches-climate-and-datetime-en
 [Inverter frequency: observe first, control if you say
 so](#inverter-frequency-observe-first-control-if-you-say-so),
 [ECL110 heat-curve control](#ecl110-heat-curve-control); the setup fields for
-all three live in [docs/configuration.md](docs/configuration.md).
+all three live in [docs/configuration.md](./docs/configuration.md).
 
 ## Known limitations
 
@@ -271,7 +276,7 @@ installing rather than discover it after:
   command topics ship empty, so an install without an ECL110 has nothing to
   clear on the options page. Details in
   [ECL110 heat-curve control](#ecl110-heat-curve-control) and
-  [docs/ecl110.md](docs/ecl110.md).
+  [docs/ecl110.md](./docs/ecl110.md).
 - **Frequency control needs a `number` entity and your explicit say-so.** The
   path exists only if the compressor frequency is exposed as a `number`
   entity (Modbus, ESPHome). The default Observe mode "learns and recommends
@@ -315,7 +320,7 @@ installing rather than discover it after:
 > **Home Assistant 2025.2.0 and Python 3.13 are the minimum, and that was a
 > breaking change.** An installation on an older Home Assistant stops being
 > offered updates through the Marketplace or HACS. Why the floor sits exactly there is in
-> [docs/architecture.md](docs/architecture.md).
+> [docs/architecture.md](./docs/architecture.md).
 
 [![Open your Home Assistant instance and open this repository.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=tvofi&repository=heatpump_optimizer&category=integration)
 
@@ -399,8 +404,13 @@ Have your price source to hand — a Tibber token, or a price entity such as
 Nord Pool — and the entity id of your weather integration. Everything else can
 be added later from the options pages.
 
-<details open>
-<summary><b>The setup flow</b> — two required screens, then a menu</summary>
+<picture>
+<source media="(prefers-color-scheme: dark)" srcset="./docs/img/readme/mermaid-setup-flow-dark.png">
+<img src="./docs/img/readme/mermaid-setup-flow.png" alt="The setup flow: basics, optional sensors, then a menu with Quick setup, Continue setup and Finish setup now, ending in a read-only review and confirm">
+</picture>
+
+<details>
+<summary><b>The setup flow</b> — two required screens, then a menu (diagram source)</summary>
 
 ```mermaid
 flowchart TD
@@ -497,7 +507,7 @@ starting point for a detached house.
 will be created; confirming there creates the entry.
 
 Every field and its range is documented in
-[docs/configuration.md](docs/configuration.md).
+[docs/configuration.md](./docs/configuration.md).
 
 ### Your first week
 
@@ -756,9 +766,9 @@ that deliver them.
 
 14 services are registered under the `heatpump_optimizer` domain. Field-level
 detail for each — including all 31 fields of `set_thermal_parameters` — is in
-[docs/configuration.md](docs/configuration.md). Worked automation examples — an
+[docs/configuration.md](./docs/configuration.md). Worked automation examples — an
 EV charger following the Cost Power Headroom sensor, mode switching on price — are in
-[docs/automations.md](docs/automations.md).
+[docs/automations.md](./docs/automations.md).
 
 | Service | What it does | Returns |
 |---|---|---|
@@ -790,7 +800,7 @@ be released is reported in the `manual_override` attribute of the plan sensors.
 
 ### Blueprints
 
-The worked examples and events in [docs/automations.md](docs/automations.md) are also
+The worked examples and events in [docs/automations.md](./docs/automations.md) are also
 shipped as importable Home Assistant blueprints. Import them
 from Settings → Automations & Scenes → Blueprints → Import Blueprint:
 
@@ -804,10 +814,18 @@ hard-coded to the entity ids the examples assume.
 
 ## How it works
 
-![One optimization interval: prices, weather and sensors feed the coordinator; the optimizer solves 24 hours ahead; the heat pump is switched and the plan published](docs/img/readme/how-it-works.png)
+<picture>
+<source media="(prefers-color-scheme: dark)" srcset="./docs/img/readme/how-it-works-dark.png">
+<img src="./docs/img/readme/how-it-works.png" alt="One optimization interval: prices, weather and sensors feed the coordinator; the optimizer solves 24 hours ahead; the heat pump is switched and the plan published">
+</picture>
 
-<details open>
-<summary><b>One optimization interval</b> — what the coordinator does, in order</summary>
+<picture>
+<source media="(prefers-color-scheme: dark)" srcset="./docs/img/readme/mermaid-one-interval-dark.png">
+<img src="./docs/img/readme/mermaid-one-interval.png" alt="One optimization interval: what the coordinator does, in order, from reading inputs to publishing the plan">
+</picture>
+
+<details>
+<summary><b>One optimization interval</b> — what the coordinator does, in order (diagram source)</summary>
 
 ```mermaid
 sequenceDiagram
@@ -883,7 +901,7 @@ degree-hours are solver/BLAS-dependent and differ across machines. A model
 that is already correct is left alone (within ±12 %).
 
 Full theory, with every mechanism and its defaults:
-[docs/how-it-works.md](docs/how-it-works.md).
+[docs/how-it-works.md](./docs/how-it-works.md).
 
 ## Changing settings after setup
 
@@ -934,7 +952,7 @@ temperature. If the house feels cooler than you want, raise this value or raise
 your minimum temperature; both work, and both trade savings for warmth.
 
 Every field, default and range:
-[docs/configuration.md](docs/configuration.md).
+[docs/configuration.md](./docs/configuration.md).
 
 ## Dashboard card
 
@@ -963,7 +981,7 @@ what_if: true
 ```
 
 Every option, the keyboard and pointer interactions, and the editing limits are
-documented in [docs/dashboard-card.md](docs/dashboard-card.md).
+documented in [docs/dashboard-card.md](./docs/dashboard-card.md).
 
 ## Troubleshooting
 
@@ -1015,12 +1033,12 @@ on the **Heat curve control (ECL110)** options page, not in initial setup, and
 both ECL110 sensors are disabled by default. The MQTT topics ship empty;
 nothing is published or subscribed until you set a topic, so an install without
 an ECL110 never touches the topics at all. Topics, payloads, options and the
-PI/PID lag handling are documented in [docs/ecl110.md](docs/ecl110.md).
+PI/PID lag handling are documented in [docs/ecl110.md](./docs/ecl110.md).
 
 ## Project status
 
 Finished plans, the August 2026 audit, the backlog and the closed wave
-rosters are in [dev/archive/README.md](dev/archive/README.md).
+rosters are in [dev/archive/README.md](./dev/archive/README.md).
 
 ## Written with AI, and what that costs
 
@@ -1042,7 +1060,7 @@ claim; and any quoted figure re-derived at the contributor's own merge base. A
 structural ratchet refuses growth in every metric it measures. Solver fixtures
 are *claimed* with their direction rather than re-recorded, because
 floating-point results do not reproduce across machines.
-[tests/README.md](tests/README.md) documents the gate; `CLAUDE.md` and
+[tests/README.md](./tests/README.md) documents the gate; `CLAUDE.md` and
 `.cursor/rules/` document the policy.
 
 **This makes a hand-written pull request harder than it would otherwise be.**
@@ -1058,7 +1076,7 @@ evidence in the form the gate checks for. That is a convenience, not a
 requirement, and it does not lower the bar — the evidence is verified
 mechanically either way.
 
-**Developing here** starts at [dev/README.md](dev/README.md): the order the work
+**Developing here** starts at [dev/README.md](./dev/README.md): the order the work
 runs in, what a branch owes before it is pushed, the CI shape and the
 orchestration machinery, drawn.
 
@@ -1073,14 +1091,14 @@ before installing; it applies with full force.
 | Document | What is in it |
 |---|---|
 | [docs/index.html](https://tvofi.github.io/heatpump_optimizer/) | The product page: what the project does, quoted from this README and the docs, with the card and the setup in pictures |
-| [docs/how-it-works.md](docs/how-it-works.md) | The full theory: planning, the thermal model, weather, wood and external heat, grid and tariffs, and every learner with its bounds |
-| [docs/configuration.md](docs/configuration.md) | Every setup field and options page, every service field, and the hydronic layout catalog |
-| [docs/setup.md](docs/setup.md) | The setup flow screen by screen, with pictures: quick setup, the device pre-fill, and the full wizard |
-| [docs/dashboard-card.md](docs/dashboard-card.md) | The card: options, interactions, editing limits |
-| [docs/automations.md](docs/automations.md) | Complete automation examples using only the entities and services the integration creates |
-| [docs/architecture.md](docs/architecture.md) | Module map and how a plan is made, for anyone reading or changing the code |
-| [docs/ecl110.md](docs/ecl110.md) | ECL110 MQTT control |
-| [DISCLAIMER.md](DISCLAIMER.md) | The full disclaimer |
+| [docs/how-it-works.md](./docs/how-it-works.md) | The full theory: planning, the thermal model, weather, wood and external heat, grid and tariffs, and every learner with its bounds |
+| [docs/configuration.md](./docs/configuration.md) | Every setup field and options page, every service field, and the hydronic layout catalog |
+| [docs/setup.md](./docs/setup.md) | The setup flow screen by screen, with pictures: quick setup, the device pre-fill, and the full wizard |
+| [docs/dashboard-card.md](./docs/dashboard-card.md) | The card: options, interactions, editing limits |
+| [docs/automations.md](./docs/automations.md) | Complete automation examples using only the entities and services the integration creates |
+| [docs/architecture.md](./docs/architecture.md) | Module map and how a plan is made, for anyone reading or changing the code |
+| [docs/ecl110.md](./docs/ecl110.md) | ECL110 MQTT control |
+| [DISCLAIMER.md](./DISCLAIMER.md) | The full disclaimer |
 
 ## Disclaimer
 
@@ -1091,14 +1109,14 @@ and safety controls active, and treat the anti-legionella cycle as a convenience
 rather than as compliance with your local rules for hot water hygiene. Every cost
 and saving it reports is the output of a model, not an accounting record.
 
-Read [DISCLAIMER.md](DISCLAIMER.md) in full before installing.
+Read [DISCLAIMER.md](./DISCLAIMER.md) in full before installing.
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+MIT. See [LICENSE](./LICENSE).
 
 This project is a fork of
 [strutsfarm/heatpump_optimizer](https://github.com/strutsfarm/heatpump_optimizer),
 which is also MIT licensed; the upstream copyright is retained alongside this
 project's own. See the [Acknowledgement](#acknowledgement) above and
-[NOTICE](NOTICE).
+[NOTICE](./NOTICE).

@@ -8053,7 +8053,7 @@ class _CopGate:
         self._flow_bias = flow_lift.FlowCurveBias()
         self.cop_health_calls: list = []
 
-    def _learning_frozen(self, *entities):
+    def _learning_frozen(self, *entities, room_air=True):
         return None
 
     def _observe_cop_health(self, observed_cop, dhw_curve=False):
@@ -13443,7 +13443,9 @@ for _race_name, (_race_load, _race_cmd, _race_read, _race_want) in _RACES.items(
 # are a subset. Preconditions: every store built is read at startup, every
 # read has a previous run's payload to land, and the loads assign something.
 # Null control: the same race with every store's fence (async_wait_for_read)
-# removed must differ, or the window reaches no writer and the census is blind.
+# and the session-restore gate the setup refresh awaits (boost.session_restored,
+# R10-HOTFIX-AWAY-LIVE) removed must differ, or the window reaches no writer
+# and the census is blind.
 import logging as _src_logging  # noqa: E402
 import weakref as _src_weakref  # noqa: E402
 from unittest import mock as _src_mock  # noqa: E402
@@ -13615,7 +13617,8 @@ with _src_mock.patch.object(_src_dt, "now", lambda *a, **k: _src_clock[0]), \
         _src_differ["fenced"][_src_key] = [
             k for k in _src_assigned if _src_raced[k] != _src_serial[k]]
     _src_differ = {"fenced": {k: v for k, v in _src_differ["fenced"].items() if v}}
-    with _src_mock.patch.object(_src_store.QuarantiningStore, "async_wait_for_read", _src_no_fence):
+    with _src_mock.patch.object(_src_store.QuarantiningStore, "async_wait_for_read", _src_no_fence), \
+            _src_mock.patch.object(_src_boost, "session_restored", _src_no_fence):
         _src_raced = _src_snapshot(_src_restart(_src_disk_then, race=True))
         _src_unfenced_serial = _src_snapshot(_src_restart(_src_disk_then, race=False))
     _src_differ["unfenced"] = [
@@ -22362,12 +22365,12 @@ _t9 = datetime(2026, 1, 21, 6, 0, tzinfo=UTC)
 _c9._accuracy.note_lead_prediction(_t9 - timedelta(minutes=10), 1.0, 21.0)
 _dt5.freeze(_t9)
 try:
-    _c9._learning_frozen = lambda key: "stale"
+    _c9._learning_frozen = lambda key, **_kw: "stale"
     _c9._record_accuracy()
     _frozen_kept = (
         len(_c9._accuracy.lead_pending) == 1 and _c9._accuracy.sigma(1.0) == 0.0
     )
-    _c9._learning_frozen = lambda key: None
+    _c9._learning_frozen = lambda key, **_kw: None
     _c9._record_accuracy()
     _live_scored = (
         not _c9._accuracy.lead_pending
@@ -45812,7 +45815,7 @@ from homeassistant.util import dt as _t2_dt  # noqa: E402
 
 def _t2_room_readers(**config):
     c = _t2_coord(curve_learning_enabled=True, **config)
-    c._learning_frozen = lambda *keys: None
+    c._learning_frozen = lambda *keys, **_kw: None
     c._mode = "auto"
     now = datetime(2026, 1, 21, 6, 0, tzinfo=UTC)
     c._accuracy.note_lead_prediction(now - timedelta(minutes=10), 1.0, 21.5)
@@ -45852,7 +45855,7 @@ R.check(
     f"{_wzm((None, float('nan')), 19.0)!r}",
 )
 _t2_nan_zones = _t2_coord(curve_learning_enabled=True, indoor_temp_entity="sensor.indoor")
-_t2_nan_zones._learning_frozen = lambda *keys: None
+_t2_nan_zones._learning_frozen = lambda *keys, **_kw: None
 _t2_nan_zones._current_state = _dc_replace(
     _t2_nan_zones._current_state, room_temperature=float("nan"),
     upper_floor_temperature=float("nan"), lower_floor_temperature=float("nan"),
@@ -56355,7 +56358,7 @@ R.check(
 
 # _track_curve_comfort folds YESTERDAY's worst margin when a new day starts.
 _p8s_cc = _Coord(_FakeHass(), _FakeEntry(data={**_P8_CFG, "curve_learning_enabled": True}))
-_p8s_cc._learning_frozen = lambda key: None
+_p8s_cc._learning_frozen = lambda key, **_kw: None
 _p8s_days = []
 _p8s_cc._curve_learner = _p8s_ns(
     bias=0.0,
@@ -67371,6 +67374,54 @@ R.check(
     _cf_fl._flow_bias.samples == 1,
     f"flow-bias samples {_cf_fl._flow_bias.samples}",
 )
+# R10-COP-GATE part 5 (C): the duty gate reads the interval's attribution,
+# not the commanded split. A switch-back window -- 0.45 h hot water, then
+# 0.05 h space, under a space-only plan -- ran the supply at the tank's charge
+# temperature; the all-space window and the no-dwell plan (above) still fold.
+from heatpump_optimizer import heat_energy as _cf_he  # noqa: E402
+
+
+def _cf_fl_window(dhw_h, space_h):
+    coord = _cf_coord()
+    _cf_learn(coord, 2.2)
+    coord._flow_bias.observe_temps(35.0, 30.0)
+    meter = _cf_he.meter_of(coord)
+    start = _T6 - timedelta(hours=dhw_h + space_h)
+    meter.cycle = (start, _T6)
+    meter.dwell.segments = [
+        *([_cf_he.Segment(start, _cf_he.DHW)] if dhw_h else []),
+        _cf_he.Segment(_T6 - timedelta(hours=space_h), _cf_he.SPACE),
+    ]
+    _fold_flow_lift(coord, _T6)
+    return coord._commanded_split(), meter.attribution(coord._commanded_split()), coord._flow_bias.samples
+
+
+_cf_sw, _cf_all = _cf_fl_window(0.45, 0.05), _cf_fl_window(0.0, 0.5)
+R.check(
+    "a hot-water-dominant window under a space plan folds no flow-bias "
+    "sample; an all-space window folds one (null)",
+    _cf_sw[0][1] == 0.0 and _cf_sw[1].observed and _cf_sw[2] == 0 and _cf_all[2] == 1,
+    f"switch-back {_cf_sw} / all-space {_cf_all}",
+)
+# Both of the gate's bounds at equality, through the real dwell. A window of
+# exactly 1e-6 h (3.6 ms) is the "no weight" bound and folds nothing; 2e-6 h
+# folds (null). A hot-water share of exactly _COP_CURVE_SHARE (0.15 h of 1 h)
+# is still the space curve's duty and folds; 0.16 h does not (null).
+_cf_w0, _cf_w1 = _cf_fl_window(0.0, 1e-6), _cf_fl_window(0.0, 2e-6)
+R.check(
+    "the flow-lift gate's no-weight bound is inclusive: a 1e-6 h window "
+    "folds nothing, a 2e-6 h window folds one (null)",
+    _cf_w0[1].space + _cf_w0[1].dhw == 1e-6 and _cf_w0[2] == 0 and _cf_w1[2] == 1,
+    f"1e-6 h {_cf_w0} / 2e-6 h {_cf_w1}",
+)
+_cf_s15, _cf_s16 = _cf_fl_window(0.15, 0.85), _cf_fl_window(0.16, 0.84)
+R.check(
+    "a hot-water share exactly at the curve share still folds; just above "
+    "it does not (null)",
+    _cf_he.dhw_share(_cf_s15[1]) == Coord._COP_CURVE_SHARE
+    and _cf_s15[2] == 1 and _cf_s16[2] == 0,
+    f"0.15 {_cf_s15} / 0.16 {_cf_s16}",
+)
 
 # The refusal is published where Home Assistant does not hide it: the
 # observed-COP sensor is unavailable exactly while this is the explanation,
@@ -67395,7 +67446,7 @@ R.check(
     f"{_cf_diag._coordinator_snapshot(_cf_ref).get('cop_learner')}",
 )
 _cf_frz = _cf_coord()
-_cf_frz._learning_frozen = lambda *entities: "stale_inputs"
+_cf_frz._learning_frozen = lambda *entities, **_kw: "stale_inputs"
 _cf_learn(_cf_frz, 2.2)
 _cf_none = _cf_coord()
 _cf_none._measured_power = None
@@ -72199,6 +72250,104 @@ R.check(
 )
 
 
+# R10-HOTFIX-AWAY-LIVE (tvofi, 2026-10-30): the away override was on disk and
+# not in the plan. Each path that carries it, through the production coordinator:
+# a resolve that runs before the restore lands, and a reload whose handover was
+# published before the switch's own solve could (an options save cancels it).
+_al_disk: dict = {}
+
+
+async def _al_load(store, what):
+    return dict(_al_disk) if "away" in what else None
+
+
+async def _al_save(coord, state):
+    _al_disk.update(away_mode._override_payload(state))
+
+
+async def _al_noop(*args, **kwargs):
+    return None
+
+
+def _al_coord(hass, **kwargs):
+    """A coordinator over the restore-only hass, its setup reads stubbed out."""
+    coord = Coord(hass, _LsEntry(data={
+        "tibber_token": "x", "weather_entity": "weather.home", "away_temperature": 15.0}), **kwargs)
+    for name in ("_update_current_state", "_fetch_tibber_prices", "_fetch_weather_forecast",
+                 "_fetch_solar_forecast", "_async_learn_price_shape"):
+        setattr(coord, name, _al_noop)
+    return coord
+
+
+def _al_bands(coord):
+    """The comfort day band and floor the solve plans with, and away_active."""
+    cfg = coord._solve_hubs(8, banded=True)[0]
+    return cfg.comfort_temp_day, cfg.min_temp, coord._away_state.active
+
+
+async def _al_reload(switch):
+    """The last publish, the switch or not, a reload: the first publish and solve."""
+    _al_disk.clear()
+    _al_disk.update(away_mode.empty_override(), migrated_helpers=True)
+    hass = _LsRestoreHass()
+    old = _al_coord(hass)
+    await hass.restores[0]
+    published = old._build_data_dict()
+    published["last_optimization"] = dt_util.now() - timedelta(minutes=14)
+    if switch:
+        await old.async_set_away(active=True, return_time=(
+            dt_util.now() + timedelta(hours=24)).isoformat(), refresh=False)
+    new = _al_coord(hass, skip_first_solve=True, reload_handover=published)
+    first = await new._async_update_data()
+    await new._resolve_away()
+    return (first is published, first.get("away_override_active"), _al_bands(new),
+            new._opt_config.comfort_temp_day)
+
+
+async def _al_resolve_first(return_in_h):
+    """A stored override, and a resolve before the restore's task has run a step."""
+    _al_disk.clear()
+    _al_disk.update(active=True, migrated_helpers=True, return_time=(
+        dt_util.now() + timedelta(hours=return_in_h)).isoformat())
+    coord = _al_coord(_LsRestoreHass())
+    await coord._resolve_away()
+    return _al_bands(coord), coord._away_state.override_active
+
+
+_al_saved = (away_mode.load_mapping, away_mode.persist_override)
+away_mode.load_mapping, away_mode.persist_override = _al_load, _al_save
+try:
+    _al_on, _al_off = _ls_aio.run(_al_reload(True)), _ls_aio.run(_al_reload(False))
+    _al_first, _al_lapsed = _ls_aio.run(_al_resolve_first(24.0)), _ls_aio.run(_al_resolve_first(-1.0))
+finally:
+    away_mode.load_mapping, away_mode.persist_override = _al_saved
+R.check(
+    "R10-HOTFIX-AWAY-LIVE a reload after the away switch, before its solve "
+    "published, drops the home handover: the first publish carries the restored "
+    "override and the first solve plans the away band",
+    not _al_on[0] and _al_on[1] is True and _al_on[2][0] == 15.0 and _al_on[2][2] is True,
+    str(_al_on),
+)
+R.check(
+    "R10-HOTFIX-AWAY-LIVE null control: with the store inactive the handover is "
+    "republished and the solve keeps the configured band",
+    _al_off[0] and not _al_off[1] and _al_off[2][0] == _al_off[3] and _al_off[2][2] is False,
+    str(_al_off),
+)
+R.check(
+    "R10-HOTFIX-AWAY-LIVE a resolve run before the session restore lands waits "
+    "for it, and plans the stored override's away band",
+    _al_first[0][0] == 15.0 and _al_first[0][2] is True and _al_first[1] is True,
+    str(_al_first),
+)
+R.check(
+    "R10-HOTFIX-AWAY-LIVE a stored override whose return has passed still "
+    "expires at the resolve: home band, override off",
+    _al_lapsed[0][2] is False and _al_lapsed[1] is False and _al_lapsed[0][0] != 15.0,
+    str(_al_lapsed),
+)
+
+
 class _LsPlanStore:
     """A manual-plan store whose load is held on an event; its read future
     is registered on the load's first step, as ``QuarantiningStore`` does."""
@@ -72676,6 +72825,156 @@ R.check(
     "than falling back to the commanded inference (null control: a fresh one folds)",
     _tp_cop_stale == _TP_FROZEN and _tp_cop_fresh != _TP_FROZEN,
     f"stale {_tp_cop_stale!r} fresh {_tp_cop_fresh!r}",
+)
+
+
+# --- R10-COP-GATE item E: the open-window latch freezes only room-air learners --
+# ``_learning_frozen(room_air=False)`` skips the ventilation reason alone. The
+# measured-heat COP paths (a counter span, a measured flow heat) and hot water
+# lift; the inferred COP, the flow-curve bias and every room-air learner keep
+# the freeze (dev/audit/harnesses/r10_cop_gate_vent.py measures each arm).
+from heatpump_optimizer import coordinator as _cv_cm  # noqa: E402
+from heatpump_optimizer import draw_range as _cv_dr  # noqa: E402
+from heatpump_optimizer import heat_energy as _cv_he  # noqa: E402
+from heatpump_optimizer import sysid as _cv_sysid  # noqa: E402
+from heatpump_optimizer.accuracy import COP_REFUSED_SPAN_OPEN as _CV_OPEN  # noqa: E402
+
+
+def _cv_cop(latch, *, counter=False, heat_kw=None, heat_age_min=None):
+    """One COP fold on the real coordinator: (refusal, samples folded).
+
+    ``heat_age_min`` plants a thermal-power entity and reads it through the
+    cycle's own ``observe_water``; otherwise ``heat_kw`` is the flow heat."""
+    c = _t2_coord(heat_pump_power_entity="sensor.hp_power",
+                  **({_TP_KEY: "sensor.heat"} if heat_age_min is not None else {}))
+    c._vent_cusum.tripped = latch
+    if counter:
+        _cv_he.meter_of(c).counter = True
+    if heat_age_min is not None:
+        c.hass.states.set("sensor.heat", FakeState(
+            "6000", last_updated=minutes_ago(heat_age_min + 3, NOW),
+            last_reported=minutes_ago(heat_age_min, NOW), unit="W"))
+        reader = _fmReader(c.hass, c.effective_config, now=lambda: NOW)
+        _fm.observe_water(c._flow_bias, reader, c.effective_config)
+        c._input_health = reader.health
+    else:
+        c._flow_bias.heat_output_kw = heat_kw
+    c._measured_power = 2.0
+    c._current_action = {"power": 2.0}
+    c._current_state.outdoor_temperature = 8.0
+    before = c._cop_samples
+    c._learn_measured_cop()
+    return c._measured_cop.refusal, c._cop_samples - before
+
+
+_cv_counter, _cv_counter0 = _cv_cop(True, counter=True), _cv_cop(False, counter=True)
+R.check(
+    "R10-COP-GATE E: under the window latch a heat-counter install reaches the span "
+    "gate rather than the freeze (null control: latch clear reads the same)",
+    _cv_counter[0] == _CV_OPEN and _cv_counter0[0] == _CV_OPEN,
+    f"latch {_cv_counter!r} clear {_cv_counter0!r}",
+)
+_cv_flow, _cv_flow0 = _cv_cop(True, heat_kw=6.0), _cv_cop(False, heat_kw=6.0)
+R.check(
+    "R10-COP-GATE E: under the window latch a measured flow heat folds its COP "
+    "(null control: latch clear folds too)",
+    _cv_flow == (None, 1) and _cv_flow0 == (None, 1),
+    f"latch {_cv_flow!r} clear {_cv_flow0!r}",
+)
+_cv_stale, _cv_fresh = _cv_cop(True, heat_age_min=45), _cv_cop(True, heat_age_min=1)
+R.check(
+    "R10-COP-GATE E: a stale thermal-power entity read through observe_water still "
+    "freezes the COP fold under the latch (null control: a fresh one folds)",
+    _cv_stale == (_TP_FROZEN, 0) and _cv_fresh == (None, 1),
+    f"stale {_cv_stale!r} fresh {_cv_fresh!r}",
+)
+_cv_inf, _cv_inf0 = _cv_cop(True), _cv_cop(False)
+R.check(
+    "R10-COP-GATE E: an inferred COP (no heat reading) stays frozen under the "
+    "window latch (null control: latch clear passes the freeze)",
+    _cv_inf == (_TP_FROZEN, 0) and _cv_inf0[0] != _TP_FROZEN,
+    f"latch {_cv_inf!r} clear {_cv_inf0!r}",
+)
+
+
+def _cv_dhw(latch):
+    """(probe value, the learner's freeze reason) on a configured tank."""
+    c = _t2_coord(dhw_temp_entity="sensor.tank")
+    c._vent_cusum.tripped = latch
+    c._dhw_temperature = 55.0
+    learner = c._dhw_learner
+
+    async def learn():
+        await learner.async_learn_dynamics(50.0)
+        learner.last_sample_time = dt_util.now() - timedelta(minutes=30)
+        return await learner.async_learn_dynamics(49.8)
+
+    return c._dhw_probe_temperature(), _asyncio.run(learn())
+
+
+_cv_dhw1, _cv_dhw0 = _cv_dhw(True), _cv_dhw(False)
+R.check(
+    "R10-COP-GATE E: hot water learns and the probe answers under the window latch "
+    "(null control: latch clear reads the same)",
+    _cv_dhw1 == (55.0, None) and _cv_dhw0 == (55.0, None),
+    f"latch {_cv_dhw1!r} clear {_cv_dhw0!r}",
+)
+
+
+def _cv_room_air(latch):
+    """What each learner the latch must still freeze does with it set."""
+    out = {}
+    b = _t2_coord(buffer_tank_temp_entity="sensor.buffer")
+    b._vent_cusum.tripped = latch
+    b._learner_freeze_reason = None
+    _asyncio.run(b._async_learn_buffer_cooling(40.0))
+    out["buffer"] = b._learner_freeze_reason
+    d = _t2_coord(heat_pump_power_entity="sensor.hp_power")
+    d._vent_cusum.tripped = latch
+    d._measured_power = 2.0
+    d._pending_prediction = {"when": dt_util.now() - timedelta(minutes=30), "power": 2.0,
+                             "price": None, "predicted_temp": None, "outdoor": None,
+                             "split": (2.0, 0.0)}
+    seen, real = [], _cv_dr.fold
+    _cv_dr.fold = lambda *a, **k: seen.append(k["frozen"])
+    try:
+        d._record_accuracy()
+    finally:
+        _cv_dr.fold = real
+    out["draw_frozen"] = seen
+    s = _t2_coord()
+    s._vent_cusum.tripped = latch
+    s._sysid.phase = _cv_sysid.PHASE_STEP
+    _asyncio.run(s._run_system_identification(np.full(48, 1.0)))
+    out["sysid"] = getattr(s._sysid.result, "reason", None)
+    for name, method, kw in (("house", _HOUSE_LEARNER, {}), ("lower", _LOWER_LEARNER, {"two_zone": True})):
+        h = _t2_house(**kw)
+        h._vent_cusum.tripped = latch
+        before = (h._house_heat_loss_samples, h._thermal_params)
+        _t2_drive(h, method)
+        out[name] = (h._learner_freeze_reason, (h._house_heat_loss_samples, h._thermal_params) == before)
+    f = _t2_coord()
+    f._vent_cusum.tripped = latch
+    f._current_action = {"power": 2.0, "dhw_power": 0.0}
+    f._current_state.outdoor_temperature = -10.0
+    f._flow_bias.observe_temps(30.0, 25.0)
+    before = f._flow_bias.samples
+    _cv_cm._fold_flow_lift(f, dt_util.now())
+    out["flow_bias_folds"] = f._flow_bias.samples - before
+    return out
+
+
+_cv_ra1, _cv_ra0 = _cv_room_air(True), _cv_room_air(False)
+R.check(
+    "R10-COP-GATE E: the buffer, draw range, system identification, house and lower "
+    "floor still freeze on the window latch, and the flow-curve bias takes no sample "
+    "(null control: latch clear, the bias folds and nothing reads ventilation)",
+    _cv_ra1 == {"buffer": "ventilation", "draw_frozen": [True], "sysid": "ventilation",
+                "house": ("ventilation", True), "lower": ("ventilation", True),
+                "flow_bias_folds": 0}
+    and _cv_ra0["flow_bias_folds"] == 1 and _cv_ra0["draw_frozen"] == [False]
+    and "ventilation" not in repr(_cv_ra0),
+    f"latch {_cv_ra1!r} clear {_cv_ra0!r}",
 )
 
 
@@ -73834,7 +74133,7 @@ def _he_heartbeat(reasons):
     c = _t2_coord()
     c._snapshots_loaded = True
     feed = iter(reasons)
-    c._learning_frozen = lambda *keys: next(feed)
+    c._learning_frozen = lambda *keys, **_kw: next(feed)
     saves = []
 
     async def _save():
