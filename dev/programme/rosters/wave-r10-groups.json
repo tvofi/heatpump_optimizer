@@ -9529,7 +9529,8 @@
    ],
    "resume": {
     "stage": "not-started",
-    "branch": "handoff/r10-replay-real-day"
+    "branch": "handoff/r10-replay-real-day",
+    "next_step": "owner step: run the export for 2026-10-30 on the HA box (command in the day-choice carry), then dispatch the fixer with the exported file"
    },
    "brief": "#2272's headline item, a real recorded day as a replay fixture gated nightly, never landed: R10-REPLAY-LANE (#2514) and R10-REPLAY-CAP (#2548) delivered the ruler and the budget only. Owner step first: the export is run on the owner's box (the first carry has the command); the fixer commits it only after R10-DIAG-REDACT's redaction holds on the exported document, because a real day is owner data. Record its cost budget from at least two runner classes, never one environment (the #2548 carry R10-REPLAY-LANE recorded). Closes #2272."
   },
