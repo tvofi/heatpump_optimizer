@@ -4320,12 +4320,20 @@ def check_surface_coverage() -> None:
 # than" needs the "is/are" before it, so "snaps back to now rather than show a past" stays a statement; its gap
 # admits a decimal point ("now 1.0 rather than") and a wrapped line, never a sentence end. A literal
 # version (a minimum Home Assistant release, the fork's attribution) goes in STATELESS_EXEMPT with its reason.
+# Round 3 (fix review of #3048 at 6d24f3ac6): "previous/old" + a thing that changes between releases (behaviour,
+# default, version, form, layout, formula, name, id, suffix), "older" + an install or integration, and "silently" + a
+# past-tense verb. Bare "previous" and "old" stay out: "the previous day", "the previous answer" and "the old plan
+# stands" state what happens now, and "an older Home Assistant" / "older than three solve cycles" compare, not recount.
 _HISTORY = re.compile(r"(?i:\bnew in\b|\bsince (?:v\d|version\b|#\d)|\bpreviously\b|\bno longer\b|\bused to\b"
                       r"|\buntil v\d|\bas before\b|\brenamed from\b|\bround \d"
                       r"|\b(?:earlier|older)\s+(?:versions?|releases?)\b"
                       r"|\b(?:versions?|releases?)\s+(?:older|newer)\s+than\b"
                       r"|\bupgraded\s+from\b|\bthe\s+upgrade\b|\bbreaking\s+change\b"
-                      r"|\b(?:is|are)\s+now\b(?:[^.;\n]|\.\d|\n(?!\s*\n)){0,40}?\brather\s+than\b)"
+                      r"|\b(?:is|are)\s+now\b(?:[^.;\n]|\.\d|\n(?!\s*\n)){0,40}?\brather\s+than\b"
+                      r"|\b(?:previous|old)\s+(?:behaviou?rs?|defaults?|versions?|releases?|forms?|layouts?|formulas?"
+                      r"|names?|ids?|suffix(?:es)?)\b"
+                      r"|\bolder\s+(?:integrations?|setups?|installs?|installations?|registry|ids?|suffix(?:es)?)\b"
+                      r"|\bsilently\s+(?:evaluated|was|were|did|read|returned|gave)\b)"
                       r"|\bv\d+\.\d+|(?<![\w&])#\d{3,}\b|\bR\d+-"
                       r"|(?<![\w.])\d+\.\d+\.\d+\b")
 # `used to` in its purpose sense ("is used to size the tank", "Used to ..."), which states what a thing does now.
@@ -4388,10 +4396,15 @@ def check_stateless() -> None:
             not bad, "; ".join(bad[:4]) + (f" (+{len(bad) - 4})" if len(bad) > 4 else ""))
     for plant in ("This mode is new in v9.", "The card previously showed the price.",
                   "Earlier versions sized the dialog from a guess.", "Older releases kept the slab warm.",
-                  "It reads the old ids, for integration versions older than the move.",
+                  "It reads both ids, for integration versions older than the move.",
                   "An install upgraded from the first layout keeps its ids.",
                   "A learned derate survives the upgrade.", "Its upper clamp is now 1.0 rather than 1.05.",
-                  "The new floor was a breaking change.", "The card reads both ids before 2.6.1 too."):
+                  "The new floor was a breaking change.", "The card reads both ids before 2.6.1 too.",
+                  "The weather forecast, the previous behaviour and still the default.",
+                  "Installs that stored the previous default strings keep them.",
+                  "The card tries the old suffix after the current one.",
+                  "Older integrations publish none of them.", "An install that kept older registry ids is covered.",
+                  "The term silently evaluated to zero for many installs."):
         got = stateless_findings({"probe.md": f"# T\n\n{plant}\n"}, ())
         R.check(f"red fixture: {plant!r} is exactly one finding", len(got) == 1, repr(got))
     R.check("null control: the widened terms' current-behaviour neighbours (\"back to now rather than\", \"the older "
@@ -4399,6 +4412,13 @@ def check_stateless() -> None:
             not stateless_findings({"probe.md": "# T\n\nThe window snaps back to now rather than show a past. 60 keeps "
                                                 "the older hourly clock. If an upgrade seems to change nothing, reload. "
                                                 "From Home Assistant 2026.11 the derate floor is 0.55. Run `2.6.1`.\n"}, ()))
+    R.check("null control: bare \"previous\", \"old\" and \"older\" in their current sense (\"the previous answer\", "
+            "\"the previous one\", \"the old plan stands\", \"an older Home Assistant\", \"older than three solve cycles\", "
+            "\"silently keeping\") are not findings",
+            not stateless_findings({"probe.md": "# T\n\nRapid repeats return the previous answer, not the previous one. "
+                                                "The call refuses while the old plan stands. An older Home Assistant is "
+                                                "not offered updates. The plan is older than three solve cycles. It "
+                                                "refuses rather than silently keeping the old plan.\n"}, ()))
     R.check("null control: \"previous day\", a purpose-sense \"is used to\", \"Refused together\", a code span and "
             "a link anchor are not findings",
             not stateless_findings({"probe.md": "# T\n\nThe previous day's cost. The sensor is used to size the tank."
