@@ -814,6 +814,13 @@ jobs:
           bash tools/audit/seat/seat_venv.sh --self-test | tee "$RUNNER_TEMP/seat-venv-self-test.txt"
           grep -Eq '^seat_venv self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/seat-venv-self-test.txt"
 
+      - name: Show the gh call-log shim refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/gh_calls.py --self-test | tee "$RUNNER_TEMP/gh-calls-self-test.txt"
+          grep -Eq '^gh_calls self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/gh-calls-self-test.txt"
+
       - name: Show the cloud setup profile refusing its own fixtures
         if: ${{ !cancelled() }}
         run: |
