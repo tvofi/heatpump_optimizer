@@ -13264,6 +13264,47 @@
     "note": "orchestrator s9, 2026-10-31, slipped-proposal audit (tvofi request): re-routes P51 and P95 from R10-ORCH-BEATD (done at #2916, both unbuilt)"
    },
    "brief": "Two standing-seat contract edits that R10-ORCH-BEATD closed without building (done at #2916), re-routed under mandate 6329234399 on tvofi's request of 2026-10-31 (\"Any other slipped proposals?\"). Both are prose in the same four contracts, dev/governance/roles/standing-tick.md, standing-merge.md, standing-dispatch.md and standing-roster.md, so one group and one pull request. (1) A Wait paragraph in each contract (triage: dev/programme/triage/s6-batch2.md#P51). (2) A Reads line in each contract naming the cwd-safe instrument for every read the seat makes (triage: dev/programme/triage/s6-batch20.md#P95). The two carries appended to this group carry the full text, controls and basis. These are policy files: the pull request merges on tvofi's approving review or under the mandate. R10-FLY-TRAIN-DEFAULTS also edits dev/governance/roles/standing-merge.md (line 9, the flag list); the hunks are distinct, so merge main before building and keep that group's wording."
+  },
+  {
+   "group": "R10-FLY-RELAY-DELIVERED-GUARD",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "instrument",
+   "severity": "medium",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 1,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "sonnet",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "sonnet",
+   "reviewerModel": "sonnet",
+   "after": [],
+   "files": [
+    "tools/audit/seat/cloud_relay.sh"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-fly-relay-delivered-guard",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer (RCA countermeasure, measured)",
+    "note": "RCA of the 2026-10-31 review-ref rewrite storm"
+   },
+   "brief": "Root-cause countermeasure (RCA by orchestrator s9, 2026-10-31; out-of-tree RCA at the orchestrator's seat-rca-reviewrefs, which this group lands under the dev/audit/rca/ directory as a new R10-RELAY-REPLAY note). Defect: cloud_relay.sh relay() pushes a probe/rev-* verdict to review/<pr> whenever the probe is missing from its ledger, and never asks whether review/<pr> already carries that verdict. A loop restarted without HPO_STATE_DIR read the stale default ledger and replayed 93 probes as 92 commits on 56 review refs, 53 on closed PRs. Process state (c). Countermeasure: in relay(), if review/<pr> already has a commit with the probe's tree, record the probe in the ledger and push nothing, so correctness does not depend on which ledger is read. Also print the resolved state dir and ledger path once per pass. Controls: replay origin as at 14:09Z with an empty ledger; main's relay pushes 93 of 93, the guard pushes 2 (3006 and 3043, the only new verdicts: null control). Self-test arms: a delivered tree is skipped; a new tree is pushed; the guard does not fail open under pipefail (an early awk exit broke the pipe in the RCA's first version). The 'committed after the probe' condition has no historical case: add a synthetic one or drop the condition. Land the RCA document and cite it in bugclasses.json rca if the class exists."
   }
  ]
 }
