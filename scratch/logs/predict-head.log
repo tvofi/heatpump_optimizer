@@ -1,0 +1,27 @@
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/thermal_model.py:1677 CMP_BOUND: return 0.04 if c_buf < 1e-6 else c_buf
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/thermal_model.py:1677 RETURN_DEL: return 0.04 if c_buf < 1e-6 else c_buf
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/thermal_model.py:1719 CLAMP_DROP: * np.maximum(0.0, T_buf - floor_temp)
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/thermal_model.py:1720 CLAMP_DROP: / max(dt_hours, 1e-6)
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/thermal_model.py:1722 CLAMP_DROP*2: return np.minimum(drawn, np.maximum(available, 0.0))
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/thermal_model.py:1722 RETURN_DEL: return np.minimum(drawn, np.maximum(available, 0.0))
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/thermal_model.py:1744 CLAMP_DROP*2: drawn = np.maximum(0.0, ua * (np.minimum(T_buf, flow_set) - 
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/thermal_model.py:1749 CLAMP_DROP*2: dT_cap = np.maximum(0.0, p.buffer_max_temp - T_buf) / max(dt
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/thermal_model.py:1750 CLAMP_DROP: refused = np.maximum(0.0, dT_buf - dT_cap) * c_buf
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/thermal_model.py:1751 CLAMP_DROP: return q_slab, np.minimum(dT_buf, dT_cap), refused
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/thermal_model.py:1751 RETURN_DEL: return q_slab, np.minimum(dT_buf, dT_cap), refused
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/thermal_model.py:1788 GUARD_OFF: if valve_target is not None:
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/thermal_model.py:1841 GUARD_OFF: if two_tank:
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/thermal_model.py:1885 RETURN_DEL: return q_rad_from_buf, q_floor_from_buf, wood_draw, q_wood_l
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/thermal_model.py:3007 GUARD_OFF: if throttled or cop is None:
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/thermal_model.py:3049 GUARD_OFF: if throttled:
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/thermal_model.py:3484 CMP_BOUND: if c_buf < 1e-6:
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/thermal_model.py:3484 GUARD_OFF: if c_buf < 1e-6:
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/thermal_model.py:3509 GUARD_OFF: if ua_valve is None:
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/thermal_model.py:3514 GUARD_OFF: if c_buf is None:
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/thermal_model.py:3516 CMP_BOUND: if c_buf < 1e-6:
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/thermal_model.py:3516 GUARD_OFF: if c_buf < 1e-6:
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/thermal_model.py:3798 BOOLOP: if throttled and not p.two_zone_enabled
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/thermal_model.py:3914 CLAMP_DROP: * np.maximum(0.0, T_buf - floor_temp)
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/thermal_model.py:3991 GUARD_OFF: if throttled:
+CI PREDICT: 25 unpinned site(s) the diff adds -- a warning; the body owes each a line under ## Unpinned sites
+CI PREDICT: no closures, fast, wave-script or instrument red predicted against 67178dc6a589 (a data-file read is not seen)

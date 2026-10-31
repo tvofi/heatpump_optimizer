@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/replay_doc.py:conf_keys BOOLOP 966d63b2",
+  "killed_by": "tests/debug_collect.py",
+  "old": "                     if name.startswith(\"CONF_\") and isinstance(value, str))",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 3fb386d5044e4ca10b5f30c1c6f380139d5ad3e8: BOOLOP (`if name.startswith(\"CONF_\") or isinstance(value, str))`) took tests/debug_collect.py from rc=0 failed=0 to rc=1 failed=1."
+}

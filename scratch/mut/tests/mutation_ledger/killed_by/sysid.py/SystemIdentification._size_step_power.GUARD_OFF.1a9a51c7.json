@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sysid.py:SystemIdentification._size_step_power GUARD_OFF 1a9a51c7",
+  "killed_by": "tests/features.py",
+  "old": "                if not grid:",
+  "reason": "R9 F4.1 fix review, re-pinned by hand after the two-bound loop moved these lines: GUARD_OFF (`if False:`) applied at the inventory site in a copy of code head 9b4da586, then tests/features.py run whole beside an unmutated copy of the same tree (1 failed, `recorded_at` #363, which fails in any copy that is not the repository): the run dies on an uncaught IndexError (`grid[-1]` of an empty grid under the headroom bound), a kill on a red run whatever its class. Replaces 628a84e5, the same guard one indent shallower."
+}

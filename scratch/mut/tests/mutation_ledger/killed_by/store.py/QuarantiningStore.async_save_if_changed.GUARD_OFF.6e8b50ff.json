@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/store.py:QuarantiningStore.async_save_if_changed GUARD_OFF 6e8b50ff",
+  "killed_by": "tests/finite_boundary.py",
+  "old": "        if digest == self._digest:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 9a1ce39c3e901c814fceb015f09eec75f1a5ef5f: GUARD_OFF (`if False:`) took tests/finite_boundary.py from rc=0 failed=0 to rc=1 failed=1."
+}

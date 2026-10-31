@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/ledger.py:_leaf GUARD_OFF 9a0a59f0",
+  "killed_by": "tests/features.py",
+  "old": "    if not math.isfinite(value):",
+  "reason": "R8-P1 (#1518): `if False:` lets a NaN amount reached directly through from_dict load, so the #1518 check's NaN case keeps the month and tests/features.py goes from rc=0 failed=0 to rc=1 failed=1. The store boundary scrubs a NaN read from disk to None first, which is why tests/finite_boundary.py does not see this one. Measured on fix/r8-p1 at d6facdb4 (merge base 407e9ade), 2026-09-24, with tests/mutation_table.py's clone_tree, run_script and killed(); baseline rc=0 failed=0."
+}

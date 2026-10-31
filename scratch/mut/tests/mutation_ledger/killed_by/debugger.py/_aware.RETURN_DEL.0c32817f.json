@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/debugger.py:_aware RETURN_DEL 0c32817f",
+  "killed_by": "tests/debug_collect.py",
+  "old": "    return None if when is None else when.isoformat()",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against fc76a05577985c92574e4d42433f61192efe47f4: RETURN_DEL (`pass`) took tests/debug_collect.py from rc=0 failed=0 to rc=1 failed=4."
+}

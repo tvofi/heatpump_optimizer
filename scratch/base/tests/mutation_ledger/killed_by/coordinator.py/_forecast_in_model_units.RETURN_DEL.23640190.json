@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_forecast_in_model_units RETURN_DEL 23640190",
+  "killed_by": "tests/features.py",
+  "old": "    return rows",
+  "reason": "#1513 (R8-P8) round 2: RETURN_DEL on the inlet reader or the weather temperature_unit conversion. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 4 failed, among them `the fabricated fallback forecast exists and is stale from birth`; `a degF weather entity's forecast is planned in degC (50 degF is 10 degC)`. Measured at 64cdb76b, 2026-09-24."
+}

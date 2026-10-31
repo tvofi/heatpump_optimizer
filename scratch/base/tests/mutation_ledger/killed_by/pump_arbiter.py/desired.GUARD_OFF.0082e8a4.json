@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:desired GUARD_OFF 0082e8a4",
+  "killed_by": "tests/features.py",
+  "old": "    if _flow_unit(inp.config):",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against cbb8a2712fef67b4719309fa01396706e66148bc: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2. Re-measured on a git-archive export of 13a82a9d, 2026-10-05: 3 of 3698 feature checks fail, against the export baseline's two artefacts (#363 recorded_at, R9-F2.1 P3). Re-keyed by R9-EG-B6 (#1739): the collaborator-interface rename made the line `    if _flow_unit(coord._config):` into `    if _flow_unit(inp.config):`."
+}

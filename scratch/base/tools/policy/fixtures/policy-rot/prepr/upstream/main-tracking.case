@@ -1,0 +1,23 @@
+# THE #694 REVIEW BLOCK, AND THE ONLY FIXTURE HERE WHOSE TWO ASSERTIONS DISAGREE
+# ABOUT WHICH REF IS MEANT. `git checkout -b w5-g3-tail origin/main` with
+# `branch.autoSetupMerge` unset -- git's own default -- sets
+# `branch.w5-g3-tail.merge = refs/heads/main`, so `@{u}` names `origin/main`
+# and NOT this branch's own remote branch. A check reading `@{u}` counts main's
+# own new commits as `behind` and REFUSES a branch with nothing wrong with it,
+# saying "no push makes `## Head` the pull request's head" -- which is false
+# there, because the pull request's head ref is `refs/heads/w5-g3-tail` and a
+# push to it is exactly the repair.
+#
+# HOW TO FIND THIS CONFIGURATION, rather than a count that decays the moment a
+# seat pushes with `-u`: `git config --get branch.<name>.merge` not equal to
+# `refs/heads/<name>`. It was live in the fixer's clone when this was written,
+# on a branch a seat was running in at that moment.
+#
+# `@{u}` is not among the fields below, and removing it from the input set is
+# the whole repair: the compared ref is a function of the branch's name and its
+# remote. So this branch is compared against `origin/w5-g3-tail`, which is 2
+# commits behind HEAD -- the WARN arm -- while `@{u}` would have made it 1
+# behind and 1 ahead, which is the refusing arm.
+#
+# <branch or -> <remote or -> <own-remote-ref sha or -> <behind> <ahead> <rc> <compared ref or -> <text>
+w5-g3-tail origin 9f8e7d6c5b4a392817065f4e3d2c1b0a98765432 0 2 4 origin/w5-g3-tail a branch tracking main is compared against its own remote branch, not @{u}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/debugger.py:download_bytes RETURN_DEL 74c13f7a",
+  "killed_by": "tests/debug_collect.py",
+  "old": "    return len(json.dumps({\"data\": {\"debug\": bundle}}, indent=2, default=_wire).encode())",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 2d8cab3f75ddc8c2e42877092cd14bd1ffb01d38: RETURN_DEL (`pass`) took tests/debug_collect.py from rc=0 failed=0 to rc=1 failed=1."
+}

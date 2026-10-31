@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_learning.py:DhwProfileLearner.async_load_profile CLAMP_DROP b11d304f",
+  "killed_by": "tests/features.py",
+  "old": "            self.cooling_samples = max(0, int(stored.get(\"cooling_samples\", 0)))",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against a15e3e33507bde9e566858ce32b2ded840edfa02: CLAMP_DROP (`self.cooling_samples = (0)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

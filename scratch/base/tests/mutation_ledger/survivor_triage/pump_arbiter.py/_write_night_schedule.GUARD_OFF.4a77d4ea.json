@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_write_night_schedule GUARD_OFF 4a77d4ea",
+  "old": "    if (start_h, start_m) == (end_h, end_m):",
+  "reason": "The start==end early return is unreachable: `_write_night_schedule` only runs after `next_gchv_window` returns a pair, and `quiet_windows._gchv_days('10:00-10:00')` is None so that pair is never (start, start). GUARD_OFF and the original both fall through to the four writes of a real window.",
+  "verdict": "equivalent"
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._apply_learner_payloads GUARD_OFF a4e51f44",
+  "killed_by": "tests/features.py",
+  "old": "            if (tracker := getattr(self, \"_accuracy\", None)) is not None: tracker.restart_evidence(dt_util.now())  # #1936",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 0e8e22c69fef5a54bf2a4b2b7aee9df724dac88e: GUARD_OFF (`if False: tracker.restart_evidence(dt_util.now())  # #1936`) took tests/features.py from rc=0 failed=0 to rc=1 failed=8."
+}

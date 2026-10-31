@@ -1,0 +1,25 @@
+{
+  "_comment": [
+    "Carry destination for R9-EG-A3 (#1776, parameter objects), from R9-EG-B1 (#1736, the per-solve record).",
+    "The round-9 roster's R9-EG-A3 group brief on handoff/audit-r9-fixplan states the baseline this carry corrects; the roster is not on main,",
+    "so this file is the in-tree destination. While the two disagree the newer one is right: this one. Shape: .claude/rules/finding-propagation.md."
+  ],
+  "issue": 1776,
+  "stage": "R9-EG-A3",
+  "carries": [
+    {
+      "from": "the pull request for R9-EG-B1 (#1736), which moved HeatPumpOptimizer.optimize onto the keyword-only SolveInputs record",
+      "effect": "narrows",
+      "control": "Measured with the in-tree score, python3 tools/audit/archscore/score.py --diff 9fed34071 at the EG-B1 head: params_over_10 28 -> 27, the only function over ten parameters whose arguments were the solve's inputs being optimize. The score's own null control is a tree against itself, which tests/arch_score_head.py pins as NULL.",
+      "remeasure": "Do not trust the figure: re-run the score at your own merge base, and list the functions over ten parameters with the counting rule metrics/footprint.params_over_10 uses.",
+      "brief": "The brief's 'about 22 after EG-B1' baseline is not what EG-B1 delivered: the count after it is 27. What remains are model, planner, tariff and flow internals (the physics steps, the DHW planner's helpers, _build_result, _tighten_buffer_caps, _repair_throttled_buffer_caps, the peak cost functions), whose arguments are not the solve's inputs, so EG-A3's parameter objects are its own work and not a follow-on of the solve record. A target stated as a count must be re-derived from 27, and a split that only moves parameters into a pass-through object is red-team move 11, not progress."
+    },
+    {
+      "from": "this pull request (R9-EG-A3), which converted fifteen of the twenty-seven over-ten-parameter functions to frozen records",
+      "effect": "narrows",
+      "control": "Measured at the head with the counters on: python3 tools/audit/archscore/score.py --diff origin/main reads delta-S +1.1069 IMPROVES, params_over_10 27 -> 12, no other score metric moved. The census tests/arch_score_head.py refuses any new over-ten function that is not a dispositioned row in PARAMS_OVER_10_LEFT, and any row the guard no longer returns.",
+      "remeasure": "Re-run the census and the score at your own merge base; the guard's null control (B3c) must still RAISE the count on a tree split that decomposes nothing (measured 12 -> 16 at this head).",
+      "brief": "The tariff family (peak_cost, peak_cost_smooth, peak_cost_batch, _peak_charge -- 39 call sites) is the next params_over_10 family owed and is rowed in PARAMS_OVER_10_LEFT as such; a follow-on group converts it or re-rows it. R9-EG-A4's wave comparison owes this PR's measured delta-S (+1.1069, IMPROVES) beside its review verdict; the number lives in this PR's body and is re-derivable by the commands above."
+    }
+  ]
+}

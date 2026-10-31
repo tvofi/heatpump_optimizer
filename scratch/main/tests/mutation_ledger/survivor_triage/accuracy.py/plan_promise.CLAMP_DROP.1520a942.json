@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/accuracy.py:plan_promise CLAMP_DROP 1520a942",
+  "old": "    steps = min(int(round(PROMISE_SPAN_H / dt_h)), len(room) - 1, len(space), len(prices))",
+  "reason": "Survival measured by the CI pin chain at head 18a04ed62 (run 38090917611, shard drivers over the recorded net, ratchet base 6be88834): no driver killed it. Dropping the min keeps steps at the full day span; Python slicing then truncates each array to its own length, so a plan shorter than the day returns room/cost arrays of mismatched lengths where the clamp had aligned them. tests/features.py's UX-6 fixture passes arrays all exactly 96 long, where min(...) is the same value either way; no recorded driver solves a plan shorter than PROMISE_SPAN_H.",
+  "verdict": "gap"
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/config_flow.py:identity_update BOOLOP 58aac1a1",
+  "killed_by": "tests/entities.py",
+  "old": "    if held is not None and held is not entry:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 59c2543bdbc244ff4f1e99fffe358edd92060995: BOOLOP (`if held is not None or held is not entry:`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=2."
+}

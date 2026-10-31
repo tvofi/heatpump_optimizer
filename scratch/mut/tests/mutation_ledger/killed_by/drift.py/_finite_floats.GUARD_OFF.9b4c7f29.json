@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/drift.py:_finite_floats GUARD_OFF 9b4c7f29",
+  "killed_by": "tests/finite_boundary.py",
+  "old": "    if not isinstance(raw, list):",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against cb93535d88a9fcf7ba5a8eb0ec66d8be116e672b: GUARD_OFF (`if False:`) took tests/finite_boundary.py from rc=0 failed=0 to rc=1 failed=1."
+}

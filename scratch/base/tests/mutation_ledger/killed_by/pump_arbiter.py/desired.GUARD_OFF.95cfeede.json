@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:desired GUARD_OFF 95cfeede",
+  "killed_by": "tests/features.py",
+  "old": "    if _option_for(mode_state, pump_mode.MODE_DHW):",
+  "reason": "pump-duty arbiter revision; `if _option_for(mode_state, pump_mode.MODE_DHW):` -> `if False:` fails 11 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+}

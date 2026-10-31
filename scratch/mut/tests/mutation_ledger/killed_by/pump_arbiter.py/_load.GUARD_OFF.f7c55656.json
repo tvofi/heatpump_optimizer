@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_load GUARD_OFF f7c55656",
+  "killed_by": "tests/features.py",
+  "old": "    if raw is None:",
+  "reason": "pump-duty arbiter revision; `if not isinstance(raw, dict):` -> `if False:` crashes the arbiter section in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24. Re-keyed by R9-EG-A2 (#1874): the dict test moved into store.load_mapping, which returns None for anything else, so the guard is now `if raw is None:`. `-> if False:` driven through tests/features.py on an export of the branch, 2026-10-03, crashes the pump-duty arbiter section (AttributeError: 'NoneType' object has no attribute 'get' in _load); the unmutated export fails only the environment's R9-F2.1 P3 check."
+}

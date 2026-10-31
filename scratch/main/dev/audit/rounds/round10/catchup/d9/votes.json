@@ -1,0 +1,50 @@
+[
+ {
+  "id": "D9-s1-01",
+  "register_id": null,
+  "source": "audit-r10 B1@17f1c55fad1b dev/audit/rounds/round10/D9/s1/sse_grad.py; V2 catchup/d9/cont_fuse.py",
+  "claim": "Two-zone no-DHW continuation (move_starts) pays 288 SSE per gradient against the fused 97",
+  "vote": "weaken",
+  "v1_number": "exact reproduction: cont 44 grads, jac 192 sse/grad (96 rows + 96 scalar steps) + cont_fun 4224 (=96/grad); fuse -> 97/grad, cont_fun 0; total SSE 62121 -> 53717; main grads 489 both arms; cont CPU 218 -> 115 ms, capture 1489 -> 1360 ms (-8.7%) at load1 2.86, thread_factor 1.006/1.009",
+  "v2_number": "horizon-equivalents per optimize(): 51766 prod vs 51722 fused (delta 44 = 0.085%); scalar steps 10464 -> 2016 (-88 scalar horizons), rows 51657 -> 51701 (+44); scalar-step CPU 121 -> 23 ms; solve CPU 2532 -> 2374 ms, prod/fused 1.067 (median of 3 interleaved reps); plan bitwise identical; load1 13.12, thread_factor 1.000",
+  "v2_metric": "rows of simulate_trajectory_batch + scalar simulate_step calls / n_steps (one row = one full horizon), plus solve thread CPU, via HeatPumpOptimizer.optimize from golden.make, prod vs production _fused_value_and_gradient rewrite, interleaved",
+  "null_control": "no-continuation arms, same session, interleaved: winter_single_no_dhw and winter_two_zone_dhw -- fuse rewrites 0 calls, every count identical (SSE 2513=2513, 31610=31610; horizons 1658=1658, 30470=30470), plan identical, CPU prod/fused 1.005 and 0.996. Defect/null CPU ratio 1.067/1.00 (V2), 1.094 (V1 capture)",
+  "perturbation": "--perturb fuse: cont sse/grad 192(+96 fun) -> 97, total SSE 62121 -> 53717; V2 rewrite to jac=True: solve CPU 2532 -> 2374 ms, plan unchanged bitwise",
+  "attacks": "unit artefact: SSE counts a batch row (a whole 96-step horizon) as 1 but a scalar horizon as 96, so '288 vs 97' and '13.5-31% of total SSE' overstate the work ~100x; in horizons the excess is 98 vs 97 per gradient (+2 scalar horizons, -1 row). The real cost is CPU: the scalar horizons run ~20x a batched row (production comment at _fused_value_and_gradient), giving 6-9% of a two-zone no-DHW solve. Reach: two-zone with DHW off only (DHW scenarios rewrite 0). Fix is value-neutral (bitwise plan).",
+  "severity": "low",
+  "class": "bug (performance) / N-solve-recompute",
+  "notes": "The 13.5-31.1% grid shares should be restated as CPU shares; the horizon share is 0.085%. Numbers measured at origin/main d749c986d (production byte-identical)."
+ },
+ {
+  "id": "D9-s1-02",
+  "register_id": null,
+  "source": "audit-r10 B1@17f1c55fad1b dev/audit/rounds/round10/D9/s1/gil.py; V2/null catchup/d9/gil_null.py",
+  "claim": "_gil_yield's sleep(0) does not bound loop starvation by an in-process (executor-thread) solve; a 0.1 ms sleep cuts the max gap to ~30 ms",
+  "vote": "unresolved",
+  "v1_number": "gil.py separate invocations, load1 13.1-15.0, thread_factor 1.005-1.030: none winter_two_zone_dhw 83.9 ms / shoulder 65.6 ms (idle 7.0); noyield 25.9 / 13.9 ms (idle 9.9); realsleep 21.4 / 23.6 ms (idle 8.7) -- noyield LOWER than shipped, contradicting 'barely moves'",
+  "v2_number": "interleaved asyncio heartbeat, winter_two_zone_dhw, median max gap: run A (3 reps, load1 15.77, tf 1.011) idle 13.8, shipped 53.3, noyield 38.8, realsleep 46.9, process 5.6 ms; run B (5 reps, load1 11.30, tf 1.016) idle 6.6, shipped 40.6, noyield 81.3, realsleep 21.1, process 11.5 ms",
+  "v2_metric": "max/p99 gap of a 1 ms asyncio heartbeat on a real loop with a real ThreadPoolExecutor, all arms interleaved per rep in one process, median over reps",
+  "null_control": "idle (sleeping job in the pool) 6.6-13.8 ms and the same solve in a spawned worker process (shipped path shape) 5.6-11.5 ms, interleaved with the defect arm. Defect/null ratios: shipped/idle 3.86x and 6.13x, shipped/process 9.48x and 3.52x (asyncio runs only; --hb thread runs rejected, thread_factor 39.4 and 2.0)",
+  "perturbation": "noyield/shipped max gap 0.73x (A), 2.00x (B); realsleep/shipped 0.88x (A), 0.52x (B); finder claimed noyield ~1x and realsleep 124->29 ms (0.24x). Direction not stable across runs at load1 11-16",
+  "attacks": "null controls supplied: the in-process starvation itself is real and well separated from both nulls in every run (3.5-9.5x over process). The finding's specific claim -- that the sleep(0) yield is inert and a non-zero sleep fixes it -- rests only on timing and flips between runs (noyield 0.73x vs 2.00x of shipped); a timing-only result is unresolved per the contract. Reach: #511 fallback only; the shipped path runs a worker process, whose arm reads at the null floor.",
+  "severity": "low",
+  "class": "bug (P10), provisional",
+  "notes": "Needs a quiet-window re-take of the interleaved harness with >=5 reps before any vote either way on the yield. Not the round-8 D9-s1-02 (same id, different finding, refuted in round 8)."
+ },
+ {
+  "id": "D9-s3-01",
+  "register_id": null,
+  "source": "audit-r10 B3@17f1c55fad1b dev/audit/rounds/round10/D9/s3/gate_blind_2x.py",
+  "claim": "A 2x solve-CPU regression outside the three metered simulate seams trips no stress-gate verdict on 5 sweep scenarios",
+  "vote": "verify",
+  "v1_number": "--factor 2.0: flagged_solve_arm=0 of 5, solve CPU x1.973 median (1.91-2.32), counts 1.000x, kernel 0.97-1.16x; load1 22.44, thread_factor 1.000",
+  "v2_number": "not an independent harness: the arms below are the gate's own verdict functions; the per-scenario margin read from the same run: injected/budget = 0.69 (flat/1z), 0.64, 0.60, 0.73, 1.000 (winter/tariff+cycle 148.2 vs 148.17, did not fire)",
+  "v2_metric": "injected scenario ratio / (recorded table x SCENARIO_BUDGET_FACTOR)",
+  "null_control": "--factor 1.0 (solve arm): flagged 0 of 5, cpu ratio 1.035, load1 21.98, tf 1.000; --factor 1.0 --arm kernel: 0 of 5, ratio 1.006, load1 25.92, tf 1.000. Positive control --arm kernel at 2.0: flagged_kernel_arm=5 of 5 (kernel channel, kernel x1.93-2.08), load1 24.25, tf 1.000. Defect/null: 0/5 vs 0/5 flagged (the defect is indistinguishable from the null), positive control 5/5 vs its null 0/5; solve CPU defect/null 1.973/1.035 = 1.91",
+  "perturbation": "STRESS_SCENARIO_FACTOR=1.5: flagged_solve_arm 0 -> 5 of 5 (load1 21.26, tf 1.000); its null --factor 1.0 at 1.5: 0 of 5 (load1 18.32)",
+  "attacks": "null and positive controls executed in one session, ordered 2.0, 1.0, kernel, kernel-null; no full sweep run. One scenario (winter/tariff+cycle) sat at 1.000 of its budget under 2x at load1 22, so the 0-of-5 count is load-sensitive for that cell; the other four have 27-40% margin, so the blindness holds.",
+  "severity": "medium",
+  "class": "instrument (I1)",
+  "notes": "Calibration unit scales with load, so the budget ratio partly cancels contention; the margin figures are provisional."
+ }
+]

@@ -1,0 +1,224 @@
+{
+ "class": "N-move-stale-path",
+ "instances": 35,
+ "barriered": false,
+ "enumerator": "python3 -I dev/audit/rounds/round10/D14/sweep-N-move-stale-path/enumerate.py [ROOT]",
+ "instance_list": [
+  {
+   "file": "dev/audit/rounds/round4/D11/dora_keys.py",
+   "symbol": "import d11lib (line 89)",
+   "probe": "python3 -I dev/audit/rounds/round10/D14/sweep-N-move-stale-path/probe_import.py dev/audit/rounds/round4/D11/dora_keys.py 89 d11lib  # exits 1: STALE No module named 'd11lib'",
+   "beyond_finding": false
+  },
+  {
+   "file": "dev/audit/rounds/round4/D11/mechanism_inventory.py",
+   "symbol": "import d11lib (line 39)",
+   "probe": "python3 -I dev/audit/rounds/round10/D14/sweep-N-move-stale-path/probe_import.py dev/audit/rounds/round4/D11/mechanism_inventory.py 39 d11lib  # exits 1: STALE No module named 'd11lib'",
+   "beyond_finding": true
+  },
+  {
+   "file": "dev/audit/rounds/round4/D11/merge_census.py",
+   "symbol": "import d11lib (line 58)",
+   "probe": "python3 -I dev/audit/rounds/round10/D14/sweep-N-move-stale-path/probe_import.py dev/audit/rounds/round4/D11/merge_census.py 58 d11lib  # exits 1: STALE No module named 'd11lib'",
+   "beyond_finding": true
+  },
+  {
+   "file": "dev/audit/rounds/round4/D11/ruleset_probe.py",
+   "symbol": "import d11lib (line 42)",
+   "probe": "python3 -I dev/audit/rounds/round10/D14/sweep-N-move-stale-path/probe_import.py dev/audit/rounds/round4/D11/ruleset_probe.py 42 d11lib  # exits 1: STALE No module named 'd11lib'",
+   "beyond_finding": true
+  },
+  {
+   "file": "dev/audit/rounds/round4/D11/standards_scorecard.py",
+   "symbol": "import d11lib (line 47)",
+   "probe": "python3 -I dev/audit/rounds/round10/D14/sweep-N-move-stale-path/probe_import.py dev/audit/rounds/round4/D11/standards_scorecard.py 47 d11lib  # exits 1: STALE No module named 'd11lib'",
+   "beyond_finding": true
+  },
+  {
+   "file": "dev/audit/rounds/round4/D11/untrusted_text.py",
+   "symbol": "import d11lib (line 57)",
+   "probe": "python3 -I dev/audit/rounds/round10/D14/sweep-N-move-stale-path/probe_import.py dev/audit/rounds/round4/D11/untrusted_text.py 57 d11lib  # exits 1: STALE No module named 'd11lib'",
+   "beyond_finding": true
+  },
+  {
+   "file": "dev/audit/rounds/round4/D11/verdict_sample.py",
+   "symbol": "import d11lib (line 47)",
+   "probe": "python3 -I dev/audit/rounds/round10/D14/sweep-N-move-stale-path/probe_import.py dev/audit/rounds/round4/D11/verdict_sample.py 47 d11lib  # exits 1: STALE No module named 'd11lib'",
+   "beyond_finding": true
+  },
+  {
+   "file": "dev/audit/rounds/round9/D11/s2/owner_review.py",
+   "symbol": "import budget_raise_gate (line 24)",
+   "probe": "python3 -I dev/audit/rounds/round10/D14/sweep-N-move-stale-path/probe_import.py dev/audit/rounds/round9/D11/s2/owner_review.py 24 budget_raise_gate  # exits 1: STALE No module named 'budget_raise_gate'",
+   "beyond_finding": true
+  },
+  {
+   "file": "dev/audit/rounds/round3/D11/approval_gate.py",
+   "symbol": "path literal .claude/workflows/policy_lint.mjs (line 132)",
+   "probe": "test -e .claude/workflows/policy_lint.mjs  # exits 1 at repo root; consumer reads/executes it relative to ROOT",
+   "beyond_finding": true
+  },
+  {
+   "file": "dev/audit/rounds/round3/D11/approval_gate.py",
+   "symbol": "path literal .claude/workflows/policy_lint.mjs (line 150)",
+   "probe": "test -e .claude/workflows/policy_lint.mjs  # exits 1 at repo root; consumer reads/executes it relative to ROOT",
+   "beyond_finding": true
+  },
+  {
+   "file": "dev/audit/rounds/round3/D11/conformance.py",
+   "symbol": "path literal .claude/workflows/policy_lint.mjs (line 247)",
+   "probe": "test -e .claude/workflows/policy_lint.mjs  # exits 1 at repo root; consumer reads/executes it relative to ROOT",
+   "beyond_finding": true
+  },
+  {
+   "file": "dev/audit/rounds/round3/D11/mechanisms.py",
+   "symbol": "path literal .claude/workflows/policy_lint.mjs (line 71)",
+   "probe": "test -e .claude/workflows/policy_lint.mjs  # exits 1 at repo root; consumer reads/executes it relative to ROOT",
+   "beyond_finding": true
+  },
+  {
+   "file": "dev/audit/rounds/round3/D11/standards.py",
+   "symbol": "path literal .claude/workflows/policy_lint.mjs (line 231)",
+   "probe": "test -e .claude/workflows/policy_lint.mjs  # exits 1 at repo root; consumer reads/executes it relative to ROOT",
+   "beyond_finding": true
+  },
+  {
+   "file": "dev/audit/rounds/round4/D11/d11_own_D11-03.py",
+   "symbol": "path literal .claude/workflows/policy_lint.mjs (line 81)",
+   "probe": "test -e .claude/workflows/policy_lint.mjs  # exits 1 at repo root; consumer reads/executes it relative to ROOT",
+   "beyond_finding": true
+  },
+  {
+   "file": "dev/audit/rounds/round4/D11/d11_own_D11-04.py",
+   "symbol": "path literal docs/plan-2026-09-open-issues.md (line 114)",
+   "probe": "test -e docs/plan-2026-09-open-issues.md  # exits 1 at repo root; consumer reads/executes it relative to ROOT",
+   "beyond_finding": true
+  },
+  {
+   "file": "dev/audit/rounds/round4/D11/d11_own_D11-06.py",
+   "symbol": "path literal .claude/workflows/policy_lint.mjs (line 63)",
+   "probe": "test -e .claude/workflows/policy_lint.mjs  # exits 1 at repo root; consumer reads/executes it relative to ROOT",
+   "beyond_finding": true
+  },
+  {
+   "file": "dev/audit/rounds/round4/D11/d11_own_D11-06.py",
+   "symbol": "path literal .claude/workflows/policy_lint.mjs (line 72)",
+   "probe": "test -e .claude/workflows/policy_lint.mjs  # exits 1 at repo root; consumer reads/executes it relative to ROOT",
+   "beyond_finding": true
+  },
+  {
+   "file": "dev/audit/rounds/round4/D11/d11_own_D11-06.py",
+   "symbol": "path literal .claude/workflows/policy_lint.mjs (line 103)",
+   "probe": "test -e .claude/workflows/policy_lint.mjs  # exits 1 at repo root; consumer reads/executes it relative to ROOT",
+   "beyond_finding": true
+  },
+  {
+   "file": "dev/audit/rounds/round4/D11/mechanism_inventory.py",
+   "symbol": "path literal .claude/workflows/gh_comment.py (line 105)",
+   "probe": "test -e .claude/workflows/gh_comment.py  # exits 1 at repo root; consumer reads/executes it relative to ROOT",
+   "beyond_finding": true
+  },
+  {
+   "file": "dev/audit/rounds/round4/D11/mechanism_inventory.py",
+   "symbol": "path literal tools/audit/prepr.sh (line 106)",
+   "probe": "test -e tools/audit/prepr.sh  # exits 1 at repo root; consumer reads/executes it relative to ROOT",
+   "beyond_finding": true
+  },
+  {
+   "file": "dev/audit/rounds/round4/D11/mechanism_inventory.py",
+   "symbol": "path literal tools/audit/push.sh (line 107)",
+   "probe": "test -e tools/audit/push.sh  # exits 1 at repo root; consumer reads/executes it relative to ROOT",
+   "beyond_finding": true
+  },
+  {
+   "file": "dev/audit/rounds/round4/D11/mechanism_inventory.py",
+   "symbol": "path literal .claude/workflows/policy_lint.mjs (line 67)",
+   "probe": "test -e .claude/workflows/policy_lint.mjs  # exits 1 at repo root; consumer reads/executes it relative to ROOT",
+   "beyond_finding": true
+  },
+  {
+   "file": "dev/audit/rounds/round5/D11/seat-b/corpus_churn.py",
+   "symbol": "path literal .claude/workflows/policy_budgets.json (line 68)",
+   "probe": "test -e .claude/workflows/policy_budgets.json  # exits 1 at repo root; consumer reads/executes it relative to ROOT",
+   "beyond_finding": true
+  },
+  {
+   "file": "dev/audit/rounds/round5/D11/seat-b/corpus_churn.py",
+   "symbol": "path literal .claude/workflows/policy_lint.mjs (line 100)",
+   "probe": "test -e .claude/workflows/policy_lint.mjs  # exits 1 at repo root; consumer reads/executes it relative to ROOT",
+   "beyond_finding": true
+  },
+  {
+   "file": "dev/audit/rounds/round5/D11/seat-b/corpus_churn.py",
+   "symbol": "path literal .claude/workflows/policy_lint.mjs (line 133)",
+   "probe": "test -e .claude/workflows/policy_lint.mjs  # exits 1 at repo root; consumer reads/executes it relative to ROOT",
+   "beyond_finding": true
+  },
+  {
+   "file": "dev/audit/rounds/round5/D13/seat-a/block_fold.mjs",
+   "symbol": "path literal .claude/workflows/policy_lint.mjs (line 67)",
+   "probe": "test -e .claude/workflows/policy_lint.mjs  # exits 1 at repo root; consumer reads/executes it relative to ROOT",
+   "beyond_finding": true
+  },
+  {
+   "file": "dev/audit/rounds/round5/D13/seat-a/friction_keys.mjs",
+   "symbol": "path literal .claude/workflows/policy_budgets.json (line 83)",
+   "probe": "test -e .claude/workflows/policy_budgets.json  # exits 1 at repo root; consumer reads/executes it relative to ROOT",
+   "beyond_finding": true
+  },
+  {
+   "file": "dev/audit/rounds/round7-fix/governance/report_step_driver.py",
+   "symbol": "path literal .claude/workflows/policy_lint.mjs (line 123)",
+   "probe": "test -e .claude/workflows/policy_lint.mjs  # exits 1 at repo root; consumer reads/executes it relative to ROOT",
+   "beyond_finding": true
+  },
+  {
+   "file": "dev/audit/rounds/round8/evidence/D11/s2_owner_closure.py",
+   "symbol": "path literal .claude/workflows/policy_lint.mjs (line 166)",
+   "probe": "test -e .claude/workflows/policy_lint.mjs  # exits 1 at repo root; consumer reads/executes it relative to ROOT",
+   "beyond_finding": true
+  },
+  {
+   "file": "dev/audit/rounds/round8/evidence/D11/v1_owner_flip.py",
+   "symbol": "path literal .claude/workflows/policy_lint.mjs (line 112)",
+   "probe": "test -e .claude/workflows/policy_lint.mjs  # exits 1 at repo root; consumer reads/executes it relative to ROOT",
+   "beyond_finding": true
+  },
+  {
+   "file": "dev/audit/rounds/round8/evidence/D11/v1_owner_flip.py",
+   "symbol": "path literal .claude/workflows/policy_lint.mjs (line 142)",
+   "probe": "test -e .claude/workflows/policy_lint.mjs  # exits 1 at repo root; consumer reads/executes it relative to ROOT",
+   "beyond_finding": true
+  },
+  {
+   "file": "dev/audit/rounds/round8/evidence/D11/v1_owner_flip.py",
+   "symbol": "path literal .claude/workflows/policy_lint.mjs (line 146)",
+   "probe": "test -e .claude/workflows/policy_lint.mjs  # exits 1 at repo root; consumer reads/executes it relative to ROOT",
+   "beyond_finding": true
+  },
+  {
+   "file": "dev/audit/rounds/round9/D14/s2/i4_roster.py",
+   "symbol": "path literal tools/audit/bugclasses.json (line 134)",
+   "probe": "test -e tools/audit/bugclasses.json  # exits 1 at repo root; consumer reads/executes it relative to ROOT",
+   "beyond_finding": true
+  },
+  {
+   "file": "dev/audit/rounds/round9/D14/s2/i4_roster.py",
+   "symbol": "path literal tools/audit/finding.schema.json (line 136)",
+   "probe": "test -e tools/audit/finding.schema.json  # exits 1 at repo root; consumer reads/executes it relative to ROOT",
+   "beyond_finding": true
+  },
+  {
+   "file": "dev/audit/rounds/round9/D14/s2/i4_roster.py",
+   "symbol": "path literal tools/audit/scopes.json (line 140)",
+   "probe": "test -e tools/audit/scopes.json  # exits 1 at repo root; consumer reads/executes it relative to ROOT",
+   "beyond_finding": true
+  },
+  {
+   "file": "dev/audit/rounds/round9/D4/s2/step_grid.py",
+   "symbol": "path literal tools/audit/round9/D4/s2/step_grid.mjs (line 147)",
+   "probe": "test -e tools/audit/round9/D4/s2/step_grid.mjs  # exits 1 at repo root; consumer reads/executes it relative to ROOT",
+   "beyond_finding": true
+  }
+ ]
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_option_for RETURN_DEL 7e29a636",
+  "killed_by": "tests/features.py",
+  "old": "    return next((o for o in options if pump_mode.resolve(o) == key), None)",
+  "reason": "pump-duty arbiter revision; `return next((o for o in options if pump_mode.resolve(o) == key), None)` -> `pass` fails 16 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+}

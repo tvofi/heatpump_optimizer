@@ -1,0 +1,28 @@
+cell tz=0 winter_typical   winter_cold  call0 f_prod=68.81957 f_best=68.81957 gap_rel=0.000e+00 by=prod dSEK=nan bill=nan infeasible_discarded=0 c1=0.00e+00 c2=0.00e+00 c3=0.00e+00
+cell tz=0 winter_typical   winter_mild  call0 f_prod=29.29223 f_best=29.27966 gap_rel=4.291e-04 by=c3 dSEK=nan bill=nan infeasible_discarded=0 c1=4.24e-04 c2=4.24e-04 c3=4.29e-04
+cell tz=0 winter_narrow    winter_cold  call0 f_prod=113.75171 f_best=113.75171 gap_rel=2.624e-15 by=c2 dSEK=nan bill=nan infeasible_discarded=0 c1=1.75e-15 c2=2.62e-15 c3=1.87e-15
+cell tz=0 winter_narrow    winter_cold  call1 f_prod=113.76030 f_best=113.76029 gap_rel=2.743e-08 by=c2 dSEK=nan bill=nan infeasible_discarded=0 c1=2.74e-08 c2=2.74e-08 c3=2.74e-08
+cell tz=0 winter_narrow    winter_mild  call0 f_prod=52.16286 f_best=52.16286 gap_rel=4.169e-09 by=c3 dSEK=nan bill=nan infeasible_discarded=0 c1=0.00e+00 c2=0.00e+00 c3=4.17e-09
+cell tz=0 winter_moderate  winter_cold  call0 f_prod=84.40599 f_best=84.40599 gap_rel=0.000e+00 by=prod dSEK=nan bill=nan infeasible_discarded=0 c1=0.00e+00 c2=0.00e+00 c3=0.00e+00
+cell tz=0 winter_moderate  winter_mild  call0 f_prod=37.99318 f_best=37.99312 gap_rel=1.499e-06 by=c2 dSEK=nan bill=nan infeasible_discarded=0 c1=1.09e-06 c2=1.50e-06 c3=1.12e-06
+cell tz=0 flat             winter_cold  call0 f_prod=90.54291 f_best=90.43675 gap_rel=1.173e-03 by=c3 dSEK=nan bill=nan infeasible_discarded=0 c1=1.17e-03 c2=1.17e-03 c3=1.17e-03
+cell tz=0 flat             winter_mild  call0 f_prod=42.77406 f_best=42.75767 gap_rel=3.832e-04 by=c3 dSEK=nan bill=nan infeasible_discarded=0 c1=3.83e-04 c2=3.83e-04 c3=3.83e-04
+cell tz=1 winter_typical   winter_cold  call0 f_prod=87.31454 f_best=87.31454 gap_rel=4.378e-08 by=c3 dSEK=nan bill=nan infeasible_discarded=0 c1=0.00e+00 c2=0.00e+00 c3=4.38e-08
+cell tz=1 winter_typical   winter_mild  call0 f_prod=35.63106 f_best=35.52016 gap_rel=3.112e-03 by=c3 dSEK=nan bill=nan infeasible_discarded=0 c1=3.11e-03 c2=3.11e-03 c3=3.11e-03
+cell tz=1 winter_narrow    winter_cold  call0 f_prod=136.18655 f_best=135.01769 gap_rel=8.583e-03 by=c2 dSEK=nan bill=nan infeasible_discarded=0 c1=7.88e-03 c2=8.58e-03 c3=8.56e-03
+cell tz=1 winter_narrow    winter_mild  call0 f_prod=57.90252 f_best=57.90252 gap_rel=1.368e-08 by=c2 dSEK=nan bill=nan infeasible_discarded=0 c1=1.36e-08 c2=1.37e-08 c3=1.37e-08
+cell tz=1 winter_moderate  winter_cold  call0 f_prod=105.63680 f_best=104.51183 gap_rel=1.065e-02 by=c3 dSEK=nan bill=nan infeasible_discarded=0 c1=6.90e-03 c2=6.90e-03 c3=1.06e-02
+cell tz=1 winter_moderate  winter_mild  call0 f_prod=44.18675 f_best=44.12048 gap_rel=1.500e-03 by=c3 dSEK=nan bill=nan infeasible_discarded=0 c1=1.50e-03 c2=1.50e-03 c3=1.50e-03
+cell tz=1 flat             winter_cold  call0 f_prod=107.87681 f_best=107.46048 gap_rel=3.859e-03 by=c2 dSEK=nan bill=nan infeasible_discarded=0 c1=3.76e-03 c2=3.86e-03 c3=3.76e-03
+cell tz=1 flat             winter_mild  call0 f_prod=46.75829 f_best=46.75829 gap_rel=0.000e+00 by=prod dSEK=nan bill=nan infeasible_discarded=0 c1=0.00e+00 c2=0.00e+00 c3=0.00e+00
+RESULT cells=17 count
+RESULT gap_rel_max=1.0649e-02 ratio
+RESULT gap_rel_mean=1.7465e-03 ratio
+RESULT cells_gap_gt_1e-3=6 count
+RESULT cells_gap_gt_1e-2=1 count
+RESULT gap_rel_mean_drop_max=1.1901e-03 ratio
+RESULT flat_gap_rel_max=3.8593e-03 ratio
+RESULT nonflat_gap_rel_max=1.0649e-02 ratio
+RESULT thread_factor=1.000
+RESULT load1=9.94
+RESULT swapins=0

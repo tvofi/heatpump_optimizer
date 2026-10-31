@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/entry_config.py:_optional_number RETURN_DEL b243caac",
+  "killed_by": "tests/entities.py",
+  "old": "    return default if result is None else result",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 0c25836e5a847d39f7a023e9f567ac2525741ebe: RETURN_DEL (`pass`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1."
+}

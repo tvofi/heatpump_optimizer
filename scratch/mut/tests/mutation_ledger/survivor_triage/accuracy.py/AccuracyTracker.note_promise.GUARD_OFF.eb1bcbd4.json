@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/accuracy.py:AccuracyTracker.note_promise GUARD_OFF eb1bcbd4",
+  "old": "        if promise is None:",
+  "reason": "Survival measured by the CI pin chain at head 18a04ed62 (run 38090917611, shard drivers over the recorded net, ratchet base 6be88834): no driver killed it. Guard off stores None under the day key. replay() already treats a None promise as absent and _stored_promise drops it at persistence, so the difference shows only in the `day in self.promises` clause: a first midnight-hour plan that cannot promise, followed by a second solve in the same hour that could. tests/features.py's UX-6 fixture notes a failing midnight plan never followed by a valid one in the same hour; no recorded driver builds that sequence.",
+  "verdict": "gap"
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/config_flow.py:_money RETURN_DEL 5f807e79",
+  "killed_by": "tests/features.py",
+  "old": "    return _number(0, maximum * money_scale(currency), step, f\"{currency}{per}\")",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 59c2543bdbc244ff4f1e99fffe358edd92060995: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

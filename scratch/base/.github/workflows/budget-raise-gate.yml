@@ -1,0 +1,110 @@
+# The budget-raise gate (decision 0013, amended 2026-09-24): a raise in any
+# `*_budgets.json` merges only on the owner's approving review at the head.
+# The budget files carry no code owner, so a routine edit -- a ledger row, a
+# metric re-recorded down -- merges on the approver App's review alone; the
+# direction of the edit, not its path, is what calls for the owner.
+#
+# A CALLED WORKFLOW (R10-CI-LAYOUT P2b, unit U8; DESIGN-P2 2.1, 4.3). It is
+# `ci.yml`'s `budget-raise-gate` caller, which runs it on every event that
+# names a pull request, reviews included: an approval is the one change this
+# job reads that a commit does not make, and the `pull_request_review` trigger
+# is `ci.yml`'s. Inside a called workflow `github.event` and
+# `github.event_name` are the caller's, so the payload arms below read the
+# caller's event. The prelude names the pull request, its base ref and its head
+# once (`pr`, `base`, `head`), which replaces the merge-queue naming step this
+# file carried: a queue entry arrives as `inputs.pr` and `inputs.head`.
+#
+# It holds one job with no `if:`: the caller's `if:` is the only guard, and a
+# job an `if:` skips still writes a check run at the head -- a skipped run of a
+# required context counts as passing (#1514's shape). A stale red after an
+# approval is re-judged by `gate.py --sweep` (`gate-sweep.yml`), which replaced
+# `budget-raise-gate-rerun.yml` and this program's `--rerun-stale`.
+#
+# `pull_request_review` runs the pull request's workflow file, as
+# `pull_request` does; `.github/workflows/` stays owned for that reason
+# (0013). The check's program is pinned instead: restored from the base
+# before it runs, under `python3 -I`, and nothing of the pull request's runs
+# before it. `codeowners_gap.py --check` reads that restore.
+
+name: Budget raise gate
+
+on:
+  workflow_call:
+    inputs:
+      pr:
+        type: string
+        default: ""
+      base:
+        type: string
+        default: ""
+      head:
+        type: string
+        default: ""
+
+# Workflow-level and read-only, and the caller grants no more: the reviews list
+# needs `pull-requests: read`, the checkout `contents: read`, and the owner's
+# recorded mandate, a comment on #201, `issues: read`. No job widens it.
+permissions:
+  contents: read
+  pull-requests: read
+  issues: read
+
+# No `concurrency:` (DESIGN-P2 4.3): `ci.yml`'s group is per run, so no run of
+# this file cancels or queues another. A superseded head's run finishing costs
+# nothing, since its check run is per head and is never read.
+
+jobs:
+  budget-raise-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # fetch-depth 0: the merge base and both ends are read out of the clone.
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+
+      - name: Restore the check source from the base commit
+        env:
+          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+          BASE_REF: ${{ inputs.base }}
+        run: |
+          set -euo pipefail
+          if test -z "$PINNED"; then PINNED=$(git rev-parse --verify "refs/remotes/origin/$BASE_REF^{commit}"); fi
+          git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags origin "$PINNED"
+          # Each program at its path before and after the reorganisation (R9-RO-2):
+          # the diff lists what PINNED holds of them, skipping the half it lacks,
+          # which a checkout of a pathspec would refuse. R9-RO-9 drops the old half.
+          git diff --name-only -z "$(git hash-object -t tree /dev/null)" "$PINNED" -- \
+            '.claude/workflows/*.py' \
+            'tools/policy/*.py' \
+            'tools/pr/*.py' \
+            'tests/layout.py' > "$RUNNER_TEMP/pinned.list"
+          test -s "$RUNNER_TEMP/pinned.list"
+          git checkout "$PINNED" --pathspec-from-file="$RUNNER_TEMP/pinned.list" --pathspec-file-nul
+          echo "check source restored from $PINNED: $(git diff --cached --name-only | wc -l) file(s) differ from the pull request's copy"
+          test -f .claude/workflows/budget_raise_gate.py || test -f tools/policy/budget_raise_gate.py
+
+      # The head is the prelude's: it is the commit this run's check run is
+      # written on, and on a queue entry the pull request's head, the head an
+      # owner's approval has to be at. The base is the payload's SHA on a pull
+      # request or review event and on a queue entry, and the base ref's tip
+      # on a dispatch. The reviews are read live, so a re-run after an approval
+      # reads the approval.
+      - name: Refuse a budget raise the owner has not approved at this head
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_BASE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+          BASE_REF: ${{ inputs.base }}
+          PR_HEAD: ${{ inputs.head }}
+          PR_NUMBER: ${{ inputs.pr }}
+        run: |
+          set -euo pipefail
+          test -n "$PR_NUMBER" && test -n "$PR_HEAD" || { echo "::error title=budget-raise-gate::the caller named no pull request"; exit 1; }
+          if test -z "$PR_BASE"; then PR_BASE=$(git rev-parse --verify "refs/remotes/origin/$BASE_REF^{commit}"); fi
+          if test -f .claude/workflows/budget_raise_gate.py; then
+            python3 -I .claude/workflows/budget_raise_gate.py \
+              --base "$PR_BASE" --head "$PR_HEAD" --pr "$PR_NUMBER"
+          else
+            python3 -I tools/policy/budget_raise_gate.py \
+              --base "$PR_BASE" --head "$PR_HEAD" --pr "$PR_NUMBER"
+          fi

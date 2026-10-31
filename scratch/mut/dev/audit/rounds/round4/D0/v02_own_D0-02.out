@@ -1,0 +1,40 @@
+CELL winter_typical   tz=0 h=   6  solves=5  nit max=5 med=5  caps=[300]  on_cap=0  x15gap=+nan%
+CELL winter_typical   tz=1 h=   6  solves=5  nit max=14 med=11  caps=[300]  on_cap=0  x15gap=+nan%
+CELL winter_extreme   tz=0 h=   6  solves=5  nit max=5 med=4  caps=[300]  on_cap=0  x15gap=+nan%
+CELL winter_extreme   tz=1 h=   6  solves=5  nit max=11 med=10  caps=[300]  on_cap=0  x15gap=+nan%
+CELL summer_negative  tz=0 h=   6  solves=5  nit max=9 med=8  caps=[300]  on_cap=0  x15gap=+nan%
+CELL summer_negative  tz=1 h=   6  solves=5  nit max=17 med=14  caps=[300]  on_cap=0  x15gap=+nan%
+CELL flat             tz=0 h=   6  solves=5  nit max=4 med=4  caps=[300]  on_cap=0  x15gap=+nan%
+CELL flat             tz=1 h=   6  solves=5  nit max=11 med=10  caps=[300]  on_cap=0  x15gap=+nan%
+CELL winter_typical   tz=0 h=  24  solves=5  nit max=4 med=3  caps=[300]  on_cap=0  x15gap=+nan%
+CELL winter_typical   tz=1 h=  24  solves=5  nit max=26 med=21  caps=[300]  on_cap=0  x15gap=+nan%
+CELL winter_extreme   tz=0 h=  24  solves=5  nit max=5 med=3  caps=[300]  on_cap=0  x15gap=+nan%
+CELL winter_extreme   tz=1 h=  24  solves=5  nit max=46 med=32  caps=[300]  on_cap=0  x15gap=+nan%
+CELL summer_negative  tz=0 h=  24  solves=7  nit max=12 med=8  caps=[300]  on_cap=0  x15gap=+nan%
+CELL summer_negative  tz=1 h=  24  solves=7  nit max=28 med=14  caps=[300]  on_cap=0  x15gap=+nan%
+CELL flat             tz=0 h=  24  solves=5  nit max=19 med=8  caps=[300]  on_cap=0  x15gap=+nan%
+CELL flat             tz=1 h=  24  solves=5  nit max=21 med=14  caps=[300]  on_cap=0  x15gap=+nan%
+CELL winter_typical   tz=0 h=  48  solves=7  nit max=22 med=8  caps=[300]  on_cap=0  x15gap=+0.0000%
+CELL winter_typical   tz=1 h=  48  solves=7  nit max=50 med=23  caps=[300]  on_cap=0  x15gap=+0.0000%
+CELL winter_extreme   tz=0 h=  48  solves=7  nit max=29 med=13  caps=[300]  on_cap=0  x15gap=+0.0000%
+CELL winter_extreme   tz=1 h=  48  solves=7  nit max=62 med=29  caps=[300]  on_cap=0  x15gap=+0.0000%
+CELL summer_negative  tz=0 h=  48  solves=7  nit max=27 med=19  caps=[300]  on_cap=0  x15gap=+0.0000%
+CELL summer_negative  tz=1 h=  48  solves=7  nit max=37 med=20  caps=[300]  on_cap=0  x15gap=+0.0000%
+CELL flat             tz=0 h=  48  solves=5  nit max=26 med=12  caps=[300]  on_cap=0  x15gap=+0.0000%
+CELL flat             tz=1 h=  48  solves=5  nit max=36 med=26  caps=[300]  on_cap=0  x15gap=+0.0000%
+RESULT minimize_calls_total=136
+RESULT lbfgsb_calls=136
+RESULT distinct_maxiter_values=[300]
+RESULT calls_status_1=0
+RESULT calls_nit_ge_maxiter=0
+RESULT max_nit=62
+RESULT median_nit=10.0
+RESULT p99_nit=57.85000000000005
+RESULT max_fraction_of_cap=0.2067
+RESULT calls_above_half_cap=0
+RESULT calls_above_quarter_cap=0
+RESULT max_nit_at_48h_cells=62
+RESULT non_lbfgsb_calls=0
+RESULT thread_factor=1.0
+RESULT load1=8.95
+RESULT swapins=42528203

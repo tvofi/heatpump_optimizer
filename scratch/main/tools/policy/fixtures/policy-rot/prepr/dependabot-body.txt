@@ -1,0 +1,12 @@
+Bumps the pip group with 1 update in the /tests directory: [setuptools](https://github.com/pypa/setuptools).
+
+Updates `setuptools` from 84.0.0 to 84.1.0
+<details>
+<summary>Changelog</summary>
+<p><em>Sourced from <a href="https://github.com/pypa/setuptools/blob/main/NEWS.rst">setuptools's changelog</a>.</em></p>
+<blockquote>
+<h1>v84.1.0</h1>
+<h2>Features</h2>
+<ul>
+<li><code>setuptools.archive_util</code> now raises the new <code>UnsafeMember</code> exception when
+an archive member would be extracted outside of the extraction directory,

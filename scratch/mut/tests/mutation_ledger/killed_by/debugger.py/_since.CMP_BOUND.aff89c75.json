@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/debugger.py:_since CMP_BOUND aff89c75",
+  "killed_by": "tests/debug_collect.py",
+  "old": "    return before[-1:] + [s for s in states if s.last_updated >= start]",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 3fb386d5044e4ca10b5f30c1c6f380139d5ad3e8: CMP_BOUND (`return before[-1:] + [s for s in states if s.last_updated > start]`) took tests/debug_collect.py from rc=0 failed=0 to rc=1 failed=1."
+}

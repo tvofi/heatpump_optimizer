@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:<module> CONST addc68ab",
+  "killed_by": "tests/features.py",
+  "old": "PLAN_STALE_INTERVALS = 3",
+  "reason": "Recorded by `mutation_table.py --drain` against 994695e06c4c2b78d6420f82c322188317817f91: CONST (`PLAN_STALE_INTERVALS = 6`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6."
+}

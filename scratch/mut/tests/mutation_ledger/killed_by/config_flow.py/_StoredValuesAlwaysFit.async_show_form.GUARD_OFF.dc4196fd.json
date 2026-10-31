@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/config_flow.py:_StoredValuesAlwaysFit.async_show_form GUARD_OFF dc4196fd",
+  "killed_by": "tests/entities.py",
+  "old": "        if widened:",
+  "reason": "Recorded by `mutation_table.py --drain` against cff39dad61c4cc15dbaabd03c3a2e3746bca1fab: GUARD_OFF (`if False:`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=5."
+}

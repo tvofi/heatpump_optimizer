@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_planner.py:_place_legionella_step GUARD_OFF 4231f82d",
+  "killed_by": "tests/manual_plan.py",
+  "old": "    if bool(np.all(window)):",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 130c78089d63d381e388b6a3c29a723921efee34: GUARD_OFF (`if False:`) took tests/manual_plan.py from rc=0 failed=0 to rc=1 failed=3."
+}

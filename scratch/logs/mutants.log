@@ -1,0 +1,37 @@
+M1 terminal credit two-zone only: KILLED
+    FAIL single-zone: the terminal cost credits a valved store tank  [a tank left cold is heat bought back, in either zoning]
+    FAIL zoned store census: the terminal cost credits the tank in every zoning (#2500)  [single-zone 0.0000, two-zone -17.3299]
+M2 scalar valve branch off: KILLED
+    FAIL batched simulation is bitwise-identical: single-zone with valve  [first divergences: ['room[0]@1', 'slab[0]@1', 'upper[0]@1', 'lower[0]@1']]
+    FAIL batched jac == scipy 2-point FD bit-for-bit on free variables: single-zone with valve  [gradient differs from scipy's estimate on the 48 free variables (ma
+    FAIL single-zone: the valved tank is charged for the cheap night  [tank peaked at 25.0 C from a 25 C start]
+    FAIL single-zone valve: the tank's loss is the slab's delivery plus standing loss  [tank lost 0.0000 kWh vs 0.5039]
+    FAIL single-zone valve: the slab receives exactly what the tank delivered  [slab gained -0.0000 kWh vs 0.4667]
+    FAIL single-zone valve: charging stops at buffer_max_temp and books the refusal  [tank 69.50 C, refused 0.000 kW]
+    FAIL single-zone valve: the step prices the COP at the tank's own temperature  [60 C tank +0.000 K against the priced 1.348 K; 40 C tank +0.000 K]
+    FAIL zoned store census: the valve moves the tank in every zoning (#2500)  [single-zone +0.0000 K, two-zone +0.1973 K]
+    FAIL zoned store census: the cap books what it refuses in every zoning (#2500)  [single-zone 0.0000 kW, two-zone 1.5947 kW]
+M3 batch valve branch off: KILLED
+    FAIL batched simulation is bitwise-identical: two-zone with valve  [first divergences: ['room[0]@1', 'slab[0]@1', 'upper[0]@1', 'lower[0]@1']]
+    FAIL batched jac == scipy 2-point FD bit-for-bit on free variables: two-zone with valve  [gradient differs from scipy's estimate on the 48 free variables (maxab
+    FAIL batch twin: charging into buffer_max_temp matches the scalar step bit-for-bit  [diverged tracks: ['room', 'slab', 'upper', 'lower', 'buffer', 'refused']; p
+M4 scalar COP ignores the tank: KILLED
+    FAIL batched simulation is bitwise-identical: single-zone with valve  [first divergences: ['room[0]@13', 'slab[0]@13', 'upper[0]@13', 'lower[0]@13']]
+    FAIL batched jac == scipy 2-point FD bit-for-bit on free variables: single-zone with valve  [gradient differs from scipy's estimate on the 48 free variables (ma
+    FAIL single-zone valve: the step prices the COP at the tank's own temperature  [60 C tank +2.055 K against the priced 1.348 K; 40 C tank +2.084 K]
+M5 batch COP ignores the tank: KILLED
+    FAIL batched simulation is bitwise-identical: single-zone with valve  [first divergences: ['room[0]@13', 'slab[0]@13', 'upper[0]@13', 'lower[0]@13']]
+    FAIL batched jac == scipy 2-point FD bit-for-bit on free variables: single-zone with valve  [gradient differs from scipy's estimate on the 48 free variables (ma
+M6 energy bound dropped: KILLED
+    FAIL single-zone valve: a small tank coasting one step never falls below the slab  [tank ended at -55.90 C against a 22 C slab]
+M7 stability count blind to the tank: KILLED
+    FAIL single-zone valve: the stability count subdivides for the tank's own row  [one step 26.796 C vs 400 sub-steps 27.649 C]
+M8 no buffer_max_temp clamp: KILLED
+    FAIL single-zone valve: charging stops at buffer_max_temp and books the refusal  [tank 72.41 C, refused 0.000 kW]
+    FAIL zoned store census: the cap books what it refuses in every zoning (#2500)  [single-zone 0.0000 kW, two-zone 1.5947 kW]
+M9 both single-zone COP rows ignore the tank: KILLED
+    FAIL single-zone valve: the step prices the COP at the tank's own temperature  [60 C tank +2.055 K against the priced 1.348 K; 40 C tank +2.084 K]
+M10 shared energy bound dropped: KILLED
+    FAIL single-zone valve: a small tank coasting one step never falls below the slab  [tank ended at -55.90 C against a 22 C slab]
+M11 batch cap not clamped: KILLED
+    FAIL batch twin: charging into buffer_max_temp matches the scalar step bit-for-bit  [diverged tracks: ['buffer', 'refused']; peak refused 12.1085 kW; tank peake

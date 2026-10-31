@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/accuracy.py:plan_promise BOOLOP 2b760d09",
+  "killed_by": "tests/features.py",
+  "old": "    if not (np.all(np.isfinite(cost)) and np.all(np.isfinite(temps))):",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 6be88834e8c4658b3e4832cd24c00aa97b3da2d3: BOOLOP (`if not (np.all(np.isfinite(cost)) or np.all(np.isfinite(temps))):`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

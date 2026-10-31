@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/accuracy.py:plan_promise CMP_BOUND 5813b1a7",
+  "killed_by": "tests/features.py",
+  "old": "    if not (np.isfinite(dt_h) and dt_h > 0):",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 6be88834e8c4658b3e4832cd24c00aa97b3da2d3: CMP_BOUND (`if not (np.isfinite(dt_h) and dt_h >= 0):`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

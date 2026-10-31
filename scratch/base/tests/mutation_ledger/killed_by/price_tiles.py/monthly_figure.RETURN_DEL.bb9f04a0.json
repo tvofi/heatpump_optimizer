@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/price_tiles.py:monthly_figure RETURN_DEL bb9f04a0",
+  "killed_by": "tests/features.py",
+  "old": "    return float(value) if isinstance(value, (int, float)) else None",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against e7c664856776542bf60bd770c98aba1eaadb4041: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6."
+}

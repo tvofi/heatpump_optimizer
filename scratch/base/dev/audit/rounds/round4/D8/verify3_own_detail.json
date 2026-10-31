@@ -1,0 +1,210 @@
+{
+ "d801_all": {
+  "cross_family_member_overlap": [
+   "sensor.heat_pump_optimizer_optimization_score"
+  ],
+  "distinct_intruding_entities": 65,
+  "intruder_slots_held_by_other_family_members": 68,
+  "leave_one_family_out_casefold": {
+   "accuracy": 130,
+   "card_headline": 141,
+   "dhw": 152,
+   "ecl110": 159,
+   "learning": 114,
+   "pv": 159,
+   "tariff": 99
+  },
+  "per_family": {
+   "accuracy": {
+    "breaks_casefold": 2,
+    "breaks_codepoint": 2,
+    "intruders_casefold": 29,
+    "intruders_codepoint": 29,
+    "n": 3,
+    "name_prefix": ""
+   },
+   "card_headline": {
+    "breaks_casefold": 4,
+    "breaks_codepoint": 4,
+    "intruders_casefold": 18,
+    "intruders_codepoint": 18,
+    "n": 5,
+    "name_prefix": ""
+   },
+   "dhw": {
+    "breaks_casefold": 1,
+    "breaks_codepoint": 1,
+    "intruders_casefold": 7,
+    "intruders_codepoint": 7,
+    "n": 10,
+    "name_prefix": ""
+   },
+   "ecl110": {
+    "breaks_casefold": 0,
+    "breaks_codepoint": 0,
+    "intruders_casefold": 0,
+    "intruders_codepoint": 0,
+    "n": 2,
+    "name_prefix": "ECL110 "
+   },
+   "learning": {
+    "breaks_casefold": 3,
+    "breaks_codepoint": 3,
+    "intruders_casefold": 45,
+    "intruders_codepoint": 45,
+    "n": 5,
+    "name_prefix": ""
+   },
+   "pv": {
+    "breaks_casefold": 0,
+    "breaks_codepoint": 0,
+    "intruders_casefold": 0,
+    "intruders_codepoint": 0,
+    "n": 3,
+    "name_prefix": "Solar "
+   },
+   "tariff": {
+    "breaks_casefold": 4,
+    "breaks_codepoint": 4,
+    "intruders_casefold": 60,
+    "intruders_codepoint": 60,
+    "n": 7,
+    "name_prefix": ""
+   }
+  },
+  "shared_prefix_families": [
+   "ecl110",
+   "pv"
+  ],
+  "total_casefold": 159,
+  "total_codepoint": 159,
+  "zero_intruder_families": [
+   "ecl110",
+   "pv"
+  ]
+ },
+ "d801_minimal": {
+  "cross_family_member_overlap": [
+   "sensor.heat_pump_optimizer_optimization_score"
+  ],
+  "distinct_intruding_entities": 65,
+  "intruder_slots_held_by_other_family_members": 68,
+  "leave_one_family_out_casefold": {
+   "accuracy": 130,
+   "card_headline": 141,
+   "dhw": 152,
+   "ecl110": 159,
+   "learning": 114,
+   "pv": 159,
+   "tariff": 99
+  },
+  "per_family": {
+   "accuracy": {
+    "breaks_casefold": 2,
+    "breaks_codepoint": 2,
+    "intruders_casefold": 29,
+    "intruders_codepoint": 29,
+    "n": 3,
+    "name_prefix": ""
+   },
+   "card_headline": {
+    "breaks_casefold": 4,
+    "breaks_codepoint": 4,
+    "intruders_casefold": 18,
+    "intruders_codepoint": 18,
+    "n": 5,
+    "name_prefix": ""
+   },
+   "dhw": {
+    "breaks_casefold": 1,
+    "breaks_codepoint": 1,
+    "intruders_casefold": 7,
+    "intruders_codepoint": 7,
+    "n": 10,
+    "name_prefix": ""
+   },
+   "ecl110": {
+    "breaks_casefold": 0,
+    "breaks_codepoint": 0,
+    "intruders_casefold": 0,
+    "intruders_codepoint": 0,
+    "n": 2,
+    "name_prefix": "ECL110 "
+   },
+   "learning": {
+    "breaks_casefold": 3,
+    "breaks_codepoint": 3,
+    "intruders_casefold": 45,
+    "intruders_codepoint": 45,
+    "n": 5,
+    "name_prefix": ""
+   },
+   "pv": {
+    "breaks_casefold": 0,
+    "breaks_codepoint": 0,
+    "intruders_casefold": 0,
+    "intruders_codepoint": 0,
+    "n": 3,
+    "name_prefix": "Solar "
+   },
+   "tariff": {
+    "breaks_casefold": 4,
+    "breaks_codepoint": 4,
+    "intruders_casefold": 60,
+    "intruders_codepoint": 60,
+    "n": 7,
+    "name_prefix": ""
+   }
+  },
+  "shared_prefix_families": [
+   "ecl110",
+   "pv"
+  ],
+  "total_casefold": 159,
+  "total_codepoint": 159,
+  "zero_intruder_families": [
+   "ecl110",
+   "pv"
+  ]
+ },
+ "d802": {
+  "after_add_icons": [],
+  "cross_tab": {
+   "dc_icon": 31,
+   "dc_noicon": 4,
+   "nodc_icon": 38,
+   "nodc_noicon": 0
+  },
+  "malformed_icon_entries": [],
+  "missing": [
+   "sensor.optimal_setpoint",
+   "sensor.outdoor_temperature_optimizer",
+   "sensor.measured_power",
+   "sensor.compressor_frequency_advisor"
+  ]
+ },
+ "d8inst": {
+  "device_class": {
+   "attr_set": 35,
+   "public_read_none": 74,
+   "vacuous_attr_set_public_none": 35
+  },
+  "entities_built": 74,
+  "entity_category": {
+   "attr_set": 20,
+   "public_read_none": 74,
+   "vacuous_attr_set_public_none": 20
+  },
+  "entity_category_declared": 20,
+  "state_class": {
+   "attr_set": 45,
+   "public_read_none": 74,
+   "vacuous_attr_set_public_none": 45
+  },
+  "stub_has_property": {
+   "device_class": false,
+   "entity_category": false,
+   "state_class": false
+  }
+ }
+}

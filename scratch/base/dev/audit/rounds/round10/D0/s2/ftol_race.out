@@ -1,0 +1,19 @@
+RESULT polish_gap[winter_typical/winter_cold/tz1/dhw1/call0]=0.0000 pct J0=86.1065 Jpol=86.1065 dJ=0.0000 prod_nfev=408 prod_nit=77 step0_dkW=0.000
+RESULT polish_gap[winter_typical/winter_mild/tz1/dhw1/call0]=0.0000 pct J0=35.1978 Jpol=35.1978 dJ=0.0000 prod_nfev=446 prod_nit=88 step0_dkW=0.000
+RESULT polish_gap[winter_extreme/winter_cold/tz1/dhw1/call0]=0.0001 pct J0=126.8312 Jpol=126.8311 dJ=0.0002 prod_nfev=502 prod_nit=135 step0_dkW=0.000
+RESULT polish_gap[winter_extreme/winter_mild/tz1/dhw1/call0]=0.2583 pct J0=51.5220 Jpol=51.3889 dJ=0.1331 prod_nfev=422 prod_nit=68 step0_dkW=0.019
+RESULT polish_gap[winter_narrow/winter_cold/tz1/dhw1/call0]=0.1254 pct J0=135.0449 Jpol=134.8756 dJ=0.1693 prod_nfev=382 prod_nit=66 step0_dkW=0.001
+RESULT polish_gap[winter_narrow/winter_mild/tz1/dhw1/call0]=0.0015 pct J0=56.9783 Jpol=56.9775 dJ=0.0008 prod_nfev=409 prod_nit=61 step0_dkW=0.000
+RESULT polish_gap[winter_moderate/winter_cold/tz1/dhw1/call0]=1.2344 pct J0=104.6153 Jpol=103.3240 dJ=1.2914 prod_nfev=415 prod_nit=85 step0_dkW=0.013
+RESULT polish_gap[winter_moderate/winter_mild/tz1/dhw1/call0]=0.0000 pct J0=43.5659 Jpol=43.5659 dJ=0.0000 prod_nfev=371 prod_nit=47 step0_dkW=0.000
+RESULT polish_gap[flat/winter_cold/tz1/dhw1/call0]=0.1573 pct J0=106.5594 Jpol=106.3918 dJ=0.1676 prod_nfev=398 prod_nit=66 step0_dkW=0.063
+RESULT polish_gap[flat/winter_mild/tz1/dhw1/call0]=0.0000 pct J0=46.0129 Jpol=46.0129 dJ=0.0000 prod_nfev=385 prod_nit=48 step0_dkW=0.000
+RESULT polish_gap_max[winter_typical]=0.0000 pct mean=0.0000 n=2
+RESULT polish_gap_max[winter_extreme]=0.2583 pct mean=0.1292 n=2
+RESULT polish_gap_max[winter_narrow]=0.1254 pct mean=0.0634 n=2
+RESULT polish_gap_max[winter_moderate]=1.2344 pct mean=0.6172 n=2
+RESULT polish_gap_max[flat]=0.1573 pct mean=0.0787 n=2
+RESULT polish_gap_winter_mean=0.2025 pct n=8 range=0.0000..1.2344 drop_max_mean=0.0551
+RESULT thread_factor=1.000
+RESULT load1=45.78
+RESULT swapins=n/a

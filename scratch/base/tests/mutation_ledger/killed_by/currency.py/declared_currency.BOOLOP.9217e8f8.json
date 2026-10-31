@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/currency.py:declared_currency BOOLOP 9217e8f8",
+  "killed_by": "tests/features.py",
+  "old": "    if code is None and re.fullmatch(\"[A-Z]{3}\", money):  # not \"\u00d6RE\"",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 59c2543bdbc244ff4f1e99fffe358edd92060995: BOOLOP (`if code is None or re.fullmatch(\"[A-Z]{3}\", money):  # not \"\u00d6RE\"`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

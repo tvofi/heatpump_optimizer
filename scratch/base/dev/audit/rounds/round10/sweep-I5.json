@@ -1,0 +1,110 @@
+{
+ "class": "I5",
+ "instances": 2,
+ "barriered": true,
+ "enumerator": "PYTHONPATH=tests/hastub python dev/audit/rounds/round10/D14/I5/sweep_i5.py  [--null | --perturb]",
+ "instance_list": [
+  {
+   "file": "README.md",
+   "symbol": "line 356 UI label (D5-s1-01)",
+   "probe": "PYTHONPATH=tests/hastub python dev/audit/rounds/round10/D5/s1/ui_labels.py | grep '^HIT README.md:356 '",
+   "beyond_finding": false
+  },
+  {
+   "file": "docs/configuration.md",
+   "symbol": "line 23 UI label (D5-s1-01)",
+   "probe": "PYTHONPATH=tests/hastub python dev/audit/rounds/round10/D5/s1/ui_labels.py | grep '^HIT docs/configuration.md:23 '",
+   "beyond_finding": false
+  },
+  {
+   "file": "docs/configuration.md",
+   "symbol": "line 43 UI label (D5-s1-01)",
+   "probe": "PYTHONPATH=tests/hastub python dev/audit/rounds/round10/D5/s1/ui_labels.py | grep '^HIT docs/configuration.md:43 '",
+   "beyond_finding": false
+  },
+  {
+   "file": "docs/configuration.md",
+   "symbol": "line 164 UI label (D5-s1-01)",
+   "probe": "PYTHONPATH=tests/hastub python dev/audit/rounds/round10/D5/s1/ui_labels.py | grep '^HIT docs/configuration.md:164 '",
+   "beyond_finding": false
+  },
+  {
+   "file": "docs/setup.md",
+   "symbol": "line 70 UI label (D5-s1-01)",
+   "probe": "PYTHONPATH=tests/hastub python dev/audit/rounds/round10/D5/s1/ui_labels.py | grep '^HIT docs/setup.md:70 '",
+   "beyond_finding": false
+  },
+  {
+   "file": "docs/dashboard-card.md",
+   "symbol": "console-banner sample v6.6.8 (D5-s2-01)",
+   "probe": "PYTHONPATH=tests/hastub python dev/audit/rounds/round10/D5/s2/card_banner.py -> banner_mismatch=1",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "_check_price_units comment `money_currency` (D5-s3-01)",
+   "probe": "PYTHONPATH=tests/hastub python dev/audit/rounds/round10/D5/s3/comment_symbols.py | grep '^MISSING'",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/__init__.py",
+   "symbol": "line 80 'twelve services' (D5-s3-51)",
+   "probe": "PYTHONPATH=tests/hastub python dev/audit/rounds/round10/D5/leads/service_count_comments.py | grep STALE",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/__init__.py",
+   "symbol": "line 266 'twelve services' (D5-s3-51)",
+   "probe": "PYTHONPATH=tests/hastub python dev/audit/rounds/round10/D5/leads/service_count_comments.py | grep STALE",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/__init__.py",
+   "symbol": "line 365 'twelve handlers' (D5-s3-51)",
+   "probe": "PYTHONPATH=tests/hastub python dev/audit/rounds/round10/D5/leads/service_count_comments.py | grep STALE",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/__init__.py",
+   "symbol": "line 365 'eleven async_register calls' (D5-s3-51)",
+   "probe": "PYTHONPATH=tests/hastub python dev/audit/rounds/round10/D5/leads/service_count_comments.py | grep STALE",
+   "beyond_finding": false
+  },
+  {
+   "file": "dev/governance/dimensions/D7.md",
+   "symbol": "line 13 'measures all 24' (derived 16) (D11-s1-51)",
+   "probe": "node dev/audit/rounds/round10/D11/leads/stale_structure_refs.mjs",
+   "beyond_finding": false
+  },
+  {
+   "file": "dev/governance/dimensions/D7.md",
+   "symbol": "line 17 cut_* as live key (D11-s1-51)",
+   "probe": "node dev/audit/rounds/round10/D11/leads/stale_structure_refs.mjs",
+   "beyond_finding": false
+  },
+  {
+   "file": "dev/governance/dimensions/D7.md",
+   "symbol": "line 18 cross_seam_edges as live key (D11-s1-51)",
+   "probe": "node dev/audit/rounds/round10/D11/leads/stale_structure_refs.mjs",
+   "beyond_finding": false
+  },
+  {
+   "file": "tests/structure.py",
+   "symbol": "comment line 369 cross_seam_edges as live key (D11-s1-51)",
+   "probe": "node dev/audit/rounds/round10/D11/leads/stale_structure_refs.mjs",
+   "beyond_finding": false
+  },
+  {
+   "file": "dev/governance/dimensions/D9.md",
+   "symbol": "line 15 'record all 51 scenarios' (live stress set 54)",
+   "probe": "PYTHONPATH=tests/hastub python dev/audit/rounds/round10/D14/I5/sweep_i5.py | grep -c '^STALE W3 dev/governance/dimensions/D9.md:15' -> 1 at 17f1c55fad1b; passes at 0",
+   "beyond_finding": true
+  },
+  {
+   "file": "tests/stress.py",
+   "symbol": "line 4602 comment 'the merge base solves the same fifty-one scenarios' (live 54)",
+   "probe": "PYTHONPATH=tests/hastub python dev/audit/rounds/round10/D14/I5/sweep_i5.py | grep -c '^STALE W3 tests/stress.py:4602' -> 1 at 17f1c55fad1b; passes at 0",
+   "beyond_finding": true
+  }
+ ]
+}

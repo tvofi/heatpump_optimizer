@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sysid.py:SystemIdentification._begin_step_phase RETURN_DEL a9322b69#2",
+  "old": "                return False",
+  "reason": "R9 F4.2: equivalent. The line follows `self.abort(unadoptable)`, which sets phase PHASE_ABORTED (the method set PHASE_STEP on entry, so abort's `if not self.active` does not skip it). Deleting the return runs only the `injecting` debug log and `return True`; the one caller (SystemIdentification.step's settle branch) returns None on both return values, and the phase is ABORTED either way, so no step is injected and the published result is the abort's. Measured on a copy of the tree with the line replaced by `pass`: the #1524 through R9-P5 blocks of tests/features.py read fails=0, including `R9-P5 (D2-s4-81): a night the noise-free prediction stops never drives the pump above its hold power`, which the abort itself does pin (with the abort replaced by a bare result, that check and the D2-s4-81 check both fail), 2026-09-27.",
+  "verdict": "equivalent"
+}

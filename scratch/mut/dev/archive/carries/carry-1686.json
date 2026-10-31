@@ -1,0 +1,18 @@
+{
+  "_comment": [
+    "Carry destination for round 9's stage covering #1686, from the endgame architecture review (#1738).",
+    "Shape and required fields: .claude/rules/finding-propagation.md. Linted by",
+    ".claude/workflows/brief_lint.mjs (the `briefs` CI job)."
+  ],
+  "issue": 1686,
+  "stage": "round 9 group R9-F10.4 (#1645, #1650, #1661, #1686): the structural ratchet truth PR",
+  "carries": [
+    {
+      "from": "the round-9 endgame architecture review (ALT endgame plan on the handoff/audit-r9-plan branch; evidence committed at a163db90), not a pull request: the finding was measured and filed before any stage it constrains started; filed as #1738",
+      "effect": "narrows",
+      "control": "Established by measurement with its null control at origin/main 31394964, scripts at a163db90 under handoff/round9/state/alt/evidence. (a) m5_dup_control.sh: a function copied into another module leaves duplication_blocks unmoved; the same copy in its own module moves it. (b) m3_ratchet_control.sh: six private coordinator reads added inside pump_arbiter.state_for move no metric; the same six inside the coordinator method _dhw_current_hour move cut_dhw. (c) m7_classes_over_300.out: classes_over_300 counts classes, so an extraction that shrinks the coordinator adds one (#750 is the recorded instance).",
+      "remeasure": "Re-run both scripts in a throwaway detached worktree at your own merge base, and m3_reach.py for the out-of-class reach census; the figures above are snapshots.",
+      "brief": "Price arms (a) and (b) in tests/structure.py beside D7-s1-01, so that out-of-class reads of coordinator state and cross-module copies are counted; for arm (c) propose a definition under which an extraction that shrinks the god class is not a regression and ask tvofi before the push, since it changes a budget key. Demonstrate each arm failing on its probe at the base and passing on the fixed instrument. These land before any endgame move (R9-EG-B5, R9-EG-B7)."
+    }
+  ]
+}

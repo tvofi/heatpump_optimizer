@@ -1,0 +1,6 @@
+### enum_p4
+312:def _scoped_minimize(*args: Any, **kwargs: Any) -> Any:
+596:def _multi_start_minimize(
+797:def _price_ranked_start(
+3567:            res = _multi_start_minimize(
+4133:            result = _multi_start_minimize(

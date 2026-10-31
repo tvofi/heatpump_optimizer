@@ -1,0 +1,91 @@
+CELL tz=0 dhw=0 summer_typical   winter_cold  calls=1 S_prod=19.5108 S_best=19.5108 gap=0.0000% abs=0.0000 step0_diff=0.000kW feas=True
+CELL tz=0 dhw=0 summer_typical   winter_mild  calls=1 S_prod=7.5535 S_best=7.5491 gap=0.0583% abs=0.0044 step0_diff=0.001kW feas=True
+CELL tz=0 dhw=0 summer_typical   summer_warm  calls=1 S_prod=6435.6202 S_best=6435.6202 gap=0.0000% abs=0.0000 step0_diff=0.000kW feas=True
+CELL tz=0 dhw=0 summer_typical   summer_cool  calls=1 S_prod=1.6635 S_best=1.6626 gap=0.0550% abs=0.0009 step0_diff=0.000kW feas=True
+CELL tz=0 dhw=0 summer_typical   shoulder     calls=1 S_prod=2.6985 S_best=2.6985 gap=0.0000% abs=0.0000 step0_diff=0.000kW feas=True
+CELL tz=0 dhw=0 summer_negative  winter_cold  calls=1 S_prod=12.9592 S_best=12.9474 gap=0.0912% abs=0.0118 step0_diff=0.000kW feas=True
+CELL tz=0 dhw=0 summer_negative  winter_mild  calls=1 S_prod=0.6223 S_best=0.6223 gap=0.0000% abs=0.0000 step0_diff=0.000kW feas=True
+CELL tz=0 dhw=0 summer_negative  summer_warm  calls=1 S_prod=6435.6202 S_best=6435.6202 gap=0.0000% abs=0.0000 step0_diff=0.000kW feas=True
+CELL tz=0 dhw=0 summer_negative  summer_cool  calls=1 S_prod=0.6694 S_best=0.6635 gap=0.8698% abs=0.0058 step0_diff=0.000kW feas=True
+CELL tz=0 dhw=0 summer_negative  shoulder     calls=1 S_prod=0.2865 S_best=0.2720 gap=5.0648% abs=0.0145 step0_diff=0.000kW feas=True
+CELL tz=0 dhw=0 shoulder         winter_cold  calls=1 S_prod=48.8137 S_best=48.3267 gap=0.9977% abs=0.4870 step0_diff=0.208kW feas=True
+CELL tz=0 dhw=0 shoulder         winter_mild  calls=1 S_prod=18.0013 S_best=17.9954 gap=0.0330% abs=0.0059 step0_diff=0.000kW feas=True
+CELL tz=0 dhw=0 shoulder         summer_warm  calls=1 S_prod=6435.6202 S_best=6435.6202 gap=0.0000% abs=0.0000 step0_diff=0.000kW feas=True
+CELL tz=0 dhw=0 shoulder         summer_cool  calls=1 S_prod=2.8939 S_best=2.8939 gap=0.0000% abs=0.0000 step0_diff=0.000kW feas=True
+CELL tz=0 dhw=0 shoulder         shoulder     calls=1 S_prod=5.5915 S_best=5.5915 gap=0.0000% abs=0.0000 step0_diff=0.000kW feas=True
+CELL tz=0 dhw=0 flat             winter_cold  calls=1 S_prod=82.4633 S_best=82.4633 gap=0.0001% abs=0.0001 step0_diff=0.000kW feas=True
+CELL tz=0 dhw=0 flat             winter_mild  calls=1 S_prod=37.4692 S_best=37.4181 gap=0.1362% abs=0.0510 step0_diff=5.330kW feas=True
+CELL tz=0 dhw=0 flat             summer_warm  calls=1 S_prod=6435.6202 S_best=6435.6202 gap=0.0000% abs=0.0000 step0_diff=0.000kW feas=True
+CELL tz=0 dhw=0 flat             summer_cool  calls=1 S_prod=4.4497 S_best=4.4481 gap=0.0346% abs=0.0015 step0_diff=0.000kW feas=True
+CELL tz=0 dhw=0 flat             shoulder     calls=1 S_prod=9.6139 S_best=9.5707 gap=0.4498% abs=0.0432 step0_diff=0.000kW feas=True
+CELL tz=0 dhw=1 summer_typical   winter_cold  calls=2 S_prod=22.3077 S_best=22.3077 gap=0.0000% abs=0.0000 step0_diff=0.000kW feas=True
+CELL tz=0 dhw=1 summer_typical   winter_mild  calls=1 S_prod=9.4756 S_best=9.4708 gap=0.0506% abs=0.0048 step0_diff=0.000kW feas=True
+CELL tz=0 dhw=1 summer_typical   summer_warm  calls=1 S_prod=6437.1743 S_best=6437.1743 gap=0.0000% abs=0.0000 step0_diff=0.000kW feas=True
+CELL tz=0 dhw=1 summer_typical   summer_cool  calls=1 S_prod=3.4104 S_best=3.4104 gap=0.0000% abs=0.0000 step0_diff=0.000kW feas=True
+CELL tz=0 dhw=1 summer_typical   shoulder     calls=1 S_prod=4.5489 S_best=4.5489 gap=0.0000% abs=0.0000 step0_diff=0.000kW feas=True
+CELL tz=0 dhw=1 summer_negative  winter_cold  calls=2 S_prod=15.2185 S_best=15.1690 gap=0.3249% abs=0.0494 step0_diff=0.018kW feas=True
+CELL tz=0 dhw=1 summer_negative  winter_mild  calls=2 S_prod=2.1336 S_best=2.1310 gap=0.1219% abs=0.0026 step0_diff=0.000kW feas=True
+CELL tz=0 dhw=1 summer_negative  summer_warm  calls=1 S_prod=6436.4986 S_best=6436.4986 gap=0.0000% abs=0.0000 step0_diff=0.000kW feas=True
+CELL tz=0 dhw=1 summer_negative  summer_cool  calls=1 S_prod=1.5920 S_best=1.5873 gap=0.2948% abs=0.0047 step0_diff=0.000kW feas=True
+CELL tz=0 dhw=1 summer_negative  shoulder     calls=1 S_prod=1.1494 S_best=1.1493 gap=0.0132% abs=0.0002 step0_diff=0.000kW feas=True
+CELL tz=0 dhw=1 shoulder         winter_cold  calls=2 S_prod=54.7532 S_best=54.7532 gap=0.0000% abs=0.0000 step0_diff=0.000kW feas=True
+CELL tz=0 dhw=1 shoulder         winter_mild  calls=2 S_prod=21.8061 S_best=21.8023 gap=0.0174% abs=0.0038 step0_diff=0.000kW feas=True
+CELL tz=0 dhw=1 shoulder         summer_warm  calls=1 S_prod=6438.6103 S_best=6438.6103 gap=0.0000% abs=0.0000 step0_diff=0.000kW feas=True
+CELL tz=0 dhw=1 shoulder         summer_cool  calls=1 S_prod=6.1383 S_best=6.1070 gap=0.5106% abs=0.0313 step0_diff=0.000kW feas=True
+CELL tz=0 dhw=1 shoulder         shoulder     calls=1 S_prod=9.1410 S_best=9.1410 gap=0.0000% abs=0.0000 step0_diff=0.000kW feas=True
+CELL tz=0 dhw=1 flat             winter_cold  calls=1 S_prod=90.8313 S_best=90.8280 gap=0.0037% abs=0.0033 step0_diff=0.000kW feas=True
+CELL tz=0 dhw=1 flat             winter_mild  calls=1 S_prod=43.0954 S_best=43.0098 gap=0.1985% abs=0.0856 step0_diff=0.199kW feas=True
+CELL tz=0 dhw=1 flat             summer_warm  calls=1 S_prod=6439.7524 S_best=6439.7524 gap=0.0000% abs=0.0000 step0_diff=0.000kW feas=True
+CELL tz=0 dhw=1 flat             summer_cool  calls=1 S_prod=9.0855 S_best=9.0826 gap=0.0312% abs=0.0028 step0_diff=0.000kW feas=True
+CELL tz=0 dhw=1 flat             shoulder     calls=1 S_prod=14.7166 S_best=14.6688 gap=0.3244% abs=0.0477 step0_diff=0.000kW feas=True
+CELL tz=1 dhw=0 summer_typical   winter_cold  calls=1 S_prod=25.0398 S_best=25.0193 gap=0.0819% abs=0.0205 step0_diff=0.897kW feas=True
+CELL tz=1 dhw=0 summer_typical   winter_mild  calls=1 S_prod=8.6707 S_best=8.6706 gap=0.0008% abs=0.0001 step0_diff=0.000kW feas=True
+CELL tz=1 dhw=0 summer_typical   summer_warm  calls=1 S_prod=10597.9676 S_best=10597.9676 gap=0.0000% abs=0.0000 step0_diff=0.000kW feas=True
+CELL tz=1 dhw=0 summer_typical   summer_cool  calls=1 S_prod=1.7228 S_best=1.7227 gap=0.0031% abs=0.0001 step0_diff=0.000kW feas=True
+CELL tz=1 dhw=0 summer_typical   shoulder     calls=1 S_prod=3.2949 S_best=3.2948 gap=0.0012% abs=0.0000 step0_diff=0.000kW feas=True
+CELL tz=1 dhw=0 summer_negative  winter_cold  calls=1 S_prod=17.2199 S_best=17.2199 gap=0.0000% abs=0.0000 step0_diff=0.000kW feas=True
+CELL tz=1 dhw=0 summer_negative  winter_mild  calls=1 S_prod=1.9332 S_best=1.9304 gap=0.1436% abs=0.0028 step0_diff=0.000kW feas=True
+CELL tz=1 dhw=0 summer_negative  summer_warm  calls=1 S_prod=10597.9676 S_best=10597.9676 gap=0.0000% abs=0.0000 step0_diff=0.000kW feas=True
+CELL tz=1 dhw=0 summer_negative  summer_cool  calls=1 S_prod=0.4645 S_best=0.4645 gap=0.0014% abs=0.0000 step0_diff=0.000kW feas=True
+CELL tz=1 dhw=0 summer_negative  shoulder     calls=1 S_prod=0.2160 S_best=0.2055 gap=4.8467% abs=0.0105 step0_diff=0.000kW feas=True
+CELL tz=1 dhw=0 shoulder         winter_cold  calls=1 S_prod=59.0145 S_best=58.8798 gap=0.2282% abs=0.1347 step0_diff=0.130kW feas=True
+CELL tz=1 dhw=0 shoulder         winter_mild  calls=1 S_prod=23.2928 S_best=23.2928 gap=0.0000% abs=0.0000 step0_diff=0.000kW feas=True
+CELL tz=1 dhw=0 shoulder         summer_warm  calls=1 S_prod=10597.9676 S_best=10597.9676 gap=0.0000% abs=0.0000 step0_diff=0.000kW feas=True
+CELL tz=1 dhw=0 shoulder         summer_cool  calls=1 S_prod=3.3421 S_best=3.3366 gap=0.1618% abs=0.0054 step0_diff=0.000kW feas=True
+CELL tz=1 dhw=0 shoulder         shoulder     calls=1 S_prod=6.8941 S_best=6.8797 gap=0.2085% abs=0.0144 step0_diff=0.000kW feas=True
+CELL tz=1 dhw=0 flat             winter_cold  calls=1 S_prod=100.3019 S_best=99.7790 gap=0.5213% abs=0.5229 step0_diff=2.104kW feas=True
+CELL tz=1 dhw=0 flat             winter_mild  calls=1 S_prod=41.4784 S_best=41.4751 gap=0.0080% abs=0.0033 step0_diff=0.000kW feas=True
+CELL tz=1 dhw=0 flat             summer_warm  calls=1 S_prod=10597.9676 S_best=10597.9676 gap=0.0000% abs=0.0000 step0_diff=0.000kW feas=True
+CELL tz=1 dhw=0 flat             summer_cool  calls=1 S_prod=5.1895 S_best=5.1878 gap=0.0336% abs=0.0017 step0_diff=0.000kW feas=True
+CELL tz=1 dhw=0 flat             shoulder     calls=1 S_prod=12.2324 S_best=12.2257 gap=0.0551% abs=0.0067 step0_diff=0.000kW feas=True
+CELL tz=1 dhw=1 summer_typical   winter_cold  calls=2 S_prod=28.0931 S_best=28.0925 gap=0.0023% abs=0.0006 step0_diff=0.724kW feas=True
+CELL tz=1 dhw=1 summer_typical   winter_mild  calls=1 S_prod=10.6164 S_best=10.6163 gap=0.0006% abs=0.0001 step0_diff=0.000kW feas=True
+CELL tz=1 dhw=1 summer_typical   summer_warm  calls=1 S_prod=10599.5217 S_best=10599.5217 gap=0.0000% abs=0.0000 step0_diff=0.000kW feas=True
+CELL tz=1 dhw=1 summer_typical   summer_cool  calls=1 S_prod=3.4678 S_best=3.4678 gap=0.0004% abs=0.0000 step0_diff=0.000kW feas=True
+CELL tz=1 dhw=1 summer_typical   shoulder     calls=1 S_prod=5.1371 S_best=5.1371 gap=0.0006% abs=0.0000 step0_diff=0.000kW feas=True
+CELL tz=1 dhw=1 summer_negative  winter_cold  calls=2 S_prod=19.4437 S_best=19.4363 gap=0.0380% abs=0.0074 step0_diff=0.000kW feas=True
+CELL tz=1 dhw=1 summer_negative  winter_mild  calls=2 S_prod=3.3713 S_best=3.3709 gap=0.0121% abs=0.0004 step0_diff=0.000kW feas=True
+CELL tz=1 dhw=1 summer_negative  summer_warm  calls=1 S_prod=10598.8460 S_best=10598.8460 gap=0.0000% abs=0.0000 step0_diff=0.000kW feas=True
+CELL tz=1 dhw=1 summer_negative  summer_cool  calls=1 S_prod=1.3906 S_best=1.3906 gap=0.0004% abs=0.0000 step0_diff=0.000kW feas=True
+CELL tz=1 dhw=1 summer_negative  shoulder     calls=1 S_prod=1.1220 S_best=1.1144 gap=0.6847% abs=0.0077 step0_diff=0.000kW feas=True
+CELL tz=1 dhw=1 shoulder         winter_cold  calls=2 S_prod=65.3668 S_best=65.2366 gap=0.1992% abs=0.1302 step0_diff=0.353kW feas=True
+CELL tz=1 dhw=1 shoulder         winter_mild  calls=1 S_prod=27.0274 S_best=27.0263 gap=0.0044% abs=0.0012 step0_diff=0.000kW feas=True
+CELL tz=1 dhw=1 shoulder         summer_warm  calls=1 S_prod=10600.9576 S_best=10600.9576 gap=0.0000% abs=0.0000 step0_diff=0.000kW feas=True
+CELL tz=1 dhw=1 shoulder         summer_cool  calls=1 S_prod=6.5496 S_best=6.5453 gap=0.0650% abs=0.0043 step0_diff=0.000kW feas=True
+CELL tz=1 dhw=1 shoulder         shoulder     calls=1 S_prod=10.3610 S_best=10.3610 gap=0.0000% abs=0.0000 step0_diff=0.000kW feas=True
+CELL tz=1 dhw=1 flat             winter_cold  calls=1 S_prod=108.3189 S_best=108.0973 gap=0.2046% abs=0.2217 step0_diff=0.009kW feas=True
+CELL tz=1 dhw=1 flat             winter_mild  calls=1 S_prod=47.0590 S_best=47.0408 gap=0.0387% abs=0.0182 step0_diff=0.018kW feas=True
+CELL tz=1 dhw=1 flat             summer_warm  calls=1 S_prod=10602.0998 S_best=10602.0998 gap=0.0000% abs=0.0000 step0_diff=0.000kW feas=True
+CELL tz=1 dhw=1 flat             summer_cool  calls=1 S_prod=9.8396 S_best=9.8352 gap=0.0445% abs=0.0044 step0_diff=0.000kW feas=True
+CELL tz=1 dhw=1 flat             shoulder     calls=1 S_prod=17.3527 S_best=17.3211 gap=0.1821% abs=0.0316 step0_diff=0.000kW feas=True
+RESULT cells=80
+RESULT cells_gap_gt_0.1pct=21
+RESULT cells_gap_gt_1pct=2
+RESULT max_rel_gap=5.0648 %
+RESULT min_rel_gap=0.0000 %
+RESULT mean_rel_gap=0.2182 %
+RESULT mean_rel_gap_drop_best_cell=0.1568 %
+RESULT max_abs_gap=0.5229 objective-units
+RESULT thread_factor=1.000
+RESULT load1=44.07
+RESULT swapins=na

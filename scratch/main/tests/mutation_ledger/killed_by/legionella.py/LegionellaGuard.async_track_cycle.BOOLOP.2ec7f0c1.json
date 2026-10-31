@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/legionella.py:LegionellaGuard.async_track_cycle BOOLOP 2ec7f0c1",
+  "killed_by": "tests/features.py",
+  "old": "        self.switch_latched = self.switch_latched and commanded",
+  "reason": "Recorded by `mutation_table.py --drain` against 9111acceb7831fa4c16ed42a30c579cda404130f: BOOLOP (`self.switch_latched = self.switch_latched or commanded`) took tests/features.py from rc=0 failed=0 to rc=1 failed=30."
+}

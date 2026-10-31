@@ -1,0 +1,35 @@
+<svg viewBox="0 0 760 418" xmlns="http://www.w3.org/2000/svg" role="img"
+     aria-label="A decay curve: the degrees per kWh still present in the hot-water tank against how long ago the kWh was delivered, measured from the shipped tank simulation over 24 hours.">
+<style>text { font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }</style>
+<rect x="0" y="0" width="100%" height="100%" fill="#ffffff"/>
+<text x="22" y="28" font-size="16" font-weight="700" fill="#1c1c1c">Heat bought early is still there later, minus what leaked</text>
+<text x="22" y="46" font-size="12" fill="#5a5a5a">Measured by perturbing ThermalModel.simulate_dhw_step, not by plotting the formula.</text>
+<rect x="84" y="92" width="636" height="214" fill="#ffffff" stroke="#cfcfcf"/>
+<line x1="84.0" y1="92" x2="84.0" y2="306" stroke="#e4e4e4"/>
+<text x="84.0" y="321" font-size="10.5" text-anchor="middle" fill="#5a5a5a">0 h</text>
+<line x1="190.0" y1="92" x2="190.0" y2="306" stroke="#e4e4e4"/>
+<text x="190.0" y="321" font-size="10.5" text-anchor="middle" fill="#5a5a5a">4 h</text>
+<line x1="296.0" y1="92" x2="296.0" y2="306" stroke="#e4e4e4"/>
+<text x="296.0" y="321" font-size="10.5" text-anchor="middle" fill="#5a5a5a">8 h</text>
+<line x1="402.0" y1="92" x2="402.0" y2="306" stroke="#e4e4e4"/>
+<text x="402.0" y="321" font-size="10.5" text-anchor="middle" fill="#5a5a5a">12 h</text>
+<line x1="508.0" y1="92" x2="508.0" y2="306" stroke="#e4e4e4"/>
+<text x="508.0" y="321" font-size="10.5" text-anchor="middle" fill="#5a5a5a">16 h</text>
+<line x1="614.0" y1="92" x2="614.0" y2="306" stroke="#e4e4e4"/>
+<text x="614.0" y="321" font-size="10.5" text-anchor="middle" fill="#5a5a5a">20 h</text>
+<line x1="720.0" y1="92" x2="720.0" y2="306" stroke="#e4e4e4"/>
+<text x="720.0" y="321" font-size="10.5" text-anchor="middle" fill="#5a5a5a">24 h</text>
+<line x1="84" y1="306.0" x2="720" y2="306.0" stroke="#e4e4e4"/>
+<text x="77" y="309.5" font-size="10.5" text-anchor="end" fill="#5a5a5a">0.00</text>
+<line x1="84" y1="208.7" x2="720" y2="208.7" stroke="#e4e4e4"/>
+<text x="77" y="212.2" font-size="10.5" text-anchor="end" fill="#5a5a5a">1.44</text>
+<line x1="84" y1="111.5" x2="720" y2="111.5" stroke="#e4e4e4"/>
+<text x="77" y="115.0" font-size="10.5" text-anchor="end" fill="#5a5a5a">2.87</text>
+<text x="402.0" y="338" font-size="11.5" text-anchor="middle" fill="#1c1c1c">How long ago the kWh was delivered</text>
+<text x="40" y="199.0" font-size="11.5" text-anchor="middle" fill="#1c1c1c" transform="rotate(-90 40 199.0)">°C of it still in the tank, per kWh</text>
+<path d="M 84.00 111.45 L 90.62 112.04 L 97.25 112.62 L 103.88 113.20 L 110.50 113.78 L 117.12 114.36 L 123.75 114.93 L 130.38 115.50 L 137.00 116.07 L 143.62 116.64 L 150.25 117.21 L 156.88 117.78 L 163.50 118.34 L 170.12 118.91 L 176.75 119.47 L 183.38 120.03 L 190.00 120.59 L 196.62 121.14 L 203.25 121.70 L 209.88 122.25 L 216.50 122.80 L 223.12 123.35 L 229.75 123.90 L 236.38 124.44 L 243.00 124.99 L 249.62 125.53 L 256.25 126.07 L 262.88 126.61 L 269.50 127.15 L 276.12 127.69 L 282.75 128.22 L 289.38 128.76 L 296.00 129.29 L 302.62 129.82 L 309.25 130.35 L 315.88 130.87 L 322.50 131.40 L 329.12 131.92 L 335.75 132.45 L 342.38 132.97 L 349.00 133.48 L 355.62 134.00 L 362.25 134.52 L 368.88 135.03 L 375.50 135.55 L 382.12 136.06 L 388.75 136.57 L 395.38 137.08 L 402.00 137.58 L 408.62 138.09 L 415.25 138.59 L 421.88 139.09 L 428.50 139.59 L 435.12 140.09 L 441.75 140.59 L 448.38 141.09 L 455.00 141.58 L 461.62 142.08 L 468.25 142.57 L 474.88 143.06 L 481.50 143.55 L 488.12 144.03 L 494.75 144.52 L 501.38 145.00 L 508.00 145.49 L 514.62 145.97 L 521.25 146.45 L 527.88 146.93 L 534.50 147.40 L 541.12 147.88 L 547.75 148.35 L 554.38 148.83 L 561.00 149.30 L 567.62 149.77 L 574.25 150.24 L 580.88 150.70 L 587.50 151.17 L 594.12 151.64 L 600.75 152.10 L 607.38 152.56 L 614.00 153.02 L 620.62 153.48 L 627.25 153.94 L 633.88 154.39 L 640.50 154.85 L 647.12 155.30 L 653.75 155.75 L 660.38 156.20 L 667.00 156.65 L 673.62 157.10 L 680.25 157.55 L 686.88 157.99 L 693.50 158.44 L 700.12 158.88 L 706.75 159.32 L 713.38 159.76" fill="none" stroke="#c264d0" stroke-width="2.4" stroke-opacity="1.0"/>
+<line x1="713.4" y1="159.8" x2="713.4" y2="306.0" stroke="#5a5a5a" stroke-width="1" stroke-dasharray="3 3"/>
+<text x="700.1" y="149.8" font-size="11" text-anchor="end" fill="#1c1c1c">75% of it is still there a day later</text>
+<text x="84" y="376" font-size="11.5" fill="#5a5a5a">One extra thermal kWh at hour 0, nobody drawing. Tank 300 L: C = 0.348 kWh/°C, UA = 4.2 W/°C.</text>
+<text x="84" y="394" font-size="11.5" fill="#5a5a5a">It is why buying early already costs more than buying late, with no pre-heat cap.</text>
+</svg>

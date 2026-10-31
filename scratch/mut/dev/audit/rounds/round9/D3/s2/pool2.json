@@ -1,0 +1,117 @@
+{
+ "inventory_per_module": {
+  "defrost": 72,
+  "flow_lift": 15,
+  "grid_fee": 62,
+  "optimizer": 522,
+  "price_model": 109,
+  "sysid": 182,
+  "tariff": 94,
+  "thermal_model": 227
+ },
+ "inventory_size": 1283,
+ "kind_weights": {
+  "BOOLOP": 2.0,
+  "CLAMP_DROP": 3.0,
+  "CONST": 2.0,
+  "EXCEPT_RAISE": 2.0,
+  "GUARD_OFF": 2.0,
+  "NP_CLIP": 3.0,
+  "RAISE_DEL": 2.0,
+  "RETURN_DEL": 1.5
+ },
+ "module_weights": {
+  "defrost": 2.0,
+  "flow_lift": 2.0,
+  "grid_fee": 2.5,
+  "optimizer": 3.0,
+  "price_model": 2.5,
+  "sysid": 2.0,
+  "tariff": 3.0,
+  "thermal_model": 3.0
+ },
+ "per_module": 1,
+ "pool": [
+  {
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "id": "T01",
+   "kind": "NP_CLIP",
+   "line": 6899,
+   "module": "optimizer",
+   "new": "            p_norm = np.asarray(p_norm)",
+   "old": "            p_norm = np.clip(p_norm, 0, 1)",
+   "weight": 9.0
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/thermal_model.py",
+   "id": "T02",
+   "kind": "GUARD_OFF",
+   "line": 2555,
+   "module": "thermal_model",
+   "new": "        if False:",
+   "old": "        if initial_state.wood_tank_temperature is not None:",
+   "weight": 6.0
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/tariff.py",
+   "id": "T03",
+   "kind": "GUARD_OFF",
+   "line": 321,
+   "module": "tariff",
+   "new": "        if False:",
+   "old": "        if not self.peaks:",
+   "weight": 6.0
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/grid_fee.py",
+   "id": "T04",
+   "kind": "RETURN_DEL",
+   "line": 121,
+   "module": "grid_fee",
+   "new": "    pass",
+   "old": "    return frozenset({month})",
+   "weight": 3.75
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/price_model.py",
+   "id": "T05",
+   "kind": "GUARD_OFF",
+   "line": 329,
+   "module": "price_model",
+   "new": "        if False:",
+   "old": "        if isinstance(days, list) and len(days) == 2:",
+   "weight": 5.0
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/sysid.py",
+   "id": "T06",
+   "kind": "CONST",
+   "line": 476,
+   "module": "sysid",
+   "new": "_PROFILE_CHI2_95 = 7.682918",
+   "old": "_PROFILE_CHI2_95 = 3.8414588",
+   "weight": 4.0
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/defrost.py",
+   "id": "T07",
+   "kind": "CLAMP_DROP",
+   "line": 384,
+   "module": "defrost",
+   "new": "        self.duty_events[t][h] += (0)",
+   "old": "        self.duty_events[t][h] += max(0, int(events))",
+   "weight": 6.0
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/flow_lift.py",
+   "id": "T08",
+   "kind": "EXCEPT_RAISE",
+   "line": 209,
+   "module": "flow_lift",
+   "new": "            raise",
+   "old": "            return learner",
+   "weight": 4.0
+  }
+ ],
+ "seed": 90303
+}

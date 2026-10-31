@@ -1,0 +1,30 @@
+# arm A: reads absent in every driven cell
+SEAM A-unproduced sensor.py:1579 horizon_hours cells=5
+SEAM A-unproduced sensor.py:1611 horizon_hours cells=5
+SEAM A-unproduced sensor.py:2825 house_power_series cells=10
+SEAM A-unproduced sensor.py:2826 heat_pump_power_series cells=10
+SEAM A-unproduced sensor.py:2827 peak_tariff cells=10
+SEAM A-unproduced sensor.py:99 heat_pump_power_series cells=10
+SEAM A-conditional sensor.py:1546 manual_plan cells=5 (a producer literal exists; not driven)
+SEAM A-conditional sensor.py:1594 predictive_info.dhw_windows_resolved cells=5 (a producer literal exists; not driven)
+SEAM A-conditional sensor.py:1659 manual_plan cells=5 (a producer literal exists; not driven)
+SEAM A-conditional sensor.py:2214 valve_target_recommendation cells=10 (a producer literal exists; not driven)
+SEAM A-conditional sensor.py:2220 valve_target_recommendation cells=10 (a producer literal exists; not driven)
+SEAM A-conditional sensor.py:2287 contract_comparison.load_profile_value_per_kwh cells=10 (a producer literal exists; not driven)
+SEAM A-conditional sensor.py:2296 contract_comparison.load_profile_value_per_kwh cells=10 (a producer literal exists; not driven)
+SEAM A-conditional sensor.py:2874 wood_fuel.night_advice cells=10 (a producer literal exists; not driven)
+# arm B: entity ids referenced but never built
+# arm C: getattr/hasattr on a name no production code defines
+SEAM C __init__.py:332 async_create_background_task
+SEAM C __init__.py:340 cancel
+SEAM C boost.py:201 boost_calls
+RESULT cells=10 count
+RESULT distinct_reads=413 count
+RESULT p6_unproduced_reads=6 count
+RESULT p6_conditional_reads=8 count
+RESULT p6_dangling_entity_ids=0 count
+RESULT entity_ids_built=74 count
+RESULT p6_undefined_getattr=3 count
+RESULT thread_factor=1.000
+RESULT load1=0.98
+RESULT swapins=0

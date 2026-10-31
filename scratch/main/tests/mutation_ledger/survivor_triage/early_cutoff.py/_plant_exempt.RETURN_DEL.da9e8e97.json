@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/early_cutoff.py:_plant_exempt RETURN_DEL da9e8e97",
+  "old": "    return None",
+  "reason": "Equivalent (RETURN_DEL, `return None` -> `pass`): it is the last statement of `_plant_exempt` (def 220, this return 232); falling off the end returns `None` unchanged, so no input separates the two. Measured at 54391b3c7 by hand-mutation: features.py clean baseline fails only `R9-F2.1 P3` (the macOS BLAS solver float); the `232`-to-`pass` mutant's FAIL set is IDENTICAL (evidence arms B, count 1 of 3900). `structure.py` does not kill it either (the `--pin-killed --scripts tests/structure.py` drive pinned 139/217/239/289 and left this site UNPINNED -- lives), so it survives every driver in play. A behavioural check cannot kill a semantically null mutant; only a written triage disposes of it.",
+  "verdict": "equivalent"
+}

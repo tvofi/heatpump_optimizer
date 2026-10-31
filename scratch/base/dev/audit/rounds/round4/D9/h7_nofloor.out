@@ -1,0 +1,30 @@
+
+=== Stress and economics ===
+# baseline=7dd68dd  perturb=nofloor
+# procs_at_start=0 load1=4.19
+RESULT scenarios_recorded=51 scenarios
+RESULT memory_top_n=6 scenarios
+RESULT memory_budget_factor=1.05
+RESULT detection_target=2
+RESULT scenarios_never_memory_probed=45 scenarios
+RESULT min_rss_multiple_required_to_fail=2.52905
+RESULT max_rss_multiple_required_to_fail=2.64294
+RESULT scenarios_where_2x_rss_passes=51 scenarios
+RESULT min_traced_multiple_required_to_fail=1.62637
+RESULT max_traced_multiple_required_to_fail=3.37558
+RESULT scenarios_where_2x_traced_passes=40 scenarios
+RESULT nofloor_min_rss_multiple_required_to_fail=1.05
+RESULT rss_leader_label=winter/pv
+RESULT clean_probe_rss_mb_PROVISIONAL=79.2 MiB
+RESULT clean_probe_traced_mb=3.46 MiB
+RESULT inject2x_probe_rss_mb_PROVISIONAL=131.6 MiB
+RESULT inject2x_rss_over_clean=1.66162
+RESULT rss_fail_threshold_mb=248.1 MiB
+RESULT clean_rss_rule_fires=False
+RESULT inject2x_rss_rule_fires=False
+RESULT traced_fail_threshold_mb=5.633 MiB
+RESULT clean_traced_rule_fires=False
+RESULT inject2x_traced_rule_fires=True
+RESULT load1=5.84473
+RESULT swapins=41685486
+RESULT concurrent_gate_procs=0

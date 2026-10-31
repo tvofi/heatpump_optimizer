@@ -1,0 +1,104 @@
+{
+ "dimension": "D0",
+ "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+ "report_path": "tools/audit/round9/D0/s3/REPORT.md",
+ "exposure": "Read tools/audit/bugclasses.json (for class_guess ids; it carries earlier-round ids as context only) and tests/optimality.py (whose comments cite earlier D0 ids). I read nothing under tools/audit/round3-round8 (the box host removed those after the start; I had not opened any), nothing in docs/, and nothing on GitHub.",
+ "coverage": [
+  {
+   "step": "D0.M5",
+   "depth": "deep",
+   "evidence": "race.py over 160 cells (8 prices x 5 weathers x one/two-zone x DHW off/on), flat as the null arm. Single-zone priced mean gap 0.512 % (max 16.20 % on a -1.62 SEK bill, 0.285 % with the best cell dropped) against flat mean 0.136 %. Two-zone priced mean 0.153 % (0.106 % with the best dropped) against flat 0.075 %. In the gapped priced cells the challenger spends MORE money in 19/24 single-zone and 13/28 two-zone cells, and the mean absolute gap is 0.06-0.11 objective units. out/race_one.log, out/race_two.log"
+  },
+  {
+   "step": "D0.M6",
+   "depth": "deep",
+   "evidence": "Step 0 differs (>0.05 kW) in 6/28 single-zone and 4/31 two-zone gapped cells. mpc.py 4-day closed loop, single-zone winter_cold, over 6 price cells: production's 30-min re-plan against a once-daily re-plan on the settled objective (money + production terminal settlement + production _comfort_terms): -2.42/-2.08/-2.42/+0.04/+0.35 % priced, +1.53 % at flat. 48 h horizon probe. Warm-start seam over 94 cycles. out/mpc4.log, out/mpc_h48.log, out/mpc_seam.log"
+  },
+  {
+   "step": "D0.M7",
+   "depth": "deep",
+   "evidence": "decomp.py: iterating _co_optimize up to 5 rounds over 48 DHW cells (24 single-zone, 24 two-zone) adopts 0 extra rounds, gap 0.0000 % everywhere. Dropping the pinned trigger (free arm, 24 single-zone cells): 0 adoptions. terminal.py: 24 single-zone cells; the 24 h/48 h tail-energy ratio is 0.50-0.86 in winter_cold and >1.5 in shoulder weather, and goes to 0.000 with the credit zeroed. out/decomp_two.log, out/decomp_one_free.log, out/term_one.log, out/term_one_noterm.log"
+  }
+ ],
+ "unfinished": [
+  {
+   "step": "D0.M6",
+   "what": "Closed loop not run on two-zone, DHW-on, or weathers other than winter_cold (a two-zone loop costs ~7 s x 48 solves x 4 days per arm on the loaded box). The flat-price arm shows the 30-min loop +1.53 % on the settled objective (+5.75 SEK over 4 days at near-equal comfort) on ONE cell; before it can be judged it needs the flat arm over >=5 cells: mpc.py --prices flat --arms prod,open --seam 0 --days 4 across weathers and topologies."
+  },
+  {
+   "step": "D0.M7",
+   "what": "terminal.py not run on two-zone cells, and decomp.py --arm free not run on two-zone."
+  }
+ ],
+ "findings": [],
+ "non_findings": [
+  {
+   "claim": "M5: at priced profiles the production plan is within a small objective gap of a much stronger search (extra bang-bang seeds 0-1.5x energy, warm restart, ftol 1e-12). The priced gaps are small in absolute terms and mostly buy comfort with money, beside a flat-price gap of the same order, so they are not a price-optimality defect in these cells.",
+   "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 /home/claude/venv314/bin/python tools/audit/round9/D0/s3/race.py --topo one --out $(mktemp -d) ; PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 /home/claude/venv314/bin/python tools/audit/round9/D0/s3/race.py --topo two --out $(mktemp -d)",
+   "value": "single-zone priced mean 0.512 % (drop-best 0.285 %), flat 0.136 %; two-zone priced 0.153 % (drop-best 0.106 %), flat 0.075 %; gapped priced cells: challenger spends more money in 19/24 and 13/28; mean |dJ| 0.062 / 0.112 units; 4 two-zone cells infeasible for the challenger (colder)"
+  },
+  {
+   "claim": "M6: the open-loop gaps rarely change the first action, so the next re-plan decides again.",
+   "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 /home/claude/venv314/bin/python tools/audit/round9/D0/s3/race.py --summarise <out dir>",
+   "value": "step-0 differs >0.05 kW in 6/28 single-zone and 4/31 two-zone cells gapped >0.1 %"
+  },
+  {
+   "claim": "M6: on the settled objective, production's 30-minute receding horizon is no worse than re-planning once a day at priced profiles, and better in winter. It buys ~0.6-1.0 K of warmth the objective values. The day-1 'realized vs own plan' excess (3.38 %) is a ruler artefact, since the open arm is that ruler's minimiser; the flat control exposes it at 11.67 %.",
+   "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 /home/claude/venv314/bin/python tools/audit/round9/D0/s3/mpc.py --topo one --dhw 0 --prices winter_typical,flat,winter_extreme,winter_moderate,shoulder,winter_narrow --weather winter_cold --arms prod,open --seam 0 --days 4",
+   "value": "settled objective, loop vs daily: winter_typical -2.42 %, winter_extreme -2.08 %, winter_moderate -2.42 %, winter_narrow +0.04 %, shoulder +0.35 %, flat +1.53 % (open, see unfinished); comfort-floor violation 0 in every arm; --replan 96 makes both arms identical (0.0000 %)"
+  },
+  {
+   "claim": "M6: the MPC warm start (coordinator._warm_seeded) hands the previous plan unshifted, although _warm_start_starts' docstring calls it 'the same problem one step later'. Aligning it to the new clock does not measurably change the shipped plan.",
+   "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 /home/claude/venv314/bin/python tools/audit/round9/D0/s3/mpc.py --topo one --dhw 0 --prices winter_typical,shoulder --weather winter_cold --arms prod,cold,shift --seam 1 --days 1",
+   "value": "per-cycle J gap of shifted vs production warm start: winter_typical mean -0.0026 % (4 better / 4 worse of 47), shoulder mean +0.034 % (11 better / 4 worse of 47, max 0.647 %)"
+  },
+  {
+   "claim": "M7: iterating the DHW/space decomposition more than once changes nothing, and neither does dropping _co_optimize's pinned trigger.",
+   "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 /home/claude/venv314/bin/python tools/audit/round9/D0/s3/decomp.py --topo one,two --k 5 ; PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 /home/claude/venv314/bin/python tools/audit/round9/D0/s3/decomp.py --topo one --k 4 --arm free",
+   "value": "0 extra rounds adopted over 48 cells (iter) and 24 cells (free); gap 0.0000 % in every cell; perturbation --k 1 is production"
+  },
+  {
+   "claim": "M7: the terminal credit changes the plan in the direction its docstring claims (it stops the tail being dumped). With it zeroed the 24 h plan buys nothing in hours 20-24.",
+   "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 /home/claude/venv314/bin/python tools/audit/round9/D0/s3/terminal.py --topo one ; PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 /home/claude/venv314/bin/python tools/audit/round9/D0/s3/terminal.py --topo one --dhw 0 --perturb noterm",
+   "value": "tail ratio (24 h plan / 48 h plan, hours 20-24) 0.50-0.86 in winter_cold cells with the credit, 0.000 in all cells without it (end slab 5.8-12.1 K colder)"
+  }
+ ],
+ "harnesses": [
+  "tools/audit/round9/D0/s3/race.py",
+  "tools/audit/round9/D0/s3/decomp.py",
+  "tools/audit/round9/D0/s3/mpc.py",
+  "tools/audit/round9/D0/s3/terminal.py"
+ ],
+ "leads": [
+  {
+   "owner_seat": "D0-s1",
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "symbol": "_multi_start_minimize / HeatPumpOptimizer._solve_space seed set",
+   "what": "Two-zone winter cells: the race challenger finds 0.3-0.45 % lower objective (e.g. two|1|winter_moderate|winter_cold 0.447 %, two|0|winter_typical|winter_cold 0.350 %) from bang-bang seeds at 0.5x/0.75x/1.5x energy or a tight-ftol warm restart, usually with step 0 unchanged. race.py output in tools/audit/round9/D0/s3/out/race_two.log"
+  },
+  {
+   "owner_seat": "D0-s2",
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "symbol": "_multi_start_minimize seed set",
+   "what": "shoulder/summer_negative single-zone cells: gaps of 0.9-2.8 % (shoulder) and up to 16 % relative (summer_negative, absolute 0.05 units on a near-zero bill); the winning seeds are 0.1-1.25x bang-bang. Most spend more money than production. out/race_one.log"
+  },
+  {
+   "owner_seat": "unknown",
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "symbol": "HeatPumpOptimizer._terminal_cost",
+   "what": "Magnitude of the terminal credit (D2): the 24 h plan's tail buys 0.50-0.69x of a 48 h plan's energy in cold weather but 1.5-7.9x in shoulder weather (end slab +3.17 K above the 48 h plan, DHW on). The same at flat prices, so it is valuation, not price. out/term_one.log"
+  },
+  {
+   "owner_seat": "unknown",
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "symbol": "HeatPumpOptimizer._warm_start_starts docstring / coordinator._warm_seeded",
+   "what": "The docstring says the handed plan is 'the same problem one step later', but coordinator._warm_seeded passes the previous power_schedule unshifted (misaligned by the elapsed re-plan steps). Measured effect on the plan is noise (non-finding), so this is a comment-accuracy lead (D5)."
+  },
+  {
+   "owner_seat": "unknown",
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "symbol": "OptimizationResult.predicted_cost",
+   "what": "With a perfect model, the day-1 plan's energy (23.28 SEK, winter_typical single-zone) is not what the 30-min loop spends that day (38.61 SEK); the published per-plan predicted cost does not describe the executed day (D2/D6 reporting question). out/mpc4.log"
+  }
+ ]
+}

@@ -1,0 +1,41 @@
+P9 grid: 70 cells, 4414 text runs, 121 box-intersecting pairs inked, 97 colour rules, 41.8 s
+  FAIL  P9 grid: every cell mounted and every driver step found its target (the grid measured what it names)
+        threw 1: page.screenshot: Clipped area is either empty or outside the resulting image
+Call log:
+  - taking page screenshot
+  - waiting for fonts to load...
+  - fonts loa; missed 0; cells 70/70
+  ok    P9 grid: every card rule that sets a colour is rendered in some cell (no unmeasured colour)
+  ok    P9 grid: every visible text run clears WCAG AA against what is under it
+  ok    P9 grid: no two text runs share ink
+  ok    P9 grid: no pop-up leaves the viewport or its chart
+  ok    P9 grid: every listbox option reads differently from its siblings as shown
+  ok    P9 grid: no text is clipped where its ancestor cannot scroll to it
+  FAIL  P9 grid: every target clears 24 px or the 2.5.8 spacing exception
+        4: path.setup-pipe.layout-match 60.2x10.7
+RESULT coarse_small_instances=4 count
+RESULT coarse_small_distinct=1 count
+  small: path.setup-pipe.layout-match 60.2x10.7
+RESULT coarse_contrast_instances=0 count
+RESULT coarse_contrast_distinct=0 count
+RESULT coarse_overflow_instances=0 count
+RESULT coarse_overflow_distinct=0 count
+RESULT coarse_popups_instances=0 count
+RESULT coarse_popups_distinct=0 count
+RESULT coarse_overlap_instances=0 count
+RESULT coarse_overlap_distinct=0 count
+RESULT coarse_options_instances=0 count
+RESULT coarse_options_distinct=0 count
+RESULT coarse_threw_instances=1 count
+RESULT coarse_threw_distinct=1 count
+  threw: page.screenshot: Clipped area is either empty or outside the resulting image
+Call log:
+  - taking page screenshot
+  - waiting for fonts to load...
+  - fonts loa
+RESULT coarse_missed_instances=0 count
+RESULT coarse_missed_distinct=0 count
+RESULT coarse_cells_states=70 count
+RESULT thread_factor=1.0
+RESULT load1=25.31
+RESULT swapins=0

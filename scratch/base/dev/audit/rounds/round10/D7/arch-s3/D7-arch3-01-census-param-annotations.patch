@@ -1,0 +1,31 @@
+diff --git a/tools/audit/archscore/metrics/untyped_payload_keys.py b/tools/audit/archscore/metrics/untyped_payload_keys.py
+index 461294164..e4e7f40fe 100644
+--- a/tools/audit/archscore/metrics/untyped_payload_keys.py
++++ b/tools/audit/archscore/metrics/untyped_payload_keys.py
+@@ -83,9 +83,25 @@ class Flow:
+ 
+     def env(self, fn: C.Fn) -> dict:
+         if fn.qual not in self.envs:
+-            self.envs[fn.qual] = self.eng._local_env(fn.node, self.eng.seed_env(fn), fn.cls, fn.mod)
++            self.envs[fn.qual] = self.eng._local_env(fn.node, self.seed(fn), fn.cls, fn.mod)
+         return self.envs[fn.qual]
+ 
++    def seed(self, fn: C.Fn) -> dict:
++        """The engine's seed, plus a parameter annotated with a package class as an instance of it,
++        so ``state.as_dict()`` on ``state: away_mode.AwayState`` reaches the method whose dict is
++        published (ARCH-s3: the AwayView keys were invisible to this census)."""
++        env = self.eng.seed_env(fn)
++        a = fn.node.args
++        for p in a.posonlyargs + a.args + a.kwonlyargs:
++            if p.arg in env or p.annotation is None:
++                continue
++            ann = p.annotation
++            r = self.pkg.resolve_name(fn.mod, ann.value) if isinstance(ann, ast.Constant) \
++                and isinstance(ann.value, str) else self.pkg.resolve_expr_static(fn.mod, ann)
++            if r and r[0] == "class" and r[1] not in self.td:
++                env[p.arg] = frozenset({("self", r[1])})
++        return env
++
+     def contract(self, fn: C.Fn, ann: ast.AST | None) -> set[str]:
+         if ann is None:
+             return set()

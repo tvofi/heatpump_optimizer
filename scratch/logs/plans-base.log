@@ -1,0 +1,6 @@
+spread buffer 750 L: plan 21d0378f2f79 space_kwh 22.63 cheap_quarter 0.965 tank_rise +0.00 cost 22.184
+spread buffer 0 L: plan 21d0378f2f79 space_kwh 22.63 cheap_quarter 0.965 tank_rise +0.00 cost 22.184
+spread: buffer plan identical to no-buffer True
+flat buffer 750 L: plan 1144455deb6a space_kwh 31.22 cheap_quarter 0.242 tank_rise +0.00 cost 50.457
+flat buffer 0 L: plan 1144455deb6a space_kwh 31.22 cheap_quarter 0.242 tank_rise +0.00 cost 50.457
+flat: buffer plan identical to no-buffer True

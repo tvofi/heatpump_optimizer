@@ -1,0 +1,10 @@
+{
+  "class": "I3",
+  "instances": 0,
+  "barriered": false,
+  "enumerator": "python3 dev/audit/rounds/round10/D14/I3/hook_shape_seams.py (arm A: hook refusal x admitted tool shape); GITHUB_TOKEN=$(gh auth token) node dev/audit/rounds/round10/D13/s1/yield.mjs --since 1913f0dd7 (arm B: merge verdict coverage)",
+  "instance_list": [
+    {"file": ".claude/hooks/pre-edit.sh", "symbol": "decide (HPO_PRE_EDIT_PY RELEASE_NOTES.md branch) x MultiEdit", "probe": "python3 dev/audit/rounds/round10/D14/I3/hook_shape_seams.py -> SEAM ... RELEASE_NOTES.md MultiEdit ESCAPE; also dev/audit/rounds/round10/D11/s1/pre_edit_multiedit.py escaped_heading_writes=1", "beyond_finding": false},
+    {"file": "tools/policy/policy_lint.mjs", "symbol": "statsHistogram / statsCoverageLine (coverage.noVerdict, no per-class split)", "probe": "node dev/audit/rounds/round10/D13/s1/yield.mjs --since 1913f0dd7 -> window=197, prod_coverage_full=174 (23 merges without a parsable verdict)", "beyond_finding": false}
+  ]
+}

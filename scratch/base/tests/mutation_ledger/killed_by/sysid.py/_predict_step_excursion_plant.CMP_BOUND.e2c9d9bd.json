@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sysid.py:_predict_step_excursion_plant CMP_BOUND e2c9d9bd",
+  "killed_by": "tests/features.py",
+  "old": "            or ua <= 1e-9 or capacity <= 1e-9):",
+  "reason": "Recorded by hand at the R9-EG-A3 round-3 head df1321af; one entry covers both CMP_BOUND sites on the line (same anchor, same old text, ordinals 1 and 2). The auto-drive was INCONCLUSIVE on features' red baseline (R9-F2.1 P3, main's, kept and disclosed per the R9-EG-A2 hand route). `<=` -> `<` differs only at exactly 1e-9, which no recorded check drove: features' sysid calls use ua/capacity of 0.0, 0.2 and 8.0, and 0.0 fires `<` too. The round-3 diff adds the driving check (\"the degenerate-house bound is closed AT the bound\"): under each mutant the check's own expressions read FINITE -- ua=1e-9 -> (0.2798, 0.2798), capacity=1e-9 -> (1.3981, 1.3981) -- against (inf, inf) at the head, so the named check flips FAIL-only-under-the-mutant. The pin is that flip, not the suite rc, which reads rc=1 failed=1 at baseline and mutant alike."
+}

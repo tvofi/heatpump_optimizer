@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._start_gap_cost RETURN_DEL 034eeda1",
+  "killed_by": "tests/plan_view.py",
+  "old": "        return capped - min(surplus_above_caps, max(0.0, space_baseline_cost))",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 5a41a56696c6bd6245b7cc1261a39a5057ba6bb0: RETURN_DEL (`pass`) took tests/plan_view.py from rc=0 failed=0 to rc=1 failed=1."
+}

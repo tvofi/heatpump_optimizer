@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_house_ua_kw_per_c GUARD_OFF 3e72e988",
+  "killed_by": "tests/features.py",
+  "old": "    if params.two_zone_enabled:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 81b7aa9ff976413ec98592045930647c0e0bac73: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=5."
+}

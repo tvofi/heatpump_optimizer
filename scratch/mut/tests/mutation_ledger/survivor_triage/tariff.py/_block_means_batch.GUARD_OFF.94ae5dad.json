@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/tariff.py:_block_means_batch GUARD_OFF 94ae5dad",
+  "old": "    if m == 1:",
+  "reason": "added by R9 F2.5 (the batched capacity-tariff twin); the one-column fast path of `_block_means_batch`. Without it, `row_sums` of a [B, 1] block divided by 1.0 computes the same value for every finite element (a single-element sum is that element); the only float they differ on is -0.0 (row_sums normalises to +0.0), and a -0.0 window mean cannot reach the output: the excess clip `np.maximum(0.0, ...)` maps it to +0.0 first. Equivalent on the reachable domain. Survival measured UNMARKED at the pin run against 2eef524d (hpo-ci container, 17 drivers, 2026-09-28): no driver detects the mutant behaviourally.",
+  "verdict": "equivalent"
+}

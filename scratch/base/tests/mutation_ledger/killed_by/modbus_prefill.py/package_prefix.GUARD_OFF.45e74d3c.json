@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/modbus_prefill.py:package_prefix GUARD_OFF 45e74d3c",
+  "killed_by": "tests/guard_pins.py",
+  "old": "    if domain.strip().lower() != \"binary_sensor\":",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 6001b09a557259f37319b400d219cf83e02c563f: GUARD_OFF (`if False:`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=1."
+}

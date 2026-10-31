@@ -1,0 +1,10 @@
+# closures from /home/claude/audit-r8/tmp/D9-s2/closures_perturbed.json; budgeted scripts: ['tests/stress.py']
+RESULT budgeted_scripts_seeing_coordinator=1 count  # ['tests/stress.py']; 17 scripts reach it at all; scoped stress: (perturbed table)
+RESULT budgeted_scripts_seeing_sensor=0 count  # []; 11 scripts reach it at all; scoped stress: (perturbed table)
+RESULT budgeted_scripts_seeing_process_worker=0 count  # []; 10 scripts reach it at all; scoped stress: (perturbed table)
+RESULT budgeted_scripts_seeing_price_model=0 count  # []; 17 scripts reach it at all; scoped stress: (perturbed table)
+RESULT budgeted_scripts_seeing_narrative=0 count  # []; 16 scripts reach it at all; scoped stress: (perturbed table)
+RESULT budgeted_scripts_seeing_optimizer=1 count  # ['tests/stress.py']; 22 scripts reach it at all; scoped stress: (perturbed table)
+RESULT thread_factor=1.000 (no timed work)
+RESULT load1=6.91
+RESULT swapins=0

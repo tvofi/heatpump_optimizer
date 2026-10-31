@@ -1,0 +1,178 @@
+{
+  "dimension": "D14",
+  "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+  "report_path": "tools/audit/round9/D14/s5/REPORT.md",
+  "exposure": "Read under the D14 exception: tools/audit/bugclasses.json. From this worktree's git history: the messages and --stat of 076f4a35 (R5 D3-04/05/06), 6438f8f6 (R5 D3-07/08/09) and 8d731d77 (R7-INSTR-01), plus git log --grep/-S over instance ids and over closure.py/closures.json/doc_claims.py. Pre-fix source of coordinator.py, price_model.py, sensor.py, curve_learning.py and topology.py, read by git show <sha>^:<path> inside guard_inventory.py --history. Per the coordinator's note: I opened NO file under tools/audit/round3..round8. I listed the directory names of tools/audit/ and tools/audit/round8/, and saw round3/round4 harness paths only as entries in tests/closures.json (harness_headers.py's closure) and in closure.py record/strace spawn lists. tests/harness_headers.py ran round3/round4 harnesses as child processes during my recordings; I did not read their output. docs/audit-2026-09.md exists in this tree and was not opened. The coordinator's deletion of round3..round8 report files happened mid-session, so the heavy-set strace run (harness_headers.py) ran against a tree slightly off baseline. It exited 0.",
+  "coverage": [
+    {
+      "step": "D14.M1",
+      "depth": "deep",
+      "evidence": "Read all 16 classes in tools/audit/bugclasses.json. On my axis, I1 has 7 rounds and 49 instances, I5 has 7 and 60, I3 has 6 and 18, and I2 has 4 and 6. All four are open with detector null."
+    },
+    {
+      "step": "D14.M2",
+      "depth": "deep",
+      "evidence": "Picked I1 and I2 as the classes with executable detectors in my cells. I5 got a detector for its backticked-reference arm, which produced a non-finding. I3 was not picked: its detector idea needs the live ruleset from the GitHub API, which this seat may not read."
+    },
+    {
+      "step": "D14.M3",
+      "depth": "deep",
+      "evidence": "closure_divergence.py (I2) finds 31 seams on the default set, 0 on the null control (guard_pins.py), 0 under --perturb union and 32 under --perturb drop, and 883 on the heavy set. stub_scope_probe.py gives red_and_skipped=1, and 0 under --perturb union. guard_inventory.py (I1) enumerates 2313 seams and finds 528 invisible; the clean fixture gives 0 and the one-line re-introduction gives 1; --perturb widen drops invisible EXIT seams from 52 to 0; run at their pre-fix commits, it re-finds 2 of the 6 ledger instances whose defect is a guard line as invisible. doc_refs.py (I5) finds 303 docs refs and 1282 comment refs, with 0 stale after classification."
+    },
+    {
+      "step": "D14.M4",
+      "depth": "deep",
+      "evidence": "D14-s5-01 (I2) and D14-s5-02 (I1): one finding per class, each with its property, detector command, full seam list (from the command) and proposed barrier."
+    },
+    {
+      "step": "D14.M5",
+      "depth": "spot",
+      "evidence": "Barriers named per finding. I2: record Python lanes under strace -f like the node lane. I1: widen candidates() by three operator shapes. Costs are estimates: strace re-record wall 9.4 s vs 5.9 s audit-hook seconds for the default set, and inventory() 3.77 s CPU. All marked provisional."
+    }
+  ],
+  "unfinished": [
+    {
+      "step": "D14.M3",
+      "what": "I2: not traced under strace were tests/stress.py (it needs the gate lease and measures the machine), optimality.py, backtest.py, edge.py and validate.py (minutes each on a shared box). golden.py and env_drift.py are widened by rule to the whole integration and stub. The listed I2 instances (#1309 warm __pycache__, #1310 phantom entries, R2 D3-09, R3 D3-FLAKE, R5-INST-01, R7-INSTR-01) are other sub-mechanisms, and the detector was not run at their pre-fix commits. Also unmeasured: the node lane's _record_node_strace parses the openat ARGUMENT path, which is relative when a child runs in a scratch cwd. This detector uses strace -y's absolute return path instead."
+    },
+    {
+      "step": "D14.M3",
+      "what": "I3 not picked: the detector needs the live ruleset from the GitHub API."
+    },
+    {
+      "step": "D14.M5",
+      "what": "Barrier gate-second costs are fan-out estimates (load1 0.7-2.2). A quiet-window re-take of the strace re-record overhead against the audit-hook record is owed."
+    }
+  ],
+  "findings": [
+    {
+      "id": "D14-s5-01",
+      "scope": "D14-s5",
+      "step": "D14.M3",
+      "title": "Python closures miss every file a spawned child process reads; select() skips the script on a change to it",
+      "severity": "medium",
+      "claim": "31 (script, file) pairs across tests/doc_claims.py and tests/deployment_shape.py, and 883 across entities.py, features.py and harness_headers.py, are files the script's child processes read that the script's committed closure omits, so closure.select([file]) returns mode scoped with the script skipped; a one-line tests/hastub edit turns deployment_shape.py red while select() skips it.",
+      "mechanism": "tests/closure.py:_exec_record records a Python script in-process under sys.addaudithook plus sys.modules. A child process's reads never reach the hook, and only the child's argv is kept. The node lane records under strace -f, but the Python lanes do not. tests/closure.py check re-records with the same blind instrument, so the table is checked against itself and cannot flag these seams. Instances: doc_claims.py spawns tests/plan_view.py, whose payload make_model_figures.demand_windows draws; 9 hastub files are missing. deployment_shape.py spawns its own '-P --driver' child, which imports the integration against tests/hastub; its closure holds no hastub file, so 22 are missing.",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s5/closure_divergence.py",
+        "harness_path": "tools/audit/round9/D14/s5/closure_divergence.py",
+        "value": 31,
+        "unit": "seams (script, file) on the default 5-script set",
+        "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+        "machine": "box B9 cloud container, 4 cores, Linux 6.18, CPython 3.14.0rc2, strace 6.8",
+        "cpu_or_wall": "count",
+        "contention_note": "two other finder seats on the box; the count is contention-immune",
+        "tolerance": "exact",
+        "load1": 0.72,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "tests/closure.py:select (scope decision); tests/closure.py:_rel, _is_real_file, _STRACE_OPEN (the recorder's own normalisation and parse)",
+      "perturbation": {
+        "change": "--perturb union: fold every traced read into each script's closure (the fix shape), in memory through closure.CLOSURES. The paired one-line re-introduction, --perturb drop, removes custom_components/heatpump_optimizer/__init__.py (present in other closures) from guard_pins.py's closure and takes seams from 31 to 32 (up).",
+        "expected_direction": "to_zero",
+        "observed_value": 0
+      },
+      "metric_definition": "Count of (S,F): F opened for read by S or any process S spawned (strace -f -y), F not in closures[S], and closure.select([F]) is scoped with S not in run.",
+      "phenomenon_property": "For every selectable script S, every repo file that S's run or any process S spawns opens for reading is in S's measured closure, or closure.select([file]) runs S anyway.",
+      "seam_rule": "tools/audit/round9/D14/s5/closure_divergence.py --scripts <every selectable Python script>",
+      "null_control": {
+        "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s5/closure_divergence.py --scripts tests/guard_pins.py,tests/structure.py,tests/typing_ruler.py",
+        "value": 0,
+        "note": "Scripts whose children read nothing outside their closure. guard_pins.py spawns no repo child."
+      },
+      "reproduction_steps": [
+        "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s5/closure_divergence.py  -> seams=31 (doc_claims 9, deployment_shape 22, all python-child reads of tests/hastub/*)",
+        "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s5/stub_scope_probe.py  -> control rc=0; after appending 'import gate_lock as _d14s5_probe' to tests/hastub/homeassistant/helpers/update_coordinator.py, deployment_shape.py rc=1 ('FAIL the driver reported its measurements'); select() is scoped, runs 13 scripts and skips deployment_shape.py; red_and_skipped=1. With --perturb union, red_and_skipped=0. On the same edit, 7 of the 13 selected scripts re-run by hand stay green (plan_view, guard_pins, ha_contract, wood_advisor, solar_alignment, manual_plan, config_flow_steps); the other 6 were not run.",
+        "Heavy set (about 10 min, provisional wall): closure_divergence.py --scripts tests/entities.py,tests/features.py,tests/harness_headers.py,tests/config_flow_steps.py,tests/finite_boundary.py  -> seams=883. By reader: python-child 133 (128 on measured files; harness_headers.py's live-header children such as tools/audit/round4/D10/qs_rules.py and round4/D6/claims.py read .github/workflows/*, docs and so on); node-child 334 (332 INERT, the policy corpus policy_lint.mjs reads under entities.py; 2 measured); git 416 (312 measured; entities.py's git grep full-tree scans and git status/ls-files); config_flow_steps 0; finite_boundary 0."
+      ],
+      "proposed_fix_scope": "Barrier in tests/closure.py. On Linux, record a Python script as _record_node_strace records node: wrap --exec-record in strace -f -qq -y -e trace=openat, take the ABSOLUTE path strace -y prints for the returned fd, and union the result with the audit-hook set, which stays for Darwin and for #1309's .pyc attribution. That retires the DRIVEN_BY_OTHERS hand rule's reason. Decide explicitly whether git-internal reads (git grep, git status) count as dependencies; card_drift.mjs's strace already records them. Standing cost falls only on main's closures job, which re-records anyway: 9.4 s strace wall vs 5.9 s recorded audit-hook seconds on the default set (provisional). Partial, cheaper alternative: a _widen rule giving deployment_shape.py all of tests/hastub, and a closure union doc_claims.py <- plan_view.py. That closes today's 31 but not the next child.",
+      "files": [
+        "tests/closure.py",
+        "tests/closures.json",
+        "tests/derive_closures.sh",
+        "tests/deployment_shape.py",
+        "tests/doc_claims.py"
+      ],
+      "stop_rule_class": "bug",
+      "class_guess": "I2"
+    },
+    {
+      "id": "D14-s5-02",
+      "scope": "D14-s5",
+      "step": "D14.M3",
+      "title": "Mutation ratchet inventory cannot see 528 of 2313 production guard seams; a new guard of those shapes raises it by 0",
+      "severity": "medium",
+      "claim": "tests/mutation_table.py:candidates() yields no site on 528 of the 2313 guard seams in custom_components/heatpump_optimizer (52 of 1346 early-exit ifs, 246 of 668 clamps, 230 of 299 threshold ternaries). A new undispositioned guard whose test spans two lines therefore raises unpinned_sites by 0 and ratchet_refusal does not refuse, against +1 and refusal for the same guard on one line.",
+      "mechanism": "Six single-line operators. GUARD_OFF fires only on an if whose test is on one line, whose line starts with 'if ' and ends with ':', and which has no else; that misses multi-line tests (46), elif (3), a trailing comment after the colon (2) and else branches (1). CLAMP_DROP fires only on a bare min/max with exactly 2 args on one line; that misses numpy/math clamps (179), multi-line calls (63) and 3+ args (4). No operator touches a conditional expression's test. At their pre-fix commits, two of the six ledger I1 instances whose defect is a guard line are of an invisible shape: R5 D3-04 #1312 (the ternary len(positives) >= 2, 076f4a35^) and R5 D3-08 #1316 (np.clip in curve_learning._step_down, 6438f8f6^).",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s5/guard_inventory.py --history --list",
+        "harness_path": "tools/audit/round9/D14/s5/guard_inventory.py",
+        "value": 528,
+        "unit": "guard seams with no candidates() site on their line",
+        "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+        "machine": "box B9 cloud container, 4 cores, Linux 6.18, CPython 3.14.0rc2",
+        "cpu_or_wall": "count",
+        "contention_note": "two other finder seats on the box; AST-only count, contention-immune",
+        "tolerance": "exact",
+        "load1": 1.84,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "tests/mutation_table.py:candidates, inventory, unpinned_sites, ratchet_refusal",
+      "perturbation": {
+        "change": "--perturb widen: wrap candidates() so it also yields GUARD_OFF for every ast.If (the fix shape for the EXIT arm), in memory",
+        "expected_direction": "down",
+        "observed_value": "uncovered 528 -> 476; uncovered_EXIT 52 -> 0"
+      },
+      "metric_definition": "Count of AST guard seams (EXIT if/elif ending in an exit; CLAMP min/max with >=2 args or np/math clamp; TERN compare/finite ternary) with no candidates() site of the covering kind on that line.",
+      "phenomenon_property": "Every production guard (early-exit if, clamp, threshold ternary) has a candidate site in mutation_table.inventory(), so unpinned_sites counts it until it carries a disposition, and a new undispositioned guard raises the ratchet.",
+      "seam_rule": "tools/audit/round9/D14/s5/guard_inventory.py --list",
+      "null_control": {
+        "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s5/guard_inventory.py --fixture",
+        "value": "fixture_clean_uncovered=0, fixture_reintro_uncovered=1; ratchet_delta_visible_guard=1 with ratchet_refuses_visible=1, ratchet_delta_invisible_guard=0 with ratchet_refuses_invisible=0",
+        "note": "A clean module with single-line guards and 2-arg clamps gives 0. The one-line re-introduction (the same guard's test split over two lines) gives 1. The ratchet probe drives the production inventory -> unpinned_sites -> ratchet_refusal chain over a scratch copy of price_model.py."
+      },
+      "reproduction_steps": [
+        "guard_inventory.py --history: #1312 TERN invisible, #1313 CLAMP inventoried, #1314 EXIT inventoried, #1315 EXIT inventoried, #1316 CLAMP invisible, #1317 CLAMP inventoried",
+        "Context, not a finding: at baseline 3677 of 3951 inventoried sites are unpinned. That includes price_model.py:227 and topology.py:647, whose pins merged in 076f4a35 and 6438f8f6, because the ledger lags the pins by design (growth-only ratchet).",
+        "Top files by invisible seams: optimizer.py 152, coordinator.py 135, thermal_model.py 77, sysid.py 27"
+      ],
+      "proposed_fix_scope": "Barrier in tests/mutation_table.py:candidates(). GUARD_OFF on any ast.If, rewriting the test's source segment (multi-line and elif included) to False. CLAMP_DROP on np.clip/np.minimum/np.maximum/np.fmin/np.fmax/math.fmin/fmax and on multi-line min/max calls. A seventh TERN operator that replaces a conditional expression's test with True. Mutants become multi-line edits, which per-worker tree copies already allow. Standing cost is AST-only: inventory() takes 3.77 s CPU today and this detector 3.91 s (provisional). The widening adds 528 sites at base and head alike, so no PR is refused by the widening itself, and the nightly burn-in inherits 528 more candidates to drive.",
+      "files": [
+        "tests/mutation_table.py",
+        "tests/mutation_budgets.json"
+      ],
+      "stop_rule_class": "bug",
+      "class_guess": "I1"
+    }
+  ],
+  "non_findings": [
+    {
+      "claim": "I5 user docs: every backticked path or snake_case reference in README.md and the seven user docs resolves, or is deliberately external or negative. The 4 unresolved: two files the text says live in the tuya_heat_pump repository (docs/configuration.md:403-404), the user's own configuration.yaml, and 'not direct_radiation'.",
+      "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s5/doc_refs.py --list",
+      "value": "docs_refs=303, docs_unresolved=4 (0 stale); --perturb drop-symbol moves it to 5"
+    },
+    {
+      "claim": "I5 production comments and docstrings: ``x`` references with an underscore or dot resolve to tree identifiers or strings. The 16 unresolved all name things outside the tree: HA has_value, protect_loop, _async_configure and current_option; os.waitpid, np.int32 and __float__; example entity ids sensor.hp_t4 and input_boolean.holiday_mode; Nord Pool's price_in_cents; the negative mention UPPER_FLOOR_TEMP; the maths notation T_prev.",
+      "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s5/doc_refs.py --list",
+      "value": "comment_refs=1282, comment_unresolved=16 (0 stale)"
+    },
+    {
+      "claim": "I2 null control: scripts whose children read nothing outside their closure show no divergence.",
+      "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s5/closure_divergence.py --scripts tests/guard_pins.py,tests/structure.py,tests/typing_ruler.py,tests/config_flow_steps.py,tests/finite_boundary.py",
+      "value": "0 seams each (config_flow_steps and finite_boundary taken from the heavy run)"
+    },
+    {
+      "claim": "I1 kill rule: mutation_table.killed() requires a red run that names more failing checks than the baseline, so a bare exit status or a refusal is not a kill. Read only, not measured; it is pinned in entities.py.",
+      "command": "sed -n 1475,1500p tests/mutation_table.py",
+      "value": "rule present: run.rc != 0 and failing_count(run) > failing_count(baseline)"
+    }
+  ],
+  "harnesses": [
+    "tools/audit/round9/D14/s5/closure_divergence.py",
+    "tools/audit/round9/D14/s5/stub_scope_probe.py",
+    "tools/audit/round9/D14/s5/guard_inventory.py",
+    "tools/audit/round9/D14/s5/doc_refs.py"
+  ],
+  "leads": [],
+  "collector_note": "REPORT.md and report.json written by the B9 box thread from the seat's hand-back; the seat's own file tool refused report writes. NOT WRITTEN: the harness refused a Write of tools/audit/round9/D14/s5/REPORT.md ('Subagents should return findings as text, not write report files'), and I did not get around the refusal. So neither REPORT.md nor report.json exists in the worktree. The full REPORT.md text is in report_markdown below, and this JSON object is report.json. The caller should write both files. The four harnesses are committed in place under tools/audit/round9/D14/s5/."
+}

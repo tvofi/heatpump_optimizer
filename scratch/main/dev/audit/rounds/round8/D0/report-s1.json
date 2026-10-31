@@ -1,0 +1,108 @@
+{
+ "dimension": "D0",
+ "seat": "s1",
+ "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+ "tree": "/home/claude/audit-r8/seats/D0-s1",
+ "report_path": "tools/audit/round8/D0/REPORT-s1.md",
+ "exposure": "",
+ "findings": [
+  {
+   "id": "D0-s1-01",
+   "title": "L-BFGS-B ftol=1e-6 stops most refinements short of the minimum the same solver reaches",
+   "severity": "low",
+   "claim": "On the 8x5 profiles grid (two-zone, DHW off) 219 of 320 production L-BFGS-B runs stop on the ftol=1e-6 relative-reduction test, and re-running the same optimize with ftol=1e-12 at the same seam lowers the shipped objective_value by more than 0.1 % in 15 of 40 cells (max 1.11 %, mean 0.112 %, mean with the best cell dropped 0.087 %), with comfort no worse.",
+   "mechanism": "_multi_start_minimize and _lbfgsb_restart both pass options {maxiter, ftol: 1e-6, eps: 1e-4}; ftol is relative to max(|f|,1), so an iterate that improves by less than ~1e-6*J (7.8e-5 on a J=78 day) ends the run although later iterations keep descending; the polish restart then re-stops on the same test. maxiter (200/300) and gtol (default 1e-5) are never the binding stop.",
+   "evidence": {
+    "command": "OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 PYTHONPATH=tests/hastub python3 tools/audit/round8/D0/s1_budget.py --tz 1 --dhw 0 --arms prod,ftol",
+    "harness_path": "tools/audit/round8/D0/s1_budget.py",
+    "value": "ftol_cells_gap_gt_1e-3=15/40; ftol_gap_mean=1.1249e-03; ftol_gap_max=1.1074e-02; runs_stopped_by_ftol=219/320",
+    "unit": "count / ratio of shipped objective_value",
+    "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+    "machine": "4-vCPU cloud Linux container, x86_64, Python 3.11.15, numpy 2.4.6, scipy 1.17.1",
+    "cpu_or_wall": "ratio",
+    "contention_note": "fan-out: up to ~14 seats sharing the box; the value is objective ratios and counts, contention-immune; float drift across BLAS builds only",
+    "tolerance": "counts exact on this box; ratios +-1e-6 absolute",
+    "load1": 18.81,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/optimizer.py:_scoped_minimize (wraps every L-BFGS-B run of _multi_start_minimize and _lbfgsb_restart); scored on HeatPumpOptimizer.optimize(...).objective_value",
+   "perturbation": {
+    "change": "one-line production edit: both '\"ftol\": 1e-6' literals in optimizer.py -> 1e-12 (tools/audit/round8/D0/s1_budget_perturb.sh applies it and restores via git checkout in an EXIT trap)",
+    "expected_direction": "to_zero",
+    "observed_value": "on 5 two-zone cells: prod objective_value fell by exactly the ftol-arm gap in 5/5 (e.g. winter_typical|winter_cold 77.884228 -> 77.699680), ftol_gap 0.000e+00 in 5/5, runs_stopped_by_ftol 37/40 -> 11/40"
+   },
+   "metric_definition": "rel_gap = (J_prod - J_ftol1e-12)/|J_prod|, J = shipped OptimizationResult.objective_value; counted only where room degree-steps below min_temp are no worse",
+   "phenomenon_property": "Every L-BFGS-B run the optimizer makes should stop on a criterion that does not leave material descent on the table: the shipped objective must not fall by more than ~1e-4 relative when only the stopping tolerances are tightened.",
+   "seam_rule": "grep -n '\"ftol\"' custom_components/heatpump_optimizer/optimizer.py  (every options dict passed to _scoped_minimize)",
+   "null_control": {
+    "command": "same command; RESULT ftol_flat_gap_mean / ftol_flat_gap_max (the 5 flat-price cells)",
+    "value": "flat: mean 7.29e-04, max 3.91e-03 (flat|winter_cold, 0.39 objective units, the largest absolute gap on the grid) vs non-flat mean 1.18e-03",
+    "note": "The gap SURVIVES the flat-price control, so it is not price optimality: it is a convergence-tolerance gap on the whole objective (comfort pull, cycling, energy). Single-zone DHW-off: flat mean 2.4e-4 vs non-flat 4.1e-3; single-zone DHW-on: flat 1.57e-3 vs 1.69e-3. Energy cost moves either sign (two-zone mean -0.035 SEK/day better, max 0.80 SEK/day) because the objective, not price, is what tightens."
+   },
+   "leave_one_out": {
+    "cells": 40,
+    "min": -0.00026041,
+    "max": 0.011074,
+    "drop_most_favourable": 0.00086984
+   },
+   "reproduction_steps": [
+    "python3 tools/audit/round8/D0/s1_budget.py --tz 1 --dhw 0 --arms prod,ftol",
+    "python3 tools/audit/round8/D0/s1_budget.py --tz 0 --dhw 1 --arms prod,ftol,maxiter  (12/40 cells >1e-3, max 2.88e-2, LOO mean 9.79e-4, runs_stopped_by_ftol 169/330)",
+    "python3 tools/audit/round8/D0/s1_budget.py --tz 0 --dhw 0 --arms prod,ftol,gtol,maxiter  (8/40 >1e-3, max 7.59e-2 on a J=0.31 summer day, LOO 1.75e-3; gtol and maxiter arms 0)",
+    "bash tools/audit/round8/D0/s1_budget_perturb.sh"
+   ],
+   "proposed_fix_scope": "Tighten ftol (1e-9..1e-12) in the two options dicts, or add an explicit relative-gap re-polish; price the extra work: nfev median x1.82 (two-zone), x1.59-1.63 (single-zone), max x4.6, which the stress budgets must absorb. Low severity: largest absolute objective gain 0.39 units/day, 0.2-0.4 % of winter-day objectives.",
+   "files": [
+    "custom_components/heatpump_optimizer/optimizer.py"
+   ],
+   "expected_golden_drift": [
+    "value-bearing plan fixtures whose solves stop on ftol (most non-bang-bang scenarios)"
+   ],
+   "stop_rule_class": "bug"
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "No candidate is discarded before refinement: every candidate handed to _multi_start_minimize gets one L-BFGS-B run plus one _lbfgsb_restart polish (4 candidates -> 8 runs per call in 40/40 single-zone cells); _MULTI_START_SOLVES no longer exists and the pre-scoring only orders the loop.",
+   "command": "python3 tools/audit/round8/D0/s1_race.py --dhw 0 --arms seeds",
+   "value": "RESULT lbfgsb_runs=320 over 40 calls x 4 candidates"
+  },
+  {
+   "claim": "maxiter (200 space-only / 300 with DHW) is never the binding stop, and x10 moves no plan.",
+   "command": "python3 tools/audit/round8/D0/s1_budget.py --tz 0 --dhw 1 --arms prod,ftol,maxiter",
+   "value": "runs_stopped_by_maxiter=0 of 330 (DHW) / 0 of 320 (no DHW) / 0 of 320 (two-zone); maxiter_gap_max=0; max nit seen 33"
+  },
+  {
+   "claim": "gtol (default 1e-5) is not binding: gtol 1e-10 changes no shipped objective beyond float noise.",
+   "command": "python3 tools/audit/round8/D0/s1_budget.py --tz 0 --dhw 0 --arms prod,ftol,gtol,maxiter",
+   "value": "gtol_gap_max=4.27e-15, nfev ratio median 1.000"
+  },
+  {
+   "claim": "Seeding/basins: ten extra structural seeds (bang-bang via _price_ranked_start at 0.10-1.50 of the plan's energy, all-zero, all-upper-bound), each refined through production's own _multi_start_minimize, beat production by >0.1 % in 9/40 single-zone cells, but the mean with the best cell dropped is 1.19e-3, the largest cell (11.4 %) is a J=0.31 summer_negative day (0.035 objective units, energy cost worse), and flat-price cells show the same magnitude (flat|shoulder 6.6e-3). Not a price-optimality gap: it is basin selection on the comfort/cycling terms.",
+   "command": "python3 tools/audit/round8/D0/s1_race.py --dhw 0 --arms seeds",
+   "value": "cells_gap_gt_1e-3=9, gap_mean=4.02e-3, gap_mean_drop_best=1.19e-3, max 1.144e-1"
+  },
+  {
+   "claim": "The MPC warm-start candidate (#1295) is the previous plan handed over UNSHIFTED by coordinator._warm_seeded, so at the default 30-min interval it is misaligned by 2 steps (32/40 cells, where the plan is not constant); the docstring's 'the same problem one step later' does not hold. Aligning it moves the shipped objective with mixed sign (8 cells better >1e-4, 5 worse), mean 6.5e-4 collapsing to 1.3e-4 with the best cell dropped, and flat-price cells move as much as priced ones. Not a finding at this bar; the mechanism is recorded for the seat that owns MPC (s2).",
+   "command": "python3 tools/audit/round8/D0/s1_warm.py --dhw 0",
+   "value": "warm_misaligned=32, shipped_gap_cells_gt_1e-4=8, shipped_gap_cells_lt_-1e-4=5, shipped_gap_mean_drop_best=1.27e-4"
+  },
+  {
+   "claim": "fd_eps (1e-4) is not a lever: fd_eps 1e-6 and 1e-3 via production's own fd_eps kwarg move the objective with mixed sign on the 15 cells raced (eps6 better in 3 non-trivial cells, worse in 4; eps3 better in 3, worse in 5), never beyond 3.7e-3.",
+   "command": "python3 tools/audit/round8/D0/s1_race.py --dhw 0 --arms eps --prices winter_typical,winter_extreme  (partial; logs s1_logs/g_d0.log, g_d1.log)",
+   "value": "eps6 -2.99e-3..+1.97e-3; eps3 -1.16e-3..+3.70e-3 over 15 cells"
+  },
+  {
+   "claim": "Bang-bang cold days are already at a KKT vertex: on winter_cold cells single-zone every run stops on PGTOL in 2-5 iterations and no arm (seeds, budget, eps, coordinate search) finds anything.",
+   "command": "python3 tools/audit/round8/D0/s1_race.py --prices winter_typical,winter_extreme --weather winter_cold",
+   "value": "gap 0.000e+00 in all arms, max_nit 4-5"
+  }
+ ],
+ "harnesses": [
+  "tools/audit/round8/D0/s1_race.py",
+  "tools/audit/round8/D0/s1_budget.py",
+  "tools/audit/round8/D0/s1_budget_perturb.sh",
+  "tools/audit/round8/D0/s1_warm.py"
+ ],
+ "unfinished": "The full 4-arm race (seeds, budget, eps, coordinate search) was cut at 8/40 cells (DHW off), 6/40 (DHW on), 2/40 (two-zone) for box load (load1 11-23); partial logs in s1_logs/g_*.log. Not run: the second (co-optimisation) space solve, which refines only the warm start plus extra_starts, raced against the structural seeds; differential-evolution/DP outer bound; valve/wood topologies and 6/48 h horizons. Schema note: the task's ids D0-s1-NN do not match finding.schema.json's id pattern ^D[0-9]+-[0-9]{2}$."
+}

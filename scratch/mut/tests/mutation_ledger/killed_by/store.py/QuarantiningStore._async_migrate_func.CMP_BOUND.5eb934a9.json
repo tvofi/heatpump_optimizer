@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/store.py:QuarantiningStore._async_migrate_func CMP_BOUND 5eb934a9",
+  "killed_by": "tests/finite_boundary.py",
+  "old": "        if old_major_version > self._major:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 2622b31c82d61c7d217e05c41dd0b90bf6384c5a: CMP_BOUND (`if old_major_version >= self._major:`) took tests/finite_boundary.py from rc=0 failed=0 to rc=1 failed=1."
+}

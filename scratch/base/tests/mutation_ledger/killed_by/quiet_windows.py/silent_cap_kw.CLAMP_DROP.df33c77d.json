@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/quiet_windows.py:silent_cap_kw CLAMP_DROP df33c77d",
+  "killed_by": "tests/manual_plan.py",
+  "old": "            max(float(measured), CAPACITY_FLOOR_FRACTION * float(p_max)),",
+  "reason": "Recorded by hand against 45e75b85 plus this commit's tests/manual_plan.py test_quiet_window_arms, in a detached copy with the mutant applied. The comment-only null control, a comment prepended to the mutated file, left all manual-plan checks passing. CLAMP_DROP (`(float(measured)),`) took tests/manual_plan.py from rc=0 to rc=1: 1 check FAILED, \"a measured figure below the floor is raised to the floor\" (got 1.0)."
+}

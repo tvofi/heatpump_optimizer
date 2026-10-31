@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:modulation_floor_flow_c CMP_BOUND 431e5f53",
+  "old": "    return (inlet if gate is None or inlet > gate else gate) + FLOW_MIN_LIFT_K",
+  "reason": "R10 mutation-anchor: the `killed_by: tests/entities.py` pin was vacuous. Re-driven at 0be5e2de5 by dev/audit/harnesses/r10_anchor_vacuous.py with the 2 ledger row(s) the mutant itself makes stale hidden from its tree, 0 of 1 site(s) were killed by tests/entities.py: the recorded kill was a check refusing a ledger row the mutant made stale (the --anchor self-test, or the survivor_triage staleness check), not one that saw the mutation. Was: Recorded by `mutation_table.py --pin-killed` against 52011c69ae04f8a725c82040669b7c158290f834: CMP_BOUND (`return (inlet if gate is None or inlet >= gate else gate) + FLOW_MIN_LIFT_K`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1. Not re-driven here against the other drivers in its closure, so a gap until one is shown to kill it.",
+  "verdict": "gap"
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sysid.py:SystemIdentification._size_step_power GUARD_OFF c03bdbab",
+  "killed_by": "tests/features.py",
+  "old": "            if best is not None:",
+  "reason": "R9 F4.1 fix review, re-pinned by hand after the two-bound loop moved these lines: GUARD_OFF (`if False:`) applied at the inventory site in a copy of code head 9b4da586, then tests/features.py run whole beside an unmutated copy of the same tree (1 failed, `recorded_at` #363, which fails in any copy that is not the repository): rc=1 failed=2, `D2-s4-02: the sized step's noiseless peak leaves the noise headroom under the abort bound` red (the loop runs on to the full bound and sizes the step to it). This text was, before F4.1, the restart's break, triaged as a gap; that row moves to 2fd96899 with the break, and this anchor now names the break out of the two-bound loop."
+}

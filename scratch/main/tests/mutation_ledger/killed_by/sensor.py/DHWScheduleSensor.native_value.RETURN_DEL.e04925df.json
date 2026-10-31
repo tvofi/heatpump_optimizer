@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sensor.py:DHWScheduleSensor.native_value RETURN_DEL e04925df",
+  "killed_by": "tests/entities.py",
+  "old": "                return f\"{periods} heating period{'s' if periods != 1 else ''}\"",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against c2a0448d076e1f861bf4eb5ff7ea9abdefc0efe8: RETURN_DEL (`pass`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=4."
+}

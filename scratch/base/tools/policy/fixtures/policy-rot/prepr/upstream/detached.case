@@ -1,0 +1,10 @@
+# A DETACHED HEAD -- and this is not an exotic shape here: `fix-review.md` has
+# every reviewer run from a worktree checked out at the head SHA, so it is the
+# state this script is in for one whole seat of the protocol. There is no branch
+# name, so there is no `refs/heads/<branch>` for a pull request head to point
+# at and nothing this script could compare. `git rev-parse @{u}` also fails
+# here, which is why the pre-#694-review script reached the skip arm too; this
+# fixture is what stops the repair from losing that.
+#
+# <branch or -> <remote or -> <own-remote-ref sha or -> <behind> <ahead> <rc> <compared ref or -> <text>
+- origin - 0 0 3 - a detached HEAD has no branch and so nothing to compare

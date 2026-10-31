@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._compute_baseline_power BOOLOP 64b1ab84",
+  "killed_by": "tests/doc_claims.py",
+  "old": "                if external_heat_kw is not None and i < len(external_heat_kw)",
+  "reason": "Recorded by `mutation_table.py --drain` against a1da8d381aa0afd2d1be6753678a8fc6191604ec: BOOLOP (`if external_heat_kw is not None or i < len(external_heat_kw)`) took tests/doc_claims.py from rc=0 failed=0 to rc=1 failed=1."
+}

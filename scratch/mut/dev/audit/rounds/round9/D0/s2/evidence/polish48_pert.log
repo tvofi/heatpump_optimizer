@@ -1,0 +1,10 @@
+CELL two|dhw|summer_typical|winter_cold|h48         f  54.78892 ->  54.78892 gap +0.0000% (+0.0000) viol 0.0000->0.0000 step0 0.00->0.00 energySEK 44.482->44.482 prod_nit 158
+RESULT summer_typical_cells=1 count
+RESULT summer_typical_gap_max=0.0000 %
+RESULT summer_typical_gap_min=0.0000 %
+RESULT summer_typical_gap_mean=0.0000 %
+RESULT summer_typical_gap_abs_max=0.0000 SEK
+RESULT summer_typical_cells_over_0p1pct=0 count
+RESULT thread_factor=1.000
+RESULT load1=5.16
+RESULT swapins=0

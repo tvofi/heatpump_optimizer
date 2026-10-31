@@ -1,0 +1,10 @@
+two|dhw|summer_typical|winter_cold|h24           call0/2 f=28.10389 gap=+0.1797% (+0.0505) pol=+0.0000% lad=+0.1797% arm=ladder viol 0.0000->0.0000 kWh 66.6->66.8 s0 1.09->0.93 hits=0/12
+two|dhw|shoulder|winter_cold|h24                 call0/2 f=65.32019 gap=+0.0699% (+0.0457) pol=+0.0026% lad=+0.0699% arm=ladder_polish viol 0.0000->0.0000 kWh 75.3->75.5 s0 3.62->2.57 hits=0/12
+RESULT cells=2 count
+RESULT gap_max=0.1797 %
+RESULT gap_mean=0.1248 %
+RESULT cells_over_0p1pct=1 count
+RESULT rows_file=/tmp/claude-0/-home-claude/b0ec2fef-f6c2-53f1-b9f6-6866e66e9f0d/scratchpad/r/deep.jsonl
+RESULT thread_factor=1.000
+RESULT load1=2.61
+RESULT swapins=0

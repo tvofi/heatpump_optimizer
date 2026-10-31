@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/debugger.py:DebugCollector.async_load GUARD_OFF 56e892c1",
+  "killed_by": "tests/debug_collect.py",
+  "old": "        if self.started_at is None:  # a ring with no start cannot be bounded to a week",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against fc76a05577985c92574e4d42433f61192efe47f4: GUARD_OFF (`if False:  # a ring with no start cannot be bounded to a week`) took tests/debug_collect.py from rc=0 failed=0 to rc=1 failed=1."
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._detect_outage GUARD_OFF f7eb0c66",
+  "killed_by": "tests/features.py",
+  "old": "        if (reading := _outage_reading(last_tick_iso, now, ahead)) is None:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 6793659caed93f5a47bc7cc940f119b9e2abcbeb: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

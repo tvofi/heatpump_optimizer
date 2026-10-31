@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/services.py:handle_apply_schedule GUARD_OFF af7cfbb5",
+  "killed_by": "tests/features.py",
+  "old": "            if wanted > ceiling:",
+  "reason": "R8-I1b (#1533): apply_schedule's deadband refusal. `if False:` accepts a minimum with no deadband. Measured at 8627feee on a detached worktree with this and the set_thermal_parameters twin off: tests/features.py rc=0 failed=0 -> rc=1, 4 of 3189 FAILED, the two naming this handler being `apply_schedule with a deadband-less hot water minimum raises a translatable error` and `apply_schedule accepts a hot water minimum exactly at the deadband ceiling and refuses one 0.01 past it (#1533)`."
+}

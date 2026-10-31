@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/boost.py:interval_boosted GUARD_OFF f327f9ce",
+  "killed_by": "tests/boost_drift_replay.py",
+  "old": "    if pending.get(\"boost_space\"):",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 82d1f47f20c0557f6898f843960eaa64bb20cbfd: GUARD_OFF (`if False:`) took tests/boost_drift_replay.py from rc=0 failed=0 to rc=1 failed=1."
+}

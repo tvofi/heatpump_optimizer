@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_without_block BOOLOP d4c94b35",
+  "killed_by": "tests/block_duty.py",
+  "old": "        dhw = duty in (\"dhw\", \"both\") and not dhw_off",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 62f604eb062bf88d3dc4b0f4ec85ca17359af229: BOOLOP (`dhw = duty in (\"dhw\", \"both\") or not dhw_off`) took tests/block_duty.py from rc=0 failed=0 to rc=1 failed=2."
+}

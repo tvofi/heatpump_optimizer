@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_unit_scale_of GUARD_OFF 7fa0e793",
+  "killed_by": "tests/features.py",
+  "old": "    if scale is None:",
+  "reason": "#1513 follow-up (precipitation_unit): GUARD_OFF on the shared forecast unit scale. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1 (the run stops early), among its FAIL lines `the fabricated fallback forecast exists and is stale from birth`; `a successful fetch clears the outage and the staleness`. Measured at 64fc5f1f, 2026-09-25. Main pinned this mutant as `_wind_speed_scale_of GUARD_OFF 7fa0e793` before the wind scale became the shared `_unit_scale_of`; the text and the mutant are unchanged."
+}

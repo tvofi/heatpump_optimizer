@@ -1,0 +1,105 @@
+# The architecture score as a required check (R9-EG-A4, #1774; tvofi's
+# decision R3-6, 2026-09-29). A pull request passes when the score, with the
+# counters, reads delta-S >= 0 and no gate metric rises from the merge base to
+# the head, or when its body explains every rise under `## Architecture score`
+# (tools/audit/archscore/gate.py states the rule; the fix reviewer judges the
+# reason). It is a review trigger, never a target (tools/audit/archscore/ABOUT.md).
+#
+# WHY ITS OWN FILE. tests.yml is the suite; this check reads the body, so a
+# body edit is the answer to a red run and ci.yml's `edited` run re-runs it.
+# One job, no `if:`, so no run this file starts is a skipped one (#1514's shape,
+# as budget-raise-gate.yml).
+
+# The check runs the BASE's scorer and the BASE's tests/structure.py (which the
+# scorer loads by path into its own process), as tests.yml restores its check
+# source: a pull request cannot edit the check that grades it. #2068's round 1
+# planted exactly that edit; tests/arch_score.py drives this file's score step
+# over it. The pull request that adds gate.py has no base copy and runs its own.
+
+name: Architecture score
+
+# A called workflow of ci.yml's umbrella (R10-CI-LAYOUT P2b, unit U7): the caller
+# owns the triggers, the run-id concurrency group (so no run is cancelled, as in
+# budget-raise-gate.yml, R9-CI-2a) and the grant. The pull request comes from
+# the inputs, which the prelude derives; `github.event` is the caller's.
+on:
+  workflow_call:
+    inputs:
+      pr:
+        type: string
+        default: ""
+      base:
+        type: string
+        default: ""
+      head:
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  arch-score:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      # fetch-depth 0: the merge base and the head are archived out of the clone.
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+
+      # A queue entry's pull request comes from the prelude's inputs, named
+      # there from the queue branch; the API must report the same head as the
+      # queue entry's second parent. A run naming no pull request (a push, a
+      # dispatch without one) has nothing to score.
+      - name: Name the pull request and read its body
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVENT: ${{ github.event_name }}
+          NUMBER: ${{ inputs.pr }}
+          INPUT_HEAD: ${{ inputs.head }}
+          EVENT_BASE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+        run: |
+          set -euo pipefail
+          if [ -z "$NUMBER" ]; then
+            echo "no pull request named: nothing to score"
+            echo "scored=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          PULL=$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${NUMBER}")
+          if [ "$EVENT" = "merge_group" ]; then
+            test "$(jq -r '.head.sha' <<< "$PULL")" = "$(git rev-parse 'HEAD^2^{commit}')"
+          fi
+          jq -r '.body // ""' <<< "$PULL" > "$RUNNER_TEMP/body.md"
+          echo "scored=true" >> "$GITHUB_OUTPUT"
+          echo "base=${EVENT_BASE:-$(jq -r '.base.sha' <<< "$PULL")}" >> "$GITHUB_OUTPUT"
+          echo "head=${INPUT_HEAD:-$(jq -r '.head.sha' <<< "$PULL")}" >> "$GITHUB_OUTPUT"
+          echo "pull request $NUMBER, body $(wc -c < "$RUNNER_TEMP/body.md") bytes"
+
+      # The scorer, and everything it loads, is the BASE's: tools/audit/archscore/
+      # and tests/structure.py (vector.py loads the latter by path into the
+      # gate's process) come from a checkout of the base commit, so a pull
+      # request cannot edit the check that grades it, as tests.yml restores its
+      # check source (decision 0013). Only the two commits' custom_components/
+      # are read, out of git. When the base holds no gate.py, this pull request
+      # is the one adopting it: it runs its own copy, once, and the workflow
+      # file that says so is under the owner's review.
+      - name: Score the change, and refuse an unexplained rise
+        if: steps.pr.outputs.scored == 'true'
+        env:
+          PR_BASE: ${{ steps.pr.outputs.base }}
+          PR_HEAD: ${{ steps.pr.outputs.head }}
+        run: |
+          set -euo pipefail
+          GATE=tools/audit/archscore/gate.py
+          if git cat-file -e "$PR_BASE:$GATE" 2>/dev/null; then
+            git worktree add -q --detach "$RUNNER_TEMP/base" "$PR_BASE"
+            cd "$RUNNER_TEMP/base"
+            echo "gate and structure.py from the base $PR_BASE"
+          else
+            echo "the base holds no $GATE: this pull request adopts it, so its own copy runs"
+          fi
+          python3 -I "$GATE" --self-test
+          python3 -I "$GATE" --base "$PR_BASE" --head "$PR_HEAD" --body "$RUNNER_TEMP/body.md"

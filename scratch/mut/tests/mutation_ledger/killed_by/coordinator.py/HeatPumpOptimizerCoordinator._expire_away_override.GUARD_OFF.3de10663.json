@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._expire_away_override GUARD_OFF 3de10663",
+  "killed_by": "tests/features.py",
+  "old": "        if active != self._away_state.override_active or ret != parsed:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against f38f91852ea0251a9043378f76f907794874b2be: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

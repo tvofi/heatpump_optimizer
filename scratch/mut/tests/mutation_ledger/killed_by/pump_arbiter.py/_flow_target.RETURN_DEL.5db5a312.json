@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_flow_target RETURN_DEL 5db5a312",
+  "killed_by": "tests/features.py",
+  "old": "    return _bounded(inp, \"space_setpoint\", hold, FLOW_GATE_C)",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 694120d5aa296b65c7d7be097f8684e7bc3b5f61: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=10."
+}

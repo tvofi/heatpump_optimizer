@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/config_flow.py:_fit_stored_values GUARD_OFF 40c0cb52",
+  "killed_by": "tests/config_flow_steps.py",
+  "old": "            if replacement is not None:",
+  "reason": "Recorded by `mutation_table.py --drain` against a1da8d381aa0afd2d1be6753678a8fc6191604ec: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=2."
+}

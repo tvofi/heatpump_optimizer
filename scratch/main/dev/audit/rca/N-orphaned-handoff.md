@@ -1,0 +1,348 @@
+# RCA — N-orphaned-handoff: a level that never ages, and an arm that read its finding as failure
+
+A round-10 root-cause seat (`dev/governance/roles/root-cause.md`,
+`dev/governance/rules/defect-root-cause.md`) ran beside no fix; this change is the
+record and nothing else. Class `N-orphaned-handoff`
+(`dev/audit/config/bugclasses.json`). Round 10 measured 12 stranded refs — 11 genuine,
+one content-covered — five of them aged 41.9–96.6 h at 2026-10-20T18:00Z. The per-round
+trigger (three or more instances) is met for the second consecutive round: R9 recorded 7.
+
+## 1. Named cause
+
+As main stood at `1ebc737e7`, an obligation was recorded as a **level over append-only
+history**, under a key no closer could match. `cloud_relay.sh` appended OWED rows to its
+log; `orchestrator_tick.py`'s `relay_owed`, the log's one reader, read the whole log and
+keyed each row on `f[2]`, while a `POSTED` row keyed on a PR number. The paragraphs below
+describe that tree; what `b38c6431a` changed follows them. The rule that reaches every case is the
+writer set: every line of `cloud_relay.sh` that appends an OWED row (`logline OWED`, a
+call of `owed`, or a literal `printf 'OWED ...'`). At `1ebc737e7` it returned ten
+writers in two grammars:
+
+- **PR-keyed, cleared by `POSTED`**: the three `owed` calls of the verdict relay
+  (`OWED <utc> <pr> <sha|-> <why>`) and `reviewer-fire` (`OWED reviewer-fire <pr> <sha>
+  <nonce> <utc>`, written without `logline`, so its `f[2]` is the PR as well).
+- **Kind-keyed, never cleared** at `1ebc737e7`: `logline OWED "<kind> ..."` puts the
+  kind token at `f[2]`, for five kinds. Two are **levels**, re-appended every pass until disposed:
+  `probe-ref` (`probe_arm`) and `handoff-no-pr` (`handoff_arm`'s last loop); the board
+  replays their history. Three are **one-shot events** inside `handoff_arm`'s update
+  path: `handoff-update`, `approve-held-runs` and `dispatch` (two writers); each stays
+  OWED forever, even after the PR's own `POSTED`.
+
+`dev/audit/harnesses/r10_relay_owed_class_reach.py` builds one row per writer from the
+writer's own text, simulates two passes and a `POSTED` for every PR, and runs the
+production `relay_owed` unmodified over it, classifying each row by what that tick does
+with it. At `1ebc737e7`: of 8 event writers, 4 are cleared by their PR's `POSTED` (the
+three `owed` calls and `reviewer-fire`, the null control) and 4 lines stay uncleared
+(`handoff-update`, `approve-held-runs`, `dispatch` twice); the 2 levels print 4 lines for
+2 items. The search for other
+readers of the same log, every `*.py`, `*.sh` and `*.mjs` naming `cloud-relay.log` or
+`relay_log`, returns only `cloud_relay.sh` and `orchestrator_tick.py` outside
+`dev/audit/harnesses/` (whose two harnesses replay it), at `1ebc737e7` and at this
+record's head; the cause has no third site. At `1ebc737e7` the cause therefore reached every
+kind-keyed kind, levels and events alike, not only `handoff-no-pr`. For `handoff-no-pr` the board printed **31,303 `-> OWED:`
+lines over 236 refs** at 18:18Z, of which **179 refs already had a pull request**; a
+merged and disposed ref (`r10-trust-relative`, #2435) still printed 144. The live
+obligation was 12. The orchestrator could not read a queue in a level that grew by a
+pass's worth of history every pass.
+
+**Landed at the merge base: `b38c6431a`** (group `R10-TICK-OWED-LEVEL`, #2547, merged by
+`295c874e8`). The levels moved to `<log>.level`, which each relay pass rewrites per kind
+through `level_set` (a disposal drops its line at once), and `relay_owed` prints that
+file as is. Log events are keyed on their PR, the first all-digit field of `f[1:4]`, so
+the three one-shot kinds are now cleared by their PR's `POSTED`; an OWED naming no PR is
+an older writer's level copy, skipped and counted. The same harness at this record's
+merge base and head: 8 of 8 events cleared, 0 uncleared, and the 2 levels print 2 lines
+for 2 items. The one-shot keying and the replay are therefore closed in the tree this
+record merges into.
+
+**What remains of the first cause** is the level's closer set. `handoff_arm` drops a
+`handoff-no-pr` line only when the ref's topic is in the open-PR list (`gh pr list
+--state open`), when the ref is disposed at its sha, or when the ref is gone from
+`ls-remote`. A topic whose PR merged or closed, a tip already inside `main`, and a
+change `main` carries by content all stay owed until someone disposes them. That is
+group `R10-FLY-ORPHANS-REWRITTEN`'s brief, which measured 5 merged handoffs reported
+OWED until archived.
+
+The second cause is an **availability defect**: `orchestrator_tick.py`'s earlier `orphans`
+arm treated `bus.sh orphans`' exit 1 — the instrument's contract for "a stranded ref
+exists" — as instrument unavailability. For **143 consecutive passes**, 2026-10-18
+15:50:52Z to 2026-10-19 06:06:12Z, `tick.log` printed
+
+    -> bus.sh orphans unavailable (exit 1): the subcommand depends on #2112, unmerged -- fold its refs when it lands
+
+and discarded the `ORPHAN` lines it had already read. `d4f47f040` (2026-10-19 01:03Z)
+repaired the reading; the fixed arm first ran at 06:06Z. A detector that reports a finding
+as "no answer" is worse than one that is absent: it states the level was checked and
+empty.
+
+The third cause is the **absence of age and of a closer**. `orchestrator.md` §5b states
+the duty and the orchestrator did read and queue — see §3. Nothing made an obligation old,
+and nothing recorded an opening attempt, so a queued obligation neither escalated nor
+closed.
+
+## 2. What was re-measured, with the commands
+
+Measured by this seat at origin/main `4a8c89d` (the tick's own provenance at 18:18Z; the
+checkout `origin/main` moved to `efc0e6733` while the record was written).
+
+`bash tools/audit/seat/bus.sh orphans --min-age-h 0`:
+
+    ORPHAN r10-earlycutoff-coverage  ecaf178cbd4e 96.6h uncovered=1 repair=opener
+    ORPHAN r10-i5-docs              7a7102eb844c 44.3h uncovered=7 repair=opener
+    ORPHAN r10-merge-pr-mandate     6219325ca209 48.9h uncovered=3 repair=opener
+    ORPHAN r10-rca-harness-friction d1611efe6b7d 41.9h uncovered=9 repair=opener
+    ORPHAN r10-roster-ops           9969e3ca80bd 47.5h uncovered=1 repair=opener
+    orphans: 12 stranded, 1 superseded; skipped no-body=26 named=1 ancestor=91 young=0
+
+`gh pr list --state all --head fix/<topic>` and `--head fix/<topic>-pr` returned `[]` for
+all five. `git ls-remote --heads origin refs/heads/handoff/<topic>
+refs/heads/handoff-body/<topic>` returned both refs for each.
+
+**Correction 1: earlycutoff is not owed.** Its one uncovered commit adds 52 lines to
+`tests/features.py`. `git cherry origin/main <ref>` prints `-` for that commit
+(equivalent), and `git grep -c` finds all three of the block's distinctive strings on
+`origin/main:tests/features.py`. `gh pr view 2397` shows PR #2397 (`fix/r10-test-orphans`,
+merged 2026-10-18T13:53:10Z) carrying `tests/features.py`. The work landed by another
+pull request. `content_superseded`'s M arm demands a byte-identical file and so cannot see
+a hunk re-applied into a file main has since changed; the ref reads stranded forever.
+Genuine instances this round: **11 of 12**, four aged.
+
+**Correction 2: the detector was not never-blind.**
+`grep -c 'bus.sh orphans unavailable (exit 1)' tick.log` → 143. The first and last are
+bounded by `grep -n '^##### PASS'`: the first pass in the log is 2026-10-18T15:50:52Z and
+the last unavailable line sits before the pass at 2026-10-19T06:06:12Z. The first
+`OWED handoff: r10-earlycutoff-coverage` line is at the 06:06Z pass. The gap is 14.25 h,
+during which the arm answered "unavailable" every pass instead of naming any ref.
+
+**Correction 3: the board.** `wc -c -l` on the tick's output file →
+**4,073,591 bytes, 31,413 lines**; `grep -c '^-> OWED:'` → **31,303**;
+`grep -o 'handoff-no-pr refs/heads/[^ ]*' | sort -u | wc -l` → **236**;
+`grep -c '^BOARD'` → 1; last line `DISPATCH LIST: 31343 finding(s)`. The machinery
+design §S1 measured the same defect at 12:20Z as 3,901,380 B, 30,079 lines, 30,014
+findings, 29,976 OWED lines over 229 subjects — it grew by 1,327 OWED lines in six hours.
+`grep -c 'handoff-no-pr refs/heads/handoff/r10-earlycutoff-coverage'
+$HPO_STATE_DIR/cloud-relay.log` → 200 in the 24 h the log retains (it starts
+2026-10-19T18:11:37Z); the current tick loop ran **198 passes in 24 h** (8.25/h).
+
+**The roster contradicts the refs.** In `dev/programme/rosters/wave-r10-groups.json`, as
+read at 18:00Z (the roster has moved since; §2a):
+`R10-I5-DOCS` and `R10-RCA-FRICTION` read `not-started`, so PLAN prints "UNBLOCKED, not
+started -- start a fixer on handoff/<topic>" — the fresh-implementer dispatch §5b forbids
+for a lane that already handed off. `R10-ROSTER-OPS` reads `in-progress / next_step
+open_pr`; `R10-MERGE-PR-MANDATE` reads `in-progress / next_step recarry`. The record and
+the instrument disagree for four of four.
+
+## 2a. Re-measured at a later main
+
+Re-taken by the fixer seat at origin/main `0cc148b2f`, 2026-10-21T08:54Z, 14.9 h after
+§2, with the same command: `bash tools/audit/seat/bus.sh orphans --min-age-h 0` exits 1
+and prints `orphans: 11 stranded, 1 superseded`. Of §2's five aged refs:
+
+- **still stranded**: `r10-earlycutoff-coverage` (111.3 h, still the content-covered
+  false obligation of Correction 1: `git cherry origin/main
+  origin/handoff/r10-earlycutoff-coverage` still prints `-`), `r10-merge-pr-mandate`
+  (63.6 h) and `r10-rca-harness-friction` (56.6 h). `gh api
+  'repos/tvofi/heatpump_optimizer/pulls?state=all&head=tvofi:fix/<topic>'`, and the same
+  at `fix/<topic>-pr`, return `[]` for all three.
+- **closed by an opening**: `r10-i5-docs` (PR #2521 at `fix/r10-i5-docs`) and
+  `r10-roster-ops` (PR #2513). These are the query's null control: the same command
+  returns a pull request where one exists, and the bus stops listing `r10-i5-docs`.
+  `r10-roster-ops` is listed again at a newer tip, `4e2223a5`, with `repair=review`: a
+  handoff ahead of its own pull request, the #2411 shape the tick's arm already names.
+
+The handoff of this record is itself listed (`r10-rca-handoff-slip`, 14.3 h,
+`repair=opener`): its opener was refused by `prepr.sh`'s pr-body check and no attempt
+was recorded on the obligation, §5.3's case. The class did not stop at measurement.
+
+## 3. Process state: (c), followed, with the wrong result
+
+Quoted process, `dev/governance/roles/orchestrator.md` §5b:
+
+> A `handoff-body/<topic>` ref with a `handoff/<topic>` ref and no pull request at either
+> `fix/` name is a lane that **handed off and was never opened**: dispatch an opener
+> (`tools/audit/seat/open_pr.sh`), never a fresh implementer.
+
+The process ran. The orchestrator read the OWED lines and acted on them as a queue behind
+the open-PR cap and the wave order; `SEATS.md` records it:
+
+- 2026-10-18 20:02Z: "R10-RCA-FRICTION handoff CODE 4cfac180 BODY 91382d21 ...
+  PARKED under soft cap (13 open > 6); opens in CP order at <=4."
+- 2026-10-19 01:52Z: "Owed openers rca-harness-friction/nightly-pyspy/roster-ops held:
+  prepr 4/4 + open PRs 5; wave-2 after drain."
+- 2026-10-20 07:10Z: "Owed openers remain (no PR carries them): r10-roster-ops 9969e3ca,
+  r10-merge-pr-mandate 6219325c, r10-follower-debounce f210e78b,
+  r10-rca-harness-friction d1611efe, r10-i5-docs 7a7102eb, r10-earlycutoff-coverage
+  ecaf178c. Open-PR cap 6; 5 open now."
+
+The result did not follow. The cap explains part of the delay but not the whole (the
+cap half now has a landed countermeasure: `orchestrator.md` §5 says the soft cap gates
+only dispatching a new roster group and never refuses opening or updating a pull request
+for an owed handoff, tvofi, 2026-10-20, landed on main by `5d477d6e9`): counted
+open PRs under `pr_cap.py`'s rule were 2 when earlycutoff was pushed on 2026-10-16
+17:33Z, 14–17 at the four later pushes on 2026-10-18/19, and 0–5 through 2026-10-20, so
+on the final day there was headroom and still no opening. On 2026-10-20 the orchestrator
+did dispatch openers: `$HPO_STATE_DIR/pr/r10-i5-docs/p1.log` and
+`.../r10-earlycutoff-coverage/p1.log` record a prepr run at 11:33Z whose last line is
+`Terminated: 15` at 11:50Z, after 11 checks passed; no pull request was minted and no
+retry is recorded. The attempt is a second failure mode, not a missing instruction.
+
+This is **(c)**: the process was followed and did not produce the intended result. It is
+not (a) — the detector, the opener and the duty all exist and ran. It is not (b) — the
+orchestrator read and queued the lines, citing the cap in its own log, and two openers
+were dispatched. A firmer instruction was obeyed and wrong. It is not (d) for the primary
+defect — nothing the process relied on changed; the append-only derivation and the
+missing closer were true when the process was written. Two observations in the brief are
+different states and are not averaged in:
+
+- **A design deliverable with no body ref** (`handoff/orch-machinery` at `09174d94`,
+  approved by `review/orch-machinery-design` at `0bd5d12f`) is **(a)** for the obligation
+  it needs. No kind maps "an approved design with a review ref and no body ref" to a
+  build dispatch; `bus.sh orphans` skips it as `no-body` and the relay's
+  `handoff-no-pr` line names it among the 31,303, but nothing closes it by a builder
+  being dispatched. The orchestrator has since added group `R10-ORCH-MACHINERY`
+  (`next_step`: dispatch at the approved design), gated on `R10-ROSTER-OPS` — the record
+  now exists, the kind still does not.
+- **A brief that grew after its seat finished** (`R10-ROSTER-OPS`, handed off at
+  `9969e3ca` on 2026-10-18T18:37:44Z; brief gained the `state_docs.py beat --apply`
+  deliverable at `541868d6f` on 2026-10-20T11:35:54Z, 41 h later) is **(d)**. The
+  process — handoff freezes the branch, the roster records the deliverable — was sound,
+  and its precondition (the brief the handoff answers) changed underneath it. The
+  countermeasure is to notice the change (a brief hash pinned at handoff), not a new
+  rule; it extends the machinery design's §6.4 reconciler.
+
+## 4. Cost test
+
+    cost(countermeasure, recurring) < cost(defect) x P(recurrence)
+
+- `cost(countermeasure, recurring)`: the machinery design §6.8 prices the obligations
+  ledger at **~5 s per pass** (~300 lines). At the tick's 300 s nominal cadence that is
+  5 s x 12/h = 60 s/h, or **2.4 h over a six-day round**; at the measured achieved
+  cadence (198 passes/24 h) it is **1.65 h**. The 4,073,591-byte board write each pass
+  (4.07 MB x 8.25/h ≈ 34 MB/h, about 0.81 GB/day) was the defect's cost at `1ebc737e7`;
+  `b38c6431a` already removed the replay behind it, so the ledger is not credited with it.
+- `cost(defect)`: **5.13 seat-hours**, quoted, not verified. The R9 RCA
+  (`dev/audit/rca/R9-ORPHAN-HANDOFF.md`) takes it from its brief: a fresh opus seat spent
+  `duration_ms` 18482463 re-implementing `r9-ux-10` before finding the orphan. That record
+  states the measurement is "the launching seat's session record, not independently
+  verified by me" and that it verified "the arithmetic ... and nothing else"; this seat
+  could not read that session record either. This round adds a 45.9 h median age across
+  the four genuine aged deliverables at 18:00Z (41.9, 44.3, 47.5, 48.9; the median of
+  four is the mean of the middle two), which the 5.13 h does not include.
+- `P(recurrence)` = **1.0**, measured. `dev/audit/config/bugclasses.json`'s
+  `N-orphaned-handoff` carries `per_round: {"R9": 7}`; this round's `bus.sh orphans`
+  reports 12 stranded (11 genuine after Correction 1). The class has met its per-round
+  trigger in two consecutive rounds.
+
+1.65–2.4 h per round < 5.13 h x 1.0, so the countermeasure passes on the quoted figure. `N-orphaned-handoff`
+is also an audit class at three or more instances in one round, so a class-eliminating
+barrier is owed regardless; the cost test chooses its form, and this one is the form the
+design already specifies.
+
+## 5. The countermeasure, as design
+
+This extends the machinery design's §6.3 obligations ledger; it is **not a second
+ledger**. Every relay OWED kind becomes a derived or keyed obligation, never an
+accumulated row. `b38c6431a` landed that for the relay's own kinds (§1): the events are
+keyed on their PR and the levels are a rewritten file. The extension's still-owed parts:
+
+1. **Close the level from the live world.** The level is already a rewritten set
+   (`b38c6431a`); its closers are not yet complete. For each `handoff/<topic>` and
+   `handoff-body/<topic>` subject (`handoff-no-pr`), the closer is a pull request at
+   `fix/<topic>` or `fix/<topic>-pr` in any state, the tip inside `main` or a live `fix/`
+   head, a disposition at the current sha, or `subject-absent`; the relay today closes
+   only on an open pull request, a disposition or a vanished ref (§1). For each non-`rev-`
+   `probe/*` ref (`probe-ref`), a disposition at the current sha or `subject-absent`,
+   which the relay already does. The events keep `b38c6431a`'s grammar, keyed on their PR
+   and closed by its `POSTED`; the ledger that replaces the relay's log scan must keep
+   that grammar.
+2. **Age and escalate.** Each derived obligation carries `age_h` (from the tip's commit
+   time, which `bus.sh`'s ORPHAN line already prints), `deadline`, `repair` and `group`.
+   At **24 h or more** the board prints `DISPATCH: <group> <ref> opener`, oldest first —
+   a queue, not a level. At **48 h or more** it prints an owner flag. **The thresholds
+   belong to tvofi**; this document states the proposed values and their state, and the
+   document-only change does not set them. A threshold is policy (`orchestrator.md`'s
+   duty) and lands only on tvofi's approving review.
+3. **Record the attempt.** `open_pr.sh`, the opener, writes `attempting <ref> <sha>
+   <utc>` when it starts and a failed step with its reason on a non-zero exit, so the
+   11:33Z `Terminated: 15` is visible in the obligation rather than only in a log. A
+   killed attempt is then retried by the beat, not rediscovered by the next session.
+4. **Content-covered close.** `content_superseded` gains the arm the earlycutoff case
+   needs: a ref whose uncovered commits' added lines are all present on `main` closes as
+   `subject-covered`. The byte-identical test stays for the whole-file case; the added
+   arm is what lets a re-applied hunk close. This is the exit for the false obligation
+   that would otherwise age forever and teach the reader to ignore the line.
+5. **Design to build is a new kind, and a different state.** `design-build` (state (a)):
+   an approved `DESIGN.md` at a `handoff/` ref with an approving `review/` ref and no
+   builder dispatched. Its closer is a builder dispatched at a roster group; its subject
+   is the design, not a PR. §6.3's kind table has no such kind and none of the relay's
+   ten OWED writers (§1) writes it. This is the `handoff/orch-machinery` case.
+6. **Availability contract — what the ledger must not inherit.** A **missing** store is
+   first run. An **unreadable** store is `UNREADABLE` and the pass fails; it is never a
+   clean board. A read that answers "obligations exist" is neither: `bus.sh orphans`' rc
+   1 with a summary line and ORPHAN rows is a finding, and rc 0 with a summary and zero
+   rows is empty. The 143-pass window in §1 is the shape the ledger must refuse: a
+   finding must never be parsed as an instrument failure, and an unreadable subject must
+   never be parsed as a clean zero. The design's B11 arm states the store half; this
+   record adds the exit-code half as a distinct requirement.
+
+**Demonstration.** The prototype was a scratch `fold_demo.py` on the orchestrator's host,
+not carried in this change and therefore not re-runnable from the tree. The figures below
+are this seat's record of one run; the demonstration `defect-root-cause.md` owes a
+detector (red on the defect, green once fixed, a null control) is owed by the built
+ledger in `R10-ORCH-MACHINERY`'s pull request, not by this record. The prototype was
+run read-only against the fetched ref namespace, the PR head list and the disposition
+ledger:
+
+    python3 -I fold_demo.py --world live
+
+- **RED**: 22 live subjects; escalates the four genuine aged refs (3 `DISPATCH`:
+  r10-roster-ops 47.8 h, r10-i5-docs 44.6 h, r10-rca-harness-friction 42.1 h; 1 owner
+  flag: r10-merge-pr-mandate 49.1 h) and closes r10-earlycutoff-coverage as
+  content-covered. 15 escalations.
+- **Null control**: silent on `r10-trust-relative` (merged #2435 and disposed),
+  `r10-tick-drivers` (merged) and `audit-r10-roster` (0.4 h); a ref that resolved does
+  not fire.
+- **GREEN**: with a fixture giving the five a `fix/<topic>` head — the opening the fix
+  produces — the four close and escalations fall 15 to 11. The prototype's 22 is an
+  upper bound: it does not yet apply §6.3's name exemptions or `subject-absent`; the
+  bus's own stranded count is 12.
+
+The two aged refs above the bus's stranded set (`audit-r9-plan`, `audit-r10-find-B*`,
+`audit-r10-arch*`) are why an exemption list and `subject-absent` are part of the
+countermeasure, not an addition to it.
+
+## 6. What I could not establish
+
+- **Who sent SIGTERM to the 11:33Z openers.** `p1.log` ends `Terminated: 15` after 11
+  passing prepr checks; the prepr slot's expiry (12:03Z) is later, the orchestrator's
+  `SEATS.md` was writing through 11:57Z, and no log names the sender. The retry writer in
+  §5.3 makes the failure visible; it does not need this answer to do so.
+- **Whether all 22 subjects the fold prints are genuine.** The prototype lacks §6.3's
+  name exemptions (`handoff/audit-r*-plan`, `handoff/audit-r*-roster`, `wip-sync/*`) and
+  `subject-absent`. The bus's stranded count (12, one content-covered) is the conservative
+  figure this record uses; the fold's 22 is an upper bound.
+- **The exact split of the delay between the cap, the wave order, the 14.25 h detector
+  gap and the killed attempts.** Each is measured; a single attribution would need the
+  orchestrator's own turn history at 5-minute resolution, which is not on the box.
+
+## 7. Where the finding goes
+
+- The class's `rca` citation in `dev/audit/config/bugclasses.json` now names this record
+  beside `R9-ORPHAN-HANDOFF`, with an `_rca` entry `N-orphaned-handoff` whose
+  `in_tree_home` is this file (the change that lands it).
+- §1's first cause was closed for the events and the replay by `b38c6431a`
+  (`R10-TICK-OWED-LEVEL`, done, #2547), including the three one-shot kinds; nothing is
+  carried for them. The level's remaining closers (§1, §5.1) are the brief of
+  `R10-FLY-ORPHANS-REWRITTEN`, and the ledger in §5 must keep the landed grammar when it
+  replaces the relay's log scan.
+- The machinery design (`dev/audit/design/orch-machinery/DESIGN.md` at `09174d94`, §6.3
+  and §6.4) is the destination for §5.2, §5.3 and §5.6, and §5.5 is a new kind the design
+  must add. Group `R10-ORCH-MACHINERY`'s brief carries the extension ("Ledger extension
+  owed"). §5.1's remaining closers and §5.4's content-covered close are
+  `R10-FLY-ORPHANS-REWRITTEN`'s brief: the relay takes `bus.sh orphans`' classifier for
+  `handoff-no-pr`, and that classifier's M arm stops requiring a byte-identical file.
+- §3's (d) observation belongs to the §6.4 record verifier: pin the brief at handoff and
+  compare it on a later pass. It is in `R10-ORCH-MACHINERY`'s carry (re-carried from
+  `R10-ROSTER-OPS` by #2554).
+- The 24 h and 48 h thresholds are tvofi's; this record names the state they address and
+  does not set them.

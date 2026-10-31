@@ -1,0 +1,176 @@
+{
+ "dimension": "D2",
+ "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+ "report_path": "tools/audit/round9/D2/s1/report.json",
+ "exposure": "",
+ "coverage": [
+  {
+   "step": "D2.M1",
+   "depth": "deep",
+   "evidence": "m1_thermal.py: per-step conservation on 8 topologies x 3000 random steps (max 2.0e-13 kWh); scalar/batch bit parity on 8 topologies incl. valve targets, wood, external heat, solar, humidity (0 cells); one-step and 24-step monotonicity; dt order 15 vs 60 min against a 1-min reference; buffer cap rate-vs-state (0/500 per valved topology). m1_stability.py: Euler guard over 3360 presets.derive configs + 3936-point config-range grid. m1_coil.py: wood+DHW conservation through the refill coil. m1_golden.py: physical bounds on 252 store series of 50 live-solved golden scenarios (0 violations). Earlier-round evidence (tools/audit/round3..round8): none read; the only contact was a grep exclusion glob, no file opened."
+  }
+ ],
+ "unfinished": [
+  {
+   "step": "D2.M1",
+   "what": "The valved emitter conductances (ua_rad on the upper row, ua_floor on the slab row) missing from _stability_substeps' row sums were not measured on their own grid; D2-s1-01's property covers them but its evidence is unvalved. REPORT.md was not written: this session's harness refuses report .md files from a subagent, so this JSON (report.json) carries the report in full."
+  }
+ ],
+ "findings": [
+  {
+   "id": "D2-s1-01",
+   "scope": "D2-s1",
+   "step": "D2.M1",
+   "title": "Euler sub-step guard judges each store's diagonal ratio only, so coupled stores in accepted configs diverge",
+   "severity": "medium",
+   "claim": "For configurations the config flow accepts, ThermalModel._stability_substeps leaves the per-substep Euler map with spectral radius > 1, and a zero-input 24 h trajectory diverges (69/3936 grid configs leave the passive envelope, 50 past 100 K; named point reaches -2.84e35 degC).",
+   "mechanism": "_stability_substeps bounds each store's (sum of couplings)/C*h by EULER_STABILITY_MAX_RATIO=1.5, on the premise that Euler is stable up to 2 per store. For coupled RC stores the stiff eigenvalue reaches the sum of the diagonal terms (Gershgorin: |lambda| <= 2*max diag), so lambda*h reaches 3 and the update oscillates with growth. Example: house mass 0.5, loss 0.2, slab mass 0.5, slab transfer 5.0 -> n_sub=2, radius 1.525.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D2/s1/m1_stability.py",
+    "harness_path": "tools/audit/round9/D2/s1/m1_stability.py",
+    "value": 69,
+    "unit": "configs of 3936 leaving [T_out, max T0] (50 diverge >100 K; worst radius 1.3958)",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B4, cloud container (linux), numpy 2.4.6 OpenBLAS, python 3.14.0rc2",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out, up to three seats on the box; counts are contention-immune",
+    "tolerance": "exact",
+    "load1": 2.94,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel._stability_substeps (driven through ThermalModel.simulate_trajectory, _simulate_step_single, _simulate_step_two_zone)",
+   "perturbation": {
+    "change": "--perturb=ratio1: thermal_model.EULER_STABILITY_MAX_RATIO 1.5 -> 1.0 in memory",
+    "expected_direction": "to_zero",
+    "observed_value": "grid 0 envelope violations, 0 diverged, worst radius 1.0000; named points 0"
+   },
+   "metric_definition": "Configs whose zero-input 24 h trajectory (outdoor 0, stores 21, slab 25) leaves [0,25] degC by >1e-6 K; plus max |eig| of the finite-difference per-substep Jacobian.",
+   "phenomenon_property": "For every parameter set the config flow and service writes accept, the explicit-Euler sub-step chosen by _stability_substeps is contractive: the per-substep map of the coupled stores (including the valved emitter conductances) has spectral radius <= 1, so a passive trajectory stays inside [min T_out, max T0].",
+   "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D2/s1/m1_stability.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D2/s1/m1_stability.py",
+    "value": "default_envelope_violations=0, presets_envelope_violations=0 (3360 presets.derive configs)",
+    "note": "No derived house enters the region; it needs typed values inside the accepted ranges."
+   },
+   "reproduction_steps": [
+    "Run the command; read grid_envelope_violations, grid_diverged_100K, examples_worst_excess.",
+    "Re-run with --perturb=ratio1; all go to 0."
+   ],
+   "proposed_fix_scope": "thermal_model.py _stability_substeps: judge rows at ratio 1.0 (the Gershgorin bound) or use the step matrix's spectral radius, and include ua_rad/ua_floor in the upper and slab rows when throttled. n_sub stays 1 for every shipped configuration, so no golden drift is expected.",
+   "files": [
+    "custom_components/heatpump_optimizer/thermal_model.py"
+   ],
+   "expected_golden_drift": [],
+   "stop_rule_class": "bug",
+   "class_guess": "new"
+  },
+  {
+   "id": "D2-s1-02",
+   "scope": "D2-s1",
+   "step": "D2.M1",
+   "title": "DHW refill coil debits the wood tank the full coil heat but spares the DHW tank only its scaled share",
+   "severity": "low",
+   "claim": "In simulate_trajectory_with_dhw with the wood coil active, for a DHW tank below DHW_MIXED_USE_TEMP, the wood tank loses more heat than the coil spares the DHW tank (non-zero in 28/28 cells, up to 0.406 kWh per 15-min step; 0.054 kWh at DHW 35 degC / wood 70 degC).",
+   "mechanism": "dhw_coil_draw_reduction splits the nominal draw into reduced+coil==draw and the wood tank is debited coil. simulate_dhw_step then scales the reduced draw by min(1,(T-inlet)/(40-inlet)), so the DHW tank is spared only scale*coil. (1-scale)*coil vanishes per step. The tap water is the same with or without the coil, because the coil only preheats the refill.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D2/s1/m1_coil.py",
+    "harness_path": "tools/audit/round9/D2/s1/m1_coil.py",
+    "value": 0.405991,
+    "unit": "kWh per step, max residual (wood heat out minus DHW heat spared)",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B4, cloud container (linux), numpy 2.4.6 OpenBLAS, python 3.14.0rc2",
+    "cpu_or_wall": "n/a",
+    "contention_note": "fan-out; energy identity, contention-immune",
+    "tolerance": "1e-9 kWh",
+    "load1": 1.88,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.simulate_trajectory_with_dhw (with thermal_model:dhw_coil_draw_reduction and ThermalModel.simulate_dhw_step)",
+   "perturbation": {
+    "change": "--perturb=mixuse: thermal_model.DHW_MIXED_USE_TEMP -> dhw_inlet_reference + 1e-3 in memory (draw scale 1)",
+    "expected_direction": "to_zero",
+    "observed_value": "0 of 28 cells non-zero; max residual 0.000000 kWh"
+   },
+   "metric_definition": "Per 15-min step: C_w*(wood_no_coil - wood_coil) - [C_dhw*(dhw_coil - dhw_no_coil) - booked floor-injection difference], kWh; 0 is conservation.",
+   "phenomenon_property": "Across the coil, the heat the wood tank loses equals the heat the DHW tank is spared, at every DHW tank temperature, i.e. total wood+DHW debit with the coil equals the debit without it.",
+   "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D2/s1/m1_coil.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D2/s1/m1_coil.py",
+    "value": "coil_residual_null_max_at_or_above_40C=3.275e-15 kWh",
+    "note": "At or above 40 degC the scale is 1 and the identity holds."
+   },
+   "leave_one_out": {
+    "cells": 28,
+    "min": 0.003407,
+    "max": 0.405991,
+    "drop_most_favourable": 0.362492
+   },
+   "reproduction_steps": [
+    "Run the command; read coil_residual_* lines.",
+    "Re-run with --perturb=mixuse; the residual goes to 0."
+   ],
+   "proposed_fix_scope": "thermal_model.py simulate_trajectory_with_dhw / dhw_coil_draw_reduction: debit the wood tank the coil heat on the same tank-temperature scale the DHW step applies to the draw (or apply the scale before the split). The optimizer's coil mirror (optimizer.py dhw_coil_draw_reduction call sites) must follow.",
+   "files": [
+    "custom_components/heatpump_optimizer/thermal_model.py",
+    "custom_components/heatpump_optimizer/optimizer.py"
+   ],
+   "expected_golden_drift": [
+    "scenarios with the wood coil active and a DHW tank below 40 degC, if any"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "new"
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "Per-step energy conservation (stores' enthalpy change = inputs - losses - booked refusals) on 8 topologies, 3000 random steps each; simulate_step equals the chained substeps",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D2/s1/m1_thermal.py",
+   "value": "conservation_max_resid <= 2.009e-13 kWh on all 8"
+  },
+  {
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D2/s1/m1_thermal.py",
+   "claim": "Scalar simulate_trajectory vs simulate_trajectory_batch bit parity (space-only, valve targets, wood, external heat, solar, humidity; 8 topologies)",
+   "value": "parity_mismatch=0 cells on all 8"
+  },
+  {
+   "claim": "More power never lowers a store (one step and 24-step): holds on the 6 non-wood topologies. Two-tank drops are the 4-way valve's wood-while-usable law (wood tank) or buffer-cap refusal: enthalpy+refused never drops (0/300, Carnot off); emitter stores drop in 2/300 trials by <= 0.006 K",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D2/s1/m1_thermal.py (and --perturb=carnot_off)",
+   "value": "mono violations 0 on 6 topologies; two_tank 19 one-step / 52 trajectory, all wood or cap-refusal"
+  },
+  {
+   "claim": "dt invariance consistent with first-order Euler",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D2/s1/m1_thermal.py",
+   "value": "err60/err15 = 4.78 single, 4.90 two-zone; 1.0-1.4 valved (monotone buffer guard scales n_sub with dt); single_small 10.4 belongs to D2-s1-01"
+  },
+  {
+   "claim": "The buffer cap clamps a rate, not a state: a tank read above the cap never cools faster under power than at P=0",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D2/s1/m1_thermal.py",
+   "value": "cap_snap=0/500 on each of 5 valved topologies"
+  },
+  {
+   "claim": "No store crosses a physical bound in any golden scenario (buffer<=cap, wood<=95, DHW in [min(inlet,ambient), hard max], building stores >= min(outdoor,T0)), solved live",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D2/s1/m1_golden.py (perturbation --perturb=cap: 41 violations, the check fires)",
+   "value": "golden_bound_violations=0 over 252 series in 50 scenarios"
+  }
+ ],
+ "harnesses": [
+  "tools/audit/round9/D2/s1/m1_thermal.py",
+  "tools/audit/round9/D2/s1/m1_stability.py",
+  "tools/audit/round9/D2/s1/m1_coil.py",
+  "tools/audit/round9/D2/s1/m1_golden.py"
+ ],
+ "leads": [
+  {
+   "owner_seat": "unknown",
+   "file": "custom_components/heatpump_optimizer/external_heat.py",
+   "symbol": "ExternalHeatDetector.forecast_free_heat / optimizer.py HeatPumpOptimizer.optimize (np.clip of external_heat_kw)",
+   "what": "A NaN free_heat_kw passes `rate <= 0.0` and np.clip. The scalar step then drops it (max(0.0, nan) == 0.0), but simulate_trajectory_batch's np.maximum propagates NaN into the finite-difference gradient. The batch docstring's parity claim is scoped to finite values. Whether NaN can reach free_heat_kw has not been measured (D1/D8)."
+  },
+  {
+   "owner_seat": "D2-s4",
+   "file": "custom_components/heatpump_optimizer/sysid.py",
+   "symbol": "identify / heat-loss learner (house_heat_loss_scale)",
+   "what": "Check whether learned masses or house_heat_loss_scale can move a configuration into the D2-s1-01 divergence region (a diagonal ratio near 1.5/h on two coupled stores)."
+  }
+ ]
+}

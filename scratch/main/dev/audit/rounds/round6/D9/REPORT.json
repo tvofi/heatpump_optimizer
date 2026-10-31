@@ -1,0 +1,159 @@
+{
+  "dimension": "D9",
+  "baseline_sha": "e336cc2c530882a142ef298de6420706d96a6300",
+  "report_path": "tools/audit/round6/D9/REPORT.md",
+  "exposure": "none: no earlier audit record, no docs/audit-*.md, no docs/backlog.md, no gh, no git log, no GitHub. tests/stress.py and tests/features.py were read as instruments, not as finding records.",
+  "findings": [
+    {
+      "id": "D9-01",
+      "title": "Executor-hosted solve starves the HA loop 97% of the time; the solve's own GIL yields move it 0.75 points",
+      "severity": "medium",
+      "claim": "With the production solve on a ThreadPoolExecutor thread (the _await_optimize fallback path), a 1 ms heartbeat on a real event loop sees a longest contiguous GIL hold of 36.9 ms and a starvation share of 0.9737, and removing all eight 2 ms production yields leaves the longest hold at 28.0 ms and moves the share only to 0.9812.",
+      "mechanism": "The eight sleep(0.002) calls sit BETWEEN L-BFGS-B runs (3 between consecutive multi-start starts, 4 in _lbfgsb_restart, 1 at the DHW/space seam). The maximum heartbeat gap is therefore set by the longest single L-BFGS-B run, which no between-run yield can bound. The 32 ms of yielding is 1.08% of the solve's wall time and buys 0.75 of a percentage point of starvation share.",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub python3 tools/audit/round6/D9/h4_gil.py --case two_zone_dhw --perturb none --repeats 2",
+        "harness_path": "tools/audit/round6/D9/h4_gil.py",
+        "value": 0.9737,
+        "unit": "fraction of solve wall in heartbeat gaps > 5 ms",
+        "baseline_sha": "e336cc2c530882a142ef298de6420706d96a6300",
+        "machine": "Apple M1 8-core, 8 GB, OpenBLAS, CPython 3.11, 1 BLAS thread",
+        "cpu_or_wall": "wall",
+        "contention_note": "Shared box: D4 (Chromium) and D8 auditing concurrently; load1 5.71 at this measurement, 4.5-8.8 across the session",
+        "tolerance": "+/-10% on the two wall figures; the starvation-share ratio is stable to ~0.01 across re-takes",
+        "load1": 5.71,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "heatpump_optimizer.optimizer:HeatPumpOptimizer.optimize (driven) and heatpump_optimizer.optimizer._multi_start_minimize (the yield sites)",
+      "perturbation": {
+        "change": "--perturb no-yields: all production time.sleep calls neutralised for the duration of the solve (the eight yield calls become no-ops, production_yield_total_ms 32.000 -> 0.000)",
+        "expected_direction": "up",
+        "observed_value": "starvation_share 0.9737 -> 0.9812"
+      },
+      "metric_definition": "Longest contiguous GIL hold = max gap between 1 ms heartbeat ticks on a real asyncio loop while optimize() runs on an executor thread; starvation share = fraction of solve wall in gaps > 5 ms.",
+      "null_control": {
+        "command": "PYTHONPATH=tests/hastub python3 tools/audit/round6/D9/h4_gil.py --case two_zone_dhw --perturb synthetic-block --repeats 2",
+        "value": 301.1,
+        "note": "A known 300 ms of loop-thread work is reported as a longest hold of 301.1 ms and a starvation share of 1.0037, so the instrument reads a known block correctly. A second control, --perturb same-thread (solve on the loop thread), reports 2865.3 ms, i.e. the whole solve."
+      },
+      "reproduction_steps": [
+        "cd <worktree root>",
+        "PYTHONPATH=tests/hastub python3 tools/audit/round6/D9/h4_gil.py --case two_zone_dhw --perturb none --repeats 2",
+        "PYTHONPATH=tests/hastub python3 tools/audit/round6/D9/h4_gil.py --case two_zone_dhw --perturb no-yields --repeats 2",
+        "PYTHONPATH=tests/hastub python3 tools/audit/round6/D9/h4_gil.py --case two_zone_dhw --perturb synthetic-block --repeats 2"
+      ],
+      "proposed_fix_scope": "Do not try to fix this by adding more between-run yields: the gap is inside an L-BFGS-B run. Either accept it and delete the eight inert yields (they cost 32 ms per solve on the shipped path, where the solve is in another process, and buy 0.75 points on the fallback path), or bound the hold where it is created by capping the per-run iteration budget and restarting, which changes the solver's iterate path and therefore needs the golden drift lane. Any change to the yields is a timing-only edit by construction and moves no plan.",
+      "files": [
+        "custom_components/heatpump_optimizer/optimizer.py",
+        "custom_components/heatpump_optimizer/coordinator.py"
+      ],
+      "expected_golden_drift": [],
+      "stop_rule_class": "bug"
+    },
+    {
+      "id": "D9-02",
+      "title": "Stress gate's simulate-work channel cannot see ThermalModel.simulate_dhw_only",
+      "severity": "low",
+      "claim": "tests/stress.py:SolverWork counts simulate step-equivalents only on ThermalModel.simulate_step and ThermalModel.simulate_trajectory_batch, so the DHW planner's own 24 simulate_dhw_only calls per solve (2304 step-equivalents, 29.6% of all simulated work on the single-zone DHW solve) are counted by neither channel.",
+      "mechanism": "SolverWork wraps exactly two class attributes. The DHW planner reaches its simulation through a third entry point, ThermalModel.simulate_dhw_only, used by every _dhw_plan_temps call and by _repair_dhw_floor's up-to-48-round loop. A synthetic 2x regression confined to that planner therefore moves neither counted channel, and near a third of the simulated work on the single-zone DHW solve is off a counted seam.",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub python3 tools/audit/round6/D9/h1_gradient.py --case single_zone_dhw",
+        "harness_path": "tools/audit/round6/D9/h1_gradient.py",
+        "value": 0.2963,
+        "unit": "uncounted share of all simulated step-equivalents",
+        "baseline_sha": "e336cc2c530882a142ef298de6420706d96a6300",
+        "machine": "Apple M1 8-core, 8 GB, OpenBLAS, CPython 3.11, 1 BLAS thread",
+        "cpu_or_wall": "count",
+        "contention_note": "Shared box with D4 and D8; this metric is an integer count and is contention-immune",
+        "tolerance": "exact (integer counts)",
+        "load1": 4.5,
+        "thread_factor": 1.086
+      },
+      "instrumented_symbol": "heatpump_optimizer.thermal_model:ThermalModel.simulate_dhw_only (uncounted) against ThermalModel.simulate_step and ThermalModel.simulate_trajectory_batch (the two seams tests/stress.py:SolverWork wraps)",
+      "perturbation": {
+        "change": "--case two_zone_space: the same solve with dhw=False (no tank volume configured)",
+        "expected_direction": "to_zero",
+        "observed_value": "dhw_only_simulate_steps 2304 -> 0 (dhw_only_calls 24 -> 0) while the counted channel stays non-zero at 64512"
+      },
+      "metric_definition": "Uncounted share = simulate_dhw_only step-equivalents / (simulate_dhw_only step-equivalents + step-equivalents on the two seams SolverWork wraps), per full optimize() call.",
+      "null_control": {
+        "command": "PYTHONPATH=tests/hastub python3 tools/audit/round6/D9/h1_gradient.py --case two_zone_space",
+        "value": 0.0,
+        "note": "With the DHW channel off the uncounted count is exactly 0 while the counted channel is 64512, so the harness is measuring the DHW planner and not a constant."
+      },
+      "leave_one_out": {
+        "cells": 5,
+        "min": 0.0,
+        "max": 0.2963,
+        "drop_most_favourable": 0.092
+      },
+      "reproduction_steps": [
+        "cd <worktree root>",
+        "for c in single_zone_dhw two_zone_dhw zero_range_pin fuseguard_cap two_zone_space; do PYTHONPATH=tests/hastub python3 tools/audit/round6/D9/h1_gradient.py --case $c; done"
+      ],
+      "proposed_fix_scope": "Add ThermalModel.simulate_dhw_only to SolverWork's wrapped set, charging each call its schedule length (one step-equivalent per planned step, the same rule the scalar seam uses). One class body and one restore line in tests/stress.py; it changes no count the gate already judges except the DHW planner's, so it needs a baseline capture beside the run rather than a budget re-record. Bounded severity: the DHW planner's CPU share is under its step share, so this is a coverage hole in the instrument, not a wrong plan.",
+      "files": [
+        "tests/stress.py"
+      ],
+      "expected_golden_drift": [],
+      "stop_rule_class": "hygiene"
+    }
+  ],
+  "non_findings": [
+    {
+      "claim": "The batched jac is reached on the zero-range-bound channel (a manually pinned step gives a (0,0) bound) and on the fuse-guard channel, so the round-5 31.5x scalar-FD regression does not reproduce at this baseline.",
+      "command": "PYTHONPATH=tests/hastub python3 tools/audit/round6/D9/h1_gradient.py --case zero_range_pin",
+      "value": "batched_gradient_calls=431, batch_rows=41376, scalar_simulate_step_calls=42432 - every gradient batched, none scalar; --case fuseguard_cap gives batched_gradient_calls=316, all batched"
+    },
+    {
+      "claim": "Simulate-step-equivalents per gradient on the batched path is 96 (= n_steps rows), not the ~9300 scipy's own scalar estimator would cost; the paired scalar objective evaluation is a separate ~96 per L-BFGS-B iteration.",
+      "command": "PYTHONPATH=tests/hastub python3 tools/audit/round6/D9/h1_gradient.py --case two_zone_dhw --perturb horizon",
+      "value": "equiv_per_gradient_D9 194.82 baseline -> 97.53 at hours=12 (n_steps 96 -> 48); batch_rows 42432 -> 15024; scalar objective evaluations 455 x 96 = 43680 simulate_step calls per solve"
+    },
+    {
+      "claim": "optimize() enters _multi_start_minimize exactly once, and one coordinator cycle calls the solve seam exactly once; no path runs a second full solve.",
+      "command": "PYTHONPATH=tests/hastub python3 tools/audit/round6/D9/h1_gradient.py --case two_zone_dhw",
+      "value": "full_solves=1 for all five cases; solver_calls=8 _scoped_minimize entries (4 candidate solves + 4 polish restarts); _await_optimize entries per driven cycle = 1"
+    },
+    {
+      "claim": "No retained-object growth over coordinator cycles: the coordinator's deep instance state and the gc-tracked object census are both flat.",
+      "command": "PYTHONPATH=tests/hastub python3 tools/audit/round6/D9/h3_retained.py --cycles 15",
+      "value": "retained_state_bytes_start=269982, retained_state_bytes_end=269982, retained_bytes_slope_per_cycle=0.0; gc census +0 tracked objects (67301 total, 3562 lists, 6765 dicts)"
+    },
+    {
+      "claim": "tracemalloc's traced-current slope of +18843 B/cycle is unattributed, not a leak: no container holds the attributed blocks.",
+      "command": "PYTHONPATH=tests/hastub python3 tools/audit/round6/D9/h3_retained.py --cycles 15",
+      "value": "traced_current_slope_per_cycle=18843.6 B/cycle against a gc census that grows by 0; live dicts holding 'space_power' or 'dhw_power' = 0 at census"
+    },
+    {
+      "claim": "The published payload's recorded share is under a third and dominated by two small attributes; the plan payloads are declared unrecorded.",
+      "command": "PYTHONPATH=tests/hastub python3 tools/audit/round6/D9/h2_payload.py --config coord_two_zone",
+      "value": "recorded 4486 B/cycle vs excluded 12246 B/cycle, recorded_share=0.2681, 430656 B/day recorded; largest recorded attribute thermal_battery.components 587 B"
+    },
+    {
+      "claim": "Loop-thread work per cycle is 1.84 reference solves and is not a defect.",
+      "command": "PYTHONPATH=tests/hastub python3 tools/audit/round6/D9/h3_retained.py --cycles 15",
+      "value": "loop_thread_cpu_ms_mean=43.67 ms against reference_cpu_ms=23.8, ratio 1.8365, max 48.18 ms"
+    },
+    {
+      "claim": "maxiter is not a binding knob: doubling it on every _multi_start_minimize entry moves the work counts not at all, so the polish restarts are genuinely short runs and not second full solves.",
+      "command": "PYTHONPATH=tests/hastub python3 tools/audit/round6/D9/h1_gradient.py --case two_zone_dhw --perturb maxiter",
+      "value": "batch_rows=42432 and simulate_step_equivalents_D9=86112, identical to the unperturbed baseline"
+    },
+    {
+      "claim": "stress.build_case's SolverWork re-patches any class-attribute hooks installed before it, silently zeroing them - a trap for any later harness.",
+      "command": "PYTHONPATH=tests/hastub python3 tools/audit/round6/D9/h1_gradient.py --case two_zone_dhw",
+      "value": "a wrapper installed on ThermalModel.simulate_trajectory_batch before stress.build_case reads 0 batch calls on a solve that makes 442; h1_gradient.py disables SolverWork.__enter__/__exit__ and reads 442"
+    },
+    {
+      "claim": "h4_gil's first harness version measured its own heartbeat period, not the GIL: --heartbeat-ms was passed un-scaled to asyncio.sleep, which takes seconds.",
+      "command": "PYTHONPATH=tests/hastub python3 tools/audit/round6/D9/h4_gil.py --case two_zone_dhw --perturb synthetic-block",
+      "value": "before the fix the known 300 ms block reported a longest gap of ~1010 ms (= the heartbeat period); after scaling by 1/1000 it reports 301.1 ms"
+    }
+  ],
+  "harnesses": [
+    "tools/audit/round6/D9/h1_gradient.py",
+    "tools/audit/round6/D9/h2_payload.py",
+    "tools/audit/round6/D9/h3_retained.py",
+    "tools/audit/round6/D9/h4_gil.py"
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/services.py:_canonical_quiet_updates RETURN_DEL a8227ccf",
+  "killed_by": "tests/manual_plan.py",
+  "old": "    return out",
+  "reason": "Recorded by hand against 45e75b85 plus this commit's tests/manual_plan.py test_quiet_window_arms, in a detached copy with the mutant applied. The comment-only null control, a comment prepended to the mutated file, left all manual-plan checks passing. RETURN_DEL (`pass`) took tests/manual_plan.py from rc=0 to rc=1: 1 check FAILED (\"absent quiet specs canonicalise to nothing\", got None) and the script then aborted."
+}

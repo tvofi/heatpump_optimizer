@@ -1,0 +1,156 @@
+{
+ "group": "G2",
+ "unit": "leads",
+ "ids": [
+  "D8-s3-61",
+  "D4-s2-81",
+  "D12-s3-81"
+ ],
+ "findings": [
+  {
+   "id": "D8-s3-61",
+   "scope": "D8-s3",
+   "step": "D8.M4",
+   "title": "Valve Target Recommendation ships disabled where a mixing valve is set, and available-but-unknown where none is",
+   "severity": "low",
+   "claim": "In 5 of 5 golden topologies with mixing_valve_mode=manual, Valve Target Recommendation publishes a target (23.0 \u00b0C) and its reason while its registry default is off; in the same 5 topologies without a valve it is available with state unknown.",
+   "mechanism": "ValveTargetRecommendationSensor keeps a static _attr_entity_registry_enabled_default=False and the base availability, while the payload key it reads (coordinator._mixing_valve_view) exists only when mixing_valve.is_throttling(mode). Its sibling opt-in readouts take default and availability from the configured feature: ConfiguredInputMixin (ECL110, probes; #1302/#1542) and DHWEntityMixin (#1398). The class docstring's reason ('disabled rather than eternally-unknown') covers only the no-valve install, where the entity is nevertheless available.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D8/leads/l2_d8_leads.py --only D",
+    "harness_path": "tools/audit/round9/D8/leads/l2_d8_leads.py",
+    "value": 5,
+    "unit": "topologies (of 5) with a throttling valve where the entity publishes a value while enabled_default is False",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "leads box L2: 4-core Linux cloud container, /home/claude/venv314 CPython",
+    "cpu_or_wall": "count",
+    "contention_note": "leads fan-out: seats L1/L3/L4 on the same box; count is contention-immune",
+    "tolerance": "exact",
+    "load1": 1.94,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.sensor:ValveTargetRecommendationSensor (entity_registry_enabled_default, available, native_value) over heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._mixing_valve_view",
+   "perturbation": {
+    "change": "--perturb valve: entity_registry_enabled_default follows mixing_valve.is_throttling(config mixing_valve_mode) (in memory)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Topologies (of the 5 golden coordinator scenarios) with mixing_valve_mode=manual where the entity's native_value is not None and entity_registry_enabled_default is False.",
+   "phenomenon_property": "An entity whose value exists only under an opt-in configuration feature takes its registry default and its availability from that feature being configured, never from a static class attribute.",
+   "seam_rule": "grep -n '_attr_entity_registry_enabled_default = False' custom_components/heatpump_optimizer/sensor.py custom_components/heatpump_optimizer/binary_sensor.py  (each hit checked against the payload gate its value needs)",
+   "stop_rule_class": "bug",
+   "class_guess": "P2",
+   "files": [
+    "custom_components/heatpump_optimizer/sensor.py",
+    "README.md"
+   ],
+   "proposed_fix_scope": "Gate ValveTargetRecommendationSensor's default and availability on mixing_valve.is_throttling(mode) in the ConfiguredInputMixin shape; update README.md:551/:560 and the disabled-set pins in tests/entities.py. Existing registry entries keep their state.",
+   "seat": "D8-s3",
+   "from_lead": true,
+   "leads_seat": "L2"
+  },
+  {
+   "id": "D4-s2-81",
+   "scope": "D4-s2",
+   "step": "D4.M2",
+   "title": "Setup overview page and setup diagram publish English slot text on a Swedish install",
+   "severity": "medium",
+   "claim": "With the Swedish translation active, 22 of the 23 text lines the setup_overview flow page renders, all 16 slot labels describe_setup publishes (setup_topology, drawn verbatim by the card) and all 3 sensor_advisor labels are byte-identical to the English install's, while the narrative on the same plan sensors is Swedish (0 of 1 identical).",
+   "mechanism": "topology._SLOTS holds English literal labels and render_text_summary English headings; describe_setup, render_text_summary and rank_sensor_advisor take no language, so config_flow._setup_overview_form fills the sv template's {setup_summary} with English and the plan sensors publish English labels; narrative.render, by contrast, picks TEMPLATES[language].",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D4/leads/l4_setup_labels.py",
+    "harness_path": "tools/audit/round9/D4/leads/l4_setup_labels.py",
+    "value": 41,
+    "unit": "published strings identical en/sv (22 page lines + 16 slot labels + 3 advisor labels)",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "L4 leads box: 4-vCPU Linux container, CPython 3.14 (venv314), OpenBLAS pinned to 1 thread",
+    "cpu_or_wall": "count",
+    "contention_note": "other leads seats shared the box; counts are contention-immune",
+    "tolerance": "exact",
+    "load1": 1.19,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.config_flow:_setup_overview_form; heatpump_optimizer.topology:describe_setup / render_text_summary / rank_sensor_advisor",
+   "perturbation": {
+    "change": "--perturb: the three topology functions wrapped in memory to pass every published literal through a Swedish table when the language is sv (the narrative.render pattern)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "published setup strings (rendered setup_overview lines, setup_topology slot labels, sensor_advisor labels) byte-identical between an en and an sv install",
+   "phenomenon_property": "Every user-facing string the backend publishes for the setup diagram and the sensor advisor follows the instance language, as the narrative does.",
+   "seam_rule": "grep -n \"describe_setup\\|render_text_summary\\|rank_sensor_advisor\" custom_components/heatpump_optimizer/*.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D4/leads/l4_setup_labels.py",
+    "value": "null_narrative_lines_identical_to_en=0 of 1",
+    "note": "narrative.render on the same sensors follows the language"
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D4/leads/l4_setup_labels.py",
+    "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D4/leads/l4_setup_labels.py --perturb"
+   ],
+   "proposed_fix_scope": "topology.py: slot labels and summary headings keyed by translation key (resolved from strings/translations by hass.config.language in the flow, or published as keys the card translates); config_flow/sensor call sites pass the language.",
+   "files": [
+    "custom_components/heatpump_optimizer/topology.py",
+    "custom_components/heatpump_optimizer/config_flow.py",
+    "custom_components/heatpump_optimizer/sensor.py",
+    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "new",
+   "seat": "D4-s2",
+   "from_lead": true,
+   "leads_seat": "L4"
+  },
+  {
+   "id": "D12-s3-81",
+   "scope": "D12-s3",
+   "step": "D12.M4",
+   "title": "Grid-fee bounds are SEK numbers: a 0.05 EUR/kWh fee is unenterable in HUF, ISK, JPY and KRW",
+   "severity": "medium",
+   "claim": "A 0.05 EUR/kWh transfer fee converted into each of 12 instance currencies draws 8 blocking verdicts across 4 currencies (HUF, ISK, JPY, KRW): the rules text is refused as implausible (HUF, KRW), the fixed-fee field's selector caps it at 5 in any currency (all four), and an entity-mode fee raises the grid_fee_magnitude repair (HUF, KRW); SEK, EUR, NOK and DKK draw 0.",
+   "mechanism": "grid_fee.IMPLAUSIBLE_FEE_SEK_PER_KWH = 10.0 (read by spec_problem and coordinator._audit_grid_fee) and the grid_fee_fixed NumberSelector max 5 are fixed numbers sized for SEK, while the same widget's unit and the repair text follow hass.config.currency.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/leads/l4_fee_bound.py",
+    "harness_path": "tools/audit/round9/D12/leads/l4_fee_bound.py",
+    "value": 8,
+    "unit": "blocking verdicts (3 seams x 12 currencies); 4 currencies",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "L4 leads box: 4-vCPU Linux container, CPython 3.14 (venv314), OpenBLAS pinned to 1 thread",
+    "cpu_or_wall": "count",
+    "contention_note": "other leads seats shared the box; counts are contention-immune",
+    "tolerance": "exact given the stated exchange-rate table",
+    "load1": 2.07,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.grid_fee:spec_problem; heatpump_optimizer.config_flow:_page_schema (grid_fees page, grid_fee_fixed selector); heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._audit_grid_fee",
+   "perturbation": {
+    "change": "--perturb: IMPLAUSIBLE_FEE_SEK_PER_KWH 10 -> 1e6 in memory (grid_fee and the coordinator's imported copy)",
+    "expected_direction": "down",
+    "observed_value": 4
+   },
+   "metric_definition": "seam verdicts refusing or capping a 0.05 EUR/kWh fee expressed in each of 12 currencies at a stated rate table (rules refusal, fixed selector max, repair raised)",
+   "phenomenon_property": "Every magnitude bound on a money field scales with the instance currency the field is labelled in, so a fee that is ordinary in that currency is accepted without a repair.",
+   "seam_rule": "grep -n \"IMPLAUSIBLE_FEE_SEK_PER_KWH\\|_number(0, 5, 0.01\" custom_components/heatpump_optimizer/*.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/leads/l4_fee_bound.py",
+    "value": "null_blocked=0 of 4 (SEK, EUR, NOK, DKK)",
+    "note": "the currencies the constants were sized for"
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/leads/l4_fee_bound.py",
+    "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/leads/l4_fee_bound.py --perturb",
+    "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/leads/l4_fee_bound.py --fee 0.03"
+   ],
+   "proposed_fix_scope": "grid_fee.py/config_flow.py/coordinator.py: derive the implausibility bound and the fixed-fee selector max from the instance currency (a per-currency scale, or a bound relative to the published spot prices) rather than SEK constants.",
+   "files": [
+    "custom_components/heatpump_optimizer/grid_fee.py",
+    "custom_components/heatpump_optimizer/config_flow.py",
+    "custom_components/heatpump_optimizer/coordinator.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "P8",
+   "seat": "D12-s3",
+   "from_lead": true,
+   "leads_seat": "L4"
+  }
+ ]
+}

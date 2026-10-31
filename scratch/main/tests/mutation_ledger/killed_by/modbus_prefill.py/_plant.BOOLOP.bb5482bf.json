@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/modbus_prefill.py:_plant BOOLOP bb5482bf",
+  "killed_by": "tests/features.py",
+  "old": "            if water and ThermalParameters.from_config(dict(current)).two_zone_enabled",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against fab176199f8ff94a169eb085dd6681b34fdb65c4: BOOLOP (`if water or ThermalParameters.from_config(dict(current)).two_zone_enabled`) took tests/features.py from rc=0 failed=0 to rc=1 failed=9."
+}

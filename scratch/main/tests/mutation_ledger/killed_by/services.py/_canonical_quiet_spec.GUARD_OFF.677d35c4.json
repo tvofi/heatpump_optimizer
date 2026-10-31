@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/services.py:_canonical_quiet_spec GUARD_OFF 677d35c4",
+  "killed_by": "tests/manual_plan.py",
+  "old": "    if weekly is not None:",
+  "reason": "Recorded by hand against 45e75b85 plus this commit's tests/manual_plan.py test_quiet_window_arms, in a detached copy with the mutant applied. The comment-only null control, a comment prepended to the mutated file, left all manual-plan checks passing. GUARD_OFF (`if False:`) took tests/manual_plan.py from rc=0 to rc=1: 1 check FAILED, \"a weekly quiet spec keeps its day selector through canonicalisation\" (got 08:00-09:00)."
+}

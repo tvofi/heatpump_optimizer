@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._dhw_plan_fields RETURN_DEL cf6b72a7",
+  "killed_by": "tests/features.py",
+  "old": "        return fields",
+  "reason": "Recorded by hand for R9-EG-B1 (#1736) on the branch worktree, 2026-10-04, because `mutation_table.py --pin-killed` refuses on this machine (tests/features.py's baseline is red for the environment: R9-F2.1 P3, BLAS; green on CI). The drive is mutation_table's own pool, mutant application, driver invocation and kill rule, run with the red baseline kept: a kill is a failing-check count the unmutated baseline does not already have, here against 1913f0dd736cb66b800b5eabfa6973a917459d83: RETURN_DEL (`pass`) took tests/features.py from rc=1 failed=2 to rc=1 failed=7."
+}

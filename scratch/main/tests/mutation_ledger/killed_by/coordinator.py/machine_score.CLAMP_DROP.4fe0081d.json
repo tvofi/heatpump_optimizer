@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:machine_score CLAMP_DROP 4fe0081d",
+  "killed_by": "tests/features.py",
+  "old": "    return (1.0 - float(np.clip(cusum_stat / COP_HEALTH_THRESHOLD, 0.0, 1.0))) * 100.0, None",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 4e38e7d7b3138b24c97e7d0fbea74965c1d43d62: CLAMP_DROP (`return (1.0 - float((cusum_stat / COP_HEALTH_THRESHOLD))) * 100.0, None`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

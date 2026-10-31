@@ -1,0 +1,19 @@
+#1987 cf9de4e2->705c3be3 next=blocked own-commits=1 files: tests/manual_plan.py tests/mutation_ledger/killed_by/quiet_windows.py/configured_specs.RETURN_DEL.a8227ccf.json 
+#1987 705c3be3->95ad5034 next=merge own-commits=2 files: .github/CODEOWNERS .github/workflows/governance.yml tools/policy/field_coverage.mjs tools/policy/policy_lint_envmatrix.mjs 
+#2006 af7cf417->b71f454f next=blocked own-commits=1 files: custom_components/heatpump_optimizer/coordinator.py custom_components/heatpump_optimizer/optimizer.py custom_components/heatpump_optimizer/pump_arbite
+#2006 21a62c10 same-head next=merge own-commits=0
+#2007 26002ff5->c3e8d3de next=merge own-commits=2 files: custom_components/heatpump_optimizer/pump_arbiter.py tests/mutation_ledger/killed_by/pump_arbiter.py/_inside_silent.BOOLOP.6f93e870.json tests/mutatio
+#2007 e4c51f12->0a68a286 next=merge own-commits=0 files: 
+#2015 78509aca->46b9b4fd next=merge own-commits=0 files: 
+#2018 223f88c2->b956925c next=merge own-commits=0 files: 
+#2025 a390f589->e0f87d5b next=blocked own-commits=4 files: custom_components/heatpump_optimizer/binary_sensor.py custom_components/heatpump_optimizer/coordinator.py custom_components/heatpump_optimizer/entry_c
+#2025 bfaf5486->0662bd8e next=merge own-commits=2 files: custom_components/heatpump_optimizer/coordinator.py custom_components/heatpump_optimizer/entry_config.py tests/entities.py tests/structure_budgets.jso
+#2025 95b08306->9c664109 next=blocked own-commits=3 files: tests/closures.json tests/mutation_ledger/killed_by/entry_config.py/EntryConfig.__reduce__.RETURN_DEL.5a1c704f.json tests/mutation_ledger/killed_by/en
+#2041 4048af95->a102be64 next=merge own-commits=0 files: 
+#2049 04b8b4bd->245468e2 next=blocked own-commits=2 files: .claude/rules/ci-autofix.md .cursor/rules/ci-autofix.mdc dev/governance/rules/ci-autofix.md tests/closures.json tests/entities.py tools/audit/seat/aut
+#2049 245468e2->27fdda2a next=merge own-commits=0 files: 
+#2051 811846b5->afbaaf73 next=merge own-commits=1 files: dev/audit/harnesses/git_auto_maintenance_race.sh dev/audit/rca/R9-RCA-stamp-race.md 
+#2053 6ddb8c4c->e4fa486c next=merge own-commits=0 files: 
+#2058 aa88452d->e8701d2e next=blocked own-commits=1 files: tests/closures.json 
+#2058 e8701d2e no-next-verdict
+#2059 9e44f73c no-next-verdict

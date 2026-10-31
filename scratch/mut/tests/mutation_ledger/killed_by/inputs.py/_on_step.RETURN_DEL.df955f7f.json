@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/inputs.py:_on_step RETURN_DEL df955f7f",
+  "killed_by": "tests/guard_pins.py",
+  "old": "    return round(turns * step, 6)",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against d5cd003111277faa3f2abd7fbe6c9157d2e48ed7: RETURN_DEL (`pass`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=1."
+}

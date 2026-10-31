@@ -1,0 +1,58 @@
+== #1886
+  2026-10-04T00:28:10Z Fix review: blocked a607db2a176655fc171ac6ec15eb1c039c38188e root-cause-unanswered: policy-docs and wave-script went red, unanswered; the ba
+  2026-10-04T09:51:44Z Fix review: merge 1ef3784ca71ab75966862e4af77b04ad31fc8666
+== #1942
+  2026-10-04T14:58:42Z Fix review: blocked 0e2ee62bca778503d16b718d69deb7cc8d4d9374 root-cause-unanswered: budget-raise-gate went red at head and ## Red checks nev
+== #1948
+  2026-10-04T16:33:13Z Fix review: blocked ae1db90faea9bf18527317294e316be5bec91004 root-cause-unanswered: budget-raise-gate went red, not named in ## Red checks (
+  2026-10-04T17:00:25Z Fix review: merge dbbc718c3555287019118d82cfb82ea88c2aa806
+== #1957
+  2026-10-04T20:52:11Z Fix review: blocked 6e5cb20157623006040dcb4794d0d31562c32198 root-cause-unanswered: `closures` went red, unanswered
+  2026-10-04T20:52:44Z Fix review: blocked 6e5cb20157623006040dcb4794d0d31562c32198 root-cause-unanswered: `closures` went red, unanswered
+  2026-10-04T21:29:49Z Fix review: merge 2416ef25e6fb4d411e264159f9454c3193ef2f2c
+== #1958
+  2026-10-05T01:07:13Z Fix review: blocked c134b9fad98f250631168d5525d43dbbb46183bd root-cause-unanswered: typing went red, unanswered
+  2026-10-05T02:26:48Z Fix review: blocked 244612e718357a11c55069ddc2fd059912a40b0d root-cause-unanswered: mutation went red, unanswered — 3 new un-dispositioned s
+  2026-10-05T04:02:51Z Fix review: merge 50fc60380d0285f50d217a0eb47a84c6c5c4c73b
+== #1959
+  2026-10-05T01:37:15Z Fix review: blocked 82a8791a346b12cb91e53d5dfdc88009972603d4 root-cause-unanswered: typing went red, unanswered; mutation-autofix reported T
+  2026-10-05T14:10:44Z Fix review: merge 093776f8235f58f04522619508edb4be88bf463e
+== #1960
+  2026-10-05T02:31:23Z Fix review: blocked cc0bc1016fd60ed0dbe7574c13b1cc6a1579e6b7 root-cause-unanswered: typing went red, unanswered -- a live NameError, and mut
+  2026-10-05T04:38:55Z Fix review: blocked a595111651e0f789c328ce8bf7539c3b582ff5b1 root-cause-unanswered: fast (doc_claims) and mutation went red at this head, un
+  2026-10-06T06:31:04Z Fix review: blocked 947aa00a27f28647d533417c078b22fe354e0ffc harness: design-trace-missing anti-legionella is dropped, not planned outside, 
+  2026-10-06T07:33:12Z Fix review: blocked 455db64e9c41b59953858338d26cddcb1232dac2 root-cause-unanswered: typing went red, unanswered
+  2026-10-06T09:24:10Z Fix review: blocked b28c2b70d99d8286f1efa4386ba46bbed4a38d31 other: mutation, fast (3.14) and closures are in progress on run 37440546834; a
+  2026-10-06T11:26:34Z Fix review: merge b28c2b70d99d8286f1efa4386ba46bbed4a38d31
+  2026-10-06T17:43:03Z Fix review: merge 5e13d4888309fab9abd41ce21b83e0f42aba83c6
+  2026-10-06T19:59:45Z Fix review: merge 591e018ef1089090dc1587066ec7a3e7420263ca
+== #1975
+  2026-10-05T21:26:03Z Fix review: blocked 3c0e3324d1f09e68677ee8caca38b2e42035c6a8 root-cause-unanswered: nightly-status went red, unanswered
+  2026-10-05T21:28:51Z Fix review: blocked 3c0e3324d1f09e68677ee8caca38b2e42035c6a8 root-cause-unanswered: delivery-status went red, unanswered
+  2026-10-05T21:31:45Z Fix review: merge 3c0e3324d1f09e68677ee8caca38b2e42035c6a8
+== #1979
+  2026-10-05T23:09:52Z Fix review: blocked e6d844faaf3a1968b45ec13c6abdcafc290d083c root-cause-unanswered: delivery-status, graders-head-copy and nightly-status we
+  2026-10-05T23:14:09Z Fix review: merge e6d844faaf3a1968b45ec13c6abdcafc290d083c
+  2026-10-06T12:53:02Z Fix review: merge 8aeea23e618c8e81a7bb38b7a0649fcc4adba097
+== #1980
+  2026-10-06T00:18:09Z Fix review: blocked d7c0697ef5fc2af5fdb73e9f27e13f0d1703bdd2 root-cause-unanswered: delivery-status, nightly-status, closures and closures-a
+  2026-10-06T01:04:47Z Fix review: merge 569e0e633874f3f3ba13d9a125e20ea95b025f94
+  2026-10-06T06:05:39Z Fix review: merge 356eb0152efb4e5cc775a1af8e4ea2ecb2c8e5de
+== #1993
+  2026-10-06T17:49:42Z Fix review: blocked 390c9f474ea2bc1a53dbe4655e678455c4ac92ac harness: class-open tools/audit/round3/D4/flow_ergonomics.py:46
+  2026-10-06T18:56:29Z Fix review: blocked 939e42f5f3e821a9460d9097fbeb4de598e1ee3a harness: class-open tools/audit/harnesses/scale_writer_seams.py:25
+  2026-10-06T19:25:51Z Fix review: merge 86bdf0cf04feec56375bbe300a5ab2b6e630a5b8
+  2026-10-06T20:22:37Z Fix review: merge a0a147e1fedc4fbf7373c350b2d9d87b8a894bc6
+  2026-10-06T22:36:14Z Fix review: blocked 1e8b9b179cd60e6097c92c256abac359fe4218db root-cause-unanswered: env-matrix went red, unanswered
+  2026-10-06T23:49:38Z Fix review: blocked 928dd5ff5bb36a8e2fdd39667b82dc272610a1a6 harness: env-matrix job 112550446526 restored the base copy of tools/policy/pol
+  2026-10-07T00:08:27Z Fix review: merge fb6c5fca84231d326eb3423d534b2b28b926c2a7
+  2026-10-07T00:58:44Z Fix review: merge 5d6a4e43e686f9e386bb433651c414ef6a8c2cd3
+  2026-10-07T02:19:19Z Fix review: merge b5f2090dd0da64b7073a4ff3d1c33b05ebf95580
+== #1996
+  2026-10-06T17:26:44Z Fix review: blocked 31e735b454e1a0669d8d91ac975342fb1d294428 conflict: merge-tree --write-tree origin/main exits 1 on docs/delivery/1992.md 
+  2026-10-06T18:50:39Z Fix review: merge 00fd290235d7ab0ff25bf7441ad3d2637c6b86d2
+  2026-10-06T19:59:28Z Fix review: merge 98c56a2f9e8fc031397e9fba21e54417830c6036
+  2026-10-06T22:12:59Z Fix review: blocked c2994f6b4c4eff24eab4a906caadcdbcd8bdd06a root-cause-unanswered: CodeQL, env-matrix and pr-contract went red, unanswered
+  2026-10-06T23:08:14Z Fix review: blocked 03fc9b3acb47f7fce73867a82850e2d193184678 vacuous: env-matrix checks out tools/policy/policy_lint_envmatrix.mjs from the 
+  2026-10-06T23:57:05Z Fix review: merge fc2ef1259ff89e8799f150875000efd15f5590a2
+  2026-10-07T01:11:44Z Fix review: merge 4cb300f780ade3dd833db4c606ca0ca837547bf7

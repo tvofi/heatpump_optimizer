@@ -1,0 +1,154 @@
+# cell tile/en/359/light/fine: nodes=101 interactive=13 texts=48 target=0 clip=0 contrast=0
+# cell dialog/en/359/light/fine: nodes=260 interactive=46 texts=119 target=0 clip=0 contrast=0
+# cell dialog-tab1/en/359/light/fine: nodes=215 interactive=26 texts=79 target=0 clip=0 contrast=0
+# cell dialog-tab2/en/359/light/fine: nodes=31 interactive=8 texts=12 target=0 clip=0 contrast=0
+# cell dialog-tab3/en/359/light/fine: nodes=115 interactive=18 texts=54 target=0 clip=0 contrast=0
+# cell tile/en/359/light/coarse: nodes=101 interactive=13 texts=48 target=12 clip=0 contrast=0
+# cell dialog/en/359/light/coarse: nodes=260 interactive=46 texts=119 target=39 clip=0 contrast=0
+# cell dialog-tab1/en/359/light/coarse: nodes=215 interactive=26 texts=79 target=19 clip=0 contrast=0
+# cell dialog-tab2/en/359/light/coarse: nodes=31 interactive=8 texts=12 target=7 clip=0 contrast=0
+# cell dialog-tab3/en/359/light/coarse: nodes=115 interactive=18 texts=54 target=17 clip=0 contrast=0
+# cell tile/en/359/dark/fine: nodes=101 interactive=13 texts=48 target=0 clip=0 contrast=0
+# cell dialog/en/359/dark/fine: nodes=260 interactive=46 texts=119 target=0 clip=0 contrast=0
+# cell dialog-tab1/en/359/dark/fine: nodes=215 interactive=26 texts=79 target=0 clip=0 contrast=0
+# cell dialog-tab2/en/359/dark/fine: nodes=31 interactive=8 texts=12 target=0 clip=0 contrast=0
+# cell dialog-tab3/en/359/dark/fine: nodes=115 interactive=18 texts=54 target=0 clip=0 contrast=0
+# cell tile/en/359/dark/coarse: nodes=101 interactive=13 texts=48 target=12 clip=0 contrast=0
+# cell dialog/en/359/dark/coarse: nodes=260 interactive=46 texts=119 target=39 clip=0 contrast=0
+# cell dialog-tab1/en/359/dark/coarse: nodes=215 interactive=26 texts=79 target=19 clip=0 contrast=0
+# cell dialog-tab2/en/359/dark/coarse: nodes=31 interactive=8 texts=12 target=7 clip=0 contrast=0
+# cell dialog-tab3/en/359/dark/coarse: nodes=115 interactive=18 texts=54 target=17 clip=0 contrast=0
+# cell tile/en/900/light/fine: nodes=107 interactive=13 texts=54 target=0 clip=0 contrast=0
+# cell dialog/en/900/light/fine: nodes=270 interactive=46 texts=129 target=0 clip=0 contrast=0
+# cell dialog-tab1/en/900/light/fine: nodes=221 interactive=26 texts=85 target=0 clip=0 contrast=0
+# cell dialog-tab2/en/900/light/fine: nodes=31 interactive=8 texts=12 target=0 clip=0 contrast=0
+# cell dialog-tab3/en/900/light/fine: nodes=121 interactive=18 texts=60 target=0 clip=0 contrast=0
+# cell tile/en/900/light/coarse: nodes=107 interactive=13 texts=54 target=12 clip=0 contrast=0
+# cell dialog/en/900/light/coarse: nodes=270 interactive=46 texts=129 target=37 clip=0 contrast=0
+# cell dialog-tab1/en/900/light/coarse: nodes=221 interactive=26 texts=85 target=19 clip=0 contrast=0
+# cell dialog-tab2/en/900/light/coarse: nodes=31 interactive=8 texts=12 target=7 clip=0 contrast=0
+# cell dialog-tab3/en/900/light/coarse: nodes=121 interactive=18 texts=60 target=17 clip=0 contrast=0
+# cell tile/en/900/dark/fine: nodes=107 interactive=13 texts=54 target=0 clip=0 contrast=0
+# cell dialog/en/900/dark/fine: nodes=270 interactive=46 texts=129 target=0 clip=0 contrast=0
+# cell dialog-tab1/en/900/dark/fine: nodes=221 interactive=26 texts=85 target=0 clip=0 contrast=0
+# cell dialog-tab2/en/900/dark/fine: nodes=31 interactive=8 texts=12 target=0 clip=0 contrast=0
+# cell dialog-tab3/en/900/dark/fine: nodes=121 interactive=18 texts=60 target=0 clip=0 contrast=0
+# cell tile/en/900/dark/coarse: nodes=107 interactive=13 texts=54 target=12 clip=0 contrast=0
+# cell dialog/en/900/dark/coarse: nodes=270 interactive=46 texts=129 target=37 clip=0 contrast=0
+# cell dialog-tab1/en/900/dark/coarse: nodes=221 interactive=26 texts=85 target=19 clip=0 contrast=0
+# cell dialog-tab2/en/900/dark/coarse: nodes=31 interactive=8 texts=12 target=7 clip=0 contrast=0
+# cell dialog-tab3/en/900/dark/coarse: nodes=121 interactive=18 texts=60 target=17 clip=0 contrast=0
+# cell tile/sv/359/light/fine: nodes=103 interactive=13 texts=50 target=0 clip=0 contrast=0
+# cell dialog/sv/359/light/fine: nodes=265 interactive=46 texts=124 target=0 clip=1 contrast=0
+# cell dialog-tab1/sv/359/light/fine: nodes=217 interactive=26 texts=81 target=0 clip=1 contrast=0
+# cell dialog-tab2/sv/359/light/fine: nodes=31 interactive=8 texts=12 target=0 clip=1 contrast=0
+# cell dialog-tab3/sv/359/light/fine: nodes=117 interactive=18 texts=56 target=0 clip=1 contrast=0
+# cell tile/sv/359/light/coarse: nodes=103 interactive=13 texts=50 target=12 clip=0 contrast=0
+# cell dialog/sv/359/light/coarse: nodes=265 interactive=46 texts=124 target=39 clip=1 contrast=0
+# cell dialog-tab1/sv/359/light/coarse: nodes=217 interactive=26 texts=81 target=19 clip=1 contrast=0
+# cell dialog-tab2/sv/359/light/coarse: nodes=31 interactive=8 texts=12 target=7 clip=1 contrast=0
+# cell dialog-tab3/sv/359/light/coarse: nodes=117 interactive=18 texts=56 target=17 clip=1 contrast=0
+# cell tile/sv/359/dark/fine: nodes=103 interactive=13 texts=50 target=0 clip=0 contrast=0
+# cell dialog/sv/359/dark/fine: nodes=265 interactive=46 texts=124 target=0 clip=1 contrast=0
+# cell dialog-tab1/sv/359/dark/fine: nodes=217 interactive=26 texts=81 target=0 clip=1 contrast=0
+# cell dialog-tab2/sv/359/dark/fine: nodes=31 interactive=8 texts=12 target=0 clip=1 contrast=0
+# cell dialog-tab3/sv/359/dark/fine: nodes=117 interactive=18 texts=56 target=0 clip=1 contrast=0
+# cell tile/sv/359/dark/coarse: nodes=103 interactive=13 texts=50 target=12 clip=0 contrast=0
+# cell dialog/sv/359/dark/coarse: nodes=265 interactive=46 texts=124 target=39 clip=1 contrast=0
+# cell dialog-tab1/sv/359/dark/coarse: nodes=217 interactive=26 texts=81 target=19 clip=1 contrast=0
+# cell dialog-tab2/sv/359/dark/coarse: nodes=31 interactive=8 texts=12 target=7 clip=1 contrast=0
+# cell dialog-tab3/sv/359/dark/coarse: nodes=117 interactive=18 texts=56 target=17 clip=1 contrast=0
+# cell tile/sv/900/light/fine: nodes=109 interactive=13 texts=56 target=0 clip=0 contrast=0
+# cell dialog/sv/900/light/fine: nodes=276 interactive=46 texts=135 target=0 clip=0 contrast=0
+# cell dialog-tab1/sv/900/light/fine: nodes=223 interactive=26 texts=87 target=0 clip=0 contrast=0
+# cell dialog-tab2/sv/900/light/fine: nodes=31 interactive=8 texts=12 target=0 clip=0 contrast=0
+# cell dialog-tab3/sv/900/light/fine: nodes=123 interactive=18 texts=62 target=0 clip=0 contrast=0
+# cell tile/sv/900/light/coarse: nodes=109 interactive=13 texts=56 target=12 clip=0 contrast=0
+# cell dialog/sv/900/light/coarse: nodes=276 interactive=46 texts=135 target=37 clip=0 contrast=0
+# cell dialog-tab1/sv/900/light/coarse: nodes=223 interactive=26 texts=87 target=19 clip=0 contrast=0
+# cell dialog-tab2/sv/900/light/coarse: nodes=31 interactive=8 texts=12 target=7 clip=0 contrast=0
+# cell dialog-tab3/sv/900/light/coarse: nodes=123 interactive=18 texts=62 target=17 clip=0 contrast=0
+# cell tile/sv/900/dark/fine: nodes=109 interactive=13 texts=56 target=0 clip=0 contrast=0
+# cell dialog/sv/900/dark/fine: nodes=276 interactive=46 texts=135 target=0 clip=0 contrast=0
+# cell dialog-tab1/sv/900/dark/fine: nodes=223 interactive=26 texts=87 target=0 clip=0 contrast=0
+# cell dialog-tab2/sv/900/dark/fine: nodes=31 interactive=8 texts=12 target=0 clip=0 contrast=0
+# cell dialog-tab3/sv/900/dark/fine: nodes=123 interactive=18 texts=62 target=0 clip=0 contrast=0
+# cell tile/sv/900/dark/coarse: nodes=109 interactive=13 texts=56 target=12 clip=0 contrast=0
+# cell dialog/sv/900/dark/coarse: nodes=276 interactive=46 texts=135 target=37 clip=0 contrast=0
+# cell dialog-tab1/sv/900/dark/coarse: nodes=223 interactive=26 texts=87 target=19 clip=0 contrast=0
+# cell dialog-tab2/sv/900/dark/coarse: nodes=31 interactive=8 texts=12 target=7 clip=0 contrast=0
+# cell dialog-tab3/sv/900/dark/coarse: nodes=123 interactive=18 texts=62 target=17 clip=0 contrast=0
+# target seams:
+#   button.chip "DHW heating" 118.3x30.2  [16 cell(s): tile/en/359/light/coarse, dialog/en/359/light/coarse, dialog-tab1/en/359/light/coarse, ...]
+#   button.chip "DHW tank temperature" 174.3x30.2  [16 cell(s): tile/en/359/light/coarse, dialog/en/359/light/coarse, dialog-tab1/en/359/light/coarse, ...]
+#   button.chip "Electricity price" 128.4x30.2  [16 cell(s): tile/en/359/light/coarse, dialog/en/359/light/coarse, dialog-tab1/en/359/light/coarse, ...]
+#   button.chip "Elpris" 73.1x30.2  [16 cell(s): tile/sv/359/light/coarse, dialog/sv/359/light/coarse, dialog-tab1/sv/359/light/coarse, ...]
+#   button.chip "House temperature" 152.5x30.2  [16 cell(s): tile/en/359/light/coarse, dialog/en/359/light/coarse, dialog-tab1/en/359/light/coarse, ...]
+#   button.chip "Innetemperatur" 129.2x30.2  [16 cell(s): tile/sv/359/light/coarse, dialog/sv/359/light/coarse, dialog-tab1/sv/359/light/coarse, ...]
+#   button.chip "Outdoor temperature" 162.0x30.2  [16 cell(s): tile/en/359/light/coarse, dialog/en/359/light/coarse, dialog-tab1/en/359/light/coarse, ...]
+#   button.chip "Solar irradiance" 132.1x30.2  [16 cell(s): tile/en/359/light/coarse, dialog/en/359/light/coarse, dialog-tab1/en/359/light/coarse, ...]
+#   button.chip "Solinstrålning" 119.0x30.2  [16 cell(s): tile/sv/359/light/coarse, dialog/sv/359/light/coarse, dialog-tab1/sv/359/light/coarse, ...]
+#   button.chip "Space heating" 124.1x30.2  [16 cell(s): tile/en/359/light/coarse, dialog/en/359/light/coarse, dialog-tab1/en/359/light/coarse, ...]
+#   button.chip "Uppvärmning" 118.3x30.2  [16 cell(s): tile/sv/359/light/coarse, dialog/sv/359/light/coarse, dialog-tab1/sv/359/light/coarse, ...]
+#   button.chip "Utetemperatur" 124.1x30.2  [16 cell(s): tile/sv/359/light/coarse, dialog/sv/359/light/coarse, dialog-tab1/sv/359/light/coarse, ...]
+#   button.chip "Varmvattenberedning" 164.7x30.2  [16 cell(s): tile/sv/359/light/coarse, dialog/sv/359/light/coarse, dialog-tab1/sv/359/light/coarse, ...]
+#   button.chip "Varmvattentankens temper" 219.3x30.2  [16 cell(s): tile/sv/359/light/coarse, dialog/sv/359/light/coarse, dialog-tab1/sv/359/light/coarse, ...]
+#   button.chip.nodata "Actioned power" 130.7x30.2  [16 cell(s): tile/en/359/light/coarse, dialog/en/359/light/coarse, dialog-tab1/en/359/light/coarse, ...]
+#   button.chip.nodata "Utförd effekt" 111.7x30.2  [16 cell(s): tile/sv/359/light/coarse, dialog/sv/359/light/coarse, dialog-tab1/sv/359/light/coarse, ...]
+#   button.close 31.5x31.5  [32 cell(s): dialog/en/359/light/coarse, dialog-tab1/en/359/light/coarse, dialog-tab2/en/359/light/coarse, ...]
+#   button.dlg-tab "Advisor" 75.3x28.0  [12 cell(s): dialog/en/359/light/coarse, dialog-tab1/en/359/light/coarse, dialog-tab2/en/359/light/coarse, ...]
+#   button.dlg-tab "Anläggning" 99.1x28.0  [12 cell(s): dialog/sv/359/light/coarse, dialog-tab2/sv/359/light/coarse, dialog-tab3/sv/359/light/coarse, ...]
+#   button.dlg-tab "Plan" 56.3x28.0  [24 cell(s): dialog-tab1/en/359/light/coarse, dialog-tab2/en/359/light/coarse, dialog-tab3/en/359/light/coarse, ...]
+#   button.dlg-tab "Rådgivare" 92.7x28.0  [12 cell(s): dialog/sv/359/light/coarse, dialog-tab1/sv/359/light/coarse, dialog-tab2/sv/359/light/coarse, ...]
+#   button.dlg-tab "Savings" 78.5x28.0  [12 cell(s): dialog/en/359/light/coarse, dialog-tab1/en/359/light/coarse, dialog-tab3/en/359/light/coarse, ...]
+#   button.dlg-tab "Setup" 65.0x28.0  [12 cell(s): dialog/en/359/light/coarse, dialog-tab2/en/359/light/coarse, dialog-tab3/en/359/light/coarse, ...]
+#   button.dlg-tab "Sparande" 89.6x28.0  [12 cell(s): dialog/sv/359/light/coarse, dialog-tab1/sv/359/light/coarse, dialog-tab3/sv/359/light/coarse, ...]
+#   button.dlg-tab.active "Advisor" 75.3x28.0  [4 cell(s): dialog-tab3/en/359/light/coarse, dialog-tab3/en/359/dark/coarse, dialog-tab3/en/900/light/coarse, ...]
+#   button.dlg-tab.active "Anläggning" 99.1x28.0  [4 cell(s): dialog-tab1/sv/359/light/coarse, dialog-tab1/sv/359/dark/coarse, dialog-tab1/sv/900/light/coarse, ...]
+#   button.dlg-tab.active "Plan" 56.3x28.0  [8 cell(s): dialog/en/359/light/coarse, dialog/en/359/dark/coarse, dialog/en/900/light/coarse, ...]
+#   button.dlg-tab.active "Rådgivare" 92.7x28.0  [4 cell(s): dialog-tab3/sv/359/light/coarse, dialog-tab3/sv/359/dark/coarse, dialog-tab3/sv/900/light/coarse, ...]
+#   button.dlg-tab.active "Savings" 78.5x28.0  [4 cell(s): dialog-tab2/en/359/light/coarse, dialog-tab2/en/359/dark/coarse, dialog-tab2/en/900/light/coarse, ...]
+#   button.dlg-tab.active "Setup" 65.0x28.0  [4 cell(s): dialog-tab1/en/359/light/coarse, dialog-tab1/en/359/dark/coarse, dialog-tab1/en/900/light/coarse, ...]
+#   button.dlg-tab.active "Sparande" 89.6x28.0  [4 cell(s): dialog-tab2/sv/359/light/coarse, dialog-tab2/sv/359/dark/coarse, dialog-tab2/sv/900/light/coarse, ...]
+#   button.expand 26.0x26.0  [40 cell(s): tile/en/359/light/coarse, dialog/en/359/light/coarse, dialog-tab1/en/359/light/coarse, ...]
+#   button.layout-edit-toggle.on "DHW tank" 66.8x24.0  [4 cell(s): dialog-tab1/en/359/light/coarse, dialog-tab1/en/359/dark/coarse, dialog-tab1/en/900/light/coarse, ...]
+#   button.layout-edit-toggle.on "Varmvattentank" 90.9x24.0  [4 cell(s): dialog-tab1/sv/359/light/coarse, dialog-tab1/sv/359/dark/coarse, dialog-tab1/sv/900/light/coarse, ...]
+#   button.layout-edit-toggle.on "Vedtank" 57.2x24.0  [4 cell(s): dialog-tab1/sv/359/light/coarse, dialog-tab1/sv/359/dark/coarse, dialog-tab1/sv/900/light/coarse, ...]
+#   button.layout-edit-toggle.on "Wood tank" 68.9x24.0  [4 cell(s): dialog-tab1/en/359/light/coarse, dialog-tab1/en/359/dark/coarse, dialog-tab1/en/900/light/coarse, ...]
+#   button.vc-in "+" 24.0x24.0  [32 cell(s): tile/en/359/light/coarse, dialog/en/359/light/coarse, dialog-tab1/en/359/light/coarse, ...]
+#   button.vc-out "−" 24.0x24.0  [32 cell(s): tile/en/359/light/coarse, dialog/en/359/light/coarse, dialog-tab1/en/359/light/coarse, ...]
+#   button.wi-add "+ Add window" 87.3x24.0  [4 cell(s): dialog/en/359/light/coarse, dialog/en/359/dark/coarse, dialog/en/900/light/coarse, ...]
+#   button.wi-add "+ Lägg till fönster" 102.9x24.0  [4 cell(s): dialog/sv/359/light/coarse, dialog/sv/359/dark/coarse, dialog/sv/900/light/coarse, ...]
+#   button.wi-apply "Simulate these slots" 138.4x26.8  [4 cell(s): dialog/en/359/light/coarse, dialog/en/359/dark/coarse, dialog/en/900/light/coarse, ...]
+#   button.wi-apply "Simulera dessa pass" 141.1x26.8  [4 cell(s): dialog/sv/359/light/coarse, dialog/sv/359/dark/coarse, dialog/sv/900/light/coarse, ...]
+#   button.wi-pin "Apply this plan" 100.4x26.8  [4 cell(s): dialog/en/359/light/coarse, dialog/en/359/dark/coarse, dialog/en/900/light/coarse, ...]
+#   button.wi-pin "Tillämpa denna plan" 130.0x26.8  [4 cell(s): dialog/sv/359/light/coarse, dialog/sv/359/dark/coarse, dialog/sv/900/light/coarse, ...]
+#   button.wi-reset "Reset" 53.7x26.8  [4 cell(s): dialog/en/359/light/coarse, dialog/en/359/dark/coarse, dialog/en/900/light/coarse, ...]
+#   button.wi-reset "Återställ" 65.7x26.8  [4 cell(s): dialog/sv/359/light/coarse, dialog/sv/359/dark/coarse, dialog/sv/900/light/coarse, ...]
+#   button.wi-revert "Undo my changes" 119.1x26.8  [4 cell(s): dialog/en/359/light/coarse, dialog/en/359/dark/coarse, dialog/en/900/light/coarse, ...]
+#   button.wi-revert "Ångra mina ändringar" 137.8x26.8  [4 cell(s): dialog/sv/359/light/coarse, dialog/sv/359/dark/coarse, dialog/sv/900/light/coarse, ...]
+#   button.wi-save "Save as my schedule" 143.1x26.8  [4 cell(s): dialog/en/359/light/coarse, dialog/en/359/dark/coarse, dialog/en/900/light/coarse, ...]
+#   button.wi-save "Spara som mitt schema" 157.1x26.8  [4 cell(s): dialog/sv/359/light/coarse, dialog/sv/359/dark/coarse, dialog/sv/900/light/coarse, ...]
+#   input.wi-day-end 95.2x25.4  [8 cell(s): dialog/en/359/light/coarse, dialog/en/359/dark/coarse, dialog/en/900/light/coarse, ...]
+#   input.wi-day-start 95.2x25.4  [8 cell(s): dialog/en/359/light/coarse, dialog/en/359/dark/coarse, dialog/en/900/light/coarse, ...]
+#   input.wi-dhw-min 133.3x24.0  [8 cell(s): dialog/en/359/light/coarse, dialog/en/359/dark/coarse, dialog/en/900/light/coarse, ...]
+#   input.wi-temp 133.3x24.0  [8 cell(s): dialog/en/359/light/coarse, dialog/en/359/dark/coarse, dialog/en/900/light/coarse, ...]
+#   rect.slot-hit 31.3x44.5  [4 cell(s): dialog/en/359/light/coarse, dialog/en/359/dark/coarse, dialog/sv/359/light/coarse, ...]
+#   span.hl-stat.hl-score 157.9x25.0  [40 cell(s): tile/en/359/light/coarse, dialog/en/359/light/coarse, dialog-tab1/en/359/light/coarse, ...]
+# target24 seams:
+# clip seams:
+#   button.dlg-tab "Rådgivare" 6.7px outside <dialog expanded>  [12 cell(s): dialog/sv/359/light/fine, dialog-tab1/sv/359/light/fine, dialog-tab2/sv/359/light/fine, ...]
+#   button.dlg-tab.active "Rådgivare" 6.7px outside <dialog expanded>  [4 cell(s): dialog-tab3/sv/359/light/fine, dialog-tab3/sv/359/light/coarse, dialog-tab3/sv/359/dark/fine, ...]
+# contrast seams:
+RESULT perturb=0
+RESULT cells=80 count
+RESULT nodes_swept=11868 count
+RESULT interactive_swept=1776 count
+RESULT page_errors=0 count
+RESULT target_seams=56 count
+RESULT target24_seams=0 count
+RESULT clip_seams=2 count
+RESULT contrast_seams=0 count
+RESULT load1=3.82
+RESULT thread_factor=1.000 (no BLAS; counts only)
+RESULT swapins=0

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/debugger.py:replay_window CLAMP_DROP 9a279c08",
+  "killed_by": "tests/debug_collect.py",
+  "old": "    return (start if started_at is None else max(start, started_at)), end",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 3fb386d5044e4ca10b5f30c1c6f380139d5ad3e8: CLAMP_DROP (`return (start if started_at is None else (start)), end`) took tests/debug_collect.py from rc=0 failed=0 to rc=1 failed=1."
+}

@@ -1,0 +1,10 @@
+[
+  {"group": "R10-RATIO-ANCHOR", "drop_after": ["R10-NIGHT-FOLDS"]},
+  {"group": "R10-INPUT-STALENESS", "drop_after": ["R10-RATIO-ANCHOR"]},
+  {"group": "R10-CURRENCY", "drop_after": ["R10-INPUT-STALENESS"]},
+  {"group": "R10-LOOP-CPU", "drop_after": ["R10-FREQ-DEFROST"]},
+  {"group": "R10-CONFIG-NOTICES", "drop_after": ["R10-LIVESTATE"]},
+  {"group": "R10-PARAMS-OWNER", "drop_after": ["R10-CONFIG-NOTICES"]},
+  {"group": "R10-ARCH-SHAPES", "drop_after": ["R10-PARAMS-OWNER"]},
+  {"group": "R10-LEARNER-ETA", "drop_after": ["R10-ARCH-SHAPES"]}
+]

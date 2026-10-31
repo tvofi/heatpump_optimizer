@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._forecast_arrays BOOLOP 93e40417",
+  "killed_by": "tests/solar_alignment.py",
+  "old": "        if self._open_meteo is not None and self._open_meteo.available:",
+  "reason": "Recorded by `mutation_table.py --drain` against c77f89dc619c4f13704406e790d2199529105254: BOOLOP (`if self._open_meteo is not None or self._open_meteo.available:`) took tests/solar_alignment.py from rc=0 failed=0 to rc=1 failed=1."
+}

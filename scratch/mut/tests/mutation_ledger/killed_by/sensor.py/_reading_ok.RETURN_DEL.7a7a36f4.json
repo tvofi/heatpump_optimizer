@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sensor.py:_reading_ok RETURN_DEL 7a7a36f4",
+  "killed_by": "tests/entities.py",
+  "old": "    return bool(flags.get(key))",
+  "reason": "Recorded by `mutation_table.py --drain` against c77f89dc619c4f13704406e790d2199529105254: RETURN_DEL (`pass`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=13."
+}

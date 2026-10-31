@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.simulate_trajectory_batch BOOLOP b5554584",
+  "killed_by": "tests/stress.py",
+  "old": "                if start_hour is not None and hours_matter",
+  "reason": "Recorded by `mutation_table.py --drain` against 9a51f6d7295e1b5bf57f723485ae5dc9da7c0bec: BOOLOP (`if start_hour is not None or hours_matter`) took tests/stress.py from rc=0 failed=0 to rc=1 failed=1."
+}

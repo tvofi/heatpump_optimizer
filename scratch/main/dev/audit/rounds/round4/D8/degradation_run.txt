@@ -1,0 +1,16 @@
+RESULT entities=74 count
+RESULT keys=164 count
+RESULT perturbations=330 count
+RESULT probes=24420 count
+RESULT raises=4 probes
+RESULT raise_AttributeError=2 probes
+RESULT raise_TypeError=2 probes
+RESULT get_default_sites=79 call_sites
+RESULT get_default_sites_top_level=64 call_sites
+RESULT published_keys_none_in_some_cell=24 keys
+RESULT get_default_sites_over_a_none_key=0 call_sites
+# detail written to tools/audit/round4/D8/degradation_detail.json
+RESULT thread_factor=1.00 ratio
+RESULT timing_results_reported=0 count
+RESULT swapins=0 count
+RESULT load1=4.13 load

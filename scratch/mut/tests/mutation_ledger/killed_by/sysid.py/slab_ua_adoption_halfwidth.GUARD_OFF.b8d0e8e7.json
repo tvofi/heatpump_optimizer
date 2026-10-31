@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sysid.py:slab_ua_adoption_halfwidth GUARD_OFF b8d0e8e7",
+  "killed_by": "tests/features.py",
+  "old": "    if prior_halfwidth is None:",
+  "reason": "The round-7 D7-01 fix's gate combiner; the arm every fabricated result in tests/features.py reaches (a harness result publishes no prior term). `if prior_halfwidth is None:` -> `if False:` (np.hypot against None raises) makes tests/features.py exit 1 against a baseline exit of 0, on `a pinned experiment is taken at full weight, not blended against the passive learner`. Measured at b7657ea2, whose sysid.py is byte-identical to this head's (`git diff b7657ea2 HEAD -- custom_components/heatpump_optimizer/sysid.py` is empty), 2026-09-23. Seven checks failed in total, all in the adoption block."
+}

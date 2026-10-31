@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_planned_duty RETURN_DEL ee25899d",
+  "killed_by": "tests/features.py",
+  "old": "    return \"both\" if space and dhw else \"space\" if space else \"dhw\"",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against cfa2cb07b1474ed3b405787d3b41978e9be61d2f: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

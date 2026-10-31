@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_differs GUARD_OFF 20bf5425",
+  "old": "    if observed is None or value is None:",
+  "reason": "void mutant: every caller of _differs passes non-None values -- hold skips a None observation, and a recorded value is never None, dhw_gated returns early on a None reading or record, and _write compares two written values, which are never None; so the guard's `return False` is unreachable.",
+  "verdict": "equivalent"
+}

@@ -1,0 +1,19 @@
+            return [self._build_data_dict() for _i in (0, 1)][-1]
+script tests/config_flow_steps.py base_rc=0 mut_rc=0
+script tests/deployment_shape.py base_rc=1 mut_rc=1
+script tests/doc_claims.py base_rc=0 mut_rc=0
+script tests/entities.py base_rc=1 mut_rc=1
+script tests/features.py base_rc=1 mut_rc=1
+script tests/finite_boundary.py base_rc=0 mut_rc=0
+script tests/golden.py base_rc=1 mut_rc=1
+script tests/manual_plan.py base_rc=0 mut_rc=0
+script tests/plan_view.py base_rc=0 mut_rc=0
+script tests/solar_alignment.py base_rc=0 mut_rc=0
+script tests/structure.py base_rc=0 mut_rc=0
+script tests/typing_ruler.py base_rc=0 mut_rc=0
+script tests/wood_advisor.py base_rc=0 mut_rc=0
+RESULT scripts_run=13 count
+RESULT scripts_changing_status_under_2x_build=0 count
+RESULT thread_factor=1.000 (no timed work)
+RESULT load1=3.58
+RESULT swapins=0

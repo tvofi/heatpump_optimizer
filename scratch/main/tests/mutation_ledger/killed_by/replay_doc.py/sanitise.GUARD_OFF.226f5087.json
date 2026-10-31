@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/replay_doc.py:sanitise GUARD_OFF 226f5087",
+  "killed_by": "tests/debug_collect.py",
+  "old": "            if attrs is not None:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 3fb386d5044e4ca10b5f30c1c6f380139d5ad3e8: GUARD_OFF (`if False:`) took tests/debug_collect.py from rc=0 failed=0 to rc=1 failed=2."
+}

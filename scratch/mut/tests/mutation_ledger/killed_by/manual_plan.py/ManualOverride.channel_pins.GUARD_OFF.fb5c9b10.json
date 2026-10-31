@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/manual_plan.py:ManualOverride.channel_pins GUARD_OFF fb5c9b10",
+  "killed_by": "tests/manual_plan.py",
+  "old": "        if slots is None:",
+  "reason": "Recorded by `mutation_table.py --drain` against f637d24ab5d17e93cdabba092cd9245f440741f6: GUARD_OFF (`if False:`) took tests/manual_plan.py from rc=0 failed=0 to rc=1 failed=1."
+}

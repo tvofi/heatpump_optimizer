@@ -1,0 +1,9 @@
+{
+ "class": "N-future-clamp",
+ "instances": 0,
+ "barriered": false,
+ "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep/future_clamp_seams.py [--perturb|--null|--reintro]",
+ "instance_list": [
+  {"file": "custom_components/heatpump_optimizer/coordinator.py", "symbol": "_snapshot_store = QuarantiningStore(... lead default 0) embedding accuracy/accuracy/lead_pending/#/0", "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D1/s2/snapshot_bound.py (5 rewritten, 5 WARNINGs; --perturb 0)", "beyond_finding": false}
+ ]
+}

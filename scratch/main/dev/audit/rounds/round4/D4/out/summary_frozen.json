@@ -1,0 +1,40 @@
+{
+ "baseline_sha": "7dd68dd327fe3dbfb09f3bd0fe38910c58877697",
+ "machine": "darwin 25.6.0 arm64 8-core",
+ "chromium": "chromium-1148 / HeadlessChrome 131.0.6778.33",
+ "states": 34,
+ "viewports": [
+  "375x812",
+  "768x1024",
+  "1280x800"
+ ],
+ "themes": [
+  "light",
+  "dark"
+ ],
+ "langs": [
+  "en",
+  "sv"
+ ],
+ "media": [
+  "fine-motion",
+  "coarse-motion",
+  "fine-reduced"
+ ],
+ "clock": "frozen 6h into the captured day",
+ "cells": 1224,
+ "drive_failures": 0,
+ "page_errors": 0,
+ "text_nodes_measured": 104040,
+ "low_contrast_instances": 3523,
+ "low_contrast_cells": 1080,
+ "overlap_instances": 27212,
+ "overlap_cells": 1188,
+ "clipped_instances": 0,
+ "clipped_cells": 0,
+ "svg_escape_instances": 0,
+ "svg_escape_cells": 0,
+ "small_target_instances": 21672,
+ "small_target_cells": 1188,
+ "tiny_text_instances": 1884
+}

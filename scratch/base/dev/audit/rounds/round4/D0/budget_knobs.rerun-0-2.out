@@ -1,0 +1,38 @@
+CELL winter_typical   tz=0 J=68.81957  maxiter_x15=+0.0000%  gtol_1e-12=+0.0000%  ftol_1e-14=+0.0000%
+CELL winter_typical   tz=1 J=87.27327  maxiter_x15=+0.0000%  gtol_1e-12=+0.0000%  ftol_1e-14=+0.7958%
+CELL winter_extreme   tz=0 J=95.78439  maxiter_x15=+0.0000%  gtol_1e-12=+0.0000%  ftol_1e-14=+0.0000%
+CELL winter_extreme   tz=1 J=128.37548  maxiter_x15=+0.0000%  gtol_1e-12=+0.0000%  ftol_1e-14=+0.0167%
+CELL shoulder         tz=0 J=54.53902  maxiter_x15=+0.0000%  gtol_1e-12=+0.0000%  ftol_1e-14=+0.0834%
+CELL shoulder         tz=1 J=64.98693  maxiter_x15=+0.0000%  gtol_1e-12=+0.0000%  ftol_1e-14=+0.1453%
+CELL summer_negative  tz=0 J=15.17211  maxiter_x15=+0.0000%  gtol_1e-12=+0.0000%  ftol_1e-14=+0.3652%
+CELL summer_negative  tz=1 J=19.33594  maxiter_x15=+0.0000%  gtol_1e-12=+0.0000%  ftol_1e-14=+0.0767%
+CELL winter_moderate  tz=0 J=84.40599  maxiter_x15=+0.0000%  gtol_1e-12=+0.0000%  ftol_1e-14=+0.0000%
+CELL winter_moderate  tz=1 J=104.35158  maxiter_x15=+0.0000%  gtol_1e-12=+0.0000%  ftol_1e-14=+0.1619%
+CELL flat             tz=0 J=90.55169  maxiter_x15=+0.0000%  gtol_1e-12=+0.0000%  ftol_1e-14=+0.0157%
+CELL flat             tz=1 J=107.67103  maxiter_x15=+0.0000%  gtol_1e-12=+0.0000%  ftol_1e-14=+0.5543%
+RESULT mean_gain_maxiter_x15_priced_pct=0 %
+RESULT max_gain_maxiter_x15_priced_pct=0 %
+RESULT loo_mean_gain_maxiter_x15_priced_pct=0 %
+RESULT mean_gain_maxiter_x15_flat_pct=0 %
+RESULT max_gain_maxiter_x15_flat_pct=0 %
+RESULT mean_gain_gtol_1e-12_priced_pct=0 %
+RESULT max_gain_gtol_1e-12_priced_pct=0 %
+RESULT loo_mean_gain_gtol_1e-12_priced_pct=0 %
+RESULT mean_gain_gtol_1e-12_flat_pct=0 %
+RESULT max_gain_gtol_1e-12_flat_pct=0 %
+RESULT mean_gain_ftol_1e-14_priced_pct=0.164503 %
+RESULT max_gain_ftol_1e-14_priced_pct=0.795787 %
+RESULT loo_mean_gain_ftol_1e-14_priced_pct=0.09436 %
+RESULT mean_gain_ftol_1e-14_flat_pct=0.284989 %
+RESULT max_gain_ftol_1e-14_flat_pct=0.554255 %
+RESULT cells_priced=10
+RESULT cells_flat_null_control=2
+RESULT lbfgsb_solves_observed=68
+RESULT solves_terminating_on_maxiter=0
+RESULT max_nit_observed=52
+RESULT median_nit_observed=8
+RESULT shipped_maxiter_space_only=200
+RESULT shipped_maxiter_dhw_path=300
+RESULT thread_factor=1.0002
+RESULT load1=3.48
+RESULT swapins=42526584

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/tariff.py:_window_means_batch CLAMP_DROP 80efca0b",
+  "old": "    per_window = max(1, int(round(window_minutes / max(dt_hours * 60.0, 1e-6))))",
+  "reason": "added by R9 F2.5 (the batched capacity-tariff twin); the per-window floor, guarded twice. Even with the max dropped, `round(window_minutes / dt_hours*60)` reaching 0 (a window shorter than half a step -- the options selector offers only 15 and 60) falls through to `per_window <= 1`, which returns the per-step series unwindowed: measured directly at win=15, dt=1.0 h, the mutant returns byte-identical values to the scalar (probe in this PR's triage). The inner `max(dt_hours * 60.0, 1e-6)` divisor floor is unreachable for the same reason: dt_hours is a positive step length in every caller. Survival measured UNMARKED at the pin run against 2eef524d (hpo-ci container, 17 drivers, 2026-09-28): no driver detects the mutant behaviourally.",
+  "verdict": "equivalent"
+}

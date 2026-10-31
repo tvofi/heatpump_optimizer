@@ -1,0 +1,23 @@
+population: === Stress and economics ===
+20 family members
+heavy_old/winter                       head 1182877  base 1182874   1.000x  vouched  1.000x  evals 656/656
+light_new/shoulder                     head  482522  base  482519   1.000x  vouched  1.000x  evals 240/240
+summer/1z/dhw/fuse-cap                 head  269064  base  269061   1.000x  vouched  1.000x  evals 56/56
+summer/1z/space                        head   79664  base   79661   1.000x  vouched  1.000x  evals 40/40
+summer/1z/space/valve                  head  266362  base   84434   3.155x  vouched  1.852x  evals 64/40
+summer/2z/dhw                          head  218812  base  218812   1.000x  vouched  1.000x  evals 24/24
+summer/2z/dhw/pin-off                  head  219987  base  219987   1.000x  vouched  1.000x  evals 24/24
+summer/2z/space                        head   78088  base   78088   1.000x  vouched  1.000x  evals 32/32
+summer/2z/space/valve-direct-slab      head  191055  base  185775   1.028x  vouched  1.000x  evals 46/46
+summer/2z/space/wood-two-tank          head  283935  base  275775   1.030x  vouched  1.000x  evals 40/40
+summer_negative/1z/dhw                 head  275089  base  275086   1.000x  vouched  1.000x  evals 56/56
+typical_slab/winter                    head  373397  base  373394   1.000x  vouched  1.000x  evals 56/56
+winter/1z/space/pin-off                head   82956  base   82953   1.000x  vouched  1.000x  evals 46/46
+winter/cycle                           head 2527295  base 2527295   1.000x  vouched  1.000x  evals 1188/1188
+winter/pv                              head 2290687  base 2290687   1.000x  vouched  1.000x  evals 1080/1080
+winter/pv+cycle                        head 2527294  base 2527294   1.000x  vouched  1.000x  evals 1188/1188
+winter/tariff                          head 2159836  base 2159836   1.000x  vouched  1.000x  evals 1084/1084
+winter/tariff+cycle                    head 1682841  base 1682841   1.000x  vouched  1.000x  evals 810/810
+winter/tariff+pv                       head 2159835  base 2159835   1.000x  vouched  1.000x  evals 1084/1084
+winter/tariff+pv+cycle                 head 1682840  base 1682840   1.000x  vouched  1.000x  evals 810/810
+wrote /Users/timmalmstrom/hpo-seats/r10s6/body-buffer-store/scratch/logs/calls-all.json

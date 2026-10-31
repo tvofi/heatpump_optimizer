@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/quiet_windows.py:next_gchv_window CMP_BOUND 2ac0d110",
+  "old": "            if now >= begin:",
+  "reason": "This yesterday-wrap loop only runs for wrapping windows whose `begin` is yesterday at `start` and whose `now` is on today's date, so `now == begin` cannot hold. CMP_BOUND (`if now > begin:`) takes the same branch as `>=` on every reachable clock.",
+  "verdict": "equivalent"
+}

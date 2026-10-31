@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/services.py:handle_apply_schedule GUARD_OFF 26954957",
+  "killed_by": "tests/entities.py",
+  "old": "    if CONF_DHW_MIN_TEMP in updates or CONF_DHW_SETPOINT in updates:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 0c25836e5a847d39f7a023e9f567ac2525741ebe: GUARD_OFF (`if False:`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1."
+}

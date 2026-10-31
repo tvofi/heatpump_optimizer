@@ -1,0 +1,212 @@
+name: CodeQL
+
+# Workflow-based CodeQL analysis, migrating off default setup (ledger finding
+# (e), part of #201). Default setup is not a workflow, so a pull request whose
+# runs need approval -- every bot pull request -- never gets analyzed by it:
+# the required contexts report the configuration-not-found shape until someone
+# looks, and no analysis ever runs. A workflow carries a real queued run
+# instead: once the approval is granted the run executes like any other
+# pull_request workflow, and the analyses land.
+#
+# Everything the analysis covers was RE-DERIVED at the branch's merge base
+# from `gh api /repos/tvofi/heatpump_optimizer/code-scanning/default-setup`
+# (state=configured), never carried over from an issue or card:
+#
+#   languages: [actions, javascript, javascript-typescript, python, typescript]
+#     The three workflow languages below are that list collapsed: CodeQL has
+#     exactly one workflow language covering JavaScript and TypeScript
+#     (`javascript-typescript`), so the javascript/typescript entries are the
+#     same analysis the matrix already runs, and the code-scanning analyses
+#     default setup ever produced are exactly the three categories below --
+#     /language:actions, /language:javascript-typescript, /language:python --
+#     measured over the recorded analyses list, with no fourth category.
+#   query_suite: extended
+#     Default setup's "extended" suite is the `security-extended` suite in
+#     workflow terms (github.blog/changelog/2023-03-20), so `queries:` below
+#     adds it to the default queries. Omitting it would silently narrow the
+#     finding set.
+#   threat_model: remote
+#     Workflow-based analysis already defaults to the remote threat model, so
+#     nothing is configured here; the two run the same model.
+#   schedule: weekly -- NOT carried (r10-codeql-dependabot, 2026-10-24,
+#     departing from DESIGN-P2 2.1 under mandate 6329234399). A scheduled run
+#     of this file is its own top-level run, and the codeql action keys an
+#     analysis by the TOP-LEVEL workflow and job, so it uploaded under
+#     `.github/workflows/codeql.yml:analyze` while every umbrella run uploads
+#     under `.github/workflows/ci.yml:analyze`: a second configuration per
+#     category on main, refreshed weekly, closing its alerts only weekly. Every
+#     push to main analyzes every leg in full, which is what the weekly cadence
+#     existed to guarantee on a quiet default branch.
+#
+# One paths-ignore entry, and it narrows no finding set: `.claude/workflows/*.js`
+# are Claude Code workflow scripts, function BODIES the Workflow tool wraps,
+# with a top-level `return` beside `export const meta` -- neither a script nor
+# a module, so the JS extractor cannot parse them, and they were the 8
+# unscanned files of the tool status page's 96/104, whose extraction errors
+# put a red mark on the CI setup (r10-codeql-dependabot, 2026-10-24). An
+# unparsed file yields no alert, so ignoring it loses none. tests/entities.py
+# refuses an ignored path that `node --check` parses, so the entry cannot
+# grow into a filter over analyzable code. Otherwise no exclude: the
+# default-setup configuration carried none, and a workflow-level path filter
+# would stop a required `Analyze` context from reporting at all. What
+# narrows instead is a pull request's leg whose diff that leg cannot read: the
+# umbrella's prelude (tools/ci/prelude.py, through tools/pr/codeql_scope.py,
+# O17) says `skip` in its `legs` output, the leg's analysis steps skip, it
+# uploads main's own analysis of its category as a stand-in (below), and its context
+# reports success. So does a train proof's leg every entry head already
+# analyzed (r10-proof-codeql; its stand-in is main's newest analysis, as the
+# dispatch carries no base sha). Every other event analyzes. O17 is a suffix allow-list, not
+# a measured closure; owner ruling D-5 admits it under the soundness step
+# below, which fails a push run when a leg's extracted source archive holds a
+# file the list calls inert.
+#
+# This file is a callee of ci.yml (DESIGN-P2 2.1): `workflow_call` for the
+# umbrella's `codeql` job, which passes the prelude's `legs`, and nothing else
+# (the schedule is gone, above). The push/pull_request/merge_group triggers,
+# the dispatch (a dispatch is ci.yml's), the `scope` job and
+# `cancel-superseded` (the one copy is ci.yml's) are gone. Empty `legs`
+# analyzes every leg.
+#
+# Default setup analyzed the default branch only; the umbrella's `push` fires
+# on main and not on master, unlike hassfest/validate.
+#
+# When this lands the repository owner disables default setup (Settings >
+# Code security > Code scanning > Default setup). That is a settings action,
+# not a tree change: this workflow claims nothing about the toggle itself.
+# The branch-protection required contexts then lose default setup's `CodeQL`
+# umbrella context and keep the three `Analyze (language)` ones this file
+# produces -- a settings cleanup that follows the same toggle.
+#
+# Actions are SHA-pinned with the frozen tag in a trailing comment (#960,
+# D11-07): this file's two codeql-action refs were that group's own
+# forward-carry from #1034, and the pins landed with it. A later deliberate
+# bump is a one-line diff a reviewer can read; no lane sweeps the pins for
+# staleness, which is owed work recorded in dev/programme/HANDOVER.md.
+
+on:
+  workflow_call:
+    inputs:
+      # The prelude's `legs` output: {"actions": "skip|analyze", ...}. Empty
+      # (a prelude that printed nothing) analyzes every leg.
+      legs:
+        description: "JSON object mapping each leg to skip or analyze"
+        type: string
+        default: ""
+
+# Minimal for the task: reading the tree and uploading the SARIF. A callee job
+# without its own block receives this floor, capped by the caller's grant.
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    # The steps below decide per leg from `inputs.legs`: only an explicit
+    # `skip` skips, so an empty or missing entry analyzes.
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    # 45, not 30: `Analyze (python)` is a required context whose runtime swings
+    # with runner load, and the 30-minute cap sat inside that spread -- on
+    # 2026-10-20 it was cancelled at the cap three times: 2bd5e90f 30:19, 11
+    # minutes into query evaluation; 4e5801eb 30:09 and 916431ae 30:07, both
+    # while uploading results. A rerun of 4e5801eb finished in 21.5 minutes
+    # (job 118701134345). 45 leaves 14:41 over the longest observed run
+    # (45:00 - 30:19); tests/entities.py refuses a lower value.
+    timeout-minutes: 45
+    # One language failing must not cancel the others: each leg is its own
+    # analysis and its own evidence.
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [actions, javascript-typescript, python]
+    steps:
+      - name: Say what the prelude decided for this leg
+        env:
+          WORD: ${{ fromJSON(inputs.legs || '{}')[matrix.language] }}
+        run: |
+          echo "codeql scope for ${{ matrix.language }}: ${WORD:-analyze (no decision)}"
+      - name: Checkout repository
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        # This job holds `security-events: write`; nothing it runs needs git
+        # credentials, so none is left on disk (D11-s1-03's pin).
+        with:
+          persist-credentials: false
+
+      # The decision program is the BASE's on a pull request, restored before
+      # any step runs it (prelude.py's rule; D11-s1-03): this job holds
+      # `security-events: write`. A push has no base and runs main's own copy.
+      - name: Restore the decision program from the base
+        if: github.event_name == 'pull_request'
+        env:
+          PINNED: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$PINNED"
+          git checkout "$PINNED" -- tools/pr/codeql_scope.py
+
+      # A SKIPPED leg still uploads its category (tools/pr/codeql_scope.py's
+      # docstring): main carries every `/language:<leg>` under this job's
+      # analysis key, and a pull request missing one reads "1 configuration
+      # not found". The stand-in is main's own analysis of the category, at
+      # the base commit where it exists; by O17's premise the diff is inert to
+      # this extractor, so those ARE the merge ref's alerts. Any failure (no
+      # such analysis, a base predating the subcommand, a failed read) leaves
+      # `ok` unset and the leg analyzes.
+      - name: Write main's analysis as the skipped leg's stand-in
+        id: standin
+        if: fromJSON(inputs.legs || '{}')[matrix.language] == 'skip'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LEG: ${{ matrix.language }}
+          PINNED: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -uo pipefail
+          if python3 -I tools/pr/codeql_scope.py stand-in --language "$LEG" \
+              --base-sha "$PINNED" --out "$RUNNER_TEMP/stand-in.sarif"; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "no stand-in: the leg analyzes"
+          fi
+
+      - name: Upload the stand-in under this leg's category
+        if: steps.standin.outputs.ok == 'true'
+        uses: github/codeql-action/upload-sarif@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4
+        with:
+          sarif_file: ${{ runner.temp }}/stand-in.sarif
+          category: "/language:${{ matrix.language }}"
+
+      # build-mode is left at its default: none of the three languages above
+      # is compiled, so no build step runs between init and analyze.
+      - name: Initialize CodeQL
+        if: steps.standin.outputs.ok != 'true'
+        uses: github/codeql-action/init@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-extended
+          # Unparseable workflow scripts only (header); pinned by tests/entities.py.
+          config: |
+            paths-ignore:
+              - .claude/workflows/*.js
+
+      - name: Perform CodeQL Analysis
+        if: steps.standin.outputs.ok != 'true'
+        uses: github/codeql-action/analyze@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4
+        with:
+          category: "/language:${{ matrix.language }}"
+
+      # D-5. O17's INERT list is an allow-list of what an extractor never
+      # reads, not a measurement, so every push run (which analyzes in full)
+      # reads the extractor's own source archive and fails when it holds a file
+      # whose suffix the leg's INERT list calls inert: a pull request touching
+      # only such files would have skipped a leg that reads them. The database
+      # directory is the CodeQL language id (javascript-typescript is
+      # `javascript`). A missing or empty archive fails too: nothing checked.
+      - name: Check the extracted files against the INERT list (D-5)
+        if: github.event_name == 'push'
+        env:
+          LEG: ${{ matrix.language }}
+        run: |
+          set -euo pipefail
+          python3 -I tools/pr/codeql_scope.py extracted --language "$LEG" \
+            --archive "$RUNNER_TEMP/codeql_databases/${LEG%%-*}/src.zip"

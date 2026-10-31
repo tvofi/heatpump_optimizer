@@ -1,0 +1,109 @@
+{
+  "dimension": "D6",
+  "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+  "exposure": "None. This seat's method (D6.md) reads only README.md, DISCLAIMER.md, manifest.json, hacs.json, services.yaml, strings.json and translations/*, none of which are audit-era documents.",
+  "findings": [
+    {
+      "id": "D6-s1-01",
+      "title": "README Requirements section omits threadpoolctl, an actual manifest.json/runtime dependency",
+      "severity": "low",
+      "claim": "README.md's \"## Requirements\" section states the Python dependencies as \"`numpy` and `scipy`, installed automatically from the integration manifest\", but manifest.json's `requirements` list also pins `threadpoolctl>=3.5.0`, which is resolved by name and used at runtime in optimizer.py (comment at optimizer.py:265: \"Resolved by name, not imported: threadpoolctl publishes no py.typed...\"), and README never names it anywhere in the Requirements section.",
+      "evidence": {
+        "command": "python3 tools/audit/round8/D6/s1_requirements_claim.py",
+        "harness_path": "tools/audit/round8/D6/s1_requirements_claim.py",
+        "value": 1,
+        "unit": "packages",
+        "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+        "machine": "cloud 4-vCPU container (see BASELINE.md); this is a pure text/AST scan (count), not a timing number, so contention-immune",
+        "cpu_or_wall": "count",
+        "contention_note": "box shared with up to 13 other seats; irrelevant to this count metric",
+        "tolerance": "exact",
+        "load1": 19.31,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "custom_components/heatpump_optimizer/manifest.json:requirements (set-difference against README.md's \"## Requirements\" section text)",
+      "perturbation": {
+        "change": "Remove the `threadpoolctl>=3.5.0` entry from manifest.json's `requirements` list (done and reverted during this measurement; tree restored byte-identical to baseline afterwards) and re-run the harness.",
+        "expected_direction": "to_zero",
+        "observed_value": 0
+      },
+      "metric_definition": "Count of manifest.json requirements package names absent from README's Requirements prose AND found by literal string in production *.py (a real runtime dep).",
+      "phenomenon_property": "any package manifest.json pins in `requirements` and that production code resolves by name is absent from README's Requirements prose; enumerate with `python3 tools/audit/round8/D6/s1_requirements_claim.py`, which lists every such package in `undocumented_and_used_count`",
+      "seam_rule": "python3 tools/audit/round8/D6/s1_requirements_claim.py",
+      "stop_rule_class": "hygiene",
+      "files": [
+        "README.md",
+        "custom_components/heatpump_optimizer/manifest.json"
+      ],
+      "proposed_fix_scope": "One-line addition to README.md's \"## Requirements\" bullet list naming threadpoolctl (e.g. \"`numpy`, `scipy` and `threadpoolctl`, installed automatically from the integration manifest\"). No production code change; no golden drift expected."
+    }
+  ],
+  "non_findings": [
+    {
+      "claim": "README's \"### Sensors (59 total)\" heading matches the number of sensor entities the real async_setup_entry registers",
+      "command": "python3 tools/audit/round8/D6/s1_entity_counts.py (via tests/entities.py:collect against sensor.async_setup_entry)",
+      "value": "actual=59, claimed=59, delta=0"
+    },
+    {
+      "claim": "README's \"### Binary Sensors (5 total)\" heading matches the real binary_sensor.async_setup_entry count",
+      "command": "python3 tools/audit/round8/D6/s1_entity_counts.py",
+      "value": "actual=5, claimed=5, delta=0"
+    },
+    {
+      "claim": "README's \"### Buttons (4 total)\" heading matches the real button.async_setup_entry count",
+      "command": "python3 tools/audit/round8/D6/s1_entity_counts.py",
+      "value": "actual=4, claimed=4, delta=0"
+    },
+    {
+      "claim": "README's \"Disabled by default: ...\" sentence (19 named entities) exactly matches the set of sensor/binary_sensor entities whose entity_registry_enabled_default is False under an honest coordinator with DHW configured (the ordinary install)",
+      "command": "python3 tools/audit/round8/D6/s1_disabled_default.py",
+      "value": "actual_disabled=19, readme_disabled=19, only_in_actual=[], only_in_readme=[]"
+    },
+    {
+      "claim": "README's \"12 services are registered under the heatpump_optimizer domain\" matches the number of top-level services.yaml entries and the number of hass.services.async_register calls in services.py",
+      "command": "grep -c '^[a-z_]*:$' custom_components/heatpump_optimizer/services.yaml (12); grep -c 'async_register' custom_components/heatpump_optimizer/services.py's async_setup call block",
+      "value": "12 top-level services.yaml keys, 12 async_register calls"
+    },
+    {
+      "claim": "README's \"including all 28 fields of set_thermal_parameters\" matches the actual field count under that service in services.yaml",
+      "command": "sed -n '34,271p' custom_components/heatpump_optimizer/services.yaml | grep -cE '^    [a-z_]+:$'",
+      "value": "28"
+    },
+    {
+      "claim": "Every services.yaml field `example:` value, fed as one payload per service, is accepted by the real voluptuous SERVICE_SCHEMA_* it documents",
+      "command": "python3 tools/audit/round8/D6/s1_service_examples.py",
+      "value": "services_checked=7 (services whose fields carry example: values), services_rejected=0; 5 services (simulate_plan, apply_schedule, clear_manual_plan, restore_learned_snapshot, diagnose_interval) have no fields with `example:` at all -- their fields are optional, selector-bounded numbers/text with no example key, not a false claim"
+    },
+    {
+      "claim": "README's \"Since v5.0.0 the display names are translated (English and Swedish)\" matches the translations/ directory contents",
+      "command": "ls custom_components/heatpump_optimizer/translations/",
+      "value": "en.json, sv.json -- exactly English and Swedish, no more, no fewer"
+    },
+    {
+      "claim": "hacs.json's homeassistant minimum (2025.2.0) matches README's stated minimum in \"## Requirements\" and the Installation IMPORTANT note",
+      "command": "cat hacs.json; grep -n '2025.2.0' README.md",
+      "value": "hacs.json homeassistant=2025.2.0; README states the same figure in both places"
+    },
+    {
+      "claim": "README's \"re-solved once per optimization interval -- 30 minutes by default\" matches const.py's DEFAULT_OPTIMIZATION_INTERVAL",
+      "command": "grep -n 'DEFAULT_OPTIMIZATION_INTERVAL' custom_components/heatpump_optimizer/const.py",
+      "value": "DEFAULT_OPTIMIZATION_INTERVAL: Final = 30  # minutes"
+    },
+    {
+      "claim": "README's frequency-control watchdog claim (\"a reported frequency that keeps diverging ... for three active ticks\") and write-throttle claim (\"at most one write per five minutes\") match freq_control.py's constants",
+      "command": "grep -n 'FREQ_WATCHDOG_TICKS\\|FREQ_WRITE_MIN_INTERVAL_S' custom_components/heatpump_optimizer/freq_control.py",
+      "value": "FREQ_WATCHDOG_TICKS = 3; FREQ_WRITE_MIN_INTERVAL_S = 300.0 (five minutes)"
+    },
+    {
+      "claim": "manifest.json's quality_scale: platinum is internally consistent with quality_scale.yaml's own per-rule register (which tests/entities.py derives the tier from and refuses a manifest that disagrees, per quality_scale.yaml's own header comment)",
+      "command": "PYTHONPATH=tests/hastub python3 tools/audit/round8/D6/s1_entity_counts.py's underlying tests/entities.py import-time check suite (1732 checks; the run this seat took also serves as the derivation re-check)",
+      "value": "0 of the 20 failing checks relate to the manifest/quality_scale.yaml tier derivation; the 20 failures exactly match BASELINE.md's documented count of known preparation artefacts (1 fair-game PR-template arm + 8 stripped-round instruments + 11 no-.git checks), confirmed by count equality (20 == 20)"
+    }
+  ],
+  "harnesses": [
+    "tools/audit/round8/D6/s1_entity_counts.py",
+    "tools/audit/round8/D6/s1_disabled_default.py",
+    "tools/audit/round8/D6/s1_service_examples.py",
+    "tools/audit/round8/D6/s1_requirements_claim.py"
+  ]
+}

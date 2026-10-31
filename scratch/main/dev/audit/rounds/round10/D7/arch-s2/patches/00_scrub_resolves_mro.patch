@@ -1,0 +1,33 @@
+diff --git a/custom_components/heatpump_optimizer/entity.py b/custom_components/heatpump_optimizer/entity.py
+index 996573582..0ddc8c1bf 100644
+--- a/custom_components/heatpump_optimizer/entity.py
++++ b/custom_components/heatpump_optimizer/entity.py
+@@ -135,14 +135,26 @@ class HeatPumpOptimizerEntity(CoordinatorEntity["HeatPumpOptimizerCoordinator"])
+     )
+ 
+     def __init_subclass__(cls, **kwargs: Any) -> None:
+-        """Wrap every subclass's published properties in the finite scrub."""
++        """Wrap every subclass's published properties in the finite scrub.
++
++        The property is the one Home Assistant will read: resolved through the
++        MRO, so a mixin that is not itself an entity (its runtime base is
++        ``object``) and supplies ``native_value`` is scrubbed on each entity
++        that inherits it, not skipped because the entity's own ``__dict__``
++        holds no such name. Home Assistant's own defaults, which read the
++        ``_attr_*`` the integration set, are left as they are.
++        """
+         super().__init_subclass__(**kwargs)
++        package = HeatPumpOptimizerEntity.__module__.rpartition(".")[0]
+         for name in HeatPumpOptimizerEntity._PUBLISHED:
+-            prop = cls.__dict__.get(name)
++            prop = getattr(cls, name, None)
+             if not isinstance(prop, property) or prop.fget is None:
+                 continue
+             if getattr(prop.fget, "_finite_scrubbed", False):
+                 continue
++            owner = next(k for k in cls.__mro__ if name in vars(k))
++            if not owner.__module__.startswith(package + "."):
++                continue
+ 
+             def scrubbed(
+                 self: HeatPumpOptimizerEntity,

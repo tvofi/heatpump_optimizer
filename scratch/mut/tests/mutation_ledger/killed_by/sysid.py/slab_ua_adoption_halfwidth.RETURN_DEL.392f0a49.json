@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sysid.py:slab_ua_adoption_halfwidth RETURN_DEL 392f0a49",
+  "killed_by": "tests/features.py",
+  "old": "    return float(np.hypot(np.hypot(profile_halfwidth, prior_halfwidth), told_halfwidth or 0.0))",
+  "reason": "The gate combiner after R9 F4.2 folds the told-quantity term in beside the round-7 D7-01 prior term (it replaces pin b076c4ac, whose line this PR rewrote). `return ...` -> `pass` (no interval, so the gate refuses every fit) makes tests/features.py exit 1: 21 of 3439 checks fail, among them `round-7 D7-01 (#1459): the gate's combiner answers all four arms of its own contract`, the #1524 liveness arms and `R9 N-fit-integrator (D7-s2-01)`. Measured on a copy of the F4.2 review-round-1 tree, 2026-09-27. The identify_slab RETURN_DEL eae8acbf pin is removed with no successor: its return now spans three lines and the inventory generates no site for it."
+}

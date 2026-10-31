@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/modbus_prefill.py:package_prefix GUARD_OFF a1211cad",
+  "killed_by": "tests/guard_pins.py",
+  "old": "    if not slug.endswith(_NIGHT_FLAG_SUFFIX):",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 6001b09a557259f37319b400d219cf83e02c563f: GUARD_OFF (`if False:`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=1."
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.dhw_windows_active RETURN_DEL 60a0c95b",
+  "killed_by": "tests/features.py",
+  "old": "        return bool(self.dhw_schedule_enabled and self.dhw_windows)",
+  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=9."
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_observe CMP_BOUND d24bfcb6",
+  "killed_by": "tests/features.py",
+  "old": "        row[\"ran\"] = row[\"ran\"] or float(power) >= _ran_kw(inp)",
+  "reason": "R9-EG-B6 (#1739) renamed the line's reads to the ArbiterInputs snapshot. Re-measured on a git-archive export at be777f2f: driving tests/features.py fails 3 of 3701 feature checks (`a draw exactly at the meter's threshold is a run; one hair below is not` among them), against the driver's baseline reds on the export (the #363 recorded_at check a git-archive copy cannot stamp, and the machine-sensitive R9-F2.1 P3 check, which fails identically at the merge base on this Mac) are named and excluded."
+}

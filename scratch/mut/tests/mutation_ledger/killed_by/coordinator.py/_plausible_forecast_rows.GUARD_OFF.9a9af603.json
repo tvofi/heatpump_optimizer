@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_plausible_forecast_rows GUARD_OFF 9a9af603",
+  "killed_by": "tests/features.py",
+  "old": "            if not math.isfinite(value) or not lo <= value <= hi:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 5395394da9d8ee96ec256895504d2ae3f09d10fa: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

@@ -1,0 +1,6 @@
+population: === Stress and economics ===
+20 family members
+subset: ['summer/1z/space/valve', 'summer/2z/space/valve-direct-slab']
+summer/1z/space/valve                  head  266362  base   84434   3.155x  vouched  1.852x  evals 64/40
+summer/2z/space/valve-direct-slab      head  191055  base  185775   1.028x  vouched  1.000x  evals 46/46
+wrote /Users/timmalmstrom/hpo-seats/r10s6/body-buffer-store/scratch/logs/calls-valve.json

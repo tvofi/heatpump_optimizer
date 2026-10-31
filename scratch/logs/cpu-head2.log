@@ -1,0 +1,2 @@
+owner_buffer_spread n=10 total 22.693 cpu_s  per-solve 1.546 1.567 3.149 1.697 2.869 2.476 2.045 2.626 2.560 2.158
+null_flat_nobuffer n=10 total 10.171 cpu_s  per-solve 1.106 1.544 1.042 0.975 0.863 1.150 0.641 1.327 1.007 0.515

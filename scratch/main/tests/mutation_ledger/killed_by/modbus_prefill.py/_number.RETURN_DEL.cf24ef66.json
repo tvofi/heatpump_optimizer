@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/modbus_prefill.py:_number RETURN_DEL cf24ef66",
+  "killed_by": "tests/features.py",
+  "old": "    return None if row is None else finite_float(row[1])",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=5."
+}

@@ -1,0 +1,18 @@
+{
+  "_comment": [
+    "Carry destination for R9-F11.7 (#1757, the tests.yml governance step), from R9-F6.3 (#1652, the P9 class barrier).",
+    "The round-9 roster is not on main, so this file is the in-tree destination until the orchestrator copies the same text into the",
+    "R9-F11.7 group brief on handoff/audit-r9-fixplan. While the two disagree the newer one is right. Shape: .claude/rules/finding-propagation.md."
+  ],
+  "issue": 1757,
+  "stage": "R9-F11.7, the next seat that edits .github/workflows/tests.yml (code-owned), or any later seat that edits its browser job",
+  "carries": [
+    {
+      "from": "the pull request for R9-F6.3 (#1652), whose brief scoped the P9 grid to diffs on the card surface or tests/plan_view.py's measured closure and handed the tests.yml half back to F11",
+      "effect": "narrows",
+      "control": "Established by measurement with its null control, by extracting gridScope from tests/card_browser.mjs and calling it under each environment: unset HPO_BROWSER_SCOPE prints 'P9 grid MODE: FULL (HPO_BROWSER_SCOPE=full)' and runs the grid; HPO_BROWSER_SCOPE=auto on the F6.3 branch prints 'SCOPED -- RUN' naming the card source and tests/card_browser.mjs; auto over a one-commit diff touching only custom_components/heatpump_optimizer/optimizer.py, only tests/profiles.py or only a tests/hastub file prints 'SCOPED -- RUN', because those are in plan_view.py's closure in tests/closures.json; auto over a docs-only diff, or with a base equal to HEAD (an empty diff), prints 'SCOPED -- SKIPPED, NOT A PASS'; a tests/closures.json without plan_view.py's entry prints FULL; auto with GITHUB_EVENT_NAME=push, or with a base git cannot resolve, prints FULL and runs it. Null control: without the env var, which is CI today, the lane runs the grid on every PR exactly as before F6.3.",
+      "remeasure": "Re-run the extraction against the tests/card_browser.mjs at your own merge base, and once in CI on the PR that sets the variable: the browser job's log must print a 'P9 grid MODE:' line, SCOPED -- SKIPPED on a PR that touches no card file, no grid script and nothing in tests/plan_view.py's closure as tests/closures.json records it at the PR head, and FULL on the push to main.",
+      "brief": "The P9 grid in tests/card_browser.mjs only scopes itself when the browser job in .github/workflows/tests.yml sets HPO_BROWSER_SCOPE=auto on pull_request events, and leaves it unset on push and schedule. The surface is read from tests/closures.json at HEAD, so a closure re-recorded by derive_closures.sh moves the grid's scope with it and needs no edit here. The job's checkout also needs enough history for git merge-base against origin/main (fetch-depth 0, or a fetch of main), or the lane prints FULL with the git error and runs the whole grid, which is safe but buys nothing. Set the variable in the job's 'Run the layout lane' step and nowhere else; do not scope the rest of the lane, whose checks are not the grid's."
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "_comment": [
+    "FROZEN ACCEPTANCE INPUT for the derived-count class (#581). Do not repair",
+    "these groups and do not update the figures: 999 is chosen so no derivation",
+    "can ever equal it, which is what keeps the positive pin from going quiet on",
+    "the day a count moves.",
+    "Three of the four groups are NEGATIVE controls -- the whole risk in this",
+    "class is a rule that fires on the wrong genre, and a fixture that only",
+    "proves the check can shout proves nothing about that. assertCountDrift in",
+    "brief_lint.mjs requires exactly one counts error here, from stale-count."
+  ],
+  "groups": [
+    {
+      "group": "stale-count",
+      "brief": "Count probe, positive: the structure ratchet measures 999 metrics. A figure the tree answers exactly, stated wrongly, with no anchor.",
+      "resume": { "stage": "pending" }
+    },
+    {
+      "group": "subset-modules",
+      "brief": "Count probe, negative: do not expand this group into those 999 modules. Policy prose says that word about the whole tree; a brief says it about a subset or a coverage denominator, so the rule keyed to it is deliberately withheld from a brief. Driven over all 59 briefs at 244ea5f it produced four reports, every one of them about a subset or a coverage denominator rather than about the tree.",
+      "resume": { "stage": "pending" }
+    },
+    {
+      "group": "quoted-history",
+      "brief": "Count probe, negative: a quoted line records what was measured then, not what is true now.\n> the structure ratchet measures 999 metrics\nThe guard that spares it is shared with the policy linter rather than rewritten here.",
+      "resume": { "stage": "pending" }
+    },
+    {
+      "group": "done-skip",
+      "brief": "Count probe, negative: the structure ratchet measures 999 metrics. Identical to the positive case except for the stage, which is what makes this a control on the skip rather than on the rule.",
+      "resume": { "stage": "done" }
+    }
+  ]
+}

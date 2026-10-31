@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sysid.py:SystemIdentification._size_step_power GUARD_OFF 2fd96899",
+  "old": "                if best is not None:",
+  "reason": "R8-P5b (#1524): the break that skips the grid restart once the first bisection found a fitting step, one indent deeper since R9 F4.1 put the search inside the two-bound loop (triaged at c03bdbab before). Switched off, the restart runs anyway: it takes the largest fitting grid point and bisects up to the band's upper edge, which the first bisection had already found to the same 0.01 kW-thermal resolution, so tests/features.py passes whole (R9 F4.1 fix review, GUARD_OFF in a copy of 9b4da586: rc=1 failed=1, the same `recorded_at` #363 line the unmutated copy fails). A gap rather than equivalent: the two arms can return steps that differ inside that resolution, and the mutant costs up to 32 extra sizing rollouts.",
+  "verdict": "gap"
+}

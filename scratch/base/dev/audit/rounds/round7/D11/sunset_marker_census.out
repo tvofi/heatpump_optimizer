@@ -1,0 +1,17 @@
+RESULT policy_files=39 count
+RESULT files_carrying_any_marker=0 count
+RESULT marker_refused_by=0 count
+RESULT marker_sunset=0 count
+RESULT marker_honour=0 count
+RESULT sunset_proposed=0 count
+RESULT sunset_held=0 count
+RESULT sunset_not_evaluated_lines=0 count
+RESULT sunset_proposed_perturbed=1 count
+RESULT sunset_held_perturbed=0 count
+RESULT perturbation_file=tools/audit/briefs/judge.md
+RESULT perturbation_file_sha_before=ae0c82104c4241bf
+RESULT perturbation_file_sha_after=ae0c82104c4241bf
+RESULT perturbation_file_restored=1 count
+RESULT thread_factor=0.9999
+RESULT load1=7.79
+RESULT swapins=90730336

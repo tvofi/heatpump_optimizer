@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/debugger.py:feed_health CMP_BOUND eb66a2ca",
+  "killed_by": "tests/debug_collect.py",
+  "old": "        \"weather_stale_cycles\": sum(1 for hours in stale if hours > 0),",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 8d7903e69cfebb3db279b7a17a0ca066f04c40e0: CMP_BOUND (`\"weather_stale_cycles\": sum(1 for hours in stale if hours >= 0),`) took tests/debug_collect.py from rc=0 failed=0 to rc=1 failed=1."
+}

@@ -1,0 +1,3 @@
+tests/run.sh
+custom_components/heatpump_optimizer/coordinator.py
+README.md

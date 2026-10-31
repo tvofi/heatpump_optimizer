@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel._substeps_and_loss GUARD_OFF e26455a8",
+  "killed_by": "tests/features.py",
+  "old": "                if c_buf < 1e-6:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 9c6b923f2614936aad89e1408dabca8ddd721322: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2. Scope re-keyed by R9-EG-A2 (#1874): _stability_substeps became _substeps_and_loss; the guarded line and its mutant are unchanged."
+}

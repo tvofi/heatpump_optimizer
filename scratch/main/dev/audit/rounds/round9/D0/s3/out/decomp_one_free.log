@@ -1,0 +1,33 @@
+one|winter_typical|winter_cold  J   69.2030 ->   69.2030 gap   0.0000%  dE   0.000 SEK viol 0.000/0.000 step0 0.000  prod [['notrigger']] k4 [['notrigger', 'same']]
+one|winter_typical|shoulder     J   12.4116 ->   12.4116 gap   0.0000%  dE   0.000 SEK viol 0.000/0.000 step0 0.000  prod [['notrigger']] k4 [['notrigger', 'same']]
+one|winter_typical|summer_warm  J 6440.2812 -> 6440.2812 gap   0.0000%  dE   0.000 SEK viol 0.000/0.000 step0 0.000  prod [['notrigger']] k4 [['notrigger', 'same']]
+one|winter_extreme|winter_cold  J   96.1198 ->   96.1198 gap   0.0000%  dE   0.000 SEK viol 0.000/0.000 step0 0.000  prod [['notrigger']] k4 [['notrigger', 'same']]
+one|winter_extreme|shoulder     J   19.8287 ->   19.8287 gap   0.0000%  dE   0.000 SEK viol 0.000/0.000 step0 0.000  prod [['notrigger']] k4 [['notrigger', 'same']]
+one|winter_extreme|summer_warm  J 6444.4729 -> 6444.4729 gap   0.0000%  dE   0.000 SEK viol 0.000/0.000 step0 0.000  prod [['notrigger']] k4 [['notrigger', 'same']]
+one|winter_narrow|winter_cold  J  114.2392 ->  114.2392 gap   0.0000%  dE   0.000 SEK viol 0.000/0.000 step0 0.000  prod [['reject']] k4 [['reject', 'same']]
+one|winter_narrow|shoulder     J   18.4079 ->   18.4079 gap   0.0000%  dE   0.000 SEK viol 0.000/0.000 step0 0.000  prod [['notrigger']] k4 [['notrigger', 'same']]
+one|winter_narrow|summer_warm  J 6441.0644 -> 6441.0644 gap   0.0000%  dE   0.000 SEK viol 0.000/0.000 step0 0.000  prod [['notrigger']] k4 [['notrigger', 'same']]
+one|winter_moderate|winter_cold  J   84.7378 ->   84.7378 gap   0.0000%  dE   0.000 SEK viol 0.000/0.000 step0 0.000  prod [['notrigger']] k4 [['notrigger', 'same']]
+one|winter_moderate|shoulder     J   14.2679 ->   14.2679 gap   0.0000%  dE   0.000 SEK viol 0.000/0.000 step0 0.000  prod [['notrigger']] k4 [['notrigger', 'same']]
+one|winter_moderate|summer_warm  J 6440.1305 -> 6440.1305 gap   0.0000%  dE   0.000 SEK viol 0.000/0.000 step0 0.000  prod [['notrigger']] k4 [['notrigger', 'same']]
+one|summer_typical|winter_cold  J   22.3077 ->   22.3077 gap   0.0000%  dE   0.000 SEK viol 0.000/0.000 step0 0.000  prod [['reject']] k4 [['reject', 'same']]
+one|summer_typical|shoulder     J    4.5489 ->    4.5489 gap   0.0000%  dE   0.000 SEK viol 0.000/0.000 step0 0.000  prod [['notrigger']] k4 [['notrigger', 'same']]
+one|summer_typical|summer_warm  J 6437.1743 -> 6437.1743 gap   0.0000%  dE   0.000 SEK viol 0.000/0.000 step0 0.000  prod [['notrigger']] k4 [['notrigger', 'same']]
+one|summer_negative|winter_cold  J   15.1917 ->   15.1917 gap   0.0000%  dE   0.000 SEK viol 0.000/0.000 step0 0.000  prod [['adopt']] k4 [['adopt', 'reject']]
+one|summer_negative|shoulder     J    1.1911 ->    1.1911 gap   0.0000%  dE   0.000 SEK viol 0.000/0.000 step0 0.000  prod [['notrigger']] k4 [['notrigger', 'same']]
+one|summer_negative|summer_warm  J 6436.4986 -> 6436.4986 gap   0.0000%  dE   0.000 SEK viol 0.000/0.000 step0 0.000  prod [['notrigger']] k4 [['notrigger', 'same']]
+one|shoulder|winter_cold  J   54.7466 ->   54.7466 gap   0.0000%  dE   0.000 SEK viol 0.000/0.000 step0 0.000  prod [['adopt']] k4 [['adopt', 'reject']]
+one|shoulder|shoulder     J    9.1410 ->    9.1410 gap   0.0000%  dE   0.000 SEK viol 0.000/0.000 step0 0.000  prod [['notrigger']] k4 [['notrigger', 'same']]
+one|shoulder|summer_warm  J 6438.6103 -> 6438.6103 gap   0.0000%  dE   0.000 SEK viol 0.000/0.000 step0 0.000  prod [['notrigger']] k4 [['notrigger', 'same']]
+one|flat|winter_cold  J   91.0714 ->   91.0714 gap   0.0000%  dE   0.000 SEK viol 0.000/0.000 step0 0.000  prod [['notrigger']] k4 [['notrigger', 'same']]
+one|flat|shoulder     J   14.6976 ->   14.6976 gap   0.0000%  dE   0.000 SEK viol 0.000/0.000 step0 0.000  prod [['notrigger']] k4 [['notrigger', 'same']]
+one|flat|summer_warm  J 6439.7524 -> 6439.7524 gap   0.0000%  dE   0.000 SEK viol 0.000/0.000 step0 0.000  prod [['notrigger']] k4 [['notrigger', 'same']]
+RESULT cells=24
+RESULT extra_rounds_adopted=0
+RESULT gap_mean_priced=0.0000 %
+RESULT gap_max_priced=0.0000 %
+RESULT gap_min_priced=0.0000 %
+RESULT gap_mean_priced_drop_best=0.0000 %
+RESULT gap_mean_flat=0.0000 %
+RESULT thread_factor=1.000
+RESULT load1=5.39

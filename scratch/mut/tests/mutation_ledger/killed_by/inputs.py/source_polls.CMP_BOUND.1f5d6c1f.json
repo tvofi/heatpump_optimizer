@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/inputs.py:source_polls CMP_BOUND 1f5d6c1f",
+  "killed_by": "tests/features.py",
+  "old": "        and reported > updated",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against c5e1be1967de4b1d29b203aaf73162046dc85bd1: CMP_BOUND (`and reported >= updated`) took tests/features.py from rc=0 failed=0 to rc=1 failed=5."
+}

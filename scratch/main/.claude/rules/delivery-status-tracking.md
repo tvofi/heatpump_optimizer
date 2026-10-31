@@ -1,0 +1,35 @@
+---
+description: Keep programme Delivery-status and #201 current after each merge
+paths:
+  - "dev/programme/plan*.md"
+  - ".claude/workflows/*-groups.json"
+  - "dev/programme/HANDOVER.md"
+  - "dev/programme/delivery/**"
+---
+# Programme tracking discipline
+
+After each programme merge — wave group, tooling the plan tracks, or a closed tracked issue — update tracking in the **same session** or an **immediate record PR**:
+
+1. **The Delivery-status record** — the plan's frozen table plus one `dev/programme/delivery/<N>.md` per PR; authoritative vs wave body; if they disagree, fix it first.
+2. **`.claude/workflows/wave-*-groups.json` `resume` fields** — match measured `origin/main` (merged PR SHAs, open PR heads).
+3. **GitHub issue #201** — before each PR, merge or release, coordinate here; not a heartbeat.
+4. **Every PR the programme has opened**, not only the ones a roster predicted. Hotfixes, instrument repairs, harness lanes, policy, and anything found *in passing* have no wave: give each **its own row and section**, never a wave it does not belong to.
+5. **Every open issue**, with a disposition: **scheduled** into a wave or group, **deferred** with a reason, or **refused** with a reason. **"Not mentioned" is not a disposition**: an issue absent from the plan is unscheduled work. At each record, grep the plan for every open issue's number.
+
+## Status stays true, not just present
+
+- An issue **delivered** is closed naming the PR and the release that carried it, with its residuals recorded rather than swept.
+- A row's **status word is reconciled by nothing**: `record_row.py`'s `has_row`
+  and `write_rows` skip a row that already exists, so the `**open**` line
+  written when a pull request opened is never upgraded, and
+  `tests/delivery_status.py` classifies on the row's *presence*, not its word.
+  Measured 2026-10-10 at main `23d354970`: 100 rows in
+  `dev/programme/delivery/` read `**open**` for a pull request GitHub reports
+  MERGED, and 15 of 15 merges in the ledger's own window were among them while
+  `--check` printed OK and exited 0. So a row is a claim, not a reading: until a
+  row's word is graded, read the API, not the word -- and the repository, not
+  the record, which is what `bus.sh orphans` reads.
+- A PR's **body describes its current head**, not the head it was opened at.
+- **Continuously means at each merge**, not at session end; batching to the end is how an abort loses it. A pull request's **own** row, `dev/programme/delivery/<N>.md`, is a line `- [#N](…/pull/N)` and its state, written by the orchestrator (`tools/audit/seat/handoff_push.sh`); a fixer writes none. Never at the table's end: it conflicts every open branch, and past the freeze `policy_lint` refuses it. A record pull request is for merges no branch rowed. The `record-autofix` beat's own merges with no review seat where `record_row.py --automerge-check` passes at its head; else it is reviewed.
+
+Do **not** wait for a stamp to truth the record. Measure from `origin/main`, merged pull requests and closed issues; never invent.

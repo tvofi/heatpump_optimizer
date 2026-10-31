@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_forecast_in_model_units GUARD_OFF 915a3c9a",
+  "killed_by": "tests/features.py",
+  "old": "    if not to_c and wind == 1.0 and rain == 1.0:",
+  "reason": "#1513 follow-up (precipitation_unit): GUARD_OFF on the forecast unit conversion. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 1 failed, among them `the rows are the same object when nothing converts (goldens cannot move)`. Measured at 26a6fef9, 2026-09-24."
+}

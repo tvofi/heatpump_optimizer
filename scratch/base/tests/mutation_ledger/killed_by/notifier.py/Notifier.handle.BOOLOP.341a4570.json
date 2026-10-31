@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/notifier.py:Notifier.handle BOOLOP 341a4570",
+  "killed_by": "tests/features.py",
+  "old": "            for oid in [o for o in self._sent if o.startswith(prefix) and o not in seen]:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 03ba7f70f007147bda32ac0fc5dd83b11499bbaf: BOOLOP (`for oid in [o for o in self._sent if o.startswith(prefix) or o not in seen]:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=8."
+}

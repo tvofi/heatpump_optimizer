@@ -1,0 +1,54 @@
+
+=== Stress and economics ===
+SEAM custom_components/heatpump_optimizer/optimizer.py:962 classify_space_steps kind=python_loop n=1 disposition=not applicable
+SEAM custom_components/heatpump_optimizer/optimizer.py:1001 classify_dhw_steps kind=python_loop n=1 disposition=not applicable
+SEAM custom_components/heatpump_optimizer/optimizer.py:1085 _apply_pins_to_bounds kind=python_loop n=1 disposition=not applicable
+SEAM custom_components/heatpump_optimizer/optimizer.py:1127 _mark_manual_reasons kind=python_loop n=2 disposition=not applicable
+SEAM custom_components/heatpump_optimizer/optimizer.py:1863 HeatPumpOptimizer._anticipatory_weights kind=python_loop n=1 disposition=not applicable
+SEAM custom_components/heatpump_optimizer/optimizer.py:2241 HeatPumpOptimizer._terminal_cost_batch kind=python_loop n=1 disposition=not applicable
+SEAM custom_components/heatpump_optimizer/optimizer.py:3038 HeatPumpOptimizer.optimize kind=python_loop n=1 disposition=not applicable
+SEAM custom_components/heatpump_optimizer/optimizer.py:3082 HeatPumpOptimizer.optimize kind=python_loop n=1 disposition=not applicable
+SEAM custom_components/heatpump_optimizer/optimizer.py:3639 HeatPumpOptimizer._derive_hold_schedule kind=python_loop n=0 disposition=not applicable
+SEAM custom_components/heatpump_optimizer/optimizer.py:3749 HeatPumpOptimizer._repair_throttled_buffer_caps kind=python_loop n=0 disposition=not applicable
+SEAM custom_components/heatpump_optimizer/optimizer.py:3815 HeatPumpOptimizer._safety_release_steps kind=python_loop n=0 disposition=not applicable
+SEAM custom_components/heatpump_optimizer/optimizer.py:3842 HeatPumpOptimizer._safety_release_steps kind=python_loop n=0 disposition=not applicable
+SEAM custom_components/heatpump_optimizer/optimizer.py:3886 HeatPumpOptimizer._seed_pinned_guess kind=python_loop n=1 disposition=not applicable
+SEAM custom_components/heatpump_optimizer/optimizer.py:4030 HeatPumpOptimizer._optimize_space_only kind=python_loop n=0 disposition=not applicable
+SEAM custom_components/heatpump_optimizer/optimizer.py:4516 HeatPumpOptimizer._dhw_legionella_ceilings kind=python_loop n=1 disposition=not applicable
+SEAM custom_components/heatpump_optimizer/optimizer.py:4551 HeatPumpOptimizer._dhw_legionella_ceilings kind=python_loop n=1 disposition=not applicable
+SEAM custom_components/heatpump_optimizer/optimizer.py:5273 HeatPumpOptimizer._plan_dhw_min_cost kind=python_loop n=1 disposition=not applicable
+SEAM custom_components/heatpump_optimizer/optimizer.py:5323 HeatPumpOptimizer._plan_dhw_min_cost kind=python_loop n=1 disposition=not applicable
+SEAM custom_components/heatpump_optimizer/optimizer.py:5307 HeatPumpOptimizer._plan_dhw_min_cost kind=python_loop n=1 disposition=not applicable
+SEAM custom_components/heatpump_optimizer/optimizer.py:5420 HeatPumpOptimizer._apply_dhw_pins kind=python_loop n=0 disposition=not applicable
+SEAM custom_components/heatpump_optimizer/optimizer.py:5514 HeatPumpOptimizer._repair_dhw_floor kind=python_loop n=1 disposition=not applicable
+SEAM custom_components/heatpump_optimizer/optimizer.py:5694 HeatPumpOptimizer._clamp_dhw_to_capacity kind=python_loop n=5 disposition=instance
+SEAM custom_components/heatpump_optimizer/optimizer.py:5957 HeatPumpOptimizer._plan_dhw_cheapest_first kind=python_loop n=2 disposition=not applicable
+SEAM custom_components/heatpump_optimizer/optimizer.py:6266 HeatPumpOptimizer._optimize_with_dhw kind=python_loop n=1 disposition=not applicable
+SEAM custom_components/heatpump_optimizer/optimizer.py:6576 HeatPumpOptimizer._buffer_charge_ceiling kind=python_loop n=0 disposition=not applicable
+SEAM custom_components/heatpump_optimizer/optimizer.py:6740 HeatPumpOptimizer._compute_baseline_power kind=python_loop n=1 disposition=not applicable
+SEAM custom_components/heatpump_optimizer/optimizer.py:7011 HeatPumpOptimizer._replay_end_state kind=python_loop n=0 disposition=not applicable
+SEAM custom_components/heatpump_optimizer/thermal_model.py:230 ThermalParameters.__post_init__ kind=method_recompute n=1 disposition=not applicable
+SEAM custom_components/heatpump_optimizer/thermal_model.py:237 ThermalParameters.clamp kind=method_recompute n=1 disposition=not applicable
+SEAM custom_components/heatpump_optimizer/thermal_model.py:277 ThermalParameters.buffer_is_store kind=property_recompute n=5 disposition=not applicable
+SEAM custom_components/heatpump_optimizer/thermal_model.py:308 ThermalParameters.dhw_coil_active kind=property_recompute n=5 disposition=not applicable
+SEAM custom_components/heatpump_optimizer/thermal_model.py:334 ThermalParameters.topology_layout kind=property_recompute n=100 disposition=instance
+SEAM custom_components/heatpump_optimizer/thermal_model.py:373 ThermalParameters.two_tank_modelled kind=property_recompute n=100 disposition=instance
+SEAM custom_components/heatpump_optimizer/thermal_model.py:545 ThermalParameters.lower_floor_heat_loss_learned kind=property_recompute n=106658 disposition=instance
+SEAM custom_components/heatpump_optimizer/thermal_model.py:562 ThermalParameters.buffer_tank_thermal_mass kind=property_recompute n=2078 disposition=instance
+SEAM custom_components/heatpump_optimizer/thermal_model.py:567 ThermalParameters.buffer_tank_heat_loss_coefficient kind=property_recompute n=53376 disposition=instance
+SEAM custom_components/heatpump_optimizer/thermal_model.py:626 ThermalParameters.dhw_tank_thermal_mass kind=property_recompute n=4103 disposition=instance
+SEAM custom_components/heatpump_optimizer/thermal_model.py:646 ThermalParameters.dhw_tank_heat_loss_coefficient kind=property_recompute n=4105 disposition=instance
+SEAM custom_components/heatpump_optimizer/thermal_model.py:671 ThermalParameters.dhw_inlet_reference kind=property_recompute n=8189 disposition=instance
+SEAM custom_components/heatpump_optimizer/thermal_model.py:704 ThermalParameters.dhw_draw_power kind=property_recompute n=2 disposition=not applicable
+SEAM custom_components/heatpump_optimizer/thermal_model.py:723 ThermalParameters.dhw_windows_active kind=property_recompute n=2 disposition=not applicable
+SEAM custom_components/heatpump_optimizer/thermal_model.py:739 ThermalParameters.dhw_max_temp kind=property_recompute n=4 disposition=not applicable
+SEAM custom_components/heatpump_optimizer/thermal_model.py:760 ThermalParameters.dhw_hard_max_temp kind=property_recompute n=4092 disposition=instance
+SEAM custom_components/heatpump_optimizer/thermal_model.py:775 ThermalParameters.effective_dhw_draw_pattern kind=method_recompute n=97 disposition=instance
+SEAM custom_components/heatpump_optimizer/thermal_model.py:793 ThermalParameters._windowed_draw_pattern kind=method_recompute n=1 disposition=not applicable
+SEAM custom_components/heatpump_optimizer/thermal_model.py:812 ThermalParameters._tabled_values kind=method_recompute n=1 disposition=not applicable
+SEAM custom_components/heatpump_optimizer/thermal_model.py:956 ThermalParameters.from_config kind=method_recompute n=1 disposition=not applicable
+RESULT recompute_seams=47 count
+RESULT recompute_instances=11 count
+RESULT recompute_guarded=0 count
+RESULT recompute_not_applicable=36 count
+RESULT wall_s=5.02 s provisional

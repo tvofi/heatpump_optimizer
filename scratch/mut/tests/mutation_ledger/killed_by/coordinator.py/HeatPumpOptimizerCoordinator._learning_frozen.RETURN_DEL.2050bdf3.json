@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._learning_frozen RETURN_DEL 2050bdf3",
+  "killed_by": "tests/features.py",
+  "old": "        return _tail_freeze(self)",
+  "reason": "Recorded by applying the mutant on this branch: RETURN_DEL (`pass`) makes HeatPumpOptimizerCoordinator._learning_frozen return None on an unmetered switch-plus-setpoint install, and tests/features.py's check that the house learner freezes there expects unmetered_power. `mutation_table.py --pin-killed` records no verdict on this machine because tests/features.py's baseline is red on R9-F2.1 P3, the same pair origin/main fails."
+}

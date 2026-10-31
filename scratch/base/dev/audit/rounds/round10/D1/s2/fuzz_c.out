@@ -1,0 +1,22 @@
+RESULT snapshots.ok=200 count
+RESULT snapshots.load_exc=0 count
+RESULT snapshots.cycle1_fail=0 count
+RESULT snapshots.cycle2_fail=0 count
+RESULT snapshots.log_gt3=194 count
+  EX snapshots log_gt3 (0, 'snapshots/0/learners/price_model/quarter_factors/1/4', 'nest', 7, ['heatpump_optimizer_test_entry_snapshots: stored instant 2026-10-14T20:45:00+00:00 is ahead of the clock; bounded to 2026', 'heatpump_optimizer_test_entry_snapshots: stored instant 2026-10-14T22:45:00+00:00 is ahead of the clock; bounded to 2026'])
+  EX snapshots log_gt3 (1, 'snapshots/0/learners/defrost/duty/5/1', 'neg', 7, ['heatpump_optimizer_test_entry_snapshots: stored instant 2026-10-14T20:45:00+00:00 is ahead of the clock; bounded to 2026', 'heatpump_optimizer_test_entry_snapshots: stored instant 2026-10-14T22:45:00+00:00 is ahead of the clock; bounded to 2026'])
+  EX snapshots log_gt3 (2, 'snapshots/0/learners/price_model/shapes/0/1', 'list', 7, ['heatpump_optimizer_test_entry_snapshots: stored instant 2026-10-14T20:45:00+00:00 is ahead of the clock; bounded to 2026', 'heatpump_optimizer_test_entry_snapshots: stored instant 2026-10-14T22:45:00+00:00 is ahead of the clock; bounded to 2026'])
+RESULT thread_factor=1.051
+RESULT load1=41.92
+RESULT swapins=0
+RESULT ledger.ok=200 count
+RESULT ledger.load_exc=0 count
+RESULT ledger.cycle1_fail=0 count
+RESULT ledger.cycle2_fail=0 count
+RESULT ledger.log_gt3=200 count
+  EX ledger log_gt3 (0, 'score_day', 'null', 7, ['heatpump_optimizer_test_entry_snapshots: stored instant 2026-10-14T21:00:00+00:00 is ahead of the clock; bounded to 2026', 'heatpump_optimizer_test_entry_snapshots: stored instant 2026-10-14T23:00:00+00:00 is ahead of the clock; bounded to 2026'])
+  EX ledger log_gt3 (1, 'starts/months', 'delete', 7, ['heatpump_optimizer_test_entry_snapshots: stored instant 2026-10-14T21:00:00+00:00 is ahead of the clock; bounded to 2026', 'heatpump_optimizer_test_entry_snapshots: stored instant 2026-10-14T23:00:00+00:00 is ahead of the clock; bounded to 2026'])
+  EX ledger log_gt3 (2, 'starts/months', 'delete', 7, ['heatpump_optimizer_test_entry_snapshots: stored instant 2026-10-14T21:00:00+00:00 is ahead of the clock; bounded to 2026', 'heatpump_optimizer_test_entry_snapshots: stored instant 2026-10-14T23:00:00+00:00 is ahead of the clock; bounded to 2026'])
+RESULT thread_factor=1.046
+RESULT load1=25.39
+RESULT swapins=0

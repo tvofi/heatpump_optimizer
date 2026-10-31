@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:<module> CONST 23a40954",
+  "killed_by": "tests/features.py",
+  "old": "FLOW_GATE_C = 25.0",
+  "reason": "pump-duty arbiter revision; `FLOW_GATE_C = 25.0` -> `FLOW_GATE_C = 50.0` fails 6 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+}

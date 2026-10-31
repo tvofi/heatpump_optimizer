@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/accuracy.py:MeasuredCop.judge_ratio CLAMP_DROP 5ac3fff9",
+  "killed_by": "tests/features.py",
+  "old": "        if abs(ratio - ewma) / max(ewma, 1e-6) > COP_TRACKING_ERROR_GATE:",
+  "reason": "Hand-recorded by the #2066 fixer at 4bf7bdde1 against the ratchet base b2b6acd64, not by `--pin-killed` (whose baselines need CI's Linux floats). `CLAMP_DROP` (if abs(ratio - ewma) / (ewma) > COP_TRACKING_ERROR_GATE:) flips the condition of tests/features.py's R.check \"a 14 kW nameplate pump drawing 1.9-2.55 kW teaches the COP learner once the meter shows the draw follows the ask\" -- the new check \"the tracking gate divides by the clamped walking ratio\" raises ZeroDivisionError on `judge_ratio(0.5, 0.0, ...)` where the tree refuses as tracking_gate. Measured by copying the package, rewriting that one line to the operator's own text and re-evaluating the check's condition: baseline True, mutant as stated (evidence table in the pull request's body, `## Unpinned sites`). CI's `--pin-killed` at a pull_request head re-measures the driver itself."
+}

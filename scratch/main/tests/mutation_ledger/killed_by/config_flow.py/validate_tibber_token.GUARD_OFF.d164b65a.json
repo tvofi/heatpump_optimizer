@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/config_flow.py:validate_tibber_token GUARD_OFF d164b65a",
+  "killed_by": "tests/config_flow_steps.py",
+  "old": "            if resp.status in (401, 403):",
+  "reason": "Recorded by `mutation_table.py --drain` against 9061fbd3d710d5894b7083d8a58b8203f9e7aa97: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=4."
+}

@@ -1,0 +1,5 @@
+
+=== Stress and economics ===
+winter          predicted 23.2800  thermostat 88.9572  cheaper True  | buffer 200 L  valve 'none' target 0.0
+winter_extreme  predicted 41.4000  thermostat 170.3394  cheaper True  | buffer 200 L  valve 'none' target 0.0
+shoulder        predicted 4.6716  thermostat 3.9585  cheaper False  | buffer 200 L  valve 'none' target 0.0

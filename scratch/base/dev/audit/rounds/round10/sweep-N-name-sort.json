@@ -1,0 +1,4 @@
+{"class":"N-name-sort","instances":1,"barriered":false,"enumerator":"python3 dev/audit/rounds/round10/D14/sweep/namesort_override_seams.py [--perturb|--null]",
+"instance_list":[
+{"file":"tools/audit/archscore/counters.py","symbol":"family_orphan_overrides (C6)","probe":"python3 dev/audit/rounds/round10/D14/sweep/namesort_override_seams.py -> gate:tools/audit/archscore/counters.py INSTANCE, invented-family orphans=0 (needs >=1)","beyond_finding":false},
+{"file":"tests/entities.py","symbol":"#1760 family block (_fam_token/_FAM_OVERRIDES, 'every declared family sorts as one contiguous run')","probe":"python3 dev/audit/rounds/round10/D14/sweep/namesort_override_seams.py -> gate:tests/entities.py INSTANCE: no name-lead comparison; its only override check is 'names a shipped translation key', which the zzpair game (optimization_status, solar_surplus_forecast) satisfies","beyond_finding":true}]}

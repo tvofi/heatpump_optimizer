@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._safety_release_steps GUARD_OFF 9fde91be",
+  "killed_by": "tests/manual_plan.py",
+  "old": "        if dhw_pins is not None and self._dhw_requirement is not None:",
+  "reason": "Recorded by `mutation_table.py --drain` against 9111acceb7831fa4c16ed42a30c579cda404130f: GUARD_OFF (`if False:`) took tests/manual_plan.py from rc=0 failed=0 to rc=1 failed=3."
+}

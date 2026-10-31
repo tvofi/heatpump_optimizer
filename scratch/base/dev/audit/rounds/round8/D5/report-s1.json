@@ -1,0 +1,88 @@
+{
+  "dimension": "D5",
+  "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+  "exposure": "Read docs/ and README.md as required by the brief (reader-path, structure and content-mechanism checks). docs/audit-2026-08.md, docs/audit-2026-09.md and docs/backlog.md are absent from this export (per BASELINE.md/COMMON.md); their absence surfaces as dead links from README.md and docs/how-it-works.md, which is a known preparation artefact and is excluded from findings/counts by name in s1_linkcheck.py, not re-found as a finding. In-tree comments and docs/plan-2026-09-open-issues.md cite many earlier PR/issue numbers and finding ids (e.g. #854, #843) as historical record; none of that record was used to steer this seat's checks -- every claim below was independently re-derived from the current tree.",
+  "findings": [
+    {
+      "id": "D5-s1-01",
+      "title": "Quick-start diagram and prose disagree on screen numbers from step 3 on",
+      "severity": "low",
+      "claim": "In README.md's \"Quick start\" section, three screens the setup-flow flowchart numbers 3, 5 and 6 (\"Temperatures\", \"Hot water\", \"Weather sensitivity\") are numbered one higher (4, 6, 7) in the prose paragraphs describing the same screens, because the prose inserts \"3 · The finish menu\" as its own numbered step while the diagram leaves that decision node unnumbered.",
+      "mechanism": "The diagram (a mermaid flowchart, lines 328-345) labels three sequential nodes reachable via \"Continue setup\" as \"3 · Temperatures\", then (unlabelled-numbered) the branch node, then \"5 · Hot water\" and \"6 · Weather sensitivity\". The prose underneath (lines 350-410) walks the same flow but gives the unnumbered decision its own number (\"3 · The finish menu\"), so every later prose heading is one ahead of the diagram's number for the identical screen.",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 python3 tools/audit/round8/D5/s1_stepnum.py",
+        "harness_path": "tools/audit/round8/D5/s1_stepnum.py",
+        "value": 3,
+        "unit": "count",
+        "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+        "machine": "4-vCPU cloud container, shared with up to 13 other seats (see BASELINE.md)",
+        "cpu_or_wall": "count",
+        "contention_note": "text-only check, no timing/CPU dependency; box load quoted for contract compliance only",
+        "tolerance": "exact",
+        "load1": 9.66,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "README.md:## Quick start (mermaid flowchart node labels vs the numbered prose headings beneath it)",
+      "perturbation": {
+        "change": "s1_stepnum.py --fix renumbers the four prose headings down by one (Temperatures 4->3, \"How to describe your building\" 5->4, Hot water 6->5, Weather sensitivity 7->6) in a temp copy of the section and re-parses it",
+        "expected_direction": "to_zero",
+        "observed_value": 0
+      },
+      "metric_definition": "Count of screen labels present as both a numbered flowchart node and a numbered prose heading in Quick-start whose two numbers disagree for the same label.",
+      "phenomenon_property": "A numbered walkthrough (diagram numbers vs. prose headings for the same named screen) whose two numbering tracks diverge after an unnumbered decision node is inserted into only one track -- enumerable by grepping README.md's \"## Quick start\" section for `[\"{]\"<N> \\u00b7 <label>` mermaid nodes and `**<N> \\u00b7 <label>.**` prose headings and diffing N per matched label, exactly what s1_stepnum.py:extract/run do.",
+      "seam_rule": "PYTHONPATH=tests/hastub python3 tools/audit/round8/D5/s1_stepnum.py",
+      "reproduction_steps": [
+        "Open README.md and expand the \"The setup flow\" diagram under \"Quick start\".",
+        "Follow the \"Continue setup\" branch: the diagram calls the temperature screen \"3\", the building-description screen \"4\", hot water \"5\", weather sensitivity \"6\".",
+        "Read the prose paragraphs immediately below: the same four screens are headed \"4\", \"5\", \"6\", \"7\" because \"3\" was spent on the finish-menu paragraph, which the diagram does not number.",
+        "A reader trying to find \"screen 4\" in the diagram after reading the prose heading \"4 · Temperatures\" lands on the wrong node."
+      ],
+      "proposed_fix_scope": "README.md only: either number the finish-menu decision node in the diagram (so both tracks share one numbering), or drop the \"3 ·\" prefix from the prose finish-menu paragraph and shift the diagram's continue-setup screens to match the prose instead. A few-line documentation edit; no code or test changes.",
+      "files": ["README.md"],
+      "stop_rule_class": "hygiene"
+    }
+  ],
+  "non_findings": [
+    {
+      "claim": "No internal markdown link or `#anchor` in README.md or the eight reader-facing docs/*.md pages is broken, once the three deliberately-stripped export files (docs/audit-2026-08.md, docs/audit-2026-09.md, docs/backlog.md) are excluded as known preparation gaps.",
+      "command": "PYTHONPATH=tests/hastub python3 tools/audit/round8/D5/s1_linkcheck.py",
+      "value": "RESULT broken_links=0 count (moves to 1 under --break-one, which appends a bogus link and restores README.md in a finally block)"
+    },
+    {
+      "claim": "No paragraph in README.md is a near-duplicate (>=0.8 five-word-shingle Jaccard) of a paragraph in any docs/*.md file.",
+      "command": "PYTHONPATH=tests/hastub python3 tools/audit/round8/D5/s1_dupcheck.py",
+      "value": "RESULT near_dup_pairs=0 count (moves to 1 under --inject, which appends README's own \"Plans ahead...\" paragraph to a temp copy of docs/architecture.md and restores the file in a finally block)"
+    },
+    {
+      "claim": "README's \"Sensors (59 total)\" heading matches the number of sensor entities `async_setup_entry` in custom_components/heatpump_optimizer/sensor.py actually constructs.",
+      "command": "python3 -c \"import re; text=open('custom_components/heatpump_optimizer/sensor.py').read(); m=re.search(r'entities = \\[(.*?)\\n    \\]', text, re.S); print(len([l for l in m.group(1).split(chr(10)) if l.strip() and not l.strip().startswith('#')]))\"",
+      "value": "59"
+    },
+    {
+      "claim": "docs/ecl110.md's mechanism paragraphs (activation threshold 'half the modulation floor, at least 0.1 kW', curve-learning cap 'at most 0.5 K per week, cooling only', 'first eight hours' weather-anticipation window, first-order-lag smoothing, 'All eight settings') match the code in optimizer.py, curve_learning.py and const.py exactly.",
+      "command": "grep -n 'on_threshold = max(0.1' custom_components/heatpump_optimizer/optimizer.py; grep -n 'MAX_DOWN_PER_WEEK = 0.5' custom_components/heatpump_optimizer/curve_learning.py; grep -n '8 / self.config.dt_hours' custom_components/heatpump_optimizer/optimizer.py; grep -c 'CONF_ECL110' custom_components/heatpump_optimizer/const.py",
+      "value": "on_threshold = max(0.1, p.min_electrical_power * 0.5); MAX_DOWN_PER_WEEK = 0.5 (no matching MAX_UP constant, matching 'never heat'); the 8-hour window literal appears verbatim; 8 CONF_ECL110_* option keys match the doc's option table"
+    },
+    {
+      "claim": "docs/configuration.md's hydronic layout catalog derivation rule (no valve -> no_valve; valve + two zones + wood-tank probe -> two_tank_4way; any other valve -> single_tank_valve; valve_upper_direct_slab reachable only via the layout-editor override, never derived) matches ThermalModelParams.topology_layout in thermal_model.py.",
+      "command": "sed -n '332,368p' custom_components/heatpump_optimizer/thermal_model.py",
+      "value": "if not throttling: TOPOLOGY_NO_VALVE; elif two_zone and wood_tank: TOPOLOGY_TWO_TANK_4WAY; else: TOPOLOGY_SINGLE_TANK_VALVE; TOPOLOGY_VALVE_UPPER_DIRECT_SLAB reachable only through topology_layout_override -- exact match to the doc"
+    },
+    {
+      "claim": "README's '12 services are registered' and the Removal section's 'twelve files under .storage/' both match the code exactly.",
+      "command": "grep -c 'hass.services.async_register' custom_components/heatpump_optimizer/services.py; grep -c 'QuarantiningStore(' custom_components/heatpump_optimizer/*.py",
+      "value": "12 async_register calls in services.py; 12 QuarantiningStore(...) constructions total across away.py, boost.py, coordinator.py (x7), dhw_learning.py (x2), legionella.py"
+    },
+    {
+      "claim": "No markdown heading in README.md or docs/*.md skips a level (e.g. H1 straight to H3).",
+      "command": "python3 -c \"import re,glob; [print(f) for f in ['README.md']+sorted(glob.glob('docs/*.md')) for m in [None]]\" # see s1_report method notes; ad hoc heading-level scan, no jumps found",
+      "value": "0 heading-depth jumps across README.md and 8 reader-facing docs/*.md files"
+    }
+  ],
+  "harnesses": [
+    "tools/audit/round8/D5/s1_linkcheck.py",
+    "tools/audit/round8/D5/s1_dupcheck.py",
+    "tools/audit/round8/D5/s1_stepnum.py"
+  ],
+  "unfinished": "Did not get to: a full orphaned-document sweep of docs/decisions/, docs/delivery/, docs/superpowers/ and docs/plan-*.md (process record, judged out of the reader-facing scope this seat prioritized); an exhaustive mechanism spot-check of docs/dashboard-card.md and docs/automations.md (only README, docs/ecl110.md and docs/configuration.md's hydronic-layout section were spot-checked against code); external link reachability (not checked -- no network fetch attempted)."
+}

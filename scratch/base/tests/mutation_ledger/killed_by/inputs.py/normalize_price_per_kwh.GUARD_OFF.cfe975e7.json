@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/inputs.py:normalize_price_per_kwh GUARD_OFF cfe975e7",
+  "killed_by": "tests/features.py",
+  "old": "    if money.lower() in PRICE_MINOR_UNITS:",
+  "reason": "#1513 (R8-P8): GUARD_OFF on a unit-aware price or temperature reader this diff added. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 4 failed, among them `normalize_price_per_kwh takes each unit to major currency per kWh`; `the price entity's today/tomorrow rows are read in their unit`. Measured at f3947690, 2026-09-24."
+}

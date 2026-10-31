@@ -1,0 +1,20 @@
+{
+  "_comment": [
+    "Acceptance fixture: a well-formed carry filed at the WRONG destination.",
+    "The acceptance injects a roster claiming issue 990004, so this pins the",
+    "rule rather than the current contents of any live roster: a stage whose",
+    "group has a brief is carried to that brief, and two destinations is the",
+    "failure the carry file was introduced to remove."
+  ],
+  "issue": 990004,
+  "stage": "acceptance probe standing in for a stage a roster already covers",
+  "carries": [
+    {
+      "from": "no pull request; this entry is a fixture",
+      "effect": "invalidates",
+      "control": "stated so the destination rule is the only defect this fixture reports",
+      "remeasure": "stated so the destination rule is the only defect this fixture reports",
+      "brief": "Well formed in every other respect, so the error this fixture pins is the destination and nothing else."
+    }
+  ]
+}

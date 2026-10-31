@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/inputs.py:_finite RETURN_DEL b06b372f",
+  "killed_by": "tests/features.py",
+  "old": "    return value if math.isfinite(value) else None",
+  "reason": "#1513 (R8-P8): RETURN_DEL on a unit-aware price or temperature reader this diff added. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 21 failed, among them `a live inlet probe still wins`; `a fee sensor publishing \u00f6re trips the same issue, attributed to it`. Measured at d6d79847, 2026-09-24."
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/replay_doc.py:state_rows GUARD_OFF 02f49b6f",
+  "killed_by": "tests/entities.py",
+  "old": "        if attrs != last_attrs:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 3fb386d5044e4ca10b5f30c1c6f380139d5ad3e8: GUARD_OFF (`if False:`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1."
+}

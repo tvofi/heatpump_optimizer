@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/debugger.py:DebugCollector.observe BOOLOP cc322dd6",
+  "killed_by": "tests/debug_collect.py",
+  "old": "        elif not running and self._solve_started is not None:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against fc76a05577985c92574e4d42433f61192efe47f4: BOOLOP (`elif not running or self._solve_started is not None:`) took tests/debug_collect.py from rc=0 failed=0 to rc=1 failed=1."
+}

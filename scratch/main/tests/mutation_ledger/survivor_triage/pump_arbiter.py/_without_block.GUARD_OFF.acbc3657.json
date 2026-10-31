@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_without_block GUARD_OFF acbc3657",
+  "old": "    if duty == \"idle\":",
+  "reason": "Equivalent (GUARD_OFF). Skipping `if duty == \"idle\": return \"idle\"` takes the else arm. idle is in neither (\"space\", \"both\") nor (\"dhw\", \"both\"), so both flags are false and the function returns idle. tests/block_duty.py asserts a blocked idle duty stays idle.",
+  "verdict": "equivalent"
+}

@@ -1,0 +1,13 @@
+diff --git a/tests/entities.py b/tests/entities.py
+index 329d5c1d7..90d5a7324 100644
+--- a/tests/entities.py
++++ b/tests/entities.py
+@@ -3752,7 +3752,7 @@ def _p2_registry(sources):
+              dispositions={
+                  "coordinator.py::HeatPumpOptimizerCoordinator._external_heat_config":
+                      "guarded: ANDed with wood_furnace_on",
+-                 "config_flow.py::HeatPumpOptimizerOptionsFlow.async_step_building":
++                 "config_flow.py::HeatPumpOptimizerOptionsFlow._building_wood_flag":
+                      "guarded: normalises the flag after wood_furnace_on(merged)",
+                  "thermal_model.py::ThermalParameters.from_config":
+                      "guarded: under _on = wood_furnace_on(config)",

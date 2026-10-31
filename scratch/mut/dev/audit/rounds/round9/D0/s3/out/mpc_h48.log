@@ -1,0 +1,9 @@
+one|0|winter_typical|winter_cold arm prod  realized_J   113.5896  energy   91.076 SEK  viol 0.000  starts 7  cpu 528.7s
+    per day SEK/kWh: d1 40.37/50.2  d2 50.70/60.1  end room 18.41 slab 24.60 upper 18.41 lower 18.41 dhw 48.0
+one|0|winter_typical|winter_cold arm open  realized_J   113.2846  energy   89.223 SEK  viol 0.000  starts 7  cpu 14.5s
+    per day SEK/kWh: d1 41.54/51.5  d2 47.68/57.6  end room 18.30 slab 24.03 upper 18.30 lower 18.30 dhw 48.0
+RESULT realized_excess_prod_over_open_winter_typical=0.2692 %  (J 0.3050; energy 1.853 SEK)
+RESULT lastday_excess_prod_over_daily_winter_typical=6.3353 %  (+3.021 SEK on 47.68; kWh 60.1 vs 57.6)
+RESULT realized_gap_prod_minus_open_winter_typical=0.2685 %  (energy 1.853 SEK)
+RESULT thread_factor=1.000
+RESULT load1=7.71

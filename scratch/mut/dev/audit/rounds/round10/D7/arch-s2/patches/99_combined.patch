@@ -1,0 +1,2283 @@
+diff --git a/custom_components/heatpump_optimizer/binary_sensor.py b/custom_components/heatpump_optimizer/binary_sensor.py
+index 9e588a495..34c2ad74c 100644
+--- a/custom_components/heatpump_optimizer/binary_sensor.py
++++ b/custom_components/heatpump_optimizer/binary_sensor.py
+@@ -32,7 +32,7 @@ from homeassistant.util import dt as dt_util
+ from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordinator
+ from .entity import HeatPumpOptimizerEntity
+ from .payload import Payload
+-from .inputs import _finite
++from .inputs import finite_float
+ 
+ # Coordinator-fed and read-only: the coordinator serialises the one inbound
+ # refresh, and no entity here calls out, so there is nothing to throttle
+@@ -220,7 +220,7 @@ class MoldFloorBreachBinarySensor(_OptimizerBinarySensorBase):
+             if start is None or end is None:
+                 continue
+             if dt_util.as_utc(start) <= now < dt_util.as_utc(end):
+-                return _finite(step.get("outdoor"))
++                return finite_float(step.get("outdoor"))
+         return None
+ 
+     @property
+diff --git a/custom_components/heatpump_optimizer/climate.py b/custom_components/heatpump_optimizer/climate.py
+index 7839d6eca..6837c2d03 100644
+--- a/custom_components/heatpump_optimizer/climate.py
++++ b/custom_components/heatpump_optimizer/climate.py
+@@ -31,7 +31,7 @@ from .const import (
+     MODE_BOOST,
+ )
+ from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordinator
+-from .entity import HeatPumpOptimizerEntity, commanded_power_kw, publish_then_refresh
++from .entity import HeatPumpOptimizerEntity, commanded_power_kw, publish_then_refresh, zone_setpoint_attributes
+ from .entry_config import EntryConfig
+ 
+ _LOGGER = logging.getLogger(__name__)
+@@ -276,10 +276,7 @@ class HeatPumpOptimizerClimate(HeatPumpOptimizerEntity, ClimateEntity):
+             )
+ 
+             # Zone setpoints from current action
+-            if "upper_setpoint" in action:
+-                attrs["upper_floor_setpoint"] = action["upper_setpoint"]
+-            if "lower_setpoint" in action:
+-                attrs["lower_floor_setpoint"] = action["lower_setpoint"]
++            attrs.update(zone_setpoint_attributes(action))
+ 
+             # DHW status
+             attrs["dhw_enabled"] = self.coordinator.data.get("dhw_enabled", False)
+diff --git a/custom_components/heatpump_optimizer/config_flow.py b/custom_components/heatpump_optimizer/config_flow.py
+index 8629b83b2..5f1136ea2 100644
+--- a/custom_components/heatpump_optimizer/config_flow.py
++++ b/custom_components/heatpump_optimizer/config_flow.py
+@@ -3,7 +3,7 @@ from __future__ import annotations
+ 
+ import hashlib
+ import logging
+-from collections.abc import Callable, Iterable, Mapping
++from collections.abc import Awaitable, Callable, Iterable, Mapping
+ from typing import TYPE_CHECKING, Any, Final, NamedTuple, Protocol, cast
+ 
+ import aiohttp
+@@ -888,21 +888,14 @@ def _power_errors(
+     return {}
+ 
+ 
+-def _options_suggested_numeric(current: dict[str, Any], key: str) -> Any:
+-    """Optional key that suggests the stored value without defaulting it."""
+-    if key in current:
+-        return vol.Optional(key, description={"suggested_value": current[key]})
+-    return vol.Optional(key)
++def _suggested_optional(current: dict[str, Any], key: str) -> Any:
++    """An optional key that suggests the stored value, never defaults it.
+ 
+-
+-def _suggested_entity(key: str, current: dict[str, Any]) -> Any:
+-    """An entity picker that suggests the stored slot, never defaults it.
+-
+-    The same two-armed rule as ``_options_suggested_numeric`` beside it, and
+-    for the same reason: a ``default`` is refilled by voluptuous for a key the
+-    submission left absent, so the stored value rides only as a
+-    ``suggested_value``. #1258: the Configure quick-setup page shows an
+-    existing entry's wood probes rather than pickers that read as unconfigured.
++    A ``default`` is refilled by voluptuous for a key the submission left
++    absent, so the stored value rides only as a ``suggested_value``. Numeric
++    rows and entity pickers alike: #1258, the Configure quick-setup page shows
++    an existing entry's wood probes rather than pickers that read as
++    unconfigured.
+     """
+     if key in current:
+         return vol.Optional(key, description={"suggested_value": current[key]})
+@@ -1238,9 +1231,9 @@ def _quick_setup_schema(
+     return vol.Schema(
+         {
+             **question_fields,
+-            _suggested_entity(CONF_WOOD_TANK_TOP_ENTITY, current): _entity_of(["sensor"]),
+-            _suggested_entity(
+-                CONF_WOOD_TANK_BOTTOM_ENTITY, current
++            _suggested_optional(current, CONF_WOOD_TANK_TOP_ENTITY): _entity_of(["sensor"]),
++            _suggested_optional(
++                current, CONF_WOOD_TANK_BOTTOM_ENTITY
+             ): _entity_of(["sensor"]),
+             **_questionnaire_fields(current),
+         }
+@@ -1842,7 +1835,7 @@ def _field_marker(row: _F, current: dict[str, Any], hass: HomeAssistant) -> Any:
+                 )
+         return vol.Optional(row.key)
+     if default is _SUGGESTED:
+-        return _options_suggested_numeric(current, row.key)
++        return _suggested_optional(current, row.key)
+     if isinstance(default, _Suggested):
+         return vol.Optional(
+             row.key,
+@@ -1884,6 +1877,52 @@ def _section_inner(value: Any) -> vol.Schema | None:
+     return inner if isinstance(inner, vol.Schema) else None
+ 
+ 
++#: A page's refusal: the submit (flattened, cleared rows nulled) and the stored
++#: config in, the per-field errors out (empty to save).
++_PageCheck = Callable[[dict[str, Any], dict[str, Any]], Awaitable[dict[str, str]]]
++#: What a page saves, from the accepted submit and the submit merged over the
++#: stored config (before any cleared row is nulled).
++_PageFinish = Callable[[dict[str, Any], dict[str, Any]], dict[str, Any]]
++
++
++def _warn_legionella_ceiling(submit: dict[str, Any], merged: dict[str, Any]) -> dict[str, Any]:
++    """Warned, never blocked -- see the setup flow's DHW step."""
++    warning = _dhw_legionella_warning(submit, merged)
++    if warning is not None:
++        _LOGGER.warning(
++            "Hot water: the anti-legionella cycle at %s °C is "
++            "above the %s °C charge limit, so the tank is taken "
++            "above that limit every %s days",
++            warning["legionella_temp"],
++            warning["setpoint"],
++            warning["interval_days"],
++        )
++    return submit
++
++
++def _peak_window_as_int(submit: dict[str, Any], _merged: dict[str, Any]) -> dict[str, Any]:
++    cleaned = dict(submit)
++    window = cleaned.get(CONF_PEAK_TARIFF_WINDOW)
++    if window is not None:
++        try:
++            cleaned[CONF_PEAK_TARIFF_WINDOW] = int(window)
++        except (TypeError, ValueError):
++            cleaned[CONF_PEAK_TARIFF_WINDOW] = DEFAULT_PEAK_TARIFF_WINDOW
++    return cleaned
++
++
++def _apply_dso_catalog(cleaned: dict[str, Any], _merged: dict[str, Any]) -> dict[str, Any]:
++    applied = grid_fee.apply_catalog(cleaned.get(CONF_DSO_PRODUCT))
++    if applied:
++        cleaned.update(applied)
++    return cleaned
++
++
++def _fee_placeholders(hass: HomeAssistant) -> dict[str, str]:
++    currency = resolve_currency(hass)
++    return {"currency": currency, "fee_bound": f"{grid_fee.fee_bound(currency):g}"}
++
++
+ def _flatten_section_input(user_input: dict[str, Any]) -> dict[str, Any]:
+     """Lift ``section()`` payloads to option keys.
+ 
+@@ -3216,21 +3255,46 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
+         return await self.async_step_init()
+ 
+     async def _page(
+-        self, step_id: str, user_input: dict[str, Any] | None, *, clear: bool = False
++        self,
++        step_id: str,
++        user_input: dict[str, Any] | None,
++        *,
++        clear: bool = False,
++        check: _PageCheck | None = None,
++        finish: _PageFinish | None = None,
++        placeholders: Mapping[str, str] | None = None,
+     ) -> ConfigFlowResult:
+         """One registry page (#597): save the submit, or show the form.
+ 
+-        ``clear`` hands the submit to ``_clear_absent`` first, so a stored
+-        entity row the user emptied is nulled rather than kept. A page with
+-        no ``_STORED`` row passes ``clear=False``: there is nothing to null.
++        Every options page is this one sequence: lift the ``section()``
++        groups, null the stored entity rows the user emptied (``clear``),
++        refuse the submit with ``check``'s errors, shape what is saved with
++        ``finish``, and otherwise re-render the rejected form with what was
++        typed rather than with the stored values the user was changing.
++
++        ``clear`` hands the submit to ``_clear_absent``, judged over the
++        SUBMISSION merged onto the stored config, so a block the same submit
++        turns off still clears its own slots. A page with no ``_STORED`` row
++        passes ``clear=False``: there is nothing to null.
+         """
++        errors: dict[str, str] = {}
+         current = self._current
+         if user_input is not None:
+-            return await self._save_or_menu(
+-                _clear_absent(user_input, step_id, current) if clear else user_input
+-            )
++            flat = _flatten_section_input(user_input)
++            merged = {**current, **flat}
++            cleaned = _clear_absent(flat, step_id, merged) if clear else flat
++            if check is not None:
++                errors = await check(cleaned, current)
++            if not errors:
++                return await self._save_or_menu(
++                    finish(cleaned, merged) if finish is not None else cleaned
++                )
++            current = {**current, **cleaned}
+         return self.async_show_form(
+-            step_id=step_id, data_schema=_page_schema(step_id, current, self.hass)
++            step_id=step_id,
++            errors=errors,
++            description_placeholders=placeholders,
++            data_schema=_page_schema(step_id, current, self.hass),
+         )
+ 
+     async def _thermal_model_page(
+@@ -3404,68 +3468,53 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
+         self, user_input: dict[str, Any] | None = None
+     ) -> ConfigFlowResult:
+         """Change which Home Assistant entities the optimizer reads."""
+-        errors: dict[str, str] = {}
+-        current = self._current
+-
+-        if user_input is not None:
+-            user_input = _flatten_section_input(user_input)
+-            source = user_input.get(
+-                CONF_PRICE_SOURCE, current.get(CONF_PRICE_SOURCE, DEFAULT_PRICE_SOURCE)
+-            )
+-            if source == PRICE_SOURCE_ENTITY:
+-                entity = user_input.get(CONF_PRICE_ENTITY) or current.get(
+-                    CONF_PRICE_ENTITY
+-                )
+-                if not entity:
+-                    errors[CONF_PRICE_ENTITY] = "price_entity_required"
+-            else:
+-                token = user_input.get(CONF_TIBBER_TOKEN) or current.get(
+-                    CONF_TIBBER_TOKEN
+-                )
+-                if not token:
+-                    errors[CONF_TIBBER_TOKEN] = "tibber_token_required"
+-                else:
+-                    submitted = user_input.get(CONF_TIBBER_TOKEN)
+-                    if submitted and submitted != current.get(CONF_TIBBER_TOKEN):
+-                        verdict = await validate_tibber_token(self.hass, submitted)
+-                        if verdict == "invalid_auth":
+-                            errors[CONF_TIBBER_TOKEN] = "invalid_tibber_token"
+-                        elif verdict != "ok":
+-                            errors[CONF_TIBBER_TOKEN] = "cannot_connect"
+-            if not errors:
+-                return await self._save_or_menu(
+-                    _clear_absent(user_input, "entities", current)
+-                )
+-            current = {**current, **user_input}
++        return await self._page(
++            "entities", user_input, clear=True, check=self._entities_errors
++        )
+ 
+-        return self.async_show_form(
+-            step_id="entities",
+-            errors=errors,
+-            data_schema=_page_schema("entities", current, self.hass),
++    async def _entities_errors(
++        self, submit: dict[str, Any], current: dict[str, Any]
++    ) -> dict[str, str]:
++        """The price source must name its feed; a new Tibber token must work."""
++        errors: dict[str, str] = {}
++        source = submit.get(
++            CONF_PRICE_SOURCE, current.get(CONF_PRICE_SOURCE, DEFAULT_PRICE_SOURCE)
+         )
++        if source == PRICE_SOURCE_ENTITY:
++            if not (submit.get(CONF_PRICE_ENTITY) or current.get(CONF_PRICE_ENTITY)):
++                errors[CONF_PRICE_ENTITY] = "price_entity_required"
++            return errors
++        if not (submit.get(CONF_TIBBER_TOKEN) or current.get(CONF_TIBBER_TOKEN)):
++            errors[CONF_TIBBER_TOKEN] = "tibber_token_required"
++            return errors
++        submitted = submit.get(CONF_TIBBER_TOKEN)
++        if submitted and submitted != current.get(CONF_TIBBER_TOKEN):
++            verdict = await validate_tibber_token(self.hass, submitted)
++            if verdict == "invalid_auth":
++                errors[CONF_TIBBER_TOKEN] = "invalid_tibber_token"
++            elif verdict != "ok":
++                errors[CONF_TIBBER_TOKEN] = "cannot_connect"
++        return errors
+ 
+     async def async_step_entities_metering(
+         self, user_input: dict[str, Any] | None = None
+     ) -> ConfigFlowResult:
+         """Solar, power and compressor frequency sensors."""
+-        errors: dict[str, str] = {}
+-        current = self._current
+-        if user_input is not None:
+-            user_input = _flatten_section_input(user_input)
+-            # Only a number entity can be written; a sensor alone observes.
+-            if user_input.get(CONF_FREQ_CONTROL_MODE) == FREQ_MODE_CONTROL and not user_input.get(CONF_COMPRESSOR_FREQ_ENTITY):
+-                errors[CONF_FREQ_CONTROL_MODE] = "freq_control_needs_number"
+-            else:
+-                return await self._save_or_menu(
+-                    _clear_absent(user_input, "entities_metering", current)
+-                )
+-            current = {**current, **user_input}
+-        return self.async_show_form(
+-            step_id="entities_metering",
+-            errors=errors,
+-            data_schema=_page_schema("entities_metering", current, self.hass),
++        return await self._page(
++            "entities_metering", user_input, clear=True, check=self._metering_errors
+         )
+ 
++    async def _metering_errors(
++        self, submit: dict[str, Any], _current: dict[str, Any]
++    ) -> dict[str, str]:
++        """Only a number entity can be written; a sensor alone observes."""
++        errors: dict[str, str] = {}
++        if submit.get(CONF_FREQ_CONTROL_MODE) == FREQ_MODE_CONTROL and not submit.get(
++            CONF_COMPRESSOR_FREQ_ENTITY
++        ):
++            errors[CONF_FREQ_CONTROL_MODE] = "freq_control_needs_number"
++        return errors
++
+     async def async_step_entities_pump(
+         self, user_input: dict[str, Any] | None = None
+     ) -> ConfigFlowResult:
+@@ -3476,92 +3525,66 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
+         self, user_input: dict[str, Any] | None = None
+     ) -> ConfigFlowResult:
+         """How warm the house should be, and when."""
+-        errors: dict[str, str] = {}
+-        current = self._current
+-        if user_input is not None:
+-            user_input = _flatten_section_input(user_input)
+-            errors = _band_errors(user_input, current)
+-            if not errors:
+-                return await self._save_or_menu(
+-                    _clear_absent(user_input, "comfort", current)
+-                )
+-            # Re-render the rejected form with what was typed, not with the
+-            # stored values the user was in the middle of changing.
+-            current = {**current, **user_input}
+-        return self.async_show_form(
+-            step_id="comfort",
+-            errors=errors,
+-            data_schema=_page_schema("comfort", current, self.hass),
+-        )
++        return await self._page("comfort", user_input, clear=True, check=self._comfort_errors)
++
++    async def _comfort_errors(
++        self, submit: dict[str, Any], current: dict[str, Any]
++    ) -> dict[str, str]:
++        return _band_errors(submit, current)
+ 
+     async def async_step_hot_water(
+         self, user_input: dict[str, Any] | None = None
+     ) -> ConfigFlowResult:
+         """When hot water is needed and how hot it has to be."""
+-        errors: dict[str, str] = {}
+-        current = self._current
+-        if user_input is not None:
+-            user_input = _flatten_section_input(user_input)
+-            window_problem = dhw_spec_problem(user_input.get(CONF_DHW_WINDOWS, ""))
+-            if window_problem is not None:
+-                errors[CONF_DHW_WINDOWS] = window_problem
+-            holiday_spec = user_input.get(CONF_HOLIDAY_DHW_WINDOWS, "")
+-            if holiday_spec:
+-                holiday_problem = dhw_spec_problem(holiday_spec)
+-                if holiday_problem is not None:
+-                    errors[CONF_HOLIDAY_DHW_WINDOWS] = holiday_problem
+-            # #1260: each revealed per-day field gets the ordinary verdicts
+-            # plus the selector refusal, on its own key.
+-            errors.update(_dhw_day_field_errors(user_input))
+-            if not errors and _dhw_min_too_close(user_input, current):
+-                errors[CONF_DHW_MIN_TEMP] = "dhw_min_too_close"
+-            if not errors:
+-                # Warned, never blocked — see the setup flow's DHW step.
+-                warning = _dhw_legionella_warning(user_input, current)
+-                if warning is not None:
+-                    _LOGGER.warning(
+-                        "Hot water: the anti-legionella cycle at %s °C is "
+-                        "above the %s °C charge limit, so the tank is taken "
+-                        "above that limit every %s days",
+-                        warning["legionella_temp"],
+-                        warning["setpoint"],
+-                        warning["interval_days"],
+-                    )
+-                return await self._save_or_menu(
+-                    _clear_absent(user_input, "hot_water", current)
+-                )
+-            current = {**current, **user_input}
+-
+-        return self.async_show_form(
+-            step_id="hot_water",
+-            errors=errors,
+-            description_placeholders=_WINDOW_PLACEHOLDERS,
+-            data_schema=_page_schema("hot_water", current, self.hass),
++        return await self._page(
++            "hot_water",
++            user_input,
++            clear=True,
++            check=self._hot_water_errors,
++            finish=_warn_legionella_ceiling,
++            placeholders=_WINDOW_PLACEHOLDERS,
+         )
+ 
++    async def _hot_water_errors(
++        self, submit: dict[str, Any], current: dict[str, Any]
++    ) -> dict[str, str]:
++        errors: dict[str, str] = {}
++        window_problem = dhw_spec_problem(submit.get(CONF_DHW_WINDOWS, ""))
++        if window_problem is not None:
++            errors[CONF_DHW_WINDOWS] = window_problem
++        holiday_spec = submit.get(CONF_HOLIDAY_DHW_WINDOWS, "")
++        if holiday_spec:
++            holiday_problem = dhw_spec_problem(holiday_spec)
++            if holiday_problem is not None:
++                errors[CONF_HOLIDAY_DHW_WINDOWS] = holiday_problem
++        # #1260: each revealed per-day field gets the ordinary verdicts
++        # plus the selector refusal, on its own key.
++        errors.update(_dhw_day_field_errors(submit))
++        if not errors and _dhw_min_too_close(submit, current):
++            errors[CONF_DHW_MIN_TEMP] = "dhw_min_too_close"
++        return errors
++
+     async def async_step_hot_water_tank(
+         self, user_input: dict[str, Any] | None = None
+     ) -> ConfigFlowResult:
+         """Tank size, inlet water, advanced DHW learning and the pump's switch."""
++        return await self._page(
++            "hot_water_tank", user_input, clear=True, check=self._disinfection_errors
++        )
++
++    async def _disinfection_errors(
++        self, submit: dict[str, Any], current: dict[str, Any]
++    ) -> dict[str, str]:
++        """#1067: control writes the pump's disinfection switch, so it is refused
++        without one -- judged over what would be stored, so clearing the switch
++        under a stored control mode is refused too."""
+         errors: dict[str, str] = {}
+-        current = self._current
+-        if user_input is not None:
+-            cleaned = _clear_absent(user_input, "hot_water_tank", current)
+-            merged = {**current, **cleaned}
+-            # #1067: control writes the pump's disinfection switch, so it is
+-            # refused without one -- judged over what would be stored, so
+-            # clearing the switch under a stored control mode is refused too.
+-            if merged.get(CONF_DHW_DISINFECTION_MODE) != FREQ_MODE_CONTROL or merged.get(
+-                CONF_DHW_DISINFECTION_SWITCH_ENTITY
+-            ):
+-                return await self._save_or_menu(cleaned)
++        merged = {**current, **submit}
++        if merged.get(CONF_DHW_DISINFECTION_MODE) == FREQ_MODE_CONTROL and not merged.get(
++            CONF_DHW_DISINFECTION_SWITCH_ENTITY
++        ):
+             errors[CONF_DHW_DISINFECTION_MODE] = "disinfection_control_needs_entity"
+-            current = merged
+-        return self.async_show_form(
+-            step_id="hot_water_tank",
+-            errors=errors,
+-            data_schema=_page_schema("hot_water_tank", current, self.hass),
+-        )
++        return errors
+ 
+     async def async_step_hot_water_pumps(
+         self, user_input: dict[str, Any] | None = None
+@@ -3588,53 +3611,44 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
+         configured is caught as an error instead of being saved and
+         silently skipped every write cycle.
+         """
++        return await self._page(
++            "building",
++            user_input,
++            clear=True,
++            check=self._plumbing_errors,
++            finish=self._building_wood_flag,
++        )
++
++    async def _plumbing_errors(
++        self, submit: dict[str, Any], current: dict[str, Any]
++    ) -> dict[str, str]:
++        """The write-target kind (#398) and the flow-curve lift (#1067), validated."""
+         errors: dict[str, str] = {}
+-        current = self._current
+-        if user_input is not None:
+-            user_input = _flatten_section_input(user_input)
+-            if (
+-                user_input.get(CONF_MIXING_VALVE_WRITE_TARGET_KIND)
+-                == mixing_valve.WRITE_TARGET_FLOW
+-                and not ThermalParameters.from_config(
+-                    {**current, **user_input}
+-                ).two_zone_enabled
+-            ):
+-                errors[CONF_MIXING_VALVE_WRITE_TARGET_KIND] = (
+-                    "flow_target_needs_two_zone"
+-                )
+-            elif user_input.get(CONF_FLOW_CURVE_COP_ENABLED) and (
+-                mixing_valve.is_throttling(
+-                    {**current, **user_input}.get(CONF_MIXING_VALVE_MODE)
+-                )
+-            ):
+-                # #1067: behind a throttling valve the tank temperature is
+-                # already the priced flow; the model refuses the curve lift
+-                # there too, so saving it would be a switch that does nothing.
+-                errors[CONF_FLOW_CURVE_COP_ENABLED] = (
+-                    "flow_curve_needs_direct_plant"
+-                )
+-            else:
+-                # The wood block's rows carry ``when=wood_furnace_on``, so one
+-                # predicate decides both what the page rendered and what its
+-                # save may clear. It is evaluated over the SUBMISSION merged
+-                # onto the stored config, not over the stored config alone:
+-                # turning the block off would otherwise still clear its slots.
+-                merged = {**current, **user_input}
+-                cleaned = _clear_absent(user_input, "building", merged)
+-                if wood_furnace_on(merged):
+-                    cleaned[CONF_WOOD_FURNACE_ENABLED] = True
+-                elif CONF_WOOD_FURNACE_ENABLED in cleaned:
+-                    cleaned[CONF_WOOD_FURNACE_ENABLED] = bool(
+-                        cleaned[CONF_WOOD_FURNACE_ENABLED]
+-                    )
+-                return await self._save_or_menu(cleaned)
+-            current = {**current, **user_input}
++        merged = {**current, **submit}
++        if (
++            submit.get(CONF_MIXING_VALVE_WRITE_TARGET_KIND) == mixing_valve.WRITE_TARGET_FLOW
++            and not ThermalParameters.from_config(merged).two_zone_enabled
++        ):
++            errors[CONF_MIXING_VALVE_WRITE_TARGET_KIND] = "flow_target_needs_two_zone"
++        elif submit.get(CONF_FLOW_CURVE_COP_ENABLED) and mixing_valve.is_throttling(
++            merged.get(CONF_MIXING_VALVE_MODE)
++        ):
++            # #1067: behind a throttling valve the tank temperature is already
++            # the priced flow; the model refuses the curve lift there too, so
++            # saving it would be a switch that does nothing.
++            errors[CONF_FLOW_CURVE_COP_ENABLED] = "flow_curve_needs_direct_plant"
++        return errors
+ 
+-        return self.async_show_form(
+-            step_id="building",
+-            errors=errors,
+-            data_schema=_page_schema("building", current, self.hass),
+-        )
++    @staticmethod
++    def _building_wood_flag(cleaned: dict[str, Any], merged: dict[str, Any]) -> dict[str, Any]:
++        """The wood block's rows carry ``when=wood_furnace_on``, so one predicate
++        decides both what the page rendered and what its save may clear, over
++        the submission merged onto the stored config."""
++        if wood_furnace_on(merged):
++            cleaned[CONF_WOOD_FURNACE_ENABLED] = True
++        elif CONF_WOOD_FURNACE_ENABLED in cleaned:
++            cleaned[CONF_WOOD_FURNACE_ENABLED] = bool(cleaned[CONF_WOOD_FURNACE_ENABLED])
++        return cleaned
+ 
+     async def async_step_thermal_model(
+         self, user_input: dict[str, Any] | None = None
+@@ -3706,97 +3720,73 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
+         self, user_input: dict[str, Any] | None = None
+     ) -> ConfigFlowResult:
+         """Peak capacity tariff hours and pricing."""
+-        errors: dict[str, str] = {}
+-        current = self._current
+-        if user_input is not None:
+-            user_input = _flatten_section_input(user_input)
+-            if not _valid_months_spec(
+-                user_input.get(CONF_PEAK_TARIFF_MONTHS, "")
+-            ):
+-                errors[CONF_PEAK_TARIFF_MONTHS] = "invalid_peak_months"
+-            if not is_valid_spec(user_input.get(CONF_PEAK_TARIFF_HOURS, "")):
+-                errors[CONF_PEAK_TARIFF_HOURS] = "invalid_peak_hours"
+-            if not errors:
+-                cleaned = dict(user_input)
+-                window = cleaned.get(CONF_PEAK_TARIFF_WINDOW)
+-                if window is not None:
+-                    try:
+-                        cleaned[CONF_PEAK_TARIFF_WINDOW] = int(window)
+-                    except (TypeError, ValueError):
+-                        cleaned[CONF_PEAK_TARIFF_WINDOW] = (
+-                            DEFAULT_PEAK_TARIFF_WINDOW
+-                        )
+-                return await self._save_or_menu(cleaned)
+-            current = {**current, **user_input}
+-
+-        return self.async_show_form(
+-            step_id="grid",
+-            errors=errors,
+-            description_placeholders={
+-                "currency": resolve_currency(self.hass),
+-                "fee_bound": f"{grid_fee.fee_bound(resolve_currency(self.hass)):g}",
+-            },
+-            data_schema=_page_schema("grid", current, self.hass),
++        return await self._page(
++            "grid",
++            user_input,
++            check=self._peak_tariff_errors,
++            finish=_peak_window_as_int,
++            placeholders=_fee_placeholders(self.hass),
+         )
+ 
++    async def _peak_tariff_errors(
++        self, submit: dict[str, Any], _current: dict[str, Any]
++    ) -> dict[str, str]:
++        errors: dict[str, str] = {}
++        if not _valid_months_spec(submit.get(CONF_PEAK_TARIFF_MONTHS, "")):
++            errors[CONF_PEAK_TARIFF_MONTHS] = "invalid_peak_months"
++        if not is_valid_spec(submit.get(CONF_PEAK_TARIFF_HOURS, "")):
++            errors[CONF_PEAK_TARIFF_HOURS] = "invalid_peak_hours"
++        return errors
++
+     async def async_step_grid_connection(
+         self, user_input: dict[str, Any] | None = None
+     ) -> ConfigFlowResult:
+         """Main fuse, peak guards and the pump's silent-mode window."""
+-        errors: dict[str, str] = {}
+-        current = self._current
+-        if user_input is not None:
++        return await self._page(
++            "grid_connection",
+             # A cleared text field is absent, and options merge over setup
+             # data, so an absent window would silently keep the old one.
+-            user_input = {CONF_SILENT_MODE_WINDOWS: "", **user_input}
+-            problem = dhw_spec_problem(user_input[CONF_SILENT_MODE_WINDOWS])
+-            if problem is None:
+-                return await self._save_or_menu(user_input)
++            None if user_input is None else {CONF_SILENT_MODE_WINDOWS: "", **user_input},
++            check=self._silent_window_errors,
++            placeholders=_WINDOW_PLACEHOLDERS,
++        )
++
++    async def _silent_window_errors(
++        self, submit: dict[str, Any], _current: dict[str, Any]
++    ) -> dict[str, str]:
++        errors: dict[str, str] = {}
++        problem = dhw_spec_problem(submit[CONF_SILENT_MODE_WINDOWS])
++        if problem is not None:
+             errors[CONF_SILENT_MODE_WINDOWS] = (
+                 "silent_mode_window_too_short"
+                 if problem == DHW_ERROR_TOO_SHORT
+                 else problem
+             )
+-            current = {**current, **user_input}
+-        return self.async_show_form(
+-            step_id="grid_connection",
+-            errors=errors,
+-            description_placeholders=_WINDOW_PLACEHOLDERS,
+-            data_schema=_page_schema("grid_connection", current, self.hass),
+-        )
++        return errors
+ 
+     async def async_step_grid_fees(
+         self, user_input: dict[str, Any] | None = None
+     ) -> ConfigFlowResult:
+         """Transfer fees and contract shadow price."""
+-        errors: dict[str, str] = {}
+-        current = self._current
+-        if user_input is not None:
+-            user_input = _flatten_section_input(user_input)
+-            fee_problem = grid_fee.spec_problem(
+-                user_input.get(CONF_GRID_FEE_RULES, ""), resolve_currency(self.hass)
+-            )
+-            if fee_problem is not None:
+-                errors[CONF_GRID_FEE_RULES] = fee_problem
+-            if not errors:
+-                cleaned = _clear_absent(user_input, "grid_fees", current)
+-                applied = grid_fee.apply_catalog(user_input.get(CONF_DSO_PRODUCT))
+-                if applied:
+-                    cleaned.update(applied)
+-                return await self._save_or_menu(cleaned)
+-            current = {**current, **user_input}
+-            if not user_input.get(CONF_GRID_FEE_ENTITY):
+-                current.pop(CONF_GRID_FEE_ENTITY, None)
++        return await self._page(
++            "grid_fees",
++            user_input,
++            clear=True,
++            check=self._grid_fee_errors,
++            finish=_apply_dso_catalog,
++            placeholders=_fee_placeholders(self.hass),
++        )
+ 
+-        return self.async_show_form(
+-            step_id="grid_fees",
+-            errors=errors,
+-            description_placeholders={
+-                "currency": resolve_currency(self.hass),
+-                "fee_bound": f"{grid_fee.fee_bound(resolve_currency(self.hass)):g}",
+-            },
+-            data_schema=_page_schema("grid_fees", current, self.hass),
++    async def _grid_fee_errors(
++        self, submit: dict[str, Any], _current: dict[str, Any]
++    ) -> dict[str, str]:
++        errors: dict[str, str] = {}
++        fee_problem = grid_fee.spec_problem(
++            submit.get(CONF_GRID_FEE_RULES, ""), resolve_currency(self.hass)
+         )
++        if fee_problem is not None:
++            errors[CONF_GRID_FEE_RULES] = fee_problem
++        return errors
+ 
+     async def async_step_solar_pv(
+         self, user_input: dict[str, Any] | None = None
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 862ef309c..1c27eb4fa 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -190,6 +190,7 @@ from .inputs import (
+     InputHealth,
+     InputReader,
+     age_of,
++    finite_float,
+     normalize_power_kw,
+     normalize_price_per_kwh,
+     parse_bool,
+@@ -377,26 +378,6 @@ def _plain_types(value: Any) -> Any:
+     return value
+ 
+ 
+-def _as_float(value: Any, default: float) -> float:
+-    """Coerce a forecast/sensor value to a finite float.
+-
+-    Weather integrations are free to report a key as ``None`` (Home Assistant's
+-    own ``Forecast`` type allows it) or as a non-numeric string. Letting either
+-    through produces a ``TypeError`` on the next comparison, or a silent NaN
+-    that poisons the whole optimization horizon, so anything that is not a
+-    finite number falls back to ``default``.
+-    """
+-    if value is None:
+-        return default
+-    try:
+-        result = float(value)
+-    except (TypeError, ValueError, OverflowError):
+-        return default
+-    if not np.isfinite(result):
+-        return default
+-    return result
+-
+-
+ def _storable_sample_count(raw: Any) -> int:
+     """A stored sample count a fold could have written (D1-s2-03).
+ 
+@@ -417,11 +398,8 @@ def _at_least(raw: Any, lo: float, default: float) -> float:
+     The aperture fit's sums of squares and sample weight are never negative
+     as its fold writes them (F9.3); its means and covariance are signed.
+     """
+-    try:
+-        value = float(raw)
+-    except (TypeError, ValueError, OverflowError):
+-        return default
+-    return value if np.isfinite(value) and value >= lo else default
++    value = finite_float(raw)
++    return value if value is not None and value >= lo else default
+ 
+ 
+ def _learned_pair(entry: Any) -> list[Any]:
+@@ -644,7 +622,7 @@ def forecast_outdoor_now(forecast: list[dict[str, Any]], now: datetime) -> float
+         # `_weather_series` falls back to, which starts the series at now.
+         entry = forecast[0]
+     temperature = entry.get("temperature")
+-    return None if temperature is None else _as_float(temperature, 5.0)
++    return None if temperature is None else finite_float(temperature, 5.0)
+ 
+ 
+ # A failed solve keeps the last good plan published — deliberately, a solver
+@@ -2058,9 +2036,9 @@ def _forecast_in_model_units(state: Any, forecast: list[dict[str, Any]]) -> list
+         if value is not None:
+             row["temperature"] = value
+         if wind != 1.0:  # every reader takes a missing wind as 0.0 anyway
+-            row["wind_speed"] = _as_float(entry.get("wind_speed"), 0.0) * wind
++            row["wind_speed"] = finite_float(entry.get("wind_speed"), 0.0) * wind
+         if rain != 1.0:  # and a missing precipitation as 0.0
+-            row["precipitation"] = _as_float(entry.get("precipitation"), 0.0) * rain
++            row["precipitation"] = finite_float(entry.get("precipitation"), 0.0) * rain
+         rows.append(row)
+     return rows
+ 
+@@ -3599,7 +3577,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+             )
+             action = self._current_action or {}
+             curve_driven = bool(action.get("heat_pump_on")) or (
+-                abs(_as_float(action.get("displace_value"), 0.0)) > 0.01
++                abs(finite_float(action.get("displace_value"), 0.0)) > 0.01
+             )
+             state = ctx._current_state
+             zones = [state.room_temperature]
+@@ -4722,8 +4700,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         if self._weather_forecast:
+             first = self._weather_forecast[0]
+             return (
+-                max(0.0, _as_float(first.get("wind_speed"), 0.0)),
+-                max(0.0, _as_float(first.get("precipitation"), 0.0)),
++                max(0.0, finite_float(first.get("wind_speed"), 0.0)),
++                max(0.0, finite_float(first.get("precipitation"), 0.0)),
+             )
+         return 0.0, 0.0
+ 
+@@ -6495,7 +6473,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+                         sr = fc.get("solar_irradiance") or fc.get(
+                             "native_solar_irradiance", 0.0
+                         )
+-                        self._solar_radiation_forecast.append(_as_float(sr, 0.0))
++                        self._solar_radiation_forecast.append(finite_float(sr, 0.0))
+ 
+                     self._weather_fetch_recovered()
+                     _LOGGER.debug(
+@@ -6700,13 +6678,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         for entry in self._prices:
+             ts = _comparable_ts(entry.get("starts_at"), step_starts[0])
+             if ts is not None:
+-                entries.append((ts, _as_float(entry.get("total"), 0.0)))
++                entries.append((ts, finite_float(entry.get("total"), 0.0)))
+         if not entries:
+             # Data with no timestamps at all: keep the old positional
+             # assumption of hourly entries starting at the first step.
+             known: list[float] = []
+             for entry in self._prices:
+-                known.extend([_as_float(entry.get("total"), 0.0)] * 4)
++                known.extend([finite_float(entry.get("total"), 0.0)] * 4)
+             return known[: len(step_starts)]
+ 
+         entries.sort(key=lambda item: item[0])
+@@ -6764,19 +6742,19 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+             tuple[datetime | None, tuple[float, float, float, float, float]]
+         ] = []
+         for idx, entry in enumerate(self._weather_forecast):
+-            temp = _as_float(entry.get("temperature"), 5.0)
+-            gust = max(0.0, _as_float(entry.get("wind_speed"), 0.0))
+-            rain = max(0.0, _as_float(entry.get("precipitation"), 0.0))
++            temp = finite_float(entry.get("temperature"), 5.0)
++            gust = max(0.0, finite_float(entry.get("wind_speed"), 0.0))
++            rain = max(0.0, finite_float(entry.get("precipitation"), 0.0))
+             # NaN, not a guess: the model reads NaN as "use the ambient
+             # value", while any invented number would select a real
+             # defrost bucket (#21).
+-            rh = _as_float(entry.get("humidity"), float("nan"))
++            rh = finite_float(entry.get("humidity"), float("nan"))
+ 
+             irradiance = 0.0
+             if idx < len(self._solar_radiation_forecast):
+-                irradiance = _as_float(self._solar_radiation_forecast[idx], 0.0)
++                irradiance = finite_float(self._solar_radiation_forecast[idx], 0.0)
+             if irradiance == 0.0:
+-                irradiance = _as_float(
++                irradiance = finite_float(
+                     entry.get("solar_irradiance")
+                     or entry.get("native_solar_irradiance"),
+                     0.0,
+@@ -7728,7 +7706,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+             # coordinator's data stays byte-for-byte identical.
+             return {}
+         totals = [
+-            _as_float(entry.get("total"), 0.0) for entry in self._prices
++            finite_float(entry.get("total"), 0.0) for entry in self._prices
+         ]
+         positives = [t for t in totals if t > 0.0]
+         ratio = (
+@@ -10047,7 +10025,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         planned_total = planned_space + planned_dhw
+ 
+         when = pending.get("when") or dt_util.now()
+-        spot = _as_float(pending.get("spot_price"), 0.0)
++        spot = finite_float(pending.get("spot_price"), 0.0)
+ 
+         # T6 #40: a settlement landing in a new month means the old month
+         # just closed — freeze its receipt before anything else books.
+@@ -10108,7 +10086,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         # so every later SEK claim can reconcile against the month's
+         # receipts, and the fee never contaminates the spot column the
+         # contract comparison settles on.
+-        fee = _as_float(pending.get("grid_fee"), 0.0)
++        fee = finite_float(pending.get("grid_fee"), 0.0)
+         # T4a #11: while the immersion element runs, the draw beyond what
+         # the plan commanded is resistive heat. Its kWh are CARVED OUT of
+         # the spot line, not booked on top of it — the lines must sum to
+@@ -10329,15 +10307,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+             book.update(
+                 {"day": day, "kwh": 0.0, "sek": 0.0, "spot_sum": 0.0, "spot_h": 0.0}
+             )
+-        book["kwh"] = _as_float(book.get("kwh"), 0.0) + max(0.0, kwh)
+-        book["sek"] = _as_float(book.get("sek"), 0.0) + (
++        book["kwh"] = finite_float(book.get("kwh"), 0.0) + max(0.0, kwh)
++        book["sek"] = finite_float(book.get("sek"), 0.0) + (
+             sek if np.isfinite(sek) else 0.0
+         )
+         if spot_known and np.isfinite(spot) and elapsed_hours > 0:
+             book["spot_sum"] = (
+-                _as_float(book.get("spot_sum"), 0.0) + spot * elapsed_hours
++                finite_float(book.get("spot_sum"), 0.0) + spot * elapsed_hours
+             )
+-            book["spot_h"] = _as_float(book.get("spot_h"), 0.0) + elapsed_hours
++            book["spot_h"] = finite_float(book.get("spot_h"), 0.0) + elapsed_hours
+ 
+     def _close_score_day(self) -> None:
+         """Replay yesterday against its own realised prices, fold the score.
+@@ -10349,23 +10327,23 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         """
+         book = self._score_day
+         self._score_day = {}
+-        kwh = _as_float(book.get("kwh"), 0.0)
+-        hours = _as_float(book.get("spot_h"), 0.0)
++        kwh = finite_float(book.get("kwh"), 0.0)
++        hours = finite_float(book.get("spot_h"), 0.0)
+         if kwh < 0.2 or hours < 1.0:
+             return
+-        mean_spot = _as_float(book.get("spot_sum"), 0.0) / hours
++        mean_spot = finite_float(book.get("spot_sum"), 0.0) / hours
+         if mean_spot <= 0.01:
+             # Free or negative-price days: the ratio is meaningless, no
+             # evidence. A short run freezes the EMA in place; past
+             # SCORE_FREE_SPAN_RESET closes (1/SCORE_ALPHA, the EMA's
+             # memory horizon) it resets (#908) -- no stale spring grade
+             # on a summer date, and the streak rides the day book.
+-            streak = _as_float(book.get("free_streak"), 0.0) + 1.0
++            streak = finite_float(book.get("free_streak"), 0.0) + 1.0
+             self._score_day = {"free_streak": streak}
+             if streak >= SCORE_FREE_SPAN_RESET:
+                 self._operation_score = None
+         else:
+-            paid_mean = _as_float(book.get("sek"), 0.0) / kwh
++            paid_mean = finite_float(book.get("sek"), 0.0) / kwh
+             saved_fraction = 1.0 - paid_mean / mean_spot
+             sample = float(np.clip(saved_fraction / 0.2, 0.0, 1.0)) * 100.0
+             if self._operation_score is not None:
+@@ -10812,7 +10790,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         planned = float(self._current_action.get("setpoint", requested))
+         delta = float(requested) - planned
+         prices = [p.get("total", 0.0) for p in self._prices] or [1.0]
+-        mean_price = float(np.mean([_as_float(p, 0.0) for p in prices]))
++        mean_price = float(np.mean([finite_float(p, 0.0) for p in prices]))
+         # Spot on BOTH sides of the ratio: the denominator is a mean over raw
+         # Tibber entries, so a fee-inclusive numerator (T1's #1) would inflate
+         # every override's price-weight by the fee regardless of hour.
+diff --git a/custom_components/heatpump_optimizer/dhw_draws.py b/custom_components/heatpump_optimizer/dhw_draws.py
+index cab78698f..8f7c66747 100644
+--- a/custom_components/heatpump_optimizer/dhw_draws.py
++++ b/custom_components/heatpump_optimizer/dhw_draws.py
+@@ -38,7 +38,7 @@ from typing import Any
+ 
+ import numpy as np
+ 
+-from .dhw_schedule import Window
++from .dhw_schedule import Window, format_clock
+ 
+ #: Occurrence totals kept per window — about six weeks of daily windows.
+ MAX_EVENTS_PER_WINDOW = 40
+@@ -149,19 +149,9 @@ def window_label(hour: float, windows: list[Window]) -> str:
+         else:  # wraps midnight
+             inside = hour >= start or hour < end
+         if inside:
+-            return f"{_fmt(start)}-{_fmt(end)}"
++            return f"{format_clock(start)}-{format_clock(end)}"
+     return ""
+ 
+ 
+ def labels_for(windows: list[Window]) -> list[str]:
+-    return [f"{_fmt(s)}-{_fmt(e)}" for s, e in windows]
+-
+-
+-def _fmt(hour: float) -> str:
+-    minutes = int(round(hour * 60))
+-    if minutes == 24 * 60:
+-        # The full-day window's end is 24:00, and folding it to "00:00"
+-        # would label the whole-day reservoir "00:00-00:00".
+-        return "24:00"
+-    minutes %= 24 * 60
+-    return f"{minutes // 60:02d}:{minutes % 60:02d}"
++    return [f"{format_clock(s)}-{format_clock(e)}" for s, e in windows]
+diff --git a/custom_components/heatpump_optimizer/dhw_schedule.py b/custom_components/heatpump_optimizer/dhw_schedule.py
+index 5ce17d8fd..a1c90b5cd 100644
+--- a/custom_components/heatpump_optimizer/dhw_schedule.py
++++ b/custom_components/heatpump_optimizer/dhw_schedule.py
+@@ -440,17 +440,21 @@ def _normalize(windows: list[Window]) -> list[Window]:
+     return merged
+ 
+ 
+-def format_windows(windows: list[Window]) -> str:
+-    """Render normalized windows back into the configuration string form."""
++def format_clock(hour: float) -> str:
++    """An hour-of-day as the grammar's ``HH:MM``, rounded to the minute.
++
++    A window ending at the end of the day reads ``24:00``, not ``00:00``:
++    folding it would label the whole-day window ``00:00-00:00``.
++    """
++    total_minutes = int(round(hour * 60))
++    if total_minutes != 24 * 60:
++        total_minutes %= 24 * 60
++    return f"{total_minutes // 60:02d}:{total_minutes % 60:02d}"
+ 
+-    def fmt(value: float) -> str:
+-        total_minutes = int(round(value * 60))
+-        # A window ending at the end of the day reads better as 24:00 than 00:00.
+-        if total_minutes != 24 * 60:
+-            total_minutes %= 24 * 60
+-        return f"{total_minutes // 60:02d}:{total_minutes % 60:02d}"
+ 
+-    return ", ".join(f"{fmt(s)}-{fmt(e)}" for s, e in windows)
++def format_windows(windows: list[Window]) -> str:
++    """Render normalized windows back into the configuration string form."""
++    return ", ".join(f"{format_clock(s)}-{format_clock(e)}" for s, e in windows)
+ 
+ 
+ def hour_in_windows(hour: float, windows: list[Window]) -> bool:
+diff --git a/custom_components/heatpump_optimizer/entity.py b/custom_components/heatpump_optimizer/entity.py
+index 996573582..cd5acd6f2 100644
+--- a/custom_components/heatpump_optimizer/entity.py
++++ b/custom_components/heatpump_optimizer/entity.py
+@@ -60,6 +60,26 @@ def commanded_power_kw(action: Any) -> float | None:
+     return round(float(space) + float(action.get("dhw_power") or 0.0), 2)
+ 
+ 
++def zone_setpoint_attributes(action: Any) -> dict[str, Any]:
++    """The two-zone setpoints of the current plan step, under their published names.
++
++    The plan step names them ``upper_setpoint`` / ``lower_setpoint``; the
++    climate entity, Current Setpoint and Heat Pump Action publish them as
++    ``upper_floor_setpoint`` / ``lower_floor_setpoint``, and only when the
++    step carries them (a single-zone plan publishes neither). The renaming
++    lives here so the three cannot drift apart.
++    """
++    action = action or {}
++    return {
++        published: action[planned]
++        for planned, published in (
++            ("upper_setpoint", "upper_floor_setpoint"),
++            ("lower_setpoint", "lower_floor_setpoint"),
++        )
++        if planned in action
++    }
++
++
+ def _finite(value: Any) -> Any:
+     """Plain, finite Python for everything an entity publishes, recursively.
+ 
+@@ -135,14 +155,26 @@ class HeatPumpOptimizerEntity(CoordinatorEntity["HeatPumpOptimizerCoordinator"])
+     )
+ 
+     def __init_subclass__(cls, **kwargs: Any) -> None:
+-        """Wrap every subclass's published properties in the finite scrub."""
++        """Wrap every subclass's published properties in the finite scrub.
++
++        The property is the one Home Assistant will read: resolved through the
++        MRO, so a mixin that is not itself an entity (its runtime base is
++        ``object``) and supplies ``native_value`` is scrubbed on each entity
++        that inherits it, not skipped because the entity's own ``__dict__``
++        holds no such name. Home Assistant's own defaults, which read the
++        ``_attr_*`` the integration set, are left as they are.
++        """
+         super().__init_subclass__(**kwargs)
++        package = HeatPumpOptimizerEntity.__module__.rpartition(".")[0]
+         for name in HeatPumpOptimizerEntity._PUBLISHED:
+-            prop = cls.__dict__.get(name)
++            prop = getattr(cls, name, None)
+             if not isinstance(prop, property) or prop.fget is None:
+                 continue
+             if getattr(prop.fget, "_finite_scrubbed", False):
+                 continue
++            owner = next(k for k in cls.__mro__ if name in vars(k))
++            if not owner.__module__.startswith(package + "."):
++                continue
+ 
+             def scrubbed(
+                 self: HeatPumpOptimizerEntity,
+diff --git a/custom_components/heatpump_optimizer/entry_config.py b/custom_components/heatpump_optimizer/entry_config.py
+index 1d9cb684f..ab5ed65a6 100644
+--- a/custom_components/heatpump_optimizer/entry_config.py
++++ b/custom_components/heatpump_optimizer/entry_config.py
+@@ -15,7 +15,6 @@ schedule, the topology).
+ """
+ from __future__ import annotations
+ 
+-import math
+ from collections.abc import Callable, Container, Iterator, Mapping
+ from dataclasses import dataclass, field, fields
+ from types import MappingProxyType
+@@ -24,36 +23,18 @@ from typing import Any
+ from . import mixing_valve
+ from .freq_control import FREQ_MODE_CONTROL, FREQ_MODE_OBSERVE
+ from . import const
++from .inputs import finite_float
+ 
+ Parse = Callable[[Any, Any], Any]
+ 
+ 
+-def _number(value: Any, default: float) -> float:
+-    """A finite float; anything else, a stored string or a NaN, is the default."""
+-    try:
+-        result = float(value)
+-    except (TypeError, ValueError, OverflowError):
+-        return default
+-    return result if math.isfinite(result) else default
+-
+-
+ def _refused_number(value: Any, default: float) -> float | None:
+     """A finite float, or None for a stored value that is not one."""
+-    result = _number(value, math.nan)
+-    return None if math.isnan(result) else result
++    return finite_float(value)
+ 
+ 
+ def _nonzero_number(value: Any, default: float) -> float:
+-    return _number(value, default) or default
+-
+-
+-def _optional_number(value: Any, default: float | None) -> float | None:
+-    """A finite float, or the default (None for every optional field).
+-
+-    An empty string is absent, not zero: it is refused like any other text.
+-    """
+-    result = _refused_number(value, math.nan)
+-    return default if result is None else result
++    return finite_float(value, default) or default
+ 
+ 
+ def _whole(value: Any, default: int | None) -> int | None:
+@@ -168,53 +149,53 @@ class EntryConfig(Mapping[str, Any]):
+     wear_autotune_enabled: bool = _key(const.DEFAULT_WEAR_AUTOTUNE_ENABLED, _flag)
+ 
+     # Numbers.
+-    comfort_temp_day: float = _key(const.DEFAULT_COMFORT_TEMP_DAY, _number)
+-    comfort_temp_night: float = _key(const.DEFAULT_COMFORT_TEMP_NIGHT, _number)
+-    comfort_weight: float = _key(const.DEFAULT_COMFORT_WEIGHT, _number)
+-    compressor_cycling_cost: float = _key(const.DEFAULT_CYCLING_COST, _number)
+-    compressor_freq_max_hz: float = _key(const.DEFAULT_COMPRESSOR_FREQ_MAX_HZ, _number)
+-    compressor_freq_min_hz: float = _key(const.DEFAULT_COMPRESSOR_FREQ_MIN_HZ, _number)
+-    compressor_rated_starts: float = _key(const.DEFAULT_COMPRESSOR_RATED_STARTS, _number)
+-    compressor_replacement_cost: float = _key(const.DEFAULT_COMPRESSOR_REPLACEMENT_COST, _number)
+-    contract_fixed_price: float = _key(const.DEFAULT_CONTRACT_FIXED_PRICE, _number)
+-    cop_scale: float = _key(const.DEFAULT_COP_SCALE, _number)
++    comfort_temp_day: float = _key(const.DEFAULT_COMFORT_TEMP_DAY, finite_float)
++    comfort_temp_night: float = _key(const.DEFAULT_COMFORT_TEMP_NIGHT, finite_float)
++    comfort_weight: float = _key(const.DEFAULT_COMFORT_WEIGHT, finite_float)
++    compressor_cycling_cost: float = _key(const.DEFAULT_CYCLING_COST, finite_float)
++    compressor_freq_max_hz: float = _key(const.DEFAULT_COMPRESSOR_FREQ_MAX_HZ, finite_float)
++    compressor_freq_min_hz: float = _key(const.DEFAULT_COMPRESSOR_FREQ_MIN_HZ, finite_float)
++    compressor_rated_starts: float = _key(const.DEFAULT_COMPRESSOR_RATED_STARTS, finite_float)
++    compressor_replacement_cost: float = _key(const.DEFAULT_COMPRESSOR_REPLACEMENT_COST, finite_float)
++    contract_fixed_price: float = _key(const.DEFAULT_CONTRACT_FIXED_PRICE, finite_float)
++    cop_scale: float = _key(const.DEFAULT_COP_SCALE, finite_float)
+     # A volume of 0 is an unset field, not an empty tank.
+     dhw_tank_volume: float = _key(const.DEFAULT_DHW_TANK_VOLUME, _nonzero_number)
+-    ecl110_displace_max: float = _key(const.DEFAULT_ECL110_DISPLACE_MAX, _number)
+-    ecl110_displace_min: float = _key(const.DEFAULT_ECL110_DISPLACE_MIN, _number)
+-    external_heat_decay_minutes: float = _key(const.DEFAULT_EXTERNAL_HEAT_DECAY_MINUTES, _number)
+-    external_heat_min_rise: float = _key(const.DEFAULT_EXTERNAL_HEAT_MIN_RISE, _number)
+-    main_fuse_amperes: float = _key(const.DEFAULT_MAIN_FUSE_A, _number)
+-    main_fuse_phases: float = _key(const.DEFAULT_MAIN_FUSE_PHASES, _number)
+-    max_temperature: float = _key(const.DEFAULT_MAX_TEMP, _number)
+-    min_temperature: float = _key(const.DEFAULT_MIN_TEMP, _number)
+-    mold_floor_breach_margin: float = _key(const.DEFAULT_MOLD_FLOOR_BREACH_MARGIN, _number)
+-    optimization_interval: float = _key(const.DEFAULT_OPTIMIZATION_INTERVAL, _number)
+-    peak_guard_margin_kw: float = _key(const.DEFAULT_PEAK_GUARD_MARGIN_KW, _number)
+-    peak_tariff_offpeak_factor: float = _key(const.DEFAULT_PEAK_TARIFF_OFFPEAK_FACTOR, _number)
+-    peak_tariff_peaks_averaged: float = _key(const.DEFAULT_PEAK_TARIFF_COUNT, _number)
+-    peak_tariff_price_per_kw: float = _key(const.DEFAULT_PEAK_TARIFF_PRICE, _number)
+-    peak_tariff_window_minutes: float = _key(const.DEFAULT_PEAK_TARIFF_WINDOW, _number)
+-    price_risk_lambda: float = _key(const.DEFAULT_PRICE_RISK_LAMBDA, _number)
+-    price_weight: float = _key(const.DEFAULT_PRICE_WEIGHT, _number)
+-    pv_export_price: float = _key(const.DEFAULT_PV_EXPORT_PRICE, _number)
+-    pv_peak_kw: float = _key(const.DEFAULT_PV_PEAK_KW, _number)
+-    pv_system_efficiency: float = _key(const.DEFAULT_PV_EFFICIENCY, _number)
+-    shower_flow_lpm: float = _key(const.DEFAULT_SHOWER_FLOW_LPM, _number)
+-    staleness_max_age_scale: float = _key(const.DEFAULT_STALENESS_SCALE, _number)
+-    target_temperature: float = _key(const.DEFAULT_TARGET_TEMP, _number)
+-    thermal_bridge_frsi: float = _key(const.DEFAULT_THERMAL_BRIDGE_FRSI, _number)
+-    vvc_lead_minutes: float = _key(const.DEFAULT_VVC_LEAD_MINUTES, _number)
+-    wood_tank_volume: float = _key(const.DEFAULT_WOOD_TANK_VOLUME, _number)
++    ecl110_displace_max: float = _key(const.DEFAULT_ECL110_DISPLACE_MAX, finite_float)
++    ecl110_displace_min: float = _key(const.DEFAULT_ECL110_DISPLACE_MIN, finite_float)
++    external_heat_decay_minutes: float = _key(const.DEFAULT_EXTERNAL_HEAT_DECAY_MINUTES, finite_float)
++    external_heat_min_rise: float = _key(const.DEFAULT_EXTERNAL_HEAT_MIN_RISE, finite_float)
++    main_fuse_amperes: float = _key(const.DEFAULT_MAIN_FUSE_A, finite_float)
++    main_fuse_phases: float = _key(const.DEFAULT_MAIN_FUSE_PHASES, finite_float)
++    max_temperature: float = _key(const.DEFAULT_MAX_TEMP, finite_float)
++    min_temperature: float = _key(const.DEFAULT_MIN_TEMP, finite_float)
++    mold_floor_breach_margin: float = _key(const.DEFAULT_MOLD_FLOOR_BREACH_MARGIN, finite_float)
++    optimization_interval: float = _key(const.DEFAULT_OPTIMIZATION_INTERVAL, finite_float)
++    peak_guard_margin_kw: float = _key(const.DEFAULT_PEAK_GUARD_MARGIN_KW, finite_float)
++    peak_tariff_offpeak_factor: float = _key(const.DEFAULT_PEAK_TARIFF_OFFPEAK_FACTOR, finite_float)
++    peak_tariff_peaks_averaged: float = _key(const.DEFAULT_PEAK_TARIFF_COUNT, finite_float)
++    peak_tariff_price_per_kw: float = _key(const.DEFAULT_PEAK_TARIFF_PRICE, finite_float)
++    peak_tariff_window_minutes: float = _key(const.DEFAULT_PEAK_TARIFF_WINDOW, finite_float)
++    price_risk_lambda: float = _key(const.DEFAULT_PRICE_RISK_LAMBDA, finite_float)
++    price_weight: float = _key(const.DEFAULT_PRICE_WEIGHT, finite_float)
++    pv_export_price: float = _key(const.DEFAULT_PV_EXPORT_PRICE, finite_float)
++    pv_peak_kw: float = _key(const.DEFAULT_PV_PEAK_KW, finite_float)
++    pv_system_efficiency: float = _key(const.DEFAULT_PV_EFFICIENCY, finite_float)
++    shower_flow_lpm: float = _key(const.DEFAULT_SHOWER_FLOW_LPM, finite_float)
++    staleness_max_age_scale: float = _key(const.DEFAULT_STALENESS_SCALE, finite_float)
++    target_temperature: float = _key(const.DEFAULT_TARGET_TEMP, finite_float)
++    thermal_bridge_frsi: float = _key(const.DEFAULT_THERMAL_BRIDGE_FRSI, finite_float)
++    vvc_lead_minutes: float = _key(const.DEFAULT_VVC_LEAD_MINUTES, finite_float)
++    wood_tank_volume: float = _key(const.DEFAULT_WOOD_TANK_VOLUME, finite_float)
+ 
+     # A fraction this version cannot read caps nothing: None, not the default.
+     silent_mode_power_fraction: float | None = _key(const.DEFAULT_SILENT_MODE_FRACTION, _refused_number)
+ 
+     # Optional numbers: None keeps the weekday or ordinary-day value.
+-    comfort_temp_day_weekend: float | None = _key(None, _optional_number)
+-    comfort_temp_night_weekend: float | None = _key(None, _optional_number)
+-    holiday_comfort_temp_day: float | None = _key(None, _optional_number)
+-    holiday_comfort_temp_night: float | None = _key(None, _optional_number)
++    comfort_temp_day_weekend: float | None = _key(None, finite_float)
++    comfort_temp_night_weekend: float | None = _key(None, finite_float)
++    holiday_comfort_temp_day: float | None = _key(None, finite_float)
++    holiday_comfort_temp_night: float | None = _key(None, finite_float)
+ 
+     # Whole numbers.
+     day_end_hour: int = _key(const.DEFAULT_DAY_END_HOUR, _whole)
+diff --git a/custom_components/heatpump_optimizer/freq_control.py b/custom_components/heatpump_optimizer/freq_control.py
+index 800313de7..15eae7755 100644
+--- a/custom_components/heatpump_optimizer/freq_control.py
++++ b/custom_components/heatpump_optimizer/freq_control.py
+@@ -30,7 +30,7 @@ from typing import Any, Callable
+ 
+ import numpy as np
+ 
+-from .inputs import _finite
++from .inputs import finite_float
+ from .payload import FreqMapBucket
+ 
+ #: The two stages. Anything unrecognised in config reads as observe.
+@@ -94,14 +94,14 @@ def resolve_reading(
+         if reading is None:
+             return (None, 0.0, 0.0, source)
+         attrs = getattr(reading, "attributes", {}) or {}
+-        lo, hi = _finite(attrs.get("min")), _finite(attrs.get("max"))
++        lo, hi = finite_float(attrs.get("min")), finite_float(attrs.get("max"))
+         hz_min = hz_min if lo is None else lo
+         hz_max = hz_max if hi is None else hi
+     if sensor_id:
+         reading = get_state(sensor_id)
+     if reading is None:
+         return (None, hz_min, hz_max, source)
+-    return (_finite(reading.state), hz_min, hz_max, source)
++    return (finite_float(reading.state), hz_min, hz_max, source)
+ 
+ 
+ @dataclass
+diff --git a/custom_components/heatpump_optimizer/grid_fee.py b/custom_components/heatpump_optimizer/grid_fee.py
+index 11aa96735..d2a91aa57 100644
+--- a/custom_components/heatpump_optimizer/grid_fee.py
++++ b/custom_components/heatpump_optimizer/grid_fee.py
+@@ -111,41 +111,39 @@ class GridFeeError(ValueError):
+     """Raised when a grid-fee specification cannot be parsed."""
+ 
+ 
+-def parse_month_range(token: str) -> frozenset[int]:
+-    """``"Nov-Mar"`` or ``"Jul"`` as the set of month numbers it covers."""
++def _parse_cyclic_range(
++    token: str, names: dict[str, int], first: int, size: int, what: str
++) -> frozenset[int]:
++    """``"<a>-<b>"`` or ``"<a>"`` over a named cycle, as the values it covers.
++
++    ``names`` maps each spelling to its value in ``first .. first + size - 1``;
++    a range whose end comes before its start wraps the cycle, so ``Nov-Mar``
++    is Nov, Dec, Jan, Feb, Mar and ``Sat-Mon`` is Sat, Sun, Mon.
++    """
+     token = token.strip().lower()
+     if "-" in token:
+         start_token, _, end_token = token.partition("-")
+-        start = _MONTHS.get(start_token.strip())
+-        end = _MONTHS.get(end_token.strip())
++        start = names.get(start_token.strip())
++        end = names.get(end_token.strip())
+         if start is None or end is None:
+-            raise GridFeeError(f"Unknown month in '{token}'")
+-        if start <= end:
+-            return frozenset(range(start, end + 1))
+-        # Wrapping: Nov-Mar is Nov, Dec, Jan, Feb, Mar.
+-        return frozenset(list(range(start, 13)) + list(range(1, end + 1)))
+-    month = _MONTHS.get(token)
+-    if month is None:
+-        raise GridFeeError(f"Unknown month '{token}'")
+-    return frozenset({month})
++            raise GridFeeError(f"Unknown {what} in '{token}'")
++        return frozenset(
++            first + (start - first + k) % size for k in range((end - start) % size + 1)
++        )
++    value = names.get(token)
++    if value is None:
++        raise GridFeeError(f"Unknown {what} '{token}'")
++    return frozenset({value})
++
++
++def parse_month_range(token: str) -> frozenset[int]:
++    """``"Nov-Mar"`` or ``"Jul"`` as the set of month numbers it covers."""
++    return _parse_cyclic_range(token, _MONTHS, 1, 12, "month")
+ 
+ 
+ def parse_day_range(token: str) -> frozenset[int]:
+     """``"Mon-Fri"`` or ``"Sat"`` as the set of ``datetime.weekday()`` values."""
+-    token = token.strip().lower()
+-    if "-" in token:
+-        start_token, _, end_token = token.partition("-")
+-        start = _DAYS.get(start_token.strip())
+-        end = _DAYS.get(end_token.strip())
+-        if start is None or end is None:
+-            raise GridFeeError(f"Unknown weekday in '{token}'")
+-        if start <= end:
+-            return frozenset(range(start, end + 1))
+-        return frozenset(list(range(start, 7)) + list(range(0, end + 1)))
+-    day = _DAYS.get(token)
+-    if day is None:
+-        raise GridFeeError(f"Unknown weekday '{token}'")
+-    return frozenset({day})
++    return _parse_cyclic_range(token, _DAYS, 0, 7, "weekday")
+ 
+ 
+ @dataclass(frozen=True)
+diff --git a/custom_components/heatpump_optimizer/inputs.py b/custom_components/heatpump_optimizer/inputs.py
+index c85c81376..de7adfae9 100644
+--- a/custom_components/heatpump_optimizer/inputs.py
++++ b/custom_components/heatpump_optimizer/inputs.py
+@@ -41,7 +41,7 @@ import math
+ from dataclasses import dataclass, field
+ from datetime import datetime, timedelta
+ from collections.abc import Callable
+-from typing import Any
++from typing import Any, overload
+ 
+ from .const import (
+     ENERGY_UNIT_TO_KWH,
+@@ -317,12 +317,26 @@ def state_unit(state: Any) -> Any:
+     return (getattr(state, "attributes", None) or {}).get("unit_of_measurement")
+ 
+ 
+-def _finite(raw: Any) -> float | None:
++@overload
++def finite_float(value: Any) -> float | None: ...
++@overload
++def finite_float(value: Any, default: float) -> float: ...
++@overload
++def finite_float(value: Any, default: float | None) -> float | None: ...
++def finite_float(value: Any, default: float | None = None) -> float | None:
++    """``value`` as a finite float; anything else is ``default``.
++
++    The one coercion every reader shares: ``None``, text that is not a
++    number, NaN, an infinity and an int past a double (an attribute- or
++    service-fed value orjson never parsed) are all unreadable, never a raise
++    and never a non-finite number handed on to the solver. ``bool`` is a
++    number here, as it is to ``float()``.
++    """
+     try:
+-        value = float(raw)
++        result = float(value)
+     except (TypeError, ValueError, OverflowError):
+-        return None
+-    return value if math.isfinite(value) else None
++        return default
++    return result if math.isfinite(result) else default
+ 
+ 
+ def temperature_c(raw: Any, unit: Any) -> float | None:
+@@ -331,7 +345,7 @@ def temperature_c(raw: Any, unit: Any) -> float | None:
+     Converted when ``unit`` is a temperature unit and adopted raw otherwise,
+     which is what :func:`_value_in_model_units` does for ``read`` (#961).
+     """
+-    value = _finite(raw)
++    value = finite_float(raw)
+     if value is None:
+         return None
+     converted = normalize_temperature_c(value, unit)
+@@ -379,7 +393,7 @@ def price_per_kwh(raw: Any, unit: Any) -> float | None:
+     number. An unparseable unit keeps the raw number, as every install read
+     it before; the coordinator's ``price_unit_unrecognised`` notice names it.
+     """
+-    value = _finite(raw)
++    value = finite_float(raw)
+     if value is None:
+         return None
+     converted = normalize_price_per_kwh(value, unit)
+diff --git a/custom_components/heatpump_optimizer/pump_arbiter.py b/custom_components/heatpump_optimizer/pump_arbiter.py
+index 9ac069d47..4a5b8c967 100644
+--- a/custom_components/heatpump_optimizer/pump_arbiter.py
++++ b/custom_components/heatpump_optimizer/pump_arbiter.py
+@@ -154,7 +154,7 @@ from .const import (
+ )
+ from .entry_config import EntryConfig
+ from .modbus_prefill import night_mode_write_ids, package_prefix
+-from .inputs import state_unit, temperature_c, temperature_from_c
++from .inputs import finite_float, state_unit, temperature_c, temperature_from_c
+ from .payload import CurrentAction
+ from .repairs import _write_setpoint
+ from .accuracy import utc_elapsed_seconds, utc_shift
+@@ -438,15 +438,7 @@ def _space_target(inp: ArbiterInputs, result: Any, now: datetime, duty: str | No
+ 
+ def _step_kw(result: Any, now: datetime) -> float | None:
+     """The plan's space power for the step covering ``now``, or ``None``."""
+-    return (
+-        _finite_or_none(_planned_room(result, now, "power_schedule"))
+-    )
+-
+-
+-def _finite_or_none(value: Any) -> float | None:
+-    return (
+-        float(value) if isinstance(value, (int, float)) else None
+-    )
++    return finite_float(_planned_room(result, now, "power_schedule"))
+ 
+ 
+ def _band_kw(inp: ArbiterInputs) -> tuple[Any, Any]:
+@@ -859,11 +851,6 @@ async def _command(coord: Any, inp: ArbiterInputs, command: PumpCommand, now: da
+         await _write(coord, inp, slot, getattr(command, slot), now)
+ 
+ 
+-def _night_clock(hour: float) -> tuple[int, int]:
+-    minutes = int(round(hour * 60.0)) % (24 * 60)
+-    return minutes // 60, minutes % 60
+-
+-
+ async def _write_night_schedule(coord: Any, inp: ArbiterInputs, now: datetime) -> None:
+     """Hold the GCHV night-mode start/end for the next silent window (#1913).
+ 
+@@ -883,8 +870,8 @@ async def _write_night_schedule(coord: Any, inp: ArbiterInputs, now: datetime) -
+     nxt = quiet_windows.next_gchv_window(now, spec)
+     if nxt is None:
+         return
+-    start_h, start_m = _night_clock(nxt[0])
+-    end_h, end_m = _night_clock(nxt[1])
++    start_h, start_m = quiet_windows.wall_clock(nxt[0])
++    end_h, end_m = quiet_windows.wall_clock(nxt[1])
+     if (start_h, start_m) == (end_h, end_m):
+         return
+     values = {
+diff --git a/custom_components/heatpump_optimizer/quiet_windows.py b/custom_components/heatpump_optimizer/quiet_windows.py
+index 1ed0aadde..60b59f5a7 100644
+--- a/custom_components/heatpump_optimizer/quiet_windows.py
++++ b/custom_components/heatpump_optimizer/quiet_windows.py
+@@ -275,10 +275,20 @@ def _gchv_merge(segments: list[Window]) -> list[tuple[float, float]]:
+     return out
+ 
+ 
++def wall_clock(hour: float) -> tuple[int, int]:
++    """An hour-of-day as the wall clock's ``(hour, minute)``, rounded to the minute.
++
++    The end of the day folds to ``(0, 0)``: a clock -- a ``datetime.time``, a
++    pump's schedule register -- has no 24:00. A window LABEL keeps 24:00
++    (``dhw_schedule.format_clock``).
++    """
++    minutes = int(round(hour * 60.0)) % (24 * 60)
++    return minutes // 60, minutes % 60
++
++
+ def _gchv_at(day: Any, hour: float, tz: Any) -> datetime:
+     """``day`` at ``hour`` (hours past midnight) in ``tz``."""
+-    minutes = int(round(hour * 60.0)) % (24 * 60)
+-    return datetime.combine(day, time(minutes // 60, minutes % 60), tzinfo=tz)
++    return datetime.combine(day, time(*wall_clock(hour)), tzinfo=tz)
+ 
+ 
+ def _silent_plan_spec(
+@@ -640,5 +650,5 @@ def _overlaps(a: Window, b: Window) -> bool:
+ 
+ def _fmt(hour: float) -> str:
+     """An hour-of-day as ``HH:MM``, the grammar's own form."""
+-    minutes = int(round(hour * 60.0)) % (24 * 60)
+-    return f"{minutes // 60:02d}:{minutes % 60:02d}"
++    clock_h, clock_m = wall_clock(hour)
++    return f"{clock_h:02d}:{clock_m:02d}"
+diff --git a/custom_components/heatpump_optimizer/sensor.py b/custom_components/heatpump_optimizer/sensor.py
+index d83c04ef8..3c3b7a13c 100644
+--- a/custom_components/heatpump_optimizer/sensor.py
++++ b/custom_components/heatpump_optimizer/sensor.py
+@@ -47,7 +47,7 @@ from .coordinator import (
+ )
+ from .entity import ConfiguredInputMixin as _ConfiguredInputMixin
+ from .entity import DHWEntityMixin as _DHWEntityMixin
+-from .entity import HeatPumpOptimizerEntity, commanded_power_kw
++from .entity import HeatPumpOptimizerEntity, commanded_power_kw, zone_setpoint_attributes
+ from .entry_config import EntryConfig
+ from .payload import Payload
+ from .mixing_valve import is_throttling
+@@ -373,6 +373,49 @@ class _MeasuredTemperatureMixin(_SensorMixinBase):
+         )
+ 
+ 
++class _PayloadValueMixin(_SensorMixinBase):
++    """A sensor whose state is one numeric key of the coordinator payload.
++
++    Seventeen sensors each spelled the same read -- the key, ``None`` while the
++    payload is empty or the key absent, rounded for display -- as their own
++    ``native_value``. The read is declared here once; a sensor names its key
++    and, when it is not one decimal, its precision.
++    """
++
++    #: The payload key whose value is this sensor's state.
++    _payload_key: str = ""
++    #: Decimals the published state is rounded to.
++    _payload_digits: int = 1
++
++    @property
++    def native_value(self) -> float | None:
++        val = (self.coordinator.data or {}).get(self._payload_key)
++        return round(val, self._payload_digits) if val is not None else None
++
++
++class _PayloadPathMixin(_SensorMixinBase):
++    """A sensor whose state is the number at one path of the coordinator payload.
++
++    Seven advisor sensors each walked their own section of the payload and
++    kept the leaf only when it was a number. The walk and the guard are
++    declared here once: a missing or non-mapping section reads as empty, and
++    a leaf that is not one of ``_payload_types`` publishes ``None``.
++    """
++
++    #: Section keys, then the leaf key.
++    _payload_path: tuple[str, ...] = ()
++    #: The leaf types published as a state.
++    _payload_types: tuple[type[int | float], ...] = (int, float)
++
++    @property
++    def native_value(self) -> float | None:
++        node: Any = self._data()
++        for key in self._payload_path[:-1]:
++            node = node.get(key) or {}
++        value = node.get(self._payload_path[-1])
++        return value if isinstance(value, self._payload_types) else None
++
++
+ class _WaitsForEvidenceMixin(_SensorMixinBase):
+     """An entity whose source is configured but whose evidence has not arrived.
+ 
+@@ -460,7 +503,7 @@ class OptimizationStatusSensor(HeatPumpOptimizerSensorBase):
+         return {}
+ 
+ 
+-class PredictedSavingsSensor(HeatPumpOptimizerSensorBase):
++class PredictedSavingsSensor(_PayloadValueMixin, HeatPumpOptimizerSensorBase):
+     # No MONETARY device class here or on the other horizon-money sensors
+     # below: Home Assistant only accepts state class TOTAL for MONETARY, and
+     # these are rolling predictions re-published every solve — MEASUREMENT is
+@@ -470,17 +513,13 @@ class PredictedSavingsSensor(HeatPumpOptimizerSensorBase):
+     _attr_state_class = SensorStateClass.MEASUREMENT
+     _attr_suggested_display_precision = 2
+ 
++    _payload_key = "predicted_savings"
++    _payload_digits = 2
++
+     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+         super().__init__(coordinator, entry, "predicted_savings", "plan_predicted_savings")
+         self._attr_native_unit_of_measurement = coordinator.currency
+ 
+-    @property
+-    def native_value(self) -> float | None:
+-        if self.coordinator.data:
+-            val = self.coordinator.data.get("predicted_savings")
+-            return round(val, 2) if val is not None else None
+-        return None
+-
+     @property
+     def extra_state_attributes(self) -> dict[str, Any]:
+         # Stable machine-readable marker for the dashboard card's headline
+@@ -531,21 +570,16 @@ class MonthlySavingsSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase):
+         return attrs
+ 
+ 
+-class SavingsPercentageSensor(HeatPumpOptimizerSensorBase):
++class SavingsPercentageSensor(_PayloadValueMixin, HeatPumpOptimizerSensorBase):
+     _attr_state_class = SensorStateClass.MEASUREMENT
+     _attr_native_unit_of_measurement = PERCENTAGE
+     _attr_suggested_display_precision = 1
+ 
++    _payload_key = "savings_percentage"
++
+     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+         super().__init__(coordinator, entry, "savings_percentage", "plan_savings_percentage")
+ 
+-    @property
+-    def native_value(self) -> float | None:
+-        if self.coordinator.data:
+-            val = self.coordinator.data.get("savings_percentage")
+-            return round(val, 1) if val is not None else None
+-        return None
+-
+     @property
+     def extra_state_attributes(self) -> dict[str, Any]:
+         data = self._data()
+@@ -561,56 +595,44 @@ class SavingsPercentageSensor(HeatPumpOptimizerSensorBase):
+         }
+ 
+ 
+-class PredictedCostSensor(HeatPumpOptimizerSensorBase):
++class PredictedCostSensor(_PayloadValueMixin, HeatPumpOptimizerSensorBase):
+     _attr_state_class = SensorStateClass.MEASUREMENT
+     _attr_suggested_display_precision = 2
+ 
++    _payload_key = "predicted_cost"
++    _payload_digits = 2
++
+     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+         super().__init__(coordinator, entry, "predicted_cost", "cost_predicted")
+         self._attr_native_unit_of_measurement = coordinator.currency
+ 
+-    @property
+-    def native_value(self) -> float | None:
+-        if self.coordinator.data:
+-            val = self.coordinator.data.get("predicted_cost")
+-            return round(val, 2) if val is not None else None
+-        return None
+-
+ 
+-class BaselineCostSensor(HeatPumpOptimizerSensorBase):
++class BaselineCostSensor(_PayloadValueMixin, HeatPumpOptimizerSensorBase):
+     _attr_state_class = SensorStateClass.MEASUREMENT
+     _attr_suggested_display_precision = 2
+ 
++    _payload_key = "baseline_cost"
++    _payload_digits = 2
++
+     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+         super().__init__(coordinator, entry, "baseline_cost", "cost_baseline")
+         self._attr_native_unit_of_measurement = coordinator.currency
+ 
+-    @property
+-    def native_value(self) -> float | None:
+-        if self.coordinator.data:
+-            val = self.coordinator.data.get("baseline_cost")
+-            return round(val, 2) if val is not None else None
+-        return None
+-
+ 
+-class CurrentPriceSensor(HeatPumpOptimizerSensorBase):
++class CurrentPriceSensor(_PayloadValueMixin, HeatPumpOptimizerSensorBase):
+     _attr_state_class = SensorStateClass.MEASUREMENT
+     _attr_suggested_display_precision = 2
+     # No device_class: this is a unit price, not a monetary total. Home
+     # Assistant only accepts state_class "total" for device_class "monetary",
+     # so declaring it here made HA reject the sensor's statistics.
+ 
++    _payload_key = "current_price"
++    _payload_digits = 4
++
+     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+         super().__init__(coordinator, entry, "current_price", "cost_current_electricity_price")
+         self._attr_native_unit_of_measurement = f"{coordinator.currency}/kWh"
+ 
+-    @property
+-    def native_value(self) -> float | None:
+-        if self.coordinator.data:
+-            val = self.coordinator.data.get("current_price")
+-            return round(val, 4) if val is not None else None
+-        return None
+-
+ 
+ class CurrentSetpointSensor(HeatPumpOptimizerSensorBase):
+     _attr_state_class = SensorStateClass.MEASUREMENT
+@@ -631,13 +653,9 @@ class CurrentSetpointSensor(HeatPumpOptimizerSensorBase):
+     @property
+     def extra_state_attributes(self) -> dict[str, Any]:
+         if self.coordinator.data:
+-            action = self.coordinator.data.get("current_action", {})
+-            attrs = {}
+-            if "upper_setpoint" in action:
+-                attrs["upper_floor_setpoint"] = action["upper_setpoint"]
+-            if "lower_setpoint" in action:
+-                attrs["lower_floor_setpoint"] = action["lower_setpoint"]
+-            return attrs
++            return zone_setpoint_attributes(
++                self.coordinator.data.get("current_action", {})
++            )
+         return {}
+ 
+ 
+@@ -689,7 +707,7 @@ class CurrentCOPSensor(HeatPumpOptimizerSensorBase):
+         return None
+ 
+ 
+-class IndoorTempSensor(_MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase):
++class IndoorTempSensor(_PayloadValueMixin, _MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase):
+     """Indoor temperature — unavailable while the thermometer does not read.
+ 
+     The coordinator still writes ``ThermalState.room_temperature``'s 21.0 °C
+@@ -706,16 +724,11 @@ class IndoorTempSensor(_MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase):
+     _attr_device_class = SensorDeviceClass.TEMPERATURE
+     _attr_suggested_display_precision = 1
+ 
++    _payload_key = "indoor_temperature"
++
+     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+         super().__init__(coordinator, entry, "indoor_temp", "indoor_temperature_optimizer")
+ 
+-    @property
+-    def native_value(self) -> float | None:
+-        if self.coordinator.data:
+-            val = self.coordinator.data.get("indoor_temperature")
+-            return round(val, 1) if val is not None else None
+-        return None
+-
+     @property
+     def extra_state_attributes(self) -> dict[str, Any]:
+         """The thermometer this reading comes from (D4 side of the L1 lead).
+@@ -755,7 +768,7 @@ class OutdoorTempSensor(HeatPumpOptimizerSensorBase):
+         return {"source": source}
+ 
+ 
+-class SolarIrradianceSensor(HeatPumpOptimizerSensorBase):
++class SolarIrradianceSensor(_PayloadValueMixin, HeatPumpOptimizerSensorBase):
+     """Global horizontal irradiance the optimizer is currently planning with.
+ 
+     Publishing this makes an otherwise invisible input checkable: if the
+@@ -776,16 +789,11 @@ class SolarIrradianceSensor(HeatPumpOptimizerSensorBase):
+     # update, and its history is of no interest once superseded.
+     _unrecorded_attributes = frozenset({"forecast"})
+ 
++    _payload_key = "solar_radiation"
++
+     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+         super().__init__(coordinator, entry, "solar_irradiance", "solar_irradiance")
+ 
+-    @property
+-    def native_value(self) -> float | None:
+-        if self.coordinator.data:
+-            val = self.coordinator.data.get("solar_radiation")
+-            return round(val, 1) if val is not None else None
+-        return None
+-
+     @property
+     def extra_state_attributes(self) -> dict[str, Any]:
+         data = self._data()
+@@ -806,6 +814,7 @@ class SolarIrradianceSensor(HeatPumpOptimizerSensorBase):
+ 
+ 
+ class SlabTempSensor(
++    _PayloadValueMixin,
+     _ConfiguredInputMixin, _MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase
+ ):
+     """The modelled slab temperature, while there is something modelling it.
+@@ -826,16 +835,11 @@ class SlabTempSensor(
+     # leaves empty: off by default without it (#1335), on with it.
+     _input_slots = (CONF_FLOOR_RETURN_TEMP_ENTITY,)
+ 
++    _payload_key = "slab_temperature"
++
+     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+         super().__init__(coordinator, entry, "slab_temp", "slab_temperature_estimated")
+ 
+-    @property
+-    def native_value(self) -> float | None:
+-        if self.coordinator.data:
+-            val = self.coordinator.data.get("slab_temperature")
+-            return round(val, 1) if val is not None else None
+-        return None
+-
+ 
+ class NextOptimizationSensor(HeatPumpOptimizerSensorBase):
+     _attr_device_class = SensorDeviceClass.TIMESTAMP
+@@ -897,10 +901,7 @@ class HeatPumpActionSensor(HeatPumpOptimizerSensorBase):
+                 "heat_pump_on": action.get("heat_pump_on"),
+                 "ecl110_displace": action.get("displace_value"),
+             }
+-            if "upper_setpoint" in action:
+-                attrs["upper_floor_setpoint"] = action["upper_setpoint"]
+-            if "lower_setpoint" in action:
+-                attrs["lower_floor_setpoint"] = action["lower_setpoint"]
++            attrs.update(zone_setpoint_attributes(action))
+             if "solar_gain_kw" in action:
+                 attrs["solar_gain_kw"] = action["solar_gain_kw"]
+             return attrs
+@@ -984,7 +985,7 @@ class ScheduleStepsSensor(HeatPumpOptimizerSensorBase):
+ # ---------------------------------------------------------------------------
+ 
+ 
+-class UpperFloorTempSensor(_MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase):
++class UpperFloorTempSensor(_PayloadValueMixin, _MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase):
+     """The upper zone's temperature — which is the indoor thermometer.
+ 
+     There is no separate upper-floor input. The coordinator sets
+@@ -1022,18 +1023,13 @@ class UpperFloorTempSensor(_MeasuredTemperatureMixin, HeatPumpOptimizerSensorBas
+     _attr_device_class = SensorDeviceClass.TEMPERATURE
+     _attr_suggested_display_precision = 1
+ 
++    _payload_key = "upper_floor_temperature"
++
+     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+         super().__init__(
+             coordinator, entry, "upper_floor_temp", "upper_floor_temperature"
+         )
+ 
+-    @property
+-    def native_value(self) -> float | None:
+-        if self.coordinator.data:
+-            val = self.coordinator.data.get("upper_floor_temperature")
+-            return round(val, 1) if val is not None else None
+-        return None
+-
+     @property
+     def extra_state_attributes(self) -> dict[str, Any]:
+         # Stated, not implied: two entities carrying the same number look
+@@ -1042,6 +1038,7 @@ class UpperFloorTempSensor(_MeasuredTemperatureMixin, HeatPumpOptimizerSensorBas
+ 
+ 
+ class LowerFloorTempSensor(
++    _PayloadValueMixin,
+     _ConfiguredInputMixin, _MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase
+ ):
+     """The lower zone's temperature, when a thermometer reports it.
+@@ -1063,20 +1060,16 @@ class LowerFloorTempSensor(
+     # leaves empty: off by default without it (#1335), on with it.
+     _input_slots = (CONF_LOWER_FLOOR_TEMP_ENTITY,)
+ 
++    _payload_key = "lower_floor_temperature"
++
+     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+         super().__init__(
+             coordinator, entry, "lower_floor_temp", "lower_floor_temperature"
+         )
+ 
+-    @property
+-    def native_value(self) -> float | None:
+-        if self.coordinator.data:
+-            val = self.coordinator.data.get("lower_floor_temperature")
+-            return round(val, 1) if val is not None else None
+-        return None
+-
+ 
+ class FloorReturnTempSensor(
++    _PayloadValueMixin,
+     _ConfiguredInputMixin, _MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase
+ ):
+     """The floor heating return temperature, straight from the sensor.
+@@ -1096,20 +1089,15 @@ class FloorReturnTempSensor(
+     # leaves empty: off by default without it (#1335), on with it.
+     _input_slots = (CONF_FLOOR_RETURN_TEMP_ENTITY,)
+ 
++    _payload_key = "floor_return_temperature"
++
+     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+         super().__init__(
+             coordinator, entry, "floor_return_temp", "floor_heating_return_temperature"
+         )
+ 
+-    @property
+-    def native_value(self) -> float | None:
+-        if self.coordinator.data:
+-            val = self.coordinator.data.get("floor_return_temperature")
+-            return round(val, 1) if val is not None else None
+-        return None
+-
+ 
+-class SolarHeatGainSensor(HeatPumpOptimizerSensorBase):
++class SolarHeatGainSensor(_PayloadValueMixin, HeatPumpOptimizerSensorBase):
+     """Sensor showing the current solar heat gain contribution in kW."""
+ 
+     _attr_state_class = SensorStateClass.MEASUREMENT
+@@ -1117,18 +1105,14 @@ class SolarHeatGainSensor(HeatPumpOptimizerSensorBase):
+     _attr_device_class = SensorDeviceClass.POWER
+     _attr_suggested_display_precision = 2
+ 
++    _payload_key = "solar_heat_gain"
++    _payload_digits = 3
++
+     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+         super().__init__(
+             coordinator, entry, "solar_heat_gain", "solar_heat_gain"
+         )
+ 
+-    @property
+-    def native_value(self) -> float | None:
+-        if self.coordinator.data:
+-            val = self.coordinator.data.get("solar_heat_gain")
+-            return round(val, 3) if val is not None else None
+-        return None
+-
+     @property
+     def extra_state_attributes(self) -> dict[str, Any]:
+         if self.coordinator.data:
+@@ -1142,6 +1126,7 @@ class SolarHeatGainSensor(HeatPumpOptimizerSensorBase):
+ 
+ 
+ class BufferTankTempSensor(
++    _PayloadValueMixin,
+     _ConfiguredInputMixin, _MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase
+ ):
+     """The buffer tank temperature, while a sensor is reporting it.
+@@ -1161,18 +1146,13 @@ class BufferTankTempSensor(
+     # (own docstring above): off by default without it (#1335), on with it.
+     _input_slots = (CONF_BUFFER_TANK_TEMP_ENTITY,)
+ 
++    _payload_key = "buffer_tank_temperature"
++
+     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+         super().__init__(
+             coordinator, entry, "buffer_tank_temp", "buffer_tank_temperature_model"
+         )
+ 
+-    @property
+-    def native_value(self) -> float | None:
+-        if self.coordinator.data:
+-            val = self.coordinator.data.get("buffer_tank_temperature")
+-            return round(val, 1) if val is not None else None
+-        return None
+-
+ 
+ # ---------------------------------------------------------------------------
+ # DHW (Domestic Hot Water) sensors
+@@ -1180,6 +1160,7 @@ class BufferTankTempSensor(
+ 
+ 
+ class DHWTemperatureSensor(
++    _PayloadValueMixin,
+     _DHWEntityMixin, _MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase
+ ):
+     """The hot water tank temperature, while a thermometer reports it.
+@@ -1200,18 +1181,13 @@ class DHWTemperatureSensor(
+     # without it (#1335), on once it is configured (#1542).
+     _dhw_probe_slot = CONF_DHW_TEMP_ENTITY
+ 
++    _payload_key = "dhw_temperature"
++
+     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+         super().__init__(
+             coordinator, entry, "dhw_temperature", "dhw_temperature"
+         )
+ 
+-    @property
+-    def native_value(self) -> float | None:
+-        if self.coordinator.data:
+-            val = self.coordinator.data.get("dhw_temperature")
+-            return round(val, 1) if val is not None else None
+-        return None
+-
+     @property
+     def extra_state_attributes(self) -> dict[str, Any]:
+         if self.coordinator.data:
+@@ -1303,25 +1279,21 @@ class DHWScheduleSensor(_DHWEntityMixin, HeatPumpOptimizerSensorBase):
+         return {}
+ 
+ 
+-class DHWHeatingCostSensor(_DHWEntityMixin, HeatPumpOptimizerSensorBase):
++class DHWHeatingCostSensor(_PayloadValueMixin, _DHWEntityMixin, HeatPumpOptimizerSensorBase):
+     """Sensor showing the estimated DHW heating cost."""
+ 
+     _attr_state_class = SensorStateClass.MEASUREMENT
+     _attr_suggested_display_precision = 2
+ 
++    _payload_key = "dhw_heating_cost"
++    _payload_digits = 2
++
+     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+         super().__init__(
+             coordinator, entry, "dhw_heating_cost", "dhw_heating_cost"
+         )
+         self._attr_native_unit_of_measurement = coordinator.currency
+ 
+-    @property
+-    def native_value(self) -> float | None:
+-        if self.coordinator.data:
+-            val = self.coordinator.data.get("dhw_heating_cost")
+-            return round(val, 2) if val is not None else None
+-        return None
+-
+ 
+ # ---------------------------------------------------------------------------
+ # Predictive insight sensors
+@@ -1397,7 +1369,7 @@ class PredictiveInsightSensor(HeatPumpOptimizerSensorBase):
+         return {}
+ 
+ 
+-class ECL110DisplaceSensor(_ConfiguredInputMixin, HeatPumpOptimizerSensorBase):
++class ECL110DisplaceSensor(_PayloadValueMixin, _ConfiguredInputMixin, HeatPumpOptimizerSensorBase):
+     """Current ECL110 displace command value."""
+ 
+     _attr_state_class = SensorStateClass.MEASUREMENT
+@@ -1412,18 +1384,13 @@ class ECL110DisplaceSensor(_ConfiguredInputMixin, HeatPumpOptimizerSensorBase):
+     # with the machinery, not the headline (#177).
+     _attr_entity_category = EntityCategory.DIAGNOSTIC
+ 
++    _payload_key = "ecl110_displace"
++
+     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+         super().__init__(coordinator, entry, "ecl110_displace", "ecl110_displace")
+ 
+-    @property
+-    def native_value(self) -> float | None:
+-        if self.coordinator.data:
+-            val = self.coordinator.data.get("ecl110_displace")
+-            return round(val, 1) if val is not None else None
+-        return None
+ 
+-
+-class ECL110EffectiveDisplaceSensor(_ConfiguredInputMixin, HeatPumpOptimizerSensorBase):
++class ECL110EffectiveDisplaceSensor(_PayloadValueMixin, _ConfiguredInputMixin, HeatPumpOptimizerSensorBase):
+     """Modeled effective displace after ECL110 PI/PID dynamics."""
+ 
+     _attr_state_class = SensorStateClass.MEASUREMENT
+@@ -1433,6 +1400,8 @@ class ECL110EffectiveDisplaceSensor(_ConfiguredInputMixin, HeatPumpOptimizerSens
+     _input_slots = ECL110_TOPIC_SLOTS
+     _attr_entity_category = EntityCategory.DIAGNOSTIC
+ 
++    _payload_key = "ecl110_effective_displace"
++
+     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+         super().__init__(
+             coordinator,
+@@ -1441,13 +1410,6 @@ class ECL110EffectiveDisplaceSensor(_ConfiguredInputMixin, HeatPumpOptimizerSens
+             "ecl110_effective_displace",
+         )
+ 
+-    @property
+-    def native_value(self) -> float | None:
+-        if self.coordinator.data:
+-            val = self.coordinator.data.get("ecl110_effective_displace")
+-            return round(val, 1) if val is not None else None
+-        return None
+-
+     @property
+     def extra_state_attributes(self) -> dict[str, Any]:
+         if self.coordinator.data:
+@@ -2423,6 +2385,7 @@ class ComfortWeightSensor(HeatPumpOptimizerSensorBase):
+ 
+ 
+ class ContractComparisonSensor(
++    _PayloadPathMixin,
+     _WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase
+ ):
+     """This month's consumption settled under each contract type (#23).
+@@ -2442,6 +2405,8 @@ class ContractComparisonSensor(
+     # diagnostic most households never enable.
+     _attr_entity_registry_enabled_default = False
+ 
++    _payload_path = ("contract_comparison", "load_profile_value_per_kwh")
++
+     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+         super().__init__(
+             coordinator, entry, "contract_comparison", "cost_contract_comparison"
+@@ -2459,12 +2424,6 @@ class ContractComparisonSensor(
+             return "settled_metered_month"
+         return None
+ 
+-    @property
+-    def native_value(self) -> float | None:
+-        data = (self._data()).get("contract_comparison") or {}
+-        value = data.get("load_profile_value_per_kwh")
+-        return value if isinstance(value, (int, float)) else None
+-
+     @property
+     def extra_state_attributes(self) -> dict[str, Any]:
+         attrs = dict(
+@@ -2481,7 +2440,7 @@ class ContractComparisonSensor(
+         return attrs
+ 
+ 
+-class PowerHeadroomSensor(HeatPumpOptimizerSensorBase):
++class PowerHeadroomSensor(_PayloadPathMixin, HeatPumpOptimizerSensorBase):
+     """How many kW the house can draw right now without new cost (#5).
+ 
+     ``min(main fuse, capacity threshold) − current house draw``, clamped at
+@@ -2502,6 +2461,8 @@ class PowerHeadroomSensor(HeatPumpOptimizerSensorBase):
+     # its Monthly Peak twin. Existing registry entries keep their state.
+     _attr_entity_registry_enabled_default = False
+ 
++    _payload_path = ("power_headroom", "headroom_kw")
++
+     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+         super().__init__(
+             coordinator, entry, "power_headroom", "cost_power_headroom"
+@@ -2512,12 +2473,6 @@ class PowerHeadroomSensor(HeatPumpOptimizerSensorBase):
+         data = (self._data()).get("power_headroom") or {}
+         return bool(super().available and data.get("available"))
+ 
+-    @property
+-    def native_value(self) -> float | None:
+-        data = (self._data()).get("power_headroom") or {}
+-        value = data.get("headroom_kw")
+-        return value if isinstance(value, (int, float)) else None
+-
+     @property
+     def extra_state_attributes(self) -> dict[str, Any]:
+         data = dict(
+@@ -2527,7 +2482,7 @@ class PowerHeadroomSensor(HeatPumpOptimizerSensorBase):
+         return data
+ 
+ 
+-class DHWSetpointAdvisorSensor(_DHWEntityMixin, HeatPumpOptimizerSensorBase):
++class DHWSetpointAdvisorSensor(_PayloadPathMixin, _DHWEntityMixin, HeatPumpOptimizerSensorBase):
+     """The cheapest hot-water setpoint that still covers the heavy days (#9).
+ 
+     Read-only by design: it replays candidate setpoints against everything
+@@ -2554,6 +2509,8 @@ class DHWSetpointAdvisorSensor(_DHWEntityMixin, HeatPumpOptimizerSensorBase):
+     # coordinator; the recorder gains nothing from writing it every cycle.
+     _unrecorded_attributes = frozenset({"candidates"})
+ 
++    _payload_path = ("dhw_advisor", "recommended_setpoint")
++
+     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+         super().__init__(
+             coordinator, entry, "dhw_setpoint_advisor", "dhw_setpoint_advisor"
+@@ -2566,18 +2523,13 @@ class DHWSetpointAdvisorSensor(_DHWEntityMixin, HeatPumpOptimizerSensorBase):
+             super().available and data.get("recommended_setpoint") is not None
+         )
+ 
+-    @property
+-    def native_value(self) -> float | None:
+-        data = (self._data()).get("dhw_advisor") or {}
+-        value = data.get("recommended_setpoint")
+-        return value if isinstance(value, (int, float)) else None
+-
+     @property
+     def extra_state_attributes(self) -> dict[str, Any]:
+         return dict((self._data()).get("dhw_advisor", {}) or {})
+ 
+ 
+ class MixedHotWaterSensor(
++    _PayloadPathMixin,
+     _DHWEntityMixin, _MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase
+ ):
+     """The tank translated into shower terms (#28).
+@@ -2610,6 +2562,8 @@ class MixedHotWaterSensor(
+     # probe-keyed default as DHW Temperature above (#1335, #1542).
+     _dhw_probe_slot = CONF_DHW_TEMP_ENTITY
+ 
++    _payload_path = ("dhw_mixed", "litres_40c")
++
+     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+         # Moved from mixed_hot_water in #174; see DHWEnergySensor.
+         super().__init__(
+@@ -2622,12 +2576,6 @@ class MixedHotWaterSensor(
+             super().available and (self._data()).get("dhw_mixed")
+         )
+ 
+-    @property
+-    def native_value(self) -> float | None:
+-        data = (self._data()).get("dhw_mixed") or {}
+-        value = data.get("litres_40c")
+-        return value if isinstance(value, (int, float)) else None
+-
+     @property
+     def extra_state_attributes(self) -> dict[str, Any]:
+         return dict((self._data()).get("dhw_mixed", {}) or {})
+@@ -2745,7 +2693,7 @@ class PlanNarrativeSensor(HeatPumpOptimizerSensorBase):
+         return attrs
+ 
+ 
+-class OptimizationScoreSensor(HeatPumpOptimizerSensorBase):
++class OptimizationScoreSensor(_PayloadPathMixin, HeatPumpOptimizerSensorBase):
+     """Envelope, machine and operation graded 0–100 (#65).
+ 
+     State: the mean of whatever scores have evidence. Each sub-score
+@@ -2760,6 +2708,8 @@ class OptimizationScoreSensor(HeatPumpOptimizerSensorBase):
+     # Primary, not Diagnostic: a headline stat; see PlanNarrativeSensor (#175).
+     _attr_suggested_display_precision = 1
+ 
++    _payload_path = ("insight", "scores", "overall")
++
+     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+         super().__init__(
+             coordinator, entry, "optimization_score", "plan_optimization_score"
+@@ -2772,14 +2722,6 @@ class OptimizationScoreSensor(HeatPumpOptimizerSensorBase):
+         ) or {}
+         return bool(super().available and scores.get("overall") is not None)
+ 
+-    @property
+-    def native_value(self) -> float | None:
+-        scores = (
+-            ((self._data()).get("insight") or {}).get("scores")
+-        ) or {}
+-        value = scores.get("overall")
+-        return value if isinstance(value, (int, float)) else None
+-
+     @property
+     def extra_state_attributes(self) -> dict[str, Any]:
+         insight = (self._data()).get("insight") or {}
+@@ -2799,7 +2741,7 @@ class OptimizationScoreSensor(HeatPumpOptimizerSensorBase):
+         return attrs
+ 
+ 
+-class CompressorStartsSensor(HeatPumpOptimizerSensorBase):
++class CompressorStartsSensor(_PayloadPathMixin, HeatPumpOptimizerSensorBase):
+     """Realised compressor starts, counted from the meter (#55).
+ 
+     State: lifetime starts. TOTAL_INCREASING, so long-term statistics and
+@@ -2816,6 +2758,9 @@ class CompressorStartsSensor(HeatPumpOptimizerSensorBase):
+     # dead (#1335). Existing registry entries keep their state.
+     _attr_entity_registry_enabled_default = False
+ 
++    _payload_path = ("insight", "compressor_starts", "lifetime")
++    _payload_types = (int,)
++
+     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+         super().__init__(
+             coordinator, entry, "compressor_starts", "compressor_starts"
+@@ -2826,16 +2771,6 @@ class CompressorStartsSensor(HeatPumpOptimizerSensorBase):
+         data = (self._data()).get("measured_power_available")
+         return bool(super().available and data)
+ 
+-    @property
+-    def native_value(self) -> int | None:
+-        starts = (
+-            ((self._data()).get("insight") or {}).get(
+-                "compressor_starts"
+-            )
+-        ) or {}
+-        value = starts.get("lifetime")
+-        return value if isinstance(value, int) else None
+-
+     @property
+     def extra_state_attributes(self) -> dict[str, Any]:
+         starts = (
+@@ -2846,7 +2781,7 @@ class CompressorStartsSensor(HeatPumpOptimizerSensorBase):
+         return dict(starts)
+ 
+ 
+-class FrequencyAdvisorSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase):
++class FrequencyAdvisorSensor(_PayloadPathMixin, _WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase):
+     """What compressor frequency the plan's power asks for (T7 #61).
+ 
+     State: the recommended Hz for the current commanded power, from the
+@@ -2865,6 +2800,8 @@ class FrequencyAdvisorSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase
+     # everyone else, so disabled rather than shipped dead.
+     _attr_entity_registry_enabled_default = False
+ 
++    _payload_path = ("freq_control", "recommended_hz")
++
+     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+         super().__init__(
+             coordinator, entry, "frequency_advisor", "compressor_frequency_advisor"
+@@ -2881,12 +2818,6 @@ class FrequencyAdvisorSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase
+             return "first_frequency_map_sample"
+         return None
+ 
+-    @property
+-    def native_value(self) -> float | None:
+-        view = (self._data()).get("freq_control") or {}
+-        value = view.get("recommended_hz")
+-        return value if isinstance(value, (int, float)) else None
+-
+     @property
+     def extra_state_attributes(self) -> dict[str, Any]:
+         attrs = dict((self._data()).get("freq_control", {}) or {})
+diff --git a/custom_components/heatpump_optimizer/thermal_model.py b/custom_components/heatpump_optimizer/thermal_model.py
+index bad273fd8..f5355b4ea 100644
+--- a/custom_components/heatpump_optimizer/thermal_model.py
++++ b/custom_components/heatpump_optimizer/thermal_model.py
+@@ -109,6 +109,7 @@ from .const import (
+     topology_layout_valid,
+ )
+ from .flow_lift import FLOW_SUPPLY_MAX_C, curve_supply_temp
++from .inputs import finite_float
+ from .wood_fuel import wood_furnace_on
+ from .dhw_schedule import (
+     DHWWindowError,
+@@ -1457,10 +1458,10 @@ def flow_setpoint_for_level(
+     constant.
+     """
+     heat = float(heat_c)
+-    planned = _optional_float(planned_kw)
+-    lo = _optional_float(p_min)
+-    hi = _optional_float(p_max)
+-    inlet = _optional_float(inlet_c)
++    planned = finite_float(planned_kw)
++    lo = finite_float(p_min)
++    hi = finite_float(p_max)
++    inlet = finite_float(inlet_c)
+     ready = all((
+         planned is not None, lo is not None, hi is not None,
+         inlet is not None, math.isfinite(heat),
+@@ -1495,26 +1496,11 @@ def flow_setpoint_for_level(
+     )
+ 
+ 
+-def _optional_float(value: Any) -> float | None:
+-    try:
+-        number = float(value)
+-    except (TypeError, ValueError):
+-        number = None
+-    return (
+-        number
+-        if (
+-            number is not None
+-            and math.isfinite(number)
+-        )
+-        else None
+-    )
+-
+-
+ def configured_flow_heat_c(config: Any, default: float | None = None) -> float:
+     """The heating-flow ceiling from config, else ``default`` (°C)."""
+     fallback = const.DEFAULT_FLOW_HEAT_C if default is None else default
+     raw = (config or {}).get(const.CONF_FLOW_HEAT_C, fallback)
+-    number = _optional_float(raw)
++    number = finite_float(raw)
+     return (
+         float(fallback) if number is None else number
+     )

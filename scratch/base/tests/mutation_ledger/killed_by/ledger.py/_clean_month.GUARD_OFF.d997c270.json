@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/ledger.py:_clean_month GUARD_OFF d997c270",
+  "killed_by": "tests/features.py",
+  "old": "    if not isinstance(value, dict):",
+  "reason": "R8-P1 (#1518): `if False:` lets a list month reach value.get(), and the #1518 check's list month raises AttributeError out of from_dict; tests/features.py goes from rc=0 to rc=1. Measured on fix/r8-p1 at d6facdb4 (merge base 407e9ade), 2026-09-24, with tests/mutation_table.py's clone_tree, run_script and killed(); baseline rc=0 failed=0."
+}

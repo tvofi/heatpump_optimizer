@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:<module> CONST f9b2244f",
+  "killed_by": "tests/features.py",
+  "old": "LEASE_MINUTES = 90.0",
+  "reason": "pump-duty arbiter revision; `LEASE_MINUTES = 90.0` -> `LEASE_MINUTES = 180.0` fails 2 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+}

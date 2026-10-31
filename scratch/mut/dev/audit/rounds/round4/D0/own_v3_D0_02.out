@@ -1,0 +1,33 @@
+CELL winter_typical/tz1/dhw1/h6               J=17.50710 x15 +0.000000%  max_nit_here=14/cap 300
+CELL summer_negative/tz1/dhw1/h6              J=8.60590 x15 +0.000000%  max_nit_here=17/cap 300
+CELL flat/tz1/dhw1/h6                         J=33.49447 x15 +0.000000%  max_nit_here=11/cap 300
+CELL winter_typical/tz0/dhw1/h6               J=18.70579 x15 +0.000000%  max_nit_here=5/cap 300
+CELL winter_typical/tz1/dhw1/h24              J=87.27327 x15 +0.000000%  max_nit_here=26/cap 300
+CELL summer_negative/tz1/dhw1/h24             J=19.33594 x15 +0.000000%  max_nit_here=28/cap 300
+CELL flat/tz1/dhw1/h24                        J=107.67103 x15 +0.000000%  max_nit_here=21/cap 300
+CELL winter_typical/tz0/dhw1/h24              J=68.81957 x15 +0.000000%  max_nit_here=4/cap 300
+CELL winter_typical/tz1/dhw0/h24              J=77.98846 x15 +0.000000%  max_nit_here=22/cap 200
+CELL winter_typical/tz1/dhw1/h48              J=168.95254 x15 +0.000000%  max_nit_here=50/cap 300
+CELL winter_extreme/tz1/dhw1/h48              J=249.34213 x15 +0.000000%  max_nit_here=62/cap 300
+CELL summer_negative/tz1/dhw1/h48             J=36.75429 x15 +0.000000%  max_nit_here=37/cap 300
+CELL flat/tz1/dhw1/h48                        J=207.50410 x15 +0.000000%  max_nit_here=36/cap 300
+CELL winter_typical/tz0/dhw1/h48              J=129.45830 x15 +0.000000%  max_nit_here=22/cap 300
+CELL winter_typical/tz1/dhw0/h48              J=149.35791 x15 +0.000000%  max_nit_here=31/cap 200
+RESULT own_max_gain_maxiter_x15_priced_pct=0 %
+RESULT own_mean_gain_maxiter_x15_priced_pct=0 %
+RESULT own_cells_maxiter_x15_changed_priced=0
+RESULT own_max_gain_maxiter_x15_flat_pct=0 %
+RESULT own_mean_gain_maxiter_x15_flat_pct=0 %
+RESULT own_cells_maxiter_x15_changed_flat=0
+RESULT own_cells_total=15
+RESULT own_lbfgsb_solves_observed=85
+RESULT own_solves_terminating_on_maxiter=0
+RESULT own_max_nit_observed=62
+RESULT own_median_nit_observed=12
+RESULT own_p95_nit_observed=37
+RESULT own_starved_solves_observed=24
+RESULT own_starved_solves_on_cap=24
+RESULT own_starved_cells_objective_worse=4 of 4
+RESULT thread_factor=1
+RESULT load1=9.7
+RESULT swapins=42528623

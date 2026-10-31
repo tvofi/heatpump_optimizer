@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow.async_step_modbus_prefill GUARD_OFF bdbf759c",
+  "killed_by": "tests/config_flow_steps.py",
+  "old": "        if self._prefill is None:",
+  "reason": "Recorded by `mutation_table.py --drain` against c77f89dc619c4f13704406e790d2199529105254: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=1."
+}

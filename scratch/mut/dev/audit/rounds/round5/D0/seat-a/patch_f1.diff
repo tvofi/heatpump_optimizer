@@ -1,0 +1,28 @@
+diff --git a/custom_components/heatpump_optimizer/optimizer.py b/custom_components/heatpump_optimizer/optimizer.py
+index c2a78f0..412ec4d 100644
+--- a/custom_components/heatpump_optimizer/optimizer.py
++++ b/custom_components/heatpump_optimizer/optimizer.py
+@@ -3332,6 +3332,13 @@ class HeatPumpOptimizer:
+                     headroom,
+                 )
+             )
++            # AUDIT PERTURBATION D0-a: one extra structured seed (f=0.85)
++            starts.append(
++                np.minimum(
++                    _price_ranked_start(prices, energy * 0.85, p_max, dt),
++                    headroom,
++                )
++            )
+         try:
+             res = _multi_start_minimize(
+                 objective, starts, bounds, args=(dhw_plan,), maxiter=300,
+@@ -3853,6 +3860,9 @@ class HeatPumpOptimizer:
+         ]
+         if h.extra_starts:
+             starts = list(h.extra_starts) + starts
++        # AUDIT PERTURBATION D0-a: one extra structured seed (f=0.15)
++        starts.append(_price_ranked_start(
++            prices, baseline_energy * 0.15, p_max, dt))
+ 
+         try:
+             result = _multi_start_minimize(

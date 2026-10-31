@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/accuracy.py:MeasuredCop.from_dict BOOLOP 4cb095ac",
+  "killed_by": "tests/features.py",
+  "old": "        if temp is not None and not np.isfinite(temp):",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 47b083b03a9dcbfb1e33679dc5f7d3313a5fed49: BOOLOP (`if temp is not None or not np.isfinite(temp):`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

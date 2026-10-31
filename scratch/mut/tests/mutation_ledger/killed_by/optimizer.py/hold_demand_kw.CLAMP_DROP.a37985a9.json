@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:hold_demand_kw CLAMP_DROP a37985a9",
+  "killed_by": "tests/features.py",
+  "old": "        - max(0.0, float(solar_mean)),",
+  "reason": "Recorded by `mutation_table.py --drain` against cff39dad61c4cc15dbaabd03c3a2e3746bca1fab: CLAMP_DROP (`- (0.0),`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

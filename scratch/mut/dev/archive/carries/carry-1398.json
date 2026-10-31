@@ -1,0 +1,23 @@
+{
+  "_comment": [
+    "Carry destination for issue #1398 (R6-D8-01, the no-hot-water dead-entities",
+    "finding). The fix made the hot-water family's registry default dynamic --",
+    "entity_registry_enabled_default is now a property conditional on dhw_enabled --",
+    "instead of a static _attr_entity_registry_enabled_default = False. The round-6",
+    "D8 finder's matrix harness still counts the static attribute, so its",
+    "no_dhw_gate_counts counter must be re-anchored when #1398 is re-verified.",
+    "Shape and required fields: .claude/rules/finding-propagation.md. Linted by",
+    ".claude/workflows/brief_lint.mjs (the briefs CI job)."
+  ],
+  "issue": 1398,
+  "stage": "the seat that re-verifies finding #1398 (a round-6 D8 verifier or judge, or the seat that commits the round-6 D8 matrix harness to the tree)",
+  "carries": [
+    {
+      "from": "the round-6 D8 fix for #1398, which replaced the static default-off with a dynamic entity_registry_enabled_default property on _DHWEntityMixin in custom_components/heatpump_optimizer/sensor.py",
+      "effect": "invalidates",
+      "control": "The finder's counter no_dhw_gate_counts counts _DHWEntityMixin entities where getattr(type(e), '_attr_entity_registry_enabled_default', True) is not False and not e.available. The fix no longer sets that static attribute on the five non-temperature hot-water entities, so the counter reads them as enabled-by-default and reports 5 for a no-hot-water install even though the dynamic default is off. The null control is the hot-water variant: with dhw_enabled True the counter reads 0 at both ends, which separates the dynamic fix from a blanket off.",
+      "remeasure": "Re-anchor no_dhw_gate_counts to read e.entity_registry_enabled_default (the dynamic property) instead of the static _attr_entity_registry_enabled_default, and re-run PYTHONPATH=tests/hastub python3 tools/audit/round6/D8/matrix.py at the head. d8_no_dhw_enabled_unavailable must move from 5 to 0 for a no-hot-water install, and stay 0 for a hot-water install.",
+      "brief": "The #1398 fix is dynamic, not static. The hot-water family's registry default is now the entity_registry_enabled_default property on _DHWEntityMixin, off only where dhw_enabled is False (no hot water) and on where hot water is configured, so a no-hot-water install ships no dead enabled entities while a hot-water install keeps the card plan and the Energy-dashboard DHW meters on. Do not read the static _attr_entity_registry_enabled_default: it is deliberately left unset on the five non-temperature entities, and the probe-gated DHWTemperatureSensor keeps its own static default-off, which is evidence about the probe, not about the rest of the family."
+    }
+  ]
+}

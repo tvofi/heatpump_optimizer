@@ -1,0 +1,3 @@
+accuracy calibrated: power_ratio 1.0 cost_error_percent 0.0
+accuracy realised_1.4x: power_ratio 1.4 cost_error_percent -28.57
+accuracy plan_overbooks_40pct: power_ratio 0.714 cost_error_percent 40.0

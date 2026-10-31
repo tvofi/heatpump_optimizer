@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sysid.py:_predict_step_excursion_plant CLAMP_DROP e8d1fe1f",
+  "old": "            dt = min(dt_hours, remaining)",
+  "reason": "R8-P5c: the base's two copies of this line (the step and relax loops, merged into one here) carried no disposition either. Dropping the clamp overshoots a phase only when its length is not a multiple of the 0.25 h rollout step; SysIdConfig's step_hours and relax_hours default to 2.0 and no driver configures another, so nothing reads the overshoot. A sizer check at a 2.1 h phase would pin it.",
+  "verdict": "gap"
+}

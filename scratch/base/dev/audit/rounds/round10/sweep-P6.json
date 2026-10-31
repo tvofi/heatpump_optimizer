@@ -1,0 +1,194 @@
+{
+ "class": "P6",
+ "instances": 2,
+ "barriered": false,
+ "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-P6/enumerate.py  [--tree DIR | --fixture clean|reintro]",
+ "instance_list": [
+  {
+   "file": "custom_components/heatpump_optimizer/sensor.py",
+   "symbol": "PredictedSavingsSensor.native_value",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-P6/enumerate.py | grep 'PredictedSavingsSensor.native_value' -- payload ['predicted_savings'] = True publishes 1 (want None); = '21.5' gives TypeError (want None)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/sensor.py",
+   "symbol": "SavingsPercentageSensor.native_value",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-P6/enumerate.py | grep 'SavingsPercentageSensor.native_value' -- payload ['savings_percentage'] = True publishes 1 (want None); = '21.5' gives TypeError (want None)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/sensor.py",
+   "symbol": "PredictedCostSensor.native_value",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-P6/enumerate.py | grep 'PredictedCostSensor.native_value' -- payload ['predicted_cost'] = True publishes 1 (want None); = '21.5' gives TypeError (want None)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/sensor.py",
+   "symbol": "BaselineCostSensor.native_value",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-P6/enumerate.py | grep 'BaselineCostSensor.native_value' -- payload ['baseline_cost'] = True publishes 1 (want None); = '21.5' gives TypeError (want None)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/sensor.py",
+   "symbol": "CurrentPriceSensor.native_value",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-P6/enumerate.py | grep 'CurrentPriceSensor.native_value' -- payload ['current_price'] = True publishes 1 (want None); = '21.5' gives TypeError (want None)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/sensor.py",
+   "symbol": "IndoorTempSensor.native_value",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-P6/enumerate.py | grep 'IndoorTempSensor.native_value' -- payload ['indoor_temperature'] = True publishes 1 (want None); = '21.5' gives TypeError (want None)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/sensor.py",
+   "symbol": "OutdoorTempSensor.native_value",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-P6/enumerate.py | grep 'OutdoorTempSensor.native_value' -- payload ['outdoor_temperature'] = True publishes 1.0 (want None); = '21.5' gives 21.5 (want None)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/sensor.py",
+   "symbol": "SolarIrradianceSensor.native_value",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-P6/enumerate.py | grep 'SolarIrradianceSensor.native_value' -- payload ['solar_radiation'] = True publishes 1 (want None); = '21.5' gives TypeError (want None)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/sensor.py",
+   "symbol": "SlabTempSensor.native_value",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-P6/enumerate.py | grep 'SlabTempSensor.native_value' -- payload ['slab_temperature'] = True publishes 1 (want None); = '21.5' gives TypeError (want None)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/sensor.py",
+   "symbol": "UpperFloorTempSensor.native_value",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-P6/enumerate.py | grep 'UpperFloorTempSensor.native_value' -- payload ['upper_floor_temperature'] = True publishes 1 (want None); = '21.5' gives TypeError (want None)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/sensor.py",
+   "symbol": "LowerFloorTempSensor.native_value",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-P6/enumerate.py | grep 'LowerFloorTempSensor.native_value' -- payload ['lower_floor_temperature'] = True publishes 1 (want None); = '21.5' gives TypeError (want None)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/sensor.py",
+   "symbol": "FloorReturnTempSensor.native_value",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-P6/enumerate.py | grep 'FloorReturnTempSensor.native_value' -- payload ['floor_return_temperature'] = True publishes 1 (want None); = '21.5' gives TypeError (want None)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/sensor.py",
+   "symbol": "SolarHeatGainSensor.native_value",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-P6/enumerate.py | grep 'SolarHeatGainSensor.native_value' -- payload ['solar_heat_gain'] = True publishes 1 (want None); = '21.5' gives TypeError (want None)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/sensor.py",
+   "symbol": "BufferTankTempSensor.native_value",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-P6/enumerate.py | grep 'BufferTankTempSensor.native_value' -- payload ['buffer_tank_temperature'] = True publishes 1 (want None); = '21.5' gives TypeError (want None)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/sensor.py",
+   "symbol": "DHWTemperatureSensor.native_value",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-P6/enumerate.py | grep 'DHWTemperatureSensor.native_value' -- payload ['dhw_temperature'] = True publishes 1 (want None); = '21.5' gives TypeError (want None)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/sensor.py",
+   "symbol": "DHWHeatingCostSensor.native_value",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-P6/enumerate.py | grep 'DHWHeatingCostSensor.native_value' -- payload ['dhw_heating_cost'] = True publishes 1 (want None); = '21.5' gives TypeError (want None)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/sensor.py",
+   "symbol": "ECL110DisplaceSensor.native_value",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-P6/enumerate.py | grep 'ECL110DisplaceSensor.native_value' -- payload ['ecl110_displace'] = True publishes 1 (want None); = '21.5' gives TypeError (want None)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/sensor.py",
+   "symbol": "ECL110EffectiveDisplaceSensor.native_value",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-P6/enumerate.py | grep 'ECL110EffectiveDisplaceSensor.native_value' -- payload ['ecl110_effective_displace'] = True publishes 1 (want None); = '21.5' gives TypeError (want None)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/sensor.py",
+   "symbol": "MeasuredPowerSensor.native_value",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-P6/enumerate.py | grep 'MeasuredPowerSensor.native_value' -- payload ['measured_power'] = True publishes 1 (want None); = '21.5' gives TypeError (want None)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/sensor.py",
+   "symbol": "ObservedCOPSensor.native_value",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-P6/enumerate.py | grep 'ObservedCOPSensor.native_value' -- payload ['measured_cop'] = True publishes True (want None); = '21.5' gives '21.5' (want None)",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/sensor.py",
+   "symbol": "_AccumulatingSensor.native_value (subclasses _AccumulatingSensor, SpaceEnergySensor, DHWEnergySensor, TotalEnergySensor, _AccumulatingCostSensor, SpaceCostSensor, DHWCostSensor, TotalCostSensor)",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-P6/enumerate.py | grep '_AccumulatingSensor.native_value' -- payload ['<_data_key>'] = True publishes 1 (want None); = '21.5' gives None (want None)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/sensor.py",
+   "symbol": "MonthlyPeakSensor.native_value",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-P6/enumerate.py | grep 'MonthlyPeakSensor.native_value' -- payload ['billed_peak_kw'] = True publishes True (want None); = '21.5' gives '21.5' (want None)",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/sensor.py",
+   "symbol": "ValveTargetRecommendationSensor.native_value",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-P6/enumerate.py | grep 'ValveTargetRecommendationSensor.native_value' -- payload ['valve_target_recommendation', 'target'] = True publishes True (want None); = '21.5' gives '21.5' (want None)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/sensor.py",
+   "symbol": "ComfortWeightSensor.native_value",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-P6/enumerate.py | grep 'ComfortWeightSensor.native_value' -- payload ['comfort_weight'] = True publishes 1 (want None); = '21.5' gives None (want None)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/sensor.py",
+   "symbol": "ContractComparisonSensor.native_value",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-P6/enumerate.py | grep 'ContractComparisonSensor.native_value' -- payload ['contract_comparison', 'load_profile_value_per_kwh'] = True publishes True (want None); = '21.5' gives None (want None)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/sensor.py",
+   "symbol": "PowerHeadroomSensor.native_value",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-P6/enumerate.py | grep 'PowerHeadroomSensor.native_value' -- payload ['power_headroom', 'headroom_kw'] = True publishes True (want None); = '21.5' gives None (want None)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/sensor.py",
+   "symbol": "DHWSetpointAdvisorSensor.native_value",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-P6/enumerate.py | grep 'DHWSetpointAdvisorSensor.native_value' -- payload ['dhw_advisor', 'recommended_setpoint'] = True publishes True (want None); = '21.5' gives None (want None)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/sensor.py",
+   "symbol": "MixedHotWaterSensor.native_value",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-P6/enumerate.py | grep 'MixedHotWaterSensor.native_value' -- payload ['dhw_mixed', 'litres_40c'] = True publishes True (want None); = '21.5' gives None (want None)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/sensor.py",
+   "symbol": "OptimizationScoreSensor.native_value",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-P6/enumerate.py | grep 'OptimizationScoreSensor.native_value' -- payload ['insight', 'scores', 'overall'] = True publishes True (want None); = '21.5' gives None (want None)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/sensor.py",
+   "symbol": "CompressorStartsSensor.native_value",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-P6/enumerate.py | grep 'CompressorStartsSensor.native_value' -- payload ['insight', 'compressor_starts', 'lifetime'] = True publishes True (want None); = '21.5' gives None (want None)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/sensor.py",
+   "symbol": "FrequencyAdvisorSensor.native_value",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-P6/enumerate.py | grep 'FrequencyAdvisorSensor.native_value' -- payload ['freq_control', 'recommended_hz'] = True publishes True (want None); = '21.5' gives None (want None)",
+   "beyond_finding": false
+  }
+ ]
+}

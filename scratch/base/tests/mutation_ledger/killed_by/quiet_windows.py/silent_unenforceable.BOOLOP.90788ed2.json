@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/quiet_windows.py:silent_unenforceable BOOLOP 90788ed2",
+  "killed_by": "tests/guard_pins.py",
+  "old": "    return not (gchv_schedule_ready(config, get_state) and gchv_fits_pump(spec))",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 6001b09a557259f37319b400d219cf83e02c563f: BOOLOP (`return not (gchv_schedule_ready(config, get_state) or gchv_fits_pump(spec))`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=1."
+}

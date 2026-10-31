@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_dhw_inlet_c BOOLOP f4464b0f",
+  "killed_by": "tests/features.py",
+  "old": "    return value if value is not None and -5.0 <= value <= 35.0 else None",
+  "reason": "#1513 (R8-P8): BOOLOP on a unit-aware price or temperature reader this diff added. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 1 failed, among them `and a stale, implausible or non-numeric inlet reading is refused`. Measured at d6d79847, 2026-09-24."
+}

@@ -1,0 +1,144 @@
+{
+ "per_day": {
+  "spring": {
+   "cycles": 48,
+   "cycle_errors": 0,
+   "entities": 74,
+   "wrong_sites": 9
+  },
+  "autumn": {
+   "cycles": 48,
+   "cycle_errors": 0,
+   "entities": 74,
+   "wrong_sites": 10
+  },
+  "plain": {
+   "cycles": 48,
+   "cycle_errors": 0,
+   "entities": 74,
+   "wrong_sites": 0
+  }
+ },
+ "sites": [
+  {
+   "file": "accuracy.py",
+   "line": 182,
+   "func": "score_lead_predictions",
+   "kind": "aware-shared-zone",
+   "hits": 18496,
+   "crossing": 258,
+   "wrong": 258,
+   "max_err_s": 3600.0
+  },
+  {
+   "file": "coordinator.py",
+   "line": 2688,
+   "func": "close",
+   "kind": "add-shared-zone",
+   "hits": 25,
+   "crossing": 0,
+   "wrong": 0,
+   "max_err_s": 0.0
+  },
+  {
+   "file": "coordinator.py",
+   "line": 4199,
+   "func": "_async_update_data",
+   "kind": "add-shared-zone",
+   "hits": 144,
+   "crossing": 2,
+   "wrong": 2,
+   "max_err_s": 3600.0
+  },
+  {
+   "file": "coordinator.py",
+   "line": 4995,
+   "func": "_update_current_state",
+   "kind": "aware-shared-zone",
+   "hits": 141,
+   "crossing": 2,
+   "wrong": 2,
+   "max_err_s": 3600.0
+  },
+  {
+   "file": "coordinator.py",
+   "line": 5744,
+   "func": "_forecast_arrays",
+   "kind": "aware-shared-zone",
+   "hits": 144,
+   "crossing": 84,
+   "wrong": 84,
+   "max_err_s": 3600.0
+  },
+  {
+   "file": "coordinator.py",
+   "line": 6196,
+   "func": "_plan_age_minutes",
+   "kind": "aware-shared-zone",
+   "hits": 432,
+   "crossing": 0,
+   "wrong": 0,
+   "max_err_s": 0.0
+  },
+  {
+   "file": "coordinator.py",
+   "line": 8748,
+   "func": "_record_accuracy",
+   "kind": "aware-shared-zone",
+   "hits": 141,
+   "crossing": 2,
+   "wrong": 2,
+   "max_err_s": 3600.0
+  },
+  {
+   "file": "coordinator.py",
+   "line": 8947,
+   "func": "_file_dhw_lead_predictions",
+   "kind": "add-shared-zone",
+   "hits": 720,
+   "crossing": 42,
+   "wrong": 42,
+   "max_err_s": 3600.0
+  },
+  {
+   "file": "coordinator.py",
+   "line": 8987,
+   "func": "_file_lead_predictions",
+   "kind": "add-shared-zone",
+   "hits": 720,
+   "crossing": 42,
+   "wrong": 42,
+   "max_err_s": 3600.0
+  },
+  {
+   "file": "defrost.py",
+   "line": 579,
+   "func": "_elapsed",
+   "kind": "aware-shared-zone",
+   "hits": 144,
+   "crossing": 2,
+   "wrong": 2,
+   "max_err_s": 3600.0
+  },
+  {
+   "file": "dhw_learning.py",
+   "line": 338,
+   "func": "async_learn_dynamics",
+   "kind": "aware-shared-zone",
+   "hits": 141,
+   "crossing": 2,
+   "wrong": 2,
+   "max_err_s": 3600.0
+  },
+  {
+   "file": "external_heat.py",
+   "line": 206,
+   "func": "_rate",
+   "kind": "aware-shared-zone",
+   "hits": 282,
+   "crossing": 4,
+   "wrong": 4,
+   "max_err_s": 3600.0
+  }
+ ]
+}

@@ -1,0 +1,185 @@
+{
+ "dimension": "D11",
+ "seat": "s2",
+ "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+ "tree": "/home/claude/audit-r8/seats/D11-s2",
+ "report_path": "tools/audit/round8/D11/REPORT-s2.md",
+ "exposure": "GitHub API read-only through the GitHub MCP tools: list_releases, list_tags, pull_request_read get and get_reviews for #1489, get_reviews and get_check_runs for #1485 #1483 #1426 #1429 #1431 and get_check_runs for #1489. Repository history: git log/show in the worktree, including cdf82da:tools/audit/round6/D11/fix/codeowners_gap.py. Standards text fetched: slsa.dev/spec/v1.0/levels, ossf/scorecard docs/checks.md and docs/checks/internal/checks.yaml. No audit register or earlier findings read.",
+ "findings": [
+  {
+   "id": "D11-s2-01",
+   "title": "Required checks run PR-editable code outside the CODEOWNERS owner surface; a one-line edit turns pr-contract green",
+   "severity": "high",
+   "claim": "8 tracked files that required-context jobs run from the pull request's own checkout have no CODEOWNERS owner. 3 of them are modules that pr-contract's policy_lint.mjs loads, and appending one line to any of those 3 turns pr-contract's refusal of an empty body (rc=1) into a pass (rc=0). So the check can be changed with only the hpo-approver App's review, even though .github/CODEOWNERS says the whole enforcement surface is owner-owned.",
+   "mechanism": "CODEOWNERS derives its surface from R6's codeowners_gap.py rule. That rule counts a script only when a line calls it through an interpreter (node/python3/bash ...), and it never follows imports. It therefore misses the bare `./tests/run.sh` (fast), the bare `./tests/derive_closures.sh` (closures), and every module an owned entry script imports: counts.mjs and render_md.mjs (imported by policy_lint.mjs; counts.mjs also by brief_lint.mjs) and vendor/markdown-it.min.js (required by render_md.mjs). Unlike policy-docs, pr-contract and briefs do not restore their check source from the base commit before they grade, so the PR's own copies run.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 TMPDIR=/home/claude/audit-r8/tmp/D11-s2 python3 tools/audit/round8/D11/s2_owner_closure.py",
+    "harness_path": "tools/audit/round8/D11/s2_owner_closure.py",
+    "value": 8,
+    "unit": "files (unowned, executed by a required job from the PR checkout); pr_contract_flips=3 of 3",
+    "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+    "machine": "4-vCPU cloud container, 15 GB, x86_64 (round-8 BASELINE.md), shared with up to 13 seats",
+    "cpu_or_wall": "count",
+    "contention_note": "counts; load irrelevant",
+    "tolerance": "exact",
+    "load1": 16.84,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": ".claude/workflows/policy_lint.mjs (pr-contract's --pr-body command, driven for real) with its import graph, and .github/CODEOWNERS (last-match-wins)",
+   "perturbation": {
+    "change": "add owner lines for the 8 files to .github/CODEOWNERS (harness: --extra-owner x8)",
+    "expected_direction": "to_zero",
+    "observed_value": "0 (5 governance files alone -> 3, the remaining test modules)"
+   },
+   "metric_definition": "Distinct tracked code files that a required-context job runs from the PR checkout (entry scripts plus their local imports, minus files restored from base) and that no CODEOWNERS pattern owns.",
+   "phenomenon_property": "Every file a required-context job executes from the pull request's own checkout is either matched by an owner-carrying CODEOWNERS pattern, or is restored from the base commit before it grades the pull request.",
+   "seam_rule": "python3 tools/audit/round8/D11/s2_owner_closure.py --no-dynamic   (per-job UNOWNED lists)",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 TMPDIR=/home/claude/audit-r8/tmp/D11-s2 python3 tools/audit/round8/D11/s2_owner_closure.py",
+    "value": "null_control_unloaded_file_rc=1",
+    "note": "The same one-line append to .claude/workflows/web-fix-wave.js, which policy_lint.mjs does not load, leaves rc at 1, so the flip comes from the import. For contrast, policy-docs' grading steps run the same 3 modules restored from base."
+   },
+   "reproduction_steps": [
+    "run the harness: unowned_required_closure=8, pr_contract_flips=3 of 3, null_control_unloaded_file_rc=1",
+    "git show cdf82da:tools/audit/round6/D11/fix/codeowners_gap.py: its EXEC regex requires an interpreter prefix and it has no import walk"
+   ],
+   "proposed_fix_scope": "Own counts.mjs, render_md.mjs, vendor/, tests/run.sh and tests/derive_closures.sh in CODEOWNERS. Or, the cheaper structural fix: have pr-contract and briefs restore .claude/workflows/{*.mjs,*.py,vendor} from the base SHA before grading, as policy-docs does since #1403. Then extend codeowners_gap.py's rule to bare ./ invocations and a transitive import walk. The 3 test modules (golden/harness/profiles) are an owner call on cost.",
+   "files": [
+    ".github/CODEOWNERS",
+    ".github/workflows/governance.yml",
+    ".github/workflows/tests.yml",
+    ".claude/workflows/counts.mjs",
+    ".claude/workflows/render_md.mjs",
+    ".claude/workflows/vendor/markdown-it.min.js",
+    "tests/run.sh",
+    "tests/derive_closures.sh"
+   ],
+   "stop_rule_class": "bug"
+  },
+  {
+   "id": "D11-s2-02",
+   "title": "release.yml publishes and attests any v* tag or dispatch ref with no check that the commit is on main",
+   "severity": "high",
+   "provisional": true,
+   "claim": "release.yml's release job was run step by step in a scratch clone. It reaches `gh release create` and the signed tree digest for an unmerged branch commit in 2 of 2 event paths (tag push, workflow_dispatch), the same as for a commit on main. Its only refusal is the vN.N.N tag-name shape.",
+   "mechanism": "The workflow triggers on any pushed v* tag, and on dispatch it creates the tag at GITHUB_SHA. No step checks that the commit is an ancestor of origin/main. hpo-author's installation token carries contents: write (decision 0011), which is enough to push a tag. Whether a GitHub tag ruleset blocks that push cannot be read through the available MCP tools; the recorded fixture names only branch rulesets. HACS installs from the latest v* release, so a commit that no required check or review gated could ship to users with a provenance attestation.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 TMPDIR=/home/claude/audit-r8/tmp/D11-s2 python3 tools/audit/round8/D11/s2_release_gate.py",
+    "harness_path": "tools/audit/round8/D11/s2_release_gate.py",
+    "value": 2,
+    "unit": "off-main cells published (of 2)",
+    "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+    "machine": "4-vCPU cloud container, 15 GB, x86_64 (round-8 BASELINE.md), shared with up to 13 seats",
+    "cpu_or_wall": "count",
+    "contention_note": "counts; load irrelevant",
+    "tolerance": "exact",
+    "load1": 12.96,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": ".github/workflows/release.yml:jobs.release.steps (its run scripts executed in order; gh stubbed to record the call and create the tag on a scratch origin)",
+   "perturbation": {
+    "change": "insert one line into the 'Resolve the tag' step: git fetch -q origin main && git merge-base --is-ancestor \"$GITHUB_SHA\" FETCH_HEAD || exit 1 (harness --perturb, restored in finally)",
+    "expected_direction": "to_zero",
+    "observed_value": "off_main_published=0 of 2; on_main_published stays 2 of 2"
+   },
+   "metric_definition": "Of the 2 event paths (tag push, dispatch) run with an unmerged branch commit, how many reach gh release create and the attested tree digest.",
+   "phenomenon_property": "The release path refuses to publish or attest any commit that is not reachable from origin/main.",
+   "seam_rule": "grep -nE '^on:|tags:|workflow_dispatch|gh release create|--target' .github/workflows/release.yml",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 TMPDIR=/home/claude/audit-r8/tmp/D11-s2 python3 tools/audit/round8/D11/s2_release_gate.py",
+    "value": "on_main_published=2 of 2",
+    "note": "The on-main arm publishes in both paths, with and without the guard, so the guard refuses only what it should."
+   },
+   "proposed_fix_scope": "Add an ancestry refusal as the first step of release.yml (one line), and a tag ruleset restricting v* creation to the deploy key. SLSA Build L2 provenance then attests only reviewed source.",
+   "files": [
+    ".github/workflows/release.yml"
+   ],
+   "stop_rule_class": "bug"
+  },
+  {
+   "id": "D11-s2-03",
+   "title": "Scorecard Pinned-Dependencies: 12 CI install commands are version-pinned but not hash-pinned",
+   "severity": "low",
+   "claim": "12 dependency-install commands in tests.yml would count as unpinned under Scorecard's Pinned-Dependencies definition (a dependency 'explicitly set to a specific hash'): 9 `pip install -r tests/requirements-ci.txt` with no --hash lines, the typing venv install (5 names with no version at all), `pip install coverage==7.13.1`, and `npm install`/`npx` for playwright. Every `uses:` ref is SHA-pinned (0 unpinned).",
+   "mechanism": "The repository pinned action refs by commit (#960), but package installs are pinned by version, or not at all for the 5 typing third-party names, which are unversioned by design in tests/typing_ruler.py:requirement_lines.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 TMPDIR=/home/claude/audit-r8/tmp/D11-s2 python3 tools/audit/round8/D11/s2_scorecard.py",
+    "harness_path": "tools/audit/round8/D11/s2_scorecard.py",
+    "value": 12,
+    "unit": "install commands",
+    "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+    "machine": "4-vCPU cloud container, 15 GB, x86_64 (round-8 BASELINE.md), shared with up to 13 seats",
+    "cpu_or_wall": "count",
+    "contention_note": "counts",
+    "tolerance": "exact",
+    "load1": 13.96,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": ".github/workflows/tests.yml run steps as parsed YAML; tests/requirements-ci.txt contents",
+   "perturbation": {
+    "change": "append --require-hashes to one pip install -r line of tests.yml (harness --perturb)",
+    "expected_direction": "down",
+    "observed_value": 11
+   },
+   "metric_definition": "Install commands in non-comment run: lines that are not hash-pinned (pip without --require-hashes or a hashed -r file; npm install/i; npx).",
+   "phenomenon_property": "Every dependency CI installs is pinned by hash (pip --require-hashes over a hashed lock, npm ci over a lockfile).",
+   "seam_rule": "python3 tools/audit/round8/D11/s2_scorecard.py | grep UNPINNED",
+   "proposed_fix_scope": "Generate hashed lock files (pip-compile --generate-hashes) for requirements-ci.txt and the typing toolchain, and add a package-lock for the playwright lane with npm ci. About 30 lines, 0 s per merge.",
+   "files": [
+    ".github/workflows/tests.yml",
+    "tests/requirements-ci.txt",
+    "tests/typing_ruler.py"
+   ],
+   "stop_rule_class": "hygiene"
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "Every uses: ref in the 6 workflows is pinned to a 40-hex commit (Scorecard Pinned-Dependencies, actions half).",
+   "command": "python3 tools/audit/round8/D11/s2_scorecard.py",
+   "value": "uses_unpinned=0"
+  },
+  {
+   "claim": "Dangerous-Workflow: no pull_request_target/workflow_run trigger, and no untrusted free-text context (titles, bodies, head_ref, commit messages) is interpolated into a run: line. Title and head_ref reach env: only.",
+   "command": "python3 tools/audit/round8/D11/s2_scorecard.py",
+   "value": "dangerous_workflow_triggers=0, dangerous_workflow_untrusted_run=0"
+  },
+  {
+   "claim": "SAST: CodeQL analyze runs on push and pull_request, and 3 Analyze contexts are required in the recorded fixture.",
+   "command": "python3 tools/audit/round8/D11/s2_scorecard.py; cat .claude/workflows/fixtures/required-contexts.json",
+   "value": "sast_workflows=1; 3 Analyze contexts"
+  },
+  {
+   "claim": "Security-Policy: SECURITY.md exists and gives a private reporting URL (Best Practices vulnerability-report criterion).",
+   "command": "python3 tools/audit/round8/D11/s2_scorecard.py",
+   "value": "security_policy_has_contact=1"
+  },
+  {
+   "claim": "Sampled conformance (6 of the 40 newest first-parent merges, every 7th): an APPROVED review at the merged head by a non-author identity in 6/6; the earliest listed pr-contract run at head is green in 6/6; a docs/delivery row exists in 5/6, the miss being #1489, the baseline merge itself, whose row is owed after it; no failed check at head in the listing, so the red-check obligation applies to 0/0.",
+   "command": "python3 tools/audit/round8/D11/s2_conformance.py (and --head-from first-parent: O1 -> 0 of 6)",
+   "value": "O1 6/6, O2 6/6, O3 5/6, O4 0/0"
+  },
+  {
+   "claim": "Every release tag checkable locally (v6.6.6..v6.6.10, 5 tags) is reachable from main. D11-s2-02 is a latent capability, not an observed off-main release. v6.3.19..v6.6.5 are not in the local object store (harness gap: shallow history).",
+   "command": "git merge-base --is-ancestor <tag sha from list_tags> cdf82da",
+   "value": "5/5 on main, 15 unresolvable"
+  },
+  {
+   "claim": "HARNESS GAP: the MCP get_check_runs method exposes only filter=latest, so a pr-contract run that went red and then green at the same head is invisible. O2 is an upper bound.",
+   "command": "mcp pull_request_read get_check_runs (see s2_conformance_snapshot.json _source)",
+   "value": "n/a"
+  },
+  {
+   "claim": "HARNESS GAP: finding.schema.json's id pattern ^D(..)-[0-9]{2}$ rejects the seat-qualified ids this round's task mandates (D11-s2-01). The report file carries the mandated ids and fails that one pattern.",
+   "command": "python3 -c 'import json,jsonschema;...' (see REPORT-s2.md)",
+   "value": "3 id-pattern errors, no other schema errors"
+  }
+ ],
+ "harnesses": [
+  "tools/audit/round8/D11/s2_owner_closure.py",
+  "tools/audit/round8/D11/s2_release_gate.py",
+  "tools/audit/round8/D11/s2_scorecard.py",
+  "tools/audit/round8/D11/s2_conformance.py"
+ ],
+ "unfinished": "The Branch-Protection and Code-Review Scorecard rows were not evaluated against the live ruleset (no rulesets endpoint in the MCP tools; s1 owns the ruleset). Tag rulesets are unknown, so D11-s2-02's reachability through a tag push stays provisional. The Best Practices badge and NIST/OWASP rows are scored in REPORT-s2.md from executed tree checks, not by a separate harness each. The conformance sample is n=6."
+}

@@ -1,0 +1,37 @@
+
+=== Feature modules ===
+  ok   grad-parity cell subdivides as claimed (n_sub >= 1): single-zone
+  ok   batched simulation is bitwise-identical: single-zone
+  ok   batched jac == scipy 2-point FD bit-for-bit on free variables: single-zone
+  ok   batched jac is finite, and exactly 0.0 at the 0 fixed variables: single-zone
+  ok   grad-parity cell subdivides as claimed (n_sub >= 1): two-zone
+  ok   batched simulation is bitwise-identical: two-zone
+  ok   batched jac == scipy 2-point FD bit-for-bit on free variables: two-zone
+  ok   batched jac is finite, and exactly 0.0 at the 0 fixed variables: two-zone
+  ok   grad-parity cell subdivides as claimed (n_sub >= 1): two-zone with valve
+  ok   batched simulation is bitwise-identical: two-zone with valve
+  ok   batched jac == scipy 2-point FD bit-for-bit on free variables: two-zone with valve
+  ok   batched jac is finite, and exactly 0.0 at the 0 fixed variables: two-zone with valve
+  ok   grad-parity cell subdivides as claimed (n_sub >= 1): single-zone with valve
+  ok   batched simulation is bitwise-identical: single-zone with valve
+  ok   batched jac == scipy 2-point FD bit-for-bit on free variables: single-zone with valve
+  ok   batched jac is finite, and exactly 0.0 at the 0 fixed variables: single-zone with valve
+  ok   with a price spread the optimizer charges through the cheap night
+  ok   and deliberately lifts the tank to do it
+  ok   and coasts both price peaks on stored heat
+  ok   the null control: flat prices produce no night concentration
+  ok   single-zone: the valved tank is charged for the cheap night
+  ok   single-zone: the plan buys less across the price peaks than at flat prices
+  ok   single-zone null control: flat prices concentrate nothing at night
+  ok   single-zone valve: the tank's loss is the slab's delivery plus standing loss
+  ok   single-zone valve: the slab receives exactly what the tank delivered
+  ok   single-zone valve: a small tank coasting one step never falls below the slab
+  ok   single-zone valve: the stability count subdivides for the tank's own row
+  ok   single-zone valve: charging stops at buffer_max_temp and books the refusal
+  ok   single-zone: the terminal cost credits a valved store tank
+  ok   single-zone valve: the step prices the COP at the tank's own temperature
+  ok   zoned store census: the valve moves the tank in every zoning (#2500)
+  ok   zoned store census: the cap books what it refuses in every zoning (#2500)
+  ok   zoned store census: the terminal cost credits the tank in every zoning (#2500)
+  ok   batch twin: charging into buffer_max_temp matches the scalar step bit-for-bit
+census marginal seconds: median 0.0003 worst 0.0003 runs ['0.0003', '0.0003', '0.0003']

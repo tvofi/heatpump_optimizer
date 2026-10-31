@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_replay_interval RETURN_DEL d7923b87",
+  "old": "        return None",
+  "reason": "Equivalent (RETURN_DEL, `return None` -> `pass`): the statement is the last one in _replay_interval's `except Exception` arm, so deleting it lets the function fall off its own end and return None -- the same value the arm returns, on every input. The debug line above it is reached either way, and both callers test the result against None (`if predicted_state is None: return`), so no caller can tell the two apart. Measured by dev/audit/harnesses/ux10_flow_into_model.py's m_except_return_del variant, which applies exactly that replacement to a copy of the tree and runs the R9-UX-10 block of tests/features.py in it: BLOCK m_except_return_del rc=0 failing_checks=0, against BLOCK head rc=0 failing_checks=0 and 1 to 6 failing checks in the eleven other variants -- among them m_guard_off_house and m_guard_off_lower, which drive this same except arm through features.py's own _t2_raise_model fixture and are killed by the check that the None it returns is honoured, so the arm is reached by the probe rather than skipped.",
+  "verdict": "equivalent"
+}

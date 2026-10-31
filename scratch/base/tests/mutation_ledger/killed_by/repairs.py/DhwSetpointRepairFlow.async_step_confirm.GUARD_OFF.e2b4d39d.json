@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/repairs.py:DhwSetpointRepairFlow.async_step_confirm GUARD_OFF e2b4d39d",
+  "killed_by": "tests/features.py",
+  "old": "        if entity_id and value is not None:",
+  "reason": "#1513 (R8-P8): GUARD_OFF on a unit-aware price or temperature reader this diff added. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 5 failed, among them `Fix writes the configured disinfection temperature to the number entity`; `Fix commands a climate entity through set_temperature`. Measured at d6d79847, 2026-09-24."
+}

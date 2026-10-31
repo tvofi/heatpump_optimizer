@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._external_heat_override RETURN_DEL 03186ecd",
+  "killed_by": "tests/features.py",
+  "old": "            return probe.value > 30.0",
+  "reason": "Recorded by `mutation_table.py --drain` against 1005e27a6fe2b60ded9fa530e03513c5c35c4ead: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

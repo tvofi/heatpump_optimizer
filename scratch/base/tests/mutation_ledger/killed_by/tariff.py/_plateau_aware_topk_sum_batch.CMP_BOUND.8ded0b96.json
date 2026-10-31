@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/tariff.py:_plateau_aware_topk_sum_batch CMP_BOUND 8ded0b96",
+  "killed_by": "tests/features.py",
+  "old": "    exact = np.flatnonzero(n_at_peak <= k)",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 8747bbfc4d4628fa8419634792229fd15dcc21e2: CMP_BOUND (`exact = np.flatnonzero(n_at_peak < k)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=7."
+}

@@ -1,0 +1,138 @@
+name: Pages
+
+# The product page (docs/index.html) and the documentation sub-pages, served by
+# GitHub Pages (R9-WEB-2; design of record DESIGN-SITE.md, "Hosting").
+#
+# * It deploys on the same trigger as release.yml -- a pushed `v*` tag, which
+#   the stamp pushes over the deploy key -- so the served page is the release
+#   HACS installs; a dispatch re-deploys. Nothing a pull request does runs it,
+#   and it is not a required check.
+# * It publishes docs/index.html, docs/site/**, every tracked *.png and *.svg
+#   under docs/ at its own path, the sub-pages tools/site/build_docs.mjs renders
+#   from the tag's markdown, and mermaid's one UMD file. It never publishes a
+#   markdown file: the development record is not a web page, and the step
+#   before the upload refuses one.
+# * The probe asks the API whether Pages is on and built by GitHub Actions
+#   (Settings > Pages > Source: "GitHub Actions", an owner setting). When it
+#   is not, the build still runs, the upload and the deploy are skipped, and
+#   the run is green with a warning naming the setting; any other API error
+#   is red. The deploy job runs in the `github-pages` environment, whose
+#   deployment rules (the owner's) decide which refs may deploy: a `v*` tag
+#   deploys only once that environment admits `v*` tags.
+#
+# tests/entities.py pins all of this, and runs the staging and guard steps by
+# their names in a scratch repository.
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deploy at a time; a queued one waits rather than cancelling a live one.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  pages-build:
+    runs-on: ubuntu-latest
+    # The build reads the tree and asks whether Pages is on; it writes nothing.
+    permissions:
+      contents: read
+      pages: read
+    outputs:
+      enabled: ${{ steps.probe.outputs.enabled }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+
+      - name: Ask whether Pages is enabled
+        id: probe
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -uo pipefail
+          if src=$(gh api "repos/${GITHUB_REPOSITORY}/pages" --jq .build_type 2>"$RUNNER_TEMP/probe.err"); then
+            if [ "$src" = "workflow" ]; then
+              echo "enabled=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            msg="GitHub Pages is enabled but builds from '${src}', not from this workflow. Nothing was deployed. Settings > Pages > Build and deployment > Source: GitHub Actions, then re-run."
+          elif grep -q "HTTP 404" "$RUNNER_TEMP/probe.err"; then
+            msg="GitHub Pages is not enabled for this repository. Nothing was deployed; the site was built only. Settings > Pages > Build and deployment > Source: GitHub Actions, then re-run."
+          else
+            cat "$RUNNER_TEMP/probe.err" >&2
+            exit 1
+          fi
+          echo "::warning title=Pages not deployed::${msg}"
+          echo "$msg" >> "$GITHUB_STEP_SUMMARY"
+          echo "enabled=false" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22"
+
+      # The deploy's one dependency, mermaid, by `npm ci` over the committed
+      # lockfile, so every tarball is integrity-checked (#1548).
+      - name: Install the site's lockfile
+        run: npm ci --ignore-scripts --prefix tools/site
+
+      - name: Stage the site
+        run: |
+          set -euo pipefail
+          rm -rf _site
+          mkdir -p _site
+          # Tracked files only, each at its path under docs/: the page, its
+          # site folder, and every image. A markdown file is never staged.
+          git ls-files -z -- docs/index.html 'docs/site/*' 'docs/*.png' 'docs/*.svg' |
+            while IFS= read -r -d '' f; do
+              case "$f" in *.[mM][dD]|*.[mM][aA][rR][kK][dD][oO][wW][nN]) continue ;; esac
+              rel="${f#docs/}"
+              mkdir -p "_site/$(dirname "$rel")"
+              cp "$f" "_site/$rel"
+            done
+          test -f _site/index.html
+
+      - name: Render the documentation sub-pages
+        run: |
+          set -euo pipefail
+          git ls-files > "$RUNNER_TEMP/tree.txt"
+          node tools/site/build_docs.mjs --root . --tree "$RUNNER_TEMP/tree.txt" --out _site
+          rm -f _site/docs-manifest.json
+          mkdir -p _site/site/mermaid
+          cp tools/site/node_modules/mermaid/dist/mermaid.min.js _site/site/mermaid/mermaid.min.js
+
+      - name: Refuse a published markdown file
+        run: |
+          set -euo pipefail
+          md=$(find _site -type f \( -iname '*.md' -o -iname '*.markdown' \))
+          if [ -n "$md" ]; then
+            echo "::error title=Markdown in the site::refusing to publish: ${md//$'\n'/, }"
+            exit 1
+          fi
+          test -f _site/index.html
+
+      - name: Upload the site
+        if: steps.probe.outputs.enabled == 'true'
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: _site/
+
+  pages-deploy:
+    needs: pages-build
+    if: needs.pages-build.outputs.enabled == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

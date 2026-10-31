@@ -1,0 +1,15 @@
+{
+  "total_count": 2,
+  "check_runs": [
+    {
+      "name": "fast (3.14)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "typing",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ]
+}

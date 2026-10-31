@@ -1,0 +1,40 @@
+id	dim	sev	class	status	headline
+D0-01	D0	low	bug	reported	L-BFGS-B ftol=1e-6 halts the space solve short: objective lower in 34 of 70 priced cells, but the gap survives flat prices and the realised-money control moves the wrong way
+D0-02	D0	low	bug	reported	the iteration budget the code and tests/optimality.py police is never binding (0 of 488 solves reach the cap) while ftol, which changes every plan, has no gate
+D1-01	D1	high	bug	reported	a non-finite bin in the persisted price shape prices 4 of 96 planning steps at 0.0 SEK/kWh, silently; from_dict checks no finiteness while observe_day does
+D1-02	D1	high	bug	reported	one corrupt scalar in the accuracy store raises in _async_load_accuracy and the next cycle overwrites 3 of 3 learned fields, zero log lines, last_update_success True
+D2-01	D2	high	bug	reported	tariff._smooth_topk_sum bisects on a bracket not scaled by its own logistic temperature: up to 13.35x the top-k bill it approximates above 5.84 kW excess
+D2-02	D2	medium	bug	reported	every shipped DSO catalog row writes a peak-hours mask that discounts 0 of 672 windows, because apply_catalog omits the off-peak factor
+D2-03	D2	high	bug	reported	thermal_model.wood_share is discontinuous at hp_temp == flow_set where its docstring claims continuity; one ulp of step-0 power moves 1.110 kWh
+D2-04	D2	medium	bug	reported	modelled COP falls below 1.0 in 51 of 328 cells and inverts with rising outdoor below -21 degC: the Carnot and DHW factors apply after the curve's own floor
+D2-05	D2	low	bug	reported	grid-fee decimal commas are unreachable: parse_rules splits on the comma _parse_rule converts
+D3-S1	D3	-	bug	survivor (full gate)	grid_fee.py:106 parse_month_range: a non-wrapping range like Mar-Sep becomes year-round; the only range assertion uses the wrapping case
+D3-S2	D3	-	bug	survivor (full gate)	legionella.py:521: the disabled-feature guard, with both existing assertions running enabled
+D3-S3	D3	-	bug	survivor (full gate)	tariff.py:507: the top-k clamp, a no-op on the one fixture that calls it; equivalent through the only production caller
+D3-S4	D3	-	hygiene	survivor, judged equivalent	optimizer.py:1549 CLAMP_DROP: numpy slices clamp, so no value moves
+D4-01	D4	high	bug	reported	the plan's lane strip labels render at 6.4 CSS px and 1.01:1 contrast; the card's 8 px floor never reached them because card_browser.mjs filters lane-* out of its own check
+D4-02	D4	medium	bug	reported	.wi-save pairs a hard-coded #026aa8 with var(--text-primary-color), which HA default dark sets to #212121: 2.78:1 on the primary confirming action
+D4-03	D4	low	bug	reported	the 24 px target floor is emitted only under @media (pointer: coarse), so the zoom pair is 20.22 px at 22.22 px spacing under a mouse
+D5-01	D5	medium	hygiene	reported	docs/configuration.md, the reference README promises documents every field, names 15 of 200 shipped options fields nowhere
+D5-02	D5	low	hygiene	reported	tests/README.md states a stress sweep of 48; sweep_combinations() returns 51
+D6-01	D6	high	hygiene	reported	docs/architecture.md is stale in ten claims including the HA boundary it exists to state: 21 modules import homeassistant at module level, 11 outside the ten it names
+D6-02	D6	medium	bug	reported	Sensor-Gap Euro Advisor is documented with the currency unit and publishes none, so a currency-per-month value is recorded unitless
+D6-03	D6	low	hygiene	reported	docs/automations.md states a Power Headroom precondition the code does not enforce; a capacity tariff alone makes it available at 0.0 kW
+D7-01	D7	medium	bug	reported	the sysid experiment is adopted in 0 of 18 cells: the identifier fits one state to a two-state plant (null control on a collapsed plant adopts at 0.940)
+D7-02	D7	medium	bug	reported	sysid._sizing_model leaves slab constants at defaults for every house, breaching max_excursion_c in 6 of 18 cells
+D7-03	D7	high	bug	reported	_learning_frozen never consults _pump_signals.defrosting, so 3 of 4 learners fold a defrost interval; only _learn_measured_cop refuses, through its own bespoke guard
+D8-01	D8	low	hygiene	reported	alphabetical order leaves 159 foreign entities inside the seven families' spans; the two families scoring zero are the only two with a shared name prefix
+D8-02	D8	low	hygiene	reported	four entities are the only ones with no icons.json entry, against a 31/0 control that kills the device-class defence
+D9-05	D9	medium	bug	reported	the batched objective vectorizes the physics then re-computes the cost in a Python loop over batch rows: _comfort_terms 97.02 calls per gradient, 33.3 % of solve wall
+D9-06	D9	medium	bug	quiet-confirmed	tests/stress.py cannot detect a 2x memory regression on any of its 51 scenarios; a 2.03x injection passed all 62 checks, and the CPU-only detection check claims otherwise three lines below
+D10-01	D10	low	hygiene	reported	quality_scale.yaml has drifted: 3 of 54 declared rows are contradicted when executed, including a config-flow coverage row claiming 100 % against a measured 97.2 %
+D10-02	D10	low	hygiene	reported	docs-known-limitations is declared done with 0 such headings across 4075 lines
+D10-03	D10	low	hygiene	reported	the package root re-binds HeatPumpOptimizerConfigEntry to a bare ConfigEntry, so runtime_data reveals Any in the three entry points while mypy --strict reports 0 errors
+D11-01	D11	critical	bug	reported	main-protect carries no pull_request rule in any of its five versions: 0 of 592 merged pull requests have an approving review by a non-author, and admin bypass is always
+D11-02	D11	critical	bug	reported	eight sites instruct a seat holding write and merge grants to act on issue and pull-request text, against zero sentences anywhere naming untrusted input
+D11-03	D11	high	bug	reported	the one root-cause trigger CLAUDE.md calls enforced is inert in CI: governance.yml passes no --red, and the same body exits 1 with it and 0 without
+D11-04	D11	high	bug	reported	eight tree assertions contradict the live required-check set, which went 18 to 17 to 16; two of the eight cite a file main has since deleted
+D11-05	D11	medium	bug	reported	the disposition rule cannot be satisfied before a merge and turns main red on 44 % of pushes; record's if: correctly excludes pull_request events
+D11-06	D11	medium	bug	reported (provisional)	policy_lint --stats reports a class over its own threshold and opens nothing; both --stats and --sunset run under || true and no contract obliges a seat to read either
+D11-07	D11	low	hygiene	reported (provisional)	no release artefact and no provenance: SLSA Build level 0, and 7 of 9 workflow actions on mutable tags
+D12-01	D12	high	bug	reported	every temperature input is adopted as degC whatever unit HA reports: 10 of 13 guarded inputs misread on a non-metric instance, and the 96-step plan totals 0.0 kWh

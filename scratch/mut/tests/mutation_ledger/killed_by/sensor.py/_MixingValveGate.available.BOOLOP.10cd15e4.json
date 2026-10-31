@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sensor.py:_MixingValveGate.available BOOLOP 10cd15e4",
+  "killed_by": "tests/entities.py",
+  "old": "        return bool(super().available and self.entity_registry_enabled_default)",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against c2a0448d076e1f861bf4eb5ff7ea9abdefc0efe8: BOOLOP (`return bool(super().available or self.entity_registry_enabled_default)`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=2."
+}

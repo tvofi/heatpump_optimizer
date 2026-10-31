@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/early_cutoff.py:allow_on CMP_BOUND 71c6fd76",
+  "killed_by": "tests/features.py",
+  "old": "    if now - held.cut_at >= MIN_OFF:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 47b083b03a9dcbfb1e33679dc5f7d3313a5fed49: CMP_BOUND (`if now - held.cut_at > MIN_OFF:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

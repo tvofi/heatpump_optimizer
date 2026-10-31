@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/tariff.py:peak_cost RETURN_DEL 6f8a62df",
+  "killed_by": "tests/features.py",
+  "old": "    return _peak_charge(total_power_kw, baseline_load_kw, bill, _exact_topk_sum)",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 8747bbfc4d4628fa8419634792229fd15dcc21e2: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
+}

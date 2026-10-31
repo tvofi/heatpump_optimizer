@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/entity.py:input_configured RETURN_DEL f068a7f9",
+  "killed_by": "tests/entities.py",
+  "old": "    return bool(config.get(slot))",
+  "reason": "added by R8-P2 (#1542 widened). Removing `input_configured()`'s return answers None for every slot, so every probe temperature and ECL110 readout reads unconfigured: tests/entities.py fails the four `reports its sensor once one is configured` / slab checks, `and on and available once its input is configured (#1542)` and two more, 12 -> 19 failed. Measured at 3568643c on 2026-09-24, each mutant in its own copy of the tree against an unmutated copy (12 git-dependent checks fail in both, since a copy has no .git)."
+}

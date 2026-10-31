@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel._substeps_and_loss RETURN_DEL 3618aa7d",
+  "killed_by": "tests/features.py",
+  "old": "        return n_sub, u_upper, u_lower",
+  "reason": "Recorded by hand for R9-EG-A2 (#1874) on an export of the branch, 2026-10-03, because `mutation_table.py --pin-killed` refuses on this machine (tests/features.py's baseline is red for the environment: R9-F2.1 P3, BLAS): a kill is a red run naming a FAIL line or traceback the unmutated baseline does not. RETURN_DEL (`pass`) took tests/features.py from rc=1 failed=2 to rc=1 failed=3, newly failing ['D1-s2-04: every cycle-path fence surfaces its persistent failure at WARNING exactly once, repeats at DEBUG, and the cycle survives']."
+}

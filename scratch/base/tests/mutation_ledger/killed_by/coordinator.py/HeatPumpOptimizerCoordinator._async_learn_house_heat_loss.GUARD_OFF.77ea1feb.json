@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_learn_house_heat_loss GUARD_OFF 77ea1feb",
+  "killed_by": "tests/features.py",
+  "old": "        if vent_only:",
+  "reason": "Recorded by `mutation_table.py --drain` against a745200209b275c0f33dc2253af8c7757ffb8de2: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

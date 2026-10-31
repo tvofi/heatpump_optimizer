@@ -1,0 +1,37 @@
+## Raise justification
+
+Mandate 6175172275 (#201, scope `all`, until 2026-10-28T18:14Z), read from
+`dev/programme/HANDOVER.md`; the approver reads it and any revocation from
+the API at use. One row stays raised in `tests/structure_budgets.json`:
+`seam_cut_total` +6 (708 -> 714). The other two rows this branch raised are
+paid and now sit under `origin/main`'s: `class_excess_loc` 18268 -> 18244 and
+`max_class_loc` 8514 -> 8480. What remains is the feature itself: the cycle
+takes the restart advice once (`_insight_view` hands the coordinator to
+`model_restart_advice`, the design's holder), so the advisor's reads of the
+learner's ring, scale and accuracy now cross from the views seam, and the
+envelope grade reads the learner's sample count to know whether it has
+converged.
+
+Payments tried: (1) the envelope grade moved out of the class into the pure
+`envelope_score` -- taken, -15 class lines; (2) `model_restart_advice`'s
+42-line body made the pure `restart_advice` behind a six-line adapter --
+taken, -32 helper lines; (3) a `republish_restart_advice` helper, then an
+in-place `data["insight"]` write, then a `coord.data` reassignment, each
+replaced by the existing `async_request_refresh` -- taken (the in-place
+write was archscore-inadmissible, the reassignment moved
+`coordinator_attrs`); (4) the score composition moved into the pure
+`machine_score`, `operation_reason` and `compose_scores` (`c79cb51a3`) --
+taken, -38 on `class_excess_loc` and `max_class_loc`, archscore
+`dS +0.0081 IMPROVES` across it, seam cut unchanged at 714; (5) re-seating
+`coordinator.model_restart_advice` from `views` to `learning` in
+`tests/seam_map.json` -- not taken, the total stays 714 (`learning` +5,
+`views` -3), so it buys nothing and would only move the charge; (6) calling
+`restart_advice` directly from `_insight_view` -- not taken, the same three
+learner reads then sit in `_insight_view` itself and the adapter's argument
+extraction is duplicated for `async_adopt_heat_loss_refit`; (7) carrying the
+sample count inside the advice so the grade reads no learner state -- not
+taken, it hides the same read inside a dict to move a metric.
+
+Round 3 touched no production code, so no payment changed: structure reads `seam_cut_total 714 <= 714` and archscore `dS +0.0105 IMPROVES` at the head (re-taken, `date -u` 2026-10-23T06:26Z). The round-2 review hunted a payment (advice taken in the learning seam and stored) and found it trades this raise for one on `coordinator_attrs`, which sits at its cap.
+
+Architecture score: dS +0.0105

@@ -1,0 +1,29 @@
+{
+ "renames": {
+  "analyze|Say what scope decided for this leg": "analyze|Say what the prelude decided for this leg"
+ },
+ "dropped": [
+  "cancel-superseded|",
+  "cancel-superseded|Cancel this branch's runs at superseded heads",
+  "cancel-superseded|order",
+  "cancel-superseded|uses:actions/checkout@<sha>",
+  "scope|",
+  "scope|order",
+  "scope|run:set -euo pipefail",
+  "scope|uses:actions/checkout@<sha>"
+ ],
+ "gained": [
+  "analyze|Check the extracted files against the INERT list (D-5)"
+ ],
+ "changed": [
+  "analyze|",
+  "analyze|Checkout repository",
+  "analyze|Initialize CodeQL",
+  "analyze|Perform CodeQL Analysis",
+  "analyze|Say what the prelude decided for this leg",
+  "|triggers"
+ ],
+ "after": {
+  "analyze|Check the extracted files against the INERT list (D-5)": "analyze|Perform CodeQL Analysis"
+ }
+}

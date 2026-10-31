@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._pv_export_price GUARD_OFF 95eb2ef4",
+  "killed_by": "tests/features.py",
+  "old": "        if live is not None:",
+  "reason": "#1513 (R8-P8): GUARD_OFF on a unit-aware price or temperature reader this diff added. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 2 failed, among them `a live export-price entity wins over the configured number`; `the export-price entity is read in its unit`. Measured at d6d79847, 2026-09-24."
+}

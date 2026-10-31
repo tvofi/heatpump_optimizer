@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:learner_newton_step CLAMP_DROP b43f81ae",
+  "killed_by": "tests/features.py",
+  "old": "    target = float(np.clip(target, current - reach, current + reach))",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 768bfc0c341dc925fbfa6fb8af9c8d057a1500b2: CLAMP_DROP (`target = float((target))`) took tests/features.py from rc=0 failed=0 to rc=1 failed=5."
+}

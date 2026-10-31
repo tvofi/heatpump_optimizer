@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/quiet_windows.py:_silent_plan_spec GUARD_OFF 08622a31",
+  "killed_by": "tests/guard_pins.py",
+  "old": "    if not gchv_schedule_ready(config, get_state):",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 6001b09a557259f37319b400d219cf83e02c563f: GUARD_OFF (`if False:`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=1."
+}

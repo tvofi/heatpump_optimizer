@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/frontend.py:_register_lovelace_resource GUARD_OFF 32c615d8",
+  "killed_by": "tests/frontend.py",
+  "old": "            if not item_url:",
+  "reason": "Recorded by `mutation_table.py --drain` against aca6ea4567034a05e64edcfd8355d42a8079427d: GUARD_OFF (`if False:`) took tests/frontend.py from rc=0 failed=0 to rc=1 failed=2."
+}

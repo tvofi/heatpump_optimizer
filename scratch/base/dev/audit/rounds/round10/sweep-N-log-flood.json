@@ -1,0 +1,50 @@
+{
+ "class": "N-log-flood",
+ "instances": 6,
+ "barriered": false,
+ "enumerator": "python3 dev/audit/rounds/round10/D14/log_flood/enumerate.py custom_components/heatpump_optimizer  (static, 85 sites / 79 unlatched)  +  PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/log_flood/probe.py  (runtime, 8 arms)",
+ "instance_list": [
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._weather_series",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/log_flood/probe.py no_weather_entity  # 4x over 4 cycles",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._fetch_solar_forecast",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/log_flood/probe.py open_meteo_no_coord  # 4x",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._solar_location",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/log_flood/probe.py open_meteo_bad_coord  # 4x",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._price_series",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/log_flood/probe.py no_prices  # 4x 'No electricity price data'",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator.async_run_optimization",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/log_flood/probe.py no_prices  # 4x 'Not enough price data'",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._tariff_months",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/log_flood/probe.py bad_peak_months  # 16x over 4 cycles",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._tariff_hours",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/log_flood/probe.py bad_peak_hours  # 16x over 4 cycles",
+   "beyond_finding": true
+  }
+ ]
+}

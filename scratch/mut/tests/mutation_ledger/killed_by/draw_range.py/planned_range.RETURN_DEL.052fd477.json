@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/draw_range.py:planned_range RETURN_DEL 052fd477",
+  "killed_by": "tests/features.py",
+  "old": "    return None if (low, high) == (cfg_min, cfg_max) else (low, high)",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 4dbe5aace7440d0a7d43a249892fc63da890338c: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
+}

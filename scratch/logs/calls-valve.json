@@ -1,0 +1,74 @@
+{
+ "base": {
+  "summer/1z/space/valve": {
+   "calls": {
+    "batchmath.py": 392,
+    "const.py": 24,
+    "dhw_planner.py": 1,
+    "dhw_schedule.py": 168,
+    "drift.py": 4,
+    "mixing_valve.py": 22,
+    "optimizer.py": 17302,
+    "tariff.py": 273,
+    "thermal_model.py": 66240,
+    "wood_fuel.py": 8
+   },
+   "evals": 40,
+   "objective": 6435.620174082218,
+   "simulate": 131424
+  },
+  "summer/2z/space/valve-direct-slab": {
+   "calls": {
+    "batchmath.py": 728,
+    "const.py": 25,
+    "dhw_planner.py": 1,
+    "dhw_schedule.py": 168,
+    "drift.py": 4,
+    "mixing_valve.py": 14903,
+    "optimizer.py": 19708,
+    "tariff.py": 273,
+    "thermal_model.py": 149957,
+    "wood_fuel.py": 8
+   },
+   "evals": 46,
+   "objective": 14579.901375068177,
+   "simulate": 131424
+  }
+ },
+ "here": {
+  "summer/1z/space/valve": {
+   "calls": {
+    "batchmath.py": 664,
+    "const.py": 24,
+    "dhw_planner.py": 1,
+    "dhw_schedule.py": 168,
+    "drift.py": 4,
+    "mixing_valve.py": 11267,
+    "optimizer.py": 24241,
+    "tariff.py": 319,
+    "thermal_model.py": 229666,
+    "wood_fuel.py": 8
+   },
+   "evals": 64,
+   "objective": 9175.708849175548,
+   "simulate": 243360
+  },
+  "summer/2z/space/valve-direct-slab": {
+   "calls": {
+    "batchmath.py": 728,
+    "const.py": 25,
+    "dhw_planner.py": 1,
+    "dhw_schedule.py": 168,
+    "drift.py": 4,
+    "mixing_valve.py": 14903,
+    "optimizer.py": 19708,
+    "tariff.py": 273,
+    "thermal_model.py": 155237,
+    "wood_fuel.py": 8
+   },
+   "evals": 46,
+   "objective": 14579.901375068177,
+   "simulate": 131424
+  }
+ }
+}

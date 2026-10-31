@@ -1,0 +1,102 @@
+CELL winter_typical|winter_cold J=77.884228 cost=58.785 nfev=417 short=1.2313 | cont=+4.880e-03(COMFORT-WORSE) dcost=+0.810 nfev=417 ds0=+0.000 short=1.2868 | ftol9=+1.814e-03(COMFORT-WORSE) dcost=+0.570 nfev=675 ds0=+0.000 short=1.2880 | ftol12=+2.370e-03 dcost=+0.152 nfev=852 ds0=+0.000 short=1.0907
+CELL winter_typical|winter_mild J=29.678816 cost=19.717 nfev=447 short=0.5093 | cont=+2.402e-03 dcost=-0.019 nfev=447 ds0=+0.000 short=0.5064 | ftol9=+1.228e-03(COMFORT-WORSE) dcost=+0.081 nfev=799 ds0=+0.000 short=0.5110 | ftol12=+1.228e-03(COMFORT-WORSE) dcost=+0.081 nfev=814 ds0=+0.000 short=0.5110
+CELL winter_typical|summer_warm J=10597.967556 cost=0.000 nfev=12 short=0.0000 | cont=+0.000e+00 dcost=+0.000 nfev=12 ds0=+0.000 short=0.0000 | ftol9=+0.000e+00 dcost=+0.000 nfev=12 ds0=+0.000 short=0.0000 | ftol12=+0.000e+00 dcost=+0.000 nfev=12 ds0=+0.000 short=0.0000
+CELL winter_typical|summer_cool J=3.818111 cost=2.233 nfev=284 short=0.0000 | cont=+7.235e-07 dcost=-0.000 nfev=284 ds0=+0.000 short=0.0000 | ftol9=+3.734e-06 dcost=-0.000 nfev=545 ds0=+0.000 short=0.0000 | ftol12=+3.734e-06 dcost=-0.000 nfev=545 ds0=+0.000 short=0.0000
+CELL winter_typical|shoulder J=8.321772 cost=6.064 nfev=299 short=0.0000 | cont=+6.030e-04 dcost=-0.079 nfev=299 ds0=+0.000 short=0.0000 | ftol9=+0.000e+00 dcost=+0.000 nfev=524 ds0=+0.000 short=0.0000 | ftol12=+0.000e+00 dcost=+0.000 nfev=524 ds0=+0.000 short=0.0000
+CELL winter_extreme|winter_cold J=111.541254 cost=94.614 nfev=468 short=0.0108 | cont=+8.053e-08 dcost=-0.000 nfev=468 ds0=+0.000 short=0.0108 | ftol9=+1.772e-04 dcost=-0.007 nfev=1037 ds0=+0.000 short=0.0034 | ftol12=+1.772e-04 dcost=-0.007 nfev=1037 ds0=+0.000 short=0.0034
+CELL winter_extreme|winter_mild J=41.032286 cost=31.147 nfev=318 short=0.0000 | cont=+8.965e-04 dcost=+0.107 nfev=318 ds0=-0.001 short=0.0000 | ftol9=+2.892e-03 dcost=-0.316 nfev=593 ds0=-1.682 short=0.0000 | ftol12=+2.892e-03 dcost=-0.316 nfev=725 ds0=-1.682 short=0.0000
+CELL winter_extreme|summer_warm J=10597.967556 cost=0.000 nfev=12 short=0.0000 | cont=+0.000e+00 dcost=+0.000 nfev=12 ds0=+0.000 short=0.0000 | ftol9=+0.000e+00 dcost=+0.000 nfev=12 ds0=+0.000 short=0.0000 | ftol12=+0.000e+00 dcost=+0.000 nfev=12 ds0=+0.000 short=0.0000
+CELL winter_extreme|summer_cool J=5.176934 cost=3.204 nfev=364 short=0.0000 | cont=+1.574e-07 dcost=-0.000 nfev=364 ds0=+0.000 short=0.0000 | ftol9=+3.223e-04 dcost=+0.034 nfev=778 ds0=+0.000 short=0.0000 | ftol12=+3.223e-04 dcost=+0.034 nfev=778 ds0=+0.000 short=0.0000
+CELL winter_extreme|shoulder J=11.765783 cost=9.172 nfev=302 short=0.0000 | cont=+9.404e-08 dcost=-0.000 nfev=302 ds0=+0.000 short=0.0000 | ftol9=+1.250e-03 dcost=+0.190 nfev=693 ds0=+0.000 short=0.0000 | ftol12=+1.250e-03 dcost=+0.190 nfev=693 ds0=+0.000 short=0.0000
+CELL summer_typical|winter_cold J=24.973759 cost=16.282 nfev=328 short=1.4867 | cont=+2.548e-09(COMFORT-WORSE) dcost=+0.000 nfev=328 ds0=-0.000 short=1.4867 | ftol9=+7.751e-09(COMFORT-WORSE) dcost=+0.000 nfev=688 ds0=+0.000 short=1.4867 | ftol12=+7.751e-09(COMFORT-WORSE) dcost=+0.000 nfev=688 ds0=+0.000 short=1.4867
+CELL summer_typical|winter_mild J=8.670700 cost=6.568 nfev=200 short=0.0000 | cont=+9.863e-06 dcost=-0.002 nfev=200 ds0=+0.000 short=0.0000 | ftol9=+9.807e-06 dcost=-0.002 nfev=300 ds0=+0.000 short=0.0000 | ftol12=+9.807e-06 dcost=-0.002 nfev=300 ds0=+0.000 short=0.0000
+CELL summer_typical|summer_warm J=10597.967556 cost=0.000 nfev=12 short=0.0000 | cont=+0.000e+00 dcost=+0.000 nfev=12 ds0=+0.000 short=0.0000 | ftol9=+0.000e+00 dcost=+0.000 nfev=12 ds0=+0.000 short=0.0000 | ftol12=+0.000e+00 dcost=+0.000 nfev=12 ds0=+0.000 short=0.0000
+CELL summer_typical|summer_cool J=1.722762 cost=0.542 nfev=159 short=0.0000 | cont=+3.351e-05 dcost=-0.000 nfev=159 ds0=+0.000 short=0.0000 | ftol9=+3.346e-05 dcost=-0.001 nfev=282 ds0=+0.000 short=0.0000 | ftol12=+3.346e-05 dcost=-0.001 nfev=288 ds0=+0.000 short=0.0000
+CELL summer_typical|shoulder J=3.294886 cost=1.578 nfev=204 short=0.0000 | cont=+1.557e-05 dcost=+0.000 nfev=204 ds0=+0.000 short=0.0000 | ftol9=+1.552e-05 dcost=+0.000 nfev=322 ds0=+0.000 short=0.0000 | ftol12=+1.550e-05 dcost=+0.000 nfev=314 ds0=+0.000 short=0.0000
+CELL summer_negative|winter_cold J=17.221718 cost=14.589 nfev=268 short=0.0000 | cont=+2.979e-08 dcost=-0.000 nfev=268 ds0=+0.000 short=0.0000 | ftol9=+9.662e-05 dcost=-0.008 nfev=582 ds0=+0.000 short=0.0000 | ftol12=+9.662e-05 dcost=-0.008 nfev=690 ds0=+0.000 short=0.0000
+CELL summer_negative|winter_mild J=1.938648 cost=-0.271 nfev=342 short=0.0000 | cont=+2.759e-07 dcost=-0.000 nfev=342 ds0=+0.000 short=0.0000 | ftol9=+5.821e-03 dcost=-0.003 nfev=1121 ds0=+0.000 short=0.0000 | ftol12=+5.821e-03 dcost=-0.003 nfev=1121 ds0=+0.000 short=0.0000
+CELL summer_negative|summer_warm J=10597.967556 cost=0.000 nfev=12 short=0.0000 | cont=+0.000e+00 dcost=+0.000 nfev=12 ds0=+0.000 short=0.0000 | ftol9=+0.000e+00 dcost=+0.000 nfev=12 ds0=+0.000 short=0.0000 | ftol12=+0.000e+00 dcost=+0.000 nfev=12 ds0=+0.000 short=0.0000
+CELL summer_negative|summer_cool J=0.464524 cost=-0.651 nfev=222 short=0.0000 | cont=+1.590e-05 dcost=+0.000 nfev=222 ds0=+0.000 short=0.0000 | ftol9=+1.529e-05 dcost=+0.000 nfev=285 ds0=+0.000 short=0.0000 | ftol12=+1.495e-05 dcost=+0.000 nfev=280 ds0=+0.000 short=0.0000
+CELL summer_negative|shoulder J=0.220938 cost=-1.522 nfev=338 short=0.0000 | cont=+2.323e-04 dcost=+0.000 nfev=338 ds0=+0.000 short=0.0000 | ftol9=+1.107e-02 dcost=+0.008 nfev=435 ds0=+0.000 short=0.0000 | ftol12=+1.107e-02 dcost=+0.008 nfev=435 ds0=+0.000 short=0.0000
+CELL shoulder|winter_cold J=58.967870 cost=51.393 nfev=395 short=0.0027 | cont=+3.143e-03 dcost=+0.422 nfev=395 ds0=+0.595 short=0.0000 | ftol9=+1.183e-03 dcost=-0.022 nfev=870 ds0=-0.452 short=0.0000 | ftol12=+2.947e-03 dcost=+0.800 nfev=1143 ds0=-0.539 short=0.0000
+CELL shoulder|winter_mild J=23.300953 cost=18.609 nfev=440 short=0.0000 | cont=+7.602e-04 dcost=-0.076 nfev=440 ds0=+0.000 short=0.0000 | ftol9=+1.178e-03 dcost=-0.045 nfev=1155 ds0=+0.000 short=0.0000 | ftol12=+1.178e-03 dcost=-0.045 nfev=1793 ds0=+0.000 short=0.0000
+CELL shoulder|summer_warm J=10597.967556 cost=0.000 nfev=12 short=0.0000 | cont=+0.000e+00 dcost=+0.000 nfev=12 ds0=+0.000 short=0.0000 | ftol9=+0.000e+00 dcost=+0.000 nfev=12 ds0=+0.000 short=0.0000 | ftol12=+0.000e+00 dcost=+0.000 nfev=12 ds0=+0.000 short=0.0000
+CELL shoulder|summer_cool J=3.342137 cost=2.155 nfev=394 short=0.0000 | cont=+9.954e-08 dcost=-0.000 nfev=394 ds0=+0.000 short=0.0000 | ftol9=+1.941e-03 dcost=+0.009 nfev=675 ds0=+0.000 short=0.0000 | ftol12=+1.941e-03 dcost=+0.009 nfev=675 ds0=+0.000 short=0.0000
+CELL shoulder|shoulder J=6.894106 cost=5.283 nfev=320 short=0.0000 | cont=+1.662e-07 dcost=-0.000 nfev=320 ds0=+0.000 short=0.0000 | ftol9=+1.846e-03 dcost=+0.012 nfev=736 ds0=+0.000 short=0.0000 | ftol12=+1.846e-03 dcost=+0.012 nfev=763 ds0=+0.000 short=0.0000
+CELL winter_narrow|winter_cold J=124.262942 cost=111.599 nfev=464 short=0.0011 | cont=+2.450e-03 dcost=+0.491 nfev=464 ds0=+0.010 short=0.0000 | ftol9=+1.828e-03 dcost=+0.307 nfev=1617 ds0=+0.011 short=0.0003 | ftol12=+2.425e-03 dcost=+0.484 nfev=1662 ds0=-0.040 short=0.0000
+CELL winter_narrow|winter_mild J=50.750582 cost=39.591 nfev=455 short=0.0000 | cont=+3.375e-03 dcost=-0.848 nfev=455 ds0=+0.000 short=0.0000 | ftol9=+3.002e-03 dcost=-1.030 nfev=2012 ds0=+0.000 short=0.0000 | ftol12=+3.002e-03 dcost=-1.030 nfev=2054 ds0=+0.000 short=0.0000
+CELL winter_narrow|summer_warm J=10597.967556 cost=0.000 nfev=12 short=0.0000 | cont=+0.000e+00 dcost=+0.000 nfev=12 ds0=+0.000 short=0.0000 | ftol9=+0.000e+00 dcost=+0.000 nfev=12 ds0=+0.000 short=0.0000 | ftol12=+0.000e+00 dcost=+0.000 nfev=12 ds0=+0.000 short=0.0000
+CELL winter_narrow|summer_cool J=6.084340 cost=3.637 nfev=308 short=0.0000 | cont=+1.461e-07 dcost=-0.000 nfev=308 ds0=+0.000 short=0.0000 | ftol9=+9.265e-10 dcost=-0.000 nfev=466 ds0=+0.000 short=0.0000 | ftol12=+9.265e-10 dcost=-0.000 nfev=527 ds0=+0.000 short=0.0000
+CELL winter_narrow|shoulder J=14.479919 cost=9.272 nfev=358 short=0.0000 | cont=+1.186e-07 dcost=-0.000 nfev=358 ds0=+0.000 short=0.0000 | ftol9=+7.340e-05 dcost=-0.015 nfev=583 ds0=+0.000 short=0.0000 | ftol12=+7.340e-05 dcost=-0.015 nfev=583 ds0=+0.000 short=0.0000
+CELL winter_moderate|winter_cold J=95.290321 cost=81.802 nfev=471 short=0.0000 | cont=+4.222e-03 dcost=+0.385 nfev=471 ds0=+0.000 short=0.0000 | ftol9=-2.274e-04 dcost=+0.671 nfev=1052 ds0=+0.000 short=0.0000 | ftol12=-2.274e-04 dcost=+0.671 nfev=1083 ds0=+0.000 short=0.0000
+CELL winter_moderate|winter_mild J=38.068743 cost=30.207 nfev=545 short=0.0000 | cont=+1.401e-03 dcost=+0.330 nfev=545 ds0=-0.185 short=0.0000 | ftol9=+1.065e-03 dcost=+0.259 nfev=1576 ds0=+0.068 short=0.0000 | ftol12=+1.065e-03 dcost=+0.259 nfev=1576 ds0=+0.068 short=0.0000
+CELL winter_moderate|summer_warm J=10597.967556 cost=0.000 nfev=12 short=0.0000 | cont=+0.000e+00 dcost=+0.000 nfev=12 ds0=+0.000 short=0.0000 | ftol9=+0.000e+00 dcost=+0.000 nfev=12 ds0=+0.000 short=0.0000 | ftol12=+0.000e+00 dcost=+0.000 nfev=12 ds0=+0.000 short=0.0000
+CELL winter_moderate|summer_cool J=4.676736 cost=2.597 nfev=349 short=0.0000 | cont=+1.223e-07 dcost=-0.000 nfev=349 ds0=+0.000 short=0.0000 | ftol9=+1.647e-03 dcost=+0.062 nfev=642 ds0=+0.000 short=0.0000 | ftol12=+1.647e-03 dcost=+0.062 nfev=680 ds0=+0.000 short=0.0000
+CELL winter_moderate|shoulder J=10.920191 cost=7.526 nfev=358 short=0.0000 | cont=+1.104e-07 dcost=-0.000 nfev=358 ds0=+0.000 short=0.0000 | ftol9=+1.479e-04 dcost=-0.071 nfev=654 ds0=+0.000 short=0.0000 | ftol12=+1.479e-04 dcost=-0.071 nfev=654 ds0=+0.000 short=0.0000
+CELL flat|winter_cold J=99.739766 cost=90.456 nfev=502 short=0.0000 | cont=+4.665e-03 dcost=-0.032 nfev=502 ds0=+0.246 short=0.0000 | ftol9=+3.906e-03(COMFORT-WORSE) dcost=+0.046 nfev=1259 ds0=+0.826 short=0.0000 | ftol12=+3.906e-03(COMFORT-WORSE) dcost=+0.046 nfev=1296 ds0=+0.826 short=0.0000
+CELL flat|winter_mild J=41.473297 cost=35.120 nfev=305 short=0.0000 | cont=+2.062e-08 dcost=-0.000 nfev=305 ds0=+0.000 short=0.0000 | ftol9=+1.697e-08 dcost=-0.000 nfev=861 ds0=+0.000 short=0.0000 | ftol12=+1.697e-08 dcost=-0.000 nfev=923 ds0=+0.000 short=0.0000
+CELL flat|summer_warm J=10597.967556 cost=0.000 nfev=12 short=0.0000 | cont=+0.000e+00 dcost=+0.000 nfev=12 ds0=+0.000 short=0.0000 | ftol9=+0.000e+00 dcost=+0.000 nfev=12 ds0=+0.000 short=0.0000 | ftol12=+0.000e+00 dcost=+0.000 nfev=12 ds0=+0.000 short=0.0000
+CELL flat|summer_cool J=5.188660 cost=2.833 nfev=499 short=0.0000 | cont=+0.000e+00 dcost=+0.000 nfev=499 ds0=+0.000 short=0.0000 | ftol9=+2.739e-15 dcost=+0.000 nfev=720 ds0=+0.000 short=0.0000 | ftol12=+2.739e-15 dcost=+0.000 nfev=739 ds0=+0.000 short=0.0000
+CELL flat|shoulder J=12.227805 cost=8.732 nfev=456 short=0.0000 | cont=+1.244e-07 dcost=-0.000 nfev=456 ds0=+0.000 short=0.0000 | ftol9=-2.604e-04 dcost=+0.103 nfev=678 ds0=+0.000 short=0.0000 | ftol12=-2.604e-04 dcost=+0.103 nfev=678 ds0=+0.000 short=0.0000
+RESULT cells=40 count
+RESULT cont_cells_gap_gt_1e-3=7 count
+RESULT cont_cells_gap_lt_-1e-4=0 count
+RESULT cont_gap_mean=6.0570e-04 ratio
+RESULT cont_gap_max=4.6647e-03 ratio
+RESULT cont_gap_min=0.0000e+00 ratio
+RESULT cont_gap_mean_drop_best=5.0162e-04 ratio
+RESULT cont_loo_mean_min=5.0162e-04 ratio
+RESULT cont_loo_mean_max=6.2123e-04 ratio
+RESULT cont_flat_gap_mean=9.3297e-04 ratio
+RESULT cont_flat_gap_max=4.6647e-03 ratio
+RESULT cont_nonflat_gap_mean=5.5894e-04 ratio
+RESULT cont_cost_delta_mean=0.0372 SEK/day
+RESULT cont_cost_delta_min=-0.8480 SEK/day
+RESULT cont_cost_delta_max=0.8096 SEK/day
+RESULT cont_step0_changed=4 count
+RESULT cont_cells_comfort_worse=2 count
+RESULT cont_rawgap_mean=7.2770e-04 ratio
+RESULT cont_rawgap_cells_gt_1e-3=8 count
+RESULT ftol9_cells_gap_gt_1e-3=12 count
+RESULT ftol9_cells_gap_lt_-1e-4=2 count
+RESULT ftol9_gap_mean=8.7835e-04 ratio
+RESULT ftol9_gap_max=1.1074e-02 ratio
+RESULT ftol9_gap_min=-2.6041e-04 ratio
+RESULT ftol9_gap_mean_drop_best=6.1692e-04 ratio
+RESULT ftol9_loo_mean_min=6.1692e-04 ratio
+RESULT ftol9_loo_mean_max=9.0755e-04 ratio
+RESULT ftol9_flat_gap_mean=-5.2079e-05 ratio
+RESULT ftol9_flat_gap_max=1.6970e-08 ratio
+RESULT ftol9_nonflat_gap_mean=1.0113e-03 ratio
+RESULT ftol9_cost_delta_mean=0.0208 SEK/day
+RESULT ftol9_cost_delta_min=-1.0299 SEK/day
+RESULT ftol9_cost_delta_max=0.6705 SEK/day
+RESULT ftol9_step0_changed=5 count
+RESULT ftol9_cells_comfort_worse=4 count
+RESULT ftol9_rawgap_mean=1.0521e-03 ratio
+RESULT ftol9_rawgap_cells_gt_1e-3=15 count
+RESULT ftol9_nfev_ratio_median=1.781 ratio
+RESULT ftol9_nfev_total_ratio=2.168 ratio
+RESULT ftol12_cells_gap_gt_1e-3=13 count
+RESULT ftol12_cells_gap_lt_-1e-4=2 count
+RESULT ftol12_gap_mean=9.9658e-04 ratio
+RESULT ftol12_gap_max=1.1074e-02 ratio
+RESULT ftol12_gap_min=-2.6041e-04 ratio
+RESULT ftol12_gap_mean_drop_best=7.3819e-04 ratio
+RESULT ftol12_loo_mean_min=7.3819e-04 ratio
+RESULT ftol12_loo_mean_max=1.0288e-03 ratio
+RESULT ftol12_flat_gap_mean=-5.2079e-05 ratio
+RESULT ftol12_flat_gap_max=1.6970e-08 ratio
+RESULT ftol12_nonflat_gap_mean=1.1464e-03 ratio
+RESULT ftol12_cost_delta_mean=0.0353 SEK/day
+RESULT ftol12_cost_delta_min=-1.0299 SEK/day
+RESULT ftol12_cost_delta_max=0.8000 SEK/day
+RESULT ftol12_step0_changed=5 count
+RESULT ftol12_cells_comfort_worse=3 count
+RESULT ftol12_rawgap_mean=1.1249e-03 ratio
+RESULT ftol12_rawgap_cells_gt_1e-3=15 count
+RESULT ftol12_nfev_ratio_median=1.824 ratio
+RESULT ftol12_nfev_total_ratio=2.313 ratio
+RESULT thread_factor=1.000
+RESULT load1=7.22
+RESULT swapins=0
