@@ -14,7 +14,7 @@ shared part (GAP, OPTIONS) stands in, one site at a time, P rows the statement
 read the open bracket comes from (P1 restores the line-local scan, P5 the
 re-read from the file start, P6 that re-read always, P7 in every kind), C rows the
 comment reader, J rows the JS block comment, template literal, slot and regex literal, F rows the
-f-string slot, G rows GAP's comment and literal-join arms, K rows the skip
+f-string slot, S rows the shell backtick, escape and `$(` slot, G rows GAP's comment and literal-join arms, K rows the skip
 of a closer in the lead that matches nothing on its line. A survivor prints
 `N of N` and no FAIL. Expected survivors: Y9, Y10, each dispositioned in the
 PR body. A `NOT APPLIED` line means the mutated text moved.
@@ -115,16 +115,21 @@ M = {
 'C4 no JS line comment':("kind === 'js' ? text.startsWith('//', i) :","kind === 'js' ? false :"),
 'J1 no JS block comment':("if (kind === 'js' && text.startsWith('/*', i))",'if (false)'),
 'J2 a JS block comment ends at its line end':("const e = text.indexOf('*/', i + 2); return e < 0 ? text.length : e + 2","const e = text.indexOf('\\n', i); return e < 0 ? text.length : e"),
-'J3 no JS template literal':("  if (c === '`' && kind === 'js') { st.q = c; return 1 }\n",''),
-'J4 a template literal ends with its line':("const spansLines = (st) => st.q.length === 3 || st.q === '`'","const spansLines = (st) => st.q.length === 3"),
+'J3 no JS template literal':("if (c === '`' && kind !== 'py')","if (c === '`' && kind === 'sh')"),
+'J4 a template literal ends with its line':("st.span = kind === 'js'; return 1","st.span = false; return 1"),
 "J5 no JS regex literal":("  if (c === '/' && kind === 'js' && !'/*'.includes(text[i + 1])","  if (false && c === '/' && kind === 'js' && !'/*'.includes(text[i + 1])"),
 "J6 a JS regex literal wherever a slash stands":("&& /(?:^|[(,=:[!&|?{};+\\-*%<>~^\\n]|\\breturn)\\s*$/.test(text.slice(Math.max(0, i - 8), i))","&& true"),
 "J7 a regex class not read":("      else if (text[j] === '[') cls = true\n",""),
-"J8 no template slot":("const slot = st.q === '`' ? text.startsWith('${', i) && 2 :","const slot = st.q === '`' ? false :"),
-"F1 no f-string slot":("st.f && c === '{' && (text[i + 1] === '{' ? -2 : 1)","false"),
-"F2 an f-string's {{ opens a slot":("(text[i + 1] === '{' ? -2 : 1)","1"),
-"F3 a slot's line end resets the reader":(" || st.slots.length > 0\n","\n"),
-"F4 a slot's own brace closes it":("if (top && c === '{') top.depth++","if (top && c === '{') top.depth += 0"),
+"J8 no template slot":("const k = st.q === '`' && kind === 'js' ? text.startsWith('${', i) && 2","const k = st.q === '`' && kind === 'js' ? false"),
+"F1 no f-string slot":(": st.f ? c === '{' && 1 :",": st.f ? false :"),
+"F2 an f-string's {{ opens a slot":("    if (st.f && text.startsWith('{{', i)) return 2\n",""),
+"F3 a slot's line end resets the reader":(" || st.slots.some((s) => s.span)\n","\n"),
+"F4 a slot's own brace closes it":("if (top && c === top.open) top.depth++","if (top && c === top.open) top.depth += 0"),
+"S1 no shell backtick":("if (c === '`' && kind !== 'py')","if (c === '`' && kind === 'js')"),
+"S2 a shell backtick holds its line ends":("st.span = kind === 'js'; return 1","st.span = true; return 1"),
+"S3 no shell escape outside a quote":("  if (c === '\\\\' && kind === 'sh') return 2\n",""),
+"S5 no shell $( slot":("st.q === '\"' && kind === 'sh' && text.startsWith('$(', i) && 2","false"),
+"S6 a shell ${ is a slot":("text.startsWith('$(', i) && 2","/^\\$[({]/.test(text.slice(i, i + 2)) && 2"),
 'C5 a shell # opens a comment anywhere':("(kind === 'py' || !i || /\\s/.test(text[i - 1]))",'(true)'),
 }
 try:

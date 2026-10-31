@@ -187,4 +187,14 @@ for (const [kind, rows] of Object.entries(LEXER)) for (const [what, c] of rows) 
     lm += m; lz += z; ln++
   }
 }
+// A shell word holding a closer, on the call's line and on a continuation line.
+const SH = [['a double-quoted word', '")"'], ['a single-quoted word', "')'"], ['an escaped closer', '\\)'],
+  ['an ANSI-C quoted word', "$')'"], ['a parameter default in a double quote', '"${x:-)}"'],
+  ['a command substitution', '$(echo ")")'], ['a command substitution in a double quote, holding its quote', '"$(echo ")")"'],
+  ['a backtick substitution', '`echo )`']]
+for (const [what, c] of SH) for (const [seam, t] of [['on the line', (v) => `gh pr ${v} 9 ${c} --subject x\n`], ['on a continuation line', (v) => `gh pr ${v} 9 \\\n  ${c} \\\n  --subject x\n`]]) {
+  const m = subjectWriters(['f.sh'], () => t('merge')).bad.length === 1; const z = subjectWriters(['f.sh'], () => t('view')).bad.length > 0
+  console.log(`LEXER sh ${what} ${seam}: merge ${m ? 'refused' : 'PASSED'}; null ${z ? 'REFUSED' : 'passed'}`)
+  lm += m; lz += z; ln++
+}
 console.log(`LEXER merge refused=${lm} of ${ln}; null refused=${lz} of ${ln}`)

@@ -176,34 +176,43 @@ function nonTemplateMerges(log) {
 }
 // One step of the quote reader at text[i]: how many characters there are quoted
 // text (the quote marks included, a Python triple quote read as one mark), or 0,
-// so a bracket there opens nothing. In a JS file a backtick opens a template
-// literal and a `/` where an expression starts a regex literal (its `[]` class
-// holding a `/`). An interpolation slot -- a template's `${`, a Python
-// f-string's `{` (not `{{`) -- is code again until the `}` that closes it,
-// then the string resumes: a quote, a bracket or a string in the slot is the
-// slot's, as the language reads it (Python 3.12 reads an f-string's own quote
-// mark in a slot as a nested string).
-const fresh = () => ({ q: '', esc: false, f: false, slots: [] })
+// so a bracket there opens nothing. By the file's language (`kind`): in a JS
+// file a backtick opens a template literal and a `/` where an expression starts
+// a regex literal (its `[]` class holding a `/`); in a shell or prose file a
+// backtick opens a command substitution or a code span, and a `\` outside a
+// quote makes the next character text. An interpolation slot -- a template's
+// `${`, a Python f-string's `{` (not `{{`), a shell double quote's `$(` (not
+// `${`, whose body is a word) -- is code again until the bracket that closes
+// it, then the string resumes:
+// a quote, a bracket or a string in the slot is the slot's, as the language
+// reads it (Python 3.12 reads an f-string's own quote mark in a slot as a
+// nested string). A quote holds its line ends where the language's does: a
+// triple quote, a template literal, and a slot of either.
+const fresh = () => ({ q: '', esc: false, f: false, span: false, slots: [] })
+const SLOT_OPEN = { '{': '}', '(': ')' }
 function quoted(st, text, i, kind) {
   const c = text[i]
   if (st.q) {
     if (st.esc) { st.esc = false; return 1 }
     if (c === '\\') { st.esc = true; return 1 }
     if (text.startsWith(st.q, i)) { const k = st.q.length; st.q = ''; st.f = false; return k }
-    const slot = st.q === '`' ? text.startsWith('${', i) && 2 : st.f && c === '{' && (text[i + 1] === '{' ? -2 : 1)
-    if (slot < 0) return 2
-    if (slot) { st.slots.push({ q: st.q, f: st.f, depth: 0 }); st.q = ''; st.f = false; return slot }
+    if (st.f && text.startsWith('{{', i)) return 2
+    const k = st.q === '`' && kind === 'js' ? text.startsWith('${', i) && 2
+      : st.f ? c === '{' && 1 : st.q === '"' && kind === 'sh' && text.startsWith('$(', i) && 2
+    if (k) { st.slots.push({ q: st.q, f: st.f, span: st.span, open: text[i + k - 1], depth: 0 }); st.q = ''; st.f = false; return k }
     return 1
   }
   const top = st.slots[st.slots.length - 1]
-  if (top && c === '{') top.depth++
-  else if (top && c === '}' && !top.depth--) { st.slots.pop(); st.q = top.q; st.f = top.f; return 1 }
+  if (top && c === top.open) top.depth++
+  else if (top && c === SLOT_OPEN[top.open] && !top.depth--) { st.slots.pop(); Object.assign(st, { q: top.q, f: top.f, span: top.span }); return 1 }
   if (c === '"' || c === "'") {
     st.q = text.startsWith(c.repeat(3), i) ? c.repeat(3) : c
     st.f = kind === 'py' && /(?<![\w])[rRbBuU]?[fF][rR]?$/.test(text.slice(Math.max(0, i - 3), i))
+    st.span = st.q.length === 3
     return st.q.length
   }
-  if (c === '`' && kind === 'js') { st.q = c; return 1 }
+  if (c === '`' && kind !== 'py') { st.q = c; st.span = kind === 'js'; return 1 }
+  if (c === '\\' && kind === 'sh') return 2
   if (c === '/' && kind === 'js' && !'/*'.includes(text[i + 1]) && /(?:^|[(,=:[!&|?{};+\-*%<>~^\n]|\breturn)\s*$/.test(text.slice(Math.max(0, i - 8), i))) {
     for (let j = i + 1, cls = false; j < text.length && text[j] !== '\n'; j++) {
       if (text[j] === '\\') j++
@@ -214,9 +223,8 @@ function quoted(st, text, i, kind) {
   }
   return 0
 }
-// Whether a quote holds its line ends: a Python triple quote, a JS template
-// literal and a slot of either do; any other quote ends with its line.
-const spansLines = (st) => st.q.length === 3 || st.q === '`' || st.slots.length > 0
+// Whether the reader is in a quote that holds its line ends, or in a slot of one.
+const spansLines = (st) => (st.q && st.span) || st.slots.some((s) => s.span)
 // Where a comment that opens at text[i], outside a quote, ends by the file's
 // language (`kind`), or -1 where none opens: Python's `#`, a shell or Markdown
 // word's leading `#` and JS's `//` end before their line end; JS's `/* */` past
@@ -885,6 +893,9 @@ async function selfTest() {
     ['a template slot holding an object literal and a template', 'tools/x.mjs', (v) => "execFileSync('gh', ['pr', '" + v + "', n, `${ {a: 1}[`)`] }`,\n  '--subject', s])\n"],
     ['a regex literal', 'tools/x.mjs', (v) => `execFileSync('gh', ['pr', '${v}', n, /\\)/,\n  '--subject', s])\n`],
     ['a regex class holding a slash', 'tools/x.mjs', (v) => `execFileSync('gh', ['pr', '${v}', n, /[/)]/,\n  '--subject', s])\n`],
+    ['an escaped shell closer', 'tools/x.sh', (v) => `gh pr ${v} 9 \\) --subject x\n`],
+    ['a shell command substitution in a double quote, holding its quote', 'tools/x.sh', (v) => `gh pr ${v} 9 "$(echo ")")" --subject x\n`],
+    ['a shell backtick substitution', 'tools/x.sh', (v) => `gh pr ${v} 9 \`echo )\` --subject x\n`],
   ]
   for (const [what, f, src] of LEXED) {
     probes.push([`lexer: a closer in ${what} after "merge" does not end the call, its subject refused`, guard([], { ...writers, [f]: src('merge') }).length === 1])
@@ -893,6 +904,13 @@ async function selfTest() {
   probes.push(['null control: a division is no regex literal, and an f-string\'s {{ opens no slot, so the next statement\'s flag is not the call\'s',
     !guard([], { ...writers, 'tools/x.mjs': 'x = (a / b) / c\ncmd = "gh pr merge 9"\nother("--subject", s)\n' }).length
     && !guard([], { ...writers, 'tools/x.py': 'x = f"{{ ("\ncmd = "gh pr merge 9"\nother("--subject", s)\n' }).length])
+  probes.push(['a backslash continuation outside a bracket, in a Python or JS file, continues the call: its --subject is refused',
+    ['tools/x.py', 'tools/x.mjs'].every((f) => guard([], { ...writers, [f]: 'cmd = "gh pr merge 9 " \\\n    "--subject x"\n' }).length === 1)])
+  probes.push(['a shell parameter default is a word, not a slot: a closer in it, in a double quote, does not end the call',
+    guard([], { ...writers, 'tools/x.sh': 'gh pr merge 9 "${x:-)}" --subject x\n' }).length === 1])
+  probes.push(['null control: a shell backtick ends with its line, and an escaped line end still continues the call',
+    !guard([], { ...writers, 'tools/x.md': 'a `b\nc` (d\ngh pr merge 9\n--subject x\n' }).length
+    && guard([], { ...writers, 'tools/x.sh': 'gh pr merge 9 \\\n  --subject x\n' }).length === 1])
   probes.push(['null control: a template slot holds its line ends and its own braces, so a bracket in or after it opens nothing',
     !guard([], { ...writers, 'tools/x.mjs': 'x = `${\n  y\n}(`\ncmd = "gh pr merge 9"\nother("--subject", s)\n' }).length
     && !guard([], { ...writers, 'tools/x.mjs': 'x = `${ {a: 1}.a }`\ncmd = "gh pr merge 9"\nother("--subject", s)\n' }).length])
