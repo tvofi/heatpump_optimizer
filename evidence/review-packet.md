@@ -1,44 +1,44 @@
 # Review packet #3048
-head: e5cbb1a9aa2099efd7d9237ef1069d2f81996047
-base: 7539d1675d7fc8b5020f90b395f4bb0c3485d5b3
+head: 6d24f3ac628372993130e3b5525bdb4bc51c0b05
+base: a7dd7f50d67e0c3819956b15ef95d77f4f6ebfc0
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
 ## Gate digest: pending
-CodeQL id=124607020312 neutral
-arch-score / arch-score id=124606796289 success
-arm id=124606678753 skipped
-budget-raise-gate / budget-raise-gate id=124606796214 success
-cancel-superseded id=124606688343 success
-codeql / Analyze (actions) id=124606796218 success
-codeql / Analyze (javascript-typescript) id=124606796227 success
-codeql / Analyze (python) id=124606796256 in_progress
-governance / delivery-status id=124606796391 success
-governance / delivery-status-publish id=124606797880 skipped
-governance / env-matrix id=124606796221 in_progress
-governance / instrument-self-tests id=124606796195 in_progress
-governance / policy-docs id=124606796235 success
-governance / record id=124606797287 skipped
-governance / wave-script id=124606796303 success
-hassfest / hassfest id=124606796039 success
-kernel-points id=124606796743 skipped
-prelude id=124606688589 in_progress
-refresh id=124606688502 success
-tests / arch-instrument id=124606921175 success
-tests / briefs id=124606796276 success
-tests / browser id=124606921160 in_progress
-tests / closure-scope id=124606796228 success
-tests / closures id=124606921367 in_progress
-tests / coverage id=124606921183 in_progress
-tests / fast (3.14) id=124606921176 in_progress
-tests / mutation id=124606796208 success
-tests / mutation-autofix id=124606936039 skipped
-tests / mutation-pins id=124606935576 skipped
-tests / nightly-ha id=124606922202 skipped
-tests / nightly-status id=124606796185 success
-tests / replay id=124606922791 skipped
-tests / typing id=124606921088 success
-validate / validate-hacs id=124606796117 success
+CodeQL id=124656109736 neutral
+arch-score / arch-score id=124655927331 success
+arm id=124655847286 skipped
+budget-raise-gate / budget-raise-gate id=124655927225 success
+cancel-superseded id=124655852478 success
+codeql / Analyze (actions) id=124655927256 success
+codeql / Analyze (javascript-typescript) id=124655927322 success
+codeql / Analyze (python) id=124655927208 in_progress
+governance / delivery-status id=124655927258 success
+governance / delivery-status-publish id=124655928508 skipped
+governance / env-matrix id=124655927220 success
+governance / instrument-self-tests id=124655927224 in_progress
+governance / policy-docs id=124655927257 success
+governance / record id=124655928260 skipped
+governance / wave-script id=124655927204 success
+hassfest / hassfest id=124655927187 success
+kernel-points id=124655928449 skipped
+prelude id=124655852487 in_progress
+refresh id=124655852357 success
+tests / arch-instrument id=124656034756 success
+tests / briefs id=124655927326 success
+tests / browser id=124656034750 success
+tests / closure-scope id=124655927287 success
+tests / closures id=124656034699 in_progress
+tests / coverage id=124656034740 in_progress
+tests / fast (3.14) id=124656034742 in_progress
+tests / mutation id=124655927217 success
+tests / mutation-autofix id=124656097499 skipped
+tests / mutation-pins id=124656097483 skipped
+tests / nightly-ha id=124656035469 skipped
+tests / nightly-status id=124655927294 success
+tests / replay id=124656035494 skipped
+tests / typing id=124656034781 success
+validate / validate-hacs id=124655927188 success
 
 ## Refusals
 none
@@ -47,7 +47,6 @@ none
 none
 
 ## carry_audit at the head
-NOTE stale tree: 7539d1675d7fc8b5020f90b395f4bb0c3485d5b3 lacks origin/main 9a9659c4f4577c419683b1646d86ee6ebfb772be; roster read at origin/main
 NOTE body item 5017455b: R10-USER-DOCS-VERIFY: R10-USER-DOCS-VERIFY resolved on origin/handoff/audit-r10-roster
 CARRY-AUDIT: 1 finding item(s): 1 routed, 0 unrouted, 0 bad destination(s)
 
@@ -56,34 +55,42 @@ ok         python3 tests/doc_claims.py --surfaces | awk -F'\t' 'NF==6{print $1}'
              `tests/doc_claims.py` is in the tree at this head
   ok         python3 tests/doc_claims.py --surfaces >/dev/null; echo $?
              `tests/doc_claims.py` is in the tree at this head
+  unverified git show <ref>:<page>
+             `git show` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
   ok         node tests/md_tables.mjs
              `tests/md_tables.mjs` is in the tree at this head
   ok         python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)
              `tests/closure.py` is in the tree at this head
-  ok         tests/plan_view.py
-             `tests/plan_view.py` is in the tree at this head
-  ok         node tests/card_drift.mjs
-             `tests/card_drift.mjs` is in the tree at this head
   ok         tests/doc_claims.py
              `tests/doc_claims.py` is in the tree at this head
   ok         tests/harness_headers.py
              `tests/harness_headers.py` is in the tree at this head
+  ok         tests/plan_view.py
+             `tests/plan_view.py` is in the tree at this head
+  ok         node tests/card_drift.mjs
+             `tests/card_drift.mjs` is in the tree at this head
+  ok         tests/layout.py
+             `tests/layout.py` is in the tree at this head
+  ok         tests/env_drift.py --claims-only a7dd7f50d
+             `tests/env_drift.py` is in the tree at this head
+  ok         tests/closure.py selftest
+             `tests/closure.py` is in the tree at this head
+  ok         tests/entities.py
+             `tests/entities.py` is in the tree at this head
+  ok         tools/pr/prepr.sh
+             `tools/pr/prepr.sh` is in the tree at this head
+  unverified git diff --quiet origin/main HEAD -- tests/golden/claimed_drift.txt tests/golden/card_claimed_drift.txt
+             `git diff` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
   ok         dev/audit/rounds/round4/D6/claims.py
              `dev/audit/rounds/round4/D6/claims.py` is in the tree at this head
   ok         dev/audit/rounds/round4/D7/sysid_estimator_frontier.py
              `dev/audit/rounds/round4/D7/sysid_estimator_frontier.py` is in the tree at this head
-  ok         tests/layout.py
-             `tests/layout.py` is in the tree at this head
-  ok         tests/closure.py selftest
-             `tests/closure.py` is in the tree at this head
   ok         tests/env_drift.py --claims-only <merge base>
              `tests/env_drift.py` is in the tree at this head
-  ok         tests/entities.py
-             `tests/entities.py` is in the tree at this head
   ok         python3 tests/structure.py
              `tests/structure.py` is in the tree at this head
 
-FIGURES: 15 resolved, 0 not verified, 0 refused
+FIGURES: 17 resolved, 2 not verified, 0 refused
 
 ## Finder's harness: none named
 ### at the base
@@ -96,7 +103,7 @@ none
 
 ## Three-dot diff
 diff --git a/README.md b/README.md
-index 2b2412ad5..6b2136258 100644
+index 6c9ac50df..423c8025d 100644
 --- a/README.md
 +++ b/README.md
 @@ -113,7 +113,7 @@ optional mould guard watches surface humidity. Safety — tank minimums, the
@@ -119,6 +126,19 @@ index 2b2412ad5..6b2136258 100644
    own time constant — never the slab-mass/coupling split, which no window
    length can identify — carrying the ported intercept ridge and further
    gated on the window's own residual noise staying under ~0.02 °C, refusing
+@@ -317,9 +317,9 @@ installing rather than discover it after:
+ ## Installation
+ 
+ > [!IMPORTANT]
+-> **Home Assistant 2025.2.0 and Python 3.13 are the minimum, and that was a
+-> breaking change.** An installation on an older Home Assistant stops being
+-> offered updates through the Marketplace or HACS. Why the floor sits exactly there is in
++> **Home Assistant 2025.2.0 and Python 3.13 are the minimum.** An installation
++> on an older Home Assistant is not offered updates through the Marketplace or
++> HACS. Why the floor sits exactly there is in
+ > [docs/architecture.md](./docs/architecture.md).
+ 
+ [![Open your Home Assistant instance and open this repository.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=tvofi&repository=heatpump_optimizer&category=integration)
 @@ -457,9 +457,7 @@ which end with a working entry. **Quick setup (recommended)** asks one page of
  questions about the house, reads the heat pump's entities automatically and
  returns to this menu; **Continue setup** walks the wizard screens below;
@@ -195,6 +215,15 @@ index 2b2412ad5..6b2136258 100644
  Temperature republishes Indoor Temperature, so it ships off even though the
  ordinary install can produce its number.
  That list assumes hot water itself is configured. Without a hot water tank
+@@ -683,7 +681,7 @@ Heating Schedule, DHW Setpoint Advisor and Plan DHW Heating (next 24 h).
+ | External Heat Source | Something other than the heat pump is heating the tanks | Evidence in attributes |
+ | Away Mode | The away setback is active | Return time and recovery state in attributes |
+ | Mold Floor Breach | The measured room sits below the mold-safe floor the plan promises | Diagnostic; on when the measured room is below the mold floor by the configured margin (default 0.5 °C), typically because space heating is blocked. `floor_c`, `shortfall_c` and `space_blocked` in attributes |
+-| Wood Cheaper Than Heat Pump | Burning wood costs less per kWh than running the heat pump | Disabled by default. Unavailable until the furnace is on, a wood-tank probe is set, external-heat detection or the DHW wood coil is on, type and packing are set, the billed price per m³ is greater than 0 (no silent default), and furnace efficiency is 10–95 %. A usable wood tank alone is not enough. Price and cheaper-hour count in attributes |
++| Wood Cheaper Than Heat Pump | Burning wood costs less per kWh than running the heat pump | Disabled by default. Unavailable until the furnace is on, a wood-tank probe is set, external-heat detection or the DHW wood coil is on, type and packing are set, the billed price per m³ is greater than 0 (no silent default), and furnace efficiency is 10–95 %. A usable wood tank alone is not enough. Attributes: `sek_per_kwh` (wood's price per kWh), `cheaper_hour_count`, `cheaper_windows` (today's runs of planned heat-pump steps whose heat costs more than wood's, each a `start` and `end` in local time) and `lighting_start` / `lighting_end` (when to light the furnace: from the wood page's lead time before the first window, never before the plan's current step, to that window's start). On a day with no cheaper window, `cheaper_windows` is empty and both lighting times are empty |
+ 
+ ### Buttons (6 total)
+ 
 @@ -698,6 +696,17 @@ Heating Schedule, DHW Setpoint Advisor and Plan DHW Heating (next 24 h).
  
  ### Switches, climate and datetime entities
@@ -213,7 +242,7 @@ index 2b2412ad5..6b2136258 100644
  **Optimizer Active** turns the optimizer on and off. Turning it on only acts from
  *off* — it never clobbers a comfort or economy mode you selected deliberately.
  
-@@ -1024,11 +1033,43 @@ attribute says which entity and why (e.g. `sensor.tank: stale (last report 600
+@@ -1025,11 +1034,43 @@ attribute says which entity and why (e.g. `sensor.tank: stale (last report 600
  min)`). Then press **Prediction Accuracy Diagnose Last Interval** and read the attribution on
  **Prediction Accuracy**.
  
@@ -259,7 +288,7 @@ index 2b2412ad5..6b2136258 100644
  both ECL110 sensors are disabled by default. The MQTT topics ship empty;
  nothing is published or subscribed until you set a topic, so an install without
 diff --git a/dev/audit/rounds/round4/D6/claims.json b/dev/audit/rounds/round4/D6/claims.json
-index b6df29eea..d8cc47111 100644
+index 41ee30fad..c338468bd 100644
 --- a/dev/audit/rounds/round4/D6/claims.json
 +++ b/dev/audit/rounds/round4/D6/claims.json
 @@ -263,18 +263,18 @@
@@ -289,16 +318,16 @@ index b6df29eea..d8cc47111 100644
   {
    "id": "C108",
    "source": "README.md + docs/*.md",
--  "claim": "every relative link resolves (83 links)",
-+  "claim": "every relative link resolves (85 links)",
+-  "claim": "every relative link resolves (84 links)",
++  "claim": "every relative link resolves (86 links)",
    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
--  "result": "83 links, broken=[], of which removed-by-the-export=[]",
-+  "result": "85 links, broken=[], of which removed-by-the-export=[]",
+-  "result": "84 links, broken=[], of which removed-by-the-export=[]",
++  "result": "86 links, broken=[], of which removed-by-the-export=[]",
    "verdict": "true",
    "truth": ""
   },
 diff --git a/dev/audit/rounds/round4/D6/claims.md b/dev/audit/rounds/round4/D6/claims.md
-index 1e353093f..9ec94de0a 100644
+index 3edcfe507..a76f49f3b 100644
 --- a/dev/audit/rounds/round4/D6/claims.md
 +++ b/dev/audit/rounds/round4/D6/claims.md
 @@ -33,8 +33,8 @@ Generated by `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.
@@ -316,11 +345,11 @@ index 1e353093f..9ec94de0a 100644
  | C105 | `docs/automations.md` | the Power Headroom sensor appears once anything bounds the house -- a main fuse OR a capacity tariff -- and a tariff-only install reads 0.0 kW with limit_source='capacity tariff with no peak reference yet' until the month's first metering window closes; with neither it stays unavailable | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` | no fuse + capacity tariff enabled -> {'available': True, 'limit_kw': 0.0, 'headroom_kw': 0.0, 'baseline_source': 'planned power only (no meter)', 'limit_source': 'capacity tariff with no peak reference yet'}; fuse only -> available=True; neither -> available=False | **true** |  |
  | C106 | `docs/automations.md` | Power Headroom is min(main fuse, capacity threshold) - current house draw, clamped at zero, in kW | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` | fuse 20 A 3-phase -> limit_kw=13.8, headroom_kw=13.8, limit_source='main fuse' | **true** |  |
  | C107 | `README.md + docs/*.md + the card` | every entity id quoted in the documentation is an entity the platforms construct | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` | 9 distinct ids cited, not constructed=[] | **true** |  |
--| C108 | `README.md + docs/*.md` | every relative link resolves (83 links) | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` | 83 links, broken=[], of which removed-by-the-export=[] | **true** |  |
-+| C108 | `README.md + docs/*.md` | every relative link resolves (85 links) | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` | 85 links, broken=[], of which removed-by-the-export=[] | **true** |  |
+-| C108 | `README.md + docs/*.md` | every relative link resolves (84 links) | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` | 84 links, broken=[], of which removed-by-the-export=[] | **true** |  |
++| C108 | `README.md + docs/*.md` | every relative link resolves (86 links) | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` | 86 links, broken=[], of which removed-by-the-export=[] | **true** |  |
  | C109 | `README.md + docs/how-it-works.md` | the links to docs/audit-2026-08.md, docs/audit-2026-09.md and docs/backlog.md resolve | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` | finder_wall in tools/audit/prepare_baseline.sh removes docs/audit-*.md, dev/archive/audits/audit-*.md and dev/archive/backlog.md; this tree cannot answer | **unverifiable** | not checkable in the export -- finder_wall removes docs/audit-*.md, dev/archive/audits/audit-*.md and dev/archive/backlog.md |
  | C110 | `README.md + docs/*.md` | every image the documentation embeds exists (21 images) | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` | 21 images, missing=[] | **true** |  |
- | C111 | `README.md + docs/*.md` | every external link answers 200 to a HEAD request (19 links) | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py --links` | not run: pass --links | **unverifiable** | re-run with --links |
+ | C111 | `README.md + docs/*.md` | every external link answers 200 to a HEAD request (20 links) | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py --links` | not run: pass --links | **unverifiable** | re-run with --links |
 diff --git a/dev/audit/rounds/round4/D6/claims.py b/dev/audit/rounds/round4/D6/claims.py
 index 7626132ba..a5cef8fd7 100644
 --- a/dev/audit/rounds/round4/D6/claims.py
@@ -366,7 +395,7 @@ index 000000000..1c5b8cea4
 @@ -0,0 +1 @@
 +- [#3048](https://github.com/tvofi/heatpump_optimizer/pull/3048) — **open**, R10-USER-DOCS-FINAL: user docs final (R10-USER-DOCS-FINAL)
 diff --git a/docs/configuration.md b/docs/configuration.md
-index 8fd441ab2..40b177519 100644
+index e9683500a..8fb45edc1 100644
 --- a/docs/configuration.md
 +++ b/docs/configuration.md
 @@ -63,7 +63,7 @@ install with no entry yet has it off, so this never fires on first setup.)
@@ -736,7 +765,7 @@ index 8fd441ab2..40b177519 100644
  
  **Observe** writes nothing. In *Observe* and *Control* the optimizer keeps a
  ledger of the last 24 hours: per 15-minute step, the duty the plan wanted
-@@ -725,15 +829,22 @@ turning the preset on.
+@@ -732,15 +836,22 @@ turning the preset on.
  
  ### Thermal model (expert)
  
@@ -763,7 +792,7 @@ index 8fd441ab2..40b177519 100644
  
  **Changing a derived value turns the derivation off.** These fields are what
  *Building type and emitters* works out from the questionnaire. If that switch
-@@ -754,12 +865,14 @@ warning; every other field keeps its normal limits.
+@@ -761,12 +872,14 @@ warning; every other field keeps its normal limits.
  | Setting | Default | Range | What it means |
  |---|---|---|---|
  | Two-zone model | Automatic | Automatic · On · Off | *Automatic* means two-zone as soon as any zone value has ever been saved — which can only ever turn it on. **Off is the only way back to single-zone**, because values written during setup live where the options flow cannot erase them. *On* forces two-zone using the values below or their defaults. |
@@ -782,7 +811,7 @@ index 8fd441ab2..40b177519 100644
  
  ### Hot water tank and inlet
  
-@@ -821,6 +934,7 @@ opt-in learners are on **Advanced learning features**.
+@@ -828,6 +941,7 @@ opt-in learners are on **Advanced learning features**.
  | Allow this much extra age | 1.0 | 0.5–10.0, 0.5 steps | Raise it if sensors that deliberately report rarely are being flagged. |
  | Learn my comfort preference from overrides | off | on/off | Every temperature override says the plan went too far one way. This adjusts the comfort weight from that, shows the result on its own sensor, and has a reset button. |
  | Allow a one-off measurement experiment | off | on/off | Lets the optimizer run a small deliberate heating step on a mild, cheap night to measure your house directly instead of inferring it over weeks. Kept too small to notice, and stopped if the temperature drifts. |
@@ -791,7 +820,7 @@ index 8fd441ab2..40b177519 100644
  
  ### Advanced learning features
 diff --git a/docs/dashboard-card.md b/docs/dashboard-card.md
-index e6552d388..f98c37ecb 100644
+index e6552d388..dd9fa3d74 100644
 --- a/docs/dashboard-card.md
 +++ b/docs/dashboard-card.md
 @@ -105,8 +105,8 @@ figures come from `docs/img/card/make_card_figures.mjs` and the schematics furth
@@ -880,7 +909,23 @@ index e6552d388..f98c37ecb 100644
  the options flow with specific days (`Tu-Fr 06:00-08:00`) shows that day list
  as the row's own choice and is saved back unchanged. The editor pre-fills from
  the configured schedule the plan sensors publish as `dhw_windows_spec`, not
-@@ -661,6 +661,7 @@ When every optional temperature sensor is already configured, that part of the
+@@ -516,12 +516,9 @@ keeps its exact aspect ratio rather than being squeezed to fill the space, since
+ it is drawn with `preserveAspectRatio="none"` and constraining its height would
+ stretch every axis label sideways.
+ 
+-Earlier versions sized the dialog from a fixed guess at how tall the surrounding
+-chrome would be. That guess stopped being true as the editor grew, and the extra
+-content rendered outside the dialog's own background — worse on short, wide
+-desktop windows, because that is where the height-derived branch of the old
+-formula won. Nothing depends on guessing the chrome now, so a panel added later
+-costs a scrollbar rather than spilled content.
++Nothing in the sizing guesses how tall the surrounding chrome is, so a panel
++that does not fit costs a scrollbar, never content spilling outside the
++dialog's own background.
+ 
+ ## The savings page
+ 
+@@ -661,6 +658,7 @@ When every optional temperature sensor is already configured, that part of the
  page says exactly that; the integration publishes no ranking at all, and no
  empty table is drawn.
  
@@ -888,7 +933,16 @@ index e6552d388..f98c37ecb 100644
  ## The health page
  
  The **Health** tab answers "is the plan running on good data?" in one screen,
-@@ -942,12 +943,12 @@ series:                                  # optional, initial per-series visibili
+@@ -857,7 +855,7 @@ Restart or reload the dashboard afterwards.
+ 
+ Only one copy of the card can be active: a custom element name can be claimed
+ once per page, and the first copy to load keeps it. A second copy — usually a
+-manual install left under `/local/` from an earlier version — therefore wins
++manual install left under `/local/` — therefore wins
+ permanently, and every upgrade after it loads and is ignored. New features
+ appear to be missing even though the files on disk are current.
+ 
+@@ -942,12 +940,12 @@ series:                                  # optional, initial per-series visibili
  |----------------|---------|--------------------------------|-------------|
  | `type`         | string  | —                              | Must be `custom:heatpump-optimizer-card`. |
  | `title`        | string  | localized                      | Card header text. Left out, it is the built-in default for the frontend language (`Heat pump plan`, `Värmepumpsplan`). An explicit empty string renders no header text. |
@@ -905,7 +959,34 @@ index e6552d388..f98c37ecb 100644
  | `show_stats`   | boolean | `true`                         | Show the headline row (projected savings, optimization score, plan narrative) under the card header. It hides itself, entirely, when the backend publishes none of those sensors. |
  | `series`       | map     | all `true`                     | Initial visibility per series key. Keys: `price`, `dhw_slots`, `space_slots`, `actioned`, `quiet_silent`, `quiet_off`, `outdoor`, `dhw_temp`, `house_temp`, `solar`. |
  
-@@ -981,9 +982,9 @@ reloads. The key is the space and hot-water entity ids the config carries (the
+@@ -956,10 +954,10 @@ series:                                  # optional, initial per-series visibili
+ The plan sensors pin the object id `sensor.heat_pump_optimizer_*`, so the
+ prefix is fixed regardless of the device name. A stock install produces
+ `sensor.heat_pump_optimizer_plan_space_heating` and
+-`sensor.heat_pump_optimizer_plan_dhw_heating`. An install upgraded from before
+-the ids moved to that `plan_` family keeps its registry ids (the same two names
+-with the older suffix order, ending `_space_heating_plan` and
+-`_dhw_heating_plan`); the card resolves both.
++`sensor.heat_pump_optimizer_plan_dhw_heating`. Home Assistant keeps an
++entity's registry id once it is assigned, so an entry registered with the other
++suffix order, ending `_space_heating_plan` and `_dhw_heating_plan`, keeps those
++ids; the card resolves both.
+ 
+ You normally do not need to configure either option. The card resolves entities
+ in this order:
+@@ -969,9 +967,8 @@ in this order:
+    is a stable marker published by the integration, so renaming an entity does
+    not break the card.
+ 3. Any `sensor` whose id ends in `plan_space_heating` / `plan_dhw_heating` /
+-   `solar_irradiance` (current), or the older `space_heating_plan` /
+-   `dhw_heating_plan` (for installs upgraded from before the ids moved, and for
+-   integration versions older than 2.6.1).
++   `solar_irradiance`, or in the other suffix order, `space_heating_plan` /
++   `dhw_heating_plan`.
+ 
+ If nothing is found the card names the id it looked for, so check
+ **Developer Tools → States** and set the option explicitly.
+@@ -981,9 +978,9 @@ reloads. The key is the space and hot-water entity ids the config carries (the
  defaults, when you have not set them) plus the card's `title` and `hours` — its
  config identity, not just its data sources — so a 24-hour card on a wall panel
  and a 48-hour card of the same sensors elsewhere keep their own toggles instead
@@ -934,7 +1015,7 @@ index da1e1c49d..eeea97148 100644
  a topic only exists once you store one.
  
 diff --git a/docs/how-it-works.md b/docs/how-it-works.md
-index a87af50d5..2f65b750b 100644
+index a87af50d5..15595430c 100644
 --- a/docs/how-it-works.md
 +++ b/docs/how-it-works.md
 @@ -142,20 +142,19 @@ nothing and the electricity saved is worth real money. The linear term gives
@@ -965,7 +1046,25 @@ index a87af50d5..2f65b750b 100644
  two-zone winter bill for no reduction in compressor starts. Discouraging
  chatter is the cycling cost's job, and that is denominated in currency per
  start-stop cycle.
-@@ -348,24 +347,15 @@ whole plan rests on.
+@@ -170,12 +169,11 @@ house* and gets charged for the electricity it wasted; a plan that coasts into a
+ windy evening predicts a cold house and a comfort penalty. Both are avoided
+ because they are genuinely more expensive.
+ 
+-Earlier versions added explicit anticipation terms on top. They double-counted
+-physics the simulation already had — and one was a *negative* cost that paid the
+-plan to burn electricity before bad weather, present only on the space path, so
+-simply enabling hot water changed the space objective. Removing both made
+-shoulder-season plans 4–6% cheaper at identical comfort. The solar forecast
+-still shapes the solver's initial guess, where a wrong hunch costs nothing.
++The objective carries no separate anticipation term on top of this. Such a
++term would count physics the simulation already has a second time, and a
++weather bonus is a *negative* cost: it pays the plan to burn electricity before
++bad weather. The solar forecast also shapes the solver's initial guess, where a
++wrong hunch costs nothing.
+ 
+ ### The terminal cost, and why it needs caps
+ 
+@@ -348,24 +346,15 @@ whole plan rests on.
  
  ### Knowing the lower floor rather than guessing it
  
@@ -999,7 +1098,7 @@ index a87af50d5..2f65b750b 100644
  over a long cold spell, and a repair notice says so rather than letting a
  modelled number pass for a measured one. The chart labels the trace
  "Lower floor (modelled)" until a thermometer is assigned.
-@@ -425,7 +415,7 @@ its ceiling, so the *building* charges first — and building storage is free,
+@@ -425,7 +414,7 @@ its ceiling, so the *building* charges first — and building storage is free,
  because the heat sits at room temperature. Only then does the valve throttle and
  the tank take the surplus, which is stored hot and does cost efficiency.
  Building first, tank second, is the cheap order. The cost of that choice is that
@@ -1008,7 +1107,7 @@ index a87af50d5..2f65b750b 100644
  limits do.
  
  **Storing hot is not free.** A heat pump loses efficiency the hotter it must
-@@ -579,9 +569,8 @@ does not shrink because the tank happens to be cold.
+@@ -579,9 +568,8 @@ does not shrink because the tank happens to be cold.
  
  With the scaled draw, the inlet floor underneath is a genuine no-op safety
  bound, and any heat it does have to fabricate is booked rather than silently
@@ -1020,7 +1119,7 @@ index a87af50d5..2f65b750b 100644
  
  ### Self-learning tank cooling
  
-@@ -648,8 +637,8 @@ Everything here is inert until configured or until evidence exists:
+@@ -648,8 +636,8 @@ Everything here is inert until configured or until evidence exists:
  - **Heavy-day targets** (opt-in): the integration learns how much hot water each
    frame actually draws — whole occurrences, weekdays and weekends separately —
    and readies the tank for the 90th-percentile day of *that* frame rather than
@@ -1031,7 +1130,7 @@ index a87af50d5..2f65b750b 100644
    frames: with learned-profile frames there is no stable frame to attach
    statistics to. Watch **DHW Heavy Day Demand** (disabled by default; it needs
    weeks of data).
-@@ -720,11 +709,11 @@ the same as "no sun".
+@@ -720,11 +708,11 @@ the same as "no sun".
  ### Past the published horizon
  
  Nord Pool and Tibber publish tomorrow's prices around 13:00, so before then a
@@ -1048,7 +1147,7 @@ index a87af50d5..2f65b750b 100644
  
  Instead, a normalised daily price *shape* is learned from the prices actually
  seen, split weekday/weekend (the morning peak is later and shallower at the
-@@ -891,9 +880,9 @@ model simulates two tanks side by side: a burn charges the *wood* tank, the
+@@ -891,9 +879,9 @@ model simulates two tanks side by side: a burn charges the *wood* tank, the
  4-way valve draws wood-first while the wood side can meet the flow temperature
  and shifts to the heat-pump tank as it depletes, and the blend law is the same
  one the outlet sensor measures, so model and measurement cannot disagree. The
@@ -1061,7 +1160,7 @@ index a87af50d5..2f65b750b 100644
  safe-temperature headroom, so the plan keeps charging cheap hours right through
  a burn. Heat still in the wood tank at day's end counts in the savings
  settlement and the thermal-battery view, up to 95 °C. Without the probe, or if
-@@ -962,7 +951,7 @@ the learners paused. It is on by default, because it protects everything else
+@@ -962,7 +950,7 @@ the learners paused. It is on by default, because it protects everything else
  and costs nothing. Learning also freezes while an external heat source is active
  and while the open-window detector is tripped.
  
@@ -1070,7 +1169,7 @@ index a87af50d5..2f65b750b 100644
  itself: operating mode, defrosting, online status and fault alarm. Three of
  them freeze the learners, and they freeze on a *value* rather than on a missing
  reading, which is a different shape from everything above:
-@@ -1030,6 +1019,28 @@ day biases it up, so a lower envelope would be systematically wrong. It uses a
+@@ -1030,6 +1018,28 @@ day biases it up, so a lower envelope would be systematically wrong. It uses a
  slow symmetric average instead, with a per-interval rate limit and a residual
  cutoff so a single anomaly cannot move the model far.
  
@@ -1099,7 +1198,7 @@ index a87af50d5..2f65b750b 100644
  ### COP, and the tracking-error gate
  
  With a power meter, COP becomes observable instead of derived from a nameplate
-@@ -1046,7 +1057,7 @@ twice. Without a defrost sensor there is no way to tell which intervals those
+@@ -1046,7 +1056,7 @@ twice. Without a defrost sensor there is no way to tell which intervals those
  are, so the exclusion has to cover the whole 0–5 °C frosting band — which in a
  Swedish shoulder season is a large share of all heating hours, leaving the one
  multiplier every priced plan runs through blind in the conditions it spends most
@@ -1108,7 +1207,7 @@ index a87af50d5..2f65b750b 100644
  the intervals that **actually contained a defrost**, and the rest of the band
  teaches `cop_scale` normally. The attribution stays disjoint, just at a far
  finer grain.
-@@ -1066,7 +1077,7 @@ Two caveats are worth stating plainly:
+@@ -1066,15 +1076,15 @@ Two caveats are worth stating plainly:
    number of defrosts actually witnessed per bucket alongside the duty, so a
    coarse estimate can be recognised as one.
  * **Without a flag** the derate falls back to inferring the shortfall from the
@@ -1117,7 +1216,19 @@ index a87af50d5..2f65b750b 100644
    estimator cannot see a defrost at all — during one the compressor draws
    roughly normal power while delivering almost no heat, which reads as a
    perfectly performing unit — and its error is biased optimistic, because the
-@@ -1103,6 +1114,7 @@ by itself makes 1.0 the only fixed point and drags a perfectly-confirmed model
+   gaps it measures are dominated by the pump drawing *less* than commanded. Its
+-  upper clamp is now 1.0 rather than 1.05: this is a model of a loss, and no
+-  defrost cycle makes a heat pump exceed its own curve. An existing learned
+-  derate survives the upgrade — its buckets are kept and simply re-clamped, so
+-  the careful half of what it learned is not thrown away. Measured duty then
++  upper clamp is 1.0: this is a model of a loss, and no defrost cycle makes a
++  heat pump exceed its own curve. A stored derate that loads with a bucket
++  outside 0.55–1.0 keeps that bucket, clamped into the range, so the careful
++  half of what it learned is not thrown away. Measured duty then
+   takes each bucket over, but only once enough intervals have been counted
+   there to be worth more than what was already learned; until then the two are
+   compared and the more careful of them stands. A single quiet interval cannot
+@@ -1103,6 +1113,7 @@ by itself makes 1.0 the only fixed point and drags a perfectly-confirmed model
  back toward "trust the nameplate". The same vetted sample feeds the compressor
  health watch and the capacity envelope, so both inherit every filter for free.
  
@@ -1125,7 +1236,7 @@ index a87af50d5..2f65b750b 100644
  ### Active system identification
  
  Optional, and the fastest way to a good model. On a mild, cheap night the
-@@ -1142,8 +1154,8 @@ handing the collinear intercept the noise.
+@@ -1142,8 +1153,8 @@ handing the collinear intercept the noise.
  
  Guards on the result: fitted gains outside −0.5 to 2.0 kW mean the "constant"
  was a drifting contaminant (sun through a window, a door left open), and the
@@ -1136,7 +1247,7 @@ index a87af50d5..2f65b750b 100644
  bias. Time constant must land in 0.1–200 h and the loss coefficient in
  0.01–5 kW/°C. Confidence comes from the fit's R², tempered by sample count and
  by the achieved temperature excursion, because R² cannot see that a flat fit
-@@ -1236,9 +1248,8 @@ anti-legionella cycle, and so on — in the plan sensor attributes and in the
+@@ -1236,9 +1247,8 @@ anti-legionella cycle, and so on — in the plan sensor attributes and in the
  card's tooltip. Without it, an unexpected slot is indistinguishable from a
  bug, which makes the optimizer hard to trust and bug reports much weaker than
  they could be. A step that is none of those is `scheduled`, "keeping the
@@ -1186,7 +1297,7 @@ index 9488a4150..0d22cbfe7 100644
  ## Quick setup (recommended)
  
 diff --git a/tests/doc_claims.py b/tests/doc_claims.py
-index 377f2edf2..0b2f95cff 100644
+index 377f2edf2..4b8412802 100644
 --- a/tests/doc_claims.py
 +++ b/tests/doc_claims.py
 @@ -1957,7 +1957,11 @@ def entity_census(extra: dict) -> list[dict]:
@@ -1375,7 +1486,7 @@ index 377f2edf2..0b2f95cff 100644
      for r in rows:
          print(f"{'DUE ' if r['due'] else '    '}{r['doc']}:{r['line']} {r['marker']} "
                + ", ".join(f"{g}={v}" for g, v in r["stages"].items()))
-@@ -3854,6 +3924,466 @@ def check_readme_marketplace() -> None:
+@@ -3854,6 +3924,492 @@ def check_readme_marketplace() -> None:
              not [g for g in readme_figure_findings(edited, regen, sha_of) if "its text differs" in g])
  
  
@@ -1769,14 +1880,30 @@ index 377f2edf2..0b2f95cff 100644
 +# The stateless arm (design section 4, item 2): the user pages state how the integration works, never how it came to
 +# work that way -- RELEASE_NOTES.md is where the history lives. Every phrase has word boundaries: a bare `used to`
 +# matches "Refused together" (carry udf-used-to-boundary). The bare word "now" is not in the lexicon: its hits are
-+# "right now" and a UI label ("Finish setup now"), not history.
++# "right now" and a UI label ("Finish setup now"), not history. The second line is the round-2 widening (fix review of
++# #3048): "earlier/older versions", "versions older than", "upgraded from", "the upgrade", "is now X rather than Y",
++# "breaking change", and a bare three-part version number, which states a release, not a behaviour. "now ... rather
++# than" needs the "is/are" before it, so "snaps back to now rather than show a past" stays a statement; its gap
++# admits a decimal point ("now 1.0 rather than") and a wrapped line, never a sentence end. A literal
++# version (a minimum Home Assistant release, the fork's attribution) goes in STATELESS_EXEMPT with its reason.
 +_HISTORY = re.compile(r"(?i:\bnew in\b|\bsince (?:v\d|version\b|#\d)|\bpreviously\b|\bno longer\b|\bused to\b"
-+                      r"|\buntil v\d|\bas before\b|\brenamed from\b|\bround \d)|\bv\d+\.\d+|(?<![\w&])#\d{3,}\b"
-+                      r"|\bR\d+-")
++                      r"|\buntil v\d|\bas before\b|\brenamed from\b|\bround \d"
++                      r"|\b(?:earlier|older)\s+(?:versions?|releases?)\b"
++                      r"|\b(?:versions?|releases?)\s+(?:older|newer)\s+than\b"
++                      r"|\bupgraded\s+from\b|\bthe\s+upgrade\b|\bbreaking\s+change\b"
++                      r"|\b(?:is|are)\s+now\b(?:[^.;\n]|\.\d|\n(?!\s*\n)){0,40}?\brather\s+than\b)"
++                      r"|\bv\d+\.\d+|(?<![\w&])#\d{3,}\b|\bR\d+-"
++                      r"|(?<![\w.])\d+\.\d+\.\d+\b")
 +# `used to` in its purpose sense ("is used to size the tank", "Used to ..."), which states what a thing does now.
 +_PURPOSE = re.compile(r"(?:^|[.!?|]\s*|,\s*|\b(?:is|are|only|also)\s+)$", re.I)
 +# (page, fragment, reason): a literal use of a lexicon phrase. Each fragment must match exactly once on its page.
-+STATELESS_EXEMPT: tuple[tuple[str, str, str], ...] = ()
++STATELESS_EXEMPT: tuple[tuple[str, str, str], ...] = (
++    ("README.md", "Home Assistant: 2025.2.0+", "the minimum Home Assistant release, stated on the badge"),
++    ("README.md", "Home Assistant 2025.2.0 or newer", "the minimum Home Assistant release, stated as a requirement"),
++    ("README.md", "Home Assistant 2025.2.0 and Python", "the minimum Home Assistant release, stated at installation"),
++    ("README.md", "at version 2.2.0", "the fork's attribution names the upstream release it began from, as NOTICE does"),
++    ("README.md", "Versions 2.3.0 onward", "the fork's attribution names which releases are this fork's own work"),
++)
 +
 +
 +def _blank(m: re.Match) -> str:
@@ -1825,15 +1952,25 @@ index 377f2edf2..0b2f95cff 100644
 +    bad = stateless_findings(pages)
 +    R.check("no user page carries a history phrase outside a reasoned exemption",
 +            not bad, "; ".join(bad[:4]) + (f" (+{len(bad) - 4})" if len(bad) > 4 else ""))
-+    for plant in ("This mode is new in v9.", "The card previously showed the price."):
-+        got = stateless_findings({"probe.md": f"# T\n\n{plant}\n"})
-+        R.check(f"red fixture: {plant!r} is a finding", len(got) >= 1, repr(got))
++    for plant in ("This mode is new in v9.", "The card previously showed the price.",
++                  "Earlier versions sized the dialog from a guess.", "Older releases kept the slab warm.",
++                  "It reads the old ids, for integration versions older than the move.",
++                  "An install upgraded from the first layout keeps its ids.",
++                  "A learned derate survives the upgrade.", "Its upper clamp is now 1.0 rather than 1.05.",
++                  "The new floor was a breaking change.", "The card reads both ids before 2.6.1 too."):
++        got = stateless_findings({"probe.md": f"# T\n\n{plant}\n"}, ())
++        R.check(f"red fixture: {plant!r} is exactly one finding", len(got) == 1, repr(got))
++    R.check("null control: the widened terms' current-behaviour neighbours (\"back to now rather than\", \"the older "
++            "hourly clock\", \"an upgrade seems\", a calendar month \"2026.11\", a decimal \"0.55\") are not findings",
++            not stateless_findings({"probe.md": "# T\n\nThe window snaps back to now rather than show a past. 60 keeps "
++                                                "the older hourly clock. If an upgrade seems to change nothing, reload. "
++                                                "From Home Assistant 2026.11 the derate floor is 0.55. Run `2.6.1`.\n"}, ()))
 +    R.check("null control: \"previous day\", a purpose-sense \"is used to\", \"Refused together\", a code span and "
 +            "a link anchor are not findings",
 +            not stateless_findings({"probe.md": "# T\n\nThe previous day's cost. The sensor is used to size the tank."
-+                                                " Refused together. Run `v9.1 previously`. See [x](#1234-x).\n"}))
++                                                " Refused together. Run `v9.1 previously`. See [x](#1234-x).\n"}, ()))
 +    R.check("red fixture: a history-sense \"used to\" is a finding",
-+            len(stateless_findings({"probe.md": "# T\n\nThe card used to draw the price.\n"})) == 1)
++            len(stateless_findings({"probe.md": "# T\n\nThe card used to draw the price.\n"}, ())) == 1)
 +    R.check("red fixture: an exemption that matches no fragment is a finding",
 +            any("matches 0 times" in g for g in stateless_findings(pages, (("README.md", "no such words", "a b"),))))
 +
@@ -1842,7 +1979,7 @@ index 377f2edf2..0b2f95cff 100644
  def main() -> int:
      check_figures()
      check_product_page()
-@@ -3894,8 +4424,11 @@ def main() -> int:
+@@ -3894,8 +4450,11 @@ def main() -> int:
      check_card_figures()
      check_coffee_button()
      check_readme_marketplace()

@@ -4,6 +4,7 @@ blueprint	charge_ev_from_grid_headroom.yaml	Heat Pump Optimizer - charge an EV f
 blueprint	economy_mode_on_price_peak.yaml	Heat Pump Optimizer - economy mode through the evening price peak	docs/automations.md	1	-
 blueprint	notifications.yaml	Heat Pump Optimizer - notifications	docs/automations.md	1	-
 blueprint	notify_on_manual_plan.yaml	Heat Pump Optimizer - notify when a manual plan takes over	docs/automations.md	1	-
+blueprint	notify_wood_cheaper_window.yaml	Heat Pump Optimizer - notify when wood beats the heat pump today	docs/automations.md	1	-
 card_option	currency	currency	docs/dashboard-card.md	1	<none>
 card_option	dhw_entity	dhw_entity	docs/dashboard-card.md	1	"sensor.heat_pump_optimizer_plan_dhw_heating"
 card_option	hours	hours	docs/dashboard-card.md	1	24
@@ -306,6 +307,7 @@ option	wind_sensitivity_factor	Wind sensitivity	docs/configuration.md	1	0.03
 option	window_area	Window area facing the sun	docs/configuration.md	1	10.0
 option	wood_furnace_efficiency	Furnace efficiency	docs/configuration.md	1	75.0
 option	wood_furnace_enabled	Wood furnace	docs/configuration.md	1	<computed>
+option	wood_lighting_lead_minutes	Light the furnace this long before a cheaper window	docs/configuration.md	1	60.0
 option	wood_packing	Packing	docs/configuration.md	1	"packed"
 option	wood_price_sek_m3	Price per cubic metre	docs/configuration.md	1	<computed>
 option	wood_tank_bottom_entity	Wood tank bottom sensor (optional)	docs/configuration.md	1	<computed>

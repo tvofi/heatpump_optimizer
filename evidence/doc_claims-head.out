@@ -32,7 +32,7 @@
   ok   no built page requests anything from a third party
   ok   mermaid is one exact version in package.json, and the lockfile resolves that version
   ok   the mermaid pin fires on a range and on a lockfile that disagrees (null controls)
-       (pages 9, pageLinks 53, anchors 52, githubLinks 11, images 41, badges 5, external 23, mermaid 9)
+       (pages 9, pageLinks 54, anchors 53, githubLinks 11, images 41, badges 5, external 25, mermaid 9)
 
 -- third-party and sub-page rules fire on a planted tag (R9-WEB-3 null controls)
   ok   the product page and a built page are the unplanted baseline (anchor)
@@ -76,7 +76,7 @@
   ok   no reader doc claims the entity prefix follows the entry name
 
 -- README requirements vs manifest.json (#1537)
-/home/user/wt/tests/doc_claims.py:130: DeprecationWarning: 'maxsplit' is passed as positional argument
+/root/wt/tests/doc_claims.py:130: DeprecationWarning: 'maxsplit' is passed as positional argument
   return [re.split(r"[<>=!~\[]", r, 1)[0].strip() for r in manifest["requirements"]]
   ok   manifest.json still pins requirements (anchor)
   ok   README still has a Requirements section (anchor)
@@ -381,7 +381,7 @@
 -- every user-facing surface has its home in the user docs, default included (R10-USER-DOCS-FINAL)
   ok   every surface class enumerates from the tree (anchor)
   ok   every surface has its home, or a reasoned exemption that still names one
-       (492 surface(s), 491 homed, 1 exempt: python3 tests/doc_claims.py --surfaces lists them)
+       (494 surface(s), 493 homed, 1 exempt: python3 tests/doc_claims.py --surfaces lists them)
   ok   red fixture: a service planted in services.yaml with no home is the one finding
   ok   red fixture: a Default cell that disagrees with the shipped default (away_dhw_min_temperature) is a finding
   ok   red fixture: an exemption naming a surface no longer enumerated is a finding
@@ -393,14 +393,19 @@
 -- the user pages describe the integration as it is, with no change history (R10-USER-DOCS-FINAL)
   ok   the seven user pages are there (anchor)
   ok   no user page carries a history phrase outside a reasoned exemption
-  ok   red fixture: 'This mode is new in v9.' is a finding
-  ok   red fixture: 'The card previously showed the price.' is a finding
+  ok   red fixture: 'This mode is new in v9.' is exactly one finding
+  ok   red fixture: 'The card previously showed the price.' is exactly one finding
+  ok   red fixture: 'Earlier versions sized the dialog from a guess.' is exactly one finding
+  ok   red fixture: 'Older releases kept the slab warm.' is exactly one finding
+  ok   red fixture: 'It reads the old ids, for integration versions older than the move.' is exactly one finding
+  ok   red fixture: 'An install upgraded from the first layout keeps its ids.' is exactly one finding
+  ok   red fixture: 'A learned derate survives the upgrade.' is exactly one finding
+  ok   red fixture: 'Its upper clamp is now 1.0 rather than 1.05.' is exactly one finding
+  ok   red fixture: 'The new floor was a breaking change.' is exactly one finding
+  ok   red fixture: 'The card reads both ids before 2.6.1 too.' is exactly one finding
+  ok   null control: the widened terms' current-behaviour neighbours ("back to now rather than", "the older hourly clock", "an upgrade seems", a calendar month "2026.11", a decimal "0.55") are not findings
   ok   null control: "previous day", a purpose-sense "is used to", "Refused together", a code span and a link anchor are not findings
   ok   red fixture: a history-sense "used to" is a finding
   ok   red fixture: an exemption that matches no fragment is a finding
 
-ALL 277 checks PASSED
-
-real	0m20.677s
-user	0m13.031s
-sys	0m0.629s
+ALL 286 checks PASSED
