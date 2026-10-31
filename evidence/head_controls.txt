@@ -1,0 +1,56 @@
+## null control: every --no-<flag> + --no-mandate (head)
+ARGS: --no-overlap --no-approval-carry --no-skip-bad --no-free-holders --no-bot-prs --no-pre-flight --no-mandate
+rc=0 out: train.sh: set: none mandate: none (owner reviews only) 
+argv: -u tools/audit/seat/merge_train.py batch /tmp/tmp.opaI06kDz1/queue.json --repo x/r --state-dir /tmp/tmp.opaI06kDz1/state --min-runs 1 
+## --no-overlap
+ARGS: --no-overlap
+rc=0 out: train.sh: set: --approval-carry --skip-bad --free-holders --bot-prs --pre-flight mandate: none (owner reviews only) 
+argv: -u tools/audit/seat/merge_train.py batch /tmp/tmp.opaI06kDz1/queue.json --repo x/r --state-dir /tmp/tmp.opaI06kDz1/state --min-runs 1 --approval-carry --skip-bad --free-holders --bot-prs --pre-flight 
+## --no-approval-carry
+ARGS: --no-approval-carry
+rc=0 out: train.sh: set: --overlap --skip-bad --free-holders --bot-prs --pre-flight mandate: none (owner reviews only) 
+argv: -u tools/audit/seat/merge_train.py batch /tmp/tmp.opaI06kDz1/queue.json --repo x/r --state-dir /tmp/tmp.opaI06kDz1/state --min-runs 1 --overlap --skip-bad --free-holders --bot-prs --pre-flight 
+## --no-skip-bad
+ARGS: --no-skip-bad
+rc=0 out: train.sh: set: --overlap --approval-carry --free-holders --bot-prs --pre-flight mandate: none (owner reviews only) 
+argv: -u tools/audit/seat/merge_train.py batch /tmp/tmp.opaI06kDz1/queue.json --repo x/r --state-dir /tmp/tmp.opaI06kDz1/state --min-runs 1 --overlap --approval-carry --free-holders --bot-prs --pre-flight 
+## --no-free-holders
+ARGS: --no-free-holders
+rc=0 out: train.sh: set: --overlap --approval-carry --skip-bad --bot-prs --pre-flight mandate: none (owner reviews only) 
+argv: -u tools/audit/seat/merge_train.py batch /tmp/tmp.opaI06kDz1/queue.json --repo x/r --state-dir /tmp/tmp.opaI06kDz1/state --min-runs 1 --overlap --approval-carry --skip-bad --bot-prs --pre-flight 
+## --no-bot-prs
+ARGS: --no-bot-prs
+rc=0 out: train.sh: set: --overlap --approval-carry --skip-bad --free-holders --pre-flight mandate: none (owner reviews only) 
+argv: -u tools/audit/seat/merge_train.py batch /tmp/tmp.opaI06kDz1/queue.json --repo x/r --state-dir /tmp/tmp.opaI06kDz1/state --min-runs 1 --overlap --approval-carry --skip-bad --free-holders --pre-flight 
+## --no-pre-flight
+ARGS: --no-pre-flight
+rc=0 out: train.sh: set: --overlap --approval-carry --skip-bad --free-holders --bot-prs mandate: none (owner reviews only) 
+argv: -u tools/audit/seat/merge_train.py batch /tmp/tmp.opaI06kDz1/queue.json --repo x/r --state-dir /tmp/tmp.opaI06kDz1/state --min-runs 1 --overlap --approval-carry --skip-bad --free-holders --bot-prs 
+## old spellings all six
+ARGS: --overlap --approval-carry --skip-bad --free-holders --bot-prs --pre-flight
+rc=0 out: train.sh: set: --overlap --approval-carry --skip-bad --free-holders --bot-prs --pre-flight mandate: none (owner reviews only) 
+argv: -u tools/audit/seat/merge_train.py batch /tmp/tmp.opaI06kDz1/queue.json --repo x/r --state-dir /tmp/tmp.opaI06kDz1/state --min-runs 1 --overlap --approval-carry --skip-bad --free-holders --bot-prs --pre-flight 
+## bare
+ARGS: 
+rc=0 out: train.sh: set: --overlap --approval-carry --skip-bad --free-holders --bot-prs --pre-flight mandate: none (owner reviews only) 
+argv: -u tools/audit/seat/merge_train.py batch /tmp/tmp.opaI06kDz1/queue.json --repo x/r --state-dir /tmp/tmp.opaI06kDz1/state --min-runs 1 --overlap --approval-carry --skip-bad --free-holders --bot-prs --pre-flight 
+## bad mandate file
+ARGS: 
+rc=2 out: train.sh: REFUSE: /tmp/tmp.opaI06kDz1/state/mandate must hold one comment id (digits), got '12x' 
+argv: 
+## empty mandate file
+ARGS: 
+rc=2 out: train.sh: REFUSE: /tmp/tmp.opaI06kDz1/state/mandate must hold one comment id (digits), got '' 
+argv: 
+## mandate file + --mandate 9
+ARGS: --mandate 9
+rc=0 out: train.sh: set: --overlap --approval-carry --skip-bad --free-holders --bot-prs --pre-flight mandate: 9 (--mandate) 
+argv: -u tools/audit/seat/merge_train.py batch /tmp/tmp.opaI06kDz1/queue.json --repo x/r --state-dir /tmp/tmp.opaI06kDz1/state --min-runs 1 --overlap --approval-carry --skip-bad --free-holders --bot-prs --pre-flight --mandate 9 
+## mandate file + --no-mandate
+ARGS: --no-mandate
+rc=0 out: train.sh: set: --overlap --approval-carry --skip-bad --free-holders --bot-prs --pre-flight mandate: none (owner reviews only) 
+argv: -u tools/audit/seat/merge_train.py batch /tmp/tmp.opaI06kDz1/queue.json --repo x/r --state-dir /tmp/tmp.opaI06kDz1/state --min-runs 1 --overlap --approval-carry --skip-bad --free-holders --bot-prs --pre-flight 
+## --mandate non-digit (explicit)
+ARGS: --mandate abc
+rc=0 out: train.sh: set: --overlap --approval-carry --skip-bad --free-holders --bot-prs --pre-flight mandate: abc (--mandate) 
+argv: -u tools/audit/seat/merge_train.py batch /tmp/tmp.opaI06kDz1/queue.json --repo x/r --state-dir /tmp/tmp.opaI06kDz1/state --min-runs 1 --overlap --approval-carry --skip-bad --free-holders --bot-prs --pre-flight --mandate abc 

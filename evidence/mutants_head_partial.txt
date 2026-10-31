@@ -1,0 +1,107 @@
+== M0 baseline: merge_train self-test: 381 checks, 0 failed; tick_loop self-test: 17 checks, 0 failed; bus self-test: 110 checks, 0 failed
+== A1: merge_train self-test: 381 checks, 5 failed
+       ok   V142: the stamp's shape (validate-hacs and env-matrix on the rate-limit strings, gate FAIL env-matrix then validate-hacs unprefixed) is due 3600 s after the last matching job, 23:43Z
+       ok   V142 null: a gate with no reason (no FAIL outcome line) does not qualify
+       FAIL queue: the fixture builds exactly #11 (verdict at the head), #12 (carried) and #15 (a budget head), oldest first, each with its verdict comment's id
+       FAIL queue: the record pull request is left to --bot-prs (#16)
+       FAIL sweep: every admitted head is handed to add, oldest first, with the started train's argv
+       FAIL sweep: EXACTLY ONCE -- a second pass over the same heads hands nothing to add
+       FAIL sweep: null control -- a closed train-stop holds nothing (the sweep reaches its queue)
+== A2: merge_train self-test: 381 checks, 2 failed
+       ok   V142: the stamp's shape (validate-hacs and env-matrix on the rate-limit strings, gate FAIL env-matrix then validate-hacs unprefixed) is due 3600 s after the last matching job, 23:43Z
+       ok   V142 null: a gate with no reason (no FAIL outcome line) does not qualify
+       FAIL admit_add refuses by its `verdict` rule, naming it: verdict: no confirmed verdict on the bus (verdict/7)
+       FAIL queue: no verdict/<pr> on the bus is left (#17)
+== A3: merge_train self-test: 381 checks, 5 failed
+       ok   V142: the stamp's shape (validate-hacs and env-matrix on the rate-limit strings, gate FAIL env-matrix then validate-hacs unprefixed) is due 3600 s after the last matching job, 23:43Z
+       ok   V142 null: a gate with no reason (no FAIL outcome line) does not qualify
+       FAIL queue: the fixture builds exactly #11 (verdict at the head), #12 (carried) and #15 (a budget head), oldest first, each with its verdict comment's id
+       FAIL queue: a merge comment under another login is no verdict, though it carries the App's id (#19)
+       FAIL sweep: every admitted head is handed to add, oldest first, with the started train's argv
+       FAIL sweep: EXACTLY ONCE -- a second pass over the same heads hands nothing to add
+       FAIL sweep: null control -- a closed train-stop holds nothing (the sweep reaches its queue)
+== A4: merge_train self-test: 381 checks, 5 failed
+       ok   V142: the stamp's shape (validate-hacs and env-matrix on the rate-limit strings, gate FAIL env-matrix then validate-hacs unprefixed) is due 3600 s after the last matching job, 23:43Z
+       ok   V142 null: a gate with no reason (no FAIL outcome line) does not qualify
+       FAIL queue: the fixture builds exactly #11 (verdict at the head), #12 (carried) and #15 (a budget head), oldest first, each with its verdict comment's id
+       FAIL queue: a merge comment under the App's login and another id is no verdict (#20)
+       FAIL sweep: every admitted head is handed to add, oldest first, with the started train's argv
+       FAIL sweep: EXACTLY ONCE -- a second pass over the same heads hands nothing to add
+       FAIL sweep: null control -- a closed train-stop holds nothing (the sweep reaches its queue)
+== A5: merge_train self-test: 381 checks, 5 failed
+       ok   V142: the stamp's shape (validate-hacs and env-matrix on the rate-limit strings, gate FAIL env-matrix then validate-hacs unprefixed) is due 3600 s after the last matching job, 23:43Z
+       ok   V142 null: a gate with no reason (no FAIL outcome line) does not qualify
+       FAIL queue: the fixture builds exactly #11 (verdict at the head), #12 (carried) and #15 (a budget head), oldest first, each with its verdict comment's id
+       FAIL queue: a newest verdict that is blocked is left, though an older one was merge (#14)
+       FAIL sweep: every admitted head is handed to add, oldest first, with the started train's argv
+       FAIL sweep: EXACTLY ONCE -- a second pass over the same heads hands nothing to add
+       FAIL sweep: null control -- a closed train-stop holds nothing (the sweep reaches its queue)
+== A6: merge_train self-test: 381 checks, 5 failed
+       ok   V142: the stamp's shape (validate-hacs and env-matrix on the rate-limit strings, gate FAIL env-matrix then validate-hacs unprefixed) is due 3600 s after the last matching job, 23:43Z
+       ok   V142 null: a gate with no reason (no FAIL outcome line) does not qualify
+       FAIL queue: the fixture builds exactly #11 (verdict at the head), #12 (carried) and #15 (a budget head), oldest first, each with its verdict comment's id
+       FAIL queue: a newest posted verdict that is not the bus tip waits (#18: confirmed, not posted)
+       FAIL sweep: every admitted head is handed to add, oldest first, with the started train's argv
+       FAIL sweep: EXACTLY ONCE -- a second pass over the same heads hands nothing to add
+       FAIL sweep: null control -- a closed train-stop holds nothing (the sweep reaches its queue)
+== A7: merge_train self-test: 381 checks, 6 failed
+       ok   V142: the stamp's shape (validate-hacs and env-matrix on the rate-limit strings, gate FAIL env-matrix then validate-hacs unprefixed) is due 3600 s after the last matching job, 23:43Z
+       ok   V142 null: a gate with no reason (no FAIL outcome line) does not qualify
+       FAIL admit_add refuses by its `verdict` rule, naming it: verdict: the newest verdict is blocked
+       FAIL queue: the fixture builds exactly #11 (verdict at the head), #12 (carried) and #15 (a budget head), oldest first, each with its verdict comment's id
+       FAIL queue: a newest verdict that is blocked is left, though an older one was merge (#14)
+       FAIL sweep: every admitted head is handed to add, oldest first, with the started train's argv
+       FAIL sweep: EXACTLY ONCE -- a second pass over the same heads hands nothing to add
+       FAIL sweep: null control -- a closed train-stop holds nothing (the sweep reaches its queue)
+== A8: merge_train self-test: 381 checks, 5 failed
+       ok   V142: the stamp's shape (validate-hacs and env-matrix on the rate-limit strings, gate FAIL env-matrix then validate-hacs unprefixed) is due 3600 s after the last matching job, 23:43Z
+       ok   V142 null: a gate with no reason (no FAIL outcome line) does not qualify
+       FAIL queue: the fixture builds exactly #11 (verdict at the head), #12 (carried) and #15 (a budget head), oldest first, each with its verdict comment's id
+       FAIL queue: a head the carry refuses is left, with the carry's own line (#13)
+       FAIL sweep: every admitted head is handed to add, oldest first, with the started train's argv
+       FAIL sweep: EXACTLY ONCE -- a second pass over the same heads hands nothing to add
+       FAIL sweep: null control -- a closed train-stop holds nothing (the sweep reaches its queue)
+== A9: merge_train self-test: 381 checks, 11 failed
+       ok   V142: the stamp's shape (validate-hacs and env-matrix on the rate-limit strings, gate FAIL env-matrix then validate-hacs unprefixed) is due 3600 s after the last matching job, 23:43Z
+       ok   V142 null: a gate with no reason (no FAIL outcome line) does not qualify
+       FAIL queue: the fixture builds exactly #11 (verdict at the head), #12 (carried) and #15 (a budget head), oldest first, each with its verdict comment's id
+       FAIL queue: the carry is asked only where the verdict is not the head (#12, #13)
+       FAIL queue: the verdict grammar is proof_watch.parse_verdict's, not a copy -- a grammar swapped there admits #11 under it and leaves #11 under the old spelling
+       FAIL sweep: every admitted head is handed to add, oldest first, with the started train's argv
+       FAIL sweep: EXACTLY ONCE -- a second pass over the same heads hands nothing to add
+       FAIL sweep: null control -- a new verdict at a moved head is a new entry, added once
+       FAIL sweep: an add that started no train refuses the sweep (rc 2) at that entry, the rest untried
+       FAIL sweep: null control -- a closed train-stop holds nothing (the sweep reaches its queue)
+       FAIL sweep, no train live: ONE train starts over the first missed head, the second joins its next batch (spooled) -- never a second train
+       FAIL sweep, a train live: the next pass adds nothing and starts nothing (exactly once)
+       FAIL sweep while a batch is in proof: both missed heads land in the spool -- the NEXT batch -- and no train starts beside it
+== A10: merge_train self-test: 381 checks, 5 failed
+       ok   V142: the stamp's shape (validate-hacs and env-matrix on the rate-limit strings, gate FAIL env-matrix then validate-hacs unprefixed) is due 3600 s after the last matching job, 23:43Z
+       ok   V142 null: a gate with no reason (no FAIL outcome line) does not qualify
+       FAIL queue: the fixture builds exactly #11 (verdict at the head), #12 (carried) and #15 (a budget head), oldest first, each with its verdict comment's id
+       FAIL sweep: every admitted head is handed to add, oldest first, with the started train's argv
+       FAIL sweep: an add that started no train refuses the sweep (rc 2) at that entry, the rest untried
+       FAIL sweep, no train live: ONE train starts over the first missed head, the second joins its next batch (spooled) -- never a second train
+       FAIL sweep while a batch is in proof: both missed heads land in the spool -- the NEXT batch -- and no train starts beside it
+== A11: merge_train self-test: 381 checks, 2 failed
+       ok   V142: the stamp's shape (validate-hacs and env-matrix on the rate-limit strings, gate FAIL env-matrix then validate-hacs unprefixed) is due 3600 s after the last matching job, 23:43Z
+       ok   V142 null: a gate with no reason (no FAIL outcome line) does not qualify
+       FAIL queue: an unreadable pull request list stops the builder (no queue from a failed read)
+       FAIL sweep: an unreadable pull request list refuses (rc 2), nothing added
+== A12: merge_train self-test: 381 checks, 1 failed
+       ok   V142: the stamp's shape (validate-hacs and env-matrix on the rate-limit strings, gate FAIL env-matrix then validate-hacs unprefixed) is due 3600 s after the last matching job, 23:43Z
+       ok   V142 null: a gate with no reason (no FAIL outcome line) does not qualify
+       FAIL queue: an unreadable verdict bus listing stops the builder (no queue from a failed read)
+== V1: merge_train self-test: 381 checks, 6 failed
+       ok   V142: the stamp's shape (validate-hacs and env-matrix on the rate-limit strings, gate FAIL env-matrix then validate-hacs unprefixed) is due 3600 s after the last matching job, 23:43Z
+       ok   V142 null: a gate with no reason (no FAIL outcome line) does not qualify
+       FAIL admit_add refuses by its `verdict` rule, naming it: verdict: no confirmed verdict on the bus (verdict/7)
+       FAIL admit_add refuses by its `verdict` rule, naming it: verdict: the verdict bus could not be read
+       FAIL admit_add refuses by its `verdict` rule, naming it: verdict: the newest verdict is blocked
+       FAIL admit_add refuses by its `verdict` rule, naming it: verdict: the newest posted merge verdict names 222222222222,
+       FAIL admit_add refuses by its `verdict` rule, naming it: verdict: comment 41 is not the newest posted verdict, commen
+       FAIL admit_add: an add naming no comment is admitted with the newest posted verdict's id (the event add's)
+== V2: merge_train self-test: 381 checks, 1 failed
+       ok   V142: the stamp's shape (validate-hacs and env-matrix on the rate-limit strings, gate FAIL env-matrix then validate-hacs unprefixed) is due 3600 s after the last matching job, 23:43Z
+       ok   V142 null: a gate with no reason (no FAIL outcome line) does not qualify
+       FAIL admit_add refuses by its `verdict` rule, naming it: verdict: the newest posted merge verdict names 222222222222,

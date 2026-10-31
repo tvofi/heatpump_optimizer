@@ -1,3 +1,0 @@
-NOTE stale tree: d538f2daff18ad39520b75eab718044da461b9c6 lacks origin/main 437f1ba9b521199b360d84effe6a621573d34663; roster read at origin/main
-NOTE #3010 body item 227dd906: R10-FLY-TRAIN-DEFAULTS
-CARRY-AUDIT #3010: 1 finding item(s): 1 routed, 0 unrouted, 0 bad destination(s)
