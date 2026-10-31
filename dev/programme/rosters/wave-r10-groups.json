@@ -13376,6 +13376,46 @@
     "note": "RCA of the 2026-10-31 review-ref rewrite storm"
    },
    "brief": "Root-cause countermeasure (RCA by orchestrator s9, 2026-10-31; out-of-tree RCA at the orchestrator's seat-rca-reviewrefs, which this group lands under the dev/audit/rca/ directory as a new R10-RELAY-REPLAY note). Defect: cloud_relay.sh relay() pushes a probe/rev-* verdict to review/<pr> whenever the probe is missing from its ledger, and never asks whether review/<pr> already carries that verdict. A loop restarted without HPO_STATE_DIR read the stale default ledger and replayed 93 probes as 92 commits on 56 review refs, 53 on closed PRs. Process state (c). Countermeasure: in relay(), if review/<pr> already has a commit with the probe's tree, record the probe in the ledger and push nothing, so correctness does not depend on which ledger is read. Also print the resolved state dir and ledger path once per pass. Controls: replay origin as at 14:09Z with an empty ledger; main's relay pushes 93 of 93, the guard pushes 2 (3006 and 3043, the only new verdicts: null control). Self-test arms: a delivered tree is skipped; a new tree is pushed; the guard does not fail open under pipefail (an early awk exit broke the pipe in the RCA's first version). The 'committed after the probe' condition has no historical case: add a synthetic one or drop the condition. Land the RCA document and cite it in bugclasses.json rca if the class exists."
+  },
+  {
+   "group": "R10-FLY-CLOSURE-MAJOR",
+   "lane": "F",
+   "kind": "instrument",
+   "class": "instrument",
+   "severity": "high",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 6,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "tools/plan/replan.py",
+    "tools/audit/seat/plan_page.py"
+   ],
+   "carry": [
+    "Split from R10-FLOW-TOOLKIT-MODEL's carry 'Round closure is v10.0.0' (tvofi 2026-10-29, restated 2026-10-31): replan.py models the round-close stamp as a minor bump (v7.2.0); it must be the round-major release vN.0.0, N the roster's round, as stamp.py --round-close N writes it; check_plan validates it and plan_page renders it."
+   ],
+   "brief": "Owner-ordered (tvofi, 2026-10-31: \"I want that implemented, both persistently as well as you applying it locally immediately\"). Opening a pull request from a handoff re-runs a full tools/pr/prepr.sh inside app_push.sh, about an hour per open on a loaded box. The fixer already ran prepr with rc 0 at the same code head before its handoff (fixer preamble step 10). On 2026-10-31, 14 handoffs waited 1 to 9 h behind the opener's slots. Build: (1) tools/audit/seat/body_push.sh records the fixer's prepr result on the handoff-body ref: rc, code head, body blob and merge base, written only by a prepr run that just exited 0 at that head. (2) app_push.sh, on an open (no pull request on the branch), skips prepr and runs row_only_checks instead when both hold: the record names the head it is opening, or HEAD is a clean merge of origin/main into that code head whose tree equals git merge-tree's result; and no path main changed since the merge base is a path the code head's own diff changes. Its shape follows recarry_verdict. Any other case runs prepr as today, and the log prints which case ran and why. (3) open_pr.sh passes the code head through. (4) A self-test against real git, like recarry_verdict's, covers: the code head itself skips; a disjoint clean merge skips; an overlapping merge runs prepr; an extra commit runs prepr; a missing or mismatched record runs prepr. Each case has a mutant. Gate reuse: CI's pr-contract and gate still judge the opened head, so a skip never hides a red; it only stops predicting what the fixer already predicted. The orchestrator's local stand-in, a commit on a local branch of a separate checkout, is the starting point: the brief gives its path. Build the tracked form from it, add the record, and replace the stand-in.",
+   "resume": {
+    "stage": "not-started",
+    "branch": null
+   }
   }
  ]
 }
