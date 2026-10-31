@@ -1,0 +1,10 @@
+14,17c14,17
+< a/tests/closure.py bba004d32..9240d5033
+< a/tests/closures.json ceb95f3f0..81628d1e5
+< a/tests/doc_claims.py 91dc8acb2..49c4bb02e
+< a/tests/entities.py 1260ef106..749918b4e
+---
+> a/tests/closure.py 96360dac4..ef5215d3e
+> a/tests/closures.json 08f671afb..6f93af714
+> a/tests/doc_claims.py 51138864f..377f2edf2
+> a/tests/entities.py 38df75976..d70832183

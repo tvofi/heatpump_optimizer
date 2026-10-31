@@ -1,0 +1,853 @@
+diff --git a/README.md b/README.md
+index 4d291dcb2..8bc921ac2 100644
+--- a/README.md
++++ b/README.md
+@@ -1,4 +1,4 @@
+-![Heat Pump Cost Optimizer: model-predictive heating control for Home Assistant](docs/img/readme/banner.png)
++![Heat Pump Cost Optimizer: model-predictive heating control for Home Assistant](./docs/img/readme/banner.png)
+ 
+ # Heat Pump Cost Optimizer for Home Assistant
+ 
+@@ -13,17 +13,17 @@ hours.
+ [![Python: 3.13+](https://img.shields.io/badge/Python-3.13%2B-026aa8.svg)](https://www.python.org)
+ [![License: MIT](https://img.shields.io/badge/License-MIT-d2601f.svg)](https://github.com/tvofi/heatpump_optimizer/blob/main/LICENSE)
+ 
+-[![Buy me a coffee](docs/img/brand/coffee.svg)][coffee]
++[![Buy me a coffee](./docs/img/brand/coffee.svg)][coffee]
+ 
+ [coffee]: https://buymeacoffee.com/rpgshcwb2tp
+ 
+ [Product page](https://tvofi.github.io/heatpump_optimizer/): the project at a glance, every sentence of it quoted from this README and the docs.
+ 
+-![The dashboard card's plan chart: 24 hours of spot price, forecast temperature and solar, over the heating and hot-water slots the optimizer chose](docs/img/card/card-plan-chart.png)
++![The dashboard card's plan chart: 24 hours of spot price, forecast temperature and solar, over the heating and hot-water slots the optimizer chose](./docs/img/card/card-plan-chart.png)
+ 
+ *The next 24 hours as the optimizer sees them — price, forecast, solar, and the
+ slots it picked for heating and for hot water. Screenshot of the shipped card
+-against a solved plan; [docs/dashboard-card.md](docs/dashboard-card.md) reads
++against a solved plan; [docs/dashboard-card.md](./docs/dashboard-card.md) reads
+ every mark on it.*
+ 
+ ## Acknowledgement
+@@ -36,7 +36,7 @@ ECL110 heat-curve path are all originally strutsfarm's work; the companion
+ [**strutsfarm/ecl110**](https://github.com/strutsfarm/ecl110) project provides
+ the MQTT interface this integration drives. Versions 2.3.0 onward were developed
+ in this fork. Both projects are MIT licensed. The formal attribution is recorded
+-in [NOTICE](NOTICE), and [LICENSE](LICENSE) is kept as the verbatim MIT text.
++in [NOTICE](./NOTICE), and [LICENSE](./LICENSE) is kept as the verbatim MIT text.
+ 
+ ## At a glance
+ 
+@@ -117,8 +117,13 @@ tells you which.
+ and Swedish) and follow your Home Assistant language, without touching entity ids
+ or history. Monetary units follow your instance currency.
+ 
+-<details open>
+-<summary><b>How the pieces fit</b> — inputs, coordinator, self-learning, outputs</summary>
++<picture>
++<source media="(prefers-color-scheme: dark)" srcset="./docs/img/readme/mermaid-how-the-pieces-fit-dark.png">
++<img src="./docs/img/readme/mermaid-how-the-pieces-fit.png" alt="How the pieces fit: price, weather and sensor inputs feed the coordinator's price and thermal models, the optimizer and the safety layer; self-learning tunes the models; outputs are entities, the heat pump and the dashboard card">
++</picture>
++
++<details>
++<summary><b>How the pieces fit</b> — inputs, coordinator, self-learning, outputs (diagram source)</summary>
+ 
+ ```mermaid
+ flowchart LR
+@@ -246,7 +251,7 @@ Each path in full: [Switch and climate entity](#switches-climate-and-datetime-en
+ [Inverter frequency: observe first, control if you say
+ so](#inverter-frequency-observe-first-control-if-you-say-so),
+ [ECL110 heat-curve control](#ecl110-heat-curve-control); the setup fields for
+-all three live in [docs/configuration.md](docs/configuration.md).
++all three live in [docs/configuration.md](./docs/configuration.md).
+ 
+ ## Known limitations
+ 
+@@ -271,7 +276,7 @@ installing rather than discover it after:
+   command topics ship empty, so an install without an ECL110 has nothing to
+   clear on the options page. Details in
+   [ECL110 heat-curve control](#ecl110-heat-curve-control) and
+-  [docs/ecl110.md](docs/ecl110.md).
++  [docs/ecl110.md](./docs/ecl110.md).
+ - **Frequency control needs a `number` entity and your explicit say-so.** The
+   path exists only if the compressor frequency is exposed as a `number`
+   entity (Modbus, ESPHome). The default Observe mode "learns and recommends
+@@ -315,7 +320,7 @@ installing rather than discover it after:
+ > **Home Assistant 2025.2.0 and Python 3.13 are the minimum, and that was a
+ > breaking change.** An installation on an older Home Assistant stops being
+ > offered updates through the Marketplace or HACS. Why the floor sits exactly there is in
+-> [docs/architecture.md](docs/architecture.md).
++> [docs/architecture.md](./docs/architecture.md).
+ 
+ [![Open your Home Assistant instance and open this repository.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=tvofi&repository=heatpump_optimizer&category=integration)
+ 
+@@ -399,8 +404,13 @@ Have your price source to hand — a Tibber token, or a price entity such as
+ Nord Pool — and the entity id of your weather integration. Everything else can
+ be added later from the options pages.
+ 
+-<details open>
+-<summary><b>The setup flow</b> — two required screens, then a menu</summary>
++<picture>
++<source media="(prefers-color-scheme: dark)" srcset="./docs/img/readme/mermaid-setup-flow-dark.png">
++<img src="./docs/img/readme/mermaid-setup-flow.png" alt="The setup flow: basics, optional sensors, then a menu with Quick setup, Continue setup and Finish setup now, ending in a read-only review and confirm">
++</picture>
++
++<details>
++<summary><b>The setup flow</b> — two required screens, then a menu (diagram source)</summary>
+ 
+ ```mermaid
+ flowchart TD
+@@ -497,7 +507,7 @@ starting point for a detached house.
+ will be created; confirming there creates the entry.
+ 
+ Every field and its range is documented in
+-[docs/configuration.md](docs/configuration.md).
++[docs/configuration.md](./docs/configuration.md).
+ 
+ ### Your first week
+ 
+@@ -755,9 +765,9 @@ that deliver them.
+ 
+ 13 services are registered under the `heatpump_optimizer` domain. Field-level
+ detail for each — including all 31 fields of `set_thermal_parameters` — is in
+-[docs/configuration.md](docs/configuration.md). Worked automation examples — an
++[docs/configuration.md](./docs/configuration.md). Worked automation examples — an
+ EV charger following the Cost Power Headroom sensor, mode switching on price — are in
+-[docs/automations.md](docs/automations.md).
++[docs/automations.md](./docs/automations.md).
+ 
+ | Service | What it does | Returns |
+ |---|---|---|
+@@ -788,7 +798,7 @@ be released is reported in the `manual_override` attribute of the plan sensors.
+ 
+ ### Blueprints
+ 
+-The worked examples and events in [docs/automations.md](docs/automations.md) are also
++The worked examples and events in [docs/automations.md](./docs/automations.md) are also
+ shipped as importable Home Assistant blueprints. Import them
+ from Settings → Automations & Scenes → Blueprints → Import Blueprint:
+ 
+@@ -802,10 +812,18 @@ hard-coded to the entity ids the examples assume.
+ 
+ ## How it works
+ 
+-![One optimization interval: prices, weather and sensors feed the coordinator; the optimizer solves 24 hours ahead; the heat pump is switched and the plan published](docs/img/readme/how-it-works.png)
++<picture>
++<source media="(prefers-color-scheme: dark)" srcset="./docs/img/readme/how-it-works-dark.png">
++<img src="./docs/img/readme/how-it-works.png" alt="One optimization interval: prices, weather and sensors feed the coordinator; the optimizer solves 24 hours ahead; the heat pump is switched and the plan published">
++</picture>
++
++<picture>
++<source media="(prefers-color-scheme: dark)" srcset="./docs/img/readme/mermaid-one-interval-dark.png">
++<img src="./docs/img/readme/mermaid-one-interval.png" alt="One optimization interval: what the coordinator does, in order, from reading inputs to publishing the plan">
++</picture>
+ 
+-<details open>
+-<summary><b>One optimization interval</b> — what the coordinator does, in order</summary>
++<details>
++<summary><b>One optimization interval</b> — what the coordinator does, in order (diagram source)</summary>
+ 
+ ```mermaid
+ sequenceDiagram
+@@ -881,7 +899,7 @@ degree-hours are solver/BLAS-dependent and differ across machines. A model
+ that is already correct is left alone (within ±12 %).
+ 
+ Full theory, with every mechanism and its defaults:
+-[docs/how-it-works.md](docs/how-it-works.md).
++[docs/how-it-works.md](./docs/how-it-works.md).
+ 
+ ## Changing settings after setup
+ 
+@@ -932,7 +950,7 @@ temperature. If the house feels cooler than you want, raise this value or raise
+ your minimum temperature; both work, and both trade savings for warmth.
+ 
+ Every field, default and range:
+-[docs/configuration.md](docs/configuration.md).
++[docs/configuration.md](./docs/configuration.md).
+ 
+ ## Dashboard card
+ 
+@@ -961,7 +979,7 @@ what_if: true
+ ```
+ 
+ Every option, the keyboard and pointer interactions, and the editing limits are
+-documented in [docs/dashboard-card.md](docs/dashboard-card.md).
++documented in [docs/dashboard-card.md](./docs/dashboard-card.md).
+ 
+ ## Troubleshooting
+ 
+@@ -1013,12 +1031,12 @@ on the **Heat curve control (ECL110)** options page, not in initial setup, and
+ both ECL110 sensors are disabled by default. The MQTT topics ship empty;
+ nothing is published or subscribed until you set a topic, so an install without
+ an ECL110 never touches the topics at all. Topics, payloads, options and the
+-PI/PID lag handling are documented in [docs/ecl110.md](docs/ecl110.md).
++PI/PID lag handling are documented in [docs/ecl110.md](./docs/ecl110.md).
+ 
+ ## Project status
+ 
+ Finished plans, the August 2026 audit, the backlog and the closed wave
+-rosters are in [dev/archive/README.md](dev/archive/README.md).
++rosters are in [dev/archive/README.md](./dev/archive/README.md).
+ 
+ ## Written with AI, and what that costs
+ 
+@@ -1040,7 +1058,7 @@ claim; and any quoted figure re-derived at the contributor's own merge base. A
+ structural ratchet refuses growth in every metric it measures. Solver fixtures
+ are *claimed* with their direction rather than re-recorded, because
+ floating-point results do not reproduce across machines.
+-[tests/README.md](tests/README.md) documents the gate; `CLAUDE.md` and
++[tests/README.md](./tests/README.md) documents the gate; `CLAUDE.md` and
+ `.cursor/rules/` document the policy.
+ 
+ **This makes a hand-written pull request harder than it would otherwise be.**
+@@ -1056,7 +1074,7 @@ evidence in the form the gate checks for. That is a convenience, not a
+ requirement, and it does not lower the bar — the evidence is verified
+ mechanically either way.
+ 
+-**Developing here** starts at [dev/README.md](dev/README.md): the order the work
++**Developing here** starts at [dev/README.md](./dev/README.md): the order the work
+ runs in, what a branch owes before it is pushed, the CI shape and the
+ orchestration machinery, drawn.
+ 
+@@ -1071,14 +1089,14 @@ before installing; it applies with full force.
+ | Document | What is in it |
+ |---|---|
+ | [docs/index.html](https://tvofi.github.io/heatpump_optimizer/) | The product page: what the project does, quoted from this README and the docs, with the card and the setup in pictures |
+-| [docs/how-it-works.md](docs/how-it-works.md) | The full theory: planning, the thermal model, weather, wood and external heat, grid and tariffs, and every learner with its bounds |
+-| [docs/configuration.md](docs/configuration.md) | Every setup field and options page, every service field, and the hydronic layout catalog |
+-| [docs/setup.md](docs/setup.md) | The setup flow screen by screen, with pictures: quick setup, the device pre-fill, and the full wizard |
+-| [docs/dashboard-card.md](docs/dashboard-card.md) | The card: options, interactions, editing limits |
+-| [docs/automations.md](docs/automations.md) | Complete automation examples using only the entities and services the integration creates |
+-| [docs/architecture.md](docs/architecture.md) | Module map and how a plan is made, for anyone reading or changing the code |
+-| [docs/ecl110.md](docs/ecl110.md) | ECL110 MQTT control |
+-| [DISCLAIMER.md](DISCLAIMER.md) | The full disclaimer |
++| [docs/how-it-works.md](./docs/how-it-works.md) | The full theory: planning, the thermal model, weather, wood and external heat, grid and tariffs, and every learner with its bounds |
++| [docs/configuration.md](./docs/configuration.md) | Every setup field and options page, every service field, and the hydronic layout catalog |
++| [docs/setup.md](./docs/setup.md) | The setup flow screen by screen, with pictures: quick setup, the device pre-fill, and the full wizard |
++| [docs/dashboard-card.md](./docs/dashboard-card.md) | The card: options, interactions, editing limits |
++| [docs/automations.md](./docs/automations.md) | Complete automation examples using only the entities and services the integration creates |
++| [docs/architecture.md](./docs/architecture.md) | Module map and how a plan is made, for anyone reading or changing the code |
++| [docs/ecl110.md](./docs/ecl110.md) | ECL110 MQTT control |
++| [DISCLAIMER.md](./DISCLAIMER.md) | The full disclaimer |
+ 
+ ## Disclaimer
+ 
+@@ -1089,14 +1107,14 @@ and safety controls active, and treat the anti-legionella cycle as a convenience
+ rather than as compliance with your local rules for hot water hygiene. Every cost
+ and saving it reports is the output of a model, not an accounting record.
+ 
+-Read [DISCLAIMER.md](DISCLAIMER.md) in full before installing.
++Read [DISCLAIMER.md](./DISCLAIMER.md) in full before installing.
+ 
+ ## License
+ 
+-MIT. See [LICENSE](LICENSE).
++MIT. See [LICENSE](./LICENSE).
+ 
+ This project is a fork of
+ [strutsfarm/heatpump_optimizer](https://github.com/strutsfarm/heatpump_optimizer),
+ which is also MIT licensed; the upstream copyright is retained alongside this
+ project's own. See the [Acknowledgement](#acknowledgement) above and
+-[NOTICE](NOTICE).
++[NOTICE](./NOTICE).
+diff --git a/dev/audit/harnesses/r10_readme_marketplace_pipeline.mjs b/dev/audit/harnesses/r10_readme_marketplace_pipeline.mjs
+new file mode 100644
+index 000000000..6e9488e74
+--- /dev/null
++++ b/dev/audit/harnesses/r10_readme_marketplace_pipeline.mjs
+@@ -0,0 +1,104 @@
++// R10-README-GRAPHICS: does README.md survive the Home Assistant Marketplace's markdown pipeline?
++//
++//   npm install --prefix "$DIR" marked@15.0.4 xss@1.0.15          # not repository dependencies
++//   HPO_PIPELINE_MODULES=$DIR/node_modules node dev/audit/harnesses/r10_readme_marketplace_pipeline.mjs [--readme FILE]
++//
++// A REPLICA, not the shipped bundle: the finder measured homeassistant 2026.11.0b1 and home-assistant-frontend
++// 20261028.1 and transcribed three stages. The stages, in the order the frontend runs them:
++//   1. marked (gfm) turns the README into HTML (frontend src/resources/markdown-worker.ts);
++//   2. js-xss filterXSS sanitizes it with the default allow-list plus `picture` and `source[src,srcset,sizes,media,type]`
++//      (markdown-worker.ts:55-74); a `srcset` survives only when every candidate's URL passes the same test, else the whole
++//      attribute is dropped (markdown-worker.ts:21-43). Its default safeAttrValue keeps an `src`/`href` only when it starts with http://,
++//      https://, mailto:, tel:, data:image/, ftp://, ./, ../, # or /; anything else becomes "" (xss lib/default.js:176-194);
++//   3. src/common/dom/rewrite-html-urls.ts:29-56 then resolves every a[href], img[src] and source[src|srcset] that is not absolute, `#` or `//`
++//      against https://raw.githubusercontent.com/<repo>/<ref>/ (a .md target: https://github.com/<repo>/blob/<ref>/).
++// So a bare `docs/x.png` is blanked in stage 2 and stage 3 turns the blank into the ref's directory, which is no image.
++//
++// Metric: every image and link README.md writes as repository-relative must end at <base>/<its own path>; every mermaid
++// fence arrives as a plain <pre><code> because stage 2 drops its language class (no mermaid exists in the frontend).
++//   RESULT relative_images=<n> resolved=<k>      -- red when k < n
++//   RESULT relative_links=<n> resolved=<k>       -- red when k < n
++//   RESULT absolute_images=<n> resolved=<k>      -- the null control: an absolute URL passes at every ref
++//   RESULT picture_sources=<n> resolved=<k>      -- each <source srcset> (the dark PNG) ends at <base>/<its own path>
++//   RESULT mermaid_fences=<n> plain_code=<k>     -- informational; fences are why the figures are committed PNGs
++//   RESULT control bare=<blank|ok> dot=<blank|ok> absolute=<blank|ok>   -- the harness can go red: bare blank, dot and absolute ok
++//   RESULT control srcset_bare=<stripped|kept> srcset_dot=<stripped|kept> light_img=<ok|blank>
++//                                  -- a bare srcset is dropped while the light <img> of the same <picture> still resolves;
++//                                     a ./ srcset is kept and resolved
++// GitHub's own switching is not replicated here (it is GitHub's renderer): README.md's <picture> is the form GitHub documents.
++// Exit 1 when any relative image, link or source is blank, or a control reads wrong; 0 otherwise. Red at the merge base, green at
++// the head. --readme FILE reads another README (e.g. `git show origin/main:README.md > FILE`).
++import { createRequire } from "node:module";
++import fs from "node:fs";
++import path from "node:path";
++import { fileURLToPath } from "node:url";
++
++const modules = process.env.HPO_PIPELINE_MODULES;
++if (!modules) throw new Error("set HPO_PIPELINE_MODULES to a node_modules directory holding marked@15.0.4 and xss@1.0.15");
++const req = createRequire(path.join(modules, "x.js"));
++const { marked } = req("marked");
++const xss = req("xss");
++
++const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
++const arg = process.argv.indexOf("--readme");
++const readmePath = arg > 0 ? process.argv[arg + 1] : path.join(root, "README.md");
++const BASE = "https://raw.githubusercontent.com/tvofi/heatpump_optimizer/v7.1.0/";
++const BLOB = "https://github.com/tvofi/heatpump_optimizer/blob/v7.1.0/";
++
++const whiteList = { ...xss.getDefaultWhiteList(), picture: [], source: ["src", "srcset", "sizes", "media", "type"] };
++const srcsetSafe = (v) => v.split(",").every((c) => xss.safeAttrValue("img", "src", (c.trim().split(/\s+/)[0] || ""), {}) !== "");
++const sanitizer = new xss.FilterXSS({
++  whiteList, safeAttrValue: (tag, name, value, css) => (name === "srcset" ? (srcsetSafe(value) ? value : "") : xss.safeAttrValue(tag, name, value, css)),
++});
++const rewriteUrl = (v) => {  // export `E`: absolute, `#` and `//` stay; the rest resolves against the pinned ref
++  if (/^[a-z][a-z0-9+.-]*:/i.test(v) || v.startsWith("#") || v.startsWith("//")) return v;
++  return new URL(v, /\.md(?:$|[#?])/i.test(v) ? BLOB : BASE).href;
++};
++const rewriter = new xss.FilterXSS({
++  whiteList, onTagAttr: (tag, name, value) => {
++    const v = value.replace(/^"|"$/g, "");
++    if ((name === "src" || name === "href") && (tag === "img" || tag === "a")) return `${name}="${rewriteUrl(v)}"`;
++    if (tag === "source" && (name === "src" || name === "srcset"))
++      return `${name}="${v.split(",").map((c) => c.trim().replace(/^\S+/, rewriteUrl)).join(", ")}"`;
++    return undefined;
++  },
++});
++const attrs = (html, tag, name) => [...html.matchAll(new RegExp(`<${tag}\\b[^>]*?\\s${name}="([^"]*)"`, "g"))].map((m) => m[1]);
++const pipeline = (md) => {
++  const raw = marked.parse(md, { gfm: true });
++  return { raw, out: rewriter.process(sanitizer.process(raw)) };
++};
++const isAbs = (v) => /^[a-z][a-z0-9+.-]*:/i.test(v) || v.startsWith("//") || v.startsWith("#");
++// a target resolves when the pipeline's result is exactly what GitHub would resolve it to
++const measure = (md, tag, name) => {
++  const { raw, out } = pipeline(md);
++  const want = attrs(raw, tag, name), got = attrs(out, tag, name);
++  const rows = want.map((w, i) => ({ w, ok: got[i] === rewriteUrl(w.replaceAll("&amp;", "&")) && got[i] !== BASE && got[i] !== BLOB }));
++  return { rel: rows.filter((r) => !isAbs(r.w)), abs: rows.filter((r) => isAbs(r.w)) };
++};
++
++const readme = fs.readFileSync(readmePath, "utf8");
++const sources = measure(readme, "source", "srcset");
++const imgs = measure(readme, "img", "src"), links = measure(readme, "a", "href");
++const n = (rows) => `${rows.length} resolved=${rows.filter((r) => r.ok).length}`;
++console.log(`RESULT relative_images=${n(imgs.rel)}`);
++console.log(`RESULT relative_links=${n(links.rel)}`);
++console.log(`RESULT absolute_images=${n(imgs.abs)}`);
++console.log(`RESULT picture_sources=${n(sources.rel)}`);
++const { raw, out } = pipeline(readme);
++const fences = (raw.match(/<code class="language-mermaid"/g) || []).length;
++const plain = (out.match(/<pre><code>(?:flowchart|sequenceDiagram|graph)/g) || []).length;
++console.log(`RESULT mermaid_fences=${fences} plain_code=${plain}`);
++
++const ctl = (md) => (measure(md, "img", "src").rel.concat(measure(md, "img", "src").abs)[0]?.ok ? "ok" : "blank");
++const control = { bare: ctl("![a](docs/x.png)"), dot: ctl("![a](./docs/x.png)"), absolute: ctl("![a](https://example.com/x.png)") };
++console.log(`RESULT control bare=${control.bare} dot=${control.dot} absolute=${control.absolute}`);
++const pic = (src) => pipeline(`<picture>\n<source media="(prefers-color-scheme: dark)" srcset="${src}">\n<img src="./docs/l.png" alt="a">\n</picture>\n`).out;
++const sBare = pic("docs/d.png"), sDot = pic("./docs/d.png");
++const sControl = { bare: /<source[^>]*srcset="[^"]+"/.test(sBare) ? "kept" : "stripped", dot: sDot.includes(`srcset="${BASE}docs/d.png"`) ? "kept" : "stripped",
++  light: sBare.includes(`<img src="${BASE}docs/l.png"`) && sDot.includes(`<img src="${BASE}docs/l.png"`) ? "ok" : "blank" };
++console.log(`RESULT control srcset_bare=${sControl.bare} srcset_dot=${sControl.dot} light_img=${sControl.light}`);
++const controlsRight = control.bare === "blank" && control.dot === "ok" && control.absolute === "ok"
++  && sControl.bare === "stripped" && sControl.dot === "kept" && sControl.light === "ok";
++const red = imgs.rel.some((r) => !r.ok) || sources.rel.some((r) => !r.ok) || links.rel.some((r) => !r.ok) || imgs.abs.some((r) => !r.ok);
++process.exit(red || !controlsRight ? 1 : 0);
+diff --git a/dev/audit/rounds/round4/D6/claims.json b/dev/audit/rounds/round4/D6/claims.json
+index 884f80777..730fc10a6 100644
+--- a/dev/audit/rounds/round4/D6/claims.json
++++ b/dev/audit/rounds/round4/D6/claims.json
+@@ -965,9 +965,9 @@
+  {
+   "id": "C108",
+   "source": "README.md + docs/*.md",
+-  "claim": "every relative link resolves (84 links)",
++  "claim": "every relative link resolves (83 links)",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
+-  "result": "84 links, broken=[], of which removed-by-the-export=[]",
++  "result": "83 links, broken=[], of which removed-by-the-export=[]",
+   "verdict": "true",
+   "truth": ""
+  },
+@@ -983,9 +983,9 @@
+  {
+   "id": "C110",
+   "source": "README.md + docs/*.md",
+-  "claim": "every image the documentation embeds exists (22 images)",
++  "claim": "every image the documentation embeds exists (21 images)",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
+-  "result": "22 images, missing=[]",
++  "result": "21 images, missing=[]",
+   "verdict": "true",
+   "truth": ""
+  },
+diff --git a/dev/audit/rounds/round4/D6/claims.md b/dev/audit/rounds/round4/D6/claims.md
+index 4dd228422..3c3796370 100644
+--- a/dev/audit/rounds/round4/D6/claims.md
++++ b/dev/audit/rounds/round4/D6/claims.md
+@@ -111,9 +111,9 @@ Generated by `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.
+ | C105 | `docs/automations.md` | the Power Headroom sensor appears once anything bounds the house -- a main fuse OR a capacity tariff -- and a tariff-only install reads 0.0 kW with limit_source='capacity tariff with no peak reference yet' until the month's first metering window closes; with neither it stays unavailable | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` | no fuse + capacity tariff enabled -> {'available': True, 'limit_kw': 0.0, 'headroom_kw': 0.0, 'baseline_source': 'planned power only (no meter)', 'limit_source': 'capacity tariff with no peak reference yet'}; fuse only -> available=True; neither -> available=False | **true** |  |
+ | C106 | `docs/automations.md` | Power Headroom is min(main fuse, capacity threshold) - current house draw, clamped at zero, in kW | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` | fuse 20 A 3-phase -> limit_kw=13.8, headroom_kw=13.8, limit_source='main fuse' | **true** |  |
+ | C107 | `README.md + docs/*.md + the card` | every entity id quoted in the documentation is an entity the platforms construct | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` | 9 distinct ids cited, not constructed=[] | **true** |  |
+-| C108 | `README.md + docs/*.md` | every relative link resolves (84 links) | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` | 84 links, broken=[], of which removed-by-the-export=[] | **true** |  |
++| C108 | `README.md + docs/*.md` | every relative link resolves (83 links) | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` | 83 links, broken=[], of which removed-by-the-export=[] | **true** |  |
+ | C109 | `README.md + docs/how-it-works.md` | the links to docs/audit-2026-08.md, docs/audit-2026-09.md and docs/backlog.md resolve | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` | finder_wall in tools/audit/prepare_baseline.sh removes docs/audit-*.md, dev/archive/audits/audit-*.md and dev/archive/backlog.md; this tree cannot answer | **unverifiable** | not checkable in the export -- finder_wall removes docs/audit-*.md, dev/archive/audits/audit-*.md and dev/archive/backlog.md |
+-| C110 | `README.md + docs/*.md` | every image the documentation embeds exists (22 images) | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` | 22 images, missing=[] | **true** |  |
++| C110 | `README.md + docs/*.md` | every image the documentation embeds exists (21 images) | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` | 21 images, missing=[] | **true** |  |
+ | C111 | `README.md + docs/*.md` | every external link answers 200 to a HEAD request (19 links) | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py --links` | not run: pass --links | **unverifiable** | re-run with --links |
+ | C112 | `strings.json + translations/*.json` | every translation file carries exactly the keys strings.json declares | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` | languages=['en', 'sv'], missing={'en': 0, 'sv': 0}, extra={'en': 0, 'sv': 0} | **true** |  |
+ | C113 | `README.md` | entity names are translated into English and Swedish | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` | documented=['en', 'sv'] measured=['en', 'sv'] | **true** |  |
+diff --git a/dev/programme/delivery/3014.md b/dev/programme/delivery/3014.md
+new file mode 100644
+index 000000000..ad317abc2
+--- /dev/null
++++ b/dev/programme/delivery/3014.md
+@@ -0,0 +1 @@
++- [#3014](https://github.com/tvofi/heatpump_optimizer/pull/3014) — **open**, R10-README-GRAPHICS: README figures render on the Marketplace page, light and dark (R10-README-GRAPHICS)
+diff --git a/docs/img/readme/mermaid-how-the-pieces-fit-dark.png b/docs/img/readme/mermaid-how-the-pieces-fit-dark.png
+new file mode 100644
+index 000000000..58eb532a7
+Binary files /dev/null and b/docs/img/readme/mermaid-how-the-pieces-fit-dark.png differ
+diff --git a/docs/img/readme/mermaid-how-the-pieces-fit.png b/docs/img/readme/mermaid-how-the-pieces-fit.png
+new file mode 100644
+index 000000000..0bd6e40dc
+Binary files /dev/null and b/docs/img/readme/mermaid-how-the-pieces-fit.png differ
+diff --git a/docs/img/readme/mermaid-one-interval-dark.png b/docs/img/readme/mermaid-one-interval-dark.png
+new file mode 100644
+index 000000000..3a29fe44f
+Binary files /dev/null and b/docs/img/readme/mermaid-one-interval-dark.png differ
+diff --git a/docs/img/readme/mermaid-one-interval.png b/docs/img/readme/mermaid-one-interval.png
+new file mode 100644
+index 000000000..be729a517
+Binary files /dev/null and b/docs/img/readme/mermaid-one-interval.png differ
+diff --git a/docs/img/readme/mermaid-setup-flow-dark.png b/docs/img/readme/mermaid-setup-flow-dark.png
+new file mode 100644
+index 000000000..0b1b423a8
+Binary files /dev/null and b/docs/img/readme/mermaid-setup-flow-dark.png differ
+diff --git a/docs/img/readme/mermaid-setup-flow.png b/docs/img/readme/mermaid-setup-flow.png
+new file mode 100644
+index 000000000..8942fd653
+Binary files /dev/null and b/docs/img/readme/mermaid-setup-flow.png differ
+diff --git a/docs/img/readme/mermaid_figures.json b/docs/img/readme/mermaid_figures.json
+new file mode 100644
+index 000000000..15eda0aa8
+--- /dev/null
++++ b/docs/img/readme/mermaid_figures.json
+@@ -0,0 +1,28 @@
++{
++ "generator": "docs/img/readme/render_mermaid.mjs",
++ "mermaid": "12.2.0",
++ "source": "README.md",
++ "figures": [
++  {
++   "png": "docs/img/readme/mermaid-how-the-pieces-fit.png",
++   "png_dark": "docs/img/readme/mermaid-how-the-pieces-fit-dark.png",
++   "block_sha256": "6ba9cc1e027334c1a7c602a43ea25a455915adba2a0df4899fa54fc0f3ca88ac",
++   "png_sha256": "eb8cdfed82662cbd8b9648613429ef291eac4ffd3dcc8be3baea9cfa7f8eefc2",
++   "png_dark_sha256": "01ce3b59e9f686c2137979c042dcd1b0941c155d0de91fab5544f4d7c78ead9f"
++  },
++  {
++   "png": "docs/img/readme/mermaid-setup-flow.png",
++   "png_dark": "docs/img/readme/mermaid-setup-flow-dark.png",
++   "block_sha256": "e14dda04c9aa932ef2255be95c1220aacb2475423f59db71972a7d84d51e0e64",
++   "png_sha256": "c73d2f2ef5abb6a37d3ad77c88014afe4597ab7528a1ea63e61379b65dfc9910",
++   "png_dark_sha256": "5db63c422a7f59702ba53a18b5bf4810cb6d022ed3851546ae4778e6e71f0320"
++  },
++  {
++   "png": "docs/img/readme/mermaid-one-interval.png",
++   "png_dark": "docs/img/readme/mermaid-one-interval-dark.png",
++   "block_sha256": "bb15e14e25b60cfea3092931d189455da33c117b2fb86f50be0c3ed56287b30c",
++   "png_sha256": "07d112b5c02d8b89feee1aa36f1b4d0c6b27618ee0bbdbbab1d3f4b81dac4a80",
++   "png_dark_sha256": "aba7cb5fe671636c480c0b8de9d36afed3d33b72f224a0fa9fb0297e5738bdb7"
++  }
++ ]
++}
+diff --git a/docs/img/readme/render_mermaid.mjs b/docs/img/readme/render_mermaid.mjs
+new file mode 100644
+index 000000000..03e92d680
+--- /dev/null
++++ b/docs/img/readme/render_mermaid.mjs
+@@ -0,0 +1,67 @@
++// Pre-renders each ```mermaid block of README.md to a light and a dark PNG and records a source-hash manifest beside them.
++//
++// Why: the Home Assistant Marketplace renders README.md without mermaid, so a fence shows as raw code (R10-README-GRAPHICS,
++// dev/audit/harnesses/r10_readme_marketplace_pipeline.mjs). README.md carries a <picture> directly above each block's
++// (closed) <details>: the light PNG as the <img>, the dark PNG as a prefers-color-scheme: dark <source>; GitHub and tools/site/build_docs.mjs still draw the live diagram from the block.
++//
++// Run from the repository root after editing any mermaid block, then commit the PNGs and the manifest:
++//   npm ci --prefix tools/site           # the mermaid pinned in tools/site/package-lock.json (pages.yml's install)
++//   npm ci --prefix tests/pwlane && npx --prefix tests/pwlane playwright install chromium   # playwright, as tests/card_browser.mjs
++//   NODE_PATH=$PWD/tests/pwlane/node_modules node docs/img/readme/render_mermaid.mjs
++// Env: MERMAID_JS (default tools/site/node_modules/mermaid/dist/mermaid.min.js), HPO_CHROMIUM (default: playwright's own).
++//
++// tests/doc_claims.py compares SOURCES, not pixels: PNG bytes do not reproduce across machines (fonts, rasteriser). It
++// refuses a block whose sha256 differs from the manifest's, and a PNG (either variant) whose sha256 differs from the manifest's.
++// The dark variant uses mermaid's dark theme on docs/site/docs.css's dark --bg (#0b1a28).
++import { createRequire } from 'module';
++import crypto from 'crypto';
++import fs from 'fs';
++import path from 'path';
++
++const { chromium } = createRequire(import.meta.url)('playwright');
++const ROOT = process.cwd();
++const README = path.join(ROOT, 'README.md');
++const OUT = 'docs/img/readme';
++const MANIFEST = path.join(ROOT, OUT, 'mermaid_figures.json');
++const MERMAID_JS = process.env.MERMAID_JS || path.join(ROOT, 'tools/site/node_modules/mermaid/dist/mermaid.min.js');
++// one entry per block, in README order; the count is checked against the README below
++const NAMES = ['mermaid-how-the-pieces-fit', 'mermaid-setup-flow', 'mermaid-one-interval'];
++const sha = (b) => crypto.createHash('sha256').update(b).digest('hex');
++
++// the block body is what tests/doc_claims.py hashes: the text between the fence lines, trailing newline included
++const blocks = [...fs.readFileSync(README, 'utf8').matchAll(/^```mermaid\n([\s\S]*?)^```/gm)].map((m) => m[1]);
++if (blocks.length !== NAMES.length) throw new Error(`README.md has ${blocks.length} mermaid blocks, NAMES has ${NAMES.length}`);
++const version = JSON.parse(fs.readFileSync(path.join(path.dirname(path.dirname(MERMAID_JS)), 'package.json'), 'utf8')).version;
++
++const launch = process.env.HPO_CHROMIUM ? { executablePath: process.env.HPO_CHROMIUM } : {};
++const browser = await chromium.launch(launch);
++const page = await browser.newPage({ viewport: { width: 1200, height: 900 }, deviceScaleFactor: 2 });
++await page.setContent('<!doctype html><body style="margin:0"><div id="fig" style="display:inline-block;width:1100px;padding:24px"></div></body>');
++await page.addScriptTag({ path: MERMAID_JS });
++const VARIANTS = [{ key: 'light', suffix: '', theme: 'neutral', bg: '#ffffff' }, { key: 'dark', suffix: '-dark', theme: 'dark', bg: '#0b1a28' }];
++const figures = [];
++for (const [i, src] of blocks.entries()) {
++  const fig = { png: `${OUT}/${NAMES[i]}.png`, png_dark: `${OUT}/${NAMES[i]}-dark.png`, block_sha256: sha(src) };
++  for (const v of VARIANTS) {
++    await page.evaluate(async ([s, theme, bg]) => {
++      document.body.style.background = bg;
++      document.getElementById('fig').style.background = bg;
++      const el = document.getElementById('fig');
++      el.innerHTML = '';
++      const pre = document.createElement('pre');
++      pre.className = 'mermaid';
++      pre.textContent = s;
++      el.appendChild(pre);
++      mermaid.initialize({ startOnLoad: false, theme, fontFamily: 'Helvetica, Arial, sans-serif' });
++      await mermaid.run({ nodes: [pre] });
++      await document.fonts.ready;
++    }, [src, v.theme, v.bg]);
++    const png = `${OUT}/${NAMES[i]}${v.suffix}.png`;
++    await page.locator('#fig').screenshot({ path: path.join(ROOT, png) });
++    fig[v.key === 'light' ? 'png_sha256' : 'png_dark_sha256'] = sha(fs.readFileSync(path.join(ROOT, png)));
++  }
++  figures.push(fig);
++}
++await browser.close();
++fs.writeFileSync(MANIFEST, JSON.stringify({ generator: `${OUT}/render_mermaid.mjs`, mermaid: version, source: 'README.md', figures }, null, 1) + '\n');
++console.log(`rendered ${figures.length * 2} images with mermaid ${version}`);
+diff --git a/tests/closure.py b/tests/closure.py
+index 96360dac4..ef5215d3e 100644
+--- a/tests/closure.py
++++ b/tests/closure.py
+@@ -686,6 +686,17 @@ INERT_EXCEPT = (
+     # docs/ and dev/programme/ prefixes stay INERT, the two files move to
+     # doc_claims.py's recorded closure.
+     "docs/img/brand/coffee.svg",
++    # R10-README-GRAPHICS: the Marketplace arm of tests/doc_claims.py opens the manifest and hashes each mermaid
++    # figure it names, light and dark, to refuse a block or a PNG that moved without the other. Same route as coffee.svg above:
++    # the docs/ prefix stays INERT, and the eight files move to doc_claims.py's recorded closure.
++    "docs/img/readme/mermaid_figures.json",
++    "docs/img/readme/mermaid-how-the-pieces-fit.png",
++    "docs/img/readme/mermaid-setup-flow.png",
++    "docs/img/readme/mermaid-one-interval.png",
++    "docs/img/readme/mermaid-how-the-pieces-fit-dark.png",
++    "docs/img/readme/mermaid-setup-flow-dark.png",
++    "docs/img/readme/mermaid-one-interval-dark.png",
++    "docs/img/readme/how-it-works-dark.png",
+     "dev/programme/rosters/wave-r10-groups.json",
+     # R10-ARCH-DOCS-WIRING: the card-figure arm opens the page-figure record and
+     # every page PNG it lists, to read the IHDR against it (the two light PNGs
+diff --git a/tests/closures.json b/tests/closures.json
+index 08f671afb..6f93af714 100644
+--- a/tests/closures.json
++++ b/tests/closures.json
+@@ -1228,7 +1228,15 @@
+    "docs/img/model/dhw-store-decay.svg",
+    "docs/img/model/make_model_figures.py",
+    "docs/img/model/marginal-cop.svg",
++   "docs/img/readme/how-it-works-dark.png",
+    "docs/img/readme/how-it-works.png",
++   "docs/img/readme/mermaid-how-the-pieces-fit-dark.png",
++   "docs/img/readme/mermaid-how-the-pieces-fit.png",
++   "docs/img/readme/mermaid-one-interval-dark.png",
++   "docs/img/readme/mermaid-one-interval.png",
++   "docs/img/readme/mermaid-setup-flow-dark.png",
++   "docs/img/readme/mermaid-setup-flow.png",
++   "docs/img/readme/mermaid_figures.json",
+    "docs/img/setup/01-first-screen.png",
+    "docs/img/setup/03-menu.png",
+    "docs/img/setup/04-quick-setup.png",
+@@ -3966,6 +3974,7 @@
+    "dev/audit/harnesses/r10_raise_paths.sh",
+    "dev/audit/harnesses/r10_ratio_anchor.py",
+    "dev/audit/harnesses/r10_rca_name_kept_plant.py",
++   "dev/audit/harnesses/r10_readme_marketplace_pipeline.mjs",
+    "dev/audit/harnesses/r10_recarry_head.py",
+    "dev/audit/harnesses/r10_registry_leak.py",
+    "dev/audit/harnesses/r10_relay_owed_class_reach.py",
+@@ -4794,7 +4803,7 @@
+   },
+   "tests/doc_claims.py": {
+    "rc": 0,
+-   "seconds": 8.6
++   "seconds": 11.4
+   },
+   "tests/dst_checks.py": {
+    "rc": 0,
+diff --git a/tests/doc_claims.py b/tests/doc_claims.py
+index 51138864f..377f2edf2 100644
+--- a/tests/doc_claims.py
++++ b/tests/doc_claims.py
+@@ -2477,7 +2477,7 @@ def site_findings(src: str | None, root: pathlib.Path = ROOT,
+     rows = set(re.findall(r"^\|\s*\[[^\]]+\]\(([^)]+)\)", rsec.get("documentation", ""), flags=re.M))
+     # The README may link the product page by its published Pages URL; that is
+     # the same document the page's data-doc names by its source path.
+-    rows = {"docs/index.html" if t.startswith(SITE_PUBLISHED) else t for t in rows}
++    rows = {"docs/index.html" if t.startswith(SITE_PUBLISHED) else os.path.normpath(t) for t in rows}
+     docs = {a["data-doc"] for _, a in p.tags if a.get("data-doc")}
+     st["docs"] = len(docs)
+     errs += [("docs", f"README Documentation row missing from the page: {x}") for x in sorted(rows - docs)]
+@@ -2658,7 +2658,7 @@ def check_docs_subpages() -> None:
+     R.check("the build exits 0 with no FAIL line", b["rc"] == 0 and not b["fails"],
+             "; ".join(b["fails"][:4]) + (f" (+{len(b['fails']) - 4})" if len(b["fails"]) > 4 else ""))
+     # the README row set is derived, so a new row is built and a missing one fails; the product page is not one
+-    rows = set(re.findall(r"^\|\s*\[[^\]]+\]\(([^)#]+\.md)\)", _site_sections(README).get("documentation", ""), flags=re.M))
++    rows = {os.path.normpath(r) for r in re.findall(r"^\|\s*\[[^\]]+\]\(([^)#]+\.md)\)", _site_sections(README).get("documentation", ""), flags=re.M)}
+     missing = sorted((rows | {"README.md"}) - set(b["pages"]))
+     R.check("every README Documentation row is a built page", not missing, ", ".join(missing))
+     bad = [f"{n}: {m}" for n, h in sorted(b["html"].items()) for _, m in subpage_findings(h)]
+@@ -3441,7 +3441,7 @@ def coffee_button_findings(readme: str, index_html: str, built: dict[str, str],
+         m = None
+     if not m:
+         out.append("README.md: no button linking " + COFFEE + " above the first section")
+-    elif m.group(1) not in tree:
++    elif m.group(1).removeprefix("./") not in tree:
+         out.append(f"README.md: the button's image {m.group(1)} is not a tracked file")
+     foot = re.search(r"<footer\b[^>]*>.*?</footer>", index_html, re.S)
+     if not (foot and _COFFEE_A.search(foot.group(0))):
+@@ -3704,6 +3704,156 @@ def check_coffee_button() -> None:
+                 any(".bg in light" in g for g in coffee_button_findings(README, page, built, tree, off, css)))
+ 
+ 
++# ---------------------------------------------------------------------------
++# Arm 1d -- README.md in the Home Assistant Marketplace (R10-README-GRAPHICS)
++# ---------------------------------------------------------------------------
++#
++# The Marketplace renders README.md through the frontend's markdown worker: marked, then js-xss, whose safeAttrValue
++# blanks every `src` and `href` that is not absolute, `#`, `/`, `./` or `../` -- BEFORE the URL rewriter that would pin a
++# relative target to the installed ref runs -- and which has no mermaid at all. Both are invisible on GitHub. The
++# finder's replica of that pipeline is dev/audit/harnesses/r10_readme_marketplace_pipeline.mjs; this arm is the barrier.
++#
++# Design choice, said here so the next seat does not read it as a bug: the figure check compares SOURCES, not pixels. A
++# PNG's bytes do not reproduce across machines (fonts, rasteriser: the reason value-bearing goldens are claimed), so the
++# manifest the generator writes (docs/img/readme/render_mermaid.mjs) records the sha256 of each mermaid block's text and of
++# each PNG, and the arm refuses a block or a PNG that moved without the other. Regenerate to repair.
++
++FIGURES_MANIFEST = "docs/img/readme/mermaid_figures.json"
++STATIC_FIGURES = (("docs/img/readme/how-it-works.png", "docs/img/readme/how-it-works-dark.png"),)
++_SAFE_SRC = ("http://", "https://", "mailto:", "tel:", "data:image/", "ftp://", "./", "../", "#", "/")  # xss lib/default.js:176-194
++_MD_TARGET = re.compile(r"\]\(\s*<?([^)\s>]*)")
++_MD_REFDEF = re.compile(r"^ {0,3}\[[^\]\n]+\]:\s*<?(\S+?)>?(?:\s|$)", re.M)
++_HTML_ATTR = re.compile(r"""\s(src|href|srcset)\s*=\s*(?:"([^"]*)"|'([^']*)')""", re.I)
++_MERMAID_FENCE = re.compile(r"^```mermaid\n(.*?)^```", re.M | re.S)
++# the figure directly above a block's <details>: the light PNG as the <img>, the dark one as a prefers-color-scheme source
++_PICTURE_ABOVE = re.compile(
++    r'<picture>\n<source media="\(prefers-color-scheme: dark\)" srcset="([^"\s]+)">\n<img src="([^"\s]+)" alt="[^"\n]+">\n</picture>\n\n\Z')
++
++
++def _marketplace_blanks(target: str) -> bool:
++    """js-xss's safeAttrValue for `src` and `href`: True when it would blank `target` (an empty one included)."""
++    return not target.strip().startswith(_SAFE_SRC)
++
++
++def readme_figure_findings(readme: str, manifest: dict | None, png_sha) -> list[str]:
++    """What the Marketplace would blank or show as raw code in `readme`; `png_sha(path)` is a file's sha256 or None."""
++    import hashlib
++    out = []
++    prose = _FENCE.sub("", readme)
++    prose = re.sub(r"`[^`\n]+`", "", prose)
++    targets = _MD_TARGET.findall(prose) + _MD_REFDEF.findall(prose)
++    for m in _HTML_ATTR.finditer(prose):
++        v = m.group(2) if m.group(2) is not None else m.group(3)
++        targets += [(x.split() or [""])[0] for x in v.split(",")] if m.group(1).lower() == "srcset" else [v]
++    bare = sorted({x for x in targets if _marketplace_blanks(x)})
++    if bare:
++        out.append(f"README.md: the Marketplace blanks {len(bare)} bare-relative target(s), prefix each with ./: {bare[:4]}")
++    for light, dark in STATIC_FIGURES:  # hand-made figures: a light/dark pair, no source block to hash
++        if not re.search(r'<picture>\n<source media="\(prefers-color-scheme: dark\)" srcset="\./' + re.escape(dark)
++                         + r'">\n<img src="\./' + re.escape(light) + r'" alt="[^"\n]+">\n</picture>', readme):
++            out.append(f"README.md: no <picture> of ./{light} with the dark source ./{dark}")
++        out += [f"{f} is not a tracked file" for f in (light, dark) if png_sha(f) is None]
++    blocks = [(m.start(), m.group(1)) for m in _MERMAID_FENCE.finditer(readme)]
++    figs = (manifest or {}).get("figures")
++    if not isinstance(figs, list):
++        return out + [f"{FIGURES_MANIFEST} is absent or has no figures list"]
++    if len(figs) != len(blocks):
++        out.append(f"{len(blocks)} mermaid block(s) in README.md, {len(figs)} manifest figure(s)")
++    for i, (pos, body) in enumerate(blocks[:len(figs)]):
++        png, dark = figs[i].get("png", ""), figs[i].get("png_dark", "")
++        if hashlib.sha256(body.encode()).hexdigest() != figs[i].get("block_sha256"):
++            out.append(f"mermaid block {i + 1}: its text differs from the one {png} was rendered from; rerun render_mermaid.mjs")
++        if not dark:
++            out.append(f"mermaid block {i + 1}: the manifest names no dark variant")
++        for path, key in ((png, "png_sha256"), (dark, "png_dark_sha256")):
++            if not path:
++                continue
++            have = png_sha(path)
++            if have is None:
++                out.append(f"mermaid block {i + 1}: {path} is not a tracked file")
++            elif have != figs[i].get(key):
++                out.append(f"mermaid block {i + 1}: {path} differs from the PNG the manifest recorded; rerun render_mermaid.mjs")
++        opens = list(re.finditer(r"<details\b[^>]*>", readme[:pos]))
++        det = opens[-1] if opens else None
++        if det is None or "</details>" in readme[det.end():pos]:
++            out.append(f"mermaid block {i + 1}: it sits in no <details>")
++            continue
++        if re.search(r"\bopen\b", det.group(0)):
++            out.append(f"mermaid block {i + 1}: its <details> is open, so the Marketplace shows the raw source")
++        above = _PICTURE_ABOVE.search(readme[:det.start()])
++        if not above or (above.group(1), above.group(2)) != ("./" + dark, "./" + png):
++            out.append(f"mermaid block {i + 1}: no <picture> of ./{png} with the dark source ./{dark} directly above its <details>")
++    return out
++
++
++def check_readme_marketplace() -> None:
++    import hashlib
++    R.section("README.md in the Home Assistant Marketplace: relative targets and mermaid figures (R10-README-GRAPHICS)")
++
++    def sha_of(path: str) -> str | None:
++        f = ROOT / path
++        return hashlib.sha256(f.read_bytes()).hexdigest() if f.is_file() else None
++
++    mf = ROOT / FIGURES_MANIFEST
++    manifest = json.loads(mf.read_text()) if mf.is_file() else None
++    errs = readme_figure_findings(README, manifest, sha_of)
++    R.check("README.md has no bare-relative target and each mermaid block has its current figure above a closed <details>",
++            not errs, "; ".join(errs[:4]) + (f" (+{len(errs) - 4})" if len(errs) > 4 else ""))
++    built = docs_build()["html"].get("readme.html", "")
++    R.check("the built readme page resolves every <picture> srcset and src to its docs/-relative image, none left ./-prefixed",
++            built.count('srcset="img/readme/mermaid-') == len(manifest["figures"]) and "./docs/" not in built
++            and built.count('<img src="img/readme/mermaid-') == len(manifest["figures"]), f"{built.count('srcset=')} srcset(s)")
++    n = len(_MERMAID_FENCE.findall(README))
++    R.check("README.md draws mermaid blocks and the manifest lists as many figures (anchor)",
++            n > 0 and manifest is not None and len(manifest["figures"]) == n, f"{n} block(s)")
++    R.check("the predicate blanks what js-xss blanks and keeps what it keeps (anchor)",
++            all(_marketplace_blanks(x) for x in ("docs/a.png", "", "docs/x.md#y", "img.png"))
++            and not any(_marketplace_blanks(x) for x in ("./a", "../a", "/a", "#a", "https://e/x", "mailto:a@b", "data:image/png;base64,x")))
++
++    def planted(what: str, text: str, key: str, man=manifest, sha=sha_of) -> None:
++        got = readme_figure_findings(text, man, sha)
++        changed = text != README or man is not manifest or sha is not sha_of
++        R.check(f"red case: {what} is a finding", changed and any(key in g for g in got), repr(got[:2]))
++
++    first = _MERMAID_FENCE.search(README)
++    edited = README[:first.start(1)] + README[first.start(1)].swapcase() + README[first.start(1) + 1:]
++    planted("a one-character edit of a mermaid block", edited, "its text differs")
++    planted("a ./ prefix removed from an image", README.replace("](./docs/img/", "](docs/img/", 1), "bare-relative")
++    planted("a ./ prefix removed from a link", README.replace("](./docs/architecture.md)", "](docs/architecture.md)", 1), "bare-relative")
++    planted("a bare <img src>", README + '\n<img src="docs/img/x.png">\n', "bare-relative")
++    planted("a bare <source srcset>", README + '\n<source srcset="./y.png 1x, docs/img/x.png 2x">\n', "bare-relative")
++    planted("a bare reference-style definition", README + "\n[ref]: docs/y.md\n", "bare-relative")
++    picture = re.compile(r"<picture>\n<source [^\n]*mermaid-how-the-pieces-fit-dark\.png\">\n[^\n]*\n</picture>\n\n")
++    planted("the figure deleted", picture.sub("", README, count=1), "directly above")
++    planted("a light-only figure (no dark <source>)", re.sub(r"<picture>\n<source [^\n]*mermaid-setup-flow-dark\.png\">\n(<img [^\n]*\n)</picture>", r"\1", README, count=1),
++            "directly above")
++    planted("a dark <source> pointing at the light PNG", README.replace("mermaid-one-interval-dark.png", "mermaid-one-interval.png", 1), "directly above")
++    planted("the how-it-works figure light-only (no dark <source>)",
++            re.sub(r"<source [^\n]*how-it-works-dark\.png\">\n", "", README, count=1), "how-it-works.png with the dark source")
++    planted("the how-it-works dark PNG missing", README, "how-it-works-dark.png is not a tracked file",
++            sha=lambda p: None if p.endswith("how-it-works-dark.png") else sha_of(p))
++    planted("a bare-relative dark srcset", README.replace('srcset="./docs/img/readme/mermaid-setup-flow-dark.png"', 'srcset="docs/img/readme/mermaid-setup-flow-dark.png"', 1),
++            "bare-relative")
++    planted("a manifest figure with no dark variant", README, "names no dark variant",
++            man={**manifest, "figures": [{k: v for k, v in manifest["figures"][0].items() if k != "png_dark"}] + manifest["figures"][1:]})
++    planted("a dark PNG that is not the recorded one", README, "differs from the PNG",
++            sha=lambda p: "0" * 64 if p.endswith("-dark.png") else sha_of(p))
++    planted("a dark PNG that is missing", README, "-dark.png is not a tracked file", sha=lambda p: None if p.endswith("-dark.png") else sha_of(p))
++    planted("an open <details>", README.replace("<details>\n<summary><b>The setup flow", "<details open>\n<summary><b>The setup flow", 1),
++            "is open")
++    planted("a PNG that is not the recorded one", README, "differs from the PNG", sha=lambda p: "0" * 64)
++    planted("a PNG that is missing", README, "not a tracked file", sha=lambda p: None)
++    planted("a manifest entry with no block", README, "manifest figure",
++            man={**manifest, "figures": list(manifest["figures"]) + [manifest["figures"][0]]})
++    planted("no manifest", README, "no figures list", man={})
++    # passes when fixed: the planted block edit is red above; the generator's bookkeeping (its new hash) makes it green
++    regen = {**manifest, "figures": [dict(f) for f in manifest["figures"]]}
++    for f, m in zip(regen["figures"], _MERMAID_FENCE.finditer(edited)):
++        f["block_sha256"] = hashlib.sha256(m.group(1).encode()).hexdigest()
++    R.check("regenerating the manifest after the planted block edit is green again (the repair path)",
++            not [g for g in readme_figure_findings(edited, regen, sha_of) if "its text differs" in g])
++
++
+ def main() -> int:
+     check_figures()
+     check_product_page()
+@@ -3743,6 +3893,7 @@ def main() -> int:
+     check_marker_census()
+     check_card_figures()
+     check_coffee_button()
++    check_readme_marketplace()
+     return R.close("checks")
+ 
+ 
+diff --git a/tests/entities.py b/tests/entities.py
+index 38df75976..d70832183 100644
+--- a/tests/entities.py
++++ b/tests/entities.py
+@@ -1463,7 +1463,7 @@ R.check(
+ # measured closure. The hero must stay a single-line `![alt](src)` —
+ # the HACS rewriter checks above are why.
+ _hero = _re.search(
+-    r"^!\[[^\n]*\]\((docs/img/card/card-plan-chart\.[A-Za-z0-9]+)\)\s*$",
++    r"^!\[[^\n]*\]\(\./(docs/img/card/card-plan-chart\.[A-Za-z0-9]+)\)\s*$",
+     readme,
+     _re.M,
+ )
+diff --git a/tools/site/build_docs.mjs b/tools/site/build_docs.mjs
+index 80b3df894..e60aedd00 100644
+--- a/tools/site/build_docs.mjs
++++ b/tools/site/build_docs.mjs
+@@ -41,7 +41,8 @@ const stats = { pages: 0, pageLinks: 0, anchors: 0, githubLinks: 0, images: 0, b
+ // ---- which documents: the README Documentation table, both ways ----
+ const readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')
+ const docSec = readme.split(/^## Documentation\s*$/m)[1]?.split(/^## /m)[0] || ''
+-const allRows = [...docSec.matchAll(/^\|\s*\[[^\]]+\]\(([^)#]+)\)\s*\|\s*(.+?)\s*\|\s*$/gm)].map((m) => ({ src: m[1], blurb: m[2] }))
++const allRows = [...docSec.matchAll(/^\|\s*\[[^\]]+\]\(([^)#]+)\)\s*\|\s*(.+?)\s*\|\s*$/gm)].map((m) => ({ src: path.posix.normalize(m[1]), blurb: m[2] }))
++// Row targets carry a ./ prefix (the Home Assistant Marketplace's sanitizer blanks a bare-relative one); normalize it away.
+ // A row naming an .html file is the product page itself (docs/index.html): the site's front, not rendered from markdown.
+ const rows = allRows.filter((r) => /\.md$/i.test(r.src))
+ if (rows.length) for (const x of Object.keys(EXCLUDE)) if (!rows.some((r) => r.src === x)) errors.push(`EXCLUDE names ${x}, which the README Documentation table no longer lists`)
+@@ -145,9 +146,25 @@ const RAW_EXTERNAL = /<(?:img|script|iframe|source|embed|object|link)\b[^>]*\b(?
+ for (const rule of ['html_block', 'html_inline']) {
+   md.renderer.rules[rule] = (tokens, idx) => {
+     if (RAW_EXTERNAL.test(tokens[idx].content)) errors.push(`${CUR}: raw HTML requests a third-party resource: ${tokens[idx].content.trim().slice(0, 80)}`)
+-    return tokens[idx].content
++    return rawImages(tokens[idx].content)
+   }
+ }
++// A raw <picture>/<img> in a document (the README's mermaid figures) names its images as the document does; the page sits in
++// docs/, so resolve each relative src and srcset candidate the way the image rule does, or refuse it.
++function rawImages(html) {
++  const one = (v) => {
++    if (/^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i.test(v)) return v
++    const target = path.posix.normalize(path.posix.join(path.posix.dirname(CUR), v))
++    if (!TREE.has(target) || !target.startsWith('docs/')) { errors.push(`${CUR}: raw HTML image ${v} does not resolve under docs/`); return v }
++    stats.images++
++    return target.slice(5)
++  }
++  return html.replace(/(<(?:img|source)\b[^>]*?\s)(src|srcset)=("[^"]*")/gi, (_, head, attr, q) => {
++    const v = q.slice(1, -1)
++    const out = attr.toLowerCase() === 'srcset' ? v.split(',').map((c) => c.trim().replace(/^\S+/, one)).join(', ') : one(v)
++    return `${head}${attr}="${out}"`
++  })
++}
+ 
+ // ---- render ----
+ const MARK = '<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="dusk" viewBox="0 0 48 48"><path d="M20 22 V26 H27 V35 H36 V22 Z" fill="var(--mk-heat)"/><path d="M6 12 H13 V19 H20 V26 H27 V35 H36 V13 H42" fill="none" stroke="var(--mk-line)" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/></symbol></svg>'
