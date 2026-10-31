@@ -1,9 +1,0 @@
-check-runs API at b63829d1c163aff58823157d7691894f46301ae5, read 2026-10-30 ~21:40Z (37 runs):
-no run concluded failure yet. in_progress: governance / instrument-self-tests (124324357725), governance / env-matrix, tests / browser, tests / fast (3.14), tests / closures, tests / coverage, codeql / Analyze (python), prelude (run 41131740428, the edit run carrying pr-contract).
-success: arch-score, budget-raise-gate, cancel-superseded x2, codeql actions + js-ts, delivery-status, policy-docs, wave-script, hassfest, arch-instrument, briefs, closure-scope, nightly-status, mutation, typing, validate-hacs, prelude + refresh (run 41131740960), refresh (run 41131740428).
-neutral: CodeQL. skipped: arm, delivery-status-publish, record, kernel-points, mutation-autofix, mutation-pins, nightly-ha, replay.
-
-Previous head 4cd6cac6495a2d7ac1a452fad6bc8e9eceef1c75, run 41106825228 (conclusion failure):
-the one failed job is governance / instrument-self-tests, job 124238884919, 18:25:55Z-18:45:20Z,
-failed step 28 "Refuse a self-testing seat instrument that no step runs" (governance.yml:494-499,
-`python3 -I tools/audit/seat/selftest_wiring.py --check`), at 18:31:11Z.
