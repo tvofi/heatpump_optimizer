@@ -119,8 +119,9 @@ The carry:
 ## P335: the merge seat queues `set-stage done` over a carry that landed after the PR was cut
 
 Verdict: ACCEPT as already ruled. This is P305 (`s6-batch71.md`): the #2733 undelivered remainder
-and P305's amendment on R10-ORCH-ROSTER-SCHEMA. Neither is built, and that barrier group was
-itself closed over them today. No new carry. The merge-seat check as filed is REJECTED.
+and P305's amendment on R10-ORCH-ROSTER-SCHEMA. Both are now built, alone as P305 asked, on
+`handoff/r10-roster-schema` `6aea809f6`. That barrier is not on main yet, and its group was itself
+closed over them today. No new carry. The merge-seat check as filed is REJECTED.
 - **The class.** A group is written `done` while its roster carries are undelivered. A done group
   drops out of replan and dispatch, and refuses later carries.
   - P305 counted five instances in round 10.
@@ -132,7 +133,7 @@ itself closed over them today. No new carry. The merge-seat check as filed is RE
       `roster_sync` (`52aea59b1`, "derive stages from pull requests") rewrote that derivable stage
       to `done`, because PR #2880 had merged. The group holds the unbuilt #2733 invariants, the
       #2733 remainder and P305's amendment. `git grep -ci mark-carry origin/main -- tools` still
-      prints nothing.
+      prints nothing: the remainder is on `handoff/r10-roster-schema` `6aea809f6`, not on main.
 - **Why the filed check is rejected.**
   - **It guards one of the two writers.** A check in the merge seat's post-merge step, in
     `standing-merge.md` or the instrument it calls, guards only the writer that seat drives. It
@@ -149,12 +150,15 @@ itself closed over them today. No new carry. The merge-seat check as filed is RE
   - `set-stage R10-ORCH-ROSTER-SCHEMA carries-open` is released in the roster queue, at line 719.
     It undoes `52aea59b1`. `roster_sync` leaves `carries-open` alone (`PROTECTED_STAGES`,
     `roster_sync.py` lines 96-99), so the correction holds.
-  - P305's ask stands, and it is now overdue: dispatch the #2733 remainder (`mark-carry`, the
-    `roster_sync` arm and the `set-stage done` predicate) alone, ahead of the group's other
-    carries.
-  - Until it lands, the merge seat's interim practice is a hand step. Before queueing `done`, read
-    the group's carries on the roster branch, not only the pending queue lines. That is the
-    orchestrator's instruction to the seat, not a policy edit.
+  - **P305's ask is met.** The remainder is built on `handoff/r10-roster-schema` `6aea809f6`
+    (orchestrator s9): `mark-carry`, one shared `closing_stage` in `set-stage done` and in
+    `roster_sync`'s merge transition, and `carry_audit.py roster`. Its PR, "R10-ORCH-ROSTER-SCHEMA
+    (part 2)", is opening, with its reviewer first. This ruling owes nothing more for P335 beyond
+    the stage correction above.
+  - **Until it merges, the interim rule is in the merge seat's brief** (orchestrator s9). Before
+    queueing `done`, read the group's carries on the roster branch, not only the pending queue
+    lines, and queue `carries-open` on any unanswered carry. That is an instruction in a seat
+    brief, not a policy edit.
 
 Source: the orchestrator s9's triage-queue line of 2026-10-31T18:30:00Z (slip, caught before it
 landed).
@@ -168,8 +172,8 @@ Instances:
 
 Cost of the filed check: one roster read per merge plus `standing-merge.md` text. That file is
 policy, at 36 of 37 lines and 501 of 507 tokens, and P330 already claims its headroom. The check
-still misses `roster_sync`. The remedy costs one queue line now, and the dispatch of a remainder
-that is already sized S.
+still misses `roster_sync`. The remedy is one queue line, released now. The remainder is already built and waits only for
+its own review.
 
 Binding: a check in one of two writers, with no delivered marker to read, against a design that
 already puts one predicate in both. Its own barrier group was closed by the writer the check
