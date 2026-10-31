@@ -27,17 +27,22 @@ two causes that cost an operation each and need no code. No roster op from this 
     `design/<group>`". Of the 12 `design/*` refs on origin, exactly one names no roster group:
     `design/r10-audit-coverage` (ae3d86dc0), with `design-verdict/r10-audit-coverage` 5b77e98dd.
     The tick follows the contract. The ref does not.
-  - **The roster stage is stale.** The group's `resume.stage` is `not-started`, while its
-    `next_step` reads "fixer dispatched (s9, local opus)". `designs_owed` skips any group past
-    `UNBLOCKABLE_STAGES + ("design",)` (line 1256, `UNBLOCKABLE_STAGES = (None, "", "not-started")`
-    at line 208). With the stage recorded as `fixing`, the line stops whatever the design ref is
-    named.
-- **Remedy (orchestrator and roster ops, not a carry).** Queue
-  `set-stage R10-AUDIT-COVERAGE-ENDGAME fixing`. That ends the false CP line on the next tick, and
-  it is owed anyway, because a dispatched fixer at `not-started` misstates the plan. Optionally,
-  push `design/r10-audit-coverage-endgame` and `design-verdict/r10-audit-coverage-endgame` at the
-  same SHAs, so the design is found by contract. A rename of a ref the fixer's brief already cites
-  is not needed.
+  - **The roster stage misstates the plan.** The group's `resume.stage` is `not-started`, and
+    the design gate is already passed. Its fixer is not dispatched: it waits on
+    R10-FLY-MUTANT-RESTORE and R10-996-RUNNER-CLAIMS (orchestrator s9, 2026-10-31). The roster's
+    `next_step` read "fixer dispatched (s9, local opus)", which was wrong. `designs_owed` skips any
+    group past `UNBLOCKABLE_STAGES + ("design",)` (line 1256, with
+    `UNBLOCKABLE_STAGES = (None, "", "not-started")` at line 208). So a stage that records "design
+    approved, fixer waiting" ends the line whatever the design ref is named.
+- **Remedy (orchestrator and roster ops, not a carry).** The orchestrator has queued
+  `set-stage R10-AUDIT-COVERAGE-ENDGAME queued`, plus a `next_step` correction. That op supersedes
+  any stage this ruling might name.
+  - `queued` is a derivable stage in `roster_lib.STAGE_KIND`. `replan` reads it as not working,
+    and `designs_owed` skips it.
+  - `fixing` would record a fixer that does not exist.
+  - Optionally, push `design/r10-audit-coverage-endgame` and
+    `design-verdict/r10-audit-coverage-endgame` at the same SHAs, so the design is found by
+    contract.
 - **Re-open trigger.** Re-open if a second off-contract design topic appears. That is, a design
   ref under `design/` that names no group, at two or more in a round. The fix then belongs at the
   writer: `bus.sh`'s design push, or the designer's brief, refusing a topic that is not a group id.
