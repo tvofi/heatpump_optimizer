@@ -95,7 +95,8 @@ contract() { # pr-json base head body -> rc
   local args=(--pr-body "$body" --head "$head" --base "$base" --title "$title" --author "$author"
               --paths-file "$d/files" --existing-file "$d/existing") name rc=0
   while IFS= read -r name; do args+=(--red "$name"); done < "$d/reds"
-  node tools/policy/policy_lint.mjs "${args[@]}" || rc=1 # mut:contract  # never-empty: args starts with the literal --pr-body list
+  # never-empty: args starts with the literal --pr-body list
+  node tools/policy/policy_lint.mjs "${args[@]}" || rc=1 # mut:contract
   python3 -I tools/audit/carry_audit.py check --body "$body" || rc=1 # mut:carry
   rm -rf "$d"
   return "$rc"

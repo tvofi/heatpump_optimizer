@@ -28075,8 +28075,10 @@ R.check(
 # bash 5 expands it cleanly, so no run-time row here can see the defect -- this
 # is the static rule `tools/audit/seat/bare_array.py` owns, over every tracked
 # tools/**/*.sh. It encodes a design choice: the guard `${a[@]+"${a[@]}"}` or a
-# `# never-empty: <reason>` marker is the only way out, and a file with no
-# `set -u` is not judged.
+# `# never-empty: <reason>` marker (on the line, or on a comment line directly
+# above it) is the only way out, and a file with no `set -u` is not judged; a
+# reason placed after a `# mut:<name>` marker is refused in every file, since the
+# self-tests find their mutant line by that marker at the line's end.
 import importlib.util as _ba_util  # noqa: E402
 
 try:
@@ -28095,6 +28097,10 @@ try:
         (_ba.sites(_ba_head + 'f "${a[@]}"  # never-empty: literal list\n') == [],
          "an allow-marked never-empty site passes (null)"),
         (_ba.sites('set -e\nf "${a[@]}"\n') == [], "a file without set -u is not judged (null)"),
+        (len(_ba.sites('f x  # mut:m  # never-empty: why\n')) == 1,
+         "a never-empty reason after a mut marker is refused (it unanchors the mutant)"),
+        (_ba.sites(_ba_head + '# never-empty: why\nf "${a[@]}"  # mut:m\n') == [],
+         "a reason on the line above keeps the mut marker last (control)"),
         (_ba.self_test.__call__() == 0, "its own self-test passes"),
     )
 except Exception as _ba_exc:  # noqa: BLE001 -- a crash is one red check, not a partial run
@@ -28103,7 +28109,7 @@ R.check(
     "no tracked tools/**/*.sh script under set -u expands a bare \"${array[@]}\"",
     not _ba_hits,
     "bash 3.2 (macOS) dies on an empty array under -u; guard with ${a[@]+\"${a[@]}\"} or "
-    "mark the line `# never-empty: <reason>`:\n" + "\n".join(_ba_hits),
+    "put `# never-empty: <reason>` on the line, or on the line above when it ends in `# mut:<name>`:\n" + "\n".join(_ba_hits),
 )
 for _ba_ok, _ba_name in _ba_rows:
     R.check("bare_array: " + _ba_name, _ba_ok, "tools/audit/seat/bare_array.py")
