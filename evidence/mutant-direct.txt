@@ -1,0 +1,4 @@
+  FAIL --self-test after `--` is the wrapped command's, not ours
+  FAIL --self-test as a later option is not ours
+SELF-TEST FAIL
+exit 1
