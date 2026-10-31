@@ -13,18 +13,29 @@ Cause: the 8-run median's sampling spread (up to 1.3 min) is larger than the hea
 
 Fix (owner ruling 2026-10-31, under mandate 6329234399):
 - `tests/ci_budgets.json` gains `critical_path_minutes_band: 1.3`, the largest measured |8-run median - window median| over every sliding window of 145 runs, unpadded.
-- `compare()` reports `critical_path_minutes` as GREW only past budget + band. Every other row, the integer counters included, stays at zero tolerance. `--record` carries the band over.
+- `compare()` reports `critical_path_minutes` as GREW only past budget + band. Every other row, the integer counters included, stays at zero tolerance. `--record` carries the band over, through `record_table()`, a pure function `main()` calls and the self-test drives.
 - `tools/policy/budget_raise_gate.py` types the band MAX0: absent means zero tolerance, so adding or widening the band is a raise and narrowing it is routine.
 - `critical_path_minutes` stays at 34.267.
 
 ## Head
 
-b8a027974983f2d8ef8116ae7979913417b4f11d
+536da691c7c77d0275e72235bc0b95991ce7f722
 
 ## Mutation proof
 
-- Before the code (test commit 765a0d19692ca5ed4b79b89192dcb1973bbac8b4), `python3 -I tests/ci_ratchet.py --self-test` failed 3 of its 44 checks: "the observed noise (34.467 on a 34.267 budget) passes inside the 1.3 band", "a median at budget + band exactly passes", and "a band row is a known, non-negative bound and not a graded metric". After the code: 44 checks, 0 failed.
+- Before the code (test commit 765a0d19692ca5ed4b79b89192dcb1973bbac8b4), `python3 -I tests/ci_ratchet.py --self-test` failed 3 of its 44 checks: "the observed noise (34.467 on a 34.267 budget) passes inside the 1.3 band", "a median at budget + band exactly passes", and "a band row is a known, non-negative bound and not a graded metric". After the code (b8a027974): 44 checks, 0 failed. At this head, with the record-table pin: 45 checks, 0 failed.
 - The checks that already pass on the unfixed code bound the fix from the other side: "a median one thousandth past budget + band is growth" (35.568), "the band never applies to a counter (54 -> 55 is growth with a band present)", and "no band row is zero tolerance".
+- The `--record` carry-over (fix review round 1, surviving mutant M6). At b8a027974, deleting `**{k: budgets[k] for k in BAND_KEYS if k in budgets},` from `main()` left `ci-ratchet self-test: 44 checks, 0 failed`: no check pinned it. At this head that line is in `record_table()`, and the new check "--record carries the band over unchanged and re-records every derived metric" compares the whole table. Deleting the line now gives 45 checks, 1 failed.
+- Every mutant, each applied to this head and restored, run with `env -u BASH_ENV python3 -I <script> --self-test` (summary lines):
+  - Baseline: `ci-ratchet self-test: 45 checks, 0 failed`; `budget_raise_gate self-test: 240 checks, 0 failed`.
+  - M1, band ignored in compare (`band = 0`): 45 checks, 2 failed.
+  - M2, band applied to every row: 45 checks, 1 failed.
+  - M3, gate row MAX instead of MAX0: 240 checks, 1 failed.
+  - M3b, gate row deleted: 240 checks, 1 failed.
+  - M4, band bounds check dropped: 45 checks, 1 failed.
+  - M5, `>=` for `>`: 45 checks, 4 failed.
+  - M6, record carry-over deleted: 45 checks, 1 failed. Killed.
+  - M7, band key not excluded from the grading loop: 45 checks, 0 failed. This mutant is equivalent: the band key is never derived, so `compare()` prints `? not derived; not graded` for it and never grades it as growth.
 - Deleting the `critical_path_minutes_band` MAX0 row from `budget_raise_gate.py` SCHEMA reds "ci: a critical-path band narrowed is routine" (240 checks, 1 failed). With the row: 240 checks, 0 failed.
 
 ## Null control
@@ -37,20 +48,20 @@ On the live window, `compare()` against the budget table without the band row re
 - `git diff --stat 0d33c9348 05c0d6d5d`: 7 files, all dev/programme/delivery/*.md
 - `python3 -I tests/ci_ratchet.py --gather-runs FILE --window 60` (GITHUB_REPOSITORY=tvofi/heatpump_optimizer), then `ci_ratchet.critical_path_minutes` and `run_minutes` per run: the 59-run and 8-run figures above
 - `gh api repos/tvofi/heatpump_optimizer/actions/workflows/ci.yml/runs?event=push&branch=main&created=2026-10-25..2026-10-26` plus each run's jobs, through `run_minutes`: the 86-run figures above
-- `python3 -I tests/ci_ratchet.py --self-test`: 44 checks, 0 failed
-- `python3 -I tools/policy/budget_raise_gate.py --self-test`: 240 checks, 0 failed
+- `env -u BASH_ENV python3 -I tests/ci_ratchet.py --self-test`: 45 checks, 0 failed
+- `env -u BASH_ENV python3 -I tools/policy/budget_raise_gate.py --self-test`: 240 checks, 0 failed
 - `python3 tests/structure.py`: STRUCTURE RATCHET PASSED
-- `python3 tools/audit/archscore/score.py --diff origin/main HEAD`: Architecture score: dS +0.0012 IMPROVES
+- `python3 tools/audit/archscore/score.py --diff $(git merge-base origin/main HEAD) HEAD`, three-dot against the merge base 0cae227c329f24d859c10db94b9dbd8a6368d11c, at head 536da691c7c77d0275e72235bc0b95991ce7f722: `Architecture score: dS +0.0000 NULL`
 
 ## Architecture score
 
-dS +0.0012 IMPROVES (coord_footprint 2390 -> 2388); no metric rises.
+dS +0.0000 NULL, measured three-dot against the merge base 0cae227c3 (command in `## Figures`). The diff touches no coordinator code, so no architecture metric moves. Round 1's body quoted an improvement read two-dot against a newer origin/main. That movement was main's own drift, not this diff's, and the figure is withdrawn.
 
 ## Raise justification
 
 The raise is `tests/ci_budgets.json: critical_path_minutes_band: new at 1.3` (absent counts as zero). Mandate 6329234399, and the owner's ruling of 2026-10-31 in chat: "I suspect the ci-critical path minutes is runner variance, increase the variance band in that case under the mandate".
 Payments tried: (1) Re-recording critical_path_minutes by its documented rule (p90 of a 40-run window) would raise the budget itself, 34.267 -> 35.317. The owner's ruling rejects that, and it would hide the 1.2-min center growth inside the cap. Rejected. (2) Paying down the work: the critical path is `arch-instrument` (~31.9 min) and `fast (3.14)` (~31.8 min). The center sits 0.5 min under the budget already, and no reduction makes an 8-sample median of a sigma-1.64 distribution stay within 0.5 min of its center, so that payment cannot fix a variance red. (3) Grading on a wider window (median of 40) would cut the noise, but it changes how the instrument grades and was not the ruled fix. It is left to the orchestrator as a proposal for triage. No payment that improves the architecture removes the variance, so the band is the remaining path.
-Architecture score: dS +0.0012 IMPROVES
+Architecture score: dS +0.0000 NULL
 
 ## Red checks
 
@@ -60,7 +71,9 @@ Architecture score: dS +0.0012 IMPROVES
 
 ## Forward-carry
 
-none
+- The fix review's instrument finding: budget_raise_gate checks only the shape of the `Architecture score:` line, never its value against the arch-score job; that is how round 1's unearned improvement figure passed the gate. Destination: the group's brief in dev/programme/rosters/wave-r10-groups.json. Carry: R10-FLY-MANDATE-REVOKE-GUARD (the budget_raise_gate dS value check; queued by the orchestrator)
+- The fix review's MAX0 finding: budget_raise_gate calls a removed band a raise. Carry: dismissed: a fail-closed false positive that opens no gate weakness, and only the owner can decide that removal should be routine
+- The fix review's wording finding: the "86 runs of 2026-10-25" label spans 2026-10-25T00:42Z..2026-10-26T20:55Z. Carry: dismissed: only the label is loose, and every figure re-derives exactly
 
 ## Friction
 
