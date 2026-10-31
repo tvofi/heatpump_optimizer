@@ -1026,6 +1026,23 @@ R.check(
     and "electricity_price_home" not in json.dumps(tibber["debug"]["replay"]),
     str(tibber["debug"]["manifest"].get("replay")),
 )
+# R10-REPLAY-REAL-DAY: the home's name or street address rides in entity ids (the
+# Tibber price sensor's id is derived from the home's address), in friendly names
+# and in text. Invented here; the sealed replay half must carry none of it.
+street = asyncio.run(_replay_download(
+    price_source="tibber", tibber=[("sensor.electricity_price_exempelgatan_12", "96a14971")],
+    plant={"friendly_name": "Exempelgatan 12 vardagsrum"}, plant_state="Exempelgatan 12B"))
+street_replay = street["debug"]["replay"]
+R.check(
+    "Download diagnostics seals a recorder holding an address-like home name masked: no "
+    "id, name or text of it survives in the replay half, the Tibber series is the price "
+    "series role, and the half passes the export's check mode",
+    street_replay is not None
+    and "exempelgatan" not in json.dumps(street_replay).lower()
+    and street_replay["price_series_entity"] == "sensor.price_series"
+    and _check_download(street_replay) == [],
+    str(street["debug"]["manifest"].get("replay")),
+)
 no_price = asyncio.run(_replay_download(price_source="tibber"))
 R.check(
     "with the Tibber source and no price sensor the replay half is refused as the export "
