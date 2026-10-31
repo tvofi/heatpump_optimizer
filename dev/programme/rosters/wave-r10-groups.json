@@ -13317,7 +13317,9 @@
    "files": [
     "tools/audit/seat/cloud_relay.sh"
    ],
-   "carry": [],
+   "carry": [
+    "From the s9 script census, #3049 (R10-FLY-GH-CALL-LOG): cloud_relay.sh auto-ran update_pr.sh on a fixer's INCOMPLETE head. The dispatch seat then hand-wrote s9/seat-dispatch/await-3049.sh, whose predicate is: handoff/<topic> has moved past the last head, handoff-body/<topic>'s BODY names that new code sha (first 8 characters), and the PR already contains the code sha (merge-base --is-ancestor). Is the `cloud-handoff-hold` file the right tool? It is the right brake and the wrong trigger: it holds a PR number only once the orchestrator writes the line, so it needs foreknowledge that the next push is partial, and a fixer's code push naturally precedes its body push. It went unused because nothing prints that a handoff is ahead of its own body, so there was no moment to reach for it (the live file at ~/.local/state/hpo/cloud-handoff-hold still holds a stale `2626`, which also shows lines are never expired). Gap in tools/audit/seat/cloud_relay.sh: the handoff arm updates when handoff/<topic> is ahead of the PR without asking whether handoff-body/<topic> names that tip. Fold: before update_pr, require `git show handoff-body/<topic>:BODY.md` to contain the first 8 characters of the handoff tip; otherwise print `cloud_relay: HELD-BODY #<pr> <tip8>` once per pass (same shape as HELD / HELD-VERDICT / HELD-REVIEW) and retry next pass; and have the hold file report lines whose PR is MERGED or CLOSED as stale in the level file. Planted control: a fixture topic whose handoff is ahead and whose body names the OLD tip prints HELD-BODY and updates nothing; once the body names the new tip it updates (null control); mutation: drop the body check and the first case must update. Carry: R10-FLY-RELAY-DELIVERED-GUARD"
+   ],
    "resume": {
     "stage": "not-started",
     "branch": "handoff/r10-fly-relay-delivered-guard",
