@@ -1421,7 +1421,8 @@ def _end_to_end() -> list[tuple[str, object, object]]:
                      f"repos/tvofi/heatpump_optimizer/{thread_key}?per_page=100&since=2026-10-02T05:30:00Z",
                      pr_key[1:]]))
         out.append(("e2e: ... after running the base's scorer three-dot, fork to head",
-                    open(os.path.join(stub, "score_argv")).read(), f"--diff {fork} {raise_}"))
+                    (open(argv_f).read() if os.path.exists(argv_f := os.path.join(stub, "score_argv")) else None),
+                    f"--diff {fork} {raise_}"))
         out.append(("e2e: ... and leaving no scratch worktree behind",
                     len(git("worktree", "list", "--porcelain").split("worktree ")) - 1, 1))
         planted = {"body": just["body"].replace("+0.0000 NULL", "+0.0012 IMPROVES")}
