@@ -1,46 +1,19 @@
-RESULT M1-band-ignored: ci-ratchet self-test: 44 checks, 2 failed
-    ci-ratchet: ci-metrics-fast artifacts fetch attempt 1/4 failed: gh exited 1 after 0 byte(s): gh: Server Error (HTTP 502)
-    ci-ratchet: ci-metrics-fast artifacts fetch attempt 1/4 failed: gh exited 0 and returned 0 bytes
-    ci-ratchet: ci-metrics-fast artifacts fetch attempt 1/3 failed: gh exited 1 after 0 byte(s): gh: HTTP 500
-    ci-ratchet: ci-metrics-fast artifacts fetch attempt 2/3 failed: gh exited 1 after 0 byte(s): gh: HTTP 500
-    ci-ratchet: ci-metrics-fast artifacts fetch attempt 3/3 failed: gh exited 1 after 0 byte(s): gh: HTTP 500
-    ci-ratchet: ci-metrics-closures artifacts fetch attempt 1/2 failed: gh exited 1 after 0 byte(s): unexpected end of JSON input
-RESULT M2-band-on-every-row: ci-ratchet self-test: 44 checks, 1 failed
-    ci-ratchet: ci-metrics-fast artifacts fetch attempt 1/4 failed: gh exited 1 after 0 byte(s): gh: Server Error (HTTP 502)
-    ci-ratchet: ci-metrics-fast artifacts fetch attempt 1/4 failed: gh exited 0 and returned 0 bytes
-    ci-ratchet: ci-metrics-fast artifacts fetch attempt 1/3 failed: gh exited 1 after 0 byte(s): gh: HTTP 500
-    ci-ratchet: ci-metrics-fast artifacts fetch attempt 2/3 failed: gh exited 1 after 0 byte(s): gh: HTTP 500
-    ci-ratchet: ci-metrics-fast artifacts fetch attempt 3/3 failed: gh exited 1 after 0 byte(s): gh: HTTP 500
-    ci-ratchet: ci-metrics-closures artifacts fetch attempt 1/2 failed: gh exited 1 after 0 byte(s): unexpected end of JSON input
+RESULT M1-band-ignored: ci-ratchet self-test: 45 checks, 2 failed
+      FAIL the observed noise (34.467 on a 34.267 budget) passes inside the 1.3 band -- grew 1
+      FAIL a median at budget + band exactly passes -- grew 1
+RESULT M2-band-on-every-row: ci-ratchet self-test: 45 checks, 2 failed
+      FAIL the band never applies to a counter (54 -> 55 is growth with a band present) -- grew 0
+      FAIL no band row is zero tolerance (34.467 on 34.267 is growth) -- grew 0
 RESULT M3-gate-row-MAX: budget_raise_gate self-test: 240 checks, 1 failed
       FAIL ci: a critical-path band added is a raise (absent is a band of zero): got False, want True
 RESULT M3b-gate-row-deleted: budget_raise_gate self-test: 240 checks, 1 failed
       FAIL ci: a critical-path band narrowed is routine: got True, want False
-RESULT M4-bounds-check-dropped: ci-ratchet self-test: 44 checks, 1 failed
-    ci-ratchet: ci-metrics-fast artifacts fetch attempt 1/4 failed: gh exited 1 after 0 byte(s): gh: Server Error (HTTP 502)
-    ci-ratchet: ci-metrics-fast artifacts fetch attempt 1/4 failed: gh exited 0 and returned 0 bytes
-    ci-ratchet: ci-metrics-fast artifacts fetch attempt 1/3 failed: gh exited 1 after 0 byte(s): gh: HTTP 500
-    ci-ratchet: ci-metrics-fast artifacts fetch attempt 2/3 failed: gh exited 1 after 0 byte(s): gh: HTTP 500
-    ci-ratchet: ci-metrics-fast artifacts fetch attempt 3/3 failed: gh exited 1 after 0 byte(s): gh: HTTP 500
-    ci-ratchet: ci-metrics-closures artifacts fetch attempt 1/2 failed: gh exited 1 after 0 byte(s): unexpected end of JSON input
-RESULT M5-ge-instead-of-gt: ci-ratchet self-test: 44 checks, 4 failed
-    ci-ratchet: ci-metrics-fast artifacts fetch attempt 1/4 failed: gh exited 1 after 0 byte(s): gh: Server Error (HTTP 502)
-    ci-ratchet: ci-metrics-fast artifacts fetch attempt 1/4 failed: gh exited 0 and returned 0 bytes
-    ci-ratchet: ci-metrics-fast artifacts fetch attempt 1/3 failed: gh exited 1 after 0 byte(s): gh: HTTP 500
-    ci-ratchet: ci-metrics-fast artifacts fetch attempt 2/3 failed: gh exited 1 after 0 byte(s): gh: HTTP 500
-    ci-ratchet: ci-metrics-fast artifacts fetch attempt 3/3 failed: gh exited 1 after 0 byte(s): gh: HTTP 500
-    ci-ratchet: ci-metrics-closures artifacts fetch attempt 1/2 failed: gh exited 1 after 0 byte(s): unexpected end of JSON input
-RESULT M6-record-carry-dropped: ci-ratchet self-test: 44 checks, 0 failed
-    ci-ratchet: ci-metrics-fast artifacts fetch attempt 1/4 failed: gh exited 1 after 0 byte(s): gh: Server Error (HTTP 502)
-    ci-ratchet: ci-metrics-fast artifacts fetch attempt 1/4 failed: gh exited 0 and returned 0 bytes
-    ci-ratchet: ci-metrics-fast artifacts fetch attempt 1/3 failed: gh exited 1 after 0 byte(s): gh: HTTP 500
-    ci-ratchet: ci-metrics-fast artifacts fetch attempt 2/3 failed: gh exited 1 after 0 byte(s): gh: HTTP 500
-    ci-ratchet: ci-metrics-fast artifacts fetch attempt 3/3 failed: gh exited 1 after 0 byte(s): gh: HTTP 500
-    ci-ratchet: ci-metrics-closures artifacts fetch attempt 1/2 failed: gh exited 1 after 0 byte(s): unexpected end of JSON input
-RESULT M7-band-excluded-from-grading-loop-removed: ci-ratchet self-test: 44 checks, 0 failed
-    ci-ratchet: ci-metrics-fast artifacts fetch attempt 1/4 failed: gh exited 1 after 0 byte(s): gh: Server Error (HTTP 502)
-    ci-ratchet: ci-metrics-fast artifacts fetch attempt 1/4 failed: gh exited 0 and returned 0 bytes
-    ci-ratchet: ci-metrics-fast artifacts fetch attempt 1/3 failed: gh exited 1 after 0 byte(s): gh: HTTP 500
-    ci-ratchet: ci-metrics-fast artifacts fetch attempt 2/3 failed: gh exited 1 after 0 byte(s): gh: HTTP 500
-    ci-ratchet: ci-metrics-fast artifacts fetch attempt 3/3 failed: gh exited 1 after 0 byte(s): gh: HTTP 500
-    ci-ratchet: ci-metrics-closures artifacts fetch attempt 1/2 failed: gh exited 1 after 0 byte(s): unexpected end of JSON input
+RESULT M4-bounds-check-dropped: ci-ratchet self-test: 45 checks, 1 failed
+      FAIL a band row is a known, non-negative bound and not a graded metric -- []
+RESULT M5-ge-for-gt: ci-ratchet self-test: 45 checks, 4 failed
+      FAIL the observed noise (34.467 on a 34.267 budget) passes inside the 1.3 band -- grew 1
+      FAIL a median at budget + band exactly passes -- grew 2
+      FAIL a median one thousandth past budget + band is growth -- grew 2
+      FAIL no band row is zero tolerance (34.467 on 34.267 is growth) -- grew 2
+RESULT M6-record-carry-dropped: ci-ratchet self-test: 45 checks, 1 failed
+      FAIL --record carries the band over unchanged and re-records every derived metric -- {'critical_path_minutes': 35.317, 'script_runs_per_push': 53, 'recorded_at': 'hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh', 'reason': 'r'}

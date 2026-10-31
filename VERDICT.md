@@ -1,59 +1,56 @@
-Fix review: blocked b02ffd170d5049d8869689cbc889a5cf46097a1e metric-gamed: archscore: the body's dS +0.0012 IMPROVES is not this diff's, which scores dS +0.0000 NULL three-dot and in CI
+Fix review: blocked 9ef51b8215dd7216950f177386fb2f5a8f010a47 metric-gamed: archscore: the body still states dS +0.0012 IMPROVES, and this diff scores dS +0.0000 NULL three-dot, unrepaired since round 1
 
-bus-nonce: 83ea6356a16366c48fbb3ccd206a96e0
+bus-nonce: de774e283b26fc790fb40c74a9cd6ac6
 
-Round 1 of this fix review. Measured head: b02ffd170d5049d8869689cbc889a5cf46097a1e. At the post time it is still the PR head (`git fetch origin fix/r10-hotfix-ci-critpath-2` resolves to it), and origin/main is 7539d1675, the merge base.
+This is round 2 of this fix review. I measured head 9ef51b8215dd7216950f177386fb2f5a8f010a47. At post time, a fetch of `fix/r10-hotfix-ci-critpath-2` resolves to it, and the body is unchanged (updated_at 19:55:52Z). It merges code head 536da691c and origin/main a7dd7f50d, which is the merge base. The only branch-side change since the round-1 head b02ffd170 is the `record_table()` refactor in tests/ci_ratchet.py and its pin.
 
 ## Block
 
-The body states `Architecture score: dS +0.0012 IMPROVES (coord_footprint 2390 -> 2388)` three times: in `## Figures`, in `## Architecture score`, and as the `Architecture score:` line of `## Raise justification`. The owner's mandated approval quotes the same figure. The diff touches only tests/ci_ratchet.py, tests/ci_budgets.json, tools/policy/budget_raise_gate.py and a delivery row. None of those is coordinator code, so the diff cannot move coord_footprint.
+The round-1 block was a body-only repair, and it was not made. The PR body, read live at this head (updated_at 2026-10-31T19:55:52Z), still states `Architecture score: dS +0.0012 IMPROVES` in three places: in `## Figures`, in `## Architecture score` ("coord_footprint 2390 -> 2388"), and as the `Architecture score:` line of `## Raise justification`.
 
-- `score.py --diff origin/main HEAD` at this head, where origin/main is the merge base 7539d1675, prints `Architecture score: dS +0.0000 NULL` (ev/archscore-diff.txt).
-- `score.py --diff 0cae227c3 b8a027974` scores the authored code head against its own merge base and also prints `dS +0.0000 NULL` (ev/archscore-codehead.txt).
-- CI's own arch-score job 124591643014 on this head prints `Architecture score: dS +0.0000 NULL` and `PASS: dS +0.0000 NULL, no gate metric rose` (ev/ci-arch-score-log.txt).
+- I ran `python3 tools/audit/archscore/score.py --diff a7dd7f50d67e0c3819956b15ef95d77f4f6ebfc0 9ef51b8215dd7216950f177386fb2f5a8f010a47` in a detached worktree at the head. That is the three-dot comparison, because the merge base equals origin/main. It prints `Architecture score: dS +0.0000 NULL` (ev/archscore-3dot.txt).
+- The three-dot diff touches tests/ci_ratchet.py, tests/ci_budgets.json, tools/policy/budget_raise_gate.py and a delivery row. None of these is coordinator code, so coord_footprint cannot move.
+- CI's arch-score job 124640032401 on this head concluded success. That is consistent with NULL, which is admissible.
 
-So the +0.0012 movement survives with the mechanism removed. It is main's own drift, read two-dot against an origin/main that was not the branch's base, which CLAUDE.md rule 3 forbids for any branch-vs-main comparison. This is a misreport, not gaming of the instrument. The honest value, NULL, still meets rule 2's requirement that the score not read worse. But the brief makes an honest Raise justification a condition, and fix-review step 14 makes every figure the body quotes owed to the change. The repair is a body-only edit and does not move the head: replace the three occurrences with `dS +0.0000 NULL` measured three-dot, and drop the coord_footprint clause. All other checks below pass at this head, so a re-verdict should only need to re-read the body and the post-edit `budget-raise-gate` and `pr-contract` runs.
+The brief makes an honest `## Raise justification` a condition, and fix-review step 14 holds every figure the body quotes to the change. A NULL must be stated as NULL. The repair is still body-only and does not move the head: replace the three occurrences with `dS +0.0000 NULL` measured three-dot, and drop the coord_footprint clause. After that, a re-verdict needs only the body and the post-edit `pr-contract` and `budget-raise-gate` runs, plus tvofi's re-approval at the head. Every other check below passes at this head.
 
 ## Findings
 
-- Surviving mutant M6: deleting the `--record` carry-over line `**{k: budgets[k] for k in BAND_KEYS if k in budgets},` in tests/ci_ratchet.py main() leaves `ci-ratchet self-test: 44 checks, 0 failed`. The body states "`--record` carries the band over" as part of the fix, and no check pins it. If the line is lost, the outcome fails closed: a re-record drops the band, and budget_raise_gate reads the removal as a raise (ev/gate-band-removal.txt). A one-check self-test pin on the record table is still owed. The fixer adds the pin with the body repair. Carry: R10-HOTFIX-CI-CRITPATH-2
-- budget_raise_gate types the band MAX0, but MAX0 calls `critical_path_minutes_band` removed (1.3 -> absent) a raise, "a removed cap is no cap". Narrowing to 0 is routine, and adding it at 0 is routine. So removing the band, which tightens the gate to zero tolerance, would wrongly need owner approval. The PR's own docstring says "absent is a band of zero". This false positive fails closed, so it is not blocking. Carry: dismissed: a fail-closed false positive that opens no gate weakness, and only the owner can decide that removal should be routine
-- Instrument finding: budget_raise_gate checks only the shape of the `Architecture score: dS <n> <verdict>` line (regex at tools/policy/budget_raise_gate.py:145). It never checks the value against the arch-score job, which is how an unearned IMPROVES got through the gate and into the owner's approval. The orchestrator propagates it to the budget-raise-gate brief by finding-propagation.md. Carry: R10-HOTFIX-CI-CRITPATH-2
-- Wording: "86 runs of 2026-10-25" comes from the query `created=2026-10-25..2026-10-26`, whose runs span 2026-10-25T00:42Z..2026-10-26T20:55Z. The figures reproduce exactly, so only the label is loose. Carry: dismissed: only the label is loose, and every figure re-derives exactly
+- Instrument finding, carried from round 1 and still unpropagated: budget_raise_gate checks only the shape of the `Architecture score: dS <n> <verdict>` line. It never checks the value against the arch-score job. That is how the unearned IMPROVES got through the gate for a second round. The body's `## Forward-carry` reads "none", so it names no roster SHA for me to check. No `handoff/audit-r10-roster` ref exists on origin. Carry: R10-HOTFIX-CI-CRITPATH-2
+- budget_raise_gate's MAX0 typing calls removing the band (1.3 -> absent) a raise, although the PR's own text says "absent is a band of zero". This fails closed and is unchanged from round 1. Carry: dismissed: a fail-closed false positive that opens no gate weakness, and only the owner can decide that removal should be routine
 
 ## Evidence
 
-- Band measured, not padded. I fetched the 86 ci.yml push runs with the body's own query and scored them with `ci_ratchet.run_minutes` (ev/band.py, ev/band-1025.txt): `RESULT n=86 median=32.550 p90=34.267 sliding8 min=31.709 max=33.850 max|dev|=1.300`. That is the head's 1.3, unpadded, and the p90 equals the 34.267 budget exactly.
-- I fetched the 59-run set again with `ci_ratchet.py --gather-runs ... --window 90` (ev/band-59-search.txt). The set ending at 0cae227c3 reproduces the body: median 33.767, sliding8 32.916..34.575, max|dev| 0.851, first20 33.883, last20 33.867. The body's sigma 1.638 is the population SD; the sample SD is 1.652. On the newest 59 runs at review time, max|dev| is 0.875..0.925, still under 1.3.
-- The red log of job 124543698895 (run 41201096004) reads `GREW critical_path_minutes: 34.467 (budget 34.267)`. `git diff --stat 0d33c9348 05c0d6d5d` lists 7 files, all dev/programme/delivery/*.md (ev/red-run-log.txt).
-- compare() applies the band to critical_path_minutes only. ev/null-control.txt holds `compare()` at the base budgets vs the head budgets:
-  - 34.467 is GREW at the base and ok at the head, inside the band.
-  - 35.777 is GREW at both.
-  - The 35.567 edge is ok at the head.
-  - script_runs_per_push 55 and archscore.unused_boundary_imports 1 are GREW at both, so the counters stay at zero tolerance.
-  - budget_problems(head) is [].
-- budget_raise_gate on the actual tables (ev/gate-band-removal.txt):
-  - Null control: no raise.
-  - Absent -> 1.3 (this PR): raise, "an absent entry here is a cap of zero", so a missing band reads as zero.
-  - 1.3 -> 1.31: raise.
-  - 1.3 -> 0: routine.
-- Self-tests under `env -u BASH_ENV` at the head: `ci-ratchet self-test: 44 checks, 0 failed` and `budget_raise_gate self-test: 240 checks, 0 failed`.
-- Mutants (ev/mutants.txt, summary lines):
-  - M1, band ignored in compare: 44 checks, 2 failed.
-  - M2, band applied to every row: 1 failed.
-  - M3, gate row MAX instead of MAX0: 240 checks, 1 failed (band added is a raise).
+- M6 is now killed. The mutant deletes the `**{k: budgets[k] for k in BAND_KEYS if k in budgets},` line in `record_table()`. On the mutated tree the self-test fails 1 of 45 checks, "--record carries the band over unchanged and re-records every derived metric". On the head it passes all 45 (ev/m6.txt). Round 1's M6 survivor is settled.
+- Full M1-M6 under `env -u BASH_ENV`, summary lines (ev/mutants.txt):
+  - M1, band ignored in compare: ci-ratchet 45 checks, 2 failed.
+  - M2, band on every row: 2 failed.
+  - M3, gate row MAX instead of MAX0: budget_raise_gate 240 checks, 1 failed.
   - M3b, gate row deleted: 1 failed.
   - M4, bounds check dropped: 1 failed.
   - M5, `>=` for `>`: 4 failed.
-  - M6, record carry-over deleted: 0 failed. It survives (see Findings).
-  - M7, band key not excluded from the grading loop: 0 failed. This one is equivalent: the band key is never derived, so it prints `? not derived; not graded` and never grows.
-- The `gh: HTTP 500/502` lines in the mutant output are the self-test's own fixture noise. They show identically on unmutated runs.
-- Merge: `git merge-tree --write-tree origin/main b02ffd170d5049d8869689cbc889a5cf46097a1e` gives tree 95e85e293 at exit 0 (ev/merge-tree.txt).
-- Claims and versions: tests/golden/claimed_drift.txt and card_claimed_drift.txt are byte-identical to origin/main. VERSION, manifest.json and RELEASE_NOTES.md are untouched three-dot.
+  - M6, record carry-over dropped: 1 failed.
+  - The worktree is clean afterwards.
+- Self-tests at the head: `ci-ratchet self-test: 45 checks, 0 failed` and `budget_raise_gate self-test: 240 checks, 0 failed`.
+- compare() and the null control at the head budgets vs the same table without the band (ev/null-control.txt):
+  - 34.467: ok with the band, GREW without it.
+  - 35.567, the edge: ok with the band, GREW without it.
+  - 35.777: GREW both ways.
+  - script_runs_per_push 55: GREW both ways.
+  - archscore.unused_boundary_imports 1: GREW both ways.
+  - So the band applies to critical_path_minutes only, and the counters stay at zero tolerance. budget_problems(head) is [].
+- budget_raise_gate treats a missing band as zero. CI job 124640032305 prints `RAISE tests/ci_budgets.json: critical_path_minutes_band: None -> 1.3`, and the self-test passes "a critical-path band added is a raise (absent is a band of zero)".
+- Band 1.3, not re-derived by me this round. This seat has no `gh` for `--gather-runs` (only search is permitted). Between b02ffd170 and this head, nothing changed in the band value, in run_minutes or in the input set. Round 1 re-derived it from the body's own 86-run query: `RESULT n=86 median=32.550 p90=34.267 sliding8 ... max|dev|=1.300` (review/3045 f7c7d4c6, evidence/band-1025.txt). I rely on that measurement and do not re-certify it.
+- Red checks at the head:
+  - `budget-raise-gate` is red: `REFUSED: tvofi's approval is on b02ffd170d50, not this head 9ef51b8215dd`. The body answers it under `## Red checks` as red by design until approval at the head. It needs tvofi's re-approval after the body edit.
+  - The main-side `tests / ci-ratchet` red is answered there too.
+  - `merge_train.py classify 9ef51b8215dd7216950f177386fb2f5a8f010a47` exited 1 at 20:25:21Z with `RED 9ef51b8215dd7216950f177386fb2f5a8f010a47 pending: none red: gate` (ev/classify-log.txt).
+  - The `gate` job 124647791391 names its only failure: `FAIL budget-raise-gate / budget-raise-gate: failure (this run)`. budget-raise-gate 124647394312 fails on the stale approval, and the body answers that red.
+  - pr-contract 124647618162 succeeded at 20:23Z, after the last red concluded. arch-score 124647394298 succeeded. No other check is red.
+- Merge: `git merge-tree --write-tree origin/main 9ef51b8215dd7216950f177386fb2f5a8f010a47` gives tree ac49332ac at exit 0 (ev/merge-tree.txt).
+- Claims and versions: tests/golden/claimed_drift.txt and card_claimed_drift.txt are byte-identical to the merge base. VERSION, manifest.json and RELEASE_NOTES.md are untouched three-dot.
+- `python3 tests/structure.py`: STRUCTURE RATCHET PASSED.
 - Roles: `git diff $(merge-base)...origin/main -- dev/governance/roles/` is empty.
-- CI: `merge_train.py classify b02ffd170d5049d8869689cbc889a5cf46097a1e` printed `GREEN b02ffd170d5049d8869689cbc889a5cf46097a1e pending: none red: none` at exit 0 (ev/classify-final.txt, ev/classify-log.txt). get_check_runs on the head shows no failure. budget-raise-gate succeeded on three runs, the last 124601791289 after tvofi's approval at this head. pr-contract 124601389482 succeeded.
-- Red-check answers: the body answers the main-side `tests / ci-ratchet` red (no cheaper detector, because the input is live push-run history) and `budget-raise-gate` (red by design until approval). No check is red on this head.
-- Head line: the body names b02ffd170d5049d8869689cbc889a5cf46097a1e as head, with code head b8a027974 and merge 9794b2228. That matches the measured head.
-- Forward-carry: "none". O3 above is a carry this review hands on.
-- Mandate: tvofi's approving review 5723761725 at commit_id b02ffd170d5049d8869689cbc889a5cf46097a1e is present. `## Raise justification` lists payments (1)-(3), and I found no architecture-improving payment it missed. Its `Architecture score:` line is the false figure blocked above.
-- Harness: no committed finder harness is named, because this is a red-main hotfix whose evidence is the run history. The band statistic is my own script (ev/band.py) over `ci_ratchet.run_minutes`, disclosed as mine. It is not the fixer's.
+- Scoped-gate MODE line: not read. The gate is CI's heavy run and is not re-run by this seat.
+- Head line: the body names 9ef51b8215dd7216950f177386fb2f5a8f010a47, which matches the head I measured.
+- Harness: no committed finder harness is named, because this is a red-main hotfix. The mutants (/home/user/mut.py, inlined in ev/mutants.txt labels) and the null-control snippet are mine, not the fixer's.

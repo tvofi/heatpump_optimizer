@@ -1,8 +1,0 @@
-2026-10-31T16:27:16.2298546Z [command]/usr/bin/git -c protocol.version=2 fetch --prune --no-recurse-submodules origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/* +426cfce5381aa30a8a701221f4e1cd2fb3dd8e3b:refs/remotes/pull/3045/merge
-2026-10-31T16:27:34.5971668Z [36;1m  echo "no pull request named: nothing to score"[0m
-2026-10-31T16:27:34.5972512Z [36;1m  echo "scored=false" >> "$GITHUB_OUTPUT"[0m
-2026-10-31T16:27:34.5975544Z [36;1mecho "scored=true" >> "$GITHUB_OUTPUT"[0m
-2026-10-31T16:27:35.2091175Z [36;1mGATE=tools/audit/archscore/gate.py[0m
-2026-10-31T16:27:35.2094176Z [36;1m  echo "the base holds no $GATE: this pull request adopts it, so its own copy runs"[0m
-2026-10-31T16:28:25.2856726Z Architecture score: dS +0.0000 NULL
-2026-10-31T16:28:25.2857175Z PASS: dS +0.0000 NULL, no gate metric rose
