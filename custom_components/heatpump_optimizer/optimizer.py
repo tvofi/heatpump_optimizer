@@ -410,7 +410,7 @@ def _thermostat_demand_single(
     """
     p = model.params
 
-    # Thermal power the room needs to sit at the setpoint.
+    # Thermal power the room needs to sit at the setpoint. (null control)
     q_demand = _floor_demand_at_target(
         model, target, outdoor_temp, wind_speed, precipitation, solar_radiation
     )
