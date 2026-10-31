@@ -172,7 +172,7 @@ because they are genuinely more expensive.
 The objective carries no separate anticipation term on top of this. Such a
 term would count physics the simulation already has a second time, and a
 weather bonus is a *negative* cost: it pays the plan to burn electricity before
-bad weather. The solar forecast shapes only the solver's initial guess, where a
+bad weather. The solar forecast also shapes the solver's initial guess, where a
 wrong hunch costs nothing.
 
 ### The terminal cost, and why it needs caps
