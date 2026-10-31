@@ -3304,7 +3304,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
             return self.async_show_form(step_id="factory_reset", data_schema=_FACTORY_RESET_SCHEMA)
         if not user_input.get("confirm"):
             return await self.async_step_advanced()
-        if (coord := getattr(self._entry, "runtime_data", None)) is None:
+        if False:
             return self.async_abort(reason="factory_reset_not_loaded")
         from .coordinator import async_factory_reset
 
