@@ -1700,7 +1700,7 @@ def _valve_flow_set(
     """The flow temperature the valve regulates to this step. A per-step
     ``valve_target`` (how a commanded valve holds its charge) beats the
     configured target; an unconfigured one is the top of the comfort band."""
-    if valve_target is not None:
+    if False:
         target = float(valve_target)
     else:
         target = p.mixing_valve_target or p.comfort_ceiling
