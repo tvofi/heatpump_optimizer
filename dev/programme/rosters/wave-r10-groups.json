@@ -13044,6 +13044,48 @@
     "note": "live user defect tvofi 2026-10-30, plan-energy probe; stranded as a carry behind R10-996-RUNNER-CLAIMS, re-cut by s9 2026-10-31"
    },
    "brief": "Hotfix from a live user defect. Live user finding (tvofi, 2026-10-30). Probe report: handoff-body/r10-live-plan-energy 7c4e639e49214592ef2ef2ddd48df522a3efd2cd, measured at main cc930cdd1.\n\nThe space-step classifier labels a heating step preheat_weather whenever the step's heat-loss factor exceeds 1.1, and it tests this before the price test. That factor includes the learned house_heat_loss_scale, so a house whose learned scale is above 1.1 is labelled \"preheat for weather\" under perfectly flat weather. Measured, flat weather and flat price: scale 1.05 gives 0 such steps; scale 1.2356 gives 51; the owner's live plan gave 88 of 96.\n\nFix: test only the forecast's weather component, meaning the factor relative to its own scale-free baseline, so a learned level never reads as weather.\nControls:\n- flat weather with scale 1.24 gives zero preheat_weather steps;\n- a real forecast cold spell, at scale 1.0 and at 1.24, still labels preheat_weather;\n- null control: scale 1.0 with flat weather is unchanged.\nOne mutant: revert to the raw factor; it fails the first control."
+  },
+  {
+   "group": "R10-HOTFIX-AWAY-PRESENCE",
+   "lane": "CORE",
+   "kind": "bug",
+   "class": "correctness",
+   "severity": "critical",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 1,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "tests/features.py"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-hotfix-away-presence",
+    "commit": null,
+    "last_step": null,
+    "next_step": "fixer dispatched",
+    "note": "live user defect tvofi 2026-10-30; the carry was stranded on done R10-LIVESTATE, re-cut by s9 2026-10-31"
+   },
+   "brief": "Hotfix from a live user defect. Live user finding (tvofi 2026-10-30, probe report handoff-body/r10-live-away-heating aa6e5db30): coordinator.py subscribes state-change events only for defrost and the peak guard, not for away_presence_entity. An away flag from a person, calendar or input_boolean presence entity therefore reaches the plan only at the next scheduled update (update_interval = optimization_interval, default 30 min). The coordinator move should subscribe async_track_state_change_event on away_presence_entity and request a refresh when the interpreted away state changes, following the defrost and peak-guard listeners. Control: toggling a presence entity triggers a refresh within the debounce. Null control: a state change that leaves the interpreted away state unchanged does not refresh. Also carried from the same report: after a set-point change the entry reloads, and the first refresh republishes the pre-reload plan (_reload_handover) until the background solve lands. Bound how long that window lasts and show it on the card."
   }
  ]
 }
