@@ -809,6 +809,7 @@ from Settings → Automations & Scenes → Blueprints → Import Blueprint:
 - [Economy mode through the evening price peak](https://raw.githubusercontent.com/tvofi/heatpump_optimizer/main/blueprints/automation/economy_mode_on_price_peak.yaml) — switches the optimizer's mode when the current electricity price crosses your expensive threshold, and back when it falls.
 - [Notify when a manual plan takes over](https://raw.githubusercontent.com/tvofi/heatpump_optimizer/main/blueprints/automation/notify_on_manual_plan.yaml) — raises a persistent notification while an `apply_manual_plan` override pins the heating slots.
 - [Notifications](https://raw.githubusercontent.com/tvofi/heatpump_optimizer/main/blueprints/automation/notifications.yaml) — sends the optimizer's documented events (monthly receipt, comfort at risk, stale input, stale plan, released manual plan) to a notify target, with quiet hours.
+- [Notify when wood beats the heat pump today](https://raw.githubusercontent.com/tvofi/heatpump_optimizer/main/blueprints/automation/notify_wood_cheaper_window.yaml) — a morning phone notification naming today's cheaper-than-pump windows and when to light the furnace, with an optional follow-up after a replan; silent on a day with none.
 
 Each blueprint takes the sensor and thresholds as inputs, so nothing is
 hard-coded to the entity ids the examples assume.

@@ -42879,7 +42879,6 @@ from heatpump_optimizer.wood_fuel import (
     cheaper_hour_count as _wf_count,
     liters_to_kwh as _wf_liters,
     useful_kwh_m3 as _wf_useful,
-    wood_cheaper as _wf_cheaper,
     wood_fuel_ready as _wf_ready,
     wood_furnace_inferred as _wf_inferred,
     wood_furnace_on as _wf_on,
@@ -42938,11 +42937,11 @@ _wf_no_price = dict(_wf_cfg, wood_price_sek_m3=0.0)
 R.check("price 0 is not ready", not _wf_ready(_wf_no_price))
 R.check(
     "idle plan is not cheaper",
-    not _wf_cheaper(1.0, [2.0], [3.0], [False]),
+    _wf_count(1.0, [2.0], [3.0], [False]) == 0,
 )
 R.check(
     "one hour the plan runs the pump, and wood is cheaper, is on",
-    _wf_cheaper(1.0, [4.0], [2.0], [True]),
+    _wf_count(1.0, [4.0], [2.0], [True]) > 0,
 )
 R.check(
     "that hour counts",
@@ -43047,7 +43046,6 @@ _wf_not_ready = _wf_view(
     cop_at=lambda _t: 2.0,
     timestamps=[],
     forecast_kw=[],
-    suppressing=False,
 )
 R.check(
     "data wood_fuel cheaper is false when not ready",
@@ -43095,10 +43093,58 @@ R.check(
     and _wf_pub["wood_fuel"].get("cheaper_hour_count") == 1,
     repr(_wf_pub.get("wood_fuel")),
 )
+from dataclasses import replace as _wf_replace  # noqa: E402
+
+# R10-WOOD-NOTIFY: "today" and the published windows are the HA local day and
+# local time, which reach wood_fuel.py only through the coordinator's call.
+# Driven through _build_data_dict with the stub's zone at UTC+1: the cheaper
+# 23:00 UTC step is 00:00-01:00 on the local next day. Without the zone it
+# would publish 23:00-00:00 UTC. Null control: the same plan with the UTC
+# zone publishes the UTC window, so the check reads the zone, not the plan.
+from datetime import timedelta as _td_wf  # noqa: E402
+
+_wf_late = datetime(2026, 1, 1, 23, tzinfo=_tz_wf.utc)
+
+
+def _wf_windows_at(zone):
+    _wf_ready_coord._optimization_result = _wf_replace(
+        _wf_result,
+        heat_pump_on_schedule=[True, True],
+        power_schedule=[0.2, 0.2],
+        room_temp_trajectory=[21.0] * 3,
+        slab_temp_trajectory=[21.0] * 3,
+        timestamps=[_wf_late, _wf_late + _td_wf(hours=1)],
+        prices=[40.0, 0.0],
+        optimal_setpoints=[21.0, 21.0],
+        outdoor_temps=[-5.0, -5.0],
+        dhw_power_schedule=[0.0, 0.0],
+        dhw_temp_trajectory=[50.0] * 3,
+    )
+    _real_zone = _dt_wf.DEFAULT_TIME_ZONE
+    try:
+        _dt_wf.now = lambda: NOW
+        _dt_wf.DEFAULT_TIME_ZONE = zone
+        return _wf_ready_coord._build_data_dict()["wood_fuel"].get("cheaper_windows")
+    finally:
+        _dt_wf.now = _real_now_wf
+        _dt_wf.DEFAULT_TIME_ZONE = _real_zone
+
+
+_wf_cet = _wf_windows_at(_tz_wf(_td_wf(hours=1)))
+_wf_utc = _wf_windows_at(_tz_wf.utc)
+_wf_ready_coord._optimization_result = _wf_result
+R.check(
+    "the coordinator publishes the wood windows on HA's local day, in local "
+    "time (R10-WOOD-NOTIFY)",
+    _wf_cet
+    == [{"start": "2026-01-02T00:00:00+01:00", "end": "2026-01-02T01:00:00+01:00"}]
+    and _wf_utc
+    == [{"start": "2026-01-01T23:00:00+00:00", "end": "2026-01-02T00:00:00+00:00"}],
+    repr((_wf_cet, _wf_utc)),
+)
 # D8-s1-01: a pump hour is a step the plan's on schedule runs. A 0.07 kW space
 # share the plan calls off buys no pump heat for wood to undercut. Null
 # control: the same plan with the step running counts it (the check above).
-from dataclasses import replace as _wf_replace  # noqa: E402
 
 _wf_ready_coord._optimization_result = _wf_replace(
     _wf_result, power_schedule=[0.07], heat_pump_on_schedule=[False])
@@ -43153,7 +43199,6 @@ _wf_soc_kwargs = dict(
     cop_at=lambda _t: 3.0,
     timestamps=_wf_stamps,
     forecast_kw=[],
-    suppressing=False,
 )
 _wf_light_view = _wf_view(
     _wf_cfg,
@@ -43205,7 +43250,6 @@ _wf_skip_view = _wf_view(
     cop_at=lambda _t: 3.0,
     timestamps=_wf_stamps,
     forecast_kw=[],
-    suppressing=False,
     wood_tank_temperature=87.4,
     comfort_min=19.0,
 )
@@ -43219,7 +43263,9 @@ from types import SimpleNamespace as _WfNS
 
 _wf_probe_coord = _WfNS(
     _config=EntryConfig.from_mapping(_wf_cfg),
-    _external_heat=_WfNS(suppressing=False),
+    # The real detector, fresh (not suppressing): a namespace with only
+    # `suppressing` let a mutant reach a method the stub never had.
+    _external_heat=ExternalHeatDetector(),
     _opt_config=_WfNS(min_temp=19.0, dt_hours=1.0),
     _thermal_params=_WfNS(two_tank_modelled=False),
     _thermal_model=_WfNS(compute_cop=lambda _t: 3.0),
@@ -43241,6 +43287,7 @@ _wf_from_probes = _wf_from_coord(
     thermal_model=_wf_probe_coord._thermal_model,
     current_state=_wf_probe_coord._current_state,
     result=_wf_probe_result,
+    local_tz=_tz_wf.utc,
 )
 R.check(
     "from_coordinator uses the live wood-tank temperature",
@@ -43256,6 +43303,7 @@ _wf_from_empty = _wf_from_coord(
     thermal_model=_wf_probe_coord._thermal_model,
     current_state=_wf_probe_coord._current_state,
     result=_wf_probe_result,
+    local_tz=_tz_wf.utc,
 )
 R.check(
     "from_coordinator without a tank temperature attaches nothing",
@@ -73701,6 +73749,363 @@ R.check(
     and _pl_pre({"heat_pump_cop_nominal": 3.0}, {**_pl_stored, **_pl_narrow}) == {}
     and _pl_pre({"heat_pump_max_power": 0.5}, _pl_stored) == {"base": "min_power_above_max"},
     f"max 5->2: {_pl_pre({'heat_pump_max_power': 2.0}, _pl_stored)}",
+)
+
+
+# R10-COP-PARTLOAD part 2: the inverse conversions. With a derate the forward
+# relation is quadratic in power, so ``heat / cop`` understates the draw a heat
+# needs; ``power_for_heat_per_cop_kw`` is its root on the rising branch, and
+# the four sites that close the loop (the hot-water LP and its clamp, the
+# savings baseline, the setpoint sweep) take it. 0 keeps every one exact.
+from heatpump_optimizer.thermal_model import (  # noqa: E402
+    heat_per_cop_kw as _pli_fwd,
+    power_for_heat_per_cop_kw as _pli_inv,
+)
+_pli_p = _pl_model(0.15).params
+_pli_grid = np.linspace(0.0, 6.5, 1301)
+# Raise on an invalid sqrt: past the parabola's vertex the on-band branch is
+# computed and discarded, and must not warn on every hot-water clamp step.
+with np.errstate(all="raise"):
+    _pli_back = _pli_fwd(_pli_p, _pli_inv(_pli_p, _pli_fwd(_pli_p, _pli_grid)))
+    _pli_far = _pli_inv(_pli_p, np.linspace(0.0, 50.0, 11))
+_pli_err = float(np.max(np.abs(_pli_back - _pli_fwd(_pli_p, _pli_grid))))
+_pli_x = 2.5
+_pli_day = _pli_inv(_pli_p, 60.0, hours=24.0)
+# The band's edges are taken exactly, not through the root, whose float at the
+# edge can land an ulp off: the floor on a 2-6 kW band at 0.3, and max power on
+# a 1.5-5 kW band at 0.4, where 5 * 0.6 / 0.6 is exactly 5.
+_pli_edges = (_pli_inv(_pl_model(0.3, 2.0, 6.0).params, 2.0),
+              _pli_inv(_pl_model(0.4).params, 3.0))
+R.check(
+    "the inverse conversion returns the draw whose derated heat is the heat "
+    "asked for, below the floor, on the band and past max power, to 1e-12; "
+    "on the band it needs more power than heat / cop; the band's edges are "
+    "exact and a fixed-speed band inverts to itself; a day's energy converts "
+    "as 24 h of its mean draw; "
+    "null control: a zero derate hands the quotient back unchanged",
+    _pli_err < 1e-12 and float(_pli_inv(_pli_p, 3.0)) > 3.0
+    and _pli_inv(_pli_p, 1.0) == 1.0 and _pli_edges == (2.0, 5.0)
+    and float(_pli_far[-1]) == 50.0 / 0.85
+    and _pli_inv(_pl_model(0.12, 3.0, 3.0).params, 2.0) == 2.0
+    and abs(_pli_day - 24.0 * float(_pli_inv(_pli_p, 2.5))) < 1e-9
+    and _pli_inv(_pl_model(0.0).params, _pli_x) is _pli_x
+    and _pli_inv(_pl_model(0.0).params, 60.0, hours=24.0) == 60.0,
+    f"round trip {_pli_err:.2e} on band {float(_pli_inv(_pli_p, 3.0)):.4f} "
+    f"day {_pli_day:.4f} edges {_pli_edges}",
+)
+
+
+def _pli_baseline(derate, outdoor):
+    p = ThermalParameters(min_electrical_power=1.5, max_electrical_power=5.0,
+                          cop_partload_derate=derate)
+    out = np.full(1, outdoor)
+    zero = np.zeros(1)
+    power, _ = _PvOpt(ThermalModel(p), _PvOptCfg(target_temp=21.0))._compute_baseline_power(
+        _WS(out, zero, zero, zero),
+        ThermalState(room_temperature=21.0, slab_temperature=26.0,
+                     outdoor_temperature=outdoor), 0.25)
+    return float(power[0])
+
+
+_pli_bl = {d: _pli_baseline(d, -15.0) for d in (0.0, 0.2)}
+_pli_bl_mild = {d: _pli_baseline(d, 15.0) for d in (0.0, 0.2)}
+R.check(
+    "the savings baseline buys a derated pump's heat at the power that "
+    "delivers it: on the band its draw rises with the derate; "
+    "null control: a draw below the modulation floor is unchanged",
+    _pli_bl[0.2] > _pli_bl[0.0] > 1.5 and _pli_bl_mild[0.2] == _pli_bl_mild[0.0] < 1.5,
+    f"cold {_pli_bl} mild {_pli_bl_mild}",
+)
+
+
+def _pli_clamp_end(derate):
+    """Tank temperatures after two clamped 5 kW steps aimed at the 52 C
+    ceiling, the second after a draw: its room is read off the clamp's own
+    walk of the first, so that walk must price the derate too."""
+    opt, _ = _r7d203_opt(200.0, cop_partload_derate=derate)
+    out, draws = np.full(2, 5.0), np.array([0.0, 4.0])
+    plan = _dhw_planner(opt)._clamp_dhw_to_capacity(
+        plan=np.full(2, 5.0), initial_temp=48.0, outdoor_temps=out,
+        draw_rates=draws, dt=0.25, max_temp=np.full(2, 52.0))
+    temps = np.array([48.0, 0.0, 0.0])
+    opt.model.extend_dhw_temps(temps, 0, plan, out, draws, dt_hours=0.25)
+    return float(plan[0]), float(temps[1]), float(temps[2])
+
+
+_pli_clamp = {d: _pli_clamp_end(d) for d in (0.0, 0.2)}
+R.check(
+    "the hot-water clamp's truncated steps land on their ceiling in the derated "
+    "simulation, not short of it or past it, at a draw above the plain "
+    "quotient's; null control: with no derate they land there too",
+    all(abs(t - 52.0) < 1e-9 for d in (0.0, 0.2) for t in _pli_clamp[d][1:])
+    and _pli_clamp[0.2][0] > _pli_clamp[0.0][0] > 1.0,
+    f"{_pli_clamp}",
+)
+
+
+def _pli_lp_end(derate, p_dhw_max=3.0, dt=1.0):
+    """Tank temperature where the minimum-cost LP must reach 58 C."""
+    n = 8
+    opt, _ = _r7d203_opt(200.0, cop_partload_derate=derate)
+    req = np.full(n, 40.0)
+    req[-1] = 58.0
+    prices = np.array([5.0] * (n - 1) + [1.0])
+    ctx = _dhw_ctx(prices=prices, outdoor=np.full(n, 5.0), n=n, dt=dt,
+                   c_dhw=opt.model.params.dhw_tank_thermal_mass, p_dhw_max=p_dhw_max)
+    planner = _dhw_planner(opt)
+    plan = planner._plan_dhw_min_cost(ctx, 45.0, req, np.zeros(n), np.full(n, 65.0))
+    temps = opt.model.simulate_dhw_only(
+        initial_temp=45.0, dhw_power_schedule=plan, outdoor_temps=np.full(n, 5.0),
+        draw_rates=np.zeros(n), dt_hours=dt)
+    return float(plan[-1]), float(temps[-1])
+
+
+_pli_lp = {d: _pli_lp_end(d) for d in (0.0, 0.2)}
+# Capped below the last step's need: the LP must buy the rest earlier, at the
+# heat a derated pump delivers at its cap, not the plain product's.
+_pli_lp_cap = {d: _pli_lp_end(d, 2.0, 0.5) for d in (0.0, 0.2)}
+R.check(
+    "the hot-water LP's plan, simulated with the derate, reaches the floor it "
+    "was solved against: its last-step draw is the root, not heat / cop; "
+    "and capped below that draw it sizes its energy ceiling by the derated "
+    "heat; null control: with no derate the floor is met at a lower draw",
+    all(r[1] > 58.0 - 0.05 for r in (*_pli_lp.values(), *_pli_lp_cap.values()))
+    and _pli_lp[0.2][0] > _pli_lp[0.0][0] > 1.0,
+    f"{_pli_lp} capped {_pli_lp_cap}",
+)
+
+
+def _pli_sweep(derate):
+    coord = Coord(FakeHass(), _r7d203_entry(
+        data={"tibber_token": "x", "weather_entity": "weather.home"}))
+    params = coord._thermal_params
+    params.dhw_enabled = True
+    params.min_electrical_power = 0.0
+    params.cop_partload_derate = derate
+    coord._prices = [{"total": 1.0}] * 24
+    return [c["cost_per_day"] for c in coord._dhw_setpoint_sweep()["candidates"]]
+
+
+_pli_sw = {d: _pli_sweep(d) for d in (0.0, 0.4)}
+R.check(
+    "the setpoint sweep prices a day's hot water at the draw that delivers it: "
+    "with a floorless band every candidate costs more under the derate; "
+    "null control: the zero-derate costs are the plain quotient's",
+    len(_pli_sw[0.0]) == 7
+    and all(b > a for a, b in zip(_pli_sw[0.0], _pli_sw[0.4])),
+    f"{_pli_sw}",
+)
+
+
+# Round 2: the hot-water planner's remaining conversions, the capacity caps,
+# the buffer-cap tightening and the battery's charge rate, enumerated by
+# dev/audit/harnesses/r10_cop_conversions.py. An increment on a planned step
+# is ``added_power_for_heat_per_cop_kw``: one kW more buys less heat on the band.
+from heatpump_optimizer.thermal_model import (  # noqa: E402
+    added_power_for_heat_per_cop_kw as _pli_add,
+)
+_pli_add_p = _pl_model(0.2).params
+_pli_add_x = 0.7
+_pli_add_back = [
+    float(_pli_fwd(_pli_add_p, p0 + _pli_add(_pli_add_p, p0, dh))
+          - _pli_fwd(_pli_add_p, p0))
+    for p0 in (0.5, 2.0, 4.0) for dh in (0.3, 1.0, -0.4)]
+R.check(
+    "a top-up's increment adds exactly the heat asked for to the step's own "
+    "derated heat, up or down, and costs more than the plain quotient on the "
+    "band; null control: a zero derate hands the quotient back unchanged",
+    max(abs(b - dh) for b, dh in zip(_pli_add_back, [0.3, 1.0, -0.4] * 3)) < 1e-12
+    and _pli_add(_pli_add_p, 2.0, 1.0) > 1.0
+    and _pli_add(_pl_model(0.0).params, 2.0, _pli_add_x) is _pli_add_x,
+    f"{_pli_add_back}",
+)
+
+
+def _pli_greedy(derate, need=50.0, n=4, dt=0.5, p_dhw_max=3.0):
+    """The cheapest-first planner's plan and the derated tank's end
+    temperature, filling one floor at the last (cheapest) step."""
+    opt, _ = _r7d203_opt(200.0, cop_partload_derate=derate)
+    out = np.full(n, 5.0)
+    req = np.full(n, 40.0)
+    req[-1] = need
+    plan = _dhw_planner(opt)._plan_dhw_cheapest_first(
+        _dhw_ctx(prices=np.linspace(2.0, 1.0, n), outdoor=out, n=n, dt=dt,
+                 c_dhw=opt.model.params.dhw_tank_thermal_mass, p_dhw_max=p_dhw_max),
+        45.0, req, np.zeros(n), np.full(n, 65.0))
+    temps = opt.model.simulate_dhw_only(
+        initial_temp=45.0, dhw_power_schedule=plan, outdoor_temps=out,
+        draw_rates=np.zeros(n), dt_hours=dt)
+    return [round(float(x), 6) for x in plan], float(temps[-1])
+
+
+_pli_gr = {d: _pli_greedy(d, need=53.0) for d in (0.0, 0.2)}
+# Capped at 1.5 kW the last step cannot hold it all: the planner fills it to
+# the cap and buys the rest a step earlier, sized by the derated heat the
+# cap delivers, not the plain product's.
+_pli_gr_cap = {d: _pli_greedy(d, need=56.0, p_dhw_max=1.5) for d in (0.0, 0.2)}
+R.check(
+    "the cheapest-first planner buys a derated pump's heat at the draw that "
+    "delivers it: one block lands the tank where the zero-derate block does, "
+    "at a higher draw; capped, its spare heat is the derated heat the cap "
+    "delivers and the floor is still met; null control: with no derate the "
+    "same tank and the plain draw",
+    abs(_pli_gr[0.2][1] - _pli_gr[0.0][1]) < 1e-9
+    and _pli_gr[0.2][0][-1] > _pli_gr[0.0][0][-1] > 1.0
+    and all(r[0][-1] == 1.5 and r[1] > 56.0 - 0.05 for r in _pli_gr_cap.values()),
+    f"{_pli_gr} capped {_pli_gr_cap}",
+)
+
+
+def _pli_runup(derate):
+    """The anti-legionella run-up floor, walked back from a 20:00 cycle."""
+    opt, params = _r7d203_opt(200.0, cop_partload_derate=derate)
+    n = 24
+    res = _dhw_planner(opt)._dhw_legionella_ceilings(
+        _dhw_horizon(prices=np.zeros(n), outdoor=np.full(n, -5.0), n=n, dt=1.0),
+        params=params, c_dhw=params.dhw_tank_thermal_mass, draw_rates=np.zeros(n),
+        floor_temps=np.full(n, 20.0), p_dhw_run=3.0, legionella_due=True,
+        legionella_hour=20.0, legionella_step=20)
+    return [round(float(x), 4) for x in res.runup_temps]
+
+
+_pli_ru = {d: _pli_runup(d) for d in (0.0, 0.2)}
+R.check(
+    "the anti-legionella run-up walks back along the heat a derated pump "
+    "delivers at its run power: each step lifts the tank less, so the floor "
+    "before the cycle starts higher; null control: no derate, the plain walk",
+    _pli_ru[0.2][18] > _pli_ru[0.0][18] > 0.0
+    and _pli_ru[0.2][19] > _pli_ru[0.0][19] > 0.0,
+    f"{_pli_ru[0.0][17:21]} vs {_pli_ru[0.2][17:21]}",
+)
+
+
+def _pli_repair(derate, need=52.0, ceiling=(65.0,) * 4, prices=(2.0, 1.6667, 1.3333, 1.0)):
+    """The floor repair topping up an empty plan: its first block, and the
+    derated tank's temperature at the floor step."""
+    n = 4
+    opt, _ = _r7d203_opt(200.0, cop_partload_derate=derate)
+    out = np.full(n, 5.0)
+    req = np.full(n, 40.0)
+    req[-1] = need
+    ctx = _dhw_ctx(prices=np.array(prices), outdoor=out, n=n, dt=0.5,
+                   c_dhw=opt.model.params.dhw_tank_thermal_mass, p_dhw_max=5.0)
+    plan = _dhw_planner(opt)._repair_dhw_floor(
+        ctx, plan=np.zeros(n), initial_temp=45.0, draw_rates=np.zeros(n),
+        requirement=req, max_temp=np.array(ceiling))
+    temps = opt.model.simulate_dhw_only(
+        initial_temp=45.0, dhw_power_schedule=plan, outdoor_temps=out,
+        draw_rates=np.zeros(n), dt_hours=0.5)
+    return [round(float(x), 6) for x in plan], [round(float(t), 6) for t in temps]
+
+
+_pli_rep = {d: _pli_repair(d) for d in (0.0, 0.2)}
+# The cheap first step sits under a 55 C ceiling at the next: its block is
+# bounded by that room, so the room must be converted at the derate too.
+_pli_rep_room = {d: _pli_repair(d, need=60.0, ceiling=(65.0, 55.0, 65.0, 65.0),
+                                prices=(1.0, 2.0, 3.0, 4.0)) for d in (0.0, 0.2)}
+R.check(
+    "the floor repair's top-up and its room under the ceiling are the draws "
+    "that deliver the heat at a derate: the derated tank walks the same "
+    "temperatures as the zero-derate one, at higher draws; "
+    "null control: with no derate the plain quotients",
+    all(max(abs(a - b) for a, b in zip(r[0.0][1], r[0.2][1])) < 1e-6
+        for r in (_pli_rep, _pli_rep_room))
+    and abs(_pli_rep[0.2][1][-1] - 52.0) < 1e-6
+    and abs(_pli_rep_room[0.2][1][2] - 55.0) < 1e-6
+    and _pli_rep[0.2][0][-1] > _pli_rep[0.0][0][-1]
+    and _pli_rep_room[0.2][0][0] > _pli_rep_room[0.0][0][0],
+    f"{_pli_rep} room {_pli_rep_room}",
+)
+
+
+def _pli_dhw_baseline(derate, p_min):
+    opt = _MbOpt(ThermalModel(ThermalParameters.from_config(_mb_profiles.house())),
+                 _MbCfg(horizon_hours=1))
+    opt.model.params.min_electrical_power = p_min
+    opt.model.params.cop_partload_derate = derate
+    bd, _, _, _ = _dhw_planner(opt)._baseline_dhw_economics(
+        ThermalState(wood_tank_temperature=None), np.full(3, -5.0), 3,
+        float(opt.model.params.dhw_setpoint), lambda p: float(np.sum(p)),
+        np.full(3, 2.0), np.ones(3), np.ones(3))
+    return float(bd[0])
+
+
+_pli_dbl = {(d, f): _pli_dhw_baseline(d, f) for d in (0.0, 0.4) for f in (0.0, 1.0)}
+R.check(
+    "the always-hot hot-water baseline buys its mean draw at the power that "
+    "delivers it: on a floorless band the derate raises it; null control: "
+    "below a 1 kW modulation floor, where real installs run it, unchanged",
+    _pli_dbl[(0.4, 0.0)] > _pli_dbl[(0.0, 0.0)] == _pli_dbl[(0.0, 1.0)]
+    and _pli_dbl[(0.4, 1.0)] == _pli_dbl[(0.0, 1.0)],
+    f"{_pli_dbl}",
+)
+
+
+def _pli_caps(derate):
+    c = _t2_coord(capacity_curve_enabled=True)
+    params = c._thermal_params
+    params.cop_partload_derate = derate
+    model = ThermalModel(params)
+    bucket = int(np.floor(-10.0 / 3.0))
+    # The envelope holds exactly the heat the model says nameplate delivers.
+    full = float(model.compute_cop(-10.0)) * float(_pli_fwd(params, params.max_electrical_power))
+    c._capacity_envelope[bucket] = [full, CAPACITY_MIN_SAMPLES + 2]
+    caps = c._capacity_caps(np.array([-10.0]), model=model)
+    return params.max_electrical_power, None if caps is None else float(caps[0])
+
+
+_pli_cap = {d: _pli_caps(d) for d in (0.0, 0.2)}
+R.check(
+    "the capacity caps turn an envelope that holds exactly the heat the model "
+    "says nameplate delivers back into nameplate, under a derate too, not a "
+    "cap trimmed by the derate; null control: no derate, no cap either",
+    _pli_cap[0.0] == (5.0, None) and _pli_cap[0.2] == (5.0, None),
+    f"{_pli_cap}",
+)
+
+
+def _pli_tighten(derate):
+    p, m, opt, st, _, out, zeros = _cap_fixture()
+    p.cop_partload_derate = derate
+    weather = _WS(out, zeros, zeros, zeros)
+    full = np.full(96, p.max_electrical_power)
+
+    class _Res:
+        power_schedule = full
+
+    caps = full.copy()
+    opt._tighten_buffer_caps(weather, st, _Res(), caps, 0.25)
+    _, _, _, _, _, refused, _ = m.simulate_trajectory(st, np.minimum(full, caps), weather, dt_hours=0.25)
+    return float(caps.min()), float(refused.max())
+
+
+_pli_tg = {d: _pli_tighten(d) for d in (0.0, 0.2)}
+R.check(
+    "the buffer-cap tightening cuts a refusing step to the draw whose derated "
+    "heat the tank takes: re-simulated at the new caps nothing is refused, "
+    "and the cut is shallower than the plain quotient's; null control: with "
+    "no derate it refuses nothing either",
+    all(r[1] < 1e-9 for r in _pli_tg.values()) and _pli_tg[0.2][0] > _pli_tg[0.0][0],
+    f"{_pli_tg}",
+)
+
+
+def _pli_battery(derate):
+    p = ThermalParameters(min_electrical_power=1.0, max_electrical_power=5.0,
+                          cop_partload_derate=derate)
+    view = battery_view.build(
+        p, ThermalState(room_temperature=21.0, slab_temperature=22.0,
+                        outdoor_temperature=0.0, dhw_temperature=50.0),
+        comfort_min=19.0, comfort_max=23.0, dhw_min=40.0, dhw_max=55.0, cop=3.0)
+    return view.charge_rate_kw
+
+
+_pli_bat = {d: _pli_battery(d) for d in (0.0, 0.2)}
+R.check(
+    "the virtual battery's charge rate is the heat the pump delivers at "
+    "nameplate, derate included; null control: no derate, power times COP",
+    _pli_bat == {0.0: 15.0, 0.2: 12.0},
+    f"{_pli_bat}",
 )
 
 

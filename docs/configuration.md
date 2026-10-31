@@ -701,6 +701,7 @@ catalog below keys off.
 | Packing | Packed (stacked) | Packed (stacked) · Loose (dumped) | Packed is stacked (travad); loose is dumped (stjälpt) and billed at 0.60 of packed. |
 | Price per cubic metre | none | 0–10 000, 10 steps | What you pay per billed cubic metre. **Empty keeps the cheaper-than-pump sensor unavailable — there is no silent default.** |
 | Furnace efficiency | 75 % | 10–95 | Share of the wood's energy that reaches the tank. |
+| Light the furnace this long before a cheaper window | 60 min | 0–240, 15 steps | How far ahead of today's first cheaper window the recommended lighting window opens: a batch boiler spends roughly half an hour to an hour going from kindling to a full burn with its water hot enough for the load valve to charge the tank. The window closes as the cheaper window opens, and never opens before now. |
 | Heating circulation pump switch | none | `switch` / `input_boolean` | Paused only in slots that are provably idle and warm — it always runs when heat is planned, when it is freezing outside, or when any room is near its comfort floor. |
 
 The four fuel-price fields and the external-heat detection group render only
@@ -709,6 +710,12 @@ while **Wood furnace** is on. The
 on, a wood-tank probe is set, external-heat detection or the DHW wood coil
 is on, type and packing are set, the billed price is greater than 0, and
 efficiency is between 10 and 95. A usable wood tank alone is not enough.
+While it is available it also carries today's cheaper windows — each run of
+planned heat-pump steps whose heat costs more than wood's, as `start` and
+`end` in the `cheaper_windows` attribute — and the recommended lighting
+window ahead of the first of them in `lighting_start` and `lighting_end`.
+Both are empty on a day with no cheaper window. The
+[wood notification blueprint](automations.md#blueprints) sends them to a phone.
 
 ### Building type and emitters
 

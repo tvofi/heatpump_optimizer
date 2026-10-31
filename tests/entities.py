@@ -6925,9 +6925,16 @@ R.check(
     _wf_ready_entity.available is True,
 )
 R.check(
-    "cheaper attributes are sek_per_kwh and cheaper_hour_count",
+    "cheaper attributes are sek_per_kwh, cheaper_hour_count and the "
+    "windows, empty while the view carries none",
     _wf_ready_entity.extra_state_attributes
-    == {"sek_per_kwh": 0.6, "cheaper_hour_count": 1},
+    == {
+        "sek_per_kwh": 0.6,
+        "cheaper_hour_count": 1,
+        "cheaper_windows": [],
+        "lighting_start": None,
+        "lighting_end": None,
+    },
 )
 
 # Mold Floor Breach (#1495). The floor is the one the solve enforces -- the
@@ -12539,7 +12546,8 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
     }),
     "VentilationBinarySensor": frozenset({"evidence"}),
     "WoodCheaperBinarySensor": frozenset({
-        "cheaper_hour_count", "sek_per_kwh"
+        "cheaper_hour_count", "cheaper_windows", "lighting_end",
+        "lighting_start", "sek_per_kwh"
     }),
     "WoodBurnAdvisorSensor": frozenset({"action", "reason", "when"}),
 }
