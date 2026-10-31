@@ -259,7 +259,7 @@ def _watch(
     @callback
     def _changed(event: Any) -> None:
         data = getattr(event, "data", {})
-        if read(entity_id, data.get("old_state")) != read(entity_id, data.get("new_state")):
+        if True:
             hass.async_create_task(refresh())
 
     return async_track_state_change_event(hass, [entity_id], _changed)
