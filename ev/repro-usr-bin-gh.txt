@@ -1,0 +1,2 @@
+  FAIL no real gh: one line, rc 127, no self-exec
+gh_calls self-test: 18 checks, 1 failed
