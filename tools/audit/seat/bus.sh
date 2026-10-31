@@ -983,7 +983,8 @@ bus-nonce: $N1b" ] && [ "$(grep -c " $N1b " "$W/state/dispatched")" = 2 ] \
   expect "P348: a reviewed head with no verdict at all carries nothing, so it mints" $?
   n=$(grep -c . "$W/state/dispatched")
   out=$(HPO_BUS_REMOTE=$W/missing.git seat dispatch 31 "$hm" cmsg_C6 --reviewed-head "$h1"); rc=$?
-  [ $rc != 0 ] && echo "$out" | grep -q "cannot read verdict/31" && ! echo "$out" | grep -q '^bus-nonce: ' \
+  [ $rc != 0 ] && echo "$out" | grep -qF "cannot read verdict/31 to learn what the review at $h1 decided" \
+    && ! echo "$out" | grep -q '^bus-nonce: ' \
     && [ "$(grep -c . "$W/state/dispatched")" = "$n" ]
   expect "P348: an unreadable verdict/<pr> over a clean range refuses, and records nothing" $?
   out=$(seat dispatch 31 "$h2" cmsg_C2 --reviewed-head "$h1"); rc=$?
