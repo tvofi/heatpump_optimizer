@@ -1,7 +1,0 @@
-  ok   no follow-up after the configured time (default 21:00), and one when the time is set later
-PROBE restart: from_state without cheaper_windows (unavailable), 10:00, windows unchanged -> sent = True
-PROBE from_state None, 10:00 -> sent = True
-PROBE extension past announced end with a gap (18:15-20:00 after 17-18), 10:00 -> sent = True
-PROBE window extended 20:00->23:00 (overlaps), 10:00 -> sent = True
-
-ALL 29 wood-advisor checks PASSED
