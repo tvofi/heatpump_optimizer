@@ -10,8 +10,9 @@
   cloud reviewer, whose dispatcher's copy is a path on another machine,
   renders its own from its dispatch prompt. Refusal: carry-audit, a `## Head`
   not naming the head, a `tests/structure.py` refusal at the head merged with
-  main, an unanswered concluded red, a required context concluded failure, a
-  host path, a hot file shared with an open pull request holding an
+  main, an unanswered concluded red, a required context concluded failure
+  (unless `merge_train.py classify --pr` answers APPROVAL-OWED, printed as the
+  `approval-owed` advisory instead; P345), a host path, a hot file shared with an open pull request holding an
   unboarded merge verdict, or a `fix/<t>` head lacking its `handoff/<t>` tip
   (`handoff-not-applied`); a pending check never refuses. `handoff`, run by
   `body_push.sh` before a PR body is pushed, refuses the structure and

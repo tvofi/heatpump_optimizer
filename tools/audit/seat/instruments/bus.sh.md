@@ -25,7 +25,9 @@
   and says why in `review-packet: unavailable -- <reason>`. A head is
   dispatched only when `merge_train.py classify` reads it reviewable: RED (a
   required context's latest run concluded failure) or an unreadable answer
-  refuses and records nothing; GREEN and WAIT dispatch (`$HPO_BUS_CLASSIFY`
+  refuses and records nothing; GREEN and WAIT dispatch, and so does
+  APPROVAL-OWED (`classify --pr`, rc 4: the red is only a budget raise's
+  approval, which follows the review; its line is printed) (`$HPO_BUS_CLASSIFY`
   replaces the command in self-tests).
 
 The design steps (decision 0014) write the same append-only way:
