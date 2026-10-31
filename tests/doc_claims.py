@@ -1957,7 +1957,11 @@ def entity_census(extra: dict) -> list[dict]:
             out.append({
                 "platform": str(plat),
                 "name": names.get(str(plat), {}).get(key, {}).get("name", f"<{plat}:{key}>"),
-                "enabled": getattr(e, "entity_registry_enabled_default", True),
+                # The stub has no entity_registry_enabled_default property, so a class declaring only
+                # _attr_entity_registry_enabled_default read as enabled here; upstream's property returns that
+                # attribute. Same two-path rule as tests/entities.py registry_default.
+                "enabled": bool(getattr(e, "entity_registry_enabled_default",
+                                        getattr(e, "_attr_entity_registry_enabled_default", True))),
                 "options": set(getattr(e, "_attr_options", None) or ()) - {"unknown"},
             })
     return out
@@ -4048,7 +4052,7 @@ def surface_sources(services: dict | None = None) -> list[dict]:
         add("setup_step", step, spec.get("title", step))
         defaults = asyncio.run(rendered(step))
         for key, label in fields(spec).items():
-            add("setup_field", f"{step}.{key}", label, defaults.get(key, _NONE))
+            add("setup_field", f"{step}.{key}", label, defaults.get(key, _NONE), spec.get("title", step))
     titles, _ = options_field_pages()
     for page in config_flow._OPTION_PAGES:
         add("option_page", page.step, titles.get(page.step, page.label))
@@ -4084,7 +4088,8 @@ def default_agrees(value: object, cell: str) -> bool:
     """A Default cell states the shipped default: the number, the on/off, the choice, or "none" for an empty one. A
     computed default, or a field with none, needs a non-empty cell naming no number (design section 4, item 1)."""
     cell = _COMMENT.sub("", cell).strip()
-    flat = re.sub(r"[`*]", "", cell).replace("−", "-").replace(" ", " ").lower()
+    flat = re.sub(r"[`*]", "", cell).replace("\u2212", "-").lower()
+    flat = re.sub(r"(?<=\d)[ \u00a0\u202f](?=\d{3}\b)", "", flat)
     if not flat:
         return False
     if value in (_COMPUTED, _NONE):
@@ -4096,7 +4101,7 @@ def default_agrees(value: object, cell: str) -> bool:
         m = re.search(r"-?\d+(?:[.,]\d+)?", flat)
         return m is not None and abs(float(m.group(0).replace(",", ".")) - float(value)) < 1e-9
     if value == "":
-        return bool(re.match(r"(?:none|empty|not set|—|-)(?:\W|$)", flat))
+        return bool(re.match(r"\(?(?:none|empty|not set|\u2014|-)(?:\W|$)", flat))
     wanted = {value.lower(), value.lower().replace("_", " ")} | {s.lower() for s in _selector_labels(value)}
     return any(w in flat for w in wanted)
 
@@ -4117,7 +4122,9 @@ def _home(row: dict, pages: dict[str, str]) -> tuple[bool, str]:
         for head, hdr, cells in _table_rows(body):
             first = _label(cells[0]) if cls in ("option", "setup_field") else cells[0].strip("* ")
             if cls == "event" and want in cells[0] or first == want:
-                if cls == "option" and _plain(head) != _plain(row["under"]):
+                # an option's row sits under its page's heading; a setup field's under a heading naming its screen
+                if cls == "option" and _plain(head) != _plain(row["under"]) or (
+                        cls == "setup_field" and f" {_plain(row['under'])} " not in f" {_plain(head)} "):
                     continue
                 if cls == "entity":
                     off = "disabled by default" in " ".join(cells).lower()
