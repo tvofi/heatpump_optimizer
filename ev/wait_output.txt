@@ -1,0 +1,35 @@
+baseline | tests/features.py: rc=0 ['  return _methods._mean(a, axis=axis, dtype=dtype,'] []
+baseline | tests/guard_pins.py: rc=0 ['ALL 61 GUARD PIN CHECKS PASSED'] []
+baseline | tests/wood_advisor.py: rc=0 ['ALL 32 wood-advisor checks PASSED'] []
+GUARD_OFF if True | tests/features.py: rc=0 ['  return _methods._mean(a, axis=axis, dtype=dtype,'] []
+GUARD_OFF if True | tests/guard_pins.py: rc=0 ['ALL 61 GUARD PIN CHECKS PASSED'] []
+GUARD_OFF if True | tests/wood_advisor.py: rc=0 ['ALL 32 wood-advisor checks PASSED'] []
+BOOLOP or | tests/features.py: rc=0 ['  return _methods._mean(a, axis=axis, dtype=dtype,'] []
+BOOLOP or | tests/guard_pins.py: rc=0 ['ALL 61 GUARD PIN CHECKS PASSED'] []
+BOOLOP or | tests/wood_advisor.py: rc=0 ['ALL 32 wood-advisor checks PASSED'] []
+RESTORED clean
+rc=3 07:05:55
+rc=3 07:07:27
+rc=3 07:08:59
+rc=3 07:10:31
+rc=3 07:12:03
+rc=3 07:13:35
+rc=3 07:15:06
+rc=3 07:16:38
+rc=3 07:18:10
+rc=3 07:19:41
+rc=3 07:21:14
+rc=3 07:22:45
+rc=3 07:24:17
+rc=3 07:25:49
+rc=3 07:27:21
+rc=3 07:28:52
+rc=3 07:30:24
+rc=3 07:31:56
+rc=3 07:33:28
+rc=3 07:34:59
+rc=3 07:36:31
+rc=0 07:38:03
+GREEN c3801fd6f93fdb2ce1a6c740973f15f9365ace7f pending: none red: none
+
+[exited with code 0]

@@ -1,0 +1,10 @@
+baseline | tests/features.py: rc=0 ['  return _methods._mean(a, axis=axis, dtype=dtype,'] []
+baseline | tests/guard_pins.py: rc=0 ['ALL 61 GUARD PIN CHECKS PASSED'] []
+baseline | tests/wood_advisor.py: rc=0 ['ALL 32 wood-advisor checks PASSED'] []
+GUARD_OFF if True | tests/features.py: rc=0 ['  return _methods._mean(a, axis=axis, dtype=dtype,'] []
+GUARD_OFF if True | tests/guard_pins.py: rc=0 ['ALL 61 GUARD PIN CHECKS PASSED'] []
+GUARD_OFF if True | tests/wood_advisor.py: rc=0 ['ALL 32 wood-advisor checks PASSED'] []
+BOOLOP or | tests/features.py: rc=0 ['  return _methods._mean(a, axis=axis, dtype=dtype,'] []
+BOOLOP or | tests/guard_pins.py: rc=0 ['ALL 61 GUARD PIN CHECKS PASSED'] []
+BOOLOP or | tests/wood_advisor.py: rc=0 ['ALL 32 wood-advisor checks PASSED'] []
+RESTORED clean
