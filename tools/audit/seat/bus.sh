@@ -464,11 +464,14 @@ dispatch() { # pr head reviewer [--reviewed-head <sha>] [--nonce N] [--model M] 
   # reviewable. merge_train.py's `classify`, the one owner of that state, answers
   # RED (rc 1) and the dispatch refuses, naming the contexts; GREEN (0) and WAIT
   # (3, a run still in flight) dispatch. Unreadable (2: the ruleset or the check
-  # runs) refuses too, never read as green. HPO_BUS_CLASSIFY replaces the
-  # command (the self-tests' stub).
-  cls=$(${HPO_BUS_CLASSIFY:-python3 "$ROOT/tools/audit/seat/merge_train.py"} classify "$h" --repo "$REPO" 2>&1); rc=$?
+  # runs) refuses too, never read as green. APPROVAL-OWED (4, with --pr: the red is
+  # only budget-raise-gate over a raise whose owner approval follows this review,
+  # merge_train.approval_owed; P345) dispatches and prints its line. HPO_BUS_CLASSIFY
+  # replaces the command (the self-tests' stub).
+  cls=$(${HPO_BUS_CLASSIFY:-python3 "$ROOT/tools/audit/seat/merge_train.py"} classify "$h" --repo "$REPO" --pr "$pr" 2>&1); rc=$?
   case $rc in
     0|3) ;;
+    4) printf 'bus: %s\n' "$(printf '%s\n' "$cls" | grep '^APPROVAL-OWED ' | tail -n 1)" >&2 ;;
     1) die "dispatch: #$pr's head $h is not reviewable: a required context's latest run there concluded failure ($(printf '%s\n' "$cls" | sed -n 's/^RED .* red: //p')) -- repair the head, then dispatch" ;;
     *) die "dispatch: cannot classify #$pr's head $h, so no reviewer is dispatched (an unread head is never green): $(printf '%s\n' "$cls" | grep -v '^[[:space:]]*$' | tail -n 1)" ;;
   esac
@@ -790,6 +793,7 @@ case ${BUS_CLASSIFY_RC:-0} in
   0) echo "GREEN $2 pending: none red: none" ;;
   1) echo "RED $2 pending: none red: tests / fast gate" ;;
   3) echo "WAIT $2 pending: gate red: none" ;;
+  4) echo "APPROVAL-OWED $2 1 budget raise(s), first tests/structure_budgets.json: m: 3 -> 4: a raise is the owner's (0013): planted" ;;
   *) echo "REFUSE proof: could not read main-protect-checks's required contexts; no proof is judged against a guessed list" ;;
 esac
 exit "${BUS_CLASSIFY_RC:-0}"
@@ -1441,7 +1445,7 @@ B
   n=$(grep -c . "$W/state/dispatched")
   out=$(BUS_CLASSIFY_RC=1 run dispatch 7 "$h1" cmsg_K); rc=$?
   [ $rc != 0 ] && echo "$out" | grep -q "is not reviewable: .*(tests / fast gate)" \
-    && [ "$(grep -c . "$W/state/dispatched")" = "$n" ] && tail -n 1 "$W/classifies" | grep -qx "classify|$h1|--repo|o/r|"
+    && [ "$(grep -c . "$W/state/dispatched")" = "$n" ] && tail -n 1 "$W/classifies" | grep -qx "classify|$h1|--repo|o/r|--pr|7|"
   expect "a head whose required context concluded failure (classify RED) is not dispatched, and nothing is recorded" $?
   out=$(BUS_CLASSIFY_RC=0 run dispatch 7 "$h1" cmsg_K); rc=$?
   [ $rc = 0 ] && echo "$out" | grep -q '^bus-nonce: ' && [ "$(grep -c . "$W/state/dispatched")" = "$((n + 1))" ]
@@ -1449,9 +1453,13 @@ B
   out=$(BUS_CLASSIFY_RC=3 run dispatch 7 "$h1" cmsg_K); rc=$?
   [ $rc = 0 ] && [ "$(grep -c . "$W/state/dispatched")" = "$((n + 2))" ]
   expect "a head still in flight (classify WAIT) is reviewable and dispatches" $?
+  out=$(BUS_CLASSIFY_RC=4 run dispatch 7 "$h1" cmsg_K 2>&1); rc=$?
+  [ $rc = 0 ] && echo "$out" | grep -q '^bus: APPROVAL-OWED '"$h1"' 1 budget raise' \
+    && echo "$out" | grep -q '^bus-nonce: ' && [ "$(grep -c . "$W/state/dispatched")" = "$((n + 3))" ]
+  expect "P345: a raise whose only red is its owed approval (classify --pr APPROVAL-OWED) dispatches, records, and prints the line" $?
   out=$(BUS_CLASSIFY_RC=2 run dispatch 7 "$h1" cmsg_K); rc=$?
   [ $rc != 0 ] && echo "$out" | grep -q "cannot classify .*never green): REFUSE proof" \
-    && [ "$(grep -c . "$W/state/dispatched")" = "$((n + 2))" ]
+    && [ "$(grep -c . "$W/state/dispatched")" = "$((n + 3))" ]
   expect "an unreadable classification refuses the dispatch, never green" $?
   out=$(run dispatch 7 "$h1" cmsg_P --harness a --harness-file b); rc=$?
   [ $rc != 0 ] && echo "$out" | grep -q "takes one path, once"; expect "dispatch takes one finder's harness, never two" $?
