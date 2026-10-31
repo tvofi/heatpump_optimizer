@@ -3940,6 +3940,7 @@
    "dev/audit/harnesses/r10_fly_nightly_hb.py",
    "dev/audit/harnesses/r10_fly_orphans_landed.sh",
    "dev/audit/harnesses/r10_fly_raise_reviewable.py",
+   "dev/audit/harnesses/r10_fly_raise_reviewable_carry.sh",
    "dev/audit/harnesses/r10_ftol_cell_search.py",
    "dev/audit/harnesses/r10_gate_defer_race.py",
    "dev/audit/harnesses/r10_gate_priority_base.py",
