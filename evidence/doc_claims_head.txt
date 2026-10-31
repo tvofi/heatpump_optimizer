@@ -76,7 +76,7 @@
   ok   no reader doc claims the entity prefix follows the entry name
 
 -- README requirements vs manifest.json (#1537)
-/home/user/wt/tests/doc_claims.py:128: DeprecationWarning: 'maxsplit' is passed as positional argument
+/root/wt/tests/doc_claims.py:128: DeprecationWarning: 'maxsplit' is passed as positional argument
   return [re.split(r"[<>=!~\[]", r, 1)[0].strip() for r in manifest["requirements"]]
   ok   manifest.json still pins requirements (anchor)
   ok   README still has a Requirements section (anchor)
