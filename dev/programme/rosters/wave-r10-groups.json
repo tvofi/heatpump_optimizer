@@ -13264,7 +13264,9 @@
     "custom_components/heatpump_optimizer/coordinator.py",
     "tests/features.py"
    ],
-   "carry": [],
+   "carry": [
+    "STRANDED CARRY 55 (carry-strand audit, orchestrator s9, 2026-10-31)\n\nSource: group R10-PARAMS-OWNER, index 7; triage id: none; roster ref origin/handoff/audit-r10-roster abb47a06cd190e49c9d9da264ea3fab2a71f890d.\nOwner-ordered: no.\n\nWhy stranded: #2674 probe seat never scheduled; #2674 open and listed only by closed groups (ISSUE-STRANDED).\n\nFold into: R10-LEARNED-STORE-LOAD (live). Its brief owns the learned-store load/restore lifecycle seam that the seven #2674 leads probe.\n\nOriginal text, verbatim:\n#2674 (ls-r2: seven unprobed store-load leads) is scheduled as a probe-role seat on this group. Recipe with null control is in the issue; first probe whether each writer runs in the first refresh.\n\nCarry: R10-LEARNED-STORE-LOAD"
+   ],
    "resume": {
     "stage": "not-started",
     "branch": "handoff/r10-learned-store-load",
