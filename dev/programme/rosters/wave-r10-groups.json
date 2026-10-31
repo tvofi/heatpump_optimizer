@@ -13136,7 +13136,9 @@
     "R10-FLY-MUTANT-RESTORE",
     "R10-996-RUNNER-CLAIMS"
    ],
-   "carry": [],
+   "carry": [
+    "Design review carry C1 (design-verdict/r10-audit-coverage 5b77e98dd): Make coverage the default in check_scopes.py's existing invocation (rc != 0 on an unclassified path), not a new flag. Then `.claude/workflows/audit-find.js` (Prepare step 7, line 215) and the `check-wave-script.mjs:1034,1037` pins need no edit, and audit-find.js can leave `files`. If a flag is chosen anyway, add check-wave-script.mjs to `files` and update both pins. The docstring at check_scopes.py:10 and `dev/audit/README.md:131` change with it."
+   ],
    "resume": {
     "stage": "not-started",
     "branch": null,
