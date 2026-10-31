@@ -290,6 +290,13 @@ MUTANTS = [
      '[t, t[:-len("-pr")]] if t.endswith("-pr") else [t]', "[t]"),
     ("review_packet-5", "review_packet.py",
      '    out += [f"hot-file: {w}" for w in hot]\n', ""),
+    # R10-ORCH-REVIEW-PACKET carries 10/13 (#2962's red paths), 11 (head-note repair), 9 (closing self-audit).
+    ("review_packet-6", "review_packet.py", '"--paths-file", str(pf), ', ""),
+    ("review_packet-7", "review_packet.py", '"--existing-file", str(ef),', '"--base", base,'),
+    ("review_packet-8", "review_packet.py", '"--diff-filter=a", ', ""),
+    ("review_packet-9", "review_packet.py", 'if rc and re.search(r"ERROR', 'if False and rc and re.search(r"ERROR'),
+    ("review_packet-10", "review_packet.py", '    if not branch:\n        return ""\n', '    if False:\n        return ""\n'),
+    ("review_packet-11", "review_packet.py", '"## Before you return the verdict (P275)",', '"## Close",'),
     ("body_push-1", "tools/audit/seat/body_push.sh",
      '  if [ "$prc" = 1 ]; then\n    echo "body_push: the review packet refuses',
      '  if false; then\n    echo "body_push: the review packet refuses'),

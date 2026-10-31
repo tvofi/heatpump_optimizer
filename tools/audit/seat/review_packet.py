@@ -204,6 +204,16 @@ def handoff_topics(branch: str) -> list[str]:
     return [x for x in ([t, t[:-len("-pr")]] if t.endswith("-pr") else [t]) if x]
 
 
+def head_note_repair(head: str, branch: str | None) -> str:
+    """What repairs a `head-note` refusal (P213): the head the body must name and
+    the push that names it, one line. No branch read, no command: a guessed
+    branch would send a fixer to push the wrong one."""
+    if not branch:
+        return ""
+    return (f" -- repair: the body's ## Head must name {head}; "
+            f"`tools/audit/seat/update_pr.sh {shlex.quote(branch)} - <body-file>` (PR branch {branch})")
+
+
 def handoff_not_applied(branch: str, head: str, tip_of, is_ancestor) -> str | None:
     """Why `head` lacks its own handoff (P229), or None. `tip_of(topic)` is
     `handoff/<topic>`'s tip on origin or None; the first topic with a ref
@@ -373,6 +383,10 @@ def handoff_refusals(structure: str | None, hot: list[str], unnamed: list[int]) 
 
 
 # ------------------------------------------------------------------- the packet
+SELF_AUDIT = ("python3 -I tools/audit/carry_audit.py check --body <PR body file> "
+              "--comments <file holding [{\"id\": 0, \"body\": <verdict.md text>}]>")
+
+
 def build(facts: dict) -> tuple[list[str], list[str], str]:
     """(refusals, advisories, packet text) from gathered facts; pure."""
     head, body = facts["head"], facts["body"]
@@ -381,7 +395,8 @@ def build(facts: dict) -> tuple[list[str], list[str], str]:
     if facts["carry_rc"]:
         refusals.append("carry-audit: carry_audit.py check returned 1 on the body")
     if not head_note_ok(body, head):
-        refusals.append(f"head-note: ## Head does not name the dispatched head {head}")
+        refusals.append(f"head-note: ## Head does not name the dispatched head {head}"
+                        + head_note_repair(head, facts.get("branch")))
     refusals += handoff_refusals(facts["structure"], facts["hot"], [])
     for n in facts["red_unanswered"]:
         refusals.append(f"red-unanswered: concluded red check `{n}` is not named in ## Red checks")
@@ -405,6 +420,9 @@ def build(facts: dict) -> tuple[list[str], list[str], str]:
         "### at the base", facts["harness_base"], "### at the head", facts["harness_head"], "",
         "## Mutation-ledger diff", facts["ledger_diff"] or "none", "",
         "## Three-dot diff", facts["diff"],
+        "## Before you return the verdict (P275)",
+        f"Run `{SELF_AUDIT}`. Give every reported item its own `Carry: <GROUP> | #<issue> | O<n> | dismissed: <reason>`;",
+        "an evidence line flagged by its wording takes `Carry: dismissed: evidence, not a finding`. Return the verdict only at rc 0.",
     ]
     return refusals, advisories, "\n".join(parts) + "\n"
 
@@ -417,7 +435,8 @@ def gather(a) -> dict:
                    if (a.harness or a.harness_file) else ("none named", b""))
     pr = gh(f"repos/{REPO}/pulls/{a.pr}") or {}
     body = pr.get("body") or ""
-    handoff = handoff_not_applied((pr.get("head") or {}).get("ref") or "", head, origin_handoff_tip, is_ancestor)
+    branch = (pr.get("head") or {}).get("ref") or ""
+    handoff = handoff_not_applied(branch, head, origin_handoff_tip, is_ancestor)
     runs = gh(f"repos/{REPO}/commits/{head}/check-runs?per_page=100").get("check_runs", [])
     gate = gate_digest(runs)
     crc, cout = tool([sys.executable, "-I", "tools/audit/carry_audit.py", "check", "--body", "{BODY}"], body)
@@ -428,7 +447,7 @@ def gather(a) -> dict:
     host += ref_privacy.content_refusals(ref_privacy.added_lines(base, head, repo()), ident)
     open_prs, boarded = hot_prs(touched)
     return {
-        "pr": a.pr, "head": head, "base": base, "body": body, "gate": gate,
+        "pr": a.pr, "head": head, "base": base, "body": body, "gate": gate, "branch": branch,
         "carry_rc": crc, "carry_out": cout, "figure_out": fout,
         "structure": None if a.no_structure else structure_at_merge(main, head),
         "red_unanswered": red_unanswered, "host": host, "handoff": handoff,
@@ -526,6 +545,9 @@ def _self_test() -> int:
     r0, _, t0 = build(clean)
     check("null control: a clean head dispatches (no refusal)", r0 == [])
     check("the packet is byte-identical on a second render of the same head", build(dict(clean))[2] == t0)
+    check("the packet closes on the carry self-audit command (P275)",
+          t0.rstrip().splitlines()[-3].startswith("## Before you return the verdict") and SELF_AUDIT in t0
+          and "--comments" in SELF_AUDIT)
     check("the packet carries the head's harness output and names the head",
           "RESULT 0" in t0 and packet_head(t0) == H)
     check("check names a stale packet: another head does not match", packet_head(t0) != B)
@@ -536,6 +558,11 @@ def _self_test() -> int:
 
     check("carry-audit: an unrouted body refuses and names it", refused("carry-audit", carry_rc=1))
     check("head-note: a ## Head naming another head refuses", refused("head-note", body=f"## Head\n{B}\n"))
+    hn = build({**clean, "body": f"## Head\n{B}\n", "branch": "fix/g"})[0][0]
+    check("head-note repair: the refusal names the head and the update_pr.sh push for the PR's branch",
+          H in hn and "update_pr.sh fix/g - <body-file>" in hn)
+    check("head-note repair null: a branch that cannot be read prints today's refusal, no command",
+          build({**clean, "body": f"## Head\n{B}\n"})[0][0] == f"head-note: ## Head does not name the dispatched head {H}")
     check("structure: a structure refusal at the merge refuses", refused("structure", structure="max_class_loc"))
     check("red-unanswered: an unanswered concluded red refuses", refused("red-unanswered", red_unanswered=["tests / fast"]))
     check("host-path: a host path refuses", refused("host-path", host=["home-directory in the body"]))
@@ -562,6 +589,27 @@ def _self_test() -> int:
     check("write-on-refusal: a host path writes nothing", not writes_packet(["host-path: a home directory"]))
     check("write-on-refusal: one host path beside other refusals still writes nothing",
           not writes_packet(["required-red: gate", "host-path: a home directory"]))
+
+    # P275: #2914's shape -- a verdict note this PR does not settle, with no `Carry:`.
+    note = (f"Fix review: merge {H}\n\n## Non-blocking notes\n\n- V149 (FLOW-BOARD): not blocking. "
+            "Its ruling is a DEFER in s6-batch47.md and this PR does not settle it.\n")
+    audit = lambda v: tool([sys.executable, "-I", "tools/audit/carry_audit.py", "check", "--body", "{BODY}", "--comments", cf(v)], "## Head\nx\n")[0]  # noqa: E731
+    cfs: list[str] = []
+
+    def cf(v: str) -> str:
+        f = tempfile.NamedTemporaryFile("w", suffix=".json", delete=False)
+        json.dump([{"id": 0, "body": v}], f)
+        f.close()
+        cfs.append(f.name)
+        return f.name
+    try:
+        check("self-audit: a verdict note with no Carry: gives rc 1", audit(note) == 1)
+        check("self-audit: the same note with its own `Carry: dismissed:` gives rc 0",
+              audit(note.rstrip() + " Carry: dismissed: ruled in s6-batch47, not this PR.\n") == 0)
+        check("self-audit null: a verdict with no unrouted note gives rc 0", audit(f"Fix review: merge {H}\n\nNo notes.\n") == 0)
+    finally:
+        for f in cfs:
+            os.unlink(f)
 
     # brief-carries (P256): every index on the group's roster entry is named.
     six = "".join(f"Carry {i}: answered.\n" for i in range(1, 6))
