@@ -1362,6 +1362,7 @@
    "blueprints/automation/economy_mode_on_price_peak.yaml",
    "blueprints/automation/notifications.yaml",
    "blueprints/automation/notify_on_manual_plan.yaml",
+   "blueprints/automation/notify_wood_cheaper_window.yaml",
    "custom_components/heatpump_optimizer/__init__.py",
    "custom_components/heatpump_optimizer/accuracy.py",
    "custom_components/heatpump_optimizer/away.py",
