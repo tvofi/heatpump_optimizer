@@ -1338,7 +1338,7 @@ def _self_test() -> int:
         r_["groups"][0]["carry"], r_["groups"][1]["carry"] = list(a_carry), list(b_carry)
         return Dests(r_, {300})
     lb = head + "## Forward-carry\n\n- The census misses the store seam. Carry: R10-A\n"
-    lid = [x["id"] for x in items(lb, False) if x["flagged"]][0]
+    lid = ([x["id"] for x in items(lb, False) if x["flagged"]] + [""])[0]  # a mutant flagging none fails, never crashes
     miss = landed(lb, dl())
     check("landed: a carry not in its group's brief or carries is missing (the #2558 pair, before)",
           [(m["group"], m["id"]) for m in miss] == [("R10-A", lid)])
