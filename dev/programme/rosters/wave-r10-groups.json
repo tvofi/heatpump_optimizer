@@ -12908,7 +12908,8 @@
    "findings": [],
    "carry": [
     "Carry from design/R10-USER-DOCS-FINAL be9f30ec9 (item udf-method, orchestrator s9 2026-10-31). Run the design's sections 2-4 as written:\n- the two-run python3 tests/doc_claims.py --surfaces diff, at the draft's merge commit and at your own base;\n- --markers showing 0 user-doc markers;\n- the claim table, re-opened only by symbol diff;\n- drift attributed to its group with git log.",
-    "Carry from design/R10-USER-DOCS-FINAL 576654cce (round 2, approved by design-verdict 5b54eb18c; item udf-method; it supersedes any round-1 text of the same item): Run sections 2\u20134 as written: - the keyed delta, `--surfaces --against draft.tsv`, with its three outputs: `LANDED` (document), `REMOVED` (delete or rewrite) and `CHANGED` (correct, and name the group); - `--markers --user` reading `0 user-doc marker(s), 0 due` with exit 0; - the claim table re-opened by symbol diff; - drift named by `git log`."
+    "Carry from design/R10-USER-DOCS-FINAL 576654cce (round 2, approved by design-verdict 5b54eb18c; item udf-method; it supersedes any round-1 text of the same item): Run sections 2\u20134 as written: - the keyed delta, `--surfaces --against draft.tsv`, with its three outputs: `LANDED` (document), `REMOVED` (delete or rewrite) and `CHANGED` (correct, and name the group); - `--markers --user` reading `0 user-doc marker(s), 0 due` with exit 0; - the claim table re-opened by symbol diff; - drift named by `git log`.",
+    "Carry from design/R10-USER-DOCS-FINAL 576654cce (round 2, approved by design-verdict 5b54eb18c; item udf-surfaces-cwd; it supersedes any round-1 text of the same item): Run each `--surfaces` with cwd set to its own worktree. Never run `python3 $DRAFT_WT/tests/doc_claims.py` from the base: `tests/harness.py` puts relative `tests` and `custom_components` first on `sys.path`, so it would read the base's package."
    ],
    "architect_note": "",
    "after": [
