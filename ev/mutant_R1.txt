@@ -1,0 +1,5 @@
+mutant R1 at 958b4af8eee134728986d92d2220f1dfadbab255
+ALL 134 DST / QUARTER-GRID CHECKS PASSED
+  FAIL the floor repair's top-up and its room under the ceiling are the draws that deliver the heat at a derate: the derated tank walks the same temperatures as the zero-derate one, at higher draws; null control: with no derate the plain quotients  [{0.0: ([0.0, 0.0, 0.0, 1.355279], [45.0, 44.85, 44.7009, 44.552695, 52.0]), 0.2: ([0.0, 0.0, 0.0, 1.455279], [45.0, 44.85, 44.7009, 44.552695, 52.374734])} room {0.0: ([1.867275, 0.0, 2.229927, 0.0], [45.0, 55.211268, 55.0, 60.0, 59.76]), 0.2: ([1.961586, 0.0, 2.397441, 0.0], [45.0, 55.211268, 55.0, 60.0, 59.76])}]
+1 of 4637 FEATURE CHECKS FAILED
+rc=1

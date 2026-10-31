@@ -1,0 +1,6 @@
+ALL 4637 FEATURE CHECKS PASSED
+rc=0
+
+real	11m30.676s
+user	10m48.413s
+sys	0m6.626s
