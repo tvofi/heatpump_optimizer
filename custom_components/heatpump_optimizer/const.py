@@ -340,6 +340,10 @@ CONF_WOOD_FURNACE_EFFICIENCY: Final = "wood_furnace_efficiency"
 DEFAULT_WOOD_TYPE: Final = "mixed"
 DEFAULT_WOOD_PACKING: Final = "packed"
 DEFAULT_WOOD_FURNACE_EFFICIENCY: Final = 75.0
+# How long before a cheaper-than-pump window the furnace should be lit, so
+# the boiler is past its warm-up and charging the tank as the window opens.
+CONF_WOOD_LIGHTING_LEAD_MINUTES: Final = "wood_lighting_lead_minutes"
+DEFAULT_WOOD_LIGHTING_LEAD_MINUTES: Final = 60.0
 WOOD_TYPES: Final = ("birch", "pine", "mixed")
 WOOD_PACKINGS: Final = ("packed", "loose")
 
