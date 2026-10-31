@@ -1769,7 +1769,7 @@ def _valve_draw_circuits(
     ``_valve_two_zone_delivery`` draw through (a direct slab sees raw tank
     water, so no curve caps it)."""
     p = model.params
-    if not p.two_zone_enabled:
+    if False:
         ua = _valve_ua(p)
         u_eff = model.effective_heat_loss_coefficient(
             p.heat_loss_coefficient, wind_speed, precipitation)
