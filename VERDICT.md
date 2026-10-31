@@ -1,29 +1,22 @@
-Fix review: blocked a3b3a42cab6ef5a43a691738376be7648d079b5b carry-missing: the group's roster carry (re-homed P267/P268 CI-priority tier module, config file and train pause/resume, appended 9e7ba7aae) is neither built nor dispositioned; the body routes it to R10-FLOW-WIP, a consumer after-edged on it
+Fix review: merge 4522a316c00e4c3394a8f22cad446d9543979e42
 
-bus-nonce: 4fb0a9e39ae581256439a757dd6f30ef
+bus-nonce: 52f1c57719bb7a725059e65554e2621b
 
-Round 1. Reviewed from a detached worktree at a3b3a42cab6ef5a43a691738376be7648d079b5b (base cf4f6b7a6, origin/main merge base; roles dir unchanged against main).
+## Verdict
 
-## Block
-
-The roster at handoff/audit-r10-roster faf2d1c02 gives R10-FLY-CANCEL-SWEEP one carry (ev/roster-carry.txt), appended by roster_edit at 9e7ba7aae (2026-10-30 13:07 +0100, before this PR opened at 17:00Z): "This group now owns building the CI-priority tier module and its config file ... plus the merge train's pause/resume of the lowest-priority PR's CI ... Consumers R10-FLOW-WIP, R10-FLOW-TOOLKIT-MODEL and R10-ORCH-LEDGER stay after-edged on it. Carry: R10-FLY-CANCEL-SWEEP". The body's Forward-carry says the reader and config "are not on main (P267/P268 group)" and carries them to R10-FLOW-WIP, but this group is now the P267/P268 group, and R10-FLOW-WIP is one of the consumers waiting on it, so the work lands nowhere. The PR must either build it, or carry an explicit disposition the orchestrator accepts (re-home to a named builder group with a roster_edit, or a recorded Not-carried under the owner's ruling). Brief item (6)'s "does not wait on that group" governs the sweep's dependency on the reader, not the ownership the later carry assigned.
+Round 4, delta b63829d1..head only. The authored delta a44b8c7af is one line of tools/audit/seat/instruments/cancel_superseded.py.md (1 insertion, 1 deletion); the rest of b63829d1..4522a316c00e4c3394a8f22cad446d9543979e42 is two merges of main (3010, 3012 and later main). The instrument code is unchanged.
 
 ## Findings
 
-- Mutation coverage is one mutant (EVENTS widened), which the group brief asked for, but several sweep arms the dispatch names are unpinned: each of these mutants leaves the self-test at 30 checks, 0 failed (ev/mutants.txt): removing the unreadable-PR-list guard alone (prs None becomes [] and every run reports as a ghost, `cancelled 0`, which is exactly the zero the dispatch forbids); removing the unreadable-runs guard alone; removing the unreadable-commit guard; replacing `bot_heads.add(...)` with `pass` (the end-to-end bot-author detection in `sweep()`; only `sweep_plan` with a pre-filled set is tested, and the stub always answers hpo-author); replacing the live-head id bound with `sys.maxsize`; dropping the ACTIVE status filter; dropping the run-side fork (`head_repository`) filter; dropping the main/event skip in `sweep_plan` (redundant with `candidates()` and the ghost rule, so the `skipped` count is unpinned). Pin each with one self-test arm. Behaviour at this head is correct for the unreadable-PR list (ev/unreadable-prs-probe.txt prints `CANCEL-SWEEP: unreadable answer; cancelling nothing`), it is only unguarded. Carry: R10-FLY-CANCEL-SWEEP
-- The API cost per sweep is not stated in the body. The code issues 1 PR listing + 3 run listings + one commit read per open PR with something to cancel + one POST per cancel, unbounded above by the open-PR count; the docstring states only the listings. State the bound (in the body and the instrument page). Carry: R10-FLY-CANCEL-SWEEP
-- Both listings read one page of per_page=100 and never paginate, so above 100 open PRs, or 100 active runs in one status, the sweep silently sees a truncated set (a missing PR turns its branch's runs into ghosts: safe, but the CANCEL-SWEEP counts then misreport). Also only queued/in_progress/waiting are listed though ACTIVE includes pending and requested (matches brief item (1), so runs in those two states are never swept). Paginate or print a truncation line. Carry: R10-FLY-CANCEL-SWEEP
-- The instrument page says "Refusal: none; an unreadable answer cancels nothing and exits 0", while the dispatch asks that an unreadable PR list be a refusal. The behaviour prints a distinct UNREADABLE line rather than a zero count, which meets "never zero"; whether exit 0 is acceptable is the brief's own item (3), so this is dismissed. Carry: dismissed: brief item (3) prescribes exit 0, and the line is distinct from a zero count
+- `ci_predict.wiring_preds` keeps only UNWIRED lines, so a MISMATCH, UNINDEXED, DUPLICATE or MISSING line from `selftest_wiring.py --check` printed "no instrument red predicted" in prepr. Reproduced in the PR body's account; not this PR's to fix. Carry: R10-FLY-CIPREDICT-GAPS
+- Part 2 of this group (CI-priority tier module, its config file, merge-train pause/resume) is owed in a follow-up PR; the tier-module disposition stands. Carry: R10-FLY-CANCEL-SWEEP
 
 ## Evidence
 
-- RESULT self-test at head: `cancel_superseded self-test: 30 checks, 0 failed` (ev/selftest-head.txt), matching the body's figure.
-- RESULT body mutant (EVENTS + "push"): 2 FAIL, the two the body names (ev/mutants.txt). Also pinned: the bot-head skip in sweep_plan, the PR-side fork filter, the sweep's dry-run continue, the ghost-not-cancelled rule (each 1 to 2 FAIL).
-- Null control: "sweep null: only live-head runs cancels nothing" passes; the live-head run 103 is kept in the #2927 shape. --dry-run: the sweep dry-run arm passes and its mutant fails it.
-- Self-test wired: .github/workflows/governance.yml:360 runs `python3 tools/pr/cancel_superseded.py --self-test` (instrument-self-tests).
-- Structure: `python3 tests/structure.py` -> STRUCTURE RATCHET PASSED (ev/structure.txt). Scope: `MODE: SCOPED -- 1 script(s) run, 32 scoped out.` (ev/closure-mode.txt), matching the body.
-- Merge: `git merge-tree --write-tree origin/main a3b3a42cab6ef5a43a691738376be7648d079b5b` exits 0, no conflict (ev/merge-tree.txt). No claim file, VERSION, manifest or notes heading touched.
-- Head: body names a3b3a42cab6ef5a43a691738376be7648d079b5b as head, one record-only commit above the authored head 6992e9bcb; I measured a3b3a42cab6ef5a43a691738376be7648d079b5b.
-- CI at a3b3a42cab6ef5a43a691738376be7648d079b5b read from the check-runs API at review time: no check concluded red; codeql python, env-matrix, instrument-self-tests, tests/fast, closures, coverage, browser still in progress. Body's "Red checks: none" is consistent so far, unverified for the in-progress runs.
-- tools/pr/cancel_superseded.py is code-owned (.github/CODEOWNERS:75): merges only on tvofi's approving review.
-- No finder's harness (instrument group, none named); I built no harness beyond the mutants listed.
+- Merge with origin/main: `git merge-tree --write-tree origin/main 4522a316c00e4c3394a8f22cad446d9543979e42` is clean (origin/main has moved to 5d4e0bcfb since the head's last main merge).
+- `selftest_wiring.py --check` at the head: 103 self-testing, 103 wired, 0 unwired, 0 index gap(s). With cancel_superseded.py.md reverted to b63829d1: `MISMATCH ... the index line's name is not the one its entry opens with`, 1 index gap(s). Restored, tree clean. (ev/wiring_head.txt, ev/wiring_reverted.txt)
+- `python3 -I tools/pr/cancel_superseded.py --self-test`: 44 checks, 0 failed at the head (matches the body).
+- CI on this head: merge_train.py classify exits 0 GREEN. `governance / instrument-self-tests` completed success (it was the round-3 red). The remaining required jobs were green or skipped; pr-contract was the last to finish.
+- `## Red checks` in the body names the red as this diff's own, corrects the round-3 claim, names the cheaper detector (selftest_wiring --check), the process state (detector ran, filter narrower than the check) and the countermeasure routed as its own group. That answers the root-cause trigger.
+- Code owner: tools/pr/cancel_superseded.py is code-owned, so tvofi's approving review is required at merge. Flagged, not a block.
+- review_packet render: no refusals, no advisories; figure_lint 3 resolved, 0 not verified.
