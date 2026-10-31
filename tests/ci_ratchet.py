@@ -43,6 +43,14 @@ THE METRICS, each an answer to a named cost:
                   p90 of a wider window (`--gather-runs FILE --window 40`),
                   so the ratchet refuses a median beyond the work's own
                   run-to-run noise, never one slow host.
+  critical_path_minutes_band   not a metric: the minutes past its budget
+                  that critical_path_minutes may read before it is GREW. An
+                  8-run median still swings with the host draw, and a window
+                  of record-only merges read 34.467 on a 34.267 budget
+                  (05c0d6d5d). Sized at the measured maximum |8-run median -
+                  window median| over 145 runs, 1.3; it never applies to a
+                  counter, a re-record carries it over, and widening it is a
+                  raise.
 
 WHAT IS DELIBERATELY NOT HERE, so nobody re-adds it wrongly:
 
@@ -95,6 +103,13 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 BUDGETS = ROOT / "tests" / "ci_budgets.json"
 METADATA_KEYS = {"recorded_at", "reason"}
+# The timing metric's tolerance band (R10-HOTFIX-CI-CRITPATH-2): a bound, not a
+# graded metric. critical_path_minutes is GREW only past budget + band; every
+# other row, the integer counters included, stays at zero tolerance. Sized
+# from the measured spread of the graded statistic (an 8-run median) about
+# its window's median on unchanged work -- never padded; widening it is a
+# raise (tools/policy/budget_raise_gate.py types it MAX).
+BAND_KEYS = {"critical_path_minutes_band": "critical_path_minutes"}
 
 LANES = ("closures", "coverage")
 
@@ -371,6 +386,10 @@ def budget_problems(table: dict) -> list[str]:
         if not _finite_number(value):
             problems.append(f"{key}={value!r} is not a finite number")
             continue
+        if key in BAND_KEYS:
+            if not 0 <= value <= 10:
+                problems.append(f"{key}={value!r} is outside 0..10 minutes")
+            continue
         if key.startswith("archscore."):
             if not isinstance(value, int) or value < 0:
                 problems.append(f"{key}={value!r} is not a non-negative "
@@ -621,17 +640,21 @@ def derive(metrics_dir: Path, runs_json: Path | None,
 def compare(budgets: dict, derived: dict) -> tuple[list[str], int]:
     grew = []
     lines = []
-    for key in sorted(set(budgets) - METADATA_KEYS):
+    bands = {BAND_KEYS[k]: budgets[k] for k in BAND_KEYS if k in budgets}
+    for key in sorted(set(budgets) - METADATA_KEYS - set(BAND_KEYS)):
         budget = budgets[key]
+        band = bands.get(key, 0)
         if key not in derived:
             lines.append(f"  ?     {key}: not derived this run "
                          "(missing input); not graded")
             continue
         cur = derived[key]
-        mark = "ok" if cur <= budget else "GREW"
-        if cur > budget:
+        over = cur > budget + band
+        mark = "GREW" if over else "ok"
+        if over:
             grew.append(key)
-        lines.append(f"  {mark:<5} {key}: {cur} (budget {budget})")
+        within = f", band {band}" if band else ""
+        lines.append(f"  {mark:<5} {key}: {cur} (budget {budget}{within})")
     for key in sorted(set(derived) - set(budgets)):
         grew.append(key)
         lines.append(f"  GREW  {key}: {derived[key]} (no budget row; a new "
@@ -1119,7 +1142,10 @@ def main(argv: list[str] | None = None) -> int:
         head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT,
                               capture_output=True, text=True,
                               check=True).stdout.strip()
+        # A band is a bound sized from measured noise, not a derived value:
+        # a re-record carries it over unchanged.
         table = {**{k: v for k, v in derived.items()},
+                 **{k: budgets[k] for k in BAND_KEYS if k in budgets},
                  "recorded_at": head, "reason": record_reason}
         problems = budget_problems(table)
         if problems:
