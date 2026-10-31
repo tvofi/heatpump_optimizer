@@ -1,0 +1,7 @@
+RESULT mutant=X1_sync_writepath_rederive_no_legacy rc=0 ['roster_sync self-test: 78 checks, 0 failed'] []
+RESULT mutant=X2_sync_unreadable_cutover_swallowed rc=0 ['roster_sync self-test: 78 checks, 0 failed'] []
+RESULT mutant=X6_edit_unreadable_cutover_swallowed rc=0 ['roster_edit self-test: 145 checks, 0 failed'] []
+RESULT mutant=X7_moved_to_closed_allowed rc=0 ['roster_edit self-test: 145 checks, 0 failed'] []
+RESULT mutant=X8_bracket_value_allowed rc=0 ['roster_edit self-test: 145 checks, 0 failed'] []
+restored clean
+FIN

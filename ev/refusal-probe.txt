@@ -1,0 +1,33 @@
+RESULT mark-carry moved to a closed (done) group: ok | null: ok -> 'c0 [moved: OPEN]'
+RESULT mark-carry moved to an absorbed group: ok | null: ok -> 'c0 [moved: OPEN]'
+RESULT mark-carry moved to rca-done: ok | null: ok -> 'c0 [moved: OPEN]'
+RESULT mark-carry moved to missing: ok | null: ok -> 'c0 [moved: OPEN]'
+RESULT mark-carry moved to itself: ok | null: ok -> 'c0 [moved: OPEN]'
+RESULT mark-carry value with ]: REFUSE mark-carry: a mark's value holds no ']': 'a]b' | null: ok -> 'c0 [dismissed: ab]'
+RESULT mark-carry implemented without sha: REFUSE mark-carry: implemented needs a sha: '' | null: ok -> 'c0 [implemented: 0123abcd]'
+RESULT mark-carry implemented non-sha: REFUSE mark-carry: implemented needs a sha: 'main' | null: ok -> 'c0 [implemented: 0123abcd]'
+RESULT mark-carry dismissed no reason: REFUSE mark-carry: dismissed needs a reason | null: ok -> 'c0 [dismissed: dup]'
+RESULT mark-carry dismissed whitespace reason: REFUSE mark-carry: dismissed needs a reason | null: ok -> 'c0 [dismissed: dup]'
+RESULT mark-carry unknown mark: REFUSE mark-carry: the mark is one of implemented, moved, dismissed, n | null: ok -> 'c0 [dismissed: x]'
+RESULT mark-carry no kind: REFUSE mark-carry: the mark is one of implemented, moved, dismissed, n | null: ok -> 'c0 [dismissed: x]'
+RESULT mark-carry already marked: REFUSE mark-carry: A carry[0] is already marked ('dismissed', 'dup') | null idx1: ok
+RESULT mark-carry moved to carries-open group: ok
+RESULT set-stage A done over 2 pending: ok wrote=carries-open out='set-stage A: done -> carries-open (2 pending carries); wires #5'
+RESULT set-stage A rca-done over 2 pending: ok wrote=rca-done out=''
+RESULT set-stage A absorbed over 2 pending: ok wrote=absorbed out=''
+RESULT set-stage A in-progress over 2 pending: ok wrote=in-progress out=''
+RESULT set-stage A review over 2 pending: ok wrote=review out=''
+RESULT set-stage A refused over 2 pending: ok wrote=refused out=''
+RESULT append-carry text ending in a mark-shaped suffix: ok; pending=[0, 1] (indices of 3 carries)
+STRANDED DONE (done) carry[0]: 'owed'
+STRANDED RCA (rca-done) carry[0]: 'owed3'
+STRANDED ABS (absorbed into OPEN) carry[0]: 'owed2'
+ISSUE-STRANDED #7 listed only by closed group(s): DONE
+ISSUE-STRANDED #8 listed only by closed group(s): ABS
+ISSUE-UNLISTED #9
+-- without issues:
+STRANDED DONE (done) carry[0]: 'owed'
+STRANDED RCA (rca-done) carry[0]: 'owed3'
+STRANDED ABS (absorbed into OPEN) carry[0]: 'owed2'
+-- legacy null:
+[]
