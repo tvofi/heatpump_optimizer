@@ -1,0 +1,26 @@
+n 0 noverdict 0
+Traceback (most recent call last):
+  File "/tmp/e/lat.py", line 18, in <module>
+    for p in (50,75,90,95): print(p,np.percentile(lat,p))
+                                    ~~~~~~~~~~~~~^^^^^^^
+  File "/opt/hpo/venv-ci/lib/python3.14/site-packages/numpy/lib/_function_base_impl.py", line 4246, in percentile
+    return _quantile_unchecked(
+        a, q, axis, out, overwrite_input, method, keepdims, weights, weak_q)
+  File "/opt/hpo/venv-ci/lib/python3.14/site-packages/numpy/lib/_function_base_impl.py", line 4510, in _quantile_unchecked
+    return _ureduce(a,
+                    func=_quantile_ureduce_func,
+    ...<6 lines>...
+                    method=method,
+                    weak_q=weak_q)
+  File "/opt/hpo/venv-ci/lib/python3.14/site-packages/numpy/lib/_function_base_impl.py", line 3880, in _ureduce
+    r = func(a, **kwargs)
+  File "/opt/hpo/venv-ci/lib/python3.14/site-packages/numpy/lib/_function_base_impl.py", line 4669, in _quantile_ureduce_func
+    result = _quantile(arr,
+                       quantiles=q,
+    ...<3 lines>...
+                       weights=wgt,
+                       weak_q=weak_q)
+  File "/opt/hpo/venv-ci/lib/python3.14/site-packages/numpy/lib/_function_base_impl.py", line 4793, in _quantile
+    slices_having_nans = np.isnan(arr[-1, ...])
+                                  ~~~^^^^^^^^^
+IndexError: index -1 is out of bounds for axis 0 with size 0

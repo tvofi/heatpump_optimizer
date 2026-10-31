@@ -1,0 +1,5 @@
+P327 ACCEPT
+P328 ACCEPT
+pass None
+flip P327 REJECT dev/programme/triage/s6-batch90.md#P327 is not an ACCEPT ruling (REJECT)
+flip P328 REJECT dev/programme/triage/s6-batch90.md#P328 is not an ACCEPT ruling (REJECT)
