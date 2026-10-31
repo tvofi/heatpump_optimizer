@@ -1,0 +1,52 @@
+  ok   recorded pair 39090494028/39091600343: the old bot-sent run and its dispatch are selected
+  ok   the calling run itself is never selected
+  ok   a same-SHA twin of the live head is never cancelled
+  ok   a run on the live head only is never cancelled (nothing older at another SHA)
+  ok   a bot-sent newer run cancels nothing
+  ok   a dispatch is not a caller
+  ok   a run on main is never cancelled
+  ok   a run on another branch is never cancelled
+  ok   a merge_group or push run on this branch is never cancelled
+  ok   a finished run is not cancelled
+  ok   a newer head's run (higher id) is never cancelled
+  ok   a caller on a branch named main cancels nothing, though main has older runs
+  ok   stale head: a run that is not on the live head cancels nothing
+  ok   a closed pull request cancels nothing
+  ok   a fork head cancels nothing
+  ok   an unreadable pull request cancels nothing
+cancel_superseded: cancelled 39090491271
+cancel_superseded: cancelled 39090494028
+cancel_superseded: 2 superseded run(s) of tests.yml on fix/r10-leaf-imports
+  ok   end to end: cancels exactly the two old runs by POST
+cancel_superseded: would cancel 39090491271
+cancel_superseded: would cancel 39090494028
+cancel_superseded: 2 superseded run(s) of tests.yml on fix/r10-leaf-imports
+  ok   --dry-run posts nothing
+cancel_superseded: unreadable answer; cancelling nothing
+  ok   an unreadable listing cancels nothing and exits 0
+  ok   sweep: the #2927 shape cancels both old runs and keeps the queued live one
+  ok   sweep: with no run yet at the live head every active run at another head is cancelled
+  ok   sweep: a bot-authored live head cancels nothing
+  ok   sweep: a push run on main and a push run on a PR branch are never cancelled
+  ok   sweep: a run on a branch with no open PR is a ghost, never cancelled
+  ok   sweep null: only live-head runs cancels nothing
+  ok   sweep: a fork PR head is not swept
+  ok   sweep mutant: without the event filter the push run IS cancelled (the arm detects it)
+  ok   sweep: a run at an older head with a HIGHER id than the live head's run is never cancelled
+  ok   sweep: a finished run is neither kept, a ghost, skipped nor cancelled
+  ok   sweep: a pending or requested run at a superseded head is cancelled
+  ok   sweep: a run from a fork head repository on a PR branch's name is never cancelled
+  ok   sweep: main and non-PR-event runs count as skipped, not as ghosts
+  ok   sweep end to end: POSTs exactly the two old runs
+  ok   sweep --dry-run posts nothing
+CANCEL-SWEEP: unreadable answer; cancelling nothing
+  ok   sweep: an unreadable answer cancels nothing and exits 0
+  ok   sweep: an unreadable pulls answer cancels nothing and says unreadable, not a zero count
+  ok   sweep: an unreadable runs answer cancels nothing and says unreadable, not a zero count
+  ok   sweep: an unreadable commit answer cancels nothing and says unreadable, not a zero count
+  ok   sweep end to end: a live head authored by the bot ({'login': 'github-actions[bot]', 'name': 'x'}) cancels nothing
+  ok   sweep end to end: a live head authored by the bot ({'login': 'u', 'name': 'github-actions[bot]'}) cancels nothing
+  ok   sweep end to end: every ACTIVE status is listed, so pending and requested runs are POSTed
+  ok   sweep: a full page is followed by the next page, and a short page stops
+  ok   sweep: a listing still full after MAX_PAGES prints a truncated line
+cancel_superseded self-test: 43 checks, 0 failed
