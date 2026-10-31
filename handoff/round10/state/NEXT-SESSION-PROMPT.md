@@ -37,8 +37,10 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-FRICTION-REGRESSION (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-FLY-TRAIN-DEFAULTS (stage carries-open, branch `handoff/r10-fly-train-defaults`): `git fetch origin handoff/r10-fly-train-defaults && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-CIPREDICT-RESTORING (stage queued): no branch pushed yet, so nothing to fetch
+- R10-FLY-RECORD-RED-NAMES (stage in-progress, branch `handoff/r10-fly-record-red-names`): `git fetch origin handoff/r10-fly-record-red-names && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-CANCEL-SWEEP (stage carries-open, branch `handoff/r10-fly-cancel-sweep`): `git fetch origin handoff/r10-fly-cancel-sweep && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-TICK-APPROVAL-OWED (stage carries-open, branch `handoff/r10-fly-tick-approval-owed`): `git fetch origin handoff/r10-fly-tick-approval-owed && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-FLY-SEAT-ALIVE-ID (stage in-progress, branch `handoff/r10-fly-seat-alive-id`): `git fetch origin handoff/r10-fly-seat-alive-id && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-BUS-BASH32 (stage in-progress, branch `handoff/r10-fly-bus-bash32`): `git fetch origin handoff/r10-fly-bus-bash32 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FACTORY-RESET (stage in-progress, branch `handoff/r10-factory-reset`): `git fetch origin handoff/r10-factory-reset && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-WOOD-NOTIFY (stage in-progress, branch `handoff/r10-wood-notify`): `git fetch origin handoff/r10-wood-notify && git worktree add --detach $SEAT/wt FETCH_HEAD`
