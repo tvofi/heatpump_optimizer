@@ -107,6 +107,15 @@ def run_queue(a, python=None):
         if a.alive:
             Path(a.alive).touch()
 
+    for flag, d in (("--lint-clone", a.lint_clone), ("--edit-checkout", a.edit_checkout)):
+        if not Path(d).is_dir():
+            # The clone is the caller's to provision; nothing is re-cloned. Refused
+            # by name before any op, with a report line so a reader of the report's
+            # last line cannot take the previous run's line as this run's result.
+            msg = f"roster: {flag} {d} is not a directory; no op attempted, provision it"
+            print(msg, file=sys.stderr)
+            rep(msg)
+            return 2
     sh("git", "fetch", "-q", "origin")  # fetch only: the edit checkout is never moved
     lines = Path(a.queue).read_text().split("\n")[a.first - 1:a.last]
     for ln in lines:
@@ -114,32 +123,41 @@ def run_queue(a, python=None):
         if not p:
             continue
         op, g, arg, extra = p
-        cmd = [py, editor, op, g] + ([arg] if arg else []) + extra + [
-            "--checkout", a.edit_checkout, "--worktree", a.worktree,
-            "--lint-cwd", a.lint_clone, "--push"]
-        if a.branch:
-            cmd += ["--branch", a.branch]
-        for attempt in (1, 2, 3, 4):
-            _git("fetch", "-q", "origin", cwd=a.lint_clone)
-            _git("checkout", "-q", "--detach", "origin/main", cwd=a.lint_clone)
-            r = sh(*cmd)
-            out = r.stdout + r.stderr
-            m = re.search(r"pushed handoff\S* at ([0-9a-f]+)", out)
-            if r.returncode == 0 and m:
-                rb = ""
-                if op == "append-carry" and arg.startswith("@"):
-                    try:
-                        rb = " | readback: " + readback(m.group(1), g, arg[1:], cwd=a.worktree)[0]
-                    except Exception as e:  # noqa: BLE001 - reported, not hidden
-                        rb = f" | readback: FAILED {str(e)[-200:]}"
-                rep(f"roster: {op} {g} pushed {m.group(1)[:9]}{rb}")
-                break
-            if attempt < 4 and (MOVED in out or ("failed to push" in out and "lint gate: TOTAL: 0" in out)):
-                sh("git", "worktree", "remove", "--force", a.worktree)
-                continue
-            rep(f"roster: {op} {g} refused rc={r.returncode} " + " | ".join(out.strip().split("\n")[-3:])[:400])
-            break
+        try:
+            _run_op(a, sh, rep, py, editor, op, g, arg, extra)
+        except Exception as e:  # noqa: BLE001 - every op attempted writes one line
+            rep(f"roster: {op} {g} FAILED {type(e).__name__}: {e}"[:400].replace("\n", " "))
+            return 1
     return 0
+
+
+def _run_op(a, sh, rep, py, editor, op, g, arg, extra):
+    """One op: exactly one report line, or an exception for the caller to report."""
+    cmd = [py, editor, op, g] + ([arg] if arg else []) + extra + [
+        "--checkout", a.edit_checkout, "--worktree", a.worktree,
+        "--lint-cwd", a.lint_clone, "--push"]
+    if a.branch:
+        cmd += ["--branch", a.branch]
+    for attempt in (1, 2, 3, 4):
+        _git("fetch", "-q", "origin", cwd=a.lint_clone)
+        _git("checkout", "-q", "--detach", "origin/main", cwd=a.lint_clone)
+        r = sh(*cmd)
+        out = r.stdout + r.stderr
+        m = re.search(r"pushed handoff\S* at ([0-9a-f]+)", out)
+        if r.returncode == 0 and m:
+            rb = ""
+            if op == "append-carry" and arg.startswith("@"):
+                try:
+                    rb = " | readback: " + readback(m.group(1), g, arg[1:], cwd=a.worktree)[0]
+                except Exception as e:  # noqa: BLE001 - reported, not hidden
+                    rb = f" | readback: FAILED {str(e)[-200:]}"
+            rep(f"roster: {op} {g} pushed {m.group(1)[:9]}{rb}")
+            return
+        if attempt < 4 and (MOVED in out or ("failed to push" in out and "lint gate: TOTAL: 0" in out)):
+            sh("git", "worktree", "remove", "--force", a.worktree)
+            continue
+        rep(f"roster: {op} {g} refused rc={r.returncode} " + " | ".join(out.strip().split("\n")[-3:])[:400])
+        return
 
 
 def _self_test():
@@ -212,6 +230,43 @@ def _self_test():
            len(dl) == 1 and dl[0].startswith("drop-carry G --match x.py:1-2 --checkout ")
            and rep[3] == f"roster: drop-carry G pushed {sha[:9]}")
         ck("run: alive touched", (t / "alive").exists())
+        # P315 / #3020: a failing op writes its own FAILED line and stops the run;
+        # a missing lint clone is refused by name, rc 2, before any op.
+        (t / "rep2").write_text("")
+        q2 = t / "q2.txt"
+        q2.write_text("1 set-stage G done\n2 set-stage H done\n3 set-stage I done\n")
+        a2 = argparse.Namespace(**{**vars(a), "queue": str(q2), "report": str(t / "rep2"),
+                                   "first": 1, "last": 3, "worktree": str(t / "boom")})
+        (t / "mode").write_text("ok")
+        ck("run: clean op writes its normal line (null control)",
+           run_queue(a2, python=sys.executable) == 0
+           and (t / "rep2").read_text().strip().split("\n")
+           == [f"roster: set-stage {g_} pushed {sha[:9]}" for g_ in "GHI"])
+        (t / "rep2").write_text("")
+        real_sh = subprocess.run
+
+        def boom(c, *x, **k):
+            if "H" in c:
+                raise FileNotFoundError("clone vanished")
+            return real_sh(c, *x, **k)
+        subprocess.run = boom
+        try:
+            rc2 = run_queue(a2, python=sys.executable)
+        finally:
+            subprocess.run = real_sh
+        r2 = (t / "rep2").read_text().strip().split("\n")
+        ck("run: an exception writes a FAILED line for that op and stops, rc 1",
+           rc2 == 1 and r2[0] == f"roster: set-stage G pushed {sha[:9]}"
+           and r2[1] == "roster: set-stage H FAILED FileNotFoundError: clone vanished"
+           and len(r2) == 2)
+        (t / "rep3").write_text("roster: set-stage G byte-identical\n")
+        a3 = argparse.Namespace(**{**vars(a2), "report": str(t / "rep3"),
+                                   "lint_clone": str(t / "no-such-clone")})
+        rc3 = run_queue(a3, python=sys.executable)
+        r3 = (t / "rep3").read_text().strip().split("\n")
+        ck("run: a missing --lint-clone is refused by name, rc 2, before any op",
+           rc3 == 2 and "--lint-clone" in r3[-1] and "no-such-clone" in r3[-1]
+           and len(r3) == 2 and not (t / "no-such-clone").exists())
     print(f"roster_queue self-test: {n[0]} checks, {len(fails)} failed")
     return 1 if fails else 0
 
