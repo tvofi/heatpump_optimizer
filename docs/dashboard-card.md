@@ -105,8 +105,8 @@ figures come from `docs/img/card/make_card_figures.mjs` and the schematics furth
 down from `tests/setup_qa_render.mjs`, both run against a plan
 `tests/plan_view.py` solved. The two photographs further down — the weekly
 band and the Advisor page — are the shipped card itself, rendered in a
-headless browser against the same solved plan. Nothing here is a picture of
-how the card used to look.
+headless browser against the same solved plan. Every picture here is the card
+this release ships.
 
 ### The two kinds of dashed line
 
@@ -183,9 +183,9 @@ The card finds those sensors from the plan sensor it has already resolved: it
 takes that entity id's prefix and appends `_plan_predicted_savings`,
 `_plan_savings_percentage`, `_plan_optimization_score` and `_plan_narrative`. If you have
 renamed one individually, it falls back to scanning for any `sensor` whose id
-ends in the suffix it wants. An install upgraded across the #1227 key rename
-keeps its old registry ids, so the card tries each renamed sensor's pre-#1227
-suffix after the current one. The savings figure is labelled with the unit the
+ends in the suffix it wants. An install that kept older registry ids for these
+sensors is covered too: the card tries each sensor's older suffix after the
+current one. The savings figure is labelled with the unit the
 savings sensor itself declares — nothing here converts, so a `currency:` in the
 card config does not relabel it.
 
@@ -201,10 +201,10 @@ it costs the chart no axis width. Hovering gives its value in W/m².
 Hovering a planned slot shows why it was chosen: cheapest hours, holding the
 minimum temperature, pre-heating before colder weather, using solar surplus, the
 anti-legionella cycle, and so on — or simply keeping the house at target, which
-is what an ordinary slot says now that it no longer borrows the weather
-pre-heat label. Without this an unexpected slot is indistinguishable from a
+is what an ordinary slot says; it never borrows the weather pre-heat label. Without this an unexpected slot is indistinguishable from a
 bug.
 
+<!-- [target: R10-ARCH-SHAPES-CLASSIFIER] -->
 ### Why a step is idle
 
 <picture>
@@ -268,7 +268,7 @@ yourself and yours wins in every language.
 Prices are labelled with the first currency the card can find:
 
 1. `currency:` in the card config.
-2. The `currency` attribute the plan sensors publish (v4.1.0 and later).
+2. The `currency` attribute the plan sensors publish.
 3. Home Assistant's own configured currency.
 4. `SEK`, as a last resort.
 
@@ -332,9 +332,9 @@ A plain vertical scroll is deliberately left alone. The card sits in a dashboard
 people scroll, and a chart that swallowed the wheel would trap the page the
 moment the pointer crossed it.
 
-It is **forward-only over the plan**. There is no history of what the plan used
-to say to scroll back into: both plan sensors keep their `forecast` attribute
-out of the recorder, so nothing stores what the plan used to say. The window
+It is **forward-only over the plan**. There is no history of past plans to
+scroll back into: both plan sensors keep their `forecast` attribute out of the
+recorder, so nothing stores what an earlier plan said. The window
 therefore stays between now and the end of the plan, and zooming out stops at
 the plan's real extent rather than at the configured plot width — past the
 optimizer's horizon there is empty chart, not more plan. The reset button
@@ -365,7 +365,7 @@ rather than the whole span. If the recorder answers nothing — it is off, or
 the past was never recorded — the card says so in a notice above the chart
 and snaps the window back to now rather than show a past it has no evidence
 for. Panning back needs the recorder's history API, so a frontend without it
-keeps the forward-only pan exactly as before.
+keeps the forward-only pan.
 
 Zooming changes the axis the lanes are drawn against, not just their appearance,
 so dragging a slot keeps hitting the time under the pointer at any zoom level.
@@ -435,7 +435,7 @@ add a slot", or a slot's own start and end times. Tab to one and:
 Dragging has no keyboard form; add and remove cover the same edits in more
 steps. Every edit redraws the chart, which destroys the element that had focus,
 so focus is deliberately moved to the lane the edit happened in — the acted-on
-slot either no longer exists or has a new index — rather than being dropped
+slot either is gone or has a new index — rather than being dropped
 back at the top of the document. Escape puts it back on the slot the menu was
 opened from.
 
@@ -461,7 +461,7 @@ rather than silently.
 
 Each hot water window carries a day selector — *Every day*, *Weekdays* or
 *Weekend* — so a household whose mornings differ can say so from the card, in
-the grammar the integration's weekly windows use (v6.2.5). A schedule typed in
+the grammar the integration's weekly windows use. A schedule typed in
 the options flow with specific days (`Tu-Fr 06:00-08:00`) shows that day list
 as the row's own choice and is saved back unchanged. The editor pre-fills from
 the configured schedule the plan sensors publish as `dhw_windows_spec`, not
@@ -661,6 +661,7 @@ When every optional temperature sensor is already configured, that part of the
 page says exactly that; the integration publishes no ranking at all, and no
 empty table is drawn.
 
+<!-- [target: R10-UX-HEALTH] -->
 ## The health page
 
 The **Health** tab answers "is the plan running on good data?" in one screen,
@@ -942,12 +943,12 @@ series:                                  # optional, initial per-series visibili
 |----------------|---------|--------------------------------|-------------|
 | `type`         | string  | —                              | Must be `custom:heatpump-optimizer-card`. |
 | `title`        | string  | localized                      | Card header text. Left out, it is the built-in default for the frontend language (`Heat pump plan`, `Värmepumpsplan`). An explicit empty string renders no header text. |
-| `space_entity` | string  | auto-detected                  | Entity id of the space-heating plan sensor (its `forecast` attribute supplies `price`, `outdoor`, `space_power`, `room`, `upper`, `lower`). |
-| `dhw_entity`   | string  | auto-detected                  | Entity id of the DHW plan sensor (its `forecast` attribute supplies `dhw_power`, `dhw_temp`, the `dhw_temp_lo`/`dhw_temp_hi` expected-error band, and `price`/`outdoor` fallbacks). |
-| `solar_entity` | string  | auto-detected                  | Entity id of the solar irradiance sensor (its `forecast` attribute supplies `ghi`). |
+| `space_entity` | string  | `sensor.heat_pump_optimizer_plan_space_heating`, else auto-detected | Entity id of the space-heating plan sensor (its `forecast` attribute supplies `price`, `outdoor`, `space_power`, `room`, `upper`, `lower`). |
+| `dhw_entity`   | string  | `sensor.heat_pump_optimizer_plan_dhw_heating`, else auto-detected | Entity id of the DHW plan sensor (its `forecast` attribute supplies `dhw_power`, `dhw_temp`, the `dhw_temp_lo`/`dhw_temp_hi` expected-error band, and `price`/`outdoor` fallbacks). |
+| `solar_entity` | string  | `sensor.heat_pump_optimizer_solar_irradiance`, else auto-detected | Entity id of the solar irradiance sensor (its `forecast` attribute supplies `ghi`). |
 | `hours`        | number  | `24`                           | How many hours forward to plot. Must be from `1` to `168`: the visual editor's box steps whole hours from that same floor, and a YAML value below or above the range is refused rather than plotted. |
 | `what_if`      | boolean | `true`                         | Show the slot lanes and schedule editor in the enlarged view. Editing is local to the card; only the Simulate, Save and Apply buttons reach Home Assistant. |
-| `currency`     | string  | plan sensor's, else HA's, else `SEK` | Unit shown on the price axis and cost figures. The card first uses the currency the integration publishes on the plan sensors (v4.1.0+), then Home Assistant's configured currency, then `SEK`. Only override this if your price feed disagrees with all of them. It relabels rather than converts, and it does not relabel a savings figure: the headline and the savings page keep the unit their own sensor declares. |
+| `currency`     | string  | plan sensor's, else HA's, else `SEK` | Unit shown on the price axis and cost figures. The card first uses the currency the integration publishes on the plan sensors, then Home Assistant's configured currency, then `SEK`. Only override this if your price feed disagrees with all of them. It relabels rather than converts, and it does not relabel a savings figure: the headline and the savings page keep the unit their own sensor declares. |
 | `show_stats`   | boolean | `true`                         | Show the headline row (projected savings, optimization score, plan narrative) under the card header. It hides itself, entirely, when the backend publishes none of those sensors. |
 | `series`       | map     | all `true`                     | Initial visibility per series key. Keys: `price`, `dhw_slots`, `space_slots`, `actioned`, `quiet_silent`, `quiet_off`, `outdoor`, `dhw_temp`, `house_temp`, `solar`. |
 
@@ -981,9 +982,9 @@ reloads. The key is the space and hot-water entity ids the config carries (the
 defaults, when you have not set them) plus the card's `title` and `hours` — its
 config identity, not just its data sources — so a 24-hour card on a wall panel
 and a 48-hour card of the same sensors elsewhere keep their own toggles instead
-of overwriting each other. Cards saved before v4.2.0 used a key of the
-entity ids alone; that key is still read once as a fallback, so an upgrade does
-not silently reset every toggle. Writes always go to the new key.
+of overwriting each other. A card whose toggles were saved under a key of the
+entity ids alone has that key read once as a fallback, so its toggles are kept.
+Writes always go to the full key.
 
 The `series` option only sets the *initial* visibility the first time the card
 is shown.

@@ -142,20 +142,19 @@ nothing and the electricity saved is worth real money. The linear term gives
 the penalty a non-zero slope at the boundary and pins the trajectory to the
 floor instead.
 
-**The pull toward the target is deliberately weak.** It was halved in v3.9.0
-after measuring what the old strength cost: on the winter scenario the plan
-spent 28.55 SEK instead of 23.28 — 18% of the bill — buying an average 0.32 K
-of extra warmth while never coming near the floor. Below half the saving
-plateaus, so the current value is where the money stops improving and a real
-preference is still expressed.
+**The pull toward the target is deliberately weak.** Twice the strength, on the
+winter scenario, makes the plan spend 28.55 SEK instead of 23.28 — 18% of the
+bill — buying an average 0.32 K of extra warmth while never coming near the
+floor. Below the chosen strength the saving plateaus, so it sits where the
+money stops improving and a real preference is still expressed.
 
 **Money terms scale with `price_weight` together.** If the energy cost scaled
 and the cycling and capacity terms did not, a non-default price weight would
 silently re-price compressor starts and grid peaks against the electricity they
 trade off.
 
-**One term was removed.** Until v3.9.0 the objective carried a `0.01 · Σ ΔP²`
-smoothness regulariser, priced in invented units and costing about 5% of the
+**There is no smoothness term.** A `0.01 · Σ ΔP²` smoothness regulariser
+would be priced in invented units, and measured, it costs about 5% of the
 two-zone winter bill for no reduction in compressor starts. Discouraging
 chatter is the cycling cost's job, and that is denominated in currency per
 start-stop cycle.
@@ -348,24 +347,15 @@ whole plan rests on.
 
 ### Knowing the lower floor rather than guessing it
 
-Two-zone mode plans against two room temperatures, but historically only the
-upper one had a sensor. The lower zone was inferred from the floor return water
-as `T_return + 0.5 °C` — a *water* temperature standing in for an *air*
-temperature. A floor loop returns at roughly 24–30 °C while the room it serves
-sits near 21, so the model believed the lower floor was several degrees warmer
-than it was. Judged against the same comfort band as the upper floor, the zone
-read as permanently overshooting and the optimizer under-heated the one room it
-could not see. Worse, the slab was derived from the *same* sensor as
-`T_return + 1 °C`, so slab-minus-room was always exactly 0.5 K whatever the
-sensor read — pinning the main heat path into the lower zone at a constant.
-
-That estimate is gone (v5.1.7). It was also what the plan chart drew as the
-house temperature: a 27.5 °C floor return put a "house" trace at 28.0 °C on the
-chart while the measured zone sat at 22.1, which reads as the optimizer cooking
-the house to a temperature no plan ever chose. The floor return keeps the job it
-is genuinely a proxy for — the slab estimate above — and the lower zone now
-starts from the room sensor and is carried forward by the model's own dynamics.
-That is open-loop: nothing corrects it, so it can drift from the real downstairs
+Two-zone mode plans against two room temperatures, and often only the upper
+one has a sensor. The floor return water is not used for the lower zone: a
+floor loop returns at roughly 24–30 °C while the room it serves sits near 21,
+so a *water* temperature standing in for an *air* temperature would make the
+lower floor read several degrees too warm, permanently overshooting its comfort
+band, and the optimizer would under-heat the one room it cannot see. The floor
+return keeps the job it is genuinely a proxy for — the slab estimate above —
+and the lower zone starts from the room sensor and is carried forward by the
+model's own dynamics. That is open-loop: nothing corrects it, so it can drift from the real downstairs
 over a long cold spell, and a repair notice says so rather than letting a
 modelled number pass for a measured one. The chart labels the trace
 "Lower floor (modelled)" until a thermometer is assigned.
@@ -425,7 +415,7 @@ its ceiling, so the *building* charges first — and building storage is free,
 because the heat sits at room temperature. Only then does the valve throttle and
 the tank take the surplus, which is stored hot and does cost efficiency.
 Building first, tank second, is the cheap order. The cost of that choice is that
-the valve no longer prevents the house overheating — the optimizer's comfort
+the valve does not prevent the house overheating — the optimizer's comfort
 limits do.
 
 **Storing hot is not free.** A heat pump loses efficiency the hotter it must
@@ -579,9 +569,8 @@ does not shrink because the tank happens to be cold.
 
 With the scaled draw, the inlet floor underneath is a genuine no-op safety
 bound, and any heat it does have to fabricate is booked rather than silently
-created. The default inlet reference is 10.0 °C — the value the two previously
-hard-coded cold-water temperatures used, so every existing install's ready
-targets sit exactly where they did.
+created. The default inlet reference is 10.0 °C; set *Cold water inlet
+temperature* on **Hot water tank and inlet** if you have measured yours.
 
 ### Self-learning tank cooling
 
@@ -648,8 +637,8 @@ Everything here is inert until configured or until evidence exists:
 - **Heavy-day targets** (opt-in): the integration learns how much hot water each
   frame actually draws — whole occurrences, weekdays and weekends separately —
   and readies the tank for the 90th-percentile day of *that* frame rather than
-  the average. The blend ramps with evidence, so a fresh install answers exactly
-  as before and one early outlier cannot yank the target. It needs *configured*
+  the average. The blend ramps with evidence, so a fresh install answers with
+  the average and one early outlier cannot yank the target. It needs *configured*
   frames: with learned-profile frames there is no stable frame to attach
   statistics to. Watch **DHW Heavy Day Demand** (disabled by default; it needs
   weeks of data).
@@ -720,11 +709,11 @@ the same as "no sun".
 ### Past the published horizon
 
 Nord Pool and Tibber publish tomorrow's prices around 13:00, so before then a
-large part of the horizon has no data. That gap used to be filled by repeating
-the last known price — and a flat tail has no trough, so the optimizer could not
-see a cheap period ahead worth waiting for and systematically under-deferred
-load in the morning, precisely when deferral is most valuable. It also fed the
-terminal cost a price that was entirely fictitious.
+large part of the horizon has no data. Repeating the last known price there
+would give a flat tail with no trough, so the optimizer could not see a cheap
+period ahead worth waiting for and would under-defer load in the morning,
+precisely when deferral is most valuable, and the terminal cost would be fed a
+fictitious price.
 
 Instead, a normalised daily price *shape* is learned from the prices actually
 seen, split weekday/weekend (the morning peak is later and shallower at the
@@ -891,9 +880,9 @@ model simulates two tanks side by side: a burn charges the *wood* tank, the
 4-way valve draws wood-first while the wood side can meet the flow temperature
 and shifts to the heat-pump tank as it depletes, and the blend law is the same
 one the outlet sensor measures, so model and measurement cannot disagree. The
-point of the split is that a fire can no longer make the heat pump's modelled
-efficiency look worse — the old single-tank abstraction charged the modelled COP
-for water the pump never made — and can no longer eat the buffer's
+point of the split is that a fire cannot make the heat pump's modelled
+efficiency look worse — a single-tank model would charge the modelled COP
+for water the pump never made — and cannot eat the buffer's
 safe-temperature headroom, so the plan keeps charging cheap hours right through
 a burn. Heat still in the wood tank at day's end counts in the savings
 settlement and the thermal-battery view, up to 95 °C. Without the probe, or if
@@ -962,7 +951,7 @@ the learners paused. It is on by default, because it protects everything else
 and costs nothing. Learning also freezes while an external heat source is active
 and while the open-window detector is tripped.
 
-**The heat pump's own signals (v5.3.0).** Four optional slots read the pump
+**The heat pump's own signals.** Four optional slots read the pump
 itself: operating mode, defrosting, online status and fault alarm. Three of
 them freeze the learners, and they freeze on a *value* rather than on a missing
 reading, which is a different shape from everything above:
@@ -1030,6 +1019,28 @@ day biases it up, so a lower envelope would be systematically wrong. It uses a
 slow symmetric average instead, with a per-interval rate limit and a residual
 cutoff so a single anomaly cannot move the model far.
 
+**What it replays.** The heat an interval put into the house comes from the
+best evidence the install has. With a heat meter — a heat energy meter or a
+thermal power meter — it is the heat the pump delivered. Without one, a heat pump
+power meter gives the measured electrical draw, turned into heat through the
+modelled COP; without that, it is the power the plan commanded. Gaining better
+evidence (adding a power meter, or a heat meter's first measured interval)
+discards the evidence gathered on the weaker one.
+
+**An estimated power reading.** The integration cannot tell a revenue meter
+from a power figure the heat pump computes for itself: both are read as the
+measured draw. If yours is an estimate and it reads high, the house looks
+leakier by about the same factor, and the plan buys heat it does not need.
+Prefer a real meter, and reset the learners after changing the slot.
+
+**Starting again.** The **Learning Reset Heat Loss** button and the
+`reset_heat_loss_learners` service return the learned scale and the lower
+floor loss ratio to 1.0, so the plan uses the heat loss values in the settings
+and learning starts again from there. Changing the indoor or the lower floor
+temperature sensor resets the learner fitted on it the same way, because
+evidence fitted against one sensor says nothing about another.
+
+<!-- [target: R10-COP-GATE, R10-COP-PARTLOAD] -->
 ### COP, and the tracking-error gate
 
 With a power meter, COP becomes observable instead of derived from a nameplate
@@ -1046,7 +1057,7 @@ twice. Without a defrost sensor there is no way to tell which intervals those
 are, so the exclusion has to cover the whole 0–5 °C frosting band — which in a
 Swedish shoulder season is a large share of all heating hours, leaving the one
 multiplier every priced plan runs through blind in the conditions it spends most
-of its life in. With a defrost flag configured (v5.3.0) the exclusion narrows to
+of its life in. With a defrost flag configured the exclusion narrows to
 the intervals that **actually contained a defrost**, and the rest of the band
 teaches `cop_scale` normally. The attribution stays disjoint, just at a far
 finer grain.
@@ -1066,7 +1077,7 @@ Two caveats are worth stating plainly:
   number of defrosts actually witnessed per bucket alongside the duty, so a
   coarse estimate can be recognised as one.
 * **Without a flag** the derate falls back to inferring the shortfall from the
-  commanded-versus-measured power ratio, exactly as before v5.3.0. That
+  commanded-versus-measured power ratio. That
   estimator cannot see a defrost at all — during one the compressor draws
   roughly normal power while delivering almost no heat, which reads as a
   perfectly performing unit — and its error is biased optimistic, because the
@@ -1103,6 +1114,7 @@ by itself makes 1.0 the only fixed point and drags a perfectly-confirmed model
 back toward "trust the nameplate". The same vetted sample feeds the compressor
 health watch and the capacity envelope, so both inherit every filter for free.
 
+<!-- [target: R10-CEILING-PROBE] -->
 ### Active system identification
 
 Optional, and the fastest way to a good model. On a mild, cheap night the
@@ -1142,8 +1154,8 @@ handing the collinear intercept the noise.
 
 Guards on the result: fitted gains outside −0.5 to 2.0 kW mean the "constant"
 was a drifting contaminant (sun through a window, a door left open), and the
-triple is **rejected rather than clipped** — a clipped intercept no longer
-satisfies the regression it came from, so the other coefficients would carry its
+triple is **rejected rather than clipped** — a clipped intercept would not
+satisfy the regression it came from, so the other coefficients would carry its
 bias. Time constant must land in 0.1–200 h and the loss coefficient in
 0.01–5 kW/°C. Confidence comes from the fit's R², tempered by sample count and
 by the achieved temperature excursion, because R² cannot see that a flat fit
@@ -1236,9 +1248,8 @@ anti-legionella cycle, and so on — in the plan sensor attributes and in the
 card's tooltip. Without it, an unexpected slot is indistinguishable from a
 bug, which makes the optimizer hard to trust and bug reports much weaker than
 they could be. A step that is none of those is `scheduled`, "keeping the
-house at target": until v5.1.7 the fall-through was `preheat_weather`, so an
-ordinary mid-price hour claimed to be anticipating weather nobody had
-forecast. Everything below is built on those codes:
+house at target", so an ordinary mid-price hour never claims to be
+anticipating weather nobody has forecast. Everything below is built on those codes:
 
 | Where to look | What it explains |
 |---|---|
