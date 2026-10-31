@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._capacity_caps CMP_BOUND f3835ba8",
+  "killed_by": "tests/features.py",
+  "old": "            hum = float(humidity[i]) if humidity is not None and i < len(humidity) else None",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`hum = float(humidity[i]) if humidity is not None and i <= len(humidity) else None`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}
