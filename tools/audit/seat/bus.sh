@@ -38,8 +38,9 @@
 # that can keep the row from landing late. `dispatch` also REFUSES TO MINT a
 # nonce for a head whose `review_carry.py <reviewed-head> <head>` answers
 # CARRY -- no branch-authored commit since the head the caller names with
-# --reviewed-head (tvofi, 2026-10-27: "if there are no code changes, the
-# previous review can be carried"). The refusal is what makes the ruling
+# --reviewed-head and whose latest verdict at that head on verdict/<pr> is
+# merge (tvofi, 2026-10-27: "if there are no code changes, the previous review
+# can be carried"; a blocked one carries nothing, P348). The refusal is what makes the ruling
 # mechanical rather than a judgement a seat can talk itself out of; a
 # `--nonce` re-record mints nothing and is left alone.
 # `orphans` is the handoff family's level-triggered obligation, which `watch`
@@ -393,14 +394,25 @@ train_add() { # pr first-line -> one `BUS train-add <pr> rc=<rc> <add's last lin
   printf 'BUS train-add %s rc=%s %s\n' "$1" "$rc" "$(tail -n 1 "$log")"
 }
 
-blocked_rounds() { # pr -> the count of blocked verdict commits in verdict/<pr>'s history; rc 1 unreadable
-  local tip subj
+verdict_log() { # pr -> verdict/<pr>'s commit subjects, newest first (nothing when no ref); rc 1 unreadable
+  local tip
   tip=$(git ls-remote "$REMOTE" "refs/heads/verdict/$1") || return 1
   tip=${tip%%[[:space:]]*}
-  [ -n "$tip" ] || { echo 0; return 0; }
+  [ -n "$tip" ] || return 0
   git fetch -q "$REMOTE" "refs/heads/verdict/$1" 2>/dev/null && git cat-file -e "$tip^{commit}" 2>/dev/null || return 1
-  subj=$(git log --format=%s "$tip") || return 1
+  git log --format=%s "$tip"
+}
+
+blocked_rounds() { # pr -> the count of blocked verdict commits in verdict/<pr>'s history; rc 1 unreadable
+  local subj
+  subj=$(verdict_log "$1") || return 1
   printf '%s\n' "$subj" | grep -c "^verdict: #$1 Fix review: blocked " || :
+}
+
+verdict_at() { # pr sha -> the latest verdict word naming <sha> on verdict/<pr> (merge, blocked), or nothing; rc 1 unreadable
+  local subj
+  subj=$(verdict_log "$1") || return 1
+  printf '%s\n' "$subj" | sed -n "s/^verdict: #$1 Fix review: \([a-z]*\) $2\( .*\)\{0,1\}\$/\1/p" | head -n 1
 }
 
 # THE THREE-ROUND RULE (fixer.md, "Past three rounds"). Each round's verdict stays in
@@ -431,7 +443,7 @@ three_rounds() { # pr past-three-reason -> 0 to dispatch; else why
 # names it only once `check` reads that head in it. --harness/--harness-file is the finder's.
 # HPO_BUS_PACKER replaces the renderer (the self-test's stub).
 dispatch() { # pr head reviewer [--reviewed-head <sha>] [--nonce N] [--model M] [--past-three <reason>] [--harness P|--harness-file F] -> records, closes, prints the packet and nonce lines
-  local pr=${1:-} h=${2:-} r=${3:-} n="" m=- p3="" row why rh="" carry rc hk="" hv="" pk prc=0 pmsg="" pkline="" cls
+  local pr=${1:-} h=${2:-} r=${3:-} n="" m=- p3="" row why rh="" carry v rc hk="" hv="" pk prc=0 pmsg="" pkline="" cls
   shift 3 2>/dev/null || shift $#
   while [ $# -gt 0 ]; do
     case $1 in
@@ -482,6 +494,10 @@ dispatch() { # pr head reviewer [--reviewed-head <sha>] [--nonce N] [--model M] 
   # commit range and app_approve.sh --carry's predicate, so the seat cannot
   # judge; this refusal is a refusal, not a warning, because a warning is what
   # let the second reviewer start.
+  # Only a MERGE verdict carries (P348): a clean range refuses only when the
+  # latest verdict naming <rh> on verdict/<pr> (verdict_at) is merge. A blocked
+  # review, or none, leaves nothing to carry, so it mints and says so; an
+  # unreadable verdict ref refuses, never read as either.
   # --nonce mints nothing (a relay-minted nonce re-recorded for the seat
   # fired with it), so it is left alone.
   if [ -n "$rh" ] && [ -z "$n" ]; then
@@ -491,7 +507,12 @@ dispatch() { # pr head reviewer [--reviewed-head <sha>] [--nonce N] [--model M] 
     if [ "$rc" = 2 ]; then
       die "dispatch: cannot read the range $rh..$h: ${carry#review_carry: CANNOT DECIDE: }"
     elif [ "$rc" = 0 ]; then
-      die "dispatch: #$pr's head $h carries no branch-authored commit since the reviewed head $rh (review_carry: CARRY) -- the prior review carries, so no second reviewer is dispatched (tvofi, 2026-10-27)"
+      v=$(verdict_at "$pr" "$rh") || die "dispatch: cannot read verdict/$pr to learn what the review at $rh decided, so the clean range $rh..$h is not carried blind"
+      case $v in
+        merge) die "dispatch: #$pr's head $h carries no branch-authored commit since the reviewed head $rh (review_carry: CARRY) -- the prior review carries, so no second reviewer is dispatched (tvofi, 2026-10-27)" ;;
+        "") printf 'bus: review-carry: %s has no verdict, so a fresh review is owed\n' "$rh" >&2 ;;
+        *) printf 'bus: review-carry: %s was %s, so a fresh review is owed\n' "$rh" "$v" >&2 ;;
+      esac
     fi
   fi
   why=$(three_rounds "$pr" "$p3") || die "dispatch: $why"
@@ -931,6 +952,12 @@ bus-nonce: $N1b" ] && [ "$(grep -c " $N1b " "$W/state/dispatched")" = 2 ] \
   git -C "$W/seat" -c user.name=t -c user.email=t@t merge -q --no-ff \
     -m "Merge remote-tracking branch 'origin/main' into carry" "$mainadv"
   hm=$(git -C "$W/seat" rev-parse HEAD)
+  # P348: only a MERGE verdict carries. verdict/31's latest verdict naming the
+  # reviewed head decides; vc pushes one more verdict commit on top.
+  vc() { local t p; p=$(git -C "$W/seat" ls-remote origin refs/heads/verdict/31 | cut -f1)
+         t=$(git -C "$W/seat" commit-tree "$(git -C "$W/seat" rev-parse "$h1^{tree}")" ${p:+-p "$p"} \
+               -m "verdict: #31 Fix review: $1 $2${3:+ $3}") && git -C "$W/seat" push -q origin "$t:refs/heads/verdict/31"; }
+  vc merge "$h1"
   out=$(seat dispatch 31 "$hm" cmsg_C1 --reviewed-head "$h1"); rc=$?
   [ $rc != 0 ] && echo "$out" | grep -q "review_carry: CARRY" \
     && echo "$out" | grep -q "reviewed head $h1" \
@@ -938,7 +965,27 @@ bus-nonce: $N1b" ] && [ "$(grep -c " $N1b " "$W/state/dispatched")" = 2 ] \
     && [ "$(grep -c "^31 " "$W/state/dispatched")" = 0 ] \
     && ! python3 -I "$ROOT/tools/audit/seat/ledger.py" --log "$W/ledger/cloud-relay.log" board 2>/dev/null \
          | grep -q "reviewer-fire 31 "
-  expect "dispatch refuses to mint a nonce over a clean range, naming the reviewed head, and records nothing" $?
+  expect "null control (P348): a merge verdict at the reviewed head over a clean range refuses to mint, naming the reviewed head, and records nothing" $?
+  vc blocked "$h1" "metric-gamed: planted"
+  out=$(seat dispatch 31 "$hm" cmsg_C3 --reviewed-head "$h1"); rc=$?
+  [ $rc = 0 ] && echo "$out" | grep -q '^bus-nonce: ' \
+    && echo "$out" | grep -qF "review-carry: $h1 was blocked, so a fresh review is owed" \
+    && [ "$(grep -c "^31 $hm cmsg_C3 " "$W/state/dispatched")" = 1 ]
+  expect "P348: a blocked verdict at the reviewed head over a clean range mints, says why, and records (#3045 r3)" $?
+  vc merge "$h1"; vc blocked "$h2" "harness: another head"; n=$(grep -c . "$W/state/dispatched")
+  out=$(seat dispatch 31 "$hm" cmsg_C4 --reviewed-head "$h1"); rc=$?
+  [ $rc != 0 ] && echo "$out" | grep -q "review_carry: CARRY" && [ "$(grep -c . "$W/state/dispatched")" = "$n" ]
+  expect "P348: the latest verdict naming the reviewed head decides -- blocked then merge refuses, a blocked verdict at another head aside (#2962)" $?
+  git -C "$W/seat" push -q origin :refs/heads/verdict/31
+  out=$(seat dispatch 31 "$hm" cmsg_C5 --reviewed-head "$h1"); rc=$?
+  [ $rc = 0 ] && echo "$out" | grep -qF "review-carry: $h1 has no verdict, so a fresh review is owed" \
+    && [ "$(grep -c "^31 $hm cmsg_C5 " "$W/state/dispatched")" = 1 ]
+  expect "P348: a reviewed head with no verdict at all carries nothing, so it mints" $?
+  n=$(grep -c . "$W/state/dispatched")
+  out=$(HPO_BUS_REMOTE=$W/missing.git seat dispatch 31 "$hm" cmsg_C6 --reviewed-head "$h1"); rc=$?
+  [ $rc != 0 ] && echo "$out" | grep -q "cannot read verdict/31" && ! echo "$out" | grep -q '^bus-nonce: ' \
+    && [ "$(grep -c . "$W/state/dispatched")" = "$n" ]
+  expect "P348: an unreadable verdict/<pr> over a clean range refuses, and records nothing" $?
   out=$(seat dispatch 31 "$h2" cmsg_C2 --reviewed-head "$h1"); rc=$?
   [ $rc = 0 ] && echo "$out" | grep -q '^bus-nonce: ' \
     && [ "$(grep -c "^31 $h2 " "$W/state/dispatched")" = 1 ]
