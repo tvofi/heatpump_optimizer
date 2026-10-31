@@ -1,0 +1,6 @@
+merge-tree origin/main 67e09398e9383dddea40c86efd563ad336b2088c exit 0
+base paths all present: pre-edit.sh settings.json policy_lint.mjs cloud_dispatch.py pr_args.sh entities.py structure_budgets.json
+CODEOWNERS:110-111 /.claude/hooks/ and /.claude/settings.json @tvofi
+cmdHooks at base tests EDIT_TOOLS only (policy_lint.mjs:7085-7100): claim (2) true
+timing here: case prefilter 20 iters 0.005s (in-shell, no fork); python3 -c import 20 starts 0.682s
+git grep -nwE 'pkill|killall' tools/ .claude/hooks/ .github/: only prose in cloud_dispatch.py:209,1035 and pr_args.sh:199
