@@ -494,10 +494,15 @@ def carry_plan(roster: dict, transitions: list[PR], repo: str,
     return appends, refusals
 
 
-def apply_plan(roster: dict, changes: list[Change], appends: list[tuple]) -> None:
-    """The derived ops, through roster_edit's own op functions."""
+def apply_plan(roster: dict, changes: list[Change], appends: list[tuple],
+               legacy: dict | None = None) -> None:
+    """The derived ops, through roster_edit's own op functions. `legacy` is
+    the cut-over set derive() judged with: op_set_stage re-applies the closing
+    rule, so without it a `done` derived over a legacy-only group would be
+    written `carries-open` (#2733; review X1)."""
     for c in changes:
-        roster_edit.op_set_stage(roster, c.group, c.stage, c.merge_commit)
+        roster_edit.op_set_stage(roster, c.group, c.stage, c.merge_commit,
+                                 legacy=legacy)
         if c.stage == "in-progress":
             # The open pull request's number is the one the ask records; a
             # done group's record is its merge commit.
@@ -581,7 +586,7 @@ def sync(a) -> int:
         # destination this pass makes done refuses the carry, and the stage
         # writes are applied in memory first on a copy.
         projected = copy.deepcopy(roster)
-        apply_plan(projected, changes, [])
+        apply_plan(projected, changes, [], legacy)
         appends, refusals = carry_plan(projected, transitions, a.repo,
                                        a.pr_state)
         for c in changes:
@@ -626,13 +631,13 @@ def sync(a) -> int:
             # the file it lands in, never an older read.
             changes, _, transitions = derive(roster, prs, legacy)
             projected = copy.deepcopy(roster)
-            apply_plan(projected, changes, [])
+            apply_plan(projected, changes, [], legacy)
             appends, _ = carry_plan(projected, transitions, a.repo, a.pr_state)
             if not changes and not appends:
                 print(f"roster_sync: {branch} already carries these; "
                       "nothing written")
                 return False
-            apply_plan(roster, changes, appends)
+            apply_plan(roster, changes, appends, legacy)
             return True
 
         try:
