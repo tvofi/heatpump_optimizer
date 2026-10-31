@@ -1,1 +1,3 @@
-RED 42b228ec7e13ac30e49739d738dad374aa729da2 pending: none red: gate
+GREEN 42b228ec7e13ac30e49739d738dad374aa729da2 pending: none red: none
+rc=0 23:56:16
+FINAL rc=0
