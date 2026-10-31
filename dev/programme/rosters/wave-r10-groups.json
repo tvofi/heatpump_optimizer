@@ -12638,7 +12638,8 @@
     "docs/configuration.md"
    ],
    "carry": [
-    "Carry from design/R10-USER-DOCS-FINAL be9f30ec9 (item udf-wood-homes, orchestrator s9 2026-10-31). The blueprint bullet goes in docs/automations.md ## Blueprints and in the README list. The lead-time option is a row with a Default cell under its page's heading. Once you document the window attributes, resolve the <!-- [target: R10-WOOD-NOTIFY] --> marker on the Wood Cheaper Than Heat Pump row."
+    "Carry from design/R10-USER-DOCS-FINAL be9f30ec9 (item udf-wood-homes, orchestrator s9 2026-10-31). The blueprint bullet goes in docs/automations.md ## Blueprints and in the README list. The lead-time option is a row with a Default cell under its page's heading. Once you document the window attributes, resolve the <!-- [target: R10-WOOD-NOTIFY] --> marker on the Wood Cheaper Than Heat Pump row.",
+    "Carry from design/R10-USER-DOCS-FINAL 576654cce (round 2, approved by design-verdict 5b54eb18c; item udf-wood-homes; it supersedes any round-1 text of the same item): The blueprint bullet goes in `docs/automations.md` `## Blueprints` (and the README list). The lead-time option is a row with a Default cell under its page's heading. Resolve the `<!-- [target: R10-WOOD-NOTIFY] -->` marker on the Wood Cheaper Than Heat Pump row once you document the window attributes. The marker sits inline at the end of that row's last cell (section 3)."
    ],
    "resume": {
     "stage": "in-progress",
