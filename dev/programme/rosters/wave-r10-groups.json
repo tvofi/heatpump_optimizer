@@ -7334,7 +7334,7 @@
    "architect_note": "",
    "brief": "P17: app_approve.sh carry condition (3): a context-only line difference introduced by main carries in *.md files, where only ' '-prefixed context lines may differ and their count must be unchanged; +/- lines byte-identical; code files strict. Fixture controls: md-context yes / py-context no / +line no. Evidence #2547 90bab078->71a577c9 INSTRUMENTS.md L166 context.",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r10-fly-carry-doc-context",
     "commit": null,
     "last_step": null,
