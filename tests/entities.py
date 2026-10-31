@@ -1463,7 +1463,7 @@ R.check(
 # measured closure. The hero must stay a single-line `![alt](src)` —
 # the HACS rewriter checks above are why.
 _hero = _re.search(
-    r"^!\[[^\n]*\]\((docs/img/card/card-plan-chart\.[A-Za-z0-9]+)\)\s*$",
+    r"^!\[[^\n]*\]\(\./(docs/img/card/card-plan-chart\.[A-Za-z0-9]+)\)\s*$",
     readme,
     _re.M,
 )
