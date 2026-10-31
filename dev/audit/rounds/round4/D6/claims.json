@@ -2,9 +2,9 @@
  {
   "id": "C1",
   "source": "README.md:Entities",
-  "claim": "All 81 entities are created on every install",
+  "claim": "All 82 entities are created on every install",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "documented=81 measured=81",
+  "result": "documented=82 measured=82",
   "verdict": "true",
   "truth": ""
  },
@@ -29,18 +29,18 @@
  {
   "id": "C4",
   "source": "README.md:### Buttons",
-  "claim": "Buttons (5 total)",
+  "claim": "Buttons (6 total)",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "documented=5 measured=5",
+  "result": "documented=6 measured=6",
   "verdict": "true",
   "truth": ""
  },
  {
   "id": "C5",
   "source": "docs/architecture.md:mermaid",
-  "claim": "81 entities / 62 sensors / 6 binary sensors / 5 buttons / 6 switches / 1 climate / 1 datetime",
+  "claim": "82 entities / 62 sensors / 6 binary sensors / 6 buttons / 6 switches / 1 climate / 1 datetime",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "documented=(81, 62, 6, 5, 6, 1, 1) measured=(81, 62, 6, 5, 6, 1, 1)",
+  "result": "documented=(82, 62, 6, 6, 6, 1, 1) measured=(82, 62, 6, 6, 6, 1, 1)",
   "verdict": "true",
   "truth": ""
  },
@@ -112,7 +112,7 @@
   "source": "README.md:### Buttons",
   "claim": "the button table names exactly the buttons the platform constructs",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "documented=['Learning Finalize Debug Collection', 'Learning Reset Comfort Weight', 'Learning Run System Identification', 'Optimize Now', 'Prediction Accuracy Diagnose Last Interval'] measured=['Learning Finalize Debug Collection', 'Learning Reset Comfort Weight', 'Learning Run System Identification', 'Optimize Now', 'Prediction Accuracy Diagnose Last Interval']",
+  "result": "documented=['Learning Finalize Debug Collection', 'Learning Reset Comfort Weight', 'Learning Reset Heat Loss', 'Learning Run System Identification', 'Optimize Now', 'Prediction Accuracy Diagnose Last Interval'] measured=['Learning Finalize Debug Collection', 'Learning Reset Comfort Weight', 'Learning Reset Heat Loss', 'Learning Run System Identification', 'Optimize Now', 'Prediction Accuracy Diagnose Last Interval']",
   "verdict": "true",
   "truth": ""
  },
@@ -128,18 +128,18 @@
  {
   "id": "C15",
   "source": "README.md:## Services",
-  "claim": "13 services are registered under the heatpump_optimizer domain",
+  "claim": "14 services are registered under the heatpump_optimizer domain",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "documented=13 measured=13",
+  "result": "documented=14 measured=14",
   "verdict": "true",
   "truth": ""
  },
  {
   "id": "C16",
   "source": "docs/configuration.md:## Services",
-  "claim": "13 services are registered",
+  "claim": "14 services are registered",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "documented=13 measured=13",
+  "result": "documented=14 measured=14",
   "verdict": "true",
   "truth": ""
  },
@@ -148,7 +148,7 @@
   "source": "README.md:## Services",
   "claim": "the Services table names exactly services.yaml's keys",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "documented=['apply_manual_plan', 'apply_schedule', 'apply_topology', 'assign_entity', 'clear_manual_plan', 'debug_collect', 'diagnose_interval', 'restore_learned_snapshot', 'run_optimization', 'set_away', 'set_mode', 'set_thermal_parameters', 'simulate_plan'] measured=['apply_manual_plan', 'apply_schedule', 'apply_topology', 'assign_entity', 'clear_manual_plan', 'debug_collect', 'diagnose_interval', 'restore_learned_snapshot', 'run_optimization', 'set_away', 'set_mode', 'set_thermal_parameters', 'simulate_plan']",
+  "result": "documented=['apply_manual_plan', 'apply_schedule', 'apply_topology', 'assign_entity', 'clear_manual_plan', 'debug_collect', 'diagnose_interval', 'reset_heat_loss_learners', 'restore_learned_snapshot', 'run_optimization', 'set_away', 'set_mode', 'set_thermal_parameters', 'simulate_plan'] measured=['apply_manual_plan', 'apply_schedule', 'apply_topology', 'assign_entity', 'clear_manual_plan', 'debug_collect', 'diagnose_interval', 'reset_heat_loss_learners', 'restore_learned_snapshot', 'run_optimization', 'set_away', 'set_mode', 'set_thermal_parameters', 'simulate_plan']",
   "verdict": "true",
   "truth": ""
  },
@@ -173,9 +173,9 @@
  {
   "id": "C20",
   "source": "docs/configuration.md",
-  "claim": "eight services accept an optional entry_id",
+  "claim": "nine services accept an optional entry_id",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "documented=8 measured=8",
+  "result": "documented=9 measured=9",
   "verdict": "true",
   "truth": ""
  },
@@ -193,7 +193,7 @@
   "source": "services.yaml",
   "claim": "every services.yaml `example` payload passes its own service schema",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "services with examples=8, failures=[]",
+  "result": "services with examples=9, failures=[]",
   "verdict": "true",
   "truth": ""
  },
@@ -202,7 +202,7 @@
   "source": "README.md:## Services",
   "claim": "the Returns column is each service's registered SupportsResponse (\u2014 = none, Always = ONLY, Optional = OPTIONAL)",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "documented={'run_optimization': '\u2014', 'set_away': '\u2014', 'set_mode': '\u2014', 'set_thermal_parameters': '\u2014', 'simulate_plan': 'Always', 'apply_schedule': 'Optional', 'apply_manual_plan': 'Optional', 'clear_manual_plan': 'Optional', 'restore_learned_snapshot': 'Optional', 'diagnose_interval': 'Optional', 'debug_collect': 'Optional', 'assign_entity': 'Optional', 'apply_topology': 'Optional'}, registered={'run_optimization': 'none', 'set_mode': 'none', 'set_away': 'none', 'set_thermal_parameters': 'none', 'simulate_plan': 'only', 'apply_schedule': 'optional', 'assign_entity': 'optional', 'apply_topology': 'optional', 'apply_manual_plan': 'optional', 'clear_manual_plan': 'optional', 'restore_learned_snapshot': 'optional', 'diagnose_interval': 'optional', 'debug_collect': 'optional'}, mismatches=[]",
+  "result": "documented={'run_optimization': '\u2014', 'set_away': '\u2014', 'set_mode': '\u2014', 'set_thermal_parameters': '\u2014', 'simulate_plan': 'Always', 'apply_schedule': 'Optional', 'apply_manual_plan': 'Optional', 'clear_manual_plan': 'Optional', 'restore_learned_snapshot': 'Optional', 'reset_heat_loss_learners': 'Optional', 'diagnose_interval': 'Optional', 'debug_collect': 'Optional', 'assign_entity': 'Optional', 'apply_topology': 'Optional'}, registered={'run_optimization': 'none', 'set_mode': 'none', 'set_away': 'none', 'set_thermal_parameters': 'none', 'simulate_plan': 'only', 'apply_schedule': 'optional', 'assign_entity': 'optional', 'apply_topology': 'optional', 'apply_manual_plan': 'optional', 'clear_manual_plan': 'optional', 'restore_learned_snapshot': 'optional', 'reset_heat_loss_learners': 'optional', 'diagnose_interval': 'optional', 'debug_collect': 'optional'}, mismatches=[]",
   "verdict": "true",
   "truth": ""
  },
@@ -326,18 +326,18 @@
  {
   "id": "C37",
   "source": "docs/architecture.md:module map",
-  "claim": "__init__.py -- the 13 services",
+  "claim": "__init__.py -- the 14 services",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "documented=13 measured=13",
+  "result": "documented=14 measured=14",
   "verdict": "true",
   "truth": ""
  },
  {
   "id": "C38",
   "source": "docs/architecture.md:module map",
-  "claim": "services.yaml -- The 13 service definitions",
+  "claim": "services.yaml -- The 14 service definitions",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "documented=13 measured=13",
+  "result": "documented=14 measured=14",
   "verdict": "true",
   "truth": ""
  },
@@ -1030,7 +1030,7 @@
   "source": "README.md",
   "claim": "the Swedish translation actually differs from the English entity names",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "0 of 81 entity names identical in sv and en",
+  "result": "0 of 82 entity names identical in sv and en",
   "verdict": "true",
   "truth": ""
  },

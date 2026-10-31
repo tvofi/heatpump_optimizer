@@ -2053,6 +2053,9 @@
       "learning_reset_comfort_weight": {
         "name": "Learning Reset Comfort Weight"
       },
+      "learning_reset_heat_loss": {
+        "name": "Learning Reset Heat Loss"
+      },
       "learning_run_system_identification": {
         "name": "Learning Run System Identification"
       },
@@ -2468,6 +2471,20 @@
         "source": {
           "name": "Restart point",
           "description": "The weekly snapshot (default), or the drift advisor's heat-loss refit."
+        }
+      }
+    },
+    "reset_heat_loss_learners": {
+      "name": "Reset Heat Loss Learning",
+      "description": "Return the learned house heat loss scale and the learned lower floor loss ratio to 1.0, so the plan uses the heat loss values in the settings as they stand, and the learners start collecting evidence again from there. Use this after you have corrected those settings, moved a temperature sensor, or when the learned values have visibly gone wrong. Only these two are reset: the comfort weight, the hot water, COP and defrost learners are left as they are. The plan is recalculated straight away.",
+      "fields": {
+        "entry_id": {
+          "name": "Config entry",
+          "description": "Restrict the reset to one config entry. Leave empty to reset every configured heat pump."
+        },
+        "learners": {
+          "name": "Learners",
+          "description": "Which to reset: the house heat loss scale, the lower floor loss ratio, or both. Leave empty to reset both."
         }
       }
     },

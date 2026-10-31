@@ -232,7 +232,7 @@ single field takes the same grammar, including day selectors such as
 | Rain sensitivity | 1.15 | 1.0–1.5, 0.01 steps | Loss multiplier while it is raining. 1.0 means rain makes no difference. |
 
 Saving this page moves to the read-only review screen — confirming there is
-what creates the entry. All 81 entities appear at once and the first plan is
+what creates the entry. All 82 entities appear at once and the first plan is
 solved within one optimization interval.
 
 ---
@@ -953,13 +953,13 @@ feeding the buffer tank — its heat is folded in rather than stored separately.
 
 ## Services
 
-13 services are registered under the `heatpump_optimizer` domain. The eight
+14 services are registered under the `heatpump_optimizer` domain. The nine
 that act on a specific config entry also accept an optional `entry_id`; omitting
 it applies the call to every loaded entry, which is what a single-heat-pump
-install wants. Of those eight, `assign_entity`, `apply_topology`,
+install wants. Of those nine, `assign_entity`, `apply_topology`,
 `apply_schedule` and `debug_collect` write configuration back into the entry —
 `debug_collect`'s start turns the collection option on, which reloads the
-entry — and the other four act on the running coordinator. `run_optimization`,
+entry — and the other five act on the running coordinator. `run_optimization`,
 `set_away`, `set_mode`, `set_thermal_parameters` and `simulate_plan` always act
 on every loaded entry.
 
@@ -981,6 +981,7 @@ or is not loaded — fails with a validation error rather than doing nothing.
 | `apply_manual_plan` | `space_slots`, `dhw_slots`, `expires_at`, `entry_id` | optional |
 | `clear_manual_plan` | `entry_id` | optional |
 | `restore_learned_snapshot` | `entry_id` | optional |
+| `reset_heat_loss_learners` | `learners`, `entry_id` | optional |
 | `diagnose_interval` | `entry_id` | optional |
 | `debug_collect` | `action` (required), `entry_id` | optional |
 
@@ -1096,6 +1097,15 @@ weekly snapshot — the manual counterpart of the drift watchdog. When no
 snapshot qualifies (healthy inputs and in-band accuracy at capture time are
 required) the call fails with an error instead of answering with an empty
 restore.
+**`reset_heat_loss_learners`** returns the learned house heat loss scale and the
+learned lower floor loss ratio to 1.0, so the plan uses the heat loss values in
+the settings as they stand, and the learners start collecting evidence again
+from there; the plan is recalculated straight away. `learners` names which:
+`house_heat_loss_scale`, `lower_floor_loss_ratio`, or both when left empty. The
+comfort weight and the hot-water, COP and defrost learners are left alone. The
+**Learning Reset Heat Loss** button resets both. Changing the indoor or the
+lower-floor temperature sensor resets the learner fitted on it the same way,
+because evidence fitted against one sensor says nothing about another.
 **`diagnose_interval`** attributes the last interval's temperature error
 input by input and publishes the result on the Prediction Accuracy sensor.
 **`debug_collect`** takes `action`: `start`, `stop` or `status`. Collect a week of debug data is the learning page's option that turns the collection on. `start` turns
