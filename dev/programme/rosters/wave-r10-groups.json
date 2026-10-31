@@ -2672,7 +2672,7 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "carries-open",
+    "stage": "in-progress",
     "branch": "handoff/r10-prepr-cap",
     "commit": "e3f3b312fff572904f24d78a44a2c4492b1a8ddb",
     "last_step": null,
