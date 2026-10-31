@@ -142,7 +142,7 @@ ITEM_REF = re.compile(r"\(item\s+([0-9a-f]{8})\)")
 CODE_SPAN = re.compile(r"(?<!`)(`+)(?!`)[\s\S]*?(?<!`)\1(?!`)")
 GROUP_TOK = re.compile(r"\A[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)+\Z")
 ISSUE_TOK = re.compile(r"\A#(\d+)\Z")
-BRIEF_TOK = re.compile(r"\AO(\d+)(?:-[a-z0-9][a-z0-9-]*)?\Z")
+BRIEF_TOK = re.compile(r"\AO(\d+)\Z")
 
 
 # ------------------------------------------------------------------ parsing
