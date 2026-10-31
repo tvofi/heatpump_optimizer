@@ -738,3 +738,4 @@ coord_dhw  # R10-COP-GATE p5 (A): model_status cop row gains cop_observability, 
 coord_grid_fee  # R10-COP-GATE p5 (A): model_status cop row gains cop_observability, cop_refusal, measured_cop_at, copied from the learning view (additions only)
 coord_minimal  # R10-COP-GATE p5 (A): model_status cop row gains cop_observability, cop_refusal, measured_cop_at, copied from the learning view (additions only)
 coord_two_zone  # R10-COP-GATE p5 (A): model_status cop row gains cop_observability, cop_refusal, measured_cop_at, copied from the learning view (additions only)
+config_flow  # R10-FACTORY-RESET: the factory_reset options page joins the advanced menu (16 entries, was 15), its two transient fields (scope, confirm) and its seeded copy; keys added, no value moved
