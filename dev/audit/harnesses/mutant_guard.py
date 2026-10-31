@@ -35,7 +35,19 @@ import subprocess
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[3]
+
+
+def _repo_root() -> Path:
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    here = Path(__file__).resolve().parent
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise SystemExit("mutant_guard: no repo root above " + str(here))
+
+
+ROOT = _repo_root()
 REFUSE_RC = 2
 MISMATCH_RC = 1
 
