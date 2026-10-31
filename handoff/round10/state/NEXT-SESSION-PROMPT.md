@@ -20,6 +20,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-COP-PARTLOAD (stage carries-open, branch `handoff/r10-cop-partload`): `git fetch origin handoff/r10-cop-partload && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLOW-BOARD (stage carries-open, branch `handoff/r10-flow-board`): `git fetch origin handoff/r10-flow-board && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLOW-DESIGN-STAGES (stage carries-open, branch `handoff/r10-flow-design-stages`): `git fetch origin handoff/r10-flow-design-stages && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-FLOW-BODY-ONLY (stage in-progress, branch `handoff/r10-flow-body-only`): `git fetch origin handoff/r10-flow-body-only && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-OPENPR-ATOMIC (stage carries-open, branch `handoff/r10-fly-openpr-atomic`): `git fetch origin handoff/r10-fly-openpr-atomic && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-RELAY-REVIEW-FF (stage carries-open, branch `handoff/r10-fly-relay-review-ff`): `git fetch origin handoff/r10-fly-relay-review-ff && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-TRAIN-OVERLAP-GRADE (stage carries-open, branch `handoff/r10-train-overlap-grade`): `git fetch origin handoff/r10-train-overlap-grade && git worktree add --detach $SEAT/wt FETCH_HEAD`
