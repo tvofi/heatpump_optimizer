@@ -529,7 +529,8 @@
           "learning_features": "Advanced learning features",
           "grid_connection": "Fuse and peak guards",
           "grid_fees": "Transfer fees and contract",
-          "heat_curve": "Heat curve control (ECL110)"
+          "heat_curve": "Heat curve control (ECL110)",
+          "factory_reset": "Reset to factory defaults"
         }
       },
       "setup_overview": {
@@ -1498,6 +1499,18 @@
           "after_save": "Saving writes through immediately; this chooses where the dialog goes next.",
           "prefill_offer": "When on, setting up a new entry offers this page if a heat-pump device added to this install can fill any of these settings. Off by default: the setup wizard is unchanged while it is off, and this switch is stored, so it survives a restart."
         }
+      },
+      "factory_reset": {
+        "title": "Reset to factory defaults",
+        "description": "Return the optimizer to the state of a fresh installation. Choose what to reset:\n\n- **Settings**: every setting on these pages (comfort, hot water, prices and fees, the thermal model, modes and features) goes back to its default. Your sensors and other assigned entities, the zones and emitters, the hot water tank, valve and furnace layout, the price source and the main fuse are kept, so the optimizer stays connected to your house.\n- **Learned values**: everything the optimizer has learned about your house is forgotten (heat loss, the lower floor's share, the comfort weight, COP, hot water cooling and use, defrost, the heat curve and the prediction accuracy history), and learning starts again from the settings.\n- **Both**.\n\nBefore anything changes, a snapshot is taken. Until the next weekly snapshot, about a week, the Restore learned snapshot action undoes the reset: the settings and learned values come back as they were, with your sensors as they are now. The integration then reloads and plans again straight away.",
+        "data": {
+          "scope": "What to reset",
+          "confirm": "Yes, reset"
+        },
+        "data_description": {
+          "scope": "Settings, learned values, or both.",
+          "confirm": "Nothing changes unless this is ticked: submitted unticked, the menu comes back."
+        }
       }
     },
     "error": {
@@ -1528,6 +1541,10 @@
       "flow_curve_needs_direct_plant": "Pricing the supply temperature lift is for a system with no mixing valve. With a valve the buffer tank's temperature already prices the lift, so this would count it twice. Set the valve to \"No mixing valve\" or turn this off.",
       "prefill_device_unreadable": "That device could not be read. Its integration has no mapping here yet, or none of its entities holds a value. Leave the device empty and name a Modbus package prefix instead.",
       "dhw_windows_day_selector": "This field already names its day, so enter plain times only, e.g. 06:00-08:30. Day selectors like 'weekdays' belong in the ordinary windows field above."
+    },
+    "abort": {
+      "factory_reset_done": "Reset done. The integration has reloaded and is planning again. To undo the reset, run the Restore learned snapshot action.",
+      "factory_reset_not_loaded": "The integration is not running, so there is nothing to reset. Fix what stopped it, then try again."
     }
   },
   "selector": {
@@ -1656,6 +1673,13 @@
         "off": "Off",
         "observe": "Observe (log only)",
         "control": "Control (write mode and set-points)"
+      }
+    },
+    "factory_reset_scope": {
+      "options": {
+        "settings": "Settings",
+        "learners": "Learned values",
+        "both": "Settings and learned values"
       }
     }
   },
@@ -2460,7 +2484,7 @@
     },
     "restore_learned_snapshot": {
       "name": "Restore Learned Snapshot",
-      "description": "Roll every learner back to the most recent weekly snapshot that was captured while all inputs were healthy and prediction accuracy was in band. Use this if the learned model has visibly gone wrong — after a sensor fed garbage for a while, for example. The drift watchdog does the same thing automatically when it can prove the inputs were healthy throughout; this service is the manual override for when you can see what it cannot. Nothing is lost permanently: learning simply continues from the restored point. The call fails with an error when no snapshot qualifies, instead of answering with an empty restore. With the source set to the heat-loss refit, it instead accepts the drift advisor's refit of the house heat-loss scale, offered while the drift alarm is raised and three settled days of evidence exist.",
+      "description": "Roll every learner back to the most recent weekly snapshot that was captured while all inputs were healthy and prediction accuracy was in band. Use this if the learned model has visibly gone wrong — after a sensor fed garbage for a while, for example. The drift watchdog does the same thing automatically when it can prove the inputs were healthy throughout; this service is the manual override for when you can see what it cannot. Nothing is lost permanently: learning simply continues from the restored point. The call fails with an error when no snapshot qualifies, instead of answering with an empty restore. With the source set to the heat-loss refit, it instead accepts the drift advisor's refit of the house heat-loss scale, offered while the drift alarm is raised and three settled days of evidence exist. Until the next weekly snapshot after a factory reset, it undoes that reset instead: the settings and learned values come back as they were before it, with the sensors and other entities as they are now.",
       "fields": {
         "entry_id": {
           "name": "Config entry",
@@ -2507,6 +2531,20 @@
         "entry_id": {
           "name": "Config entry",
           "description": "Restrict the action to one config entry. Leave empty to act on every configured heat pump."
+        }
+      }
+    },
+    "factory_reset": {
+      "name": "Reset to Factory Defaults",
+      "description": "Return one heat pump's settings, its learned values, or both to the state of a fresh installation. Sensors and other assigned entities, the zone, emitter, tank, valve and furnace layout, the price source and the main fuse are kept. A snapshot is taken first, and Restore learned snapshot undoes the reset until the next weekly snapshot. The integration reloads and plans again straight away.",
+      "fields": {
+        "entry_id": {
+          "name": "Config entry",
+          "description": "The config entry to reset."
+        },
+        "scope": {
+          "name": "Scope",
+          "description": "Settings, learned values, or both."
         }
       }
     }
