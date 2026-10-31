@@ -12887,6 +12887,49 @@
     "note": "2026-10-30 (triage: dev/programme/triage/s6-batch75.md#P309); the probe's report is the body at handoff-body/r10-rca-jidoka-yield c8f3acd99"
    },
    "brief": "From triage P309 (root-cause probe R10-RCA-JIDOKA-YIELD, filed by the orchestrator s8 2026-10-30): the RCA's own countermeasure M1, plus landing the RCA. (1) Land the report's text (the body at handoff-body/r10-rca-jidoka-yield c8f3acd99, the part after its first paragraph) as the RCA document in the dev/audit/rca directory, named for this group; it sits under the dev/audit/ INERT prefix of tests/closure.py (line 321), so confirm with tests/entities.py that no new classification is owed. (2) M1 in tools/audit/carry_audit.py items(), body branch (the final else, line 222 at 437f1ba9b): an item outside the carry sections that names a roster carry index with a not-done phrase is a finding item `[owed carry]`, needing a `Carry:` marker. Use the probe's OWED_CARRY pattern, matched on the item text with code spans and double-quoted text removed first (narrowing: unstripped, the probe's own report body flips on two quoted items, 00929b43 and 5bfb2857). Failing test first: the #3010 r1 body (da4e6e9ea BODY.md) gives `0 finding item(s)` at main and must give UNROUTED item c78ecb78 [owed carry], rc 1; the same body with ` Carry: R10-FLY-TRAIN-DEFAULTS` appended to that paragraph gives 1 routed, rc 0. Null controls: re-run over every handoff-body/* tip; measured by triage at 223 bodies, the unstripped arm flips 10, the 9 the probe lists plus its own report; with the strip, exactly the 9 real catches flip and the report does not. A carry index in a code span or quotes is not read. One mutant: drop the strip and the quotation row fails; a second drops the arm and the #3010 row fails. Register the arm in tools/policy/field_coverage.mjs. (3) Correct the WHY at tools/pr/prepr.sh lines 974-978: carry-missing is fix-review step 10 (the destination holds the finding), which carry_audit's marker-and-liveness test does not judge; state process state (c) and cite the RCA document. Not in scope: M2 (P310, the landed arm, R10-FLY-RELAY-REVIEW-FF carry 0) and shape B (P311, deferred). triage: dev/programme/triage/s6-batch75.md#P309"
+  },
+  {
+   "group": "R10-FLY-BASH-KILL-GUARD",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "instrument",
+   "severity": "high",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 6,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    ".claude/hooks/pre-edit.sh",
+    ".claude/settings.json",
+    "tools/policy/policy_lint.mjs"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-fly-bash-kill-guard",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer (S; hook, settings entry and policy_lint matcher fix in one PR; code-owned)",
+    "note": "2026-10-31 (triage: dev/programme/triage/s6-batch86.md#P323); the new Bash hook script is created beside .claude/hooks/pre-edit.sh"
+   },
+   "brief": "From triage P323 (orchestrator s8, 2026-10-31): a seat ran `pkill -f` with an empty pattern while restarting its watch loop. The 2026-10-15 instance (#2216's fixer, `pkill -f tests/entities.py`) killed every seat's run of that script. The seat preamble and the memory note both forbid it, so the rule is in process state (b). (1) Add a new hook script beside `.claude/hooks/pre-edit.sh`, the Bash hook. Wire it in `.claude/settings.json` as a PreToolUse hook with matcher `Bash`. Model it on `pre-edit.sh`: the payload is passed as an argument, the hook fails open on anything it cannot parse, and it exits 2 only on a positive match. - First, a bash `case` prefilter exits 0 on any payload without the substring `kill`. Measured: about 3 ms per call against about 26 ms for a python start. - Then it reads `tool_input.command` and refuses at command position (line start, or after `;`, `&&`, `||`, `|`, `$(`, a backtick, `sudo`, `xargs` or `env`) each of: - `pkill` with any arguments; - `killall`; - `kill` fed by `pgrep`. - Heredoc bodies are not read. - The refusal names the preamble rule and the alternative (`$!` or a pidfile). (2) Fix `tools/policy/policy_lint.mjs`'s hooks check (`cmdHooks`). It tests every PreToolUse matcher against its list of edit tools only, so it would report this hook's `Bash` matcher as `MATCHER BLIND`. Key the tool set on the hook script instead: `pre-edit.sh` keeps the edit tools, and the Bash hook is tested against `Bash`. Add the Bash hook to its `REQUIRED` list. (3) Self-test rows: - Refused: - `pkill -f \"\"`; - `pkill -f tests/entities.py`; - `pkill python3`; - `killall python3`; - `kill $(pgrep -f x)`; - `pgrep -f x | xargs kill`; - `cd /tmp && pkill -f x`; - `sudo pkill x`. - Allowed: - `kill 1234`; - `kill $!`; - `kill $(cat run.pid)`; - `grep -n pkill file`; - `git log --grep=killall`; - `echo \"never pkill\"`; - a heredoc whose body holds `pkill -f x`; - `git status`, which takes the prefilter path. (4) Mutants: - Drop the command-position anchor, and the `grep -n pkill` row fails. - Drop the `killall` arm, and its row fails. - Drop the pgrep-feed arm, and the `xargs kill` row fails. - Make `policy_lint`'s matcher test edit-only again, and it reports `MATCHER BLIND`. (5) Classify the new script for `tests/entities.py`. (6) Ownership and effect. `.claude/hooks/` and `.claude/settings.json` are code-owned (`@tvofi`), so the PR merges on tvofi's approving review or under mandate 6329234399. A local seat loads hooks from the checkout it runs in, so the hook protects local seats only once the orchestrator advances that checkout. Cloud seats get it from their fresh checkout, and a cloud seat's kill reaches only its own container, so the exposure is the shared local host. The interim, the orchestrator's call: this host already runs user-level PreToolUse Bash hooks outside the tree (the main-checkout guard), and the same script installed there protects every local seat at once, before the checkout advances. Not in scope: the `pkill` mentions in prose in `tools/audit/seat/cloud_dispatch.py` and `tools/audit/seat/pr_args.sh`, which are rules, not calls. triage: dev/programme/triage/s6-batch86.md#P323"
   }
  ]
 }
