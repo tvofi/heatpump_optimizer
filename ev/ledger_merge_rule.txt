@@ -1,0 +1,10 @@
+def merge3(base, ours, theirs, *, numbers: str, path: str = "",
+           repo: str = ROOT, notes: list | None = None, depth: int = 0):
+    """Three-way merge of parsed JSON values; raises ``Refuse``."""
+    notes = notes if notes is not None else []
+    if ours == theirs:
+        return ours
+    if ours == base:
+        return theirs
+    if theirs == base:
+        return ours
