@@ -12847,7 +12847,8 @@
    ],
    "carry": [],
    "resume": {
-    "stage": "in-progress"
+    "stage": "in-progress",
+    "pr": 3042
    },
    "brief": "Two reds prepr's CI-predict step should have predicted and did not, both in tools/pr/ci_predict.py, the cheaper detector for CI reds (defect-root-cause.md).\n(1) wiring_preds keeps only lines starting '  UNWIRED ' from selftest_wiring.py --check, and drops MISMATCH, UNINDEXED, DUPLICATE and MISSING. So #3004 round 3 went red on governance / instrument-self-tests (MISMATCH on the instrument page that PR adds) while prepr predicted green, which cost a review round (round-4 fixer finding, 2026-10-30). Widen it to return every --check gap line naming a changed file. Control: a planted-MISMATCH self-test arm is red before the change and green after; an unchanged tree predicts nothing.\n(2) A `null_for` pre-check in `tools/pr/ci_predict.py`, the cheaper detector. `prepr.sh` step 6d predicts the `mutation` ratchet but not the null-control refusal, so a pool with no null control first shows red in CI (#2997, rounds 1 and 2). The check runs `mutation_table.null_for` over the diff's pool of candidate sites and prints `PREDICT tests / mutation NO NULL CONTROL` when it returns None. `ci-autofix.md`'s table should name the refusal in the same change, since no autofix job repairs it. After this PR the refusal remains only for a pool of comment-free files, which by Figures' census rule are `flow_meter.py`, `silent_mode.py` and `wood_fuel.py`. Control for the carry: on a branch whose pool is only `flow_meter.py`, the pre-check prints the refusal; on this head's pool (`button.py`, null control at line 37) it prints nothing.  (Source: PR #2997 round-3 body, handoff-body/r10-ux-health-p2 01ff82ba.)\nOne pull request; ci-autofix.md's table names any refusal no autofix job repairs. ci-autofix.md is policy: the orchestrator approves under the mandate."
   },
