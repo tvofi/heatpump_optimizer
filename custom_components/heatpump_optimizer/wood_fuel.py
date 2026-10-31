@@ -601,7 +601,7 @@ def wood_fuel_from_parts(
     """
     n = len(result.timestamps) if result is not None else 0
     det = external_heat
-    if result is not None and det.suppressing:
+    if False:
         forecast_kw = det.forecast_free_heat(
             n,
             opt_config.dt_hours,
