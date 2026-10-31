@@ -67,7 +67,7 @@ M = {
 'R25 GAP: whitespace narrowed to one literal space':('const GAP = String.raw`(?:\\s|\\\\\\n|,|(?:#|\\/\\/)[^\\n]*\\n|\\/\\*[\\s\\S]*?\\*\\/|["\'${\'`\'}][^\\S\\n]*["\'${\'`\'}])+`','const GAP = String.raw`(?: |\\\\\\n|,|(?:#|\\/\\/)[^\\n]*\\n|\\/\\*[\\s\\S]*?\\*\\/|["\'${\'`\'}][^\\S\\n]*["\'${\'`\'}])+`'),
 'R26 GAP: one separator only, no run':('const GAP = String.raw`(?:\\s|\\\\\\n|,|(?:#|\\/\\/)[^\\n]*\\n|\\/\\*[\\s\\S]*?\\*\\/|["\'${\'`\'}][^\\S\\n]*["\'${\'`\'}])+`','const GAP = String.raw`(?:\\s|\\\\\\n|,|(?:#|\\/\\/)[^\\n]*\\n|\\/\\*[\\s\\S]*?\\*\\/|["\'${\'`\'}][^\\S\\n]*["\'${\'`\'}])`'),
 'T1 triple quote not one mark':('  if (c === \'"\' || c === "\'") { st.q = text.startsWith(c.repeat(3), i) ? c.repeat(3) : c; return st.q.length }','  if (c === \'"\' || c === "\'") { st.q = false ? c.repeat(3) : c; return st.q.length }'),
-'T2 a line end inside a triple quote ends the call':('      if (st.q.length === 3) continue\n',''),
+'T2 a line end inside a triple quote ends the call':('      if (spansLines(st)) continue\n',''),
 'B1 a blank line ends a bracketed call in every file':("    const text = read(f); const kind = /\\.py$/.test(f) ? 'py' : /\\.(mjs|js|cjs)$/.test(f) ? 'js' : 'sh'","    const text = read(f); const kind = 'sh'"),
 'Y6 calls.push deleted':('      calls.push(f)\n', ''),
 'R4 word: the end-of-word lookahead dropped':('const word = (w) => `${QUOTE}?(?<![\\\\w$./-])${w}${QUOTE}?(?![\\\\w-])`', 'const word = (w) => `${QUOTE}?(?<![\\\\w$./-])${w}${QUOTE}?`'),

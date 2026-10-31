@@ -829,9 +829,10 @@ async function selfTest() {
     probes.push([`null control: ${what} running pr view is not a merge call`, !guard([], { ...writers, [f]: src('view') }).length])
   }
   // The Python and JS read from the file's start opens nothing a closed group, a
-  // block comment or a template literal above the call holds, so the next
-  // statement's flag is not the call's.
-  const after = (q) => `${q}run(["gh", "pr", "merge", n])\nother("--subject", s)\n`
+  // block comment or a template literal above the call holds, so a call in no
+  // bracket of its own ends with its line and the next statement's flag is not
+  // the call's.
+  const after = (q) => `${q}cmd = "gh pr merge 9"\nother("--subject", s)\n`
   probes.push(['null control: a bracket group closed above a blank line, in a Python or JS file, opens nothing',
     ['tools/x.py', 'tools/x.mjs'].every((f) => !guard([], { ...writers, [f]: after('x = (\n  1,\n)\n\n') }).length)])
   probes.push(['null control: a bracket in a JS block comment above the call opens nothing',
