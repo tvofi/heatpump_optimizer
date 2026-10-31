@@ -1,0 +1,11 @@
+p1: taken slot=0 label=p1 expires_at=2026-10-31T19:08:01.139729+00:00
+p2: taken slot=1 label=p2 expires_at=2026-10-31T19:08:01.231148+00:00
+p3: taken slot=2 label=p3 expires_at=2026-10-31T19:08:01.331965+00:00
+p4: taken slot=3 label=p4 expires_at=2026-10-31T19:08:01.437834+00:00
+p5 --no-wait: BlockingIOError: all 4 heavy slots held: 0:p1 until 2026-10-31 19:08:01.139729+00:00; 1:p2 until 2026-10-31 19:08:01.231148+00:00; 2:p3 until 2026-10-31 19:08:01.331965+00:00; 3:p4 until 2026-10-31 19:08:01.437834+00:00
+p5 queued (blocking) after 3 s: gate_lock: waiting for a heavy slot (0:p1 until 2026-10-31 19:08:01.139729+00:00; 1:p2 until 2026-10-31 19:08:01.231148+00:00; 2:p3 until 2026-10-31 19:08:01.331965+00:00; 3:p4 until 2026-10-31 19:08:01.437834+00:00)
+released
+p5 after p1 released: gate_lock: waiting for a heavy slot (0:p1 until 2026-10-31 19:08:01.139729+00:00; 1:p2 until 2026-10-31 19:08:01.231148+00:00; 2:p3 until 2026-10-31 19:08:01.331965+00:00; 3:p4 until 2026-10-31 19:08:01.437834+00:00) taken slot=0 label=p5 expires_at=2026-10-31T19:08:06.602946+00:00 rc=0 
+HPO_HEAVY_SLOTS=9 clamp: ['HEAVY_SLOTS', 'SLOTS_ENV', 'SLOTS_OWNER_ENV', 'SLOT_LABEL_ENV', 'SLOT_MIN_SECONDS', 'SLOT_PREFIX'] 4
+nested: holding_slot True
+needs-lease stress: lease ; structure.py: none; features.py: slot

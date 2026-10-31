@@ -1,0 +1,18 @@
+MUTANT ca-drop-strip rc=1 fails: FAIL an owed-carry phrase inside double quotes is not read;FAIL ... nor one inside a code span;
+  last: carry_audit self-test: 211 checks, 2 failed
+MUTANT ca-drop-arm rc=1 fails: FAIL an owed roster carry in an untitled paragraph is an unrouted [owed carry] item;FAIL the same paragraph with a Carry: marker routes (null control);
+  last: carry_audit self-test: 211 checks, 2 failed
+MUTANT ca-drop-quote rc=1 fails: FAIL an owed-carry phrase inside double quotes is not read;
+  last: carry_audit self-test: 211 checks, 1 failed
+MUTANT gl-no-lapse rc=1 fails: 
+  last: RuntimeError: no live gate lease to renew
+MUTANT gl-no-witness rc=1 fails:   FAIL a label that never held one is still refused;
+  last: 1 of 40 gate lock acceptance checks FAILED
+MUTANT gl-no-waiter rc=1 fails:   FAIL one with a waiting ticket re-queues and does not run beside it  [ran=True];  FAIL a label that never held one is still refused;
+  last: 2 of 40 gate lock acceptance checks FAILED
+MUTANT gl-marker rc=1 fails:   FAIL and exits WAIT_BOUND_RC with one line and the marker  [rc=76 err='gate_lock: waiting for the lease held by holder until 2026-10-31 18:30:17.355552+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)\ngate_lock: waited 0 s for the lease held by holder until 2026-10-31 18:30:17.355552+00:00, past its bound of 0 s; w gives up the wait\n'];
+  last: 1 of 40 gate lock acceptance checks FAILED
+MUTANT gl-rc rc=1 fails:   FAIL and exits WAIT_BOUND_RC with one line and the marker  [rc=0 err='gate_lock: waiting for the lease held by holder until 2026-10-31 18:30:28.037324+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)\ngate_lock: waited 0 s for the lease held by holder until 2026-10-31 18:30:28.037324+00:00, past its bound of 0 s; w gives up the wait\n'];
+  last: 1 of 40 gate lock acceptance checks FAILED
+MUTANT gl-no-bound rc=1 fails: 
+  last: RuntimeError: lease held by w, not holder

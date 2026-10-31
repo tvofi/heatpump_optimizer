@@ -1,0 +1,4 @@
+     FAIL a ledger FINDING: with no Carry: is unrouted
+RESULT mutant=V-LEDGER_FINDING-LESSON failed=1 verdict=killed
+     FAIL a ledger LESSON: with no Carry: is unrouted; a work-queue OWED line and a routed FINDING: are not
+RESULT sites=167 unmapped=0 mutants=241 survived=0
