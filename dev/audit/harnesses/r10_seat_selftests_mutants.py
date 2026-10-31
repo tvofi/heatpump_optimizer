@@ -434,6 +434,15 @@ MUTANTS = [
     # r10-flow-andon: ids are per file (tick_loop-N, heartbeat-N), never a new S number.
     ("tick_loop-1", "tick_loop.sh", '  timeout 60 bash "${HPO_TICK_HEARTBEAT:-$HERE/heartbeat.sh}" --once --message "TICK-PASS $now relay=$rrc tick=$trc"  # mut:heartbeat\n', ""),
     ("tick_loop-2", "tick_loop.sh", '[ $? = 0 ] || echo "HEARTBEAT NOT PUSHED: heartbeat.sh did not finish cleanly"', "true"),
+    # R10-FLY-RELAY-REVIEW-FF P14: the freshness check, one mutant per self-test row.
+    ("tick_loop-4", "tick_loop.sh", 'behind_count "$top" "${CODE_PATHS[@]}")', 'behind_count "$top" .)'),
+    ("tick_loop-5", "tick_loop.sh", '[ "$behind" -gt "$bound" ] || [ "$self" -gt 0 ] || return 0  # mut:bound', 'true'),
+    ("tick_loop-6", "tick_loop.sh", 'elif ! python3 -I -c "$LOCK_FREE" "$1.relay.lock"; then', 'elif false; then'),
+    ("tick_loop-7", "tick_loop.sh", 'elif [ -n "$(git -C "$top" status --porcelain --untracked-files=no)" ]; then', 'elif false; then'),
+    ("tick_loop-8", "tick_loop.sh", 'git -C "$top" show origin/main:tools/audit/seat/tick_loop.sh | bash -n 2>/dev/null', 'true'),
+    ("tick_loop-9", "tick_loop.sh", '    HPO_TICK_RESTARTED=1 exec bash "$top/tools/audit/seat/tick_loop.sh" "${ARGV[@]}"  # mut:exec\n', ''),
+    ("tick_loop-10", "tick_loop.sh", '  if [ -n "$stale" ]; then\n    rrc=stale', '  if false; then\n    rrc=stale'),
+    ("tick_loop-11", "tick_loop.sh", 'if [ -n "${HPO_TICK_RESTARTED:-}" ]; then why=', 'if false; then why='),
     ("heartbeat-1", "heartbeat.sh", 'git -C "$HERE" push -q --no-verify -f "$remote"', 'git -C "$HERE" push -q --no-verify "$remote"'),
     ("heartbeat-2", "heartbeat.sh", '  if [ "$age" -gt "$max" ]; then', '  if [ "$age" -gt $((max * 100)) ]; then'),
     ("heartbeat-3", "heartbeat.sh", '|| { echo "HEARTBEAT NOT PUSHED: $(printf', '|| { echo "$(printf'),
