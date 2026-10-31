@@ -3971,6 +3971,7 @@
    "dev/audit/harnesses/r10_plan_issues_chart_mutants.py",
    "dev/audit/harnesses/r10_plan_page_mutants.py",
    "dev/audit/harnesses/r10_policy_lint_family_mutants.py",
+   "dev/audit/harnesses/r10_prepr_cap_lease_mutants.py",
    "dev/audit/harnesses/r10_pusher_reap_launch_mutants.sh",
    "dev/audit/harnesses/r10_raise_paths.sh",
    "dev/audit/harnesses/r10_ratio_anchor.py",

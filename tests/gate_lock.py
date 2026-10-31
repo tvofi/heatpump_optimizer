@@ -922,6 +922,7 @@ def flock_wrap(label: str, argv: list[str], *, lock_dir: Path = DEFAULT_LOCK_DIR
     except RenewRefused as exc:
         print(f"gate_lock: {exc}; {label} re-queues", file=sys.stderr)
         release(label, lock_dir=lock_dir)
+        _mark_held(lock_dir, label)  # a bounded give-up below still held it once
         take(label, lock_dir=lock_dir, wait_bound=wait_bound)
     except RuntimeError:
         if not _held_path(lock_dir, label).exists():
@@ -1395,6 +1396,28 @@ def _wait_cases(g) -> list[tuple[str, bool, str]]:
                 queued = True
             out.append(("one with a waiting ticket re-queues and does not run beside it",
                         queued and not ran.exists(), f"ran={ran.exists()}"))
+            # A renew refused re-queues; a bounded give-up there keeps the
+            # witness, so the label's next flock-wrap queues again (rc 76, a
+            # named unrun), never `holds no lease` (rc 1): #3051 review.
+            d5 = root / "requeue"
+            g.take("seat", lock_dir=d5, lease_seconds=60, wait=False)
+            tk = d5 / f"{TICKET_PREFIX}000000000001"
+            tk.write_text(f"label=w\npid={os.getpid()}\nexpires_at={at}\n")
+            wrap = argparse.Namespace(label="seat", argv=cmd, lock_dir=d5,
+                                      script=str(root / "scope"), wait_marker=None)
+            g.wait_bound_for = lambda _scope: 0.3
+            try:
+                with contextlib.redirect_stderr(io.StringIO()):
+                    first = g._cmd_flock_wrap(wrap)
+                    kept = g._held_path(d5, "seat").exists()
+                    tk.unlink()
+                    g.take("w", lock_dir=d5, lease_seconds=60, wait=False)
+                    second = g._cmd_flock_wrap(wrap)
+            finally:
+                g.wait_bound_for = real_bound
+            out.append(("a bounded give-up on re-queue keeps the witness; the next wrap queues again",
+                        first == second == g.WAIT_BOUND_RC and kept and not ran.exists(),
+                        f"first={first} witness_kept={kept} second={second} ran={ran.exists()}"))
             d4 = root / "never"
             try:
                 g.flock_wrap("stranger", cmd, lock_dir=d4)
