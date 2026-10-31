@@ -69,6 +69,13 @@ every unrelated `fast` failure): its summary line is its only signal.
 | `INHERITED CLAIMS` | `claims-autofix` | `ci: drop inherited claims` | `env_drift.apply_inherited_claims` |
 | unpinned sites | `mutation-autofix` | `ci: pin killed mutants` | `mutation_table.apply_pins` |
 
+**No autofix job repairs `tests / mutation`'s null-control refusal** ("no full-line
+comment in any file in the pool"): `prepr.sh` step 6d predicts it as
+`PREDICT tests / mutation NO NULL CONTROL` (`ci_predict.null_control_preds`, over
+`mutation_table.null_for`), and it is the seat's to repair before the handoff by
+adding a whole-line comment to a file of the pool. Only a pool of comment-free
+files remains refused (today `flow_meter.py`, `silent_mode.py`, `wood_fuel.py`).
+
 Those subjects are loop guards. The job dispatches `ci.yml -f pr -f base` once;
 a `GITHUB_TOKEN` push's `pull_request` runs are held `action_required`, so the required `gate` and the `tests / *` units are ABSENT at a bot head
 until approved: all three jobs approve them (kept until M-3), fail-soft without their
