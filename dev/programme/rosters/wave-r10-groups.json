@@ -12112,9 +12112,9 @@
    ],
    "carry": [],
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-fly-record-red-names",
-    "commit": null,
+    "commit": "b25fb70aa8d0ad46ca4d0e4e9a1e6901de430aaf",
     "last_step": null,
     "next_step": "dispatch a fixer (fly-in; record PR #2966 is refused at review until it lands)",
     "note": "2026-10-30 (triage: dev/programme/triage/s6-batch63.md#P292)",
