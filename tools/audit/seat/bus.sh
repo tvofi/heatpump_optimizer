@@ -31,11 +31,9 @@
 # THE ORDERING. `dispatch` refuses a head that carries no
 # `dev/programme/delivery/<pr>.md`, the pull request's own delivery row
 # (delivery-status-tracking.md). The row is the orchestrator's and lands
-# before the review: a row written after the verdict moves the head off the
-# one the reviewer measured, which `app_approve.sh --carry` refuses as a
-# commit of the branch's own, so it costs a re-review (R9-RCA-1990 class E).
-# A verdict posts only against a dispatch's nonce, so this is the one place
-# that can keep the row from landing late. `dispatch` also REFUSES TO MINT a
+# before the review, so the reviewer reads it at the head it measures; a row
+# written after the verdict, delivery_row.sh's own commit, carries the verdict
+# (`app_approve.sh --carry`, P123). `dispatch` also REFUSES TO MINT a
 # nonce for a head whose `review_carry.py <reviewed-head> <head>` answers
 # CARRY -- no branch-authored commit since the head the caller names with
 # --reviewed-head (tvofi, 2026-10-27: "if there are no code changes, the

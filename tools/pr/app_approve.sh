@@ -54,33 +54,44 @@
 #     or empty CODEOWNERS refuses. Matching errs toward owning, which refuses;
 #   - the head is still <sha> when re-read after minting, just before the POST.
 #
-# THE CARRY (#1667, D13-s1-02; R10-REVIEW-CARRY). A verdict at V carries to a
-# later head H only when (1) V is an ancestor of H; (2) every commit
-# `git rev-list V..H --not main` returns is a merge, or a single-parent `ci:`/
-# bot commit confined to the files its subject names -- a merge authors no
-# code of its own, because what it joins is main's history (outside the
-# range) or branch commits (inside it, refused by this clause), so a merge of
-# the branch's own previous head, which is how update_pr.sh re-cuts a head,
-# is no change (tvofi, 2026-10-27: "if there are no code changes, the
-# previous review can be carried"); (3) each merge's tree is git's automatic
-# merge of its parents outside the driver files below, and it resolves each
+# THE CARRY (#1667, D13-s1-02; R10-REVIEW-CARRY; Lever L6). A verdict at V
+# carries to a later head H when the pull request's patch against its merge
+# base with main at H is the one reviewed at V (tvofi, 2026-10-30), read as:
+# (1) V is an ancestor of H; (2) each commit `git rev-list V..H --not main`
+# returns is a merge; a single-parent `ci:` or bot commit confined to main's
+# driver files and the paths its subject names, as that subject's writer --
+# `record: the delivery row for #<N>` (delivery_row.sh, as tvofi) names
+# `dev/programme/delivery/<N>.md` (P123); or a commit of the branch's own,
+# carried only where H's tree is git's automatic merge of V onto H's merge
+# base with main outside the files (4) leaves out, because (4) drops line
+# numbers and alone would pass a change moved to other code with the same
+# context. A merge authors no code of its own: what it joins is main's history
+# (outside the range) or branch commits (inside it, read by this clause), so a
+# merge of the branch's own previous head, how update_pr.sh re-cuts a head, is
+# no change (tvofi, 2026-10-27: "if there are no code changes, the previous
+# review can be carried"); (3) each merge's tree is git's automatic merge of
+# its parents outside the driver files below, and it resolves each
 # `merge=claimnotes` file to a pure union of its two parents' lines or to
 # exactly what main's claim driver writes on them (P290), because any other
 # resolution that drops, adds or rewrites a line is content no review
 # measured; and (4) the branch's own diff against its merge base with main is
-# byte-identical
-# at V and at H, read with two relaxations measured over round 9's window
-# (the literal byte rule carried 0 of its 22 re-verification rounds): each
-# hunk header (line numbers, and the function line git reads from above the
-# hunk) and each `index` line are dropped, so a hunk main's merge only shifted
-# still compares equal; and the files main's
-# `.gitattributes` gives a merge driver are left out, because stamps and CI
-# bots rewrite those on main and required checks grade them at every head.
-# Anything else -- a rewrite, a commit of the branch's own, one changed byte
-# in a hunk or its context -- keeps today's re-review. Condition (4) is the
-# guard; (1), (2) and (3) name the moves it applies to, and a `ci:` subject
-# buys nothing on its own. The evidence gate then reads V, the head the
-# reviewer measured.
+# byte-identical at V and at H -- `git patch-id --verbatim`'s reading, whose
+# `--stable` default would also strip whitespace a Python indent means --
+# read with three relaxations measured over round 9's window (the literal
+# byte rule carried 0 of its 22 re-verification rounds): each hunk header
+# (line numbers, and the function line git reads from above the hunk) and
+# each `index` line are dropped, so a hunk main's merge only shifted still
+# compares equal; the files main's `.gitattributes` gives a merge driver, and
+# what a carried bot or row commit wrote, are left out, because stamps and CI
+# bots rewrite those and required checks grade them at every head; and in a
+# `*.md` file each context line reads as a bare ` ` (P17), so main's rewrite
+# of prose beside the branch's lines carries while the hunk's context count
+# and its +/- lines still compare -- code keeps its context (P325). Anything
+# else -- a rewrite, one changed byte in a +/- line or a code hunk's context
+# -- keeps today's re-review. Condition (4) is the guard; (1), (2) and (3)
+# name the moves it applies to, and a `ci:` subject buys nothing on its own.
+# CI still runs at every head, and a red one is never carried. The evidence
+# gate then reads V, the head the reviewer measured.
 #
 # THE SECRETS. The key files are `$HPO_IDENTITY_DIR/identity-approver.appid`
 # and `identity-approver.pem` (default directory `~/.zcode`). The JWT and the
@@ -419,7 +430,8 @@ carry() {
     | awk '/^diff --git / { md = /\.md$/ } md && /^ / { print " "; next } { print }'; }
   cmp -s <(norm "$mv" "$v") <(norm "$mh" "$h") \
     || { echo "the branch's own diff differs: $mv..$v against $mh..$h"; return 1; }
-  echo "no branch-authored commit in the range, every merge the automatic one with its claim files a pure union of both sides or main's driver output on them, and the branch's own diff compares equal"
+  [ -z "$own" ] || own="the branch's own commits ${own% } leaving the head the reviewed one merged onto main, "
+  echo "every merge in the range the automatic one with its claim files a pure union of both sides or main's driver output on them, every bot or row commit inside its paths, ${own}and the branch's own diff compares equal"
 }
 
 cleanup() {

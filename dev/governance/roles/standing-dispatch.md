@@ -11,8 +11,13 @@ head and nonce, and the `dispatch/reviewer-rev-<pr>` publish. Report
 `fire-owed <ref>`: a subagent cannot call RemoteTrigger, so the orchestrator
 fires.
 
+A head `bus.sh dispatch` refuses as carried (`review_carry: CARRY`: the pull
+request's patch is the one reviewed, Lever L6) is no reviewer's: report it
+`carried <pr> <reviewed head> -> <head>`, and never dispatch it another way.
+
 **Relay:** run `tools/audit/seat/cloud_relay.sh --confirm`; on a merge verdict
-at the live head, `bus.sh confirm`. Report each `handoff-body/<topic>` return.
+at the live head or a head it carries to, `bus.sh confirm`, whose poster adds
+the carry line. Report each `handoff-body/<topic>` return.
 
 ## Read the ref, not the record
 
