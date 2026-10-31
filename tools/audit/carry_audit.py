@@ -126,6 +126,15 @@ NOTE_HEADING = re.compile(NONBLOCK.pattern + r"|residual|\bowed\b|instrument fin
                           r"|out of scope|follow-?up|^carry\b", re.I)
 BLOCK_HEADING = re.compile(r"\bblock", re.I)
 
+# A roster carry index stated as not done, outside the carry sections (R10-RCA-JIDOKA-YIELD,
+# M1; #3010 r1: "Carry 1: **not done in this pull request.**" under no heading
+# `LEAD` reads). Matched on the item with its code spans and double-quoted text
+# removed (`owed_carry`): unstripped, a body quoting the phrase as an example is read.
+OWED_CARRY = re.compile(r"\bcarry\s*\[?\d+\]?\W{0,6}[^.\n]{0,80}?\b(?:not done|not (?:built|answered|implemented)"
+                        r"|not in this (?:part|diff|pull request|change)|still (?:not met|open|owed)"
+                        r"|owed (?:by|to|in))", re.I)
+QUOTED = re.compile(r'"[^"\n]*"|\u201c[^\u201d\n]*\u201d')
+
 CARRY = re.compile(r"(?<![\w-])Carry:")
 ITEM_REF = re.compile(r"\(item\s+([0-9a-f]{8})\)")
 # a code span as CommonMark closes one: a backtick run closes only on a run of
@@ -219,7 +228,7 @@ def items(text: str, verdict: bool) -> list[dict]:
             why = "" if NONE_ITEM.match(t) else "section"
         else:
             why = ("section" if LEAD.search(sec) else "lead" if LEAD.match(first)
-                   else "under lead" if inherited else "")
+                   else "under lead" if inherited else "owed carry" if owed_carry(t) else "")
         flagged = bool(why)
         it["why"] = why
         it["lead"] = False
@@ -229,6 +238,12 @@ def items(text: str, verdict: bool) -> list[dict]:
         it["flagged"] = flagged
         it["id"] = hashlib.sha1(re.sub(r"\s+", " ", t).encode()).hexdigest()[:8]
     return out
+
+
+def owed_carry(text: str) -> bool:
+    """Whether an item states a roster carry as not done, outside code and quotes."""
+    bare = CODE_SPAN.sub(" ", text)
+    return bool(OWED_CARRY.search(QUOTED.sub(" ", bare)))
 
 
 def carry_segments(text: str) -> list[str]:
@@ -860,6 +875,22 @@ def _self_test() -> int:
     r = run(head + "## Friction\n\n- PULL_REQUEST_TEMPLATE.md: unenforced: its example "
             "`Carry: R10-LIVE` names a group a fixer copies unchecked. Carry: R10-LIVE\n")
     check("the same finding with a plain marker routes (null control)", r["u"] == 0 and r["b"] == 0 and len(r["rows"]) == 1)
+    # M1 (R10-RCA-JIDOKA-YIELD): a roster carry stated as not done, outside the
+    # carry sections, is a finding item needing a marker. #3010 r1's paragraph.
+    owed = ("**Roster carry (open, not answered by this change).** Carry 1: **not done in "
+            "this pull request.** The group's roster entry folded R10-FLOW-POSTMERGE.\n")
+    r = run(head + owed)
+    check("an owed roster carry in an untitled paragraph is an unrouted [owed carry] item",
+          r["u"] == 1 and [x["why"] for x in r["rows"]] == ["owed carry"])
+    r = run(head + owed.rstrip() + " Carry: R10-LIVE\n")
+    check("the same paragraph with a Carry: marker routes (null control)",
+          r["u"] == 0 and r["b"] == 0 and len(r["rows"]) == 1)
+    r = run(head + 'The reviewer wrote "Carry 1: not done in this pull request" as an example.\n')
+    check("an owed-carry phrase inside double quotes is not read", r["rows"] == [])
+    r = run(head + "The probe pattern `Carry 1: not done in this pull request` is an example.\n")
+    check("... nor one inside a code span", r["rows"] == [])
+    r = run(head + "Carry 1 landed in this change and is answered by the test below.\n")
+    check("a carry index with no not-done phrase is no finding (null control)", r["rows"] == [])
     # One row per boundary of the marker grammar, each with the status it must
     # read: dev/audit/harnesses/r10_carry_parser_mutants.py names the mutant
     # each row kills alone, so no predicate is pinned only with another.
