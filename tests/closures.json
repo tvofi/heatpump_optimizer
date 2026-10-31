@@ -3884,6 +3884,7 @@
    "dev/audit/harnesses/r10_buffer_store.py",
    "dev/audit/harnesses/r10_card_harmony.mjs",
    "dev/audit/harnesses/r10_card_voice_states.mjs",
+   "dev/audit/harnesses/r10_carry_field_figures.py",
    "dev/audit/harnesses/r10_carry_parser_mutants.py",
    "dev/audit/harnesses/r10_carry_sweep_rows.py",
    "dev/audit/harnesses/r10_channel_line_reach.py",
