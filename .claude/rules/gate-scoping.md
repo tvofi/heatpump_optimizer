@@ -23,8 +23,8 @@ clears `tests/entities.py`'s history reds (#1693, #1699, #1704).
 `slot`, one of `$HPO_HEAVY_SLOTS` (four), for one unrecorded or recorded in `closures.json` at or above
 `SLOT_MIN_SECONDS`; else `none`. `$HPO_SLOT_LABEL` names a run's slot. Arrival orders
 each priority band; a dead or expired ticket is skipped. An expired or abandoned lease is
-free, a slot once its pid is gone. A seat that waited one lease period may leave `stress.py` to CI,
-named unrun. That lease, not the tick's count, is nudge.md §8's cap; hold it by hand
+free, a slot once its pid is gone. A `lease` wait ends at the script's recorded seconds (`LEASE_SECONDS`
+unrecorded), rc 76: `run.sh` names it unrun, left to CI; a `slot` never skips; `flock-wrap` retakes a lapsed lease. That lease, not the tick's count, is nudge.md §8's cap; hold it by hand
 with `tests/gate_lock.py`, never `mkdir`:
 
 ```
