@@ -216,11 +216,18 @@ class DebugFinalizeButton(_OptimizerButtonBase):
 
     @property
     def extra_state_attributes(self) -> dict[str, str]:
-        """Why the button is dark on an install that is not collecting (#1335)."""
+        """Why the button is dark: the option is off (#1335), or the collection
+        has finished and waits for the `debug_collect` action's `start` (#2809).
+
+        Home Assistant drops these while the button is unavailable; the card's
+        Health row is the surface a person sees.
+        """
         collector = debugger.collector_for(self.coordinator)
-        if collector is not None and not collector.final:
-            return {}
-        return {"waiting_for": "debug_collect"}
+        if collector is None:
+            return {"waiting_for": "debug_collect"}
+        if collector.final:
+            return {"waiting_for": "debug_collect_start"}
+        return {}
 
     async def async_press(self) -> None:
         """Returns at once; the self-tests the stop starts run in the background (#1940)."""
