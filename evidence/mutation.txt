@@ -1,5 +1,4 @@
-RESULT verdict P299 ACCEPT
-RESULT verdict P300 ACCEPT
-RESULT mutant P299 REJECT
-RESULT mutant refusal dev/programme/triage/s6-batch68.md#P299 is not an ACCEPT ruling (REJECT)
-RESULT null absent the triage ruling dev/programme/triage/s6-batch68.md is not on the roster branch or origin/main
+verdict ACCEPT
+base None
+mut dev/programme/triage/s6-batch68.md#P299 is not an ACCEPT ruling (REJECT)
+null the triage ruling dev/programme/triage/s6-batch68.md is not on the roster branch or origin/main
