@@ -1996,7 +1996,7 @@
     "branch": "handoff/r10-ux-health",
     "commit": "559134e96942999722526c92bde663ce04a324fe",
     "last_step": null,
-    "next_step": "dispatch a fixer once every `after` group is done",
+    "next_step": "dispatch a fixer now: every remaining after group is done; COP-GATE part D's reason strings are carried to R10-COP-GATE",
     "note": null,
     "pr": 2976
    },
