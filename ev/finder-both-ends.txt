@@ -1,0 +1,28 @@
+
+passage docs/how-it-works.md /Earlier versions added explicit anticipation/ present=True
+passage docs/how-it-works.md /now\s+1\.0\s+rather\s+than\s+1\.05/ present=True
+passage docs/how-it-works.md /survives\s+the\s+upgrade/ present=True
+passage docs/dashboard-card.md /Earlier versions sized the dialog/ present=True
+passage docs/dashboard-card.md /upgraded\s+from\s+before/ present=True
+passage docs/dashboard-card.md /older\s+than\s+2\.6\.1/ present=True
+RESULT finder_passages_present=6 ref=e5cbb1a9aa2099efd7d9237ef1069d2f81996047
+RESULT stateless_findings=10 ref=e5cbb1a9aa2099efd7d9237ef1069d2f81996047
+   README.md:321: 'breaking change' | > breaking change.** An installation on an older Home Assistant stops being
+   docs/how-it-works.md:172: 'Earlier versions' | Earlier versions added explicit anticipation terms on top. They double-counted
+   docs/how-it-works.md:1085: 'is now 1.0 rather than' | upper clamp is now 1.0 rather than 1.05: this is a model of a loss, and no
+   docs/how-it-works.md:1087: 'the upgrade' | derate survives the upgrade — its buckets are kept and simply re-clamped, so
+   docs/dashboard-card.md:519: 'Earlier versions' | Earlier versions sized the dialog from a fixed guess at how tall the surrounding
+   docs/dashboard-card.md:861: 'earlier version' | manual install left under           from an earlier version — therefore wins
+   docs/dashboard-card.md:960: 'upgraded from' | . An install upgraded from before
+   docs/dashboard-card.md:974: 'upgraded from' | (for installs upgraded from before the ids moved, and for
+   docs/dashboard-card.md:975: 'versions older than' | integration versions older than 2.6.1).
+   docs/dashboard-card.md:975: '2.6.1' | integration versions older than 2.6.1).
+
+passage docs/how-it-works.md /Earlier versions added explicit anticipation/ present=False
+passage docs/how-it-works.md /now\s+1\.0\s+rather\s+than\s+1\.05/ present=False
+passage docs/how-it-works.md /survives\s+the\s+upgrade/ present=False
+passage docs/dashboard-card.md /Earlier versions sized the dialog/ present=False
+passage docs/dashboard-card.md /upgraded\s+from\s+before/ present=False
+passage docs/dashboard-card.md /older\s+than\s+2\.6\.1/ present=False
+RESULT finder_passages_present=0 ref=6d24f3ac628372993130e3b5525bdb4bc51c0b05
+RESULT stateless_findings=0 ref=6d24f3ac628372993130e3b5525bdb4bc51c0b05

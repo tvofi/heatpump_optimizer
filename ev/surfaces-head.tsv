@@ -1,0 +1,496 @@
+
+=== doc claims vs code facts (#1413) ===
+blueprint	charge_ev_from_grid_headroom.yaml	Heat Pump Optimizer - charge an EV from grid headroom	docs/automations.md	1	-
+blueprint	economy_mode_on_price_peak.yaml	Heat Pump Optimizer - economy mode through the evening price peak	docs/automations.md	1	-
+blueprint	notifications.yaml	Heat Pump Optimizer - notifications	docs/automations.md	1	-
+blueprint	notify_on_manual_plan.yaml	Heat Pump Optimizer - notify when a manual plan takes over	docs/automations.md	1	-
+blueprint	notify_wood_cheaper_window.yaml	Heat Pump Optimizer - notify when wood beats the heat pump today	docs/automations.md	1	-
+card_option	currency	currency	docs/dashboard-card.md	1	<none>
+card_option	dhw_entity	dhw_entity	docs/dashboard-card.md	1	"sensor.heat_pump_optimizer_plan_dhw_heating"
+card_option	hours	hours	docs/dashboard-card.md	1	24
+card_option	series	series	docs/dashboard-card.md	1	<none>
+card_option	show_stats	show_stats	docs/dashboard-card.md	1	true
+card_option	solar_entity	solar_entity	docs/dashboard-card.md	1	"sensor.heat_pump_optimizer_solar_irradiance"
+card_option	space_entity	space_entity	docs/dashboard-card.md	1	"sensor.heat_pump_optimizer_plan_space_heating"
+card_option	title	title	docs/dashboard-card.md	1	<none>
+card_option	type	type	docs/dashboard-card.md	1	<none>
+card_option	what_if	what_if	docs/dashboard-card.md	1	true
+card_view	advisor	advisor	docs/dashboard-card.md	1	-
+card_view	compact	compact	docs/dashboard-card.md	1	-
+card_view	health	health	docs/dashboard-card.md	1	-
+card_view	plan	plan	docs/dashboard-card.md	1	-
+card_view	savings	savings	docs/dashboard-card.md	1	-
+card_view	setup	setup	docs/dashboard-card.md	1	-
+entity	binary_sensor.Away Mode	Away Mode	README.md	1	enabled
+entity	binary_sensor.External Heat Source	External Heat Source	README.md	1	enabled
+entity	binary_sensor.Input Problem	Input Problem	README.md	1	enabled
+entity	binary_sensor.Mold Floor Breach	Mold Floor Breach	README.md	1	enabled
+entity	binary_sensor.Open Window Detected	Open Window Detected	README.md	1	enabled
+entity	binary_sensor.Wood Cheaper Than Heat Pump	Wood Cheaper Than Heat Pump	README.md	1	disabled
+entity	button.Learning Finalize Debug Collection	Learning Finalize Debug Collection	README.md	1	enabled
+entity	button.Learning Reset Comfort Weight	Learning Reset Comfort Weight	README.md	1	enabled
+entity	button.Learning Reset Heat Loss	Learning Reset Heat Loss	README.md	1	enabled
+entity	button.Learning Run System Identification	Learning Run System Identification	README.md	1	enabled
+entity	button.Optimize Now	Optimize Now	README.md	1	enabled
+entity	button.Prediction Accuracy Diagnose Last Interval	Prediction Accuracy Diagnose Last Interval	README.md	1	enabled
+entity	climate.Heat Pump Optimizer	Heat Pump Optimizer	README.md	1	enabled
+entity	datetime.Away Expected Return	Away Expected Return	README.md	1	enabled
+entity	sensor.Buffer Tank Temperature (Model)	Buffer Tank Temperature (Model)	README.md	1	disabled
+entity	sensor.Compressor Frequency Advisor	Compressor Frequency Advisor	README.md	1	disabled
+entity	sensor.Compressor Starts	Compressor Starts	README.md	1	disabled
+entity	sensor.Cost Baseline	Cost Baseline	README.md	1	enabled
+entity	sensor.Cost Contract Comparison	Cost Contract Comparison	README.md	1	disabled
+entity	sensor.Cost Electricity Price (now)	Cost Electricity Price (now)	README.md	1	enabled
+entity	sensor.Cost Monthly Peak Power	Cost Monthly Peak Power	README.md	1	disabled
+entity	sensor.Cost Power Headroom	Cost Power Headroom	README.md	1	disabled
+entity	sensor.Cost Predicted	Cost Predicted	README.md	1	enabled
+entity	sensor.DHW Cost (lifetime)	DHW Cost (lifetime)	README.md	1	enabled
+entity	sensor.DHW Energy (lifetime)	DHW Energy (lifetime)	README.md	1	enabled
+entity	sensor.DHW Heating Cost (next 24 h)	DHW Heating Cost (next 24 h)	README.md	1	enabled
+entity	sensor.DHW Heating Schedule	DHW Heating Schedule	README.md	1	enabled
+entity	sensor.DHW Heavy Day Demand	DHW Heavy Day Demand	README.md	1	disabled
+entity	sensor.DHW Mixed Water	DHW Mixed Water	README.md	1	disabled
+entity	sensor.DHW Setpoint Advisor	DHW Setpoint Advisor	README.md	1	enabled
+entity	sensor.DHW Temperature	DHW Temperature	README.md	1	disabled
+entity	sensor.ECL110 Displace	ECL110 Displace	README.md	1	disabled
+entity	sensor.ECL110 Effective Displace	ECL110 Effective Displace	README.md	1	disabled
+entity	sensor.Floor Heating Return Temperature	Floor Heating Return Temperature	README.md	1	disabled
+entity	sensor.Heat Pump Action	Heat Pump Action	README.md	1	enabled
+entity	sensor.Indoor Temperature (Optimizer)	Indoor Temperature (Optimizer)	README.md	1	enabled
+entity	sensor.Indoor Temperature (Predicted)	Indoor Temperature (Predicted)	README.md	1	enabled
+entity	sensor.Last Optimization	Last Optimization	README.md	1	enabled
+entity	sensor.Learning Comfort Weight	Learning Comfort Weight	README.md	1	enabled
+entity	sensor.Learning Estimated COP	Learning Estimated COP	README.md	1	enabled
+entity	sensor.Learning Model Status	Learning Model Status	README.md	1	enabled
+entity	sensor.Learning Observed COP	Learning Observed COP	README.md	1	enabled
+entity	sensor.Lifetime Space Heating Cost	Lifetime Space Heating Cost	README.md	1	enabled
+entity	sensor.Lifetime Space Heating Energy	Lifetime Space Heating Energy	README.md	1	enabled
+entity	sensor.Lifetime Total Energy	Lifetime Total Energy	README.md	1	enabled
+entity	sensor.Lifetime Total Heating Cost	Lifetime Total Heating Cost	README.md	1	enabled
+entity	sensor.Lower Floor Temperature	Lower Floor Temperature	README.md	1	disabled
+entity	sensor.Measured Power	Measured Power	README.md	1	disabled
+entity	sensor.Model Restart Advisor	Model Restart Advisor	README.md	1	enabled
+entity	sensor.Next Optimization	Next Optimization	README.md	1	enabled
+entity	sensor.Optimal Setpoint	Optimal Setpoint	README.md	1	enabled
+entity	sensor.Optimization Mode	Optimization Mode	README.md	1	enabled
+entity	sensor.Optimization Schedule	Optimization Schedule	README.md	1	enabled
+entity	sensor.Optimization Schedule Steps	Optimization Schedule Steps	README.md	1	enabled
+entity	sensor.Optimization Status	Optimization Status	README.md	1	enabled
+entity	sensor.Outdoor Temperature (Optimizer)	Outdoor Temperature (Optimizer)	README.md	1	enabled
+entity	sensor.Plan DHW Heating (next 24 h)	Plan DHW Heating (next 24 h)	README.md	1	enabled
+entity	sensor.Plan Monthly Savings	Plan Monthly Savings	README.md	1	enabled
+entity	sensor.Plan Narrative	Plan Narrative	README.md	1	enabled
+entity	sensor.Plan Optimization Score	Plan Optimization Score	README.md	1	enabled
+entity	sensor.Plan Predicted Savings	Plan Predicted Savings	README.md	1	enabled
+entity	sensor.Plan Savings Percentage	Plan Savings Percentage	README.md	1	enabled
+entity	sensor.Plan Space Heating (next 24 h)	Plan Space Heating (next 24 h)	README.md	1	enabled
+entity	sensor.Prediction Accuracy	Prediction Accuracy	README.md	1	enabled
+entity	sensor.Predictive Optimization Insight	Predictive Optimization Insight	README.md	1	enabled
+entity	sensor.Recommended Power	Recommended Power	README.md	1	enabled
+entity	sensor.Sensor-Gap Advisor	Sensor-Gap Advisor	README.md	1	enabled
+entity	sensor.Slab Temperature (Estimated)	Slab Temperature (Estimated)	README.md	1	disabled
+entity	sensor.Solar Heat Gain	Solar Heat Gain	README.md	1	enabled
+entity	sensor.Solar Irradiance	Solar Irradiance	README.md	1	enabled
+entity	sensor.Solar Surplus Forecast	Solar Surplus Forecast	README.md	1	disabled
+entity	sensor.Thermal Battery Charge	Thermal Battery Charge	README.md	1	enabled
+entity	sensor.Thermal Battery Energy	Thermal Battery Energy	README.md	1	enabled
+entity	sensor.Upper Floor Temperature	Upper Floor Temperature	README.md	1	disabled
+entity	sensor.Valve Target Recommendation	Valve Target Recommendation	README.md	1	disabled
+entity	sensor.Wood-Burn Night Advisor	Wood-Burn Night Advisor	README.md	1	disabled
+entity	switch.Away	Away	README.md	1	enabled
+entity	switch.Block DHW	Block DHW	README.md	1	enabled
+entity	switch.Block Space Heating	Block Space Heating	README.md	1	enabled
+entity	switch.Boost Space Heating	Boost Space Heating	README.md	1	enabled
+entity	switch.DHW Boost	DHW Boost	README.md	1	enabled
+entity	switch.Optimizer Active	Optimizer Active	README.md	1	enabled
+event	heatpump_optimizer_comfort_at_risk	comfort at risk	docs/automations.md	1	-
+event	heatpump_optimizer_input_stale	input stale	docs/automations.md	1	-
+event	heatpump_optimizer_manual_plan_released	manual plan released	docs/automations.md	1	-
+event	heatpump_optimizer_monthly_receipt	monthly receipt	docs/automations.md	1	-
+event	heatpump_optimizer_plan_stale	plan stale	docs/automations.md	1	-
+option	away_dhw_min_temperature	Hot water minimum while away	docs/configuration.md	1	20.0
+option	away_presence_entity	Away indicator (optional)	docs/configuration.md	1	<computed>
+option	away_temperature	Temperature while away	docs/configuration.md	1	16.0
+option	buffer_max_temperature	Maximum buffer tank temperature	docs/configuration.md	1	70.0
+option	buffer_tank_temp_entity	Buffer tank temperature sensor	docs/configuration.md	1	<computed>
+option	buffer_tank_volume	Buffer tank size	docs/configuration.md	1	35.0
+option	building_preset[questionnaire]		docs/configuration.md	0	<computed>
+option	building_preset_enabled	Derive thermal values from the building type	docs/configuration.md	1	false
+option	capacity_curve_enabled	Plan within measured heat pump capacity	docs/configuration.md	1	false
+option	comfort_learning_enabled	Learn my comfort preference from overrides	docs/configuration.md	1	false
+option	comfort_temp_day	Daytime comfort temperature	docs/configuration.md	1	21.0
+option	comfort_temp_day_weekend	Weekend daytime comfort	docs/configuration.md	1	<computed>
+option	comfort_temp_night	Night-time comfort temperature	docs/configuration.md	1	19.5
+option	comfort_temp_night_weekend	Weekend night-time comfort	docs/configuration.md	1	<computed>
+option	comfort_weight	How strictly to hold the temperature	docs/configuration.md	1	5.0
+option	compressor_cycling_cost	Cost of one compressor start	docs/configuration.md	1	0.0
+option	compressor_freq_entity	Compressor frequency entity	docs/configuration.md	1	<computed>
+option	compressor_freq_max_hz	Highest compressor frequency	docs/configuration.md	1	120.0
+option	compressor_freq_min_hz	Lowest compressor frequency	docs/configuration.md	1	20.0
+option	compressor_freq_sensor	Actual frequency sensor (recommended for control)	docs/configuration.md	1	<computed>
+option	compressor_rated_starts	Compressor rated starts	docs/configuration.md	1	100000
+option	compressor_replacement_cost	Compressor replacement cost	docs/configuration.md	1	0.0
+option	confidence_margins_enabled	Hold a safety margin where the model is unsure	docs/configuration.md	1	false
+option	contract_fixed_price	Fixed contract price to compare	docs/configuration.md	1	0.0
+option	curve_learning_enabled	Learn a correction to the heat curve	docs/configuration.md	1	false
+option	day_end_hour	Day ends at	docs/configuration.md	1	22
+option	day_end_hour_weekend	Weekend day ends at	docs/configuration.md	1	<computed>
+option	day_start_hour	Day starts at	docs/configuration.md	1	7
+option	day_start_hour_weekend	Weekend day starts at	docs/configuration.md	1	<computed>
+option	debug_collect_enabled	Collect a week of debug data	docs/configuration.md	1	false
+option	dhw_cooling_rate	Tank heat loss (learned)	docs/configuration.md	1	0.3
+option	dhw_daily_consumption	Hot water used per day	docs/configuration.md	1	150.0
+option	dhw_disinfection_mode	Disinfection switch mode	docs/configuration.md	1	"observe"
+option	dhw_disinfection_switch_entity	Pump's disinfection switch (optional)	docs/configuration.md	1	<computed>
+option	dhw_elastic_legionella_enabled	Let the anti-legionella cycle pick a cheap day	docs/configuration.md	1	false
+option	dhw_free_disinfection_enabled	Credit disinfection from any heat source	docs/configuration.md	1	false
+option	dhw_idle_min_temperature	Let the tank cool to	docs/configuration.md	1	20.0
+option	dhw_inlet_entity	Cold water inlet sensor (optional)	docs/configuration.md	1	<computed>
+option	dhw_inlet_seasonal_amplitude	Seasonal inlet swing	docs/configuration.md	1	0.0
+option	dhw_inlet_temp	Cold water inlet temperature	docs/configuration.md	1	10.0
+option	dhw_legionella_enabled	Run an anti-legionella cycle	docs/configuration.md	1	true
+option	dhw_legionella_interval_days	Anti-legionella interval	docs/configuration.md	1	7.0
+option	dhw_legionella_min_interval_days	Earliest anti-legionella re-run	docs/configuration.md	1	5.0
+option	dhw_legionella_temperature	Anti-legionella temperature	docs/configuration.md	1	60.0
+option	dhw_min_temperature	Hot water temperature you need	docs/configuration.md	1	45.0
+option	dhw_quantile_targets_enabled	Learn heavy-day hot water targets	docs/configuration.md	1	false
+option	dhw_schedule_enabled	Only guarantee hot water at set times	docs/configuration.md	1	true
+option	dhw_setpoint	Highest tank temperature to charge to	docs/configuration.md	1	55.0
+option	dhw_setpoint_entity	Heat pump DHW set-point entity (optional)	docs/configuration.md	1	<computed>
+option	dhw_tank_volume	Hot water tank size	docs/configuration.md	1	200.0
+option	dhw_temp_entity	Hot water tank temperature sensor	docs/configuration.md	1	<computed>
+option	dhw_windows	When you need hot water	docs/configuration.md	1	"06:00-08:30, 17:00-22:00"
+option	dhw_windows_by_day	Customize by weekday	docs/configuration.md	1	<computed>
+option	dhw_windows_fri	Friday	docs/configuration.md	1	""
+option	dhw_windows_mon	Monday	docs/configuration.md	1	""
+option	dhw_windows_sat	Saturday	docs/configuration.md	1	""
+option	dhw_windows_sun	Sunday	docs/configuration.md	1	""
+option	dhw_windows_thu	Thursday	docs/configuration.md	1	""
+option	dhw_windows_tue	Tuesday	docs/configuration.md	1	""
+option	dhw_windows_wed	Wednesday	docs/configuration.md	1	""
+option	dhw_wood_coil_enabled	Hot water refilled through the wood tank	docs/configuration.md	1	false
+option	dso_product	Swedish DSO tariff (writes the fields below)	docs/configuration.md	1	"none"
+option	ecl110_command_topic	Legacy JSON command topic	docs/configuration.md	1	""
+option	ecl110_displace_max	Largest upward offset	docs/configuration.md	1	20.0
+option	ecl110_displace_min	Largest downward offset	docs/configuration.md	1	-20.0
+option	ecl110_displace_set_topic	Offset command topic	docs/configuration.md	1	""
+option	ecl110_mqtt_qos	MQTT quality of service	docs/configuration.md	1	1
+option	ecl110_mqtt_retain	Retain MQTT messages	docs/configuration.md	1	false
+option	ecl110_pid_time_constant_hours	Controller response time	docs/configuration.md	1	1.5
+option	ecl110_state_topic	Status topic	docs/configuration.md	1	""
+option	external_heat_decay_minutes	How long to keep assuming it after it stops	docs/configuration.md	1	90.0
+option	external_heat_detection_enabled	Detect a wood furnace or other heat source	docs/configuration.md	1	false
+option	external_heat_entity	Stove or flue sensor (optional)	docs/configuration.md	1	<computed>
+option	external_heat_min_rise	Temperature rise that counts as evidence	docs/configuration.md	1	1.5
+option	floor_return_temp_entity	Floor heating return temperature sensor	docs/configuration.md	1	<computed>
+option	flow_curve_cop_enabled	Price the supply temperature lift (no mixing valve)	docs/configuration.md	1	false
+option	flow_meter_entity	Water flow sensor (optional)	docs/configuration.md	1	<computed>
+option	freq_control_mode	Frequency mode	docs/configuration.md	1	"observe"
+option	fuse_guard_enabled	Keep the plan under the main fuse	docs/configuration.md	1	false
+option	greywater_recovery_effectiveness	Greywater heat recovery effectiveness	docs/configuration.md	1	0.0
+option	grid_fee_entity	Live fee sensor (optional)	docs/configuration.md	1	<computed>
+option	grid_fee_fixed	Fixed transfer fee	docs/configuration.md	1	0.0
+option	grid_fee_mode	Grid transfer fee	docs/configuration.md	1	"none"
+option	grid_fee_rules	Time-of-use fee rules	docs/configuration.md	1	""
+option	heat_pump_backup_heater_entity	Space backup heater	docs/configuration.md	1	<computed>
+option	heat_pump_capacity_limited_entity	Capacity limited (night mode)	docs/configuration.md	1	<computed>
+option	heat_pump_cop_nominal	Heat pump nominal COP	docs/configuration.md	1	<computed>
+option	heat_pump_cop_partload_derate	Heat pump COP loss at max power	docs/configuration.md	1	<computed>
+option	heat_pump_defrost_entity	Defrosting	docs/configuration.md	1	<computed>
+option	heat_pump_dhw_booster_entity	Hot water tank booster	docs/configuration.md	1	<computed>
+option	heat_pump_energy_entity	Heat pump energy meter (optional)	docs/configuration.md	1	<computed>
+option	heat_pump_fault_entity	Fault alarm	docs/configuration.md	1	<computed>
+option	heat_pump_heat_energy_entity	Heat pump heat energy meter (optional)	docs/configuration.md	1	<computed>
+option	heat_pump_max_power	Heat pump max power (kW)	docs/configuration.md	1	<computed>
+option	heat_pump_min_power	Heat pump min power (kW)	docs/configuration.md	1	<computed>
+option	heat_pump_mode_entity	Heat pump operating mode	docs/configuration.md	1	<computed>
+option	heat_pump_online_entity	Pump online	docs/configuration.md	1	<computed>
+option	heat_pump_power_entity	Heat pump power meter (optional)	docs/configuration.md	1	<computed>
+option	heat_pump_return_temp_entity	Return water temperature	docs/configuration.md	1	<computed>
+option	heat_pump_supply_temp_entity	Supply (flow) water temperature	docs/configuration.md	1	<computed>
+option	heat_pump_switch_entity	Heat pump on/off switch	docs/configuration.md	1	<computed>
+option	heat_pump_thermal_power_entity	Heat pump thermal power meter (optional)	docs/configuration.md	1	<computed>
+option	holiday_calendar_entity	Holiday-profile calendar (optional)	docs/configuration.md	1	<computed>
+option	holiday_comfort_temp_day	Holiday daytime comfort	docs/configuration.md	1	<computed>
+option	holiday_comfort_temp_night	Holiday night-time comfort	docs/configuration.md	1	<computed>
+option	holiday_day_end_hour	Holiday day ends at	docs/configuration.md	1	<computed>
+option	holiday_day_start_hour	Holiday day starts at	docs/configuration.md	1	<computed>
+option	holiday_dhw_windows	Holiday hot-water windows	docs/configuration.md	1	""
+option	house_heat_loss_coefficient	Heat loss coefficient (kW/°C)	docs/configuration.md	1	<computed>
+option	house_power_entity	Whole-house power meter (optional)	docs/configuration.md	1	<computed>
+option	house_thermal_mass	House thermal mass (kWh/°C)	docs/configuration.md	1	<computed>
+option	immersion_feedback_enabled	Plan around immersion heater use	docs/configuration.md	1	false
+option	indoor_humidity_entity	Indoor humidity sensor (optional)	docs/configuration.md	1	<computed>
+option	indoor_temp_entity	Indoor temperature sensor	docs/configuration.md	1	<computed>
+option	inter_zone_heat_transfer	Inter-zone heat transfer (kW/°C)	docs/configuration.md	1	<computed>
+option	internal_gains_learning_enabled	Learn the household's daily heat rhythm	docs/configuration.md	1	false
+option	lower_floor_heat_loss	Lower floor heat loss (kW/°C)	docs/configuration.md	1	<computed>
+option	lower_floor_temp_entity	Lower floor temperature sensor	docs/configuration.md	1	<computed>
+option	lower_floor_thermal_mass	Lower floor thermal mass (kWh/°C)	docs/configuration.md	1	<computed>
+option	main_fuse_amperes	Main fuse size	docs/configuration.md	1	0
+option	main_fuse_phases	Phases	docs/configuration.md	1	3
+option	max_temperature	Warmest acceptable temperature	docs/configuration.md	1	23.0
+option	min_temperature	Coldest acceptable temperature	docs/configuration.md	1	19.0
+option	mixing_valve_mode	Mixing valve	docs/configuration.md	1	"none"
+option	mixing_valve_target	Valve target temperature	docs/configuration.md	1	0.0
+option	mixing_valve_target_entity	Valve target sensor	docs/configuration.md	1	<computed>
+option	mixing_valve_write_entity	Valve control entity	docs/configuration.md	1	<computed>
+option	mixing_valve_write_target_kind	What the control entity expects	docs/configuration.md	1	"indoor"
+option	modbus_prefill_prefix	Modbus package entity prefix	docs/configuration.md	1	"hp"
+option	mold_floor_breach_margin	Mold floor breach warning margin	docs/configuration.md	1	0.5
+option	mold_guard_enabled	Keep cold surfaces below mold humidity	docs/configuration.md	1	false
+option	open_window_relax_enabled	Ease heating while a window is open	docs/configuration.md	1	false
+option	optimization_interval	Recalculate every	docs/configuration.md	1	30
+option	outage_recovery_enabled	Staggered recovery after a power cut	docs/configuration.md	1	false
+option	outdoor_temp_entity	Outdoor temperature sensor	docs/configuration.md	1	<computed>
+option	peak_guard_enabled	Live peak guard	docs/configuration.md	1	false
+option	peak_guard_margin_kw	Peak guard margin	docs/configuration.md	1	0.5
+option	peak_tariff_distinct_days	Peaks on different days	docs/configuration.md	1	true
+option	peak_tariff_enabled	My grid bill has a capacity charge	docs/configuration.md	1	false
+option	peak_tariff_hours	Peak hours	docs/configuration.md	1	""
+option	peak_tariff_months	Months the capacity tariff applies	docs/configuration.md	1	""
+option	peak_tariff_offpeak_factor	What off-peak hours count at	docs/configuration.md	1	1.0
+option	peak_tariff_peaks_averaged	Number of peak hours averaged	docs/configuration.md	1	3
+option	peak_tariff_price_per_kw	Capacity charge per kW per month	docs/configuration.md	1	45.0
+option	peak_tariff_weekdays_only	Weekends are off-peak	docs/configuration.md	1	false
+option	peak_tariff_window_minutes	Measurement window	docs/configuration.md	1	<computed>
+option	precip_type_enabled	Tell snow from rain in the forecast	docs/configuration.md	1	false
+option	prefill_offer	Offer this pre-fill at setup	docs/configuration.md	1	false
+option	price_entity	Price sensor (Nord Pool or similar)	docs/configuration.md	1	<computed>
+option	price_prior_enabled	Estimate prices past the published horizon	docs/configuration.md	1	true
+option	price_risk_lambda	Caution with guessed prices	docs/configuration.md	1	0.0
+option	price_source	Electricity price source	docs/configuration.md	1	"tibber"
+option	price_surcharge	Surcharge per kWh	docs/configuration.md	1	0.0
+option	price_tiles_enabled	Refresh price tiles after each solve	docs/configuration.md	1	false
+option	price_vat	VAT multiplier	docs/configuration.md	1	1.0
+option	price_weight	How hard to chase low prices	docs/configuration.md	1	1.0
+option	pump_duty_mode	Pump duty control	docs/configuration.md	1	"off"
+option	pv_enabled	I have solar panels	docs/configuration.md	1	false
+option	pv_export_price	Export compensation per kWh	docs/configuration.md	1	0.0
+option	pv_export_price_entity	Export compensation entity (optional)	docs/configuration.md	1	<computed>
+option	pv_peak_kw	Installed capacity	docs/configuration.md	1	0.0
+option	pv_production_entity	Solar production sensor (optional)	docs/configuration.md	1	<computed>
+option	pv_system_efficiency	Overall system efficiency	docs/configuration.md	1	0.8
+option	radiator_power_fraction	Share of heat going to radiators	docs/configuration.md	1	<computed>
+option	rain_heat_loss_multiplier	Rain sensitivity	docs/configuration.md	1	1.15
+option	shower_flow_lpm	Shower flow rate	docs/configuration.md	1	8.0
+option	silent_mode_power_fraction	Power kept in silent mode	docs/configuration.md	1	1.0
+option	silent_mode_windows	Pump's own night-mode schedule	docs/configuration.md	1	""
+option	slab_heat_transfer	Slab-to-room heat transfer (kW/°C)	docs/configuration.md	1	<computed>
+option	slab_thermal_mass	Slab floor thermal mass (kWh/°C)	docs/configuration.md	1	<computed>
+option	snow_roof_factor_enabled	Assume less sun after heavy snowfall	docs/configuration.md	1	false
+option	solar_aperture_learning_enabled	Learn how much sun the windows really admit	docs/configuration.md	1	false
+option	solar_forecast_source	Solar irradiance source	docs/configuration.md	1	"weather"
+option	solar_heat_gain_coefficient	How much sunlight the windows let through	docs/configuration.md	1	0.7
+option	solar_location	Solar irradiance location	docs/configuration.md	1	<computed>
+option	solar_orientation_factor	Solar orientation factor	docs/configuration.md	1	<computed>
+option	solar_radiation_entity	Solar radiation sensor	docs/configuration.md	1	<computed>
+option	space_circulation_pump_entity	Heating circulation pump switch (optional)	docs/configuration.md	1	<computed>
+option	space_setpoint_entity	Space-heating set-point entity (optional)	docs/configuration.md	1	<computed>
+option	space_setpoint_unit	What that set-point entity expects	docs/configuration.md	1	"indoor"
+option	staleness_max_age_scale	Allow this much extra age	docs/configuration.md	1	1.0
+option	staleness_watchdog_enabled	Ignore sensors that stop updating	docs/configuration.md	1	true
+option	system_identification_enabled	Allow a one-off measurement experiment	docs/configuration.md	1	false
+option	target_temperature	Target indoor temperature	docs/configuration.md	1	21.0
+option	thermal_bridge_frsi	Worst thermal bridge factor (fRsi)	docs/configuration.md	1	0.75
+option	tibber_token	Tibber API token	docs/configuration.md	1	""
+option	two_zone_mode	Two-zone model	docs/configuration.md	1	<computed>
+option	upper_floor_area_ratio	Upper floor area ratio	docs/configuration.md	1	<computed>
+option	upper_floor_heat_loss	Upper floor heat loss (kW/°C)	docs/configuration.md	1	<computed>
+option	upper_floor_thermal_mass	Upper floor thermal mass (kWh/°C)	docs/configuration.md	1	<computed>
+option	valve_outlet_temp_entity	Temperature after the wood/heat-pump mixing valve (optional)	docs/configuration.md	1	<computed>
+option	vvc_lead_minutes	Start circulation before a time frame	docs/configuration.md	1	20
+option	vvc_pump_entity	Hot water circulation pump switch (optional)	docs/configuration.md	1	<computed>
+option	wear_autotune_enabled	Let realised wear tune the cycling cost	docs/configuration.md	1	false
+option	weather_entity	Weather forecast	docs/configuration.md	1	""
+option	wind_sensitivity_factor	Wind sensitivity	docs/configuration.md	1	0.03
+option	window_area	Window area facing the sun	docs/configuration.md	1	10.0
+option	wood_furnace_efficiency	Furnace efficiency	docs/configuration.md	1	75.0
+option	wood_furnace_enabled	Wood furnace	docs/configuration.md	1	<computed>
+option	wood_lighting_lead_minutes	Light the furnace this long before a cheaper window	docs/configuration.md	1	60.0
+option	wood_packing	Packing	docs/configuration.md	1	"packed"
+option	wood_price_sek_m3	Price per cubic metre	docs/configuration.md	1	<computed>
+option	wood_tank_bottom_entity	Wood tank bottom sensor (optional)	docs/configuration.md	1	<computed>
+option	wood_tank_top_entity	Wood tank top sensor (optional)	docs/configuration.md	1	<computed>
+option	wood_tank_volume	Wood tank volume	docs/configuration.md	1	500.0
+option	wood_type	Wood type	docs/configuration.md	1	"mixed"
+option_page	away	Away and holiday mode	docs/configuration.md	1	-
+option_page	building	Heating system and heat storage	docs/configuration.md	1	-
+option_page	building_preset	Building type and emitters	docs/configuration.md	1	-
+option_page	comfort	Comfort and temperatures	docs/configuration.md	1	-
+option_page	entities	Sensors and entities	docs/configuration.md	1	-
+option_page	entities_metering	Power and solar sensors	docs/configuration.md	1	-
+option_page	entities_pump	Heat pump telemetry	docs/configuration.md	1	-
+option_page	grid	Grid peak tariff	docs/configuration.md	1	-
+option_page	grid_connection	Fuse and peak guards	docs/configuration.md	1	-
+option_page	grid_fees	Transfer fees and contract	docs/configuration.md	1	-
+option_page	heat_curve	Heat curve control (ECL110)	docs/configuration.md	1	-
+option_page	hot_water	Hot water	docs/configuration.md	1	-
+option_page	hot_water_pumps	Hot water circulation	docs/configuration.md	1	-
+option_page	hot_water_tank	Hot water tank and inlet	docs/configuration.md	1	-
+option_page	learning	Self-learning and diagnostics	docs/configuration.md	1	-
+option_page	learning_features	Advanced learning features	docs/configuration.md	1	-
+option_page	modbus_prefill	Pre-fill from a heat pump device	docs/configuration.md	1	-
+option_page	quick_setup	Quick setup	docs/configuration.md	1	-
+option_page	setup_overview	Your system, as configured	docs/configuration.md	1	-
+option_page	solar_pv	Solar panels	docs/configuration.md	1	-
+option_page	thermal_model	Thermal model (expert)	docs/configuration.md	1	-
+option_page	thermal_model_zones	Two-zone model	docs/configuration.md	1	-
+option_page	tuning	Savings vs comfort	docs/configuration.md	1	-
+repair	accuracy_drift	Learned model is drifting	README.md	1	-
+repair	accuracy_drift_rolled_back	Learned model was restored from a snapshot	README.md	1	-
+repair	comfort_band_contradiction	Your comfort temperatures contradict each other	README.md	1	-
+repair	cop_degradation	Heat pump efficiency has dropped	README.md	1	-
+repair	dhw_disinfection_switch_lost	The pump's disinfection switch may still be on	README.md	1	-
+repair	dhw_disinfection_write_failed	The pump's disinfection switch could not be set	README.md	1	-
+repair	dhw_legionella_above_setpoint	Disinfection goes above your hot water charge limit	README.md	1	-
+repair	dhw_legionella_mode_blocked	Hot water disinfection is overdue: the heat pump's mode blocks it	README.md	1	-
+repair	dhw_legionella_overdue	Hot water has not been disinfected for {days} days	README.md	1	-
+repair	dhw_legionella_unreachable	Hot water is not reaching the disinfection temperature	README.md	1	-
+repair	dhw_legionella_unverified	The disinfection cycle cannot be verified	README.md	1	-
+repair	dhw_setpoint_below_disinfection	The heat pump's hot water set-point is below the configured temperature	README.md	1	-
+repair	floor_return_silent	Floor return temperature sensor is not reporting	README.md	1	-
+repair	freq_watchdog	Frequency control stood down	README.md	1	-
+repair	grid_fee_magnitude	A configured grid fee looks 100× too large	README.md	1	-
+repair	grid_fee_sign	A configured grid fee is negative	README.md	1	-
+repair	lower_floor_modelled	The downstairs temperature is modelled, not measured	README.md	1	-
+repair	price_currency_mismatch	The price feed and Home Assistant name different currencies	README.md	1	-
+repair	price_unit_unrecognised	A price entity reports a unit the optimizer cannot read	README.md	1	-
+repair	pump_mode_unreadable	Heat pump operating mode entity is not reporting	README.md	1	-
+repair	pump_write_ignored	The heat pump does not hold a setting the optimizer wrote	README.md	1	-
+repair	quiet_silent_not_enforced	Silent windows are not enforced	README.md	1	-
+repair	solve_failures	Optimization keeps failing; the plan is going stale	README.md	1	-
+repair	solve_worker_fallback	Planning fell back to the slow in-process solver	README.md	1	-
+repair	space_setpoint_unreadable	The space-heating set-point entity is not reporting	README.md	1	-
+repair	store_version	Stored learning could not be read	README.md	1	-
+service	apply_manual_plan	apply_manual_plan	docs/configuration.md	1	-
+service	apply_schedule	apply_schedule	docs/configuration.md	1	-
+service	apply_topology	apply_topology	docs/configuration.md	1	-
+service	assign_entity	assign_entity	docs/configuration.md	1	-
+service	clear_manual_plan	clear_manual_plan	docs/configuration.md	1	-
+service	debug_collect	debug_collect	docs/configuration.md	1	-
+service	diagnose_interval	diagnose_interval	docs/configuration.md	1	-
+service	reset_heat_loss_learners	reset_heat_loss_learners	docs/configuration.md	1	-
+service	restore_learned_snapshot	restore_learned_snapshot	docs/configuration.md	1	-
+service	run_optimization	run_optimization	docs/configuration.md	1	-
+service	set_away	set_away	docs/configuration.md	1	-
+service	set_mode	set_mode	docs/configuration.md	1	-
+service	set_thermal_parameters	set_thermal_parameters	docs/configuration.md	1	-
+service	simulate_plan	simulate_plan	docs/configuration.md	1	-
+setup_field	building_describe.building_era	Roughly when it was built	docs/configuration.md	1	"1980_2005"
+setup_field	building_describe.building_foundation	Foundation	docs/configuration.md	1	"none"
+setup_field	building_describe.building_structure	What the house is built from	docs/configuration.md	1	"timber_slab"
+setup_field	building_describe.heated_area_m2	Heated floor area	docs/configuration.md	1	140.0
+setup_field	building_describe.lower_floor_emitter	Lower floor heating	docs/configuration.md	1	"floor"
+setup_field	building_describe.upper_floor_emitter	Upper floor heating	docs/configuration.md	1	"radiators"
+setup_field	building_extras.heat_pump_cop_nominal	Heat pump nominal COP	docs/configuration.md	1	3.5
+setup_field	building_extras.heat_pump_max_power	Heat pump max power (kW)	docs/configuration.md	1	5.0
+setup_field	building_extras.heat_pump_min_power	Heat pump min power (kW)	docs/configuration.md	1	1.0
+setup_field	device_prefill.after_save	After saving	docs/configuration.md	1	<none>
+setup_field	device_prefill.compressor_freq_sensor	Actual frequency sensor (recommended for control)	docs/configuration.md	1	<none>
+setup_field	device_prefill.dhw_legionella_interval_days	Anti-legionella interval	docs/configuration.md	1	<none>
+setup_field	device_prefill.dhw_legionella_temperature	Anti-legionella temperature	docs/configuration.md	1	<none>
+setup_field	device_prefill.dhw_min_temperature	Hot water temperature you need	docs/configuration.md	1	<none>
+setup_field	device_prefill.dhw_setpoint	Highest tank temperature to charge to	docs/configuration.md	1	<none>
+setup_field	device_prefill.dhw_temp_entity	Hot water tank temperature sensor	docs/configuration.md	1	<none>
+setup_field	device_prefill.dhw_windows	When you need hot water	docs/configuration.md	1	<none>
+setup_field	device_prefill.heat_pump_capacity_limited_entity	Capacity limited (night mode)	docs/configuration.md	1	<none>
+setup_field	device_prefill.heat_pump_max_power	Heat pump max power (kW)	docs/configuration.md	1	<none>
+setup_field	device_prefill.heat_pump_return_temp_entity	Return water temperature	docs/configuration.md	1	<none>
+setup_field	device_prefill.heat_pump_supply_temp_entity	Supply (flow) water temperature	docs/configuration.md	1	<none>
+setup_field	device_prefill.mixing_valve_write_target_kind	What the control entity expects	docs/configuration.md	1	<none>
+setup_field	device_prefill.outdoor_temp_entity	Outdoor temperature sensor	docs/configuration.md	1	<none>
+setup_field	device_prefill.prefill_device	Heat pump device	docs/configuration.md	1	<none>
+setup_field	device_prefill.silent_mode_windows	Pump's own night-mode schedule	docs/configuration.md	1	<none>
+setup_field	device_prefill.space_setpoint_unit	What that set-point entity expects	docs/configuration.md	1	<none>
+setup_field	dhw.dhw_cooling_rate	Tank heat loss (learned)	docs/configuration.md	1	0.3
+setup_field	dhw.dhw_daily_consumption	Hot water used per day	docs/configuration.md	1	150.0
+setup_field	dhw.dhw_enabled	The house has a hot water tank	docs/configuration.md	1	<none>
+setup_field	dhw.dhw_idle_min_temperature	Let the tank cool to	docs/configuration.md	1	20.0
+setup_field	dhw.dhw_legionella_enabled	Run an anti-legionella cycle	docs/configuration.md	1	true
+setup_field	dhw.dhw_legionella_interval_days	Anti-legionella interval	docs/configuration.md	1	7.0
+setup_field	dhw.dhw_legionella_temperature	Anti-legionella temperature	docs/configuration.md	1	60.0
+setup_field	dhw.dhw_min_temperature	Hot water temperature you need	docs/configuration.md	1	45.0
+setup_field	dhw.dhw_schedule_enabled	Only guarantee hot water at set times	docs/configuration.md	1	true
+setup_field	dhw.dhw_setpoint	Highest tank temperature to charge to	docs/configuration.md	1	55.0
+setup_field	dhw.dhw_tank_volume	Hot water tank size	docs/configuration.md	1	200.0
+setup_field	dhw.dhw_windows	When you need hot water	docs/configuration.md	1	"06:00-08:30, 17:00-22:00"
+setup_field	quick_setup.buffer_tank	Buffer tank	docs/configuration.md	1	false
+setup_field	quick_setup.building_era	Roughly when it was built	docs/configuration.md	1	"1980_2005"
+setup_field	quick_setup.building_foundation	Foundation	docs/configuration.md	1	"none"
+setup_field	quick_setup.building_structure	What the house is built from	docs/configuration.md	1	"timber_slab"
+setup_field	quick_setup.dhw_tank	Hot water tank	docs/configuration.md	1	true
+setup_field	quick_setup.heated_area_m2	Heated floor area	docs/configuration.md	1	140.0
+setup_field	quick_setup.lower_floor_emitter	Lower floor heating	docs/configuration.md	1	"floor"
+setup_field	quick_setup.two_zone	Two-zone house	docs/configuration.md	1	false
+setup_field	quick_setup.upper_floor_emitter	Upper floor heating	docs/configuration.md	1	"radiators"
+setup_field	quick_setup.wood_buffer_tank	Wood buffer tank	docs/configuration.md	1	false
+setup_field	quick_setup.wood_furnace	Wood furnace	docs/configuration.md	1	false
+setup_field	quick_setup.wood_tank_bottom_entity	Wood tank bottom sensor (optional)	docs/configuration.md	1	<none>
+setup_field	quick_setup.wood_tank_top_entity	Wood tank top sensor (optional)	docs/configuration.md	1	<none>
+setup_field	reauth_confirm.tibber_token	Tibber API token	docs/configuration.md	1	<none>
+setup_field	temperature.comfort_temp_day	Daytime comfort temperature	docs/configuration.md	1	21.0
+setup_field	temperature.comfort_temp_night	Night-time comfort temperature	docs/configuration.md	1	19.5
+setup_field	temperature.day_end_hour	Day ends at	docs/configuration.md	1	22
+setup_field	temperature.day_start_hour	Day starts at	docs/configuration.md	1	7
+setup_field	temperature.max_temperature	Warmest acceptable temperature	docs/configuration.md	1	23.0
+setup_field	temperature.min_temperature	Coldest acceptable temperature	docs/configuration.md	1	19.0
+setup_field	temperature.target_temperature	Target indoor temperature	docs/configuration.md	1	21.0
+setup_field	thermal.comfort_weight	How strictly to hold the temperature	docs/configuration.md	1	5.0
+setup_field	thermal.heat_pump_cop_nominal	Heat pump nominal COP	docs/configuration.md	1	3.5
+setup_field	thermal.heat_pump_max_power	Heat pump max power (kW)	docs/configuration.md	1	5.0
+setup_field	thermal.heat_pump_min_power	Heat pump min power (kW)	docs/configuration.md	1	1.0
+setup_field	thermal.house_heat_loss_coefficient	Heat loss coefficient (kW/°C)	docs/configuration.md	1	0.15
+setup_field	thermal.house_thermal_mass	House thermal mass (kWh/°C)	docs/configuration.md	1	10.0
+setup_field	thermal.optimization_interval	Recalculate every	docs/configuration.md	1	30
+setup_field	thermal.price_weight	How hard to chase low prices	docs/configuration.md	1	1.0
+setup_field	thermal.slab_heat_transfer	Slab-to-room heat transfer (kW/°C)	docs/configuration.md	1	0.8
+setup_field	thermal.slab_thermal_mass	Slab floor thermal mass (kWh/°C)	docs/configuration.md	1	5.0
+setup_field	user.name	Name for this integration	docs/configuration.md	1	"Heat Pump Optimizer"
+setup_field	user.price_entity	Price sensor (Nord Pool or similar)	docs/configuration.md	1	<none>
+setup_field	user.price_source	Electricity price source	docs/configuration.md	1	"tibber"
+setup_field	user.tibber_token	Tibber API token	docs/configuration.md	1	""
+setup_field	user.weather_entity	Weather forecast	docs/configuration.md	1	<none>
+setup_field	user_sensors.buffer_tank_temp_entity	Buffer tank temperature sensor	docs/configuration.md	1	<none>
+setup_field	user_sensors.dhw_temp_entity	Hot water tank temperature sensor	docs/configuration.md	1	<none>
+setup_field	user_sensors.floor_return_temp_entity	Floor heating return temperature sensor	docs/configuration.md	1	<none>
+setup_field	user_sensors.heat_pump_defrost_entity	Defrosting	docs/configuration.md	1	<none>
+setup_field	user_sensors.heat_pump_fault_entity	Fault alarm	docs/configuration.md	1	<none>
+setup_field	user_sensors.heat_pump_mode_entity	Heat pump operating mode	docs/configuration.md	1	<none>
+setup_field	user_sensors.heat_pump_online_entity	Pump online	docs/configuration.md	1	<none>
+setup_field	user_sensors.heat_pump_switch_entity	Heat pump on/off switch	docs/configuration.md	1	<none>
+setup_field	user_sensors.indoor_temp_entity	Indoor temperature sensor	docs/configuration.md	1	<none>
+setup_field	user_sensors.lower_floor_temp_entity	Lower floor temperature sensor	docs/configuration.md	1	<none>
+setup_field	user_sensors.outdoor_temp_entity	Outdoor temperature sensor	docs/configuration.md	1	<none>
+setup_field	user_sensors.solar_forecast_source	Solar irradiance source	docs/configuration.md	1	"weather"
+setup_field	user_sensors.solar_location	Solar irradiance location	docs/configuration.md	1	<computed>
+setup_field	user_sensors.solar_radiation_entity	Solar radiation sensor	docs/configuration.md	1	<none>
+setup_field	weather_sensitivity.rain_heat_loss_multiplier	Rain sensitivity	docs/configuration.md	1	1.15
+setup_field	weather_sensitivity.wind_sensitivity_factor	Wind sensitivity	docs/configuration.md	1	0.03
+setup_field	zones.buffer_tank_volume	Buffer tank size	docs/configuration.md	1	35.0
+setup_field	zones.inter_zone_heat_transfer	Inter-zone heat transfer (kW/°C)	docs/configuration.md	1	0.5
+setup_field	zones.lower_floor_heat_loss	Lower floor heat loss (kW/°C)	docs/configuration.md	1	0.07
+setup_field	zones.lower_floor_thermal_mass	Lower floor thermal mass (kWh/°C)	docs/configuration.md	1	8.0
+setup_field	zones.radiator_power_fraction	Share of heat going to radiators	docs/configuration.md	1	0.4
+setup_field	zones.solar_heat_gain_coefficient	How much sunlight the windows let through	docs/configuration.md	1	0.7
+setup_field	zones.solar_orientation_factor	Solar orientation factor	docs/configuration.md	1	0.7
+setup_field	zones.two_zone	The house has two zones (two floors heated separately)	docs/configuration.md	1	<none>
+setup_field	zones.upper_floor_area_ratio	Upper floor area ratio	docs/configuration.md	1	0.5
+setup_field	zones.upper_floor_heat_loss	Upper floor heat loss (kW/°C)	docs/configuration.md	1	0.08
+setup_field	zones.upper_floor_thermal_mass	Upper floor thermal mass (kWh/°C)	docs/configuration.md	1	3.0
+setup_field	zones.window_area	Window area facing the sun	docs/configuration.md	1	10.0
+setup_step	building	Your building	docs/setup.md	1	-
+setup_step	building_describe	Describe your building	docs/setup.md	1	-
+setup_step	building_extras	Your heat pump	docs/setup.md	1	-
+setup_step	device_prefill	Pre-fill from a heat pump device	docs/setup.md	1	-
+setup_step	dhw	Domestic Hot Water (DHW) Configuration	docs/setup.md	1	-
+setup_step	finish_setup	Finish setup now?	docs/setup.md	1	-
+setup_step	quick_setup	Quick setup	docs/setup.md	1	-
+setup_step	reauth_confirm	Reauthenticate Tibber	docs/setup.md	1	-
+setup_step	setup_overview	Your system, as configured	docs/setup.md	1	-
+setup_step	temperature	Temperature Settings	docs/setup.md	1	-
+setup_step	thermal	Thermal Model & Optimization	docs/setup.md	1	-
+setup_step	user	Heat Pump Optimizer Setup	docs/setup.md	1	-
+setup_step	user_sensors	Optional sensors	docs/setup.md	1	-
+setup_step	weather_sensitivity	Weather Sensitivity Parameters	docs/setup.md	1	-
+setup_step	zones	Two-Zone & Solar Configuration	docs/setup.md	1	-
