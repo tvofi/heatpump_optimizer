@@ -1019,6 +1019,27 @@ day biases it up, so a lower envelope would be systematically wrong. It uses a
 slow symmetric average instead, with a per-interval rate limit and a residual
 cutoff so a single anomaly cannot move the model far.
 
+**What it replays.** The heat an interval put into the house comes from the
+best evidence the install has. With a heat meter — a heat energy meter or a
+thermal power meter — it is the heat the pump delivered. Without one, a heat pump
+power meter gives the measured electrical draw, turned into heat through the
+modelled COP; without that, it is the power the plan commanded. Gaining better
+evidence (adding a power meter, or a heat meter's first measured interval)
+discards the evidence gathered on the weaker one.
+
+**An estimated power reading.** The integration cannot tell a revenue meter
+from a power figure the heat pump computes for itself: both are read as the
+measured draw. If yours is an estimate and it reads high, the house looks
+leakier by about the same factor, and the plan buys heat it does not need.
+Prefer a real meter, and reset the learners after changing the slot.
+
+**Starting again.** The **Learning Reset Heat Loss** button and the
+`reset_heat_loss_learners` service return the learned scale and the lower
+floor loss ratio to 1.0, so the plan uses the heat loss values in the settings
+and learning starts again from there. Changing the indoor or the lower floor
+temperature sensor resets the learner fitted on it the same way, because
+evidence fitted against one sensor says nothing about another.
+
 <!-- [target: R10-COP-GATE, R10-COP-PARTLOAD] -->
 ### COP, and the tracking-error gate
 
