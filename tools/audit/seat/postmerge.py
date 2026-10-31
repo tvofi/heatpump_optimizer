@@ -180,6 +180,9 @@ def self_test() -> int:
     code, lines, log = go()
     check("without --retry a clean run closes nothing (null control)",
           not any("ledger.py" in c for c in log), log)
+    step12 = (ROOT / "dev/governance/roles/nudge.md").read_text().split("## 12.")[1].split("\n## ")[0]
+    check("nudge.md step 12 names no beat this tool runs (CARRY 3)",
+          not any(b in step12 for b in ("worktree_gc", "gh_comment", "roster_edit", "state_docs")), step12[:80])
     print(f"postmerge self-test: {n[0]} checks, {len(fails)} failed")
     return 1 if fails else 0
 

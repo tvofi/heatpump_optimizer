@@ -600,6 +600,8 @@ HOLD_REF = "refs/heads/train-hold"
 APPROVER_LOGIN = "hpo-approver[bot]"
 #: The grain of the wait for an approval's review-event run before a merge (P86).
 REVIEW_POLL_SECONDS = 5
+#: P331 (2): a `CI review` run that ended this recently still explains a BLOCKED/APPROVED refusal.
+REVIEW_SETTLE_SECONDS = 120
 # The recarry re-read's settle (R9-RC-RECARRY-READBACK). app_push.sh --recarry
 # now confirms a push GitHub has not yet indexed inside its own bounded
 # read-back, so a non-PUSHED recarry is a real refusal -- or a lag that outran
@@ -990,7 +992,7 @@ def train_add(t: "Train", item: dict, train_argv: "list[str]", launch=launch_det
         if why:
             t.log(f"ADD REFUSED #{pr} {why}")
             return 1
-        entry = {k: item[k] for k in ("pr", "verdict", "verdict_comment", "issues") if item.get(k) is not None}
+        entry = {k: item[k] for k in ("pr", "verdict", "verdict_comment", "issues", "priority") if item.get(k) is not None}
         entry["pr"] = int(pr)
         if live:
             spool_append(t.state, entry)
@@ -2103,26 +2105,75 @@ class Train:
         if pending:
             return f"required context(s) not yet green at {h[:8]}: {', '.join(pending)} ({state})", True, False
         if rd in ("REVIEW_REQUIRED", "CHANGES_REQUESTED") or ms == "BLOCKED":
+            if self.review_run_settling(pr, h):
+                return (f"{state}: every required context is green and the approver's approval sits at "
+                        f"{h[:8]}, whose `CI review` run is unfinished or ended under {REVIEW_SETTLE_SECONDS} s "
+                        "ago: the policy has not caught up"), True, False
             return (f"{state}: every required context is green, so the missing requirement is a review "
                     f"at {h[:8]}"), False, rd != "CHANGES_REQUESTED"
         return f"{state}, every required context green: no cause read", False, False
 
+    def review_runs(self, h: str) -> "list[tuple[str, str, float | None]] | None":
+        """The `CI review` runs (ci.yml on `pull_request_review`) at <h>:
+        (id, status, updated epoch or None); None when the listing is unreadable."""
+        code, o = self.run(["gh", "api", f"repos/{self.repo}/actions/runs?event=pull_request_review"
+                            f"&head_sha={h}&per_page=20", "--jq",
+                            '.workflow_runs[] | "\\(.id) \\(.status) \\(.updated_at)"'])
+        if code != 0:
+            return None
+        runs = []
+        for ln in o.splitlines():
+            f = ln.split()
+            if len(f) in (2, 3):
+                try:
+                    at = datetime.datetime.fromisoformat(f[2].replace("Z", "+00:00")).timestamp() if len(f) == 3 else None
+                except ValueError:
+                    at = None
+                runs.append((f[0], f[1], at))
+        return runs
+
+    def review_run_settling(self, pr: int, h: str) -> bool:
+        """P331 (2): a `CI review` run at <h> is unfinished or concluded under
+        REVIEW_SETTLE_SECONDS ago AND the approver App's APPROVED review sits at
+        exactly <h>. The policy that refused is then the run's lag, not a missing
+        review; `land`'s merge_tries x 30-s loop bounds the wait. Unreadable: no."""
+        runs = self.review_runs(h)
+        if not runs:
+            return False
+        now = self.wall()
+        fresh = any(st != "completed" or (at is not None and now - at < REVIEW_SETTLE_SECONDS)
+                    for _, st, at in runs)  # mut:settling
+        if not fresh:
+            return False
+        try:
+            return any(r.get("state") == "APPROVED" and r.get("commit_id") == h
+                       and (r.get("user") or {}).get("login") == APPROVER_LOGIN
+                       for r in self._reviews(pr, "the review-run settle"))
+        except (Stop, ValueError):
+            return False
+
     def review_settle(self, pr: int, h: str) -> None:
-        """Before the FIRST merge attempt (P86): the approval's `CI review` run
-        (ci.yml on `pull_request_review`) at <h> must conclude, or base-branch
-        policy refuses the merge -- two refused 30-s attempts per merge
-        before. One REVIEW_POLL_SECONDS grain, then poll while any such run at
-        <h> is unfinished, up to `polls` times; an unreadable listing is not a
-        wait (the retry grain after it still is)."""
-        for n in range(self.polls):
-            self.sleep(REVIEW_POLL_SECONDS)
-            code, o = self.run(["gh", "api", f"repos/{self.repo}/actions/runs?event=pull_request_review"
-                                f"&head_sha={h}&per_page=20", "--jq", '.workflow_runs[] | "\\(.id) \\(.status)"'])
-            open_ = [ln.split()[0] for ln in o.splitlines() if code == 0 and len(ln.split()) == 2
-                     and ln.split()[1] != "completed"]
+        """Before the FIRST merge attempt (P86, P331): the approval's `CI review`
+        run at <h> must conclude, or base-branch policy refuses the merge. It is
+        bounded by TIME, not by the fast poll count: the 5-s grain for `polls`
+        reads, then POLL_SECONDS while a run at <h> is unfinished, `polls` more
+        times (the CI-wait budget, polls x POLL_SECONDS; measured p50 91 s, p90
+        2388 s, p95 5549 s). The still-running line is logged at most once per
+        POLL_SECONDS. At the budget's end the merge proceeds as before; an
+        unreadable listing is not a wait."""
+        waited = last_logged = 0.0
+        for n in range(self.polls * 2):
+            grain = REVIEW_POLL_SECONDS if n < self.polls else POLL_SECONDS
+            self.sleep(grain)
+            waited += grain
+            runs = self.review_runs(h)
+            open_ = [r[0] for r in runs or () if r[1] != "completed"]
             if not open_:
                 return
-            self.log(f"#{pr} review run(s) {', '.join(open_)} at {h[:8]} still running; the merge waits ({n + 1}/{self.polls})")
+            if not last_logged or waited - last_logged >= POLL_SECONDS:
+                last_logged = waited
+                self.log(f"#{pr} review run(s) {', '.join(open_)} at {h[:8]} still running; the merge waits "
+                         f"({int(waited)} s of {self.polls * (REVIEW_POLL_SECONDS + POLL_SECONDS)} s)")
 
     def release_worktrees(self) -> None:
         """Before the run's closing line (and again, a no-op, in `train`/`batch`'s
@@ -2904,6 +2955,19 @@ class Train:
                           for b in batches for e in b}
             queue_seen_write(self.state, self._seen)
 
+    def drain_order(self, added: "list[dict]") -> "list[dict]":
+        """P312: a spool drains into the next batch in an explicit order: entries
+        added with `--priority` (HOTFIX) first, then critical-path entries
+        (`self.critical`, the branch read only when two or more wait), then
+        arrival order. Python's sort is stable, so ties keep the spool's order."""
+        if len(added) < 2:
+            return added
+        def crit(e: dict) -> bool:
+            b = e.get("branch") or self.out("gh", "pr", "view", str(e["pr"]), "--repo", self.repo,
+                                           "--json", "headRefName", "--jq", ".headRefName").strip()
+            return bool(self.critical({"branch": b}))
+        return sorted(added, key=lambda e: (not e.get("priority"), not crit(e)))  # mut:drain
+
     def queue_take(self, batches: "list[list[dict]]", k: int) -> bool:
         """Between batches: drain the spool into ONE new batch after those still
         to run (an entry `already_held` -- the rule `add` applied -- is logged
@@ -2916,7 +2980,7 @@ class Train:
             for ln in bad:
                 self.log(f"ADD UNREADABLE (dropped): {ln[:160]}")
             fresh = []
-            for e in added:
+            for e in self.drain_order(added):
                 held = already_held(int(e["pr"]), e.get("verdict"), self._seen, set())
                 if held:
                     self.log(f"ALREADY #{e['pr']}: {held}; not queued twice")
@@ -4499,6 +4563,7 @@ def _self_test() -> int:
           not any("/git/refs" in " ".join(c) or "/git/commits" in " ".join(c) for c in calls0))
     _stop_self_test(check)
     _read_retry_self_test(check)
+    _review_settle_self_test(check)
     _state_self_test(check, go, merged, throwaway_git_init)
     _infra_self_test(check)
     _batch_self_test(check)
@@ -4749,6 +4814,22 @@ def _queue_self_test(check) -> None:
           and want_argv[1].endswith("tools/audit/seat/train.sh")
           and want_argv[2:] == ["--repo", "o/r", "--state-dir", tmp.name, "--mandate", "M"]
           and auto_train_argv("o/r", tmp.name, None)[2:] == ["--repo", "o/r", "--state-dir", tmp.name])
+    # P312: the spool drains priority (HOTFIX) entries first, then critical-path, then arrival order.
+    def drain312(entries, cp=("cp",)):
+        heads = {1: "plain", 2: "plain", 3: "cp", 4: "plain"}
+        def run(argv, cwd=ROOT, stdin=None):
+            return 0, heads[int(argv[3])] + "\n"
+        with tempfile.TemporaryDirectory() as dd:
+            t = Train("o/r", Path(dd), None, "", (), 1, run=run, log=lambda m: None,
+                      critical=lambda it: it["branch"] in cp)
+            return [e["pr"] for e in t.drain_order(entries)]
+    mk312 = lambda *prs, **kw: [{"pr": n, **({"priority": True} if n in kw.get("prio", ()) else {})} for n in prs]
+    check("P312: a spool holding a non-priority entry (#1) ahead of a HOTFIX entry (#4) drains the HOTFIX first",
+          drain312(mk312(1, 4, prio=(4,))) == [4, 1])
+    check("P312: priority, then critical path, then arrival: #4 (priority), #3 (critical), #1, #2",
+          drain312(mk312(1, 2, 3, 4, prio=(4,))) == [4, 3, 1, 2])
+    check("P312 null: no priority and nothing critical keeps arrival order; one entry is untouched",
+          drain312(mk312(1, 2, 4), cp=()) == [1, 2, 4] and drain312(mk312(2)) == [2])
     check("RECOMMENDED is the owner's six, each a flag batch accepts",
           set(RECOMMENDED) == {"--overlap", "--approval-carry", "--skip-bad", "--free-holders",
                                "--bot-prs", "--pre-flight"} and len(RECOMMENDED) == 6
@@ -4759,6 +4840,68 @@ def _queue_self_test(check) -> None:
                                          auto_train_argv("o/r", tmp.name, None))
           and rc3 == 2 and len(seen_argv) == 2)
     tmp.cleanup()
+
+
+def _review_settle_self_test(check) -> None:
+    """P331: the `CI review` wait is bounded by time, and a BLOCKED/APPROVED
+    refusal beside a settling review run is a wait, not a park.
+
+    Fields: #3031 (run 41211188623 open 14:40:04-14:46:10Z, six refusals, SKIP,
+    merged later unchanged) and #3039 (run 41196240353 ended just before the
+    refusal, SKIP after one attempt)."""
+    H, NOW = "b" * 40, 1_000_000.0
+    iso = lambda ago: datetime.datetime.fromtimestamp(NOW - ago, datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")  # noqa: E731
+
+    def world(runs, reviews=(), rollup="SUCCESS", ms="BLOCKED", rd="APPROVED", open_reads=0):
+        sleeps, lines, reads = [], [], [0]
+        def run(argv, cwd=ROOT, stdin=None):
+            a = " ".join(argv)
+            if "actions/runs?event=pull_request_review" in a:
+                reads[0] += 1
+                if open_reads:  # #3031's shape: unfinished for the first <open_reads> reads
+                    return 0, "77 completed" if reads[0] > open_reads else "77 in_progress"
+                return 0, "\n".join(f"{i} {st} {iso(ago)}" for i, st, ago in runs)
+            if "statusCheckRollup" in a:
+                return 0, json.dumps({"mergeStateStatus": ms, "reviewDecision": rd,
+                                      "statusCheckRollup": [{"name": "gate", "conclusion": rollup}]})
+            if "/reviews" in a:
+                return 0, json.dumps([list(reviews)])
+            return 0, ""
+        t = Train("o/r", Path("."), None, "", (), 1, run=run, sleep=sleeps.append, log=lines.append,
+                  polls=3, wall=lambda: NOW)
+        t.required = lambda pr_head=False: ["gate"]
+        return t, sleeps, lines, reads
+    appr = {"state": "APPROVED", "commit_id": H, "user": {"login": APPROVER_LOGIN}}
+    # (1) the wait is time-bounded: 3 fast polls, then POLL_SECONDS ones, then the merge proceeds
+    t, sleeps, lines, reads = world([], open_reads=5)
+    t.review_settle(3039, H)
+    check("P331 (1) #3031's shape: a review run open past the fast polls keeps the merge waiting at "
+          "POLL_SECONDS, then lands (no SKIP)", sleeps == [REVIEW_POLL_SECONDS] * 3 + [POLL_SECONDS] * 3
+          and reads[0] == 6 and lines and all("still running" in ln for ln in lines))
+    t, sleeps, lines, reads = world([("77", "in_progress", 5)])
+    t.review_settle(1, H)
+    check("P331 (1) a run that never ends: the wait ends at its budget (polls fast + polls slow reads) and "
+          "the merge proceeds; the still-running line is logged at most once per POLL_SECONDS",
+          reads[0] == 6 and sleeps == [REVIEW_POLL_SECONDS] * 3 + [POLL_SECONDS] * 3
+          and len(lines) == 4)  # at 5 s, then 310 s, 610 s, 910 s: never twice inside one POLL_SECONDS
+    t, sleeps, lines, reads = world([("77", "completed", 500)])
+    t.review_settle(1, H)
+    check("P331 (1) null: a concluded run is not waited for (one fast read)", sleeps == [REVIEW_POLL_SECONDS] and not lines)
+    # (2) policy_refusal
+    why = lambda **kw: (lambda t: t.policy_refusal(3039, H))(world(**kw)[0])  # noqa: E731
+    got = why(runs=[("77", "completed", 60)], reviews=[appr])
+    check("P331 (2) #3039's shape: BLOCKED/APPROVED, a review run that ended 60 s ago, the approval at exactly "
+          "that head: wait, not a park", got[1] is True and got[2] is False and "has not caught up" in got[0])
+    check("P331 (2) an unfinished run counts as settling", why(runs=[("77", "in_progress", 10)], reviews=[appr])[1] is True)
+    got = why(runs=[("77", "completed", 600)], reviews=[appr])
+    check("P331 (2) null: the run ended long ago (#2968's missing owner review): parked as a review owed, "
+          "as before", got[1] is False and got[2] is True and "missing requirement is a review" in got[0])
+    check("P331 (2) null: no review run at the head parks", why(runs=[], reviews=[appr])[1] is False)
+    check("P331 (2) null: a settling run but no approver approval at that head parks",
+          why(runs=[("77", "completed", 60)], reviews=[dict(appr, commit_id="c" * 40)])[1] is False
+          and why(runs=[("77", "completed", 60)], reviews=[])[1] is False)
+    got = why(runs=[("77", "completed", 60)], reviews=[appr], rollup="FAILURE")
+    check("P331 (2) null: a required context red parks, never waits", got[1] is False and "red" in got[0])
 
 
 def _read_retry_self_test(check) -> None:
@@ -6642,6 +6785,8 @@ def _parser() -> argparse.ArgumentParser:
     ad.add_argument("pr", type=int)
     ad.add_argument("verdict")
     ad.add_argument("--verdict-comment", help="the verdict comment's id, quoted in a mandate approval")
+    ad.add_argument("--priority", action="store_true",
+                    help="HOTFIX: the spool's drain puts this entry before critical-path and arrival order (P312)")
     ad.add_argument("--auto", action="store_true",
                     help="a started train is a bare train.sh launch (RECOMMENDED by default) with --mandate, "
                          "as the sweep's is: bus.sh's post calls this")
@@ -6686,7 +6831,8 @@ def main(argv: list[str]) -> int:
             print("REFUSE add: --auto is the started train's flags; give it or `-- <train.sh flags>`, not both")
             return 2
         t = Train(a.repo, Path(a.state_dir), a.mandate, a.approver_role, (), a.min_runs)
-        item = {"pr": a.pr, "verdict": a.verdict, "verdict_comment": a.verdict_comment}
+        item = {"pr": a.pr, "verdict": a.verdict, "verdict_comment": a.verdict_comment,
+                **({"priority": True} if a.priority else {})}
         return train_add(t, item, auto_train_argv(a.repo, a.state_dir, a.mandate) if a.auto else
                          ["bash", str(ROOT / "tools/audit/seat/train.sh"), "--repo", a.repo,
                           "--state-dir", a.state_dir, *rest])

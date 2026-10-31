@@ -123,6 +123,9 @@ MUTANTS = [
      '        ids[g] = _task_id(g, ids)\n    lanes = sorted({open_[g].get("lane") and "?"'),
     ("S14", "pr_args.sh", '"$*" >&2; exit 1; }', '"$*" >&2; exit 0; }'),
     ("S15", "pr_cap.py", 'a = pr.get("author") or {}', 'a = pr.get("author") and {}'),
+    # R10-FLY-TRAIN-DEFAULTS part 2: the post-merge bookkeeping's failure arms and its WAIT arm.
+    ("postmerge-1", "postmerge.py", "        if code != 0:\n            owed.append", "        if False:\n            owed.append"),
+    ("postmerge-2", "postmerge.py", "if code == 3:  # WAIT", "if False:  # WAIT"),
     ("S16", "proof_watch.py", '_, pending, red = _train().classify(last, self.required_names())',
      '_, red, pending = _train().classify(last, self.required_names())'),
     # r10-ci-layout-p2-u9a: the watch reads the train's per-suite gate (A5), never newest-wins.
@@ -145,6 +148,9 @@ MUTANTS = [
      "        return WAIT_RC if why else 0\n"),
     ("record_row-5", "record_row.py", "        return WAIT_RC if why else 0\n",
      "        return 0 if why else WAIT_RC\n"),
+    # R10-FLY-TRAIN-DEFAULTS part 2: the #201 line carries the whole sha; a group is named by equality or its pr.
+    ("record_beat-1", "record_beat.py", 'TEMPLATE = "Merged #{pr} {sha} ({group}).', 'TEMPLATE = "Merged #{pr} {sha:.12} ({group}).'),
+    ("record_beat-2", "record_beat.py", '(grp.get("resume") or {}).get("pr") == pr:', "True:"),
     ("S20", "resume_doc.py", "done = {k for k in G if k not in open_}",
      "done = {k for k in G if k in open_}"),
     ("S21", "roster_edit.py", "    if r.returncode != 0:\n        raise Refuse(",

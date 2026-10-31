@@ -593,6 +593,22 @@ jobs:
           python3 -I tools/audit/seat/ledger.py --self-test | tee "$RUNNER_TEMP/ledger-self-test.txt"
           grep -Eq '^ledger self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/ledger-self-test.txt"
 
+      # The after-merge bookkeeping (R10-FLY-TRAIN-DEFAULTS part 2): the #201 line from
+      # its template and the four steps merge_pr.sh and the train run after a merge.
+      - name: Show the post-merge record line refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/record_beat.py --self-test | tee "$RUNNER_TEMP/record-beat-self-test.txt"
+          grep -Eq '^record_beat self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/record-beat-self-test.txt"
+
+      - name: Show the post-merge bookkeeping refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/postmerge.py --self-test | tee "$RUNNER_TEMP/postmerge-self-test.txt"
+          grep -Eq '^postmerge self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/postmerge-self-test.txt"
+
       - name: Show the roster queue runner refusing its own fixtures
         if: ${{ !cancelled() }}
         run: |
