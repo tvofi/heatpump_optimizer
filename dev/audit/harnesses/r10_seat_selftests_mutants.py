@@ -433,6 +433,11 @@ MUTANTS = [
     ("cloud_relay-39", "cloud_relay.sh", '  [ -n "$v" ] || return 1\n  echo "REVIEW dispatch=',
      '  [ -n "$v" ] || git worktree list --porcelain | awk -v h="$2" \'$1 == "HEAD" { at = ($2 == h) } $1 == "detached" && at { f = 1 } END { exit !f }\' || return 1\n  echo "REVIEW dispatch='),
     ("cloud_relay-40", "cloud_relay.sh", '#$pr $hs${why#"${why%% *}"} (head', '#$pr $hs (head'),
+    # P283: the relay's own checkout's update_pr.sh again; no dirty test; no busy test; no levelling.
+    ("cloud_relay-41", "cloud_relay.sh", 'upd=(bash "$why/update_pr.sh")  # mut:toolsseat', 'upd=(bash "$HERE/update_pr.sh")'),
+    ("cloud_relay-42", "cloud_relay.sh", 'if [ -n "$(git -C "$tw" status --porcelain --untracked-files=no 2>/dev/null)" ]; then', 'if false; then'),
+    ("cloud_relay-43", "cloud_relay.sh", 'if [ -n "$o" ] && kill -0 "$o" 2>/dev/null; then echo', 'if false; then echo'),
+    ("cloud_relay-44", "cloud_relay.sh", '  git -C "$tw" checkout -q --detach origin/main 2>/dev/null \\\n', '  true \\\n'),
     ("ledger-1", "ledger.py", '"confirm-owed": "derived", "push-stuck": "derived",', '"confirm-owed": "derived",'),
     ("pr_args-1", "pr_args.sh", 'p = os.getppid(); start = int(time.time())', 'p = os.getppid(); start = 0'),
     ("tick_loop-3", "tick_loop.sh", 'pass --confirm </dev/null', 'pass </dev/null'),

@@ -100,6 +100,13 @@
   pass (rc 2, `OWED handoff-hold-malformed` in `<log>.level`), never hold-all or hold-none.
   `cloud_relay.sh held <pr>` answers from the same file (rc 0 held, 1 not, 2
   malformed) for a driver that updates PRs itself.
+  Tools tree (P283): the update runs `update_pr.sh` from `<state>/relay-tools`,
+  a worktree the relay adds once detached and checks out at origin/main before
+  each update when clean, so `pr_tools_fresh` passes however stale the relay's
+  own checkout is (never moved: bash reads a running script as it goes). A
+  dirty tree is refused by name, left untouched and owed as `handoff-update`;
+  one held by a live relay (`relay-tools.lock`, a dead pid's taken over) is
+  busy and retried next pass.
   Freeze (R10-FLOW-ROSTER-FREEZE): a PR whose live head is under review is not
   updated either, so roster edits accumulate on the handoff ref and land between
   reviews: a `Fix review: merge <head>` tip on `verdict/<pr>` at that head

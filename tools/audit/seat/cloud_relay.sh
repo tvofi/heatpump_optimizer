@@ -87,7 +87,9 @@
 #     `fix/` and a trailing `-pr`. If handoff-body/<topic> and handoff/<topic>
 #     exist and handoff/<topic> is NOT an ancestor of the PR head, it runs
 #     update_pr.sh <branch> <code-sha> <body> <issues> (issues = the body's
-#     closing keywords), then approve_held_runs.sh on the branch, then
+#     closing keywords) from its own tools tree levelled to origin/main, never
+#     from this checkout (tools_level below; dirty or busy is refused by name and
+#     retried next pass), then approve_held_runs.sh on the branch, then
 #     `bus.sh dispatch <pr> <new head> cloud`, and opens `reviewer-fire <pr>
 #     <head40> nonce=<nonce>` in the ledger (a failed approve or dispatch opens
 #     `approve-held-runs` or `dispatch` instead): firing the cloud reviewer stays
@@ -390,6 +392,30 @@ review_freeze() { # <pr> <head> <verdict refs file>: prints VERDICT, REVIEW or U
   [ -n "$v" ] || return 1
   echo "REVIEW dispatch=${v% *} at=${v#* }"
 }
+# THE TOOLS TREE (P283). update_pr.sh refuses a checkout behind origin/main under the tools
+# (pr_args.sh's pr_tools_fresh), and the relay's own checkout is stale whenever main moves them;
+# the relay never moves that checkout, because bash reads a running script from its file as it
+# goes. So it runs update_pr.sh from a worktree it owns, <state>/relay-tools, added once detached
+# and checked out at origin/main before each update when clean. One that is dirty, or held by
+# another relay (the mkdir lock <state>/relay-tools.lock naming a live pid; a dead pid's is taken
+# over), is refused by name and left untouched; the update waits for the next pass.
+tools_level() { # <state>: prints the levelled tree's seat directory, or why not: rc 75 busy, 2 refused
+  local tw=$1/relay-tools o
+  if ! mkdir "$tw.lock" 2>/dev/null; then
+    o=$(cat "$tw.lock/pid" 2>/dev/null)
+    if [ -n "$o" ] && kill -0 "$o" 2>/dev/null; then echo "the relay's tools tree $tw is busy (pid $o)"; return 75; fi  # mut:toolsbusy
+  fi
+  echo "$$" > "$tw.lock/pid"
+  git fetch -q origin main 2>/dev/null || { rm -rf "$tw.lock"; echo "origin/main could not be fetched for the relay's tools tree"; return 2; }
+  [ -e "$tw/.git" ] || git worktree add -q --detach "$tw" origin/main 2>/dev/null \
+    || { rm -rf "$tw.lock"; echo "the relay's tools tree $tw could not be added"; return 2; }
+  if [ -n "$(git -C "$tw" status --porcelain --untracked-files=no 2>/dev/null)" ]; then  # mut:toolsdirty
+    rm -rf "$tw.lock"; echo "the relay's tools tree $tw is dirty; it is left as it is"; return 2
+  fi
+  git -C "$tw" checkout -q --detach origin/main 2>/dev/null \
+    || { rm -rf "$tw.lock"; echo "the relay's tools tree $tw could not check out origin/main"; return 2; }  # mut:toolslevel
+  echo "$tw/tools/audit/seat"
+}
 handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of its head
   local state=${HPO_STATE_DIR:-$HOME/.local/state/hpo} repo=${HPO_RELAY_REPO:-tvofi/heatpump_optimizer} f pr br head topic hs bs bd body iss nh nonce urc held_prs released upd why code
   f=$state/cloud-handoff-failed; mkdir -p "$state"
@@ -447,11 +473,22 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of 
     # It runs in a process group of its own (pr_own_group), so a signal to the loop's whole group
     # (`timeout`, a daemonizer ending the pgid, a closed terminal's HUP) reaches it only through
     # that reap, and a KILL to the group leaves it to finish under its own lock (#2549).
-    # One launch for both routes, so the self-test's stub runs the production launch line.
-    urc=0; upd=(bash "$HERE/update_pr.sh"); [ -z "${HPO_RELAY_UPDATE:-}" ] || upd=("$HPO_RELAY_UPDATE")
+    # One launch for both routes, so the self-test's stub runs the production launch line. The
+    # script is the levelled tools tree's (tools_level), never this checkout's; a stub skips the tree.
+    urc=0; upd=("${HPO_RELAY_UPDATE:-}")
+    if [ -z "${HPO_RELAY_UPDATE:-}" ]; then
+      why=$(tools_level "$state"); urc=$?
+      if [ "$urc" != 0 ]; then
+        echo "cloud_relay: REFUSED the update of #$pr: $why; the next pass retries" >&2
+        [ "$urc" = 75 ] || level_line handoff-update "refs/heads/handoff/$topic" "$hs" "$why" >> "$state/cloud-level-update.$$"
+        rm -rf "$bd"; continue
+      fi
+      upd=(bash "$why/update_pr.sh")  # mut:toolsseat
+    fi
     # Its output is kept until it ends, so a failure records its reason: the last REFUSE line, else the last line.
     pr_own_group "${upd[@]}" "$br" "$hs" "$body" $iss > "$bd/update.out" 2>&1 &
     PR_REAP_LEAD=$!; wait "$PR_REAP_LEAD" || urc=$?
+    [ -n "${HPO_RELAY_UPDATE:-}" ] || rm -rf "$state/relay-tools.lock"
     cat "$bd/update.out" >&2
     # 75 is update_pr.sh's BUSY: another run (the orchestrator's) holds this branch's worktree. Not
     # a failure, so it is not recorded and the next pass retries once that run has ended.
@@ -932,6 +969,41 @@ EOF
   chk "and updates nothing" 0 test ! -e "$t/hupdated"
   chk "and owes handoff-hold-malformed naming the release file" 0 grep -q "^OWED .* handoff-hold-malformed $rf -\$" "$LOG.level"
   rm -f "$rf"; git -C "$t/o.git" update-ref -d refs/heads/verdict/41; rm -f "$t/hupdated" "$t/bus/dispatched.keep"; HPO_RELAY_UPDATE=$ustub; : > "$LOG"
+  # P283: the update runs from the relay's own tools tree, levelled to origin/main, never from
+  # this checkout. The scratch main carries a stand-in update_pr.sh holding pr_tools_fresh's test.
+  rm -rf "$t/tm"; throwaway_git_init "$t/tm" -q; mkdir -p "$t/tm/tools/audit/seat"
+  printf '#!/bin/bash\nd=$(cd "$(dirname "$0")" && pwd)\nn=$(git -C "$d" rev-list --count HEAD..origin/main -- :/tools)\n[ "$n" = 0 ] || { echo "REFUSE STALE CHECKOUT behind by $n"; exit 1; }\necho "$(git -C "$d" rev-parse HEAD) $1 $2" >> "%s/tupdated"\n' "$t" > "$t/tm/tools/audit/seat/update_pr.sh"
+  tmc() { git -C "$t/tm" add -A && git -C "$t/tm" -c user.name=t -c user.email=t@t commit -qm "$1"; }
+  tmc tools-a; TA=$(git -C "$t/tm" rev-parse HEAD); echo b > "$t/tm/tools/audit/seat/x"; tmc tools-b; TB=$(git -C "$t/tm" rev-parse HEAD)
+  git -C "$t/o.git" fetch -qf "$t/tm" "HEAD:refs/heads/main"; git fetch -q origin main
+  TW=$t/state/relay-tools; git worktree add -q --detach "$TW" "$TA"
+  # The relay's own checkout, stale: a copy of the seat whose update_pr.sh refuses as the guard would.
+  rm -rf "$t/seat"; cp -R "$HERE" "$t/seat"; printf '#!/bin/bash\necho "REFUSE STALE CHECKOUT (the relay checkout)"; exit 1\n' > "$t/seat/update_pr.sh"
+  keep_here=$HERE; HERE=$t/seat; rm -f "$t/tupdated"
+  ho=$(HPO_RELAY_UPDATE= handoff_arm 2>&1)
+  chk "a relayed update runs from the levelled tools tree, at origin/main, and passes the guard (P283)" 0 \
+    test "$(cat "$t/tupdated" 2>/dev/null)" = "$TB fix/topic-a-pr $HS2"
+  chk "the tools tree was moved from the commit behind to origin/main" 0 test "$(git -C "$TW" rev-parse HEAD)" = "$TB"
+  chk "and its lock is released after the update" 0 test ! -e "$TW.lock"
+  chk "the relay's own checkout is never moved or run" 1 grep -q "the relay checkout" <<< "$ho"
+  git -C "$TW" checkout -q --detach "$TA"; echo dirty >> "$TW/tools/audit/seat/update_pr.sh"; rm -f "$t/tupdated" "$t/state/cloud-handoff-failed"
+  ho=$(HPO_RELAY_UPDATE= handoff_arm 2>&1)
+  chk "null control: a dirty tools tree is refused by name, no update runs" 0 \
+    grep -q "REFUSED the update of #41: the relay's tools tree $TW is dirty" <<< "$ho"
+  chk "and the tree is left untouched (its commit and its edit)" 0 \
+    test "$(git -C "$TW" rev-parse HEAD) $(tail -n 1 "$TW/tools/audit/seat/update_pr.sh")" = "$TA dirty"
+  chk "and the refusal is owed on the level, unrecorded, so the next pass retries" 0 \
+    test "$(grep -c "handoff-update refs/heads/handoff/topic-a $HS2 the relay's tools tree .* is dirty" "$LOG.level")" = 1 -a ! -e "$t/tupdated"
+  chk "and not noted as a failed update" 0 test -z "$(grep -s "topic-a $HS2" "$t/state/cloud-handoff-failed")"
+  git -C "$TW" checkout -q -- .; sleep 30 & lp=$!; mkdir "$TW.lock"; echo "$lp" > "$TW.lock/pid"
+  ho=$(HPO_RELAY_UPDATE= handoff_arm 2>&1)
+  chk "a tools tree held by a live relay is busy: no update, no level line" 0 \
+    test -n "$(grep "is busy (pid $lp)" <<< "$ho")" -a ! -e "$t/tupdated"
+  kill "$lp"; wait "$lp" 2>/dev/null
+  ho=$(HPO_RELAY_UPDATE= handoff_arm 2>&1)
+  chk "a lock whose pid is dead is taken over and the update runs" 0 test "$(cat "$t/tupdated" 2>/dev/null)" = "$TB fix/topic-a-pr $HS2"
+  HERE=$keep_here; git worktree remove --force "$TW"; rm -rf "$TW.lock" "$t/tupdated" "$t/seat"
+  git -C "$t/o.git" fetch -qf "$t/m" "HEAD:refs/heads/main"; git fetch -q origin main 2>/dev/null; : > "$LOG"; rm -f "$LOG.level" "$t/state/cloud-handoff-failed"
   # a failing update is noted once and not retried
   rm -f "$t/updated"; git -C "$t/pr" reset -q --hard "$PRH"; mkref fix/topic-a-pr
   printf '%s\t%s\t%s\n' 41 fix/topic-a-pr "$PRH" > "$prs"; : > "$LOG"
@@ -1088,10 +1160,14 @@ EOF
   HPO_RELAY_UPDATE=$t/lead.sh stoprelay "$HERE/cloud_relay.sh" 2
   chk "a relay TERMed mid-update TERMs the update alone first, so it ends its own child before anything else does" \
     0 test "$tn $live $(tr '\n' ' ' < "$t/marks")" = "2 0 G "
-  # The production route, no HPO_RELAY_UPDATE: a copy of the relay and the real pr_args.sh beside
-  # an update_pr.sh that is the lead stub, so the relay's own `bash "$HERE/update_pr.sh"` runs it.
+  # The production route, no HPO_RELAY_UPDATE: the scratch main's update_pr.sh is the lead stub,
+  # so the relay's own launch runs it from its levelled tools tree (tools_level, P283). The relay
+  # is a copy, so no route (a mutant's included) reaches the real update_pr.sh.
+  cp "$t/lead.sh" "$t/tm/tools/audit/seat/update_pr.sh"; tmc lead; git -C "$t/o.git" fetch -qf "$t/tm" "HEAD:refs/heads/main"
   mkdir -p "$t/seat" && cp "$HERE/cloud_relay.sh" "$HERE/pr_args.sh" "$t/seat/" && cp "$t/lead.sh" "$t/seat/update_pr.sh"
   HPO_RELAY_UPDATE= stoprelay "$t/seat/cloud_relay.sh" 2
+  git worktree remove --force "$t/state/relay-tools"; rm -rf "$t/state/relay-tools.lock"
+  git -C "$t/o.git" fetch -qf "$t/m" "HEAD:refs/heads/main"; git fetch -q origin main 2>/dev/null
   chk "with no stub, the relay runs update_pr.sh beside it as the lead, asynchronously: a TERM ends it in that order" \
     0 test "$tn $live $(tr '\n' ' ' < "$t/marks")" = "2 0 G "
   # #2549: a signal to the loop's whole process group reaches the update only through the loop's
