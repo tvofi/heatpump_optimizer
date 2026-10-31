@@ -168,6 +168,7 @@ def cheaper_windows(
         return (ts.astimezone(local_tz) if local_tz is not None else ts).date()
 
     today = day(timestamps[0])
+    # One step's length, read off the plan's own grid.
     step = timestamps[1] - timestamps[0]
     out: list[tuple[datetime, datetime]] = []
     for ts, cheap in zip(timestamps, cheaper, strict=False):
