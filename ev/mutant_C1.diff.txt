@@ -1,0 +1,14 @@
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 17ec4c86a..65f4bc57c 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -9083,7 +9083,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+                 continue
+             hum = float(humidity[i]) if humidity is not None and i < len(humidity) else None
+             cop_i = max(model.compute_cop(float(outdoor), humidity=hum), 1e-6)
+-            cap_i = float(np.clip(power_for_heat_per_cop_kw(model.params, float(entry[0]) / cop_i), floor, p_max))
++            cap_i = float(np.clip(float(entry[0]) / cop_i, floor, p_max))
+             if cap_i < p_max - 1e-9:
+                 caps[i] = cap_i
+                 any_cap = True
