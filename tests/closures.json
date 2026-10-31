@@ -4012,6 +4012,7 @@
    "dev/audit/harnesses/r10_tick_which_roster.py",
    "dev/audit/harnesses/r10_title_seam.sh",
    "dev/audit/harnesses/r10_train_overlap_grade_p2_mutants.py",
+   "dev/audit/harnesses/r10_train_overlap_grade_p4_mutants.py",
    "dev/audit/harnesses/r10_train_raise_hold_mutants.sh",
    "dev/audit/harnesses/r10_train_raise_hold_replay.py",
    "dev/audit/harnesses/r10_train_upgrade_mutants.py",
