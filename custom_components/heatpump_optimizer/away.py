@@ -245,7 +245,6 @@ def watch_away_inputs(
         return
     reads: dict[str | None, Callable[[str, Any], object]] = {
         config.away_presence_entity: _away_of,
-        config.holiday_calendar_entity: lambda _eid, st: _holiday_days(st, dt_util.now()),
     }
     for entity_id, read in reads.items():
         if entity_id:
