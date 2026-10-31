@@ -8,9 +8,9 @@ blueprint:
     cheaper_windows attribute and the lighting window in lighting_start and
     lighting_end; the lead time is the "Light the furnace this long before a
     cheaper window" option on the wood page. One notification at the send
-    time, and optionally a follow-up later the same day when a replan brings
-    a window that was not there before. A day with no cheaper window sends
-    nothing.
+    time, and optionally a follow-up later the same day, until a configured
+    time, when a replan brings a window that is not yet open and overlaps no
+    window the plan had before. A day with no cheaper window sends nothing.
   domain: automation
   author: tvofi
   source_url: https://raw.githubusercontent.com/tvofi/heatpump_optimizer/main/blueprints/automation/notify_wood_cheaper_window.yaml
@@ -46,10 +46,20 @@ blueprint:
       name: Follow up after a replan
       description: >-
         Later the same day, send one more notification when a replan brings a
-        cheaper window that is not yet open and was not in the plan before.
+        cheaper window that is not yet open and overlaps no window the plan
+        had before. A window the replan only moved or split, which still
+        overlaps one already announced, sends nothing.
       default: true
       selector:
         boolean: {}
+    followup_until:
+      name: No follow-up after
+      description: >-
+        A replan after this time sends no follow-up, so a late replan does
+        not wake anyone. Set 23:59 to allow evening follow-ups.
+      default: "21:00:00"
+      selector:
+        time: {}
     title_template:
       name: Title
       description: >-
@@ -77,6 +87,7 @@ variables:
   notify_device: !input notify_device
   send_time: !input send_time
   notify_on_replan: !input notify_on_replan
+  followup_until: !input followup_until
   windows: "{{ state_attr(wood_sensor, 'cheaper_windows') or [] }}"
   windows_text: >-
     {% set ns = namespace(parts=[]) %}{% for w in windows %}{% set ns.parts =
@@ -107,12 +118,17 @@ condition:
         conditions:
           - "{{ notify_on_replan }}"
           - "{{ now() >= today_at(send_time) }}"
+          - "{{ now() < today_at(followup_until) }}"
           - >-
             {% set old = (trigger.from_state.attributes.get('cheaper_windows')
             or []) if trigger.from_state else [] %}{% set ns =
-            namespace(new=false) %}{% for w in windows %}{% if w not in old
-            and as_timestamp(w.start) > as_timestamp(now()) %}{% set ns.new =
-            true %}{% endif %}{% endfor %}{{ ns.new }}
+            namespace(new=false) %}{% for w in windows %}{% set ws =
+            as_timestamp(w.start) %}{% set we = as_timestamp(w.end) %}{% set
+            seen = namespace(hit=false) %}{% for o in old %}{% if ws <
+            as_timestamp(o.end) and as_timestamp(o.start) < we %}{% set
+            seen.hit = true %}{% endif %}{% endfor %}{% if not seen.hit and ws
+            > as_timestamp(now()) %}{% set ns.new = true %}{% endif %}{% endfor
+            %}{{ ns.new }}
 action:
   - action: notify.mobile_app_{{ device_attr(notify_device, 'name') | slugify }}
     data:

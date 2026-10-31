@@ -168,6 +168,7 @@ def cheaper_windows(
         return (ts.astimezone(local_tz) if local_tz is not None else ts).date()
 
     today = day(timestamps[0])
+    # One step's length, read off the plan's own grid.
     step = timestamps[1] - timestamps[0]
     out: list[tuple[datetime, datetime]] = []
     for ts, cheap in zip(timestamps, cheaper, strict=False):
@@ -589,13 +590,14 @@ def wood_fuel_from_parts(
     thermal_model: Any,
     current_state: Any,
     result: Any,
-    local_tz: tzinfo | None = None,
+    local_tz: tzinfo,
 ) -> WoodFuel:
     """The published wood-fuel view from the coordinator's parts (#1739).
 
     Every input is passed by the coordinator's one call site: the external
     heat detector, the optimization and thermal parameters, the model's COP
     curve, the thermal state and the plan. Nothing reaches a private.
+    ``local_tz`` has no default: without it "today" would be the UTC day.
     """
     n = len(result.timestamps) if result is not None else 0
     det = external_heat

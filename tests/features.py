@@ -42455,10 +42455,58 @@ R.check(
     and _wf_pub["wood_fuel"].get("cheaper_hour_count") == 1,
     repr(_wf_pub.get("wood_fuel")),
 )
+from dataclasses import replace as _wf_replace  # noqa: E402
+
+# R10-WOOD-NOTIFY: "today" and the published windows are the HA local day and
+# local time, which reach wood_fuel.py only through the coordinator's call.
+# Driven through _build_data_dict with the stub's zone at UTC+1: the cheaper
+# 23:00 UTC step is 00:00-01:00 on the local next day. Without the zone it
+# would publish 23:00-00:00 UTC. Null control: the same plan with the UTC
+# zone publishes the UTC window, so the check reads the zone, not the plan.
+from datetime import timedelta as _td_wf  # noqa: E402
+
+_wf_late = datetime(2026, 1, 1, 23, tzinfo=_tz_wf.utc)
+
+
+def _wf_windows_at(zone):
+    _wf_ready_coord._optimization_result = _wf_replace(
+        _wf_result,
+        heat_pump_on_schedule=[True, True],
+        power_schedule=[0.2, 0.2],
+        room_temp_trajectory=[21.0] * 3,
+        slab_temp_trajectory=[21.0] * 3,
+        timestamps=[_wf_late, _wf_late + _td_wf(hours=1)],
+        prices=[40.0, 0.0],
+        optimal_setpoints=[21.0, 21.0],
+        outdoor_temps=[-5.0, -5.0],
+        dhw_power_schedule=[0.0, 0.0],
+        dhw_temp_trajectory=[50.0] * 3,
+    )
+    _real_zone = _dt_wf.DEFAULT_TIME_ZONE
+    try:
+        _dt_wf.now = lambda: NOW
+        _dt_wf.DEFAULT_TIME_ZONE = zone
+        return _wf_ready_coord._build_data_dict()["wood_fuel"].get("cheaper_windows")
+    finally:
+        _dt_wf.now = _real_now_wf
+        _dt_wf.DEFAULT_TIME_ZONE = _real_zone
+
+
+_wf_cet = _wf_windows_at(_tz_wf(_td_wf(hours=1)))
+_wf_utc = _wf_windows_at(_tz_wf.utc)
+_wf_ready_coord._optimization_result = _wf_result
+R.check(
+    "the coordinator publishes the wood windows on HA's local day, in local "
+    "time (R10-WOOD-NOTIFY)",
+    _wf_cet
+    == [{"start": "2026-01-02T00:00:00+01:00", "end": "2026-01-02T01:00:00+01:00"}]
+    and _wf_utc
+    == [{"start": "2026-01-01T23:00:00+00:00", "end": "2026-01-02T00:00:00+00:00"}],
+    repr((_wf_cet, _wf_utc)),
+)
 # D8-s1-01: a pump hour is a step the plan's on schedule runs. A 0.07 kW space
 # share the plan calls off buys no pump heat for wood to undercut. Null
 # control: the same plan with the step running counts it (the check above).
-from dataclasses import replace as _wf_replace  # noqa: E402
 
 _wf_ready_coord._optimization_result = _wf_replace(
     _wf_result, power_schedule=[0.07], heat_pump_on_schedule=[False])
@@ -42599,6 +42647,7 @@ _wf_from_probes = _wf_from_coord(
     thermal_model=_wf_probe_coord._thermal_model,
     current_state=_wf_probe_coord._current_state,
     result=_wf_probe_result,
+    local_tz=_tz_wf.utc,
 )
 R.check(
     "from_coordinator uses the live wood-tank temperature",
@@ -42614,6 +42663,7 @@ _wf_from_empty = _wf_from_coord(
     thermal_model=_wf_probe_coord._thermal_model,
     current_state=_wf_probe_coord._current_state,
     result=_wf_probe_result,
+    local_tz=_tz_wf.utc,
 )
 R.check(
     "from_coordinator without a tank temperature attaches nothing",
