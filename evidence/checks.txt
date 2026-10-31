@@ -1,0 +1,5 @@
+head db4fdd8176047acf404d5c738664b85a37f47b4e
+ruling_verdict at head: P333 REJECT, P334 ACCEPT, P335 ACCEPT
+P334 flipped to REJECT: triage_refusal -> "dev/programme/triage/s6-batch93.md#P334 is not an ACCEPT ruling (REJECT)"; unflipped -> None
+merge-tree --write-tree origin/main db4fdd8176047acf404d5c738664b85a37f47b4e: rc=0
+merge_train classify: GREEN
