@@ -2498,18 +2498,40 @@ _AUTOFIX_REMEDY = {
 }
 
 
-def autofix_repair_failed(job: str, status: str) -> bool:
+# The statuses of a measurement the job APPLIED, which can still have left a
+# site alive: the pins that were killed are pushed (`changed`) or none was
+# (`skip-nothing-killed`), and a survivor is the one thing no tool disposes
+# (ci-autofix.md). #2840, #2817 and #2832 each read that green as "nothing
+# owed". A measurement the job did not apply -- `skip-head-moved`, a newer
+# push's to measure -- reports no survivor, because it stays quiet.
+AUTOFIX_SURVIVOR_GRADED = {"mutation-autofix": ("changed", "skip-nothing-killed")}
+
+
+def autofix_survivors_owed(job: str, status: str, survivors=()) -> bool:
+    """True when an applied measurement left a site alive (the job goes red)."""
+    return bool(survivors) and status in AUTOFIX_SURVIVOR_GRADED.get(job, ())
+
+
+def autofix_repair_failed(job: str, status: str, survivors=()) -> bool:
     """True when `job`'s status means a repair is owed and no commit is coming.
 
     Fails closed. A status this table does not carry -- one invented later, or
     the empty string a crashed merge step leaves in the job output -- is a
     repair nobody can wait for, and so is an unknown job.
     """
-    return status not in AUTOFIX_QUIET.get(job, ())
+    return (status not in AUTOFIX_QUIET.get(job, ())
+            or autofix_survivors_owed(job, status, survivors))
 
 
-def autofix_report(job: str, status: str) -> tuple[int, str]:
+def autofix_report(job: str, status: str, survivors=()) -> tuple[int, str]:
     """The job's verdict on its own status: exit code, and what to say."""
+    if autofix_survivors_owed(job, status, survivors):
+        return 1, (
+            f"{job}: {status} -- {len(survivors)} added site(s) left alive: "
+            + "; ".join(survivors) + ".\n"
+            "Every kill the measurement made is pinned; these are not, and\n"
+            "no tool disposes a survivor. Each needs a killing check or a\n"
+            "survivor_triage verdict, written by a seat (ci-autofix.md).\n")
     if not autofix_repair_failed(job, status):
         return 0, f"{job}: {status} -- nothing owed to a human."
     return 1, (
@@ -2522,7 +2544,12 @@ def autofix_report(job: str, status: str) -> tuple[int, str]:
 
 
 def _autofix_report_cmd(job: str, status: str) -> int:
-    rc, text = autofix_report(job, status)
+    # The sites a measurement left alive arrive as `AUTOFIX_SURVIVORS`, `;`
+    # separated, from the job's apply step: an environment variable, not a
+    # flag, because the job runs the BASE's copy of this program.
+    survivors = [x.strip() for x in
+                 os.environ.get("AUTOFIX_SURVIVORS", "").split(";") if x.strip()]
+    rc, text = autofix_report(job, status, survivors)
     print(text)
     summary = os.environ.get("GITHUB_STEP_SUMMARY")
     if summary:
