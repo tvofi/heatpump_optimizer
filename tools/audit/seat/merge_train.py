@@ -321,6 +321,7 @@ TOOLS = {
     "preflight": ("tools/audit/preflight.sh", "tools/pr/preflight.sh"),
     "remerge_main": ("tools/audit/seat/remerge_main.sh",),
     "worktree_gc": ("tools/audit/worktree_gc.sh",),
+    "postmerge": ("tools/audit/seat/postmerge.py",),
 }
 ROW_DIR = "dev/programme/delivery"
 
@@ -2053,7 +2054,21 @@ class Train:
         self.log(f"#{pr} closes {self.out('gh', 'api', 'graphql', '-f', q)[-160:]}")
         if self.real:
             self.run(["bash", tool("worktree_gc"), self.repo])
+            self.post_merge(pr)
         return st.split()[-1]
+
+    def post_merge(self, pr: int) -> None:
+        """The rest of nudge.md step 12, by `postmerge.py` (the #201 line, the
+        roster stage, the state docs, main's suite state). Its OWED lines are
+        logged and never undo or stop the merge; the tool itself opens the
+        ledger's `postmerge-owed` event for a step that failed."""
+        code, o = self.run([sys.executable, "-I", tool("postmerge"), str(pr), "--repo", self.repo,
+                            "--state-dir", str(self.state)])  # mut:postmerge
+        for ln in o.splitlines()[-6:]:
+            if ln.startswith(("OWED", "set-stage owed", "main ")):
+                self.log(f"#{pr} {ln}")
+        if code != 0:
+            self.log(f"#{pr} post-merge steps OWED (rc={code}); the merge stands")
 
     def policy_refusal(self, pr: int, h: str) -> "tuple[str, bool, bool]":
         """Why GitHub's base-branch policy refused <pr> at <h> (carries 1-3,
@@ -4287,6 +4302,20 @@ def _self_test() -> int:
     check("the merge is retried until GitHub reports MERGED", rc == 0 and sum(c[:3] == ["gh", "pr", "merge"] for c in calls) == 3)
     rc, lines, calls = go({"merge": ["OPEN None"] * 3})
     check("a merge GitHub never takes stops it", rc == 1 and "merge:" in lines[-1])
+    pm = lambda c: [a for a in c if any("postmerge.py" in x for x in a)]
+    check("after a merge the train runs postmerge.py once, for the merged pull request and its state dir",
+          rc == 1 and not pm(calls) and (lambda r: r[0] == 0 and len(pm(r[2])) == 1
+                                         and pm(r[2])[0][3:5] == ["7", "--repo"])(go({})))
+    def owed_pm(base_run):
+        def run(argv, cwd=ROOT, stdin=None):
+            if any("postmerge.py" in a for a in argv):
+                return 1, "OWED record: the #201 comment was refused\nset-stage owed R10-X " + "e" * 40
+            return base_run(argv, cwd=cwd, stdin=stdin)
+        return run
+    rc, lines, calls = go({}, wrap=owed_pm)
+    check("an owed post-merge step is logged and never undoes the merge: rc 0, the OWED line in the log, "
+          "the merge made", rc == 0 and merged(calls) and any(ln.startswith("#7 OWED record:") for ln in lines)
+          and any(ln.startswith("#7 set-stage owed R10-X ") for ln in lines))
     # train-b5, #2290: eight silent refusals. Each is now logged in GitHub's
     # words, the stop names the last, and a base-moved refusal is recovered.
     REF = (1, "X Pull request tvofi/r#7 is not mergeable: the merge commit cannot be cleanly created.")
