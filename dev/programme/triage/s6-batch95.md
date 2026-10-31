@@ -1,4 +1,4 @@
-# Proposal triage, session s9, batch 95 (P345, P346)
+# Proposal triage, session s9, batch 95 (P345-P347)
 
 The rolling batch after batch 94. Batch 94's refs were pushed without a PR and its opener was in
 flight, so this ruling did not move that head. Facts were read at origin/main `a7dd7f50d` and at
@@ -172,3 +172,53 @@ Instances:
     runs are under-sampled.
 
 The evidence's limits: the open table is one day's opens (five) from one opener log.
+
+## P347: prepr step 3h runs only when the diff touches prepr.sh or its self-test inputs
+
+Verdict: REJECT, as redundant. The proposed rule is the rule step 3h already runs, and at the open
+it already ignores main's merge.
+
+Source: the orchestrator s9's triage-queue line of 2026-10-31T21:33:05Z (`s7/triage-queue-s7.txt`
+line 38). Its figures (3h at 23-74 min on 3 opens, slot waits up to 64 min) come from the R10-FLY-
+OPEN-PREPR-REUSE seat's `measure.out`. That group was dropped at 21:33Z on the owner's ruling
+(roster queue line 900).
+
+Instances:
+- **The rule in force** (`tools/pr/prepr.sh` at `a7dd7f50d`):
+  - Step 3h (lines 3737-3746) runs `--self-test` only when `selftest_owed` (lines 1508-1538)
+    finds a changed path among `selftest_inputs`. Otherwise it prints `skip self-test  no change
+    to prepr.sh, a program it names or its fixtures`.
+  - `selftest_inputs` is prepr.sh itself, every tracked script path it names, `counts.mjs`,
+    `render_md.mjs` and the fixtures directory: 56 paths here, derived by sourcing those lines.
+  - Its self-test rows pin the trigger and a null control (lines 3188-3200).
+  - That is the proposal's rule: "the diff touches prepr.sh or its self-test inputs".
+- **Main's merge is already excluded at the open.**
+  - The changed-path list is `git diff "$BASE"...HEAD`, with `BASE=$(git merge-base origin/main
+    HEAD)` (line 3525).
+  - `open_pr.sh` merges origin/main into the code head first (lines 103-105). So at the open,
+    BASE is main's tip, and the list is the authored head's own changes.
+  - The proposal's "an open's merge of main that touches neither skips it" is therefore already
+    what happens.
+- **The rule run on today's ten opens** (C from `s9/seat-opener/driver4.log`; the three-dot diff
+  of C against its merge base with origin/main, matched against the 56 inputs):
+  - Five owe 3h through C's own files:
+    - `632bd15b9`: `tests/entities.py`, `tests/features.py`.
+    - `fddb9a1bf`: `tests/features.py`.
+    - `6aea809f6`: `tools/audit/carry_audit.py`, `roster_lib.py`, `brief_lint.mjs`.
+    - `c18116991`: `tests/closure.py`, `tests/entities.py`, `tools/pr/prepr.sh`.
+    - `d1afdcf87`: `tests/closure.py`, `tests/entities.py`.
+  - Five owe nothing: `9a1a9835f`, `5f1c1d80b`, `e316cdb95`, `f25b5d6a2` and `df25f62e4`.
+  - The proposed rule selects exactly the same set, so it saves 0 h.
+
+Cost: a re-statement of `selftest_owed` in `prepr.sh`, the most-run gate file, plus its self-test
+rows.
+
+Binding:
+- No benefit: the rule exists, and on today's opens the proposal skips nothing the tree does not
+  already skip.
+- What would change the answer is a narrower trigger. The self-test is one program of 431
+  checks, keyed on 56 inputs, and the five owing heads above owe it through `tests/entities.py`,
+  `tests/features.py` and `tests/closure.py`, which prepr.sh names as programs it runs. A
+  proposal would need a measured per-row input map showing that a change to those files cannot
+  move the rows that take the 23-74 min, with the minutes it would save. The open-time re-run of
+  a self-test the fixer already ran at the same head is the dropped reuse question, not this one.
