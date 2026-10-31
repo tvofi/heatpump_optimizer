@@ -1,0 +1,31 @@
+== 124560298588
+
+
+Prepare all required actions
+  persist-credentials: false
+[36;1m  [[ "$INPUT_BASE" =~ ^[A-Za-z0-9._/-]+$ ]] || { echo "FAIL base ref malformed"; exit 1; }[0m
+[36;1m  echo "programs restored from $PINNED"[0m
+programs restored from 2fc0e95b2f3ccfedc03975a801f0960fbc9bbc84
+FAIL budget-raise-gate / budget-raise-gate: failure (this run)
+##[error]Process completed with exit code 1.
+== 124560780988
+
+
+Prepare all required actions
+  persist-credentials: false
+[36;1m  [[ "$INPUT_BASE" =~ ^[A-Za-z0-9._/-]+$ ]] || { echo "FAIL base ref malformed"; exit 1; }[0m
+[36;1m  echo "programs restored from $PINNED"[0m
+programs restored from 2fc0e95b2f3ccfedc03975a801f0960fbc9bbc84
+FAIL budget-raise-gate / budget-raise-gate: failure (run 41199106680)
+##[error]Process completed with exit code 1.
+== 124560376869
+
+
+Prepare all required actions
+Failed to resolve action download info. Error: An error occurred while sending the request.
+  persist-credentials: true
+[36;1mecho "check source restored from $PINNED: $(git diff --cached --name-only | wc -l) file(s) differ from the pull request's copy"[0m
+check source restored from 2fc0e95b2f3ccfedc03975a801f0960fbc9bbc84: 0 file(s) differ from the pull request's copy
+[36;1mtest -n "$PR_NUMBER" && test -n "$PR_HEAD" || { echo "::error title=budget-raise-gate::the caller named no pull request"; exit 1; }[0m
+REFUSED: tvofi's approval is on 9033a59583eb, not this head a6be5baa55e4: an approval covers only the commit it was given on
+##[error]Process completed with exit code 1.

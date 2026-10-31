@@ -1,0 +1,2 @@
+RESULT hits=95
+RESULT plain=54
