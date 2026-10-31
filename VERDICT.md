@@ -1,28 +1,45 @@
-Fix review: merge 5832ceb58e6f1e79aba0f6273f50d1b4a928819a
+Fix review: blocked 5832ceb58e6f1e79aba0f6273f50d1b4a928819a carry-missing: not carried to R10-FLY-CIPREDICT-GAPS or R10-UX-HEALTH, the null_for pre-check carry is on no roster group
 
-bus-nonce: e0c0645edf837dae3e87cce5d0f27197
+bus-nonce: 7ece814279f518ef8c268f3785c3d3ab
 
-Round 3 (re-run within round 3 after the orchestrator's roster cure). Head measured and re-read before posting: 5832ceb58e6f1e79aba0f6273f50d1b4a928819a, still the tip of fix/r10-ux-health-p2. Role contract: dev/governance/roles/fix-review.md at origin/main, with no drift from the merge base under dev/governance/roles/.
+## Block
 
-## Evidence
-
-- RESULT mutation proof, null_control (tests/entities.py, PYTHONPATH=tests/hastub, Linux, no wrapper, each in its own worktree at the head): unmutated reads ALL 2489 ENTITY CHECKS PASSED, rc=0. Mutant A, the old len(lines[ln - 1]) < 60 cap restored, reads 1 of 2489 ENTITY CHECKS FAILED: the new check, long=None none=None pool-none=None. Mutant B, any COMMENT token, reads 3 of 2489 ENTITY CHECKS FAILED: the new check's null arm, "the null control edits a whole-line comment and nothing else", and the shard null_for check. All three match the body.
-- RESULT mutation proof, #2809: in button.py, the final branch returning {"waiting_for": "debug_collect"} reads 1 of 159 DEBUG COLLECT CHECKS FAILED, the named check. The unmutated head reads ALL 159 DEBUG COLLECT CHECKS PASSED. The indented a16 FAIL lines are perturbation output that both runs print.
-- RESULT mutation proof, hover spec: with healthModelTitle returning the metric alone, node tests/card.mjs reads 2 CARD CHECK(S) FAILED, hover spec (en) and (sv), rc=1. On Linux it ran at the default heap.
-- RESULT CI's own tests / mutation at this head (job 124367339382): null control custom_components/heatpump_optimizer/button.py:37 NULL_COMMENT survived every driver. PIN RE-VERIFICATION reads 3 reproduced (226 GUARD_OFF, 228 GUARD_OFF, 230 RETURN_DEL, each killed by tests/debug_collect.py), 0 survivor(s) of 3, MUTATION TABLE PASSED. Its ratchet line reads 3614 against 3614 at base 5d4e0bcfb, not the body's 3620 at d99cadb12, because CI measured against the newer main.
-- RESULT the --pin-killed rows are the tool's: all three new ledger files carry "Recorded by `mutation_table.py --pin-killed`", and CI re-verified each.
-- RESULT the null-control census was re-derived at the head with the body's stated rule (rglob of *.py under custom_components; the head's null_control, a full-line cap under 60, and a stripped cap under 60). It reads 84 files and 13 / 11 / 3, the same 13 names, and the 3 left are flow_meter, silent_mode and wood_fuel. This matches the body.
-- RESULT CI: merge_train classify reads GREEN at the head, with no check pending and none red. This head has no red check, so step 11 owes nothing new. The earlier reds (mutation at feacede17 and 7c43d8fb1, mutation-autofix at 7c43d8fb1) are named and answered under Red checks, each with its cheaper detector. pr-contract re-ran after the last workflow and is green.
-- RESULT merge: git merge-tree --write-tree origin/main(5d4e0bcfb) 5832ceb58e6f1e79aba0f6273f50d1b4a928819a exits 0. There is no conflict, and neither claim file is touched.
-- RESULT VERSION, manifest.json, RELEASE_NOTES.md and both claim files are untouched three-dot.
-- RESULT forward-carry: carry_audit --roster-ref 7d8f6bf4c6dee4ea8ae82f5eba72e33b58419ae9 pr 2997 reads 7 routed, 0 unrouted, 0 bad destination(s), and the same at the roster tip ed9b94757. R10-FLY-CIPREDICT-GAPS at 7d8f6bf4c holds the null_for pre-check in its brief, with its control: flow_meter.py-only pool prints the refusal; this head's pool prints nothing. The body's Carry line names R10-UX-HEALTH, and I accept the re-route as the brief directs. R10-UX-HEALTH's carries hold their findings: 11 (no-meter overbook, harness r10_demand_overbook.py), 14 (the owner's hover/driving-scale spec with its confirm-with-orchestrator step), 17 (the P9 state leak and its reset) and 20 (#2499 residual).
-- RESULT authorship: baf2c4c00 and 525e20691 are authored and committed by hpo-fixer. 077a87b02 and 700f21c18 are not fetchable from origin, so the claim that the tree differs from 077a87b02 only in docstring wording is not verified. The earlier round-1/2 commits 855d1bbac, 31da5f026 and 7fed51072 still carry the author "Claude <noreply@anthropic.com>" in branch history. The brief names only the two re-made commits.
-- RESULT the body's "Why no cap remains" claim was checked against the diff. The predicate drops only the width condition. A file with no whole-line comment still yields None, and so does a pool of only such files (entities.py check, null arm).
-- The P9 grid and #2499 figures are from earlier rounds and were not re-run here. No card, learner or optimizer line moved in round 3, and CI's tests / browser is green at this head.
-- Class (step 6): the census rule is the body's enumeration. Its 3 remaining seams, the comment-free files, are dispositioned to the null_for pre-check carry, and non-Python files are named outside the class.
-- tests/mutation_table.py is code-owned, so tvofi's approving review is what the code-owner rule enforces at merge. This review does not block on it.
+- Under fix-review step 10, the forward-carry for the cheaper detector this body names is missing. That detector is a `null_for` pre-check in `tools/pr/ci_predict.py` (`prepr.sh` step 6d), and `## Red checks` gives it as the answer to the `tests / mutation` red at feacede17. Neither the body's destination nor the brief's re-route holds it.
+  - Body: "the R10-UX-HEALTH group's `carry` list ... at 84ddbfbcf..., which does not hold it yet; the orchestrator writes it". At 84ddbfbcf the R10-UX-HEALTH group has 20 carries, and none of them names `null_for`, `null_control`, `NO NULL CONTROL` or #2997.
+  - Brief: "moved to the new group R10-FLY-CIPREDICT-GAPS". No group of that name exists on `handoff/audit-r10-roster` at 84ddbfbcf, at 237e1aae4 or at the tip a8344f5a5 (re-read 2026-10-30T23:52Z). The only CIPREDICT groups are R10-FLY-CIPREDICT-LAYOUT and R10-FLY-CIPREDICT-RESTORING, and neither carries it. The whole roster file has 0 lines matching `null_for|NO NULL CONTROL|#2997|null_control|CIPREDICT-GAPS` (ev/carry_and_merge.txt, ev/recheck.txt).
+  - Round 2 blocked on the same missing roster entry. The finding still lives only in this PR's body and comments, which step 10 says is not a carry.
+- What clears this: the orchestrator writes the carry, with its control, to a roster group: R10-FLY-CIPREDICT-GAPS (a re-route the brief accepts) or R10-UX-HEALTH. The control as the body gives it: on a pool of only `flow_meter.py`, the pre-check prints `PREDICT tests / mutation NO NULL CONTROL`; on this head's pool (`button.py`, null control at line 37) it prints nothing. Then the body's Carry line names that group. No code change is owed. Everything else I checked at this head holds (Evidence), so a re-review should only need to confirm the carry, plus CI if it has concluded by then.
 
 ## Findings
 
-- The body says the null-control line at button.py:37 is 91 characters. At the head the line is 75 characters, so 90 with the 15-character suffix. The figure is off by one, and the claim it supports (well past 60) holds either way. Carry: dismissed: off-by-one in a supporting figure, no claim turns on it
-- Three commits authored as "Claude <noreply@anthropic.com>" (855d1bbac, 31da5f026, 7fed51072) stay in the branch's history. Only the two round-3 commits were re-made under hpo-fixer, which is what the brief asked to confirm. Carry: dismissed: the brief scopes the re-make to the two round-3 commits; history rewrite on this branch is the orchestrator's call, not a fix defect
+- The `null_for` pre-check in `tools/pr/ci_predict.py` is not built, so a pool with no whole-line comment first shows red in CI. After this PR that pool is `flow_meter.py`, `silent_mode.py` and `wood_fuel.py`, by the body's census. It is not on the roster (Block). Carry: R10-UX-HEALTH
+- P9 grid storage reset and the 375-px collision it hides are withheld. Carry 17 holds the leak and its reset control at 84ddbfbcf. Carry: R10-UX-HEALTH
+- The "driving scale" widget is not built and waits on the orchestrator's confirmation. Carry 14 holds the owner's spec and the confirmation step. Carry: R10-UX-HEALTH
+- #2499, no-meter over-booking (body: plan/deliv 1.908), is not met. Carries 11 and 20 hold the residual and its harness. I did not re-derive the 1.908. Carry: #2499
+- `tests/mutation_table.py` is code-owned, so tvofi's approving review is owed at merge. That is flagged here, not a block. Carry: R10-UX-HEALTH
+
+## Evidence
+
+- Round 3 of #2997. Head measured: 5832ceb58e6f1e79aba0f6273f50d1b4a928819a, which is still `refs/pull/2997/head` and `fix/r10-ux-health-p2` at 23:52Z. Code head: 525e20691. `dev/governance/roles/` does not differ between the merge base and origin/main.
+- `git merge-tree --write-tree origin/main 5832ceb58e6f1e79aba0f6273f50d1b4a928819a` (origin/main 5d4e0bcfb): rc=0, tree cd080778c, no conflict.
+- Three-dot diff: VERSION, the manifest, RELEASE_NOTES and both claim files are untouched.
+- RESULT `PYTHONPATH=tests/hastub python3 tests/entities.py`, each run in its own worktree at the head:
+  - Unmutated: `ALL 2489 ENTITY CHECKS PASSED`, rc=0. The `hb:` FAIL lines in the output are retry diagnostics that the passing totals absorb.
+  - Mutant A (the `len(lines[ln - 1]) < 60` cap restored): `1 of 2489 ENTITY CHECKS FAILED`, the new check, `long=None none=None pool-none=None`.
+  - Mutant B (`if tok.type == tokenize.COMMENT:`): `3 of 2489 ENTITY CHECKS FAILED`, namely the new check (its null arm picks `Y = 1  # trailing`), `the null control edits a whole-line comment and nothing else`, and the shard null-control check.
+  - All three match the body (ev/entities_*.out, ev/entities_*.diff).
+- RESULT `tests/debug_collect.py` at the head, button.py hand mutants (ev/button_mutants.txt):
+  - Baseline: ALL 159 PASSED.
+  - 226 GUARD_OFF: AttributeError, rc=1.
+  - 228 GUARD_OFF: 1 of 159 FAILED.
+  - 230 RETURN_DEL: 2 of 159 FAILED.
+  - Final branch returns `debug_collect`: 1 of 159 FAILED.
+  - Null control button.py:37 + ` (null control)`: ALL 159 PASSED.
+  - These match the three new `killed_by` rows' reasons and the body's null control.
+- Figure: button.py:37 is 75 characters, so 90 with the suffix. The body says 91, which I take to count the newline. Its point stands: the line is far past 60.
+- The card tests and the hover/fallback/openSetupSlot mutants were verified at 7c43d8fb1 in round 1. Between 7c43d8fb1 and 525e20691, `tests/card.mjs`, `button.py` and `tests/debug_collect.py` are unchanged. The card JS moved only through main merges.
+- Authorship: baf2c4c00 and 525e20691 are authored and committed by hpo-fixer. 077a87b02 and 700f21c18 are not fetchable from origin, so I could not confirm the claim that the tree differs from 077a87b02 only in docstring wording. Earlier commits 855d1bbac, 31da5f026 and 7fed51072 (rounds 1 and 2) still carry the author `Claude <noreply@anthropic.com>` in branch history. The brief names only the two re-made commits.
+- Roster carries 11, 14, 17 and 20 of R10-UX-HEALTH each state their finding and control at 84ddbfbcf and at the tip.
+- CI at this head: `merge_train.py classify` printed `WAIT ... pending: gate red: none` (rc=3) on every run from 23:21Z to 23:52Z (ev/classify.log, ev/recheck.txt). Not concluded, so I have not read `tests / mutation`'s `MUTATION TABLE PASSED` in CI, nor the Linux runs of the macOS-only workarounds (task-port, scratch venv, card.mjs heap). No check was red when read.
+- Not re-derived: the null-control census (84/13/11/3), the scoped-gate count (16 run, 17 scoped out), the #2499 harness figures and the P9 grid counts.
+- No finder's harness is named. I built no instrument; the mutants are one-line edits in throwaway worktrees.

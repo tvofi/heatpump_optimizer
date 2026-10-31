@@ -1,4 +1,0 @@
-  FAIL  hover spec (en): every model row's hover says what it measures, what no data means and its current reason
-  FAIL  hover spec (sv): every model row's hover says what it measures, what no data means and its current reason
-2 CARD CHECK(S) FAILED
-rc=1
