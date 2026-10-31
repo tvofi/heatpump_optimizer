@@ -1,7 +1,0 @@
-  ok   an unresolvable recorded_at FAILS the ratchet, it is not merely noted (#361)
-  ok   the ratchet FAILS on an improvement instead of printing a note (#350)
-  ok   a pump command that FAILED is not remembered as done
-  ok   the flow-lift gate's no-weight bound is inclusive: a 1e-6 h window folds nothing, a 2e-6 h window folds one (null)
-  FAIL a hot-water share exactly at the curve share still folds; just above it does not (null)  [0.15 ((2.2, 0.0), Attribution(space=0.85, dhw=0.15, observed=True), 0) / 0.16 ((2.2, 0.0), Attribution(space=0.84, dhw=0.16, observed=True), 0)]
-1 of 4627 FEATURE CHECKS FAILED
-rc=1
