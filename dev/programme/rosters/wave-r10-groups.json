@@ -1964,7 +1964,6 @@
    "rca": [],
    "after": [
     "R10-SCORES",
-    "R10-COP-GATE",
     "R10-HEAT-METER",
     "R10-SAV-COMFORT"
    ],
