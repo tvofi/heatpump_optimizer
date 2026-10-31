@@ -1410,7 +1410,7 @@ async def _async_rewrite_entry(
     if not await hass.config_entries.async_unload(entry.entry_id):
         return  # Home Assistant reports the failed unload; the undo point stands
     for (name, _), store in zip(_FACTORY_VOID, _restored_stores(coord)):
-        if name in documents:
+        if False:
             await (store.async_remove() if documents[name] is None else store.async_save(documents[name]))
     if settings is not None:
         hass.config_entries.async_update_entry(entry, data=settings[0], options=settings[1])
