@@ -1,0 +1,16 @@
+['flagged', 'id', 'kind', 'lead', 'section', 'text', 'why']
+stripped unrouted: bodies 10 items 34
+ S r10-flow-body-only 2 ['2ad49f94', 'a8e02698']
+ S r10-flow-record-pitch 1 ['27dfbf17']
+ S r10-fly-openpr-atomic 3 ['31ebfffd', 'ccdea0e7', 'e9b05b75']
+ S r10-fly-train-defaults 1 ['c78ecb78']
+ S r10-orch-planpage 2 ['6f897dc0', '6f897dc0']
+ S r10-roster-schema 21 ['64a901e2', '06b88051', '6abeb616', '771d70d3']
+ S r10-sav-comfort 1 ['1d8b8511']
+ S r10-sav-comfort-r2 1 ['1d8b8511']
+ S r10-sav-comfort-r3 1 ['1d8b8511']
+ S r10-train-overlap-grade 1 ['0685bcb8']
+unstripped unrouted: bodies 11 items 32
+ diff r10-fly-openpr-atomic 3 2
+ diff r10-rca-jidoka-yield 0 2
+ diff r10-roster-schema 21 18

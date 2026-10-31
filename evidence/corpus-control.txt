@@ -1,0 +1,19 @@
+bodies 263
+stripped: bodies 12 items 36
+  S origin/handoff-body/r10-flow-body-only 2
+  S origin/handoff-body/r10-flow-record-pitch 1
+  S origin/handoff-body/r10-fly-openpr-atomic 3
+  S origin/handoff-body/r10-fly-train-defaults 1
+  S origin/handoff-body/r10-friction-regression 1
+  S origin/handoff-body/r10-orch-planpage 2
+  S origin/handoff-body/r10-roster-schema 21
+  S origin/handoff-body/r10-sav-comfort 1
+  S origin/handoff-body/r10-sav-comfort-r2 1
+  S origin/handoff-body/r10-sav-comfort-r3 1
+  S origin/handoff-body/r10-train-overlap-grade 1
+  S origin/handoff-body/r10-ux-health-p2 1
+unstripped: bodies 13 items 34
+  U-only origin/handoff-body/r10-rca-jidoka-yield 2
+  diff origin/handoff-body/r10-fly-openpr-atomic 3 2
+  diff origin/handoff-body/r10-rca-jidoka-yield None 2
+  diff origin/handoff-body/r10-roster-schema 21 18

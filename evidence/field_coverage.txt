@@ -1,0 +1,5 @@
+  none     stamp rule 4: reads commit parents and subjects; residual (D11-s1-02), no arm here
+  none     carry_audit owed-carry: reads the prose of a body item (a carry index beside a not-done phrase), not a structured input; graded by carry_audit --self-test, whose rows fail under the arm's two mutants
+RESULT read=53 ignored=28 declared_none=36 blind=0 dead=0 refused=0 runs=143 seconds=143.0
+FIELD COVERAGE ok
+rc=0

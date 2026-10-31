@@ -1,0 +1,7 @@
+
+########## python3 /tmp/tmp.WRIhWmmvcw tests/stress.py ##########
+  LEASE: tests/stress.py runs under the gate lease as run.sh-7612
+STRESS RAN
+--- manifest:
+main-001	0	0	python3 /tmp/tmp.WRIhWmmvcw tests/stress.py
+--- held: /tmp/tmp.PUsVzSqaqj/lock: no lease

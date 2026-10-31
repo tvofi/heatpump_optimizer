@@ -1,0 +1,14 @@
+
+########## python3 /tmp/tmp.FRFUD871RE tests/stress.py ##########
+gate_lock: renew refused: w waits for the lease. Finish the current stress.py run, release, and take again: you queue behind it; seat re-queues
+gate_lock: waiting for the lease held by w, at the head of the queue (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waited 5 s for the lease held by w until 2026-10-31 19:08:57.860719+00:00, past its bound of 3 s; seat gives up the wait
+
+SKIP: tests/stress.py (waited past its bound for the gate lease; left to CI, named unrun)
+
+########## python3 /tmp/tmp.FRFUD871RE tests/harness_headers.py ##########
+gate_lock: flock-wrap refused, seat holds no lease: lease held by w, not seat
+>>> FAILED: python3 /tmp/tmp.FRFUD871RE tests/harness_headers.py
+--- manifest:
+main-001	0	6	#skip tests/stress.py
+main-002	1	0	python3 /tmp/tmp.FRFUD871RE tests/harness_headers.py
