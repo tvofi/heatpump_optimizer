@@ -29526,6 +29526,54 @@ R.check(
     f"{_reasons_hl}",
 )
 
+# Live defect (tvofi, 2026-10-30): the heat-loss factor the classifier reads
+# carried the learned `house_heat_loss_scale`, so a house that learned a scale
+# above 1.1 had nearly every heating step called weather pre-heating under a
+# flat forecast. Driven through `optimize`, which builds the factor: the label
+# must follow the forecast's wind and rain, never the learned level. The factor
+# reads wind and rain only (outdoor temperature enters the solve as the loss's
+# temperature difference), so the forecast's spell is a windy one.
+_pw_n = 48
+_pw_storm = np.zeros(_pw_n)
+_pw_storm[12:30] = 12.0  # 12 m/s: factor 1 + 0.03 * 12 = 1.36 on steps 12-29
+
+
+def _pw_reasons(scale, wind):
+    _p = _dc_replace(ThermalParameters(), house_heat_loss_scale=scale)
+    return _PvOpt(ThermalModel(_p), _PvOptCfg()).optimize(inputs=solve_inputs(
+        initial_state=ThermalState(room_temperature=20.5, outdoor_temperature=2.0),
+        prices=np.full(_pw_n, 1.5), outdoor_temps=np.full(_pw_n, 2.0), wind_speeds=wind,
+        start_time=datetime(2026, 1, 10, tzinfo=timezone.utc),
+    )).space_reasons
+
+
+_pw_flat = {s: _pw_reasons(s, np.zeros(_pw_n)) for s in (1.0, 1.24)}
+_pw_windy = {s: _pw_reasons(s, _pw_storm) for s in (1.0, 1.24)}
+R.check(
+    "a learned heat-loss scale of 1.24 under a flat forecast labels no step "
+    "weather pre-heating, and the plan does heat",
+    _R_PREHEAT not in _pw_flat[1.24] and len(_pw_flat[1.24]) == _pw_n
+    and any(r not in (_R_COAST, _R_IDLE) for r in _pw_flat[1.24]),
+    f"{_pw_flat[1.24]}",
+)
+R.check(
+    "a forecast wind spell still labels weather pre-heating, at scale 1.0 and "
+    "1.24, and only on the spell's steps",
+    all(
+        _R_PREHEAT in _pw_windy[s]
+        and all(12 <= i < 30 for i, r in enumerate(_pw_windy[s]) if r == _R_PREHEAT)
+        for s in (1.0, 1.24)
+    ),
+    f"{_pw_windy}",
+)
+R.check(
+    "null control: scale 1.0 under a flat forecast labels no step weather "
+    "pre-heating either, and the plan does heat",
+    _R_PREHEAT not in _pw_flat[1.0]
+    and any(r not in (_R_COAST, _R_IDLE) for r in _pw_flat[1.0]),
+    f"{_pw_flat[1.0]}",
+)
+
 # Ranking is unchanged: the specific reasons still outrank the fall-through.
 _room_low = _room_cl.copy()
 # Trajectories carry the initial state at index 0, so step i reads index i+1:

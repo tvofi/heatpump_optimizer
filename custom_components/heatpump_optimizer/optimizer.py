@@ -3437,14 +3437,18 @@ class HeatPumpOptimizer:
         solar_gains_per_step = np.array([
             self.model.compute_solar_gain(sr) for sr in solar_radiation
         ])
+        # The factor is the weather's share alone: each step's effective loss
+        # over the same house's calm, dry loss. Dividing by the unscaled
+        # nameplate instead let the learned `house_heat_loss_scale` through,
+        # so a house that learned a scale above 1.1 read as "weather turning"
+        # under a flat forecast and every heating step said preheat_weather.
         base_loss = max(self.model.params.heat_loss_coefficient, 0.001)
+        calm_loss = max(self.model.effective_heat_loss_coefficient(base_loss), 1e-9)
         forecast_heat_loss_factors = np.array([
             self.model.effective_heat_loss_coefficient(
-                self.model.params.heat_loss_coefficient,
-                wind_speeds[i],
-                precipitation[i],
+                base_loss, wind_speeds[i], precipitation[i],
             )
-            / base_loss
+            / calm_loss
             for i in range(n_steps)
         ])
 
