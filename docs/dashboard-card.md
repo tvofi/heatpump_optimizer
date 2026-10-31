@@ -770,8 +770,8 @@ and the hot water tank says it is refilled through the coil.
 
 ![The two-tank layout with an additional immersed coil connecting the wood furnace tank to the hot water tank: the wood tank's corner disc is a spring and the coil's pipe is drawn in the accent colour](img/model/hydronic-coil.svg)
 
-Each card stretches with the sensor rows inside it, and every row is the
-same assignment slot it always was: click a row — or tab to it and press
+Each card stretches with the sensor rows inside it, and every row is an
+assignment slot: click a row — or tab to it and press
 Enter or Space — to pick the entity that feeds it. Each row is a
 `role="button"` target with a spoken label, and a picker opened from the
 keyboard takes focus, so the whole page is usable without a pointer. An
