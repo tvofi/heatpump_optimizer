@@ -264,6 +264,8 @@ from .const import (
     DEFAULT_WOOD_TYPE,
     DEFAULT_WOOD_PACKING,
     DEFAULT_WOOD_FURNACE_EFFICIENCY,
+    CONF_WOOD_LIGHTING_LEAD_MINUTES,
+    DEFAULT_WOOD_LIGHTING_LEAD_MINUTES,
     WOOD_TYPES,
     WOOD_PACKINGS,
     CONF_PRICE_PRIOR_ENABLED,
@@ -1690,6 +1692,7 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     _F("building", CONF_WOOD_PACKING, DEFAULT_WOOD_PACKING, _select(list(WOOD_PACKINGS), 'wood_packing'), when=wood_furnace_on, group="wood"),
     _F("building", CONF_WOOD_PRICE_SEK_M3, _SUGGESTED, _ByHass(lambda hass: _money(10000, 10, hass, "/m³")), when=wood_furnace_on, group="wood"),
     _F("building", CONF_WOOD_FURNACE_EFFICIENCY, DEFAULT_WOOD_FURNACE_EFFICIENCY, _number(10, 95, 1, '%', slider=True), when=wood_furnace_on, group="wood"),
+    _F("building", CONF_WOOD_LIGHTING_LEAD_MINUTES, DEFAULT_WOOD_LIGHTING_LEAD_MINUTES, _number(0, 240, 15, 'min', slider=True), when=wood_furnace_on, group="wood"),
     _F("building", CONF_SPACE_PUMP_ENTITY, _STORED, _entity_of(['switch', 'input_boolean']), group="circulation"),
     # -- thermal_model
     _F("thermal_model", CONF_HOUSE_THERMAL_MASS, _SUGGESTED, _number(*RANGE_HOUSE_THERMAL_MASS, 0.5, 'kWh/°C')),

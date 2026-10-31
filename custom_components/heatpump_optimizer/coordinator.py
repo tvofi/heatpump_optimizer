@@ -7851,8 +7851,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         return format_windows(params.dhw_windows)
 
     def configured_quiet_windows(self) -> dict[str, str]:
-        out = quiet_windows.configured_specs(getattr(self, "_ctx", self)._config, getattr(getattr(getattr(self, "hass", None), "states", None), "get", None))
-        return out
+        return quiet_windows.configured_specs(getattr(self, "_ctx", self)._config, getattr(getattr(getattr(self, "hass", None), "states", None), "get", None))
 
     def describe_setup(self) -> dict[str, Any]:
         """The configured topology, for every picture of the system.
@@ -7964,6 +7963,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             thermal_model=self._thermal_model,
             current_state=ctx._current_state,
             result=result,
+            local_tz=dt_util.DEFAULT_TIME_ZONE,
         )
         # Only surface the manual-plan key while an override is actually active,
         # so a plan-free solve (the golden fixtures included) is byte-for-byte

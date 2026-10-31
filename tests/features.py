@@ -42492,7 +42492,6 @@ from heatpump_optimizer.wood_fuel import (
     cheaper_hour_count as _wf_count,
     liters_to_kwh as _wf_liters,
     useful_kwh_m3 as _wf_useful,
-    wood_cheaper as _wf_cheaper,
     wood_fuel_ready as _wf_ready,
     wood_furnace_inferred as _wf_inferred,
     wood_furnace_on as _wf_on,
@@ -42551,11 +42550,11 @@ _wf_no_price = dict(_wf_cfg, wood_price_sek_m3=0.0)
 R.check("price 0 is not ready", not _wf_ready(_wf_no_price))
 R.check(
     "idle plan is not cheaper",
-    not _wf_cheaper(1.0, [2.0], [3.0], [False]),
+    _wf_count(1.0, [2.0], [3.0], [False]) == 0,
 )
 R.check(
     "one hour the plan runs the pump, and wood is cheaper, is on",
-    _wf_cheaper(1.0, [4.0], [2.0], [True]),
+    _wf_count(1.0, [4.0], [2.0], [True]) > 0,
 )
 R.check(
     "that hour counts",
@@ -42660,7 +42659,6 @@ _wf_not_ready = _wf_view(
     cop_at=lambda _t: 2.0,
     timestamps=[],
     forecast_kw=[],
-    suppressing=False,
 )
 R.check(
     "data wood_fuel cheaper is false when not ready",
@@ -42708,10 +42706,58 @@ R.check(
     and _wf_pub["wood_fuel"].get("cheaper_hour_count") == 1,
     repr(_wf_pub.get("wood_fuel")),
 )
+from dataclasses import replace as _wf_replace  # noqa: E402
+
+# R10-WOOD-NOTIFY: "today" and the published windows are the HA local day and
+# local time, which reach wood_fuel.py only through the coordinator's call.
+# Driven through _build_data_dict with the stub's zone at UTC+1: the cheaper
+# 23:00 UTC step is 00:00-01:00 on the local next day. Without the zone it
+# would publish 23:00-00:00 UTC. Null control: the same plan with the UTC
+# zone publishes the UTC window, so the check reads the zone, not the plan.
+from datetime import timedelta as _td_wf  # noqa: E402
+
+_wf_late = datetime(2026, 1, 1, 23, tzinfo=_tz_wf.utc)
+
+
+def _wf_windows_at(zone):
+    _wf_ready_coord._optimization_result = _wf_replace(
+        _wf_result,
+        heat_pump_on_schedule=[True, True],
+        power_schedule=[0.2, 0.2],
+        room_temp_trajectory=[21.0] * 3,
+        slab_temp_trajectory=[21.0] * 3,
+        timestamps=[_wf_late, _wf_late + _td_wf(hours=1)],
+        prices=[40.0, 0.0],
+        optimal_setpoints=[21.0, 21.0],
+        outdoor_temps=[-5.0, -5.0],
+        dhw_power_schedule=[0.0, 0.0],
+        dhw_temp_trajectory=[50.0] * 3,
+    )
+    _real_zone = _dt_wf.DEFAULT_TIME_ZONE
+    try:
+        _dt_wf.now = lambda: NOW
+        _dt_wf.DEFAULT_TIME_ZONE = zone
+        return _wf_ready_coord._build_data_dict()["wood_fuel"].get("cheaper_windows")
+    finally:
+        _dt_wf.now = _real_now_wf
+        _dt_wf.DEFAULT_TIME_ZONE = _real_zone
+
+
+_wf_cet = _wf_windows_at(_tz_wf(_td_wf(hours=1)))
+_wf_utc = _wf_windows_at(_tz_wf.utc)
+_wf_ready_coord._optimization_result = _wf_result
+R.check(
+    "the coordinator publishes the wood windows on HA's local day, in local "
+    "time (R10-WOOD-NOTIFY)",
+    _wf_cet
+    == [{"start": "2026-01-02T00:00:00+01:00", "end": "2026-01-02T01:00:00+01:00"}]
+    and _wf_utc
+    == [{"start": "2026-01-01T23:00:00+00:00", "end": "2026-01-02T00:00:00+00:00"}],
+    repr((_wf_cet, _wf_utc)),
+)
 # D8-s1-01: a pump hour is a step the plan's on schedule runs. A 0.07 kW space
 # share the plan calls off buys no pump heat for wood to undercut. Null
 # control: the same plan with the step running counts it (the check above).
-from dataclasses import replace as _wf_replace  # noqa: E402
 
 _wf_ready_coord._optimization_result = _wf_replace(
     _wf_result, power_schedule=[0.07], heat_pump_on_schedule=[False])
@@ -42766,7 +42812,6 @@ _wf_soc_kwargs = dict(
     cop_at=lambda _t: 3.0,
     timestamps=_wf_stamps,
     forecast_kw=[],
-    suppressing=False,
 )
 _wf_light_view = _wf_view(
     _wf_cfg,
@@ -42818,7 +42863,6 @@ _wf_skip_view = _wf_view(
     cop_at=lambda _t: 3.0,
     timestamps=_wf_stamps,
     forecast_kw=[],
-    suppressing=False,
     wood_tank_temperature=87.4,
     comfort_min=19.0,
 )
@@ -42832,7 +42876,9 @@ from types import SimpleNamespace as _WfNS
 
 _wf_probe_coord = _WfNS(
     _config=EntryConfig.from_mapping(_wf_cfg),
-    _external_heat=_WfNS(suppressing=False),
+    # The real detector, fresh (not suppressing): a namespace with only
+    # `suppressing` let a mutant reach a method the stub never had.
+    _external_heat=ExternalHeatDetector(),
     _opt_config=_WfNS(min_temp=19.0, dt_hours=1.0),
     _thermal_params=_WfNS(two_tank_modelled=False),
     _thermal_model=_WfNS(compute_cop=lambda _t: 3.0),
@@ -42854,6 +42900,7 @@ _wf_from_probes = _wf_from_coord(
     thermal_model=_wf_probe_coord._thermal_model,
     current_state=_wf_probe_coord._current_state,
     result=_wf_probe_result,
+    local_tz=_tz_wf.utc,
 )
 R.check(
     "from_coordinator uses the live wood-tank temperature",
@@ -42869,6 +42916,7 @@ _wf_from_empty = _wf_from_coord(
     thermal_model=_wf_probe_coord._thermal_model,
     current_state=_wf_probe_coord._current_state,
     result=_wf_probe_result,
+    local_tz=_tz_wf.utc,
 )
 R.check(
     "from_coordinator without a tank temperature attaches nothing",
