@@ -123,6 +123,7 @@ SELF = "tools/audit/seat/orchestrator_tick.py"
 SEAT = Path(__file__).resolve().parent
 ROOT = Path(__file__).resolve().parents[3]
 RULESET = "main-protect-checks"
+STALL_MINUTES = 90  # P328: p95 dispatch-to-verdict is 70 min; 90 fires on ~2.6% of reviews
 #: Per merge_train.py (its self-test pins the two equal): under the umbrella
 #: the one required context, `gate`, is written by a dispatch too, so nothing
 #: is PR-only (R10-CI-LAYOUT P2b).
@@ -657,6 +658,12 @@ class Tick:
           MERGE-READY: #N <head8>      merge at the current head, CLEAN or UNSTABLE;
           BLOCKED-UNFIXED: #N <head8>  blocked at the current head, and no
                                        handoff/<topic> tip committed after it;
+          REVIEW STALLED: #N <head8> <m>m
+                                       the head is in the bus dispatch record, no
+                                       approver verdict names it, and the tip of
+                                       dispatch/reviewer-rev-N is over
+                                       STALL_MINUTES old (git only, P328): re-fire
+                                       the reviewer, same nonce, same head;
           APPROVAL-OWED: #N <head8>    merge at the current head, BLOCKED and
                                        REVIEW_REQUIRED: queue the PR for the
                                        train, which posts the approval itself;
@@ -677,6 +684,7 @@ class Tick:
             return
         authors, vid = allow
         self._readback = {}  # {pr: [approver verdict first lines]}, the PRs whose comments were read
+        lg, dispatched = _module("ledger_tick", "tools/audit/seat/ledger.py"), self._dispatched(S)
         for pr in sorted(prs, key=lambda p: p["number"]):
             n, head = pr["number"], pr.get("headRefOid") or ""
             code, o = self.gh(["api", "--paginate", "--slurp",
@@ -692,6 +700,13 @@ class Tick:
                   and (c.get("user") or {}).get("id") == vid
                   and (c.get("body") or "").startswith("Fix review:")]
             self._readback[str(n)] = [(c.get("body") or "").split("\n", 1)[0].rstrip("\r") for c in vs]
+            if dispatched and (str(n), head) in dispatched and not any(
+                    (pw.parse_verdict(f) or ("", ""))[1] == head for f in self._readback[str(n)]):
+                age = self._reviewer_ref_age(n)
+                if age is None:
+                    self.unreadable(S, f"reviewer dispatch ref of #{n}", "git read failed")
+                elif age > STALL_MINUTES:
+                    self.line(S, f"REVIEW STALLED: #{n} {head[:8]} {age}m", flag=True)
             if not vs:
                 continue
             v = max(vs, key=lambda c: (c.get("created_at") or "", c.get("id") or 0))
@@ -715,12 +730,32 @@ class Tick:
                     self.unreadable(S, f"handoff ref for blocked #{n}", "git read failed")
                 elif not newer:
                     self.line(S, f"BLOCKED-UNFIXED: #{n} {head[:8]}", flag=True)
-        lg, dispatched = _module("ledger_tick", "tools/audit/seat/ledger.py"), self._dispatched(S)
         if lg is None:
             self.unreadable(S, "REVIEW OWED", "tools/audit/seat/ledger.py absent")
         elif dispatched is not None:
             for text in lg.review_owed(prs, self._readback, dispatched, self._carries):
                 self.line(S, text, flag=True)
+
+    def _reviewer_ref_age(self, n: int) -> "int | None":
+        """Minutes since the tip of `dispatch/reviewer-rev-<n>` (cloud_dispatch.py's
+        dispatch_ref, re-pushed per dispatch) was committed; git only, never a
+        cloud run log (P280). A missing ref is 0, so it never reads as stalled;
+        None: a read failed."""
+        ref = f"refs/heads/dispatch/reviewer-rev-{n}"
+        code, o = self.git(["ls-remote", "origin", ref])
+        if code:
+            return None
+        sha = o.split()[0] if o.split() else ""
+        if not sha:
+            return 0
+        if self.git(["fetch", "-q", "origin", ref])[0]:
+            return None
+        code, ct = self.git(["log", "-1", "--format=%ct", sha])
+        try:
+            now = self.now
+            return max(0, int((now.timestamp() - int(ct.strip())) // 60)) if code == 0 else None
+        except ValueError:
+            return None
 
     def _carries(self, verdict: str, head: str) -> bool:
         """REVIEW OWED's carry filter: `app_approve.sh --carry`, the train's predicate, over a
@@ -3850,6 +3885,26 @@ def self_test() -> int:
         ], unsettled=(68, 69))
         otx = [l["text"] for l in owed]
         lvl = lambda n: [x for x in otx if x.startswith(("APPROVAL-OWED", "UNLEVELLED", "MERGE-READY")) and f"#{n} " in x]
+        # P328: REVIEW STALLED, git only. {pr: minutes since the dispatch ref's tip}
+        (tmp / "bus-st").mkdir()
+        st_ages = {70: 100, 71: 30, 72: 100, 73: 100, 74: 100}
+        (tmp / "bus-st" / "dispatched").write_text("".join(
+            f"{n} {old_h if n == 73 else h(n)} thread {'0' * 32}\n" for n in (70, 71, 72, 73, 74)))
+        st_specs = [(n, "BLOCKED", [vc(300 + n, f"Fix review: merge {h(n)}")] if n == 72 else [])
+                    for n in (70, 71, 72, 73, 74)]
+        st_extra = [((f"issues/{n}/comments?per_page=100",), 0, json.dumps([c])) for n, _, c in st_specs]
+        st_board = [pr_obj(n, h(n), ms="BLOCKED") for n, _, _ in st_specs]
+        t_st = tick(prs=st_board, gh_extra=st_extra, bus_state=str(tmp / "bus-st"))
+        for n, m in st_ages.items():
+            t_st._git.on(("ls-remote", f"dispatch/reviewer-rev-{n}"), rc=1 if n == 74 else 0,
+                         out=f"{n:040x}\trefs/heads/dispatch/reviewer-rev-{n}\n")
+            t_st._git.on(("log", "-1", "--format=%ct", f"{n:040x}"),
+                         out=f"{int((NOW - datetime.timedelta(minutes=m)).timestamp())}\n")
+        t_st._git.on(("fetch",), out="")
+        t_st._git.on(("ls-remote",), out="")
+        t_st.verdict_levels("PRS", st_board)
+        stx = [l for l in t_st.sections.get("PRS", []) if l["text"].startswith("REVIEW STALLED")]
+        stall = lambda n: [l for l in stx if f"#{n} " in l["text"]]
         a, f = check("verdict levels", [
             ("a merge verdict at the current head, CLEAN: MERGE-READY, flagged",
              any(l["flag"] and l["text"] == f"MERGE-READY: #40 {h(40)[:8]}" for l in lines)),
@@ -3872,6 +3927,14 @@ def self_test() -> int:
              any(l["text"] == f"BLOCKED-UNFIXED: #48 {h(48)[:8]}" for l in stale_fix)),
             ("comments it cannot read are UNREADABLE, never silence",
              any(l["flag"] and "UNREADABLE: verdicts on #49" in l["text"] for l in unread)),
+            ("P328: dispatched at the head, no verdict, tip 100 min old: REVIEW STALLED with the minutes, flagged",
+             len(stall(70)) == 1 and stall(70)[0]["flag"] and stall(70)[0]["text"] == f"REVIEW STALLED: #70 {h(70)[:8]} 100m"),
+            ("null control: a dispatch tip 30 min old prints no REVIEW STALLED", not stall(71)),
+            ("null control: a verdict at the head (dispatch 100 min old) prints no REVIEW STALLED", not stall(72)),
+            ("null control: a dispatch at an older head prints no REVIEW STALLED", not stall(73)),
+            ("an unreadable dispatch ref is UNREADABLE, never a stall or silence",
+             not stall(74) and any("UNREADABLE: reviewer dispatch ref of #74" in l["text"]
+                                   for l in t_st.sections.get("PRS", []))),
             ("BLOCKED + REVIEW_REQUIRED + merge at the head: APPROVAL-OWED, flagged, and nothing else",
              any(l["flag"] and l["text"] == f"APPROVAL-OWED: #60 {h(60)[:8]}" for l in owed) and len(lvl(60)) == 1),
             ("null control: a stale-head merge verdict prints neither APPROVAL-OWED nor UNLEVELLED", not lvl(61)),
