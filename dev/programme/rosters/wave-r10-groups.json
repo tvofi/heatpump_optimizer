@@ -8585,7 +8585,7 @@
    "rca": [],
    "architect_note": "",
    "resume": {
-    "stage": "carries-open",
+    "stage": "in-progress",
     "branch": "handoff/r10-roster-schema",
     "commit": "67178dc6a589cf95d2ce7cff36d8bbf17343e8dc"
    },
