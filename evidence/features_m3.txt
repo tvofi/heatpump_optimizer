@@ -1,0 +1,46 @@
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+  ok   an unresolvable recorded_at FAILS the ratchet, it is not merely noted (#361)
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+  ok   the ratchet FAILS on an improvement instead of printing a note (#350)
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+  ok   a pump command that FAILED is not remembered as done
+Traceback (most recent call last):
+Traceback (most recent call last):
+  FAIL R10-HOTFIX-AWAY-PRESENCE the republished reload handover says the next solve is due now, not the pre-reload cycle's time  [2026-10-31 22:13:43.867086+00:00 vs 2026-10-31 21:53:43.868215+00:00]
+1 of 4666 FEATURE CHECKS FAILED
+rc=1

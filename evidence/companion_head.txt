@@ -1,0 +1,18 @@
+RESULT arm=flip_person_leaves listeners=1 refreshes=1 wait_min=0.0
+RESULT arm=flip_person_returns listeners=1 refreshes=1 wait_min=0.0
+RESULT arm=flip_calendar_on listeners=1 refreshes=1 wait_min=0.0
+RESULT arm=flip_input_boolean_on listeners=1 refreshes=1 wait_min=0.0
+RESULT arm=flip_occupancy_clears listeners=1 refreshes=1 wait_min=0.0
+RESULT arm=flip_holiday_starts listeners=1 refreshes=1 wait_min=0.0
+RESULT arm=flip_holiday_extended listeners=1 refreshes=1 wait_min=0.0
+RESULT arm=hold_zone_to_zone listeners=1 refreshes=0 wait_min=30.0
+RESULT arm=hold_attributes_only listeners=1 refreshes=0 wait_min=30.0
+RESULT arm=hold_unavailable_to_home listeners=1 refreshes=0 wait_min=30.0
+RESULT arm=hold_occupancy_on listeners=1 refreshes=0 wait_min=30.0
+RESULT arm=hold_holiday_same_span listeners=1 refreshes=0 wait_min=30.0
+RESULT arm=hold_holiday_off_new_span listeners=1 refreshes=0 wait_min=30.0
+RESULT arm=unconfigured listeners=0 refreshes=0 wait_min=30.0
+RESULT arm=reload_handover same_payload=True next_solve_in_min=0.0 plan_age_min=10.0
+VERDICT presence flip reaches the plan within 0.0 min (debounced refresh)
+VERDICT null control: 0 refresh(es) from 6 changes that keep the interpreted state
+VERDICT reload handover publishes the next solve 0.0 min ahead
