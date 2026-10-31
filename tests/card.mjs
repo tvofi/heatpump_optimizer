@@ -12195,6 +12195,42 @@ check("without an indoor reading the corner now label is absent",
       /Waiting: it learns when it is cold enough outside/.test(waiting) && !/colder/.test(waiting), waiting);
     check("UX-HEALTH D: a learner that is off has no row",
       !/data-model-row="gains"/.test(modelOf(metered({ learner_progress: { gains: { phase: "off", samples: 0 } } }))));
+    // The owner's hover spec (carry 14): every score and scale hover says what
+    // its figure is in plain words, what no data means, and the row's current
+    // reason. Driven on an install with no samples anywhere, in both languages,
+    // over every model row the page draws -- a row added without the hover's
+    // two parts fails here, not only the six named today.
+    {
+      const bare = modelStates({
+        heat_loss: { scale: 1.0, samples: 0, learned: false },
+        lower_floor: { ratio: 1.0, samples: 0, learned: false },
+        solar_aperture: { scale: 1.0, samples: 0, needed: 30 },
+        tank_cooling: { rate_c_per_h: 0.9, samples: 0, learned: false },
+        cop: { scale: 1.0, samples: 0, alarm: false, watched_buckets: 0 },
+        internal_gains_kw: Array(24).fill(0.1),
+        learner_progress: {
+          house: { phase: "waiting", waiting_for: "colder", samples: 0 },
+          lower: { phase: "waiting", waiting_for: "colder", samples: 0 },
+          solar: { phase: "waiting", waiting_for: "sunnier", samples: 0 },
+          gains: { phase: "waiting", waiting_for: "colder", samples: 0 },
+        },
+      });
+      const esc = fn("esc");
+      for (const [lang, noData] of [["en", /with no samples|dash means/], ["sv", /utan mätningar|streck betyder/]]) {
+        const m = modelOf(bare, lang);
+        const strings = fn("STRINGS")[lang];
+        const ids = [...m.matchAll(/data-model-row="([^"]+)"/g)].map((x) => x[1]);
+        const bad = ids.filter((id) => {
+          const title = (new RegExp(`data-model-row="${id}"[^>]*title="([^"]*)"`).exec(m) || [])[1] || "";
+          const reason = (/<span class="adv-sub">([^<]*)</.exec(rowOf(m, id)) || [])[1] || "";
+          const metric = strings[`health.metric_${id}`];
+          return !metric || !title.includes(esc(metric)) || !noData.test(metric)
+            || !reason || !title.includes(reason);
+        });
+        check(`hover spec (${lang}): every model row's hover says what it measures, what no data means and its current reason`,
+          ids.length === 6 && bad.length === 0, `rows ${ids.join(",")}; lacking ${bad.join(",")}`);
+      }
+    }
     const nometer = rowOf(modelOf(unmetered), "heat_loss");
     check("UX-HEALTH D: with no power meter the heat loss is not called learned",
       /Not observable without a power meter/.test(nometer) && !/Learned from/.test(nometer), nometer);
@@ -12362,6 +12398,30 @@ check("without an indoor reading the corner now label is absent",
   check("placeLabel names a known place and keeps an unknown id as itself",
     fn("placeLabel")("wood_tank") === fn("STRINGS").en["places.wood_tank"] && fn("placeLabel")("garage_loop") === "garage_loop",
     `${fn("placeLabel")("wood_tank")} / ${fn("placeLabel")("garage_loop")}`);
+  // P08/P41, through a real render: the Setup boxes are a literal list in
+  // the card, every one of them in SETUP_CONFIGURE_PAGE today, so no topology
+  // reaches the layout code's fallback. A box added without its page is the
+  // case it guards: withdraw one place's page for the render, and its
+  // Configure chip names the place -- the fallback the direct placeLabel call
+  // above never reaches -- rather than reading undefined.
+  {
+    const map = fn("SETUP_CONFIGURE_PAGE");
+    const held = map.wood_tank;
+    delete map.wood_tank;
+    let card;
+    try { card = mkSetup(); } finally { map.wood_tank = held; }
+    const box = setupBox(card, "wood_tank");
+    const html = collect(card.shadowRoot).join("\n");
+    const pages = [...html.matchAll(/<text class="setup-chip-page"[^>]*>([\s\S]*?)<\/text>/g)]
+      .map((m) => [...m[1].matchAll(/<tspan[^>]*>([^<]*)<\/tspan>/g)].map((t) => t[1]).join(" "));
+    const aria = [...html.matchAll(/class="setup-chip-hit"[^>]*?aria-label="([^"]*)"/g)].map((m) => m[1]);
+    const name = fn("placeLabel")("wood_tank");
+    check("P08/P41: the Configure chip of a place with no options page names the place, never undefined",
+      held && box && name !== "wood_tank" && pages.includes(name)
+      && aria.some((t) => t.includes(name))
+      && !pages.concat(aria).some((t) => /undefined/.test(t)),
+      `box ${box ? "drawn" : "missing"}; pages ${JSON.stringify(pages)}`);
+  }
 
   // The other four tabs still render.
   for (const [page_, marker] of [["plan", /stat-row|tile/], ["setup", /setup-page/],
@@ -13061,6 +13121,17 @@ check("without an indoor reading the corner now label is absent",
     && viaMouse.setup.pickerKey === "heat_pump_power_entity"
     && viaMouse.setup.pickerFocus === false && viaMouse.setup.pickerViaKeyboard === false,
     `keys ${viaKeys.setup.pickerFocus}/${viaKeys.setup.pickerViaKeyboard} mouse ${viaMouse.setup.pickerFocus}/${viaMouse.setup.pickerViaKeyboard}`);
+  // P08/P41: and the opened picker is drawn -- the state above changes
+  // nothing on screen until a render follows it.
+  {
+    const host = open("advisor");
+    const renders = [];
+    const real = host._render.bind(host);
+    host._render = () => { renders.push(host.dialog.page); return real(); };
+    openSetupSlot(host, "heat_pump_power_entity", { detail: 1 });
+    check("openSetupSlot renders the page it opens",
+      renders[renders.length - 1] === "setup", `renders on ${JSON.stringify(renders)}`);
+  }
 
   // openHaLink resolves this card's entry through the registry and follows
   // haLink with it; a failed lookup links the whole integration. Driven
