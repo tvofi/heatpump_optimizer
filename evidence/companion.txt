@@ -1,0 +1,8 @@
+== base be7584c4904e243ffb48c166be39221623d81415
+d03dd93508936796fba5ec07ce387d393c9d8b60  dev/audit/harnesses/r10_cop_gate.py
+RESULT synthetic.selfset.folded=0/12 refusal=draw_off_ask observability=not_measurable
+RESULT synthetic.follows.folded=12/12 refusal=None observability=draw_follows_plan
+== wt d51d7c46caf7896426cb8e503f288e7c4c3db0b5
+d03dd93508936796fba5ec07ce387d393c9d8b60  dev/audit/harnesses/r10_cop_gate.py
+RESULT synthetic.selfset.folded=0/12 refusal=draw_off_ask observability=not_measurable
+RESULT synthetic.follows.folded=12/12 refusal=None observability=draw_follows_plan
