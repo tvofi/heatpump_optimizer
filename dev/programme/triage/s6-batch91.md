@@ -1,4 +1,4 @@
-# Proposal triage, session s9, batch 91 (P329)
+# Proposal triage, session s9, batch 91 (P329, P330)
 
 The rolling batch after batch 90 (#3039). Facts were read at origin/main `0cae227c3`.
 
@@ -122,3 +122,75 @@ The carry:
 Rejected: (a) skipping `## Summary` or non-bulleted prose, and (b) a reviewer-contract
 `Carry: dismissed`. Deferred: #3038's "the score does not block" shape, re-opened at three
 instances.
+
+## P330: the merge seat serialises default-flag pull requests into solo trains
+
+Verdict: ACCEPT, narrowed, as one carry on R10-FLY-TRAIN-DEFAULTS. The carry is the contract
+sentence, kept inside `standing-merge.md`'s current cap. The optional `add` refusal is REJECTED.
+R10-FLY-TRAIN-DEFAULTS is `carries-open`, its `files` name `dev/governance/roles/standing-merge.md`,
+and its part 2 is still owed.
+- **The policy and the instrument already allow batching.**
+  - `standing-merge.md` (lines 8-9 at `0cae227c3`) names "one live train".
+  - `train.sh` documents `add` (lines 12-16): it "loads one verdicted pull request into the state
+    dir's live train -- it joins the batch after the one running -- or, with no train live, starts
+    one".
+  - `train.sh` also refuses a second live train on the same state dir by pidfile (line 25).
+- **What is missing is the obligation.** Nothing says a verdicted default-flag pull request joins
+  the live train rather than waiting for it to end.
+- **The s9 merge seat's sequencers waited.** `seq3.sh` and `seq4.sh` (s9 merge-seat scratch) each
+  run `train.sh add` once per PR and then `waitend`, which polls for a new `TRAIN_RC=` line before
+  the next add. That makes every PR a train of its own, `queue=1`. #3037, #3030 and #3039, all on
+  default flags, were planned as three solo trains.
+- **The orchestrator caught it before the cost landed.** At 13:24Z it added #3030 and #3039 into
+  the live #3037 train (seat-ledger, "per orchestrator (batch, do not serialise)").
+- **The cost avoided.** One solo train in this log runs 48 to 67 minutes:
+  - #3022: `BATCH 20261031-111910`, which ends `TRAIN_RC=0 end=2026-10-31T12:26:51Z`;
+  - #3038: `BATCH 20261031-122831`, which ends at 13:16:13Z.
+
+  Each default-flag PR serialised behind another pays roughly one such wait.
+- **The owner has ruled on it.** tvofi, 2026-10-31, relayed: "it should queue and batch merges
+  where possible".
+- **The `add` refusal (arm 2) is REJECTED. Its premise is already built, and it would not see the
+  slip.**
+  - `merge_train.py`'s `add` already takes one flock and allows one train per state dir. A second
+    live train is already refused.
+  - The sequencers never ran two trains at once. They waited for one to end and then started the
+    next, and at that moment no train is live, so an add-time refusal has nothing to refuse.
+  - Catching "a verdicted PR held back while a train runs" needs the seat's own queue state.
+    `train.sh` does not have it.
+- **Waivers stay separate.** A `--no-pre-flight` waiver runs as its own train because the flags are
+  train-wide, and the train has no by-id waiver (merge seat, seat-ledger 10:45Z, #3031). Two
+  waivers due at once may share one train. A by-id waiver flag would remove the solo train
+  altogether. That was not proposed, and P329's carve-out lowers how often a waiver is needed. It
+  is not ruled here.
+
+Source: the orchestrator s9's triage-queue line of 2026-10-31T13:24:23Z (slip, owner-flagged).
+
+Instances:
+- `seq3.sh` and `seq4.sh`: one `waitend` per `run`, five and four PRs. The default-flag PRs in them
+  are #3037, #3030 and #3039.
+- `train/current.log`: the #3037 train, `BATCH 20261031-131945 ... queue=1 (#3037)`, was launched
+  solo at 13:19:38Z. #3030 and #3039 joined it at 13:23:11Z and 13:23:32Z, after the orchestrator
+  intervened.
+
+Cost:
+- **The edit.** One sentence in `dev/governance/roles/standing-merge.md`. Its `policy_lint.mjs
+  --budgets` row at `0cae227c3` is `standing-merge.md 36 37 501 507`, so the sentence must be paid
+  inside the cap. For example, replace "one live train," on line 9 with the sentence and shorten
+  the parenthetical `RECOMMENDED` reference. Do not raise the cap.
+- **Approval.** `standing-merge.md` is policy, so the owner approves the merge, or an agent does
+  under mandate 6329234399 (scope `all`).
+- **No code.** It adds nothing to `train.sh` or `merge_train.py`.
+
+Binding:
+- One sentence within an existing cap turns an owner instruction into the merge seat's contract.
+  The seat is a sonnet seat that follows that contract literally.
+- It saves about one solo-train wait (48-67 min) for each default-flag PR that would otherwise
+  queue behind another.
+- The refusal arm costs code and catches nothing that the pidfile does not already catch.
+
+The carry: in `standing-merge.md`'s Instruments paragraph, state that a verdicted pull request on
+the recommended flags joins the live train with `train.sh add` as its next batch, and never waits
+for that train to end. Only a pull request whose flags differ (a `--no-pre-flight` waiver) waits
+for its own train, and waivers due together share one. Keep the file within its cap: 37 lines,
+507 tokens. A sequencer that runs `add` only after `TRAIN_RC` is the shape this forbids.
