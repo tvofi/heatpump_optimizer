@@ -13,16 +13,12 @@ branch's note at one place, so `.gitattributes` routes both to the
 python3 tests/env_drift.py --install-merge-driver
 ```
 
-It unions the note comments, merges the bare claim list three-way per
-scenario, and **refuses** (conflict markers, non-zero exit, the scenarios
-named) when both sides rewrote the same scenario's claims, or changed claims
-under different `claims-for:` stamps. A scenario one side changed takes that
-side's lines; one a side deleted while the other left it alone stays deleted,
-and so does a `may-drift` line. A claim is value-bearing: git's
-`merge=union` would reinstate a claim the branch deleted, unseen by the
-inherited-claims guard, which fires only on a list exactly the baseline's. An
-uninstalled driver falls back to the text merge, never worse; git reads
-`.gitattributes` from the branch merged **into**.
+It unions the notes and merges claims three-way per scenario: a side's change
+or deletion (a `may-drift` line too) wins over the other's silence. It
+**refuses**, naming them, where both sides rewrote one scenario's claims or
+stamped differing `claims-for:`: `merge=union` would reinstate a deleted claim
+the inherited-claims guard misses. Uninstalled, it falls back to the text
+merge; git reads `.gitattributes` from the branch merged **into**.
 
 **GitHub is such an uninstalled clone (#570).** Every open pull request turns
 `DIRTY` the moment `main` touches a claim file, and a `DIRTY` one does not go
