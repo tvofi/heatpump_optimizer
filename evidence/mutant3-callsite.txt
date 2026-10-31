@@ -1,1 +1,0 @@
-ci_predict self-test: 0 failed
