@@ -376,7 +376,7 @@ class Dests:
 
 
 def load_dests(repo: Path = ROOT, ref: str | None = None, briefs_dir: str | None = None,
-               issue_state=None) -> Dests:
+               issue_state=None, extra_ref: str | None = None) -> Dests:
     # A carry file's destination issue is its own `issue` field (brief_lint.mjs
     # owns the file-name grammar and refuses a name that disagrees with it).
     round_roster = None
@@ -411,6 +411,13 @@ def load_dests(repo: Path = ROOT, ref: str | None = None, briefs_dir: str | None
     rref = roster_lib.round_ref(git)
     if rref and rref != ref and not git(["rev-parse", "--verify", "--quiet", rref + "^{commit}"])[0]:
         round_roster = (rref, roster_lib.show_roster(str(repo), rref))
+    # A pull request that adds its own carry file routes to it (P43): the issues of <extra_ref>'s
+    # carry files join the set, read with one local ls-tree; an unreadable ref adds nothing.
+    if extra_ref:
+        r = subprocess.run(["git", "-C", str(repo), "ls-tree", "--name-only", extra_ref, CARRIES_DIR + "/"],
+                           capture_output=True, text=True)
+        texts += [subprocess.run(["git", "-C", str(repo), "show", f"{extra_ref}:{n}"], capture_output=True,
+                                 text=True).stdout for n in r.stdout.split() if n.endswith(".json")]  # mut:extra
     carry = set()
     for t in texts:
         try:
@@ -465,6 +472,54 @@ def audit(body: str, comments: list[dict], dests: Dests) -> dict:
         r["bad"], r["notes"] = bad, notes
         r["status"] = "bad" if bad else "unrouted" if not r["dests"] else "routed"
     return {"rows": rows}
+
+
+# ------------------------------------------------------------ the landing
+def group_text(dests: Dests, group: str) -> str:
+    """A group's brief and carries, on main's roster and on the round's branch."""
+    out = []
+    for g in (dests.groups.get(group), dests.round_groups.get(group)):
+        if g:
+            out += [str(g.get("brief") or "")] + [str(c) for c in (g.get("carry") or [])]
+    return "\n".join(out)
+
+
+def landed(body: str, dests: Dests, source: str = "") -> list[dict]:
+    """Each (finding item, GROUP destination) of a body whose group's brief or
+    carries hold neither the item id nor the source (`#<pr>` or the handoff
+    topic: P310, an id re-minted by a reword still lands by its source), or
+    whose group is no valid destination. A `dismissed:` item, a `#N` and an
+    O-brief need no landing. Each: {"group", "id", "text", "why"}."""
+    out = []
+    srcs = [x for x in re.split(r"[\s,]+", source) if x]
+    for r in audit(body, [], dests)["rows"]:
+        for tok in r["dests"]:
+            if not GROUP_TOK.match(tok):
+                continue
+            ok, note = dests.check(tok)
+            if not ok:
+                out.append({"group": tok, "id": r["id"], "text": r["text"], "why": f"bad destination: {note}"})
+                continue
+            gt = group_text(dests, tok)
+            keys = [r["id"]] + srcs
+            if not any(re.search(r"(?<![\w-])" + re.escape(k) + r"(?![\w-])", gt) for k in keys):  # mut:landed
+                out.append({"group": tok, "id": r["id"], "text": r["text"], "why": "not in its brief or carries"})
+    return out
+
+
+def land_ops(missing: list[dict], pr: str = "", topic: str = "") -> list[str]:
+    """roster_edit.py's append-carry op for each missing landing a carry can
+    make (never a bad destination), tagged `(items <id>)`, one per tag."""
+    ops, seen = [], set()
+    src = f"From {pr} ({topic})" if pr and topic else f"From {pr or topic or 'this pull request'}"
+    for m in missing:
+        if m["why"].startswith("bad destination") or (m["group"], m["id"]) in seen:
+            continue
+        seen.add((m["group"], m["id"]))
+        one = re.sub(r"^[-*+]\s+", "", re.sub(r"\s+", " ", m["text"]).strip())
+        text = f"{src}, body item {m['id']}: {one} (items {m['id']})"
+        ops.append("append-carry " + m["group"] + " '" + text.replace("'", "'\\''") + "'")
+    return ops
 
 
 def report(res: dict, label: str = "") -> int:
@@ -593,6 +648,11 @@ def main(argv: list[str]) -> int:
     c = sub.add_parser("check")
     c.add_argument("--body", required=True)
     c.add_argument("--comments")
+    for name in ("landed", "land-ops"):
+        x = sub.add_parser(name)
+        x.add_argument("--body", required=True)
+        x.add_argument("--pr", default="", help="the source pull request, #<N>")
+        x.add_argument("--topic", default="", help="the source handoff topic")
     r = sub.add_parser("pr")
     r.add_argument("n", type=int)
     s = sub.add_parser("sweep")
@@ -614,6 +674,23 @@ def main(argv: list[str]) -> int:
                 return report({"rows": []})  # nothing to route: the roster is not read
             dests = load_dests(Path(a.git_dir), ref, a.briefs_dir)
             return report(audit(body, comments, dests))
+        if a.cmd in ("landed", "land-ops"):
+            # rc 0 every carry landed, 1 one is missing (CARRY-MISSING lines), 3 the roster unreadable
+            try:
+                dests = load_dests(Path(a.git_dir), ref, a.briefs_dir)
+            except (roster_lib.RosterNotFound, ValueError, OSError) as e:
+                print(f"carry_audit: UNREAD the roster: {e}")
+                return 3
+            missing = landed(Path(a.body).read_text(), dests, f"{a.pr} {a.topic}")
+            if a.cmd == "land-ops":
+                for op in land_ops(missing, a.pr, a.topic):
+                    print(op)
+                return 1 if missing else 0
+            for m in missing:
+                one = re.sub(r"\s+", " ", m["text"])[:100]
+                print(f"CARRY-MISSING {m['group']} body item {m['id']}: {m['why']}: {one!r}")
+            print(f"CARRY-LANDED: {len(missing)} missing")
+            return 1 if missing else 0
         if a.cmd == "pr":
             dests = load_dests(ROOT, ref, a.briefs_dir, gh_issue_state(a.repo))
             body, comments = read_pr(a.n, a.repo, None)
@@ -764,6 +841,19 @@ def _self_test() -> int:
     r = run(plant.rstrip() + " Carry: R10-BRANCH\n", d=load_dests(Path(gtmp.name)))
     check("load_dests reads the round ref: a group only there passes, the note naming it",
           r["b"] == 0 and any(rnd[0] in n for x in r["rows"] for n in x["notes"]))
+    # P43: a pull request's own new carry file routes its `#N` at the pre-flight (extra_ref, its head).
+    git("checkout", "-q", "-b", "pr-carry")
+    Path(gtmp.name, CARRIES_DIR).mkdir(parents=True, exist_ok=True)
+    Path(gtmp.name, CARRIES_DIR, "carry-777.json").write_text('{"issue": 777}')
+    git("add", "-A")
+    git("commit", "-qm", "the pull request adds carry-777.json")
+    git("checkout", "-q", "-")
+    r = run(plant.rstrip() + " Carry: #777\n", d=load_dests(Path(gtmp.name), "origin/main"))
+    check("P43: a #N whose carry file only the pull request's head adds is bad at origin/main (before)", r["b"] == 1)
+    r = run(plant.rstrip() + " Carry: #777\n", d=load_dests(Path(gtmp.name), "origin/main", extra_ref="pr-carry"))
+    check("P43: ... and routes once the head is the extra ref (after)", r["b"] == 0)
+    r = run(plant.rstrip() + " Carry: #778\n", d=load_dests(Path(gtmp.name), "origin/main", extra_ref="pr-carry"))
+    check("P43: a #N with a carry file in neither main nor the head still refuses (null control)", r["b"] == 1)
     # P319: an explicit ref (the pre-flight's origin/main) reads the round ref too.
     r = run(plant.rstrip() + " Carry: R10-BRANCH\n", d=load_dests(Path(gtmp.name), "origin/main"))
     check("load_dests at an explicit origin/main routes a group only on the round ref (P319)", r["b"] == 0)
@@ -1237,6 +1327,44 @@ def _self_test() -> int:
     check("P296: a supersede whose new destination is bad stays bad", r["status"] == "bad")
     r = sup_rows("R10-OVER", "Carry: R10-LIVE (item 0badc0de, supersedes R10-OVER)")
     check("P296: a supersede naming another item's id leaves this item bad", r["status"] == "bad")
+    # CARRY 0 / P310: `landed` -- each body item's GROUP carry holds the item id or its source.
+    Dl_roster = {"groups": [
+        {"group": "R10-A", "resume": {"stage": "not-started"}, "brief": "Build the A arm.", "carry": []},
+        {"group": "R10-B", "resume": {"stage": "not-started"}, "brief": "Build the B arm.", "carry": []},
+        {"group": "R10-DONE", "resume": {"stage": "done"}, "brief": "", "carry": []}]}
+
+    def dl(a_carry=(), b_carry=()) -> Dests:
+        r_ = json.loads(json.dumps(Dl_roster))
+        r_["groups"][0]["carry"], r_["groups"][1]["carry"] = list(a_carry), list(b_carry)
+        return Dests(r_, {300})
+    lb = head + "## Forward-carry\n\n- The census misses the store seam. Carry: R10-A\n"
+    lid = [x["id"] for x in items(lb, False) if x["flagged"]][0]
+    miss = landed(lb, dl())
+    check("landed: a carry not in its group's brief or carries is missing (the #2558 pair, before)",
+          [(m["group"], m["id"]) for m in miss] == [("R10-A", lid)])
+    ops = land_ops(miss, "#2558", "r10-x")
+    check("land-ops: one append-carry op, tagged with the item id",
+          ops == ["append-carry R10-A 'From #2558 (r10-x), body item " + lid
+                  + ": The census misses the store seam. Carry: R10-A (items " + lid + ")'"])
+    landed_text = ops[0].split(" ", 2)[2][1:-1] if ops else ""
+    check("landed: once the op's text is in the group's carries, nothing is missing (the #2558 pair, after)",
+          bool(landed_text) and landed(lb, dl([landed_text])) == [])
+    check("land-ops: a group named twice by one item yields one op (deduped on its tag)",
+          len(land_ops(landed(lb.replace("Carry: R10-A", "Carry: R10-A, R10-A"), dl()))) == 1)
+    check("land-ops: an already landed body yields no op (null control)", land_ops(landed(lb, dl([landed_text]))) == [])
+    check("landed: a carry reworded but naming the item id lands (the #2545 paraphrase)",
+          landed(lb, dl(["From #2545: the store seam is missed by the census (items " + lid + ")"])) == [])
+    check("landed: the id in another group's carries does not land it (the wrong group)",
+          len(landed(lb, dl(b_carry=["(items " + lid + ")"]))) == 1)
+    check("landed: a carry naming the source pull request lands its items (P310)",
+          landed(lb, dl(["From #2558: the census."]), "#2558") == [])
+    check("... and another pull request's number does not (null control)",
+          len(landed(lb, dl(["From #2558: the census."]), "#25581")) == 1)
+    check("landed: a dismissed item and a #N with a carry file need no landing",
+          landed(head + "## Forward-carry\n\n- x. Carry: dismissed: no seam remains\n- y. Carry: #300\n", dl()) == [])
+    md = landed(head + "## Forward-carry\n\n- x. Carry: R10-DONE\n", dl())
+    check("landed: a done destination is missing as a bad destination, and never gets an op",
+          len(md) == 1 and md[0]["why"].startswith("bad destination") and land_ops(md) == [])
     flagged_2645 = [x["id"] for x in items(fx["verdict_2645"]["whole"], True) if x["flagged"]]
     check("CARRY 3: #2645's round-1 blocked verdict flags at most one item (8 at 7539d1675)", len(flagged_2645) <= 1)
     for name, text, comments, want in item_grammar:

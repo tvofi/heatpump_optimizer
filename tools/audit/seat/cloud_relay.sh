@@ -130,6 +130,7 @@
 #     hold. review_freeze below says why each case is what it is.
 #   probe arm: the --watch pass above (probe/rev-* -> relay -> confirm; other
 #     probe refs OWED until disposed).
+#   stuck and no-return arms: level lines only (THE STUCK ANDON, THE NO-RETURN LINE below).
 #   confirm arm (--confirm): the ledger is written before confirm runs, so a
 #     confirm that failed, a relay by a script without the confirm, or one by a
 #     call without --confirm was never confirmed later ('already relayed';
@@ -564,13 +565,54 @@ stuck_arm() { # one pass over the branch locks: each held past HPO_PUSH_STUCK_SE
   rm -f "$state/cloud-stuck.$$"; level_set push-stuck "$state/cloud-level-stuck.$$"
 }
 
+# THE NO-RETURN LINE (triage P-E, narrowed to git). A cloud fixer dispatched on
+# dispatch/fixer-<topic> returns on handoff-wip/, handoff/ or handoff-body/<topic>, or moves its
+# pull request's fix/<topic>-pr or fix/<topic> head. One whose dispatch tip is older than
+# HPO_RELAY_NORETURN_SECS (default 7200) with none of those moved since is
+#   OWED <utc> seat-no-return refs/heads/dispatch/fixer-<topic> <sha> SEAT ENDED NO RETURN <topic> <age>h
+# on the level (the #2620 seat sat 6 h silent). The record is the dispatch ref itself: no
+# cloud-sessions file is written anywhere in the tree, so the session id is not named; the
+# dispatch tip and its age are. Past HPO_RELAY_NORETURN_WINDOW_SECS (default 172800) a dispatch
+# falls off: its refs may be gone with a merged branch. Deleting the dispatch ref disposes it.
+# A listing or fetch that fails leaves the level as it was. Reviewer and designer seats are out
+# of scope: a reviewer's missing verdict is reviewer-fire's, in the ledger.
+noreturn_arm() {
+  local state=${HPO_STATE_DIR:-$HOME/.local/state/hpo} lim=${HPO_RELAY_NORETURN_SECS:-7200} win=${HPO_RELAY_NORETURN_WINDOW_SECS:-172800}
+  local now sha ref topic t age r rs moved
+  case $lim$win in *[!0-9]*) echo "cloud_relay: HPO_RELAY_NORETURN_SECS/WINDOW must be seconds; the level stays" >&2; return 0;; esac
+  mkdir -p "$state" || return 0
+  git ls-remote origin 'refs/heads/dispatch/fixer-*' 'refs/heads/handoff/*' 'refs/heads/handoff-wip/*' \
+    'refs/heads/handoff-body/*' 'refs/heads/fix/*' > "$state/cloud-nr.$$" \
+    && git fetch -q origin '+refs/heads/dispatch/fixer-*:refs/hpo-relay/dispatch/fixer-*' 2>/dev/null \
+    || { echo "cloud_relay: the dispatch refs could not be read; the no-return level stays" >&2; rm -f "$state/cloud-nr.$$"; return 0; }
+  now=$(date +%s); : > "$state/cloud-level-nr.$$"
+  while read -r sha ref; do
+    case $ref in refs/heads/dispatch/fixer-?*) topic=${ref#refs/heads/dispatch/fixer-} ;; *) continue ;; esac
+    t=$(git log -1 --format=%ct "$sha" 2>/dev/null) || continue
+    age=$((now - t))
+    [ "$age" -gt "$lim" ] && [ "$age" -le "$win" ] || continue  # mut:noreturnage
+    moved=
+    for r in handoff/$topic handoff-wip/$topic handoff-body/$topic fix/$topic-pr fix/$topic; do
+      rs=$(awk -v r="refs/heads/$r" '$2 == r { print $1; exit }' "$state/cloud-nr.$$")
+      [ -n "$rs" ] || continue
+      git cat-file -e "$rs^{commit}" 2>/dev/null || git fetch -q origin "refs/heads/$r" 2>/dev/null
+      [ "$(git log -1 --format=%ct "$rs" 2>/dev/null || echo 0)" -gt "$t" ] && { moved=1; break; }  # mut:noreturnmoved
+    done
+    [ -n "$moved" ] && continue
+    echo "cloud_relay: SEAT ENDED NO RETURN $topic (dispatch ${sha:0:12}, $((age / 3600))h, no return ref or PR head moved since)"
+    level_line seat-no-return "$ref" "$sha" "SEAT ENDED NO RETURN $topic $((age / 3600))h" >> "$state/cloud-level-nr.$$"
+  done < "$state/cloud-nr.$$"
+  level_set seat-no-return "$state/cloud-level-nr.$$"
+  rm -f "$state/cloud-nr.$$"
+}
+
 pass() { # [--confirm] [--log FILE] [--loop [--interval N]]
   local every=120 loop=""
   while [ $# -gt 0 ]; do case $1 in
     --confirm) CONFIRM=1; shift;; --log) LOG=${2:-}; shift 2;; --loop) loop=1; shift;; --interval) every=${2:-}; shift 2;;
     *) echo "cloud_relay: unknown pass option '$1'" >&2; return 2;; esac; done
   case $every in ''|*[!0-9]*|0) echo "cloud_relay: --interval must be a positive number of seconds" >&2; return 2;; esac
-  while :; do handoff_arm; probe_arm; [ -z "${CONFIRM:-}" ] || confirm_arm; stuck_arm; [ -z "$loop" ] && return 0; sleep "$every"; done
+  while :; do handoff_arm; probe_arm; [ -z "${CONFIRM:-}" ] || confirm_arm; stuck_arm; noreturn_arm; [ -z "$loop" ] && return 0; sleep "$every"; done
 }
 
 self_test() {
@@ -1226,7 +1268,33 @@ open(sys.argv[1], "w").close(); time.sleep(60)' "$t/stuck.held" "$t/state/pr/upd
   chk "a released lock aged 5000 s is not reported, whatever its text" 1 grep -qF 'fix-gone' <<< "$out"
   chk "once every lock is released nothing is reported, and the level holds no push-stuck line" \
     0 test "$(printf '%s' "$stuck_free")$(grep -c push-stuck "$LOG.level")" = 0
-  rm -rf "$t"
+  # P-E: SEAT ENDED NO RETURN, keyed on the dispatch ref's own age (git only).
+  LOG=$t/nr.log; : > "$LOG"; rm -f "$LOG.level"
+  rm -rf "$t/nr" "$t/nrw" "$t/nro.git"; throwaway_git_init "$t/nr" -q; throwaway_git_init "$t/nrw" -q
+  throwaway_git_init "$t/nro.git" -q --bare; cd "$t/nrw" && git remote add origin "$t/nro.git"
+  nrc() { # <ref> <age seconds>: one commit on the scratch origin's <ref>, committed <age> ago
+    GIT_COMMITTER_DATE="@$(( $(date +%s) - $2 )) +0000" git -C "$t/nr" -c user.name=t -c user.email=t@t commit -q --allow-empty -m "$1"
+    git -C "$t/nro.git" fetch -qf "$t/nr" "HEAD:refs/heads/$1"; }
+  nrc dispatch/fixer-nr-a 10800; nrc dispatch/fixer-nr-b 10800; nrc handoff-wip/nr-b 3600
+  nrc dispatch/fixer-nr-c 10800; nrc fix/nr-c-pr 1800; nrc dispatch/fixer-nr-young 1800
+  nrc dispatch/fixer-nr-old 300000; nrc handoff/nr-e 14400; nrc dispatch/fixer-nr-e 10800
+  nro=$(noreturn_arm 2>&1)
+  chk "a fixer dispatched 3 h ago with no return ref is SEAT ENDED NO RETURN (P-E)" 0 \
+    grep -q "^cloud_relay: SEAT ENDED NO RETURN nr-a (dispatch [0-9a-f]\{12\}, 3h" <<< "$nro"
+  chk "and owed seat-no-return on the level" 0 \
+    grep -qE "^OWED [^ ]+ seat-no-return refs/heads/dispatch/fixer-nr-a [0-9a-f]{40} SEAT ENDED NO RETURN nr-a 3h$" "$LOG.level"
+  chk "a seat whose handoff-wip moved after its dispatch is not reported (null control: it returned)" 1 grep -q " nr-b " <<< "$nro"
+  chk "a seat whose pull request's head moved after its dispatch is not reported" 1 grep -q " nr-c " <<< "$nro"
+  chk "a dispatch younger than the bound is not reported" 1 grep -q " nr-young " <<< "$nro"
+  chk "a dispatch past the window is not reported (its refs may be gone with a merged branch)" 1 grep -q " nr-old " <<< "$nro"
+  chk "a return ref older than the dispatch (an earlier round's) does not count as a return" 0 grep -q " nr-e " <<< "$nro"
+  git -C "$t/nro.git" update-ref -d refs/heads/dispatch/fixer-nr-a; git -C "$t/nro.git" update-ref -d refs/heads/dispatch/fixer-nr-e
+  noreturn_arm >/dev/null 2>&1
+  chk "deleting the dispatch ref takes its line off the level (the disposal)" 1 grep -q "fixer-nr-a\|fixer-nr-e" "$LOG.level"
+  LOG=$t/nr2.log; : > "$LOG"; nrc dispatch/fixer-nr-p 10800
+  nro=$(handoff_arm() { :; }; probe_arm() { :; }; CONFIRM= pass 2>&1)
+  chk "a pass runs the no-return arm" 0 grep -q "SEAT ENDED NO RETURN nr-p " <<< "$nro"
+  cd / && rm -rf "$t"
   echo "cloud_relay self-test: $((ok+bad)) checks, $bad failed"; [ "$bad" = 0 ]
 }
 

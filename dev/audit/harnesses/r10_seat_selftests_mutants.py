@@ -218,6 +218,9 @@ MUTANTS = [
     ("bus-6", "bus.sh", 'git -c http.postBuffer=524288000 push -q "$REMOTE"', 'git push -q "$REMOTE"'),
     ("bus-7", "bus.sh", '[ -n "$a" ] && [ -z "$(grep -vxF \'dependabot[bot]\' <<< "$a")" ]  # mut:botonly', '[ -n "$a" ]'),
     ("bus-8", "bus.sh", 'if [ -n "$holder" ] && kill -0 "$holder" 2>/dev/null; then  # mut:watchlock', 'if false; then'),
+    ("bus-9", "bus.sh", '  rm -f "$b"; [ "$rc" != 1 ]  # mut:landed', '  rm -f "$b"; true'),
+    # P43: the pre-flight reads each pull request's destinations with its head as the extra ref
+    ("queue_pre_flight-1", "queue_pre_flight.py", "extra_ref=head or None)", "extra_ref=None)"),
     # carry_audit.py check reads no roster for a verdict with no finding item (bus.sh's step grades it:
     # its scratch origin holds no roster until the carry rows plant one).
     ("carry_audit-1", "tools/audit/carry_audit.py",
@@ -308,6 +311,7 @@ MUTANTS = [
      '  if [ "$prc" != 0 ]; then\n    echo "body_push: the review packet refuses'),
     # R10-FLOW-BODY-ONLY carry 13 (V147): a PR body names its code head; graded by prepr's self-test
     ("body_push-3", "tools/audit/seat/body_push.sh", '[ -z "$HREF" ] || MSG=', '[ -n "$HREF" ] || MSG='),
+    ("body_push-4", "tools/audit/seat/body_push.sh", '  if [ "$lrc" = 1 ]; then  # mut:landed', '  if false; then'),
     # #2853's review: the class the copy enumeration missed is a link to an
     # in-tree file it does not name. prepr-11 renames a LISTED entry (the
     # pathspec arm); prepr-13 stops the copy taking the generator's own link
@@ -437,13 +441,18 @@ MUTANTS = [
      '    run, start = int(w[0]), int(os.fstat(f.fileno()).st_mtime)\n'),
     ("cloud_relay-31", "cloud_relay.sh", '  if now - start <= lim: continue\n', ''),
     ("cloud_relay-32", "cloud_relay.sh", '  if not held(f): continue\n', ''),
-    ("cloud_relay-33", "cloud_relay.sh", 'confirm_arm; stuck_arm; [ -z "$loop" ]', 'confirm_arm; [ -z "$loop" ]'),
+    ("cloud_relay-33", "cloud_relay.sh", 'confirm_arm; stuck_arm; noreturn_arm; [ -z "$loop" ]', 'confirm_arm; noreturn_arm; [ -z "$loop" ]'),
     # R10-FLY-RELAY-REVIEW-FF P288: the worktree arm restored holds the #2953 shape again;
     # the evidence dropped from the HELD line fails its row.
     ("cloud_relay-39", "cloud_relay.sh", '  [ -n "$v" ] || return 1\n  echo "REVIEW dispatch=',
      '  [ -n "$v" ] || git worktree list --porcelain | awk -v h="$2" \'$1 == "HEAD" { at = ($2 == h) } $1 == "detached" && at { f = 1 } END { exit !f }\' || return 1\n  echo "REVIEW dispatch='),
     ("cloud_relay-40", "cloud_relay.sh", '#$pr $hs${why#"${why%% *}"} (head', '#$pr $hs (head'),
     # P283: the relay's own checkout's update_pr.sh again; no dirty test; no busy test; no levelling.
+    # P-E: the no-return line: its age window, its moved test, its wiring into the pass
+    ("cloud_relay-45", "cloud_relay.sh", '[ "$age" -gt "$lim" ] && [ "$age" -le "$win" ] || continue  # mut:noreturnage', '[ "$age" -le "$win" ] || continue'),
+    ("cloud_relay-46", "cloud_relay.sh", '-gt "$t" ] && { moved=1; break; }  # mut:noreturnmoved', '-gt "$t" ] && { break; }'),
+    ("cloud_relay-47", "cloud_relay.sh", 'stuck_arm; noreturn_arm; [ -z "$loop" ]', 'stuck_arm; [ -z "$loop" ]'),
+    ("cloud_relay-48", "cloud_relay.sh", '[ "$age" -gt "$lim" ] && [ "$age" -le "$win" ] || continue  # mut:noreturnage', '[ "$age" -gt "$lim" ] || continue'),
     ("cloud_relay-41", "cloud_relay.sh", 'upd=(bash "$why/update_pr.sh")  # mut:toolsseat', 'upd=(bash "$HERE/update_pr.sh")'),
     ("cloud_relay-42", "cloud_relay.sh", 'if [ -n "$(git -C "$tw" status --porcelain --untracked-files=no 2>/dev/null)" ]; then', 'if false; then'),
     ("cloud_relay-43", "cloud_relay.sh", 'if [ -n "$o" ] && kill -0 "$o" 2>/dev/null; then echo', 'if false; then echo'),
@@ -519,7 +528,7 @@ ENV_MUTANTS = [("S04U", "S04", {"PYTHONUNBUFFERED": "1"})]
 # A mutant planted in a file whose self-test is another instrument's step.
 STEP_OF = {"prepr-9": "tools/pr/prepr.sh", "prepr-10": "tools/pr/prepr.sh",
            "prepr-12": "tools/pr/prepr.sh", "body_push-1": "tools/pr/prepr.sh",
-           "body_push-2": "tools/pr/prepr.sh", "body_push-3": "tools/pr/prepr.sh",
+           "body_push-2": "tools/pr/prepr.sh", "body_push-3": "tools/pr/prepr.sh", "body_push-4": "tools/pr/prepr.sh",
            "carry_audit-1": "tools/audit/seat/bus.sh"}
 
 # The wrappers' own line is the dispatch to the self-tests they delegate.

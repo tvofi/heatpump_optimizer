@@ -223,6 +223,24 @@ signed_by_approver() { # pr commit -> rc 0 when the commit's bus-signature is th
   rc=$?; rm -rf "$t"; return $rc
 }
 
+carry_landed() { # pr -> rc 1 when a body carry is not in its group (lines and roster ops on stderr); else 0
+  # An unread body or roster is said and the dispatch goes on: the gate cannot judge it.
+  local b out rc
+  b=$(mktemp) || return 0
+  if ! ${HPO_BUS_GH:-gh} api "repos/$REPO/pulls/$1" --jq '.body // ""' > "$b" 2>/dev/null; then
+    echo "BUS carry-landing UNREAD #$1: the body could not be read; the dispatch goes on" >&2; rm -f "$b"; return 0
+  fi
+  out=$(python3 -I "$ROOT/tools/audit/carry_audit.py" --git-dir "$(git rev-parse --show-toplevel)" --roster-ref origin/main \
+    landed --body "$b" --pr "#$1" 2>&1); rc=$?
+  case $rc in
+    0) ;;
+    1) printf '%s\n' "$out" >&2
+       python3 -I "$ROOT/tools/audit/carry_audit.py" --git-dir "$(git rev-parse --show-toplevel)" --roster-ref origin/main \
+         land-ops --body "$b" --pr "#$1" 2>/dev/null | sed 's,^,  roster op: python3 tools/audit/seat/roster_edit.py ,' >&2 ;;
+    *) printf 'BUS carry-landing UNREAD #%s: %s; the dispatch goes on\n' "$1" "$(tail -n 1 <<< "$out")" >&2 ;;
+  esac
+  rm -f "$b"; [ "$rc" != 1 ]  # mut:landed
+}
 carry_gate() { # verdict-file -> rc 0 when each finding item routes, else why, naming the count and the first
   # carry_audit.py judges, the parser the train's pre-flight runs (decision 0012): the verdict is
   # its one verdict comment, the roster read at origin/main and the round's branch (P319) as this
@@ -508,6 +526,11 @@ dispatch() { # pr head reviewer [--reviewed-head <sha>] [--nonce N] [--model M] 
     git cat-file -e "$h:$row" 2>/dev/null \
       || die "dispatch: #$pr's head $h carries no $row; the row lands before the review (delivery-status-tracking.md) -- write it and re-push, then dispatch"
   fi
+  # THE CARRY LANDING (CARRY 0, P310): a body item routed `Carry: <GROUP>` whose group's brief
+  # and carries hold neither its id nor this pull request is refused here, before a reviewer
+  # blocks on it (14 of 21 carry-missing blocks after #2838), with the roster ops that land it.
+  # A --nonce re-record of a relay-minted nonce is no new dispatch: its mint was judged.
+  [ -n "$n" ] || carry_landed "$pr" || die "dispatch: #$pr's body routes a carry its group does not hold (CARRY-MISSING above); land the roster ops above, then dispatch"
   # THE REVIEWABLE HEAD (K15 (d); the #2577 carry, built by R10-FLOW-MAIN-GATE).
   # A head where a required context's latest run concluded failure is not
   # reviewable. merge_train.py's `classify`, the one owner of that state, answers
@@ -1509,8 +1532,9 @@ B
   printf '## Summary\nround four, repaired\n' > "$W/body31"
   f1=$(blk 1); f2=$(blk 2 "$f1"); git -C "$W/seat" push -q origin "$f2:refs/heads/verdict/31"
   out=$(run dispatch 31 "$h1" cmsg_T); rc=$?
-  [ $rc = 0 ] && echo "$out" | grep -q '^bus-nonce: ' && [ ! -s "$W/gh-argv" ]
-  expect "null control: two blocked rounds dispatch, reading no pull-request body" $?
+  # the carry landing reads the body on every dispatch (`.body // ""`); the re-cut rule's own read is `.body`
+  [ $rc = 0 ] && echo "$out" | grep -q '^bus-nonce: ' && ! grep -qx "api|repos/o/r/pulls/31|--jq|.body|" "$W/gh-argv"
+  expect "null control: two blocked rounds dispatch, the re-cut rule reading no pull-request body" $?
   f1=$(blk 3 "$f2"); git -C "$W/seat" push -q origin "$f1:refs/heads/verdict/31"; n=$(grep -c . "$W/state/dispatched")
   out=$(run dispatch 31 "$h1" cmsg_T); rc=$?
   [ $rc != 0 ] && echo "$out" | grep -q "3 blocked round(s).*## Re-cut" && [ "$(grep -c . "$W/state/dispatched")" = "$n" ] \
@@ -1598,6 +1622,30 @@ B
   out=$(cd "$W/seat" && run push-design-verdict R10-G9 "$W/dverd.md"); rc=$?
   [ $rc != 0 ] && echo "$out" | grep -q "no design/R10-G9"; expect "a verdict for a topic with no design ref is refused" $?
 
+  # CARRY 0 / P310: dispatch refuses a body carry its group does not hold, printing the roster op;
+  # the same body passes once the group's carries name this pull request (null control).
+  m0=$(git -C "$W/seat" ls-remote origin refs/heads/main | cut -f1)
+  lroster() { # <carry json list>: origin/main's roster with R10-LIVE holding those carries
+    local rb rt
+    rb=$(printf '{"groups": [{"group": "R10-LIVE", "resume": {"stage": "not-started"}, "brief": "b", "carry": %s}]}\n' "$1" \
+      | git -C "$W/seat" hash-object -w --stdin)
+    rt=$(printf '100644 blob %s\twave-r10-groups.json\n' "$rb" | git -C "$W/seat" mktree); rt=$(printf '040000 tree %s\trosters\n' "$rt" | git -C "$W/seat" mktree)
+    rt=$(printf '040000 tree %s\tprogramme\n' "$rt" | git -C "$W/seat" mktree); rt=$(printf '040000 tree %s\tdev\n' "$rt" | git -C "$W/seat" mktree)
+    git -C "$W/seat" push -q -f origin "$(git -C "$W/seat" -c user.name=t -c user.email=t@t commit-tree "$rt" -p "$m0" -m roster):refs/heads/main"
+    git -C "$W/seat" fetch -q origin main; }
+  lroster '[]'; printf '## Forward-carry\n\n- The census misses the store seam. Carry: R10-LIVE\n' > "$W/body31"
+  nd=$(grep -c . "$W/state/dispatched")
+  out=$(run dispatch 7 "$h1" cmsg_L1); rc=$?
+  [ $rc != 0 ] && echo "$out" | grep -q "^CARRY-MISSING R10-LIVE body item [0-9a-f]\{8\}: not in its brief or carries" \
+    && echo "$out" | grep -q "^  roster op: python3 tools/audit/seat/roster_edit.py append-carry R10-LIVE 'From #7, body item " \
+    && [ "$(grep -c . "$W/state/dispatched")" = "$nd" ]
+  expect "dispatch refuses a body carry its group does not hold, printing the roster op, recording nothing (CARRY 0)" $?
+  lroster '["From #7: the store seam."]'
+  out=$(run dispatch 7 "$h1" cmsg_L2); rc=$?
+  [ $rc = 0 ] && echo "$out" | grep -q '^bus-nonce: '
+  expect "and dispatches once the group's carries name the pull request (P310, the null control)" $?
+  printf '## Summary\nround four, repaired\n' > "$W/body31"
+  git -C "$W/seat" push -q -f origin "$m0:refs/heads/main"; git -C "$W/seat" fetch -q origin main
   # P102: a second watcher over the same state directory refuses, naming the holder; a dead
   # holder's lock is taken over; the lock is gone once a watcher exits.
   sleep 30 & wl=$!; mkdir -p "$W/state/watch.lock"; echo "$wl" > "$W/state/watch.lock/pid"

@@ -130,6 +130,13 @@ MUTANTS = [
     ("P308-restore", 'why = ("lead" if LEAD.match(first) else "under lead" if inherited\n                   else "carry"',
      'why = ("lead" if LEAD.match(first) else "evidence" if NONBLOCK.search(t) else "under lead" if inherited\n                   else "carry"'),
     # P296: drop the old-must-be-invalid test; drop the item-id scoping
+    # CARRY 0 / P310: landed and land-ops
+    ("L-landed", "            if not any(re.search(", "            if False and not any(re.search("),
+    ("L-source", "            keys = [r[\"id\"]] + srcs", "            keys = [r[\"id\"]]"),
+    ("L-bad", "            if not ok:\n                out.append(", "            if False:\n                out.append("),
+    ("L-group", "            if not GROUP_TOK.match(tok):\n                continue", "            if False:\n                continue"),
+    ("L-ops-bad", 'if m["why"].startswith("bad destination") or', 'if'),
+    ("L-ops-seen", "or (m[\"group\"], m[\"id\"]) in seen:", ":"),
     ("P296-pattern", r'),\s*supersedes\s+(', r'),supersedes\s+('),
     ("P296-findall", "SUPERSEDES.findall(seg)", 'SUPERSEDES.findall("")'),
     ("P296-strip", 'old.strip("`*_.:")', "old"),
@@ -267,6 +274,8 @@ MUTANTS = [
     ("B2-shallow", B2_SHALLOW, "        shallow = False"),
     ("B2-shallow-always", B2_SHALLOW, "        shallow = True"),
     # load_dests: P319, the round ref is read on the explicit-ref path too
+    # load_dests: P43, a pull request's own carry files join at the pre-flight
+    ("P43-extra", "for n in r.stdout.split() if n.endswith(\".json\")]  # mut:extra", "for n in []]  # mut:extra"),
     ("P319-ref-path", "    if rref and rref != ref and not git(", "    if rref and not ref and not git("),
 ]
 

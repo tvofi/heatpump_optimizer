@@ -141,3 +141,10 @@
   each passed push-verdict, `reviewer-fire`, `approve-held-runs`, `dispatch`)
   is opened in the ledger, never appended to the log, which keeps only the
   `POSTED` journal.
+  No-return line (triage P-E): each pass, a `dispatch/fixer-<topic>` tip older
+  than `HPO_RELAY_NORETURN_SECS` (default 7200) and younger than
+  `HPO_RELAY_NORETURN_WINDOW_SECS` (default 172800), with no `handoff-wip/`,
+  `handoff/`, `handoff-body/<topic>`, `fix/<topic>-pr` or `fix/<topic>`
+  commit newer than it, prints `SEAT ENDED NO RETURN <topic>` and is
+  `OWED <utc> seat-no-return <ref> <sha> SEAT ENDED NO RETURN <topic> <age>h`
+  in `<log>.level`. Git only; deleting the dispatch ref disposes it.
