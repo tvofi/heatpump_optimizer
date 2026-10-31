@@ -13170,7 +13170,7 @@
     "Design approved (orchestrator s9, 2026-10-31): design/r10-audit-coverage ae3d86dc0824122dde944aeca1726ea94480897c, approved by design-verdict/r10-audit-coverage 5b77e98dd74a24d7b5ff1d94ac4e6820ab9bc7f8 (\"Design review: approve\"). The design ref's topic is r10-audit-coverage, not the group id. The fixer is not yet dispatched: it waits on its after-edges R10-FLY-MUTANT-RESTORE (handoff returned) and R10-996-RUNNER-CLAIMS (cloud fixer fired 17:03Z). The tick's \"DESIGN OWED\" line for this group is a false positive: the tick matches only design/<group id>."
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "queued",
     "branch": null,
     "commit": null,
     "next_step": "dispatch the fixer when R10-FLY-MUTANT-RESTORE and R10-996-RUNNER-CLAIMS are done; design approved at design-verdict/r10-audit-coverage 5b77e98dd"
