@@ -1,0 +1,11 @@
+RESULT b1 legacy first load, same sensors                   scale=1.2356 ratio=1.9430 n=(400,400) saves=1 rec={'indoor_temp_entity': 'sensor.t6', 'lower_floor_temp_entity': 'sensor.floor_old'}
+RESULT b2 then lower swap                                   scale=1.2356 ratio=1.0000 n=(400,0) saves=1 rec={'indoor_temp_entity': 'sensor.t6', 'lower_floor_temp_entity': 'sensor.t6'}
+RESULT b3 then reload same                                  scale=1.2356 ratio=1.0000 n=(400,0) saves=0 rec={'indoor_temp_entity': 'sensor.t6', 'lower_floor_temp_entity': 'sensor.t6'}
+RESULT e lower swap + nameplate edit                        scale=0.8185 ratio=1.9430 n=(400,0) saves=1 rec={'indoor_temp_entity': 'sensor.t6', 'lower_floor_temp_entity': 'sensor.t6'}
+RESULT e indoor swap + nameplate edit                       scale=1.0000 ratio=1.9430 n=(0,400) saves=1 rec={'indoor_temp_entity': 'sensor.bthome', 'lower_floor_temp_entity': 'sensor.floor_old'}
+RESULT e both swap + nameplate edit                         scale=1.0000 ratio=1.9430 n=(0,0) saves=1 rec={'indoor_temp_entity': 'sensor.bthome', 'lower_floor_temp_entity': 'sensor.t6'}
+RESULT e none swap + nameplate edit                         scale=0.8185 ratio=1.9430 n=(400,400) saves=1 rec={'indoor_temp_entity': 'sensor.t6', 'lower_floor_temp_entity': 'sensor.floor_old'}
+RESULT e' lower swap, then nameplate edit separately        scale=0.8156 ratio=1.0000 n=(400,0) saves=1 rec={'indoor_temp_entity': 'sensor.t6', 'lower_floor_temp_entity': 'sensor.t6'}
+RESULT s restore pre-swap snapshot under swapped sensor     scale=1.2356 ratio=1.0000 n=(400,0) saves=0 rec={'indoor_temp_entity': 'sensor.t6', 'lower_floor_temp_entity': 'sensor.floor_old'}
+RESULT r reset both                                         scale=1.0000 ratio=1.0000 n=(0,0) saves=1 rec={'indoor_temp_entity': 'sensor.t6', 'lower_floor_temp_entity': 'sensor.floor_old'}
+RESULT r plan after reset (finder solve) plan_kWh=24.00 UA=0.330
