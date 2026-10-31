@@ -1173,6 +1173,30 @@ def null_control_self_test(root: Path) -> int:
         got = len(null_control_preds(m, files))
         print(f"  {'ok  ' if got == want else 'FAIL'} {label}")
         bad += got != want
+    # The real path: predict(only="mutation") over a diff adding one unpinned
+    # site, so `unpinned()`'s call site and `is_red` are driven, not only the
+    # predicate (review of #3042 round 1: both survived). Only site discovery
+    # is stubbed; `null_for` reads the real file.
+    keep = {n: getattr(m, n) for n in ("load_budgets", "inventory", "unpinned_sites",
+            "completeness_problems", "base_unpinned_sites", "added_unpinned", "diff_sides")}
+    try:
+        for label, f, want in (
+                ("an unpinned site in a comment-free file is refused, rc=1", bare, 1),
+                ("null control: the same site in a commented file is no refusal, rc=0", commented, 0)):
+            site = {"file": f, "line": 1, "kind": "CMP", "old": "x == 1"}
+            m.load_budgets, m.inventory = (lambda: {}), (lambda: [])
+            m.unpinned_sites = lambda b, s, site=site: [site]
+            m.completeness_problems = lambda b, s: []
+            m.base_unpinned_sites = lambda ref, s: []
+            m.added_unpinned = lambda u, b, sides: u
+            m.diff_sides = lambda ref: (set(), set())
+            rc, preds, _ = predict(root, "HEAD", only="mutation")
+            ok = rc == want and any(l.startswith("NO NULL CONTROL") for _, l in preds) == bool(want)
+            print(f"  {'ok  ' if ok else 'FAIL'} {label}")
+            bad += not ok
+    finally:
+        for n, v in keep.items():
+            setattr(m, n, v)
     return bad
 
 
