@@ -1,0 +1,3 @@
+1:  3d8a848fd = 1:  3d8a848fd README graphics survive the Home Assistant Marketplace sanitizer, light and dark (R10-README-GRAPHICS)
+2:  2075e498d = 2:  2075e498d README graphics survive the Home Assistant Marketplace sanitizer, light and dark (R10-README-GRAPHICS)
+3:  3e05feade = 3:  3e05feade record: the delivery row for #3014

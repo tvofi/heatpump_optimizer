@@ -1,8 +1,0 @@
-claims_rc=0
-  "result": "83 links, broken=[], of which removed-by-the-export=[]",
-  "result": "21 images, missing=[]",
-  MODE: FULL -- every test script runs, nothing is scoped out.
-  reason: tests/closure.py changes the gate itself, so every closure is suspect
-
-STRUCTURE RATCHET PASSED
-untouched-check-done
