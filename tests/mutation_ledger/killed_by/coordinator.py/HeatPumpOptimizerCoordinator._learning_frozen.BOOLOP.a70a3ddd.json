@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._learning_frozen BOOLOP a70a3ddd",
+  "killed_by": "tests/features.py",
+  "old": "        if room_air and self._vent_cusum.tripped:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`if room_air or self._vent_cusum.tripped:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=31."
+}

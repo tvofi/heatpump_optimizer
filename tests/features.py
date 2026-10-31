@@ -8053,7 +8053,7 @@ class _CopGate:
         self._flow_bias = flow_lift.FlowCurveBias()
         self.cop_health_calls: list = []
 
-    def _learning_frozen(self, *entities):
+    def _learning_frozen(self, *entities, room_air=True):
         return None
 
     def _observe_cop_health(self, observed_cop, dhw_curve=False):
@@ -22132,12 +22132,12 @@ _t9 = datetime(2026, 1, 21, 6, 0, tzinfo=UTC)
 _c9._accuracy.note_lead_prediction(_t9 - timedelta(minutes=10), 1.0, 21.0)
 _dt5.freeze(_t9)
 try:
-    _c9._learning_frozen = lambda key: "stale"
+    _c9._learning_frozen = lambda key, **_kw: "stale"
     _c9._record_accuracy()
     _frozen_kept = (
         len(_c9._accuracy.lead_pending) == 1 and _c9._accuracy.sigma(1.0) == 0.0
     )
-    _c9._learning_frozen = lambda key: None
+    _c9._learning_frozen = lambda key, **_kw: None
     _c9._record_accuracy()
     _live_scored = (
         not _c9._accuracy.lead_pending
@@ -45573,7 +45573,7 @@ from homeassistant.util import dt as _t2_dt  # noqa: E402
 
 def _t2_room_readers(**config):
     c = _t2_coord(curve_learning_enabled=True, **config)
-    c._learning_frozen = lambda *keys: None
+    c._learning_frozen = lambda *keys, **_kw: None
     c._mode = "auto"
     now = datetime(2026, 1, 21, 6, 0, tzinfo=UTC)
     c._accuracy.note_lead_prediction(now - timedelta(minutes=10), 1.0, 21.5)
@@ -45613,7 +45613,7 @@ R.check(
     f"{_wzm((None, float('nan')), 19.0)!r}",
 )
 _t2_nan_zones = _t2_coord(curve_learning_enabled=True, indoor_temp_entity="sensor.indoor")
-_t2_nan_zones._learning_frozen = lambda *keys: None
+_t2_nan_zones._learning_frozen = lambda *keys, **_kw: None
 _t2_nan_zones._current_state = _dc_replace(
     _t2_nan_zones._current_state, room_temperature=float("nan"),
     upper_floor_temperature=float("nan"), lower_floor_temperature=float("nan"),
@@ -56116,7 +56116,7 @@ R.check(
 
 # _track_curve_comfort folds YESTERDAY's worst margin when a new day starts.
 _p8s_cc = _Coord(_FakeHass(), _FakeEntry(data={**_P8_CFG, "curve_learning_enabled": True}))
-_p8s_cc._learning_frozen = lambda key: None
+_p8s_cc._learning_frozen = lambda key, **_kw: None
 _p8s_days = []
 _p8s_cc._curve_learner = _p8s_ns(
     bias=0.0,
@@ -67202,7 +67202,7 @@ R.check(
     f"{_cf_diag._coordinator_snapshot(_cf_ref).get('cop_learner')}",
 )
 _cf_frz = _cf_coord()
-_cf_frz._learning_frozen = lambda *entities: "stale_inputs"
+_cf_frz._learning_frozen = lambda *entities, **_kw: "stale_inputs"
 _cf_learn(_cf_frz, 2.2)
 _cf_none = _cf_coord()
 _cf_none._measured_power = None
@@ -72584,6 +72584,156 @@ R.check(
 )
 
 
+# --- R10-COP-GATE item E: the open-window latch freezes only room-air learners --
+# ``_learning_frozen(room_air=False)`` skips the ventilation reason alone. The
+# measured-heat COP paths (a counter span, a measured flow heat) and hot water
+# lift; the inferred COP, the flow-curve bias and every room-air learner keep
+# the freeze (dev/audit/harnesses/r10_cop_gate_vent.py measures each arm).
+from heatpump_optimizer import coordinator as _cv_cm  # noqa: E402
+from heatpump_optimizer import draw_range as _cv_dr  # noqa: E402
+from heatpump_optimizer import heat_energy as _cv_he  # noqa: E402
+from heatpump_optimizer import sysid as _cv_sysid  # noqa: E402
+from heatpump_optimizer.accuracy import COP_REFUSED_SPAN_OPEN as _CV_OPEN  # noqa: E402
+
+
+def _cv_cop(latch, *, counter=False, heat_kw=None, heat_age_min=None):
+    """One COP fold on the real coordinator: (refusal, samples folded).
+
+    ``heat_age_min`` plants a thermal-power entity and reads it through the
+    cycle's own ``observe_water``; otherwise ``heat_kw`` is the flow heat."""
+    c = _t2_coord(heat_pump_power_entity="sensor.hp_power",
+                  **({_TP_KEY: "sensor.heat"} if heat_age_min is not None else {}))
+    c._vent_cusum.tripped = latch
+    if counter:
+        _cv_he.meter_of(c).counter = True
+    if heat_age_min is not None:
+        c.hass.states.set("sensor.heat", FakeState(
+            "6000", last_updated=minutes_ago(heat_age_min + 3, NOW),
+            last_reported=minutes_ago(heat_age_min, NOW), unit="W"))
+        reader = _fmReader(c.hass, c.effective_config, now=lambda: NOW)
+        _fm.observe_water(c._flow_bias, reader, c.effective_config)
+        c._input_health = reader.health
+    else:
+        c._flow_bias.heat_output_kw = heat_kw
+    c._measured_power = 2.0
+    c._current_action = {"power": 2.0}
+    c._current_state.outdoor_temperature = 8.0
+    before = c._cop_samples
+    c._learn_measured_cop()
+    return c._measured_cop.refusal, c._cop_samples - before
+
+
+_cv_counter, _cv_counter0 = _cv_cop(True, counter=True), _cv_cop(False, counter=True)
+R.check(
+    "R10-COP-GATE E: under the window latch a heat-counter install reaches the span "
+    "gate rather than the freeze (null control: latch clear reads the same)",
+    _cv_counter[0] == _CV_OPEN and _cv_counter0[0] == _CV_OPEN,
+    f"latch {_cv_counter!r} clear {_cv_counter0!r}",
+)
+_cv_flow, _cv_flow0 = _cv_cop(True, heat_kw=6.0), _cv_cop(False, heat_kw=6.0)
+R.check(
+    "R10-COP-GATE E: under the window latch a measured flow heat folds its COP "
+    "(null control: latch clear folds too)",
+    _cv_flow == (None, 1) and _cv_flow0 == (None, 1),
+    f"latch {_cv_flow!r} clear {_cv_flow0!r}",
+)
+_cv_stale, _cv_fresh = _cv_cop(True, heat_age_min=45), _cv_cop(True, heat_age_min=1)
+R.check(
+    "R10-COP-GATE E: a stale thermal-power entity read through observe_water still "
+    "freezes the COP fold under the latch (null control: a fresh one folds)",
+    _cv_stale == (_TP_FROZEN, 0) and _cv_fresh == (None, 1),
+    f"stale {_cv_stale!r} fresh {_cv_fresh!r}",
+)
+_cv_inf, _cv_inf0 = _cv_cop(True), _cv_cop(False)
+R.check(
+    "R10-COP-GATE E: an inferred COP (no heat reading) stays frozen under the "
+    "window latch (null control: latch clear passes the freeze)",
+    _cv_inf == (_TP_FROZEN, 0) and _cv_inf0[0] != _TP_FROZEN,
+    f"latch {_cv_inf!r} clear {_cv_inf0!r}",
+)
+
+
+def _cv_dhw(latch):
+    """(probe value, the learner's freeze reason) on a configured tank."""
+    c = _t2_coord(dhw_temp_entity="sensor.tank")
+    c._vent_cusum.tripped = latch
+    c._dhw_temperature = 55.0
+    learner = c._dhw_learner
+
+    async def learn():
+        await learner.async_learn_dynamics(50.0)
+        learner.last_sample_time = dt_util.now() - timedelta(minutes=30)
+        return await learner.async_learn_dynamics(49.8)
+
+    return c._dhw_probe_temperature(), _asyncio.run(learn())
+
+
+_cv_dhw1, _cv_dhw0 = _cv_dhw(True), _cv_dhw(False)
+R.check(
+    "R10-COP-GATE E: hot water learns and the probe answers under the window latch "
+    "(null control: latch clear reads the same)",
+    _cv_dhw1 == (55.0, None) and _cv_dhw0 == (55.0, None),
+    f"latch {_cv_dhw1!r} clear {_cv_dhw0!r}",
+)
+
+
+def _cv_room_air(latch):
+    """What each learner the latch must still freeze does with it set."""
+    out = {}
+    b = _t2_coord(buffer_tank_temp_entity="sensor.buffer")
+    b._vent_cusum.tripped = latch
+    b._learner_freeze_reason = None
+    _asyncio.run(b._async_learn_buffer_cooling(40.0))
+    out["buffer"] = b._learner_freeze_reason
+    d = _t2_coord(heat_pump_power_entity="sensor.hp_power")
+    d._vent_cusum.tripped = latch
+    d._measured_power = 2.0
+    d._pending_prediction = {"when": dt_util.now() - timedelta(minutes=30), "power": 2.0,
+                             "price": None, "predicted_temp": None, "outdoor": None,
+                             "split": (2.0, 0.0)}
+    seen, real = [], _cv_dr.fold
+    _cv_dr.fold = lambda *a, **k: seen.append(k["frozen"])
+    try:
+        d._record_accuracy()
+    finally:
+        _cv_dr.fold = real
+    out["draw_frozen"] = seen
+    s = _t2_coord()
+    s._vent_cusum.tripped = latch
+    s._sysid.phase = _cv_sysid.PHASE_STEP
+    _asyncio.run(s._run_system_identification(np.full(48, 1.0)))
+    out["sysid"] = getattr(s._sysid.result, "reason", None)
+    for name, method, kw in (("house", _HOUSE_LEARNER, {}), ("lower", _LOWER_LEARNER, {"two_zone": True})):
+        h = _t2_house(**kw)
+        h._vent_cusum.tripped = latch
+        before = (h._house_heat_loss_samples, h._thermal_params)
+        _t2_drive(h, method)
+        out[name] = (h._learner_freeze_reason, (h._house_heat_loss_samples, h._thermal_params) == before)
+    f = _t2_coord()
+    f._vent_cusum.tripped = latch
+    f._current_action = {"power": 2.0, "dhw_power": 0.0}
+    f._current_state.outdoor_temperature = -10.0
+    f._flow_bias.observe_temps(30.0, 25.0)
+    before = f._flow_bias.samples
+    _cv_cm._fold_flow_lift(f, dt_util.now())
+    out["flow_bias_folds"] = f._flow_bias.samples - before
+    return out
+
+
+_cv_ra1, _cv_ra0 = _cv_room_air(True), _cv_room_air(False)
+R.check(
+    "R10-COP-GATE E: the buffer, draw range, system identification, house and lower "
+    "floor still freeze on the window latch, and the flow-curve bias takes no sample "
+    "(null control: latch clear, the bias folds and nothing reads ventilation)",
+    _cv_ra1 == {"buffer": "ventilation", "draw_frozen": [True], "sysid": "ventilation",
+                "house": ("ventilation", True), "lower": ("ventilation", True),
+                "flow_bias_folds": 0}
+    and _cv_ra0["flow_bias_folds"] == 1 and _cv_ra0["draw_frozen"] == [False]
+    and "ventilation" not in repr(_cv_ra0),
+    f"latch {_cv_ra1!r} clear {_cv_ra0!r}",
+)
+
+
 # --- R10-COP-PARTLOAD: COP falls with compressor power ------------------------
 # Synthetic throughout. ``cop_partload_derate`` is the share of COP lost at max
 # power against min power (dev/audit/harnesses/r10_cop_partload.py measures it
@@ -73739,7 +73889,7 @@ def _he_heartbeat(reasons):
     c = _t2_coord()
     c._snapshots_loaded = True
     feed = iter(reasons)
-    c._learning_frozen = lambda *keys: next(feed)
+    c._learning_frozen = lambda *keys, **_kw: next(feed)
     saves = []
 
     async def _save():
