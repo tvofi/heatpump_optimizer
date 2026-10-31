@@ -19,7 +19,9 @@ Fix (owner ruling 2026-10-31, under mandate 6329234399):
 
 ## Head
 
-536da691c7c77d0275e72235bc0b95991ce7f722
+9ef51b8215dd7216950f177386fb2f5a8f010a47
+
+This head merges the authored code head 536da691c7c77d0275e72235bc0b95991ce7f722 and origin/main a7dd7f50d67e0c3819956b15ef95d77f4f6ebfc0, which is also the merge base. The branch-side change since fix review round 1 (head b02ffd170) is the `record_table()` refactor in tests/ci_ratchet.py and its pin.
 
 ## Mutation proof
 
@@ -51,16 +53,16 @@ On the live window, `compare()` against the budget table without the band row re
 - `env -u BASH_ENV python3 -I tests/ci_ratchet.py --self-test`: 45 checks, 0 failed
 - `env -u BASH_ENV python3 -I tools/policy/budget_raise_gate.py --self-test`: 240 checks, 0 failed
 - `python3 tests/structure.py`: STRUCTURE RATCHET PASSED
-- `python3 tools/audit/archscore/score.py --diff $(git merge-base origin/main HEAD) HEAD`, three-dot against the merge base 0cae227c329f24d859c10db94b9dbd8a6368d11c, at head 536da691c7c77d0275e72235bc0b95991ce7f722: `Architecture score: dS +0.0000 NULL`
+- `python3 tools/audit/archscore/score.py --diff a7dd7f50d67e0c3819956b15ef95d77f4f6ebfc0 9ef51b8215dd7216950f177386fb2f5a8f010a47`, three-dot (a7dd7f50d is the merge base of origin/main and this head), re-taken at this head: `Architecture score: dS +0.0000 NULL`. Round 1 and round 2 bodies stated dS +0.0012 IMPROVES (coord_footprint 2390 -> 2388); that figure is withdrawn.
 
 ## Architecture score
 
-dS +0.0000 NULL, measured three-dot against the merge base 0cae227c3 (command in `## Figures`). The diff touches no coordinator code, so no architecture metric moves. Round 1's body quoted an improvement read two-dot against a newer origin/main. That movement was main's own drift, not this diff's, and the figure is withdrawn.
+dS +0.0000 NULL, measured three-dot at head 9ef51b8215dd against the merge base a7dd7f50d (command in `## Figures`). The diff touches tests/ci_ratchet.py, tests/ci_budgets.json, tools/policy/budget_raise_gate.py and a delivery row, none of which is coordinator code, so no architecture metric moves and this fix claims no improvement. The earlier +0.0012 IMPROVES (coord_footprint 2390 -> 2388) was main's own drift read two-dot, not this diff's, and is withdrawn. CI's arch-score job on this head concluded success, consistent with NULL.
 
 ## Raise justification
 
 The raise is `tests/ci_budgets.json: critical_path_minutes_band: new at 1.3` (absent counts as zero). Mandate 6329234399, and the owner's ruling of 2026-10-31 in chat: "I suspect the ci-critical path minutes is runner variance, increase the variance band in that case under the mandate".
-Payments tried: (1) Re-recording critical_path_minutes by its documented rule (p90 of a 40-run window) would raise the budget itself, 34.267 -> 35.317. The owner's ruling rejects that, and it would hide the 1.2-min center growth inside the cap. Rejected. (2) Paying down the work: the critical path is `arch-instrument` (~31.9 min) and `fast (3.14)` (~31.8 min). The center sits 0.5 min under the budget already, and no reduction makes an 8-sample median of a sigma-1.64 distribution stay within 0.5 min of its center, so that payment cannot fix a variance red. (3) Grading on a wider window (median of 40) would cut the noise, but it changes how the instrument grades and was not the ruled fix. It is left to the orchestrator as a proposal for triage. No payment that improves the architecture removes the variance, so the band is the remaining path.
+Payments tried: (1) Re-recording critical_path_minutes by its documented rule (p90 of a 40-run window) would raise the budget itself, 34.267 -> 35.317. The owner's ruling rejects that, and it would hide the 1.2-min center growth inside the cap. Rejected. (2) Paying down the work: the critical path is `arch-instrument` (~31.9 min) and `fast (3.14)` (~31.8 min). The center sits 0.5 min under the budget already, and no reduction makes an 8-sample median of a sigma-1.64 distribution stay within 0.5 min of its center, so that payment cannot fix a variance red. (3) Grading on a wider window (median of 40) would cut the noise, but it changes how the instrument grades and was not the ruled fix. It is left to the orchestrator as a proposal for triage. No payment that improves the architecture removes the variance, so the band is the remaining path. The raise is justified with a null score movement, not an improvement.
 Architecture score: dS +0.0000 NULL
 
 ## Red checks
@@ -71,7 +73,7 @@ Architecture score: dS +0.0000 NULL
 
 ## Forward-carry
 
-- The fix review's instrument finding: budget_raise_gate checks only the shape of the `Architecture score:` line, never its value against the arch-score job; that is how round 1's unearned improvement figure passed the gate. Destination: the group's brief in dev/programme/rosters/wave-r10-groups.json. Carry: R10-FLY-MANDATE-REVOKE-GUARD (the budget_raise_gate dS value check; queued by the orchestrator)
+- The fix review's instrument finding (rounds 1 and 2): budget_raise_gate checks only the shape of the `Architecture score:` line, never its value against the arch-score job; that is how an unearned improvement figure passed the gate twice. Destination: the group's brief in dev/programme/rosters/wave-r10-groups.json, landed on `handoff/audit-r10-roster` at 697a0154f74b8873e681479a8e742eade69d06bf (group R10-FLY-MANDATE-REVOKE-GUARD, carry beginning "From the #3045 round-1 fix review"). Carry: R10-FLY-MANDATE-REVOKE-GUARD (the budget_raise_gate dS value check)
 - The fix review's MAX0 finding: budget_raise_gate calls a removed band a raise. Carry: dismissed: a fail-closed false positive that opens no gate weakness, and only the owner can decide that removal should be routine
 - The fix review's wording finding: the "86 runs of 2026-10-25" label spans 2026-10-25T00:42Z..2026-10-26T20:55Z. Carry: dismissed: only the label is loose, and every figure re-derives exactly
 
