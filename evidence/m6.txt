@@ -1,5 +1,0 @@
-RESULT M6-record-carry-dropped:
-  FAIL --record carries the band over unchanged and re-records every derived metric -- {'critical_path_minutes': 35.317, 'script_runs_per_push': 53, 'recorded_at': 'hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh', 'reason': 'r'}
-ci-ratchet self-test: 45 checks, 1 failed
-RESULT head:
-ci-ratchet self-test: 45 checks, 0 failed

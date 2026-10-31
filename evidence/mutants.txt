@@ -1,19 +1,10 @@
-RESULT M1-band-ignored: ci-ratchet self-test: 45 checks, 2 failed
-      FAIL the observed noise (34.467 on a 34.267 budget) passes inside the 1.3 band -- grew 1
-      FAIL a median at budget + band exactly passes -- grew 1
-RESULT M2-band-on-every-row: ci-ratchet self-test: 45 checks, 2 failed
-      FAIL the band never applies to a counter (54 -> 55 is growth with a band present) -- grew 0
-      FAIL no band row is zero tolerance (34.467 on 34.267 is growth) -- grew 0
-RESULT M3-gate-row-MAX: budget_raise_gate self-test: 240 checks, 1 failed
-      FAIL ci: a critical-path band added is a raise (absent is a band of zero): got False, want True
-RESULT M3b-gate-row-deleted: budget_raise_gate self-test: 240 checks, 1 failed
-      FAIL ci: a critical-path band narrowed is routine: got True, want False
-RESULT M4-bounds-check-dropped: ci-ratchet self-test: 45 checks, 1 failed
-      FAIL a band row is a known, non-negative bound and not a graded metric -- []
-RESULT M5-ge-for-gt: ci-ratchet self-test: 45 checks, 4 failed
-      FAIL the observed noise (34.467 on a 34.267 budget) passes inside the 1.3 band -- grew 1
-      FAIL a median at budget + band exactly passes -- grew 2
-      FAIL a median one thousandth past budget + band is growth -- grew 2
-      FAIL no band row is zero tolerance (34.467 on 34.267 is growth) -- grew 2
-RESULT M6-record-carry-dropped: ci-ratchet self-test: 45 checks, 1 failed
-      FAIL --record carries the band over unchanged and re-records every derived metric -- {'critical_path_minutes': 35.317, 'script_runs_per_push': 53, 'recorded_at': 'hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh', 'reason': 'r'}
+RESULT M1-band-ignored ::   FAIL the observed noise (34.467 on a 34.267 budget) passes inside the 1.3 band -- grew 1 | ci-ratchet self-test: 45 checks, 2 failed
+RESULT M2-band-every-row ::   FAIL the band never applies to a counter (54 -> 55 is growth with a band present) -- grew 0 | ci-ratchet self-test: 45 checks, 1 failed
+RESULT M3-MAX-not-MAX0 ::   FAIL ci: a critical-path band added is a raise (absent is a band of zero): got False, want True | budget_raise_gate self-test: 240 checks, 1 failed
+RESULT M3b-row-deleted ::   FAIL ci: a critical-path band narrowed is routine: got True, want False | budget_raise_gate self-test: 240 checks, 1 failed
+RESULT M4-bounds-dropped ::   FAIL a band row is a known, non-negative bound and not a graded metric -- [] | ci-ratchet self-test: 45 checks, 1 failed
+RESULT M5-ge ::   FAIL the observed noise (34.467 on a 34.267 budget) passes inside the 1.3 band -- grew 1 | ci-ratchet self-test: 45 checks, 4 failed
+RESULT M6-record-carry ::   FAIL --record carries the band over unchanged and re-records every derived metric -- {'critical_path_minutes': 35.317, 'script_runs_per_push': 53, 'recorded_at': 'hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh', 'reason': 'r'} | ci-ratchet self-test: 45 checks, 1 failed
+RESULT M8-band-on-counter-skip-continue ::   FAIL a band row is a known, non-negative bound and not a graded metric -- ['critical_path_minutes_band is not a metric this ratchet knows'] | ci-ratchet self-test: 45 checks, 1 failed
+RESULT baseline ci :: ci-ratchet self-test: 45 checks, 0 failed
+RESULT baseline gate :: budget_raise_gate self-test: 240 checks, 0 failed
