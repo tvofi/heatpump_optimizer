@@ -1,5 +1,5 @@
 {
- "class_excess_loc": 17656,
+ "class_excess_loc": 17654,
  "const_modules_over_50": 3,
  "coordinator_attrs": 142,
  "coordinator_multiassigned_attrs": 109,
@@ -16,6 +16,6 @@
  "methods_over_150": 15,
  "methods_over_200": 8,
  "name_kept_members": 38,
- "recorded_at": "5d4e0bcfb88413ddf9ca7f0884c36bbec9235447",
+ "recorded_at": "be7584c4904e243ffb48c166be39221623d81415",
  "seam_cut_total": 422
 }
