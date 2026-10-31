@@ -1,4 +1,4 @@
-# Proposal triage, session s9, batch 95 (P345-P348)
+# Proposal triage, session s9, batch 95 (P345-P349)
 
 The rolling batch after batch 94. Batch 94's refs were pushed without a PR and its opener was in
 flight, so this ruling did not move that head. Facts were read at origin/main `a7dd7f50d` and at
@@ -296,3 +296,53 @@ a clean range mints; null control: merge at `rh` with a clean range refuses (CAR
 refuses. One mutant drops the verdict test, and the blocked row fails. Amend
 `dev/governance/roles/orchestrator.md` line 172 with "against a reviewed head whose verdict was
 merge". triage: dev/programme/triage/s6-batch95.md#P348
+
+## P349: a group's second handoff after its first PR merged is invisible to the opener
+
+Verdict: REJECT. The state the countermeasure guards does not occur at `a7dd7f50d`. Each of the
+four handoffs is visible to both the tick and the opener. They wait on the opener's priority
+list and its slots, not on a merged branch.
+
+Source: the orchestrator s9's message to this seat, 2026-10-31 (slip, four instances). It
+proposed:
+- that `open_pr.sh` refuse or auto-suffix a topic whose `fix/<topic>` is the head of a merged PR;
+- that the tick flag a handoff ref newer than its topic's merged PR.
+
+Instances, each read from git and the opener's own files at 22:21Z:
+- **No merged PR's branch survives.**
+  - `git ls-remote origin refs/heads/fix/<topic>` is empty for all four topics. Each topic's
+    merged PR is on main: #2843 (r10-996-runner-claims), #2870 and #2939 (r10-orch-review-packet),
+    #2664 (r10-fly-relay-review-ff), and #2882 and #2978 (r10-train-overlap-grade).
+  - A second open of a topic already works: r10-orch-review-packet opened twice (#2870, then
+    #2939), and r10-train-overlap-grade too (#2882, then #2978).
+  - The "pushed 46b2ba5a1 onto merged #2939's branch" is `pr/r10-orch-review-packet/p2.log`,
+    written 2026-10-28 23:52 local. At that time #2939 was open, and the log reads "pull request
+    #2939 is open at 46b2ba5a1".
+- **The tick already flags each one.** `tick.txt` lines 72, 78, 84 and 85 read `OWED ...
+  handoff-no-pr refs/heads/handoff/<topic> <sha> ... body=<sha>` for all four. Lines 98 and 100
+  add `DISPATCH ... opener`. The proposed tick arm is what the board already prints.
+- **Why they wait:**
+  - `s9/seat-opener/driver4.py` `cands()` takes exactly those `handoff-no-pr` lines and skips
+    only seen or live topics.
+  - Of the four, only r10-orch-review-packet is in `seen2.txt`, and that open is in flight:
+    `pr/r10-orch-review-packet/` holds a fresh worktree on `fix/r10-orch-review-packet-2` and a
+    `p1.log` from 22:16Z, sitting in prepr's slot take.
+  - The other three are not in `prio.txt` (20 topics). `cands()` sorts unlisted topics last, so
+    at `cap.txt` 6 they queue behind the listed ones.
+  - `gate_lock.py slot-status` at 22:21Z: `4/4 slots held ... queue=prepr-4`.
+  - r10-996-runner-claims is on the critical path and missing from `prio.txt`. That is the slip,
+    and it is a priority-list entry, not an opener defect.
+- **Rule run on each:** an open would push a fresh `fix/<topic>` because none exists, and the
+  tick already names each topic. The proposal would act on none of the four.
+
+Cost (as proposed): a merged-PR read per open (one API call) and a refusal arm in `open_pr.sh`,
+a tick arm duplicating the existing `handoff-no-pr` line, and self-test rows for both.
+
+Binding:
+- Zero measured benefit: on all four instances the guarded state, a surviving merged branch,
+  does not exist, and the tick arm exists already.
+- What would change the answer is one open that pushed onto a merged PR's branch, or one
+  `handoff-no-pr` topic the driver never started for a reason other than priority, seen state or
+  cap.
+- The owed action is the orchestrator's: put r10-996-runner-claims at the head of
+  `s9/seat-opener/prio.txt`, and the other two by priority.
