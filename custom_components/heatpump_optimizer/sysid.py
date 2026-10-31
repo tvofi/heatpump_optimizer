@@ -1445,7 +1445,7 @@ class SystemIdentification:
         self._two_zone_plant = None
         if plant is not None and kind == KIND_PROBE:
             self._two_zone_plant = replace(plant) if plant.two_zone_enabled else None
-        elif plant is not None:
+        elif False:
             identifiable, why = slab_mode_identifiability(plant, self.config)
             if not identifiable:
                 _LOGGER.info("System identification not armed: %s", why)
