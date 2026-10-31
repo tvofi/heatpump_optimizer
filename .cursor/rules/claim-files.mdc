@@ -13,8 +13,12 @@ branch's note at one place, so `.gitattributes` routes both to the
 python3 tests/env_drift.py --install-merge-driver
 ```
 
-It unions the note comments and **refuses** (conflict markers, non-zero exit)
-when both sides rewrote the bare claim list. A claim is value-bearing: git's
+It unions the note comments, merges the bare claim list three-way per
+scenario, and **refuses** (conflict markers, non-zero exit, the scenarios
+named) when both sides rewrote the same scenario's claims, or changed claims
+under different `claims-for:` stamps. A scenario one side changed takes that
+side's lines; one a side deleted while the other left it alone stays deleted,
+and so does a `may-drift` line. A claim is value-bearing: git's
 `merge=union` would reinstate a claim the branch deleted, unseen by the
 inherited-claims guard, which fires only on a list exactly the baseline's. An
 uninstalled driver falls back to the text merge, never worse; git reads

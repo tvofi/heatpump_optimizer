@@ -766,7 +766,7 @@ def may_drift_exempt_diffs(fixture: str, diffs: list[str]) -> list[str]:
 # like any claim nothing matched. Being a bare line, it is a claim in every
 # other respect: it expires with `claims-for:`, is judged by the inherited and
 # record-PR rules, excuses only when this branch wrote it, and is refused by
-# the merge driver when both sides rewrote the list.
+# the merge driver when both sides rewrote its line.
 
 SHAPE_CLAIM_MARKER = "shape:"
 _SHAPE_LINE = re.compile(r"shape:\s+(\S+)\s+(\S+)\s+->\s+(\S+)")
@@ -1767,6 +1767,61 @@ def _reassemble(comments: list[str], claims: list[str]) -> str:
     return "".join(ln + "\n" for ln in comments[:at] + claims + comments[at:])
 
 
+def _claim_blocks(text: str) -> dict[str, list[str]]:
+    """Scenario name -> its bare claim lines verbatim, file order.
+
+    ``parse_claim_map``'s grouping, keeping the raw line so a merged file
+    carries each side's bytes rather than a re-serialisation of them.
+    """
+    blocks: dict[str, list[str]] = {}
+    for line in _claim_lines(text):
+        blocks.setdefault(line.partition("#")[0].strip(), []).append(line)
+    return blocks
+
+
+def merge_claim_decision(
+    base: str, ours: str, theirs: str
+) -> tuple[dict[str, list[str]] | None, list[str]]:
+    """The per-scenario three-way claim decision, and the scenarios it refuses.
+
+    Returns ``(decided, refused)``: ``decided`` maps each scenario the merge
+    keeps to the verbatim lines of the side that decided it, ``refused`` names
+    every scenario whose claim lines BOTH sides changed differently, and
+    ``decided`` is None when ``refused`` is non-empty or the ``claims-for:``
+    stamps disagree while both sides changed claims. A scenario's lines are
+    compared parsed (``parse_claim_map``: same lines, same reasons, count
+    included), so whitespace never decides.
+
+    Order is main's (``theirs``) file order, then this branch's new scenarios
+    in its own order, so a one-sided change keeps main's layout.
+    """
+    base_map = parse_claim_map(base)
+    our_map = parse_claim_map(ours)
+    their_map = parse_claim_map(theirs)
+    our_blocks = _claim_blocks(ours)
+    their_blocks = _claim_blocks(theirs)
+    both_changed = base_map not in (our_map, their_map) and our_map != their_map
+    if both_changed and not (
+        _parse_claims(base)[0] == _parse_claims(ours)[0] == _parse_claims(theirs)[0]
+    ):
+        return None, []
+    decided: dict[str, list[str]] = {}
+    refused: list[str] = []
+    for name in [*their_blocks, *[n for n in our_blocks if n not in their_blocks],
+                 *[n for n in base_map if n not in our_map and n not in their_map]]:
+        was, mine, main = base_map.get(name), our_map.get(name), their_map.get(name)
+        if mine == main or mine == was:
+            lines = their_blocks.get(name)
+        elif main == was:
+            lines = our_blocks.get(name)
+        else:
+            refused.append(name)
+            continue
+        if lines:
+            decided[name] = lines
+    return (None if refused else decided), refused
+
+
 def merge_claim_file(base: str, ours: str, theirs: str) -> str | None:
     """Resolve a three-way claim-file merge; None when it must refuse.
 
@@ -1776,43 +1831,41 @@ def merge_claim_file(base: str, ours: str, theirs: str) -> str | None:
     that asymmetry is the whole design:
 
     A bare claim line is value-bearing — it excuses a golden diff that would
-    otherwise fail the gate, and it is written for exactly one diff. Union a
-    branch's list with main's and a claim the branch deliberately deleted
-    comes back, carrying the other branch's reason, ready to excuse a drift
-    this branch caused. ``inherited_claims_error`` cannot catch it: the
-    unioned list is no longer *exactly* the baseline's, which is the only
-    shape that check fires on. Measured; `tests/entities.py` pins it.
+    otherwise fail the gate, and it is written for exactly one diff. A
+    two-way union of a branch's list with main's brings back a claim the
+    branch deliberately deleted, carrying the other branch's reason, ready to
+    excuse a drift this branch caused. ``inherited_claims_error`` cannot
+    catch it: the unioned list is no longer *exactly* the baseline's, which
+    is the only shape that check fires on. Measured; `tests/entities.py`
+    pins it.
 
-    So the claim list may change on at most one side. When both sides
-    rewrote it there is no rule that says which claim describes which diff,
-    and this returns None so git keeps the markers and a human decides.
+    So the list merges three-way, per scenario (``merge_claim_decision``): a
+    scenario one side changed takes that side's lines, one neither changed
+    keeps its lines, and one a side deleted while the other left it alone
+    stays deleted, so no deletion is undone and every kept line was written
+    by exactly one side. Where BOTH sides changed one scenario's lines there
+    is no rule that says which claim describes which diff, and this returns
+    None so git keeps the markers and a human decides. It refuses as well
+    when both sides changed claims under different ``claims-for:`` stamps.
     """
-    base_claims = parse_claim_map(base)
-    our_claims = parse_claim_map(ours)
-    their_claims = parse_claim_map(theirs)
-    if our_claims == their_claims:
-        claims_from = ours
-    elif our_claims == base_claims:
-        claims_from = theirs
-    elif their_claims == base_claims:
-        claims_from = ours
-    else:
-        return None
     if ours == theirs or base == theirs:
         return ours
     if base == ours:
         return theirs
+    decided, _refused = merge_claim_decision(base, ours, theirs)
+    if decided is None:
+        return None
     comments = _union_comments(
         _comment_lines(base), _comment_lines(ours), _comment_lines(theirs)
     )
     if comments is None:
         return None
-    merged = _reassemble(comments, _claim_lines(claims_from))
-    return None if merge_claim_defect(merged, claims_from, ours, theirs) else merged
+    merged = _reassemble(comments, [ln for lines in decided.values() for ln in lines])
+    return None if merge_claim_defect(merged, decided, base, ours, theirs) else merged
 
 
 def merge_claim_defect(
-    merged: str, claims_from: str, ours: str, theirs: str
+    merged: str, decided: dict[str, list[str]], base: str, ours: str, theirs: str
 ) -> str | None:
     """Why a resolved claim file may not be written — None when it may.
 
@@ -1820,41 +1873,66 @@ def merge_claim_defect(
     that quietly produces the wrong file is the failure this repository
     keeps re-buying (#523: a job that reported success while repairing
     nothing). Every property here is one a hand resolution preserves.
+    ``decided`` is ``merge_claim_decision``'s map; the result's claims must
+    be exactly it, and each scenario's lines exactly one side's own. A
+    ``may-drift`` line is owed three-way as well: one side deleting it (the
+    R8-P3 suspension that claims the fixture) while the other left it alone
+    deletes it, which only narrows what the gate exempts; any other line
+    either side carries must survive.
     """
     if not merged or not merged.endswith("\n"):
         return "the result is empty or does not end in a newline"
     if "<<<<<<<" in merged or ">>>>>>>" in merged:
         return "conflict markers survived into the result"
-    if parse_claim_map(merged) != parse_claim_map(claims_from):
+    want = parse_claim_map("".join(ln + "\n" for lines in decided.values() for ln in lines))
+    got = parse_claim_map(merged)
+    if got != want:
         return (
             "the claim list in the result is not the one the merge decided: "
-            f"{sorted(parse_claim_map(merged))} vs "
-            f"{sorted(parse_claim_map(claims_from))}"
+            f"{sorted(got)} vs {sorted(want)}"
         )
+    sides = (parse_claim_map(ours), parse_claim_map(theirs))
+    for name, reasons in got.items():
+        if not any(side.get(name) == reasons for side in sides):
+            return f"the claims for '{name}' are neither side's own"
     if _parse_claims(merged)[0] is None:
         return f"the '{CLAIM_VERSION_MARKER}' stamp did not survive the merge"
     kept = set(merged.splitlines())
-    for side in (ours, theirs):
-        for line in side.splitlines():
-            if _is_may_drift(line) and line not in kept:
-                return f"a may-drift line was lost: {line.strip()}"
+    was, mine, main = (set(x.splitlines()) for x in (base, ours, theirs))
+    for line in sorted((mine | main) - kept):
+        if _is_may_drift(line) and not (line in was and (line not in mine or line not in main)):
+            return f"a may-drift line was lost: {line.strip()}"
     return None
 
 
 def merge_claim_refusal(base: str, ours: str, theirs: str) -> str:
     """The message the driver prints when it will not resolve a merge."""
-    base_claims = parse_claim_map(base)
-    our_claims = parse_claim_map(ours)
-    their_claims = parse_claim_map(theirs)
-    if base_claims not in (our_claims, their_claims) and our_claims != their_claims:
+    decided, refused = merge_claim_decision(base, ours, theirs)
+    if refused:
+        our_claims = parse_claim_map(ours)
+        their_claims = parse_claim_map(theirs)
+        lines = "".join(
+            f"  {name}: this branch {our_claims.get(name) or '(deleted)'};"
+            f" the merge brings in {their_claims.get(name) or '(deleted)'}\n"
+            for name in refused
+        )
         return (
-            "CONFLICTING CLAIMS: both sides rewrote the claim list -- this\n"
-            f"branch claims {sorted(our_claims) or '(nothing)'} and the merge\n"
-            f"brings in {sorted(their_claims) or '(nothing)'}. A claim excuses\n"
-            "one release's golden diff and is written for that diff alone, so\n"
-            "merging two lists would reinstate a claim one side deleted and\n"
-            "excuse a drift by accident. Resolve it by hand: keep the claims\n"
-            "that describe THIS branch's diff and delete the rest."
+            "CONFLICTING CLAIMS: both sides rewrote the same scenario's claims\n"
+            + lines
+            + "A claim excuses one release's golden diff and is written for\n"
+            "that diff alone, so no rule says which of two lines describes\n"
+            "which diff. Every other scenario merges per side. Resolve these\n"
+            "by hand: keep the claims that describe THIS branch's diff and\n"
+            "delete the rest."
+        )
+    if decided is None:
+        return (
+            f"CONFLICTING CLAIMS: both sides changed claims under different\n"
+            f"'{CLAIM_VERSION_MARKER}' stamps (base {_parse_claims(base)[0]},"
+            f" this branch {_parse_claims(ours)[0]}, incoming"
+            f" {_parse_claims(theirs)[0]}), so they describe different\n"
+            "releases' diffs. Resolve it by hand: keep the claims that\n"
+            "describe THIS branch's diff and delete the rest."
         )
     return (
         "UNVERIFIED MERGE: the resolved claim file did not survive its own\n"
@@ -1898,7 +1976,7 @@ def install_merge_driver(repo: str) -> str:
     """
     want = {
         f"merge.{MERGE_DRIVER_NAME}.name":
-            "union claim-file notes; refuse a claim list both sides rewrote",
+            "union claim-file notes; refuse a scenario both sides rewrote",
         f"merge.{MERGE_DRIVER_NAME}.driver":
             "python3 tests/env_drift.py --merge-claim-file %O %A %B %L %P",
     }
