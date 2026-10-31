@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/wood_fuel.py:cheaper_windows GUARD_OFF 3ade7f6c",
+  "killed_by": "tests/wood_advisor.py",
+  "old": "        if day(ts) != today:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/wood_advisor.py from rc=0 failed=0 to rc=1 failed=3."
+}
