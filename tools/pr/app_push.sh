@@ -249,6 +249,23 @@ sys.exit(not (j > i and prefix(live, b[i:j]).rstrip("\n") == b.rstrip("\n")))' "
 # which read only that body and that tree, are not re-run either. The contract
 # gets prepr's own `--base` (its BASE, the same merge base): without it a diff
 # touching a `*_budgets.json` is refused unread (R10-FLY-ROWONLY-BASE).
+open_reuse_ok() { # worktree code-head -> rc 0 when HEAD is C, or a clean main merge into C disjoint from C's diff; RV_WHY
+  local h c p1 p2 base mb
+  h=$(git -C "$1" rev-parse HEAD) c=$(git -C "$1" rev-parse --verify "$2^{commit}" 2>/dev/null) \
+    || { RV_WHY="code head $2 does not resolve"; return 1; }
+  [ "$h" != "$c" ] || { RV_WHY="HEAD is the handed-off code head ${c:0:12}"; return 0; }
+  p1=$(git -C "$1" rev-parse "$h^1" 2>/dev/null) p2=$(git -C "$1" rev-parse "$h^2" 2>/dev/null) \
+    || { RV_WHY="HEAD ${h:0:12} is neither C nor a two-parent merge"; return 1; }
+  [ "$p1" = "$c" ] || { RV_WHY="HEAD's first parent is not C"; return 1; }
+  git -C "$1" merge-base --is-ancestor "$p2" origin/main || { RV_WHY="HEAD's second parent is not on origin/main"; return 1; }
+  [ "$(git -C "$1" rev-parse "$h^{tree}")" = "$(git -C "$1" merge-tree --write-tree "$c" "$p2" 2>/dev/null | head -1)" ] \
+    || { RV_WHY="HEAD's tree is not the clean merge of C and main"; return 1; }
+  base=$(git -C "$1" merge-base "$c" "$p2")
+  if comm -12 <(git -C "$1" diff --name-only "$base" "$c" | sort -u) <(git -C "$1" diff --name-only "$base" "$p2" | sort -u) | grep -q .; then
+    RV_WHY="main since $(echo $base | cut -c1-9) touches a path C changes"; return 1; fi
+  RV_WHY="HEAD ${h:0:12} is a clean merge of main ${p2:0:9} into C ${c:0:12}, disjoint from C's diff"; return 0
+}
+
 row_only_checks() { # worktree body head title -> rc 0 when both checks pass
   ( cd "$1" || exit 1
     base=$(git merge-base origin/main HEAD 2>/dev/null) || { echo "no merge base with origin/main" >&2; exit 1; }
@@ -460,6 +477,17 @@ push_and_open() {
     [ -n "$RV_HEAD" ] || die "--row-only: HEAD in $wt does not read back"
   fi
 
+  # OPEN-REUSE (local stand-in for R10-FLY-OPEN-PREPR-REUSE, tvofi 2026-10-31): an
+  # open whose head is the fixer's handed-off code head C, or a clean merge of
+  # origin/main into C touching no path C's own diff touches, re-uses the prepr
+  # the fixer ran at C before its handoff (fixer preamble step 10) and runs only
+  # pr-contract's body checks (row_only_checks). Anything else runs prepr.
+  if [ -n "${HPO_OPEN_REUSE_CODE:-}" ] && [ "$skip" = 0 ] && [ "$prnum" = none ] && [ "$bonly" = 0 ]; then
+    flag=open-reuse; RV_HEAD=$(git -C "$wt" rev-parse HEAD); RV_TITLE=${HPO_OPEN_REUSE_TITLE:-}
+    if open_reuse_ok "$wt" "$HPO_OPEN_REUSE_CODE"; then skip=1; echo "app_push: OPEN-REUSE: prepr SKIPPED: $RV_WHY"
+    else echo "app_push: OPEN-REUSE: prepr RUNS: $RV_WHY"; fi
+  fi
+
   # THE #678 ORDERING: the body passes BEFORE anything is minted. prepr.sh
   # derives its diff from the worktree it runs in, so it runs with the
   # worktree as cwd; a refusal here leaves nothing minted, pushed or posted.
@@ -474,6 +502,8 @@ push_and_open() {
     [ "$prepr_rc" = 0 ] \
       || die "the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again"
   fi
+  [ "$flag$skip" != open-reuse1 ] || row_only_checks "$wt" "$body" "$RV_HEAD" "$RV_TITLE" \
+    || die "OPEN-REUSE: the body contract (policy_lint.mjs --pr-body) or the carry check (carry_audit.py) refused $body, so NOTHING was minted, pushed or posted"
   [ "$rowonly$skip" != 11 ] || row_only_checks "$wt" "$body" "$RV_HEAD" "$RV_TITLE" \
     || die "--row-only: the body contract (policy_lint.mjs --pr-body) or the carry check (carry_audit.py) refused $body, so NOTHING was minted, pushed or posted"
 
