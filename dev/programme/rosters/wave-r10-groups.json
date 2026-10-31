@@ -12790,7 +12790,8 @@
    ],
    "carry": [],
    "resume": {
-    "stage": "not-started"
+    "stage": "in-progress",
+    "pr": 3024
    },
    "brief": "Defect, measured twice on 2026-10-30 (19:2xZ and 21:2xZ): the detached state_docs.py beat died with roster_edit.Refuse from fetch_origin in tools/audit/seat/roster_edit.py. Its git fetch of every origin head into refs/remotes/origin failed with 'cannot lock ref refs/remotes/origin/train-hold: is at X but expected Y', because another process sharing the repository's refs (the merge train, the tick, a seat) moved that remote-tracking ref between the fetch's read and its write. The same race refused the roster seat's own op (set-stage R10-FLY-GH-READ-RETRY, refused rc=2 on 'cannot lock ref refs/remotes/origin/wip-sync/...'), so every roster_edit caller shares it, not only the beat. One lost race in a shared clone kills a long-running beat or refuses a roster op, and the orchestrator restarts it by hand. Fix at the seam that owns it: fetch_origin (or run) treats a ref-lock race as transient and retries with a short backoff, bounded, and still refuses on any other failure. Alternatively, the beat's loop survives one failed pass and retries on its next interval. Pick one and say why. Controls: a test that simulates the lock-race stderr shows the retry succeeds; a non-race failure still refuses; a race that persists past the bound still refuses (no infinite loop). The state_docs beat must outlive an injected single lock race. Measure the retry bound against the real collision rate, using the beat's log."
   },
