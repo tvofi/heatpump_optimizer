@@ -1,0 +1,5 @@
+mutant C1 at 958b4af8eee134728986d92d2220f1dfadbab255
+ALL 134 DST / QUARTER-GRID CHECKS PASSED
+  FAIL the capacity caps turn an envelope that holds exactly the heat the model says nameplate delivers back into nameplate, under a derate too, not a cap trimmed by the derate; null control: no derate, no cap either  [{0.0: (5.0, None), 0.2: (5.0, 4.0)}]
+1 of 4637 FEATURE CHECKS FAILED
+rc=1
