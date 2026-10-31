@@ -1,4 +1,0 @@
-follow-up fires=False  case: unchanged
-follow-up fires=True  case: same window, end moved 15 min
-follow-up fires=True  case: same window, start moved 15 min
-follow-up fires=True  case: one window split in two by one pump-off step

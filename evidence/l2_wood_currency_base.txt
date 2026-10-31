@@ -1,3 +1,0 @@
-        space_kw=space, dhw_kw=dhw, cop_at=lambda t: 2.5 + 0.05 * t, timestamps=stamps,
-        forecast_kw=[], suppressing=False)
-TypeError: build_wood_fuel_view() got an unexpected keyword argument 'space_kw'
