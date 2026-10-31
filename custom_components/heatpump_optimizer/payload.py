@@ -549,6 +549,11 @@ class SysIdView(TypedDict, total=False):
     active: bool
     samples: int
     last_run: str | None
+    # R10-CEILING-PROBE / #2808: the armed kind ("fit" or "ceiling_probe"),
+    # a learners' freeze holding the armed run, and the last arm press.
+    kind: str
+    held: str | None
+    last_attempt: str | None
     result: SysIdResultView
 
 

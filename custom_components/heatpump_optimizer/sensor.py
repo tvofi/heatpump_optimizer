@@ -2042,8 +2042,25 @@ class ModelStatusSensor(HeatPumpOptimizerSensorBase):
             "internal_gains_kw": data.get("internal_gains_profile"),
             "capacity_envelope": _mapping(data.get("capacity_envelope")).get("buckets"),
             "system_identification": data.get("system_identification"),
+            "system_identification_outcome": _sysid_outcome(data.get("system_identification")),
             "learner_progress": data.get("learner_progress"),
         }
+
+
+def _sysid_outcome(view: Any) -> dict[str, Any] | None:
+    """The experiment's outcome, compact enough to record (#2808).
+
+    The kind armed, its phase, a freeze holding it, the result's reason and
+    the last arm press: the bulky view beside it stays unrecorded, so without
+    this row no history says why an arm was refused or what a run did.
+    """
+    v = _mapping(view)
+    if not v:
+        return None
+    return {
+        "kind": v.get("kind"), "phase": v.get("phase"), "held": v.get("held"),
+        "reason": _mapping(v.get("result")).get("reason"), "last_attempt": v.get("last_attempt"),
+    }
 
 
 # ---------------------------------------------------------------------------

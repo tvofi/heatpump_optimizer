@@ -2354,7 +2354,7 @@ R.check(
 # D2-s4-02: the step is sized under the abort bound by the noise headroom, on
 # the heavy default house (#779's own cell), and still uses the rest of it.
 _r9f41_sid = SystemIdentification(SysIdConfig(enabled=True))
-_r9f41_el = _r9f41_sid._size_step_power(6.0, 3.0, 21.0, 2.0, 0.20, 8.0, 0.3)
+_r9f41_el = _r9f41_sid._size_step_power(6.0, 3.0, 21.0, 2.0, HousePlant(ua=0.20, capacity=8.0, gains=0.3))
 _r9f41_peak, _r9f41_final = _r9f41_sysid._predict_step_excursion_plant(
     HousePlant(ua=0.20, capacity=8.0, gains=0.3), 21.0, 2.0,
     (_r9f41_el or 0.0) * 3.0, 2.0, 2.0
@@ -27259,7 +27259,7 @@ R.check(
 # --- #779: size on the two-state plant, not the one-state exponential ------
 R.section("sysid step sized on the two-state plant (#779)")
 _779_sid = SystemIdentification(SysIdConfig(enabled=True))
-_779_el = _779_sid._size_step_power(6.0, 3.0, 21.0, 2.0, 0.20, 8.0, 0.3)
+_779_el = _779_sid._size_step_power(6.0, 3.0, 21.0, 2.0, HousePlant(ua=0.20, capacity=8.0, gains=0.3))
 _779_q = (_779_el or 0.0) * 3.0
 _779_plant, _779_final = _predict_step_excursion_plant(
     HousePlant(ua=0.20, capacity=8.0, gains=0.3), 21.0, 2.0, _779_q, 2.0, 2.0
@@ -34388,24 +34388,37 @@ for _sig, _name in (
     (_DHW_ONLY_SIG, "a hot-water-only mode"),
     (_OFFLINE, "a pump that is off the network"),
 ):
+    # #2808 (R10-CEILING-PROBE): an armed experiment that has not started is
+    # held, not aborted -- it injects nothing, and the press is not lost to a
+    # passing freeze; a started one still aborts, its samples being the
+    # evidence the freeze says cannot be attributed.
     _si = _SysIdHost(_sig)
     _sysid_cycle(_si, np.full(48, 0.2))
+    _si_started = _SysIdHost(_sig)
+    _si_started._sysid.phase = _SysIdModule.PHASE_STEP
+    _sysid_cycle(_si_started, np.full(48, 0.2))
     R.check(
-        f"{_name} aborts an armed experiment instead of commanding heat",
-        not _si._sysid.active
-        and _si._sysid.phase == _SysIdModule.PHASE_ABORTED
-        and _si._current_action["power"] == 0.0,
-        f"phase {_si._sysid.phase} power {_si._current_action['power']} — a "
+        f"{_name} holds an armed experiment, and aborts a started one, instead of commanding heat",
+        _si._sysid.phase == _SysIdModule.PHASE_ARMED and _si._sysid.held
+        and _si._current_action["power"] == 0.0
+        and _si_started._sysid.phase == _SysIdModule.PHASE_ABORTED
+        and _si_started._current_action["power"] == 0.0,
+        f"phase {_si._sysid.phase} / {_si_started._sysid.phase} power "
+        f"{_si._current_action['power']} — a "
         f"step response measured through this is not a noisy measurement of "
         f"the house, and _adopt_system_identification persists what it fits",
     )
 _si_reason = _SysIdHost(_COOLING)
 _sysid_cycle(_si_reason, np.full(48, 0.2))
+_si_reason_started = _SysIdHost(_COOLING)
+_si_reason_started._sysid.phase = _SysIdModule.PHASE_STEP
+_sysid_cycle(_si_reason_started, np.full(48, 0.2))
 R.check(
-    "the aborted result carries the cause",
-    _si_reason._sysid.result.reason
-    and not _si_reason._sysid.result.completed,
-    f"{_si_reason._sysid.result.reason!r}",
+    "the held experiment and the aborted result each carry the cause",
+    _si_reason._sysid.held
+    and _si_reason_started._sysid.result.reason == _si_reason._sysid.held
+    and not _si_reason_started._sysid.result.completed,
+    f"{_si_reason._sysid.held!r} / {_si_reason_started._sysid.result.reason!r}",
 )
 
 
@@ -57326,7 +57339,10 @@ _pa_noplan = _PaCoord(_PA_TUYA)
 _pa_noplan._optimization_result = None
 _pa_run(_pa_noplan, 1)
 R.check(
-    "an experiment and a missing plan each get the baseline, not hot water only",
+    # R10-CEILING-PROBE: the experiment's action now carries its own duty (its
+    # zero step here is idle, the gate), where the missing plan keeps the
+    # baseline; neither writes hot water only.
+    "an experiment's zero step and a missing plan never write hot water only",
     all(
         ("select", "select_option", "DHW (Hot Water)") not in c.writes()
         and ("number", "set_value", 48.0) in c.writes()
@@ -66576,6 +66592,7 @@ def _sp_write(kw, slots, stale=()):
             thermal=_PaNS(params=None),
             params=_PaNS(min_electrical_power=1.5, max_electrical_power=5.5),
             plan=_PaNS(timestamps=[_PA_T0], power_schedule=[kw]),
+            action=None,
         ),
         "space",
         _PA_T0,
@@ -68404,6 +68421,7 @@ def _bst_write(kw, tank, entity_min=20, duty="space"):
             thermal=_BstNS(params=None, curve_flow_temp=lambda _o: None),
             params=_BstNS(min_electrical_power=1.5, max_electrical_power=5.5),
             plan=_BstNS(timestamps=[_BST_T0], power_schedule=[kw]),
+            action=None,
         ),
         duty, _BST_T0,
     )
@@ -74230,6 +74248,826 @@ R.check(
         "heatpump_optimizer_e_pump_duty", {"written": {"silent": ["on", _SA_T0.isoformat()]}}
     ) == ["written/silent/0"],
     f"{_sa_store.off_domain('heatpump_optimizer_e_pump_duty', _sa_record)}",
+)
+
+
+# --- R10-CEILING-PROBE (#2498, #2808): the cheap-night ceiling probe ----------
+# A set-point install's plan rarely writes the flow ceiling, so the metered
+# draw window is censored at the top and the plugin cannot learn the pump's
+# real maximum. The system-identification experiment gains a second kind, the
+# ceiling probe: it commands the configured maximum, the arbiter writes the
+# ceiling for it, and the metered draws of those intervals go to a separate
+# store on ``DrawRange`` whose raw median is the learned top. Every check
+# drives the production symbol; the design is dev/programme/designs/
+# R10-CEILING-PROBE.md as amended by its review (items 7-34).
+import asyncio as _cp_aio  # noqa: E402
+from types import SimpleNamespace as _CpNS  # noqa: E402
+
+from harness import FakeEntry as _CpEntry  # noqa: E402
+from heatpump_optimizer import boost as _cp_boost  # noqa: E402
+from heatpump_optimizer import coordinator as _cp_cmod  # noqa: E402
+from heatpump_optimizer import draw_range as _cp_dr  # noqa: E402
+from heatpump_optimizer import pump_arbiter as _cp_pa  # noqa: E402
+from heatpump_optimizer import sysid as _cp_sid  # noqa: E402
+from heatpump_optimizer.accuracy import AccuracyTracker as _CpTracker  # noqa: E402
+from heatpump_optimizer.entry_config import EntryConfig as _CpConfig  # noqa: E402
+from heatpump_optimizer.sensor import ModelStatusSensor as _CpStatus  # noqa: E402
+from heatpump_optimizer.store import admitted as _cp_admitted  # noqa: E402
+from heatpump_optimizer.thermal_model import ceiling_probe_install as _cp_eligible  # noqa: E402
+
+R.section("R10-CEILING-PROBE: the experiment's step reaches the pump; the ceiling store")
+
+_CP_T0 = datetime(2026, 1, 10, 23, 0, tzinfo=UTC)
+_CP_OPTS = ("Heating", "DHW (Hot Water)", "Heating + DHW")
+
+
+class _CpArb:
+    """The arbiter's coordinator surface on a flow set-point install, band 1-5 kW."""
+
+    def __init__(self, action, power_schedule=(1.5,)):
+        self.hass = FakeHass({
+            "select.pump_mode": FakeState("Heating + DHW", attributes={"options": list(_CP_OPTS)}),
+            "number.dhw_set": FakeState("53", attributes={"min": 40, "max": 63}),
+            "number.water_set": FakeState("53", attributes={"min": 25, "max": 63}),
+        })
+        self._config = _CpConfig.from_mapping({
+            "pump_duty_mode": "control", "heat_pump_mode_entity": "select.pump_mode",
+            "dhw_setpoint_entity": "number.dhw_set", "space_setpoint_entity": "number.water_set",
+            "space_setpoint_unit": "flow",
+        })
+        self._current_action = action
+        self._optimization_result = _CpNS(
+            timestamps=[_CP_T0], power_schedule=list(power_schedule),
+            dhw_power_schedule=[0.0], optimal_setpoints=[21.0],
+        )
+        self._thermal_params = _CpNS(dhw_setpoint=48.0, min_electrical_power=1.0, max_electrical_power=5.0)
+        self._thermal_model = _CpNS(params=self._thermal_params, curve_flow_temp=lambda _o: 34.2)
+        self.entry = _CpNS(entry_id=f"cp{id(self)}")
+
+    def _plan_is_stale(self):
+        return False
+
+    @property
+    def effective_config(self):
+        return self._config
+
+    @property
+    def thermal_params(self):
+        return self._thermal_params
+
+    def arbiter_inputs(self):
+        return _cp_pa.ArbiterInputs(
+            hass=self.hass, config=self._config, mode="auto", plan=self._optimization_result,
+            plan_stale=False, entry_released=False, state=_CpNS(outdoor_temperature=2.0,
+            room_temperature=21.0), thermal=self._thermal_model, params=self._thermal_params,
+            action=self._current_action, measured_power_kw=None, disinfecting=False,
+        )
+
+
+def _cp_arbitrate(action, power_schedule=(1.5,)):
+    """(duty, the flow set-point written, the mode written) for one pass."""
+    c = _CpArb(action, power_schedule)
+    duty = _cp_pa._planned_duty(c, c.arbiter_inputs(), _CP_T0)
+    _cp_aio.run(_cp_pa.apply(c, _CP_T0 + timedelta(minutes=1)))
+    calls = [(d, s, data or {}) for d, s, data in c.hass.services.calls]
+    flow = [x["value"] for d, s, x in calls if d == "number" and x.get("entity_id") == "number.water_set"]
+    mode = [x.get("option") for d, s, x in calls if d == "select"]
+    return duty, (flow[-1] if flow else None), (mode[-1] if mode else None)
+
+
+_CP_SID = {"mode": "system_identification", "dhw_power": 0.0}
+_cp_probe = _cp_arbitrate({**_CP_SID, "power": 5.0})
+_cp_fit = _cp_arbitrate({**_CP_SID, "power": 1.5})
+_cp_relax = _cp_arbitrate({**_CP_SID, "power": 0.0})
+_cp_plan_top = _cp_arbitrate({"mode": "eco", "power": 5.0}, power_schedule=(5.0,))
+_cp_plan_mid = _cp_arbitrate({"mode": "eco", "power": 1.5}, power_schedule=(1.5,))
+R.check(
+    "the probe's step (the configured 5.0 kW maximum) is heating at the flow ceiling",
+    _cp_probe[0] == "space" and _cp_probe[1] == 55.0 and _cp_probe[2] == "Heating",
+    f"{_cp_probe}",
+)
+R.check(
+    "the fit's sized 1.5 kW step writes its own level, below the ceiling, from the action "
+    "not the plan (whose step here is 5.0 kW)",
+    _cp_fit[0] == "space" and _cp_fit[1] == _cp_plan_mid[1] and _cp_fit[1] < 55.0
+    and _cp_arbitrate({**_CP_SID, "power": 1.5}, power_schedule=(5.0,))[1] == _cp_fit[1],
+    f"fit {_cp_fit} plan-mid {_cp_plan_mid}",
+)
+R.check(
+    "the experiment's zero step (the fit's relax) is idle: the gate is written",
+    _cp_relax[0] == "idle" and _cp_relax[1] == 25.0,
+    f"{_cp_relax}",
+)
+R.check(
+    "moving control: a plan at 5.0 and at 1.5 kW write two levels, the ceiling and "
+    "the fit's -- before the fix the experiment wrote the baseline at both",
+    _cp_plan_top[:2] == ("space", 55.0) and _cp_plan_mid[0] == "space" and _cp_plan_mid[1] < 55.0,
+    f"{_cp_plan_top} {_cp_plan_mid}",
+)
+# The duty threshold is the rule ``heat_pump_on`` books (``planned_draw_runs``),
+# never a literal: a step at MIN_RUNNING_DRAW_KW's edge reads the same in both.
+from heatpump_optimizer.thermal_model import MIN_RUNNING_DRAW_KW as _CP_RUN  # noqa: E402
+from heatpump_optimizer.thermal_model import planned_draw_runs as _cp_runs  # noqa: E402
+
+_cp_edge = [
+    (kw, _cp_arbitrate({**_CP_SID, "power": kw})[0], _cp_runs(kw))
+    for kw in (_CP_RUN, _CP_RUN * 1.5, 0.06, 0.04)
+]
+R.check(
+    "the experiment's duty is space exactly where its booked heat_pump_on is True",
+    all((duty == "space") == runs and duty in ("space", "idle") for _kw, duty, runs in _cp_edge),
+    f"{_cp_edge}",
+)
+
+# Carry 31: the supply switch a probe interval runs under. The cycle writes
+# heat_pump_on from planned_draw_runs(override); the one-minute step tick
+# leaves the switch alone under an experiment, so it is not turned off
+# between cycles. Both halves read the production functions.
+_cp_tick_inp = _CpArb({**_CP_SID, "power": 5.0}).arbiter_inputs()
+R.check(
+    "a probe interval: the cycle books the supply on, and the step tick writes nothing over it",
+    _cp_runs(5.0) is True
+    and _cp_pa.step_supply(_cp_tick_inp, _cp_boost.BoostState(), _CP_T0 + timedelta(minutes=15)) is None
+    and _cp_pa.step_supply(
+        _CpArb({"mode": "eco", "power": 0.0}, power_schedule=(0.0,)).arbiter_inputs(),
+        _cp_boost.BoostState(), _CP_T0 + timedelta(minutes=1),
+    ) is False,
+    "null control: a plan step at 0 kW is a tick write of off",
+)
+
+# -- the ceiling store -------------------------------------------------------
+_CP_CEIL = _CpNS(written_c=55.0, gate_c=25.0, ceiling_c=55.0)
+_CP_GATE = _CpNS(written_c=25.0, gate_c=25.0, ceiling_c=55.0)
+_CP_MID = _CpNS(written_c=40.0, gate_c=25.0, ceiling_c=55.0)
+_CP_DAY = 86400.0
+_CP_NOW = _CP_T0.timestamp()
+
+
+def _cp_params(lo=1.0, hi=5.0):
+    return _CpNS(min_electrical_power=lo, max_electrical_power=hi)
+
+
+def _cp_fold(d, drawn, command, experiment_s, split=(5.0, 0.0), hi=5.0):
+    _cp_dr.fold(d, drawn, split, _cp_params(hi=hi), frozen=False, distorted=False,
+                defrost=False, command=command, experiment_s=experiment_s)
+
+
+def _cp_store(values, newest_s=_CP_NOW):
+    d = _cp_dr.DrawRange()
+    for k, v in enumerate(values):
+        d.observe_ceiling(v, newest_s - (len(values) - 1 - k) * 1800.0)
+    return d
+
+
+R.check(
+    "item 29: the accessor is raw -- eleven samples give None, twelve their median",
+    _cp_store([3.0] * 11).learned_max_kw(_CP_NOW) is None
+    and _cp_store([3.0] * 12).learned_max_kw(_CP_NOW) == 3.0,
+)
+R.check(
+    "item 29: twelve at 4.5 kW on a 5.0 kW configuration publish 4.5 (within 15 % is "
+    "still published raw; the agreement ruling is R10-COP-GATE part D's); eleven, None",
+    _cp_store([4.5] * 12).learned_max_kw(_CP_NOW) == 4.5
+    and _cp_store([4.5] * 11).learned_max_kw(_CP_NOW) is None,
+)
+R.check(
+    "the top lapses 45 days after the newest sample, and a sample stamped ahead of "
+    "the clock has no knowable age",
+    _cp_store([3.0] * 12).learned_max_kw(_CP_NOW + 44 * _CP_DAY) == 3.0
+    and _cp_store([3.0] * 12).learned_max_kw(_CP_NOW + 46 * _CP_DAY) is None
+    and _cp_store([3.0] * 12, newest_s=_CP_NOW + 600.0).learned_max_kw(_CP_NOW) is None,
+)
+
+# The routing: an experiment's interval written at the ceiling, running above
+# the idle draw, goes to the store and not the window; everything else folds
+# into the window as before.
+_cp_route = _cp_dr.DrawRange()
+for _cp_v in (0.30,) * 12:
+    _cp_route.observe_idle(_cp_v)
+_cp_fold(_cp_route, 3.0, _CP_CEIL, _CP_NOW)
+_cp_routed = (len(_cp_route.ceiling), len(_cp_route.samples))
+_cp_fold(_cp_route, 3.0, _CP_CEIL, None)
+_cp_plan = (len(_cp_route.ceiling), len(_cp_route.samples))
+R.check(
+    "an experiment's ceiling interval writes the store, not the window; the same "
+    "interval the plan commanded writes the window, not the store",
+    _cp_routed == (1, 0) and _cp_plan == (1, 1),
+    f"experiment {_cp_routed} plan {_cp_plan}",
+)
+_cp_held = _cp_dr.DrawRange()
+for _cp_v in (1.1,) * 12:
+    _cp_held.observe_idle(_cp_v)
+_cp_fold(_cp_held, 1.4, _CP_GATE, _CP_NOW)
+_cp_fold(_cp_held, 1.3, _CP_CEIL, _CP_NOW)
+_cp_fold(_cp_held, 1.4, _CP_CEIL, _CP_NOW)
+_cp_fold(_cp_held, 2.6, _CP_MID, _CP_NOW)
+R.check(
+    "a gate-held 1.4 kW draw above a learned 1.1 kW idle is a running sample yet stores "
+    "nothing, nor does a ceiling draw at the idle draw or a sub-ceiling one; the same "
+    "1.4 kW with the ceiling written does",
+    _cp_dr.is_running_space(1.4, 5.0, 0.0, frozen=False, distorted=False, defrost=False)
+    and [d for d, _t in _cp_held.ceiling] == [1.4],
+    f"{list(_cp_held.ceiling)}",
+)
+# The latch (F6, F7): 48 ceiling samples through ``observe`` on an empty
+# window engage the clamp at append 48; the same 48 routed to the store leave
+# it disengaged and the window empty.
+_cp_latch_w = _cp_dr.DrawRange()
+_cp_latch_s = _cp_dr.DrawRange()
+for _cp_k in range(48):
+    _cp_latch_w.observe(3.0, 5.0, 1.0, 5.0, command=(55.0, 55.0))
+    _cp_fold(_cp_latch_s, 3.0, _CP_CEIL, _CP_NOW + _cp_k * 1800.0)
+R.check(
+    "reversal control: 48 ceiling draws through the window latch the clamp to the "
+    "experiment's own measurement; the same 48 in the store leave engaged False, "
+    "observed() unset and the top published beside the latch",
+    _cp_latch_w.engaged is True and _cp_latch_w.planned(1.0, 5.0) == (3.0, 3.0)
+    and _cp_latch_s.engaged is False and _cp_latch_s.observed() is None
+    and len(_cp_latch_s.samples) == 0 and _cp_latch_s.learned_max_kw(_CP_NOW + 47 * 1800.0) == 3.0
+    and _cp_dr.diagnostics_view(
+        _cp_latch_s, _cp_params(), _CpNS(plan_writes_power=lambda: False, can_duty_cycle=lambda: False),
+        _CP_NOW + 47 * 1800.0,
+    ) == {**_cp_latch_s.summary(), "effective_min_kw": None, "effective_max_kw": None,
+          "learned_max_kw": 3.0},
+    f"window {_cp_latch_w.engaged} {_cp_latch_w.planned(1.0, 5.0)} store {_cp_latch_s.engaged}",
+)
+
+# Item 8: the overdraw drop. A top learned on mild nights (3.0 kW) against
+# ordinary ceiling-written intervals drawing 20 % more at -10 degC: the store
+# drops on the second. Null control: 10 % more, five times, keeps it.
+_cp_over = _cp_store([3.0] * 12)
+_cp_fold(_cp_over, 3.6, _CP_CEIL, None)
+_cp_over_one = len(_cp_over.ceiling)
+_cp_fold(_cp_over, 3.6, _CP_CEIL, None)
+_cp_near = _cp_store([3.0] * 12)
+for _cp_k in range(5):
+    _cp_fold(_cp_near, 3.3, _CP_CEIL, None)
+_cp_mid_over = _cp_store([3.0] * 12)
+for _cp_k in range(5):
+    _cp_fold(_cp_mid_over, 3.6, _CP_MID, None)
+R.check(
+    "item 8: two ordinary ceiling-written draws 20 % over the learned top drop the "
+    "store; one does not, 10 % over never does, and a sub-ceiling draw is no test",
+    _cp_over_one == 12 and len(_cp_over.ceiling) == 0
+    and len(_cp_near.ceiling) == 12 and len(_cp_mid_over.ceiling) == 12,
+    f"{_cp_over_one} {len(_cp_over.ceiling)} {len(_cp_near.ceiling)} {len(_cp_mid_over.ceiling)}",
+)
+_cp_rearm = _cp_store([3.0] * 12)
+_cp_fold(_cp_rearm, 3.6, _CP_CEIL, None)
+_cp_rearm.observe_ceiling(3.0, _CP_NOW + 60.0)
+_cp_fold(_cp_rearm, 3.6, _CP_CEIL, None)
+R.check(
+    "a new probe sample restarts the overdraw count",
+    len(_cp_rearm.ceiling) == 13 and _cp_rearm.overdraws == 1,
+    f"{len(_cp_rearm.ceiling)} {_cp_rearm.overdraws}",
+)
+
+# Persistence (item 7's clock lives here): the store round-trips through the
+# accuracy document, a store-only record keeps it, and every cell is declared.
+_cp_doc_range = _cp_store([3.0] * 12)
+_cp_doc_range.overdraws = 1
+_cp_tracker = _CpTracker()
+_cp_tracker.draw = _cp_doc_range
+_cp_doc = _cp_tracker.as_dict()
+_cp_back = _CpTracker.from_dict(_cp_doc).draw
+R.check(
+    "the store and its overdraw count persist through the accuracy store, a store-only "
+    "record (no window, no configuration) included, and the domains admit every cell",
+    "draw" in _cp_doc and list(_cp_back.ceiling) == list(_cp_doc_range.ceiling)
+    and _cp_back.overdraws == 1 and _cp_back.config is None
+    and _cp_back.learned_max_kw(_CP_NOW) == 3.0
+    and _cp_admitted("accuracy", {"accuracy": {"draw": _cp_doc["draw"]}})
+    and "draw" not in _CpTracker().as_dict(),
+    f"{_cp_doc.get('draw')}",
+)
+_cp_junk = _cp_dr.DrawRange.from_dict({
+    "ceiling": [[3.0, _CP_NOW], ["x", 1.0], [float("nan"), 1.0], [0.1, 1.0], [3.0], [3.1, float("inf")]],
+    "overdraws": True,
+})
+R.check(
+    "an unreadable store row is dropped, not the record; a non-count overdraw reads 0",
+    list(_cp_junk.ceiling) == [(3.0, _CP_NOW)] and _cp_junk.overdraws == 0,
+    f"{list(_cp_junk.ceiling)} {_cp_junk.overdraws}",
+)
+
+# -- the experiment's kinds, clocks and gates ---------------------------------
+_CP_LEAKY = _cp_sid.HousePlant(ua=0.35, capacity=12.0, gains=0.3)
+_CP_TIGHT = _cp_sid.HousePlant(ua=0.12, capacity=4.0, gains=0.3)
+_CP_WEE = _cp_sid.HousePlant(ua=0.05, capacity=1.2, gains=0.3)
+
+
+def _cp_cfg(**kw):
+    return _cp_sid.SysIdConfig(enabled=True, **kw)
+
+
+R.check(
+    "the probe's duration search: 2.0 h on the leaky house, 1.0 h on the tight one "
+    "against the 0.8 K bound, none on a house no two-cycle step fits",
+    _cp_sid.probe_step_hours(_CP_LEAKY, None, 21.0, 2.0, 15.0, _cp_cfg()) == 2.0
+    and _cp_sid.probe_step_hours(_CP_TIGHT, None, 21.0, 2.0, 15.0, _cp_cfg()) == 1.0
+    and _cp_sid.probe_step_hours(_CP_WEE, None, 21.0, 2.0, 15.0, _cp_cfg()) is None,
+)
+R.check(
+    "item 14, both sides of the bound: the probe takes the full 0.8 K, where the fit's "
+    "noise-headroom bound (0.65 K) would leave the tight house one cycle and refuse it",
+    _cp_sid.probe_step_hours(
+        _CP_TIGHT, None, 21.0, 2.0, 15.0,
+        _cp_cfg(max_excursion_c=_cp_sid.DEFAULT_MAX_EXCURSION_C - _cp_sid.SIZING_NOISE_HEADROOM_C),
+    ) is None,
+)
+
+
+def _cp_probe_store(samples, newest_days_ago):
+    return _cp_store([3.0] * samples, newest_s=(_CP_T0 - timedelta(days=newest_days_ago)).timestamp())
+
+
+_cp_armable = {
+    "unconverged": _cp_sid.armable(_cp_cfg(), _CP_T0, None, 150, None, None),
+    "199": _cp_sid.armable(_cp_cfg(), _CP_T0, None, 199, None, None),
+    "converged, no probe": _cp_sid.armable(_cp_cfg(), _CP_T0, None, 482, None, None),
+    "converged, probe": _cp_sid.armable(_cp_cfg(), _CP_T0, None, 482, _cp_dr.DrawRange(), None),
+    "fit clock, probe": _cp_sid.armable(
+        _cp_cfg(), _CP_T0, _CP_T0 - timedelta(days=3), 150, _cp_dr.DrawRange(), None),
+    "unlearned 6 d": _cp_sid.armable(_cp_cfg(), _CP_T0, None, 482, _cp_probe_store(4, 6), None),
+    "unlearned 8 d": _cp_sid.armable(_cp_cfg(), _CP_T0, None, 482, _cp_probe_store(4, 8), None),
+    "learned 29 d": _cp_sid.armable(_cp_cfg(), _CP_T0, None, 482, _cp_probe_store(12, 29), None),
+    "learned 31 d": _cp_sid.armable(_cp_cfg(), _CP_T0, None, 482, _cp_probe_store(12, 31), None),
+    "attempt 3 d": _cp_sid.armable(
+        _cp_cfg(), _CP_T0, None, 482, _cp_dr.DrawRange(), _CP_T0 - timedelta(days=3)),
+}
+R.check(
+    "the kind: the fit while unconverged (150, 199), the probe once converged where "
+    "the install can run one, and a published refusal where it cannot",
+    _cp_armable["unconverged"] == ("fit", "") and _cp_armable["199"] == ("fit", "")
+    and _cp_armable["converged, probe"] == ("ceiling_probe", "")
+    and _cp_armable["converged, no probe"][0] is None
+    and "house already converged" in _cp_armable["converged, no probe"][1]
+    and _cp_armable["fit clock, probe"] == ("ceiling_probe", ""),
+    f"{_cp_armable}",
+)
+R.check(
+    "each kind its own clock: the probe waits 7 days unlearned and 30 once learned, from "
+    "the store's newest sample or this process's last probe step",
+    _cp_armable["unlearned 6 d"][0] is None and _cp_armable["unlearned 8 d"][0] == "ceiling_probe"
+    and _cp_armable["learned 29 d"][0] is None and _cp_armable["learned 31 d"][0] == "ceiling_probe"
+    and _cp_armable["attempt 3 d"][0] is None,
+    f"{_cp_armable}",
+)
+
+
+def _cp_night(kind_samples=482, probe=True, **cfg):
+    """An armed experiment on the leaky house, its outcome and override per cycle."""
+    s = _cp_sid.SystemIdentification(_cp_cfg(**cfg))
+    armed = s.arm(_CP_T0, learner_samples=kind_samples, probe=_cp_dr.DrawRange() if probe else None)
+    return s, armed
+
+
+def _cp_step(s, k, room=21.0, prices=np.linspace(0.5, 2.0, 48), price=0.5, outdoor=2.0, at=_CP_T0):
+    return s.step(
+        at + timedelta(minutes=30 * k), room, outdoor, price, prices, 482, 5.0,
+        cop=3.0, plan_power_kw=1.5, house=_CP_LEAKY,
+    )
+
+
+_cp_run, _cp_run_armed = _cp_night()
+_cp_overrides = [_cp_step(_cp_run, k) for k in range(8)]
+R.check(
+    "a converged house arms a probe: it settles an hour on the plan, steps the configured "
+    "5.0 kW for four intervals, then hands back to the plan, fitting and adopting nothing",
+    _cp_run_armed and _cp_overrides == [None, None, None, 5.0, 5.0, 5.0, 5.0, None]
+    and _cp_run.phase == _cp_sid.PHASE_DONE and _cp_run.result.completed is False
+    and _cp_run.result.reason == "ceiling probe ran 2.0 h at 5.00 kW"
+    and _cp_run.last_run is None and _cp_run.probe_run == _CP_T0 + timedelta(hours=1),
+    f"{_cp_overrides} {_cp_run.phase} {_cp_run.result.reason!r}",
+)
+_cp_view = _cp_run.as_dict()
+R.check(
+    "the view names the kind and the last arm press",
+    _cp_view["kind"] == "ceiling_probe" and _cp_view["last_attempt"] == _CP_T0.isoformat()
+    and _cp_view["held"] is None,
+    f"{_cp_view}",
+)
+_cp_none, _cp_none_armed = _cp_night(probe=False)
+R.check(
+    "a converged house with no meter or no flow set-point is refused at the press, and "
+    "the refusal is published (it used to arm and idle in silence)",
+    _cp_none_armed is False and not _cp_none.active
+    and "house already converged" in _cp_none.result.reason
+    and "no metered flow set-point" in _cp_none.result.reason,
+    f"{_cp_none.result.reason!r}",
+)
+for _cp_label, _cp_kw in (
+    ("outside the night window", {"at": _CP_T0 - timedelta(hours=6)}),
+    ("outside the outdoor band", {"outdoor": 14.0}),
+    ("on an expensive hour", {"price": 1.9}),
+    ("on a flat price", {"prices": np.full(48, 1.0), "price": 1.0}),
+):
+    _cp_g, _ = _cp_night()
+    _cp_g_out = [_cp_step(_cp_g, k, **_cp_kw) for k in range(8)]
+    R.check(
+        f"the comfort and price gates hold the probe: none starts {_cp_label}",
+        _cp_g_out == [None] * 8 and _cp_g.phase == _cp_sid.PHASE_ARMED,
+        f"{_cp_g_out} {_cp_g.phase}",
+    )
+_cp_flat_fit = _cp_sid.SystemIdentification(_cp_cfg())
+_cp_flat_fit.arm(_CP_T0, learner_samples=0)
+R.check(
+    "flat-price null: the fit's gate is unchanged on a flat price (ready), the probe's "
+    "refuses it",
+    _cp_flat_fit.conditions_met(_CP_T0, 2.0, 1.0, np.full(48, 1.0), 0) == (True, "ready")
+    and _cp_g.conditions_met(_CP_T0, 2.0, 1.0, np.full(48, 1.0), 0)[0] is False,
+)
+_cp_hot, _ = _cp_night()
+_cp_hot_out = [_cp_step(_cp_hot, k, room=21.0 + (0.9 if k >= 4 else 0.0)) for k in range(6)]
+R.check(
+    "the comfort abort still stops a probe mid-step",
+    _cp_hot.phase == _cp_sid.PHASE_ABORTED and _cp_hot_out[-1] is None
+    and "excursion" in _cp_hot.result.reason,
+    f"{_cp_hot_out} {_cp_hot.phase}",
+)
+_cp_tightp = _cp_sid.SystemIdentification(_cp_cfg())
+_cp_tightp.arm(_CP_T0, learner_samples=482, probe=_cp_dr.DrawRange())
+_cp_tight_out = [
+    _cp_tightp.step(_CP_T0 + timedelta(minutes=30 * k), 21.0, 2.0, 0.5, np.linspace(0.5, 2.0, 48),
+                    482, 5.0, cop=3.0, plan_power_kw=1.5, house=_CP_TIGHT)
+    for k in range(7)
+]
+R.check(
+    "item 15: the searched duration is the one stepped -- the tight house's 1.0 h probe "
+    "steps two intervals, not the configured 2.0 h",
+    _cp_tight_out == [None, None, None, 5.0, 5.0, None, None]
+    and _cp_tightp.result.reason == "ceiling probe ran 1.0 h at 5.00 kW",
+    f"{_cp_tight_out} {_cp_tightp.result.reason!r}",
+)
+
+# The learners' freeze (#2808): an armed experiment is held with the reason
+# published; a started one still aborts.
+_cp_fz, _ = _cp_night()
+_cp_fz.stand_down("window open")
+_cp_fz_held = (_cp_fz.phase, _cp_fz.held, _cp_fz.as_dict()["held"])
+_cp_fz_out = [_cp_step(_cp_fz, k) for k in range(3)]
+_cp_fz.stand_down("window open")
+R.check(
+    "a freeze holds an armed experiment and publishes why; once started, it aborts",
+    _cp_fz_held == (_cp_sid.PHASE_ARMED, "window open", "window open")
+    and _cp_fz_out[0] is None and _cp_fz.phase == _cp_sid.PHASE_ABORTED
+    and _cp_fz.result.reason == "window open",
+    f"{_cp_fz_held} {_cp_fz.phase} {_cp_fz.result.reason!r}",
+)
+
+# -- the coordinator's wiring -------------------------------------------------
+_CP_COORD_DATA = {"tibber_token": "x", "weather_entity": "weather.home"}
+_CP_PROBE_CFG = {
+    "pump_duty_mode": "control", "space_setpoint_unit": "flow",
+    "space_setpoint_entity": "number.water_set", "heat_pump_power_entity": "sensor.hp_power",
+}
+R.check(
+    "eligibility is install-level and shared with the arbiter's flow-command rule: a "
+    "meter and a flow set-point driven in Control",
+    _cp_eligible(_CP_PROBE_CFG) is True
+    and _cp_eligible({**_CP_PROBE_CFG, "heat_pump_power_entity": ""}) is False
+    and _cp_eligible({**_CP_PROBE_CFG, "space_setpoint_unit": "indoor"}) is False
+    and _cp_eligible({**_CP_PROBE_CFG, "pump_duty_mode": "observe"}) is False,
+)
+
+
+def _cp_coord(samples=482, **config):
+    c = _cp_cmod.HeatPumpOptimizerCoordinator(FakeHass(), _CpEntry(data={**_CP_COORD_DATA, **config}))
+    c._house_heat_loss_samples = samples
+    with_config(c, {"system_identification_enabled": True})
+
+    async def _no_refresh():
+        return None
+
+    c.async_request_refresh = _no_refresh
+    _cp_aio.run(c.async_arm_system_identification())
+    return c
+
+
+_cp_c_probe = _cp_coord(**_CP_PROBE_CFG)
+_cp_c_none = _cp_coord()
+_cp_c_fit = _cp_coord(samples=150, **_CP_PROBE_CFG)
+R.check(
+    "the button's route: a converged flow-metered install arms the probe, a converged "
+    "duty-cycling one is refused with the reason, an unconverged one arms the fit",
+    _cp_c_probe._sysid.active and _cp_c_probe._sysid.kind == "ceiling_probe"
+    and not _cp_c_none._sysid.active and "house already converged" in _cp_c_none._sysid.result.reason
+    and _cp_c_fit._sysid.active and _cp_c_fit._sysid.kind == "fit",
+    f"{_cp_c_probe._sysid.kind} {_cp_c_none._sysid.result.reason!r} {_cp_c_fit._sysid.kind}",
+)
+# Item 7: the probe clock survives a restart, through the persisted store.
+_cp_restart_store = _cp_probe_store(4, 3)
+_cp_restarted = _cp_sid.SystemIdentification(_cp_cfg())
+R.check(
+    "item 7: a probe three days ago, read back from the stored record by a fresh "
+    "experiment object, still refuses the press; eight days ago arms",
+    _cp_restarted.arm(_CP_T0, learner_samples=482, probe=_cp_dr.DrawRange.from_dict(
+        _cp_restart_store.as_dict())) is False
+    and "ceiling probe ran 3.0 days ago" in _cp_restarted.result.reason
+    and _cp_sid.SystemIdentification(_cp_cfg()).arm(
+        _CP_T0, learner_samples=482,
+        probe=_cp_dr.DrawRange.from_dict(_cp_probe_store(4, 8).as_dict())) is True,
+    f"{_cp_restarted.result.reason!r}",
+)
+
+
+def _cp_sysid_cycle(host):
+    async def _unusable(hass, fn, *args):
+        raise _cp_cmod.ProcessWorkerUnavailable("features: executor route")
+
+    real, _cp_cmod._await_process = _cp_cmod._await_process, _unusable
+    try:
+        return _cp_aio.run(host._run_system_identification(np.array([1.0])))
+    finally:
+        _cp_cmod._await_process = real
+
+
+_cp_frz = _cp_coord(**_CP_PROBE_CFG)
+_cp_frz._learning_frozen = lambda *keys: "an open window"
+_cp_sysid_cycle(_cp_frz)
+_cp_frz_armed = (_cp_frz._sysid.phase, _cp_frz._sysid.held)
+_cp_frz._sysid.phase = _cp_sid.PHASE_STEP
+_cp_sysid_cycle(_cp_frz)
+R.check(
+    "the coordinator's freeze holds the armed probe with its reason, and aborts a started one",
+    _cp_frz_armed == (_cp_sid.PHASE_ARMED, "an open window")
+    and _cp_frz._sysid.phase == _cp_sid.PHASE_ABORTED,
+    f"{_cp_frz_armed} {_cp_frz._sysid.phase}",
+)
+
+
+# Item 30: the fold routes on the mode the interval's own action carried,
+# captured in ``_pending_prediction`` beside its split and command -- never on
+# the action adopted since. Two cycles half an hour apart (#2262).
+def _cp_pair(first, then):
+    c = _cp_cmod.HeatPumpOptimizerCoordinator(FakeHass(), _CpEntry(data=dict(_CP_COORD_DATA)))
+    c._measured_power = 3.0
+    c._current_action = dict(first)
+    c._record_accuracy()
+    c._pending_prediction["when"] -= timedelta(minutes=30)
+    c._pending_prediction["flow_command"] = _CP_CEIL
+    c._current_action = dict(then)
+    c._record_accuracy()
+    return len(c._accuracy.draw.ceiling), len(c._accuracy.draw.samples), c._pending_prediction["mode"]
+
+
+_CP_STEP = {"power": 5.0, "dhw_power": 0.0, "mode": "system_identification"}
+_CP_PLAN = {"power": 5.0, "dhw_power": 0.0, "mode": "eco"}
+_cp_last = _cp_pair(_CP_STEP, _CP_PLAN)
+_cp_before = _cp_pair(_CP_PLAN, _CP_STEP)
+R.check(
+    "item 30: a run's last step interval goes to the store although the plan has been "
+    "adopted since; a plan p_max interval just before a run goes to the window although "
+    "the experiment has started since",
+    _cp_last[:2] == (1, 0) and _cp_before[:2] == (0, 1)
+    and _cp_last[2] == "eco" and _cp_before[2] == "system_identification",
+    f"last {_cp_last} before {_cp_before}",
+)
+
+
+# The synthetic pump: a known 3.0 kW electrical maximum behind a configured
+# 5.0 kW, drawn whenever the ceiling is written (and 1.5 kW at the plan's
+# mid level). Probe nights through the production experiment, the pairing the
+# coordinator makes (the interval's own mode, split and command, read at the
+# next cycle), and the production fold. Recovered within 2 % at both step
+# lengths; the control routes on the mode one interval late, as reading the
+# action at the fold would.
+def _cp_pump(house, nights, late=False, noise=0.02, seed=3):
+    rng = np.random.default_rng(seed)
+    store = _cp_dr.DrawRange()
+    for night in range(nights):
+        start = _CP_T0 + timedelta(days=8 * night)
+        s = _cp_sid.SystemIdentification(_cp_cfg())
+        assert s.arm(start, learner_samples=482, probe=store), s.result.reason
+        pending, prev_mode = None, None
+        for k in range(9):
+            now = start + timedelta(minutes=30 * k)
+            override = s.step(now, 21.0, 2.0, 0.5, np.linspace(0.5, 2.0, 48), 482, 5.0,
+                              cop=3.0, plan_power_kw=1.5, house=house)
+            mode = "system_identification" if override is not None else "eco"
+            power = 1.5 if override is None else override
+            if pending is not None:
+                key = mode if late else pending["mode"]
+                drawn = (3.0 if pending["command"] is _CP_CEIL else 1.5) * (1.0 + noise * rng.standard_normal())
+                _cp_dr.fold(store, drawn, (pending["power"], 0.0), _cp_params(), frozen=False,
+                            distorted=False, defrost=False, command=pending["command"],
+                            experiment_s=pending["when"] if key == "system_identification" else None)
+            pending = {"mode": mode, "power": power, "when": now.timestamp(),
+                       "command": _CP_CEIL if power >= 5.0 else _CP_MID}
+            prev_mode = mode
+    return store, prev_mode
+
+
+_cp_pump_leaky, _ = _cp_pump(_CP_LEAKY, 3)
+_cp_pump_tight, _ = _cp_pump(_CP_TIGHT, 6)
+_cp_pump_late, _ = _cp_pump(_CP_TIGHT, 6, late=True)
+_cp_top = lambda d: d.learned_max_kw(d.ceiling_since() or 0.0)  # noqa: E731
+R.check(
+    "the synthetic pump's known 3.0 kW maximum is recovered within 2 %: three 2.0 h "
+    "probes (four store samples each) and six 1.0 h probes (two each)",
+    len(_cp_pump_leaky.ceiling) == 12 and abs(_cp_top(_cp_pump_leaky) - 3.0) <= 0.06
+    and len(_cp_pump_tight.ceiling) == 12 and abs(_cp_top(_cp_pump_tight) - 3.0) <= 0.06
+    and max(d for d, _a in _cp_pump_leaky.samples) < 2.0 and _cp_pump_leaky.engaged is False,
+    f"leaky {len(_cp_pump_leaky.ceiling)} {_cp_top(_cp_pump_leaky)} "
+    f"tight {len(_cp_pump_tight.ceiling)} {_cp_top(_cp_pump_tight)}",
+)
+R.check(
+    "control: routed on the mode one interval late, the 1.0 h probes store one sample "
+    "each and a probe interval reaches the window",
+    len(_cp_pump_late.ceiling) == 6 and _cp_top(_cp_pump_late) is None
+    and max(d for d, _a in _cp_pump_late.samples) > 2.5,
+    f"late {len(_cp_pump_late.ceiling)} window {len(_cp_pump_late.samples)}",
+)
+
+# #2808: the outcome is recorded. The bulky view stays unrecorded; a compact
+# outcome row beside it is recorded, so a refusal has a history.
+_cp_status = _CpStatus.__new__(_CpStatus)
+_cp_status._data = lambda: {"system_identification": _cp_none.as_dict()}
+_cp_attrs = _CpStatus.extra_state_attributes.fget(_cp_status)
+R.check(
+    "the recorded outcome names the kind, the phase, the refusal and the last press, "
+    "outside the unrecorded set, where the bulky view stays",
+    _cp_attrs["system_identification_outcome"] == {
+        "kind": "fit", "phase": "idle", "held": None,
+        "reason": _cp_none.result.reason, "last_attempt": _CP_T0.isoformat(),
+    }
+    and "system_identification_outcome" not in _CpStatus._unrecorded_attributes
+    and "system_identification" in _CpStatus._unrecorded_attributes,
+    f"{_cp_attrs.get('system_identification_outcome')}",
+)
+
+
+# The boundaries, each at its exact edge (the mutation inventory's CMP_BOUND
+# operator moves each by one), and the arms the checks above leave implicit.
+_CP_EDGE_T = _CP_T0 - timedelta(days=30)
+R.check(
+    "the fit's clock is inclusive: exactly 30 days after its last run arms it; 200 learner "
+    "samples is converged, 199 is not",
+    _cp_sid.armable(_cp_cfg(), _CP_T0, _CP_EDGE_T, 150, None, None) == ("fit", "")
+    and _cp_sid.armable(_cp_cfg(), _CP_T0, None, 200, None, None)[0] is None
+    and _cp_sid.armable(_cp_cfg(), _CP_T0, None, 199, None, None) == ("fit", ""),
+)
+R.check(
+    "the probe's clock is inclusive: exactly 7 days after the newest store sample arms it",
+    _cp_sid.armable(_cp_cfg(), _CP_T0, None, 482, _cp_probe_store(4, 7), None) == ("ceiling_probe", ""),
+)
+_cp_fit200 = _cp_sid.SystemIdentification(_cp_cfg())
+_cp_fit200.arm(_CP_T0, learner_samples=0)
+R.check(
+    "a fit armed unconverged stands down at the start once the learner reaches 200 samples",
+    _cp_fit200.conditions_met(_CP_T0, 2.0, 0.5, np.linspace(0.5, 2.0, 48), 200)
+    == (False, "house already converged")
+    and _cp_fit200.conditions_met(_CP_T0, 2.0, 0.5, np.linspace(0.5, 2.0, 48), 199) == (True, "ready"),
+)
+R.check(
+    "the lapse is inclusive: a top exactly 45 days old still stands",
+    _cp_store([3.0] * 12).learned_max_kw(_CP_NOW + 45 * _CP_DAY) == 3.0,
+)
+_cp_edge_store = _cp_dr.DrawRange()
+for _cp_v in (1.0,) * 12:
+    _cp_edge_store.observe_idle(_cp_v)
+R.check(
+    "the store's edges: a set-point exactly CEILING_TOLERANCE_K under the ceiling is the "
+    "ceiling, a draw exactly at the idle margin is the idle draw",
+    _cp_edge_store.takes_ceiling(3.0, _CpNS(written_c=54.5, gate_c=25.0, ceiling_c=55.0))
+    and not _cp_edge_store.takes_ceiling(3.0, _CpNS(written_c=54.25, gate_c=25.0, ceiling_c=55.0))
+    and not _cp_edge_store.takes_ceiling(1.25, _CP_CEIL)
+    and _cp_edge_store.takes_ceiling(1.26, _CP_CEIL),
+)
+_cp_edge_over = _cp_store([3.0] * 12)
+for _cp_k in range(2):
+    _cp_fold(_cp_edge_over, 3.6, _CpNS(written_c=54.5, gate_c=25.0, ceiling_c=55.0), None)
+R.check(
+    "an overdraw counts at a set-point exactly CEILING_TOLERANCE_K under the ceiling",
+    len(_cp_edge_over.ceiling) == 0,
+)
+_cp_full = _cp_store([3.0] * 49)
+R.check(
+    "the store keeps the newest 48 samples (CEILING_WINDOW)",
+    len(_cp_full.ceiling) == 48 and _cp_full.ceiling[0][1] == _CP_NOW - 47 * 1800.0,
+)
+_cp_rows = _cp_dr.DrawRange.from_dict({
+    "ceiling": [[_cp_dr.RUNNING_FLOOR_KW, _CP_NOW], [0.26, _CP_NOW]], "overdraws": -1,
+})
+R.check(
+    "a stored row at the standby floor is dropped, one above it kept; a negative count reads 0",
+    [d for d, _t in _cp_rows.ceiling] == [0.26] and _cp_rows.overdraws == 0,
+)
+_cp_plain = _cp_arbitrate({"mode": "eco", "power": 0.0}, power_schedule=(5.0,))
+R.check(
+    "a plan action's power is not the experiment's: the plan's own step (5.0 kW) decides "
+    "duty and level although the action reads 0 kW",
+    _cp_plain[:2] == ("space", 55.0),
+    f"{_cp_plain}",
+)
+_cp_status._data = lambda: {}
+R.check(
+    "no experiment view, no outcome row",
+    _CpStatus.extra_state_attributes.fget(_cp_status)["system_identification_outcome"] is None,
+)
+from heatpump_optimizer.thermal_model import ThermalParameters as _CpPlant  # noqa: E402
+
+_cp_planted = _cp_sid.SystemIdentification(_cp_cfg())
+_cp_prior = _cp_planted.config.gains_prior_kw
+_cp_planted_ok = _cp_planted.arm(_CP_T0, plant=_CpPlant(), learner_samples=482, probe=_cp_dr.DrawRange())
+R.check(
+    "a probe armed on a declared plant seeds no fit: no slab pair, no re-seeded gains prior",
+    _cp_planted_ok and _cp_planted.kind == "ceiling_probe" and _cp_planted._slab_pair is None
+    and _cp_planted._slab_prior is None and _cp_planted.config.gains_prior_kw == _cp_prior,
+    f"{_cp_planted._slab_pair} {_cp_planted.config.gains_prior_kw} {_cp_prior}",
+)
+_cp_nofit = _cp_sid.SystemIdentification(_cp_cfg())
+_cp_nofit.arm(_CP_T0, learner_samples=482, probe=_cp_dr.DrawRange())
+_cp_nofit_out = [
+    _cp_nofit.step(_CP_T0 + timedelta(minutes=30 * k), 21.0, 2.0, 0.5, np.linspace(0.5, 2.0, 48),
+                   482, 5.0, cop=3.0, plan_power_kw=1.5, house=_CP_WEE)
+    for k in range(5)
+]
+R.check(
+    "a house no two-cycle probe fits is aborted at the step with the reason, injecting nothing "
+    "and starting no probe clock",
+    _cp_nofit_out == [None] * 5 and _cp_nofit.phase == _cp_sid.PHASE_ABORTED
+    and _cp_nofit.result.reason == "no probe step of two cycles fits within the comfort bound"
+    and _cp_nofit.probe_run is None,
+    f"{_cp_nofit_out} {_cp_nofit.phase} {_cp_nofit.result.reason!r}",
+)
+
+_cp_eq_over = _cp_store([3.0] * 12)
+for _cp_k in range(3):
+    _cp_fold(_cp_eq_over, (1.0 + _cp_dr.AGREE_TOLERANCE) * 3.0, _CP_CEIL, None)
+R.check(
+    "a draw exactly AGREE_TOLERANCE over the learned top is no overdraw",
+    len(_cp_eq_over.ceiling) == 12 and _cp_eq_over.overdraws == 0,
+)
+_cp_peak, _ = _cp_sid._predict_step_excursion_plant(
+    _CP_LEAKY, 21.0, 2.0, 15.0, 2.0, _cp_sid.SysIdConfig().relax_hours)
+R.check(
+    "the duration search's bound is inclusive: a peak exactly at the bound keeps the 2.0 h "
+    "step, one ulp under it shortens to 1.5 h",
+    _cp_sid.probe_step_hours(_CP_LEAKY, None, 21.0, 2.0, 15.0, _cp_cfg(max_excursion_c=_cp_peak)) == 2.0
+    and _cp_sid.probe_step_hours(
+        _CP_LEAKY, None, 21.0, 2.0, 15.0, _cp_cfg(max_excursion_c=float(np.nextafter(_cp_peak, 0.0)))
+    ) == 1.5,
+)
+
+
+def _cp_begin(house, cop=3.0, kind="fit"):
+    s = _cp_sid.SystemIdentification(_cp_cfg())
+    s.arm(_CP_T0, learner_samples=0 if kind == "fit" else 482, probe=_cp_dr.DrawRange())
+    s.phase, s._baseline_temp = _cp_sid.PHASE_SETTLING, 21.0
+    s._begin_step_phase(_CP_T0, 2.0, 5.0, cop, house)
+    return s.phase == _cp_sid.PHASE_STEP, s._step_power, s.phase
+
+
+R.check(
+    "the fit's degenerate-house fallback is strict: a loss or a mass of exactly 1e-6 is "
+    "no house to size on, and steps 0.3 of the maximum",
+    _cp_begin(_cp_sid.HousePlant(ua=1e-6, capacity=4.0, gains=0.3))[:2] == (True, 1.5)
+    and _cp_begin(_cp_sid.HousePlant(ua=0.12, capacity=1e-6, gains=0.3))[:2] == (True, 1.5),
+)
+_CP_FLOORED = _cp_sid.HousePlant(ua=0.02, capacity=0.3, gains=0.3, slab_mass=0.05, slab_transfer=0.24)
+R.check(
+    "the probe prices its heat at the fit's COP floor (0.1): at a reported COP of 0.05 the "
+    "0.5 kW it injects fits no step on this house, where 0.25 kW would fit 2.0 h",
+    _cp_begin(_CP_FLOORED, cop=0.05, kind="probe")[2] == _cp_sid.PHASE_ABORTED
+    and _cp_sid.probe_step_hours(_CP_FLOORED, None, 21.0, 2.0, 0.25, _cp_cfg()) == 2.0,
+)
+
+
+# The quiet windows: the solve honours them (off steps, the silent cap), and
+# the experiment's override replaces the solve's action, so the experiment
+# stands down inside one -- held while armed, aborted once started.
+from heatpump_optimizer import quiet_windows as _cp_qw  # noqa: E402
+from homeassistant.util import dt as _cp_dt  # noqa: E402
+
+R.check(
+    "a step inside a quiet off or silent window is named; outside one, or with none set, it is not",
+    _cp_qw.quiet_reason({"quiet_off_windows": "22:00-23:30"}, _CP_T0) == "inside a quiet off window"
+    and _cp_qw.quiet_reason({"quiet_silent_windows": "22:00-23:30"}, _CP_T0) == "inside a quiet silent window"
+    and _cp_qw.quiet_reason({"quiet_off_windows": "09:00-09:30"}, _CP_T0) is None
+    and _cp_qw.quiet_reason({}, _CP_T0) is None,
+)
+_cp_dt.freeze(_CP_T0)
+try:
+    _CP_ROOM = {"indoor_temp_entity": "sensor.room", "outdoor_temp_entity": "sensor.out"}
+    _cp_quiet = _cp_coord(**_CP_PROBE_CFG, **_CP_ROOM, quiet_off_windows="22:00-23:30")
+    _cp_loud = _cp_coord(**_CP_PROBE_CFG, **_CP_ROOM, quiet_off_windows="09:00-09:30")
+    for _cp_c in (_cp_quiet, _cp_loud):
+        _cp_c._learning_frozen = lambda *keys: None  # the freeze is the check above's
+    _cp_sysid_cycle(_cp_quiet)
+    _cp_quiet_armed = (_cp_quiet._sysid.phase, _cp_quiet._sysid.held)
+    _cp_quiet._sysid.phase = _cp_sid.PHASE_STEP
+    _cp_sysid_cycle(_cp_quiet)
+    _cp_sysid_cycle(_cp_loud)
+finally:
+    _cp_dt.freeze(None)
+R.check(
+    "inside a quiet off window the coordinator holds an armed probe with the reason and aborts "
+    "a started one; a window elsewhere in the day holds nothing",
+    _cp_quiet_armed == (_cp_sid.PHASE_ARMED, "inside a quiet off window")
+    and _cp_quiet._sysid.phase == _cp_sid.PHASE_ABORTED
+    and _cp_loud._sysid.held is None,
+    f"{_cp_quiet_armed} {_cp_quiet._sysid.phase} {_cp_loud._sysid.held!r} {_cp_loud._sysid.result.reason!r}",
 )
 
 
