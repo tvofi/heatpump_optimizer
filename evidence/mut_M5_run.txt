@@ -105,7 +105,7 @@ Quiet comfort learning skipped: injected learner fault (first occurrence; repeat
   ok   D1-s2-51: a quiet-period learner raise is not a failed solve -- the plan stays published and the failure counter untouched
 Optimization failed: solver returned a failed plan: failed (injected L-BFGS-B blow-up)
 Traceback (most recent call last):
-  File "/home/user/heatpump_optimizer/custom_components/heatpump_optimizer/coordinator.py", line 6126, in async_run_optimization
+  File "/root/mutc/custom_components/heatpump_optimizer/coordinator.py", line 6138, in async_run_optimization
     raise RuntimeError(
         f"solver returned a failed plan: {result.status}"
     )
@@ -751,23 +751,23 @@ Invalid per-day DHW window 'garbage' for dhw_windows_sat (Invalid window 'garbag
   ok   the default plant passes the arm-time identifiability gate
 System identification fit raised: Singular matrix
 Traceback (most recent call last):
-  File "/home/user/heatpump_optimizer/custom_components/heatpump_optimizer/sysid.py", line 1726, in _finish
+  File "/root/mutc/custom_components/heatpump_optimizer/sysid.py", line 1726, in _finish
     self.result = self.identify_slab()
                   ~~~~~~~~~~~~~~~~~~^^
-  File "/home/user/heatpump_optimizer/tests/features.py", line 7563, in _wrapper
+  File "/root/mutc/tests/features.py", line 7563, in _wrapper
     return method(self, *args, **kwargs)
-  File "/home/user/heatpump_optimizer/custom_components/heatpump_optimizer/sysid.py", line 2272, in identify_slab
+  File "/root/mutc/custom_components/heatpump_optimizer/sysid.py", line 2272, in identify_slab
     return self._slab_outcome(
            ~~~~~~~~~~~~~~~~~~^
         best_x, rooms, error, slab_mass, slab_transfer, told_error
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     )
     ^
-  File "/home/user/heatpump_optimizer/custom_components/heatpump_optimizer/sysid.py", line 2307, in _slab_outcome
+  File "/root/mutc/custom_components/heatpump_optimizer/sysid.py", line 2307, in _slab_outcome
     profile_halfwidth = _slab_ua_profile_halfwidth(
         best_x, path_error, int(rooms.size), self.config.gains_prior_kw
     )
-  File "/home/user/heatpump_optimizer/custom_components/heatpump_optimizer/sysid.py", line 1010, in _slab_ua_profile_halfwidth
+  File "/root/mutc/custom_components/heatpump_optimizer/sysid.py", line 1010, in _slab_ua_profile_halfwidth
     cov = np.linalg.inv(jac.T @ jac) * sigma2
           ~~~~~~~~~~~~~^^^^^^^^^^^^^
   File "/opt/hpo/venv-ci/lib/python3.14/site-packages/numpy/linalg/_linalg.py", line 647, in inv
@@ -942,7 +942,30 @@ Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM
 Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration True (Invalid window 'True' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration True (Invalid window 'True' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
@@ -956,45 +979,22 @@ Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM
 Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration True (Invalid window 'True' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration True (Invalid window 'True' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
@@ -1276,10 +1276,10 @@ mixing_valve_write_target_kind=flow needs two-zone
   ok   every mode the service accepts can be persisted and restored
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/home/user/heatpump_optimizer/custom_components/heatpump_optimizer/coordinator.py", line 6657, in _fetch_tibber_prices
+  File "/root/mutc/custom_components/heatpump_optimizer/coordinator.py", line 6669, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/home/user/heatpump_optimizer/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "/root/mutc/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
@@ -1290,95 +1290,95 @@ Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTT
   ok   the live model reads the snapshot the call published
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/home/user/heatpump_optimizer/custom_components/heatpump_optimizer/coordinator.py", line 6657, in _fetch_tibber_prices
+  File "/root/mutc/custom_components/heatpump_optimizer/coordinator.py", line 6669, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/home/user/heatpump_optimizer/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "/root/mutc/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/home/user/heatpump_optimizer/custom_components/heatpump_optimizer/coordinator.py", line 6657, in _fetch_tibber_prices
+  File "/root/mutc/custom_components/heatpump_optimizer/coordinator.py", line 6669, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/home/user/heatpump_optimizer/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "/root/mutc/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
   ok   a parameter call publishes one clamped snapshot before any await and leaves the snapshot it replaced whole (D7-s1-82)
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/home/user/heatpump_optimizer/custom_components/heatpump_optimizer/coordinator.py", line 6657, in _fetch_tibber_prices
+  File "/root/mutc/custom_components/heatpump_optimizer/coordinator.py", line 6669, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/home/user/heatpump_optimizer/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "/root/mutc/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/home/user/heatpump_optimizer/custom_components/heatpump_optimizer/coordinator.py", line 6657, in _fetch_tibber_prices
+  File "/root/mutc/custom_components/heatpump_optimizer/coordinator.py", line 6669, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/home/user/heatpump_optimizer/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "/root/mutc/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
   ok   set_thermal_parameters resets the learned heat loss survives the store read in flight at startup
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/home/user/heatpump_optimizer/custom_components/heatpump_optimizer/coordinator.py", line 6657, in _fetch_tibber_prices
+  File "/root/mutc/custom_components/heatpump_optimizer/coordinator.py", line 6669, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/home/user/heatpump_optimizer/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "/root/mutc/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/home/user/heatpump_optimizer/custom_components/heatpump_optimizer/coordinator.py", line 6657, in _fetch_tibber_prices
+  File "/root/mutc/custom_components/heatpump_optimizer/coordinator.py", line 6669, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/home/user/heatpump_optimizer/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "/root/mutc/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
   ok   set_thermal_parameters resets the buffer cooling rate survives the store read in flight at startup
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/home/user/heatpump_optimizer/custom_components/heatpump_optimizer/coordinator.py", line 6657, in _fetch_tibber_prices
+  File "/root/mutc/custom_components/heatpump_optimizer/coordinator.py", line 6669, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/home/user/heatpump_optimizer/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "/root/mutc/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/home/user/heatpump_optimizer/custom_components/heatpump_optimizer/coordinator.py", line 6657, in _fetch_tibber_prices
+  File "/root/mutc/custom_components/heatpump_optimizer/coordinator.py", line 6669, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/home/user/heatpump_optimizer/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "/root/mutc/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
   ok   set_thermal_parameters' explicit DHW cooling rate survives the store read in flight at startup
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/home/user/heatpump_optimizer/custom_components/heatpump_optimizer/coordinator.py", line 6657, in _fetch_tibber_prices
+  File "/root/mutc/custom_components/heatpump_optimizer/coordinator.py", line 6669, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/home/user/heatpump_optimizer/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "/root/mutc/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/home/user/heatpump_optimizer/custom_components/heatpump_optimizer/coordinator.py", line 6657, in _fetch_tibber_prices
+  File "/root/mutc/custom_components/heatpump_optimizer/coordinator.py", line 6669, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/home/user/heatpump_optimizer/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "/root/mutc/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
@@ -1912,10 +1912,10 @@ No snapshot qualifies for restore (healthy inputs and in-band accuracy at captur
   ok   restore with an empty ring refuses instead of pretending
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/home/user/heatpump_optimizer/custom_components/heatpump_optimizer/coordinator.py", line 6657, in _fetch_tibber_prices
+  File "/root/mutc/custom_components/heatpump_optimizer/coordinator.py", line 6669, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/home/user/heatpump_optimizer/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "/root/mutc/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
@@ -1962,10 +1962,10 @@ Prediction bias out of band for 5 days on healthy inputs; learned state rolled b
   ok   #1936: recommend-only -- a heartbeat with a refit on offer applies nothing
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/home/user/heatpump_optimizer/custom_components/heatpump_optimizer/coordinator.py", line 6657, in _fetch_tibber_prices
+  File "/root/mutc/custom_components/heatpump_optimizer/coordinator.py", line 6669, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/home/user/heatpump_optimizer/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "/root/mutc/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
@@ -1980,10 +1980,10 @@ No heat-loss refit is on offer: it needs an active drift alarm and 3 settled day
 Prediction bias out of band for 5 days on healthy inputs; learned state rolled back to the snapshot from 2026-03-01T03:00:00+00:00
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/home/user/heatpump_optimizer/custom_components/heatpump_optimizer/coordinator.py", line 6657, in _fetch_tibber_prices
+  File "/root/mutc/custom_components/heatpump_optimizer/coordinator.py", line 6669, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/home/user/heatpump_optimizer/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "/root/mutc/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
@@ -2071,10 +2071,10 @@ Comfort miss (margin -0.10 °C) with curve bias -1.0 K applied; bias reset to 0
   ok   a pre-T4b payload loads clean and every learner starts inert
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/home/user/heatpump_optimizer/custom_components/heatpump_optimizer/coordinator.py", line 6657, in _fetch_tibber_prices
+  File "/root/mutc/custom_components/heatpump_optimizer/coordinator.py", line 6669, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/home/user/heatpump_optimizer/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "/root/mutc/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
@@ -2128,10 +2128,10 @@ Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTT
   ok   a non-numeric lead_sigma key is skipped, not raised out of from_dict
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/home/user/heatpump_optimizer/custom_components/heatpump_optimizer/coordinator.py", line 6657, in _fetch_tibber_prices
+  File "/root/mutc/custom_components/heatpump_optimizer/coordinator.py", line 6669, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/home/user/heatpump_optimizer/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "/root/mutc/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
@@ -2241,10 +2241,10 @@ Compressor efficiency has drifted 20% below its own baseline (~0 SEK/month at cu
   ok   predicted + contributions + unexplained always accounts for actual
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/home/user/heatpump_optimizer/custom_components/heatpump_optimizer/coordinator.py", line 6657, in _fetch_tibber_prices
+  File "/root/mutc/custom_components/heatpump_optimizer/coordinator.py", line 6669, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/home/user/heatpump_optimizer/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "/root/mutc/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
@@ -2283,10 +2283,10 @@ No electricity price data available; skipping optimization until prices can be f
   ok   a perfectly partitioned month reconciles whatever the rounding does
 Skipping malformed ledger month 2026-03 while freezing monthly receipts; recording an empty receipt instead
 Traceback (most recent call last):
-  File "/home/user/heatpump_optimizer/custom_components/heatpump_optimizer/ledger.py", line 622, in roll_receipts
+  File "/root/mutc/custom_components/heatpump_optimizer/ledger.py", line 622, in roll_receipts
     kept[month] = freeze(month)
                   ~~~~~~^^^^^^^
-  File "/home/user/heatpump_optimizer/tests/features.py", line 24057, in _exploding_freeze
+  File "/root/mutc/tests/features.py", line 24054, in _exploding_freeze
     raise ValueError("D1-01: malformed month wedges the freezer")
 ValueError: D1-01: malformed month wedges the freezer
   ok   a crashing month no longer takes _roll_month down with it
@@ -2352,7 +2352,7 @@ Compressor frequency control stood down: number.freq reports 90.0 Hz against a c
 No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
   ok   an entry's setup neither adds a service nor replaces a handler
   ok   setup hands the coordinator to the entry as runtime_data
-/home/user/heatpump_optimizer/tests/harness.py:561: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
+/root/mutc/tests/harness.py:561: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
   callback()
 RuntimeWarning: Enable tracemalloc to get the object allocation traceback
   ok   every service is still registered after the last entry unloads
@@ -2404,14 +2404,14 @@ No forecast data returned for weather.home. Plans continue on the last forecast,
 No weather forecast available — using current conditions. Predictive optimization will be limited.
 Optimization failed: tariff exploded
 Traceback (most recent call last):
-  File "/home/user/heatpump_optimizer/custom_components/heatpump_optimizer/coordinator.py", line 6083, in async_run_optimization
+  File "/root/mutc/custom_components/heatpump_optimizer/coordinator.py", line 6095, in async_run_optimization
     record = self._solve_record(solve_now, horizon)
-  File "/home/user/heatpump_optimizer/custom_components/heatpump_optimizer/coordinator.py", line 5963, in _solve_record
+  File "/root/mutc/custom_components/heatpump_optimizer/coordinator.py", line 5975, in _solve_record
     config, params, state = self._solve_hubs(n, banded=True)
                             ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
-  File "/home/user/heatpump_optimizer/custom_components/heatpump_optimizer/coordinator.py", line 5895, in _solve_hubs
+  File "/root/mutc/custom_components/heatpump_optimizer/coordinator.py", line 5907, in _solve_hubs
     tariff = self._capacity_tariff()
-  File "/home/user/heatpump_optimizer/tests/features.py", line 25219, in _tariff_boom
+  File "/root/mutc/tests/features.py", line 25216, in _tariff_boom
     raise RuntimeError("tariff exploded")
 RuntimeError: tariff exploded
   ok   run_optimization when the solve raises raises a translated operational error
@@ -2456,9 +2456,9 @@ No weather forecast available — using current conditions. Predictive optimizat
   ok   before any solve the plan has no age and is not stale
 Optimization failed: solver exploded
 Traceback (most recent call last):
-  File "/home/user/heatpump_optimizer/custom_components/heatpump_optimizer/coordinator.py", line 6056, in async_run_optimization
+  File "/root/mutc/custom_components/heatpump_optimizer/coordinator.py", line 6068, in async_run_optimization
     horizon = self._forecast_arrays(now)
-  File "/home/user/heatpump_optimizer/tests/features.py", line 25701, in _g_boom
+  File "/root/mutc/tests/features.py", line 25698, in _g_boom
     raise RuntimeError("solver exploded")
 RuntimeError: solver exploded
   ok   three consecutive failed solves raise exactly one repair issue
@@ -2815,16 +2815,16 @@ No forecast data returned for weather.home. Plans continue on the last forecast,
   ok   the plan's action keeps its own price, not the current one
 Error updating Heat Pump Optimizer: boom
 Traceback (most recent call last):
-  File "/home/user/heatpump_optimizer/custom_components/heatpump_optimizer/coordinator.py", line 5744, in _async_update_data
+  File "/root/mutc/custom_components/heatpump_optimizer/coordinator.py", line 5753, in _async_update_data
     await self._fetch_tibber_prices()
-  File "/home/user/heatpump_optimizer/tests/features.py", line 27734, in _fr_fetch_raises
+  File "/root/mutc/tests/features.py", line 27731, in _fr_fetch_raises
     raise RuntimeError("boom")
 RuntimeError: boom
 Error updating Heat Pump Optimizer: boom
 Traceback (most recent call last):
-  File "/home/user/heatpump_optimizer/custom_components/heatpump_optimizer/coordinator.py", line 5857, in _async_first_refresh_light
+  File "/root/mutc/custom_components/heatpump_optimizer/coordinator.py", line 5869, in _async_first_refresh_light
     await self._fetch_tibber_prices()
-  File "/home/user/heatpump_optimizer/tests/features.py", line 27734, in _fr_fetch_raises
+  File "/root/mutc/tests/features.py", line 27731, in _fr_fetch_raises
     raise RuntimeError("boom")
 RuntimeError: boom
   ok   both refresh wrappers raise a translated UpdateFailed (update_failed)
@@ -2832,20 +2832,20 @@ RuntimeError: boom
 -- Unload lifecycle and Tibber failure semantics (D10-06/07/09)
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/home/user/heatpump_optimizer/custom_components/heatpump_optimizer/coordinator.py", line 6657, in _fetch_tibber_prices
+  File "/root/mutc/custom_components/heatpump_optimizer/coordinator.py", line 6669, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/home/user/heatpump_optimizer/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "/root/mutc/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
   ok   a failed Tibber fetch raises UpdateFailed, failing the update cycle
   ok   the outage latch's UpdateFailed carries its translation (#1546)
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/home/user/heatpump_optimizer/custom_components/heatpump_optimizer/coordinator.py", line 6657, in _fetch_tibber_prices
+  File "/root/mutc/custom_components/heatpump_optimizer/coordinator.py", line 6669, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/home/user/heatpump_optimizer/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "/root/mutc/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
   ok   two failed fetches count two outage cycles (the ERROR logged once)
@@ -2885,7 +2885,7 @@ No forecast data returned for weather.home. Plans continue on the last forecast,
   ok   and the handover is single-use on the coordinator
 
 -- #236/#237/#240 — the coordinator's lifecycle seam
-/home/user/heatpump_optimizer/tests/features.py:28348: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
+/root/mutc/tests/features.py:28345: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
   cb()
 RuntimeWarning: Enable tracemalloc to get the object allocation traceback
   ok   1 ConfigEntryNotReady retries leak no listener or subscription, eager (HA 2024.3+) (#236)
@@ -3567,10 +3567,10 @@ The heat pump's operating mode entity has been unreadable for over 180 min; the 
   ok   and the very same value with the entity configured IS one -- the configuration is the whole difference
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/home/user/heatpump_optimizer/custom_components/heatpump_optimizer/coordinator.py", line 6657, in _fetch_tibber_prices
+  File "/root/mutc/custom_components/heatpump_optimizer/coordinator.py", line 6669, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/home/user/heatpump_optimizer/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "/root/mutc/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
@@ -4148,60 +4148,60 @@ No forecast data returned for weather.home. Plans continue on the last forecast,
   ok   a negative production reading is clamped to zero, not propagated
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/home/user/heatpump_optimizer/custom_components/heatpump_optimizer/coordinator.py", line 6657, in _fetch_tibber_prices
+  File "/root/mutc/custom_components/heatpump_optimizer/coordinator.py", line 6669, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/home/user/heatpump_optimizer/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "/root/mutc/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
   ok   setting away with a future return stores the override and its parsed instant
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/home/user/heatpump_optimizer/custom_components/heatpump_optimizer/coordinator.py", line 6657, in _fetch_tibber_prices
+  File "/root/mutc/custom_components/heatpump_optimizer/coordinator.py", line 6669, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/home/user/heatpump_optimizer/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "/root/mutc/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
   ok   a return time arriving as a picker string is parsed, not stored verbatim
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/home/user/heatpump_optimizer/custom_components/heatpump_optimizer/coordinator.py", line 6657, in _fetch_tibber_prices
+  File "/root/mutc/custom_components/heatpump_optimizer/coordinator.py", line 6669, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/home/user/heatpump_optimizer/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "/root/mutc/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
   ok   clearing away drops the return time with it, so a later enable starts clean
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/home/user/heatpump_optimizer/custom_components/heatpump_optimizer/coordinator.py", line 6657, in _fetch_tibber_prices
+  File "/root/mutc/custom_components/heatpump_optimizer/coordinator.py", line 6669, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/home/user/heatpump_optimizer/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "/root/mutc/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
   ok   a return time already in the past expires the override on the spot
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/home/user/heatpump_optimizer/custom_components/heatpump_optimizer/coordinator.py", line 6657, in _fetch_tibber_prices
+  File "/root/mutc/custom_components/heatpump_optimizer/coordinator.py", line 6669, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/home/user/heatpump_optimizer/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "/root/mutc/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
   ok   omitting the return time leaves the stored one alone
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/home/user/heatpump_optimizer/custom_components/heatpump_optimizer/coordinator.py", line 6657, in _fetch_tibber_prices
+  File "/root/mutc/custom_components/heatpump_optimizer/coordinator.py", line 6669, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/home/user/heatpump_optimizer/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "/root/mutc/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
@@ -4213,8 +4213,8 @@ Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTT
 No electricity price data available; skipping optimization until prices can be fetched
   ok   every entity action returns before the solve it asks for completes
   ok   every entity action's state survives a restart before any cycle completes
-heatpump_optimizer_rc2_manual_plan_manual_plan: stored instant 2026-11-02T12:26:11.698744+00:00 is ahead of the clock; bounded to 2026-11-01 08:26:11.805491+00:00
-heatpump_optimizer_rc2_manual_plan_manual_plan: stored instant 2026-11-02T12:26:11.698744+00:00 is ahead of the clock; bounded to 2026-11-01 08:26:11.809344+00:00
+heatpump_optimizer_rc2_manual_plan_manual_plan: stored instant 2026-11-01T18:11:53.461988+00:00 is ahead of the clock; bounded to 2026-10-31 14:11:53.567876+00:00
+heatpump_optimizer_rc2_manual_plan_manual_plan: stored instant 2026-11-01T18:11:53.461988+00:00 is ahead of the clock; bounded to 2026-10-31 14:11:53.571740+00:00
   ok   a manual plan applied, then cleared, each survives a restart that cancels its refresh
   ok   a store writer that races the startup read waits for it, so the persisted learned state survives the restart (D1-s2-52)
   ok   every set_thermal_parameters field that changes state survives a restart (D1-s2-53)
@@ -4456,19 +4456,19 @@ No electricity price data available; skipping optimization until prices can be f
   ok   an anchor a factor of four out IS re-expressed, and reports that it was
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/home/user/heatpump_optimizer/custom_components/heatpump_optimizer/coordinator.py", line 6657, in _fetch_tibber_prices
+  File "/root/mutc/custom_components/heatpump_optimizer/coordinator.py", line 6669, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/home/user/heatpump_optimizer/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "/root/mutc/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/home/user/heatpump_optimizer/custom_components/heatpump_optimizer/coordinator.py", line 6657, in _fetch_tibber_prices
+  File "/root/mutc/custom_components/heatpump_optimizer/coordinator.py", line 6669, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/home/user/heatpump_optimizer/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "/root/mutc/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
@@ -4476,29 +4476,29 @@ Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTT
   ok   an options write that names no rate touches neither the rate nor its samples
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/home/user/heatpump_optimizer/custom_components/heatpump_optimizer/coordinator.py", line 6657, in _fetch_tibber_prices
+  File "/root/mutc/custom_components/heatpump_optimizer/coordinator.py", line 6669, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/home/user/heatpump_optimizer/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "/root/mutc/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/home/user/heatpump_optimizer/custom_components/heatpump_optimizer/coordinator.py", line 6657, in _fetch_tibber_prices
+  File "/root/mutc/custom_components/heatpump_optimizer/coordinator.py", line 6669, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/home/user/heatpump_optimizer/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "/root/mutc/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
   ok   the two hot-water flags are coerced with bool, in both directions
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/home/user/heatpump_optimizer/custom_components/heatpump_optimizer/coordinator.py", line 6657, in _fetch_tibber_prices
+  File "/root/mutc/custom_components/heatpump_optimizer/coordinator.py", line 6669, in _fetch_tibber_prices
     else async_get_clientsession(hass)
          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/home/user/heatpump_optimizer/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "/root/mutc/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
@@ -4519,9 +4519,9 @@ Snapshot heartbeat skipped: sub-step exploded (first occurrence; repeats log at 
   ok   the cycle survives all three accessory sub-steps raising at once
 Error updating Heat Pump Optimizer: sub-step exploded
 Traceback (most recent call last):
-  File "/home/user/heatpump_optimizer/custom_components/heatpump_optimizer/coordinator.py", line 5744, in _async_update_data
+  File "/root/mutc/custom_components/heatpump_optimizer/coordinator.py", line 5753, in _async_update_data
     await self._fetch_tibber_prices()
-  File "/home/user/heatpump_optimizer/tests/features.py", line 48753, in _boom
+  File "/root/mutc/tests/features.py", line 48750, in _boom
     raise RuntimeError("sub-step exploded")
 RuntimeError: sub-step exploded
   ok   a core step raising becomes UpdateFailed, in the entity layer's own language
@@ -4650,18 +4650,16 @@ Quarantined 1 malformed snapshot(s) on load; the rest of the ring was kept
   ok   an away state with no temperatures of its own falls back to the defaults
   ok   a NaN away target leaves the configured comfort numbers as they were
   ok   economy and the open-window relax widen the solve's floor in turn, never below the absolute floor
-  ok   away sets back the weekend and holiday comfort pairs too: Saturday day and night read the away target
-  ok   and away off, or recovering, keeps the configured weekend and holiday pairs (the null control)
 Optimization failed: the solve is not the point here
 Traceback (most recent call last):
-  File "/home/user/heatpump_optimizer/custom_components/heatpump_optimizer/coordinator.py", line 6107, in async_run_optimization
+  File "/root/mutc/custom_components/heatpump_optimizer/coordinator.py", line 6119, in async_run_optimization
     result = await _await_optimize(
              ^^^^^^^^^^^^^^^^^^^^^^
         self.hass, solve_optimizer, record.inputs
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     )
     ^
-  File "/home/user/heatpump_optimizer/tests/features.py", line 51068, in _g8_cyc_mid_solve
+  File "/root/mutc/tests/features.py", line 51005, in _g8_cyc_mid_solve
     raise RuntimeError("the solve is not the point here")
 RuntimeError: the solve is not the point here
   ok   a service write during the production solve outlives the cycle (#1517)
@@ -5574,9 +5572,6 @@ RESULT r10_solver_runs fused={'relaxed': (1, 0), 'continuation': (1, 0), 'multi-
   ok   with no modulation floor configured the nameplate floor still applies
   ok   the duty floor is 0.8 x the modulation floor, never below 0.2 kW
   ok   the flow-lift fold takes the same floor: a 14 kW nameplate at 2.2 kW folds
-  ok   a hot-water-dominant window under a space plan folds no flow-bias sample; an all-space window folds one (null)
-  ok   the flow-lift gate's no-weight bound is inclusive: a 1e-6 h window folds nothing, a 2e-6 h window folds one (null)
-  ok   a hot-water share exactly at the curve share still folds; just above it does not (null)
   ok   a refused COP interval names its guard and the floor in the diagnostics
   ok   a folded COP interval clears the refusal
   ok   each guard has its own code: a freeze and a missing reading
@@ -5874,10 +5869,6 @@ RESULT r10_solver_runs fused={'relaxed': (1, 0), 'continuation': (1, 0), 'multi-
   ok   I1/I3: an ECL110 message and a peak-guard flip landing inside _update_current_state's learner awaits survive its later publishes (the lag starts from the message's value)
   ok   L3: an away-off, a boost cancel and a live-state replacement written inside the startup restore's load each end as the serial order does
   ok   the restore gate settles when the restore never starts (closed, or cancelled before its first step): a user write still lands
-  ok   R10-HOTFIX-AWAY-LIVE a reload after the away switch, before its solve published, drops the home handover: the first publish carries the restored override and the first solve plans the away band
-  ok   R10-HOTFIX-AWAY-LIVE null control: with the store inactive the handover is republished and the solve keeps the configured band
-  ok   R10-HOTFIX-AWAY-LIVE a resolve run before the session restore lands waits for it, and plans the stored override's away band
-  ok   R10-HOTFIX-AWAY-LIVE a stored override whose return has passed still expires at the resolve: home band, override off
   ok   a manual-plan clear and an apply made during the startup load each survive it
   ok   ARCH2-s2 P6: a cancelled tile solve skips its spec on this pass, so the next solve takes the next spec (behaviour change, stated in the PR)
   ok   ConfigNotices: the same offending value is created once, persistent WARNING
@@ -5901,12 +5892,6 @@ RESULT r10_solver_runs fused={'relaxed': (1, 0), 'continuation': (1, 0), 'multi-
   ok   on an unmetered switch-plus-setpoint install both interval learners replay the measured heat (null controls: an unreadable heat meter freezes, and the flow meter keeps today's freeze)
   ok   where the learner already runs it replays the measured heat, and a stale heat reading freezes it rather than falling back to the commanded draw
   ok   a configured heat meter with a stale reading freezes the COP fold rather than falling back to the commanded inference (null control: a fresh one folds)
-  ok   R10-COP-GATE E: under the window latch a heat-counter install reaches the span gate rather than the freeze (null control: latch clear reads the same)
-  ok   R10-COP-GATE E: under the window latch a measured flow heat folds its COP (null control: latch clear folds too)
-  ok   R10-COP-GATE E: a stale thermal-power entity read through observe_water still freezes the COP fold under the latch (null control: a fresh one folds)
-  ok   R10-COP-GATE E: an inferred COP (no heat reading) stays frozen under the window latch (null control: latch clear passes the freeze)
-  ok   R10-COP-GATE E: hot water learns and the probe answers under the window latch (null control: latch clear reads the same)
-  ok   R10-COP-GATE E: the buffer, draw range, system identification, house and lower floor still freeze on the window latch, and the flow-curve bias takes no sample (null control: latch clear, the bias folds and nothing reads ventilation)
   ok   the part-load factor is 1 at and below the modulation floor, 1 - derate at max power and linear between; a fixed-speed band prices no slope
   ok   pump heat at max power carries the derate and at the floor does not; null control: a zero derate is exactly cop * power
   ok   a step at max power warms the slab less with the derate on, and stays a float; null control: a step at the floor is unchanged
@@ -5919,18 +5904,10 @@ RESULT r10_solver_runs fused={'relaxed': (1, 0), 'continuation': (1, 0), 'multi-
   ok   the thermal-model options page refuses a derate at or above the band's limit on the derate field, judged against the stored band when the page posts only the derate; null controls: 0 and the default band's 0.19 pass
   ok   a pre-fill save that narrows the power band refuses a stored part-load derate the new band puts past its limit, on base, whichever band key the save carries; null controls: a derate under the narrowed limit passes, a save touching neither band key is not judged on the stored pair, and min above max is still named as such
   ok   the inverse conversion returns the draw whose derated heat is the heat asked for, below the floor, on the band and past max power, to 1e-12; on the band it needs more power than heat / cop; the band's edges are exact and a fixed-speed band inverts to itself; a day's energy converts as 24 h of its mean draw; null control: a zero derate hands the quotient back unchanged
-  ok   the savings baseline buys a derated pump's heat at the power that delivers it: on the band its draw rises with the derate; null control: a draw below the modulation floor is unchanged
+  FAIL the savings baseline buys a derated pump's heat at the power that delivers it: on the band its draw rises with the derate; null control: a draw below the modulation floor is unchanged  [cold {0.0: 3.238095238095239, 0.2: 3.238095238095239} mild {0.0: 0.14285714285714288, 0.2: 0.14285714285714288}]
   ok   the hot-water clamp's truncated steps land on their ceiling in the derated simulation, not short of it or past it, at a draw above the plain quotient's; null control: with no derate they land there too
   ok   the hot-water LP's plan, simulated with the derate, reaches the floor it was solved against: its last-step draw is the root, not heat / cop; and capped below that draw it sizes its energy ceiling by the derated heat; null control: with no derate the floor is met at a lower draw
   ok   the setpoint sweep prices a day's hot water at the draw that delivers it: with a floorless band every candidate costs more under the derate; null control: the zero-derate costs are the plain quotient's
-  ok   a top-up's increment adds exactly the heat asked for to the step's own derated heat, up or down, and costs more than the plain quotient on the band; null control: a zero derate hands the quotient back unchanged
-  ok   the cheapest-first planner buys a derated pump's heat at the draw that delivers it: one block lands the tank where the zero-derate block does, at a higher draw; capped, its spare heat is the derated heat the cap delivers and the floor is still met; null control: with no derate the same tank and the plain draw
-  ok   the anti-legionella run-up walks back along the heat a derated pump delivers at its run power: each step lifts the tank less, so the floor before the cycle starts higher; null control: no derate, the plain walk
-  ok   the floor repair's top-up and its room under the ceiling are the draws that deliver the heat at a derate: the derated tank walks the same temperatures as the zero-derate one, at higher draws; null control: with no derate the plain quotients
-  ok   the always-hot hot-water baseline buys its mean draw at the power that delivers it: on a floorless band the derate raises it; null control: below a 1 kW modulation floor, where real installs run it, unchanged
-  ok   the capacity caps turn an envelope that holds exactly the heat the model says nameplate delivers back into nameplate, under a derate too, not a cap trimmed by the derate; null control: no derate, no cap either
-  ok   the buffer-cap tightening cuts a refusing step to the draw whose derated heat the tank takes: re-simulated at the new caps nothing is refused, and the cut is shallower than the plain quotient's; null control: with no derate it refuses nothing either
-  ok   the virtual battery's charge rate is the heat the pump delivers at nameplate, derate included; null control: no derate, power times COP
 
 -- R10-HEAT-METER: a delivered-heat counter, split by the mode dwell (#2261)
   ok   a counter span closes on elapsed time, inside the learners' sample bounds, under a drifting cadence and one event-driven cycle (null control: no drift allowance overruns the bound at a 45 min cadence)
@@ -5981,26 +5958,5 @@ RESULT r10_solver_runs fused={'relaxed': (1, 0), 'continuation': (1, 0), 'multi-
   ok   a house meter holding 0 W for 4 h on change only reads 0 kW (PV covering the house); one that re-reported and then fell silent 40 min is stale
   ok   a snapshot on an unhealthy day names the input that made it so, and a healthy day names none (D15 L9)
 
--- supply switch at step boundaries (#2492, R10-SAV-ACTUATION)
-  ok   a synthetic install at cycle phase 0 and at 14 min books identical duty verdicts (#2492)
-  ok   the step tick writes the switch at the boundary of each step whose command changes
-  ok   an early cut-off holds across a step boundary the plan keeps on
-  ok   the step tick writes the plan's OFF at a boundary when nothing holds the cycle's write off the plan
-  ok   the step tick writes nothing at a boundary under a live boost across a boundary whose plan step is off
-  ok   the step tick writes nothing at a boundary under a system_identification action
-  ok   the step tick writes nothing at a boundary under a fixed (comfort) mode
-  ok   the step tick writes nothing at a boundary under a stale plan
-  ok   the step tick writes nothing at a boundary under a released entry
-  ok   the step tick writes nothing at a boundary under a step past the plan's power schedule
-  ok   unload drops the one step tick two cycles armed
-  ok   an install with no supply switch arms no step tick, where one with a switch arms it
-  ok   the step tick inside MIN_OFF of an early cut-off writes no turn_on at a step the plan turns on
-  ok   null control: the same tick with no cut on record turns the switch on as the plan says
-  ok   the step tick writes nothing at a step the plan turns off while the pump's mode blocks both channels
-  ok   null control: the same tick in a mode that blocks nothing writes the plan's OFF
-  ok   the step tick writes nothing inside a step whose boost starts mid-step
-  ok   null control: the same tick at the next boundary writes the boost's ON
-  ok   every slot the pump arbiter persists is declared in the pump_duty store domain
-
-ALL 4652 FEATURE CHECKS PASSED
-clean rc=0
+1 of 4610 FEATURE CHECKS FAILED
+rc=1
