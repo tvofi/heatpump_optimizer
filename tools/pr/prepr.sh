@@ -984,11 +984,13 @@ body_line() { # body file, head sha, title, paths file, merge base, head, [unpin
 }
 
 # Step 7e's whole body, so `--self-test` drives the code the step runs.
-# WHY THIS EXISTS (R10-FLOW-JIDOKA). Of round 10's blocked fix reviews, 25 were
-# `carry-missing`: a finding with no destination, which `pr-contract` decides
-# only after the push, with `carry_audit.py check --body`. This is that same
-# checker on the body this run is handed, so the refusal lands before review.
-# It adds no rule (decision 0012); carry_audit.py decides, unmodified.
+# WHY THIS EXISTS (R10-FLOW-JIDOKA). `pr-contract` decides a body's markers only
+# after the push, with `carry_audit.py check --body`; this is that same checker on
+# the body this run is handed, so a missing or dead marker is refused before review.
+# It does NOT judge the `carry-missing` verdict, which is fix-review.md step 10
+# (the destination holds the finding and its control): carry_audit's test is a
+# marker that names a live destination. That gap is process state (c), the step
+# followed and short of its intent: dev/audit/rca/R10-RCA-JIDOKA-YIELD.md.
 #
 # THE ROSTER IS THE ROUND'S BRANCH, FETCHED NOW. fix-review.md step 10 opens a
 # carry at the round's `handoff/audit-r<N>-roster`, never in this worktree, so
