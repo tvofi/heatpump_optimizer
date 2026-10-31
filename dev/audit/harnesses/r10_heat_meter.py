@@ -129,7 +129,7 @@ class Gate:
         self._last_house_sample = None
         self._last_house_sample_time = None
 
-    def _learning_frozen(self, *keys):
+    def _learning_frozen(self, *keys, room_air=True):
         return None
 
     def _observe_cop_health(self, observed_cop, dhw_curve=False):

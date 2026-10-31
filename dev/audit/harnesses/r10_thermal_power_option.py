@@ -86,7 +86,7 @@ class Gate:
         self._immersion_active = False
         self._flow_bias = flow_lift.FlowCurveBias()
 
-    def _learning_frozen(self, *keys):
+    def _learning_frozen(self, *keys, room_air=True):
         return None
 
     def _observe_cop_health(self, observed_cop, dhw_curve=False):
