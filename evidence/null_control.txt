@@ -1,3 +1,4 @@
+null control (base get + head self_test, http.client import added for the test's IncompleteRead):
 FAIL a truncated read then a 200 on a GET answers the 200: got ('IncompleteRead(0 bytes read, 48262 more expected)', 1), want ((200, {}, {'ok': True}), 2)
 FAIL a truncated read that persists raises the last failure after two retries: got 1, want 3
 FAIL a reset mid-read then a 200 on a GET answers the 200: got ("ConnectionResetError(104, 'reset')", 1), want ((200, {}, {'ok': True}), 2)

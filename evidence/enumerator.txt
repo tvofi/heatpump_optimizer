@@ -1,7 +1,7 @@
-edf1cba7cda43790435d1d4b5aa1b3b24562912a:dev/audit/harnesses/d6_page_anchors.py:47:        with urllib.request.urlopen(page, timeout=30) as r:
-edf1cba7cda43790435d1d4b5aa1b3b24562912a:dev/audit/harnesses/r10_main_gate_replay.py:29:    with urllib.request.urlopen(urllib.request.Request(url, headers={"Accept": "application/vnd.github+json"})) as r:
-edf1cba7cda43790435d1d4b5aa1b3b24562912a:tools/audit/seat/record_row.py:882:            with urllib.request.urlopen(req) as resp:  # nosec - fixed https host
-edf1cba7cda43790435d1d4b5aa1b3b24562912a:tools/audit/seat/record_row.py:1648:        def urlopen(req, *a, **k):
-edf1cba7cda43790435d1d4b5aa1b3b24562912a:tools/ci/ghapi.py:65:    return urllib.request.urlopen(req, timeout=30)
-edf1cba7cda43790435d1d4b5aa1b3b24562912a:tools/release/stamp.py:1826:    with urllib.request.urlopen(request, timeout=GATE_TIMEOUT_S) as response:
-edf1cba7cda43790435d1d4b5aa1b3b24562912a:tools/release/stamp.py:2214:        with urllib.request.urlopen(request, timeout=GATE_TIMEOUT_S) as response:
+dev/audit/harnesses/d6_page_anchors.py:47:        with urllib.request.urlopen(page, timeout=30) as r:
+dev/audit/harnesses/r10_main_gate_replay.py:29:    with urllib.request.urlopen(urllib.request.Request(url, headers={"Accept": "application/vnd.github+json"})) as r:
+tools/audit/seat/record_row.py:882:            with urllib.request.urlopen(req) as resp:  # nosec - fixed https host
+tools/audit/seat/record_row.py:1648:        def urlopen(req, *a, **k):
+tools/ci/ghapi.py:65:    return urllib.request.urlopen(req, timeout=30)
+tools/release/stamp.py:1826:    with urllib.request.urlopen(request, timeout=GATE_TIMEOUT_S) as response:
+tools/release/stamp.py:2214:        with urllib.request.urlopen(request, timeout=GATE_TIMEOUT_S) as response:
