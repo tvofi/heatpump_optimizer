@@ -158,7 +158,7 @@ empty skips the screen. Where each suggestion comes from is listed under
 | Return water temperature | read from the device | Suggested only while the slot is empty. |
 | Actual frequency sensor (recommended for control) | read from the device | Suggested only while the slot is empty. |
 | Capacity limited (night mode) | read from the device | Suggested only while the slot is empty. |
-| After saving | Menu | Where the flow goes after this screen. |
+| After saving | Menu | The options page's own navigation control, shown on this form too; setup continues to the finish menu whatever it says. |
 
 ### 4 · Temperature Settings
 
@@ -303,8 +303,9 @@ solved within one optimization interval.
 
 ### Reauthenticate Tibber
 
-When Tibber refuses the stored token, Home Assistant offers this screen from
-the integration's card. Enter a valid token and price updates resume.
+When Tibber refuses the stored token, Home Assistant asks you to
+re-authenticate the integration under **Settings → Devices & services**, which
+opens this screen. Enter a valid token and price updates resume.
 
 | Setting | Default | What it means |
 |---|---|---|
