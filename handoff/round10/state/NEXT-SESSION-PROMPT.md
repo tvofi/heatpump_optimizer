@@ -22,7 +22,9 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-FLOW-DESIGN-STAGES (stage carries-open, branch `handoff/r10-flow-design-stages`): `git fetch origin handoff/r10-flow-design-stages && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLOW-BODY-ONLY (stage carries-open, branch `handoff/r10-flow-body-only`): `git fetch origin handoff/r10-flow-body-only && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-OPENPR-ATOMIC (stage carries-open, branch `handoff/r10-fly-openpr-atomic`): `git fetch origin handoff/r10-fly-openpr-atomic && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-FLY-ROW-HEAD-CARRY (stage in-progress, branch `handoff/r10-fly-row-head-carry`): `git fetch origin handoff/r10-fly-row-head-carry && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-RELAY-REVIEW-FF (stage carries-open, branch `handoff/r10-fly-relay-review-ff`): `git fetch origin handoff/r10-fly-relay-review-ff && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-FLY-CARRY-DOC-CONTEXT (stage in-progress, branch `handoff/r10-fly-carry-doc-context`): `git fetch origin handoff/r10-fly-carry-doc-context && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-TRAIN-OVERLAP-GRADE (stage carries-open, branch `handoff/r10-train-overlap-grade`): `git fetch origin handoff/r10-train-overlap-grade && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-ORCH-LEDGER (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-ORCH-PLANPAGE (stage carries-open): no branch pushed yet, so nothing to fetch
@@ -35,7 +37,9 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-996-RUNNER-CLAIMS (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-ARCH-SHAPES-CLASSIFIER (stage queued): no branch pushed yet, so nothing to fetch
 - R10-FRICTION-REGRESSION (stage carries-open): no branch pushed yet, so nothing to fetch
+- R10-FLY-MUTANT-RESTORE (stage in-progress, branch `handoff/r10-fly-mutant-restore`): `git fetch origin handoff/r10-fly-mutant-restore && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-TRAIN-DEFAULTS (stage carries-open, branch `handoff/r10-fly-train-defaults`): `git fetch origin handoff/r10-fly-train-defaults && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-FLY-GH-CALL-LOG (stage in-progress, branch `handoff/r10-fly-gh-call-log`): `git fetch origin handoff/r10-fly-gh-call-log && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-CIPREDICT-RESTORING (stage queued): no branch pushed yet, so nothing to fetch
 - R10-FLY-RECORD-RED-NAMES (stage in-progress, branch `handoff/r10-fly-record-red-names`): `git fetch origin handoff/r10-fly-record-red-names && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-CANCEL-SWEEP (stage carries-open, branch `handoff/r10-fly-cancel-sweep`): `git fetch origin handoff/r10-fly-cancel-sweep && git worktree add --detach $SEAT/wt FETCH_HEAD`
