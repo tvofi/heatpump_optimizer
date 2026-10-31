@@ -70,6 +70,8 @@ TARGET = "tools/audit/seat/roster_edit.py"
 DROP = '    del g["carry"][_carry_index(g, index, match, "drop-carry")]\n'
 LIB, SYNC, AUDIT = ("tools/audit/seat/roster_lib.py",
                     "tools/audit/seat/roster_sync.py", "tools/audit/carry_audit.py")
+_MARK_LINE = next((ln for ln in (ROOT / LIB).read_text().splitlines()
+                   if ln.startswith("_CARRY_MARK = ")), "_CARRY_MARK missing")
 DETACHED = ('g = next((x for x in roster.get("groups", []) '
             'if x.get("group") == group), {})')
 
@@ -148,8 +150,9 @@ PLANTS = {
            "CARRY_CLOSED = DONE_STAGES  # L4\n"),
     "L5": (LIB, '    return ("carries-open" if pending else "done"), pending\n',
            '    return "done", pending  # L5\n'),
-    "L6": (LIB, r'_CARRY_MARK = re.compile(r" \[(implemented|moved|dismissed): ([^\]\n]+)\]\Z")',
-           r'_CARRY_MARK = re.compile(r" \[(implemented|moved|dismissed): ([^\]\n]+)\]")'),
+    # L6 reads the mark's grammar from roster_lib's own line: a second
+    # spelling of it here would be the grammar written twice (agreement.mjs).
+    "L6": (LIB, _MARK_LINE, _MARK_LINE.replace('\\Z")', '")') + "  # L6"),
     "Y1": (SYNC, '        closed, _ = roster_lib.closing_stage(g, "done", legacy or {})\n',
            '        closed = "done"  # Y1\n'),
     "R1": (AUDIT, "        elif not any(live for _, live in by):\n",
