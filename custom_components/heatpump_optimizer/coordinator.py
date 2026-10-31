@@ -5234,18 +5234,18 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         a measured heat earned, ``_async_earn_heat_basis``) voids both
         learners' evidence, so the law runs at zero confidence. A stored
         ``measured_heat`` restores the earned basis first. A changed zone
-        sensor voids its learner (``heat_loss_entity_voids``). Returns whether
-        the stored state changed, so callers can gate the one write.
-        """
+        sensor voids its learner (``heat_loss_entity_voids``) first, the stored total
+        re-expressed at the voided ratio so the law cannot write it back. Returns
+        whether the stored state changed, so callers can gate the one write."""
         heat_energy.meter_of(self).restore_basis(stored.get("house_heat_loss_basis"))
-        anchor = finite_float(stored.get("house_heat_loss_anchor"), 0.0)
+        ratio_was, lower_then = self._lower_floor_loss_ratio, finite_float(stored.get("lower_floor_loss_anchor"), 0.0)
+        swapped = self._void_heat_loss_learners(heat_loss_entity_voids(stored, self._heat_loss_anchors()), "its zone sensor changed")
+        anchor = finite_float(stored.get("house_heat_loss_anchor"), 0.0) - lower_then * (ratio_was - self._lower_floor_loss_ratio)
         live, ratio = self._heat_loss_anchors(), self._lower_floor_loss_ratio
-        current = live["house_heat_loss_anchor"]
         void = heat_loss_basis_voids(stored.get("house_heat_loss_basis"), live["house_heat_loss_basis"])
-        swapped = self._void_heat_loss_learners(heat_loss_entity_voids(stored, live), "its zone sensor changed")
         pair = heat_loss_anchor_pair(
-            (anchor, finite_float(stored.get("lower_floor_loss_anchor"), 0.0)),
-            (current, live["lower_floor_loss_anchor"]),
+            (anchor, lower_then),
+            (live["house_heat_loss_anchor"], live["lower_floor_loss_anchor"]),
             ratio, void=void, step=HOUSE_LOSS_MAX_STEP,
         )
         if pair is None:
@@ -5271,7 +5271,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             _LOGGER.warning(
                 "Learned house heat loss scale %.3f (fitted against %.4f kW/°C, %d samples) cannot be "
                 "expressed against the newly configured %.4f kW/°C: resetting to the configuration",
-                self._house_heat_loss_scale, anchor, self._house_heat_loss_samples, current,
+                self._house_heat_loss_scale, anchor, self._house_heat_loss_samples, live["house_heat_loss_anchor"],
             )
             self._house_heat_loss_samples, phi = 0, (0.0, phi[1])
         _LOGGER.info(
@@ -5279,7 +5279,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "against the configured UA %.4f -> %.4f kW/°C (confidence %.2f, %.2f; "
             "evidence voided by a later basis: %s)",
             self._house_heat_loss_scale, new_scale, ratio, new_ratio,
-            anchor, current, *phi, void,
+            anchor, live["house_heat_loss_anchor"], *phi, void,
         )
         self._apply_house_heat_loss_scale(new_scale)
         self._apply_lower_floor_loss_ratio(new_ratio)
