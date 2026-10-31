@@ -539,6 +539,31 @@ def _gate_c(inp: ArbiterInputs) -> float | None:
     return _bounded(inp, "space_setpoint", FLOW_GATE_C, FLOW_GATE_C, rounding="down")
 
 
+#: A system-identification action above this draw is its step; at or
+#: below it, its relax (the coordinator's ``heat_pump_on`` threshold).
+SYSID_ON_KW = 0.05
+
+
+def _sysid_action(inp: ArbiterInputs) -> bool:
+    return (inp.action or {}).get("mode") == "system_identification"
+
+
+def _sysid_duty(inp: ArbiterInputs) -> str | None:
+    """On a flow set-point the experiment's step is the ceiling and its relax
+    the gate (R10-CEILING-PROBE); elsewhere the baseline row holds."""
+    if not _flow_unit(inp.config):
+        return None
+    return "space" if float((inp.action or {}).get("power", 0.0)) > SYSID_ON_KW else "idle"
+
+
+def _ceiling_c(inp: ArbiterInputs) -> float | None:
+    """The flow set-point full power writes, °C, on the entity's step."""
+    return _bounded(
+        inp, "space_setpoint", configured_flow_heat_c(inp.config, FLOW_HEAT_C), FLOW_GATE_C,
+        rounding="down",
+    )
+
+
 @dataclass(frozen=True)
 class FlowCommand:
     """The space flow set-point the arbiter holds, beside its two ends, °C."""
@@ -580,10 +605,7 @@ def _flow_command(inp: ArbiterInputs, state: Any) -> FlowCommand | None:
     ):
         return None
     gate = _gate_c(inp)
-    ceiling = _bounded(
-        inp, "space_setpoint", configured_flow_heat_c(inp.config, FLOW_HEAT_C), FLOW_GATE_C,
-        rounding="down",
-    )
+    ceiling = _ceiling_c(inp)
     if gate is None or ceiling is None or not isinstance(written[0], (int, float)):
         return None
     return FlowCommand(float(written[0]), gate, ceiling)
@@ -610,6 +632,10 @@ def _flow_target(inp: ArbiterInputs, duty: str | None, now: datetime) -> float |
     on its own, so it holds the rated :data:`FLOW_HOLD_C`, or the curve
     where that is higher.
     """
+    if duty in ("space", "both") and _sysid_action(inp):
+        # The configured ceiling, never one from the learned band: a probe
+        # that wrote a learned top would censor its own re-test.
+        return _ceiling_c(inp)
     if duty in ("space", "both"):
         p_min, p_max = _band_kw(inp)
         heat_c = configured_flow_heat_c(inp.config, FLOW_HEAT_C)
@@ -742,8 +768,8 @@ def _planned_duty(coord: Any, inp: ArbiterInputs, now: datetime) -> str | None:
         return "both"
     if inp.mode not in (MODE_AUTO, MODE_ECONOMY):
         return None
-    if (inp.action or {}).get("mode") == "system_identification":
-        return None
+    if _sysid_action(inp):
+        return _sysid_duty(inp)
     held = boost.held_for(coord)
     result = None if inp.plan_stale else inp.plan
     duty = None if result is None else step_duty(result, now)

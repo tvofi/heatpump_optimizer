@@ -532,6 +532,8 @@ class SysIdView(TypedDict, total=False):
     active: bool
     samples: int
     last_run: str | None
+    kind: str
+    outcome_at: str | None
     result: SysIdResultView
 
 

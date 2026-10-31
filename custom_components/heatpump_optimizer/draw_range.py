@@ -85,6 +85,23 @@ IDLE_MARGIN = 1.25
 CEILING_TOLERANCE_K = 0.5
 #: A set-point within this of the gate commanded no heat.
 GATE_TOLERANCE_K = 0.25
+#: Ceiling-probe samples kept (``DrawRange.probes``): a few runs of the
+#: system-identification step, which writes the configured ceiling.
+PROBE_WINDOW = 48
+#: A probe-learned top needs this many step samples ...
+PROBE_MIN_SAMPLES = 12
+#: ... from at least this many runs, each contributing at least
+#: ``PROBE_MIN_RUN_SAMPLES``, whose medians agree within ``AGREE_TOLERANCE``:
+#: one night's weather or tank is not the pump's maximum.
+PROBE_MIN_RUNS = 3
+PROBE_MIN_RUN_SAMPLES = 2
+#: A probe top lapses this long after its newest run: it was learned in the
+#: experiment's mild outdoor band, and a season moves the pump's capacity.
+PROBE_LAPSE_S = 45 * 86400.0
+#: Ceiling-commanded plan samples drawing above ``1 + AGREE_TOLERANCE`` times
+#: the probe top drop the probe store at this count, so one defrost spike
+#: cannot.
+PROBE_OVERDRAW_SAMPLES = 2
 
 
 @dataclass
@@ -117,6 +134,61 @@ class DrawRange:
     commands_known: bool = True
     #: Metered draw while the held set-point was the gate, oldest first.
     idle: Deque[float] = field(default_factory=lambda: deque(maxlen=IDLE_WINDOW))
+    #: ``(run_start_s, sampled_s, drawn_kw)`` per ceiling-probe step sample,
+    #: epoch seconds, oldest first. Kept out of ``samples``: a probe is a
+    #: direct measurement of the top, not a disagreement statistic.
+    probes: Deque[tuple[float, float, float]] = field(
+        default_factory=lambda: deque(maxlen=PROBE_WINDOW)
+    )
+    #: Ceiling-commanded plan samples seen above the probe top since it was set.
+    overdraws: int = 0
+
+    def observe_probe(self, run_start_s: float, sampled_s: float, drawn_kw: float) -> None:
+        """Fold one step sample the probe commanded at the configured ceiling."""
+        self.probes.append((float(run_start_s), float(sampled_s), float(drawn_kw)))
+
+    def probe_last_s(self) -> float | None:
+        """When the newest probe sample was taken, epoch seconds, or ``None``.
+
+        The probe's clock: persisted with the store, so a restart keeps it.
+        """
+        return max((p[1] for p in self.probes), default=None)
+
+    def lapse(self, now_s: float) -> None:
+        """Drop the probe store once its newest run is ``PROBE_LAPSE_S`` old."""
+        last = self.probe_last_s()
+        if last is not None and now_s - last >= PROBE_LAPSE_S:
+            self.probes.clear()
+            self.overdraws = 0
+
+    def probe_top(self) -> float | None:
+        """The pump's maximum draw measured by the ceiling probe, or ``None``.
+
+        The median of every sample in runs of at least
+        ``PROBE_MIN_RUN_SAMPLES``, once ``PROBE_MIN_SAMPLES`` of them come
+        from ``PROBE_MIN_RUNS`` runs whose medians agree.
+        """
+        runs: dict[float, list[float]] = {}
+        for start, _, drawn in self.probes:
+            runs.setdefault(start, []).append(drawn)
+        kept = [r for r in runs.values() if len(r) >= PROBE_MIN_RUN_SAMPLES]
+        drawn = [d for r in kept for d in r]
+        if len(kept) < PROBE_MIN_RUNS or len(drawn) < PROBE_MIN_SAMPLES:
+            return None
+        top = float(np.median(drawn))
+        medians = [float(np.median(r)) for r in kept]
+        if max(medians) - min(medians) > AGREE_TOLERANCE * top:
+            return None
+        return top
+
+    def _overdraw(self, drawn_kw: float, full_ceiling: bool) -> None:
+        top = self.probe_top() if full_ceiling else None
+        if top is None or drawn_kw <= (1.0 + AGREE_TOLERANCE) * top:
+            return
+        self.overdraws += 1
+        if self.overdraws >= PROBE_OVERDRAW_SAMPLES:
+            self.probes.clear()
+            self.overdraws = 0
 
     def idle_kw(self) -> float | None:
         """The learned idle draw, or ``None`` while too few readings."""
@@ -207,6 +279,10 @@ class DrawRange:
         self.commands_known = True
         self.samples.append((float(drawn_kw), float(asked_kw)))
         self.commands.append(command)
+        self._overdraw(
+            float(drawn_kw),
+            command is not None and command[0] >= command[1] - CEILING_TOLERANCE_K,
+        )
         if self._disagrees(cfg_min):
             self.engaged = True
 
@@ -217,13 +293,17 @@ class DrawRange:
     def planned(
         self, cfg_min: float, cfg_max: float
     ) -> tuple[float, float] | None:
-        """``(min, max)`` the plan may book, or ``None``: configured stands."""
-        if not self.engaged or self.config != (float(cfg_min), float(cfg_max)):
-            return None
-        metered = self._metered_range(cfg_min, cfg_max)
-        if metered is None or metered == (cfg_min, cfg_max):
-            return None
-        return metered
+        """``(min, max)`` the plan may book, or ``None``: configured stands.
+
+        A probe top replaces the configured max under ``_metered_range``'s
+        rule without the latch: it was measured at the ceiling.
+        """
+        latched = self.engaged and self.config == (float(cfg_min), float(cfg_max))
+        metered = (self._metered_range(cfg_min, cfg_max) if latched else None) or (cfg_min, cfg_max)
+        top = self.probe_top()
+        if top is not None and top < (1.0 - AGREE_TOLERANCE) * cfg_max:
+            metered = (min(metered[0], top), min(metered[1], top))
+        return None if metered == (cfg_min, cfg_max) else metered
 
     def summary(self) -> dict[str, Any]:
         """The learned values, for the diagnostics download."""
@@ -234,6 +314,8 @@ class DrawRange:
             "observed_max_kw": None if seen is None or seen[1] is None else round(seen[1], 3),
             "idle_kw": None if (idle := self.idle_kw()) is None else round(idle, 3),
             "engaged": self.engaged,
+            "probe_samples": len(self.probes),
+            "probe_max_kw": None if (top := self.probe_top()) is None else round(top, 3),
         }
 
     def as_dict(self) -> dict[str, Any]:
@@ -246,6 +328,8 @@ class DrawRange:
             "engaged": self.engaged,
             "config": None if self.config is None else list(self.config),
             "idle": [round(v, 3) for v in self.idle],
+            "probes": [[s, t, round(d, 3)] for s, t, d in self.probes],
+            "overdraws": self.overdraws,
         }
 
     @classmethod
@@ -258,6 +342,8 @@ class DrawRange:
         against, which a reader of ``samples`` alone would misjudge.
         """
         out = cls()
+        # Absolute draws, judged against no configuration: kept whole.
+        out.probes.extend(_stored_probes(data))
         try:
             lo, hi = (float(v) for v in data["config"])
         except (TypeError, ValueError, OverflowError, KeyError, IndexError):
@@ -281,6 +367,7 @@ class DrawRange:
                 out.samples.append((drawn, asked))
                 out.commands.append(_command_cells(entry))
         out.idle.extend(_stored_idle(data.get("idle")))
+        out.overdraws = _stored_count(data.get("overdraws"))
         return out
 
 
@@ -333,6 +420,24 @@ def _stored_idle(raw: Any) -> list[float]:
         if isinstance(v, (int, float)) and not isinstance(v, bool)
         and np.isfinite(v) and v >= 0.0
     ]
+
+
+def _stored_count(raw: Any) -> int:
+    return raw if isinstance(raw, int) and not isinstance(raw, bool) and raw >= 0 else 0
+
+
+def _stored_probes(data: Any) -> list[tuple[float, float, float]]:
+    """The readable probe rows of a stored record; a bad one is dropped."""
+    raw = data.get("probes") if isinstance(data, dict) else None
+    out = []
+    for row in raw if isinstance(raw, list) else ():
+        try:
+            start, sampled, drawn = (float(v) for v in row)
+        except (TypeError, ValueError, OverflowError):
+            continue
+        if np.isfinite(start) and np.isfinite(sampled) and np.isfinite(drawn) and drawn > RUNNING_FLOOR_KW:
+            out.append((start, sampled, drawn))
+    return out
 
 
 def _command_cells(entry: Any) -> tuple[float, float] | None:
@@ -413,6 +518,8 @@ def fold(
     distorted: bool,
     defrost: bool,
     command: Any = None,
+    now_s: float | None = None,
+    probe_run_s: float | None = None,
 ) -> None:
     """Fold one interval into ``draw`` when it is a running sample.
 
@@ -422,17 +529,37 @@ def fold(
     (``pump_arbiter.flow_command``: ``written_c``, ``gate_c``,
     ``ceiling_c``), or ``None`` where nothing commands the draw. An interval
     held at the gate with no hot water asked is an idle reading.
+
+    ``probe_run_s`` is the start of the ceiling-probe step that commanded
+    this interval, epoch seconds, or ``None``; such a running sample at the
+    ceiling goes to the probe store, sampled at ``now_s``, never the window.
+    ``now_s`` also lapses that store.
     """
     space, dhw = split
+    if now_s is not None:
+        draw.lapse(now_s)
     if drawn_kw is not None and not (frozen or distorted or defrost) and command is not None and command.written_c <= command.gate_c + GATE_TOLERANCE_K and not planned_draw_runs(dhw, modulation_floor=0.0):
         draw.observe_idle(drawn_kw)
     if drawn_kw is not None and is_running_space(
         drawn_kw, space, dhw, frozen=frozen, distorted=distorted, defrost=defrost
     ):
+        if probe_run_s is not None:
+            _fold_probe(draw, drawn_kw, command, now_s, probe_run_s)
+            return
         draw.observe(
             drawn_kw, space, params.min_electrical_power, params.max_electrical_power,
             None if command is None else (command.written_c, command.ceiling_c),
         )
+
+
+def _fold_probe(
+    draw: DrawRange, drawn_kw: float, command: Any, now_s: float | None, run_s: float
+) -> None:
+    """A probe interval's running sample, kept where the ceiling commanded
+    it and it is the compressor, not the idle draw."""
+    at_ceiling = command is not None and command.written_c >= command.ceiling_c - CEILING_TOLERANCE_K
+    if at_ceiling and now_s is not None and running_kw(draw, drawn_kw) > 0.0:
+        draw.observe_probe(run_s, now_s, drawn_kw)
 
 
 def planned_range(

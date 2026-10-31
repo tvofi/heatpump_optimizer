@@ -259,7 +259,7 @@ from .price_model import (
     extend_price_series,
     pull_prices,
 )
-from .sysid import HousePlant, SysIdConfig, SystemIdentification, adoption_decision, step_detached
+from .sysid import CeilingGate, HousePlant, SysIdConfig, SystemIdentification, adoption_decision, step_detached
 from .plan_step import PLAN_STEP_MINUTES, plan_step_start
 from .tariff import CapacityTariff, PeakTracker
 from .grid_fee import (
@@ -9838,7 +9838,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # the same timestamp. Inert until a supply slot is mapped.
         _fold_flow_lift(self, now)
         power_frozen = self._learning_frozen(CONF_POWER_ENTITY)  # read once: the defrost settlement below gates on it too
-        draw_range.fold(self._accuracy.draw, self._measured_power, self._commanded_split(), ctx._thermal_params, frozen=power_frozen is not None, distorted=_cop_fold_blocked(self), defrost=defrost_window.any_defrost, command=pump_arbiter.flow_command(self))
+        draw_range.fold(self._accuracy.draw, self._measured_power, self._commanded_split(), ctx._thermal_params, frozen=power_frozen is not None, distorted=_cop_fold_blocked(self), defrost=defrost_window.any_defrost, command=pump_arbiter.flow_command(self), now_s=now.timestamp(), probe_run_s=self._sysid.probe_run_s())
 
         # T5 #16: settle every matured lead-time promise against the same
         # measured temperature the one-step sample below uses. The window
@@ -10928,9 +10928,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
     async def async_arm_system_identification(self) -> None:
         """Arm a step-response experiment for the next suitable moment."""
-        self._sysid.config.enabled = getattr(self, "_ctx", self)._config.system_identification_enabled
+        ctx = getattr(self, "_ctx", self)
+        self._sysid.config.enabled = ctx._config.system_identification_enabled
         if self._sysid.arm(
-            dt_util.now(), plant=getattr(self, "_ctx", self)._thermal_params
+            dt_util.now(), plant=ctx._thermal_params, learner_samples=self._house_heat_loss_samples,
+            ceiling=CeilingGate.of(pump_arbiter.flow_command(self), ctx._config.heat_pump_power_entity, self._accuracy.draw),
+            cycle_hours=float(ctx._config.optimization_interval) / 60.0,
         ):
             _LOGGER.info(
                 "System identification armed; it will start at the next mild, "
@@ -10959,7 +10962,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             else self._learning_frozen(CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY)
         )
         if why is not None:
-            self._sysid.abort(why)
+            self._sysid.stand_down(why, dt_util.now())
             return
         params = ctx._thermal_params
         state = ctx._current_state
@@ -10972,7 +10975,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             learner_samples=self._house_heat_loss_samples,
             max_power_kw=params.max_electrical_power,
             cop=self._thermal_model.compute_cop(state.outdoor_temperature),
-            plan_power_kw=float(self._current_action.get("power", 0.0)),
+            plan_power_kw=float((self._measured_power or 0.0) if self._sysid.ceiling else self._current_action.get("power", 0.0)),
             # The slab pair must be the configured house's own (#943).
             house=HousePlant.of_params(params),
         )
@@ -10982,11 +10985,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # keeps the plan still actuates the experiment's own command.
         boost.adopt_plan(self, {
             **self._current_action,
-            "power": float(override),
-            "power_normalized": float(
-                override / max(ctx._thermal_params.max_electrical_power, 0.1)
-            ),
-            "heat_pump_on": override > 0.05,
+            **self._sysid.booking(float(override), ctx._thermal_params.max_electrical_power),
             "mode": "system_identification",
             # T6: the experiment's draw is not the plan's -- booking it under
             # the overridden plan's reason would say "cheapest hours" or

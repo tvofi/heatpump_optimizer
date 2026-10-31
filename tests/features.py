@@ -70473,4 +70473,312 @@ R.check(
     f"stale {_tp_cop_stale!r} fresh {_tp_cop_fresh!r}",
 )
 
+# --- R10-CEILING-PROBE: the experiment writes the ceiling; a probe learns the top ---
+# Synthetic throughout. A system-identification step on a flow set-point
+# install wrote the baseline hold, not its step (the arbiter returned the
+# baseline duty), so a set-point install never commanded the ceiling and the
+# draw window stayed censored at the top. The step now writes the configured
+# ceiling and relax the gate; a converged house runs a probe-only experiment;
+# probe samples go to their own store, whose top replaces the configured max.
+import asyncio as _cp_asyncio  # noqa: E402
+
+from heatpump_optimizer import sysid as _cp_sys  # noqa: E402
+
+_CP_T0 = datetime(2026, 1, 12, 1, 0, tzinfo=UTC)
+_CP_FLOW = {"space_setpoint_entity": _BST_ENTITY, "space_setpoint_unit": "flow",
+            "pump_duty_mode": "control"}
+
+
+class _CpCoord:
+    """A weak-referenceable stand-in: the boost table keys on the coordinator."""
+
+
+def _cp_inp(action, config=_CP_FLOW, kw=1.5):
+    return _BstNS(
+        config=dict(config), hass=FakeHass({_BST_ENTITY: FakeState("40", attributes={"min": 20, "max": 70})}),
+        mode="auto", plan_stale=False, action=action,
+        state=_BstNS(outdoor_temperature=0.0, buffer_tank_temperature=40.0, floor_return_temperature=None),
+        thermal=_BstNS(params=None, curve_flow_temp=lambda _o: None),
+        params=_BstNS(min_electrical_power=1.5, max_electrical_power=3.0),
+        plan=_BstNS(timestamps=[_CP_T0], power_schedule=[kw], dhw_power_schedule=[0.0]),
+    )
+
+
+_cp_step = {"mode": "system_identification", "power": 5.0}
+_cp_relax = {"mode": "system_identification", "power": 0.0}
+_cp_duties = [_bst_pa._planned_duty(_CpCoord(), _cp_inp(a, c), _CP_T0) for a, c in (
+    (_cp_step, _CP_FLOW), (_cp_relax, _CP_FLOW), (_cp_step, {}),
+    ({"mode": "auto", "power": 5.0}, _CP_FLOW))]
+R.check(
+    "a system-identification step on a flow set-point serves the space duty and "
+    "its relax the idle duty (gate); off a flow set-point the baseline row holds, "
+    "and a plan action follows the plan's own duty (null controls)",
+    _cp_duties == ["space", "idle", None, "space"],
+    f"{_cp_duties}",
+)
+_cp_ceiling = _bst_pa._ceiling_c(_cp_inp(_cp_step))
+_cp_sysid_write = _bst_pa._flow_target(_cp_inp(_cp_step), "space", _CP_T0)
+_cp_plan_floor = _bst_pa._flow_target(_cp_inp({"mode": "auto"}, kw=1.5), "space", _CP_T0)
+_cp_plan_full = _bst_pa._flow_target(_cp_inp({"mode": "auto"}, kw=3.0), "space", _CP_T0)
+R.check(
+    "the experiment's step writes the CONFIGURED ceiling whatever the band's p_max "
+    "(here 3.0 kW, as a learned top clamps it), and a plan step at that band's full "
+    "level still writes the ceiling, so plan-driven ceiling samples keep accruing; "
+    "a plan step at the floor writes below it (control)",
+    _cp_ceiling is not None and _cp_sysid_write == _cp_ceiling == _cp_plan_full
+    and _cp_plan_floor < _cp_ceiling,
+    f"ceiling {_cp_ceiling} sysid {_cp_sysid_write} full {_cp_plan_full} floor {_cp_plan_floor}",
+)
+
+
+def _cp_exp():
+    return _cp_sys.SystemIdentification(_cp_sys.SysIdConfig(enabled=True))
+
+
+def _cp_gate(days=None, learned=False, metered=True):
+    last = None if days is None else _CP_T0 - timedelta(days=days)
+    return _cp_sys.CeilingGate(metered=metered, last_probe=last, top_learned=learned)
+
+
+def _cp_arm(gate, samples=482):
+    e = _cp_exp()
+    return e, e.arm(_CP_T0, learner_samples=samples, ceiling=gate)
+
+
+_cp_conv, _cp_conv_ok = _cp_arm(None)
+_cp_probe, _cp_probe_ok = _cp_arm(_cp_gate())
+_cp_fit, _cp_fit_ok = _cp_arm(_cp_gate(), samples=150)
+_cp_nometer, _cp_nometer_ok = _cp_arm(_cp_gate(metered=False))
+R.check(
+    "#2808: a converged house is refused AT ARM with the published reason and its "
+    "time; on a metered flow set-point install it arms the ceiling probe instead; an "
+    "unconverged house arms the fit (control); an unmetered set-point install refuses",
+    not _cp_conv_ok and _cp_conv.result.reason == "house already converged"
+    and _cp_conv.outcome_at == _CP_T0 and _cp_conv.phase == _cp_sys.PHASE_IDLE
+    and _cp_probe_ok and _cp_probe.kind == _cp_sys.KIND_PROBE
+    and _cp_fit_ok and _cp_fit.kind == _cp_sys.KIND_FIT
+    and not _cp_nometer_ok and _cp_nometer.result.reason == _cp_sys.NO_METER_REASON,
+    f"{_cp_conv.result.reason!r} {_cp_probe.kind} {_cp_fit.kind} {_cp_nometer.result.reason!r}",
+)
+_cp_clock = [_cp_arm(_cp_gate(days=d, learned=l))[1] for d, l in (
+    (6.9, False), (7.0, False), (29.9, True), (30.0, True))]
+R.check(
+    "the probe's clock: 7 days while no top is learned, 30 once one is, each "
+    "boundary on both sides",
+    _cp_clock == [False, True, False, True],
+    f"{_cp_clock}",
+)
+
+_CP_HOUSE = _cp_sys.HousePlant(ua=0.2, capacity=40.0, gains=0.3)
+
+
+def _cp_night(exp, draws, price=0.1, horizon=None, room=20.0, house=_CP_HOUSE):
+    """Drive ``exp`` one 30-minute cycle per metered draw from 01:00."""
+    horizon = np.linspace(0.05, 1.0, 96) if horizon is None else horizon
+    out = []
+    for i, d in enumerate(draws):
+        out.append(exp.step(_CP_T0 + timedelta(minutes=30 * i), room, 5.0, price, horizon, 482,
+                            5.0, cop=3.0, plan_power_kw=d, house=house))
+    return out
+
+
+_cp_run = _cp_arm(_cp_gate())[0]
+_cp_overrides = _cp_night(_cp_run, [0.3, 3.0, 3.0, 3.0, 3.0, 0.4, 0.3, 0.3, 0.3, 0.3])
+R.check(
+    "a converged house's probe steps at once at the configured maximum for "
+    "step_hours, relaxes at zero, fits and adopts nothing, publishes its sample "
+    "count and drawn median, and leaves the fit's clock unmoved",
+    _cp_overrides[:5] == [5.0] * 5 and _cp_overrides[5:9] == [0.0] * 4
+    and _cp_run.phase == _cp_sys.PHASE_DONE and not _cp_run.result.completed
+    and _cp_run.result.reason == "ceiling probe completed: 4 step samples, drawn median 3.00 kW"
+    and _cp_run.last_run is None,
+    f"{_cp_overrides} {_cp_run.phase} {_cp_run.result.reason!r} {_cp_run.last_run}",
+)
+_cp_dear = _cp_arm(_cp_gate())[0]
+_cp_dear_out = _cp_night(_cp_dear, [3.0] * 4, price=0.9)
+R.check(
+    "the price gate holds the probe: above the horizon's 30th percentile it never "
+    "starts (the cheap night above is the control)",
+    _cp_dear_out == [None] * 4 and _cp_dear.phase == _cp_sys.PHASE_ARMED,
+    f"{_cp_dear_out} {_cp_dear.phase}",
+)
+
+
+def _cp_bound(capacity):
+    e = _cp_exp()
+    e._baseline_temp = 20.0
+    return e._ceiling_step_hours(5.0, 5.0, 3.0, _cp_sys.HousePlant(ua=0.2, capacity=capacity, gains=0.3))
+
+
+_cp_bounds = [_cp_bound(c) for c in (40.0, 6.0, 4.0, 2.0)]
+_cp_tight = _cp_arm(_cp_gate())[0]
+_cp_tight_out = _cp_night(_cp_tight, [3.0], house=_cp_sys.HousePlant(ua=0.2, capacity=2.0, gains=0.3))
+R.check(
+    "the comfort bound on a ceiling step: a roomy house steps step_hours, a tighter "
+    "one a shorter step in whole cycles, and one where even an hour at the ceiling "
+    "passes the excursion refuses with the published reason",
+    _cp_bounds == [2.0, 1.5, 1.0, None] and _cp_tight_out == [None]
+    and _cp_tight.phase == _cp_sys.PHASE_ABORTED
+    and _cp_tight.result.reason == _cp_sys.CEILING_COMFORT_REASON,
+    f"{_cp_bounds} {_cp_tight_out} {_cp_tight.result.reason!r}",
+)
+
+# The fit on a set-point install: settle, then a ceiling step whose heat is
+# the metered draw, and which feeds the probe store (``probe_run_s``).
+_cp_sfit = _cp_arm(_cp_gate(), samples=150)[0]
+_cp_sfit_out = []
+_cp_runs_seen = []
+for _i, _d in enumerate([1.0, 1.0, 1.0, 2.8, 2.9, 3.0, 3.1]):
+    _cp_sfit_out.append(_cp_sfit.step(_CP_T0 + timedelta(minutes=30 * _i), 20.0, 5.0, 0.1,
+                                      np.linspace(0.05, 1.0, 96), 150, 5.0, cop=3.0,
+                                      plan_power_kw=_d))
+    _cp_runs_seen.append(_cp_sfit.probe_run_s())
+_cp_step_rows = [s.power_kw for s in _cp_sfit.samples if s.phase == _cp_sys.PHASE_STEP]
+R.check(
+    "the fit on a flow set-point steps at the configured maximum, books each step "
+    "sample's heat as the METERED draw times COP (not the sized step), and its step "
+    "exposes the run stamp the probe store keys on",
+    _cp_sfit_out[3:] == [5.0] * 4 and _cp_step_rows == [2.9 * 3.0, 3.0 * 3.0, 3.1 * 3.0]
+    and _cp_runs_seen[:2] == [None, None] and _cp_runs_seen[3] is not None,
+    f"{_cp_sfit_out} {_cp_step_rows} {_cp_runs_seen}",
+)
+
+
+def _cp_store(runs, start=0.0):
+    """A probe store holding ``runs``, one list of draws per run, a day apart."""
+    d = _dr.DrawRange()
+    for r, draws in enumerate(runs):
+        for j, kw in enumerate(draws):
+            d.observe_probe(start + r * 86400.0, start + r * 86400.0 + 1800.0 * (j + 1), kw)
+    return d
+
+
+_cp_tops = [_cp_store(r).probe_top() for r in (
+    [[3.0] * 4, [3.0] * 4, [3.0] * 3],  # 11 samples, 3 runs
+    [[3.0] * 6, [3.0] * 6],  # 12 samples, 2 runs
+    [[3.0] * 4, [3.0] * 4, [3.0] * 4],  # 12 samples, 3 runs
+    [[3.0] * 5, [3.0] * 6, [3.0]],  # third run under 2 samples
+    [[3.0] * 4, [3.0] * 4, [4.0] * 4],  # run medians disagree
+)]
+R.check(
+    "a probe top needs 12 samples from 3 runs of at least 2, whose medians agree: "
+    "11 samples, 2 runs, a 1-sample run or a disagreeing run leave it unlearned",
+    _cp_tops == [None, None, 3.0, None, None],
+    f"{_cp_tops}",
+)
+_cp_rng = np.random.default_rng(11)
+_cp_pump = _cp_store([list(3.0 * _cp_rng.uniform(0.95, 1.05, 4)) for _ in range(3)])
+_cp_pump_top = _cp_pump.probe_top()
+_cp_pump_null = _cp_store([[3.0] * 4] * 3).planned(1.0, 3.2)
+R.check(
+    "a synthetic pump with a 3.0 kW maximum is recovered within AGREE_TOLERANCE and "
+    "replaces a 5 kW configured max; a top within the tolerance of the configured "
+    "max leaves it standing (null)",
+    _cp_pump_top is not None and abs(_cp_pump_top - 3.0) <= _dr.AGREE_TOLERANCE * 3.0
+    and _cp_pump.planned(1.0, 5.0) == (1.0, _cp_pump_top) and _cp_pump_null is None,
+    f"{_cp_pump_top} {_cp_pump.planned(1.0, 5.0)} {_cp_pump_null}",
+)
+
+
+def _cp_overdraw(ratio, n):
+    """A top learned at 5 degC (3.0 kW), then ``n`` ceiling-commanded plan samples
+    at -10 degC drawing ``ratio`` times it."""
+    d = _cp_store([[3.0] * 4] * 3)
+    for _ in range(n):
+        d.observe(3.0 * ratio, 5.0, 1.0, 5.0, (55.0, 55.0))
+    return d.probe_top()
+
+
+_cp_od = [_cp_overdraw(r, n) for r, n in ((1.2, 1), (1.2, 2), (1.1, 5))]
+R.check(
+    "a ceiling-commanded plan sample drawing 20 % above the probe top drops the "
+    "store at the second such sample, not the first; 10 % above never does (null)",
+    _cp_od == [3.0, None, 3.0],
+    f"{_cp_od}",
+)
+_cp_sub = _cp_store([[3.0] * 4] * 3)
+for _ in range(5):
+    _cp_sub.observe(3.6, 2.0, 1.0, 5.0, (40.0, 55.0))
+R.check(
+    "an overdraw under a sub-ceiling set-point is no test of the top: the store stands",
+    _cp_sub.probe_top() == 3.0,
+    f"{_cp_sub.probe_top()}",
+)
+
+
+def _cp_fold(d, drawn, *, now_s, run=1.0, distorted=False, command=None):
+    _dr.fold(d, drawn, (5.0, 0.0), _dr_params(1.0, 5.0), frozen=False, distorted=distorted,
+             defrost=False, now_s=now_s, probe_run_s=run,
+             command=_BstNS(written_c=55.0, gate_c=25.0, ceiling_c=55.0) if command is None else command)
+
+
+_cp_f = _dr.DrawRange()
+for _ in range(_dr.MIN_IDLE):
+    _cp_f.observe_idle(1.4)
+_cp_fold(_cp_f, 1.4, now_s=10.0)
+_cp_fold(_cp_f, 6.0, now_s=20.0, distorted=True)
+_cp_fold(_cp_f, 3.0, now_s=30.0, command=_BstNS(written_c=40.0, gate_c=25.0, ceiling_c=55.0))
+_cp_fold(_cp_f, 3.0, now_s=40.0)
+R.check(
+    "fold routes a probe interval to the probe store only when it is the compressor "
+    "at the ceiling: a gate-held 1.4 kW at the learned 1.4 kW idle, an immersion "
+    "step (distorted) and a sub-ceiling command are dropped; the window gets none",
+    list(_cp_f.probes) == [(1.0, 40.0, 3.0)] and len(_cp_f.samples) == 0,
+    f"{list(_cp_f.probes)} {len(_cp_f.samples)}",
+)
+_cp_lapse = _cp_store([[3.0] * 4] * 3)
+_cp_last = _cp_lapse.probe_last_s()
+_cp_fold(_cp_lapse, 0.1, now_s=_cp_last + _dr.PROBE_LAPSE_S - 1.0, run=None)
+_cp_kept = _cp_lapse.probe_top()
+_cp_fold(_cp_lapse, 0.1, now_s=_cp_last + _dr.PROBE_LAPSE_S, run=None)
+R.check(
+    "a probe top lapses 45 days after its newest sample, not a second before",
+    _cp_kept == 3.0 and _cp_lapse.probe_top() is None,
+    f"{_cp_kept} {_cp_lapse.probe_top()}",
+)
+_cp_back = _dr.DrawRange.from_dict(_cp_store([[3.0] * 4] * 3, start=1.7e9).as_dict())
+_cp_restart_gate = _cp_sys.CeilingGate.of(_BstNS(), "sensor.hp_power", _cp_back)
+_cp_after = _cp_sys.SystemIdentification(_cp_sys.SysIdConfig(enabled=True))
+_cp_due_at = datetime.fromtimestamp(_cp_back.probe_last_s(), UTC)
+R.check(
+    "the probe clock survives a restart: the store round-trips through the record "
+    "with its top and newest stamp, and a fresh experiment reads the clock from it "
+    "(refused 29 days on, armed at 30)",
+    _cp_back.probe_top() == 3.0
+    and not _cp_after.arm(_cp_due_at + timedelta(days=29), learner_samples=482, ceiling=_cp_restart_gate)
+    and _cp_after.arm(_cp_due_at + timedelta(days=30), learner_samples=482, ceiling=_cp_restart_gate),
+    f"{_cp_back.probe_top()} {_cp_after.result.reason!r}",
+)
+
+
+def _cp_coord(samples, written=(40.0, _BST_T0), power_entity="sensor.hp_power"):
+    data = {"tibber_token": "x", "weather_entity": "weather.home", **_CP_FLOW,
+            "system_identification_enabled": True}
+    if power_entity:
+        data["heat_pump_power_entity"] = power_entity
+    coord = _DrCoord(FakeHass({_BST_ENTITY: FakeState("40", attributes={"min": 20, "max": 70})}),
+                     _dr_entry(data=data))
+    if written is not None:
+        _bst_pa.state_for(coord).written["space_setpoint"] = written
+    coord._house_heat_loss_samples = samples
+
+    async def _no_refresh():
+        return None
+
+    coord.async_request_refresh = _no_refresh
+    _cp_asyncio.run(coord.async_arm_system_identification())
+    return coord._sysid
+
+
+_cp_wired = [_cp_coord(*a) for a in ((482,), (482, None), (482, (40.0, _BST_T0), None))]
+R.check(
+    "the coordinator wires the gate: a converged set-point install arms the probe; "
+    "with no flow command it refuses as converged; with no power meter it refuses "
+    "with the meter reason",
+    _cp_wired[0].kind == _cp_sys.KIND_PROBE and _cp_wired[0].active
+    and _cp_wired[1].result.reason == "house already converged"
+    and _cp_wired[2].result.reason == _cp_sys.NO_METER_REASON,
+    f"{[(w.kind, w.phase, w.result.reason) for w in _cp_wired]}",
+)
+
 sys.exit(R.close("FEATURE CHECKS"))
