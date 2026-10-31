@@ -175,7 +175,21 @@ def check_file(path: Path, conf: frozenset[str] | None = None) -> list[str]:
         payload, conf if conf is not None else entry_keys(*default_const_paths()))
     if not isinstance(payload, dict) or payload.get("format") != FORMAT:
         found.insert(0, f"format is not {FORMAT!r}")
-    return found
+    return found + untimed(payload)
+
+
+def untimed(payload: object) -> list[str]:
+    """A window bound or a row's update time that is not an ISO time: a replay
+    cannot place it, and a writer that nulled it wrote no recorded day."""
+    if not isinstance(payload, dict):
+        return []
+    window = payload.get("window") or {}
+    found = [f"window.{k}: not an ISO time" for k in ("start", "end")
+             if not (isinstance(window.get(k), str) and _doc.ISO_TIME.match(window[k]))]
+    bad = sum(1 for rows in (payload.get("states") or {}).values() for row in rows or []
+              if not (isinstance(row, list) and isinstance(row[0], str)
+                      and _doc.ISO_TIME.match(row[0])))
+    return found + ([f"states: {bad} row(s) with no ISO update time"] if bad else [])
 
 
 # --- reading the install -----------------------------------------------------
@@ -475,9 +489,13 @@ def build_export(
             f"{len(raw['inputs'])} mapped input(s): {', '.join(quiet)} (masked ids; "
             "is this the recorder Home Assistant writes?)")
     try:
-        return _doc.seal(raw, conf)
+        sealed = _doc.seal(raw, conf)
     except _doc.Refused as err:
         raise SystemExit(str(err)) from None
+    if untimed(sealed):
+        raise SystemExit("refusing to write: sealing lost the document's times: "
+                         + "; ".join(untimed(sealed)))
+    return sealed
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])

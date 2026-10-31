@@ -1150,6 +1150,17 @@ def mask_checks() -> list[tuple[str, bool, str]]:
     res.append(("mask:seal_refuses_unmapped_id_naming_class_not_token",
                 why != "sealed" and "not masked" in why and "exempelgatan" not in why.lower(),
                 why[:300]))
+    # A document whose times a writer nulled (the 2026-10-31 export) is refused.
+    nulled = json.loads(json.dumps(fixture))
+    nulled["window"]["start"] = None
+    for rows in nulled["states"].values():
+        for r in rows:
+            r[0] = None
+    found = export.check_file(_written(nulled))
+    res.append(("mask:check_refuses_a_document_with_its_times_nulled",
+                "window.start: not an ISO time" in found
+                and any(f.startswith("states: ") and "no ISO update time" in f for f in found),
+                "; ".join(found[-2:])))
     res.append(("mask:null_committed_fixture_passes_the_check",
                 not export.check_file(FIXTURES / "synthetic-dhw-only.json"), "check_file"))
     return res
@@ -1205,6 +1216,22 @@ def leak_copy_checks() -> list[tuple[str, bool, str]]:
                         "sensor.outdoor": [row("-3.0", None)], "sensor.hpo_out": []},
                        {**base, "door_pin": 4829137})
     res.append(("leak_copy:null_number_inside_a_longer_one_sealed", doc is not None, why))
+    # A text state dropped for its shape ("2026-01", a firmware date) is no
+    # credential: its copy inside every ISO time must neither refuse nor null them.
+    doc, why = _sealed({"sensor.indoor": [row("21.5", None)],
+                        "sensor.outdoor": [row("2026-01", None), row("-3.0", None)],
+                        "sensor.hpo_out": []}, base)
+    res.append(("leak_copy:dropped_text_inside_timestamps_keeps_them",
+                doc is not None and doc["window"]["start"] is not None
+                and all(r[0] == t for rows in doc["states"].values() for r in rows)
+                and doc["states"]["sensor.outdoor_temp"][0][1] is None, why or "sealed"))
+    # The same text under a credential key: its copy in a time is chance, not a leak.
+    doc, why = _sealed({"sensor.indoor": [row("21.5", {"serial": "2026-01"})],
+                        "sensor.outdoor": [row("-3.0", None)], "sensor.hpo_out": []}, base)
+    res.append(("leak_copy:credential_text_inside_timestamps_keeps_them",
+                doc is not None and doc["window"]["start"] is not None
+                and all(r[0] == t for rows in doc["states"].values() for r in rows),
+                why or "sealed"))
     # A device's serial attribute reading "unavailable", and states that do.
     doc, why = _sealed({"sensor.indoor": [row("unavailable", {"serial_number": "unavailable"})],
                         "sensor.outdoor": [row("unknown", {"serial": "unknown"})],

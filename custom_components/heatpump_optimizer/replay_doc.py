@@ -383,16 +383,24 @@ def sanitise(raw: Json, conf: frozenset[str], dropped: list[str]) -> Json:
     return cast(Json, clean_value(out, dropped))  # a dict cleans to a dict
 
 
+class Credential(str):
+    """A dropped value that sat under a credential-named key: its copy in a kept
+    string is dropped too, and a copy as a number refuses the document."""
+
+
 def _collect_strings(node: object, into: list[str], secret: bool = False) -> None:
-    """Collect what the leak check must not find again: every value under a
-    credential-named key, and every string that fails ``text_ok`` elsewhere.
+    """Collect what was dropped: every value under a credential-named key, as a
+    ``Credential`` the leak check must not find again, and every string that
+    fails ``text_ok`` elsewhere, counted only.
     A plain label dropped only for sitting under an unlisted key ("Hot water",
     a friendly name) may legitimately appear elsewhere, so it is not collected."""
     if isinstance(node, bool) or node is None:
         return
     if isinstance(node, (str, int, float)):
         text = str(node)
-        if text and (secret or (isinstance(node, str) and not text_ok(node))):
+        if text and secret:
+            into.append(Credential(text))
+        elif text and isinstance(node, str) and not text_ok(node):
             into.append(text)
     elif isinstance(node, dict):
         for key, value in node.items():
@@ -640,42 +648,46 @@ def _copy(value: str) -> re.Pattern[str]:
     return re.compile(rf"(?<![A-Za-z0-9]){re.escape(value)}(?![A-Za-z0-9])")
 
 
-def _drop_copies(node: object, copies: list[re.Pattern[str]]) -> object:
-    """``node`` with every string holding a copy of a dropped value nulled."""
-    if isinstance(node, dict):
-        return {k: _drop_copies(v, copies) for k, v in node.items()}
-    if isinstance(node, list):
-        return [_drop_copies(v, copies) for v in node]
-    if isinstance(node, str) and any(c.search(node) for c in copies):
-        return None
-    return node
-
-
 _ROW_FIELDS = ("updated", "state", "attributes", "reported")
 
 
-def _copy_places(node: object, copies: list[re.Pattern[str]], path: str = "") -> set[str]:
-    """Where a copy survives, as a place and never the value: a state row's
-    field by name (``states[<masked id>].attributes.<key>``), list items as ``[]``."""
+def _scan(node: object, path: str, found: dict[str, set[int]],
+          creds: list[re.Pattern[str]]) -> object:
+    """``node`` with each kept string holding a credential's copy nulled, and
+    ``found`` the place of every copy that cannot be dropped (a number, a key)
+    -- the place only. An ISO time is never a copy: a credential that reads
+    like a date fragment ("2026-10") sits inside every timestamp by chance.
+    Text dropped for its shape alone is not searched: a string holding it
+    breaks the same shape rule, so ``sanitise`` dropped that string too."""
     if path == "states" and isinstance(node, dict):
-        return _row_places(node, copies)
+        return {eid: [[_scan(cell, f"states[{eid}].{field}", found, creds)
+                       for field, cell in zip(_ROW_FIELDS, row)]
+                      if isinstance(row, list) else row for row in (rows or [])]
+                for eid, rows in node.items()}
     if isinstance(node, dict):
-        found: set[str] = set()
-        for key, value in node.items():
-            found |= ({f"{path or '<top>'}: a key"} if any(c.search(str(key)) for c in copies)
-                      else _copy_places(value, copies, f"{path}.{key}" if path else str(key)))
-        return found
+        for key in node:
+            _hit(str(key), f"{path or '<top>'}: a key", found, creds)
+        return {k: _scan(v, f"{path}.{k}" if path else str(k), found, creds)
+                for k, v in node.items()}
     if isinstance(node, list):
-        return set().union(*(_copy_places(v, copies, f"{path}[]") for v in node))
-    hit = not isinstance(node, bool) and node is not None \
-        and any(c.search(json.dumps(node)) for c in copies)
-    return {path} if hit else set()
+        return [_scan(v, f"{path}[]", found, creds) for v in node]
+    return _scan_leaf(node, path, found, creds)
 
 
-def _row_places(states: Json, copies: list[re.Pattern[str]]) -> set[str]:
-    return {place for eid, rows in states.items() for row in (rows or [])
-            for field, cell in zip(_ROW_FIELDS, row if isinstance(row, list) else [])
-            for place in _copy_places(cell, copies, f"states[{eid}].{field}")}
+def _scan_leaf(node: object, path: str, found: dict[str, set[int]],
+               creds: list[re.Pattern[str]]) -> object:
+    if isinstance(node, str) and not ISO_TIME.match(node) and any(c.search(node) for c in creds):
+        return None
+    if isinstance(node, (int, float)) and not isinstance(node, bool):
+        _hit(json.dumps(node), path, found, creds)
+    return node
+
+
+def _hit(text: str, place: str, found: dict[str, set[int]],
+         copies: list[re.Pattern[str]]) -> None:
+    for i, copy in enumerate(copies):
+        if copy.search(text):
+            found.setdefault(place, set()).add(i)
 
 
 def seal(raw: Json, conf: frozenset[str]) -> Json:
@@ -685,17 +697,15 @@ def seal(raw: Json, conf: frozenset[str]) -> Json:
     rule of ``refusals``, an unmasked id or an address-like token among them."""
     dropped: list[str] = []
     clean = sanitise(raw, conf, dropped)
-    copies = [_copy(v) for v in sorted({s for s in dropped if len(s) >= LEAK_MIN_CHARS
-                                         and s.lower() not in STATE_WORDS})]
-    clean = cast(Json, _drop_copies(clean, copies))
-    blob = json.dumps(clean, sort_keys=True)
-    leaked = [c for c in copies if c.search(blob)]
-    if leaked:
-        places = sorted(_copy_places(clean, leaked))
+    creds = sorted({str(s) for s in dropped if isinstance(s, Credential)
+                    and len(s) >= LEAK_MIN_CHARS and s.lower() not in STATE_WORDS})
+    found: dict[str, set[int]] = {}
+    clean = cast(Json, _scan(clean, "", found, [_copy(v) for v in creds]))
+    if found:
         raise Refused(
-            f"refusing to write: {len(leaked)} dropped credential value(s) "
-            "survive elsewhere in the payload, at " + (", ".join(places[:8]) or "a key")
-        )
+            f"refusing to write: {len(set().union(*found.values()))} dropped "
+            "credential value(s) survive elsewhere in the payload, at "
+            + ", ".join(sorted(found)[:8]))
     left = refusals(clean, conf)
     if left:
         raise Refused("refusing to write: " + "; ".join(left[:5]))
