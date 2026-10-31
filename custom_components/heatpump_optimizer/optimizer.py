@@ -324,6 +324,25 @@ def _baseline_power_list(baseline_power: np.ndarray | None) -> list[float]:
     return [float(v) for v in np.asarray(baseline_power, dtype=float)]
 
 
+def _weather_loss_factors(
+    model: ThermalModel, wind_speeds: np.ndarray, precipitation: np.ndarray, n_steps: int
+) -> np.ndarray:
+    """Each step's heat loss over the same house's calm, dry loss: the weather's share alone.
+
+    Dividing by the unscaled nameplate instead let the learned
+    `house_heat_loss_scale` through, so a house that learned a scale above 1.1
+    read as "weather turning" under a flat forecast, and every heating step
+    said preheat_weather (live defect, tvofi 2026-10-30).
+    """
+    base_loss = max(model.params.heat_loss_coefficient, 0.001)
+    calm_loss = max(model.effective_heat_loss_coefficient(base_loss), 1e-9)
+    return np.array([
+        model.effective_heat_loss_coefficient(base_loss, wind_speeds[i], precipitation[i])
+        / calm_loss
+        for i in range(n_steps)
+    ])
+
+
 def _baseline_target(comfort_targets: np.ndarray | None, i: int, default: float) -> float:
     """The thermostat's setpoint at step ``i``: the comfort schedule's, else ``default``."""
     return _baseline_targets(comfort_targets, i + 1, default)[i]
@@ -3437,20 +3456,9 @@ class HeatPumpOptimizer:
         solar_gains_per_step = np.array([
             self.model.compute_solar_gain(sr) for sr in solar_radiation
         ])
-        # The factor is the weather's share alone: each step's effective loss
-        # over the same house's calm, dry loss. Dividing by the unscaled
-        # nameplate instead let the learned `house_heat_loss_scale` through,
-        # so a house that learned a scale above 1.1 read as "weather turning"
-        # under a flat forecast and every heating step said preheat_weather.
-        base_loss = max(self.model.params.heat_loss_coefficient, 0.001)
-        calm_loss = max(self.model.effective_heat_loss_coefficient(base_loss), 1e-9)
-        forecast_heat_loss_factors = np.array([
-            self.model.effective_heat_loss_coefficient(
-                base_loss, wind_speeds[i], precipitation[i],
-            )
-            / calm_loss
-            for i in range(n_steps)
-        ])
+        forecast_heat_loss_factors = _weather_loss_factors(
+            self.model, wind_speeds, precipitation, n_steps
+        )
 
         # --- Manual plan pins ------------------------------------------
         # Normalise both channels to writable float arrays of horizon length so
