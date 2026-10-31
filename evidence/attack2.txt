@@ -1,0 +1,60 @@
+== head
+RESULT edit=both x1.5        swap=none          one=(0.8238, 1.943, 400, 400) two=(0.8238, 1.943, 400, 400) AGREE
+RESULT edit=both x1.5        swap=lower         one=(0.8238, 1.0, 400, 0) two=(0.8238, 1.0, 400, 0) AGREE
+RESULT edit=both x1.5        swap=indoor        one=(1.0, 1.943, 0, 400) two=(1.0, 1.943, 0, 400) AGREE
+RESULT edit=both x1.5        swap=both          one=(1.0, 1.0, 0, 0) two=(1.0, 1.0, 0, 0) AGREE
+RESULT edit=both x1.5        swap=lower removed one=(0.8238, 1.0, 400, 0) two=(0.8238, 1.0, 400, 0) AGREE
+RESULT edit=owner 0.2/0.3    swap=none          one=(0.8185, 1.943, 400, 400) two=(0.8185, 1.943, 400, 400) AGREE
+RESULT edit=owner 0.2/0.3    swap=lower         one=(0.8156, 1.0, 400, 0) two=(0.8156, 1.0, 400, 0) AGREE
+RESULT edit=owner 0.2/0.3    swap=indoor        one=(1.0, 1.943, 0, 400) two=(1.0, 1.943, 0, 400) AGREE
+RESULT edit=owner 0.2/0.3    swap=both          one=(1.0, 1.0, 0, 0) two=(1.0, 1.0, 0, 0) AGREE
+RESULT edit=owner 0.2/0.3    swap=lower removed one=(0.8156, 1.0, 400, 0) two=(0.8156, 1.0, 400, 0) AGREE
+RESULT edit=lower only x2    swap=none          one=(1.2353, 0.9718, 400, 400) two=(1.2353, 0.9718, 400, 400) AGREE
+RESULT edit=lower only x2    swap=lower         one=(0.7694, 1.0, 400, 0) two=(0.7694, 1.0, 400, 0) AGREE
+RESULT edit=lower only x2    swap=indoor        one=(1.0, 0.9715, 0, 400) two=(1.0, 0.9715, 0, 400) AGREE
+RESULT edit=lower only x2    swap=both          one=(1.0, 1.0, 0, 0) two=(1.0, 1.0, 0, 0) AGREE
+RESULT edit=lower only x2    swap=lower removed one=(0.7694, 1.0, 400, 0) two=(0.7694, 1.0, 400, 0) AGREE
+RESULT edit=upper only x0.6  swap=none          one=(2.0583, 1.1663, 400, 400) two=(2.0583, 1.1663, 400, 400) AGREE
+RESULT edit=upper only x0.6  swap=lower         one=(1.4666, 1.0, 400, 0) two=(1.4666, 1.0, 400, 0) AGREE
+RESULT edit=upper only x0.6  swap=indoor        one=(1.0, 1.9427, 0, 400) two=(1.0, 1.9427, 0, 400) AGREE
+RESULT edit=upper only x0.6  swap=both          one=(1.0, 1.0, 0, 0) two=(1.0, 1.0, 0, 0) AGREE
+RESULT edit=upper only x0.6  swap=lower removed one=(1.4666, 1.0, 400, 0) two=(1.4666, 1.0, 400, 0) AGREE
+RESULT edit=below gate x1.02 swap=none          one=(1.2356, 1.943, 400, 400) two=(1.2356, 1.943, 400, 400) AGREE
+RESULT edit=below gate x1.02 swap=lower         one=(1.2356, 1.0, 400, 0) two=(1.2356, 1.0, 400, 0) AGREE
+RESULT edit=below gate x1.02 swap=indoor        one=(1.0, 1.943, 0, 400) two=(1.0, 1.943, 0, 400) AGREE
+RESULT edit=below gate x1.02 swap=both          one=(1.0, 1.0, 0, 0) two=(1.0, 1.0, 0, 0) AGREE
+RESULT edit=below gate x1.02 swap=lower removed one=(1.2356, 1.0, 400, 0) two=(1.2356, 1.0, 400, 0) AGREE
+RESULT snapshot edit=both x1.5      swap=lower restored=(0.8238, 1.0, 400, 0) fresh_load=(0.8238, 1.0, 400, 0) AGREE
+RESULT snapshot edit=both x1.5      swap=both  restored=(1.0, 1.0, 0, 0) fresh_load=(1.0, 1.0, 0, 0) AGREE
+RESULT snapshot edit=owner 0.2/0.3  swap=lower restored=(0.8156, 1.0, 400, 0) fresh_load=(0.8156, 1.0, 400, 0) AGREE
+RESULT snapshot edit=owner 0.2/0.3  swap=both  restored=(1.0, 1.0, 0, 0) fresh_load=(1.0, 1.0, 0, 0) AGREE
+== r1
+RESULT edit=both x1.5        swap=none          one=(0.8238, 1.943, 400, 400) two=(0.8238, 1.943, 400, 400) AGREE
+RESULT edit=both x1.5        swap=lower         one=(0.8238, 1.943, 400, 0) two=(0.8238, 1.0, 400, 0) DIFFER
+RESULT edit=both x1.5        swap=indoor        one=(1.0, 1.943, 0, 400) two=(1.0, 1.943, 0, 400) AGREE
+RESULT edit=both x1.5        swap=both          one=(1.0, 1.943, 0, 0) two=(1.0, 1.0, 0, 0) DIFFER
+RESULT edit=both x1.5        swap=lower removed one=(0.8238, 1.943, 400, 0) two=(0.8238, 1.0, 400, 0) DIFFER
+RESULT edit=owner 0.2/0.3    swap=none          one=(0.8185, 1.943, 400, 400) two=(0.8185, 1.943, 400, 400) AGREE
+RESULT edit=owner 0.2/0.3    swap=lower         one=(0.8185, 1.943, 400, 0) two=(0.8156, 1.0, 400, 0) DIFFER
+RESULT edit=owner 0.2/0.3    swap=indoor        one=(1.0, 1.943, 0, 400) two=(1.0, 1.943, 0, 400) AGREE
+RESULT edit=owner 0.2/0.3    swap=both          one=(1.0, 1.943, 0, 0) two=(1.0, 1.0, 0, 0) DIFFER
+RESULT edit=owner 0.2/0.3    swap=lower removed one=(0.8185, 1.943, 400, 0) two=(0.8156, 1.0, 400, 0) DIFFER
+RESULT edit=lower only x2    swap=none          one=(1.2353, 0.9718, 400, 400) two=(1.2353, 0.9718, 400, 400) AGREE
+RESULT edit=lower only x2    swap=lower         one=(1.209, 1.0, 400, 0) two=(0.7694, 1.0, 400, 0) DIFFER
+RESULT edit=lower only x2    swap=indoor        one=(1.0, 0.9715, 0, 400) two=(1.0, 0.9715, 0, 400) AGREE
+RESULT edit=lower only x2    swap=both          one=(1.0, 1.0, 0, 0) two=(1.0, 1.0, 0, 0) AGREE
+RESULT edit=lower only x2    swap=lower removed one=(1.209, 1.0, 400, 0) two=(0.7694, 1.0, 400, 0) DIFFER
+RESULT edit=upper only x0.6  swap=none          one=(2.0583, 1.1663, 400, 400) two=(2.0583, 1.1663, 400, 400) AGREE
+RESULT edit=upper only x0.6  swap=lower         one=(2.3046, 1.0, 400, 0) two=(1.4666, 1.0, 400, 0) DIFFER
+RESULT edit=upper only x0.6  swap=indoor        one=(1.0, 1.9427, 0, 400) two=(1.0, 1.9427, 0, 400) AGREE
+RESULT edit=upper only x0.6  swap=both          one=(1.0, 1.0, 0, 0) two=(1.0, 1.0, 0, 0) AGREE
+RESULT edit=upper only x0.6  swap=lower removed one=(2.3046, 1.0, 400, 0) two=(1.4666, 1.0, 400, 0) DIFFER
+RESULT edit=below gate x1.02 swap=none          one=(1.2356, 1.943, 400, 400) two=(1.2356, 1.943, 400, 400) AGREE
+RESULT edit=below gate x1.02 swap=lower         one=(1.2356, 1.0, 400, 0) two=(1.2356, 1.0, 400, 0) AGREE
+RESULT edit=below gate x1.02 swap=indoor        one=(1.0, 1.943, 0, 400) two=(1.0, 1.943, 0, 400) AGREE
+RESULT edit=below gate x1.02 swap=both          one=(1.0, 1.0, 0, 0) two=(1.0, 1.0, 0, 0) AGREE
+RESULT edit=below gate x1.02 swap=lower removed one=(1.2356, 1.0, 400, 0) two=(1.2356, 1.0, 400, 0) AGREE
+RESULT snapshot edit=both x1.5      swap=lower restored=(0.8238, 1.943, 400, 0) fresh_load=(0.8238, 1.943, 400, 0) AGREE
+RESULT snapshot edit=both x1.5      swap=both  restored=(1.0, 1.943, 0, 0) fresh_load=(1.0, 1.943, 0, 0) AGREE
+RESULT snapshot edit=owner 0.2/0.3  swap=lower restored=(0.8185, 1.943, 400, 0) fresh_load=(0.8185, 1.943, 400, 0) AGREE
+RESULT snapshot edit=owner 0.2/0.3  swap=both  restored=(1.0, 1.943, 0, 0) fresh_load=(1.0, 1.943, 0, 0) AGREE
