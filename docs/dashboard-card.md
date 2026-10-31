@@ -528,7 +528,9 @@ costs a scrollbar rather than spilled content.
 The **Savings** tab opens on the last closed month's **receipt**: its total,
 what it saved against a plain thermostat, and one row per billed line with
 the basis it was priced on: spot energy and the grid energy fee in kWh, the
-capacity charge at the month's billed peak, an immersion heater's kWh, and
+capacity charge at the month's billed peak, the kWh a resistive heater drew
+beyond what the compressor can (the pump's own tank booster or backup heater
+while its flag is on, or an immersion heater you have declared), and
 compressor wear in starts. The total adds those lines and nothing else; a
 note under it says which lines it covers and that the savings figure
 compares spot cost only. Wear reads "not priced" until you set a
@@ -812,7 +814,8 @@ when the browser reports `prefers-reduced-motion: reduce`.
 
 ### Automatic (recommended)
 
-When you install the integration through HACS and add a config entry, the card is
+When you install the integration through the Home Assistant Marketplace (HACS
+before 2026.11) and add a config entry, the card is
 served and registered automatically:
 
 1. The integration exposes the JS at `/heatpump_optimizer_static/heatpump-optimizer-card.js`.

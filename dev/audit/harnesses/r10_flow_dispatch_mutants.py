@@ -8,7 +8,10 @@ cli-head-dropped, cli-roster-ref-dropped, fetch-skipped); round 4 added
 the three the round-3 review found (cli-role-fixed, cli-pr-dropped,
 cli-nonce-dropped) and the rest of the --group call's inputs (cli-group-fixed,
 cli-model-fixed, cli-overlay-dropped); round 5 added the flag table's arms
-(group-refusal-off, env-id-forwarded-as-none, flag-unlisted) and cli-pr-truncated. Each
+(group-refusal-off, env-id-forwarded-as-none, flag-unlisted) and cli-pr-truncated;
+R10-FLY-CACHE-PROMPTS re-aimed nonce-altered, topic-to-id, prompt-wrong and
+flag-unlisted at the publish_seat path and added the pointer, --publish, wait-cap
+and read-list arms (pointer-ref-dropped .. claude-md-reread). Each
 mutant is a one-occurrence replacement in tools/audit/seat/cloud_dispatch.py;
 it is applied alone, `cloud_dispatch.py --self-test` run, and the file
 restored byte for byte. The drive refuses a dirty file and aborts on a
@@ -51,14 +54,15 @@ F = ROOT / REL
 MUTANTS = [
     ("M0", None, None),
     ("tree-skip", "    if tip and _git(repo_dir, \"rev-parse\"", "    if False and _git(repo_dir, \"rev-parse\""),
-    ("brief-drop", 'brief=group.get("brief") or ""', 'brief=""'),
-    ("parent-drop", '*(["-p", tip[0]] if tip else [])', "*[]"),
-    ("nonce-altered", "pr=pr, topic=topic, nonce=nonce,", "pr=pr, topic=topic, nonce=nonce + \"0\","),
-    ("topic-to-id", 'ref = f"{DISPATCH_NS}/{role}-{topic}"', 'ref = f"{DISPATCH_NS}/{role}-{group_id}"'),
+    ("brief-drop", 'brief=group_brief(group))', 'brief="")'),
+    ("parent-drop", '*(["-p", tip] if tip else [])', "*[]"),
+    ("nonce-altered", "**args, nonce=nonce)\n    except Refusal:", "**args, nonce=nonce + \"0\")\n    except Refusal:"),
+    ("topic-to-id", 'ref = dispatch_ref(role, topic, "")', 'ref = dispatch_ref(role, group_id, "")'),
     ("render-host-off", "    m = HOME.search(json.dumps(payload))", "    m = None"),
     ("privacy-off", "    if why:\n        raise Refusal(f\"the dispatch ref", "    if False:\n        raise Refusal(f\"the dispatch ref"),
     ("head-ignored", 'head or _git(repo_dir, "rev-parse", f"{HEAD_REF}', '_git(repo_dir, "rev-parse", f"{HEAD_REF}'),
-    ("prompt-wrong", '"PROMPT.md": payload["job_config"]', '"PROMPT.md": "" and payload["job_config"]'),
+    ("prompt-wrong", '"PAYLOAD.json": json.dumps(payload), "PROMPT.md": prompt}',
+     '"PAYLOAD.json": json.dumps(payload), "PROMPT.md": ""}'),
     ("roster-repo-ignored", 'repo=roster.get("repo") or known["repo"]', 'repo=known["repo"]'),
     ("roster-ref-main", "roster_ref = roster_lib.reader_ref(repo_dir, roster_ref)",
      "roster_ref = roster_ref or roster_lib.MAIN_REF"),
@@ -77,7 +81,19 @@ MUTANTS = [
     ("cli-overlay-dropped", "nonce=args.nonce, overlay=args.overlay))", "nonce=args.nonce, overlay=None))"),
     ("group-refusal-off", "if why and getattr(args, dest)", "if False and getattr(args, dest)"),
     ("env-id-forwarded-as-none", '"env_id": "the environment id', '"env_id": None and "the environment id'),
-    ("flag-unlisted", '    ap.add_argument("--out")\n    return ap', '    ap.add_argument("--out")\n    ap.add_argument("--extra")\n    return ap'),
+    ("flag-unlisted", '    ap.add_argument("--out")\n', '    ap.add_argument("--out")\n    ap.add_argument("--extra")\n'),
+    # R10-FLY-CACHE-PROMPTS: the pointer event, --publish, the wait cap, the role read list.
+    # R10-FLOW-DESIGN-STAGES part 2 re-aimed pointer-ref-dropped at the pinned stub: a
+    # seat told to fetch the moving ref instead of the pinned commit must die.
+    ("pointer-ref-dropped", "of {ref} (`git fetch origin {pin} && \"\n            f\"git show {pin}:PROMPT.md",
+     "of {ref} (`git fetch origin {ref} && \"\n            f\"git show FETCH_HEAD:PROMPT.md"),
+    ("pointer-off", "text = (_pointer(role, repo, pr, head, topic, nonce, publish_ref, pin) if publish_ref",
+     "text = (_pointer(role, repo, pr, head, topic, nonce, publish_ref, pin) if False"),
+    ("publish-ignored", "        if args.publish:", "        if False:"),
+    ("publish-ref-rev-dropped", 'key = topic or (f"rev-{pr}"', 'key = topic or (f"{pr}"'),
+    ("wait-line-dropped", 'Monitor and no timeout. " + WAIT_LINE)', 'Monitor and no timeout.")'),
+    ("claude-md-reread", "roles/fixer.md from main, and follow it exactly",
+     "roles/fixer.md and CLAUDE.md from main, and follow them exactly"),
     ("cli-pr-truncated", 'head=args.head or "", pr=args.pr,', "head=args.head or \"\", pr=(args.pr or '')[:1],"),
 ]
 SUMMARY = re.compile(r"cloud_dispatch self-test: (\d+) checks, (\d+) failed")

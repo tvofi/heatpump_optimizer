@@ -533,6 +533,20 @@ restore_learned_snapshot:
           options:
           - snapshot
           - refit
+reset_heat_loss_learners:
+  fields:
+    entry_id:
+      selector:
+        text: null
+    learners:
+      example:
+      - house_heat_loss_scale
+      selector:
+        select:
+          multiple: true
+          options:
+          - house_heat_loss_scale
+          - lower_floor_loss_ratio
 diagnose_interval:
   fields:
     entry_id:

@@ -1,6 +1,6 @@
 """Button entities for Heat Pump Cost Optimizer.
 
-Five momentary actions with no lasting state, which is exactly what a
+Six momentary actions with no lasting state, which is exactly what a
 ``ButtonEntity`` is for. A switch would have to bounce itself back off, and
 until it did, the UI would imply a state that does not exist:
 
@@ -8,10 +8,12 @@ until it did, the UI would imply a state that does not exist:
 * "Learning Run System Identification" — arm the commissioning step test,
 * "Learning Reset Comfort Weight" — undo the revealed-preference comfort
   tuning,
+* "Learning Reset Heat Loss" — return the learned heat-loss scale and
+  lower-floor ratio to the configuration,
 * "Prediction Accuracy Diagnose Last Interval" — attribute the last
   interval's temperature residual,
 
-and a fifth, "Finalize Debug Collection", which ends the week's collection
+and a sixth, "Finalize Debug Collection", which ends the week's collection
 now and is unavailable unless that option is on.
 
 The runs take real time — an optimization fetches prices and weather and then
@@ -55,6 +57,7 @@ async def async_setup_entry(
         ForceOptimizationButton(coordinator, entry),
         SystemIdentificationButton(coordinator, entry),
         ResetComfortWeightButton(coordinator, entry),
+        ResetHeatLossButton(coordinator, entry),
         DiagnoseIntervalButton(coordinator, entry),
     ]
     buttons.append(DebugFinalizeButton(coordinator, entry))
@@ -172,6 +175,23 @@ class ResetComfortWeightButton(_OptimizerButtonBase):
         off_the_action(self, self.coordinator.async_request_refresh())
 
 
+class ResetHeatLossButton(_OptimizerButtonBase):
+    """Return both heat-loss learners to the configuration (R10-HOTFIX-LEARNER-INPUTS).
+
+    The house heat-loss scale and the lower-floor ratio, through the one
+    void path a zone-sensor swap takes; the coordinator re-plans.
+    """
+
+    def __init__(
+        self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry
+    ) -> None:
+        super().__init__(coordinator, entry, "reset_heat_loss", "learning_reset_heat_loss")
+
+    async def async_press(self) -> None:
+        await self.coordinator.async_reset_heat_loss_learners()
+        off_the_action(self, self.coordinator.async_request_refresh())
+
+
 class DiagnoseIntervalButton(_OptimizerButtonBase):
     """Attribute the last interval's temperature residual (T6 #52).
 
@@ -216,11 +236,18 @@ class DebugFinalizeButton(_OptimizerButtonBase):
 
     @property
     def extra_state_attributes(self) -> dict[str, str]:
-        """Why the button is dark on an install that is not collecting (#1335)."""
+        """Why the button is dark: the option is off (#1335), or the collection
+        has finished and waits for the `debug_collect` action's `start` (#2809).
+
+        Home Assistant drops these while the button is unavailable; the card's
+        Health row is the surface a person sees.
+        """
         collector = debugger.collector_for(self.coordinator)
-        if collector is not None and not collector.final:
-            return {}
-        return {"waiting_for": "debug_collect"}
+        if collector is None:
+            return {"waiting_for": "debug_collect"}
+        if collector.final:
+            return {"waiting_for": "debug_collect_start"}
+        return {}
 
     async def async_press(self) -> None:
         """Returns at once; the self-tests the stop starts run in the background (#1940)."""

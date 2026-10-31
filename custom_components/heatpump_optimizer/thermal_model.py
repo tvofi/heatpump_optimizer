@@ -53,6 +53,8 @@ from .const import (
     DEFAULT_HEAT_PUMP_COP_NOMINAL,
     DEFAULT_HEAT_PUMP_MAX_POWER,
     DEFAULT_HEAT_PUMP_MIN_POWER,
+    DEFAULT_HEAT_PUMP_COP_PARTLOAD_DERATE,
+    MAX_HEAT_PUMP_COP_PARTLOAD_DERATE,
     DEFAULT_COP_SCALE,
     DEFAULT_UPPER_FLOOR_THERMAL_MASS,
     DEFAULT_LOWER_FLOOR_THERMAL_MASS,
@@ -277,6 +279,7 @@ class ThermalParameters:
             if not np.isfinite(value) or value < POSITIVE_PARAM_FLOOR:
                 value = POSITIVE_PARAM_FLOOR
             setattr(self, name, value)
+        self.cop_partload_derate = _partload_derate(self.cop_partload_derate, self)
 
     @property
     def buffer_is_store(self) -> bool:
@@ -513,6 +516,7 @@ class ThermalParameters:
     cop_reference_temp: float = 7.0  # °C
     max_electrical_power: float = DEFAULT_HEAT_PUMP_MAX_POWER  # kW
     min_electrical_power: float = DEFAULT_HEAT_PUMP_MIN_POWER  # kW
+    cop_partload_derate: float = DEFAULT_HEAT_PUMP_COP_PARTLOAD_DERATE
     # Learned multiplicative correction to the modelled COP curve. 1.0 leaves
     # the nameplate-derived curve untouched; the coordinator moves it only when
     # a measured power entity makes real efficiency observable.
@@ -909,132 +913,81 @@ class ThermalParameters:
         they need validating, deriving from another field, or defaulting on
         absence rather than on value.
         """
+        # field name -> the name its CONF_ key and DEFAULT_ value share in
+        # ``const``, resolved by name so the table stays readable and a missing
+        # constant raises rather than silently substituting a default.
         table = {
             # Single-zone / legacy
-            "room_thermal_mass": ("HOUSE_THERMAL_MASS", "HOUSE_THERMAL_MASS"),
-            "slab_thermal_mass": ("SLAB_THERMAL_MASS", "SLAB_THERMAL_MASS"),
-            "heat_loss_coefficient": (
-                "HOUSE_HEAT_LOSS_COEFFICIENT", "HOUSE_HEAT_LOSS_COEFFICIENT"
-            ),
-            "slab_heat_transfer": ("SLAB_HEAT_TRANSFER", "SLAB_HEAT_TRANSFER"),
+            "room_thermal_mass": "HOUSE_THERMAL_MASS",
+            "slab_thermal_mass": "SLAB_THERMAL_MASS",
+            "heat_loss_coefficient": "HOUSE_HEAT_LOSS_COEFFICIENT",
+            "slab_heat_transfer": "SLAB_HEAT_TRANSFER",
             # Two-zone
-            "upper_floor_thermal_mass": (
-                "UPPER_FLOOR_THERMAL_MASS", "UPPER_FLOOR_THERMAL_MASS"
-            ),
-            "lower_floor_thermal_mass": (
-                "LOWER_FLOOR_THERMAL_MASS", "LOWER_FLOOR_THERMAL_MASS"
-            ),
-            "upper_floor_heat_loss": (
-                "UPPER_FLOOR_HEAT_LOSS", "UPPER_FLOOR_HEAT_LOSS"
-            ),
-            "lower_floor_heat_loss": (
-                "LOWER_FLOOR_HEAT_LOSS", "LOWER_FLOOR_HEAT_LOSS"
-            ),
-            "inter_zone_transfer": ("INTER_ZONE_TRANSFER", "INTER_ZONE_TRANSFER"),
-            "radiator_power_fraction": (
-                "RADIATOR_POWER_FRACTION", "RADIATOR_POWER_FRACTION"
-            ),
-            "upper_floor_area_ratio": (
-                "UPPER_FLOOR_AREA_RATIO", "UPPER_FLOOR_AREA_RATIO"
-            ),
+            "upper_floor_thermal_mass": "UPPER_FLOOR_THERMAL_MASS",
+            "lower_floor_thermal_mass": "LOWER_FLOOR_THERMAL_MASS",
+            "upper_floor_heat_loss": "UPPER_FLOOR_HEAT_LOSS",
+            "lower_floor_heat_loss": "LOWER_FLOOR_HEAT_LOSS",
+            "inter_zone_transfer": "INTER_ZONE_TRANSFER",
+            "radiator_power_fraction": "RADIATOR_POWER_FRACTION",
+            "upper_floor_area_ratio": "UPPER_FLOOR_AREA_RATIO",
             # Buffer tank
-            "buffer_tank_volume": ("BUFFER_TANK_VOLUME", "BUFFER_TANK_VOLUME"),
-            "buffer_tank_heat_loss": ("BUFFER_TANK_LOSS", "BUFFER_TANK_LOSS"),
+            "buffer_tank_volume": "BUFFER_TANK_VOLUME",
+            "buffer_tank_heat_loss": "BUFFER_TANK_LOSS",
             # Solar gain
-            "window_area": ("WINDOW_AREA", "WINDOW_AREA"),
-            "solar_orientation_factor": (
-                "SOLAR_ORIENTATION_FACTOR", "SOLAR_ORIENTATION_FACTOR"
-            ),
-            "solar_heat_gain_coefficient": (
-                "SOLAR_HEAT_GAIN_COEFF", "SOLAR_HEAT_GAIN_COEFF"
-            ),
-            "solar_upper_fraction": (
-                "SOLAR_UPPER_FRACTION", "SOLAR_UPPER_FRACTION"
-            ),
+            "window_area": "WINDOW_AREA",
+            "solar_orientation_factor": "SOLAR_ORIENTATION_FACTOR",
+            "solar_heat_gain_coefficient": "SOLAR_HEAT_GAIN_COEFF",
+            "solar_upper_fraction": "SOLAR_UPPER_FRACTION",
             # Hot water
-            "dhw_tank_volume": ("DHW_TANK_VOLUME", "DHW_TANK_VOLUME"),
-            "dhw_setpoint": ("DHW_SETPOINT", "DHW_SETPOINT"),
-            "dhw_min_temp": ("DHW_MIN_TEMP", "DHW_MIN_TEMP"),
-            "dhw_daily_consumption": (
-                "DHW_DAILY_CONSUMPTION", "DHW_DAILY_CONSUMPTION"
-            ),
-            "dhw_cooling_rate": ("DHW_COOLING_RATE", "DHW_COOLING_RATE"),
-            "dhw_idle_min_temp": ("DHW_IDLE_MIN_TEMP", "DHW_IDLE_MIN_TEMP"),
-            "dhw_legionella_temp": (
-                "DHW_LEGIONELLA_TEMP", "DHW_LEGIONELLA_TEMP"
-            ),
-            "dhw_legionella_interval_days": (
-                "DHW_LEGIONELLA_INTERVAL_DAYS", "DHW_LEGIONELLA_INTERVAL_DAYS"
-            ),
+            "dhw_tank_volume": "DHW_TANK_VOLUME",
+            "dhw_setpoint": "DHW_SETPOINT",
+            "dhw_min_temp": "DHW_MIN_TEMP",
+            "dhw_daily_consumption": "DHW_DAILY_CONSUMPTION",
+            "dhw_cooling_rate": "DHW_COOLING_RATE",
+            "dhw_idle_min_temp": "DHW_IDLE_MIN_TEMP",
+            "dhw_legionella_temp": "DHW_LEGIONELLA_TEMP",
+            "dhw_legionella_interval_days": "DHW_LEGIONELLA_INTERVAL_DAYS",
             # Hot water, v4.0.0 T3. None of these joins the dhw_enabled
             # presence trio below — a configured inlet must never phantom-
             # enable hot water on an entry that has none.
-            "dhw_inlet_temp": ("DHW_INLET_TEMP", "DHW_INLET_TEMP"),
-            "dhw_inlet_seasonal_amplitude": (
-                "DHW_INLET_SEASONAL_AMPLITUDE", "DHW_INLET_SEASONAL_AMPLITUDE"
-            ),
-            "greywater_recovery": ("GREYWATER_RECOVERY", "GREYWATER_RECOVERY"),
-            "dhw_legionella_min_interval_days": (
-                "DHW_LEGIONELLA_MIN_INTERVAL_DAYS",
-                "DHW_LEGIONELLA_MIN_INTERVAL_DAYS",
-            ),
+            "dhw_inlet_temp": "DHW_INLET_TEMP",
+            "dhw_inlet_seasonal_amplitude": "DHW_INLET_SEASONAL_AMPLITUDE",
+            "greywater_recovery": "GREYWATER_RECOVERY",
+            "dhw_legionella_min_interval_days": "DHW_LEGIONELLA_MIN_INTERVAL_DAYS",
             # Learned corrections
-            "buffer_cooling_rate": ("BUFFER_COOLING_RATE", "BUFFER_COOLING_RATE"),
-            "house_heat_loss_scale": (
-                "HOUSE_HEAT_LOSS_SCALE", "HOUSE_HEAT_LOSS_SCALE"
-            ),
-            "lower_floor_loss_ratio": (
-                "LOWER_FLOOR_LOSS_RATIO", "LOWER_FLOOR_LOSS_RATIO"
-            ),
+            "buffer_cooling_rate": "BUFFER_COOLING_RATE",
+            "house_heat_loss_scale": "HOUSE_HEAT_LOSS_SCALE",
+            "lower_floor_loss_ratio": "LOWER_FLOOR_LOSS_RATIO",
             # Weather sensitivity
-            "wind_sensitivity": ("WIND_SENSITIVITY", "WIND_SENSITIVITY"),
-            "rain_heat_loss_multiplier": (
-                "RAIN_HEAT_LOSS_MULTIPLIER", "RAIN_HEAT_LOSS_MULTIPLIER"
-            ),
+            "wind_sensitivity": "WIND_SENSITIVITY",
+            "rain_heat_loss_multiplier": "RAIN_HEAT_LOSS_MULTIPLIER",
             # ECL110 heat curve control
-            "ecl110_displace_min": (
-                "ECL110_DISPLACE_MIN", "ECL110_DISPLACE_MIN"
-            ),
-            "ecl110_displace_max": (
-                "ECL110_DISPLACE_MAX", "ECL110_DISPLACE_MAX"
-            ),
-            "ecl110_pid_time_constant_hours": (
-                "ECL110_PID_TIME_CONSTANT", "ECL110_PID_TIME_CONSTANT"
-            ),
+            "ecl110_displace_min": "ECL110_DISPLACE_MIN",
+            "ecl110_displace_max": "ECL110_DISPLACE_MAX",
+            "ecl110_pid_time_constant_hours": "ECL110_PID_TIME_CONSTANT",
             # Heat pump
-            "cop_nominal": ("HEAT_PUMP_COP_NOMINAL", "HEAT_PUMP_COP_NOMINAL"),
-            "max_electrical_power": (
-                "HEAT_PUMP_MAX_POWER", "HEAT_PUMP_MAX_POWER"
-            ),
-            "min_electrical_power": (
-                "HEAT_PUMP_MIN_POWER", "HEAT_PUMP_MIN_POWER"
-            ),
+            "cop_nominal": "HEAT_PUMP_COP_NOMINAL",
+            "max_electrical_power": "HEAT_PUMP_MAX_POWER",
+            "min_electrical_power": "HEAT_PUMP_MIN_POWER",
+            "cop_partload_derate": "HEAT_PUMP_COP_PARTLOAD_DERATE",
         }
 
         values = {
             name: config.get(
-                getattr(const, f"CONF_{conf}"), getattr(const, f"DEFAULT_{default}")
+                getattr(const, f"CONF_{key}"), getattr(const, f"DEFAULT_{key}")
             )
-            for name, (conf, default) in table.items()
+            for name, key in table.items()
         }
 
         # Booleans are coerced because a config entry may carry a string.
-        for name, conf, default in (
-            ("dhw_schedule_enabled", "DHW_SCHEDULE_ENABLED", "DHW_SCHEDULE_ENABLED"),
-            (
-                "dhw_legionella_enabled",
-                "DHW_LEGIONELLA_ENABLED",
-                "DHW_LEGIONELLA_ENABLED",
-            ),
-            (
-                "dhw_elastic_legionella_enabled",
-                "DHW_ELASTIC_LEGIONELLA_ENABLED",
-                "DHW_ELASTIC_LEGIONELLA_ENABLED",
-            ),
+        for name, key in (
+            ("dhw_schedule_enabled", "DHW_SCHEDULE_ENABLED"),
+            ("dhw_legionella_enabled", "DHW_LEGIONELLA_ENABLED"),
+            ("dhw_elastic_legionella_enabled", "DHW_ELASTIC_LEGIONELLA_ENABLED"),
         ):
             values[name] = bool(
                 config.get(
-                    getattr(const, f"CONF_{conf}"), getattr(const, f"DEFAULT_{default}")
+                    getattr(const, f"CONF_{key}"), getattr(const, f"DEFAULT_{key}")
                 )
             )
         return values
@@ -1048,9 +1001,6 @@ class ThermalParameters:
         fields that need validating against a set of legal values, deriving
         from another field, or defaulting on *absence* rather than on value.
         """
-        # field name -> (config key, default). Both are resolved from ``const``
-        # by name so the table stays readable and a missing constant fails
-        # loudly at import rather than silently substituting a default.
         values = cls._tabled_values(config)
 
 
@@ -1229,6 +1179,32 @@ def planned_draws_run(space_kw: Any, dhw_kw: Any = None) -> list[bool]:
     on_steps: list[bool] = ((space + dhw) > MIN_RUNNING_DRAW_KW).tolist()
     return on_steps
 
+#: A channel's own draw above which a plan step counts that channel as heating,
+#: in kW: the idle line ``classify_space_steps`` and ``classify_dhw_steps`` code
+#: their idle reasons against, and the line a plan view merges slots on. It sits
+#: under ``MIN_RUNNING_DRAW_KW`` because the pump's running rule is the step's
+#: WHOLE ask, space plus DHW; a channel can carry a share of a running step.
+CHANNEL_ACTIVE_KW = 0.05
+
+
+def channel_heating_steps(channel_kw: Any, other_kw: Any = None) -> list[bool]:
+    """Which plan steps a channel heats at, in the plan's own terms (D8-s1-01).
+
+    Its own draw above :data:`CHANNEL_ACTIVE_KW`, on a step the plan runs the
+    pump at all (``planned_draws_run`` over both channels): a channel is never
+    "heating now" on a step the plan's on schedule calls off. The plan views'
+    ``active_now`` and slot merge read this, so neither can count a step the
+    on schedule calls off. An ``other`` series shorter than ``channel`` draws
+    nothing past its end.
+    """
+    channel = np.asarray(channel_kw, dtype=float)
+    other = np.zeros_like(channel)
+    if other_kw is not None:
+        given = np.asarray(other_kw, dtype=float)[: len(channel)]
+        other[: len(given)] = given
+    runs = planned_draws_run(channel, other)
+    return [bool(on and kw > CHANNEL_ACTIVE_KW) for kw, on in zip(channel, runs)]
+
 def planned_draw_runs(
     space_kw: float,
     dhw_kw: float = 0.0,
@@ -1277,13 +1253,22 @@ class InstallCapability:
     ``writes`` is a subset of ``switch``, ``setpoint`` and ``frequency``.
     ``measured_power`` is a power entity. ``frequency`` is a frequency
     entity or sensor, read or write. ``measured_heat`` is a thermal power
-    entity (fold e). (a), (c), (d) and (e) all read this probe.
+    entity or a heat counter (fold e). ``heat_counter`` is the heat counter
+    alone and ``electric_counter`` the electric counter its span divides by.
+    (a), (c), (d) and (e) all read this probe.
     """
 
     writes: frozenset[str]
     measured_power: bool
     frequency: bool
     measured_heat: bool = False
+    heat_counter: bool = False
+    electric_counter: bool = False
+
+    def cop_electric(self) -> bool:
+        """An electrical figure a COP divides by: a heat counter's span reads
+        the electric counter, every other reading the power entity (#2262)."""
+        return self.electric_counter if self.heat_counter else self.measured_power
 
     def can_duty_cycle(self) -> bool:
         """A sub-minimum average is realizable.
@@ -1322,6 +1307,22 @@ class InstallCapability:
         )
 
 
+def plan_step_runs(result: Any, i: int) -> bool:
+    """Whether the plan switches the pump on for its step ``i``.
+
+    The plan's ``heat_pump_on_schedule`` is the authority; a result built
+    without it falls back to :func:`planned_draw_runs` on that step's two
+    draws. One rule for every reader of the plan's switch: the action a cycle
+    actuates (``optimizer.get_current_action``), the schedule it publishes and
+    the supply the step tick writes (``pump_arbiter.supply_tick``, #2492).
+    """
+    runs = getattr(result, "heat_pump_on_schedule", None)
+    if runs and i < len(runs):
+        return bool(runs[i])
+    dhw = getattr(result, "dhw_power_schedule", None) or ()
+    return planned_draw_runs(result.power_schedule[i], dhw[i] if i < len(dhw) else 0.0)
+
+
 def probe_install(config: Any) -> InstallCapability:
     """The one install-capability probe (#1955)."""
     cfg = config or {}
@@ -1345,6 +1346,8 @@ def probe_install(config: Any) -> InstallCapability:
         measured_heat=bool(
             cfg.get(const.CONF_HEAT_ENERGY_ENTITY) or cfg.get(const.CONF_THERMAL_POWER_ENTITY)
         ),
+        heat_counter=bool(cfg.get(const.CONF_HEAT_ENERGY_ENTITY)),
+        electric_counter=bool(cfg.get(const.CONF_ENERGY_ENTITY)),
     )
 
 
@@ -1421,6 +1424,40 @@ def levels_clamped(config: Any) -> bool:
 #: kilowatts a switch-plus-setpoint install cannot deliver (#1955).
 UNMETERED_POWER_FREEZE = "unmetered_power"
 
+#: Freeze reason when the house-heat-loss learner has no observed room
+#: (#2508): the indoor temperature entity is not configured, so
+#: ``ThermalState.room_temperature`` is still its 21.0 C constructor default.
+INDOOR_UNCONFIGURED_FREEZE = f"not_configured:{const.CONF_INDOOR_TEMP_ENTITY}"
+
+
+def learner_room_unread(config: Any) -> str | None:
+    """The house-learner freeze when no indoor temperature entity is configured.
+
+    ``_learning_frozen`` passes an unconfigured slot on purpose, and must: an
+    install without an *optional* sensor would otherwise never learn anything,
+    and the slots it protects there (power, outdoor, thermal power) are
+    regressors the replay can do without. The house heat-loss learner's
+    observed variable IS the room, so its absence removes the measurement
+    rather than one term of it -- ``_update_current_state`` writes
+    ``room_temperature`` only under ``if indoor.ok``, leaving the constructor
+    default to be replayed and compared as if it had been read. A configured
+    slot is left to ``_learning_frozen``, which freezes on any unusable
+    reading of it.
+
+    ``None`` is "no configuration to inspect", not "empty configuration": a
+    caller that cannot see the entry answers ``None`` rather than inventing a
+    freeze, so a host modelling only the fields a seam reads (the sysid
+    harness) is not silently frozen.
+    """
+    if config is None:
+        return None
+    cfg = config or {}
+    return (
+        INDOOR_UNCONFIGURED_FREEZE
+        if not cfg.get(const.CONF_INDOOR_TEMP_ENTITY)
+        else None
+    )
+
 
 def learner_unmetered(config: Any) -> str | None:
     """The house-learner freeze, or ``None`` when learning stands.
@@ -1449,6 +1486,39 @@ def heat_loss_basis(config: Any, earned: bool = False) -> str:
     """
     cap = probe_install(config or {})
     return const.HEAT_LOSS_BASES[2 if earned and cap.measured_heat else 1 if cap.measured_power else 0]
+
+
+#: The temperature entity each heat-loss learner fits its residual on, by
+#: config key (R10-HOTFIX-LEARNER-INPUTS): the scale the indoor (upper zone)
+#: sensor, the ratio the lower floor's. Evidence fitted against one sensor
+#: says nothing about a sensor in another place.
+HEAT_LOSS_ZONE_ENTITIES: dict[str, str] = {
+    const.CONF_INDOOR_TEMP_ENTITY: const.HEAT_LOSS_LEARNERS[0],
+    const.CONF_LOWER_FLOOR_TEMP_ENTITY: const.HEAT_LOSS_LEARNERS[1],
+}
+
+
+def heat_loss_zone_entities(config: Any) -> dict[str, str | None]:
+    """The ``HEAT_LOSS_ZONE_ENTITIES`` ids configured now, ``None`` where unset."""
+    cfg = config or {}
+    return {key: cfg.get(key) or None for key in HEAT_LOSS_ZONE_ENTITIES}
+
+
+def heat_loss_entity_voids(stored: Mapping[str, Any], live: Mapping[str, Any]) -> tuple[str, ...]:
+    """The learners whose zone entity id changed since their evidence was saved.
+
+    ``stored`` and ``live`` are the thermal-learning payload as saved and as
+    the configuration writes it now; each holds ``heat_loss_zone_entities``.
+    An added or removed entity is a change. A store from before the record,
+    or a key it does not hold, voids nothing: the next save adopts the ids.
+    """
+    was, now = stored.get("heat_loss_zone_entities"), live.get("heat_loss_zone_entities") or {}
+    if not isinstance(was, Mapping):
+        return ()
+    return tuple(
+        learner for key, learner in HEAT_LOSS_ZONE_ENTITIES.items()
+        if key in was and (was[key] or None) != now.get(key)
+    )
 
 
 def heat_loss_basis_voids(stored: Any, basis: str) -> bool:
@@ -1677,6 +1747,294 @@ def weather_or_calm(
     )
 
 
+def _buffer_capacity(p: ThermalParameters) -> float:
+    """The buffer tank's heat capacity, kWh/K, as every step integrates it:
+    a vanishing configured mass falls back to the 35 L tank's 0.04."""
+    c_buf = p.buffer_tank_thermal_mass
+    return 0.04 if c_buf < 1e-6 else c_buf
+
+
+def _valve_ua(p: ThermalParameters) -> float:
+    """Every emitter's conductance behind a valve, kW/K, backed out of the
+    nameplate output at the design flow-to-zone difference."""
+    return (
+        p.max_electrical_power * p.cop_nominal_floored
+        / p.emitter_design_delta_t_floored
+    )
+
+
+def _valve_flow_set(
+    p: ThermalParameters, valve_target: float | None, outdoor_temp: float,
+    heat_loss_coefficient: float, emitter_ua: float,
+) -> float:
+    """The flow temperature the valve regulates to this step. A per-step
+    ``valve_target`` (how a commanded valve holds its charge) beats the
+    configured target; an unconfigured one is the top of the comfort band."""
+    if valve_target is not None:
+        target = float(valve_target)
+    else:
+        target = p.mixing_valve_target or p.comfort_ceiling
+    return mixing_valve.flow_setpoint(
+        target_temp=target,
+        outdoor_temp=outdoor_temp,
+        heat_loss_coefficient=heat_loss_coefficient,
+        emitter_ua=emitter_ua,
+    )
+
+
+def _tank_bounded_draw(
+    drawn: Any, thermal_power: Any, q_buf_loss: Any, c_buf: float,
+    T_buf: Any, floor_temp: Any, dt_hours: float,
+) -> Any:
+    """What the emitters receive of ``drawn``: no more than this step's
+    input less standing loss plus the heat the tank holds above the coldest
+    store it feeds (the energy bound, never a temperature clip)."""
+    available = (
+        thermal_power
+        - q_buf_loss
+        + c_buf
+        * np.maximum(0.0, T_buf - floor_temp)
+        / max(dt_hours, 1e-6)
+    )
+    return np.minimum(drawn, np.maximum(available, 0.0))
+
+
+def _single_valve_rates(
+    p: ThermalParameters, T_buf: Any, T_slab: Any, thermal_power: Any,
+    outdoor_temp: float, u_eff: float, valve_target: float | None,
+    dt_hours: float,
+) -> tuple[Any, Any, Any]:
+    """The single-zone tank behind a valve: (slab delivery kW, dT_buf K/h,
+    refused kW), floats or batch arrays through one expression.
+
+    The two-zone throttled law with every emitter on the slab: the pump
+    charges the tank, the valve feeds the slab at the curve (or the tank
+    when colder), the draw is bounded by the energy the tank holds above
+    the slab, and the ``buffer_max_temp`` clamp books what it refuses.
+    """
+    ua = _valve_ua(p)
+    c_buf = _buffer_capacity(p)
+    flow_set = _valve_flow_set(p, valve_target, outdoor_temp, u_eff, ua)
+    q_buf_loss = p.buffer_tank_heat_loss_coefficient * (
+        T_buf - TANK_ROOM_AMBIENT_TEMP
+    )
+    drawn = np.maximum(0.0, ua * (np.minimum(T_buf, flow_set) - T_slab))
+    q_slab = _tank_bounded_draw(
+        drawn, thermal_power, q_buf_loss, c_buf, T_buf, T_slab, dt_hours
+    )
+    dT_buf = (thermal_power - q_slab - q_buf_loss) / c_buf
+    headroom_k = np.maximum(0.0, p.buffer_max_temp - T_buf)
+    dT_cap = headroom_k / max(dt_hours, 1e-6)
+    refused = np.maximum(0.0, dT_buf - dT_cap) * c_buf
+    return q_slab, np.minimum(dT_buf, dT_cap), refused
+
+
+def _valve_draw_circuits(
+    model: "ThermalModel", state: ThermalState, outdoor_temp: float,
+    wind_speed: float, precipitation: float,
+) -> list[tuple[float, float, float]]:
+    """Each emitter circuit behind the valve as ``(ua kW/K, the highest
+    water temperature it sees, the zone it heats)``, at the configured
+    curve: the circuits ``_single_valve_rates`` and
+    ``_valve_two_zone_delivery`` draw through (a direct slab sees raw tank
+    water, so no curve caps it)."""
+    p = model.params
+    if not p.two_zone_enabled:
+        ua = _valve_ua(p)
+        u_eff = model.effective_heat_loss_coefficient(
+            p.heat_loss_coefficient, wind_speed, precipitation)
+        flow_set = _valve_flow_set(p, None, outdoor_temp, u_eff, ua)
+        return [(ua, flow_set, state.slab_temperature)]
+    ua_rad = p.radiator_power_fraction * _valve_ua(p)
+    ua_floor = (1.0 - p.radiator_power_fraction) * _valve_ua(p)
+    u_upper, u_lower = model._zone_loss(wind_speed, precipitation)
+    flow_set = _valve_flow_set(
+        p, None, outdoor_temp, u_upper + u_lower, ua_rad + ua_floor)
+    return [
+        (ua_rad, flow_set, state.upper_floor_temperature),
+        (ua_floor, math.inf if p.slab_fed_direct else flow_set,
+         state.slab_temperature),
+    ]
+
+
+def _circuit_draw(circuits: list[tuple[float, float, float]], tank: float) -> float:
+    """What the circuits draw from a tank at ``tank`` degC, kW."""
+    return sum(ua * max(0.0, min(tank, top) - zone) for ua, top, zone in circuits)
+
+
+def valve_charge_demand(
+    model: "ThermalModel", state: ThermalState, need_kw: float,
+    outdoor_temp: float, wind_speed: float, precipitation: float,
+    dt_hours: float,
+) -> float:
+    """Thermal kW a pump behind a valve makes this step so its emitters
+    receive ``need_kw`` the next: what they draw at the tank's present
+    temperature, its standing loss, and the charge that moves the tank to
+    the lowest temperature whose draw is ``need_kw`` -- never past the
+    curve the valve mixes down to, nor ``buffer_max_temp``.
+
+    The thermostat reference's tank law (R10-BUFFER-STORE): sizing the
+    pump to the emitters' need alone charged the tank toward its cap
+    whenever the need exceeded what the curve delivers, and the refused
+    heat was paid for and reported as savings. Heat above the curve
+    reaches no emitter, so a thermostat never buys it.
+    """
+    if need_kw <= 0.0:
+        return 0.0  # no demand: the pump idles and the tank coasts
+    p = model.params
+    circuits = _valve_draw_circuits(
+        model, state, outdoor_temp, wind_speed, precipitation)
+    tank = state.buffer_tank_temperature
+    # The draw is piecewise linear in the tank temperature, kinked where a
+    # circuit starts drawing (its zone) and where its curve caps it; the
+    # highest kink is the curve's top, or the cap behind a direct slab.
+    # Its inverse is the same line read the other way, and a need past the
+    # highest kink's draw holds that kink.
+    kinks = sorted({
+        min(t, p.buffer_max_temp) for _, top, zone in circuits for t in (top, zone)
+    })
+    goal = float(np.interp(need_kw, [_circuit_draw(circuits, k) for k in kinks], kinks))
+    loss = p.buffer_tank_heat_loss_coefficient * (tank - TANK_ROOM_AMBIENT_TEMP)
+    return (
+        _circuit_draw(circuits, tank) + loss
+        + _buffer_capacity(p) * (goal - tank) / dt_hours
+    )
+
+
+def _valve_two_zone_delivery(
+    p: ThermalParameters, state: ThermalState, thermal_power: float, ext: float,
+    q_buf_loss: float, valve_target: float | None, outdoor_temp: float,
+    u_eff: float, dt_hours: float, two_tank: bool,
+) -> tuple[float, float, float, float, float]:
+    """What the two-zone emitters get from the store behind a valve:
+    ``(q_rad, q_floor, wood_draw, q_wood_loss, C_w)``, the last three for the
+    two-tank ledger (zero when that topology is off).
+
+    ``_simulate_step_two_zone``'s throttled branch, called once per step: the
+    class it was written in is capped, and this law is the bulk of what the
+    store cost it. The caller owns the tank state; nothing here writes back,
+    and the step's own ``state`` travels as it is -- unpacking its four
+    temperatures into parameters would put this signature over the
+    ten-parameter guard for a record the caller already holds.
+    """
+    T_upper = state.upper_floor_temperature
+    T_slab = state.slab_temperature
+    T_buf = state.buffer_tank_temperature
+    wood_temp = state.wood_tank_temperature
+    rad_fraction = p.radiator_power_fraction
+    c_buf = _buffer_capacity(p)
+    # The emitter UA is backed out of the nameplate output at a design
+    # flow-to-zone difference, so when the valve saturates wide open (tank at
+    # or below the curve) this reproduces the delivery the unthrottled branch
+    # would give at the design point rather than inventing a new balance.
+    design_power = p.max_electrical_power * p.cop_nominal_floored
+    design_dt = p.emitter_design_delta_t_floored
+    ua_rad = rad_fraction * design_power / design_dt
+    ua_floor = (1.0 - rad_fraction) * design_power / design_dt
+
+    # The plan lowers the curve between charging and the price peak
+    # so the tank keeps its heat for when it is worth most, which a
+    # fixed target physically cannot do.
+    if valve_target is not None:
+        target = float(valve_target)
+    else:
+        target = p.mixing_valve_target or p.comfort_ceiling
+    flow_set = mixing_valve.flow_setpoint(
+        target_temp=target,
+        outdoor_temp=outdoor_temp,
+        heat_loss_coefficient=u_eff,
+        emitter_ua=ua_rad + ua_floor,
+    )
+    # The valve mixes return water into the flow, so the emitters see
+    # the curve temperature, never raw tank water -- that is what makes
+    # stored heat leave at house-demand rate instead of dumping within
+    # a step. It cannot make water hotter than the tank, so below the
+    # curve it saturates wide open. With two tanks the supply side is
+    # whichever tank is hotter -- the 4-way valve draws on both.
+    supply_temp = (
+        max(wood_temp, T_buf)
+        if two_tank and wood_temp is not None
+        else T_buf
+    )
+    t_mix = min(supply_temp, flow_set)
+    q_rad_from_buf = mixing_valve.emitter_delivery(
+        mix_temp=t_mix, zone_temp=T_upper, ua=ua_rad
+    )
+    # In the valve_upper_direct_slab layout (v3.16.0) only the
+    # radiator circuit sits behind the valve; the slab drinks raw
+    # tank water, so its delivery follows the tank temperature with
+    # no curve cap. Its validity predicate excludes a wood probe,
+    # so this and the two-tank branch are mutually exclusive by
+    # construction. The energy bound below still applies: a direct
+    # pipe cannot draw heat the tank does not hold.
+    q_floor_from_buf = mixing_valve.emitter_delivery(
+        mix_temp=(T_buf if p.slab_fed_direct else t_mix),
+        zone_temp=T_slab,
+        ua=ua_floor,
+    )
+
+    # ...and the tank cannot deliver heat it does not have. Capping the
+    # emitters at the curve made the discharge physical for any tank big
+    # enough that a step cannot empty it, which is every realistic size
+    # -- but a 10 L separator against a 40 K flow-to-room difference
+    # still overshoots its own Euler step and goes through zero.
+    # Measured before this bound, a 10 L tank coasting from 60 C reached
+    # -8.04 C with a 34 K single-step swing.
+    #
+    # Bound the *energy*, not the temperature: clipping T_buf at a floor
+    # while still crediting the emitters conserves nothing and turns the
+    # tank into a heat source. The floor is the coldest zone it feeds,
+    # which is where `emitter_delivery` reaches zero of its own accord.
+    floor_temp = min(T_upper, T_slab)
+    drawn = q_rad_from_buf + q_floor_from_buf
+    wood_draw = q_wood_loss = C_w = 0.0
+    if two_tank:
+        # Per-tank energy bounds, the same fix generalized: neither
+        # tank can deliver heat it does not have, each judged against
+        # its own contents and its own input. Every expression here
+        # deliberately mirrors the single-tank branch's arithmetic
+        # (same operations, same order, division not reciprocal
+        # multiplication) so that at w == 0 this path is
+        # bit-identical to it — one ulp of difference moved a
+        # 96-step solve into a different basin when this was first
+        # written with `* (1/dt)`.
+        T_w = T_buf if wood_temp is None else wood_temp
+        C_w = p.wood_tank_thermal_mass
+        q_wood_loss = p.wood_tank_heat_loss_coefficient * (T_w - TANK_ROOM_AMBIENT_TEMP)
+        w = wood_share(T_w, T_buf, flow_set, floor_temp)
+        avail_wood = ext - q_wood_loss + C_w * max(
+            0.0, T_w - floor_temp
+        ) / max(dt_hours, 1e-6)
+        avail_hp = thermal_power - q_buf_loss + c_buf * max(
+            0.0, T_buf - floor_temp
+        ) / max(dt_hours, 1e-6)
+        wood_draw = min(w * drawn, max(avail_wood, 0.0))
+        # A wood shortfall shifts to the HP side first — the physical
+        # valve shift as the wood side depletes — and only what
+        # neither tank can back starves the emitters, proportionally.
+        hp_draw = min(drawn - wood_draw, max(avail_hp, 0.0))
+        delivered = wood_draw + hp_draw
+        if drawn > delivered > 0.0:
+            scale = delivered / drawn
+            q_rad_from_buf *= scale
+            q_floor_from_buf *= scale
+        elif delivered <= 0.0:
+            q_rad_from_buf = 0.0
+            q_floor_from_buf = 0.0
+    else:
+        available = thermal_power - q_buf_loss + c_buf * max(
+            0.0, T_buf - floor_temp
+        ) / max(dt_hours, 1e-6)
+        if drawn > available > 0.0:
+            scale = available / drawn
+            q_rad_from_buf *= scale
+            q_floor_from_buf *= scale
+        elif available <= 0.0:
+            q_rad_from_buf = 0.0
+            q_floor_from_buf = 0.0
+    return q_rad_from_buf, q_floor_from_buf, wood_draw, q_wood_loss, C_w
+
+
 def _seeded_tracks(
     initial_state: ThermalState, n_steps: int
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray | None]:
@@ -1714,6 +2072,81 @@ def _two_tank_rates(
         (thermal_power - q_rad - q_floor - q_buf_loss + wood_draw) / C_buf,
         (ext - wood_draw - q_wood_loss) / C_w,
     )
+
+
+def partload_derate_limit(min_power: Any, max_power: Any) -> float:
+    """The derate at which delivered heat stops rising with power on the band.
+
+    ``heat = cop * P * (1 - d * (P - p_min) / band)`` has slope
+    ``cop * (1 - d * (band + p_max) / band)`` at ``p_max``, its least on the
+    band, so heat rises across the whole band exactly while ``d`` is below
+    ``band / (band + p_max)``; at or above it more power buys less heat, which
+    no vapour-compression pump does. Infinite for an empty band, where the
+    factor is 1 and a derate prices nothing."""
+    p_min = const.finite_float(min_power, DEFAULT_HEAT_PUMP_MIN_POWER)
+    p_max = const.finite_float(max_power, DEFAULT_HEAT_PUMP_MAX_POWER)
+    band = p_max - p_min
+    if band <= 0.0 or band + p_max <= 0.0:
+        return float("inf")
+    return band / (band + p_max)
+
+
+def _partload_derate(value: Any, params: ThermalParameters | None = None) -> float:
+    """A configured part-load derate, or the 0 default when it is not a
+    number inside [0, ``MAX_HEAT_PUMP_COP_PARTLOAD_DERATE``] or, given the
+    parameters, not strictly below their band's ``partload_derate_limit``.
+
+    Refused to 0 rather than clamped to the limit: a clamp would price a
+    derate nobody configured, and the limit itself is a pump whose heat stops
+    rising at max power. 0 is the term off, every plan as it was before it,
+    and the options page names the refusal on the field."""
+    derate = const.finite_float(value, DEFAULT_HEAT_PUMP_COP_PARTLOAD_DERATE)
+    limit = float("inf") if params is None else partload_derate_limit(
+        params.min_electrical_power, params.max_electrical_power)
+    if 0.0 <= derate <= MAX_HEAT_PUMP_COP_PARTLOAD_DERATE:
+        return derate if derate < limit else DEFAULT_HEAT_PUMP_COP_PARTLOAD_DERATE
+    return DEFAULT_HEAT_PUMP_COP_PARTLOAD_DERATE
+
+
+def partload_factor(params: ThermalParameters, electrical_power: Any) -> Any:
+    """COP multiplier at ``electrical_power`` kW: 1 at or below the modulation
+    floor (a lower draw duty-cycles at the floor), falling linearly to
+    ``1 - cop_partload_derate`` at max power, as heat-exchanger approach grows
+    with the heat rate. The hot-water schedule takes it too, on top of its own
+    tank lift (``compute_cop_dhw``). Elementwise, so the batch twin's rows and
+    the scalar step share it."""
+    band = params.max_electrical_power - params.min_electrical_power
+    if band <= 0.0:
+        return 1.0
+    x = (electrical_power - params.min_electrical_power) / band
+    # min/max keep a scalar a float; np.clip is the same IEEE op per row.
+    x = min(max(x, 0.0), 1.0) if np.ndim(x) == 0 else np.clip(x, 0.0, 1.0)
+    return 1.0 - params.cop_partload_derate * x
+
+
+def heat_per_cop_kw(params: ThermalParameters, electrical_power: Any) -> Any:
+    """Heat per unit of COP at ``electrical_power`` kW: the draw itself while
+    the derate is 0, else the draw times its part-load factor.
+
+    It depends on the draw alone, so a loop whose COP moves per sub-step
+    (the batch twin, the hot-water refresh) takes it once for the whole
+    schedule and multiplies by each step's COP, instead of re-deriving it in
+    every sub-step: that per-sub-step call was stress.py's production-call
+    channel firing at 1.051x-1.064x. Elementwise, like ``partload_factor``,
+    so a schedule's rows and a scalar step get the same IEEE product."""
+    if params.cop_partload_derate:
+        return electrical_power * partload_factor(params, electrical_power)
+    return electrical_power
+
+
+def delivered_heat_kw(params: ThermalParameters, cop: Any, electrical_power: Any) -> Any:
+    """Heat the pump delivers at ``cop`` and ``electrical_power``, space or hot
+    water: ``cop`` times :func:`heat_per_cop_kw`, the one association every
+    conversion uses, so the scalar step and the batch twin stay bitwise.
+
+    Exactly ``cop * electrical_power`` while the derate is 0, so a plan with
+    no part-load term is byte-identical to one priced before it."""
+    return cop * heat_per_cop_kw(params, electrical_power)
 
 
 def _copy_state_with(state: ThermalState, **changes: object) -> ThermalState:
@@ -2737,19 +3170,19 @@ class ThermalModel:
         humidity: np.ndarray | None = None,
     ) -> np.ndarray:
         """Refresh ``temps[from_step + 1:]`` after the schedule changed there."""
-        schedule = np.asarray(dhw_power_schedule, dtype=float)
+        heat_per_cop = heat_per_cop_kw(self.params, np.asarray(dhw_power_schedule, dtype=float))
         outdoor = np.asarray(outdoor_temps, dtype=float)
         draws = np.asarray(draw_rates, dtype=float)
         temp = float(temps[from_step])
         compute_cop = self.compute_cop_dhw
         simulate_step = self.simulate_dhw_step
-        for i in range(from_step, schedule.size):
+        for i in range(from_step, heat_per_cop.size):
             cop = compute_cop(
                 outdoor[i], temp, humidity=None if humidity is None else humidity[i]
             )
             temp = simulate_step(
                 dhw_temp=temp,
-                dhw_power_thermal=cop * schedule[i],
+                dhw_power_thermal=cop * heat_per_cop[i],
                 hour_of_day=0.0,
                 dt_hours=dt_hours,
                 draw_power=draws[i],
@@ -2774,6 +3207,7 @@ class ThermalModel:
         humidity: float | None = None,
         hour_of_day: float | None = None,
         measured_heat_kw: float | None = None,
+        valve_target: float | None = None,
         _cop: float | None = None,
         _u_eff: float | None = None,
         _q_solar: float | None = None,
@@ -2788,18 +3222,24 @@ class ThermalModel:
         direct caller's default) computes them here, unchanged.
         """
         p = self.params
-        cop = (
-            self.compute_cop(outdoor_temp, humidity=humidity)
-            if _cop is None
-            else _cop
-        )
+        # `is_throttling` inlined: a per-step component call is priced by
+        # stress.py's production-call channel on the unvalved path.
+        throttled = (p.mixing_valve_mode or mixing_valve.MODE_NONE) in (
+            mixing_valve.THROTTLING_MODES)
+        # Behind a valve the tank is the flow and moves every sub-step, so a
+        # precomputed COP cannot stand in; unvalved it is the caller's.
+        cop = _cop
+        if throttled or cop is None:
+            cop = self.compute_cop(
+                outdoor_temp, humidity=humidity,
+                flow_temp=state.buffer_tank_temperature if throttled else None)
         # Free thermal input (a wood furnace, item 28) joins the pump's output
         # at the hydronic mix. It is heat, not electricity, so it never touches
         # the COP and costs the plan nothing. The pump's own term is measured
         # where a flow meter read it (#2016) and inferred from the draw and
         # this step's COP everywhere else.
         pump_heat_kw = (
-            cop * electrical_power
+            cop * heat_per_cop_kw(self.params, electrical_power)
             if measured_heat_kw is None
             else measured_heat_kw
         )
@@ -2830,6 +3270,15 @@ class ThermalModel:
             else _q_solar
         )
 
+        new_buf = state.buffer_tank_temperature
+        if throttled:
+            q_slab, dT_buf, refused = _single_valve_rates(
+                p, new_buf, state.slab_temperature, thermal_power,
+                outdoor_temp, u_eff, valve_target, dt_hours,
+            )
+            thermal_power, new_buf = float(q_slab), float(new_buf + dT_buf * dt_hours)
+            self._step_buffer_refused = float(refused)
+
         dT_room, dT_slab = self._single_zone_rates(
             q_slab_to_room, q_loss, q_internal, q_solar, thermal_power
         )
@@ -2849,6 +3298,7 @@ class ThermalModel:
             outdoor_temperature=outdoor_temp,
             upper_floor_temperature=new_room,
             lower_floor_temperature=new_room,
+            buffer_tank_temperature=new_buf,
             solar_radiation=solar_radiation,
         )
 
@@ -2914,7 +3364,7 @@ class ThermalModel:
         # flow meter read it (#2016) and inferred from the draw and this
         # step's COP everywhere else.
         pump_heat_kw = (
-            cop * electrical_power
+            cop * heat_per_cop_kw(self.params, electrical_power)
             if measured_heat_kw is None
             else measured_heat_kw
         )
@@ -2941,122 +3391,11 @@ class ThermalModel:
         q_buf_loss = p.buffer_tank_heat_loss_coefficient * (T_buf - TANK_ROOM_AMBIENT_TEMP)
 
         if throttled:
-            # --- A valve exists: it regulates flow temperature ----------------
-            #
-            # The emitter UA is backed out of the nameplate output at a design
-            # flow-to-zone difference, so when the valve saturates wide open
-            # (tank at or below the curve) this reproduces the delivery the
-            # unthrottled branch would give at the design point rather than
-            # inventing a new balance.
-            design_power = p.max_electrical_power * p.cop_nominal_floored
-            design_dt = p.emitter_design_delta_t_floored
-            ua_rad = rad_fraction * design_power / design_dt
-            ua_floor = (1.0 - rad_fraction) * design_power / design_dt
-
-            # An unconfigured target means the top of the comfort band, as
-            # documented everywhere the option is described. A per-step
-            # override (`valve_target`) beats both: it is how a commanded
-            # valve holds its charge -- the plan lowers the curve between
-            # charging and the price peak so the tank keeps its heat for when
-            # it is worth most, which a fixed target physically cannot do.
-            if valve_target is not None:
-                target = float(valve_target)
-            else:
-                target = p.mixing_valve_target or p.comfort_ceiling
-            flow_set = mixing_valve.flow_setpoint(
-                target_temp=target,
-                outdoor_temp=outdoor_temp,
-                heat_loss_coefficient=u_upper + u_lower,
-                emitter_ua=ua_rad + ua_floor,
+            (q_rad_from_buf, q_floor_from_buf, wood_draw, q_wood_loss,
+             C_w) = _valve_two_zone_delivery(
+                p, state, thermal_power, ext, q_buf_loss, valve_target,
+                outdoor_temp, u_upper + u_lower, dt_hours, two_tank,
             )
-            # The valve mixes return water into the flow, so the emitters see
-            # the curve temperature, never raw tank water -- that is what makes
-            # stored heat leave at house-demand rate instead of dumping within
-            # a step. It cannot make water hotter than the tank, so below the
-            # curve it saturates wide open. With two tanks the supply side is
-            # whichever tank is hotter -- the 4-way valve draws on both.
-            supply_temp = (
-                max(wood_temp, T_buf)
-                if two_tank and wood_temp is not None
-                else T_buf
-            )
-            t_mix = min(supply_temp, flow_set)
-            q_rad_from_buf = mixing_valve.emitter_delivery(
-                mix_temp=t_mix, zone_temp=T_upper, ua=ua_rad
-            )
-            # In the valve_upper_direct_slab layout (v3.16.0) only the
-            # radiator circuit sits behind the valve; the slab drinks raw
-            # tank water, so its delivery follows the tank temperature with
-            # no curve cap. Its validity predicate excludes a wood probe,
-            # so this and the two-tank branch are mutually exclusive by
-            # construction. The energy bound below still applies: a direct
-            # pipe cannot draw heat the tank does not hold.
-            q_floor_from_buf = mixing_valve.emitter_delivery(
-                mix_temp=(T_buf if p.slab_fed_direct else t_mix),
-                zone_temp=T_slab,
-                ua=ua_floor,
-            )
-
-            # ...and the tank cannot deliver heat it does not have. Capping the
-            # emitters at the curve made the discharge physical for any tank big
-            # enough that a step cannot empty it, which is every realistic size
-            # -- but a 10 L separator against a 40 K flow-to-room difference
-            # still overshoots its own Euler step and goes through zero.
-            # Measured before this bound, a 10 L tank coasting from 60 C reached
-            # -8.04 C with a 34 K single-step swing.
-            #
-            # Bound the *energy*, not the temperature: clipping T_buf at a floor
-            # while still crediting the emitters conserves nothing and turns the
-            # tank into a heat source. The floor is the coldest zone it feeds,
-            # which is where `emitter_delivery` reaches zero of its own accord.
-            floor_temp = min(T_upper, T_slab)
-            drawn = q_rad_from_buf + q_floor_from_buf
-            if two_tank:
-                # Per-tank energy bounds, the same fix generalized: neither
-                # tank can deliver heat it does not have, each judged against
-                # its own contents and its own input. Every expression here
-                # deliberately mirrors the single-tank branch's arithmetic
-                # (same operations, same order, division not reciprocal
-                # multiplication) so that at w == 0 this path is
-                # bit-identical to it — one ulp of difference moved a
-                # 96-step solve into a different basin when this was first
-                # written with `* (1/dt)`.
-                T_w = wood_temp
-                if T_w is None:
-                    T_w = T_buf
-                C_w = p.wood_tank_thermal_mass
-                q_wood_loss = p.wood_tank_heat_loss_coefficient * (T_w - TANK_ROOM_AMBIENT_TEMP)
-                w = wood_share(T_w, T_buf, flow_set, floor_temp)
-                avail_wood = ext - q_wood_loss + C_w * max(
-                    0.0, T_w - floor_temp
-                ) / max(dt_hours, 1e-6)
-                avail_hp = thermal_power - q_buf_loss + C_buf * max(
-                    0.0, T_buf - floor_temp
-                ) / max(dt_hours, 1e-6)
-                wood_draw = min(w * drawn, max(avail_wood, 0.0))
-                # A wood shortfall shifts to the HP side first — the physical
-                # valve shift as the wood side depletes — and only what
-                # neither tank can back starves the emitters, proportionally.
-                hp_draw = min(drawn - wood_draw, max(avail_hp, 0.0))
-                delivered = wood_draw + hp_draw
-                if drawn > delivered > 0.0:
-                    scale = delivered / drawn
-                    q_rad_from_buf *= scale
-                    q_floor_from_buf *= scale
-                elif delivered <= 0.0:
-                    q_rad_from_buf = 0.0
-                    q_floor_from_buf = 0.0
-            else:
-                available = thermal_power - q_buf_loss + C_buf * max(
-                    0.0, T_buf - floor_temp
-                ) / max(dt_hours, 1e-6)
-                if drawn > available > 0.0:
-                    scale = available / drawn
-                    q_rad_from_buf *= scale
-                    q_floor_from_buf *= scale
-                elif available <= 0.0:
-                    q_rad_from_buf = 0.0
-                    q_floor_from_buf = 0.0
         else:
             # No valve: whatever the pump makes reaches the emitters. These two
             # sum to `thermal_power` identically, so the tank is a pass-through
@@ -3164,8 +3503,7 @@ class ThermalModel:
         """Simulate one time step (dispatches to single or two-zone).
 
         ``valve_target`` overrides the configured mixing-valve target for this
-        step. The single-zone model has no valve branch, so it is accepted and
-        ignored there rather than being a two-zone-only signature.
+        step, in either zoning.
         ``humidity`` is the step's forecast relative humidity (#21) for the
         defrost derate; ``hour_of_day`` selects the learned internal-gains
         hour (#53). ``None`` for either falls back to the single configured
@@ -3173,7 +3511,7 @@ class ThermalModel:
 
         ``measured_heat_kw`` is the pump's thermal output for this step as a
         meter read it (#2016), and it stands in for the
-        ``cop * electrical_power`` both zone steps would otherwise infer; free
+        ``delivered_heat_kw`` both zone steps would otherwise infer; free
         external heat joins it exactly as before. ``None`` -- the default, and
         what every planning call passes, a horizon holding no measurement --
         leaves Q_hp inferred, byte-for-byte the previous behaviour. Trusted
@@ -3183,9 +3521,9 @@ class ThermalModel:
         the two interval learners, which replay one elapsed step, ever have
         one to pass.
         """
-        # The single-zone path has no buffer cap, so the scratch would
-        # otherwise carry a stale value from an earlier two-zone step. The
-        # wood ledger likewise: only the two-zone step can book it.
+        # Only a throttled step books the buffer cap, so the scratch would
+        # otherwise carry a stale value from an earlier step. The wood
+        # ledger likewise: only the two-zone step can book it.
         self._step_buffer_refused = 0.0
         self._step_wood_refused = 0.0
         # Explicit-Euler stability: with u·dt/C past ~2 the update
@@ -3234,7 +3572,8 @@ class ThermalModel:
                 state, electrical_power, outdoor_temp,
                 wind_speed, precipitation, solar_radiation, dt_hours,
                 external_heat_kw, humidity, hour_of_day,
-                measured_heat_kw=measured_heat_kw, _u_eff=u_first,
+                measured_heat_kw=measured_heat_kw, valve_target=valve_target,
+                _u_eff=u_first,
             )
         # Every sub-step below re-enters with the same outdoor, wind, rain,
         # solar and humidity, so the three per-call environment constants
@@ -3245,14 +3584,17 @@ class ThermalModel:
         # of its own harness budget (#1723).
         cop = self.compute_cop(outdoor_temp, humidity=humidity)
         q_solar = self.compute_solar_gain(solar_radiation)
+        refused = 0.0
         for _ in range(n_sub):
             state = self._simulate_step_single(
                 state, electrical_power, outdoor_temp,
                 wind_speed, precipitation, solar_radiation, dt_hours / n_sub,
                 external_heat_kw, humidity, hour_of_day,
-                measured_heat_kw=measured_heat_kw,
+                measured_heat_kw=measured_heat_kw, valve_target=valve_target,
                 _cop=cop, _u_eff=u_first, _q_solar=q_solar,
             )
+            refused += self._step_buffer_refused
+        self._step_buffer_refused = refused / n_sub
         return state
 
     def _single_zone_rates(
@@ -3315,7 +3657,8 @@ class ThermalModel:
         return dT_upper, dT_lower, dT_slab
 
     def _substeps_and_loss(
-        self, wind_speed: float, precipitation: float, dt_hours: float
+        self, wind_speed: float, precipitation: float, dt_hours: float,
+        ua_valve: float | None = None, c_buf: float | None = None,
     ) -> tuple[int, float, float]:
         """Sub-steps that keep the coupled Euler step matrix monotone, and the
         step's weather-adjusted loss coefficients they were judged with, as
@@ -3379,9 +3722,27 @@ class ThermalModel:
                 p.heat_loss_coefficient, wind_speed, precipitation
             )
             u_lower = 0.0
+            # `is_throttling` written out: a per-step call is priced on the
+            # unvalved path, and an unvalved buffer is a pass-through that
+            # adds nothing to any row. The batch hands both figures in (they
+            # are uniform across it); a direct caller gets them computed as
+            # the scalar branch does.
+            valve_row = 0.0
+            if (p.mixing_valve_mode or mixing_valve.MODE_NONE) in (
+                mixing_valve.THROTTLING_MODES
+            ):
+                if ua_valve is None:
+                    ua_valve = (
+                        p.max_electrical_power * p.cop_nominal_floored
+                        / p.emitter_design_delta_t_floored
+                    )
+                if c_buf is None:
+                    c_buf = _buffer_capacity(p)
+                valve_row = ua_valve / c_buf
             worst = max(
                 (u_upper + p.slab_heat_transfer) / p.room_thermal_mass,
-                p.slab_heat_transfer / p.slab_thermal_mass,
+                (p.slab_heat_transfer + (ua_valve or 0.0)) / p.slab_thermal_mass,
+                valve_row,
             )
         n_sub = max(1, int(np.ceil(worst * dt_hours / EULER_MONOTONE_MAX_RATIO)))
         return n_sub, u_upper, u_lower
@@ -3510,9 +3871,8 @@ class ThermalModel:
         batch/scalar bitwise-parity contract pins this path to the scalar
         one. Extracted from ``simulate_trajectory_batch`` to pay its LOC
         and duplication budgets; the expressions moved unchanged.
-        ``flow_carnot_eligible`` is False on the single-zone twin, whose
-        scalar path passes no flow temperature, so the Carnot term is
-        skipped there exactly as it is in ``_simulate_step_single``.
+        ``flow_carnot_eligible`` is whether a valve throttles, the one case
+        either scalar step passes the tank as its flow temperature.
         """
         p = self.params
         delta = out_i - p.cop_reference_temp
@@ -3599,24 +3959,24 @@ class ThermalModel:
         buffer, wood (None when not modelled), plus refused [B, n].
         """
         p = self.params
-        power_matrix = np.asarray(power_matrix, dtype=float)
+        heat_per_cop = heat_per_cop_kw(p, np.asarray(power_matrix, dtype=float))
         outdoor_temps = weather.outdoor_temps
         wind_speeds = weather.wind_speeds
         precipitation = weather.precipitation
         solar_radiation = weather.solar_radiation
         humidity = weather.humidity
         external_heat_kw = weather.external_heat_kw
-        n_steps = power_matrix.shape[1]
+        n_steps = heat_per_cop.shape[1]
         wind_speeds, precipitation, solar_radiation = weather_or_calm(
             n_steps, wind_speeds, precipitation, solar_radiation
         )
 
-        room = np.zeros((power_matrix.shape[0], n_steps + 1))
+        room = np.zeros((heat_per_cop.shape[0], n_steps + 1))
         slab = np.zeros_like(room)
         upper = np.zeros_like(room)
         lower = np.zeros_like(room)
         buf = np.zeros_like(room)
-        refused = np.zeros((power_matrix.shape[0], n_steps))
+        refused = np.zeros((heat_per_cop.shape[0], n_steps))
         wood = None
         if initial_state.wood_tank_temperature is not None:
             wood = np.zeros_like(room)
@@ -3650,6 +4010,17 @@ class ThermalModel:
             design_dt = p.emitter_design_delta_t_floored
             ua_rad = rad_fraction * design_power / design_dt
             ua_floor = (1.0 - rad_fraction) * design_power / design_dt
+        # The single-zone valve's conductance, uniform per batch: every
+        # emitter sits on the slab, so the valve's UA is the nameplate
+        # output's. Written out rather than `_valve_ua(p)` because this is a
+        # solver hot path and the production-call channel counts the call;
+        # the conditional evaluates nothing on an unvalved batch.
+        ua_valve = (
+            p.max_electrical_power * p.cop_nominal_floored
+            / p.emitter_design_delta_t_floored
+            if throttled and not p.two_zone_enabled
+            else 0.0
+        )
         if two_tank:
             C_w = p.wood_tank_thermal_mass
 
@@ -3671,7 +4042,7 @@ class ThermalModel:
             wind_i = float(wind_speeds[i])
             rain_i = float(precipitation[i])
             sol_i = float(solar_radiation[i])
-            power_i = power_matrix[:, i]
+            heat_per_cop_i = heat_per_cop[:, i]
             ext_i = (
                 float(external_heat_kw[i])
                 if external_heat_kw is not None
@@ -3686,12 +4057,15 @@ class ThermalModel:
             )
 
             n_sub, u_first, u_second = self._substeps_and_loss(
-                wind_i, rain_i, dt_hours
+                wind_i, rain_i, dt_hours, ua_valve, C_buf
             )
             # Uniform across the batch: substeps depend on weather and
             # dt only. The scalar path subdivides the same way; the
             # refused figure averages over substeps exactly as it does.
             refused_acc = np.zeros_like(buf[:, 0])
+            # This step's commanded target, if any; each branch falls back
+            # to the configured one when the plan names none.
+            vt = float(valve_targets[i]) if valve_targets is not None else None
             for _sub in range(n_sub):
                 dt = dt_hours / n_sub
                 if p.two_zone_enabled:
@@ -3699,17 +4073,16 @@ class ThermalModel:
                     q_buf_loss = p.buffer_tank_heat_loss_coefficient * (
                         T_buf - TANK_ROOM_AMBIENT_TEMP
                     )
-                    # COP: only the flow-temp correction varies per element;
-                    # the scalar law lives in _batch_cop so this method's
-                    # size stays paid for.
+                    # COP: only the flow-temp correction varies per element
+                    # (the scalar law is _batch_cop's); the draws' heat per
+                    # unit COP was taken once for the whole batch above.
                     cop = self._batch_cop(out_i, hum_i, T_buf, throttled)
                     thermal_power = (
-                        cop * power_i + (0.0 if two_tank else ext)
+                        cop * heat_per_cop_i + (0.0 if two_tank else ext)
                     )
                     if throttled:
                         target = (
-                            float(valve_targets[i])
-                            if valve_targets is not None
+                            vt if vt is not None
                             else (p.mixing_valve_target or p.comfort_ceiling)
                         )
                         flow_set = mixing_valve.flow_setpoint(
@@ -3835,12 +4208,21 @@ class ThermalModel:
                     # starting it from the upper-floor field is the classic
                     # parity bug when the two differ in the initial state.
                     # T_room is seeded with the other states above the step
-                    # loop and carried across sub-steps from there. The COP
-                    # is the shared twin law, with the Carnot term
-                    # ineligible exactly as the scalar single-zone step
-                    # passes no flow temperature.
-                    cop = self._batch_cop(out_i, hum_i, T_buf, False)
-                    thermal_power = cop * power_i + ext
+                    # loop and carried across sub-steps from there.
+                    cop = self._batch_cop(out_i, hum_i, T_buf, throttled)
+                    thermal_power = cop * heat_per_cop_i + ext
+                    if throttled:
+                        # The scalar step's own law, called: one copy of it
+                        # beats the calls, and this family is re-planned by
+                        # the store itself (#2500), the growth the
+                        # production-call channel exempts.
+                        q_slab, dT_sub, refused_sub = _single_valve_rates(
+                            p, T_buf, T_slab, thermal_power, out_i, u_first,
+                            vt, dt,
+                        )
+                        refused_acc = refused_acc + refused_sub
+                        thermal_power = q_slab
+                        T_buf = T_buf + dT_sub * dt
                     q_slab_to_room = p.slab_heat_transfer * (T_slab - T_room)
                     q_loss = u_first * (T_room - out_i)
                     q_internal = (
@@ -3863,6 +4245,7 @@ class ThermalModel:
                     upper[:, i + 1] = T_room
                     lower[:, i + 1] = T_room
                     buf[:, i + 1] = T_buf
+                    refused[:, i] = refused_acc / n_sub
                     if wood is not None and T_wood is not None:
                         wood[:, i + 1] = T_wood
 
@@ -3989,7 +4372,7 @@ class ThermalModel:
                     float(humidity[i]) if humidity is not None else None
                 ),
             )
-            dhw_thermal_power = cop_dhw * dhw_power_schedule[i]
+            dhw_thermal_power = cop_dhw * heat_per_cop_kw(self.params, dhw_power_schedule[i])
 
             new_dhw = self.simulate_dhw_step(
                 dhw_temp=state.dhw_temperature,

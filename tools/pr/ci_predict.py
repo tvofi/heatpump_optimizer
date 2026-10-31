@@ -28,7 +28,10 @@ more run CI's own command where no local path ran it the way CI does
 WIRING (`selftest_wiring.py --check`, the same job, which a diff adding a
 self-testing tool to `tools/` left to CI: #2870's `review_packet.py`) and
 AGREEMENT (`wave-script`'s agreement lane under the base's copy, as the
-pull request is graded, where `prepr.sh` step 3f4 runs the head's). One is this predictor's own model, because CI learns the answer by
+pull request is graded, where `prepr.sh` step 3f4 runs the head's) and
+GRADER (every program a job that restores its check source from the base
+runs, on CI's tree, when the diff changes a path that job restores:
+dev/audit/rca/R10-RCA-PREPR-HEAD-GRADERS.md). One is this predictor's own model, because CI learns the answer by
 running: the import arm resolves imports statically where CI records them at
 run time. (A fourth arm, NO RECORDING, read the `rec tests/...` lines of
 `tests/derive_closures.sh`; round-9 C1 derived the full arm's recording set
@@ -37,9 +40,15 @@ says so where it stood.) Every arm is
 scoped to what the three-dot diff adds or changes, so a red main already
 carries is never charged to a branch. Nothing here runs a test, a recording
 or a mutant: seconds, never a heavy script, but for AGREEMENT, which runs the
-lane in a throwaway clone (about 10 s) and only on a diff to a file it loads.
+lane in a throwaway clone (about 10 s) and only on a diff to a path its job
+restores, and two opt-in by `--record-self-tests` (prepr's 6d passes it):
+GRADER, minutes where keyed (measured in its record), and SELF-TEST READS,
+a changed file's own `--self-test`, recorded by `closure._exec_record` and
+graded as its host's record by `closure.check`, for each gate script whose
+source runs that self-test (0.5 s to 29 s a file, measured;
+dev/audit/rca/R10-RCA-CLOSURE-ARGV.md).
 
-    python3 tools/pr/ci_predict.py [--base origin/main] [--apply-inert] [--body FILE]
+    python3 tools/pr/ci_predict.py [--base origin/main] [--apply-inert] [--body FILE] [--record-self-tests]
     python3 -I tools/pr/ci_predict.py --self-test
 
 Prints one `PREDICT <job> ...` line per predicted red and a last line
@@ -61,7 +70,8 @@ Job names are the check names of `ci.yml`'s units (`tests / closures`, ...,
 `JOB` below); `ledger` is no check, only the file a stale pin leaves behind.
 
 What it cannot see, said so the quiet line is not over-read: a data file a
-script opens by name (#1987's `services.yaml`), a read behind a dynamic path,
+script opens by name (#1987's `services.yaml`) outside a changed file's own
+self-test, a read behind a dynamic path,
 and a closure whose recording a merge from `main` alone moves. Those stay
 `closures`'s, and `ci-autofix.md` says who repairs them. What it does see it
 names the repair for, per arm, on a `CI PREDICT:` line: before a PR exists no
@@ -82,7 +92,8 @@ from pathlib import Path
 # (DESIGN-P2 section 9); gate.REQUIRED pins every value but `ledger`.
 JOB = {"closures": "tests / closures", "fast": "tests / fast (3.14)",
        "mutation": "tests / mutation", "carry": "pr-contract / pr-contract",
-       "wave-script": "governance / wave-script", "instrument": "governance / instrument-self-tests"}
+       "wave-script": "governance / wave-script", "instrument": "governance / instrument-self-tests",
+       "policy-docs": "governance / policy-docs", "env-matrix": "governance / env-matrix"}
 
 
 def git(root: Path, *args: str) -> str | None:
@@ -309,6 +320,106 @@ def no_recording(root, base, changed, closure):
     return []
 
 
+# SELF-TEST READS (dev/audit/rca/R10-RCA-CLOSURE-ARGV.md). A gate script that
+# RUNS a tool's self-test files every read that run makes, and the recorder
+# counts more than opens: `closure._exec_record` files every subprocess argv
+# token naming a repo file. #2883 went red on `closures` twice that way, both
+# times through tests/entities.py, and the static arms above saw neither: a
+# path handed to `git ls-tree` in roster_lib's self-test, and a generator
+# state_docs.py spawns. Recording the changed file's own self-test with CI's
+# recorder, then grading that record as its host's with CI's own `check`,
+# took 4.7 s and named both pairs CI named. A host counts only when its source
+# names the file within SELF_TEST_WINDOW lines of a self-test mention: a
+# script that lists a file as text (harness_headers' scan) does not run it.
+SELF_TEST_WINDOW = 12
+SELF_TEST_TIMEOUT = 180
+_RECORD_DRIVER = ("import sys; sys.path.insert(0, 'tests'); import closure; "
+                  "sys.exit(closure._exec_record(sys.argv[1], sys.argv[2], ['--self-test']))")
+
+
+def self_test_hosts(root: Path, f: str, closures: dict) -> list[str]:
+    """The scripts whose closure lists `f` and whose source runs its self-test.
+
+    `closures` only: a file a host lists under `inert_reads` alone is one it
+    reads as text (#2910 review 1: budget_raise_gate.py and selftest_wiring.py
+    in tests/entities.py's, each a false red on a green tree). A file is never
+    its own host.
+    """
+    name, hosts = Path(f).name, []
+    for script in sorted(closures):
+        if script == f or f not in set(closures[script]):
+            continue
+        try:
+            lines = (root / script).read_text(errors="replace").splitlines()
+        except OSError:
+            continue
+        w = SELF_TEST_WINDOW
+        if any(re.search(r"self[-_]test", ln) for i, line in enumerate(lines) if name in line
+               for ln in lines[max(0, i - w):i + w + 1]):
+            hosts.append(script)
+    return hosts
+
+
+def record_self_test(root: Path, f: str, out: Path) -> str | None:
+    """`f --self-test` under CI's recorder; None when recorded, else why not."""
+    import os
+    env = {**os.environ, "PYTHONPATH": "tests/hastub"}
+    try:
+        subprocess.run([sys.executable, "-c", _RECORD_DRIVER, f, str(out)], cwd=root, env=env,
+                       capture_output=True, text=True, timeout=SELF_TEST_TIMEOUT)
+    except subprocess.TimeoutExpired:
+        return f"not recorded in {SELF_TEST_TIMEOUT} s"
+    return None if out.is_file() else "the recorder wrote no record"
+
+
+def self_test_reads(root, changed, closures, inert_reads, closure, scripts=None,
+                    record=record_self_test, notes=None):
+    """Each changed file's own self-test, recorded and graded as its host's."""
+    import contextlib
+    import io
+    import tempfile
+    preds: list[tuple[str, str]] = []
+    for f in sorted(changed):
+        if not f.endswith(".py") or not (root / f).is_file():
+            continue
+        if "--self-test" not in (root / f).read_text(errors="replace"):
+            continue
+        hosts = self_test_hosts(root, f, closures)
+        if not hosts:
+            continue
+        with tempfile.TemporaryDirectory() as td:
+            out = Path(td) / "rec.json"
+            why = record(root, f, out)
+            if why is not None:
+                if notes is not None:
+                    notes.append(f"SELF-TEST READS {f}: {why}; left to CI's closures job")
+                continue
+            rec = json.loads(out.read_text())
+            for host in hosts:
+                d = Path(td) / host.replace("/", "_")
+                d.mkdir()
+                (d / "r.json").write_text(json.dumps({**rec, "script": host}))
+                buf = io.StringIO()
+                with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(buf):
+                    rc = closure.check(d, partial=True)
+                if rc == 0:
+                    continue
+                kind, named = None, []
+                for line in buf.getvalue().splitlines():
+                    if line.startswith("    ") and kind:
+                        named.append((kind, line.strip().removeprefix(f"{host}: ")))
+                    elif not line.startswith(" "):  # a header; its prose lines indent by two
+                        kind = ("INERT" if line.startswith("INERT READS") else
+                                "UNDER-SCOPED" if line.startswith("UNDER-SCOPED") else None)
+                first = (buf.getvalue().strip().splitlines() or ["no output"])[0]
+                for k, g in named or [("CHECK", first)]:
+                    preds.append(("closures", f"SELF-TEST READS {k} {host}: {g} (its run of "
+                                              f"{f}'s self-test, recorded by closure._exec_record)"))
+                if scripts is not None:
+                    scripts.add(host)
+    return preds
+
+
 def carry_preds(root: Path, body: str) -> list[tuple[str, str]]:
     """`pr-contract`'s carry_audit check over the body: CI's own function.
 
@@ -399,54 +510,78 @@ def privacy_preds(root: Path) -> list[tuple[str, str]]:
 # The agreement lane at either layout, in the order `wave-script` tries them.
 AGREEMENT = (".claude/workflows/agreement.mjs", "tools/policy/agreement.mjs")
 EMPTY_TREE = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
+# The step a job restores its graders from the base commit in: the jobs that
+# hold it are the pull-request direction's whole population.
+RESTORE_STEP = "- name: Restore the check source from the base commit"
 
 
-def lane_files(root: Path) -> set[str]:
-    """What the agreement lane loads: agreement_py.py's own `closure` (its
-    restore precondition's list) and agreement.mjs's, its relative imports and
-    `load`/`at` literals over every .mjs file those reach."""
-    import layout
-    mjs = next((p for p in AGREEMENT if (root / p).is_file()
-                and (root / p).with_name("agreement_py.py").is_file()), None)
-    if mjs is None:
-        return set()
-    sys.path.insert(0, str(root / Path(mjs).parent))
-    import agreement_py
-    seen = set(agreement_py.closure(root, root / Path(mjs).with_name("agreement_py.py")))
-    stack = [mjs]
-    while stack:
-        p = layout.locate(stack.pop(), root=root)
-        if p in seen or not p.endswith(".mjs") or not (root / p).is_file():
-            continue
-        seen.add(p)
-        src = (root / p).read_text()
-        stack += [str(Path(p).parent / m) for m in re.findall(r"from '(\./[^']+)'", src)]
-        stack += re.findall(r"\b(?:load|at)\('([^']+)'\)", src)
-    return seen
+def job_text(text: str, job: str) -> str:
+    m = re.search(rf"^  {re.escape(job)}:\n(.*?)(?=^  [a-z][\w-]*:\n|\Z)", text, re.M | re.S)
+    return m.group(1) if m else ""
 
 
-def agreement_preds(root: Path, base_ref: str, changed: set[str]) -> list[tuple[str, str]]:
-    """`wave-script`'s agreement lane as CI runs it on the pull request: the
-    merge of HEAD into the base tip (base first), the job's restore pathspecs
-    checked out from that tip, in a clone whose origin/main is the tip (a live
+def restore_jobs(text: str) -> list[str]:
+    """Each governance.yml job that restores its check source from the base."""
+    return [j for j in re.findall(r"^  ([a-z][\w-]*):\n", text, re.M) if RESTORE_STEP in job_text(text, j)]
+
+
+def restored_hit(names, specs, at_tip, covers) -> list[str]:
+    """The diff's paths a job grades with the base's copy of: covered by its
+    restore pathspecs and held by the base tip. Only there do the head's and
+    CI's copies differ, whatever loads them; a path the tip lacks is not
+    restored, and a data file the job does not restore reaches CI as the
+    branch has it (corpus_excluded.json, #2916's repair)."""
+    return sorted(p for p in names if p in at_tip and any(covers(s, p) for s in specs))
+
+
+# Each runner token a pinned run line passes, as the predictor's CI tree has it.
+RUN_TOKENS = {"$PWD": lambda r, tmp: str(r), "$RUNNER_TEMP": lambda r, tmp: str(tmp),
+              "${RUNNER_TEMP}": lambda r, tmp: str(tmp),
+              "$(git rev-parse HEAD)": lambda r, tmp: (git(r, "rev-parse", "HEAD") or "").strip()}
+
+
+def pinned_runs(text: str, root: Path | None = None) -> list[tuple[str, str, tuple[str, ...]]]:
+    """Each program a restoring job runs, from governance.yml's own run text, in
+    its order: (job, the program's path, its argv as written). With `root`,
+    only a path the tree holds: each run line names both layouts and `test -f`
+    runs the one that exists."""
+    import shlex
+    out = []
+    for job in restore_jobs(text):
+        body = "\n".join(l for l in job_text(text, job).splitlines() if not l.lstrip().startswith("#"))
+        for prog, rest in re.findall(r"(?:node|python3(?: -I)?)\s+([\w./-]+\.(?:mjs|py))([^;&|\n]*)", body):
+            run = (job, prog, tuple(shlex.split(rest)))
+            if (root is None or (root / prog).is_file()) and run not in out:
+                out.append(run)
+    return out
+
+
+# The runs the `agreement` arm makes (`--py-json` reads what `--out` writes),
+# and the ones that grade nothing, each with its reason.
+AGREEMENT_RUNS = {("wave-script", "agreement_py.py", "--out"), ("wave-script", "agreement.mjs", "--py-json")}
+GRADER_EXEMPT = {
+    ("policy-docs", "policy_lint.mjs", "--report"): "its step ends `|| true`: it prints and never reddens",
+}
+
+
+def run_key(job: str, prog: str, argv) -> tuple[str, ...]:
+    return (job, Path(prog).name, *(a for a in argv if a.startswith("--")))
+
+
+def ci_tree_run(root: Path, tip: str, job: str, steps) -> tuple[str, subprocess.CompletedProcess | None]:
+    """Run `steps` (each a function of the tree, its runner and a scratch
+    directory) where CI's pull-request run of `job` runs them: the merge of
+    HEAD into the base tip (base first), the job's restore pathspecs checked
+    out from that tip, in a clone whose origin/main is the tip (a live
     origin/main past the PR moves the merge-subject walk onto its own merges).
-
-    prepr.sh step 3f4 runs the head's copy, push-to-main's direction; the two
-    differ only where the diff edits a file the lane loads, so that diff is
-    the key (dev/audit/rca/R10-RCA-2671-WAVE-SCRIPT.md, countermeasure A:
-    #2671's registration passed 3f4 and was UNREGISTERED under the base's
-    copy). A base without the lane runs none, as the job skips it.
-    """
-    hit = sorted(changed & lane_files(root))
-    tip = (git(root, "rev-parse", "--verify", f"{base_ref}^{{commit}}") or "").strip()
-    if not hit or not tip or not any(git(root, "cat-file", "-e", f"{tip}:{p}") is not None for p in AGREEMENT):
-        return []
+    Returns ("unmerged", None) on a conflict, else ("ran", the first failing
+    step's process or the last)."""
     import shutil
     import tempfile
     import agreement_py
     from throwaway_git import throwaway_git_clone
     head = (git(root, "rev-parse", "HEAD") or "").strip()
-    tmp = Path(tempfile.mkdtemp(prefix="hpo-ci-predict-agreement-"))
+    tmp = Path(tempfile.mkdtemp(prefix="hpo-ci-predict-tree-"))
     r = tmp / "r"
     try:
         env = throwaway_git_clone(root, r, "-q", "--shared", "--no-checkout")
@@ -457,27 +592,152 @@ def agreement_preds(root: Path, base_ref: str, changed: set[str]) -> list[tuple[
         run("git", "update-ref", "refs/remotes/origin/main", tip)
         run("git", "checkout", "-q", "--detach", tip)
         if run("git", "merge", "-q", "--no-ff", "-m", f"Merge {head} into {tip}", head).returncode:
-            return [("wave-script", f"AGREEMENT UNMERGED: HEAD does not merge into {tip[:12]}, "
-                                    f"and CI runs nothing on a conflict; merge the base first")]
+            return "unmerged", None
         shutil.rmtree(r / ".claude" / "workflows" / "vendor", ignore_errors=True)
-        specs = agreement_py.restore_specs((r / agreement_py.WORKFLOW).read_text())
+        specs = agreement_py.restore_specs((r / agreement_py.WORKFLOW).read_text(), job)
         (tmp / "pinned.list").write_text(run("git", "diff", "--no-renames", "--name-only", "-z", EMPTY_TREE, tip, "--", *specs).stdout)
         run("git", "checkout", tip, f"--pathspec-from-file={tmp / 'pinned.list'}", "--pathspec-file-nul")
-        py = next(p for p in (".claude/workflows/agreement_py.py", "tools/policy/agreement_py.py") if (r / p).is_file())
-        out = run(sys.executable, "-I", py, "--out", str(tmp / "agreement.json"))
-        if out.returncode == 0:
-            out = run("node", next(p for p in AGREEMENT if (r / p).is_file()), "--py-json", str(tmp / "agreement.json"))
-    except (OSError, StopIteration, ValueError) as e:
-        return [("wave-script", f"AGREEMENT UNRUN {type(e).__name__}: {e}")]
+        out = None
+        for step in steps:
+            out = step(r, run, tmp)
+            if out.returncode:
+                break
+        return "ran", out
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
+
+
+def keyed_jobs(root: Path, base_ref: str) -> tuple[str, dict[str, list[str]], object]:
+    """(the base tip, each restoring job the diff keys -> its `restored_hit`,
+    agreement_py) -- the tip "" when the base or the workflow does not resolve."""
+    home = next((d for d in (".claude/workflows", "tools/policy") if (root / d / "agreement_py.py").is_file()), None)
+    tip = (git(root, "rev-parse", "--verify", f"{base_ref}^{{commit}}") or "").strip()
+    if home is None or not tip:
+        return "", {}, None
+    sys.path.insert(0, str(root / home))
+    import agreement_py
+    wf = root / agreement_py.WORKFLOW
+    if not wf.is_file():
+        return "", {}, agreement_py
+    text = wf.read_text()
+    names = (git(root, "diff", "--name-only", "--no-renames", f"{tip}...HEAD") or "").split()
+    at_tip = set((git(root, "ls-tree", "-r", "--name-only", tip) or "").splitlines())
+    keyed = {}
+    for job in restore_jobs(text):
+        hit = restored_hit(names, agreement_py.restore_specs(text, job), at_tip, agreement_py.covers)
+        if hit:
+            keyed[job] = hit
+    return tip, keyed, agreement_py
+
+
+def over(hit: list[str]) -> str:
+    return ", ".join(hit[:3]) + (f" and {len(hit) - 3} more" if len(hit) > 3 else "")
+
+
+def agreement_preds(root: Path, base_ref: str) -> list[tuple[str, str]]:
+    """`wave-script`'s agreement lane as CI runs it on the pull request
+    (`ci_tree_run`).
+
+    prepr.sh step 3f4 runs the head's copy, push-to-main's direction; the two
+    differ only where the diff edits a path the job restores, so that diff is
+    the key (`restored_hit`; dev/audit/rca/R10-RCA-2671-WAVE-SCRIPT.md,
+    countermeasure A: #2671's registration passed 3f4 and was UNREGISTERED
+    under the base's copy). A base without the lane runs none, as the job
+    skips it.
+    """
+    tip, keyed, _ = keyed_jobs(root, base_ref)
+    hit = keyed.get("wave-script")
+    if not hit or not any(git(root, "cat-file", "-e", f"{tip}:{p}") is not None for p in AGREEMENT):
+        return []
+
+    def py(r, run, tmp):
+        p = next(p for p in (".claude/workflows/agreement_py.py", "tools/policy/agreement_py.py") if (r / p).is_file())
+        return run(sys.executable, "-I", p, "--out", str(tmp / "agreement.json"))
+
+    def lane(r, run, tmp):
+        return run("node", next(p for p in AGREEMENT if (r / p).is_file()), "--py-json", str(tmp / "agreement.json"))
+    try:
+        state, out = ci_tree_run(root, tip, "wave-script", (py, lane))
+    except (OSError, StopIteration, ValueError) as e:
+        return [("wave-script", f"AGREEMENT UNRUN {type(e).__name__}: {e}")]
+    if state == "unmerged":
+        return [("wave-script", f"AGREEMENT UNMERGED: HEAD does not merge into {tip[:12]}, "
+                                f"and CI runs nothing on a conflict; merge the base first")]
     if out.returncode == 0:
         return []
     lines = [l for l in out.stdout.splitlines() if l.strip()] or [f"rc {out.returncode}: {out.stderr.strip()[-200:]}"]
     why = [l.strip() for l in lines if l.split()[0] in ("UNRESTORED", "DIVERGENT", "UNREGISTERED", "DEAD", "REFUSED")]
     result = next((l for l in reversed(lines) if l.startswith("RESULT ")), lines[-1].strip())
-    return [("wave-script", f"AGREEMENT {result} (the base's copy, over {', '.join(hit)})")] + \
+    return [("wave-script", f"AGREEMENT {result} (the base's copy, over {over(hit)})")] + \
            [("wave-script", f"AGREEMENT {w}") for w in why]
+
+
+def grader_runs(text: str, root: Path, job: str) -> list[tuple[str, tuple[str, ...]]]:
+    """The runs of `job` the graders arm makes: every one `pinned_runs` reads
+    but the `agreement` arm's and `GRADER_EXEMPT`'s."""
+    return [(prog, argv) for j, prog, argv in pinned_runs(text, root)
+            if j == job and run_key(j, prog, argv) not in GRADER_EXEMPT.keys() | AGREEMENT_RUNS]
+
+
+def grader_gaps(text: str) -> list[str]:
+    """A run line the arm cannot run as CI does (a runner token `RUN_TOKENS`
+    does not map), and an exemption no run line still holds. Empty is the
+    population closed over governance.yml."""
+    runs = pinned_runs(text)
+    gaps = [f"{job}: {prog} {' '.join(argv)} passes {a!r}, which RUN_TOKENS does not map"
+            for job, prog, argv in runs for a in argv if "$" in a and a not in RUN_TOKENS
+            and not any(a.startswith(t) and a[len(t):].startswith("/") for t in RUN_TOKENS)]
+    held = {run_key(job, prog, argv) for job, prog, argv in runs}
+    gaps += [f"GRADER_EXEMPT: no run line still holds {' '.join(e)}" for e in GRADER_EXEMPT if e not in held]
+    return gaps
+
+
+def grader_preds(root: Path, base_ref: str) -> list[tuple[str, str]]:
+    """Each run of each restoring job the diff keys (`restored_hit`), as CI
+    runs it on the pull request (`ci_tree_run`): every `grader_runs` program,
+    restored or the head's own, since a head copy that loads a restored file
+    grades with the base's copy of it too. The jobs run side by side, one CI
+    tree each; a refusal names the run and the restored paths that keyed it."""
+    from concurrent.futures import ThreadPoolExecutor
+    tip, keyed, agreement_py = keyed_jobs(root, base_ref)
+    if not keyed:
+        return []
+    text = (root / agreement_py.WORKFLOW).read_text()
+
+    def one(job: str) -> list[tuple[str, str]]:
+        hit, results = keyed[job], []
+
+        def step(prog, argv):
+            def grade(r, run, tmp):
+                args = [RUN_TOKENS[a](r, tmp) if a in RUN_TOKENS else
+                        next((RUN_TOKENS[t](r, tmp) + a[len(t):] for t in RUN_TOKENS if a.startswith(t + "/")), a)
+                        for a in argv]
+                cmd = (sys.executable, "-I", prog) if prog.endswith(".py") else ("node", prog)
+                out = run(*cmd, *args)
+                if out.returncode:
+                    results.append((prog, argv, out))
+                return subprocess.CompletedProcess(out.args, 0, out.stdout, out.stderr)  # run every step
+            return grade
+        runs = grader_runs(text, root, job)
+        try:
+            state, _ = ci_tree_run(root, tip, job, tuple(step(p, a) for p, a in runs))
+        except (OSError, StopIteration, ValueError) as e:
+            return [(job, f"GRADER UNRUN {type(e).__name__}: {e}")]
+        if state == "unmerged":
+            return [(job, f"GRADER UNMERGED: HEAD does not merge into {tip[:12]}, and CI runs nothing "
+                          f"on a conflict; merge the base first")]
+        preds = []
+        for prog, argv, out in results:
+            lines = [l.strip() for l in out.stdout.splitlines() if l.strip()] or \
+                [f"rc {out.returncode}: {out.stderr.strip()[-200:]}"]
+            first = next((l for l in lines if l.startswith(("ERROR", "FAIL", "REFUSED", "BLIND", "DEAD", "MISSING",
+                                                            "NOT WIRED", "STALE", "DRIFT", "SELF-TEST FAILED"))
+                          and "probe, expected" not in l), lines[-1])
+            label = " ".join((Path(prog).name, *argv))
+            preds.append((job, f"GRADER {label} REFUSED by the base's copy, over {over(hit)}: {first[:240]}"))
+        return preds
+    with ThreadPoolExecutor(max_workers=len(keyed)) as pool:
+        return [p for preds in pool.map(one, sorted(keyed)) for p in preds]
 
 
 def orphans(changed, closure):
@@ -533,8 +793,21 @@ def unpinned(base):
                     for k, s in m.added_keys(added)]
 
 
+# The arms, in the order they run. `--only` selects one where a caller needs a
+# single question answered: `prepr.sh --fill-red` derives the `mutation` red
+# alone, and reaching it by running every other arm cost 6.5 s of CPU against
+# the 5 s budget the seat's checks meet (eight others then; R10-FLOW-JIDOKA's
+# review, 2026-10-26).
+ARMS = ("orphans", "layout", "privacy", "wiring", "agreement", "graders", "no-recording",
+        "under-scoped", "inert-siblings", "left-inert", "mutation", "self-test-reads")
+
+
 def predict(root: Path, base_ref: str, pairs: set | None = None,
-            scripts: set | None = None, body: str | None = None) -> tuple[int, list[tuple[str, str]], str]:
+            scripts: set | None = None, body: str | None = None,
+            only: str | None = None, record: bool = False,
+            notes: list | None = None) -> tuple[int, list[tuple[str, str]], str]:
+    if only is not None and only not in ARMS:
+        raise SystemExit(f"ci_predict: --only {only} is not one of {', '.join(ARMS)}")
     base = (git(root, "merge-base", base_ref, "HEAD") or "").strip()
     if not base:
         return 2, [], f"no merge base between {base_ref} and HEAD"
@@ -545,18 +818,29 @@ def predict(root: Path, base_ref: str, pairs: set | None = None,
     changed = {p for p in names.split() if p in tracked}
     table = json.loads((root / "tests" / "closures.json").read_text())
     closures, inert_reads = table["closures"], table.get("inert_reads", {})
+    arms = (
+        ("orphans", lambda: orphans(changed, closure)),
+        ("layout", lambda: layout_preds(root, base)),
+        ("privacy", lambda: privacy_preds(root)),
+        ("wiring", lambda: wiring_preds(root, changed)),
+        ("agreement", lambda: agreement_preds(root, base_ref)),
+        ("graders", lambda: grader_preds(root, base_ref)),
+        ("no-recording", lambda: no_recording(root, base, changed, closure)),
+        ("under-scoped", lambda: under_scoped(root, base, changed, tracked, closures,
+                                              inert_reads, closure, pairs, scripts)),
+        ("inert-siblings", lambda: inert_siblings(changed, inert_reads, closure, pairs)),
+        ("left-inert", lambda: left_inert(changed, closures, inert_reads, closure, scripts)),
+        ("mutation", lambda: unpinned(base)),
+        ("self-test-reads", lambda: self_test_reads(root, changed, closures, inert_reads,
+                                                    closure, scripts, notes=notes)),
+    )
     preds: list[tuple[str, str]] = []
-    preds += orphans(changed, closure)
-    preds += layout_preds(root, base)
-    preds += privacy_preds(root)
-    preds += wiring_preds(root, changed)
-    preds += agreement_preds(root, base_ref, changed)
-    preds += no_recording(root, base, changed, closure)
-    preds += under_scoped(root, base, changed, tracked, closures, inert_reads,
-                          closure, pairs, scripts)
-    preds += inert_siblings(changed, inert_reads, closure, pairs)
-    preds += left_inert(changed, closures, inert_reads, closure, scripts)
-    preds += unpinned(base)
+    for name, arm in arms:
+        # The arms that run a gate's programs: on --record-self-tests (prepr 6d)
+        # or by name. `graders` takes minutes where it is keyed, so body_push.sh's
+        # seconds-budget run leaves it to prepr (R10-RCA-PREPR-HEAD-GRADERS).
+        if (only is None and (name not in ("self-test-reads", "graders") or record)) or name == only:
+            preds += arm()
     if body:
         preds += carry_preds(root, body)
     seen, out = set(), []
@@ -605,6 +889,11 @@ def repairs(root: Path, preds, scripts: set) -> list[str]:
                    f"(CI's last recordings of the {len(scripts)} took {secs:.0f} s in all)"
                    + ("; that many is the orchestrator's to record on Linux, asked for before the handoff"
                       if many else ""))
+    if any(j == "closures" and l.startswith("SELF-TEST READS INERT") for j, l in preds):
+        out.append("a SELF-TEST READS INERT file is one the host really records, so `--apply-inert` "
+                   "cannot clear it: it leaves INERT through INERT_EXCEPT in tests/closure.py and "
+                   "joins the host's closure by the --single above, the route #2883 took "
+                   "(dev/audit/rca/R10-RCA-CLOSURE-ARGV.md)")
     if any(j == "fast" and l.startswith("LAYOUT") for j, l in preds):
         out.append("a LAYOUT refusal is repaired in the diff as `python3 -I tests/layout.py --guard` "
                    "names it: a re-added moved path goes where it lives, a citation is re-pointed to "
@@ -614,6 +903,12 @@ def repairs(root: Path, preds, scripts: set) -> list[str]:
                    "the lane is graded by the copy it replaces: repair what the base's copy refuses, and a "
                    "registration only the head's copy carries has no local repair "
                    "(dev/audit/rca/R10-RCA-2671-WAVE-SCRIPT.md, cause 3): the body names it under ## Red checks")
+    if any(l.startswith("GRADER ") for _, l in preds):
+        out.append("a GRADER refusal is CI's verdict under the base's copy of every path the job restores, so an "
+                   "exclusion, registration or rule written into a restored grader, or into anything it loads, is "
+                   "graded by the copy it replaces: move it into the data the grader reads (corpus_excluded.json "
+                   "for named-docs, #2916's repair), or land the grader change first "
+                   "(dev/audit/rca/R10-RCA-PREPR-HEAD-GRADERS.md); the body names it under ## Red checks")
     if any(j == "instrument" for j, _ in preds):
         out.append("a REF PRIVACY refusal is repaired as `python3 -I tools/audit/seat/ref_privacy.py --check` "
                    "names it: a push site guarded and registered in PUSHERS, a published host path scrubbed")
@@ -719,6 +1014,12 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--apply-inert", action="store_true",
                     help="write every predicted INERT READS entry, then predict again")
     ap.add_argument("--body", help="the pull-request body: also predict pr-contract's carry check")
+    ap.add_argument("--only", choices=ARMS,
+                    help="run only this arm: a caller that needs one question answered")
+    ap.add_argument("--record-self-tests", action="store_true",
+                    help="also record each changed file's own self-test a gate script runs "
+                         "(SELF-TEST READS: seconds per file) and run each restoring job's programs "
+                         "the diff keys (GRADER: minutes where keyed), so prepr's 6d passes it")
     ap.add_argument("--self-test", action="store_true")
     ap.add_argument("--rekey-body", metavar="BODY", help="re-key BODY's moved `## Unpinned sites` lines in place")
     ap.add_argument("--from", dest="frm", metavar="SHA", help="with --rekey-body: the code sha the keys were taken at")
@@ -732,19 +1033,25 @@ def main(argv: list[str] | None = None) -> int:
         return rekey_main(root, args.rekey_body, args.frm)
     pairs: set[tuple[str, str]] = set()
     scripts: set[str] = set()
-    rc, preds, base = predict(root, args.base, pairs, scripts, args.body)
+    notes: list[str] = []
+    rc, preds, base = predict(root, args.base, pairs, scripts, args.body, args.only,
+                              args.record_self_tests, notes)
     if args.apply_inert and rc != 2:
         added = apply_inert(root, pairs)
         for script, f in added:
             print(f"APPLIED inert_reads {script}: {f}")
         if added:
             scripts = set()
-            rc, preds, base = predict(root, args.base, None, scripts, args.body)
+            notes = []
+            rc, preds, base = predict(root, args.base, None, scripts, args.body, args.only,
+                                      args.record_self_tests, notes)
     if rc == 2:
         print(f"CI PREDICT: {base}")
         return 2
     for job, line in preds:
         print(f"PREDICT {JOB.get(job, job):<8} {line}")
+    for line in notes:
+        print(f"NOTE    {line}")
     if any(j == "ledger" for j, _ in preds):
         print("CI PREDICT: a STALE PIN's file under tests/mutation_ledger/ is "
               "deleted by hand; `mutation-autofix` never drops one, and pins "
@@ -772,8 +1079,10 @@ def main(argv: list[str] | None = None) -> int:
         print(f"CI PREDICT: {reds} predicted red(s) on {', '.join(jobs)} "
               f"against {base[:12]} -- repair before the handoff; {who}")
     else:
-        print(f"CI PREDICT: no closures, fast, wave-script or instrument red predicted against "
-              f"{base[:12]} (a data-file read is not seen)")
+        ran = args.record_self_tests or args.only == "self-test-reads"
+        seen = (" unless a changed file's own self-test makes it" if ran else "")
+        print(f"CI PREDICT: no closures, fast, governance or instrument red predicted against "
+              f"{base[:12]} (a data-file read is not seen{seen})")
     return rc
 
 
@@ -830,8 +1139,10 @@ def self_test() -> int:
         print(f"  {'ok  ' if got == want else 'FAIL'} {label}")
         bad += got != want
     bad += plant_self_test(root)
+    bad += self_test_reads_self_test(root)
     bad += rekey_self_test()
     bad += wiring_self_test(root)
+    bad += graders_self_test(root)
     gate = root / "tools" / "ci" / "gate.py"
     if gate.exists():
         sys.path.insert(0, str(root / "tools" / "ci"))
@@ -844,6 +1155,194 @@ def self_test() -> int:
         bad += bool(miss)
     print(f"ci_predict self-test: {bad} failed")
     return 1 if bad else 0
+
+
+def graders_self_test(root: Path) -> int:
+    """The graders arm's key, population and run, with no load grammar to test.
+
+    Key: on this tree's governance.yml, the two files review rounds 2 and 3
+    found outside every load-grammar key -- the vendored parser
+    `render_md.mjs` requires and the gate `policy_lint.mjs` spawns -- key all
+    three restoring jobs, and the data file #2916's repair moved its entry to
+    keys none. Population: every run line is runnable as CI runs it and every
+    exemption still matches one, each perturbed once. Run: a throwaway repo
+    whose one restoring job grades a corpus through a required vendored file
+    and a spawned Python gate, each plant committed on the base; the nulls are
+    the repair in an unrestored data file, a corpus-only diff (not keyed) and a
+    plant staged but not committed. Last, `predict` reaches the arm by name.
+    """
+    import shutil
+    import tempfile
+    sys.path[:0] = [str(root / "tests"), str(root / "tools" / "policy")]
+    import agreement_py
+    from throwaway_git import throwaway_git_init
+    text = (root / agreement_py.WORKFLOW).read_text()
+    tracked = set((git(root, "ls-files") or "").split())
+    jobs = restore_jobs(text)
+    bad = 0
+
+    def ck(label, ok, why=""):
+        nonlocal bad
+        print(f"  {'ok  ' if ok else 'FAIL'} {label}{' -- ' + why if not ok and why else ''}")
+        bad += not ok
+
+    def keys(path, at_tip=tracked):
+        return [j for j in jobs if restored_hit([path], agreement_py.restore_specs(text, j), at_tip, agreement_py.covers)]
+    three = {"policy-docs", "env-matrix", "wave-script"}
+    for path in ("tools/policy/vendor/markdown-it.min.js", "tools/policy/budget_raise_gate.py"):
+        ck(f"{path} keys every restoring job", set(keys(path)) == three, str(keys(path)))
+    ck("dev/governance/config/corpus_excluded.json keys no job (a data file CI reads as the branch has it)",
+       keys("dev/governance/config/corpus_excluded.json") == [])
+    ck("a restored path the base tip lacks keys no job (nothing to restore it from)",
+       keys("tools/policy/vendor/markdown-it.min.js", tracked - {"tools/policy/vendor/markdown-it.min.js"}) == [])
+    runs = {run_key(*r) for r in pinned_runs(text, root)}
+    made = {run_key(j, p, a) for j in jobs for p, a in grader_runs(text, root, j)}
+    want = {("policy-docs", "policy_lint.mjs"), ("policy-docs", "policy_lint.mjs", "--hooks"),
+            ("wave-script", "check-wave-script.mjs"), ("env-matrix", "policy_lint_envmatrix.mjs")}
+    ck("the arm makes every pinned run but the agreement arm's and the exempt", made == runs - AGREEMENT_RUNS -
+       GRADER_EXEMPT.keys() and want <= made and not made & (AGREEMENT_RUNS | GRADER_EXEMPT.keys()), str(made))
+    ck("every pinned run line is runnable as CI runs it (null control: no gap)", grader_gaps(text) == [],
+       str(grader_gaps(text)))
+    odd = text.replace("node tools/policy/check-wave-script.mjs;", "node tools/policy/check-wave-script.mjs $ODD;", 1)
+    ck("a run line passing a token RUN_TOKENS does not map is a gap", odd != text and any("$ODD" in g for g in grader_gaps(odd)))
+    unexempt = text.replace("--report", "--reprt")
+    ck("an exemption no run line holds is a gap", any(g.startswith("GRADER_EXEMPT") for g in grader_gaps(unexempt)))
+
+    workflow = ("jobs:\n  policy-docs:\n    steps:\n"
+                "      - name: Restore the check source from the base commit\n        run: |\n"
+                '          git diff --name-only -z "$(git hash-object -t tree /dev/null)" "$PINNED" -- \\\n'
+                "            'g/*.mjs' 'g/*.py' 'g/vendor' > \"$RUNNER_TEMP/pinned.list\"\n"
+                "      - name: Grade the corpus\n        run: node g/grade.mjs\n")
+    grade = ("import { createRequire } from 'module'\nimport { execFileSync } from 'child_process'\n"
+             "import fs from 'fs'\nconst require = createRequire(import.meta.url)\n"
+             "const lib = require('./vendor/lib.js')\n"
+             "const EXCLUDED = new Set([...JSON.parse(fs.readFileSync('data/excluded.json', 'utf8'))])\n"
+             "for (const f of fs.readdirSync('corpus').sort()) {\n  if (EXCLUDED.has(f)) continue\n"
+             "  const gate = execFileSync('python3', ['g/gate.py', f]).toString().trim()\n"
+             "  if (!lib.ok(f) || gate !== 'ok') { console.log(`ERROR ${f}`); process.exit(1) }\n}\n")
+    base_files = {".github/workflows/governance.yml": workflow, "g/grade.mjs": grade,
+                  "g/vendor/lib.js": "exports.ok = f => !f.startsWith('bad')\n",
+                  "g/gate.py": "import sys\nprint('no' if 'worse' in sys.argv[1] else 'ok')\n",
+                  "data/excluded.json": "[]\n", "corpus/good.md": "x\n",
+                  "tools/policy/agreement_py.py": (root / "tools" / "policy" / "agreement_py.py").read_text()}
+
+    def app(t):
+        return lambda s: s + t
+    inline = {"g/grade.mjs": lambda s: s.replace("...JSON", "'bad1.md', ...JSON"), "corpus/bad1.md": app("x\n")}
+    vendored = {"g/vendor/lib.js": lambda s: s.replace("!f.startsWith('bad')", "true"), "corpus/bad1.md": app("x\n")}
+    gated = {"g/gate.py": lambda s: s.replace("'worse' in", "'never' in"), "corpus/worse.md": app("x\n")}
+    cases = [("an exclusion written into the restored grader is predicted red (#2916's shape)", inline, True,
+              "GRADER grade.mjs REFUSED by the base's copy, over g/grade.mjs: ERROR bad1.md"),
+             ("an edit to a vendored file the grader requires is predicted red (round 3's markdown-it.min.js)",
+              vendored, True, "over g/vendor/lib.js: ERROR bad1.md"),
+             ("an edit to a gate the grader spawns is predicted red (round 2's budget_raise_gate.py)", gated, True,
+              "over g/gate.py: ERROR worse.md"),
+             ("the exclusion in the unrestored data file, the grader keyed by a comment, is predicted green "
+              "(null control: the repair)", {"data/excluded.json": lambda s: '["bad1.md"]\n',
+                                             "corpus/bad1.md": app("x\n"), "g/grade.mjs": app("// a comment\n")}, True, None),
+             ("a corpus-only diff the base's grader refuses is not run (null control: the key; prepr runs the "
+              "same copy CI does)", {"corpus/bad1.md": app("x\n")}, True, None),
+             ("the inline exclusion staged and not committed is predicted green (null control)", inline, False, None)]
+    tmp = Path(tempfile.mkdtemp(prefix="hpo-ci-predict-graders-"))
+    try:
+        for label, edits, commit, want in cases:
+            r = tmp / f"r{cases.index((label, edits, commit, want))}"
+            env = throwaway_git_init(r, "-q", "-b", "main")
+
+            def run(*a):
+                return subprocess.run(a, cwd=r, env=env, capture_output=True, text=True)
+            for p, body in base_files.items():
+                (r / p).parent.mkdir(parents=True, exist_ok=True)
+                (r / p).write_text(body)
+            run("git", "add", "-A")
+            run("git", "commit", "-qm", "base")
+            tip = run("git", "rev-parse", "HEAD").stdout.strip()
+            for p, edit in edits.items():
+                (r / p).write_text(edit((r / p).read_text() if (r / p).exists() else ""))
+            run("git", "add", "-A")
+            if commit:
+                run("git", "commit", "-qm", label)
+            got = grader_preds(r, tip)
+            ok = (any(j == "policy-docs" and want in l for j, l in got) if want else not got)
+            ck(label, ok, str(got))
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+    g = globals()
+    real = g["grader_preds"]
+    g["grader_preds"] = lambda _root, _base: [("policy-docs", "GRADER sentinel")]
+    try:
+        _, preds, _ = predict(root, "HEAD", only="graders")
+    finally:
+        g["grader_preds"] = real
+    ck("predict reaches the graders arm by name (its call site, not only its helper)",
+       ("policy-docs", "GRADER sentinel") in preds, str(preds))
+    return bad
+
+
+def self_test_reads_self_test(root: Path) -> int:
+    """SELF-TEST READS over planted records, graded by CI's own `check`.
+
+    The table is a scratch one, so every path in it is a real file of this
+    tree (`check` refuses a phantom); the host sources are scratch files.
+    """
+    import tempfile
+    sys.path[:0] = [str(root / "tests")]
+    import closure
+    f, inert, plain = "tests/throwaway_git.py", "dev/audit/rca/R10-RCA-INERT-PREDICT.md", "tests/layout.py"
+    if not (closure.is_inert(inert) and not closure.is_inert(plain) and not closure.is_inert(f)):
+        print(f"  FAIL the SELF-TEST READS plant needs {inert} INERT, {f} and {plain} not")
+        return 1
+    bad, saved = 0, closure.CLOSURES
+    with tempfile.TemporaryDirectory() as d:
+        t = Path(d)
+        (t / "tests").mkdir()
+        h, n = "tests/entities.py", "tests/harness_headers.py"  # real keys; scratch sources
+        far = "\n" * (SELF_TEST_WINDOW + 1)
+        i = "tests/doc_claims.py"  # lists the file under inert_reads alone, and names its self-test
+        (t / h).write_text("# runs throwaway_git.py\n# through its --self-test\n")
+        (t / n).write_text(f"# lists throwaway_git.py as text{far}# its own --self-test\n")
+        (t / i).write_text("# throwaway_git.py --self-test\n")
+        (t / f).write_text("# throwaway_git.py --self-test\n")
+        listed = {h: [f, h], n: [f, n], f: [f]}
+
+        def run(files, reads, inert_reads, changed=(f,), why=None):
+            def record(_root, _f, out):
+                calls.append(_f)
+                out.write_text(json.dumps({"script": _f, "rc": 0, "files": [_f, *files],
+                                           "inert_reads": reads}))
+                return why
+            calls, notes = [], []
+            closure.CLOSURES = t / "closures.json"
+            ir = {i: [f], **inert_reads}
+            closure.write_closures(closure.CLOSURES, {"closures": listed, "inert_reads": ir})
+            try:
+                preds = self_test_reads(t, set(changed), listed, ir, closure,
+                                        record=record, notes=notes)
+            finally:
+                closure.CLOSURES = saved
+            return preds, calls, notes
+
+        cases = [
+            ("an INERT read the host's inert_reads omit is predicted for the one host that runs it: "
+             "a self-test named two lines from the file counts, one past the window does not, an "
+             "inert_reads-only listing does not, and the file is never its own host",
+             run([inert], [inert], {}), lambda p, c, n: [x[1].split(":")[0] for x in p]
+             == [f"SELF-TEST READS INERT {h}"] and inert in p[0][1]),
+            ("a plain read the host's closure omits is UNDER-SCOPED",
+             run([plain], [], {}), lambda p, c, n: len(p) == 1 and f"UNDER-SCOPED {h}: "
+             + plain in p[0][1]),
+            ("null control: a record inside the host's closure is not",
+             run([], [], {}), lambda p, c, n: p == [] and c == [f]),
+            ("a self-test the recorder cannot finish is a note, never a red",
+             run([inert], [inert], {}, why="not recorded in 180 s"), lambda p, c, n: p == [] and len(n) == 1),
+            ("null control: a file the diff does not change is never recorded",
+             run([inert], [inert], {}, changed=()), lambda p, c, n: p == [] and c == []),
+        ]
+        for label, got, ok in cases:
+            good = ok(*got)
+            print(f"  {'ok  ' if good else 'FAIL'} {label}{'' if good else ' -- ' + repr(got[0])}")
+            bad += not good
+    return bad
 
 
 def rekey_self_test() -> int:
@@ -1022,6 +1521,7 @@ def plant_self_test(root: Path) -> int:
                  app('if __name__ == "__main__":\n    pass  # --self-test\n')}, True)],
               "instrument", ("UNWIRED", "UNWIRED tools/audit/seat/planted_selftest.py:"), 1)]
     marker = {"fast": "LAYOUT", "instrument": "REF PRIVACY", "wave-script": "AGREEMENT"}
+    arm = {"LAYOUT": "layout", "REF PRIVACY": "privacy", "AGREEMENT": "agreement", "UNWIRED": "wiring"}
     head = (git(root, "rev-parse", "HEAD") or "").strip()
     tmp = Path(tempfile.mkdtemp(prefix="hpo-ci-predict-plant-"))
     r = tmp / "r"
@@ -1061,12 +1561,14 @@ def plant_self_test(root: Path) -> int:
                 if commit == "tip":
                     tip = run("git", "rev-parse", "HEAD").stdout.strip()
                     run("git", "checkout", "-q", "--detach", base)
-            out = subprocess.run((sys.executable, "-I", "tools/pr/ci_predict.py", "--base", tip), cwd=r, env=penv,
-                                 capture_output=True, text=True)
-            lines = out.stdout.splitlines()
             # A case may name its own line marker (a job can hold two arms) as
-            # `(marker, text)`; `text` None is that arm's null control.
+            # `(marker, text)`; `text` None is that arm's null control. Only
+            # that arm runs: a plant under tools/policy/ keys the graders arm,
+            # which runs every restoring job's programs (graders_self_test's).
             mark, want_text = want if isinstance(want, tuple) else (marker[job], want)
+            out = subprocess.run((sys.executable, "-I", "tools/pr/ci_predict.py", "--base", tip, "--only", arm[mark]),
+                                 cwd=r, env=penv, capture_output=True, text=True)
+            lines = out.stdout.splitlines()
             tag = f"PREDICT {JOB[job]} {mark}"
             fix = any(l.startswith(f"CI PREDICT: a{'n' if job == 'wave-script' else ''} {marker[job]} refusal") for l in lines)
             hit = (any(l.startswith(tag) and want_text in l for l in lines) and fix if want_text

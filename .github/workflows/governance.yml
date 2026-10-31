@@ -244,8 +244,12 @@ jobs:
     runs-on: ubuntu-latest
     # 20, not 10: the seat self-tests below add about four minutes run
     # serially on a seat (pr_args.sh's runs three times, through open_pr.sh
-    # and update_pr.sh), beside the job's three.
-    timeout-minutes: 20
+    # and update_pr.sh), beside the job's three. 30, not 20: beatd.py's
+    # self-test is sleep-bound; with its mutants run serially this job took
+    # 26 min at #2916's ad1ba9adb. They now run four at a time
+    # (MUTANT_WORKERS), the self-test about 4.5 min, so the job is about
+    # 21 min of 30 (#2873's, without it, ran 16.5).
+    timeout-minutes: 30
     env:
       HPO_JOB_GRADES: nothing
     steps:
@@ -537,6 +541,10 @@ jobs:
           set -euo pipefail
           python3 -I tools/audit/archscore/gate.py --self-test
           python3 -I tools/audit/check_scopes.py --self-test --repo .
+          # merge_throughput.py's `flow` subcommand (R10-FLOW-BOARD) rides
+          # this same self-test: the fixture's exact counts, the unchanged
+          # fixture's null control, and a named arm per classification
+          # predicate. A flow board that stopped counting a kind reddens here.
           python3 -I tools/audit/merge_throughput.py --self-test
           bash tools/audit/worktree_gc.sh --self-test
           python3 -I tools/coverage/partition.py --self-test
@@ -591,6 +599,13 @@ jobs:
           set -o pipefail
           python3 -I tools/audit/seat/roster_queue.py --self-test | tee "$RUNNER_TEMP/roster-queue-self-test.txt"
           grep -Eq '^roster_queue self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/roster-queue-self-test.txt"
+
+      - name: Show the owed-line reader refusing a stale board and a lapsed acknowledgement
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/owed_unactioned.py --self-test | tee "$RUNNER_TEMP/owed-unactioned-self-test.txt"
+          grep -Eq '^owed_unactioned self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/owed-unactioned-self-test.txt"
 
       - name: Show the detached launcher refusing its own fixtures
         if: ${{ !cancelled() }}
@@ -727,6 +742,13 @@ jobs:
           python3 -I tools/audit/seat/review_packet.py --self-test | tee "$RUNNER_TEMP/review-packet-self-test.txt"
           grep -Eq '^review_packet self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/review-packet-self-test.txt"
 
+      - name: Show the review carry deciding its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/review_carry.py --self-test | tee "$RUNNER_TEMP/review-carry-self-test.txt"
+          grep -Eq '^review_carry self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/review-carry-self-test.txt"
+
       - name: Show the roster editor refusing its own fixtures
         if: ${{ !cancelled() }}
         run: |
@@ -744,6 +766,16 @@ jobs:
           set -o pipefail
           python3 -I tools/audit/seat/r10_roster_ops_mutants.py --self-test | tee "$RUNNER_TEMP/r10-roster-ops-mutants-self-test.txt"
           grep -Eq '^r10_roster_ops_mutants self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/r10-roster-ops-mutants-self-test.txt"
+
+      # stamp.py's round-close sweep (R10-STAMP-ROUND-MAJOR, decision 0016),
+      # for the same reason: CI pins its plants' preconditions and the null
+      # grid's own detector, never the sweep itself.
+      - name: Show the stamp round-close mutation harness pinning its own plants
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/r10_stamp_round_mutants.py --self-test | tee "$RUNNER_TEMP/r10-stamp-round-mutants-self-test.txt"
+          grep -Eq '^r10_stamp_round_mutants self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/r10-stamp-round-mutants-self-test.txt"
 
       # The ledger's mutation sweep (R10-ORCH-LEDGER), for the same reason:
       # CI pins its plants' preconditions, never the sweep itself.
@@ -809,6 +841,13 @@ jobs:
           set -o pipefail
           bash tools/audit/seat/heartbeat.sh --self-test | tee "$RUNNER_TEMP/heartbeat-self-test.txt"
           grep -Eq '^heartbeat self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/heartbeat-self-test.txt"
+
+      - name: Show the supervised beat refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/beatd.py --self-test | tee "$RUNNER_TEMP/beatd-self-test.txt"
+          grep -Eq '^beatd self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/beatd-self-test.txt"
 
       - name: Show the PR updater (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures
         if: ${{ !cancelled() }}
@@ -1309,16 +1348,38 @@ jobs:
         run: |
           gh api rate_limit --jq '"RATE_LIMIT before: \(.resources.core)"' || true
 
+      # THE PUSH ARM READS --record ALONE (dev/audit/rca/ratelimit-recur.md,
+      # M3 = decision O-1, mandate 6329234399). The histogram and the sunset
+      # read 3P calls a push on top of `--record`'s W, and with Nightly's
+      # enumerate beside them the window walks outgrew the 5,000-call bucket
+      # every required check reads from. `report` is true on the weekly
+      # schedule, a dispatch and the stamp's own push (the commit that changes
+      # VERSION), and the histogram, the filer and the sunset run only then
+      # (#959 option B's cadence, moved off the push). The stamp reports the
+      # release it closes: its window is the tag before the stamp, never the
+      # empty one its own tag opens.
       - name: Choose the window
         id: window
+        env:
+          EVENT: ${{ github.event_name }}
         run: |
           # --match 'v*': `git describe --tags --abbrev=0` on this repository
           # returns `archive-rosters-2026-09`, a non-release tag that is newer
           # than v6.3.18 and yields an empty window.
           SINCE=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || echo "")
+          REPORT=false
+          case "$EVENT" in
+            schedule|workflow_dispatch) REPORT=true ;;
+            *)
+              if git rev-parse -q --verify HEAD^ >/dev/null && ! git diff --quiet HEAD^ HEAD -- VERSION; then
+                REPORT=true
+                SINCE=$(git describe --tags --abbrev=0 --match 'v*' HEAD^ 2>/dev/null || echo "$SINCE")
+              fi ;;
+          esac
           if [ -z "$SINCE" ]; then SINCE=$(git rev-list --max-parents=0 HEAD | tail -1); fi
           echo "since=$SINCE" >> "$GITHUB_OUTPUT"
-          echo "window: $SINCE..origin/main"
+          echo "report=$REPORT" >> "$GITHUB_OUTPUT"
+          echo "window: $SINCE..origin/main; friction, verdict and sunset reports: $REPORT"
 
       # THE REFUSAL, kept whole. A merged pull request with no disposition in
       # the plan of record or the living handover is a refusal: the
@@ -1356,7 +1417,7 @@ jobs:
       # histogram for that step without changing this step's exit behaviour.
       - name: Friction and verdict histograms
         id: histogram
-        if: always()
+        if: always() && steps.window.outputs.report == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --stats --since "${{ steps.window.outputs.since }}" --window-cache "$RUNNER_TEMP/window.json" 2>&1; else node tools/policy/policy_lint.mjs --stats --since "${{ steps.window.outputs.since }}" --window-cache "$RUNNER_TEMP/window.json" 2>&1; fi| tee "$RUNNER_TEMP/stats.txt" || true
@@ -1399,14 +1460,14 @@ jobs:
       # command, and states that a seat -- never the bot -- disposes it.
       - name: File the recurring-friction issues the histogram named
         id: filer
-        if: always()
+        if: always() && steps.window.outputs.report == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: if test -f .claude/workflows/friction_issues.mjs; then node .claude/workflows/friction_issues.mjs --stats-file "$RUNNER_TEMP/stats.txt" --since "${{ steps.window.outputs.since }}"; else node tools/policy/friction_issues.mjs --stats-file "$RUNNER_TEMP/stats.txt" --since "${{ steps.window.outputs.since }}"; fi
 
       - name: Rules that have outlived their reason
         id: sunset
-        if: always()
+        if: always() && steps.window.outputs.report == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --sunset --since "${{ steps.window.outputs.since }}" --window-cache "$RUNNER_TEMP/window.json"; else node tools/policy/policy_lint.mjs --sunset --since "${{ steps.window.outputs.since }}" --window-cache "$RUNNER_TEMP/window.json"; fi|| true
@@ -1450,6 +1511,7 @@ jobs:
           SELFTEST_OUTCOME: ${{ steps.filer_selftest.outcome }}
           FILER_OUTCOME: ${{ steps.filer.outcome }}
           SUNSET_OUTCOME: ${{ steps.sunset.outcome }}
+          REPORT: ${{ steps.window.outputs.report }}
         run: |
           RECORD_TXT="$RUNNER_TEMP/record.txt"
           if [ "$REFUSAL_OUTCOME" = "failure" ]; then
@@ -1481,6 +1543,9 @@ jobs:
             echo "### record: $VERDICT"
             echo
             echo "steps this job did not run: ${DID_NOT_RUN:-none}"
+            echo
+            echo "friction, verdict and sunset reports due on this run: ${REPORT:-unknown} (they run on the"
+            echo "weekly schedule, a dispatch and the stamp, never an ordinary push: decision O-1)"
             echo
             echo '```text'
             cat "$RECORD_TXT" 2>/dev/null \

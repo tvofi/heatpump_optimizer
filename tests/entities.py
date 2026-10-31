@@ -1284,8 +1284,10 @@ R.check(
     f"the census is {_arch_diagram_want}",
 )
 
-# HACS renders this README inside Home Assistant -- `hacs.json` asks for it,
-# and hacs/integration's `async_get_info_file_contents` reads README.md -- so
+# HACS renders this README inside Home Assistant -- hacs/integration's
+# `async_get_info_file_contents` reads README.md for every repository, with no
+# `hacs.json` key asking for it (`render_readme` is not a key HACS knows, and
+# R10-MARKETPLACE dropped it from `hacs.json`) -- so
 # the README has a second renderer, and it is much weaker than GitHub's.
 # hacs/frontend's repository dashboard passes it to `<ha-markdown>` with no
 # `allow-svg`, which is home-assistant/frontend's markdown-worker: plain
@@ -1461,7 +1463,7 @@ R.check(
 # measured closure. The hero must stay a single-line `![alt](src)` —
 # the HACS rewriter checks above are why.
 _hero = _re.search(
-    r"^!\[[^\n]*\]\((docs/img/card/card-plan-chart\.[A-Za-z0-9]+)\)\s*$",
+    r"^!\[[^\n]*\]\(\./(docs/img/card/card-plan-chart\.[A-Za-z0-9]+)\)\s*$",
     readme,
     _re.M,
 )
@@ -2758,7 +2760,7 @@ R.check(
 )
 # S2 of #193: zero-state series / headroom / plan math at existing
 # coordinator.py module level. Pins AST location (module FunctionDef,
-# not a class method). `_plan_slots` stays on the class (helper cc>15).
+# not a class method). `_plan_slots` left the class for `plan_slots.py` (P141).
 R.section("S2 zero-state helpers at module level (#193)")
 _s2_mod_fns = {
     n.name
@@ -3837,7 +3839,7 @@ def _p2_registry(sources):
              dispositions={
                  "coordinator.py::HeatPumpOptimizerCoordinator._external_heat_config":
                      "guarded: ANDed with wood_furnace_on",
-                 "config_flow.py::HeatPumpOptimizerOptionsFlow.async_step_building":
+                 "config_flow.py::HeatPumpOptimizerOptionsFlow._building_wood_flag":
                      "guarded: normalises the flag after wood_furnace_on(merged)",
                  "thermal_model.py::ThermalParameters.from_config":
                      "guarded: under _on = wood_furnace_on(config)",
@@ -4058,7 +4060,7 @@ def _p2_registry(sources):
              owners=["inputs.py::state_power_kw", "inputs.py::InputReader.read_power_kw"],
              dispositions={}),
         # D8-s1-01 (R10-ARCH-SHAPES): the draw above which a channel counts as
-        # heating is optimizer.CHANNEL_ACTIVE_KW, and whether a channel heats
+        # heating is thermal_model.CHANNEL_ACTIVE_KW, and whether a channel heats
         # at a step is channel_heating_steps (its own draw above the line, on
         # a step planned_draws_run runs). The plan view's active_now, its slot
         # merge, the DHW schedule sensor's fallback, the space pump's plan
@@ -4068,7 +4070,7 @@ def _p2_registry(sources):
         # dispositioned below.
         dict(fact="channel_active_kw", finding="D8-s1-01",
              match=_p2_match_channel_line,
-             owners=["optimizer.py::channel_heating_steps"],
+             owners=["thermal_model.py::channel_heating_steps"],
              dispositions={
                  "accuracy.py::AccuracyTracker.power_ratio":
                      "the same ratio-denominator floor as delivered_ratio, on "
@@ -4077,7 +4079,7 @@ def _p2_registry(sources):
                      "a temperature gap in K (target minus room), not a power",
                  "coordinator.py::HeatPumpOptimizerCoordinator._maybe_run_fuse_advisor":
                      "a comfort shortfall in K (the fuse advisor's breach), not a power",
-                 "coordinator.py::HeatPumpOptimizerCoordinator._record_accuracy":
+                 "accuracy.py::pairs_interval":
                      "an elapsed time in hours (the pairing window's lower edge), not a power",
                  "dhw_learning.py::DhwProfileLearner.async_learn_usage":
                      "a tank draw intensity in K/h, not a power",
@@ -4165,6 +4167,18 @@ _P2_CENSUSES = {
     # runtime-object mixin's included.
     "finite_scrub_resolves_mro": (
         "tests/finite_boundary.py", "a package mixin with runtime base object"),
+    # R10-BUFFER-STORE (#2500): a store capability implemented at one
+    # zoning's seam and silently missing at its sibling -- three arms, so
+    # three entries; the census drives every value of the zoning domain.
+    "zoned_store_valve_live": (
+        "tests/features.py",
+        "zoned store census: the valve moves the tank in every zoning (#2500)"),
+    "zoned_store_cap_live": (
+        "tests/features.py",
+        "zoned store census: the cap books what it refuses in every zoning (#2500)"),
+    "zoned_store_credit_live": (
+        "tests/features.py",
+        "zoned store census: the terminal cost credits the tank in every zoning (#2500)"),
 }
 
 
@@ -4710,6 +4724,20 @@ _EC_RESIDUAL = {
                      "not declare the key",
     "grid_fee.py": "GridFeeSchedule.from_config is parsed once per EntryConfig, cached on identity",
     "price_model.py": "pull_prices resolves the price source from the merged mapping each pull",
+    # #2816 moved the questionnaire's own reads here from config_flow.py, which
+    # this census skips as a form-answer module. Every read of a building key
+    # in presets.py is inside preset_from_config: it takes the questionnaire's
+    # answers and the settings flow's current options (both config_flow's
+    # form), and house_grade hands it the coordinator's merged mapping to build
+    # the typical house the grade is measured against. EntryConfig declares no
+    # building structure, era, foundation, area or emitter key, so a parsed
+    # field cannot serve either call. The entry is module-wide because this
+    # table has no per-site arm; a read added elsewhere in presets.py would
+    # inherit it.
+    "presets.py": "preset_from_config reads the questionnaire's answers and the settings "
+                  "flow's current options into a BuildingPreset, and house_grade hands it "
+                  "the coordinator's merged config to build the typical house it measures "
+                  "against; EntryConfig declares none of the building keys",
     "quiet_windows.py": "the window readers also take the simulator's what-if mapping, which "
                         "overridden_config folds the call's quiet keys into",
     "thermal_model.py": "ThermalParameters.from_config, the solver's own parsed object, "
@@ -6113,6 +6141,62 @@ R.check(
     == "measured_power_entity",
 )
 
+# R10-COP-GATE (#2262): where the draw does not follow the plan's ask and no
+# heat reading exists, a latched COP is no reading of this install: the sensor
+# waits for a heat meter instead of showing it. A heat counter's open span is
+# its own code beside a measured COP, never a refusal, and the latch's time
+# rides with it.
+_cg_cop = {
+    obs: sensor.ObservedCOPSensor(FakeCoordinator({
+        **DATA, "measured_cop": 2.4, "cop_observability": obs,
+        "cop_refusal": "span_open" if obs == "heat_metered" else "draw_off_ask",
+        "measured_cop_at": "2026-10-24T03:00:00+00:00",
+    }), ENTRY)
+    for obs in ("not_measurable", "heat_metered", "draw_follows_plan")
+}
+_cg_view = {
+    obs: (ent.available, ent.extra_state_attributes.get("waiting_for"),
+          ent.extra_state_attributes.get("last_refusal"),
+          ent.extra_state_attributes.get("measured_at"))
+    for obs, ent in _cg_cop.items()
+}
+R.check(
+    "a COP not measurable here waits for a heat meter; a heat-metered COP "
+    "between span closes stays measured with span_open as its code; a draw "
+    "that follows the plan keeps its COP (null); each carries its fold time",
+    _cg_view == {
+        "not_measurable": (False, "heat_meter", "draw_off_ask", "2026-10-24T03:00:00+00:00"),
+        "heat_metered": (True, None, "span_open", "2026-10-24T03:00:00+00:00"),
+        "draw_follows_plan": (True, None, "draw_off_ask", "2026-10-24T03:00:00+00:00"),
+    },
+    f"{_cg_view!r}",
+)
+
+# R10-COP-GATE part 5 (A): the observed-COP sensor is unavailable exactly when
+# the install is not measurable, so Home Assistant hides its attributes from
+# the card; the model status sensor's ``cop`` row carries the same three keys
+# under their own names, copied from the learning view, never re-derived.
+_cg_keys = ("cop_observability", "cop_refusal", "measured_cop_at")
+_cg_status_view = {
+    obs: {
+        k: sensor.ModelStatusSensor(FakeCoordinator(ent.coordinator.data), ENTRY)
+        .extra_state_attributes["cop"].get(k, "<absent>")
+        for k in _cg_keys
+    }
+    for obs, ent in _cg_cop.items()
+}
+R.check(
+    "the model status sensor's cop row carries cop_observability, "
+    "cop_refusal and measured_cop_at as the learning view publishes them, "
+    "while the not-measurable observed-COP sensor is unavailable",
+    not _cg_cop["not_measurable"].available
+    and all(
+        _cg_status_view[obs] == {k: ent.coordinator.data[k] for k in _cg_keys}
+        for obs, ent in _cg_cop.items()
+    ),
+    f"{_cg_status_view!r}",
+)
+
 # --- a failed refresh reaches every entity ----------------------------------
 R.section("A failed refresh reaches every entity")
 
@@ -7183,7 +7267,7 @@ R.section("Buttons")
 
 buttons = collect(button)
 btn_by_name = {display_name("button", b): b for b in buttons}
-R.check("five buttons are added", len(buttons) == 5, str(len(buttons)))
+R.check("six buttons are added", len(buttons) == 6, str(len(buttons)))
 for name in (
     "Optimize Now",
     "Learning Run System Identification",
@@ -7223,6 +7307,17 @@ R.check(
     f"pressed={coord.pressed} refreshes={coord.refreshes} -- the setter no "
     "longer refreshes, so a press without its own refresh leaves the reset "
     "weight unpublished until the next cycle",
+)
+
+heat_loss_reset = button.ResetHeatLossButton(coord, ENTRY)
+heat_loss_reset.hass = EagerHass()
+coord.refreshes.clear()
+coord.on_refresh = lambda: "reset_heat_loss" in coord.pressed
+asyncio.run(heat_loss_reset.async_press())
+R.check(
+    "the heat-loss reset button reaches the coordinator, then asks for one refresh",
+    "reset_heat_loss" in coord.pressed and coord.refreshes == [True],
+    f"pressed={coord.pressed} refreshes={coord.refreshes}",
 )
 
 
@@ -12353,7 +12448,8 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
     ),
     "ObservedCOPSensor": frozenset({
         "cop_samples", "cop_scale", "defrost_buckets", "defrost_derate",
-        "defrost_samples", "modelled_cop", "waiting_for"
+        "defrost_samples", "modelled_cop", "waiting_for",
+        "measured_at", "last_refusal", "observability",  # R10-COP-GATE (#2262)
     }),
     "OptimizationScoreSensor": frozenset(),  # scores + price_tiles; #405
     "OptimizationStatusSensor": frozenset({
@@ -12799,6 +12895,7 @@ _CLUSTER_PREFIXES: dict[str, dict[str, str]] = {
         "learning_finalize_debug": "Learning ",
         "learning_run_system_identification": "Learning ",
         "learning_reset_comfort_weight": "Learning ",
+        "learning_reset_heat_loss": "Learning ",
     },
     "switch": {"dhw_boost": "DHW "},
 }
@@ -14962,6 +15059,7 @@ _svc_coord.async_clear_manual_plan = _svc_record("clear_manual")
 _svc_coord.async_restore_learned_snapshot = _svc_record("restore", True)
 _svc_coord.async_set_away = _svc_record("set_away")
 _svc_coord.async_diagnose_interval = _svc_record("diagnose", {"residual": None})
+_svc_coord.async_reset_heat_loss_learners = _svc_record("reset_heat_loss")
 
 
 def _svc_call(service, payload=None):
@@ -15314,6 +15412,14 @@ R.check(
     _restored["restored"] == [_svc_entry.entry_id],
 )
 
+_heat_loss_reset = _svc_call(const.SERVICE_RESET_HEAT_LOSS, {"learners": ["lower_floor_loss_ratio"]})
+R.check(
+    "reset_heat_loss_learners reaches the coordinator and reports what it reset",
+    "reset_heat_loss" in _svc_log
+    and _heat_loss_reset == {"reset": [_svc_entry.entry_id], "learners": ["lower_floor_loss_ratio"]},
+    str(_heat_loss_reset),
+)
+
 _diag = _svc_call(const.SERVICE_DIAGNOSE_INTERVAL)
 R.check(
     "diagnose_interval returns the per-entry report",
@@ -15351,6 +15457,7 @@ _svc_covered = {
     const.SERVICE_RESTORE_SNAPSHOT,
     const.SERVICE_DIAGNOSE_INTERVAL,
     const.SERVICE_DEBUG_COLLECT,
+    const.SERVICE_RESET_HEAT_LOSS,
 }
 R.check(
     "every registered service was invoked above",
@@ -18123,7 +18230,7 @@ R.check(
 )
 
 
-_HB_BOTH = "in _hb_spin\npy-spy rc=0:\nThread 1 (active+gil)\n    _hb_spin (nightly_ha.py:1)\n"
+_HB_BOTH = "in _hb_spin\nsampler rc=0:\nThread 1 (active+gil)\n    _hb_spin (nightly_ha.py:1)\n"
 
 
 def _hb_ctl(gap: float, dump: str = _HB_BOTH) -> bool:
@@ -18137,10 +18244,10 @@ def _hb_ctl(gap: float, dump: str = _HB_BOTH) -> bool:
 _HB_C = _nightly.HB_CONTROL_S
 R.check(
     "hb:positive_control passes at the spin, and fails just under it, "
-    "without the spin's frame, or without py-spy's own rc=0 section naming it",
+    "without the spin's frame, or without the sampler's own rc=0 section naming it",
     _hb_ctl(_HB_C) and not _hb_ctl(_HB_C - 0.001) and not _hb_ctl(_HB_C, "idle")
-    and not _hb_ctl(_HB_C, "in _hb_spin\npy-spy rc=1:\nPermission denied\n")
-    and not _hb_ctl(_HB_C, "in _hb_spin\npy-spy rc=0:\nThread 1 (idle)\n"),
+    and not _hb_ctl(_HB_C, "in _hb_spin\nsampler rc=1:\nPermission denied\n")
+    and not _hb_ctl(_HB_C, "in _hb_spin\nsampler rc=0:\nThread 1 (idle)\n"),
     "check_hb_positive_control arms",
 )
 
@@ -18153,13 +18260,13 @@ def _hb_tries(*tries: tuple[float, str]) -> bool:
     return "hb:positive_control" not in c.failures()
 
 
-_HB_SPIED_ONLY = "py-spy rc=0:\n    _hb_spin (nightly_ha.py:1)\n"
+_HB_SPIED_ONLY = "sampler rc=0:\n    _hb_spin (nightly_ha.py:1)\n"
 R.check(
     "hb:positive_control passes on any one try that reads all three, and never "
     "on three readings split across tries",
-    _hb_tries((_HB_C, "py-spy did not run: TimeoutExpired"), (_HB_C, _HB_BOTH))
+    _hb_tries((_HB_C, "sampler did not run: TimeoutExpired"), (_HB_C, _HB_BOTH))
     and not _hb_tries((_HB_C, "in _hb_spin\n"), (_HB_C - 0.1, _HB_SPIED_ONLY))
-    and not _hb_tries((_HB_C - 0.1, _HB_BOTH), (_HB_C, "in _hb_spin\npy-spy rc=1:\n")),
+    and not _hb_tries((_HB_C - 0.1, _HB_BOTH), (_HB_C, "in _hb_spin\nsampler rc=1:\n")),
     "check_hb_positive_control over tries",
 )
 
@@ -18182,6 +18289,10 @@ def _hb_spy_run(*answers: str, rest: float = 0.05) -> tuple[bool, list[dict], in
     with tempfile.TemporaryDirectory() as tmp:
         calls, stub = Path(tmp) / "calls", Path(tmp) / "py-spy"
         cases = "".join(f"  {k}) {_HB_SPY_SAYS[a]} ;;\n" for k, a in enumerate(answers, 1))
+        # `wc` pads its count when it prints no filename column: BSD says
+        # "       1", GNU "1". The case arms need the bare number, or on a BSD
+        # host every call takes the last answer and the multi-answer fixtures
+        # below test nothing.
         stub.write_text(
             f'#!/bin/sh\necho >> "{calls}"\ncase $(wc -l < "{calls}" | tr -d " ") in\n{cases}'
             f"  *) {_HB_SPY_SAYS[answers[-1]]} ;;\nesac\n"
@@ -18190,7 +18301,7 @@ def _hb_spy_run(*answers: str, rest: float = 0.05) -> tuple[bool, list[dict], in
         c = _nightly.Checks()
         began = _time.monotonic()
         tries = asyncio.run(_nightly._async_hb_control(
-            c, rest=rest, py_spy=str(stub), spy_timeout=_HB_SPY_T, dump_after=0.2,
+            c, rest=rest, sampler=[str(stub)], sample_timeout=_HB_SPY_T, dump_after=0.2,
         ))
         took = _time.monotonic() - began
         made = len(calls.read_text().splitlines()) if calls.exists() else 0
@@ -18250,26 +18361,100 @@ R.check(
     "the control's retry is bounded: each sample cut short of the old 30 s, each "
     "spin held at most one sample's timeout, under the hang bound",
     _nightly.HB_CONTROL_TRIES >= 2
-    and _nightly.PY_SPY_TIMEOUT_S < 30
-    and _nightly.HB_DUMP_S + _nightly.PY_SPY_TIMEOUT_S <= _nightly.HB_CONTROL_HOLD_S
+    and _nightly.SAMPLE_TIMEOUT_S < 30
+    and _nightly.HB_DUMP_S + _nightly.SAMPLE_TIMEOUT_S <= _nightly.HB_CONTROL_HOLD_S
     < _nightly.HB_HANG_S,
-    f"tries={_nightly.HB_CONTROL_TRIES} timeout={_nightly.PY_SPY_TIMEOUT_S}s "
+    f"tries={_nightly.HB_CONTROL_TRIES} timeout={_nightly.SAMPLE_TIMEOUT_S}s "
     f"hold={_nightly.HB_CONTROL_HOLD_S}s hang={_nightly.HB_HANG_S}s",
 )
-# The real boot passes no spy_timeout (pinned above), so the lane's cut is the
+# The real boot passes no sample_timeout (pinned above), so the lane's cut is the
 # constructor default: a default of 30 s would put the base's cost back.
 _hb_whole = _nightly.HB_CONTROL_TRIES * (_nightly.HB_CONTROL_HOLD_S + _nightly.HB_CONTROL_REST_S)
 R.check(
-    "the real lane cuts py-spy at PY_SPY_TIMEOUT_S, and the whole control, every "
+    "the real lane cuts the sampler at SAMPLE_TIMEOUT_S, and the whole control, every "
     "try hung, is bounded under 22 s",
-    _inspect.signature(_nightly.LoopHeartbeat).parameters["spy_timeout"].default
-    is _nightly.PY_SPY_TIMEOUT_S
-    and "spy_timeout" not in _inspect.getsource(_nightly._async_hb_measure)
+    _inspect.signature(_nightly.LoopHeartbeat).parameters["sample_timeout"].default
+    is _nightly.SAMPLE_TIMEOUT_S
+    and "sample_timeout" not in _inspect.getsource(_nightly._async_hb_measure)
     and _hb_whole < 22.0,
-    f"default spy_timeout="
-    f"{_inspect.signature(_nightly.LoopHeartbeat).parameters['spy_timeout'].default}; "
+    f"default sample_timeout="
+    f"{_inspect.signature(_nightly.LoopHeartbeat).parameters['sample_timeout'].default}; "
     f"whole control {_hb_whole:.2f}s",
 )
+# R10-FLY-NIGHTLY-HB: py-spy 0.4.2 hung, blocking or not, for the life of some
+# CPython 3.14.9 HA processes, so every try of the control failed; the
+# interpreter's own remote unwinder read those processes. The lane samples with
+# that unwinder wherever the interpreter ships it, and with py-spy only where
+# it does not (the 3.13 floor).
+def _hb_sampler_with(unwinder: bool, staged: bool) -> list[str] | None:
+    util, find, access = _nightly.importlib.util, _nightly.importlib.util.find_spec, _nightly.os.access
+    util.find_spec = lambda name, *a: (
+        (object() if unwinder else None) if name == "_remote_debugging" else find(name, *a)
+    )
+    _nightly.os.access = lambda path, mode: staged if str(path).endswith("/py-spy") else access(path, mode)
+    try:
+        return _nightly.sample_command()
+    finally:
+        util.find_spec, _nightly.os.access = find, access
+
+
+_hb_stdlib = [sys.executable, "-c", _nightly._STDLIB_SAMPLE]
+_hb_pyspy = [f"{_nightly.IN_DRIVER_DIR}/py-spy", "dump", "--nonblocking", "--pid"]
+R.check(
+    "the stall sampler is the interpreter's own unwinder where it ships one, staged or "
+    "not; else the staged py-spy, nonblocking; else none",
+    _hb_sampler_with(True, True) == _hb_stdlib and _hb_sampler_with(True, False) == _hb_stdlib
+    and _hb_sampler_with(False, True) == _hb_pyspy and _hb_sampler_with(False, False) is None,
+    f"{_hb_sampler_with(True, True)} / {_hb_sampler_with(False, True)} / {_hb_sampler_with(False, False)}",
+)
+
+
+import contextlib as _hb_contextlib  # noqa: E402
+
+
+def _hb_stdlib_reads(spin: bool) -> str:
+    """The stdlib sample of a child that is, or is not, inside a function named ``_hb_spin``.
+
+    The sample runs in this process against its own child: a sampler reading
+    its parent, as the lane's does, needs CAP_SYS_PTRACE under Yama's default
+    ptrace_scope, which the heartbeat container is given and this host is not.
+    """
+    body = "def _hb_spin():\n    while True: pass\n" + ("_hb_spin()\n" if spin else "while True: pass\n")
+    child = subprocess.Popen([sys.executable, "-c", body])
+    try:
+        _time.sleep(0.5)
+        out, argv = _io.StringIO(), sys.argv
+        sys.argv = ["-c", str(child.pid)]
+        try:
+            with _hb_contextlib.redirect_stdout(out):
+                exec(_nightly._STDLIB_SAMPLE, {})  # noqa: S102 - the lane's own snippet
+        finally:
+            sys.argv = argv
+        return out.getvalue()
+    finally:
+        child.kill()
+        child.wait()
+
+
+if _nightly.importlib.util.find_spec("_remote_debugging") is not None:
+    _hb_in, _hb_out = _hb_stdlib_reads(True), _hb_stdlib_reads(False)
+    _hb_reads = (
+        _nightly.hb_control_reading({"max_gap": _HB_C, "dumps": ["in _hb_spin\nsampler rc=0:\n" + _hb_in]}),
+        _nightly.hb_control_reading({"max_gap": _HB_C, "dumps": ["in _hb_spin\nsampler rc=0:\n" + _hb_out]}),
+    )
+    R.check(
+        "the stdlib sample of a real spinning process reads as the spin to the control, "
+        "and of the same process outside it does not",
+        _hb_reads[0] == (True, True, True) and _hb_reads[1] == (True, True, False),
+        f"spinning: {_hb_reads[0]} {_hb_in[-160:]!r}; idle: {_hb_reads[1]} {_hb_out[-160:]!r}",
+    )
+else:
+    R.check(
+        "the stdlib sample of a real spinning process reads as the spin to the control "
+        "(this interpreter has no remote unwinder: the lane samples it with py-spy)",
+        _hb_sampler_with(False, True) == _hb_pyspy,
+        f"{sys.version.split()[0]} has no _remote_debugging",
+    )
 _hb_cmd = _nightly.docker_command(
     "img", Path("/c"), Path("/d"), 9.0, ["--heartbeat-only"], caps=("SYS_PTRACE",)
 )
@@ -18307,7 +18492,7 @@ R.check(
     "every heartbeat scenario dwells before it settles, and py-spy never pauses the loop",
     _nightly.HB_DWELL_S >= 1.0
     and "asyncio.sleep(HB_DWELL_S)" in _inspect.getsource(_nightly._async_hb_settle)
-    and '"--nonblocking"' in _inspect.getsource(_nightly.LoopHeartbeat.dump),
+    and '"--nonblocking"' in _inspect.getsource(_nightly.sample_command),
     f"HB_DWELL_S={_nightly.HB_DWELL_S}",
 )
 R.check(
@@ -19360,6 +19545,9 @@ _NON_GATE_WORKFLOWS = [
     ".github/workflows/pr-contract.yml",
     # Decision 0013 as amended: the budget-raise gate, read for its wiring pins.
     ".github/workflows/budget-raise-gate.yml",
+    # #2965 C5: the weekly caller of hassfest.yml and validate.yml, read for
+    # its wiring pin below.
+    ".github/workflows/marketplace.yml",
 ]
 for _wf in _NON_GATE_WORKFLOWS:
     R.check(
@@ -19845,14 +20033,30 @@ R.check(
 # exits 1 on a rate limit and on a crash alike (P2a's forward-carry). The
 # step's own text is run under bash with a stand-in `python3` printing each
 # outcome, so the classification is measured, not read.
+# GitHub's shell for a `run:` block that names none: `bash -e {0}`. A harness
+# executing a step's own text runs it under this, never a bare `bash -c`, or a
+# bare call the step meant to classify ends the runner's step and passes the
+# harness's (gate-sweep's `out=$(...)`, R10-RCA-HOTFIX-BATCH-ERREXIT's I4).
+_GHA_RUN = ["bash", "-e", "-c"]
+
+
+def _stub_path_env(bindir, **extra: str) -> "dict[str, str]":
+    """This process's environment with ``bindir`` first on PATH and no BASH_ENV.
+
+    Every ``bash -c`` below finds a stand-in by PATH, and bash sources BASH_ENV
+    before the script: a cloud seat's profile there re-prepended its toolchain,
+    so the real ``python3`` shadowed the stand-in at every tree (#2835)."""
+    env = {k: v for k, v in os.environ.items() if k != "BASH_ENV"}
+    return {**env, "PATH": f"{bindir}{os.pathsep}{os.environ.get('PATH', '')}", **extra}
+
+
 def _gs_step_verdict(script: str, stdout: str, rc: int) -> "tuple[int, str]":
     with tempfile.TemporaryDirectory() as d:
         fake = Path(d) / "python3"
         fake.write_text("#!/bin/sh\nprintf '%s' \"$FAKE_OUT\"\nexit \"$FAKE_RC\"\n")
         fake.chmod(0o755)
-        p = _subprocess.run(["bash", "-c", script], capture_output=True, text=True, timeout=30,
-                            env={**os.environ, "PATH": f"{d}:{os.environ.get('PATH', '')}",
-                                 "RUN_ID": "123", "FAKE_OUT": stdout, "FAKE_RC": str(rc)})
+        p = _subprocess.run([*_GHA_RUN, script], capture_output=True, text=True, timeout=30,
+                            env=_stub_path_env(d, RUN_ID="123", FAKE_OUT=stdout, FAKE_RC=str(rc)))
     return p.returncode, p.stdout
 
 
@@ -19933,6 +20137,43 @@ R.check(
     f"gate={_closure.is_gate_file(str(_GS_PATH))}; a sweep keyed on its exit "
     "code reads a rate limit as a crash, and one that reads a crash as done "
     "leaves a stale red `gate` unannounced",
+)
+
+
+# The stand-ins hold under a BASH_ENV that re-prepends a toolchain (#2835): a
+# cloud seat's profile there failed U0c and the delivery_status check at every
+# tree. The control proves the planted profile does shadow a stand-in it reaches.
+def _bash_env_reads() -> "tuple[str, str]":
+    with tempfile.TemporaryDirectory() as h:
+        tool, stub = Path(h, "tool"), Path(h, "stub")
+        for d, word in ((tool, "toolchain"), (stub, "stand-in")):
+            d.mkdir()
+            (d / "python3").write_text(f"#!/bin/sh\necho {word}\n")
+            (d / "python3").chmod(0o755)
+        prof = Path(h, "profile.sh")
+        prof.write_text(f'export PATH="{tool}:$PATH"\n')
+        control = _subprocess.run([*_GHA_RUN, "python3"], capture_output=True, text=True, timeout=30,
+                                  env={**os.environ, "PATH": f"{stub}:{os.environ.get('PATH', '')}",
+                                       "BASH_ENV": str(prof)}).stdout.strip()
+        held = os.environ.get("BASH_ENV")
+        os.environ["BASH_ENV"] = str(prof)
+        try:
+            _, out = _gs_step_verdict("python3", "stub", 0)
+        finally:
+            if held is None:
+                os.environ.pop("BASH_ENV")
+            else:
+                os.environ["BASH_ENV"] = held
+    return control, out.strip()
+
+
+_BE_CONTROL, _BE_OUT = _bash_env_reads()
+R.check(
+    "a stand-in on PATH wins in a bash -c under a BASH_ENV that re-prepends a toolchain (#2835)",
+    _BE_CONTROL == "toolchain" and _BE_OUT == "stub",
+    f"control={_BE_CONTROL!r} (want 'toolchain': the planted profile shadows a stand-in it reaches) "
+    f"read={_BE_OUT!r} (want the stand-in's 'stub'); a BASH_ENV kept in _stub_path_env lets a seat's "
+    "profile put its python3 ahead of the stand-in, so U0c and delivery_status read red at every tree",
 )
 
 # --- the lane-skip instrument (R9-CI-SKIP) -----------------------------------
@@ -20018,6 +20259,80 @@ R.check(
         for _wf in [*_NON_GATE_WORKFLOWS, _GOV_WF, _REL_WF]),
     str({_wf: _closure.affected([_wf])["case"]
          for _wf in [*_NON_GATE_WORKFLOWS, _GOV_WF, _REL_WF]}),
+)
+
+# --- the Marketplace validators on a clock (#2965 C5) -----------------------
+#
+# hassfest.yml and validate.yml run under ci.yml only when the prelude's
+# workset names them, so marketplace.yml calls both on a schedule for the
+# catalog PR to link a current run against main. Read from the parsed file:
+# a cron firing at least weekly (any day-of-month and month, so it fires every
+# week) and `workflow_dispatch`, nothing else; exactly the two callers, each
+# `uses:` its own stem's existing file (ci.yml's naming rule) with
+# `contents: read` alone and no inputs or secrets, so the job bodies, pinned
+# SHAs and hassfest's pull retry are CI's own; no `continue-on-error` at the
+# caller, so a scheduled red is a failed run. The design choice it encodes: a
+# separate caller rather than a `schedule` on ci.yml, whose triggers are pinned
+# above and whose every unit a schedule would run.
+_MP_PATH = Path(".github/workflows/marketplace.yml")
+_MP_TEXT = _MP_PATH.read_text() if _MP_PATH.is_file() else ""
+_MP_UNITS = ("hassfest", "validate")
+
+
+def _mp_defects(text: str) -> "list[str]":
+    doc = _yaml.safe_load(text) or {}
+    on = doc.get(True, doc.get("on"))
+    out = []
+    if not isinstance(on, dict) or set(on) != {"schedule", "workflow_dispatch"}:
+        return [f"triggers {sorted(map(str, on or {}))} (want schedule, workflow_dispatch)"]
+    crons = [str((s or {}).get("cron", "")).split() for s in on.get("schedule") or []]
+    if not crons or any(len(c) != 5 or c[2:4] != ["*", "*"] for c in crons):
+        out.append(f"schedule {crons} does not fire every week")
+    if doc.get("permissions") != {}:
+        out.append(f"top-level permissions {doc.get('permissions')} (want {{}})")
+    jobs = doc.get("jobs") or {}
+    if set(jobs) != set(_MP_UNITS):
+        out.append(f"jobs {sorted(jobs)} (want {list(_MP_UNITS)})")
+    for j in _MP_UNITS:
+        job = jobs.get(j) or {}
+        uses = job.get("uses")
+        if uses != f"./.github/workflows/{j}.yml" or not Path(str(uses)).is_file():
+            out.append(f"{j}: uses {uses}")
+        if job.get("permissions") != {"contents": "read"}:
+            out.append(f"{j}: permissions {job.get('permissions')}")
+        extra = set(job) - {"uses", "permissions"}
+        if extra:
+            out.append(f"{j}: also sets {sorted(extra)}")
+    return out
+
+
+_MP_DEFECTS = _mp_defects(_MP_TEXT)
+# Null controls: each mutation below must be named, so a reader that compares
+# nothing fails.
+_MP_PLANTS = {
+    "a wrong workflow path": _MP_TEXT.replace(
+        "uses: ./.github/workflows/hassfest.yml", "uses: ./.github/workflows/hasfest.yml", 1),
+    "a caller off its stem": _MP_TEXT.replace(
+        "uses: ./.github/workflows/validate.yml", "uses: ./.github/workflows/hassfest.yml", 1),
+    "no schedule": _MP_TEXT.replace("  schedule:\n", "  push:\n", 1),
+    "a monthly cron": _MP_TEXT.replace('* * 1"', '1 * 1"', 1),
+    "a red hidden": _MP_TEXT.replace(
+        "    uses: ./.github/workflows/validate.yml\n",
+        "    uses: ./.github/workflows/validate.yml\n    continue-on-error: true\n", 1),
+    "a widened grant": _MP_TEXT.replace(
+        "      contents: read\n  validate:", "      contents: write\n  validate:", 1),
+    "secrets inherited": _MP_TEXT.replace(
+        "    uses: ./.github/workflows/hassfest.yml\n",
+        "    uses: ./.github/workflows/hassfest.yml\n    secrets: inherit\n", 1),
+}
+_MP_PLANT_MISSED = sorted(k for k, t in _MP_PLANTS.items()
+                          if t == _MP_TEXT or not _mp_defects(t))
+R.check(
+    "marketplace.yml runs CI's own hassfest and validate units weekly and on "
+    "dispatch, read-only, a red never hidden (#2965 C5)",
+    bool(_MP_TEXT) and not _MP_DEFECTS and not _MP_PLANT_MISSED,
+    f"defects={_MP_DEFECTS} plants the reader missed={_MP_PLANT_MISSED}; the "
+    "catalog PR links a current passing run of both against main",
 )
 
 # --- what the closure RECORDER sees: child processes (R9 D14-s5-01) --------
@@ -21319,11 +21634,13 @@ R.check(
 # A script another script drives in a subprocess reaches the table only
 # through its driver's fold: a change to it re-derives the driver and the
 # child, never every closure (R9-F10.9; this pinned `full` until then).
+# tests/entities.py is the third entry: countermeasure B's pin reads every
+# non-INERT .py under tests/ and tools/, so every such edit re-derives it.
 _A_DRIVEN = _closure.affected(["tests/dst_checks.py"])
 R.check(
     "a change to a subprocess-driven script re-derives its driver and itself",
     _A_DRIVEN["case"] == "scoped"
-    and _A_DRIVEN["rederive"] == ["tests/features.py", "tests/dst_checks.py"],
+    and _A_DRIVEN["rederive"] == ["tests/entities.py", "tests/features.py", "tests/dst_checks.py"],
     f"case={_A_DRIVEN['case']} rederive={_A_DRIVEN['rederive']}",
 )
 # A tests/closures.json change runs the scripts whose entry moved, measured
@@ -21424,11 +21741,13 @@ R.check(
     and _nr_anyway == ["tests/harness_headers.py"],
     f"not run={[r[0] for r in _nr_rows]} ran anyway={_nr_anyway}",
 )
-# The cost claim: one script's closure touched re-derives ONE entry.
-_A_ONE = _closure.affected(["tests/open_meteo.py"])
+# The cost claim: one script's closure touched re-derives ONE entry. The file
+# is a data file one script reads: a script's own .py is in tests/entities.py's
+# closure too, by countermeasure B's read, so it re-derives two.
+_A_ONE = _closure.affected(["tests/typing_budgets.json"])
 R.check(
     "a diff inside one closure re-derives one entry, not eighteen",
-    _A_ONE["case"] == "scoped" and _A_ONE["rederive"] == ["tests/open_meteo.py"],
+    _A_ONE["case"] == "scoped" and _A_ONE["rederive"] == ["tests/typing_ruler.py"],
     f"case={_A_ONE['case']} rederive={_A_ONE['rederive']}",
 )
 # A recording is a real run: card.mjs reads the payload plan_view.py writes,
@@ -25086,8 +25405,8 @@ _multi_run_payload = {
         {"dhw_power": 1.0},
     ],
     # What the coordinator itself builds for this schedule: a three-step
-    # run collapses to one slot, the trailing step is a second (coordinator
-    # _plan_slots, merged on optimizer.channel_heating_steps).
+    # run collapses to one slot, the trailing step is a second
+    # (plan_slots.plan_slots, merged on thermal_model.channel_heating_steps).
     "dhw_plan": {"slots": [{"start": "t0"}, {"start": "t1"}]},
 }
 _dhw_sched_vs_plan = sensor.DHWScheduleSensor(
@@ -28093,28 +28412,244 @@ def _raf_review_gated(job: str) -> bool:
     return bool(hits) and g > 0 and all(h > g for h in hits) and bool(post)
 
 
+# The `--require-green` call must survive the step's shell, and so must every
+# exit a step means to read. GitHub runs a `run:` block under errexit -- the
+# default shell is `bash -e {0}`, `shell: bash` is `bash --noprofile --norc
+# -eo pipefail {0}`, `shell: sh` is `sh -e {0}`, and a `set -uo pipefail` line
+# does not clear `-e` -- so a `$?` read after a BARE simple command is dead
+# code for every nonzero exit: errexit ends the STEP with that exit first.
+# Twice this reached main (R10-RCA-HOTFIX-BATCH-ERREXIT): the guard's
+# `guard --require-green; rc=$?` (run 38553291314, exit 3, no
+# `AUTOMERGE:` line), and the batch gate's bare `--batch-due` then `batch=$?`
+# (job 121376503388, exit 4) after the barrier pinned only the first call.
+# The unit is every errexit block in the tree, not one call. A producer that
+# is a condition (`if cmd; then rc=0; else rc=$?; fi`, `cmd || rc=$?`) or a
+# read under `set +e` is exempt; a `$?` in an `if`/`while`/`until` TEST reads
+# the bare producer before it, an `elif` test the `if` condition's. An
+# arithmetic `(( ... ))` test counts as a test, a departure from the finder
+# harness, which misses it (#2849's round-2 review, this group's carry 5).
+# Reference logic and its finder: dev/audit/harnesses/r10_errexit_capture.py
+# at e1a684789. Gap, measured and left: a producer read through `out=$(...)`
+# and its output is not a `$?` read -- gate-sweep's I4 -- and is caught where
+# a harness runs the step under `_GHA_RUN` instead.
+_EX_SHELLS = {None, "bash", "sh"}
+_EX_SAFE = re.compile(
+    r"^(if|elif|while|until)\b|^!|\|\||&&|"
+    r"(^|\s)(then|do|else|\{|\()$|^(fi|done|esac|\}|\))\b|^(else|then|do)\b")
+_EX_TEST_HEAD = re.compile(r"^(if|while|until)\s+(!\s*)?(?=\[|test\b|\(\()")
+_EX_READER = re.compile(r"^(\w+=|case\b|\[|\[\[|\(\(|test\b|echo\b|printf\b|exit\b|return\b|local\b)")
+
+
+def _ex_run_blocks(root: Path):
+    """(file, job, step, run text) for every errexit `run:` block under root."""
+    for f in sorted([*(root / ".github" / "workflows").glob("*.yml"),
+                     *(root / ".github" / "actions").glob("*/action.yml")]):
+        doc = _yaml.safe_load(f.read_text()) or {}
+        wdef = ((doc.get("defaults") or {}).get("run") or {}).get("shell")
+        jobs = doc.get("jobs") or {}
+        if "runs" in doc:  # a composite action
+            jobs = {"(composite)": {"steps": (doc["runs"] or {}).get("steps") or []}}
+        for jname, job in jobs.items():
+            jdef = (((job or {}).get("defaults") or {}).get("run") or {}).get("shell", wdef)
+            for i, step in enumerate((job or {}).get("steps") or []):
+                if "run" in step and step.get("shell", jdef) in _EX_SHELLS:
+                    yield (f.relative_to(root).as_posix(), jname,
+                           step.get("name") or f"step {i}", str(step["run"]))
+
+
+def _ex_hazards(text: str) -> "tuple[int, list[str]]":
+    """(`$?` reads examined, the reads errexit makes dead) in one errexit block:
+    comment lines dropped, continuations joined, the producer the statement
+    before the read on its line, else the line before."""
+    lines, cur = [], ""
+    for raw in text.split("\n"):
+        s = raw.strip()
+        if not cur and (not s or s.startswith("#")):
+            continue
+        if s.endswith("\\"):
+            cur += s[:-1] + " "
+            continue
+        lines.append((cur + s).strip())
+        cur = ""
+    if cur:
+        lines.append(cur.strip())
+    reads, hits, errexit, prev = 0, [], True, ""
+    for line in lines:
+        if re.match(r"^set\s+(\+e\b|\+o\s+errexit\b)", line):
+            errexit = False
+        elif re.match(r"^set\s+(-[a-z]*e|-o\s+errexit\b)", line):
+            errexit = True
+        for m in re.finditer(r"\$\?", line):
+            reads += 1
+            head = line[:m.start()]
+            cut = head.rfind(";")
+            whole = head[:cut].strip() if cut >= 0 else prev
+            producer = whole.split(";")[-1].strip()
+            stmt = _EX_TEST_HEAD.sub("", head[cut + 1:].strip())
+            if (errexit and whole and not _EX_SAFE.search(producer)
+                    and not _EX_SAFE.search(stmt) and (not stmt or _EX_READER.match(stmt))):
+                hits.append(f"`{producer[:90]}` then `{line[:60]}`")
+        prev = line
+    return reads, hits
+
+
+def _ex_scan(root: Path) -> "tuple[int, int, list[str]]":
+    blocks = reads = 0
+    out = []
+    for f, job, name, run in _ex_run_blocks(root):
+        blocks += 1
+        n, hs = _ex_hazards(run)
+        reads += n
+        out += [f"{f} job={job} step={name!r}: {h}" for h in hs]
+    return blocks, reads, out
+
+
+_EX_BLOCKS, _EX_READS, _EX_HITS = _ex_scan(Path("."))
+R.check(
+    "no errexit `run:` block reads `$?` after a bare producer (the unit is "
+    "every workflow and composite action, R10-RCA-HOTFIX-BATCH-ERREXIT A)",
+    _EX_BLOCKS > 0 and _EX_READS > 0 and not _EX_HITS,
+    f"blocks={_EX_BLOCKS} reads={_EX_READS} hits={_EX_HITS}; errexit ends the "
+    "step with the producer's exit before the read -- wrap the producer in a "
+    "condition (`if cmd; then rc=0; else rc=$?; fi`, or `rc=0; cmd || rc=$?`)",
+)
+_EX_CASES = {  # run text -> the hits it must yield
+    "bare then capture": ("set -uo pipefail\ncmd --batch-due\nbatch=$?\n", 1),
+    "same line": ("guard --require-green; rc=$?\ncase $rc in 0) ;; esac\n", 1),
+    "case on $?": ("cmd\ncase $? in 4) exit 0 ;; esac\n", 1),
+    "or-capture": ("batch=0\ncmd --batch-due || batch=$?\n", 0),
+    "if/else": ("if guard --require-green; then rc=0; else rc=$?; fi\n", 0),
+    "else line": ("if cmd; then\n  :\nelse\n  pitch=$?\nfi\n", 0),
+    "set +e": ("set +e\ncmd\nrc=$?\nset -e\n", 0),
+    "comment between": ("cmd \\\n  --flag\n# why\nrc=$?\n", 1),
+    "if test -ne": ("cmd --gate\nif [ $? -ne 0 ]; then exit 1; fi\n", 1),
+    "if test quoted": ("cmd --gate\nif [ \"$?\" = 4 ]; then :; fi\n", 1),
+    "if test builtin": ("cmd --gate\nif test $? -eq 4; then :; fi\n", 1),
+    "while test": ("cmd --gate\nwhile [ $? = 4 ]; do cmd; done\n", 1),
+    "same-line if": ("cmd --gate; if [[ $? -ne 0 ]]; then exit 1; fi\n", 1),
+    "elif test": ("if cmd; then :\nelif [ $? = 4 ]; then :\nfi\n", 0),
+    "if after or-capture": ("cmd || true\nif [ $? -ne 0 ]; then :; fi\n", 0),
+    "if arith": ("cmd --gate\nif (( $? != 0 )); then exit 1; fi\n", 1),
+    "arith list": ("cmd --gate\n(( $? )) && exit 1\n", 1),
+    "arith after inline capture": ("rc=0; cmd || rc=$?\nif (( rc != 0 )); then exit 1; fi\n", 0),
+}
+_EX_CASES_BAD = sorted(k for k, (t, want) in _EX_CASES.items() if len(_ex_hazards(t)[1]) != want)
+with tempfile.TemporaryDirectory() as _ex_td:
+    _ex_wf = Path(_ex_td) / ".github" / "workflows"
+    _ex_wf.mkdir(parents=True)
+    _EX_EMPTY = _ex_scan(Path(_ex_td))
+    _ex_wf.joinpath("a.yml").write_text(_yaml.safe_dump({"jobs": {"j": {"steps": [
+        {"name": "py", "shell": "python", "run": "x\nrc=$?\n"},
+        {"name": "bash", "shell": "bash", "run": "x\nrc=$?\n"},
+        {"name": "default", "run": "x\nrc=$?\n"}]}}}))
+    _EX_SHELL_ARM = _ex_scan(Path(_ex_td))
+    # The live batch gate, its condition unwrapped back to the defect's form.
+    _ex_wf.joinpath("a.yml").write_text(_NIGHTLY_YML.replace(
+        "batch=0\n", "", 1).replace(" || batch=$?", "\n            batch=$?", 1))
+    _EX_PLANT = _ex_scan(Path(_ex_td))
+R.check(
+    "and the errexit check reads the shapes, not one call (null controls)",
+    not _EX_CASES_BAD and _EX_EMPTY == (0, 0, [])
+    and (_EX_SHELL_ARM[0], len(_EX_SHELL_ARM[2])) == (2, 2)
+    and len(_EX_PLANT[2]) == 1 and "record-autofix" in _EX_PLANT[2][0],
+    f"cases wrong={_EX_CASES_BAD} empty tree={_EX_EMPTY} (a green over no "
+    f"block is a skip) shell arm={_EX_SHELL_ARM[:2]}+{len(_EX_SHELL_ARM[2])} "
+    f"hits (`shell: python` is not errexit) live batch gate unwrapped="
+    f"{_EX_PLANT[2]}",
+)
+
+
+# Countermeasure B's pin (R10-RCA-HOTFIX-BATCH-ERREXIT): a check that runs a
+# step's text under a bare `bash -c` measures a shell GitHub never uses, so a
+# bare call the step means to classify passes the check and ends the runner's
+# step (gate-sweep's I4 stayed green that way). Every `-c` list literal whose
+# shell is `bash` or `sh` by basename (`/bin/bash`, `env bash` alike) in a
+# tracked `.py` under tests/ and tools/ that is not INERT carries an errexit
+# flag, or runs text that is no `run:` block, keyed by (file, enclosing
+# function). The key does not see what a listed function runs, so a step
+# executed inside one is blinded: a listed function runs one named source, and
+# a new executor belongs in a function of its own. An argv built by anything
+# but a literal is outside the read. INERT files are outside it by design: the
+# gate never runs one in-process (closure.py refuses an INERT file read and
+# recorded, #357), and every file read here lands in this script's closure, so
+# an edit adding a site selects this script under GATE_SCOPE=auto. A file that
+# leaves INERT because a check starts running it enters the read with it. Gap,
+# measured and left: an INERT tool a check spawns as a child, which
+# `inert_reads` lists and which runs its own scripts, not `run:` blocks.
+_SHELL_NOT_A_STEP = {
+    ("tests/throwaway_git.py", "self_test"): "sources tests/throwaway_git.sh",
+    ("tests/entities.py", "_cir_once_count"): "two lines of tools/coverage/coverage_tree.sh",
+    ("tools/audit/judge_batch.py", "run"): "a judge's own command line",
+}
+
+
+def _shell_c_sites(sources: "dict[str, str]") -> "list[tuple[str, str, bool]]":
+    """(file, enclosing function, errexit) for every `-c` shell list literal."""
+    out = []
+    for path, src in sorted(sources.items()):
+        def walk(node, fn):
+            for ch in ast.iter_child_nodes(node):
+                if isinstance(ch, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    walk(ch, ch.name)
+                    continue
+                if isinstance(ch, ast.List) and ch.elts:
+                    lits = [e.value for e in ch.elts
+                            if isinstance(e, ast.Constant) and isinstance(e.value, str)]
+                    if lits[:1] in (["env"], ["/usr/bin/env"]):
+                        lits = lits[1:]
+                    if lits and os.path.basename(lits[0]) in ("bash", "sh") and "-c" in lits:
+                        out.append((path, fn, any(re.fullmatch(r"-[a-z]*e[a-z]*", t) for t in lits)))
+                walk(ch, fn)
+        walk(ast.parse(src), "<module>")
+    return out
+
+
+def _shell_c_defects(sources: "dict[str, str]") -> "list[str]":
+    return [f"{f}:{fn}" for f, fn, ee in _shell_c_sites(sources)
+            if not ee and (f, fn) not in _SHELL_NOT_A_STEP]
+
+
+_SHELL_TRACKED = [f for f in _subprocess.run(
+    ["git", "ls-files", "-z", "--", "tests/*.py", "tools/*.py"],
+    capture_output=True, text=True, check=True).stdout.split("\0") if f]
+_SHELL_DOMAIN = [f for f in _SHELL_TRACKED if not _closure.is_inert(f)]
+_SHELL_SOURCES = {f: Path(f).read_text() for f in _SHELL_DOMAIN}
+_SHELL_SITES = _shell_c_sites(_SHELL_SOURCES)
+_SHELL_PLANTS = {
+    "a bare step runner": ("tests/x.py", 'def f(s):\n    run(["bash", "-c", s])\n'),
+    "sh, flags apart": ("tools/x.py", 'def g(s):\n    run(["sh", "-x", "-c", s])\n'),
+    "a listed name in another file": ("tests/x.py", 'def self_test(s):\n    run(["bash", "-c", s])\n'),
+    "an absolute shell": ("tests/x.py", 'def h(s):\n    run(["/bin/bash", "-c", s])\n'),
+    "env bash": ("tools/x.py", 'def k(s):\n    run(["/usr/bin/env", "bash", "-c", s])\n'),
+}
+_SHELL_PLANT_MISSED = sorted(k for k, (f, src) in _SHELL_PLANTS.items()
+                             if _shell_c_defects({f: src}) != [f"{f}:{src[4:src.index('(')]}"])
+R.check(
+    "every `bash -c` / `sh -c` a check runs carries errexit, as GitHub's step "
+    "shell does, unless it runs no workflow step (countermeasure B)",
+    len(_SHELL_SITES) > len(_SHELL_NOT_A_STEP) and not _shell_c_defects(_SHELL_SOURCES)
+    and {(f, fn) for f, fn, ee in _SHELL_SITES if not ee} == set(_SHELL_NOT_A_STEP)
+    and not _SHELL_PLANT_MISSED
+    and not _shell_c_defects({"t.py": 'run(["bash", "--noprofile", "--norc", "-eo", "pipefail", "-c", s])'})
+    and "tests/entities.py" in _SHELL_DOMAIN and "tools/audit/judge_batch.py" in _SHELL_DOMAIN
+    and "tools/audit/seat/beatd.py" in _SHELL_TRACKED and "tools/audit/seat/beatd.py" not in _SHELL_DOMAIN,
+    f"read {len(_SHELL_DOMAIN)} of {len(_SHELL_TRACKED)} tracked (INERT left out; beatd.py, "
+    f"INERT, is the excluded arm) sites={len(_SHELL_SITES)} without errexit={_shell_c_defects(_SHELL_SOURCES)} "
+    f"listed and unused={sorted(set(_SHELL_NOT_A_STEP) - {(f, fn) for f, fn, ee in _SHELL_SITES if not ee})} "
+    f"plants missed={_SHELL_PLANT_MISSED}; a step run under a bare `bash -c` passes a "
+    "bare call errexit ends on the runner -- use `_GHA_RUN`",
+)
+
+
 # The merge is the beat's own, pinned to the head the guard judged (#2029
 # review, round 1): a `PUT .../merge` whose payload carries that `sha`, after
 # the guard's `--require-green` call, and never GitHub's auto-merge, which
 # merges later on a head nobody judged.
-#
-# The `--require-green` call must survive the step's shell. GitHub runs a
-# `run:` block under `bash -e`, so a BARE `guard --require-green; rc=$?`
-# ends the STEP with the guard's own exit -- 3 while a required check still
-# runs, 1 on a refusal -- before the `case` after it can turn either into
-# `say ...; exit 0`. Every pending or refused beat then reddens the job the
-# report step is the one meant to decide (measured: run 38553291314, exit 3,
-# no `AUTOMERGE:` line). A condition is exempt from `-e`, so the exit reaches
-# the case; `if guard --require-green; then rc=0; else rc=$?; fi` captures it.
-_RAF_BARE_GREEN = re.compile(r"(?m)^\s*guard --require-green\b")
-
-
 def _raf_merge_pinned(job: str) -> bool:
     g = job.find("guard --require-green")
     put = job.find('"$API/repos/$REPO/pulls/$NUM/merge"')
     return (0 < g < put
             and "if guard --require-green" in job
-            and _RAF_BARE_GREEN.search(job) is None
             and '{"sha": sys.argv[1], "merge_method": "merge"}' in job
             and "AutoMerge" not in job)
 
@@ -28301,9 +28836,12 @@ R.check(
 # younger than the step's bound: the beat auto-merged mid-train on 2026-10-15
 # (#2291, #2295, #2299), moving main under #2284 and #2290, which CI cannot
 # see because the train's pidfile is local. THE STEP IS EXECUTED, over a
-# stubbed API: the status it prints is what proves the skip happens before the
-# guard and the merge, so a check placed after them (or an inverted age
-# comparison) cannot pass. The bound is read from the step, never carried.
+# stubbed API: the status it prints and the calls it makes are what prove the
+# skip happens after the guard and the approver App's review and before the
+# merge (V118: a hold ahead of the review left #2856 unreviewed while trains
+# ran back to back, since the train's --bot-prs sweep merges on the guard
+# alone), so a check placed elsewhere (or an inverted age comparison) cannot
+# pass. The bound is read from the step, never carried.
 _HOLD_STEP = next((s for s in ((_yaml.safe_load(_NIGHTLY_YML) or {}).get("jobs") or {})
                    .get("record-autofix", {}).get("steps") or []
                    if str(s.get("id") or "") == "automerge"), {})
@@ -28316,7 +28854,8 @@ _MT_HOLD_REF = re.search(r'(?m)^HOLD_REF = "refs/heads/([\w.-]+)"',
 
 
 def _train_hold_status(code: int, body: str, pitch_rc: int = 0, guard_rc: int = 1,
-                       approver: str = "", calls: "list | None" = None) -> "tuple[str, bool]":
+                       approver: str = "", calls: "list | None" = None, green_rc: int = 1,
+                       reviews: str = "[]", run: str = "") -> "tuple[str, bool]":
     """The automerge step's `status=` and whether it warned "unreadable" over a
     stubbed API whose train-hold read answers (code, body); every other read is
     the minimum the step needs.
@@ -28331,19 +28870,21 @@ def _train_hold_status(code: int, body: str, pitch_rc: int = 0, guard_rc: int = 
     `pitch_rc` is what the stub answers `--pitch-check` with: 0 no pitch (the
     default, so the hold's own arms read as before), 4 the pitch's wait.
     `guard_rc` is the first guard's exit (the refusing default; 0 passes it,
-    and the green wait after it still refuses), `approver` the approver App's
-    token, and `calls`, when given, receives every curl argv the step ran."""
+    and the green wait after it refuses unless `green_rc` is 0), `approver` the
+    approver App's token, `reviews` the pull request's reviews read, `run` a
+    step text in place of the step's own (a mutant), and `calls`, when given,
+    receives every curl argv the step ran."""
     with tempfile.TemporaryDirectory() as td:
         t = Path(td)
         (t / "tools" / "audit" / "seat").mkdir(parents=True)
         (t / "tools" / "audit" / "seat" / "record_row.py").write_text(
-            f"import sys\nsys.exit({pitch_rc} if '--pitch-check' in sys.argv else 1 "
-            f"if '--require-green' in sys.argv else {guard_rc})\n")
+            f"import sys\nsys.exit({pitch_rc} if '--pitch-check' in sys.argv else "
+            f"{green_rc} if '--require-green' in sys.argv else {guard_rc})\n")
         answers = t / "answers.json"
         answers.write_text(json.dumps({
             "hold": {"code": code, "body": body},
             "pulls": {"code": 200, "body": json.dumps({"head": {"sha": "a" * 40}})},
-            "reviews": {"code": 200, "body": "[]"},
+            "reviews": {"code": 200, "body": reviews},
             "other": {"code": 404, "body": "{}"}}))
         bin_ = t / "bin"
         bin_.mkdir()
@@ -28369,11 +28910,10 @@ def _train_hold_status(code: int, body: str, pitch_rc: int = 0, guard_rc: int = 
         (bin_ / "curl").chmod(0o755)
         out = t / "out"
         out.write_text("")
-        p = subprocess.run(["bash", "-c", _HOLD_RUN], cwd=t, capture_output=True, text=True,
-                           env={**os.environ, "PATH": str(bin_) + os.pathsep + os.environ["PATH"],
-                                "RUNNER_TEMP": str(t), "GITHUB_OUTPUT": str(out),
-                                "REPO": "o/r", "TOKEN": "t0k", "APPROVER": approver, "NUM": "42",
-                                "EVENT": "push"})
+        p = subprocess.run([*_GHA_RUN, run or _HOLD_RUN], cwd=t, capture_output=True, text=True,
+                           env=_stub_path_env(bin_, RUNNER_TEMP=str(t), GITHUB_OUTPUT=str(out),
+                                              REPO="o/r", TOKEN="t0k", APPROVER=approver, NUM="42",
+                                              EVENT="push"))
         if calls is not None and (t / "calls.log").exists():
             calls.extend(json.loads(x) for x in (t / "calls.log").read_text().splitlines())
         found = re.findall(r"(?m)^status=(\S+)$", out.read_text())
@@ -28388,30 +28928,82 @@ def _hold_when(offset_s: int) -> str:
         "date": at.strftime("%Y-%m-%dT%H:%M:%SZ")}}})
 
 
+def _hold_calls(code: int, body: str, **kw) -> "tuple[str, bool, bool, bool]":
+    """(status, approver review posted, a review dismissed, merge called) for one
+    run of the automerge step with the approver App's token present."""
+    calls: list = []
+    st, _ = _train_hold_status(code, body, approver="ap0", calls=calls, **kw)
+    return (st,
+            any("POST" in c and "Authorization: Bearer ap0" in c
+                and c[-1].endswith("/pulls/42/reviews") for c in calls),
+            any("PUT" in c and c[-1].endswith("/dismissals") for c in calls),
+            any(c[-1].endswith("/merge") for c in calls))
+
+
+# A bot approval at an older head, so a refusal has one to dismiss.
+_HOLD_OLD_REVIEW = json.dumps([{"id": 7, "state": "APPROVED", "commit_id": "b" * 40,
+                                "user": {"login": "hpo-approver[bot]"}}])
+_HELD = _hold_calls(200, _hold_when(-60), guard_rc=0)
+_HELD_REFUSED = _hold_calls(200, _hold_when(-60), reviews=_HOLD_OLD_REVIEW)
 R.check(
-    "tests.yml's automerge skips while a live merge train holds the record "
-    "beat (executed, issue #2302)",
-    _HOLD_BOUND > 0
-    and _train_hold_status(200, _hold_when(-60)) == ("skip-train-hold", False),
-    f"bound={_HOLD_BOUND}, "
-    f"status={_train_hold_status(200, _hold_when(-60))!r}",
+    "nightly.yml's automerge reviews a record pull request the guard passes "
+    "under a live merge train hold, then skips the merge (executed, issue "
+    "#2302, V118)",
+    _HOLD_BOUND > 0 and _HELD == ("skip-train-hold", True, False, False),
+    f"bound={_HOLD_BOUND}, (status, reviewed, dismissed, merged)={_HELD!r}; the "
+    "train's --bot-prs sweep merges on the guard alone and leaves the review "
+    "to this beat, so a hold ahead of the review starves it (#2856)",
+)
+R.check(
+    "and under a live hold a head the guard refuses is refused, its approver "
+    "App approvals dismissed and no review posted",
+    _HELD_REFUSED == ("refused", False, True, False),
+    f"(status, reviewed, dismissed, merged)={_HELD_REFUSED!r}",
+)
+# The mutant: the hold block moved back ahead of the head read, the guard and
+# the review -- the order #2856 deadlocked under. Built from the step's own
+# text, so it tracks the block; a mutant that cannot be built is red.
+_HOLD_A = _HOLD_RUN.find("# THE TRAIN HOLD (")
+_HOLD_B = _HOLD_RUN.find("# THE PITCH (")
+_HOLD_H = _HOLD_RUN.find("HEAD=$(pr_field")
+_HOLD_MUT_OK = -1 < _HOLD_H < _HOLD_A < _HOLD_B
+_HOLD_A, _HOLD_B, _HOLD_H = (_HOLD_RUN.rfind("\n", 0, i) + 1 for i in (_HOLD_A, _HOLD_B, _HOLD_H))
+_HOLD_MUT = (_HOLD_RUN[:_HOLD_H] + _HOLD_RUN[_HOLD_A:_HOLD_B] + _HOLD_RUN[_HOLD_H:_HOLD_A]
+             + _HOLD_RUN[_HOLD_B:])
+_HELD_MUT = _hold_calls(200, _hold_when(-60), guard_rc=0, run=_HOLD_MUT) if _HOLD_MUT_OK else None
+R.check(
+    "and the hold moved back ahead of the review leaves the held head "
+    "unreviewed, so the reviewed-under-a-live-hold check sees it (mutant)",
+    _HOLD_MUT_OK and _HELD_MUT == ("skip-train-hold", False, False, False),
+    f"order ok={_HOLD_MUT_OK}, mutant (status, reviewed, dismissed, merged)={_HELD_MUT!r}",
 )
 R.check(
     "and a hold at the bound, one dated ahead of the runner's clock, an absent "
     "one (the API's own 422) and an unreadable one do not skip -- and only the "
     "unreadable ones warn (null controls)",
     _HOLD_BOUND > 0
-    and _train_hold_status(200, _hold_when(-(_HOLD_BOUND + 60))) == ("refused", False)
-    and _train_hold_status(200, _hold_when(3600)) == ("refused", False)
-    and _train_hold_status(422, "{}") == ("refused", False)
-    and _train_hold_status(404, "{}") == ("refused", False)
-    and _train_hold_status(500, "{}") == ("refused", True)
-    and _train_hold_status(200, "{}") == ("refused", True),
+    and _train_hold_status(200, _hold_when(-(_HOLD_BOUND + 60)), guard_rc=0)
+    == ("refused", False)
+    and _train_hold_status(200, _hold_when(3600), guard_rc=0) == ("refused", False)
+    and _train_hold_status(422, "{}", guard_rc=0) == ("refused", False)
+    and _train_hold_status(404, "{}", guard_rc=0) == ("refused", False)
+    and _train_hold_status(500, "{}", guard_rc=0) == ("refused", True)
+    and _train_hold_status(200, "{}", guard_rc=0) == ("refused", True),
     "a stale hold is a crashed train (no merges, so no rows go overdue); a "
     "date ahead of the reading clock is unknowable, never young (#775); the "
     "commits endpoint answers 422 for an absent ref, so that arm must be "
     "silent or every idle beat warns; an unreadable hold leaves the pre-fix "
-    "behaviour, which is the safe failure",
+    "behaviour, which is the safe failure. The guard passes, so the hold is "
+    "read; the green wait, stubbed to refuse, reports `refused`",
+)
+_HOLD_NONE = _hold_calls(422, "{}", guard_rc=0, green_rc=0)
+_HOLD_STALE = _hold_calls(200, _hold_when(-(_HOLD_BOUND + 60)), guard_rc=0, green_rc=0)
+R.check(
+    "and with no hold, or a stale one, a passing head is reviewed, passes the "
+    "pitch and merges as before (null control)",
+    _HOLD_NONE == ("merged", True, False, True)
+    and _HOLD_STALE == ("merged", True, False, True),
+    f"absent: {_HOLD_NONE!r}; stale: {_HOLD_STALE!r}",
 )
 # THE PITCH (R10-FLOW-RECORD-PITCH, Lean study K6), executed over the same
 # stub: record_row.py's `--pitch-check` answering 4 skips the merge with
@@ -28420,7 +29012,7 @@ R.check(
 # posts no review -- finds a head main's ruleset accepts (directive [7]:
 # record pull requests ride trains rather than race them). 0 proceeds to the
 # green wait; a crashed check is no pitch; a refused head never waits; a live
-# train answers first, so the hold arm is unchanged by it. The decision itself
+# train answers before the pitch, so the hold arm is unchanged by it. The decision itself
 # (a young record merge waits, a stale backlog proceeds) is record_row.py's
 # `pitch_wait`, driven both ways by its --self-test.
 _PITCH_CALLS: list = []
@@ -28431,7 +29023,7 @@ _PITCH_REVIEWED = any("POST" in c and "Authorization: Bearer ap0" in c
 _PITCH_MERGED = any(c[-1].endswith("/merge") for c in _PITCH_CALLS)
 R.check(
     "nightly.yml's automerge waits the pitch when record_row.py says so, after "
-    "the train hold, the guard and the approver App's review, before the merge "
+    "the guard, the approver App's review and the train hold, before the merge "
     "(executed)",
     _PITCH_ST == ("skip-pitch", False) and _PITCH_REVIEWED and not _PITCH_MERGED
     and _train_hold_status(200, _hold_when(-60), pitch_rc=4, guard_rc=0)
@@ -28732,10 +29324,9 @@ def _pt_trigger(script: str, planted: str) -> str:
         subprocess.run(_g + ["commit", "-qm", "head"], check=True, env=_env)
         _head = subprocess.run(_g + ["rev-parse", "HEAD"], capture_output=True, text=True, env=_env).stdout.strip()
         _out = Path(_td, ".out")
-        subprocess.run(["bash", "-c", script], cwd=_td, capture_output=True, text=True,
-                       env={**os.environ, "BASE": _base, "HEAD": _head,
-                            "PATH": str(_bin) + os.pathsep + os.environ["PATH"],
-                            "RUNNER_TEMP": _td, "GITHUB_OUTPUT": str(_out)})
+        subprocess.run([*_GHA_RUN, script], cwd=_td, capture_output=True, text=True,
+                       env=_stub_path_env(_bin, BASE=_base, HEAD=_head,
+                                          RUNNER_TEMP=_td, GITHUB_OUTPUT=str(_out)))
         _m = re.findall(r"^governance=(\w+)$", _out.read_text() if _out.exists() else "", re.M)
         return _m[-1] if len(_m) == 1 else f"outputs={_m}"
 
@@ -28864,8 +29455,7 @@ def _pt_ds_rc(script: str, head_rc: int, base_rc: int,
             (bindir / "git").stat().st_mode & 0o777,
             (bindir / "python").stat().st_mode & 0o777,
         )
-        env = {**os.environ, "PATH": str(bindir) + os.pathsep + os.environ["PATH"],
-               "RUNNER_TEMP": str(root / "rt")}
+        env = _stub_path_env(bindir, RUNNER_TEMP=str(root / "rt"))
         proc = subprocess.run(["bash", "-e", "-c", script], cwd=root, env=env,
                               capture_output=True, text=True)
         return proc.returncode
@@ -30219,7 +30809,7 @@ def _cov_trust(check_run: str, marker: "str | None", base: str) -> "tuple[bool, 
             (_tmp / "coverage-base" / ".measured-by").write_text(marker)
         _out = _tmp / "out"
         _out.write_text("")
-        subprocess.run(["bash", "-c", check_run], capture_output=True, text=True,
+        subprocess.run([*_GHA_RUN, check_run], capture_output=True, text=True,
                        env={**os.environ, "RUNNER_TEMP": str(_tmp), "BASE": base,
                             "GITHUB_OUTPUT": str(_out)})
         return ("trusted=true" in _out.read_text(), (_tmp / "coverage-base").exists())
@@ -30230,7 +30820,7 @@ def _cov_marker(stage_run: str, event: str, ref: str) -> str:
     with tempfile.TemporaryDirectory() as _t:
         _tmp = Path(_t)
         (_tmp / "w" / "out" / "per").mkdir(parents=True)
-        subprocess.run(["bash", "-c", stage_run], capture_output=True, text=True,
+        subprocess.run([*_GHA_RUN, stage_run], capture_output=True, text=True,
                        env={**os.environ, "RUNNER_TEMP": str(_tmp),
                             "W5P_WORK": str(_tmp / "w"), "GITHUB_EVENT_NAME": event,
                             "GITHUB_REF": ref})
@@ -32720,11 +33310,12 @@ R.check(
     "replaces, because `gh release create` uses it. Anything beyond these "
     "three is scope this job does not use and should not hold",
 )
-# The subject honesty is the other half of the approval: option C (build an
-# artefact) is declined because HACS installs from the ref, so the attested
-# subject must be the tag's tree itself -- a digest recomputable by anyone
-# from the tag -- and never a zip, an upload, or an asset the release does
-# not carry. The pins are the wiring that makes that claim checkable: the
+# The subject honesty is the other half of the approval: the attested subject
+# is the tag's tree itself -- a digest recomputable by anyone from the tag --
+# and never a built file. #960 declined option C (build an artefact) because
+# HACS installed from the ref; R10-MARKETPLACE reversed that for the
+# Marketplace's 100 MiB download limit and added `heatpump_optimizer.zip`
+# (pinned below), but the attestation still names the tree, not the asset. The pins are the wiring that makes that claim checkable: the
 # digest step serialises the tag with `git archive`, and the attestation
 # carries that digest under `subject-digest`, pinned by its own SHA.
 _REL_ATTEST_PIN = re.search(
@@ -32742,8 +33333,141 @@ R.check(
     f"subject-path present={'subject-path:' in _REL_JOB} (must be False); the "
     "digest step serialises the tag's tree and the attestation carries that "
     "sha256 -- `subject-path` would bind the statement to a built file, which "
-    "is the overclaim #960 exists to remove while the artefact build stays "
-    "declined",
+    "is not what #960 approved: the attestation covers the tree, of which "
+    "the release asset is one subtree",
+)
+
+# --- the release asset the Marketplace installs (R10-MARKETPLACE) ------------
+#
+# The Home Assistant Marketplace, HACS's successor in core from 2026.11,
+# refuses a download over 100 MiB, and this repository's tag archive is over
+# it; with `zip_release` it downloads the release asset `hacs.json` names
+# under `filename` instead. Three things make that true, each pinned here:
+#   * `hacs.json` sets `zip_release` and names exactly the asset release.yml
+#     uploads (the job's `ASSET`), and holds no key HACS does not know -- a
+#     wrong `filename` installs nothing, and the Marketplace says only that
+#     the asset is missing;
+#   * the build and check steps, RUN in a scratch repository, produce a ZIP
+#     with the integration's manifest.json at its root and no
+#     custom_components/ prefix, and the check refuses a `hacs.json` naming
+#     another file;
+#   * the release is created as a draft carrying the asset, and published by
+#     a later step that reads the asset back, so a release without its asset
+#     fails the run and is never published.
+# Design choice, said out loud (fixer.md step 11): the asset name is stated
+# once in the workflow and once in hacs.json, and this check pins them equal,
+# rather than the workflow reading hacs.json, so that a wrong `filename` is
+# refused here instead of being uploaded under the wrong name.
+_HACS_KEYS = {"name", "content_in_root", "zip_release", "filename",
+              "hide_default_branch", "country", "homeassistant", "hacs",
+              "persistent_directory"}
+_REL_DOC = _yaml.safe_load(Path(_REL_WF).read_text()) or {}
+_REL_JOBD = ((_REL_DOC.get("jobs") or {}).get("release") or {})
+_REL_ASSET = (_REL_JOBD.get("env") or {}).get("ASSET")
+_REL_STEPS = {str((_s or {}).get("name")): _i for _i, _s in
+              enumerate(_REL_JOBD.get("steps") or [])}
+_REL_RUN = {str((_s or {}).get("name")): str((_s or {}).get("run") or "")
+            for _s in _REL_JOBD.get("steps") or []}
+_HACS_DOC = json.loads(Path("hacs.json").read_text())
+
+
+def _rel_hacs_defects(hacs: dict, asset: "str | None") -> "list[str]":
+    out: "list[str]" = []
+    if hacs.get("zip_release") is not True:
+        out.append(f"zip_release is {hacs.get('zip_release')!r}, not true")
+    if not asset or hacs.get("filename") != asset:
+        out.append(f"hacs.json filename {hacs.get('filename')!r} is not the "
+                   f"asset release.yml uploads ({asset!r})")
+    if set(hacs) - _HACS_KEYS:
+        out.append(f"keys HACS does not know: {sorted(set(hacs) - _HACS_KEYS)}")
+    return out
+
+
+def _rel_zip_defects(build: str, check: str, asset: str) -> "list[str]":
+    """Run the build and check steps in a scratch repository."""
+    import zipfile
+    out: "list[str]" = []
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = Path(tmp) / "repo"
+        files = {"hacs.json": json.dumps({"zip_release": True,
+                                          "filename": asset}),
+                 "custom_components/heatpump_optimizer/manifest.json":
+                     json.dumps({"domain": "heatpump_optimizer"}),
+                 "custom_components/heatpump_optimizer/sub/a.py": "x = 1\n",
+                 "dev/big.txt": "outside the integration\n"}
+        for rel, body in files.items():
+            (repo / rel).parent.mkdir(parents=True, exist_ok=True)
+            (repo / rel).write_text(body)
+        git = ["git", "-c", "user.name=t", "-c", "user.email=t@t"]
+        env = throwaway_git_init(repo, "-q")
+        subprocess.run(git + ["add", "-A"], cwd=repo, check=True, env=env)
+        subprocess.run(git + ["commit", "-qm", "t"], cwd=repo, check=True,
+                       env=env)
+        sha = subprocess.run(["git", "rev-parse", "HEAD"], cwd=repo, env=env,
+                             check=True, capture_output=True,
+                             text=True).stdout.strip()
+
+        def run(script: str) -> int:
+            e = dict(os.environ, RUNNER_TEMP=tmp, ASSET=asset, GITHUB_SHA=sha)
+            return subprocess.run(["bash", "--noprofile", "--norc", "-eo",
+                                   "pipefail", "-c", script], cwd=repo, env=e,
+                                  capture_output=True, text=True).returncode
+        if run(build) != 0:
+            return ["the build step fails"]
+        zpath = Path(tmp) / asset
+        names = set(zipfile.ZipFile(zpath).namelist()) if zpath.is_file() else set()
+        if "manifest.json" not in names or "sub/a.py" not in names \
+                or any(n.startswith(("custom_components/", "dev/")) for n in names):
+            out.append(f"the ZIP holds {sorted(names)}, not the integration "
+                       "folder's files at its root")
+        if run(check) != 0:
+            out.append("the check step refuses a correct ZIP")
+        (repo / "hacs.json").write_text(json.dumps(
+            {"zip_release": True, "filename": "wrong.zip"}))
+        if run(check) == 0:
+            out.append("the check step passes a hacs.json naming another file")
+    return out
+
+
+R.check(
+    "hacs.json names the release asset release.yml uploads, with zip_release",
+    not _rel_hacs_defects(_HACS_DOC, _REL_ASSET),
+    "; ".join(_rel_hacs_defects(_HACS_DOC, _REL_ASSET)) or "holds",
+)
+# Null control: the same reader refuses a wrong filename, so the pass above
+# is the files agreeing, not the reader passing everything.
+R.check(
+    "the hacs.json asset reader refuses a filename release.yml does not upload",
+    bool(_rel_hacs_defects(dict(_HACS_DOC, filename="wrong.zip"), _REL_ASSET)),
+    "a hacs.json naming wrong.zip read as clean",
+)
+_REL_ZIP_DEFECTS = _rel_zip_defects(
+    _REL_RUN.get("Build the integration ZIP", "exit 1"),
+    _REL_RUN.get("Check the integration ZIP", "exit 1"),
+    _REL_ASSET or "unset.zip")
+R.check(
+    "the release ZIP holds the integration folder at its root, and its check "
+    "refuses a hacs.json naming another file",
+    not _REL_ZIP_DEFECTS,
+    "; ".join(_REL_ZIP_DEFECTS) or "holds",
+)
+_REL_ORDER = [_REL_STEPS.get(_n) for _n in (
+    "Build the integration ZIP", "Check the integration ZIP",
+    "Create the GitHub release", "Publish the release once its asset is on it",
+    "Digest the tag's tree")]
+_REL_CREATE = _REL_RUN.get("Create the GitHub release", "")
+_REL_PUBLISH = _REL_RUN.get("Publish the release once its asset is on it", "")
+R.check(
+    "the release is a draft carrying the asset until a later step reads the "
+    "asset back and publishes it",
+    None not in _REL_ORDER and _REL_ORDER == sorted(_REL_ORDER)
+    and "--draft" in _REL_CREATE and "${ASSET}" in _REL_CREATE
+    and "--draft=false" not in _REL_CREATE
+    and "--json assets" in _REL_PUBLISH and "--draft=false" in _REL_PUBLISH
+    and _REL_PUBLISH.index("--json assets") < _REL_PUBLISH.index("--draft=false"),
+    f"step order {_REL_ORDER}; create has --draft={'--draft' in _REL_CREATE} "
+    f"asset={'${ASSET}' in _REL_CREATE}; publish reads assets="
+    f"{'--json assets' in _REL_PUBLISH} then publishes",
 )
 
 # --- the two instruments beside the gate: coverage and mutation (#195) -------
@@ -33482,6 +34206,41 @@ R.check(
     and _MUT_NULL["new"] != _MUT_NULL["old"] and "\n" not in _MUT_NULL["new"],
     f"picked={_MUT_NULL and (_MUT_NULL['line'], _MUT_NULL['new'])}: not the "
     "string that looks like one, not a trailing comment on a code line",
+)
+# #2997 (R10-UX-HEALTH): the null control took only a comment line under 60
+# characters, indentation included, a cap with no recorded reason and no
+# reader -- no driver measures a line's width -- so button.py, whose comments
+# are all longer or indented past it, refused `tests / mutation` whatever
+# the pool pinned. A comment line of any width and indent is the null control.
+_MUT_NULL_LONG = _tempfile.NamedTemporaryFile("w", suffix=".py", delete=False)
+_MUT_NULL_LONG.write(
+    "def f():\n"
+    "    if True:\n"
+    "            # indented so the whole line passes sixty, short stripped\n"
+    "        return 1\n"
+    "# a top-level comment whose own text alone runs well past sixty chars\n")
+_MUT_NULL_LONG.close()
+_MUT_NULL_NONE = _tempfile.NamedTemporaryFile("w", suffix=".py", delete=False)
+_MUT_NULL_NONE.write('X = "# not a comment"\nY = 1  # trailing\n')
+_MUT_NULL_NONE.close()
+_MUT_NULL_L = _mut.null_control(Path(_MUT_NULL_LONG.name))
+_MUT_NULL_N = _mut.null_control(Path(_MUT_NULL_NONE.name))
+_MUT_NULL_FOR_N = _mut.null_for([{"file": _MUT_NULL_NONE.name}])
+Path(_MUT_NULL_LONG.name).unlink()
+Path(_MUT_NULL_NONE.name).unlink()
+R.check(
+    "a comment line past sixty characters, by indent or by its own text, is "
+    "still the null control; a pool with no comment line still refuses",
+    # The preconditions: both comment lines of the fixture are past sixty
+    # in full, so the old cap admitted neither.
+    all(len(_l) > 60 for _l in (
+        "            # indented so the whole line passes sixty, short stripped",
+        "# a top-level comment whose own text alone runs well past sixty chars"))
+    and _MUT_NULL_L is not None and _MUT_NULL_L["line"] == 3
+    and _MUT_NULL_L["new"] == _MUT_NULL_L["old"] + " (null control)"
+    and _MUT_NULL_N is None and _MUT_NULL_FOR_N is None,
+    f"long={_MUT_NULL_L and _MUT_NULL_L['line']!r} "
+    f"none={_MUT_NULL_N!r} pool-none={_MUT_NULL_FOR_N!r}",
 )
 R.check(
     "a run whose null control did not survive is refused",
@@ -39481,7 +40240,8 @@ _R10_COVERING_ALLOWED = {
                                                "entry is documented extrapolation, never published as current"),
     ("early_cutoff.py", "_planned_room"): (1, "index-bounded against the plan's own trajectory"),
     ("pump_arbiter.py", "_planned_room"): (1, "its caller's step_duty is None past the plan end"),
-    ("pump_arbiter.py", "step_duty"): (1, "returns None past the plan's last step"),
+    ("pump_arbiter.py", "_step_index"): (1, "returns None past the plan's last step; "
+                                             "step_duty and step_supply read it (#2492)"),
     ("pump_arbiter.py", "_share"): (1, "bounded by the plan's last step"),
 }
 
@@ -39564,6 +40324,9 @@ _R10_LOG_ALLOWED_BY_REASON = {
     "once per event by the function's own state (a refit, an issue raised, a "
     "rollback per alarm, a malformed month closed so it is not retried)": {
         ("coordinator.py", "_reanchor_house_heat_loss_scale"): 2,
+        # One line per learner voided: a sensor swap, voided once because the
+        # save records the new id, or a reset the user asked for.
+        ("coordinator.py", "_void_heat_loss_learners"): 1,
         ("coordinator.py", "_raise_cop_issue"): 1,
         ("coordinator.py", "_async_watch_learning_drift"): 1, ("ledger.py", "roll_receipts"): 1,
     },
@@ -39658,6 +40421,210 @@ R.check(
     f"distinct --window-cache arguments per invocation: {sorted(_WC_FILES)}. "
     "An invocation without it walks the window itself (834 calls against 370 "
     "in `record_api_calls.sh`); two different files would share nothing",
+)
+
+# R10-RECORD-API-O1 (dev/audit/rca/ratelimit-recur.md section 5): the two
+# O(window) readers of the GITHUB_TOKEN bucket on every push to main, measured
+# and bounded where the runner reads them. Three properties, each read from the
+# artifact that runs: Nightly's enumerate step prints its own spend (M0's pair,
+# carry 2); the record job's push arm reads `--record` alone, the histogram,
+# filer and sunset running on the weekly schedule, a dispatch and the stamp
+# (decision O-1, carry 1), decided by the window step's own shell, executed
+# here; and the burst replay counts demand as record + enumerate + rest.
+import subprocess as _sp_o1
+import tempfile as _tf_o1
+_O1_NA = _workflow_job(Path(".github/workflows/nightly.yml").read_text(), "record-autofix")
+_O1_STEPS = _O1_NA.split("\n      - ")
+_O1_I = next((i for i, s in enumerate(_O1_STEPS)
+              if s.startswith("name: Enumerate the window's merges")), None)
+
+
+def _o1_m0(step: str, word: str) -> bool:
+    return ("gh api rate_limit" in step and f"RATE_LIMIT enumerate {word}:" in step
+            and "GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}" in step and "|| true" in step)
+
+
+R.check(
+    "Nightly's enumerate step is bracketed by its own M0 pair, the after reading under always()",
+    _O1_I is not None and 0 < _O1_I < len(_O1_STEPS) - 1
+    and _o1_m0(_O1_STEPS[_O1_I - 1], "before") and _o1_m0(_O1_STEPS[_O1_I + 1], "after")
+    and "if: always()" in _O1_STEPS[_O1_I + 1]
+    and not _o1_m0(_O1_STEPS[_O1_I - 1], "after"),
+    "record-autofix's \"Enumerate the window's merges\" reads 1 call a merge on "
+    "GITHUB_TOKEN; without a `gh api rate_limit` reading on each side of it, its "
+    "spend is inferred by splitting interval deltas by step time "
+    "(ratelimit-recur.md section 1.2). The after reading must print when the "
+    "enumeration fails closed, so it carries always()",
+)
+_O1_REC = _workflow_job(Path(".github/workflows/governance.yml").read_text(), "record")
+_O1_RSTEPS = _O1_REC.split("\n      - ")
+_O1_GATE = "steps.window.outputs.report == 'true'"
+
+
+def _o1_if(step: str) -> str:
+    m = _re.search(r"^        if: (.*)$", step, _re.M)
+    return m.group(1) if m else ""
+
+
+_O1_REPORTERS = [s for s in _O1_RSTEPS
+                 if _re.search(r"--(stats|sunset)\b", s) and "--window-cache" in s or "--stats-file" in s]
+_O1_UNGATED = [s.splitlines()[0] for s in _O1_REPORTERS if _O1_GATE not in _o1_if(s)]
+_O1_RECORD = [s for s in _O1_RSTEPS if _re.search(r"--record\b", s) and "--window-cache" in s]
+R.check(
+    "the record job's push arm reads --record alone: --stats, --sunset and the filer wait on the window step's report",
+    len(_O1_REPORTERS) == 3 and not _O1_UNGATED
+    and len(_O1_RECORD) == 1 and _O1_GATE not in _o1_if(_O1_RECORD[0]),
+    f"reporting steps={[s.splitlines()[0] for s in _O1_REPORTERS]}; not gated on `{_O1_GATE}`={_O1_UNGATED}. "
+    "Decision O-1 (ratelimit-recur.md section 4, M3): the histogram's and the "
+    "sunset's 3P reads per push moved to the weekly schedule, a dispatch and the "
+    "stamp; the disposition refusal keeps every push",
+)
+
+
+def _o1_window(event: str, rev: str, root: str) -> dict:
+    step = next(s for s in _O1_RSTEPS if s.startswith("name: Choose the window"))
+    body = step.split("run: |\n", 1)[1]
+    script = "\n".join(l[10:] for l in body.splitlines() if l.startswith("          ") or not l.strip())
+    out = Path(root) / "out.txt"
+    out.write_text("")
+    env = throwaway_git_env()
+    _sp_o1.run(["git", "checkout", "-q", "--detach", rev], cwd=root, check=True, env=env)
+    _sp_o1.run([*_GHA_RUN, script], cwd=root, check=True, capture_output=True,
+               env={**env, "EVENT": event, "GITHUB_OUTPUT": str(out)})
+    return dict(l.split("=", 1) for l in out.read_text().splitlines() if "=" in l)
+
+
+with _tf_o1.TemporaryDirectory() as _o1_td:
+    _o1_env = throwaway_git_init(_o1_td, "-q", "-b", "main")
+
+    def _o1_git(*a):
+        return _sp_o1.run(["git", *a], cwd=_o1_td, check=True, env=_o1_env,
+                          capture_output=True, text=True).stdout.strip()
+
+    Path(_o1_td, "VERSION").write_text("1.0.0\n")
+    _o1_git("add", "VERSION"); _o1_git("commit", "-q", "-m", "release 1.0.0"); _o1_git("tag", "v1.0.0")
+    _o1_git("commit", "-q", "--allow-empty", "-m", "a merge's work")
+    _o1_plain = _o1_git("rev-parse", "HEAD")
+    Path(_o1_td, "VERSION").write_text("1.0.1\n")
+    _o1_git("commit", "-q", "-am", "release 1.0.1"); _o1_git("tag", "v1.0.1")
+    _o1_stamp = _o1_git("rev-parse", "HEAD")
+    _O1_SEEN = {(ev, which): _o1_window(ev, rev, _o1_td) for ev in ("push", "schedule", "workflow_dispatch")
+                for which, rev in (("plain", _o1_plain), ("stamp", _o1_stamp))}
+_O1_WANT = {
+    ("push", "plain"): ("false", "v1.0.0"), ("push", "stamp"): ("true", "v1.0.0"),
+    ("schedule", "plain"): ("true", "v1.0.0"), ("schedule", "stamp"): ("true", "v1.0.1"),
+    ("workflow_dispatch", "plain"): ("true", "v1.0.0"), ("workflow_dispatch", "stamp"): ("true", "v1.0.1"),
+}
+_O1_GOT = {k: (v.get("report"), v.get("since")) for k, v in _O1_SEEN.items()}
+R.check(
+    "the window step reports on the schedule, a dispatch and the stamp, never an ordinary push",
+    _O1_GOT == _O1_WANT,
+    f"(event, commit) -> (report, since): got {_O1_GOT}, want {_O1_WANT}. An "
+    "ordinary push reads --record alone (O-1); the stamp's own push reports the "
+    "release it closes, so its window is the tag before the stamp, never the "
+    "empty one its own tag opens",
+)
+with _tf_o1.TemporaryDirectory() as _o1_td:
+    _o1_env = throwaway_git_init(_o1_td, "-q", "-b", "main")
+
+    def _o1_at(when: str, *a):
+        return _sp_o1.run(["git", *a], cwd=_o1_td, check=True, capture_output=True, text=True,
+                          env={**_o1_env, "GIT_AUTHOR_DATE": when, "GIT_COMMITTER_DATE": when}).stdout
+
+    _o1_at("2026-01-01T07:00:00Z", "commit", "-q", "--allow-empty", "-m", "release")
+    _o1_at("2026-01-01T07:00:00Z", "tag", "v0.0.1")
+    for _o1_n, _o1_when in ((1, "2026-01-01T08:10:00Z"), (2, "2026-01-01T08:20:00Z")):
+        _o1_at(_o1_when, "checkout", "-q", "-b", f"b{_o1_n}")
+        _o1_at(_o1_when, "commit", "-q", "--allow-empty", "-m", f"work {_o1_n}")
+        _o1_at(_o1_when, "checkout", "-q", "main")
+        _o1_at(_o1_when, "merge", "-q", "--no-ff", "-m", f"Merge pull request #{_o1_n} from o/b{_o1_n}", f"b{_o1_n}")
+    _o1_at("2026-01-01T08:30:00Z", "commit", "-q", "--allow-empty", "-m", "a direct push")
+    _o1_at("2026-01-01T08:30:00Z", "update-ref", "refs/remotes/origin/main", "HEAD")
+    _O1_RUN = _sp_o1.run(
+        [sys.executable, str(Path("dev/audit/harnesses/record_burst_replay.py").resolve()), "v0.0.1",
+         "2026-01-01T08:00:00Z", "2026-01-01T09:00:00Z", "--rest-per-min", "2", "--limit", "100"],
+        cwd=_o1_td, capture_output=True, text=True, env=_o1_env)
+_O1_DEMAND = {m.group(1): tuple(int(x) for x in m.groups()[1:]) for m in _re.finditer(
+    r"^DEMAND (\S+) .*?record (\d+) \+ enumerate (\d+) \+ rest (\d+) = (\d+) of (\d+)", _O1_RUN.stdout, _re.M)}
+# Three pushes over v0.0.1: windows of (W, P, merges) (1,1,1), (2,2,2), (3,2,2).
+# M1's record reads W + 3P a run (4 + 8 + 9), O-1's push arm W (1 + 2 + 3); the
+# enumerate reads one call a merge on every push (1 + 2 + 2), no concurrency
+# group; the rest is the M0 lines' rate over the 60-minute interval (2 x 60).
+R.check(
+    "record_burst_replay counts demand as record + enumerate + rest, never the record job alone",
+    _O1_RUN.returncode == 0
+    and _O1_DEMAND.get("M1") == (21, 5, 120, 146, 100)
+    and _O1_DEMAND.get("O-1") == (6, 5, 120, 131, 100),
+    f"rc={_O1_RUN.returncode}; parsed={_O1_DEMAND}; stderr={_O1_RUN.stderr[-300:]!r}. "
+    "The replay that sized O-1 counted the record job only and underread the "
+    "hour by the enumerate's share (ratelimit-recur.md section 1.2)",
+)
+
+
+# R10-UX-HEALTH arm A, the backend end: every key an InputReader read takes --
+# the keys the Input Problem sensor's `input_ages_minutes` and `problems`
+# publish, which the card labels from `health.input_<key>` -- is an entity
+# field of the options flow, so the card's table (held equal to strings.json
+# by tests/card.mjs) names every input the backend can report. The keys are
+# enumerated at the call sites: a `CONF_*` name, or a `for key in <tuple>`
+# over `CONF_*` names; any other argument is listed, so a read keyed some
+# third way refuses rather than going unseen.
+_UXH_PKG = Path("custom_components/heatpump_optimizer")
+_UXH_CONST = {
+    (n.target if isinstance(n, ast.AnnAssign) else n.targets[0]).id: n.value.value
+    for n in ast.parse((_UXH_PKG / "const.py").read_text()).body
+    if (isinstance(n, ast.AnnAssign) and isinstance(n.target, ast.Name)
+        or isinstance(n, ast.Assign) and len(n.targets) == 1 and isinstance(n.targets[0], ast.Name))
+    and isinstance(n.value, ast.Constant) and isinstance(n.value.value, str)
+}
+_UXH_READS = {"read", "read_state", "read_bool", "read_power_kw", "read_flow_kg_s"}
+_uxh_keys: set[str] = set()
+_uxh_odd: list[str] = []
+for _uxh_f in sorted(_UXH_PKG.glob("*.py")):
+    _uxh_tree = ast.parse(_uxh_f.read_text())
+    _uxh_tuples = {
+        n.targets[0].id: [e.id for e in n.value.elts if isinstance(e, ast.Name)]
+        for n in ast.walk(_uxh_tree)
+        if isinstance(n, ast.Assign) and len(n.targets) == 1 and isinstance(n.targets[0], ast.Name)
+        and isinstance(n.value, ast.Tuple)
+    }
+    _uxh_loops = {
+        g.target.id: g.iter.id for g in ast.walk(_uxh_tree)
+        if isinstance(g, (ast.comprehension, ast.For)) and isinstance(g.target, ast.Name) and isinstance(g.iter, ast.Name)
+    }
+    for _uxh_c in ast.walk(_uxh_tree):
+        if not (isinstance(_uxh_c, ast.Call) and isinstance(_uxh_c.func, ast.Attribute)
+                and _uxh_c.func.attr in _UXH_READS and _uxh_c.args):
+            continue
+        _uxh_arg = _uxh_c.args[0]
+        # `const.CONF_X` is the name `CONF_X`; any other shape is listed.
+        _uxh_a = _uxh_arg.attr if isinstance(_uxh_arg, ast.Attribute) else getattr(_uxh_arg, "id", ast.dump(_uxh_arg))
+        # InputReader's own methods hand their `key` on, and a module's `read`
+        # handed the reader itself reads inside that module: both are
+        # enumerated at their own call sites.
+        if (_uxh_f.name == "inputs.py" and _uxh_a == "key") or _uxh_a == "reader":
+            continue
+        _uxh_names = [_uxh_a] if _uxh_a.startswith("CONF_") else _uxh_tuples.get(_uxh_loops.get(_uxh_a, ""), [])
+        if not _uxh_names or any(n not in _UXH_CONST for n in _uxh_names):
+            _uxh_odd.append(f"{_uxh_f.name}:{_uxh_c.lineno} {_uxh_a}")
+        _uxh_keys.update(_UXH_CONST[n] for n in _uxh_names if n in _UXH_CONST)
+_UXH_FIELDS: set[str] = set()
+
+
+def _uxh_walk(node: object) -> None:
+    if isinstance(node, dict):
+        for k, v in node.items():
+            if k == "data" and isinstance(v, dict):
+                _UXH_FIELDS.update(f for f in v if f.endswith("_entity"))
+            _uxh_walk(v)
+
+
+_uxh_walk(json.loads((_UXH_PKG / "strings.json").read_text())["options"])
+R.check(
+    "every InputReader key is an options-flow entity field, so the Health card has its label",
+    len(_uxh_keys) >= 20 and not _uxh_odd and _uxh_keys <= _UXH_FIELDS,
+    f"{len(_uxh_keys)} keys; not options fields: {sorted(_uxh_keys - _UXH_FIELDS)}; "
+    f"reads keyed some other way: {_uxh_odd}",
 )
 
 

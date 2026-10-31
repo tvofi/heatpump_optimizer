@@ -598,6 +598,16 @@ INERT_EXCEPT = (
     "dev/audit/harnesses/r10_ci_layout_u5/run_part.py",
     "dev/audit/harnesses/r10_ci_layout_u5/unitcheck.py",
     "tools/pr/codeql_scope.py",
+    # R10-ORCH-PLANPAGE: state_docs.py's self-test (which tests/entities.py runs)
+    # builds the plan page from the real roster, so it imports the plan model and
+    # opens its measured durations. CI predict (self-test-reads) found both INERT
+    # and read. Same route as codeql_scope.py above: the tools/plan/ prefix stays
+    # INERT, the two files move to the recorded closure.
+    "tools/plan/replan.py",
+    "tools/plan/durations.json",
+    # Also read by that self-test (the page renderer replan feeds): tools/audit/seat/
+    # stays INERT, this file joins the recorded closure.
+    "tools/audit/seat/plan_page.py",
     # R9-RO-6: the device-fixture scripts moved under tools/devices/, which is
     # INERT. tests/entities.py and tests/features.py import them, so an edit
     # selects those scripts. Left inside the prefix they would be declared
@@ -676,7 +686,40 @@ INERT_EXCEPT = (
     # docs/ and dev/programme/ prefixes stay INERT, the two files move to
     # doc_claims.py's recorded closure.
     "docs/img/brand/coffee.svg",
+    # R10-README-GRAPHICS: the Marketplace arm of tests/doc_claims.py opens the manifest and hashes each mermaid
+    # figure it names, light and dark, to refuse a block or a PNG that moved without the other. Same route as coffee.svg above:
+    # the docs/ prefix stays INERT, and the eight files move to doc_claims.py's recorded closure.
+    "docs/img/readme/mermaid_figures.json",
+    "docs/img/readme/mermaid-how-the-pieces-fit.png",
+    "docs/img/readme/mermaid-setup-flow.png",
+    "docs/img/readme/mermaid-one-interval.png",
+    "docs/img/readme/mermaid-how-the-pieces-fit-dark.png",
+    "docs/img/readme/mermaid-setup-flow-dark.png",
+    "docs/img/readme/mermaid-one-interval-dark.png",
+    "docs/img/readme/how-it-works-dark.png",
     "dev/programme/rosters/wave-r10-groups.json",
+    # R10-ARCH-DOCS-WIRING: the card-figure arm opens the page-figure record and
+    # every page PNG it lists, to read the IHDR against it (the two light PNGs
+    # the image-size arm already opens are above), and the doc-wiring arm opens
+    # each script the two pages pass an argument to, to find that argument as a
+    # word of it. Same route: the prefixes stay INERT, the files move to
+    # doc_claims.py's recorded closure.
+    "docs/img/card/pages.json",
+    "docs/img/card/advisor-dark.png",
+    "docs/img/card/health-dark.png",
+    "docs/img/card/health-light.png",
+    "docs/img/card/plan-dark.png",
+    "docs/img/card/plan-light.png",
+    "docs/img/card/plan-why-dark.png",
+    "docs/img/card/savings-dark.png",
+    "docs/img/card/savings-light.png",
+    "docs/img/card/setup-dark.png",
+    "docs/img/card/setup-light.png",
+    "docs/img/card/tile-dark.png",
+    "docs/img/card/tile-light.png",
+    "tools/audit/seat/bus.sh",
+    "tools/audit/seat/cloud_relay.sh",
+    "tools/audit/seat/heartbeat.sh",
     "DISCLAIMER.md",
     "blueprints/automation/charge_ev_from_grid_headroom.yaml",
     "blueprints/automation/economy_mode_on_price_peak.yaml",
@@ -827,18 +870,39 @@ INERT_EXCEPT = (
     # of the generator reads it the same way -- the ref_privacy.py route below.
     "tools/audit/seat/gh_read.py",
     # R9-RO-14: tests/entities.py loads state_docs.py by importlib and runs
-    # its self-test, and that self-test SPAWNS the three state-doc generators
-    # on subprocess command lines -- a repo path on a command line is a real
-    # dependency of the spawning script, so all four land in entities.py's
-    # recorded closure. Left inside the `tools/audit/` prefix they would be
-    # declared unread while being read -- the #357 contradiction, measured
-    # three times on this list already. They leave the prefix the way
-    # record_row.py and roster_lib.py did, so an edit to the beat, or to a
-    # generator it runs, selects tests/entities.py instead of skipping it.
+    # its self-test, and that self-test SPAWNS the state-doc generators on
+    # subprocess command lines -- a repo path on a command line is a real
+    # dependency of the spawning script, so the beat and every generator it
+    # runs land in entities.py's recorded closure. Left inside the
+    # `tools/audit/` prefix they would be declared unread while being read --
+    # the #357 contradiction, measured three times on this list already. They
+    # leave the prefix the way record_row.py and roster_lib.py did, so an edit
+    # to the beat, or to a generator it runs, selects tests/entities.py
+    # instead of skipping it.
     "tools/audit/seat/state_docs.py",
     "tools/audit/seat/plan_table.py",
     "tools/audit/seat/resume_doc.py",
     "tools/audit/seat/handover_prompt.py",
+    # #2883: `merge_throughput.py flow` is the FLOW-BOARD.md generator, the
+    # fourth state doc's, and it lives beside the seat directory rather than
+    # in it. Same route as the four above: state_docs spawns it with its path
+    # on the command line, and `_exec_record` records any repo path on a
+    # subprocess command line as a read, so it is a read tests/entities.py
+    # performs. The pull request that added the call did not re-derive after
+    # it, so the committed closure never listed the file and CI's closures job
+    # named it -- INERT READS UNDER-APPROXIMATED, run 40548660478.
+    "tools/audit/merge_throughput.py",
+    # #2883 round 3: `roster_lib.blob_at` lists a path's tree entry with
+    # `git ls-tree ... -- <path>`, and its self-test, which tests/entities.py
+    # runs, passes these two roster paths on that command line, so
+    # `_exec_record` records each as a read. CI's closures job named the pair
+    # (INERT READS UNDER-APPROXIMATED, check-run 122599859589), and the
+    # `--single` merge refuses them as INERT and recorded. The route is the one
+    # wave-r10-groups.json took for doc_claims.py above: the
+    # dev/programme/ prefix stays INERT, and the two files move to
+    # entities.py's recorded closure.
+    "dev/programme/rosters/critical-path.json",
+    "dev/programme/rosters/wave-r9-groups.json",
     # #2310: state_docs.py imports ref_privacy.py, the push guard its push
     # path calls, so entities.py's load of the beat reads it the same way.
     "tools/audit/seat/ref_privacy.py",
@@ -887,6 +951,13 @@ INERT_EXCEPT = (
     # UNDER-APPROXIMATED -- so it leaves the prefix the way record_row.py did,
     # and an edit to the train selects tests/entities.py.
     "tools/audit/seat/merge_train.py",
+    # R10-RECORD-API-O1: tests/entities.py runs the burst replay to pin that
+    # it counts demand as record + enumerate + rest. The dev/audit/harnesses/
+    # prefix kept it INERT while entities.py opens it, and closures-autofix
+    # refused the merge, skip-merge-failed on this pair (job 123595508827).
+    # It leaves the prefix the way the U5 harnesses did; enumerate_api_calls.py
+    # stays INERT, read only by the replay's child under inert_reads.
+    "dev/audit/harnesses/record_burst_replay.py",
 )
 
 
