@@ -10,6 +10,8 @@
     python3 tools/audit/seat/roster_edit.py set-resume  <group> --field <stage|commit|branch|last_step|next_step|note> <text | @file>
     python3 tools/audit/seat/roster_edit.py set-after   <group> <G1,G2,... | ->
     python3 tools/audit/seat/roster_edit.py drop-carry  <group> <index | --match TEXT>
+    python3 tools/audit/seat/roster_edit.py mark-carry  <group> <index | --match TEXT>
+        implemented <sha> | moved <GROUP> | dismissed <reason>
         [--at-sha SHA] [--checkout DIR] [--roster-ref BR] [--branch OUT]
         [--roster-path PATH] [--worktree DIR] [--lint-cwd DIR] [--push]
         [--message MSG]
@@ -64,7 +66,12 @@ whose brief text the linter refuses is refused at the same gate, before
 anything reaches GitHub.
 
 Ops (all group ids must exist, except append-group which must not):
-  set-stage    sets resume.stage (and resume.commit with --at-sha);
+  set-stage    sets resume.stage (and resume.commit with --at-sha); `done`
+               over a pending carry is written `carries-open` and printed
+               `set-stage <G>: done -> carries-open (<n> pending carries)`,
+               rc 0 -- never a refusal (#2733): roster_lib.closing_stage,
+               the predicate roster_sync's merge shares (set-resume --field
+               stage reads it too);
   wire-issue   appends an integer issue (to `fixes` with --field fixes),
                refusing a duplicate;
   unwire-issue removes an integer from `issues` (default) or, with
@@ -98,6 +105,13 @@ resolve is refused whether or not the text names a proposal.
                last entry leaves the `carry` list empty, never removing the
                key (27 of the 91 live groups carry `"carry": []`, and none
                omits it, so the key's presence is the file's own shape).
+  mark-carry   discharges one carry (selected as drop-carry selects) by
+               appending `[implemented: <sha>]`, `[moved: <GROUP>]` (an
+               existing open group) or `[dismissed: <reason>]`; refuses a
+               carry already marked. `implemented` records that the sha is
+               on main; it is not a verification. A carry that sat on a
+               closed group at roster_lib.CARRY_CUTOVER is legacy and needs
+               no mark.
 """
 
 from __future__ import annotations
@@ -151,7 +165,7 @@ def run(cmd, cwd=None):
 
 
 # ----------------------------------------------------------------- ops
-def op_set_stage(roster, group, stage, at_sha, rel=""):
+def op_set_stage(roster, group, stage, at_sha, rel="", legacy=None):
     g = _need(roster, group)
     if not isinstance(stage, str) or not stage.strip():
         raise Refuse("stage must be a non-empty string")
@@ -160,7 +174,7 @@ def op_set_stage(roster, group, stage, at_sha, rel=""):
         raise Refuse(why)
     if at_sha and not SHA_RE.match(at_sha):
         raise Refuse(f"--at-sha is not a sha: {at_sha!r}")
-    g.setdefault("resume", {})["stage"] = stage
+    g.setdefault("resume", {})["stage"] = _closing(g, stage, legacy, "set-stage")
     if at_sha:
         g["resume"]["commit"] = at_sha
 
@@ -175,7 +189,7 @@ NON_NULL_RESUME_FIELDS = ("stage", "branch")
 TEXT_RESUME_FIELDS = ("last_step", "next_step", "note")
 
 
-def op_set_resume(roster, group, field, value, rel=""):
+def op_set_resume(roster, group, field, value, rel="", legacy=None):
     g = _need(roster, group)
     if field not in RESUME_FIELDS:
         # argparse's --field choices refuse it first; this guards direct callers
@@ -193,8 +207,23 @@ def op_set_resume(roster, group, field, value, rel=""):
             raise Refuse(why)
     if field == "commit" and not SHA_RE.match(value):
         raise Refuse(f"--field commit needs a sha: {value!r}")
+    if field == "stage":
+        value = _closing(g, value, legacy, "set-resume")
     resume = g.setdefault("resume", {})
     resume[field] = _text(value) if field in TEXT_RESUME_FIELDS else value
+
+
+def _closing(g, stage, legacy, op):
+    """The stage `op` writes for `stage`: roster_lib.closing_stage, the one
+    rule roster_sync's merge applies too. A downgrade is printed with the
+    issues the group wires, which stay wired; nothing is refused (#2733)."""
+    wrote, pending = roster_lib.closing_stage(g, stage, legacy or {})
+    if wrote != stage:
+        wired = sorted(set(g.get("issues") or []) | set(g.get("fixes") or []))
+        print(f"{op} {g.get('group')}: {stage} -> {wrote} "
+              f"({len(pending)} pending carries)"
+              + (f"; wires {' '.join(f'#{n}' for n in wired)}" if wired else ""))
+    return wrote
 
 
 WIRE_FIELDS = ("issues", "fixes")
@@ -340,37 +369,76 @@ def op_drop_carry(roster, group, index=None, match=None):
     group that already carries a list (all 91 live ones do) is therefore
     byte-restored by append-then-drop of the appended entry."""
     g = _need(roster, group)
-    carry = g.get("carry") or []
+    del g["carry"][_carry_index(g, index, match, "drop-carry")]
+
+
+def _carry_index(g, index, match, op):
+    """The one carry entry `op` names: by 0-based index or by the one entry
+    containing `match`; absent, out of range, unmatched and ambiguous refuse."""
+    group, carry = g.get("group"), g.get("carry") or []
     if not carry:
-        raise Refuse(f"drop-carry: {group} carries nothing")
+        raise Refuse(f"{op}: {group} carries nothing")
     if match is not None:
         hits = [i for i, c in enumerate(carry) if match in c]
         if not hits:
-            raise Refuse(f"drop-carry: no carry entry matches {match!r} "
+            raise Refuse(f"{op}: no carry entry matches {match!r} "
                          f"in {group}")
         if len(hits) > 1:
-            raise Refuse(f"drop-carry: {match!r} is ambiguous in {group}: "
+            raise Refuse(f"{op}: {match!r} is ambiguous in {group}: "
                          f"entries {hits} match; pass an index")
-        i = hits[0]
-    else:
-        try:
-            i = int(index)
-        except ValueError:
-            raise Refuse(f"drop-carry: index must be an integer: {index!r}")
-        if not 0 <= i < len(carry):
-            raise Refuse(f"drop-carry: index {i} out of range for {group} "
-                         f"({len(carry)} entries)")
-    del carry[i]
+        return hits[0]
+    try:
+        i = int(index)
+    except ValueError:
+        raise Refuse(f"{op}: index must be an integer: {index!r}")
+    if not 0 <= i < len(carry):
+        raise Refuse(f"{op}: index {i} out of range for {group} "
+                     f"({len(carry)} entries)")
+    return i
+
+
+def op_mark_carry(roster, group, index, match, kind, arg):
+    """Discharge one carry by appending its mark (roster_lib.carry_mark's
+    grammar), so roster_lib.pending_carries stops counting it."""
+    g = _need(roster, group)
+    i = _carry_index(g, index, match, "mark-carry")
+    if roster_lib.carry_mark(g["carry"][i]):
+        raise Refuse(f"mark-carry: {group} carry[{i}] is already marked "
+                     f"{roster_lib.carry_mark(g['carry'][i])}")
+    if kind not in roster_lib.CARRY_MARKS:
+        raise Refuse(f"mark-carry: the mark is one of "
+                     f"{', '.join(roster_lib.CARRY_MARKS)}, not {kind!r}")
+    arg = " ".join((arg or "").split())
+    if kind == "implemented" and not SHA_RE.match(arg):
+        raise Refuse(f"mark-carry: implemented needs a sha: {arg!r}")
+    if kind == "moved":
+        dest = next((x for x in roster.get("groups", [])
+                     if x.get("group") == arg), None)
+        if dest is None:
+            raise Refuse(f"mark-carry: moved {arg!r} names no group")
+        if arg == group:
+            raise Refuse(f"mark-carry: {group} cannot move a carry to itself")
+        stage = (dest.get("resume") or {}).get("stage")
+        if stage in roster_lib.CARRY_CLOSED:
+            raise Refuse(f"mark-carry: moved {arg} is {stage}; a carry moves "
+                         "to an open group")
+    if kind == "dismissed" and not arg:
+        raise Refuse("mark-carry: dismissed needs a reason")
+    if "]" in arg:
+        raise Refuse(f"mark-carry: a mark's value holds no ']': {arg!r}")
+    g["carry"][i] = f"{g['carry'][i]} [{kind}: {arg}]"
 
 
 def apply_op(roster, op, group, value, field, at_sha, match=None, rel="",
-             sizes=()):
+             sizes=(), legacy=None, rest=()):
     """One op on a loaded roster -- re-run on each attempt of a push race,
     so the edit is applied to the tip it is pushed onto. `rel` is the roster's
     path and `sizes` the duration model's vocabulary, for a refusal to name
-    what it refused; only append-group reads `sizes`."""
+    what it refused; only append-group reads `sizes`. `legacy` is the
+    roster's cut-over carries (roster_lib.read_legacy), which a stage write
+    reads; `rest` is mark-carry's `<kind> <value...>`."""
     if op == "set-stage":
-        op_set_stage(roster, group, value, at_sha, rel)
+        op_set_stage(roster, group, value, at_sha, rel, legacy)
     elif op == "wire-issue":
         op_wire_issue(roster, group, value, field or "issues")
     elif op == "unwire-issue":
@@ -380,11 +448,14 @@ def apply_op(roster, op, group, value, field, at_sha, match=None, rel="",
     elif op == "edit-brief":
         op_edit_brief(roster, group, value)
     elif op == "set-resume":
-        op_set_resume(roster, group, field, value, rel)
+        op_set_resume(roster, group, field, value, rel, legacy)
     elif op == "set-after":
         op_set_after(roster, group, value)
     elif op == "drop-carry":
         op_drop_carry(roster, group, value, match)
+    elif op == "mark-carry":
+        kind, *arg = list(rest) or [""]
+        op_mark_carry(roster, group, value, match, kind, " ".join(arg))
     else:
         op_append_carry(roster, group, value)
 
@@ -742,9 +813,12 @@ def main(argv=None) -> int:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("op", choices=("set-stage", "wire-issue", "unwire-issue", "append-group",
                                   "edit-brief", "append-carry", "set-resume",
-                                  "set-after", "drop-carry"))
+                                  "set-after", "drop-carry", "mark-carry"))
     p.add_argument("group")
     p.add_argument("value", nargs="?")
+    p.add_argument("rest", nargs="*",
+                   help="mark-carry: implemented <sha> | moved <GROUP> | "
+                        "dismissed <reason>")
     p.add_argument("--at-sha")
     p.add_argument("--field", choices=RESUME_FIELDS + WIRE_FIELDS,
                    help="set-resume: which resume field to write; "
@@ -752,7 +826,8 @@ def main(argv=None) -> int:
     p.add_argument("--value", dest="value_opt",
                    help="the value, for when a positional value does not fit")
     p.add_argument("--match",
-                   help="drop-carry: drop the one carry entry containing it")
+                   help="drop-carry, mark-carry: the one carry entry "
+                        "containing it")
     p.add_argument("--checkout", default=".")
     p.add_argument("--roster-ref", default=None,
                    help="the base ref (default main)")
@@ -766,16 +841,25 @@ def main(argv=None) -> int:
     p.add_argument("--lint-cwd")
     p.add_argument("--push", action="store_true")
     p.add_argument("--message")
-    a = p.parse_args(argv)
+    a = p.parse_intermixed_args(argv)
+    rest = list(a.rest)
+    if a.op == "mark-carry" and a.match is not None and a.value is not None:
+        # with --match there is no index: the first positional is the kind
+        rest, a.value = [a.value] + rest, None
+    if rest and a.op != "mark-carry":
+        p.error(f"{a.op} takes one value; extra arguments: {rest}")
+    if a.op == "mark-carry" and not rest:
+        p.error("mark-carry needs implemented <sha>, moved <GROUP> or "
+                "dismissed <reason>")
     if a.value is not None and a.value_opt is not None:
         p.error("give the value positionally or with --value, not both")
     value = a.value_opt if a.value is None else a.value
-    if a.match is not None and a.op != "drop-carry":
+    if a.match is not None and a.op not in ("drop-carry", "mark-carry"):
         p.error("--match is a drop-carry flag")
     if a.op == "drop-carry" and value is not None and a.match is not None:
         p.error("drop-carry takes an index or --match, not both")
-    if a.op == "drop-carry" and value is None and a.match is None:
-        p.error("drop-carry needs an index or --match")
+    if a.op in ("drop-carry", "mark-carry") and value is None and a.match is None:
+        p.error(f"{a.op} needs an index or --match")
     if a.match is None and (value is None
                             or (value == "" and a.op != "set-resume")):
         p.error(f"{a.op} needs a value argument")
@@ -807,8 +891,15 @@ def main(argv=None) -> int:
                         roster_lib.read_durations(a.worktree))
                 except roster_lib.SchemaError as e:
                     raise Refuse(str(e))
+            legacy = None
+            if a.op in ("set-stage", "set-resume"):
+                try:
+                    legacy = roster_lib.read_legacy(a.worktree, rel)
+                except roster_lib.RosterNotFound as e:
+                    raise Refuse(f"the carry cut-over is unreadable, so no "
+                                 f"stage is written: {e}")
             apply_op(roster, a.op, a.group, value, a.field, a.at_sha, a.match,
-                     rel, sizes)
+                     rel, sizes, legacy, rest)
             return True
         return write_roster(a.checkout, ref, branch, a.worktree, a.roster_path,
                             msg, a.push, a.lint_cwd, f"{a.op} {a.group}", edit)

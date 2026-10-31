@@ -749,6 +749,15 @@ function checkShape(groups, findings) {
     } else if (typeof g.resume.stage !== 'string' || !g.resume.stage.trim()) {
       bad(label, '`resume.stage` is missing or is not a non-empty string')
     }
+    // #2733's second invariant: a live group lists at least one issue. A
+    // warning, not an error, so roster_edit's --push gate and a fly-in's
+    // registration are never blocked; read only on a group of the
+    // orchestrator's schema (one carrying `issues` or `fixes`), and live is
+    // this linter's own rule: every stage but STAGE_SKIP.
+    const wired = ['issues', 'fixes'].filter((k) => Array.isArray(g[k]))
+    if (wired.length && g.resume?.stage !== STAGE_SKIP && wired.every((k) => g[k].length === 0)) {
+      findings.push({ group: label, severity: 'warning', kind: 'issues', message: 'a live group lists no issue in `issues` or `fixes` (#2733 invariant 2)' })
+    }
     // lintAfterEdges skips a non-array `after` rather than walking its
     // characters, so without this a string here would pass in silence.
     if (g.after !== undefined && !Array.isArray(g.after)) {

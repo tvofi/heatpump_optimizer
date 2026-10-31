@@ -6,6 +6,7 @@
     python3 -I tools/audit/carry_audit.py sweep (--prs N,N | --last N) [--from-dir DIR] [--issues]
                                          [--ledger FILE]
     python3 -I tools/audit/carry_audit.py owners REGEX [REGEX ...] [--ledger FILE]
+    python3 -I tools/audit/carry_audit.py roster [--open-issues FILE]
     python3 -I tools/audit/carry_audit.py --self-test
   (before the subcommand: --repo O/R, --briefs-dir DIR, --roster-ref REF, repeatable)
 
@@ -62,7 +63,13 @@ two `--roster-ref`, every carry or brief text the first holds and the second
 lacks (a roster PR cut from the second reverts it without a conflict); and
 `--ledger`, every orchestrator-ledger line saying `FINDING:` or `LESSON:`
 with no `Carry:` (the ledger's work-queue OWED lines are tasks, not read).
-`owners` is the sweep's owner-corpus search. EXIT 0 when every finding item
+`owners` is the sweep's owner-corpus search. `roster` is #2733's offline
+routing check over the roster alone: every pending carry on a done or
+absorbed group (STRANDED, by `roster_lib.pending_carries`; a carry a closed
+group held at `roster_lib.CARRY_CUTOVER` is legacy and exempt) and, given
+`--open-issues FILE`, every open issue but #201 that no live group lists
+(ISSUE-STRANDED when only closed groups do, ISSUE-UNLISTED when none does);
+`CARRY-ROSTER:` is its summary line. EXIT 0 when every finding item
 is routed to a valid destination; `CARRY-AUDIT:` is the summary line;
 `--self-test` prints `carry_audit self-test: N checks, 0 failed`. Reads only:
 `gh api` GETs, `git show`/`ls-tree`; nothing is written.
@@ -507,6 +514,53 @@ def ledger_unrouted(text: str) -> list[str]:
             if LEDGER_FINDING.search(ln) and not carry_dests(ln)]
 
 
+# --------------------------------------------------------------- the roster
+#: The one issue every seat writes to and no group owns (the round's log).
+LOG_ISSUE = 201
+
+
+def open_issue_numbers(text: str) -> set[int]:
+    """Open issue numbers from a JSON list: numbers, or gh's issue objects
+    (`gh issue list --json number`, or the REST list, whose pull requests carry
+    a `pull_request` key and are dropped)."""
+    out = set()
+    for x in json.loads(text):
+        if isinstance(x, int):
+            out.add(x)
+        elif isinstance(x, dict) and "pull_request" not in x and isinstance(x.get("number"), int):
+            out.add(x["number"])
+    return out
+
+
+def roster_report(roster: dict, legacy: dict, open_issues: set[int] | None) -> list[str]:
+    """#2733's invariants 1 and 3, offline. STRANDED: a pending carry
+    (`roster_lib.pending_carries`, the predicate set-stage and roster_sync
+    close a group by) on a group in `roster_lib.CARRY_CLOSED`. With an issue
+    list: ISSUE-STRANDED, an open issue only closed groups list; ISSUE-UNLISTED,
+    one no group lists. #201 is the log and is never reported. Without a list
+    the issue arm says nothing: absence is not a measurement."""
+    out = []
+    for gid, stage, i, text in roster_lib.stranded(roster, legacy):
+        into = (roster_lib.groups_of(roster)[gid].get("resume") or {}).get("absorbed_into")
+        where = f"absorbed into {into}" if stage == "absorbed" and into else stage
+        out.append(f"STRANDED {gid} ({where}) carry[{i}]: {text[:90]!r}")
+    if open_issues is None:
+        return out
+    listing: dict[int, list[tuple[str, bool]]] = {}
+    for gid, g in roster_lib.groups_of(roster).items():
+        live = (g.get("resume") or {}).get("stage") not in roster_lib.CARRY_CLOSED
+        for n in set(g.get("issues") or []) | set(g.get("fixes") or []):
+            listing.setdefault(n, []).append((gid, live))
+    for n in sorted(open_issues - {LOG_ISSUE}):
+        by = listing.get(n, [])
+        if not by:
+            out.append(f"ISSUE-UNLISTED #{n}")
+        elif not any(live for _, live in by):
+            out.append(f"ISSUE-STRANDED #{n} listed only by closed group(s): "
+                       + ", ".join(gid for gid, _ in by))
+    return out
+
+
 # ---------------------------------------------------------------- the owners
 def owner_corpus(repo: Path = ROOT, ref: str | None = None, briefs_dir: str | None = None,
                  ledger: str | None = None) -> list[tuple[str, str]]:
@@ -554,6 +608,9 @@ def main(argv: list[str]) -> int:
     o = sub.add_parser("owners")
     o.add_argument("pattern", nargs="+")
     o.add_argument("--ledger")
+    ro = sub.add_parser("roster")
+    ro.add_argument("--open-issues", help="a JSON list of the open issues "
+                    "(gh issue list --state open --json number)")
     a = p.parse_args(argv)
     ref = a.roster_ref[0] if a.roster_ref else None
     try:
@@ -565,6 +622,25 @@ def main(argv: list[str]) -> int:
             dests = load_dests(ROOT, ref, a.briefs_dir, gh_issue_state(a.repo))
             body, comments = read_pr(a.n, a.repo, None)
             return report(audit(body, comments, dests), f"#{a.n} ")
+        if a.cmd == "roster":
+            repo = str(ROOT)
+            rel = roster_lib.roster_path(repo, ref)
+            roster = (roster_lib.show_roster(repo, ref, rel) if ref
+                      else roster_lib.load_roster_file(str(ROOT / rel)))
+            legacy = roster_lib.read_legacy(repo, rel)
+            issues = (open_issue_numbers(Path(a.open_issues).read_text())
+                      if a.open_issues else None)
+            lines = roster_report(roster, legacy, issues)
+            for line in lines:
+                print(line)
+            cut = roster_lib.CARRY_CUTOVER.get(rel)
+            print(f"CARRY-ROSTER: {rel} at {ref or 'the tree'}; cut-over "
+                  f"{cut[:12] if cut else 'none'} ({sum(map(len, legacy.values()))} legacy "
+                  f"carries); {sum(ln.startswith('STRANDED') for ln in lines)} stranded "
+                  "carry(ies); issues "
+                  + (f"{len(issues)} open, {sum(ln.startswith('ISSUE') for ln in lines)} unrouted"
+                     if issues is not None else "not measured (no --open-issues)"))
+            return 1 if lines else 0
         if a.cmd == "owners":
             corpus = owner_corpus(ROOT, ref, a.briefs_dir, a.ledger)
             for pat in a.pattern:

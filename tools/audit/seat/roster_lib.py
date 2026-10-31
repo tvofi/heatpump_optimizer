@@ -347,6 +347,85 @@ def open_groups(roster: dict) -> dict:
     return {k: g for k, g in groups_of(roster).items() if is_open(g)}
 
 
+# ------------------------------------------------------------ the carry ledger
+#
+# #2733's first invariant: a carry not yet implemented routes to a group that
+# is not done. ONE predicate (`pending_carries`) says which carries a group
+# still owes; `roster_edit.py set-stage`, `roster_sync.py`'s merge transition
+# and `carry_audit.py roster` all read it, so the writer that closes a group,
+# the reconciler that closes it on a merge and the audit that reports a
+# stranded carry cannot disagree.
+#
+# A carry is discharged by a mark `roster_edit.py mark-carry` appends to its
+# text, `[implemented: <sha>]`, `[moved: <GROUP>]` or `[dismissed: <reason>]`.
+# `implemented` records that the sha is on main; it is not a verification.
+CARRY_MARKS = ("implemented", "moved", "dismissed")
+_CARRY_MARK = re.compile(r" \[(implemented|moved|dismissed): ([^\]\n]+)\]\Z")
+#: The stages in which a group can no longer receive or discharge a carry: the
+#: closed ones, and `absorbed`, whose work lives in its fold destination.
+CARRY_CLOSED = DONE_STAGES + ("absorbed",)
+#: THE CUT-OVER, per roster path: a carry that sat on a closed group at this
+#: roster-branch commit is LEGACY and is never reported, so the invariant
+#: starts at the cut-over with no blanket migration and nothing marked
+#: implemented by default (#2733's design, carry 10(a)). A roster with no entry
+#: has no legacy carries. Changing the cut-over is a change to this line.
+CARRY_CUTOVER = {
+    f"{ROSTERS_DIR}/wave-r10-groups.json":
+        "a4c9fa3d629017fb1a0e5394bbae79cdbdfa4f9b",
+}
+
+
+def carry_mark(text: str) -> tuple[str, str] | None:
+    """(kind, value) of the mark ending `text`, or None when it carries none."""
+    m = _CARRY_MARK.search(text) if isinstance(text, str) else None
+    return (m.group(1), m.group(2)) if m else None
+
+
+def legacy_carries(cutover_roster: dict | None) -> dict:
+    """group -> the carry texts it held while closed at the cut-over."""
+    return {g["group"]: frozenset(c for c in g.get("carry") or []
+                                  if isinstance(c, str))
+            for g in (cutover_roster or {}).get("groups", [])
+            if (g.get("resume") or {}).get("stage") in CARRY_CLOSED}
+
+
+def read_legacy(repo: str, path: str) -> dict:
+    """The legacy carries of the roster at `path`, read at its cut-over commit
+    in `repo`; {} for a roster with no cut-over. A cut-over the clone cannot
+    read raises RosterNotFound: unknowable is a refusal, never 'no legacy',
+    which would report every old carry as stranded."""
+    sha = CARRY_CUTOVER.get(path)
+    return legacy_carries(show_roster(repo, sha, path)) if sha else {}
+
+
+def pending_carries(group: dict, legacy: dict) -> list:
+    """Indices of the carries `group` still owes: unmarked and not legacy."""
+    held = legacy.get(group.get("group"), frozenset())
+    return [i for i, c in enumerate(group.get("carry") or [])
+            if carry_mark(c) is None and c not in held]
+
+
+def closing_stage(group: dict, stage: str, legacy: dict) -> tuple[str, list]:
+    """The stage to write when `stage` is asked for, and the pending carries
+    that decided it: `done` over a pending carry is written `carries-open`,
+    which keeps the group in replan and dispatch. Never a refusal (#2733)."""
+    if stage != "done":
+        return stage, []
+    pending = pending_carries(group, legacy)
+    return ("carries-open" if pending else "done"), pending
+
+
+def stranded(roster: dict, legacy: dict) -> list:
+    """(group, stage, index, text) of every pending carry on a closed group."""
+    out = []
+    for g in roster.get("groups", []):
+        stage = (g.get("resume") or {}).get("stage")
+        if stage in CARRY_CLOSED:
+            out += [(g["group"], stage, i, g["carry"][i])
+                    for i in pending_carries(g, legacy)]
+    return out
+
+
 def depth_of(roster: dict) -> dict:
     """Wave (dependency depth) per group, over the open groups only.
 
