@@ -13251,7 +13251,9 @@
     "dev/governance/roles/standing-dispatch.md",
     "dev/governance/roles/standing-roster.md"
    ],
-   "carry": [],
+   "carry": [
+    "Re-routed by orchestrator s9 under mandate 6329234399 (tvofi's request, 2026-10-31, slipped-proposal audit): R10-ORCH-BEATD is done (#2916) with arm (a) only, and `git grep -n -i -E \"run_in_background|nothing is owed\" origin/main -- dev/governance/roles/standing-tick.md dev/governance/roles/standing-merge.md` finds no Wait paragraph. (triage: dev/programme/triage/s6-batch2.md#P51) In each of dev/governance/roles/standing-tick.md, standing-merge.md, standing-dispatch.md and standing-roster.md, add a Wait paragraph of about 6 lines: a seat ends a turn only when nothing is owed; it waits with a `run_in_background` shell loop that touches its alive file every 25 s and exits on a queue change or the window's end, so its exit wakes the turn; a detached `nohup` wakes nothing. A tracked seat_loop.sh is REJECTED by P51. Basis: 4 standing seats ended their first turn on an untracked watcher in the opening 11 minutes of one session, and each needed an orchestrator SendMessage. Controls: each of the four contracts carries the paragraph; one mutant. Policy files: the owner approves the merge."
+   ],
    "resume": {
     "stage": "not-started",
     "branch": "handoff/r10-fly-standing-contracts",
