@@ -798,6 +798,19 @@ async function selfTest() {
     py('run(["gh", "pr", "merge", n,\n\n    "--subject", "x"])\n').length === 1])
   probes.push(['null control: a blank line inside a bracket in a shell or prose file still ends the call',
     !wr('run(["gh", "pr", "merge", n,\n\n    "--subject", "x"])\n').length])
+  // R10-MERGE-SUBJECT-CASEARM's routed spellings: a blank line between the
+  // bracket and `pr` in a Python or JS argv, and a closer in a JS block comment
+  // past `merge`. Each is one merge call whose subject is refused; with `view`
+  // none is.
+  const ROUTED = [
+    ['a blank line in a Python argv before "pr"', 'tools/x.py', (v) => `run([\n    "gh",\n\n    "pr", "${v}", n,\n    "--subject", s])\n`],
+    ['a blank line in a JS argv before "pr"', 'tools/x.mjs', (v) => `execFileSync('gh', [\n\n  'pr', '${v}', n,\n  '--subject', s])\n`],
+    ['a closer in a JS block comment after "merge"', 'tools/x.mjs', (v) => `execFileSync('gh', ['pr', '${v}', n, /* ) */ '--subject', s])\n`],
+  ]
+  for (const [what, f, src] of ROUTED) {
+    probes.push([`extent: ${what} is one call, its subject refused`, guard([], { ...writers, [f]: src('merge') }).length === 1])
+    probes.push([`null control: ${what} running pr view is not a merge call`, !guard([], { ...writers, [f]: src('view') }).length])
+  }
   probes.push(['a merge_pull_request call whose commit_title is on a later line is refused', wr('merge_pull_request(\n  owner, repo,\n  commit_title=t)\n').length === 1])
   probes.push(['null control: a split merge call with no subject passes, and a flag on the next command is not the call\'s',
     !wr('self.run(["gh", "pr", "merge", n, "--merge",\n         "--match-head-commit", h])\n').length && !wr('gh pr merge 9 --merge\necho --body\n').length
