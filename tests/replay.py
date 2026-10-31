@@ -1021,6 +1021,28 @@ def recorder_checks() -> list[tuple[str, bool, str]]:
         res.append(("recorder:db_url_emptied_window_refused_naming_inputs_and_recorder",
                     doc is None and "mysql://core-mariadb/homeassistant" in why
                     and "sensor.outdoor_temp" in why and "sensor.price" in why, why[-300:]))
+    # A key the integration no longer reads (``heat_pump_entity``, dropped in
+    # v3.8.0 as never read) still in an old entry, its entity long unrecorded:
+    # not an input, so neither exported nor refused -- while an unrecorded
+    # entity under a key it does read is refused (the null control).
+    import synthesize
+
+    for name, key, refused in (("retired_key_left_out", "heat_pump_entity", False),
+                               ("read_key_unrecorded_refused", "heat_pump_switch_entity", True)):
+        data = synthesize.ENTRY_DATA
+        synthesize.ENTRY_DATA = {**data, key: "climate.retired_pump"}
+        try:
+            with tempfile.TemporaryDirectory() as tmp:
+                tmp = Path(tmp)
+                _mariadb_install(tmp, url_line=None)
+                doc, why = _export_mariadb(None, tmp, db=tmp / "mariadb-backing.db")
+        finally:
+            synthesize.ENTRY_DATA = data
+        blob = json.dumps(doc) if doc else ""
+        ok = (doc is None and "1 of" in why) if refused else (
+            doc is not None and "retired_pump" not in blob and "climate." not in blob
+            .replace('"climate.e_', "") and key in why)
+        res.append((f"recorder:{name}", ok, why[-300:]))
     # configuration.yaml's spellings of the URL, and an install without one.
     cases = {
         "inline_quoted": ("recorder:\n  db_url: 'mysql://u:p@h/db'\n", None, "mysql://u:p@h/db"),

@@ -27,8 +27,10 @@ copy beside this file, else the one installed under ``/config``), because
 Download diagnostics writes the same document through the same rules (#2271).
 
 WHAT IT EXPORTS, for the window ``[end - days, end)`` in the instance's zone:
-every entity id the config entry maps (any value in ``data`` or ``options``
-spelled like an entity id -- thermometers, the price and weather entities, the
+every entity id the config entry maps under a key the installed integration
+reads (any value in ``data`` or ``options`` spelled like an entity id, under a
+``CONF_*`` key; a key a release retired is named on stderr and left out --
+thermometers, the price and weather entities, the
 pump's mode, switch, power and valve entities), the entities this integration
 publishes (from the registry; carried for comparison, never fed back), and any
 ``--extra-entity``. For each, the last state before the window and every state
@@ -413,9 +415,18 @@ def build_export(
     end = datetime.combine(end_day, time(0), tz)
     start = datetime.combine(end_day - timedelta(days=days), time(0), tz)
 
-    inputs = mapped_entities(entry.get("data", {})) | mapped_entities(
-        entry.get("options", {})
-    )
+    # An input is an id under a key the installed integration reads: an old
+    # entry can keep a key a release retired (``heat_pump_entity``, v3.8.0),
+    # whose entity nothing reads and the recorder may long have stopped writing.
+    conf = entry_keys(*([const] if const else default_const_paths(config_dir)))
+    sections = [entry.get("data", {}), entry.get("options", {})]
+    retired = sorted({k for sec in sections for k, v in sec.items()
+                      if k not in conf and mapped_entities(v)})
+    if retired:
+        print(f"left out: entity id(s) under {len(retired)} entry key(s) this integration "
+              f"does not read ({', '.join(retired)})", file=sys.stderr)
+    inputs = set().union(*(mapped_entities({k: v for k, v in sec.items() if k in conf})
+                           for sec in sections))
     inputs |= set(extra)
     registry = _storage(config_dir, "core.entity_registry")["entities"]
     published = sorted(
@@ -464,7 +475,7 @@ def build_export(
             f"{len(raw['inputs'])} mapped input(s): {', '.join(quiet)} (masked ids; "
             "is this the recorder Home Assistant writes?)")
     try:
-        return _doc.seal(raw, entry_keys(*([const] if const else default_const_paths(config_dir))))
+        return _doc.seal(raw, conf)
     except _doc.Refused as err:
         raise SystemExit(str(err)) from None
 
