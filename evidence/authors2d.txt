@@ -1,0 +1,17 @@
+    290 tvofi <70032254+tvofi@users.noreply.github.com>
+     74 hpo-fixer <70032254+tvofi@users.noreply.github.com>
+     38 Claude <noreply@anthropic.com>
+     21 hpo-author[bot] <hpo-author[bot]@users.noreply.github.com>
+     13 seat <seat@users.noreply.github.com>
+      6 hpo-fixer <fixer@users.noreply.github.com>
+      4 hpo-ledger[bot] <hpo-ledger[bot]@users.noreply.github.com>
+      4 hpo-fixer <fixer@invalid>
+      2 hpo-fixer <hpo-fixer@users.noreply.github.com>
+      2 hpo fixer seat <fixer@invalid>
+      2 github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
+      2 fixer <fixer@invalid>
+      1 hpo-seat <hpo-seat@users.noreply.github.com>
+      1 hpo-fixer <noreply@example.invalid>
+      1 hpo-cloud-fixer <noreply@example.invalid>
+      1 hpo-author[bot] <331381602+hpo-author[bot]@users.noreply.github.com>
+      1 hpo fixer seat <noreply@anthropic.com>
