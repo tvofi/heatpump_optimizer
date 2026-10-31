@@ -73,6 +73,12 @@
 # idle; `confirm` keeps the same check as the signed gate. VERDICT.md alone
 # does not count: it names the sha by construction, and `app_approve.sh`'s
 # evidence gate exists to make a forged verdict forge artifacts too.
+# It also refuses, before review/<pr> moves, a verdict with a line its post
+# would refuse (ref_privacy.py body-lines, naming the line: P76), and one whose
+# finding items name no valid `Carry:` (carry_audit.py, the train pre-flight's
+# parser, over the verdict as its one comment, at origin/main and the round's
+# roster branch as last fetched: P40, P207). The push runs with a 500 MB
+# http.postBuffer: a ~30 MB evidence/ once failed HTTP 400 at git's 1 MB (#2563).
 #
 # NONCE VISIBILITY. The record lives in `$S` — `$HPO_BUS_STATE` else
 # `$HOME/.zcode/bus`, a per-machine path. `dispatch`, `push-verdict` and
@@ -211,6 +217,27 @@ signed_by_approver() { # pr commit -> rc 0 when the commit's bus-signature is th
   rc=$?; rm -rf "$t"; return $rc
 }
 
+carry_gate() { # verdict-file -> rc 0 when each finding item routes, else why, naming the count and the first
+  # carry_audit.py judges, the parser the train's pre-flight runs (decision 0012): the verdict is
+  # its one verdict comment, the roster read at origin/main and the round's branch (P319) as this
+  # checkout last fetched them (as the pre-flight reads them: no fetch here), and a verdict with
+  # no finding item reads no roster.
+  local cj out rc
+  cj=$(mktemp) || { echo "no temporary file for the carry check"; return 1; }
+  python3 -I -c 'import json, sys; json.dump([{"id": "push-verdict", "body": open(sys.argv[1], encoding="utf-8").read()}], open(sys.argv[2], "w"))' \
+    "$1" "$cj" || { rm -f "$cj"; echo "the verdict could not be read for the carry check"; return 1; }
+  out=$(python3 -I "$ROOT/tools/audit/carry_audit.py" --git-dir "$(git rev-parse --show-toplevel)" --roster-ref origin/main \
+    check --body /dev/null --comments "$cj" 2>&1); rc=$?
+  rm -f "$cj"
+  case $rc in
+    0) return 0 ;;
+    1) printf '%s finding item(s) with no valid Carry: (carry_audit.py); first: %s' \
+         "$(grep -cE '^(UNROUTED|BAD-DEST) ' <<< "$out")" "$(grep -m 1 -E '^(UNROUTED|BAD-DEST) ' <<< "$out")" ;;
+    *) printf 'the carry check could not read the roster: %s' "$(tail -n 1 <<< "$out")" ;;
+  esac
+  return 1
+}
+
 push_verdict() { # pr verdict-file evidence-dir -> proposes the verdict on review/<pr>
   local pr=${1:-} v=${2:-} ev=${3:-} first hsha t gd tree why
   numeric "$pr" || die "push-verdict: the pull request '$pr' is not a number"
@@ -229,6 +256,12 @@ push_verdict() { # pr verdict-file evidence-dir -> proposes the verdict on revie
   # proposal confirm would refuse must be refused here, while the reviewer is
   # still working, not after its seat has gone idle.
   why=$(dispatch_binding "$v" "$pr" "$hsha") || die "push-verdict: $why"
+  # Refused here, while the reviewer is still in its seat, and before review/<pr> moves: a
+  # line the post would refuse (P76: #2735, #2741, each a full re-review), and a finding item
+  # with no valid `Carry:` (P40, P207: #2670, #2876, #2881 parked in the train).
+  why=$(python3 -I "$ROOT/tools/audit/seat/ref_privacy.py" body-lines "$v") \
+    || die "push-verdict: its post would refuse $v at $why; write the path as ~/... or drop it"
+  why=$(carry_gate "$v") || die "push-verdict: $why"
   t=$(mktemp -d) || die "push-verdict: no temporary directory"
   mkdir -p "$t/w/evidence" && cp "$v" "$t/w/VERDICT.md" && cp -R "$ev"/. "$t/w/evidence/" \
     || { rm -rf "$t"; die "push-verdict: could not stage the verdict and its evidence"; }
@@ -277,7 +310,9 @@ append_commit() { # family pr tree message -> pushes one commit on <family>/<pr>
   c=$(git commit-tree "$tree" $parent -m "$msg") || { printf 'bus: REFUSE: commit-tree failed\n' >&2; return 1; }
   python3 -I "$ROOT/tools/audit/seat/ref_privacy.py" guard --ref "$fam/$pr" --message "$msg" \
     || { printf 'bus: REFUSE: %s/%s would publish this host (#2310)\n' "$fam" "$pr" >&2; return 1; }
-  git push -q "$REMOTE" "$c:refs/heads/$fam/$pr" || { printf 'bus: REFUSE: the push of %s/%s was refused\n' "$fam" "$pr" >&2; return 1; }
+  # A large evidence/ (73 files, ~30 MB: #2563) overran git's default 1 MB http.postBuffer and
+  # the chunked POST failed HTTP 400; the buffer holds a pack that size in one request.
+  git -c http.postBuffer=524288000 push -q "$REMOTE" "$c:refs/heads/$fam/$pr" || { printf 'bus: REFUSE: the push of %s/%s was refused\n' "$fam" "$pr" >&2; return 1; }
   printf '%s/%s %s\n' "$fam" "$pr" "$c"
 }
 
@@ -1385,6 +1420,39 @@ B
   out=$(seat push-verdict 7 "$W/merge-clean.md" "$W/ev1" 2>&1); rc=$?
   [ $rc = 0 ] && [ "$(tip review/7)" != "$r7" ]
   expect "and proposes the same verdict with a clean first line (the null control)" $?
+
+  # P76, P40/P207: a verdict refused before review/7 moves -- a line its post would refuse, a
+  # finding item with no valid Carry: -- each beside the same verdict that proposes (null control).
+  r7=$(tip review/7)
+  rmk() { git -C "$W/seat" mktree; }
+  rb=$(printf '{"groups": [{"group": "R10-LIVE", "resume": {"stage": "not-started"}}]}\n' | git -C "$W/seat" hash-object -w --stdin)
+  rt=$(printf '100644 blob %s\twave-r10-groups.json\n' "$rb" | rmk); rt=$(printf '040000 tree %s\trosters\n' "$rt" | rmk)
+  rt=$(printf '040000 tree %s\tprogramme\n' "$rt" | rmk); rt=$(printf '040000 tree %s\tdev\n' "$rt" | rmk)
+  m0=$(git -C "$W/seat" ls-remote origin refs/heads/main | cut -f1)
+  git -C "$W/seat" push -q origin "$(git -C "$W/seat" -c user.name=t -c user.email=t@t commit-tree "$rt" -p "$m0" -m roster):refs/heads/main"
+  git -C "$W/seat" fetch -q origin main
+  NG=$(run dispatch 7 "$h1" cmsg_G | sed -n 's/^bus-nonce: //p')
+  vg() { printf 'Fix review: merge %s\n\nbus-nonce: %s\n\n## Findings\n\n- %s\n' "$h1" "$NG" "$1" > "$W/vg.md"; seat push-verdict 7 "$W/vg.md" "$W/ev1" 2>&1; }
+  out=$(vg "A defect in x is left in place, not blocking."); rc=$?
+  [ $rc != 0 ] && [ "$(tip review/7)" = "$r7" ] && echo "$out" | grep -q "1 finding item(s) with no valid Carry: (carry_audit.py); first: UNROUTED review push-verdict item [0-9a-f]\{8\} (## Findings)"
+  expect "push-verdict refuses an unrouted finding item, naming it, and review/7 does not move (P40, P207)" $?
+  out=$(vg "A defect in x is left in place, not blocking. Carry: R10-GONE"); rc=$?
+  [ $rc != 0 ] && [ "$(tip review/7)" = "$r7" ] && echo "$out" | grep -q "first: BAD-DEST .*R10-GONE"
+  expect "push-verdict refuses a finding routed to no live group (BAD-DEST)" $?
+  out=$(vg "A defect in x is left in place, not blocking. Carry: R10-LIVE"); rc=$?
+  [ $rc = 0 ] && [ "$(tip review/7)" != "$r7" ]
+  expect "and proposes the same verdict once its finding names a live group (the null control)" $?
+  r7=$(tip review/7)
+  out=$(vg "A defect, its log at $W/hpo/x.log. Carry: R10-LIVE"); rc=$?  # $W is the HOME run() sets
+  [ $rc != 0 ] && [ "$(tip review/7)" = "$r7" ] && echo "$out" | grep -q "its post would refuse .* at line 7: home-directory"
+  expect "push-verdict refuses a home path at line 7, naming the line, and review/7 does not move (P76)" $?
+  out=$(vg "A defect, its log at ~/hpo/x.log. Carry: R10-LIVE"); rc=$?
+  [ $rc = 0 ] && [ "$(tip review/7)" != "$r7" ]
+  expect "and proposes it with the path written ~/... (the null control)" $?
+  GIT_TRACE2_EVENT=$W/tr2 GIT_TRACE2_CONFIG_PARAMS=http.postBuffer seat push-verdict 7 "$W/merge-clean.md" "$W/ev1" >/dev/null 2>&1
+  grep -q '"param":"http.postbuffer","value":"524288000"' "$W/tr2"
+  expect "the verdict push runs with a 500 MB http.postBuffer (#2563's HTTP 400)" $?
+  git -C "$W/seat" push -q -f origin "$m0:refs/heads/main"
 
   # THE THREE-ROUND RULE (fixer.md, "Past three rounds"): verdict/<pr>'s history keeps every
   # round, so the blocked commits on it are the rounds a dispatch would follow.

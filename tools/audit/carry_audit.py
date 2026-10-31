@@ -542,6 +542,7 @@ def main(argv: list[str]) -> int:
     p.add_argument("--repo", default=REPO)
     p.add_argument("--briefs-dir")
     p.add_argument("--roster-ref", action="append", default=[])
+    p.add_argument("--git-dir", default=str(ROOT), help="the checkout whose refs the roster is read at")
     sub = p.add_subparsers(dest="cmd", required=True)
     c = sub.add_parser("check")
     c.add_argument("--body", required=True)
@@ -561,9 +562,12 @@ def main(argv: list[str]) -> int:
     ref = a.roster_ref[0] if a.roster_ref else None
     try:
         if a.cmd == "check":
-            dests = load_dests(ROOT, ref, a.briefs_dir)
+            body = Path(a.body).read_text()
             comments = json.loads(Path(a.comments).read_text()) if a.comments else []
-            return report(audit(Path(a.body).read_text(), comments, dests))
+            if not finding_rows(body, comments)[0]:
+                return report({"rows": []})  # nothing to route: the roster is not read
+            dests = load_dests(Path(a.git_dir), ref, a.briefs_dir)
+            return report(audit(body, comments, dests))
         if a.cmd == "pr":
             dests = load_dests(ROOT, ref, a.briefs_dir, gh_issue_state(a.repo))
             body, comments = read_pr(a.n, a.repo, None)

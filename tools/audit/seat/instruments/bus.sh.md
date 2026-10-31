@@ -35,3 +35,8 @@ The design steps (decision 0014) write the same append-only way:
 line is `Design review: approve <sha>` or `Design review: revise <sha> <class>`,
 and `<sha>` must be the current tip of `design/<topic>`: a design that moved
 under the review is refused, and so is a topic with no design ref.
+  `push-verdict` refuses, before `review/<pr>` moves, a verdict with a line
+  its post would refuse (`ref_privacy.py body-lines`, naming the line) and
+  one whose finding items name no valid `Carry:` (`carry_audit.py check` at
+  origin/main and the round's roster branch, as the train's pre-flight reads
+  them); its push carries a 500 MB `http.postBuffer` (#2563's HTTP 400).

@@ -212,6 +212,14 @@ MUTANTS = [
     ("bus-1", "bus.sh", "    0|3) ;;\n", "    0|1|3) ;;\n"),
     ("bus-2", "bus.sh", "    0|3) ;;\n", "    0) ;;\n"),
     ("bus-3", "bus.sh", '    *) die "dispatch: cannot classify', '    *) : "dispatch: cannot classify'),
+    # R10-FLY-RELAY-REVIEW-FF: push-verdict's refusals before review/<pr> moves, and the push buffer.
+    ("bus-4", "bus.sh", '  why=$(carry_gate "$v") || die "push-verdict: $why"\n', ''),
+    ("bus-5", "bus.sh", '  why=$(python3 -I "$ROOT/tools/audit/seat/ref_privacy.py" body-lines "$v") \\\n', '  why=$(true) \\\n'),
+    ("bus-6", "bus.sh", 'git -c http.postBuffer=524288000 push -q "$REMOTE"', 'git push -q "$REMOTE"'),
+    # carry_audit.py check reads no roster for a verdict with no finding item (bus.sh's step grades it:
+    # its scratch origin holds no roster until the carry rows plant one).
+    ("carry_audit-1", "tools/audit/carry_audit.py",
+     '            if not finding_rows(body, comments)[0]:\n                return report({"rows": []})', '            if False:\n                pass'),
     # Round 2: GitHub's merge under a local driver, and the reviewer's R1-R4.
     ("merge_train-12", "merge_train.py",
      '    drivers = text_merge(run)\n    if drivers is None:\n        return None\n',
@@ -509,7 +517,8 @@ ENV_MUTANTS = [("S04U", "S04", {"PYTHONUNBUFFERED": "1"})]
 # A mutant planted in a file whose self-test is another instrument's step.
 STEP_OF = {"prepr-9": "tools/pr/prepr.sh", "prepr-10": "tools/pr/prepr.sh",
            "prepr-12": "tools/pr/prepr.sh", "body_push-1": "tools/pr/prepr.sh",
-           "body_push-2": "tools/pr/prepr.sh", "body_push-3": "tools/pr/prepr.sh"}
+           "body_push-2": "tools/pr/prepr.sh", "body_push-3": "tools/pr/prepr.sh",
+           "carry_audit-1": "tools/audit/seat/bus.sh"}
 
 # The wrappers' own line is the dispatch to the self-tests they delegate.
 # S08's wrapper now runs both tallies (delivery_row.sh's and its own pushes):
