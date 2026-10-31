@@ -1,0 +1,12 @@
+{
+  "group": "R10-FLY-TICK-APPROVAL-OWED",
+  "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-fly-tick-approval-owed",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer (fly-in; ahead of other instrument fly-ins: verdicted PRs stood unnamed 21 PR-hours)",
+    "note": "2026-10-30 (triage: dev/programme/triage/s6-batch64.md#P294)"
+  },
+  "carry": []
+}
