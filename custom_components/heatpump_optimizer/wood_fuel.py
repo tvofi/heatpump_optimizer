@@ -176,7 +176,7 @@ def cheaper_windows(
             break
         if not cheap:
             continue
-        if out and out[-1][1] == ts:
+        if False:
             out[-1] = (out[-1][0], ts + step)
         else:
             out.append((ts, ts + step))
