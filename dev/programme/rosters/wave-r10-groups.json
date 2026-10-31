@@ -12832,6 +12832,49 @@
     "stage": "not-started"
    },
    "brief": "Two reds prepr's CI-predict step should have predicted and did not, both in tools/pr/ci_predict.py, the cheaper detector for CI reds (defect-root-cause.md).\n(1) wiring_preds keeps only lines starting '  UNWIRED ' from selftest_wiring.py --check, and drops MISMATCH, UNINDEXED, DUPLICATE and MISSING. So #3004 round 3 went red on governance / instrument-self-tests (MISMATCH on the instrument page that PR adds) while prepr predicted green, which cost a review round (round-4 fixer finding, 2026-10-30). Widen it to return every --check gap line naming a changed file. Control: a planted-MISMATCH self-test arm is red before the change and green after; an unchanged tree predicts nothing.\n(2) A `null_for` pre-check in `tools/pr/ci_predict.py`, the cheaper detector. `prepr.sh` step 6d predicts the `mutation` ratchet but not the null-control refusal, so a pool with no null control first shows red in CI (#2997, rounds 1 and 2). The check runs `mutation_table.null_for` over the diff's pool of candidate sites and prints `PREDICT tests / mutation NO NULL CONTROL` when it returns None. `ci-autofix.md`'s table should name the refusal in the same change, since no autofix job repairs it. After this PR the refusal remains only for a pool of comment-free files, which by Figures' census rule are `flow_meter.py`, `silent_mode.py` and `wood_fuel.py`. Control for the carry: on a branch whose pool is only `flow_meter.py`, the pre-check prints the refusal; on this head's pool (`button.py`, null control at line 37) it prints nothing.  (Source: PR #2997 round-3 body, handoff-body/r10-ux-health-p2 01ff82ba.)\nOne pull request; ci-autofix.md's table names any refusal no autofix job repairs. ci-autofix.md is policy: the orchestrator approves under the mandate."
+  },
+  {
+   "group": "R10-RCA-JIDOKA-YIELD",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "instrument",
+   "severity": "high",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 6,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "tools/audit/carry_audit.py",
+    "tools/pr/prepr.sh",
+    "tools/policy/field_coverage.mjs"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-rca-jidoka-yield",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer (S; lands the RCA document, the M1 arm and the WHY correction in one PR)",
+    "note": "2026-10-30 (triage: dev/programme/triage/s6-batch75.md#P309); the probe's report is the body at handoff-body/r10-rca-jidoka-yield c8f3acd99"
+   },
+   "brief": "From triage P309 (root-cause probe R10-RCA-JIDOKA-YIELD, filed by the orchestrator s8 2026-10-30): the RCA's own countermeasure M1, plus landing the RCA. (1) Land the report's text (the body at handoff-body/r10-rca-jidoka-yield c8f3acd99, the part after its first paragraph) as the RCA document in the dev/audit/rca directory, named for this group; it sits under the dev/audit/ INERT prefix of tests/closure.py (line 321), so confirm with tests/entities.py that no new classification is owed. (2) M1 in tools/audit/carry_audit.py items(), body branch (the final else, line 222 at 437f1ba9b): an item outside the carry sections that names a roster carry index with a not-done phrase is a finding item `[owed carry]`, needing a `Carry:` marker. Use the probe's OWED_CARRY pattern, matched on the item text with code spans and double-quoted text removed first (narrowing: unstripped, the probe's own report body flips on two quoted items, 00929b43 and 5bfb2857). Failing test first: the #3010 r1 body (da4e6e9ea BODY.md) gives `0 finding item(s)` at main and must give UNROUTED item c78ecb78 [owed carry], rc 1; the same body with ` Carry: R10-FLY-TRAIN-DEFAULTS` appended to that paragraph gives 1 routed, rc 0. Null controls: re-run over every handoff-body/* tip; measured by triage at 223 bodies, the unstripped arm flips 10, the 9 the probe lists plus its own report; with the strip, exactly the 9 real catches flip and the report does not. A carry index in a code span or quotes is not read. One mutant: drop the strip and the quotation row fails; a second drops the arm and the #3010 row fails. Register the arm in tools/policy/field_coverage.mjs. (3) Correct the WHY at tools/pr/prepr.sh lines 974-978: carry-missing is fix-review step 10 (the destination holds the finding), which carry_audit's marker-and-liveness test does not judge; state process state (c) and cite the RCA document. Not in scope: M2 (P310, the landed arm, R10-FLY-RELAY-REVIEW-FF carry 0) and shape B (P311, deferred). triage: dev/programme/triage/s6-batch75.md#P309"
   }
  ]
 }
