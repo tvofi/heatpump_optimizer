@@ -28,7 +28,7 @@ flowchart TB
         states["Entity states<br/>temperatures, power, tank probes,<br/>presence, humidity"]
 
         subgraph glue["Integration glue — imports homeassistant"]
-            entities["Entity layer<br/>81 entities<br/>62 sensors, 6 binary sensors,<br/>5 buttons, 6 switches,<br/>1 climate, 1 datetime"]
+            entities["Entity layer<br/>82 entities<br/>62 sensors, 6 binary sensors,<br/>6 buttons, 6 switches,<br/>1 climate, 1 datetime"]
             ui["config_flow · services · frontend<br/>repairs · diagnostics · notifier"]
             reader["inputs.py — InputReader<br/>freshness and unit guards"]
             coord["coordinator.py<br/>HeatPumpOptimizerCoordinator<br/>the orchestration seam"]
@@ -105,7 +105,7 @@ Read the diagram as four regions.
 
 ```text
 custom_components/heatpump_optimizer/
-├── __init__.py           # Setup and unload, the 13 services, entry migrations
+├── __init__.py           # Setup and unload, the 14 services, entry migrations
 ├── const.py              # Every config key, default and tuning constant
 ├── entry_config.py       # The entry's configuration, parsed once: one default
 │                         #   and one coercion per key
@@ -229,7 +229,7 @@ custom_components/heatpump_optimizer/
 │                         #   Boost Space Heating, DHW Boost, Optimizer Active
 ├── datetime.py           # The away-override return instant, as one datetime entity
 ├── frontend.py           # Serves and registers the Lovelace card
-├── services.py           # The domain's 13 services: schemas, handlers and registration
+├── services.py           # The domain's 14 services: schemas, handlers and registration
 ├── debugger.py           # A week of cycle rows for one entry, kept across a
 │                         #   reload and carried by Download diagnostics
 ├── replay_doc.py         # The replay document's allowlist and sanitiser, one
@@ -240,7 +240,7 @@ custom_components/heatpump_optimizer/
 ├── www/                  # The dashboard card, one self-contained file
 ├── brand/                # Icon and logo
 ├── icon.png              # Integration icon
-├── services.yaml         # The 13 service definitions
+├── services.yaml         # The 14 service definitions
 ├── strings.json          # UI strings
 ├── translations/
 │   ├── en.json           # English
