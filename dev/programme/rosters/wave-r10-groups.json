@@ -12415,9 +12415,9 @@
    ],
    "carry": [],
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-hotfix-away-live",
-    "commit": null,
+    "commit": "2573a264d47493b1bda321f806bbee0094aac5e2",
     "last_step": null,
     "next_step": "fixer dispatched",
     "note": "live user defect tvofi 2026-10-30: away override persisted but not in live state",
