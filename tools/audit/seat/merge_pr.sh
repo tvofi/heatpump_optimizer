@@ -183,8 +183,9 @@ P
   done
   # app_comment.sh leaves a mark when it is asked to post; postmerge.py is a stub
   # recording its argv, printing OWED and failing when FAKE_PM_RC says so.
-  printf '#!/bin/bash\necho posted >> "$HPO_STATE_DIR/posted"\n' > "$mm/tools/audit/app_comment.sh"
-  chmod +x "$mm/tools/audit/app_comment.sh"
+  mkdir -p "$mm/tools/pr"
+  printf '#!/bin/bash\necho posted >> "$HPO_STATE_DIR/posted"\n' > "$mm/tools/pr/app_comment.sh"
+  chmod +x "$mm/tools/pr/app_comment.sh"
   cat > "$mm/tools/audit/seat/postmerge.py" <<'PM'
 import os, sys
 open(os.environ["HPO_STATE_DIR"] + "/postmerge.argv", "a").write(" ".join(sys.argv[1:]) + "\n")
