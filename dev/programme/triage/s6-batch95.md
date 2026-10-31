@@ -109,9 +109,10 @@ What stays here is the evidence. The orchestrator carries it to the group's fixe
 - The open-time prepr's cross-main prediction caught a real red at 18:34Z. A skip must not
   drop that prediction against the merged main.
 
-The slot half, a prepr that takes its heavy slot at step 1b before step 2 knows the scope, goes
-to R10-PREPR-CAP (`in-progress`, #3051). It is queued as its own proposal, P347, owed a count
-before its ruling.
+The slot half is owner-ordered too (tvofi, 2026-10-31, "do all of them"): a prepr takes its
+heavy slot at step 1b, before step 2 knows the scope. The orchestrator routes it as an
+owner-ordered carry on R10-PREPR-CAP (`in-progress`, #3051), held until #3051's verdict. It is not
+a ruling here, and the evidence it cites is the "slot" item below.
 
 Source: the orchestrator s9's triage-queue line of 2026-10-31T21:10:17Z (`s7/triage-queue-s7.txt`
 line 36).
@@ -142,13 +143,32 @@ Instances:
   (`9a1a9835f`): `CI PREDICT: 1 predicted red(s) on pr-contract / pr-contract against
   c3a47e5656ef`. That is a prediction against the main the open merged, not the main the fixer
   ran on. A receipt keyed to the fixer's base would have skipped it and opened a PR that went red.
-- **Where the wall time goes.** `prepr.sh` takes its heavy slot at step 1b (line 3555) for its
-  whole life, before step 2 (line 3598) knows the scope. Run here, this batch's own prepr (0
-  scripts, one markdown file) sat in `gate_lock.py slot-take` for 25 min 55 s
-  (`ps -o etime`, pid 60376) behind heavy runs, and was stopped by this seat to add this ruling.
-  Today's opens took from START to RESULT: 31 min (#3050), 24 min (#3052), 22 min (#3053, 0
-  scripts), 76 min (#3055) and 77 min (#3056). The 0-script open's 22 min is a slot wait plus the
-  cheap steps, not a gate.
+- **Where the wall time goes (the slot evidence).**
+  - **The mechanism** (at `a7dd7f50d`): `prepr.sh` takes its heavy slot at step 1b (line 3555) for
+    its whole life, before step 2 (line 3598) prints the scope. Its self-test pins that order:
+    line 3268 requires `slot-take` before `step "policy_lint"`. Whether each heavy step runs is a
+    diff predicate the step already prints as a `skip` line (self-test, mutants, closures,
+    no-copies, brief_lint, wave-script).
+  - **The count:**
+    - Source: every `*prepr*.log` under the session directory modified within 3 days (43 files).
+      35 of them hold a `heavy slot  taken slot=<n> ... expires_at=<t>` line and ran to a `PRE-PR:`
+      or `REFUSE` line.
+    - The take time is `expires_at` less `gate_lock.LEASE_SECONDS` (1800, `tests/gate_lock.py`
+      line 78).
+    - 29 runs are light: none of the six heavy steps printed `ok`. Their in-slot time had a
+      median of 0.9 min (max 3.8).
+    - The 6 heavy runs had a median of 15.2 min in the slot (max 74.0).
+    - The light runs' waits, from the 8 logs whose start the daemonize header records: 39.1,
+      20.9, 15.3, 12.5, 10.2, 9.9, 4.1 and 0.1 min (median 11.4).
+    - The 21 hand-started light logs give no reliable start, because a file's birth time is not
+      the run's start, and are left out.
+    - This batch's own light prepr was stopped at 25 min 55 s in `slot-take` (`ps -o etime`, pid
+      60376).
+  - So a light run queues a median 11 min for a slot it uses for about 1 min, and a light open
+    holds an opener slot meanwhile.
+  - Today's opens, START to RESULT: 31 min (#3050), 24 min (#3052), 22 min (#3053, 0 scripts),
+    76 min (#3055) and 77 min (#3056).
+  - The sample is mostly the triage seats' logs. Fixer preprs do not log under that name, so heavy
+    runs are under-sampled.
 
-The evidence's limits: one day's opens (five) from one opener log. The 25 min 55 s slot wait is
-one prepr, this seat's own.
+The evidence's limits: the open table is one day's opens (five) from one opener log.
