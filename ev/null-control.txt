@@ -1,0 +1,6 @@
+RESULT 34.467 head grew= 0 noband grew= 1
+RESULT 35.567 head grew= 0 noband grew= 1
+RESULT 35.777 head grew= 1 noband grew= 1
+RESULT spp55 head grew= 1 noband grew= 1
+RESULT arch1 head grew= 1 noband grew= 1
+RESULT budget_problems(head)= []
