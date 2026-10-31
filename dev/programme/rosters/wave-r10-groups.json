@@ -13217,6 +13217,50 @@
     "note": "found by the R10-FACTORY-RESET fixer, 2026-10-31"
    },
    "brief": "Two latent learned-store lifecycle defects found by the R10-FACTORY-RESET fixer (orchestrator s9, 2026-10-31). (1) _async_load_thermal_learning saves the store before the COP and T4b learners have loaded, so a save in that window can write empty learner state over the stored one. (2) async_restore_learned_snapshot reads the snapshot ring without awaiting the snapshot store's read, and it never restores sample counts. Reproduce each through the production coordinator: a save during load, and a restore immediately after setup. Fix at the owning seam: one load barrier that every save and restore awaits. Controls: a learner's state survives a save issued mid-load, and a restore right after setup returns the newest snapshot including its sample counts. Null control: a fully loaded entry behaves as today. One mutant per gate."
+  },
+  {
+   "group": "R10-FLY-STANDING-CONTRACTS",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "instrument",
+   "severity": "medium",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 6,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": "mandated approval under 6329234399",
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "dev/governance/roles/standing-tick.md",
+    "dev/governance/roles/standing-merge.md",
+    "dev/governance/roles/standing-dispatch.md",
+    "dev/governance/roles/standing-roster.md"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-fly-standing-contracts",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer (fly-in); policy files, the owner approves the merge",
+    "note": "orchestrator s9, 2026-10-31, slipped-proposal audit (tvofi request): re-routes P51 and P95 from R10-ORCH-BEATD (done at #2916, both unbuilt)"
+   },
+   "brief": "Two standing-seat contract edits that R10-ORCH-BEATD closed without building (done at #2916), re-routed under mandate 6329234399 on tvofi's request of 2026-10-31 (\"Any other slipped proposals?\"). Both are prose in the same four contracts, dev/governance/roles/standing-tick.md, standing-merge.md, standing-dispatch.md and standing-roster.md, so one group and one pull request. (1) A Wait paragraph in each contract (triage: dev/programme/triage/s6-batch2.md#P51). (2) A Reads line in each contract naming the cwd-safe instrument for every read the seat makes (triage: dev/programme/triage/s6-batch20.md#P95). The two carries appended to this group carry the full text, controls and basis. These are policy files: the pull request merges on tvofi's approving review or under the mandate. R10-FLY-TRAIN-DEFAULTS also edits dev/governance/roles/standing-merge.md (line 9, the flag list); the hunks are distinct, so merge main before building and keep that group's wording."
   }
  ]
 }
