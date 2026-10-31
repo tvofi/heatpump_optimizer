@@ -76,7 +76,7 @@
   ok   no reader doc claims the entity prefix follows the entry name
 
 -- README requirements vs manifest.json (#1537)
-/tmp/tmp.dVkdkirZL5/wt/tests/doc_claims.py:130: DeprecationWarning: 'maxsplit' is passed as positional argument
+/root/wt/tests/doc_claims.py:128: DeprecationWarning: 'maxsplit' is passed as positional argument
   return [re.split(r"[<>=!~\[]", r, 1)[0].strip() for r in manifest["requirements"]]
   ok   manifest.json still pins requirements (anchor)
   ok   README still has a Requirements section (anchor)
@@ -260,32 +260,34 @@
   ok   docs/architecture.md, README.md and dev/README.md exist (anchor)
   ok   the marked documents draw mermaid blocks and carry markers (anchor)
   ok   every path resolves or is marked, every marker names a roster group, every block is well formed
-       note: docs/architecture.md:371: [target: R10-PARAMS-OWNER] names only done groups; R10-ARCH-DOCS resolves it
-       note: docs/architecture.md:372: [target: R10-LIVESTATE] names only done groups; R10-ARCH-DOCS resolves it
-       note: docs/architecture.md:373: [target: R10-ARCH-SHAPES] names only done groups; R10-ARCH-DOCS resolves it
-       note: docs/architecture.md:374: [target: R10-SENSOR-PAYLOAD] names only done groups; R10-ARCH-DOCS resolves it
-       note: docs/architecture.md:375: [target: R10-HEAT-METER] names only done groups; R10-ARCH-DOCS resolves it
-       note: docs/architecture.md:377: [target: R10-SCORES] names only done groups; R10-ARCH-DOCS resolves it
-       note: docs/architecture.md:378: [target: R10-LEARNER-ETA] names only done groups; R10-ARCH-DOCS resolves it
-       note: docs/architecture.md:379: [target: R10-CONFIGFLOW-PAGES] names only done groups; R10-ARCH-DOCS resolves it
-       note: dev/README.md:166: [target: R10-CI-LAYOUT-P2] names only done groups; R10-ARCH-DOCS resolves it
-       note: dev/README.md:177: [target: R10-CI-LAYOUT-P2; owner step] names only done groups; R10-ARCH-DOCS resolves it
-       note: dev/README.md:204: [retired-by: R10-CI-LAYOUT-P2] names only done groups; R10-ARCH-DOCS resolves it
-       note: dev/README.md:205: [retired-by: R10-CI-LAYOUT-P2] names only done groups; R10-ARCH-DOCS resolves it
-       note: dev/README.md:206: [target: R10-CI-LAYOUT-P2] names only done groups; R10-ARCH-DOCS resolves it
-       note: dev/README.md:229: [target: R10-CI-LAYOUT-P2; owner step] names only done groups; R10-ARCH-DOCS resolves it
-       note: dev/README.md:243: [target: R10-ORCH-MACHINERY] names only done groups; R10-ARCH-DOCS resolves it
-       note: dev/README.md:250: [target: R10-ORCH-MACHINERY] names only done groups; R10-ARCH-DOCS resolves it
-       note: dev/README.md:254: [target: R10-FLOW-RELAY-HOLD] names only done groups; R10-ARCH-DOCS resolves it
-       note: dev/README.md:255: [target: R10-PLAN-ARTIFACT] names only done groups; R10-ARCH-DOCS resolves it
-       note: dev/README.md:288: [target: R10-ORCH-MACHINERY] names only done groups; R10-ARCH-DOCS resolves it
-       note: dev/README.md:289: [target: R10-ORCH-MACHINERY] names only done groups; R10-ARCH-DOCS resolves it
-       note: dev/README.md:290: [target: R10-ORCH-MACHINERY] names only done groups; R10-ARCH-DOCS resolves it
-       note: dev/README.md:291: [target: R10-ORCH-MACHINERY] names only done groups; R10-ARCH-DOCS resolves it
-       note: dev/README.md:303: [target: R10-FLOW-RELAY-HOLD] names only done groups; R10-ARCH-DOCS resolves it
-       note: dev/README.md:309: [target: R10-FLOW-TOOLKIT-MEASURE] names only done groups; R10-ARCH-DOCS resolves it
-       note: dev/README.md:349: [target: R10-ORCH-MACHINERY] names only done groups; R10-ARCH-DOCS resolves it
-       (8 mermaid block(s), 28 marker(s), 25 note(s))
+       note: docs/architecture.md: [target: R10-PARAMS-OWNER] names a done group; R10-ARCH-DOCS resolves it
+       note: docs/architecture.md: [target: R10-LIVESTATE] names a done group; R10-ARCH-DOCS resolves it
+       note: docs/architecture.md: [target: R10-ARCH-SHAPES] names a done group; R10-ARCH-DOCS resolves it
+       note: docs/architecture.md: [target: R10-SENSOR-PAYLOAD] names a done group; R10-ARCH-DOCS resolves it
+       note: docs/architecture.md: [target: R10-HEAT-METER] names a done group; R10-ARCH-DOCS resolves it
+       note: docs/architecture.md: [target: R10-SCORES] names a done group; R10-ARCH-DOCS resolves it
+       note: docs/architecture.md: [target: R10-LEARNER-ETA] names a done group; R10-ARCH-DOCS resolves it
+       note: docs/architecture.md: [target: R10-CONFIGFLOW-PAGES] names a done group; R10-ARCH-DOCS resolves it
+       note: dev/README.md: [target: R10-CI-LAYOUT-P2] names a done group; R10-ARCH-DOCS resolves it
+       note: dev/README.md: [target: R10-CI-LAYOUT-P2] names a done group; R10-ARCH-DOCS resolves it
+       note: dev/README.md: [retired-by: R10-CI-LAYOUT-P2] names a done group; R10-ARCH-DOCS resolves it
+       note: dev/README.md: [retired-by: R10-CI-LAYOUT-P2] names a done group; R10-ARCH-DOCS resolves it
+       note: dev/README.md: [target: R10-CI-LAYOUT-P2] names a done group; R10-ARCH-DOCS resolves it
+       note: dev/README.md: [target: R10-CI-LAYOUT-P2] names a done group; R10-ARCH-DOCS resolves it
+       note: dev/README.md: [target: R10-ORCH-MACHINERY] names a done group; R10-ARCH-DOCS resolves it
+       note: dev/README.md: [target: R10-ORCH-MACHINERY] names a done group; R10-ARCH-DOCS resolves it
+       note: dev/README.md: [target: R10-FLOW-RELAY-HOLD] names a done group; R10-ARCH-DOCS resolves it
+       note: dev/README.md: [target: R10-PLAN-ARTIFACT] names a done group; R10-ARCH-DOCS resolves it
+       note: dev/README.md: [target: R10-FLOW-TOOLKIT-MEASURE] names a done group; R10-ARCH-DOCS resolves it
+       note: dev/README.md: [target: R10-ORCH-MACHINERY] names a done group; R10-ARCH-DOCS resolves it
+       note: dev/README.md: [target: R10-ORCH-MACHINERY] names a done group; R10-ARCH-DOCS resolves it
+       note: dev/README.md: [target: R10-ORCH-MACHINERY] names a done group; R10-ARCH-DOCS resolves it
+       note: dev/README.md: [target: R10-ORCH-MACHINERY] names a done group; R10-ARCH-DOCS resolves it
+       note: dev/README.md: [target: R10-FLOW-RELAY-HOLD] names a done group; R10-ARCH-DOCS resolves it
+       note: dev/README.md: [target: R10-PLAN-ARTIFACT] names a done group; R10-ARCH-DOCS resolves it
+       note: dev/README.md: [target: R10-FLOW-TOOLKIT-MEASURE] names a done group; R10-ARCH-DOCS resolves it
+       note: dev/README.md: [target: R10-ORCH-MACHINERY] names a done group; R10-ARCH-DOCS resolves it
+       (8 mermaid block(s), 28 marker(s), 27 note(s))
   ok   the clean fixture yields no finding and no note (null control)
   ok   red fixture: a renamed path is a finding
   ok   red fixture: a marker naming no roster group is a finding
@@ -298,45 +300,6 @@
   ok   state tolerance: a marker naming a done group, and an absent retired-by path, yield only notes
   ok   no marker: no roster is read, and none needs to exist (null control, N1)
   ok   a marker with no roster file to resolve it is a finding
-
--- doc wiring: every instrument, job, kind, symbol and diagram node the two pages name (R10-ARCH-DOCS-WIRING)
-  ok   every class of named element is read on these pages (anchor)
-  ok   every named element resolves in the artifact that defines it, or a marker covers it
-       pending: dev/README.md: ledger kind `stage-mismatch` [target: R10-ORCH-MACHINERY]
-       pending: dev/README.md: ledger kind `absorb-edge-missing` [target: R10-ORCH-MACHINERY]
-       pending: dev/README.md: ledger kind `record-owed` [target: R10-ORCH-MACHINERY]
-       pending: dev/README.md: ledger kind `record-owed` in a diagram note [target: R10-ORCH-MACHINERY]
-       pending: dev/README.md: ledger kind `record-owed` in a diagram note [target: R10-ORCH-MACHINERY]
-  ok   the clean fixture resolves every class and leaves only the marked kind pending (null control)
-  ok   red fixture: a renamed script is a finding
-  ok   red fixture: a renamed subcommand is a finding
-  ok   red fixture: a removed flag in a diagram node is a finding
-  ok   red fixture: a renamed workflow in a diagram node is a finding
-  ok   red fixture: a removed workflow job in a diagram node is a finding
-  ok   red fixture: a check name's matrix value is a finding
-  ok   red fixture: a removed class is a finding
-  ok   red fixture: a removed method in a diagram node is a finding
-  ok   red fixture: a removed module in a module list is a finding
-  ok   red fixture: a removed service on an edge is a finding
-  ok   red fixture: a removed ledger kind in a list is a finding
-  ok   red fixture: a removed ledger kind in a diagram note is a finding
-  ok   a marked element that does not resolve is pending, not a finding (null control)
-
--- target-marker resolver: every marker with its group's roster stage (R10-ARCH-DOCS-WIRING item 2)
-  ok   the resolver reads every marker arm W reads (anchor)
-       (25 of 28 marker(s) name only done groups: python3 tests/doc_claims.py --markers lists them)
-  ok   null control: a marker naming a not-started group is listed and not due; a quoted one is not a marker
-  ok   red fixture: a marker naming a done group is due
-  ok   a marker naming a done and a not-started group is not due until both land
-
--- P40: the committed card page figures are the pages tests/card_browser.mjs recorded
-  ok   pages.json records the tile and every page in both themes (anchor)
-  ok   every committed page figure is recorded at its own size, and each theme pair is one page
-  ok   null control: a record matching its files is clean
-  ok   red fixture: a figure regenerated without its record is a finding
-  ok   red fixture: a figure with no record is a finding
-  ok   red fixture: a record with no figure is a finding
-  ok   red fixture: a theme pair of two pages is a finding
 
 -- Buy Me a Coffee button in its three places (owner, 2026-10-22)
   ok   README top, the product page footer and every built page's footer link the button, from in-tree tokens
@@ -372,5 +335,4 @@
   ok   red case: no manifest is a finding
   ok   regenerating the manifest after the planted block edit is green again (the repair path)
 
-ALL 255 checks PASSED
-exit 0
+ALL 228 checks PASSED
