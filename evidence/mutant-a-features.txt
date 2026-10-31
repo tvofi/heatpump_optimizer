@@ -105,7 +105,7 @@ Quiet comfort learning skipped: injected learner fault (first occurrence; repeat
   ok   D1-s2-51: a quiet-period learner raise is not a failed solve -- the plan stays published and the failure counter untouched
 Optimization failed: solver returned a failed plan: failed (injected L-BFGS-B blow-up)
 Traceback (most recent call last):
-  File "/tmp/tmp.FTRFP8LkC0/t_m11/custom_components/heatpump_optimizer/coordinator.py", line 6139, in async_run_optimization
+  File "/tmp/tmp.QA0RiINvjk/wt-a/custom_components/heatpump_optimizer/coordinator.py", line 6139, in async_run_optimization
     raise RuntimeError(
         f"solver returned a failed plan: {result.status}"
     )
@@ -751,23 +751,23 @@ Invalid per-day DHW window 'garbage' for dhw_windows_sat (Invalid window 'garbag
   ok   the default plant passes the arm-time identifiability gate
 System identification fit raised: Singular matrix
 Traceback (most recent call last):
-  File "/tmp/tmp.FTRFP8LkC0/t_m11/custom_components/heatpump_optimizer/sysid.py", line 1726, in _finish
+  File "/tmp/tmp.QA0RiINvjk/wt-a/custom_components/heatpump_optimizer/sysid.py", line 1726, in _finish
     self.result = self.identify_slab()
                   ~~~~~~~~~~~~~~~~~~^^
-  File "/tmp/tmp.FTRFP8LkC0/ev/mutants/cut_features.py", line 7563, in _wrapper
+  File "/tmp/tmp.QA0RiINvjk/wt-a/tests/features.py", line 7563, in _wrapper
     return method(self, *args, **kwargs)
-  File "/tmp/tmp.FTRFP8LkC0/t_m11/custom_components/heatpump_optimizer/sysid.py", line 2272, in identify_slab
+  File "/tmp/tmp.QA0RiINvjk/wt-a/custom_components/heatpump_optimizer/sysid.py", line 2272, in identify_slab
     return self._slab_outcome(
            ~~~~~~~~~~~~~~~~~~^
         best_x, rooms, error, slab_mass, slab_transfer, told_error
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     )
     ^
-  File "/tmp/tmp.FTRFP8LkC0/t_m11/custom_components/heatpump_optimizer/sysid.py", line 2307, in _slab_outcome
+  File "/tmp/tmp.QA0RiINvjk/wt-a/custom_components/heatpump_optimizer/sysid.py", line 2307, in _slab_outcome
     profile_halfwidth = _slab_ua_profile_halfwidth(
         best_x, path_error, int(rooms.size), self.config.gains_prior_kw
     )
-  File "/tmp/tmp.FTRFP8LkC0/t_m11/custom_components/heatpump_optimizer/sysid.py", line 1010, in _slab_ua_profile_halfwidth
+  File "/tmp/tmp.QA0RiINvjk/wt-a/custom_components/heatpump_optimizer/sysid.py", line 1010, in _slab_ua_profile_halfwidth
     cov = np.linalg.inv(jac.T @ jac) * sigma2
           ~~~~~~~~~~~~~^^^^^^^^^^^^^
   File "/opt/hpo/venv-ci/lib/python3.14/site-packages/numpy/linalg/_linalg.py", line 647, in inv
@@ -839,6 +839,8 @@ numpy.linalg.LinAlgError: Singular matrix
   ok   a genuine draw still reinforces its hour
   ok   a stale plan trajectory is not offered as a prediction in boost mode
   ok   in auto mode the plan is what runs, so it is the prediction
+Learned house_heat_loss_scale reset to the configuration: its zone sensor changed
+Learned lower_floor_loss_ratio reset to the configuration: its zone sensor changed
   ok   the learned COP scale is saved and restored
 
 -- Store loaders discard corrupt payloads (#238)
@@ -898,38 +900,73 @@ Persisted price shape has a non-finite or unreadable bin; restarting it
   ok   energy_totals huge-int accumulator is discarded, not raised
 
 -- The learned heat-loss scale is re-anchored, not restored verbatim
-  ok   a converged scale is re-anchored onto the new nameplate, not restored
-  ok   which is no longer ~1.94x the UA the learner measured
-  ok   a sub-threshold nameplate edit keeps the stored scale verbatim
+Learned house_heat_loss_scale reset to the configuration: its zone sensor changed
+Learned lower_floor_loss_ratio reset to the configuration: its zone sensor changed
+  FAIL a converged scale is re-anchored onto the new nameplate, not restored  [effective 0.2325 kW/°C, expected 0.1502]
+  FAIL which is no longer ~1.94x the UA the learner measured  [effective 0.2325 vs measured 0.1500 kW/°C]
+Learned house_heat_loss_scale reset to the configuration: its zone sensor changed
+Learned lower_floor_loss_ratio reset to the configuration: its zone sensor changed
+  FAIL a sub-threshold nameplate edit keeps the stored scale verbatim  [scale 1.0 vs stored 1.25]
+Learned house_heat_loss_scale reset to the configuration: its zone sensor changed
+Learned lower_floor_loss_ratio reset to the configuration: its zone sensor changed
   ok   an unlearned install keeps its configuration edit
-Learned house heat loss scale 1.000 (fitted against 0.0500 kW/°C, 300 samples) cannot be expressed against the newly configured 0.4000 kW/°C: resetting to the configuration
+Learned house_heat_loss_scale reset to the configuration: its zone sensor changed
+Learned lower_floor_loss_ratio reset to the configuration: its zone sensor changed
   ok   an inexpressible measurement resets, not clips onto a bound
+Learned house_heat_loss_scale reset to the configuration: its zone sensor changed
+Learned lower_floor_loss_ratio reset to the configuration: its zone sensor changed
   ok   a re-anchor persists exactly once
   ok   and the persisted anchor is the configuration now in force
+Learned house_heat_loss_scale reset to the configuration: its zone sensor changed
+Learned lower_floor_loss_ratio reset to the configuration: its zone sensor changed
   ok   a second load over the same configuration re-anchors nothing
-  ok   a two-zone edit re-anchors on the zone total, not the upper zone
+Learned house_heat_loss_scale reset to the configuration: its zone sensor changed
+Learned lower_floor_loss_ratio reset to the configuration: its zone sensor changed
+  FAIL a two-zone edit re-anchors on the zone total, not the upper zone  [effective total 0.3000 kW/°C (learned level was 0.40)]
   ok   a snapshot restore re-anchors a pre-edit scale, not restores it
 
 -- The lower-floor ratio is re-anchored with the scale (#2239)
+Learned house_heat_loss_scale reset to the configuration: its zone sensor changed
+Learned lower_floor_loss_ratio reset to the configuration: its zone sensor changed
   ok   an options reseed of both zones keeps each zone's learned heat loss
-  ok   and a second load over the reseeded configuration re-anchors nothing
-  ok   an edit that keeps the nameplate split keeps the ratio and each zone
+Learned house_heat_loss_scale reset to the configuration: its zone sensor changed
+Learned lower_floor_loss_ratio reset to the configuration: its zone sensor changed
+  FAIL and a second load over the reseeded configuration re-anchors nothing  [(0.1567, 0.27105966) vs (0.1567, 0.27105966), 1 extra save(s)]
+Learned house_heat_loss_scale reset to the configuration: its zone sensor changed
+Learned lower_floor_loss_ratio reset to the configuration: its zone sensor changed
+  FAIL an edit that keeps the nameplate split keeps the ratio and each zone  [ratio 1.0, upper 0.1567 lower 0.1410 vs learned 0.1567 0.2711 kW/°C]
+Learned house_heat_loss_scale reset to the configuration: its zone sensor changed
+Learned lower_floor_loss_ratio reset to the configuration: its zone sensor changed
   ok   a pre-reseed snapshot restored after the reseed keeps each zone
+Learned house_heat_loss_scale reset to the configuration: its zone sensor changed
+Learned lower_floor_loss_ratio reset to the configuration: its zone sensor changed
   ok   an unlearned install keeps a lower-nameplate edit
-Learned lower floor loss ratio 1.922 (147 samples) cannot be expressed against the newly configured lower floor loss: resetting to the configuration
-Learned house heat loss scale 1.567 (fitted against 0.2730 kW/°C, 310 samples) cannot be expressed against the newly configured 7.0192 kW/°C: resetting to the configuration
+Learned house_heat_loss_scale reset to the configuration: its zone sensor changed
+Learned lower_floor_loss_ratio reset to the configuration: its zone sensor changed
   ok   an inexpressible ratio resets, not clips onto a bound
-Learned house heat loss scale 1.567 (fitted against 0.2730 kW/°C, 310 samples) cannot be expressed against the newly configured 7.0192 kW/°C: resetting to the configuration
+Learned house_heat_loss_scale reset to the configuration: its zone sensor changed
+Learned lower_floor_loss_ratio reset to the configuration: its zone sensor changed
   ok   the scale beside a reset ratio is the scale with no ratio evidence
-Learned house heat loss scale 0.500 (fitted against 0.1720 kW/°C, 310 samples) cannot be expressed against the newly configured 0.2808 kW/°C: resetting to the configuration
-  ok   the ratio beside a reset scale is the ratio with no scale evidence
-Learned lower floor loss ratio 2.500 (147 samples) cannot be expressed against the newly configured lower floor loss: resetting to the configuration
-Learned house heat loss scale 2.000 (fitted against 0.3250 kW/°C, 310 samples) cannot be expressed against the newly configured 0.1725 kW/°C: resetting to the configuration
+Learned house_heat_loss_scale reset to the configuration: its zone sensor changed
+Learned lower_floor_loss_ratio reset to the configuration: its zone sensor changed
+Learned house_heat_loss_scale reset to the configuration: its zone sensor changed
+Learned lower_floor_loss_ratio reset to the configuration: its zone sensor changed
+  FAIL the ratio beside a reset scale is the ratio with no scale evidence  [scale 1.000000, ratio 1.000000 after the reset vs 1.000000 with no scale evidence, samples 0/0]
+Learned house_heat_loss_scale reset to the configuration: its zone sensor changed
+Learned lower_floor_loss_ratio reset to the configuration: its zone sensor changed
   ok   a reset scale whose ratio is inexpressible beside it resets both
+Learned house_heat_loss_scale reset to the configuration: its zone sensor changed
+Learned lower_floor_loss_ratio reset to the configuration: its zone sensor changed
   ok   adding a power meter re-anchors both learners at zero confidence
-  ok   a metered store reloaded metered keeps both learners verbatim
-  ok   removing the power meter keeps both learners verbatim
-  ok   a store without a recorded basis keeps both learners on a meter add
+Learned house_heat_loss_scale reset to the configuration: its zone sensor changed
+Learned lower_floor_loss_ratio reset to the configuration: its zone sensor changed
+  FAIL a metered store reloaded metered keeps both learners verbatim  [scale 1.0, ratio 1.0]
+Learned house_heat_loss_scale reset to the configuration: its zone sensor changed
+Learned lower_floor_loss_ratio reset to the configuration: its zone sensor changed
+  FAIL removing the power meter keeps both learners verbatim  [scale 1.0, ratio 1.0]
+Learned house_heat_loss_scale reset to the configuration: its zone sensor changed
+Learned lower_floor_loss_ratio reset to the configuration: its zone sensor changed
+  FAIL a store without a recorded basis keeps both learners on a meter add  [scale 1.0, ratio 1.0, basis adopted 'metered']
   ok   the anchor pair refuses a total not positive on either side, void or not
   ok   a bound is inclusive and a step is below the gate, on every learner and zone
   ok   a night setback lowers the reference, not the reported savings
@@ -938,17 +975,8 @@ Learned house heat loss scale 2.000 (fitted against 0.3250 kW/°C, 310 samples) 
   ok   a heated basement scales the slow store once, not twice
 
 -- Configuration mapping
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration True (Invalid window 'True' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration True (Invalid window 'True' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
@@ -959,19 +987,13 @@ Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM
 Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration True (Invalid window 'True' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration True (Invalid window 'True' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration True (Invalid window 'True' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
@@ -988,6 +1010,21 @@ Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
@@ -1268,45 +1305,52 @@ mixing_valve_write_target_kind=flow needs two-zone
   ok   the fabric interval is closed once, so the house learner run first does not silence the split learner
 
 -- A zone-sensor swap and the reset action void the heat-loss learners
-Learned lower_floor_loss_ratio reset to the configuration: its zone sensor changed
-  FAIL a lower-floor sensor swap voids the ratio and leaves the scale intact  [(scale, ratio, samples) (2.248981743324156, 1.0, 310, 0), 1 save(s)]
 Learned house_heat_loss_scale reset to the configuration: its zone sensor changed
-  ok   an indoor sensor swap voids the scale and leaves the ratio intact
+Learned lower_floor_loss_ratio reset to the configuration: its zone sensor changed
+  FAIL a lower-floor sensor swap voids the ratio and leaves the scale intact  [(scale, ratio, samples) (1.0, 1.0, 0, 0), 1 save(s)]
+Learned house_heat_loss_scale reset to the configuration: its zone sensor changed
+Learned lower_floor_loss_ratio reset to the configuration: its zone sensor changed
+  FAIL an indoor sensor swap voids the scale and leaves the ratio intact  [(scale, ratio, samples) (1.0, 1.0, 0, 0), 1 save(s)]
 Learned house_heat_loss_scale reset to the configuration: its zone sensor changed
 Learned lower_floor_loss_ratio reset to the configuration: its zone sensor changed
   ok   moving a sensor from indoor to the lower floor voids both learners
-  ok   an unrelated options change keeps both learners verbatim and writes nothing
+Learned house_heat_loss_scale reset to the configuration: its zone sensor changed
+Learned lower_floor_loss_ratio reset to the configuration: its zone sensor changed
+  FAIL an unrelated options change keeps both learners verbatim and writes nothing  [(scale, ratio, samples) (1.0, 1.0, 0, 0), 1 save(s)]
   ok   a store without recorded zone sensors keeps both learners and adopts the ids
-Learned lower_floor_loss_ratio reset to the configuration: its zone sensor changed
-  FAIL a reload over the swapped sensor voids nothing more  [(scale, ratio, samples) (2.248981743324156, 1.0, 310, 0), 0 save(s)]
-  ok   a record without the lower-floor key keeps the ratio through a lower-floor swap
-Learned lower_floor_loss_ratio reset to the configuration: its zone sensor changed
-Learned lower_floor_loss_ratio reset to the configuration: its zone sensor changed
-  FAIL a lower-floor swap with a nameplate edit past the gate, in one load, keeps the ratio voided and lands where the two changes in two loads land  [one load (1.4999564378671688, 1.0, 310, 0), two loads (1.4983695424868524, 1.0, 310, 0)]
 Learned house_heat_loss_scale reset to the configuration: its zone sensor changed
 Learned lower_floor_loss_ratio reset to the configuration: its zone sensor changed
 Learned house_heat_loss_scale reset to the configuration: its zone sensor changed
 Learned lower_floor_loss_ratio reset to the configuration: its zone sensor changed
-  ok   both swapped with a nameplate edit past the gate, in one load, keeps the ratio voided and lands where the two changes in two loads land
-Learned lower_floor_loss_ratio reset to the configuration: its zone sensor changed
-  ok   a pre-swap snapshot restored onto a swapped, edited configuration keeps the ratio voided
-Learned house_heat_loss_scale reset to the configuration: reset on request
-Learned lower_floor_loss_ratio reset to the configuration: reset on request
-  ok   the reset returns both learners to 1.0 with no samples, and saves it
-  ok   the reset leaves the comfort weight and the DHW, COP and defrost learners as they were
-Learned lower_floor_loss_ratio reset to the configuration: reset on request
-  ok   resetting the ratio alone leaves the scale and its samples intact
-Learned house_heat_loss_scale reset to the configuration: reset on request
-  ok   resetting the scale alone leaves the ratio and its samples intact
-Learned house_heat_loss_scale reset to the configuration: reset on request
-Learned lower_floor_loss_ratio reset to the configuration: reset on request
-Learned lower_floor_loss_ratio reset to the configuration: reset on request
-  ok   the service resets both by default, then re-plans on the reset values
-  ok   the service's learners field resets one learner alone
-  ok   the service refuses a learner it does not reset
-Learned house_heat_loss_scale reset to the configuration: reset on request
-Learned lower_floor_loss_ratio reset to the configuration: reset on request
-  ok   the next fold after a reset starts from the configuration
-
-3 of 1040 CUT FAILED
-exit=1
+  FAIL a reload over the swapped sensor voids nothing more  [(scale, ratio, samples) (1.0, 1.0, 0, 0), 1 save(s)]
+Traceback (most recent call last):
+  File "/tmp/tmp.QA0RiINvjk/wt-a/tests/features.py", line 13018, in <module>
+    _li_part_got, _, _ = _li_swap(dict(_LI_CFG, lower_floor_temp_entity="sensor.t6"), _li_part)
+                         ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/tmp.QA0RiINvjk/wt-a/tests/features.py", line 12961, in _li_swap
+    c = _ra_reload(cfg_now, store)
+  File "/tmp/tmp.QA0RiINvjk/wt-a/tests/features.py", line 9106, in _ra_reload
+    _aio.run(c._async_load_thermal_learning())
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 720, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/tmp/tmp.QA0RiINvjk/wt-a/custom_components/heatpump_optimizer/coordinator.py", line 4256, in _async_load_thermal_learning
+    _reanchored = self._reanchor_house_heat_loss_scale(stored)
+  File "/tmp/tmp.QA0RiINvjk/wt-a/custom_components/heatpump_optimizer/coordinator.py", line 5242, in _reanchor_house_heat_loss_scale
+    swapped = self._void_heat_loss_learners(heat_loss_entity_voids(stored, self._heat_loss_anchors()), "its zone sensor changed")
+                                            ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/tmp.QA0RiINvjk/wt-a/custom_components/heatpump_optimizer/thermal_model.py", line 1518, in heat_loss_entity_voids
+    return tuple(
+           ^^^^^
+  File "/tmp/tmp.QA0RiINvjk/wt-a/custom_components/heatpump_optimizer/thermal_model.py", line 1520, in <genexpr>
+    if key in was or (was[key] or None) != now.get(key)
+                      ~~~^^^^^
+KeyError: 'lower_floor_temp_entity'
+rc=1
