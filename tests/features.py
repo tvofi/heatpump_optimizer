@@ -8053,7 +8053,7 @@ class _CopGate:
         self._flow_bias = flow_lift.FlowCurveBias()
         self.cop_health_calls: list = []
 
-    def _learning_frozen(self, *entities):
+    def _learning_frozen(self, *entities, room_air=True):
         return None
 
     def _observe_cop_health(self, observed_cop, dhw_curve=False):
@@ -13210,7 +13210,9 @@ for _race_name, (_race_load, _race_cmd, _race_read, _race_want) in _RACES.items(
 # are a subset. Preconditions: every store built is read at startup, every
 # read has a previous run's payload to land, and the loads assign something.
 # Null control: the same race with every store's fence (async_wait_for_read)
-# removed must differ, or the window reaches no writer and the census is blind.
+# and the session-restore gate the setup refresh awaits (boost.session_restored,
+# R10-HOTFIX-AWAY-LIVE) removed must differ, or the window reaches no writer
+# and the census is blind.
 import logging as _src_logging  # noqa: E402
 import weakref as _src_weakref  # noqa: E402
 from unittest import mock as _src_mock  # noqa: E402
@@ -13382,7 +13384,8 @@ with _src_mock.patch.object(_src_dt, "now", lambda *a, **k: _src_clock[0]), \
         _src_differ["fenced"][_src_key] = [
             k for k in _src_assigned if _src_raced[k] != _src_serial[k]]
     _src_differ = {"fenced": {k: v for k, v in _src_differ["fenced"].items() if v}}
-    with _src_mock.patch.object(_src_store.QuarantiningStore, "async_wait_for_read", _src_no_fence):
+    with _src_mock.patch.object(_src_store.QuarantiningStore, "async_wait_for_read", _src_no_fence), \
+            _src_mock.patch.object(_src_boost, "session_restored", _src_no_fence):
         _src_raced = _src_snapshot(_src_restart(_src_disk_then, race=True))
         _src_unfenced_serial = _src_snapshot(_src_restart(_src_disk_then, race=False))
     _src_differ["unfenced"] = [
@@ -22129,12 +22132,12 @@ _t9 = datetime(2026, 1, 21, 6, 0, tzinfo=UTC)
 _c9._accuracy.note_lead_prediction(_t9 - timedelta(minutes=10), 1.0, 21.0)
 _dt5.freeze(_t9)
 try:
-    _c9._learning_frozen = lambda key: "stale"
+    _c9._learning_frozen = lambda key, **_kw: "stale"
     _c9._record_accuracy()
     _frozen_kept = (
         len(_c9._accuracy.lead_pending) == 1 and _c9._accuracy.sigma(1.0) == 0.0
     )
-    _c9._learning_frozen = lambda key: None
+    _c9._learning_frozen = lambda key, **_kw: None
     _c9._record_accuracy()
     _live_scored = (
         not _c9._accuracy.lead_pending
@@ -45570,7 +45573,7 @@ from homeassistant.util import dt as _t2_dt  # noqa: E402
 
 def _t2_room_readers(**config):
     c = _t2_coord(curve_learning_enabled=True, **config)
-    c._learning_frozen = lambda *keys: None
+    c._learning_frozen = lambda *keys, **_kw: None
     c._mode = "auto"
     now = datetime(2026, 1, 21, 6, 0, tzinfo=UTC)
     c._accuracy.note_lead_prediction(now - timedelta(minutes=10), 1.0, 21.5)
@@ -45610,7 +45613,7 @@ R.check(
     f"{_wzm((None, float('nan')), 19.0)!r}",
 )
 _t2_nan_zones = _t2_coord(curve_learning_enabled=True, indoor_temp_entity="sensor.indoor")
-_t2_nan_zones._learning_frozen = lambda *keys: None
+_t2_nan_zones._learning_frozen = lambda *keys, **_kw: None
 _t2_nan_zones._current_state = _dc_replace(
     _t2_nan_zones._current_state, room_temperature=float("nan"),
     upper_floor_temperature=float("nan"), lower_floor_temperature=float("nan"),
@@ -50912,6 +50915,10 @@ class _G8Opt:
         self.min_temp = 19.0
         self.comfort_temp_day = 21.0
         self.comfort_temp_night = 19.5
+        self.comfort_temp_day_weekend = None
+        self.comfort_temp_night_weekend = None
+        self.holiday_comfort_day = None
+        self.holiday_comfort_night = None
 
 
 class _G8Therm:
@@ -50985,6 +50992,62 @@ R.check(
     "below the absolute floor",
     _g8_env == {"home": 17.5, "away": 15.0, "both": 16.5},
     f"widened floors {_g8_env}",
+)
+
+# The weekend and holiday comfort pairs replace the day/night pair per step
+# (``_comfort_pair``), so a setback that leaves them configured is undone on
+# every Saturday, Sunday and holiday date: 21.0 read where away said 16.0
+# (r10-live-away-heating, 2026-10-30). Driven through the production config,
+# solve_bands and the optimizer's own comfort-bounds builder.
+_g8_sat = datetime(2026, 10, 31)  # a Saturday
+
+
+def _g8_sat_comfort(holiday=False, **state_kw):
+    """Saturday 14:00 and 03:00 comfort targets one solve plans with."""
+    sched = (
+        {"holiday_dates": frozenset({_g8_sat.date()}),
+         "holiday_comfort_day": 21.0, "holiday_comfort_night": 19.5}
+        if holiday else
+        {"comfort_temp_day_weekend": 21.0, "comfort_temp_night_weekend": 19.5}
+    )
+    cfg = _MbCfg(horizon_hours=1, **sched)
+    bands, _ = _g8_away.solve_bands(
+        cfg, _G8Therm(), _g8_away.AwayState(**state_kw)
+    )
+    opt = _MbOpt(
+        ThermalModel(ThermalParameters.from_config(_mb_profiles.house())),
+        _dc_replace(cfg, **bands),
+    )
+    targets, _, _ = opt._build_comfort_bounds(
+        np.array([14.0, 3.0]), 2, None, None,
+        [_g8_sat.replace(hour=14), _g8_sat.replace(hour=3)],
+    )
+    return [float(t) for t in targets]
+
+
+_g8_sat_rows = {
+    (arm, kind): _g8_sat_comfort(holiday=arm == "holiday", **kw)
+    for arm in ("weekend", "holiday")
+    for kind, kw in (
+        ("away", {"active": True, "target_temperature": 16.0}),
+        ("home", {"active": False}),
+        ("recovering", {"active": True, "recovery_active": True,
+                        "target_temperature": 16.0}),
+    )
+}
+R.check(
+    "away sets back the weekend and holiday comfort pairs too: Saturday day "
+    "and night read the away target",
+    _g8_sat_rows[("weekend", "away")] == [16.0, 16.0]
+    and _g8_sat_rows[("holiday", "away")] == [16.0, 16.0],
+    f"Saturday [14:00, 03:00] comfort {_g8_sat_rows!r}",
+)
+R.check(
+    "and away off, or recovering, keeps the configured weekend and holiday "
+    "pairs (the null control)",
+    all(_g8_sat_rows[(arm, kind)] == [21.0, 19.5]
+        for arm in ("weekend", "holiday") for kind in ("home", "recovering")),
+    f"Saturday [14:00, 03:00] comfort {_g8_sat_rows!r}",
 )
 
 # The same race through the production cycle: the writes are injected at the
@@ -56053,7 +56116,7 @@ R.check(
 
 # _track_curve_comfort folds YESTERDAY's worst margin when a new day starts.
 _p8s_cc = _Coord(_FakeHass(), _FakeEntry(data={**_P8_CFG, "curve_learning_enabled": True}))
-_p8s_cc._learning_frozen = lambda key: None
+_p8s_cc._learning_frozen = lambda key, **_kw: None
 _p8s_days = []
 _p8s_cc._curve_learner = _p8s_ns(
     bias=0.0,
@@ -67067,6 +67130,54 @@ R.check(
     _cf_fl._flow_bias.samples == 1,
     f"flow-bias samples {_cf_fl._flow_bias.samples}",
 )
+# R10-COP-GATE part 5 (C): the duty gate reads the interval's attribution,
+# not the commanded split. A switch-back window -- 0.45 h hot water, then
+# 0.05 h space, under a space-only plan -- ran the supply at the tank's charge
+# temperature; the all-space window and the no-dwell plan (above) still fold.
+from heatpump_optimizer import heat_energy as _cf_he  # noqa: E402
+
+
+def _cf_fl_window(dhw_h, space_h):
+    coord = _cf_coord()
+    _cf_learn(coord, 2.2)
+    coord._flow_bias.observe_temps(35.0, 30.0)
+    meter = _cf_he.meter_of(coord)
+    start = _T6 - timedelta(hours=dhw_h + space_h)
+    meter.cycle = (start, _T6)
+    meter.dwell.segments = [
+        *([_cf_he.Segment(start, _cf_he.DHW)] if dhw_h else []),
+        _cf_he.Segment(_T6 - timedelta(hours=space_h), _cf_he.SPACE),
+    ]
+    _fold_flow_lift(coord, _T6)
+    return coord._commanded_split(), meter.attribution(coord._commanded_split()), coord._flow_bias.samples
+
+
+_cf_sw, _cf_all = _cf_fl_window(0.45, 0.05), _cf_fl_window(0.0, 0.5)
+R.check(
+    "a hot-water-dominant window under a space plan folds no flow-bias "
+    "sample; an all-space window folds one (null)",
+    _cf_sw[0][1] == 0.0 and _cf_sw[1].observed and _cf_sw[2] == 0 and _cf_all[2] == 1,
+    f"switch-back {_cf_sw} / all-space {_cf_all}",
+)
+# Both of the gate's bounds at equality, through the real dwell. A window of
+# exactly 1e-6 h (3.6 ms) is the "no weight" bound and folds nothing; 2e-6 h
+# folds (null). A hot-water share of exactly _COP_CURVE_SHARE (0.15 h of 1 h)
+# is still the space curve's duty and folds; 0.16 h does not (null).
+_cf_w0, _cf_w1 = _cf_fl_window(0.0, 1e-6), _cf_fl_window(0.0, 2e-6)
+R.check(
+    "the flow-lift gate's no-weight bound is inclusive: a 1e-6 h window "
+    "folds nothing, a 2e-6 h window folds one (null)",
+    _cf_w0[1].space + _cf_w0[1].dhw == 1e-6 and _cf_w0[2] == 0 and _cf_w1[2] == 1,
+    f"1e-6 h {_cf_w0} / 2e-6 h {_cf_w1}",
+)
+_cf_s15, _cf_s16 = _cf_fl_window(0.15, 0.85), _cf_fl_window(0.16, 0.84)
+R.check(
+    "a hot-water share exactly at the curve share still folds; just above "
+    "it does not (null)",
+    _cf_he.dhw_share(_cf_s15[1]) == Coord._COP_CURVE_SHARE
+    and _cf_s15[2] == 1 and _cf_s16[2] == 0,
+    f"0.15 {_cf_s15} / 0.16 {_cf_s16}",
+)
 
 # The refusal is published where Home Assistant does not hide it: the
 # observed-COP sensor is unavailable exactly while this is the explanation,
@@ -67091,7 +67202,7 @@ R.check(
     f"{_cf_diag._coordinator_snapshot(_cf_ref).get('cop_learner')}",
 )
 _cf_frz = _cf_coord()
-_cf_frz._learning_frozen = lambda *entities: "stale_inputs"
+_cf_frz._learning_frozen = lambda *entities, **_kw: "stale_inputs"
 _cf_learn(_cf_frz, 2.2)
 _cf_none = _cf_coord()
 _cf_none._measured_power = None
@@ -71895,6 +72006,104 @@ R.check(
 )
 
 
+# R10-HOTFIX-AWAY-LIVE (tvofi, 2026-10-30): the away override was on disk and
+# not in the plan. Each path that carries it, through the production coordinator:
+# a resolve that runs before the restore lands, and a reload whose handover was
+# published before the switch's own solve could (an options save cancels it).
+_al_disk: dict = {}
+
+
+async def _al_load(store, what):
+    return dict(_al_disk) if "away" in what else None
+
+
+async def _al_save(coord, state):
+    _al_disk.update(away_mode._override_payload(state))
+
+
+async def _al_noop(*args, **kwargs):
+    return None
+
+
+def _al_coord(hass, **kwargs):
+    """A coordinator over the restore-only hass, its setup reads stubbed out."""
+    coord = Coord(hass, _LsEntry(data={
+        "tibber_token": "x", "weather_entity": "weather.home", "away_temperature": 15.0}), **kwargs)
+    for name in ("_update_current_state", "_fetch_tibber_prices", "_fetch_weather_forecast",
+                 "_fetch_solar_forecast", "_async_learn_price_shape"):
+        setattr(coord, name, _al_noop)
+    return coord
+
+
+def _al_bands(coord):
+    """The comfort day band and floor the solve plans with, and away_active."""
+    cfg = coord._solve_hubs(8, banded=True)[0]
+    return cfg.comfort_temp_day, cfg.min_temp, coord._away_state.active
+
+
+async def _al_reload(switch):
+    """The last publish, the switch or not, a reload: the first publish and solve."""
+    _al_disk.clear()
+    _al_disk.update(away_mode.empty_override(), migrated_helpers=True)
+    hass = _LsRestoreHass()
+    old = _al_coord(hass)
+    await hass.restores[0]
+    published = old._build_data_dict()
+    published["last_optimization"] = dt_util.now() - timedelta(minutes=14)
+    if switch:
+        await old.async_set_away(active=True, return_time=(
+            dt_util.now() + timedelta(hours=24)).isoformat(), refresh=False)
+    new = _al_coord(hass, skip_first_solve=True, reload_handover=published)
+    first = await new._async_update_data()
+    await new._resolve_away()
+    return (first is published, first.get("away_override_active"), _al_bands(new),
+            new._opt_config.comfort_temp_day)
+
+
+async def _al_resolve_first(return_in_h):
+    """A stored override, and a resolve before the restore's task has run a step."""
+    _al_disk.clear()
+    _al_disk.update(active=True, migrated_helpers=True, return_time=(
+        dt_util.now() + timedelta(hours=return_in_h)).isoformat())
+    coord = _al_coord(_LsRestoreHass())
+    await coord._resolve_away()
+    return _al_bands(coord), coord._away_state.override_active
+
+
+_al_saved = (away_mode.load_mapping, away_mode.persist_override)
+away_mode.load_mapping, away_mode.persist_override = _al_load, _al_save
+try:
+    _al_on, _al_off = _ls_aio.run(_al_reload(True)), _ls_aio.run(_al_reload(False))
+    _al_first, _al_lapsed = _ls_aio.run(_al_resolve_first(24.0)), _ls_aio.run(_al_resolve_first(-1.0))
+finally:
+    away_mode.load_mapping, away_mode.persist_override = _al_saved
+R.check(
+    "R10-HOTFIX-AWAY-LIVE a reload after the away switch, before its solve "
+    "published, drops the home handover: the first publish carries the restored "
+    "override and the first solve plans the away band",
+    not _al_on[0] and _al_on[1] is True and _al_on[2][0] == 15.0 and _al_on[2][2] is True,
+    str(_al_on),
+)
+R.check(
+    "R10-HOTFIX-AWAY-LIVE null control: with the store inactive the handover is "
+    "republished and the solve keeps the configured band",
+    _al_off[0] and not _al_off[1] and _al_off[2][0] == _al_off[3] and _al_off[2][2] is False,
+    str(_al_off),
+)
+R.check(
+    "R10-HOTFIX-AWAY-LIVE a resolve run before the session restore lands waits "
+    "for it, and plans the stored override's away band",
+    _al_first[0][0] == 15.0 and _al_first[0][2] is True and _al_first[1] is True,
+    str(_al_first),
+)
+R.check(
+    "R10-HOTFIX-AWAY-LIVE a stored override whose return has passed still "
+    "expires at the resolve: home band, override off",
+    _al_lapsed[0][2] is False and _al_lapsed[1] is False and _al_lapsed[0][0] != 15.0,
+    str(_al_lapsed),
+)
+
+
 class _LsPlanStore:
     """A manual-plan store whose load is held on an event; its read future
     is registered on the load's first step, as ``QuarantiningStore`` does."""
@@ -72372,6 +72581,156 @@ R.check(
     "than falling back to the commanded inference (null control: a fresh one folds)",
     _tp_cop_stale == _TP_FROZEN and _tp_cop_fresh != _TP_FROZEN,
     f"stale {_tp_cop_stale!r} fresh {_tp_cop_fresh!r}",
+)
+
+
+# --- R10-COP-GATE item E: the open-window latch freezes only room-air learners --
+# ``_learning_frozen(room_air=False)`` skips the ventilation reason alone. The
+# measured-heat COP paths (a counter span, a measured flow heat) and hot water
+# lift; the inferred COP, the flow-curve bias and every room-air learner keep
+# the freeze (dev/audit/harnesses/r10_cop_gate_vent.py measures each arm).
+from heatpump_optimizer import coordinator as _cv_cm  # noqa: E402
+from heatpump_optimizer import draw_range as _cv_dr  # noqa: E402
+from heatpump_optimizer import heat_energy as _cv_he  # noqa: E402
+from heatpump_optimizer import sysid as _cv_sysid  # noqa: E402
+from heatpump_optimizer.accuracy import COP_REFUSED_SPAN_OPEN as _CV_OPEN  # noqa: E402
+
+
+def _cv_cop(latch, *, counter=False, heat_kw=None, heat_age_min=None):
+    """One COP fold on the real coordinator: (refusal, samples folded).
+
+    ``heat_age_min`` plants a thermal-power entity and reads it through the
+    cycle's own ``observe_water``; otherwise ``heat_kw`` is the flow heat."""
+    c = _t2_coord(heat_pump_power_entity="sensor.hp_power",
+                  **({_TP_KEY: "sensor.heat"} if heat_age_min is not None else {}))
+    c._vent_cusum.tripped = latch
+    if counter:
+        _cv_he.meter_of(c).counter = True
+    if heat_age_min is not None:
+        c.hass.states.set("sensor.heat", FakeState(
+            "6000", last_updated=minutes_ago(heat_age_min + 3, NOW),
+            last_reported=minutes_ago(heat_age_min, NOW), unit="W"))
+        reader = _fmReader(c.hass, c.effective_config, now=lambda: NOW)
+        _fm.observe_water(c._flow_bias, reader, c.effective_config)
+        c._input_health = reader.health
+    else:
+        c._flow_bias.heat_output_kw = heat_kw
+    c._measured_power = 2.0
+    c._current_action = {"power": 2.0}
+    c._current_state.outdoor_temperature = 8.0
+    before = c._cop_samples
+    c._learn_measured_cop()
+    return c._measured_cop.refusal, c._cop_samples - before
+
+
+_cv_counter, _cv_counter0 = _cv_cop(True, counter=True), _cv_cop(False, counter=True)
+R.check(
+    "R10-COP-GATE E: under the window latch a heat-counter install reaches the span "
+    "gate rather than the freeze (null control: latch clear reads the same)",
+    _cv_counter[0] == _CV_OPEN and _cv_counter0[0] == _CV_OPEN,
+    f"latch {_cv_counter!r} clear {_cv_counter0!r}",
+)
+_cv_flow, _cv_flow0 = _cv_cop(True, heat_kw=6.0), _cv_cop(False, heat_kw=6.0)
+R.check(
+    "R10-COP-GATE E: under the window latch a measured flow heat folds its COP "
+    "(null control: latch clear folds too)",
+    _cv_flow == (None, 1) and _cv_flow0 == (None, 1),
+    f"latch {_cv_flow!r} clear {_cv_flow0!r}",
+)
+_cv_stale, _cv_fresh = _cv_cop(True, heat_age_min=45), _cv_cop(True, heat_age_min=1)
+R.check(
+    "R10-COP-GATE E: a stale thermal-power entity read through observe_water still "
+    "freezes the COP fold under the latch (null control: a fresh one folds)",
+    _cv_stale == (_TP_FROZEN, 0) and _cv_fresh == (None, 1),
+    f"stale {_cv_stale!r} fresh {_cv_fresh!r}",
+)
+_cv_inf, _cv_inf0 = _cv_cop(True), _cv_cop(False)
+R.check(
+    "R10-COP-GATE E: an inferred COP (no heat reading) stays frozen under the "
+    "window latch (null control: latch clear passes the freeze)",
+    _cv_inf == (_TP_FROZEN, 0) and _cv_inf0[0] != _TP_FROZEN,
+    f"latch {_cv_inf!r} clear {_cv_inf0!r}",
+)
+
+
+def _cv_dhw(latch):
+    """(probe value, the learner's freeze reason) on a configured tank."""
+    c = _t2_coord(dhw_temp_entity="sensor.tank")
+    c._vent_cusum.tripped = latch
+    c._dhw_temperature = 55.0
+    learner = c._dhw_learner
+
+    async def learn():
+        await learner.async_learn_dynamics(50.0)
+        learner.last_sample_time = dt_util.now() - timedelta(minutes=30)
+        return await learner.async_learn_dynamics(49.8)
+
+    return c._dhw_probe_temperature(), _asyncio.run(learn())
+
+
+_cv_dhw1, _cv_dhw0 = _cv_dhw(True), _cv_dhw(False)
+R.check(
+    "R10-COP-GATE E: hot water learns and the probe answers under the window latch "
+    "(null control: latch clear reads the same)",
+    _cv_dhw1 == (55.0, None) and _cv_dhw0 == (55.0, None),
+    f"latch {_cv_dhw1!r} clear {_cv_dhw0!r}",
+)
+
+
+def _cv_room_air(latch):
+    """What each learner the latch must still freeze does with it set."""
+    out = {}
+    b = _t2_coord(buffer_tank_temp_entity="sensor.buffer")
+    b._vent_cusum.tripped = latch
+    b._learner_freeze_reason = None
+    _asyncio.run(b._async_learn_buffer_cooling(40.0))
+    out["buffer"] = b._learner_freeze_reason
+    d = _t2_coord(heat_pump_power_entity="sensor.hp_power")
+    d._vent_cusum.tripped = latch
+    d._measured_power = 2.0
+    d._pending_prediction = {"when": dt_util.now() - timedelta(minutes=30), "power": 2.0,
+                             "price": None, "predicted_temp": None, "outdoor": None,
+                             "split": (2.0, 0.0)}
+    seen, real = [], _cv_dr.fold
+    _cv_dr.fold = lambda *a, **k: seen.append(k["frozen"])
+    try:
+        d._record_accuracy()
+    finally:
+        _cv_dr.fold = real
+    out["draw_frozen"] = seen
+    s = _t2_coord()
+    s._vent_cusum.tripped = latch
+    s._sysid.phase = _cv_sysid.PHASE_STEP
+    _asyncio.run(s._run_system_identification(np.full(48, 1.0)))
+    out["sysid"] = getattr(s._sysid.result, "reason", None)
+    for name, method, kw in (("house", _HOUSE_LEARNER, {}), ("lower", _LOWER_LEARNER, {"two_zone": True})):
+        h = _t2_house(**kw)
+        h._vent_cusum.tripped = latch
+        before = (h._house_heat_loss_samples, h._thermal_params)
+        _t2_drive(h, method)
+        out[name] = (h._learner_freeze_reason, (h._house_heat_loss_samples, h._thermal_params) == before)
+    f = _t2_coord()
+    f._vent_cusum.tripped = latch
+    f._current_action = {"power": 2.0, "dhw_power": 0.0}
+    f._current_state.outdoor_temperature = -10.0
+    f._flow_bias.observe_temps(30.0, 25.0)
+    before = f._flow_bias.samples
+    _cv_cm._fold_flow_lift(f, dt_util.now())
+    out["flow_bias_folds"] = f._flow_bias.samples - before
+    return out
+
+
+_cv_ra1, _cv_ra0 = _cv_room_air(True), _cv_room_air(False)
+R.check(
+    "R10-COP-GATE E: the buffer, draw range, system identification, house and lower "
+    "floor still freeze on the window latch, and the flow-curve bias takes no sample "
+    "(null control: latch clear, the bias folds and nothing reads ventilation)",
+    _cv_ra1 == {"buffer": "ventilation", "draw_frozen": [True], "sysid": "ventilation",
+                "house": ("ventilation", True), "lower": ("ventilation", True),
+                "flow_bias_folds": 0}
+    and _cv_ra0["flow_bias_folds"] == 1 and _cv_ra0["draw_frozen"] == [False]
+    and "ventilation" not in repr(_cv_ra0),
+    f"latch {_cv_ra1!r} clear {_cv_ra0!r}",
 )
 
 
@@ -73530,7 +73889,7 @@ def _he_heartbeat(reasons):
     c = _t2_coord()
     c._snapshots_loaded = True
     feed = iter(reasons)
-    c._learning_frozen = lambda *keys: next(feed)
+    c._learning_frozen = lambda *keys, **_kw: next(feed)
     saves = []
 
     async def _save():
@@ -73555,5 +73914,323 @@ R.check(
     f"bad {_he_l9_bad.get('healthy')} {_he_l9_bad.get('unhealthy_input')!r}; good "
     f"{_he_l9_good.get('healthy')} {_he_l9_good.get('unhealthy_input')!r}",
 )
+
+R.section("supply switch at step boundaries (#2492, R10-SAV-ACTUATION)")
+# The cycle wrote the power switch once per interval, so a plan step's change
+# reached the pump at the next cycle, and a step's duty verdict depended on
+# where the cycle fell against the step grid. A synthetic install runs the
+# REAL coordinator's ``_apply_action`` at cycle phase 0 and 14 min, every
+# interval timer the arbiter arms fires each minute, the switch's writes are
+# applied to its state, and the meter follows the switch. The cycle's own
+# power sample is taken at the cycle, as ``_update_current_state`` takes it.
+from homeassistant.util import dt as _sa_dt
+from heatpump_optimizer import boost as _sa_boost
+from heatpump_optimizer import pump_arbiter as _sa_pa
+from heatpump_optimizer import store as _sa_store
+
+_SA_T0 = datetime(2026, 1, 10, 6, 0, tzinfo=UTC)
+_SA_DUTIES = "s-ss--s-s---ss-s"
+
+
+def _sa_plan():
+    n = len(_SA_DUTIES)
+    return SimpleNamespace(
+        timestamps=[_SA_T0 + timedelta(minutes=15 * i) for i in range(n)],
+        power_schedule=[1.5 if c == "s" else 0.0 for c in _SA_DUTIES],
+        dhw_power_schedule=[0.0] * n,
+        optimal_setpoints=[21.0] * n,
+    )
+
+
+async def _sa_install(phase, room_cut_at=None):
+    """Verdicts and switch writes of one synthetic install at cycle ``phase``."""
+    ticks = []
+    armed = _sa_pa.async_track_time_interval
+    _sa_pa.async_track_time_interval = lambda _h, fn, _i: (ticks.append(fn), (lambda: None))[1]
+    hass = FakeHass({
+        "switch.hp": FakeState("off", last_updated=_SA_T0),
+        "sensor.hp_power": FakeState("0.0", unit="kW", last_updated=_SA_T0),
+    })
+    coord = Coord(hass, FakeEntry(data={
+        **_LC_DATA, "heat_pump_switch_entity": "switch.hp",
+        "heat_pump_power_entity": "sensor.hp_power", "pump_duty_mode": "observe",
+    }))
+    coord._mode = "auto"
+    plan = coord._optimization_result = _sa_plan()
+    writes = []
+    try:
+        for m in range(15 * len(_SA_DUTIES) + 1):
+            now = _SA_T0 + timedelta(minutes=m)
+            _sa_dt.freeze(now)
+            if m % 30 == phase:
+                coord._last_optimization = now
+                coord._measured_power = float(hass.states.get("sensor.hp_power").state)
+                i = min(m // 15, len(_SA_DUTIES) - 1)
+                _sa_boost.adopt_plan(coord, {"heat_pump_on": _SA_DUTIES[i] == "s", "power": plan.power_schedule[i]})
+                await coord._apply_action()
+            if m == room_cut_at:
+                # An early cut-off, as ``early_cutoff.on_room_event`` writes it.
+                await _sa_pa.switch_supply(hass, "switch.hp", False)
+            for tick in list(ticks):
+                await tick(now)
+            for domain, service, _data in hass.services.calls:
+                if domain == "switch":
+                    writes.append((m, service))
+                    hass.states.set("switch.hp", FakeState(
+                        "on" if service == "turn_on" else "off", last_updated=now))
+            hass.services.calls.clear()
+            on = hass.states.get("switch.hp").state == "on"
+            hass.states.set("sensor.hp_power", FakeState("1.5" if on else "0.0", unit="kW", last_updated=now))
+        verdicts = [r["verdict"] for r in _sa_pa.diagnostics_view(coord)["ledger"]["steps"]]
+    finally:
+        _sa_dt.freeze(None)
+        _sa_pa.async_track_time_interval = armed
+    return verdicts, writes
+
+
+_sa_v0, _sa_w0 = _asyncio.run(_sa_install(0))
+_sa_v14, _sa_w14 = _asyncio.run(_sa_install(14))
+# Step 0 precedes the phase-14 install's first cycle, so it is the one step
+# the two installs may book apart.
+R.check(
+    "a synthetic install at cycle phase 0 and at 14 min books identical duty verdicts (#2492)",
+    len(_sa_v0) == len(_SA_DUTIES) and _sa_v0[1:] == _sa_v14[1:],
+    f"phase 0: {_sa_v0}; phase 14: {_sa_v14}",
+)
+_sa_boundaries = [m for m, _s in _sa_w14 if m % 15 == 0]
+R.check(
+    "the step tick writes the switch at the boundary of each step whose command changes",
+    [m // 15 for m in _sa_boundaries]
+    == [i for i in range(1, len(_SA_DUTIES)) if (_SA_DUTIES[i] == "s") != (_SA_DUTIES[i - 1] == "s")],
+    f"{_sa_w14}",
+)
+# A cut the cycle did not write holds across a step the plan keeps on: the
+# tick writes a change, never the same command again (early_cutoff.py).
+_sa_vc, _sa_wc = _asyncio.run(_sa_install(0, room_cut_at=34))
+R.check(
+    "an early cut-off holds across a step boundary the plan keeps on",
+    [w for w in _sa_wc if 34 < w[0] < 60] == [],
+    f"{_sa_wc}",
+)
+# The tick is a second writer of the switch, between cycles, so it writes only
+# where the cycle's own write would have come from the plan's step. One cycle
+# writes step 0's ON; the tick at step 1, whose plan command is off, writes OFF
+# unless ``guard`` holds the cycle's write off the plan. Each guard's null
+# control is the unguarded run, which writes the OFF.
+async def _sa_guarded(guard=None):
+    ticks, dropped = [], []
+    armed = _sa_pa.async_track_time_interval
+    _sa_pa.async_track_time_interval = lambda _h, fn, _i: (ticks.append(fn), (lambda: dropped.append(fn)))[1]
+    hass = FakeHass({"switch.hp": FakeState("off", last_updated=_SA_T0)})
+    switch = {} if guard == "no_switch" else {"heat_pump_switch_entity": "switch.hp"}
+    coord = Coord(hass, FakeEntry(data={**_LC_DATA, **switch, "pump_duty_mode": "observe"}))
+    coord._mode = "auto"
+    coord._optimization_result = _sa_plan()
+    try:
+        _sa_dt.freeze(_SA_T0)
+        coord._last_optimization = _SA_T0
+        _sa_boost.adopt_plan(coord, {"heat_pump_on": True, "power": 1.5})
+        await coord._apply_action()
+        if guard == "unload":
+            await coord._apply_action()  # a second cycle arms nothing more
+        hass.services.calls.clear()
+        now = _SA_T0 + timedelta(minutes=15)
+        _sa_dt.freeze(now)
+        if guard == "boost":
+            _sa_boost.held_for(coord).until[_sa_boost.CHANNEL_SPACE] = now + timedelta(hours=1)
+        elif guard == "sysid":
+            coord._current_action = {**coord._current_action, "mode": "system_identification"}
+        elif guard == "comfort":
+            coord._mode = "comfort"
+        elif guard == "stale":
+            coord._last_optimization = now - timedelta(days=1)
+        elif guard == "released":
+            coord._entry_released = True
+        elif guard == "short":
+            # The power schedule ends a step before the stamps do; the switch
+            # schedule still names step 1, so only the length guard leaves it.
+            coord._optimization_result = SimpleNamespace(
+                **{**vars(_sa_plan()), "power_schedule": [1.5], "heat_pump_on_schedule": [True, False]})
+        for tick in list(ticks):
+            await tick(now)
+        writes = [service for domain, service, _d in hass.services.calls if domain == "switch"]
+        held = _sa_pa.state_for(coord)
+        armed_before = held.supply_unsub is not None and not dropped
+        if guard == "unload":
+            await _sa_pa.release(coord)
+        return writes, armed_before, dropped == ticks and held.supply_unsub is None
+    finally:
+        _sa_dt.freeze(None)
+        _sa_pa.async_track_time_interval = armed
+
+
+_sa_g = {g: _asyncio.run(_sa_guarded(g)) for g in (
+    None, "boost", "sysid", "comfort", "stale", "released", "short", "unload", "no_switch")}
+R.check(
+    "the step tick writes the plan's OFF at a boundary when nothing holds the cycle's write off the plan",
+    _sa_g[None][0] == ["turn_off"],
+    f"{_sa_g[None]}",
+)
+for _sa_name, _sa_key in (
+    ("a live boost across a boundary whose plan step is off", "boost"),
+    ("a system_identification action", "sysid"),
+    ("a fixed (comfort) mode", "comfort"),
+    ("a stale plan", "stale"),
+    ("a released entry", "released"),
+    ("a step past the plan's power schedule", "short"),
+):
+    R.check(
+        f"the step tick writes nothing at a boundary under {_sa_name}",
+        _sa_g[_sa_key][0] == [],
+        f"{_sa_g[_sa_key]}",
+    )
+R.check(
+    "unload drops the one step tick two cycles armed",
+    _sa_g["unload"][1] is True and _sa_g["unload"][2] is True and _sa_g[None][2] is False,
+    f"unload {_sa_g['unload']}; kept {_sa_g[None]}",
+)
+R.check(
+    "an install with no supply switch arms no step tick, where one with a switch arms it",
+    _sa_g["no_switch"][:2] == ([], False) and _sa_g[None][1] is True,
+    f"no switch {_sa_g['no_switch']}; switch {_sa_g[None]}",
+)
+# The tick writes through the cycle's gate, ``_write_supply``, never around
+# it: the cut-off's MIN_OFF hold and the blocked-mode OFF skip each hold the
+# tick's write, and each null control is the same run with the gate inactive.
+from heatpump_optimizer import early_cutoff as _sa_ec
+
+
+async def _sa_gate_tick(cut=False, blocked=False):
+    """The switch writes of the 06:00 and 06:15 ticks, through the real coordinator.
+
+    A cycle at 05:45 writes ON; the 06:00 step is off and the 06:15 step on.
+    With ``cut``, an early cut-off is on record at 06:10, as ``on_room_event``
+    records it; with ``blocked``, the pump's mode blocks both channels.
+    """
+    ticks = []
+    armed = _sa_pa.async_track_time_interval
+    _sa_pa.async_track_time_interval = lambda _h, fn, _i: (ticks.append(fn), (lambda: None))[1]
+    hass = FakeHass({"switch.hp": FakeState("off", last_updated=_SA_T0)})
+    coord = Coord(hass, FakeEntry(data={**_LC_DATA, "heat_pump_switch_entity": "switch.hp", "pump_duty_mode": "observe"}))
+    coord._mode = "auto"
+    t0 = _SA_T0 - timedelta(minutes=15)
+    duties = "s-ss"
+    coord._optimization_result = SimpleNamespace(
+        timestamps=[t0 + timedelta(minutes=15 * i) for i in range(len(duties))],
+        power_schedule=[1.5 if c == "s" else 0.0 for c in duties],
+        dhw_power_schedule=[0.0] * len(duties),
+        optimal_setpoints=[21.0] * len(duties),
+    )
+    try:
+        _sa_dt.freeze(t0)
+        coord._last_optimization = t0
+        _sa_boost.adopt_plan(coord, {"heat_pump_on": True, "power": 1.5})
+        await coord._apply_action()
+        if blocked:
+            coord._pump_signals = PumpSignals(
+                mode=pump_mode.ModeCapability(key="off", label="Off", space_heat=False, dhw=False),
+                mode_observed=True)
+        writes = {}
+        for minutes in (15, 30):
+            now = t0 + timedelta(minutes=minutes)
+            if cut and minutes == 30:
+                _sa_ec.state_for(coord).cut_at = _SA_T0 + timedelta(minutes=10)
+            hass.services.calls.clear()
+            _sa_dt.freeze(now)
+            for tick in list(ticks):
+                await tick(now)
+            writes[now.strftime("%H:%M")] = [s for d, s, _d in hass.services.calls if d == "switch"]
+        return writes
+    finally:
+        _sa_dt.freeze(None)
+        _sa_pa.async_track_time_interval = armed
+
+
+_sa_cut, _sa_open = _asyncio.run(_sa_gate_tick(cut=True)), _asyncio.run(_sa_gate_tick())
+R.check(
+    "the step tick inside MIN_OFF of an early cut-off writes no turn_on at a step the plan turns on",
+    "turn_on" not in _sa_cut["06:15"],
+    f"{_sa_cut}",
+)
+R.check(
+    "null control: the same tick with no cut on record turns the switch on as the plan says",
+    _sa_open["06:15"] == ["turn_on"],
+    f"{_sa_open}",
+)
+_sa_blk = _asyncio.run(_sa_gate_tick(blocked=True))
+R.check(
+    "the step tick writes nothing at a step the plan turns off while the pump's mode blocks both channels",
+    _sa_blk["06:00"] == [],
+    f"{_sa_blk}",
+)
+R.check(
+    "null control: the same tick in a mode that blocks nothing writes the plan's OFF",
+    _sa_open["06:00"] == ["turn_off"],
+    f"{_sa_open}",
+)
+# The tick acts on a new step only: inside a step it writes nothing, though
+# the step's command changes under it, as when a boost starts mid-step
+# (``supply_tick``'s new-step guard). A cycle at 07:00 writes the plan's OFF;
+# a boost starts at 07:05. The null control is the 07:15 boundary, where the
+# same tick writes the boost's ON.
+async def _sa_mid_step():
+    ticks = []
+    armed = _sa_pa.async_track_time_interval
+    _sa_pa.async_track_time_interval = lambda _h, fn, _i: (ticks.append(fn), (lambda: None))[1]
+    hass = FakeHass({"switch.hp": FakeState("off", last_updated=_SA_T0)})
+    coord = Coord(hass, FakeEntry(data={**_LC_DATA, "heat_pump_switch_entity": "switch.hp", "pump_duty_mode": "observe"}))
+    coord._mode = "auto"
+    coord._optimization_result = _sa_plan()
+    t0 = _SA_T0 + timedelta(hours=1)
+    try:
+        _sa_dt.freeze(t0)
+        coord._last_optimization = t0
+        _sa_boost.adopt_plan(coord, {"heat_pump_on": False, "power": 0.0})
+        await coord._apply_action()
+        writes = {"07:00": [s for d, s, _d in hass.services.calls if d == "switch"]}
+        hass.states.set("switch.hp", FakeState("off", last_updated=t0))
+        _sa_boost.held_for(coord).until[_sa_boost.CHANNEL_SPACE] = t0 + timedelta(hours=1)
+        for minutes in (6, 10, 15):
+            now = t0 + timedelta(minutes=minutes)
+            hass.services.calls.clear()
+            _sa_dt.freeze(now)
+            for tick in list(ticks):
+                await tick(now)
+            writes[now.strftime("%H:%M")] = [s for d, s, _d in hass.services.calls if d == "switch"]
+        return writes
+    finally:
+        _sa_dt.freeze(None)
+        _sa_pa.async_track_time_interval = armed
+
+
+_sa_mid = _asyncio.run(_sa_mid_step())
+R.check(
+    "the step tick writes nothing inside a step whose boost starts mid-step",
+    _sa_mid["07:00"] == ["turn_off"] and _sa_mid["07:06"] == [] and _sa_mid["07:10"] == [],
+    f"{_sa_mid}",
+)
+R.check(
+    "null control: the same tick at the next boundary writes the boost's ON",
+    _sa_mid["07:15"] == ["turn_on"],
+    f"{_sa_mid}",
+)
+# The pump_duty record's held slots are declared, every one the arbiter can
+# write: the silent switch (D15 L5) and the GCHV night registers (#1913).
+_sa_record = {"written": {
+    **{slot: [v, _SA_T0.isoformat()] for slot, v in (
+        ("mode", "Heating"), ("dhw_setpoint", 50.0), ("space_setpoint", 35.0), ("silent", True),
+        ("night_start_hour", 22), ("night_start_minute", 0), ("night_end_hour", 6), ("night_end_minute", 30),
+    )},
+}}
+R.check(
+    "every slot the pump arbiter persists is declared in the pump_duty store domain",
+    sorted(_sa_record["written"]) == sorted(_sa_pa._SLOTS + _sa_pa._NIGHT_SLOTS)
+    and _sa_store.off_domain("heatpump_optimizer_e_pump_duty", _sa_record) == []
+    and _sa_store.off_domain(
+        "heatpump_optimizer_e_pump_duty", {"written": {"silent": ["on", _SA_T0.isoformat()]}}
+    ) == ["written/silent/0"],
+    f"{_sa_store.off_domain('heatpump_optimizer_e_pump_duty', _sa_record)}",
+)
+
 
 sys.exit(R.close("FEATURE CHECKS"))

@@ -6172,6 +6172,31 @@ R.check(
     f"{_cg_view!r}",
 )
 
+# R10-COP-GATE part 5 (A): the observed-COP sensor is unavailable exactly when
+# the install is not measurable, so Home Assistant hides its attributes from
+# the card; the model status sensor's ``cop`` row carries the same three keys
+# under their own names, copied from the learning view, never re-derived.
+_cg_keys = ("cop_observability", "cop_refusal", "measured_cop_at")
+_cg_status_view = {
+    obs: {
+        k: sensor.ModelStatusSensor(FakeCoordinator(ent.coordinator.data), ENTRY)
+        .extra_state_attributes["cop"].get(k, "<absent>")
+        for k in _cg_keys
+    }
+    for obs, ent in _cg_cop.items()
+}
+R.check(
+    "the model status sensor's cop row carries cop_observability, "
+    "cop_refusal and measured_cop_at as the learning view publishes them, "
+    "while the not-measurable observed-COP sensor is unavailable",
+    not _cg_cop["not_measurable"].available
+    and all(
+        _cg_status_view[obs] == {k: ent.coordinator.data[k] for k in _cg_keys}
+        for obs, ent in _cg_cop.items()
+    ),
+    f"{_cg_status_view!r}",
+)
+
 # --- a failed refresh reaches every entity ----------------------------------
 R.section("A failed refresh reaches every entity")
 
@@ -34160,6 +34185,41 @@ R.check(
     f"picked={_MUT_NULL and (_MUT_NULL['line'], _MUT_NULL['new'])}: not the "
     "string that looks like one, not a trailing comment on a code line",
 )
+# #2997 (R10-UX-HEALTH): the null control took only a comment line under 60
+# characters, indentation included, a cap with no recorded reason and no
+# reader -- no driver measures a line's width -- so button.py, whose comments
+# are all longer or indented past it, refused `tests / mutation` whatever
+# the pool pinned. A comment line of any width and indent is the null control.
+_MUT_NULL_LONG = _tempfile.NamedTemporaryFile("w", suffix=".py", delete=False)
+_MUT_NULL_LONG.write(
+    "def f():\n"
+    "    if True:\n"
+    "            # indented so the whole line passes sixty, short stripped\n"
+    "        return 1\n"
+    "# a top-level comment whose own text alone runs well past sixty chars\n")
+_MUT_NULL_LONG.close()
+_MUT_NULL_NONE = _tempfile.NamedTemporaryFile("w", suffix=".py", delete=False)
+_MUT_NULL_NONE.write('X = "# not a comment"\nY = 1  # trailing\n')
+_MUT_NULL_NONE.close()
+_MUT_NULL_L = _mut.null_control(Path(_MUT_NULL_LONG.name))
+_MUT_NULL_N = _mut.null_control(Path(_MUT_NULL_NONE.name))
+_MUT_NULL_FOR_N = _mut.null_for([{"file": _MUT_NULL_NONE.name}])
+Path(_MUT_NULL_LONG.name).unlink()
+Path(_MUT_NULL_NONE.name).unlink()
+R.check(
+    "a comment line past sixty characters, by indent or by its own text, is "
+    "still the null control; a pool with no comment line still refuses",
+    # The preconditions: both comment lines of the fixture are past sixty
+    # in full, so the old cap admitted neither.
+    all(len(_l) > 60 for _l in (
+        "            # indented so the whole line passes sixty, short stripped",
+        "# a top-level comment whose own text alone runs well past sixty chars"))
+    and _MUT_NULL_L is not None and _MUT_NULL_L["line"] == 3
+    and _MUT_NULL_L["new"] == _MUT_NULL_L["old"] + " (null control)"
+    and _MUT_NULL_N is None and _MUT_NULL_FOR_N is None,
+    f"long={_MUT_NULL_L and _MUT_NULL_L['line']!r} "
+    f"none={_MUT_NULL_N!r} pool-none={_MUT_NULL_FOR_N!r}",
+)
 R.check(
     "a run whose null control did not survive is refused",
     _mut.null_control_refusal("f.py:3 NULL_COMMENT", "LIVES") is None
@@ -40158,7 +40218,8 @@ _R10_COVERING_ALLOWED = {
                                                "entry is documented extrapolation, never published as current"),
     ("early_cutoff.py", "_planned_room"): (1, "index-bounded against the plan's own trajectory"),
     ("pump_arbiter.py", "_planned_room"): (1, "its caller's step_duty is None past the plan end"),
-    ("pump_arbiter.py", "step_duty"): (1, "returns None past the plan's last step"),
+    ("pump_arbiter.py", "_step_index"): (1, "returns None past the plan's last step; "
+                                             "step_duty and step_supply read it (#2492)"),
     ("pump_arbiter.py", "_share"): (1, "bounded by the plan's last step"),
 }
 

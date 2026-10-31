@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_draws.py:DrawStats.from_dict CLAMP_DROP 1829276f",
+  "killed_by": "tests/finite_boundary.py",
+  "old": "            stats._open_kwh = max(0.0, float(data.get(\"open_kwh\", 0.0)))",
+  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`stats._open_kwh = (0.0)`) took tests/finite_boundary.py from rc=0 failed=0 to rc=1 failed=2."
+}
