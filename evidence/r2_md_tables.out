@@ -1,0 +1,9 @@
+## null
+RESULT doc_orphaned_table_rows=0 count
+RESULT doc_misrendered_lines=0 count
+## own line above README:686
+RESULT doc_orphaned_table_rows=1 count
+RESULT doc_misrendered_lines=1 count
+## inline last cell
+RESULT doc_orphaned_table_rows=0 count
+RESULT doc_misrendered_lines=0 count
