@@ -515,6 +515,7 @@ SCHEMAS = {
     "clear_manual_plan": svc.SERVICE_SCHEMA_CLEAR_MANUAL_PLAN,
     "restore_learned_snapshot": svc.SERVICE_SCHEMA_RESTORE_SNAPSHOT,
     "diagnose_interval": svc.SERVICE_SCHEMA_DIAGNOSE_INTERVAL,
+    "reset_heat_loss_learners": svc.SERVICE_SCHEMA_RESET_HEAT_LOSS,
     "debug_collect": svc.SERVICE_SCHEMA_DEBUG_COLLECT,
 }
 # The label is the sentence's own number, as C26's is: a label frozen at
