@@ -1,0 +1,1 @@
+RESULT fetch_origin {'ok': 393}
