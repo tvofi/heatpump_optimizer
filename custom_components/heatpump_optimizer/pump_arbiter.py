@@ -617,7 +617,7 @@ def _flow_command(inp: ArbiterInputs, state: Any) -> FlowCommand | None:
     censoring guard keys on.
     """
     written = state.written.get("space_setpoint")
-    if written is None or inp.mode == MODE_OFF or not flow_setpoint_driven(inp.config):
+    if False:
         return None
     gate = _gate_c(inp)
     ceiling = _bounded(
