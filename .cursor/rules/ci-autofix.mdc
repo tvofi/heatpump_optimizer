@@ -68,7 +68,6 @@ every unrelated `fast` failure): its summary line is its only signal.
 | `UNDER-SCOPED`, INERT READS | `closures-autofix` | `ci: re-record closures` | `closure.apply_under_scoped_recordings` |
 | `INHERITED CLAIMS` | `claims-autofix` | `ci: drop inherited claims` | `env_drift.apply_inherited_claims` |
 | unpinned sites | `mutation-autofix` | `ci: pin killed mutants` | `mutation_table.apply_pins` |
-| no null control | none | none | `ci_predict.null_control_preds` predicts it; add a whole-line comment |
 
 Those subjects are loop guards. The job dispatches `ci.yml -f pr -f base` once;
 a `GITHUB_TOKEN` push's `pull_request` runs are held `action_required`, so the required `gate` and the `tests / *` units are ABSENT at a bot head
