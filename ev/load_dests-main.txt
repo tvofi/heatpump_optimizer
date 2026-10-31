@@ -1,0 +1,35 @@
+def load_dests(repo: Path = ROOT, ref: str | None = None, briefs_dir: str | None = None,
+               issue_state=None) -> Dests:
+    # A carry file's destination issue is its own `issue` field (brief_lint.mjs
+    # owns the file-name grammar and refuses a name that disagrees with it).
+    round_roster = None
+    if ref:
+        roster = roster_lib.show_roster(str(repo), ref)
+        r = subprocess.run(["git", "-C", str(repo), "ls-tree", "--name-only", ref, CARRIES_DIR + "/"],
+                           capture_output=True, text=True)
+        texts = [subprocess.run(["git", "-C", str(repo), "show", f"{ref}:{n}"], capture_output=True,
+                                text=True).stdout for n in r.stdout.split() if n.endswith(".json")]
+    else:
+        git = roster_lib.git_in(str(repo))
+        # A checkout behind origin/main reads main's roster, not its own stale
+        # one (P98: a detached checkout 387 commits behind refused groups open
+        # on main). One containing it keeps its tree, so a pull request's own
+        # new group still counts. Only rc 1 ("not an ancestor") is stale: a
+        # clone without origin/main answers 128 and keeps its tree. A shallow
+        # clone also keeps it: its walk stops at the graft and answers 1 for an
+        # ancestor it cannot reach, so ancestry there is unknowable.
+        shallow = git(["rev-parse", "--is-shallow-repository"])[1].strip() == "true"
+        if not shallow and git(["merge-base", "--is-ancestor", roster_lib.MAIN_REF, "HEAD"])[0] == 1:
+            roster = roster_lib.show_roster(str(repo), roster_lib.MAIN_REF)
+            print(f"NOTE stale tree: {git(['rev-parse', 'HEAD'])[1].strip()} lacks {roster_lib.MAIN_REF} "
+                  f"{git(['rev-parse', roster_lib.MAIN_REF])[1].strip()}; roster read at {roster_lib.MAIN_REF}")
+        else:
+            roster = roster_lib.load_roster_file(str(repo / roster_lib.roster_path(str(repo))))
+        texts = [p.read_text() for p in sorted((repo / CARRIES_DIR).glob("*.json"))]
+        # The tree's roster lags the round's branch (finding-propagation.md);
+        # a branch this clone lacks is skipped, which only narrows what passes.
+        rref = roster_lib.round_ref(git)
+        if rref and not git(["rev-parse", "--verify", "--quiet", rref + "^{commit}"])[0]:
+            round_roster = (rref, roster_lib.show_roster(str(repo), rref))
+    carry = set()
+    for t in texts:
