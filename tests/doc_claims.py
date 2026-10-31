@@ -4322,9 +4322,12 @@ def check_surface_coverage() -> None:
 # version (a minimum Home Assistant release, the fork's attribution) goes in STATELESS_EXEMPT with its reason.
 _HISTORY = re.compile(r"(?i:\bnew in\b|\bsince (?:v\d|version\b|#\d)|\bpreviously\b|\bno longer\b|\bused to\b"
                       r"|\buntil v\d|\bas before\b|\brenamed from\b|\bround \d"
-                      r"|\b(?:earlier|older)\s+(?:versions?|releases?)\b|\b(?:versions?|releases?)\s+(?:older|newer)\s+than\b"
+                      r"|\b(?:earlier|older)\s+(?:versions?|releases?)\b"
+                      r"|\b(?:versions?|releases?)\s+(?:older|newer)\s+than\b"
                       r"|\bupgraded\s+from\b|\bthe\s+upgrade\b|\bbreaking\s+change\b"
-                      r"|\b(?:is|are)\s+now\b(?:[^.;\n]|\.\d|\n(?!\s*\n)){0,40}?\brather\s+than\b)|\bv\d+\.\d+|(?<![\w&])#\d{3,}\b|\bR\d+-|(?<![\w.])\d+\.\d+\.\d+\b")
+                      r"|\b(?:is|are)\s+now\b(?:[^.;\n]|\.\d|\n(?!\s*\n)){0,40}?\brather\s+than\b)"
+                      r"|\bv\d+\.\d+|(?<![\w&])#\d{3,}\b|\bR\d+-"
+                      r"|(?<![\w.])\d+\.\d+\.\d+\b")
 # `used to` in its purpose sense ("is used to size the tank", "Used to ..."), which states what a thing does now.
 _PURPOSE = re.compile(r"(?:^|[.!?|]\s*|,\s*|\b(?:is|are|only|also)\s+)$", re.I)
 # (page, fragment, reason): a literal use of a lexicon phrase. Each fragment must match exactly once on its page.
