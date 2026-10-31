@@ -1449,6 +1449,33 @@ def _self_test() -> int:
     check("set-stage done with every carry marked writes done (null control)",
           rc == 0 and at_mark("R9-B")["resume"]["stage"] == "done",
           (rc, at_mark("R9-B")["resume"], out[-300:]))
+    # A carry moves only to an open group, and a mark's value never holds the
+    # `]` that would end carry_mark's grammar early (review X7, X8). R9-A is
+    # put in each closed stage in turn; each refusal leaves the branch where it
+    # was, and the null controls -- an open destination, a plain value -- land.
+    edit("append-carry", "R9-B", "carry four", branch="mark-1")
+    edit("append-carry", "R9-B", "carry five", branch="mark-1")
+    for closed in roster_lib.CARRY_CLOSED:
+        edit("set-stage", "R9-A", closed, branch="mark-1")
+        t1 = tip("mark-1")
+        rc, out = mark("3", "moved", "R9-A")
+        check(f"mark-carry refuses moved to a {closed} group",
+              rc not in (0, None) and f"moved R9-A is {closed}" in out
+              and tip("mark-1") == t1, (rc, out[-300:]))
+    t1 = tip("mark-1")
+    rc, out = mark("3", "dismissed", "a]b")
+    check("mark-carry refuses a value holding ']'",
+          rc not in (0, None) and "holds no ']'" in out
+          and tip("mark-1") == t1, (rc, out[-300:]))
+    edit("set-stage", "R9-A", "in-progress", branch="mark-1")
+    rc, out = mark("3", "moved", "R9-A")
+    check("mark-carry moved to an open group lands (null control)",
+          rc == 0 and at_mark("R9-B")["carry"][3] == "carry four [moved: R9-A]",
+          (rc, out[-300:]))
+    rc, out = mark("4", "dismissed", "ab")
+    check("mark-carry with a plain value lands (null control)",
+          rc == 0 and at_mark("R9-B")["carry"][4] == "carry five [dismissed: ab]",
+          (rc, out[-300:]))
     # The cut-over: a carry on a closed group at the cut-over commit is legacy
     # and never pending; one appended after it is.
     edit("set-stage", "R9-A", "done", branch="mark-1")
@@ -1470,6 +1497,17 @@ def _self_test() -> int:
         check("set-resume --field stage done reads the same rule",
               rc == 0 and at_mark("R9-A")["resume"]["stage"] == "carries-open"
               and "set-resume R9-A: done -> carries-open" in out, (rc, out[-300:]))
+        # An unreadable cut-over refuses the stage write and writes nothing
+        # (review X6): read as "no legacy", the legacy carry would be pending.
+        # The readable null is the "legacy carry alone" check above.
+        roster_lib.CARRY_CUTOVER[FIXTURE_ROSTER] = "f" * 40
+        t1 = tip("mark-1")
+        for op, kw in (("set-stage", {}), ("set-resume", {"field": "stage"})):
+            rc, out = said(lambda: edit(op, "R9-A", "done", branch="mark-1",
+                                        **kw))
+            check(f"{op} refuses an unreadable cut-over and writes nothing",
+                  rc == 2 and "the carry cut-over is unreadable" in out
+                  and tip("mark-1") == t1, (rc, out[-300:]))
     finally:
         roster_lib.CARRY_CUTOVER.clear()
         roster_lib.CARRY_CUTOVER.update(saved)
