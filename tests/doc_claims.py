@@ -4314,14 +4314,27 @@ def check_surface_coverage() -> None:
 # The stateless arm (design section 4, item 2): the user pages state how the integration works, never how it came to
 # work that way -- RELEASE_NOTES.md is where the history lives. Every phrase has word boundaries: a bare `used to`
 # matches "Refused together" (carry udf-used-to-boundary). The bare word "now" is not in the lexicon: its hits are
-# "right now" and a UI label ("Finish setup now"), not history.
+# "right now" and a UI label ("Finish setup now"), not history. The second line is the round-2 widening (fix review of
+# #3048): "earlier/older versions", "versions older than", "upgraded from", "the upgrade", "is now X rather than Y",
+# "breaking change", and a bare three-part version number, which states a release, not a behaviour. "now ... rather
+# than" needs the "is/are" before it, so "snaps back to now rather than show a past" stays a statement; its gap
+# admits a decimal point ("now 1.0 rather than") and a wrapped line, never a sentence end. A literal
+# version (a minimum Home Assistant release, the fork's attribution) goes in STATELESS_EXEMPT with its reason.
 _HISTORY = re.compile(r"(?i:\bnew in\b|\bsince (?:v\d|version\b|#\d)|\bpreviously\b|\bno longer\b|\bused to\b"
-                      r"|\buntil v\d|\bas before\b|\brenamed from\b|\bround \d)|\bv\d+\.\d+|(?<![\w&])#\d{3,}\b"
-                      r"|\bR\d+-")
+                      r"|\buntil v\d|\bas before\b|\brenamed from\b|\bround \d"
+                      r"|\b(?:earlier|older)\s+(?:versions?|releases?)\b|\b(?:versions?|releases?)\s+(?:older|newer)\s+than\b"
+                      r"|\bupgraded\s+from\b|\bthe\s+upgrade\b|\bbreaking\s+change\b"
+                      r"|\b(?:is|are)\s+now\b(?:[^.;\n]|\.\d|\n(?!\s*\n)){0,40}?\brather\s+than\b)|\bv\d+\.\d+|(?<![\w&])#\d{3,}\b|\bR\d+-|(?<![\w.])\d+\.\d+\.\d+\b")
 # `used to` in its purpose sense ("is used to size the tank", "Used to ..."), which states what a thing does now.
 _PURPOSE = re.compile(r"(?:^|[.!?|]\s*|,\s*|\b(?:is|are|only|also)\s+)$", re.I)
 # (page, fragment, reason): a literal use of a lexicon phrase. Each fragment must match exactly once on its page.
-STATELESS_EXEMPT: tuple[tuple[str, str, str], ...] = ()
+STATELESS_EXEMPT: tuple[tuple[str, str, str], ...] = (
+    ("README.md", "Home Assistant: 2025.2.0+", "the minimum Home Assistant release, stated on the badge"),
+    ("README.md", "Home Assistant 2025.2.0 or newer", "the minimum Home Assistant release, stated as a requirement"),
+    ("README.md", "Home Assistant 2025.2.0 and Python", "the minimum Home Assistant release, stated at installation"),
+    ("README.md", "at version 2.2.0", "the fork's attribution names the upstream release it began from, as NOTICE does"),
+    ("README.md", "Versions 2.3.0 onward", "the fork's attribution names which releases are this fork's own work"),
+)
 
 
 def _blank(m: re.Match) -> str:
@@ -4370,15 +4383,25 @@ def check_stateless() -> None:
     bad = stateless_findings(pages)
     R.check("no user page carries a history phrase outside a reasoned exemption",
             not bad, "; ".join(bad[:4]) + (f" (+{len(bad) - 4})" if len(bad) > 4 else ""))
-    for plant in ("This mode is new in v9.", "The card previously showed the price."):
-        got = stateless_findings({"probe.md": f"# T\n\n{plant}\n"})
-        R.check(f"red fixture: {plant!r} is a finding", len(got) >= 1, repr(got))
+    for plant in ("This mode is new in v9.", "The card previously showed the price.",
+                  "Earlier versions sized the dialog from a guess.", "Older releases kept the slab warm.",
+                  "It reads the old ids, for integration versions older than the move.",
+                  "An install upgraded from the first layout keeps its ids.",
+                  "A learned derate survives the upgrade.", "Its upper clamp is now 1.0 rather than 1.05.",
+                  "The new floor was a breaking change.", "The card reads both ids before 2.6.1 too."):
+        got = stateless_findings({"probe.md": f"# T\n\n{plant}\n"}, ())
+        R.check(f"red fixture: {plant!r} is exactly one finding", len(got) == 1, repr(got))
+    R.check("null control: the widened terms' current-behaviour neighbours (\"back to now rather than\", \"the older "
+            "hourly clock\", \"an upgrade seems\", a calendar month \"2026.11\", a decimal \"0.55\") are not findings",
+            not stateless_findings({"probe.md": "# T\n\nThe window snaps back to now rather than show a past. 60 keeps "
+                                                "the older hourly clock. If an upgrade seems to change nothing, reload. "
+                                                "From Home Assistant 2026.11 the derate floor is 0.55. Run `2.6.1`.\n"}, ()))
     R.check("null control: \"previous day\", a purpose-sense \"is used to\", \"Refused together\", a code span and "
             "a link anchor are not findings",
             not stateless_findings({"probe.md": "# T\n\nThe previous day's cost. The sensor is used to size the tank."
-                                                " Refused together. Run `v9.1 previously`. See [x](#1234-x).\n"}))
+                                                " Refused together. Run `v9.1 previously`. See [x](#1234-x).\n"}, ()))
     R.check("red fixture: a history-sense \"used to\" is a finding",
-            len(stateless_findings({"probe.md": "# T\n\nThe card used to draw the price.\n"})) == 1)
+            len(stateless_findings({"probe.md": "# T\n\nThe card used to draw the price.\n"}, ())) == 1)
     R.check("red fixture: an exemption that matches no fragment is a finding",
             any("matches 0 times" in g for g in stateless_findings(pages, (("README.md", "no such words", "a b"),))))
 
