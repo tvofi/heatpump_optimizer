@@ -367,7 +367,7 @@ if TYPE_CHECKING:  # annotations only; tests/hastub carries neither name
 
 _LOGGER = logging.getLogger(__name__)
 _create_issue = issues.create_issue
-# The learned scale's store key and published attribute are this config key.
+# The learned scale's store key and published attribute are this config key. (null control)
 _COP_STORE_KEY = CONF_COP_SCALE
 
 # Forecast wind speed arrives in whatever unit the user's Home Assistant is
