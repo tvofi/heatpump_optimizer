@@ -48,7 +48,9 @@ blueprint:
         Later the same day, send one more notification when a replan brings a
         cheaper window that is not yet open and overlaps no window the plan
         had before. A window the replan only moved or split, which still
-        overlaps one already announced, sends nothing.
+        overlaps one already announced, sends nothing, and neither does the
+        sensor coming back from unavailable, whose previous state carried no
+        windows to compare against.
       default: true
       selector:
         boolean: {}
@@ -117,6 +119,10 @@ condition:
       - condition: and
         conditions:
           - "{{ notify_on_replan }}"
+          - >-
+            {% set prev = trigger.from_state if trigger.from_state is defined
+            else none %}{{ prev is not none and prev.state not in
+            ['unavailable', 'unknown'] }}
           - "{{ now() >= today_at(send_time) }}"
           - "{{ now() < today_at(followup_until) }}"
           - >-

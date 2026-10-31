@@ -42625,7 +42625,9 @@ from types import SimpleNamespace as _WfNS
 
 _wf_probe_coord = _WfNS(
     _config=EntryConfig.from_mapping(_wf_cfg),
-    _external_heat=_WfNS(suppressing=False),
+    # The real detector, fresh (not suppressing): a namespace with only
+    # `suppressing` let a mutant reach a method the stub never had.
+    _external_heat=ExternalHeatDetector(),
     _opt_config=_WfNS(min_temp=19.0, dt_hours=1.0),
     _thermal_params=_WfNS(two_tank_modelled=False),
     _thermal_model=_WfNS(compute_cop=lambda _t: 3.0),

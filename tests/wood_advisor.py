@@ -417,7 +417,9 @@ if _Env is not None:
         def cond(c):
             if isinstance(c, str):
                 return _render(c, ctx) is True
-            parts = [cond(x) for x in c["conditions"]]
+            # Lazy, as Home Assistant's or/and conditions stop at the first
+            # decisive member.
+            parts = (cond(x) for x in c["conditions"])
             return any(parts) if c["condition"] == "or" else all(parts)
 
         sent = all(cond(c) for c in _BP["condition"])
@@ -429,8 +431,9 @@ if _Env is not None:
         }
 
     class _State:
-        def __init__(self, attrs):
+        def __init__(self, attrs, state="on"):
             self.attributes = attrs
+            self.state = state
 
     _daily = {"id": "daily"}
     _sent, _note = _run(_attrs, _DAY0.replace(hour=6), _daily)
@@ -442,6 +445,20 @@ if _Env is not None:
         and "between 05:00 and 06:00" in _note["message"]
         and _note["action"] == "notify.mobile_app_pixel_8",
         repr((_sent, _note)),
+    )
+    _sent_daily_off, _ = _run(_attrs, _DAY0.replace(hour=6), _daily, notify_on_replan=False)
+    _all_open = {
+        **_attrs,
+        "cheaper_windows": [{"start": _at(5), "end": _at(8)}],
+        "lighting_start": _at(5),
+        "lighting_end": _at(5),
+    }
+    _sent_daily_open, _ = _run(_all_open, _DAY0.replace(hour=6), _daily)
+    R.check(
+        "the daily send fires on its own trigger: with the follow-up off, and "
+        "on a day whose only window is already open at the send time",
+        _sent_daily_off is True and _sent_daily_open is True,
+        repr((_sent_daily_off, _sent_daily_open)),
     )
     _sent_null, _ = _run(_null_attrs, _DAY0.replace(hour=6), _daily)
     R.check(
@@ -503,6 +520,41 @@ if _Env is not None:
         "overlaps one, sends nothing",
         not any(_reshape_sent.values()),
         repr(_reshape_sent),
+    )
+    _back = {
+        "id": "replan",
+        "from_state": _State({}, state="unavailable"),
+        "to_state": _State(_attrs),
+    }
+    _sent_back = _run(_attrs, _DAY0.replace(hour=10), _back)[0]
+    _sent_unknown = _run(
+        _attrs, _DAY0.replace(hour=10), {**_back, "from_state": _State({}, state="unknown")}
+    )[0]
+    _sent_nofrom = _run(_attrs, _DAY0.replace(hour=10), {**_back, "from_state": None})[0]
+    R.check(
+        "the sensor coming back from unavailable or unknown, or first appearing, "
+        "re-announces nothing: there is no previous window list to compare",
+        _sent_back is False and _sent_unknown is False and _sent_nofrom is False,
+        repr((_sent_back, _sent_unknown, _sent_nofrom)),
+    )
+    _flush_attrs = {**_attrs, "cheaper_windows": [_w1, _w2, {"start": _at(20), "end": _at(21)}]}
+    _flush = {
+        "id": "replan",
+        "from_state": _State(_attrs),
+        "to_state": _State(_flush_attrs),
+    }
+    _sent_flush = _run(_flush_attrs, _DAY0.replace(hour=10), _flush)[0]
+    _before_attrs = {**_attrs, "cheaper_windows": [_w1, {"start": _at(16), "end": _at(17)}, _w2]}
+    _sent_before = _run(
+        _before_attrs, _DAY0.replace(hour=10),
+        {**_flush, "to_state": _State(_before_attrs)},
+    )[0]
+    R.check(
+        "a new window flush against an announced one, after it (20:00-21:00 "
+        "against 17:00-20:00) or before it (16:00-17:00), shares no time with "
+        "it, so it is new and follows up",
+        _sent_flush is True and _sent_before is True,
+        repr((_sent_flush, _sent_before)),
     )
     _late_attrs = {
         **_attrs,
