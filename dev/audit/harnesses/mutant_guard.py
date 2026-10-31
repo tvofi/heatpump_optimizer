@@ -140,10 +140,10 @@ def _self_test() -> int:
 
     tmp = Path(tempfile.mkdtemp(prefix="mutguard-"))
     try:
-        env = {**os.environ, "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@x", "GIT_COMMITTER_NAME": "t",
-               "GIT_COMMITTER_EMAIL": "t@x"}
+        sys.path.insert(0, str(ROOT / "tests"))
+        from throwaway_git import throwaway_git_init
+        env = throwaway_git_init(tmp, "-q")
         git = lambda *a: subprocess.run(["git", "-C", str(tmp), *a], check=True, capture_output=True, env=env)  # noqa: E731
-        git("init", "-q")
         (tmp / "f.txt").write_text("clean\n")
         git("add", "f.txt")
         git("commit", "-q", "-m", "x")
