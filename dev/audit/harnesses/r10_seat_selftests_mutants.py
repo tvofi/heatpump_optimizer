@@ -453,6 +453,8 @@ MUTANTS = [
     ("cloud_relay-46", "cloud_relay.sh", '-gt "$t" ] && { moved=1; break; }  # mut:noreturnmoved', '-gt "$t" ] && { break; }'),
     ("cloud_relay-47", "cloud_relay.sh", 'stuck_arm; noreturn_arm; [ -z "$loop" ]', 'stuck_arm; [ -z "$loop" ]'),
     ("cloud_relay-48", "cloud_relay.sh", '[ "$age" -gt "$lim" ] && [ "$age" -le "$win" ] || continue  # mut:noreturnage', '[ "$age" -gt "$lim" ] || continue'),
+    # P332: the confirm arm's skip of a review on a PR that is not open
+    ("cloud_relay-49", "cloud_relay.sh", 'if [ -n "$open" ] && ! grep -qxF "$pr" <<< "$open"; then  # mut:closedskip', 'if false; then'),
     ("cloud_relay-41", "cloud_relay.sh", 'upd=(bash "$why/update_pr.sh")  # mut:toolsseat', 'upd=(bash "$HERE/update_pr.sh")'),
     ("cloud_relay-42", "cloud_relay.sh", 'if [ -n "$(git -C "$tw" status --porcelain --untracked-files=no 2>/dev/null)" ]; then', 'if false; then'),
     ("cloud_relay-43", "cloud_relay.sh", 'if [ -n "$o" ] && kill -0 "$o" 2>/dev/null; then echo', 'if false; then echo'),

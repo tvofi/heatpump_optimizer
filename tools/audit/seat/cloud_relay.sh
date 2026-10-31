@@ -144,7 +144,10 @@
 #     record shows it posted or `dispose` takes it. A tip with no dispatch for its
 #     PR, head and nonce is owed `undispatched` and never confirmed. A tip the
 #     relay did not push waits for the orchestrator's own read (bus.sh). Settled
-#     tips are noted in `<ledger>.confirm-done`, so a pass fetches only new ones.
+#     tips are noted in `<ledger>.confirm-done`, so a pass fetches only new ones. A tip whose PR
+#     is not open (this pass's open-PR listing; a verdict posts only on an open PR) prints
+#     `cloud_relay: confirm skip #<pr>: not open` once and is settled, owed nothing (P332); a failed
+#     listing skips nothing.
 #     It makes no gh call; bus.sh confirm posts.
 # `--loop` repeats a pass every --interval seconds (default 120); without it a
 # pass runs once. HPO_RELAY_PRS, HPO_RELAY_UPDATE, HPO_RELAY_APPROVE and
@@ -310,11 +313,23 @@ confirm_arm() { # one pass over review/* tips the relay delivered: confirm each 
   led=$state/cloud-relayed; bus=${HPO_BUS_STATE:-$HOME/.zcode/bus}; lv=$(relay_log).level
   git ls-remote origin 'refs/heads/review/*' > "$state/cloud-reviews.$$" || { echo "cloud_relay: ls-remote of review/* failed; will retry" >&2; rm -f "$state/cloud-reviews.$$"; return 0; }
   : > "$state/cloud-level-confirm.$$"
+  # P332: a verdict posts only on an open PR (app_comment.sh), so one on a closed or merged PR is
+  # skipped, not owed. The open PRs are this pass's handoff-arm listing, else one listing here; a
+  # failed listing skips nothing (every tip stays owed as before).
+  local open=""
+  if [ -f "$state/cloud-prs-open.$$" ]; then open=$(cut -f1 "$state/cloud-prs-open.$$"); open=${open:-none}
+  else open=$( { if [ -n "${HPO_RELAY_PRS:-}" ]; then "$HPO_RELAY_PRS"
+    else gh pr list -R "${HPO_RELAY_REPO:-tvofi/heatpump_optimizer}" --state open --limit 100 --json number,headRefName,headRefOid \
+      -q '.[] | [.number, .headRefName, .headRefOid] | @tsv'; fi; } | cut -f1) && open=${open:-none} || open=""; fi
+  rm -f "$state/cloud-prs-open.$$"
   while read -r sha ref; do
     pr=${ref#refs/heads/review/}; case $pr in ''|*[!0-9]*) continue;; esac
     # only what this relay delivered: a reviewer of the orchestrator's own waits for its thread read
     grep -q "^refs/heads/probe/rev-$pr-" "$led" 2>/dev/null || continue
     grep -qxF "$pr $sha" "$led.confirm-done" 2>/dev/null && continue
+    if [ -n "$open" ] && ! grep -qxF "$pr" <<< "$open"; then  # mut:closedskip
+      echo "cloud_relay: confirm skip #$pr: not open"; echo "$pr $sha" >> "$led.confirm-done"; continue
+    fi
     git cat-file -e "$sha^{commit}" 2>/dev/null || git fetch -q origin "+$ref:refs/hpo-relay/review/$pr" 2>/dev/null
     if ! git cat-file -e "$sha^{commit}" 2>/dev/null; then  # unknown is not "nothing owed": keep its line
       [ -f "$lv" ] && awk -v r="$ref" -v s="$sha" '$3 == "confirm-owed" && $4 == r && $5 == s' "$lv" >> "$state/cloud-level-confirm.$$"; continue
@@ -428,6 +443,7 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of 
     else gh pr list -R "$repo" --state open --limit 100 --json number,headRefName,headRefOid \
       -q '.[] | [.number, .headRefName, .headRefOid] | @tsv'; fi; } > "$state/cloud-prs.$$" \
     || { echo "cloud_relay: could not list open PRs; will retry" >&2; rm -f "$state/cloud-prs.$$"; return 0; }
+  [ -z "${CONFIRM:-}" ] || cp -f "$state/cloud-prs.$$" "$state/cloud-prs-open.$$"  # this pass's open PRs, for confirm_arm (P332)
   git ls-remote origin 'refs/heads/handoff/*' 'refs/heads/handoff-body/*' > "$state/cloud-hrefs.$$" \
     || { echo "cloud_relay: could not list handoff refs; will retry" >&2; rm -f "$state/cloud-prs.$$" "$state/cloud-hrefs.$$"; return 0; }
   # one listing of the verdicts per pass, outside the loop: an unread listing would update a merge-verdicted head
@@ -1137,7 +1153,10 @@ EOF
   # the confirm arm (P-O): the ledger is written before confirm runs, so a failed confirm was never
   # retried ('already relayed'). pass --confirm confirms each review/<pr> tip the relay pushed and
   # bus.sh has not posted; posting is what the confirm stub records, as bus.sh does in posted-signed.
-  printf '#!/bin/sh\n' > "$t/none.sh"; chmod +x "$t/none.sh"; HPO_RELAY_PRS=$t/none.sh; HPO_RELAY_PUSH=$stub
+  printf '#!/bin/sh\n' > "$t/none.sh"; chmod +x "$t/none.sh"; HPO_RELAY_PUSH=$stub
+  # P332: these PRs are open (their branches carry no handoff, so the handoff arm passes them by)
+  printf '#!/bin/sh\nfor p in 61 62 63 64 66; do printf "%%s\\tfix/cf-%%s\\t%s\\n" $p $p; done\n' "$N40" > "$t/open.sh"
+  chmod +x "$t/open.sh"; HPO_RELAY_PRS=$t/open.sh
   git -C "$t/o.git" for-each-ref --format='%(refname)' refs/heads/review/ | while read -r r; do git -C "$t/o.git" update-ref -d "$r"; done
   cat > "$t/cf.sh" <<'EOF'
 #!/bin/sh
@@ -1179,6 +1198,17 @@ EOF
   chk "then stays owed once on the level with its last reason" 0 test "$(grep -c "^OWED .* confirm-owed refs/heads/review/63 $(rtip 63) tries=3/3, not retried; .*: bus: REFUSE: the push of verdict/63 was refused: HTTP 502$" "$LV")" = 1
   echo "63 $(git rev-parse "$(rtip 63)^{tree}")" >> "$t/bus/posted-signed"; pass --confirm --log "$LOG" >/dev/null 2>&1
   chk "a review posted by hand after that leaves the level" 1 grep -q "review/63 " "$LV"
+  # P332: a relayed review whose PR is not open is skipped once, owed nothing; a failed listing skips nothing.
+  CF_FAILS=99; export HPO_RELAY_CONFIRM=$t/cf.sh; mk 67 $h $h $n; printf '67 %s cloud %s\n' "$h" "$n" >> "$t/bus/dispatched"
+  cfo=$(pass --confirm --log "$LOG" 2>&1); cfo2=$(pass --confirm --log "$LOG" 2>&1)
+  # one call is the relay's own, at the relay; the confirm arm adds none over two passes
+  chk "a relayed review on a closed PR is skipped by the confirm arm with one line, confirmed no further (P332)" 0 \
+    test "$(grep -c '^cloud_relay: confirm skip #67: not open$' <<< "$cfo
+$cfo2") $(calls 67)" = "1 1"
+  chk "and owes no confirm-owed" 1 grep -q "review/67 " "$LV"
+  mk 68 $h $h $n; printf '68 %s cloud %s\n' "$h" "$n" >> "$t/bus/dispatched"
+  HPO_RELAY_PRS=$failprs pass --confirm --log "$LOG" >/dev/null 2>&1
+  chk "null control: with the open-PR listing failed, the same shape on #68 stays owed" 0 grep -q "confirm-owed refs/heads/review/68 " "$LV"
   CONFIRM=; CF_FAILS=0; unset HPO_RELAY_CONFIRM; HPO_RELAY_PRS=$t/lister.sh; LOG=$t/pass.log
   # R10-PUSHER-REAP: a relay TERMed mid-update ends the update's whole tree. The
   # update stub records itself and a two-level sleep tree by pid, then blocks.

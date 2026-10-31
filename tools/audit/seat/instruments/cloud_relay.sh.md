@@ -148,3 +148,6 @@
   commit newer than it, prints `SEAT ENDED NO RETURN <topic>` and is
   `OWED <utc> seat-no-return <ref> <sha> SEAT ENDED NO RETURN <topic> <age>h`
   in `<log>.level`. Git only; deleting the dispatch ref disposes it.
+  Confirm arm (P332): a relayed `review/<pr>` whose PR is not in the pass's
+  open-PR listing prints `confirm skip #<pr>: not open` once and is settled,
+  owed nothing; a failed listing skips nothing.
