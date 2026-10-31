@@ -13118,12 +13118,13 @@
    ],
    "carry": [],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r10-hotfix-away-presence",
     "commit": null,
     "last_step": null,
     "next_step": "fixer dispatched",
-    "note": "live user defect tvofi 2026-10-30; the carry was stranded on done R10-LIVESTATE, re-cut by s9 2026-10-31"
+    "note": "live user defect tvofi 2026-10-30; the carry was stranded on done R10-LIVESTATE, re-cut by s9 2026-10-31",
+    "pr": 3052
    },
    "brief": "Hotfix from a live user defect. Live user finding (tvofi 2026-10-30, probe report handoff-body/r10-live-away-heating aa6e5db30): coordinator.py subscribes state-change events only for defrost and the peak guard, not for away_presence_entity. An away flag from a person, calendar or input_boolean presence entity therefore reaches the plan only at the next scheduled update (update_interval = optimization_interval, default 30 min). The coordinator move should subscribe async_track_state_change_event on away_presence_entity and request a refresh when the interpreted away state changes, following the defrost and peak-guard listeners. Control: toggling a presence entity triggers a refresh within the debounce. Null control: a state change that leaves the interpreted away state unchanged does not refresh. Also carried from the same report: after a set-point change the entry reloads, and the first refresh republishes the pre-reload plan (_reload_handover) until the background solve lands. Bound how long that window lasts and show it on the card."
   },
