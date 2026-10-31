@@ -13158,6 +13158,50 @@
     "next_step": "fixer dispatched (s9, local opus)"
    },
    "brief": "Pre-study: the design note on the design/r10-audit-coverage ref. Owner request (tvofi, 2026-10-30): the audit dimensions, finder scopes, bug classes and harnesses must cover production, instruments and repo machinery as they stand at v10.0.0. This group runs after every group that adds code and before R10-CLOSEOUT-CLEANUP's apply run, R10-CATALOG-PR and the closeout stamp. Re-measure every gap at your own merge base before fixing it: groups that land after the pre-study change the tree, so carry no count from the note; derive each with the command the note gives and print it in the body. Gaps to re-measure and close: (G1) no universe in dev/audit/config/scopes.json matches any path under tests/, although D3.md and D11.md name tests/closure.py, tests/closures.json, tests/env_drift.py and tests/structure.py as things a finder measures; add the suite scripts to D3's universe and the gate machinery (closure, entities, structure, env_drift, gate_lock, the budget files, tests/hastub) to D11's, excluding recorded data such as tests/mutation_ledger/ and tests/golden/. (G2) blueprints/ is in no universe and no brief; add it to D4's and D6's universes and name it in D4.md. (G3) D11's universe is dominated by evidence records under dev/audit/rounds/, and D11.md never names tools/audit/seat/, tools/pr/, tools/plan/, the merge train or .github/workflows/ as code to read; name them in D11.md and exclude dev/audit/rounds/ from D11's universe, each seat keeping its steps. (G4) tools/audit/check_scopes.py proves disjoint and complete within a dimension but not that the union of universes covers the tree: add a coverage mode to it that refuses any tracked path in no universe and not on an explicit, reasoned exclusion list kept in scopes.json, with a self-test perturbation that drops one universe and must be refused, and run it where .claude/workflows/audit-find.js runs the scope check. (G5) three bug-class barriers in dev/audit/config/bugclasses.json (P1, P5, P9) cite paths absent from the tree; repoint each at its live path, and make tools/audit/fold_ledger.py check refuse a path-shaped barrier token that does not resolve at the head. (G6) harnesses under dev/audit/harnesses/ and dev/audit/rounds/round9/ that read moved paths (the round-9 tree moved under dev/audit/rounds/, a workflow and a rule file that moved or were retired): repair those still cited by an open finding or a bug-class detector, using tools/audit/seat/moved_paths.py, and list the rest as retired in dev/audit/README.md; the full census is split out in the note. Dimension briefs are policy (D3.md, D4.md, D11.md): the orchestrator approves them under its mandate before the merge. Null control: the coverage mode reports custom_components/heatpump_optimizer/optimizer.py covered before and after."
+  },
+  {
+   "group": "R10-LEARNED-STORE-LOAD",
+   "lane": "CORE",
+   "kind": "bug",
+   "class": "correctness",
+   "severity": "medium",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 1,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [
+    "R10-FACTORY-RESET"
+   ],
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "tests/features.py"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-learned-store-load",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch after R10-FACTORY-RESET merges (same seam)",
+    "note": "found by the R10-FACTORY-RESET fixer, 2026-10-31"
+   },
+   "brief": "Two latent learned-store lifecycle defects found by the R10-FACTORY-RESET fixer (orchestrator s9, 2026-10-31). (1) _async_load_thermal_learning saves the store before the COP and T4b learners have loaded, so a save in that window can write empty learner state over the stored one. (2) async_restore_learned_snapshot reads the snapshot ring without awaiting the snapshot store's read, and it never restores sample counts. Reproduce each through the production coordinator: a save during load, and a restore immediately after setup. Fix at the owning seam: one load barrier that every save and restore awaits. Controls: a learner's state survives a save issued mid-load, and a restore right after setup returns the newest snapshot including its sample counts. Null control: a fully loaded entry behaves as today. One mutant per gate."
   }
  ]
 }
