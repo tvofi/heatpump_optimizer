@@ -1,9 +1,0 @@
-== head b63829d1c163aff58823157d7691894f46301ae5
-cancel_superseded self-test: 44 checks, 0 failed
-== mutant sweep-main-skip (drop b == "main" disjunct) at head
--        if b == "main" or r.get("event") not in EVENTS or (hr and hr != repo):
-+        if r.get("event") not in EVENTS or (hr and hr != repo):
-  FAIL sweep: a PR-event run on main is skipped by the branch test alone, not a ghost, never cancelled: got (0, [93, 94], [101, 102]), want (2, [], [101, 102])
-cancel_superseded self-test: 44 checks, 1 failed
-== same mutant at old head 4cd6cac6
-cancel_superseded self-test: 43 checks, 0 failed
