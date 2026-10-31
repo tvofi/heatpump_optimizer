@@ -1,4 +1,4 @@
-# Proposal triage, session s9, batch 95 (P345)
+# Proposal triage, session s9, batch 95 (P345, P346)
 
 The rolling batch after batch 94. Batch 94's refs were pushed without a PR and its opener was in
 flight, so this ruling did not move that head. Facts were read at origin/main `a7dd7f50d` and at
@@ -94,3 +94,64 @@ Binding:
   owner seam with null controls. The benefit clearly outweighs the cost.
 - Dispatch ahead of other instrument fly-ins. Until it lands, the orchestrator's hand
   acknowledgement (the OWED-ACK) is the workaround.
+
+## P346: open_pr skips its prepr on a fixer-recorded prepr receipt
+
+Verdict: REJECT, as proposed. The narrowed form, a prepr that holds no heavy slot when its
+scope runs nothing, is DEFERRED to R10-PREPR-CAP (`in-progress`, #3051; files `tools/pr/prepr.sh`
+and `tests/gate_lock.py`). That group owns the slot. This seat did not measure the 0-script slot
+wait across seats; the orchestrator owns routing it as a proposal with that count.
+
+Source: the orchestrator s9's triage-queue line of 2026-10-31T21:10:17Z (`s7/triage-queue-s7.txt`
+line 36).
+
+Instances:
+- **What the open runs.** `open_pr.sh` merges origin/main into the authored code head before any
+  check (`tools/audit/seat/open_pr.sh` lines 103-105). It then pushes through `app_push.sh` with
+  `PREPR_SKIP_CLOSURES=1` (line 118), which runs the full `prepr.sh` (`tools/pr/app_push.sh`
+  lines 469-475). So the open always gates a merge commit the fixer never ran, never "an unchanged
+  head".
+- **The skip condition, run on every open in the opener's log today** (`s9/seat-opener/driver4.log`).
+  For each, the authored code head C is taken from the START line. The open's main is the second
+  parent of the PR head's parent (the open's merge commit). The test is whether any
+  `tests/closures.json` closure of a script that C's three-dot diff selects contains a file main
+  changed between `merge-base(C, main)` and that main:
+
+  | PR | C | main moved | scripts selected | closures main touched | skip valid |
+  |---|---|---|---|---|---|
+  | #3050 | `632bd15b9` | 9 merges, 30 files | 27 | 2 | no |
+  | #3052 | `fddb9a1bf` | 9 merges, 30 files | 22 | 2 | no |
+  | #3055 | `c18116991` | 3 merges, 53 files | 3 | 3 | no |
+  | #3056 | `e316cdb95` | 3 merges, 53 files | 1 | 1 | no |
+  | #3053 | `5f1c1d80b` | 3 merges, 53 files | 0 | 0 | yes |
+
+  The rule fires on 0 of 4 code opens. The one head it would pass, triage batch 93, selects 0
+  scripts, so its gate runs nothing and a skip saves nothing on the gate.
+- **What the open-time prepr still catches.** At 18:34Z it refused `r10-fly-mutant-restore`
+  (`9a1a9835f`): `CI PREDICT: 1 predicted red(s) on pr-contract / pr-contract against
+  c3a47e5656ef`. That is a prediction against the main the open merged, not the main the fixer
+  ran on. A receipt keyed to the fixer's base would have skipped it and opened a PR that went red.
+- **Where the wall time goes.** `prepr.sh` takes its heavy slot at step 1b (line 3555) for its
+  whole life, before step 2 (line 3598) knows the scope. Run here, this batch's own prepr (0
+  scripts, one markdown file) sat in `gate_lock.py slot-take` for 25 min 55 s
+  (`ps -o etime`, pid 60376) behind heavy runs, and was stopped by this seat to add this ruling.
+  Today's opens took from START to RESULT: 31 min (#3050), 24 min (#3052), 22 min (#3053, 0
+  scripts), 76 min (#3055) and 77 min (#3056). The 0-script open's 22 min is a slot wait plus the
+  cheap steps, not a gate.
+
+Cost (as proposed):
+- A receipt format on the `handoff-body/<topic>` transport, written by `body_push.sh`.
+- A reader and a closure-intersection test in `open_pr.sh` or `app_push.sh`.
+- The self-test rows for both.
+- Three seat files, one of them `app_push.sh`, the authoring instrument (decision 0011).
+- The receipt is self-reported by the fixer seat, on a ref the fixer writes.
+
+Binding:
+- The measured benefit is about zero: the skip is valid on 0 of 4 code opens.
+- Where it would fire, the gate it skips costs nothing, and it would skip the cross-main
+  prediction that caught a real red at 18:34Z.
+- The trade is not even, it is negative, so this is REJECT.
+- The cost the proposal names (opens waiting behind slots) is real. The measured lever is that a
+  0-script prepr holds a heavy slot it does not need. That is R10-PREPR-CAP's seam (the slot
+  lease, #2267), and it needs a count before it can be ACCEPTed: how many preprs select 0
+  scripts, and their slot-take waits.
