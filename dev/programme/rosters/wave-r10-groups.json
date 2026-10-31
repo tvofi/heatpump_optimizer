@@ -12693,7 +12693,7 @@
     "branch": "handoff/r10-wood-notify",
     "commit": "a7dd7f50d67e0c3819956b15ef95d77f4f6ebfc0",
     "last_step": null,
-    "next_step": "dispatch a fixer",
+    "next_step": "part 1 merged as #3016 at a7dd7f50; one carry open (the s9 marker / window-attribute doc from the #3048 review); fold it into R10-USER-DOCS-FINAL round 2 if that fixer touches the row, else dispatch a small part-2 fixer",
     "note": "owner request tvofi 2026-10-30",
     "pr": 3016
    },
