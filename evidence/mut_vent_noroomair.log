@@ -1,0 +1,18 @@
+ custom_components/heatpump_optimizer/coordinator.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 213e679bd..2a31d61b8 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -6641 +6641 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+-        if room_air and self._vent_cusum.tripped:
++        if self._vent_cusum.tripped:
+rc=1
+  ok   an unresolvable recorded_at FAILS the ratchet, it is not merely noted (#361)
+  ok   the ratchet FAILS on an improvement instead of printing a note (#350)
+  ok   a pump command that FAILED is not remembered as done
+  FAIL R10-COP-GATE E: under the window latch a heat-counter install reaches the span gate rather than the freeze (null control: latch clear reads the same)  [latch ('learners_frozen', 0) clear ('span_open', 0)]
+  FAIL R10-COP-GATE E: under the window latch a measured flow heat folds its COP (null control: latch clear folds too)  [latch ('learners_frozen', 0) clear (None, 1)]
+  FAIL R10-COP-GATE E: a stale thermal-power entity read through observe_water still freezes the COP fold under the latch (null control: a fresh one folds)  [stale ('learners_frozen', 0) fresh ('learners_frozen', 0)]
+  FAIL R10-COP-GATE E: hot water learns and the probe answers under the window latch (null control: latch clear reads the same)  [latch (None, 'ventilation') clear (55.0, None)]
+4 of 4611 FEATURE CHECKS FAILED
