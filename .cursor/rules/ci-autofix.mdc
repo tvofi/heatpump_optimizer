@@ -17,15 +17,15 @@ closure, never replace a Linux node recording.
 
 **That wait holds only while the job reports it is
 repairing.** Each job pushes on `changed` alone and prints its status to the
-job summary (#523). `closures-autofix` goes red on `skip-failed-recording`,
+job summary. `closures-autofix` goes red on `skip-failed-recording`,
 `skip-merge-failed`, `skip-still-fails`, `skip-unchanged`,
-`skip-classifier-disagrees` and `skip-manual-repair-owed` — a repair was owed
+`skip-classifier-disagrees` and `skip-manual-repair-owed` —
 and did not happen. **A red autofix job means no bot commit comes**; the
 `--single` prohibition above lapses. Read the summary
 line, re-derive the script it names and commit `tests/closures.json`; Python
 lanes record through `sys.addaudithook`, so Darwin is sound for them — except
 the Linux-recorded (`strace`-only) inert dimension: the bot merges
-INERT READS from CI recordings too (#1886, R9-CI-1). On `skip-failed-recording` a
+INERT READS from CI recordings too. On `skip-failed-recording` a
 named script (or its driven child) stopped while recorded: fix it first, as re-deriving records the same truncation.
 
 **What green means — read the summary line, not the tick.** Green is
@@ -34,14 +34,14 @@ repair was owed *to the bot*), or `skip-not-allowed` (it declined to
 classify). It runs the base's `tests/closure.py`: if that stops early
 (a PR moving a file out of INERT) where `closures` printed UNDER-SCOPED, the
 status is `skip-classifier-disagrees`; any other failed check (PHANTOM, NOT A
-FILE, an INERT pair) is `skip-manual-repair-owed`, so `skip-not-under-scoped` means it passed (#1864). `claims-autofix` never reddens
+FILE, an INERT pair) is `skip-manual-repair-owed`, so `skip-not-under-scoped` means it passed. `claims-autofix` never reddens
 (`apply_inherited_claims` has no failure status; `skip-not-inherited` answers
 every unrelated `fast` failure): its summary line is its only signal.
 
 **Four paths still end green unrepaired.**
 
 - **A committed phantom.** `check` fails the `closures` job when the committed
-  table lists a path that is not a file (#1310), but the autofix reports no
+  table lists a path that is not a file, but the autofix reports no
   UNDER-SCOPED and stays green: a recording cannot drop a dead path. Repair the
   table: `python3 tests/closure.py prune`.
 - **The loop guard.** After the bot pushes, the next head's subject is
@@ -51,7 +51,7 @@ every unrelated `fast` failure): its summary line is its only signal.
   recording's `rc`, and a script that exits early records only what it
   reached — so where that truncation hides the *only* under-approximation,
   `check` passes and the job is green on `skip-clean` — or on `changed`, since
-  an unnamed script's cut-short recording is left out (R9-CI-1). `skip-failed-recording`
+  an unnamed script's cut-short recording is left out. `skip-failed-recording`
   fires only *after* UNDER-SCOPED prints, deliberately: unrelated
   `no-copies` and NOT-A-FILE failures fail recordings too, and their closures
   were never stale.
@@ -59,7 +59,7 @@ every unrelated `fast` failure): its summary line is its only signal.
   A failed recording reads files a clean run never does (`linecache`): an
   UNDER-SCOPED beside one may be an artefact. Fix the script; a push re-records.
 - **A survivor.** `mutation-autofix` pins kills only, so a site no driver kills
-  leaves it green, `tests / mutation` red for good (#2840). `pinned by
+  leaves it green, `tests / mutation` red. `pinned by
   mutation-autofix` is a prediction until a `mutation-pins` log or `--pin-killed`
   kills the site; a `-- lives` line is the seat's.
 
@@ -68,18 +68,12 @@ every unrelated `fast` failure): its summary line is its only signal.
 | `UNDER-SCOPED`, INERT READS | `closures-autofix` | `ci: re-record closures` | `closure.apply_under_scoped_recordings` |
 | `INHERITED CLAIMS` | `claims-autofix` | `ci: drop inherited claims` | `env_drift.apply_inherited_claims` |
 | unpinned sites | `mutation-autofix` | `ci: pin killed mutants` | `mutation_table.apply_pins` |
-
-**No autofix job repairs `tests / mutation`'s null-control refusal** ("no full-line
-comment in any file in the pool"): `prepr.sh` step 6d predicts it as
-`PREDICT tests / mutation NO NULL CONTROL` (`ci_predict.null_control_preds`, over
-`mutation_table.null_for`), and it is the seat's to repair before the handoff by
-adding a whole-line comment to a file of the pool. Only a pool of comment-free
-files remains refused (today `flow_meter.py`, `silent_mode.py`, `wood_fuel.py`).
+| no null control | none | none | `ci_predict.null_control_preds` predicts it; add a whole-line comment |
 
 Those subjects are loop guards. The job dispatches `ci.yml -f pr -f base` once;
 a `GITHUB_TOKEN` push's `pull_request` runs are held `action_required`, so the required `gate` and the `tests / *` units are ABSENT at a bot head
-until approved: all three jobs approve them (kept until M-3), fail-soft without their
-secrets, when an App push or body edit cures it. Absent is not green (`orchestrator.md` section 11).
+until approved: all three jobs approve them, fail-soft without their
+secrets, when an App push or body edit cures it. Absent is not green.
 
 When `mutation-autofix` goes red, run `--pin-killed` yourself. A `ci: pin killed mutants`
 stales the body's `## Red checks` `mutation` line; the reviewer re-checks it. Do not automate survivor triage,
