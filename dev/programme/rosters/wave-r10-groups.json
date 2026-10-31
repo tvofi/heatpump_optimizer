@@ -12223,9 +12223,9 @@
    ],
    "carry": [],
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-fly-tick-approval-owed",
-    "commit": null,
+    "commit": "12caba8cfe67b61b50852926564b79228e7304a0",
     "last_step": null,
     "next_step": "dispatch a fixer (fly-in; ahead of other instrument fly-ins: verdicted PRs stood unnamed 21 PR-hours)",
     "note": "2026-10-30 (triage: dev/programme/triage/s6-batch64.md#P294)",
