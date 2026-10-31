@@ -1,122 +1,106 @@
-`merge_train.py` had two admission checks that disagreed. `train_add` (`add`) refused a pull request in the live train's `queue.pending.json` or the spool; the drain between batches (`Train.queue_take`) refused any pull request in an in-memory `seen` set that `batch` filled with every entry the train ever held, skipped ones included, and `Train.skip` never took a skipped entry out of `queue.pending.json`. So a skipped entry re-added at a repaired head printed `ADDED` from `add` and was then dropped by the drain as `ALREADY`, and an entry skipped in the running batch was refused by `add` from the pending layer. The field instance (triage P291): in train pid 34197, batch `20261029-193537-b4` formed right after `SKIP REPORT: 5 skipped of 10` with `ALREADY #2917`, `ALREADY #2872` and `ALREADY #2961`, and #2970, skipped because GitHub's base-branch policy refused every merge attempt, was refused twice by `add` at its reviewed head 2a25229f.
+R10-TRAIN-OVERLAP-GRADE part 4 (#2725), in `tools/audit/seat/merge_train.py`. It covers carry 8 (P112: `add --front` and `add --remove`), carry 19 (#2992's forward-carry: the batch admission's required set, plus the review survivors R3, R5, R8 and R9), and carry 21's check. Carry 11 (P164) is forward-carried; see `## Forward-carry`.
 
-This PR replaces both checks with one predicate, `already_held(pr, verdict, seen, spooled)`, which `train_add` and `Train.queue_take` both call. It is triage P129 as amended by P189, plus P291's addition:
+What the train does differently:
 
-- The live train keeps its record in `<state>/queue.seen.json`: for each pull request, the verdict it entered at and its state (`pending`, `merged`, `ran` or `skipped`, plus the skip class). The train writes it under `QUEUE_LOCK`, and `add` reads it under the same lock. `queue.pending.json` is now derived from it: the entries still to run. Its one other reader, `review_packet.train_boarded`, keeps its format.
-- Held (`ALREADY` on both sides): a spooled entry, a pending one, one this train merged or ran, and one it skipped at this same verdict.
-- Admitted: a skipped entry at a new verdict head. A skipped entry at the same verdict is also admitted when the skip class is the environment's (`READMIT_SAME_VERDICT`). That means `HOLDER` (P189: the train's own worktree holder, including a pre-flight `PARK` at `recarry`, which `PreFlight` returns only for `worktree_holder`) or the new `BRANCH-POLICY` class (P291). The merge loop now gives that class to its `not merged after N attempts` stop when the last refusal is GitHub's `base branch policy prohibits the merge`.
-- `Train.skip` and pre-flight parks mark the entry `skipped` in the record, so a skip is no longer pending (P189). `skipped.json` rows carry the `verdict`.
-- `_batch` filters its overlap recarries and its serial tail by **its own** skips only (`self.skipped[mine:]`). Before, an entry skipped in an earlier batch and re-admitted would also have been silently left out when routed serial. Without this, the predicate fix would have moved the drop from the drain to the batch.
-- An entry the train skipped and then, re-added, merged is **cured** (`Train.skip_report`, `CURED #<pr>`): its rows leave `self.skipped`, so `skipped.json`, `SKIP REPORT: N skipped` and `batch`'s rc no longer over-report a skip the train itself repaired. The cure runs inside `skip_report`, which `_batch` calls after its last `self.skipped[mine:]` read, so no batch's offset moves under it. A `post-merge` skip is the entry's last state, never `merged`, so it is never cured.
-- A train started before this change wrote only `queue.pending.json`. `queue_seen_read` reads that list as pending, so an `add` from this code against a running old-code train behaves as before rather than refusing nothing.
+- **Batch admission reads the PR-head set (carry 19; P34's sibling seam).** `Train._batch` reads `head_req = self.required(pr_head=True)` once per batch and passes it to `Train.admit`, whose parameter is now `head_req`. `admit`'s head wait judges that set. main's set (`req`, which leaves out PR_ONLY) still grades main (`main_green`) and the proof (`settle`), and neither of those carries a pull-request-only context. The bug stayed hidden because `PR_ONLY` is `()` at the fork. With a non-empty one, a head whose pr-contract was red would have been admitted.
+- **`add --front <pr> [<verdict>]` and `add --remove <pr>` (carry 8, P112).** Both run under QUEUE_LOCK, through `spool_edit` / `spool_edit_locked`. Each prints the spool order read back from the file (`FRONT #13: spool read back: #13 #11 #12`, `REMOVED #12: spool read back: #11 #13`).
+  - `--front` on a spooled PR moves its line first. On a new PR it runs `add`'s own admission, then spools the entry first in a live train, or with no live train queues it first in the train it starts.
+  - `--remove` drops only that PR's line(s).
+  - Every other line stays byte-identical and in order, unreadable lines included. The spool is rewritten aside and renamed (`spool_rewrite`).
+  - An absent PR is refused with rc 1 and nothing is written. `--front --remove` together, or a plain `add` with no verdict, is refused with rc 2.
+  - There is no priority drain. `Train.queue_take` is untouched (carries 20-22).
+- **Four #2992 review survivors pinned (carry 19).** Each gets a self-test arm. Production code is unchanged:
+  - R3: a critical-path entry that stops at ci under `--bot-prs` still lets the record PR merge, through `serial`'s `except Stop:` sweep.
+  - R5: `CHANGES_REQUESTED` parks after one attempt, and no approval carry is tried.
+  - R9: BLOCKED + APPROVED + every required context green is carried under `--approval-carry` and merges on the next attempt. Without the flag it parks naming the review.
+  - R8: `Train._critical`'s live read runs against a stub `roster_lib`. It maps a critical group True and a non-critical or unmapped branch False, and reads the roster once for three entries. A read that raises gives False for every entry and is not retried.
 
-`tools/audit/seat/instruments/merge_train.py.md` states the rule and the cure. `dev/audit/harnesses/r10_train_overlap_grade_p2_mutants.py` holds one mutant per arm. `tests/closures.json` gains the one `inert_reads` entry `tests/harness_headers.py` needs for that harness, written by `python3 tools/pr/ci_predict.py --apply-inert`.
+Each roster carry (1-based, as `review_packet.py` numbers them on `handoff/audit-r10-roster`):
 
-No live train or state dir was touched. Every arm runs in the self-test's throwaway state dirs.
+Carry 1: the overlap grade (#2595's countermeasure). Built in part 1, #2882, merged at 4db1d3e.
+Carry 2: park instead of 8 retries on a missing approval at the live head (#2577). Built in part 3, #2992, merged at e035c66.
+Carry 3: P4, park with the read reason and widen `_carry_owner_approval` under --approval-carry. Built in #2992. Its last sentence, --approval-carry in the live launch, is met on main: `RECOMMENDED` holds `--approval-carry`, and train.sh and the sweep launch it by default (0b79e8de9).
+Carry 4: P34, the head wait reads `required(pr_head=True)`. Built in #2992 for `serial`. Its batch-admission sibling is closed here (carry 19).
+Carry 5: the hold behind R10-FLOW-MQ-PROBE. Resolved by carry 10; no code owed.
+Carry 6: the orchestrator ruling that releases the group. A resolution; no code owed.
+Carry 7: #2595's root cause, item 6fb50ac5. The countermeasure is the overlap grade from #2882 (carry 1). Item 98904e32 concerns #2595's own merged body, so nothing is owed in this tree.
+Carry 8: P112, `add --front` and `add --remove`. Built here.
+Carry 9: P129, one admission rule. Built in part 2, #2978, merged at 89ccf73.
+Carry 10: the merge queue is not adopted. A resolution: the train path was taken.
+Carry 11: P164, `stats` and `--cap auto`. Not built; forward-carried (`## Forward-carry`).
+Carry 12: P184. (a) remerge_main.sh aborts its failed merge: 332661e99 (R10-FLY-ABORT-OWN-MERGE, P276). (b) `freeable` frees an ancestor holder: #2992.
+Carry 13: P189, the skip leaves pending, plus the HOLDER exception. Built in #2978.
+Carry 14: P191, a record PR merged on refusal recovers through MAIN-MOVED. Built in #2992.
+Carry 15: the HOLDER exception in the one shared predicate. Built in #2978.
+Carry 16: P231, gh's refusal text in the BOT line. Built in #2992.
+Carry 17: P289, critical-path entries jump the record sweep. Built in #2992.
+Carry 18: P291, a BRANCH-POLICY skip is re-admitted at the same verdict. Built in #2978 (`READMIT_SAME_VERDICT`).
+Carry 19: #2992's forward-carry (batch admission's required set, plus survivors R3, R5, R8 and R9). Built here.
+Carry 20: P312, the priority drain. Not built here, per carry 21.
+Carry 21: checked. At the fork 7539d167, and at the merge base c3a47e56 (whose `merge_train.py` is the same file), there is no priority drain: `grep -n priority tools/audit/seat/merge_train.py` prints only a comment, line 2734 at this head. R10-FLY-TRAIN-DEFAULTS has not landed P312, so there is no SHA to cite.
+Carry 22: `add --front` and `add --remove` are built as written. `Train.queue_take` is untouched, so P312's sort, when it lands, keeps both verbs: they reorder only the spool file.
 
-Part of #2725.
+Alternatives not taken:
+- Reading `required(pr_head=True)` inside `admit`, per entry, as part 3 did in `serial`. It lost because it costs two ruleset API reads per entry instead of two per batch, and `_batch` is `admit`'s only caller (`grep -n '\.admit(' tools/audit/seat/merge_train.py` prints its two call sites, both in `_batch`).
+- A separate reorder verb. Carry 8 names flags on `add`, and a second verb would be a second writer of the spool.
+
+Closes nothing: #2725 stays open for carry 11.
 
 ## Head
 
-`5cd2f86ebb8757c8d87f97b6eb9dafc9e9f8ec90` is the code head measured here: one commit on top of the reviewed head `6e89bf7f902f701170b3393e8eaa6d27f23d73e6`, answering fix review round 1 (origin/verdict/2978). It changes `tools/audit/seat/merge_train.py` (the cure in `Train.skip_report`, its docstring paragraph, five new self-test arms), the mutant harness (M14-M19) and the instrument page. origin/main is `043b111d01c90ecb1220980df1d363c0b50bb37f`, the PR's base; `git rev-list --count 6e89bf7f902f701170b3393e8eaa6d27f23d73e6..origin/main` printed `0` when this head was cut.
+Measured at 34660f5c594b731d3099bedb13b17c888a304b43, pushed to `handoff/r10-train-overlap-grade`. It is three commits on the fork 7539d1675d7fc8b5020f90b395f4bb0c3485d5b3 (5126ec445fd6fb24279cb259e05d49fbc22b7de2), plus a merge of origin/main c3a47e5656ef858674a1fd011c0e2f039c4ed838 (read at 2026-10-31, before the final prepr run). main moved during the first prepr run, so it was merged and every check re-run. The merged delta touches `tools/pr/ci_predict.py` and triage records only. `git diff --quiet 5126ec44 34660f5c -- tools/audit/seat/merge_train.py dev/audit/harnesses/r10_train_overlap_grade_p4_mutants.py tests/closures.json && echo MERGE_TRAIN_HARNESS_CLOSURES_IDENTICAL` prints the word, so the mutant run at 5126ec44, which reads only those two files, describes this head's `merge_train.py`. The merge base is c3a47e5656ef858674a1fd011c0e2f039c4ed838.
 
 ## Mutation proof
 
-`python3 dev/audit/harnesses/r10_train_overlap_grade_p2_mutants.py` copies `tools/audit/seat/merge_train.py` beside itself with exactly one span replaced and runs that copy's `--self-test`. M0, the unmutated file, must pass, and every other mutant must fail at least one check. Result at this head: `MUTANTS: 20 run, 0 not as required`.
+Instrument: `python3 dev/audit/harnesses/r10_train_overlap_grade_p4_mutants.py`, landed in this PR. It makes one exact single-occurrence replacement per mutant (a span not found once is reported STALE), runs `--self-test` on a sibling copy, and prints the FAIL lines. It was run at 5126ec44 and printed `MUTANTS: 13 run, 0 not as required`. M0, the unmutated head, prints PASS. Each mutant mutates the predicate:
 
-- M1, the drain reverts to the any-seen rule: red on `P291 batch-4 replay`, `P189 HOLDER arm` and `live queue: ...`.
-- M2, `Train.skip` leaves the entry pending: red on `P291 batch-4 replay`.
-- M3, `BRANCH-POLICY` dropped from `READMIT_SAME_VERDICT`: red on `P291 batch-4 replay`.
-- M4, `HOLDER` dropped from `READMIT_SAME_VERDICT`: red on `P189 HOLDER arm`.
-- M5, the same-verdict exception reaches `add` only: red on `P291 batch-4 replay` and `P189 HOLDER arm`.
-- M6, the merge stop carries no class: red on `P291 batch-4 replay` and `P291 the merge skip carries its environment class`.
-- M7, a skipped entry at a new verdict is held: red on `P291 batch-4 replay`.
-- M8, `_batch`'s serial tail filters by every skip of the train: red on `P291 batch-4 replay`.
-- M9, a merge is not recorded `merged`: red on `live queue: ...`.
-- M10, a pending entry is admitted: red on `null control: an entry still in the live batch ...` and others.
-- M11, `add` reads no record: red on `P189 null control` and others.
-- M12, a spooled entry is admitted: red on `add is idempotent` and others.
-- M13, a pre-flight `recarry` PARK carries no class: red on `P189 HOLDER arm, pre-flight`.
-- M14 (review X7), `queue_take` writes no record for a drained entry: red on `a drained entry (#2, added while batch 1 ran) re-added while its batch runs and after it merges is ALREADY ...`.
-- M15 (review X1), `queue_seen_read`'s old-code fallback returns nothing: red on `an add against an old-code train (QUEUE_PENDING only, live pid) ...`.
-- M16 (review X2), the `_batch` OVERLAP up-front recarry list filters by every skip: red on `--overlap: an entry an EARLIER batch skipped, re-added, is recarried up front ...`.
-- M17 (review X5), `queue_seen_write`'s pending view lists every entry: red on `a rehearsal's serial entry not run is recorded ran: QUEUE_PENDING lists pending only ...`.
-- M18 (review X3), a completed batch's unmerged, unskipped entry is not marked `ran`: red on the same `ran` arm.
-- M19, the cure's filter deleted: red on `skipped-then-merged is cured: ...`.
+- M1, batch admission reads main's set (`head_req = self.required(pr_head=True)` -> `self.required()`): fails `P34 batch: a PR-only context red at the head refuses admission, naming it; nothing merges`.
+- M2, `--front` appends instead (`mine + rest` -> `rest + mine`): fails the `P112 --front` arm, its null arm, the new-entry arm and `P112 --front under the lock`.
+- M3, `--remove` keeps the line (`else rest` -> `else raw`): fails `P112 --remove: drops only #12's line ...` and `P112 --remove under the lock`.
+- M4, absent-PR refusal dropped (`if not mine:` -> `if False:`): fails `P112 --remove null: an absent PR exits nonzero and the spool is byte-identical`.
+- M5, the lock dropped (`with queue_lock(t.state):` -> `if True:` in `spool_edit`): fails `P112 --front under the lock` and `P112 --remove under the lock`.
+- M6, a new `--front` entry in a live train not moved first: fails `P112 --front on a new entry: admitted, spooled first ...`.
+- M7, `--front` with no live train queued last: fails `P112 --front with no live train: the train it starts runs the entry FIRST ...`.
+- M8 (R3), `serial`'s stop-path sweep -> `pass`: fails `P289 serial, a critical-path entry that stops at ci: the record PR still merges, the entry does not`.
+- M9 (R5), `rd != "CHANGES_REQUESTED"` -> `True`: fails `carry 2 null (CHANGES_REQUESTED): ...`.
+- M10 (R9), `or ms == "BLOCKED"` dropped: fails both `carry 2 (BLOCKED, APPROVED, all green)` arms.
+- M11 (R8), `_critical` -> `return False`: fails `R8 _critical: the live read maps fix/a (critical group) True ...`.
+- M12 (R8), the first-read sentinel `self.cp_read = ({}, set())` -> `pass`: fails `R8 _critical null: a roster read that raises is nothing critical for every entry, and is not retried per entry`.
 
-The reviewer's X4 (the skip row's verdict) was already killed and stays pinned by `P291 the merge skip carries its environment class`, which now reads batch 2's `skipped.json` before the cure. X6 (the owner-pid guard in `seen_mark`) the review read as equivalent in a single-process self-test; not pinned, not a finding.
-
-The new arms were written before their mutants were run, and each new mutant above was run against them (M14-M19 killed, M0 passing) before the whole list was re-run.
+Failing test first: the two `P34 batch` arms and the R-arms were written before or against the unmutated production line. M1 restores the fork's line and fails the new arm.
 
 ## Null control
 
-- M14's arm: the first `add` of #2 while batch 1 runs is `ADDED` (rc 0) — the arm admits a fresh entry, so its two `ALREADY` lines are not a refuse-everything artefact.
-- M15's arm: #10, absent from the old train's `queue.pending.json`, is `ADDED` beside #9's `ALREADY`.
-- M16's arm: batch 1's own OVERLAP line and `SKIP #2` are read before `BATCH t-b2`, so the arm sees the entry skipped by an earlier batch, not one never skipped.
-- M17/M18's arm: #3, still to run, is reported boarded by the real `review_packet.train_boarded` (loaded from its file), so an empty boarded set cannot pass it.
-- M19's arm: batch 1's `SKIP REPORT: 1 skipped of 2` still counts #2; only after its merge does the train's last report read `0 skipped of 3`, rc 0.
-- Things that must stay refused (from round 0, unchanged): an entry still in the live batch, a ci-skipped entry at its same verdict, and a merged one are `ALREADY` on both sides; M10 and M11 show those arms are not vacuous.
+- P34 batch: the same world with pr-contract green at both heads admits both and merges them on one proof (`P34 batch null: ...`).
+- P112: a plain `add` into the live train appends last (`P112 null: a plain add appends last`). `--remove` of an absent PR leaves the spool byte-identical (`read_bytes()` compared). The lock arm's own null control runs the same edit without the lock (`spool_edit_locked` called directly, which is the M5 shape), and the concurrent add's line is lost (`P112 --front null (no lock, the mutant) ...` and `P112 --remove null ...`). So the locked arm measures the lock, not the timing.
+- R8: a raising roster read gives "nothing critical", today's order.
+- Every self-test arm that existed at the fork still passes: 381 checks there, all of them in the 400 here.
 
 ## Figures
 
-- `merge_train self-test: 355 checks, 0 failed` -- `python3 tools/audit/seat/merge_train.py --self-test`
-- `MUTANTS: 20 run, 0 not as required` -- `python3 dev/audit/harnesses/r10_train_overlap_grade_p2_mutants.py`
-- `STRUCTURE RATCHET PASSED` -- `python3 tests/structure.py`
-- `MODE: SCOPED -- 1 script(s) run, 32 scoped out`, the script `tests/entities.py`, run here: `ALL 2479 ENTITY CHECKS PASSED` (`PYTHONPATH=tests/hastub python3 tests/entities.py`) -- `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir <dir>`
-- The seams of this class (every reader or writer of the train's admission state), from `git grep -n "QUEUE_PENDING\|QUEUE_SEEN\|already_held(\|queue_seen_read(" -- tools/ .github/ tests/`, each with its disposition:
-  - `train_add` and `Train.queue_take`: closed here, as both callers of `already_held`; the drained-entry record write is pinned (M14).
-  - `queue_seen_write`, `seen_mark`, `queue_open`, `queue_close` and the drain's close: the record's writers, closed here; the pending-only view is pinned (M17), the `ran` mark (M18).
-  - `queue_seen_read`'s old-code fallback: pinned (M15).
-  - `review_packet.train_boarded` reads `queue.pending.json`, unchanged: the `ran` arm drives the real function and reads a ran entry not boarded and a pending one boarded. It is correct as is; no change.
-  - The sweep (`SWEEP_SEEN`) admits only through `train_add`, so it inherits the rule.
+- Self-test: `python3 tools/audit/seat/merge_train.py --self-test` prints `merge_train self-test: 400 checks, 0 failed` at 34660f5c (and at 5126ec44). In a detached worktree at the fork 7539d167 (whose `merge_train.py` is the merge base's: the merged delta does not touch it) it prints `merge_train self-test: 381 checks, 0 failed`. The count is checks executed (some arms loop), not call sites.
+- Mutants: `python3 dev/audit/harnesses/r10_train_overlap_grade_p4_mutants.py` prints `MUTANTS: 13 run, 0 not as required` at 5126ec44. M0 PASS and M1-M12 KILLED, each with the FAIL lines above.
+- Gate scope: `python3 tests/closure.py select --diff c3a47e5656ef858674a1fd011c0e2f039c4ed838 --workdir "$D"` prints `MODE: SCOPED -- 1 script(s) run, 32 scoped out` and names `tests/entities.py`. `PYTHONPATH=tests/hastub python3 tests/entities.py` prints `ALL 2493 ENTITY CHECKS PASSED`.
+- `run_always` lines: `python3 tests/env_drift.py --claims-only c3a47e56...` exits 0, `python3 tests/closure.py selftest` exits 0 and `python3 tests/layout.py` exits 0. `PYTHONPATH=tests/hastub python3 tests/harness_headers.py` prints `ALL 112 HARNESS HEADER CHECKS PASSED`.
+- `python3 tools/pr/ci_predict.py --apply-inert` applied one entry (the new harness as an inert read of `tests/harness_headers.py`, in `tests/closures.json`), then printed `CI PREDICT: no closures, fast, governance or instrument red predicted against 7539d1675d7f`. Re-run after the merge, `python3 tools/pr/ci_predict.py` prints the same line against c3a47e5656ef.
+- `python3 tests/structure.py` prints `STRUCTURE RATCHET PASSED`. No metric was re-recorded and no budget was touched.
+- `python3 tools/audit/archscore/score.py --diff c3a47e5656ef858674a1fd011c0e2f039c4ed838` prints `Architecture score: dS +0.0000 NULL`. No gain is claimed.
+- Class rule, step 8. Let E be the line of `def _self_test` in merge_train.py (3343 at this head).
+  - Required-set reads: `awk -v E=$E 'NR<E && /self\.required\(/' tools/audit/seat/merge_train.py` returns 4 sites. `serial`'s head wait (`pr_head=True`) was closed by #2992. `policy_refusal` (`pr_head=True`) was closed by #2992. `_batch`'s `req = self.required()` grades main and the proof, which carry no PR-only context, so it is correct as main's set. `_batch`'s `head_req = self.required(pr_head=True)` feeds `admit` and is closed in this diff. Null control: the same rule at the fork 7539d167 returns 3 sites, with `admit` fed main's set, which is the open seam.
+  - Spool writers: `awk -v E=$E 'NR<E && /QUEUE_SPOOL/ && !/^QUEUE_SPOOL/' tools/audit/seat/merge_train.py` returns 10 lines. Every write goes through `spool_append` (append), `spool_rewrite` (`--front` / `--remove`), `train_add`'s unlink after it moves the spool into a started train's queue, and `queue_take`'s unlink after the drain. All of them run under `queue_lock`. The rest are reads and log text. `git grep -n "queue-add" -- . ':!tools/audit/seat/merge_train.py' ':!dev/programme/triage'` returns only the roster's carry text, so no other tool or doc tells anyone to hand-edit the spool.
+
+## Unpinned sites
+
+n/a: every production line this diff adds is pinned by a mutant in `dev/audit/harnesses/r10_train_overlap_grade_p4_mutants.py` (M1-M7). The `tools/` lane is outside mutation-autofix, so this is the in-tree harness fixer.md step 2 names.
 
 ## Red checks
 
-- `tests / nightly-status` concluded failure on the reviewed head: it is main's red. The diff touches only `merge_train.py`, its instrument page, the mutant harness, `tests/closures.json` and the delivery row, none of which nightly-status reads. No cheaper detector is owed by this PR.
-
-## Review round 1
-
-Each finding of origin/verdict/2978, against this head:
-
-- X7, a drained entry's record unpinned: fixed, arm and M14. Carry: R10-TRAIN-OVERLAP-GRADE
-- X1, the old-code `queue.pending.json` fallback unpinned: fixed, arm and M15. Carry: R10-TRAIN-OVERLAP-GRADE
-- X2, the `_batch` overlap-recarry filter unpinned: fixed, arm and M16. Carry: R10-TRAIN-OVERLAP-GRADE
-- X5, the pending-only view unpinned and `train_boarded` unchecked: fixed, arm and M17; `train_boarded` read correct, unchanged. Carry: R10-TRAIN-OVERLAP-GRADE
-- X3, the `ran` mark unpinned: fixed, arm and M18. Carry: R10-TRAIN-OVERLAP-GRADE
-- `## Red checks` said none while `tests / nightly-status` was red: answered above as main's. Carry: R10-TRAIN-OVERLAP-GRADE
-- A skipped-then-merged entry over-counted in `self.skipped`, `skipped.json`, `SKIP REPORT` and rc: fixed (the cure), arm and M19. Carry: R10-TRAIN-OVERLAP-GRADE
-- `BRANCH-POLICY` same-verdict re-admission has no bound (a missing code-owner approval costs `merge_tries` refusals per re-add): not built here; open carry 2 (park on a missing approval before attempting) is the bound and stays open on the roster for this group. Carry: R10-TRAIN-OVERLAP-GRADE
-- `review_packet.train_boarded` reads `queue.pending.json` without `QUEUE_LOCK` against a non-atomic `write_text`. Carry: dismissed: pre-existing unlocked reader; a torn read only drops boarded entries from an advisory packet line for one render, and atomic replace is a cheap optional hardening, not a defect of this PR
-
-## Carries
-
-Each of the group's roster carries, by index, against this part (part 2). Part 1 is #2882.
-
-- Carry 1 (#2595's semantic-merge barrier, the overlap grade): landed in part 1 (#2882, `Train.grade_merge`). Not touched here.
-- Carry 2 (#2577: 8 retries on a base-policy refusal, park on a missing approval): not in this part and still open. This part classes the stop `BRANCH-POLICY` and lets a same-verdict re-add back in; carry 2's park-before-attempt is the bound on repeated re-adds (review round 1), not built.
-- Carry 3 (triage P4: diagnose the policy refusal, then widen `_carry_owner_approval`): not in this part, still open.
-- Carry 4 (triage P34: the head waits read `pr_head=True`): not in this part, still open (`git grep -n "pr_head=True" -- tools/audit/seat/merge_train.py` returns nothing).
-- Carry 5 (card 4, the merge-queue conditional): superseded by carries 6 and 10. The train path is taken.
-- Carry 6 (the orchestrator's ruling that this barrier is not held behind R10-FLOW-MQ-PROBE): in effect. Nothing to build.
-- Carry 7 (#2595 body item 6fb50ac5 and review item 98904e32): the barrier is part 1's (carry 1). The `## Head` paragraph it names belongs to #2595's body, not this tree.
-- Carry 8 (triage P112: `add --front` / `add --remove`): not in this part, still open.
-- Carry 9 (triage P129, one admission rule): **closed here**. `already_held` is the one predicate `train_add` and `Train.queue_take` call; arms `P291 batch-4 replay`, `P189 null control`, `live queue: ...` and the drained-entry arm, mutants M1, M7, M9 and M14.
-- Carry 10 (the merge queue not adopted in round 10): taken. This is the train path.
-- Carry 11 (triage P164: `stats` and `--cap auto`): not in this part, still open.
-- Carry 12 (triage P184: stale holders): arm (a) is on main from R10-FLY-ABORT-OWN-MERGE (332661e99, `# mut:remergeabort`). Arm (b), `freeable` accepting an ancestor of origin, is not in this part and still open.
-- Carry 13 (triage P189, amending carry 9): **closed here**. A skip leaves the pending layer; a `HOLDER` skip at the same verdict is re-admitted, any other class at the same verdict is ALREADY on both sides; arms `P189 HOLDER arm`, `P189 HOLDER arm, pre-flight`, `P189 null control`, mutants M2, M4, M10 and M13.
-- Carry 14 (triage P191: sweep the record PR inside the merge-attempt loop): not in this part, still open.
-- Carry 15 (#2846 review item 7bff69ba: the HOLDER exception inside the one shared predicate): **closed here**. `READMIT_SAME_VERDICT` is read only inside `already_held`; mutant M5.
-- Carry 16 (triage P231: name `gh pr merge`'s refusal in the BOT line): not in this part, still open.
-- Carry 17 (triage P267: pause the lowest-priority PR's CI): not in this part, still open.
-- Carry 18 (triage P268: the priority mapping from the roster): not in this part, still open.
-- Carry 19 (triage P289: critical-path entries skip `Train.sweep_bots`'s record step): not in this part, still open.
-- Carry 20 (triage P291, the field instance for carries 9 and 13; dev/programme/triage/s6-batch63.md#P291): **closed here**, including the skipped-then-merged cure. Arms `P291 batch-4 replay`, `P291 the merge skip carries its environment class` and `skipped-then-merged is cured`, mutants M3, M6 and M19.
+none: no check has run on this head yet. `ci_predict.py` predicts no red.
 
 ## Forward-carry
 
-none
+- Carry 11 (P164: `merge_train.py stats` and, only past 0.5 h/day lost, `--cap auto`) is not built here. It needs "wall time lost to drop-and-retry, over a window", and the train's log lines carry no timestamps. `Train.log` is `print` into `train.log` through train.sh, and only the batch tag (`BATCH <yyyymmdd-hhmmss>`) holds a time. So the figure the cap decision keys on cannot be derived from the log, and no train log is in the tree or reachable from this container. The next stage must first give each train log line a UTC stamp, or define lost time from batch tags, before `stats` can measure it. Carry: R10-TRAIN-OVERLAP-GRADE
 
 ## Friction
 
-none
+- fixer.md-step-3: unclear: the carries' instances (#2753's hand reorder, #2804's hand removal, #2992's review survivors) are train logs and review notes, not finder harnesses, so there is no finder harness to re-run. The self-test fixtures model each instance. Carry: dismissed: no finder harness exists for instrument carries; the fixtures are the measurement
