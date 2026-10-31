@@ -12802,7 +12802,7 @@
    ],
    "carry": [],
    "resume": {
-    "stage": "not-started",
+    "stage": "done",
     "branch": "handoff/r10-rca-jidoka-yield",
     "commit": null,
     "last_step": null,
