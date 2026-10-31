@@ -1,9 +1,0 @@
-lines base/head 72 72
-RESULT harness rows containing 'd=0.0': base 32 head 32 identical 6
-RESULT harness rows containing 'd=0.112': base 34 head 34 identical 7
-differing lines: 29
- B: spread term vs none: cost per plant kWh change min -0.0598 max +0.0293 cells cheaper 14 dearer 2 
- H: spread term vs none: cost per plant kWh change min -0.0599 max +0.0293 cells cheaper 13 dearer 3
- B: flat term vs none: cost per plant kWh change min -0.0824 max +0.1065 cells cheaper 11 dearer 1 
- H: flat term vs none: cost per plant kWh change min -0.0824 max +0.1064 cells cheaper 11 dearer 1
-RESULT finder harness r10_cop_partload.py base cf4f6b7a6 vs head dfb981d7a: d=0.0 plan hashes identical 32/32; d=0.112 plan hashes moved 26/32
