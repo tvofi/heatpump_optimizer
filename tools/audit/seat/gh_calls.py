@@ -187,11 +187,14 @@ def self_test():
         run(["api", "-X", "POST", "repos/o/r/issues?per_page=9", "--input", "tokfile"])
         run(["pr", "view", "12", "-R", "o/r"])
         run(["api", "-fbody=hush", "graphql"])
+        run(["api", "-f", "body=leak", "-F", "n=leak2", "repos/o/r/labels"])
         lines = log.read_text().splitlines()
         check("-X value, --input value and query string are dropped",
               lines[1].endswith(" api repos/o/r/issues") and "tokfile" not in "".join(lines) and "per_page" not in "".join(lines))
         check("a pr call logs its verb", lines[2].endswith(" pr view"))
         check("a glued -f value is dropped", lines[3].endswith(" api graphql") and "hush" not in "".join(lines))
+        check("-f/-F values placed before the path are dropped, the path still found",
+              lines[4].endswith(" api repos/o/r/labels") and "leak" not in "".join(lines))
 
         # null control: an unwritable log leaves output and status unchanged
         bad = w / "nostate"
