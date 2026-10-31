@@ -1,55 +1,63 @@
-R10-996-RUNNER-CLAIMS. Some golden drift moves the same way on every host but lands on a different set of fixtures on each host. No list of fixture names can claim it, so `tests/env_drift.py` gains a claim keyed on the move: `shape: <leaf paths> <from> -> <to>`. A fixture whose moved leaves all match a shape reads `SHAPED`. A shape that matches nothing on a host reads stale. A malformed line, or one whose from-set and to-set overlap, refuses the run. Issue #996's claim-grammar decision closes here.
+R10-996-RUNNER-CLAIMS, second PR (the first, #2843, landed the shape-claim grammar): carries 1 (P196/V116) and 2 (P209/V129). The `claimnotes` driver in `tests/env_drift.py` refused every merge where both sides changed the bare claim list. It now merges that list three-way per scenario (`merge_claim_decision`). A scenario one side changed takes that side's lines. One neither side changed keeps its lines. One a side deleted while the other left it alone stays deleted. It refuses, naming the scenarios, when both sides changed one scenario's lines, or changed claims under different `claims-for:` stamps. `merge_claim_defect` checks the result against that decision, not against one side's list. It also checks each scenario's lines are one side's own.
 
-`dev/audit/harnesses/r10_shape_grammar_mutants.py`, this diff's mutation instrument, runs each child bytecode-free (`-B`, empty `PYTHONPYCACHEPREFIX`), so no child imports a previous mutant's cached `.pyc`.
+**Policy, under mandate 6329234399.** `dev/governance/rules/claim-files.md` changes "refuses ... when both sides rewrote the bare claim list" to "refuses ... when both sides rewrote the same scenario's claims, or changed claims under different `claims-for:` stamps". It also adds that a deleted scenario and a deleted `may-drift` line stay deleted. This changes what a seat resolving a claim-file conflict must do, so it is policy and needs the owner's approving review before merge. The generated `.claude/rules/claim-files.md` and `.cursor/rules/claim-files.mdc` copies come from `node tools/policy/rules_sync.mjs` (`--check` ok).
+
+**One rule beyond the carry's text, and why.** On the brief's seven recorded refusals, the per-scenario rule alone resolved 2 of the 5 disjoint ones (census below). The other three (#2745 twice, e438816e3) were refused by `merge_claim_defect`'s may-drift check: a may-drift line was lost. In each, one side had deleted a `may-drift` line, the R8-P3 suspension that claims the fixture for the release. Main left the line alone, so the three-way comment merge kept the deletion, and the two-way survival check refused it. The check is now three-way for may-drift lines too. A line one side deleted and the other left alone stays deleted, and any other may-drift line either side carries must survive. That deletion only narrows what the gate exempts (fail-closed direction). Alternatives that lost: (a) keep the two-way check, which resolves 2 of 5 and misses the carry's own count; (b) reinstate the suspended line, which re-exempts a fixture the branch deliberately claimed.
+
+**Carries 1 and 2 disagree on one case, resolved by carry 1.** Carry 2 (P209) says "the deletion shape keeps refusing" because "a union would reinstate a claim a side deleted". Carry 1 (P196) rules that a scenario one side deleted and the other left alone stays deleted. Under a three-way merge nothing is reinstated, so P209's stated reason does not hold for that case, and its pinned control is kept as the refusing shape only where a deletion meets a rewrite. Both carries' disjoint-addition control passes: base empty, ours `everything_on`, theirs `valve_storage_small_tank`. `_CM_UNION_IS_SILENT` still pins why a two-way union stays forbidden.
+
+**Carry 3 (P214, the bot's refusal message) is not in this PR.** Its own text says an `edit-brief` taking `tools/pr/merge_main_bot.py` into this group's `files` lands first, and "no fix touches the bot before it lands". At the base, the group's `files` are `tests/env_drift.py` and `tests/golden/claimed_drift.txt` only. `merge_claim_refusal` now names each refused scenario with both sides' reasons, so the bot only has to relay that text once the edit-brief lands.
+
+Both claim files are byte-identical to the merge base.
 
 ## Approval
 
-Owed: the owner's approving review at the head. `dev/governance/rules/claim-files.md` and its generated copies `.claude/rules/claim-files.md` and `.cursor/rules/claim-files.mdc` are code-owned policy (decision 0009, step 6). No budget is raised.
+Pending. This diff changes `dev/governance/rules/claim-files.md` and its generated copies, which is policy. It is drafted under mandate 6329234399, as carries 1 and 2 direct. The owner has not approved it, and it merges only on `tvofi`'s approving review at its head (`main-protect-checks`' code-owner rule). The policy change is one rule: the driver refuses "where both sides rewrote one scenario's claims or stamped differing `claims-for:`", where it refused when "both sides rewrote the bare claim list". A side's deletion of a claim or a `may-drift` line now wins over the other side's silence.
 
 ## Head
 
-`9f62bb70d711dee2ca178892ac935fd231365fde`, a merge of origin/main `11b7a9d739db46a5a62e9f9cf01a8f527a974137` into `41c0cdc362d8cce4d790eecbda1cdc47dda31cf2`; merge base `11b7a9d739db46a5a62e9f9cf01a8f527a974137`. Every figure below was taken at this head between 2026-10-26T06:11Z and 06:24Z (`date -u`), on Linux x86_64.
+`dee012f97c99523a14ad2fb2b9ef7d67089e5fea`, measured against merge base `a7dd7f50d67e0c3819956b15ef95d77f4f6ebfc0` (= origin/main at 2026-10-31T18:41:55Z). The branch was cut from `7539d1675` and merged `origin/main` three times, the last bringing in #3016 (the wood-fuel change, which also touches `tests/entities.py`, `tests/closures.json` and `tests/golden/claimed_drift.txt`). None conflicted; `tests/closures.json` went through the ledger merge driver. Every figure below, the scoped gate included, was re-taken at `dee012f97c99523a14ad2fb2b9ef7d67089e5fea`.
 
 ## Mutation proof
 
-`python3 dev/audit/harnesses/r10_shape_grammar_mutants.py` (in this diff) rewrites one production line of `tests/env_drift.py`, runs `tests/entities.py`'s shape-claim block in a child against it, then restores the file. At this head: `M0 RESULT pins=16 fails=0`, R1 to R17 each KILLED except R10, `RESULT mutants=17 killed=16`, exit 0. R10 drops the `path.startswith(prefix)` guard in `shaped_leaves` and is an equivalent mutant: `_diff_leaves` always prefixes the path with `<fixture>.`. The fix review dismissed it.
+One mutant per rule, each a one-line edit to `tests/env_drift.py`, run through the merge-driver section of `tests/entities.py` (scratch runner, which execs that section with the module's own prelude):
 
-The delta's own mutation is the parent `a2a7b9ef`'s harness, without `-B` and the prefix: R11 reads SURVIVED (`## Figures`).
+- M1, one side changed -> that side's lines (`elif main == was:` takes `their_blocks`): 6 checks red, among them `claims both sides added on different scenarios are both kept`, `a claim list only one side touched is carried, not refused`, `git resolves claims both sides added on different scenarios`.
+- M2, both sides changed one scenario -> refuse (refusal replaced by taking ours): `a scenario both sides rewrote is refused, not unioned`, `a claim one side deleted and the other rewrote is refused`, `and it leaves a conflict for a scenario both sides rewrote`.
+- M3, deletion stays deleted (`our_blocks.get(name) or their_blocks.get(name)`): `a claim one side deleted and the other left alone stays deleted`.
+- M4, claims-for mismatch -> refuse (stamp test disabled): `claims both sides changed under different claims-for stamps are refused`.
+- M5, may-drift three-way (back to the two-way survival test): `a may-drift line one side suspended stays suspended through the merge`.
+- M6, provenance (the "neither side's own" return deleted): `the merge verification catches a lost stamp, a lost may-drift line, a smuggled claim and surviving markers`.
+
+Failing first: the new `tests/entities.py` section against the base `tests/env_drift.py` fails `claims both sides added on different scenarios are both kept` (`merged=None`), then stops on `AttributeError: module 'env_drift' has no attribute 'merge_claim_decision'`.
 
 ## Null control
 
-The harness at `a2a7b9ef`, run 10 times as `R10 R11`, reads R11 SURVIVED on 8 of 10 runs and exits 1 on those 8. This head's harness reads R11 KILLED on 10 of 10. Had the change been inert, the two columns would match.
+At the base driver the census harness reports `refused` on all seven recorded merges, including the five with zero scenario overlap. At the head, the two overlapping shapes still refuse: #2834's five `coord_*` scenarios, and 5bf232eac's overlap of 42. Cases where only one side changed resolve as before: `a claim list only one side touched is carried, not refused` and `merging a file with itself returns it byte-identical` both pass unchanged. A `claims-for:` mismatch refuses (M4's control).
 
 ## Figures
 
-- **Before.** `git show a2a7b9ef:dev/audit/harnesses/r10_shape_grammar_mutants.py` copied beside the harness, then `for i in $(seq 10); do python3 <copy> R10 R11 | grep -E "^R11"; echo "exit=${PIPESTATUS[0]}"; done | sort | uniq -c`: `8 R11: RESULT pins=16 fails=0 SURVIVED`, `2 R11: RESULT pins=16 fails=1 KILLED`, `8 exit=1`, `2 exit=0`.
-- **After.** The same loop over `dev/audit/harnesses/r10_shape_grammar_mutants.py`: `10 R11: RESULT pins=16 fails=1 KILLED`, `10 exit=0`.
-- **Whole run.** `python3 dev/audit/harnesses/r10_shape_grammar_mutants.py`: `RESULT mutants=17 killed=16`, exit 0, 10.5 s wall (`time`).
-- **Scoped gate.** `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) PYTHONPATH=tests/hastub ./tests/run.sh`, 06:12Z to 06:24Z: `MODE: SCOPED -- 6 script(s) run, 27 scoped out`. `env_drift.py --all`, `env_drift.py --claims-only`, `card.mjs`, `plan_view.py`, `harness_headers.py`, `layout.py` and `closure.py selftest` ok; `tests/entities.py` reads `2 of 2461 ENTITY CHECKS FAILED`. Control: `PYTHONPATH=tests/hastub python3 tests/entities.py` in a detached worktree at `11b7a9d73`, 06:15Z to 06:24Z, reads `2 of 2449`, and the FAIL names of the two runs are identical (the `gate-sweep.yml` U0c check and the `graders-head-copy` delivery_status check, plus the same self-test arms). The branch's 12 added checks all pass, among them `one shape claim holds on every recorded host reading of the parked classifier arm`.
-- **Structure.** `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
-- **Architecture.** `python3 tools/audit/archscore/score.py --diff 11b7a9d73 HEAD`: `Architecture score: dS +0.0000 NULL`.
-- **Policy caps.** `node tools/policy/policy_lint.mjs`: `TOTAL: 0 error(s) across 50 policy file(s)`.
-- **Rule sync.** `node tools/policy/rules_sync.mjs --check`: `RULES-SYNC ok`.
-- **Claim files and version.** `git diff --quiet $(git merge-base origin/main HEAD)...HEAD -- tests/golden/claimed_drift.txt tests/golden/card_claimed_drift.txt VERSION RELEASE_NOTES.md custom_components/heatpump_optimizer/manifest.json && echo CLAIMS-VERSION-UNTOUCHED`: `CLAIMS-VERSION-UNTOUCHED`.
-- **CI prediction.** `python3 tools/pr/ci_predict.py --base origin/main`: `CI PREDICT: no closures, fast, wave-script or instrument red predicted against 11b7a9d739db`.
-- **Temp paths.** `python3 -I tools/audit/seat/tmp_paths.py --check`: `tmp_paths: 0 refused`.
+- `python3 dev/audit/harnesses/claim_merge_census.py a7dd7f50d67e0c3819956b15ef95d77f4f6ebfc0` (the base driver): `RESULT resolved=0`, `RESULT refused=7`. The cases come from P196's list in `dev/programme/triage/s6-batch34.md`. The per-row counts (scenarios each side changed against the merge base; overlap = scenarios both changed to different lines) equal P196's for all seven: #2841 5/1/0, #2745 41/1/0 and 41/5/0, #2834 5/5/5, 3a07c2eaa 3/1/0, e438816e3 4/41/0, 5bf232eac 45/50/42.
+- `python3 dev/audit/harnesses/claim_merge_census.py` (the head driver): `RESULT resolved=5`, `RESULT refused=2` (#2834, 5bf232eac), `RESULT hand_same=1`, `RESULT hand_differs=1`. `hand=` compares the driver's claim map with what main's hand-resolved merge committed. 3a07c2eaa matches. e438816e3 differs on four scenarios (`config_flow`, `valve_storage_flat_prices`, `valve_storage_low_target`, `valve_storage_small_tank`). Those four were lines its first parent carried from main, and the hand resolution dropped them ("main's four inherited claim lines are dropped", its commit message). The driver keeps them as that side's lines. At a PR's three-dot they equal the fork point's and are inert (`excusing_claims`, R9-F10.8), so the gate judges the two results the same. 5bf232eac refuses, so it has no comparison.
+- Mutants: six, each killed (`## Mutation proof`); the null is the head tree, `ALL 20 CM PASSED`.
+- `D=$(mktemp -d); python3 tests/closure.py select --diff a7dd7f50d67e0c3819956b15ef95d77f4f6ebfc0 --workdir "$D"`: `MODE: SCOPED -- 7 script(s) run, 26 scoped out.`
+- `PYTHONPATH=tests/hastub GATE_SCOPE=auto GATE_SCOPE_BASE=a7dd7f50d67e GOLDEN_MODE=drift GOLDEN_REF=a7dd7f50d67e bash tests/run.sh`: `9 TEST SCRIPT(S) PASSED; 25 SCOPED OUT AND NOT RUN`, `ALL 2499 ENTITY CHECKS PASSED`. An earlier run at `8742f1f`'s parent (the head before the cap fix) failed one check, `the template arm turns the acceptance red ... (and the real template keeps it green)`: `policy_lint.mjs` refused `.claude/rules/claim-files.md` at 57 lines against its 53-line cap. The rule paragraph was cut back to the base's line count (`8742f1f`), not raised; `node tools/policy/policy_lint.mjs`: `TOTAL: 0 error(s) across 50 policy file(s)`.
+- `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
+- `git diff --quiet a7dd7f50d67e0c3819956b15ef95d77f4f6ebfc0 HEAD -- tests/golden/claimed_drift.txt tests/golden/card_claimed_drift.txt && echo "CLAIM FILES BYTE-IDENTICAL"`: `CLAIM FILES BYTE-IDENTICAL`.
+- `python3 tools/pr/ci_predict.py --base origin/main --apply-inert`: applied one `inert_reads` entry (`tests/harness_headers.py` reads the new harness), then, re-run after the merge, `CI PREDICT: no closures, fast, governance or instrument red predicted against a7dd7f50d67e`.
+
+## Architecture score
+
+`python3 tools/audit/archscore/score.py --diff a7dd7f50d67e0c3819956b15ef95d77f4f6ebfc0`: `Architecture score: dS +0.0000 NULL`.
 
 ## Red checks
 
-Read from the check-runs API for #2843 at the PR head `a2a7b9ef` and for main at `11b7a9d73`, 2026-10-26T06:15Z. No run exists yet for `9f62bb70`. Every red below stopped on the installation's GitHub API rate limit (HTTP 403, `reset_epoch=1792991224`, 04:52Z to 05:01Z) before any test body ran. That is infrastructure, not this PR's defect, so no cheaper detector is owed under `defect-root-cause.md`. A rerun is the answer.
-
-- `arch-score / arch-score`: red in `CI code` run 40271999135 (`API rate limit exceeded for installation`). Its rerun in `CI edit` run 40271998592, attempt 2, passed at 05:36Z.
-- `refresh`: red in run 40271999135, exit 3, `reset_epoch=1792991224`. Its rerun in run 40271998592, attempt 2, passed at 05:09Z.
-- `validate / validate-hacs`: red in run 40271999135 (`GitHubRatelimitException: API rate limit exceeded for installation`). Not rerun; the push of this head re-runs it.
-- `governance / env-matrix`: red in run 40271999135 on one outcome, `FAIL pr / nothing skipped in a full clone -- skip required-contexts the GitHub API is unreachable`; 15 other outcomes held. The push of this head re-runs it.
-- `governance / delivery-status`: green on the PR head (run 40271999135, success at 05:01:45Z). The opener's prepr listed it from a commit in main's ancestry, not from this PR; main's `CI code` run 40273778098 at `11b7a9d73`, this head's base, concluded success.
-- `tests / nightly-status`: `NIGHTLY UNREADABLE ... HTTP 403 ... (rate limit exhausted)` in run 40271999135. Not a required context. The nightly it reads is main's, red on `Nightly` / record-autofix (`batch=$?` under `bash -e`, exit 4 `BATCH WAIT`); hotfix PR #2848 owns that, not this PR.
+none
 
 ## Forward-carry
 
-- The `tests/golden/claimed_drift.txt` header does not name the shape line, and a branch that claims nothing leaves that file byte-identical. The first branch that claims by shape restates the header with its claim. Carry: R10-ARCH-SHAPES-CLASSIFIER
-- R10-ARCH-SHAPES-CLASSIFIER claims by `shape: space_reasons[*]|dhw_reasons[*] * -> 'idle_coasting'|'idle'`; `bash dev/audit/harnesses/r10_shape_claim_controls.sh <its head> <its base>` re-runs the real-capture controls there. Carry: R10-ARCH-SHAPES-CLASSIFIER
+- Carry 3 (P214): the merge-main bot should relay `merge_claim_refusal`'s text, which now names each refused scenario with both sides' reasons. It waits on its own `edit-brief` taking `tools/pr/merge_main_bot.py` into this group's `files`, and stays on the roster as written. Carry: R10-996-RUNNER-CLAIMS
 
 ## Friction
 
-none
+- claim-files.md: contradiction: carry 2 (P209, s6-batch39) keeps "the refusal for a deletion" while carry 1 (P196, s6-batch34) rules that a scenario one side deleted and the other left alone stays deleted. Resolved here by P196's rule, since P209's stated reason (a union reinstates the deletion) does not hold for a three-way merge. Carry: dismissed: resolved in this PR's driver and pinned by `a claim one side deleted and the other left alone stays deleted`
