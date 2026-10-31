@@ -12,7 +12,7 @@ MERGE_CALL and SUBJECT_ARG, L rows the lead (the program position, read only
 to anchor the line) and L5 the program read again, RV rows each site a
 shared part (GAP, OPTIONS) stands in, one site at a time, P rows the statement
 read the open bracket comes from (P1 restores the line-local scan, P5 the
-statement read in a Python or JS file), C rows the
+re-read from the file start, P6 that re-read always, P7 in every kind), C rows the
 comment reader, J rows the JS block comment and template literal, G rows GAP's comment and literal-join arms, K rows the skip
 of a closer in the lead that matches nothing on its line. A survivor prints
 `N of N` and no FAIL. Expected survivors: Y9, Y10, each dispositioned in the
@@ -26,14 +26,14 @@ orig = p.read_text()
 M = {
 'M1 title arm end-anchor':(r"/^\S(?:.*\S)? \(#[1-9]\d*\)$/",r"/\(#\d+\)$/"),
 'M2 number \\d+':(r"\(#[1-9]\d*\)$/]",r"\(#\d+\)$/]"),
-'M3 extent ends every line':("      if (!open.length && !depth && text[i - 1] !== '\\\\') return text.slice(start, i)\n","      return text.slice(start, i)\n"),
+'M3 extent ends every line':("      if (b < 0 && !depth && text[i - 1] !== '\\\\') return text.slice(start, i)\n","      return text.slice(start, i)\n"),
 'M4 backslash ignored':("&& text[i - 1] !== '\\\\')", ")"),
-'M5 depth ignored at line end':("if (!open.length && !depth && text","if (!open.length && text"),
+'M5 depth ignored at line end':("if (b < 0 && !depth && text","if (b < 0 && text"),
 'M6 blank-line end deleted':("      if (kind === 'sh' && !text.slice(i + 1, next < 0 ? text.length : next).trim()) return text.slice(start, i)\n",''),
 'M7 enclosing close not end':("&& --depth < 0) {","&& --depth < -99) {"),
 'K1 a closer in the lead ends the call (the skip deleted)':("      if (i < at) { depth = 0; continue }\n",""),
 'K2 a closer in the lead skipped, its depth kept':("if (i < at) { depth = 0; continue }","if (i < at) continue"),
-'M8 start always line start':("const start = open.length ? open[open.length - 1] : ls","const start = ls"),
+'M8 start always line start':("const start = b < 0 ? ls : b","const start = ls"),
 'M10 quotes not read':('  if (c === \'"\' || c === "\'") { st.q = text.startsWith(c.repeat(3), i) ? c.repeat(3) : c; return st.q.length }\n',''),
 'M11 escapes not read':("    else if (c === '\\\\') st.esc = true\n",''),
 'M12 blank-line state reset removed':("      st = { q: '', esc: false }\n      const next","      const next"),
@@ -42,12 +42,12 @@ M = {
 'X2 forward quote skip':("    if (n) { i += n - 1; continue }\n    const e = commentEnd(kind, text, i)\n    if (e >= 0) { i = e - 1; continue }\n    if ('([{'.includes(c)) depth++","    const e = commentEnd(kind, text, i)\n    if (e >= 0) { i = e - 1; continue }\n    if ('([{'.includes(c)) depth++"),
 'X3 push deleted':("open.push(i)","void 0"),
 'X4 depth++ deleted':("if ('([{'.includes(c)) depth++","if ('([{'.includes(c)) {}"),
-'X5 forward from open bracket':("start + (open.length ? 1 : 0)","start"),
+'X5 forward from open bracket':("start + (b < 0 ? 0 : 1)","start"),
 'X6 first match only':("text.matchAll(new RegExp(MERGE_CALL.source, 'g'))","[text.match(MERGE_CALL)].filter(Boolean)"),
 'Y1 close quote not cleared':("    else if (text.startsWith(st.q, i)) { const k = st.q.length; st.q = ''; return k }",'    else if (text.startsWith(st.q, i)) { const k = st.q.length; return k }'),
 'Y2 line number off by one':("text.slice(0, m.index).split('\\n').length}","text.slice(0, m.index).split('\\n').length - 1}"),
-'Y3 no line-end check for backslash nor open (always continue)':("      if (!open.length && !depth && text[i - 1] !== '\\\\') return text.slice(start, i)\n",""),
-'Y4 open.length ignored at line end':("if (!open.length && !depth &&","if (!depth &&"),
+'Y3 no line-end check for backslash nor open (always continue)':("      if (b < 0 && !depth && text[i - 1] !== '\\\\') return text.slice(start, i)\n",""),
+'Y4 open.length ignored at line end':("if (b < 0 && !depth &&","if (!depth &&"),
 'Y5 close ends extent at 0 not -1':("--depth < 0)","--depth < 1)"),
 'Y7 ls off':("text.lastIndexOf('\\n', at - 1) + 1","0"),
 'Y9 slice end exclusive at close':("return text.slice(start, i + 1)","return text.slice(start, i)"),
@@ -101,8 +101,10 @@ M = {
 'G2 GAP: the JS line comment dropped':('const GAP = String.raw`(?:\\s|\\\\\\n|,|(?:#|\\/\\/)[^\\n]*\\n|\\/\\*[\\s\\S]*?\\*\\/|["\'${\'`\'}][^\\S\\n]*["\'${\'`\'}])+`','const GAP = String.raw`(?:\\s|\\\\\\n|,|#[^\\n]*\\n|\\/\\*[\\s\\S]*?\\*\\/|["\'${\'`\'}][^\\S\\n]*["\'${\'`\'}])+`'),
 'G3 GAP: the block comment dropped':('const GAP = String.raw`(?:\\s|\\\\\\n|,|(?:#|\\/\\/)[^\\n]*\\n|\\/\\*[\\s\\S]*?\\*\\/|["\'${\'`\'}][^\\S\\n]*["\'${\'`\'}])+`','const GAP = String.raw`(?:\\s|\\\\\\n|,|(?:#|\\/\\/)[^\\n]*\\n|["\'${\'`\'}][^\\S\\n]*["\'${\'`\'}])+`'),
 'G4 GAP: the adjacent-literal join dropped':('const GAP = String.raw`(?:\\s|\\\\\\n|,|(?:#|\\/\\/)[^\\n]*\\n|\\/\\*[\\s\\S]*?\\*\\/|["\'${\'`\'}][^\\S\\n]*["\'${\'`\'}])+`','const GAP = String.raw`(?:\\s|\\\\\\n|,|(?:#|\\/\\/)[^\\n]*\\n|\\/\\*[\\s\\S]*?\\*\\/)+`'),
-'P1 the open bracket read on the line of pr only (the line-local scan)':('  for (let i = ps; i < at; i++) {','  for (let i = ls; i < at; i++) {'),
-'P5 a Python or JS open bracket read from the statement, not the file start':("let ps = kind === 'sh' ? ls : 0",'let ps = ls'),
+'P1 the open bracket read on the line of pr only (the line-local scan)':("  let b = openAt(text, ps, at, kind)\n  if (b < 0 && kind !== 'sh' && ps > 0) b = openAt(text, 0, at, kind)\n","  const b = openAt(text, ls, at, kind)\n"),
+'P5 no Python or JS re-read from the file start':("  if (b < 0 && kind !== 'sh' && ps > 0) b = openAt(text, 0, at, kind)\n",''),
+'P6 a Python or JS open bracket read from the file start always':("  let b = openAt(text, ps, at, kind)\n  if (b < 0 && kind !== 'sh' && ps > 0) b = openAt(text, 0, at, kind)\n","  let b = openAt(text, kind === 'sh' ? ps : 0, at, kind)\n"),
+'P7 the file-start re-read in a shell or prose file too':("if (b < 0 && kind !== 'sh' && ps > 0)","if (b < 0 && ps > 0)"),
 'P2 the statement start never moves back':('  for (let p; ps > 0 && (p','  for (let p; false && (p'),
 'P3 the backward read resets no quote at a line end':("    if (c === '\\n' && !spansLines(st)) { st = { q: '', esc: false }; continue }\n",''),
 'P4 the backward read resets a triple quote at a line end':("    if (c === '\\n' && !spansLines(st)) { st","    if (c === '\\n' && true) { st"),

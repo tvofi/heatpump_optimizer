@@ -137,6 +137,7 @@ const open = {
   // Three spellings outside that class text, routed to the same group by #2697's
   // body (the guard's next owner), each one main's line guard passes too: a blank
   // line in a Python or JS argv, and a closer in a JS block comment after merge.
+  // XFAIL at #2697's head; held from R10-MERGE-SUBJECT-CASEARM's.
   'R10-MERGE-SUBJECT-CASEARM routed': [
     ['a blank line in a Python argv f.py', 'f.py', (v) => `run([
     "gh",

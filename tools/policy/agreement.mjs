@@ -205,29 +205,11 @@ function commentEnd(kind, text, i) {
   }
   return -1
 }
-// A call, not a line: what a merge call carries runs from the innermost bracket
-// still open at it (or its line's start) to where that bracket closes,
-// or to the first line end that is outside every bracket it opened and not
-// escaped by `\`: an argv list or a call split over lines (merge_train.py's own
-// merge among them) and a shell continuation are one call, and a sibling in the
-// same table is not. A bracket inside a quote is text, and a line end inside a
-// Python triple-quoted string or a JS template literal is the string's. A blank
-// line ends it, so prose with a stray parenthesis cannot run on, except in a
-// Python or JS file, where the language reads a blank line inside a bracket as
-// nothing. The open bracket is read, in a shell or prose file, from the
-// statement's first line, the line after the last blank one, and in a Python or
-// JS file from the file's start, for the same reason: an argv wrapped after its
-// program, exploded one element per line or holding a blank line before `pr` is
-// one call; a line end there resets a quote as the forward read does.
-// With no bracket open the forward read starts at the line's start, as main's
-// line guard reads, and a closer before `pr` that matches nothing on the line
-// is skipped, not read as the call's end.
-function callExtent(text, at, kind) {
-  const ls = text.lastIndexOf('\n', at - 1) + 1
-  let ps = kind === 'sh' ? ls : 0
-  for (let p; ps > 0 && (p = text.lastIndexOf('\n', ps - 2) + 1, text.slice(p, ps - 1).trim()); ps = p);
+// The innermost bracket still open at `at`, read from `from` with the reader
+// the extent uses, or -1.
+function openAt(text, from, at, kind) {
   const open = []; let st = { q: '', esc: false }
-  for (let i = ps; i < at; i++) {
+  for (let i = from; i < at; i++) {
     const c = text[i]
     if (c === '\n' && !spansLines(st)) { st = { q: '', esc: false }; continue }
     const n = quoted(st, text, i, kind)
@@ -237,16 +219,44 @@ function callExtent(text, at, kind) {
     if ('([{'.includes(c)) open.push(i)
     else if (')]}'.includes(c)) open.pop()
   }
-  const start = open.length ? open[open.length - 1] : ls
-  let depth = 0; st = { q: '', esc: false }
-  for (let i = start + (open.length ? 1 : 0); i < text.length; i++) {
+  return open.length ? open[open.length - 1] : -1
+}
+// A call, not a line: what a merge call carries runs from the innermost bracket
+// still open at it (or its line's start) to where that bracket closes,
+// or to the first line end that is outside every bracket it opened and not
+// escaped by `\`: an argv list or a call split over lines (merge_train.py's own
+// merge among them) and a shell continuation are one call, and a sibling in the
+// same table is not. A bracket inside a quote is text, and a line end inside a
+// Python triple-quoted string or a JS template literal is the string's. A blank
+// line ends it, so prose with a stray parenthesis cannot run on, except in a
+// Python or JS file, where the language reads a blank line inside a bracket as
+// nothing. The open bracket is read from the statement's first line, the line
+// after the last blank one, so an argv wrapped after its program or exploded one
+// element per line is one call; a line end there resets a quote as the forward
+// read does. Where that read opens no bracket in a Python or JS file, it is
+// re-read from the file's start, for the same reason: an argv holding a blank
+// line before `pr` is one call. Only then, so a lexer state the file's start
+// carries in (a regex literal holding a quote mark) moves no call a
+// statement's own bracket already holds.
+// With no bracket open the forward read starts at the line's start, as main's
+// line guard reads, and a closer before `pr` that matches nothing on the line
+// is skipped, not read as the call's end.
+function callExtent(text, at, kind) {
+  const ls = text.lastIndexOf('\n', at - 1) + 1
+  let ps = ls
+  for (let p; ps > 0 && (p = text.lastIndexOf('\n', ps - 2) + 1, text.slice(p, ps - 1).trim()); ps = p);
+  let b = openAt(text, ps, at, kind)
+  if (b < 0 && kind !== 'sh' && ps > 0) b = openAt(text, 0, at, kind)
+  const start = b < 0 ? ls : b
+  let depth = 0; let st = { q: '', esc: false }
+  for (let i = start + (b < 0 ? 0 : 1); i < text.length; i++) {
     const c = text[i]
     if (c === '\n') {
       if (spansLines(st)) continue
       st = { q: '', esc: false }
       const next = text.indexOf('\n', i + 1)
       if (kind === 'sh' && !text.slice(i + 1, next < 0 ? text.length : next).trim()) return text.slice(start, i)
-      if (!open.length && !depth && text[i - 1] !== '\\') return text.slice(start, i)
+      if (b < 0 && !depth && text[i - 1] !== '\\') return text.slice(start, i)
       continue
     }
     const n = quoted(st, text, i, kind)
@@ -839,6 +849,14 @@ async function selfTest() {
     !guard([], { ...writers, 'tools/x.mjs': after('/* see the\n   note ( */\n\n') }).length])
   probes.push(['null control: a bracket in a JS template literal, on its first line or a later one, opens nothing',
     !guard([], { ...writers, 'tools/x.mjs': after('x = `a (b`\n\n') }).length && !guard([], { ...writers, 'tools/x.mjs': after('x = `a\n(b`\n\n') }).length])
+  // The file's start is read only where the statement opens no bracket: a regex
+  // literal holding a backtick above an argv wrapped after its program moves
+  // nothing of the call the statement's own bracket holds, as at main.
+  probes.push(['a prose parenthesis left open above a blank line opens nothing for a shell or prose call: its --subject is refused',
+    ['tools/x.md', 'tools/x.sh'].every((f) => guard([], { ...writers, [f]: 'Merge it by hand (see the note\n\ngh pr merge 9 --subject x\n' }).length === 1)])
+  probes.push(['a lexer state carried from the file start does not move a call its statement\'s bracket holds: its --subject is refused',
+    guard([], { ...writers, 'tools/x.mjs': "const r = /`/\n\nexecFileSync('gh', [\n  'pr', 'merge', n,\n  '--subject', s])\n" }).length === 1
+    && guard([], { ...writers, 'tools/x.py': 'x = \'\'\'a\n\nrun(["gh",\n  "pr", "merge", n,\n  "--subject", s])\n' }).length === 1])
   probes.push(['a merge_pull_request call whose commit_title is on a later line is refused', wr('merge_pull_request(\n  owner, repo,\n  commit_title=t)\n').length === 1])
   probes.push(['null control: a split merge call with no subject passes, and a flag on the next command is not the call\'s',
     !wr('self.run(["gh", "pr", "merge", n, "--merge",\n         "--match-head-commit", h])\n').length && !wr('gh pr merge 9 --merge\necho --body\n').length
