@@ -972,8 +972,8 @@ opt-in learners are on **Advanced learning features**.
 
 ### Transfer fees and contract
 
-Fee amounts are in the same currency as your electricity prices; some labels
-still read SEK, which is the historical default rather than a constraint.
+Fee amounts are in the same currency as your electricity prices; where a label
+reads SEK, that is a label, not a constraint.
 
 | Setting | Default | Range | What it means |
 |---|---|---|---|

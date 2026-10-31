@@ -979,8 +979,8 @@ reloads. The key is the space and hot-water entity ids the config carries (the
 defaults, when you have not set them) plus the card's `title` and `hours` — its
 config identity, not just its data sources — so a 24-hour card on a wall panel
 and a 48-hour card of the same sensors elsewhere keep their own toggles instead
-of overwriting each other. A card whose toggles were saved under a key of the
-entity ids alone has that key read once as a fallback, so its toggles are kept.
+of overwriting each other. Toggles stored under a key of the entity ids alone
+are read once as a fallback, so they are kept.
 Writes always go to the full key.
 
 The `series` option only sets the *initial* visibility the first time the card
