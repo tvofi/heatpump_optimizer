@@ -436,7 +436,7 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of 
     # that reap, and a KILL to the group leaves it to finish under its own lock (#2549).
     # One launch for both routes, so the self-test's stub runs the production launch line.
     urc=0; upd=(bash "$HERE/update_pr.sh"); [ -z "${HPO_RELAY_UPDATE:-}" ] || upd=("$HPO_RELAY_UPDATE")
-    pr_own_group "${upd[@]}" "$br" "$hs" "$body" $iss >&2 &
+    pr_own_group "${upd[@]}" "$br" "$hs" "$body" $iss >&2 &  # never-empty: upd is assigned the bash update_pr.sh command on the line above
     PR_REAP_LEAD=$!; wait "$PR_REAP_LEAD" || urc=$?
     # 75 is update_pr.sh's BUSY: another run (the orchestrator's) holds this branch's worktree. Not
     # a failure, so it is not recorded and the next pass retries once that run has ended.

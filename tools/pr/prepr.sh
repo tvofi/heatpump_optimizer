@@ -866,7 +866,7 @@ body_check() { # body file, head sha, title, paths file, red names...
   # refused here (policy_lint's raise arm reads the diff with the gate's own
   # raises_between), and at body_push.sh's --body-check, not first at the train.
   [ -n "${BASE:-}" ] && args+=(--base "$BASE")
-  if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs "${args[@]}"; else node tools/policy/policy_lint.mjs "${args[@]}"; fi
+  if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs "${args[@]}"; else node tools/policy/policy_lint.mjs "${args[@]}"; fi  # never-empty: args starts with the literal --pr-body list
   rc=$?
   rm -f "$ex"
   return "$rc"
@@ -1343,7 +1343,7 @@ reds_line() { # body file, head sha, title, paths file, remote head ref
   fi
   while IFS= read -r n; do [ -n "$n" ] && reds+=("$n"); done <<<"$names"
   out=$(mktemp)
-  body_check "$1" "$2" "$3" "$4" "${reds[@]}" >"$out" 2>&1; r=$?
+  body_check "$1" "$2" "$3" "$4" ${reds[@]+"${reds[@]}"} >"$out" 2>&1; r=$?
   if [ "$r" -eq 0 ]; then
     printf '%sthe body answers every red this branch pushed (%s)' "$unread" "$(echo $names)"
   else
@@ -1498,7 +1498,7 @@ TRANSPORT_ROOTS=(tools/audit/handoff/ handoff/)
 transport_in_ancestry() { # merge base, head -> 0 clean, 1 found (prints `<sha> <path>`), 2 unreadable
   local out
   out=$(git log --full-history -c --diff-filter=ACMRT --name-only \
-        --format='@%h' "$1..$2" -- "${TRANSPORT_ROOTS[@]}" 2>/dev/null) || return 2
+        --format='@%h' "$1..$2" -- "${TRANSPORT_ROOTS[@]}" 2>/dev/null) || return 2  # never-empty: TRANSPORT_ROOTS is a literal two-path list
   out=$(printf '%s\n' "$out" | awk '/^@/{c=substr($0,2);next} NF{print c" "$0}')
   [ -z "$out" ] && return 0
   printf '%s\n' "$out"
@@ -3237,7 +3237,7 @@ STUB
   tmp_floor_check /no/such/dir 1 >/dev/null; st $? 0 "an unmeasurable temp dir runs anyway, never refuses"
   # (4) The class, over every script whose sites were drained (above
   # `pipe_grep_q_sites`), and a planted site the search must find.
-  out=$(pipe_grep_q_sites "${PIPE_GREP_Q_FILES[@]}"); r=$?
+  out=$(pipe_grep_q_sites "${PIPE_GREP_Q_FILES[@]}"); r=$?  # never-empty: PIPE_GREP_Q_FILES is a literal list
   st "$r" 0 "no early-exit grep reads a pipe under pipefail in the drained scripts"
   [ "$r" -eq 0 ] || printf '%s\n' "$out" | sed 's/^/       | /' | head -8
   printf '#!/bin/bash\nset -uo pipefail\nprintf x | grep %s y\n' "-q" > "$ST_ROOT/planted.sh"

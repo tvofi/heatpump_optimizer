@@ -752,6 +752,8 @@ INERT_EXCEPT = (
     "tools/audit/seat/merge_train.py",
     "tools/audit/seat/queue_pre_flight.py",
     "tools/audit/seat/tmp_paths.py",
+    # R10-FLY-BUS-BASH32: tests/entities.py loads it for the bare-array rule.
+    "tools/audit/seat/bare_array.py",
     # R10-FLOW-AUTOTRAIN: merge_train.py imports these two when tests/entities.py
     # loads it (proof_watch for the verdict grammar, ledger for the sweep's
     # train-stop hold). CI's recording at f3bd78c35 (closures job 121037861937)
