@@ -4753,9 +4753,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         flow meter measures the interval's heat instead (#2016). The hot
         water subtracted is ``_commanded_split``'s, which zeroes a channel the
         observed mode cannot serve: a phantom allocation would bias every
-        sample low, in one direction (v5.3.0).
+        sample low, in one direction (v5.3.0). A mode dwell that saw hot water
+        leaves neither the reading nor the ask a space figure (``ran_hot_water``).
         """
         commanded_space, dhw_share = self._commanded_split()
+        if heat_energy.ran_hot_water(heat_energy.meter_of(self).attribution((commanded_space, dhw_share))):
+            return None
         if not getattr(self, "_ctx", self)._config.heat_pump_power_entity:
             return commanded_space
         # #1067: the pump's own heaters join the immersion latch, for the
@@ -4771,12 +4774,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         ):
             return None
         if self._pump_signals.mode_observed and not self._pump_signals.space_heat:
-            # v5.3.0: the pump is in a mode that heats no rooms, so whatever
-            # the meter is reading went somewhere else — hot water, or the
-            # cooling circuit. There is no space figure to extract, and
-            # returning zero would be a *confident* claim that the house got
-            # nothing, which the house heat-loss learner would then replay as
-            # thermal behaviour. Skip the sample instead.
+            # v5.3.0: a mode heating no rooms sent the reading elsewhere; a
+            # 0 kW sample would be a confident claim the house got nothing.
             return None
         # The subtraction only splits the meter correctly while the pump is
         # plausibly running the plan: a deferred DHW start, or a
@@ -9789,10 +9788,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         _fold_flow_lift(self, now)
         power_frozen = self._learning_frozen(CONF_POWER_ENTITY)  # read once: the defrost settlement below gates on it too
         # The meter read now closes the interval ``pending`` governed, so the
-        # draw pairs with that interval's ask and set-point, not the action the
-        # solve just adopted for the next one (#2262), within the window the
-        # accuracy pairing below trusts; a prediction recording no split is none.
-        if pending is not None and pending.get("split") is not None and pairs_interval(_utc_age_seconds(now, pending["when"]) / 3600.0):
+        # draw pairs with that interval's ask and set-point, not the next one's
+        # (#2262), within the window the accuracy pairing below trusts; a
+        # prediction recording no split, or a dwell that saw hot water, is none.
+        if pending is not None and pending.get("split") is not None and pairs_interval(_utc_age_seconds(now, pending["when"]) / 3600.0) and not heat_energy.ran_hot_water(heat_energy.meter_of(self).attribution(pending["split"])):
             draw_range.fold(self._accuracy.draw, self._measured_power, pending["split"], ctx._thermal_params, frozen=power_frozen is not None, distorted=_cop_fold_blocked(self), defrost=defrost_window.any_defrost, command=pending.get("flow_command"))
 
         # T5 #16: settle every matured lead-time promise against the same
