@@ -1573,6 +1573,7 @@ async def options_menus():
             "grid_connection",
             "grid_fees",
             "heat_curve",
+            "factory_reset",
         ],
         str(list(advanced.get("menu_options", {}))),
     )
@@ -4087,6 +4088,10 @@ async def registry_drives_every_page():
     # one source the fresh form's defaults and derive's fallbacks also read,
     # so the allowance cannot drift from the fields the page renders).
     transient["quick_setup"] = set(quick_setup.SHIPPED_ANSWERS)
+    # R10-FACTORY-RESET: the reset's scope and its confirmation are read once
+    # and never stored -- the page aborts the flow after the reset, so nothing
+    # reaches the entry's options. Keyed on the production schema.
+    transient["factory_reset"] = {str(key) for key in config_flow._FACTORY_RESET_SCHEMA.schema}
     # The rest of that page's fields are not its own declarations but the
     # building pages': the questionnaire's one field list serves two flows by
     # design (``_questionnaire_fields``), and the two wood probes are the

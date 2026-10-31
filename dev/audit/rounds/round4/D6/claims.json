@@ -128,18 +128,18 @@
  {
   "id": "C15",
   "source": "README.md:## Services",
-  "claim": "14 services are registered under the heatpump_optimizer domain",
+  "claim": "15 services are registered under the heatpump_optimizer domain",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "documented=14 measured=14",
+  "result": "documented=15 measured=15",
   "verdict": "true",
   "truth": ""
  },
  {
   "id": "C16",
   "source": "docs/configuration.md:## Services",
-  "claim": "14 services are registered",
+  "claim": "15 services are registered",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "documented=14 measured=14",
+  "result": "documented=15 measured=15",
   "verdict": "true",
   "truth": ""
  },
@@ -148,7 +148,7 @@
   "source": "README.md:## Services",
   "claim": "the Services table names exactly services.yaml's keys",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "documented=['apply_manual_plan', 'apply_schedule', 'apply_topology', 'assign_entity', 'clear_manual_plan', 'debug_collect', 'diagnose_interval', 'reset_heat_loss_learners', 'restore_learned_snapshot', 'run_optimization', 'set_away', 'set_mode', 'set_thermal_parameters', 'simulate_plan'] measured=['apply_manual_plan', 'apply_schedule', 'apply_topology', 'assign_entity', 'clear_manual_plan', 'debug_collect', 'diagnose_interval', 'reset_heat_loss_learners', 'restore_learned_snapshot', 'run_optimization', 'set_away', 'set_mode', 'set_thermal_parameters', 'simulate_plan']",
+  "result": "documented=['apply_manual_plan', 'apply_schedule', 'apply_topology', 'assign_entity', 'clear_manual_plan', 'debug_collect', 'diagnose_interval', 'factory_reset', 'reset_heat_loss_learners', 'restore_learned_snapshot', 'run_optimization', 'set_away', 'set_mode', 'set_thermal_parameters', 'simulate_plan'] measured=['apply_manual_plan', 'apply_schedule', 'apply_topology', 'assign_entity', 'clear_manual_plan', 'debug_collect', 'diagnose_interval', 'factory_reset', 'reset_heat_loss_learners', 'restore_learned_snapshot', 'run_optimization', 'set_away', 'set_mode', 'set_thermal_parameters', 'simulate_plan']",
   "verdict": "true",
   "truth": ""
  },
@@ -173,9 +173,9 @@
  {
   "id": "C20",
   "source": "docs/configuration.md",
-  "claim": "nine services accept an optional entry_id",
+  "claim": "ten services accept an optional entry_id",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "documented=9 measured=9",
+  "result": "documented=10 measured=10",
   "verdict": "true",
   "truth": ""
  },
@@ -193,7 +193,7 @@
   "source": "services.yaml",
   "claim": "every services.yaml `example` payload passes its own service schema",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "services with examples=9, failures=[]",
+  "result": "services with examples=10, failures=[]",
   "verdict": "true",
   "truth": ""
  },
@@ -202,7 +202,7 @@
   "source": "README.md:## Services",
   "claim": "the Returns column is each service's registered SupportsResponse (\u2014 = none, Always = ONLY, Optional = OPTIONAL)",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "documented={'run_optimization': '\u2014', 'set_away': '\u2014', 'set_mode': '\u2014', 'set_thermal_parameters': '\u2014', 'simulate_plan': 'Always', 'apply_schedule': 'Optional', 'apply_manual_plan': 'Optional', 'clear_manual_plan': 'Optional', 'restore_learned_snapshot': 'Optional', 'reset_heat_loss_learners': 'Optional', 'diagnose_interval': 'Optional', 'debug_collect': 'Optional', 'assign_entity': 'Optional', 'apply_topology': 'Optional'}, registered={'run_optimization': 'none', 'set_mode': 'none', 'set_away': 'none', 'set_thermal_parameters': 'none', 'simulate_plan': 'only', 'apply_schedule': 'optional', 'assign_entity': 'optional', 'apply_topology': 'optional', 'apply_manual_plan': 'optional', 'clear_manual_plan': 'optional', 'restore_learned_snapshot': 'optional', 'reset_heat_loss_learners': 'optional', 'diagnose_interval': 'optional', 'debug_collect': 'optional'}, mismatches=[]",
+  "result": "documented={'run_optimization': '\u2014', 'set_away': '\u2014', 'set_mode': '\u2014', 'set_thermal_parameters': '\u2014', 'simulate_plan': 'Always', 'apply_schedule': 'Optional', 'apply_manual_plan': 'Optional', 'clear_manual_plan': 'Optional', 'restore_learned_snapshot': 'Optional', 'reset_heat_loss_learners': 'Optional', 'factory_reset': 'Optional', 'diagnose_interval': 'Optional', 'debug_collect': 'Optional', 'assign_entity': 'Optional', 'apply_topology': 'Optional'}, registered={'run_optimization': 'none', 'set_mode': 'none', 'set_away': 'none', 'set_thermal_parameters': 'none', 'simulate_plan': 'only', 'apply_schedule': 'optional', 'assign_entity': 'optional', 'apply_topology': 'optional', 'apply_manual_plan': 'optional', 'clear_manual_plan': 'optional', 'restore_learned_snapshot': 'optional', 'reset_heat_loss_learners': 'optional', 'factory_reset': 'optional', 'diagnose_interval': 'optional', 'debug_collect': 'optional'}, mismatches=[]",
   "verdict": "true",
   "truth": ""
  },
@@ -227,45 +227,45 @@
  {
   "id": "C26",
   "source": "README.md",
-  "claim": "a menu of 23 pages",
+  "claim": "a menu of 24 pages",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "documented=23 measured=23",
+  "result": "documented=24 measured=24",
   "verdict": "true",
   "truth": ""
  },
  {
   "id": "C27",
   "source": "docs/configuration.md",
-  "claim": "There are 23 pages",
+  "claim": "There are 24 pages",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "documented=23 measured=23",
+  "result": "documented=24 measured=24",
   "verdict": "true",
   "truth": ""
  },
  {
   "id": "C28",
   "source": "docs/configuration.md",
-  "claim": "eight on the first menu and fifteen more behind Advanced settings",
+  "claim": "eight on the first menu and sixteen more behind Advanced settings",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "documented=(8, 15) measured=(8, 15)",
+  "result": "documented=(8, 16) measured=(8, 16)",
   "verdict": "true",
   "truth": ""
  },
  {
   "id": "C29",
   "source": "docs/architecture.md:module map",
-  "claim": "config_flow.py -- Setup flow plus 23 option pages behind two menus",
+  "claim": "config_flow.py -- Setup flow plus 24 option pages behind two menus",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "documented=23 measured=23",
+  "result": "documented=24 measured=24",
   "verdict": "true",
   "truth": ""
  },
  {
   "id": "C30",
   "source": "docs/configuration.md",
-  "claim": "every documented Default (89 rows) is the default the rendered options page actually carries",
+  "claim": "every documented Default (90 rows) is the default the rendered options page actually carries",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "89 compared, mismatches=[]",
+  "result": "90 compared, mismatches=[]",
   "verdict": "true",
   "truth": ""
  },
@@ -326,18 +326,18 @@
  {
   "id": "C37",
   "source": "docs/architecture.md:module map",
-  "claim": "__init__.py -- the 14 services",
+  "claim": "__init__.py -- the 15 services",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "documented=14 measured=14",
+  "result": "documented=15 measured=15",
   "verdict": "true",
   "truth": ""
  },
  {
   "id": "C38",
   "source": "docs/architecture.md:module map",
-  "claim": "services.yaml -- The 14 service definitions",
+  "claim": "services.yaml -- The 15 service definitions",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "documented=14 measured=14",
+  "result": "documented=15 measured=15",
   "verdict": "true",
   "truth": ""
  },
@@ -1118,9 +1118,9 @@
  {
   "id": "C125",
   "source": "strings.json:selector",
-  "claim": "every SelectSelector option on every options page has a translated label (44 selects)",
+  "claim": "every SelectSelector option on every options page has a translated label (45 selects)",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "44 selects, untranslated=[]",
+  "result": "45 selects, untranslated=[]",
   "verdict": "true",
   "truth": ""
  }

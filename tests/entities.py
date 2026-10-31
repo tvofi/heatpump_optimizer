@@ -9080,8 +9080,10 @@ for _step in options._MENU_LABELS:
     if not _sresult.get("menu_options"):
         _odd_outcomes.append(f"{_step}: menu without menu_options")
         continue
-    if _step == "setup_overview":
-        # The one read-only page: back to the menu with nothing written.
+    if _step in ("setup_overview", "factory_reset"):
+        # The one read-only page: back to the menu with nothing written. And
+        # the factory reset (R10-FACTORY-RESET): untouched, it is unconfirmed,
+        # which is the menu back with nothing written -- its null control.
         if _sf._entry.options or _sf.hass.config_entries.updated:
             _unwritten_menus.append(_step)
         continue
@@ -15413,6 +15415,27 @@ R.check(
 )
 
 _heat_loss_reset = _svc_call(const.SERVICE_RESET_HEAT_LOSS, {"learners": ["lower_floor_loss_ratio"]})
+# The factory reset's handler (R10-FACTORY-RESET) hands the entry's coordinator
+# and the scope to ``coordinator.async_factory_reset``; the reset itself is
+# features.py's, over real stores.
+from heatpump_optimizer import services as _svc_module  # noqa: E402
+
+_svc_fr_real, _svc_fr_args = _svc_module.async_factory_reset, []
+
+
+async def _svc_fr_record(coord, scope):
+    _svc_fr_args.append((coord, scope))
+
+
+_svc_module.async_factory_reset = _svc_fr_record
+_svc_fr = _svc_call(const.SERVICE_FACTORY_RESET, {"entry_id": _svc_entry.entry_id, "scope": "learners"})
+_svc_module.async_factory_reset = _svc_fr_real
+R.check(
+    "factory_reset hands that entry's coordinator its scope and reports both",
+    _svc_fr_args == [(_svc_coord, "learners")]
+    and _svc_fr == {"reset": _svc_entry.entry_id, "scope": "learners"},
+    str(_svc_fr),
+)
 R.check(
     "reset_heat_loss_learners reaches the coordinator and reports what it reset",
     "reset_heat_loss" in _svc_log
@@ -15458,6 +15481,7 @@ _svc_covered = {
     const.SERVICE_DIAGNOSE_INTERVAL,
     const.SERVICE_DEBUG_COLLECT,
     const.SERVICE_RESET_HEAT_LOSS,
+    const.SERVICE_FACTORY_RESET,
 }
 R.check(
     "every registered service was invoked above",
