@@ -1,0 +1,61 @@
+#!/bin/bash
+# hpo-gh-shim
+# The seat's gh (P284). Installed as `gh` beside the python shims by
+# `seat_venv.sh --install-shims <dir>`. It appends ONE line per call to
+# $HPO_STATE_DIR/gh-calls.log (default $HOME/.local/state/hpo):
+#
+#   <utc> <parent pid> <parent command, first 80 chars> <gh subcommand> <target>
+#
+# <target> is the api path (query string cut) for `gh api`, the verb for `pr`
+# and `run` and any other subcommand with one, else `-`. The value of every
+# flag is skipped, never logged: `-f`/`-F`/`--input` and the rest take their
+# argument out of the line, and a token outside [A-Za-z0-9_./:-] is logged `?`.
+# The caller is the point: the shared token's core bucket was spent twice
+# with no host log naming who (P284); tools/audit/seat/gh_calls.py reads this.
+#
+# Then it execs the real gh -- the first `gh` on PATH that is a regular
+# executable file and not a shim (line 2 above), past this file's own
+# directory. stdin, stdout, exit status and signals are the real gh's own.
+# A log it cannot write is skipped: no output, no status of its own.
+# The log is capped: past HPO_GH_LOG_MAX bytes (default 1048576) it is moved
+# to gh-calls.log.1, replacing the older one.
+is_shim() { local l1= l2=; { IFS= read -r l1; IFS= read -r l2; } < "$1" 2>/dev/null; [ "$l2" = '# hpo-gh-shim' ]; }
+usable() { [ -f "$1" ] && [ -x "$1" ] && ! is_shim "$1"; }
+real=
+ifs=$IFS; IFS=:
+for d in $PATH; do
+  [ -n "$d" ] || d=.
+  if usable "$d/gh"; then real=$d/gh; break; fi
+done
+IFS=$ifs
+[ -n "$real" ] || { echo "gh shim: no real gh on PATH" >&2; exit 127; }
+
+sub=; verb=; skip=0
+for a in "$@"; do
+  if [ $skip = 1 ]; then skip=0; continue; fi
+  case $a in
+    -X|-H|-f|-F|-q|-t|-p|-R|-B|-b|--method|--header|--field|--raw-field|--input|--jq|--template|--hostname|--cache|--preview|--repo) skip=1 ;;
+    -*) ;;
+    *) if [ -z "$sub" ]; then sub=$a; else verb=$a; break; fi ;;
+  esac
+done
+case $sub in
+  api) verb=${verb%%\?*} ;;
+  pr|run|workflow|issue|release|repo|search|label|cache|secret|variable) ;;
+  *) verb= ;;
+esac
+
+{
+  state=${HPO_STATE_DIR:-$HOME/.local/state/hpo}
+  log=$state/gh-calls.log
+  max=${HPO_GH_LOG_MAX:-1048576}
+  pcmd=$(ps -o args= -p "$PPID" </dev/null 2>/dev/null | tr -c '[:print:]' ' ' | cut -c1-80)
+  clean() { printf '%s' "${1:--}" | tr -c 'A-Za-z0-9_./:-' '?'; }
+  if [ -f "$log" ]; then
+    size=$(wc -c < "$log" 2>/dev/null)
+    case $size in ''|*[!0-9' ']*) ;; *) [ "$((size + 0))" -gt "$max" ] && mv -f "$log" "$log.1" ;; esac
+  fi
+  printf '%s %s %s %s %s\n' "$(date -u +%FT%TZ)" "$PPID" "${pcmd:--}" "$(clean "$sub")" "$(clean "$verb")" >> "$log"
+} 2>/dev/null || true
+
+exec "$real" "$@"
