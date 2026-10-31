@@ -1,0 +1,9 @@
+== a7dd7f50d
+pr_args.sh lines matched by the mut:grace locator: 1
+body_patch.sh lines matched by the mut:contract locator: 1
+== 6a988a237f91a853d006f7908e41cfbd30bc9bc9
+pr_args.sh lines matched by the mut:grace locator: 0
+body_patch.sh lines matched by the mut:contract locator: 0
+== other # mut: markers followed by text at head, in files this PR touched:
++  node tools/policy/policy_lint.mjs "${args[@]}" || rc=1 # mut:contract  # never-empty: args starts with the literal --pr-body list
++  for p in "${PR_REAP_PIDS[@]}"; do pr_kill KILL "$p"; done  # mut:grace  # never-empty: PR_REAP_PIDS held a pid at the early return and only shrinks to a non-empty alive
