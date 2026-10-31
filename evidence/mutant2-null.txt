@@ -1,0 +1,2 @@
+  FAIL a pool of only a comment-free file is predicted red
+ci_predict self-test: 1 failed
