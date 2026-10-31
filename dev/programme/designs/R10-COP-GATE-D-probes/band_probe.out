@@ -1,0 +1,11 @@
+## P1 hub re-key
+  configured key (1.0, 5.0): samples=60
+  one fold keyed on the learned top (1.0, 3.0): samples=1 config=(1.0, 3.0)
+  null, 61 folds all keyed on the configured figures: samples=61
+## P2 arbiter band
+  plan step 3.0 kW mapped on configured band (1.0, 5.0): 42.50 degC (ceiling 55.0)
+  plan step 3.0 kW mapped on solve band (1.0, 3.0): 55.00 degC (ceiling 55.0)
+  null, plan step 5.0 kW on the configured band: 55.00 degC
+## P3 reader gap
+  11 ceiling samples in the window: observed=(1.5, None) planned_range=None effective_max_kw=None
+  12 ceiling samples in the window: observed=(1.5, None) planned_range=None effective_max_kw=None
