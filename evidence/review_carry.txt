@@ -1,5 +1,3 @@
-review_carry: e536706f4 -> 2e4f3ebe0  main=origin/main
-  branch-only commits: 1
   why: 1 of 1 branch-only commit(s) carry code
   2e4f3ebe0  ci: pin killed mutants
 review_carry: FRESH-REVIEW
