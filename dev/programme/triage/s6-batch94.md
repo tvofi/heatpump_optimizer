@@ -1,4 +1,4 @@
-# Proposal triage, session s9, batch 94 (P336)
+# Proposal triage, session s9, batch 94 (P336, P337)
 
 The rolling batch after batch 93. Facts were read at origin/main `a7dd7f50d` and at the round's
 roster branch, `origin/handoff/audit-r10-roster`.
@@ -91,3 +91,85 @@ The carry:
    - null: the same text without the word posts;
    - a mutant that re-implements the id test without the `(?<!\d)` guard fails a row where the
      id is a substring of a longer number.
+
+## P337: the opener's loop is a session-local instrument, in its fourth hand-written copy
+
+Verdict: ACCEPT, narrowed. The ruling is one carry on R10-FLY-OPENPR-ATOMIC (`carries-open`, S,
+`files: tools/audit/seat/open_pr.sh`). That group owns the instrument this loop drives, and a driver
+of `open_pr.sh` belongs in the same seam. The `handoff-update` arm is REJECTED: `cloud_relay.sh`
+already owns that write.
+- **Decision 0013 decides the home.** It says a reusable instrument lands in the tree, never only
+  in a scratch directory. This loop is reused all session.
+  - The s9 opener directory holds `driver.py` to `driver4.py`: 83, 95, 96 and 107 lines.
+  - `driver4.py` reads `prio.txt`, `cap.txt` and `titles.json` from its own scratch directory, with
+    a hard-coded `PRIO0` fallback.
+  - The orchestrator reports that its priority list went stale twice today, which held the
+    critical-path and hotfix opens behind instrument opens.
+  - No later session can run it, test it or review it.
+- **Narrowed to the open arm.** `driver4.py` also runs `update_pr.sh` on `handoff-update` lines.
+  But `cloud_relay.sh`'s handoff arm (lines 86-92 at `a7dd7f50d`) already runs `update_pr.sh` for
+  every open pull request whose handoff is not an ancestor of its head. It then approves held runs
+  and dispatches the reviewer. Two writers of one PR update race each other, and the relay's run
+  is the one that also dispatches. A relay `handoff-update` owed line names why the relay failed.
+  The repair belongs to the relay, not to a second updater.
+- **Liveness by its own children, not `pgrep -f`.** `driver4.py` counts live runs with
+  `pgrep -fl 'open_pr.sh|update_pr.sh|remerge_main.sh'` (line 20). That reads every seat's runs,
+  and pattern matches a process list that includes waiters. The tree instrument counts the runs
+  it started, by PID, from its own state file.
+
+Source: the orchestrator s9's triage-queue line of 2026-10-31T19:25:00Z (slip, recurring;
+session-local instrument).
+
+Instances:
+- The four driver copies in the s9 opener scratch directory, measured with `wc -l`.
+- `driver4.py` lines 20, 74 and 78-81: the `pgrep` count, the `PRIO0` literal, and the scratch
+  `cap.txt` / `prio.txt` reads.
+- The orchestrator's report of two stale priority lists today.
+
+Cost:
+- About 120 lines in a new `tools/audit/seat/open_driver.py`, plus its self-test and an
+  `instruments/open_driver.py.md` page.
+- The file must be classified, by closure or `INERT` (`tests/entities.py`).
+- No policy file changes. Neither `open_pr.sh` nor the new file has a `policy_lint.mjs --budgets`
+  row.
+- Standing cost: one read of the tick board and one `ls-remote` per candidate per pass, at the
+  opener's existing cadence.
+- Payback inside round 10 is short, because the round closes 2026-11-01. The cost is decision
+  0013's to pay in any case. The benefit carries into every later session that runs an opener
+  seat.
+
+Binding:
+- Decision 0013 already requires the move.
+- The four copies, and two stale priority lists in one day that held critical-path opens, measure
+  the cost of not making it.
+- Narrowing to the open arm avoids a second writer of the relay's update.
+
+The carry:
+1. **The tool and its candidates.** Add `tools/audit/seat/open_driver.py`. Each pass, it reads the
+   tick board's `OWED ... handoff-no-pr refs/heads/handoff/<topic> <sha>` lines (the format in
+   `driver4.py`'s `LINE`) from a board path it is given. For each line it:
+   - skips a topic whose `handoff/<topic>` has moved off the sha;
+   - skips a topic with no `handoff-body/<topic>`;
+   - skips a topic whose `git cherry origin/main <sha>` lines are all `-` (already on main);
+   - skips a topic for which a `fix/<topic>` or `fix/<topic>-pr` branch exists (board lag:
+     an update, not an open).
+2. **Order and cap.** Read them from `$HPO_STATE_DIR/open-priority.txt` and
+   `$HPO_STATE_DIR/open-cap.txt` on every pass.
+   - With no priority file, the default order is a group on `roster_lib.critical_path`, then
+     `R10-HOTFIX-*`, then record topics (`triage-*`, `roster-*`), then the rest.
+   - The default cap is 2 live runs.
+3. **Titles and groups.** Read them from `$HPO_STATE_DIR/open-titles.json`. Map `triage-s<N>-batch<M>`
+   to the round's triage group by rule. Otherwise, use a topic whose uppercase is a roster group.
+   Anything else is logged `NEEDS-TITLE` and is not opened.
+4. **Runs.** Launch `open_pr.sh <topic> <sha> <title> <group>` detached, and record its PID in the
+   state dir. Count live runs only from those PIDs: no `pgrep`, no pattern. Log `START`, `RESULT
+   rc=<n> <PR=/REFUSE lines>` and `SKIP <reason>`, in the line format the opener seat greps today.
+5. **Fixtures**, over a fixture board and a throwaway repository:
+   - a CP topic opens before an instrument topic;
+   - a topic already on main is skipped;
+   - the cap holds at 2;
+   - null: an empty board starts nothing;
+   - null: a `handoff-update` line is ignored, because the relay owns it.
+
+   One mutant: drop the cherry check, and the on-main topic opens.
+6. **Rejected:** the `handoff-update` arm (`cloud_relay.sh` owns it).
