@@ -118,9 +118,10 @@
 #     FREEZE. A PR whose live head is under review is not updated either: a
 #     merge verdict at that head on verdict/<pr> (HELD-VERDICT), or a review of
 #     that head in flight with no verdict at it yet (HELD-REVIEW: bus.sh's
-#     dispatch record, or a detached review worktree at the head). A blocked
-#     verdict, or one naming an older head, freezes nothing. Each prints
-#       cloud_relay: HELD-<why> #<pr> <handoff tip> (...)
+#     dispatch record of the PR at that head, the worker registry, and only it;
+#     its nonce prefix and time are the evidence). A blocked verdict, or one
+#     naming an older head, freezes nothing. Each prints
+#       cloud_relay: HELD-<why> #<pr> <handoff tip>[ dispatch=<nonce8> at=<utc>] (...)
 #     once per pass and is `OWED <utc> handoff-held <ref> <tip> #<pr> <why>` in
 #     <log>.level; `<state>/cloud-handoff-release` (the hold grammar, the
 #     orchestrator's) releases a listed PR from the freeze, never from the
@@ -382,11 +383,12 @@ review_freeze() { # <pr> <head> <verdict refs file>: prints VERDICT, REVIEW or U
     v=$(git log -1 --format=%s "$vs" | sed -nE "s/^verdict: #$1 Fix review: (merge|blocked) ([0-9a-f]{40})( .*)?\$/\1 \2/p")
     case $v in "merge $2") echo VERDICT; return 0;; "blocked $2") return 1;; esac
   fi
-  if awk -v p="$1" -v h="$2" '$1 == p && $2 == h { f = 1 } END { exit !f }' "$bus/dispatched" 2>/dev/null \
-     || git worktree list --porcelain | awk -v h="$2" '$1 == "HEAD" { at = ($2 == h) } $1 == "detached" && at { f = 1 } END { exit !f }'; then
-    echo REVIEW; return 0
-  fi
-  return 1
+  # Only the worker registry holds a review (P288): a detached worktree at the head is the
+  # opener's or updater's own as often as a reviewer's (#2953 held 44 passes on one).
+  v=$(awk -v p="$1" -v h="$2" '$1 == p && $2 == h { n = $4; at = $5 } END { if (n != "") print substr(n, 1, 8), (at == "" ? "-" : at) }' \
+    "$bus/dispatched" 2>/dev/null)
+  [ -n "$v" ] || return 1
+  echo "REVIEW dispatch=${v% *} at=${v#* }"
 }
 handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of its head
   local state=${HPO_STATE_DIR:-$HOME/.local/state/hpo} repo=${HPO_RELAY_REPO:-tvofi/heatpump_optimizer} f pr br head topic hs bs bd body iss nh nonce urc held_prs released upd why code
@@ -416,7 +418,7 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of 
     git merge-base --is-ancestor "$hs" "$head" && continue
     if grep -qxF "$pr" <<< "$held_prs"; then echo "cloud_relay: HELD #$pr $hs"; continue; fi
     if ! grep -qxF "$pr" <<< "$released" && why=$(review_freeze "$pr" "$head" "$state/cloud-vrefs.$$"); then
-      echo "cloud_relay: HELD-$why #$pr $hs (head $head under review; merge it, or list #$pr in $(release_file) and re-dispatch)"
+      echo "cloud_relay: HELD-${why%% *} #$pr $hs${why#"${why%% *}"} (head $head under review; merge it, or list #$pr in $(release_file) and re-dispatch)"
       level_line handoff-held "refs/heads/handoff/$topic" "$hs" "#$pr $why" >> "$state/cloud-level-held.$$"; continue
     fi
     if [ -f "$f" ] && grep -qxF "$topic $hs" "$f"; then
@@ -888,10 +890,12 @@ EOF
   chk "the same ref listed at its own sha, a verdict at an older head, freezes nothing (null control)" 1 review_freeze 41 "$PRH" "$t/vl"
   git -C "$t/o.git" update-ref -d refs/heads/verdict/41
   # a review in flight: a dispatch of #41 at its head, until a verdict at that head posts
-  printf '41 %s cloud %s\n' "$PRH" "$n" >> "$t/bus/dispatched"; frz
+  printf '41 %s cloud %s 2026-10-29T17:07:00Z -\n' "$PRH" "$n" >> "$t/bus/dispatched"; frz
   chk "a dispatch at the head with no verdict holds the handoff: no update_pr call" 0 test ! -e "$t/hupdated"
-  chk "and prints HELD-REVIEW" 0 grep -q "^cloud_relay: HELD-REVIEW #41 $HS2 " <<< "$ho"
-  chk "and owes handoff-held REVIEW in the level" 0 grep -q "^OWED .* handoff-held refs/heads/handoff/topic-a $HS2 #41 REVIEW\$" "$LOG.level"
+  chk "and prints HELD-REVIEW naming the dispatch's nonce prefix and time (P288)" 0 \
+    grep -q "^cloud_relay: HELD-REVIEW #41 $HS2 dispatch=${n:0:8} at=2026-10-29T17:07:00Z (" <<< "$ho"
+  chk "and owes handoff-held REVIEW with that evidence in the level" 0 \
+    grep -q "^OWED .* handoff-held refs/heads/handoff/topic-a $HS2 #41 REVIEW dispatch=${n:0:8} at=2026-10-29T17:07:00Z\$" "$LOG.level"
   mkv "verdict: #41 Fix review: merge $h"; frz
   chk "a verdict at an older head does not dispose the review: still HELD-REVIEW" 0 grep -q "HELD-REVIEW #41 " <<< "$ho"
   mkv "verdict: #41 Fix review: blocked $PRH carry-missing: x"; frz
@@ -905,12 +909,15 @@ EOF
   printf '42 %s cloud %s\n' "$PRH" "$n" >> "$t/bus/dispatched"; frz
   chk "a dispatch of another PR at the same head holds nothing (null control)" 0 test -e "$t/hupdated"
   cp "$t/bus/dispatched.keep" "$t/bus/dispatched"
-  # the review worktree heuristic: a detached worktree of this checkout at the head
+  # P288: a detached worktree at the head is no review (the opener's and updater's sit there);
+  # only the dispatch record holds. The #2953 shape: handoff ahead, no verdict, no dispatch record.
   git worktree add -q --detach "$t/rw" "$PRH" 2>/dev/null; frz
-  chk "a detached review worktree at the head holds the handoff" 0 test ! -e "$t/hupdated"
-  chk "and prints HELD-REVIEW" 0 grep -q "HELD-REVIEW #41 " <<< "$ho"
-  git -C "$t/rw" checkout -q --detach "$HS2"; frz
-  chk "a detached worktree at another commit holds nothing (null control)" 0 test -e "$t/hupdated"
+  chk "a detached worktree at the head with no dispatch record updates (the #2953 shape)" 0 test -e "$t/hupdated"
+  chk "and prints no HELD-REVIEW" 1 grep -q "HELD-REVIEW #41 " <<< "$ho"
+  printf '41 %s cloud %s\n' "$PRH" "$n" >> "$t/bus/dispatched"; frz
+  chk "the same with a dispatch record at the head holds (a record without a time says at=-)" 0 \
+    grep -q "HELD-REVIEW #41 $HS2 dispatch=${n:0:8} at=- (" <<< "$ho"
+  cp "$t/bus/dispatched.keep" "$t/bus/dispatched"
   git worktree remove --force "$t/rw"
   # the release: the orchestrator passes the freeze over a listed PR; the hold file outranks it
   mkv "verdict: #41 Fix review: merge $PRH"; printf '41\n' > "$rf"; frz

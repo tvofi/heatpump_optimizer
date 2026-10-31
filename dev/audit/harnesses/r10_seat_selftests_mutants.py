@@ -428,6 +428,11 @@ MUTANTS = [
     ("cloud_relay-31", "cloud_relay.sh", '  if now - start <= lim: continue\n', ''),
     ("cloud_relay-32", "cloud_relay.sh", '  if not held(f): continue\n', ''),
     ("cloud_relay-33", "cloud_relay.sh", 'confirm_arm; stuck_arm; [ -z "$loop" ]', 'confirm_arm; [ -z "$loop" ]'),
+    # R10-FLY-RELAY-REVIEW-FF P288: the worktree arm restored holds the #2953 shape again;
+    # the evidence dropped from the HELD line fails its row.
+    ("cloud_relay-39", "cloud_relay.sh", '  [ -n "$v" ] || return 1\n  echo "REVIEW dispatch=',
+     '  [ -n "$v" ] || git worktree list --porcelain | awk -v h="$2" \'$1 == "HEAD" { at = ($2 == h) } $1 == "detached" && at { f = 1 } END { exit !f }\' || return 1\n  echo "REVIEW dispatch='),
+    ("cloud_relay-40", "cloud_relay.sh", '#$pr $hs${why#"${why%% *}"} (head', '#$pr $hs (head'),
     ("ledger-1", "ledger.py", '"confirm-owed": "derived", "push-stuck": "derived",', '"confirm-owed": "derived",'),
     ("pr_args-1", "pr_args.sh", 'p = os.getppid(); start = int(time.time())', 'p = os.getppid(); start = 0'),
     ("tick_loop-3", "tick_loop.sh", 'pass --confirm </dev/null', 'pass </dev/null'),
