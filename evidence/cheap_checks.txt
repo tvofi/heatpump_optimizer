@@ -1,15 +1,10 @@
-STRUCTURE RATCHET PASSED
-Architecture score: dS +0.0000 NULL
-custom_components/heatpump_optimizer/coordinator.py:7526:            await pump_arbiter.switch_supply(self.hass, switch_entity, value)
-custom_components/heatpump_optimizer/early_cutoff.py:331:    inp.hass.async_create_task(switch_supply(inp.hass, switch, False))
-custom_components/heatpump_optimizer/pump_arbiter.py:1151:async def switch_supply(hass: Any, entity_id: str, on: bool) -> None:
-custom_components/heatpump_optimizer/coordinator.py:2755:                    "heat_pump_on": plan_step_runs(result, idx),
-custom_components/heatpump_optimizer/optimizer.py:1665:    heat_pump_on_schedule: list[bool] = field(default_factory=list)
-custom_components/heatpump_optimizer/optimizer.py:2870:            heat_pump_on_schedule=self._power_to_heat_pump_schedule(
-custom_components/heatpump_optimizer/optimizer.py:5645:        heat_pump_on = plan_step_runs(result, i)
-custom_components/heatpump_optimizer/pump_arbiter.py:1195:    return None if i is None or i >= len(inp.plan.power_schedule or ()) else plan_step_runs(inp.plan, i)
-custom_components/heatpump_optimizer/thermal_model.py:1310:def plan_step_runs(result: Any, i: int) -> bool:
-custom_components/heatpump_optimizer/thermal_model.py:1313:    The plan's ``heat_pump_on_schedule`` is the authority; a result built
-custom_components/heatpump_optimizer/thermal_model.py:1319:    runs = getattr(result, "heat_pump_on_schedule", None)
-custom_components/heatpump_optimizer/wood_fuel.py:126:    ``runs`` is the plan's own on schedule (``heat_pump_on_schedule``): a
-custom_components/heatpump_optimizer/wood_fuel.py:530:            list(result.heat_pump_on_schedule or []) if result is not None else []
+$ git merge-tree --write-tree origin/main f41e5a5f4a674977970d63400b38cac3f6f321cf  (origin/main e77418f9b48f89421bd72b0ab511c057341c7fa4)
+bdc9dd55fe065cad356499e2bca2be2ba878a26e
+rc=0
+$ three-dot diff of VERSION manifest RELEASE_NOTES claim files
+(empty = untouched)
+$ production diff identical to 9fe3c4cf8 (blocked round-3 head):
+PROD-SAME
+$ delta 9fe3c4cf8..343f2abcf:
+ tests/features.py | 74 +++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 74 insertions(+)
