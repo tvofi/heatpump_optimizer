@@ -97,10 +97,21 @@ Binding:
 
 ## P346: open_pr skips its prepr on a fixer-recorded prepr receipt
 
-Verdict: REJECT, as proposed. The narrowed form, a prepr that holds no heavy slot when its
-scope runs nothing, is DEFERRED to R10-PREPR-CAP (`in-progress`, #3051; files `tools/pr/prepr.sh`
-and `tests/gate_lock.py`). That group owns the slot. This seat did not measure the 0-script slot
-wait across seats; the orchestrator owns routing it as a proposal with that count.
+Verdict: OWNER-ORDERED (not ruled). The owner ordered this directly (tvofi, 2026-10-31: "I want
+that implemented, both persistently as well as you applying it locally immediately"). The
+orchestrator withdrew the queue line before this seat's ruling, and the group is
+R10-FLY-OPEN-PREPR-REUSE. `proposal-triage.md` gates proposals, and an owner order is not one, so
+this entry records no verdict. An earlier draft of it read REJECT; that verdict does not stand.
+
+What stays here is the evidence. The orchestrator carries it to the group's fixer as constraints:
+- On every code open today, main moved under a selected closure (4 of 4, table below), so a skip
+  keyed to "main did not move under the closure" runs prepr anyway on that shape.
+- The open-time prepr's cross-main prediction caught a real red at 18:34Z. A skip must not
+  drop that prediction against the merged main.
+
+The slot half, a prepr that takes its heavy slot at step 1b before step 2 knows the scope, goes
+to R10-PREPR-CAP (`in-progress`, #3051). It is queued as its own proposal, P347, owed a count
+before its ruling.
 
 Source: the orchestrator s9's triage-queue line of 2026-10-31T21:10:17Z (`s7/triage-queue-s7.txt`
 line 36).
@@ -139,19 +150,5 @@ Instances:
   scripts), 76 min (#3055) and 77 min (#3056). The 0-script open's 22 min is a slot wait plus the
   cheap steps, not a gate.
 
-Cost (as proposed):
-- A receipt format on the `handoff-body/<topic>` transport, written by `body_push.sh`.
-- A reader and a closure-intersection test in `open_pr.sh` or `app_push.sh`.
-- The self-test rows for both.
-- Three seat files, one of them `app_push.sh`, the authoring instrument (decision 0011).
-- The receipt is self-reported by the fixer seat, on a ref the fixer writes.
-
-Binding:
-- The measured benefit is about zero: the skip is valid on 0 of 4 code opens.
-- Where it would fire, the gate it skips costs nothing, and it would skip the cross-main
-  prediction that caught a real red at 18:34Z.
-- The trade is not even, it is negative, so this is REJECT.
-- The cost the proposal names (opens waiting behind slots) is real. The measured lever is that a
-  0-script prepr holds a heavy slot it does not need. That is R10-PREPR-CAP's seam (the slot
-  lease, #2267), and it needs a count before it can be ACCEPTed: how many preprs select 0
-  scripts, and their slot-take waits.
+The evidence's limits: one day's opens (five) from one opener log. The 25 min 55 s slot wait is
+one prepr, this seat's own.
