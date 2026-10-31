@@ -12204,7 +12204,7 @@
    ],
    "carry": [],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r10-fly-tick-approval-owed",
     "commit": null,
     "last_step": null,
