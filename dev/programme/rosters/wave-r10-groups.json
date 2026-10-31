@@ -2672,7 +2672,7 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-prepr-cap",
     "commit": "e3f3b312fff572904f24d78a44a2c4492b1a8ddb",
     "last_step": null,
@@ -8587,7 +8587,7 @@
    "rca": [],
    "architect_note": "",
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-roster-schema",
     "commit": "67178dc6a589cf95d2ce7cff36d8bbf17343e8dc"
    },
