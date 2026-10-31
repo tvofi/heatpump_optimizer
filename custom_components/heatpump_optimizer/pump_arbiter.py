@@ -183,7 +183,7 @@ _LOGGER = logging.getLogger(__name__)
 
 DUTY_OFF, DUTY_CONTROL = PUMP_DUTY_MODES[0], PUMP_DUTY_MODES[2]
 
-#: Past the fork's 8 s sent-value window and its 1 s local debounce, with
+#: Past the fork's 8 s sent-value window and its 1 s local debounce, with (null control)
 #: room for a cloud round trip: a differing reading after this is the device.
 ECHO_GRACE_S = 20.0
 LEASE_MINUTES = 90.0
