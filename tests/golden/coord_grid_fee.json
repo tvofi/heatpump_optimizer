@@ -1834,6 +1834,9 @@
     "capacity_envelope": {},
     "cop": {
      "alarm": false,
+     "cop_observability": "no_electric_meter",
+     "cop_refusal": null,
+     "measured_cop_at": null,
      "samples": 0,
      "scale": 1.0,
      "watched_buckets": 0

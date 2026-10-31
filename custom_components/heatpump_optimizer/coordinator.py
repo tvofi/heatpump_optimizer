@@ -856,10 +856,10 @@ def _fold_flow_lift(coord: Any, now: datetime) -> None:
     * the draw not distorted — ``_cop_fold_blocked``, not a restatement of
       it: a resistive element or a capped compressor is running the plant at
       a supply temperature the compressor did not choose;
-    * a space-dominant commanded split, at the same ``_COP_CURVE_SHARE``
-      threshold the efficiency reference uses. The curve is a SPACE heating
-      curve; a hot-water interval runs the supply at the tank's charge
-      temperature and says nothing about where the space curve sits.
+    * a space-dominant interval by its attribution (the mode dwell where
+      observed, else the commanded split), at the efficiency reference's
+      ``_COP_CURVE_SHARE``: the curve is a SPACE heating curve, and a hot-water
+      interval runs the supply at the tank's charge temperature.
 
     ``now`` is unused for arithmetic and taken anyway: this is called from
     ``_record_accuracy``'s per-cycle block beside ``_observe_frequency``,
@@ -880,9 +880,8 @@ def _fold_flow_lift(coord: Any, now: datetime) -> None:
         return
     if _cop_fold_blocked(coord):
         return
-    space, dhw = coord._commanded_split()
-    total = space + dhw
-    if total <= 1e-6 or dhw / total > coord._COP_CURVE_SHARE:
+    a = heat_energy.meter_of(coord).attribution(coord._commanded_split())
+    if a.space + a.dhw <= 1e-6 or heat_energy.dhw_share(a) > coord._COP_CURVE_SHARE:
         return
     curve = curve_supply_temp(
         coord._thermal_model,

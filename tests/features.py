@@ -67127,6 +67127,54 @@ R.check(
     _cf_fl._flow_bias.samples == 1,
     f"flow-bias samples {_cf_fl._flow_bias.samples}",
 )
+# R10-COP-GATE part 5 (C): the duty gate reads the interval's attribution,
+# not the commanded split. A switch-back window -- 0.45 h hot water, then
+# 0.05 h space, under a space-only plan -- ran the supply at the tank's charge
+# temperature; the all-space window and the no-dwell plan (above) still fold.
+from heatpump_optimizer import heat_energy as _cf_he  # noqa: E402
+
+
+def _cf_fl_window(dhw_h, space_h):
+    coord = _cf_coord()
+    _cf_learn(coord, 2.2)
+    coord._flow_bias.observe_temps(35.0, 30.0)
+    meter = _cf_he.meter_of(coord)
+    start = _T6 - timedelta(hours=dhw_h + space_h)
+    meter.cycle = (start, _T6)
+    meter.dwell.segments = [
+        *([_cf_he.Segment(start, _cf_he.DHW)] if dhw_h else []),
+        _cf_he.Segment(_T6 - timedelta(hours=space_h), _cf_he.SPACE),
+    ]
+    _fold_flow_lift(coord, _T6)
+    return coord._commanded_split(), meter.attribution(coord._commanded_split()), coord._flow_bias.samples
+
+
+_cf_sw, _cf_all = _cf_fl_window(0.45, 0.05), _cf_fl_window(0.0, 0.5)
+R.check(
+    "a hot-water-dominant window under a space plan folds no flow-bias "
+    "sample; an all-space window folds one (null)",
+    _cf_sw[0][1] == 0.0 and _cf_sw[1].observed and _cf_sw[2] == 0 and _cf_all[2] == 1,
+    f"switch-back {_cf_sw} / all-space {_cf_all}",
+)
+# Both of the gate's bounds at equality, through the real dwell. A window of
+# exactly 1e-6 h (3.6 ms) is the "no weight" bound and folds nothing; 2e-6 h
+# folds (null). A hot-water share of exactly _COP_CURVE_SHARE (0.15 h of 1 h)
+# is still the space curve's duty and folds; 0.16 h does not (null).
+_cf_w0, _cf_w1 = _cf_fl_window(0.0, 1e-6), _cf_fl_window(0.0, 2e-6)
+R.check(
+    "the flow-lift gate's no-weight bound is inclusive: a 1e-6 h window "
+    "folds nothing, a 2e-6 h window folds one (null)",
+    _cf_w0[1].space + _cf_w0[1].dhw == 1e-6 and _cf_w0[2] == 0 and _cf_w1[2] == 1,
+    f"1e-6 h {_cf_w0} / 2e-6 h {_cf_w1}",
+)
+_cf_s15, _cf_s16 = _cf_fl_window(0.15, 0.85), _cf_fl_window(0.16, 0.84)
+R.check(
+    "a hot-water share exactly at the curve share still folds; just above "
+    "it does not (null)",
+    _cf_he.dhw_share(_cf_s15[1]) == Coord._COP_CURVE_SHARE
+    and _cf_s15[2] == 1 and _cf_s16[2] == 0,
+    f"0.15 {_cf_s15} / 0.16 {_cf_s16}",
+)
 
 # The refusal is published where Home Assistant does not hide it: the
 # observed-COP sensor is unavailable exactly while this is the explanation,
