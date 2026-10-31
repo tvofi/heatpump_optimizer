@@ -1030,6 +1030,31 @@ def self_test() -> int:
            and abs((dr or {}).get("critical_path_minutes", 0) - 41.2) < 0.05,
            msg or msg2 or f"grade {dg} record {dr}")
 
+    # The timing band (R10-HOTFIX-CI-CRITPATH-2): critical_path_minutes is
+    # graded against its budget plus critical_path_minutes_band, and nothing
+    # else is -- the integer counters stay at zero tolerance.
+    bt = {"recorded_at": "x", "critical_path_minutes": 34.267,
+          "critical_path_minutes_band": 1.3, "script_runs_per_push": 54}
+    _, g_noise = compare(bt, {"critical_path_minutes": 34.467, "script_runs_per_push": 54})
+    _, g_edge = compare(bt, {"critical_path_minutes": 35.567, "script_runs_per_push": 54})
+    _, g_grow = compare(bt, {"critical_path_minutes": 35.568, "script_runs_per_push": 54})
+    _, g_count = compare(bt, {"critical_path_minutes": 34.0, "script_runs_per_push": 55})
+    _, g_noband = compare({k: v for k, v in bt.items() if k != "critical_path_minutes_band"},
+                          {"critical_path_minutes": 34.467, "script_runs_per_push": 54})
+    ck("the observed noise (34.467 on a 34.267 budget) passes inside the 1.3 band",
+       g_noise == 0, f"grew {g_noise}")
+    ck("a median at budget + band exactly passes", g_edge == 0, f"grew {g_edge}")
+    ck("a median one thousandth past budget + band is growth", g_grow == 1, f"grew {g_grow}")
+    ck("the band never applies to a counter (54 -> 55 is growth with a band present)",
+       g_count == 1, f"grew {g_count}")
+    ck("no band row is zero tolerance (34.467 on 34.267 is growth)", g_noband == 1,
+       f"grew {g_noband}")
+    ck("a band row is a known, non-negative bound and not a graded metric",
+       budget_problems(bt) == []
+       and budget_problems({**bt, "critical_path_minutes_band": -0.1}) != []
+       and budget_problems({**bt, "critical_path_minutes_band": float("nan")}) != [],
+       f"{budget_problems(bt)}")
+
     print(f"ci-ratchet self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0
 
