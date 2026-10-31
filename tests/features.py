@@ -29574,6 +29574,23 @@ R.check(
     f"{_pw_flat[1.0]}",
 )
 
+# The builder's two floors: a zero nameplate still yields the weather's share
+# (not a flat 0 that hides every spell), and a zero scale divides by no zero.
+from heatpump_optimizer.optimizer import _weather_loss_factors as _pw_factors  # noqa: E402
+
+_pw_w = np.array([0.0, 10.0])
+_pw_zero_u, _pw_zero_s = (
+    _pw_factors(ThermalModel(_dc_replace(ThermalParameters(), **kw)), _pw_w, np.zeros(2), 2)
+    for kw in ({"heat_loss_coefficient": 0.0}, {"house_heat_loss_scale": 0.0})
+)
+R.check(
+    "the weather loss factor reads the wind at a zero nameplate, and a zero "
+    "learned scale yields finite factors",
+    np.allclose(_pw_zero_u, [1.0, 1.0 + 10.0 * ThermalParameters().wind_sensitivity])
+    and np.all(np.isfinite(_pw_zero_s)),
+    f"zero nameplate {_pw_zero_u}, zero scale {_pw_zero_s}",
+)
+
 # Ranking is unchanged: the specific reasons still outrank the fall-through.
 _room_low = _room_cl.copy()
 # Trajectories carry the initial state at index 0, so step i reads index i+1:
