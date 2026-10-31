@@ -1,0 +1,23 @@
+MUTANT null: comment line: rc=0 SURVIVED ['ALL 32 wood-advisor checks PASSED']
+MUTANT delete prev-state condition: rc=1 KILLED ['1 of 32 wood-advisor checks FAILED']
+    FAIL the sensor coming back from unavailable or unknown, or first appearing, re-announces nothing: there is no previous window list to compare  [(True, True, True)]
+MUTANT drop `prev is not none and`: rc=1 KILLED ['1 of 32 wood-advisor checks FAILED']
+    FAIL the sensor coming back from unavailable or unknown, or first appearing, re-announces nothing: there is no previous window list to compare  [(False, False, True)]
+MUTANT drop 'unavailable' from list: rc=1 KILLED ['1 of 32 wood-advisor checks FAILED']
+    FAIL the sensor coming back from unavailable or unknown, or first appearing, re-announces nothing: there is no previous window list to compare  [(True, False, False)]
+MUTANT drop 'unknown' from list: rc=1 KILLED ['1 of 32 wood-advisor checks FAILED']
+    FAIL the sensor coming back from unavailable or unknown, or first appearing, re-announces nothing: there is no previous window list to compare  [(False, True, False)]
+MUTANT prev condition -> true: rc=1 KILLED ['1 of 32 wood-advisor checks FAILED']
+    FAIL the sensor coming back from unavailable or unknown, or first appearing, re-announces nothing: there is no previous window list to compare  [(True, True, True)]
+MUTANT delete daily branch: rc=1 KILLED ['2 of 32 wood-advisor checks FAILED']
+    FAIL on a day with two windows the daily send fires and names both windows and the lighting window in local time  [(False, {'action': 'notify.mobile_app_pixel_8', 'title': 'Wood beats the heat pump to
+    FAIL the daily send fires on its own trigger: with the follow-up off, and on a day whose only window is already open at the send time  [(False, False)]
+MUTANT daily branch -> false: rc=1 KILLED ['2 of 32 wood-advisor checks FAILED']
+    FAIL on a day with two windows the daily send fires and names both windows and the lighting window in local time  [(False, {'action': 'notify.mobile_app_pixel_8', 'title': 'Wood beats the heat pump to
+    FAIL the daily send fires on its own trigger: with the follow-up off, and on a day whose only window is already open at the send time  [(False, False)]
+MUTANT overlap end side <=: rc=1 KILLED ['1 of 32 wood-advisor checks FAILED']
+    FAIL a new window flush against an announced one, after it (20:00-21:00 against 17:00-20:00) or before it (16:00-17:00), shares no time with it, so it is new and follows up  [(False, True)]
+MUTANT overlap start side <=: rc=1 KILLED ['1 of 32 wood-advisor checks FAILED']
+    FAIL a new window flush against an announced one, after it (20:00-21:00 against 17:00-20:00) or before it (16:00-17:00), shares no time with it, so it is new and follows up  [(True, False)]
+MUTANT harness eager or/and: rc=0 SURVIVED ['ALL 32 wood-advisor checks PASSED']
+RESTORED clean
