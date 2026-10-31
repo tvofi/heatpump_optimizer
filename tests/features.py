@@ -67423,6 +67423,88 @@ R.check(
     f"0.15 {_cf_s15} / 0.16 {_cf_s16}",
 )
 
+# R10-COP-GATE part 6 (leads 20 and 21): a point meter reading is the
+# interval's space figure only where the dwell saw the space circuit alone.
+# A switch-back window -- 0.45 h hot water, then 0.05 h space, under a
+# space-only plan -- books the 2.2 kW read at its close as neither the house
+# learners' space power nor a running sample of the space draw range. The
+# all-space dwell, and an interval with no dwell (the plan's own rule, here a
+# planned 1.0 kW hot-water share subtracted from a 3.2 kW total), are nulls.
+def _cg6_coord(segments, measured=2.2, dhw_kw=0.0, now=None, metered=True):
+    coord = _cf_coord(p_max=6.0)
+    if not metered:
+        coord = _Coord(_FakeHass(dict(_CF_STATES)), _FakeEntry(data={
+            k: v for k, v in dict(_L5_CFG, heat_pump_max_power=6.0, heat_pump_min_power=1.0).items()
+            if k != "heat_pump_power_entity"}))
+    coord._current_action = {"power": 2.2, "dhw_power": dhw_kw}
+    coord._measured_power = measured
+    meter = _cf_he.meter_of(coord)
+    now = now or _T6
+    at = now - timedelta(hours=sum(h for _, h in segments))
+    meter.cycle = (at, now)
+    meter.dwell.segments = []
+    for duty, hours in segments:
+        meter.dwell.segments.append(_cf_he.Segment(at, duty))
+        at += timedelta(hours=hours)
+    return coord
+
+
+_CG6_ARMS = {
+    "switch-back": ([(_cf_he.DHW, 0.45), (_cf_he.SPACE, 0.05)], 2.2, 0.0),
+    "hot water to the close": ([(_cf_he.SPACE, 0.05), (_cf_he.DHW, 0.45)], 2.2, 0.0),
+    "all-space": ([(_cf_he.SPACE, 0.5)], 2.2, 0.0),
+    "no dwell, planned hot water": ([(None, 0.5)], 3.2, 1.0),
+}
+_cg6_space = {
+    name: _cg6_coord(segs, measured, dhw)._interval_space_power()
+    for name, (segs, measured, dhw) in _CG6_ARMS.items()
+}
+R.check(
+    "a switch-back interval gives the house learners no space power; an "
+    "all-space dwell books the reading and an unobserved one the plan's "
+    "subtraction, as before (nulls)",
+    _cg6_space == {"switch-back": None, "hot water to the close": None,
+                   "all-space": 2.2, "no dwell, planned hot water": 2.2},
+    f"{_cg6_space}",
+)
+# With no power entity the ask is the only estimate, and it too stood for a
+# space duty the pump left; the all-space dwell still books the ask (null).
+_cg6_ask = {name: _cg6_coord(_CG6_ARMS[name][0], metered=False)._interval_space_power()
+            for name in ("switch-back", "all-space")}
+R.check(
+    "without a power entity a switch-back interval books no commanded space "
+    "power; an all-space dwell books the ask (null)",
+    _cg6_ask == {"switch-back": None, "all-space": 2.2},
+    f"{_cg6_ask}",
+)
+
+
+def _cg6_draw_folds(segments, measured, dhw_kw):
+    now = dt_util.now()
+    coord = _cg6_coord(segments, measured, dhw_kw, now=now)
+    coord._pending_prediction = {
+        "when": now - timedelta(minutes=30), "split": (2.2, dhw_kw), "flow_command": None,
+        "predicted_temp": 20.5, "power": 2.2 + dhw_kw, "space_power": 2.2,
+        "dhw_power": dhw_kw, "outdoor_temp": 8.0, "indoor_entity": "sensor.indoor",
+    }
+    before = len(coord._accuracy.draw.samples)
+    coord._record_accuracy()
+    return len(coord._accuracy.draw.samples) - before
+
+
+_cg6_folds = {
+    name: _cg6_draw_folds(segs, 2.2, 0.0)
+    for name, (segs, _measured, _dhw) in _CG6_ARMS.items() if name != "no dwell, planned hot water"
+}
+_cg6_folds["no dwell"] = _cg6_draw_folds([(None, 0.5)], 2.2, 0.0)
+R.check(
+    "a hot-water dwell under a space plan folds no running-draw sample; an "
+    "all-space dwell and an unobserved interval fold one each (nulls)",
+    _cg6_folds == {"switch-back": 0, "hot water to the close": 0,
+                   "all-space": 1, "no dwell": 1},
+    f"{_cg6_folds}",
+)
+
 # The refusal is published where Home Assistant does not hide it: the
 # observed-COP sensor is unavailable exactly while this is the explanation,
 # and an unavailable entity's attributes are suppressed. A 3 kW modulation
