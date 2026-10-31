@@ -166,7 +166,7 @@ def self_test():
         # a real gh (the CI runner does; a Mac does not).
         tools = w / "tools"
         tools.mkdir()
-        for tool in ("ps", "tr", "cut", "wc", "mv", "date", "cat", "sh"):
+        for tool in ("ps", "tr", "cut", "wc", "mv", "date", "cat", "sh", "sed", "mkdir", "env", "python3"):
             found = shutil.which(tool)
             if found:
                 (tools / tool).symlink_to(found)
@@ -185,13 +185,14 @@ def self_test():
         log = w / "state" / "gh-calls.log"
         (w / "state").mkdir()
 
-        def run(args, state=None, shim_text=None, stdin=b"IN\n", env_extra=None, path=None):
+        def run(args, state=None, shim_text=None, stdin=b"IN\n", env_extra=None, path=None, via=None):
             if shim_text is not None:
                 install(shim_text)
             env = {"PATH": path or hermetic,
                    "HPO_STATE_DIR": str(state or w / "state"), "HOME": str(w)}
             env.update(env_extra or {})
-            r = subprocess.run([str(w / "own" / "gh"), *args], input=stdin, capture_output=True, env=env, timeout=60)
+            cmd = [str(w / "own" / "gh"), *args] if via is None else ["sh", "-c", via]
+            r = subprocess.run(cmd, input=stdin, capture_output=True, env=env, timeout=60)
             return r
 
         r = run(["api", "repos/o/r/pulls", "-f", "body=secret"])
@@ -216,11 +217,54 @@ def self_test():
         check("-f/-F values placed before the path are dropped, the path still found",
               lines[4].endswith(" api repos/o/r/labels") and "leak" not in "".join(lines))
 
+        # round-2 arms: --input before the path, a token outside the allowed set
+        run(["api", "--input", "tokfile2", "repos/o/r/inp"])
+        run(["api", "repos/o/r$x;y\\z"])
+        ln = log.read_text().splitlines()
+        check("--input FILE placed before the path is skipped, the path is the target",
+              ln[-2].endswith(" api repos/o/r/inp") and "tokfile2" not in "".join(ln))
+        check("a token outside the allowed set is logged with ? for each such character",
+              ln[-1].endswith(" api repos/o/r?x?y?z"))
+
+        # the parent's command line is redacted from the first value-bearing flag on
+        planted = {
+            "sh -c 'gh api repos/o/r -f body=PLANT1; :'": "PLANT1",
+            "sh -c 'gh issue comment 1 --body PLANT2; :'": "PLANT2",
+            "sh -c 'gh api repos/o/r --field=k=PLANT3; :'": "PLANT3",
+            "sh -c 'gh api repos/o/r -fbody=PLANT4; :'": "PLANT4",
+            "sh -c 'env gh pr create --title T --body PLANT5 x; :'": "PLANT5",
+        }
+        pl_lines = []
+        for cmdline, secret in planted.items():
+            run([], via=cmdline.split("'")[1])
+            pl_lines.append((secret, log.read_text().splitlines()[-1]))
+        check("planted -f/--body/--field/glued values never reach the parent field",
+              all(sec not in ln_ for sec, ln_ in pl_lines))
+        check("and the flag name stays with a <redacted> marker (the fixture is not vacuous)",
+              all("<redacted>" in ln_ for _, ln_ in pl_lines) and " -f <redacted>" in pl_lines[0][1]
+              and "gh api repos/o/r" in pl_lines[0][1])
+        census = ["-f", "-F", "-H", "-b", "-n", "-t", "-T", "-q", "-d", "--body", "--body-file", "--notes",
+                  "--notes-file", "--title", "--subject", "--desc", "--description", "--field", "--raw-field",
+                  "--header", "--input", "--jq", "--template", "--env-file", "--squash-merge-commit-message"]
+        leaked = []
+        for flag in census:
+            run([], via=f"gh api repos/o/r {flag} CENSUS_VAL; :")
+            if "CENSUS_VAL" in log.read_text().splitlines()[-1]:
+                leaked.append(flag)
+        check("census: no value-bearing gh flag leaks its value through the parent field", not leaked)
+        run([], via="python3 -m json.tool /dev/null >/dev/null 2>&1; gh api repos/o/r; :")
+        check("a non-gh parent keeps its -m argument", "-m json.tool" in log.read_text().splitlines()[-1])
+
         # null control: an unwritable log leaves output and status unchanged
-        bad = w / "nostate"
+        (w / "afile").write_text("x")
+        bad = w / "afile" / "state"  # under a regular file: it cannot be created or written
         r2 = run(["api", "repos/o/r/pulls", "-f", "body=secret"], state=bad)
         check("null control: an unwritable log leaves output and status unchanged",
               r2.stdout == want and r2.stderr == b"ERR\n" and r2.returncode == 7 and not bad.exists())
+        fresh = w / "fresh" / "state"
+        run(["api", "made"], state=fresh)
+        check("a missing state directory is created and the call logged (not silently dropped)",
+              (fresh / "gh-calls.log").is_file() and (fresh / "gh-calls.log").read_text().rstrip().endswith(" api made"))
         os.chmod(w / "state", 0o500)
         if os.access(w / "state", os.W_OK):
             print("  skip unwritable-directory arm (running as a user who can write anyway)")
@@ -244,6 +288,32 @@ def self_test():
         check("mutation: dropping the exec pass-through fails the byte arm",
               not (rm.stdout == want and rm.returncode == 7))
         install(good)
+
+        # round-2 mutants of the shim: each must trip its arm
+        def killed(name, old, new_, arm):
+            m = good
+            for o_, n_ in zip(old if isinstance(old, tuple) else (old,), new_ if isinstance(new_, tuple) else (new_,)):
+                m = m.replace(o_, n_)
+            ok = m != good
+            if arm != "mkdir":
+                (w / f"m_{name}").mkdir()
+            r_ = run(["api", "--input", "tokfile3", "repos/o/r/m"], shim_text=m, state=w / f"m_{name}")
+            l_ = (w / f"m_{name}" / "gh-calls.log")
+            t_ = l_.read_text() if l_.exists() else ""
+            run([], via="gh api repos/o/r -f body=MUT; :", shim_text=m, state=w / f"m_{name}")
+            t2 = l_.read_text() if l_.exists() else ""
+            tripped = {"input": "tokfile3" in t_, "clean": False, "mkdir": not l_.exists(),
+                       "redact": "MUT" in t2}[arm]
+            if arm == "clean":
+                run(["api", "a$b"], shim_text=m, state=w / f"m_{name}")
+                tripped = l_.exists() and "a$b" in l_.read_text()
+            check(f"mutant killed: {name}", ok and tripped)
+            install(good)
+
+        killed("no --input skip", "--input|", "", "input")
+        killed("clean() is cat", "tr -c 'A-Za-z0-9_./:-' '?'", "cat", "clean")
+        killed("no mkdir of the state dir", '  mkdir -p "$state"\n', "", "mkdir")
+        killed("no parent redaction", ("($longf)", "[fFHbntTqd]"), ("(ZZZ)", "[Z]"), "redact")
 
         # a shim is never its own real gh. The PATH is hermetic: no real gh on any host.
         (w / "real" / "gh").unlink()
