@@ -82,8 +82,13 @@ fi
 } > "${TMPDIR:-/tmp}/body_push.$$"
 TREE=$(git mktree < "${TMPDIR:-/tmp}/body_push.$$")
 rm -f "${TMPDIR:-/tmp}/body_push.$$"
+# A PR body names the code head it describes in a `Code:` trailer, the handoff/<topic> tip
+# proved equal to this checkout's HEAD above; cloud_relay.sh updates a PR only with the body
+# naming the handoff it applies (V147). A result body names none.
+MSG="body: $TOPIC"
+[ -z "$HREF" ] || MSG=$(printf 'body: %s\n\nCode: %s' "$TOPIC" "$HREF")
 # shellcheck disable=SC2086 # $P is empty or exactly "-p <sha>"
-C=$(git commit-tree "$TREE" $P -m "body: $TOPIC")
+C=$(git commit-tree "$TREE" $P -m "$MSG")
 # The topic names the ref and the message: refuse one that names this host
 # (#2310). The commit is judged as written, not as composed: its message and
 # identity, and any parent origin does not hold (R10-FLY-NO-FOOTERS-PUSH-PATHS).
