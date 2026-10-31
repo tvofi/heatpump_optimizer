@@ -11,20 +11,20 @@ THE TEST IS A COMMIT RANGE, NOT AN OPINION:
 
     git rev-list --count <reviewed-head>..<new-head> --not origin/main
 
-Any non-merge commit in that range means the head carries code and takes a
-fresh review: this prints FRESH-REVIEW, and no subject is exempt -- a
-claim-file resolution or a `ci:`/`claims:` bot commit landing as a commit is a
-change. Zero, or a count whose commits are all merges, is no branch-authored
-commit; what a merge can still author is its resolution, so the range then
-carries only where `tools/pr/app_approve.sh --carry` carries it -- each merge
-git's own automatic merge of its parents outside main's driver files, each
-claim file the pure union of both sides or main's claim-driver output on
-them, and the branch's own diff equal at
-both heads -- and this prints CARRY. A merge of the branch's own previous
-head, the shape update_pr.sh re-cuts one into, passes all three. A
-hand-resolved conflict, a line a merge adds of its own, or a main change that
-rewrote the branch's hunk context is FRESH-REVIEW with app_approve.sh's
-reason. One predicate, asked rather than copied: two copies once answered the
+The range carries only where `tools/pr/app_approve.sh --carry` carries it,
+and this prints CARRY: each merge git's own automatic merge of its parents
+outside main's driver files, each claim file the pure union of both sides or
+main's claim-driver output on them, each bot or delivery-row commit confined
+to its subject's paths as its writer, each commit of the branch's own leaving
+the head's tree git's automatic merge of the reviewed head onto main, and the
+branch's own diff equal at both heads (Lever L6, tvofi 2026-10-30: the PR's
+patch at the new head equals the reviewed one's). A merge of the branch's own
+previous head, the shape update_pr.sh re-cuts one into, and a revert with
+its re-apply both pass. A hand-resolved conflict, a line a merge or a commit
+adds of its own, or a main change that rewrote the branch's hunk context in
+code is FRESH-REVIEW with app_approve.sh's reason. Non-merge commits are
+counted and listed, never decided here. One predicate, asked rather than
+copied: two copies once answered the
 same range oppositely, and `bus.sh dispatch` then refused the re-review that
 app_approve.sh refused to carry. A body rewrite never by itself voids a
 verdict, because it is not a commit in the range. (This answers the
@@ -164,19 +164,14 @@ def classify(repo, reviewed, new, main):
             reason += "; %d of %d branch-only commit(s) carry code" % (
                 len(carrying), count)
         return FRESH, reason, count, commits
-    if carrying:
-        return (FRESH,
-                "%d of %d branch-only commit(s) carry code"
-                % (len(carrying), count),
-                count, commits)
     why = app_approve_carry(repo, reviewed, new, main)
     if why:
         return FRESH, why, count, commits
     if count == 0:
         return CARRY, "no branch-only commit", 0, []
     return (CARRY,
-            "all %d branch-only commit(s) are automatic merges, and "
-            "app_approve.sh --carry carries the range" % count,
+            "%d of %d branch-only commit(s) are non-merge, and "
+            "app_approve.sh --carry carries the range" % (len(carrying), count),
             count, commits)
 
 
@@ -340,7 +335,27 @@ def self_test():
     check("head did not move answers CARRY", v, CARRY)
 
     v, _, _, _ = answer(reviewed, bot)
-    check("a bot-subject commit is a code move", v, FRESH)
+    check("a bot-subject commit after a code move answers FRESH-REVIEW", v, FRESH)
+
+    # L6: a commit of the branch's own that leaves the reviewed patch as it
+    # was -- a revert and its re-apply -- carries; a re-apply one byte away
+    # does not. Both are non-merge commits, so only app_approve.sh decides.
+    _t(seat, "checkout", "-q", "-b", "fix/reapply", merged)
+    _t(seat, "rm", "-q", "code.txt")
+    _commit(seat, "Revert: the code")
+    with open(os.path.join(seat, "code.txt"), "w") as fh:
+        fh.write("reviewed\n")
+    _t(seat, "add", "code.txt")
+    reapplied = _commit(seat, "Re-apply: the code")
+    v, why, n, _ = answer(reviewed, reapplied)
+    check("a revert and its re-apply answers CARRY (L6)", v, CARRY)
+    check("and counts its two non-merge commits", "2 of 3" in why, True)
+    _t(seat, "checkout", "-q", "-b", "fix/reapply-x", merged)
+    with open(os.path.join(seat, "code.txt"), "w") as fh:
+        fh.write("reviewed!\n")
+    _t(seat, "add", "code.txt")
+    v, _, _, _ = answer(reviewed, _commit(seat, "Re-apply: one byte away"))
+    check("a re-apply one byte away answers FRESH-REVIEW", v, FRESH)
 
     v, _, _, _ = answer(reviewed, feat_merge)
     check("a merge of a non-main branch answers FRESH-REVIEW", v, FRESH)

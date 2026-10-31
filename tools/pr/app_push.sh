@@ -112,8 +112,9 @@
 # every one of these holds, each read here and failing closed:
 #   (a) HEAD has exactly one parent, the pull request's live head from the
 #       open-pull-request listing;
-#   (b) `git diff --name-status <live> HEAD` is exactly one added file,
-#       delivery_row.sh's `$ROW_DIR/<N>.md` for the listing's number <N>;
+#   (b) `git diff --name-status <live> HEAD` is exactly one added or modified
+#       file, delivery_row.sh's `$ROW_DIR/<N>.md` for the listing's number <N>
+#       (commit_row writes an add and an edit alike, P123);
 #   (c) that file is one line, an open row anchored on <N>, as
 #       tests/delivery_status.py's `anchored` reads a row;
 #   (d) the body file is the live body under one new `## Head` note, the
@@ -214,7 +215,7 @@ d = json.load(sys.stdin)[0]; print(d["head"]["sha"], int(d["number"]), " ".join(
   row=$ROW_DIR/$num.md
   d=$(git -C "$wt" diff --no-renames --name-status "$live" "$RV_HEAD" 2>/dev/null) \
     || { _rv_no "the diff against the live head could not be read"; return 1; }
-  [ "$d" = "$(printf 'A\t%s' "$row")" ] \
+  [ "$d" = "$(printf 'A\t%s' "$row")" ] || [ "$d" = "$(printf 'M\t%s' "$row")" ] \
     || { _rv_no "the head adds or changes more than this pull request's own row $row (git diff --name-status: $(printf '%s' "$d" | tr '\t' ' ' | paste -sd';' - | sed 's/;/; /g'))"; return 1; }
   git -C "$wt" show "$RV_HEAD:$row" 2>/dev/null | python3 -I -c 'import sys
 sys.path.insert(0, sys.argv[2] + "/tests")
@@ -231,7 +232,7 @@ i = head_offset(b)
 j = b.find("\n\n", i) if i >= 0 else -1
 sys.exit(not (j > i and prefix(live, b[i:j]).rstrip("\n") == b.rstrip("\n")))' "$body" "$(dirname -- "$0")" 2>/dev/null \
     || { _rv_no "the body file is not the live pull-request body under one new \`## Head\` note"; return 1; }
-  _rv_no "HEAD ${RV_HEAD:0:8} is the live head ${live:0:8} plus one commit adding only $row, one open row for #$num, and the body is the live one under one new \`## Head\` note"
+  _rv_no "HEAD ${RV_HEAD:0:8} is the live head ${live:0:8} plus one commit adding or editing only $row, one open row for #$num, and the body is the live one under one new \`## Head\` note"
 }
 
 # What --row-only runs in prepr's place: two of the body checks pr-contract runs,
@@ -1052,7 +1053,7 @@ print(json.dumps([{"number": 7, "title": "the title", "head": {"sha": sys.argv[1
 }
 rocase ook
 run ook --row-only o/r "$W/tool-wt" "$BR" "$W/ook/body.md"; st $? 0 "--row-only: the live head plus one commit adding only its own open row, the live body under one new note: pushed (prepr-fails set)"
-st "$(calls ook prepr)$(grep -c '^app_push: ROW-ONLY: prepr SKIPPED: HEAD 11111111 is the live head 55555555 plus one commit adding only dev/programme/delivery/7.md' "$W/ook/out")" 01 "and prepr was skipped, naming the path and why in one line"
+st "$(calls ook prepr)$(grep -c '^app_push: ROW-ONLY: prepr SKIPPED: HEAD 11111111 is the live head 55555555 plus one commit adding or editing only dev/programme/delivery/7.md' "$W/ook/out")" 01 "and prepr was skipped, naming the path and why in one line"
 st "$(grep -c "^node tools/policy/policy_lint.mjs --pr-body $W/ook/body.md --head $SHA --title the title --paths-file .* --existing-file " "$W/ook/log")" 1 "the body contract ran in its place, pr-contract's command at the head, with the pull request's own title"
 st "$(grep -c "^carry_audit check --body $W/ook/body.md$" "$W/ook/log")" 1 "and the carry check pr-contract runs (carry_audit.py check), on the same body"
 st "$(grep -c '^curl PATCH repos/o/r/pulls/7$' "$W/ook/log")$(cmp -s "$W/ook/live-body" "$W/ook/body.md" && echo same)" 1same "the open pull request is re-bodied with the body file unchanged: --row-only writes no note of its own"
@@ -1064,7 +1065,10 @@ rorefused() { # name want-reason -- prepr runs once, as without the flag, and pa
 rocase omore; printf 'A\tdev/programme/delivery/7.md\nM\ttools/x.py\n' > "$W/omore/namestatus"
 rorefused omore "the head adds or changes more than"
 rocase oother; printf 'A\tdev/programme/delivery/8.md\n' > "$W/oother/namestatus"; rorefused oother "the head adds or changes more than"
-rocase oedit; printf 'M\tdev/programme/delivery/7.md\n' > "$W/oedit/namestatus"; rorefused oedit "the head adds or changes more than"
+rocase oedit; printf 'M\tdev/programme/delivery/7.md\n' > "$W/oedit/namestatus"
+run oedit --row-only o/r "$W/tool-wt" "$BR" "$W/oedit/body.md"; st $? 0 "--row-only: one commit editing only its own row is pushed with prepr skipped (P123)"
+st "$(calls oedit prepr)" 0 "... prepr skipped for the edit"
+rocase oeditmore; printf 'M\tdev/programme/delivery/7.md\nA\ty\n' > "$W/oeditmore/namestatus"; rorefused oeditmore "the head adds or changes more than"
 rocase otwo; printf '%s\n%s\n' "$P1_STUB" "$P2_STUB" > "$W/otwo/parents"; rorefused otwo "HEAD has 2 parent(s), not one commit on the live head"
 rocase olive "$W/body.md"; printf '%s\n' "$OTHER" > "$W/olive/parents"; rorefused olive "parent 1 22222222 is not the live pull-request head 55555555"
 rocase orow; printf -- '- [#8](https://github.com/o/r/pull/8) — **open**, t\n' > "$W/orow/row"; rorefused orow "dev/programme/delivery/7.md is not one open row anchored on #7"
@@ -1117,7 +1121,9 @@ st "$(qv live)" "the head adds or changes more than this pull request's own row 
 reset_q; (cd "$Q/wt" && ensure_row . 8 "$(row_line 8 o/r t)" >/dev/null)
 st "$(qv live)" "the head adds or changes more than this pull request's own row dev/programme/delivery/7.md (git diff --name-status: A dev/programme/delivery/8.md)" "real git: another pull request's row runs prepr"
 reset_q; (cd "$Q/wt" && ensure_row . 7 "$(row_line 7 o/r t)" >/dev/null && rgit tag -f live2 && row_line 7 o/r u > dev/programme/delivery/7.md && rgit commit -qam edit)
-st "$(qv live2)" "the head adds or changes more than this pull request's own row dev/programme/delivery/7.md (git diff --name-status: M dev/programme/delivery/7.md)" "real git: a rewrite of a row the live head carries runs prepr"
+st "$(qv live2 >/dev/null; echo $?)" 0 "real git: commit_row's edit of a row the live head carries skips prepr (P123)"
+(cd "$Q/wt" && printf 'y\n' > y && rgit add y && rgit commit -q --amend --no-edit)
+st "$(qv live2)" "the head adds or changes more than this pull request's own row dev/programme/delivery/7.md (git diff --name-status: M dev/programme/delivery/7.md; A y)" "real git: the same edit with one more file runs prepr"
 reset_q; (cd "$Q/wt" && rgit merge -q --no-edit main && ensure_row . 7 "$(row_line 7 o/r t)" >/dev/null)
 st "$(qv live >/dev/null; echo $?)" 0 "real git: an up-to-date main merge (no commit) then the row skips prepr"
 reset_q; (cd "$Q/wt" && rgit commit -q --allow-empty -m empty && ensure_row . 7 "$(row_line 7 o/r t)" >/dev/null)

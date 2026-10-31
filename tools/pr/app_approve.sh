@@ -213,7 +213,7 @@ bot_author() { # subject -> the author email its writer commits as
   case "$1" in
     "ci: pin killed mutants"|"ci: re-record closures"|"ci: drop inherited claims")
       echo "41898282+github-actions[bot]@users.noreply.github.com" ;;
-    "claims: drop the claims main already carries after the main merge")
+    "claims: drop the claims main already carries after the main merge"|"record: the delivery row for #"[1-9]*)
       echo "70032254+tvofi@users.noreply.github.com" ;;
   esac
 }
@@ -223,6 +223,12 @@ bot_paths() { # subject -> one pathspec per line, nothing for an unknown subject
     "ci: re-record closures") printf '%s\n' tests/closures.json ;;
     "ci: drop inherited claims"|"claims: drop the claims main already carries after the main merge")
       printf '%s\n' tests/golden/claimed_drift.txt tests/golden/card_claimed_drift.txt ;;
+    # delivery_row.sh commit_row's subject, for an add and an edit alike: its
+    # one path is the row of the <N> it names, so a row commit under one
+    # pull request's number cannot write another's (P123).
+    "record: the delivery row for #"[1-9]*)
+      local n=${1#record: the delivery row for #}
+      [[ $n =~ ^[1-9][0-9]*$ ]] && echo "dev/programme/delivery/$n.md" ;;
   esac
 }
 
@@ -245,7 +251,7 @@ claim_driver_wrote() {
 
 # carry <verdict sha> <head sha> <main ref>: prints the reason; 0 only on a carry.
 carry() {
-  local v=$1 h=$2 main=$3 c ps ae subj p mv mh t x y b ba bt e cp got want
+  local v=$1 h=$2 main=$3 c ps ae subj p mv mh t x y b ba bt e cp got want own=""
   git merge-base --is-ancestor "$v" "$h" 2>/dev/null || { echo "$v is not an ancestor of $h"; return 1; }
   # Read at main, never at a head: a branch that gave a file a driver would
   # otherwise take it out of the comparisons itself.
@@ -316,7 +322,9 @@ carry() {
           || { echo "$c resolves $p to something other than the union of its parents or main's driver output on them"; return 1; }
       done <<<"$cp"
     elif [[ $subj != ci:* ]] && [ -z "$(bot_paths "$subj")" ]; then
-      echo "$c is a commit of the branch's own ($subj)"; return 1
+      # A commit of the branch's own: carried only where the head's content is
+      # the reviewed head's, merged onto the main it now sits on (below, L6).
+      own="$own${c:0:9} "
     else
       # Anyone who can push can write the subject, and the header-free
       # comparison below cannot see a change moved to other code with the
@@ -332,7 +340,7 @@ carry() {
         y=(${x[@]+"${x[@]}"})
         while IFS= read -r p; do [ -z "$p" ] || y[${#y[@]}]=":(exclude)$p"; done <<<"$b"
         git diff --quiet "$c^" "$c" -- . ${y[@]+"${y[@]}"} \
-          || { echo "$c is a ci: commit that changes files outside main's merge-driver files and the paths of its subject"; return 1; }
+          || { echo "$c is a commit under a bot's or the delivery row's subject that changes files outside main's merge-driver files and the paths of its subject"; return 1; }
         [ "$ae" = "$(bot_author "$subj")" ] \
           || { echo "$c is authored by $ae, not the writer of its subject ($subj)"; return 1; }
         case "$subj" in *claims*)
@@ -385,9 +393,30 @@ carry() {
   # never exposed to a forged commit choosing its own filenames this way.)
   while IFS= read -r p; do [ -z "$p" ] || x[${#x[@]}]=":(exclude,literal)$p"; done <<<"$(printf '%s' "$bots" | sort -u)"
   mv=$(git merge-base "$main" "$v") && mh=$(git merge-base "$main" "$h") || { echo "no merge base with $main"; return 1; }
+  # The branch's own commits (Lever L6, tvofi 2026-10-30): a revert and its
+  # re-apply, or an empty commit, leaves the reviewed change where it was. The
+  # comparison below drops each hunk's line numbers, so it alone would also
+  # pass a commit moving the change to other code with the same context; the
+  # head's tree must therefore be git's automatic merge of the reviewed head
+  # onto the main it now sits on, outside the files the comparison leaves out.
+  if [ -n "$own" ]; then
+    t=$(git merge-tree --write-tree --no-messages "$v" "$mh" 2>/dev/null | head -1)
+    case $t in
+      ""|*[!0-9a-f]*)
+        echo "the branch's own commits ${own% } follow a reviewed head that does not merge automatically onto $mh"; return 1 ;;
+    esac
+    git diff --quiet "$t" "$h" -- . ${x[@]+"${x[@]}"} \
+      || { echo "the branch's own commits ${own% } change its content: $h is not the reviewed head $v merged onto $mh"; return 1; }
+  fi
   local d=(git -c core.quotepath=off diff --binary --no-renames --no-color --no-ext-diff --no-textconv
     --diff-algorithm=myers -U3)
-  norm() { "${d[@]}" "$1" "$2" -- . ${x[@]+"${x[@]}"} | sed -e '/^index /d' -e 's/^@@ .*/@@/'; }
+  # In a `*.md` file each context line reads as a bare ` ` (P17): prose main
+  # rewrote beside the branch's lines changes no line the branch wrote, and
+  # the hunk's shape -- its context count, its +/- lines -- still compares.
+  # Code files keep their context: there the lines beside a change are
+  # behaviour (P325).
+  norm() { "${d[@]}" "$1" "$2" -- . ${x[@]+"${x[@]}"} | sed -e '/^index /d' -e 's/^@@ .*/@@/' \
+    | awk '/^diff --git / { md = /\.md$/ } md && /^ / { print " "; next } { print }'; }
   cmp -s <(norm "$mv" "$v") <(norm "$mh" "$h") \
     || { echo "the branch's own diff differs: $mv..$v against $mh..$h"; return 1; }
   echo "no branch-authored commit in the range, every merge the automatic one with its claim files a pure union of both sides or main's driver output on them, and the branch's own diff compares equal"
@@ -1520,8 +1549,11 @@ carried "$H_MERGE"; st $? 0 "CARRY: a merge from main that leaves the branch's o
 carried "$H_CIEMPTY"; st $? 0 "CARRY: a ci: commit that changes nothing"
 carried "$H_EVIL"; st $? 1 "NO CARRY: the same merge with one byte of a.txt changed in its resolution (null control)"
 st "$(grep -c "not the automatic merge" "$W/carry.out")" 1 "refused as a hand-resolved merge"
-carried "$H_OWN"; st $? 1 "NO CARRY: a commit of the branch's own"
-carried "$H_OWNEMPTY"; st $? 1 "NO CARRY: an empty commit of the branch's own, which the byte comparison alone would pass"
+carried "$H_OWN"; st $? 1 "NO CARRY: a commit of the branch's own that changes a code line"
+st "$(grep -c "own commits ${H_OWN:0:9} change its content" "$W/carry.out")" 1 "refused naming that commit"
+# Lever L6 (tvofi, 2026-10-30): a commit of the branch's own that leaves the
+# reviewed change as it was carries; before L6 this one refused.
+carried "$H_OWNEMPTY"; st $? 0 "CARRY: an empty commit of the branch's own (L6)"
 carried "$H_CI"; st $? 1 "NO CARRY: a ci: commit that changes the branch's diff"
 st "$(grep -c "outside main's merge-driver files" "$W/carry.out")" 1 "refused as a ci: commit outside the driver files"
 carried "$H_CILED"; st $? 0 "CARRY: a ci: commit that rewrites only a merge-driver file"
@@ -1579,6 +1611,12 @@ st "$(grep -c "not the automatic merge" "$W/carry.out")" 1 "refused for the hand
   bash "$SELF" --carry "$(cat ../reloc.v)" "$(git rev-parse HEAD)" main ) > "$W/carry.out" 2>&1
 st $? 1 "NO CARRY: a ci: commit that moves the branch's change to another function with the same context"
 st "$(grep -c "outside main's merge-driver files" "$W/carry.out")" 1 "refused by the ci: guard"
+( cd "$W/reloc" || exit 2; git checkout -q --detach "$(cat ../reloc.v)"
+  git show main~1:f.py > f.py; sed -i.bak '14s/limit(a)/limit(a, safe=True)/' f.py; rm f.py.bak
+  git commit -qam "fix: move the guard"
+  bash "$SELF" --carry "$(cat ../reloc.v)" "$(git rev-parse HEAD)" main ) > "$W/carry.out" 2>&1
+st $? 1 "NO CARRY: a commit of the branch's own that moves its change to another function with the same context (L6)"
+st "$(grep -c "change its content" "$W/carry.out")" 1 "refused by the re-merge tree check, which the header-free comparison cannot replace"
 carried "$H_PIN"; st $? 0 "CARRY: mutation-autofix's ledger commit, inside its own paths (R9-CI-2b)"
 carried "$H_PINOUT"; st $? 1 "NO CARRY: the same subject touching one more file outside its paths"
 carried "$H_PINELSE"; st $? 1 "NO CARRY: the ledger under another bot's subject, whose paths do not hold it"
@@ -1590,7 +1628,10 @@ st $? 0 "CARRY: remerge_main.sh's inherited-claims commit, only dropping a claim
 st $? 1 "NO CARRY: the same subject adding a claim line"
 H_MERGEPIN=$(pin_commit "$H_MERGE" "ci: pin killed mutants" tests/mutation_ledger/killed_by/b.json)
 carried "$H_MERGEPIN"; st $? 0 "CARRY: a merge from main, then the ledger commit it set off (#2024's shape)"
-carried "$H_SIDE"; st $? 1 "NO CARRY: a merge of a branch that is not main"
+carried "$H_SIDE"; st $? 0 "CARRY: a merge of a side branch whose one commit is empty (L6: no PR line changed)"
+g checkout -q -b side2 "$V"; echo side >> "$W/clone/b.txt"; g commit -qam side2; SIDE2=$(g rev-parse HEAD)
+H_SIDE2=$(mkmerge "$V" "$SIDE2" "Merge side2 into fix")
+carried "$H_SIDE2"; st $? 1 "NO CARRY: a merge of a branch that is not main, its one commit changing a line"
 g checkout -q --detach "$V"; g merge -q --no-ff --no-edit -m "octopus" "$M1" "$SIDE" >/dev/null; H_OCTO=$(g rev-parse HEAD)
 carried "$H_OCTO"; st $? 1 "NO CARRY: one merge of main and another branch at once"
 # A seat merges main into the head and hands that off as a code head, which
@@ -1705,6 +1746,65 @@ H_DF=$( cd "$RD" && git checkout -q --detach "$VF" && git merge -q --no-ff --no-
 ( cd "$RD" && bash "$SELF" --carry "$VF" "$H_DF" main ) > "$W/carry.out" 2>&1
 st $? 1 "NO CARRY: main's side dropped by hand, which only the head's own driver would write"
 st "$(grep -c "union of its parents" "$W/carry.out")" 1 "refused on main's driver, not the head's"
+# The delivery row (P123): delivery_row.sh commit_row's subject, author and
+# one path, for an add and an edit; each refusal names its commit.
+TV=70032254+tvofi@users.noreply.github.com
+rowc() { # base N author subject-N path... -> sha: the row commit's shape, varied by one field
+  local b=$1 n=$2 ae=$3 sn=$4; shift 4; g checkout -q --detach "$b"
+  for f in "$@"; do mkdir -p "$W/clone/$(dirname "$f")"; echo "row $n" >> "$W/clone/$f"; g add "$f"; done
+  GIT_AUTHOR_EMAIL=$ae GIT_COMMITTER_EMAIL=$ae g commit -qm "record: the delivery row for #$sn"; g rev-parse HEAD
+}
+H_ROWADD=$(rowc "$V" 7 "$TV" 7 dev/programme/delivery/7.md)
+carried "$H_ROWADD"; st $? 0 "CARRY: the verdict head plus its delivery-row add"
+carried "$V"; st $? 0 "CARRY: the verdict head itself, no commit after it (null control)"
+H_ROWEDIT=$(rowc "$H_ROWADD" 7 "$TV" 7 dev/programme/delivery/7.md)
+( cd "$W/clone" && bash "$SELF" --carry "$H_ROWADD" "$H_ROWEDIT" origin/main ) > "$W/carry.out" 2>&1
+st $? 0 "CARRY: a verdict head holding its row plus a row-edit commit"
+carried "$H_ROWEDIT"; st $? 0 "CARRY: the add and the edit in one range"
+H_ROWMORE=$(rowc "$V" 7 "$TV" 7 dev/programme/delivery/7.md b.txt)
+carried "$H_ROWMORE"; st $? 1 "NO CARRY: a row-subject commit that also touches one other file"
+st "$(grep -c "^CARRY: no $V -> $H_ROWMORE: $H_ROWMORE is a commit under" "$W/carry.out")" 1 "refused naming that commit"
+H_ROWSEAT=$(rowc "$V" 7 seat@users.noreply.github.com 7 dev/programme/delivery/7.md)
+carried "$H_ROWSEAT"; st $? 1 "NO CARRY: a row commit authored by anyone but tvofi"
+st "$(grep -c "$H_ROWSEAT is authored by seat@" "$W/carry.out")" 1 "refused naming that commit and its author"
+H_ROWX=$(rowc "$V" 8 "$TV" 7 dev/programme/delivery/8.md)
+carried "$H_ROWX"; st $? 1 "NO CARRY: a row commit for #7 writing another pull request's row"
+st "$(grep -c "$H_ROWX is a commit under" "$W/carry.out")" 1 "refused on the path its subject binds"
+H_TESTLINE=$(pin_commit "$H_ROWADD" "fix: one test line" tests/t_x.py)
+carried "$H_TESTLINE"; st $? 1 "NO CARRY: an ordinary commit changing one test line after the row"
+st "$(grep -c "own commits ${H_TESTLINE:0:9} change its content" "$W/carry.out")" 1 "refused naming that commit"
+H_BUDGET=$(pin_commit "$H_ROWADD" "fix: one budget value" tests/structure_budgets.json)
+carried "$H_BUDGET"; st $? 1 "NO CARRY: an ordinary commit changing one budget value after the row"
+st "$(grep -c "own commits ${H_BUDGET:0:9} change its content" "$W/carry.out")" 1 "refused naming that commit"
+# L6: a revert and its re-apply around an absorb of main has the reviewed
+# change's patch at the new head; one that re-applies a different line does not.
+g checkout -q --detach "$V"; g revert --no-edit HEAD >/dev/null; _rv=$(g rev-parse HEAD)
+_rvm=$(mkmerge "$_rv" "$M1" "Merge origin/main into fix")
+g checkout -q --detach "$_rvm"; g revert --no-edit "$_rv" >/dev/null; H_REAPPLY=$(g rev-parse HEAD)
+carried "$H_REAPPLY"; st $? 0 "CARRY: a revert, an absorb of main and the re-apply (L6)"
+g checkout -q --detach "$_rvm"; ed1 's/^5$/FIVE/' a.txt; ed1 's/^l1$/L1/' led.json; g commit -qam "fix: re-apply, differently"; H_REAPPLYX=$(g rev-parse HEAD)
+carried "$H_REAPPLYX"; st $? 1 "NO CARRY: the same with a re-apply one byte away"
+# P17: a context-only difference main made carries in a *.md file, never in
+# code; the +/- lines and the context count still compare.
+( R="$W/mdctx"; throwaway_git_init "$R" -q -b main && cd "$R" || exit 2
+  seq -f 'p%g' 1 12 > doc.md; seq -f 'x = %g' 1 12 > f.py; seq -f 'q%g' 1 12 > top.md
+  git add -A; git commit -qm m0
+  git checkout -qb fix; sed -i.bak -e 's/^p6$/P6/' -e 's/^p9$/P9/' doc.md; sed -i.bak 's/^x = 6$/x = 66/' f.py
+  sed -i.bak 's/^q2$/Q2/' top.md; rm -f ./*.bak; git commit -qam "fix: own"; git rev-parse HEAD > ../md.v
+  side() { git checkout -q main; git checkout -q -B "m$1"; sed -i.bak "$2" "$3"; rm -f ./*.bak; git commit -qam "main $1"
+    git checkout -q --detach "$(cat ../md.v)"; git merge -q --no-ff --no-edit "m$1" >/dev/null; git rev-parse HEAD > "../md.$1"; }
+  side ctx 's/^p4$/p4 reworded/' doc.md
+  side py 's/^x = 4$/x = 44/' f.py
+  side plus 's/^p6$/P6/' doc.md
+  side count '1i\
+q0
+' top.md ) || exit 2
+mdcarry() { ( cd "$W/mdctx" && git branch -qf main "m$1" && bash "$SELF" --carry "$(cat ../md.v)" "$(cat "../md.$1")" main ) > "$W/carry.out" 2>&1; }
+mdcarry ctx; st $? 0 "CARRY: main rewrote a context line beside the branch's lines in a .md file (P17)"
+mdcarry py; st $? 1 "NO CARRY: the same context rewrite in a .py file (code stays strict)"
+st "$(grep -c "the branch's own diff differs" "$W/carry.out")" 1 "refused by the branch's own comparison"
+mdcarry plus; st $? 1 "NO CARRY: a .md file where main made one of the branch's + lines its own"
+mdcarry count; st $? 1 "NO CARRY: a .md hunk whose context count main changed"
 EVV="$W/ev-v"; mkdir -p "$EVV"; printf 'fix review at head %s\n' "$V" > "$EVV/verdict.md"
 CARRYV="[$(comment 2 "Fix review: merge $V" "$APPR" NONE "evidence: $EVV")]"
 setpr "$H_MERGE"; mkcase carry open false "$H_MERGE" "$CARRYV"
