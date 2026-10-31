@@ -2051,6 +2051,9 @@
       "learning_reset_comfort_weight": {
         "name": "Inlärning återställ komfortvikt"
       },
+      "learning_reset_heat_loss": {
+        "name": "Inlärning återställ värmeförlust"
+      },
       "learning_run_system_identification": {
         "name": "Inlärning kör systemidentifiering"
       },
@@ -2466,6 +2469,20 @@
         "source": {
           "name": "Omstartspunkt",
           "description": "Veckokopian (standard), eller driftrådgivarens omanpassning av värmeförlusten."
+        }
+      }
+    },
+    "reset_heat_loss_learners": {
+      "name": "Återställ värmeförlustinlärning",
+      "description": "Återställ den inlärda värmeförlustskalan för huset och det inlärda förlustförhållandet för nedervåningen till 1,0, så att planen använder värmeförlustvärdena i inställningarna som de står, och inlärningen börjar samla underlag igen därifrån. Använd detta när du har rättat de inställningarna, flyttat en temperaturgivare, eller när de inlärda värdena uppenbart har blivit fel. Bara dessa två återställs: komfortvikten och inlärningen för varmvatten, COP och avfrostning lämnas som de är. Planen räknas om direkt.",
+      "fields": {
+        "entry_id": {
+          "name": "Konfigurationspost",
+          "description": "Begränsa återställningen till en konfigurationspost. Lämna tomt för att återställa alla konfigurerade värmepumpar."
+        },
+        "learners": {
+          "name": "Inlärning",
+          "description": "Vad som ska återställas: värmeförlustskalan för huset, förlustförhållandet för nedervåningen, eller båda. Lämna tomt för att återställa båda."
         }
       }
     },
