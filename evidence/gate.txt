@@ -1,0 +1,8 @@
+Prepare all required actions
+ * [new tag]             archive/handoff-body/r10-ci-ratchet-red -> archive/handoff-body/r10-ci-ratchet-red
+ * [new tag]             archive/handoff-body/r10-instruments -> archive/handoff-body/r10-instruments
+ * [new tag]             archive/handoff-body/r10-instruments-checker -> archive/handoff-body/r10-instruments-checker
+ * [new tag]             archive/handoff-body/r10-policy-instruments -> archive/handoff-body/r10-policy-instruments
+ * [new tag]             archive/handoff-body/r10-prepr-unpinned-red -> archive/handoff-body/r10-prepr-unpinned-red
+ * [new tag]             archive/handoff-body/r9-blas-kernel-red -> archive/handoff-body/r9-blas-kernel-red
+ * [new tag]             archive/handoff/r10-ci-ratchet-red -> archive/handoff/r10-ci-ratchet-red
