@@ -2,7 +2,7 @@
 
 ## Head
 
-5fa9275cc00e187a665624979e8c70e0dbaad461 (origin/main at 0cae227c3 merged, `prepr.sh` rc=0 at this head; main unmoved since).
+c18116991e4fd003a1700a9c90b7dea7eff6812a (origin/main at 7539d1675 merged into the earlier head 5fa9275cc; the one conflict, `tools/audit/seat/cloud_relay.sh` `pr_own_group` line, kept main's `> "$bd/update.out" 2>&1 &` redirect and appended the `# never-empty: upd ...` marker; `bare_array.py --check` rc 0 and `tests/structure.py` RATCHET PASSED at this head).
 
 ## Mutation proof
 
@@ -18,7 +18,7 @@ Failing test first: at the base, `python3 -I tools/audit/seat/bare_array.py --ch
 ## Figures
 
 - Sites the base listed, `git grep -nE '"\$\{[A-Za-z_]+\[@\]\}"' -- 'tools/**/*.sh'`, and the rule's own enumeration `python3 -I tools/audit/seat/bare_array.py --check --ref 3759d49a5` (set -u files only). Dispositions: bus.sh ledger call: guarded (the fix). cloud-setup.sh `parts` (`read -ra` of an empty PATH is an empty array): guarded. prepr.sh body_check call with `reds`: guarded (its sibling call at the other site already was). Marked never-empty with the reason on the line: body_patch.sh `args`, cloud_relay.sh `upd`, cloud-setup.sh `vars` x3, app_approve.sh `d`, prepr.sh `args`, `TRANSPORT_ROOTS`, `PIPE_GREP_Q_FILES`. pr_args.sh has no `set -u` of its own but is sourced into set -u callers (cloud_relay.sh): `PR_FRESH_PATHS` guarded; the four `PR_REAP_PIDS`/`alive` sites marked with the early return that makes each non-empty.
-- Residual seam: `tests/entities.py` reads blobs of HEAD (`scan("HEAD")`), so a tree edited and uncommitted is judged at its last commit; `bare_array.py --check` with no ref reads the working tree. A sourced library with no `set -u` of its own is not judged by the rule (pr_args.sh was classified by hand): distinct, not closed here.
+- Residual seam: `tests/entities.py` reads blobs of HEAD (`scan("HEAD")`), so a tree edited and uncommitted is judged at its last commit; `bare_array.py --check` with no ref reads the working tree. A sourced library with no `set -u` of its own is not judged by the rule (pr_args.sh was classified by hand): distinct, not closed here. Carry: R10-FLY-SUITE-ENV-FLAKES
 - Gate: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` prints `MODE: FULL` (tests/closure.py's INERT_EXCEPT changed). Ran locally: `tests/entities.py` (all checks passed), `tests/structure.py` (RATCHET PASSED), `tools/pr/prepr.sh` rc=0, `tools/pr/ci_predict.py` no red. `tests/closures.json`: entities.py closure recorded with `derive_closures.sh --single tests/entities.py --record-only` then `closure.py merge --partial --allow-failures`; the recording's rc was 1 solely from the unclassified-file refusal this change fixes, and I set that rc to 0 by hand.
 
 ## Red checks
