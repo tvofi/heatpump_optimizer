@@ -42647,6 +42647,7 @@ _wf_from_probes = _wf_from_coord(
     thermal_model=_wf_probe_coord._thermal_model,
     current_state=_wf_probe_coord._current_state,
     result=_wf_probe_result,
+    local_tz=_tz_wf.utc,
 )
 R.check(
     "from_coordinator uses the live wood-tank temperature",
@@ -42662,6 +42663,7 @@ _wf_from_empty = _wf_from_coord(
     thermal_model=_wf_probe_coord._thermal_model,
     current_state=_wf_probe_coord._current_state,
     result=_wf_probe_result,
+    local_tz=_tz_wf.utc,
 )
 R.check(
     "from_coordinator without a tank temperature attaches nothing",
