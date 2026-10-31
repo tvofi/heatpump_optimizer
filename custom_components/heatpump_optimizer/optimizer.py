@@ -351,7 +351,8 @@ def _comfort_matched_targets(
     end settlement's to price at its caps. ``delivered`` is each step's end
     room temperature, two-zone the floors' area-weighted mean.
     """
-    shortfall = float(np.mean(comfort_targets - delivered))
+    skip = int(__import__('os').environ.get('CM_SKIP','4'))
+    shortfall = float(np.mean((comfort_targets - delivered)[skip:]))
     if not shortfall > 0.0:
         return comfort_targets
     return comfort_targets - shortfall
