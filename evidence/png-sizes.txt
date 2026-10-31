@@ -1,6 +1,0 @@
-docs/img/readme/mermaid-how-the-pieces-fit-dark.png 2296 806
-docs/img/readme/mermaid-how-the-pieces-fit.png 2296 806
-docs/img/readme/mermaid-one-interval-dark.png 2296 1434
-docs/img/readme/mermaid-one-interval.png 2296 1434
-docs/img/readme/mermaid-setup-flow-dark.png 2296 5986
-docs/img/readme/mermaid-setup-flow.png 2296 5986

@@ -76,7 +76,7 @@
   ok   no reader doc claims the entity prefix follows the entry name
 
 -- README requirements vs manifest.json (#1537)
-/root/wt/tests/doc_claims.py:128: DeprecationWarning: 'maxsplit' is passed as positional argument
+/home/user/wt/tests/doc_claims.py:128: DeprecationWarning: 'maxsplit' is passed as positional argument
   return [re.split(r"[<>=!~\[]", r, 1)[0].strip() for r in manifest["requirements"]]
   ok   manifest.json still pins requirements (anchor)
   ok   README still has a Requirements section (anchor)
@@ -336,3 +336,4 @@
   ok   regenerating the manifest after the planted block edit is green again (the repair path)
 
 ALL 228 checks PASSED
+rc=0

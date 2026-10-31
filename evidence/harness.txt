@@ -1,4 +1,4 @@
-== /root/base-README.md
+== base 437f1ba9b
 RESULT relative_images=4 resolved=0
 RESULT relative_links=28 resolved=0
 RESULT absolute_images=5 resolved=5
@@ -7,7 +7,7 @@ RESULT mermaid_fences=3 plain_code=3
 RESULT control bare=blank dot=ok absolute=ok
 RESULT control srcset_bare=stripped srcset_dot=kept light_img=ok
 rc=1
-== README.md
+== head 42b228ec
 RESULT relative_images=7 resolved=7
 RESULT relative_links=28 resolved=28
 RESULT absolute_images=5 resolved=5
@@ -16,4 +16,12 @@ RESULT mermaid_fences=3 plain_code=3
 RESULT control bare=blank dot=ok absolute=ok
 RESULT control srcset_bare=stripped srcset_dot=kept light_img=ok
 rc=0
+== null abs-only
+RESULT relative_images=0 resolved=0
+RESULT relative_links=0 resolved=0
+RESULT absolute_images=1 resolved=1
+RESULT picture_sources=0 resolved=0
+RESULT mermaid_fences=0 plain_code=0
+RESULT control bare=blank dot=ok absolute=ok
+RESULT control srcset_bare=stripped srcset_dot=kept light_img=ok
 rc=0
