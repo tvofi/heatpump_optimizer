@@ -1465,6 +1465,11 @@ def _self_test() -> int:
         check("a carry after the cut-over is pending beside a legacy one",
               rc == 0 and at_mark("R9-A")["resume"]["stage"] == "carries-open"
               and "(1 pending carries)" in out, (rc, out[-300:]))
+        rc, out = said(lambda: edit("set-resume", "R9-A", "done", field="stage",
+                                    branch="mark-1"))
+        check("set-resume --field stage done reads the same rule",
+              rc == 0 and at_mark("R9-A")["resume"]["stage"] == "carries-open"
+              and "set-resume R9-A: done -> carries-open" in out, (rc, out[-300:]))
     finally:
         roster_lib.CARRY_CUTOVER.clear()
         roster_lib.CARRY_CUTOVER.update(saved)
