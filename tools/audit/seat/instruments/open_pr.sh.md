@@ -18,5 +18,21 @@
   refused push names its log. It holds the branch's `upd-<branch>.lock` from
   before its worktree to its second push, so a concurrent `update_pr.sh` is BUSY
   (75) and cannot detach the worktree under the PR's row (#2547-#2549).
+  Once the PR exists, any exit before its row is pushed -- a refused second
+  (row) push, a step errexit stops between the two pushes, a stop signal --
+  runs one EXIT-trap path (`op_close_unrowed`): it returns the worktree to the
+  pushed head, closes the draft, and only then posts a comment, read back by
+  `gh_comment.py`, quoting the refusal or the `STOPPED` line
+  (`open_pr: CLOSED: #N`), so no PR stays open without its row (#2625, #2629,
+  #2719); only a close that fails prints `ROWLESS`, for `update_pr.sh`'s
+  `ensure_row`. A row push can fail after its `git push` landed (a refused
+  body PATCH or read-back, a stop past the push), so the path reads origin's
+  tip first and closes only when origin lacks the row commit; when origin
+  holds it, the PR stays open and the run exits non-zero naming the failure
+  (`open_pr: ROW LANDED: #N`). The PR is created only after the body
+  contract passes: `app_push.sh` runs `prepr.sh` and the `ref_privacy` guard
+  before its push. A main merge that conflicts is aborted and refused
+  (`merging origin/main into <sha> conflicts`), so the clean worktree is
+  released instead of kept as dirty.
   `--self-test` runs `delivery_row.sh`'s, then
   `pr_args.sh`'s.

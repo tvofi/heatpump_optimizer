@@ -1307,6 +1307,22 @@ class InstallCapability:
         )
 
 
+def plan_step_runs(result: Any, i: int) -> bool:
+    """Whether the plan switches the pump on for its step ``i``.
+
+    The plan's ``heat_pump_on_schedule`` is the authority; a result built
+    without it falls back to :func:`planned_draw_runs` on that step's two
+    draws. One rule for every reader of the plan's switch: the action a cycle
+    actuates (``optimizer.get_current_action``), the schedule it publishes and
+    the supply the step tick writes (``pump_arbiter.supply_tick``, #2492).
+    """
+    runs = getattr(result, "heat_pump_on_schedule", None)
+    if runs and i < len(runs):
+        return bool(runs[i])
+    dhw = getattr(result, "dhw_power_schedule", None) or ()
+    return planned_draw_runs(result.power_schedule[i], dhw[i] if i < len(dhw) else 0.0)
+
+
 def probe_install(config: Any) -> InstallCapability:
     """The one install-capability probe (#1955)."""
     cfg = config or {}
