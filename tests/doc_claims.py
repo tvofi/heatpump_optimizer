@@ -4323,8 +4323,10 @@ def check_surface_coverage() -> None:
 # Round 3 (fix review of #3048 at 6d24f3ac6): "previous/old" + a thing that changes between releases (behaviour,
 # default, version, form, layout, formula, name, id, suffix), "older" + an install or integration, and "silently" + a
 # past-tense verb; then "historical default/form" and "before this/that/it was", the opening of a recounted change
-# ("Before this was shared, the simulation charged ..."). Bare "previous" and "old" stay out: "the previous day", "the previous answer" and "the old plan
-# stands" state what happens now, and "an older Home Assistant" / "older than three solve cycles" compare, not recount.
+# ("Before this was shared, the simulation charged ..."). Bare "previous" and "old" stay out: "the previous day",
+# "the previous answer" and "the old plan stands" state what happens now, and "an older Home Assistant" / "older than
+# three solve cycles" compare, not recount. A past-tense counterfactual ("Sizing it from the whole house inflated the
+# cap") has no word-level shape; the round-3 census read every was/were/had hit for it instead.
 _HISTORY = re.compile(r"(?i:\bnew in\b|\bsince (?:v\d|version\b|#\d)|\bpreviously\b|\bno longer\b|\bused to\b"
                       r"|\buntil v\d|\bas before\b|\brenamed from\b|\bround \d"
                       r"|\b(?:earlier|older)\s+(?:versions?|releases?)\b"
