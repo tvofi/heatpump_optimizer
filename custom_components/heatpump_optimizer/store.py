@@ -332,6 +332,11 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
         "house_heat_loss_basis": Domain("choice", choices=c.HEAT_LOSS_BASES, unread=(
             "earned at the first measured-heat fold, else re-derived from the configured "
             "meters on save; the load reads it to void evidence on an earlier basis")),
+        # R10-HOTFIX-LEARNER-INPUTS: the zone sensors each heat-loss learner was fitted on.
+        "heat_loss_zone_entities/~": Domain("choice", choices=(c.CONF_INDOOR_TEMP_ENTITY, c.CONF_LOWER_FLOOR_TEMP_ENTITY)),
+        "heat_loss_zone_entities/*": Domain("text", null=True, unread=(
+            "re-derived from the configured zone sensors on save; the load reads it to void "
+            "a learner whose sensor changed")),
         c.CONF_COP_SCALE: Domain("real", c.COP_SCALE_MIN, c.COP_SCALE_MAX),
         **{f"{k}_samples": _COUNT for k in ("buffer_cooling", "house_heat_loss", "lower_floor_loss", "cop")},
         # MeasuredCop.from_dict: the learner refuses a COP at or under 0.1 before rounding.
