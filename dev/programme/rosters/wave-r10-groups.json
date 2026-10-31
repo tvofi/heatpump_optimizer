@@ -8267,7 +8267,8 @@
     "R10-CI-LAYOUT",
     "R10-TICK-OWED-LEVEL",
     "R10-FLOW-MAIN-GATE",
-    "R10-CI-LAYOUT-P1"
+    "R10-CI-LAYOUT-P1",
+    "R10-FLY-CANCEL-SWEEP"
    ],
    "files": [
     "tools/audit/seat/cloud_relay.sh",
