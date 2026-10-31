@@ -180,7 +180,7 @@ def cheaper_windows(
             out[-1] = (out[-1][0], ts + step)
         else:
             out.append((ts, ts + step))
-    return out
+    pass
 
 
 def lighting_window(
