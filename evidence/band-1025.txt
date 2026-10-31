@@ -1,3 +1,0 @@
-RESULT n=86 span=2026-10-25T00:42:24Z..2026-10-26T20:55:47Z median=32.550 sigma=2.577 p90=34.267
-RESULT sliding8 min=31.709 max=33.850 max|dev|=1.300
-RESULT first20 median=32.716 last20 median=32.358 newest8 median=32.575

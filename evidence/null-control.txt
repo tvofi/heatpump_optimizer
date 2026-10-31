@@ -1,11 +1,6 @@
-RESULT observed red 34.467 @base: grew=1 GREW  critical_path_minutes: 34.467 (budget 34.267)
-RESULT observed red 34.467 @head: grew=0 ok    critical_path_minutes: 34.467 (budget 34.267, band 1.3)
-RESULT shifted +1.31 -> 35.777 @base: grew=1 GREW  critical_path_minutes: 35.777 (budget 34.267)
-RESULT shifted +1.31 -> 35.777 @head: grew=1 GREW  critical_path_minutes: 35.777 (budget 34.267, band 1.3)
-RESULT edge 35.567 @base: grew=1 GREW  critical_path_minutes: 35.567 (budget 34.267)
-RESULT edge 35.567 @head: grew=0 ok    critical_path_minutes: 35.567 (budget 34.267, band 1.3)
-RESULT counter script_runs_per_push+1 @base: grew=1 ok    critical_path_minutes: 34.0 (budget 34.267); GREW  script_runs_per_push: 55 (budget 54)
-RESULT counter script_runs_per_push+1 @head: grew=1 ok    critical_path_minutes: 34.0 (budget 34.267, band 1.3); GREW  script_runs_per_push: 55 (budget 54)
-RESULT archscore row +1 @base: grew=1 GREW  archscore.unused_boundary_imports: 1 (budget 0); ok    critical_path_minutes: 34.0 (budget 34.267)
-RESULT archscore row +1 @head: grew=1 GREW  archscore.unused_boundary_imports: 1 (budget 0); ok    critical_path_minutes: 34.0 (budget 34.267, band 1.3)
+RESULT 34.467 head grew= 0 noband grew= 1
+RESULT 35.567 head grew= 0 noband grew= 1
+RESULT 35.777 head grew= 1 noband grew= 1
+RESULT spp55 head grew= 1 noband grew= 1
+RESULT arch1 head grew= 1 noband grew= 1
 RESULT budget_problems(head)= []
