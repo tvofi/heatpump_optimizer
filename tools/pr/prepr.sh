@@ -3637,7 +3637,7 @@ else
 fi
 
 # One interpreter resolution per run, shared by steps 6a and 6c (`recorder_python`).
-PREPR_RECORDER_CACHE=/tmp/prepr-recpy.$$; : > "$PREPR_RECORDER_CACHE"; export PREPR_RECORDER_CACHE
+PREPR_RECORDER_CACHE=/tmp/prepr-recpy.$$; : > "$PREPR_RECORDER_CACHE"  # not exported: the nested --self-test must resolve afresh
 
 # --- 2. the scoped gate's MODE line, printed rather than inferred.
 # CLAUDE.md rule 1: `MODE: SCOPED -- 0 script(s) run` and `MODE: FULL` both
