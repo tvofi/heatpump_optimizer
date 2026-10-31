@@ -1,32 +1,8 @@
-check( call sites added, merge_train: 19
-check( call sites added, queue_pre_flight: 1
-E=3271
-merge-sites
-1263:         _, said = self.run(["gh", "pr", "merge", n, "--repo", self.repo, "--merge", "--match-head-commit", h])
-2010:             code, whole = self.run(["gh", "pr", "merge", str(pr), "--repo", self.repo, "--merge",
-required
-1883:         req = self.required(pr_head=True)
-2072:             req = self.required(pr_head=True)
-3054:             req = self.required()
-sweeps
-1811:             self.sweep_bots()  # a record PR merged now is inside this recarry, not under it
-1888:                     self.sweep_bots()  # P289: the record PR merges after the critical-path entry
-1900:                     self.sweep_bots()  # the entry stopped: the record PR waits no longer
-2029:                 bot = self.sweep_bots()
-3051:                 self.sweep_bots()  # before the base is read: a record PR merged now is under every proof
-3159:                 self.sweep_bots()  # P289: after the batch's merges, before its serial entries recarry
-freeable
-tools/audit/seat/merge_train.py:1210:            "no worktree holds it" if holder is None else self.freeable(holder, br))
-tools/audit/seat/queue_pre_flight.py:242:        if held is not None and not (self.free_holders and self.t.freeable(held, branch) is None):
 STRUCTURE RATCHET PASSED
-ModuleNotFoundError: No module named 'homeassistant'
-env_drift rc=0
-dev/programme/delivery/2992.md
-tools/audit/seat/instruments/merge_train.py.md
-tools/audit/seat/merge_train.py
-tools/audit/seat/queue_pre_flight.py
-no VERSION/manifest/notes/claim file touched
 ALL 112 HARNESS HEADER CHECKS PASSED
-base 507a9ec2:
-merge_train self-test: 355 checks, 0 failed
-queue_pre_flight self-test: 43 checks, 0 failed
+env_drift rc=0
+e96e69f37e8154ab6d661edd38cae859174f3536
+merge-tree rc=0
+1afdef8872a5da2eedff32916c1095e114198fae
+0
+review_carry: CANNOT DECIDE: no arguments
