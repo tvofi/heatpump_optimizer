@@ -1,0 +1,4 @@
+plant [This mode is new in v9.] rc=1 1 of 286 checks FAILED ::   FAIL no user page carries a history phrase outside a reasoned exemption  [docs/setup.md:285: 'new in' | This mode is new in v9.]
+plant [The card previously showed the price.] rc=1 1 of 286 checks FAILED ::   FAIL no user page carries a history phrase outside a reasoned exemption  [docs/setup.md:285: 'previously' | The card previously showed the price.]
+plant [Installs that stored the previous default strings keep them.] rc=0 ALL 286 checks PASSED :: 
+plant [Older integrations publish none of them.] rc=0 ALL 286 checks PASSED :: 
