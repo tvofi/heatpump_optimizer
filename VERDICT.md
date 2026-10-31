@@ -1,34 +1,51 @@
-Fix review: blocked e456ff01323580d4390f964483a17dbdb6cff5bf carry-missing: not carried to R10-TRAIN-OVERLAP-GRADE (the _batch admission head-set seam is only in the PR body)
+Fix review: merge b173995ad456981d0736b74066126207f16949aa
 
-bus-nonce: 4b9ff89de09908e6764b8c59cecaa178
-
-## Block
-
-Round 1. Measured at head e456ff01323580d4390f964483a17dbdb6cff5bf (still the live head of fix/r10-train-overlap-grade-p3 at verdict time, ev/head-live.txt).
-
-fix-review.md step 10 / finding-propagation.md "Enforcement": the producing PR does not merge until its carry is in the tree, and the body names the file and the roster branch SHA. The body's second `## Forward-carry` item (`_batch` admission reads a PR head's CI with main's required set, `self.required()` at merge_train.py:3054 feeding `admit` at 3065/3068; the P34 class's sibling seam, latent while `PR_ONLY` is `()`, control: the M9 world driven through `batch`) ends `Carry: R10-TRAIN-OVERLAP-GRADE`. But it is not written to that group. At `handoff/audit-r10-roster` 22622ddf6aab0651ca50c5e7d4d1d194bdaa886d, group R10-TRAIN-OVERLAP-GRADE has 20 carries. The only one naming `pr_head` is carry 3 (the original P34 serial-wait finding). No carry names the admission head set (ev/roster-22622ddf.txt). The body gives no roster SHA for it. As finding-propagation.md says, a sibling seam in a running stage goes to a new issue filed by this PR or to a carry file. Neither exists, so this finding lives only in the PR body.
-
-To clear: write the admission seam, with its control as a precondition, into the group's roster entry on handoff/audit-r10-roster (or file the issue or carry file), and name the SHA in the body. No code change is needed for this block. The other two forward-carry items are already in the tree: carries 7 and 10 (part 3), and carry 2's "pass --approval-carry in the live launch".
+bus-nonce: 7ad5e84cc941d5d52f21211c8ebd90ea
 
 ## Findings
 
-- Surviving mutant R3: in `Train.serial`, the `except Stop:` arm's `if item.pop("sweep_after", False): self.sweep_bots()` replaced by `pass` leaves the self-test at 376 checks, 0 failed. The body claims "serial sweeps after its merge (or when it stops)", and the stop half is unpinned. Owed: a fixture where a critical-path entry stops (e.g. ci red) under --bot-prs and the record PR still merges. Carry: R10-TRAIN-OVERLAP-GRADE
-- Surviving mutant R9: `policy_refusal`'s `... or ms == "BLOCKED"` dropped leaves 0 failed. The body states that "BLOCKED with every required context green" parks and is offered to the approval carry, but every fixture arm uses reviewDecision REVIEW_REQUIRED or a red/pending context, so the BLOCKED+APPROVED+all-green branch (the #2580 train-27 instance itself) has no test. Owed: a pstate(rd="APPROVED") arm with all required contexts green, carried and not carried. Carry: R10-TRAIN-OVERLAP-GRADE
-- Surviving mutant R5: `rd != "CHANGES_REQUESTED"` changed to `True` leaves 0 failed. No arm pins that a CHANGES_REQUESTED refusal parks without an approval carry. Owed: one null arm. Carry: R10-TRAIN-OVERLAP-GRADE
-- Surviving mutant R8: `_critical`'s `except Exception: return False` changed to `return True` leaves 0 failed. Both self-test drivers inject `critical=lambda it: False`, so the live roster reader `_critical` (roster_lib.reader_ref / show_roster / group_for_branch / critical_path_groups, once-per-run cache) is never executed by any test. The "anything unread is nothing critical" claim is unmeasured. Owed: an arm driving `_critical` with a stub roster_lib, both a raising read and a critical/non-critical mapping. Carry: R10-TRAIN-OVERLAP-GRADE
-- No finder harness exists for these carries (the instances are train logs on the orchestrator's host). The body discloses this, and the self-test fixtures are the measurement. I built no harness of my own beyond the mutation driver named under Evidence. Carry: dismissed: instrument carries with no committed finder harness; fixtures are the measurement, as the body's Friction item records
+- The round-1 surviving mutants are still alive at this head. R9: dropping `policy_refusal`'s ` or ms == "BLOCKED"` leaves 380 checks, 0 failed. R5: changing `rd != "CHANGES_REQUESTED"` to `True` leaves 380 checks, 0 failed (ev/mutants.txt). R3 and R8 were not re-run. All four are already written in carry 21 of R10-TRAIN-OVERLAP-GRADE at handoff/audit-r10-roster 78c0bb77 (ev/roster-carry21.txt). Carry: R10-TRAIN-OVERLAP-GRADE
+- The `_batch` admission head-set seam (`self.required()` at merge_train.py:3054 feeding `admit`) is the P34 sibling. It is dispositioned to carry 21, which states its control as a precondition, and it is not settled here. Carry: R10-TRAIN-OVERLAP-GRADE
+- Part (3) of the brief, carries 7 and 10, is not built in this PR. It stays in the group's roster entry as written. Carry: R10-TRAIN-OVERLAP-GRADE
+- Carry 2's "pass --approval-carry in the live launch" belongs in the orchestrator's launch line, not in this diff. Carry: R10-TRAIN-OVERLAP-GRADE
+- No finder harness exists: the instances are train logs on the orchestrator's host, and the body discloses this. The self-test fixtures are the measurement. The only instrument I built is a one-off mutation driver (scratchpad mut.py: exact single-occurrence replace in place, run `--self-test`, restore). It is not in the tree. Carry: dismissed: instrument carries with no committed finder harness; the fixtures are the measurement, as the body's Friction item records
 
 ## Evidence
 
-- RESULT head self-test: `python3 tools/audit/seat/merge_train.py --self-test` prints `merge_train self-test: 376 checks, 0 failed` (ev/selftest-head.txt). This matches the body.
-- RESULT base self-test: the 89ccf732 file prints `merge_train self-test: 355 checks, 0 failed` (ev/selftest-base.txt). This matches the body.
-- RESULT figure: 16 added `check(` call sites (ev/checks.txt), as the body says.
-- RESULT class rule re-run (body's awk rules, E = `def _self_test`): `"gh", "pr", "merge"` returns 2 sites (1263 sweep_bots, 2010 land), `.required(` returns 3 sites (1883 serial pr_head=True, 2072 policy_refusal pr_head=True, 3054 _batch main's set) and `self.sweep_bots()` returns 6 sites. All three match the body, and every site is in the diff or dispositioned (3054 by the forward-carry that is the Block).
-- Mutation proof re-run by me (my own driver, scratchpad mut.py, exact single-occurrence replace into a copy, `--self-test`; ev/mutants.txt). The body's mutants M1 (7 failed), M2 (2), M3 (2), M4 (5), M6 (3), M7 (2), M8 (1), M9 (1) and M10 (3; the body says 1, and my M10 also reddens the pre-existing and P184-null refusal arms because it inverts rather than drops the guard) all redden. My own extras: R1 red-as-pending (1 failed), R2 wait-without-continue (2), R4 batch post-merge sweep off (1), R6 sweep_bots returns None (1), R7 sweep on every attempt (2) all redden. The survivors R3, R5, R8 and R9 are under Findings. M5 and M12 were not re-run.
-- RESULT gate checks run locally at the head: `tests/structure.py` prints STRUCTURE RATCHET PASSED. `PYTHONPATH=tests/hastub tests/harness_headers.py` prints ALL 112 HARNESS HEADER CHECKS PASSED. `tests/env_drift.py --claims-only 507a9ec2` returns rc 0.
-- Steps 4/5: the diff touches no claim file, golden, VERSION, manifest or RELEASE_NOTES.md (three-dot vs merge base 507a9ec2: 3 files, merge_train.py, its instrument .md and delivery row 2992.md).
-- Step 13: `git merge-tree --write-tree origin/main e456ff01` returns rc 0 (tree 4a8247e8), with origin/main at 507a9ec2, which is the merge base. There is no conflict.
+- Round 3. Measured at head b173995ad456981d0736b74066126207f16949aa. At verdict time this is still the live head of fix/r10-train-overlap-grade-p3 and of refs/pull/2992/head (ev/head-live.txt).
+- The round-2 block (ci-red, instrument-self-tests caused by queue_pre_flight's fixture) is cleared at this head:
+  - `python3 tools/audit/seat/queue_pre_flight.py --self-test` prints `queue_pre_flight self-test: 44 checks, 0 failed` (ev/selftest-head.txt).
+  - Q1 (the fixture's `--is-ancestor` stub removed) gives 44 checks, 1 failed: `... HEAD is not origin/<branch> still PARKs`. This is the round-2 red, reproduced.
+  - Q2 (M10 applied to merge_train.py, queue_pre_flight self-test run) gives 1 failed: the new ancestor twin arm.
+  - The body's `## Red checks` names the check, says this diff caused it, and gives the cheaper detector with its standing cost. Step 11 is answered.
+- RESULT head self-tests: `merge_train self-test: 380 checks, 0 failed` and `queue_pre_flight self-test: 44 checks, 0 failed` (ev/selftest-head.txt).
+- RESULT base self-tests at 507a9ec2: `355 checks, 0 failed` and `43 checks, 0 failed` (ev/checks.txt). All four figures match the body.
+- RESULT figure: `git diff 507a9ec2...HEAD -- merge_train.py | grep -c '^+.*check('` prints 19, and the same command on queue_pre_flight.py prints 1. Both match the body.
+- RESULT mutation proof, re-run by me (ev/mutants.txt).
+  - The round-2 survivors are now pinned and each is killed: S1 1 failed, S2 2 failed, S3 1 failed.
+  - The body's mutants are killed: M10 1, M1 10, M2 2, M4 6, M7 2, M9 1.
+  - M1 and M4 kill more than the body's 7 and 5 because of the new round-2 arms. The body says those two counts were taken against the 376-check head.
+  - Not re-run this round: M3, M5, M6, M7b, M8 and M12. Round 2's review killed them at e456ff01, and ee438e5 changes only self-test and fixture lines.
+- RESULT class rule, the body's own commands (ev/checks.txt), every site in the diff or dispositioned:
+  - Merge sites: 2 (1263 and 2010).
+  - `.required(`: 3 (1883 serial pr_head, 2072 policy_refusal pr_head, 3054 _batch, carried).
+  - `self.sweep_bots()`: 6.
+  - `.freeable(`: 2 (merge_train.py:1210, queue_pre_flight.py:242). Both are now pinned.
+- Resolution delta: 920d365 has the same tree as the authored code head ee438e5 (6be2cb70). b173995's tree equals `git merge-tree --write-tree 920d365 origin/main` (7e0acd2c). So the main merge carries no hand resolution.
+- Step 13: `git merge-tree --write-tree origin/main b173995` exits 0, with origin/main at e77418f9, which is the head's merge base. There is no conflict.
+- Gate checks at the head:
+  - `tests/structure.py` prints STRUCTURE RATCHET PASSED.
+  - `PYTHONPATH=tests/hastub tests/harness_headers.py` prints ALL 112 HARNESS HEADER CHECKS PASSED.
+  - `tests/env_drift.py --claims-only 507a9ec2` exits 0.
+- Steps 4 and 5: the three-dot diff covers 4 files. None is a claim file, golden, VERSION, the manifest or RELEASE_NOTES.md.
 - Role files: `git diff <mb>...origin/main -- dev/governance/roles/` is empty, so the contract is current.
-- Step 14: archscore dS +0.0000 NULL per body; no budget, ledger, closures or INERT moved. Nothing is gamed.
-- CI on this head, re-read live from check-runs: nothing is red. Completed successes include mutation, closure-scope, briefs, typing, browser, env-matrix, arch-score, policy-docs, delivery-status and nightly-status. CodeQL is neutral. Still in progress at verdict time: tests / fast (3.14), tests / closures, tests / coverage, governance / instrument-self-tests and codeql / Analyze (python). With no red check, step 11 owes nothing. The pending runs do not change this block.
-- Step 15: the P34 head-set read moved into `serial` (one writer) and the widened approval carry reuses `_carry_owner_approval` rather than a second path. These are sound, and no architecture breach was found on added lines.
+- Step 10: carry 21 is in the tree at 78c0bb77, which is an ancestor of the handoff/audit-r10-roster tip 5a8c3e64. It states the admission seam's control as a precondition (ev/roster-carry21.txt).
+- Step 14: no budget, ledger, closures, INERT, golden or archscore file moves. The new arms add checks, and they are earned by the pinned survivors.
+- Step 15: round 2 adds only self-test arms and a fixture branch. These are sound.
+- Review packet: no refusals and no advisories. carry_audit routes 5 of 5. figure_lint gives 11 resolved, 2 unverified (git flags), 0 refused.
+- CI on this head, re-read live from the check-runs API at about 14:50Z (ev/ci.txt). No check is red.
+  - `governance / instrument-self-tests` (job 124116570542) concluded success at 14:46:47Z. This was round 2's red check.
+  - Also success: tests / fast (3.14), closures, coverage, coverage-ratchet, mutation, closure-scope, typing, browser, briefs, arch-instrument, lane-proofs, graders-head-copy, env-matrix, arch-score, policy-docs, delivery-status, nightly-status, wave-script, budget-raise-gate, hassfest and validate-hacs.
+  - CodeQL is neutral.
+  - Still in progress at verdict time: `codeql / Analyze (python)` and one `prelude` run of the refresh workflow.
+- Step 11: the body answers the one red this PR ever had (instrument-self-tests at e456ff01). No check is red at this head.
