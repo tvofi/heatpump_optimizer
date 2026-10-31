@@ -733,3 +733,8 @@
 # valve_storage_low_target, whose plan leaves move too: the reference's energy
 # anchors three of the space solve's starts, so a valved plan can land in
 # another basin. Unvalved fixtures do not move.
+coord_all_features  # R10-COP-GATE p5 (A): model_status cop row gains cop_observability, cop_refusal, measured_cop_at, copied from the learning view (additions only)
+coord_dhw  # R10-COP-GATE p5 (A): model_status cop row gains cop_observability, cop_refusal, measured_cop_at, copied from the learning view (additions only)
+coord_grid_fee  # R10-COP-GATE p5 (A): model_status cop row gains cop_observability, cop_refusal, measured_cop_at, copied from the learning view (additions only)
+coord_minimal  # R10-COP-GATE p5 (A): model_status cop row gains cop_observability, cop_refusal, measured_cop_at, copied from the learning view (additions only)
+coord_two_zone  # R10-COP-GATE p5 (A): model_status cop row gains cop_observability, cop_refusal, measured_cop_at, copied from the learning view (additions only)
