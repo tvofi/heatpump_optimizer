@@ -186,6 +186,7 @@ class EntryConfig(Mapping[str, Any]):
     target_temperature: float = _key(const.DEFAULT_TARGET_TEMP, finite_float)
     thermal_bridge_frsi: float = _key(const.DEFAULT_THERMAL_BRIDGE_FRSI, finite_float)
     vvc_lead_minutes: float = _key(const.DEFAULT_VVC_LEAD_MINUTES, finite_float)
+    wood_lighting_lead_minutes: float = _key(const.DEFAULT_WOOD_LIGHTING_LEAD_MINUTES, finite_float)
     wood_tank_volume: float = _key(const.DEFAULT_WOOD_TANK_VOLUME, finite_float)
 
     # A fraction this version cannot read caps nothing: None, not the default.
