@@ -13011,6 +13011,53 @@ R.check(
     f"(scale, ratio, samples) {_li_twice}, {_li_twice_saves} save(s)",
 )
 
+# A key the record does not hold voids nothing for that learner, as a store
+# from before the record voids nothing: the docstring's branch, pinned.
+_li_part = _ra_learned(_LI_CFG)
+_li_part.saved = dict(_li_part.saved, heat_loss_zone_entities={"indoor_temp_entity": "sensor.indoor"})
+_li_part_got, _, _ = _li_swap(dict(_LI_CFG, lower_floor_temp_entity="sensor.t6"), _li_part)
+R.check(
+    "a record without the lower-floor key keeps the ratio through a lower-floor swap",
+    _li_part_got == _LI_LEARNED,
+    f"(scale, ratio, samples) {_li_part_got}",
+)
+
+# Fix review round 1 (swap-void-undone): a swap in the same options change as
+# a nameplate edit past the re-anchor gate. The void runs first and the stored
+# total is re-expressed at the voided ratio, so the law cannot write the
+# pre-void ratio back; one load lands where the same two changes in two loads
+# land (the path-independent control).
+_LI_EDIT = dict(upper_floor_heat_loss=_RA_U * 1.5, lower_floor_heat_loss=_RA_L * 1.5)
+
+
+def _li_two_loads(swap, edit):
+    first = _ra_reload(dict(_LI_CFG, **swap), _ra_learned(_LI_CFG))
+    return _li_state_of(_ra_reload(dict(_LI_CFG, **swap, **edit), first._thermal_learning_store))
+
+
+for _li_name, _li_sw in (
+    ("a lower-floor swap", {"lower_floor_temp_entity": "sensor.t6"}),
+    ("both swapped", {"indoor_temp_entity": "sensor.bthome", "lower_floor_temp_entity": "sensor.indoor"}),
+):
+    _li_one, _, _ = _li_swap(dict(_LI_CFG, **_li_sw, **_LI_EDIT))
+    _li_two = _li_two_loads(_li_sw, _LI_EDIT)
+    R.check(
+        f"{_li_name} with a nameplate edit past the gate, in one load, keeps the ratio voided "
+        "and lands where the two changes in two loads land",
+        _li_one[1] == 1.0 and _li_one[3] == 0
+        and all(abs(x - y) < 1e-9 for x, y in zip(_li_one, _li_two)),
+        f"one load {_li_one}, two loads {_li_two}",
+    )
+# The snapshot restore takes the same path: a pre-swap snapshot rolled back
+# onto the swapped, edited configuration keeps the void.
+_li_snap_c = _ra_coord(dict(_LI_CFG, lower_floor_temp_entity="sensor.t6", **_LI_EDIT), _CountingLearnStore())
+_li_snap_c._apply_learner_payloads({"thermal_learning": dict(_ra_learned(_LI_CFG).saved)})
+R.check(
+    "a pre-swap snapshot restored onto a swapped, edited configuration keeps the ratio voided",
+    _li_snap_c._lower_floor_loss_ratio == 1.0 and _li_snap_c._lower_floor_loss_samples == 0,
+    f"(scale, ratio, samples) {_li_state_of(_li_snap_c)}",
+)
+
 
 def _li_others(c):
     """Every learner's persisted shape but the two heat-loss learners', the zone-total
@@ -13115,6 +13162,8 @@ R.check(
     _li_fold_got == _li_fresh_got and _li_fold_got[1] == 1 and _li_fold_got[0] != 1.0,
     f"reset {_li_fold_got} vs never learned {_li_fresh_got}",
 )
+
+
 
 
 sys.exit(R.close("CUT"))

@@ -105,7 +105,7 @@ Quiet comfort learning skipped: injected learner fault (first occurrence; repeat
   ok   D1-s2-51: a quiet-period learner raise is not a failed solve -- the plan stays published and the failure counter untouched
 Optimization failed: solver returned a failed plan: failed (injected L-BFGS-B blow-up)
 Traceback (most recent call last):
-  File "/tmp/tmp.VuxBeLWVxy/head/custom_components/heatpump_optimizer/coordinator.py", line 6138, in async_run_optimization
+  File "/tmp/tmp.FTRFP8LkC0/t_m11/custom_components/heatpump_optimizer/coordinator.py", line 6139, in async_run_optimization
     raise RuntimeError(
         f"solver returned a failed plan: {result.status}"
     )
@@ -751,23 +751,23 @@ Invalid per-day DHW window 'garbage' for dhw_windows_sat (Invalid window 'garbag
   ok   the default plant passes the arm-time identifiability gate
 System identification fit raised: Singular matrix
 Traceback (most recent call last):
-  File "/tmp/tmp.VuxBeLWVxy/head/custom_components/heatpump_optimizer/sysid.py", line 1726, in _finish
+  File "/tmp/tmp.FTRFP8LkC0/t_m11/custom_components/heatpump_optimizer/sysid.py", line 1726, in _finish
     self.result = self.identify_slab()
                   ~~~~~~~~~~~~~~~~~~^^
-  File "/tmp/tmp.VuxBeLWVxy/ev/mutants/cut_features.py", line 7563, in _wrapper
+  File "/tmp/tmp.FTRFP8LkC0/ev/mutants/cut_features.py", line 7563, in _wrapper
     return method(self, *args, **kwargs)
-  File "/tmp/tmp.VuxBeLWVxy/head/custom_components/heatpump_optimizer/sysid.py", line 2272, in identify_slab
+  File "/tmp/tmp.FTRFP8LkC0/t_m11/custom_components/heatpump_optimizer/sysid.py", line 2272, in identify_slab
     return self._slab_outcome(
            ~~~~~~~~~~~~~~~~~~^
         best_x, rooms, error, slab_mass, slab_transfer, told_error
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     )
     ^
-  File "/tmp/tmp.VuxBeLWVxy/head/custom_components/heatpump_optimizer/sysid.py", line 2307, in _slab_outcome
+  File "/tmp/tmp.FTRFP8LkC0/t_m11/custom_components/heatpump_optimizer/sysid.py", line 2307, in _slab_outcome
     profile_halfwidth = _slab_ua_profile_halfwidth(
         best_x, path_error, int(rooms.size), self.config.gains_prior_kw
     )
-  File "/tmp/tmp.VuxBeLWVxy/head/custom_components/heatpump_optimizer/sysid.py", line 1010, in _slab_ua_profile_halfwidth
+  File "/tmp/tmp.FTRFP8LkC0/t_m11/custom_components/heatpump_optimizer/sysid.py", line 1010, in _slab_ua_profile_halfwidth
     cov = np.linalg.inv(jac.T @ jac) * sigma2
           ~~~~~~~~~~~~~^^^^^^^^^^^^^
   File "/opt/hpo/venv-ci/lib/python3.14/site-packages/numpy/linalg/_linalg.py", line 647, in inv
@@ -912,7 +912,7 @@ Learned house heat loss scale 1.000 (fitted against 0.0500 kW/°C, 300 samples) 
 
 -- The lower-floor ratio is re-anchored with the scale (#2239)
   ok   an options reseed of both zones keeps each zone's learned heat loss
-  FAIL and a second load over the reseeded configuration re-anchors nothing  [(0.15669969516726454, 0.27105963294231583) vs (0.15669969516726454, 0.27105963294231583), 1 extra save(s)]
+  ok   and a second load over the reseeded configuration re-anchors nothing
   ok   an edit that keeps the nameplate split keeps the ratio and each zone
   ok   a pre-reseed snapshot restored after the reseed keeps each zone
   ok   an unlearned install keeps a lower-nameplate edit
@@ -946,7 +946,6 @@ Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM
 Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
@@ -957,29 +956,6 @@ Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration True (Invalid window 'True' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
-Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
@@ -990,7 +966,31 @@ Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:
 Invalid DHW window configuration True (Invalid window 'True' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration True (Invalid window 'True' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration True (Invalid window 'True' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
 Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
@@ -1268,12 +1268,28 @@ mixing_valve_write_target_kind=flow needs two-zone
   ok   the fabric interval is closed once, so the house learner run first does not silence the split learner
 
 -- A zone-sensor swap and the reset action void the heat-loss learners
-  FAIL a lower-floor sensor swap voids the ratio and leaves the scale intact  [(scale, ratio, samples) (1.567, 1.922, 310, 147), 1 save(s)]
-  FAIL an indoor sensor swap voids the scale and leaves the ratio intact  [(scale, ratio, samples) (1.567, 1.922, 310, 147), 1 save(s)]
-  FAIL moving a sensor from indoor to the lower floor voids both learners  [(scale, ratio, samples) (1.567, 1.922, 310, 147)]
-  FAIL an unrelated options change keeps both learners verbatim and writes nothing  [(scale, ratio, samples) (1.567, 1.922, 310, 147), 1 save(s)]
-  FAIL a store without recorded zone sensors keeps both learners and adopts the ids  [(scale, ratio, samples) (1.567, 1.922, 310, 147), adopted None]
-  FAIL a reload over the swapped sensor voids nothing more  [(scale, ratio, samples) (1.567, 1.922, 310, 147), 1 save(s)]
+Learned lower_floor_loss_ratio reset to the configuration: its zone sensor changed
+  FAIL a lower-floor sensor swap voids the ratio and leaves the scale intact  [(scale, ratio, samples) (2.248981743324156, 1.0, 310, 0), 1 save(s)]
+Learned house_heat_loss_scale reset to the configuration: its zone sensor changed
+  ok   an indoor sensor swap voids the scale and leaves the ratio intact
+Learned house_heat_loss_scale reset to the configuration: its zone sensor changed
+Learned lower_floor_loss_ratio reset to the configuration: its zone sensor changed
+  ok   moving a sensor from indoor to the lower floor voids both learners
+  ok   an unrelated options change keeps both learners verbatim and writes nothing
+  ok   a store without recorded zone sensors keeps both learners and adopts the ids
+Learned lower_floor_loss_ratio reset to the configuration: its zone sensor changed
+  FAIL a reload over the swapped sensor voids nothing more  [(scale, ratio, samples) (2.248981743324156, 1.0, 310, 0), 0 save(s)]
+  ok   a record without the lower-floor key keeps the ratio through a lower-floor swap
+Learned lower_floor_loss_ratio reset to the configuration: its zone sensor changed
+Learned lower_floor_loss_ratio reset to the configuration: its zone sensor changed
+  FAIL a lower-floor swap with a nameplate edit past the gate, in one load, keeps the ratio voided and lands where the two changes in two loads land  [one load (1.4999564378671688, 1.0, 310, 0), two loads (1.4983695424868524, 1.0, 310, 0)]
+Learned house_heat_loss_scale reset to the configuration: its zone sensor changed
+Learned lower_floor_loss_ratio reset to the configuration: its zone sensor changed
+Learned house_heat_loss_scale reset to the configuration: its zone sensor changed
+Learned lower_floor_loss_ratio reset to the configuration: its zone sensor changed
+  ok   both swapped with a nameplate edit past the gate, in one load, keeps the ratio voided and lands where the two changes in two loads land
+Learned lower_floor_loss_ratio reset to the configuration: its zone sensor changed
+  ok   a pre-swap snapshot restored onto a swapped, edited configuration keeps the ratio voided
 Learned house_heat_loss_scale reset to the configuration: reset on request
 Learned lower_floor_loss_ratio reset to the configuration: reset on request
   ok   the reset returns both learners to 1.0 with no samples, and saves it
@@ -1292,4 +1308,5 @@ Learned house_heat_loss_scale reset to the configuration: reset on request
 Learned lower_floor_loss_ratio reset to the configuration: reset on request
   ok   the next fold after a reset starts from the configuration
 
-7 of 1036 CUT FAILED
+3 of 1040 CUT FAILED
+exit=1
