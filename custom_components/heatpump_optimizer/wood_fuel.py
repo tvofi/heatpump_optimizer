@@ -191,7 +191,7 @@ def lighting_window(
     Opens ``lead_minutes`` before the window and closes at its start; never
     opens before ``now``, so a window already open means "light now".
     """
-    return max(first_start - timedelta(minutes=lead_minutes), now), first_start
+    return (first_start - timedelta(minutes=lead_minutes)), first_start
 
 
 def _scan_wood_night(
