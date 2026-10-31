@@ -1,60 +1,50 @@
-== S1
-merge_train self-test: 380 checks, 1 failed
-    FAIL carry 2: a second policy refusal after a carried approval parks without a second carry
-== S2
-merge_train self-test: 380 checks, 2 failed
-    FAIL policy refusal with the required context SKIPPED and a missing review: parked at once, the context read as green, not pending
-    FAIL policy refusal with the required context NEUTRAL and a missing review: parked at once, the context read as green, not pending
-== S3
-merge_train self-test: 380 checks, 1 failed
-    FAIL policy refusal null (--ignore): an ignored red required context parks nothing; the running one waits and the next attempt merges
-== Q1
-queue_pre_flight self-test: 44 checks, 1 failed
-    FAIL ... and one whose HEAD is not origin/<branch> still PARKs (unpushed work)
-== Q2
-queue_pre_flight self-test: 44 checks, 1 failed
-    FAIL ... and one whose HEAD is an ancestor of origin/<branch> passes (P184: nothing origin lacks)
-== M10
-merge_train self-test: 380 checks, 1 failed
-    FAIL P184 --free-holders: a clean holder whose HEAD is an ancestor of origin/<branch> is freed, logged, and the recarry goes on to the merge
-== M1
-merge_train self-test: 380 checks, 10 failed
+M1 merge_train self-test: 376 checks, 7 failed
     FAIL policy refusal with a required context red at the head: ONE attempt, parked [BRANCH-POLICY] naming it, and the whole refusal logged
     FAIL policy refusal with a required context still running waits: the next attempt merges
     FAIL policy refusal for a missing review, no --approval-carry: parked at once with the reason
-    FAIL policy refusal with the required context SKIPPED and a missing review: parked at once, the context read as green, not pending
-    FAIL policy refusal with the required context NEUTRAL and a missing review: parked at once, the context read as green, not pending
     FAIL carry 2: a policy refusal for the owner approval a clean recarry left behind is answered by the approval carry, and the next attempt merges
-    FAIL carry 2: a second policy refusal after a carried approval parks without a second carry
     FAIL carry 2 null (names branch-own): no carry, parked [BRANCH-POLICY] after one attempt with that reason
     FAIL carry 2 null (no owner APPROVED review): no carry, parked [BRANCH-POLICY] after one attempt with that reason
-    FAIL carry 2 null (is not in force at the merge): no carry, parked [BRANCH-POLICY] after one attempt with that reason
-== M2
-merge_train self-test: 380 checks, 2 failed
+M2 merge_train self-test: 376 checks, 2 failed
     FAIL approval-carry MUTATION (the diff-empty check): a recarry delta naming a branch-own file is a conflict resolution, and it stops exactly as today
     FAIL carry 2 null (names branch-own): no carry, parked [BRANCH-POLICY] after one attempt with that reason
-== M4
-merge_train self-test: 380 checks, 6 failed
+M3 merge_train self-test: 376 checks, 2 failed
+    FAIL approval-carry MUTATION (the mandate in-force check): a mandate expired before the merge re-reads as none, and it stops exactly as today
+    FAIL carry 2 null (is not in force at the merge): no carry, parked [BRANCH-POLICY] after one attempt with that reason
+M4 merge_train self-test: 376 checks, 5 failed
     FAIL policy refusal for a missing review, no --approval-carry: parked at once with the reason
     FAIL carry 2: a policy refusal for the owner approval a clean recarry left behind is answered by the approval carry, and the next attempt merges
-    FAIL carry 2: a second policy refusal after a carried approval parks without a second carry
     FAIL carry 2 null (names branch-own): no carry, parked [BRANCH-POLICY] after one attempt with that reason
     FAIL carry 2 null (no owner APPROVED review): no carry, parked [BRANCH-POLICY] after one attempt with that reason
     FAIL carry 2 null (is not in force at the merge): no carry, parked [BRANCH-POLICY] after one attempt with that reason
-== M7
-merge_train self-test: 380 checks, 2 failed
+M6 merge_train self-test: 376 checks, 3 failed
+    FAIL P191: a refused attempt with a record PR now green merges it (BOT MERGED) and recovers through MAIN-MOVED: recarried, merged at the new head
+    FAIL P191 null (no open record PR): the refused attempts go on as today -- three attempts, one sweep past the recarry's, no MAIN-MOVED
+    FAIL P191 null (a record PR still pending): the refused attempts go on as today -- three attempts, one sweep past the recarry's, no MAIN-MOVED
+M7 merge_train self-test: 376 checks, 2 failed
     FAIL P289 serial: a critical-path #7 merges, then the record PR, then #8
     FAIL P289 serial, a critical-path entry alone: the record PR still merges, after it (the run's end)
-== M9
-Traceback (most recent call last):
-  File "/tmp/claude-0/-home-user-heatpump-optimizer/22d1ffab-ba15-551c-9097-50ea7cd7fe27/scratchpad/mut.py", line 3, in <module>
-    src=open(f).read(); assert src.count(old)==1,(old,src.count(old))
-                               ^^^^^^^^^^^^^^^^^
-AssertionError: ('        req = self.required(pr_head=True)\n', 2)
-== R9
-merge_train self-test: 380 checks, 0 failed
-== R5
-merge_train self-test: 380 checks, 0 failed
-== M9
-merge_train self-test: 380 checks, 1 failed
+M8 merge_train self-test: 376 checks, 1 failed
+    FAIL P289 batch: with a critical-path entry the proof is built without the record PR, both entries land, then the record PR merges
+M9 merge_train self-test: 376 checks, 1 failed
     FAIL P34: pr-contract failure at the head (stops at ci naming it, no merge attempt)
+M10 merge_train self-test: 376 checks, 3 failed
+    FAIL --free-holders refuses a holder with commits origin does not have (HEAD off origin): today's HOLDER stop, the reason appended, nothing detached
+    FAIL P184 --free-holders: a clean holder whose HEAD is an ancestor of origin/<branch> is freed, logged, and the recarry goes on to the merge
+    FAIL P184 null: a clean holder AHEAD of origin/<branch> refuses naming the commits origin does not have
+R1_red_as_pending merge_train self-test: 376 checks, 1 failed
+    FAIL policy refusal with a required context red at the head: ONE attempt, parked [BRANCH-POLICY] naming it, and the whole refusal logged
+R2_wait_no_continue merge_train self-test: 376 checks, 2 failed
+    FAIL policy refusal null: an unreadable merge state retries as today, three attempts
+    FAIL policy refusal with a required context still running waits: the next attempt merges
+R3_stop_sweep_off merge_train self-test: 376 checks, 0 failed
+R4_batch_after_off merge_train self-test: 376 checks, 1 failed
+    FAIL P289 batch: with a critical-path entry the proof is built without the record PR, both entries land, then the record PR merges
+R5_changes_req_approval merge_train self-test: 376 checks, 0 failed
+R6_bot_return_none merge_train self-test: 376 checks, 1 failed
+    FAIL P191: a refused attempt with a record PR now green merges it (BOT MERGED) and recovers through MAIN-MOVED: recarried, merged at the new head
+R7_swept_every_attempt merge_train self-test: 376 checks, 2 failed
+    FAIL P191 null (no open record PR): the refused attempts go on as today -- three attempts, one sweep past the recarry's, no MAIN-MOVED
+    FAIL P191 null (a record PR still pending): the refused attempts go on as today -- three attempts, one sweep past the recarry's, no MAIN-MOVED
+R8_critical_unread_true merge_train self-test: 376 checks, 0 failed
+R9_ms_blocked_no_approval merge_train self-test: 376 checks, 0 failed

@@ -1,5 +1,7 @@
   ok   sweep's CLI: one sweep under the mandate, its started train train.sh --bot-prs --approval-carry --pre-flight --mandate
   ok   add --auto (bus.sh's event add): the same started train, the comment left for admit_add to fill; --auto with `--` flags is refused
-merge_train self-test: 380 checks, 0 failed
-  ok   the mandate reader the budget arm reads is in the tree
-queue_pre_flight self-test: 44 checks, 0 failed
+merge_train self-test: 376 checks, 0 failed
+
+real	0m44.258s
+user	0m20.288s
+sys	0m14.926s
