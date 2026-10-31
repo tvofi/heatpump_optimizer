@@ -13137,7 +13137,6 @@
    "fixerModel": "opus",
    "reviewerModel": "opus",
    "after": [
-    "R10-ROUND-PLAYBOOK",
     "R10-FLY-MUTANT-RESTORE",
     "R10-996-RUNNER-CLAIMS"
    ],
