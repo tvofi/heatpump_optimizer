@@ -3495,7 +3495,7 @@ def self_test() -> int:
                      bodies={75: "## Red checks\n\ngate: x\n"},
                      reviews={75: [[{"user": owner, "state": "APPROVED", "commit_id": H2,
                                      "submitted_at": iso(NOW), "body": "ok"}]]})
-            t._git.h[:0] = [(("diff", "--name-only", V, H1), 0, files),
+            t._git.h[:0] = [(("diff", "--no-renames", "--name-only", V, H1), 0, files),
                             (("ls-tree", "-r", "--name-only"), 0, f"{bud}\n"),
                             (("show", f"{V}:{bud}"), 0, '{\n "m": 3\n}\n'),
                             (("show", f"{H1}:{bud}"), 0, '{\n "m": 4\n}\n')]

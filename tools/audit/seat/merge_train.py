@@ -465,7 +465,7 @@ def approval_owed(train: "Train", pr: int, head: str, red) -> "str | None":
     code, base = train.run(["git", "merge-base", "origin/main", head])
     if code or not is_sha(base.strip()):
         return None
-    code, names = train.run(["git", "diff", "--name-only", base.strip(), head])
+    code, names = train.run(["git", "diff", "--no-renames", "--name-only", base.strip(), head])
     if code:
         return None
     try:
@@ -5092,7 +5092,7 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
                 return 0, "gate\n"
             if argv[:2] == ["git", "merge-base"]:
                 return 0, BASE + "\n"
-            if argv[:3] == ["git", "diff", "--name-only"]:
+            if argv[:4] == ["git", "diff", "--no-renames", "--name-only"]:
                 return 0, "".join(f + "\n" for f in files)
             if ls_fail and argv[:2] == ["git", "ls-tree"]:
                 return 128, "fatal: not a tree object"
