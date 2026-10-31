@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/wood_fuel.py:wood_cheaper CMP_BOUND 5f837d78",
-  "killed_by": "tests/features.py",
-  "old": "    return cheaper_hour_count(wood_sek, prices, cops, runs) > 0",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`return cheaper_hour_count(wood_sek, prices, cops, runs) >= 0`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
-}
