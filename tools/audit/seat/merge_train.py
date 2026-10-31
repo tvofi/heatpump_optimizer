@@ -895,6 +895,55 @@ def spool_append(state: Path, entry: dict) -> None:
         fh.write(json.dumps(entry, sort_keys=True) + "\n")
 
 
+def spool_line_pr(ln: str) -> "int | None":
+    """The pull request a spool line names, or None (unreadable)."""
+    try:
+        return int(json.loads(ln)["pr"])
+    except (ValueError, TypeError, KeyError):
+        return None
+
+
+def spool_rewrite(state: Path, lines: "list[str]") -> None:
+    """Replace the spool with <lines>, unreadable ones kept where they were;
+    call it under the lock. Written aside and renamed, so a reader never sees
+    half a spool."""
+    tmp = state / (QUEUE_SPOOL + ".tmp")
+    tmp.write_text("".join(ln + "\n" for ln in lines))
+    os.replace(tmp, state / QUEUE_SPOOL)
+
+
+def spool_order(state: Path) -> str:
+    """The spool's order, READ BACK from the file (P112); call it under the lock."""
+    return " ".join("#%d" % int(e["pr"]) for e in spool_read(state)[0]) or "(empty)"
+
+
+def spool_edit(t: "Train", pr: int, op: str) -> int:
+    """`add --front <pr>` (op "front") on a spooled pull request, or `add --remove
+    <pr>` (op "remove"): reorder or drop its spool line under QUEUE_LOCK, every
+    other line byte-identical and in order (P112: #2753 reordered and #2804
+    removed by hand edits). Each prints the spool order read back. A pull
+    request not in the spool is refused (rc 1) and the spool is not written."""
+    with queue_lock(t.state):
+        return spool_edit_locked(t, pr, op)
+
+
+def spool_edit_locked(t: "Train", pr: int, op: str) -> int:
+    """`spool_edit`'s body; call it under the lock."""
+    try:
+        raw = (t.state / QUEUE_SPOOL).read_text().splitlines()
+    except OSError:
+        raw = []
+    mine = [ln for ln in raw if spool_line_pr(ln) == pr]
+    if not mine:
+        t.log(f"{op.upper()} REFUSED #{pr}: not in the live train's spool ({QUEUE_SPOOL}); "
+              f"nothing changed; spool: {spool_order(t.state)}")
+        return 1
+    rest = [ln for ln in raw if spool_line_pr(ln) != pr]
+    spool_rewrite(t.state, (mine + rest) if op == "front" else rest)
+    t.log(f"{'FRONT' if op == 'front' else 'REMOVED'} #{pr}: spool read back: {spool_order(t.state)}")
+    return 0
+
+
 def already_held(pr: int, verdict: "str | None", seen: dict, spooled: "set[int]") -> "str | None":
     """THE admission rule `add` (`train_add`) and the drain (`Train.queue_take`)
     both apply (P129, P189, P291): None admits <pr> at <verdict>, else why it
@@ -963,7 +1012,7 @@ def launch_detached(argv: "list[str]", state: Path) -> "tuple[int, str]":
 
 
 def train_add(t: "Train", item: dict, train_argv: "list[str]", launch=launch_detached,
-              settle: float = ADD_SETTLE_SECONDS) -> int:
+              settle: float = ADD_SETTLE_SECONDS, front: bool = False) -> int:
     """`add`: load one verdicted pull request into the state dir's live train,
     or start that train. Under QUEUE_LOCK, in order: a pull request already in
     the live train's running or later batches, or already spooled, is a no-op
@@ -974,12 +1023,17 @@ def train_add(t: "Train", item: dict, train_argv: "list[str]", launch=launch_det
     `<train_argv> --queue <file>` starts one over the entry (and anything a
     stopped train left spooled), the lock held until train.sh owns train.pid,
     so a concurrent add finds it live (`STARTED`). A train.sh still closing is
-    waited out, never raced: one train per state dir. rc 2: no train could start."""
+    waited out, never raced: one train per state dir. rc 2: no train could start.
+    <front> (`add --front`, P112): the entry goes FIRST in the next batch -- a
+    spooled one is moved there (`spool_edit`), a new one is spooled or queued
+    first -- and the spool order is printed read back."""
     pr = item.get("pr")
     with queue_lock(t.state):
         live = read_pid(t.state / QUEUE_OPEN)
         live = live if pid_alive(live) else None
         spooled, _bad = spool_read(t.state)
+        if front and str(pr).isdigit() and int(pr) in {int(e["pr"]) for e in spooled}:
+            return spool_edit_locked(t, int(pr), "front")
         held = (already_held(int(pr), item.get("verdict"), queue_seen_read(t.state) if live else {},
                              {int(e["pr"]) for e in spooled}) if str(pr).isdigit() else None)
         if held:
@@ -993,7 +1047,11 @@ def train_add(t: "Train", item: dict, train_argv: "list[str]", launch=launch_det
         entry["pr"] = int(pr)
         if live:
             spool_append(t.state, entry)
-            t.log(f"ADDED #{pr} to the live train (pid {live}); it joins the batch after the one running")
+            if front:
+                raw = (t.state / QUEUE_SPOOL).read_text().splitlines()
+                spool_rewrite(t.state, raw[-1:] + raw[:-1])
+            t.log(f"ADDED #{pr} to the live train (pid {live}); it joins the batch after the one running"
+                  + (f"; spool read back: {spool_order(t.state)}" if front else ""))
             return 0
         end = time.monotonic() + settle
         while pid_alive(read_pid(t.state / "train.pid")) and time.monotonic() < end:
@@ -1003,7 +1061,7 @@ def train_add(t: "Train", item: dict, train_argv: "list[str]", launch=launch_det
             t.log(f"ADD REFUSED #{pr} one-train: train.sh pid {closing} holds train.pid with no queue open; "
                   "nothing started beside it")
             return 2
-        queue = spooled + [entry]
+        queue = [entry] + spooled if front else spooled + [entry]
         qf = t.state / f"add-queue-{time.strftime('%Y%m%d-%H%M%S', time.gmtime())}-{pr}.json"
         qf.write_text(json.dumps(queue, indent=2) + "\n")
         (t.state / QUEUE_SPOOL).unlink(missing_ok=True)
@@ -2372,9 +2430,11 @@ class Train:
             raise Stop("proof", f"could not read {RULESET}'s required contexts; no proof is judged against a guessed list")
         return names
 
-    def admit(self, item: dict, base: str, graders: list[str], mf, req: list[str]) -> dict:
+    def admit(self, item: dict, base: str, graders: list[str], mf, head_req: list[str]) -> dict:
         """The pull request as a batch entry: its head, its own files, and the
-        merge_fastpath classes that route it serial (empty: it joins the batch)."""
+        merge_fastpath classes that route it serial (empty: it joins the batch).
+        <head_req> is the required set a pull request's head carries
+        (`required(pr_head=True)`), never main's."""
         pr, v = int(item["pr"]), item["verdict"]
         if not is_sha(v):
             raise Stop("queue", f"verdict '{v}' is not a 40-hex sha")
@@ -2399,7 +2459,7 @@ class Train:
         # R9-ADMIT-REQ: admission waits the ruleset's required contexts only,
         # as settle/proof already does -- a non-required lane (e.g. the 180-min
         # composed-proof) must never hold a batch whose required set is green.
-        red = [n for n in self.wait_ci(h, only=req) if n not in self.ignore]
+        red = [n for n in self.wait_ci(h, only=head_req) if n not in self.ignore]
         if red:
             raise Stop("ci", f"#{pr} red at its head: " + ", ".join(red))
         if self.real:
@@ -3059,13 +3119,16 @@ class Train:
             # bot tip, a policy or budget refusal) skips that pull request, with
             # its reason echoed as printed today, and the rest are still
             # admitted. A red main stopped above, before any entry was read.
+            # An entry's head is judged on the contexts a pull request's head
+            # carries (P34's sibling seam, #2992): main's set drops PR_ONLY.
+            head_req = self.required(pr_head=True)
             entries = []
             for item in admitted:
                 if not self.skip_bad:
-                    entries.append(self.admit(item, base, graders, mf, req))
+                    entries.append(self.admit(item, base, graders, mf, head_req))
                     continue
                 try:
-                    entries.append(self.admit(item, base, graders, mf, req))
+                    entries.append(self.admit(item, base, graders, mf, head_req))
                 except Stop as s:
                     if s.step == "main":
                         raise
@@ -3713,6 +3776,54 @@ def _self_test() -> int:
     rc, lines, calls = go({"bot_find": (0, "9")}, bot_prs=True, critical=lambda it: True)
     check("P289 serial, a critical-path entry alone: the record PR still merges, after it (the run's end)",
           rc == 0 and [c[3] for c in calls if c[:3] == ["gh", "pr", "merge"]] == ["7", "9"])
+    # R3 (#2992 review): serial's `except Stop:` sweep -- a critical-path entry
+    # that STOPS (red at its head) still lets the record PR merge.
+    rc, lines, calls = go({"bot_find": (0, "9"), "runs": [
+        {"name": "fast", "status": "completed", "conclusion": "failure", "started_at": "1"}]},
+        bot_prs=True, critical=lambda it: True)
+    check("P289 serial, a critical-path entry that stops at ci: the record PR still merges, the entry does not",
+          rc == 1 and "ci:" in lines[-1] and [c[3] for c in calls if c[:3] == ["gh", "pr", "merge"]] == ["9"])
+    # R8 (#2992 review): the LIVE critical-path read, `Train._critical`, over a
+    # stub roster_lib: the branch -> group -> critical mapping, read once per
+    # run; a read that raises is nothing critical and is not retried per entry.
+    import types
+    rl_calls: list[str] = []
+
+    def rl_stub(raises: bool):
+        m = types.ModuleType("roster_lib")
+        m.reader_ref = lambda root, ref: (rl_calls.append("ref"), "origin/main")[1]
+
+        def show(root, ref):
+            rl_calls.append("show")
+            if raises:
+                raise OSError("roster unreadable")
+            return {"groups": [{"group": "R10-A", "branch": "fix/a"}, {"group": "R10-B", "branch": "fix/b"}]}
+        m.show_roster = show
+        m.critical_path_groups = lambda root, ref: {"r10-a"}
+        m.group_for_branch = lambda roster, br: next(
+            (g["group"] for g in roster.get("groups", ()) if g["branch"] == br), None)
+        m.norm_group = lambda gid: gid.lower()
+        return m
+    had_rl = sys.modules.get("roster_lib")
+    try:
+        for raises in (False, True):
+            rl_calls.clear()
+            sys.modules["roster_lib"] = rl_stub(raises)
+            tc = Train("o/r", Path("."), None, "", (), 1, run=lambda *a, **k: (0, ""), log=lambda s: None)
+            got = [tc._critical({"branch": b}) for b in ("fix/a", "fix/b", "fix/none")]
+            if not raises:
+                check("R8 _critical: the live read maps fix/a (critical group) True, fix/b and an unmapped "
+                      "branch False, the roster read once for three entries",
+                      got == [True, False, False] and rl_calls.count("show") == 1)
+            else:
+                check("R8 _critical null: a roster read that raises is nothing critical for every entry, "
+                      "and is not retried per entry",
+                      got == [False, False, False] and rl_calls.count("show") == 1)
+    finally:
+        if had_rl is None:
+            sys.modules.pop("roster_lib", None)
+        else:
+            sys.modules["roster_lib"] = had_rl
     if had_token is None:
         os.environ.pop("GH_TOKEN", None)
     # --pre-flight: queue_pre_flight's reads first; a failing entry PARKs.
@@ -4069,6 +4180,22 @@ def _self_test() -> int:
         check(f"carry 2 null ({why}): no carry, parked [BRANCH-POLICY] after one attempt with that reason",
               rc == 1 and n7(calls) == 1 and "[BRANCH-POLICY]" in lines[-1] and "parked" in lines[-1]
               and why in lines[-1] and not any("approved (carry)" in ln for ln in lines))
+    # R5 (#2992 review): CHANGES_REQUESTED is a review refusal no approval
+    # carry answers; it parks at once, with no carry attempted.
+    rc, lines, calls = go(pol_world(policy_state=pstate(rd="CHANGES_REQUESTED")), mandate=CB, approval_carry=True)
+    check("carry 2 null (CHANGES_REQUESTED): parked [BRANCH-POLICY] after one attempt, no approval carried",
+          rc == 1 and n7(calls) == 1 and "[BRANCH-POLICY]" in lines[-1] and "reviewDecision CHANGES_REQUESTED" in lines[-1]
+          and "no approval carried" not in lines[-1] and not any("approved (carry)" in ln for ln in lines))
+    # R9 (#2992 review): BLOCKED with the review APPROVED and every required
+    # context green is the ruleset's extra approval at the moved head --
+    # carried under --approval-carry, parked with the reason without it.
+    rc, lines, calls = go(pol_world(policy_state=pstate()), mandate=CB, approval_carry=True)
+    check("carry 2 (BLOCKED, APPROVED, all green): the approval carry answers it and the next attempt merges",
+          rc == 0 and n7(calls) == 2 and sum("approved (carry)" in ln for ln in lines) == 1)
+    rc, lines, calls = go(pol_world(policy_state=pstate()))
+    check("carry 2 null (BLOCKED, APPROVED, all green, no --approval-carry): parked at once naming the review",
+          rc == 1 and n7(calls) == 1 and "mergeStateStatus BLOCKED, reviewDecision APPROVED" in lines[-1]
+          and "no approval carried: --approval-carry or --mandate is not given" in lines[-1])
     # P34: the head wait reads the required set a pull request's head carries
     # (pr_head=True). PR_ONLY is empty under the umbrella `gate`; a non-empty
     # one is the seam this arm drives.
@@ -5298,7 +5425,8 @@ def _batch_self_test(check) -> None:
                     if r["name"] == R0:
                         r["status"], r["conclusion"] = "in_progress", None
         if sha in w["heads"].values():  # a pull-request event writes these; no dispatch does
-            runs += [{"name": "pr-contract", "id": 13, "status": "completed", "started_at": "1", "conclusion": "failure"},
+            runs += [{"name": "pr-contract", "id": 13, "status": "completed", "started_at": "1",
+                      "conclusion": w.get("pr_contract", "failure")},
                      {"name": "nightly-status", "id": 14, "status": "completed", "started_at": "1", "conclusion": "failure"}]
         if w.get("stuck_nonreq") and sha in w["heads"].values():
             # a non-required lane that never concludes (the composed-proof class)
@@ -5533,6 +5661,25 @@ def _batch_self_test(check) -> None:
     check("D: a batch of one merges at its head with no proof and no dispatch",
           w["rc"] == 0 and list(w["merged"]) == [1] and not w["pushed"] and not w["dispatched"]
           and any(" D: " in ln for ln in w["lines"]) and len(w["tree_ok"]) == 1)
+    # P34's sibling seam through `batch` (#2992 forward-carry): admission waits
+    # an entry's head on the set a pull request's head carries. A non-empty
+    # PR_ONLY is the seam; the world's heads write pr-contract, the proof none.
+    keep = PR_ONLY
+    globals()["PR_ONLY"] = ("pr-contract",)
+    try:
+        for pc in ("failure", "success"):
+            w = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}}, ignore=("nightly-status",),
+                   setup=lambda w, pc=pc: w.update(pr_contract=pc, required=f"{R0}\npolicy-docs\npr-contract\n"))
+            if pc == "failure":
+                check("P34 batch: a PR-only context red at the head refuses admission, naming it; nothing merges",
+                      w["rc"] == 1 and not w["merged"] and "ci:" in w["lines"][-1]
+                      and "#1 red at its head: pr-contract" in w["lines"][-1])
+            else:
+                check("P34 batch null: the same world with pr-contract green at the heads admits both and merges "
+                      "them (the proof is judged on main's set, PR_ONLY dropped)",
+                      w["rc"] == 0 and sorted(w["merged"]) == [1, 2] and len(w["pushed"]) == 1)
+    finally:
+        globals()["PR_ONLY"] = keep
     # THE HOLD ON THE PRIMARY PATH (re-review M8/M10). `batch` defaults to
     # `--base main`, its start publish is the only hold write before a D merge
     # (no wait sleeps, no proof), and nothing else in this suite asked whether
@@ -6551,6 +6698,98 @@ def _add_self_test(check) -> None:
             p.kill()
             p.wait()
         tmp.cleanup()
+    _spool_edit_self_test(check, stub, H)
+
+
+def _spool_edit_self_test(check, stub, H: str) -> None:
+    """P112: `add --front` and `add --remove`, through the CLI and train_add,
+    on a real spool file under the real QUEUE_LOCK."""
+    import io
+    import threading
+    tmp = tempfile.TemporaryDirectory()
+    try:
+        def spool3(extra: str = "") -> Path:
+            st = Path(tempfile.mkdtemp(dir=tmp.name))
+            (st / QUEUE_SPOOL).write_text("".join(json.dumps({"pr": n, "verdict": str(n) * 40}, sort_keys=True)
+                                                  + "\n" + (extra if n == 11 else "") for n in (11, 12, 13)))
+            return st
+
+        def cli(st: Path, *a: str) -> "tuple[int, list[str]]":
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                rc = main(["add", *a, "--state-dir", str(st), "--repo", "o/r"])
+            return rc, out.getvalue().splitlines()
+
+        def lines_of(st: Path) -> "list[str]":
+            return (st / QUEUE_SPOOL).read_text().splitlines()
+        st = spool3()
+        before = lines_of(st)
+        rc, out = cli(st, "--front", "13")
+        check("P112 --front: on a spool of three the named PR goes first, the others keep their order and "
+              "bytes, and the order read back is printed",
+              rc == 0 and lines_of(st) == [before[2], before[0], before[1]]
+              and out and out[-1] == "FRONT #13: spool read back: #13 #11 #12")
+        live = Train("o/r", st, None, "", (), 1, run=stub({"pr": 14}), log=lambda m: None)
+        (st / QUEUE_OPEN).write_text(f"{os.getpid()}\n")
+        rc = train_add(live, {"pr": 14, "verdict": H, "verdict_comment": "42"}, ["train.sh"])
+        check("P112 null: a plain add appends last",
+              rc == 0 and [e["pr"] for e in spool_read(st)[0]] == [13, 11, 12, 14])
+        said: list[str] = []
+        live = Train("o/r", st, None, "", (), 1, run=stub({"pr": 15}), log=said.append)
+        rc = train_add(live, {"pr": 15, "verdict": H, "verdict_comment": "42"}, ["train.sh"], front=True)
+        check("P112 --front on a new entry: admitted, spooled first, the order read back printed",
+              rc == 0 and [e["pr"] for e in spool_read(st)[0]] == [15, 13, 11, 12, 14]
+              and said[-1].endswith("spool read back: #15 #13 #11 #12 #14"))
+        st = spool3(extra="not json\n")
+        before = lines_of(st)
+        rc, out = cli(st, "--remove", "12")
+        check("P112 --remove: drops only #12's line; every other line, an unreadable one included, "
+              "byte-identical and in order; the order read back printed",
+              rc == 0 and lines_of(st) == [before[0], before[1], before[3]]
+              and out[-1] == "REMOVED #12: spool read back: #11 #13")
+        raw = (st / QUEUE_SPOOL).read_bytes()
+        rc, out = cli(st, "--remove", "99")
+        check("P112 --remove null: an absent PR exits nonzero and the spool is byte-identical",
+              rc == 1 and (st / QUEUE_SPOOL).read_bytes() == raw and out[-1].startswith("REMOVE REFUSED #99"))
+        rc, out = cli(st, "--front", "--remove", "11")
+        rc2, out2 = cli(st, "11")
+        check("P112: --front with --remove, or a plain add with no verdict, is refused (rc 2), nothing written",
+              rc == 2 and rc2 == 2 and (st / QUEUE_SPOOL).read_bytes() == raw)
+
+        # The lock: a concurrent add arrives between the edit's read and its
+        # rewrite. Under QUEUE_LOCK it waits and its line survives; the same
+        # edit run WITHOUT the lock (the mutant) loses it.
+        g = globals()
+        real = g["spool_rewrite"]
+        for op in ("front", "remove"):
+            for locked in (True, False):
+                st = spool3()
+                th: list = []
+
+                def racing(state, lines, st=st):
+                    def add():
+                        with queue_lock(st):
+                            spool_append(st, {"pr": 77, "verdict": "7" * 40})
+                    th.append(threading.Thread(target=add))
+                    th[0].start()
+                    th[0].join(0.3)
+                    real(state, lines)
+                g["spool_rewrite"] = racing
+                try:
+                    t = Train("o/r", st, None, "", (), 1, run=lambda *a, **k: (0, ""), log=lambda m: None)
+                    rc = spool_edit(t, 12, op) if locked else spool_edit_locked(t, 12, op)
+                finally:
+                    g["spool_rewrite"] = real
+                th[0].join()
+                prs = [e["pr"] for e in spool_read(st)[0]]
+                if locked:
+                    check(f"P112 --{op} under the lock: a concurrent add waits and its line survives",
+                          rc == 0 and prs == ([12, 11, 13, 77] if op == "front" else [11, 13, 77]))
+                else:
+                    check(f"P112 --{op} null (no lock, the mutant): the concurrent add's line is lost",
+                          rc == 0 and 77 not in prs)
+    finally:
+        tmp.cleanup()
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -6611,7 +6850,13 @@ def _parser() -> argparse.ArgumentParser:
                         help="load one verdicted pull request into the state dir's live train (its next "
                              "batch), or start that train; the train.sh flags follow `--`")
     ad.add_argument("pr", type=int)
-    ad.add_argument("verdict")
+    ad.add_argument("verdict", nargs="?", help="owed, except by --remove and by --front on a spooled entry")
+    ad.add_argument("--front", action="store_true",
+                    help="the entry goes FIRST in the next batch: a spooled one is moved there, a new one "
+                         "added there; prints the spool order read back (P112)")
+    ad.add_argument("--remove", action="store_true",
+                    help="drop <pr>'s line from the live train's spool, under its lock; rc 1, nothing "
+                         "written, when it is not spooled; prints the spool order read back (P112)")
     ad.add_argument("--verdict-comment", help="the verdict comment's id, quoted in a mandate approval")
     ad.add_argument("--auto", action="store_true",
                     help="a started train is a bare train.sh launch (RECOMMENDED by default) with --mandate, "
@@ -6657,10 +6902,20 @@ def main(argv: list[str]) -> int:
             print("REFUSE add: --auto is the started train's flags; give it or `-- <train.sh flags>`, not both")
             return 2
         t = Train(a.repo, Path(a.state_dir), a.mandate, a.approver_role, (), a.min_runs)
+        if a.front and a.remove:
+            print("REFUSE add: --front and --remove are two edits; give one")
+            return 2
+        if a.remove:
+            return spool_edit(t, a.pr, "remove")
+        if a.verdict is None:
+            if a.front:
+                return spool_edit(t, a.pr, "front")
+            print("REFUSE add: <verdict> is owed (only --remove, or --front on a spooled entry, goes without)")
+            return 2
         item = {"pr": a.pr, "verdict": a.verdict, "verdict_comment": a.verdict_comment}
         return train_add(t, item, auto_train_argv(a.repo, a.state_dir, a.mandate) if a.auto else
                          ["bash", str(ROOT / "tools/audit/seat/train.sh"), "--repo", a.repo,
-                          "--state-dir", a.state_dir, *rest])
+                          "--state-dir", a.state_dir, *rest], front=a.front)
     if a.cmd == "wait-ci":
         red = Train(a.repo, Path("."), None, "", (), a.min_runs).wait_ci(a.sha)
         print("DONE", a.sha, "red:", " ".join(red) or "none")
