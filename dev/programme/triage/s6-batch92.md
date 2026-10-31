@@ -1,4 +1,4 @@
-# Proposal triage, session s9, batch 92 (P331)
+# Proposal triage, session s9, batch 92 (P331, P332)
 
 The rolling batch after batch 91 (#3043). Facts were read at origin/main `811112b78`.
 
@@ -94,3 +94,86 @@ The carry:
 
 Rejected: polling the `gate` check-run as filed. In both clean instances the rollup already read
 every required context green when the policy refused, so that poll would not have waited.
+
+## P332: the relay and the review-ref writer act on pull requests that are already closed
+
+Verdict: ACCEPT, narrowed to part (2) of the proposal, as one carry on R10-FLY-RELAY-REVIEW-FF.
+That group is `carries-open`, and its `files` name `tools/audit/seat/cloud_relay.sh`. It is the
+confirm-arm skip. Part (1), a state skip in "the review-ref writer", is DEFERRED to a root-cause
+seat, because nobody has yet named the writer.
+- **(2) The confirm arm owes what can never be posted.**
+  - `confirm_arm` in `cloud_relay.sh` (lines 304-339 at `811112b78`) walks every `review/*` tip
+    that the relay delivered. It owes `confirm-owed` until a confirm succeeds or the orchestrator
+    runs `dispose`. It never reads the pull request's state.
+  - A verdict posts only on an open pull request: `tools/pr/app_comment.sh` line 67 dies with "a
+    verdict posts only on an open one". So a confirm-owed line on a merged or closed PR is a false
+    OWED. It spends its 3 tries and then stays on the level, and on every sweep board, until
+    someone disposes it by hand.
+  - **Instance.** `s9/sweep-latest.txt` holds 11 such lines, at #2589 to #2741, `tries=3/3`
+    (15:58Z). Their tips date from 2026-10-28 (`review/2589` d3c9dfb41, `review/2591` 9165b5193,
+    `review/2600` 41c59d4cc), so this part does not depend on part (1).
+  - **Mechanism.** `handoff_arm` already lists the open pull requests on every pass (line 399,
+    `gh pr list --state open`, written to `cloud-prs.$$`). The confirm arm can read the same
+    pass's list, so the check adds no API call.
+- **(1) The review-ref rewrite has no named writer, so a writer-side skip pins nothing.**
+  - 56 `review/<n>` tips have committer times between 14:10Z and 14:56Z today.
+    - 53 of them are on PRs that are not open (`gh pr list --state open`: 3 open).
+    - 36 are tree-identical to their parent.
+    - The rest re-append a PR's whole verdict history. `review/3011` is `8767123ac` (blocked),
+      `942caaa0d` (merge), then `d31683a71` (blocked, 14:30:42Z) and `79b941694` (merge,
+      14:31:03Z), each a restatement.
+  - The subjects are `bus.sh push-verdict`'s `append_commit review` format (`bus.sh` line 242), and
+    the author is the session's ambient `tvofi`. No log on this host names the process: the relay
+    log has no timestamps, and the bus state files hold no review writes at that time.
+  - A state skip in `push-verdict` would be cheap, but it is aimed at a writer that may not be
+    `push-verdict`. 56 rewrites of shared refs by an unidentified process is a root-cause matter
+    (`defect-root-cause.md`), not a proposal.
+  - **What would change this answer:** the process that made the 14:10Z-14:56Z commits, named from
+    a seat transcript or a log.
+  - **What would follow from that:** the countermeasure belongs to that writer. If it is
+    `push-verdict`, its closed-PR refusal is the fix.
+
+Source: the orchestrator s9's triage-queue line of 2026-10-31T16:10:00Z (slip, recurring today).
+
+Instances:
+- **(2)** The 11 `confirm-owed` lines in `s9/sweep-latest.txt` cover #2589, #2591, #2600 and so on
+  to #2741 (`grep -o 'confirm-owed refs/heads/review/[0-9]* [0-9a-f]*' | sort -u | wc -l` gives 11).
+  The relay level at 16:10:44Z holds none of them, so they had been disposed by then.
+- **(1)** The figures come from `git ls-remote origin 'refs/heads/review/*'` (344 refs) and
+  `git log -1 --format=%cI <tip>` on each. Of the 56 tips with committer times between 14:10Z and
+  14:56Z:
+  - 35 are closed and tree-identical to their parent;
+  - 18 are closed and differ from their parent;
+  - 1 is open and identical;
+  - 2 are open and differ.
+
+  They span #2968 to #3043.
+
+Cost:
+- About 10 lines in `cloud_relay.sh`'s `confirm_arm`, plus two self-test rows. The file has no
+  `policy_lint.mjs --budgets` row, and the `--budgets` output at `811112b78` names it 0 times.
+- No new API call, because the arm reuses the pass's open-PR list.
+- No policy changes.
+
+Binding:
+- A predicate that owes an action no instrument can perform is a false positive at its source.
+  Each such line is read on every sweep until a hand `dispose`.
+- The fix is a state check on a list the pass already holds.
+- The writer-side half waits for its cause.
+
+The carry:
+1. **Read the state of the pass's listing.** In `confirm_arm`, read the open-PR list that the same
+   pass's `handoff_arm` fetched (`cloud-prs.$$`), or list it once when `handoff_arm` did not run.
+2. **Skip a PR that is not open.** A `review/<n>` whose PR is not in that list is skipped. Log
+   `cloud_relay: confirm skip #<n>: not open` once per `(pr, sha)`, record it in
+   `confirm-done`, and owe no level line for it.
+3. **Unknown is not closed.** When the listing failed, keep today's behaviour: the line stays
+   owed.
+4. **Fixtures.**
+   - A relayed review on a closed PR (the `HPO_RELAY_PRS` stub omits it) produces no
+     `confirm-owed` and logs one skip line.
+   - Null, still owed: an open PR's undispatched review (the existing row).
+   - Null, still owed: a failed PR listing.
+5. **One mutant.** Drop the skip, and the closed-PR row owes.
+
+Rejected for now: a state skip in the review-ref writer, until the 14:10Z-14:56Z writer is named.
