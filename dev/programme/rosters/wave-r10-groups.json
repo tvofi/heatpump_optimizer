@@ -1880,7 +1880,8 @@
    "rca": [],
    "after": [
     "R10-HEAT-METER",
-    "R10-SENSOR-PAYLOAD"
+    "R10-SENSOR-PAYLOAD",
+    "R10-CEILING-PROBE"
    ],
    "carry": [
     "Null control: an install whose draw does follow the plan still reaches a COP model.",
