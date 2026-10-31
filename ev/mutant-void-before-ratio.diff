@@ -1,0 +1,14 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 075ac67b5..94022508d 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -5237,8 +5237,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         re-expressed at the voided ratio so the law cannot write it back. Returns
+         whether the stored state changed, so callers can gate the one write."""
+         heat_energy.meter_of(self).restore_basis(stored.get("house_heat_loss_basis"))
+-        ratio_was, lower_then = self._lower_floor_loss_ratio, finite_float(stored.get("lower_floor_loss_anchor"), 0.0)
+         swapped = self._void_heat_loss_learners(heat_loss_entity_voids(stored, self._heat_loss_anchors()), "its zone sensor changed")
++        ratio_was, lower_then = self._lower_floor_loss_ratio, finite_float(stored.get("lower_floor_loss_anchor"), 0.0)
+         anchor = finite_float(stored.get("house_heat_loss_anchor"), 0.0) - lower_then * (ratio_was - self._lower_floor_loss_ratio)
+         live, ratio = self._heat_loss_anchors(), self._lower_floor_loss_ratio
+         void = heat_loss_basis_voids(stored.get("house_heat_loss_basis"), live["house_heat_loss_basis"])
