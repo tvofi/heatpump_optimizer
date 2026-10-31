@@ -1,42 +1,42 @@
 # Review packet #3006
-head: a6be5baa55e41507a7dec1ffec7b88a660167e15
-base: 2fc0e95b2f3ccfedc03975a801f0960fbc9bbc84
+head: 979797ad1dcfb0d8ba80f3c131d5076e4b7b2782
+base: 7539d1675d7fc8b5020f90b395f4bb0c3485d5b3
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
 ## Gate digest: red
-CodeQL id=124531405741 neutral
-arch-score / arch-score id=124531257077 success
-arm id=124531191863 skipped
-budget-raise-gate / budget-raise-gate id=124531257194 failure
-cancel-superseded id=124531195779 success
-codeql / Analyze (actions) id=124531257002 success
-codeql / Analyze (javascript-typescript) id=124531256967 success
-codeql / Analyze (python) id=124531256995 in_progress
-governance / delivery-status id=124531257085 success
-governance / delivery-status-publish id=124531258176 skipped
-governance / env-matrix id=124531257053 success
-governance / instrument-self-tests id=124531257042 in_progress
-governance / policy-docs id=124531257062 success
-governance / record id=124531258058 skipped
-governance / wave-script id=124531257215 success
-hassfest / hassfest id=124531256997 success
-kernel-points id=124531258079 skipped
-prelude id=124531195922 success
-refresh id=124531195909 success
-tests / arch-instrument id=124531352342 success
-tests / briefs id=124531256980 success
-tests / browser id=124531352375 success
-tests / closure-scope id=124531257074 success
-tests / closures id=124531352354 in_progress
-tests / coverage id=124531352334 in_progress
-tests / fast (3.14) id=124531352316 in_progress
-tests / mutation id=124531257007 in_progress
-tests / nightly-ha id=124531353735 skipped
-tests / nightly-status id=124531257301 success
-tests / replay id=124531352353 success
-tests / typing id=124531352407 success
-validate / validate-hacs id=124531257060 success
+CodeQL id=124599854869 neutral
+arch-score / arch-score id=124599678514 success
+arm id=124599572460 skipped
+budget-raise-gate / budget-raise-gate id=124599678333 failure
+cancel-superseded id=124599573736 success
+codeql / Analyze (actions) id=124599678400 success
+codeql / Analyze (javascript-typescript) id=124599678444 success
+codeql / Analyze (python) id=124599678463 in_progress
+governance / delivery-status id=124599678550 success
+governance / delivery-status-publish id=124599679429 skipped
+governance / env-matrix id=124599678493 success
+governance / instrument-self-tests id=124599678562 in_progress
+governance / policy-docs id=124599678488 success
+governance / record id=124599679794 skipped
+governance / wave-script id=124599678548 success
+hassfest / hassfest id=124599678502 success
+kernel-points id=124599679567 skipped
+prelude id=124599573684 success
+refresh id=124599573694 success
+tests / arch-instrument id=124599772901 success
+tests / briefs id=124599678500 success
+tests / browser id=124599772784 success
+tests / closure-scope id=124599678456 success
+tests / closures id=124599772814 in_progress
+tests / coverage id=124599772829 in_progress
+tests / fast (3.14) id=124599772791 in_progress
+tests / mutation id=124599678582 in_progress
+tests / nightly-ha id=124599773764 skipped
+tests / nightly-status id=124599678537 success
+tests / replay id=124599772825 success
+tests / typing id=124599772849 success
+validate / validate-hacs id=124599678441 success
 
 ## Refusals
 none
@@ -458,10 +458,10 @@ index 7de0ea626..516320016 100644
 +        charge_heat_per_cop_kw=heat_per_cop_kw(params, params.max_electrical_power),
      )
 diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
-index b4b07c4ea..b3b1f4e1a 100644
+index c904b9e0e..17ec4c86a 100644
 --- a/custom_components/heatpump_optimizer/coordinator.py
 +++ b/custom_components/heatpump_optimizer/coordinator.py
-@@ -339,6 +339,7 @@ from .thermal_model import (
+@@ -342,6 +342,7 @@ from .thermal_model import (
      planned_draw_runs,
      probe_install,
      reanchor_heat_loss,
@@ -469,7 +469,7 @@ index b4b07c4ea..b3b1f4e1a 100644
  )
  from .dhw_schedule import (
      DHWWindowError,
-@@ -4075,10 +4076,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+@@ -4078,10 +4079,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                  * max(0.5 * (t + params.dhw_min_temp) - TANK_ROOM_AMBIENT_TEMP, 0.0)
                  * 24.0
              )
@@ -483,7 +483,7 @@ index b4b07c4ea..b3b1f4e1a 100644
              # Can a tank at this setpoint cover the heaviest window from
              # its usable band at all?
              usable_kwh = c_dhw * max(t - params.dhw_min_temp, 0.0)
-@@ -9068,14 +9068,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+@@ -9076,14 +9076,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
          floor = CAPACITY_FLOOR_FRACTION * p_max
          caps = np.full(len(outdoor_temps), p_max, dtype=float)
          any_cap = False
@@ -704,10 +704,10 @@ index f019fe6a0..eee005bc2 100644
  
              state = self.model.simulate_step(
 diff --git a/custom_components/heatpump_optimizer/thermal_model.py b/custom_components/heatpump_optimizer/thermal_model.py
-index 3fb84bc92..da779ce62 100644
+index 07d5f48cb..3632ea56c 100644
 --- a/custom_components/heatpump_optimizer/thermal_model.py
 +++ b/custom_components/heatpump_optimizer/thermal_model.py
-@@ -2106,6 +2106,56 @@ def heat_per_cop_kw(params: ThermalParameters, electrical_power: Any) -> Any:
+@@ -2139,6 +2139,56 @@ def heat_per_cop_kw(params: ThermalParameters, electrical_power: Any) -> Any:
      return electrical_power
  
  
@@ -764,7 +764,7 @@ index 3fb84bc92..da779ce62 100644
  def delivered_heat_kw(params: ThermalParameters, cop: Any, electrical_power: Any) -> Any:
      """Heat the pump delivers at ``cop`` and ``electrical_power``, space or hot
      water: ``cop`` times :func:`heat_per_cop_kw`, the one association every
-@@ -3348,9 +3398,7 @@ class ThermalModel:
+@@ -3381,9 +3431,7 @@ class ThermalModel:
          T_buf = state.buffer_tank_temperature
  
          # --- Buffer tank dynamics ---
@@ -775,7 +775,7 @@ index 3fb84bc92..da779ce62 100644
  
          rad_fraction = p.radiator_power_fraction
  
-@@ -3966,9 +4014,7 @@ class ThermalModel:
+@@ -3999,9 +4047,7 @@ class ThermalModel:
              start_hour is not None and p.internal_gains_profile is not None
          )
          # Configuration constants hoisted out of the step (uniform per batch).
@@ -958,10 +958,10 @@ index 000000000..6b32abbe0
 @@ -0,0 +1 @@
 +- [#3006](https://github.com/tvofi/heatpump_optimizer/pull/3006) — **open**, R10-COP-PARTLOAD part 2: inverse conversions and residual carries (R10-COP-PARTLOAD)
 diff --git a/tests/closures.json b/tests/closures.json
-index 6f93af714..0683edda8 100644
+index b08e69482..0b0bef8d3 100644
 --- a/tests/closures.json
 +++ b/tests/closures.json
-@@ -3912,6 +3912,7 @@
+@@ -3913,6 +3913,7 @@
     "dev/audit/harnesses/r10_cloud_setup_toolchain.py",
     "dev/audit/harnesses/r10_codescan_wait_race.py",
     "dev/audit/harnesses/r10_configflow_pages.py",
@@ -970,10 +970,10 @@ index 6f93af714..0683edda8 100644
     "dev/audit/harnesses/r10_cop_gate_vent.py",
     "dev/audit/harnesses/r10_cop_partload.py",
 diff --git a/tests/features.py b/tests/features.py
-index 3e5c55705..3c7070fd2 100644
+index 0e1dc5f32..f3ba4fc76 100644
 --- a/tests/features.py
 +++ b/tests/features.py
-@@ -72978,6 +72978,363 @@ R.check(
+@@ -73304,6 +73304,363 @@ R.check(
  )
  
  
@@ -1614,13 +1614,13 @@ index 000000000..ba5634306
 +  "verdict": "equivalent"
 +}
 diff --git a/tests/structure_budgets.json b/tests/structure_budgets.json
-index f735922a4..ad931aedd 100644
+index ceb1d5c12..f85a64423 100644
 --- a/tests/structure_budgets.json
 +++ b/tests/structure_budgets.json
 @@ -1,5 +1,5 @@
  {
-- "class_excess_loc": 17656,
-+ "class_excess_loc": 17654,
+- "class_excess_loc": 17655,
++ "class_excess_loc": 17653,
   "const_modules_over_50": 3,
   "coordinator_attrs": 142,
   "coordinator_multiassigned_attrs": 109,
@@ -1628,14 +1628,14 @@ index f735922a4..ad931aedd 100644
   "functions_cc_over_25": 8,
   "import_cycle_modules": 0,
   "max_cc": 44,
-- "max_class_loc": 8061,
-+ "max_class_loc": 8060,
+- "max_class_loc": 8060,
++ "max_class_loc": 8059,
   "max_method_loc": 373,
   "methods_over_150": 15,
   "methods_over_200": 8,
   "name_kept_members": 38,
-- "recorded_at": "5d4e0bcfb88413ddf9ca7f0884c36bbec9235447",
-+ "recorded_at": "be7584c4904e243ffb48c166be39221623d81415",
+- "recorded_at": "be7584c4904e243ffb48c166be39221623d81415",
++ "recorded_at": "460d7754f48630a9fa0d84c31be78bc78d71c02b",
   "seam_cut_total": 422
  }
 

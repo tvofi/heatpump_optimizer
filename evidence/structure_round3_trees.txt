@@ -1,5 +1,0 @@
-a5cf3b6f5 RESULT class_excess_loc=17658 count RESULT max_class_loc=8063 count STRUCTURE RATCHET PASSED 
-76d96ac77 RESULT class_excess_loc=17656 count RESULT max_class_loc=8062 count STRUCTURE RATCHET PASSED 
-be7584c49 RESULT class_excess_loc=17656 count RESULT max_class_loc=8061 count STRUCTURE RATCHET PASSED 
-9033a5958 RESULT class_excess_loc=17654 count RESULT max_class_loc=8060 count 1 STRUCTURE BUDGET(S) IMPROVED AND NOT YET RECORDED 
-29a1742cd RESULT class_excess_loc=17654 count RESULT max_class_loc=8060 count STRUCTURE RATCHET PASSED 
