@@ -272,10 +272,12 @@ sweep" ] && printf '%s\n' "$out" | grep -q '^TICK-SWEEP '
   throwaway_git_init "$t/o.git" -q --bare -b main && throwaway_git_init "$t/s" -q -b main
   mkdir -p "$t/s/tools/audit/seat" "$t/s/tools/pr"
   cp "$0" "$t/s/tools/audit/seat/tick_loop.sh"; echo 1 > "$t/s/tools/pr/x"; echo r > "$t/s/README"
-  git -C "$t/s" add -A && git -C "$t/s" commit -qm base && git -C "$t/s" push -q "$t/o.git" main
-  git -C "$t" clone -q "$t/o.git" c && git -C "$t/c" checkout -q --detach
+  # the scratch origin fetches each commit rather than taking a push: a push site here would need a
+  # PUSHERS entry (ref_privacy.py) keyed on the file, which would pass an unguarded loop push too
+  git -C "$t/s" add -A && git -C "$t/s" commit -qm base && git -C "$t/o.git" fetch -q "$t/s" main:main
+  throwaway_git_clone -q "$t/o.git" "$t/c" && git -C "$t/c" checkout -q --detach
   land() { # <path> <content>: one commit on the scratch origin's main
-    printf '%s\n' "$2" > "$t/s/$1"; git -C "$t/s" commit -qam "$1" && git -C "$t/s" push -q "$t/o.git" main; }
+    printf '%s\n' "$2" > "$t/s/$1"; git -C "$t/s" commit -qam "$1" && git -C "$t/o.git" fetch -q "$t/s" main:main; }
   fr() { rm -f "$t/order"; HPO_TICK_CODE_DIR=$t/c HPO_TICK_RELAY=$t/relay.sh HPO_TICK_CMD="bash $t/tick.sh" \
     bash "$0" --once --out "$t/f.txt" "$@" 2>&1; }
   at0=$(git -C "$t/c" rev-parse --short=7 HEAD)

@@ -500,9 +500,9 @@ def landed(body: str, dests: Dests, source: str = "") -> list[dict]:
             if not ok:
                 out.append({"group": tok, "id": r["id"], "text": r["text"], "why": f"bad destination: {note}"})
                 continue
-            gt = group_text(dests, tok)
+            words = set(re.split(r"[^\w#-]+", group_text(dests, tok)))  # whole tokens: #25581 is not #2558
             keys = [r["id"]] + srcs
-            if not any(re.search(r"(?<![\w-])" + re.escape(k) + r"(?![\w-])", gt) for k in keys):  # mut:landed
+            if not any(k in words for k in keys):  # mut:landed
                 out.append({"group": tok, "id": r["id"], "text": r["text"], "why": "not in its brief or carries"})
     return out
 
@@ -1232,10 +1232,10 @@ def _self_test() -> int:
                       [])]
     item_grammar += [("a later-stage compound is no deferral", head,
                       verdict_of("merge", "## Evidence\n\n- I found no later-stage finding.\n"), [])]
-    # The field items (tools/audit/carry_audit_fixtures.json, verbatim): each was flagged at
+    # The field items (dev/audit/harnesses/r10_carry_field_verdicts.json, verbatim): each was flagged at
     # origin/main 7539d1675 and is no finding -- P308's four, P293's class A and C, P329's #3005 and
     # #3013, CARRY 5's #2683 `## Body (steps 7, 10, non-blocking note 1)` four, #2955's "None."
-    fx = json.loads((ROOT / "tools/audit/carry_audit_fixtures.json").read_text())
+    fx = json.loads((ROOT / "dev/audit/harnesses/r10_carry_field_verdicts.json").read_text())
     item_grammar += [(f"field item {i} (#{x['pr']} {x['verdict']}, ## {x['section']}) is no finding", head,
                       verdict_of(x["verdict"], f"## {x['section']}\n\n{x['text']}\n"), [])
                      for i, x in sorted(fx["items"].items())]
