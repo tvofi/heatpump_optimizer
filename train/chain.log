@@ -1,0 +1,17 @@
+CHAIN START #2738 try 1 1c3302acfc64e780f8c1cf9b3f3f6876132bdee1
+CHAIN rc=1 #2738 try 1: not clean
+CHAIN rerun-failed run 40111609896 for #2738
+CHAIN rerun-failed run 40111609943 for #2738
+CHAIN START #2738 try 2 1c3302acfc64e780f8c1cf9b3f3f6876132bdee1
+CHAIN rc=1 #2738 try 2: not clean
+CHAIN rerun-failed run 40114719001 for #2738
+CHAIN rerun-failed run 40111609943 for #2738
+CHAIN rerun-failed run 40111609896 for #2738
+CHAIN START #2738 try 3 1c3302acfc64e780f8c1cf9b3f3f6876132bdee1
+CHAIN rc=0 #2738 try 3: worktree_gc: summary -- eligible 2, removed 2, kept 85
+CHAIN RESULT #2738 MERGED 712c8d2828b346442258ad01d688b3e6e1407b77
+CHAIN START #2743 try 1 7b023e7fa0eaa2eedfb08ccea36491d5bd2e4048
+CHAIN rc=1 #2743 try 1: not clean
+CHAIN rerun-failed run 40112127074 for #2743
+run 40112127074 cannot be rerun; This workflow is already running
+CHAIN START #2743 try 2 7b023e7fa0eaa2eedfb08ccea36491d5bd2e4048

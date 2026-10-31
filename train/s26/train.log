@@ -1,0 +1,108 @@
+train.sh: queue=train/queue23.json repo=tvofi/heatpump_optimizer state=train/s26 pid=85670 start=2026-10-25T02:09:14Z
+BATCH 20261025-020914 pid=49894 base=main queue=7 (#2779 #2770 #2772 #2782 #2767 #2765 #2698) --overlap --skip-bad
+TRAIN HOLD refs/heads/train-hold 926ef547: the record beat waits
+BOT #2781 not merged at 1c2cf65e (OPEN null)
+OVERLAP: main at 4944b20d59f1 is still running (gate): a wait, not red; --overlap does not wait
+PRE-FLIGHT: 7 of 7 admitted
+/Users/timmalmstrom/hpo-seats/r10s6/orch-wt/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:897: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+#2779 serial: workflow
+#2770 serial: grader, workflow
+#2772 serial: grader
+SKIP #2782 ci: #2782 red at its head: gate
+TRAIN HOLD refs/heads/train-hold ab180eaa: the record beat waits
+#2767 admitted at b2063334
+SKIP #2765 ci: #2765 red at its head: gate
+#2698 serial: budget, grader
+OVERLAP: recarrying #2779, #2770, #2772, #2698 up front, their pull_request runs fire together
+#2779 overlap: recarry start
+BOT #2781 not merged at 1c2cf65e (OPEN null)
+TRAIN HOLD refs/heads/train-hold f930ad94: the record beat waits
+#2779 recarry [HOLDER] freed: /Users/timmalmstrom/.local/state/hpo/pr/r10-roster-freeze-b-r2/wt held fix/r10-roster-freeze-b-r2, clean at origin/fix/r10-roster-freeze-b-r2; detached it (restore: git -C /Users/timmalmstrom/.local/state/hpo/pr/r10-roster-freeze-b-r2/wt switch fix/r10-roster-freeze-b-r2)
+#2779 recarry START (branch fix/r10-roster-freeze-b-r2)
+#2779 recarry: main merged, head ed5720ca; app_push: RECARRY: prepr SKIPPED: HEAD ed5720ca is the clean merge of the live head 72ee6a18 and origin/main's 4944b20d, and the body is the live one
+#2770 overlap: recarry start
+BOT #2781 not merged at 1c2cf65e (OPEN null)
+TRAIN HOLD refs/heads/train-hold d481b131: the record beat waits
+#2770 recarry [HOLDER] freed: /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-gate-defer held fix/r10-gate-defer, clean at origin/fix/r10-gate-defer; detached it (restore: git -C /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-gate-defer switch fix/r10-gate-defer)
+#2770 recarry START (branch fix/r10-gate-defer)
+#2770 recarry: main merged, head d33d1e38; app_push: RECARRY: prepr SKIPPED: HEAD d33d1e38 is the clean merge of the live head 8a29702d and origin/main's 4944b20d, and the body is the live one
+#2772 overlap: recarry start
+BOT #2781 not merged at 1c2cf65e (OPEN null)
+TRAIN HOLD refs/heads/train-hold 6487b197: the record beat waits
+#2772 recarry [HOLDER] freed: /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-train-upgrade held fix/r10-train-upgrade, clean at origin/fix/r10-train-upgrade; detached it (restore: git -C /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-train-upgrade switch fix/r10-train-upgrade)
+#2772 recarry START (branch fix/r10-train-upgrade)
+#2772 recarry: main merged, head cf8b121e; app_push: RECARRY: prepr SKIPPED: HEAD cf8b121e is the clean merge of the live head 9292cdd9 and origin/main's 4944b20d, and the body is the live one
+#2698 overlap: recarry start
+BOT #2781 not merged at 1c2cf65e (OPEN null)
+TRAIN HOLD refs/heads/train-hold 5ddd20bb: the record beat waits
+#2698 recarry [HOLDER] freed: /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-ratio-anchor held fix/r10-ratio-anchor, clean at origin/fix/r10-ratio-anchor; detached it (restore: git -C /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-ratio-anchor switch fix/r10-ratio-anchor)
+#2698 recarry START (branch fix/r10-ratio-anchor)
+#2698 recarry: main merged, head e8f7a76c; app_push: RECARRY: prepr SKIPPED: HEAD e8f7a76c is the clean merge of the live head 274e6975 and origin/main's 4944b20d, and the body is the live one
+#2767 D: a batch of one merges at its verdicted head, unproved; main's FULL push run is its gate, and a red there is reverted first
+#2767 approved (app)
+OVERLAP: main at 4944b20d59f1 is still running (gate): a wait, not red; --overlap does not wait
+#2767 MERGED 12b222007b67c4bc0ac931a509d8b1385c6458cf
+#2767 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[]}}}}}
+#2767 main 12b22200 tree == proof d00c4432
+OVERLAP: main at 12b222007b67 is still running (gate): a wait, not red; --overlap does not wait
+serial: #2779, #2770, #2772, #2698
+TRAIN HOLD refs/heads/train-hold dd1c28df: the record beat waits
+beat: waiting CI at ed5720ca (poll 2, t+242s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold aa8cbaa1: the record beat waits
+beat: waiting CI at ed5720ca (poll 3, t+484s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 893b8f83: the record beat waits
+beat: waiting CI at ed5720ca (poll 4, t+726s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 9b9f48d8: the record beat waits
+beat: waiting CI at ed5720ca (poll 5, t+968s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 259c88e2: the record beat waits
+beat: waiting CI at ed5720ca (poll 6, t+1210s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 9ac21d26: the record beat waits
+beat: waiting CI at ed5720ca (poll 7, t+1452s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold ef7aabff: the record beat waits
+beat: waiting CI at ed5720ca (poll 8, t+1694s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 42608d87: the record beat waits
+beat: waiting CI at ed5720ca (poll 9, t+1936s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 8638b590: the record beat waits
+beat: waiting CI at ed5720ca (poll 10, t+2178s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 4dc3344f: the record beat waits
+#2779 ed5720ca ci red=['gate']
+SKIP #2779 ci: #2779 red at the head: gate
+TRAIN HOLD refs/heads/train-hold 86bacde6: the record beat waits
+beat: waiting CI at d33d1e38 (poll 2, t+242s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 0cc97098: the record beat waits
+beat: waiting CI at d33d1e38 (poll 3, t+484s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 76708bf9: the record beat waits
+beat: waiting CI at d33d1e38 (poll 4, t+725s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold e880ac67: the record beat waits
+beat: waiting CI at d33d1e38 (poll 5, t+968s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold a4631986: the record beat waits
+beat: waiting CI at d33d1e38 (poll 6, t+1210s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 72ed70e3: the record beat waits
+#2770 d33d1e38 ci red=[]
+#2770 d33d1e38 platform gate=green: 2 required gate run(s) pass
+#2770 approved (mandate)
+#2770 merge attempt 1/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+#2770 merge attempt 2/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+#2770 MERGED 7c8154bd8c0f633ab63f9d82a21982551ae3feae
+#2770 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[]}}}}}
+#2772 cf8b121e ci red=[]
+#2772 cf8b121e platform gate=green: 2 required gate run(s) pass
+#2772 approved (app)
+#2772 merge attempt 1/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+#2772 merge attempt 2/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+#2772 MERGED ac0a616a2ba3b6afaeabbe25c67bbc48d13ff217
+#2772 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[]}}}}}
+#2698 e8f7a76c ci red=[]
+#2698 e8f7a76c platform gate=green: 2 required gate run(s) pass
+#2698 approved (app)
+#2698 MERGED 2f88db05420dfb50ddba09d5ca97a6be8ef0a485
+#2698 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[]}}}}}
+released train/s26/wt/2779
+NOT released train/s26/wt/2770 (rc=128: fatal: 'train/s26/wt/2770' is not a working tree); remove it by hand
+NOT released train/s26/wt/2772 (rc=128: fatal: 'train/s26/wt/2772' is not a working tree); remove it by hand
+NOT released train/s26/wt/2698 (rc=128: fatal: 'train/s26/wt/2698' is not a working tree); remove it by hand
+SKIP REPORT: 3 skipped of 7
+TRAIN HOLD released
+TRAIN DONE
+TRAIN_RC=1 end=2026-10-25T03:28:37Z

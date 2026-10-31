@@ -1,0 +1,12 @@
+[
+  {
+    "pr": 2759,
+    "phase": "pre-flight",
+    "reason": "head: #2759 is MERGED, not open"
+  },
+  {
+    "pr": 2739,
+    "phase": "ci",
+    "reason": "#2739 red at the head: gate"
+  }
+]

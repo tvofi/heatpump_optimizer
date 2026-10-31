@@ -1,0 +1,7 @@
+[
+  {
+    "pr": 2709,
+    "phase": "pre-flight",
+    "reason": "findings: 3 finding item(s) with no valid `Carry:` (carry_audit.py pr 2709); first: review 6387363184 item 89347e60 (unrouted): - Forward-carry and the `cloud_dispatch` Friction line \u2192 R10-FLOW-DESIGN-STAGES. Roster commit 65c67"
+  }
+]

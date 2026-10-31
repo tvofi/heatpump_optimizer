@@ -1,0 +1,6 @@
+===== daemonize pid=48428 2026-10-24T23:15:20Z argv: tools/audit/seat/merge_pr.sh 2771 abeeb5dac1b711638cbbc21601a207fa33de0ff1 /Users/timmalmstrom/.zcode/bus/verdicts/2771/de1cd5705c414286fc0dcaf39bf7feef13cac8e9 owner --mandate 6329234399
+READBACK id=6390763589 live_len=5722 want_len=5722 live_sha=16fcd7fd64f7eda2 want_sha=16fcd7fd64f7eda2 identical=True
+state CLEAN
+  clean    no refusal (the 'check' lines above are yours to answer)
+merged 0d1385e2f3a30324b205f0a7d377e45ee573da92
+worktree_gc: summary -- eligible 4, removed 4, kept 82

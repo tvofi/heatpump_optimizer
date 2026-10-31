@@ -1,0 +1,5 @@
+HEAD is now at 21a1e04a7 Merge pull request #2791 from tvofi/record/autofix
+HEAD 21a1e04a7e838545f43a6f9a8545f4bb2bc0548f origin/main 21a1e04a7e838545f43a6f9a8545f4bb2bc0548f
+#2792 PARK (recarry: fix/r10-roster-freeze-a is already checked out at /Users/timmalmstrom/.local/state/hpo/pr/r10-roster-freeze-a/wt; the train's `git worktree add -B` would refuse it -- re-point the queue entry's workt
+#2793 PASS
+PRE-FLIGHT: 2 entries: 1 PASS, 1 PARK, 0 FAIL

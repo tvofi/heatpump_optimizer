@@ -1,0 +1,14 @@
+===== daemonize pid=36175 2026-10-25T00:50:16Z argv: bash train/launch-s26.sh
+===== daemonize pid=83126 2026-10-25T01:45:14Z argv: bash train/launch-s26b.sh
+===== daemonize pid=85670 2026-10-25T01:45:21Z argv: bash train/launch-s26b.sh
+s25 finished 2026-10-25T02:09:04Z; refreshing tree
+HEAD is now at 4944b20d5 Merge pull request #2766 from tvofi/fix/r10-mutation-anchor
+HEAD 4944b20d59f1e55703b4c0b1438e3b4f28d80de4 origin/main 4944b20d59f1e55703b4c0b1438e3b4f28d80de4
+#2779 PARK (recarry: fix/r10-roster-freeze-b-r2 is already checked out at /Users/timmalmstrom/.local/state/hpo/pr/r10-roster-freeze-b-r2/wt; the train's `git worktree add -B` would refuse it -- re-point the queue entry's
+#2770 PARK (recarry: fix/r10-gate-defer is already checked out at /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-gate-defer; the train's `git worktree add -B` would refuse it -- re-point the queue entry's worktree)
+#2772 PARK (recarry: fix/r10-train-upgrade is already checked out at /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-train-upgrade; the train's `git worktree add -B` would refuse it -- re-point the queue entry's work
+#2782 PARK (recarry: triage/s6-batch20 is already checked out at /Users/timmalmstrom/.local/state/hpo/pr/upd-triage-s6-batch20; the train's `git worktree add -B` would refuse it -- re-point the queue entry's worktree)
+#2767 PARK (recarry: triage/s6-batch19 is already checked out at /Users/timmalmstrom/.local/state/hpo/pr/upd-triage-s6-batch19; the train's `git worktree add -B` would refuse it -- re-point the queue entry's worktree)
+#2765 PARK (recarry: fix/r10-fly-yield-guard is already checked out at /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-fly-yield-guard; the train's `git worktree add -B` would refuse it -- re-point the queue entry's 
+#2698 PARK (recarry: fix/r10-ratio-anchor is already checked out at /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-ratio-anchor; the train's `git worktree add -B` would refuse it -- re-point the queue entry's worktr
+PRE-FLIGHT: 7 entries: 0 PASS, 7 PARK, 0 FAIL

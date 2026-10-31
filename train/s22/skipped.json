@@ -1,0 +1,7 @@
+[
+  {
+    "pr": 2764,
+    "phase": "pre-flight",
+    "reason": "findings: 1 finding item(s) with no valid `Carry:` (carry_audit.py pr 2764); first: body item bf96a5a7 (bad): R10-RCA-CODESCAN-WAIT: R10-RCA-CODESCAN-WAIT is not a group of the roster; R10-TRAIN-UPGRADE: R10-TRAIN-UPGRADE is not a group of the roster"
+  }
+]

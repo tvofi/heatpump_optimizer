@@ -1,0 +1,4 @@
+CHAIN START #2748 try 1 029d6ccc954a6b2cbf04aa92bb53fea23cb65a0a
+CHAIN rc=0 #2748 try 1: worktree_gc: summary -- eligible 2, removed 2, kept 75
+CHAIN RESULT #2748 MERGED 2636ce9e9378addc393b749160be0bd928af4f90
+CHAIN DONE

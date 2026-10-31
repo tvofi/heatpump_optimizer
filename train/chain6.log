@@ -1,0 +1,7 @@
+===== daemonize pid=85429 2026-10-25T00:43:54Z argv: bash train/chain6.sh
+READBACK id=6391570322 live_len=5705 want_len=5705 live_sha=bccf921a8db8d193 want_sha=bccf921a8db8d193 identical=True
+state CLEAN
+  clean    no refusal (the 'check' lines above are yours to answer)
+merged 662a3809ced43b41dba2166f04277f2d3c95e991
+worktree_gc: summary -- eligible 2, removed 2, kept 87
+CHAIN_DONE
