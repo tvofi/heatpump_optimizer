@@ -10059,6 +10059,37 @@ for _lang, _texts in (("strings.json", strings), *(
         ", ".join(_escaped[:6]),
     )
 
+# udf-strings-history (R10-UX-HEALTH part 3): text a user reads states what a
+# setting does now, never how the integration used to behave -- "as before"
+# or "used to be a flat repeat" means nothing to someone who never ran the
+# old version. The markers are the change-history phrasings each catalogue
+# held when this check was written (design choice: a phrase list, because
+# tense has no syntactic shape; "used to <verb>" as instrument -- "used to
+# read your prices" -- and runtime history in a repair -- "until now the plan
+# was held" -- are current behaviour and stay out of it).
+_HISTORY_MARKERS = {
+    "en": re.compile(r"\b(?:as before|used to be)\b", re.IGNORECASE),
+    "sv": re.compile(r"\b(?:som tidigare|som förut|dessförinnan var)\b", re.IGNORECASE),
+}
+
+
+def _history_leaves(data, marker, prefix=""):
+    if isinstance(data, dict):
+        return [hit for key, value in data.items()
+                for hit in _history_leaves(value, marker, f"{prefix}.{key}" if prefix else key)]
+    return [prefix] if isinstance(data, str) and marker.search(data) else []
+
+
+for _lang, _code, _texts in (("strings.json", "en", strings), *(
+    (f"{name}.json", name, data) for name, data in files.items()
+)):
+    _history = _history_leaves(_texts, _HISTORY_MARKERS[_code])
+    R.check(
+        f"{_lang}: no UI text describes how the integration used to behave",
+        not _history,
+        f"{len(_history)}: " + ", ".join(_history[:6]),
+    )
+
 # #828: the key-identity check only compares the three files to each
 # other, so a field missing a data_description from all three — which
 # renders with a label and no pointer — passed. reauth_confirm.tibber_token

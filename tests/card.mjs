@@ -12236,6 +12236,13 @@ check("without an indoor reading the corner now label is absent",
       /Not observable without a power meter/.test(nometer) && !/Learned from/.test(nometer), nometer);
     check("UX-HEALTH D: a metered install's learned heat loss still says learned (null control)",
       /Learned from 21 samples/.test(rowOf(modelOf(metered()), "heat_loss")));
+    // #2499's residual: the bar is the row's "how far learned", so a full bar
+    // beside "not observable" still reads as a trusted learned scale.
+    const barOf = (row) => (/class="model-bar"[^>]*><span style="width:(\d+)%"/.exec(row) || [])[1];
+    check("UX-HEALTH D: with no power meter the learned heat loss draws no learned bar (#2499)",
+      barOf(nometer) === "0", `bar ${barOf(nometer)}%`);
+    check("UX-HEALTH D: a metered install's learned heat loss still draws a full bar (null control)",
+      barOf(rowOf(modelOf(metered()), "heat_loss")) === "100", `bar ${barOf(rowOf(modelOf(metered()), "heat_loss"))}%`);
     const sc = healthStates();
     sc[`${PFX}_plan_optimization_score`].attributes.reasons.overall = "heat_loss_learning";
     const scoreRow = pageOf(mkHealth(sc).html());
