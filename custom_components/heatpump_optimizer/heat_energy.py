@@ -249,7 +249,7 @@ def ran_hot_water(a: Attribution) -> bool:
     figure, whatever the plan asked. An unobserved interval says nothing
     here: the caller's own plan rule stands.
     """
-    return a.observed and a.dhw > 0.0
+    return a.observed and a.dhw >= 0.0
 
 
 def cop_duty(a: Attribution, share_limit: float) -> str | None:
