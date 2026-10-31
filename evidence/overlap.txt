@@ -1,0 +1,4 @@
+tests/closure.py
+tests/closures.json
+tests/doc_claims.py
+tests/entities.py

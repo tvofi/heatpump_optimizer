@@ -1,0 +1,30 @@
+4822c8f9b ci: record nightly kills
+be7584c49 Merge pull request #3026 from tvofi/fix/triage-s8-batch81
+68b4fe166 Merge pull request #3032 from tvofi/record/autofix
+3a0d55f5e Merge pull request #3004 from tvofi/fix/r10-fly-cancel-sweep
+2573a264d Merge pull request #3015 from tvofi/fix/r10-hotfix-away-live
+4bbd7392a ci: record delivery rows
+412bbb0c2 Merge remote-tracking branch 'origin/main' into fix/r10-hotfix-away-live
+833d768b0 ci: record delivery rows
+851d1ce6b Merge pull request #3019 from tvofi/fix/triage-s8-batch77
+a5cf3b6f5 Merge pull request #3009 from tvofi/fix/r10-cop-gate-vent-fix
+85764e69d Merge remote-tracking branch 'origin/main' into fix/r10-fly-cancel-sweep
+915406ce6 Merge pull request #3028 from tvofi/record/autofix
+2433fb571 ci: merge main
+120cd4bf5 Merge pull request #3005 from tvofi/fix/r10-cop-gate-p5-pr
+2582297b5 Merge remote-tracking branch 'origin/main' into fix/r10-cop-gate-p5-pr
+861f949ae Merge pull request #3025 from tvofi/fix/triage-s8-batch80
+918dbf3cd Merge pull request #3023 from tvofi/fix/triage-s8-batch79
+d9dcf30d9 Merge pull request #3020 from tvofi/fix/triage-s8-batch78
+10c3d6640 Merge pull request #3018 from tvofi/fix/triage-s8-batch76
+5e1c664b2 Merge pull request #3017 from tvofi/fix/triage-s8-batch75
+9e688830b ci: record delivery rows
+e9617a596 ci: record delivery rows
+fbc731283 Merge pull request #3024 from tvofi/fix/r10-fly-beat-fetch-race
+9f20c4a8d Merge remote-tracking branch 'origin/main' into fix/r10-cop-gate-vent-fix
+234e6df87 record: the delivery row for #3026
+90b1324e3 triage: s8 batch 81, P318 (entities.py heartbeat sampler: named Darwin SKIP on PermissionError: R10-NIGHTLY-HB-RESPAWN)
+2376d3f9e Merge pull request #3021 from tvofi/record/autofix
+05be22881 Merge pull request #2997 from tvofi/fix/r10-ux-health-p2
+b7c376a32 Merge remote-tracking branch 'origin/main' into fix/r10-hotfix-away-live
+8697c91f5 Merge commit '438e7f373fdbd06c95bf2ae13c4ac7c7740d7cb4' into fix/r10-hotfix-away-live
