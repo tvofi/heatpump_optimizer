@@ -357,7 +357,7 @@ Role: dev/governance/roles/root-cause.md. |  |
 | R10-HOTFIX-AWAY-PRESENCE | CORE | 1 | in-progress | - | opus/opus | - | Hotfix from a live user defect. |  |
 | R10-AUDIT-COVERAGE-ENDGAME | IN | 2 | queued | - | opus/opus | - | Pre-study: the design note on the design/r10-audit-coverage ref. |  |
 | R10-LEARNED-STORE-LOAD | CORE | 2 | not-started | - | opus/opus | - | Two latent learned-store lifecycle defects found by the R10-FACTORY-RESET fixer (orchestrator s9, 2026-10-31). |  |
-| R10-FLY-STANDING-CONTRACTS | IN | 1 | not-started | - | sonnet/opus | yes: mandated approval under 6329234399 | Two standing-seat contract edits that R10-ORCH-BEATD closed without building (done at #2916), re-routed under mandate 6329234399 on tvofi's request of 2026-1... |  |
+| R10-FLY-STANDING-CONTRACTS | IN | 1 | not-started | - | sonnet/opus | yes: mandated approval under 6329234399 | Standing-seat mechanisation, made permanent (owner, tvofi 2026-10-31, verbatim: "Fold in making this mechanisation/updated sweep and contracts permanent in a... |  |
 | R10-FLY-RELAY-DELIVERED-GUARD | IN | 1 | not-started | - | sonnet/sonnet | - | Root-cause countermeasure (RCA by orchestrator s9, 2026-10-31; out-of-tree RCA at the orchestrator's seat-rca-reviewrefs, which this group lands under the de... |  |
 
 ## ETA
