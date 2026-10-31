@@ -11353,7 +11353,7 @@
    ],
    "carry": [],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r10-fly-mutant-restore",
     "commit": null,
     "last_step": null,
