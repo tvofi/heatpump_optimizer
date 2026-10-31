@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/wood_fuel.py:wood_fuel_from_parts BOOLOP c31f2f61",
-  "killed_by": "tests/features.py",
-  "old": "    if result is not None and det.suppressing:",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`if result is not None or det.suppressing:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
-}
