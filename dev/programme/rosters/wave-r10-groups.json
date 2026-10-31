@@ -6978,7 +6978,6 @@
    "rca": [],
    "after": [
     "R10-CI-LAYOUT-P2",
-    "R10-FLY-OPENPR-ATOMIC",
     "R10-FLOW-MQ-PROBE"
    ],
    "carry": [
