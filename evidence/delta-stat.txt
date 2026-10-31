@@ -1,8 +1,0 @@
- ...izerCoordinator._void_heat_loss_learners.GUARD_OFF.11a66faf.json | 6 ++++++
- ...izerCoordinator._void_heat_loss_learners.GUARD_OFF.5a8d9665.json | 6 ++++++
- ...zerCoordinator._void_heat_loss_learners.RETURN_DEL.7055cd47.json | 6 ++++++
- .../services.py/handle_reset_heat_loss.RETURN_DEL.d37047a8.json     | 6 ++++++
- .../thermal_model.py/heat_loss_entity_voids.BOOLOP.19eef99a.json    | 6 ++++++
- .../thermal_model.py/heat_loss_entity_voids.GUARD_OFF.02cbf88f.json | 6 ++++++
- .../heat_loss_zone_entities.RETURN_DEL.47e79f51.json                | 6 ++++++
- 7 files changed, 42 insertions(+)
