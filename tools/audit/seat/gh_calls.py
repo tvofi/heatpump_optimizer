@@ -28,6 +28,7 @@ from __future__ import annotations
 import os
 import re
 import shutil
+import stat
 import subprocess
 import sys
 import tempfile
@@ -154,12 +155,12 @@ def self_test():
         (w / "own").mkdir()
         stub = w / "real" / "gh"
         stub.write_text('#!/bin/sh\nprintf "STUB %s\\n" "$*"; cat; printf "ERR\\n" >&2; exit 7\n')
-        stub.chmod(0o755)
+        stub.chmod(0o700)
 
         def install(src_text):
             dst = w / "own" / "gh"
             dst.write_text(src_text)
-            dst.chmod(0o755)
+            dst.chmod(0o700)
 
         # Hermetic PATH: the shim and the stub, plus a dir of symlinks to the few
         # utilities the shim runs. Never /usr/bin or /bin, where a host may carry
@@ -265,6 +266,27 @@ def self_test():
         run(["api", "made"], state=fresh)
         check("a missing state directory is created and the call logged (not silently dropped)",
               (fresh / "gh-calls.log").is_file() and (fresh / "gh-calls.log").read_text().rstrip().endswith(" api made"))
+        # the log names callers: created owner-only whatever the caller's umask (alert 46)
+        def modes(sh, st):
+            st.parent.mkdir(exist_ok=True)
+            run([], state=st, shim_text=sh, via="umask 022; gh api modes")
+            lg = st / "gh-calls.log"
+            return (stat.S_IMODE(st.stat().st_mode) if st.exists() else None,
+                    stat.S_IMODE(lg.stat().st_mode) if lg.exists() else None)
+        check("under umask 022 the shim makes its state dir 0700 and its log 0600",
+              modes(None, w / "modes" / "state") == (0o700, 0o600))
+        # the tightened umask is the logging subshell's alone: the real gh keeps the caller's
+        (w / "real2").mkdir()
+        (w / "real2" / "gh").write_text("#!/bin/sh\numask\n")
+        (w / "real2" / "gh").chmod(0o700)
+        um_path = f"{w / 'own'}:{w / 'real2'}:{tools}"
+        um = lambda sh=None: run([], shim_text=sh, path=um_path, via="umask 022; gh api um").stdout.strip()
+        check("the real gh runs under the caller's umask (022), not the shim's", um() == b"0022")
+        check("mutant killed: no umask 077 in the shim",
+              "umask 077" in good and modes(good.replace("umask 077", ":"), w / "modes_m" / "state") != (0o700, 0o600))
+        check("mutant killed: the umask leaks past the logging subshell",
+              "(\n  umask 077\n" in good and um(good.replace("(\n  umask 077\n", "umask 077\n(\n")) == b"0077")
+        install(good)
         os.chmod(w / "state", 0o500)
         if os.access(w / "state", os.W_OK):
             print("  skip unwritable-directory arm (running as a user who can write anyway)")
@@ -272,7 +294,7 @@ def self_test():
             r3 = run(["api", "x"])
             check("null control: a read-only state directory is skipped, not fatal",
                   r3.stdout == b"STUB api x\nIN\n" and r3.returncode == 7 and r3.stderr == b"ERR\n")
-        os.chmod(w / "state", 0o755)
+        os.chmod(w / "state", 0o700)
 
         # rotation
         before = len(log.read_text().splitlines())
@@ -329,7 +351,7 @@ def self_test():
         decoy = w / "decoy"
         decoy.mkdir()
         (decoy / "gh").write_text("#!/bin/sh\necho DECOY\n")
-        (decoy / "gh").chmod(0o755)
+        (decoy / "gh").chmod(0o700)
         old_path = f"{w / 'own'}:{w / 'real'}:{decoy}:/usr/bin:/bin"
         r5 = run(["api", "x"], path=old_path)
         check("control: with a fake gh on the old-style PATH the old arm is red (the shim execs it)",
@@ -359,7 +381,7 @@ def self_test():
         check("coverage reads the shim marker, not the name",
               first_gh_is_shim(f"{w / 'own'}") is True and first_gh_is_shim(f"{w / 'real'}") is None)
         (w / "real" / "gh").write_text("#!/bin/sh\n# other\n")
-        (w / "real" / "gh").chmod(0o755)
+        (w / "real" / "gh").chmod(0o700)
         check("a real gh ahead of the shim reads as not logged",
               first_gh_is_shim(f"{w / 'real'}:{w / 'own'}") is False)
     print(f"gh_calls self-test: {pass_n + fail_n} checks, {fail_n} failed")

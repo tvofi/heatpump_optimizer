@@ -15,6 +15,7 @@
 # The parent command is redacted from its first value-bearing flag (-f, --body, ...) to the
 # end of the line, so a wrapper's own gh arguments never reach the log. The state directory
 # is created if missing (mkdir -p); a path that cannot be made is skipped, never fatal.
+# A directory or log the shim creates is owner-only (umask 077), whatever the caller's umask.
 #
 # Then it execs the real gh -- the first `gh` on PATH that is a regular
 # executable file and not a shim (line 2 above), past this file's own
@@ -48,7 +49,10 @@ case $sub in
   *) verb= ;;
 esac
 
-{
+# A subshell: the umask that makes the state dir and log owner-only (the log names
+# callers) is its own, so the real gh below runs under the caller's.
+(
+  umask 077
   state=${HPO_STATE_DIR:-$HOME/.local/state/hpo}
   log=$state/gh-calls.log
   max=${HPO_GH_LOG_MAX:-1048576}
@@ -68,6 +72,6 @@ esac
     case $size in ''|*[!0-9' ']*) ;; *) [ "$((size + 0))" -gt "$max" ] && mv -f "$log" "$log.1" ;; esac
   fi
   printf '%s %s %s %s %s\n' "$(date -u +%FT%TZ)" "$PPID" "${pcmd:--}" "$(clean "$sub")" "$(clean "$verb")" >> "$log"
-} 2>/dev/null || true
+) 2>/dev/null || true
 
 exec "$real" "$@"
