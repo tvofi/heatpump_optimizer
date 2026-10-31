@@ -1,40 +1,29 @@
-Fix review: merge de676fcc705b4f791d7588c14a9348f9fc700363
+Fix review: blocked 50b1956485ea01e78d97a0619a32cdc9dd923cdd figure-wrong: body says the head self-test has one arm more than the merge base; it has three more (151 to 154)
 
-bus-nonce: 7e546b2dddedd4cdce42d86b8d4d559b
+bus-nonce: 81a3f6d8784483c8ba64d7d64969fdb4
 
-## Round
+Round: 1 (first review of this PR). Measured head: 50b1956485ea01e78d97a0619a32cdc9dd923cdd, base fe709cbd269c7c53eb1c846a0be7f39c7dab06ac (merge base = origin/main at review time).
 
-This is the review of the body's round six (round-six repair of round four's red; round five was blocked at `a11db7fe`). Measured at head `de676fcc705b4f791d7588c14a9348f9fc700363`, still the PR head when this was written (`ev/head-at-verdict.txt`). Role contract current: `git diff <merge-base>...origin/main -- dev/governance/roles/` is empty.
+## Block
+
+The body's Figures section says: "self-test at the head: ... exits 0, and every arm prints `ok` (one arm more than at the merge base, the new close arm)". Re-derived: the merge base prints `pr_args self-test: 151 checks, 0 failed` and the head prints `pr_args self-test: 154 checks, 0 failed`, so the head has three arms more. That fits the diff: the base had two arms (rowless and its rowreset mutant). The head has five: the close arm, the rowclose mutant, the rowreset mutant, the merge-conflict arm and the mergeabort mutant. The figure is false, and the record must not carry it (fix-review.md step 8). A body edit fixes it without moving the head. Fix the finding below in the same round.
 
 ## Findings
 
-- Surviving mutant on an added line: deleting `[ -z "${PR_ATTEMPT:-}" ] || return 0` from `op_close_unrowed` (open_pr.sh:60 at the head) leaves `bash tools/audit/seat/open_pr.sh --self-test` at rc=0, `158 checks, 0 failed` (`ev/mut-own-attemptguard.txt`). PR state cannot go wrong under it on the current tree, because the success path's last act is `PR_ATTEMPT=opened` and origin's tip is then `H`, so the mutant routes to `op_row_landed`. But every successful open would then print a false `open_pr: ROW LANDED: ... the row push then failed` line, or `ROWLESS` if `ls-remote` fails. No arm asserts that a successful open prints neither line. The fix is to make `racerun -` assert `! grep -qF 'ROW LANDED'` and pin the line as `# mut:attemptguard`. Carry: R10-FLY-OPENPR-ATOMIC
-- The unreadable-tip branch (`tip=unread`) is unpinned, as the body's `## Unpinned sites` discloses. My own mutant, which deletes `&& [ "$tip" != unread ]`, draws no FAIL in the opener's arms. Its one FAIL is the unrelated timing arm `mutant mut:unlock ... the holder is still alive when the run returns` (`ev/mut-own-unread.txt`), which I read as a flake, not a kill. Carry: R10-FLY-OPENPR-ATOMIC
-- Deferred by the body and left on the roster: carry 4 (P71, default Closes from roster `fixes`), carry 6 (V64, auto-open in `cloud_relay.sh`), carry 7 (V141, delete a merged leftover branch; until it lands, a re-run after a close opens from `fix/<topic>-pr`) and carry 8's `handoff_push.sh` seams. Carry: R10-FLY-OPENPR-ATOMIC
-- The body's root-cause answer for the round-five red on `governance / instrument-self-tests` names process state (a): no local step maps a changed seat script to the instrument self-tests that read its text. It defers the countermeasure and its cost test to a root-cause seat, and nothing is built here. Carry: R10-FLY-OPENPR-ATOMIC
-- The body quotes the class-rule-1 output as lines 120-141. That `awk` rule prints 121-142 both at the head and at the code head `ba4a8320` (`ev/class-rule-1.txt`). The line-by-line dispositions still map one to one, shifted by one. Carry: dismissed: off-by-one line numbers, enumeration content and dispositions unchanged
+- Surviving mutant: deleting `PR_ATTEMPT=closed,PR=$N` (open_pr.sh:104) leaves the head self-test at 154 checks, 0 failed, exit 0 (ev/mutant-attempt.txt). The body claims "The ledger attempt records `closed,PR=<n>`", but no test pins it. Without that line, a closed PR's handoff ref records `unopened` in the ledger. The tick's DISPATCH line (`last attempt ...,unopened`) would then tell the dispatcher that no PR was ever opened. Pin it with a `# mut:` marker and an arm in the rowless replay that reads the ledger attempt, or drop the claim from the body. Carry: R10-FLY-OPENPR-ATOMIC
+- Weak pin: replacing the reason extraction `{ grep -E 'REFUSE' $D/p2.log || tail -n 20 $D/p2.log; }` (open_pr.sh:97) with a bare `tail -n 20` survives (ev/mutant-whyreason.txt, 154 checks, 0 failed). The stub's p2.log is shorter than 20 lines, so the tail fallback quotes the refusal anyway. In this test the mutant is equivalent, but against a real prepr log longer than 20 lines it is not. Make the stub's p2.log longer than 20 lines with the REFUSE line early, or record that the case is accepted as equivalent. Carry: R10-FLY-OPENPR-ATOMIC
 
 ## Evidence
 
-- RESULT head self-test: `bash tools/audit/seat/open_pr.sh --self-test` rc=0, `delivery_row self-test: 6 checks, 0 failed`, `pr_args self-test: 158 checks, 0 failed`, 164 `  ok` lines. These match the body (`ev/selftest-head.txt`, `ev/local-runs.txt`).
-- RESULT ledger: `ledger self-test: 77 checks, 0 failed`. RESULT `r10_ledger_mutants self-test: 135 checks, 0 failed`.
-- RESULT mutation proof (step 1), each named `# mut:` line deleted from open_pr.sh at the head:
-  - roworigin: rc=1, 1 failed (the post-push arm).
-  - trapclose: rc=1, 5 failed.
-  - rowclose: rc=1, 3 failed.
-  - rowreset: rc=1, 2 failed.
-  - mergeabort: rc=1, 1 failed (the conflict arm).
-  - `PR_EXIT_FIRST=` deleted from pr_args.sh: rc=1, 8 failed.
-  - `r10_ledger_mutants.py O1_no_attempt_on_exit`: `RESULT mutant=O1_no_attempt_on_exit rc=1 fails=3`, `plants: 1, without a FAIL line: none`.
-  - The body's counts for trapclose (5) and the `PR_EXIT_FIRST` deletion (8) re-derive exactly. All files were restored and `git status --porcelain` is empty.
-- RESULT failing-test-first: open_pr.sh taken from `a11db7fe` gives rc=1, `158 checks, 1 failed`, and the FAIL is `open_pr: a row push that lands on origin and then fails leaves the PR open with its row, and says so`. This matches the body.
-- Finder's harness: none named in the packet. The finding's harness is the in-tree self-test arm built from round five's review probe (`p2postfail`), disclosed as such in the body.
-- Class (step 6): rule 1 (`awk` over open_pr.sh) returns the N=..PR_ATTEMPT range, and every line is dispositioned in the body (see the offset under Findings). Rule 2 returns 8 `app_push.sh` sites (537, 541, 545, 548, 350, 351, 364, 366), the same as the body. The close keys on origin's tip, not on which site fired, so every site is covered by the one tip read. No seam is open.
-- `ledger.py attempt` takes free text for the outcome (`attempts()` stores it verbatim, and `escalate` prints it as `last attempt <x>`), so the new `closed,PR=N` value is accepted.
-- Merge (step 13): `git merge-tree --write-tree origin/main de676fcc...` exits 0 against origin/main `ca0a6cfbc2e5538e6e2220793831443719ff6e98` (`ev/merge-tree.txt`). There is no conflict, so the claim driver was not invoked.
-- Step 5: `git diff --stat <mb>...HEAD -- VERSION RELEASE_NOTES.md tests/golden custom_components/*/manifest.json` is empty. No claim file is touched, so step 4 is moot.
-- `git diff ba4a8320..de676fcc -- tools/` is empty, so the main merge added nothing to the authored tools.
-- CI (step 11), from the check-runs API at this head: all 42 runs have concluded. Every one is success or skipped, CodeQL included. That covers `gate`, `pr-contract`, `governance / instrument-self-tests`, `tests / closures`, `tests / mutation` and `codeql / Analyze (python)`. No check is red at this head. The round-five red (`instrument-self-tests` at `a11db7fe`) is named and answered in `## Red checks` with a cheaper detector and a process state, which is what step 11 asks for. The heavy runs (gate, mutation table) are cited from CI and were not re-run.
-- Not re-derived: the body's 89-step local replay of the `instrument-self-tests` job. I cite CI's green run of that job at this head instead. The figure-lint `unverified` items are flag-only.
-- Architecture (step 15): the close is one EXIT-trap path chained through `PR_EXIT_FIRST`, and the old inline close is removed, so there is no second copy. No breach found.
-- Forward-carry: the body says `none`. Its deferrals stay on the roster group, carried above.
+- RESULT head self-test: `bash tools/audit/seat/open_pr.sh --self-test` at 50b1956485ea01e78d97a0619a32cdc9dd923cdd: pr_args 154 checks, 0 failed; delivery_row 6 checks, 0 failed; exit 0 (ev/selftest-head.txt).
+- RESULT base self-test at fe709cbd2: pr_args 151 checks, 0 failed; exit 0 (ev/selftest-base.txt).
+- RESULT failing test first: the head's tree with origin/main's open_pr.sh gives 154 checks, 2 failed, exit 1. The only FAILs are the close arm and the merge-conflict arm (ev/selftest-main-openpr.txt). This matches the body.
+- RESULT named mutants (rowclose, rowreset, mergeabort): their arms pass at the head, so each mutant produces the defect the body describes.
+- RESULT own mutants at the head: deleting the `pr_refuse` line after the merge abort (line 63) gives 1 FAIL, the merge-conflict arm (killed). Deleting the gh_comment.py post (lines 100-101) gives 1 FAIL, the close arm (killed). The ledger-attempt mutant and the reason-grep mutant survive (see Findings). Files: ev/mutant-*.txt.
+- Finder's harness: none is named, and the review packet says so. The finding is tooling, and the in-tree self-test with `# mut:` markers is the instrument.
+- Merge with main: `git merge-tree --write-tree origin/main 50b1956485ea01e78d97a0619a32cdc9dd923cdd` exits 0 (tree cde818d4f13026683050c79c3e5d2b62ceb7aa16), with no conflict.
+- The role diff `git diff $(merge-base)...origin/main -- dev/governance/roles/` is empty, so the contract is current.
+- VERSION, the manifest and RELEASE_NOTES.md are untouched (three-dot diff empty). No golden or claim files are touched, and no budget is moved.
+- The body's Head section names 50b1956485ea01e78d97a0619a32cdc9dd923cdd and the code head f32c80504, which is an ancestor of the head. Confirmed.
+- CI on this head, read live from check-runs: no check concluded red. tests / closures, governance / instrument-self-tests and codeql / Analyze (python) were still in progress at read time. tests / mutation is green, but a shell-only diff draws no Python mutant, so it says nothing about these lines. The body's "Red checks: none" is consistent so far.
+- Forward-carry: none claimed. The out-of-group carries 4, 6 and 7, and carry 8's handoff_push.sh seams, are stated as staying on the roster.
