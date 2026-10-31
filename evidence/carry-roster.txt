@@ -1,0 +1,41 @@
+ISSUE-STRANDED #2248 listed only by closed group(s): R10-LIVESTATE, R10-PARAMS-OWNER, R10-STORE-RACES
+ISSUE-STRANDED #2249 listed only by closed group(s): R10-PARAMS-OWNER, R10-STORE-RACES
+ISSUE-STRANDED #2257 listed only by closed group(s): R10-ADVISOR, R10-ADVISOR-RESIDUE, R10-ADVISOR-WHATIF
+ISSUE-STRANDED #2492 listed only by closed group(s): R10-SAV-COMFORT, R10-SAV-ACTUATION
+ISSUE-STRANDED #2674 listed only by closed group(s): R10-PARAMS-OWNER, R10-STORE-RACES
+ISSUE-STRANDED #2731 listed only by closed group(s): R10-FLY-GH-READ-RETRY
+ISSUE-STRANDED #2942 listed only by closed group(s): R10-FRICTION-MUTATION-SURVIVOR
+ISSUE-UNLISTED #2998
+CARRY-ROSTER: dev/programme/rosters/wave-r10-groups.json at a4c9fa3d629017fb1a0e5394bbae79cdbdfa4f9b; cut-over a4c9fa3d6290 (498 legacy carries); 0 stranded carry(ies); issues 54 open, 8 unrouted
+CARRY-ROSTER: dev/programme/rosters/wave-r10-groups.json at a4c9fa3d629017fb1a0e5394bbae79cdbdfa4f9b; cut-over a4c9fa3d6290 (498 legacy carries); 0 stranded carry(ies); issues not measured (no --open-issues)
+STRANDED R10-FLY-RELAY-REVIEW-FF (done) carry[0]: 'P15 fold (assessor, 2026-10-21): tools/audit/seat/tick_loop.sh relay_start (lines ~60-66) '
+STRANDED R10-FLY-RELAY-REVIEW-FF (done) carry[1]: 'bus.sh push-verdict/confirm of a large ev/ (73 files, ~30MB, #2563 probe 7e7638c4) fails H'
+STRANDED R10-FLY-RELAY-REVIEW-FF (done) carry[2]: 'Triage P-B (s4, batch 3, 2026-10-22, accepted), verbatim:\n## P-B tick_loop.sh runs stale c'
+STRANDED R10-FLY-RELAY-REVIEW-FF (done) carry[3]: 'Triage P-C (s4, batch 4, 2026-10-23, accepted as already carried): #2635 is the second mea'
+STRANDED R10-FLY-RELAY-REVIEW-FF (done) carry[4]: 'Triage P-E (s4, 2026-10-23 03:45Z, accepted, narrowed to a git-only detector), verbatim:\nW'
+STRANDED R10-FLY-RELAY-REVIEW-FF (done) carry[5]: 'Triage (s4, 2026-10-23 07:10Z, tick_loop.sh stale checkout, accepted, narrowed), verbatim:'
+STRANDED R10-FLY-RELAY-REVIEW-FF (done) carry[6]: 'P-O (triage batch 7): a relayed probe is ledgered (cloud-relayed) BEFORE confirm runs, so '
+STRANDED R10-FLY-RELAY-REVIEW-FF (done) carry[7]: 'Reconciles carries 2 and 5 of this group (tick_loop.sh stale code), which disagree; where '
+STRANDED R10-FLY-RELAY-REVIEW-FF (done) carry[8]: 'tvofi 2026-10-24 card 1 (owner accepted; CARDS.json (prestudy-mech, r10s6 scratch, not in '
+STRANDED R10-FLY-RELAY-REVIEW-FF (done) carry[9]: 'Folded from R10-FLY-CARRY-DISPOSITION into R10-FLY-RELAY-REVIEW-FF (shared seam bus.sh; or'
+STRANDED R10-FLY-RELAY-REVIEW-FF (done) carry[10]: "P308 (orchestrator 2026-10-30, class barrier) supersedes P293's and P306's Evidence-arm wo"
+STRANDED R10-FLY-RELAY-REVIEW-FF (done) carry[11]: 'P310 (orchestrator s8 2026-10-30, RCA R10-RCA-JIDOKA-YIELD shape A): PRIORITY DISPATCH for'
+STRANDED R10-FLY-RELAY-REVIEW-FF (done) carry[12]: 'Amends P308 (same carry, same pull request): P314 (orchestrator 2026-10-30T22:16Z). - In a'
+STRANDED R10-FLY-RELAY-REVIEW-FF (done) carry[13]: 'P319 (orchestrator 2026-10-31, slip: pre-flight roster source). May be dispatched alone, a'
+STRANDED R10-FLY-RELAY-REVIEW-FF (done) carry[14]: 'Folded from R10-FLY-RELAY-TOOLS-LEVEL into R10-FLY-RELAY-REVIEW-FF (shared seam tools/audi'
+STRANDED R10-FLY-RELAY-REVIEW-FF (done) carry[15]: "From triage P329 (queue 2026-10-31T12:27:57Z; rides P308's dispatch, same `items()` in `to"
+STRANDED R10-FLY-RELAY-REVIEW-FF (done) carry[16]: "Re-routed by orchestrator s9 under mandate 6329234399 (tvofi's request, 2026-10-31, slippe"
+STRANDED R10-FLY-RELAY-REVIEW-FF (done) carry[17]: 'From triage P332 (queue 2026-10-31T16:10:00Z): tools/audit/seat/cloud_relay.sh `confirm_ar'
+STRANDED R10-NIGHTLY-HB-RESPAWN (done) carry[0]: "From R10-FLY-NIGHTLY-HB (handoff/r10-fly-nightly-hb): this group's premise is changed, re-"
+ISSUE-STRANDED #2248 listed only by closed group(s): R10-LIVESTATE, R10-PARAMS-OWNER, R10-STORE-RACES
+ISSUE-STRANDED #2249 listed only by closed group(s): R10-PARAMS-OWNER, R10-STORE-RACES
+ISSUE-STRANDED #2257 listed only by closed group(s): R10-ADVISOR, R10-ADVISOR-RESIDUE, R10-ADVISOR-WHATIF
+ISSUE-STRANDED #2492 listed only by closed group(s): R10-SAV-COMFORT, R10-SAV-ACTUATION
+ISSUE-STRANDED #2674 listed only by closed group(s): R10-PARAMS-OWNER, R10-STORE-RACES
+ISSUE-STRANDED #2720 listed only by closed group(s): R10-FLY-RELAY-REVIEW-FF
+ISSUE-STRANDED #2731 listed only by closed group(s): R10-FLY-GH-READ-RETRY
+ISSUE-STRANDED #2942 listed only by closed group(s): R10-FRICTION-MUTATION-SURVIVOR
+ISSUE-UNLISTED #2998
+CARRY-ROSTER: dev/programme/rosters/wave-r10-groups.json at origin/handoff/audit-r10-roster; cut-over a4c9fa3d6290 (498 legacy carries); 19 stranded carry(ies); issues 54 open, 9 unrouted
+CARRY-ROSTER: dev/programme/rosters/wave-r10-groups.json at origin/handoff/audit-r10-roster; cut-over a4c9fa3d6290 (498 legacy carries); 19 stranded carry(ies); issues not measured (no --open-issues)
+ce4a238673ecba94bbacb194ef74492437738f9e

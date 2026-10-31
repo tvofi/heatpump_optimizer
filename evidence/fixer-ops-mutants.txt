@@ -1,0 +1,220 @@
+RESULT mutant=A1 rc=1 fails=1
+    FAIL set-after unknown after-group refused
+RESULT mutant=A2 rc=1 fails=1
+    FAIL set-after self-edge refused
+RESULT mutant=A3 rc=1 fails=1
+    FAIL set-after duplicate edge refused
+RESULT mutant=A4 rc=1 fails=3
+    FAIL set-after direct cycle refused
+    FAIL set-after indirect cycle refused
+    FAIL refused set-after moved nothing
+RESULT mutant=A5 rc=1 fails=2
+    FAIL set-after direct cycle refused
+    FAIL set-after indirect cycle refused
+RESULT mutant=A6 rc=1 fails=1
+    FAIL set-after unknown group refused
+RESULT mutant=A7 rc=1 fails=2
+    FAIL no-op set-after reports no change and commits nothing
+    FAIL no-op set-after is byte-identical
+RESULT mutant=C1 rc=1 fails=1
+    FAIL drop-carry with no carry refused
+RESULT mutant=C2 rc=1 fails=5
+    FAIL drop-carry absent match refused
+    FAIL refused drop-carry moved nothing
+    FAIL drop-carry by index drops that entry
+    FAIL drop-carry by match drops that entry
+    FAIL drop-carry of the last entry leaves the key empty
+RESULT mutant=C3 rc=1 fails=6
+    FAIL drop-carry ambiguous match refused
+    FAIL refused drop-carry moved nothing
+    FAIL drop-carry by index drops that entry
+    FAIL drop-carry by match drops that entry
+    FAIL drop-carry of the last entry leaves the key empty
+    FAIL append-carry then drop-carry is byte-identical
+RESULT mutant=C4 rc=1 fails=4
+    FAIL drop-carry negative index refused
+    FAIL refused drop-carry moved nothing
+    FAIL drop-carry by index drops that entry
+    FAIL drop-carry by match drops that entry
+RESULT mutant=C5 rc=1 fails=6
+    FAIL drop-carry non-integer index refused
+    FAIL refused drop-carry moved nothing
+    FAIL drop-carry by index drops that entry
+    FAIL drop-carry by match drops that entry
+    FAIL drop-carry of the last entry leaves the key empty
+    FAIL append-carry then drop-carry is byte-identical
+RESULT mutant=C6 rc=1 fails=0
+    crash tail:
+          and branch_roster()["groups"][1]["carry"] == [])
+              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+      KeyError: 'carry'
+RESULT mutant=C7 rc=1 fails=6
+    FAIL triage gate fixture restored
+    FAIL drop-carry with no carry refused
+    FAIL drop-carry by index drops that entry
+    FAIL drop-carry by match drops that entry
+    FAIL drop-carry of the last entry leaves the key empty
+    FAIL append-carry then drop-carry is byte-identical
+RESULT mutant=C8 rc=1 fails=1
+    FAIL drop-carry unknown group refused
+RESULT mutant=P1 rc=1 fails=4
+    FAIL drop-carry index and --match together refused
+    FAIL refused drop-carry moved nothing
+    FAIL drop-carry by index drops that entry
+    FAIL drop-carry by match drops that entry
+RESULT mutant=P2 rc=1 fails=1
+    FAIL drop-carry neither index nor --match refused
+RESULT mutant=P3 rc=1 fails=4
+    FAIL set-after names no op flag
+    FAIL --match on another op refused
+    FAIL refused drop-carry moved nothing
+    FAIL append-carry then drop-carry is byte-identical
+RESULT mutant=D1 rc=1 fails=3
+    FAIL dump round-trips the canonical bytes
+    FAIL no-op set-resume is byte-identical
+    FAIL no-op set-after is byte-identical
+RESULT mutant=T1 rc=1 fails=11
+    FAIL triage gate: a proposal-sourced carry citing no ruling is refused
+    FAIL triage gate: a new group's brief is judged
+    FAIL triage gate fixture restored
+    FAIL drop-carry with no carry refused
+    FAIL drop-carry fixture carries three
+    FAIL drop-carry index past the end refused
+    FAIL refused drop-carry moved nothing
+    FAIL drop-carry by index drops that entry
+    FAIL drop-carry by match drops that entry
+    FAIL drop-carry of the last entry leaves the key empty
+    FAIL append-carry then drop-carry is byte-identical
+RESULT mutant=T2 rc=1 fails=12
+    FAIL triage gate: a REJECT ruling is refused
+    FAIL triage gate: a DEFER ruling is refused: only an ACCEPT is routed
+    FAIL triage gate: an entry with no verdict line is refused
+    FAIL triage gate fixture restored
+    FAIL drop-carry with no carry refused
+    FAIL drop-carry fixture carries three
+    FAIL drop-carry index past the end refused
+    FAIL refused drop-carry moved nothing
+    FAIL drop-carry by index drops that entry
+    FAIL drop-carry by match drops that entry
+    FAIL drop-carry of the last entry leaves the key empty
+    FAIL append-carry then drop-carry is byte-identical
+RESULT mutant=T3 rc=1 fails=1
+    FAIL triage gate: a citation to a missing batch is refused, proposal named or not
+RESULT mutant=T4 rc=1 fails=16
+    FAIL triage gate: a proposal-sourced carry citing no ruling is refused
+    FAIL triage gate: a REJECT ruling is refused
+    FAIL triage gate: a DEFER ruling is refused: only an ACCEPT is routed
+    FAIL triage gate: an entry with no verdict line is refused
+    FAIL triage gate: a cited entry the batch lacks is refused
+    FAIL triage gate: a citation to a missing batch is refused, proposal named or not
+    FAIL triage gate: a new group's brief is judged
+    FAIL triage gate fixture restored
+    FAIL drop-carry with no carry refused
+    FAIL drop-carry fixture carries three
+    FAIL drop-carry index past the end refused
+    FAIL refused drop-carry moved nothing
+    FAIL drop-carry by index drops that entry
+    FAIL drop-carry by match drops that entry
+    FAIL drop-carry of the last entry leaves the key empty
+    FAIL append-carry then drop-carry is byte-identical
+RESULT mutant=T5 rc=1 fails=16
+    FAIL triage gate: a proposal-sourced carry citing no ruling is refused
+    FAIL triage gate: a REJECT ruling is refused
+    FAIL triage gate: a DEFER ruling is refused: only an ACCEPT is routed
+    FAIL triage gate: an entry with no verdict line is refused
+    FAIL triage gate: a cited entry the batch lacks is refused
+    FAIL triage gate: a citation to a missing batch is refused, proposal named or not
+    FAIL added_texts: only what the write adds is judged
+    FAIL triage gate fixture restored
+    FAIL drop-carry with no carry refused
+    FAIL drop-carry fixture carries three
+    FAIL drop-carry index past the end refused
+    FAIL refused drop-carry moved nothing
+    FAIL drop-carry by index drops that entry
+    FAIL drop-carry by match drops that entry
+    FAIL drop-carry of the last entry leaves the key empty
+    FAIL append-carry then drop-carry is byte-identical
+RESULT mutant=S1 rc=1 fails=1
+    FAIL set-stage refuses an unclassified stage
+RESULT mutant=S2 rc=1 fails=1
+    FAIL set-resume --field stage refuses an unclassified stage
+RESULT mutant=S3 rc=1 fails=1
+    FAIL append-group refuses an unclassified stage
+RESULT mutant=S4 rc=1 fails=1
+    FAIL append-group refuses a size the duration model lacks
+RESULT mutant=S5 rc=1 fails=3
+    FAIL set-stage refuses an unclassified stage
+    FAIL append-group refuses an unclassified stage
+    FAIL set-resume --field stage refuses an unclassified stage
+RESULT mutant=S6 rc=1 fails=1
+    FAIL append-group refuses a size the duration model lacks
+RESULT mutant=S7 rc=1 fails=2
+    FAIL append-group refuses a size the duration model lacks
+    FAIL append-group accepts a modelled size (null control)
+RESULT mutant=K1 rc=1 fails=2
+    FAIL mark-carry refuses a carry already marked
+    FAIL refused mark-carry moved nothing
+RESULT mutant=K2 rc=1 fails=2
+    FAIL mark-carry refuses an unknown mark
+    FAIL refused mark-carry moved nothing
+RESULT mutant=K3 rc=1 fails=6
+    FAIL mark-carry refuses implemented without a sha
+    FAIL mark-carry refuses moved to no group
+    FAIL mark-carry refuses moved to itself
+    FAIL mark-carry refuses dismissed with no reason
+    FAIL refused mark-carry moved nothing
+    FAIL set-stage done over a pending carry writes carries-open and says so
+RESULT mutant=K4 rc=1 fails=5
+    FAIL mark-carry refuses moved to no group
+    FAIL mark-carry refuses moved to itself
+    FAIL mark-carry refuses dismissed with no reason
+    FAIL refused mark-carry moved nothing
+    FAIL set-stage done over a pending carry writes carries-open and says so
+RESULT mutant=K5 rc=1 fails=4
+    FAIL mark-carry refuses moved to itself
+    FAIL mark-carry refuses dismissed with no reason
+    FAIL refused mark-carry moved nothing
+    FAIL set-stage done over a pending carry writes carries-open and says so
+RESULT mutant=K6 rc=1 fails=2
+    FAIL mark-carry refuses dismissed with no reason
+    FAIL refused mark-carry moved nothing
+RESULT mutant=K7 rc=1 fails=2
+    FAIL set-stage done over a pending carry writes carries-open and says so
+    FAIL a carry after the cut-over is pending beside a legacy one
+RESULT mutant=K8 rc=1 fails=2
+    FAIL a legacy carry alone leaves set-stage done as done (null control)
+    FAIL a carry after the cut-over is pending beside a legacy one
+RESULT mutant=K9 rc=1 fails=1
+    FAIL set-resume --field stage done reads the same rule
+RESULT mutant=L1 rc=1 fails=5
+    FAIL pending: unmarked and not legacy is pending; each of the three marks discharges a carry
+    FAIL pending: with no cut-over every unmarked carry is pending
+    FAIL closing: done with a pending carry is written carries-open
+    FAIL closing (null): done with every carry marked or legacy stays done
+    FAIL stranded: a pending carry on a done or absorbed group, never on an open one
+RESULT mutant=L2 rc=1 fails=4
+    FAIL pending: unmarked and not legacy is pending; each of the three marks discharges a carry
+    FAIL closing: done with a pending carry is written carries-open
+    FAIL closing (null): done with every carry marked or legacy stays done
+    FAIL stranded: a pending carry on a done or absorbed group, never on an open one
+RESULT mutant=L3 rc=1 fails=1
+    FAIL legacy: a carry on a closed group at the cut-over is legacy; an open group's carry at the cut-over is not
+RESULT mutant=L4 rc=1 fails=1
+    FAIL stranded: a pending carry on a done or absorbed group, never on an open one
+RESULT mutant=L5 rc=1 fails=1
+    FAIL closing: done with a pending carry is written carries-open
+RESULT mutant=L6 rc=1 fails=1
+    FAIL a mark is read only at the end of the carry, in its own grammar
+RESULT mutant=Y1 rc=1 fails=1
+    FAIL a merge over a pending carry writes carries-open, with its commit
+RESULT mutant=R1 rc=1 fails=1
+    FAIL roster: an open issue listed only by done groups is reported with them
+RESULT mutant=R2 rc=1 fails=1
+    FAIL roster: an open issue no group lists is reported
+RESULT mutant=R3 rc=1 fails=1
+    FAIL roster (null): an issue a live group lists, in issues or fixes, and #201 are not reported
+RESULT mutant=R4 rc=1 fails=1
+    FAIL roster: a carry on an absorbed group is STRANDED and names absorbed_into
+RESULT mutant=R5 rc=1 fails=1
+    FAIL roster: open_issues reads gh's JSON, numbers or objects, and drops pull requests
+plants: 52, without a FAIL line: ['C6']
