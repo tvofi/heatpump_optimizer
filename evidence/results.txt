@@ -1,0 +1,7 @@
+head 815039200ac5c5e353dc918e35443eb658830125
+RESULT base closure stamp: v7.2.0 kind minor, generated.round absent
+RESULT head closure stamp: v10.0.0 kind round-close, generated.round 10
+RESULT stamp.next_version('7.1.0',None,10,10) = 10.0.0; at 10.0.0 and 11.0.0 refuses "not above the current major"; replan.closure_version refuses identically
+RESULT plants killed: closure=minor bump (P1), round from VERSION (P2)
+RESULT plants SURVIVING (replan --self-test 0 failed): P3 non-last closure stamp check removed; P4 stray stamp kind arm accepts "minor"; P5 round_n given default 10
+RESULT replan/plan_page/state_docs self-tests 0 failed; archscore dS +0.0000 NULL; structure PASSED; scope MODE: SCOPED -- 1 script(s); merge-tree clean vs origin/main; classify GREEN
