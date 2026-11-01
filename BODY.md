@@ -36,32 +36,52 @@ being closed, not the current one). Both lost to delegating to `next_version`.
 
 ## Head
 
-`6b38d24dff2bca9c2d595fe589a428fac29f6225`, measured against merge base
-`2b6bef7453a8bdaf97d42f382a116ce226b35ccc` (origin/main at 2026-10-31T22:49Z).
+`8d176a6f714c84ffb6f5e29e8d0b6c4a73a3c1aa`, measured against merge base
+`8fec54ee2afb5e37687f34bc5fd3aa7280f64e1f` (origin/main at 2026-11-01T04:25Z
+is `61b0076f`, merge-tree clean). The round-1 review head was `815039200`
+(the delivery row plus a merge of main over `6b38d24`); this head adds one
+commit to `tools/plan/replan.py`'s self-test only. The plan files
+(`tools/plan`, `plan_page.py`, `state_docs.py`, `stamp.py`, `roster_lib.py`)
+are byte-identical at the two bases, so the before/after replan figures below,
+taken against `2b6bef745`, describe this base too.
 
 ## Mutation proof
 
 Each mutant is a copy of `tools/plan/replan.py` with one production line
-replaced, run with `--self-test` (`REPLAN_MUTATION_CHILD=1`); all three also sit
-in the self-test's own mutation table (`round-close-version`,
-`round-close-check`, `round-from-roster`), which reports each `rc=1`.
+replaced, run with `--self-test` (`REPLAN_MUTATION_CHILD=1`); every one also
+sits in the self-test's own mutation table, which reports each `rc=1`.
 
-- `stamps.append({"version": closing, ...` -> `bump(version, patch)`: rc=1;
-  FAIL the clean plan passes --check; FAIL the plan with a recorded inversion
-  passes --check; FAIL --check passes a fresh plan (null control); FAIL --check
-  --roster-ref passes the plan at the ref it names; FAIL the closure stamp is the
-  round-close major of the plan's round; FAIL the closure major follows the
-  round, not a constant.
-- `elif closes[0]["version"] != want:` -> `elif False:`: rc=1; FAIL --check
-  refuses a round-close closure stamp v1.1.0 in round 2; FAIL --check refuses a
-  round-close closure stamp v3.0.0 in round 2.
-- `round_n = roster_lib.roster_round(src)` -> `round_n = 99`: rc=1; FAIL a
+Round 1 review (blocked at `815039200`, mutation-vacuous): the three survivors
+it named, each now killed by a row planting exactly that input:
+- P3 `round-close-last`: ` or plan["stamps"][-1] is not closes[0]:` -> `:`:
+  rc=1; FAIL --check refuses a round-close stamp that is not the last stamp
+  (planted: a correct round-close stamp followed by another stamp).
+- P4 `round-close-stray-kind`: `("patch", ROUND_CLOSE)` -> `("patch", "minor",
+  ROUND_CLOSE)`: rc=1; FAIL --check refuses a minor stamp beside a correct round
+  close (planted: an extra `minor` stamp before a correct closure; the row also
+  requires no `round close` refusal, so only the stray-kind arm can answer it).
+- P5 `round-n-required`: `*, round_n: int)` -> `*, round_n: int = 10)`: rc=1;
+  FAIL build_plan without round_n refuses (a call omitting `round_n` must raise
+  TypeError naming it).
+
+Null control for these rows: the same three mutants applied to
+`815039200:tools/plan/replan.py` each print `self-test: 0 failed`, rc=0 -- the
+reviewer's result, reproduced; at this head each is rc=1.
+
+Unchanged from round 1, still killed:
+- `round-close-version` (`"version": closing` -> `bump(version, patch)`): FAIL
+  the clean plan passes --check; FAIL the closure stamp is the round-close major
+  of the plan's round; FAIL the closure major follows the round, not a constant;
+  and three --check passes rows.
+- `round-close-check` (`elif closes[0]["version"] != want:` -> `elif False:`):
+  FAIL --check refuses a round-close closure stamp v1.1.0 / v3.0.0 in round 2.
+- `round-from-roster` (`round_n = roster_lib.roster_round(src)` -> `99`): FAIL a
   roster naming no round refuses, never defaults (exit 2).
 
-Failing test first: at the baseline production code with the new arms added,
-the self-test printed FAIL the closure stamp is the round-close major of the
-plan's round (`{'version': 'v1.1.0', ..., 'kind': 'minor'}`) and FAIL a roster
-naming no round refuses, never defaults (exit 2): rc=0.
+Failing test first (round 1): at the baseline production code with the new arms
+added, the self-test printed FAIL the closure stamp is the round-close major of
+the plan's round (`kind 'minor'`, `v1.1.0`) and FAIL a roster naming no round
+refuses, never defaults (exit 2).
 
 ## Null control
 
@@ -83,20 +103,20 @@ the row `v7.2.0 ... minor` before and `v10.0.0 ... round-close` after.
 
 ## Figures
 
-- self-test: `python3 -I tools/plan/replan.py --self-test` -> `self-test: 0 failed`, the 16-row mutation table each `rc=1`.
+- self-test: `python3 -I tools/plan/replan.py --self-test` -> `self-test: 0 failed`, every row of the mutation table `rc=1`.
 - plan page: `python3 -I tools/audit/seat/plan_page.py --self-test` -> 0 failed.
 - state docs: `PYTHONPATH=tests/hastub python3 -I tools/audit/seat/state_docs.py --self-test` -> all checks passed.
 - real replan: `python3 -I tools/plan/replan.py --roster-ref e71a089ea915a04960643dac50519aefdf3befa3 --start 2026-10-31T12:00:00Z --out plan.json` -> stamps as in `## Null control`.
 - seam enumeration (rule: every tools/ or tests/ line modelling a closure as minor): `git grep -n -i -e 'minor=True' -e '"minor"' -e 'minor stamp' -e 'the minor at' -e 'closure_stamp' -- tools tests`, excluding `tools/release/stamp.py`. Base: 14 lines; head: 7. Dispositions at head: `tests/finite_boundary.py` (a store key, unrelated), `tools/audit/carry_audit.py` x2 (a word list, unrelated), `tools/audit/seat/r10_stamp_round_mutants.py` (stamp.py's legitimate interim minor bump), `replan.py` `closure_stamp` (now the round-close version), and two self-test lines (the planted refusal and its assertion). Closed in this diff: `bump(minor=True)`, kind `minor`, the `check_plan` minor arm, and the three plan-page texts.
 - structure: `python3 tests/structure.py` -> STRUCTURE RATCHET PASSED.
-- scope: `python3 tests/closure.py select --diff 2b6bef7453a8bdaf97d42f382a116ce226b35ccc` -> `MODE: SCOPED -- 1 script(s) run` (`tests/entities.py`).
+- scope: `python3 tests/closure.py select --diff 8fec54ee2afb5e37687f34bc5fd3aa7280f64e1f` -> `MODE: SCOPED -- 1 script(s) run` (`tests/entities.py`).
 - CI predict: `python3 tools/pr/ci_predict.py` -> no closures, fast, governance or instrument red predicted.
 - scoped script: `PYTHONPATH=tests/hastub python3 tests/entities.py` stops locally in `_hb_stdlib_reads` with `PermissionError: Cannot get task port` (macOS; the function's docstring names the capability this host lacks; `tests/entities.py` is unchanged by this diff). The one entities check that reads this diff, `tools/audit/seat/state_docs.py --self-test passes`, sits after that point; its command was run directly (above) and passes. CI runs entities on Linux.
-- prepr: `bash tools/pr/prepr.sh body.md` -> `PRE-PR: 6b38d24dff2b... rc=0`, `MODE: SCOPED`.
+- prepr: `bash tools/pr/prepr.sh body.md` -> `PRE-PR: 8d176a6f714c... rc=0`, `MODE: SCOPED`.
 
 ## Architecture score
 
-`python3 tools/audit/archscore/score.py --diff 2b6bef7453a8bdaf97d42f382a116ce226b35ccc` -> `Architecture score: dS +0.0000 NULL`.
+`python3 tools/audit/archscore/score.py --diff 8fec54ee2afb5e37687f34bc5fd3aa7280f64e1f` -> `Architecture score: dS +0.0000 NULL`.
 
 ## Unpinned sites
 
