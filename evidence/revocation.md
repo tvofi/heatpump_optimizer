@@ -1,0 +1,1 @@
+- #3064: approved under 6329234399; the old kill switch word REVOCATION is not the stem

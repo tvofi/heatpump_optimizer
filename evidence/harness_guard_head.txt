@@ -1,0 +1,16 @@
+Traceback (most recent call last):
+  File "/tmp/tmp.nO6tyWRbOW/harness.py", line 76, in <module>
+    sys.exit(main(sys.argv[1:]))
+             ~~~~^^^^^^^^^^^^^^
+  File "/tmp/tmp.nO6tyWRbOW/harness.py", line 58, in main
+    text = first_text()
+  File "/tmp/tmp.nO6tyWRbOW/harness.py", line 37, in first_text
+    out = json.loads(subprocess.run(["gh", "api", "graphql", "-f", f"query={q}", "-f", f"id={node}"],
+                     ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                                    capture_output=True, text=True, check=True).stdout.strip())
+                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/subprocess.py", line 578, in run
+    raise CalledProcessError(retcode, process.args,
+                             output=stdout, stderr=stderr)
+subprocess.CalledProcessError: Command '['gh', 'api', 'graphql', '-f', 'query=query($id:ID!){node(id:$id){... on IssueComment{userContentEdits(first:20){nodes{editedAt diff}}}}}', '-f', 'id=IC_kwDOT-9fds8AAAABhji8iw']' returned non-zero exit status 1.
+rc=1

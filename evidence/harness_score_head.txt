@@ -1,0 +1,7 @@
+RESULT claim='+0.0012 IMPROVES' measured='Architecture score: dS +0.0000 NULL' accepted=False
+RESULT claim='+0.0000 NULL' measured='Architecture score: dS +0.0000 NULL' accepted=True
+
+real	1m28.155s
+user	1m20.297s
+sys	0m4.831s
+rc=0

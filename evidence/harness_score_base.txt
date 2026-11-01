@@ -1,0 +1,7 @@
+RESULT claim='+0.0012 IMPROVES' measured=None accepted=True
+RESULT claim='+0.0000 NULL' measured=None accepted=True
+
+real	0m0.066s
+user	0m0.043s
+sys	0m0.014s
+rc=0

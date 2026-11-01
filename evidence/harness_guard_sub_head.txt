@@ -1,0 +1,3 @@
+RESULT body=field rc=2 last='REFUSED: gh exited 1: gh: Numeric-ID rep'
+RESULT body=field-without-word rc=0 last='DRY RUN: refusals passed, nothing writte'
+rc=0
