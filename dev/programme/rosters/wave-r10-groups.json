@@ -15495,7 +15495,7 @@
     "commit": null,
     "last_step": null,
     "next_step": "dispatch a designer (dev/governance/roles/designer.md) for design/R10-WHY-NOW-WIDGET, then its design reviewer; the fixer dispatches only on Design review: approve",
-    "note": "s9 rulings pass, 2026-11-01: created by tvofi ruling, rulings card 2 option (c) Both, part (b)"
+    "note": "tvofi 2026-11-01, rulings card 2 option (c) Both: the live why-now widget, size L, design first, after R10-GRADE-DRIVERS"
    },
    "brief": "A live \"why now\" widget for the current slot (tvofi 2026-11-01, rulings card 2 option (c) Both, part (b)): it shows the reasons behind that slot's decision, price rank, comfort floor, mold guard, away and forecast, each with a direction and a weight, from a new per-slot reasons output on the solver path, with its own failing test. Size L, design first: the designer's note at design/R10-WHY-NOW-WIDGET is approved by a design reviewer before the fixer dispatches. It runs after R10-GRADE-DRIVERS, which builds the Driving score-row hover with signed drivers; the card file is hot and this group waits behind it in the serial chain. Plain-words metric text in every hover, en and sv; reviewer opus with tests/card_browser.mjs screenshots, light and dark, phone and desktop. The full spec is the group's carry; nothing in it is scoped out. Re-measure every figure at this group's own merge base; carry no count."
   }
