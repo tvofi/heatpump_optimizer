@@ -12303,7 +12303,7 @@
     "From tvofi, 2026-11-01 (plan-regain card 9, chose \"Build it now\"; owner reviews, code-owned paths). Measured over 24 h: 84 'CI edit' runs had a prelude median of 37.2 min (p75 44.2) polling in tools/ci/prelude.py wait_sources, 56.4 runner-hours, 2.37 runner slots on average and 11 at peak, against a job-concurrency peak of 40. Fix: an edit run that finds no finished code run exits without holding a runner, and the code run's gate re-dispatches the body units when it finishes. Edits .github/workflows/ci.yml and tools/ci/prelude.py, so it needs the owner's approving review, and the PR forces a MODE: FULL gate. Failing test first: an edit run with a pending code run exits within one poll. Null control: an edit run whose code run is done grades as today."
    ],
    "resume": {
-    "stage": "carries-open",
+    "stage": "done",
     "branch": "handoff/r10-fly-cancel-sweep",
     "commit": "3a0d55f5ec850ada7891c0680ba539f41cd6655c",
     "last_step": null,
