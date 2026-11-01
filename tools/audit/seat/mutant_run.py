@@ -392,12 +392,24 @@ def norm(x):
 
 def note(x):
     pass
+
+
+def label():
+    """Say it.
+
+    if x < 1:
+        return 7
+    """
+    msg = "a < b"  # c > d
+    on = True
+    return msg, on
 '''
 PINNED = ("from lib import clamp\n"
           "assert clamp(-1, 0, 5) == 0 and clamp(9, 0, 5) == 5 and clamp(3, 0, 5) == 3\n"
           "assert clamp(0, 0, 5) == 0 and clamp(5, 0, 5) == 5\n")
 NORM_PINNED = ("from lib import norm\nimport lib\nseen = []\nlib.note = seen.append\n"
-               "assert norm(-1) == 0 and norm(0) == 0 and norm(2) == 4 and seen == [0, 2]\n")
+               "assert norm(-1) == 0 and norm(0) == 0 and norm(2) == 4 and seen == [0, 2]\n"
+               "assert lib.label() == ('a < b', True)\n")
 LOOSE = "from lib import clamp\nassert clamp(3, 0, 5) == 3\n"
 
 
@@ -514,6 +526,30 @@ def _self_test() -> int:
             check(f"SIGTERM mid-mutant ({mode}): the running command was killed with the driver", _gone(flag.read_text()))
             flag.unlink(missing_ok=True)
 
+        # a hung mutant is a kill, and its process group goes with it
+        pidf = tmp / "hung.pid"
+        hang = ("python3 -c \"import pathlib, time\n"
+                "if 'return hi\\n    if x > hi' in pathlib.Path('lib.py').read_text():\n"
+                f"    pathlib.Path('{pidf}').write_text(str(__import__('os').getpid())); time.sleep(60)\"")
+        rc, out, _ = drive("--spec", str(spec), "--cmd", hang, "--timeout", "2")
+        check("spec: a mutant that hangs past --timeout is KILLED and its command ends",
+              rc == 0 and out.splitlines() == ["SURVIVED NULL", "KILLED ret_hi"] and _gone(pidf.read_text()))
+        for label, body in (("not a list", "{}"), ("not JSON", "[oops"), ("missing keys", '[{"name": "a"}]'),
+                            ("empty old", json.dumps([{**bad, "old": ""}])), ("old equals new", json.dumps([{**bad, "new": "return lo"}])),
+                            ("absent file", json.dumps([{**bad, "file": "nope.py"}])),
+                            ("old absent", json.dumps([{**bad, "old": "zzz"}])), ("NULL name", json.dumps([{**bad, "name": "NULL"}]))):
+            spec.write_text(body)
+            rc, out, _ = drive("--spec", str(spec), "--cmd", pin)
+            check(f"spec: {label} is refused, rc 2, nothing run", rc == 2 and out == "")
+        write_spec([bad])
+        for label, args in (("both --spec and --diff", ["--spec", str(spec), "--diff", "a...b", "--cmd", pin]),
+                            ("neither", ["--cmd", pin]), ("no --cmd", ["--spec", str(spec)]),
+                            ("--copy-tree with --in-place", ["--spec", str(spec), "--cmd", pin, "--copy-tree", "--in-place"]),
+                            ("a two-dot --diff", ["--diff", "HEAD", "--cmd", pin]),
+                            ("an unresolvable --diff base", ["--diff", "nobase...HEAD", "--cmd", pin])):
+            rc, out, _ = drive(*args)
+            check(f"main: {label} is refused, rc 2", rc == 2 and out == "")
+
         # diff mode
         (repo / "lib.py").write_text(LIB2)
         g("commit", "-q", "-am", "add norm")
@@ -521,6 +557,14 @@ def _self_test() -> int:
         rc, out, _ = drive("--diff", rng, "--list")
         ops = {l.split()[2] for l in out.splitlines() if l.startswith("MUTANT ")}
         check("diff: the added lines yield all five operators", ops == set(OPERATORS))
+        rc, out, _ = drive("--diff", rng, "--list")
+        listed = [l for l in out.splitlines() if l.startswith("MUTANT ")]
+        src2 = LIB2.splitlines()
+        doc = {i + 1 for i, l in enumerate(src2) if l.strip() in ("if x < 1:", "return 7", "Say it.") or l.strip().startswith('"""')}
+        msg = next(i + 1 for i, l in enumerate(src2) if l.strip().startswith("msg ="))
+        check("diff: no mutant inside a multi-line string, and none from a < or # inside a string literal",
+              doc and not any(int(l.split()[1].split(":")[1]) in doc | {msg} for l in listed))
+        check("diff: a True constant is flipped", any(l.endswith("on = False") for l in listed))
         rc, out, _ = drive("--diff", rng, "--cmd", "python3 check_norm.py")
         check("diff: a self-test that pins the guard, return, bound, call and constant leaves no survivor, rc 0",
               rc == 0 and "SURVIVED" not in out)
@@ -528,6 +572,11 @@ def _self_test() -> int:
         survivors = [l for l in out.splitlines() if l.startswith("SURVIVED ")]
         check("diff: a self-test that does not pin them leaves survivors, rc 1, one line each",
               rc == 1 and len(survivors) >= 5 and {l.split()[2] for l in survivors} == set(OPERATORS))
+        rc, out, _ = drive("--diff", rng, "--cmd", "python3 check_norm.py", "--in-place")
+        clean = subprocess.run(["git", "-C", str(repo), "status", "--porcelain"], capture_output=True, text=True, env=env).stdout == ""
+        check("diff: --in-place over a pinning command leaves no survivor and the tree clean", rc == 0 and out == "" and clean)
+        rc, out, _ = drive("--diff", rng, "--cmd", "python3 check_loose.py", "--in-place", "--max-mutants", "4")
+        check("diff: --max-mutants caps the pass (4 mutants, at most 4 lines)", rc == 1 and 0 < len(out.splitlines()) <= 4)
         rc, out, _ = drive("--diff", rng, "--cmd", "python3 check_loose.py", "--report-only")
         check("diff: --report-only prints the survivors and exits 0", rc == 0 and "SURVIVED" in out)
         rc, out, _ = drive("--diff", rng, "--cmd", 'python3 -c "raise SystemExit(1)"')
