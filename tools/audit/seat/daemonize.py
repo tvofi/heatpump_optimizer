@@ -4,7 +4,7 @@ started it, with a log the launch is attributable from its first line.
 
     python3 tools/audit/seat/daemonize.py --log LOG [--cwd DIR]
              [--env K=V]... [--path-prepend DIR] -- CMD [ARG]...
-    python3 tools/audit/seat/daemonize.py --self-test
+    python3 tools/audit/seat/daemonize.py --self-test      # first argument only
 
 WHY THIS EXISTS. Round 9 hand-rolled the same wrapper four times in /tmp
 (launch-traintest.py, launch-rehearse.py, launch-wait2.py in a scratch dir,
@@ -148,6 +148,16 @@ def self_test() -> int:
     check("an empty command after `--` is refused", cli("--log", "L", "--")
           == "exit 2")
 
+    # `--self-test` selects the self-test only as argv[1]; as the wrapped
+    # command's own argument it must reach that command (carry from #2524).
+    check("--self-test as argv[1] selects the self-test",
+          wants_self_test(["--self-test"]))
+    check("--self-test after `--` is the wrapped command's, not ours",
+          not wants_self_test(["--log", "L", "--", "tool", "--self-test"]))
+    check("--self-test as a later option is not ours",
+          not wants_self_test(["--log", "L", "--self-test", "--", "true"]))
+    check("no arguments do not select the self-test", not wants_self_test([]))
+
     with tempfile.TemporaryDirectory() as tmp:
         log = os.path.join(tmp, "t.log")
         marker = os.path.join(tmp, "done")
@@ -249,8 +259,15 @@ def parse_cli(argv: list[str]) -> argparse.Namespace:
     return a
 
 
+def wants_self_test(argv: list[str]) -> bool:
+    """`--self-test` runs the self-test only as the FIRST argument. Anywhere
+    else it belongs to the wrapped command (`-- CMD --self-test`), which must
+    still be launched, not silently replaced by this script's own test."""
+    return argv[:1] == ["--self-test"]
+
+
 def main() -> int:
-    if "--self-test" in sys.argv[1:]:
+    if wants_self_test(sys.argv[1:]):
         return self_test()
     a = parse_cli(sys.argv[1:])
     pid = daemonize(a.cmd, a.log, a.cwd, a.env_add, a.path_prepend)
