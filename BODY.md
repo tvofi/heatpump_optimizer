@@ -2,7 +2,7 @@ R10-MUTANT-RUN-DRIVER (size S, issue #3122; owner tvofi approved card 4 on 2026-
 
 ## Head
 
-Code head `7af8c887a2439357432ce6fb14efc27429773f16`, a merge of origin/main `56630e7e6d229d960cf1b4db304d488ee20873e6` into the branch; origin/main had moved since the last full `tools/pr/prepr.sh` run and the run was repeated after the merge (see Figures).
+Pull-request head `1a6a7e6a8bf1cbe04f37989aaedbab66165df624` (the code head plus a merge of origin/main and the delivery row; no code differs from the authored head). Code head `7af8c887a2439357432ce6fb14efc27429773f16`, a merge of origin/main `56630e7e6d229d960cf1b4db304d488ee20873e6` into the branch; origin/main had moved since the last full `tools/pr/prepr.sh` run and the run was repeated after the merge (see Figures).
 
 ## Mutation proof
 
@@ -47,7 +47,11 @@ The heavy pass is the instrument above; the driver's own mutation ledger does no
 
 ## Red checks
 
-none. `tools/pr/prepr.sh` predicted `tests / closures` INERT READS for the two new/changed scripts; `ci_predict.py --apply-inert` applied it (tests/closures.json, +2 lines) and the predictor then reported no red. The new files are classified by that listing, so `tests/entities.py` passes.
+The check-run set was re-read in full (check-runs API, all pages, 55 runs) at head `1a6a7e6a8bf1cbe04f37989aaedbab66165df624`. Concluded red, by name: `governance / delivery-status`, and `pr-contract / pr-contract` (two runs) with the aggregate `gate` (two runs), which are red only because they refuse this body for leaving `governance / delivery-status` unnamed. Every other concluded check is success or skipped.
+
+`governance / delivery-status`: the red is the OVERDUE row for #3096 ("triage: s9 batch 102", 12 commits since), not this pull request's row (#3151 is not in the log's list). The check grades main at its pinned SHA (`PINNED: 7f849a24911e9d52336bd79ea9ce63c67416a6ae`) and its log says it is not a required context and a red blocks no merge. This diff does not cause it: the only change to `.github/workflows/governance.yml` is one added step in the `instrument-self-tests` job (it runs `mutant_run.py --self-test`), and the `delivery-status` job and the tool it runs are untouched (`git diff $(git merge-base origin/main HEAD)...HEAD -- .github/workflows/governance.yml` shows one 7-line hunk at the self-test steps); the row set it reads does not change with this branch, and it would be red identically on main. Cheaper detector: none; the check already is the detector, runs in about 20 s, and its red clears when the #3096 batch is dispositioned. State (d), a precondition that changed underneath a sound process: the batch drain fell behind. Nothing to build here; recorded, no countermeasure.
+
+`pr-contract / pr-contract` and `gate`: red only on `[pr-body] check governance / delivery-status is red and ## Red checks does not name it`; this section repairs that. Nothing else in the code is red.
 
 ## Forward-carry
 
