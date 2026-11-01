@@ -22,6 +22,37 @@
   ok   mutant killed: -c does not end the field
   ok   mutant killed: -m does not take its module
   ok   mutant killed: python is not followed to its script
+  ok   exact field of parent `python3 -c__import__('subprocess').run(['gh','ap` is `python3 -c`
+  ok   exact field of parent `python3 -Bc__import__('subprocess').run(['gh','a` is `python3 -Bc`
+  ok   exact field of parent `perl -esystem('gh','api','-fx=LEAKVAL')` is `perl -e`
+  ok   exact field of parent `ruby -esystem('gh','api','-fx=LEAKVAL')` is `ruby -e`
+  ok   exact field of parent `node --eval=require('child_process').execFileSyn` is `node --eval`
+  ok   exact field of parent `node --print=LEAKVAL` is `node --print`
+  ok   exact field of parent `bash --command=LEAKVAL` is `bash --command`
+  ok   exact field of parent `sh -s LEAKVAL` is `sh -s`
+  ok   exact field of parent `sh -s -- LEAKVAL` is `sh -s`
+  ok   exact field of parent `bash -s -- --token LEAKVAL` is `bash -s`
+  ok   exact field of parent `python3 -W ignore::LEAKVAL caller.py` is `python3 caller.py`
+  ok   exact field of parent `python3 -WLEAKVAL caller.py` is `python3 caller.py`
+  ok   exact field of parent `python3 -X LEAKVAL caller.py` is `python3 caller.py`
+  ok   exact field of parent `python3 -W error -m caller_mod LEAKVAL` is `python3 -m caller_mod`
+  ok   exact field of parent `bash -o LEAKVAL s.sh` is `bash s.sh`
+  ok   exact field of parent `node --require ./LEAKVAL.js n.js` is `node`
+  ok   exact field of parent `node -p LEAKVAL` is `node`
+  ok   exact field of parent `ruby -r LEAKVAL x.rb` is `ruby`
+  ok   exact field of parent `perl -MLEAKVAL -e x` is `perl`
+  ok   exact field of parent `python3 -I caller.py --body LEAKVAL` is `python3 caller.py`
+  ok   exact field of parent `sh ./a=b/s.sh LEAKVAL` is `sh ./a?b/s.sh`
+  ok   exact field of parent `sh /dddddddddddddddddddddddddddddddddddddddddddd` is `sh /dddddddddddddddddddd`
+  ok   mutant killed: a code option logged whole, not cut after its letter
+  ok   mutant killed: -s passed over as a no-value letter, not ending the field
+  ok   mutant killed: an unknown option letter passed over, not ending the field
+  ok   mutant killed: an unknown long option passed over, not ending the field
+  ok   mutant killed: a value-taking letter read as no-value, its value taken as the script
+  ok   mutant killed: `=` allowed in the parent field
+  ok   mutant killed: the 80-character cut removed
+  ok   mutant killed: --eval/--print/--command passed over
+  ok   mutant killed: a long code option logged with its attached code
   ok   an existing 0644 log is 0600 after the next call
   ok   a 0644 log rotated to .1 is 0600 there
   ok   mutant killed: no chmod of an existing log
@@ -49,4 +80,4 @@
   ok   a malformed --since is refused
   ok   coverage reads the shim marker, not the name
   ok   a real gh ahead of the shim reads as not logged
-gh_calls self-test: 50 checks, 0 failed
+gh_calls self-test: 81 checks, 0 failed
