@@ -1,0 +1,5 @@
+cycles 4 counts {'finite': 0, 'unit': 0, 'no_default': 0, 'agreement': 0, 'cycle': 0, 'not_frozen': 0, 'away': 2, 'cycle_cost': 1}
+away offenders ['the fixture declares away coverage but the replay carried no commanded cycle', 'owner-2026-10-30-away.json declares away coverage but records no active command']
+commanded 0 views []
+space_kwh None None
+cycle_cost ['loop_cpu_ratio 0.1182: budget 0.249 cannot see a 2x cycle; re-record 0.1672']
