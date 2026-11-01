@@ -73,7 +73,7 @@ jobs:
       # and the check step below both refuse a mismatch.
       ASSET: heatpump_optimizer.zip
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # The ancestry step below walks main's history back to this commit.
           fetch-depth: 0
