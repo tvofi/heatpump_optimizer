@@ -279,6 +279,8 @@ _RESTATED = "ledger.restate_total re-derives them from the receipt's own lines o
 _DHW_INTENSITY = Domain("real", 0.0, 3.5, whole=_PROFILE)
 
 _DRAW_KEY = "the configuration keys the record: unreadable, the samples and the latch are dropped with it"
+#: A metered running draw: one at or below standby is not a running one, and is dropped.
+_RUNNING_KW = Domain("real", math.nextafter(RUNNING_FLOOR_KW, math.inf))
 
 _ACCURACY: dict[str, Domain | str] = {
     "samples/#/t": _AT, "samples/#/predicted_power_kw": Domain("real", 0.0, null=True),
@@ -300,15 +302,19 @@ _ACCURACY: dict[str, Domain | str] = {
     # R9-UX-6: the plan's day-ahead promise per local date (plan_promise).
     "promises/~": _DAY, "promises/*/start": _AT, "promises/*/step_minutes": Domain("real", _POS),
     "promises/*/room/#": _R, "promises/*/cost/#": _R,
-    # The metered running draw beside the space level asked (draw_range):
-    # a sample at or below standby is not a running one, and is dropped.
-    "draw/samples/#/0": Domain("real", math.nextafter(RUNNING_FLOOR_KW, math.inf)),
+    # The metered running draw beside the space level asked (draw_range).
+    "draw/samples/#/0": _RUNNING_KW,
     "draw/samples/#/1": _Z,
     # R10-SETPOINT-BOOST: the flow set-point held and its ceiling, null where
     # nothing commanded the draw; and the readings taken at the gate.
     "draw/samples/#/2": _N,
     "draw/samples/#/3": _N,
     "draw/idle/#": _Z,
+    # R10-CEILING-PROBE: the experiment's ceiling-commanded draws, each beside
+    # its interval's start in epoch seconds, and the overdraws since.
+    "draw/ceiling/#/0": _RUNNING_KW,
+    "draw/ceiling/#/1": _R,
+    "draw/overdraws": _COUNT,
     "draw/engaged": Domain("flag", whole=_DRAW_KEY),
     "draw/config/#": Domain("real", whole=_DRAW_KEY),
 }

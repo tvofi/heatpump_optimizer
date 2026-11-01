@@ -58,8 +58,13 @@
 #
 # v7.1.0: Round-10 merge train: claim-carry barrier, train admission, COP gate and part-load, Health tab, Marketplace. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
-config_flow # r10-wood-notify: the wood_lighting_lead_minutes option joins the seeded wood group; one key added, no value moved; R10-FACTORY-RESET: the factory_reset options page joins the advanced menu (16 entries, was 15), its two transient fields (scope, confirm) and its seeded copy; keys added, no value moved
 #
+config_flow # r10-wood-notify: the wood_lighting_lead_minutes option joins the seeded wood group; one key added, no value moved; R10-FACTORY-RESET: the factory_reset options page joins the advanced menu (16 entries, was 15), its two transient fields (scope, confirm) and its seeded copy; keys added, no value moved
+coord_all_features  # R10-COP-GATE p5 (A) and R10-CEILING-PROBE (#2498, #2808), both additions only: model_status cop row gains cop_observability, cop_refusal, measured_cop_at, copied from the learning view; the system_identification view gains kind, held, last_attempt, and model_status records a system_identification_outcome row beside it
+coord_dhw  # R10-COP-GATE p5 (A) and R10-CEILING-PROBE (#2498, #2808), both additions only: model_status cop row gains cop_observability, cop_refusal, measured_cop_at, copied from the learning view; the system_identification view gains kind, held, last_attempt, and model_status records a system_identification_outcome row beside it
+coord_grid_fee  # R10-COP-GATE p5 (A) and R10-CEILING-PROBE (#2498, #2808), both additions only: model_status cop row gains cop_observability, cop_refusal, measured_cop_at, copied from the learning view; the system_identification view gains kind, held, last_attempt, and model_status records a system_identification_outcome row beside it
+coord_minimal  # R10-COP-GATE p5 (A) and R10-CEILING-PROBE (#2498, #2808), both additions only: model_status cop row gains cop_observability, cop_refusal, measured_cop_at, copied from the learning view; the system_identification view gains kind, held, last_attempt, and model_status records a system_identification_outcome row beside it
+coord_two_zone  # R10-COP-GATE p5 (A) and R10-CEILING-PROBE (#2498, #2808), both additions only: model_status cop row gains cop_observability, cop_refusal, measured_cop_at, copied from the learning view; the system_identification view gains kind, held, last_attempt, and model_status records a system_identification_outcome row beside it
 # may-drift: flat_prices -- #1208 polish-every-candidate, owner ruling #1208 comment 208bed25
 # (option (a)): the move's margin is inside the noise band (objective rel
 # -1.2171e-03, deterministic on one box), so which runner sees it move is the
@@ -734,8 +739,3 @@ config_flow # r10-wood-notify: the wood_lighting_lead_minutes option joins the s
 # valve_storage_low_target, whose plan leaves move too: the reference's energy
 # anchors three of the space solve's starts, so a valved plan can land in
 # another basin. Unvalved fixtures do not move.
-coord_all_features  # R10-COP-GATE p5 (A): model_status cop row gains cop_observability, cop_refusal, measured_cop_at, copied from the learning view (additions only)
-coord_dhw  # R10-COP-GATE p5 (A): model_status cop row gains cop_observability, cop_refusal, measured_cop_at, copied from the learning view (additions only)
-coord_grid_fee  # R10-COP-GATE p5 (A): model_status cop row gains cop_observability, cop_refusal, measured_cop_at, copied from the learning view (additions only)
-coord_minimal  # R10-COP-GATE p5 (A): model_status cop row gains cop_observability, cop_refusal, measured_cop_at, copied from the learning view (additions only)
-coord_two_zone  # R10-COP-GATE p5 (A): model_status cop row gains cop_observability, cop_refusal, measured_cop_at, copied from the learning view (additions only)

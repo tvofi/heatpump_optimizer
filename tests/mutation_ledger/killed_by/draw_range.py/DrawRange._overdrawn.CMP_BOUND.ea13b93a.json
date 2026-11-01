@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/draw_range.py:DrawRange._overdrawn CMP_BOUND ea13b93a",
+  "killed_by": "tests/features.py",
+  "old": "        if drawn_kw > (1.0 + AGREE_TOLERANCE) * self._ceiling_median():",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`if drawn_kw >= (1.0 + AGREE_TOLERANCE) * self._ceiling_median():`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

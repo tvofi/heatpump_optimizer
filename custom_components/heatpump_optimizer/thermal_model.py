@@ -112,6 +112,7 @@ from .const import (
     topology_layout_valid,
 )
 from .flow_lift import FLOW_SUPPLY_MAX_C, curve_supply_temp
+from .entry_config import EntryConfig
 from .const import finite_float
 from .wood_fuel import wood_furnace_on
 from .dhw_schedule import (
@@ -1349,6 +1350,29 @@ def probe_install(config: Any) -> InstallCapability:
         heat_counter=bool(cfg.get(const.CONF_HEAT_ENERGY_ENTITY)),
         electric_counter=bool(cfg.get(const.CONF_ENERGY_ENTITY)),
     )
+
+
+def flow_setpoint_driven(config: Any) -> bool:
+    """The pump-duty arbiter drives the space circuit through a flow set-point.
+
+    Control duty, the flow unit, and a plan that does not write the
+    compressor's power itself: where else the metered draw is the pump's own
+    choice or the plan's frequency echo, not a response to a set-point the
+    arbiter wrote. ``pump_arbiter._flow_command`` adds the run-time half (a
+    written record, the optimizer not off).
+    """
+    cfg = EntryConfig.from_mapping(config or {})
+    return (
+        cfg.pump_duty_mode == const.PUMP_DUTY_MODES[2]
+        and cfg.space_setpoint_unit == "flow"
+        and not probe_install(cfg).plan_writes_power()
+    )
+
+
+def ceiling_probe_install(config: Any) -> bool:
+    """The install can run the ceiling probe (R10-CEILING-PROBE): a meter to
+    read the draw, and a flow set-point the arbiter writes at the ceiling."""
+    return flow_setpoint_driven(config) and probe_install(config).measured_power
 
 
 def _configured(cap: InstallCapability, cfg: Any, key: str) -> bool:
