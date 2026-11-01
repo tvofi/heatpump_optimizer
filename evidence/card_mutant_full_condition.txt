@@ -1,2 +1,0 @@
-  FAIL  UX-HEALTH D: with no power meter the learned heat loss draws no learned bar (#2499)
-1 CARD CHECK(S) FAILED

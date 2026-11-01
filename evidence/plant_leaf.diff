@@ -1,0 +1,39 @@
+diff --git a/custom_components/heatpump_optimizer/strings.json b/custom_components/heatpump_optimizer/strings.json
+index 70be2aede..359993a44 100644
+--- a/custom_components/heatpump_optimizer/strings.json
++++ b/custom_components/heatpump_optimizer/strings.json
+@@ -1031,7 +1031,7 @@
+           "peak_tariff_months": "For example \"Nov-Mar\". Empty means the tariff bills every month. Outside these months a peak contributes nothing to the bill, and the plan knows it.",
+           "peak_tariff_hours": "For example \"07:00-19:00\". Empty means every hour counts in full. Outside these hours a peak counts at the off-peak factor below.",
+           "peak_tariff_weekdays_only": "Many Swedish tariffs only bill weekday peaks. With this on, Saturday and Sunday count at the off-peak factor.",
+-          "peak_tariff_offpeak_factor": "1.0 treats every hour the same. 0.5 is the common half-rate night peak; 0 makes off-peak hours free — night-time stacking then costs nothing in capacity, which is exactly the cheap-hour concentration this integration exists to find.",
++          "peak_tariff_offpeak_factor": "1.0 treats every hour the same, which is how it worked before. 0.5 is the common half-rate night peak; 0 makes off-peak hours free — night-time stacking then costs nothing in capacity, which is exactly the cheap-hour concentration this integration exists to find.",
+           "peak_tariff_distinct_days": "Most Swedish tariffs count the highest hour of each of three different days, so a cold morning with three high hours is one peak, not three. Turn off only if your invoice averages the highest hours regardless of day.",
+           "after_save": "Saving writes through immediately; this chooses where the dialog goes next."
+         }
+diff --git a/custom_components/heatpump_optimizer/translations/en.json b/custom_components/heatpump_optimizer/translations/en.json
+index 812d4e9c5..b1b83286d 100644
+--- a/custom_components/heatpump_optimizer/translations/en.json
++++ b/custom_components/heatpump_optimizer/translations/en.json
+@@ -1031,7 +1031,7 @@
+           "peak_tariff_months": "For example \"Nov-Mar\". Empty means the tariff bills every month. Outside these months a peak contributes nothing to the bill, and the plan knows it.",
+           "peak_tariff_hours": "For example \"07:00-19:00\". Empty means every hour counts in full. Outside these hours a peak counts at the off-peak factor below.",
+           "peak_tariff_weekdays_only": "Many Swedish tariffs only bill weekday peaks. With this on, Saturday and Sunday count at the off-peak factor.",
+-          "peak_tariff_offpeak_factor": "1.0 treats every hour the same. 0.5 is the common half-rate night peak; 0 makes off-peak hours free — night-time stacking then costs nothing in capacity, which is exactly the cheap-hour concentration this integration exists to find.",
++          "peak_tariff_offpeak_factor": "1.0 treats every hour the same, which is how it worked before. 0.5 is the common half-rate night peak; 0 makes off-peak hours free — night-time stacking then costs nothing in capacity, which is exactly the cheap-hour concentration this integration exists to find.",
+           "peak_tariff_distinct_days": "Most Swedish tariffs count the highest hour of each of three different days, so a cold morning with three high hours is one peak, not three. Turn off only if your invoice averages the highest hours regardless of day.",
+           "after_save": "Saving writes through immediately; this chooses where the dialog goes next."
+         }
+diff --git a/custom_components/heatpump_optimizer/translations/sv.json b/custom_components/heatpump_optimizer/translations/sv.json
+index 3b953079d..45bff1c8d 100644
+--- a/custom_components/heatpump_optimizer/translations/sv.json
++++ b/custom_components/heatpump_optimizer/translations/sv.json
+@@ -1031,7 +1031,7 @@
+           "peak_tariff_months": "Till exempel \"Nov-Mar\". Tomt betyder att tariffen fakturerar varje månad. Utanför dessa månader bidrar en topp ingenting till räkningen, och planen vet om det.",
+           "peak_tariff_hours": "Till exempel \"07:00-19:00\". Tomt betyder att varje timme räknas fullt ut. Utanför dessa timmar räknas en topp enligt låglastfaktorn nedan.",
+           "peak_tariff_weekdays_only": "Många svenska tariffer fakturerar bara vardagstoppar. Med detta på räknas lördag och söndag enligt låglastfaktorn.",
+-          "peak_tariff_offpeak_factor": "1,0 behandlar varje timme lika. 0,5 är den vanliga halvtaxan för natt-toppar; 0 gör låglasttimmar gratis — nattlig stapling kostar då ingenting i effekt, vilket är precis den billiga-timmar-koncentration integrationen finns för att hitta.",
++          "peak_tariff_offpeak_factor": "1,0 behandlar varje timme lika, som det fungerade tidigare. 0,5 är den vanliga halvtaxan för natt-toppar; 0 gör låglasttimmar gratis — nattlig stapling kostar då ingenting i effekt, vilket är precis den billiga-timmar-koncentration integrationen finns för att hitta.",
+           "peak_tariff_distinct_days": "De flesta svenska tariffer räknar den högsta timmen på vart och ett av tre olika dygn, så en kall morgon med tre höga timmar är en topp, inte tre. Stäng av bara om din faktura tar medel av de högsta timmarna oavsett dygn.",
+           "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst."
+         }
