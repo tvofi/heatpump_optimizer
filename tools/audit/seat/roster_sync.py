@@ -100,8 +100,9 @@ DERIVABLE_STAGES = roster_lib.DERIVABLE
 #: `deferred` and `refuted` are the tree's own rosters' words; `refused` and
 #: `absorbed` are the orchestrator's and design 6.4's (`rca-done` is a closed
 #: stage in the registry's DONE view, not a disposition).
-#: `carries-open`: the group's code is done but it still owns open carries; a
-#: human disposition, so a merged PR must not turn it into `done`. It is not
+#: `carries-open`: the group's code is done but it still owns open carries (or,
+#: written by `hold_open`, an open issue nothing else owns); a disposition, so
+#: a merged PR must not turn it into `done`. It is not
 #: `in-progress`, so `pr_cap.py` (WIP_STAGE equality) does not count it.
 PROTECTED_STAGES = roster_lib.DISPOSITION
 
