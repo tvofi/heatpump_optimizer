@@ -111,6 +111,7 @@ import json
 import math
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -1197,6 +1198,13 @@ def recorder_checks() -> list[tuple[str, bool, str]]:
         flag, _ = _export_mariadb(fake, tmp, db_url=_DB_URL.replace("homeassistant", "hadb"))
         res.append(("recorder:db_url_flag_read", flag is not None
                     and fake.kwargs.get("database") == "hadb", str(fake.kwargs.get("database"))))
+        # A SQLite recorder named by a db_url (which may come from secrets.yaml)
+        # is named by its kind; its path is printed only where the person typed it.
+        shutil.copy(tmp / "mariadb-backing.db", tmp / "url-named-recorder.db")
+        lite, said = _export_mariadb(None, tmp, db_url="sqlite:///url-named-recorder.db")
+        res.append(("recorder:sqlite_db_url_named_by_kind_not_path",
+                    lite is not None and "SQLite database" in said
+                    and "url-named-recorder" not in said, said[-200:]))
         missing, why = _export_mariadb(None, tmp)
         res.append(("recorder:db_url_driver_missing_refused_by_name",
                     missing is None and "MySQLdb" in why and "pymysql" in why, why[-200:]))

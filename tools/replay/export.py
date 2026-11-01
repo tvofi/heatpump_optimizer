@@ -258,6 +258,10 @@ def recorder_url(config_dir: Path) -> str | None:
 #: What a message calls a MySQL/MariaDB recorder. No text of the URL is in it:
 #: its host and database are the owner's, and a message only names the kind.
 MYSQL_LABEL = "MySQL/MariaDB database"
+#: A SQLite recorder named by a ``db_url`` is named by its kind alone, for the
+#: same reason: the URL may come from ``secrets.yaml``, and a message names a
+#: location only when the person typed it (``--db``, or the config directory).
+SQLITE_URL_LABEL = "SQLite database"
 
 
 class Recorder:
@@ -334,11 +338,14 @@ def open_recorder(config_dir: Path, db: Path | None, db_url: str | None) -> Reco
             raise SystemExit("the recorder URL is neither SQLite nor "
                              "MySQL/MariaDB, the two this export reads")
         return _mysql(url)
+    label = None
     if url:
         db = Path(urlsplit(url).path[1:] if url.startswith("sqlite:////") else
                   config_dir / urlsplit(url).path.lstrip("/"))
+        label = SQLITE_URL_LABEL
     db = db or config_dir / "home-assistant_v2.db"
-    return Recorder(sqlite3.connect(f"file:{db}?mode=ro", uri=True), f"SQLite {db}", qmark=True)
+    return Recorder(sqlite3.connect(f"file:{db}?mode=ro", uri=True),
+                    label or f"SQLite {db}", qmark=True)
 
 
 def _schema_version(rec: Recorder) -> int:
