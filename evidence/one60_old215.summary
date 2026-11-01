@@ -1,6 +1,0 @@
-cycles 4 counts {'finite': 0, 'unit': 0, 'no_default': 0, 'agreement': 0, 'cycle': 0, 'not_frozen': 0, 'away': 0, 'cycle_cost': 3}
-away offenders []
-commanded 3 views [(True, True, False, 15.0, 15.0)]
-space_kwh 8.06 12.61
-cycle_cost ['no recorded budget: record cpu_ratio=502.9', 'no recorded budget: record peak_kib=3559', 'no recorded budget: record loop_cpu_ratio=0.2519']
-"cost": {"cpu_ratio": 355.6266, "peak_kib": 2516.4, "loop_cpu_ratio": 0.1781, "timed": 1, "traced": 2, "ref_ms": 31.597386000015604, "loop_ref_ms": 85.69987}

@@ -3,4 +3,3 @@ away offenders []
 commanded 0 views []
 space_kwh None None
 cycle_cost []
-"cost": {"cpu_ratio": 287.3913, "peak_kib": 2734.0, "loop_cpu_ratio": 0.1854, "timed": 1, "traced": 2, "ref_ms": 34.40544499999998, "loop_ref_ms": 83.82222599999989}
