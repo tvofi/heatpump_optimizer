@@ -342,6 +342,7 @@ from .thermal_model import (
     planned_draw_runs,
     probe_install,
     reanchor_heat_loss,
+    power_for_heat_per_cop_kw,
 )
 from .dhw_schedule import (
     DHWWindowError,
@@ -4078,10 +4079,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 * max(0.5 * (t + params.dhw_min_temp) - TANK_ROOM_AMBIENT_TEMP, 0.0)
                 * 24.0
             )
-            cop = max(
-                float(self._thermal_model.compute_cop_dhw(outdoor, t)), 0.5
-            )
-            cost_day = (standby_kwh + draw_day_kwh) / cop * mean_price
+            cop = max(float(self._thermal_model.compute_cop_dhw(outdoor, t)), 0.5)
+            cost_day = mean_price * power_for_heat_per_cop_kw(
+                params, (standby_kwh + draw_day_kwh) / cop, hours=24.0)
             # Can a tank at this setpoint cover the heaviest window from
             # its usable band at all?
             usable_kwh = c_dhw * max(t - params.dhw_min_temp, 0.0)
@@ -7850,8 +7850,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         return format_windows(params.dhw_windows)
 
     def configured_quiet_windows(self) -> dict[str, str]:
-        out = quiet_windows.configured_specs(getattr(self, "_ctx", self)._config, getattr(getattr(getattr(self, "hass", None), "states", None), "get", None))
-        return out
+        return quiet_windows.configured_specs(getattr(self, "_ctx", self)._config, getattr(getattr(getattr(self, "hass", None), "states", None), "get", None))
 
     def describe_setup(self) -> dict[str, Any]:
         """The configured topology, for every picture of the system.
@@ -7963,6 +7962,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             thermal_model=self._thermal_model,
             current_state=ctx._current_state,
             result=result,
+            local_tz=dt_util.DEFAULT_TIME_ZONE,
         )
         # Only surface the manual-plan key while an override is actually active,
         # so a plan-free solve (the golden fixtures included) is byte-for-byte
@@ -9076,14 +9076,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         floor = CAPACITY_FLOOR_FRACTION * p_max
         caps = np.full(len(outdoor_temps), p_max, dtype=float)
         any_cap = False
+        model = model or self._thermal_model
         for i, outdoor in enumerate(outdoor_temps):
             entry = self._capacity_envelope.get(int(np.floor(outdoor / 3.0)))
             if entry is None or int(entry[1]) < CAPACITY_MIN_SAMPLES:
                 continue
-            has_hum = humidity is not None and i < len(humidity)
-            hum = float(humidity[i]) if has_hum else None
-            cop_i = max((model or self._thermal_model).compute_cop(float(outdoor), humidity=hum), 1e-6)
-            cap_i = float(np.clip(float(entry[0]) / cop_i, floor, p_max))
+            hum = float(humidity[i]) if humidity is not None and i < len(humidity) else None
+            cop_i = max(model.compute_cop(float(outdoor), humidity=hum), 1e-6)
+            cap_i = float(np.clip(power_for_heat_per_cop_kw(model.params, float(entry[0]) / cop_i), floor, p_max))
             if cap_i < p_max - 1e-9:
                 caps[i] = cap_i
                 any_cap = True
