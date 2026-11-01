@@ -1,4 +1,0 @@
-roster: dev/programme/rosters/wave-r10-groups.json on handoff/audit-r10-roster
-lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
-pushed handoff/audit-r10-roster at 039d2b94a6b50a14cf8136f009eba4c4bbf3bad9
-rc=0

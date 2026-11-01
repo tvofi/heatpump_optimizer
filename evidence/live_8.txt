@@ -1,3 +1,0 @@
-roster: dev/programme/rosters/wave-r10-groups.json on handoff/audit-r10-roster
-roster_edit: REFUSED: set-files: hot_files token ['nowhere.py'] is neither a files basename of R10-ROSTER-OPS-2 nor a known hot-file token
-rc=2
