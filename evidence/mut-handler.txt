@@ -1,0 +1,7 @@
+  ok   null: a clean tree runs and ends at HEAD's digest
+  FAIL a body that never restores is restored on exit
+  FAIL SIGTERM mid-mutant leaves the file at HEAD's digest, rc 143
+  FAIL SIGINT mid-mutant leaves the file at HEAD's digest, rc 130
+  ok   a planted leftover mutant refuses rc 2 naming the file
+  ok   the refusal leaves the planted file as found
+MUTANT GUARD SELF-TEST FAILED

@@ -1,0 +1,1 @@
+RESULT head kill: mid-mutant-differs=yes rc=143 restored=yes
