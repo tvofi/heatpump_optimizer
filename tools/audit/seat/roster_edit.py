@@ -1546,6 +1546,10 @@ def _self_test() -> int:
                             value="L")
     check("set-size refuses a cite whose ref lacks the sha",
           rc == 2 and "does not hold" in said and tip() == t_sf, (rc, said[-200:]))
+    rc, said = more_refusal("set-size", "R9-A", "--cite", f"main@{sf_cited}",
+                            value="L")
+    check("set-size refuses a cite whose sha exists but main does not hold it",
+          rc == 2 and "does not hold" in said and tip() == t_sf, (rc, said[-200:]))
     rc, said = more_refusal("set-size", "R9-A", "--cite", "no-such-ref@" + sf_main,
                             value="L")
     check("set-size refuses a cite whose ref does not exist",
@@ -1593,6 +1597,10 @@ def _self_test() -> int:
                             "--cite", f"main@{'f' * 40}")
     check("set-files refuses a cite whose ref lacks the sha",
           rc == 2 and "does not hold" in said and tip() == t_sf)
+    rc, said = more_refusal("set-files", "R9-A", "--add", "README.md",
+                            "--cite", f"main@{sf_cited}")
+    check("set-files refuses a cite whose sha exists but main does not hold it",
+          rc == 2 and "does not hold" in said and tip() == t_sf, (rc, said[-200:]))
     before_a = grp("R9-A")
     check("set-files --add lands a path in the tree",
           more("set-files", "R9-A", "--add", "README.md") == 0
