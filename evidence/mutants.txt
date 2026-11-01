@@ -1,0 +1,16 @@
+== cloud_relay-8 cloud_relay.sh: KILLED rc=1 | cloud_relay self-test: 305 checks, 4 failed
+== cloud_relay-9 cloud_relay.sh: KILLED rc=1 | cloud_relay self-test: 305 checks, 1 failed
+== cloud_relay-39 cloud_relay.sh: KILLED rc=1 | cloud_relay self-test: 305 checks, 4 failed
+== cloud_relay-40 cloud_relay.sh: KILLED rc=1 | cloud_relay self-test: 305 checks, 4 failed
+== cloud_relay-41 cloud_relay.sh: KILLED rc=1 | cloud_relay self-test: 305 checks, 2 failed
+== cloud_relay-42 cloud_relay.sh: KILLED rc=1 | cloud_relay self-test: 305 checks, 2 failed
+== cloud_relay-43 cloud_relay.sh: KILLED rc=1 | cloud_relay self-test: 305 checks, 1 failed
+== cloud_relay-44 cloud_relay.sh: KILLED rc=1 | cloud_relay self-test: 305 checks, 2 failed
+== cloud_relay-45 cloud_relay.sh: KILLED rc=1 | cloud_relay self-test: 305 checks, 2 failed
+== update_pr-1 update_pr.sh: KILLED rc=1 | tools/audit/seat/pr_args.sh: line 385: printf: write error: Broken pipe
+== update_pr-2 update_pr.sh: KILLED rc=1 | tools/audit/seat/pr_args.sh: line 395: printf: write error: Broken pipe
+== update_pr-3 update_pr.sh: KILLED rc=1 | tools/audit/seat/pr_args.sh: line 395: printf: write error: Broken pipe
+== update_pr-4 update_pr.sh: KILLED rc=1 | tools/audit/seat/pr_args.sh: line 385: printf: write error: Broken pipe
+== update_pr-5 update_pr.sh: KILLED rc=1 | tools/audit/seat/pr_args.sh: line 385: printf: write error: Broken pipe
+RESULT survivors=0
+rc=0

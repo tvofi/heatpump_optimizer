@@ -1,0 +1,26 @@
+diff --git a/tools/audit/seat/cloud_relay.sh b/tools/audit/seat/cloud_relay.sh
+index d6b38b872..21ce2414f 100644
+--- a/tools/audit/seat/cloud_relay.sh
++++ b/tools/audit/seat/cloud_relay.sh
+@@ -426,7 +426,7 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of
+       bonly=1; fi
+     if grep -qxF "$pr" <<< "$held_prs"; then echo "cloud_relay: HELD #$pr $hs"; continue; fi
+     # a body-only move leaves the head under review where it is, so no review freezes it
+-    if [ -z "$bonly" ] && ! grep -qxF "$pr" <<< "$released" && why=$(review_freeze "$pr" "$head" "$state/cloud-vrefs.$$"); then
++    if true && ! grep -qxF "$pr" <<< "$released" && why=$(review_freeze "$pr" "$head" "$state/cloud-vrefs.$$"); then
+       echo "cloud_relay: HELD-$why #$pr $hs (head $head under review; merge it, or list #$pr in $(release_file) and re-dispatch)"
+       level_line handoff-held "refs/heads/handoff/$topic" "$hs" "#$pr $why" >> "$state/cloud-level-held.$$"; continue
+     fi
+diff --git a/tools/audit/seat/update_pr.sh b/tools/audit/seat/update_pr.sh
+index e7be8de02..bb378d171 100755
+--- a/tools/audit/seat/update_pr.sh
++++ b/tools/audit/seat/update_pr.sh
+@@ -77,7 +77,7 @@ OLD=$(git rev-parse HEAD)
+ # unread merge state is not DIRTY: the merge-tree reading below is the local proof either way.
+ ST=$(gh pr view "$N" -R $R --json mergeStateStatus -q .mergeStateStatus 2>/dev/null) || ST=unread
+ MAIN=""
+-git merge-tree --write-tree origin/main HEAD >/dev/null 2>&1 || MAIN=1
++git merge-tree --write-tree origin/main HEAD >/dev/null 2>&1 || :
+ [ "$ST" != DIRTY ] || MAIN=1
+ [ -z "$MAIN" ] || $G merge -q --no-edit origin/main
+ # Keys taken at the code sha, or at the previous head when none was given, re-keyed where the merges
