@@ -1,0 +1,10 @@
+duty: sysid step 5.0 kW -> duty None | plan step_duty 'idle'
+duty: null: plan action  5.0 kW -> duty 'idle' | plan step_duty 'idle'
+duty: flow target, duty None reads the plan/curve hold; duty 'space' reads plan power_schedule: sysid power is not an input to _flow_target: True
+draw: samples per probe run 4 | runs per 30.0 days: 1 | MIN_SAMPLES 48
+draw: one probe   : ((1.5, None), False, None)
+draw: null 48 ceil: ((1.5, 3.0), False, None)
+level: experiment 5.0 kW (plan step 5.0 kW) -> flow written 35
+level: experiment 1.5 kW (plan step 5.0 kW) -> flow written 35
+level: experiment 0.0 kW (plan step 5.0 kW) -> flow written 35
+store: absent (no ceiling store in this tree)

@@ -1,0 +1,22 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 9dcfddd6a..a3b43c92f 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -10820,9 +10820,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         """Arm a step-response experiment for the next suitable moment."""
+         ctx = getattr(self, "_ctx", self)
+         self._sysid.config.enabled = ctx._config.system_identification_enabled
+-        if self._sysid.arm(dt_util.now(), plant=ctx._thermal_params, learner_samples=self._house_heat_loss_samples,
+-                           probe=self._accuracy.draw if ceiling_probe_install(ctx._config) else None):
+-            _LOGGER.info("System identification armed (%s) for the next mild, cheap night hour", self._sysid.kind)
++        if self._sysid.arm(
++            dt_util.now(), plant=ctx._thermal_params, learner_samples=self._house_heat_loss_samples,
++            probe=self._accuracy.draw if ceiling_probe_install(ctx._config) else None,
++        ):
++            _LOGGER.info(
++                "System identification armed (%s); it will start at the next mild, "
++                "cheap night hour", self._sysid.kind
++            )
+         await self.async_request_refresh()
+ 
+     async def _run_system_identification(self, prices: np.ndarray) -> None:

@@ -1,0 +1,12 @@
+737,741c737,741
+< coord_all_features  # R10-COP-GATE p5 (A): model_status cop row gains cop_observability, cop_refusal, measured_cop_at, copied from the learning view (additions only)
+< coord_dhw  # R10-COP-GATE p5 (A): model_status cop row gains cop_observability, cop_refusal, measured_cop_at, copied from the learning view (additions only)
+< coord_grid_fee  # R10-COP-GATE p5 (A): model_status cop row gains cop_observability, cop_refusal, measured_cop_at, copied from the learning view (additions only)
+< coord_minimal  # R10-COP-GATE p5 (A): model_status cop row gains cop_observability, cop_refusal, measured_cop_at, copied from the learning view (additions only)
+< coord_two_zone  # R10-COP-GATE p5 (A): model_status cop row gains cop_observability, cop_refusal, measured_cop_at, copied from the learning view (additions only)
+---
+> coord_all_features  # R10-COP-GATE p5 (A) and R10-CEILING-PROBE (#2498, #2808), both additions only: model_status cop row gains cop_observability, cop_refusal, measured_cop_at, copied from the learning view; the system_identification view gains kind, held, last_attempt, and model_status records a system_identification_outcome row beside it
+> coord_dhw  # R10-COP-GATE p5 (A) and R10-CEILING-PROBE (#2498, #2808), both additions only: model_status cop row gains cop_observability, cop_refusal, measured_cop_at, copied from the learning view; the system_identification view gains kind, held, last_attempt, and model_status records a system_identification_outcome row beside it
+> coord_grid_fee  # R10-COP-GATE p5 (A) and R10-CEILING-PROBE (#2498, #2808), both additions only: model_status cop row gains cop_observability, cop_refusal, measured_cop_at, copied from the learning view; the system_identification view gains kind, held, last_attempt, and model_status records a system_identification_outcome row beside it
+> coord_minimal  # R10-COP-GATE p5 (A) and R10-CEILING-PROBE (#2498, #2808), both additions only: model_status cop row gains cop_observability, cop_refusal, measured_cop_at, copied from the learning view; the system_identification view gains kind, held, last_attempt, and model_status records a system_identification_outcome row beside it
+> coord_two_zone  # R10-COP-GATE p5 (A) and R10-CEILING-PROBE (#2498, #2808), both additions only: model_status cop row gains cop_observability, cop_refusal, measured_cop_at, copied from the learning view; the system_identification view gains kind, held, last_attempt, and model_status records a system_identification_outcome row beside it
