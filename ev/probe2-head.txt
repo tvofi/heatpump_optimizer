@@ -1,0 +1,22 @@
+clean  | python3 -cCODE glued, no spaces
+       -> 2026-11-01T13:16:51Z 4545 python3 -c api -
+clean  | python3 -BcCODE glued, no spaces
+       -> 2026-11-01T13:16:51Z 4566 python3 -Bc api -
+clean  | ruby -rjson -e CODE
+       -> 2026-11-01T13:16:51Z 4587 ruby api -
+clean  | ruby -eCODE glued
+       -> 2026-11-01T13:16:51Z 4609 ruby -e api -
+clean  | node -e CODE
+       -> 2026-11-01T13:16:51Z 4631 node -e api -
+clean  | node --eval=CODE
+       -> 2026-11-01T13:16:51Z 4658 node --eval api -
+NOLINE | node --print=CODE
+       -> 
+clean  | node --require ./r.js n.js LEAKVAL
+       -> 2026-11-01T13:16:51Z 4697 node api x
+clean  | node -r ./r.js n.js LEAKVAL
+       -> 2026-11-01T13:16:51Z 4724 node api x
+clean  | node --input-type=module -e CODE
+       -> 2026-11-01T13:16:51Z 4751 node api -
+clean  | curl|bash -s -- --token LEAKVAL shape
+       -> 2026-11-01T13:16:51Z 4780 bash -s api x

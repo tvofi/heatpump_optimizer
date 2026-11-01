@@ -1,0 +1,83 @@
+  ok   stub bytes (stdout, stdin forwarded) pass through the shim
+  ok   the stub's stderr and exit code pass through
+  ok   one log line naming parent and path
+  ok   a -f body=secret argument never reaches the log
+  ok   -X value, --input value and query string are dropped
+  ok   a pr call logs its verb
+  ok   a glued -f value is dropped
+  ok   -f/-F values placed before the path are dropped, the path still found
+  ok   --input FILE placed before the path is skipped, the path is the target
+  ok   a token outside the allowed set is logged with ? for each such character
+  ok   parent field of `PY -c "import subprocess as s;s.run(['gh','pr','comm` is exactly the caller, no value
+  ok   parent field of `PY -c "import subprocess as s;s.run(['gh','api','-fx` is exactly the caller, no value
+  ok   parent field of `GH_TOKEN=ghp_LEAKVAL gh api user; :` is exactly the caller, no value
+  ok   parent field of `echo ghp_LEAKVAL | gh secret set NAME; :` is exactly the caller, no value
+  ok   parent field of `env GH_TOKEN=ghp_LEAKVAL gh api user; :` is exactly the caller, no value
+  ok   parent field of `gh api repos/o/r -fbody=LEAKVAL; :` is exactly the caller, no value
+  ok   parent field of `env gh pr create --title T --body LEAKVAL x; :` is exactly the caller, no value
+  ok   parent field of `PY -I W/caller.py --body LEAKVAL` is exactly the caller, no value
+  ok   parent field of `cd W && PY -m caller --body LEAKVAL` is exactly the caller, no value
+  ok   census: every gh value flag through a sh -c parent logs exactly `sh -c`
+  ok   mutant killed: the whole parent argv logged
+  ok   mutant killed: -c does not end the field
+  ok   mutant killed: -m does not take its module
+  ok   mutant killed: python is not followed to its script
+  ok   exact field of parent `python3 -c__import__('subprocess').run(['gh','ap` is `python3 -c`
+  ok   exact field of parent `python3 -Bc__import__('subprocess').run(['gh','a` is `python3 -Bc`
+  ok   exact field of parent `perl -esystem('gh','api','-fx=LEAKVAL')` is `perl -e`
+  ok   exact field of parent `ruby -esystem('gh','api','-fx=LEAKVAL')` is `ruby -e`
+  ok   exact field of parent `node --eval=require('child_process').execFileSyn` is `node --eval`
+  ok   exact field of parent `node --print=LEAKVAL` is `node --print`
+  ok   exact field of parent `bash --command=LEAKVAL` is `bash --command`
+  ok   exact field of parent `sh -s LEAKVAL` is `sh -s`
+  ok   exact field of parent `sh -s -- LEAKVAL` is `sh -s`
+  ok   exact field of parent `bash -s -- --token LEAKVAL` is `bash -s`
+  ok   exact field of parent `python3 -W ignore::LEAKVAL caller.py` is `python3 caller.py`
+  ok   exact field of parent `python3 -WLEAKVAL caller.py` is `python3 caller.py`
+  ok   exact field of parent `python3 -X LEAKVAL caller.py` is `python3 caller.py`
+  ok   exact field of parent `python3 -W error -m caller_mod LEAKVAL` is `python3 -m caller_mod`
+  ok   exact field of parent `bash -o LEAKVAL s.sh` is `bash s.sh`
+  ok   exact field of parent `node --require ./LEAKVAL.js n.js` is `node`
+  ok   exact field of parent `node -p LEAKVAL` is `node`
+  ok   exact field of parent `ruby -r LEAKVAL x.rb` is `ruby`
+  ok   exact field of parent `perl -MLEAKVAL -e x` is `perl`
+  ok   exact field of parent `python3 -I caller.py --body LEAKVAL` is `python3 caller.py`
+  ok   exact field of parent `sh ./a=b/s.sh LEAKVAL` is `sh ./a?b/s.sh`
+  ok   exact field of parent `sh /dddddddddddddddddddddddddddddddddddddddddddd` is `sh /dddddddddddddddddddd`
+  ok   mutant killed: a code option logged whole, not cut after its letter
+  ok   mutant killed: -s passed over as a no-value letter, not ending the field
+  ok   mutant killed: an unknown option letter passed over, not ending the field
+  ok   mutant killed: an unknown long option passed over, not ending the field
+  ok   mutant killed: a value-taking letter read as no-value, its value taken as the script
+  ok   mutant killed: `=` allowed in the parent field
+  ok   mutant killed: the 80-character cut removed
+  ok   mutant killed: --eval/--print/--command passed over
+  ok   mutant killed: a long code option logged with its attached code
+  ok   an existing 0644 log is 0600 after the next call
+  ok   a 0644 log rotated to .1 is 0600 there
+  ok   mutant killed: no chmod of an existing log
+  ok   null control: an unwritable log leaves output and status unchanged
+  ok   a missing state directory is created and the call logged (not silently dropped)
+  ok   under umask 022 the shim makes its state dir 0700 and its log 0600
+  ok   the real gh runs under the caller's umask (022), not the shim's
+  ok   mutant killed: no umask 077 in the shim
+  ok   mutant killed: the umask leaks past the logging subshell
+  skip unwritable-directory arm (running as a user who can write anyway)
+  ok   a log past the cap is rotated to .1
+  ok   mutant: the exec line is present in the shim being mutated
+  ok   mutation: dropping the exec pass-through fails the byte arm
+  ok   mutant killed: no --input skip
+  ok   mutant killed: clean() is cat
+  ok   mutant killed: no mkdir of the state dir
+  ok   the hermetic guard: the only gh is the shim, or none, on the arm's PATH
+  ok   no real gh: one line, rc 127, no self-exec
+  ok   control: with a fake gh on the old-style PATH the old arm is red (the shim execs it)
+  ok   control: the same fake gh is invisible to the hermetic PATH, the arm stays green
+  ok   mutation: a PATH that includes the fake gh fails the hermetic guard
+  ok   mutation: the old-style PATH fails the hermetic guard
+  ok   top ranks callers and endpoints by count
+  ok   --since drops earlier lines
+  ok   a malformed --since is refused
+  ok   coverage reads the shim marker, not the name
+  ok   a real gh ahead of the shim reads as not logged
+gh_calls self-test: 81 checks, 0 failed
