@@ -1,0 +1,9 @@
+## umask 022, fresh state dir
+caller umask after: 0022
+700 /tmp/tmp.g8TXUBbqjf/st
+600 /tmp/tmp.g8TXUBbqjf/st/gh-calls.log
+real gh ran under umask: 0022
+## existing 0644 log
+600 /tmp/tmp.g8TXUBbqjf/st/gh-calls.log
+## planted: umask 077 outside the subshell
+real gh ran under umask: 0077 (red: expected 0022)
