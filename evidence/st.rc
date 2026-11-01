@@ -1,6 +1,0 @@
-tools/pr/app_approve.sh rc=0
-tools/pr/app_comment.sh rc=0
-tools/pr/app_push.sh rc=0
-tools/audit/seat/bus.sh rc=0
-rcarry rc=0
-train rc=0

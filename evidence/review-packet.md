@@ -1,44 +1,57 @@
 # Review packet #3077
-head: 32d880b3dee4e525d16ec270af83d867f7006431
-base: 92588d581fde4ce287af3db5e8bb61461dc28015
+head: aa6148d4ff35c457e83310337760e075cb823a14
+base: 6421fe135d9f5a9e65433a4433f000d2419486bf
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
-## Gate digest: pending
-CodeQL id=124821986921 neutral
-arch-score / arch-score id=124821822682 success
-arm id=124821708560 skipped
-budget-raise-gate / budget-raise-gate id=124821822747 success
-cancel-superseded id=124821714253 success
-codeql / Analyze (actions) id=124821822651 success
-codeql / Analyze (javascript-typescript) id=124821822638 success
-codeql / Analyze (python) id=124821822645 in_progress
-governance / delivery-status id=124821822858 success
-governance / delivery-status-publish id=124821823704 skipped
-governance / env-matrix id=124821822724 in_progress
-governance / instrument-self-tests id=124821822711 in_progress
-governance / policy-docs id=124821822751 success
-governance / record id=124821823783 skipped
-governance / wave-script id=124821822824 success
-hassfest / hassfest id=124821822691 success
-kernel-points id=124821824506 skipped
-prelude id=124821714117 in_progress
-refresh id=124821714307 success
-tests / arch-instrument id=124821948929 success
-tests / briefs id=124821822788 success
-tests / browser id=124821949039 in_progress
-tests / closure-scope id=124821822773 success
-tests / closures id=124821949014 in_progress
-tests / coverage id=124821949015 in_progress
-tests / fast (3.14) id=124821948995 in_progress
-tests / mutation id=124821822648 success
-tests / mutation-autofix id=124821987780 skipped
-tests / mutation-pins id=124821987997 skipped
-tests / nightly-ha id=124821949741 skipped
-tests / nightly-status id=124821822603 success
-tests / replay id=124821949603 skipped
-tests / typing id=124821948983 success
-validate / validate-hacs id=124821822630 success
+## Gate digest: green
+CodeQL id=124852656453 success
+arch-score / arch-score id=124884872081 success
+arm id=124852396443 skipped
+budget-raise-gate / budget-raise-gate id=124884886024 success
+cancel-superseded id=124884872238 success
+codeql id=124883425025 skipped
+codeql / Analyze (actions) id=124884881568 success
+codeql / Analyze (javascript-typescript) id=124884887989 success
+codeql / Analyze (python) id=124884846461 success
+gate id=124884847235 success
+governance id=124883424987 skipped
+governance / delivery-status id=124884882240 success
+governance / delivery-status-publish id=124884846733 skipped
+governance / env-matrix id=124884868046 success
+governance / instrument-self-tests id=124884885532 success
+governance / policy-docs id=124884846576 success
+governance / record id=124884873250 skipped
+governance / wave-script id=124884846628 success
+hassfest id=124883425402 skipped
+hassfest / hassfest id=124884866813 success
+kernel-points id=124884846431 skipped
+pr-contract / pr-contract id=124884848352 success
+prelude id=124884879423 success
+refresh id=124884846086 success
+tests id=124883425211 skipped
+tests / arch-instrument id=124884847160 success
+tests / briefs id=124884877814 success
+tests / browser id=124884847122 success
+tests / ci-ratchet id=124884847328 skipped
+tests / claims-autofix id=124884847800 skipped
+tests / closure-scope id=124884846616 success
+tests / closures id=124884846946 success
+tests / closures-autofix id=124884848061 skipped
+tests / coverage id=124884847025 success
+tests / coverage-ratchet id=124884847710 success
+tests / fast (3.14) id=124884847305 success
+tests / graders-head-copy id=124884847320 success
+tests / lane-proofs id=124884847532 success
+tests / mutation id=124884886528 success
+tests / mutation-autofix id=124884847208 skipped
+tests / mutation-pins id=124884847251 skipped
+tests / nightly-ha id=124884846753 skipped
+tests / nightly-status id=124884846363 success
+tests / replay id=124884846676 skipped
+tests / typing id=124884846947 success
+validate id=124883425704 skipped
+validate / validate-hacs id=124884887978 success
 
 ## Refusals
 none
@@ -48,26 +61,34 @@ none
 
 ## carry_audit at the head
 NOTE body item 5aa3bd73: dismissed:the brief binds the row path to its subject's number, a row is no code a review measures, and the round-1 review (O2) found no use beyond a row
-NOTE body item 8093796d: dismissed:this is the trust boundary the confinement check has always used. Round 2 narrows it from every driver file to each subject's own paths, and each of those paths is graded at every head by the check its bot repairs for (closures, the mutation ledger and budgets, the claim hygiene).
+NOTE body item 20a83be7: dismissed:this is the trust boundary the confinement check has always used. Round 2 narrows it from every driver file to each subject's own paths. At every head, a required check that does not read the carry grades each of those paths (`budget-raise-gate`, `tests / closures`, the claim hygiene), and the round-2 review upheld this dismissal
 NOTE body item f2f195f6: dismissed:a sizing note for the orchestrator, no later stage owns it
 NOTE body item b0106364: dismissed:#3055 is its fix
 CARRY-AUDIT: 4 finding item(s): 4 routed, 0 unrouted, 0 bad destination(s)
 
 ## figure_lint at the head
-ok         python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"
+ok         bash tools/pr/app_approve.sh --self-test
+             `tools/pr/app_approve.sh` is in the tree at this head
+  ok         bash tools/pr/app_comment.sh --self-test
+             `tools/pr/app_comment.sh` is in the tree at this head
+  ok         bash tools/pr/app_push.sh --self-test
+             `tools/pr/app_push.sh` is in the tree at this head
+  ok         python3 -I tools/audit/seat/review_carry.py --self-test
+             `tools/audit/seat/review_carry.py` is in the tree at this head
+  ok         bash tools/audit/seat/bus.sh --self-test
+             `tools/audit/seat/bus.sh` is in the tree at this head
+  ok         python3 tools/audit/seat/merge_train.py --self-test
+             `tools/audit/seat/merge_train.py` is in the tree at this head
+  ok         python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"
              `tests/closure.py` is in the tree at this head
   ok         tests/doc_claims.py
              `tests/doc_claims.py` is in the tree at this head
   ok         tests/entities.py
              `tests/entities.py` is in the tree at this head
-  ok         tests/harness_headers.py
-             `tests/harness_headers.py` is in the tree at this head
-  ok         tests/closure.py selftest
-             `tests/closure.py` is in the tree at this head
-  ok         tests/env_drift.py --claims-only
-             `tests/env_drift.py` is in the tree at this head
-  ok         tests/layout.py --guard --base <merge base>
-             `tests/layout.py` is in the tree at this head
+  ok         PYTHONPATH=tests/hastub python3 tests/doc_claims.py
+             `tests/doc_claims.py` is in the tree at this head
+  ok         PYTHONPATH=tests/hastub python3 tests/entities.py
+             `tests/entities.py` is in the tree at this head
   ok         python3 tests/structure.py
              `tests/structure.py` is in the tree at this head
   ok         node tools/policy/policy_lint.mjs
@@ -79,7 +100,7 @@ ok         python3 tests/closure.py select --diff $(git merge-base origin/main H
   unverified git patch-id --stable
              `git patch-id` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
 
-FIGURES: 11 resolved, 1 not verified, 0 refused
+FIGURES: 15 resolved, 1 not verified, 0 refused
 
 ## Finder's harness: none named
 ### at the base
@@ -984,3 +1005,6 @@ index 9b336b114..dd33bad78 100644
  st "$(qv live >/dev/null; echo $?)" 0 "real git: an up-to-date main merge (no commit) then the row skips prepr"
  reset_q; (cd "$Q/wt" && rgit commit -q --allow-empty -m empty && ensure_row . 7 "$(row_line 7 o/r t)" >/dev/null)
 
+## Before you return the verdict (P275)
+Run `python3 -I tools/audit/carry_audit.py check --body <PR body file> --comments <file holding [{"id": 0, "body": <verdict.md text>}]>`. Give every reported item its own `Carry: <GROUP> | #<issue> | O<n> | dismissed: <reason>`;
+an evidence line flagged by its wording takes `Carry: dismissed: evidence, not a finding`. Return the verdict only at rc 0.

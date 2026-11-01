@@ -1,0 +1,12 @@
+== bash tools/pr/app_approve.sh --self-test
+app_approve self-test: 316 checks, 0 failed
+== bash tools/pr/app_comment.sh --self-test
+app_comment self-test: 67 checks, 0 failed
+== bash tools/pr/app_push.sh --self-test
+app_push self-test: 204 checks, 0 failed
+== python3 -I tools/audit/seat/review_carry.py --self-test
+review_carry self-test: 29 checks, 0 failed
+== bash tools/audit/seat/bus.sh --self-test
+bus self-test: 110 checks, 0 failed
+== python3 tools/audit/seat/merge_train.py --self-test
+merge_train self-test: 400 checks, 0 failed

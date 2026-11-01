@@ -315,8 +315,8 @@ Traceback (most recent call last):
   File "<string>", line 1, in <module>
     import json,sys; d=json.load(open(sys.argv[1])); print(d["commit_id"], "(#1667)" in d["body"])
                                  ~~~~^^^^^^^^^^^^^
-FileNotFoundError: [Errno 2] No such file or directory: '/tmp/tmp.dweqsVwHWz/carry/posted.json'
-FAIL at the live head, and the review says it was carried (got '', want '18a98aae23737d89d3a34669eb31443cad3d8a65 True')
+FileNotFoundError: [Errno 2] No such file or directory: '/tmp/tmp.UNWj0zdEAg/carry/posted.json'
+FAIL at the live head, and the review says it was carried (got '', want '6db244aa6e27103a83be2e5a0fe21b5a0f9bad66 True')
 FAIL printing the carry it relied on (got '0', want '1')
 ok   REFUSE: the verdict at V does not carry to a head one byte away (null control)
 ok   saying why

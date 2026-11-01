@@ -1,0 +1,6 @@
+NOTE body item 5aa3bd73: dismissed:the brief binds the row path to its subject's number, a row is no code a review measures, and the round-1 review (O2) found no use beyond a row
+NOTE body item 20a83be7: dismissed:this is the trust boundary the confinement check has always used. Round 2 narrows it from every driver file to each subject's own paths. At every head, a required check that does not read the carry grades each of those paths (`budget-raise-gate`, `tests / closures`, the claim hygiene), and the round-2 review upheld this dismissal
+NOTE body item f2f195f6: dismissed:a sizing note for the orchestrator, no later stage owns it
+NOTE body item b0106364: dismissed:#3055 is its fix
+CARRY-AUDIT: 4 finding item(s): 4 routed, 0 unrouted, 0 bad destination(s)
+rc=0
