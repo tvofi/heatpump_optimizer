@@ -13768,7 +13768,9 @@
     "custom_components/heatpump_optimizer/coordinator.py",
     "custom_components/heatpump_optimizer/thermal_model.py"
    ],
-   "carry": [],
+   "carry": [
+    "The 2.5x CPU cost of the live buffer store, and the 272 s owner-box outlier: a bound or warm start on the planner must earn it (R10-BUFFER-STORE carry, `optimizer.py`). Carry: R10-COP-PARTLOAD"
+   ],
    "resume": {
     "stage": "not-started",
     "branch": "handoff/r10-partload-pricing",
