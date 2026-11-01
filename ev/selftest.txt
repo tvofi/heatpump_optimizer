@@ -1,0 +1,1 @@
+mutant_run self-test: 40 checks, 0 failed (re-run at head 1a6a7e6a8bf1cbe04f37989aaedbab66165df624)
