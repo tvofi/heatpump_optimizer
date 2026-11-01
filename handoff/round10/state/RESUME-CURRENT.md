@@ -68,6 +68,7 @@ Open groups whose after-edges are all done (or absent); wave-ordered:
 - R10-FRICTION-REGRESSION (wave 1, 0 satisfied edge(s))
 - R10-HOTFIX-AWAY-PRESENCE (wave 1, 0 satisfied edge(s))
 - R10-MERGE-SUBJECT-CASEARM (wave 1, 1 satisfied edge(s))
+- R10-ORCH-LEDGER (wave 1, 5 satisfied edge(s))
 - R10-ORCH-PLANPAGE (wave 1, 1 satisfied edge(s))
 - R10-ORCH-REVIEW-PACKET (wave 1, 2 satisfied edge(s))
 - R10-ORCH-ROSTER-SCHEMA (wave 1, 5 satisfied edge(s))

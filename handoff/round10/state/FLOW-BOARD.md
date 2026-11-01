@@ -1,6 +1,6 @@
 # Flow board
 
-Window ends 2026-11-01T08:36:05+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
+Window ends 2026-11-01T08:53:14+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
 
 Sources: tree `origin/main`, roster `origin/handoff/audit-r10-roster`, bus `origin/review/*`
 
@@ -9,8 +9,8 @@ Sources: tree `origin/main`, roster `origin/handoff/audit-r10-roster`, bus `orig
 | roster groups closed vs takt | 2 / 1.0 | 26 / 24.0 |
 | fly-ins closed | 1 | 18 |
 | main moves: group-carrying / record / roster-edit / fly-in | 2 / 1 / 0 / 1 | 14 / 5 / 0 / 18 |
-| first-pass fix-review yield | 0/0 (-) | 22/39 (0.56) |
-| blocked-class mix | none | body-stale:1, carry-missing:6, carry-over-wide:1, ci-pending:1, ci-red:2, claim-stronger-than-check:1, class-open:10, defect:1, figure-wrong:2, gate-red:2, head-moved:1, metric-gamed:3, mutation-survivor:1, mutation-unpinned:1, mutation-vacuous:10, raise-unjustified:1, regression:1, root-cause-detectable:2, root-cause-unrecorded:1, rule-lost:1, scope-incomplete:2, swap-void-undone:1 |
+| first-pass fix-review yield | 0/0 (-) | 21/38 (0.55) |
+| blocked-class mix | class-open:1 | body-stale:1, carry-missing:6, carry-over-wide:1, ci-pending:1, ci-red:2, claim-stronger-than-check:1, class-open:11, defect:1, figure-wrong:2, gate-red:2, head-moved:1, metric-gamed:3, mutation-survivor:1, mutation-unpinned:1, mutation-vacuous:10, raise-unjustified:1, regression:1, root-cause-detectable:2, root-cause-unrecorded:1, rule-lost:1, scope-incomplete:2, swap-void-undone:1 |
 | lead time per size (h, n/p50/max) | L n=1 p50=16.96 max=16.96; S n=1 p50=15.92 max=15.92 | L n=1 p50=16.96 max=16.96; M n=3 p50=14.36 max=23.44; S n=10 p50=10.75 max=15.92 |
 
 ### WIP by flow lane (snapshot at the window's end)
