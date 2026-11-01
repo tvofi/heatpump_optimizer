@@ -15433,6 +15433,7 @@ _svc_fr_real, _svc_fr_args = _svc_module.async_factory_reset, []
 
 async def _svc_fr_record(coord, scope):
     _svc_fr_args.append((coord, scope))
+    return True  # applied: a refused reset raises (features.py drives that arm)
 
 
 _svc_module.async_factory_reset = _svc_fr_record

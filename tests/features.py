@@ -13268,14 +13268,17 @@ def _fr_learned(c):
     return out
 
 
-def _fr_case(scope, entry_id, *, learn=True):
-    """Reset a learned entry under ``scope``; (before, after, entry, hass, old coordinator)."""
+def _fr_case(scope, entry_id, *, learn=True, then=None):
+    """Reset a learned entry under ``scope``; (before, after, entry, hass, old coordinator).
+    ``then(c)`` runs after the learning, just before the reset (and is not saved)."""
     hass = FakeHass({})
     entry = _fr_entry_cls(data=dict(_FR_DATA), options=dict(_FR_OPTS), entry_id=entry_id)
     hass.config_entries.entries.append(entry)
     c = _aio.run(_fr_boot(hass, entry))
     if learn:
         _fr_learn(c)
+    if then is not None:
+        then(c)
     before = {"learned": _fr_learned(c), "disk": _fr_disk(entry_id), "config": {**entry.data, **entry.options}}
 
     async def _setup(eid):
@@ -13516,6 +13519,48 @@ R.check(
     f"record {sorted(_fr_lu_record)}, restored {_fr_lu_ok}",
 )
 
+# The undo point holds what the learners know at the reset, not what their
+# stores last held: learning since the last save (a COP scale moved from the
+# saved 1.13 to 1.21) is flushed to the stores before their documents are read
+# (``_async_store_documents``), so the undo brings it back.
+_fr_us_before, _fr_us_entry, _, _ = _fr_case(
+    "learners", "fr_undo_unsaved", then=lambda c: c._apply_cop_scale(1.21))
+R.check(
+    "learning since the last save is in memory only before the reset: COP scale 1.21 held, 1.13 stored (the control)",
+    _fr_us_before["learned"]["thermal_learning"].get(_fr_const.CONF_COP_SCALE) == 1.21
+    and _fr_us_before["disk"]["thermal_learning"].get(_fr_const.CONF_COP_SCALE) == 1.13,
+    f"held {_fr_us_before['learned']['thermal_learning'].get(_fr_const.CONF_COP_SCALE)}, "
+    f"stored {_fr_us_before['disk']['thermal_learning'].get(_fr_const.CONF_COP_SCALE)}",
+)
+_fr_us_new = _fr_us_entry.runtime_data
+_fr_counting_refresh(_fr_us_new)
+_fr_us_ok = _aio.run(_fr_us_new.async_restore_learned_snapshot())
+R.check(
+    "the undo restores what the learners knew at the reset, learning since the last save included: COP scale 1.21",
+    _fr_us_ok is True and _fr_us_entry.runtime_data._cop_scale == 1.21
+    and _fr_learned(_fr_us_entry.runtime_data) == _fr_us_before["learned"],
+    f"restored {_fr_us_ok}, COP scale {_fr_us_entry.runtime_data._cop_scale}",
+)
+# "While it is the newest snapshot": once any snapshot follows the undo point,
+# the restore is ``best_restore``'s, health and alarm gates included. A newer
+# snapshot taken on unhealthy inputs is not one ``best_restore`` hands out, so
+# the restore takes neither it nor the undo point. (The healthy newer one is
+# "a weekly snapshot newer than the undo point takes the restore back from it".)
+_fr_ag_before, _fr_ag_entry, _, _ = _fr_case("learners", "fr_undo_aged")
+_fr_ag_new = _fr_ag_entry.runtime_data
+_fr_ag_ring = _fr_ag_new._snapshot_ring
+_fr_ag_ring.take(_fr_dt.now(), _fr_ag_new._learner_snapshot_payloads(), _fr_ag_new._accuracy.summary(), False)
+_fr_counting_refresh(_fr_ag_new)
+_fr_ag_target = _fr_ag_ring.undo_target()
+_fr_ag_ok = _aio.run(_fr_ag_new.async_restore_learned_snapshot())
+R.check(
+    "after an unhealthy snapshot newer than the undo point, the restore takes neither: nothing qualifies, the reset stays",
+    "before_reset" in _fr_ag_ring.snapshots[-2] and _fr_ag_ring.snapshots[-1]["healthy"] is False
+    and _fr_ag_target is None is _fr_ag_ring.best_restore() and _fr_ag_ok is False
+    and _fr_ag_entry.runtime_data is _fr_ag_new and _li_state_of(_fr_ag_new) == (1.0, 1.0, 0, 0),
+    f"target {None if _fr_ag_target is None else sorted(_fr_ag_target)}, restored {_fr_ag_ok}, "
+    f"heat loss {_li_state_of(_fr_ag_new)}",
+)
 
 async def _fr_failed_unload(scope="both"):
     """An unload Home Assistant refuses: the reset changes nothing but the undo point."""
