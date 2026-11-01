@@ -1806,6 +1806,37 @@ st "$(grep -c "claimed_drift.txt at $H_DROWN is not" "$W/carry.out")" 1 "refused
 H_DREMPTY=$( cd "$RD" && git checkout -q --detach "$H_DR" && git commit -q --allow-empty -m "fix: nothing" && git rev-parse HEAD )
 ( cd "$RD" && bash "$SELF" --carry "$VD" "$H_DREMPTY" main ) > "$W/carry.out" 2>&1
 st $? 0 "CARRY: an empty commit of the branch's own after main's driver resolved the claim file (null control)"
+# A clone without the drivers configured (CI's, or a fresh checkout) has
+# git's text merge where the driver wrote, so main's own driver is run on the
+# two: once for the claim file above, once for a ledger.
+( cd "$RD" && git config --remove-section merge.claimnotes && bash "$SELF" --carry "$VD" "$H_DREMPTY" main ) > "$W/carry.out" 2>&1
+st $? 0 "CARRY: the same in a clone with no claim driver configured, read by main's own driver"
+( cd "$RD" && git config merge.claimnotes.name claims \
+  && git config merge.claimnotes.driver 'python3 tests/env_drift.py --merge-claim-file %O %A %B %L %P' )
+RL="$W/ledgerdrv"; throwaway_git_init "$RL" -q -b main
+( cd "$RL" || exit 2
+  git config merge.ledgermerge.name ledgers
+  git config merge.ledgermerge.driver 'python3 tools/merge/ledger_merge.py --merge %O %A %B %L %P'
+  mkdir -p tests tools/merge
+  cp "$(cd "$(dirname "$SELF")/../.." && pwd)/tools/merge/ledger_merge.py" tools/merge/ledger_merge.py
+  printf 'tests/structure_budgets.json merge=ledgermerge\n' > .gitattributes
+  printf '{\n  "a": 1,\n  "b": 1\n}\n' > tests/structure_budgets.json
+  git add -A; git commit -qm main0
+  git checkout -qb fix; sed -i.bak 's/"a": 1/"a": 2/' tests/structure_budgets.json; rm -f tests/*.bak
+  git commit -qam "fix: own"; git rev-parse HEAD > ../ledgerdrv.v
+  git checkout -q main; sed -i.bak 's/"b": 1/"b": 3/' tests/structure_budgets.json; rm -f tests/*.bak; git commit -qam "main: b"
+  git checkout -q --detach "$(cat ../ledgerdrv.v)"; git merge -q --no-ff --no-edit main >/dev/null 2>&1
+  git commit -q --allow-empty -m "fix: nothing"; git rev-parse HEAD > ../ledgerdrv.h
+  sed -i.bak 's/"b": 3/"b": 4/' tests/structure_budgets.json; rm -f tests/*.bak; git commit -qam "fix: tidy wording"
+  git rev-parse HEAD > ../ledgerdrv.x; git config --remove-section merge.ledgermerge ) || exit 2
+VL=$(cat "$W/ledgerdrv.v"); HL=$(cat "$W/ledgerdrv.h"); HLX=$(cat "$W/ledgerdrv.x")
+st "$( cd "$RL" && git show "$HL:tests/structure_budgets.json" | tr -d ' \n')" '{"a":2,"b":3}' \
+  "the fixture's ledger driver resolved the merge both sides changed"
+( cd "$RL" && bash "$SELF" --carry "$VL" "$HL" main ) > "$W/carry.out" 2>&1
+st $? 0 "CARRY: a ledger main's driver resolved, in a clone with no ledger driver configured"
+( cd "$RL" && bash "$SELF" --carry "$VL" "$HLX" main ) > "$W/carry.out" 2>&1
+st $? 1 "NO CARRY: the same ledger with one value then changed by a commit of the branch's own"
+st "$(grep -c "structure_budgets.json at $HLX is not" "$W/carry.out")" 1 "refused naming the ledger"
 # The delivery row (P123): delivery_row.sh commit_row's subject, author and
 # one path, for an add and an edit; each refusal names its commit.
 TV=70032254+tvofi@users.noreply.github.com
