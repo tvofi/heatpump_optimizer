@@ -1,0 +1,25 @@
+=== M7-order-ignored
+FAIL a reason after a mut marker does not excuse: it unanchors the mutant: got 0, want 1
+FAIL a reason after a mut marker is refused in an unjudged file too: got 0, want 1
+bare_array self-test: FAILED
+self-test rc=1
+
+restored
+=== M8-above-ignored
+FAIL a reason on the comment line above excuses the next line (null): got [(4, 'f "${a[@]}"  # mut:x')], want []
+bare_array self-test: FAILED
+self-test rc=1
+tools/audit/seat/body_patch.sh:99: node tools/policy/policy_lint.mjs "${args[@]}" || rc=1 # mut:contract
+restored
+=== M9-unjudged-empty
+FAIL a reason after a mut marker is refused in an unjudged file too: got 0, want 1
+bare_array self-test: FAILED
+self-test rc=1
+
+restored
+=== M10-above-two-lines
+FAIL a reason above excuses only the line directly below it: got 0, want 1
+bare_array self-test: FAILED
+self-test rc=1
+
+restored

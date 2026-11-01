@@ -1,0 +1,6 @@
+0 set -e -o nounset
+0 set -o errexit -o nounset
+0 shebang -u
+0 unquoted
+0 embedded
+0 slice

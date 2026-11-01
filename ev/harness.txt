@@ -1,0 +1,26 @@
+== --check --ref 3759d49a5
+tools/audit/seat/body_patch.sh:98: node tools/policy/policy_lint.mjs "${args[@]}" || rc=1 # mut:contract
+tools/audit/seat/bus.sh:654: | python3 -I "$ROOT/tools/audit/seat/ledger.py" landed "${arms[@]}" "$main" $fix_heads)"$LF \
+tools/audit/seat/cloud-setup.sh:64: for d in "${parts[@]}"; do [ "$d" = "$1/venv-ci/bin" ] || rest="${rest:+$rest:}$d"; done
+tools/audit/seat/cloud-setup.sh:103: out=$(run "${vars[@]}" bash -c python3)
+tools/audit/seat/cloud-setup.sh:105: run "${vars[@]}" bash -c "$fns; check \"\$1\"" _ "$P" >/dev/null
+tools/audit/seat/cloud-setup.sh:119: out=$(run "${vars[@]}" HPO_PREFIX="$P" bash "$SELF" --check); rc=$?
+tools/audit/seat/cloud_relay.sh:439: pr_own_group "${upd[@]}" "$br" "$hs" "$body" $iss >&2 &
+tools/pr/app_approve.sh:390: norm() { "${d[@]}" "$1" "$2" -- . ${x[@]+"${x[@]}"} | sed -e '/^index /d' -e 's/^@@ .*/@@/'; }
+tools/pr/prepr.sh:869: if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs "${args[@]}"; else node tools/policy/policy_lint.mjs "${args[@]}"; fi
+tools/pr/prepr.sh:1346: body_check "$1" "$2" "$3" "$4" "${reds[@]}" >"$out" 2>&1; r=$?
+tools/pr/prepr.sh:1501: --format='@%h' "$1..$2" -- "${TRANSPORT_ROOTS[@]}" 2>/dev/null) || return 2
+tools/pr/prepr.sh:3240: out=$(pipe_grep_q_sites "${PIPE_GREP_Q_FILES[@]}"); r=$?
+rc=1
+== --check --ref 6a988a237f91a853d006f7908e41cfbd30bc9bc9
+tools/audit/seat/body_patch.sh:98: node tools/policy/policy_lint.mjs "${args[@]}" || rc=1 # mut:contract  # never-empty: args starts with the literal --pr-body list
+tools/audit/seat/pr_args.sh:249: for p in "${PR_REAP_PIDS[@]}"; do pr_kill KILL "$p"; done  # mut:grace  # never-empty: PR_REAP_PIDS held a pid at the early return and only shrinks to a non-empty alive
+rc=1
+== --check --ref 07280b77b5af76295abddfb4a0be7df739a27a54
+
+rc=0
+== worktree
+
+rc=0
+bare_array self-test: ok
+rc=0

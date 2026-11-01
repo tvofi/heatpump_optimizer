@@ -1,0 +1,24 @@
+== merge-tree
+038914ff79c7c95607546eff436e695ecc070d0e
+rc=0
+identical tests/golden/claimed_drift.txt
+identical tests/golden/card_claimed_drift.txt
+identical VERSION
+identical RELEASE_NOTES.md
+identical custom_components/heatpump_optimizer/manifest.json
+== three-dot files
+.github/workflows/governance.yml
+dev/programme/delivery/3055.md
+tests/closure.py
+tests/closures.json
+tests/entities.py
+tools/audit/seat/INSTRUMENTS.md
+tools/audit/seat/bare_array.py
+tools/audit/seat/body_patch.sh
+tools/audit/seat/bus.sh
+tools/audit/seat/cloud-setup.sh
+tools/audit/seat/cloud_relay.sh
+tools/audit/seat/instruments/bare_array.py.md
+tools/audit/seat/pr_args.sh
+tools/pr/app_approve.sh
+tools/pr/prepr.sh
