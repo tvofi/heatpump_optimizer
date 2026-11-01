@@ -1,8 +1,0 @@
-run 1 wtb rc=0 388s
-run 1 wt rc=0 387s
-run 2 wtb rc=0 392s
-run 2 wt rc=0 380s
-run 3 wtb rc=0 361s
-run 3 wt rc=0 376s
-run 4 wtb rc=0 376s
-run 4 wt rc=0 369s

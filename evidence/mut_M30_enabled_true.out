@@ -1,0 +1,67 @@
+
+=== features block ===
+
+-- R10-CEILING-PROBE: the experiment's step reaches the pump; the ceiling store
+  ok   the probe's step (the configured 5.0 kW maximum) is heating at the flow ceiling
+  ok   the fit's sized 1.5 kW step writes its own level, below the ceiling, from the action not the plan (whose step here is 5.0 kW)
+  ok   the experiment's zero step (the fit's relax) is idle: the gate is written
+  ok   moving control: a plan at 5.0 and at 1.5 kW write two levels, the ceiling and the fit's -- before the fix the experiment wrote the baseline at both
+  ok   the experiment's duty is space exactly where its booked heat_pump_on is True
+  ok   a probe interval: the cycle books the supply on, and the step tick writes nothing over it
+  ok   item 29: the accessor is raw -- eleven samples give None, twelve their median
+  ok   item 29: twelve at 4.5 kW on a 5.0 kW configuration publish 4.5 (within 15 % is still published raw; the agreement ruling is R10-COP-GATE part D's); eleven, None
+  ok   item 29: the accessor is the median of the store, not its mean or its extreme -- one low interval (a cut step, a partial draw) among eleven at 3.0 kW, and one high outlier among eleven, both leave it at 3.0
+  ok   the top lapses 45 days after the newest sample, and a sample stamped ahead of the clock has no knowable age
+  ok   an experiment's ceiling interval writes the store, not the window; the same interval the plan commanded writes the window, not the store
+  ok   a gate-held 1.4 kW draw above a learned 1.1 kW idle is a running sample yet stores nothing, nor does a ceiling draw at the idle draw or a sub-ceiling one; the same 1.4 kW with the ceiling written does
+  ok   reversal control: 48 ceiling draws through the window latch the clamp to the experiment's own measurement; the same 48 in the store leave engaged False, observed() unset and the top published beside the latch
+  ok   item 8: two ordinary ceiling-written draws 20 % over the learned top drop the store; one does not, 10 % over never does, and a sub-ceiling draw is no test
+  ok   a new probe sample restarts the overdraw count
+  ok   the store and its overdraw count persist through the accuracy store, a store-only record (no window, no configuration) included, and the domains admit every cell
+  ok   an unreadable store row is dropped, not the record; a non-count overdraw reads 0
+  ok   the probe's duration search: 2.0 h on the leaky house, 1.0 h on the tight one against the 0.8 K bound, none on a house no two-cycle step fits
+  ok   item 14, both sides of the bound: the probe takes the full 0.8 K, where the fit's noise-headroom bound (0.65 K) would leave the tight house one cycle and refuse it
+  ok   the kind: the fit while unconverged (150, 199), the probe once converged where the install can run one, and a published refusal where it cannot
+  ok   each kind its own clock: the probe waits 7 days unlearned and 30 once learned, from the store's newest sample or this process's last probe step
+  ok   a converged house arms a probe: it settles an hour on the plan, steps the configured 5.0 kW for four intervals, then hands back to the plan, fitting and adopting nothing
+  ok   the view names the kind and the last arm press
+  ok   a converged house with no meter or no flow set-point is refused at the press, and the refusal is published (it used to arm and idle in silence)
+  ok   the comfort and price gates hold the probe: none starts outside the night window
+  ok   the comfort and price gates hold the probe: none starts outside the outdoor band
+  ok   the comfort and price gates hold the probe: none starts on an expensive hour
+  ok   the comfort and price gates hold the probe: none starts on a flat price
+  ok   flat-price null: the fit's gate is unchanged on a flat price (ready), the probe's refuses it
+  ok   the comfort abort still stops a probe mid-step
+  ok   item 15: the searched duration is the one stepped -- the tight house's 1.0 h probe steps two intervals, not the configured 2.0 h
+  ok   a freeze holds an armed experiment and publishes why; once started, it aborts
+  ok   eligibility is install-level and shared with the arbiter's flow-command rule: a meter and a flow set-point driven in Control
+  ok   the button's route: a converged flow-metered install arms the probe, a converged duty-cycling one is refused with the reason, an unconverged one arms the fit
+  ok   item 7: a probe three days ago, read back from the stored record by a fresh experiment object, still refuses the press; eight days ago arms
+  ok   the coordinator's freeze holds the armed probe with its reason, and aborts a started one
+  ok   item 30: a run's last step interval goes to the store although the plan has been adopted since; a plan p_max interval just before a run goes to the window although the experiment has started since
+  ok   the synthetic pump's known 3.0 kW maximum is recovered within 2 %: three 2.0 h probes (four store samples each) and six 1.0 h probes (two each)
+  ok   control: routed on the mode one interval late, the 1.0 h probes store one sample each and a probe interval reaches the window
+  ok   the recorded outcome names the kind, the phase, the refusal and the last press, outside the unrecorded set, where the bulky view stays
+  ok   the fit's clock is inclusive: exactly 30 days after its last run arms it; 200 learner samples is converged, 199 is not
+  ok   the probe's clock is inclusive: exactly 7 days after the newest store sample arms it
+  ok   a fit armed unconverged stands down at the start once the learner reaches 200 samples
+  ok   the lapse is inclusive: a top exactly 45 days old still stands
+  ok   the store's edges: a set-point exactly CEILING_TOLERANCE_K under the ceiling is the ceiling, a draw exactly at the idle margin is the idle draw
+  ok   an overdraw counts at a set-point exactly CEILING_TOLERANCE_K under the ceiling
+  ok   the store keeps the newest 48 samples (CEILING_WINDOW)
+  ok   a stored row at the standby floor is dropped, one above it kept; a negative count reads 0
+  ok   a plan action's power is not the experiment's: the plan's own step (5.0 kW) decides duty and level although the action reads 0 kW
+  ok   no experiment view, no outcome row
+  ok   a probe armed on a declared plant seeds no fit: no slab pair, no re-seeded gains prior
+  ok   a house no two-cycle probe fits is aborted at the step with the reason, injecting nothing and starting no probe clock
+  ok   a draw exactly AGREE_TOLERANCE over the learned top is no overdraw
+  ok   the duration search's bound is inclusive: a peak exactly at the bound keeps the 2.0 h step, one ulp under it shortens to 1.5 h
+  ok   the fit's degenerate-house fallback is strict: a loss or a mass of exactly 1e-6 is no house to size on, and steps 0.3 of the maximum
+  ok   the probe prices its heat at the fit's COP floor (0.1): at a reported COP of 0.05 the 0.5 kW it injects fits no step on this house, where 0.25 kW would fit 2.0 h
+  ok   a step inside a quiet off or silent window is named; outside one, or with none set, it is not
+  ok   inside a quiet off window the coordinator holds an armed probe with the reason and aborts a started one; a window elsewhere in the day holds nothing
+  ok   hold_reason ranks a mode that cannot heat first, then the learners' freeze, then an unread room, then a quiet window, and is None when none holds
+  FAIL arm_from_config takes the switch from the entry's configuration: off arms nothing, whatever the sysid config held before
+  FAIL arm_from_config logs the armed kind once when it arms, and says nothing of arming when it does not  [True ceiling_probe ['System identification armed (ceiling_probe); it will start at the next mild, cheap night hour'] ['System identification not armed: house already converged, and no metered flow set-point to probe the ceiling on']]
+
+2 of 61 FEATURES BLOCK FAILED

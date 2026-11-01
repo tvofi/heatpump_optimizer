@@ -10,6 +10,7 @@
   ok   a probe interval: the cycle books the supply on, and the step tick writes nothing over it
   ok   item 29: the accessor is raw -- eleven samples give None, twelve their median
   ok   item 29: twelve at 4.5 kW on a 5.0 kW configuration publish 4.5 (within 15 % is still published raw; the agreement ruling is R10-COP-GATE part D's); eleven, None
+  ok   item 29: the accessor is the median of the store, not its mean or its extreme -- one low interval (a cut step, a partial draw) among eleven at 3.0 kW, and one high outlier among eleven, both leave it at 3.0
   ok   the top lapses 45 days after the newest sample, and a sample stamped ahead of the clock has no knowable age
   ok   an experiment's ceiling interval writes the store, not the window; the same interval the plan commanded writes the window, not the store
   ok   a gate-held 1.4 kW draw above a learned 1.1 kW idle is a running sample yet stores nothing, nor does a ceiling draw at the idle draw or a sub-ceiling one; the same 1.4 kW with the ceiling written does
@@ -36,7 +37,7 @@
   ok   eligibility is install-level and shared with the arbiter's flow-command rule: a meter and a flow set-point driven in Control
   ok   the button's route: a converged flow-metered install arms the probe, a converged duty-cycling one is refused with the reason, an unconverged one arms the fit
   ok   item 7: a probe three days ago, read back from the stored record by a fresh experiment object, still refuses the press; eight days ago arms
-  ok   the coordinator's freeze holds the armed probe with its reason, and aborts a started one
+  FAIL the coordinator's freeze holds the armed probe with its reason, and aborts a started one  [('armed', None) step]
   ok   item 30: a run's last step interval goes to the store although the plan has been adopted since; a plan p_max interval just before a run goes to the window although the experiment has started since
   ok   the synthetic pump's known 3.0 kW maximum is recovered within 2 %: three 2.0 h probes (four store samples each) and six 1.0 h probes (two each)
   ok   control: routed on the mode one interval late, the 1.0 h probes store one sample each and a probe interval reaches the window
@@ -58,6 +59,9 @@
   ok   the fit's degenerate-house fallback is strict: a loss or a mass of exactly 1e-6 is no house to size on, and steps 0.3 of the maximum
   ok   the probe prices its heat at the fit's COP floor (0.1): at a reported COP of 0.05 the 0.5 kW it injects fits no step on this house, where 0.25 kW would fit 2.0 h
   ok   a step inside a quiet off or silent window is named; outside one, or with none set, it is not
-  ok   inside a quiet off window the coordinator holds an armed probe with the reason and aborts a started one; a window elsewhere in the day holds nothing
+  FAIL inside a quiet off window the coordinator holds an armed probe with the reason and aborts a started one; a window elsewhere in the day holds nothing  [('armed', None) step None '']
+  FAIL hold_reason ranks a mode that cannot heat first, then the learners' freeze, then an unread room, then a quiet window, and is None when none holds
+  ok   arm_from_config takes the switch from the entry's configuration: off arms nothing, whatever the sysid config held before
+  ok   arm_from_config logs the armed kind once when it arms, and says nothing of arming when it does not
 
-ALL 57 FEATURES BLOCK PASSED
+3 of 61 FEATURES BLOCK FAILED
