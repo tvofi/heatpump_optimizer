@@ -1,0 +1,5 @@
+## reviewer's widened rule (copies / argv0 overrides) at 6421fe135d9f5a9e65433a4433f000d2419486bf
+6421fe135d9f5a9e65433a4433f000d2419486bf:dev/audit/rounds/round8/evidence/D11/s2_release_gate.py:46:                       capture_output=True, text=True, executable="/bin/bash" if isinstance(cmd, str) else None)
+6421fe135d9f5a9e65433a4433f000d2419486bf:dev/audit/rounds/round9/D14/s5/closure_divergence.py:61:    """{repo file: {reader argv0...}} opened for reading by script's process tree."""
+6421fe135d9f5a9e65433a4433f000d2419486bf:dev/audit/rounds/round9/D14/s5/closure_divergence.py:72:    who: dict[str, str] = {}          # pid -> argv0 argv1 of its last exec
+6421fe135d9f5a9e65433a4433f000d2419486bf:tests/entities.py:33625:    f"blank-line-executable={3 in _RCH_EXE}",

@@ -1,0 +1,20 @@
+## class rule at merge base 6421fe135d9f5a9e65433a4433f000d2419486bf
+6421fe135d9f5a9e65433a4433f000d2419486bf:tools/audit/seat/pr_args.sh:625:  ln -s /bin/sleep "$REAP_DIR/unrelated-sleep"
+6421fe135d9f5a9e65433a4433f000d2419486bf:tools/audit/seat/pr_args.sh:1041:        [ -x "$k" ] && [ ! -e "$t/nops/${k##*/}" ] && ln -s "$k" "$t/nops/${k##*/}"
+6421fe135d9f5a9e65433a4433f000d2419486bf:tools/audit/seat/train.sh:322:    ln -s "$(command -v python3)" "$st/venv-ci/bin/python3"
+6421fe135d9f5a9e65433a4433f000d2419486bf:tools/audit/seat/train.sh:355:  ln -s "$(command -v python3)" "$st/venv-ci/bin/python3"
+6421fe135d9f5a9e65433a4433f000d2419486bf:tools/audit/worktree_gc.sh:207:  ln -s "$W/sweep/tmp/inuse-venv" "$W/sweep/orch/seat-open/wt/.venv"
+6421fe135d9f5a9e65433a4433f000d2419486bf:tools/pr/prepr.sh:2279:  : > "$SRD/scratchpad/real.md"; ln -s "$SRD/scratchpad/real.md" "$SRD/scratchpad/seat/link.md"
+6421fe135d9f5a9e65433a4433f000d2419486bf:tools/pr/prepr.sh:2281:  : > "$SRD/scratchpad/seat/real.md"; ln -s "$SRD/scratchpad/seat/real.md" "$SRD/h/link.md"
+6421fe135d9f5a9e65433a4433f000d2419486bf:tools/pr/prepr.sh:3118:  ln -s "$PWD/tests" "$QT/tests"
+6421fe135d9f5a9e65433a4433f000d2419486bf:dev/audit/harnesses/r10_fly_nightly_hb.py:160:            staged.symlink_to(real)
+6421fe135d9f5a9e65433a4433f000d2419486bf:dev/audit/harnesses/r10_seat_selftests_mutants.py:555:            (pybin / name).symlink_to(sys.executable)
+6421fe135d9f5a9e65433a4433f000d2419486bf:tests/arch_score.py:94:        (pkg / "linked.py").symlink_to("notes.txt")
+6421fe135d9f5a9e65433a4433f000d2419486bf:tests/entities.py:29325:        os.symlink(sys.executable, _bin / "python")
+6421fe135d9f5a9e65433a4433f000d2419486bf:tests/gate_lock.py:190:            os.link(tmp, path)
+6421fe135d9f5a9e65433a4433f000d2419486bf:tests/gate_lock.py:364:                os.link(grave, owner_path)
+6421fe135d9f5a9e65433a4433f000d2419486bf:tests/gate_lock.py:416:                os.link(tmp, path)
+6421fe135d9f5a9e65433a4433f000d2419486bf:tools/audit/seat/offline_spy.py:168:            (bindir / interp).symlink_to(sys.executable)
+6421fe135d9f5a9e65433a4433f000d2419486bf:tools/pr/gh_comment.py:445:    os.symlink(wrote("scratchpad/root.md", healthy), link)
+6421fe135d9f5a9e65433a4433f000d2419486bf:tools/pr/gh_comment.py:447:    os.symlink(wrote("scratchpad/seat/own.md", healthy), os.path.join(tmp, "link2.md"))
+exec -a:
