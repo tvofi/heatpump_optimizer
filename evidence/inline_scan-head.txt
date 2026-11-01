@@ -1,6 +1,0 @@
-FAIL depth seams: dev/audit/harnesses/r10_prepr_cap_lease_mutants.py:40: ROOT = Path(__file__).resolve().parents[3]
-
-real	0m0.738s
-user	0m0.675s
-sys	0m0.060s
-rc=1

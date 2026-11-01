@@ -1,5 +1,0 @@
-  [01:00:51] start  python3 /tmp/tmp.HsZ16d3To9 tests/stress.py
-  [01:00:57] FAILED python3 /tmp/tmp.HsZ16d3To9 tests/stress.py (6s)
---- manifest:
-main-001	76	6	python3 /tmp/tmp.HsZ16d3To9 tests/stress.py
---- held: /tmp/tmp.27ibuD6siQ/lock: live label=other-holder pid=1315 expires_at=2026-11-01T01:30:51.826037+00:00 flock_available=True queue=-
