@@ -39,7 +39,7 @@
   ],
   "ruler": {
     "mypy": "2.4.1",
-    "homeassistant_stubs": "2026.10.0",
+    "homeassistant_stubs": "2026.9.3",
     "python_min": "3.14.2",
     "python_version_flag": "3.14",
     "third_party": [
