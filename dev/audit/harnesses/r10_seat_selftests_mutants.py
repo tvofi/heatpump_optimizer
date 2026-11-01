@@ -55,7 +55,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import mutant_guard  # noqa: E402 -- restores the mutated file on a kill (SIGTERM/SIGINT) and refuses a leftover mutant
 
 # cloud_relay.sh's handoff-arm lines the hold's ordering mutants swap
-_CONTAINED = 'git merge-base --is-ancestor "$hs" "$head" && continue\n'
+_CONTAINED = 'bonly=""; if git merge-base --is-ancestor "$hs" "$head"; then\n'
 _HOLD = 'if grep -qxF "$pr" <<< "$held_prs"; then echo "cloud_relay: HELD #$pr $hs"; continue; fi\n'
 _FAILED = 'if [ -f "$f" ] && grep -qxF "$topic $hs" "$f"; then continue; fi\n'
 
@@ -394,8 +394,9 @@ MUTANTS = [
      'level_set'),
     ("cloud_relay-7", "cloud_relay.sh", '  held) shift; held "$@"; exit $?;;\n', ''),
     # the two orderings the hold is a design choice of: after the contained test, before the failed ledger
-    ("cloud_relay-8", "cloud_relay.sh", _HOLD + "    " + _FAILED, _FAILED + "    " + _HOLD),
-    ("cloud_relay-9", "cloud_relay.sh", _CONTAINED + "    " + _HOLD, _HOLD + "    " + _CONTAINED),
+    # (the freeze now sits between hold and ledger, so the mutant puts a silent ledger test first)
+    ("cloud_relay-8", "cloud_relay.sh", "    " + _HOLD, "    " + _FAILED + "    " + _HOLD),
+    ("cloud_relay-9", "cloud_relay.sh", "    " + _CONTAINED, "    " + _HOLD + "    " + _CONTAINED),
     # the refusal is a level (#2547): the pre-merge event-log line, and a level never cleared
     ("cloud_relay-10", "cloud_relay.sh",
      'level_line handoff-hold-malformed "$(hold_file)" - >> "$state/cloud-level-hold.$$"; level_set',
@@ -436,6 +437,18 @@ MUTANTS = [
      'level_line handoff-update "refs/heads/handoff/$topic" "$hs" >> "$state/cloud-level-update.$$"; rm -rf'),
     ("cloud_relay-37", "cloud_relay.sh", 'why=$(grep REFUSE "$bd/update.out" | tail -n 1); [ -n "$why" ] ||', 'why=; [ -n "$why" ] ||'),
     ("cloud_relay-38", "cloud_relay.sh", 'END { print w }\' "$f.why" 2>/dev/null)', 'END { print w }\' /dev/null)'),
+    # R10-FLOW-BODY-ONLY part (c): a contained head's new body is applied body-only, once per body
+    # move, never on the seeding pass; a failed one is keyed on the body sha; #3037's review
+    # survivors M2 (the first REFUSE line read as the last) and M5 (no replay of the update's output).
+    ("cloud_relay-39", "cloud_relay.sh", '      grep -qxF "$topic $bs" "$bf" && continue\n', '      false && continue\n'),
+    ("cloud_relay-40", "cloud_relay.sh", '[ -z "$seed" ] || { echo "$topic $bs" >> "$bf"; continue; }', ':'),
+    ("cloud_relay-41", "cloud_relay.sh", '"$([ -n "$bonly" ] && echo - || echo "$hs")"', '"$hs"'),
+    ("cloud_relay-42", "cloud_relay.sh", 'why=$(grep REFUSE "$bd/update.out" | tail -n 1);', 'why=$(grep REFUSE "$bd/update.out" | head -n 1);'),
+    ("cloud_relay-43", "cloud_relay.sh", '    cat "$bd/update.out" >&2\n', ''),
+    ("cloud_relay-44", "cloud_relay.sh", '[ -z "$bonly" ] || key="$key $bs"', ':'),
+    ("cloud_relay-45", "cloud_relay.sh", 'rm -rf "$bd"; echo "$topic $bs" >> "$bf"  #', 'rm -rf "$bd"  #'),
+    # #3089 review mutant B: a body-only move is not held by the review freeze
+    ("cloud_relay-46", "cloud_relay.sh", 'if [ -z "$bonly" ] && ! grep -qxF "$pr" <<< "$released" && why=', 'if true && ! grep -qxF "$pr" <<< "$released" && why='),
     # R10-UPDATE-PR-SIGNALS (#2549): the update in the loop's own process group again
     ("cloud_relay-29", "cloud_relay.sh", '    pr_own_group "${upd[@]}" "$br"', '    "${upd[@]}" "$br"'),
     # R10-UPDATE-PR-SIGNALS carry 6 (P163): the STUCK andon's age, its bound, its held test, its wiring
@@ -446,6 +459,15 @@ MUTANTS = [
     ("cloud_relay-33", "cloud_relay.sh", 'confirm_arm; stuck_arm; [ -z "$loop" ]', 'confirm_arm; [ -z "$loop" ]'),
     ("ledger-1", "ledger.py", '"confirm-owed": "derived", "push-stuck": "derived",', '"confirm-owed": "derived",'),
     ("pr_args-1", "pr_args.sh", 'p = os.getppid(); start = int(time.time())', 'p = os.getppid(); start = 0'),
+    # R10-FLOW-BODY-ONLY parts (a) and (b), graded by update_pr.sh's step (pr_args.sh's fixture):
+    # main merged only when DIRTY or conflicting; an unmoved head is re-bodied with no push.
+    ("update_pr-1", "update_pr.sh", 'git merge-tree --write-tree origin/main HEAD >/dev/null 2>&1 || MAIN=1', 'MAIN=1'),
+    ("update_pr-2", "update_pr.sh", '[ "$ST" != DIRTY ] || MAIN=1', ':'),
+    ("update_pr-3", "update_pr.sh", 'if [ "$H" = "$LIVE" ]; then', 'if false; then'),
+    ("update_pr-4", "update_pr.sh", 'git merge-base --is-ancestor "$HT" "$H" || pr_refuse', 'true || pr_refuse'),
+    ("update_pr-5", "update_pr.sh", '[ "$rc" = 0 ] || pr_refuse "body-only:', 'true || pr_refuse "body-only:'),
+    # #3089 review mutant A: merge-tree's conflict merges main when gh does not say DIRTY
+    ("update_pr-6", "update_pr.sh", 'git merge-tree --write-tree origin/main HEAD >/dev/null 2>&1 || MAIN=1', 'git merge-tree --write-tree origin/main HEAD >/dev/null 2>&1 || :'),
     ("tick_loop-3", "tick_loop.sh", 'pass --confirm </dev/null', 'pass </dev/null'),
     # r10-flow-andon: ids are per file (tick_loop-N, heartbeat-N), never a new S number.
     ("tick_loop-1", "tick_loop.sh", '  timeout 60 bash "${HPO_TICK_HEARTBEAT:-$HERE/heartbeat.sh}" --once --message "TICK-PASS $now relay=$rrc tick=$trc"  # mut:heartbeat\n', ""),

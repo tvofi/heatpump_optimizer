@@ -112,10 +112,26 @@
   `OWED <utc> handoff-held <ref> <tip> #<pr> <why>` in `<log>.level`;
   `cloud-handoff-release` (the hold file's grammar) releases a listed PR from the
   freeze, never from the hold, for new work that voids a merge verdict.
-  A handoff already inside its PR, or with no body ref, does nothing; a failed
-  update is noted in `cloud-handoff-failed` by `<topic> <code-sha>`, owed as
-  `OWED <utc> handoff-update <ref> <sha>` in `<log>.level` while that entry
-  matches the handoff's tip, and retried only when the handoff moves. An update that
+  A handoff with no body ref does nothing. A body names the code head it was
+  pushed for in its commit's `Code: <sha>` trailer (`body_push.sh`, V147): one
+  naming another head than the handoff tip runs no update, is owed as
+  `OWED <utc> handoff-body-stale <ref> <tip> body names <sha12>`, records no
+  failure and is retried next pass; a body with no `Code:` line updates as
+  before. A handoff already inside its PR is body-only (R10-FLOW-BODY-ONLY):
+  its body, when this relay has not yet applied it and its `Code:` names the
+  tip, goes to `update_pr.sh <branch> - <body>`, which PATCHes the body and
+  pushes nothing, once per body move. `cloud-handoff-bodied` holds
+  `<topic> <body-sha>` for every body applied, by an update or body-only; a pass
+  that finds no such file records every contained topic's body and runs
+  nothing (the seed), and a contained body with no `Code:` line is recorded
+  and left alone. A failed update is noted in `cloud-handoff-failed` by
+  `<topic> <code-sha>` (a body-only one by `<topic> <code-sha> <body-sha>`, so
+  a new body re-triggers it), its reason, the update's last `REFUSE` line else
+  its last line, kept beside it in `cloud-handoff-failed.why` (tab-separated),
+  owed as `OWED <utc> handoff-update <ref> <sha> <why>` in `<log>.level` while
+  that entry matches, and retried only when the handoff (or body) moves. The
+  update's output is held in a file until it ends, then replayed to the
+  relay's stderr. An update that
   exits 75 is BUSY (another `open_pr.sh` or `update_pr.sh` run holds the branch's
   `upd-<branch>.lock`, typically the orchestrator's own update of that PR, or an `open_pr.sh` between its two pushes): it is
   not recorded, and the next pass retries it. The update runs in a process
