@@ -1,0 +1,4 @@
+  ok   #1523 class check: every learner feeder in coordinator.py consults the freeze or carries a disposition, and no disposition is stale
+  ok   #1523 class check null control: dropping the experiment's consult re-opens exactly its seam
+ALL 4742 FEATURE CHECKS PASSED
+rc=0
