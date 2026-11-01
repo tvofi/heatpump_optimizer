@@ -1,0 +1,7 @@
+== R1 resolved: priority key dropped from item: SURVIVED rc=0 | merge_train self-test: 415 checks, 0 failed
+== R2 resolved: front not passed to train_add: SURVIVED rc=0 | merge_train self-test: 415 checks, 0 failed
+== R3 resolved: --remove arm made front: KILLED rc=1 | merge_train self-test: 415 checks, 2 failed
+== R4 spool entry drops priority key: SURVIVED rc=0 | merge_train self-test: 415 checks, 0 failed
+== B1 body: drain key 0: KILLED rc=1 | merge_train self-test: 415 checks, 2 failed
+== R5 drain: critical before priority: KILLED rc=1 | merge_train self-test: 415 checks, 1 failed
+== R6 --priority argparse flag ignored: SURVIVED rc=0 | merge_train self-test: 415 checks, 0 failed

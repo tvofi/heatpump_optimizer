@@ -1,0 +1,4 @@
+LOG FRONT #1: spool read back: #1 #3 #2
+RESULT front_rc 0 spool_after_front [1, 3, 2]
+RESULT drained [3, 1, 2]
+RESULT null_drained [1, 3, 2]

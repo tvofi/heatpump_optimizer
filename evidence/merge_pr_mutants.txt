@@ -1,0 +1,5 @@
+B2 carried-unconditional:   FAIL a verdict for another head refuses CARRIED HEAD and posts nothing (merged deadbeef)
+B2 carried-unconditional: merge_pr self-test: 22 checks, 1 failed
+B3 postmerge-line-deleted:   FAIL the merge runs postmerge.py for the merged pull request (cat: /tmp/tmp.7yNMlXCZND/state2/postmerge.argv: No such file or directory)
+B3 postmerge-line-deleted:   FAIL an owed post-merge step prints OWED after the merge line and fails the script
+B3 postmerge-line-deleted: merge_pr self-test: 22 checks, 2 failed
