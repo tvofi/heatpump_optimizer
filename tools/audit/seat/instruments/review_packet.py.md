@@ -13,9 +13,9 @@
   main, an unanswered concluded red, a required context concluded failure, a
   host path, a hot file shared with an open pull request holding an
   unboarded merge verdict, or a `fix/<t>` head lacking its `handoff/<t>` tip
-  (`handoff-not-applied`); a pending check never refuses. `handoff`, run by
+  (`handoff-not-applied`), or a body line citing a carry as landed that the roster ref lacks at the cited sha (`carry-landed`); a pending check never refuses. A `head-note` refusal names the repair (`update_pr.sh`). The packet closes on the `carry_audit.py check` self-audit a reviewer runs before its verdict. `handoff`, run by
   `body_push.sh` before a PR body is pushed, refuses the structure and
-  hot-file signals and `brief-carries` (a roster carry the body never names
+  hot-file and `carry-landed` signals and `brief-carries` (a roster carry the body never names
   as `Carry N`). A refusal still
   WRITES the packet, so a held dispatch never withholds the evidence, except
   a host path, which writes nothing because the packet carries the diff.

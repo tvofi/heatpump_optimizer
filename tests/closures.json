@@ -4031,6 +4031,7 @@
    "dev/audit/harnesses/r10_triage_gate_replay.py",
    "dev/audit/harnesses/r10_trust_relative_bundle.py",
    "dev/audit/harnesses/r10_u9a_ratchet_nulls.py",
+   "dev/audit/harnesses/r10_uutils_sleep.sh",
    "dev/audit/harnesses/r10_vent_bias_window.py",
    "dev/audit/harnesses/r10_vent_probe_companion.py",
    "dev/audit/harnesses/r10_vent_sun_transient.py",
