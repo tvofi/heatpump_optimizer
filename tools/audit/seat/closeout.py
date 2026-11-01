@@ -35,8 +35,8 @@ THE STEPS, each gated by the one before (STEPS below is the order):
                deleted while a workflow or citation reads them), no policy file
                still cites a ref about to go (retarget it to the archive tag at
                the same sha), and `node tools/policy/brief_lint.mjs` passes.
-  2 refs       prune_refs' plan over every remote branch, written by batched
-               `git push`: every archive tag first, read back, then the
+  2 refs       prune_refs' plan over every remote branch, written by
+               batched pushes: every archive tag first, read back, then the
                deletes; a ref to delete without its tag at its own sha refuses
                the whole step before any delete.
   3 local      seat worktrees under the seat roots removed (one holding an
