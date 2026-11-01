@@ -23007,10 +23007,38 @@ for _cm_label, _cm_ours, _cm_theirs in (
         _env_drift.merge_claim_file(_CM_MD_BASE, _cm_ours, _cm_theirs) is None
         and "may-drift" in _env_drift.merge_claim_refusal(
             _CM_MD_BASE, _cm_ours, _cm_theirs)
-        and "  flat_prices:" in _env_drift.merge_claim_refusal(
+        and "  may-drift: flat_prices:" in _env_drift.merge_claim_refusal(
             _CM_MD_BASE, _cm_ours, _cm_theirs),
         _env_drift.merge_claim_refusal(_CM_MD_BASE, _cm_ours, _cm_theirs),
     )
+# The stamp is the other value-bearing comment line, and the union decided it
+# alike: a bump beside the other side's adjacent note kept both stamps, and
+# `_parse_claims` reads the first, so a bump this branch made was lost.
+_CM_ST_NOTE = "# claims-for: 6.3.16\n#\n"
+assert _CM_ST_NOTE in _CM_BASE, "stamp anchor missing"
+_CM_ST_BUMP = _CM_BASE.replace("claims-for: 6.3.16", "claims-for: 6.3.17")
+_CM_ST_ADJ = _CM_BASE.replace(_CM_ST_NOTE, "# claims-for: 6.3.16\n# an adjacent note\n")
+for _cm_label, _cm_ours, _cm_theirs in (
+    ("this branch bumped", _CM_ST_BUMP, _CM_ST_ADJ),
+    ("main bumped", _CM_ST_ADJ, _CM_ST_BUMP),
+):
+    _cm_st = _env_drift.merge_claim_file(_CM_BASE, _cm_ours, _cm_theirs)
+    R.check(
+        f"a stamp {_cm_label} beside an adjacent note is the one stamp kept",
+        _cm_st is not None
+        and _env_drift._parse_claims(_cm_st)[0] == "6.3.17"
+        and _cm_st.count("claims-for:") == 1
+        and "# an adjacent note" in _cm_st,
+        f"merged={_cm_st!r}",
+    )
+_CM_ST_OTHER = _CM_BASE.replace("claims-for: 6.3.16", "claims-for: 6.3.18")
+R.check(
+    "a stamp both sides bumped differently is refused and named",
+    _env_drift.merge_claim_file(_CM_BASE, _CM_ST_BUMP, _CM_ST_OTHER) is None
+    and "  claims-for::" in _env_drift.merge_claim_refusal(
+        _CM_BASE, _CM_ST_BUMP, _CM_ST_OTHER),
+    _env_drift.merge_claim_refusal(_CM_BASE, _CM_ST_BUMP, _CM_ST_OTHER),
+)
 
 # End to end: a real two-branch conflict, resolved by git calling the driver.
 # The unit checks above pin the resolution; this pins the wiring -- the
@@ -23153,7 +23181,8 @@ R.check(
     and (_env_drift.merge_claim_defect(
         _CM_MD_GOOD + "# may-drift: wood_coil -- machine-sensitive\n", {},
         _CM_MD_BASE, _CM_MD_OURS, _CM_MD_REWORD,
-    ) or "").startswith("a may-drift line was lost or reinstated: ['wood_coil']"),
+    ) or "").startswith(
+        "a may-drift or stamp line was lost or reinstated: ['may-drift: wood_coil']"),
     f"good={_CM_MD_GOOD!r}",
 )
 
