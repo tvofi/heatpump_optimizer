@@ -15205,7 +15205,9 @@
     "tools/audit/seat/merge_train.py",
     "tools/policy/budget_raise_gate.py"
    ],
-   "carry": [],
+   "carry": [
+    "From the R10-FLY-MANDATE-REVOKE-GUARD fixer (handoff 86123b4e3, 2026-10-31), gaps it stated rather than built:\n(a) a raw `gh api` or `gh issue comment` post to #201 bypasses the guard, which lives in gh_comment.py only;\n(b) merge_train.py and --check-body still check only the raise justification's shape, not its dS value;\n(c) the budget-raise-gate job's 5-minute timeout is unchanged, while the scorer needs about 59 s of CPU on the mandated path.\nClose (a) at the seat shims (tools/audit/seat/shims has a seat-gh: refuse a #201 comment write that does not go through gh_comment.py). Route (b) through the same revokes()/dS helper. Measure (c) on CI's runner.\nControl: a planted raw `gh api` post of the kill pairing is refused by the shim, and a normal comment through gh_comment.py posts."
+   ],
    "resume": {
     "stage": "not-started",
     "branch": "handoff/r10-raise-gate-shim",
