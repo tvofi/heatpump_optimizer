@@ -11,10 +11,16 @@ The block had three items:
 This re-cut changes only what those three items need, in three files:
 
 - `coordinator.py`: the two calls are laid out normally, using the review's null re-wrap verbatim. No production logic changed.
-- `tests/structure_budgets.json`: re-recorded at the honest 8054 / 17647. The reason is in commit `e81bf9dbf`'s message.
+- `tests/structure_budgets.json`: re-recorded at the honest 8054 / 17647. The reason is in commit `e81bf9dbf`'s message. The merge with origin/main composed main's own deltas onto them, to 8051 / 17645.
 - `tests/features.py`: the marker is keyed on the consult expression alone, and one item-29 check is added.
 
-Nothing outside the block changed. `git diff 2be13c572 HEAD --stat` lists exactly those three files (18 insertions, 9 deletions). origin/main was not merged, because `git merge-tree --write-tree origin/main HEAD` reports no conflict.
+Nothing outside the block changed. `git diff 2be13c572 e81bf9dbf --stat` lists exactly those three files (18 insertions, 9 deletions).
+
+**The merge (repair of the refused handoff).** The re-cut tip `e81bf9dbf` was refused by `prepr.sh`: two predicted reds on `governance / wave-script` (the `AGREEMENT UNMERGED` and `GRADER UNMERGED` arms), because origin/main had moved and `tests/features.py` no longer merged. The head is now `deceb3de7`, a merge of origin/main `d052f80f7` into `e81bf9dbf` (merge, not rebase). The resolution:
+- `tests/features.py`: both sides appended a tail block. The resolution keeps this PR's R10-CEILING-PROBE block, then main's R10-HOTFIX-AWAY-PRESENCE block. `diff <(git diff 1a8051350 e81bf9dbf -- tests/features.py | grep '^[-+][^-+]' | sort) <(git diff origin/main HEAD -- tests/features.py | grep '^[-+][^-+]' | sort) && echo PR_DELTA_PRESERVED` prints `PR_DELTA_PRESERVED`.
+- `tests/structure_budgets.json` and `tests/closures.json` were resolved by the repository's ledger merge driver: `class_excess_loc` 17653 + both deltas = 17645, `max_class_loc` 8059 + both deltas = 8051, and `inert_reads.tests/harness_headers.py` merged as a set.
+
+No other file changed in the merge beyond main's own commits. Every figure below was re-taken at `deceb3de7`.
 
 R10-CEILING-PROBE: the cheap-night ceiling probe, and the system-identification experiment's step reaching a flow set-point install.
 
@@ -99,26 +105,25 @@ The design is the approved architect note `dev/programme/designs/R10-CEILING-PRO
 
 ## Head
 
-`e81bf9dbf0beec990324b61335b62d4267b87e54`. Its parent is `fcfc221ff`, and that commit's parent is the reviewed PR head `2be13c572cf34a475d18e3f5e2dbde4f9ff8482a`. The merge base is origin/main `1a8051350406387d5ee1ed966d8a2ba8a770cc31`.
+`deceb3de7ee1f01a1e0f6ddd3d93acede6c68e41`. It is the merge of origin/main `d052f80f7f81d42db5c57a55ebaef7056c7ce01a` into the re-cut tip `e81bf9dbf0beec990324b61335b62d4267b87e54`. That commit's parent is `fcfc221ff`, whose parent is the reviewed PR head `2be13c572cf34a475d18e3f5e2dbde4f9ff8482a`. The merge base is origin/main `d052f80f7f81d42db5c57a55ebaef7056c7ce01a`.
 
 - `fcfc221ff`: the re-wrap of the two calls, the marker re-key, and the median-versus-p90 check.
 - `e81bf9dbf`: `python3 tests/structure.py --record --allow-regression=...`, with the reason in its commit message.
-
-origin/main had moved to `e4c9e2016` at 2026-11-01 14:54 UTC. `git merge-tree --write-tree origin/main HEAD` exits 0 (no conflict), so origin/main is not merged.
+- `deceb3de7`: the merge of origin/main described under `## Re-cut`.
 
 ## Mutation proof
 
-The block in `tests/features.py` starts at `# --- R10-CEILING-PROBE (#2498, #2808)` and now holds 62 checks. `python3 tools/audit/seat/features_block.py "# --- R10-CEILING-PROBE (#2498, #2808)"` at the head prints `ALL 62 FEATURES BLOCK PASSED`.
+The block in `tests/features.py` starts at `# --- R10-CEILING-PROBE (#2498, #2808)` and now holds 62 checks. `python3 tools/audit/seat/features_block.py "# --- R10-CEILING-PROBE (#2498, #2808)" "# R10-HOTFIX-AWAY-PRESENCE (tvofi, 2026-10-30"` at the head prints `ALL 62 FEATURES BLOCK PASSED`. The END argument is needed since the merge, because main's block now follows this one and the block runner otherwise runs to the file's close.
 
 - **This re-cut's check.** The p90 mutant `np.median` -> `np.percentile([...], 90)` in `DrawRange._ceiling_median` (the review's `evidence/mut_median_p90.diff`) gives these results:
   - Block: `1 of 62 FEATURES BLOCK FAILED`, failing `item 29: the accessor is the median, not an upper quantile -- nine intervals at 3.0 kW and three at 4.0 kW give 3.0, where the 90th percentile is 4.0`.
-  - Whole suite: `PYTHONPATH=tests/hastub python3 tests/features.py` prints `1 of 4736 FEATURE CHECKS FAILED` (rc=1), and that row is the only `FAIL`.
+  - Whole suite: `PYTHONPATH=tests/hastub python3 tests/features.py` prints `1 of 4742 FEATURE CHECKS FAILED` (rc=1), and that row is the only `FAIL`.
 - **The #1523 class check, keyed layout-independently.** In `coordinator.py`, replace `self._learning_frozen(CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY)` in the `hold_reason` call with `None`. Then the class check and its null control, run alone (header, P5 imports, `_P5_READS` through the null control), print `2 of 2 P5 CLASS CHECKS FAILED`. Failing:
   - `#1523 class check: every learner feeder ... [undispositioned ['_run_system_identification']; ...]`
   - `#1523 class check null control ... [['_run_system_identification']]`
-- **The mutation inventory.** Every `mutation_table.candidates` site on the diff's changed production lines was run against the merge base: 79 sites. Each mutant ran alone through the same block in a worktree copy of the head, with `PYTHONDONTWRITEBYTECODE=1` and `__pycache__` cleared. A first pass without those settings read stale bytecode across same-size mutants and was discarded. The block kills 76. The other three:
-  - `pump_arbiter.py:620 GUARD_OFF` (`_flow_command`'s guard): killed by the whole `tests/features.py`, 1 of 4736 (`## Figures`).
-  - `sysid.py:1466 GUARD_OFF` (the fit's `elif plant is not None:` branch): killed by the whole `tests/features.py`, 39 of 4736 (`## Figures`).
+- **The mutation inventory.** Every `mutation_table.candidates` site on the diff's changed production lines was run against the merge base `d052f80f7`, re-taken at `deceb3de7`: 79 sites. Each mutant ran alone through the same block in a worktree copy of the head, with `PYTHONDONTWRITEBYTECODE=1` and `__pycache__` cleared. A first pass without those settings read stale bytecode across same-size mutants and was discarded. The block kills 76. The other three:
+  - `pump_arbiter.py:620 GUARD_OFF` (`_flow_command`'s guard): killed by the whole `tests/features.py`, 1 of 4742 (`## Figures`).
+  - `sysid.py:1466 GUARD_OFF` (the fit's `elif plant is not None:` branch): killed by the whole `tests/features.py`, 39 of 4742 (`## Figures`).
   - `sysid.py:1358 RETURN_DEL` (`probe_step_hours`'s closing `return None`): equivalent, and triaged at `tests/mutation_ledger/survivor_triage/sysid.py/probe_step_hours.RETURN_DEL.da9e8e97.json`.
 - **Failing test first.** The new check fails under the planted p90 mutant and passes on the production median. It pins existing production code, so it cannot fail before a fix: its failing arm is the mutant, shown above.
 
@@ -136,30 +141,30 @@ The block in `tests/features.py` starts at `# --- R10-CEILING-PROBE (#2498, #280
 
 ## Figures
 
-At `e81bf9dbf0beec990324b61335b62d4267b87e54`, merge base `1a8051350406387d5ee1ed966d8a2ba8a770cc31`, unless a line names another tree.
+At `deceb3de7ee1f01a1e0f6ddd3d93acede6c68e41`, merge base origin/main `d052f80f7f81d42db5c57a55ebaef7056c7ce01a` (origin/main's tip when these were taken, 2026-11-01 UTC), unless a line names another tree.
 
-- `PYTHONPATH=tests/hastub python3 tests/features.py`: `ALL 4736 FEATURE CHECKS PASSED`, rc=0. The row `#1523 class check null control: dropping the experiment's consult re-opens exactly its seam` is `ok`. The control is under `## Null control`.
-- `python3 tools/audit/seat/features_block.py "# --- R10-CEILING-PROBE (#2498, #2808)"`: `ALL 62 FEATURES BLOCK PASSED`. Under the p90 mutant: `1 of 62 FEATURES BLOCK FAILED`. At `2be13c572` under the same mutant: `ALL 61 FEATURES BLOCK PASSED`.
-- `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`, with `RESULT max_class_loc=8054` and `RESULT class_excess_loc=17647`. At the merge base `1a8051350`, the same command reads 8059 and 17653. The class table, per class, at the merge base and here:
-  - `HeatPumpOptimizerCoordinator`: 8059 -> 8054 LOC (-5). This moves both `max_class_loc` and `class_excess_loc` by -5. The payment is the move of the arm's configuration reads and the stand-down decision into `sysid.arm_from_config` and `sysid.hold_reason`, measured with both calls laid out normally.
+- `PYTHONPATH=tests/hastub python3 tests/features.py`: `ALL 4742 FEATURE CHECKS PASSED`, rc=0. The row `#1523 class check null control: dropping the experiment's consult re-opens exactly its seam` is `ok`. The control is under `## Null control`.
+- `python3 tools/audit/seat/features_block.py "# --- R10-CEILING-PROBE (#2498, #2808)" "# R10-HOTFIX-AWAY-PRESENCE (tvofi, 2026-10-30"`: `ALL 62 FEATURES BLOCK PASSED`. Under the p90 mutant: `1 of 62 FEATURES BLOCK FAILED`. At `2be13c572` under the same mutant: `ALL 61 FEATURES BLOCK PASSED`.
+- `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`, with `RESULT max_class_loc=8051` and `RESULT class_excess_loc=17645`. At the merge base `d052f80f7`, the same command reads 8056 and 17651. The class table, per class, at the merge base and here:
+  - `HeatPumpOptimizerCoordinator`: 8056 -> 8051 LOC (-5). This moves both `max_class_loc` and `class_excess_loc` by -5. The payment is the move of the arm's configuration reads and the stand-down decision into `sysid.arm_from_config` and `sysid.hold_reason`, measured with both calls laid out normally.
   - `SystemIdentification`: 1065 -> 1064 LOC (-1 on `class_excess_loc`).
   - `DrawRange` stays under the 300-line limit and costs nothing.
-  - `class_excess_loc` totals 17653 -> 17647 (-6).
-  - `git diff origin/main -- tests/structure_budgets.json` changes `class_excess_loc` 17653 -> 17647, `max_class_loc` 8059 -> 8054 and `recorded_at`, and no other key. No key rises against origin/main.
-- `python3 tools/audit/archscore/score.py --diff 1a8051350406387d5ee1ed966d8a2ba8a770cc31`: `Architecture score: dS +0.0006 IMPROVES` (`coord_footprint 2389 -> 2388`).
+  - `class_excess_loc` totals 17651 -> 17645 (-6).
+  - `git diff origin/main -- tests/structure_budgets.json` changes `class_excess_loc` 17651 -> 17645, `max_class_loc` 8056 -> 8051 and `recorded_at`, and no other key. No key rises against origin/main.
+- `python3 tools/audit/archscore/score.py --diff d052f80f7f81d42db5c57a55ebaef7056c7ce01a`: `Architecture score: dS +0.0006 IMPROVES` (`coord_footprint 2387 -> 2386`).
 - `D=$(mktemp -d); python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"`: `MODE: SCOPED -- 27 script(s) run, 6 scoped out.`
-- `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main`: `CI PREDICT: no closures, fast, governance or instrument red predicted against 1a8051350406`. It lists no ADDED UNPINNED site.
+- `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main`: `CI PREDICT: no closures, fast, governance or instrument red predicted against d052f80f7f81` (via `prepr.sh`'s `ci predict` step). It lists no ADDED UNPINNED site.
 - `PYTHONPATH=tests/hastub python3 tests/guard_pins.py`: `ALL 61 GUARD PIN CHECKS PASSED`.
 - Mutation inventory (scratch driver over `tests/mutation_table.py`'s `changed_lines` and `candidates`, each mutant through `features_block.py`): 79 sites, 76 killed by the block. The three not killed are listed under `## Mutation proof`.
-  - Whole `tests/features.py` under `pump_arbiter.py:620 GUARD_OFF`: `1 of 4736 FEATURE CHECKS FAILED` (rc=1), failing `null control: Observe, an indoor set-point, or a plan that writes the compressor frequency (an install that can duty-cycle, whose draw is the plan's echo) records no command`; killed
-  - Whole `tests/features.py` under `sysid.py:1466 GUARD_OFF`: `39 of 4736 FEATURE CHECKS FAILED` (rc=1), first `the production sequence (declared plant) never enters identify()`; killed
-- The finder's harness `dev/audit/harnesses/ceiling_probe.py` (blob `d1101c541b57a318beb87fc02ca193227d316d59`, file sha1 `4c2f42122ea7cf3f3df04aa46eeb4e19b218ac34`), run with `PYTHONPATH=tests/hastub:custom_components:tests python3 dev/audit/harnesses/ceiling_probe.py` here and, as a copy, in a worktree at the merge base:
+  - Whole `tests/features.py` under `pump_arbiter.py:620 GUARD_OFF`: `1 of 4742 FEATURE CHECKS FAILED` (rc=1), failing `null control: Observe, an indoor set-point, or a plan that writes the compressor frequency (an install that can duty-cycle, whose draw is the plan's echo) records no command`; killed
+  - Whole `tests/features.py` under `sysid.py:1466 GUARD_OFF`: `39 of 4742 FEATURE CHECKS FAILED` (rc=1), first `the production sequence (declared plant) never enters identify()`; killed
+- The finder's harness `dev/audit/harnesses/ceiling_probe.py` (blob `d1101c541b57a318beb87fc02ca193227d316d59`, file sha1 `4c2f42122ea7cf3f3df04aa46eeb4e19b218ac34`), run with `PYTHONPATH=tests/hastub:custom_components:tests python3 dev/audit/harnesses/ceiling_probe.py` here and, as a copy, in a worktree at the merge base `d052f80f7`:
   - duty: base `sysid step 5.0 kW -> duty None`, head `-> duty 'space'`. The null arm (a plan action at 5.0 kW) reads `'idle'` at both.
   - draw: `one probe : ((1.5, None), False, None)` and `null 48 ceil: ((1.5, 3.0), False, None)` at both. It drives `observe`, which this change leaves alone.
   - level (companion): the base writes `35` for an experiment at 5.0, 1.5 and 0.0 kW; the head writes `55`, `38` and `25`.
   - store (companion): base `absent (no ceiling store in this tree)`; head `probe samples 12 | learned top 3.0 | window samples at the ceiling 0 | engaged False`.
 - Enumeration (step 8). The rule: every reader that turns the experiment's action or kind into a command, a sample or a published state. The commands and their counts:
-  - `git grep -n '"system_identification"' -- custom_components/heatpump_optimizer/` returns 17 lines here and 15 at the merge base.
+  - `git grep -n '"system_identification"' -- custom_components/heatpump_optimizer/` returns 17 lines here and 15 at the merge base `d052f80f7`.
   - `git grep -n '_step_kw(\|step_duty(\|plan_step_runs(' -- custom_components/heatpump_optimizer/pump_arbiter.py custom_components/heatpump_optimizer/early_cutoff.py` returns 6.
   - `git grep -n '_sysid_step_off_loop\|learner_samples=' -- custom_components/heatpump_optimizer/` returns 4.
 
@@ -169,14 +174,14 @@ At `e81bf9dbf0beec990324b61335b62d4267b87e54`, merge base `1a8051350406387d5ee1e
   - Unchanged by design: the override's writer, `payload.py`'s reason, the state lists, and the button's entity key and names.
   - Entry points: `_sysid_step_off_loop`'s definition and its call, the `learner_samples=` argument, and `arm_from_config`'s `ident.arm`.
 - Citations, re-resolved at this head:
-  - `coordinator.py`: `_record_accuracy` 9727, `async_arm_system_identification` 10819, `_run_system_identification` 10828, `_adopt_system_identification` 10882.
+  - `coordinator.py`: `_record_accuracy` 9725, `async_arm_system_identification` 10817, `_run_system_identification` 10826, `_adopt_system_identification` 10880. The merge moved only these; `git diff --stat e81bf9dbf HEAD` touches no other cited file.
   - `pump_arbiter.py`: `_experiment_kw` 487, `_flow_command` 607, `_flow_target` 636, `_planned_duty` 773, `step_supply` 1197.
   - `sysid.py`: `armable` 1295, `probe_step_hours` 1331, `hold_reason` 1375, `stand_down` 1507, `conditions_met` 1517, `_begin_step_phase` 1633, `_end_step` 1797, `arm_from_config` 2456.
   - `draw_range.py`: `learned_max_kw` 161, `takes_ceiling` 181, `fold` 515, `diagnostics_view` 586.
   - `thermal_model.py`: `flow_setpoint_driven` 1355, `ceiling_probe_install` 1372.
   - `quiet_windows.py`: `quiet_reason` 155.
   - `sensor.py`: `_sysid_outcome` 2050.
-- `tools/pr/prepr.sh <body>` at this head against `1a8051350`: every step is `ok` or `skip`, except one `check` line: `claim files ... tests/golden/claimed_drift.txt changed` (the branch's own earlier claims, untouched here). Its `ci predict` step prints `CI PREDICT: no closures, fast, governance or instrument red predicted against 1a8051350406`.
+- `tools/pr/prepr.sh <body>` at this head against `d052f80f7`: every step is `ok` or `skip`, except one `check` line: `claim files ... tests/golden/claimed_drift.txt changed` (the branch's own earlier claims, untouched here). Its `wave-script` step prints `224 passed, 0 failed`, and its `ci predict` step prints `CI PREDICT: no closures, fast, governance or instrument red predicted against d052f80f7f81`. The two `wave-script` reds that refused `e81bf9dbf` (`UNMERGED` against `e4c9e2016a45`) are gone, because the head now merges into its base.
 - Claim files: `git diff 2be13c572 HEAD -- tests/golden/` is empty, so this re-cut changes no claim. `card_claimed_drift.txt` is not in the three-dot diff, so it is byte-identical to origin/main. `VERSION`, the manifest version and `RELEASE_NOTES.md` are not in the three-dot diff.
 
 ## Unpinned sites
