@@ -1,7 +1,6 @@
-roster dc16091d6be923f5fc616205cea9d460ddf4cec0
-['groups', 165, 'carry', 9]
-From r10-fly-bus-bash32 (handoff code 5fa9275cc00e187a665624979e8c70e0dbaad461): `tests/entities.py` reads blobs of HEAD (`scan("HEAD")`), so a tree edited and uncommitted is judged at its last commit, while `tools/audit/seat/bare_array.py --check` with no ref reads the working tree. The two disagree on an uncommitted edit, and the entities row cannot see a bare "${a[@]}" a seat has not yet committed. Owner: R10-FLY-SUITE-ENV-FLAKES (it owns tests/entities.py). Build: either have the bare_array row scan the working tree, or document that the row judges committed content only, with a planted-defect control (an uncommitted bare site must read red, or the row must say it judged HEAD). Carry: R10-FLY-SUITE-ENV-FLAKES
-SUITE group found: 1
-groups[165].group = R10-FLY-SUITE-ENV-FLAKES
-NOTE body item f2315161: R10-FLY-SUITE-ENV-FLAKES
-CARRY-AUDIT: 1 finding item(s): 1 routed, 0 unrouted, 0 bad destination(s)
+== 5cfbe719ec113fb7221f9542aa6ad138c9378986
+9 "From r10-fly-bus-bash32 (handoff code 5fa9275cc00e187a665624979e8c70e0dbaad461): `tests/entities.py` reads blobs of HEAD (`scan(\"HEAD\")`), so a tree edited and uncommitted is judged at its last commit, while `tools/audit/seat/bare_array.py --check` with no ref reads the working tree. The two disagree on an uncommitted edit, and the entities row cannot see a bare \"${a[@]}\" a seat has not yet committed. Owner: R10-FLY-SUITE-ENV-FLAKES (it owns tests/entities.py). Build: either have the bare_array row scan the working tree, or document that the row judges committed content only, with a planted-defect control (an uncommitted bare site must read red, or the row must say it judged HEAD). Carry: R10-FLY-SUITE-ENV-FLAKES"
+== dc16091d6
+9 "From r10-fly-bus-bash32 (handoff code 5fa9275cc00e187a665624979e8c70e0dbaad461): `tests/entities.py` reads blobs of HEAD (`scan(\"HEAD\")`), so a tree edited and uncommitted is judged at its last commit, while `tools/audit/seat/bare_array.py --check` with no ref reads the working tree. The two disagree on an uncommitted edit, and the entities row cannot see a bare \"${a[@]}\" a seat has not yet committed. Owner: R10-FLY-SUITE-ENV-FLAKES (it owns tests/entities.py). Build: either have the bare_array row scan the working tree, or document that the row judges committed content only, with a planted-defect control (an uncommitted bare site must read red, or the row must say it judged HEAD). Carry: R10-FLY-SUITE-ENV-FLAKES"
+
+sourced-lib seam present: 0

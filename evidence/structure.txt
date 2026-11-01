@@ -1,4 +1,0 @@
-  ok   name_kept_members 38 <= 38
-  ok   seam_cut_total 422 <= 422
-
-STRUCTURE RATCHET PASSED
