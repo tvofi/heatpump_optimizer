@@ -13463,6 +13463,18 @@ R.check(
     _fr_b_asked == [] and _fr_b_entry.runtime_data is _fr_undone,
     f"refreshes asked {len(_fr_b_asked)}",
 )
+# The undo's pins, as stored: an explicit value, and one stored on the other
+# side (data versus options), each come back where and as they were.
+_FR_PIN_DATA = {"name": "x", "two_zone_mode": "auto", "comfort_weight": 3.0, "indoor_temp_entity": "sensor.in"}
+_FR_PIN_OPTS = {"dhw_enabled": False, "target_temperature": 22.0}
+_fr_pin_reset = _fr_ec.factory_settings(_FR_PIN_DATA, _FR_PIN_OPTS, two_zone=True, dhw=True, wood=False)
+_fr_pin_record = _fi_json.loads(_fi_json.dumps(_fr_ec.undo_point("both", _FR_PIN_DATA, _FR_PIN_OPTS)))
+R.check(
+    "an undo puts each pinned key back where and as it was stored, over the pins the reset wrote",
+    _fr_pin_reset != (_FR_PIN_DATA, _FR_PIN_OPTS)
+    and _fr_ec.undone_settings(*_fr_pin_reset, _fr_pin_record) == (_FR_PIN_DATA, _FR_PIN_OPTS),
+    f"reset {_fr_pin_reset}, undone {_fr_ec.undone_settings(*_fr_pin_reset, _fr_pin_record)}",
+)
 R.check(
     "the spent undo point stays as an ordinary snapshot, so a second restore is the ordinary one",
     not any("before_reset" in snap for snap in _fr_undone._snapshot_ring.snapshots)
