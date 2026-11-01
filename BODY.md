@@ -1,47 +1,30 @@
 Closes #2272.
 
-R10-REPLAY-REAL-DAY: the replay lane's first real recorded day. tvofi's 2026-10-30 away episode is cut from his own Home Assistant export, masked, sealed, and replayed through the current coordinator as a nightly regression guard on the away path. Round 1 (export, masking, leak guard, `cut_day.py`, the fixture, the `away` invariant) is unchanged in its substance. This round answers hpo-approver's round-1 blocked verdict (issue comment 6553801964, evidence on `probe/rev-3078-9c03b1c0`), finding by finding:
+R10-REPLAY-REAL-DAY: the replay lane's first real recorded day. tvofi's 2026-10-30 away episode is cut from his own Home Assistant export, masked, sealed, and replayed through the current coordinator as a nightly regression guard on the away path. This round answers the round-1 verdict and the two CodeQL alerts:
 
-1. **Red checks.** Every one is named under `## Red checks` with its cause and its detector, including CodeQL alerts 47 and 48. Both alerts are false positives. Neither is resolved in code, and the reasons are below.
-2. **`tests / replay` on the new fixture.**
-   - The 14 `no_default` offenders are an **invariant false positive on a real day**. `sensor.heat_pump_optimizer_valve_target_recommendation` publishes the install's configured `max_temperature`, 21.0, which `mixing_valve.recommend_target` returns as the target. 21.0 is also `ThermalState.room_temperature`'s default. `SETPOINT_KEYS` (tests/replay.py) now exempts a setpoint sensor at the value of the config option it is made of, and only there. Perturbation: with `max_temperature` set to 21.5 in the fixture, the unfixed tree reads 0 offenders. With the null (21.0), it reads 3 offenders over 4 cycles.
-   - A second false positive showed up on this box's BLAS class, and neither the reviewer nor CI saw it: `not_frozen` on `prediction_accuracy.power_ratio`. The ratio is `mean(0/0.5, 1.55/0.5)`, which equals 1.55. That matched the pump's single 1.55 kW reading beside idle zeros, and the ratio then held correctly because no usable sample came. A mirror now needs two distinct non-zero matched values. This widens the existing zeros rule.
-   - The lane now fits its job. `COST_ARMS_SKIPPED` runs this fixture once, clean, without the three doubled-cost arms. Each arm is a whole replay of about 12 CPU-minutes. The arms' instrument proof stays on `synthetic-dhw-only.json`, and the driver refuses a skip list that covers every committed fixture.
-   - `COST_BUDGETS` now carries `owner-2026-10-30-away.json`.
-3. **Carries 4, 6, 8, 9 and 10** are quoted verbatim under `## Carries`. At roster 42142a788 each has a live, not-started destination: R10-LIVE-BUNDLE-READS, or R10-REPLAY-COST-BUDGET for carry 10's open half. The orchestrator confirms them before merge.
-4. **The surviving `commanded = None` mutant is killed.** `away_offenders(observations, events)` compares every cycle's replayed command with the fixture's own `controls.away`, read apart from the replay.
-5. **The out-of-tree mutation harnesses are replaced by one in the tree**, `dev/audit/harnesses/r10_replay_real_day_mutants.py`. Every `tools/` and phase-2 figure under `## Mutation proof` comes from it. The round-1 figures that rested on the out-of-tree `mutants.py` and `mut2.py` are dropped.
-6. **The seven sites `mutation-autofix` left unpinned at 4c994241d are accounted for.** Driving them exposed a masking hole: an entity id as the key of any dict other than `states` was neither renamed nor refused. `mask_ids` and `_entity_ids` now treat every dict key alike. That removes three of the seven sites. The other four are killed by new checks (`mask_seam_checks`).
-7. **Carry 12 (D15-s1-04), added to the roster during this round, is done.** `_walk` flagged a bool under a credential-named key (`tibber_reauth_started: True`) while `_collect_strings` skips a bool. `_no_credential` now states the one rule, and both halves agree. Failing test first: `leak_copy:bool_under_a_credential_key_is_no_credential` is red at 4c994241d and green here.
-8. **Disclosed, not re-derivable:** the warm-up claim and the export-side masking figures (see `## Figures`).
+1. **CodeQL alerts 47 and 48 are fixed in code, not argued.** Privacy binds: no address, host, entity id or credential reaches a log or a file.
+   - Alert 47 (`tools/replay/export.py`, stderr line naming the recorder): a MySQL/MariaDB recorder is now named by its kind, `MYSQL_LABEL = "MySQL/MariaDB database"`. No text of the `db_url` (scheme, host, port, database) reaches a message. `redacted()` is deleted. A failed connect reports the exception class only, as before.
+   - Alert 48 (`tests/replay.py`, the test writing `secrets.yaml`): the invented user and key are named for what they are, canaries the test searches the output for (`_CANARY_USER`, `_CANARY_KEY`). The value is unchanged. I cannot run CodeQL here. If it still reports the site, the alert is a false positive on an invented value in a temporary directory, and dismissing it is the owner's.
+2. **`tests / replay`.** The 14 `no_default` offenders were an invariant false positive (the configured `max_temperature`, 21.0, published as the valve target); `SETPOINT_KEYS` exempts a setpoint at the value of its own config option and nowhere else. `COST_ARMS_SKIPPED` runs this fixture once, without the three doubled-cost arms, and the instrument's proof stays on `synthetic-dhw-only.json`. `COST_BUDGETS` carries the fixture. This round re-took no replay figure (see `## Figures`): the diff since the replayed tree touches no file `run_fixture` reads. The job at this head was still running when this body was written.
+3. **The `commanded = None` survivor** is killed: `away_offenders(observations, events)` compares every cycle's replayed command with the fixture's own `controls.away`, read apart from the replay. The harness's REPLAY tier shows 12 offenders for the mutant.
+4. **Mutation harness in the tree:** `dev/audit/harnesses/r10_replay_real_day_mutants.py` covers every `tools/` and phase-2 site named below.
+5. **Carries 4, 6, 8, 9 and the COST_BUDGETS record** have live destinations on the roster ref (`## Carries`).
 
 ## Head
 
-902e5cc9ae2b3bada6be02361847154963c92764
+d9ca33852a46237af35f6fd65dee3b9d900c8123
 
-This head merges `origin/main` twice, without conflict:
-
-- 66b7575bbd604412a2987fa2f70ddfbece2411e1 merges 1a8051350406387d5ee1ed966d8a2ba8a770cc31 into a6aa0294e5c91fedeeb019c391f7377419b34e7a.
-- This head merges fb0a6d5a30aa2e3a0b1ce4dd926c057d34a32fa8, which is the merge base. Main moved during the final `prepr.sh` run on 66b7575. Its five files (`git diff --name-only 1a8051350..fb0a6d5a3`) are `fix-review.md`, `review_packet.py` and its guide, a delivery row and a new seat harness, none of them read by the replay or by the code this pull request changes. `structure.py` passed on this head, `harness_headers.py` gave 112/112, and `prepr.sh` was rerun on it.
-
-- **Why the merge.** At the start, `git merge-tree --write-tree origin/main 4c994241d805653d8f4470ff2fbe612ccf320f14` exited 0 (no conflict), so nothing was merged then. `tools/pr/prepr.sh` ran at 2026-11-01T10:55Z and 11:30Z (`date -u`) with `origin/main` at 6421fe135d9f5a9e65433a4433f000d2419486bf. Main had moved to 1a8051350 by the handoff, so it was merged, and `prepr.sh` was rerun on this head.
-- **What main's delta reaches.** `git diff --name-only a6aa0294e...1a8051350` touches nothing under `custom_components/`, `tests/replay*`, `tools/replay/` or `tests/hastub/`. Its files are policy, tools and ledger pins.
-- **Re-executed on this head:** the scoped gate, `structure.py`, `ci_predict.py`, the harness's FAST tier and the arch-score gate. The replay figures were not re-taken, because main's delta reaches nothing the replay reads.
-- **The replay figures** were measured at 37bafc867607baa747e4e65771573b3146bbd6a2. The commits after it touch:
-  - `mask_seam_checks` in `tests/replay.py` (one try/except);
-  - the harness's print order and its inlined `repo_root` walk;
-  - seven `tests/mutation_ledger/` pins, and two stale ones removed;
-  - carry 12's `_no_credential` in `replay_doc.py`, which is the export's and the diagnostics' sealing path. The replay never calls it.
-
-  None of these touches anything `run_fixture` reads.
+- It merges `origin/main` at c3b7c964f6de44eac8d7d6d2bf5afabdb56566ba (without conflict) into the PR head 18bdd5c88acc1581fec86c99b3ccf967ad085ff6, plus one code commit (2042aefb7ad0): `tools/replay/export.py`, `tests/replay.py`, the mutation harness.
+- `tools/pr/prepr.sh` ran on this head after the merge (`PRE-PR: ... rc=0`); `structure.py` passed; `ci_predict.py --only mutation` listed no unpinned site before the merge. The scoped gate ran at 2042aefb7 (merge base fb0a6d5a3): `MODE: SCOPED -- 14 script(s) run, 19 scoped out`, `16 TEST SCRIPT(S) PASSED`. Main's delta since then was not read by the replay lane.
+- The check-run set at 18bdd5c88 (all 35 runs, one page): no concluded non-green run. `tests / replay`, `tests / mutation`, `tests / fast (3.14)`, `tests / coverage`, `tests / closures`, `codeql / Analyze (python)` were still in progress; `CodeQL` was `neutral`.
 
 ## Mutation proof
 
-The in-tree harness, `PYTHONPATH=tests/hastub python3 dev/audit/harnesses/r10_replay_real_day_mutants.py --replay` (FAST tier: each mutant against a fresh interpreter's `controls()`, `sanitiser_checks()` over the committed fixtures and `synthetic_reproduces()`; REPLAY tier: `tests/replay.py --one` on the owner fixture). The FAST tier was run at a6aa0294e5c91fedeeb019c391f7377419b34e7a, and again at this head: `RESULT killed=29 mutants=29 null_red=0` both times. Carry 12's mutant is the 29th. The REPLAY tier ran at 37bafc867607baa747e4e65771573b3146bbd6a2 (`--replay`): `RESULT killed=30 mutants=30 null_red=0` over the 28 FAST mutants then present and its two REPLAY rows below. Each row names the check that went red:
+The in-tree harness, `PYTHONPATH=tests/hastub python3 dev/audit/harnesses/r10_replay_real_day_mutants.py --replay` (FAST tier: each mutant against a fresh interpreter's `controls()`, `sanitiser_checks()` over the committed fixtures and `synthetic_reproduces()`; REPLAY tier: `tests/replay.py --one` on the owner fixture). The FAST tier was run at a6aa0294e5c91fedeeb019c391f7377419b34e7a, and again at 2042aefb7 (the redaction mutant replaced by the label mutant): `RESULT killed=29 mutants=29 null_red=0` both times. Carry 12's mutant is the 29th. The REPLAY tier ran at 37bafc867607baa747e4e65771573b3146bbd6a2 (`--replay`): `RESULT killed=30 mutants=30 null_red=0` over the 28 FAST mutants then present and its two REPLAY rows below. Each row names the check that went red:
 
 - `export.py` no db_url from configuration.yaml: KILLED, red `recorder:db_url_whole_day_read` (+6 more)
 - `export.py` no read-only session: KILLED, red `recorder:db_url_read_only_session_selects_only`
-- `export.py` URL not redacted: KILLED, red `recorder:db_url_credentials_never_printed` (+2 more)
+- `export.py` URL carried into the recorder label: KILLED, red `recorder:db_url_credentials_never_printed` (+2 more)
 - `export.py` connect refusal carries the driver's text: KILLED, red `recorder:db_url_connect_refusal_names_no_credential`
 - `export.py` no quiet-input refusal: KILLED, red `recorder:stale_sqlite_near_empty_day_refused` (+2 more)
 - `export.py` no !secret resolution: KILLED, red `recorder:url_from_configuration:secret` (+7 more)
@@ -126,17 +109,10 @@ All figures were measured on one 4-core Linux container, Python 3.14.7, `OPENBLA
 
 ## Red checks
 
-- `CodeQL`: code-scanning alert 47 (py/clear-text-logging-sensitive-data) at `tools/replay/export.py`'s `reading the recorder {rec.label}` stderr line, and code-scanning alert 48 (py/clear-text-storage-sensitive-data) at `tests/replay.py`'s `_mariadb_install`, which writes `secrets.yaml`.
-  - **Both are false positives.**
-    - Alert 47 prints `redacted(url)`: scheme, host, port and path, with no user, password or query. `recorder:db_url_credentials_never_printed` searches every printed and written byte for the invented user and password.
-    - Alert 48 writes `_DB_URL`, the invented credential `_DB_USER` and `_DB_PASSWORD` at an invented host, to a `TemporaryDirectory`. It is the input the never-printed checks need.
-  - **Not resolved in code, because neither cheap code change is honest.**
-    - CodeQL tracks taint by name: from the `_secret`/`password` sources through `urlsplit` and string formatting. It does not read `redacted()` as a sanitiser.
-    - Clearing alert 47 means either dropping the recorder's name from the stderr line or renaming `_secret`. Dropping the name deletes a tested feature: the owner's first MariaDB run used it to confirm which recorder was read, and `recorder:db_url_credentials_never_printed` requires it as that check's positive control. Renaming `_secret` would evade the scanner without changing what flows.
-    - Clearing alert 48 means renaming `_DB_PASSWORD`, which is the same evasion.
-  - Neither alert is dismissed here. Dismissal as a false positive is the owner's.
-  - Cause: new code that handles a database URL.
-  - Cheaper detector: CodeQL is the cheapest detector of its own alerts. It runs on the push in minutes, and no local run of it exists in the seat's toolchain. No countermeasure is owed beyond answering it here.
+- `CodeQL`, red at 4cccd845f: code-scanning alert 47 (py/clear-text-logging-sensitive-data) at `tools/replay/export.py`'s recorder stderr line and alert 48 (py/clear-text-storage-sensitive-data) at `tests/replay.py`'s `secrets.yaml` write.
+  - **Fixed in code** (the opening's item 1). Alert 47: the label carries no text of the URL, so nothing derived from the credential-bearing string is logged; `recorder:db_url_credentials_never_printed` still requires the kind label as its positive control, and the mutant that carries the URL into the label is killed by it. Alert 48: the invented user and key are renamed as canaries; the file write is the input the never-printed checks need.
+  - Not verified locally: CodeQL does not run in this seat. At 18bdd5c88 the `CodeQL` run is `neutral` and `codeql / Analyze (python)` was still in progress.
+  - Cause: new code that handled a database URL. Cheaper detector: none before the push; CodeQL is the cheapest detector of its own alerts. No countermeasure is owed beyond this answer.
 - `tests / replay`, cancelled at 4cccd845f. It hit `timeout-minutes: 30` in the fixture's memory-doubled arm, after `no_default` (14) and `cycle_cost` (no recorded budget, so "sees a doubled cycle" could not fire) had failed.
   - Cause: the fixture's four replays, about 12 CPU-minutes each, and two invariant false positives on a real day (Figures).
   - Cheaper detector: one local `tests/replay.py --one` on the fixture. Round 1 ran it and read only the `away` result, while its `counts` already printed `no_default` 14. The four-replay arithmetic was also in round 1's own body ("replays each fixture four times", "15-40 CPU-s" a cycle). Standing cost: zero for the counts; one ~12-minute run for the timing.
@@ -167,9 +143,9 @@ Roster `origin/handoff/audit-r10-roster` at 806d2db83aa080b0cfb3ad9926c48e648e10
 
 At 806d2db83, no group other than R10-REPLAY-REAL-DAY carried carries 4, 6, 8, 9 or 10's open half. The only matches were in done groups (R10-PARAMS-OWNER, R10-HEAT-METER, R10-REPLAY-LANE), which is the verdict's Block 3.
 
-At the roster's later tip, 42142a7883be474bcb8e30835ce3d7809a8ecf60 (`git show 42142a7883be474bcb8e30835ce3d7809a8ecf60:dev/programme/rosters/wave-r10-groups.json`, read by this seat), the orchestrator has added two live groups, both `not-started`, both `after: R10-REPLAY-REAL-DAY`:
+At the roster's tip when this body was written, 3f6dc470fa20b89cca1473f67c12715a50b7d3e0 (`git show 3f6dc470fa20b89cca1473f67c12715a50b7d3e0:dev/programme/rosters/wave-r10-groups.json`, read by this seat; the group objects' `after`, `carry` and `size` fields), the orchestrator has added two live groups, both `not-started`, both `after: R10-REPLAY-REAL-DAY`:
 
-- **R10-LIVE-BUNDLE-READS** holds carries 4, 6, 8 and 9, verbatim, as its carries 1-4.
+- **R10-LIVE-BUNDLE-READS** holds carries 4, 6, 8 and 9, verbatim, as its carries 1-4 (it holds 5 carries; the fifth is D15-s1-01).
 - **R10-REPLAY-COST-BUDGET** holds the COST_BUDGETS record, owed from the second runner class. This pull request now records a budget, so that group's remaining work is carry 10's open half: re-centring on the other CI class's reading. Its carry text quotes round 1's body ("Not recorded locally"), which this round supersedes. The orchestrator should restate it before dispatch.
 
 This seat cannot edit the roster. Before merge, the orchestrator confirms that both groups are still live at the roster SHA it merges against.
