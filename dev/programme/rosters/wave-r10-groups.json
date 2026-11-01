@@ -6032,7 +6032,7 @@
     "commit": "a6e4a5afe37b5371bb4eb7bfc6c67032b70222be",
     "last_step": null,
     "next_step": "dispatch a fixer once every after group is done",
-    "note": "Lean flow study 2026-10-21 (owner-adopted)",
+    "note": "s9 carry-routing pass, 2026-11-01: carry 1 answered; carry 2 answered; carry 3 answered; carry 4 answered; carry 5 answered; carry 6 answered; carry 7 answered; carry 8 answered; carry 9 answered; carry 10 answered; carry 11 -> R10-CLOUD-POOL; carry 12 -> R10-CLOUD-POOL; carry 13 answered; carry 14 answered; carry 15 answered; carry 16 answered; carry 17 -> R10-CLOUD-POOL; carry 18 answered; carry 19 -> R10-CLOUD-POOL; carry 20 -> R10-CLOUD-POOL; carry 21 answered; carry 22 answered; carry 23 answered. Evidence per carry: the routing table route.tsv of that pass.",
     "pr": 2994
    }
   },
