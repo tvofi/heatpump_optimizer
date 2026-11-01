@@ -14029,7 +14029,8 @@
    ],
    "carry": [
     "tvofi 2026-10-24 card 4 (CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): hold part (a) (merge origin/main into the head only when the pull request is DIRTY or merge-tree reports a conflict) until R10-FLOW-MQ-PROBE reports and the owner decides; a merge queue makes part (a) moot. Parts (b) and (c) (body-only mode and the relay's body-only call) do not depend on the queue: build them now, because card 7 builds on them.",
-    "Resolved: the merge queue is not adopted in round 10 (tvofi 2026-10-25; #2826 closed). Take the train-path branch of the conditional; the hold behind R10-FLOW-MQ-PROBE is lifted."
+    "Resolved: the merge queue is not adopted in round 10 (tvofi 2026-10-25; #2826 closed). Take the train-path branch of the conditional; the hold behind R10-FLOW-MQ-PROBE is lifted.",
+    "From the plan-regain study, 2026-11-01 (card 4, low risk, no owner decision). Measured over 24 h: 151 prepr runs took a heavy slot (8356 min); 59 of them (3021 min, mean 51) were open_pr/update_pr re-runs on code heads whose fixer had already passed prepr (PRE-PR rc=0). update_pr.sh always merges origin/main, so --row-only refuses (HEAD has 2 parents). Fix in update_pr.sh and open_pr.sh: when the code sha's tree has a PRE-PR rc=0 line and HEAD is a clean merge of {live head, code sha, origin/main} plus the row, run only row_only_checks; CI still gates the head. Mirrors app_push.sh's recarry verdict (#201 comment 6070202495). fixer.md's prepr-before-handoff duty is unchanged. Failing test first: an update to a passed code sha with a clean main merge runs no full prepr. Null control: a new code sha runs the full prepr."
    ],
    "resume": {
     "stage": "not-started",
