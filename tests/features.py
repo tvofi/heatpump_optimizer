@@ -60261,10 +60261,9 @@ R.check(
 # with the experiment's freeze consult removed finds #1523's seam.
 # The consult is hold_reason's frozen argument (sysid.hold_reason, this PR's
 # move of the stand-down decision): the mutant passes None in its place.
-_P5_CONSULT = ("self._pump_signals, "
-               "self._learning_frozen(CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY),")
+_P5_CONSULT = "self._learning_frozen(CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY)"
 _p5_src_now = _p5_inspect.getsource(_p5_coord_mod)
-_p5_mut = _p5_ast.parse(_p5_src_now.replace(_P5_CONSULT, "self._pump_signals, None,"))
+_p5_mut = _p5_ast.parse(_p5_src_now.replace(_P5_CONSULT, "None"))
 R.check(
     "#1523 class check null control: dropping the experiment's consult "
     "re-opens exactly its seam",
@@ -75171,6 +75170,11 @@ R.check(
     _cp_store([3.0] * 11 + [1.0]).learned_max_kw(_CP_NOW) == 3.0
     and _cp_store([1.0] + [3.0] * 11).learned_max_kw(_CP_NOW) == 3.0
     and _cp_store([3.0] * 11 + [9.0]).learned_max_kw(_CP_NOW) == 3.0,
+)
+R.check(
+    "item 29: the accessor is the median, not an upper quantile -- nine intervals at "
+    "3.0 kW and three at 4.0 kW give 3.0, where the 90th percentile is 4.0",
+    _cp_store([3.0] * 9 + [4.0] * 3).learned_max_kw(_CP_NOW) == 3.0,
 )
 R.check(
     "the top lapses 45 days after the newest sample, and a sample stamped ahead of "

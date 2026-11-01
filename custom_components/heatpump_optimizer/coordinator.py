@@ -10820,7 +10820,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         """Arm a step-response experiment for the next suitable moment."""
         ctx = getattr(self, "_ctx", self)
         sysid.arm_from_config(
-            self._sysid, dt_util.now(), ctx._config, ctx._thermal_params, self._house_heat_loss_samples, self._accuracy.draw)
+            self._sysid, dt_util.now(), ctx._config, ctx._thermal_params,
+            self._house_heat_loss_samples, self._accuracy.draw,
+        )
         await self.async_request_refresh()
 
     async def _run_system_identification(self, prices: np.ndarray) -> None:
@@ -10835,8 +10837,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if not self._sysid.active:
             return
         why = sysid.hold_reason(
-            self._pump_signals, self._learning_frozen(CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY),
-            getattr(ctx, "_config", None), dt_util.now())
+            self._pump_signals,
+            self._learning_frozen(CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY),
+            getattr(ctx, "_config", None),
+            dt_util.now(),
+        )
         if why is not None:
             self._sysid.stand_down(why)
             return
