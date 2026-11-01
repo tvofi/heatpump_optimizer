@@ -292,8 +292,10 @@ dev/governance/dimensions/*.md'
 # with PREPR_SKIP_CLOSURES=1, and reached CI with claims.json and claims.md
 # stale. The generator writes into the tree it runs in, so it runs on a copy
 # and the committed files are compared, never rewritten.
-CLAIMS_DOCS='README.md
-docs/*.md'
+# The trigger is the generator's whole read set (CLAIMS_INPUTS and the generator,
+# defined below as CLAIMS_READS), not the two document globs it began with: a diff
+# to strings.json or the card moves the register as a README edit does (carry 7,
+# #2853 review bbb4d32f).
 CLAIMS_GEN=dev/audit/rounds/round4/D6/claims.py
 # What the copy must hold: `git archive` of the whole tree writes 135 MB, of
 # which dev/audit's round evidence is 82 MB the generator never opens, and it
@@ -333,9 +335,11 @@ dev/archive/README.md
 dev/archive/backlog.md
 tools/audit/archscore/ABOUT.md
 dev/audit/rounds/round4/D6'
+CLAIMS_READS="$CLAIMS_INPUTS
+$CLAIMS_GEN"
 claims_reg_line() { # changed-paths file, tree copy -> one line; rc 0 current, 1 stale, 3 skipped
   local d out r f stale="" hdr
-  pinned_touched "$1" "$CLAIMS_DOCS" || { echo "no change to README.md or docs/*.md"; return 3; }
+  pinned_touched "$1" "$CLAIMS_READS" || { echo "no change to anything the claims generator reads"; return 3; }
   [ -f "$2/$CLAIMS_GEN" ] || { echo "no $CLAIMS_GEN in the tree"; return 3; }
   d=$(dirname "$2/$CLAIMS_GEN")
   # The verdict is the generator's output against the register committed
@@ -433,7 +437,9 @@ claims_remedy() { # env_drift output file
 # Every unescaped backtick inside a double-quoted string, as `file:line: text`.
 # In double quotes a bare backtick is a command substitution, so a label meant to
 # print `slot` runs it (prepr.sh line 1738, #2267). Single quotes, comments and
-# quoted heredocs are skipped; $( ) opens a fresh quoting context.
+# heredocs with a QUOTED or escaped delimiter are skipped; an unquoted heredoc body
+# is double-quoted text, so a bare backtick there is reported too; $( ) opens a
+# fresh quoting context.
 dq_backticks() {
   python3 - "$@" <<'PY'
 import re, sys
@@ -441,7 +447,13 @@ for path in sys.argv[1:]:
     stack, hd = ['u'], None
     for n, line in enumerate(open(path, encoding='utf-8').read().split('\n'), 1):
         if hd:
-            if line.strip() == hd: hd = None
+            if line.strip() == hd[0]: hd = None
+            elif hd[1]:   # an unquoted delimiter: the body is double-quoted text
+                j = 0
+                while j < len(line):
+                    if line[j] == '\\': j += 1
+                    elif line[j] == '`': print(f"{path}:{n}: {line.strip()[:150]}"); break
+                    j += 1
             continue
         i, seen = 0, False
         while i < len(line):
@@ -460,8 +472,8 @@ for path in sys.argv[1:]:
                 elif c == '$' and line[i+1:i+2] == '(': stack.append('u'); i += 1
                 elif c == ')' and len(stack) > 1: stack.pop()
                 elif line[i:i+2] == '<<' and line[i:i+3] != '<<<':
-                    mm = re.match(r"<<-?\s*(['\"]?)([A-Za-z_]\w*)\1", line[i:])
-                    if mm: hd = mm.group(2)
+                    mm = re.match(r"<<-?\s*(\\?)(['\"]?)([A-Za-z_]\w*)\2", line[i:])
+                    if mm: hd = (mm.group(3), not (mm.group(1) or mm.group(2)))
             i += 1
 PY
 }
@@ -1386,6 +1398,30 @@ reds_head_sha() { # remote head ref <remote>/<branch> -> its sha, fetched now; r
   git rev-parse --verify --quiet "refs/remotes/$1" || return 3
 }
 
+# Step 7c's whole read, as ONE function so the main flow can run it BEFORE the
+# heavy slot is taken (P351) and `--body-check --pr-branch` can run it at the
+# handoff. WHY EARLY: 7c is a refusal on a body, and a body is known at the start;
+# #3049's run held slot 1 for 57 minutes (mutants, the self-test) before 7c
+# refused it, and 9 update runs were refused there in two days. The arm needs
+# only the body, the base and the remote head ref, none of which a heavy step
+# produces. rc 0 answered or no red, 1 an unanswered red, 3 a skip (the line says why).
+reds_arm() { # body file, base, [remote head ref <remote>/<branch>, default the checkout's own], [head sha, default HEAD]
+  local upref=${3:-} head=${4:-} br pf line r
+  [ -n "$head" ] || head=$(git rev-parse HEAD)
+  if [ -z "$upref" ]; then
+    br=$(git branch --show-current 2>/dev/null)
+    upref=$(pr_head_ref "$br" "$(git config --get "branch.$br.remote" 2>/dev/null)") || {
+      echo "HEAD is detached or the branch unnamed, so no remote branch of this repository is the pull request's head"; return 3; }
+  fi
+  reds_head_sha "$upref" >/dev/null || {
+    echo "no $upref on the remote, fetched now; the push creates it, so no commit of this branch has check runs to read"; return 3; }
+  pf=$(mktemp)
+  diff_paths "$2" "$pf" || { rm -f "$pf"; echo "no changed-path list, so the body check this arm feeds was not run"; return 3; }
+  line=$(reds_line "$1" "$head" "$(git log -1 --format=%s)" "$pf" "$upref"); r=$?
+  rm -f "$pf"
+  printf '%s\n' "$line"; return "$r"
+}
+
 # A BODY IN A SHARED ROOT IS ANOTHER SEAT'S BODY WAITING TO HAPPEN. Seats of one
 # session are all told the same scratchpad, and a machine has one `/tmp`, so a
 # `body.md` written directly in either is overwritten by the next seat that picks
@@ -1585,6 +1621,17 @@ fi
 if [ "${1:-}" = "--body-check" ]; then
   [ -f "${2:-}" ] || { echo "REFUSE pr-body: no body at ${2:-}"; exit 2; }
   BASE=$(git merge-base origin/main HEAD 2>/dev/null) || { echo "REFUSE pr-body: HEAD has no merge base with origin/main; fetch it"; exit 1; }
+  # `--pr-branch fix/<topic>` (body_push.sh passes it when origin holds that
+  # ref, P351): the one network read here, so a fixer meets an unanswered red at
+  # its handoff. Without it this check stays offline.
+  if [ "${3:-}" = "--pr-branch" ] && [ -n "${4:-}" ]; then
+    rline=$(reds_arm "$2" "$BASE" "origin/$4"); rr=$?
+    case "$rr" in
+      0) echo "ancestry reds ok: $rline" ;;
+      3) echo "ancestry reds skipped: $rline" ;;
+      *) echo "REFUSE ancestry reds: $rline"; BODY_CHECK_REDS_RC=1 ;;
+    esac
+  fi
   P=$(mktemp); BODY_LOG=$(mktemp)
   if diff_paths "$BASE" "$P"; then
     line=$(unset GITHUB_TOKEN GH_TOKEN; body_line "$2" "$(git rev-parse HEAD)" "$(git log -1 --format=%s)" "$P" "$BASE" HEAD); r=$?
@@ -1604,6 +1651,7 @@ if [ "${1:-}" = "--body-check" ]; then
   vline=$(privacy_line); vr=$?
   if [ "$vr" -eq 0 ]; then echo "ref_privacy ok: $vline"; else echo "REFUSE ref_privacy: $vline"; fi
   [ "$r" -ne 0 ] || r=$vr
+  [ -z "${BODY_CHECK_REDS_RC:-}" ] || r=1
   exit "$r"
 fi
 
@@ -1942,6 +1990,24 @@ EOS
     reds_line "$DABS/red-answered.md" "$ZERO" '' "$DABS/paths-nonpolicy.txt" origin/fix)
   st $? 0 "alerts that were not read leave the arm passing, never refusing"
   case "$got" in '[code-scanning alerts NOT READ'*) st 1 1 "and the line says they were not read";; *) st 0 1 "and the line says they were not read";; esac
+  # P351: `reds_arm`, the one read step 1a2 runs BEFORE the heavy slot and
+  # `--body-check --pr-branch` runs at the handoff. The ref fetch and the path
+  # list are stubbed (no remote here); the check runs, the jq key and the body
+  # check are the production ones.
+  arm() { # case dir, body file, remote head ref -> "<rc>:$line"
+    local out r
+    out=$(reds_head_sha() { return 0; }; diff_paths() { cp "$DABS/paths-nonpolicy.txt" "$2"; }
+      GIT_DIR="$RA/.git" REDFIX="$RAFIX/$1" GITHUB_TOKEN=selftest PREPR_GH="$RA/gh" \
+      reds_arm "$DABS/$2" x "$3" "$ZERO" 2>&1); r=$?
+    echo "$r:$out"
+  }
+  got=$(arm red unnamed-red.md origin/fix)
+  st "${got%%:*}" 1 "reds_arm refuses a body that leaves an ancestry red unanswered (P351)"
+  case "$got" in *'does not name it'*) st 1 1 "and the refusal is the red gate's own sentence";; *) st 0 1 "and the refusal is the red gate's own sentence";; esac
+  got=$(arm red red-answered.md origin/fix)
+  st "${got%%:*}" 0 "reds_arm passes the body that answers it (null control)"
+  got=$(arm red unnamed-red.md origin/never-pushed)
+  st "${got%%:*}" 3 "reds_arm skips, never refuses, when the remote head ref has no check runs to read"
   rm -rf "${RA:?}"
 
   # Step 7's budget arm, driven through `body_line` -- the function the step
@@ -2345,6 +2411,16 @@ EOS
   [ -n "$(dq_backticks "$DQ/bad.sh")" ]; st $? 0 "a backtick inside a double-quoted string is reported (null control)"
   [ -z "$(dq_backticks "$DQ/ok.sh")" ]; st $? 0 "and an escaped one, a single-quoted one, a comment and a heredoc are not"
   [ -z "$(dq_backticks tools/pr/*.sh)" ]; st $? 0 "no script in tools/pr/ runs a command inside a double-quoted label"
+  # An unquoted (or escaped) heredoc delimiter runs a bare backtick in its body
+  # (carry 6, #2386 e414e101); only a QUOTED delimiter hides it.
+  printf '%s\n' 'cat <<X' 'say `h`' 'X' > "$DQ/hd-unquoted.sh"
+  printf '%s\n' 'cat <<X' 'say "`h`"' 'X' > "$DQ/hd-unquoted-dq.sh"
+  printf '%s\n' 'cat <<\X' 'say `h`' 'X' > "$DQ/hd-escaped.sh"
+  printf '%s\n' 'cat <<-"X"' 'say `h`' 'X' 'echo "a `slot` b"' > "$DQ/hd-quoted-then-bad.sh"
+  [ -n "$(dq_backticks "$DQ/hd-unquoted.sh")" ]; st $? 0 "a bare backtick in an unquoted heredoc body is reported"
+  [ -n "$(dq_backticks "$DQ/hd-unquoted-dq.sh")" ]; st $? 0 "... also inside double quotes in that body"
+  [ -z "$(dq_backticks "$DQ/hd-escaped.sh")" ]; st $? 0 "an escaped delimiter (<<\\X) hides its body (null control)"
+  got=$(dq_backticks "$DQ/hd-quoted-then-bad.sh"); case "$got" in *:4:*) st 1 1 "a quoted heredoc hides its body and the scan resumes after it";; *) st 0 1 "a quoted heredoc hides its body and the scan resumes after it";; esac
   rm -rf "$DQ"
 
   # The heavy steps' closure-reachability skips (`heavy_declared`, `heavy_plan`
@@ -3068,7 +3144,12 @@ PY
     "$(dirname "$CLAIMS_GEN")" > "$CG/$CLAIMS_GEN"
   printf '[a](b)\n' > "$CG/README.md"; printf '1\n' > "$cg/claims.json"; printf '| C108 | 1 |\n' > "$cg/claims.md"
   printf '%s\n' tools/x.py > "$WF/changed"
-  claims_reg_line "$WF/changed" "$CG" >/dev/null; st $? 3 "6g skips a diff touching neither README.md nor docs/*.md"
+  claims_reg_line "$WF/changed" "$CG" >/dev/null; st $? 3 "6g skips a diff touching nothing the generator reads"
+  # Carry 7: a diff to a file the generator reads (not README.md or docs/*.md) runs the step.
+  printf '%s\n' custom_components/heatpump_optimizer/strings.json > "$WF/changed"
+  claims_reg_line "$WF/changed" "$CG" >/dev/null; r=$?; [ "$r" -ne 3 ]; st $? 0 "6g runs on a diff naming only strings.json (not skipped, rc $r)"
+  printf '%s\n' tests/features.py > "$WF/changed"
+  claims_reg_line "$WF/changed" "$CG" >/dev/null; st $? 3 "and a diff touching only tests/features.py, outside the read set, still skips (null control)"
   printf '%s\n' docs/x.md > "$WF/changed"
   claims_reg_line "$WF/changed" "$CG" >/dev/null; st $? 0 "6g passes a docs diff whose register the generator rewrites byte-identical (null control)"
   printf '[a](b) [c](d)\n' > "$CG/README.md"; printf '%s\n' README.md > "$WF/changed"
@@ -3446,6 +3527,15 @@ EOF
   step "preflight" $?'*) r=0 ;; *) r=1 ;; esac
   st "$r" 0 "step 7's preflight derives the intended list and refuses on its rc"
   bc=$(sed -n '/^if \[ "${1:-}" = "--body-check" \]/,/^fi$/p' "$PREPR_PATH")
+  # The ORDER is the finding: the read sits before the slot is taken, and the
+  # `--body-check` entry point takes the same option.
+  arm_order=$(awk '/slot-take --label/{exit} /reds_arm "\$1" "\$BASE"/{print "ok"}' <<<"$flow")
+  st "$arm_order" ok "the main flow runs the red-check arm before the heavy slot is taken (P351)"
+  st "$(grep -cF 'reds_arm "$1" "$BASE"' <<<"$flow")" 1 "and reads the check runs once: step 7c reuses the early answer"
+  case "$bc" in *'--pr-branch'*'reds_arm'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "--body-check --pr-branch runs the same arm and refuses on its rc"
+  case "$(cat tools/audit/seat/body_push.sh)" in *'refs/heads/fix/$TOPIC'*'--pr-branch fix/$TOPIC'*'--body-check "$ABS" $PRB'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "body_push passes --pr-branch when origin holds fix/<topic>"
   case "$bc" in
     *'pout=$(preflight_body "$2" dev/programme/rosters); pr=$?'*'[ "$r" -ne 0 ] || r=$pr'*) r=0 ;; *) r=1 ;; esac
   st "$r" 0 "and --body-check runs the same preflight and refuses on its rc"
@@ -3472,8 +3562,8 @@ step "ref privacy" $? "$PRIVACY_LINE"'*) r=0 ;; *) r=1 ;; esac
   st "$got" "$(throwaway_git_env; git -C "$CA/o" rev-parse fix)" "and returns the origin's sha for it"
   (cd "$CA/c" && throwaway_git_env && reds_head_sha origin/never-pushed >/dev/null)
   st $? 3 "a head the origin does not carry is a skip"
-  case "$flow" in *'elif ! reds_head_sha "$UPREF" >/dev/null; then'*) r=0 ;; *) r=1 ;; esac
-  st "$r" 0 "and step 7c gates on it, not on 7b's UPSHA"
+  case "$(sed -n '/^reds_arm() {/,/^}/p' "$PREPR_PATH")" in *'reds_head_sha "$upref" >/dev/null'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "and the red-check arm (reds_arm, run by step 1a2) gates on it, not on 7b's UPSHA"
   rm -rf "${CA:?}"
 
   # (12) Summary-only stdout (R10-FLY-PREPR-SUMMARY): the main flow's own
@@ -3578,6 +3668,21 @@ case $? in
   1) step "transport" 1 "$(echo $TRANSPORT) -- transport is in the code head's ancestry; the body goes on the orphan ref handoff-body/<topic> (fixer.md step 6), and the code head is re-cut without these commits" ;;
   *) step "transport" 1 "$BASE..HEAD could not be read, so nothing was compared" ;;
 esac
+
+# --- 1a2. the ancestry red-check arm, BEFORE any slot is taken (P351; `reds_arm`).
+# An unanswered red is a fact about the body and the pushed commits' check runs,
+# so it is refused here, not after the minutes the heavy steps cost. The skip
+# answer (rc 3) stays a skip line, printed at step 7c, which reuses this result
+# rather than reading the check runs a second time.
+EARLY_REDS_RC="" EARLY_REDS_LINE=""
+if [ -n "${1:-}" ] && [ "${1:-}" != "--self-test" ] && [ -f "$1" ]; then
+  EARLY_REDS_LINE=$(reds_arm "$1" "$BASE"); EARLY_REDS_RC=$?
+  if [ "$EARLY_REDS_RC" -ne 0 ] && [ "$EARLY_REDS_RC" -ne 3 ]; then
+    step "ancestry reds" 1 "$EARLY_REDS_LINE -- refused before the heavy slot was taken (P351)"
+    summary_end "$(git rev-parse HEAD)"
+    exit $rc
+  fi
+fi
 
 # --- 1b0. the gate-lease priority of this branch's group (tvofi, 2026-10-20).
 # The lease is generic: it orders waiters by an integer and never decides who
@@ -3923,7 +4028,7 @@ esac
 CR=$(mktemp -d)
 if ! diff_paths "$BASE" "$CR.paths"; then
   step "claims register" 1 "the changed-path list did not derive from $BASE...HEAD, so the register was not compared"
-elif pinned_touched "$CR.paths" "$CLAIMS_DOCS" && ! { # shellcheck disable=SC2086 # CLAIMS_INPUTS is one path per line
+elif pinned_touched "$CR.paths" "$CLAIMS_READS" && ! { # shellcheck disable=SC2086 # CLAIMS_INPUTS is one path per line
     git archive HEAD -- $CLAIMS_INPUTS "$CLAIMS_GEN" 2>"$CR.arch" | tar -x -C "$CR"; }; then
   step "claims register" 1 "HEAD could not be copied to run $CLAIMS_GEN on, so nothing was compared: $(tail -1 "$CR.arch")"
 else
@@ -4029,20 +4134,12 @@ if [ -n "$BODY" ] && [ "$BODY" != "--self-test" ]; then
   # now (`reds_head_sha` above), never 7b's unfetched mirror -- and needs the
   # path list pr-body derived: without one the body check it feeds was not
   # run, and the arm says so rather than feeding it nothing.
-  if [ ! -f "$PATHS" ]; then
-    say skip "ancestry reds" "no changed-path list, so the body check this arm feeds was not run"
-  elif [ -z "$UPREF" ]; then
-    say skip "ancestry reds" "HEAD is detached or the branch unnamed, so no remote branch of this repository is the pull request's head"
-  elif ! reds_head_sha "$UPREF" >/dev/null; then
-    say skip "ancestry reds" "no $UPREF on the remote, fetched now; the push creates it, so no commit of this branch has check runs to read"
-  else
-    REDS_LINE=$(reds_line "$BODY" "$(git rev-parse HEAD)" "$(git log -1 --format=%s)" "$PATHS" "$UPREF")
-    case $? in
-      0) step "ancestry reds" 0 "$REDS_LINE" ;;
-      3) say skip "ancestry reds" "$REDS_LINE" ;;
-      *) step "ancestry reds" 1 "$REDS_LINE" ;;
-    esac
-  fi
+  # The read ran at step 1a2, before the slot (P351); this prints its answer.
+  case "$EARLY_REDS_RC" in
+    0) step "ancestry reds" 0 "$EARLY_REDS_LINE" ;;
+    3) say skip "ancestry reds" "$EARLY_REDS_LINE" ;;
+    *) step "ancestry reds" 1 "$EARLY_REDS_LINE" ;;
+  esac
   rm -f "$PATHS"
 else
   say skip "body" "no body passed"
