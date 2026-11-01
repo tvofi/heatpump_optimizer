@@ -14620,9 +14620,7 @@
     "tools/audit/seat/orchestrator_tick.py",
     "tools/audit/seat/heartbeat.sh"
    ],
-   "carry": [
-    "From the #2360 fix review (R10-TICK-ORCH, verdict 6244232977, notes 1 and 2, items ae2bd3f4 and 74198d03), restated in the #2264 closing comment as \"carried to a roster brief, not filed\". No roster group holds it (live roster origin/handoff/audit-r10-roster d0c5b8cf7: no carry or brief names the stuck threshold or a null started_at). Measured at origin/main 92588d581: tools/audit/seat/orchestrator_tick.py spells the 2x-median threshold twice, Tick.stuck (line 391, `> 2 * med`) and the ETA lane (line 2138, `if mins > 2 * med`), and the ETA lane does not call stuck(), so a change to one copy leaves the other; and stuck() returns False when started_at is None (fromisoformat(\"None\") raises ValueError, caught at 389-390), so an in-flight run with no started_at stays WAITING with no time limit. Fix: one named constant (or the ETA lane calling stuck()), and a null started_at treated as stuck once the run's created_at (or the sha's first-seen time) is past the same bound. Failing test first: a self-test case with a queued check-run carrying started_at null and created_at past 2x the median reads stuck (red at main); a mutant that changes one copy of the factor fails a pinned case. Null control: a run with started_at inside the bound reads not stuck before and after. Carry: R10-TICK-DRIVERS-2"
-   ],
+   "carry": [],
    "resume": {
     "stage": "not-started",
     "branch": "handoff/r10-tick-drivers-2",
