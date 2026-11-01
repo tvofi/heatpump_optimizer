@@ -9984,7 +9984,7 @@
    "rca": [],
    "architect_note": "",
    "resume": {
-    "stage": "done",
+    "stage": "carries-open",
     "branch": null,
     "commit": "42b23e493da244f85dd005bd60617e22d7696b99",
     "pr": 3059
