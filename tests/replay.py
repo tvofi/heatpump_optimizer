@@ -991,8 +991,8 @@ def tibber_price_checks() -> list[tuple[str, bool, str]]:
 # MySQL driver replaced by a DB-API double over the same rows: no server.
 
 #: Invented credentials; the checks below require that neither leaves the export.
-_DB_USER, _DB_PASSWORD = "hpo_reader", "Invented-Pa55word-91"
-_DB_URL = f"mysql://{_DB_USER}:{_DB_PASSWORD}@core-mariadb/homeassistant?charset=utf8mb4"
+_CANARY_USER, _CANARY_KEY = "hpo_reader", "Invented-Pa55word-91"
+_DB_URL = f"mysql://{_CANARY_USER}:{_CANARY_KEY}@core-mariadb/homeassistant?charset=utf8mb4"
 _CONFIGURATION_YAML = (
     "homeassistant:\n  name: Exempel\n\n"
     "recorder:\n  purge_keep_days: 10\n  db_url: !secret recorder_db_url  # MariaDB add-on\n"
@@ -1145,21 +1145,21 @@ def recorder_checks() -> list[tuple[str, bool, str]]:
                     and all(s.lstrip().upper().startswith("SELECT") for s in passed),
                     f"{len(fake.statements)} statement(s), first {fake.statements[:1]}"))
         res.append(("recorder:db_url_secret_resolved",
-                    fake.kwargs.get("user") == _DB_USER
-                    and fake.kwargs.get("password") == _DB_PASSWORD
+                    fake.kwargs.get("user") == _CANARY_USER
+                    and fake.kwargs.get("password") == _CANARY_KEY
                     and fake.kwargs.get("host") == "core-mariadb"
                     and fake.kwargs.get("database") == "homeassistant",
                     f"keys {sorted(fake.kwargs)}"))
         written = (tmp / "out.json").read_text() if doc else ""
         res.append(("recorder:db_url_credentials_never_printed",
-                    doc is not None and "core-mariadb" in printed
-                    and not any(c in printed + written for c in (_DB_PASSWORD, _DB_USER)),
+                    doc is not None and "MySQL/MariaDB database" in printed
+                    and not any(c in printed + written for c in (_CANARY_KEY, _CANARY_USER)),
                     "printed and written text searched for the user and the password"))
         failed, why = _export_mariadb(_FakeMySQL(tmp / "mariadb-backing.db",
-                                                 fail=f"denied for {_DB_USER}:{_DB_PASSWORD}"), tmp)
+                                                 fail=f"denied for {_CANARY_USER}:{_CANARY_KEY}"), tmp)
         res.append(("recorder:db_url_connect_refusal_names_no_credential",
-                    failed is None and "core-mariadb" in why
-                    and not any(c in why for c in (_DB_PASSWORD, _DB_USER)), why[-200:]))
+                    failed is None and "MySQL/MariaDB database" in why
+                    and not any(c in why for c in (_CANARY_KEY, _CANARY_USER)), why[-200:]))
         flag, _ = _export_mariadb(fake, tmp, db_url=_DB_URL.replace("homeassistant", "hadb"))
         res.append(("recorder:db_url_flag_read", flag is not None
                     and fake.kwargs.get("database") == "hadb", str(fake.kwargs.get("database"))))
@@ -1176,7 +1176,7 @@ def recorder_checks() -> list[tuple[str, bool, str]]:
         fake = _FakeMySQL(_mariadb_install(tmp, empty_window=True))
         doc, why = _export_mariadb(fake, tmp)
         res.append(("recorder:db_url_emptied_window_refused_naming_inputs_and_recorder",
-                    doc is None and "mysql://core-mariadb/homeassistant" in why
+                    doc is None and "MySQL/MariaDB database" in why
                     and "sensor.outdoor_temp" in why and "sensor.price" in why, why[-300:]))
     # A key the integration no longer reads (``heat_pump_entity``, dropped in
     # v3.8.0 as never read) still in an old entry, its entity long unrecorded:
