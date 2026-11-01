@@ -12,6 +12,10 @@
 # argument out of the line, and a token outside [A-Za-z0-9_./:-] is logged `?`.
 # The caller is the point: the shared token's core bucket was spent twice
 # with no host log naming who (P284); tools/audit/seat/gh_calls.py reads this.
+# The parent command is redacted from its first value-bearing flag (-f, --body, ...) to the
+# end of the line, so a wrapper's own gh arguments never reach the log. The state directory
+# is created if missing (mkdir -p); a path that cannot be made is skipped, never fatal.
+# A directory or log the shim creates is owner-only (umask 077), whatever the caller's umask.
 #
 # Then it execs the real gh -- the first `gh` on PATH that is a regular
 # executable file and not a shim (line 2 above), past this file's own
@@ -45,17 +49,29 @@ case $sub in
   *) verb= ;;
 esac
 
-{
+# A subshell: the umask that makes the state dir and log owner-only (the log names
+# callers) is its own, so the real gh below runs under the caller's.
+(
+  umask 077
   state=${HPO_STATE_DIR:-$HOME/.local/state/hpo}
   log=$state/gh-calls.log
   max=${HPO_GH_LOG_MAX:-1048576}
-  pcmd=$(ps -o args= -p "$PPID" </dev/null 2>/dev/null | tr -c '[:print:]' ' ' | cut -c1-80)
+  # The parent's command line can carry a wrapper's own gh arguments (`sh -c 'gh api -f
+  # body=...'`, `timeout 10 gh ...`), so from the first value-bearing flag to the end of
+  # the line it is replaced by `<redacted>` (the flag name stays) BEFORE the 80-char cut.
+  # Long flags always; the short ones only when a `gh` word is on the line, so
+  # `python3 -m mod` is left alone. The census is the two lists below (from `gh <cmd> --help`).
+  longf='body|body-file|notes|notes-file|title|subject|desc|description|field|raw-field|header|input|jq|template|env-file|squash-merge-commit-message'
+  pcmd=$(ps -o args= -p "$PPID" </dev/null 2>/dev/null | tr -c '[:print:]' ' ' |
+    sed -E -e "s/(^| )(--($longf))([ =].*)?\$/\1\2 <redacted>/" \
+           -e '/(^|[ \/])gh( |$)/ s/(^| )(-[fFHbntTqd])(.*)$/\1\2 <redacted>/' | cut -c1-80)
+  mkdir -p "$state"
   clean() { printf '%s' "${1:--}" | tr -c 'A-Za-z0-9_./:-' '?'; }
   if [ -f "$log" ]; then
     size=$(wc -c < "$log" 2>/dev/null)
     case $size in ''|*[!0-9' ']*) ;; *) [ "$((size + 0))" -gt "$max" ] && mv -f "$log" "$log.1" ;; esac
   fi
   printf '%s %s %s %s %s\n' "$(date -u +%FT%TZ)" "$PPID" "${pcmd:--}" "$(clean "$sub")" "$(clean "$verb")" >> "$log"
-} 2>/dev/null || true
+) 2>/dev/null || true
 
 exec "$real" "$@"
