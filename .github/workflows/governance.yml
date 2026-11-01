@@ -550,6 +550,7 @@ jobs:
           python3 -I tools/coverage/partition.py --self-test
           python3 -I tools/merge/ledger_merge.py --self-test
           python3 -I tools/plan/replan.py --self-test
+          python3 -I tools/plan/size_durations.py --self-test
           node tools/policy/policy_lint.mjs --self-test
           python3 -I tools/policy/record-predicate/row_files_replay.py --self-test
           bash tools/pr/approve_held_runs.sh --self-test
