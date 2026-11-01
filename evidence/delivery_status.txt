@@ -1,0 +1,4 @@
+DELIVERY STATUS OK — 93 rowed, 1 pending, 0 overdue (overdue at 12 commits)
+  pending  #3047 f04b25a 0 commit(s) since — R10-FACTORY-RESET: factory reset
+
+This check is NOT a required context and a red here blocks no merge. Pending is the ordinary state: the protocol writes rows in batches, and only OVERDUE means a batch has stopped being drained.
