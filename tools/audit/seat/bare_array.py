@@ -14,9 +14,13 @@ operator's machine (triage P303). This is the static half.
 THE RULE, per file: a file with a `set` command carrying the `u` option is
 judged; a file without one is not. In a judged file, each non-comment line is
 refused for every `"${name[@]}"` that is not the guarded form
-`${name[@]+"${name[@]}"}`, unless the line carries
-`# never-empty: <reason>` with a reason, stating why the array cannot be empty
-there. `"${name[*]}"`, `${#name[@]}` and `"${name[@]:...}"` are not matched.
+`${name[@]+"${name[@]}"}`, unless `# never-empty: <reason>` with a reason,
+stating why the array cannot be empty there, sits on the line itself or on a
+comment-only line directly above it. A line that ends in a `# mut:<name>`
+marker takes the reason on the line above: its self-test finds the mutant line
+by that marker at the line's end (`pr_args.sh`'s header), so a reason appended
+after the marker unanchors the mutant: such a line is refused in every file,
+judged or not (`pr_args.sh` has no `set -u` and is sourced by scripts that do). `"${name[*]}"`, `${#name[@]}` and `"${name[@]:...}"` are not matched.
 The `set -u` test is textual and file-wide: a `set +u` window is not modelled,
 so a site inside one takes the marker too.
 """
@@ -30,15 +34,27 @@ from pathlib import Path
 SET_U = re.compile(r"^\s*set\s+(?:-[A-Za-z]*u[A-Za-z]*|-o\s+nounset)\b", re.M)
 BARE = re.compile(r'"\$\{([A-Za-z_]\w*)\[@\]\}"')
 MARK = re.compile(r"#\s*never-empty:\s*\S")
+MUT = re.compile(r"#\s*mut:\S")
+
+
+def marked(line: str) -> bool:
+    """The line's own never-empty reason, unless it follows a `# mut:` marker."""
+    mark, mut = MARK.search(line), MUT.search(line)
+    return bool(mark) and not (mut and mut.start() < mark.start())
 
 
 def sites(text: str) -> list[tuple[int, str]]:
     """(line number, line) of each refused expansion in one script's text."""
+    lines = text.splitlines()
+    tails = [(n, ln.strip()) for n, ln in enumerate(lines, 1) if MARK.search(ln) and not marked(ln)]
     if not SET_U.search(text):
-        return []
+        return tails
     out = []
-    for n, line in enumerate(text.splitlines(), 1):
-        if line.lstrip().startswith("#") or MARK.search(line):
+    above = False  # the previous line is a comment-only never-empty reason
+    for n, line in enumerate(lines, 1):
+        comment = line.lstrip().startswith("#")
+        excused, above = above, comment and bool(MARK.search(line))
+        if comment or excused or marked(line):
             continue
         for m in BARE.finditer(line):
             if not line[: m.start()].endswith("${%s[@]+" % m.group(1)):
@@ -87,6 +103,16 @@ def self_test() -> int:
        "a guard on one array does not excuse another on the line")
     st(len(sites(head + 'f ${b[@]+"${a[@]}"}\n')), 1, "a guard names its own array")
     st(sites(head + 'n=${#a[@]}; f "${a[*]}"\n'), [], "length and star forms are not matched")
+    st(sites(head + '# never-empty: argv, checked above\nf "${a[@]}"  # mut:x\n'), [],
+       "a reason on the comment line above excuses the next line (null)")
+    st(len(sites(head + '# never-empty: argv\n\nf "${a[@]}"\n')), 1,
+       "a reason above excuses only the line directly below it")
+    st(len(sites(head + 'f "${a[@]}"  # mut:x  # never-empty: argv\n')), 1,
+       "a reason after a mut marker does not excuse: it unanchors the mutant")
+    st(sites(head + 'f "${a[@]}"  # never-empty: argv  # mut:x\n'), [],
+       "a reason before the mut marker excuses (null)")
+    st(len(sites('#!/bin/bash\nf x  # mut:x  # never-empty: argv\n')), 1,
+       "a reason after a mut marker is refused in an unjudged file too")
     for f in fails:
         print("FAIL", f)
     print("bare_array self-test:", "FAILED" if fails else "ok")

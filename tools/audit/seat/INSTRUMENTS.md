@@ -106,6 +106,7 @@ sweep's standing-seat liveness step keep them alive.
 - [`sweep_driver.py`](instruments/sweep_driver.py.md) — the probe PR's sweep, where `workflow_run` never fires (`gate-sweep.yml` runs only from the default branch)
 - [`sweep_render.py`](instruments/sweep_render.py.md) — renders the orchestrator sweep from `sweep_template.md` and a session's JSON overlay (stdout or `--out`)
 - [`sweep_template.md`](instruments/sweep_template.md.md) — the orchestrator's recurring sweep, steps in order
+- [`bare_array.py`](instruments/bare_array.py.md) — refuses a bare `"${name[@]}"` in a tracked `tools/**/*.sh` script under `set -u`, which macOS bash 3.2 dies on when the array is empty (`--check`, `--self-test`)
 - [`tmp_paths.py`](instruments/tmp_paths.py.md) — refuses a tracked script, workflow or decision record that depends on a temp or machine path (`--check`, `--self-test`)
 - [`update_pr.sh`](instruments/update_pr.sh.md) — brings an open PR branch to its head + a code SHA (merge) + origin/main (merge), adds the PR's own delivery row when the head lacks it (`delivery_row.sh`), prefixes ## Head with what happened, pushes as `hpo-author`
 - [`wt_sync.sh`](instruments/wt_sync.sh.md) — snapshots every worktree whose state is not already on origin (unpushed commits, uncommitted or untracked files) to `origin/wip-sync/<slug>`

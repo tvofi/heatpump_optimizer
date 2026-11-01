@@ -246,7 +246,8 @@ pr_reap() { # TERM every descendant of this shell, then KILL whatever outlives a
     sleep 0.1
     n=$((n + 1))
   done
-  for p in "${PR_REAP_PIDS[@]}"; do pr_kill KILL "$p"; done  # mut:grace  # never-empty: PR_REAP_PIDS held a pid at the early return and only shrinks to a non-empty alive
+  # never-empty: PR_REAP_PIDS held a pid at the early return and only shrinks to a non-empty alive
+  for p in "${PR_REAP_PIDS[@]}"; do pr_kill KILL "$p"; done  # mut:grace
   return 0
 }
 pr_exit_trap() { # [<command>]: on every exit, a stop signal's included, run <command>, reap the tree, run PR_TIDY, then PR_AFTER_REAP
