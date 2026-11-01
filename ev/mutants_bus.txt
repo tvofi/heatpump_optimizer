@@ -1,0 +1,23 @@
+BASELINE: bus self-test: 115 checks, 0 failed
+MUTANT M7 drop the verdict test: KILLED
+     FAIL P348: a blocked verdict at the reviewed head over a clean range mints, says why, and records (#3045 r3)
+     FAIL P348: a reviewed head with no verdict at all carries nothing, so it mints
+     FAIL P348: an unreadable verdict/<pr> over a clean range refuses, and records nothing
+MUTANT M8 oldest verdict wins: KILLED
+     FAIL P348: a blocked verdict at the reviewed head over a clean range mints, says why, and records (#3045 r3)
+MUTANT M9 unreadable read as none: KILLED
+     FAIL P348: an unreadable verdict/<pr> over a clean range refuses, and records nothing
+MUTANT M10 sha anchor dropped: KILLED
+     FAIL P348: the latest verdict naming the reviewed head decides -- blocked then merge refuses, a blocked verdict at another head aside (#2962)
+MUTANT M11 no verdict refuses: KILLED
+     FAIL P348: a reviewed head with no verdict at all carries nothing, so it mints
+MUTANT M3 rc-4 arm deleted: KILLED
+     FAIL P345: a raise whose only red is its owed approval (classify --pr APPROVAL-OWED) dispatches, records, and prints the line
+     FAIL an unreadable classification refuses the dispatch, never green
+MUTANT M4 --pr dropped: KILLED
+     FAIL a head whose required context concluded failure (classify RED) is not dispatched, and nothing is recorded
+MUTANT R7 rc 1 dispatches: KILLED
+     FAIL a head whose required context concluded failure (classify RED) is not dispatched, and nothing is recorded
+     FAIL null control: the same dispatch at a GREEN-classified head mints and records
+     FAIL a head still in flight (classify WAIT) is reviewable and dispatches
+DONE

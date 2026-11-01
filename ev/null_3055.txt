@@ -1,0 +1,6 @@
+== base #3055
+RED 6a988a237f91a853d006f7908e41cfbd30bc9bc9 pending: none red: gate
+rc=1
+== head #3055 --pr
+RED 6a988a237f91a853d006f7908e41cfbd30bc9bc9 pending: none red: gate
+rc=1
