@@ -1402,13 +1402,16 @@ async def _async_store_documents(coord: Any) -> dict[str, Any]:
     return {name: await store.async_load() for (name, _), store in zip(_FACTORY_VOID, _restored_stores(coord))}
 
 
-async def _async_rewrite_entry(
-    coord: Any, documents: Callable[[], Awaitable[Mapping[str, Any]]],
-    settings: tuple[dict[str, Any], dict[str, Any]] | None,
-) -> bool:
-    """Unload the entry, then write each store ``documents()`` names (None
-    removes it) and the entry's ``settings`` (data, options), and set it up
-    again. False, with nothing written, where Home Assistant refuses the unload."""
+def voided_documents(stored: Mapping[str, Any]) -> dict[str, Any]:
+    """Each learned store's document with ``_FACTORY_VOID``'s keys dropped; None
+    for a store voided whole."""
+    return {name: None if keys is None else {k: v for k, v in (stored[name] or {}).items() if k not in keys}
+            for name, keys in _FACTORY_VOID}
+
+
+async def _async_rewrite_entry(coord: Any, documents: Callable[[], Awaitable[Mapping[str, Any]]],
+                               settings: tuple[dict[str, Any], dict[str, Any]] | None) -> bool:
+    """Unload; write ``documents()`` (None removes a store) and ``settings``; set up again. False if refused."""
     entry, hass = coord.entry, coord.hass
     if not await hass.config_entries.async_unload(entry.entry_id):
         return False
@@ -1423,15 +1426,9 @@ async def _async_rewrite_entry(
 
 
 async def async_factory_reset(coord: Any, scope: str) -> bool:
-    """``scope``'s settings, learners or both to their defaults (R10-FACTORY-RESET).
-
-    First the undo point ``async_restore_learned_snapshot`` returns to: every
-    learned store's document and the settings the reset drops. Then the entry
-    is unloaded, so no save in flight writes the old state back; the heat-loss
-    pair goes through its one void path, the rest is written, and the entry set
-    up again re-plans on its first cycle. False where Home Assistant refuses the
-    unload: nothing is changed but the undo point.
-    """
+    """``scope``'s settings, learners or both to their defaults (R10-FACTORY-RESET): the undo
+    point; then, unloaded so no save in flight writes the old state back, the heat-loss pair's
+    void path, the rest written, the entry set up again. False, only the undo point, if refused."""
     for store in (*_restored_stores(coord), coord._snapshot_store):
         await store.async_wait_for_read()
     entry, documents = coord.entry, await _async_store_documents(coord)
@@ -1444,26 +1441,21 @@ async def async_factory_reset(coord: Any, scope: str) -> bool:
         if scope == FACTORY_RESET_SCOPES[0]:
             return {}
         await coord.async_reset_heat_loss_learners()
-        stored = await _async_store_documents(coord)
-        return {name: None if keys is None else {k: v for k, v in (stored[name] or {}).items() if k not in keys}
-                for name, keys in _FACTORY_VOID}
+        return voided_documents(await _async_store_documents(coord))
 
-    settings = None
-    if scope != FACTORY_RESET_SCOPES[1]:
-        ctx = _ctx_of(coord)
-        settings = factory_settings(entry.data, entry.options, two_zone=ctx._thermal_params.two_zone_enabled,
-                                    dhw=ctx._thermal_params.dhw_enabled, wood=wood_furnace_on(ctx._config))
-    if not await _async_rewrite_entry(coord, voided, settings):
-        _LOGGER.warning("Factory reset (%s) not applied: Home Assistant refused to unload the entry", scope)
-        return False
-    _LOGGER.warning("Factory reset (%s) applied; restore_learned_snapshot undoes it", scope)
-    return True
+    ctx = _ctx_of(coord)
+    settings = None if scope == FACTORY_RESET_SCOPES[1] else factory_settings(
+        entry.data, entry.options, two_zone=ctx._thermal_params.two_zone_enabled,
+        dhw=ctx._thermal_params.dhw_enabled, wood=wood_furnace_on(ctx._config))
+    done = await _async_rewrite_entry(coord, voided, settings)
+    _LOGGER.warning("Factory reset (%s) %s", scope, "applied; restore_learned_snapshot undoes it" if done
+                    else "not applied: Home Assistant refused to unload the entry")
+    return done
 
 
 async def _async_undo_factory_reset(coord: Any, snap: dict[str, Any]) -> bool:
-    """A reset's undo point back: its stores' documents and the settings it
-    dropped, over the wiring in force. Spent, it stays as an ordinary snapshot;
-    where the unload is refused it stays the undo point, and False."""
+    """A reset's undo point back: its stores' documents and the settings it dropped,
+    over the wiring in force; spent, an ordinary snapshot. False where the unload is refused."""
     undo = snap["before_reset"]
 
     async def spent() -> Mapping[str, Any]:
