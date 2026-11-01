@@ -1,25 +1,80 @@
-=== M7-order-ignored
+=== MA one-line revert: only the bare-expansion list (tails dropped)
+FAIL a reason after a mut marker is refused in an unjudged file too: got 0, want 1
+FAIL a reason after a mut marker is refused in a judged file on a line with no bare expansion: got 0, want 1
+FAIL a reason after a mut marker is refused in a judged file on a guarded line: got 0, want 1
+bare_array self-test: FAILED
+FAIL a reason after a mut marker is refused in an unjudged file too: got 0, want 1
+FAIL a reason after a mut marker is refused in a judged file on a line with no bare expansion: got 0, want 1
+FAIL a reason after a mut marker is refused in a judged file on a guarded line: got 0, want 1
+FAIL bare_array: a never-empty reason after a mut marker is refused (it unanchors the mutant)
+FAIL bare_array: a never-empty reason after a mut marker is refused in a set -u file too
+FAIL bare_array: its own self-test passes
+ENTITY-ROWS: FAILED 3
+
+restored
+=== MB marked ignores order
 FAIL a reason after a mut marker does not excuse: it unanchors the mutant: got 0, want 1
 FAIL a reason after a mut marker is refused in an unjudged file too: got 0, want 1
+FAIL a reason after a mut marker is refused in a judged file on a line with no bare expansion: got 0, want 1
+FAIL a reason after a mut marker is refused in a judged file on a guarded line: got 0, want 1
 bare_array self-test: FAILED
-self-test rc=1
+FAIL a reason after a mut marker does not excuse: it unanchors the mutant: got 0, want 1
+FAIL a reason after a mut marker is refused in an unjudged file too: got 0, want 1
+FAIL a reason after a mut marker is refused in a judged file on a line with no bare expansion: got 0, want 1
+FAIL a reason after a mut marker is refused in a judged file on a guarded line: got 0, want 1
+FAIL bare_array: a never-empty reason after a mut marker is refused (it unanchors the mutant)
+FAIL bare_array: a never-empty reason after a mut marker is refused in a set -u file too
+FAIL bare_array: its own self-test passes
+ENTITY-ROWS: FAILED 3
 
 restored
-=== M8-above-ignored
+=== MC line-above reason ignored
 FAIL a reason on the comment line above excuses the next line (null): got [(4, 'f "${a[@]}"  # mut:x')], want []
 bare_array self-test: FAILED
-self-test rc=1
-tools/audit/seat/body_patch.sh:99: node tools/policy/policy_lint.mjs "${args[@]}" || rc=1 # mut:contract
+FAIL a reason on the comment line above excuses the next line (null): got [(4, 'f "${a[@]}"  # mut:x')], want []
+FAIL no tracked tools/**/*.sh script expands a bare "${array[@]}"
+FAIL bare_array: a reason on the line above keeps the mut marker last (control)
+FAIL bare_array: its own self-test passes
+ENTITY-ROWS: FAILED 3
+tools/audit/seat/body_patch.sh:120: node tools/policy/policy_lint.mjs "${args[@]}" || rc=1 # mut:contract
+tools/audit/seat/pr_args.sh:250: for p in "${PR_REAP_PIDS[@]}"; do pr_kill KILL "$p"; done  # mut:grace
 restored
-=== M9-unjudged-empty
-FAIL a reason after a mut marker is refused in an unjudged file too: got 0, want 1
-bare_array self-test: FAILED
-self-test rc=1
-
-restored
-=== M10-above-two-lines
+=== MD above persists past next line
 FAIL a reason above excuses only the line directly below it: got 0, want 1
 bare_array self-test: FAILED
-self-test rc=1
+FAIL a reason above excuses only the line directly below it: got 0, want 1
+FAIL bare_array: its own self-test passes
+ENTITY-ROWS: FAILED 1
 
+restored
+=== ME old design: skip files without set -u
+FAIL a file without set -u is judged too: a sourced library runs under its caller's -u: got 0, want 1
+FAIL a long-form nounset file is judged: got 0, want 1
+FAIL a -u shebang file is judged: got 0, want 1
+FAIL a reason after a mut marker is refused in an unjudged file too: got 0, want 1
+bare_array self-test: FAILED
+FAIL a file without set -u is judged too: a sourced library runs under its caller's -u: got 0, want 1
+FAIL a long-form nounset file is judged: got 0, want 1
+FAIL a -u shebang file is judged: got 0, want 1
+FAIL a reason after a mut marker is refused in an unjudged file too: got 0, want 1
+FAIL bare_array: a file without set -u is judged too (a sourced library runs under its caller's -u)
+FAIL bare_array: a never-empty reason after a mut marker is refused (it unanchors the mutant)
+FAIL bare_array: its own self-test passes
+ENTITY-ROWS: FAILED 3
+
+restored
+=== MF guard check dropped
+FAIL the guarded form passes: got [(3, 'f ${arms[@]+"${arms[@]}"} x')], want []
+FAIL the guarded form passes in a file without set -u (null): got [(3, 'f ${a[@]+"${a[@]}"}')], want []
+bare_array self-test: FAILED
+FAIL the guarded form passes: got [(3, 'f ${arms[@]+"${arms[@]}"} x')], want []
+FAIL the guarded form passes in a file without set -u (null): got [(3, 'f ${a[@]+"${a[@]}"}')], want []
+FAIL no tracked tools/**/*.sh script expands a bare "${array[@]}"
+FAIL bare_array: the guarded form passes (control)
+FAIL bare_array: the guarded form passes without set -u (null)
+FAIL bare_array: its own self-test passes
+ENTITY-ROWS: FAILED 4
+tools/audit/seat/bus.sh:654: | python3 -I "$ROOT/tools/audit/seat/ledger.py" landed ${arms[@]+"${arms[@]}"} "$main" $fix_heads)"$LF \
+tools/audit/seat/cloud-setup.sh:64: for d in ${parts[@]+"${parts[@]}"}; do [ "$d" = "$1/venv-ci/bin" ] || rest="${rest:+$rest:}$d"; done
+tools/audit/seat/pr_args.sh:173: && n=$(git -C "$d" rev-list --count HEAD..origin/main -- ${PR_FRESH_PATHS[@]+"${PR_FRESH_PATHS[@]}"} 2>/dev/null) \
 restored
