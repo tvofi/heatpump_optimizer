@@ -72,6 +72,7 @@ Open groups whose after-edges are all done (or absent); wave-ordered:
 - R10-PREPR-CAP (wave 1, 0 satisfied edge(s))
 - R10-PROD-RESIDUE-PINS (wave 1, 0 satisfied edge(s))
 - R10-REPLAY-REAL-DAY (wave 1, 2 satisfied edge(s))
+- R10-ROSTER-OPS-2 (wave 1, 0 satisfied edge(s))
 - R10-SAV-COMFORT (wave 1, 1 satisfied edge(s))
 - R10-SEAT-SINGLE-WRITER (wave 1, 0 satisfied edge(s))
 - R10-SUITE-HOST-DETERMINISM (wave 1, 0 satisfied edge(s))
