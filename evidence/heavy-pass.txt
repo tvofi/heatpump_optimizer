@@ -1,4 +1,0 @@
-SURVIVED tools/audit/seat/mutant_run.py:96 CALL_DEL  pass
-SURVIVED tools/audit/seat/mutant_run.py:97 RETURN_DEL  pass
-SURVIVED tools/audit/seat/mutant_run.py:97 CONST_SWAP  return -2
-SURVIVED tools/audit/seat/mutant_run.py:99 CALL_DEL  pass

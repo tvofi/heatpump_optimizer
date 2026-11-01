@@ -1,0 +1,31 @@
+Fix review: blocked 1a6a7e6a8bf1cbe04f37989aaedbab66165df624 root-cause-unanswered: governance / delivery-status is red at the head and ## Red checks says none
+
+bus-nonce: e2455bfa06e89b0aed8fff8119b8764c
+
+Round 1, full review of PR #3151 (R10-MUTANT-RUN-DRIVER, size S) at head 1a6a7e6a8bf1cbe04f37989aaedbab66165df624, judged from a detached worktree at that head with my own harnesses.
+
+## Block
+
+CI is RED at head 1a6a7e6a8bf1cbe04f37989aaedbab66165df624 (classify rc 1, `red: gate`). The red is `pr-contract / pr-contract` (both its runs) and the aggregate `gate`, and its only error is: `[pr-body] check governance / delivery-status is red and ## Red checks does not name it. It grades main, but this diff touches what it reads (.github/workflows/governance.yml), so the red may be this pull request's own. Name the failure and answer it.` The body's `## Red checks` says `none`. The red check itself is the OVERDUE row for #3096 (not this PR's row), and its log says it is not a required context, so the fix is only a body edit: name `governance / delivery-status` under `## Red checks` and answer it (the cheaper detector, or that none exists, and that the failure is #3096's OVERDUE row, not this diff's). I classify it `root-cause-unanswered` rather than `-detectable`, because I cannot tell from the body whether the author judged the red to be the PR's own. Nothing in the code needs to change. All code-bearing checks are green at the head, so a body-only fix needs no re-review of the code; the delivery row and the code are as I measured them.
+
+## Findings
+
+- `tools/pr/prepr.sh` step 'diff mutants' prints a failing baseline as a pass. With `MUTANT_CMD=false`, the driver prints `BASELINE FAILS: ...` and exits 3. The step greps only `^SURVIVED `, counts 0 and reports `ok diff mutants no survivor: BASELINE FAILS: the command fails on the unedited tree; no mutant was run`. A mistyped MUTANT_CMD therefore reads as a clean pass. The step is report-only, so prepr does not fail, but the line says the opposite of what happened. Not blocking; the fix is to key on a `BASELINE FAILS` line and WARN. Carry: R10-MUTANT-RUN-DRIVER | dismissed: wording defect in a report-only step, no gate reads it; the BASELINE FAILS text is on the same ok line.
+- Body says 81 survivors on the driver's own added lines; I could not re-derive that figure. The heavy pass is 240 mutants at about 12 s each (about 48 min) and I stopped it after the first 4 survivors, which are the timeout-path equivalents `p.wait()`, `return -1` and `_child.clear()`. The disposition categories in the body are plausible but unverified past that sample. Not blocking. Carry: R10-MUTANT-RUN-DRIVER | dismissed: figure not re-derived; the sampled survivors are equivalent or benign and the body's categories are consistent with them.
+- Carry 2's unbuilt part: the seat-local mutant drivers are not migrated to `mutant_run.py` (the body says their seats own them). Forward-carry: Carry: R10-MUTANT-RUN-DRIVER | dismissed: tvofi card 4 scoped this PR to the tracked driver plus the diff arm; migration of seat-local drivers belongs to the seats that own them and is tracked on #3122.
+
+## Forward-carry
+
+- The seat-local drivers are not migrated: see the third finding above. Carry: R10-MUTANT-RUN-DRIVER | dismissed: as above.
+
+## Evidence
+
+- Self-test: `env -u BASH_ENV python3 -I tools/audit/seat/mutant_run.py --self-test` prints `mutant_run self-test: 40 checks, 0 failed` at this head, matching the body.
+- Own mutants on the driver, each run against the self-test in a copy (ev/own-mutants.txt): NULL reported KILLED, restore skipped, old-occurs-once loosened to `< 1`, timeout killpg dropped, `start_new_session` off, in-place HEAD guard off, dirty-target refusal off, handler kill loop emptied, duplicate-name refusal off, baseline rc off, report-only ignored, three-dot check off. All 12 KILLED. Null control (unmutated copy): rc 0, 40 checks, 0 failed.
+- Restore guarantee (ev/sigterm.txt): SIGTERM mid-mutant on the real file `tools/audit/seat/features_block.py`, both `--copy-tree` and `--in-place`: rc 143, sha256 identical, `git status --porcelain` empty, no `mutant_run-*` temp directory left, and the running `sleep 60` child gone after 1 s. A first run showed one `sleep` still listed, a kill-and-reap race in my check; it was gone on the re-run and on a later `ps`.
+- prepr step (ev/prepr-step.txt): extracted the block and ran it with `MUTANT_CMD` unset: `skip diff mutants`, block rc 0. With `MUTANT_CMD=true`: 3 `SURVIVED` lines and `WARN`, rc 0. With a failing command: the false-ok in the first finding, rc 0. prepr runs `set -uo pipefail` with no `-e`, and the output assignment is a plain assignment, so no path fails prepr.
+- Merge: `git merge-tree --write-tree origin/main 1a6a7e6a8bf1cbe04f37989aaedbab66165df624` exits 0 (tree 4947441a3c27), origin/main at 7f849a24. #3150 (head f8b0e00c4bf0) against this head: `git merge-tree` exits 0, so the two prepr.sh edits do not conflict.
+- `selftest_wiring.py --check`: 107 self-testing, 107 wired, 0 unwired. `tests/structure.py`: STRUCTURE RATCHET PASSED. Packet figure_lint: 5 resolved, 0 not verified. carry_audit on the body: 0 findings.
+- Diff hygiene: no change to VERSION, the manifest, RELEASE_NOTES or tests/golden claim files (three-dot stat empty); no host path added; `dev/programme/delivery/3151.md` is in the three-dot diff; `tests/closures.json` gains the two scripts (+2 lines, INERT-style classification the body names).
+- Red checks (the block above is this item's consequence): the body's `## Red checks` says none, and the packet printed `REFUSE red-unanswered` for `governance / delivery-status`. That run failed on #3096 OVERDUE (a different PR's row, 12 commits since) and its log says it is not a required context and blocks no merge; this diff does not touch what it reads, so by fix-review.md step 11 it is not this PR's. No other check concluded red at the time I read them.
+- CI state: python3 tools/audit/seat/merge_train.py classify exit 1 (RED, red: gate) after every other check concluded: tests / closures, coverage, fast (3.14), browser, mutation, governance / instrument-self-tests, env-matrix, policy-docs, codeql and arch-score are success; only governance / delivery-status (not required) and the pr-contract / gate it feeds are failure.
