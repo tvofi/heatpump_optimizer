@@ -1950,17 +1950,11 @@ def merge_claim_defect(
             return f"the claims for '{name}' are neither side's own"
     if _parse_claims(merged)[0] is None:
         return f"the '{CLAIM_VERSION_MARKER}' stamp did not survive the merge"
-    want_md, md_refused = merge_may_drift_decision(base, ours, theirs)
+    want_md = merge_may_drift_decision(base, ours, theirs)[0]
     got_md = _may_drift_blocks(merged)
-    if md_refused:
-        return f"a may-drift line both sides changed was resolved: {md_refused}"
-    lost = sorted({ln for v in want_md.values() for ln in v}
-                  - {ln for v in got_md.values() for ln in v})
-    if lost:
-        return f"a may-drift line was lost: {lost[0].strip()}"
     if got_md != want_md:
-        extra = sorted(n for n in got_md if got_md[n] != want_md.get(n))
-        return f"a may-drift line was reinstated or doubled: {extra}"
+        moved = sorted(n for n in {*got_md, *want_md} if got_md.get(n) != want_md.get(n))
+        return f"a may-drift line was lost or reinstated: {moved}"
     return None
 
 

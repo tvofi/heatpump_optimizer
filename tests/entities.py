@@ -23153,7 +23153,7 @@ R.check(
     and (_env_drift.merge_claim_defect(
         _CM_MD_GOOD + "# may-drift: wood_coil -- machine-sensitive\n", {},
         _CM_MD_BASE, _CM_MD_OURS, _CM_MD_REWORD,
-    ) or "").startswith("a may-drift line was reinstated"),
+    ) or "").startswith("a may-drift line was lost or reinstated: ['wood_coil']"),
     f"good={_CM_MD_GOOD!r}",
 )
 
