@@ -15469,7 +15469,9 @@
    "class": "ux",
    "severity": "medium",
    "size": "L",
-   "issues": [],
+   "issues": [
+    3140
+   ],
    "fixes": [],
    "findings": [],
    "wave": 6,
