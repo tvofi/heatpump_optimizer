@@ -8947,7 +8947,8 @@
    "resume": {
     "stage": "done",
     "branch": null,
-    "commit": "975fbb832bd784a786f37c7ca3c24c4f0cfefcc0"
+    "commit": "975fbb832bd784a786f37c7ca3c24c4f0cfefcc0",
+    "note": "s9 carry-routing pass, 2026-11-01: carry 1 -> R10-SUITE-HOST-DETERMINISM; carry 2 -> R10-SUITE-HOST-DETERMINISM; carry 3 -> R10-SUITE-HOST-DETERMINISM; carry 4 -> R10-SUITE-HOST-DETERMINISM; carry 5 -> R10-SUITE-HOST-DETERMINISM; carry 6 answered; carry 7 answered; carry 8 answered; carry 9 -> R10-HB-PLATFORM-RULE; carry 10 -> R10-SUITE-HOST-DETERMINISM; carry 11 -> R10-HB-PLATFORM-RULE; carry 12 -> R10-SEAT-IDENTITY-GUARDS; carry 13 -> R10-HB-PLATFORM-RULE; carry 14 -> R10-CI-RUNNER-FIXES; carry 15 -> R10-FLY-CIPREDICT-RESTORING. Evidence per carry: the routing table route.tsv of that pass."
    },
    "brief": "Suite determinism, three seams found in round 10 and left unowned: (1) tests/features.py fails under HASTUB_TZ=Europe/Stockholm at the merge base as well as on branches (the R9-F1.1 N-shared-config pair and the naive/aware timestamp check), a wall-clock or zone dependence in the suite that predates the branch that found it; (2) the gate-lease priority concurrency control in tests/entities.py failed once under CI runner load while its sibling run passed; and (3) `tests/entities.py`'s py-spy stub compares `wc -l` output with `case ... in 1)`, which BSD `wc -l`'s column-padded stdin count never matches, so four `hb:positive_control` checks read red on macOS. All three carries hold the evidence. Fix each by making the check deterministic (a zone the test sets itself; a condition waited on, never a fixed window; a count compared without the platform's padding), with a failing test first and a null control that the check still catches its planted defect. Follow dev/governance/roles/fixer.md."
   },
