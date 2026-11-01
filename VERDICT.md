@@ -1,12 +1,12 @@
-Fix review: merge 1ac45d875522d5ab8040f8d89d1f05a7aeadda6d
+Fix review: blocked 1ac45d875522d5ab8040f8d89d1f05a7aeadda6d ci-red: governance / instrument-self-tests and pr-contract concluded red at this head; not shown to be this diff's, so not mergeable until re-run green
 
 bus-nonce: 0b0cb173c9cb41f0613c5c6aa69ea2c9
 
 Round 1. Reviewed from a detached worktree at 1ac45d875522d5ab8040f8d89d1f05a7aeadda6d.
 
-## Summary
+## Block
 
-The instrument changes hold under my own plants, and the legitimate paths still work. CI on this head was still pending (classify WAIT, no red check) when this was written; it is not a verified GREEN, and the orchestrator should re-run classify before merging.
+merge_train classify at this head returned RED (gate). Concluded-red checks in the head's own runs: governance / instrument-self-tests (run 41287667687, job 124792258514), pr-contract / pr-contract (jobs 124798511179 and 124798871788), and gate (red only because of those). The instrument-self-tests log ends at "pr_args self-test: 158 checks, 2 failed", the two rows being "open_pr: the null control -- an unrelated sleeper survives" and "null control: a normal successful update_pr leaves nothing behind and stops nothing it did not start", with the runner printing "Security violation: Requested utility `unrelated-sleep` does not match executable name: /usr/lib/cargo/bin/coreutils/sleep". tools/audit/seat/pr_args.sh is not in this diff and main's recent push runs were green, so this looks like a runner or timing flake, but I could not show that: my local run of the same self-test did not finish within my budget (it stalled after 121 lines with no FAIL). The body's ## Red checks answers neither this red nor pr-contract's, so the red-check duty (fix-review step 11) is also open. Re-run the failed jobs; if instrument-self-tests goes green and pr-contract is answered in the body, the code review below stands and this head can merge with no other change.
 
 ## Findings
 
@@ -15,6 +15,7 @@ The instrument changes hold under my own plants, and the legitimate paths still 
 
 ## Evidence
 
+- CI: classify RED at this head (see Block). The earlier WAIT state is superseded.
 - Merge: git merge-tree --write-tree origin/main head exits 0, with no claim-file conflict (inert_reads merged as a set).
 - Self-tests re-run here: tick_loop 26/0, cloud_relay 316/0, bus 123/0, carry_audit 292/0 (ev/*.log). tests/structure.py: STRUCTURE RATCHET PASSED.
 - Three-dot diff has dev/programme/delivery/3065.md, touches no golden or claim file, no VERSION or manifest.
