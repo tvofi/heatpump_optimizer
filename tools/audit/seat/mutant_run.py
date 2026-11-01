@@ -401,6 +401,18 @@ NORM_PINNED = ("from lib import norm\nimport lib\nseen = []\nlib.note = seen.app
 LOOSE = "from lib import clamp\nassert clamp(3, 0, 5) == 3\n"
 
 
+def _gone(pid: str) -> bool:
+    """True once the process `pid` no longer exists (polled for up to 5 s)."""
+    import time
+    for _ in range(50):
+        try:
+            os.kill(int(pid), 0)
+        except (ProcessLookupError, ValueError):
+            return True
+        time.sleep(0.1)
+    return False
+
+
 def _self_test() -> int:
     import time
     sys.path.insert(0, str(ROOT / "tests"))
@@ -493,12 +505,13 @@ def _self_test() -> int:
             cmd = ("python3 -c \"import pathlib, sys, time\n"
                    "src = pathlib.Path('lib.py').read_text()\n"
                    "if 'return hi\\n    if x > hi' in src:\n"
-                   f"    pathlib.Path('{flag}').write_text('x'); time.sleep(60)\"")
+                   f"    pathlib.Path('{flag}').write_text(str(__import__('os').getpid())); time.sleep(60)\"")
             rc, out, err = drive("--spec", str(spec), "--cmd", cmd, mode, sig=signal.SIGTERM, watch=flag.exists)
             clean = subprocess.run(["git", "-C", str(repo), "status", "--porcelain", "--", "lib.py"],
                                    capture_output=True, text=True, env=env).stdout == ""
             check(f"SIGTERM mid-mutant ({mode}): rc 143, tree byte-identical, no copy left behind",
                   rc == 143 and clean and (repo / "lib.py").read_text() == LIB and not listing())
+            check(f"SIGTERM mid-mutant ({mode}): the running command was killed with the driver", _gone(flag.read_text()))
             flag.unlink(missing_ok=True)
 
         # diff mode
