@@ -1296,6 +1296,46 @@ def mask_checks() -> list[tuple[str, bool, str]]:
                 "; ".join(found[-2:])))
     res.append(("mask:null_committed_fixture_passes_the_check",
                 not export.check_file(FIXTURES / "synthetic-dhw-only.json"), "check_file"))
+    return res + mask_seam_checks()
+
+
+def mask_seam_checks() -> list[tuple[str, bool, str]]:
+    """Every place an id can sit, each alone: ``mask_ids`` renames it and
+    ``mask_violations`` refuses it unrenamed -- a dict key anywhere (an
+    attribute keyed by entity id, not only ``states``), a list item, a
+    ``states`` key; an ``_entities`` list's ids take their numbered role; a
+    payload that is not a document has no id to refuse; and a credential's copy
+    inside a list is dropped. R10-REPLAY-REAL-DAY round 2 (the seven sites
+    ``mutation-autofix`` left unpinned at 4c994241d)."""
+    from heatpump_optimizer import replay_doc as doc_mod
+
+    res = []
+    street = f"sensor.{_STREET}"
+    keyed = {"entry": {"data": {}}, "states": {},
+             "attrs": {f"{street}_a": {"state": "on"}}}
+    masked = doc_mod.mask_ids(keyed, "01JX")
+    res.append(("mask:id_as_any_dict_key_renamed_and_refused_unrenamed",
+                _STREET not in json.dumps(masked) and not doc_mod.mask_violations(masked)
+                and bool(doc_mod.mask_violations(keyed)),
+                f"masked keys {sorted(masked['attrs'])}; unrenamed refused "
+                f"{len(doc_mod.mask_violations(keyed))}"))
+    for name, alone in (("list_item", {"entry": {}, "attrs": [f"{street}_b"]}),
+                        ("states_key", {"entry": {}, "states": {f"{street}_c": []}})):
+        res.append((f"mask:id_only_as_a_{name}_refused",
+                     bool(doc_mod.mask_violations(alone)) and not doc_mod.mask_violations(
+                         doc_mod.mask_ids(alone, "01JX")), name))
+    roles = doc_mod.entity_roles({"data": {"room_sensor_entities": ["sensor.a", "sensor.b"]}},
+                                 None)
+    res.append(("mask:entities_list_ids_take_their_numbered_role",
+                roles == {"sensor.a": "sensor.room_sensor_n1", "sensor.b": "sensor.room_sensor_n2"},
+                str(roles)))
+    res.append(("mask:a_payload_that_is_no_document_has_no_violation",
+                doc_mod.mask_violations([f"{street}_d"]) == [], "a list payload"))
+    found: dict[str, set[int]] = {}
+    scanned = doc_mod._scan({"attrs": {"options": ["off", _TOKEN]}}, "", found,
+                            [doc_mod._copy(_TOKEN)])
+    res.append(("leak_copy:copy_inside_a_list_dropped",
+                scanned == {"attrs": {"options": ["off", None]}} and not found, str(scanned)))
     return res
 
 

@@ -551,7 +551,7 @@ def hashed_id(entity_id: str, key: str) -> str:
 
 
 def mask_ids(doc: Json, key: str) -> Json:
-    """``doc`` with every entity id, at any depth and as a ``states`` key,
+    """``doc`` with every entity id, at any depth and as any dict key,
     renamed through ``entity_roles`` else ``hashed_id``: one mapping."""
     roles = entity_roles(doc.get("entry") or {}, doc.get("price_series_entity"))
 
@@ -559,8 +559,7 @@ def mask_ids(doc: Json, key: str) -> Json:
         if isinstance(node, str) and ENTITY_ID.match(node):
             return roles.get(node) or hashed_id(node, key)
         if isinstance(node, dict):
-            return {rename(k) if node is doc.get("states") else k: rename(v)
-                    for k, v in node.items()}
+            return {rename(k): rename(v) for k, v in node.items()}
         if isinstance(node, list):
             return [rename(v) for v in node]
         return node
@@ -568,15 +567,15 @@ def mask_ids(doc: Json, key: str) -> Json:
     return cast(Json, rename(doc))
 
 
-def _entity_ids(node: object, into: set[str], keyed: bool = False) -> set[str]:
-    """Every string spelled like an entity id in ``node``; ``states``' keys too."""
+def _entity_ids(node: object, into: set[str]) -> set[str]:
+    """Every string spelled like an entity id in ``node``, a dict's keys too --
+    ``states``' and any other: ``mask_ids`` renames every key it can."""
     if isinstance(node, str) and ENTITY_ID.match(node):
         into.add(node)
     elif isinstance(node, dict):
         for k, v in node.items():
-            if keyed or (k == "states" and isinstance(v, dict)):
-                _entity_ids(k, into)
-            _entity_ids(v, into, keyed=k == "states" and isinstance(v, dict))
+            _entity_ids(k, into)
+            _entity_ids(v, into)
     elif isinstance(node, list):
         for v in node:
             _entity_ids(v, into)

@@ -5,7 +5,8 @@
 recorder and masking guards (``tools/replay/export.py``), the fixture cutter
 (``tools/replay/cut_day.py``) and the replay lane's own guards
 (``tests/replay.py``) carry their proof here, in the tree, where a reviewer
-re-runs it. Each mutant is one exact substitution, applied to a copy of the
+re-runs it; so do the ``replay_doc.py`` sites the autofix lane left unpinned,
+whose ledger pins it records after the push. Each mutant is one exact substitution, applied to a copy of the
 tree (``tests``, ``tools``, ``custom_components``); the checks named beside it
 must turn red, and the unmutated copy (the null) must be all green.
 
@@ -50,6 +51,7 @@ OWNER = "tests/replay/owner-2026-10-30-away.json"
 MARK = "<<<replay-json>>>"  # tests/replay.py MARK
 
 EXPORT, CUT, LANE = "tools/replay/export.py", "tools/replay/cut_day.py", "tests/replay.py"
+DOC = "custom_components/heatpump_optimizer/replay_doc.py"
 
 #: (name, file, old, new, a check that must turn red). ``old`` occurs once.
 FAST = [
@@ -93,6 +95,31 @@ FAST = [
     ("two paired switches not refused", CUT,
      "if len(switches) > 1 or (set_at and not switches):",
      "if set_at and not switches:", "cut_day:two_paired_switches_refused"),
+    # The seven sites mutation-autofix left unpinned at 4c994241d, as the
+    # mutation table spells them (GUARD_OFF: the test made False), less the two
+    # this round's simplification of _entity_ids removed, plus that change's own.
+    ("an _entities list not claimed (GUARD_OFF)", DOC,
+     "            if isinstance(value, list):\n                for i, item",
+     "            if False:\n                for i, item",
+     "mask:entities_list_ids_take_their_numbered_role"),
+    ("ids in a list not collected (GUARD_OFF)", DOC,
+     "    elif isinstance(node, list):\n        for v in node:\n            _entity_ids(v, into)",
+     "    elif False:\n        for v in node:\n            _entity_ids(v, into)",
+     "mask:id_only_as_a_list_item_refused"),
+    ("a payload that is no document read as one (GUARD_OFF)", DOC,
+     "    if not isinstance(payload, dict):\n        return []\n    roles",
+     "    if False:\n        return []\n    roles",
+     "mask:a_payload_that_is_no_document_has_no_violation"),
+    ("a list not scanned for credential copies (GUARD_OFF)", DOC,
+     "    if isinstance(node, list):\n        return [_scan(",
+     "    if False:\n        return [_scan(", "leak_copy:copy_inside_a_list_dropped"),
+    ("dict keys outside states not renamed", DOC,
+     "return {rename(k): rename(v) for k, v in node.items()}",
+     "return {k: rename(v) for k, v in node.items()}",
+     "mask:id_as_any_dict_key_renamed_and_refused_unrenamed"),
+    ("dict keys not collected", DOC,
+     "            _entity_ids(k, into)\n", "",
+     "mask:id_only_as_a_states_key_refused"),
     ("away floor unchecked", LANE,
      'o["floor"] <= o["target"])', "True)", "control:away:floor"),
     ("away override unchecked", LANE,
