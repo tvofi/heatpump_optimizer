@@ -1,0 +1,18 @@
+828b6e8ce5b5b646d0c291ee3998b8e284e26f4b
+review_packet self-test: 65 checks, 0 failed
+orchestrator_tick self-test: 243 checks, 0 failed
+cloud_dispatch self-test: 124 checks, 0 failed
+review_carry self-test: 26 checks, 0 failed
+RESULT control #3045 shape: rc=4 APPROVAL-OWED
+RESULT null: red head not a raise (no budget file): rc=1 RED
+RESULT null: raise + tests/fast red: rc=1 RED
+RESULT null: raise + tests/fast cancelled: rc=1 RED
+RESULT null: approval at the head (held): rc=1 RED
+RESULT designed owed: approval at an older head: rc=4 APPROVAL-OWED
+RESULT null: gate red, raise unit green: rc=1 RED
+RESULT designed owed: a non-gate red (governance / instrument-self-tests) + raise: rc=4 APPROVAL-OWED
+RESULT hidden: gate red because tests / browser SKIPPED: rc=1 RED
+RESULT hidden: gate red because a unit is ABSENT: rc=1 RED
+RESULT hidden: gate red because a unit is still in_progress: rc=1 RED
+RESULT hidden: gate red for a reason naming no unit (deferral): rc=1 RED
+RESULT no --pr: rc=1 RED

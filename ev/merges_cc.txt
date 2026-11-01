@@ -1,0 +1,5 @@
+== 03ef99f28 --cc files with combined hunks:
+diff --cc tools/audit/seat/instruments/review_packet.py.md
+diff --cc tools/audit/seat/review_packet.py
+== 325b1fd11 --cc files with combined hunks:
+== 828b6e8ce --cc files with combined hunks:

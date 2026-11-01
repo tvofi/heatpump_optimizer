@@ -1,0 +1,7 @@
+  ok   P345: a required red that is only a raise's owed approval renders: no refusal, an `approval-owed` advisory naming the reason, in the packet
+  ok   P345: the reason is classify --pr's own APPROVAL-OWED line at rc 4, asked with the pull request; RED (rc 1), a line naming another head, and the line at any rc but 4 are None (null controls)
+  ok   the reviewer waits for CI only by re-running merge_train.py classify --pr, 60 s apart, until 0, 1, 2 or 4 (APPROVAL-OWED, P345)
+  ok   a reviewer without --pr is refused
+  ok   --group forwards --pr to dispatch_group
+  ok   a fixer is refused on an approval of a design that has since moved
+  ok   the --group CLI passes --role, --group, --model, --pr and --nonce through

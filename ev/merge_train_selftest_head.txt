@@ -1,0 +1,18 @@
+  ok   P345 row 1: #3045's shape (gate + budget-raise-gate red, one raise in the diff, the owner's approval on an older head) is APPROVAL-OWED, rc 4, naming the raise and the gate's why
+  ok   P345 row 2 (null): the same plus `tests / fast (3.14)` red stays RED, rc 1
+  ok   P345 row 3 (null): budget-raise-gate red with no raise in the diff -- no budget file, or one that only gains rows (#2401) -- stays RED, rc 1
+  ok   P345 row 4 (null): a raise_hold Stop (an unlistable tree) is not approval owed: RED, rc 1
+  ok   P345 row 5: without --pr the same head is RED, rc 1, exactly as old callers read it
+  ok   P345 (null): a raise the owner's mandated approval already holds at the head owes nothing: RED, rc 1
+  ok   P345 (null): a red gate whose units do not include budget-raise-gate stays RED, rc 1
+  ok   #3073: a raise whose gate is also red for a SKIPPED unit stays RED, rc 1
+  ok   #3073: a raise whose gate is also red for an ABSENT unit (no check run) stays RED, rc 1
+  ok   #3073: a raise whose gate is also red for a PENDING unit under a concluded gate stays RED, rc 1
+  ok   #3073: a raise whose gate is also red for a reason naming no unit (the deferral bound) stays RED, rc 1
+  ok   #3073: a raise whose gate is also red for a reason naming no unit (the prelude cross-check) stays RED, rc 1
+  ok   #3073: a raise whose gate is also red for the raise unit itself SKIPPED or PENDING, not failed (no approval judged) stays RED, rc 1
+  ok   #3073: a gate log that cannot be read, or whose gate.py step never ran, stays RED, rc 1
+  ok   #3073: every red gate suite is read -- two raise-only suites (#3045 carried four) are owed, rc 4; one suite red for another unit is RED, rc 1
+  ok   #3073: gate_raise_only is False for a gate suite still running beside a raise-only red one, and for a green gate; True for the raise-only suites (the control)
+  ok   #3073 O2: a failed three-dot diff read is not approval owed: RED, rc 1
+merge_train self-test: 417 checks, 0 failed

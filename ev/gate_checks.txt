@@ -1,0 +1,9 @@
+
+STRUCTURE RATCHET PASSED
+  MODE: SCOPED -- 2 script(s) run, 31 scoped out.
+  closure. The claim is re-checked by the FULL unscoped suite that runs
+  gate. Set GATE_SCOPE=full to run everything here and now.
+tools/audit/briefs/orchestrator.md               294  295     4245  4251 
+dev/governance/roles/architect-planner.md         85   85     1261  1261 
+policy_lint rc=0
+RULES-SYNC ok: every generated rule is the generated form of its source

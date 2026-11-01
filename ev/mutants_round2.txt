@@ -1,0 +1,25 @@
+N1 drop gate_raise_only call: merge_train self-test: 417 checks, 8 failed ; failing rows:
+  FAIL #3073: a raise whose gate is also red for a SKIPPED unit stays RED, rc 1
+  FAIL #3073: a raise whose gate is also red for an ABSENT unit (no check run) stays RED, rc 1
+  FAIL #3073: a raise whose gate is also red for a PENDING unit under a concluded gate stays RED, rc 1
+  FAIL #3073: a raise whose gate is also red for a reason naming no unit (the deferral bound) stays RED, rc 1
+  FAIL #3073: a raise whose gate is also red for a reason naming no unit (the prelude cross-check) stays RED, rc 1
+  FAIL #3073: a raise whose gate is also red for the raise unit itself SKIPPED or PENDING, not failed (no approval judged) stays RED, rc 1
+  FAIL #3073: a gate log that cannot be read, or whose gate.py step never ran, stays RED, rc 1
+  FAIL #3073: every red gate suite is read -- two raise-only suites (#3045 carried four) are owed, rc 4; one suite red for another unit is RED, rc 1
+N2 all->any: merge_train self-test: 417 checks, 3 failed ; failing rows:
+  FAIL #3073: a raise whose gate is also red for a SKIPPED unit stays RED, rc 1
+  FAIL #3073: a raise whose gate is also red for an ABSENT unit (no check run) stays RED, rc 1
+  FAIL #3073: a raise whose gate is also red for a PENDING unit under a concluded gate stays RED, rc 1
+N3 drop pending guard: merge_train self-test: 417 checks, 1 failed ; failing rows:
+  FAIL #3073: gate_raise_only is False for a gate suite still running beside a raise-only red one, and for a green gate; True for the raise-only suites (the con
+N4 drop fail-kind test: merge_train self-test: 417 checks, 0 failed ; failing rows:
+N5 RAISE_REASON unanchored: merge_train self-test: 417 checks, 0 failed ; failing rows:
+N6 read only the first red suite: merge_train self-test: 417 checks, 1 failed ; failing rows:
+  FAIL #3073: every red gate suite is read -- two raise-only suites (#3045 carried four) are owed, rc 4; one suite red for another unit is RED, rc 1
+N7 return True for no red: merge_train self-test: 417 checks, 1 failed ; failing rows:
+  FAIL #3073: gate_raise_only is False for a gate suite still running beside a raise-only red one, and for a green gate; True for the raise-only suites (the con
+N8 unread log read as empty fail: merge_train self-test: 417 checks, 0 failed ; failing rows:
+N9 empty reasons accepted: merge_train self-test: 417 checks, 0 failed ; failing rows:
+N8b unread log read as raise-only: merge_train self-test: 417 checks, 1 failed
+  FAIL #3073: a gate log that cannot be read, or whose gate.py step never ran, stays RED, rc 1
