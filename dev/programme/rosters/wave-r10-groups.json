@@ -13893,6 +13893,57 @@
     "note": "s9 carry-routing pass, 2026-11-01: created to receive carries of R10-FLY-NO-FOOTERS"
    },
    "brief": "The hooks-registration residue of R10-FLY-NO-FOOTERS: a PreToolUse Bash hook that refuses pkill, killall and pgrep-fed kill at command position (the folded R10-FLY-BASH-KILL-GUARD brief, carried whole), the policy_lint hooks check keyed on each hook script's tool set, and the attribution entry in tools/policy/field_coverage.mjs that still sits in both its pending and ignore maps (#2732). Every carry was moved verbatim by the s9 carry-routing pass (2026-11-01) from a carries-open source group; each names its own controls. Re-measure every figure a carry states at this group's own merge base; carry no count. A carry that says it waits on an owner or orchestrator ruling waits for that ruling, and the body says so."
+  },
+  {
+   "group": "R10-RELAY-HANDOFF-ARM",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "instrument",
+   "severity": "medium",
+   "size": "M",
+   "issues": [
+    2389
+   ],
+   "fixes": [],
+   "findings": [],
+   "wave": 6,
+   "hot_files": [
+    "cloud_relay.sh"
+   ],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "after": [
+    "R10-FLY-RELAY-REVIEW-FF"
+   ],
+   "files": [
+    "tools/audit/seat/cloud_relay.sh",
+    "tools/audit/seat/update_pr.sh",
+    "tools/audit/seat/open_pr.sh",
+    "tools/audit/seat/instruments/cloud_relay.sh.md",
+    "tools/audit/seat/instruments/body_push.sh.md"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-relay-handoff-arm",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer once its after-groups are done",
+    "note": "s9 carry-routing pass, 2026-11-01: created to receive carries of R10-FLOW-BODY-ONLY"
+   },
+   "brief": "The relay handoff arm's residue of R10-FLOW-BODY-ONLY (#3037 built the Code trailer and the stale-body hold; the rest it left owed): exit 75 and body-sha keying for a failed update, the level written before the serial update loop, a level line for a body-only handoff, auto-open on handoff through tools/audit/seat/open_pr.sh, the ledger disposition for an applied handoff-body ref, the two surviving relay mutants and the instrument guides. Runs after R10-FLY-RELAY-REVIEW-FF, whose open #3065 edits tools/audit/seat/cloud_relay.sh. Every carry was moved verbatim by the s9 carry-routing pass (2026-11-01) from a carries-open source group; each names its own controls. Re-measure every figure a carry states at this group's own merge base; carry no count. A carry that says it waits on an owner or orchestrator ruling waits for that ruling, and the body says so."
   }
  ]
 }
