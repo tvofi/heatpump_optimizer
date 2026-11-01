@@ -330,6 +330,9 @@
     "diagnose_interval": {
       "service": "mdi:stethoscope"
     },
+    "factory_reset": {
+      "service": "mdi:restore"
+    },
     "reset_heat_loss_learners": {
       "service": "mdi:home-thermometer-outline"
     },

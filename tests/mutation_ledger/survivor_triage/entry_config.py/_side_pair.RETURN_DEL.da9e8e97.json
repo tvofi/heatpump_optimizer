@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/entry_config.py:_side_pair RETURN_DEL da9e8e97",
+  "old": "    return None",
+  "reason": "Equivalent (RETURN_DEL, `return None` -> `pass`): the statement is the last one in _side_pair, after an `if` whose arm returns the pair, so deleting it lets the function fall off its own end and return None -- the same value, on every input, to its one reader (`undone_settings`, which tests `is None`). Measured by the R10-FACTORY-RESET round-3 fixer's drive of the fix review's own L360-RETURN_DEL mutant: SURVIVED the extracted R10-FACTORY-RESET section of tests/features.py and the whole of tests/features.py, while the malformed-record check (\"an undo record missing either half, or holding a malformed one, undoes no settings\") kills the guard's GUARD_OFF on the line above.",
+  "verdict": "equivalent"
+}
