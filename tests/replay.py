@@ -1230,6 +1230,13 @@ def recorder_checks() -> list[tuple[str, bool, str]]:
         res.append(("recorder:db_url_emptied_window_refused_naming_inputs_and_recorder",
                     doc is None and "MySQL/MariaDB database" in why
                     and "sensor.outdoor_temp" in why and "sensor.price" in why, why[-300:]))
+        # The label that no longer prints on opening still names the recorder in
+        # a refusal: by kind for a SQLite recorder a db_url names, never its path.
+        shutil.copy(tmp / "mariadb-backing.db", tmp / "url-named-recorder.db")
+        none, said = _export_mariadb(None, tmp, db_url="sqlite:///url-named-recorder.db")
+        res.append(("recorder:sqlite_db_url_refusal_names_kind_not_path",
+                    none is None and "SQLite database" in said
+                    and "url-named-recorder" not in said, said[-200:]))
     # A key the integration no longer reads (``heat_pump_entity``, dropped in
     # v3.8.0 as never read) still in an old entry, its entity long unrecorded:
     # not an input, so neither exported nor refused -- while an unrecorded
