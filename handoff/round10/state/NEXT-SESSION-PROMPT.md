@@ -28,7 +28,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-996-RUNNER-CLAIMS (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-ARCH-SHAPES-CLASSIFIER (stage queued): no branch pushed yet, so nothing to fetch
 - R10-ADVISOR-WHATIF (stage carries-open): no branch pushed yet, so nothing to fetch
-- R10-FLY-GH-CALL-LOG (stage in-progress, branch `handoff/r10-fly-gh-call-log`): `git fetch origin handoff/r10-fly-gh-call-log && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-FLY-GH-CALL-LOG (stage carries-open, branch `handoff/r10-fly-gh-call-log`): `git fetch origin handoff/r10-fly-gh-call-log && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-CIPREDICT-RESTORING (stage queued): no branch pushed yet, so nothing to fetch
 - R10-FLY-BUS-BASH32 (stage in-progress, branch `handoff/r10-fly-bus-bash32`): `git fetch origin handoff/r10-fly-bus-bash32 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FACTORY-RESET (stage in-progress, branch `handoff/r10-factory-reset`): `git fetch origin handoff/r10-factory-reset && git worktree add --detach $SEAT/wt FETCH_HEAD`
