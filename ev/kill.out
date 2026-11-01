@@ -1,0 +1,2 @@
+RESULT mutant=M0 failed=0 verdict=null-ok
+mutant_guard: signal 15, restored tools/audit/seat/cloud_dispatch.py

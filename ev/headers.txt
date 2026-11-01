@@ -1,0 +1,3 @@
+  ok   the executed harnesses leave their committed output byte-identical
+
+ALL 112 HARNESS HEADER CHECKS PASSED
