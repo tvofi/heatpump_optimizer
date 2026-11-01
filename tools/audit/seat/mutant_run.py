@@ -205,7 +205,7 @@ def run_spec(spec: list[dict], argv: list[str], ws: Workspace, timeout: float) -
 
 
 # --- diff mode -------------------------------------------------------------
-def added_lines(root: Path, rng: str) -> dict[str, list[int]]:
+def added_lines(root: Path, rng: str, only: tuple = ()) -> dict[str, list[int]]:
     r = git(root, "diff", "-U0", "--no-color", "--diff-filter=AM", rng, "--", "*.py")
     if r.returncode:
         raise Refusal("git diff " + rng + " failed: " + r.stderr.strip())
@@ -221,7 +221,7 @@ def added_lines(root: Path, rng: str) -> dict[str, list[int]]:
         elif cur and line.startswith("+") and not line.startswith("+++"):
             out[cur].append(ln)
             ln += 1
-    return {f: v for f, v in out.items() if v and not f.startswith(SKIP_PREFIXES)}
+    return {f: v for f, v in out.items() if v and not f.startswith(SKIP_PREFIXES) and (not only or f.startswith(only))}
 
 
 def string_lines(src: str) -> set[int]:
@@ -271,10 +271,10 @@ def mutate_line(line: str):
             yield "CONST_SWAP", line[: m.start()] + ("False" if m.group(1) == "True" else "True") + line[m.end():]
 
 
-def diff_mutants(root: Path, rng: str, rev_root: Path) -> list[tuple[str, int, str, str, str]]:
+def diff_mutants(root: Path, rng: str, rev_root: Path, only: tuple = ()) -> list[tuple[str, int, str, str, str]]:
     """(file, line, operator, mutated file text, mutated line) for every compiling mutant."""
     found = []
-    for rel, nums in sorted(added_lines(root, rng).items()):
+    for rel, nums in sorted(added_lines(root, rng, only).items()):
         src = (rev_root / rel).read_text(encoding="utf-8")
         lines = src.splitlines(keepends=True)
         skip = string_lines(src)
@@ -296,14 +296,14 @@ def diff_mutants(root: Path, rng: str, rev_root: Path) -> list[tuple[str, int, s
 
 
 def run_diff(rng: str, argv: list[str], root: Path, in_place: bool, timeout: float,
-             limit: int, report_only: bool, list_only: bool) -> int:
+             limit: int, report_only: bool, list_only: bool, only: tuple = ()) -> int:
     right = rng.split("...")[-1] if "..." in rng else "HEAD"
     rev = right or "HEAD"
     if "..." not in rng:
         raise Refusal("--diff wants base...HEAD (three-dot), got " + rng)
     if in_place and rev != "HEAD":
         raise Refusal("--in-place mutates the working tree, whose diff end must be HEAD")
-    files = sorted(added_lines(root, rng))
+    files = sorted(added_lines(root, rng, only))
     if not files:
         return 0
     if in_place:
@@ -313,7 +313,7 @@ def run_diff(rng: str, argv: list[str], root: Path, in_place: bool, timeout: flo
         ws = Workspace(root, files, False, rev=rev)
         rev_root = ws.dir
     try:
-        mutants = diff_mutants(root, rng, rev_root)
+        mutants = diff_mutants(root, rng, rev_root, only)
         if limit:
             mutants = mutants[:limit]
         if list_only:
@@ -348,6 +348,7 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--max-mutants", type=int, default=0)
     ap.add_argument("--report-only", action="store_true")
     ap.add_argument("--list", action="store_true")
+    ap.add_argument("--path", action="append", default=[], help="diff mode: only files under this prefix (repeatable)")
     a = ap.parse_args(argv)
     root = Path(a.root).resolve()
     try:
@@ -365,7 +366,7 @@ def main(argv: list[str]) -> int:
                 return run_spec(spec, cmd, ws, a.timeout)
             finally:
                 ws.close() if not a.in_place else ws.finish()
-        return run_diff(a.diff, cmd, root, a.in_place, a.timeout, a.max_mutants, a.report_only, a.list)
+        return run_diff(a.diff, cmd, root, a.in_place, a.timeout, a.max_mutants, a.report_only, a.list, tuple(a.path))
     except Refusal as e:
         print("mutant_run: refusing: " + str(e), file=sys.stderr)
         return REFUSE_RC
