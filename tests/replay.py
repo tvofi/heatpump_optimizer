@@ -1187,7 +1187,7 @@ def recorder_checks() -> list[tuple[str, bool, str]]:
                     f"keys {sorted(fake.kwargs)}"))
         written = (tmp / "out.json").read_text() if doc else ""
         res.append(("recorder:db_url_credentials_never_printed",
-                    doc is not None and "MySQL/MariaDB database" in printed
+                    doc is not None and "reading the recorder" in printed
                     and not any(c in printed + written for c in (_CANARY_KEY, _CANARY_USER)),
                     "printed and written text searched for the user and the password"))
         failed, why = _export_mariadb(_FakeMySQL(tmp / "mariadb-backing.db",
@@ -1195,6 +1195,16 @@ def recorder_checks() -> list[tuple[str, bool, str]]:
         res.append(("recorder:db_url_connect_refusal_names_no_credential",
                     failed is None and "MySQL/MariaDB database" in why
                     and not any(c in why for c in (_CANARY_KEY, _CANARY_USER)), why[-200:]))
+        # The open line is constant: a recorder label (a SQLite path here) is
+        # never interpolated into stderr (code-scanning alert 47).
+        marked = tmp / "label-canary-recorder.db"
+        shutil.copy(tmp / "mariadb-backing.db", marked)
+        _, said = _export_mariadb(None, tmp, db=marked)
+        _, said_url = _export_mariadb(fake, tmp)
+        res.append(("recorder:open_line_constant_no_label",
+                    "reading the recorder\n" in said and marked.name not in said
+                    and "MySQL/MariaDB database" not in said_url,
+                    said[-200:]))
         flag, _ = _export_mariadb(fake, tmp, db_url=_DB_URL.replace("homeassistant", "hadb"))
         res.append(("recorder:db_url_flag_read", flag is not None
                     and fake.kwargs.get("database") == "hadb", str(fake.kwargs.get("database"))))
@@ -1203,7 +1213,7 @@ def recorder_checks() -> list[tuple[str, bool, str]]:
         shutil.copy(tmp / "mariadb-backing.db", tmp / "url-named-recorder.db")
         lite, said = _export_mariadb(None, tmp, db_url="sqlite:///url-named-recorder.db")
         res.append(("recorder:sqlite_db_url_named_by_kind_not_path",
-                    lite is not None and "SQLite database" in said
+                    lite is not None and "reading the recorder" in said
                     and "url-named-recorder" not in said, said[-200:]))
         missing, why = _export_mariadb(None, tmp)
         res.append(("recorder:db_url_driver_missing_refused_by_name",

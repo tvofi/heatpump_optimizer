@@ -456,7 +456,7 @@ def build_export(
     )
     config = {**entry.get("data", {}), **entry.get("options", {})}
     rec = open_recorder(config_dir, db, db_url)
-    print(f"reading the recorder {rec.label}", file=sys.stderr)
+    print("reading the recorder", file=sys.stderr)
     try:
         version = _schema_version(rec)
         if version < MIN_SCHEMA:
