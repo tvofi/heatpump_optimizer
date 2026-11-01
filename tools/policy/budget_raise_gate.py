@@ -212,6 +212,7 @@ SCHEMA: dict[str, list[tuple[tuple[str, ...], str]]] = {
         (("script_runs_per_push",), MAX),
         (("script_runs_full_case_pr",), MAX),
         (("critical_path_minutes",), MAX),
+        (("critical_path_minutes_band",), MAX0),
     ],
     "dev/governance/config/policy_budgets.json": [
         (("_band",), MAX),
@@ -848,6 +849,15 @@ def self_test() -> int:
           raised(I, i0, {**i0, "archscore.duplication_copies": 69}), True)
     check("ci: an archscore cap removed is a raise",
           raised(I, i0, {k: v for k, v in i0.items() if k != "archscore.family_splits"}), True)
+    # The timing band: absent is zero tolerance, so adding one is a raise.
+    check("ci: a critical-path band added is a raise (absent is a band of zero)",
+          raised(I, i0, {**i0, "critical_path_minutes_band": 1.3}), True)
+    check("ci: a critical-path band widened is a raise",
+          raised(I, {**i0, "critical_path_minutes_band": 1.3},
+                 {**i0, "critical_path_minutes_band": 1.4}), True)
+    check("ci: a critical-path band narrowed is routine",
+          raised(I, {**i0, "critical_path_minutes_band": 1.3},
+                 {**i0, "critical_path_minutes_band": 0.9}), False)
     check("ci: a key the ratchet does not know is frozen (the consumer refuses it too)",
           raised(I, i0, {**i0, "jobs_per_day": 3}), True)
 

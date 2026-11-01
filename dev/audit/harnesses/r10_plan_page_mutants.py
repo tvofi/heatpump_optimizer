@@ -72,7 +72,12 @@ MUTANTS = [
      "end = max([_t(plan[\"summary\"][\"closure\"])] + [_t(s[\"at\"]) for s in plan[\"stamps\"]])",
      "end = _t(plan[\"summary\"][\"closure\"])"),
     # Round 2: the fix review's survivors B to E (probe/rev-2558-e98d4b97).
-    ("B-model-record-refusal", PAGE, "if \"model\" not in plan[\"generated\"]:", "if False:"),
+    # B moved with its rule (2026-11-01): `replan.check_plan` refuses a plan
+    # recording no model, which the page reads through C, so the page's own
+    # duplicate refusal was deleted and the mutant targets the one owner.
+    ("B-model-record-refusal", PLAN,
+     "        bad.append(\"model: the plan records no duration model (generated.model)\")",
+     "        pass"),
     ("C-check_plan-refusal", PAGE, "bad = replan.check_plan(plan)", "bad = []"),
     ("D-caption-drawn-count", PAGE, "f\"start, ETA and wave. {drawn} of",
      "f\"start, ETA and wave. {max(0, len(chain) - 1) - drawn} of"),
