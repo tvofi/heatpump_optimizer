@@ -15559,6 +15559,48 @@
     "note": "s9 residual sweep, 2026-11-01: created to receive the LIVE production residuals of #2351 and #2365, which no live group's seam owns"
    },
    "brief": "Two production residuals the s9 residual sweep re-verified LIVE at origin/main 92588d581, from review notes that never reached a group. (1) #2365: pump_arbiter.py spells the plan step width as the literal 15.0 twice in `_share` and as LOG_STEPS = 96, though it imports PLAN_STEP_MINUTES from plan_step.py; derive both from that owner. (2) #2351: deleting forget_held from the coordinator's async_shutdown survives features.py and finite_boundary.py; pin the shutdown call site through the production async_shutdown. Each carry names its failing test and null control. Re-measure every figure at this group's own merge base; carry no count. No golden fixture is expected to move; if one does, stop and report it."
+  },
+  {
+   "group": "R10-HOTFIX-UUTILS-SLEEP",
+   "lane": "IN",
+   "kind": "bug",
+   "class": "instrument",
+   "severity": "critical",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 1,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "tools/audit/seat/pr_args.sh"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": "fixer dispatch (cloud)",
+    "note": "main red 2026-11-01, ubuntu-26.04 uutils sleep",
+    "pr": null
+   },
+   "brief": "HOTFIX, critical path: main is red (governance / instrument-self-tests, 'pr_args self-test: 158 checks, 2 failed', main 6421fe135, job 124813746788; green at 92588d581). Cause: runs-on ubuntu-latest now sometimes resolves to ubuntu-26.04, where /bin/sleep is the uutils multicall binary and refuses to run under a renamed symlink ('Security violation: Requested utility `unrelated-sleep` does not match executable name'). tools/audit/seat/pr_args.sh lines 625-626 start the bystander with `ln -s /bin/sleep \"$REAP_DIR/unrelated-sleep\"; \"$REAP_DIR/unrelated-sleep\" N & UNREL=$!`, so it dies at once and two null controls fail (`open_pr: the null control -- an unrelated sleeper survives`, `null control: a normal successful update_pr leaves nothing behind...`). Fix: make the bystander a wrapper script that runs `exec sleep \"$1\"` so $UNREL stays the sleeper's pid. Tree grep for the class (ln -s / cp of a /bin binary under another name, exec -a) found only this site; pr_args.sh:1041 symlinks keep the basename and is safe; the python3 symlinks in train.sh/tests/entities.py are not multicall. Do not pin the workflow to ubuntu-24.04. Failing test first: the pr_args self-test red under a fake uutils sleep on PATH that refuses an argv[0] mismatch; mutation proof: the reverted fixture goes red. Null control: the fixed fixture still kills nothing it did not start. Body '## Red checks' names governance / instrument-self-tests; root-cause answer is the runner-image change, cheaper detector none (macOS cannot run uutils). Run tools/pr/prepr.sh. Minimal diff."
   }
  ]
 }
