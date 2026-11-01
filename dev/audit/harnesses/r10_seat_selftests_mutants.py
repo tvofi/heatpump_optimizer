@@ -51,6 +51,8 @@ def repo_root(start):
 ROOT = repo_root(__file__)
 WF = ROOT / ".github" / "workflows" / "governance.yml"
 SEAT = "tools/audit/seat"
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import mutant_guard  # noqa: E402 -- restores the mutated file on a kill (SIGTERM/SIGINT) and refuses a leftover mutant
 
 # cloud_relay.sh's handoff-arm lines the hold's ordering mutants swap
 _CONTAINED = 'git merge-base --is-ancestor "$hs" "$head" && continue\n'
@@ -292,6 +294,18 @@ MUTANTS = [
      '[t, t[:-len("-pr")]] if t.endswith("-pr") else [t]', "[t]"),
     ("review_packet-5", "review_packet.py",
      '    out += [f"hot-file: {w}" for w in hot]\n', ""),
+    # R10-ORCH-REVIEW-PACKET carries 10/13 (#2962's red paths), 11 (head-note repair), 9 (closing self-audit).
+    ("review_packet-6", "review_packet.py", '"--paths-file", str(pf), ', ""),
+    ("review_packet-7", "review_packet.py", '"--existing-file", str(ef),', '"--base", base,'),
+    ("review_packet-8", "review_packet.py", '"--diff-filter=a", ', ""),
+    ("review_packet-9", "review_packet.py", 'if rc and re.search(r"ERROR', 'if False and rc and re.search(r"ERROR'),
+    ("review_packet-10", "review_packet.py", '    if not branch:\n        return ""\n', '    if False:\n        return ""\n'),
+    ("review_packet-11", "review_packet.py", '"## Before you return the verdict (P275)",', '"## Close",'),
+    # R10-ORCH-REVIEW-PACKET carry 12 (L5): the carry-landed signal's two tests and its handoff arm.
+    ("review_packet-12", "review_packet.py", "        if not on_roster(sha):\n", "        if False:\n"),
+    ("review_packet-13", "review_packet.py", "        elif carries_at(sha) < n:\n", "        elif False:\n"),
+    ("review_packet-14", "review_packet.py", "    return out + (unlanded or [])", "    return out"),
+    ("review_packet-15", "review_packet.py", '    refusals += facts.get("unlanded", [])\n', ""),
     ("body_push-1", "tools/audit/seat/body_push.sh",
      '  if [ "$prc" = 1 ]; then\n    echo "body_push: the review packet refuses',
      '  if false; then\n    echo "body_push: the review packet refuses'),
@@ -579,6 +593,8 @@ def mutate(path: Path, old: str, new: str, fn) -> tuple[int, str]:
 
 def main(want: list[str]) -> int:
     pick = lambda n: not want or n in want  # noqa: E731
+    mutant_guard.arm({rel(m[1]) for m in MUTANTS + WRAPPERS} | {str(WF.relative_to(ROOT))},
+                     scratch=[ROOT / SEAT / "zz_unwired_probe.py"])
     survivors = 0
     baseline: dict = {}
     if pick("M0"):

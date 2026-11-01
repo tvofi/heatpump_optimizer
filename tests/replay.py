@@ -223,14 +223,35 @@ def _is(a: object, b: float, tol: float = 1e-9) -> bool:
     return isinstance(a, (int, float)) and not isinstance(a, bool) and abs(float(a) - b) <= tol
 
 
-def inv_no_default(records: list[dict], defaults: list[float], readings: list[float]) -> list[str]:
-    """A temperature equal to a constructor default, which no input read."""
-    out = []
+#: Temperature sensors that publish a SETPOINT the configuration supplies,
+#: not a reading of the house, by translation key, with the config value each
+#: is made of. Such a sensor equal to a ``ThermalState`` default is no leaked
+#: default when its configured value says the same: the owner's install
+#: configures ``max_temperature`` 21.0, which ``mixing_valve.recommend_target``
+#: publishes as the valve target, and 21.0 is also ``room_temperature``'s
+#: default (14 offenders a cycle on owner-2026-10-30-away.json before this).
+#: Keyed on the entity AND the configured value, so the same 21.0 on a reading
+#: entity, or the setpoint at a default the config does not hold, still fires
+#: (``control:no_default:setpoint``). The climate entity's target is left out
+#: of the judgement altogether, below, for the same reason.
+SETPOINT_KEYS: dict[str, tuple[str, ...]] = {
+    "valve_target_recommendation": ("max_temperature",),
+}
 
-    def judge(label: str, value: object) -> None:
+
+def inv_no_default(records: list[dict], defaults: list[float], readings: list[float],
+                   config: dict | None = None) -> list[str]:
+    """A temperature equal to a constructor default, which no input read --
+    nor, for a setpoint sensor (``SETPOINT_KEYS``), the config option it is."""
+    out = []
+    config = config or {}
+
+    def judge(label: str, value: object, supplied: tuple[str, ...] = ()) -> None:
         try:
             v = float(value)  # type: ignore[arg-type]
         except (TypeError, ValueError):
+            return
+        if any(config.get(k) is not None and _is(v, config[k]) for k in supplied):
             return
         if any(_is(v, d) for d in defaults) and not any(_is(v, r) for r in readings):
             out.append(f"{label}={v}")
@@ -239,7 +260,7 @@ def inv_no_default(records: list[dict], defaults: list[float], readings: list[fl
         if not rec["available"]:
             continue
         if str(rec.get("device_class")) == "temperature":
-            judge(rec["entity_id"], rec["state"])
+            judge(rec["entity_id"], rec["state"], SETPOINT_KEYS.get(rec.get("key"), ()))
         if rec["entity_id"].startswith("climate."):
             # The readings only: a target is a setpoint the config supplies.
             judge(f"{rec['entity_id']}.current_temperature",
@@ -286,7 +307,7 @@ def inv_agreement(records: list[dict], plan_draws: bool | None,
     return out
 
 
-def away_offenders(observations: list[dict]) -> list[str]:
+def away_offenders(observations: list[dict], events: list | None = None) -> list[str]:
     """A cycle the owner's recorded command holds away (``controls.away``) whose
     plan was not made away: the coordinator's live view not active, the
     override not held, or -- not recovering -- the solve's published floor
@@ -294,8 +315,22 @@ def away_offenders(observations: list[dict]) -> list[str]:
     switch, a restore and a reload, the live state equals the resolved
     override and the solve's bands carry the away target. How much the plan
     then heats is not judged: a floor that outranks the setback by design
-    (the mold guard's, capped at the configured target) heats an away house."""
+    (the mold guard's, capped at the configured target) heats an away house.
+
+    ``events`` is the fixture's own ``controls.away``, read apart from the
+    replay: every cycle at or after an active command, before the next, must
+    be one the replay observed commanded, so a replay that stopped carrying
+    the command (no commanded cycle, nothing judged) is red, not vacuously
+    green (R10-REPLAY-REAL-DAY round 1: ``commanded = None`` survived)."""
     out = []
+    for o in observations if events is not None else ():
+        held = None
+        for when, active, returns in events:
+            if _ts(when) <= _ts(o["t"]):
+                held = returns if active else None
+        if bool(held) != bool(o.get("commanded_return")):
+            out.append(f"{o['t']}: the recorded command holds away={bool(held)}, "
+                       f"the replay carried away={bool(o.get('commanded_return'))}")
     for o in observations:
         if not o.get("commanded_return"):
             continue
@@ -318,10 +353,14 @@ def frozen_offenders(
         for ikey, ivals in inputs.items():
             both = [(p, i) for p, i in zip(pvals, ivals) if p is not None and i is not None]
             matched = [i for p, i in both if abs(p - i) <= MIRROR_TOL]
-            # Two distinct matched values at least: a published 0.0 beside an
-            # input idling at 0.0 is a coincidence of zeros, not a mirror.
+            # Two distinct NON-ZERO matched values at least: a published 0.0
+            # beside an input idling at 0.0 is a coincidence of zeros, not a
+            # mirror, and so is one value met once beside those zeros (the
+            # owner's day: power_ratio 1.55 = mean(0/0.5, 1.55/0.5) on the cycle
+            # the pump read 1.55 kW). A mirror is seen at two values it tracked;
+            # a 0/x signal that mirrors only one non-zero value is not judged.
             if len(matched) < MIRROR_MIN_HITS or len(matched) * 2 < len(both) \
-                    or len({round(v, 3) for v in matched}) < 2:
+                    or len({round(v, 3) for v in matched if abs(v) > MIRROR_TOL}) < 2:
                 continue
             for k in range(1, len(pvals)):
                 p0, p1, i0, i1 = pvals[k - 1], pvals[k], ivals[k - 1], ivals[k]
@@ -399,9 +438,33 @@ COST_DETECTION = 2.0
 #: after it read 1.880 and 1.391; sqrt(2) x the geometric midpoint of 1.256
 #: and 1.880 is 2.173, each edge 15.6 % inside the band (floor 1.087).
 #: Re-centre at the next timed week, not on one run.
+#: ``owner-2026-10-30-away.json`` (R10-REPLAY-REAL-DAY), the same rule, sqrt(2)
+#: x the geometric midpoint of the readings' extremes, from the clean ``--one``
+#: replays of 2026-10-31/11-01: ``cpu_ratio`` over the Linux readings -- one CI
+#: ``replay`` job (249.0) and two 4-core boxes (217.8-278.7, 231.8-290.5) --
+#: 217.8-290.5, each edge 18-22 % inside; a loaded M1 (177-394, load average
+#: 30-200) spans more than a 2x band holds and is left out. ``peak_kib`` and
+#: ``loop_cpu_ratio`` over all four environments, the M1 included: 2514-2783
+#: and 0.137-0.227, the loop's edges 9-10 % inside. One CI class only: the
+#: R10-REPLAY-LANE carry asks for both, so re-centre when the other class reads.
 COST_BUDGETS: dict[str, dict[str, float]] = {
     "synthetic-dhw-only.json": {"cpu_ratio": 2.173, "peak_kib": 2686.0,
                                 "loop_cpu_ratio": 0.143},
+    "owner-2026-10-30-away.json": {"cpu_ratio": 355.7, "peak_kib": 3740.0,
+                                   "loop_cpu_ratio": 0.249},
+}
+#: Fixtures the lane replays once, clean, without the three doubled-cost
+#: arms: each arm is a whole replay, and a fixture whose replay costs a large
+#: share of the lane's job time cannot be run four times inside it (the
+#: replay job's ``timeout-minutes``, tests.yml). The clean run still holds
+#: its budget's band, (budget / 2, budget], so the budget can see a doubling;
+#: the arms' own proof -- that the instrument reads a doubled cycle as one --
+#: is fixture-independent and stays on the fixtures not named here, which the
+#: driver requires to exist.
+COST_ARMS_SKIPPED: dict[str, str] = {
+    "owner-2026-10-30-away.json": "a real install's solve: 16 cycles, about 12 "
+    "CPU-minutes a replay, so four would overrun the replay job; the arms run on "
+    "the synthetic fixture",
 }
 #: A reference solve after every this many cycles, beside the ones before
 #: and after the day, so the unit tracks the runner through the replay.
@@ -499,6 +562,16 @@ def cost_offenders(figures: dict[str, float], budget: dict[str, float] | None,
     return out
 
 
+def arms_skip_offenders(skipped: set[str], committed: set[str]) -> list[str]:
+    """``COST_ARMS_SKIPPED`` naming a fixture not committed, or every one: the
+    doubled-cost arms must still run on some fixture of the full lane."""
+    out = [f"{name}: skipped but not a committed fixture"
+           for name in sorted(skipped - committed)]
+    if not committed - skipped:
+        out.append("every committed fixture skips the doubled-cost arms")
+    return out
+
+
 def short_doubling(injected_ratio: float) -> list[str]:
     """A perturbation arm that burnt less than the clean span its metric
     times is no doubling (#2205: the cpu arm spun the update alone, ~0.93)."""
@@ -541,6 +614,31 @@ def controls() -> list[tuple[str, bool, str]]:
     pair("no_default",
          inv_no_default([rec(device_class="temperature", state=22.0)], defaults, [20.4]),
          inv_no_default([rec(device_class="temperature", state=21.0)], defaults, [21.0]))
+    # A setpoint sensor at the value its config option holds is no default; the
+    # same value on a reading, or the setpoint at a default the config does not
+    # hold, still is (owner-2026-10-30-away.json: max_temperature 21.0).
+    valve = dict(device_class="temperature", key="valve_target_recommendation",
+                 entity_id="sensor.valve_target_recommendation")
+    conf = {"max_temperature": 21.0}
+    pair("no_default:setpoint_value_on_a_reading",
+         inv_no_default([rec(device_class="temperature", key="room_temperature", state=21.0)],
+                        defaults, [20.4], conf),
+         inv_no_default([rec(**valve, state=21.0)], defaults, [20.4], conf))
+    pair("no_default:setpoint_at_an_unconfigured_default",
+         inv_no_default([rec(**valve, state=22.0)], defaults, [20.4], conf),
+         inv_no_default([rec(**valve, state=21.0)], defaults, [20.4], conf))
+    # The rule's preconditions: each key is a sensor the integration publishes,
+    # each option one it reads, and the sensor is that option (a renamed key or
+    # option would leave the exemption matching nothing, or the wrong thing).
+    from heatpump_optimizer import const, mixing_valve
+    sensors = json.loads((ROOT / "custom_components" / "heatpump_optimizer"
+                          / "strings.json").read_text())["entity"]["sensor"]
+    options = {v for k, v in vars(const).items() if k.startswith("CONF_")}
+    made = mixing_valve.recommend_target(comfort_min=18.0, comfort_max=21.5).target
+    res.append(("control:no_default:setpoint_keys_are_published_config",
+                made == 21.5 and all(k in sensors and set(o) <= options
+                                     for k, o in SETPOINT_KEYS.items()),
+                f"recommend_target(comfort_max=21.5)={made}; keys {sorted(SETPOINT_KEYS)}"))
     hpa = dict(entity_id="sensor.hpa", key="heat_pump_action")
     pair("agreement:attribute",
          inv_agreement([rec(**hpa, state="off", attributes={"heat_pump_on": True})], None),
@@ -561,6 +659,14 @@ def controls() -> list[tuple[str, bool, str]]:
          frozen_offenders({"sensor.out": [1.0, 3.0, 1.0, 3.0, 3.0]}, inp),
          frozen_offenders({"sensor.out": [1.0, 3.0, 1.0, 3.0, 2.0]}, inp)
          + frozen_offenders({"sensor.zero": [0.0] * 5}, {"sensor.idle": [0.0] * 4 + [2.0]}))
+    # One non-zero value met once beside idle zeros (owner-2026-10-30-away.json,
+    # prediction_accuracy.power_ratio against heat_pump_power) is no mirror; a
+    # value that tracked the input at two non-zero values and then stuck is.
+    pair("not_frozen:one_value_beside_zeros",
+         frozen_offenders({"sensor.out": [0.0, 1.0, 1.0, 3.0, 3.0, 3.0]},
+                          {"sensor.in": [0.0, 1.0, 1.0, 3.0, 2.0, 0.0]}),
+         frozen_offenders({"sensor.ratio": [0.0, 0.0, 1.55, 1.55, 1.55, 1.55]},
+                          {"sensor.power": [0.0, 0.0, 1.55, 2.89, 3.02, 0.0]}))
     ref, clean = [10.0, 11.0, 9.0], cost_figures([20.0, 22.0], [10.0, 11.0, 9.0], [4096])
     budget = {k: math.sqrt(COST_DETECTION) * v for k, v in clean.items()}
     pair("cycle_cost:cpu", cost_offenders(cost_figures([40.0, 44.0], ref, [4096]), budget),
@@ -601,6 +707,12 @@ def controls() -> list[tuple[str, bool, str]]:
         [20.0, 22.0], [r * 3 for r in ref], [4096])["cpu_ratio"]
     res.append(("control:cycle_cost:cpu_normaliser", cpu_solve_moved,
                 f"cpu_ratio {clean['cpu_ratio']}: solve x3 moved={cpu_solve_moved}"))
+    pair("cycle_cost:arms_skipped_never_everywhere",
+         arms_skip_offenders({"a.json", "b.json"}, {"a.json", "b.json"}),
+         arms_skip_offenders({"a.json"}, {"a.json", "b.json"}))
+    pair("cycle_cost:arms_skipped_committed_only",
+         arms_skip_offenders({"gone.json"}, {"a.json"}),
+         arms_skip_offenders({"a.json"}, {"a.json", "b.json"}))
     pair("cycle_cost:short_doubling", short_doubling(0.93), short_doubling(1.0001))
     pair("cycle_cost:unmetered_doubling", short_doubling(float("nan")), short_doubling(1.0))
     held = {"t": "t", "commanded_return": "r", "active": True, "override": True,
@@ -610,6 +722,15 @@ def controls() -> list[tuple[str, bool, str]]:
     for broken, values in (("view", {"active": False}), ("override", {"override": False}),
                            ("floor", {"floor": 18.0})):
         pair(f"away:{broken}", away_offenders([{**held, **values}]), good_away)
+    # The command replayed at all: an observation the recorded events hold
+    # away but the replay did not carry is red (the reviewer's surviving
+    # ``commanded = None``), and one after the command ended is not.
+    events = [["2026-01-01T10:00:00+00:00", True, "r"], ["2026-01-01T11:00:00+00:00", False, None]]
+    seen = [{**held, "t": "2026-01-01T10:15:00+00:00"},
+            {**held, "t": "2026-01-01T11:15:00+00:00", "commanded_return": None, "active": False}]
+    pair("away:replayed",
+         away_offenders([{**o, "commanded_return": None} for o in seen], events),
+         away_offenders(seen, events))
     pkg = "/x/custom_components/heatpump_optimizer/"
     pair("cycle_cost:coverage", uncovered_files({pkg + f for f in COST_FILES[1:]}),
          uncovered_files({pkg + f for f in COST_FILES}))
@@ -1199,6 +1320,59 @@ def mask_checks() -> list[tuple[str, bool, str]]:
                 "; ".join(found[-2:])))
     res.append(("mask:null_committed_fixture_passes_the_check",
                 not export.check_file(FIXTURES / "synthetic-dhw-only.json"), "check_file"))
+    return res + mask_seam_checks()
+
+
+def mask_seam_checks() -> list[tuple[str, bool, str]]:
+    """Every place an id can sit, each alone: ``mask_ids`` renames it and
+    ``mask_violations`` refuses it unrenamed -- a dict key anywhere (an
+    attribute keyed by entity id, not only ``states``), a list item, a
+    ``states`` key; an ``_entities`` list's ids take their numbered role; a
+    payload that is not a document has no id to refuse; and a credential's copy
+    inside a list is dropped. R10-REPLAY-REAL-DAY round 2 (the seven sites
+    ``mutation-autofix`` left unpinned at 4c994241d)."""
+    from heatpump_optimizer import replay_doc as doc_mod
+
+    res = []
+    street = f"sensor.{_STREET}"
+    keyed = {"entry": {"data": {}}, "states": {},
+             "attrs": {f"{street}_a": {"state": "on"}}}
+    masked = doc_mod.mask_ids(keyed, "01JX")
+    res.append(("mask:id_as_any_dict_key_renamed_and_refused_unrenamed",
+                _STREET not in json.dumps(masked) and not doc_mod.mask_violations(masked)
+                and bool(doc_mod.mask_violations(keyed)),
+                f"masked keys {sorted(masked['attrs'])}; unrenamed refused "
+                f"{len(doc_mod.mask_violations(keyed))}"))
+    for name, alone in (("list_item", {"entry": {}, "attrs": [f"{street}_b"]}),
+                        ("states_key", {"entry": {}, "states": {f"{street}_c": []}})):
+        res.append((f"mask:id_only_as_a_{name}_refused",
+                     bool(doc_mod.mask_violations(alone)) and not doc_mod.mask_violations(
+                         doc_mod.mask_ids(alone, "01JX")), name))
+    roles = doc_mod.entity_roles({"data": {"room_sensor_entities": ["sensor.a", "sensor.b"]}},
+                                 None)
+    res.append(("mask:entities_list_ids_take_their_numbered_role",
+                roles == {"sensor.a": "sensor.room_sensor_n1", "sensor.b": "sensor.room_sensor_n2"},
+                str(roles)))
+    try:
+        stray = doc_mod.mask_violations([f"{street}_d"])
+    except Exception as err:  # noqa: BLE001 - a raise is the observation
+        stray = [f"raised {type(err).__name__}"]
+    res.append(("mask:a_payload_that_is_no_document_has_no_violation", stray == [],
+                f"a list payload: {stray}"))
+    # Carry 12 (D15-s1-04): a bool under a credential-named key carries no
+    # credential -- ``_collect_strings`` already skips it, and ``_walk`` must
+    # agree -- while a string under one still does (the null).
+    flag, token = (doc_mod.violations({"tibber_reauth_started": v}) for v in (True, False)), \
+        doc_mod.violations({"tibber_token": "abc123xyz"})
+    flags = [f for found_ in flag for f in found_]
+    res.append(("leak_copy:bool_under_a_credential_key_is_no_credential",
+                flags == [] and any("credential-named" in f for f in token),
+                f"bool {flags}; string {token}"))
+    found: dict[str, set[int]] = {}
+    scanned = doc_mod._scan({"attrs": {"options": ["off", _TOKEN]}}, "", found,
+                            [doc_mod._copy(_TOKEN)])
+    res.append(("leak_copy:copy_inside_a_list_dropped",
+                scanned == {"attrs": {"options": ["off", None]}} and not found, str(scanned)))
     return res
 
 
@@ -1664,7 +1838,8 @@ def run_fixture(path: Path, step_minutes: int | None, inject: str | None = None)
     injected: list[tuple[float, float]] = []
     peaks: list[int] = []
     traced: set[str] = set()
-    away_events = list((fixture.get("controls") or {}).get("away") or [])
+    recorded_away = list((fixture.get("controls") or {}).get("away") or [])
+    away_events = list(recorded_away)
     reloads = list((fixture.get("controls") or {}).get("reloads") or [])
     away_seen: list[dict] = []
     commanded: str | None = None  # the return time while the owner's command holds away
@@ -1747,7 +1922,7 @@ def run_fixture(path: Path, step_minutes: int | None, inject: str | None = None)
             loop_ref_cpu.append(reference_loop())
         results["finite"] += inv_finite(records)
         results["unit"] += inv_unit(records, table)
-        results["no_default"] += inv_no_default(records, defaults, readings)
+        results["no_default"] += inv_no_default(records, defaults, readings, config)
         results["agreement"] += [f"{t.isoformat()} {o}" for o in
                                  inv_agreement(records, plan_draws(coord, data, t),
                                                plan_draw_kw(data, t))]
@@ -1765,7 +1940,7 @@ def run_fixture(path: Path, step_minutes: int | None, inject: str | None = None)
     ref_cpu += [reference_solve()[1] for _ in range(3)]
     loop_ref_cpu += [reference_loop() for _ in range(3)]
     results["not_frozen"] = frozen_offenders(pub_series, inp_series)
-    results["away"] = away_offenders(away_seen)
+    results["away"] = away_offenders(away_seen, recorded_away)
     figures = cost_figures(cycle_cpu, ref_cpu, peaks, loop_cpu, loop_ref_cpu)
     clean = sum(c for _, c in injected)
     share = ({"injected_ratio": round(sum(i for i, _ in injected) / clean, 4)}
@@ -2194,6 +2369,7 @@ def main(argv: list[str] | None = None) -> int:
     name, ok, detail = synthetic_reproduces()
     R.check("the synthetic fixture is what synthesize.py + export.py write", ok, detail)
 
+    perturbed: list[str] = []
     for path in paths:
         R.section(f"replay {path.name}")
         out = replay_one(R, path, args.step_minutes, None)
@@ -2210,6 +2386,10 @@ def main(argv: list[str] | None = None) -> int:
             R.check(f"{path.name}: {name}", not offenders,
                     f"{out['counts'][name]} offender(s): " + " | ".join(offenders[:6]))
         # The perturbation, every night: a doubled cycle must be over budget.
+        if path.name in COST_ARMS_SKIPPED:
+            print(f"  doubled arms not run: {COST_ARMS_SKIPPED[path.name]}")
+            continue
+        perturbed.append(path.name)
         for kind, key in (("cpu", "cpu_ratio"), ("memory", "peak_kib"),
                           ("loop", "loop_cpu_ratio")):
             hot = replay_one(R, path, args.step_minutes, kind)
@@ -2225,6 +2405,13 @@ def main(argv: list[str] | None = None) -> int:
                 short = short_doubling(hot["cost"].get("injected_ratio", float("nan")))
                 R.check(f"{path.name}: the {kind} arm doubles the whole span {key} times",
                         not short, " | ".join(short))
+    # The arms prove the instrument sees a doubling: the skip list names only
+    # committed fixtures and leaves at least one to them, so the full lane
+    # (nightly, and every pull request that reaches it) always runs them.
+    committed = {f.name for f in FIXTURES.glob("*.json")}
+    wrong = arms_skip_offenders(set(COST_ARMS_SKIPPED), committed)
+    R.check("the doubled-cost arms are skipped on committed fixtures only, never all",
+            not wrong, " | ".join(wrong) + f"; this run perturbed {perturbed}")
     print(f"\nreplay lane wall time {time.monotonic() - began:.1f} s")
     return R.close("replay checks")
 

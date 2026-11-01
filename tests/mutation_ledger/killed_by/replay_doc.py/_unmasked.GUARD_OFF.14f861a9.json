@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/replay_doc.py:_unmasked GUARD_OFF 14f861a9",
+  "killed_by": "tests/entities.py",
+  "old": "    if not isinstance(payload, dict):",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=51."
+}

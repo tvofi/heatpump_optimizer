@@ -42,6 +42,8 @@ ROOT = repo_root(__file__)
 PAGE = "tools/audit/seat/plan_page.py"
 PLAN = "tools/plan/replan.py"
 STATE = "tools/audit/seat/state_docs.py"
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import mutant_guard  # noqa: E402 -- restores the mutated file on a kill (SIGTERM/SIGINT) and refuses a leftover mutant
 
 MUTANTS = [
     ("M0", PAGE, None, None),
@@ -127,10 +129,7 @@ def fail_name(line: str) -> str:
 
 def main(argv: list[str]) -> int:
     want = set(argv)
-    for rel in (PAGE, PLAN, STATE):
-        if subprocess.run(["git", "-C", str(ROOT), "diff", "--quiet", "--", rel]).returncode:
-            print(f"refused: {rel} has uncommitted edits")
-            return 2
+    mutant_guard.arm([PAGE, PLAN, STATE])
     survived = 0
     for name, rel, old, new in MUTANTS:
         if want and name not in want:

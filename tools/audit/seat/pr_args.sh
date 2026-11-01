@@ -622,7 +622,9 @@ STUB
   # each arm counts what is still alive after the signal. The bystander sleeper
   # started here descends from no pusher: it is the null control for "kills only
   # what it started", and the arm the by-pid rule is mutated against.
-  ln -s /bin/sleep "$REAP_DIR/unrelated-sleep"
+  # A wrapper, never a link to the sleep binary: uutils' multicall sleep (ubuntu-26.04's
+  # /bin/sleep) refuses an argv[0] that is not `sleep`. The exec keeps $UNREL the sleeper's pid.
+  printf '#!/bin/sh\nexec sleep "$1"\n' > "$REAP_DIR/unrelated-sleep"; chmod +x "$REAP_DIR/unrelated-sleep"
   "$REAP_DIR/unrelated-sleep" "${PR_SELFTEST_SECONDS:-1200}" & UNREL=$!  # the bound's session ends it at the latest
   ralive() { # <pids file> -> how many of its pids are alive; polled, since a killed child can be a zombie for a moment
     local p n k=0
@@ -1174,6 +1176,9 @@ sys.exit(99)
 GH
   mkdir -p "$t/rowless-bin" && cp "$t/rowless-gh" "$t/rowless-bin/gh" && chmod +x "$t/rowless-bin/gh"
   cp "$src/../../pr/gh_comment.py" "$m/tools/pr/gh_comment.py"
+  # gh_comment.py's mandate guard imports the budget-raise gate's predicate (P336), which imports tests/layout.py.
+  mkdir -p "$m/tools/policy" "$m/tests" && cp "$src/../../policy/budget_raise_gate.py" "$m/tools/policy/" \
+    && cp "$src/../../../tests/layout.py" "$m/tests/"
   rowless() { # <mutant> [edit: the title edit after the PR exists fails, not the row push | postpush: the row push lands, then fails]
     local sd=$t/rowless-$1${2:-} sdir=$t/rowless-$1${2:-}-stub g
     rm -rf "$sd" "$sdir"; mkdir -p "$sdir" "$sd"; sd=$(cd "$sd" && pwd -P)
