@@ -14212,9 +14212,7 @@
    },
    "fixerModel": "sonnet",
    "reviewerModel": "opus",
-   "after": [
-    "R10-ORCH-ROSTER-SCHEMA"
-   ],
+   "after": [],
    "files": [
     "tools/audit/seat/roster_edit.py",
     "tools/audit/seat/roster_lib.py",
