@@ -14035,6 +14035,54 @@
     "note": "s9 carry-routing pass, 2026-11-01: created to receive carries of R10-FLOW-BODY-ONLY, R10-FLY-RELAY-REVIEW-FF, R10-ORCH-ROSTER-SCHEMA"
    },
    "brief": "The pull-request body contract's residue: the offline contract resolves cited paths at the gated head and reads the round roster ref, every body figure comes from a generated block (the owner's card 7), carry_audit reads review trailers as trailers, and the lost-ask fold count a closing body must answer (left unbuilt by #3065, which asks the orchestrator to rule on its grammar first). Runs after R10-FLY-RELAY-REVIEW-FF, whose open #3065 edits tools/audit/carry_audit.py. Every carry was moved verbatim by the s9 carry-routing pass (2026-11-01) from a carries-open source group; each names its own controls. Re-measure every figure a carry states at this group's own merge base; carry no count. A carry that says it waits on an owner or orchestrator ruling waits for that ruling, and the body says so."
+  },
+  {
+   "group": "R10-ROSTER-OPS-2",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "instrument",
+   "severity": "medium",
+   "size": "M",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 6,
+   "hot_files": [
+    "roster_edit.py"
+   ],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "after": [
+    "R10-ORCH-ROSTER-SCHEMA"
+   ],
+   "files": [
+    "tools/audit/seat/roster_edit.py",
+    "tools/audit/seat/roster_lib.py",
+    "tools/audit/seat/r10_roster_ops_mutants.py",
+    "tools/audit/seat/instruments/roster_edit.py.md"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-roster-ops-2",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer once its after-groups are done",
+    "note": "s9 carry-routing pass, 2026-11-01: created to receive carries of R10-ORCH-ROSTER-SCHEMA"
+   },
+   "brief": "Roster write-op residue of R10-ORCH-ROSTER-SCHEMA that its open #3054 leaves on the carry list: the triage gate's label grammar, the ops harness's fail-closed survivors, set-stage clearing a stale note, append-carry refusing a closing group, set-size, set-files and a pr resume field, append-group's overlap refusal and its file argument. Every op goes through tools/audit/seat/roster_edit.py's one write path and lint gate. Runs after R10-ORCH-ROSTER-SCHEMA. Every carry was moved verbatim by the s9 carry-routing pass (2026-11-01) from a carries-open source group; each names its own controls. Re-measure every figure a carry states at this group's own merge base; carry no count. A carry that says it waits on an owner or orchestrator ruling waits for that ruling, and the body says so."
   }
  ]
 }
