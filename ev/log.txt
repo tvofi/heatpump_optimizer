@@ -1,0 +1,84 @@
+7786d6e6b 6a51aa9f4 f04b25a00 Merge remote-tracking branch 'origin/main' into fix/r10-roster-ops-2-p1
+6a51aa9f4 e323d7550 b0976a20f Merge commit 'b0976a20f27ce5abbc07a6c175113b54295a4b83' into fix/r10-roster-ops-2-p1
+f04b25a00 56630e7e6 ace2e21a6 Merge pull request #3047 from tvofi/fix/r10-factory-reset
+b0976a20f c3a46a1c2 56630e7e6 Merge remote-tracking branch 'origin/main' into fix/r10-roster-ops-2-p1
+c3a46a1c2 e323d7550 roster_edit: pin cite_why's ancestry clause (set-size/set-files arms, mutant R11)
+56630e7e6 ddf4bfd73 8f2ecc647 Merge pull request #3097 from tvofi/fix/r10-plan-real-durations-pr
+ddf4bfd73 c88d552c7 a21f82ea4 Merge pull request #3073 from tvofi/fix/r10-fly-raise-reviewable
+8f2ecc647 b8ecad2dc 239e5e4a6 Merge remote-tracking branch 'origin/main' into fix/r10-plan-real-durations-pr
+a21f82ea4 828b6e8ce 239e5e4a6 Merge remote-tracking branch 'origin/main' into fix/r10-fly-raise-reviewable
+ace2e21a6 9cddcb4f6 3f9f152e2 Merge commit '3f9f152e2ac87cee1a1ab3ac0018d64bd023f13d' into fix/r10-factory-reset
+9cddcb4f6 2df0b81ed 407eb0cb3 Merge remote-tracking branch 'origin/main' into fix/r10-factory-reset
+3f9f152e2 895f03158 2df0b81ed Merge remote-tracking branch 'origin/fix/r10-factory-reset' into fix/r10-factory-reset
+2df0b81ed 7f6d7e722 ci: pin killed mutants
+895f03158 7f6d7e722 ca6333333 Merge remote-tracking branch 'origin/main' into fix/r10-factory-reset
+b8ecad2dc 271403e9d d052f80f7 Merge remote-tracking branch 'origin/main' into fix/r10-plan-real-durations-pr
+271403e9d 3fd85299d 4d6244659 Merge commit '4d624465940b5a4916b7ff3fd3e44b644cd668d1' into fix/r10-plan-real-durations-pr
+4d6244659 3fd85299d size_durations: pin the Theil-Sen pair orientation with unsorted-row fixtures and a mutant
+7f6d7e722 116233658 d052f80f7 Merge remote-tracking branch 'origin/main' into fix/r10-factory-reset
+116233658 78c0e8d08 fcbf8ec95 Merge commit 'fcbf8ec952187bac1adfc46691f1ad43cffa6984' into fix/r10-factory-reset
+fcbf8ec95 78c0e8d08 R10-FACTORY-RESET: pin the undo's learner flush and its newest-only rule; green the service stub
+78c0e8d08 d1662cf7b ci: pin killed mutants
+828b6e8ce 325b1fd11 e4c9e2016 Merge remote-tracking branch 'origin/main' into fix/r10-fly-raise-reviewable
+325b1fd11 27ae023c6 03ef99f28 Merge commit '03ef99f28f68f1b8ce9a207562e9134178723caf' into fix/r10-fly-raise-reviewable
+3fd85299d d50204783 record: the delivery row for #3097
+d50204783 dcc49953a e4c9e2016 Merge remote-tracking branch 'origin/main' into fix/r10-plan-real-durations-pr
+dcc49953a 12ec43233 c3b7c964f Merge origin/main into handoff/r10-plan-real-durations; model self-test fixtures pass round_n
+03ef99f28 27ae023c6 c3b7c964f Merge origin/main into fix/r10-fly-raise-reviewable
+d1662cf7b 97fb99737 fb0a6d5a3 Merge remote-tracking branch 'origin/main' into fix/r10-factory-reset
+97fb99737 4672a0d75 a6592a23e Merge commit 'a6592a23e83030aa473d6ea5d688ac3c6b3b249a' into fix/r10-factory-reset
+4672a0d75 822633c7f ci: pin killed mutants
+a6592a23e fa2d2d910 R10-FACTORY-RESET: narrow the undo record's halves for mypy; pin the malformed arms
+822633c7f f345a801d 6421fe135 Merge remote-tracking branch 'origin/main' into fix/r10-factory-reset
+f345a801d 7837bb052 fa2d2d910 Merge commit 'fa2d2d91075e001cb6257eb5acb80ecfa244d723' into fix/r10-factory-reset
+12ec43233 36eb485bc plan page: every open issue but the tracking issue appears; one on no open group is listed as unplanned with the groups it was wired to
+27ae023c6 7a6498fbd 92588d581 Merge remote-tracking branch 'origin/main' into fix/r10-fly-raise-reviewable
+7a6498fbd ec36f34aa c8fdf1492 Merge commit 'c8fdf14927638aa176300c8963e8d9a50f8fce37' into fix/r10-fly-raise-reviewable
+fa2d2d910 11ca4fa74 92588d581 Merge origin/main 92588d58 into R10-FACTORY-RESET
+36eb485bc 4598b662a harness: the canonical repo_root walk, verbatim
+4598b662a c06461fdb closures: classify the size model's mutant harness; reword a fixture line the push-site scan read
+c06461fdb 8d2239d49 ci: run size_durations.py's self-test beside replan.py's
+8d2239d49 ec370fc64 plan: size_durations self-test arms for the rules its mutants found unpinned
+ec370fc64 5e7b197ec plan: the size model's mutant harness; the page's duplicate model refusal folds into check_plan
+5e7b197ec df66556f2 plan: measured size model, held-stage carries, started work keeps its place, the owner's priority order, the owner's caps
+11ca4fa74 831691af3 R10-FACTORY-RESET: drop the seven pins whose lines this round rewrote
+c8fdf1492 f74394b7b R10-FLY-RAISE-REVIEWABLE: the tick's _approval_owed docstring names what it passes
+831691af3 3e9f90cba R10-FACTORY-RESET: register factory_reset_not_applied with the translated-raise checks
+f74394b7b a0d75303f R10-FLY-RAISE-REVIEWABLE: classify the over-fire census harness (ci_predict --apply-inert)
+a0d75303f 21dc06f3e R10-FLY-RAISE-REVIEWABLE: a raise unit skipped or pending is no owed approval; merge_train page names gate_raise_only
+3e9f90cba 75d7d329b R10-FACTORY-RESET docs: the undo restores the switches as stored; a refused unload changes nothing
+75d7d329b c2f9fe903 R10-FACTORY-RESET: the refused-unload check reads what the reset says
+c2f9fe903 20a04fc34 structure: re-record class_excess_loc 17649 -> 17648 and max_class_loc 7986 -> 7983
+20a04fc34 210bb1fdf R10-FACTORY-RESET: one warning for both outcomes; the void rule a pure function
+21dc06f3e ec36f34aa R10-FLY-RAISE-REVIEWABLE: approval_owed reads why gate is red (#3073 class-open)
+210bb1fdf 43d5d2e44 R10-FACTORY-RESET: an undo puts each pinned key back where and as it was stored
+43d5d2e44 92b1e9e37 R10-FACTORY-RESET: the void list pinned against a fact list the test owns
+92b1e9e37 7837bb052 R10-FACTORY-RESET: pin the void list per entry; exact, refusable undo; refused unload changes nothing
+7837bb052 96211117d ci: pin killed mutants
+ec36f34aa 50d8b2710 record: the delivery row for #3073
+50d8b2710 75b873248 8fec54ee2 Merge remote-tracking branch 'origin/main' into fix/r10-fly-raise-reviewable
+96211117d 5f0fba6b6 8fec54ee2 Merge remote-tracking branch 'origin/main' into fix/r10-factory-reset
+5f0fba6b6 4a593ba9b 0ee5cd675 Merge commit '0ee5cd675515a36a9095d0d42fd49a7588816aab' into fix/r10-factory-reset
+75b873248 3ec7add98 R10-FLY-RAISE-REVIEWABLE: bus.sh and review_carry pages name the merge-verdict condition (P348)
+3ec7add98 eabe27bc4 R10-FLY-RAISE-REVIEWABLE: classify the P348 harness (ci_predict --apply-inert)
+eabe27bc4 b9509cdc9 R10-FLY-RAISE-REVIEWABLE: orchestrator.md names the merge verdict a carry needs; P348 real-ref control
+b9509cdc9 6448776c2 R10-FLY-RAISE-REVIEWABLE: the unreadable-verdict row names the carry's own refusal
+6448776c2 c7ccdbf7e R10-FLY-RAISE-REVIEWABLE: bus.sh dispatch carries only a merge verdict (P348)
+0ee5cd675 6c690058e 2b6bef745 Merge origin/main 2b6bef74 into R10-FACTORY-RESET
+c7ccdbf7e 5b189b352 2b6bef745 Merge remote-tracking branch 'origin/main' into fix-wip
+4a593ba9b e2b12a171 2b6bef745 ci: merge main
+5b189b352 e3355800d R10-FLY-RAISE-REVIEWABLE: approval_owed's diff is --no-renames
+e3355800d fcd7345cf R10-FLY-RAISE-REVIEWABLE: classify the new harness (ci_predict --apply-inert)
+fcd7345cf 9a8cc32d9 R10-FLY-RAISE-REVIEWABLE: the real-head control harness (P345)
+9a8cc32d9 285fadfe4 R10-FLY-RAISE-REVIEWABLE: every reviewer-dispatch reader asks approval_owed (P345)
+285fadfe4 f3c9144b8 R10-FLY-RAISE-REVIEWABLE: approval_owed, the one owner of a raise's pre-approval red (P345)
+6c690058e 1bf20b3f1 a7dd7f50d Merge origin/main a7dd7f50 into R10-FACTORY-RESET; one config_flow claim carrying both diffs
+1bf20b3f1 572c912c9 R10-FACTORY-RESET: list the reset's one warning on the N-log-flood barrier
+572c912c9 2e1421f14 R10-FACTORY-RESET: claim the config_flow fixture's four added keys
+2e1421f14 9039d1788 R10-FACTORY-RESET: the nightly a5 walk posts {} to the factory-reset page
+e2b12a171 1df9bcfeb record: the delivery row for #3047
+1df9bcfeb 9039d1788 7539d1675 Merge remote-tracking branch 'origin/main' into fix/r10-factory-reset
+9039d1788 21ed69e8c R10-FACTORY-RESET: drop the two pins whose sites the reset removed; claims header at 90 default rows
+21ed69e8c 915acea21 structure: raise seam_cut_total to 423 for R10-FACTORY-RESET
+915acea21 404117b99 12caba8cf Merge remote-tracking branch 'origin/main' into work/r10-factory-reset
+404117b99 0cae227c3 R10-FACTORY-RESET: reset settings, learners or both to factory defaults

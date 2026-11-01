@@ -1,0 +1,13 @@
+RESULT mutant=O1 rc=1 fails=5
+    FAIL set-size refuses a cite whose sha exists but main does not hold it
+    FAIL set-size refuses a cite whose ref does not exist
+    FAIL set-size refuses a cite that is not <ref>@<sha>
+    FAIL ... recording the old size and the cite in resume.note
+    FAIL set-files refuses a cite whose sha exists but main does not hold it
+RESULT mutant=O2 rc=1 fails=5
+    FAIL set-size refuses a cite whose sha exists but main does not hold it
+    FAIL set-size refuses a cite whose ref does not exist
+    FAIL set-size refuses a cite that is not <ref>@<sha>
+    FAIL ... recording the old size and the cite in resume.note
+    FAIL set-files refuses a cite whose sha exists but main does not hold it
+plants: 2, without a FAIL line: none
