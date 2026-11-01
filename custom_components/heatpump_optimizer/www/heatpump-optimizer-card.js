@@ -11,7 +11,7 @@
 
 const CARD_TAG = "heatpump-optimizer-card";
 const EDITOR_TAG = "heatpump-optimizer-card-editor";
-const CARD_VERSION = "7.0.5";
+const CARD_VERSION = "7.1.0";
 
 // Home Assistant's default --primary-color (#03a9f4) is 2.63:1 on a white
 // card — too light for text or for white label text on a filled button.
@@ -106,21 +106,53 @@ const STRINGS = {
     "health.next_due": "Next solve due now",
     "health.steps": "{n} steps",
     "health.solve_time": "{s} s",
-    "health.input_indoor_temp_entity": "Indoor temperature",
-    "health.input_outdoor_temp_entity": "Outdoor temperature",
-    "health.input_dhw_temp_entity": "Hot-water tank",
-    "health.input_floor_return_temp_entity": "Floor loop return",
-    "health.input_lower_floor_temp_entity": "Lower floor",
-    "health.input_buffer_tank_temp_entity": "Buffer tank",
-    "health.input_solar_radiation_entity": "Solar radiation",
-    "health.input_pv_production_entity": "PV production",
-    "health.input_heat_pump_power_entity": "Heat pump power",
-    "health.input_heat_pump_energy_entity": "Heat pump energy",
-    "health.input_house_power_entity": "House power",
+    "health.input_away_presence_entity": "Away indicator",
+    "health.input_buffer_tank_temp_entity": "Buffer tank temperature sensor",
+    "health.input_compressor_freq_entity": "Compressor frequency entity",
+    "health.input_dhw_disinfection_switch_entity": "Pump's disinfection switch",
+    "health.input_dhw_inlet_entity": "Cold water inlet sensor",
+    "health.input_dhw_setpoint_entity": "Heat pump DHW set-point entity",
+    "health.input_dhw_temp_entity": "Hot water tank temperature sensor",
+    "health.input_external_heat_entity": "Stove or flue sensor",
+    "health.input_floor_return_temp_entity": "Floor heating return temperature sensor",
+    "health.input_flow_meter_entity": "Water flow sensor",
+    "health.input_grid_fee_entity": "Live fee sensor",
+    "health.input_heat_pump_backup_heater_entity": "Space backup heater",
+    "health.input_heat_pump_capacity_limited_entity": "Capacity limited (night mode)",
+    "health.input_heat_pump_defrost_entity": "Defrosting",
+    "health.input_heat_pump_dhw_booster_entity": "Hot water tank booster",
+    "health.input_heat_pump_energy_entity": "Heat pump energy meter",
+    "health.input_heat_pump_fault_entity": "Fault alarm",
+    "health.input_heat_pump_heat_energy_entity": "Heat pump heat energy meter",
+    "health.input_heat_pump_mode_entity": "Heat pump operating mode",
+    "health.input_heat_pump_online_entity": "Pump online",
+    "health.input_heat_pump_power_entity": "Heat pump power meter",
+    "health.input_heat_pump_return_temp_entity": "Return water temperature",
+    "health.input_heat_pump_supply_temp_entity": "Supply (flow) water temperature",
+    "health.input_heat_pump_switch_entity": "Heat pump on/off switch",
+    "health.input_heat_pump_thermal_power_entity": "Heat pump thermal power meter",
+    "health.input_holiday_calendar_entity": "Holiday-profile calendar",
+    "health.input_house_power_entity": "Whole-house power meter",
+    "health.input_indoor_humidity_entity": "Indoor humidity sensor",
+    "health.input_indoor_temp_entity": "Indoor temperature sensor",
+    "health.input_lower_floor_temp_entity": "Lower floor temperature sensor",
+    "health.input_mixing_valve_target_entity": "Valve target sensor",
+    "health.input_mixing_valve_write_entity": "Valve control entity",
+    "health.input_outdoor_temp_entity": "Outdoor temperature sensor",
+    "health.input_price_entity": "Price sensor (Nord Pool or similar)",
+    "health.input_pv_export_price_entity": "Export compensation entity",
+    "health.input_pv_production_entity": "Solar production sensor",
+    "health.input_solar_radiation_entity": "Solar radiation sensor",
+    "health.input_space_circulation_pump_entity": "Heating circulation pump switch",
+    "health.input_space_setpoint_entity": "Space-heating set-point entity",
+    "health.input_valve_outlet_temp_entity": "Temperature after the wood/heat-pump mixing valve",
+    "health.input_vvc_pump_entity": "Hot water circulation pump switch",
+    "health.input_weather_entity": "Weather forecast",
+    "health.input_wood_tank_bottom_entity": "Wood tank bottom sensor",
+    "health.input_wood_tank_top_entity": "Wood tank top sensor",
     "health.learn_savings": "Savings this month",
     "health.learn_savings_why": "Waiting for the first settled month",
     "health.learn_cop": "Heat pump COP",
-    "health.learn_cop_why": "Needs a power meter on the heat pump, then some running time",
     "health.learn_accuracy": "Prediction accuracy",
     "health.learn_accuracy_why": "Waiting for the first scored interval",
     "health.learn_score": "Optimization score",
@@ -149,12 +181,11 @@ const STRINGS = {
     "health.model_cop_low": "Below its own history",
     "health.model_cop_fine": "No sign of degradation.",
     "health.model_cop_alarm": "It delivers less heat per kWh than it used to; check filters, defrost and flow.",
-    "health.model_cop_young": "Not enough running history to watch yet.",
     "health.model_gains_peak": "People, cooking and appliances add up to {kw} kW around {hh}:00.",
     "health.support_title": "Something looks wrong?",
     "health.support_detail":
-      "Open the integration page and choose Download diagnostics in its menu: " +
-      "the file holds the last diagnosis, input states, the current plan and what the model has learned, " +
+      "Download diagnostics saves a file for a bug report: " +
+      "it holds the last diagnosis, input states, the current plan and what the model has learned, " +
       "with tokens, names, people, calendars and locations removed.",
     "health.act_diagnostics": "Download diagnostics",
     "health.check_price": "Price source connected",
@@ -162,9 +193,54 @@ const STRINGS = {
     "health.check_indoor": "Indoor temperature sensor",
     "health.check_control": "Heat pump control connected",
     "health.check_power": "Power meter on the heat pump: makes savings measured instead of modelled",
-    "health.check_insight": "Some insight sensors are off by default; turn them on in the integration's settings",
+    "health.check_insight": "Some insight sensors are off by default; Show lists this integration's entities, disabled ones included, where you can turn them on",
     "health.act_assign": "Assign",
     "health.act_show": "Show",
+    "health.input_other": "Input",
+    "health.learner_waiting": "Waiting: {why}.",
+    "health.learner_wait_colder": "it learns when it is cold enough outside",
+    "health.learner_wait_darker": "it learns in the dark hours",
+    "health.learner_wait_sunnier": "it learns in sunshine",
+    "health.learner_waiting_any": "Waiting for conditions it can learn in.",
+    "health.learner_counting": "Learning: {pct} % of the samples it needs.",
+    "health.learner_eta": "About {d} days until learned.",
+    "health.learner_settling": "Settling on its value: {pct} %.",
+    "health.learner_settling_any": "Settling on its value.",
+    "health.model_unobservable": "Not observable without a power meter.",
+    "health.cop_measured": "Measured {age} ago.",
+    "health.cop_reason_heat_metered": "Measured by the heat meter.",
+    "health.cop_reason_draw_follows_plan": "Read from the power draw, which follows the plan.",
+    "health.cop_reason_not_measurable": "Not measurable here: without a heat meter the power draw does not follow the plan closely enough to read efficiency from.",
+    "health.cop_reason_awaiting_draw_evidence": "Waiting to see whether the power draw follows the plan.",
+    "health.cop_reason_no_electric_meter": "Needs a power or energy meter on the heat pump.",
+    "health.cop_reason_no_measured_power": "Waiting for a power reading from the heat pump.",
+    "health.cop_reason_learners_frozen": "Learning is paused.",
+    "health.cop_reason_duty_floor": "The heat pump ran too little in the interval to judge.",
+    "health.cop_reason_frost_band": "Skipped in the frost band, where defrosting distorts the reading.",
+    "health.cop_reason_draw_distorted": "The power draw was distorted by something else in the interval.",
+    "health.cop_reason_tracking_gate": "The house did not follow the plan closely enough in the interval.",
+    "health.cop_reason_draw_off_ask": "The power draw departed from what the plan asked for.",
+    "health.cop_reason_blended_duty": "Space heating and hot water shared the interval, so neither can be judged.",
+    "health.cop_reason_modelled_cop": "Only a modelled efficiency was available, not a measured one.",
+    "health.cop_reason_observed_cop": "The measured efficiency was outside the plausible range.",
+    "health.cop_reason_span_open": "Waiting for the meter span to close.",
+    "health.cop_reason_unaligned_meters": "The heat and power meters were not read at the same moments.",
+    "health.cop_reason_counter_reset": "The heat meter's counter was reset.",
+    "health.cop_reason_counter_rollover": "The heat meter's counter rolled over.",
+    "health.cop_reason_counter_resolution": "The heat meter's counter is too coarse for the interval.",
+    "health.cop_reason_span_too_long": "The meter span ran too long to use.",
+    "health.metric_heat_loss": "How fast the house loses heat, in watts per degree of difference between inside and outside. Higher is a leakier house; with no samples it is the settings' estimate.",
+    "health.metric_solar": "How much of the sun's heat the windows let in, against the settings. Above 1 lets in more; with no samples it is the settings' value.",
+    "health.metric_lower": "The lower floor's heat loss as a share of the settings' estimate. Above 100 % loses more; with no samples it is the settings' estimate.",
+    "health.metric_tank": "How fast the hot-water tank cools when the pump is off, in °C per hour. Lower is better insulated; with no samples it is the default rate.",
+    "health.metric_cop": "Whether the heat pump still delivers as much heat per kWh as it used to. A dash means it is not yet watched.",
+    "health.metric_gains": "Heat from people, cooking and appliances by hour of day, in kW, which the plan counts as free heating. Higher bars are more free heat; with no samples the plan counts none.",
+    "health.debug_title": "Debug collection",
+    "health.debug_off": "Off. When a bug report asks for one, Start records a week of cycles into the diagnostics file.",
+    "health.debug_active": "Collecting: {rows} records so far, about {days} days left.",
+    "health.debug_final": "Finished with {rows} records. Download diagnostics to keep them.",
+    "health.debug_confirm": "Starting again discards the finished collection. Download diagnostics first to keep it, then press Start again.",
+    "health.act_debug_start": "Start",
     // The sensor advisor page (#1269): the backend's ranking of which
     // UNCONFIGURED optional temperature sensors would tighten the thermal
     // model most. Every quantified row is an estimate and says so.
@@ -872,21 +948,53 @@ const STRINGS = {
     "health.next_due": "Nästa lösning är försenad",
     "health.steps": "{n} steg",
     "health.solve_time": "{s} s",
-    "health.input_indoor_temp_entity": "Inomhustemperatur",
-    "health.input_outdoor_temp_entity": "Utomhustemperatur",
-    "health.input_dhw_temp_entity": "Varmvattenberedare",
-    "health.input_floor_return_temp_entity": "Golvslingans retur",
-    "health.input_lower_floor_temp_entity": "Nedre våning",
-    "health.input_buffer_tank_temp_entity": "Buffertank",
-    "health.input_solar_radiation_entity": "Solinstrålning",
-    "health.input_pv_production_entity": "Solcellsproduktion",
-    "health.input_heat_pump_power_entity": "Värmepumpens effekt",
-    "health.input_heat_pump_energy_entity": "Värmepumpens energi",
-    "health.input_house_power_entity": "Husets effekt",
+    "health.input_away_presence_entity": "Indikator för bortavaro",
+    "health.input_buffer_tank_temp_entity": "Temperaturgivare för buffertank",
+    "health.input_compressor_freq_entity": "Entitet för kompressorfrekvens",
+    "health.input_dhw_disinfection_switch_entity": "Pumpens desinfektionsbrytare",
+    "health.input_dhw_inlet_entity": "Givare för inkommande kallvatten",
+    "health.input_dhw_setpoint_entity": "Värmepumpens börvärdesenhet för varmvatten",
+    "health.input_dhw_temp_entity": "Givare för varmvattenberedarens temperatur",
+    "health.input_external_heat_entity": "Givare för panna eller rökgas",
+    "health.input_floor_return_temp_entity": "Givare för golvvärmens returtemperatur",
+    "health.input_flow_meter_entity": "Givare för vattenflöde",
+    "health.input_grid_fee_entity": "Sensor för aktuell avgift",
+    "health.input_heat_pump_backup_heater_entity": "Elpatron för värme",
+    "health.input_heat_pump_capacity_limited_entity": "Begränsad effekt (nattläge)",
+    "health.input_heat_pump_defrost_entity": "Avfrostning",
+    "health.input_heat_pump_dhw_booster_entity": "Elpatron i varmvattenberedaren",
+    "health.input_heat_pump_energy_entity": "Energimätare för värmepumpen",
+    "health.input_heat_pump_fault_entity": "Felindikering",
+    "health.input_heat_pump_heat_energy_entity": "Värmemängdsmätare för värmepumpen",
+    "health.input_heat_pump_mode_entity": "Värmepumpens driftläge",
+    "health.input_heat_pump_online_entity": "Pumpen är uppkopplad",
+    "health.input_heat_pump_power_entity": "Effektmätare för värmepumpen",
+    "health.input_heat_pump_return_temp_entity": "Returtemperatur",
+    "health.input_heat_pump_supply_temp_entity": "Framledningstemperatur",
+    "health.input_heat_pump_switch_entity": "Strömbrytare för värmepumpen",
+    "health.input_heat_pump_thermal_power_entity": "Värmeeffektmätare för värmepumpen",
+    "health.input_holiday_calendar_entity": "Lovprofilkalender",
+    "health.input_house_power_entity": "Effektmätare för hela huset",
+    "health.input_indoor_humidity_entity": "Inomhusfuktsensor",
+    "health.input_indoor_temp_entity": "Inomhusgivare",
+    "health.input_lower_floor_temp_entity": "Givare för temperaturen på nedre plan",
+    "health.input_mixing_valve_target_entity": "Givare för ventilens börvärde",
+    "health.input_mixing_valve_write_entity": "Ventilens styrenhet",
+    "health.input_outdoor_temp_entity": "Utomhusgivare",
+    "health.input_price_entity": "Prissensor (Nord Pool eller liknande)",
+    "health.input_pv_export_price_entity": "Entitet för ersättning",
+    "health.input_pv_production_entity": "Sensor för solproduktion",
+    "health.input_solar_radiation_entity": "Solinstrålningsgivare",
+    "health.input_space_circulation_pump_entity": "Brytare för värmesystemets cirkulationspump",
+    "health.input_space_setpoint_entity": "Börvärdesenhet för rumsuppvärmning",
+    "health.input_valve_outlet_temp_entity": "Temperatur efter shunten mellan ved- och värmepumpstank",
+    "health.input_vvc_pump_entity": "Brytare för VVC-pump",
+    "health.input_weather_entity": "Väderprognos",
+    "health.input_wood_tank_bottom_entity": "Vedtankens bottengivare",
+    "health.input_wood_tank_top_entity": "Vedtankens toppgivare",
     "health.learn_savings": "Sparande den här månaden",
     "health.learn_savings_why": "Väntar på den första avslutade månaden",
     "health.learn_cop": "Värmepumpens COP",
-    "health.learn_cop_why": "Behöver en effektmätare på värmepumpen och en tids drift",
     "health.learn_accuracy": "Prognosträffsäkerhet",
     "health.learn_accuracy_why": "Väntar på det första bedömda intervallet",
     "health.learn_score": "Optimeringspoäng",
@@ -915,12 +1023,11 @@ const STRINGS = {
     "health.model_cop_low": "Under sin egen historik",
     "health.model_cop_fine": "Inga tecken på försämring.",
     "health.model_cop_alarm": "Den ger mindre värme per kWh än förut; kontrollera filter, avfrostning och flöde.",
-    "health.model_cop_young": "För kort drifthistorik för att bevaka än.",
     "health.model_gains_peak": "Människor, matlagning och apparater ger upp till {kw} kW runt {hh}:00.",
     "health.support_title": "Ser något fel ut?",
     "health.support_detail":
-      "Öppna integrationssidan och välj Ladda ner diagnostik i menyn: " +
-      "filen innehåller senaste diagnosen, indatas tillstånd, den aktuella planen och vad modellen har lärt sig, " +
+      "Ladda ner diagnostik sparar en fil för en felrapport: " +
+      "den innehåller senaste diagnosen, indatas tillstånd, den aktuella planen och vad modellen har lärt sig, " +
       "utan nycklar, namn, personer, kalendrar och platser.",
     "health.act_diagnostics": "Ladda ner diagnostik",
     "health.check_price": "Priskälla ansluten",
@@ -928,9 +1035,54 @@ const STRINGS = {
     "health.check_indoor": "Inomhusgivare",
     "health.check_control": "Värmepumpsstyrning ansluten",
     "health.check_power": "Effektmätare på värmepumpen: gör att sparandet mäts i stället för modelleras",
-    "health.check_insight": "Vissa insiktsgivare är avstängda som standard; slå på dem i integrationens inställningar",
+    "health.check_insight": "Vissa insiktsgivare är avstängda som standard; Visa listar integrationens entiteter, även de avstängda, där du kan slå på dem",
     "health.act_assign": "Tilldela",
     "health.act_show": "Visa",
+    "health.input_other": "Indata",
+    "health.learner_waiting": "Väntar: {why}.",
+    "health.learner_wait_colder": "den lär sig när det är tillräckligt kallt ute",
+    "health.learner_wait_darker": "den lär sig under mörka timmar",
+    "health.learner_wait_sunnier": "den lär sig i solsken",
+    "health.learner_waiting_any": "Väntar på förhållanden den kan lära sig i.",
+    "health.learner_counting": "Lär sig: {pct} % av mätningarna den behöver.",
+    "health.learner_eta": "Ungefär {d} dagar tills den är inlärd.",
+    "health.learner_settling": "Stabiliserar sitt värde: {pct} %.",
+    "health.learner_settling_any": "Stabiliserar sitt värde.",
+    "health.model_unobservable": "Går inte att observera utan effektmätare.",
+    "health.cop_measured": "Mätt för {age} sedan.",
+    "health.cop_reason_heat_metered": "Mätt med värmemängdsmätaren.",
+    "health.cop_reason_draw_follows_plan": "Avläst från effektuttaget, som följer planen.",
+    "health.cop_reason_not_measurable": "Går inte att mäta här: utan värmemängdsmätare följer effektuttaget inte planen tillräckligt nära för att verkningsgraden ska kunna avläsas.",
+    "health.cop_reason_awaiting_draw_evidence": "Väntar på att se om effektuttaget följer planen.",
+    "health.cop_reason_no_electric_meter": "Behöver en effekt- eller energimätare på värmepumpen.",
+    "health.cop_reason_no_measured_power": "Väntar på en effektavläsning från värmepumpen.",
+    "health.cop_reason_learners_frozen": "Inlärningen är pausad.",
+    "health.cop_reason_duty_floor": "Värmepumpen gick för lite under intervallet för att bedömas.",
+    "health.cop_reason_frost_band": "Hoppades över i frostbandet, där avfrostning stör avläsningen.",
+    "health.cop_reason_draw_distorted": "Effektuttaget stördes av något annat under intervallet.",
+    "health.cop_reason_tracking_gate": "Huset följde inte planen tillräckligt nära under intervallet.",
+    "health.cop_reason_draw_off_ask": "Effektuttaget avvek från det planen begärde.",
+    "health.cop_reason_blended_duty": "Rumsvärme och varmvatten delade intervallet, så inget av dem kan bedömas.",
+    "health.cop_reason_modelled_cop": "Bara en modellerad verkningsgrad fanns, ingen uppmätt.",
+    "health.cop_reason_observed_cop": "Den uppmätta verkningsgraden låg utanför rimligt intervall.",
+    "health.cop_reason_span_open": "Väntar på att mätarens intervall ska stängas.",
+    "health.cop_reason_unaligned_meters": "Värme- och effektmätarna lästes inte av vid samma tidpunkter.",
+    "health.cop_reason_counter_reset": "Värmemängdsmätarens räkneverk nollställdes.",
+    "health.cop_reason_counter_rollover": "Värmemängdsmätarens räkneverk slog runt.",
+    "health.cop_reason_counter_resolution": "Värmemängdsmätarens räkneverk är för grovt för intervallet.",
+    "health.cop_reason_span_too_long": "Mätarens intervall blev för långt för att användas.",
+    "health.metric_heat_loss": "Hur snabbt huset förlorar värme, i watt per grads skillnad mellan inne och ute. Högre är ett otätare hus; utan mätningar är det inställningarnas uppskattning.",
+    "health.metric_solar": "Hur mycket av solens värme fönstren släpper in, mot inställningarna. Över 1 släpper in mer; utan mätningar är det inställningarnas värde.",
+    "health.metric_lower": "Nedre våningens värmeförlust som andel av inställningarnas uppskattning. Över 100 % förlorar mer; utan mätningar är det inställningarnas uppskattning.",
+    "health.metric_tank": "Hur snabbt varmvattentanken svalnar när pumpen står still, i °C per timme. Lägre är bättre isolerat; utan mätningar är det standardvärdet.",
+    "health.metric_cop": "Om värmepumpen fortfarande ger lika mycket värme per kWh som förut. Ett streck betyder att den inte bevakas än.",
+    "health.metric_gains": "Värme från människor, matlagning och apparater per timme, i kW, som planen räknar som gratis uppvärmning. Högre staplar är mer gratis värme; utan mätningar räknar planen ingen.",
+    "health.debug_title": "Felsökningsinsamling",
+    "health.debug_off": "Av. När en felrapport ber om det spelar Starta in en vecka av cykler i diagnostikfilen.",
+    "health.debug_active": "Samlar in: {rows} poster hittills, ungefär {days} dagar kvar.",
+    "health.debug_final": "Klar med {rows} poster. Ladda ner diagnostik för att behålla dem.",
+    "health.debug_confirm": "En ny start kastar den avslutade insamlingen. Ladda ner diagnostik först för att behålla den och tryck sedan Starta igen.",
+    "health.act_debug_start": "Starta",
     "advisor.heading": "Givare som skulle skärpa modellen",
     "advisor.empty":
       "Alla valfria temperaturgivare på denna anläggning är redan konfigurerade.",
@@ -8711,16 +8863,17 @@ function scoreParts(plan) {
     const value = readNumber(attrs[key]);
     return { key, label: L(`score.label_${key}`), value,
       reason: value === null ? scoreReasonText(reasons[key]) : null,
-      drivers: key === "envelope" && value !== null
-        ? envelopeDrivers(attrs.envelope_drivers) : "" };
+      drivers: value !== null ? scoreDrivers(key, attrs[`${key}_drivers`]) : "" };
   });
 }
 
-/** What moves the house grade off 50 (#2816): each driver the coordinator
- * published with its signed whole points, or "typical" when none moves it a
- * point -- so every shown grade carries at least one reason. An unknown
- * code is skipped rather than shown raw. */
-function envelopeDrivers(drivers) {
+/** What moves a sub-score off 50 (#2816): each driver the coordinator
+ * published (`envelope_drivers`, `machine_drivers`) with its signed whole
+ * points, or "typical" when none moves it a point -- so every shown grade
+ * carries at least one reason. A part with no drivers published has none to
+ * show; an unknown code is skipped rather than shown raw. */
+function scoreDrivers(part, drivers) {
+  if (part !== "envelope" && !Array.isArray(drivers)) return "";
   const shown = (Array.isArray(drivers) ? drivers : [])
     .filter((d) => STRINGS.en[`score.driver_${d.code}`] !== undefined)
     .map((d) => ({ code: d.code, pts: Math.round(Number(d.points) || 0) }))
@@ -8861,7 +9014,9 @@ function headlineHtml(plan, cfg, scoreOpen) {
       title:
         L("headline.score_title") +
         (breakdown ? `\n${breakdown}` : "") +
-        (parts[0].drivers ? `\n${L("score.part_envelope")}` : "") +
+        // Every part's metric in plain words, beside its grade and reason or
+        // drivers above (the owner's hover spec).
+        parts.map((p) => `\n${L(`score.part_${p.key}`)}`).join("") +
         `\n${L("headline.score_click_hint")}`,
       label: L("headline.score"),
       value: `${Math.round(score)}/100`,
@@ -9019,7 +9174,8 @@ function restartRows(plan) {
   const rows = [];
   if (refit && finiteNum(refit.scale)) {
     rows.push(row("adopt_refit",
-      L("advisor.refit_title", { to: Number(refit.scale).toFixed(2), from: Number(attrs.current_scale).toFixed(2) }),
+      L("advisor.refit_title", { to: Number(refit.scale).toFixed(2),
+        from: readNumber(attrs.current_scale) === null ? "—" : readNumber(attrs.current_scale).toFixed(2) }),
       L("advisor.refit_detail", { days: Number(refit.settled_days).toFixed(1), pairs: refit.pairs })));
   } else if (refit) {
     rows.push(row("", L("advisor.refit_wait_title"),
@@ -9048,13 +9204,13 @@ function advisorRows(host) {
       };
     }),
     advisorRow(plan, "dhw", (to, attrs) => {
-      const from = Number(attrs.current_setpoint);
-      if (!Number.isFinite(to) || !Number.isFinite(from) || to === from) return null;
+      const from = readNumber(attrs.current_setpoint);
+      if (!Number.isFinite(to) || from === null || to === from) return null;
       const perDay = dhwCostPerDay(attrs.candidates, from) - dhwCostPerDay(attrs.candidates, to);
       // The money is interpolated off the sweep. The write is the recommended
       // setpoint the sensor publishes, never that interpolation.
-      const recommended = Number(attrs.recommended_setpoint);
-      const write = Number.isFinite(recommended) ? recommended : to;
+      const recommended = readNumber(attrs.recommended_setpoint);
+      const write = recommended !== null ? recommended : to;
       return {
         value: perDay > 0 ? perDay * DAYS_PER_MONTH : null,
         act: "apply_dhw", target: write,
@@ -9062,8 +9218,8 @@ function advisorRows(host) {
       };
     }),
     advisorRow(plan, "valve", (to, attrs) => {
-      const from = Number(attrs.configured_target);
-      if (!Number.isFinite(to) || !Number.isFinite(from) || Math.abs(to - from) < 0.5) return null;
+      const from = readNumber(attrs.configured_target);
+      if (!Number.isFinite(to) || from === null || Math.abs(to - from) < 0.5) return null;
       const target = Math.min(30, Math.max(0, Math.round(to * 2) / 2));
       return {
         value: null, target,
@@ -9156,9 +9312,17 @@ function advisorInboxHtml(host) {
     ${optIn}`;
 }
 
-/** Open the integration's settings through Home Assistant's own router. */
-function navigateTo(path) {
+/** The card's one way out: open `path` through Home Assistant's own router,
+ * or, given a file name, save `path` (an object URL) as that file. */
+function navigateTo(path, download) {
   try {
+    if (download) {
+      const a = document.createElement("a");
+      a.href = path;
+      a.download = download;
+      a.click();
+      return;
+    }
     globalThis.history.pushState(null, "", path);
     globalThis.dispatchEvent(new CustomEvent("location-changed"));
   } catch (_err) { /* no router: the row stays advice */ }
@@ -9198,14 +9362,32 @@ function haLink(kind, entryId, entityId) {
  * it is asked of the entity registry for the card's own plan sensor; a failed
  * lookup leaves it null and `haLink` links the whole integration. */
 async function openHaLink(host, kind, entityId) {
-  let entryId = null;
+  const path = haLink(kind, await configEntryId(host), entityId);
+  if (path) navigateTo(path);
+}
+
+/** This card's config entry id, asked of the entity registry for its own plan
+ * sensor, or null when the registry does not answer. */
+async function configEntryId(host) {
   try {
     const reg = await host.hass.callWS({ type: "config/entity_registry/get",
       entity_id: host.plan.resolveEntity("space") });
-    entryId = (reg && reg.config_entry_id) || null;
-  } catch (_err) { /* no registry answer: link the integration */ }
-  const path = haLink(kind, entryId, entityId);
-  if (path) navigateTo(path);
+    return (reg && reg.config_entry_id) || null;
+  } catch (_err) { return null; }
+}
+
+/** Save this entry's diagnostics through Home Assistant's authenticated
+ * per-entry endpoint (the file its own menu downloads). A refused or failed
+ * fetch, or no entry id, opens the entry's page, whose menu has the same. */
+async function downloadDiagnostics(host) {
+  const entryId = await configEntryId(host);
+  let url = null;
+  try {
+    const res = entryId ? await host.hass.fetchWithAuth(`/api/diagnostics/config_entry/${encodeURIComponent(entryId)}`) : null;
+    if (res && res.ok) url = URL.createObjectURL(await res.blob());
+  } catch (_err) { url = null; }
+  if (url) setTimeout(() => URL.revokeObjectURL(url), 60000);
+  navigateTo(url || haLink("options", entryId), url ? `heatpump_optimizer-${entryId}.json` : undefined);
 }
 
 // ---- The Health page (R9-UX-3) ---------------------------------------------
@@ -9270,9 +9452,24 @@ function healthPillHtml(plan) {
   return `<span data-health-pill="${n ? "stale" : "fresh"}" class="status-pill tone-${n ? "warn" : "ok"}">${esc(text)}</span>`;
 }
 
+/** An input's role label, from the card's one table: `health.input_<key>`
+ * exists for every entity field of the options flow, each equal to that
+ * field's options-flow label less its "(optional)" marker (tests/card.mjs
+ * holds the two equal). A key outside the table has no name here, so the
+ * caller says "Input" and shows the entity id; never a name derived from the
+ * key, which read as the user's own entity names beside it. */
 function healthInputLabel(key) {
   const k = `health.input_${key}`;
-  return L(k) === k ? String(key).replace(/_entity$/, "").replace(/_/g, " ") : L(k);
+  return STRINGS.en[k] !== undefined ? L(k) : null;
+}
+
+/** Whether a setup slot has an entity: from the topology the card reads, or
+ * from an input the Input Problem sensor ages. One predicate for the
+ * checklist and the model block. */
+function inputAssigned(plan, key) {
+  const topo = plan.attrRaw("setup_topology", null);
+  const ages = (inputProblemState(plan) || { attributes: {} }).attributes.input_ages_minutes || {};
+  return !!((topo && topo.slots) || []).find((s) => s.key === key && s.entity) || key in ages;
 }
 
 function healthRow(attrs, title, detail, pill) {
@@ -9286,24 +9483,28 @@ function healthInputsHtml(plan) {
   const a = st.attributes || {};
   const problems = Array.isArray(a.problems) ? a.problems : [];
   const bad = new Set(problems.map((p) => p.input));
+  const topo = plan.attrRaw("setup_topology", null);
+  const entityOf = (key) => ((((topo && topo.slots) || []).find((s) => s.key === key)) || {}).entity || "";
   const pill = (tone, text) => `<span class="status-pill tone-${tone}">${esc(text)}</span>`;
+  // A key the table does not name says "Input" and leads with its entity id.
+  const row = (key, entityId, tone, parts, word) => {
+    const label = healthInputLabel(key);
+    return healthRow(` data-health-input="${esc(key)}" data-tone="${tone}"`, label || L("health.input_other"),
+      [label ? "" : entityId, ...parts].filter(Boolean).join(" · "), pill(tone, word));
+  };
   const rows = problems.map((p) => {
     const word = p.problem === "stale" ? L("health.stale")
       : L(`health.p_${p.problem}`) === `health.p_${p.problem}` ? String(p.problem) : L(`health.p_${p.problem}`);
     const age = Number(p.age_minutes), limit = Number(p.max_age_minutes);
-    const detail = [p.entity_id,
+    return row(p.input, p.entity_id, "warn", [healthInputLabel(p.input) ? p.entity_id : "",
       Number.isFinite(age) && p.age_minutes !== null ? L("health.ago", { age: fmtMinutes(age) }) : L("health.no_age"),
-      Number.isFinite(limit) && p.max_age_minutes !== null ? L("health.limit", { limit: fmtMinutes(limit) }) : ""]
-      .filter(Boolean).join(" · ");
-    return healthRow(` data-health-input="${esc(p.input)}" data-tone="warn"`,
-      healthInputLabel(p.input), detail, pill("warn", word));
+      Number.isFinite(limit) && p.max_age_minutes !== null ? L("health.limit", { limit: fmtMinutes(limit) }) : ""], word);
   });
   for (const [key, age] of Object.entries(a.input_ages_minutes || {})) {
     if (bad.has(key)) continue;
-    rows.push(healthRow(` data-health-input="${esc(key)}" data-tone="ok"`, healthInputLabel(key),
-      L("health.ago", { age: fmtMinutes(Number(age)) }), pill("ok", L("health.fresh"))));
+    rows.push(row(key, entityOf(key), "ok", [L("health.ago", { age: fmtMinutes(Number(age)) })], L("health.fresh")));
   }
-  return rows.length ? `<h3 class="health-h">${esc(L("health.inputs"))}</h3>${rows.join("")}` : "";
+  return rows.length ? `<h3 class="health-h">${esc(L("health.inputs"))}</h3><div class="health-inputs">${rows.join("")}</div>` : "";
 }
 
 function healthPlanHtml(plan) {
@@ -9332,16 +9533,43 @@ function healthWaiting(st) {
   return st.state === "unavailable" || (st.state === "unknown" && !!(st.attributes || {}).waiting_for);
 }
 
+/** The model status sensor's attributes, or null while it has none to trust. */
+function healthModelAttrs(plan) {
+  const st = plan.statEntity(HEALTH_MODEL_SUFFIX);
+  return !st || st.state === "unavailable" || st.state === "unknown" ? null : st.attributes || {};
+}
+
+/** Why a waiting sensor waits, in words: the COP from the one COP reading
+ * both rows share, the score from its own sensor's code. */
+function healthWaitingWhy(plan, id) {
+  if (id === "cop") {
+    const cop = (healthModelAttrs(plan) || {}).cop;
+    return cop ? copState(cop).reason : scoreReasonText("cop_watch_learning");
+  }
+  if (id === "score") {
+    const st = plan.statEntity("_plan_optimization_score");
+    return scoreReasonText((((st && st.attributes) || {}).reasons || {}).overall);
+  }
+  return L(`health.learn_${id}_why`);
+}
+
 function healthLearningHtml(plan) {
   const rows = HEALTH_WAITING.filter(([, sfx]) => healthWaiting(plan.statEntity(sfx)))
-    .map(([id]) => healthRow("", L(`health.learn_${id}`), L(`health.learn_${id}_why`), ""));
+    .map(([id]) => healthRow("", L(`health.learn_${id}`), healthWaitingWhy(plan, id), ""));
   return rows.length ? `<div class="health-learning"><h3 class="health-h">${esc(L("health.learning"))}</h3>${rows.join("")}</div>` : "";
+}
+
+/** A model row's hover, by the owner's spec: what the figure is in plain
+ * words (`health.metric_<id>`, which also says what no data means), then the
+ * row's current reason -- its learner phase, its evidence or its COP reason. */
+function healthModelTitle(id, reason) {
+  return [L(`health.metric_${id}`), reason].filter(Boolean).join("\n");
 }
 
 /** One learner row: what it is, its evidence in words, its value and a bar. */
 function healthModelRow(id, title, detail, value, share, tone) {
   const pct = Math.round(Math.max(0, Math.min(1, Number(share) || 0)) * 100);
-  return `<div class="health-row model-row" data-model-row="${id}" data-tone="${tone || "ok"}">` +
+  return `<div class="health-row model-row" data-model-row="${id}" data-tone="${tone || "ok"}" title="${esc(healthModelTitle(id, detail))}">` +
     `<span class="adv-text">${esc(title)}<span class="adv-sub">${esc(detail)}</span></span>` +
     `<span class="model-value">${esc(value)}</span>` +
     `<span class="model-bar" aria-hidden="true"><span style="width:${pct}%"></span></span></div>`;
@@ -9357,44 +9585,105 @@ function healthVersusSettings(what, factor) {
 }
 
 /** The 24 hourly internal-gains bars, in the accent colour, and the peak. */
-function healthGainsRow(gains) {
+function healthGainsRow(gains, learning) {
   const kw = gains.map((g) => Math.max(0, Number(g) || 0));
   const top = Math.max(...kw);
   const at = kw.indexOf(top);
   const bars = kw.map((g, h) => `<span class="gains-bar" title="${String(h).padStart(2, "0")}:00" ` +
     `style="height:${top > 0 ? Math.max(4, Math.round((g / top) * 100)) : 4}%"></span>`).join("");
-  return `<div class="health-row model-row" data-model-row="gains" data-tone="ok">` +
+  const peak = L("health.model_gains_peak", { kw: top.toFixed(1), hh: String(at).padStart(2, "0") });
+  const detail = learning ? `${learning.text} ${peak}` : peak;
+  return `<div class="health-row model-row" data-model-row="gains" data-tone="ok" title="${esc(healthModelTitle("gains", detail))}">` +
     `<span class="adv-text">${esc(L("health.model_gains"))}<span class="adv-sub">` +
-    `${esc(L("health.model_gains_peak", { kw: top.toFixed(1), hh: String(at).padStart(2, "0") }))}</span></span>` +
+    `${esc(detail)}</span></span>` +
     `<span class="gains-strip" aria-hidden="true">${bars}</span></div>`;
+}
+
+/** One learner's phase (`learner_progress`, R10-LEARNER-ETA) in words, or
+ * null for "off". Only a counting learner has a day figure: a settling one
+ * has passed its count and has none to give. `undefined` when the backend
+ * published no phase, so the row keeps its sample count. */
+function learnerPhase(p) {
+  if (!p || typeof p !== "object") return undefined;
+  const pct = readNumber(p.progress) === null ? null : Math.round(readNumber(p.progress) * 100);
+  if (p.phase === "off") return null;
+  if (p.phase === "waiting") {
+    const why = `health.learner_wait_${p.waiting_for}`;
+    return { text: STRINGS.en[why] !== undefined ? L("health.learner_waiting", { why: L(why) })
+      : L("health.learner_waiting_any"), share: (pct || 0) / 100 };
+  }
+  if (p.phase === "counting") {
+    const eta = readNumber(p.eta_days);
+    return { text: [L("health.learner_counting", { pct: pct || 0 }),
+      eta === null ? "" : L("health.learner_eta", { d: Math.max(1, Math.round(eta)) })].filter(Boolean).join(" "),
+    share: (pct || 0) / 100 };
+  }
+  if (p.phase === "settling") {
+    return { text: pct === null ? L("health.learner_settling_any") : L("health.learner_settling", { pct }),
+      share: pct === null ? 1 : pct / 100 };
+  }
+  return undefined;
+}
+
+/** The heat pump's COP in one reading (`ModelStatusSensor`'s `cop`), for
+ * both Health sites that show it -- the model row and the learning row --
+ * so the two cannot disagree. In order: an alarm; an install the gate
+ * rules cannot observe its COP (`cop_observability`, R10-COP-GATE), even
+ * with buckets watched before that ruling; a watched COP; else a dash and
+ * the first reason published: the learner's last refusal, the gate's wait
+ * for draw evidence, or not enough data. An unknown code is not enough data,
+ * never the raw code. */
+function copState(cop) {
+  const c = cop || {};
+  const obs = c.cop_observability;
+  const words = (code) => (STRINGS.en[`health.cop_reason_${code}`] !== undefined ? L(`health.cop_reason_${code}`) : null);
+  const scale = readNumber(c.scale);
+  if (c.alarm) return { value: L("health.model_cop_low"), reason: L("health.model_cop_alarm"), tone: "warn", watched: true };
+  if (obs === "not_measurable" || obs === "no_electric_meter") {
+    return { value: "—", reason: words(obs), tone: "ok", watched: false };
+  }
+  if (readNumber(c.watched_buckets) > 0 && scale !== null) {
+    const source = obs === "heat_metered" || obs === "draw_follows_plan" ? words(obs) : "";
+    return { value: L("health.model_cop_normal", { v: scale.toFixed(2) }),
+      reason: [L("health.model_cop_fine"), source].filter(Boolean).join(" "), tone: "ok", watched: true };
+  }
+  return { value: "—", tone: "ok", watched: false,
+    reason: words(c.cop_refusal) || (obs === "awaiting_draw_evidence" && words(obs)) || scoreReasonText("cop_watch_learning") };
 }
 
 /** "What the model has learned" (R9-UX-7): the model status sensor's rows. */
 function healthModelHtml(plan) {
-  const st = plan.statEntity(HEALTH_MODEL_SUFFIX);
-  if (!st || st.state === "unavailable" || st.state === "unknown") return "";
-  const a = st.attributes || {};
+  const a = healthModelAttrs(plan);
+  if (!a) return "";
   const num = (v) => (v === null || v === undefined || v === "" ? NaN : Number(v));
+  const lp = a.learner_progress || {};
   const rows = [];
   const hl = a.heat_loss || {};
-  if (Number.isFinite(num(a.heat_loss_w_per_k))) {
-    rows.push(healthModelRow("heat_loss", L("health.model_heat_loss"),
-      hl.learned ? `${L("health.model_from", { n: hl.samples })} ${healthVersusSettings(L("health.model_house"), hl.scale)}`
-        : L("health.model_estimate"),
-      L("health.model_w_per_k", { v: Math.round(num(a.heat_loss_w_per_k)) }), hl.learned ? 1 : 0));
+  const house = learnerPhase(lp.house);
+  if (Number.isFinite(num(a.heat_loss_w_per_k)) && house !== null) {
+    // Without a power meter the house's scale cannot be told from what the
+    // pump delivers (R10-DEMAND-OVERBOOK), so it is not called learned.
+    const detail = !inputAssigned(plan, "heat_pump_power_entity") ? L("health.model_unobservable")
+      : hl.learned ? `${L("health.model_from", { n: hl.samples })} ${healthVersusSettings(L("health.model_house"), hl.scale)}`
+        : house ? house.text : L("health.model_estimate");
+    rows.push(healthModelRow("heat_loss", L("health.model_heat_loss"), detail,
+      L("health.model_w_per_k", { v: Math.round(num(a.heat_loss_w_per_k)) }), hl.learned ? 1 : house ? house.share : 0));
   }
   const sol = a.solar_aperture || {};
-  if (Number.isFinite(num(sol.scale))) {
+  const solar = learnerPhase(lp.solar);
+  if (Number.isFinite(num(sol.scale)) && solar !== null) {
     const n = num(sol.samples) || 0, need = num(sol.needed) || 0;
     rows.push(healthModelRow("solar", L("health.model_solar"),
-      need > 0 && n < need ? L("health.model_learning", { n, need }) : L("health.model_from", { n }),
-      L("health.model_window", { v: num(sol.scale).toFixed(2) }), need > 0 ? n / need : 1));
+      solar ? solar.text : need > 0 && n < need ? L("health.model_learning", { n, need }) : L("health.model_from", { n }),
+      L("health.model_window", { v: num(sol.scale).toFixed(2) }), solar ? solar.share : need > 0 ? n / need : 1));
   }
   const lf = a.lower_floor || {};
-  if (lf.learned && Number.isFinite(num(lf.ratio))) {
+  const lower = learnerPhase(lp.lower);
+  if ((lf.learned || lower) && Number.isFinite(num(lf.ratio))) {
     rows.push(healthModelRow("lower", L("health.model_lower"),
-      `${L("health.model_from", { n: lf.samples })} ${healthVersusSettings(L("health.model_lower_floor"), lf.ratio)}`,
-      L("health.model_share", { v: Math.round(num(lf.ratio) * 100) }), 1));
+      lf.learned ? `${L("health.model_from", { n: lf.samples })} ${healthVersusSettings(L("health.model_lower_floor"), lf.ratio)}`
+        : lower.text,
+      L("health.model_share", { v: Math.round(num(lf.ratio) * 100) }), lf.learned ? 1 : lower.share));
   }
   const tk = a.tank_cooling;
   if (tk && Number.isFinite(num(tk.rate_c_per_h))) {
@@ -9402,30 +9691,30 @@ function healthModelHtml(plan) {
       tk.learned ? L("health.model_from", { n: tk.samples }) : L("health.model_default"),
       L("health.model_per_hour", { v: num(tk.rate_c_per_h).toFixed(1) }), tk.learned ? 1 : 0));
   }
-  const cop = a.cop || {};
-  if (cop.alarm || Number.isFinite(num(cop.scale))) {
-    const watched = num(cop.watched_buckets) > 0;
-    rows.push(healthModelRow("cop", L("health.model_cop"),
-      cop.alarm ? L("health.model_cop_alarm") : watched ? L("health.model_cop_fine") : L("health.model_cop_young"),
-      cop.alarm ? L("health.model_cop_low") : L("health.model_cop_normal", { v: num(cop.scale).toFixed(2) }),
-      watched || cop.alarm ? 1 : 0, cop.alarm ? "warn" : "ok"));
+  const cop = a.cop;
+  if (cop && (cop.alarm || Number.isFinite(num(cop.scale)) || cop.cop_observability || cop.cop_refusal)) {
+    const s = copState(cop);
+    const at = Date.parse(cop.measured_cop_at);
+    const age = Number.isFinite(at) && at <= Date.now() ? L("health.cop_measured", { age: fmtMinutes((Date.now() - at) / 60000) }) : "";
+    rows.push(healthModelRow("cop", L("health.model_cop"), [s.reason, age].filter(Boolean).join(" "),
+      s.value, s.watched ? 1 : 0, s.tone));
   }
-  if (Array.isArray(a.internal_gains_kw) && a.internal_gains_kw.length === 24) rows.push(healthGainsRow(a.internal_gains_kw));
+  const gains = learnerPhase(lp.gains);
+  if (Array.isArray(a.internal_gains_kw) && a.internal_gains_kw.length === 24 && gains !== null) {
+    rows.push(healthGainsRow(a.internal_gains_kw, gains && gains.share < 1 ? gains : null));
+  }
   return rows.length ? `<div class="health-model"><h3 class="health-h">${esc(L("health.model"))}</h3>${rows.join("")}</div>` : "";
 }
 
 function healthChecklistHtml(plan) {
-  const topo = plan.attrRaw("setup_topology", null);
-  const ages = (inputProblemState(plan) || { attributes: {} }).attributes.input_ages_minutes || {};
-  const assigned = (key) => !!((topo && topo.slots) || []).find((s) => s.key === key && s.entity) || key in ages;
   const status = (plan.statEntity(HEALTH_STATUS_SUFFIX) || {}).attributes || {};
   const items = [
     ["price", Number(status.prices_available) > 0, ""],
     ["weather", Number(status.weather_forecast_available) > 0, ""],
-    ["indoor", assigned("indoor_temp_entity"), ""],
-    ["control", assigned("heat_pump_switch_entity"), ""],
-    ["power", assigned("heat_pump_power_entity"), "assign"],
-    ["insight", false, "settings"],
+    ["indoor", inputAssigned(plan, "indoor_temp_entity"), ""],
+    ["control", inputAssigned(plan, "heat_pump_switch_entity"), ""],
+    ["power", inputAssigned(plan, "heat_pump_power_entity"), "assign"],
+    ["insight", false, "show_entities"],
   ];
   return `<h3 class="health-h">${esc(L("health.checklist"))}</h3>` + items.map(([id, done, act]) =>
     `<div class="health-row" data-check="${id}" data-done="${done}"><span class="health-mark">${done ? "✓" : ""}</span>` +
@@ -9434,17 +9723,71 @@ function healthChecklistHtml(plan) {
       `${esc(L(act === "assign" ? "health.act_assign" : "health.act_show"))}</button>` : "") + `</div>`).join("");
 }
 
+const DEBUG_DAYS = 7; // debugger.py's collection window
+
+/** This entry's debug collection, from the `debug_collect` service's
+ * response (`{context, response: {debug: {<entry id>: status}}}`), or null:
+ * a status at any other level, or keyed by another entry, is not ours. */
+function debugStatusOf(res, entryId) {
+  const s = res && res.response && res.response.debug && res.response.debug[entryId];
+  return s && typeof s === "object" ? s : null;
+}
+
+/** Ask the backend for this entry's collection and redraw when it changed.
+ * The state is on no entity, only in the service's response (#2809). */
+async function healthDebugRefresh(host, action = "status") {
+  host._debugAt = Date.now();
+  const entryId = await configEntryId(host);
+  if (!entryId) return;
+  let res = null;
+  try {
+    res = await host.hass.callService("heatpump_optimizer", "debug_collect",
+      { action, entry_id: entryId }, undefined, false, true);
+  } catch (_err) { /* no answer: off */ }
+  const st = debugStatusOf(res, entryId);
+  if (JSON.stringify(st) === JSON.stringify(host._debug || null)) return;
+  host._debug = st;
+  host._render();
+}
+
+/** The collection row: active, finished, or off, and a Start that discards a
+ * finished collection only on a second press, after saying so (#2815). */
+function healthDebugHtml(host) {
+  if (Date.now() - (host._debugAt || 0) > 60000) healthDebugRefresh(host);
+  const st = host._debug || {};
+  const rows = Number(st.rows) || 0;
+  const start = Date.parse(st.started_at);
+  const days = Number.isFinite(start) ? Math.max(0, Math.ceil((start + DEBUG_DAYS * 864e5 - Date.now()) / 864e5)) : DEBUG_DAYS;
+  const state = st.active ? "active" : st.final ? "final" : "off";
+  const text = host._debugArmed && state === "final" ? L("health.debug_confirm")
+    : state === "active" ? L("health.debug_active", { rows, days })
+      : state === "final" ? L("health.debug_final", { rows }) : L("health.debug_off");
+  return `<div class="health-row health-debug" data-debug="${state}"><span class="adv-text">${esc(L("health.debug_title"))}` +
+    `<span class="adv-sub">${esc(text)}</span></span>` +
+    (state === "active" ? "" : `<button type="button" class="adv-act" data-act="debug_start">${esc(L("health.act_debug_start"))}</button>`) +
+    `</div>`;
+}
+
+// Scoped to the page that draws it, like RECEIPT_CSS: the card's shared style
+// block and every other page's markup stay as they were. The inputs span the
+// page in as many columns as fit (owner, item 2).
+const HEALTH_CSS = `.health-inputs {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(18em, 1fr)); gap: 0 12px;
+}`;
+
 function healthPageHtml(host) {
   const plan = host.plan;
-  return `<div class="setup-page health-page">
+  return `<style>${HEALTH_CSS}</style><div class="setup-page health-page">
     <div class="health-cols">
-      <div class="health-col">${healthInputsHtml(plan)}</div>
-      <div class="health-col">${healthPlanHtml(plan)}${healthLearningHtml(plan)}</div>
+      <div class="health-col">${healthPlanHtml(plan)}</div>
+      <div class="health-col">${healthLearningHtml(plan)}</div>
     </div>
+    ${healthInputsHtml(plan)}
     ${healthModelHtml(plan)}
     <div class="health-row health-support"><span class="adv-text">${esc(L("health.support_title"))}
       <span class="adv-sub">${esc(L("health.support_detail"))}</span></span>
       <button type="button" class="adv-act" data-act="diagnostics">${esc(L("health.act_diagnostics"))}</button></div>
+    ${healthDebugHtml(host)}
     ${healthChecklistHtml(plan)}
     <div class="setup-result" role="status"></div></div>`;
 }
@@ -9732,8 +10075,22 @@ function attachAdvisorInbox(host, root) {
       } else if (act === "open_options") {
         openHaLink(host, "options", null);
         return;
-      } else if (act === "settings" || act === "diagnostics") {
-        navigateTo(SETTINGS_PATH);
+      } else if (act === "show_entities") {
+        openHaLink(host, "entities", null);
+        return;
+      } else if (act === "diagnostics") {
+        await downloadDiagnostics(host);
+        return;
+      } else if (act === "debug_start") {
+        // A finished collection is discarded by a start: the first press only
+        // says so (#2815).
+        if ((host._debug || {}).final && Number(host._debug.rows) > 0 && !host._debugArmed) {
+          host._debugArmed = true;
+          host._render();
+          return;
+        }
+        host._debugArmed = false;
+        await healthDebugRefresh(host, "start");
         return;
       } else if (act === "apply_valve") {
         const to = Number(btn.dataset.target);
@@ -9799,10 +10156,13 @@ class ExpandedDialog {
 
   /** Remember where the user was before `root` is rebuilt: the body scrolls,
    * and a plan refresh on the coordinator's schedule must not jump it back
-   * to the top mid-edit. */
+   * to the top mid-edit. A body still showing another page than the one
+   * about to be drawn (a tab was just pressed, which zeroed the offset) has
+   * no position to carry: the new page opens at its top (R10-UX-HEALTH
+   * item 3, its first row drawn under the head at the old page's offset). */
   saveScroll(root) {
-    const openBody = root.querySelector("dialog.expanded .dlg-body");
-    this.scroll = openBody ? openBody.scrollTop : this.scroll || 0;
+    const [body, shown] = [".dlg-body", ".dlg-tab.active"].map((sel) => root.querySelector(`dialog.expanded ${sel}`));
+    if (body && (!shown || shown.dataset.page === this.activePage())) this.scroll = body.scrollTop;
   }
 
   /** Which page an expanded dialog opens on, decided once `anyData` is known
@@ -14116,6 +14476,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
       // The Health page reads its own sensors, and its "ago" figures move
       // with the clock while it is open (R9-UX-3).
       healthSignature(this.plan, this.dialog.expanded && this.dialog.activePage() === "health" ? Date.now() : 0),
+      JSON.stringify([this._debug || null, !!this._debugArmed]),
       JSON.stringify(this.plan.attrRaw("wood_fuel", null)),
       this.plan.awaySignature(),
       // A dark-mode toggle redraws the whatif result colours (D4-s1-01)

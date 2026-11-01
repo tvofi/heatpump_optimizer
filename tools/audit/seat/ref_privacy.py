@@ -41,7 +41,8 @@ and URL-decoded once (`%2FUsers%2F<name>`). The classes, judged against the
 host's own identity (`Identity.of_host`: $HOME, its resolved path, the passwd
 home; $USER, $LOGNAME, the passwd name, the home's basename; the uid; the
 hostname):
-  home-directory  a home directory, verbatim (case-folded: macOS paths are);
+  home-directory  a home directory as a whole path, never inside a longer
+                  segment (case-folded: macOS paths are);
   account-name    an account name as a whole word -- bounded by characters
                   outside [A-Za-z0-9], so `-Users-<name>-` counts;
   uid             `claude-<uid>`, the session temp root's name;
@@ -247,9 +248,17 @@ def email_leaks(email: str, ident: Identity) -> list[str]:
     return []
 
 
+#: A home directory is a whole path, never inside a longer segment on either
+#: side (`roles/root-cause.md` is not the cloud seat's `/root`); after `file://`
+#: or a quote, and before `/`, a full stop or punctuation, it is. Case-folded:
+#: macOS paths are. scrub() rewrites exactly the spans this matches.
+def _home_re(home: str) -> str:
+    return r"(?<![\w.-])" + re.escape(home) + r"(?![\w-]|\.[\w-])"
+
+
 def _leaks(text: str, ident: Identity) -> list[str]:
     folded, found = text.casefold(), []
-    if any(h.casefold() in folded for h in ident.homes):
+    if any(re.search(_home_re(h.casefold()), folded) for h in ident.homes):
         found.append("home-directory")
     if any(re.search(r"(?<![a-z0-9])" + re.escape(n) + r"(?![a-z0-9])", folded) for n in ident.names):
         found.append("account-name")
@@ -402,7 +411,9 @@ PUSHERS = {
     "tools/audit/seat/cloud_dispatch.py": (GUARDED, "the group path publishes dispatch/<role>-<topic> "
                                            "(a roster branch tail), ref_privacy.refusal on the ref and message; "
                                            "its reviewer prompt names probe/rev-<pr>-<nonce8> from a PR number "
-                                           "and 8 hex digits, under a constant seat identity"),
+                                           "and 8 hex digits, under a constant seat identity; its fixer prompt names "
+                                           "handoff-wip/<topic> step pushes, judged by the seat's own guard "
+                                           "like any push"),
     ".claude/workflows/audit-find.js": ("prompt", "an agent prompt naming handoff/audit-r<round>-... "
                                         "refs from round and box numbers"),
     ".claude/workflows/audit-plan.js": ("prompt", "an agent prompt naming the constant plan/r<round> "
@@ -615,7 +626,7 @@ def scrub(text: str, ident: Identity) -> str:
         text = re.sub(root, "<session-tmp>", text)
     text = re.sub(r"(?:/private)?" + MAC_TEMP + r"/[\w-]+/[\w-]+/T(?![\w-])", "<tmp>", text)
     for h in sorted(ident.homes, key=len, reverse=True):
-        text = re.sub(re.escape(h) + r"(?![\w.-])", "~", text, flags=re.IGNORECASE)
+        text = re.sub(_home_re(h), "~", text, flags=re.IGNORECASE)
     for nm in ident.names:
         text = re.sub(r"(?<![A-Za-z0-9])" + re.escape(nm) + r"(?![A-Za-z0-9])", "<owner-home>", text,
                       flags=re.IGNORECASE)
@@ -1043,6 +1054,25 @@ def self_test() -> int:
     ok("scrub leaves another account's home and a public one alone (the null control)",
        scrub(under("home", "runner", "w") + " " + under("Users", "someone"), fid)
        == under("home", "runner", "w") + " " + under("Users", "someone"))
+
+    # R10-FLY-REFPRIV-HOME-SEGMENT: a home is judged as a whole path, never a
+    # substring. A cloud seat's HOME is `/root`, so a line citing a
+    # `roles/root-cause.md` file read as that home and was refused (#2872).
+    rid = Identity.made({under("root")}, {"root"}, 0)
+    cite = "see dev/governance/roles/" + "root-cause.md"
+    ok("a cloud seat's home inside a longer path segment passes",
+       leaks(cite, rid) == [] and leaks("x/root/y and a.root/z", rid) == [], str(leaks(cite, rid)))
+    ok("and its home as a whole path is still refused, alone, at a start or after a quote",
+       all(leaks(t, rid) == ["home-directory"] for t in (under("root", ".cache", "x"), under("root"),
+                                                       "cd " + under("root") + ".", "'" + under("root", "wt") + "'")),
+       str([leaks(t, rid) for t in (under("root", ".cache", "x"), under("root"))]))
+    ok("a macOS home is unchanged: case-folded, after `file://`, refused (the null control)",
+       leaks("see " + under("users", fake_name.upper(), "x"), fid) == ["home-directory", "account-name"]
+       and "home-directory" in leaks("file://" + fake_home + "/x", fid))
+    ok("a sibling extending the home's last segment is not that home",
+       "home-directory" not in leaks(fake_home + "s/x", fid), str(leaks(fake_home + "s/x", fid)))
+    ok("scrub rewrites the cloud home only as a whole path",
+       scrub(cite + " " + under("root", "x"), rid) == cite + " ~/x", scrub(cite + " " + under("root", "x"), rid))
 
     print(f"ref_privacy self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0

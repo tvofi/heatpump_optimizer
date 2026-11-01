@@ -125,6 +125,10 @@ class _SetbackConfig(Protocol):
     min_temp: float
     comfort_temp_day: float
     comfort_temp_night: float
+    comfort_temp_day_weekend: float | None
+    comfort_temp_night_weekend: float | None
+    holiday_comfort_day: float | None
+    holiday_comfort_night: float | None
 
 
 class _SetbackThermal(Protocol):
@@ -299,7 +303,15 @@ def config_from_mapping(config: Mapping[str, Any]) -> AwayConfig:
     )
 
 
-_OPT_FIELDS = ("target_temp", "min_temp", "comfort_temp_day", "comfort_temp_night")
+#: Every comfort number a solve reads. The weekend and holiday pairs replace
+#: the day/night pair per step (``OptimizationConfig._comfort_pair``), so a
+#: setback that left them configured would be undone on those dates; None
+#: (unconfigured) is not a band and stays out.
+_OPT_FIELDS = (
+    "target_temp", "min_temp", "comfort_temp_day", "comfort_temp_night",
+    "comfort_temp_day_weekend", "comfort_temp_night_weekend",
+    "holiday_comfort_day", "holiday_comfort_night",
+)
 _DHW_FIELDS = ("dhw_min_temp", "dhw_idle_min_temp")
 
 
@@ -318,16 +330,17 @@ def solve_bands(
     into the objects they were read from, so nothing is unwound after the
     solve and a write landing while it runs survives (#1517).
     """
-    config = {n: getattr(opt_config, n) for n in _OPT_FIELDS}
+    config = {
+        n: v for n in _OPT_FIELDS if (v := getattr(opt_config, n)) is not None
+    }
     dhw = {n: getattr(thermal_params, n) for n in _DHW_FIELDS}
     if state is not None and state.active and not state.recovery_active:
         target = state.target_temperature or DEFAULT_AWAY_TEMPERATURE
         floor = state.dhw_min_temperature or DEFAULT_AWAY_DHW_MIN_TEMP
         config = {
+            **dict.fromkeys(config, target),
             "target_temp": min(config["target_temp"], target),
             "min_temp": min(config["min_temp"], target),
-            "comfort_temp_day": target,
-            "comfort_temp_night": target,
         }
         dhw = {n: min(v, floor) for n, v in dhw.items()}
     for by in widen_by:
@@ -358,6 +371,12 @@ def apply_override_payload(state: AwayState, payload: dict[str, Any]) -> AwaySta
     return replace(state, override_active=bool(payload.get("active")),
                    override_return_iso=parsed.isoformat() if parsed else None,
                    migrated_helpers=bool(payload.get("migrated_helpers")))
+
+
+def published_under(state: AwayState, view: Mapping[str, Any]) -> bool:
+    """Whether ``view``, a published payload, was built under ``state``'s override."""
+    return (bool(view.get("away_override_active")) == state.override_active
+            and view.get("away_override_return_time") == state.override_return_iso)
 
 
 async def persist_override(coord: _AwayCoord, state: AwayState) -> None:

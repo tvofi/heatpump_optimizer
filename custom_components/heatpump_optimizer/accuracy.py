@@ -781,6 +781,12 @@ def heat_loss_refit(
     }
 
 
+def pairs_interval(elapsed_h: float) -> bool:
+    """A pending prediction this many hours old still describes the interval
+    that just closed: not a re-run minutes later, not across a restart or gap."""
+    return 0.05 <= elapsed_h <= 2.0
+
+
 # -- the COP learner's last word -------------------------------------------
 
 #: Why the COP learner turned an interval away: one code per guard of
@@ -810,6 +816,33 @@ COP_REFUSED_UNALIGNED = "unaligned_meters"
 #: (``MeasuredCop.judge_ratio``).
 COP_ASK_TOLERANCE = 0.15
 
+#: Whether this install can observe its COP at all (#2262; ``cop_observability``):
+#: a heat reading over an electrical one measures it; without a heat reading
+#: the ratio of draw to ask is an efficiency reading only where the draw follows
+#: the ask, which ``draw_range.follows_ask`` judges.
+COP_HEAT_METERED = "heat_metered"
+COP_DRAW_FOLLOWS = "draw_follows_plan"
+COP_NOT_MEASURABLE = "not_measurable"
+COP_NO_ELECTRIC = "no_electric_meter"
+
+
+def cop_observability(*, electric: bool, measured_heat: bool, follows: bool | None) -> str:
+    """This install's COP observability: one of the ``COP_*`` states above, or
+    ``COP_REFUSED_NO_EVIDENCE`` while the draw window cannot say yet.
+
+    ``electric``: an electrical figure the COP divides by (the power entity,
+    or the electric counter a heat counter's span reads); ``measured_heat``:
+    ``probe_install(...).measured_heat``, the heat counter or the thermal power
+    entity; ``follows``: ``follows_ask`` on the running-draw window.
+    """
+    if not electric:
+        return COP_NO_ELECTRIC
+    if measured_heat:
+        return COP_HEAT_METERED
+    if follows is None:
+        return COP_REFUSED_NO_EVIDENCE
+    return COP_DRAW_FOLLOWS if follows else COP_NOT_MEASURABLE
+
 
 @dataclass
 class MeasuredCop:
@@ -822,6 +855,10 @@ class MeasuredCop:
     included. The curve *choice* is kept rather than the modelled value: the
     residual is taken at the settling sample's own outdoor temperature.
 
+    ``at`` is when that COP folded, persisted with it: the latch outlives
+    every later refusal, so its age is part of the reading (``None``: a record
+    stored before the instant was, whose age is unknown).
+
     ``refusal`` is one of the ``COP_REFUSED_*`` codes for the latest interval
     (``None`` once one folds). It is not persisted, and diagnostics publish it
     (:func:`diagnostics_view`): the observed-COP sensor is unavailable exactly
@@ -833,6 +870,7 @@ class MeasuredCop:
     curve_dhw: bool = False
     dhw_temp: float | None = None
     refusal: str | None = None
+    at: datetime | None = None
 
     @staticmethod
     def judge_floor(asked_kw: float, drawn_kw: float, params: Any) -> str | None:
@@ -850,12 +888,12 @@ class MeasuredCop:
 
         ``ewma`` is the walking ratio BEFORE this interval, so an interval
         cannot vouch for itself. ``COP_REFUSED_TRACKING``: a one-off blip off
-        the walking ratio (v4.0.5). A departure from the ask beyond
-        ``COP_ASK_TOLERANCE`` is then judged on ``draw_range.follows_ask``:
-        evidence that the draw follows the ask lets it fold (an efficiency
-        shift); evidence that it does not refuses it (``COP_REFUSED_OFF_ASK``:
-        a pump that sets its own power, whose departures would fold as a COP
-        shortfall); with no evidence yet it folds only where base would have
+        the walking ratio (v4.0.5). Evidence that the draw does not follow
+        the ask (``draw_range.follows_ask`` False) refuses every interval,
+        within the tolerance or not (``COP_REFUSED_OFF_ASK``: a pump that sets
+        its own power, whose ratio would fold as a COP shift, #2262). A
+        departure beyond ``COP_ASK_TOLERANCE`` then folds on evidence that the
+        draw follows the ask (an efficiency shift); with no evidence yet it folds only where base would have
         -- the ask and the draw both clear the nameplate third -- and is
         otherwise ``COP_REFUSED_NO_EVIDENCE``. So no install folds a departure
         base refused before the evidence says the draw follows its ask; one
@@ -863,22 +901,46 @@ class MeasuredCop:
         """
         if abs(ratio - ewma) / max(ewma, 1e-6) > COP_TRACKING_ERROR_GATE:
             return COP_REFUSED_TRACKING
+        follows = follows_ask(draw)
+        if follows is False:
+            # #2262: a draw the evidence shows does not follow its ask is no
+            # efficiency reading at ANY ratio; one within the tolerance only
+            # happened to land near the ask.
+            return COP_REFUSED_OFF_ASK
         if abs(ratio - 1.0) <= COP_ASK_TOLERANCE:
             return None
-        follows = follows_ask(draw)
         if follows is None:
             if min(asked_kw, ratio * asked_kw) >= params.nameplate_power_floor_kw:
                 return None
             return COP_REFUSED_NO_EVIDENCE
-        return None if follows else COP_REFUSED_OFF_ASK
+        return None
 
-    def record(self, cop: float, curve_dhw: bool, dhw_temp: float | None) -> None:
-        """One folded interval's COP and its curve, together."""
+    def record(self, cop: float, curve_dhw: bool, dhw_temp: float | None, at: datetime) -> None:
+        """One folded interval's COP, its curve and when it folded, together."""
         self.cop, self.curve_dhw, self.dhw_temp = round(float(cop), 2), curve_dhw, dhw_temp
+        self.at = at
+
+    def residual(self, since: datetime, outdoor: float | None, model: Any) -> float | None:
+        """Observed minus modelled COP for an interval that began at ``since``.
+
+        ``None`` unless the latch folded after ``since``: a COP latched on an
+        earlier interval re-subtracted on every later sample is a function of
+        outdoor temperature alone (#2262), not a reading of this one. The
+        modelled curve is the one the observation was referenced to; no
+        outdoor temperature, no residual.
+        """
+        if outdoor is None or self.cop is None or self.at is None or utc_elapsed_seconds(self.at, since) <= 0.0:
+            return None
+        if self.curve_dhw and self.dhw_temp is not None:
+            modelled = model.compute_cop_dhw(outdoor, self.dhw_temp)
+        else:
+            modelled = model.compute_cop(outdoor)
+        return round(float(self.cop) - float(modelled), 3)
 
     def as_dict(self) -> dict[str, Any]:
         """The measurement only; a refusal describes one interval."""
-        return {"cop": self.cop, "curve_dhw": self.curve_dhw, "dhw_temp": self.dhw_temp}
+        at = None if self.at is None else self.at.isoformat()
+        return {"cop": self.cop, "curve_dhw": self.curve_dhw, "dhw_temp": self.dhw_temp, "at": at}
 
     @classmethod
     def from_dict(cls, raw: Any) -> MeasuredCop:
@@ -891,13 +953,14 @@ class MeasuredCop:
         try:
             cop, dhw = float(raw["cop"]), raw.get("curve_dhw") is True
             temp = None if raw.get("dhw_temp") is None else float(raw["dhw_temp"])
+            at = None if raw.get("at") is None else stored_instant(raw["at"])
         except (TypeError, ValueError, KeyError, AttributeError, OverflowError):
             return cls()
         if not np.isfinite(cop) or cop < 0.1 or (dhw and temp is None):
             return cls()
-        if temp is not None and not np.isfinite(temp):
+        if (temp is not None and not np.isfinite(temp)) or (raw.get("at") is not None and at is None):
             return cls()
-        return cls(cop=cop, curve_dhw=dhw, dhw_temp=temp)
+        return cls(cop=cop, curve_dhw=dhw, dhw_temp=temp, at=at)
 
 
 def diagnostics_view(record: MeasuredCop, params: Any, draw: DrawRange | None) -> dict[str, Any]:
@@ -912,6 +975,7 @@ def diagnostics_view(record: MeasuredCop, params: Any, draw: DrawRange | None) -
     return {
         "last_refusal": record.refusal,
         "measured_cop": record.cop,
+        "measured_at": None if record.at is None else record.at.isoformat(),
         "power_floor_kw": round(float(params.flow_lift_power_floor_kw), 3),
         "draw_follows_ask": follows_ask(draw),
     }

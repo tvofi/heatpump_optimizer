@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/accuracy.py:MeasuredCop.judge_ratio RETURN_DEL d7923b87",
+  "old": "        return None",
+  "reason": "Equivalent (RETURN_DEL, `return None` -> `pass`): the statement is the last one in MeasuredCop.judge_ratio, after `if` arms that each return, so deleting it lets the method fall off its own end and return None -- the same value, on every input, to every reader. Measured by the R10-COP-GATE repair seat's `mutation_table.py --pin-killed --base origin/main` over every driver in play (tests/features.py, tests/entities.py, tests/finite_boundary.py, tests/stress.py among them): the site lived, against 15 of the 21 new sites killed in the same drive, among them this method's own `if follows is False` guard (killed by tests/features.py).",
+  "verdict": "equivalent"
+}
