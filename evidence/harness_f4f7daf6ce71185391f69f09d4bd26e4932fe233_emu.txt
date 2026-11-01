@@ -1,0 +1,8 @@
+$ bash dev/audit/harnesses/r10_uutils_sleep.sh f4f7daf6ce71185391f69f09d4bd26e4932fe233 emu  (harness from head)
+pr_args self-test: 158 checks, 0 failed
+rc=0
+
+real	3m53.060s
+user	0m48.317s
+sys	0m21.589s
+harness exit=0

@@ -1,0 +1,10 @@
+$ bash dev/audit/harnesses/r10_uutils_sleep.sh origin/main emu  (harness from head)
+  FAIL open_pr: the null control -- an unrelated sleeper survives
+  FAIL null control: a normal successful update_pr leaves nothing behind and stops nothing it did not start
+pr_args self-test: 158 checks, 2 failed
+rc=1
+
+real	3m59.053s
+user	0m52.392s
+sys	0m24.874s
+harness exit=0
