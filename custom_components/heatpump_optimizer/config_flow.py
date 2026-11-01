@@ -3302,7 +3302,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """R10-FACTORY-RESET: unconfirmed, back to the menu with nothing changed;
-        confirmed, the reset runs and closes the dialog."""
+        confirmed, the reset runs and closes the dialog, saying whether it applied."""
         if user_input is None:
             return self.async_show_form(step_id="factory_reset", data_schema=_FACTORY_RESET_SCHEMA)
         if not user_input.get("confirm"):
@@ -3311,8 +3311,8 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
             return self.async_abort(reason="factory_reset_not_loaded")
         from .coordinator import async_factory_reset
 
-        await async_factory_reset(coord, user_input["scope"])
-        return self.async_abort(reason="factory_reset_done")
+        done = await async_factory_reset(coord, user_input["scope"])
+        return self.async_abort(reason="factory_reset_done" if done else "factory_reset_not_applied")
 
     async def async_step_quick_setup(
         self, user_input: dict[str, Any] | None = None

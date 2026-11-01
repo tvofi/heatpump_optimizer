@@ -442,6 +442,9 @@
     "run_optimization_no_prices": {
       "message": "Optimeringen kördes inte för {entry_ids}: det fanns färre än fyra elprissteg tillgängliga"
     },
+    "factory_reset_not_applied": {
+      "message": "Fabriksåterställningen av {entry_id} utfördes inte: Home Assistant vägrade avlasta posten; inget ändrades"
+    },
     "run_optimization_solve_failed": {
       "message": "Optimeringen kördes inte för {entry_ids}: lösaren misslyckades; felet finns i integrationens logg"
     },
@@ -1546,7 +1549,8 @@
     },
     "abort": {
       "factory_reset_done": "Återställningen är klar. Integrationen har laddats om och planerar igen. Kör åtgärden Återställ inlärd ögonblicksbild för att ångra återställningen.",
-      "factory_reset_not_loaded": "Integrationen körs inte, så det finns inget att återställa. Åtgärda det som stoppade den och försök igen."
+      "factory_reset_not_loaded": "Integrationen körs inte, så det finns inget att återställa. Åtgärda det som stoppade den och försök igen.",
+      "factory_reset_not_applied": "Inte utförd: Home Assistant vägrade avlasta integrationen, så inget ändrades. Försök igen, eller starta om Home Assistant först."
     }
   },
   "selector": {

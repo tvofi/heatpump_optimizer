@@ -5768,6 +5768,21 @@ async def untouched_option_pages_do_not_reload():
     )
 
 
+def _a5_refusals(shown_pages, current):
+    """(pages read, refusals): each shown form's schema applied to
+    ``option_resubmit``'s payload, the a5 walk's own."""
+    read, refused = 0, []
+    for step, shown in shown_pages:
+        if shown.get("type") != "form":
+            continue
+        read += 1
+        try:
+            shown["data_schema"](_nightly.option_resubmit(step, current))
+        except vol.Invalid as err:
+            refused.append(f"{step}: {err}")
+    return read, refused
+
+
 async def nightly_a5_resubmits_fit_every_page():
     """`tests/nightly_ha.py`'s a5 walk posts `option_resubmit`'s payload to
     every options page, and real Home Assistant validates it against the
@@ -5777,34 +5792,26 @@ async def nightly_a5_resubmits_fit_every_page():
     `a5:pages_ok`'s `InvalidData`. Here the shown schema is applied to the
     same payload, through the same function, for every page in the table."""
     R.section("options: the nightly a5 walk's resubmit fits every page's schema")
-    refused = []
+    shown_pages = []
     for page in config_flow._OPTION_PAGES:
         flow, entry, _ = fresh_options()
-        shown = await getattr(flow, f"async_step_{page.step}")(None)
-        if shown.get("type") != "form":
-            continue
-        current = {**dict(entry.data), **dict(entry.options)}
-        try:
-            shown["data_schema"](_nightly.option_resubmit(page.step, current))
-        except vol.Invalid as err:
-            refused.append(f"{page.step}: {err}")
+        shown_pages.append((page.step, await getattr(flow, f"async_step_{page.step}")(None)))
+    current = {**dict(entry.data), **dict(entry.options)}
+    read, refused = _a5_refusals(shown_pages, current)
+    forms = sum(shown.get("type") == "form" for _, shown in shown_pages)
     R.check(
-        "every options page's shown schema accepts the a5 walk's untouched resubmit",
-        not refused,
-        f"refused {refused[:4]}",
+        "every options page's shown schema accepts the a5 walk's untouched resubmit, every form page read",
+        not refused and read == forms and read >= 20,
+        f"refused {refused[:4]}; read {read} of {forms} form page(s)",
     )
-    # Null control: the same reader refuses a payload the page does not own.
-    flow, entry, _ = fresh_options()
-    shown = await flow.async_step_factory_reset(None)
-    try:
-        shown["data_schema"]({const.CONF_AFTER_SAVE: const.AFTER_SAVE_CLOSE})
-        caught = False
-    except vol.Invalid:
-        caught = True
+    # Null control, through the same reader: a page whose schema refuses the
+    # payload (a planted required field) is reported, so the sweep can refuse.
+    planted = ("factory_reset", {"type": "form", "data_schema": vol.Schema({vol.Required("planted"): str})})
+    p_read, p_refused = _a5_refusals([*shown_pages, planted], current)
     R.check(
-        "null control: the factory-reset page's schema refuses an after-save key",
-        caught,
-        "an after-save key was accepted",
+        "null control: a planted page whose schema refuses the payload is read and refused by the same sweep",
+        p_read == read + 1 and len(p_refused) == len(refused) + 1 and "planted" in p_refused[-1],
+        f"read {p_read}, refused {p_refused[-1:]}",
     )
 
 

@@ -442,6 +442,9 @@
     "run_optimization_no_prices": {
       "message": "The optimization did not run for {entry_ids}: fewer than four electricity price steps were available"
     },
+    "factory_reset_not_applied": {
+      "message": "The factory reset of {entry_id} was not applied: Home Assistant refused to unload the entry; nothing was changed"
+    },
     "run_optimization_solve_failed": {
       "message": "The optimization did not run for {entry_ids}: the solve failed; the error is in the integration's log"
     },
@@ -1546,7 +1549,8 @@
     },
     "abort": {
       "factory_reset_done": "Reset done. The integration has reloaded and is planning again. To undo the reset, run the Restore learned snapshot action.",
-      "factory_reset_not_loaded": "The integration is not running, so there is nothing to reset. Fix what stopped it, then try again."
+      "factory_reset_not_loaded": "The integration is not running, so there is nothing to reset. Fix what stopped it, then try again.",
+      "factory_reset_not_applied": "Not applied: Home Assistant refused to unload the integration, so nothing was changed. Try again, or restart Home Assistant first."
     }
   },
   "selector": {

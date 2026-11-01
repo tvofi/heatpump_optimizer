@@ -29,7 +29,7 @@ from dataclasses import dataclass, field, replace
 from operator import attrgetter
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Awaitable, Callable, Mapping, Sequence
 from typing import TYPE_CHECKING, Any, Final, NamedTuple, NoReturn, cast
 
 import aiohttp
@@ -1403,29 +1403,34 @@ async def _async_store_documents(coord: Any) -> dict[str, Any]:
 
 
 async def _async_rewrite_entry(
-    coord: Any, documents: Mapping[str, Any], settings: tuple[dict[str, Any], dict[str, Any]] | None,
-) -> None:
-    """With the entry unloaded, each named store to its document (None removes it)
-    and the entry to ``settings`` (data, options); then the entry set up again."""
+    coord: Any, documents: Callable[[], Awaitable[Mapping[str, Any]]],
+    settings: tuple[dict[str, Any], dict[str, Any]] | None,
+) -> bool:
+    """Unload the entry, then write each store ``documents()`` names (None
+    removes it) and the entry's ``settings`` (data, options), and set it up
+    again. False, with nothing written, where Home Assistant refuses the unload."""
     entry, hass = coord.entry, coord.hass
     if not await hass.config_entries.async_unload(entry.entry_id):
-        return  # Home Assistant reports the failed unload; the undo point stands
+        return False
+    written = await documents()
     for (name, _), store in zip(_FACTORY_VOID, _restored_stores(coord)):
-        if name in documents:
-            await (store.async_remove() if documents[name] is None else store.async_save(documents[name]))
+        if name in written:
+            await (store.async_remove() if written[name] is None else store.async_save(written[name]))
     if settings is not None:
         hass.config_entries.async_update_entry(entry, data=settings[0], options=settings[1])
     await hass.config_entries.async_setup(entry.entry_id)
+    return True
 
 
-async def async_factory_reset(coord: Any, scope: str) -> None:
+async def async_factory_reset(coord: Any, scope: str) -> bool:
     """``scope``'s settings, learners or both to their defaults (R10-FACTORY-RESET).
 
     First the undo point ``async_restore_learned_snapshot`` returns to: every
-    learned store's document and the settings the reset drops. The heat-loss
-    pair goes through its one void path while the entry runs; the rest is
-    written with the entry unloaded, so no save in flight writes the old state
-    back, and the entry set up again re-plans on its first cycle.
+    learned store's document and the settings the reset drops. Then the entry
+    is unloaded, so no save in flight writes the old state back; the heat-loss
+    pair goes through its one void path, the rest is written, and the entry set
+    up again re-plans on its first cycle. False where Home Assistant refuses the
+    unload: nothing is changed but the undo point.
     """
     for store in (*_restored_stores(coord), coord._snapshot_store):
         await store.async_wait_for_read()
@@ -1434,27 +1439,39 @@ async def async_factory_reset(coord: Any, scope: str) -> None:
                               coord._inputs_unhealthy() is None,
                               {**undo_point(scope, entry.data, entry.options), "stores": documents})
     await coord._async_save_snapshots()
-    voided: dict[str, Any] = {}
-    if scope != FACTORY_RESET_SCOPES[0]:
+
+    async def voided() -> dict[str, Any]:
+        if scope == FACTORY_RESET_SCOPES[0]:
+            return {}
         await coord.async_reset_heat_loss_learners()
-        documents = await _async_store_documents(coord)
-        voided = {name: None if keys is None else {k: v for k, v in (documents[name] or {}).items() if k not in keys}
-                  for name, keys in _FACTORY_VOID}
+        stored = await _async_store_documents(coord)
+        return {name: None if keys is None else {k: v for k, v in (stored[name] or {}).items() if k not in keys}
+                for name, keys in _FACTORY_VOID}
+
     settings = None
     if scope != FACTORY_RESET_SCOPES[1]:
         ctx = _ctx_of(coord)
         settings = factory_settings(entry.data, entry.options, two_zone=ctx._thermal_params.two_zone_enabled,
                                     dhw=ctx._thermal_params.dhw_enabled, wood=wood_furnace_on(ctx._config))
-    await _async_rewrite_entry(coord, voided, settings)
+    if not await _async_rewrite_entry(coord, voided, settings):
+        _LOGGER.warning("Factory reset (%s) not applied: Home Assistant refused to unload the entry", scope)
+        return False
     _LOGGER.warning("Factory reset (%s) applied; restore_learned_snapshot undoes it", scope)
+    return True
 
 
-async def _async_undo_factory_reset(coord: Any, snap: dict[str, Any]) -> None:
+async def _async_undo_factory_reset(coord: Any, snap: dict[str, Any]) -> bool:
     """A reset's undo point back: its stores' documents and the settings it
-    dropped, over the wiring in force. Spent, it stays as an ordinary snapshot."""
-    undo = snap.pop("before_reset")
-    await coord._async_save_snapshots()
-    await _async_rewrite_entry(coord, undo.get("stores") or {}, undone_settings(coord.entry.data, coord.entry.options, undo))
+    dropped, over the wiring in force. Spent, it stays as an ordinary snapshot;
+    where the unload is refused it stays the undo point, and False."""
+    undo = snap["before_reset"]
+
+    async def spent() -> Mapping[str, Any]:
+        del snap["before_reset"]
+        await coord._async_save_snapshots()
+        return undo.get("stores") or {}
+
+    return await _async_rewrite_entry(coord, spent, undone_settings(coord.entry.data, coord.entry.options, undo))
 
 #: Which configured entity backs each published temperature -- the table
 #: `_thermal_view` builds its ``reading_ok`` map from. ``ThermalState`` has
@@ -9520,8 +9537,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             )
             return False
         if "before_reset" in snap:  # a factory reset's undo point: stores and settings back
-            await _async_undo_factory_reset(self, snap)
-            return True
+            return await _async_undo_factory_reset(self, snap)
         self._apply_learner_payloads(snap.get("learners") or {})
         _LOGGER.info(
             "Learned state restored from the snapshot taken %s",
@@ -9944,11 +9960,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if not getattr(self, "_ctx", self)._config.dhw_temp_entity:
             return None
         value = finite_float(self._dhw_temperature)
-        if value is None:
-            return None
-        if self._learning_frozen(CONF_DHW_TEMP_ENTITY, room_air=False) is not None:
-            return None
-        return value
+        if value is not None and self._learning_frozen(CONF_DHW_TEMP_ENTITY, room_air=False) is None:
+            return value
+        return None
 
     def _file_dhw_lead_predictions(
         self, result: OptimizationResult, solve_time: datetime, dt_h: float

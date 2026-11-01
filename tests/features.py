@@ -13245,8 +13245,10 @@ def _fr_learn(c):
     c._freq_fallback = True  # a fact the reset keeps: the watchdog's latch
     c._accuracy.lead_sigma[1.0], c._accuracy.lead_counts[1.0] = 0.3, 12
     c._price_learner.model.shapes[0][3] = 1.2
+    c._dhw_learner.draw_stats.fold(_fr_dt.now(), "06:00-09:00", 2.5)
     _aio.run(c._async_save_thermal_learning())
     _aio.run(c._dhw_learner.async_save_profile())
+    _aio.run(c._dhw_learner.async_save_draws())
     _aio.run(c._async_save_accuracy())
     _aio.run(c._async_save_price_model())
 
@@ -13362,6 +13364,29 @@ R.check(
     str({k: sorted(f for f in set(v) | set(_fr_l_want[k]) if v.get(f) != _fr_l_want[k].get(f))
          for k, v in _fr_l_got.items() if v != _fr_l_want[k]}),
 )
+# The void list, entry by entry: each key it names is on disk before the
+# reset (the control) and gone from the document the reset writes, read at
+# the moment the entry is set up again; each store it names whole is removed.
+_FR_VOID_ALL = sorted((n, k) for n, keys in _FR_VOID for k in (keys or (None,)))
+_fr_l_setup = _fr_l_before["at_setup"]
+
+
+def _fr_on(disk, name, key):
+    return name in disk if key is None else key in (disk.get(name) or {})
+
+
+_fr_void_absent = [nk for nk in _FR_VOID_ALL if not _fr_on(_fr_l_before["disk"], *nk)]
+R.check(
+    "before a learners reset every key and store the void list names is on disk, entry by entry (the control)",
+    not _fr_void_absent and len(_FR_VOID_ALL) >= 20,
+    f"absent {_fr_void_absent}, {len(_FR_VOID_ALL)} entries",
+)
+_fr_void_left = [nk for nk in _FR_VOID_ALL if _fr_on(_fr_l_setup, *nk)]
+R.check(
+    "a learners reset removes every key and store the void list names, entry by entry, before the entry is set up again",
+    not _fr_void_left,
+    f"left {_fr_void_left}",
+)
 _fr_l_disk = _fr_disk("fr_learners")
 R.check(
     "a learners reset keeps the settings and the stores' facts: the watchdog latch, peaks, mode",
@@ -13391,21 +13416,39 @@ R.check(
 )
 
 
-async def _fr_no_refresh(*_a, **_k):
-    return None
+def _fr_counting_refresh(c):
+    """Record every refresh asked of ``c``: an undo asks the coordinator it unloaded for none."""
+    asked = []
+
+    async def _refresh(*_a, **_k):
+        asked.append(c)
+
+    c.async_request_refresh = _refresh
+    return asked
 
 
-_fr_b_new.async_request_refresh = _fr_no_refresh
+_fr_b_reset_cfg = {**_fr_b_entry.data, **_fr_b_entry.options}
+R.check(
+    "the house is auto-mode before the reset and pinned two-zone by it (the undo's control)",
+    "two_zone_mode" not in _fr_b_before["config"] and _fr_b_reset_cfg.get("two_zone_mode") == "on",
+    f"before {_fr_b_before['config'].get('two_zone_mode')!r}, reset {_fr_b_reset_cfg.get('two_zone_mode')!r}",
+)
+_fr_b_asked = _fr_counting_refresh(_fr_b_new)
 _fr_restored = _aio.run(_fr_b_new.async_restore_learned_snapshot())
 _fr_undone = _fr_b_entry.runtime_data
 R.check(
-    "restore_learned_snapshot undoes the reset: every learner, the accuracy history and the settings as before it",
-    _fr_restored and _fr_undone is not _fr_b_new and _fr_learned(_fr_undone) == _fr_b_before["learned"]
+    "restore_learned_snapshot undoes the reset: every learner, the accuracy history and the settings exactly as before it",
+    _fr_restored is True and _fr_undone is not _fr_b_new and _fr_learned(_fr_undone) == _fr_b_before["learned"]
     and _li_state_of(_fr_undone) == (1.4, 1.3, 60, 40)
-    and {**_fr_b_entry.data, **_fr_b_entry.options} == {
-        **_fr_b_before["config"], "two_zone_mode": "on", "dhw_enabled": True, "wood_furnace_enabled": False},
+    and {**_fr_b_entry.data, **_fr_b_entry.options} == _fr_b_before["config"],
     str({k: sorted(f for f in set(v) | set(_fr_b_before["learned"][k]) if v.get(f) != _fr_b_before["learned"][k].get(f))
-         for k, v in _fr_learned(_fr_undone).items() if v != _fr_b_before["learned"][k]}),
+         for k, v in _fr_learned(_fr_undone).items() if v != _fr_b_before["learned"][k]})
+    + f" config moved {sorted(k for k in set(_fr_b_before['config']) | set({**_fr_b_entry.data, **_fr_b_entry.options}) if _fr_b_before['config'].get(k) != {**_fr_b_entry.data, **_fr_b_entry.options}.get(k))}",
+)
+R.check(
+    "the undo asks the coordinator it unloaded for nothing more: no refresh, no learner applied after it",
+    _fr_b_asked == [] and _fr_b_entry.runtime_data is _fr_undone,
+    f"refreshes asked {len(_fr_b_asked)}",
 )
 R.check(
     "the spent undo point stays as an ordinary snapshot, so a second restore is the ordinary one",
@@ -13414,29 +13457,64 @@ R.check(
 )
 
 
-async def _fr_failed_unload():
-    """An unload Home Assistant refuses: the reset stops at the undo point."""
+# The undo of a learners reset: its record carries no settings, and the
+# settings are left exactly as they are.
+_fr_lu_before, _fr_lu_entry, _, _ = _fr_case("learners", "fr_undo_learners")
+_fr_lu_new = _fr_lu_entry.runtime_data
+_fr_lu_record = _fr_lu_new._snapshot_ring.snapshots[-1].get("before_reset", {})
+_fr_counting_refresh(_fr_lu_new)
+_fr_lu_ok = _aio.run(_fr_lu_new.async_restore_learned_snapshot())
+R.check(
+    "restore_learned_snapshot undoes a learners reset: every learner back, the settings untouched",
+    _fr_lu_ok is True and "settings" not in _fr_lu_record and _fr_lu_record.get("scope") == "learners"
+    and _fr_learned(_fr_lu_entry.runtime_data) == _fr_lu_before["learned"]
+    and _li_state_of(_fr_lu_entry.runtime_data) == (1.4, 1.3, 60, 40)
+    and {**_fr_lu_entry.data, **_fr_lu_entry.options} == _fr_lu_before["config"],
+    f"record {sorted(_fr_lu_record)}, restored {_fr_lu_ok}",
+)
+
+
+async def _fr_failed_unload(scope="both"):
+    """An unload Home Assistant refuses: the reset changes nothing but the undo point."""
     hass = FakeHass({})
     entry = _fr_entry_cls(data=dict(_FR_DATA), options=dict(_FR_OPTS), entry_id="fr_no_unload")
     hass.config_entries.entries.append(entry)
     c = await _fr_boot(hass, entry)
+    c._apply_house_heat_loss_scale(1.4)
+    c._apply_lower_floor_loss_ratio(1.3)
+    c._house_heat_loss_samples, c._lower_floor_loss_samples = 60, 40
+    await c._async_save_thermal_learning()
+    disk = _fr_disk("fr_no_unload")
 
     async def _refuse(eid):
         hass.config_entries.unloaded.append(eid)
         return False
 
     hass.config_entries.async_unload = _refuse
-    await _fr_reset(c, "both")
-    return entry, hass.config_entries, _fr_disk("fr_no_unload"), c
+    done = await _fr_reset(c, scope)
+    after = {k: v for k, v in _fr_disk("fr_no_unload").items() if k != "snapshots"}
+    return entry, hass.config_entries, (disk, after), c, done
 
 
-_fr_nu_entry, _fr_nu_mgr, _fr_nu_disk, _fr_nu_c = _aio.run(_fr_failed_unload())
+_fr_nu_entry, _fr_nu_mgr, _fr_nu_disk, _fr_nu_c, _fr_nu_done = _aio.run(_fr_failed_unload())
 R.check(
-    "a refused unload stops the reset at its undo point: settings kept, nothing set up",
-    {**_fr_nu_entry.data, **_fr_nu_entry.options} == {**_FR_DATA, **_FR_OPTS}
-    and _fr_nu_mgr.set_up == [] and "price_model" in _fr_nu_disk and "dhw_profile" in _fr_nu_disk
+    "a refused unload changes nothing but the undo point: settings, every store and the heat-loss pair as before",
+    _fr_nu_done is False
+    and {**_fr_nu_entry.data, **_fr_nu_entry.options} == {**_FR_DATA, **_FR_OPTS}
+    and _fr_nu_mgr.set_up == []
+    and all(_fr_unstamped(_fr_nu_disk[1].get(k)) == _fr_unstamped(v) for k, v in _fr_nu_disk[0].items() if k != "snapshots")
+    and _li_state_of(_fr_nu_c) == (1.4, 1.3, 60, 40)
     and "before_reset" in _fr_nu_c._snapshot_ring.snapshots[-1],
-    f"set up {_fr_nu_mgr.set_up}, stores {sorted(_fr_nu_disk)}",
+    f"done {_fr_nu_done}, set up {_fr_nu_mgr.set_up}, heat loss {_li_state_of(_fr_nu_c)}, "
+    f"stores moved {sorted(k for k, v in _fr_nu_disk[0].items() if k != 'snapshots' and _fr_unstamped(_fr_nu_disk[1].get(k)) != _fr_unstamped(v))}",
+)
+_fr_nu_c.hass.config_entries.async_unload = _fr_nu_mgr.async_unload
+_fr_nu_undo = _aio.run(_fr_nu_c.async_restore_learned_snapshot())
+R.check(
+    "a refused unload refuses the undo too, and the undo point stays the undo point",
+    _fr_nu_undo is False and "before_reset" in _fr_nu_c._snapshot_ring.snapshots[-1]
+    and _fr_nu_mgr.set_up == [],
+    f"undo {_fr_nu_undo}",
 )
 # Once a weekly snapshot is newer, the restore is the ordinary one again.
 _fr_w_before, _fr_w_entry, _, _ = _fr_case("learners", "fr_weekly")
@@ -13480,6 +13558,44 @@ R.check(
     _fr_go[1]["type"] == "abort" and _fr_go[1]["reason"] == "factory_reset_done"
     and _fr_go[2] == (True, True) and _fr_go[3].unloaded == ["fr_flow_go"] == _fr_go[3].set_up,
     f"{_fr_go[1]}, changed {_fr_go[2]}",
+)
+
+
+async def _fr_flow_refused():
+    hass = FakeHass({})
+    entry = _fr_entry_cls(data=dict(_FR_DATA), options=dict(_FR_OPTS), entry_id="fr_flow_refused")
+    hass.config_entries.entries.append(entry)
+    await _fr_boot(hass, entry)
+
+    async def _refuse(eid):
+        return False
+
+    hass.config_entries.async_unload = _refuse
+    flow = _fr_flow.HeatPumpOptimizerOptionsFlow(entry)
+    flow.hass = hass
+    await flow.async_step_factory_reset()
+    shown = await flow.async_step_factory_reset({"scope": "both", "confirm": True})
+    try:
+        await _fr_services.handle_factory_reset(hass, _fr_call(
+            "heatpump_optimizer", "factory_reset",
+            _fr_services.SERVICE_SCHEMA_FACTORY_RESET({"entry_id": "fr_flow_refused", "scope": "learners"})))
+        raised = None
+    except Exception as err:  # HomeAssistantError
+        raised = err
+    return shown, raised
+
+
+_fr_refused = _aio.run(_fr_flow_refused())
+R.check(
+    "a refused unload is said as not applied, by the options step and by the service, never as done",
+    _fr_refused[0]["type"] == "abort" and _fr_refused[0]["reason"] == "factory_reset_not_applied"
+    and getattr(_fr_refused[1], "translation_key", None) == "factory_reset_not_applied"
+    and all(_fi_json.loads(_FrPath(p).read_text())["options"]["abort"].get("factory_reset_not_applied")
+            and _fi_json.loads(_FrPath(p).read_text())["exceptions"]["factory_reset_not_applied"]["message"]
+            for p in ("custom_components/heatpump_optimizer/strings.json",
+                      "custom_components/heatpump_optimizer/translations/en.json",
+                      "custom_components/heatpump_optimizer/translations/sv.json")),
+    f"{_fr_refused[0]}, raised {_fr_refused[1]!r}",
 )
 _fr_off = _aio.run(_fr_flow_case({"scope": "both", "confirm": True}, "fr_flow_off", loaded=False))
 R.check(
@@ -50313,6 +50429,16 @@ R.check(
     "'wet', 140 and -5 all -> None -- the range test is its own arm from the "
     "parse, and a 140 % humidity selects a defrost bucket that does not "
     "describe any weather",
+)
+R.check(
+    "the range's two ends are humidities: 0 % and 100 % are read, just past either is refused",
+    _t6_humidity([{"humidity": 0, "datetime": _T6_HUM_NOW.isoformat()}]) == 0.0
+    and _t6_humidity([{"humidity": 100, "datetime": _T6_HUM_NOW.isoformat()}]) == 100.0
+    and _t6_humidity([{"humidity": 100.01, "datetime": _T6_HUM_NOW.isoformat()}]) is None
+    and _t6_humidity([{"humidity": -0.01, "datetime": _T6_HUM_NOW.isoformat()}]) is None,
+    f"0 -> {_t6_humidity([{'humidity': 0, 'datetime': _T6_HUM_NOW.isoformat()}])!r}, "
+    f"100 -> {_t6_humidity([{'humidity': 100, 'datetime': _T6_HUM_NOW.isoformat()}])!r} "
+    "-- a saturated or bone-dry forecast is weather, so the bounds are inclusive",
 )
 
 
