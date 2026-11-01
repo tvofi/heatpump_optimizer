@@ -13,49 +13,32 @@ git show origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r10-groups.j
 ```
 
 Worktrees in flight (a crashed seat restarts from its branch and note, never from scratch):
-- R10-COP-GATE (stage carries-open, branch `handoff/r10-cop-gate`): `git fetch origin handoff/r10-cop-gate && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-UX-HEALTH (stage carries-open, branch `handoff/r10-ux-health`): `git fetch origin handoff/r10-ux-health && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-PREPR-CAP (stage in-progress, branch `handoff/r10-prepr-cap`): `git fetch origin handoff/r10-prepr-cap && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-SAV-COMFORT (stage carries-open, branch `fix/r10-sav-comfort`): `git fetch origin fix/r10-sav-comfort && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-CEILING-PROBE (stage in-progress, branch `design/r10-ceiling-probe`): `git fetch origin design/r10-ceiling-probe && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-COP-PARTLOAD (stage carries-open, branch `handoff/r10-cop-partload`): `git fetch origin handoff/r10-cop-partload && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-FLOW-BOARD (stage carries-open, branch `handoff/r10-flow-board`): `git fetch origin handoff/r10-flow-board && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-FLOW-DESIGN-STAGES (stage carries-open, branch `handoff/r10-flow-design-stages`): `git fetch origin handoff/r10-flow-design-stages && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLOW-BODY-ONLY (stage carries-open, branch `handoff/r10-flow-body-only`): `git fetch origin handoff/r10-flow-body-only && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-RELAY-REVIEW-FF (stage carries-open, branch `handoff/r10-fly-relay-review-ff`): `git fetch origin handoff/r10-fly-relay-review-ff && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-CARRY-DOC-CONTEXT (stage in-progress, branch `handoff/r10-fly-carry-doc-context`): `git fetch origin handoff/r10-fly-carry-doc-context && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-GH-READ-RETRY (stage carries-open, branch `handoff/r10-fly-gh-read-retry`): `git fetch origin handoff/r10-fly-gh-read-retry && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-FLY-MANDATE-REVOKE-GUARD (stage carries-open, branch `handoff/r10-fly-mandate-revoke-guard`): `git fetch origin handoff/r10-fly-mandate-revoke-guard && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-TRAIN-OVERLAP-GRADE (stage carries-open, branch `handoff/r10-train-overlap-grade`): `git fetch origin handoff/r10-train-overlap-grade && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-ORCH-LEDGER (stage carries-open): no branch pushed yet, so nothing to fetch
-- R10-ORCH-PLANPAGE (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-ORCH-ROSTER-SCHEMA (stage carries-open, branch `handoff/r10-roster-schema`): `git fetch origin handoff/r10-roster-schema && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-FLY-SUITE-ENV-FLAKES (stage carries-open): no branch pushed yet, so nothing to fetch
-- R10-FLY-NO-FOOTERS (stage carries-open, branch `handoff/r10-fly-no-footers`): `git fetch origin handoff/r10-fly-no-footers && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-ORCH-REVIEW-PACKET (stage carries-open, branch `handoff/r10-orch-review-packet`): `git fetch origin handoff/r10-orch-review-packet && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-CLOSEOUT-CLEANUP (stage in-progress, branch `handoff/r10-closeout-cleanup`): `git fetch origin handoff/r10-closeout-cleanup && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-REPLAY-REAL-DAY (stage in-progress, branch `handoff/r10-replay-real-day`): `git fetch origin handoff/r10-replay-real-day && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-FLY-LEDGER-SAMPLE (stage carries-open): no branch pushed yet, so nothing to fetch
-- R10-MERGE-SUBJECT-CASEARM (stage carries-open, branch `handoff/r10-merge-subject-casearm`): `git fetch origin handoff/r10-merge-subject-casearm && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-996-RUNNER-CLAIMS (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-ARCH-SHAPES-CLASSIFIER (stage queued): no branch pushed yet, so nothing to fetch
-- R10-FRICTION-REGRESSION (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-ADVISOR-WHATIF (stage carries-open): no branch pushed yet, so nothing to fetch
-- R10-FLY-MUTANT-RESTORE (stage carries-open, branch `handoff/r10-fly-mutant-restore`): `git fetch origin handoff/r10-fly-mutant-restore && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-FLY-TRAIN-DEFAULTS (stage carries-open, branch `handoff/r10-fly-train-defaults-p2`): `git fetch origin handoff/r10-fly-train-defaults-p2 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-GH-CALL-LOG (stage in-progress, branch `handoff/r10-fly-gh-call-log`): `git fetch origin handoff/r10-fly-gh-call-log && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-CIPREDICT-RESTORING (stage queued): no branch pushed yet, so nothing to fetch
-- R10-FLY-CANCEL-SWEEP (stage carries-open, branch `handoff/r10-fly-cancel-sweep`): `git fetch origin handoff/r10-fly-cancel-sweep && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-FLY-TICK-APPROVAL-OWED (stage carries-open, branch `handoff/r10-fly-tick-approval-owed`): `git fetch origin handoff/r10-fly-tick-approval-owed && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-FLY-SEAT-ALIVE-ID (stage carries-open, branch `handoff/r10-fly-seat-alive-id`): `git fetch origin handoff/r10-fly-seat-alive-id && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-BUS-BASH32 (stage in-progress, branch `handoff/r10-fly-bus-bash32`): `git fetch origin handoff/r10-fly-bus-bash32 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FACTORY-RESET (stage in-progress, branch `handoff/r10-factory-reset`): `git fetch origin handoff/r10-factory-reset && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-WOOD-NOTIFY (stage carries-open, branch `handoff/r10-wood-notify`): `git fetch origin handoff/r10-wood-notify && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-HOTFIX-AWAY-PRESENCE (stage in-progress, branch `handoff/r10-hotfix-away-presence`): `git fetch origin handoff/r10-hotfix-away-presence && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-AUDIT-COVERAGE-ENDGAME (stage queued): no branch pushed yet, so nothing to fetch
+- R10-FLY-CLOSURE-MAJOR (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-FLY-RAISE-REVIEWABLE (stage in-progress, branch `handoff/r10-fly-raise-reviewable`): `git fetch origin handoff/r10-fly-raise-reviewable && git worktree add --detach $SEAT/wt FETCH_HEAD`
 
-Ready next (after-edges satisfied; nothing open constrains them): R10-996-RUNNER-CLAIMS, R10-ARCHSCORE-SPELLINGS, R10-BRIEFS-FOLD-D0, R10-CEILING-PROBE, R10-COP-PARTLOAD, R10-FACTORY-RESET, R10-FLOW-BOARD, R10-FLOW-BODY-ONLY, R10-FLOW-DESIGN-STAGES, R10-FLY-BUS-BASH32, R10-FLY-CANCEL-SWEEP, R10-FLY-CIPREDICT-RESTORING, R10-FLY-GH-CALL-LOG, R10-FLY-GH-READ-RETRY, R10-FLY-LEDGER-SAMPLE, R10-FLY-MANDATE-REVOKE-GUARD, R10-FLY-MUTANT-RESTORE, R10-FLY-NO-FOOTERS, R10-FLY-RAISE-REVIEWABLE, R10-FLY-RELAY-DELIVERED-GUARD, R10-FLY-RELAY-REVIEW-FF, R10-FLY-SEAT-ALIVE-ID, R10-FLY-SEAT-WAITERS, R10-FLY-STAMP-CHECK-NOTES, R10-FLY-STANDING-CONTRACTS, R10-FLY-TICK-APPROVAL-OWED, R10-FLY-TRAIN-DEFAULTS, R10-FRICTION-REGRESSION, R10-HOTFIX-AWAY-PRESENCE, R10-MERGE-SUBJECT-CASEARM, R10-ORCH-LEDGER, R10-ORCH-PLANPAGE, R10-ORCH-REVIEW-PACKET, R10-ORCH-ROSTER-SCHEMA, R10-PREPR-CAP, R10-REPLAY-REAL-DAY, R10-SAV-COMFORT, R10-TRAIN-OVERLAP-GRADE, R10-WOOD-NOTIFY
+Ready next (after-edges satisfied; nothing open constrains them): R10-996-RUNNER-CLAIMS, R10-AGREEMENT-BOOTSTRAP, R10-ARCHSCORE-SPELLINGS, R10-BASH-KILL-HOOK, R10-BRIEFS-FOLD-D0, R10-CEILING-PROBE, R10-CI-RUNNER-FIXES, R10-CLOUD-POOL, R10-FACTORY-RESET, R10-FLOW-BODY-ONLY, R10-FLY-BUS-BASH32, R10-FLY-CIPREDICT-RESTORING, R10-FLY-CLOSURE-MAJOR, R10-FLY-GH-CALL-LOG, R10-FLY-GH-READ-RETRY, R10-FLY-RAISE-REVIEWABLE, R10-FLY-RELAY-DELIVERED-GUARD, R10-FLY-RELAY-REVIEW-FF, R10-FLY-SEAT-WAITERS, R10-FLY-STAMP-CHECK-NOTES, R10-FLY-STANDING-CONTRACTS, R10-FRICTION-RECORDS, R10-GRADE-DRIVERS, R10-HB-PLATFORM-RULE, R10-HOTFIX-AWAY-PRESENCE, R10-LEDGER-RESIDUE, R10-MUTANT-RUN-DRIVER, R10-OPENER-REUSE, R10-ORCH-REVIEW-PACKET, R10-ORCH-ROSTER-SCHEMA, R10-PARTLOAD-PRICING, R10-PLANTED-DEFECT-AUDIT, R10-POLICY-ROLE-PACK, R10-PREPR-CAP, R10-PROD-RESIDUE-PINS, R10-REPLAY-REAL-DAY, R10-SAV-COMFORT, R10-SEAT-SINGLE-WRITER, R10-SUITE-HOST-DETERMINISM, R10-TICK-PR-BUCKETS, R10-TRAIN-OVERLAP-GRADE, R10-TRAIN-POSTMERGE
 
 ## Resume steps
 
