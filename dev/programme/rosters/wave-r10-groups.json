@@ -13820,7 +13820,9 @@
     "custom_components/heatpump_optimizer/config_flow.py",
     "custom_components/heatpump_optimizer/strings.json"
    ],
-   "carry": [],
+   "carry": [
+    "Carry from the plan-energy live probe (handoff-body/r10-live-plan-energy 7c4e639e4, item b; orchestrator s9 2026-10-31). In two-zone mode house_heat_loss_coefficient is inert, yet the options flow still lets the user edit it. Either hide the field in two-zone mode or label it as unused there, so the UI does not offer a setting that has no effect. Control: a two-zone entry does not show it as an active setting. Null control: single-zone is unchanged."
+   ],
    "resume": {
     "stage": "not-started",
     "branch": "handoff/r10-two-zone-hhl",
