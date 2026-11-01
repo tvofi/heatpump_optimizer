@@ -1,0 +1,18 @@
+diff --git a/tests/golden/claimed_drift.txt b/tests/golden/claimed_drift.txt
+index 86133618a..192bef671 100644
+--- a/tests/golden/claimed_drift.txt
++++ b/tests/golden/claimed_drift.txt
+@@ -734,8 +734,8 @@ config_flow # r10-wood-notify: the wood_lighting_lead_minutes option joins the s
+ # valve_storage_low_target, whose plan leaves move too: the reference's energy
+ # anchors three of the space solve's starts, so a valved plan can land in
+ # another basin. Unvalved fixtures do not move.
+-coord_all_features  # R10-COP-GATE p5 (A): model_status cop row gains cop_observability, cop_refusal, measured_cop_at, copied from the learning view (additions only)
+-coord_dhw  # R10-COP-GATE p5 (A): model_status cop row gains cop_observability, cop_refusal, measured_cop_at, copied from the learning view (additions only)
+-coord_grid_fee  # R10-COP-GATE p5 (A): model_status cop row gains cop_observability, cop_refusal, measured_cop_at, copied from the learning view (additions only)
+-coord_minimal  # R10-COP-GATE p5 (A): model_status cop row gains cop_observability, cop_refusal, measured_cop_at, copied from the learning view (additions only)
+-coord_two_zone  # R10-COP-GATE p5 (A): model_status cop row gains cop_observability, cop_refusal, measured_cop_at, copied from the learning view (additions only)
++coord_all_features  # R10-COP-GATE p5 (A) and R10-CEILING-PROBE (#2498, #2808), both additions only: model_status cop row gains cop_observability, cop_refusal, measured_cop_at, copied from the learning view; the system_identification view gains kind, held, last_attempt, and model_status records a system_identification_outcome row beside it
++coord_dhw  # R10-COP-GATE p5 (A) and R10-CEILING-PROBE (#2498, #2808), both additions only: model_status cop row gains cop_observability, cop_refusal, measured_cop_at, copied from the learning view; the system_identification view gains kind, held, last_attempt, and model_status records a system_identification_outcome row beside it
++coord_grid_fee  # R10-COP-GATE p5 (A) and R10-CEILING-PROBE (#2498, #2808), both additions only: model_status cop row gains cop_observability, cop_refusal, measured_cop_at, copied from the learning view; the system_identification view gains kind, held, last_attempt, and model_status records a system_identification_outcome row beside it
++coord_minimal  # R10-COP-GATE p5 (A) and R10-CEILING-PROBE (#2498, #2808), both additions only: model_status cop row gains cop_observability, cop_refusal, measured_cop_at, copied from the learning view; the system_identification view gains kind, held, last_attempt, and model_status records a system_identification_outcome row beside it
++coord_two_zone  # R10-COP-GATE p5 (A) and R10-CEILING-PROBE (#2498, #2808), both additions only: model_status cop row gains cop_observability, cop_refusal, measured_cop_at, copied from the learning view; the system_identification view gains kind, held, last_attempt, and model_status records a system_identification_outcome row beside it
