@@ -14028,7 +14028,8 @@
     "tests/structure.py"
    ],
    "carry": [
-    "tvofi 2026-10-24 card 4 (CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): hold part (a) (merge origin/main into the head only when the pull request is DIRTY or merge-tree reports a conflict) until R10-FLOW-MQ-PROBE reports and the owner decides; a merge queue makes part (a) moot. Parts (b) and (c) (body-only mode and the relay's body-only call) do not depend on the queue: build them now, because card 7 builds on them."
+    "tvofi 2026-10-24 card 4 (CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): hold part (a) (merge origin/main into the head only when the pull request is DIRTY or merge-tree reports a conflict) until R10-FLOW-MQ-PROBE reports and the owner decides; a merge queue makes part (a) moot. Parts (b) and (c) (body-only mode and the relay's body-only call) do not depend on the queue: build them now, because card 7 builds on them.",
+    "Resolved: the merge queue is not adopted in round 10 (tvofi 2026-10-25; #2826 closed). Take the train-path branch of the conditional; the hold behind R10-FLOW-MQ-PROBE is lifted."
    ],
    "resume": {
     "stage": "not-started",
