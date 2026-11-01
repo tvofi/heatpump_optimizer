@@ -7498,7 +7498,6 @@
     "R10-CI-PRIORITY-PAUSE"
    ],
    "carry": [
-    "Null control: on the study's pinned input (shadow roster at base f424d993d and its simulate_rules.py) the in-tree model reproduces the study's out-of-tree simulate.py outputs: 86, 91 and 97 h at in-progress lead factors 1, 2 and 3 with effects on, and 92 h with effects off. A rule perturbation (drop the chain reservation) must move the figure where the study says it does (75 to 77 h at effects x2).",
     "Seam with R10-ORCH-MACHINERY and R10-FLOW-BOARD: one plan model and one page.",
     "Due before round 11's planning phase (SHADOW-PLAN section 6, P3); it saves no round-10 time, so it takes a normal lane-K pull.",
     "Pre-study: the Lean flow pre-study, section K18.",
