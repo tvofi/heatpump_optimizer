@@ -73,7 +73,15 @@
   refused by GitHub's base-branch policy). `skipped.json`'s rows name the
   verdict; an entry skipped and then merged by the same train is cured
   (`CURED #<pr>`), out of `skipped.json`, `SKIP REPORT` and the exit code. `dev/audit/harnesses/r10_train_overlap_grade_p2_mutants.py` holds
-  one mutant per arm of that rule. A
+  one mutant per arm of that rule. The spool is edited only through the
+  instrument: `add --front <pr>` puts an entry first in the next batch (a
+  spooled one is moved there) and `add --remove <pr>` drops a spooled one
+  (rc 1, nothing written, when it is absent), both under the queue's flock
+  and each printing the spool order read back. A batch's admission waits
+  each head on the required set a pull request's head carries
+  (`required(pr_head=True)`), as the serial head wait does.
+  `dev/audit/harnesses/r10_train_overlap_grade_p4_mutants.py` holds one
+  mutant per arm of these and of the part-3 review survivors. A
   policy head batches like any other: under a `--mandate` naming the mandate's
   comment id, in force for policy merging, the train posts the citing approval
   step 5 requires (`policy_approve`); a budget raise still goes serial.
