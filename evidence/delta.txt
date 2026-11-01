@@ -1,0 +1,8 @@
+auto-merge tree of b8ecad2dc parents: be4d2873edcacf77a71d1dbc4057643107146b15
+actual tree: be4d2873edcacf77a71d1dbc4057643107146b15
+271403e9d tree == 4d6244659 tree: 73844385c30780ce6835143bb2082c988403fd6f 73844385c30780ce6835143bb2082c988403fd6f
+4d624465940b5a4916b7ff3fd3e44b644cd668d1 size_durations: pin the Theil-Sen pair orientation with unsorted-row fixtures and a mutant
+
+ dev/audit/harnesses/r10_plan_durations_mutants.py | 2 ++
+ tools/plan/size_durations.py                      | 5 +++++
+ 2 files changed, 7 insertions(+)

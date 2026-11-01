@@ -1,4 +1,0 @@
-RESULT theil-sen-ordered-pairs real-data round_hours: unmutated=4.63 mutant=3.58
-RESULT theil-sen-ordered-pairs real-data carry_hours: unmutated=0.33 mutant=0.03
-RESULT theil-sen-ordered-pairs real-data sizes_hours: unmutated={'L': 31.1, 'M': 22.3, 'S': 18.2, 'XL': 31.1} mutant={'L': 31.0, 'M': 24.0, 'S': 17.9, 'XL': 32.5}
-RESULT theil-sen-ordered-pairs real-data first_round_hours: unmutated={'L': 16.4, 'M': 14.9, 'S': 12.1, 'XL': 22.6} mutant={'L': 19.6, 'M': 18.3, 'S': 13.2, 'XL': 25.9}

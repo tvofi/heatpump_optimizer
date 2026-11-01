@@ -54,3 +54,4 @@ RESULT mutant=pnums-subset rc=1 fails=1 verdict=killed
 RESULT mutant=forward-overlap rc=1 fails=1 verdict=killed
     FAIL held_report c: text only another HELD group carries is owned here, and a forward by number whose words do not match the carry is not a forward (null control)
 RESULT survived=0
+rc=0

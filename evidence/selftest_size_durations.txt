@@ -16,6 +16,7 @@ ok   model: first_round_hours is the p75 of the round-adjusted hours (14.0)
 ok   model: sizes_hours composes it with the mean rounds: 14 + 0.8 x 11.5 = 23.2
 ok   model: a cell of n>=5 is published per class, one under MIN_CELL is not
 ok   round_slope is the median pairwise slope, not the mean (5.5, not 9.25)
+ok   round_slope does not depend on row order: ascending, reversed and shuffled rows agree (5.5)
 ok   model: a larger size planning shorter is lifted to the smaller's hours, and says so
 ok   model: carry_baseline is the median carries per size
 ok   model: carry_hours is the slope of round-adjusted hours on carries
@@ -31,3 +32,4 @@ ok   held_report c: text only another HELD group carries is owned here, and a fo
 ok   held_report c: text three groups carry is boilerplate, not a landing
 ok   held_report c: a carry naming P200 and P201 has not landed where only P200 did
 size_durations self-test: 0 failed
+rc=0
