@@ -1190,7 +1190,14 @@ async def handle_factory_reset(hass: HomeAssistant, call: ServiceCall) -> dict[s
     """One entry's ``scope`` to its defaults, after an undo point; the entry is set up again."""
     data = dict(call.data)
     for _, coord in _manual_targets(hass, data["entry_id"]):
-        await async_factory_reset(coord, data["scope"])
+        if not await async_factory_reset(coord, data["scope"]):
+            raise HomeAssistantError(
+                f"The factory reset of {data['entry_id']} was not applied: Home "
+                "Assistant refused to unload the entry; nothing was changed",
+                translation_domain=DOMAIN,
+                translation_key="factory_reset_not_applied",
+                translation_placeholders={"entry_id": data["entry_id"]},
+            )
     return {"reset": data["entry_id"], "scope": data["scope"]}
 
 async def handle_restore_snapshot(hass: HomeAssistant, call: ServiceCall) -> dict[str, Any]:

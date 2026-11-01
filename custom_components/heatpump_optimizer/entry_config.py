@@ -335,10 +335,22 @@ def with_settings(wiring: Settings, settings: Settings) -> tuple[dict[str, Any],
     return {**rest[0], **kept[0]}, {**rest[1], **kept[1]}
 
 
+#: The kept keys a settings reset writes, in ``factory_settings``' order: the
+#: topology the dropped keys implied, so its undo point records them as they were.
+FACTORY_PINNED: Mapping[str, str] = MappingProxyType({
+    const.CONF_TWO_ZONE_MODE: "an auto-mode house is two-zone by the zone masses the reset drops",
+    const.CONF_DHW_ENABLED: "the tank's presence, implied by its settings",
+    const.CONF_WOOD_FURNACE_ENABLED: "the furnace's presence, implied by its settings",
+})
+
+
 def undo_point(scope: str, data: Mapping[str, Any], options: Mapping[str, Any]) -> dict[str, Any]:
-    """A reset's ``before_reset`` record: its scope, and the settings it drops."""
-    keeps_settings = scope == const.FACTORY_RESET_SCOPES[1]
-    return {"scope": scope, **({} if keeps_settings else {"settings": settings_of(data, options)})}
+    """A reset's ``before_reset`` record: its scope, the settings it drops and,
+    per (data, options), the ``FACTORY_PINNED`` keys it writes as they were."""
+    if scope == const.FACTORY_RESET_SCOPES[1]:
+        return {"scope": scope}
+    pinned = [{k: side[k] for k in FACTORY_PINNED if k in side} for side in (data, options)]
+    return {"scope": scope, "settings": list(settings_of(data, options)), "pinned": pinned}
 
 
 def undone_settings(
@@ -346,10 +358,12 @@ def undone_settings(
 ) -> tuple[dict[str, Any], dict[str, Any]] | None:
     """The (data, options) undoing a reset's ``undo_point`` over the wiring in force,
     or None where the reset kept the settings (or the record is malformed)."""
-    settings = undo.get("settings")
-    if not (isinstance(settings, list) and len(settings) == 2 and all(isinstance(s, dict) for s in settings)):
+    settings, pinned = undo.get("settings"), undo.get("pinned")
+    if not all(isinstance(x, list) and len(x) == 2 and all(isinstance(s, dict) for s in x) for x in (settings, pinned)):
         return None
-    return with_settings((data, options), (settings[0], settings[1]))
+    unpinned = [{k: v for k, v in side.items() if k not in FACTORY_PINNED} for side in (data, options)]
+    wiring = ({**unpinned[0], **pinned[0]}, {**unpinned[1], **pinned[1]})
+    return with_settings(wiring, (settings[0], settings[1]))
 
 
 def factory_settings(
@@ -363,9 +377,5 @@ def factory_settings(
     first: an auto-mode house is two-zone by its zone masses, and dropping
     those would make it single-zone; the DHW and wood flags likewise.
     """
-    pinned = {
-        const.CONF_TWO_ZONE_MODE: const.TWO_ZONE_MODE_ON if two_zone else const.TWO_ZONE_MODE_OFF,
-        const.CONF_DHW_ENABLED: dhw,
-        const.CONF_WOOD_FURNACE_ENABLED: wood,
-    }
+    pinned = dict(zip(FACTORY_PINNED, (const.TWO_ZONE_MODE_ON if two_zone else const.TWO_ZONE_MODE_OFF, dhw, wood)))
     return with_settings((data, {**options, **pinned}), ({}, {}))

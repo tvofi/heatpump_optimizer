@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/entry_config.py:undone_settings RETURN_DEL 43c5a593",
-  "killed_by": "tests/features.py",
-  "old": "    return with_settings((data, options), (settings[0], settings[1]))",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

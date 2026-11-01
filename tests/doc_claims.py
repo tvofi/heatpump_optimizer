@@ -1957,7 +1957,11 @@ def entity_census(extra: dict) -> list[dict]:
             out.append({
                 "platform": str(plat),
                 "name": names.get(str(plat), {}).get(key, {}).get("name", f"<{plat}:{key}>"),
-                "enabled": getattr(e, "entity_registry_enabled_default", True),
+                # The stub has no entity_registry_enabled_default property, so a class declaring only
+                # _attr_entity_registry_enabled_default read as enabled here; upstream's property returns that
+                # attribute. Same two-path rule as tests/entities.py registry_default.
+                "enabled": bool(getattr(e, "entity_registry_enabled_default",
+                                        getattr(e, "_attr_entity_registry_enabled_default", True))),
                 "options": set(getattr(e, "_attr_options", None) or ()) - {"unknown"},
             })
     return out
@@ -3019,6 +3023,10 @@ def check_image_dimensions() -> None:
 # R10-ARCH-DOCS's end-of-round check, not this one.
 
 WIRING_DOCS = ("docs/architecture.md", "README.md", "dev/README.md")
+# The user pages R10-USER-DOCS-FINAL drafts and R10-USER-DOCS-VERIFY re-checks. README.md is in both sets.
+USER_PAGES = ("README.md", "docs/setup.md", "docs/configuration.md", "docs/how-it-works.md", "docs/automations.md",
+              "docs/dashboard-card.md", "docs/ecl110.md")
+_COMMENT = re.compile(r"<!--.*?-->", re.S)
 # (e) reads every reader doc that draws a mermaid block, plus the onboarding.
 MERMAID_STYLE_DOCS = ("README.md", "docs/architecture.md", "docs/how-it-works.md", "docs/configuration.md",
                       "docs/setup.md", "dev/README.md")
@@ -3038,9 +3046,21 @@ def roster_stages(path: pathlib.Path = ROSTER) -> dict[str, str] | None:
     return {g["group"]: (g.get("resume") or {}).get("stage", "") for g in json.loads(path.read_text())["groups"]}
 
 
+def _in_comment(text: str, pos: int) -> bool:
+    """Whether `pos` lies inside an HTML comment. A marker wrapped in one is a user-doc marker, R10-USER-DOCS-VERIFY's
+    to resolve; a bare one is a wiring marker, R10-ARCH-DOCS's (design/R10-USER-DOCS-FINAL section 3: the wrapper is
+    the tag)."""
+    return any(m.start() < pos < m.end() for m in _COMMENT.finditer(text))
+
+
+def _wiring(text: str) -> list[re.Match]:
+    """The well-formed wiring markers in `text`: a user-doc marker excuses no wiring finding (udf-user-marker-path-mask)."""
+    return [m for m in _MARKER.finditer(text) if not _in_comment(text, m.start())]
+
+
 def _groups(text: str, kind: str = "target") -> list[str]:
-    """The roster groups every well-formed marker of `kind` in `text` names."""
-    return [g for m in _MARKER.finditer(text) if m.group(1) == kind for g in m.group(2).split(", ")]
+    """The roster groups every well-formed wiring marker of `kind` in `text` names."""
+    return [g for m in _wiring(text) if m.group(1) == kind for g in m.group(2).split(", ")]
 
 
 def _units(text: str) -> list[tuple[str, list[str]]]:
@@ -3149,9 +3169,9 @@ def doc_wiring_findings(docs: dict[str, str], tree: set[str], roster, style_docs
                 out.append(f"{name}: a retired-by marker names one group and no owner step: {m.group(0)!r}")
             else:
                 groups += [(name, g.group(1), x) for x in g.group(2).split(", ")]
-        # (a) every backticked repository path resolves, or its unit carries a marker
+        # (a) every backticked repository path resolves, or its unit carries a wiring marker
         for unit, covered in _units(text):
-            marked = covered or bool(_MARKER.search(unit))
+            marked = covered or bool(_wiring(unit))
             for span in re.findall(r"`([^`\n]+)`", unit):
                 for tok in span.split():
                     tok = re.sub(r":\d+(?:-\d+)?$", "", tok)
@@ -3180,7 +3200,7 @@ def doc_wiring_findings(docs: dict[str, str], tree: set[str], roster, style_docs
             out += [f"{name}: [{kind}: {g}] names no group in the roster" for name, kind, g in groups if g not in stages]
             # (c) report-only: resolving is R10-ARCH-DOCS's end-of-round predicate
             notes += [f"{r['doc']}:{r['line']}: {r['marker']} names only done groups; R10-ARCH-DOCS resolves it"
-                      for r in marker_census(docs, stages) if r["due"]]
+                      for r in marker_census(docs, stages) if r["due"] and r["scope"] == "wiring"]
     # (e) no hex colour and no init directive inside a mermaid block
     for name, text in {**(style_docs or {}), **docs}.items():
         for info, body in _FENCE.findall(text):
@@ -3195,15 +3215,35 @@ def doc_wiring_findings(docs: dict[str, str], tree: set[str], roster, style_docs
 def marker_census(docs: dict[str, str], stages: dict[str, str]) -> list[dict]:
     """Every marker in the documents, in order, with each named group's roster stage (`absent` when the roster has
     no such group). `due`: every group it names is done, so the marker is unresolved (R10-ARCH-DOCS-WIRING item 2).
-    A marker quoted in inline code is the grammar being described, not a marker."""
+    `scope`: `user` for a marker inside an HTML comment, else `wiring` (`_in_comment`). A marker quoted in inline code
+    is the grammar being described, not a marker."""
     rows = []
     for name, text in docs.items():
         bare = re.sub(r"`[^`\n]+`", lambda m: " " * len(m.group(0)), text)
         for m in _MARKER.finditer(bare):
             st = {g: stages.get(g, "absent") for g in m.group(2).split(", ")}
             rows.append({"doc": name, "line": bare.count("\n", 0, m.start()) + 1, "marker": m.group(0),
-                         "stages": st, "due": all(v == "done" for v in st.values())})
+                         "stages": st, "due": all(v == "done" for v in st.values()),
+                         "scope": "user" if _in_comment(bare, m.start()) else "wiring"})
     return rows
+
+
+def marker_docs(root: pathlib.Path = ROOT) -> dict[str, str]:
+    """The one dict the marker census reads: the wiring documents and the user pages, keyed by path, so README.md,
+    which is both, is read once and its markers counted once."""
+    return {p: (root / p).read_text() for p in dict.fromkeys(WIRING_DOCS + USER_PAGES) if (root / p).is_file()}
+
+
+def marker_placement_findings(rows: list[dict]) -> list[str]:
+    """A marker on the wrong page for its scope: a bare one on a user-only page renders as text, and a wrapped one
+    on a wiring-only page has no owner there. A user marker naming no roster group is refused as a wiring one is."""
+    out = [f"{r['doc']}:{r['line']}: bare marker {r['marker']} on a user page renders; wrap it in <!-- -->"
+           for r in rows if r["scope"] == "wiring" and r["doc"] in USER_PAGES and r["doc"] not in WIRING_DOCS]
+    out += [f"{r['doc']}:{r['line']}: user-doc marker {r['marker']} on a wiring page; leave it bare"
+            for r in rows if r["scope"] == "user" and r["doc"] in WIRING_DOCS and r["doc"] not in USER_PAGES]
+    out += [f"{r['doc']}:{r['line']}: {r['marker']} names no group in the roster" for r in rows
+            if r["scope"] == "user" and "absent" in r["stages"].values()]
+    return out
 
 
 # (f)-(i): what the architecture page and the onboarding name beyond a path -- a command's arguments, a module's
@@ -3531,6 +3571,13 @@ def check_doc_wiring() -> None:
             repr((got, gn, calls)))
     got, _ = doc_wiring_findings({"d.md": base}, t, lambda: None)
     R.check("a marker with no roster file to resolve it is a finding", any("no roster" in g for g in got), repr(got))
+    # udf-user-marker-path-mask: a user-doc marker on a README unit excuses no missing path there; a wiring one does.
+    user = "# T\n\n- `docs/gone.md` documents it <!-- [target: R10-A] -->\n"
+    got, gn = doc_wiring_findings({"README.md": user}, t, ro)
+    R.check("red fixture: a user-doc marker beside a missing path leaves the path a finding, and adds no due note",
+            any("`docs/gone.md` is not in the tree" in g for g in got) and not gn, repr((got, gn)))
+    got, _ = doc_wiring_findings({"README.md": user.replace("<!-- [target: R10-A] -->", "[target: R10-A]")}, t, ro)
+    R.check("null control: the same unit with a bare wiring marker excuses the path", not got, repr(got))
 
 
 def _read_tracked(tree: set[str]):
@@ -3595,13 +3642,27 @@ def check_named_elements() -> None:
 
 def check_marker_census() -> None:
     R.section("target-marker resolver: every marker with its group's roster stage (R10-ARCH-DOCS-WIRING item 2)")
-    docs = {p: (ROOT / p).read_text() for p in WIRING_DOCS if (ROOT / p).is_file()}
+    docs = marker_docs()
     stages = roster_stages()
     rows = marker_census(docs, stages or {})
-    R.check("the resolver reads every marker arm W reads (anchor)",
-            len(rows) == sum(len(_MARKER.findall(re.sub(r"`[^`\n]+`", "", t))) for t in docs.values()) > 0, str(len(rows)))
-    print(f"       ({sum(r['due'] for r in rows)} of {len(rows)} marker(s) name only done groups: "
-          "python3 tests/doc_claims.py --markers lists them)")
+    R.check("the resolver reads every marker in the wiring documents and the user pages, README.md once (anchor)",
+            len(rows) == sum(len(_MARKER.findall(re.sub(r"`[^`\n]+`", "", t))) for t in docs.values()) > 0
+            and set(docs) == set(WIRING_DOCS) | set(USER_PAGES), str(len(rows)))
+    wiring = [r for r in rows if r["scope"] == "wiring"]
+    print(f"       ({sum(r['due'] for r in wiring)} of {len(wiring)} wiring marker(s) name only done groups: "
+          "python3 tests/doc_claims.py --markers lists them; "
+          f"{len(rows) - len(wiring)} user-doc marker(s): --markers --user)")
+    bad = marker_placement_findings(rows) if stages is not None else []
+    R.check("every marker sits on a page of its scope and names a roster group", not bad, "; ".join(bad[:4]))
+    readme = "# T\n\n- `a.py` lands [target: R10-A]\n\n| Row | Cell <!-- [target: R10-B] --> |\n"
+    tagged = marker_census({"README.md": readme}, {"R10-A": "not-started", "R10-B": "done"})
+    R.check("null control: a README with one wiring and one wrapped marker gives one row of each scope",
+            [r["scope"] for r in tagged] == ["wiring", "user"], repr(tagged))
+    for page, doc, key in (("docs/setup.md", "# T\n\nA screen. [target: R10-A]\n", "renders"),
+                           ("docs/architecture.md", "# T\n\nA module. <!-- [target: R10-A] -->\n", "wiring page")):
+        got = marker_placement_findings(marker_census({page: doc}, {"R10-A": "not-started"}))
+        R.check(f"red fixture: {'a bare' if key == 'renders' else 'a wrapped'} marker in {page} is misplaced",
+                any(key in g for g in got), repr(got))
     stub = {"R10-A": "not-started", "R10-B": "done"}
     doc = "# T\n\n- `a.py` lands [target: R10-A]\n- quoted: `[target: R10-B]`\n"
     null = marker_census({"d.md": doc}, stub)
@@ -3615,17 +3676,26 @@ def check_marker_census() -> None:
 
 
 def print_marker_census(argv: list[str]) -> int:
-    """`--markers [--roster FILE]`: every marker, its groups' stages, and what each due one still leaves unresolved.
-    Exit 1 while any marker is due. FILE defaults to this tree's roster; the live one is on handoff/audit-r10-roster."""
+    """`--markers [--roster FILE]`: every wiring marker, its groups' stages, and what each due one still leaves
+    unresolved; exit 1 while any is due. `--markers --user`: only the comment-wrapped user-doc markers, ending
+    `N user-doc marker(s), M due`; exit 1 while N > 0 (R10-USER-DOCS-VERIFY's end condition is `0 ..., 0 due`).
+    FILE defaults to this tree's roster; the live one is on handoff/audit-r10-roster."""
     roster = pathlib.Path(argv[argv.index("--roster") + 1]) if "--roster" in argv else ROSTER
     stages = roster_stages(roster)
     if stages is None:
         print(f"no roster at {roster}")
         return 2
+    if "--user" in argv:
+        rows = [r for r in marker_census(marker_docs(), stages) if r["scope"] == "user"]
+        for r in rows:
+            print(f"{'DUE ' if r['due'] else '    '}{r['doc']}:{r['line']} {r['marker']} "
+                  + ", ".join(f"{g}={v}" for g, v in r["stages"].items()))
+        print(f"{len(rows)} user-doc marker(s), {sum(r['due'] for r in rows)} due")
+        return 1 if rows else 0
     docs = {p: (ROOT / p).read_text() for p in WIRING_DOCS if (ROOT / p).is_file()}
     tree = _tracked()
     _, pending, _ = named_element_findings(docs, tree, _read_tracked(tree))
-    rows = marker_census(docs, stages)
+    rows = [r for r in marker_census(docs, stages) if r["scope"] == "wiring"]
     for r in rows:
         print(f"{'DUE ' if r['due'] else '    '}{r['doc']}:{r['line']} {r['marker']} "
               + ", ".join(f"{g}={v}" for g, v in r["stages"].items()))
@@ -3854,6 +3924,520 @@ def check_readme_marketplace() -> None:
             not [g for g in readme_figure_findings(edited, regen, sha_of) if "its text differs" in g])
 
 
+# ---------------------------------------------------------------------------
+# R10-USER-DOCS-FINAL: every user-facing surface the tree exposes, and the one place in the user docs that describes
+# it (its home). The page map, the enumeration rule and the claim-check method are the group's design note,
+# dev/programme/designs/R10-USER-DOCS-FINAL.md; R10-USER-DOCS-VERIFY reruns `--surfaces --against` and
+# `--markers --user` at its own base. Each class's source is read from the tree, never from a list kept here.
+# ---------------------------------------------------------------------------
+
+# One class's home: (page, the heading its home sits under, or None for the whole page).
+_HOMES = {
+    "entity": ("README.md", "## Entities"),
+    "service": ("docs/configuration.md", "## Services"),
+    "setup_step": ("docs/setup.md", None),
+    "setup_field": ("docs/configuration.md", "## Initial setup"),
+    "option_page": ("docs/configuration.md", "## Changing settings later"),
+    "option": ("docs/configuration.md", "## Changing settings later"),
+    "blueprint": ("docs/automations.md", "## Blueprints"),
+    "event": ("docs/automations.md", "## Events"),
+    "card_view": ("docs/dashboard-card.md", None),
+    "card_option": ("docs/dashboard-card.md", "## Configuration options"),
+    "repair": ("README.md", "## Troubleshooting"),
+}
+# (class, id) -> why the surface needs no home of its own. Two or more words each; an id no longer enumerated is red.
+SURFACE_EXEMPT = {
+    ("option", "building_preset[questionnaire]"): "a block the questionnaire builds at render time; its fields are "
+    "the Describe your building questions, whose home is the setup screen of that name",
+}
+_NONE = "<none>"
+_COMPUTED = "<computed>"
+
+
+def _under(text: str, heading: str | None) -> str:
+    """The text below the first heading whose line starts with `heading`, up to the next heading at its level or
+    above; the whole text outside fences when `heading` is None. Fenced blocks are dropped first, so a `#` comment
+    in a YAML example is not a heading."""
+    lines = _FENCE.sub("", text).splitlines()
+    if heading is None:
+        return "\n".join(lines)
+    level, out = heading.split()[0].count("#"), None
+    for line in lines:
+        h = re.match(r"(#+)\s", line)
+        if out is not None:
+            if h and len(h.group(1)) <= level:
+                break
+            out.append(line)
+        elif h and len(h.group(1)) == level and line.startswith(heading):
+            out = []
+    return "\n".join(out or [])
+
+
+def _table_rows(text: str) -> list[tuple[str, list[str], list[str]]]:
+    """(nearest heading above, header cells, body cells) for every GFM table row, read after HTML comments are
+    stripped, so a marker at the end of a last cell is never part of a cell (design section 3, Placement)."""
+    rows, hdr, head = [], None, ""
+    for line in _COMMENT.sub("", text).splitlines():
+        h = re.match(r"#+\s+(.*)", line)
+        if h:
+            head, hdr = h.group(1).strip(), None
+        elif line.lstrip().startswith("|"):
+            cells = [c.strip() for c in line.strip().strip("|").split("|")]
+            if hdr is None:
+                hdr = cells
+            elif not set(line.strip()) <= set("|-: "):
+                rows.append((head, hdr, cells))
+        else:
+            hdr = None
+    return rows
+
+
+def _plain(s: str) -> str:
+    """A label as a reader compares it: `_label`, then only letters, digits and single spaces."""
+    return " ".join(re.sub(r"[^a-z0-9]+", " ", _label(s)).split())
+
+
+def _js_literal(src: str) -> object:
+    src = src.strip().rstrip(",")
+    return json.loads(src) if re.fullmatch(r'"[^"]*"|-?\d+(?:\.\d+)?|true|false|null', src) else _COMPUTED
+
+
+def surface_sources(services: dict | None = None) -> list[dict]:
+    """Every surface the tree exposes: (class, id, label, value). `value` is the shipped default where the class has
+    one -- a literal, `_COMPUTED` for one derived at run time, `_NONE` for none -- and is otherwise ignored.
+    `services` replaces the parsed services.yaml (the coverage arm's red fixture plants one there)."""
+    import asyncio
+
+    import yaml
+
+    from harness import FakeHass
+    from heatpump_optimizer import config_flow, const
+
+    out: list[dict] = []
+
+    def add(cls: str, id_: str, label: str, value: object = _NONE, under: str = "") -> None:
+        out.append({"class": cls, "id": id_, "label": label, "value": value, "under": under})
+
+    for e in entity_census({const.CONF_DHW_TANK_VOLUME: 200.0}):
+        add("entity", f"{e['platform']}.{e['name']}", e["name"], "enabled" if e["enabled"] else "disabled")
+    if services is None:
+        services = yaml.safe_load((PKG / "services.yaml").read_text())
+    for name, spec in services.items():
+        add("service", name, (spec or {}).get("name", name))
+
+    def fields(step: dict) -> dict[str, str]:
+        got = dict(step.get("data", {}))
+        for sec in step.get("sections", {}).values():
+            got.update(sec.get("data", {}))
+        return got
+
+    async def rendered(step: str) -> dict[str, object]:
+        flow = config_flow.HeatPumpOptimizerConfigFlow()
+        flow.hass = FakeHass()
+        form = await getattr(flow, f"async_step_{step}")(None)
+        found: dict[str, object] = {}
+        stack = [form.get("data_schema")]
+        while stack:
+            sch = stack.pop()
+            for k, v in (getattr(sch, "schema", None) or {}).items():
+                if hasattr(v, "schema") and not isinstance(getattr(v, "schema"), (str, dict)):
+                    stack.append(v.schema)
+                    continue
+                d = k.default() if callable(getattr(k, "default", None)) else None
+                found[str(getattr(k, "schema", k))] = _NONE if d is None else (d if isinstance(
+                    d, (bool, int, float, str)) else _COMPUTED)
+        return found
+
+    for step, spec in _EN_STRINGS["config"]["step"].items():
+        add("setup_step", step, spec.get("title", step))
+        defaults = asyncio.run(rendered(step))
+        for key, label in fields(spec).items():
+            add("setup_field", f"{step}.{key}", label, defaults.get(key, _NONE), spec.get("title", step))
+    titles, _ = options_field_pages()
+    for page in config_flow._OPTION_PAGES:
+        add("option_page", page.step, titles.get(page.step, page.label))
+    opt_steps = _EN_STRINGS["options"]["step"]
+    for f in config_flow._OPTION_FIELDS:
+        d = f.default
+        value = d if isinstance(d, (bool, int, float, str)) and not isinstance(d, config_flow._Rule) else _COMPUTED
+        add("option", f.key or f"{f.step}[{f.group}]", fields(opt_steps.get(f.step, {})).get(f.key, ""), value,
+            titles.get(f.step, f.step))
+    for p in sorted(BLUEPRINTS_DIR.glob("*.yaml")):
+        add("blueprint", p.name, (re.search(r"^\s*name:\s*(.+)$", p.read_text(), re.M) or [None, p.stem])[1].strip())
+    for m in re.finditer(r'^EVENT_\w+ = f"\{DOMAIN\}_(\w+)"', (PKG / "notifier.py").read_text(), re.M):
+        add("event", f"{const.DOMAIN}_{m.group(1)}", m.group(1).replace("_", " "))
+    card = CARD.read_text()
+    for view in ["compact", *dict.fromkeys(re.findall(r'\btab\("(\w+)"', card))]:
+        add("card_view", view, view)
+    block = re.search(r"^const DEFAULTS = \{\n(.*?)^\};", card, re.M | re.S)
+    defaults = {m.group(1): _js_literal(m.group(2))
+                for m in re.finditer(r"^\s+(\w+):\s*(.+?)\s*$", block.group(1) if block else "", re.M)}
+    for key in sorted(set(defaults) | set(re.findall(r"\bconfig\.([a-z_]\w*)", card))):
+        add("card_option", key, key, defaults.get(key, _NONE))
+    for key, issue in json.loads((PKG / "strings.json").read_text())["issues"].items():
+        add("repair", key, issue.get("title", key))
+    return out
+
+
+def _selector_labels(value: str) -> set[str]:
+    return {opts["options"][value] for opts in _EN_STRINGS.get("selector", {}).values()
+            if isinstance(opts, dict) and value in opts.get("options", {})}
+
+
+def default_agrees(value: object, cell: str) -> bool:
+    """A Default cell states the shipped default: the number, the on/off, the choice, or "none" for an empty one. A
+    computed default, or a field with none, needs a non-empty cell naming no number (design section 4, item 1)."""
+    cell = _COMMENT.sub("", cell).strip()
+    flat = re.sub(r"[`*]", "", cell).replace("\u2212", "-").lower()
+    flat = re.sub(r"(?<=\d)[ \u00a0\u202f](?=\d{3}\b)", "", flat)
+    if not flat:
+        return False
+    if value in (_COMPUTED, _NONE):
+        return not re.search(r"\d", flat)
+    if isinstance(value, bool):
+        words = r"on|enabled|yes|true" if value else r"off|disabled|no|false"
+        return bool(re.match(rf"(?:{words})\b", flat))
+    if isinstance(value, (int, float)):
+        m = re.search(r"-?\d+(?:[.,]\d+)?", flat)
+        return m is not None and abs(float(m.group(0).replace(",", ".")) - float(value)) < 1e-9
+    if value == "":
+        return bool(re.match(r"\(?(?:none|empty|not set|\u2014|-)(?:\W|$)", flat))
+    wanted = {value.lower(), value.lower().replace("_", " ")} | {s.lower() for s in _selector_labels(value)}
+    return any(w in flat for w in wanted)
+
+
+def _bold_leads(text: str) -> list[str]:
+    return [m.group(1) for m in re.finditer(r"^(?:[-*]\s+)?\*\*([^*\n]+?)\*\*", _COMMENT.sub("", text), re.M)]
+
+
+def _home(row: dict, pages: dict[str, str]) -> tuple[bool, str]:
+    """(found, why not) for one surface: its home shape is on its home page, and a default the class carries
+    agrees with the home's Default cell."""
+    cls, id_, label = row["class"], row["id"], row["label"]
+    page, heading = _HOMES[cls]
+    body = _under(pages.get(page, ""), heading)
+    if cls in ("option", "setup_field", "card_option", "entity", "event"):
+        want = (_label(label) if cls in ("option", "setup_field") else
+                f"`{id_}`" if cls in ("card_option", "event") else label)
+        for head, hdr, cells in _table_rows(body):
+            first = _label(cells[0]) if cls in ("option", "setup_field") else cells[0].strip("* ")
+            if cls == "event" and want in cells[0] or first == want:
+                # an option's row sits under its page's heading; a setup field's under a heading naming its screen
+                if cls == "option" and _plain(head) != _plain(row["under"]) or (
+                        cls == "setup_field" and f" {_plain(row['under'])} " not in f" {_plain(head)} "):
+                    continue
+                if cls == "entity":
+                    off = "disabled by default" in " ".join(cells).lower()
+                    return (off == (row["value"] == "disabled"),
+                            "" if off == (row["value"] == "disabled") else "the row's disabled-by-default disagrees")
+                if cls == "event":
+                    return True, ""
+                col = next((i for i, h in enumerate(hdr) if h.strip().lower() == "default"), None)
+                if col is None or col >= len(cells):
+                    return False, "its row has no Default cell"
+                return (default_agrees(row["value"], cells[col]),
+                        "" if default_agrees(row["value"], cells[col]) else f"Default cell {cells[col]!r}")
+        return False, "no table row names it"
+    if cls == "service":
+        para = _service_paragraphs(_COMMENT.sub("", body))
+        summary = {c[0] for _, _, c in _table_rows(_under(pages.get("README.md", ""), "## Services"))}
+        if id_ not in para:
+            return False, "no **`name`** paragraph under docs/configuration.md ## Services"
+        return (f"`{id_}`" in summary, "" if f"`{id_}`" in summary else "no row in README.md ## Services")
+    if cls in ("setup_step", "option_page", "card_view"):
+        heads = [re.sub(r"^#+\s+", "", l) for l in body.splitlines() if re.match(r"#{2,4}\s", l)]
+        if cls == "setup_step":
+            heads += [re.sub(r"^#+\s+", "", l) for l in _under(pages.get("docs/configuration.md", ""),
+                                                                 "## Initial setup").splitlines()
+                      if re.match(r"#{2,4}\s", l)]
+            hit = any(f" {_plain(label)} " in f" {_plain(h)} " for h in heads)
+        elif cls == "option_page":
+            hit = any(re.match(r"### ", l) and _plain(l[4:]) == _plain(label) for l in body.splitlines())
+        else:
+            want = {"plan": "reading the chart", "compact": "the card at a glance"}.get(id_, f"the {id_} page")
+            hit = any(_plain(h) == want for h in heads)
+        return hit, "" if hit else "no heading names it"
+    if cls == "blueprint":
+        hit = bool(re.search(r"^\s*[-*]\s.*\(https://raw\.githubusercontent\.com/\S+/blueprints/automation/"
+                             + re.escape(id_) + r"\)", _COMMENT.sub("", body), re.M))
+        return hit, "" if hit else "no bullet links its raw URL"
+    parts = [_plain(p) for p in re.split(r"\{\w+\}", label)]
+    pattern = r" \S+ ".join(re.escape(p) for p in parts if p)
+    hit = any(re.fullmatch(pattern, _plain(b)) for b in _bold_leads(body))
+    return hit, "" if hit else "no bold lead names its title"
+
+
+def _user_pages(root: pathlib.Path = ROOT) -> dict[str, str]:
+    return {p: (root / p).read_text() for p in USER_PAGES if (root / p).is_file()}
+
+
+def _shown(cls: str, value: object) -> str:
+    if cls == "entity":
+        return str(value)
+    if cls not in ("option", "setup_field", "card_option"):
+        return "-"
+    return value if value in (_COMPUTED, _NONE) else json.dumps(value, ensure_ascii=False)
+
+
+def surface_rows(pages: dict[str, str] | None = None, sources: list[dict] | None = None) -> list[dict]:
+    """One row per surface, sorted by its key `(class, id)`: the label, the home page, whether the home is there
+    (`home`, 0 or 1, with `why` when it is not), the default as `--surfaces` prints it, and the exemption reason."""
+    pages = _user_pages() if pages is None else pages
+    rows = []
+    for src in surface_sources() if sources is None else sources:
+        found, why = _home(src, pages)
+        rows.append({**src, "page": _HOMES[src["class"]][0], "home": int(found), "why": why,
+                     "default": _shown(src["class"], src["value"]),
+                     "exempt": SURFACE_EXEMPT.get((src["class"], src["id"]))})
+    return sorted(rows, key=lambda r: (r["class"], r["id"]))
+
+
+def surface_findings(rows: list[dict], exempt: dict[tuple[str, str], str] = SURFACE_EXEMPT) -> list[str]:
+    """What the coverage arm refuses: a duplicate key, a non-exempt surface with no home, an exemption whose
+    reason is under two words, and an exemption naming a key no longer enumerated."""
+    keys = [(r["class"], r["id"]) for r in rows]
+    out = [f"duplicate surface key {k}" for k, n in collections.Counter(keys).items() if n > 1]
+    out += [f"{r['class']} {r['id']!r} ({r['label']}): no home on {r['page']}: {r['why']}"
+            for r in rows if not r["home"] and (r["class"], r["id"]) not in exempt]
+    out += [f"exemption {k} gives a reason of under two words" for k, why in exempt.items()
+            if len(why.split()) < 2]
+    out += [f"exemption {k} names no enumerated surface" for k in exempt if k not in set(keys)]
+    return out
+
+
+def surface_tsv(rows: list[dict]) -> list[str]:
+    return ["\t".join((r["class"], r["id"], r["label"], r["page"], str(r["home"]), r["default"])) for r in rows]
+
+
+_DELTA_FIELDS = ("label", "home-page", "home-found", "default")
+
+
+def _parse_tsv(lines: list[str]) -> dict[tuple[str, str], dict[str, str]]:
+    out = {}
+    for line in lines:
+        cells = line.rstrip("\n").split("\t")
+        if len(cells) == 6:
+            out[(cells[0], cells[1])] = dict(zip(_DELTA_FIELDS, cells[2:]))
+    return out
+
+
+def surface_delta(old: list[str], new: list[str]) -> list[str]:
+    """The keyed delta between two `--surfaces` outputs: LANDED (keys only in `new`), REMOVED (keys only in
+    `old`) and CHANGED (keys in both whose label, home or default differs, naming each field old -> new). A relabel,
+    a lost home or a changed default is a CHANGED line, never a removal plus an addition."""
+    a, b = _parse_tsv(old), _parse_tsv(new)
+    landed = [f"  {c}\t{i}\t{b[(c, i)]['label']}" for c, i in sorted(set(b) - set(a))]
+    removed = [f"  {c}\t{i}\t{a[(c, i)]['label']}" for c, i in sorted(set(a) - set(b))]
+    changed = []
+    for k in sorted(set(a) & set(b)):
+        diff = [f"{f}: {a[k][f]!r} -> {b[k][f]!r}" for f in _DELTA_FIELDS if a[k][f] != b[k][f]]
+        if diff:
+            changed.append(f"  {k[0]}\t{k[1]}\t" + "; ".join(diff))
+    return ([f"LANDED ({len(landed)})", *landed, f"REMOVED ({len(removed)})", *removed,
+             f"CHANGED ({len(changed)})", *changed])
+
+
+def print_surfaces(argv: list[str]) -> int:
+    """`--surfaces`: one sorted line per surface, `class id label home-page home-found default`, tab-separated;
+    exit 1 while a non-exempt surface has no home. `--surfaces --against FILE`: the keyed delta from an earlier
+    `--surfaces` output (FILE) to this tree; exit 1 while any of its three sections is non-empty. Run each with cwd
+    at its own worktree's root: tests/harness.py puts the relative package first on sys.path."""
+    rows = surface_rows()
+    if "--against" in argv:
+        path = pathlib.Path(argv[argv.index("--against") + 1])
+        if not path.is_file():
+            print(f"no --surfaces output at {path}")
+            return 2
+        delta = surface_delta(path.read_text().splitlines(), surface_tsv(rows))
+        print("\n".join(delta))
+        return 1 if any(not line.endswith("(0)") for line in delta if not line.startswith("  ")) else 0
+    print("\n".join(surface_tsv(rows)))
+    bad = surface_findings(rows)
+    for b in bad:
+        print(f"# {b}", file=sys.stderr)
+    return 1 if bad else 0
+
+
+def check_surface_coverage() -> None:
+    R.section("every user-facing surface has its home in the user docs, default included (R10-USER-DOCS-FINAL)")
+    sources = surface_sources()
+    rows = surface_rows(sources=sources)
+    classes = collections.Counter(r["class"] for r in rows)
+    R.check("every surface class enumerates from the tree (anchor)", set(classes) == set(_HOMES),
+            ", ".join(f"{c}={classes.get(c, 0)}" for c in _HOMES))
+    bad = surface_findings(rows)
+    R.check("every surface has its home, or a reasoned exemption that still names one",
+            not bad, "; ".join(bad[:4]) + (f" (+{len(bad) - 4})" if len(bad) > 4 else ""))
+    print(f"       ({len(rows)} surface(s), {sum(r['home'] for r in rows)} homed, {len(SURFACE_EXEMPT)} exempt: "
+          "python3 tests/doc_claims.py --surfaces lists them)")
+    import yaml
+
+    planted = surface_sources(services={**yaml.safe_load((PKG / "services.yaml").read_text()),
+                                        "probe_undocumented": {"name": "Probe"}})
+    got = surface_findings(surface_rows(sources=planted))
+    R.check("red fixture: a service planted in services.yaml with no home is the one finding",
+            len(got) == len(bad) + 1 and any("'probe_undocumented'" in g for g in got), repr(got[:3]))
+    pages = _user_pages()
+    opt = next(r for r in rows if r["class"] == "option" and isinstance(r["value"], float) and r["home"])
+    hdr = next(h for _, h, c in _table_rows(_under(pages["docs/configuration.md"], "## Changing settings later"))
+               if _label(c[0]) == _label(opt["label"]))
+    col = [h.lower() for h in hdr].index("default")
+    lines = pages["docs/configuration.md"].splitlines()
+    i = next(n for n, l in enumerate(lines) if l.startswith("|") and _label(l.strip("|").split("|")[0]) ==
+             _label(opt["label"]))
+    cells = lines[i].strip().strip("|").split("|")
+    cells[col] = " 9999 "
+    moved = {**pages, "docs/configuration.md": "\n".join(lines[:i] + ["|" + "|".join(cells) + "|"] + lines[i + 1:])}
+    got = surface_findings(surface_rows(pages=moved, sources=sources))
+    R.check(f"red fixture: a Default cell that disagrees with the shipped default ({opt['id']}) is a finding",
+            any(f"'{opt['id']}'" in g and "Default cell" in g for g in got), repr(got[:3]))
+    stale = {**SURFACE_EXEMPT, ("service", "gone_service"): "removed from the tree"}
+    R.check("red fixture: an exemption naming a surface no longer enumerated is a finding",
+            any("gone_service" in g for g in surface_findings(rows, stale)))
+    R.check("red fixture: a one-word exemption reason is a finding",
+            any("under two words" in g for g in surface_findings(rows, {**SURFACE_EXEMPT, ("x", "y"): "internal"})))
+    a = surface_tsv(rows)
+    flip = [l.rsplit("\t", 1)[0] + "\t" + json.dumps(9999.0) if l.startswith(f"option\t{opt['id']}\t") else l
+            for l in a]
+    R.check("null control: the delta of a surface list against itself is three empty sections",
+            surface_delta(a, a) == ["LANDED (0)", "REMOVED (0)", "CHANGED (0)"], repr(surface_delta(a, a)))
+    d = surface_delta(a, flip)
+    R.check("red fixture: a changed default is exactly one CHANGED line, nothing LANDED or REMOVED",
+            d[:2] == ["LANDED (0)", "REMOVED (0)"] and d[2] == "CHANGED (1)" and len(d) == 4
+            and "default:" in d[3], repr(d))
+    d = surface_delta(a[1:], a[:-1])
+    R.check("red fixture: an added key is LANDED and a dropped key is REMOVED",
+            d[0] == "LANDED (1)" and a[0].split("\t")[1] in d[1] and d[2] == "REMOVED (1)"
+            and a[-1].split("\t")[1] in d[3], repr(d))
+
+
+# The stateless arm (design section 4, item 2): the user pages state how the integration works, never how it came to
+# work that way -- RELEASE_NOTES.md is where the history lives. Every phrase has word boundaries: a bare `used to`
+# matches "Refused together" (carry udf-used-to-boundary). The bare word "now" is not in the lexicon: its hits are
+# "right now" and a UI label ("Finish setup now"), not history. The second line is the round-2 widening (fix review of
+# #3048): "earlier/older versions", "versions older than", "upgraded from", "the upgrade", "is now X rather than Y",
+# "breaking change", and a bare three-part version number, which states a release, not a behaviour. "now ... rather
+# than" needs the "is/are" before it, so "snaps back to now rather than show a past" stays a statement; its gap
+# admits a decimal point ("now 1.0 rather than") and a wrapped line, never a sentence end. A literal
+# version (a minimum Home Assistant release, the fork's attribution) goes in STATELESS_EXEMPT with its reason.
+# Round 3 (fix review of #3048 at 6d24f3ac6): "previous/old" + a thing that changes between releases (behaviour,
+# default, version, form, layout, formula, name, id, suffix), "older" + an install or integration, and "silently" + a
+# past-tense verb; then "historical default/form" and "before this/that/it was", the opening of a recounted change
+# ("Before this was shared, the simulation charged ..."). Bare "previous" and "old" stay out: "the previous day",
+# "the previous answer" and "the old plan stands" state what happens now, and "an older Home Assistant" / "older than
+# three solve cycles" compare, not recount. A past-tense counterfactual ("Sizing it from the whole house inflated the
+# cap") has no word-level shape; the round-3 census read every was/were/had hit for it instead.
+_HISTORY = re.compile(r"(?i:\bnew in\b|\bsince (?:v\d|version\b|#\d)|\bpreviously\b|\bno longer\b|\bused to\b"
+                      r"|\buntil v\d|\bas before\b|\brenamed from\b|\bround \d"
+                      r"|\b(?:earlier|older)\s+(?:versions?|releases?)\b"
+                      r"|\b(?:versions?|releases?)\s+(?:older|newer)\s+than\b"
+                      r"|\bupgraded\s+from\b|\bthe\s+upgrade\b|\bbreaking\s+change\b"
+                      r"|\b(?:is|are)\s+now\b(?:[^.;\n]|\.\d|\n(?!\s*\n)){0,40}?\brather\s+than\b"
+                      r"|\bbefore\s+(?:this|that|it)\s+(?:was|were)\b"
+                      r"|\bhistorical\s+(?:[\w-]+\s+)?(?:defaults?|forms?|behaviou?rs?)\b"
+                      r"|\b(?:previous|old)\s+(?:behaviou?rs?|defaults?|versions?|releases?|forms?|layouts?|formulas?"
+                      r"|names?|ids?|suffix(?:es)?)\b"
+                      r"|\bolder\s+(?:integrations?|setups?|installs?|installations?|registry|ids?|suffix(?:es)?)\b"
+                      r"|\bsilently\s+(?:evaluated|was|were|did|read|returned|gave)\b)"
+                      r"|\bv\d+\.\d+|(?<![\w&])#\d{3,}\b|\bR\d+-"
+                      r"|(?<![\w.])\d+\.\d+\.\d+\b")
+# `used to` in its purpose sense ("is used to size the tank", "Used to ..."), which states what a thing does now.
+_PURPOSE = re.compile(r"(?:^|[.!?|]\s*|,\s*|\b(?:is|are|only|also)\s+)$", re.I)
+# (page, fragment, reason): a literal use of a lexicon phrase. Each fragment must match exactly once on its page.
+STATELESS_EXEMPT: tuple[tuple[str, str, str], ...] = (
+    ("README.md", "Home Assistant: 2025.2.0+", "the minimum Home Assistant release, stated on the badge"),
+    ("README.md", "Home Assistant 2025.2.0 or newer", "the minimum Home Assistant release, stated as a requirement"),
+    ("README.md", "Home Assistant 2025.2.0 and Python", "the minimum Home Assistant release, stated at installation"),
+    ("README.md", "at version 2.2.0", "the fork's attribution names the upstream release it began from, as NOTICE does"),
+    ("README.md", "Versions 2.3.0 onward", "the fork's attribution names which releases are this fork's own work"),
+)
+
+
+def _blank(m: re.Match) -> str:
+    return re.sub(r"[^\n]", " ", m.group(0))
+
+
+def stateless_text(text: str) -> str:
+    """The prose a reader reads as a statement: fences, inline code, HTML comments and link targets blanked, line
+    breaks kept so a hit keeps its line number."""
+    text = _FENCE.sub(_blank, text)
+    text = _COMMENT.sub(_blank, text)
+    text = re.sub(r"`[^`\n]+`", _blank, text)
+    text = re.sub(r"(?<=\])\([^)\s]*(?:\s+\"[^\"]*\")?\)", _blank, text)
+    return re.sub(r"<[^>\n]+>", _blank, text)
+
+
+def stateless_findings(pages: dict[str, str], exempt=STATELESS_EXEMPT) -> list[str]:
+    """`page:line: phrase | context` for every history phrase outside an exemption, plus every exemption that does
+    not match exactly once."""
+    out = []
+    spans: dict[str, list[tuple[int, int]]] = {}
+    for page, fragment, _why in exempt:
+        text = stateless_text(pages.get(page, ""))
+        at = [m.start() for m in re.finditer(re.escape(fragment), text)]
+        if len(at) != 1:
+            out.append(f"exemption {page}: {fragment!r} matches {len(at)} times, not once")
+        spans.setdefault(page, []).extend((a, a + len(fragment)) for a in at)
+    for page, raw in pages.items():
+        text = stateless_text(raw)
+        for m in _HISTORY.finditer(text):
+            if m.group(0).lower() == "used to" and _PURPOSE.search(text[:m.start()]):
+                continue
+            if any(a <= m.start() < b for a, b in spans.get(page, ())):
+                continue
+            line = text.count("\n", 0, m.start()) + 1
+            ctx = text.splitlines()[line - 1].strip()
+            out.append(f"{page}:{line}: {m.group(0)!r} | {ctx[:90]}")
+    return out
+
+
+def check_stateless() -> None:
+    R.section("the user pages describe the integration as it is, with no change history (R10-USER-DOCS-FINAL)")
+    pages = _user_pages()
+    R.check("the seven user pages are there (anchor)", len(pages) == len(USER_PAGES),
+            ", ".join(sorted(set(USER_PAGES) - set(pages))))
+    bad = stateless_findings(pages)
+    R.check("no user page carries a history phrase outside a reasoned exemption",
+            not bad, "; ".join(bad[:4]) + (f" (+{len(bad) - 4})" if len(bad) > 4 else ""))
+    for plant in ("This mode is new in v9.", "The card previously showed the price.",
+                  "Earlier versions sized the dialog from a guess.", "Older releases kept the slab warm.",
+                  "It reads both ids, for integration versions older than the move.",
+                  "An install upgraded from the first layout keeps its ids.",
+                  "A learned derate survives the upgrade.", "Its upper clamp is now 1.0 rather than 1.05.",
+                  "The new floor was a breaking change.", "The card reads both ids before 2.6.1 too.",
+                  "The weather forecast, the previous behaviour and still the default.",
+                  "Installs that stored the previous default strings keep them.",
+                  "The card tries the old suffix after the current one.",
+                  "Older integrations publish none of them.", "An install that kept older registry ids is covered.",
+                  "The term silently evaluated to zero for many installs.",
+                  "Before this was shared, the simulation charged the buffer.",
+                  "Some labels read SEK, which is the historical default.",
+                  "The fit degrades to the historical two-column form."):
+        got = stateless_findings({"probe.md": f"# T\n\n{plant}\n"}, ())
+        R.check(f"red fixture: {plant!r} is exactly one finding", len(got) == 1, repr(got))
+    R.check("null control: the widened terms' current-behaviour neighbours (\"back to now rather than\", \"the older "
+            "hourly clock\", \"an upgrade seems\", a calendar month \"2026.11\", a decimal \"0.55\") are not findings",
+            not stateless_findings({"probe.md": "# T\n\nThe window snaps back to now rather than show a past. 60 keeps "
+                                                "the older hourly clock. If an upgrade seems to change nothing, reload. "
+                                                "From Home Assistant 2026.11 the derate floor is 0.55. Run `2.6.1`.\n"}, ()))
+    R.check("null control: bare \"previous\", \"old\" and \"older\" in their current sense (\"the previous answer\", "
+            "\"the previous one\", \"the old plan stands\", \"an older Home Assistant\", \"older than three solve cycles\", "
+            "\"silently keeping\") are not findings",
+            not stateless_findings({"probe.md": "# T\n\nRapid repeats return the previous answer, not the previous one. "
+                                                "The call refuses while the old plan stands. An older Home Assistant is "
+                                                "not offered updates. The plan is older than three solve cycles. It "
+                                                "refuses rather than silently keeping the old plan.\n"}, ()))
+    R.check("null control: \"previous day\", a purpose-sense \"is used to\", \"Refused together\", a code span and "
+            "a link anchor are not findings",
+            not stateless_findings({"probe.md": "# T\n\nThe previous day's cost. The sensor is used to size the tank."
+                                                " Refused together. Run `v9.1 previously`. See [x](#1234-x).\n"}, ()))
+    R.check("red fixture: a history-sense \"used to\" is a finding",
+            len(stateless_findings({"probe.md": "# T\n\nThe card used to draw the price.\n"}, ())) == 1)
+    R.check("red fixture: an exemption that matches no fragment is a finding",
+            any("matches 0 times" in g for g in stateless_findings(pages, (("README.md", "no such words", "a b"),))))
+
+
+
 def main() -> int:
     check_figures()
     check_product_page()
@@ -3894,8 +4478,11 @@ def main() -> int:
     check_card_figures()
     check_coffee_button()
     check_readme_marketplace()
+    check_surface_coverage()
+    check_stateless()
     return R.close("checks")
 
 
 if __name__ == "__main__":
-    raise SystemExit(print_marker_census(sys.argv) if "--markers" in sys.argv else main())
+    raise SystemExit(print_marker_census(sys.argv) if "--markers" in sys.argv
+                     else print_surfaces(sys.argv) if "--surfaces" in sys.argv else main())
