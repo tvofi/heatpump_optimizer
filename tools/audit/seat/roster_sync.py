@@ -1204,6 +1204,75 @@ def self_test() -> int:
                           "--apply writes carries-open (null control)",
                           rc == 0 and got == "carries-open",
                           (rc, got, out[-300:], err[-300:]))
+            # The projections (review round 2, A4 dry run, A5 write path): a
+            # same-pass `Carry:` to a group this pass closes is judged against
+            # the projected stage, so the projection reads the cut-over too.
+            # One pass merges R9-LEG and R9-OTH, whose body routes a carry to
+            # R9-LEG. Legacy-only: R9-LEG projects done, the carry is refused
+            # in the dry run's print and in the write, and R9-LEG is written
+            # done with nothing stranded. Null: R9-LEG also holds a
+            # post-cut-over carry, so it projects carries-open, the carry
+            # appends, and it is written carries-open.
+            oth = {"group": "R9-OTH", "lane": "L1", "issues": [], "fixes": [],
+                   "after": [], "brief": "other", "carry": [],
+                   "resume": {"stage": "in-progress", "branch": "handoff/r9-oth"}}
+            routed = "the oth finding the leg group takes up next. Carry: R9-LEG"
+            pass_prs = root / "prs-pass.json"
+            pass_prs.write_text(json.dumps([
+                {"number": 61, "state": "MERGED", "headRefName": "handoff/r9-leg",
+                 "mergeCommit": {"oid": "6" * 40},
+                 "body": "## Friction\n\n- none\n"},
+                {"number": 62, "state": "MERGED", "headRefName": "handoff/r9-oth",
+                 "mergeCommit": {"oid": "7" * 40},
+                 "body": "## Forward-carry\n\n- " + routed + "\n"}]),
+                encoding="utf-8")
+            for name, tip_carry in (("legacy-only", ["legacy one"]),
+                                    ("post-cut-over", ["legacy one", "post one"])):
+                at_cut = {"repo": "fixture/roster", "session": "r9-sync",
+                          "groups": [leg_group("done"), oth]}
+                tip_leg = leg_group("in-progress") | {"carry": tip_carry}
+                at_tip = {"repo": "fixture/roster", "session": "r9-sync",
+                          "groups": [tip_leg, oth]}
+                bare_p, drv_p, _ = build(root / f"pass-{name}", LINT_OK,
+                                         [at_cut, at_tip])
+                roster_lib.CARRY_CUTOVER.clear()
+                roster_lib.CARRY_CUTOVER[ROSTER] = git(
+                    "-C", str(drv_p), "rev-parse", "origin/main~1")
+                rc_d, out_d, err_d = calls(drv_p, pass_prs)
+                rc, out, err = calls(drv_p, pass_prs, "--apply", "--worktree",
+                                     str(root / f"wt-pass-{name}"))
+                w = (roster_lib.groups_of(roster_at(bare_p, branch))["R9-LEG"]
+                     if branch in branches(bare_p) else {})
+                got = ((w.get("resume") or {}).get("stage"), w.get("carry"))
+                stranded_w = (roster_lib.stranded(roster_at(bare_p, branch),
+                                                  roster_lib.read_legacy(
+                                                      str(drv_p), ROSTER))
+                              if w else None)
+                if name == "legacy-only":
+                    check("the dry run's projection reads the cut-over: a "
+                          "same-pass Carry: to a legacy-only group it closes "
+                          "is refused, not planned",
+                          rc_d == 0 and "REFUSED Carry: R9-LEG from #62" in out_d
+                          and "the destination is done" in out_d
+                          and "carry R9-LEG +=" not in out_d,
+                          (rc_d, out_d[-400:], err_d[-200:]))
+                    check("the write path's projection reads the cut-over: the "
+                          "group is written done, the carry not appended, "
+                          "nothing stranded",
+                          rc == 0 and got == ("done", ["legacy one"])
+                          and stranded_w == [],
+                          (rc, got, stranded_w, out[-300:], err[-300:]))
+                else:
+                    check("a destination holding a post-cut-over carry projects "
+                          "carries-open: the dry run plans the append (null "
+                          "control)", rc_d == 0 and "carry R9-LEG +=" in out_d
+                          and "REFUSED Carry: R9-LEG" not in out_d,
+                          (rc_d, out_d[-400:], err_d[-200:]))
+                    check("and the write appends it and writes carries-open "
+                          "(null control)",
+                          rc == 0 and got == ("carries-open",
+                                              ["legacy one", "post one", routed]),
+                          (rc, got, out[-300:], err[-300:]))
             bare_u, drv_u, _ = build(root / "leg-unreadable", LINT_OK,
                                      [leg_at_cut, leg_tip])
             roster_lib.CARRY_CUTOVER.clear()

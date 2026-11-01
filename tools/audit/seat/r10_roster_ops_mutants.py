@@ -39,10 +39,11 @@ Plants, one per refusal of the two ops and per round-trip property:
          ignored (L1), legacy ignored (L2), every group's carries legacy at
          the cut-over (L3), absorbed not closed (L4), closing never
          downgrades (L5), a mark read anywhere in the text (L6).
-  Y1-Y4  roster_sync: the merge bypassing the shared rule (Y1), an
+  Y1-Y6  roster_sync: the merge bypassing the shared rule (Y1), an
          unreadable cut-over read as no legacy (Y2), the write path's
-         re-derive without the legacy set (Y3), and apply_plan writing the
-         stage without it (Y4).
+         re-derive without the legacy set (Y3), apply_plan writing the
+         stage without it (Y4), and the dry run's (Y5) and the write path's
+         (Y6) projection without it, which decides a same-pass Carry:.
   R1-R5  carry_audit's roster arm: closed-only issues unreported (R1),
          unlisted issues unreported (R2), #201 reported (R3), absorbed_into
          unnamed (R4), pull requests read as issues (R5).
@@ -174,6 +175,10 @@ PLANTS = {
                  "                                 legacy=legacy)\n",
            "        roster_edit.op_set_stage(roster, c.group, c.stage, c.merge_commit)"
            "  # Y4\n"),
+    "Y5": (SYNC, "        apply_plan(projected, changes, [], legacy)\n        appends, refusals",
+           "        apply_plan(projected, changes, [])  # Y5\n        appends, refusals"),
+    "Y6": (SYNC, "            apply_plan(projected, changes, [], legacy)\n            appends, _",
+           "            apply_plan(projected, changes, [])  # Y6\n            appends, _"),
     "R1": (AUDIT, "        elif not any(live for _, live in by):\n",
            "        elif False:  # R1\n"),
     "R2": (AUDIT, "        if not by:\n", "        if False:  # R2\n"),
