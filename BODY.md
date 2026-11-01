@@ -65,7 +65,13 @@ Owed, not yet given. `dev/governance/roles/standing-dispatch.md` changes what th
 
 ## Head
 
-36692240baf8b8b068e5eaec96b78c7ac5584d64. The branch was cut at 7539d1675; origin/main moved to a7dd7f50d during the work and was merged in fa8a7473d (only `tests/closures.json` overlapped, resolved by the ledger merge driver). The self-tests, mutants, predictor and prepr below were re-run after that merge.
+`1c7ae21fde1d9f2652f0093e328787c2d5216b61` merges origin/main `c89de2f62` (the merge of #3060, which shares `dev/audit/harnesses/r10_seat_selftests_mutants.py` with this diff) into `c5ded0de1f1c318651a1205d981311cb3a8a5b8a`. Git merged it without a conflict. At `1c7ae21fd`, the depth-seam scan returns rc=0, `r10_carry_field_figures.py HEAD` prints `field_flagged=0/17 v2645_flagged=1`, and `ci_predict.py --base origin/main` predicts no red.
+
+`c5ded0de1f1c318651a1205d981311cb3a8a5b8a` adds one commit to the previous head `054e5a25f9e2ebcb7dffa59f66081fbe239b8ca1`. It touches only `dev/audit/harnesses/r10_carry_field_figures.py`: the harness finds its root with the canonical `repo_root` walk instead of `parents[3]`, which repairs the `tests / fast (3.14)` red (see `## Red checks`). `054e5a25f` added only this PR's own row, `dev/programme/delivery/3065.md`. The authored code head before this repair was `36692240baf8b8b068e5eaec96b78c7ac5584d64`.
+
+`44790d06d2a8b60d319af04bd78910a7a98f521f` merges origin/main `2b6bef745` into `36692240baf8b8b068e5eaec96b78c7ac5584d64`. This was an automatic merge by the orchestrator's script, and any resolution inside the code head is described below.
+
+36692240baf8b8b068e5eaec96b78c7ac5584d64. The branch was cut at 7539d1675. origin/main moved to a7dd7f50d during the work and was merged in fa8a7473d. Only `tests/closures.json` overlapped, and the ledger merge driver resolved it. The self-tests, mutants, predictor and prepr below were re-run after that merge.
 
 ## Mutation proof
 
@@ -76,6 +82,7 @@ The seat harness plants each mutant in its file, outside the self-test function,
 - `carry_audit-1` (graded by bus.sh's step): `check` reads the roster with no finding item.
 - `queue_pre_flight-1`: `extra_ref=None`.
 - `body_push-4` (graded by prepr.sh's step): rc 1 not refused.
+- The `c5ded0de1` repair: restoring `ROOT = Path(__file__).resolve().parents[3]` (the head `054e5a25f` holds it) makes `PYTHONPATH=tests python3 -c "import harness_headers; raise SystemExit(harness_headers.inline_scan())"` print `FAIL depth seams: dev/audit/harnesses/r10_carry_field_figures.py:25: ROOT = Path(__file__).resolve().parents[3]` with rc=1. That is the check `tests / fast (3.14)` failed on. At `c5ded0de1` the same command prints nothing and returns rc=0.
 
 The carry parser harness generates one mutant per regex alternative and per site, and reports `RESULT sites=193 unmapped=0 mutants=264 survived=0`. The new written mutants are `P308-restore` (the four field rows and #2441/#2465 fail), `P314-merge-only` (the Summary row and the #2683 rows fail), `P329-*` (the three fixture rows fail), `P296-*`, `C3-*`, `L-*`, `P43-extra` and `P319-ref-path`.
 
@@ -100,6 +107,7 @@ Each arm has its unmutated twin as a self-test row:
 - `python3 tools/audit/seat/ledger.py --self-test`: 77 checks, 0 failed.
 - `bash tools/pr/prepr.sh --self-test`: EXIT 0.
 - `bash tools/pr/prepr.sh <this body>` at 36692240b after the merge: every step ok or skip except `pr-body`, which wanted `## Approval`. After that section was added, `bash tools/pr/prepr.sh --body-check <this body>` printed `PR-BODY: 0 error(s)` with rc 0, and origin/main was still a7dd7f50d.
+- `python3 dev/audit/harnesses/r10_carry_field_figures.py c5ded0de1 2b6bef745` after the root repair prints `field_flagged=0/17 v2645_flagged=1` and `field_flagged=17/17 v2645_flagged=8`, which matches the figures before it.
 - `python3 dev/audit/harnesses/r10_carry_field_figures.py 7539d1675 HEAD`: `field_flagged=17/17 v2645_flagged=8` at the base, `field_flagged=0/17 v2645_flagged=1` at the head. The rule: each verbatim item in `dev/audit/harnesses/r10_carry_field_verdicts.json`, alone under its own verdict word and heading, and #2645's round-1 VERDICT.md whole, through `items()` at each revision. The one item left on #2645 is `95bcfcd0`, a genuine NONBLOCK word (the carry's residual, declined).
 - `python3 dev/audit/harnesses/r10_carry_parser_mutants.py`: `RESULT sites=193 unmapped=0 mutants=264 survived=0`.
 - `python3 dev/audit/harnesses/r10_seat_selftests_mutants.py <the ids above>`: `RESULT survivors=0`.
@@ -110,7 +118,9 @@ Each arm has its unmutated twin as a self-test row:
 
 ## Red checks
 
-none
+- `tests / fast (3.14)` (run 41259735966, head `054e5a25f`): `tests/harness_headers.py` failed 1 of 112 checks, `every inlined walk matches the canonical helper and no depth root remains`, with `FAIL depth seams: dev/audit/harnesses/r10_carry_field_figures.py:25: ROOT = Path(__file__).resolve().parents[3]`. Cause: this PR's new field-figures harness counted its repository root by depth. Its path is correct, but RO-7 refuses that shape everywhere in the harness corpus. Repaired in `c5ded0de1` with the canonical `repo_root` copy from `tools/audit/repo_root.py`. Main does not carry the file, so the red is this diff's and not main's. Process state (c): the process was followed and did not catch it. `harness_headers.py` is `run_always`, but `gate_lock.py needs-lease` marks it lease-guarded because its CPU bounds measure the machine. So `prepr.sh` leaves it to CI, and `ci_predict.py` (which `body_push.sh` runs) has no depth-seam arm. The static half of the check went to CI along with the measuring half. Cheaper detector: `harness_headers.inline_scan()` on its own is a text scan that needs no lease and runs no harness. Measured here at 1.66 s wall (1.00 s user), against the 205 s `harness_headers.py` CI run and the roughly 12 minute `fast` job that found it. A `ci_predict.py` arm calling it would cost about 2 s on every handoff. That arm is not built in this red-check repair. It is the root-cause seat's to weigh under `defect-root-cause.md`'s cost test.
+- `pr-contract / pr-contract`: the body did not name `tests / fast (3.14)` under `## Red checks` (its `ERROR [pr-body]` line: the check is red and `## Red checks` does not name it). This was a body defect only, and the line above answers it. Process state (b): the predictor's no-red result was taken for the CI result. Cheaper detector: none. The check reads the live check-runs, so a body cannot answer a red before CI has run.
+- `gate`: red only because the two units above are red. No failure of its own.
 
 ## Forward-carry
 
@@ -119,3 +129,4 @@ none
 ## Friction
 
 - fixer.md: cost: the seat mutant harness edits the committed file in place, and a commit made while it ran captured mutant bus-5; `git status` showed it and the commit was amended back to the unmutated bus.sh before any push. Carry: dismissed: the harness already refuses a dirty file, and a seat that commits during its run is the defect
+
