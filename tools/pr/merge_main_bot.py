@@ -64,6 +64,7 @@ import argparse
 import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -481,6 +482,63 @@ def self_test() -> int:
         status, _ = plan_one(r, m1, m1, mergeable=False, same_repo=True)
         check("a head that already contains main is left alone",
               status == "skip-contains-main", status)
+        # THE CLAIM DRIVER'S REFUSAL REACHES THE STATUS (P214, from #2872: the
+        # bot answered the bare filename and the owner diffed both sides to
+        # learn the decision). #2834's shape: both sides rewrote the same two
+        # scenarios' claims, so main's own env_drift driver refuses both.
+        sys.path.insert(0, str(ROOT / "tests"))
+        import env_drift
+        rc_ = os.path.join(td, "claims")
+        throwaway_git_init(rc_, "-q", "-b", "main")
+        h = lambda *a, **k: git(rc_, *a, **k)
+        cf = "tests/golden/claimed_drift.txt"
+        claim_driver = (f"{shlex.quote(sys.executable)} "
+                        f"{shlex.quote(str(ROOT / 'tests' / 'env_drift.py'))} "
+                        "--merge-claim-file %O %A %B %L %P")
+        h("config", "merge.claimnotes.driver", claim_driver)
+        h("config", "merge.fake.driver", f"{drv} %O %A %B")
+        Path(rc_, ".gitattributes").write_text(f"{cf} merge=claimnotes\nled.json merge=fake\n")
+        os.makedirs(os.path.join(rc_, "tests", "golden"))
+        sides = {"base": "# claims-for: 1.0.0\n",
+                 "ours": "# claims-for: 1.0.0\ncoord_a # ours a\ncoord_b # ours b\n",
+                 "theirs": "# claims-for: 1.0.0\ncoord_a # main a\ncoord_b # main b\n"}
+
+        def side(start: str, branch: str, path: str, text: str) -> str:
+            h("checkout", "-q", "-b", branch, start)
+            Path(rc_, path).write_text(text)
+            h("commit", "-qam", branch)
+            return h("rev-parse", "HEAD").stdout.strip()
+        Path(rc_, cf).write_text(sides["base"]); Path(rc_, "led.json").write_text("a\nz\n")
+        h("add", "-A"); h("commit", "-qm", "c0")
+        c0 = h("rev-parse", "HEAD").stdout.strip()
+        cfix = side(c0, "cfix", cf, sides["ours"])
+        cmain = side(c0, "cmain", cf, sides["theirs"])
+        want = env_drift.merge_claim_refusal(sides["base"], sides["ours"], sides["theirs"])
+        status, _ = plan_one(rc_, cfix, cmain, mergeable=False, same_repo=True)
+        first, _, rest = status.partition("\n")
+        relayed = "\n".join(l[4:] for l in rest.splitlines())
+        check("a claim conflict the driver refuses relays the driver's own message under today's line, "
+              "naming each scenario both sides rewrote with both sides' lines",
+              first == f"skip-driver-refused {cf}" and want in relayed
+              and all(f"{s}: this branch ['ours {s[-1]}']; the merge brings in ['main {s[-1]}']"
+                      in relayed for s in ("coord_a", "coord_b")), status)
+        # Null controls. The driver cannot be run: today's filename list, no guess.
+        h("config", "merge.claimnotes.driver", "hpo-no-such-driver %O %A %B")
+        status, _ = plan_one(rc_, cfix, cmain, mergeable=False, same_repo=True)
+        check("a claim driver that cannot be run leaves today's filename list, byte for byte",
+              status == f"skip-driver-refused {cf}", status)
+        h("config", "--unset", "merge.claimnotes.driver")
+        status, _ = plan_one(rc_, cfix, cmain, mergeable=False, same_repo=True)
+        check("... and so does an uninstalled one (git's text merge conflicts, no driver speaks)",
+              status == f"skip-driver-refused {cf}", status)
+        # No claim conflict: the (still refusing) ledger driver prints today's line,
+        # with the claim driver installed and silent on a file it never saw.
+        h("config", "merge.claimnotes.driver", claim_driver)
+        status, _ = plan_one(rc_, side(c0, "lfix", "led.json", "a\nb\nz\n"),
+                             side(c0, "lmain", "led.json", "a\nc\nz\n"),
+                             mergeable=False, same_repo=True)
+        check("a merge with no claim conflict (a ledger driver refusing) prints exactly today's line",
+              status == "skip-driver-refused led.json", status)
     # pr-contract accepts this commit by identity and exact message, held as
     # constants in policy_lint.mjs; drift between the two would turn every
     # bot merge into a red contract.
