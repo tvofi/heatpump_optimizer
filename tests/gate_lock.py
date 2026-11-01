@@ -118,6 +118,12 @@ MACHINE_MEASURING = ("tests/stress.py", "tests/harness_headers.py")
 # A waiter rewrites its ticket every poll; one this far past it is dead.
 TICKET_SECONDS = 60
 RENEW_REFUSED_RC = 75
+# A bounded wait that ran out (P206): distinct from the renew refusal, so a
+# caller can name the lease unrun instead of failing or passing it.
+WAIT_BOUND_RC = 76
+# Written by `take`, removed by `release`: the witness that a label once held
+# the lease, so `flock_wrap` can tell a lapsed lease from one never taken (P211).
+HELD_PREFIX = "held-"
 # --- priority (#gate-priority, tvofi 2026-10-20) -----------------------------
 # The lease carries an integer priority; it never decides who deserves one. The
 # environment channel is what a caller prepr.sh cannot edit uses, and the
@@ -141,6 +147,10 @@ UNLEASED_PREFIX = "unleased-"
 
 class RenewRefused(RuntimeError):
     """Another label waits for the lease, so the holder may not extend it."""
+
+
+class WaitBoundExceeded(Exception):
+    """A bounded wait for the lease ran past its bound (P206)."""
 
 
 @dataclass(frozen=True)
@@ -516,8 +526,12 @@ def take(
     wait: bool = True,
     owner_pid: int | None = None,
     priority: int | None = None,
+    wait_bound: float | None = None,
 ) -> Owner:
     """Acquire the gate lease for ``label``, queueing behind older live tickets.
+
+    ``wait_bound`` seconds ends the wait with `WaitBoundExceeded`; None waits
+    without end, the behaviour of every caller that does not name a bound.
 
     ``owner_pid`` names a process that outlives the commands holding the lease
     (a seat's ``$PPID``). It is recorded in the owner file so a later take can
@@ -527,6 +541,7 @@ def take(
     """
     prio = _declared_priority(priority)
     said, ticket = False, None
+    started = time.monotonic()
     try:
         while True:
             owner = read_owner(lock_dir)
@@ -536,6 +551,7 @@ def take(
                 if not queue or queue[0].path == ticket:
                     fresh = _new_owner(label, lease_seconds, owner_pid)
                     if fresh.create(lock_dir / OWNER_NAME):
+                        _mark_held(lock_dir, label)
                         return fresh
                     continue
                 held = f"{queue[0].label}, at the head of the queue"
@@ -544,6 +560,7 @@ def take(
                 if owner.expired:
                     fresh = _new_owner(label, lease_seconds, owner_pid)
                     fresh.write(lock_dir / OWNER_NAME)
+                    _mark_held(lock_dir, label)
                     return fresh
                 return renew(label, lock_dir=lock_dir, lease_seconds=lease_seconds,
                              owner_pid=owner_pid)
@@ -559,10 +576,37 @@ def take(
                 print(f"gate_lock: waiting for the lease held by {held}"
                       " (yours? export HPO_GATE_LOCK_LABEL with that label)", file=sys.stderr)
                 said = True
+            waited = time.monotonic() - started
+            if wait_bound is not None and waited >= wait_bound:
+                raise WaitBoundExceeded(
+                    f"waited {waited:.0f} s for the lease held by {held}, "
+                    f"past its bound of {wait_bound:.0f} s")
             time.sleep(WAIT_POLL_SECS)
     finally:
         if ticket is not None:
             ticket.unlink(missing_ok=True)
+
+
+def _held_path(lock_dir: Path, label: str) -> Path:
+    return lock_dir / (HELD_PREFIX + label.replace("/", "_"))
+
+
+def _mark_held(lock_dir: Path, label: str) -> None:
+    _held_path(lock_dir, label).touch()
+
+
+def wait_bound_for(scope_run: str) -> float:
+    """The wait bound for the script(s) in run.sh's SCOPE_RUN file: the longest
+    recorded duration among them, so a bound is never shorter than the run it
+    waits behind; ``LEASE_SECONDS`` when a name is unnamed or unrecorded."""
+    try:
+        names = Path(scope_run).read_text().split()
+    except OSError:
+        return float(LEASE_SECONDS)
+    seconds = [_recorded_seconds(name) for name in names]
+    if not seconds or any(sec is None for sec in seconds):
+        return float(LEASE_SECONDS)
+    return float(max(seconds))
 
 
 def renew(
@@ -608,6 +652,7 @@ def release(label: str, *, lock_dir: Path = DEFAULT_LOCK_DIR) -> bool:
         raise RuntimeError(f"lease held by {owner.label}, not {label}")
     (lock_dir / OWNER_NAME).unlink(missing_ok=True)  # the queue stays
     (lock_dir / HOLDING_NAME).unlink(missing_ok=True)
+    _held_path(lock_dir, label).unlink(missing_ok=True)
     return True
 
 
@@ -862,18 +907,33 @@ def slot_auto_lease(label: str, argv: list[str], *, lock_dir: Path = DEFAULT_LOC
             release_slot(label, lock_dir=lock_dir)
 
 
-def flock_wrap(label: str, argv: list[str], *, lock_dir: Path = DEFAULT_LOCK_DIR) -> int:
+def flock_wrap(label: str, argv: list[str], *, lock_dir: Path = DEFAULT_LOCK_DIR,
+               wait_bound: float | None = None) -> int:
     """Renew the lease, hold flock for ``argv``, release flock on exit.
 
     A renew refused because another label waits releases and takes again, at
-    the back of the queue. A label that holds no lease fails at once: it means
-    *I hold it already*, and taking one here would leave it held after the run."""
+    the back of the queue. A lease that lapsed between two commands (P211) is
+    refreshed when it is still this label's and nobody waits, and otherwise
+    taken again behind whoever waits, because the label held it once. A label
+    that never held one fails at once: it means *I hold it already*, and taking
+    one here would leave it held after the run."""
     try:
         renew(label, lock_dir=lock_dir)
     except RenewRefused as exc:
         print(f"gate_lock: {exc}; {label} re-queues", file=sys.stderr)
         release(label, lock_dir=lock_dir)
-        take(label, lock_dir=lock_dir)
+        _mark_held(lock_dir, label)  # a bounded give-up below still held it once
+        take(label, lock_dir=lock_dir, wait_bound=wait_bound)
+    except RuntimeError:
+        if not _held_path(lock_dir, label).exists():
+            raise
+        owner = read_owner(lock_dir)
+        mine = owner is not None and owner.label == label
+        if mine and any(w.label != label for w in _queue(lock_dir)):
+            release(label, lock_dir=lock_dir)
+            _mark_held(lock_dir, label)
+        print(f"gate_lock: {label}'s lease lapsed; taking it again", file=sys.stderr)
+        take(label, lock_dir=lock_dir, wait_bound=wait_bound)
     with flock_context(lock_dir, blocking=True) as fd:
         return run_group(argv, fd=fd)
 
@@ -987,9 +1047,10 @@ def holding_slot() -> bool:
 
 
 @contextlib.contextmanager
-def leased(label: str, *, lock_dir: Path = DEFAULT_LOCK_DIR):
+def leased(label: str, *, lock_dir: Path = DEFAULT_LOCK_DIR,
+           wait_bound: float | None = None):
     """Take the lease (queueing), hold flock inside, release on any exit."""
-    take(label, lock_dir=lock_dir)
+    take(label, lock_dir=lock_dir, wait_bound=wait_bound)
     try:
         with flock_context(lock_dir, blocking=True) as fd:
             yield fd
@@ -998,10 +1059,11 @@ def leased(label: str, *, lock_dir: Path = DEFAULT_LOCK_DIR):
             release(label, lock_dir=lock_dir)
 
 
-def auto_lease(label: str, argv: list[str], *, lock_dir: Path = DEFAULT_LOCK_DIR) -> int:
+def auto_lease(label: str, argv: list[str], *, lock_dir: Path = DEFAULT_LOCK_DIR,
+               wait_bound: float | None = None) -> int:
     """Take the lease (queueing), hold flock for ``argv``, release on any exit."""
     env = {**os.environ, "HPO_GATE_LOCK_LABEL": label}
-    with leased(label, lock_dir=lock_dir) as fd:
+    with leased(label, lock_dir=lock_dir, wait_bound=wait_bound) as fd:
         return run_group(argv, env, fd)
 
 
@@ -1116,9 +1178,23 @@ def _cmd_slot_leased(args: argparse.Namespace) -> int:
     return 0
 
 
+def _bounded(args: argparse.Namespace, call) -> int:
+    """Run ``call(wait_bound)``; a wait past its bound exits `WAIT_BOUND_RC`
+    with one line, and touches ``--wait-marker`` so the caller names it unrun."""
+    bound = wait_bound_for(args.script) if args.script else None
+    try:
+        return call(bound)
+    except WaitBoundExceeded as exc:
+        print(f"gate_lock: {exc}; {args.label} gives up the wait", file=sys.stderr)
+        if args.wait_marker:
+            Path(args.wait_marker).touch()
+        return WAIT_BOUND_RC
+
+
 def _cmd_flock_wrap(args: argparse.Namespace) -> int:
     try:
-        return flock_wrap(args.label, args.argv, lock_dir=args.lock_dir)
+        return _bounded(args, lambda b: flock_wrap(
+            args.label, args.argv, lock_dir=args.lock_dir, wait_bound=b))
     except RuntimeError as exc:  # a label never taken: refuse, run nothing
         print(f"gate_lock: flock-wrap refused, {args.label} holds no lease: {exc}", file=sys.stderr)
         return 1
@@ -1126,7 +1202,8 @@ def _cmd_flock_wrap(args: argparse.Namespace) -> int:
 
 def _cmd_auto_lease(args: argparse.Namespace) -> int:
     argv = args.argv[1:] if args.argv[:1] == ["--"] else args.argv
-    return auto_lease(args.label, argv, lock_dir=args.lock_dir)
+    return _bounded(args, lambda b: auto_lease(
+        args.label, argv, lock_dir=args.lock_dir, wait_bound=b))
 
 
 def _cmd_slot_auto_lease(args: argparse.Namespace) -> int:
@@ -1177,6 +1254,10 @@ def _parser() -> argparse.ArgumentParser:
         help="renew, hold flock for a subprocess, release flock on exit",
     )
     wrap_p.add_argument("--label", required=True)
+    wrap_p.add_argument("--script", default=None,
+                     help="run.sh's SCOPE_RUN file: bound the wait by its recorded duration")
+    wrap_p.add_argument("--wait-marker", default=None,
+                     help="file touched when the wait ran past its bound")
     wrap_p.add_argument("argv", nargs=argparse.REMAINDER, help="command after --")
     wrap_p.set_defaults(func=_cmd_flock_wrap)
 
@@ -1188,6 +1269,10 @@ def _parser() -> argparse.ArgumentParser:
 
     auto_p = sub.add_parser("auto-lease", help="take, hold flock for a command, release")
     auto_p.add_argument("--label", required=True)
+    auto_p.add_argument("--script", default=None,
+                     help="run.sh's SCOPE_RUN file: bound the wait by its recorded duration")
+    auto_p.add_argument("--wait-marker", default=None,
+                     help="file touched when the wait ran past its bound")
     auto_p.add_argument("argv", nargs=argparse.REMAINDER, help="command after --")
     auto_p.set_defaults(func=_cmd_auto_lease)
 
@@ -1233,6 +1318,117 @@ def _parser() -> argparse.ArgumentParser:
     slot_auto_p.set_defaults(func=_cmd_slot_auto_lease)
 
     return p
+
+
+def _wait_cases(g) -> list[tuple[str, bool, str]]:
+    """P206 (a bounded wait) and P211 (a lapsed own lease), against module ``g``."""
+    import tempfile
+
+    out = []
+    poll = g.WAIT_POLL_SECS
+    g.WAIT_POLL_SECS = 0.05
+    try:
+        with tempfile.TemporaryDirectory() as tds:
+            root = Path(tds)
+            d = root / "wait"
+            g.take("holder", lock_dir=d, lease_seconds=60, wait=False)
+            t0 = time.monotonic()
+            try:
+                g.take("w", lock_dir=d, lease_seconds=60, wait_bound=0.3)
+                past = False
+            except g.WaitBoundExceeded:
+                past = time.monotonic() - t0 >= 0.3
+            out.append(("a waiter past its bound raises WaitBoundExceeded", past, ""))
+            ns = argparse.Namespace(label="w", script=str(root / "scope"),
+                                    wait_marker=str(root / "marker"))
+            import io
+            buf = io.StringIO()
+            real_bound = g.wait_bound_for
+            g.wait_bound_for = lambda _scope: 0.2  # the bound an awaited script would set
+            try:
+                with contextlib.redirect_stderr(buf):
+                    rc = g._bounded(ns, lambda b: g.take(
+                        "w", lock_dir=d, lease_seconds=60, wait_bound=b) and 0)
+            finally:
+                g.wait_bound_for = real_bound
+            err = buf.getvalue()
+            out.append(("and exits WAIT_BOUND_RC with one line and the marker",
+                        rc == g.WAIT_BOUND_RC and (root / "marker").exists()
+                        and err.count("gives up the wait") == 1, f"rc={rc} err={err!r}"))
+            g.release("holder", lock_dir=d)
+            got = g.take("w", lock_dir=d, lease_seconds=60, wait_bound=5)
+            out.append(("a take within its bound still runs", got.label == "w", ""))
+            g.release("w", lock_dir=d)
+            stress = root / "scope.stress"
+            stress.write_text("tests/stress.py\n")
+            recorded = _recorded_seconds("tests/stress.py")
+            unnamed = root / "scope.unnamed"
+            unnamed.write_text("tests/not_a_recorded_script.py\n")
+            out.append(("the bound is the recorded duration, else LEASE_SECONDS",
+                        recorded is not None and wait_bound_for(str(stress)) == recorded
+                        and wait_bound_for(str(unnamed)) == LEASE_SECONDS,
+                        f"recorded={recorded}"))
+
+            # P211: the lease lapsed between two commands of a label that held it.
+            ran = root / "ran"
+            cmd = [sys.executable, "-c", f"open({str(ran)!r}, 'w').close()"]
+            d2 = root / "lapse"
+            g.take("seat", lock_dir=d2, lease_seconds=60, wait=False)
+            past_t = datetime.now(UTC) - timedelta(seconds=5)
+            Owner("seat", past_t, past_t).write(d2 / OWNER_NAME)
+            rc = g.flock_wrap("seat", cmd, lock_dir=d2)
+            fresh = g.read_owner(d2)
+            out.append(("an expired own lease with no waiter refreshes and runs",
+                        rc == 0 and ran.exists() and fresh is not None
+                        and fresh.label == "seat" and not fresh.expired, f"rc={rc}"))
+            g.release("seat", lock_dir=d2)
+            ran.unlink(missing_ok=True)
+            d3 = root / "queued"
+            g.take("seat", lock_dir=d3, lease_seconds=60, wait=False)
+            Owner("seat", past_t, past_t).write(d3 / OWNER_NAME)
+            at = (datetime.now(UTC) + timedelta(seconds=60)).isoformat()
+            (d3 / f"{TICKET_PREFIX}000000000001").write_text(
+                f"label=w\npid={os.getpid()}\nexpires_at={at}\n")
+            try:
+                g.flock_wrap("seat", cmd, lock_dir=d3, wait_bound=0.3)
+                queued = False
+            except g.WaitBoundExceeded:
+                queued = True
+            out.append(("one with a waiting ticket re-queues and does not run beside it",
+                        queued and not ran.exists(), f"ran={ran.exists()}"))
+            # A renew refused re-queues; a bounded give-up there keeps the
+            # witness, so the label's next flock-wrap queues again (rc 76, a
+            # named unrun), never `holds no lease` (rc 1): #3051 review.
+            d5 = root / "requeue"
+            g.take("seat", lock_dir=d5, lease_seconds=60, wait=False)
+            tk = d5 / f"{TICKET_PREFIX}000000000001"
+            tk.write_text(f"label=w\npid={os.getpid()}\nexpires_at={at}\n")
+            wrap = argparse.Namespace(label="seat", argv=cmd, lock_dir=d5,
+                                      script=str(root / "scope"), wait_marker=None)
+            g.wait_bound_for = lambda _scope: 0.3
+            try:
+                with contextlib.redirect_stderr(io.StringIO()):
+                    first = g._cmd_flock_wrap(wrap)
+                    kept = g._held_path(d5, "seat").exists()
+                    tk.unlink()
+                    g.take("w", lock_dir=d5, lease_seconds=60, wait=False)
+                    second = g._cmd_flock_wrap(wrap)
+            finally:
+                g.wait_bound_for = real_bound
+            out.append(("a bounded give-up on re-queue keeps the witness; the next wrap queues again",
+                        first == second == g.WAIT_BOUND_RC and kept and not ran.exists(),
+                        f"first={first} witness_kept={kept} second={second} ran={ran.exists()}"))
+            d4 = root / "never"
+            try:
+                g.flock_wrap("stranger", cmd, lock_dir=d4)
+                refused = False
+            except RuntimeError:
+                refused = True
+            out.append(("a label that never held one is still refused", refused
+                        and not ran.exists(), ""))
+    finally:
+        g.WAIT_POLL_SECS = poll
+    return out
 
 
 # --- acceptance (#404) -------------------------------------------------------
@@ -1951,6 +2147,10 @@ def _acceptance() -> int:
 
     R.section("heavy-slot holds")
     for name, ok, detail in _slot_hold_cases(sys.modules[__name__]):
+        R.check(name, ok, detail)
+
+    R.section("wait bound and lapsed lease")
+    for name, ok, detail in _wait_cases(sys.modules[__name__]):
         R.check(name, ok, detail)
 
     for d in (d1, d2, d3, d4, d5, d6):
