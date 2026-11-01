@@ -14996,6 +14996,50 @@
     "note": "s9 carry-routing pass, 2026-11-01: created to receive carries of R10-FLY-MUTANT-RESTORE"
    },
    "brief": "One tracked mutant driver that restores under a kill, replacing the seat-local copies the s9 script census found, plus the two options seat-local block runners add to tools/audit/seat/features_block.py. Appended to R10-FLY-MUTANT-RESTORE after #3060 merged. Single-carry group: no live group owns this instrument. Every carry was moved verbatim by the s9 carry-routing pass (2026-11-01) from a carries-open source group; each names its own controls. Re-measure every figure a carry states at this group's own merge base; carry no count. A carry that says it waits on an owner or orchestrator ruling waits for that ruling, and the body says so."
+  },
+  {
+   "group": "R10-RAISE-GATE-SHIM",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "instrument",
+   "severity": "medium",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 6,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "after": [
+    "R10-FLY-GH-CALL-LOG"
+   ],
+   "files": [
+    "tools/audit/seat/merge_train.py",
+    "tools/policy/budget_raise_gate.py"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-raise-gate-shim",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer once its after-groups are done",
+    "note": "s9 carry-routing pass, 2026-11-01: created to receive carries of R10-FLY-MANDATE-REVOKE-GUARD"
+   },
+   "brief": "Gaps the R10-FLY-MANDATE-REVOKE-GUARD fixer stated after #3064: a raw post to #201 bypasses the gh_comment.py guard (close it at the seat gh shim R10-FLY-GH-CALL-LOG adds), the train and the body check read only the raise justification's shape, and the budget-raise-gate job's timeout is unmeasured on CI's runner. Runs after R10-FLY-GH-CALL-LOG. Single-carry group. Every carry was moved verbatim by the s9 carry-routing pass (2026-11-01) from a carries-open source group; each names its own controls. Re-measure every figure a carry states at this group's own merge base; carry no count. A carry that says it waits on an owner or orchestrator ruling waits for that ruling, and the body says so."
   }
  ]
 }
