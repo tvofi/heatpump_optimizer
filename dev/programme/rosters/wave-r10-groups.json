@@ -12399,7 +12399,9 @@
    "files": [
     "tools/audit/seat/bus.sh"
    ],
-   "carry": [],
+   "carry": [
+    "From the R10-FLY-RAISE-REVIEWABLE round-2 fixer (2026-11-01): bus.sh orphans fails on any macOS seat. Under set -u, bash 3.2 errors \"arms[@]: unbound variable\" when the arms array is empty at the ledger.py landed call; 14 orphans self-test rows fail on the Mac's /bin/bash 3.2, the same 14 on round 1's code. Guard the empty-array expansion the bash-3.2-safe way this group already uses, with a self-test row run under /bin/bash 3.2 and a null control with a non-empty array."
+   ],
    "resume": {
     "stage": "in-progress",
     "branch": "handoff/r10-fly-bus-bash32",
