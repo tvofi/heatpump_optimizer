@@ -1,0 +1,6 @@
+thermal stored keys: ['buffer_cooling_rate', 'buffer_cooling_samples', 'capacity_envelope', 'cop_baseline', 'cop_health_cusum', 'cop_samples', 'cop_scale', 'curve_learner', 'flow_bias', 'freq_fallback', 'freq_map', 'heat_loss_zone_entities', 'house_heat_loss_anchor', 'house_heat_loss_basis', 'house_heat_loss_samples', 'house_heat_loss_scale', 'immersion_events', 'internal_gains_profile', 'last_heavy_snow', 'lower_floor_loss_anchor', 'lower_floor_loss_ratio', 'lower_floor_loss_samples', 'measured_cop', 'snow_accum_cm', 'snow_accum_last', 'solar_aperture', 'updated_at', 'vent_cusum']
+thermal void not stored: []
+thermal stored not void (kept): ['freq_fallback', 'heat_loss_zone_entities', 'house_heat_loss_anchor', 'house_heat_loss_basis', 'house_heat_loss_samples', 'house_heat_loss_scale', 'last_heavy_snow', 'lower_floor_loss_anchor', 'lower_floor_loss_ratio', 'lower_floor_loss_samples', 'measured_cop', 'snow_accum_cm', 'snow_accum_last', 'updated_at']
+accuracy stored keys: ['accuracy', 'comfort', 'defrost', 'dhw_accuracy', 'mode', 'peaks']
+accuracy void not stored: []
+stores on disk: ['accuracy', 'dhw_profile', 'price_model', 'thermal_learning']
