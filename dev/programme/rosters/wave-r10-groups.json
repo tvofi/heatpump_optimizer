@@ -14478,7 +14478,9 @@
    },
    "fixerModel": "sonnet",
    "reviewerModel": "opus",
-   "after": [],
+   "after": [
+    "R10-MUTANT-RUN-DRIVER"
+   ],
    "files": [
     "tools/audit/seat/orchestrator_tick.py",
     "tools/audit/seat/ledger.py",
