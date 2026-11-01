@@ -278,7 +278,7 @@ MUTANTS = [
     ("B2-shallow-always", B2_SHALLOW, "        shallow = True"),
     # load_dests: P319, the round ref is read on the explicit-ref path too
     # load_dests: P43, a pull request's own carry files join at the pre-flight
-    ("P43-extra", "for n in r.stdout.split() if n.endswith(\".json\")]  # mut:extra", "for n in []]  # mut:extra"),
+    ("P43-extra", "carry |= carry_issues(repo, extra_ref)  # mut:extra", "pass  # mut:extra"),
     ("P319-ref-path", "    if rref and rref != ref and not git(", "    if rref and not ref and not git("),
 ]
 
