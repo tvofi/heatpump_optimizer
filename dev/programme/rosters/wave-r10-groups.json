@@ -7810,9 +7810,7 @@
    "owner_gate": "mandated approval under 6329234399",
    "rca": [],
    "after": [],
-   "carry": [
-    "From #2995 (R10-FLY-GH-READ-RETRY, head edf1cba7) Forward-carry, routed by its fix review: `tools/release/stamp.py` `get_rest` is the stamp's rule-2 REST source. It is one urlopen with no retry and no classifier, so one transient read refuses a stamp. It is the unretried-GitHub-read class's seam outside #2995. Control: the same `urlopen(` enumerator returns `record_row.py`'s read, already behind `gh_read.retry`. Do: put `get_rest` under `gh_read.urllib_wait`'s classes, failing test first. Three cases: one transport error then an answer passes in 2 calls; a 404 refuses in 1; a spent budget refuses naming the last failure. `tests_gate`'s dispatch is a POST and stays out. Re-run the enumerator (`git grep -nE \"urlopen\\(\" -- tools`) at this group's merge base; line numbers are not carried."
-   ],
+   "carry": [],
    "architect_note": "",
    "brief": "stamp.py --check-notes FILE [--bump patch|minor|major] derives the last v* tag and the next version as main() does, runs rule 4 alone (rule4_problem over parse_window of the last tag..origin/main; no rule 1, no rule 2, no writes), prints `rule 4: OK` or the problem, and exits 0 or 2. main() runs rule 4 only after rule 1 (HEAD equals origin/main and clean) and rule 2 (gate green), so --dry-run cannot check a draft notes section before it is written into a main checkout. Delete the out-of-tree notes-check helper in the orchestrator seat's stamp directory (it hard-codes v7.0.2 and 7.0.3) once this lands. Null control in the self-test: a notes section naming every PR in the window gives OK; the same with one PR dropped is refused naming it; --check-notes writes nothing and makes no commit, even on a dirty tree. tools/release/stamp.py is code-owned, approved under mandate 6329234399. R10-STAMP is done.",
    "resume": {
