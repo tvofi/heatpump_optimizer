@@ -1,2 +1,0 @@
-KILLED    fixture controls.away emptied (harness twin, control): red ['away_coverage:owner-2026-10-30-away.json']
-SURVIVED  fixture controls.away emptied + AWAY_COVERED typo: red []

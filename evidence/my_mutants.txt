@@ -1,7 +1,0 @@
-NULL-GREEN null: red []
-SURVIVED   AWAY_COVERED names no committed fixture (typo): red []
-SURVIVED   coverage requires any event, not an active one: red []
-KILLED     expect_commanded inverted: red ['control:away:coverage_needs_a_commanded_cycle']
-SURVIVED   sanitiser coverage line always green: red []
-KILLED     sqlite url label falls back to path: red ['recorder:sqlite_db_url_named_by_kind_not_path']
-SURVIVED   mysql non-sqlite refusal names the url: red []

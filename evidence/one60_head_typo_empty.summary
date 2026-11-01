@@ -1,5 +1,0 @@
-cycles 4 counts {'finite': 0, 'unit': 0, 'no_default': 0, 'agreement': 0, 'cycle': 0, 'not_frozen': 0, 'away': 0, 'cycle_cost': 1}
-away offenders []
-commanded 0 views []
-space_kwh None None
-cycle_cost ['loop_cpu_ratio 0.3295 over its budget 0.249']
