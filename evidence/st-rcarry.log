@@ -1,0 +1,31 @@
+  ok   a merge-only move answers CARRY
+  ok   the merge-only move's branch-only count is 1
+  ok   the merge it counted is the merge itself
+  ok   a code move answers FRESH-REVIEW
+  ok   the code move's branch-only count is 2
+  ok   a re-cut merge of the branch's own previous head answers CARRY
+  ok   its branch-only count is 2, both merges
+  ok   head did not move answers CARRY
+  ok   a bot-subject commit after a code move answers FRESH-REVIEW
+  ok   a revert and its re-apply answers CARRY (L6)
+  ok   and counts its two non-merge commits
+  ok   a re-apply one byte away answers FRESH-REVIEW
+  ok   a merge of a non-main branch answers FRESH-REVIEW
+  ok   a newer main ref does not change the answer
+  ok   a force-push answers FRESH-REVIEW
+  ok   the force-push names itself
+  ok   the hand-resolved fixture really conflicts
+  ok   the hand-resolved merge is a merge
+  ok   a hand-resolved conflict merge answers FRESH-REVIEW
+  ok   it names the merge as not automatic
+  ok   a clean merge carrying a line of its own answers FRESH-REVIEW
+  ok   the same merge, git's automatic result, answers CARRY
+  ok   the claim fixture really conflicts
+  ok   a claim file resolved to the union of both sides answers CARRY
+  ok   a claim file resolved dropping a line answers FRESH-REVIEW
+  ok   it names the claim file
+  ok   an automatic merge that rewrote the branch's hunk context answers FRESH-REVIEW
+  ok   it names the branch's own diff
+  ok   an unknown sha cannot decide
+review_carry self-test: 29 checks, 0 failed
+exit 0

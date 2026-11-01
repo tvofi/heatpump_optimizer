@@ -1,0 +1,68 @@
+ok   a merge verdict at the live head of an open pull request is posted
+ok   with exactly one comment POST
+ok   whose body is the file, byte for byte
+ok   the POST carried the installation token, from a header file
+ok   and that header file was mode 600 while it existed
+ok   the head was read twice: before the mint and again before the POST
+ok   the comment was read back off the API
+ok   and gh_comment.py printed an identical read-back
+ok   naming the App it posted as
+ok   the installation token is revoked on exit
+ok   the private directory is gone after a success
+ok   no token, JWT, key or signature text in stdout or stderr
+ok   (null control: the leak grep does find the token where it really is)
+ok   under bash -x the post still runs
+ok   and no token, JWT, key or signature text reaches the trace
+ok   (null control: a JWT was signed on that run)
+ok   a blocked head-moved verdict posts although its SHA is not the live head
+ok   REFUSE: a merge verdict for a head that is not the live one
+ok   naming the moved head
+ok   and nothing was minted or posted
+ok   REFUSE: the head moved between the mint and the POST
+ok   and no comment was posted
+ok   the minted token is revoked after that refusal
+ok   and the private directory is gone, token and all
+ok   REFUSE: a closed pull request
+ok   REFUSE: a first line outside the verdict grammar: 'LGTM'
+ok     and nothing was minted or posted
+ok   REFUSE: a first line outside the verdict grammar: 'Fix review: merge 1111111'
+ok     and nothing was minted or posted
+ok   REFUSE: a first line outside the verdict grammar: 'Fix review: merge 1111111111111111111111111111111111111111 extra'
+ok     and nothing was minted or posted
+ok   REFUSE: a first line outside the verdict grammar: 'fix review: merge 1111111111111111111111111111111111111111'
+ok     and nothing was minted or posted
+ok   REFUSE: a first line outside the verdict grammar: 'Fix review: blocked 1111111111111111111111111111111111111111'
+ok     and nothing was minted or posted
+ok   REFUSE: a first line outside the verdict grammar: 'Fix review: approve 1111111111111111111111111111111111111111'
+ok     and nothing was minted or posted
+ok   REFUSE: a body file directly in a shared root (gh_comment.py's refusal)
+ok     refused before the mint: nothing minted or posted
+ok   REFUSE: an absent body file
+ok     before any gh, openssl or curl call
+ok   REFUSE: a post that reads back as the author App (#1233's defect)
+ok   naming the identity it landed as
+ok     and it is not reported as verified
+ok     and the token is still revoked
+ok   REFUSE: only the author App's key present; it is never used
+ok     before any gh, openssl or curl call
+ok   REFUSE: a comment that does not read back byte-identical
+ok   naming the id it left on the record
+ok   a refused POST exits non-zero
+ok   the token is revoked after the failed POST
+ok   the private directory is gone after the failed POST
+ok   and no secret text reached stdout or stderr
+ok   --dry-run passes every refusal
+ok   and makes no curl call: nothing minted, nothing posted
+ok   and signs nothing
+ok   --dry-run still refuses what a real run would
+ok   a merge verdict posts at a pin-only head it carries to (P264)
+ok   with the carry as the body's last line
+ok   under the verdict file, byte for byte
+ok   printing the carry line
+ok   and the carried body reads back identical
+FAIL REFUSE: a merge verdict at a head moved by a commit of the branch's own changing code (got '0', want '1')
+FAIL refused 'head moved', with the carry's reason (got '0', want '1')
+FAIL and nothing was minted or posted (got '4', want '0')
+ok   an unmoved head posts with no carry line (null control)
+ok   and prints none
+app_comment self-test: 67 checks, 3 failed
