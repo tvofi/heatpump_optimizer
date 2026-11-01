@@ -1,0 +1,5 @@
+  FAIL strings.json: no UI text describes how the integration used to behave  [1: options.step.grid.data_description.peak_tariff_offpeak_factor]
+  FAIL en.json: no UI text describes how the integration used to behave  [1: options.step.grid.data_description.peak_tariff_offpeak_factor]
+  FAIL sv.json: no UI text describes how the integration used to behave  [1: options.step.grid.data_description.peak_tariff_offpeak_factor]
+3 of 2496 ENTITY CHECKS FAILED
+rc=1

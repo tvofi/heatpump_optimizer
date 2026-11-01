@@ -1,0 +1,10 @@
+  ok    UX-HEALTH D: a settling learner shows its progress and never a day figure
+  ok    UX-HEALTH D: a counting learner shows its progress and the days until its gate
+  ok    UX-HEALTH D: a waiting learner says what it waits for in words
+  ok    UX-HEALTH D: a learner that is off has no row
+  ok    UX-HEALTH D: with no power meter the heat loss is not called learned
+  ok    UX-HEALTH D: a metered install's learned heat loss still says learned (null control)
+  ok    UX-HEALTH D: with no power meter the learned heat loss draws no learned bar (#2499)
+  ok    UX-HEALTH D: a metered install's learned heat loss still draws a full bar (null control)
+  ok    UX-HEALTH D: the waiting score says its own sensor's reason
+ALL CARD CHECKS PASSED
