@@ -1,0 +1,2 @@
+REVIEWER-PROBE post-cut-over pending carry, readable cut-over: 0 carries-open ['roster_sync: R9-LEG: stage in-progress -> carries-open at 666666666666 (1 pending carries) (PR #61 MERGED)']
+roster_sync self-test: 83 checks, 0 failed
