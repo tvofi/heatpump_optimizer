@@ -30,8 +30,8 @@ The design is the approved architect note `dev/programme/designs/R10-CEILING-PRO
   - Persistence: the store and the count persist in the accuracy document. `from_dict` reads them before the window's configuration key, so a store-only record keeps them. `as_dict` omits the `config` key while nothing has keyed it.
 - `coordinator.py` is wiring only.
   - `_pending_prediction` gains `"mode"` beside `split` and `flow_command`. The fold routes on it, so the routing reads the interval's own action and not the one adopted since (item 30, #2262's pairing). No second capture was built.
-  - The arm passes `learner_samples` and the draw store where `ceiling_probe_install` holds.
-  - `_run_system_identification` calls `stand_down`, and its stand-down gate now also reads `quiet_windows.quiet_reason`.
+  - The arm is one call, `sysid.arm_from_config`, which passes `learner_samples` and the draw store where `ceiling_probe_install` holds.
+  - `_run_system_identification` asks `sysid.hold_reason` (mode, learners' freeze, unread room, and now `quiet_windows.quiet_reason`) and calls `stand_down`.
 - `quiet_windows.py`: `quiet_reason(config, now)` names a step inside a configured quiet off or silent window. The solve honours those windows (`off_steps`, the silent cap). The experiment's override replaces the solve's action, so at main the fit's step ran through a quiet off window on every switch install. The experiment now stands down inside one: held while armed, aborted once started. This was a sibling seam the enumeration found (Figures).
 - `thermal_model.py`: `flow_setpoint_driven(config)` and `ceiling_probe_install(config)` sit beside `probe_install` (item 21).
 - `sensor.py`: `ModelStatusSensor` publishes a recorded `system_identification_outcome` row (kind, phase, held, reason, last_attempt). The bulky `system_identification` view stays in `_unrecorded_attributes` (item 17). `tests/entities.py`'s attribute registry names the new key.
@@ -47,7 +47,7 @@ The design is the approved architect note `dev/programme/designs/R10-CEILING-PRO
 
 **Roster carries, answered.**
 
-- Carry 1 (#2465's three). (a) The set-point-to-draw gain: this diff measures it at the one level the probe commands, the ceiling, and stores that draw as the learned top. The intermediate levels stay uncalibrated: the approved note scopes the probe to the top, and nothing here identifies the gain between gate and ceiling. That part is not answered by this diff. A level between gate and ceiling still maps to a set-point on the configured power band (`thermal_model.flow_setpoint_for_level`), not on a measured gain. #2465 sent the booked-vs-delivered gap to R10-DEMAND-OVERBOOK, which the roster now marks done, and no live group owns this gain, so this body routes it nowhere. Routing it is the orchestrator's. (b) Reaching the real maximum: the probe is the ceiling probe, folded into the system-identification experiment, and the synthetic pump with a 3.0 kW maximum behind a configured 5.0 kW is recovered (Null control). (c) A gate-held draw above idle is a control beside its arm (Null control).
+- Carry 1 (#2465's three). (a) The set-point-to-draw gain: this diff measures it at the one level the probe commands, the ceiling, and stores that draw as the learned top. The intermediate levels stay uncalibrated: the approved note scopes the probe to the top, and nothing here identifies the gain between gate and ceiling. That part is not answered by this diff; it is on the roster as the R10-CEILING-PROBE Carry 1 residual, `groups[31].carry[26]` at `cec6621b4`. A level between gate and ceiling still maps to a set-point on the configured power band (`thermal_model.flow_setpoint_for_level`), not on a measured gain. #2465 sent the booked-vs-delivered gap to R10-DEMAND-OVERBOOK, which the roster now marks done, and the orchestrator landed the gain as the carry named above (R10-COP-GATE), so it is routed. (b) Reaching the real maximum: the probe is the ceiling probe, folded into the system-identification experiment, and the synthetic pump with a 3.0 kW maximum behind a configured 5.0 kW is recovered (Null control). (c) A gate-held draw above idle is a control beside its arm (Null control).
 - Carry 2 (#2808). A converged house now arms the probe instead of an experiment that cannot run (`armable`). A learning freeze, the pump mode or an unread room holds an armed experiment that has not started, and aborts one that has (`stand_down`). The outcome is the recorded `system_identification_outcome` attribute (item 17).
 - Carry 3 (the three blockers). (1) Actuation: `_experiment_kw` feeds `_planned_duty` and `_flow_target` (items 19, 32), and the harness's level arm writes the ceiling at 5.0 kW. (2) The probe-only run on converged houses, with its 7- and 30-day clocks (items 7, 16). (3) The top is learned from a ceiling store separate from the window, at twelve samples, with the 45-day lapse and the overdraw drop as its re-test (items 8, 12, 29). The fit's step samples now book commanded heat (item 10).
 - Carry 4 (the approved r2 ruling): items 7 and 8, below.
@@ -90,6 +90,24 @@ The design is the approved architect note `dev/programme/designs/R10-CEILING-PRO
 - Paying the ratchet by moving a `SystemIdentification` method to module level verbatim. Not taken: that is a mechanical split. The payment finishes #1776's `HousePlant` record through the step path instead.
 
 ## Head
+
+`db13e69720ad948930acbc8852ba280be5fb1eb3` repairs the three reds at `08c2477f20bc79d403cba509c0f0f06ae511edfb` (`## Red checks`). It merges origin/main twice with no conflict: `92588d581fde4ce287af3db5e8bb61461dc28015` (`961614a9e`), then `6421fe135d9f5a9e65433a4433f000d2419486bf` (`db13e6972`). Between them it adds `tests/features.py`'s re-keyed #1523 null-control marker (`b457c6d70`) and the four `--pin-killed` ledger entries for the re-cut's `sysid.py` sites (`99fd9e26b`). No production line changes. The figures under `## Figures` that open with this repair name the tree each was taken at; the figures beneath them from earlier heads describe those trees.
+
+`08c2477f20bc79d403cba509c0f0f06ae511edfb` is the re-cut after the review at `e310b8bb31cc8168a9bbc13363a00ad1b7c2ee87` (blocked: metric-gamed). Code delta over the reviewed head: the arm and the stand-down decision move out of the coordinator into `sysid.arm_from_config` and `sysid.hold_reason`; `tests/features.py` gains the median pin and the checks for the moved functions; `tests/structure_budgets.json` is re-recorded down (17642, 8049); `origin/main` `df66556f2b20efd0ebd0db321cbcfafd01530dbf` is merged with no conflict. The claim-file union of `94d0669db` is unchanged (main touched no golden file in between).
+
+`08c2477f20bc79d403cba509c0f0f06ae511edfb` is the orchestrator's recarry of main into the previous head. It is not a clean merge of the live head and main (parent 1 570d22c0 is not the live pull-request head e310b8bb), so prepr checked this head.
+
+`570d22c0d4cfa0f3cbdf0f7ce1ff353705718476` is the orchestrator's recarry of main into the previous head. It is not a clean merge of the live head and main (HEAD has 1 parent(s), not a 2-parent merge), so prepr checked this head.
+
+`eee3fa59ca51362ec73ae21bb27bc2ee4cd25d45` is the orchestrator's recarry of main into the previous head. It is not a clean merge of the live head and main (parent 1 434d3bf2 is not the live pull-request head e310b8bb), so prepr checked this head.
+
+`e310b8bb31cc8168a9bbc13363a00ad1b7c2ee87` merges origin/main `2b6bef7453a8bdaf97d42f382a116ce226b35ccc` into `94d0669db00b38d4b723b485bb997e549e02697f`, whose hand resolution of the one conflict (merging main `a7dd7f50d` into `fba24c23916626aa8255218412246410759acf09`) is in `tests/golden/claimed_drift.txt` (the `claimnotes` driver refused: both sides rewrote the claim list for the same five fixtures). Resolution delta: main's whole file, `config_flow` verbatim, and one line each for `coord_all_features`, `coord_dhw`, `coord_grid_fee`, `coord_minimal` and `coord_two_zone` naming both causes (main's `model_status` cop rows and this branch's `system_identification` `kind`, `held`, `last_attempt` plus the `system_identification_outcome` row); `claims-for: 7.1.0` unchanged. Proof: `env_drift.py --all 2b6bef7453a8` prints `NO UNCLAIMED DRIFT: 56 scenario(s) checked` and `NO STALE FIXTURE`, with all five claims moved (7 leaves each); both parents' claim lines are present in the merged file; `git merge-tree --write-tree origin/main HEAD` is clean. No code file was resolved by hand; the figures below were taken at `632bd15b9` and the merge brings in main's newer commits only.
+
+`e310b8bb31cc8168a9bbc13363a00ad1b7c2ee87` is the orchestrator's recarry of main into the previous head. It is not a clean merge of the live head and main (parent 1 94d0669d is not the live pull-request head fba24c23), so prepr checked this head.
+
+`e568f720d644256deae755d69e26734b34771609` adds one commit to the previous head, containing only this PR's own row, `dev/programme/delivery/3050.md`. The authored code head is `632bd15b9be154b9eb1c9b51540a77880505dcce`.
+
+`c3d503d122f959297e86689713e36cd049047cca` merges origin/main `c3a47e565` into the authored code head `632bd15b9be154b9eb1c9b51540a77880505dcce` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below).
 
 `632bd15b9be154b9eb1c9b51540a77880505dcce`. It merges origin/main `14ed135512e3d7db899081f2c2639ce5674b8f2a` (the merge base now) into the branch, whose fork point was `0d33c9348b39ab289a64e26ac9c9f42c17adab7f`:
 
@@ -140,6 +158,13 @@ The mutation inventory itself: every `mutation_table.candidates` site on the dif
 
 An earlier run of the inventory, on the tree before the edge checks, left 25 sites. Each was answered by a value check at its exact edge or on the arm it names, all in the block: the clocks at exactly 30 and 7 days, the 200-sample boundary, the lapse at exactly 45 days, the store's ceiling and idle edges, the 48-sample window, the stored-row floor, a plan action's own power, the empty outcome row, a probe armed on a declared plant, a house no probe fits, a draw exactly at the overdraw factor, a peak exactly at the bound, the degenerate-house fallback, and the probe's COP floor. Making `_begin_step_phase` return `None` removed its two `RETURN_DEL` sites.
 
+Added at the re-cut after the review at `e310b8bb3` (block now 60 checks, each mutant run alone through `tools/audit/seat/features_block.py`; baseline `ALL 60 FEATURES BLOCK PASSED`):
+
+- M27, the accessor's median (the reviewer's M5): `np.median` -> `np.mean` in `DrawRange._ceiling_median` -> 1 failed: `item 29: the accessor is the median of the store, not its mean or its extreme` (eleven at 3.0 kW plus one at 1.0 or 9.0 kW must read 3.0). Before the check it survived the block and `tests/features.py`.
+- M28, `sysid.hold_reason`'s mode branch removed (`if False:`) -> 1 failed: `hold_reason ranks a mode that cannot heat first, then the learners' freeze, then an unread room, then a quiet window`.
+- M29, `hold_reason`'s quiet-window term dropped -> 2 failed: that check and `inside a quiet off window the coordinator holds an armed probe with the reason and aborts a started one`.
+- M30, `sysid.arm_from_config`'s switch ignored (`ident.config.enabled = True`) -> 1 failed: `arm_from_config takes the switch from the entry's configuration`.
+
 ## Null control
 
 - **Flat price.** A flat 48-step horizon never starts a probe. The fit's `conditions_met` on the same flat horizon reads `(True, "ready")`, unchanged from the base. A probe on a priced horizon (`np.linspace(0.5, 2.0, 48)`) at 0.5 starts; at 1.9, above its 30th percentile, it does not.
@@ -154,6 +179,14 @@ An earlier run of the inventory, on the tree before the edge checks, left 25 sit
 
 ## Figures
 
+At `99fd9e26b9415c91b358eb4d37861b8a7ba7457e`, merge base `92588d581fde4ce287af3db5e8bb61461dc28015`, unless a line names `db13e6972`. `db13e6972` then merges origin/main `6421fe135d9f5a9e65433a4433f000d2419486bf` (no conflict; it brings `dev/programme/delivery/3075.md`, `tools/audit/seat/plan_page.py`, `tools/audit/seat/state_docs.py` and `tools/plan/replan.py`, none of them in `tests/closures.json`'s recorded closure for `tests/features.py`, so the features and pin figures stand):
+
+- `PYTHONPATH=tests/hastub python3 tests/features.py` -> `ALL 4735 FEATURE CHECKS PASSED`; the row `#1523 class check null control: dropping the experiment's consult re-opens exactly its seam` is `ok`. Null control: at `08c2477f2`, with the old marker, the same row fails with `[[]]` (job 124789209502).
+- `python3 tests/mutation_table.py --pin-killed --base origin/main` -> `PIN KILLED: 4 pinned, 0 left unpinned`; null control `sysid.py:66 NULL_COMMENT` survived every driver in play.
+- `python3 tests/structure.py` at `db13e6972` -> `STRUCTURE RATCHET PASSED` (no budget file changed in this repair).
+- `python3 tests/closure.py select --diff 92588d581` -> `MODE: SCOPED -- 27 script(s) run, 6 scoped out`.
+- `tools/pr/prepr.sh <body>` at `db13e6972` against `6421fe135`: every step `ok` or `skip` but one `check` line, `claim files ... tests/golden/claimed_drift.txt changed` (the branch's own earlier claims, untouched here); `CI PREDICT: no closures, fast, governance or instrument red predicted against 6421fe135d9f`. The first run, at `99fd9e26b`, refused `carry` (both `## Forward-carry` items named R10-COP-GATE, now done); the markers now name R10-COP-GATE-D, where the 2026-11-01 routing pass moved both, and `carry_audit.py check` prints `2 routed, 0 unrouted, 0 bad destination(s)`.
+
 - Gate scope: `D=$(mktemp -d); PYTHONPATH=tests/hastub python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"` -> `MODE: SCOPED -- 27 script(s) run, 6 scoped out`.
 - Scoped gate: `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=14ed135512e3d7db899081f2c2639ce5674b8f2a PYTHONPATH=tests/hastub bash tests/run.sh` -> `MODE: SCOPED -- 27 script(s) run, 6 scoped out`, `4 TEST SCRIPT(S) FAILED`. The four are `tests/entities.py`, `tests/optimality.py` (1 of 84), `tests/card.mjs` and `tests/stress.py` (2 of 113). Each fails the same way at the merge base on this macOS seat (Red checks). Among the rest:
   - `ALL 4717 FEATURE CHECKS PASSED`, `STRUCTURE RATCHET PASSED`, `ALL 112 HARNESS HEADER CHECKS PASSED`, `ALL 108 FINITE BOUNDARY CHECKS PASSED`, `ALL 61 GUARD PIN CHECKS PASSED`.
@@ -161,9 +194,9 @@ An earlier run of the inventory, on the tree before the edge checks, left 25 sit
   - `tests/entities.py` ran through its attribute pins before it stopped: `ModelStatusSensor publishes exactly its pinned attribute keys (#373)` and `the pinned attribute surface is the whole measured one (#373)` passed.
 - Structure, per class and row: `python3 tests/structure.py` (its class table; `class_excess` in `tests/structure.py`), at the merge base `14ed13551` and here:
   - `SystemIdentification` is 1065 LOC at the merge base and 1064 here: class_excess_loc -1. The closing `return True` of `_begin_step_phase` goes, because its bool lost its one reader when the settling branch's double return folded.
-  - `HeatPumpOptimizerCoordinator` is 8060 at the merge base and 8057 here: class_excess_loc -3 and max_class_loc -3. The pending-prediction `mode` key is +1. The arm method's three-line call and four-line log, joined, are -3. The stand-down gate's comment, four lines at the base, is three lines naming the quiet windows (-1). The quiet-window read rides the gate's existing expression line.
+  - `HeatPumpOptimizerCoordinator` is 8059 at the merge base `2b6bef7453a8` (its recorded budget) and 8049 here: class_excess_loc -10 and max_class_loc -10. The earlier claim of -3 is withdrawn: it came from joining the arm's lines and putting the quiet-window read on an existing line, which the review at `e310b8bb3` removed as a null control (re-wrapped in the base layout the coordinator was +5 over its budget). Laid out normally the coordinator read 17661 and 8068 (+12 over the recorded 17649 and 8056). The payment is a move of logic, not of lines: the arm's configuration reads and log are `sysid.arm_from_config`, and the stand-down decision is `sysid.hold_reason`, each a module-level function in `sysid.py` that the coordinator calls in one statement. They are module functions, not `SystemIdentification` methods, because that class is over the 300-line limit: as methods the same move read `class_excess_loc` 17662, the excess moving and not falling.
   - `DrawRange` stays under `GOD_CLASS_LOC_LIMIT` (300), so it costs nothing.
-  - `class_excess_loc` is 17655 at the merge base and 17651 here. `max_class_loc` is 8060 and 8057.
+  - `class_excess_loc` is 17653 at the merge base `2b6bef7453a8` and 17642 here; `max_class_loc` is 8059 and 8049. `tests/structure_budgets.json` is re-recorded down to 17642 and 8049 (no row rises, no budget is raised). Architecture score, `tools/audit/archscore/score.py --diff 2b6bef7453a8` (three-dot against the merge base): `dS +0.0006 IMPROVES` (`coord_footprint` 2389 -> 2388); the layout of the review's block (`30c7ac3e0`, lines laid out normally, logic still in the coordinator) read `dS +0.0000 NULL`, and the move against that commit reads `dS +0.0006 IMPROVES`.
   - `coordinator_attrs` 142, unchanged (a dict key, no attribute). `functions_cc_over_15` 27, unchanged: `_record_accuracy` was already over the limit. Every other row is unchanged.
   - `STRUCTURE RATCHET PASSED` here and at the merge base. At the fork point, before the record, `055d5d57b` read `2 STRUCTURE BUDGET(S) IMPROVED AND NOT YET RECORDED`.
   - No budget rises.
@@ -192,7 +225,7 @@ An earlier run of the inventory, on the tree before the edge checks, left 25 sit
   - Unchanged by design: `coordinator.py:10876` (the override's writer); `payload.py:115` (the probe is a kind inside `REASON_SYSTEM_IDENTIFICATION`); `const.py:1554` and the card's `ACTION_HEATING_MODES` (`www/heatpump-optimizer-card.js:2345`), whose state lists gain no name; `button.py:146`, `icons.json:134`, `strings.json:1868` and the two translations at `:1868`, the entity key and names.
   - Definitions, not readers: `pump_arbiter.py:335` (`step_duty`) and `:482` (`_step_kw`).
   - Entry points: `coordinator.py:1844`, `:10823`, `:10852`, `:10858`.
-  - Closed in this diff, a seam the rule found outside the note: the plan's quiet windows, which the solve honours (`quiet_windows.compose_with_silent`'s `off_steps` and silent cap) and the override bypasses. The stand-down gate reads `quiet_reason`.
+  - Closed in this diff, a seam the rule found outside the note: the plan's quiet windows, which the solve honours (`quiet_windows.compose_with_silent`'s `off_steps` and silent cap) and the override bypasses. The stand-down decision, `sysid.hold_reason`, reads `quiet_reason`.
 - Citations (items 25, 33), re-resolved at this head: `coordinator.py` `_record_accuracy` 9727, the fold 9756, the `mode` key 9852, `async_arm_system_identification` 10819, `_run_system_identification` 10828, `stand_down` 10848, `_adopt_system_identification` 10884; `pump_arbiter.py` `_experiment_kw` 487, `_flow_command` 607, `_flow_target` 636, `_planned_duty` 773, `step_supply` 1197; `sysid.py` `armable` 1292, `probe_step_hours` 1328, `stand_down` 1489, `conditions_met` 1499, `_begin_step_phase` 1615, `_end_step` 1779; `draw_range.py` `learned_max_kw` 161, `takes_ceiling` 181, `fold` 515, `diagnostics_view` 586; `thermal_model.py` `flow_setpoint_driven` 1355, `ceiling_probe_install` 1372; `quiet_windows.py` `quiet_reason` 155; `sensor.py` `_unrecorded_attributes` 1994, `_sysid_outcome` 2050.
 - Stale-roster check (preamble item 10c): this body cites no carry as landed.
 
@@ -273,9 +306,32 @@ Each line is one site `tools/pr/ci_predict.py --base origin/main` lists as ADDED
 - `custom_components/heatpump_optimizer/thermal_model.py:1375 BOOLOP`: pinned by mutation-autofix; killed here by `eligibility is install-level and shared with the arbiter's flow-command rule: a meter...` (1 of 57)
 - `custom_components/heatpump_optimizer/thermal_model.py:1375 RETURN_DEL`: pinned by mutation-autofix; killed here by `eligibility is install-level and shared with the arbiter's flow-command rule: a meter...` (4 of 57)
 
+The re-cut after the review at `e310b8bb3` adds four sites in `sysid.py` (the moved arm and stand-down decision), each run alone through the block (61 checks):
+
+- `custom_components/heatpump_optimizer/sysid.py:1385 GUARD_OFF` (`hold_reason`'s `if signals.space_blocked:` -> `if True:`): killed here by `hold_reason ranks a mode that cannot heat first...`, `the coordinator's freeze holds the armed probe with its reason, and aborts a started one` and `inside a quiet off window the coordinator holds an armed probe...` (3 of 60 at the time).
+- `custom_components/heatpump_optimizer/sysid.py:1387 RETURN_DEL` (the freeze/room/quiet chain not returned): killed here by the same three checks (3 of 60).
+- `custom_components/heatpump_optimizer/sysid.py:2468 GUARD_OFF` (`arm_from_config`'s `if armed:` -> `if True:`): it survived at 60 checks (it only mislogs a refusal as an arming). Pinned by `arm_from_config logs the armed kind once when it arms, and says nothing of arming when it does not`, which then fails: 1 of 61.
+- `custom_components/heatpump_optimizer/sysid.py:2473 RETURN_DEL` (`return armed` -> `return None`): killed here by `arm_from_config takes the switch from the entry's configuration` (1 of 60).
+
+All four are now recorded under `tests/mutation_ledger/killed_by/sysid.py/` by `--pin-killed` (`killed by tests/features.py`, commit `99fd9e26b`), so the ratchet reads them as pinned.
+
+
 ## Red checks
 
-Predicted on the pull request: `mutation`, red by construction on the 72 sites under `## Unpinned sites` until `mutation-autofix` pins them. No other red is predicted: `ci_predict.py` -> `no closures, fast, governance or instrument red predicted`.
+Concluded red at `08c2477f20bc79d403cba509c0f0f06ae511edfb`, each this diff's (main's own runs of `tests / fast` and `tests / mutation` at the same base are green):
+
+- `tests / fast (3.14)` (job 124789209502): `tests/features.py` failed one row, `#1523 class check null control: dropping the experiment's consult re-opens exactly its seam  [[]]`. Cause: the re-cut moved the stand-down decision into `sysid.hold_reason`, so the coordinator's consult became `hold_reason`'s `frozen` argument and lost its `else`; the null control's marker (`_P5_CONSULT`) was still the old conditional text, matched nothing, and the unmutated copy re-opened no seam. Answer: the marker is now the moved consult, `self._pump_signals, self._learning_frozen(CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY),`, and the mutant passes `None` in its place; the check still requires the marker to occur exactly once and the mutant to open exactly `{_run_system_identification}`. `PYTHONPATH=tests/hastub python3 tests/features.py` prints `ALL 4735 FEATURE CHECKS PASSED` with that row `ok`; at `08c2477f2` the same row printed `[[]]` (the CI job above is the control). Cheaper detector: it exists. `tests/closure.py select` puts `tests/features.py` in this diff's `scope.run` (`MODE: SCOPED -- 27 script(s) run`), and a whole run of it on the seat before the re-cut's handoff would have shown the row; the re-cut ran the R10 block alone through `features_block.py`, which does not reach the P5 class check. Its standing cost is one whole `tests/features.py` run per handoff, which fixer step 5 already owes; no new detector is built.
+- `tests / mutation` (job 124789115340): `MUTATION TABLE REFUSED -- 3549 unpinned site(s) against 3558 at the ratchet base 92588d581, 4 of them added by this diff`: `sysid.py` `hold_reason` 1385 `GUARD_OFF` and 1387 `RETURN_DEL`, `arm_from_config` 2468 `GUARD_OFF` and 2473 `RETURN_DEL`. Cause: the re-cut added the two moved functions and the bot pin did not run (next item). Answer: `python3 tests/mutation_table.py --pin-killed --base origin/main` prints `PIN KILLED: 4 pinned, 0 left unpinned`, each `killed by tests/features.py`, and its null control (`sysid.py:66 NULL_COMMENT`) survived every driver in play; the four `killed_by/sysid.py/{hold_reason,arm_from_config}.*.json` entries are committed. Cheaper detector: `prepr.sh` step 6d lists the ADDED UNPINNED sites offline before the handoff; it is the standing check, run here.
+- `tests / mutation-autofix` (job 124800000369): `skip-measure-failed`, the repair did not happen. Cause: it follows from the `tests / mutation` red above; the measuring run it repairs from failed, so it pinned nothing. Answer: the pins it would have written are committed by hand (previous item). Cheaper detector: the same `prepr.sh` step 6d listing; no other exists, the job is the autofix itself.
+- `pr-contract / pr-contract` (job 124800971736) and `gate`: `check `tests / fast (3.14)` is red and `## Red checks` does not name it` and the same for `tests / mutation-autofix`. Cause: this section did not name the three reds above. Answer: it names them now. Cheaper detector: `prepr.sh --body-check` runs the same contract offline, run here before the push.
+
+Earlier reds, as recorded at the previous heads:
+
+`pr-contract / pr-contract` at fba24c239166 (job 124657591709) and `gate`, which depends on it: `PR-BODY: 1 error(s)`, `check `tests / mutation` is red and `## Red checks` does not name it`. Cause: the red-history walk reads every failure across the 6 commits between origin/main and the head, and found `tests / mutation` (red before the bot's `ci: pin killed mutants`, fba24c239166); this section named it as `mutation`, not by its full check name. Answer: the section now names the full name below; the red was this body's wording, not code. The cheaper detector exists: `body_patch.sh` runs the same contract offline.
+
+Predicted on the pull request: `tests / mutation`, red by construction on the 72 sites under `## Unpinned sites` until `mutation-autofix` pins them. No other red is predicted: `ci_predict.py` -> `no closures, fast, governance or instrument red predicted`.
+
+`gate` at `e310b8bb3` (jobs 124733639993 and 124734678917): the deferral reds the review named, `run(s) [41262300367] at this head are still being judged; their gate decides`. Cause: two `gate` runs started while the deciding suite's run was in flight, and each defers to it; the deciding suite's `gate` (job 124737196827) printed `PASS`. Not this change's, and the re-cut head is a new head with its own runs; no cheaper detector is owed, the deferral is the gate harness's own.
 
 Seat-local reds in the scoped gate, each with its control at the fork point `0d33c9348` on the same seat (no CI check is answered here, and none of these is this change's):
 
@@ -288,8 +344,15 @@ No cheaper detector is owed: none of the four is a check this branch turned red.
 
 ## Forward-carry
 
-- R10-COP-GATE part D (its roster brief; finding-propagation.md): the accessor is `DrawRange.learned_max_kw(now_s)`, epoch seconds, because the lapse is a clock and `draw_range` reads none. `DrawRange.ceiling_since()` is the newest sample's epoch, which D's "lapsed (+ newest sample date)" row reads. `CEILING_MIN_SAMPLES` and `CEILING_LAPSE_DAYS` are module constants in `draw_range.py`. The probe's commanded power is `params.max_electrical_power` at `_run_system_identification`, the hub's configured figure, which D's invariant 1 keeps configured. Carry: R10-COP-GATE
+- R10-COP-GATE part D (its roster brief, now group R10-COP-GATE-D, which the s9 carry-routing pass of 2026-11-01 gave this item as its carry 7; finding-propagation.md): the accessor is `DrawRange.learned_max_kw(now_s)`, epoch seconds, because the lapse is a clock and `draw_range` reads none. `DrawRange.ceiling_since()` is the newest sample's epoch, which D's "lapsed (+ newest sample date)" row reads. `CEILING_MIN_SAMPLES` and `CEILING_LAPSE_DAYS` are module constants in `draw_range.py`. The probe's commanded power is `params.max_electrical_power` at `_run_system_identification`, the hub's configured figure, which D's invariant 1 keeps configured. Carry: R10-COP-GATE-D
+- R10-COP-GATE (landed, roster `groups[31].carry[26]` at `cec6621b4`, "Unanswered residual of R10-CEILING-PROBE Carry 1"; R10-COP-GATE is now done, and the s9 carry-routing pass of 2026-11-01 moved this item to R10-COP-GATE-D as its carry 8): the gain between set-point and drawn power at levels between the duty gate and the ceiling is unmeasured; the probe measures only the draw at the ceiling, as its approved note scopes it. Carry: R10-COP-GATE-D
 
 ## Friction
 
 none
+
+
+
+
+
+
