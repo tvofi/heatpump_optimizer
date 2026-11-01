@@ -1,6 +1,6 @@
-two-zone harness at head:
 RESULT two_zone_max_dkw=0.000000
 RESULT two_zone_max_dcost=0.000000
 RESULT single_zone_max_dkw=4.921374
 RESULT two_zone_sysid_steps=1.738,3.386,None
 RESULT single_zone_sysid_steps=1.738,3.386,None
+rc=0
