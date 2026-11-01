@@ -918,8 +918,10 @@ changes, and closing the dialog cancels.
 
 A snapshot of every learned store and of the settings the reset drops is taken
 first. Until the next weekly snapshot, about a week, `restore_learned_snapshot`
-undoes the reset, with the sensors as they are now. The entry then reloads and
-plans again straight away.
+undoes the reset, with the sensors as they are now, and puts the two-zone,
+hot-water and wood-furnace switches back as they were stored. The entry then
+reloads and plans again straight away. If Home Assistant refuses to unload the
+entry, the dialog says the reset was not applied, and nothing is changed.
 
 ---
 
@@ -1144,7 +1146,8 @@ because evidence fitted against one sensor says nothing about another.
 **`factory_reset`** returns one entry's `scope` — `settings`, `learners` or
 `both` — to its defaults, exactly as
 [Reset to factory defaults](#reset-to-factory-defaults) does, and answers with
-the entry and the scope. Within a week of it, `restore_learned_snapshot` undoes it.
+the entry and the scope; if Home Assistant refuses to unload the entry, the call
+fails and nothing is changed. Within a week of it, `restore_learned_snapshot` undoes it.
 **`diagnose_interval`** attributes the last interval's temperature error
 input by input and publishes the result on the Prediction Accuracy sensor.
 **`debug_collect`** takes `action`: `start`, `stop` or `status`. Collect a week of debug data is the learning page's option that turns the collection on. `start` turns
