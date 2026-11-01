@@ -1,3 +1,0 @@
-########## scoped gate ##########
-  MODE: FULL -- every test script runs, nothing is scoped out.
-  reason: tests/run.sh changes the gate itself, so every closure is suspect

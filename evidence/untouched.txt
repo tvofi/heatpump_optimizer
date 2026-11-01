@@ -1,5 +1,0 @@
-untouched tests/golden/claimed_drift.txt
-untouched tests/golden/card_claimed_drift.txt
-untouched VERSION
-untouched custom_components/heatpump_optimizer/manifest.json
-untouched RELEASE_NOTES.md
