@@ -36,7 +36,6 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
    A fixer who builds their own instrument must
    disclose it as their own, not the finder's -- so do you, if you built one;
    one rebuilt because a copy lived out of tree is named, and lands (`fixer.md` 18).
-   Read the judge ruling first (#290's brief prescribed a refused harness).
    A feature's harness is its judge's design: a requirement or on-device measurement it names and neither tests nor tvofi waived is `blocked <sha> harness: design-trace-missing <item>` (#1588).
 
 10. **Check the forward-carry before you return `merge`.** The PR body names
@@ -83,8 +82,7 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
     which of your numbers survive and which you re-took.
 
     The handoff makes the head yours, so one that moved under you is a broken
-    rule: `blocked <sha> head-moved: measured <sha>, head is <other>`. Re-measuring
-    is yours to offer, never owed.
+    rule: `blocked <sha> head-moved: measured <sha>, head is <other>`.
 
     **A `merge` verdict attaches to the head its first line names and carries**
     (#1667; tvofi 2026-10-27) while `tools/audit/seat/review_carry.py
@@ -133,6 +131,6 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
     from the architect or approved design note, is `blocked <sha> architecture-unsound: <how>`.
 
 Return a verdict with your RESULT lines, its first line and `bus-nonce:` line
-in the grammar above; one that does not parse is refused.
+in the grammar above; one that does not parse is refused. Before you return one, run the packet's closing self-audit (`carry_audit.py check`); return it only at rc 0.
 
 **Say which round this is**: from the fourth, `fixer.md` owes a re-cut, not a repair.

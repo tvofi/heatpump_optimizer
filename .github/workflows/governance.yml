@@ -550,6 +550,7 @@ jobs:
           python3 -I tools/coverage/partition.py --self-test
           python3 -I tools/merge/ledger_merge.py --self-test
           python3 -I tools/plan/replan.py --self-test
+          python3 -I tools/plan/size_durations.py --self-test
           node tools/policy/policy_lint.mjs --self-test
           python3 -I tools/policy/record-predicate/row_files_replay.py --self-test
           bash tools/pr/approve_held_runs.sh --self-test
@@ -822,6 +823,13 @@ jobs:
           set -o pipefail
           bash tools/audit/seat/seat_venv.sh --self-test | tee "$RUNNER_TEMP/seat-venv-self-test.txt"
           grep -Eq '^seat_venv self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/seat-venv-self-test.txt"
+
+      - name: Show the gh call-log shim refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/gh_calls.py --self-test | tee "$RUNNER_TEMP/gh-calls-self-test.txt"
+          grep -Eq '^gh_calls self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/gh-calls-self-test.txt"
 
       - name: Show the cloud setup profile refusing its own fixtures
         if: ${{ !cancelled() }}

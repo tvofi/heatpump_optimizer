@@ -57,7 +57,11 @@ The id counts only inside that marker's own segment, so a quoted refusal
 (`UNROUTED body item <id>`) beside a marker routes nothing. A `Carry:` inside
 a code span is a quoted example, never a marker.
 
-`sweep` adds three reads: `--issues`, every open issue nothing owns; given
+`sweep` reads the round's live roster ref when no `--roster-ref` is given
+(`roster_lib.reader_ref`; main's copy lags it), and adds three reads:
+`--issues`, every open issue nothing owns (`Dests.owns`, the test
+`orphaned` asks at a group's done transition in roster_sync.py and
+roster_edit.py); given
 two `--roster-ref`, every carry or brief text the first holds and the second
 lacks (a roster PR cut from the second reverts it without a conflict); and
 `--ledger`, every orchestrator-ledger line saying `FINDING:` or `LESSON:`
@@ -125,6 +129,15 @@ LEAD = re.compile(r"(?:(?:a|an|one|two|three)\s+)?(?:out of scope|residuals?\b|d
 NOTE_HEADING = re.compile(NONBLOCK.pattern + r"|residual|\bowed\b|instrument findings"
                           r"|out of scope|follow-?up|^carry\b", re.I)
 BLOCK_HEADING = re.compile(r"\bblock", re.I)
+
+# A roster carry index stated as not done, outside the carry sections (R10-RCA-JIDOKA-YIELD,
+# M1; #3010 r1: "Carry 1: **not done in this pull request.**" under no heading
+# `LEAD` reads). Matched on the item with its code spans and double-quoted text
+# removed (`owed_carry`): unstripped, a body quoting the phrase as an example is read.
+OWED_CARRY = re.compile(r"\bcarry\s*\[?\d+\]?\W{0,6}[^.\n]{0,80}?\b(?:not done|not (?:built|answered|implemented)"
+                        r"|not in this (?:part|diff|pull request|change)|still (?:not met|open|owed)"
+                        r"|owed (?:by|to|in))", re.I)
+QUOTED = re.compile(r'"[^"\n]*"|\u201c[^\u201d\n]*\u201d')
 
 CARRY = re.compile(r"(?<![\w-])Carry:")
 ITEM_REF = re.compile(r"\(item\s+([0-9a-f]{8})\)")
@@ -219,7 +232,7 @@ def items(text: str, verdict: bool) -> list[dict]:
             why = "" if NONE_ITEM.match(t) else "section"
         else:
             why = ("section" if LEAD.search(sec) else "lead" if LEAD.match(first)
-                   else "under lead" if inherited else "")
+                   else "under lead" if inherited else "owed carry" if owed_carry(t) else "")
         flagged = bool(why)
         it["why"] = why
         it["lead"] = False
@@ -229,6 +242,12 @@ def items(text: str, verdict: bool) -> list[dict]:
         it["flagged"] = flagged
         it["id"] = hashlib.sha1(re.sub(r"\s+", " ", t).encode()).hexdigest()[:8]
     return out
+
+
+def owed_carry(text: str) -> bool:
+    """Whether an item states a roster carry as not done, outside code and quotes."""
+    bare = CODE_SPAN.sub(" ", text)
+    return bool(OWED_CARRY.search(QUOTED.sub(" ", bare)))
 
 
 def carry_segments(text: str) -> list[str]:
@@ -297,14 +316,19 @@ class Dests:
         self.owned: dict[int, str] = {n: f"{CARRIES_DIR}/carry-{n}.json" for n in carry_issues}
         for name, g in self.groups.items():
             if roster_lib.is_open(g):
-                for n in list(g.get("issues") or []) + list(g.get("fixes") or []):
-                    if isinstance(n, int):
-                        self.owned.setdefault(n, name)
+                for n in issue_numbers(g):
+                    self.owned.setdefault(n, name)
         self.briefs_dir = briefs_dir
         for f in sorted(Path(briefs_dir).glob("O*-*.md")) if briefs_dir else []:
             for n in re.findall(r"-(\d{3,})(?=[-.])", f.name):  # an O-brief owns the issues its name carries
                 self.owned.setdefault(int(n), f.name)
         self.issue_state = issue_state  # callable n -> "open" | "closed" | None
+
+    def owns(self, n: int) -> bool:
+        """THE owned-issue test: a live group lists #n, a carry file is its
+        destination, or an O-brief names it. `sweep --issues` reports an open
+        issue failing it; a done transition asks it first (`orphaned`)."""
+        return n in self.owned
 
     def check(self, tok: str) -> tuple[bool, str]:
         """(valid, note) for one destination token."""
@@ -315,7 +339,7 @@ class Dests:
             return True, ""
         if m := ISSUE_TOK.match(tok):
             n = int(m.group(1))
-            if n not in self.owned:
+            if not self.owns(n):
                 return False, (f"#{n} has no owner: no live roster group lists it and there is no "
                                f"{CARRIES_DIR}/carry-{n}.json")
             if self.issue_state and (st := self.issue_state(n)) not in (None, "open"):
@@ -339,17 +363,53 @@ class Dests:
         return False, f"{tok} is done (resume.stage {((g or r).get('resume') or {}).get('stage')})"
 
 
-def load_dests(repo: Path = ROOT, ref: str | None = None, briefs_dir: str | None = None,
-               issue_state=None) -> Dests:
-    # A carry file's destination issue is its own `issue` field (brief_lint.mjs
-    # owns the file-name grammar and refuses a name that disagrees with it).
-    round_roster = None
+def issue_numbers(group: dict) -> list[int]:
+    """The issues a group owns: the integers of its `issues` and `fixes`."""
+    return [n for n in list(group.get("issues") or []) + list(group.get("fixes") or [])
+            if isinstance(n, int)]
+
+
+def orphaned(dests: Dests, group: dict) -> list[int]:
+    """The open issues `group` lists that nothing would own once it is done.
+
+    `sweep --issues`' own test (ISSUE-UNOWNED), asked of one group's issues
+    at its done transition instead of after it: `dests` is built from the
+    roster as that write will leave it, so the closing group owns nothing
+    there and only another live owner keeps an issue. A state the reader
+    cannot give counts as open: a group held open is visible on the roster,
+    an orphan is visible only to a sweep someone remembers to run."""
+    return [n for n in issue_numbers(group)
+            if not dests.owns(n)
+            and (dests.issue_state(n) if dests.issue_state else None) in (None, "open")]
+
+
+def carry_issues(repo, ref: str | None = None) -> set[int]:
+    """The issues the carry files at `ref` (else the working tree) are the
+    destination of: each file's own `issue` field (brief_lint.mjs owns the
+    file-name grammar and refuses a name that disagrees with it)."""
     if ref:
-        roster = roster_lib.show_roster(str(repo), ref)
         r = subprocess.run(["git", "-C", str(repo), "ls-tree", "--name-only", ref, CARRIES_DIR + "/"],
                            capture_output=True, text=True)
         texts = [subprocess.run(["git", "-C", str(repo), "show", f"{ref}:{n}"], capture_output=True,
                                 text=True).stdout for n in r.stdout.split() if n.endswith(".json")]
+    else:
+        texts = [p.read_text() for p in sorted((Path(repo) / CARRIES_DIR).glob("*.json"))]
+    carry = set()
+    for t in texts:
+        try:
+            n = json.loads(t).get("issue")
+        except (ValueError, AttributeError):
+            continue
+        if isinstance(n, int):
+            carry.add(n)
+    return carry
+
+
+def load_dests(repo: Path = ROOT, ref: str | None = None, briefs_dir: str | None = None,
+               issue_state=None) -> Dests:
+    round_roster = None
+    if ref:
+        roster = roster_lib.show_roster(str(repo), ref)
     else:
         git = roster_lib.git_in(str(repo))
         # A checkout behind origin/main reads main's roster, not its own stale
@@ -366,21 +426,12 @@ def load_dests(repo: Path = ROOT, ref: str | None = None, briefs_dir: str | None
                   f"{git(['rev-parse', roster_lib.MAIN_REF])[1].strip()}; roster read at {roster_lib.MAIN_REF}")
         else:
             roster = roster_lib.load_roster_file(str(repo / roster_lib.roster_path(str(repo))))
-        texts = [p.read_text() for p in sorted((repo / CARRIES_DIR).glob("*.json"))]
         # The tree's roster lags the round's branch (finding-propagation.md);
         # a branch this clone lacks is skipped, which only narrows what passes.
         rref = roster_lib.round_ref(git)
         if rref and not git(["rev-parse", "--verify", "--quiet", rref + "^{commit}"])[0]:
             round_roster = (rref, roster_lib.show_roster(str(repo), rref))
-    carry = set()
-    for t in texts:
-        try:
-            n = json.loads(t).get("issue")
-        except (ValueError, AttributeError):
-            continue
-        if isinstance(n, int):
-            carry.add(n)
-    return Dests(roster, carry, briefs_dir or os.environ.get("HPO_BRIEFS_DIR"), issue_state, round_roster)
+    return Dests(roster, carry_issues(repo, ref), briefs_dir or os.environ.get("HPO_BRIEFS_DIR"), issue_state, round_roster)
 
 
 # ---------------------------------------------------------------- the audit
@@ -458,6 +509,21 @@ def gh_issue_state(repo: str):
     return state
 
 
+def issue_reader(repo: str, path: str | None = None):
+    """n -> "open" | "closed" | None: the recorded states in `path`
+    (`{"<n>": "open" | "closed"}`, a ValueError when it does not read; an
+    issue it does not name is None), else one cached `gh api` read per issue."""
+    if not path:
+        return gh_issue_state(repo)
+    try:
+        data = json.loads(Path(path).read_text(encoding="utf-8"))
+    except (OSError, ValueError) as e:
+        raise ValueError(f"--issue-state {path}: {e}")
+    if not isinstance(data, dict):
+        raise ValueError(f"--issue-state {path}: not an object")
+    return lambda n: data.get(str(n))
+
+
 def read_pr(n: int, repo: str, from_dir: str | None) -> tuple[str, list[dict]]:
     if from_dir:
         b = Path(from_dir, "bodies", f"{n}.md")
@@ -474,7 +540,15 @@ def read_pr(n: int, repo: str, from_dir: str | None) -> tuple[str, list[dict]]:
 def unowned_issues(repo: str, dests: Dests) -> list[tuple[int, str]]:
     issues = gh_json(f"repos/{repo}/issues?state=open&per_page=100", paginate=True)
     return [(i["number"], i.get("title") or "") for i in issues
-            if "pull_request" not in i and i["number"] not in dests.owned]
+            if "pull_request" not in i and not dests.owns(i["number"])]
+
+
+def sweep_ref(repo: Path, ref: str | None) -> str:
+    """The roster a sweep reads: `--roster-ref` when given, else the round's
+    live roster ref (`roster_lib.reader_ref`, its note on stderr), never main's
+    copy: main lags the round's edits, so a group done on the live ref but open
+    on main would still own its issues there (#2492's and #2731's miss)."""
+    return roster_lib.reader_ref(str(repo), ref)
 
 
 def roster_drift(repo: Path, refs: list[str]) -> list[str]:
@@ -573,9 +647,9 @@ def main(argv: list[str]) -> int:
                     if m := re.search(pat, s_, re.I):
                         print("  ", name, "::", s_[max(0, m.start() - 80):m.end() + 120].replace("\n", " "))
             return 0
-        # sweep
         online = not a.from_dir
-        dests = load_dests(ROOT, ref, a.briefs_dir, gh_issue_state(a.repo) if online else None)
+        dests = load_dests(ROOT, sweep_ref(ROOT, ref), a.briefs_dir,
+                           gh_issue_state(a.repo) if online else None)
         if a.prs:
             prs = [int(x) for x in a.prs.split(",") if x.strip()]
         elif a.last:
@@ -623,6 +697,7 @@ def _self_test() -> int:
     roster = {"groups": [
         {"group": "R10-LIVE", "issues": [100], "fixes": [101], "resume": {"stage": "not-started"}},
         {"group": "R10-OVER", "issues": [200], "fixes": [], "resume": {"stage": "done"}},
+        {"group": "R10-STALE", "issues": [400], "fixes": [], "resume": {"stage": "in-progress"}},
     ]}
     tmp = tempfile.TemporaryDirectory()
     Path(tmp.name, "O7-same-sha.md").write_text("brief\n")
@@ -681,7 +756,27 @@ def _self_test() -> int:
     check("dismissed with a reason is a destination", r["u"] == 0 and r["b"] == 0)
     r = run(plant.rstrip() + " Carry: dismissed:\n")
     check("a bare dismissed is refused", r["b"] == 1)
-    rnd = ("origin/handoff/audit-r10-roster", {"groups": roster["groups"] + [
+    # THE DONE TRANSITION (R10-RCA-ROSTER-SYNC-ORPHANS): `orphaned` is the
+    # `--issues` test asked of a closing group, on the roster the write leaves.
+    def closed(gid: str, extra=()) -> dict:
+        return {"groups": [dict(g, resume={"stage": "done"}) if g["group"] == gid else g
+                           for g in roster["groups"]] + list(extra)}
+    live_g = next(g for g in roster["groups"] if g["group"] == "R10-LIVE")
+    co = {"group": "R10-CO", "issues": [101], "resume": {"stage": "carries-open"}}
+    check("a group closing with an open issue nothing else owns orphans it; one a live group "
+          "also lists does not",
+          orphaned(Dests(closed("R10-LIVE", [co]), {300}, None, lambda n: "open"), live_g) == [100])
+    check("... a closed issue is no orphan (null control)",
+          orphaned(Dests(closed("R10-LIVE", [co]), {300}, None, lambda n: "closed"), live_g) == [])
+    check("... an unreadable state counts as open, and with no other owner both are orphans",
+          orphaned(Dests(closed("R10-LIVE"), set(), None, lambda n: None), live_g) == [100, 101])
+    check("... a carry file is another live owner",
+          orphaned(Dests(closed("R10-LIVE"), {100, 101}, None, lambda n: "open"), live_g) == [])
+    check("... and an O-brief is too",
+          orphaned(Dests(closed("R10-LIVE"), set(), tmp.name, lambda n: "open"),
+                   {"issues": [2353, 7]}) == [7])
+    rnd = ("origin/handoff/audit-r10-roster", {"groups": [
+        dict(g, resume={"stage": "done"}) if g["group"] == "R10-STALE" else g for g in roster["groups"]] + [
         {"group": "R10-BRANCH", "resume": {"stage": "not-started"}},
         {"group": "R10-BRDONE", "resume": {"stage": "done"}}]})
     Drr = Dests(roster, {300}, tmp.name, round_roster=rnd)
@@ -711,6 +806,15 @@ def _self_test() -> int:
     r = run(plant.rstrip() + " Carry: R10-BRANCH\n", d=load_dests(Path(gtmp.name)))
     check("load_dests reads the round ref: a group only there passes, the note naming it",
           r["b"] == 0 and any(rnd[0] in n for x in r["rows"] for n in x["notes"]))
+    with contextlib.redirect_stderr(io.StringIO()):
+        sref = sweep_ref(Path(gtmp.name), None)
+    check("a sweep with no --roster-ref reads the round's live roster ref", sref == rnd[0])
+    check("... and a given --roster-ref wins (null control)",
+          sweep_ref(Path(gtmp.name), "origin/main") == "origin/main")
+    check("at the live ref a group done there owns nothing; main's stale copy still credits it "
+          "(#2492's miss)",
+          not load_dests(Path(gtmp.name), sref).owns(400)
+          and load_dests(Path(gtmp.name), "origin/main").owns(400))
     git("update-ref", "-d", "refs/remotes/" + rnd[0])
     r = run(plant.rstrip() + " Carry: R10-BRANCH\n", d=load_dests(Path(gtmp.name)))
     check("... and a clone without that ref refuses it (null control)", r["b"] == 1)
@@ -860,6 +964,22 @@ def _self_test() -> int:
     r = run(head + "## Friction\n\n- PULL_REQUEST_TEMPLATE.md: unenforced: its example "
             "`Carry: R10-LIVE` names a group a fixer copies unchecked. Carry: R10-LIVE\n")
     check("the same finding with a plain marker routes (null control)", r["u"] == 0 and r["b"] == 0 and len(r["rows"]) == 1)
+    # M1 (R10-RCA-JIDOKA-YIELD): a roster carry stated as not done, outside the
+    # carry sections, is a finding item needing a marker. #3010 r1's paragraph.
+    owed = ("**Roster carry (open, not answered by this change).** Carry 1: **not done in "
+            "this pull request.** The group's roster entry folded R10-FLOW-POSTMERGE.\n")
+    r = run(head + owed)
+    check("an owed roster carry in an untitled paragraph is an unrouted [owed carry] item",
+          r["u"] == 1 and [x["why"] for x in r["rows"]] == ["owed carry"])
+    r = run(head + owed.rstrip() + " Carry: R10-LIVE\n")
+    check("the same paragraph with a Carry: marker routes (null control)",
+          r["u"] == 0 and r["b"] == 0 and len(r["rows"]) == 1)
+    r = run(head + 'The reviewer wrote "Carry 1: not done in this pull request" as an example.\n')
+    check("an owed-carry phrase inside double quotes is not read", r["rows"] == [])
+    r = run(head + "The probe pattern `Carry 1: not done in this pull request` is an example.\n")
+    check("... nor one inside a code span", r["rows"] == [])
+    r = run(head + "Carry 1 landed in this change and is answered by the test below.\n")
+    check("a carry index with no not-done phrase is no finding (null control)", r["rows"] == [])
     # One row per boundary of the marker grammar, each with the status it must
     # read: dev/audit/harnesses/r10_carry_parser_mutants.py names the mutant
     # each row kills alone, so no predicate is pinned only with another.

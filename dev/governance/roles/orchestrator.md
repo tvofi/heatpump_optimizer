@@ -168,8 +168,8 @@ head SHA, invisible to a liveness check for its worktree or marker. A
 head moving under an in-flight review costs it; a code-carrying move re-issuing
 the verdict needs a fresh `bus.sh dispatch` before the reviewer publishes, since
 `push-verdict` refuses a nonce minted at another head.
-Dispatching a second reviewer over a range clean against the reviewed head
-(`--reviewed-head`) is the error, not diligence (tvofi, 2026-10-27);
+Dispatching a second reviewer over a range clean against a reviewed head whose
+verdict was merge (`--reviewed-head`) is the error, not diligence (tvofi, 2026-10-27);
 `review_carry.py`'s `CARRY` refuses it. **A conflict after the handoff is
 resolved by merge, never a re-cut**: merge `origin/main` in, or hand a
 semantic one to the fixer; the resolution delta goes to that reviewer.
