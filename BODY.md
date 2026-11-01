@@ -7,7 +7,7 @@ R10-AUDIT-COVERAGE-ENDGAME (design `design/r10-audit-coverage` at `ae3d86dc0`, a
   - an exclusion that also names a covered path, names nothing, or carries no reason;
   - a harness under `dev/audit/harnesses/` whose header names a brief (`D<k>.md`) that does not cite it (Carry 8).
 
-  The exit code goes through one function, `verdict()`. `--self-test` drives it on the live scopes, with D10's universe dropped, and with an uncited harness planted. It also drives `coverage()` arms that must name `custom_components/heatpump_optimizer/py.typed` (Carry 5), and `tests/closure.py` and `blueprints/automation/notifications.yaml` when every `tests/`/`blueprints/` glob is stripped.
+  The exit code goes through one function, `verdict()`. `--self-test` drives it on the live scopes, with D10's universe dropped, and with an uncited harness planted. Since round 2 it also runs the default invocation whole, as a subprocess of the file with `--repo`/`--ref`: the live scopes must exit 0 and the scopes with D4's and D6's `blueprints/**` globs dropped must exit 1 naming a blueprint, both printing `verdict()`'s citation line. It also drives `coverage()` arms that must name `custom_components/heatpump_optimizer/py.typed` (Carry 5), and `tests/closure.py` and `blueprints/automation/notifications.yaml` when every `tests/`/`blueprints/` glob is stripped.
 - **G1, G2, G3: the universes.**
   - D3 gains `tests/*.{py,mjs,sh}`, `tests/README.md`, `tests/fixtures/**`, `tests/replay/**` and `tests/pwlane/*.json`.
   - D11 gains the gate machinery: `closure`, `entities`, `structure`, `env_drift`, `gate_lock`, `layout` and the ratchets; `tests/*.json` (closures, every budget file, `seam_map.json`); `tests/requirements-*.txt` and `tests/hastub/**`. It also gains the release and repo files (`.gitattributes`, `.gitignore`, `SECURITY.md`, `VERSION`, `RELEASE_NOTES.md`) and `dev/README.md`. From `dev/programme/` it gains `HANDOVER.md`, `plan-*.md`, `carries/**` and `rosters/**`.
@@ -41,7 +41,9 @@ R10-AUDIT-COVERAGE-ENDGAME (design `design/r10-audit-coverage` at `ae3d86dc0`, a
 
 ## Head
 
-`40f6097a10a02379a63b86523bf8ed304f8d3859`, measured against merge base `c88d552c76f1ae11a879ce7ccb8d8dc29adabf50` (`origin/main` at 2026-11-01T19:36Z, `date -u`). `origin/main` moved twice during the work, `ca6333333` → `407eb0cb3` → `c88d552c7`, and was merged each time (`06eb0d3eb`, `40f6097a1`). Every figure that depends on main was re-taken after the second merge: coverage, seat deltas, the ledger check and the 16 mutants. Neither merge touched a file this group edits except `tests/closures.json`, which the ledger merge driver resolved.
+Round 2 (minimal repair of the fix review's one block, `verdict/3149` at `9bb207408`). The new handoff head and code head are both `ced02240fbac3e523d37efe111136b7fa094e71e`, a fast-forward of the round-1 code head `40f6097a10a02379a63b86523bf8ed304f8d3859` by one commit that changes only `tools/audit/check_scopes.py`. The PR head the reviewer judged, `1abb0abab0dd1f3d9ec30f790fffd75c042dabe6`, is `40f6097a1` plus a merge of main. `git merge-tree --write-tree origin/main HEAD` at `origin/main` `25c46e76e` (2026-11-01T21:43Z, `date -u`) gives rc 0 with `LEDGER-MERGE: resolved tests/closures.json`, so main was not merged. The round-2 figures (the self-test, the five code mutants, the default run's `tracked=`, the gate, structure and prepr) were taken at `ced02240f`. The round-1 figures below were taken at `40f6097a1`, whose tree differs from `ced02240f` only in `check_scopes.py`.
+
+Round 1: `40f6097a10a02379a63b86523bf8ed304f8d3859`, measured against merge base `c88d552c76f1ae11a879ce7ccb8d8dc29adabf50` (`origin/main` at 2026-11-01T19:36Z, `date -u`). `origin/main` moved twice during the work, `ca6333333` → `407eb0cb3` → `c88d552c7`, and was merged each time (`06eb0d3eb`, `40f6097a1`). Every figure that depends on main was re-taken after the second merge: coverage, seat deltas, the ledger check and the 16 mutants. Neither merge touched a file this group edits except `tests/closures.json`, which the ledger merge driver resolved.
 
 ## Mutation proof
 
@@ -69,6 +71,15 @@ One textual mutation at a time on the head, using the self-test CI already runs:
 `tools/audit/seat/moved_paths.py`:
 - P1. `UnicodeDecodeError` is no longer caught. The self-test crashes, rc 1.
 
+Round 2, the reviewer's code mutants (`ev/check_scopes_code_mutants.txt`, `ev/CM4.patch`), run at `ced02240f` with `python3 tools/audit/check_scopes.py --repo . --self-test`, the file restored after each:
+- CM4. `main()` exits on `sys.exit(0 if check(scopes, tree, loc) else 1)`, bypassing `verdict()`. Red: "the default invocation exits 0 on the live scopes" (no citation line) and "and exits 1 without D4's and D6's blueprints globs" (the subprocess exits 0), rc 1. Before the repair, the round-1 file under the same mutant gave rc 0.
+- CM2 (an excluded-but-covered path accepted), rc 1. Red: "exclude a covered path".
+- CM3 (header window `[:0]`), rc 1. Red: "a harness the brief does not cite is refused", "and refuses an uncited brief-named harness".
+- CM5 (citation never refused), rc 1. Red: the same two arms, plus the two default-invocation arms.
+- CM6 (`verdict()` drops coverage), rc 1. Red: "and refuses them without D10's universe", "and exits 1 without D4's and D6's blueprints globs".
+
+CM2, CM3, CM5 and CM6 stay killed. The clean file gives rc 0 at `ced02240f` (`default invocation: live rc=0, blueprints dropped rc=1`). The round-1 file without the mutant also gives rc 0, so CM4 is the only mutant whose result the repair changes. The self-test comment that said "neither coverage nor citations can fall out of the exit code" now says the function-level arms pin `verdict()`, and that the subprocess arms pin `main()`'s exit to `verdict()`'s answer.
+
 Before the earlier mutants, M4 was a survivor: coverage was dropped from the exit code and the self-test stayed green. That is why `verdict()` exists and is driven whole. M7 and M8 were survivors before their arms were added.
 
 ## Null control
@@ -81,7 +92,7 @@ Before the earlier mutants, M4 was a survivor: coverage was dropped from the exi
 
 ## Figures
 
-- Coverage, merge base vs head: `python3 tools/audit/check_scopes.py --repo . --ref c88d552c7 --scopes <base scopes.json>` gives `FAIL coverage tracked=8102 in_universe=3270 excluded=0 unclassified=4832` and `FAIL harness citations: 1` (`d15_restart_gaps.py` names D15.md, which does not cite it), rc 1. At the head, `python3 tools/audit/check_scopes.py --repo . --ref HEAD` gives `ok coverage tracked=8102 in_universe=1326 excluded=6776 unclassified=0` and `ok harness citations: 0`, rc 0. Every dimension prints `ok`.
+- Coverage, merge base vs head: `python3 tools/audit/check_scopes.py --repo . --ref c88d552c7 --scopes <base scopes.json>` gives `FAIL coverage tracked=8102 in_universe=3270 excluded=0 unclassified=4832` and `FAIL harness citations: 1` (`d15_restart_gaps.py` names D15.md, which does not cite it), rc 1. At the head `ced02240f`, `python3 tools/audit/check_scopes.py --repo . --ref HEAD` gives `ok coverage tracked=8102 in_universe=1326 excluded=6776 unclassified=0` and `ok harness citations: 0`, rc 0. Every dimension prints `ok`. The reviewer's `tracked=8107 in_universe=1329 excluded=6778` is the PR head `1abb0abab`, which carries main's merge: the same command with `--ref 1abb0abab0dd1f3d9ec30f790fffd75c042dabe6` prints exactly that, rc 0.
 - G1–G3 at the first base `ca6333333`, by the note's enumerator (`python3 cov.py <ref> --table`, Appendix A of the design note), classified with `scopes.json`'s glob dialect over `git ls-tree -r --name-only`:
   - 4829 tracked paths were in no universe: 74 top-level `tests/` files, 35 under `tests/hastub`, 3006 under `tests/mutation_ledger/`, 58 under `tests/golden/`, 5 `blueprints/`, 1431 under `dev/programme/`, 131 under `dev/archive/`, 7 root files, 6 under `docs/design/`, 62 under `docs/img/` and 6 font files, plus `dev/README.md` and `tests/fixtures`, `tests/pwlane` and `tests/replay`.
   - `git ls-files dev/audit/rounds | wc -l` gives 2147 of the 3156 files each D11 seat held at `c88d552c7`.
@@ -125,14 +136,14 @@ Before the earlier mutants, M4 was a survivor: coverage was dropped from the exi
   - D11 folds the new names into the existing row list and drops "change-failure rate among them", "Derive the row count…" (restated by the step's own header) and the OWASP examples list.
 
   `policy_lint.mjs` acceptance: `TOTAL: 0 error(s)`.
-- Gate (`tests/closure.py select --diff $(git merge-base origin/main HEAD)`): `MODE: SCOPED -- 1 script(s) run`, `tests/entities.py`, which gives `ALL 2516 ENTITY CHECKS PASSED` at the head. `run_always` lines: `env_drift.py --claims-only` ok, `closure.py selftest` `ALL 117 closure shrink pins PASSED`, `layout.py` ok, and `harness_headers.py` `ALL 112 HARNESS HEADER CHECKS PASSED`. `python3 tests/structure.py` gives `STRUCTURE RATCHET PASSED`.
-- `bash tools/pr/prepr.sh <this body>` at the head: `PRE-PR: 40f6097a… rc=0`. `origin/main` was unmoved at `c88d552c7` when it ran.
+- Gate (`tests/closure.py select --diff $(git merge-base origin/main HEAD)`): `MODE: SCOPED -- 1 script(s) run`, `tests/entities.py`, which gives `ALL 2516 ENTITY CHECKS PASSED` at `ced02240f`. `run_always` lines: `env_drift.py --claims-only` ok, `closure.py selftest` `ALL 117 closure shrink pins PASSED`, `layout.py` ok, and `harness_headers.py` `ALL 112 HARNESS HEADER CHECKS PASSED`. `python3 tests/structure.py` gives `STRUCTURE RATCHET PASSED`.
+- `bash tools/pr/prepr.sh <this body>` at the head `ced02240f`, closures and CI-predict steps included: `PRE-PR: ced02240f… rc=0`. `origin/main` was at `25c46e76e` when it ran. It has moved past the merge base `c88d552c7`, but `git merge-tree` reports no conflict, so main is not merged at this head (the brief's rule). In round 1, prepr gave `PRE-PR: 40f6097a… rc=0` with main unmoved.
 - Unpinned sites: the sites this diff adds are in `tools/audit/`, which `mutation-autofix` does not mutate. Each is pinned by its instrument's own `--self-test` arm, as the mutants above show.
 - Goldens: none move, and neither claim file is touched (three-dot diff).
 
 ## Red checks
 
-`none` on this head. Three checks went red, or were predicted red, during the work. They are answered here:
+`none`. At the handoff head `ced02240f` no check has run yet: it has never been a PR head, so it has no check-runs. At the PR head `1abb0abab`, the check-run set is 55 runs on one page of 100 (`pull_request_read get_check_runs`, perPage 100). Every concluded run is `success` or `skipped`, and none is `failure`. In round 1, three checks went red, or were predicted red, during the work. They are answered here:
 - **`tests/entities.py` N-move-stale-path arm.** It went red when a README draft named the repaired harnesses. The cheaper detector is the arm itself, which ran in the scoped gate before the push, so none cheaper exists.
 - **`ci_predict.py` predicted a `tests / closures` red (`INERT READS tests/entities.py: tools/audit/seat/moved_paths.py`).** `prepr.sh` step 6d caught it before any push to the handoff ref. `--apply-inert` repaired it.
 - **`agreement.mjs` `UNREGISTERED`.** The `(?<![\w-])` grammar was shared with `tests/doc_claims.py`. `prepr.sh`'s agreement step caught it before the push.
