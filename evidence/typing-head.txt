@@ -1,4 +1,3 @@
-
 ########## errors by module (reported, not ratcheted) ##########
   ok   errors did not grow
   ok   type_ignores did not grow
