@@ -13636,9 +13636,9 @@
     "P348: in `tools/audit/seat/bus.sh` `dispatch`, the review-carry refusal (lines 484-494 at `a7dd7f50d`) fires only when the latest verdict naming the reviewed head in `verdict/<pr>`'s history is `merge`. Read it with a `verdict_at` beside `blocked_rounds`. A blocked verdict, or none, mints and prints `review-carry: <rh> was blocked, so a fresh review is owed`. An unreadable ref refuses. Basis: #3045 round 3 at `9ef51b82`, dispatched only by omitting `--reviewed-head`; 38 verdicts since `6f905c40f` sit at a head an earlier verdict had blocked. Rows: blocked at `rh` with a clean range mints; null control: merge at `rh` with a clean range refuses (CARRY); unreadable refuses. One mutant drops the verdict test, and the blocked row fails. Amend `dev/governance/roles/orchestrator.md` line 172 with \"against a reviewed head whose verdict was merge\". triage: dev/programme/triage/s6-batch95.md#P348"
    ],
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": "handoff/r10-fly-raise-reviewable",
-    "commit": null,
+    "commit": "ddf4bfd73bc764d6daf44f508f67139521d45724",
     "last_step": null,
     "next_step": "dispatch a fixer (S; ahead of other instrument fly-ins: it blocks every budget-raise PR's review route, critical path included)",
     "note": "2026-10-31 (triage: dev/programme/triage/s6-batch95.md#P345, #P348)",
