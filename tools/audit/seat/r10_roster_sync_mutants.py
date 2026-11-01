@@ -59,11 +59,21 @@ Plants:
                               pull request matching its topic.
   M24_size_scan_blind         the size drift check returns nothing whatever
                               the rosters carry.
+  M25_hold_dropped            a merged group owning an open issue nothing
+                              else owns is written `done` (the orphan).
+  M26_apply_unheld            the hold runs on the dry run only, so the write
+                              path's re-derive orphans the issue anyway.
+  M27_owners_before_close     the owners are read from the roster before the
+                              transition, so a closing group owns its own
+                              issue and nothing is ever held.
+  M28_issue_state_ignored     carry_audit's `orphaned` ignores the issue
+                              state, so a closed issue holds its group open.
 """
 import subprocess
 import sys
 
 SRC = "tools/audit/seat/roster_sync.py"
+CA = "tools/audit/carry_audit.py"
 RUN = ("import sys; sys.path.insert(0, 'tools/audit/seat'); "
        "import roster_sync; sys.exit(roster_sync.run_self_test())")
 
@@ -146,6 +156,18 @@ PLANTS = {
     "M23_done_rewritten": [
         (SRC, "        if stage in roster_lib.DONE_STAGES:\n            continue",
               "        if False:  # M23\n            continue")],
+    "M25_hold_dropped": [
+        (SRC, "        out.append(c._replace(stage=HOLD_STAGE, held=tuple(held)) if held else c)",
+              "        out.append(c)  # M25")],
+    "M26_apply_unheld": [
+        (SRC, "            changes = hold_open(roster, changes, dests_for((made,)))\n",
+              "")],
+    "M27_owners_before_close": [
+        (SRC, "    apply_plan(projected, changes, [])\n    dests = dests_for(projected)",
+              "    dests = dests_for(projected)  # M27")],
+    "M28_issue_state_ignored": [
+        (CA, "            and (dests.issue_state(n) if dests.issue_state else None) in (None, \"open\")]",
+             "            ]  # M28")],
     "M24_size_scan_blind": [
         (SRC, "    return {s: w for s, w in seen.items() if s not in model}",
               "    return {}  # M24")],
@@ -179,17 +201,17 @@ def run(name, edits):
 
 
 def main():
-    left = subprocess.run(["git", "status", "--short", "--", SRC],
+    left = subprocess.run(["git", "status", "--short", "--", SRC, CA],
                           capture_output=True, text=True).stdout
     if left.strip():
-        sys.exit(f"refusing: {SRC} is modified")
+        sys.exit(f"refusing: {SRC} or {CA} is modified")
     args = sys.argv[1:]
     if args == ["--null"]:
         run("NULL_no_plant", [])
         return
     for name in args or list(PLANTS):
         run(name, PLANTS[name])
-    left = subprocess.run(["git", "status", "--short", "--", SRC],
+    left = subprocess.run(["git", "status", "--short", "--", SRC, CA],
                           capture_output=True, text=True).stdout
     print("restored" if not left.strip() else "NOT RESTORED:\n" + left)
 

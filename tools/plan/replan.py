@@ -87,6 +87,7 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import json
+import math
 import os
 import subprocess
 import sys
@@ -118,11 +119,15 @@ ROUND_CLOSE = "round-close"
 LIVE_STAGES = ("in-progress", "fixing", "review", "in-review")
 
 DEFAULT_CAPS = {
-    "slots": 6,              # open pull requests; the owner's cap
-    "seats": 8,              # fixers working; never binds while slots < seats
+    "slots": 16,             # open pull requests: the owner's cap since 2026-10-31
+    "seats": 16,             # fixers working: one per open pull request
     "coordinator_cap": 2,    # open pull requests touching coordinator.py
     "stamp_every": 5,        # production groups per patch stamp
 }
+#: Where DEFAULT_CAPS' slots and seats come from, recorded in every plan that
+#: uses them: a plan drawn at a cap nobody chose must say whose cap it is.
+CAPS_PROVENANCE = ("tvofi 2026-10-31 (#201 comment 6544047621): 16 open pull "
+                   "requests; replan.py DEFAULT_CAPS")
 
 
 class PlanError(Exception):
@@ -225,6 +230,26 @@ def roster_lane(group: dict) -> str:
     return "Core model"
 
 
+#: The work classes the size model is measured and priced in
+#: (`tools/plan/size_durations.py`).
+WORK_CLASSES = ("production", "instrument", "record", "triage")
+
+
+def work_class(group: dict) -> str:
+    """What kind of work a group is, for its duration: a triage batch, a
+    roster or handover record, an instrument (its lane, or an RCA, policy or
+    tooling kind, which land tools), else production."""
+    g, k = group["group"], group.get("kind")
+    if "TRIAGE" in g:
+        return "triage"
+    branch = (group.get("resume") or {}).get("branch") or ""
+    if k == "record" or "audit-r" in branch and "-roster" in branch:
+        return "record"
+    if roster_lane(group) in ("Instruments", "Docs") or k in ("rca", "policy", "tooling"):
+        return "instrument"
+    return "production"
+
+
 def touches_coordinator(group: dict) -> bool:
     files = list(group.get("hot_files") or []) + list(group.get("files") or [])
     return any(f.endswith("coordinator.py") for f in files)
@@ -323,32 +348,306 @@ def critical_path(deps: dict, dur: dict, order: list) -> list:
     return chain
 
 
-def dispatch_tier(n: str, crit: set, lane: dict) -> int:
-    """The owner's dispatch tier: 0 the critical path, 1 production, else 2.
+#: The owner's priority order (standing directive, 2026-10-30), as tiers:
+#: 1 main (a red main or a main fix), 2 the critical path and hotfixes (user-
+#: reported production findings), 3 production work and instruments saving
+#: SAVING_TIER_HOURS or more, 4 every other instrument, ranked by its savings.
+TIER_MAIN, TIER_URGENT, TIER_PRODUCTION_WORK, TIER_INSTRUMENT = 1, 2, 3, 4
+SAVING_TIER_HOURS = 12.0
 
-    `crit` is `critical_path()`'s own output for this replan, so tier 0 moves
-    with the roster graph rather than being a list anyone maintains.
+
+def dispatch_tier(group: dict, on_cp: bool, savings: float | None) -> tuple[int, str]:
+    """(tier, the roster fields that decided it) for one open group.
+
+    Read from the roster alone: `kind` "main" or a `-MAIN-FIX`/`-MAIN-RED`
+    name is main; `on_cp` (`critical_path()`'s output, never a stored list),
+    a `kind` "bug" (the user-reported finding) or a HOTFIX-named production
+    group is urgent; `work_class` production, or an instrument whose
+    `savings` is at least SAVING_TIER_HOURS, is tier 3; else tier 4.
     """
-    if n in crit:
-        return TIER_CRITICAL
-    return TIER_PRODUCTION if lane[n] in PRODUCTION else TIER_OTHER
+    g, k = group["group"], group.get("kind")
+    if k == "main" or "-MAIN-FIX" in g or "-MAIN-RED" in g:
+        return TIER_MAIN, f"main (kind {k!r}, name)"
+    cls = work_class(group)
+    if on_cp:
+        return TIER_URGENT, "critical path"
+    if k == "bug" or "HOTFIX" in g and cls == "production":
+        return TIER_URGENT, f"hotfix (kind {k!r}, name)"
+    if cls == "production":
+        return TIER_PRODUCTION_WORK, "production (work_class)"
+    if savings is not None and savings >= SAVING_TIER_HOURS:
+        return TIER_PRODUCTION_WORK, f"instrument saving {savings:g} h >= {SAVING_TIER_HOURS:g}"
+    if savings is None:
+        return TIER_INSTRUMENT, f"{cls}; savings not recorded on the roster, ranked last"
+    return TIER_INSTRUMENT, f"{cls} saving {savings:g} h"
 
 
-def dispatch_key(n: str, tier: dict, savings: dict, height: dict,
+def dispatch_key(n: str, tier: dict, crit: set, savings: dict, height: dict,
                  dur_min: dict) -> tuple:
-    """The dispatch order, lowest first: tier, then savings, then height.
-
-    Only a tier-2 group is ranked by the roster's `savings`; a group with no
-    savings sorts behind every group that has one. Height breaks ties within a
-    tier and the name makes the order total, so the schedule stays
-    deterministic.
+    """The dispatch order, lowest first: tier, the critical path first within
+    it, then (tier 4 only) savings descending with an unrecorded savings last,
+    then the tie-break that predates the tiers: height, duration, name. It is
+    a pure function of the plan's own fields (`plan.json` records it per
+    group as `sort_key`), so a reader can re-derive the order from the plan.
     """
     t = tier[n]
-    if t == TIER_OTHER:
-        sav = -savings[n] if n in savings else float("inf")
+    sav = (-savings[n] if n in savings else float("inf")) if t == TIER_INSTRUMENT else 0.0
+    return (t, 0 if n in crit else 1, sav, -height[n], -dur_min[n], n)
+
+
+# ------------------------------------------------------------- duration model
+
+HELD_STAGE = "carries-open"
+
+
+def held_open(group: dict, durations: dict) -> tuple[int, str]:
+    """(open carries, how known) for a carries-open group. The measured
+    count (`held_open_carries`, `tools/plan/size_durations.py`) plus every
+    carry appended since; a group it never measured counts every carry."""
+    carry = len(group.get("carry") or [])
+    rec = (durations.get("held_open_carries") or {}).get(group["group"])
+    if rec is None:
+        return carry, f"{carry} carries, none measured as answered"
+    added = max(0, carry - int(rec["carries"]))
+    return int(rec["open"]) + added, (f"{rec['open']} open carries at measurement"
+                                      + (f" + {added} appended since" if added else ""))
+
+
+def group_hours(group: dict, durations: dict, is_live: bool, where: str) -> tuple[float, str]:
+    """(hours of work left, the basis in words) for one open group.
+
+    carries-open: ceil(open carries / carries_per_part) parts of
+        carry_part_hours -- zero open carries plan zero (the record step);
+    otherwise: first_round_hours (by class where measured, else the size)
+        + (review_rounds - 1) * round_hours, + carry_hours per carry above
+        the size's carry_baseline (a carry absorbed after sizing is work the
+        size did not price), times live_remaining_fraction for a working
+        fixer. A durations file without the measured fields falls back to
+        sizes_hours alone. An unmeasured size is refused: a hand-written
+        duration would be a fabricated measurement, and a KeyError from
+        inside the schedule names neither the group nor the roster.
+    """
+    n, size, cls = group["group"], group.get("size") or "M", work_class(group)
+    stage = (group.get("resume") or {}).get("stage")
+    if stage == HELD_STAGE and durations.get("carries_per_part"):
+        k, how = held_open(group, durations)
+        parts = math.ceil(k / float(durations["carries_per_part"]))
+        return parts * float(durations["carry_part_hours"]), f"{how}: {parts} part(s)"
+    sizes = durations["sizes_hours"]
+    if size not in sizes:
+        raise PlanError(f"{n}: size {size!r} has no measured duration in sizes_hours "
+                        f"({', '.join(sorted(sizes))}) -- roster {where}")
+    first = durations.get("first_round_hours") or {}
+    if size in first:
+        cell = (durations.get("first_round_by_class_hours") or {}).get(size, {})
+        rcell = (durations.get("review_rounds_by_class") or {}).get(size, {})
+        work = float(cell.get(cls, first[size]))
+        rounds = float(rcell.get(cls, durations["review_rounds"][size]))
+        hours = work + (rounds - 1) * float(durations["round_hours"])
+        why = f"{size}/{cls if cls in cell else 'all'}: {work:g} h + {rounds - 1:.2f} extra rounds"
+        extra = len(group.get("carry") or []) - float((durations.get("carry_baseline") or {}).get(size, 0))
+        if extra > 0 and durations.get("carry_hours"):
+            hours += extra * float(durations["carry_hours"])
+            why += f" + {extra:g} absorbed carries"
     else:
-        sav = 0.0
-    return (t, sav, -height[n], -dur_min[n], n)
+        hours, why = float(sizes[size]), f"{size}: sizes_hours"
+    if is_live:
+        hours *= float(durations.get("live_remaining_fraction", 0.7))
+        why += ", working (live_remaining_fraction)"
+    return hours, why
+
+
+#: The measured fields (`tools/plan/size_durations.py`) a plan records and
+#: `--check` requires: the rounds model and the held-stage model.
+MODEL_FIELDS = ("first_round_hours", "first_round_by_class_hours", "review_rounds",
+                "review_rounds_by_class", "round_hours", "carry_baseline", "carry_hours",
+                "carry_part_hours", "carries_per_part", "sizes_percentile",
+                "carry_provenance")
+SIZE_ORDER = ("XS", "S", "M", "L", "XL")
+
+
+def model_refusals(model: dict) -> list:
+    """Why a duration model is not the measured one, or [] if it is: the
+    review rounds and the held stage are modelled explicitly, and no larger
+    size plans shorter than a smaller one (the 2026-10-18 model planned S at
+    13.1 h above M at 11.4 h)."""
+    bad = [f"model: {k} is not recorded (re-derive with --measure-sizes)"
+           for k in ("first_round_hours", "review_rounds", "round_hours",
+                     "carries_per_part", "carry_part_hours") if k not in model]
+    sizes = [(s, float(model["sizes_hours"][s])) for s in SIZE_ORDER
+             if s in (model.get("sizes_hours") or {})]
+    for (a, ha), (b, hb) in zip(sizes, sizes[1:]):
+        if hb < ha:
+            bad.append(f"model: {b} plans {hb:g} h, under {a}'s {ha:g} h")
+    return bad
+
+
+#: The 2026-10-18 model, kept as the self-test's old-model plant.
+OLD_MODEL = {"sizes_hours": {"S": 13.1, "M": 11.4, "L": 20.1, "XL": 30.2},
+             "live_remaining_fraction": 0.7}
+#: A measured-shape fixture (round numbers, so every expectation is exact).
+MEASURED_FIXTURE = {
+    "sizes_hours": {"S": 18.0, "M": 24.0, "L": 32.0, "XL": 32.0},
+    "first_round_hours": {"S": 10.0, "M": 16.0, "L": 20.0, "XL": 20.0},
+    "first_round_by_class_hours": {"S": {"instrument": 8.0}},
+    "review_rounds": {"S": 3.0, "M": 3.0, "L": 4.0, "XL": 4.0},
+    "review_rounds_by_class": {"S": {"instrument": 2.0}},
+    "round_hours": 4.0, "carry_baseline": {"S": 2, "M": 4, "L": 6, "XL": 6},
+    "carry_hours": 4.0, "carry_part_hours": 20.0, "carries_per_part": 5.0,
+    "held_open_carries": {"H1": {"open": 1, "carries": 8}, "H0": {"open": 0, "carries": 3}},
+    "live_remaining_fraction": 0.5, "batch_window_minutes": 0,
+    "ci": {"fast (3.14)": {"median_minutes": 1.0}, "closures": {"median_minutes": 1.0},
+           "Analyze (python)": {"median_minutes": 1.0}},
+}
+
+
+def selftest_model() -> int:
+    """The measured duration model, the started-group admission and the
+    owner's priority order: each arm names what the old code did instead."""
+    fails = []
+
+    def expect(name, cond, detail=""):
+        print(("ok   " if cond else "FAIL ") + name + ("" if cond else f": {detail}"))
+        if not cond:
+            fails.append(name)
+
+    M = MEASURED_FIXTURE
+
+    def grp(n, size="S", kind="defect", stage="not-started", after=(), **kw):
+        return {"group": n, "size": size, "kind": kind, "after": list(after),
+                "resume": {"stage": stage}, **kw}
+
+    # 1. the size model. The old model is refused, the measured one is not.
+    old = model_refusals(OLD_MODEL)
+    expect("the 2026-10-18 model is refused: no rounds model, no held model, M under S",
+           any("round_hours" in b for b in old) and any("carries_per_part" in b for b in old)
+           and any("M plans 11.4 h, under S's 13.1 h" in b for b in old), str(old))
+    expect("the measured fixture model is accepted (null control)", model_refusals(M) == [],
+           str(model_refusals(M)))
+    h, why = group_hours(grp("P", "S"), M, False, "fx")
+    expect("a production S plans first-round 10 + 2 extra rounds x 4 = 18 h", h == 18.0, f"{h} {why}")
+    h, _ = group_hours(grp("I", "S", "instrument"), M, False, "fx")
+    expect("an instrument S plans its class cell: 8 + 1 x 4 = 12 h", h == 12.0, h)
+    h, _ = group_hours(grp("P", "S", carry=["x"] * 5), M, False, "fx")
+    expect("three carries absorbed past the S baseline add 3 x 4 h (30 h)", h == 30.0, h)
+    h, _ = group_hours(grp("W", "S", stage="in-progress"), M, True, "fx")
+    expect("a working fixer plans live_remaining_fraction of its hours (9 h)", h == 9.0, h)
+    h, _ = group_hours(grp("O", "S"), OLD_MODEL, False, "fx")
+    expect("a durations file without the measured fields falls back to sizes_hours",
+           h == 13.1, h)
+    try:
+        group_hours(grp("X", "XS"), M, False, "fx")
+        expect("an unmeasured size is refused", False, "no refusal")
+    except PlanError as exc:
+        expect("an unmeasured size is refused, naming the group and the size",
+               "X: size 'XS'" in str(exc), str(exc))
+
+    # 2. the held stage: priced by open carries, never by the original size.
+    h, why = group_hours(grp("H1", "L", stage="carries-open", carry=["c"] * 8), M, False, "fx")
+    expect("a held L with one open carry plans one part (20 h), not its L size", h == 20.0, why)
+    h, why = group_hours(grp("H1", "L", stage="carries-open", carry=["c"] * 14), M, False, "fx")
+    expect("six carries appended since measurement count open: 7 -> two parts (40 h)",
+           h == 40.0, why)
+    h, why = group_hours(grp("H0", "M", stage="carries-open", carry=["c"] * 3), M, False, "fx")
+    expect("a held group with zero open carries plans zero (null control)", h == 0.0, why)
+
+    caps1 = dict(DEFAULT_CAPS, slots=2, seats=8)
+    start = dt.datetime(2026, 1, 5)
+    ros = {"groups": [grp("H0", "M", stage="carries-open", carry=["c"] * 3),
+                      grp("A"), grp("B")]}
+    pl = build_plan(ros, M, caps1, start, "v1.0.0", round_n=2)
+    g0 = pl["groups"]["H0"]
+    expect("the zero-open held group starts and finishes at the replan instant",
+           g0["start"] == g0["finish"] == iso(start, 0) and g0["duration_minutes"] == 0
+           and "record step" in g0["start_reason"], str(g0))
+
+    # 3. started work keeps its place: in flight from now, past the slot cap.
+    many = {"groups": [grp(f"L{i}", stage="in-progress") for i in range(4)]
+            + [grp("NEW"), grp("DEP", after=["NEW"], stage="in-progress")]}
+    pm = build_plan(many, M, caps1, start, "v1.0.0", round_n=2)
+    G = pm["groups"]
+    expect("every started group with no open dependency starts now, past a cap of 2",
+           all(G[f"L{i}"]["start"] == iso(start, 0) for i in range(4)),
+           {n: G[n]["start"] for n in G})
+    expect("a started group says why it starts: its fixer is working",
+           G["L0"]["start_reason"] == "started: its fixer is working", G["L0"]["start_reason"])
+    expect("a planned group waits while started groups fill the cap, and names it",
+           G["NEW"]["start"] > iso(start, 0) and G["NEW"]["start_reason"].startswith("slot cap 2"),
+           G["NEW"])
+    expect("a started group waits only for its unmerged after-group, and names it",
+           G["DEP"]["start"] == G["NEW"]["finish"]
+           and G["DEP"]["start_reason"].startswith("started: its fixer is working; after NEW"),
+           G["DEP"])
+    expect("the plan with started groups past the cap passes --check", check_plan(pm) == [],
+           check_plan(pm))
+    bad = json.loads(json.dumps(pm))
+    bad["groups"]["NEW"]["start"] = iso(start, 0)
+    expect("a PLANNED dispatch into a full cap is still refused",
+           any(b.startswith("in flight: NEW dispatched") for b in check_plan(bad)),
+           check_plan(bad))
+    nul = build_plan({"groups": [grp("TALL", "M"), grp("SHORT", "S")]}, M,
+                     dict(caps1, slots=1), start, "v1.0.0", round_n=2)
+    expect("null control: two not-started ready groups are still ordered by priority",
+           nul["groups"]["TALL"]["start"] < nul["groups"]["SHORT"]["start"],
+           {n: nul["groups"][n]["start"] for n in nul["groups"]})
+
+    # 4. the owner's priority order (2026-10-30).
+    def tier_of(g, cp=False, sav=None):
+        return dispatch_tier(g, cp, sav)[0]
+    expect("main work is tier 1", tier_of(grp("R10-MAIN-FIX-X", kind="main")) == TIER_MAIN)
+    expect("the critical path is tier 2", tier_of(grp("I", kind="instrument"), cp=True) == TIER_URGENT)
+    expect("a user-reported bug (hotfix) is tier 2, off the critical path",
+           tier_of(grp("R10-HOTFIX-X", kind="bug")) == TIER_URGENT)
+    expect("production work is tier 3", tier_of(grp("P")) == TIER_PRODUCTION_WORK)
+    expect("an instrument saving 12 h is tier 3, one saving 11 h tier 4",
+           tier_of(grp("I", kind="instrument"), sav=12) == TIER_PRODUCTION_WORK
+           and tier_of(grp("I", kind="instrument"), sav=11) == TIER_INSTRUMENT)
+    why = dispatch_tier(grp("I", kind="instrument"), False, None)[1]
+    expect("an instrument with no recorded savings says so", "savings not recorded" in why, why)
+    order = {"groups": [
+        grp("CPA", "S", "instrument"), grp("CPB", "S", "instrument", after=["CPA"]),
+        grp("CPC", "L", "instrument", after=["CPB"]),
+        grp("R10-HOTFIX-H", "L", "bug"), grp("PROD", "M"),
+        grp("HI", "S", "instrument", savings=9), grp("LO", "S", "instrument", savings=2),
+        grp("NONE", "S", "instrument")]}
+    po = build_plan(order, M, dict(caps1, slots=1), start, "v1.0.0", round_n=2)
+    seq = sorted((g for g in po["groups"]), key=lambda n: po["groups"][n]["start"])
+    expect("dispatch follows the owner's order: critical path, hotfix, production, "
+           "instruments by savings, unrecorded savings last",
+           seq == ["CPA", "CPB", "CPC", "R10-HOTFIX-H", "PROD", "HI", "LO", "NONE"], seq)
+    keys = {n: po["groups"][n]["sort_key"] for n in po["groups"]}
+    expect("each group's sort_key is in the plan and orders it the same way",
+           sorted(keys, key=lambda n: [float("inf") if k is None else k for k in keys[n]])[0] == "CPA"
+           and all(po["groups"][n]["tier_reason"] for n in keys), keys)
+    # A critical-path tail (B, 18 h left) against a taller hotfix (H, 24 h):
+    # height alone dispatches H first; the owner's order puts B first.
+    tail = build_plan({"groups": [grp("A", "L", "instrument"),
+                                  grp("B", "S", "instrument", after=["A"]),
+                                  grp("H", "M", "bug")]}, M, dict(caps1, slots=1), start, "v1.0.0", round_n=2)
+    T = tail["groups"]
+    expect("within tier 2 the critical path goes first, even its shorter tail",
+           tail["critical_path"] == ["A", "B"] and T["B"]["start"] < T["H"]["start"],
+           {n: (T[n]["start"], T[n]["sort_key"]) for n in T})
+    tie = build_plan({"groups": [grp("A1", "M"), grp("A2", "S")]}, M,
+                     dict(caps1, slots=1), start, "v1.0.0", round_n=2)
+    expect("null control: two groups in one tier keep the height tie-break",
+           tie["groups"]["A1"]["start"] < tie["groups"]["A2"]["start"],
+           {n: tie["groups"][n]["sort_key"] for n in tie["groups"]})
+
+    # 5. caps: a call naming none draws at the owner's, and says so.
+    nocaps = cli_caps(parse_args([]))
+    expect("a replan given no caps does not draw a 6-slot plan: the owner's 16, with provenance",
+           nocaps["slots"] == 16 and nocaps["seats"] == 16
+           and nocaps["provenance"] == CAPS_PROVENANCE, nocaps)
+    given = cli_caps(parse_args(["--slots", "4"]))
+    expect("null control: a cap given on the command line is used and named as given",
+           given["slots"] == 4 and given["provenance"].startswith("--slots given"), given)
+    pc = build_plan({"groups": [grp("A")]}, M, nocaps, start, "v1.0.0", round_n=2)
+    expect("the plan records whose caps it drew at",
+           pc["generated"]["caps"]["provenance"] == CAPS_PROVENANCE, pc["generated"]["caps"])
+
+    print(f"model self-test: {len(fails)} failed")
+    return 1 if fails else 0
 
 
 # ------------------------------------------------------------------- schedule
@@ -371,27 +670,15 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
 
     lane = {n: roster_lane(G[n]) for n in G}
     coord = {n: touches_coordinator(G[n]) for n in open_}
-    live = set()
-    dur_h = {}
+    live = {n for n in open_ if (G[n].get("resume") or {}).get("stage") in LIVE_STAGES}
+    dur_h, basis = {}, {}
     for n in open_:
-        stage = (G[n].get("resume") or {}).get("stage")
-        is_live = stage in LIVE_STAGES
-        if is_live:
-            live.add(n)
-        size = G[n].get("size") or "M"
-        if size not in size_hours:
-            # An unmeasured size is refused at the roster boundary: a
-            # hand-written duration would be a fabricated measurement, and a
-            # KeyError from inside the schedule names neither the group nor
-            # the roster. The live roster carries `XS`; sizes_hours records no
-            # XS sample, so the honest answer is this refusal.
-            raise PlanError(
-                f"{n}: size {size!r} has no measured duration in sizes_hours "
-                f"({', '.join(sorted(size_hours))}) -- roster "
-                f"{roster_path or roster_ref or '<fixture>'}")
-        base = float(size_hours[size])
-        dur_h[n] = base * live_fraction if is_live else base
-    dur_min = {n: max(1, int(round(dur_h[n] * 60))) for n in open_}
+        dur_h[n], basis[n] = group_hours(G[n], durations, n in live,
+                                         roster_path or roster_ref or "<fixture>")
+    # A held group with nothing left owes only its record step: it is
+    # started at the replan instant like a working one and holds no slot wait.
+    settled = {n for n in open_ if n not in live and dur_h[n] == 0}
+    dur_min = {n: 0 if n in settled else max(1, int(round(dur_h[n] * 60))) for n in open_}
     height = heights(deps, dur_h, order)
     lvl = levels(deps, order)
 
@@ -409,10 +696,12 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
         if isinstance(s, bool) or not isinstance(s, (int, float)):
             raise PlanError(f"{n}: savings is not a number: {s!r}")
         savings[n] = float(s)
-    tier = {n: dispatch_tier(n, crit, lane) for n in open_}
+    tier, tier_why = {}, {}
+    for n in open_:
+        tier[n], tier_why[n] = dispatch_tier(G[n], n in crit, savings.get(n))
 
     def priority(n: str):
-        return dispatch_key(n, tier, savings, height, dur_min)
+        return dispatch_key(n, tier, crit, savings, height, dur_min)
 
     slots = int(caps["slots"])
     seats = int(caps["seats"])
@@ -425,7 +714,14 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
     work_end: dict = {}
     running: dict = {}          # n -> (slot, work_end)
     finished: dict = {}         # n -> work_end, waiting for its batch
-    inherited = set()           # live groups dispatched before the replan instant
+    inherited = set()           # started groups in flight at the replan instant
+    # A started group -- a working fixer, or a held group with nothing left
+    # but its record step -- already holds its pull request: it starts the
+    # moment its `after` groups have merged, past the slot and coordinator
+    # caps (which bind new dispatches), and is never queued behind them.
+    started = live | settled
+    released = {n: 0 for n in open_ if not deps[n]}   # n -> when it became ready
+    coord_held: set = set()     # ready groups the coordinator cap passed over
     ready = {n for n in open_ if not deps[n]}
     pending = set(open_)
     batch_rows: list = []
@@ -438,7 +734,15 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
         # A slot is held from the start to the merge, not to the end of the
         # work: a finished group waiting for its batch still has its PR open.
         used = {s for s, _ in running.values()} | {slot_of[n] for n in finished}
+        if len(used) >= slots:
+            return None
         return next((s for s in range(slots) if s not in used), None)
+
+    def held_slot() -> int:
+        # A started group's slot: the lowest free index, past the cap if the
+        # started set alone exceeds it.
+        used = {s for s, _ in running.values()} | {slot_of[n] for n in finished}
+        return next(s for s in range(len(used) + 1) if s not in used)
 
     def in_flight_coord() -> int:
         return sum(1 for n in list(running) + list(finished) if coord[n])
@@ -448,7 +752,8 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
         cc = in_flight_coord()
         best = None
         for n in candidates:
-            if coord[n] and n not in inherited and cc >= coord_cap:
+            if coord[n] and n not in started and cc >= coord_cap:
+                coord_held.add(n)
                 continue
             key = priority(n)
             if best is None or key < best[0]:
@@ -462,27 +767,21 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
         if guard > 20000:
             raise PlanError("scheduler did not terminate; the graph is unsound")
 
-        # 1. At the replan instant, the groups whose fixer is already working
-        #    were dispatched before the plan: admit up to `slots` of them in
-        #    the SAME priority order the rest of the schedule uses, whatever
-        #    their dependency state. That state is why
-        #    `generated.inherited_dependency_violations` can be non-empty -- a
-        #    fixer can be ahead of the roster's serialisation. After this
-        #    instant a live group still waiting for a slot queues like any
-        #    other and is released when its dependencies have merged.
-        if t == 0:
-            live_pending = sorted((n for n in pending if n in live),
-                                  key=priority)
-            while live_pending and free_slot() is not None:
-                n = live_pending.pop(0)
-                s = free_slot()
-                start_t[n] = t
-                slot_of[n] = s
-                work_end[n] = t + dur_min[n]
-                running[n] = (s, work_end[n])
+        # 1. Every started group whose `after` groups have merged starts now,
+        #    in the priority order, holding a slot past the cap if it must. At
+        #    the replan instant that is every working fixer with no open
+        #    dependency; one waiting on a dependency starts when it merges --
+        #    the only reason a started group is deferred.
+        for n in sorted((n for n in ready if n in started), key=priority):
+            s = held_slot()
+            start_t[n] = t
+            slot_of[n] = s
+            work_end[n] = t + (0 if n in settled else dur_min[n])
+            running[n] = (s, work_end[n])
+            if t == 0:
                 inherited.add(n)
-                ready.discard(n)
-                pending.discard(n)
+            ready.discard(n)
+            pending.discard(n)
         while ready and free_slot() is not None:
             n = pick(sorted(ready), t)
             if n is None:
@@ -547,6 +846,7 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
                     # merges (it would start, stamp and merge twice).
                     if c not in start_t and all(a in merged_t for a in deps[c]):
                         ready.add(c)
+                        released.setdefault(c, t)
 
     if pending or ready or running or finished:
         raise PlanError(f"scheduled {len(merged_t)} of {len(open_)} open groups")
@@ -587,6 +887,26 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
     gate_report = round(gate, 1)
     ci = round((len(batch_rows) + len(stamps)) * gate_report, 1)
 
+    def start_reason(n: str) -> str:
+        """Why the group starts when it does, in the plan's own terms."""
+        last = max(deps[n], key=lambda a: (merged_t[a], a)) if deps[n] else None
+        if n in settled:
+            head = "held, no open carry: owes only its record step"
+        elif n in started:
+            head = "started: its fixer is working"
+        else:
+            head = None
+        if start_t[n] == released.get(n, 0):
+            if last is not None:
+                return f"{head + '; ' if head else ''}after {last} (merges {iso(start, merged_t[last])})"
+            return head or "dispatched at the replan instant (priority)"
+        if n in coord_held:
+            return f"coordinator cap {coord_cap}: waited for a coordinator slot"
+        return f"slot cap {slots}: waited behind higher-priority groups"
+
+    def plain(key: tuple) -> list:
+        return [None if isinstance(k, float) and math.isinf(k) else k for k in key]
+
     groups_out = {}
     for n in sorted(G):
         if n in done:
@@ -612,6 +932,11 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
             "level": lvl[n],
             "live": n in live,
             "inherited": n in inherited,
+            "started": n in started,
+            "start_reason": start_reason(n),
+            "tier_reason": tier_why[n],
+            "sort_key": plain(priority(n)),
+            "duration_basis": basis[n],
             "coordinator": coord[n],
             "batch": batch_of[n],
             "stamp": stamp_by_group.get(n),
@@ -643,10 +968,12 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
                 "sizes_hours": dict(size_hours),
                 "live_remaining_fraction": live_fraction,
                 "sizes_provenance": durations.get("sizes_provenance") or "",
+                **{k: durations[k] for k in MODEL_FIELDS if k in durations},
             },
             "caps": {
                 "slots": slots, "seats": seats, "coordinator_cap": coord_cap,
                 "stamp_every": every, "batch_window_minutes": batch_window,
+                "provenance": caps.get("provenance") or "passed by the caller",
             },
             # The inherited in-progress set, recorded so the coordinator cap's
             # state at t=0 is a fact in the plan rather than a claim in prose.
@@ -740,7 +1067,7 @@ def _sweep(groups_out: dict, start: dt.datetime, coord_only: bool = False,
             continue
         if coord_only and not g.get("coordinator"):
             continue
-        if planned_only and g.get("inherited"):
+        if planned_only and g.get("started"):
             continue
         begin = mins(g["start"])
         end = begin + g["duration_minutes"] if durations_only else mins(g["finish"])
@@ -814,28 +1141,30 @@ def check_plan(plan: dict) -> list:
         events.append((mins(g["start"]), 1, n))
         events.append((mins(g["finish"]), -1, n))
     events.sort(key=lambda e: (e[0], e[1]))
-    cur = 0
-    for t, delta, _ in events:
-        cur += delta
-        if cur > slots:
-            bad.append(f"in flight: {cur} groups at {iso(start, t)} (cap {slots})")
-    work = []
+    # The caps bind what the plan DISPATCHES: a started group (a working
+    # fixer, its PR already open) is never refused for the state it inherited,
+    # but no planned group may start while the cap is already full.
     for n, g in groups.items():
-        work.append((mins(g["start"]), 1, n))
-        work.append((mins(g["start"]) + g["duration_minutes"], -1, n))
-    work.sort(key=lambda e: (e[0], e[1]))
-    curw = 0
-    for t, delta, _ in work:
-        curw += delta
-        if curw > seats:
-            bad.append(f"seats: {curw} groups working at {iso(start, t)} (cap {seats})")
+        if g.get("started"):
+            continue
+        t0 = mins(g["start"])
+        cur = sum(1 for m, h in groups.items() if m != n
+                  and mins(h["start"]) <= t0 < mins(h["finish"]))
+        if cur >= slots:
+            bad.append(f"in flight: {n} dispatched at {g['start']} with {cur} "
+                       f"groups in flight (cap {slots})")
+        curw = sum(1 for m, h in groups.items() if m != n
+                   and mins(h["start"]) <= t0 < mins(h["start"]) + h["duration_minutes"])
+        if curw >= seats:
+            bad.append(f"seats: {n} dispatched at {g['start']} with {curw} "
+                       f"groups working (cap {seats})")
 
     # 3. coordinator cap: at most `coord_cap` PLANNED groups in flight; the
     #    inherited in-progress set is recorded and must match the groups.
     coord = [(n, g) for n, g in groups.items() if g.get("coordinator")]
     for t, _, _ in events:
         curc = sum(1 for n, g in coord
-                   if not g.get("inherited")
+                   if not g.get("started")
                    and mins(g["start"]) <= t < mins(g["finish"]))
         if curc > coord_cap:
             bad.append(f"coordinator cap: {curc} planned groups touching "
@@ -861,8 +1190,8 @@ def check_plan(plan: dict) -> list:
     # 4. a wave opens only while the open-PR cap has room
     for w in plan.get("waves", []):
         t = mins(w["opens"])
-        cur = sum(1 for g in groups.values()
-                  if mins(g["start"]) <= t < mins(g["finish"]))
+        cur = sum(1 for g in groups.values() if not g.get("started")
+                  and mins(g["start"]) <= t < mins(g["finish"]))
         if cur > slots:
             bad.append(f"wave {w['wave']} opens at {w['opens']} with {cur} in "
                        f"flight (cap {slots})")
@@ -918,13 +1247,17 @@ def check_plan(plan: dict) -> list:
     closure = max((mins(g["finish"]) for g in groups.values()), default=0)
     if mins(s["closure"]) != closure:
         bad.append("summary: closure is not the last group finish")
+    if "model" in plan["generated"]:
+        bad += model_refusals(plan["generated"]["model"])
+    else:
+        bad.append("model: the plan records no duration model (generated.model)")
     return bad
 
 
 # ------------------------------------------------------------------ self-test
 
 def selftest() -> int:
-    caps = dict(DEFAULT_CAPS)
+    caps = dict(DEFAULT_CAPS, slots=6, seats=8)   # the fixture's caps, not the owner's
     FIXTURE_ROUND = 2  # the fixture plans close round 2 from v1.0.0
     durations = {
         "sizes_hours": {"S": 2.0, "M": 4.0, "L": 6.0, "XL": 8.0},
@@ -939,6 +1272,11 @@ def selftest() -> int:
         },
         "provenance": {},
     }
+    # The measured fields `check_plan` requires, composing to sizes_hours
+    # exactly (one round, no round cost), so every timing below is unchanged.
+    durations.update(first_round_hours=dict(durations["sizes_hours"]),
+                     review_rounds={k: 1.0 for k in durations["sizes_hours"]},
+                     round_hours=0.0, carry_part_hours=1.0, carries_per_part=1.0)
     roster = {"groups": [
         {"group": "A", "size": "S", "lane": "Core model", "kind": "defect",
          "after": [], "resume": {"stage": "not-started"}},
@@ -1059,12 +1397,11 @@ def selftest() -> int:
          "after": [], "resume": {"stage": "in-progress"}} for i in range(7)
     ]}
     p2 = build_plan(many, durations, caps, start, "v1.0.0", round_n=FIXTURE_ROUND)
-    expect("live admission never exceeds the slot cap",
-           p2["summary"]["peak_in_flight"] <= caps["slots"],
-           str(p2["summary"]["peak_in_flight"]))
-    expect("the excess live group is queued, not invented",
-           p2["summary"]["inherited_in_progress"] == caps["slots"],
-           str(p2["summary"]["inherited_in_progress"]))
+    # (Before 2026-11-01 the seventh was queued behind every new dispatch:
+    # started work fell to the back of the plan, the owner's report.)
+    expect("every started group starts at the replan instant, past the slot cap",
+           p2["summary"]["inherited_in_progress"] == 7 and check_plan(p2) == [],
+           str((p2["summary"]["inherited_in_progress"], check_plan(p2))))
 
     # The inherited state the docstring promises to RECORD: a fixer ahead of
     # the roster's serialisation, and a coordinator-touching live group.
@@ -1074,22 +1411,26 @@ def selftest() -> int:
         {"group": "A", "size": "S", "lane": "Core model", "kind": "defect",
          "after": ["B"], "hot_files": ["coordinator.py"],
          "resume": {"stage": "in-progress"}},
+        {"group": "C", "size": "S", "lane": "Core model", "kind": "defect",
+         "after": [], "hot_files": ["coordinator.py"],
+         "resume": {"stage": "in-progress"}},
     ]}
     p3 = build_plan(ahead, durations, caps, start, "v1.0.0", round_n=FIXTURE_ROUND)
     inv = p3["generated"]["inherited_dependency_violations"]
-    expect("an inherited group ahead of its dependency is recorded",
-           [(d["group"], d["after"]) for d in inv] == [("A", "B")], str(inv))
+    expect("a started group waits for its unmerged dependency: no inversion to inherit",
+           inv == [] and p3["groups"]["A"]["start"] == p3["groups"]["B"]["finish"],
+           str((inv, p3["groups"]["A"]["start"])))
     expect("the plan with a recorded inversion passes --check",
            check_plan(p3) == [], str(check_plan(p3)))
     deleted = json.loads(json.dumps(p3))
-    deleted["generated"]["inherited_dependency_violations"] = []
+    deleted["groups"]["A"].update(start=p3["generated"]["start"], inherited=True)
     expect("an unrecorded inherited inversion refuses",
            any("inherited_dependency_violations" in b
                for b in check_plan(deleted)), str(check_plan(deleted)))
 
     rec = p3["generated"]["inherited_coordinator"]
     expect("the inherited coordinator set is recorded",
-           rec["groups"] == ["A"] and rec["cap"] == caps["coordinator_cap"]
+           rec["groups"] == ["C"] and rec["cap"] == caps["coordinator_cap"]
            and rec["exceeds_cap"] is False, str(rec))
     norec = json.loads(json.dumps(p3))
     del norec["generated"]["inherited_coordinator"]
@@ -1229,10 +1570,11 @@ def selftest() -> int:
          "after": [], "resume": {"stage": "in-progress"}},
     ]}
     p8 = build_plan(liveprio, durations, one, start, "v1.0.0", round_n=FIXTURE_ROUND)
-    expect("the t==0 live admission uses the same priority key",
+    expect("the t==0 started admission keeps both, in the same priority key",
            p8["groups"]["PROD"]["inherited"] is True
-           and p8["groups"]["TALL"]["inherited"] is False,
-           str({g: p8["groups"][g]["inherited"] for g in ("PROD", "TALL")}))
+           and p8["groups"]["TALL"]["inherited"] is True
+           and p8["groups"]["PROD"]["sort_key"] < p8["groups"]["TALL"]["sort_key"],
+           str({g: p8["groups"][g]["sort_key"] for g in ("PROD", "TALL")}))
 
     # Within tier 2 the roster's `savings` ranks; absent sorts last. CP owns
     # the critical path so HI/LO/NONE are all tier 2. The size order (L, M, S)
@@ -1425,31 +1767,79 @@ def selftest() -> int:
              _m("def _ingest_check_runs(", "lines, want) -> dict:"),
              _m("if prev is None or started ", '< prev["started"]:'), "if prev is None:"),
             ("coordinator-cap", _m("def pick(candidates, ", "now: int):"),
-             _m("if coord[n] and n not in inherited ", "and cc >= coord_cap:"), "if False:"),
+             _m("if coord[n] and n not in started ", "and cc >= coord_cap:"), "if False:"),
             ("tier-critical-path",
-             _m("def dispatch_tier(n: str, ", "crit: set, lane: dict) -> int:"),
-             "if n in crit:", "if False:"),
+             _m("def dispatch_tier(group: dict, ", "on_cp: bool,"),
+             "    if on_cp:", "    if False:"),
             ("tier-production",
-             _m("def dispatch_tier(n: str, ", "crit: set, lane: dict) -> int:"),
-             _m("return TIER_PRODUCTION if lane[n] in ", "PRODUCTION else TIER_OTHER"),
-             "return TIER_OTHER"),
+             _m("def dispatch_tier(group: dict, ", "on_cp: bool,"),
+             _m('return TIER_PRODUCTION_WORK, "production ', '(work_class)"'),
+             'return TIER_INSTRUMENT, "x"'),
+            ("tier-hotfix",
+             _m("def dispatch_tier(group: dict, ", "on_cp: bool,"),
+             _m('if k == "bug" or "HOTFIX" in g ', 'and cls == "production":'), "if False:"),
+            ("tier-main",
+             _m("def dispatch_tier(group: dict, ", "on_cp: bool,"),
+             _m('if k == "main" or "-MAIN-FIX" in g ', 'or "-MAIN-RED" in g:'), "if False:"),
+            ("tier-saving-instrument",
+             _m("def dispatch_tier(group: dict, ", "on_cp: bool,"),
+             _m("if savings is not None and savings >= ", "SAVING_TIER_HOURS:"), "if False:"),
             ("tier-savings",
-             _m("def dispatch_key(n: str, ",
-                "tier: dict, savings: dict, height: dict,"),
-             _m('sav = -savings[n] if n in savings ', 'else float("inf")'), "sav = 0.0"),
+             _m("def dispatch_key(n: str, ", "tier: dict, crit: set,"),
+             _m('sav = (-savings[n] if n in savings ', 'else float("inf"))'), "sav = (0.0)"),
+            ("cp-first-in-tier",
+             _m("def dispatch_key(n: str, ", "tier: dict, crit: set,"),
+             _m("(t, 0 if n in crit ", "else 1, sav,"), "(t, 0, sav,"),
             ("height-tiebreak",
-             _m("def dispatch_key(n: str, ",
-                "tier: dict, savings: dict, height: dict,"),
-             _m("(t, sav, -height[n], ", "-dur_min[n], n)"), "(t, sav, n)"),
-            ("live-same-key",
+             _m("def dispatch_key(n: str, ", "tier: dict, crit: set,"),
+             _m("sav, -height[n], ", "-dur_min[n], n)"), "sav, n)"),
+            ("started-past-cap",
              _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
-             "key=priority", _m("key=lambda n: ", "(-height[n], n)")),
+             _m("for n in sorted((n for n in ready ", "if n in started), key=priority):"),
+             "for n in []:"),
+            ("settled-held",
+             _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
+             _m("settled = {n for n in open_ if n not in live ", "and dur_h[n] == 0}"),
+             "settled = set()"),
+            ("start-reason-slot",
+             _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
+             _m('return f"slot cap {slots}: ', 'waited behind higher-priority groups"'),
+             'return "ready"'),
+            ("planned-dispatch-cap",
+             _m("def check_plan(plan: dict) ", "-> list:"),
+             "        if cur >= slots:", "        if False:"),
+            ("held-carry-model",
+             _m("def group_hours(group: dict, ", "durations: dict,"),
+             _m('if stage == HELD_STAGE and ', 'durations.get("carries_per_part"):'), "if False:"),
+            ("rounds-explicit",
+             _m("def group_hours(group: dict, ", "durations: dict,"),
+             _m("hours = work + (rounds - 1) * ", 'float(durations["round_hours"])'),
+             "hours = work"),
+            ("absorbed-carries",
+             _m("def group_hours(group: dict, ", "durations: dict,"),
+             _m('if extra > 0 and ', 'durations.get("carry_hours"):'), "if False:"),
+            ("class-cell",
+             _m("def group_hours(group: dict, ", "durations: dict,"),
+             _m("work = float(cell.get(cls, ", "first[size]))"), "work = float(first[size])"),
+            ("appended-carries-open",
+             _m("def held_open(group: dict, ", "durations: dict)"),
+             _m('added = max(0, carry - int(rec', '["carries"]))'), "added = 0"),
+            ("caps-owner-default",
+             _m("def cli_caps(", "args) -> dict:"),
+             _m('"slots": DEFAULT_CAPS["slots"] if args.slots ', 'is None else args.slots,'),
+             '"slots": 6 if args.slots is None else args.slots,'),
+            ("model-monotone",
+             _m("def model_refusals(model: ", "dict) -> list:"),
+             "        if hb < ha:", "        if False:"),
+            # (`live-same-key` retired 2026-11-01: every started group now
+            # starts at once, so the order of the t==0 admission picks only a
+            # slot index; `started-past-cap` pins the admission itself.)
             ("savings-validated",
              _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
              _m("if isinstance(s, bool) or not isinstance(s, ", "(int, float)):"), "if False:"),
             ("size-refusal",
-             _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
-             "if size not in size_hours:", "if False:"),
+             _m("def group_hours(group: dict, ", "durations: dict,"),
+             "if size not in sizes:", "if False:"),
             ("stamp-cadence",
              _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
              _m("if len(carry) >= ", "every:"), "if False:"),
@@ -1620,6 +2010,18 @@ def measure_ci(repo: str, repo_owner: str, merges: int) -> dict:
 
 # ----------------------------------------------------------------------- main
 
+def cli_caps(args) -> dict:
+    """The caps a command-line replan draws at, and whose they are."""
+    given = [k for k in ("slots", "seats") if getattr(args, k) is not None]
+    return {
+        "slots": DEFAULT_CAPS["slots"] if args.slots is None else args.slots,
+        "seats": DEFAULT_CAPS["seats"] if args.seats is None else args.seats,
+        "coordinator_cap": args.coordinator_cap, "stamp_every": args.stamp_every,
+        "provenance": (f"--{' --'.join(given)} given on the command line" if given
+                       else CAPS_PROVENANCE),
+    }
+
+
 def parse_args(argv=None):
     p = argparse.ArgumentParser(description="Mechanical replanner for the wave roster.")
     p.add_argument("--repo", default=".", help="repository to read the roster from")
@@ -1636,11 +2038,18 @@ def parse_args(argv=None):
     p.add_argument("--plan", default=None, help="plan to check (default: --out)")
     p.add_argument("--self-test", action="store_true")
     p.add_argument("--measure-ci", action="store_true", help="re-measure durations from CI")
+    p.add_argument("--measure-sizes", action="store_true",
+                   help="re-measure the size, rounds and held-stage model from merged PRs "
+                        "(tools/plan/size_durations.py) into --out-durations")
+    p.add_argument("--sizes-csv", default=None, help="--measure-sizes: write the raw rows here")
+    p.add_argument("--prs-cache", default=None, help="--measure-sizes: read or write the fetch")
     p.add_argument("--out-durations", default=None)
     p.add_argument("--repo-owner", default="tvofi/heatpump_optimizer")
     p.add_argument("--merges", type=int, default=30)
-    p.add_argument("--slots", type=int, default=DEFAULT_CAPS["slots"])
-    p.add_argument("--seats", type=int, default=DEFAULT_CAPS["seats"])
+    p.add_argument("--slots", type=int, default=None,
+                   help=f"default {DEFAULT_CAPS['slots']}, the owner's cap (CAPS_PROVENANCE)")
+    p.add_argument("--seats", type=int, default=None,
+                   help=f"default {DEFAULT_CAPS['seats']} (CAPS_PROVENANCE)")
     p.add_argument("--coordinator-cap", type=int, default=DEFAULT_CAPS["coordinator_cap"])
     p.add_argument("--stamp-every", type=int, default=DEFAULT_CAPS["stamp_every"])
     p.add_argument("--batch-window-minutes", type=int, default=None)
@@ -1650,10 +2059,23 @@ def parse_args(argv=None):
 def main(argv=None) -> int:
     args = parse_args(argv)
     if args.self_test:
-        return selftest()
+        return max(selftest_model(), selftest())
 
     here = Path(__file__).resolve().parent
     durations_path = Path(args.durations) if args.durations else here / "durations.json"
+
+    if args.measure_sizes:
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        import size_durations  # the one network edge of the size model, loaded only here
+        target = Path(args.out_durations) if args.out_durations else durations_path
+        old = json.loads(target.read_text(encoding="utf-8")) if target.is_file() else {}
+        got = size_durations.run(args.repo, args.roster_ref, args.repo_owner, size_durations.SINCE,
+                                 args.prs_cache, args.sizes_csv,
+                                 size_durations.DEFAULT_PERCENTILE)
+        target.write_text(json.dumps({**old, **got}, indent=1, sort_keys=True) + "\n",
+                          encoding="utf-8")
+        print(f"measured sizes {got['sizes_hours']} -> {target}")
+        return 0
 
     if args.measure_ci:
         measured = measure_ci(args.repo, args.repo_owner, args.merges)
@@ -1684,10 +2106,7 @@ def main(argv=None) -> int:
         return 0
 
     durations = json.loads(durations_path.read_text(encoding="utf-8"))
-    caps = {
-        "slots": args.slots, "seats": args.seats,
-        "coordinator_cap": args.coordinator_cap, "stamp_every": args.stamp_every,
-    }
+    caps = cli_caps(args)
     if args.batch_window_minutes is not None:
         durations["batch_window_minutes"] = args.batch_window_minutes
     if args.start:

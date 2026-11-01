@@ -64,7 +64,12 @@ whose brief text the linter refuses is refused at the same gate, before
 anything reaches GitHub.
 
 Ops (all group ids must exist, except append-group which must not):
-  set-stage    sets resume.stage (and resume.commit with --at-sha);
+  set-stage    sets resume.stage (and resume.commit with --at-sha); a
+               closed stage (`done`, `rca-done`) -- here or through
+               set-resume --field stage -- whose group owns an open issue
+               nothing else would own is written `carries-open` instead and
+               printed HELD (carry_audit's `orphaned`, the `sweep --issues`
+               test; issue states from `gh`, or `--issue-state FILE`);
   wire-issue   appends an integer issue (to `fixes` with --field fixes),
                refusing a duplicate;
   unwire-issue removes an integer from `issues` (default) or, with
@@ -117,6 +122,8 @@ from pathlib import Path
 
 SELF = "tools/audit/seat/roster_edit.py"
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+import carry_audit  # noqa: E402  the one owned-issue test (`orphaned`)
 import roster_lib  # noqa: E402  which roster: roster_lib.roster_path, the one owner
 import ref_privacy  # noqa: E402  a ref or message never names this host (#2310)
 TOTAL_OK = re.compile(r"TOTAL: 0 error")
@@ -387,6 +394,27 @@ def apply_op(roster, op, group, value, field, at_sha, match=None, rel="",
         op_drop_carry(roster, group, value, match)
     else:
         op_append_carry(roster, group, value)
+
+
+#: What a closed stage is written as while its group would orphan an issue.
+HOLD_STAGE = "carries-open"
+
+
+def hold_done(roster, group, worktree, read_state) -> list[int]:
+    """After a write of a closed stage: when `group` owns an open issue no
+    other live owner holds, its stage becomes HOLD_STAGE and the issues are
+    returned. The test is carry_audit's (`orphaned`) on the edited roster, so
+    the closing group owns nothing there; the carry files are the worktree's
+    and the O-briefs $HPO_BRIEFS_DIR's, as carry_audit itself reads them."""
+    g = _need(roster, group)
+    if (g.get("resume") or {}).get("stage") not in roster_lib.DONE_STAGES:
+        return []
+    dests = carry_audit.Dests(roster, carry_audit.carry_issues(worktree),
+                              os.environ.get("HPO_BRIEFS_DIR"), read_state)
+    held = carry_audit.orphaned(dests, g)
+    if held:
+        g["resume"]["stage"] = HOLD_STAGE
+    return held
 
 
 def _stage_why(stage, rel, group):
@@ -766,6 +794,9 @@ def main(argv=None) -> int:
     p.add_argument("--lint-cwd")
     p.add_argument("--push", action="store_true")
     p.add_argument("--message")
+    p.add_argument("--issue-state",
+                   help="JSON object issue -> open|closed: the states the done "
+                        "hold reads instead of gh (no network)")
     a = p.parse_args(argv)
     if a.value is not None and a.value_opt is not None:
         p.error("give the value positionally or with --value, not both")
@@ -809,6 +840,17 @@ def main(argv=None) -> int:
                     raise Refuse(str(e))
             apply_op(roster, a.op, a.group, value, a.field, a.at_sha, a.match,
                      rel, sizes)
+            if a.op == "set-stage" or (a.op == "set-resume" and a.field == "stage"):
+                try:
+                    held = hold_done(roster, a.group, a.worktree, carry_audit.issue_reader(
+                        roster.get("repo") or carry_audit.REPO, a.issue_state))
+                except (ValueError, SystemExit) as e:  # carry_audit's refusals
+                    raise Refuse(f"the done hold cannot read issue state: {e}")
+                if held:
+                    print(f"roster_edit: HELD {a.group} at {HOLD_STAGE}, not {value}: "
+                          f"it owns open {', '.join(f'#{n}' for n in held)} with no other "
+                          "live owner; wire each to its next owner or close it, then "
+                          "set the stage again", file=sys.stderr)
             return True
         return write_roster(a.checkout, ref, branch, a.worktree, a.roster_path,
                             msg, a.push, a.lint_cwd, f"{a.op} {a.group}", edit)
@@ -941,9 +983,17 @@ def _self_test() -> int:
     drv = Path(tmp, "drv")
     throwaway_git_clone(origin, drv, "-q")
 
+    # The issue states the done hold reads: #10 (R9-A's) closed unless a
+    # check says otherwise, so every other arm's `done` lands as written.
+    ISSUES = {}
+    for word in ("open", "closed"):
+        ISSUES[word] = Path(tmp, f"issues-{word}.json")
+        ISSUES[word].write_text(json.dumps({"10": word}), encoding="utf-8")
+
     def edit(op, group, value, push=True, branch="edit-1", lint_cwd=None,
-             at_sha=None, field=None, value_opt=None, match=None, wt="wt"):
-        args = [op, group]
+             at_sha=None, field=None, value_opt=None, match=None, wt="wt",
+             issues="closed"):
+        args = [op, group, "--issue-state", str(ISSUES[issues])]
         if value is not None:
             args += [value]
         if field:
@@ -1022,6 +1072,29 @@ def _self_test() -> int:
     check("set-stage --at-sha",
           edit("set-stage", "R9-A", "done", at_sha="a" * 40) == 0
           and branch_roster()["groups"][0]["resume"]["commit"] == "a" * 40)
+    # THE DONE HOLD (R10-RCA-ROSTER-SYNC-ORPHANS): a closed stage whose group
+    # owns an open issue nothing else owns is written carries-open, HELD.
+    def a_stage():
+        return branch_roster()["groups"][0]["resume"]["stage"]
+    edit("set-stage", "R9-A", "in-progress")
+    rc, said = refusal("set-stage", "R9-A", "done", issues="open")
+    check("set-stage done holds a group owning an open issue nothing else owns",
+          rc == 0 and a_stage() == "carries-open" and "HELD R9-A" in said
+          and "#10" in said, (rc, a_stage(), said[-200:]))
+    edit("set-stage", "R9-A", "in-progress")
+    rc, said = refusal("set-resume", "R9-A", "rca-done", field="stage", issues="open")
+    check("... and so does set-resume --field stage, with any closed stage",
+          rc == 0 and a_stage() == "carries-open" and "HELD R9-A" in said,
+          (rc, a_stage(), said[-200:]))
+    edit("set-stage", "R9-A", "in-progress")
+    edit("wire-issue", "R9-B", "10")
+    rc, said = refusal("set-stage", "R9-A", "done", issues="open")
+    check("... a group whose open issue a live group also lists is done (null control)",
+          rc == 0 and a_stage() == "done" and "HELD" not in said, (rc, a_stage()))
+    edit("unwire-issue", "R9-B", "10")
+    check("... and a closed issue holds nothing (null control)",
+          edit("set-stage", "R9-A", "done", at_sha="a" * 40) == 0
+          and a_stage() == "done")
     check("wire-issue rc", edit("wire-issue", "R9-B", "1946") == 0)
     check("wire-issue round-trip",
           branch_roster()["groups"][1]["issues"] == [1946])

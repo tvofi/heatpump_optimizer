@@ -1,8 +1,8 @@
 # Both claim files carry a per-branch note at the same place, so every branch
 # that merges main after another branch merged conflicts in both. The notes are
 # comments and union; the bare claim lines below them are value-bearing and do
-# not. tests/env_drift.py's `claimnotes` driver does exactly that split and
-# refuses a claim list both sides rewrote.
+# not. tests/env_drift.py's `claimnotes` driver does exactly that split: it
+# merges the claim list per scenario and refuses a scenario both sides rewrote.
 #
 # Install the driver once per clone (a worktree shares its checkout's config):
 #

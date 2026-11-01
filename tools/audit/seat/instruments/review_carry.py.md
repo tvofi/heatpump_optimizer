@@ -22,4 +22,6 @@
   `FRESH-REVIEW`, and so is a range `app_approve.sh --carry` refuses, with
   its reason: a commit changing a line, a bot subject outside its paths.
   `--verdict-only` prints the token alone; `bus.sh dispatch --reviewed-head`
-  is its caller, and `--self-test` grades the ranges.
+  is its caller, refusing on CARRY only when the latest verdict naming the
+  reviewed head on `verdict/<pr>` is merge (a range never says what a review
+  decided: P348), and `--self-test` grades the ranges.

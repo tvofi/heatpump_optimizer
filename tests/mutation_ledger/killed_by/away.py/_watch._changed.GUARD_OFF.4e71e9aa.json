@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/away.py:_watch._changed GUARD_OFF 4e71e9aa",
+  "killed_by": "tests/features.py",
+  "old": "        if read(entity_id, data.get(\"old_state\")) != read(entity_id, data.get(\"new_state\")):",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

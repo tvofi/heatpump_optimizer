@@ -8,7 +8,9 @@
   GitHub's merge, no local driver run (the
   claimnotes repair only when all are claim files; a content conflict goes
   back to its fixer), NOT REVIEWABLE at a head whose required context
-  concluded red, zero-run heads, absent required contexts, twin heads, claim
+  concluded red -- except RAISE APPROVAL OWED (review it, then approve under
+  the owner or the mandate, never its fixer) where `merge_train.approval_owed`
+  reads the red as a budget raise's owed approval alone (P345), zero-run heads, absent required contexts, twin heads, claim
   stamps, staleness behind main; worker seats judged from the work they were
   dispatched for; roster groups newly unblocked or blocked; main's tip, its
   required contexts re-read live and judged by `merge_train.py`'s classifier,

@@ -204,9 +204,10 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
             "Verify each claim adversarially: mutate the fix and check the tests fail, and check "
             "every figure in the body at this head. Check that it merges with origin/main "
             "(`git merge-tree --write-tree`). Wait for CI on this head only by re-running "
-            f"`python3 tools/audit/seat/merge_train.py classify {head}` in the background, at least 60 s "
-            "between runs, until it exits 0 (GREEN), 1 (RED) or 2 (unreadable: say so in the verdict); "
-            "3 is WAIT, so run it again. Never wait with `pgrep` or `pkill`, whose `-f` pattern matches "
+            f"`python3 tools/audit/seat/merge_train.py classify {head} --pr {pr}` in the background, at least "
+            "60 s between runs, until it exits 0 (GREEN), 1 (RED), 2 (unreadable: say so in the verdict) "
+            "or 4 (APPROVAL-OWED: the only red is the budget raise's approval, which follows your verdict; "
+            "judge the head as GREEN and quote the line); 3 is WAIT, so run it again. Never wait with `pgrep` or `pkill`, whose `-f` pattern matches "
             "the waiter's own command line, nor on a context the ruleset does not require, such as "
             "`prelude`.\n"
             f"Output: in a fresh directory of your own (`W=$(mktemp -d)`), write verdict.md, whose first line is "
@@ -1029,9 +1030,11 @@ def self_test() -> int:
     check("every role's setup line runs the toolchain check and stops on its REFUSE (#2709)",
           all(f"`{SETUP_CHECK}`, and on REFUSE stop" in t.splitlines()[1] for t in prompts.values()))
     rv = prompts["reviewer"]
-    check("the reviewer waits for CI only by re-running merge_train.py classify, 60 s apart, until 0, 1 or 2",
-          f"`python3 tools/audit/seat/merge_train.py classify {head}` in the background, at least 60 s" in rv
-          and "exits 0 (GREEN), 1 (RED) or 2 (unreadable: say so in the verdict)" in rv and "3 is WAIT" in rv)
+    check("the reviewer waits for CI only by re-running merge_train.py classify --pr, 60 s apart, until 0, 1, 2 "
+          "or 4 (APPROVAL-OWED, P345)",
+          f"`python3 tools/audit/seat/merge_train.py classify {head} --pr 7` in the background, at least" in rv
+          and "or 4 (APPROVAL-OWED: " in rv
+          and "exits 0 (GREEN), 1 (RED), 2 (unreadable: say so in the verdict)" in rv and "3 is WAIT" in rv)
     check("the reviewer is forbidden a pgrep or pkill waiter and a context the ruleset does not require",
           "Never wait with `pgrep` or `pkill`" in rv and "such as\n`prelude`" not in rv and "such as `prelude`" in rv)
     check("no other role is told to wait on merge_train.py classify (null control)",

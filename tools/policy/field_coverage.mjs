@@ -357,6 +357,7 @@ const DECLARED = {
   'pinned tools/audit/prepare_baseline.sh': { none: 'check-wave-script reads its ISOLATED_DIMS line as text; it grades no input here' },
   'pinned tools/audit/round6/D11/fix/codeowners_gap.py': { none: 'reads CODEOWNERS and workflows; residual (D11-s1-03), no arm here' },
   'stamp rule 4': { none: 'reads commit parents and subjects; residual (D11-s1-02), no arm here' },
+  'carry_audit owed-carry': { none: 'reads the prose of a body item (a carry index beside a not-done phrase), not a structured input; graded by carry_audit --self-test, whose rows fail under the arm\'s two mutants' },
 }
 
 function derivedSet(report) {
@@ -368,6 +369,9 @@ function derivedSet(report) {
   const stamp = fs.readFileSync(path.join(ROOT, 'tools/release/stamp.py'), 'utf8')
   if (/^def rule4_problem\(/m.test(stamp)) set.push('stamp rule 4')
   else report.refused.push('registry: tools/release/stamp.py defines no rule4_problem, so rule 4 is not in the set')
+  const audit = fs.readFileSync(path.join(ROOT, 'tools/audit/carry_audit.py'), 'utf8')
+  if (/^OWED_CARRY = /m.test(audit)) set.push('carry_audit owed-carry')
+  else report.refused.push('registry: tools/audit/carry_audit.py defines no OWED_CARRY, so its owed-carry arm is not in the set')
   return set
 }
 
