@@ -22,7 +22,8 @@ IT PUSHES ONLY WHEN ALL OF THESE HOLD, and says which one failed otherwise:
     what GitHub runs) conflicts, and ONLY on paths `main`'s .gitattributes
     routes to a driver -- any other conflicting path is a human's;
   - the real drivers then resolve every one of them: no conflict left, no
-    `refused` marker on stderr;
+    `refused` marker on stderr (when the claim driver refused, its stderr is
+    relayed under the status line: `claim_refusal`);
   - the push is a fast-forward of the head it read (never forced): a head that
     moved since is left for the next push to `main`;
   - no job of the mutation PIN CHAIN (`tests / mutation`, `tests /
@@ -119,6 +120,24 @@ def merge_tree(repo: str, head: str, main: str,
     return r.returncode, tree, files, r.stderr
 
 
+#: The line main's claim driver opens a refusal with (tests/env_drift.py's
+#: `run_merge_driver`); the decision text follows it on the same stderr.
+CLAIM_REFUSED = "MERGE-CLAIM: refused "
+
+
+def claim_refusal(driver_err: str) -> str:
+    """The drivers' stderr, verbatim and indented under the status line, when
+    the claim driver refused a file -- its `merge_claim_refusal` text names
+    each scenario, fixture or stamp both sides rewrote with both sides' lines
+    (P214), and is relayed, never summarised, so its wording stays
+    `env_drift.py`'s. Empty otherwise: a driver that could not run, or a
+    refusal that is no claim's, leaves the filename list as it was."""
+    lines = driver_err.rstrip("\n").splitlines()
+    if not any(l.startswith(CLAIM_REFUSED) for l in lines):
+        return ""
+    return "".join(f"\n    {l}" for l in lines)
+
+
 def decide(*, mergeable, same_repo: bool, contains_main: bool,
            text_conflicts: list[str], drivers: dict[str, str],
            driver_rc: int, driver_conflicts: list[str], driver_err: str,
@@ -137,7 +156,8 @@ def decide(*, mergeable, same_repo: bool, contains_main: bool,
     if other:
         return "skip-other-conflict " + ",".join(other)
     if driver_rc != 0 or driver_conflicts or "refused" in driver_err.lower():
-        return "skip-driver-refused " + ",".join(driver_conflicts or text_conflicts)
+        return ("skip-driver-refused " + ",".join(driver_conflicts or text_conflicts)
+                + claim_refusal(driver_err))
     if pins is None:
         return "skip-pins-unread"
     if pins:
