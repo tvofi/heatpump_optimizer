@@ -15338,7 +15338,9 @@
    "class": "owner",
    "severity": "medium",
    "size": "S",
-   "issues": [],
+   "issues": [
+    3120
+   ],
    "fixes": [],
    "findings": [],
    "wave": 6,
