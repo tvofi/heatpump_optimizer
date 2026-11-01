@@ -1,2 +1,0 @@
-RESULT projection WITH legacy (head): derived=[('R9-LEG', 'done'), ('R9-OTH', 'done')] appends=[] refusals=['the destination is done (resume.stage do'] written R9-LEG stage=done carries=1 stranded=[]
-RESULT projection WITHOUT legacy (A4/A5): derived=[('R9-LEG', 'done'), ('R9-OTH', 'done')] appends=[('R9-LEG', 'the oth finding that the leg group must take up next. Carry: R9-LEG')] refusals=[] written R9-LEG stage=done carries=2 stranded=[('R9-LEG', 'done', 1, 'the oth finding that the leg group must take up next. Carry: R9-LEG')]

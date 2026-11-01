@@ -1,7 +1,0 @@
-RESULT mutant=A4_dryrun_projection_no_legacy rc=0 SURVIVED ['roster_sync self-test: 82 checks, 0 failed'] []
-  restored /home/user/wt-A4_: clean
-RESULT mutant=A5_write_projection_no_legacy rc=0 SURVIVED ['roster_sync self-test: 82 checks, 0 failed'] []
-  restored /home/user/wt-A5_: clean
-RESULT mutant=A6_moved_closed_only_done rc=1 KILLED ['roster_edit self-test: 153 checks, 4 failed'] ["FAIL mark-carry refuses moved to a rca-done group (got: (0, 'roster: dev/programme/rosters/wave-r9-groups.json on mark-1\\nlint gate: TOTAL: 0 error(s) from a fresh origin/main checkout\\npushed mark-1 at 7819c90c3213575d5df93fdddcec98a5b70ea86a\\n'))", 'FAIL mark-carry refuses moved to a absorbed group (got: (2, "roster: dev/programme/rosters/wave-r9-groups.json on mark-1\\nroster_edit: REFUSED: mark-carry: R9-B carry[3] is already marked (\'moved\', \'R9-A\')\\n"))', 'FAIL mark-carry refuses a value holding \']\' (got: (2, "roster: dev/programme/rosters/wave-r9-groups.json on mark-1\\nroster_edit: REFUSED: mark-carry: R9-B carry[3] is already marked (\'moved\', \'R9-A\')\\n"))']
-  restored /home/user/wt-A6_: clean
-FIN

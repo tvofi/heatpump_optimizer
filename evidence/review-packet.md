@@ -1,44 +1,44 @@
 # Review packet #3054
-head: 361be3cd6cdc6a594b542956403220efdd4f0803
-base: 8fec54ee2afb5e37687f34bc5fd3aa7280f64e1f
+head: 9070029ac258bc819e486d57b00b84a89e559936
+base: b5df066e7a23e914ee81de83ef243097b3b397a3
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
 ## Gate digest: pending
-CodeQL id=124722069904 neutral
-arch-score / arch-score id=124721897558 success
-arm id=124721812138 skipped
-budget-raise-gate / budget-raise-gate id=124721897469 success
-cancel-superseded id=124721812588 success
-codeql / Analyze (actions) id=124721897434 success
-codeql / Analyze (javascript-typescript) id=124721897428 success
-codeql / Analyze (python) id=124721897527 in_progress
-governance / delivery-status id=124721897456 success
-governance / delivery-status-publish id=124721898297 skipped
-governance / env-matrix id=124721897505 in_progress
-governance / instrument-self-tests id=124721897458 in_progress
-governance / policy-docs id=124721897533 in_progress
-governance / record id=124721898250 skipped
-governance / wave-script id=124721897525 success
-hassfest / hassfest id=124721897415 success
-kernel-points id=124721898701 skipped
-prelude id=124721812654 in_progress
-refresh id=124721812454 success
-tests / arch-instrument id=124722006442 success
-tests / briefs id=124721897443 success
-tests / browser id=124722006448 in_progress
-tests / closure-scope id=124721897482 success
-tests / closures id=124722006516 in_progress
-tests / coverage id=124722006528 in_progress
-tests / fast (3.14) id=124722006517 in_progress
-tests / mutation id=124721897487 success
-tests / mutation-autofix id=124722063165 skipped
-tests / mutation-pins id=124722062475 skipped
-tests / nightly-ha id=124722007574 skipped
-tests / nightly-status id=124721897476 success
-tests / replay id=124722007839 skipped
-tests / typing id=124722006484 success
-validate / validate-hacs id=124721897431 success
+CodeQL id=124788112949 neutral
+arch-score / arch-score id=124787971258 success
+arm id=124787892235 skipped
+budget-raise-gate / budget-raise-gate id=124787971245 success
+cancel-superseded id=124787895046 success
+codeql / Analyze (actions) id=124787971311 success
+codeql / Analyze (javascript-typescript) id=124787971294 success
+codeql / Analyze (python) id=124787971290 in_progress
+governance / delivery-status id=124787971364 success
+governance / delivery-status-publish id=124787972573 skipped
+governance / env-matrix id=124787971298 in_progress
+governance / instrument-self-tests id=124787971259 in_progress
+governance / policy-docs id=124787971263 in_progress
+governance / record id=124787972176 skipped
+governance / wave-script id=124787971264 success
+hassfest / hassfest id=124787971271 success
+kernel-points id=124787972088 skipped
+prelude id=124787894926 in_progress
+refresh id=124787894717 success
+tests / arch-instrument id=124788076870 success
+tests / briefs id=124787971325 success
+tests / browser id=124788076992 in_progress
+tests / closure-scope id=124787971320 success
+tests / closures id=124788076927 in_progress
+tests / coverage id=124788076919 in_progress
+tests / fast (3.14) id=124788076929 in_progress
+tests / mutation id=124787971300 success
+tests / mutation-autofix id=124788078248 skipped
+tests / mutation-pins id=124788078136 skipped
+tests / nightly-ha id=124788077878 skipped
+tests / nightly-status id=124787971400 success
+tests / replay id=124788078234 skipped
+tests / typing id=124788076921 success
+validate / validate-hacs id=124787971228 success
 
 ## Refusals
 none
@@ -72,7 +72,7 @@ ok         node tools/policy/brief_lint.mjs
              `tests/entities.py` is in the tree at this head
   ok         python3 tests/structure.py
              `tests/structure.py` is in the tree at this head
-  ok         python3 -I tools/audit/archscore/score.py --diff a7dd7f50d HEAD
+  ok         python3 -I tools/audit/archscore/score.py --diff 8fec54ee2 HEAD
              `tools/audit/archscore/score.py` is in the tree at this head
   ok         bash tools/pr/prepr.sh <body>
              `tools/pr/prepr.sh` is in the tree at this head
@@ -253,7 +253,7 @@ index d004c6b1f..e1d3a7765 100644
      tmp.cleanup()
      return 1 if failed else 0
 diff --git a/tools/audit/seat/r10_roster_ops_mutants.py b/tools/audit/seat/r10_roster_ops_mutants.py
-index eaae79b9b..bf0d4cc23 100644
+index eaae79b9b..79e4c4590 100644
 --- a/tools/audit/seat/r10_roster_ops_mutants.py
 +++ b/tools/audit/seat/r10_roster_ops_mutants.py
 @@ -3,9 +3,10 @@
@@ -270,7 +270,7 @@ index eaae79b9b..bf0d4cc23 100644
  Expected: every plant rc=1 with fails>=1 -- a FAIL line, not a crash (a
  crash is rc=1 with fails=0 and prints its tail).
  
-@@ -27,6 +28,24 @@ Plants, one per refusal of the two ops and per round-trip property:
+@@ -27,6 +28,25 @@ Plants, one per refusal of the two ops and per round-trip property:
    T1-T5  the triage gate (decision 0015): the uncited proposal arm, a
           non-ACCEPT verdict passing, a missing batch read as an empty one, the gate's call
           in write_roster, and added_texts blind to appended carries.
@@ -285,17 +285,18 @@ index eaae79b9b..bf0d4cc23 100644
 +         ignored (L1), legacy ignored (L2), every group's carries legacy at
 +         the cut-over (L3), absorbed not closed (L4), closing never
 +         downgrades (L5), a mark read anywhere in the text (L6).
-+  Y1-Y4  roster_sync: the merge bypassing the shared rule (Y1), an
++  Y1-Y6  roster_sync: the merge bypassing the shared rule (Y1), an
 +         unreadable cut-over read as no legacy (Y2), the write path's
-+         re-derive without the legacy set (Y3), and apply_plan writing the
-+         stage without it (Y4).
++         re-derive without the legacy set (Y3), apply_plan writing the
++         stage without it (Y4), and the dry run's (Y5) and the write path's
++         (Y6) projection without it, which decides a same-pass Carry:.
 +  R1-R5  carry_audit's roster arm: closed-only issues unreported (R1),
 +         unlisted issues unreported (R2), #201 reported (R3), absorbed_into
 +         unnamed (R4), pull requests read as issues (R5).
    S1-S7  the vocabulary barrier (R10-ORCH-ROSTER-SCHEMA): each of the three
           stage-writing ops losing its classification check (S1 set-stage, S2
           set-resume --field stage, S3 append-group), append-group losing the
-@@ -53,6 +72,11 @@ from pathlib import Path
+@@ -53,6 +73,11 @@ from pathlib import Path
  
  ROOT = Path(__file__).resolve().parents[3]
  TARGET = "tools/audit/seat/roster_edit.py"
@@ -307,7 +308,7 @@ index eaae79b9b..bf0d4cc23 100644
  DETACHED = ('g = next((x for x in roster.get("groups", []) '
              'if x.get("group") == group), {})')
  
-@@ -67,21 +91,20 @@ PLANTS = {
+@@ -67,21 +92,20 @@ PLANTS = {
             f'    {DETACHED}\n    after = [] if spec'),
      "A7": ('    g["after"] = after\n',
             '    g.pop("after", None)\n    g["after"] = after\n'),
@@ -340,7 +341,7 @@ index eaae79b9b..bf0d4cc23 100644
      "P3": ('p.error("--match is a drop-carry flag")', "pass"),
      "D1": ("return json.dumps(roster, indent=1)",
             "return json.dumps(roster, indent=2)"),
-@@ -109,11 +132,70 @@ PLANTS = {
+@@ -109,11 +133,74 @@ PLANTS = {
             "    if True:  # S6\n        return None\n"),
      "S7": ("        op_append_group(roster, value, rel, sizes)\n",
             "        op_append_group(roster, value)  # S7\n"),
@@ -386,6 +387,10 @@ index eaae79b9b..bf0d4cc23 100644
 +                 "                                 legacy=legacy)\n",
 +           "        roster_edit.op_set_stage(roster, c.group, c.stage, c.merge_commit)"
 +           "  # Y4\n"),
++    "Y5": (SYNC, "        apply_plan(projected, changes, [], legacy)\n        appends, refusals",
++           "        apply_plan(projected, changes, [])  # Y5\n        appends, refusals"),
++    "Y6": (SYNC, "            apply_plan(projected, changes, [], legacy)\n            appends, _",
++           "            apply_plan(projected, changes, [])  # Y6\n            appends, _"),
 +    "R1": (AUDIT, "        elif not any(live for _, live in by):\n",
 +           "        elif False:  # R1\n"),
 +    "R2": (AUDIT, "        if not by:\n", "        if False:  # R2\n"),
@@ -413,7 +418,7 @@ index eaae79b9b..bf0d4cc23 100644
                         capture_output=True, text=True)
      fails = [ln for ln in r.stdout.splitlines() if ln.startswith("FAIL ")]
      return r.returncode, fails, (r.stdout + r.stderr).strip().splitlines()[-3:]
-@@ -141,12 +223,13 @@ def self_test():
+@@ -141,12 +228,13 @@ def self_test():
          passed, failed = passed + ok, failed + (not ok)
          print(f"  {'ok  ' if ok else 'FAIL'} {name}")
  
@@ -431,7 +436,7 @@ index eaae79b9b..bf0d4cc23 100644
              ok = True
          except SyntaxError:
              ok = False
-@@ -178,38 +261,41 @@ def self_test():
+@@ -178,38 +266,41 @@ def self_test():
  
  
  def main(argv):
@@ -1042,7 +1047,7 @@ index ee978de00..e520976b2 100644
            newest_roster(["README.md", "wave-r9-groups.json.bak"]) is None)
      with throwaway_git_environ(), tempfile.TemporaryDirectory() as td:
 diff --git a/tools/audit/seat/roster_sync.py b/tools/audit/seat/roster_sync.py
-index 1b01f24e0..35c8ef80a 100644
+index 1b01f24e0..8b2183fdd 100644
 --- a/tools/audit/seat/roster_sync.py
 +++ b/tools/audit/seat/roster_sync.py
 @@ -15,7 +15,9 @@ stale stages. This step is that comparison, run every pass by
@@ -1187,11 +1192,11 @@ index 1b01f24e0..35c8ef80a 100644
 +          by.get("C-PAID") is not None and by["C-PAID"].stage == "done", by)
 +    check("both merges are transitions whose bodies are read for carries",
 +          sorted(p.number for p in got_tr) == [51, 52], got_tr)
-+
  
  
 -    def build(tmp: Path, lint_src: str) -> tuple[Path, Path, Path]:
 -        """(bare origin, driver clone, fixture roster path at the driver)."""
++
 +    def build(tmp: Path, lint_src: str, history=None
 +              ) -> tuple[Path, Path, Path]:
 +        """(bare origin, driver clone, fixture roster path at the driver).
@@ -1217,7 +1222,7 @@ index 1b01f24e0..35c8ef80a 100644
          bare = tmp / "origin.git"
          throwaway_git_clone(seed, bare, "-q", "--bare")
          drv = tmp / "drv"
-@@ -1108,6 +1156,69 @@ def self_test() -> int:
+@@ -1108,6 +1156,138 @@ def self_test() -> int:
          check("--roster-file with --apply is refused (no branch to write)",
                rc == 2 and "read-only" in err, (rc, err))
  
@@ -1268,6 +1273,75 @@ index 1b01f24e0..35c8ef80a 100644
 +                    check("with no cut-over the same carry is pending and sync "
 +                          "--apply writes carries-open (null control)",
 +                          rc == 0 and got == "carries-open",
++                          (rc, got, out[-300:], err[-300:]))
++            # The projections (review round 2, A4 dry run, A5 write path): a
++            # same-pass `Carry:` to a group this pass closes is judged against
++            # the projected stage, so the projection reads the cut-over too.
++            # One pass merges R9-LEG and R9-OTH, whose body routes a carry to
++            # R9-LEG. Legacy-only: R9-LEG projects done, the carry is refused
++            # in the dry run's print and in the write, and R9-LEG is written
++            # done with nothing stranded. Null: R9-LEG also holds a
++            # post-cut-over carry, so it projects carries-open, the carry
++            # appends, and it is written carries-open.
++            oth = {"group": "R9-OTH", "lane": "L1", "issues": [], "fixes": [],
++                   "after": [], "brief": "other", "carry": [],
++                   "resume": {"stage": "in-progress", "branch": "handoff/r9-oth"}}
++            routed = "the oth finding the leg group takes up next. Carry: R9-LEG"
++            pass_prs = root / "prs-pass.json"
++            pass_prs.write_text(json.dumps([
++                {"number": 61, "state": "MERGED", "headRefName": "handoff/r9-leg",
++                 "mergeCommit": {"oid": "6" * 40},
++                 "body": "## Friction\n\n- none\n"},
++                {"number": 62, "state": "MERGED", "headRefName": "handoff/r9-oth",
++                 "mergeCommit": {"oid": "7" * 40},
++                 "body": "## Forward-carry\n\n- " + routed + "\n"}]),
++                encoding="utf-8")
++            for name, tip_carry in (("legacy-only", ["legacy one"]),
++                                    ("post-cut-over", ["legacy one", "post one"])):
++                at_cut = {"repo": "fixture/roster", "session": "r9-sync",
++                          "groups": [leg_group("done"), oth]}
++                tip_leg = leg_group("in-progress") | {"carry": tip_carry}
++                at_tip = {"repo": "fixture/roster", "session": "r9-sync",
++                          "groups": [tip_leg, oth]}
++                bare_p, drv_p, _ = build(root / f"pass-{name}", LINT_OK,
++                                         [at_cut, at_tip])
++                roster_lib.CARRY_CUTOVER.clear()
++                roster_lib.CARRY_CUTOVER[ROSTER] = git(
++                    "-C", str(drv_p), "rev-parse", "origin/main~1")
++                rc_d, out_d, err_d = calls(drv_p, pass_prs)
++                rc, out, err = calls(drv_p, pass_prs, "--apply", "--worktree",
++                                     str(root / f"wt-pass-{name}"))
++                w = (roster_lib.groups_of(roster_at(bare_p, branch))["R9-LEG"]
++                     if branch in branches(bare_p) else {})
++                got = ((w.get("resume") or {}).get("stage"), w.get("carry"))
++                stranded_w = (roster_lib.stranded(roster_at(bare_p, branch),
++                                                  roster_lib.read_legacy(
++                                                      str(drv_p), ROSTER))
++                              if w else None)
++                if name == "legacy-only":
++                    check("the dry run's projection reads the cut-over: a "
++                          "same-pass Carry: to a legacy-only group it closes "
++                          "is refused, not planned",
++                          rc_d == 0 and "REFUSED Carry: R9-LEG from #62" in out_d
++                          and "the destination is done" in out_d
++                          and "carry R9-LEG +=" not in out_d,
++                          (rc_d, out_d[-400:], err_d[-200:]))
++                    check("the write path's projection reads the cut-over: the "
++                          "group is written done, the carry not appended, "
++                          "nothing stranded",
++                          rc == 0 and got == ("done", ["legacy one"])
++                          and stranded_w == [],
++                          (rc, got, stranded_w, out[-300:], err[-300:]))
++                else:
++                    check("a destination holding a post-cut-over carry projects "
++                          "carries-open: the dry run plans the append (null "
++                          "control)", rc_d == 0 and "carry R9-LEG +=" in out_d
++                          and "REFUSED Carry: R9-LEG" not in out_d,
++                          (rc_d, out_d[-400:], err_d[-200:]))
++                    check("and the write appends it and writes carries-open "
++                          "(null control)",
++                          rc == 0 and got == ("carries-open",
++                                              ["legacy one", "post one", routed]),
 +                          (rc, got, out[-300:], err[-300:]))
 +            bare_u, drv_u, _ = build(root / "leg-unreadable", LINT_OK,
 +                                     [leg_at_cut, leg_tip])

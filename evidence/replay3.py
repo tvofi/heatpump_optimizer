@@ -1,4 +1,4 @@
-"""Round-2 reviewer: round-1 reviewer's ev/replay.py, worktree at the round-2 head, range ended at the round-1 tip ce4a2386,
+"""Round-3 reviewer, round-2 reviewer's ev/replay2.py unchanged (worktree /home/user/wt-head now at 9070029ac). Round-2: round-1 reviewer's ev/replay.py, worktree at the round-2 head, range ended at the round-1 tip ce4a2386,
 and each roster_sync replay also taken through apply_plan (the write path) to compare written vs derived. Reviewer's own replay: every done-flip on the roster branch since 2026-10-31T00:00,
 re-run through the head's closing_stage / roster_edit.apply_op / roster_sync.derive
 on the parent commit's roster."""
