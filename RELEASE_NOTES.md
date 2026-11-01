@@ -1,3 +1,27 @@
+## v7.1.1
+
+**Patch stamp: 100 merges since v7.1.0.** Users were waiting on a set of fixes: a factory reset, the ceiling probe, and a run of away-mode and learner corrections. The rest of the window is the round-10 engineering and audit machinery.
+
+User-visible changes:
+
+- Factory reset: the integration can be reset to a clean state (#3047).
+- Ceiling probe: the heat-pump ceiling is probed instead of assumed (#3050).
+- Away presence: the plan is recomputed when presence or the holiday calendar changes (#3052).
+- Away setback: weekend and holiday comfort no longer override the away setback (#3013), and the away override survives an entry reload and the restore (#3015).
+- Learner inputs: a sensor swap voids the heat-loss learners, and a reset action is added (#3022).
+- Vent freeze skips only the learners room air cannot reach (#3009).
+- Step-boundary actuation: the pump switch is written at the step boundary (#2968).
+- COP: compressor part-load inverse conversions and residual carries (#3006, #3005), COP gate part 6 (#3038).
+- Wood: the blueprint notifies when wood beats the heat pump, with a recommended lighting window (#3016).
+- Health tab residual carries (#2997).
+- README figures render on the Marketplace page, light and dark (#3014); final user docs (#3048).
+
+Engineering and audit programme (round 10):
+
+- Audited fix groups and instruments (39): #2925, #2962, #2989, #2992, #2994, #2995, #3000, #3001, #3002, #3004, #3010, #3011, #3012, #3024, #3037, #3041, #3042, #3045, #3049, #3051, #3056, #3058, #3059, #3060, #3061, #3063, #3064, #3066, #3070, #3072, #3073, #3075, #3076, #3086, #3092, #3097, #3118.
+- Triage rulings (33): #2987, #3003, #3007, #3017, #3018, #3019, #3020, #3023, #3025, #3026, #3027, #3029, #3030, #3031, #3033, #3034, #3035, #3036, #3039, #3043, #3046, #3053, #3067, #3068, #3069, #3079, #3080, #3082, #3084, #3095, #3096, #3141, #3142.
+- Record and bot merges (14): #3008, #3021, #3028, #3032, #3040, #3044, #3057, #3071, #3074, #3081, #3093, #3094, #3098, #3148.
+
 ## v7.1.0
 
 **Round-10 merge-train stamp: 98 merges since v7.0.5.** The window is the merge seat's train clearing the programme's remaining audited fix groups: the claim-carry barrier, the train's single admission rule, the COP gate and compressor part-load pricing, the Health tab and the Home Assistant Marketplace integration.
