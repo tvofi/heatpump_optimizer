@@ -1,0 +1,38 @@
+Fix review: blocked e323d75500c843ae2ffaa076a33ddabca7c68853 unpinned-site: cite_why's merge-base --is-ancestor clause survives deletion (reviewer mutant R11 rc=0 fails=0); no arm cites a sha that exists but that the named ref does not hold
+
+bus-nonce: fcd8f8eb01c00df94e4cc173becf6f98
+
+Round 1, full review of PR #3143 (R10-ROSTER-OPS-2 part 1) at head e323d75500c843ae2ffaa076a33ddabca7c68853, from detached worktrees at that head. Merge base c88d552c76f1ae11a879ce7ccb8d8dc29adabf50. `git diff <mb>...origin/main -- dev/governance/roles/` is empty, so the contract read is current.
+
+## Block
+
+Carry 5 asks for a set-size cite check that "refuses a cite whose ref does not hold that sha", and asks that "one mutant per op that skips its check fails that arm". `cite_why` (tools/audit/seat/roster_edit.py, the `merge-base --is-ancestor sha cand` clause) implements the "holds" part. Every self-test refusal arm cites one of three things: a sha absent from the repository (`main@ffff…`), so `cat-file -e` refuses before the ancestry clause runs; a ref that does not exist; or a malformed cite. My mutant R11 replaces the ancestry clause with `True`, so any ref holds any commit that exists. It survives with `RESULT mutant=R11 rc=0 fails=0`. The production code is correct. Run live, `set-size R10-ADVISOR-WHATIF M --cite main@9b00786c2…` (a commit on the roster branch and not on main) refuses with `cite ref 'main' does not hold …`, rc=2 (ev/live_cite_ancestry.txt). But no test pins that behaviour, and the body's `## Unpinned sites` says every site is pinned by Z1-Z12. The repair is small:
+- add one self-test arm per op (set-size and set-files) that cites `main@{sf_cited}`. That sha exists, on the `cited` branch the self-test already builds, but main does not hold it. Expect rc 2, "does not hold", and the tip unchanged;
+- add a Z plant in the separate block that drops the ancestry clause.
+
+Everything else I checked holds (see Evidence).
+
+## Findings
+
+- Surviving mutant R11 (cite ancestry clause unpinned), the block above. Carry: R10-ROSTER-OPS-2 | #3131 | O1 | dismissed: settled by this PR's own repair round, which adds the arm and the plant before merge
+- Two of my mutants were caught only by a traceback, not by a FAIL line. R5 drops set-size's resume.note write; the self-test dies with `KeyError: 'note'` at the `"M -> S" in grp("R9-B")["resume"]["note"]` arm. R9 skips the lint gate for set-size/set-files; the self-test dies with a `refs/heads/edit-3` rev-parse Refuse. Both turn the self-test red (rc=1), so both are killed fail-closed. But `check()` accumulates failures and prints them only at the end, so a crash throws away the FAIL lines that had already gathered. A driver that counts FAIL lines then reads these as survivors (fails=0). This repeats the fail-closed-survivor shape of this group's carry 2, which part 2 already owns. Carry: R10-ROSTER-OPS-2 | #3131 | O2 | dismissed: same class as carry 2 already on the R10-ROSTER-OPS-2 row; the repair round may harden the note arm with `.get("note", "")` instead
+
+## Evidence
+
+- HEAD reviewed: e323d75500c843ae2ffaa076a33ddabca7c68853 (ev/HEAD.txt). The body's `## Head` names it, along with the code head 1b4932489 and the main merge e2f45a80d. That merge touches no file in this diff: `git diff 1b4932489 e323d7550 -- tools/audit/seat/` changes only gh_calls / seat-gh / seat_venv / INSTRUMENTS, all from main.
+- RESULT selftest roster_edit=167 checks, 0 failed (body: 167, re-derived). r10_roster_ops_mutants --self-test: 141 checks, 0 failed. `--null`: `RESULT mutant=null rc=0 fails=0` (ev/selftests.txt).
+- RESULT fixer-plants Z1..Z12: all rc=1, fails = 5,4,4,1,7,10,4,1,1,1,4,4. This matches the body plant for plant; `plants: 12, without a FAIL line: none` (ev/mutants_Z.txt).
+- RESULT reviewer-plants: 14 of my own (driver ev/rev_mutants.py, mine, not the fixer's). R1 drops set-size's unknown-group refusal: killed (1). R2 sets hot-token bad=[]: killed (1). R3 drops the basename arm: killed (5). R4 drops the set-files note: killed (3). R5 drops the set-size note: crash-kill. R6 drops the cite from the note: killed (2). R7 has set-files touch `brief`: killed (3). R8 has it touch `stage`: killed (1). R9 skips the lint for the new ops: crash-kill. R10 has path_in_tree ignore the cite: killed (7). R11 drops the ancestry clause: survived (blocking). R12 ignores --set-files: killed (2). R13 skips --add dedup: killed (2). R14 skips the path check under --set-files: killed (1) (ev/mutants_reviewer.txt).
+- Live roster at origin/handoff/audit-r10-roster 23a22989c, in a local bare copy (nothing pushed to GitHub). Four ops landed and passed the lint gate (`TOTAL: 0 error(s)`):
+  - `set-files R10-ARCH-SHAPES-CLASSIFIER --set-hot - --cite origin/handoff/audit-r10-roster@4abfca2a4`, the held queue line of carry 11;
+  - `set-size R10-FLY-STANDING-CONTRACTS L` and `set-size R10-ADVISOR-WHATIF L`, carry 9's queued uses;
+  - `set-files R10-ROSTER-OPS-2 --add tools/audit/seat/roster_sync.py`.
+
+  A field diff of the result changes only the named field and resume.note of each named group; top-level keys and group order are unchanged (ev/live_fielddiff.txt). Two null controls (repeat set-size L; --set-hot - on the now-empty field) reported "byte-identical; nothing to commit or push". Three refusals returned rc=2 and wrote nothing: an unknown group R10-NOPE; the hot token nowhere.py; size XXL against the durations model's L, M, S, XL (ev/live_*.txt).
+- Merges with origin/main: `git merge-tree --write-tree origin/main e323d7550` rc=0, no conflict.
+- Against #3054 (refs/pull/3054/head d4a2f522c): conflicts in the same three files as origin/main vs #3054. Conflict hunks base→head: r10_roster_ops_mutants.py 1→1, roster_sync.py 4→4, roster_edit.py 4→9. So the separate mutants block adds no conflict; the extra roster_edit.py hunks are the usage, argparse and dispatch lines, as the body says. The body does not claim the merge is conflict-free, and it is not (ev/merge_tree.txt). I measured at base c88d552c7; the body's ca6333333 is an ancestor of that base.
+- Scope: the three-dot diff touches only roster_edit.py, r10_roster_ops_mutants.py, roster_edit.py.md and dev/programme/delivery/3143.md. Carry 13 on the roster row defines part 1 as carries 5, 9, 10 and 11. The body's `## Forward-carry` names 1, 2, 3, 4, 6, 7, 8 and 12 as left for part 2 under `Carry: R10-ROSTER-OPS-2`, which matches the row at 23a22989c (ev/roster_row.txt). The diff touches none of those carries' sites: PROPOSAL_RE, the set-stage note, op_append_carry, set-resume fields, op_append_group and ref_privacy are all untouched.
+- `python3 tests/structure.py`: STRUCTURE RATCHET PASSED. Claim files, VERSION, manifest, RELEASE_NOTES.md and every *_budgets.json are byte-identical to origin/main. There are no host paths in added lines (ev/checks.txt).
+- Delivery row dev/programme/delivery/3143.md is present in the three-dot diff.
+- Instrument doc roster_edit.py.md matches the code. For the hot token it says only "a basename" or "a known token", which is weaker than the code: the code also accepts the full path. No claim is stronger than the check.
+- `## Red checks: none`. The head's check-run set was read live (35 runs, one page). No check concluded red (43 runs at the last read). `merge_train.py classify e323d7550…` exited 0: `GREEN … pending: none red: none` (ev/classify.txt). The tests / fast (3.14) log tail I fetched (3000 lines) prints `5 TEST SCRIPT(S) PASSED; 30 SCOPED OUT AND NOT RUN`, so the gate ran scoped. The `MODE: SCOPED` line itself sits above that tail and I did not read it (ev/gate_mode.txt). Head re-read before publishing: refs/pull/3143/head is still e323d75500c843ae2ffaa076a33ddabca7c68853.

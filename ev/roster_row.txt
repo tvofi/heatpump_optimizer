@@ -1,0 +1,63 @@
+{
+ "group": "R10-ROSTER-OPS-2",
+ "lane": "IN",
+ "kind": "instrument",
+ "class": "instrument",
+ "severity": "medium",
+ "size": "M",
+ "issues": [
+  3131
+ ],
+ "fixes": [],
+ "findings": [],
+ "wave": 6,
+ "hot_files": [
+  "roster_edit.py"
+ ],
+ "fixture": false,
+ "owner_gate": null,
+ "rca": [],
+ "architect_note": "",
+ "effort": "medium",
+ "model": {
+  "fixer": "sonnet",
+  "reviewer": "opus",
+  "rca": null,
+  "runner": "haiku",
+  "record": "sonnet"
+ },
+ "fixerModel": "sonnet",
+ "reviewerModel": "opus",
+ "after": [],
+ "files": [
+  "tools/audit/seat/roster_edit.py",
+  "tools/audit/seat/roster_lib.py",
+  "tools/audit/seat/r10_roster_ops_mutants.py",
+  "tools/audit/seat/instruments/roster_edit.py.md"
+ ],
+ "resume": {
+  "stage": "not-started",
+  "branch": "handoff/r10-roster-ops-2",
+  "commit": null,
+  "last_step": null,
+  "next_step": "dispatch a fixer once its after-groups are done",
+  "note": "s9 carry-routing pass, 2026-11-01: created to receive carries of R10-ORCH-ROSTER-SCHEMA"
+ },
+ "brief": "Roster write-op residue of R10-ORCH-ROSTER-SCHEMA that its open #3054 leaves on the carry list: the triage gate's label grammar, the ops harness's fail-closed survivors, set-stage clearing a stale note, append-carry refusing a closing group, set-size, set-files and a pr resume field, append-group's overlap refusal and its file argument. Every op goes through tools/audit/seat/roster_edit.py's one write path and lint gate. Runs after R10-ORCH-ROSTER-SCHEMA. Every carry was moved verbatim by the s9 carry-routing pass (2026-11-01) from a carries-open source group; each names its own controls. Re-measure every figure a carry states at this group's own merge base; carry no count. A carry that says it waits on an owner or orchestrator ruling waits for that ruling, and the body says so."
+}
+--- 1 The triage gate in tools/audit/seat/roster_edit.py keys proposal-sourced text on PROPOSAL_RE, which matches only a numbered label (the word triage or proposal, then a P and digits). Session s4 labelled its later proposals with letters (a P, a hyphen, a letter, A to Q), so their carries landed with no ruling cited and the gate never fired: 19 roster carries at handoff/audit-r10-roster e4c92864f carry a lettered label and cite none, most appended after decision 0015 (b16084794). Measured with the module's own regex: the numbered form matches, the lettered form does not. Widen the label grammar to the lettered form (or refuse any label the citation grammar cannot cite), with a self-test row for
+--- 2 From #2513 (body, item 1f866f06), routed by routing audit 1 (2026-10-24): its destination R10-ROSTER-OPS is done and did not implement it (pointer to review item 3b97e1aa; same disposition). 
+From #2513 (review 6314156311, item 3b97e1aa), routed by routing audit 1 (2026-10-24): its destination R10-ROSTER-OPS is done and did not implement it (`git grep -E 'fail.closed|M4|M5|M6' origin/main -- tools/audit/seat/r10_roster_ops_mutants.py` is empty: the reviewer's three fail-closed survivors were never tightened; ROSTER-OPS (#2513 929275e) is done). 1. Mutation proof re-run: 19/19 plants killed by FAIL lines; 8 plants of my own, 5 killed (2 by traceback), 3 fail-closed survivors (M4, M5, M6) -- n
+--- 3 From #2559 (review 6318238167, item 7f85b089), routed by routing audit 1 (2026-10-24): its destination R10-ROSTER-OPS is done and did not implement it (roster_edit.py:10,79: only `set-resume --field note` clears a note; `set-stage` leaves a stale note beside `done`). Noted, not blocking: R10-MERGE-PR-MANDATE's resume.note still says "has no pull request. Owed: recarry and open" beside stage done; set-stage did not refresh it.
+--- 4 Refuse a carry to a group that is closing, at write time. `roster_edit.py append-carry` today only checks the group exists (`_need`); a carry to a done or absorbed group is found at review by `carry_audit.py` as `carry-dest-done` (2026-10-25: #2807, P110 to R10-FLOW-AUTOTRAIN, blocked at `502e8331`; the L3 carry to R10-DEMAND-OVERBOOK, whose PR #2712 was merging, and the L5 carry to R10-PARAMS-OWNER were caught by the orchestrator before review). Make `op_append_carry` refuse a destination whose `resume.stage` is in `roster_lib.DONE_STAGES` or is `absorbed`, naming the group it was absorbed into where it has one, and print `WARN carry to <group>: PR #<n> is open on it` when `resume.pr` is se
+--- 5 Add two roster ops. (1) `roster_edit.py set-size <group> <XS|S|M|L|XL> --cite <ref>@<sha>`: it refuses an unknown size, and refuses a cite whose ref does not hold that sha. It records the old size and the cite in the group's `resume.note`. (2) `roster_edit.py set-files <group> --add <path>... [--cite <ref>@<sha>]`: it refuses a path not in the tree at origin/main (or not added by the cited ref) and records the cite. First uses: R10-HEAT-METER XL -> L citing `design-verdict/R10-HEAT-METER@ad376684f` (approve 21f4fbfe9, 'Size verdict: L, conditional on #2753'), applied once #2753 merges; this group's own `files` gain the readers P133 names; R10-ORCH-DISPATCH-REG's gain `tools/audit/seat/ledger
+--- 6 Carry from the #2844 delta verdict (probe/rev-2844-35c20883, 26ef56c6a): R10-FLOW-RECORD-PITCH's resume is missing `pr: 2836`. `roster_edit.py set-resume --field` offers only stage, commit, branch, last_step, next_step, note, issues and fixes, so a merged group's PR number cannot be recorded through the safe edit. Add `pr` to set-resume's fields, or derive it in the schema, with a fixture that shows a set-resume of pr round-tripping. Then set pr for every done group that lacks it, starting with R10-FLOW-RECORD-PITCH = 2836. Ruling: orchestrator, 2026-10-26, mandate 6329234399.
+--- 7 Lever L8 (regain-24h investigation, orchestrator s8 under mandate 6329234399; #201 comment 6527969942): scope added after the round-10 baseline accounts for +21.7 h of slip (20 groups). 13 of those 20 shared a non-index file with an open, not-started group when they arrived. The existing-groups-first rule exists, but nothing enforces it at the point of admission. In tools/audit/seat/roster_edit.py, `append-group` refuses when the new group's `files` share any file other than the index files (INSTRUMENTS.md, instrument notes) with a group whose stage is not-started. The refusal names each overlapping group and file. It passes only with `--reason "<text>"`, recorded in the new group's resume n
+--- 8 From triage P334 (queue 2026-10-31T17:15:00Z): tools/audit/seat/roster_edit.py `op_append_group` reads its argument as a literal path, so `append-group @file` is refused ("append-group: unreadable JSON: [Errno 2] No such file or directory: '@/...'") while `append-carry` and `edit-brief` read `@file` (`_text`). 9 such refusals in the s8/s9 roster reports (CATALOG-PR, FLY-BUS-BASH32, FLY-CANCEL-SWEEP, FLY-SEAT-ALIVE-ID, FLY-TICK-APPROVAL-OWED, MARKETPLACE, FLY-RELAY-DELIVERED-GUARD, FLY-STANDING-CONTRACTS x2). (1) Strip one leading `@` from json_file before the read. (2) Usage line and ops help: `append-group <json-file | @json-file>`, naming that append-carry and edit-brief read `@file` too. 
+--- 9 From orchestrator s9 (2026-11-01, applying tvofi's rulings to re-size R10-FLY-STANDING-CONTRACTS and R10-ADVISOR-WHATIF to L, design first): roster_edit.py has no op that writes a group's own `size` field. append-group refuses a group that already exists, and edit-brief and set-resume write other fields. While the size still reads S, the planner and designer.md treat both groups as fixer-ready. Fix: add `set-size <group> <S|M|L|XL>` to tools/audit/seat/roster_edit.py, reusing the existing `_size_why` check against the durations model, with its instrument doc and a self-test arm. Failing test first: a set-size arm that is red before the op exists. Mutation proof: dropping the write, or skippi
+--- 10 From: tvofi 2026-11-01 approved card 5 of the s9 plan-optimisation cards (hpo-orch/r10s6/s9/optimise-cards.md): remove coordinator.py from the hot_files of R10-ARCH-SHAPES-CLASSIFIER, whose files are thermal_model.py and tests/golden/claimed_drift.txt and whose brief and carries never name coordinator.py.
+Measured: the carry for set-files in this group (carry 4) adds paths to a group's `files` only (`--add`); no op writes or clears `hot_files`. In the measured plan model the false flag holds one of the two coordinator-cap seats and USER-DOCS-VERIFY waits 24 h on it.
+Fix: extend set-files to the hot_files field: `roster_edit.py set-files <group> --set-hot <path,path | -> [--cite <ref>@<sha>]`
+--- 11 From orchestrator s9 (2026-11-01, triage hold audit): roster_edit.py has no op that writes a group's `files` or `hot_files` fields, so the held queue line `set-files R10-ARCH-SHAPES-CLASSIFIER --set-hot - --cite origin/handoff/audit-r10-roster@4abfca2a4` cannot run. Add a set-files op beside the set-size op already carried here (s9-roster-set-size-op): it replaces or clears `files`/`hot_files` for one existing group, refuses an unknown group, keeps every other field byte-identical, and lints the result like every other op. Control: an op on a missing group refuses; a planted extra-field change is caught; the held ARCH-SHAPES line applies once it lands.
+--- 12 From the s9 orchestrator, 2026-11-01. roster_edit.py's lint gate runs brief_lint.mjs, never tools/audit/ref_privacy.py. So a carry whose text names a host path (an absolute home-directory path to a log or a sweep file) lands on handoff/audit-r10-roster unrefused. It is caught only when the roster lands on main and prepr.sh refuses it. On 2026-11-01 the landing of the round-10 roster refused three such lines, all written by the orchestrator's own append-carry ops, and the landing had to scrub them. Run ref_privacy's check on every text an op writes (append-carry, edit-brief, append-group, set-resume) inside roster_edit's lint gate, refusing with the scrub hint. Control: a planted carry with a
+--- 13 Part 1 (orchestrator s10, 2026-11-01, tvofi plan-slip card 1): the set-size, set-files and set-hot ops only, which are this group's carries 5, 9, 10 and 11 counted from 1. Dispatched ahead of R10-ORCH-ROSTER-SCHEMA because approved s9 cards 5 and 6, tvofi's two L resizes and the s10 card-2 coordinator-flag corrections wait on these ops. Carries 1-4, 6-8 and 12 stay with this group for a later part, and set-after R10-ROSTER-OPS-2 R10-ORCH-ROSTER-SCHEMA is restored when part 1 merges.
