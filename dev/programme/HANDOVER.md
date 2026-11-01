@@ -491,6 +491,9 @@ graduation owes a mutation proof in its own pull request.
 - **A record's own fields are checked by almost nothing** (#687): a dead path
   in a roster `resume.note` is invisible to `brief_lint.mjs` while the same path
   in `brief` is an error.
+- **Re-pointing a branch chain by position after a rebase drops a commit.** Map
+  by commit subject and verify the tip's pin count: by index once shifted eight
+  branches by one, and only that count noticed.
 - **Six of this project's own instruments reported rather than measured**
   (#341, #347, #354, #350, #357, #510), each found by someone chasing something
   else: the pattern is the finding, not the individual bugs.
@@ -513,6 +516,9 @@ Graduated, one line each:
   over both disposition documents.
 - **A sectioned config-flow field's label**: the schema-derived, no-fallback
   assertion in `tests/entities.py`, which walks the built schema.
+- **A new option key derives into `config_flow._ABSENT_FALLBACKS`**, or every
+  options-page visit writes it (#1107): `tests/config_flow_steps.py`'s
+  "_ABSENT_FALLBACKS is exactly the proven set".
 
 ## Owed
 
