@@ -893,6 +893,13 @@ INERT_EXCEPT = (
     # it, so the committed closure never listed the file and CI's closures job
     # named it -- INERT READS UNDER-APPROXIMATED, run 40548660478.
     "tools/audit/merge_throughput.py",
+    # R10-MACHINERY-RATCHETS: tests/entities.py loads machinery_ratchet.py
+    # and reads the budgets file it grades through the program's own reader,
+    # so both are reads entities.py performs. Same route as the two above:
+    # they leave their INERT prefixes, so an edit to either selects
+    # tests/entities.py instead of skipping it.
+    "tools/audit/machinery_ratchet.py",
+    "dev/governance/config/machinery_budgets.json",
     # #2883 round 3: `roster_lib.blob_at` lists a path's tree entry with
     # `git ls-tree ... -- <path>`, and its self-test, which tests/entities.py
     # runs, passes these two roster paths on that command line, so

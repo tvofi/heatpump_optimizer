@@ -555,6 +555,15 @@ def self_test() -> int:
            parse_numstat_z("1\t0\t\0tools/a\0custom_components/a\0"),
            [(1, 0, ["tools/a", "custom_components/a"], "custom_components/a")])
 
+        r = fresh("reformat")
+        r.merge(1, PRODM)
+        before = r.tip
+        r.change([("set", PROD, r.files[PROD].replace("\n", "  \n"))])
+        r.merge(2, [("add", TOOLS, 1)])
+        got = diff_stats(r.d, before, r.tip)
+        ok("a whitespace-only reformat of product code costs 0 product lines",
+           (got["product"], got["nonproduct"], got["kind"]), (0, 1, "machinery"))
+
         # 4. Splitting: a machinery merge in two raises M1 by exactly 1; a
         # production merge in two leaves M2 flat.
         r = fresh("whole")

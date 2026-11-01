@@ -41134,4 +41134,44 @@ R.check(
 )
 
 
+
+# --- the machinery ratchet's budgets file (R10-MACHINERY-RATCHETS) -----------
+#
+# tools/audit/machinery_ratchet.py grades main's merge window against
+# dev/governance/config/machinery_budgets.json. This reads the TRACKED file
+# through the program's own reader (fixer.md step 11: pin the artifact the
+# check reads), then probes a key the reader does not name: a reader that
+# stopped refusing unread keys would let a cap be added that measures nothing.
+def _load_machinery_ratchet():
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "hpo_machinery_ratchet", Path("tools/audit/machinery_ratchet.py"))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+_MR = _load_machinery_ratchet()
+_MR_TEXT = Path(_MR.BUDGETS).read_text()
+
+
+def _mr_reads(text: str) -> str:
+    try:
+        _MR.load_budgets(text)
+        return "read"
+    except _MR.Refusal as e:
+        return f"refused: {e}"
+
+
+_MR_GOT = (_mr_reads(_MR_TEXT),
+           _mr_reads(json.dumps({**json.loads(_MR_TEXT), "open_groups": 1}))[:7])
+R.check(
+    "the machinery ratchet reads every key of the tracked machinery_budgets.json, "
+    "and refuses a key it does not read",
+    _MR_GOT == ("read", "refused"),
+    f"(tracked file, file plus an unread key) -> {_MR_GOT}",
+)
+
+
 sys.exit(R.close("ENTITY CHECKS"))
