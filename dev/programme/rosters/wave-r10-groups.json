@@ -15506,6 +15506,53 @@
     "note": "tvofi 2026-11-01, rulings card 2 option (c) Both: the live why-now widget, size L, design first, after R10-GRADE-DRIVERS"
    },
    "brief": "A live \"why now\" widget for the current slot (tvofi 2026-11-01, rulings card 2 option (c) Both, part (b)): it shows the reasons behind that slot's decision, price rank, comfort floor, mold guard, away and forecast, each with a direction and a weight, from a new per-slot reasons output on the solver path, with its own failing test. Size L, design first: the designer's note at design/R10-WHY-NOW-WIDGET is approved by a design reviewer before the fixer dispatches. It runs after R10-GRADE-DRIVERS, which builds the Driving score-row hover with signed drivers; the card file is hot and this group waits behind it in the serial chain. Plain-words metric text in every hover, en and sv; reviewer opus with tests/card_browser.mjs screenshots, light and dark, phone and desktop. The full spec is the group's carry; nothing in it is scoped out. Re-measure every figure at this group's own merge base; carry no count."
+  },
+  {
+   "group": "R10-PROD-RESIDUE-PINS",
+   "lane": "CORE",
+   "kind": "fix",
+   "class": "correctness",
+   "severity": "low",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 6,
+   "hot_files": [
+    "pump_arbiter.py",
+    "coordinator.py",
+    "features.py"
+   ],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "Two seams, each touched alone: pump_arbiter.py `_share` and LOG_STEPS take the step width from plan_step.py (no other hunk in pump_arbiter.py, which R10-CEILING-PROBE and R10-COP-GATE-D also edit at other seams); coordinator.py is read, not edited: the forget_held item adds a features.py check only.",
+   "effort": "medium",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "custom_components/heatpump_optimizer/pump_arbiter.py",
+    "custom_components/heatpump_optimizer/plan_step.py",
+    "tests/features.py"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-prod-residue-pins",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer",
+    "note": "s9 residual sweep, 2026-11-01: created to receive the LIVE production residuals of #2351 and #2365, which no live group's seam owns"
+   },
+   "brief": "Two production residuals the s9 residual sweep re-verified LIVE at origin/main 92588d581, from review notes that never reached a group. (1) #2365: pump_arbiter.py spells the plan step width as the literal 15.0 twice in `_share` and as LOG_STEPS = 96, though it imports PLAN_STEP_MINUTES from plan_step.py; derive both from that owner. (2) #2351: deleting forget_held from the coordinator's async_shutdown survives features.py and finite_boundary.py; pin the shutdown call site through the production async_shutdown. Each carry names its failing test and null control. Re-measure every figure at this group's own merge base; carry no count. No golden fixture is expected to move; if one does, stop and report it."
   }
  ]
 }
