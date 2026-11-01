@@ -1,0 +1,8 @@
+NULL-GREEN null: red []
+KILLED     drop override arm: red ['control:away:override']
+KILLED     drop floor arm: red ['control:away:floor']
+KILLED     recovering read as not recovering: red ['control:away:view', 'control:away:override', 'control:away:floor']
+KILLED     events arm off: red ['control:away:replayed']
+SURVIVED   held ignores inactive: red []
+KILLED     setpoint exemption any config key: red ['control:no_default:setpoint_value_on_a_reading']
+KILLED     setpoint exemption drops value test: red ['control:no_default:setpoint_at_an_unconfigured_default']

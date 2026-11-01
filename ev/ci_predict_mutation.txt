@@ -1,0 +1,2 @@
+CI PREDICT: no closures, fast, governance or instrument red predicted against fb0a6d5a30aa (a data-file read is not seen)
+rc=0
