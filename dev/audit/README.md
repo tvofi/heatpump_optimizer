@@ -128,7 +128,31 @@ moves.
   consecutive L-BFGS-B starts (`_multi_start_minimize`), one at the seam
   between the DHW stage and the space stage. Neither sits inside an iteration.
 
-`check_scopes.py` proves `scopes.json`'s seats disjoint and complete.
+`check_scopes.py` proves `scopes.json`'s seats disjoint and complete, that
+every tracked path is in some dimension's universe or on `_coverage_excluded`
+with its reason, and that a brief cites each harness whose header names it.
+
+## Harnesses that read moved paths are retired
+
+The reorganisation moved the round trees under `dev/audit/rounds/` and retired
+or moved several workflow and rule files; many harnesses under
+`dev/audit/harnesses/` and `dev/audit/rounds/round9/` still name the old paths.
+Enumerate them with the move map:
+
+    git ls-files 'dev/audit/harnesses/*' 'dev/audit/rounds/round9/*' \
+      | grep -E '\.(py|mjs|js|sh)$' | xargs python3 tools/audit/seat/moved_paths.py
+
+A harness it lists with a `[STALE?]` read is **retired**: kept as the record of
+what was measured, not re-run green at `main`. The exception is a harness still
+cited by a bug class's `detector` or `barrier`, or by the latest round's
+register (`dev/audit/rounds/round<N>/ISSUES.json`, `JUDGE.json`); that one is
+repaired, old path first through `tests/layout.py`'s `locate`. Repaired by
+R10-AUDIT-COVERAGE-ENDGAME: `dev/audit/rounds/round9/D11/s2/owner_review.py`,
+`dev/audit/rounds/round9/D4/s2/step_grid.py` and
+`dev/audit/rounds/round9/D14/s2/i4_roster.py` (its `--dims` mode; its default
+mode reads a `D14` `axis.class` that `scopes.json` no longer carries, so that
+mode is retired too). A seat re-running a retired harness repairs it first, in
+its own pull request.
 
 ## Running the gate on the audit box
 
