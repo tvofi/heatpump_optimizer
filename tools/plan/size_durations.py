@@ -633,7 +633,12 @@ def self_test() -> int:
     check("model: sizes_hours composes it with the mean rounds: 14 + 0.8 x 11.5 = 23.2",
           m["sizes_hours"]["S"] == 23.2 and m["review_rounds"]["S"] == 1.8)
     check("model: a cell of n>=5 is published per class, one under MIN_CELL is not",
-          m["first_round_by_class_hours"] == {"S": {"production": 14.0}})
+          m["first_round_by_class_hours"] == {"S": {"production": 14.0}}
+          and model(rs + [dict(rs[0], **{"class": "instrument"})])
+          ["first_round_by_class_hours"]["S"].keys() == {"production"})
+    check("round_slope is the median pairwise slope, not the mean (5.5, not 9.25)",
+          round_slope([{"rounds": k, "hours": h} for k, h in ((1, 0), (2, 1), (3, 2), (4, 30))])
+          == 5.5)
     m2 = model([dict(r, rounds=1) for r in rs]
                + [{"size": "M", "class": "production", "hours": 5, "rounds": 1, "carries": 0}])
     check("model: a larger size planning shorter is lifted to the smaller's hours, and says so",
@@ -659,14 +664,15 @@ def self_test() -> int:
          "resume": {"stage": "carries-open", "pr": 21},
          "carry": ["answered here", "P123 the gate's retry, owed",
                    "a forwarded lead about the session cache eviction",
-                   "owned only here, nothing else",
-                   "Self-test hygiene paragraph"]},
+                   "owned only here: the held twin carries the same words, nothing else does",
+                   "Self-test hygiene paragraph: no new mutant, no hand-built git init, no push site",
+                   "P200 and P201 are both owed here"]},
         {"group": "R9-F", "size": "S", "kind": "instrument", "resume": {"stage": "queued"},
-         "carry": ["From R9-H: P123 the gate's retry", "Self-test hygiene paragraph"]},
+         "carry": ["From R9-H: P123 the gate's retry", "Self-test hygiene paragraph: no new mutant, no hand-built git init, no push site", "P200 alone moved here"]},
         {"group": "R9-G", "size": "S", "kind": "instrument", "resume": {"stage": "not-started"},
-         "carry": ["Self-test hygiene paragraph"]},
+         "carry": ["Self-test hygiene paragraph: no new mutant, no hand-built git init, no push site"]},
         {"group": "R9-K", "size": "S", "kind": "instrument", "resume": {"stage": "carries-open"},
-         "carry": ["owned only here, nothing else"]},
+         "carry": ["owned only here: the held twin carries the same words, nothing else does"]},
     ]}
     hp = [{"number": 21, "title": "R9-H: part 1", "head_ref": "fix/r9-h", "body":
            "Carry 1 answered.\n## Forward-carry\n- Carry 3 (the forwarded session cache eviction "
@@ -676,8 +682,8 @@ def self_test() -> int:
            "merge_commit": "", "first_commit_at": "2026-10-01T00:00:00Z", "verdicts": []}]
     hm = prs_of_groups(held, hp, {})
     rep = {(r["group"], r["carry"]): r for r in held_report(held, hp, hm)}
-    check("held_rows: carry 1 answered, four open", [h["open"] for h in held_rows(held, hp, hm)
-                                                     if h["group"] == "R9-H"] == [4])
+    check("held_rows: carry 1 answered, five open", [h["open"] for h in held_rows(held, hp, hm)
+                                                     if h["group"] == "R9-H"] == [5])
     check("held_report a: a carry whose P-number landed in a future group's carry",
           (rep[("R9-H", 2)]["class"], rep[("R9-H", 2)]["dest"], rep[("R9-H", 2)]["ref"])
           == ("a", "R9-F", "entry 1"))
@@ -689,6 +695,8 @@ def self_test() -> int:
           rep[("R9-H", 4)]["class"] == "c")
     check("held_report c: text three groups carry is boilerplate, not a landing",
           rep[("R9-H", 5)]["class"] == "c")
+    check("held_report c: a carry naming P200 and P201 has not landed where only P200 did",
+          rep[("R9-H", 6)]["class"] == "c")
     print(f"size_durations self-test: {len(fails)} failed")
     return 1 if fails else 0
 
