@@ -1359,6 +1359,15 @@ def mask_seam_checks() -> list[tuple[str, bool, str]]:
         stray = [f"raised {type(err).__name__}"]
     res.append(("mask:a_payload_that_is_no_document_has_no_violation", stray == [],
                 f"a list payload: {stray}"))
+    # Carry 12 (D15-s1-04): a bool under a credential-named key carries no
+    # credential -- ``_collect_strings`` already skips it, and ``_walk`` must
+    # agree -- while a string under one still does (the null).
+    flag, token = (doc_mod.violations({"tibber_reauth_started": v}) for v in (True, False)), \
+        doc_mod.violations({"tibber_token": "abc123xyz"})
+    flags = [f for found_ in flag for f in found_]
+    res.append(("leak_copy:bool_under_a_credential_key_is_no_credential",
+                flags == [] and any("credential-named" in f for f in token),
+                f"bool {flags}; string {token}"))
     found: dict[str, set[int]] = {}
     scanned = doc_mod._scan({"attrs": {"options": ["off", _TOKEN]}}, "", found,
                             [doc_mod._copy(_TOKEN)])

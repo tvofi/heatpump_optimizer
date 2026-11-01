@@ -414,7 +414,10 @@ def _walk(node: object, path: str, found: list[str]) -> None:
     if isinstance(node, dict):
         for key, value in node.items():
             here = f"{path}.{key}" if path else str(key)
-            if SECRET_KEY.search(str(key)) and value not in (None, "", [], {}):
+            # A bool carries no credential (``_collect_strings`` skips it too):
+            # ``tibber_reauth_started`` is a flag, not a secret (D15-s1-04).
+            if SECRET_KEY.search(str(key)) and not isinstance(value, bool) \
+                    and value not in (None, "", [], {}):
                 found.append(f"{here}: a credential-named key carries a value")
             if _is_coordinate(key):
                 places = json_decimal_places(value)
