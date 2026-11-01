@@ -1,0 +1,16 @@
+fold_ledger: 47 classes, 749 instances, 121 in-tree judge survivors (rounds [8, 10]), 132 rca entries
+MISSING-PATH: P1.barrier cites tools/audit/round9/D14/sweep/live-input-no-plausibility-bound/enumerate.sh, which is not at /home/user/rev
+MISSING-PATH: P5.barrier cites .claude/workflows/carry-1655.json, which is not at /home/user/rev
+MISSING-PATH: P9.barrier cites .claude/workflows/carry-1757.json, which is not at /home/user/rev
+MISSING-PATH: I3.detector cites .claude/workflows/field_coverage.mjs, which is not at /home/user/rev
+MISSING-PATH: I4.detector cites .claude/workflows/agreement.mjs, which is not at /home/user/rev
+MISSING-PATH: N-silent-zero.detector cites .claude/workflows/field_coverage.mjs, which is not at /home/user/rev
+UNRECORDED-BARRIER: P8 has an rca in dev/audit/rca and no barrier or barrier_refusal, while tests/card.mjs, tests/entities.py, tests/features.py name it
+UNRECORDED-BARRIER: P10 has an rca in dev/audit/rca and no barrier or barrier_refusal, while tests/deployment_shape.py, tests/entities.py, tests/features.py, tests/replay.py name it
+UNRECORDED-BARRIER: N-name-sort has an rca in dev/audit/rca and no barrier or barrier_refusal, while tests/entities.py name it
+UNRECORDED-BARRIER: N-staleness has an rca in dev/audit/rca and no barrier or barrier_refusal, while tests/features.py name it
+UNRECORDED-BARRIER: N-no-expiry has an rca in dev/audit/rca and no barrier or barrier_refusal, while tests/entities.py, tests/features.py name it
+UNRECORDED-BARRIER: N-log-flood has an rca in dev/audit/rca and no barrier or barrier_refusal, while tests/entities.py, tests/features.py name it
+UNRECORDED-BARRIER: N-move-stale-path has an rca in dev/audit/rca and no barrier or barrier_refusal, while tests/closure.py, tests/entities.py name it
+UNRECORDED-BARRIER: N-confounded-learner has an rca in dev/audit/rca and no barrier or barrier_refusal, while tests/features.py name it
+fold_ledger: 14 violation(s)
