@@ -1,0 +1,6 @@
+== /tmp/claude-0/base #3045
+GREEN 9ef51b8215dd7216950f177386fb2f5a8f010a47 pending: none red: none
+rc=0
+== /tmp/claude-0/wt2 #3045
+GREEN 9ef51b8215dd7216950f177386fb2f5a8f010a47 pending: none red: none
+rc=0

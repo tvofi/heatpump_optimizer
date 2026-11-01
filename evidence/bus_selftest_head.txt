@@ -1,0 +1,7 @@
+  ok   null control (P348): a merge verdict at the reviewed head over a clean range refuses to mint, naming the reviewed head, and records nothing
+  ok   P348: a blocked verdict at the reviewed head over a clean range mints, says why, and records (#3045 r3)
+  ok   P348: the latest verdict naming the reviewed head decides -- blocked then merge refuses, a blocked verdict at another head aside (#2962)
+  ok   P348: a reviewed head with no verdict at all carries nothing, so it mints
+  ok   P348: an unreadable verdict/<pr> over a clean range refuses, and records nothing
+  ok   P345: a raise whose only red is its owed approval (classify --pr APPROVAL-OWED) dispatches, records, and prints the line
+bus self-test: 115 checks, 0 failed

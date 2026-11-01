@@ -1,0 +1,12 @@
+== #3045 head --pr
+REFUSE ci: the check runs at 9ef51b8215dd could not be read
+rc=2
+== #3055 head --pr
+RED 6a988a237f91a853d006f7908e41cfbd30bc9bc9 pending: none red: gate
+rc=1
+== #3045 head --pr (retry)
+REFUSE ci: the check runs at 9ef51b8215dd could not be read
+rc=2
+== #3045 at BASE e4c9e2016, no --pr (merge_train unchanged reader)
+REFUSE ci: the check runs at 9ef51b8215dd could not be read
+rc=2
