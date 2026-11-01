@@ -274,6 +274,51 @@ def self_test():
         field_mutant("python is not followed to its script", "|python|python[0-9]*|", "|",
                      f"{py} -I {caller} --body LEAKVAL", f"{pyn} {caller}"[:80])
 
+        # Exact-field arms over a stated parent command line: a fake `ps` prints it, so the
+        # perl, ruby and node shapes need no such interpreter on the host. The real-ps arms
+        # above pin that the shim reads its true parent; these pin the field rule itself.
+        ftools = w / "ftools"
+        ftools.mkdir()
+        for t in tools.iterdir():
+            if t.name != "ps":
+                (ftools / t.name).symlink_to(os.readlink(t))
+        (ftools / "ps").write_text('#!/bin/sh\nprintf "%s\\n" "$HPO_FAKE_PARGS"\n')
+        (ftools / "ps").chmod(0o700)
+        fpath = f"{w / 'own'}:{w / 'real'}:{ftools}"
+
+        def ffield(pargs, sh=None):
+            run(["api", "x"], shim_text=sh, path=fpath, env_extra={"HPO_FAKE_PARGS": pargs})
+            m_ = LINE.fullmatch(log.read_text().splitlines()[-1])
+            return m_.group(3) if m_ else None
+        long_script = "/" + "d" * 90 + "/s.sh"
+        fshapes = {  # parent command line -> the exact field; LEAKVAL is a caller's value
+            "python3 -c__import__('subprocess').run(['gh','api','-fx=LEAKVAL'])": "python3 -c",
+            "python3 -Bc__import__('subprocess').run(['gh','api','-fx=LEAKVAL'])": "python3 -Bc",
+            "perl -esystem('gh','api','-fx=LEAKVAL')": "perl -e",
+            "ruby -esystem('gh','api','-fx=LEAKVAL')": "ruby -e",
+            "node --eval=require('child_process').execFileSync('gh',['-fx=LEAKVAL'])": "node --eval",
+            "node --print=LEAKVAL": "node --print",
+            "bash --command=LEAKVAL": "bash --command",
+            "sh -s LEAKVAL": "sh -s",
+            "sh -s -- LEAKVAL": "sh -s",
+            "bash -s -- --token LEAKVAL": "bash -s",
+            "python3 -W ignore::LEAKVAL caller.py": "python3 caller.py",
+            "python3 -WLEAKVAL caller.py": "python3 caller.py",
+            "python3 -X LEAKVAL caller.py": "python3 caller.py",
+            "python3 -W error -m caller_mod LEAKVAL": "python3 -m caller_mod",
+            "bash -o LEAKVAL s.sh": "bash s.sh",
+            "node --require ./LEAKVAL.js n.js": "node",
+            "node -p LEAKVAL": "node",
+            "ruby -r LEAKVAL x.rb": "ruby",
+            "perl -MLEAKVAL -e x": "perl",
+            "python3 -I caller.py --body LEAKVAL": "python3 caller.py",  # null control: not cut to nothing
+            "sh ./a=b/s.sh LEAKVAL": "sh ./a?b/s.sh",  # `=` in a kept word is logged `?`
+            f"sh {long_script} LEAKVAL": f"sh {long_script}"[:80],  # the 80-character cut
+        }
+        fgot = {pa: ffield(pa) for pa in fshapes}
+        for pa, want_f in fshapes.items():
+            check(f"exact field of parent `{pa[:48]}` is `{want_f[:24]}`", fgot[pa] == want_f)
+
         # a log written by an earlier shim (0644) is made owner-only on the next call; a
         # rotated one too, since mv keeps the mode
         old_log = w / "oldmode" / "gh-calls.log"
