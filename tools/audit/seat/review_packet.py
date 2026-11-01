@@ -38,6 +38,8 @@ REFUSALS (rc 1, each named by its signal), all mechanical:
   host-path        the body or an added line names this host (`ref_privacy.py`);
   hot-file         the diff shares a HOT_FILES path with an open pull request
                    whose merge verdict is at its head and not on the train;
+  carry-landed     a body line `Carry N ... landed ... <sha>` whose carry is not on the round
+                   roster ref at that sha (`landed_cites`, `unlanded_carries`; L5);
   handoff-not-applied  the PR's branch is `fix/<t>` or `fix/<t>-pr`, `handoff/<t>`
                    exists on origin, and its tip is not an ancestor of the head.
 A pending check never refuses. Every other finding prints as an advisory.
@@ -129,7 +131,7 @@ HOT_FILES = ("tools/audit/seat/pr_args.sh", "tools/audit/seat/update_pr.sh",
 RED = {"failure", "cancelled", "timed_out", "action_required", "startup_failure"}
 LEDGER = "tests/mutation_ledger"
 SIGNALS = ("carry-audit", "head-note", "structure", "red-unanswered", "required-red", "host-path", "hot-file",
-           "handoff-not-applied")
+           "handoff-not-applied", "carry-landed")
 
 
 def git(*a: str, cwd: Path | None = None, check: bool = True) -> str:
@@ -202,6 +204,72 @@ def handoff_topics(branch: str) -> list[str]:
     `fix/<t>-pr`, `open_pr.sh`'s two spellings; none for any other shape."""
     t = branch[len("fix/"):] if branch.startswith("fix/") else ""
     return [x for x in ([t, t[:-len("-pr")]] if t.endswith("-pr") else [t]) if x]
+
+
+def head_note_repair(head: str, branch: str | None) -> str:
+    """What repairs a `head-note` refusal (P213): the head the body must name and
+    the push that names it, one line. No branch read, no command: a guessed
+    branch would send a fixer to push the wrong one."""
+    if not branch:
+        return ""
+    return (f" -- repair: the body's ## Head must name {head}; "
+            f"`tools/audit/seat/update_pr.sh {shlex.quote(branch)} - <body-file>` (PR branch {branch})")
+
+
+#: A body line citing a carry as landed: `Carry 3: landed at 1a2b3c4` (any case, `[3]` too).
+LANDED = re.compile(r"\bcarry\s*\[?(\d+)\]?(?![0-9]).*?\blanded\b.*?\b([0-9a-f]{7,40})\b", re.I)
+
+
+def landed_cites(body: str) -> list[tuple[int, str]]:
+    """(carry index, sha) of each carry the body cites as landed, in order."""
+    out = []
+    for line in body.splitlines():
+        m = LANDED.search(line)
+        if m:
+            out.append((int(m.group(1)), m.group(2).lower()))
+    return out
+
+
+def unlanded_carries(cites: list[tuple[int, str]], carries_at, on_roster) -> list[str]:
+    """Each cited carry that is not on the roster ref at its cited sha (L5).
+    `on_roster(sha)`: the sha is on the roster ref; `carries_at(sha)`: how many
+    carries the group's roster entry holds there (0 when it cannot be read). Both
+    must hold: a sha off the ref cites a commit the round never took, and a sha
+    on it can predate the carry."""
+    out = []
+    for n, sha in cites:
+        if not on_roster(sha):
+            out.append(f"carry-landed: carry {n} is cited as landed at {sha}, which is not on the roster ref")
+        elif carries_at(sha) < n:
+            out.append(f"carry-landed: carry {n} is cited as landed at {sha}, whose roster entry holds {carries_at(sha)}")
+    return out
+
+
+def roster_carry_reader(topics: list[str], ref: str):
+    """(on_roster, carries_at) over the roster ref `ref`, for the group the
+    branch's topics name; an unreadable roster at a sha holds no carries."""
+    import roster_lib
+
+    def carries_at(sha: str) -> int:
+        try:
+            roster = roster_lib.show_roster(str(repo()), sha)
+        except Exception:  # noqa: BLE001 -- a sha with no roster holds no carry
+            return 0
+        for t in topics:
+            gid = roster_lib.group_for_branch(roster, f"handoff/{t}")
+            if gid:
+                return len(roster_lib.groups_of(roster)[gid].get("carry") or [])
+        return 0
+    return (lambda sha: is_ancestor(sha, ref)), carries_at
+
+
+def fetch_roster_ref(roster_ref: str | None) -> str:
+    import roster_lib
+    ref = roster_ref or roster_lib.round_ref(roster_lib.git_in(str(repo())))
+    if not ref:
+        raise Unavailable("roster_lib.round_ref names no round roster branch")
+    git("fetch", "-q", "--no-tags", "origin", f"+refs/heads/{ref.removeprefix('origin/')}:refs/remotes/{ref}")
+    return ref
 
 
 def handoff_not_applied(branch: str, head: str, tip_of, is_ancestor) -> str | None:
@@ -363,16 +431,21 @@ def unnamed_carries(body: str, n: int) -> list[int]:
             if not re.search(rf"\bcarry\s*\[?{i}\]?(?![0-9])", body, re.I)]
 
 
-def handoff_refusals(structure: str | None, hot: list[str], unnamed: list[int]) -> list[str]:
+def handoff_refusals(structure: str | None, hot: list[str], unnamed: list[int],
+                     unlanded: list[str] | None = None) -> list[str]:
     """The refusals that need no CI run: the packet's `structure` and `hot-file`,
     and the handoff's `brief-carries` count (P256). One spelling for both callers."""
     out = [f"structure: tests/structure.py refuses the head merged with main: {structure}"] if structure else []
     out += [f"hot-file: {w}" for w in hot]
     out += [f"brief-carries: carry {i} is not named in the body (`Carry N`)" for i in unnamed]
-    return out
+    return out + (unlanded or [])
 
 
 # ------------------------------------------------------------------- the packet
+SELF_AUDIT = ("python3 -I tools/audit/carry_audit.py check --body <PR body file> "
+              "--comments <file holding [{\"id\": 0, \"body\": <verdict.md text>}]>")
+
+
 def build(facts: dict) -> tuple[list[str], list[str], str]:
     """(refusals, advisories, packet text) from gathered facts; pure."""
     head, body = facts["head"], facts["body"]
@@ -381,7 +454,8 @@ def build(facts: dict) -> tuple[list[str], list[str], str]:
     if facts["carry_rc"]:
         refusals.append("carry-audit: carry_audit.py check returned 1 on the body")
     if not head_note_ok(body, head):
-        refusals.append(f"head-note: ## Head does not name the dispatched head {head}")
+        refusals.append(f"head-note: ## Head does not name the dispatched head {head}"
+                        + head_note_repair(head, facts.get("branch")))
     refusals += handoff_refusals(facts["structure"], facts["hot"], [])
     for n in facts["red_unanswered"]:
         refusals.append(f"red-unanswered: concluded red check `{n}` is not named in ## Red checks")
@@ -389,6 +463,7 @@ def build(facts: dict) -> tuple[list[str], list[str], str]:
         refusals.append(f"required-red: required context `{n}` concluded failure at {head}")
     for w in facts["host"]:
         refusals.append(f"host-path: {w}")
+    refusals += facts.get("unlanded", [])
     if facts.get("handoff"):
         refusals.append(f"handoff-not-applied: {facts['handoff']}")
     advisories = [a for a in facts.get("advisories", [])]
@@ -405,6 +480,9 @@ def build(facts: dict) -> tuple[list[str], list[str], str]:
         "### at the base", facts["harness_base"], "### at the head", facts["harness_head"], "",
         "## Mutation-ledger diff", facts["ledger_diff"] or "none", "",
         "## Three-dot diff", facts["diff"],
+        "## Before you return the verdict (P275)",
+        f"Run `{SELF_AUDIT}`. Give every reported item its own `Carry: <GROUP> | #<issue> | O<n> | dismissed: <reason>`;",
+        "an evidence line flagged by its wording takes `Carry: dismissed: evidence, not a finding`. Return the verdict only at rc 0.",
     ]
     return refusals, advisories, "\n".join(parts) + "\n"
 
@@ -417,7 +495,14 @@ def gather(a) -> dict:
                    if (a.harness or a.harness_file) else ("none named", b""))
     pr = gh(f"repos/{REPO}/pulls/{a.pr}") or {}
     body = pr.get("body") or ""
-    handoff = handoff_not_applied((pr.get("head") or {}).get("ref") or "", head, origin_handoff_tip, is_ancestor)
+    branch = (pr.get("head") or {}).get("ref") or ""
+    handoff = handoff_not_applied(branch, head, origin_handoff_tip, is_ancestor)
+    unlanded: list[str] = []
+    cites = landed_cites(body)
+    if cites:  # no roster read at all for a body that cites no landed carry
+        rref = fetch_roster_ref(None)
+        on_roster, carries_at = roster_carry_reader(handoff_topics(branch), rref)
+        unlanded = unlanded_carries(cites, carries_at, on_roster)
     runs = gh(f"repos/{REPO}/commits/{head}/check-runs?per_page=100").get("check_runs", [])
     gate = gate_digest(runs)
     crc, cout = tool([sys.executable, "-I", "tools/audit/carry_audit.py", "check", "--body", "{BODY}"], body)
@@ -428,7 +513,7 @@ def gather(a) -> dict:
     host += ref_privacy.content_refusals(ref_privacy.added_lines(base, head, repo()), ident)
     open_prs, boarded = hot_prs(touched)
     return {
-        "pr": a.pr, "head": head, "base": base, "body": body, "gate": gate,
+        "pr": a.pr, "head": head, "base": base, "body": body, "gate": gate, "branch": branch, "unlanded": unlanded,
         "carry_rc": crc, "carry_out": cout, "figure_out": fout,
         "structure": None if a.no_structure else structure_at_merge(main, head),
         "red_unanswered": red_unanswered, "host": host, "handoff": handoff,
@@ -469,10 +554,7 @@ def handoff(a) -> int:
     head = git("rev-parse", "HEAD").strip()
     body = Path(a.body).read_text()
     touched = set(git("diff", "--name-only", "--no-renames", f"{git('merge-base', a.main, head).strip()}...{head}").split())
-    ref = a.roster_ref or roster_lib.round_ref(roster_lib.git_in(str(repo())))
-    if not ref:
-        raise Unavailable("roster_lib.round_ref names no round roster branch")
-    git("fetch", "-q", "--no-tags", "origin", f"+refs/heads/{ref.removeprefix('origin/')}:refs/remotes/{ref}")
+    ref = fetch_roster_ref(a.roster_ref)
     try:
         roster = roster_lib.show_roster(str(repo()), ref)
     except Exception as e:  # noqa: BLE001 -- an unread roster is not an empty one
@@ -481,7 +563,8 @@ def handoff(a) -> int:
     carries = len(roster_lib.groups_of(roster)[gid].get("carry") or []) if gid else 0
     open_prs, boarded = hot_prs(touched)
     refusals = handoff_refusals(structure_at_merge(a.main, head),
-                                hot_file_refusals(touched, open_prs, boarded, 0), unnamed_carries(body, carries))
+                                hot_file_refusals(touched, open_prs, boarded, 0), unnamed_carries(body, carries),
+                                unlanded_carries(landed_cites(body), *reversed(roster_carry_reader([a.topic], ref))))
     for x in refusals:
         print(f"review_packet: REFUSE {x}", file=sys.stderr)
     print(f"review-packet handoff: {gid or 'no group'} at {head[:12]}, {carries} carries, {len(refusals)} refused")
@@ -526,6 +609,9 @@ def _self_test() -> int:
     r0, _, t0 = build(clean)
     check("null control: a clean head dispatches (no refusal)", r0 == [])
     check("the packet is byte-identical on a second render of the same head", build(dict(clean))[2] == t0)
+    check("the packet closes on the carry self-audit command (P275)",
+          t0.rstrip().splitlines()[-3].startswith("## Before you return the verdict") and SELF_AUDIT in t0
+          and "--comments" in SELF_AUDIT)
     check("the packet carries the head's harness output and names the head",
           "RESULT 0" in t0 and packet_head(t0) == H)
     check("check names a stale packet: another head does not match", packet_head(t0) != B)
@@ -536,6 +622,11 @@ def _self_test() -> int:
 
     check("carry-audit: an unrouted body refuses and names it", refused("carry-audit", carry_rc=1))
     check("head-note: a ## Head naming another head refuses", refused("head-note", body=f"## Head\n{B}\n"))
+    hn = build({**clean, "body": f"## Head\n{B}\n", "branch": "fix/g"})[0][0]
+    check("head-note repair: the refusal names the head and the update_pr.sh push for the PR's branch",
+          H in hn and "update_pr.sh fix/g - <body-file>" in hn)
+    check("head-note repair null: a branch that cannot be read prints today's refusal, no command",
+          build({**clean, "body": f"## Head\n{B}\n"})[0][0] == f"head-note: ## Head does not name the dispatched head {H}")
     check("structure: a structure refusal at the merge refuses", refused("structure", structure="max_class_loc"))
     check("red-unanswered: an unanswered concluded red refuses", refused("red-unanswered", red_unanswered=["tests / fast"]))
     check("host-path: a host path refuses", refused("host-path", host=["home-directory in the body"]))
@@ -563,6 +654,27 @@ def _self_test() -> int:
     check("write-on-refusal: one host path beside other refusals still writes nothing",
           not writes_packet(["required-red: gate", "host-path: a home directory"]))
 
+    # P275: #2914's shape -- a verdict note this PR does not settle, with no `Carry:`.
+    note = (f"Fix review: merge {H}\n\n## Non-blocking notes\n\n- V149 (FLOW-BOARD): not blocking. "
+            "Its ruling is a DEFER in s6-batch47.md and this PR does not settle it.\n")
+    audit = lambda v: tool([sys.executable, "-I", "tools/audit/carry_audit.py", "check", "--body", "{BODY}", "--comments", cf(v)], "## Head\nx\n")[0]  # noqa: E731
+    cfs: list[str] = []
+
+    def cf(v: str) -> str:
+        f = tempfile.NamedTemporaryFile("w", suffix=".json", delete=False)
+        json.dump([{"id": 0, "body": v}], f)
+        f.close()
+        cfs.append(f.name)
+        return f.name
+    try:
+        check("self-audit: a verdict note with no Carry: gives rc 1", audit(note) == 1)
+        check("self-audit: the same note with its own `Carry: dismissed:` gives rc 0",
+              audit(note.rstrip() + " Carry: dismissed: ruled in s6-batch47, not this PR.\n") == 0)
+        check("self-audit null: a verdict with no unrouted note gives rc 0", audit(f"Fix review: merge {H}\n\nNo notes.\n") == 0)
+    finally:
+        for f in cfs:
+            os.unlink(f)
+
     # brief-carries (P256): every index on the group's roster entry is named.
     six = "".join(f"Carry {i}: answered.\n" for i in range(1, 6))
     check("brief-carries: a body answering carries 1-5 of 6 is refused naming carry 6",
@@ -577,6 +689,24 @@ def _self_test() -> int:
           [r.split(":")[0] for r in handoff_refusals("max_class_loc", ["#9 x"], [2])]
           == ["structure", "hot-file", "brief-carries"])
     check("handoff null: a clean head refuses nothing", handoff_refusals(None, [], []) == [])
+
+    # carry-landed (L5): a carry cited as landed is on the roster ref at the cited sha.
+    S1, S2 = "1" * 7, "2" * 40
+    cites = landed_cites(f"Carry 4: landed at {S1} in the roster.\nCarry [5]: dispositioned, not built.\n")
+    check("carry-landed: only a line that says landed cites a carry, with its index and sha", cites == [(4, S1)])
+    at = {S1: 3}.get
+    on = lambda sha: sha == S1  # noqa: E731
+    bad = unlanded_carries(cites, lambda sha: at(sha, 0), on)
+    check("carry-landed: a carry the roster entry holds too few of at the sha refuses, naming it",
+          len(bad) == 1 and bad[0].startswith("carry-landed: carry 4 ") and refused("carry-landed", unlanded=bad))
+    check("carry-landed: a sha off the roster ref refuses",
+          len(unlanded_carries([(4, S2)], lambda sha: 9, on)) == 1)
+    check("carry-landed null: the same body once the carry lands passes",
+          unlanded_carries(cites, lambda sha: 4, on) == [])
+    check("carry-landed null: a body citing no carry as landed passes",
+          unlanded_carries(landed_cites("Carry 1: x\n"), lambda sha: 0, lambda sha: False) == [])
+    check("carry-landed: the handoff refuses it beside the count",
+          [r.split(":")[0] for r in handoff_refusals(None, [], [], bad)] == ["carry-landed"])
 
     prs = [{"number": 9, "head": H, "files": [HOT_FILES[0]], "merge_verdict_head": H}]
     check("hot-file arm: an unboarded merge verdict sharing a hot file refuses",

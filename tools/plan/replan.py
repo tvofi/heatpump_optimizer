@@ -48,7 +48,11 @@ The schedule
 
     A patch stamp is cut once `stamp_every` production groups have merged
     since the last one. A stamp never blocks a dispatch; it pays its own gate
-    run, because `stamp.py` pushes to main.
+    run, because `stamp.py` pushes to main. The programme closes with one
+    `round-close` stamp: round N's major, vN.0.0 (decision 0016), assigned by
+    `stamp.next_version` -- the rule `stamp.py --round-close N` runs -- from
+    the round the roster's path names, so the plan and the stamp cannot
+    disagree on it; a roster naming no round refuses, never defaults.
 
 Why it checks what it checks
     A schedule that violates a cap is not a plan. `--check` refuses (exit 1)
@@ -68,7 +72,7 @@ Why it checks what it checks
     `--self-test` plants each violation and proves the refusal fires.
 
 plan.json shape
-    schema; generated {roster_ref, roster_blob, start, version, durations,
+    schema; generated {roster_ref, roster_blob, start, version, round, durations,
     model {sizes_hours, live_remaining_fraction, sizes_provenance}, caps,
     inherited_coordinator, inherited_dependency_violations}; summary {closure,
     wall_hours, ci_minutes, batches, stamps, ...}; critical_path [group...];
@@ -93,6 +97,9 @@ sys.path.insert(0, os.environ.get("REPLAN_SEAT_DIR")
                or str(Path(__file__).resolve().parent.parent / "audit" / "seat"))
 import roster_lib  # noqa: E402 -- the one owner of which roster a tool reads
 
+sys.path.insert(0, str(Path(roster_lib.__file__).resolve().parents[2] / "release"))
+import stamp  # noqa: E402 -- the one owner of the version a stamp assigns
+
 SELF = "tools/plan/replan.py"
 
 # Production lanes cut a stamp. Instrument, Replay and Docs work does not, on
@@ -104,6 +111,9 @@ PRODUCTION = ("Learners", "Core model", "Product UX")
 # then production, then everything else by the savings it carries. The tiers
 # are derived from the roster graph at every replan; none is stored.
 TIER_CRITICAL, TIER_PRODUCTION, TIER_OTHER = 0, 1, 2
+
+# The kind of the one stamp that closes the programme: the round's major.
+ROUND_CLOSE = "round-close"
 
 # A fixer already working. `queued` is not working: the plan dispatches it.
 LIVE_STAGES = ("in-progress", "fixing", "review", "in-review")
@@ -545,7 +555,7 @@ def selftest_model() -> int:
     start = dt.datetime(2026, 1, 5)
     ros = {"groups": [grp("H0", "M", stage="carries-open", carry=["c"] * 3),
                       grp("A"), grp("B")]}
-    pl = build_plan(ros, M, caps1, start, "v1.0.0")
+    pl = build_plan(ros, M, caps1, start, "v1.0.0", round_n=2)
     g0 = pl["groups"]["H0"]
     expect("the zero-open held group starts and finishes at the replan instant",
            g0["start"] == g0["finish"] == iso(start, 0) and g0["duration_minutes"] == 0
@@ -554,7 +564,7 @@ def selftest_model() -> int:
     # 3. started work keeps its place: in flight from now, past the slot cap.
     many = {"groups": [grp(f"L{i}", stage="in-progress") for i in range(4)]
             + [grp("NEW"), grp("DEP", after=["NEW"], stage="in-progress")]}
-    pm = build_plan(many, M, caps1, start, "v1.0.0")
+    pm = build_plan(many, M, caps1, start, "v1.0.0", round_n=2)
     G = pm["groups"]
     expect("every started group with no open dependency starts now, past a cap of 2",
            all(G[f"L{i}"]["start"] == iso(start, 0) for i in range(4)),
@@ -576,7 +586,7 @@ def selftest_model() -> int:
            any(b.startswith("in flight: NEW dispatched") for b in check_plan(bad)),
            check_plan(bad))
     nul = build_plan({"groups": [grp("TALL", "M"), grp("SHORT", "S")]}, M,
-                     dict(caps1, slots=1), start, "v1.0.0")
+                     dict(caps1, slots=1), start, "v1.0.0", round_n=2)
     expect("null control: two not-started ready groups are still ordered by priority",
            nul["groups"]["TALL"]["start"] < nul["groups"]["SHORT"]["start"],
            {n: nul["groups"][n]["start"] for n in nul["groups"]})
@@ -600,7 +610,7 @@ def selftest_model() -> int:
         grp("R10-HOTFIX-H", "L", "bug"), grp("PROD", "M"),
         grp("HI", "S", "instrument", savings=9), grp("LO", "S", "instrument", savings=2),
         grp("NONE", "S", "instrument")]}
-    po = build_plan(order, M, dict(caps1, slots=1), start, "v1.0.0")
+    po = build_plan(order, M, dict(caps1, slots=1), start, "v1.0.0", round_n=2)
     seq = sorted((g for g in po["groups"]), key=lambda n: po["groups"][n]["start"])
     expect("dispatch follows the owner's order: critical path, hotfix, production, "
            "instruments by savings, unrecorded savings last",
@@ -613,13 +623,13 @@ def selftest_model() -> int:
     # height alone dispatches H first; the owner's order puts B first.
     tail = build_plan({"groups": [grp("A", "L", "instrument"),
                                   grp("B", "S", "instrument", after=["A"]),
-                                  grp("H", "M", "bug")]}, M, dict(caps1, slots=1), start, "v1.0.0")
+                                  grp("H", "M", "bug")]}, M, dict(caps1, slots=1), start, "v1.0.0", round_n=2)
     T = tail["groups"]
     expect("within tier 2 the critical path goes first, even its shorter tail",
            tail["critical_path"] == ["A", "B"] and T["B"]["start"] < T["H"]["start"],
            {n: (T[n]["start"], T[n]["sort_key"]) for n in T})
     tie = build_plan({"groups": [grp("A1", "M"), grp("A2", "S")]}, M,
-                     dict(caps1, slots=1), start, "v1.0.0")
+                     dict(caps1, slots=1), start, "v1.0.0", round_n=2)
     expect("null control: two groups in one tier keep the height tie-break",
            tie["groups"]["A1"]["start"] < tie["groups"]["A2"]["start"],
            {n: tie["groups"][n]["sort_key"] for n in tie["groups"]})
@@ -632,7 +642,7 @@ def selftest_model() -> int:
     given = cli_caps(parse_args(["--slots", "4"]))
     expect("null control: a cap given on the command line is used and named as given",
            given["slots"] == 4 and given["provenance"].startswith("--slots given"), given)
-    pc = build_plan({"groups": [grp("A")]}, M, nocaps, start, "v1.0.0")
+    pc = build_plan({"groups": [grp("A")]}, M, nocaps, start, "v1.0.0", round_n=2)
     expect("the plan records whose caps it drew at",
            pc["generated"]["caps"]["provenance"] == CAPS_PROVENANCE, pc["generated"]["caps"])
 
@@ -644,7 +654,10 @@ def selftest_model() -> int:
 
 def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
                version: str, roster_ref: str = "", roster_blob: str = "",
-               roster_path: str = "") -> dict:
+               roster_path: str = "", *, round_n: int) -> dict:
+    closing, why = closure_version(version, round_n)
+    if why:
+        raise PlanError(f"the round-close stamp: {why}")
     G = groups_of(roster)
     deps, open_, done = dependency_graph(G)
     order = topo_order(deps)
@@ -840,14 +853,13 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
 
     closure = max(merged_t.values(), default=0)
     # The last fewer-than-`every` production groups are not a patch stamp of
-    # their own: the minor stamp closes the programme and carries them. A
-    # second push there would pay a gate run to bump a version the minor bump
-    # replaces hours later.
-    minor = bump(version, patch, minor=True)
+    # their own: the round-close stamp closes the programme and carries them.
+    # A second push there would pay a gate run to bump a version the round's
+    # major replaces hours later.
     for c in carry:
-        stamp_by_group[c] = minor
-    stamps.append({"version": minor, "at": closure + closure_lead,
-                   "carries": list(carry), "kind": "minor", "batch": None})
+        stamp_by_group[c] = closing
+    stamps.append({"version": closing, "at": closure + closure_lead,
+                   "carries": list(carry), "kind": ROUND_CLOSE, "batch": None})
 
     # a wave is the set of groups the replan dispatches at one instant
     by_open: dict = {}
@@ -948,6 +960,7 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
             "roster_blob": roster_blob,
             "start": iso(start, 0),
             "version": version,
+            "round": round_n,
             "durations": durations.get("provenance") or {},
             # The duration model this plan was computed with, so a reader of
             # the plan states the figures it used rather than today's file's.
@@ -1001,9 +1014,23 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
     return plan
 
 
-def bump(version: str, n: int, minor: bool = False) -> str:
+def bump(version: str, n: int) -> str:
+    """The `n`th interim patch stamp after `version`."""
     maj, mi, pa = (int(x) for x in version.lstrip("v").split(".")[:3])
-    return f"v{maj}.{mi + 1}.0" if minor else f"v{maj}.{mi}.{pa + n}"
+    return f"v{maj}.{mi}.{pa + n}"
+
+
+def closure_version(version: str, round_n) -> tuple[str | None, str | None]:
+    """`(vN.0.0, None)` for the stamp closing round `round_n`, or `(None, why)`.
+
+    The rule is `stamp.next_version`'s, the one `stamp.py --round-close N`
+    runs, given the round as both the asked and the roster's round: the plan
+    states the version that command will assign, and refuses where it would.
+    """
+    if isinstance(round_n, bool) or not isinstance(round_n, int):
+        return None, f"no round to close (round {round_n!r})"
+    nxt, why = stamp.next_version(version.lstrip("v"), None, round_n, round_n)
+    return (f"v{nxt}", None) if nxt else (None, why)
 
 
 def gate_minutes(durations: dict) -> float:
@@ -1170,15 +1197,27 @@ def check_plan(plan: dict) -> list:
                        f"flight (cap {slots})")
 
     # 5. stamp cadence: every `every` production merges cuts one patch stamp;
-    #    the last fewer-than-`every` ride the one minor stamp that closes the
-    #    programme
+    #    the last fewer-than-`every` ride the one round-close stamp that closes
+    #    the programme, last, at the version `closure_version` assigns
     produced = [n for n, g in sorted(
         ((n, g) for n, g in groups.items() if g.get("lane") in PRODUCTION),
         key=lambda x: (mins(x[1]["finish"]), x[0]))]
     patch_stamps = [s for s in plan.get("stamps", []) if s["kind"] == "patch"]
-    minor = [s for s in plan.get("stamps", []) if s["kind"] == "minor"]
-    if len(minor) != 1:
-        bad.append(f"stamp cadence: {len(minor)} minor stamps, expected one")
+    closes = [s for s in plan.get("stamps", []) if s["kind"] == ROUND_CLOSE]
+    gen = plan.get("generated") or {}
+    want, why = closure_version(str(gen.get("version") or ""), gen.get("round"))
+    if len(closes) != 1 or plan["stamps"][-1] is not closes[0]:
+        bad.append(f"round close: {len(closes)} {ROUND_CLOSE} stamps, expected "
+                   "one, and last")
+    elif why:
+        bad.append(f"round close: {why}")
+    elif closes[0]["version"] != want:
+        bad.append(f"round close: the closure stamp is {closes[0]['version']}, "
+                   f"round {gen.get('round')} closes as {want}")
+    stray = [s["kind"] for s in plan.get("stamps", [])
+             if s["kind"] not in ("patch", ROUND_CLOSE)]
+    if stray:
+        bad.append(f"stamp cadence: unknown stamp kind(s) {stray}")
     if len(patch_stamps) != len(produced) // every:
         bad.append(f"stamp cadence: {len(patch_stamps)} patch stamps for "
                    f"{len(produced)} production merges at a cadence of {every}")
@@ -1188,11 +1227,11 @@ def check_plan(plan: dict) -> list:
         if len(s["carries"]) != every:
             bad.append(f"stamp cadence: {s['version']} carries "
                        f"{len(s['carries'])} production groups, not {every}")
-    if minor:
-        covered.extend(minor[0]["carries"])
-        if len(minor[0]["carries"]) > every:
-            bad.append(f"stamp cadence: the minor stamp carries "
-                       f"{len(minor[0]['carries'])} production groups")
+    if closes:
+        covered.extend(closes[0]["carries"])
+        if len(closes[0]["carries"]) > every:
+            bad.append(f"stamp cadence: the round-close stamp carries "
+                       f"{len(closes[0]['carries'])} production groups")
     if covered != produced:
         bad.append("stamp cadence: stamped production groups do not equal the "
                    "merged production groups, in merge order")
@@ -1219,6 +1258,7 @@ def check_plan(plan: dict) -> list:
 
 def selftest() -> int:
     caps = dict(DEFAULT_CAPS, slots=6, seats=8)   # the fixture's caps, not the owner's
+    FIXTURE_ROUND = 2  # the fixture plans close round 2 from v1.0.0
     durations = {
         "sizes_hours": {"S": 2.0, "M": 4.0, "L": 6.0, "XL": 8.0},
         "live_remaining_fraction": 0.7,
@@ -1257,8 +1297,8 @@ def selftest() -> int:
         if not cond:
             failures.append(name)
 
-    plan = build_plan(roster, durations, caps, start, "v1.0.0")
-    again = build_plan(roster, durations, caps, start, "v1.0.0")
+    plan = build_plan(roster, durations, caps, start, "v1.0.0", round_n=FIXTURE_ROUND)
+    again = build_plan(roster, durations, caps, start, "v1.0.0", round_n=FIXTURE_ROUND)
     expect("deterministic: two runs are byte-identical",
            json.dumps(plan, sort_keys=True) == json.dumps(again, sort_keys=True))
     bad = check_plan(plan)
@@ -1272,7 +1312,7 @@ def selftest() -> int:
         if g["group"] == "A":
             g["after"] = ["D"]
     try:
-        build_plan(cyc, durations, caps, start, "v1.0.0")
+        build_plan(cyc, durations, caps, start, "v1.0.0", round_n=FIXTURE_ROUND)
         expect("cycle: build refuses", False, "it scheduled a cycle")
     except PlanError as exc:
         expect("cycle: build refuses", "cycle" in str(exc), str(exc))
@@ -1328,20 +1368,35 @@ def selftest() -> int:
         rc = subprocess.run([sys.executable, "-I", __file__, "--check",
                              "--plan", str(badp)], capture_output=True).returncode
         expect("--check exits 1 on a planted over-cap wave", rc == 1, f"rc={rc}")
-        cycf = Path(td) / "cyc.json"
+        # The fixture is named as a roster, so the command reads its round and
+        # the exit is the cycle's; the unnamed copy has no round to close.
+        # `--repo td` holds no VERSION, so the fixture closes round 1 from 0.0.0
+        # whatever the checkout's own version is.
+        cycf = Path(td) / "wave-r1-groups.json"
         cycf.write_text(json.dumps(cyc), encoding="utf-8")
-        rc = subprocess.run([sys.executable, "-I", __file__, "--roster-file", str(cycf),
-                             "--out", str(Path(td) / "p.json"),
-                             "--start", "2026-01-05T00:00:00Z"],
-                            capture_output=True).returncode
-        expect("the command exits 2 on a dependency cycle", rc == 2, f"rc={rc}")
+        out = subprocess.run([sys.executable, "-I", __file__, "--roster-file", str(cycf),
+                              "--out", str(Path(td) / "p.json"), "--repo", td,
+                              "--start", "2026-01-05T00:00:00Z"],
+                             capture_output=True, text=True)
+        expect("the command exits 2 on a dependency cycle",
+               out.returncode == 2 and "cycle" in out.stderr,
+               f"rc={out.returncode} {out.stderr[-200:]}")
+        unnamed = Path(td) / "groups.json"
+        unnamed.write_text(json.dumps(roster), encoding="utf-8")
+        out = subprocess.run([sys.executable, "-I", __file__, "--roster-file", str(unnamed),
+                              "--out", str(Path(td) / "p.json"), "--repo", td,
+                              "--start", "2026-01-05T00:00:00Z"],
+                             capture_output=True, text=True)
+        expect("a roster naming no round refuses, never defaults (exit 2)",
+               out.returncode == 2 and "round" in out.stderr,
+               f"rc={out.returncode} {out.stderr[-200:]}")
 
     # planted: an over-cap model input (7 slots' worth of live groups at t=0)
     many = {"groups": [
         {"group": f"L{i}", "size": "S", "lane": "Core model", "kind": "defect",
          "after": [], "resume": {"stage": "in-progress"}} for i in range(7)
     ]}
-    p2 = build_plan(many, durations, caps, start, "v1.0.0")
+    p2 = build_plan(many, durations, caps, start, "v1.0.0", round_n=FIXTURE_ROUND)
     # (Before 2026-11-01 the seventh was queued behind every new dispatch:
     # started work fell to the back of the plan, the owner's report.)
     expect("every started group starts at the replan instant, past the slot cap",
@@ -1360,7 +1415,7 @@ def selftest() -> int:
          "after": [], "hot_files": ["coordinator.py"],
          "resume": {"stage": "in-progress"}},
     ]}
-    p3 = build_plan(ahead, durations, caps, start, "v1.0.0")
+    p3 = build_plan(ahead, durations, caps, start, "v1.0.0", round_n=FIXTURE_ROUND)
     inv = p3["generated"]["inherited_dependency_violations"]
     expect("a started group waits for its unmerged dependency: no inversion to inherit",
            inv == [] and p3["groups"]["A"]["start"] == p3["groups"]["B"]["finish"],
@@ -1405,7 +1460,8 @@ def selftest() -> int:
             subprocess.run(["git", "-C", str(repo), "commit", "-q", "-m", "r"], check=True)
         commit(roster)
         r_, ref_, blob_ = load_roster(str(repo), "main")
-        fresh = build_plan(r_, durations, caps, start, "v1.0.0", ref_, blob_)
+        fresh = build_plan(r_, durations, caps, start, "v1.0.0", ref_, blob_,
+                           round_n=roster_lib.roster_round(str(rpath)))
         expect("a plan pins the roster blob it was built from", len(blob_) == 40, blob_)
         expect("a fresh plan is not stale",
                stale_reason(fresh, str(repo)) is None, str(stale_reason(fresh, str(repo))))
@@ -1453,7 +1509,7 @@ def selftest() -> int:
         {"group": f"K{i}", "size": "S", "lane": "Core model", "kind": "defect",
          "after": [], "hot_files": ["coordinator.py"],
          "resume": {"stage": "not-started"}} for i in range(3)]}
-    p4 = build_plan(coord3, durations, caps, start, "v1.0.0")
+    p4 = build_plan(coord3, durations, caps, start, "v1.0.0", round_n=FIXTURE_ROUND)
     expect("the coordinator cap limits planned groups in flight",
            p4["summary"]["peak_coordinator_in_flight"] <= caps["coordinator_cap"],
            str(p4["summary"]["peak_coordinator_in_flight"]))
@@ -1467,7 +1523,7 @@ def selftest() -> int:
          "after": [], "resume": {"stage": "not-started"}},
         {"group": "C", "size": "XL", "lane": "Core model", "kind": "defect",
          "after": ["B"], "resume": {"stage": "not-started"}}]}
-    p5 = build_plan(order, durations, one, start, "v1.0.0")
+    p5 = build_plan(order, durations, one, start, "v1.0.0", round_n=FIXTURE_ROUND)
     expect("dispatch takes the longest remaining path first, not the shortest job",
            p5["groups"]["A"]["start"] > p5["groups"]["B"]["start"],
            f"A starts {p5['groups']['A']['start']}, B {p5['groups']['B']['start']}")
@@ -1490,7 +1546,7 @@ def selftest() -> int:
         {"group": "TALL", "size": "XL", "lane": "IN", "kind": "instrument",
          "after": [], "resume": {"stage": "not-started"}},
     ]}
-    p7 = build_plan(prio, durations, one, start, "v1.0.0")
+    p7 = build_plan(prio, durations, one, start, "v1.0.0", round_n=FIXTURE_ROUND)
     starts7 = {g: p7["groups"][g]["start"] for g in ("CP", "CP2", "PROD", "TALL")}
     expect("the computed critical path is CP -> CP2",
            p7["critical_path"] == ["CP", "CP2"], str(p7["critical_path"]))
@@ -1513,7 +1569,7 @@ def selftest() -> int:
         {"group": "TALL", "size": "XL", "lane": "IN", "kind": "instrument",
          "after": [], "resume": {"stage": "in-progress"}},
     ]}
-    p8 = build_plan(liveprio, durations, one, start, "v1.0.0")
+    p8 = build_plan(liveprio, durations, one, start, "v1.0.0", round_n=FIXTURE_ROUND)
     expect("the t==0 started admission keeps both, in the same priority key",
            p8["groups"]["PROD"]["inherited"] is True
            and p8["groups"]["TALL"]["inherited"] is True
@@ -1533,7 +1589,7 @@ def selftest() -> int:
         {"group": "NONE", "size": "M", "lane": "IN", "kind": "instrument",
          "after": [], "resume": {"stage": "not-started"}},
     ]}
-    p9 = build_plan(save, durations, one, start, "v1.0.0")
+    p9 = build_plan(save, durations, one, start, "v1.0.0", round_n=FIXTURE_ROUND)
     expect("tier 2 ranks by savings, and absent savings sorts last",
            p9["groups"]["HI"]["start"] < p9["groups"]["LO"]["start"]
            < p9["groups"]["NONE"]["start"],
@@ -1549,7 +1605,7 @@ def selftest() -> int:
         {"group": "ZZZ", "size": "L", "lane": "IN", "kind": "instrument",
          "after": [], "resume": {"stage": "not-started"}},
     ]}
-    p10 = build_plan(tie, durations, one, start, "v1.0.0")
+    p10 = build_plan(tie, durations, one, start, "v1.0.0", round_n=FIXTURE_ROUND)
     expect("height breaks ties within a tier, ahead of the name",
            p10["groups"]["ZZZ"]["start"] < p10["groups"]["AAA"]["start"],
            str({g: p10["groups"][g]["start"] for g in ("AAA", "ZZZ")}))
@@ -1564,7 +1620,7 @@ def selftest() -> int:
     ]}
     try:
         build_plan(unmeasured, durations, caps, start, "v1.0.0",
-                   roster_path="dev/programme/rosters/wave-r10-groups.json")
+                   roster_path="dev/programme/rosters/wave-r10-groups.json", round_n=10)
         expect("an unmeasured size is refused, naming roster, group and size",
                False, "it scheduled an XS group")
     except Exception as exc:  # noqa: BLE001 -- any other failure is a crash, not this refusal
@@ -1577,7 +1633,7 @@ def selftest() -> int:
          "after": [], "resume": {"stage": "not-started"}}
         for k, s in enumerate(("S", "M", "L", "XL"))]}
     try:
-        build_plan(measured, durations, caps, start, "v1.0.0")
+        build_plan(measured, durations, caps, start, "v1.0.0", round_n=FIXTURE_ROUND)
         expect("a roster of only measured sizes plans", True)
     except PlanError as exc:
         expect("a roster of only measured sizes plans", False, str(exc))
@@ -1589,7 +1645,7 @@ def selftest() -> int:
          "savings": "lots", "after": [], "resume": {"stage": "not-started"}},
     ]}
     try:
-        build_plan(badsav, durations, caps, start, "v1.0.0")
+        build_plan(badsav, durations, caps, start, "v1.0.0", round_n=FIXTURE_ROUND)
         expect("a non-numeric savings is refused", False, "it scheduled")
     except Exception as exc:  # noqa: BLE001 -- any other failure is a crash, not this refusal
         expect("a non-numeric savings is refused", "savings" in str(exc), str(exc))
@@ -1597,7 +1653,7 @@ def selftest() -> int:
     prod = {"groups": [
         {"group": f"P{i}", "size": "S", "lane": "Core model", "kind": "defect",
          "after": [], "resume": {"stage": "not-started"}} for i in range(6)]}
-    p6 = build_plan(prod, durations, caps, start, "v1.0.0")
+    p6 = build_plan(prod, durations, caps, start, "v1.0.0", round_n=FIXTURE_ROUND)
     pat = [s for s in p6["stamps"] if s["kind"] == "patch"]
     expect("five production merges cut one patch stamp",
            len(pat) == 1 and len(pat[0]["carries"]) == caps["stamp_every"],
@@ -1608,6 +1664,61 @@ def selftest() -> int:
            and s6["ci_minutes"] == round((s6["batches"] + s6["stamps"])
                                          * s6["gate_minutes"], 1),
            str({k: s6[k] for k in ("ci_minutes", "batches", "stamps", "gate_minutes")}))
+    # The closure stamp is the round's major (decision 0016, tvofi
+    # 2026-10-29): round N closes as vN.0.0, the version `stamp.py
+    # --round-close N` assigns, and the interim stamps stay patch bumps.
+    close = p6["stamps"][-1]
+    expect("the closure stamp is the round-close major of the plan's round",
+           close["kind"] == "round-close" and close["version"] == "v2.0.0"
+           and p6["summary"]["closure_stamp"] == "v2.0.0"
+           and p6["generated"]["round"] == 2, str(close))
+    expect("an interim stamp stays a patch bump of the current version",
+           [s["version"] for s in pat] == ["v1.0.1"], str(pat))
+    p6r3 = build_plan(prod, durations, caps, start, "v1.0.0", round_n=3)
+    expect("the closure major follows the round, not a constant",
+           p6r3["stamps"][-1]["version"] == "v3.0.0", str(p6r3["stamps"][-1]))
+    try:
+        build_plan(prod, durations, caps, start, "v2.4.0", round_n=2)
+        expect("a round not above the current major refuses", False, "it planned one")
+    except PlanError as exc:
+        expect("a round not above the current major refuses",
+               "not above the current major" in str(exc), str(exc))
+    for kind, version in (("minor", "v1.1.0"), ("round-close", "v1.1.0"),
+                          ("round-close", "v3.0.0")):
+        wrong = json.loads(json.dumps(p6))
+        wrong["stamps"][-1].update(kind=kind, version=version)
+        bad = check_plan(wrong)
+        expect(f"--check refuses a {kind} closure stamp {version} in round 2",
+               any("round close" in b for b in bad), str(bad))
+    # The closure arms the wrong-closure rows above never reach: a correct
+    # round-close stamp that is not last, and a stray kind beside a correct one.
+    notlast = json.loads(json.dumps(p6))
+    notlast["stamps"].append(dict(notlast["stamps"][0], carries=[]))
+    notlast["summary"]["stamps"] = len(notlast["stamps"])
+    bad = check_plan(notlast)
+    expect("--check refuses a round-close stamp that is not the last stamp",
+           any("expected one, and last" in b for b in bad), str(bad))
+    stray = json.loads(json.dumps(p6))
+    stray["stamps"].insert(0, dict(stray["stamps"][0], kind="minor", carries=[],
+                                   version="v1.1.0"))
+    stray["summary"]["stamps"] = len(stray["stamps"])
+    bad = check_plan(stray)
+    expect("--check refuses a minor stamp beside a correct round close",
+           any("unknown stamp kind(s) ['minor']" in b for b in bad)
+           and not any("round close" in b for b in bad), str(bad))
+    # `round_n` has no default: a caller that omits it is a TypeError, never a
+    # round silently assumed (the stance next_version takes on no roster).
+    try:
+        build_plan(prod, durations, caps, start, "v1.0.0")
+        expect("build_plan without round_n refuses", False, "it planned a closure")
+    except TypeError as exc:
+        expect("build_plan without round_n refuses", "round_n" in str(exc), str(exc))
+    unround = json.loads(json.dumps(p6))
+    del unround["generated"]["round"]
+    bad = check_plan(unround)
+    expect("--check refuses a plan recording no round",
+           any("round close" in b for b in bad), str(bad))
+
     gate = gate_minutes(durations)
     want_gate = 50.0 + 22.0 + 27.0 * (1.0 + 0.04)
     expect("the gate price includes the cancelled-leg rerun",
@@ -1732,6 +1843,27 @@ def selftest() -> int:
             ("stamp-cadence",
              _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
              _m("if len(carry) >= ", "every:"), "if False:"),
+            ("round-close-version",
+             _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
+             _m("stamps.append({\"version\": closing, ", "\"at\": closure + closure_lead,"),
+             _m("stamps.append({\"version\": bump(version, ", "patch), \"at\": closure + closure_lead,")),
+            ("round-close-check",
+             _m("def check_plan(plan: dict", ") -> list:"),
+             _m("elif closes[0][\"version\"] != ", "want:"), "elif False:"),
+            ("round-close-last",
+             _m("def check_plan(plan: dict", ") -> list:"),
+             _m(" or plan[\"stamps\"][-1] is not ", "closes[0]:"), ":"),
+            ("round-close-stray-kind",
+             _m("def check_plan(plan: dict", ") -> list:"),
+             _m("if s[\"kind\"] not in (\"patch\", ", "ROUND_CLOSE)]"),
+             _m("if s[\"kind\"] not in (\"patch\", ", "\"minor\", ROUND_CLOSE)]")),
+            ("round-n-required",
+             _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
+             _m("roster_path: str = \"\", *, ", "round_n: int) -> dict:"),
+             _m("roster_path: str = \"\", *, ", "round_n: int = 10) -> dict:")),
+            ("round-from-roster",
+             _m("def main(argv=", "None) -> int:"),
+             _m("round_n = roster_lib.roster_round(", "src)"), "round_n = 99"),
             ("ci-formula",
              _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
              _m("ci = round((len(batch_rows) + len(stamps)) ", "* gate_report, 1)"),
@@ -1996,8 +2128,14 @@ def main(argv=None) -> int:
             src = roster_lib.roster_path(args.repo, ref, args.roster_path)
         except roster_lib.RosterNotFound:
             src = args.roster_path or ""
+    # The round the closure stamp closes is the one the roster's path names,
+    # read as `stamp.py --round-close` reads it (`roster_lib.roster_round`).
+    try:
+        round_n = roster_lib.roster_round(src)
+    except roster_lib.RosterNotFound as exc:
+        raise PlanError(f"no round for the round-close stamp: {exc}") from exc
     plan = build_plan(roster, durations, caps, start, version, ref, blob,
-                      roster_path=src)
+                      roster_path=src, round_n=round_n)
     bad = check_plan(plan)
     if bad:
         print("the model produced a violating plan; refusing to write it", file=sys.stderr)
