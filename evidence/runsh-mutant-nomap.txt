@@ -1,3 +1,0 @@
---- manifest:
-main-001	76	5	python3 /tmp/tmp.OQpaOiCnEa tests/stress.py
---- held: /tmp/tmp.SHfGjXajef/lock: live label=other-holder pid=7637 expires_at=2026-10-31T19:00:40.760097+00:00 flock_available=True queue=-

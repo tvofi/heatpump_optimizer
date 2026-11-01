@@ -1,7 +1,0 @@
-  FAIL a PATH python3 that cannot parse the tree is skipped for the parsing seat venv (got 1, wanted 0)
-  FAIL and no-copies ran under that venv, not the bare python3 (got 0, wanted 1)
-  FAIL HPO_RECORDER_PYTHON naming a parsing interpreter is the one that runs (null control) (got 0, wanted 1)
-434 passed, 3 failed
-rc=2
-
-[exited with code 0]

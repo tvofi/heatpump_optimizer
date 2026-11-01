@@ -1,5 +1,0 @@
-  ok   record_burst_replay counts demand as record + enumerate + rest, never the record job alone
-  ok   every InputReader key is an options-flow entity field, so the Health card has its label
-
-ALL 2493 ENTITY CHECKS PASSED
-rc=0

@@ -1,3 +1,0 @@
-UNROUTED body item c78ecb78 [owed carry]: "**Roster carry (open, not answered by this change).** Carry 1: **not done in this pull request.** The group's "
-CARRY-AUDIT: 1 finding item(s): 0 routed, 1 unrouted, 0 bad destination(s)
-rc=1
