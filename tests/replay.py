@@ -605,10 +605,11 @@ def controls() -> list[tuple[str, bool, str]]:
     pair("cycle_cost:unmetered_doubling", short_doubling(float("nan")), short_doubling(1.0))
     held = {"t": "t", "commanded_return": "r", "active": True, "override": True,
             "recovery": False, "floor": 15.0, "target": 15.0}
-    pair("away", away_offenders([{**held, "active": False}, {**held, "floor": 18.0},
-                                 {**held, "override": False}]),
-         away_offenders([held, {**held, "recovery": True, "floor": 18.0},
-                         {**held, "commanded_return": None, "active": False}]))
+    good_away = away_offenders([held, {**held, "recovery": True, "floor": 18.0},
+                                {**held, "commanded_return": None, "active": False}])
+    for broken, values in (("view", {"active": False}), ("override", {"override": False}),
+                           ("floor", {"floor": 18.0})):
+        pair(f"away:{broken}", away_offenders([{**held, **values}]), good_away)
     pkg = "/x/custom_components/heatpump_optimizer/"
     pair("cycle_cost:coverage", uncovered_files({pkg + f for f in COST_FILES[1:]}),
          uncovered_files({pkg + f for f in COST_FILES}))
@@ -1294,10 +1295,12 @@ def _week_doc() -> dict:
     return {"format": "hpo-replay/1", "time_zone": tz, "recorder_schema": 53,
             "window": {"start": t0.isoformat(), "end": (t0 + timedelta(days=2)).isoformat()},
             "entry": {"data": {"indoor_temp_entity": "sensor.indoor_temp"}, "options": {}},
-            "inputs": ["sensor.indoor_temp"], "price_series_entity": None,
+            "inputs": ["sensor.indoor_temp", "sensor.price"], "price_series_entity": "sensor.price",
             "published": ["datetime.e_00000000aa", "switch.e_00000000bb", "switch.e_00000000cc"],
             "states": {
                 "sensor.indoor_temp": thermo,
+                "sensor.price": [[at(h * 60), f"{1 + h / 100:.2f}", None, None]
+                                 for h in range(-1, 48)],
                 "datetime.e_00000000aa": [[at(-30), "unknown", None, None],
                                           [at(away_on), "2026-10-31T19:00:00+00:00", None, None],
                                           [at(away_on + 60), "unavailable", None, None],
@@ -1331,8 +1334,14 @@ def cut_day_checks() -> list[tuple[str, bool, str]]:
                 and day["states"]["sensor.indoor_temp"][0][2] == {"unit_of_measurement": "°C"},
                 f"{sum(same)}/{len(instants)} instants equal, {rows} rows kept of "
                 f"{len(doc['states']['sensor.indoor_temp'])}"))
+    first = cut_day.cut(doc, "2026-10-29")
+    ahead = [whole.at("sensor.price", t) == Recording(first["states"]).at("sensor.price", t)
+             for t in cut_day.grid(_ts(first["window"]["start"]), _ts(doc["window"]["end"]))]
+    res.append(("cut_day:price_series_kept_to_the_export_end",
+                len(ahead) == 192 and all(ahead), f"{sum(ahead)}/{len(ahead)} quarters equal"))
     res.append(("cut_day:no_published_entity_kept",
-                day["published"] == [] and set(day["states"]) == {"sensor.indoor_temp"},
+                day["published"] == [] and set(day["states"]) == {"sensor.indoor_temp",
+                                                                  "sensor.price"},
                 str(sorted(day["states"]))))
     events = day["controls"]["away"]
     res.append(("cut_day:away_command_from_the_paired_switch_restart_skipped",
