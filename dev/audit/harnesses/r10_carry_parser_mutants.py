@@ -57,6 +57,8 @@ def repo_root(start):
 
 ROOT = repo_root(__file__)
 REL = "tools/audit/carry_audit.py"
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import mutant_guard  # noqa: E402 -- restores the mutated file on a kill (SIGTERM/SIGINT) and refuses a leftover mutant
 F = ROOT / REL
 PARSER = ("items", "carry_segments", "carry_refs", "carry_dests", "seg_dests", "finding_rows", "audit",
           "ledger_unrouted")
@@ -393,6 +395,7 @@ def main(argv: list[str]) -> int:
     if failed0:
         print(out0)
         return 2
+    mutant_guard.arm([REL])
     survived, spans = [], []
     try:
         for name, old, new in MUTANTS + alternatives(src):
