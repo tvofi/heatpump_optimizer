@@ -15069,7 +15069,9 @@
    "files": [
     "tools/policy/agreement.mjs"
    ],
-   "carry": [],
+   "carry": [
+    "STRANDED CARRY 35 (carry-strand audit, orchestrator s9, 2026-10-31)\n\nSource: group R10-MERGE-SUBJECT-HARDEN, index 1; triage id: none; roster ref origin/handoff/audit-r10-roster abb47a06cd190e49c9d9da264ea3fab2a71f890d.\nOwner-ordered: no.\n\nWhy stranded: `git grep -iE \"bootstrap|deadlock\" origin/main -- tools/policy/agreement.mjs` still empty; #2697 did not build it; live grep empty.\n\nFold into: R10-MERGE-SUBJECT-CASEARM (live). The only live group with tools/policy/agreement.mjs in its files.\n\nOriginal text, verbatim:\nFrom #2622 (body, item f09dc4ca), routed by routing audit 1 (2026-10-24): its destination R10-POLICY-LINT-FAMILY is done and did not implement it (`git grep -iE 'bootstrap|deadlock' origin/main -- tools/policy/agreement.mjs` is empty; MERGE-SUBJECT-HARDEN is the live owner of agreement.mjs). **The bootstrap deadlock of a shared grammar under a pinned grader**: in `tools/policy/agreement.mjs`, a grammar a new reader shares cannot be registered before that reader lands, because a `SHARED_GRAMMARS` entry spanning one file reads `DEAD` (measured: the split cut from `origin/main` 98b532ab1 gave `RESULT ... dead=1`). The reader cannot land before the entry, because the base-copy lane reads it `UNREGISTERED`. Route B avoided it here; the next shared grammar has no route.\n\nCarry: R10-MERGE-SUBJECT-CASEARM"
+   ],
    "resume": {
     "stage": "not-started",
     "branch": "handoff/r10-agreement-bootstrap",
