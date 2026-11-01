@@ -1,4 +1,0 @@
-build names same
-ci names same
-coverage names same
-typing names same

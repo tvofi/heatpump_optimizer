@@ -1,0 +1,12 @@
+16c16
+< index 935afcb9e..c4faad4f6 100644
+---
+> index 31a474963..07a8f82d8 100644
+19c19
+< @@ -194,6 +194,9 @@ class SnapshotRing:
+---
+> @@ -200,6 +200,9 @@ class SnapshotRing:
+27c27
+<              if not snap.get("healthy"):
+---
+>              if not snap.get("healthy") or "before_reset" in snap:
