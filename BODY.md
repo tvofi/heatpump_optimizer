@@ -18,17 +18,30 @@ Where each part lives (fixer.md step 17): the settings rule in `entry_config.py`
 - `modbus_prefill_prefix` -- the heat pump device the entities came from;
 - `main_fuse_amperes`, `main_fuse_phases` -- the house's main fuse: a default arms the fuse guard against a fuse the house does not have.
 
-**Learners.** Every learned store, enumerated as `_restored_stores` (the set the snapshot restore already writes), is voided: the two heat-loss learners through the one void path #3022 built (`async_reset_heat_loss_learners`, while the entry runs, after the undo point); then, with the entry **unloaded** so no save in flight writes the old state back, `_FACTORY_VOID` drops each store's learned keys or removes the store: `thermal_learning` (buffer cooling, COP scale, COP baseline and health, open-window detector, immersion events, capacity envelope, solar aperture, internal gains, heat curve, frequency map, flow bias), `dhw_profile` and `dhw_draws` (DHW cooling, profile, draws), `price_model`, `accuracy` (accuracy history, DHW accuracy, defrost, comfort weight). Each then loads absent: its initial state. Kept, as facts: the heat-loss anchors, the meter's last COP, snow memory, the frequency watchdog's stand-down latch, the billed peaks, the operating mode.
+**Learners.** Every learned store, enumerated as `_restored_stores` (the set the snapshot restore already writes), is voided: with the entry **unloaded** first, so no save in flight writes the old state back: the two heat-loss learners through the one void path #3022 built (`async_reset_heat_loss_learners`, after the undo point), then `voided_documents` drops each store's `_FACTORY_VOID` keys or removes the store: `thermal_learning` (buffer cooling, COP scale, COP baseline and health, open-window detector, immersion events, capacity envelope, solar aperture, internal gains, heat curve, frequency map, flow bias), `dhw_profile` and `dhw_draws` (DHW cooling, profile, draws), `price_model`, `accuracy` (accuracy history, DHW accuracy, defrost, comfort weight). Each then loads absent: its initial state. Kept, as facts: the heat-loss anchors, the meter's last COP, snow memory, the frequency watchdog's stand-down latch, the billed peaks, the operating mode.
 
-**Undo.** Before anything changes, the reset flushes every learner to its store and takes a snapshot whose `before_reset` holds every learned store's document and the settings it drops. `restore_learned_snapshot` (`SnapshotRing.undo_target`: the undo point while it is the newest snapshot, else `best_restore`) unloads, writes the documents back, restores the dropped settings over the wiring in force, and sets the entry up again: every learner, the accuracy history and the settings come back exactly. The drift rollback never takes it (`best_restore` skips it); spent, it stays as an ordinary snapshot.
+**Undo.** Before anything changes, the reset flushes every learner to its store and takes a snapshot whose `before_reset` holds every learned store's document, the settings it drops, and, per (data, options), the three topology keys the reset pins (`entry_config.FACTORY_PINNED`: `two_zone_mode`, `dhw_enabled`, `wood_furnace_enabled`) as they were stored. `restore_learned_snapshot` (`SnapshotRing.undo_target`: the undo point while it is the newest snapshot, else `best_restore`) unloads, writes the documents back, restores the dropped settings and the pinned keys as stored over the wiring in force, and sets the entry up again: every learner, the accuracy history and the settings come back exactly, an auto-mode house auto again. The drift rollback never takes it (`best_restore` skips it); spent, it stays as an ordinary snapshot.
+
+**Refused unload.** Where Home Assistant refuses to unload the entry, nothing is written but the undo point: the heat-loss void runs only after a successful unload. `async_factory_reset` returns False and logs "not applied"; the options step aborts `factory_reset_not_applied` and the service raises `HomeAssistantError` (`factory_reset_not_applied`, placeholder `entry_id`). An undo over a refused unload keeps its undo point and returns False.
 
 ## Head
 
-`0ee5cd675515a36a9095d0d42fd49a7588816aab`, which merges `origin/main` at `2b6bef7453a8bdaf97d42f382a116ce226b35ccc` into `6c690058e4037c6bc9fceb202b7103bc7f002d12`: `tools/pr/ci_predict.py` read the head as unmergeable into main without the ledger driver (both sides re-recorded `tests/structure_budgets.json`; the driver resolves `class_excess_loc` 17649 and `max_class_loc` 7986, `seam_cut_total` stays at this branch's 423). `6c690058` merged `origin/main` at `a7dd7f50d67e0c3819956b15ef95d77f4f6ebfc0` into `1bf20b3f15d5d70361b3ee9e27dd4356a7c1340a`: `git merge-tree --write-tree origin/main 1bf20b3f` refused `tests/golden/claimed_drift.txt` (MERGE-CLAIM), because main's r10-wood-notify now claims `config_flow` too; the resolution keeps main's list and extends its one `config_flow` line with this branch's reason. `1bf20b3f` and its two parents are this repair round, on the previous code head `9039d17886543a1fe441d2afd89e6fb12d37eedc`: `2e1421f14179147e1e00f1b7affb2d8677db77ea` (the nightly a5 walk posts `{}` to the factory-reset page, and the stub lane checks every page's schema against that payload), `572c912c9f810914c554b9827a407b1077b57879` (the `config_flow` fixture claimed), `1bf20b3f` (the reset's one warning on the N-log-flood barrier). The three touch `tests/` only; this round authors no production line. `9039d178`'s parent `21ed69e8cf74764ff6a6d91cd6f01103ad3c54c7` carries the raise; `915acea21fa907751c52be09a4fe297070204011` merged `origin/main` at `12caba8cfe67b61b50852926564b79228e7304a0`. The feature was cut from `0cae227c329f24d859c10db94b9dbd8a6368d11c`, which contains #3022.
+`fa2d2d91075e001cb6257eb5acb80ecfa244d723`. Round 2, after the fix review blocked at `96211117d1341cb71925086fc44182f68b67139d` (mutation-vacuous). It fast-forwards the PR head `7837bb0524634acf569414c6f6785930b3eb72bf` (the bot's `ci: pin killed mutants` on `96211117`, which merged `origin/main` `8fec54ee2afb5e37687f34bc5fd3aa7280f64e1f` into `0ee5cd675515a36a9095d0d42fd49a7588816aab`) by this round's commits: `92b1e9e373eb8f90de75ccc113b8e5704d77046b` (the production repairs and their tests), `43d5d2e44be606ec66609a7bfaf60c43bb2177f7` (the void list pinned against a fact list the test owns), `210bb1fdf77b360e909128f3c80b03fa0833f2fe` (the pinned-key round trip), `c2f9fe903cd000b414d00b14cae16b1b71534f0c`'s parent (one warning for both outcomes, the void rule a pure function), `c2f9fe903cd000b414d00b14cae16b1b71534f0c` (structure re-record, rows lower only), `75d7d329b709d708a583f2d6d7572488501c9c19` (the refused-unload check reads the log line), `3e9f90cba70b380e7a2497dfb4fee5cf674bb59a` (docs), `831691af36ec427f7759ac4d667dff9c0ee3012c` (the new exception key registered), `11ca4fa7479f3de46e289527b244d6d5008c7a42` (seven stale pins dropped), and `fa2d2d91075e001cb6257eb5acb80ecfa244d723`, which merges `origin/main` at `92588d581fde4ce287af3db5e8bb61461dc28015`: `tools/pr/ci_predict.py` read the head as unmergeable there, because main's R10-USER-DOCS-FINAL regenerated `dev/audit/rounds/round4/D6/claims.{py,json,md}`; the resolution takes main's three files, re-applies this branch's two `claims.py` changes (`factory_reset` in `SCHEMAS`, without which C20 and C21 read false; the Default-row count note 92 -> 93) and regenerates the register. Main's delta `8fec54ee..92588d58` touches no production file, test of this group, golden fixture or claim file; it touches docs, `tests/doc_claims.py` and `tests/entities.py`, each re-run below. The feature was cut from `0cae227c329f24d859c10db94b9dbd8a6368d11c`, which contains #3022; `21ed69e8cf74764ff6a6d91cd6f01103ad3c54c7` carries the raise.
 
 ## Mutation proof
 
-Each mutant applied to `21ed69e8` (the head adds only two ledger deletions and a claims-header edit, no code), run through the R10-FACTORY-RESET section of `tests/features.py` (the section only, extracted verbatim with its module helpers), restored after:
+Round 2, every finding of the review at `96211117`, each by a mutant applied at `c2f9fe90` (the last commit to move a production line; the three void entries below at `831691af`) and run through the R10-FACTORY-RESET section of `tests/features.py` (the section extracted verbatim with the module header the reviewer's `ev/fr_section_extract.py` carries; 27 checks), restored after. Unmutated: `ALL 27 FR CHECKS PASSED`. All mutants below are KILLED unless marked:
+
+- The void list, entry by entry (the review's 13 survivors among them): deleting each of the 21 entries of `coordinator._FACTORY_VOID` -- thermal `buffer_cooling_rate`, `buffer_cooling_samples`, `_COP_STORE_KEY`, `cop_samples`, `vent_cusum`, `cop_baseline`, `cop_health_cusum`, `immersion_events`, `capacity_envelope`, `solar_aperture`, `internal_gains_profile`, `curve_learner`, `freq_map`, `flow_bias`; accuracy `accuracy`, `dhw_accuracy`, `defrost`, `comfort`; stores `dhw_profile`, `dhw_draws`, `price_model` (`None` -> `()`) -- 21 of 21 killed, each by "a learners reset drops every learned key, key by key, and keeps every fact, before the entry is set up again" (18 run at `c2f9fe90`, the three my runner's parse of the tuple missed -- `cop_samples`, `immersion_events`, `internal_gains_profile` -- at `831691af`; no production line moved between). My first per-entry check enumerated `_FACTORY_VOID` itself and pinned nothing: 11 of these deletions survived it (disclosed self-correction); the check now reads each store's keys against a fact list the test owns.
+- `entry_config.undone_settings` malformed-record guard off (the review's `entry_config.py:350`): killed (`TypeError` in "restore_learned_snapshot undoes a learners reset: every learner back, the settings untouched").
+- The restore's early return dropped (the review's `coordinator.py:9524`): killed ("the undo asks the coordinator it unloaded for nothing more: no refresh, no learner applied after it").
+- Pins not restored (`wiring = (data, options)`), not recorded (`pinned = [{}, {}]`), restored from the wrong side: each killed ("restore_learned_snapshot undoes the reset ... exactly as before it"; "an undo puts each pinned key back where and as it was stored").
+- A refused unload ignored; the reset reporting done on refusal; the log line saying "applied" on refusal; the options step saying done; the service raising nothing; the undo never spending its point: each killed.
+- Full `PYTHONPATH=tests/hastub python3 tests/features.py` at `831691af` (unmutated rc 0): the humidity read's bounds (the review's `coordinator.py:9722 CMP_BOUND` x2) `0.0 <= value` -> `0.0 < value` and `value <= 100.0` -> `value < 100.0`: each killed by "the range's two ends are humidities: 0 % and 100 % are read, just past either is refused" (`0 -> None`, `100 -> None`). The DHW probe's single guard off (`if True: return value`): killed by 3, among them "a tank probe pinned at its last good value still reads back, and the record refuses it anyway" (`probe answers 55.0`). The review's `coordinator.py:9947 GUARD_OFF` on the old two-guard form was equivalent -- `_learning_frozen` is pure, so a None value read None with or without it -- so the guard is folded into one condition rather than triaged.
+
+Failing first: the round's new section run against `7837bb05`'s production code: `4 of 26 FR CHECKS FAILED` -- "restore_learned_snapshot undoes the reset ... exactly as before it" (`config moved ['dhw_enabled', 'two_zone_mode', 'wood_furnace_enabled']`), "a refused unload changes nothing but the undo point" (`done None ... heat loss (1.0, 1.0, 0, 0), stores moved ['thermal_learning']`), "a refused unload refuses the undo too" (`undo True`), "a refused unload is said as not applied" (`{'type': 'abort', 'reason': 'factory_reset_done'}, raised None`). The per-key void and learners-undo checks pass there: they pin code that was right and unpinned.
+
+The earlier rounds' proofs, as measured then (M1-M11 at `21ed69e8`; check names as they stood):
 
 - M1 learners dispatch, `coordinator.async_factory_reset` `if scope != FACTORY_RESET_SCOPES[0]:` -> `if True:` -- red: "a settings reset writes no learned store: each is as it was when the entry is set up again".
 - M2 settings dispatch, `if scope != FACTORY_RESET_SCOPES[1]:` -> `if True:` -- red: "a learners reset keeps the settings and the stores' facts: the watchdog latch, peaks, mode".
@@ -55,25 +68,29 @@ This round's repairs, each failing first:
 ## Null control
 
 - The options step submitted unticked returns the advanced menu with the entry's data, options and every store document byte-identical and no unload or set-up (`tests/features.py`, and `tests/config_flow_steps.py`'s untouched-submit sweep).
-- "after a learners reset every learner reads what one that never learned reads" compares against a coordinator that never learned, over the configuration the reset left; its own control is "the learned state before the reset is not the initial one, learner by learner".
-- A settings reset writes no learned store: each document is as it was at the moment the entry is set up again (the reload's own answer to the options change -- a learner re-anchored or voided by a changed nameplate -- is any options edit's, and not the reset's).
-- R1's schema check carries its own: "null control: the factory-reset page's schema refuses an after-save key" (`ok`), so the sweep's reader can refuse; and every other page reads `ok` under the same payload rule, before and after (only `factory_reset` was refused).
-- R3's control is the entry removed (above): the barrier then refuses exactly this function at count 1.
-- R2's control is the claim removed (above): `env_drift.py` then refuses exactly `config_flow`; the five `coord_*` lines inherited from main read byte-identical in both runs.
+- The per-key void check's control: "before a learners reset every learned store is on disk and holds learned keys beyond its facts" -- every store present, each with learned keys, at least 25; without it an empty store would read as voided.
+- The exact-undo check's control: "the house is auto-mode before the reset and pinned two-zone by it" -- `two_zone_mode` absent before, `on` after the reset, so "exactly as before" is not trivially the reset's state.
+- The refused-unload checks compare every store document (stamp removed) and the heat-loss pair `(1.4, 1.3, 60, 40)` before and after; the confirmed options step ("confirmed, the options step resets, sets the entry up again and closes") is the arm where the same entry is changed.
+- R1's sweep: "every options page's shown schema accepts the a5 walk's untouched resubmit, every form page read" counts the pages read against the form pages shown (floor 20); its null control is a planted page whose schema has a required field, run through the same reader `_a5_refusals` and refused.
+- A settings reset writes no learned store: each document is as it was at the moment the entry is set up again.
 
 ## Figures
 
-- Kept keys and their reasons: `PYTHONPATH=tests/hastub:custom_components python3 -c "from heatpump_optimizer.entry_config import FACTORY_KEPT; [print(k, '--', v) for k, v in FACTORY_KEPT.items()]"`; the test asserts `set(FACTORY_KEPT)` equals the list above plus every `_entity` option key, all of them option keys (every key a `CONF_` constant names, tuples included, and `name`).
-- Every store the integration persists, each dispositioned: the AST walk over every `QuarantiningStore(...)` construction in `tests/features.py`'s "every store the integration persists has a factory-reset disposition" (the rule `tests/finite_boundary.py` arm 1 uses). Voided: `thermal_learning` (learned keys), `accuracy` (learned keys), `price_model`, `dhw_profile`, `dhw_draws`. Kept: `snapshots` (the undo point lives there), `ledger` (billed energy), `energy` (metered totals), `manual_plan`, `away`, `boost` (the user's own overrides), `dhw_legionella` (the last disinfection, a safety fact), `notifier` (which notices were sent), `pump_duty` (what was last written to the pump), `debug` (a diagnostics collection).
-- `tests/golden/config_flow.json` re-recorded (float-free: the new page, its two fields): `PYTHONPATH=tests/hastub python3 tests/golden.py --record --only config_flow`.
-- `dev/audit/rounds/round4/D6/claims.{json,md}` regenerated: `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` (C109 and C111 unverifiable, as at the merge base).
-- Architecture score: `python3 tools/audit/archscore/score.py --diff origin/main` at this head against main `2b6bef7453a8bdaf97d42f382a116ce226b35ccc` (2026-10-31): `Architecture score: dS +0.0036 IMPROVES`, `coord_footprint 2389 -> 2383`. At `9039d178` against main `7539d167` it read the same dS (`2390 -> 2384`).
-- `python3 tests/structure.py` at this head: `STRUCTURE RATCHET PASSED` (`seam_cut_total 423 <= 423`, after the raise below; `class_excess_loc` and `max_class_loc` were re-recorded lower in `21ed69e8`).
-- Scoped gate scope at this head: `D=$(mktemp -d); python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"` -- `MODE: SCOPED -- 31 script(s) run, 2 scoped out` (merge base `2b6bef74`). Run here at this head: `tests/config_flow_steps.py` (`ALL 537 checks PASSED`), `tests/env_drift.py --all 2b6bef74` (R2), `GOLDEN_MODE=strict tests/golden.py --only config_flow` (`ALL 1 GOLDEN SCENARIOS UNCHANGED`, the auto-merged fixture), `tests/features.py` (`ALL 4693 FEATURE CHECKS PASSED`, the factory-reset section with main's new `wood_lighting_lead_minutes` option in the table), `tests/structure.py`. `tests/entities.py` stops on this host at `_hb_stdlib_reads` (`PermissionError: Cannot get task port`, the macOS sampler), before the barrier, so R3 is measured by the extracted slice; CI's Linux `fast` runs the whole file. The rest of `scope.run` ran green on CI at `e2b12a17` (`tests / fast (3.14)`: `2 TEST SCRIPT(S) FAILED`, `env_drift.py` and `entities.py`, both answered here).
-- `python3 tools/pr/ci_predict.py --base 2b6bef74` at this head: `CI PREDICT: no closures, fast, governance or instrument red predicted against 2b6bef7453a8`, and `36 unpinned site(s) the diff adds -- a warning`, each under `## Unpinned sites`. `tools/pr/prepr.sh` at this head, no closures skip: `PRE-PR: 0ee5cd675515a36a9095d0d42fd49a7588816aab ... rc=0`, its `ci predict` step `CI PREDICT: no closures, fast, governance or instrument red predicted`, `unpinned sites` disposed of all 36.
-- Main's latest scheduled Nightly, run 41159630948 at `fbc731283` (2026-10-31T02:21Z): `nightly-ha (2025.2.0)` and `nightly-ha (stable)` both success, so neither nightly red is inherited.
+At `11ca4fa7` (merge base `8fec54ee2afb5e37687f34bc5fd3aa7280f64e1f`) unless marked; re-taken at `fa2d2d91075e001cb6257eb5acb80ecfa244d723` (merge base `92588d581fde4ce287af3db5e8bb61461dc28015`) where marked [head].
 
-Payments for the coordinator's span (`class_excess_loc`, `max_class_loc`): the thermal loader's four scalar blocks share `_stored_learner`; its two snow instants share `_stored_isoformat`; `_apply_learner_payloads`, the humidity read and the DHW probe adopt the shared coercion `finite_float`.
+- [head] R10-FACTORY-RESET section, extracted: `ALL 27 FR CHECKS PASSED`; mutant table above.
+- `PYTHONPATH=tests/hastub python3 tests/features.py` at `831691af` (the last commit to move it; `11ca4fa7` drops ledger files only): `ALL 4703 FEATURE CHECKS PASSED`.
+- `PYTHONPATH=tests/hastub python3 tests/config_flow_steps.py` at `3e9f90cb`: `ALL 537 checks PASSED`.
+- `PYTHONPATH=tests/hastub python3 tests/env_drift.py --all 8fec54ee2afb5e37687f34bc5fd3aa7280f64e1f`: `CLAIMED config_flow: 4 leaves moved`, `NO UNCLAIMED DRIFT: 56 scenario(s)`, `NO STALE FIXTURE: 56 committed fixture(s)`.
+- `GOLDEN_MODE=strict PYTHONPATH=tests/hastub python3 tests/golden.py --only config_flow` at `3e9f90cb`: `ALL 1 GOLDEN SCENARIOS UNCHANGED` (the new abort reason is not in the fingerprint).
+- [head] `PYTHONPATH=tests/hastub python3 tests/doc_claims.py`: `ALL 296 checks PASSED`; `node tests/md_tables.mjs`: `doc_misrendered_lines=0`; `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py`: `claims_true=123`, `claims_false=0`, `claims_unverifiable=2`, `config_defaults_compared=93`, `config_ranges_compared=101`.
+- [head] N-log-flood barrier, the slice `_R10_LATCH_WORD` .. `_r10_log_found` of `tests/entities.py` executed verbatim: verdict `{}`, 68 unlatched sites over 84 modules; `async_factory_reset` holds one warning, worded by the outcome. `tests/entities.py` stops on this host at `_hb_stdlib_reads` (`PermissionError: Cannot get task port`), before the barrier; CI's Linux `fast` runs it whole.
+- [head] `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`; re-recorded in `c2f9fe90` with rows lower only: `class_excess_loc` 17649 -> 17648, `max_class_loc` 7986 -> 7983; `seam_cut_total` 423 (unchanged). A first version without the callbacks (unload explicit in each caller) read `seam_cut_total 428 > 423`; the callback version is kept and its helpers' prose cut to pay `class_excess_loc` (+14 at `92b1e9e3` -> -1).
+- `python3 tools/audit/archscore/score.py --diff 8fec54ee2afb5e37687f34bc5fd3aa7280f64e1f`: `Architecture score: dS +0.0030 IMPROVES`, `coord_footprint 2389 -> 2384`; [head] `--diff 92588d581fde4ce287af3db5e8bb61461dc28015`: the same.
+- Scoped gate: `tests/closure.py select --diff 8fec54ee2` -- `MODE: SCOPED -- 31 script(s) run, 2 scoped out`. Run here: features, config_flow_steps, env_drift, golden (config_flow), doc_claims, md_tables, structure; entities by the slice above; the rest to CI.
+- [head] `tools/pr/ci_predict.py --base 92588d581fde4ce287af3db5e8bb61461dc28015`: `CI PREDICT: no closures, fast, governance or instrument red predicted`, `17 unpinned site(s)`, each under `## Unpinned sites`. `tools/pr/prepr.sh` at this head, no closures skip: `PRE-PR: fa2d2d91075e001cb6257eb5acb80ecfa244d723 ... rc=0`, its `ci predict` step green, `unpinned sites` disposing of all 17.
+- Kept keys and their reasons: `PYTHONPATH=tests/hastub:custom_components python3 -c "from heatpump_optimizer.entry_config import FACTORY_KEPT; [print(k, '--', v) for k, v in FACTORY_KEPT.items()]"`.
+- Every store the integration persists, each dispositioned: `tests/features.py`'s "every store the integration persists has a factory-reset disposition" (the AST walk `tests/finite_boundary.py` arm 1 uses).
 
 ## Raise justification
 
@@ -88,9 +105,9 @@ Payments tried: six, one line each below; none improves the code.
 - Handing the unload to a learning helper as a callback: moves the metric by making the code worse, declined.
 - Re-labelling `_apply_house_heat_loss_scale`, `_apply_lower_floor_loss_ratio` and `_apply_buffer_cooling_rate` from core to learning in `tests/seam_map.json`: -1, a map edit made to pass the budget -- gaming, declined (and declined by the orchestrator).
 
-Architecture score: dS +0.0036 IMPROVES
+Architecture score: dS +0.0030 IMPROVES
 
-(`python3 tools/audit/archscore/score.py --diff origin/main` at `9039d178` against main `7539d1675d7fc8b5020f90b395f4bb0c3485d5b3`, `coord_footprint 2390 -> 2384`; the first take, against `0cae227c`, read dS +0.0048.)
+(`python3 tools/audit/archscore/score.py --diff 92588d581fde4ce287af3db5e8bb61461dc28015` at this head, `coord_footprint 2389 -> 2384` (the same against `8fec54ee`); earlier takes read dS +0.0036 against `8fec54ee` at `96211117`, +0.0048 against `0cae227c`.) The fix review at `96211117` judged the six payments and found no missed one.
 
 ## Judgement calls for tvofi
 
@@ -101,21 +118,19 @@ Architecture score: dS +0.0036 IMPROVES
 
 Each carry on this group's roster entry (`handoff/audit-r10-roster` at `8df6d71f586842bd240e7b596b9282849a05578b`; the third first landed at `134667ca39c16862296d75a1906b8863d1b6b856`):
 
-- Carry 1 (from R10-HOTFIX-LEARNER-INPUTS): the learners scope voids the heat-loss pair through `async_reset_heat_loss_learners()` with `const.HEAT_LOSS_LEARNERS` (its default), after the undo point is taken and saved -- `coordinator.async_factory_reset`. The re-plan is the entry's set-up again (its first cycle solves in the background), not a refresh the reset awaits.
+- Carry 1 (from R10-HOTFIX-LEARNER-INPUTS): the learners scope voids the heat-loss pair through `async_reset_heat_loss_learners()` with `const.HEAT_LOSS_LEARNERS` (its default), after the undo point is taken and saved and the entry is unloaded -- `coordinator.async_factory_reset`. The re-plan is the entry's set-up again (its first cycle solves in the background), not a refresh the reset awaits.
 - Carry 2 (the same void path, from this group's brief): as Carry 1; no entity action is added (the options step and the service only), so `tests/features.py`'s RC2 rows gain none.
 - Carry 3 (udf-reset-homes): the **`factory_reset`** paragraph under `docs/configuration.md` ## Services, the README ## Services row and `### Reset to factory defaults` are in this diff.
 
 ## Red checks
 
-Every check that concluded red at `e2b12a17158195fdafd4188db0b8c33e26d3ff8c`, by its full name:
+Every check that concluded red at the PR head `7837bb0524634acf569414c6f6785930b3eb72bf` and at `96211117d1341cb71925086fc44182f68b67139d`, by its full name:
 
-- `budget-raise-gate / budget-raise-gate`: `REFUSED: no decisive review by tvofi (id 70032254) on this pull request`, over `RAISE tests/structure_budgets.json: seam_cut_total: 422 -> 423`. Red by construction until an approving review at the head, given under mandate 6329234399 (scope all) against `## Raise justification`, whose shape `python3 tools/policy/budget_raise_gate.py --check-body` accepts ("the body's `## Raise justification` names the payments tried and the arch_score figures", rc 0). No cheaper detector exists: the gate is the approval itself.
-- `tests / nightly-ha (2025.2.0)` and `tests / nightly-ha (stable)`: `a5:pages_ok` -- `raised=['factory_reset:InvalidData']`, and `run:exit_status` with it. `tests/nightly_ha.option_resubmit` posted the after-save key to the factory-reset page, whose schema has no such field (R1). Not inherited: main's Nightly 41159630948 is green on both. The cheaper detector did not exist: the stub validates no flow schema, so no lane but the Docker one read a page's schema against the walk's payload. It exists now, in `tests/config_flow_steps.py` (38 s in the stub lane, one options flow per page), and it read this red before the fix.
-- `tests / fast (3.14)`: `2 TEST SCRIPT(S) FAILED`. `tests/env_drift.py --all 7539d167`: `1 UNCLAIMED DRIFT(S)`, `config_flow` (R2) -- the fixture was re-recorded for the new page and never claimed. `tests/entities.py`: `1 of 2495 ENTITY CHECKS FAILED`, the R10 N-log-flood barrier, `mismatch {('coordinator.py', 'async_factory_reset'): (1, 0)}` (R3). Self-correction: the previous body said `tests/entities.py` "cannot finish on macOS ... environmental", which is true of this host and was read as nothing owed; CI's Linux run owed this one check. Cheaper detectors: `env_drift.py --all` runs locally (here 217-443 s under load) and would have read R2 before the push; for R3 the extracted slice above is seconds, and `prepr.sh`'s CI predict does not read either.
-- `tests / mutation`: `MUTATION TABLE REFUSED -- 3610 unpinned site(s) against 3586 at the ratchet base 7539d167, 37 of them added by this diff` (the 36 lines listed in the last section, `coordinator.py:9722 CMP_BOUND*2` carrying two). No mutant was measured: every `tests / mutation-pins (1..8)` shard read `baseline tests/env_drift.py: rc=1 failed=1` and `MUTATION TABLE INCONCLUSIVE` (`measure: skip-measure-failed, 0 anchor(s)`), R2's red. With R2 fixed the baseline is green: a local `python3 tests/mutation_table.py --pin-killed --base origin/main --jobs 3` at `1bf20b3f` (drivers as CI's less `tests/entities.py`, which stops on this host) read `baseline tests/env_drift.py: rc=0 failed=0`, and `rc=0 failed=0` for `config_flow_steps.py`, `typing_ruler.py`, `features.py` and `finite_boundary.py`, with the `config_flow.py:236 NULL_COMMENT` null control surviving each; it was stopped after its baselines (this host's load read 50-198, and a site's verdict prints only at the run's end), so the shards measure. No survivor has been measured at any head yet; one the shards leave is a real gap and is owed a killing test.
-- `tests / mutation-autofix`: `mutation-autofix: skip-measure-failed -- THE REPAIR DID NOT HAPPEN`, the same cause; it pins after the shards measure.
-- `pr-contract / pr-contract`: "check ... is red and `## Red checks` does not name it", for the six above; each is named here by its full name.
-- `gate`: `FAIL tests / fast (3.14): failure`, the aggregate of the required checks; it follows `tests / fast (3.14)`.
+- `budget-raise-gate / budget-raise-gate`: `REFUSED: no decisive review by tvofi`, over `seam_cut_total: 422 -> 423`. Red by construction until an approving review at the head under mandate 6329234399 (scope all) against `## Raise justification`, whose shape `python3 tools/policy/budget_raise_gate.py --check-body` accepts. No cheaper detector exists: the gate is the approval itself.
+- `tests / mutation`: at `7837bb05`, `MUTATION TABLE REFUSED -- 3564 unpinned site(s) against 3572 at the ratchet base 61b0076f4, 5 of them added by this diff` -- the five live sites the review named (`entry_config.py:350 GUARD_OFF`, `coordinator.py:9524 RETURN_DEL`, `coordinator.py:9722 CMP_BOUND` x2, `coordinator.py:9947 GUARD_OFF`). Each is killed or removed at this head (`## Mutation proof`): 350 and 9524 killed by new checks; the two bounds killed by "the range's two ends are humidities"; 9947 was an equivalent mutant (`_learning_frozen` is pure, so a None value read None either way), and the probe is now one guard whose GUARD_OFF returns the value while frozen -- killed. This round adds new lines (`## Unpinned sites`); mutation-autofix pins what the shards kill. The cheaper detector is the section mutant runner used here (seconds per mutant against the shards' hour); it is a scratch instrument, not landed.
+- `gate`: `FAIL tests / mutation: failure` beside the raise gate, the aggregate; it follows those two.
+
+At `e2b12a17` (round 1, all answered there and green at `96211117`): `tests / nightly-ha (2025.2.0)`, `tests / nightly-ha (stable)`, `tests / fast (3.14)`, `tests / mutation-autofix`, `pr-contract / pr-contract`.
 
 ## Forward-carry
 
@@ -123,47 +138,27 @@ Every check that concluded red at `e2b12a17158195fdafd4188db0b8c33e26d3ff8c`, by
 - `_async_load_thermal_learning` saves the thermal store after the re-anchor and before the COP scale and the T4b learners are loaded, so a crash between leaves the store without them. Carry: R10-LEARNED-STORE-LOAD
 - `async_restore_learned_snapshot` reads the snapshot ring without waiting for the snapshot store's read, and restores learner values without their sample counts. Carry: R10-LEARNED-STORE-LOAD
 
-
 ## Unpinned sites
 
-Each is a production line this diff adds; mutation-autofix (its lane mutates `custom_components/`) pins each one the suite kills after the push. At `e2b12a17` none was measured (`## Red checks`, `tests / mutation`): the shards' baseline was red on R2, which this head repairs. The mutants run by hand above (M1-M11) kill the scope dispatch, kept-keys filter, entity rule, undo and unload guards among them. Line numbers are at this head (`tools/pr/ci_predict.py --base origin/main --only mutation`).
+Each is a production line this diff adds, at this head (`python3 tools/pr/ci_predict.py --base 92588d581fde4ce287af3db5e8bb61461dc28015 --only mutation`); mutation-autofix (its lane mutates `custom_components/`) pins each one the suite kills after the push. The hand-run mutants above kill this round's guards and returns among them.
 
-- `custom_components/heatpump_optimizer/config_flow.py:3306 GUARD_OFF`: mutation-autofix
-- `custom_components/heatpump_optimizer/config_flow.py:3308 GUARD_OFF`: mutation-autofix
-- `custom_components/heatpump_optimizer/config_flow.py:3310 GUARD_OFF`: mutation-autofix
 - `custom_components/heatpump_optimizer/config_flow.py:3315 RETURN_DEL`: mutation-autofix
-- `custom_components/heatpump_optimizer/coordinator.py:412 GUARD_OFF`: mutation-autofix
-- `custom_components/heatpump_optimizer/coordinator.py:423 GUARD_OFF`: mutation-autofix
-- `custom_components/heatpump_optimizer/coordinator.py:430 RETURN_DEL`: mutation-autofix
-- `custom_components/heatpump_optimizer/coordinator.py:432 RETURN_DEL`: mutation-autofix
-- `custom_components/heatpump_optimizer/coordinator.py:1402 RETURN_DEL`: mutation-autofix
-- `custom_components/heatpump_optimizer/coordinator.py:1411 GUARD_OFF`: mutation-autofix
-- `custom_components/heatpump_optimizer/coordinator.py:1414 GUARD_OFF`: mutation-autofix
-- `custom_components/heatpump_optimizer/coordinator.py:1416 GUARD_OFF`: mutation-autofix
-- `custom_components/heatpump_optimizer/coordinator.py:1438 GUARD_OFF`: mutation-autofix
-- `custom_components/heatpump_optimizer/coordinator.py:1444 GUARD_OFF`: mutation-autofix
-- `custom_components/heatpump_optimizer/coordinator.py:4315 GUARD_OFF`: mutation-autofix
-- `custom_components/heatpump_optimizer/coordinator.py:4317 GUARD_OFF`: mutation-autofix
-- `custom_components/heatpump_optimizer/coordinator.py:4319 GUARD_OFF`: mutation-autofix
-- `custom_components/heatpump_optimizer/coordinator.py:4328 GUARD_OFF`: mutation-autofix
-- `custom_components/heatpump_optimizer/coordinator.py:4351 CLAMP_DROP`: mutation-autofix
-- `custom_components/heatpump_optimizer/coordinator.py:9356 GUARD_OFF`: mutation-autofix
-- `custom_components/heatpump_optimizer/coordinator.py:9522 GUARD_OFF`: mutation-autofix
-- `custom_components/heatpump_optimizer/coordinator.py:9524 RETURN_DEL`: mutation-autofix
-- `custom_components/heatpump_optimizer/coordinator.py:9722 BOOLOP`: mutation-autofix
-- `custom_components/heatpump_optimizer/coordinator.py:9722 CMP_BOUND*2`: mutation-autofix
-- `custom_components/heatpump_optimizer/coordinator.py:9722 RETURN_DEL`: mutation-autofix
-- `custom_components/heatpump_optimizer/coordinator.py:9947 GUARD_OFF`: mutation-autofix
-- `custom_components/heatpump_optimizer/entry_config.py:335 RETURN_DEL`: mutation-autofix
-- `custom_components/heatpump_optimizer/entry_config.py:341 RETURN_DEL`: mutation-autofix
+- `custom_components/heatpump_optimizer/coordinator.py:1420 GUARD_OFF`: mutation-autofix
+- `custom_components/heatpump_optimizer/coordinator.py:1425 RETURN_DEL`: mutation-autofix
+- `custom_components/heatpump_optimizer/coordinator.py:1441 GUARD_OFF`: mutation-autofix
+- `custom_components/heatpump_optimizer/coordinator.py:1444 RETURN_DEL`: mutation-autofix
+- `custom_components/heatpump_optimizer/coordinator.py:1453 RETURN_DEL`: mutation-autofix
+- `custom_components/heatpump_optimizer/coordinator.py:1464 RETURN_DEL`: mutation-autofix
+- `custom_components/heatpump_optimizer/coordinator.py:1466 RETURN_DEL`: mutation-autofix
+- `custom_components/heatpump_optimizer/coordinator.py:9730 CMP_BOUND*2`: mutation-autofix
+- `custom_components/heatpump_optimizer/coordinator.py:9955 BOOLOP`: mutation-autofix
+- `custom_components/heatpump_optimizer/coordinator.py:9955 GUARD_OFF`: mutation-autofix
+- `custom_components/heatpump_optimizer/coordinator.py:9957 RETURN_DEL`: mutation-autofix
 - `custom_components/heatpump_optimizer/entry_config.py:350 GUARD_OFF`: mutation-autofix
-- `custom_components/heatpump_optimizer/entry_config.py:352 RETURN_DEL`: mutation-autofix
-- `custom_components/heatpump_optimizer/entry_config.py:371 RETURN_DEL`: mutation-autofix
-- `custom_components/heatpump_optimizer/services.py:1194 RETURN_DEL`: mutation-autofix
-- `custom_components/heatpump_optimizer/snapshots.py:204 GUARD_OFF`: mutation-autofix
-- `custom_components/heatpump_optimizer/snapshots.py:242 BOOLOP`: mutation-autofix
-- `custom_components/heatpump_optimizer/snapshots.py:242 GUARD_OFF`: mutation-autofix
-- `custom_components/heatpump_optimizer/snapshots.py:244 RETURN_DEL`: mutation-autofix
+- `custom_components/heatpump_optimizer/entry_config.py:353 RETURN_DEL`: mutation-autofix
+- `custom_components/heatpump_optimizer/entry_config.py:362 GUARD_OFF`: mutation-autofix
+- `custom_components/heatpump_optimizer/entry_config.py:366 RETURN_DEL`: mutation-autofix
+- `custom_components/heatpump_optimizer/services.py:1193 GUARD_OFF`: mutation-autofix
 
 ## Friction
 
