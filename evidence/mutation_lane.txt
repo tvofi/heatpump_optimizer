@@ -1,0 +1,25 @@
+MUTATION TABLE -- scope changed: 1 production file(s) whose code this diff adds or modifies
+  null control custom_components/heatpump_optimizer/pump_arbiter.py:186 NULL_COMMENT survived every driver
+  3 mutant(s) rewrite a line a ledger row pins: each row is hidden from that mutant's tree, so it cannot read killed for the row's sake (invalidated_rows)
+  null control custom_components/heatpump_optimizer/pump_arbiter.py:186 NULL_COMMENT survived tests/guard_pins.py
+  null control custom_components/heatpump_optimizer/pump_arbiter.py:186 NULL_COMMENT survived tests/structure.py
+  null control custom_components/heatpump_optimizer/pump_arbiter.py:186 NULL_COMMENT survived tests/features.py
+  tests/arch_score_head.py: LAZY AND NEVER RUN -- every mutant run of it was green, so no verdict read its baseline; a red one would have made it INCONCLUSIVE, a killed null REFUSED
+  tests/block_duty.py: LAZY AND NEVER RUN -- every mutant run of it was green, so no verdict read its baseline; a red one would have made it INCONCLUSIVE, a killed null REFUSED
+  tests/boost_drift_replay.py: LAZY AND NEVER RUN -- every mutant run of it was green, so no verdict read its baseline; a red one would have made it INCONCLUSIVE, a killed null REFUSED
+  tests/config_flow_steps.py: LAZY AND NEVER RUN -- every mutant run of it was green, so no verdict read its baseline; a red one would have made it INCONCLUSIVE, a killed null REFUSED
+  tests/debug_collect.py: LAZY AND NEVER RUN -- every mutant run of it was green, so no verdict read its baseline; a red one would have made it INCONCLUSIVE, a killed null REFUSED
+  tests/deployment_shape.py: LAZY AND NEVER RUN -- every mutant run of it was green, so no verdict read its baseline; a red one would have made it INCONCLUSIVE, a killed null REFUSED
+  tests/doc_claims.py: LAZY AND NEVER RUN -- every mutant run of it was green, so no verdict read its baseline; a red one would have made it INCONCLUSIVE, a killed null REFUSED
+  tests/entities.py: LAZY AND NEVER RUN -- every mutant run of it was green, so no verdict read its baseline; a red one would have made it INCONCLUSIVE, a killed null REFUSED
+  tests/finite_boundary.py: LAZY AND NEVER RUN -- every mutant run of it was green, so no verdict read its baseline; a red one would have made it INCONCLUSIVE, a killed null REFUSED
+  tests/manual_plan.py: LAZY AND NEVER RUN -- every mutant run of it was green, so no verdict read its baseline; a red one would have made it INCONCLUSIVE, a killed null REFUSED
+  tests/plan_view.py: LAZY AND NEVER RUN -- every mutant run of it was green, so no verdict read its baseline; a red one would have made it INCONCLUSIVE, a killed null REFUSED
+  tests/solar_alignment.py: LAZY AND NEVER RUN -- every mutant run of it was green, so no verdict read its baseline; a red one would have made it INCONCLUSIVE, a killed null REFUSED
+  tests/typing_ruler.py: LAZY AND NEVER RUN -- every mutant run of it was green, so no verdict read its baseline; a red one would have made it INCONCLUSIVE, a killed null REFUSED
+  tests/wood_advisor.py: LAZY AND NEVER RUN -- every mutant run of it was green, so no verdict read its baseline; a red one would have made it INCONCLUSIVE, a killed null REFUSED
+  tests/harness_headers.py: DEFERRED AND NEVER RUN -- no mutant survived every shared driver, so its baseline was never checked here; a red one would have made it INCONCLUSIVE, a killed null REFUSED
+  ok    custom_components/heatpump_optimizer/pump_arbiter.py:1051 CMP_BOUND  -- killed by tests/features.py
+  ok    custom_components/heatpump_optimizer/pump_arbiter.py:1051 BOOLOP  -- killed by tests/guard_pins.py
+  ok    custom_components/heatpump_optimizer/pump_arbiter.py:1051 GUARD_OFF  -- killed by tests/structure.py
+MUTATION TABLE PASSED

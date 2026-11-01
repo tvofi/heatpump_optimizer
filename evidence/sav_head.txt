@@ -1,0 +1,17 @@
+== head r10_sav_volume
+flat: row {'month': '2026-10', 'baseline_sek': 179.71, 'actual_sek': 179.71, 'savings_sek': 0.0, 'savings_pct': 0.0, 'estimated': False, 'meter_calibration': 1.56}
+flat: volume +0.00  timing +0.00  metered 149.8 kWh
+flat: SOUND: |saving| 0.0000 per metered kWh at one price
+vary: row {'month': '2026-10', 'baseline_sek': 179.71, 'actual_sek': 104.83, 'savings_sek': 74.88, 'savings_pct': 41.66713037671804, 'estimated': False, 'meter_calibration': 1.56}
+vary: volume +0.00  timing +74.88  metered 149.8 kWh
+vary: SOUND: the timing term +74.88
+rc=0
+== head r10_sav_baseline
+transient: SOUND
+cost: DEFECT
+coverage: SOUND
+null: plan kWh 112.6 vs booked thermostat kWh 128.4; plan mean room 18.72 C vs mean comfort target 20.44 C
+null: flat price, 2 days, re-plan every 1.00 h: baseline 154.1 actual 135.09 saved 19.01 (12.336145360155744 %)
+null: DEFECT
+arms run 4, defect 2: cost null
+rc=1

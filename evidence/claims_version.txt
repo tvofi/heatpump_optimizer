@@ -1,0 +1,11 @@
+unchanged tests/golden/claimed_drift.txt
+  DIFFERS from origin/main
+unchanged tests/golden/card_claimed_drift.txt
+  byte-identical to origin/main
+unchanged VERSION
+  byte-identical to origin/main
+unchanged RELEASE_NOTES.md
+  byte-identical to origin/main
+unchanged custom_components/heatpump_optimizer/manifest.json
+  byte-identical to origin/main
+claimed_drift: head == merge base (diff vs origin/main is main's own commits c88d552c76f1ae11a879ce7ccb8d8dc29adabf50..origin/main)
