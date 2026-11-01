@@ -8,10 +8,23 @@
   ok   -f/-F values placed before the path are dropped, the path still found
   ok   --input FILE placed before the path is skipped, the path is the target
   ok   a token outside the allowed set is logged with ? for each such character
-  ok   planted -f/--body/--field/glued values never reach the parent field
-  ok   and the flag name stays with a <redacted> marker (the fixture is not vacuous)
-  ok   census: no value-bearing gh flag leaks its value through the parent field
-  ok   a non-gh parent keeps its -m argument
+  ok   parent field of `PY -c "import subprocess as s;s.run(['gh','pr','comm` is exactly the caller, no value
+  ok   parent field of `PY -c "import subprocess as s;s.run(['gh','api','-fx` is exactly the caller, no value
+  ok   parent field of `GH_TOKEN=ghp_LEAKVAL gh api user; :` is exactly the caller, no value
+  ok   parent field of `echo ghp_LEAKVAL | gh secret set NAME; :` is exactly the caller, no value
+  ok   parent field of `env GH_TOKEN=ghp_LEAKVAL gh api user; :` is exactly the caller, no value
+  ok   parent field of `gh api repos/o/r -fbody=LEAKVAL; :` is exactly the caller, no value
+  ok   parent field of `env gh pr create --title T --body LEAKVAL x; :` is exactly the caller, no value
+  ok   parent field of `PY -I W/caller.py --body LEAKVAL` is exactly the caller, no value
+  ok   parent field of `cd W && PY -m caller --body LEAKVAL` is exactly the caller, no value
+  ok   census: every gh value flag through a sh -c parent logs exactly `sh -c`
+  ok   mutant killed: the whole parent argv logged
+  ok   mutant killed: -c does not end the field
+  ok   mutant killed: -m does not take its module
+  ok   mutant killed: python is not followed to its script
+  ok   an existing 0644 log is 0600 after the next call
+  ok   a 0644 log rotated to .1 is 0600 there
+  ok   mutant killed: no chmod of an existing log
   ok   null control: an unwritable log leaves output and status unchanged
   ok   a missing state directory is created and the call logged (not silently dropped)
   ok   under umask 022 the shim makes its state dir 0700 and its log 0600
@@ -25,7 +38,6 @@
   ok   mutant killed: no --input skip
   ok   mutant killed: clean() is cat
   ok   mutant killed: no mkdir of the state dir
-  ok   mutant killed: no parent redaction
   ok   the hermetic guard: the only gh is the shim, or none, on the arm's PATH
   ok   no real gh: one line, rc 127, no self-exec
   ok   control: with a fake gh on the old-style PATH the old arm is red (the shim execs it)
@@ -37,4 +49,4 @@
   ok   a malformed --since is refused
   ok   coverage reads the shim marker, not the name
   ok   a real gh ahead of the shim reads as not logged
-gh_calls self-test: 38 checks, 0 failed
+gh_calls self-test: 50 checks, 0 failed

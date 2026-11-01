@@ -1,1 +1,3 @@
-200 calls each: direct 1674us/call, via shim 24102us/call, shim cost 22428us/call (this container)
+real: 1848 us/call (200 calls)
+shim: 27839 us/call (200 calls)
+a7e6a3e5 shim: 23383 us/call (200 calls)

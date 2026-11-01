@@ -18,7 +18,7 @@
   ok   the real gh runs under the caller's umask (022), not the shim's
   ok   mutant killed: no umask 077 in the shim
   ok   mutant killed: the umask leaks past the logging subshell
-  ok   null control: a read-only state directory is skipped, not fatal
+  skip unwritable-directory arm (running as a user who can write anyway)
   ok   a log past the cap is rotated to .1
   ok   mutant: the exec line is present in the shim being mutated
   ok   mutation: dropping the exec pass-through fails the byte arm
@@ -37,4 +37,4 @@
   ok   a malformed --since is refused
   ok   coverage reads the shim marker, not the name
   ok   a real gh ahead of the shim reads as not logged
-gh_calls self-test: 39 checks, 0 failed
+gh_calls self-test: 38 checks, 0 failed
