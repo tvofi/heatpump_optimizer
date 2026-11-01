@@ -1,150 +1,200 @@
 Closes #2272.
 
-R10-REPLAY-REAL-DAY: the replay lane's first real recorded day. tvofi's 2026-10-30 away episode, cut from his own Home Assistant export, masked and sealed, replayed through the current coordinator as a nightly regression guard on the away path. Getting there took three changes to the export first, because the owner's install defeated it twice.
+R10-REPLAY-REAL-DAY: the replay lane's first real recorded day. tvofi's 2026-10-30 away episode is cut from his own Home Assistant export, masked, sealed, and replayed through the current coordinator as a nightly regression guard on the away path. Round 1 (export, masking, leak guard, `cut_day.py`, the fixture, the `away` invariant) is unchanged in its substance. This round answers hpo-approver's round-1 blocked verdict (issue comment 6553801964, evidence on `probe/rev-3078-9c03b1c0`), finding by finding:
 
-**1. The recorder a `recorder: db_url` names (`tools/replay/export.py`).** tvofi's recorder is MariaDB. `export.py` read only `<config>/home-assistant_v2.db`, a stale leftover, and wrote a near-empty day (2 states, both from 2025-01-10) that its own `--check` passed. The export now resolves the recorder from `--db-url`, else `--db`, else configuration.yaml's `recorder: db_url` (inline or `!include`, `!secret` through secrets.yaml), else the default SQLite file. MySQL/MariaDB is read through the driver the Home Assistant container ships (`MySQLdb`, else `pymysql`), found at run time, refused by name when absent, in a `SET SESSION TRANSACTION READ ONLY` session, SELECTs only, with the SQL shared with the SQLite path (`?` rewritten to `%s`). The SQLite path stays stdlib-only. The URL's credentials are never printed, logged or written: the recorder is named `scheme://host/database`, and a failed connect reports the exception class only. A window in which a mapped input has no state, updated or reported, is refused, naming the inputs by masked role and the recorder read. An input is an id under an entry key the installed integration reads, so a key a release retired (`heat_pump_entity`, v3.8.0, never read) is named on stderr and left out rather than refused (the owner's first MariaDB run).
-
-**2. Location masking (`custom_components/heatpump_optimizer/replay_doc.py`, the one sealing path both writers use).** tvofi: "It is important that the fixer masks my street address." The Tibber price sensor's id is derived from the home's address. `document()` now renames every entity id through one mapping: an id the entry holds under a key becomes `<domain>.<role>` (`price_entity` -> `sensor.price`; the n-th of an `_entities` list `<role>_n<n>`; the Tibber series `sensor.price`, or `sensor.price_series` when the entry's own `price_entity` holds `sensor.price`), and every other id an HMAC of the id keyed by the entry id, `<domain>.e_<10 hex>`. Free text in entry values (anything holding whitespace) is dropped, never masked; text that looks like a street address (`ADDRESS`: a word of 3+ letters, a space, underscore or hyphen, a house number of up to 4 digits and an optional letter) fails `text_ok`. `refusals()` (what `seal()` refuses and `--check` prints) adds an unmasked id and an address-like token to the shape rules, and scrubs every message of the id and the token it refuses, naming the class only. Download diagnostics gets the masking through the same `seal()`.
-
-**3. The leak guard on a real week (`replay_doc.seal`, `export.check_file`).** The owner's second run was refused ("2 dropped credential value(s) survive elsewhere"). The guard searched every dropped string by plain substring, including text dropped only for its shape; a date fragment such as `2026-10` sits inside every ISO time. The first repair (`1363bcf61`) dropped string copies and nulled all 116532 row times of the owner's next export, which passed `--check` (the third run; caught on read-back, never committed). Now: only values that sat under a credential-named key (`Credential`) are searched, as whole tokens (not inside a longer letter/digit run); an ISO time is never a copy; a credential copy in a kept string is dropped; a copy as a number or a key refuses, naming its place (`states[<masked id>].attributes.<key>`) and never the value; Home Assistant's state words (`unknown`, `unavailable`, ...) are not searched. `export.untimed` refuses, at write and in `--check`, a document whose window or row times are not ISO times.
-
-**4. The fixture and the lane (`tools/replay/cut_day.py`, `tests/replay.py`, `tests/replay/owner-2026-10-30-away.json`).** The sealed week export is 13.35 MB and never committed. `cut_day.py` cuts a fixture from it: of every input only the rows in force at the lane's quarter-hour cycle instants (exactly what `run_fixture` reads), the price series and the weather to the export's end (read ahead), no published entity, and two recorded controls: `controls.away`, the owner's away commands (the one published `datetime` entity is the return time; the away switch is the one published switch that turned on within 10 s of it being set; anything else is refused), and `controls.reloads`, the minutes at which every published entity went `unavailable` while every input stayed readable (an in-process reload, not a Home Assistant restart). The lane replays each away command through `coordinator.async_set_away` (what the switch and the datetime entity call), each reload as a new coordinator handed the last publish (`skip_first_solve`, `reload_handover`) with its first light refresh, and now runs the session restore the coordinator spawns after the constructor returns (`RestoringHass`): the stub used to close it, so a reload lost the stored override and the replay showed a defect that is not in the code (measured, below). An Open-Meteo install replays with no solar forecast (the lane opens no socket).
-
-The fixture is 16:00-20:00 local on Friday 2026-10-30, 16 cycles, 39 610 B: the away switch on at 15:42:54Z (return 2026-10-31T19:00Z), the integration reloaded in process at 15:44Z, away off at 18:39:25Z. The new invariant `away` (`away_offenders`): while the recorded command holds away, the plan's view is active, holds the override, and, not recovering, its published floor is at the away target.
-
-**What this gate is, plainly (orchestrator ruling under mandate 6329234399, (a)).** It is a REGRESSION GUARD on the away view across a recorded switch, reload and restore. It detects neither away hotfix's defect: the current head and the tree before both hotfixes (`8327c6e6ecb3c1d5f54bf3dc0235ddabb029348b`, main before #3013) both pass it with 0 offenders and identical away views. R10-HOTFIX-AWAY-SETBACK is unexercised on this install (no weekend or holiday comfort fields are configured: `comfort_temp_day_weekend`, `comfort_temp_night_weekend`, `holiday_comfort_day`, `holiday_comfort_night` all None); R10-HOTFIX-AWAY-LIVE's defect is a timing race (a resolve before the session restore lands, a handover published before the switch's solve) that a recording cannot reproduce, since the lane's restore lands before any resolve; R10-HOTFIX-AWAY-PRESENCE is excluded (`away_presence_entity` is None on this install, and the group had not merged). The fixer contract's "pre-fix fails" is answered by this disclosure and the invariant's own control pairs (`control:away:view`, `control:away:override`, `control:away:floor`), not by a constructed case: a fixture stays a recorded day.
-
-**What the recording shows, labelled comparison only.** Every recorded day ran a build without either away hotfix: both merged on 2026-10-31 (#3013 01:35+01:00, #3015 06:24+01:00), after the export's window, and neither is in a stamped release. The export carries no build version; by stamp tag dates (`git for-each-ref refs/tags/v*`): 10-24..10-27 23:36 at most v7.0.4, then at most v7.0.5 until 10-30 15:59+01:00, then at most v7.1.0. The recorded published entities are what that build did and are not in the fixture; the recorded pump draw (an input) during the away window was 1.92 kWh against 0.73 kWh in the same hours of 10-29.
-
-**The day choice and its size.** 2026-10-30 is the carry's day (the away findings); the export covers 2026-10-24..30 (`--days 7`). Warm-up: the lane cannot seed learned state from history; a run from local midnight (96 cycles) and the cold 16:00 span agree on the away view at every away cycle but not on the plan's energy (15:45Z: 11.37 kWh against 7.0 kWh over the 24 h plan), so the invariant keys on the view, which a cold start reproduces, and the fixture is the span. No contrasting non-away day was added: one cycle of this install costs 15-40 CPU-s here, and the nightly lane replays each fixture four times.
-
-**Cost budget.** Not recorded locally: `cpu_ratio` read 177, 243, 274 and 394 in four clean local runs of this install at load averages 30-200, a spread no 2x band holds. It is recorded from this pull request's CI `replay` job (the lane prints `record:` lines), the second runner class; until `COST_BUDGETS` carries `owner-2026-10-30-away.json`, `cycle_cost` reports `no recorded budget` for it.
-
-## Carries
-
-The group's eleven roster carries (`origin/handoff/audit-r10-roster`, `dev/programme/rosters/wave-r10-groups.json`, R10-REPLAY-REAL-DAY):
-
-- Carry 1 (#2514: the real recorded day is not in the tree): done. `tests/replay/owner-2026-10-30-away.json`, cut from the owner's export (`--days 7 --end 2026-10-31`, the brief's scope addition) after `export.check_file` and `seal` passed on it.
-- Carry 2 (classify the new fixture): done for `tests/closures.json` (the `tests/entities.py` and `tests/features.py` sets, beside `synthetic-dhw-only.json`; `tools/replay/cut_day.py` in the `tests/entities.py` set). `COST_BUDGETS` is recorded from this pull request's CI `replay` job, not here (Cost budget above; Carry 10).
-- Carry 3 (#2810: a non-credential string collision refuses the whole replay half, naming nothing): done. Only credential-named values are searched now, never text dropped for its shape and never inside an ISO time, and a refusal names each place, never the value (`leak_copy:*`, `seal`).
-- Carry 4 and Carry 6 (read `unhealthy_input` from the weekly learner snapshots of the next live bundle; change outdoor's 180 min limit only on that evidence): not done. They read a live diagnostics bundle's learner snapshots, which the replay export does not carry and this seat may not read; the limit is unchanged. Owed to a seat holding the next live bundle, re-homed by the orchestrator (no live group reads one).
-- Carry 5 (R10-DIAG-REDACT's redaction on the owner's own exported day): done. `export.check_file` and `seal` on the owner's export: 0 violations, masking checks under `## Figures`; the pre-mask first export is refused by class, never by token.
-- Carry 7 (the day choice): done. 2026-10-30, not the fallback: all 26 mapped inputs have a state updated or reported inside 2026-10-30T00:00+01:00..2026-10-31T00:00+01:00 in the owner's export (0 without one, by `quiet_inputs`' rule applied to that day), so the recorder-gap fallback was not needed.
-- Carry 8 (D15 L6: the sensors self-test's age rule for a quiet power meter): not done; it needs a live bundle's self-test record, which the export does not carry. Owed with Carry 4.
-- Carry 9 (R10-SCORES' `--bundle PATH` scale-drift harness on the owner's house): not done; it needs the owner's diagnostics bundle, not the replay export. Owed with Carry 4.
-- Carry 10 (no `loop_cpu_ratio` budget for the real day from one environment): done by not recording one locally; local `loop_cpu_ratio` read 0.137-0.159 at four loads, and the budget waits for the CI runner class.
-- Carry 11 (the MariaDB recorder and location masking): done, items (1) and (2) above.
+1. **Red checks.** Every one is named under `## Red checks` with its cause and its detector, including CodeQL alerts 47 and 48. Both alerts are false positives. Neither is resolved in code, and the reasons are below.
+2. **`tests / replay` on the new fixture.**
+   - The 14 `no_default` offenders are an **invariant false positive on a real day**. `sensor.heat_pump_optimizer_valve_target_recommendation` publishes the install's configured `max_temperature`, 21.0, which `mixing_valve.recommend_target` returns as the target. 21.0 is also `ThermalState.room_temperature`'s default. `SETPOINT_KEYS` (tests/replay.py) now exempts a setpoint sensor at the value of the config option it is made of, and only there. Perturbation: with `max_temperature` set to 21.5 in the fixture, the unfixed tree reads 0 offenders. With the null (21.0), it reads 3 offenders over 4 cycles.
+   - A second false positive showed up on this box's BLAS class, and neither the reviewer nor CI saw it: `not_frozen` on `prediction_accuracy.power_ratio`. The ratio is `mean(0/0.5, 1.55/0.5)`, which equals 1.55. That matched the pump's single 1.55 kW reading beside idle zeros, and the ratio then held correctly because no usable sample came. A mirror now needs two distinct non-zero matched values. This widens the existing zeros rule.
+   - The lane now fits its job. `COST_ARMS_SKIPPED` runs this fixture once, clean, without the three doubled-cost arms. Each arm is a whole replay of about 12 CPU-minutes. The arms' instrument proof stays on `synthetic-dhw-only.json`, and the driver refuses a skip list that covers every committed fixture.
+   - `COST_BUDGETS` now carries `owner-2026-10-30-away.json`.
+3. **Carries 4, 6, 8, 9 and 10** are quoted verbatim under `## Carries`. At roster 42142a788 each has a live, not-started destination: R10-LIVE-BUNDLE-READS, or R10-REPLAY-COST-BUDGET for carry 10's open half. The orchestrator confirms them before merge.
+4. **The surviving `commanded = None` mutant is killed.** `away_offenders(observations, events)` compares every cycle's replayed command with the fixture's own `controls.away`, read apart from the replay.
+5. **The out-of-tree mutation harnesses are replaced by one in the tree**, `dev/audit/harnesses/r10_replay_real_day_mutants.py`. Every `tools/` and phase-2 figure under `## Mutation proof` comes from it. The round-1 figures that rested on the out-of-tree `mutants.py` and `mut2.py` are dropped.
+6. **The seven sites `mutation-autofix` left unpinned at 4c994241d are accounted for.** Driving them exposed a masking hole: an entity id as the key of any dict other than `states` was neither renamed nor refused. `mask_ids` and `_entity_ids` now treat every dict key alike. That removes three of the seven sites. The other four are killed by new checks (`mask_seam_checks`).
+7. **Carry 12 (D15-s1-04), added to the roster during this round, is done.** `_walk` flagged a bool under a credential-named key (`tibber_reauth_started: True`) while `_collect_strings` skips a bool. `_no_credential` now states the one rule, and both halves agree. Failing test first: `leak_copy:bool_under_a_credential_key_is_no_credential` is red at 4c994241d and green here.
+8. **Disclosed, not re-derivable:** the warm-up claim and the export-side masking figures (see `## Figures`).
 
 ## Head
 
-d6a8661e87aee47d8be4a5ac7a71ddc807de6421
+902e5cc9ae2b3bada6be02361847154963c92764
 
-Measured at 73ef649127591972b7744a4c2f253eb9bb2f5d6d (the scoped gate, the mutants, the replay arms), then re-run at this head after the two commits on top of it: the orchestrator's merge of origin/main with the delivery row (df35202ab; in this diff's files it adds two lines to `tests/closures.json` only), and `d6a8661e8`, which makes `tools/replay/debug_replay.py`'s trim check read the fixture's own price entity. At d6a8661e8: the replay checks 103/103, `debug_replay.gate_checks()` 5/5, `tests/debug_collect.py` 162/162, `tests/structure.py` passed.
+This head merges `origin/main` twice, without conflict:
+
+- 66b7575bbd604412a2987fa2f70ddfbece2411e1 merges 1a8051350406387d5ee1ed966d8a2ba8a770cc31 into a6aa0294e5c91fedeeb019c391f7377419b34e7a.
+- This head merges fb0a6d5a30aa2e3a0b1ce4dd926c057d34a32fa8, which is the merge base. Main moved during the final `prepr.sh` run on 66b7575. Its five files (`git diff --name-only 1a8051350..fb0a6d5a3`) are `fix-review.md`, `review_packet.py` and its guide, a delivery row and a new seat harness, none of them read by the replay or by the code this pull request changes. `structure.py` passed on this head, `harness_headers.py` gave 112/112, and `prepr.sh` was rerun on it.
+
+- **Why the merge.** At the start, `git merge-tree --write-tree origin/main 4c994241d805653d8f4470ff2fbe612ccf320f14` exited 0 (no conflict), so nothing was merged then. `tools/pr/prepr.sh` ran at 2026-11-01T10:55Z and 11:30Z (`date -u`) with `origin/main` at 6421fe135d9f5a9e65433a4433f000d2419486bf. Main had moved to 1a8051350 by the handoff, so it was merged, and `prepr.sh` was rerun on this head.
+- **What main's delta reaches.** `git diff --name-only a6aa0294e...1a8051350` touches nothing under `custom_components/`, `tests/replay*`, `tools/replay/` or `tests/hastub/`. Its files are policy, tools and ledger pins.
+- **Re-executed on this head:** the scoped gate, `structure.py`, `ci_predict.py`, the harness's FAST tier and the arch-score gate. The replay figures were not re-taken, because main's delta reaches nothing the replay reads.
+- **The replay figures** were measured at 37bafc867607baa747e4e65771573b3146bbd6a2. The commits after it touch:
+  - `mask_seam_checks` in `tests/replay.py` (one try/except);
+  - the harness's print order and its inlined `repo_root` walk;
+  - seven `tests/mutation_ledger/` pins, and two stale ones removed;
+  - carry 12's `_no_credential` in `replay_doc.py`, which is the export's and the diagnostics' sealing path. The replay never calls it.
+
+  None of these touches anything `run_fixture` reads.
 
 ## Mutation proof
 
-Phase 1 (`mutants.py`, sha1 29e550f8f9e381d6a54aa795fd772d99a1123f62, out of tree; each mutant against the then-head's `sanitiser_checks` and `tests/debug_collect.py`, the unmutated tree the null, 84/84 and 162/162):
-- no db_url from configuration.yaml: red `recorder:db_url_whole_day_read`, `recorder:db_url_secret_resolved`, `recorder:url_from_configuration:inline_quoted` (+8)
-- no read-only session: red `recorder:db_url_read_only_session_selects_only`
-- URL not redacted: red `recorder:db_url_credentials_never_printed`, `recorder:db_url_connect_refusal_names_no_credential`
-- no quiet-input refusal: red `recorder:stale_sqlite_near_empty_day_refused`, `recorder:db_url_emptied_window_refused_naming_inputs_and_recorder`
-- `mask()` identity: red `mask:street_in_entity_ids_and_names_absent_from_export`, `synthetic_reproduces`, debug_collect's replay-half check
-- no `mask_violations`: red `mask:check_refuses_unmapped_id_naming_class_not_token`, `mask:seal_refuses_unmapped_id_naming_class_not_token`
-- refusal not scrubbed: red `mask:check_refuses_unmapped_id_naming_class_not_token`
-- no ADDRESS in `text_ok`: red `leak_probe:state_street_number:export_drops`, `mask:check_refuses_address_text_naming_class_not_token`, debug_collect's address-like home name check
-- no entry free-text drop: red `leak_probe:entry_free_text:export_drops`, `leak_probe:entry_free_text:check_refuses`
-- no `!secret` resolution: red `recorder:url_from_configuration:secret` (+7)
-- retired-key filter removed: red `recorder:retired_key_left_out`
+The in-tree harness, `PYTHONPATH=tests/hastub python3 dev/audit/harnesses/r10_replay_real_day_mutants.py --replay` (FAST tier: each mutant against a fresh interpreter's `controls()`, `sanitiser_checks()` over the committed fixtures and `synthetic_reproduces()`; REPLAY tier: `tests/replay.py --one` on the owner fixture). The FAST tier was run at a6aa0294e5c91fedeeb019c391f7377419b34e7a, and again at this head: `RESULT killed=29 mutants=29 null_red=0` both times. Carry 12's mutant is the 29th. The REPLAY tier ran at 37bafc867607baa747e4e65771573b3146bbd6a2 (`--replay`): `RESULT killed=30 mutants=30 null_red=0` over the 28 FAST mutants then present and its two REPLAY rows below. Each row names the check that went red:
 
-Leak guard (in place, restored each time): no `STATE_WORDS` exclusion: red `leak_copy:state_words_under_a_credential_key_not_searched`; no copy drop: red `leak_copy:string_copy_in_attribute_dropped`; unbounded copy: red `leak_copy:null_number_inside_a_longer_one_sealed`; no place list: red `leak_copy:number_copy_refused_naming_its_place_not_its_value`; no ISO-time exemption: red `leak_copy:credential_text_inside_timestamps_keeps_them`; `untimed` dropped from `check_file`: red `mask:check_refuses_a_document_with_its_times_nulled`.
+- `export.py` no db_url from configuration.yaml: KILLED, red `recorder:db_url_whole_day_read` (+6 more)
+- `export.py` no read-only session: KILLED, red `recorder:db_url_read_only_session_selects_only`
+- `export.py` URL not redacted: KILLED, red `recorder:db_url_credentials_never_printed` (+2 more)
+- `export.py` connect refusal carries the driver's text: KILLED, red `recorder:db_url_connect_refusal_names_no_credential`
+- `export.py` no quiet-input refusal: KILLED, red `recorder:stale_sqlite_near_empty_day_refused` (+2 more)
+- `export.py` no !secret resolution: KILLED, red `recorder:url_from_configuration:secret` (+7 more)
+- `export.py` no !include followed: KILLED, red `recorder:url_from_configuration:include`
+- `export.py` retired-key filter removed: KILLED, red `recorder:retired_key_left_out`
+- `export.py` untimed dropped from check_file: KILLED, red `mask:check_refuses_a_document_with_its_times_nulled`
+- `cut_day.py` no thinning: KILLED, red `cut_day:every_cycle_instant_reads_as_the_whole_export`
+- `cut_day.py` no read-ahead: KILLED, red `cut_day:price_series_kept_to_the_export_end`
+- `cut_day.py` a restart counted as a reload: KILLED, red `cut_day:null_restart_with_inputs_gone_is_no_reload`
+- `cut_day.py` published entities kept: KILLED, red `cut_day:no_published_entity_kept`
+- `cut_day.py` two paired switches not refused: KILLED, red `cut_day:two_paired_switches_refused`
+- `replay_doc.py` an _entities list not claimed (GUARD_OFF): KILLED, red `mask:entities_list_ids_take_their_numbered_role`
+- `replay_doc.py` ids in a list not collected (GUARD_OFF): KILLED, red `mask:id_only_as_a_list_item_refused`
+- `replay_doc.py` a payload that is no document read as one (GUARD_OFF): KILLED, red `mask:a_payload_that_is_no_document_has_no_violation`
+- `replay_doc.py` a list not scanned for credential copies (GUARD_OFF): KILLED, red `leak_copy:copy_inside_a_list_dropped`
+- `replay_doc.py` dict keys outside states not renamed: KILLED, red `mask:id_as_any_dict_key_renamed_and_refused_unrenamed` (+22 more)
+- `replay_doc.py` dict keys not collected: KILLED, red `mask:id_only_as_a_states_key_refused` (+1 more)
+- `replay_doc.py` a bool under a credential key read as a credential (carry 12): KILLED, red `leak_copy:bool_under_a_credential_key_is_no_credential`
+- `replay.py` away floor unchecked: KILLED, red `control:away:floor`
+- `replay.py` away override unchecked: KILLED, red `control:away:override`
+- `replay.py` away command not compared with the recording: KILLED, red `control:away:replayed`
+- `replay.py` no_default setpoint exemption removed: KILLED, red `control:no_default:setpoint_value_on_a_reading` (+1 more)
+- `replay.py` no_default setpoint exemption on every entity: KILLED, red `control:no_default:setpoint_value_on_a_reading`
+- `replay.py` no_default setpoint at any value: KILLED, red `control:no_default:setpoint_at_an_unconfigured_default`
+- `replay.py` not_frozen counts a zero as a mirrored value: KILLED, red `control:not_frozen:one_value_beside_zeros`
+- `replay.py` arms skipped everywhere allowed: KILLED, red `control:cycle_cost:arms_skipped_never_everywhere`
+- `replay.py` the recorded away command not replayed (round 1's survivor) (REPLAY tier): KILLED, the fixture's `away` 12 offender(s), every other count 0
+- `replay.py` no_default setpoint exemption not handed the config (REPLAY tier): KILLED, the fixture's `no_default` 14 offender(s), every other count 0
 
-Phase 2 (`mut2.py`, sha1 c0b26da6d2f8eab42c6f926a73866e9408f052b5, out of tree; `cut_day_checks` and the `control:away*` controls at a98bbd40e (the head less a rename and six stale ledger pins), null 0 red):
-- no thinning: red `cut_day:every_cycle_instant_reads_as_the_whole_export`
-- no read-ahead: red `cut_day:price_series_kept_to_the_export_end`
-- a restart counted as a reload: red `cut_day:null_restart_with_inputs_gone_is_no_reload`
-- published entities kept: red `cut_day:no_published_entity_kept`
-- switch not paired with the return time: `cut_day.cut` refuses the probe document (two switches turn on), so `cut_day_checks` raises
-- away floor unchecked: red `control:away:floor`; override unchecked: red `control:away:override`
+**The reviewer's surviving mutant** (`commanded = returns if active else None` -> `commanded = None` in `run_fixture`) is killed by the REPLAY tier. The fixture's `away` result shows 12 offenders ("the recorded command holds away=True, the replay carried away=False"). In round 1 it showed 0.
 
-The session restore in `RestoringHass`: the lane run before it existed is its mutant. On the fixture at head, with the restore closed as before, every one of the 12 commanded cycles read `active=False override=False` (12 `away` offenders, 9.12-19.18 kWh planned); with it, 0 offenders.
+The `replay_doc.py` sites are mutated by CI's lane too. Their ledger pins are under `## Unpinned sites`.
 
 ## Null control
 
-- `tests/replay/synthetic-dhw-only.json` regenerates byte-identical through `synthesize.py` + `export.py` (`synthetic_reproduces`), and passes `check_file` (`mask:null_committed_fixture_passes_the_check`).
-- `recorder:read_key_unrecorded_refused`: an unrecorded entity under a key the integration reads is still refused.
-- `leak_copy:null_number_inside_a_longer_one_sealed`, `cut_day:null_restart_with_inputs_gone_is_no_reload`, `cut_day:null_day_without_a_command_has_none`.
-- The baseline (`a7dd7f50d`, origin/main at the branch point) on the owner's MariaDB layout, invented: the SQLite-only export wrote "9 entities, 1 state rows" and passed its own check.
-- Mold-guard perturbation (below): the same fixture with `mold_guard_enabled` False.
+- The harness's unmutated copy: red [] (FAST tier). The REPLAY tier's null replay of the owner fixture reads `away` 0 and `no_default` 0.
+- `no_default`: `control:no_default:setpoint_value_on_a_reading` and `control:no_default:setpoint_at_an_unconfigured_default`. The same 21.0 on a reading entity, or the setpoint at a default the config does not hold, still fires. `control:no_default:setpoint_keys_are_published_config` checks that each key is a sensor in strings.json, that each option is a `CONF_*` value, and that `recommend_target(comfort_max=21.5)` returns 21.5.
+- `not_frozen`: `control:not_frozen` (a mirror that tracked 1.0 and 3.0, then stuck) still fires. `control:not_frozen:one_value_beside_zeros` is the owner day's exact shape and does not fire.
+- `away`: `control:away:replayed`. An observation the events hold away but the replay did not carry is red, and one after the command ended is not.
+- Masking: `mask:id_as_any_dict_key_renamed_and_refused_unrenamed` reads red at 4c994241d's `replay_doc.py`: a key built on the invented test street `_STREET` survives `mask_ids`, and `mask_violations` finds 0. At this head it reads green. The other five `mask_seam_checks` are green at both, because they pin the existing behaviour at the unpinned sites.
+- Reviewer's duty-F null (`dbg_null.py`, the reviewer's file at `probe/rev-3078-9c03b1c0:ev/dbg_null.py`): a fixture whose price entity keeps a raw-shaped id gives 5/5 at both ends.
 
 ## Figures
 
-- Replay sanitiser, mask, recorder, leak-copy and cut_day checks: 103/103 at a98bbd40e: `PYTHONPATH=tests/hastub python3 -c "import sys; sys.path.insert(0,'tests'); import replay; r=replay.sanitiser_checks(sorted(replay.FIXTURES.glob('*.json')))+[replay.synthetic_reproduces()]; print(sum(x[1] for x in r), len(r))"`
-- `tests/debug_collect.py`: 162/162 (`PYTHONPATH=tests/hastub python3 tests/debug_collect.py`).
-- The fixture passes the export's check, 0 violations: `python3 tools/replay/export.py --check tests/replay/owner-2026-10-30-away.json`.
-- The fixture reads as the export at every cycle instant: 416/416 (input, instant) reads in the window and 64/64 read-ahead reads of `sensor.price` and `weather.weather` equal, `replay.Recording.at` over `cut_day.grid` on the fixture and on `$EXPORT/hpo-replay-2026-10-24_2026-10-30.json` (sha1 8a08433b06733135e20729547a41058d6100be48); whole days 10-29 and 10-30: 2496/2496 each.
-- Masking on `$EXPORT` and on the fixture, by rule (the owner's ids from his first export held in memory only): raw ids from the first export found verbatim 0 of 108; address-like strings 0; ids 107 of which 82 hashed and the rest roles, `refusals` empty; numbers with 3+ decimals within 0.01 of the home coordinate: 48 in `$EXPORT`, every one a temperature or power state (paths `states[sensor.wood_tank_bottom]`, `states[sensor.floor_return_temp]`, ...), 0 in the fixture; `entry.options.solar_location` at 2 decimals (`nightly_ha` A10). `git diff origin/main...HEAD` holds none of the owner's address tokens.
-- Away replay, 16 cycles, `python3 tests/replay.py --one tests/replay/owner-2026-10-30-away.json`: head 0 `away` offenders, 12 commanded cycles `active=True override=True floor=15.0`, planned space heating 5.51-13.19 kWh per 24 h plan; `8327c6e6e` the same, 0 offenders, 5.51-13.20 kWh.
-- Warm-up: the 96-cycle run from local midnight on `cut_day.py --day 2026-10-30` reads `active=True` at every away cycle, 8.49-18.45 kWh planned; the cold span 7.0-13.09 kWh at the same cycles (both without the reload).
-- Recorded pump draw, labelled comparison: 1.92 kWh over 15:42:54-18:39:25Z on 10-30, 0.73 kWh over the same hours of 10-29, the integral of the `sensor.heat_pump_power` rows in `$EXPORT`.
-- Local cost, not a budget: `cpu_ratio` 177.1, 243.5, 274.3 and 394.1, `peak_kib` 2514-2694, `loop_cpu_ratio` 0.137-0.159, from the `--one` runs' `cost` objects.
+All figures were measured on one 4-core Linux container, Python 3.14.7, `OPENBLAS_NUM_THREADS=1`, unless stated otherwise.
+
+- **The finder's harness at both ends.** The reviewer's driver is `tests/replay.py --one tests/replay/owner-2026-10-30-away.json` with `HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub`, summarised by the reviewer's summariser (`git show origin/probe/rev-3078-9c03b1c0:ev/summ.py`).
+  - At 4c994241d: `no_default` 14 (each `sensor.heat_pump_optimizer_valve_target_recommendation=21.0`), `not_frozen` 1 (this box only; the reviewer's and CI's runs read 0), `away` 0, 12 commanded cycles, views `[(True, True, False, 15.0, 15.0)]`, `cycle_cost` 3 (no recorded budget). 694.8 s.
+  - At 37bafc867607baa747e4e65771573b3146bbd6a2: `finite`, `unit`, `no_default`, `agreement`, `cycle`, `not_frozen`, `away` and `cycle_cost` all 0. 12 commanded cycles, the same views, planned space heating 5.51-13.2 kWh per 24 h plan at both ends. Cost `cpu_ratio` 268.8, `peak_kib` 2541.3, `loop_cpu_ratio` 0.1847, inside the recorded band. 689.9 s.
+  - Later commits change no file the replay reads (see `## Head`).
+- **The reviewer's `dbg_null.py`** (`python3 dbg_null.py <tree> <mode>`):
+  - 4c994241d: plain 5/5, unrenamed 5/5, none 4/5, absent `KeyError: 'price_entity'`.
+  - This head: plain 5/5, unrenamed 5/5, none 4/5, absent `KeyError`.
+  - The 4/5 the verdict recorded was at df35202ab; d6a8661e8's fix is in both trees.
+- **Carry 12**, by `export.violations` (`PYTHONPATH=tests/hastub:tools/replay:custom_components python3 -c "import export; print(export.violations({'tibber_reauth_started': True}))"`):
+  - At 4c994241d, `{"tibber_reauth_started": True}` gives 1 finding ("a credential-named key carries a value"). At this head it gives 0.
+  - Null: `{"tibber_token": "abc123xyz"}` gives 1 finding at both.
+  - debug_ingest's stage-2b plant (`debug_ingest.PLANTED_SECRET` in a state row) gives `planted_leak_caused_violations=2` at both, and `debug_ingest.gate_checks()` gives 3/3 at both.
+- **The `no_default` disposition, by perturbation.** `tests/replay.py --one <fixture> --step-minutes 60` at 4c994241d gives 3 offenders over 4 cycles. The same fixture with `entry.data/options.max_temperature` 21.5 gives 0.
+- **The `not_frozen` mechanism**, by a spy on `frozen_offenders` and `power_ratio` in an unchanged `run_fixture`, on the tree before the `not_frozen` change:
+  - `power_ratio` read `[None, None, 0.0, None x8, 0.0, 1.55, 1.55, 1.55, 1.55]`.
+  - `heat_pump_power` read `[0.0 x12, 1.55, 2.89, 3.02, 0.0]`.
+  - The last samples (predicted, actual) were `(0.5, 0.0), (0.5, 1.55)`, then predicted 0.0, which is unusable.
+- **Lane wall time.** `PYTHONPATH=tests/hastub python3 tests/replay.py` at 37bafc867 prints `replay lane wall time 765.8 s` (`time`: 12m46s real), under load average 3.6-4.9 (the mutation drives were running beside it). It also prints `1 of 167 replay checks FAILED`: `synthetic-dhw-only.json: cycle_cost [cpu_ratio 2.292 over its budget 2.173 | loop_cpu_ratio 0.1723 over its budget 0.143]`. That red belongs to this box, not to this diff. Interleaved `--one` runs of the synthetic fixture under the same load read `loop_cpu_ratio` 0.150-0.159 at 4c994241d and 0.153-0.162 at this head, both over 0.143. `cpu_ratio` read 2.09-2.12 against 2.04-2.18. No timed line changed: the invariants this round touched run outside the timed span. The 0.143 budget's own comment records an idle 4-core box reading 0.109-0.124. This box is Python 3.14 under load. The owner fixture's single replay is 682-695 s of it. Before this round, the fixture alone was four of those replays, about 46 CPU-minutes, against the job's `timeout-minutes: 30`.
+- **The recorded `COST_BUDGETS` entry** is `cpu_ratio` 355.7, `peak_kib` 3740.0, `loop_cpu_ratio` 0.249. Each is sqrt(2) x the geometric midpoint of the extremes of the clean `--one` readings, from the cost objects of those runs:
+  - `cpu_ratio`: Linux only, 217.8-290.5. The readings are CI 249.0 (the `record:` line 352.1 / sqrt(2)), the reviewer's box 217.8 and 278.7, and this box 231.8 and 290.5. The band floor is 177.9.
+  - `peak_kib`: 2514-2783, adding the first fixer's M1.
+  - `loop_cpu_ratio`: 0.137-0.227, the M1 included. The edges are 9-10 % inside.
+- **Mutation-autofix at 4c994241d:**
+  - `ci_predict.py --only mutation` lists 7 `ADDED UNPINNED` sites at 4c994241d: replay_doc.py 535 GUARD_OFF, 577 BOOLOP, 577 GUARD_OFF, 579 BOOLOP, 580 GUARD_OFF, 589 GUARD_OFF and 672 GUARD_OFF. The 34 pinned plus these 7 make the 41.
+  - At this head it lists none. The four sites left after this round's simplification are pinned by `python3 tests/mutation_table.py --pin-killed --base 61b0076f4854`, which printed `PIN KILLED: 4 pinned, 0 left unpinned`, each `killed by tests/entities.py`.
+  - Command: `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base $(git merge-base origin/main HEAD) --only mutation`.
+- **The scoped gate:** `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=<merge base> PYTHONPATH=tests/hastub bash tests/run.sh`.
+  - At this head, merge base 1a8051350, it printed `MODE: SCOPED -- 14 script(s) run, 19 scoped out` and `16 TEST SCRIPT(S) PASSED; 18 SCOPED OUT AND NOT RUN`, `tests/entities.py` included (468 s).
+  - At a6aa0294e, merge base 61b0076f4, it printed `MODE: SCOPED -- 14 script(s) run, 19 scoped out` and `16 TEST SCRIPT(S) PASSED; 18 SCOPED OUT AND NOT RUN`, `tests/entities.py` included (521 s).
+  - The earlier run at de065d394 failed only `tests/harness_headers.py`'s `every inlined walk matches the canonical helper`: the new harness's `repo_root` had dropped the helper's inner `from pathlib import Path`. a039a0409 restored it.
+- `python3 tests/structure.py`: STRUCTURE RATCHET PASSED. `python3 -I tools/audit/archscore/gate.py --base 1a8051350406 --head <head> --body <body>` at this head: dS +0.0000, no gate metric rose.
+- **Not re-derivable in CI, and unverified by review:** these need the owner's untracked export, which no seat holds. The warm-up claim has no null control.
+  - The round-1 warm-up claim: 96 cycles from local midnight against the cold span; the away views agree; plan energy 11.37 against 7.0 kWh, and 8.49-18.45 against 7.0-13.09 kWh.
+  - The export-side masking figures: 0 of 108 raw ids, 48 near-coordinate numbers in `$EXPORT`, 416/416 and 2496/2496 reads.
+  - The recorded pump draw comparison: 1.92 against 0.73 kWh.
 
 ## Red checks
 
-- `tests/entities.py` exits on this macOS box at its py-spy sampler (`PermissionError: Cannot get task port`), before the replay checks it carries; the environment, not this diff. The checks it would run here are the 103 above, run directly. CI's Linux run decides it.
-- The nightly `replay` lane reports `cycle_cost: no recorded budget` for the new fixture until its budget is recorded from this pull request's CI `replay` job (see Cost budget).
-- `tests / mutation` at df35202ab (red; the same sites at this head): red by construction on the 41 new `custom_components/` sites under `## Unpinned sites`, which the diff adds with no ledger pin; `mutation-autofix` pins each killed site after the push (ci-autofix.md). Cause: new mutation sites, not a broken check. Cheaper detector: none further -- `prepr.sh` step 6d (the CI predict) already named every one of the 41 locally, in seconds, before the handoff, and the red is the documented price of a site whose pin only CI's mutation lane records; no countermeasure owed. `tests / mutation-autofix`: not red at this writing; if it goes red, the sites are its to pin, not this body's.
-- `tests / fast (3.14)` at df35202ab (red): `tests/entities.py` failed one check, `debug replay: trim_replay carries sparse export attributes forward [nordpool_rows_with_raw_today=0]`. Cause: `tools/replay/debug_replay.py` named the synthetic fixture's price entity by its raw id, which the masking now renames to `sensor.price`; fixed in d6a8661e8 by reading the id the fixture's entry holds (5/5 locally; red on df35202ab's tree, green on this head). Process state: the check existed and the local scoped gate ran the script that carries it, but `tests/entities.py` exits on macOS at its py-spy sampler (line 18448, `PermissionError: Cannot get task port`) before it reaches `_dbg_replay.gate_checks()` (line 39162), so no local run on this box reached it. Cheaper detector: the local scoped gate, minutes instead of a CI round, which on a macOS seat is blind past that line to every check after the sampler; the countermeasure (the sampler check skipping, not exiting, where the task port is denied) is a root-cause seat's, not this fix's.
+- `CodeQL`: code-scanning alert 47 (py/clear-text-logging-sensitive-data) at `tools/replay/export.py`'s `reading the recorder {rec.label}` stderr line, and code-scanning alert 48 (py/clear-text-storage-sensitive-data) at `tests/replay.py`'s `_mariadb_install`, which writes `secrets.yaml`.
+  - **Both are false positives.**
+    - Alert 47 prints `redacted(url)`: scheme, host, port and path, with no user, password or query. `recorder:db_url_credentials_never_printed` searches every printed and written byte for the invented user and password.
+    - Alert 48 writes `_DB_URL`, the invented credential `_DB_USER` and `_DB_PASSWORD` at an invented host, to a `TemporaryDirectory`. It is the input the never-printed checks need.
+  - **Not resolved in code, because neither cheap code change is honest.**
+    - CodeQL tracks taint by name: from the `_secret`/`password` sources through `urlsplit` and string formatting. It does not read `redacted()` as a sanitiser.
+    - Clearing alert 47 means either dropping the recorder's name from the stderr line or renaming `_secret`. Dropping the name deletes a tested feature: the owner's first MariaDB run used it to confirm which recorder was read, and `recorder:db_url_credentials_never_printed` requires it as that check's positive control. Renaming `_secret` would evade the scanner without changing what flows.
+    - Clearing alert 48 means renaming `_DB_PASSWORD`, which is the same evasion.
+  - Neither alert is dismissed here. Dismissal as a false positive is the owner's.
+  - Cause: new code that handles a database URL.
+  - Cheaper detector: CodeQL is the cheapest detector of its own alerts. It runs on the push in minutes, and no local run of it exists in the seat's toolchain. No countermeasure is owed beyond answering it here.
+- `tests / replay`, cancelled at 4cccd845f. It hit `timeout-minutes: 30` in the fixture's memory-doubled arm, after `no_default` (14) and `cycle_cost` (no recorded budget, so "sees a doubled cycle" could not fire) had failed.
+  - Cause: the fixture's four replays, about 12 CPU-minutes each, and two invariant false positives on a real day (Figures).
+  - Cheaper detector: one local `tests/replay.py --one` on the fixture. Round 1 ran it and read only the `away` result, while its `counts` already printed `no_default` 14. The four-replay arithmetic was also in round 1's own body ("replays each fixture four times", "15-40 CPU-s" a cycle). Standing cost: zero for the counts; one ~12-minute run for the timing.
+  - Fixed here: `SETPOINT_KEYS`, the non-zero mirror rule, `COST_ARMS_SKIPPED` and the recorded budget.
+- `tests / mutation`, red at 4cccd845f on the 41 unpinned `replay_doc.py` sites. It is red by construction: `mutation-autofix` pinned the 34 its drivers killed (4c994241d). The other 7 survived because no check drove them. They are dispositioned under `## Unpinned sites`. Cheaper detector: `prepr.sh` step 6d lists every unpinned site in seconds. A site no check drives stays unpinned until a check is written, which is what this round did.
+- `tests / fast (3.14)`, red at df35202ab and answered in round 1. `tests/entities.py` failed `debug replay: trim_replay carries sparse export attributes forward [nordpool_rows_with_raw_today=0]`.
+  - Cause: `tools/replay/debug_replay.py` named the synthetic fixture's price entity by its raw id, which the masking renames to `sensor.price`. d6a8661e8 fixed it by reading the id the fixture's entry holds. The reviewer's `dbg_null.py` gives 5/5 at 4c994241d and at this head (`## Figures`).
+  - Cheaper detector: the local scoped gate. It runs `tests/entities.py`, which carries the check, in minutes instead of a CI round. On the round-1 macOS seat it was blind: `tests/entities.py` exits at its py-spy sampler (`PermissionError: Cannot get task port`) before it reaches the check. On this Linux seat it runs to the end (`## Figures`, the scoped gate). The countermeasure, a sampler that skips rather than exits where the task port is denied, belongs to a root-cause seat, not this fix.
+- `pr-contract / pr-contract` and `gate`, failure at 4cccd845f. `pr-contract` refused the body with 3 errors, all of them the unanswered reds above (CodeQL, alerts 47 and 48). `gate` failed on the same refusal in run 41273345201, reported as "unreadable title". This body answers them. Cheaper detector: `tools/pr/prepr.sh`'s body check, which reads the PR's check runs only once a PR exists. Before then it cannot see a CodeQL alert, so none further exists for a seat.
 
 ## Unpinned sites
 
-- `custom_components/heatpump_optimizer/replay_doc.py:336 BOOLOP`: pinned by mutation-autofix (its lane mutates custom_components/)
-- `custom_components/heatpump_optimizer/replay_doc.py:336 GUARD_OFF`: pinned by mutation-autofix (its lane mutates custom_components/)
-- `custom_components/heatpump_optimizer/replay_doc.py:401 BOOLOP`: pinned by mutation-autofix (its lane mutates custom_components/)
-- `custom_components/heatpump_optimizer/replay_doc.py:401 GUARD_OFF`: pinned by mutation-autofix (its lane mutates custom_components/)
-- `custom_components/heatpump_optimizer/replay_doc.py:403 GUARD_OFF`: pinned by mutation-autofix (its lane mutates custom_components/)
-- `custom_components/heatpump_optimizer/replay_doc.py:526 GUARD_OFF`: pinned by mutation-autofix (its lane mutates custom_components/)
-- `custom_components/heatpump_optimizer/replay_doc.py:528 GUARD_OFF`: pinned by mutation-autofix (its lane mutates custom_components/)
-- `custom_components/heatpump_optimizer/replay_doc.py:535 GUARD_OFF`: pinned by mutation-autofix (its lane mutates custom_components/)
-- `custom_components/heatpump_optimizer/replay_doc.py:542 RETURN_DEL`: pinned by mutation-autofix (its lane mutates custom_components/)
-- `custom_components/heatpump_optimizer/replay_doc.py:550 RETURN_DEL`: pinned by mutation-autofix (its lane mutates custom_components/)
-- `custom_components/heatpump_optimizer/replay_doc.py:559 BOOLOP`: pinned by mutation-autofix (its lane mutates custom_components/)
-- `custom_components/heatpump_optimizer/replay_doc.py:559 GUARD_OFF`: pinned by mutation-autofix (its lane mutates custom_components/)
-- `custom_components/heatpump_optimizer/replay_doc.py:561 GUARD_OFF`: pinned by mutation-autofix (its lane mutates custom_components/)
-- `custom_components/heatpump_optimizer/replay_doc.py:564 GUARD_OFF`: pinned by mutation-autofix (its lane mutates custom_components/)
-- `custom_components/heatpump_optimizer/replay_doc.py:566 RETURN_DEL`: pinned by mutation-autofix (its lane mutates custom_components/)
-- `custom_components/heatpump_optimizer/replay_doc.py:568 RETURN_DEL`: pinned by mutation-autofix (its lane mutates custom_components/)
-- `custom_components/heatpump_optimizer/replay_doc.py:573 BOOLOP`: pinned by mutation-autofix (its lane mutates custom_components/)
-- `custom_components/heatpump_optimizer/replay_doc.py:573 GUARD_OFF`: pinned by mutation-autofix (its lane mutates custom_components/)
-- `custom_components/heatpump_optimizer/replay_doc.py:575 GUARD_OFF`: pinned by mutation-autofix (its lane mutates custom_components/)
-- `custom_components/heatpump_optimizer/replay_doc.py:577 BOOLOP`: pinned by mutation-autofix (its lane mutates custom_components/)
-- `custom_components/heatpump_optimizer/replay_doc.py:577 GUARD_OFF`: pinned by mutation-autofix (its lane mutates custom_components/)
-- `custom_components/heatpump_optimizer/replay_doc.py:579 BOOLOP`: pinned by mutation-autofix (its lane mutates custom_components/)
-- `custom_components/heatpump_optimizer/replay_doc.py:580 GUARD_OFF`: pinned by mutation-autofix (its lane mutates custom_components/)
-- `custom_components/heatpump_optimizer/replay_doc.py:583 RETURN_DEL`: pinned by mutation-autofix (its lane mutates custom_components/)
-- `custom_components/heatpump_optimizer/replay_doc.py:589 GUARD_OFF`: pinned by mutation-autofix (its lane mutates custom_components/)
-- `custom_components/heatpump_optimizer/replay_doc.py:593 BOOLOP`: pinned by mutation-autofix (its lane mutates custom_components/)
-- `custom_components/heatpump_optimizer/replay_doc.py:599 GUARD_OFF`: pinned by mutation-autofix (its lane mutates custom_components/)
-- `custom_components/heatpump_optimizer/replay_doc.py:617 RETURN_DEL`: pinned by mutation-autofix (its lane mutates custom_components/)
-- `custom_components/heatpump_optimizer/replay_doc.py:648 RETURN_DEL`: pinned by mutation-autofix (its lane mutates custom_components/)
-- `custom_components/heatpump_optimizer/replay_doc.py:662 BOOLOP`: pinned by mutation-autofix (its lane mutates custom_components/)
-- `custom_components/heatpump_optimizer/replay_doc.py:662 GUARD_OFF`: pinned by mutation-autofix (its lane mutates custom_components/)
-- `custom_components/heatpump_optimizer/replay_doc.py:667 GUARD_OFF`: pinned by mutation-autofix (its lane mutates custom_components/)
-- `custom_components/heatpump_optimizer/replay_doc.py:672 GUARD_OFF`: pinned by mutation-autofix (its lane mutates custom_components/)
-- `custom_components/heatpump_optimizer/replay_doc.py:674 RETURN_DEL`: pinned by mutation-autofix (its lane mutates custom_components/)
-- `custom_components/heatpump_optimizer/replay_doc.py:679 GUARD_OFF`: pinned by mutation-autofix (its lane mutates custom_components/)
-- `custom_components/heatpump_optimizer/replay_doc.py:681 BOOLOP`: pinned by mutation-autofix (its lane mutates custom_components/)
-- `custom_components/heatpump_optimizer/replay_doc.py:681 GUARD_OFF`: pinned by mutation-autofix (its lane mutates custom_components/)
-- `custom_components/heatpump_optimizer/replay_doc.py:683 RETURN_DEL`: pinned by mutation-autofix (its lane mutates custom_components/)
-- `custom_components/heatpump_optimizer/replay_doc.py:689 GUARD_OFF`: pinned by mutation-autofix (its lane mutates custom_components/)
-- `custom_components/heatpump_optimizer/replay_doc.py:701 CMP_BOUND`: pinned by mutation-autofix (its lane mutates custom_components/)
-- `custom_components/heatpump_optimizer/replay_doc.py:704 GUARD_OFF`: pinned by mutation-autofix (its lane mutates custom_components/)
+None at this head. `ci_predict.py --only mutation` lists no `ADDED UNPINNED` site. The seven sites 4c994241d left unpinned (all `custom_components/heatpump_optimizer/replay_doc.py`, at 4c994241d's line numbers), each with its disposition:
 
-`tools/replay/cut_day.py` and `tools/replay/export.py` are `tools/` sites, which `mutation-autofix` does not mutate: each site's mutant and the check it turns red are listed under `## Mutation proof`, run from the out-of-tree harnesses cited there by sha1. The lane's `RestoringHass` and the controls replay in `run_fixture` are pinned by the fixture's nightly `away` check (12 offenders with the restore closed, above).
+- `:535 GUARD_OFF` (`entity_roles`, an `_entities` list): pinned at this head, `entity_roles.GUARD_OFF.97aacf73`, killed by `tests/entities.py` through `mask:entities_list_ids_take_their_numbered_role`.
+- `:577 BOOLOP`, `:577 GUARD_OFF`, `:579 BOOLOP` (`_entity_ids`'s `keyed` logic): removed with that logic. Every dict key is now collected, and the site no longer exists. Driving them is what exposed the masking hole (the opening's item 6).
+- `:580 GUARD_OFF` (ids in a list): pinned, `_entity_ids.GUARD_OFF.50e92e5d`.
+- `:589 GUARD_OFF` (a non-document payload): pinned, `_unmasked.GUARD_OFF.14f861a9`.
+- `:672 GUARD_OFF` (a list scanned for credential copies): pinned, `_scan.GUARD_OFF.08da69e4`.
+
+- Carry 12 adds three sites, each pinned by `mutation_table.py --pin-killed` (`PIN KILLED: 3 pinned, 0 left unpinned`): `:416 RETURN_DEL` (`_no_credential`, killed by `tests/entities.py`), `:423 BOOLOP` (killed by `tests/debug_collect.py`) and `:423 GUARD_OFF` (killed by `tests/structure.py`). Its edit staled the two `_walk` pins on the old one-line guard, `_walk.BOOLOP.5476d757` and `_walk.GUARD_OFF.5476d757`. Both were deleted by hand, as `ci_predict.py` names that repair, and the new line is pinned afresh above.
+
+The seven were unpinned because no check drove those branches, so no driver could kill them: they were survivors, not unevaluated sites. None was dropped silently.
+
+## Carries
+
+Roster `origin/handoff/audit-r10-roster` at 806d2db83aa080b0cfb3ad9926c48e648e109a7b (`git show 806d2db83aa080b0cfb3ad9926c48e648e109a7b:dev/programme/rosters/wave-r10-groups.json`), group R10-REPLAY-REAL-DAY, `carry` list.
+
+At 806d2db83, no group other than R10-REPLAY-REAL-DAY carried carries 4, 6, 8, 9 or 10's open half. The only matches were in done groups (R10-PARAMS-OWNER, R10-HEAT-METER, R10-REPLAY-LANE), which is the verdict's Block 3.
+
+At the roster's later tip, 42142a7883be474bcb8e30835ce3d7809a8ecf60 (`git show 42142a7883be474bcb8e30835ce3d7809a8ecf60:dev/programme/rosters/wave-r10-groups.json`, read by this seat), the orchestrator has added two live groups, both `not-started`, both `after: R10-REPLAY-REAL-DAY`:
+
+- **R10-LIVE-BUNDLE-READS** holds carries 4, 6, 8 and 9, verbatim, as its carries 1-4.
+- **R10-REPLAY-COST-BUDGET** holds the COST_BUDGETS record, owed from the second runner class. This pull request now records a budget, so that group's remaining work is carry 10's open half: re-centring on the other CI class's reading. Its carry text quotes round 1's body ("Not recorded locally"), which this round supersedes. The orchestrator should restate it before dispatch.
+
+This seat cannot edit the roster. Before merge, the orchestrator confirms that both groups are still live at the roster SHA it merges against.
+
+- Carry 12, from the round-10 register: D15-s1-04, "export credential-named-key rule flags a boolean value". Done in this round (the opening's item 7, `## Figures`).
+- Carry 1 (the real day), carry 2 (classify the fixture; COST_BUDGETS is now recorded), carry 3 (#2810), carry 5 (R10-DIAG-REDACT on the owner's day), carry 7 (the day choice) and carry 11 (MariaDB and masking): done, as round 1 recorded.
+- Carry 4, verbatim, not done (it needs a live diagnostics bundle, which the replay export does not carry and this seat may not hold):
+  > From R10-HEAT-METER (#2261; D15 lead L9, finding-propagation.md). Each weekly learner snapshot now records `unhealthy_input`. It holds the first reason `_inputs_unhealthy` gave on that day: the rule over the indoor, outdoor and power inputs that marks a snapshot unhealthy. The house meter is not one of its inputs. On a healthy day it holds None. Read it in the next live bundle. Name which input marked each unhealthy weekly snapshot, and say whether that input was genuinely silent or whether outdoor's 180 min on-change limit flagged a quiet, healthy sensor. Change that limit only on that evidence. Controls: a week with every input reporting marks the snapshot healthy and names none (null); a week with one input silent all day names that input.
+- Carry 6, verbatim, not done (the same live bundle):
+  > **R10-REPLAY-REAL-DAY** carry 4 (D15 lead L9), in its brief on `origin/main`: read `unhealthy_input` from each weekly learner snapshot in the next live bundle, name the input that marked each unhealthy snapshot, and change outdoor's 180 min on-change limit only on that evidence. Controls: a week with every input reporting names none (null); a week with one input silent all day names that input. Carry: R10-REPLAY-REAL-DAY
+- Carry 8, verbatim original text (STRANDED CARRY 34, from R10-HEAT-METER), not done (it needs a live bundle's sensors self-test record):
+  > D15 live-bundle lead L6 (owner install; unverified): at finalisation the sensors self-test flagged the house-power meter as a problem input, 238 min old, while the current `data.inputs` reports health `ok`; historical only. VERIFY with the input-freshness work of this group: read the sensors self-test's age rule for a power entity and decide whether a change-reporting meter on a quiet circuit can age past it without an outage. If it can, key the age on the entity's last report time and the integration's own sample, not on the last change. Controls: a power entity that reports a constant value for 4 h is not flagged when its last_updated advances (null: a real silence over the threshold is flagged); one mutant that reads last_changed. (triage: dev/programme/triage/s6-batch24.md#P118)
+- Carry 9, verbatim original text (STRANDED CARRY 54, from R10-PARAMS-OWNER), not done (it needs the owner's diagnostics bundle):
+  > From R10-SCORES (handoff-body/r10-scores at 8f564875), Forward-carry: **Blocked, not designed around:** the owner's bundle is not in this container, so the suspected 2.6x scale drift and the band on the owner's own house are unmeasured. The harness takes `--bundle PATH` and prints the stored scale, split and samples and the grade on both bases. A local seat with the bundle runs the harness with `--bundle PATH` as part of that group.
+- Carry 10, verbatim original text (STRANDED CARRY 57, from R10-REPLAY-LANE), **half done**. The budget is recorded at the centre of a spread over four environments (`## Figures`). Those environments hold one CI class, not the two the carry asks for. The open half is to re-centre on the second CI class's reading, from the next nightly `slow` lane or a CI `replay` job on the other runner class. That is R10-REPLAY-COST-BUDGET's work (see above):
+  > R10-REPLAY-LANE must not record a loop_cpu_ratio budget for the real-day fixture from one environment. The same code reads 0.0823-0.1236 (1.50x) across four environments, and ruler speed does not predict it: an idle 4-core box with a 172-190 ms ruler reads 0.109-0.124. Either record at the centre of a spread measured in at least the two CI classes plus one box outside them, or replace the absolute band with a reference measured in the same job (the loop against a fixed tree, on the same runner) so the box cancels. Until then, 0.143 holds only the 1.50x measured here. (source #2548 round 2; replaces the round-1 text)
 
 ## Forward-carry
 
-- The mold guard neutralises away mode on this install (a product finding, not this group's fix). With the measured indoor humidity of 52-53 %, outdoor 1-5 °C and `thermal_bridge_frsi` 0.7, `mold_safe_room_floor` gives 19.2-20.9 °C, which `_mold_floor_series` caps at the configured target 19.5 °C and, by design, keeps above the away setback; so on the 2026-10-30 away span the head plans 5.5-13.2 kWh of space heating over each 24 h plan with the view correctly away (floor 15.0) and the plans' predicted room minimum at 19.5-20.6 °C. Perturbation: the same fixture with `mold_guard_enabled` False plans 0 kWh at 11 of 12 away cycles, the room falling to 14.3 °C. The docs must not claim that away mode saves energy while the mold guard holds the floor; the product question goes to tvofi. Lands in `dev/programme/rosters/wave-r10-groups.json`, as a carry of R10-USER-DOCS-VERIFY. Carry: R10-USER-DOCS-VERIFY
+- **The mold guard neutralises away mode on this install.** This is a product finding, not this group's fix, and is unchanged from round 1. It lands as a carry of R10-USER-DOCS-VERIFY in `dev/programme/rosters/wave-r10-groups.json`: the "From R10-REPLAY-REAL-DAY (orchestrator s9, 2026-11-01)" entry, present at 806d2db83. Carry: R10-USER-DOCS-VERIFY
 
 ## Friction
 
 none
+
+## Self-correction
+
+The commit `replay: record the owner fixture's cost budget` names this seat's container as a "Python 3.13 venv". It is Python 3.14.7. The CI replay job is 3.13.
