@@ -1,0 +1,104 @@
+########## scoped gate ##########
+  MODE: SCOPED -- 27 script(s) run, 6 scoped out.
+  changed files (105), measured against the recorded closures in tests/closures.json:
+      custom_components/heatpump_optimizer/accuracy.py
+      custom_components/heatpump_optimizer/coordinator.py
+      custom_components/heatpump_optimizer/diagnostics.py
+      custom_components/heatpump_optimizer/draw_range.py
+      custom_components/heatpump_optimizer/payload.py
+      custom_components/heatpump_optimizer/pump_arbiter.py
+      custom_components/heatpump_optimizer/quiet_windows.py
+      custom_components/heatpump_optimizer/sensor.py
+      custom_components/heatpump_optimizer/store.py
+      custom_components/heatpump_optimizer/sysid.py
+      custom_components/heatpump_optimizer/thermal_model.py
+      dev/audit/harnesses/ceiling_probe.py
+      dev/audit/harnesses/r10_setpoint_boost.py
+      dev/programme/delivery/3050.md
+      tests/closures.json
+      tests/entities.py
+      tests/features.py
+      tests/golden/claimed_drift.txt
+      tests/golden/coord_all_features.json
+      tests/golden/coord_dhw.json
+      tests/golden/coord_grid_fee.json
+      tests/golden/coord_minimal.json
+      tests/golden/coord_two_zone.json
+      tests/mutation_ledger/killed_by/draw_range.py/@module.CONST.4aad47f0.json
+      tests/mutation_ledger/killed_by/draw_range.py/@module.CONST.64815056.json
+      tests/mutation_ledger/killed_by/draw_range.py/@module.CONST.c9d292c3.json
+      tests/mutation_ledger/killed_by/draw_range.py/@module.CONST.db57fbad.json
+      tests/mutation_ledger/killed_by/draw_range.py/DrawRange._overdrawn.BOOLOP.c78c910d.json
+      tests/mutation_ledger/killed_by/draw_range.py/DrawRange._overdrawn.CMP_BOUND.18307452.json
+      tests/mutation_ledger/killed_by/draw_range.py/DrawRange._overdrawn.CMP_BOUND.c1c89739.json
+      tests/mutation_ledger/killed_by/draw_range.py/DrawRange._overdrawn.CMP_BOUND.c78c910d.json
+      tests/mutation_ledger/killed_by/draw_range.py/DrawRange._overdrawn.CMP_BOUND.ea13b93a.json
+      tests/mutation_ledger/killed_by/draw_range.py/DrawRange._overdrawn.GUARD_OFF.18307452.json
+      tests/mutation_ledger/killed_by/draw_range.py/DrawRange._overdrawn.GUARD_OFF.c1c89739.json
+      tests/mutation_ledger/killed_by/draw_range.py/DrawRange._overdrawn.GUARD_OFF.ea13b93a.json
+      tests/mutation_ledger/killed_by/draw_range.py/DrawRange.above_idle_kw.RETURN_DEL.57f929a4.json
+      tests/mutation_ledger/killed_by/draw_range.py/DrawRange.ceiling_since.RETURN_DEL.14a5174b.json
+      tests/mutation_ledger/killed_by/draw_range.py/DrawRange.learned_max_kw.CMP_BOUND.36f7cc06.json
+      tests/mutation_ledger/killed_by/draw_range.py/DrawRange.learned_max_kw.CMP_BOUND.793578eb.json
+      tests/mutation_ledger/killed_by/draw_range.py/DrawRange.learned_max_kw.GUARD_OFF.36f7cc06.json
+      tests/mutation_ledger/killed_by/draw_range.py/DrawRange.learned_max_kw.GUARD_OFF.793578eb.json
+      tests/mutation_ledger/killed_by/draw_range.py/DrawRange.learned_max_kw.RETURN_DEL.1f3a81af.json
+      tests/mutation_ledger/killed_by/draw_range.py/DrawRange.takes_ceiling.CMP_BOUND.5dfdeab2.json
+      tests/mutation_ledger/killed_by/draw_range.py/DrawRange.takes_ceiling.CMP_BOUND.ace88f8a.json
+      tests/mutation_ledger/killed_by/draw_range.py/_stored_ceiling.CMP_BOUND.ef224f84.json
+      tests/mutation_ledger/killed_by/draw_range.py/_stored_ceiling.GUARD_OFF.ef224f84.json
+      tests/mutation_ledger/killed_by/draw_range.py/_stored_ceiling.RETURN_DEL.23640190.json
+      tests/mutation_ledger/killed_by/draw_range.py/_stored_overdraws.CLAMP_DROP.9ccb0e19.json
+      tests/mutation_ledger/killed_by/draw_range.py/_stored_overdraws.RETURN_DEL.9ccb0e19.json
+      tests/mutation_ledger/killed_by/draw_range.py/fold.BOOLOP.dc29709b.json
+      tests/mutation_ledger/killed_by/draw_range.py/fold.GUARD_OFF.dc29709b.json
+      tests/mutation_ledger/killed_by/pump_arbiter.py/_experiment_kw.GUARD_OFF.755ef4b5.json
+      tests/mutation_ledger/killed_by/pump_arbiter.py/_experiment_kw.RETURN_DEL.cd567d85.json
+      tests/mutation_ledger/killed_by/pump_arbiter.py/_flow_command.GUARD_OFF.039fc422.json
+      tests/mutation_ledger/killed_by/pump_arbiter.py/_planned_duty.GUARD_OFF.44d997bd.json
+      tests/mutation_ledger/killed_by/pump_arbiter.py/_planned_duty.GUARD_OFF.be5476ee.json
+      tests/mutation_ledger/killed_by/quiet_windows.py/quiet_reason.RETURN_DEL.76b90284.json
+      tests/mutation_ledger/killed_by/sensor.py/_sysid_outcome.GUARD_OFF.bc3478fe.json
+      tests/mutation_ledger/killed_by/sysid.py/@module.CONST.bb90ed59.json
+      tests/mutation_ledger/killed_by/sysid.py/@module.CONST.de8e6cf0.json
+      ... and 45 more
+
+      RUN   tests/arch_score_head.py
+      RUN   tests/backtest.py
+      RUN   tests/block_duty.py
+      RUN   tests/boost_drift_replay.py
+      RUN   tests/config_flow_steps.py
+      RUN   tests/debug_collect.py
+      RUN   tests/deployment_shape.py
+      RUN   tests/doc_claims.py
+      RUN   tests/edge.py
+      RUN   tests/entities.py
+      RUN   tests/env_drift.py
+      RUN   tests/features.py
+      RUN   tests/finite_boundary.py
+      RUN   tests/golden.py
+      RUN   tests/guard_pins.py
+      RUN   tests/harness_headers.py
+      RUN   tests/manual_plan.py
+      RUN   tests/optimality.py
+      RUN   tests/plan_view.py
+      RUN   tests/card.mjs
+      RUN   tests/card_drift.mjs
+      RUN   tests/solar_alignment.py
+      RUN   tests/stress.py
+      RUN   tests/structure.py
+      RUN   tests/typing_ruler.py
+      RUN   tests/validate.py
+      RUN   tests/wood_advisor.py
+
+      SKIP  tests/arch_score.py  (closure: 156 files, no changed file is in its measured closure)
+      SKIP  tests/frontend.py  (closure: 6 files, no changed file is in its measured closure)
+      SKIP  tests/ha_contract.py  (closure: 36 files, no changed file is in its measured closure)
+      SKIP  tests/layout.py  (closure: 3 files, no changed file is in its measured closure)
+      SKIP  tests/md_tables.mjs  (closure: 10 files, no changed file is in its measured closure)
+      SKIP  tests/open_meteo.py  (closure: 3 files, no changed file is in its measured closure)
+
+  A skipped script is a claim that no changed file is in its measured
+  closure. The claim is re-checked by the FULL unscoped suite that runs
+  on every push to main, so a wrong closure turns main red within one
+  gate. Set GATE_SCOPE=full to run everything here and now.

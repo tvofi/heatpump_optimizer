@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/draw_range.py b/custom_components/heatpump_optimizer/draw_range.py
+index 125266a5e..d8c4c2ba0 100644
+--- a/custom_components/heatpump_optimizer/draw_range.py
++++ b/custom_components/heatpump_optimizer/draw_range.py
+@@ -176,7 +176,7 @@ class DrawRange:
+         return self._ceiling_median()
+ 
+     def _ceiling_median(self) -> float:
+-        return float(np.median([d for d, _ in self.ceiling]))
++        return float(np.percentile([d for d, _ in self.ceiling], 90))
+ 
+     def takes_ceiling(self, drawn_kw: float, command: Any) -> bool:
+         """An experiment's interval is store evidence: the ceiling written
