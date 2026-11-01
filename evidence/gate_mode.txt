@@ -1,6 +1,0 @@
-MODE: REPORT (exit 0 on findings until R9-RO-9)
-2026-11-01T19:46:15.4236611Z   ok   UNDER-SCOPED recordings merge into the committed closure
-ned classifier that disagrees with the closures job's UNDER-SCOPED reddens (#1846)
-.4239734Z   ok   a closures check that failed without UNDER-SCOPED reddens naming the owed manual repair (#1864 INERT READS)
-11-01T19:46:15.5393016Z   Run everything here and now with: GATE_SCOPE=full ./tests/run.sh
-2026-11-01T19:46:15.5393245Z 5 TEST SCRIPT(S) PASSED; 30 SCOPED OUT AND NOT RUN

@@ -1,3 +1,0 @@
-roster: dev/programme/rosters/wave-r10-groups.json on handoff/audit-r10-roster
-roster_edit: REFUSED: no roster group 'R10-NOPE' (known: 304 groups)
-rc=2

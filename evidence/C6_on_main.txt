@@ -1,0 +1,6 @@
+RESULT mutant=C6 rc=1 fails=0
+    crash tail:
+          and branch_roster()["groups"][1]["carry"] == [])
+              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+      KeyError: 'carry'
+plants: 1, without a FAIL line: ['C6']

@@ -1,7 +1,0 @@
-roster_edit: REFUSED: no dev/programme/rosters/wave-r<N>-groups.json at /tmp/hpo-fr8-selftest-cd2k8rkt/wt6; pass --roster-path or --roster-ref
-roster_edit: REFUSED: no dev/programme/rosters/wave-r<N>-groups.json at origin/main in /tmp/hpo-fr8-selftest-cd2k8rkt/drv3; pass --roster-path or --roster-ref
-roster_edit self-test: 167 checks, 0 failed
-  ok   a named plant is kept
-  ok   an unknown plant is returned for refusal
-r10_roster_ops_mutants self-test: 141 checks, 0 failed
-RESULT mutant=null rc=0 fails=0
