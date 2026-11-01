@@ -1,0 +1,13 @@
+RESULT control #3045 shape: rc=4 APPROVAL-OWED
+RESULT null: red head not a raise (no budget file): rc=1 RED
+RESULT null: raise + tests/fast red: rc=1 RED
+RESULT null: raise + another unit red (tests / browser): rc=1 RED
+RESULT null: raise + tests/fast cancelled: rc=1 RED
+RESULT null: approval at the head (held): rc=1 RED
+RESULT null: approval at an older head: rc=4 APPROVAL-OWED
+RESULT null: gate red, raise unit green: rc=1 RED
+RESULT null: non-gate-unit red (governance / instrument-self-tests) + raise: rc=4 APPROVAL-OWED
+RESULT hidden: gate red because tests / browser SKIPPED (gate.py fails skipped; merge_train reads skipped green): rc=4 APPROVAL-OWED
+RESULT hidden: gate red because a unit is ABSENT (no check run): rc=4 APPROVAL-OWED
+RESULT hidden: gate red because a unit still in_progress: rc=4 APPROVAL-OWED
+RESULT no --pr: rc=1 RED
