@@ -31,11 +31,9 @@
 # THE ORDERING. `dispatch` refuses a head that carries no
 # `dev/programme/delivery/<pr>.md`, the pull request's own delivery row
 # (delivery-status-tracking.md). The row is the orchestrator's and lands
-# before the review: a row written after the verdict moves the head off the
-# one the reviewer measured, which `app_approve.sh --carry` refuses as a
-# commit of the branch's own, so it costs a re-review (R9-RCA-1990 class E).
-# A verdict posts only against a dispatch's nonce, so this is the one place
-# that can keep the row from landing late. `dispatch` also REFUSES TO MINT a
+# before the review, so the reviewer reads it at the head it measures; a row
+# written after the verdict, delivery_row.sh's own commit, carries the verdict
+# (`app_approve.sh --carry`, P123). `dispatch` also REFUSES TO MINT a
 # nonce for a head whose `review_carry.py <reviewed-head> <head>` answers
 # CARRY -- no branch-authored commit since the head the caller names with
 # --reviewed-head (tvofi, 2026-10-27: "if there are no code changes, the
@@ -913,7 +911,7 @@ bus-nonce: $N1b" ] && [ "$(grep -c " $N1b " "$W/state/dispatched")" = 2 ] \
   # THE REVIEW CARRY (R10-REVIEW-CARRY; tvofi, 2026-10-27). A fresh nonce over a
   # head whose range against the named reviewed head is clean starts a second
   # reviewer for a proof that did not move. `hm` is a merge-only move (main
-  # advances, the branch merges it); `h2` carries a non-merge commit. One
+  # advances, the branch merges it); `h2c` carries a code line. One
   # command, opposite answers: `review_carry.py` decides, dispatch refuses or
   # mints. origin/main is restored below so the orphans arms keep their base.
   cbase=$(git -C "$W/seat" rev-parse "origin/main")
@@ -935,9 +933,13 @@ bus-nonce: $N1b" ] && [ "$(grep -c " $N1b " "$W/state/dispatched")" = 2 ] \
     && ! python3 -I "$ROOT/tools/audit/seat/ledger.py" --log "$W/ledger/cloud-relay.log" board 2>/dev/null \
          | grep -q "reviewer-fire 31 "
   expect "dispatch refuses to mint a nonce over a clean range, naming the reviewed head, and records nothing" $?
-  out=$(seat dispatch 31 "$h2" cmsg_C2 --reviewed-head "$h1"); rc=$?
+  # `h2` alone is an empty commit, which carries (Lever L6): one code line on it.
+  git -C "$W/seat" checkout -q --detach "$h2"; printf 'code\n' > "$W/seat/carry-code.txt"
+  git -C "$W/seat" add carry-code.txt; git -C "$W/seat" -c user.name=t -c user.email=t@t commit -q -m "fix: one code line"
+  h2c=$(git -C "$W/seat" rev-parse HEAD)
+  out=$(seat dispatch 31 "$h2c" cmsg_C2 --reviewed-head "$h1"); rc=$?
   [ $rc = 0 ] && echo "$out" | grep -q '^bus-nonce: ' \
-    && [ "$(grep -c "^31 $h2 " "$W/state/dispatched")" = 1 ]
+    && [ "$(grep -c "^31 $h2c " "$W/state/dispatched")" = 1 ]
   expect "null control: dispatch mints at a head that does carry code" $?
   git -C "$W/seat" checkout -q main
   git -C "$W/seat" push -q -f origin "$cbase:refs/heads/main"

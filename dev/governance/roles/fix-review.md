@@ -88,7 +88,8 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
 
     **A `merge` verdict attaches to the head its first line names and carries**
     (#1667; tvofi 2026-10-27) while `tools/audit/seat/review_carry.py
-    <verdicted> <new>` prints `CARRY`: no branch-only commit, not `head-moved`.
+    <verdicted> <new>` prints `CARRY`: the PR's patch is the one reviewed
+    (L6), not `head-moved`; a red CI never carries.
     Else a main merge is its **resolution delta**, alone yours; any other move is re-reviewed.
 
 13. **A conflict is a measurement, not a status field.** `mergeStateStatus:

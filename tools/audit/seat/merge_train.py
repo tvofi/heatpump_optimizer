@@ -53,7 +53,7 @@ later pull request would be graded against a `main` the refused one never joined
                  one, which is why the refusal fires only where the head
                  already contains main;
   3. carry    -- `app_approve.sh --carry <verdict> <head>` must say `CARRY: yes`:
-                 the head differs from the verdicted one only by automatic merges;
+                 the pull request's patch at the head is the verdicted one's (L6);
   4. main     -- `origin/main` is still inside the head after CI (else main moved:
                  recovered up to --main-moved-tries times, below);
   5. policy   -- no changed file (`--no-renames`, so a rename names the path it
@@ -1797,7 +1797,7 @@ class Train:
         listed = ", ".join(f"`{p}`" for p in paths)
         body = (f"Agent approval for {what} {listed}, given by {self.role} under {under}, at head {h}.\n\n"
                 f"Basis: `Fix review: merge {item['verdict']}` (comment {item.get('verdict_comment', '?')}), carried to {h} "
-                f"by `app_approve.sh --carry` (automatic main merges only). CI at {h} is green"
+                f"by `app_approve.sh --carry` (the pull request's patch is the verdicted one's). CI at {h} is green"
                 + (f" apart from {', '.join('`%s`' % n for n in self.ignore)}, which grade main." if self.ignore else ".") + "\n")
         bf = self.state / f"{name}{pr}.md"
         bf.write_text(body)
@@ -6651,7 +6651,7 @@ def _add_self_test(check) -> None:
               "(app_approve.sh's own CARRY: no), nothing spooled",
               rc == 1 and lines[-1].startswith(f"ADD REFUSED #11 carry: the verdict {cv[:12]} does not carry to "
                                                f"head {cn[:12]}: CARRY: no")
-              and f": {cn} is a commit of the" in lines[-1]
+              and f"own commits {cn[:9]} change its content" in lines[-1]
               and [e["pr"] for e in spool_read(st)[0]] == [8, 10])
 
         st = Path(tempfile.mkdtemp(dir=tmp.name))
