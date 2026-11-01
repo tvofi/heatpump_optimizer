@@ -447,8 +447,9 @@ COST_BUDGETS: dict[str, dict[str, float]] = {
 #: is fixture-independent and stays on the fixtures not named here, which the
 #: driver requires to exist.
 COST_ARMS_SKIPPED: dict[str, str] = {
-    "owner-2026-10-30-away.json": "a real install's solve, 16 cycles at "
-    "several CPU-minutes each; the arms run on the synthetic fixture",
+    "owner-2026-10-30-away.json": "a real install's solve: 16 cycles, about 12 "
+    "CPU-minutes a replay, so four would overrun the replay job; the arms run on "
+    "the synthetic fixture",
 }
 #: A reference solve after every this many cycles, beside the ones before
 #: and after the day, so the unit tracks the runner through the replay.
