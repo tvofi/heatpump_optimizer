@@ -1,0 +1,3 @@
+wrote /tmp/tmprc38iecx/page.html: 8 groups, closure 2026-01-06T15:14:00Z
+wrote /tmp/tmprc38iecx/page.html: 8 groups, closure 2026-01-06T15:14:00Z
+plan_page self-test: 66 checks, 0 failed
