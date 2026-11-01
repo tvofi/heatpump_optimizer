@@ -19,8 +19,12 @@ PR body. A `NOT APPLIED` line means the mutated text moved.
 """
 import pathlib
 import subprocess
+import sys
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import mutant_guard  # noqa: E402 -- restores the mutated file on a kill and refuses a leftover mutant
 
 p = pathlib.Path('tools/policy/agreement.mjs')
+mutant_guard.arm(['tools/policy/agreement.mjs'])
 orig = p.read_text()
 M = {
 'M1 title arm end-anchor':(r"/^\S(?:.*\S)? \(#[1-9]\d*\)$/",r"/\(#\d+\)$/"),
