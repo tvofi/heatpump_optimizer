@@ -419,7 +419,7 @@ Role: dev/governance/roles/root-cause.md. |  |
 | R10-REPLAY-COST-BUDGET | RP | 2 | not-started | - | sonnet/opus | yes: code-owned: tests/replay.py (mandated approval under 6329234399) | Record the real recorded day's cost budget in tests/replay.py from #3078's CI replay job (its record lines), the second runner class, once #3078 has merged;... |  |
 | R10-WHY-NOW-WIDGET | UI | 2 | not-started | - | opus/opus | - | A live "why now" widget for the current slot (tvofi 2026-11-01, rulings card 2 option (c) Both, part (b)): it shows the reasons behind that slot's decision,... |  |
 | R10-PROD-RESIDUE-PINS | CORE | 1 | not-started | - | sonnet/opus | - | Two production residuals the s9 residual sweep re-verified LIVE at origin/main 92588d581, from review notes that never reached a group. |  |
-| R10-HOTFIX-UUTILS-SLEEP | IN | 1 | not-started | - | opus/opus | - | HOTFIX, critical path: main is red (governance / instrument-self-tests, 'pr_args self-test: 158 checks, 2 failed', main 6421fe135, job 124813746788; green at... |  |
+| R10-HOTFIX-UUTILS-SLEEP | IN | 1 | in-progress | - | opus/opus | - | HOTFIX, critical path: main is red (governance / instrument-self-tests, 'pr_args self-test: 158 checks, 2 failed', main 6421fe135, job 124813746788; green at... |  |
 
 ## ETA
 
