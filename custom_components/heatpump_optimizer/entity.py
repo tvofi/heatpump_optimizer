@@ -115,8 +115,8 @@ def zone_setpoint_attributes(action: Any) -> dict[str, Any]:
     return {
         published: action[planned]
         for planned, published in (
-            ("upper_setpoint", "upper_floor_setpoint"),
-            ("lower_setpoint", "lower_floor_setpoint"),
+            ("upper_setpoint", "lower_floor_setpoint"),
+            ("lower_setpoint", "upper_floor_setpoint"),
         )
         if planned in action
     }
