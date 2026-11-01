@@ -11789,7 +11789,7 @@
    "resume": {
     "stage": "carries-open",
     "branch": "handoff/r10-fly-gh-call-log",
-    "commit": null,
+    "commit": "407eb0cb38f3cd43e71f4ed7be1c23f80dc32cc1",
     "last_step": null,
     "next_step": "dispatch a fixer (fly-in)",
     "note": "2026-10-29 (triage: dev/programme/triage/s6-batch60.md#P284)",
