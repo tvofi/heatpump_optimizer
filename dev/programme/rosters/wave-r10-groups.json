@@ -13089,7 +13089,9 @@
    ],
    "group": "R10-USER-DOCS-VERIFY",
    "size": "M",
-   "issues": [],
+   "issues": [
+    3139
+   ],
    "fixes": [],
    "findings": [],
    "carry": [
