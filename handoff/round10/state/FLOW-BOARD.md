@@ -1,6 +1,6 @@
 # Flow board
 
-Window ends 2026-11-01T05:29:03+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
+Window ends 2026-11-01T05:43:04+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
 
 Sources: tree `origin/main`, roster `origin/handoff/audit-r10-roster`, bus `origin/review/*`
 
@@ -8,8 +8,8 @@ Sources: tree `origin/main`, roster `origin/handoff/audit-r10-roster`, bus `orig
 |---|---|---|
 | roster groups closed vs takt | 1 / 1.0 | 23 / 24.0 |
 | fly-ins closed | 0 | 15 |
-| main moves: group-carrying / record / roster-edit / fly-in | 1 / 1 / 0 / 0 | 11 / 5 / 0 / 15 |
-| first-pass fix-review yield | 10/17 (0.59) | 24/40 (0.60) |
+| main moves: group-carrying / record / roster-edit / fly-in | 1 / 0 / 0 / 0 | 11 / 5 / 0 / 15 |
+| first-pass fix-review yield | 11/18 (0.61) | 24/40 (0.60) |
 | blocked-class mix | carry-over-wide:1, claim-stronger-than-check:1, class-open:3, mutation-vacuous:2, rule-lost:1 | body-stale:1, carry-missing:6, carry-over-wide:1, ci-pending:1, ci-red:2, claim-stronger-than-check:1, class-open:11, defect:1, figure-wrong:2, gate-red:2, head-moved:1, metric-gamed:3, mutation-survivor:1, mutation-unpinned:1, mutation-vacuous:10, raise-unjustified:1, regression:1, root-cause-detectable:2, rule-lost:1, scope-incomplete:2, swap-void-undone:1 |
 | lead time per size (h, n/p50/max) | S n=1 p50=12.88 max=12.88 | M n=3 p50=14.03 max=23.44; S n=8 p50=10.87 max=13.02 |
 
@@ -17,7 +17,7 @@ Sources: tree `origin/main`, roster `origin/handoff/audit-r10-roster`, bus `orig
 
 | A critical path | B product | C process | F fly-in |
 |---|---|---|---|
-| 3 | 37 | 3 | 9 |
+| 3 | 38 | 3 | 9 |
 
 ## Rules
 
