@@ -1,6 +1,0 @@
-## head
-RESULT verdict {} sites 68 modules 84
-## R3_PLANT=1
-RESULT verdict {('coordinator.py', 'async_factory_reset'): (2, 1)} sites 69 modules 84
-## R3_DROP=1
-RESULT verdict {('coordinator.py', 'async_factory_reset'): (1, 0)} sites 68 modules 84

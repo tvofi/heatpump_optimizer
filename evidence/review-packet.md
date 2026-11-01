@@ -1,51 +1,47 @@
 # Review packet #3047
-head: 96211117d1341cb71925086fc44182f68b67139d
-base: 8fec54ee2afb5e37687f34bc5fd3aa7280f64e1f
+head: d1662cf7b100fe99cc9938c2a536dbced55823f3
+base: fb0a6d5a30aa2e3a0b1ce4dd926c057d34a32fa8
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
 ## Gate digest: red
-CodeQL id=124725519149 neutral
-arch-score / arch-score id=124725374666 success
-arm id=124725308552 skipped
-budget-raise-gate / budget-raise-gate id=124725374730 failure
-cancel-superseded id=124725309278 success
-codeql / Analyze (actions) id=124725374604 success
-codeql / Analyze (javascript-typescript) id=124725374596 success
-codeql / Analyze (python) id=124725374650 in_progress
-governance / delivery-status id=124725374643 success
-governance / delivery-status-publish id=124725376097 skipped
-governance / env-matrix id=124725374657 in_progress
-governance / instrument-self-tests id=124725374680 in_progress
-governance / policy-docs id=124725374679 in_progress
-governance / record id=124725375928 skipped
-governance / wave-script id=124725374703 success
-hassfest / hassfest id=124725374673 success
-kernel-points id=124725375438 skipped
-prelude id=124725309207 in_progress
-refresh id=124725309271 success
-tests / arch-instrument id=124725600701 in_progress
-tests / briefs id=124725374623 success
-tests / browser id=124725600813 queued
-tests / closure-scope id=124725374686 success
-tests / closures id=124725600725 in_progress
-tests / coverage id=124725600789 queued
-tests / fast (3.14) id=124725600699 in_progress
-tests / mutation id=124725374602 failure
-tests / mutation-pins (1) id=124725571231 in_progress
-tests / mutation-pins (2) id=124725571241 in_progress
-tests / mutation-pins (3) id=124725571217 in_progress
-tests / mutation-pins (4) id=124725571267 in_progress
-tests / mutation-pins (5) id=124725571260 in_progress
-tests / mutation-pins (6) id=124725571202 in_progress
-tests / mutation-pins (7) id=124725571276 in_progress
-tests / mutation-pins (8) id=124725571255 in_progress
-tests / nightly-ha (2025.2.0) id=124725600733 in_progress
-tests / nightly-ha (stable) id=124725600824 queued
-tests / nightly-status id=124725374597 success
-tests / replay id=124725600791 queued
-tests / typing id=124725600816 queued
-validate / validate-hacs id=124725374625 success
+CodeQL id=124865438441 neutral
+arch-score / arch-score id=124864905144 success
+arm id=124864662695 skipped
+budget-raise-gate / budget-raise-gate id=124864905210 queued
+cancel-superseded id=124864666521 success
+codeql / Analyze (actions) id=124864905184 success
+codeql / Analyze (javascript-typescript) id=124864905179 in_progress
+codeql / Analyze (python) id=124864905255 in_progress
+governance / delivery-status id=124864905316 queued
+governance / delivery-status-publish id=124864906224 skipped
+governance / env-matrix id=124864905823 queued
+governance / instrument-self-tests id=124864905219 in_progress
+governance / policy-docs id=124864905272 queued
+governance / record id=124864906818 skipped
+governance / wave-script id=124864905238 success
+hassfest / hassfest id=124864905227 success
+kernel-points id=124864906126 skipped
+prelude id=124864666680 in_progress
+refresh id=124864666833 queued
+tests / arch-instrument id=124865808481 queued
+tests / briefs id=124864905282 success
+tests / browser id=124865808504 queued
+tests / closure-scope id=124864905304 success
+tests / closures id=124865808538 queued
+tests / coverage id=124865808484 queued
+tests / fast (3.14) id=124865808454 queued
+tests / mutation id=124864905260 failure
+tests / mutation-pins (1) id=124865908498 queued
+tests / mutation-pins (2) id=124865908403 queued
+tests / mutation-pins (3) id=124865908450 queued
+tests / mutation-pins (4) id=124865908444 queued
+tests / nightly-ha (2025.2.0) id=124865808518 queued
+tests / nightly-ha (stable) id=124865808545 queued
+tests / nightly-status id=124864905221 success
+tests / replay id=124865808471 queued
+tests / typing id=124865808614 queued
+validate / validate-hacs id=124864905198 success
 
 ## Refusals
 none
@@ -60,38 +56,42 @@ NOTE body item a4676925: R10-LEARNED-STORE-LOAD: R10-LEARNED-STORE-LOAD resolved
 CARRY-AUDIT: 3 finding item(s): 3 routed, 0 unrouted, 0 bad destination(s)
 
 ## figure_lint at the head
-unverified PYTHONPATH=tests/hastub:custom_components python3 -c "from heatpump_optimizer.entry_config import FACTORY_KEPT; [print(k, '--', v) for k, v in FACTORY_KEPT.items()]"
+ok         tests/typing_ruler.py --mypy
+             `tests/typing_ruler.py` is in the tree at this head
+  ok         PYTHONPATH=tests/hastub python3 tests/features.py
+             `tests/features.py` is in the tree at this head
+  ok         PYTHONPATH=tests/hastub python3 tests/config_flow_steps.py
+             `tests/config_flow_steps.py` is in the tree at this head
+  ok         PYTHONPATH=tests/hastub python3 tests/env_drift.py --all 8fec54ee2afb5e37687f34bc5fd3aa7280f64e1f
+             `tests/env_drift.py` is in the tree at this head
+  ok         GOLDEN_MODE=strict PYTHONPATH=tests/hastub python3 tests/golden.py --only config_flow
+             `tests/golden.py` is in the tree at this head
+  ok         PYTHONPATH=tests/hastub python3 tests/doc_claims.py
+             `tests/doc_claims.py` is in the tree at this head
+  ok         node tests/md_tables.mjs
+             `tests/md_tables.mjs` is in the tree at this head
+  ok         PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py
+             `dev/audit/rounds/round4/D6/claims.py` is in the tree at this head
+  ok         tests/entities.py
+             `tests/entities.py` is in the tree at this head
+  ok         python3 tests/structure.py
+             `tests/structure.py` is in the tree at this head
+  ok         python3 tools/audit/archscore/score.py --diff 8fec54ee2afb5e37687f34bc5fd3aa7280f64e1f
+             `tools/audit/archscore/score.py` is in the tree at this head
+  ok         tests/closure.py select --diff 8fec54ee2
+             `tests/closure.py` is in the tree at this head
+  ok         tools/pr/ci_predict.py --base 92588d581fde4ce287af3db5e8bb61461dc28015
+             `tools/pr/ci_predict.py` is in the tree at this head
+  ok         tools/pr/prepr.sh
+             `tools/pr/prepr.sh` is in the tree at this head
+  unverified PYTHONPATH=tests/hastub:custom_components python3 -c "from heatpump_optimizer.entry_config import FACTORY_KEPT; [print(k, '--', v) for k, v in FACTORY_KEPT.items()]"
              python3 runs an inline script rather than a file
   ok         tests/features.py
              `tests/features.py` is in the tree at this head
   ok         tests/finite_boundary.py
              `tests/finite_boundary.py` is in the tree at this head
-  ok         PYTHONPATH=tests/hastub python3 tests/golden.py --record --only config_flow
-             `tests/golden.py` is in the tree at this head
-  ok         PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py
-             `dev/audit/rounds/round4/D6/claims.py` is in the tree at this head
-  ok         python3 tools/audit/archscore/score.py --diff origin/main
-             `tools/audit/archscore/score.py` is in the tree at this head
-  ok         python3 tests/structure.py
-             `tests/structure.py` is in the tree at this head
-  ok         D=$(mktemp -d); python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"
-             `tests/closure.py` is in the tree at this head
-  ok         tests/config_flow_steps.py
-             `tests/config_flow_steps.py` is in the tree at this head
-  ok         tests/env_drift.py --all 2b6bef74
-             `tests/env_drift.py` is in the tree at this head
-  ok         GOLDEN_MODE=strict tests/golden.py --only config_flow
-             `tests/golden.py` is in the tree at this head
-  ok         tests/structure.py
-             `tests/structure.py` is in the tree at this head
-  ok         tests/entities.py
-             `tests/entities.py` is in the tree at this head
-  ok         python3 tools/pr/ci_predict.py --base 2b6bef74
-             `tools/pr/ci_predict.py` is in the tree at this head
-  ok         tools/pr/prepr.sh
-             `tools/pr/prepr.sh` is in the tree at this head
 
-FIGURES: 14 resolved, 1 not verified, 0 refused
+FIGURES: 16 resolved, 1 not verified, 0 refused
 
 ## Finder's harness: none named
 ### at the base
@@ -100,6 +100,83 @@ not run
 not run
 
 ## Mutation-ledger diff
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow.async_step_factory_reset.GUARD_OFF.45d9e00a.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow.async_step_factory_reset.GUARD_OFF.45d9e00a.json
+new file mode 100644
+index 000000000..a6c6be541
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow.async_step_factory_reset.GUARD_OFF.45d9e00a.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow.async_step_factory_reset GUARD_OFF 45d9e00a",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "        if not user_input.get(\"confirm\"):",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=5."
++}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow.async_step_factory_reset.GUARD_OFF.8bc8eedc.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow.async_step_factory_reset.GUARD_OFF.8bc8eedc.json
+new file mode 100644
+index 000000000..ab6274a65
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow.async_step_factory_reset.GUARD_OFF.8bc8eedc.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow.async_step_factory_reset GUARD_OFF 8bc8eedc",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "        if user_input is None:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow.async_step_factory_reset.GUARD_OFF.a0db8943.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow.async_step_factory_reset.GUARD_OFF.a0db8943.json
+new file mode 100644
+index 000000000..ee637273a
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow.async_step_factory_reset.GUARD_OFF.a0db8943.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow.async_step_factory_reset GUARD_OFF a0db8943",
++  "killed_by": "tests/features.py",
++  "old": "        if (coord := getattr(self._entry, \"runtime_data\", None)) is None:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow.async_step_factory_reset.RETURN_DEL.f30dc257.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow.async_step_factory_reset.RETURN_DEL.f30dc257.json
+new file mode 100644
+index 000000000..a464949d9
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow.async_step_factory_reset.RETURN_DEL.f30dc257.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow.async_step_factory_reset RETURN_DEL f30dc257",
++  "killed_by": "tests/features.py",
++  "old": "        return self.async_abort(reason=\"factory_reset_done\" if done else \"factory_reset_not_applied\")",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._dhw_probe_temperature.GUARD_OFF.bc450a12.json b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._apply_learner_payloads.GUARD_OFF.fbcfbdb6.json
+similarity index 55%
+rename from tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._dhw_probe_temperature.GUARD_OFF.bc450a12.json
+rename to tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._apply_learner_payloads.GUARD_OFF.fbcfbdb6.json
+index 995ab42b6..28a879b47 100644
+--- a/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._dhw_probe_temperature.GUARD_OFF.bc450a12.json
++++ b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._apply_learner_payloads.GUARD_OFF.fbcfbdb6.json
+@@ -1,6 +1,6 @@
+ {
+-  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._dhw_probe_temperature GUARD_OFF bc450a12",
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._apply_learner_payloads GUARD_OFF fbcfbdb6",
+   "killed_by": "tests/features.py",
+-  "old": "        if self._learning_frozen(CONF_DHW_TEMP_ENTITY, room_air=False) is not None:",
+-  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
++  "old": "                if (value := finite_float(thermal.get(key))) is not None:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=9."
+ }
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._async_load_thermal_learning.CLAMP_DROP.1dc0e79b.json b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._async_load_thermal_learning.CLAMP_DROP.1dc0e79b.json
+new file mode 100644
+index 000000000..8f2d2d2b5
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._async_load_thermal_learning.CLAMP_DROP.1dc0e79b.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_load_thermal_learning CLAMP_DROP 1dc0e79b",
++  "killed_by": "tests/features.py",
++  "old": "        self._snow_accum_cm = max(0.0, finite_float(stored.get(\"snow_accum_cm\"), 0.0))",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`self._snow_accum_cm = (0.0)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
++}
 diff --git a/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._async_load_thermal_learning.GUARD_OFF.41a865ec.json b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._async_load_thermal_learning.GUARD_OFF.41a865ec.json
 deleted file mode 100644
 index 3aa7e0279..000000000
@@ -112,6 +189,222 @@ index 3aa7e0279..000000000
 -  "old": "        if ratio is not None:",
 -  "reason": "Recorded by `mutation_table.py --drain` against e3f3b312fff572904f24d78a44a2c4492b1a8ddb: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=5."
 -}
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._async_load_thermal_learning.GUARD_OFF.798dac67.json b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._async_load_thermal_learning.GUARD_OFF.798dac67.json
+new file mode 100644
+index 000000000..3b65af358
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._async_load_thermal_learning.GUARD_OFF.798dac67.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_load_thermal_learning GUARD_OFF 798dac67",
++  "killed_by": "tests/features.py",
++  "old": "        if (n := _stored_learner(stored, \"house_heat_loss_scale\", \"house_heat_loss_samples\", self._apply_house_heat_loss_scale)) is not None:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=25."
++}
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._async_load_thermal_learning.GUARD_OFF.b39a405a.json b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._async_load_thermal_learning.GUARD_OFF.b39a405a.json
+new file mode 100644
+index 000000000..4cac576fb
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._async_load_thermal_learning.GUARD_OFF.b39a405a.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_load_thermal_learning GUARD_OFF b39a405a",
++  "killed_by": "tests/features.py",
++  "old": "        if (n := _stored_learner(stored, \"buffer_cooling_rate\", \"buffer_cooling_samples\", self._apply_buffer_cooling_rate)) is not None:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
++}
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._async_load_thermal_learning.GUARD_OFF.dc87c807.json b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._async_load_thermal_learning.GUARD_OFF.dc87c807.json
+new file mode 100644
+index 000000000..0e019dd37
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._async_load_thermal_learning.GUARD_OFF.dc87c807.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_load_thermal_learning GUARD_OFF dc87c807",
++  "killed_by": "tests/features.py",
++  "old": "        if (n := _stored_learner(stored, _COP_STORE_KEY, \"cop_samples\", self._apply_cop_scale)) is not None:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=8."
++}
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._async_load_thermal_learning.GUARD_OFF.e9836e13.json b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._async_load_thermal_learning.GUARD_OFF.e9836e13.json
+new file mode 100644
+index 000000000..64c998c05
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._async_load_thermal_learning.GUARD_OFF.e9836e13.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_load_thermal_learning GUARD_OFF e9836e13",
++  "killed_by": "tests/features.py",
++  "old": "        if (n := _stored_learner(stored, \"lower_floor_loss_ratio\", \"lower_floor_loss_samples\", self._apply_lower_floor_loss_ratio)) is not None:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=21."
++}
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._current_humidity.BOOLOP.45eae803.json b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._current_humidity.BOOLOP.45eae803.json
+new file mode 100644
+index 000000000..d67aa509c
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._current_humidity.BOOLOP.45eae803.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._current_humidity BOOLOP 45eae803",
++  "killed_by": "tests/features.py",
++  "old": "        return value if value is not None and 0.0 <= value <= 100.0 else None",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`return value if value is not None or 0.0 <= value <= 100.0 else None`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._current_humidity.RETURN_DEL.45eae803.json b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._current_humidity.RETURN_DEL.45eae803.json
+new file mode 100644
+index 000000000..c77bebdab
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._current_humidity.RETURN_DEL.45eae803.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._current_humidity RETURN_DEL 45eae803",
++  "killed_by": "tests/features.py",
++  "old": "        return value if value is not None and 0.0 <= value <= 100.0 else None",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
++}
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator.async_restore_learned_snapshot.GUARD_OFF.d20d64a4.json b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator.async_restore_learned_snapshot.GUARD_OFF.d20d64a4.json
+new file mode 100644
+index 000000000..19098aaf9
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator.async_restore_learned_snapshot.GUARD_OFF.d20d64a4.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator.async_restore_learned_snapshot GUARD_OFF d20d64a4",
++  "killed_by": "tests/features.py",
++  "old": "        if \"before_reset\" in snap:  # a factory reset's undo point: stores and settings back",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:  # a factory reset's undo point: stores and settings back`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
++}
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/_async_rewrite_entry.GUARD_OFF.0bcc5a76.json b/tests/mutation_ledger/killed_by/coordinator.py/_async_rewrite_entry.GUARD_OFF.0bcc5a76.json
+new file mode 100644
+index 000000000..d9fb0b2fa
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/coordinator.py/_async_rewrite_entry.GUARD_OFF.0bcc5a76.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_async_rewrite_entry GUARD_OFF 0bcc5a76",
++  "killed_by": "tests/features.py",
++  "old": "    if not await hass.config_entries.async_unload(entry.entry_id):",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=5."
++}
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/_async_rewrite_entry.GUARD_OFF.3602237b.json b/tests/mutation_ledger/killed_by/coordinator.py/_async_rewrite_entry.GUARD_OFF.3602237b.json
+new file mode 100644
+index 000000000..2ba151ef0
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/coordinator.py/_async_rewrite_entry.GUARD_OFF.3602237b.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_async_rewrite_entry GUARD_OFF 3602237b",
++  "killed_by": "tests/features.py",
++  "old": "    if settings is not None:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6."
++}
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/_async_rewrite_entry.RETURN_DEL.80a0007e.json b/tests/mutation_ledger/killed_by/coordinator.py/_async_rewrite_entry.RETURN_DEL.80a0007e.json
+new file mode 100644
+index 000000000..b2226ca79
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/coordinator.py/_async_rewrite_entry.RETURN_DEL.80a0007e.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_async_rewrite_entry RETURN_DEL 80a0007e",
++  "killed_by": "tests/features.py",
++  "old": "    return True",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
++}
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/_async_store_documents.RETURN_DEL.e2917fe4.json b/tests/mutation_ledger/killed_by/coordinator.py/_async_store_documents.RETURN_DEL.e2917fe4.json
+new file mode 100644
+index 000000000..cb047400b
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/coordinator.py/_async_store_documents.RETURN_DEL.e2917fe4.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_async_store_documents RETURN_DEL e2917fe4",
++  "killed_by": "tests/features.py",
++  "old": "    return {name: await store.async_load() for (name, _), store in zip(_FACTORY_VOID, _restored_stores(coord))}",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/_stored_isoformat.GUARD_OFF.e71653f6.json b/tests/mutation_ledger/killed_by/coordinator.py/_stored_isoformat.GUARD_OFF.e71653f6.json
+new file mode 100644
+index 000000000..4d6112daa
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/coordinator.py/_stored_isoformat.GUARD_OFF.e71653f6.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_stored_isoformat GUARD_OFF e71653f6",
++  "killed_by": "tests/features.py",
++  "old": "    if not isinstance(raw, str):",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/_stored_learner.GUARD_OFF.49093545.json b/tests/mutation_ledger/killed_by/coordinator.py/_stored_learner.GUARD_OFF.49093545.json
+new file mode 100644
+index 000000000..40f62f181
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/coordinator.py/_stored_learner.GUARD_OFF.49093545.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_stored_learner GUARD_OFF 49093545",
++  "killed_by": "tests/features.py",
++  "old": "    if (value := stored.get(key)) is None:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/_stored_learner.RETURN_DEL.5cb47597.json b/tests/mutation_ledger/killed_by/coordinator.py/_stored_learner.RETURN_DEL.5cb47597.json
+new file mode 100644
+index 000000000..5163af912
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/coordinator.py/_stored_learner.RETURN_DEL.5cb47597.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_stored_learner RETURN_DEL 5cb47597",
++  "killed_by": "tests/features.py",
++  "old": "    return count",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=19."
++}
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/_stored_learner.RETURN_DEL.d7923b87~2.json b/tests/mutation_ledger/killed_by/coordinator.py/_stored_learner.RETURN_DEL.d7923b87~2.json
+new file mode 100644
+index 000000000..9afe1c2ec
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/coordinator.py/_stored_learner.RETURN_DEL.d7923b87~2.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_stored_learner RETURN_DEL d7923b87#2",
++  "killed_by": "tests/features.py",
++  "old": "        return None",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
++}
+diff --git a/tests/mutation_ledger/killed_by/entry_config.py/factory_settings.RETURN_DEL.9521dcc2.json b/tests/mutation_ledger/killed_by/entry_config.py/factory_settings.RETURN_DEL.9521dcc2.json
+new file mode 100644
+index 000000000..cd6eacae1
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/entry_config.py/factory_settings.RETURN_DEL.9521dcc2.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/entry_config.py:factory_settings RETURN_DEL 9521dcc2",
++  "killed_by": "tests/features.py",
++  "old": "    return with_settings((data, {**options, **pinned}), ({}, {}))",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6."
++}
+diff --git a/tests/mutation_ledger/killed_by/entry_config.py/with_settings.RETURN_DEL.80c79bfe.json b/tests/mutation_ledger/killed_by/entry_config.py/with_settings.RETURN_DEL.80c79bfe.json
+new file mode 100644
+index 000000000..4472f55a9
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/entry_config.py/with_settings.RETURN_DEL.80c79bfe.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/entry_config.py:with_settings RETURN_DEL 80c79bfe",
++  "killed_by": "tests/features.py",
++  "old": "    return {**rest[0], **kept[0]}, {**rest[1], **kept[1]}",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6."
++}
+diff --git a/tests/mutation_ledger/killed_by/services.py/handle_factory_reset.RETURN_DEL.4bcd781f.json b/tests/mutation_ledger/killed_by/services.py/handle_factory_reset.RETURN_DEL.4bcd781f.json
+new file mode 100644
+index 000000000..ae5ebd5ac
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/services.py/handle_factory_reset.RETURN_DEL.4bcd781f.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/services.py:handle_factory_reset RETURN_DEL 4bcd781f",
++  "killed_by": "tests/features.py",
++  "old": "    return {\"reset\": data[\"entry_id\"], \"scope\": data[\"scope\"]}",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
++}
 diff --git a/tests/mutation_ledger/killed_by/snapshots.py/SnapshotRing.best_restore.GUARD_OFF.512dc888.json b/tests/mutation_ledger/killed_by/snapshots.py/SnapshotRing.best_restore.GUARD_OFF.512dc888.json
 deleted file mode 100644
 index dfaa9348a..000000000
@@ -124,14 +417,62 @@ index dfaa9348a..000000000
 -  "old": "            if not snap.get(\"healthy\"):",
 -  "reason": "Recorded by `mutation_table.py --drain` against 9061fbd3d710d5894b7083d8a58b8203f9e7aa97: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
 -}
+diff --git a/tests/mutation_ledger/killed_by/snapshots.py/SnapshotRing.best_restore.GUARD_OFF.6541f9a5.json b/tests/mutation_ledger/killed_by/snapshots.py/SnapshotRing.best_restore.GUARD_OFF.6541f9a5.json
+new file mode 100644
+index 000000000..c2cf92fde
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/snapshots.py/SnapshotRing.best_restore.GUARD_OFF.6541f9a5.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/snapshots.py:SnapshotRing.best_restore GUARD_OFF 6541f9a5",
++  "killed_by": "tests/features.py",
++  "old": "            if not snap.get(\"healthy\") or \"before_reset\" in snap:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
++}
+diff --git a/tests/mutation_ledger/killed_by/snapshots.py/SnapshotRing.undo_target.BOOLOP.ee22e5a2.json b/tests/mutation_ledger/killed_by/snapshots.py/SnapshotRing.undo_target.BOOLOP.ee22e5a2.json
+new file mode 100644
+index 000000000..855215f44
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/snapshots.py/SnapshotRing.undo_target.BOOLOP.ee22e5a2.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/snapshots.py:SnapshotRing.undo_target BOOLOP ee22e5a2",
++  "killed_by": "tests/features.py",
++  "old": "        if self.snapshots and \"before_reset\" in self.snapshots[-1]:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`if self.snapshots or \"before_reset\" in self.snapshots[-1]:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/snapshots.py/SnapshotRing.undo_target.GUARD_OFF.ee22e5a2.json b/tests/mutation_ledger/killed_by/snapshots.py/SnapshotRing.undo_target.GUARD_OFF.ee22e5a2.json
+new file mode 100644
+index 000000000..49615c216
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/snapshots.py/SnapshotRing.undo_target.GUARD_OFF.ee22e5a2.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/snapshots.py:SnapshotRing.undo_target GUARD_OFF ee22e5a2",
++  "killed_by": "tests/features.py",
++  "old": "        if self.snapshots and \"before_reset\" in self.snapshots[-1]:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
++}
+diff --git a/tests/mutation_ledger/killed_by/snapshots.py/SnapshotRing.undo_target.RETURN_DEL.da7502bd.json b/tests/mutation_ledger/killed_by/snapshots.py/SnapshotRing.undo_target.RETURN_DEL.da7502bd.json
+new file mode 100644
+index 000000000..58029975a
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/snapshots.py/SnapshotRing.undo_target.RETURN_DEL.da7502bd.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/snapshots.py:SnapshotRing.undo_target RETURN_DEL da7502bd",
++  "killed_by": "tests/features.py",
++  "old": "        return self.best_restore()",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=7."
++}
 
 
 ## Three-dot diff
 diff --git a/README.md b/README.md
-index 6c9ac50df..3b2abf125 100644
+index 423c8025d..e62f74c36 100644
 --- a/README.md
 +++ b/README.md
-@@ -764,7 +764,7 @@ that deliver them.
+@@ -773,7 +773,7 @@ that deliver them.
  
  ## Services
  
@@ -140,7 +481,7 @@ index 6c9ac50df..3b2abf125 100644
  detail for each — including all 31 fields of `set_thermal_parameters` — is in
  [docs/configuration.md](./docs/configuration.md). Worked automation examples — an
  EV charger following the Cost Power Headroom sensor, mode switching on price — are in
-@@ -782,6 +782,7 @@ EV charger following the Cost Power Headroom sensor, mode switching on price —
+@@ -791,6 +791,7 @@ EV charger following the Cost Power Headroom sensor, mode switching on price —
  | `clear_manual_plan` | Drop the manual plan and return to fully automatic planning | Optional |
  | `restore_learned_snapshot` | Roll every learner back to the last weekly snapshot taken with healthy inputs | Optional |
  | `reset_heat_loss_learners` | Return the learned house heat loss scale, the lower floor loss ratio, or both to 1.0 and re-plan; the other learners are left alone | Optional |
@@ -148,7 +489,7 @@ index 6c9ac50df..3b2abf125 100644
  | `diagnose_interval` | Attribute the last interval's temperature error input by input | Optional |
  | `debug_collect` | Start, stop or read the week of debug data that Download diagnostics carries | Optional |
  | `assign_entity` | Assign or clear one optional sensor slot | Optional |
-@@ -907,7 +908,7 @@ Full theory, with every mechanism and its defaults:
+@@ -916,7 +917,7 @@ Full theory, with every mechanism and its defaults:
  ## Changing settings after setup
  
  Open the integration and choose **Configure**. Instead of one long form you get a
@@ -157,7 +498,7 @@ index 6c9ac50df..3b2abf125 100644
  edited independently. The pages you revisit sit at the top; everything you
  typically set once lives one click further, under **Advanced settings**.
  
-@@ -939,6 +940,7 @@ typically set once lives one click further, under **Advanced settings**.
+@@ -948,6 +949,7 @@ typically set once lives one click further, under **Advanced settings**.
  | Fuse and peak guards | Main fuse, the fuse cap, the live peak guard |
  | Transfer fees and contract | DSO product, per-kWh fees, the fixed-contract comparison |
  | Heat curve control (ECL110) | MQTT topics, displace limits and the controller time constant |
@@ -166,7 +507,7 @@ index 6c9ac50df..3b2abf125 100644
  Every sensor you picked during setup can be re-pointed here, and clearing a field
  genuinely clears it. On the **Thermal model (expert)** page a field left empty
 diff --git a/custom_components/heatpump_optimizer/config_flow.py b/custom_components/heatpump_optimizer/config_flow.py
-index f05ec6884..b35d9b3f0 100644
+index f05ec6884..f5d8ab932 100644
 --- a/custom_components/heatpump_optimizer/config_flow.py
 +++ b/custom_components/heatpump_optimizer/config_flow.py
 @@ -39,6 +39,7 @@ class _ShowFormParent(Protocol):
@@ -209,7 +550,7 @@ index f05ec6884..b35d9b3f0 100644
 +        self, user_input: dict[str, Any] | None = None
 +    ) -> ConfigFlowResult:
 +        """R10-FACTORY-RESET: unconfirmed, back to the menu with nothing changed;
-+        confirmed, the reset runs and closes the dialog."""
++        confirmed, the reset runs and closes the dialog, saying whether it applied."""
 +        if user_input is None:
 +            return self.async_show_form(step_id="factory_reset", data_schema=_FACTORY_RESET_SCHEMA)
 +        if not user_input.get("confirm"):
@@ -218,8 +559,8 @@ index f05ec6884..b35d9b3f0 100644
 +            return self.async_abort(reason="factory_reset_not_loaded")
 +        from .coordinator import async_factory_reset
 +
-+        await async_factory_reset(coord, user_input["scope"])
-+        return self.async_abort(reason="factory_reset_done")
++        done = await async_factory_reset(coord, user_input["scope"])
++        return self.async_abort(reason="factory_reset_done" if done else "factory_reset_not_applied")
 +
      async def async_step_quick_setup(
          self, user_input: dict[str, Any] | None = None
@@ -248,9 +589,18 @@ index 6d97645a1..eb20d0e0a 100644
  # DHW demand window defaults
  DEFAULT_DHW_SCHEDULE_ENABLED: Final = True
 diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
-index 9268c8f1b..73f1d0168 100644
+index 9268c8f1b..acd596599 100644
 --- a/custom_components/heatpump_optimizer/coordinator.py
 +++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -29,7 +29,7 @@ from dataclasses import dataclass, field, replace
+ from operator import attrgetter
+ from datetime import datetime, timedelta, timezone
+ from pathlib import Path
+-from collections.abc import Callable, Mapping, Sequence
++from collections.abc import Awaitable, Callable, Mapping, Sequence
+ from typing import TYPE_CHECKING, Any, Final, NamedTuple, NoReturn, cast
+ 
+ import aiohttp
 @@ -88,7 +88,7 @@ from .payload import (
      ThermalView,
  )
@@ -300,7 +650,7 @@ index 9268c8f1b..73f1d0168 100644
  def _storable_sample_count(raw: Any) -> int:
      """A stored sample count a fold could have written (D1-s2-03).
  
-@@ -1349,6 +1375,87 @@ async def async_adopt_heat_loss_refit(coord: Any) -> bool:
+@@ -1349,6 +1375,96 @@ async def async_adopt_heat_loss_refit(coord: Any) -> bool:
      await coord.async_request_refresh()
      return True
  
@@ -331,31 +681,33 @@ index 9268c8f1b..73f1d0168 100644
 +    return {name: await store.async_load() for (name, _), store in zip(_FACTORY_VOID, _restored_stores(coord))}
 +
 +
-+async def _async_rewrite_entry(
-+    coord: Any, documents: Mapping[str, Any], settings: tuple[dict[str, Any], dict[str, Any]] | None,
-+) -> None:
-+    """With the entry unloaded, each named store to its document (None removes it)
-+    and the entry to ``settings`` (data, options); then the entry set up again."""
++def voided_documents(stored: Mapping[str, Any]) -> dict[str, Any]:
++    """Each learned store's document with ``_FACTORY_VOID``'s keys dropped; None
++    for a store voided whole."""
++    return {name: None if keys is None else {k: v for k, v in (stored[name] or {}).items() if k not in keys}
++            for name, keys in _FACTORY_VOID}
++
++
++async def _async_rewrite_entry(coord: Any, documents: Callable[[], Awaitable[Mapping[str, Any]]],
++                               settings: tuple[dict[str, Any], dict[str, Any]] | None) -> bool:
++    """Unload; write ``documents()`` (None removes a store) and ``settings``; set up again. False if refused."""
 +    entry, hass = coord.entry, coord.hass
 +    if not await hass.config_entries.async_unload(entry.entry_id):
-+        return  # Home Assistant reports the failed unload; the undo point stands
++        return False
++    written = await documents()
 +    for (name, _), store in zip(_FACTORY_VOID, _restored_stores(coord)):
-+        if name in documents:
-+            await (store.async_remove() if documents[name] is None else store.async_save(documents[name]))
++        if name in written:
++            await (store.async_remove() if written[name] is None else store.async_save(written[name]))
 +    if settings is not None:
 +        hass.config_entries.async_update_entry(entry, data=settings[0], options=settings[1])
 +    await hass.config_entries.async_setup(entry.entry_id)
++    return True
 +
 +
-+async def async_factory_reset(coord: Any, scope: str) -> None:
-+    """``scope``'s settings, learners or both to their defaults (R10-FACTORY-RESET).
-+
-+    First the undo point ``async_restore_learned_snapshot`` returns to: every
-+    learned store's document and the settings the reset drops. The heat-loss
-+    pair goes through its one void path while the entry runs; the rest is
-+    written with the entry unloaded, so no save in flight writes the old state
-+    back, and the entry set up again re-plans on its first cycle.
-+    """
++async def async_factory_reset(coord: Any, scope: str) -> bool:
++    """``scope``'s settings, learners or both to their defaults (R10-FACTORY-RESET): the undo
++    point; then, unloaded so no save in flight writes the old state back, the heat-loss pair's
++    void path, the rest written, the entry set up again. False, only the undo point, if refused."""
 +    for store in (*_restored_stores(coord), coord._snapshot_store):
 +        await store.async_wait_for_read()
 +    entry, documents = coord.entry, await _async_store_documents(coord)
@@ -363,32 +715,39 @@ index 9268c8f1b..73f1d0168 100644
 +                              coord._inputs_unhealthy() is None,
 +                              {**undo_point(scope, entry.data, entry.options), "stores": documents})
 +    await coord._async_save_snapshots()
-+    voided: dict[str, Any] = {}
-+    if scope != FACTORY_RESET_SCOPES[0]:
++
++    async def voided() -> dict[str, Any]:
++        if scope == FACTORY_RESET_SCOPES[0]:
++            return {}
 +        await coord.async_reset_heat_loss_learners()
-+        documents = await _async_store_documents(coord)
-+        voided = {name: None if keys is None else {k: v for k, v in (documents[name] or {}).items() if k not in keys}
-+                  for name, keys in _FACTORY_VOID}
-+    settings = None
-+    if scope != FACTORY_RESET_SCOPES[1]:
-+        ctx = _ctx_of(coord)
-+        settings = factory_settings(entry.data, entry.options, two_zone=ctx._thermal_params.two_zone_enabled,
-+                                    dhw=ctx._thermal_params.dhw_enabled, wood=wood_furnace_on(ctx._config))
-+    await _async_rewrite_entry(coord, voided, settings)
-+    _LOGGER.warning("Factory reset (%s) applied; restore_learned_snapshot undoes it", scope)
++        return voided_documents(await _async_store_documents(coord))
++
++    ctx = _ctx_of(coord)
++    settings = None if scope == FACTORY_RESET_SCOPES[1] else factory_settings(
++        entry.data, entry.options, two_zone=ctx._thermal_params.two_zone_enabled,
++        dhw=ctx._thermal_params.dhw_enabled, wood=wood_furnace_on(ctx._config))
++    done = await _async_rewrite_entry(coord, voided, settings)
++    _LOGGER.warning("Factory reset (%s) %s", scope, "applied; restore_learned_snapshot undoes it" if done
++                    else "not applied: Home Assistant refused to unload the entry")
++    return done
 +
 +
-+async def _async_undo_factory_reset(coord: Any, snap: dict[str, Any]) -> None:
-+    """A reset's undo point back: its stores' documents and the settings it
-+    dropped, over the wiring in force. Spent, it stays as an ordinary snapshot."""
-+    undo = snap.pop("before_reset")
-+    await coord._async_save_snapshots()
-+    await _async_rewrite_entry(coord, undo.get("stores") or {}, undone_settings(coord.entry.data, coord.entry.options, undo))
++async def _async_undo_factory_reset(coord: Any, snap: dict[str, Any]) -> bool:
++    """A reset's undo point back: its stores' documents and the settings it dropped,
++    over the wiring in force; spent, an ordinary snapshot. False where the unload is refused."""
++    undo = snap["before_reset"]
++
++    async def spent() -> Mapping[str, Any]:
++        del snap["before_reset"]
++        await coord._async_save_snapshots()
++        return undo.get("stores") or {}
++
++    return await _async_rewrite_entry(coord, spent, undone_settings(coord.entry.data, coord.entry.options, undo))
 +
  #: Which configured entity backs each published temperature -- the table
  #: `_thermal_view` builds its ``reading_ok`` map from. ``ThermalState`` has
  #: constructor defaults (55.0 tank, 40.0 buffer, 22.0 slab, 21.0 either
-@@ -4205,50 +4312,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+@@ -4205,50 +4321,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
              _LOGGER.debug("Could not load learned thermal parameters: %s", err)
              return
  
@@ -445,7 +804,7 @@ index 9268c8f1b..73f1d0168 100644
  
          # Re-anchored before anything solves; gated write: `updated_at` defeats the hash skip.
          _had_anchor = all(k in stored for k in _HEAT_LOSS_ANCHOR_KEYS)
-@@ -4256,18 +4325,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+@@ -4256,18 +4334,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
          if _reanchored or not _had_anchor:
              await self._async_save_thermal_learning()
  
@@ -466,7 +825,7 @@ index 9268c8f1b..73f1d0168 100644
          self._measured_cop = MeasuredCop.from_dict(stored.get("measured_cop"))
  
          # v4.0.0 T4a — the detectors' memory. Absent from every pre-T4
-@@ -4289,25 +4348,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+@@ -4289,25 +4357,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
          raw_events = stored.get("immersion_events")
          if isinstance(raw_events, list):
              self._immersion_events = _aware_instant_iso(raw_events)
@@ -495,7 +854,7 @@ index 9268c8f1b..73f1d0168 100644
          # T7 #61: the watchdog's stand-down latch, parsed HERE and not in
          # the shared learner parser on purpose — a learner rollback must
          # not re-arm a controller that stood down over a hardware fault;
-@@ -9307,12 +9353,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+@@ -9307,12 +9362,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                  (self._apply_lower_floor_loss_ratio, "lower_floor_loss_ratio"),
                  (self._apply_cop_scale, _COP_STORE_KEY),
              ):
@@ -510,7 +869,7 @@ index 9268c8f1b..73f1d0168 100644
              # T4b learners roll back through the same parser the store
              # loader uses, cleared first so a restore is a restore, not a
              # merge with the drifted state it replaces — ALL of them: a
-@@ -9470,13 +9512,16 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+@@ -9470,13 +9521,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
          # read still in flight lands on top of the restored learner.
          for store in _restored_stores(self):
              await store.async_wait_for_read()
@@ -523,12 +882,11 @@ index 9268c8f1b..73f1d0168 100644
              )
              return False
 +        if "before_reset" in snap:  # a factory reset's undo point: stores and settings back
-+            await _async_undo_factory_reset(self, snap)
-+            return True
++            return await _async_undo_factory_reset(self, snap)
          self._apply_learner_payloads(snap.get("learners") or {})
          _LOGGER.info(
              "Learned state restored from the snapshot taken %s",
-@@ -9673,13 +9718,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+@@ -9673,13 +9726,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
              )
              if best is None or distance < best[0]:
                  best = (distance, raw)
@@ -544,7 +902,7 @@ index 9268c8f1b..73f1d0168 100644
  
      def _settle_defrost(self, sample: AccuracySample, window: Any) -> None:
          """Teach the derate from the interval that has just been settled.
-@@ -9903,14 +9943,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+@@ -9903,18 +9951,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
          """
          if not getattr(self, "_ctx", self)._config.dhw_temp_entity:
              return None
@@ -556,16 +914,22 @@ index 9268c8f1b..73f1d0168 100644
 -        except (TypeError, ValueError):
 -            return None
 -        if not np.isfinite(value):
+-            return None
+-        if self._learning_frozen(CONF_DHW_TEMP_ENTITY, room_air=False) is not None:
+-            return None
+-        return value
 +        value = finite_float(self._dhw_temperature)
-+        if value is None:
-             return None
-         if self._learning_frozen(CONF_DHW_TEMP_ENTITY, room_air=False) is not None:
-             return None
++        if value is not None and self._learning_frozen(CONF_DHW_TEMP_ENTITY, room_air=False) is None:
++            return value
++        return None
+ 
+     def _file_dhw_lead_predictions(
+         self, result: OptimizationResult, solve_time: datetime, dt_h: float
 diff --git a/custom_components/heatpump_optimizer/entry_config.py b/custom_components/heatpump_optimizer/entry_config.py
-index aa24e56c2..7bd437ff9 100644
+index aa24e56c2..2c63d6105 100644
 --- a/custom_components/heatpump_optimizer/entry_config.py
 +++ b/custom_components/heatpump_optimizer/entry_config.py
-@@ -276,3 +276,96 @@ class EntryConfig(Mapping[str, Any]):
+@@ -276,3 +276,113 @@ class EntryConfig(Mapping[str, Any]):
  def _restore(raw: dict[str, Any], parsed: dict[str, Any]) -> EntryConfig:
      """``EntryConfig.__reduce__``'s constructor: the stored values and their parse."""
      return EntryConfig(raw=MappingProxyType(raw), **parsed)
@@ -628,10 +992,29 @@ index aa24e56c2..7bd437ff9 100644
 +    return {**rest[0], **kept[0]}, {**rest[1], **kept[1]}
 +
 +
++#: The kept keys a settings reset writes, in ``factory_settings``' order: the
++#: topology the dropped keys implied, so its undo point records them as they were.
++FACTORY_PINNED: Mapping[str, str] = MappingProxyType({
++    const.CONF_TWO_ZONE_MODE: "an auto-mode house is two-zone by the zone masses the reset drops",
++    const.CONF_DHW_ENABLED: "the tank's presence, implied by its settings",
++    const.CONF_WOOD_FURNACE_ENABLED: "the furnace's presence, implied by its settings",
++})
++
++
 +def undo_point(scope: str, data: Mapping[str, Any], options: Mapping[str, Any]) -> dict[str, Any]:
-+    """A reset's ``before_reset`` record: its scope, and the settings it drops."""
-+    keeps_settings = scope == const.FACTORY_RESET_SCOPES[1]
-+    return {"scope": scope, **({} if keeps_settings else {"settings": settings_of(data, options)})}
++    """A reset's ``before_reset`` record: its scope, the settings it drops and,
++    per (data, options), the ``FACTORY_PINNED`` keys it writes as they were."""
++    if scope == const.FACTORY_RESET_SCOPES[1]:
++        return {"scope": scope}
++    pinned = [{k: side[k] for k in FACTORY_PINNED if k in side} for side in (data, options)]
++    return {"scope": scope, "settings": list(settings_of(data, options)), "pinned": pinned}
++
++
++def _side_pair(raw: Any) -> tuple[dict[str, Any], dict[str, Any]] | None:
++    """A stored (data, options) pair, as the snapshot store writes one, or None."""
++    if isinstance(raw, list) and len(raw) == 2 and all(isinstance(side, dict) for side in raw):
++        return raw[0], raw[1]
++    return None
 +
 +
 +def undone_settings(
@@ -639,10 +1022,12 @@ index aa24e56c2..7bd437ff9 100644
 +) -> tuple[dict[str, Any], dict[str, Any]] | None:
 +    """The (data, options) undoing a reset's ``undo_point`` over the wiring in force,
 +    or None where the reset kept the settings (or the record is malformed)."""
-+    settings = undo.get("settings")
-+    if not (isinstance(settings, list) and len(settings) == 2 and all(isinstance(s, dict) for s in settings)):
++    settings, pinned = _side_pair(undo.get("settings")), _side_pair(undo.get("pinned"))
++    if settings is None or pinned is None:
 +        return None
-+    return with_settings((data, options), (settings[0], settings[1]))
++    unpinned = [{k: v for k, v in side.items() if k not in FACTORY_PINNED} for side in (data, options)]
++    wiring = ({**unpinned[0], **pinned[0]}, {**unpinned[1], **pinned[1]})
++    return with_settings(wiring, (settings[0], settings[1]))
 +
 +
 +def factory_settings(
@@ -656,11 +1041,7 @@ index aa24e56c2..7bd437ff9 100644
 +    first: an auto-mode house is two-zone by its zone masses, and dropping
 +    those would make it single-zone; the DHW and wood flags likewise.
 +    """
-+    pinned = {
-+        const.CONF_TWO_ZONE_MODE: const.TWO_ZONE_MODE_ON if two_zone else const.TWO_ZONE_MODE_OFF,
-+        const.CONF_DHW_ENABLED: dhw,
-+        const.CONF_WOOD_FURNACE_ENABLED: wood,
-+    }
++    pinned = dict(zip(FACTORY_PINNED, (const.TWO_ZONE_MODE_ON if two_zone else const.TWO_ZONE_MODE_OFF, dhw, wood)))
 +    return with_settings((data, {**options, **pinned}), ({}, {}))
 diff --git a/custom_components/heatpump_optimizer/icons.json b/custom_components/heatpump_optimizer/icons.json
 index bbe71b405..0d13eb8e0 100644
@@ -677,7 +1058,7 @@ index bbe71b405..0d13eb8e0 100644
        "service": "mdi:home-thermometer-outline"
      },
 diff --git a/custom_components/heatpump_optimizer/services.py b/custom_components/heatpump_optimizer/services.py
-index 456411380..cbda865d3 100644
+index 456411380..18718ca6f 100644
 --- a/custom_components/heatpump_optimizer/services.py
 +++ b/custom_components/heatpump_optimizer/services.py
 @@ -1,4 +1,4 @@
@@ -725,7 +1106,7 @@ index 456411380..cbda865d3 100644
  SERVICE_SCHEMA_DIAGNOSE_INTERVAL = vol.Schema(
      {
          vol.Optional("entry_id"): cv.string,
-@@ -1175,6 +1186,13 @@ async def handle_reset_heat_loss(hass: HomeAssistant, call: ServiceCall) -> dict
+@@ -1175,6 +1186,20 @@ async def handle_reset_heat_loss(hass: HomeAssistant, call: ServiceCall) -> dict
          reset.append(entry_id)
      return {"reset": reset, "learners": list(learners)}
  
@@ -733,13 +1114,20 @@ index 456411380..cbda865d3 100644
 +    """One entry's ``scope`` to its defaults, after an undo point; the entry is set up again."""
 +    data = dict(call.data)
 +    for _, coord in _manual_targets(hass, data["entry_id"]):
-+        await async_factory_reset(coord, data["scope"])
++        if not await async_factory_reset(coord, data["scope"]):
++            raise HomeAssistantError(
++                f"The factory reset of {data['entry_id']} was not applied: Home "
++                "Assistant refused to unload the entry; nothing was changed",
++                translation_domain=DOMAIN,
++                translation_key="factory_reset_not_applied",
++                translation_placeholders={"entry_id": data["entry_id"]},
++            )
 +    return {"reset": data["entry_id"], "scope": data["scope"]}
 +
  async def handle_restore_snapshot(hass: HomeAssistant, call: ServiceCall) -> dict[str, Any]:
      """Roll the learners back to the newest trustworthy snapshot (#42).
  
-@@ -1333,6 +1351,13 @@ def async_register_services(hass: HomeAssistant) -> None:
+@@ -1333,6 +1358,13 @@ def async_register_services(hass: HomeAssistant) -> None:
          schema=SERVICE_SCHEMA_RESET_HEAT_LOSS,
          supports_response=SupportsResponse.OPTIONAL,
      )
@@ -843,10 +1231,20 @@ index 935afcb9e..31a474963 100644
  
      def as_dict(self) -> dict[str, Any]:
 diff --git a/custom_components/heatpump_optimizer/strings.json b/custom_components/heatpump_optimizer/strings.json
-index 620895a80..ce26d8554 100644
+index 620895a80..f005021f9 100644
 --- a/custom_components/heatpump_optimizer/strings.json
 +++ b/custom_components/heatpump_optimizer/strings.json
-@@ -529,7 +529,8 @@
+@@ -442,6 +442,9 @@
+     "run_optimization_no_prices": {
+       "message": "The optimization did not run for {entry_ids}: fewer than four electricity price steps were available"
+     },
++    "factory_reset_not_applied": {
++      "message": "The factory reset of {entry_id} was not applied: Home Assistant refused to unload the entry; nothing was changed"
++    },
+     "run_optimization_solve_failed": {
+       "message": "The optimization did not run for {entry_ids}: the solve failed; the error is in the integration's log"
+     },
+@@ -529,7 +532,8 @@
            "learning_features": "Advanced learning features",
            "grid_connection": "Fuse and peak guards",
            "grid_fees": "Transfer fees and contract",
@@ -856,7 +1254,7 @@ index 620895a80..ce26d8554 100644
          }
        },
        "setup_overview": {
-@@ -1500,6 +1501,18 @@
+@@ -1500,6 +1504,18 @@
            "after_save": "Saving writes through immediately; this chooses where the dialog goes next.",
            "prefill_offer": "When on, setting up a new entry offers this page if a heat-pump device added to this install can fill any of these settings. Off by default: the setup wizard is unchanged while it is off, and this switch is stored, so it survives a restart."
          }
@@ -875,18 +1273,19 @@ index 620895a80..ce26d8554 100644
        }
      },
      "error": {
-@@ -1530,6 +1543,10 @@
+@@ -1530,6 +1546,11 @@
        "flow_curve_needs_direct_plant": "Pricing the supply temperature lift is for a system with no mixing valve. With a valve the buffer tank's temperature already prices the lift, so this would count it twice. Set the valve to \"No mixing valve\" or turn this off.",
        "prefill_device_unreadable": "That device could not be read. Its integration has no mapping here yet, or none of its entities holds a value. Leave the device empty and name a Modbus package prefix instead.",
        "dhw_windows_day_selector": "This field already names its day, so enter plain times only, e.g. 06:00-08:30. Day selectors like 'weekdays' belong in the ordinary windows field above."
 +    },
 +    "abort": {
 +      "factory_reset_done": "Reset done. The integration has reloaded and is planning again. To undo the reset, run the Restore learned snapshot action.",
-+      "factory_reset_not_loaded": "The integration is not running, so there is nothing to reset. Fix what stopped it, then try again."
++      "factory_reset_not_loaded": "The integration is not running, so there is nothing to reset. Fix what stopped it, then try again.",
++      "factory_reset_not_applied": "Not applied: Home Assistant refused to unload the integration, so nothing was changed. Try again, or restart Home Assistant first."
      }
    },
    "selector": {
-@@ -1659,6 +1676,13 @@
+@@ -1659,6 +1680,13 @@
          "observe": "Observe (log only)",
          "control": "Control (write mode and set-points)"
        }
@@ -900,7 +1299,7 @@ index 620895a80..ce26d8554 100644
      }
    },
    "issues": {
-@@ -2462,7 +2486,7 @@
+@@ -2462,7 +2490,7 @@
      },
      "restore_learned_snapshot": {
        "name": "Restore Learned Snapshot",
@@ -909,7 +1308,7 @@ index 620895a80..ce26d8554 100644
        "fields": {
          "entry_id": {
            "name": "Config entry",
-@@ -2511,6 +2535,20 @@
+@@ -2511,6 +2539,20 @@
            "description": "Restrict the action to one config entry. Leave empty to act on every configured heat pump."
          }
        }
@@ -931,10 +1330,20 @@ index 620895a80..ce26d8554 100644
    }
  }
 diff --git a/custom_components/heatpump_optimizer/translations/en.json b/custom_components/heatpump_optimizer/translations/en.json
-index ee58a784c..b08187c9b 100644
+index ee58a784c..a1de54934 100644
 --- a/custom_components/heatpump_optimizer/translations/en.json
 +++ b/custom_components/heatpump_optimizer/translations/en.json
-@@ -529,7 +529,8 @@
+@@ -442,6 +442,9 @@
+     "run_optimization_no_prices": {
+       "message": "The optimization did not run for {entry_ids}: fewer than four electricity price steps were available"
+     },
++    "factory_reset_not_applied": {
++      "message": "The factory reset of {entry_id} was not applied: Home Assistant refused to unload the entry; nothing was changed"
++    },
+     "run_optimization_solve_failed": {
+       "message": "The optimization did not run for {entry_ids}: the solve failed; the error is in the integration's log"
+     },
+@@ -529,7 +532,8 @@
            "learning_features": "Advanced learning features",
            "grid_connection": "Fuse and peak guards",
            "grid_fees": "Transfer fees and contract",
@@ -944,7 +1353,7 @@ index ee58a784c..b08187c9b 100644
          }
        },
        "setup_overview": {
-@@ -1500,6 +1501,18 @@
+@@ -1500,6 +1504,18 @@
            "after_save": "Saving writes through immediately; this chooses where the dialog goes next.",
            "prefill_offer": "When on, setting up a new entry offers this page if a heat-pump device added to this install can fill any of these settings. Off by default: the setup wizard is unchanged while it is off, and this switch is stored, so it survives a restart."
          }
@@ -963,18 +1372,19 @@ index ee58a784c..b08187c9b 100644
        }
      },
      "error": {
-@@ -1530,6 +1543,10 @@
+@@ -1530,6 +1546,11 @@
        "flow_curve_needs_direct_plant": "Pricing the supply temperature lift is for a system with no mixing valve. With a valve the buffer tank's temperature already prices the lift, so this would count it twice. Set the valve to \"No mixing valve\" or turn this off.",
        "prefill_device_unreadable": "That device could not be read. Its integration has no mapping here yet, or none of its entities holds a value. Leave the device empty and name a Modbus package prefix instead.",
        "dhw_windows_day_selector": "This field already names its day, so enter plain times only, e.g. 06:00-08:30. Day selectors like 'weekdays' belong in the ordinary windows field above."
 +    },
 +    "abort": {
 +      "factory_reset_done": "Reset done. The integration has reloaded and is planning again. To undo the reset, run the Restore learned snapshot action.",
-+      "factory_reset_not_loaded": "The integration is not running, so there is nothing to reset. Fix what stopped it, then try again."
++      "factory_reset_not_loaded": "The integration is not running, so there is nothing to reset. Fix what stopped it, then try again.",
++      "factory_reset_not_applied": "Not applied: Home Assistant refused to unload the integration, so nothing was changed. Try again, or restart Home Assistant first."
      }
    },
    "selector": {
-@@ -1659,6 +1676,13 @@
+@@ -1659,6 +1680,13 @@
          "observe": "Observe (log only)",
          "control": "Control (write mode and set-points)"
        }
@@ -988,7 +1398,7 @@ index ee58a784c..b08187c9b 100644
      }
    },
    "issues": {
-@@ -2462,7 +2486,7 @@
+@@ -2462,7 +2490,7 @@
      },
      "restore_learned_snapshot": {
        "name": "Restore Learned Snapshot",
@@ -997,7 +1407,7 @@ index ee58a784c..b08187c9b 100644
        "fields": {
          "entry_id": {
            "name": "Config entry",
-@@ -2511,6 +2535,20 @@
+@@ -2511,6 +2539,20 @@
            "description": "Restrict the action to one config entry. Leave empty to act on every configured heat pump."
          }
        }
@@ -1019,10 +1429,20 @@ index ee58a784c..b08187c9b 100644
    }
  }
 diff --git a/custom_components/heatpump_optimizer/translations/sv.json b/custom_components/heatpump_optimizer/translations/sv.json
-index 809e65019..691b4c8e2 100644
+index 809e65019..122da6029 100644
 --- a/custom_components/heatpump_optimizer/translations/sv.json
 +++ b/custom_components/heatpump_optimizer/translations/sv.json
-@@ -529,7 +529,8 @@
+@@ -442,6 +442,9 @@
+     "run_optimization_no_prices": {
+       "message": "Optimeringen kördes inte för {entry_ids}: det fanns färre än fyra elprissteg tillgängliga"
+     },
++    "factory_reset_not_applied": {
++      "message": "Fabriksåterställningen av {entry_id} utfördes inte: Home Assistant vägrade avlasta posten; inget ändrades"
++    },
+     "run_optimization_solve_failed": {
+       "message": "Optimeringen kördes inte för {entry_ids}: lösaren misslyckades; felet finns i integrationens logg"
+     },
+@@ -529,7 +532,8 @@
            "learning_features": "Avancerade inlärningsfunktioner",
            "grid_connection": "Säkring och effekttak",
            "grid_fees": "Överföringsavgifter och avtal",
@@ -1032,7 +1452,7 @@ index 809e65019..691b4c8e2 100644
          }
        },
        "setup_overview": {
-@@ -1500,6 +1501,18 @@
+@@ -1500,6 +1504,18 @@
            "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst.",
            "prefill_offer": "När det är på erbjuder en ny installation den här sidan om en värmepumpsenhet som lagts till i installationen kan fylla någon av de här inställningarna. Avstängt som standard: installationsguiden är oförändrad så länge det är av, och reglaget sparas, så det överlever en omstart."
          }
@@ -1051,18 +1471,19 @@ index 809e65019..691b4c8e2 100644
        }
      },
      "error": {
-@@ -1530,6 +1543,10 @@
+@@ -1530,6 +1546,11 @@
        "price_entity_required": "En prissensor krävs när priskällan är en entitet.",
        "prefill_device_unreadable": "Enheten kunde inte läsas. Dess integration har ingen mappning här ännu, eller så har ingen av dess entiteter något värde. Lämna enheten tom och ange ett prefix för ett Modbus-paket i stället.",
        "dhw_windows_day_selector": "Fältet namnger redan sin dag — skriv bara tider, t.ex. 06:00-08:30. Dagväljare som 'weekdays' hör hemma i fältet för de vanliga fönstren ovan."
 +    },
 +    "abort": {
 +      "factory_reset_done": "Återställningen är klar. Integrationen har laddats om och planerar igen. Kör åtgärden Återställ inlärd ögonblicksbild för att ångra återställningen.",
-+      "factory_reset_not_loaded": "Integrationen körs inte, så det finns inget att återställa. Åtgärda det som stoppade den och försök igen."
++      "factory_reset_not_loaded": "Integrationen körs inte, så det finns inget att återställa. Åtgärda det som stoppade den och försök igen.",
++      "factory_reset_not_applied": "Inte utförd: Home Assistant vägrade avlasta integrationen, så inget ändrades. Försök igen, eller starta om Home Assistant först."
      }
    },
    "selector": {
-@@ -1659,6 +1676,13 @@
+@@ -1659,6 +1680,13 @@
          "observe": "Observera (bara logg)",
          "control": "Styrning (skriv läge och börvärden)"
        }
@@ -1076,7 +1497,7 @@ index 809e65019..691b4c8e2 100644
      }
    },
    "issues": {
-@@ -2462,7 +2486,7 @@
+@@ -2462,7 +2490,7 @@
      },
      "restore_learned_snapshot": {
        "name": "Återställ inlärd ögonblicksbild",
@@ -1085,7 +1506,7 @@ index 809e65019..691b4c8e2 100644
        "fields": {
          "entry_id": {
            "name": "Konfigurationspost",
-@@ -2511,6 +2535,20 @@
+@@ -2511,6 +2539,20 @@
            "description": "Begränsa åtgärden till en konfigurationspost. Lämna tomt för att agera på varje konfigurerad värmepump."
          }
        }
@@ -1107,7 +1528,7 @@ index 809e65019..691b4c8e2 100644
    }
  }
 diff --git a/dev/audit/rounds/round4/D6/claims.json b/dev/audit/rounds/round4/D6/claims.json
-index 41ee30fad..5c596cd80 100644
+index c338468bd..98e184732 100644
 --- a/dev/audit/rounds/round4/D6/claims.json
 +++ b/dev/audit/rounds/round4/D6/claims.json
 @@ -128,18 +128,18 @@
@@ -1220,11 +1641,11 @@ index 41ee30fad..5c596cd80 100644
   {
    "id": "C30",
    "source": "docs/configuration.md",
--  "claim": "every documented Default (89 rows) is the default the rendered options page actually carries",
-+  "claim": "every documented Default (90 rows) is the default the rendered options page actually carries",
+-  "claim": "every documented Default (92 rows) is the default the rendered options page actually carries",
++  "claim": "every documented Default (93 rows) is the default the rendered options page actually carries",
    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
--  "result": "89 compared, mismatches=[]",
-+  "result": "90 compared, mismatches=[]",
+-  "result": "92 compared, mismatches=[]",
++  "result": "93 compared, mismatches=[]",
    "verdict": "true",
    "truth": ""
   },
@@ -1264,7 +1685,7 @@ index 41ee30fad..5c596cd80 100644
    "truth": ""
   }
 diff --git a/dev/audit/rounds/round4/D6/claims.md b/dev/audit/rounds/round4/D6/claims.md
-index 3edcfe507..6971a139a 100644
+index a76f49f3b..3a93e4214 100644
 --- a/dev/audit/rounds/round4/D6/claims.md
 +++ b/dev/audit/rounds/round4/D6/claims.md
 @@ -18,30 +18,30 @@ Generated by `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.
@@ -1292,13 +1713,13 @@ index 3edcfe507..6971a139a 100644
 -| C27 | `docs/configuration.md` | There are 23 pages | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` | documented=23 measured=23 | **true** |  |
 -| C28 | `docs/configuration.md` | eight on the first menu and fifteen more behind Advanced settings | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` | documented=(8, 15) measured=(8, 15) | **true** |  |
 -| C29 | `docs/architecture.md:module map` | config_flow.py -- Setup flow plus 23 option pages behind two menus | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` | documented=23 measured=23 | **true** |  |
--| C30 | `docs/configuration.md` | every documented Default (89 rows) is the default the rendered options page actually carries | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` | 89 compared, mismatches=[] | **true** |  |
+-| C30 | `docs/configuration.md` | every documented Default (92 rows) is the default the rendered options page actually carries | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` | 92 compared, mismatches=[] | **true** |  |
 +| C26 | `README.md` | a menu of 24 pages | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` | documented=24 measured=24 | **true** |  |
 +| C27 | `docs/configuration.md` | There are 24 pages | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` | documented=24 measured=24 | **true** |  |
 +| C28 | `docs/configuration.md` | eight on the first menu and sixteen more behind Advanced settings | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` | documented=(8, 16) measured=(8, 16) | **true** |  |
 +| C29 | `docs/architecture.md:module map` | config_flow.py -- Setup flow plus 24 option pages behind two menus | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` | documented=24 measured=24 | **true** |  |
-+| C30 | `docs/configuration.md` | every documented Default (90 rows) is the default the rendered options page actually carries | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` | 90 compared, mismatches=[] | **true** |  |
- | C31 | `docs/configuration.md` | every documented Range (92 rows) is the NumberSelector min/max the rendered options page actually carries | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` | 92 compared, mismatches=[] | **true** |  |
++| C30 | `docs/configuration.md` | every documented Default (93 rows) is the default the rendered options page actually carries | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` | 93 compared, mismatches=[] | **true** |  |
+ | C31 | `docs/configuration.md` | every documented Range (101 rows) is the NumberSelector min/max the rendered options page actually carries | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` | 101 compared, mismatches=[] | **true** |  |
  | C32 | `docs/architecture.md` | 45 modules | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` | documented=84 measured=84 | **true** |  |
  | C33 | `docs/architecture.md` | the module map is the package's module list | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` | on disk=84, listed=84, missing=[], phantom=[] | **true** | 0 modules are absent from the map:  |
  | C34 | `docs/architecture.md:The Home Assistant boundary` | the boundary sentence's count of modules importing `homeassistant` at module level | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` | documented=28 measured=28 | **true** |  |
@@ -1318,31 +1739,31 @@ index 3edcfe507..6971a139a 100644
 -| C125 | `strings.json:selector` | every SelectSelector option on every options page has a translated label (44 selects) | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` | 44 selects, untranslated=[] | **true** |  |
 +| C125 | `strings.json:selector` | every SelectSelector option on every options page has a translated label (45 selects) | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` | 45 selects, untranslated=[] | **true** |  |
 diff --git a/dev/audit/rounds/round4/D6/claims.py b/dev/audit/rounds/round4/D6/claims.py
-index 7626132ba..4a57ddb45 100644
+index a5cef8fd7..74549895f 100644
 --- a/dev/audit/rounds/round4/D6/claims.py
 +++ b/dev/audit/rounds/round4/D6/claims.py
 @@ -51,7 +51,7 @@ against a document that is CORRECT.
      RESULT claims_false=0
      RESULT claims_stale=0
      RESULT claims_unverifiable=2    (1 with --links; the checker runs the default)
--    RESULT config_defaults_compared=89   (76 until #937's rows landed; 82
-+    RESULT config_defaults_compared=90   (76 until #937's rows landed; 82
+-    RESULT config_defaults_compared=92   (76 until #937's rows landed; 82
++    RESULT config_defaults_compared=93   (76 until #937's rows landed; 82
                                           until #1067's solver half documented
                                           the flow-curve lift option's default;
                                           83 until #1067's silent-mode half
-@@ -70,7 +70,10 @@ against a document that is CORRECT.
-                                          fields document no defaults; 89 with
-                                          #1495's mold-floor breach warning
-                                          margin, a NumberSelector Default row
--                                         on the Comfort and temperatures table)
-+                                         on the Comfort and temperatures table;
-+                                         90 with R10-FACTORY-RESET's "What to
-+                                         reset", a select Default row on the
-+                                         Reset to factory defaults table)
-     RESULT config_ranges_compared=92     (76 until #937's rows landed; 86
+@@ -73,7 +73,10 @@ against a document that is CORRECT.
+                                          on the Comfort and temperatures table;
+                                          92 with R10-USER-DOCS-FINAL, which
+                                          gives every options field a row of
+-                                         its own under its page)
++                                         its own under its page; 93 with
++                                         R10-FACTORY-RESET's "What to reset",
++                                         a select Default row on the Reset to
++                                         factory defaults table)
+     RESULT config_ranges_compared=101    (76 until #937's rows landed; 86
                                           until #1067's silent-mode half
                                           documented the derate's range; 87
-@@ -516,6 +519,7 @@ SCHEMAS = {
+@@ -520,6 +523,7 @@ SCHEMAS = {
      "restore_learned_snapshot": svc.SERVICE_SCHEMA_RESTORE_SNAPSHOT,
      "diagnose_interval": svc.SERVICE_SCHEMA_DIAGNOSE_INTERVAL,
      "reset_heat_loss_learners": svc.SERVICE_SCHEMA_RESET_HEAT_LOSS,
@@ -1396,7 +1817,7 @@ index ac2500895..347cba965 100644
  ├── translations/
  │   ├── en.json           # English
 diff --git a/docs/configuration.md b/docs/configuration.md
-index e9683500a..288e5b6b3 100644
+index 37c815d39..3bb603b97 100644
 --- a/docs/configuration.md
 +++ b/docs/configuration.md
 @@ -6,7 +6,7 @@ YAML — the integration is configured entirely through Home Assistant's UI, and
@@ -1408,7 +1829,7 @@ index e9683500a..288e5b6b3 100644
  - [The hydronic layout catalog](#the-hydronic-layout-catalog) — which plumbing arrangements are modelled
  - [Services](#services) — every service and its fields
  
-@@ -241,9 +241,10 @@ solved within one optimization interval.
+@@ -317,9 +317,10 @@ opens this screen. Enter a valid token and price updates resume.
  
  **Settings → Devices & services → Heat Pump Optimizer → Configure.**
  
@@ -1421,7 +1842,7 @@ index e9683500a..288e5b6b3 100644
  another page's values. Every page also ends with one shared navigation
  control, described once here rather than twenty-three times below:
  
-@@ -279,6 +280,7 @@ control, described once here rather than twenty-three times below:
+@@ -355,6 +356,7 @@ control, described once here rather than twenty-three times below:
  | Fuse and peak guards | Main fuse, the fuse cap, the live peak guard, the heat pump's silent mode |
  | Transfer fees and contract | DSO product, per-kWh fees, the fixed-contract comparison |
  | Heat curve control (ECL110) | MQTT topics and displace limits |
@@ -1429,7 +1850,7 @@ index e9683500a..288e5b6b3 100644
  
  ### Your system, as configured
  
-@@ -889,6 +891,36 @@ is set — an install without an ECL110 never touches these topics. See
+@@ -1003,6 +1005,38 @@ is set — an install without an ECL110 never touches these topics. See
  | Largest upward offset | 20 °C | 0–30, 0.5 steps | How far it may be shifted up when storing cheap heat. |
  | Controller response time | 1.5 h | 0.25–6.0, 0.25 steps | Roughly how long the controller takes to act on a new offset, so the optimizer does not ask for changes faster than the system can follow. |
  
@@ -1460,13 +1881,15 @@ index e9683500a..288e5b6b3 100644
 +
 +A snapshot of every learned store and of the settings the reset drops is taken
 +first. Until the next weekly snapshot, about a week, `restore_learned_snapshot`
-+undoes the reset, with the sensors as they are now. The entry then reloads and
-+plans again straight away.
++undoes the reset, with the sensors as they are now, and puts the two-zone,
++hot-water and wood-furnace switches back as they were stored. The entry then
++reloads and plans again straight away. If Home Assistant refuses to unload the
++entry, the dialog says the reset was not applied, and nothing is changed.
 +
  ---
  
  ## The hydronic layout catalog
-@@ -953,11 +985,12 @@ feeding the buffer tank — its heat is folded in rather than stored separately.
+@@ -1067,11 +1101,12 @@ feeding the buffer tank — its heat is folded in rather than stored separately.
  
  ## Services
  
@@ -1484,7 +1907,7 @@ index e9683500a..288e5b6b3 100644
  `debug_collect`'s start turns the collection option on, which reloads the
  entry — and the other five act on the running coordinator. `run_optimization`,
  `set_away`, `set_mode`, `set_thermal_parameters` and `simulate_plan` always act
-@@ -982,6 +1015,7 @@ or is not loaded — fails with a validation error rather than doing nothing.
+@@ -1096,6 +1131,7 @@ or is not loaded — fails with a validation error rather than doing nothing.
  | `clear_manual_plan` | `entry_id` | optional |
  | `restore_learned_snapshot` | `entry_id` | optional |
  | `reset_heat_loss_learners` | `learners`, `entry_id` | optional |
@@ -1492,7 +1915,7 @@ index e9683500a..288e5b6b3 100644
  | `diagnose_interval` | `entry_id` | optional |
  | `debug_collect` | `action` (required), `entry_id` | optional |
  
-@@ -1096,7 +1130,8 @@ breach a hard floor, and the legionella clock is never skipped.
+@@ -1210,7 +1246,8 @@ breach a hard floor, and the legionella clock is never skipped.
  weekly snapshot — the manual counterpart of the drift watchdog. When no
  snapshot qualifies (healthy inputs and in-band accuracy at capture time are
  required) the call fails with an error instead of answering with an empty
@@ -1502,22 +1925,23 @@ index e9683500a..288e5b6b3 100644
  **`reset_heat_loss_learners`** returns the learned house heat loss scale and the
  learned lower floor loss ratio to 1.0, so the plan uses the heat loss values in
  the settings as they stand, and the learners start collecting evidence again
-@@ -1106,6 +1141,10 @@ comfort weight and the hot-water, COP and defrost learners are left alone. The
+@@ -1220,6 +1257,11 @@ comfort weight and the hot-water, COP and defrost learners are left alone. The
  **Learning Reset Heat Loss** button resets both. Changing the indoor or the
  lower-floor temperature sensor resets the learner fitted on it the same way,
  because evidence fitted against one sensor says nothing about another.
 +**`factory_reset`** returns one entry's `scope` — `settings`, `learners` or
 +`both` — to its defaults, exactly as
 +[Reset to factory defaults](#reset-to-factory-defaults) does, and answers with
-+the entry and the scope. Within a week of it, `restore_learned_snapshot` undoes it.
++the entry and the scope; if Home Assistant refuses to unload the entry, the call
++fails and nothing is changed. Within a week of it, `restore_learned_snapshot` undoes it.
  **`diagnose_interval`** attributes the last interval's temperature error
  input by input and publishes the result on the Prediction Accuracy sensor.
  **`debug_collect`** takes `action`: `start`, `stop` or `status`. Collect a week of debug data is the learning page's option that turns the collection on. `start` turns
 diff --git a/docs/setup.md b/docs/setup.md
-index 9488a4150..9f3d6cad9 100644
+index 0d22cbfe7..ebd69f721 100644
 --- a/docs/setup.md
 +++ b/docs/setup.md
-@@ -261,7 +261,7 @@ defaults once you confirm one last overview of what will be created:
+@@ -258,7 +258,7 @@ defaults once you confirm one last overview of what will be created:
  on purpose — it is a sensor this setup could use and does not have.*
  
  Everything the overview shows can be changed afterwards: open the integration
@@ -1527,7 +1951,7 @@ index 9488a4150..9f3d6cad9 100644
  setup** among the everyday pages, for an install that wants to answer the
  house questions now — and the
 diff --git a/tests/config_flow_steps.py b/tests/config_flow_steps.py
-index e038b02eb..9279efe18 100644
+index e038b02eb..6b0b58a37 100644
 --- a/tests/config_flow_steps.py
 +++ b/tests/config_flow_steps.py
 @@ -1573,6 +1573,7 @@ async def options_menus():
@@ -1549,10 +1973,25 @@ index e038b02eb..9279efe18 100644
      # The rest of that page's fields are not its own declarations but the
      # building pages': the questionnaire's one field list serves two flows by
      # design (``_questionnaire_fields``), and the two wood probes are the
-@@ -5763,6 +5768,46 @@ async def untouched_option_pages_do_not_reload():
+@@ -5763,6 +5768,53 @@ async def untouched_option_pages_do_not_reload():
      )
  
  
++def _a5_refusals(shown_pages, current):
++    """(pages read, refusals): each shown form's schema applied to
++    ``option_resubmit``'s payload, the a5 walk's own."""
++    read, refused = 0, []
++    for step, shown in shown_pages:
++        if shown.get("type") != "form":
++            continue
++        read += 1
++        try:
++            shown["data_schema"](_nightly.option_resubmit(step, current))
++        except vol.Invalid as err:
++            refused.append(f"{step}: {err}")
++    return read, refused
++
++
 +async def nightly_a5_resubmits_fit_every_page():
 +    """`tests/nightly_ha.py`'s a5 walk posts `option_resubmit`'s payload to
 +    every options page, and real Home Assistant validates it against the
@@ -1562,41 +2001,33 @@ index e038b02eb..9279efe18 100644
 +    `a5:pages_ok`'s `InvalidData`. Here the shown schema is applied to the
 +    same payload, through the same function, for every page in the table."""
 +    R.section("options: the nightly a5 walk's resubmit fits every page's schema")
-+    refused = []
++    shown_pages = []
 +    for page in config_flow._OPTION_PAGES:
 +        flow, entry, _ = fresh_options()
-+        shown = await getattr(flow, f"async_step_{page.step}")(None)
-+        if shown.get("type") != "form":
-+            continue
-+        current = {**dict(entry.data), **dict(entry.options)}
-+        try:
-+            shown["data_schema"](_nightly.option_resubmit(page.step, current))
-+        except vol.Invalid as err:
-+            refused.append(f"{page.step}: {err}")
++        shown_pages.append((page.step, await getattr(flow, f"async_step_{page.step}")(None)))
++    current = {**dict(entry.data), **dict(entry.options)}
++    read, refused = _a5_refusals(shown_pages, current)
++    forms = sum(shown.get("type") == "form" for _, shown in shown_pages)
 +    R.check(
-+        "every options page's shown schema accepts the a5 walk's untouched resubmit",
-+        not refused,
-+        f"refused {refused[:4]}",
++        "every options page's shown schema accepts the a5 walk's untouched resubmit, every form page read",
++        not refused and read == forms and read >= 20,
++        f"refused {refused[:4]}; read {read} of {forms} form page(s)",
 +    )
-+    # Null control: the same reader refuses a payload the page does not own.
-+    flow, entry, _ = fresh_options()
-+    shown = await flow.async_step_factory_reset(None)
-+    try:
-+        shown["data_schema"]({const.CONF_AFTER_SAVE: const.AFTER_SAVE_CLOSE})
-+        caught = False
-+    except vol.Invalid:
-+        caught = True
++    # Null control, through the same reader: a page whose schema refuses the
++    # payload (a planted required field) is reported, so the sweep can refuse.
++    planted = ("factory_reset", {"type": "form", "data_schema": vol.Schema({vol.Required("planted"): str})})
++    p_read, p_refused = _a5_refusals([*shown_pages, planted], current)
 +    R.check(
-+        "null control: the factory-reset page's schema refuses an after-save key",
-+        caught,
-+        "an after-save key was accepted",
++        "null control: a planted page whose schema refuses the payload is read and refused by the same sweep",
++        p_read == read + 1 and len(p_refused) == len(refused) + 1 and "planted" in p_refused[-1],
++        f"read {p_read}, refused {p_refused[-1:]}",
 +    )
 +
 +
  # ---------------------------------------------------------------------------
  # #1067 W1067-G7: the Modbus pre-fill page. One step answered three times:
  # the prefix, then the suggestions to edit, then the save. The entity ids are
-@@ -7692,6 +7737,7 @@ async def main() -> int:
+@@ -7692,6 +7744,7 @@ async def main() -> int:
      await reconfigure_flow()
      await absent_fallbacks_are_proven()
      await untouched_option_pages_do_not_reload()
@@ -1605,7 +2036,7 @@ index e038b02eb..9279efe18 100644
      await options_device_prefill()
      await config_flow_quick_setup()
 diff --git a/tests/doc_claims.py b/tests/doc_claims.py
-index 377f2edf2..261cbadd1 100644
+index d288b59a7..706e5caeb 100644
 --- a/tests/doc_claims.py
 +++ b/tests/doc_claims.py
 @@ -1250,7 +1250,7 @@ def check_prose_tree_counts() -> None:
@@ -1618,7 +2049,7 @@ index 377f2edf2..261cbadd1 100644
      }
      rows, _ = prose_count_census(stale, facts)
 diff --git a/tests/entities.py b/tests/entities.py
-index 01660f41e..8381c650d 100644
+index 526b84b2d..bcd4754e9 100644
 --- a/tests/entities.py
 +++ b/tests/entities.py
 @@ -9087,8 +9087,10 @@ for _step in options._MENU_LABELS:
@@ -1670,20 +2101,21 @@ index 01660f41e..8381c650d 100644
  }
  R.check(
      "every registered service was invoked above",
-@@ -40353,6 +40377,8 @@ _R10_LOG_ALLOWED_BY_REASON = {
+@@ -40488,6 +40512,9 @@ _R10_LOG_ALLOWED_BY_REASON = {
          ("coordinator.py", "_async_load_thermal_learning"): 1,
          ("coordinator.py", "_async_setup_peak_guard"): 1,
          ("coordinator.py", "async_restore_learned_snapshot"): 1,
-+        # R10-FACTORY-RESET: one line per reset the user asked for.
++        # R10-FACTORY-RESET: one line per reset the user asked for, applied
++        # or refused by Home Assistant's unload.
 +        ("coordinator.py", "async_factory_reset"): 1,
          ("coordinator.py", "_thermal_param_changes"): 1, ("coordinator.py", "async_simulate"): 1,
          ("coordinator.py", "async_adopt_heat_loss_refit"): 1, ("coordinator.py", "async_shutdown"): 1,
      },
 diff --git a/tests/features.py b/tests/features.py
-index 327ec8d41..c181429c9 100644
+index 327ec8d41..7fd3d9c3f 100644
 --- a/tests/features.py
 +++ b/tests/features.py
-@@ -13164,6 +13164,400 @@ R.check(
+@@ -13164,6 +13164,570 @@ R.check(
  )
  
  
@@ -1768,8 +2200,10 @@ index 327ec8d41..c181429c9 100644
 +    c._freq_fallback = True  # a fact the reset keeps: the watchdog's latch
 +    c._accuracy.lead_sigma[1.0], c._accuracy.lead_counts[1.0] = 0.3, 12
 +    c._price_learner.model.shapes[0][3] = 1.2
++    c._dhw_learner.draw_stats.fold(_fr_dt.now(), "06:00-09:00", 2.5)
 +    _aio.run(c._async_save_thermal_learning())
 +    _aio.run(c._dhw_learner.async_save_profile())
++    _aio.run(c._dhw_learner.async_save_draws())
 +    _aio.run(c._async_save_accuracy())
 +    _aio.run(c._async_save_price_model())
 +
@@ -1885,6 +2319,42 @@ index 327ec8d41..c181429c9 100644
 +    str({k: sorted(f for f in set(v) | set(_fr_l_want[k]) if v.get(f) != _fr_l_want[k].get(f))
 +         for k, v in _fr_l_got.items() if v != _fr_l_want[k]}),
 +)
++# The void list, key by key, against a list this test owns rather than
++# ``_FACTORY_VOID`` itself (an enumeration read from the list it checks pins
++# nothing): every key a learned store holds is a learner the reset drops, or
++# one of these facts it keeps. The heat-loss pair stays, voided by its own
++# path; the rest is the anchors, the meter's last COP, snow memory, the
++# frequency watchdog's latch, the billed peaks, the mode and the save stamp.
++_FR_FACTS = {
++    "thermal_learning": {
++        "house_heat_loss_scale", "house_heat_loss_samples", "lower_floor_loss_ratio",
++        "lower_floor_loss_samples", "house_heat_loss_anchor", "house_heat_loss_basis",
++        "lower_floor_loss_anchor", "heat_loss_zone_entities", "measured_cop", "snow_accum_cm",
++        "snow_accum_last", "last_heavy_snow", "freq_fallback", "updated_at",
++    },
++    "accuracy": {"peaks", "mode"},
++    "dhw_profile": set(), "dhw_draws": set(), "price_model": set(),
++}
++_fr_l_setup = _fr_l_before["at_setup"]
++_fr_learned_keys = sorted((n, k) for n, facts in _FR_FACTS.items()
++                          for k in (_fr_l_before["disk"].get(n) or {}) if k not in facts)
++R.check(
++    "before a learners reset every learned store is on disk and holds learned keys beyond its facts (the control)",
++    all(_fr_l_before["disk"].get(n) for n in _FR_FACTS)
++    and {n for n, _ in _fr_learned_keys} == set(_FR_FACTS) and len(_fr_learned_keys) >= 25,
++    f"stores absent {sorted(n for n in _FR_FACTS if not _fr_l_before['disk'].get(n))}, "
++    f"{len(_fr_learned_keys)} learned key(s)",
++)
++_fr_left = [(n, k) for n, k in _fr_learned_keys if k in (_fr_l_setup.get(n) or {})]
++_fr_facts_lost = sorted((n, k) for n, facts in _FR_FACTS.items() for k in facts
++                        if k in (_fr_l_before["disk"].get(n) or {}) and k not in (_fr_l_setup.get(n) or {}))
++R.check(
++    "a learners reset drops every learned key, key by key, and keeps every fact, before the entry is set up again",
++    not _fr_left and not _fr_facts_lost
++    and not any(n in _fr_l_setup for n, facts in _FR_FACTS.items() if not facts),
++    f"learned left {_fr_left}, facts lost {_fr_facts_lost}, "
++    f"whole stores left {sorted(n for n, f in _FR_FACTS.items() if not f and n in _fr_l_setup)}",
++)
 +_fr_l_disk = _fr_disk("fr_learners")
 +R.check(
 +    "a learners reset keeps the settings and the stores' facts: the watchdog latch, peaks, mode",
@@ -1914,21 +2384,69 @@ index 327ec8d41..c181429c9 100644
 +)
 +
 +
-+async def _fr_no_refresh(*_a, **_k):
-+    return None
++def _fr_counting_refresh(c):
++    """Record every refresh asked of ``c``: an undo asks the coordinator it unloaded for none."""
++    asked = []
++
++    async def _refresh(*_a, **_k):
++        asked.append(c)
++
++    c.async_request_refresh = _refresh
++    return asked
 +
 +
-+_fr_b_new.async_request_refresh = _fr_no_refresh
++_fr_b_reset_cfg = {**_fr_b_entry.data, **_fr_b_entry.options}
++R.check(
++    "the house is auto-mode before the reset and pinned two-zone by it (the undo's control)",
++    "two_zone_mode" not in _fr_b_before["config"] and _fr_b_reset_cfg.get("two_zone_mode") == "on",
++    f"before {_fr_b_before['config'].get('two_zone_mode')!r}, reset {_fr_b_reset_cfg.get('two_zone_mode')!r}",
++)
++_fr_b_asked = _fr_counting_refresh(_fr_b_new)
 +_fr_restored = _aio.run(_fr_b_new.async_restore_learned_snapshot())
 +_fr_undone = _fr_b_entry.runtime_data
 +R.check(
-+    "restore_learned_snapshot undoes the reset: every learner, the accuracy history and the settings as before it",
-+    _fr_restored and _fr_undone is not _fr_b_new and _fr_learned(_fr_undone) == _fr_b_before["learned"]
++    "restore_learned_snapshot undoes the reset: every learner, the accuracy history and the settings exactly as before it",
++    _fr_restored is True and _fr_undone is not _fr_b_new and _fr_learned(_fr_undone) == _fr_b_before["learned"]
 +    and _li_state_of(_fr_undone) == (1.4, 1.3, 60, 40)
-+    and {**_fr_b_entry.data, **_fr_b_entry.options} == {
-+        **_fr_b_before["config"], "two_zone_mode": "on", "dhw_enabled": True, "wood_furnace_enabled": False},
++    and {**_fr_b_entry.data, **_fr_b_entry.options} == _fr_b_before["config"],
 +    str({k: sorted(f for f in set(v) | set(_fr_b_before["learned"][k]) if v.get(f) != _fr_b_before["learned"][k].get(f))
-+         for k, v in _fr_learned(_fr_undone).items() if v != _fr_b_before["learned"][k]}),
++         for k, v in _fr_learned(_fr_undone).items() if v != _fr_b_before["learned"][k]})
++    + f" config moved {sorted(k for k in set(_fr_b_before['config']) | set({**_fr_b_entry.data, **_fr_b_entry.options}) if _fr_b_before['config'].get(k) != {**_fr_b_entry.data, **_fr_b_entry.options}.get(k))}",
++)
++R.check(
++    "the undo asks the coordinator it unloaded for nothing more: no refresh, no learner applied after it",
++    _fr_b_asked == [] and _fr_b_entry.runtime_data is _fr_undone,
++    f"refreshes asked {len(_fr_b_asked)}",
++)
++# The undo's pins, as stored: an explicit value, and one stored on the other
++# side (data versus options), each come back where and as they were.
++_FR_PIN_DATA = {"name": "x", "two_zone_mode": "auto", "comfort_weight": 3.0, "indoor_temp_entity": "sensor.in"}
++_FR_PIN_OPTS = {"dhw_enabled": False, "target_temperature": 22.0}
++_fr_pin_reset = _fr_ec.factory_settings(_FR_PIN_DATA, _FR_PIN_OPTS, two_zone=True, dhw=True, wood=False)
++_fr_pin_record = _fi_json.loads(_fi_json.dumps(_fr_ec.undo_point("both", _FR_PIN_DATA, _FR_PIN_OPTS)))
++R.check(
++    "an undo puts each pinned key back where and as it was stored, over the pins the reset wrote",
++    _fr_pin_reset != (_FR_PIN_DATA, _FR_PIN_OPTS)
++    and _fr_ec.undone_settings(*_fr_pin_reset, _fr_pin_record) == (_FR_PIN_DATA, _FR_PIN_OPTS),
++    f"reset {_fr_pin_reset}, undone {_fr_ec.undone_settings(*_fr_pin_reset, _fr_pin_record)}",
++)
++# A record missing either half, or holding a half that is not a (data,
++# options) pair, undoes no settings: the reset that wrote it kept them, or the
++# record is not one an undo point writes.
++_fr_pin_malformed = {
++    name: _fr_ec.undone_settings(*_fr_pin_reset, record)
++    for name, record in (
++        ("no pins", {k: v for k, v in _fr_pin_record.items() if k != "pinned"}),
++        ("no settings", {k: v for k, v in _fr_pin_record.items() if k != "settings"}),
++        ("one side", {**_fr_pin_record, "pinned": [{}]}),
++        ("not dicts", {**_fr_pin_record, "settings": [[], []]}),
++    )
++}
++R.check(
++    "an undo record missing either half, or holding a malformed one, undoes no settings",
++    all(v is None for v in _fr_pin_malformed.values())
++    and _fr_ec.undone_settings(*_fr_pin_reset, _fr_pin_record) is not None,
++    str({k: v is None for k, v in _fr_pin_malformed.items()}),
 +)
 +R.check(
 +    "the spent undo point stays as an ordinary snapshot, so a second restore is the ordinary one",
@@ -1937,29 +2455,75 @@ index 327ec8d41..c181429c9 100644
 +)
 +
 +
-+async def _fr_failed_unload():
-+    """An unload Home Assistant refuses: the reset stops at the undo point."""
++# The undo of a learners reset: its record carries no settings, and the
++# settings are left exactly as they are.
++_fr_lu_before, _fr_lu_entry, _, _ = _fr_case("learners", "fr_undo_learners")
++_fr_lu_new = _fr_lu_entry.runtime_data
++_fr_lu_record = _fr_lu_new._snapshot_ring.snapshots[-1].get("before_reset", {})
++_fr_counting_refresh(_fr_lu_new)
++_fr_lu_ok = _aio.run(_fr_lu_new.async_restore_learned_snapshot())
++R.check(
++    "restore_learned_snapshot undoes a learners reset: every learner back, the settings untouched",
++    _fr_lu_ok is True and "settings" not in _fr_lu_record and _fr_lu_record.get("scope") == "learners"
++    and _fr_learned(_fr_lu_entry.runtime_data) == _fr_lu_before["learned"]
++    and _li_state_of(_fr_lu_entry.runtime_data) == (1.4, 1.3, 60, 40)
++    and {**_fr_lu_entry.data, **_fr_lu_entry.options} == _fr_lu_before["config"],
++    f"record {sorted(_fr_lu_record)}, restored {_fr_lu_ok}",
++)
++
++
++async def _fr_failed_unload(scope="both"):
++    """An unload Home Assistant refuses: the reset changes nothing but the undo point."""
 +    hass = FakeHass({})
 +    entry = _fr_entry_cls(data=dict(_FR_DATA), options=dict(_FR_OPTS), entry_id="fr_no_unload")
 +    hass.config_entries.entries.append(entry)
 +    c = await _fr_boot(hass, entry)
++    c._apply_house_heat_loss_scale(1.4)
++    c._apply_lower_floor_loss_ratio(1.3)
++    c._house_heat_loss_samples, c._lower_floor_loss_samples = 60, 40
++    await c._async_save_thermal_learning()
++    disk = _fr_disk("fr_no_unload")
 +
 +    async def _refuse(eid):
 +        hass.config_entries.unloaded.append(eid)
 +        return False
 +
 +    hass.config_entries.async_unload = _refuse
-+    await _fr_reset(c, "both")
-+    return entry, hass.config_entries, _fr_disk("fr_no_unload"), c
++    import logging as _fr_logging
++    from heatpump_optimizer import coordinator as _fr_coord_mod
++
++    said = []
++    handler = _fr_logging.Handler()
++    handler.emit = lambda record: said.append(record.getMessage())
++    _fr_coord_mod._LOGGER.addHandler(handler)
++    try:
++        done = await _fr_reset(c, scope)
++    finally:
++        _fr_coord_mod._LOGGER.removeHandler(handler)
++    after = {k: v for k, v in _fr_disk("fr_no_unload").items() if k != "snapshots"}
++    return entry, hass.config_entries, (disk, after), c, (done, said)
 +
 +
-+_fr_nu_entry, _fr_nu_mgr, _fr_nu_disk, _fr_nu_c = _aio.run(_fr_failed_unload())
++_fr_nu_entry, _fr_nu_mgr, _fr_nu_disk, _fr_nu_c, (_fr_nu_done, _fr_nu_said) = _aio.run(_fr_failed_unload())
 +R.check(
-+    "a refused unload stops the reset at its undo point: settings kept, nothing set up",
-+    {**_fr_nu_entry.data, **_fr_nu_entry.options} == {**_FR_DATA, **_FR_OPTS}
-+    and _fr_nu_mgr.set_up == [] and "price_model" in _fr_nu_disk and "dhw_profile" in _fr_nu_disk
-+    and "before_reset" in _fr_nu_c._snapshot_ring.snapshots[-1],
-+    f"set up {_fr_nu_mgr.set_up}, stores {sorted(_fr_nu_disk)}",
++    "a refused unload changes nothing but the undo point: settings, every store and the heat-loss pair as before",
++    _fr_nu_done is False
++    and {**_fr_nu_entry.data, **_fr_nu_entry.options} == {**_FR_DATA, **_FR_OPTS}
++    and _fr_nu_mgr.set_up == []
++    and all(_fr_unstamped(_fr_nu_disk[1].get(k)) == _fr_unstamped(v) for k, v in _fr_nu_disk[0].items() if k != "snapshots")
++    and _li_state_of(_fr_nu_c) == (1.4, 1.3, 60, 40)
++    and "before_reset" in _fr_nu_c._snapshot_ring.snapshots[-1]
++    and any("not applied" in m for m in _fr_nu_said) and not any(" applied;" in m for m in _fr_nu_said),
++    f"done {_fr_nu_done}, said {_fr_nu_said}, set up {_fr_nu_mgr.set_up}, heat loss {_li_state_of(_fr_nu_c)}, "
++    f"stores moved {sorted(k for k, v in _fr_nu_disk[0].items() if k != 'snapshots' and _fr_unstamped(_fr_nu_disk[1].get(k)) != _fr_unstamped(v))}",
++)
++_fr_nu_c.hass.config_entries.async_unload = _fr_nu_mgr.async_unload
++_fr_nu_undo = _aio.run(_fr_nu_c.async_restore_learned_snapshot())
++R.check(
++    "a refused unload refuses the undo too, and the undo point stays the undo point",
++    _fr_nu_undo is False and "before_reset" in _fr_nu_c._snapshot_ring.snapshots[-1]
++    and _fr_nu_mgr.set_up == [],
++    f"undo {_fr_nu_undo}",
 +)
 +# Once a weekly snapshot is newer, the restore is the ordinary one again.
 +_fr_w_before, _fr_w_entry, _, _ = _fr_case("learners", "fr_weekly")
@@ -2003,6 +2567,44 @@ index 327ec8d41..c181429c9 100644
 +    _fr_go[1]["type"] == "abort" and _fr_go[1]["reason"] == "factory_reset_done"
 +    and _fr_go[2] == (True, True) and _fr_go[3].unloaded == ["fr_flow_go"] == _fr_go[3].set_up,
 +    f"{_fr_go[1]}, changed {_fr_go[2]}",
++)
++
++
++async def _fr_flow_refused():
++    hass = FakeHass({})
++    entry = _fr_entry_cls(data=dict(_FR_DATA), options=dict(_FR_OPTS), entry_id="fr_flow_refused")
++    hass.config_entries.entries.append(entry)
++    await _fr_boot(hass, entry)
++
++    async def _refuse(eid):
++        return False
++
++    hass.config_entries.async_unload = _refuse
++    flow = _fr_flow.HeatPumpOptimizerOptionsFlow(entry)
++    flow.hass = hass
++    await flow.async_step_factory_reset()
++    shown = await flow.async_step_factory_reset({"scope": "both", "confirm": True})
++    try:
++        await _fr_services.handle_factory_reset(hass, _fr_call(
++            "heatpump_optimizer", "factory_reset",
++            _fr_services.SERVICE_SCHEMA_FACTORY_RESET({"entry_id": "fr_flow_refused", "scope": "learners"})))
++        raised = None
++    except Exception as err:  # HomeAssistantError
++        raised = err
++    return shown, raised
++
++
++_fr_refused = _aio.run(_fr_flow_refused())
++R.check(
++    "a refused unload is said as not applied, by the options step and by the service, never as done",
++    _fr_refused[0]["type"] == "abort" and _fr_refused[0]["reason"] == "factory_reset_not_applied"
++    and getattr(_fr_refused[1], "translation_key", None) == "factory_reset_not_applied"
++    and all(_fi_json.loads(_FrPath(p).read_text())["options"]["abort"].get("factory_reset_not_applied")
++            and _fi_json.loads(_FrPath(p).read_text())["exceptions"]["factory_reset_not_applied"]["message"]
++            for p in ("custom_components/heatpump_optimizer/strings.json",
++                      "custom_components/heatpump_optimizer/translations/en.json",
++                      "custom_components/heatpump_optimizer/translations/sv.json")),
++    f"{_fr_refused[0]}, raised {_fr_refused[1]!r}",
 +)
 +_fr_off = _aio.run(_fr_flow_case({"scope": "both", "confirm": True}, "fr_flow_off", loaded=False))
 +R.check(
@@ -2084,7 +2686,31 @@ index 327ec8d41..c181429c9 100644
  R.section("Runtime parameter updates")
  
  import asyncio
-@@ -25669,6 +26063,7 @@ _HPO_MOVED = (
+@@ -25158,6 +25722,7 @@ _SVC_KEYS = {
+     "restore_learned_snapshot_no_snapshot": ({"entry_ids"}, "hae"),
+     "restore_learned_snapshot_no_refit": ({"entry_ids"}, "hae"),
+     "set_thermal_params_invalid_dhw_windows": ({"windows", "error"}, "sve"),
++    "factory_reset_not_applied": ({"entry_id"}, "hae"),
+ }
+ 
+ 
+@@ -25205,6 +25770,15 @@ def _svc_check(name, outcome, key):
+     R.check(name, not _svc_why(outcome, key), _svc_why(outcome, key) or "ok")
+ 
+ 
++# factory_reset's refusal, driven in the R10-FACTORY-RESET section through
++# the real service handler over an unload Home Assistant refuses.
++_svc_check(
++    "factory_reset over an unload Home Assistant refuses raises a translated operational failure",
++    ("raised", _fr_refused[1]) if _fr_refused[1] is not None else ("returned", None),
++    "factory_reset_not_applied",
++)
++
++
+ # The driven state: one loaded entry, its coordinator holding no prices, no
+ # plan and no snapshot -- what a fresh install (or a dead price feed) looks
+ # like from a service call.
+@@ -25669,6 +26243,7 @@ _HPO_MOVED = (
      "handle_restore_snapshot",
      "handle_diagnose_interval",
      "handle_reset_heat_loss",
@@ -2092,7 +2718,7 @@ index 327ec8d41..c181429c9 100644
      "_manual_targets",
      "_loaded_entries",
      "_loaded_coordinators",
-@@ -25740,6 +26135,7 @@ _HPO_SERVICE_MAP = {
+@@ -25740,6 +26315,7 @@ _HPO_SERVICE_MAP = {
      "diagnose_interval": "handle_diagnose_interval",
      "debug_collect": "handle_debug_collect",
      "reset_heat_loss_learners": "handle_reset_heat_loss",
@@ -2100,7 +2726,16 @@ index 327ec8d41..c181429c9 100644
  }
  _hpo_hass = FakeHass()
  _asyncio.run(_ha_setup_component(_integ, _hpo_hass))
-@@ -38022,7 +38418,8 @@ _et_check(
+@@ -37949,6 +38525,8 @@ _ET_KEYS = {
+     # D10-s1-03: the refused token, through _raise_auth_failed.
+     "tibber_auth_failed": {"error"},
+     "debug_collect_inactive": {"entry_id"},
++    # R10-FACTORY-RESET: an unload Home Assistant refuses.
++    "factory_reset_not_applied": {"entry_id"},
+ }
+ 
+ 
+@@ -38022,7 +38600,8 @@ _et_check(
  # schema accepts, in both refusing states. Its preconditions: it drives the
  # whole catalog, each action's payload reaches the handler without an
  # entry_id, and the only refusal it accepts from a schema is of entry_id
@@ -2110,7 +2745,7 @@ index 327ec8d41..c181429c9 100644
  import voluptuous as _ger_vol  # noqa: E402
  
  #: The fields an action's schema requires; any other's smallest payload is {}.
-@@ -38031,6 +38428,7 @@ _GER_REQUIRED = {
+@@ -38031,6 +38610,7 @@ _GER_REQUIRED = {
      "debug_collect": {"action": "status"},
      "assign_entity": {"key": "outdoor_temp_entity", "entity_id": ""},
      "apply_topology": {"layout": "no_valve"},
@@ -2118,7 +2753,7 @@ index 327ec8d41..c181429c9 100644
  }
  _ger_actions = sorted(_et_idle.services.async_services()[_DOMAIN])
  _ger_bad, _ger_unreached = [], []
-@@ -38043,7 +38441,9 @@ for _ger_name in _ger_actions:
+@@ -38043,7 +38623,9 @@ for _ger_name in _ger_actions:
          try:
              _ger_err = _et_call(_et_idle, _ger_name, _ger_payload)
          except _ger_vol.Invalid as _ger_inv:
@@ -2129,6 +2764,23 @@ index 327ec8d41..c181429c9 100644
                  tuple(_e.path) for _e in getattr(_ger_inv, "errors", [_ger_inv])
              } != {("entry_id",)}:
                  _ger_unreached.append(f"{_ger_name}: {_ger_inv}")
+@@ -49914,6 +50496,16 @@ R.check(
+     "parse, and a 140 % humidity selects a defrost bucket that does not "
+     "describe any weather",
+ )
++R.check(
++    "the range's two ends are humidities: 0 % and 100 % are read, just past either is refused",
++    _t6_humidity([{"humidity": 0, "datetime": _T6_HUM_NOW.isoformat()}]) == 0.0
++    and _t6_humidity([{"humidity": 100, "datetime": _T6_HUM_NOW.isoformat()}]) == 100.0
++    and _t6_humidity([{"humidity": 100.01, "datetime": _T6_HUM_NOW.isoformat()}]) is None
++    and _t6_humidity([{"humidity": -0.01, "datetime": _T6_HUM_NOW.isoformat()}]) is None,
++    f"0 -> {_t6_humidity([{'humidity': 0, 'datetime': _T6_HUM_NOW.isoformat()}])!r}, "
++    f"100 -> {_t6_humidity([{'humidity': 100, 'datetime': _T6_HUM_NOW.isoformat()}])!r} "
++    "-- a saturated or bone-dry forecast is weather, so the bounds are inclusive",
++)
+ 
+ 
+ # -- `_shutdown_process_pool`: a shutdown that must not raise -------------
 diff --git a/tests/golden/claimed_drift.txt b/tests/golden/claimed_drift.txt
 index 86133618a..8a7898c2d 100644
 --- a/tests/golden/claimed_drift.txt
@@ -2244,6 +2896,83 @@ index 6f29b8e37..3a0e2c380 100644
      async def async_forward_entry_setups(self, entry, platforms):
          return None
  
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow.async_step_factory_reset.GUARD_OFF.45d9e00a.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow.async_step_factory_reset.GUARD_OFF.45d9e00a.json
+new file mode 100644
+index 000000000..a6c6be541
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow.async_step_factory_reset.GUARD_OFF.45d9e00a.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow.async_step_factory_reset GUARD_OFF 45d9e00a",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "        if not user_input.get(\"confirm\"):",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=5."
++}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow.async_step_factory_reset.GUARD_OFF.8bc8eedc.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow.async_step_factory_reset.GUARD_OFF.8bc8eedc.json
+new file mode 100644
+index 000000000..ab6274a65
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow.async_step_factory_reset.GUARD_OFF.8bc8eedc.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow.async_step_factory_reset GUARD_OFF 8bc8eedc",
++  "killed_by": "tests/config_flow_steps.py",
++  "old": "        if user_input is None:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow.async_step_factory_reset.GUARD_OFF.a0db8943.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow.async_step_factory_reset.GUARD_OFF.a0db8943.json
+new file mode 100644
+index 000000000..ee637273a
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow.async_step_factory_reset.GUARD_OFF.a0db8943.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow.async_step_factory_reset GUARD_OFF a0db8943",
++  "killed_by": "tests/features.py",
++  "old": "        if (coord := getattr(self._entry, \"runtime_data\", None)) is None:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow.async_step_factory_reset.RETURN_DEL.f30dc257.json b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow.async_step_factory_reset.RETURN_DEL.f30dc257.json
+new file mode 100644
+index 000000000..a464949d9
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/config_flow.py/HeatPumpOptimizerOptionsFlow.async_step_factory_reset.RETURN_DEL.f30dc257.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow.async_step_factory_reset RETURN_DEL f30dc257",
++  "killed_by": "tests/features.py",
++  "old": "        return self.async_abort(reason=\"factory_reset_done\" if done else \"factory_reset_not_applied\")",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._dhw_probe_temperature.GUARD_OFF.bc450a12.json b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._apply_learner_payloads.GUARD_OFF.fbcfbdb6.json
+similarity index 55%
+rename from tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._dhw_probe_temperature.GUARD_OFF.bc450a12.json
+rename to tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._apply_learner_payloads.GUARD_OFF.fbcfbdb6.json
+index 995ab42b6..28a879b47 100644
+--- a/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._dhw_probe_temperature.GUARD_OFF.bc450a12.json
++++ b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._apply_learner_payloads.GUARD_OFF.fbcfbdb6.json
+@@ -1,6 +1,6 @@
+ {
+-  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._dhw_probe_temperature GUARD_OFF bc450a12",
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._apply_learner_payloads GUARD_OFF fbcfbdb6",
+   "killed_by": "tests/features.py",
+-  "old": "        if self._learning_frozen(CONF_DHW_TEMP_ENTITY, room_air=False) is not None:",
+-  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
++  "old": "                if (value := finite_float(thermal.get(key))) is not None:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=9."
+ }
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._async_load_thermal_learning.CLAMP_DROP.1dc0e79b.json b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._async_load_thermal_learning.CLAMP_DROP.1dc0e79b.json
+new file mode 100644
+index 000000000..8f2d2d2b5
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._async_load_thermal_learning.CLAMP_DROP.1dc0e79b.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_load_thermal_learning CLAMP_DROP 1dc0e79b",
++  "killed_by": "tests/features.py",
++  "old": "        self._snow_accum_cm = max(0.0, finite_float(stored.get(\"snow_accum_cm\"), 0.0))",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`self._snow_accum_cm = (0.0)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
++}
 diff --git a/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._async_load_thermal_learning.GUARD_OFF.41a865ec.json b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._async_load_thermal_learning.GUARD_OFF.41a865ec.json
 deleted file mode 100644
 index 3aa7e0279..000000000
@@ -2256,6 +2985,222 @@ index 3aa7e0279..000000000
 -  "old": "        if ratio is not None:",
 -  "reason": "Recorded by `mutation_table.py --drain` against e3f3b312fff572904f24d78a44a2c4492b1a8ddb: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=5."
 -}
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._async_load_thermal_learning.GUARD_OFF.798dac67.json b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._async_load_thermal_learning.GUARD_OFF.798dac67.json
+new file mode 100644
+index 000000000..3b65af358
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._async_load_thermal_learning.GUARD_OFF.798dac67.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_load_thermal_learning GUARD_OFF 798dac67",
++  "killed_by": "tests/features.py",
++  "old": "        if (n := _stored_learner(stored, \"house_heat_loss_scale\", \"house_heat_loss_samples\", self._apply_house_heat_loss_scale)) is not None:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=25."
++}
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._async_load_thermal_learning.GUARD_OFF.b39a405a.json b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._async_load_thermal_learning.GUARD_OFF.b39a405a.json
+new file mode 100644
+index 000000000..4cac576fb
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._async_load_thermal_learning.GUARD_OFF.b39a405a.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_load_thermal_learning GUARD_OFF b39a405a",
++  "killed_by": "tests/features.py",
++  "old": "        if (n := _stored_learner(stored, \"buffer_cooling_rate\", \"buffer_cooling_samples\", self._apply_buffer_cooling_rate)) is not None:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
++}
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._async_load_thermal_learning.GUARD_OFF.dc87c807.json b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._async_load_thermal_learning.GUARD_OFF.dc87c807.json
+new file mode 100644
+index 000000000..0e019dd37
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._async_load_thermal_learning.GUARD_OFF.dc87c807.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_load_thermal_learning GUARD_OFF dc87c807",
++  "killed_by": "tests/features.py",
++  "old": "        if (n := _stored_learner(stored, _COP_STORE_KEY, \"cop_samples\", self._apply_cop_scale)) is not None:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=8."
++}
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._async_load_thermal_learning.GUARD_OFF.e9836e13.json b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._async_load_thermal_learning.GUARD_OFF.e9836e13.json
+new file mode 100644
+index 000000000..64c998c05
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._async_load_thermal_learning.GUARD_OFF.e9836e13.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_load_thermal_learning GUARD_OFF e9836e13",
++  "killed_by": "tests/features.py",
++  "old": "        if (n := _stored_learner(stored, \"lower_floor_loss_ratio\", \"lower_floor_loss_samples\", self._apply_lower_floor_loss_ratio)) is not None:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=21."
++}
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._current_humidity.BOOLOP.45eae803.json b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._current_humidity.BOOLOP.45eae803.json
+new file mode 100644
+index 000000000..d67aa509c
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._current_humidity.BOOLOP.45eae803.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._current_humidity BOOLOP 45eae803",
++  "killed_by": "tests/features.py",
++  "old": "        return value if value is not None and 0.0 <= value <= 100.0 else None",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`return value if value is not None or 0.0 <= value <= 100.0 else None`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._current_humidity.RETURN_DEL.45eae803.json b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._current_humidity.RETURN_DEL.45eae803.json
+new file mode 100644
+index 000000000..c77bebdab
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._current_humidity.RETURN_DEL.45eae803.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._current_humidity RETURN_DEL 45eae803",
++  "killed_by": "tests/features.py",
++  "old": "        return value if value is not None and 0.0 <= value <= 100.0 else None",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
++}
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator.async_restore_learned_snapshot.GUARD_OFF.d20d64a4.json b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator.async_restore_learned_snapshot.GUARD_OFF.d20d64a4.json
+new file mode 100644
+index 000000000..19098aaf9
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator.async_restore_learned_snapshot.GUARD_OFF.d20d64a4.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator.async_restore_learned_snapshot GUARD_OFF d20d64a4",
++  "killed_by": "tests/features.py",
++  "old": "        if \"before_reset\" in snap:  # a factory reset's undo point: stores and settings back",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:  # a factory reset's undo point: stores and settings back`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
++}
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/_async_rewrite_entry.GUARD_OFF.0bcc5a76.json b/tests/mutation_ledger/killed_by/coordinator.py/_async_rewrite_entry.GUARD_OFF.0bcc5a76.json
+new file mode 100644
+index 000000000..d9fb0b2fa
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/coordinator.py/_async_rewrite_entry.GUARD_OFF.0bcc5a76.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_async_rewrite_entry GUARD_OFF 0bcc5a76",
++  "killed_by": "tests/features.py",
++  "old": "    if not await hass.config_entries.async_unload(entry.entry_id):",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=5."
++}
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/_async_rewrite_entry.GUARD_OFF.3602237b.json b/tests/mutation_ledger/killed_by/coordinator.py/_async_rewrite_entry.GUARD_OFF.3602237b.json
+new file mode 100644
+index 000000000..2ba151ef0
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/coordinator.py/_async_rewrite_entry.GUARD_OFF.3602237b.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_async_rewrite_entry GUARD_OFF 3602237b",
++  "killed_by": "tests/features.py",
++  "old": "    if settings is not None:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6."
++}
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/_async_rewrite_entry.RETURN_DEL.80a0007e.json b/tests/mutation_ledger/killed_by/coordinator.py/_async_rewrite_entry.RETURN_DEL.80a0007e.json
+new file mode 100644
+index 000000000..b2226ca79
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/coordinator.py/_async_rewrite_entry.RETURN_DEL.80a0007e.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_async_rewrite_entry RETURN_DEL 80a0007e",
++  "killed_by": "tests/features.py",
++  "old": "    return True",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
++}
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/_async_store_documents.RETURN_DEL.e2917fe4.json b/tests/mutation_ledger/killed_by/coordinator.py/_async_store_documents.RETURN_DEL.e2917fe4.json
+new file mode 100644
+index 000000000..cb047400b
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/coordinator.py/_async_store_documents.RETURN_DEL.e2917fe4.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_async_store_documents RETURN_DEL e2917fe4",
++  "killed_by": "tests/features.py",
++  "old": "    return {name: await store.async_load() for (name, _), store in zip(_FACTORY_VOID, _restored_stores(coord))}",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/_stored_isoformat.GUARD_OFF.e71653f6.json b/tests/mutation_ledger/killed_by/coordinator.py/_stored_isoformat.GUARD_OFF.e71653f6.json
+new file mode 100644
+index 000000000..4d6112daa
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/coordinator.py/_stored_isoformat.GUARD_OFF.e71653f6.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_stored_isoformat GUARD_OFF e71653f6",
++  "killed_by": "tests/features.py",
++  "old": "    if not isinstance(raw, str):",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/_stored_learner.GUARD_OFF.49093545.json b/tests/mutation_ledger/killed_by/coordinator.py/_stored_learner.GUARD_OFF.49093545.json
+new file mode 100644
+index 000000000..40f62f181
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/coordinator.py/_stored_learner.GUARD_OFF.49093545.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_stored_learner GUARD_OFF 49093545",
++  "killed_by": "tests/features.py",
++  "old": "    if (value := stored.get(key)) is None:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/_stored_learner.RETURN_DEL.5cb47597.json b/tests/mutation_ledger/killed_by/coordinator.py/_stored_learner.RETURN_DEL.5cb47597.json
+new file mode 100644
+index 000000000..5163af912
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/coordinator.py/_stored_learner.RETURN_DEL.5cb47597.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_stored_learner RETURN_DEL 5cb47597",
++  "killed_by": "tests/features.py",
++  "old": "    return count",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=19."
++}
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/_stored_learner.RETURN_DEL.d7923b87~2.json b/tests/mutation_ledger/killed_by/coordinator.py/_stored_learner.RETURN_DEL.d7923b87~2.json
+new file mode 100644
+index 000000000..9afe1c2ec
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/coordinator.py/_stored_learner.RETURN_DEL.d7923b87~2.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_stored_learner RETURN_DEL d7923b87#2",
++  "killed_by": "tests/features.py",
++  "old": "        return None",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
++}
+diff --git a/tests/mutation_ledger/killed_by/entry_config.py/factory_settings.RETURN_DEL.9521dcc2.json b/tests/mutation_ledger/killed_by/entry_config.py/factory_settings.RETURN_DEL.9521dcc2.json
+new file mode 100644
+index 000000000..cd6eacae1
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/entry_config.py/factory_settings.RETURN_DEL.9521dcc2.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/entry_config.py:factory_settings RETURN_DEL 9521dcc2",
++  "killed_by": "tests/features.py",
++  "old": "    return with_settings((data, {**options, **pinned}), ({}, {}))",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6."
++}
+diff --git a/tests/mutation_ledger/killed_by/entry_config.py/with_settings.RETURN_DEL.80c79bfe.json b/tests/mutation_ledger/killed_by/entry_config.py/with_settings.RETURN_DEL.80c79bfe.json
+new file mode 100644
+index 000000000..4472f55a9
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/entry_config.py/with_settings.RETURN_DEL.80c79bfe.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/entry_config.py:with_settings RETURN_DEL 80c79bfe",
++  "killed_by": "tests/features.py",
++  "old": "    return {**rest[0], **kept[0]}, {**rest[1], **kept[1]}",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6."
++}
+diff --git a/tests/mutation_ledger/killed_by/services.py/handle_factory_reset.RETURN_DEL.4bcd781f.json b/tests/mutation_ledger/killed_by/services.py/handle_factory_reset.RETURN_DEL.4bcd781f.json
+new file mode 100644
+index 000000000..ae5ebd5ac
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/services.py/handle_factory_reset.RETURN_DEL.4bcd781f.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/services.py:handle_factory_reset RETURN_DEL 4bcd781f",
++  "killed_by": "tests/features.py",
++  "old": "    return {\"reset\": data[\"entry_id\"], \"scope\": data[\"scope\"]}",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
++}
 diff --git a/tests/mutation_ledger/killed_by/snapshots.py/SnapshotRing.best_restore.GUARD_OFF.512dc888.json b/tests/mutation_ledger/killed_by/snapshots.py/SnapshotRing.best_restore.GUARD_OFF.512dc888.json
 deleted file mode 100644
 index dfaa9348a..000000000
@@ -2268,6 +3213,54 @@ index dfaa9348a..000000000
 -  "old": "            if not snap.get(\"healthy\"):",
 -  "reason": "Recorded by `mutation_table.py --drain` against 9061fbd3d710d5894b7083d8a58b8203f9e7aa97: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
 -}
+diff --git a/tests/mutation_ledger/killed_by/snapshots.py/SnapshotRing.best_restore.GUARD_OFF.6541f9a5.json b/tests/mutation_ledger/killed_by/snapshots.py/SnapshotRing.best_restore.GUARD_OFF.6541f9a5.json
+new file mode 100644
+index 000000000..c2cf92fde
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/snapshots.py/SnapshotRing.best_restore.GUARD_OFF.6541f9a5.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/snapshots.py:SnapshotRing.best_restore GUARD_OFF 6541f9a5",
++  "killed_by": "tests/features.py",
++  "old": "            if not snap.get(\"healthy\") or \"before_reset\" in snap:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
++}
+diff --git a/tests/mutation_ledger/killed_by/snapshots.py/SnapshotRing.undo_target.BOOLOP.ee22e5a2.json b/tests/mutation_ledger/killed_by/snapshots.py/SnapshotRing.undo_target.BOOLOP.ee22e5a2.json
+new file mode 100644
+index 000000000..855215f44
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/snapshots.py/SnapshotRing.undo_target.BOOLOP.ee22e5a2.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/snapshots.py:SnapshotRing.undo_target BOOLOP ee22e5a2",
++  "killed_by": "tests/features.py",
++  "old": "        if self.snapshots and \"before_reset\" in self.snapshots[-1]:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`if self.snapshots or \"before_reset\" in self.snapshots[-1]:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/snapshots.py/SnapshotRing.undo_target.GUARD_OFF.ee22e5a2.json b/tests/mutation_ledger/killed_by/snapshots.py/SnapshotRing.undo_target.GUARD_OFF.ee22e5a2.json
+new file mode 100644
+index 000000000..49615c216
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/snapshots.py/SnapshotRing.undo_target.GUARD_OFF.ee22e5a2.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/snapshots.py:SnapshotRing.undo_target GUARD_OFF ee22e5a2",
++  "killed_by": "tests/features.py",
++  "old": "        if self.snapshots and \"before_reset\" in self.snapshots[-1]:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
++}
+diff --git a/tests/mutation_ledger/killed_by/snapshots.py/SnapshotRing.undo_target.RETURN_DEL.da7502bd.json b/tests/mutation_ledger/killed_by/snapshots.py/SnapshotRing.undo_target.RETURN_DEL.da7502bd.json
+new file mode 100644
+index 000000000..58029975a
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/snapshots.py/SnapshotRing.undo_target.RETURN_DEL.da7502bd.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/snapshots.py:SnapshotRing.undo_target RETURN_DEL da7502bd",
++  "killed_by": "tests/features.py",
++  "old": "        return self.best_restore()",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=7."
++}
 diff --git a/tests/nightly_ha.py b/tests/nightly_ha.py
 index e7e9f23de..fe77f07ec 100644
 --- a/tests/nightly_ha.py
@@ -2305,13 +3298,13 @@ index a678a9b69..17772e9b2 100644
    "coordinator._ctx_of": "core",
    "coordinator._publish_params": "core",
 diff --git a/tests/structure_budgets.json b/tests/structure_budgets.json
-index f85a64423..1cabd9b3c 100644
+index f85a64423..9de767669 100644
 --- a/tests/structure_budgets.json
 +++ b/tests/structure_budgets.json
 @@ -1,5 +1,5 @@
  {
 - "class_excess_loc": 17653,
-+ "class_excess_loc": 17649,
++ "class_excess_loc": 17648,
   "const_modules_over_50": 3,
   "coordinator_attrs": 142,
   "coordinator_multiassigned_attrs": 109,
@@ -2320,14 +3313,17 @@ index f85a64423..1cabd9b3c 100644
   "import_cycle_modules": 0,
   "max_cc": 44,
 - "max_class_loc": 8059,
-+ "max_class_loc": 7986,
++ "max_class_loc": 7983,
   "max_method_loc": 373,
   "methods_over_150": 15,
   "methods_over_200": 8,
   "name_kept_members": 38,
 - "recorded_at": "460d7754f48630a9fa0d84c31be78bc78d71c02b",
 - "seam_cut_total": 422
-+ "recorded_at": "12caba8cfe67b61b50852926564b79228e7304a0",
++ "recorded_at": "8fec54ee2afb5e37687f34bc5fd3aa7280f64e1f",
 + "seam_cut_total": 423
  }
 
+## Before you return the verdict (P275)
+Run `python3 -I tools/audit/carry_audit.py check --body <PR body file> --comments <file holding [{"id": 0, "body": <verdict.md text>}]>`. Give every reported item its own `Carry: <GROUP> | #<issue> | O<n> | dismissed: <reason>`;
+an evidence line flagged by its wording takes `Carry: dismissed: evidence, not a finding`. Return the verdict only at rc 0.

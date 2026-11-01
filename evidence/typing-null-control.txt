@@ -1,0 +1,3 @@
+RESULT typing_null_control well_formed_records=9000 identical=9000
+  malformed settings None: old None head None
+  malformed pinned 3 sides: old None head None

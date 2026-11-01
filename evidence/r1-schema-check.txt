@@ -1,20 +1,25 @@
-## head
-  ok   every options page's shown schema accepts the a5 walk's untouched resubmit
-  ok   null control: the factory-reset page's schema refuses an after-save key
+## 
+  ok   every options page's shown schema accepts the a5 walk's untouched resubmit, every form page read
+  ok   null control: a planted page whose schema refuses the payload is read and refused by the same sweep
 ALL 2 A5 checks PASSED
-## option_resubmit as at 9039d178
-  FAIL every options page's shown schema accepts the a5 walk's untouched resubmit  [refused ["factory_reset: extra keys not allowed @ data['after_save']"]]
-  ok   null control: the factory-reset page's schema refuses an after-save key
+rc=0
+## A5_DEFECT=1
+  FAIL every options page's shown schema accepts the a5 walk's untouched resubmit, every form page read  [refused ["factory_reset: extra keys not allowed @ data['after_save']"]; read 24 of 24 form page(s)]
+  FAIL null control: a planted page whose schema refuses the payload is read and refused by the same sweep  [read 25, refused ["factory_reset: extra keys not allowed @ data['after_save']"]]
+2 of 2 A5 checks FAILED
+rc=1
+## A5_DEFECT=1 A5_MUT=skip-all
+  FAIL every options page's shown schema accepts the a5 walk's untouched resubmit, every form page read  [refused []; read 0 of 24 form page(s)]
+  FAIL null control: a planted page whose schema refuses the payload is read and refused by the same sweep  [read 0, refused []]
+2 of 2 A5 checks FAILED
+rc=1
+## A5_DEFECT=1 A5_MUT=no-append
+  ok   every options page's shown schema accepts the a5 walk's untouched resubmit, every form page read
+  FAIL null control: a planted page whose schema refuses the payload is read and refused by the same sweep  [read 25, refused []]
 1 of 2 A5 checks FAILED
-## 9039d178 + instrument mutant no-append
-  ok   every options page's shown schema accepts the a5 walk's untouched resubmit
-  ok   null control: the factory-reset page's schema refuses an after-save key
-ALL 2 A5 checks PASSED
-## 9039d178 + instrument mutant skip-all
-  ok   every options page's shown schema accepts the a5 walk's untouched resubmit
-  ok   null control: the factory-reset page's schema refuses an after-save key
-ALL 2 A5 checks PASSED
-## head + planted required key without default on factory_reset
-  FAIL every options page's shown schema accepts the a5 walk's untouched resubmit  [refused ["factory_reset: required key not provided @ data['planted']"]]
-  ok   null control: the factory-reset page's schema refuses an after-save key
+rc=1
+## A5_PLANT=required
+  FAIL every options page's shown schema accepts the a5 walk's untouched resubmit, every form page read  [refused ["factory_reset: required key not provided @ data['planted']"]; read 24 of 24 form page(s)]
+  ok   null control: a planted page whose schema refuses the payload is read and refused by the same sweep
 1 of 2 A5 checks FAILED
+rc=1
