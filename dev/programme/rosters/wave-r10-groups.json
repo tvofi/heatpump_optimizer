@@ -15233,7 +15233,7 @@
    ],
    "carry": [],
    "resume": {
-    "stage": "not-started",
+    "stage": "done",
     "branch": "handoff/r10-merge-bot-refusal-text",
     "commit": null,
     "last_step": null,
