@@ -1817,6 +1817,7 @@
    "tools/audit/repo_root.py",
    "tools/audit/round4/D11/d11lib.py",
    "tools/audit/round4/D11/governance_cost.py",
+   "tools/audit/seat/bare_array.py",
    "tools/audit/seat/gh_read.py",
    "tools/audit/seat/handover_prompt.py",
    "tools/audit/seat/ledger.py",

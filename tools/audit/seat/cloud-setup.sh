@@ -61,7 +61,7 @@ EOF
 variables() { # prefix: the environment variables a seat's shell needs
   local d rest="" parts
   IFS=: read -ra parts <<< "$PATH"
-  for d in "${parts[@]}"; do [ "$d" = "$1/venv-ci/bin" ] || rest="${rest:+$rest:}$d"; done
+  for d in ${parts[@]+"${parts[@]}"}; do [ "$d" = "$1/venv-ci/bin" ] || rest="${rest:+$rest:}$d"; done
   printf '%s\n' "PATH=$1/venv-ci/bin:$rest" \
     "HPO_TYPING_PYTHON=$1/venv-ha/bin/python" "OPENBLAS_CORETYPE=$CORETYPE"
 }
@@ -100,9 +100,9 @@ self_test() (
   mapfile -t vars < <(PATH="$base" variables "$P")
   out=$(PATH="$P/venv-ci/bin:$base:$P/venv-ci/bin" variables "$P" | head -n 1)
   [ "$out" = "${vars[0]}" ]; expect "the printed PATH holds venv-ci/bin once, first, from a PATH holding it twice" $?
-  out=$(run "${vars[@]}" bash -c python3)
+  out=$(run "${vars[@]}" bash -c python3)  # never-empty: vars is the three-line output of variables, asserted above
   [ "$out" = venv ]; expect "a non-login bash under the printed variables gets venv-ci's python3" $?
-  run "${vars[@]}" bash -c "$fns; check \"\$1\"" _ "$P" >/dev/null
+  run "${vars[@]}" bash -c "$fns; check \"\$1\"" _ "$P" >/dev/null  # never-empty: vars is the three-line output of variables, asserted above
   expect "check is OK under the printed variables" $?
   out=$(run bash -c "$fns; check \"\$1\"" _ "$P"); rc=$?
   [ "$rc" = 1 ] && case $out in *"REFUSE"*"PATH=$P/venv-ci/bin:$base HPO_TYPING_PYTHON=$P/venv-ha/bin/python OPENBLAS_CORETYPE=$CORETYPE"*) true ;; *) false ;; esac
@@ -116,7 +116,7 @@ self_test() (
   [ $? = 1 ]; expect "check refuses without OPENBLAS_CORETYPE" $?
   run bash -c ". \"\$2\"; $fns; check \"\$1\"" _ "$P" "$W/profile.sh" >/dev/null
   expect "check is OK in a shell that sourced the profile" $?
-  out=$(run "${vars[@]}" HPO_PREFIX="$P" bash "$SELF" --check); rc=$?
+  out=$(run "${vars[@]}" HPO_PREFIX="$P" bash "$SELF" --check); rc=$?  # never-empty: vars is the three-line output of variables, asserted above
   [ "$rc" = 0 ] && case $out in *" OK "*) true ;; *) false ;; esac
   expect "cloud-setup.sh --check exits 0 under the printed variables" $?
   out=$(run HPO_PREFIX="$P" bash "$SELF" --check); rc=$?

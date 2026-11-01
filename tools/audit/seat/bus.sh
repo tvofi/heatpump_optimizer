@@ -651,7 +651,7 @@ orphans() { # [--min-age-h N] [--no-body] [--no-ancestry] [--no-content] [--excl
   [ "$no_ancestry" = 1 ] && arms+=(--no-ancestry)
   [ "$no_content" = 1 ] && arms+=(--no-content)
   landed_nl=$LF"$(git for-each-ref --format='%(objectname)' "$ns/handoff/" \
-    | python3 -I "$ROOT/tools/audit/seat/ledger.py" landed "${arms[@]}" "$main" $fix_heads)"$LF \
+    | python3 -I "$ROOT/tools/audit/seat/ledger.py" landed ${arms[@]+"${arms[@]}"} "$main" $fix_heads)"$LF \
     || die "orphans: ledger.py landed could not classify the handoff tips"
   now=$(date +%s)
   # A while-read over a heredoc, not a pipe: the counters survive the loop.

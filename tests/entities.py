@@ -28069,6 +28069,56 @@ R.check(
         "app_comment.sh"),
     "the predicate must read the step's run line, not the file name anywhere",
 )
+# --- bare array expansion under set -u (R10-FLY-BUS-BASH32, triage P303) -------
+#
+# macOS /bin/bash 3.2 rejects an EMPTY array's `"${a[@]}"` under `set -u`; CI's
+# bash 5 expands it cleanly, so no run-time row here can see the defect -- this
+# is the static rule `tools/audit/seat/bare_array.py` owns, over every tracked
+# tools/**/*.sh. It encodes a design choice: the guard `${a[@]+"${a[@]}"}` or a
+# `# never-empty: <reason>` marker (on the line, or on a comment line directly
+# above it) is the only way out, and every file is judged, `set -u` or not,
+# because a sourced library runs under its caller's -u; a reason placed after a
+# `# mut:<name>` marker is refused on any line, since the self-tests find their
+# mutant line by that marker at the line's end.
+import importlib.util as _ba_util  # noqa: E402
+
+try:
+    _ba_spec = _ba_util.spec_from_file_location(
+        "hpo_bare_array", _closure.ROOT / "tools" / "audit" / "seat" / "bare_array.py")
+    _ba = _ba_util.module_from_spec(_ba_spec)
+    _ba_spec.loader.exec_module(_ba)
+    _ba_hits = _ba.scan("HEAD")  # git show reads blobs: no file under tools/ is opened, so none joins this script's closure
+    _ba_head = "#!/bin/bash\nset -uo pipefail\n"
+    # bus.sh orphans at the base (3759d49a5): the unguarded call that died.
+    _ba_base = _ba_head + 'x | python3 -I ledger.py landed "${arms[@]}" "$main" $fix_heads\n'
+    _ba_fixed = _ba_head + 'x | python3 -I ledger.py landed ${arms[@]+"${arms[@]}"} "$main" $fix_heads\n'
+    _ba_rows = (
+        (len(_ba.sites(_ba_base)) == 1, "the base bus.sh call is refused"),
+        (_ba.sites(_ba_fixed) == [], "the guarded form passes (control)"),
+        (_ba.sites(_ba_head + 'f "${a[@]}"  # never-empty: literal list\n') == [],
+         "an allow-marked never-empty site passes (null)"),
+        (len(_ba.sites('set -e\nf "${a[@]}"\n')) == 1,
+         "a file without set -u is judged too (a sourced library runs under its caller's -u)"),
+        (_ba.sites('set -e\nf ${a[@]+"${a[@]}"}\n') == [], "the guarded form passes without set -u (null)"),
+        (len(_ba.sites('f x  # mut:m  # never-empty: why\n')) == 1,
+         "a never-empty reason after a mut marker is refused (it unanchors the mutant)"),
+        (len(_ba.sites(_ba_head + 'f x  # mut:m  # never-empty: why\n')) == 1,
+         "a never-empty reason after a mut marker is refused in a set -u file too"),
+        (_ba.sites(_ba_head + '# never-empty: why\nf "${a[@]}"  # mut:m\n') == [],
+         "a reason on the line above keeps the mut marker last (control)"),
+        (_ba.self_test.__call__() == 0, "its own self-test passes"),
+    )
+except Exception as _ba_exc:  # noqa: BLE001 -- a crash is one red check, not a partial run
+    _ba_hits, _ba_rows = [f"{type(_ba_exc).__name__}: {_ba_exc}"], ()
+R.check(
+    "no tracked tools/**/*.sh script expands a bare \"${array[@]}\"",
+    not _ba_hits,
+    "bash 3.2 (macOS) dies on an empty array under -u; guard with ${a[@]+\"${a[@]}\"} or "
+    "put `# never-empty: <reason>` on the line, or on the line above when it ends in `# mut:<name>`:\n" + "\n".join(_ba_hits),
+)
+for _ba_ok, _ba_name in _ba_rows:
+    R.check("bare_array: " + _ba_name, _ba_ok, "tools/audit/seat/bare_array.py")
+
 # --- record-autofix: the record beat for rowless merges (R9-FR-10, #1952) ----
 #
 # `record` reddens on main after every rowless merge, and the beat that clears
