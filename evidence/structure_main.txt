@@ -1,45 +1,45 @@
 ########## counting-rule self-check ##########
   ok   73 counting rules hold
 ########## classes over 300 LOC (evidence; max_class_loc is the row) ##########
-  custom_components/heatpump_optimizer/coordinator.py:3121-11181  8061 LOC  236 methods  HeatPumpOptimizerCoordinator
-  custom_components/heatpump_optimizer/optimizer.py:2330-5737  3408 LOC  53 methods  HeatPumpOptimizer
-  custom_components/heatpump_optimizer/dhw_planner.py:296-2191  1896 LOC  21 methods  DhwPlanner
-  custom_components/heatpump_optimizer/thermal_model.py:2594-4472  1879 LOC  34 methods  ThermalModel
+  custom_components/heatpump_optimizer/coordinator.py:3121-11179  8059 LOC  236 methods  HeatPumpOptimizerCoordinator
+  custom_components/heatpump_optimizer/optimizer.py:2332-5740  3409 LOC  53 methods  HeatPumpOptimizer
+  custom_components/heatpump_optimizer/dhw_planner.py:300-2197  1898 LOC  21 methods  DhwPlanner
+  custom_components/heatpump_optimizer/thermal_model.py:2644-4518  1875 LOC  34 methods  ThermalModel
   custom_components/heatpump_optimizer/sysid.py:1283-2347  1065 LOC  16 methods  SystemIdentification
   custom_components/heatpump_optimizer/thermal_model.py:192-1131  940 LOC  33 methods  ThermalParameters
-  custom_components/heatpump_optimizer/config_flow.py:3062-3864  803 LOC  44 methods  HeatPumpOptimizerOptionsFlow
-  custom_components/heatpump_optimizer/config_flow.py:2364-3059  696 LOC  24 methods  HeatPumpOptimizerConfigFlow
+  custom_components/heatpump_optimizer/config_flow.py:3065-3867  803 LOC  44 methods  HeatPumpOptimizerOptionsFlow
+  custom_components/heatpump_optimizer/config_flow.py:2367-3062  696 LOC  24 methods  HeatPumpOptimizerConfigFlow
   custom_components/heatpump_optimizer/legionella.py:63-721  659 LOC  21 methods  LegionellaGuard
   custom_components/heatpump_optimizer/dhw_learning.py:69-563  495 LOC  17 methods  DhwProfileLearner
   custom_components/heatpump_optimizer/defrost.py:209-661  453 LOC  12 methods  DefrostDerate
   custom_components/heatpump_optimizer/accuracy.py:158-532  375 LOC  20 methods  AccuracyTracker
   custom_components/heatpump_optimizer/tariff.py:165-479  315 LOC  9 methods  PeakTracker
   custom_components/heatpump_optimizer/external_heat.py:183-491  309 LOC  13 methods  ExternalHeatDetector
-  class_excess_loc = 17657 (every class's span past 300, summed; the coordinator's 503 helper lines count in its span)
+  class_excess_loc = 17653 (every class's span past 300, summed; the coordinator's 502 helper lines count in its span)
 
 ########## monster methods: top 10 of 15 over 150 LOC ##########
   custom_components/heatpump_optimizer/sysid.py:1777-2149  373 LOC  identify
-  custom_components/heatpump_optimizer/optimizer.py:3295-3667  373 LOC  optimize
-  custom_components/heatpump_optimizer/dhw_planner.py:947-1298  352 LOC  _build_dhw_requirements
-  custom_components/heatpump_optimizer/thermal_model.py:3929-4258  330 LOC  simulate_trajectory_batch
-  custom_components/heatpump_optimizer/optimizer.py:4740-5005  266 LOC  _optimize_with_dhw
-  custom_components/heatpump_optimizer/coordinator.py:6323-6561  239 LOC  _update_current_state
-  custom_components/heatpump_optimizer/coordinator.py:10954-11181  228 LOC  async_simulate
-  custom_components/heatpump_optimizer/dhw_planner.py:1320-1526  207 LOC  _plan_dhw_min_cost
-  custom_components/heatpump_optimizer/optimizer.py:4479-4672  194 LOC  _optimize_space_only
-  custom_components/heatpump_optimizer/dhw_planner.py:1597-1788  192 LOC  _repair_dhw_floor
+  custom_components/heatpump_optimizer/optimizer.py:3297-3669  373 LOC  optimize
+  custom_components/heatpump_optimizer/dhw_planner.py:949-1300  352 LOC  _build_dhw_requirements
+  custom_components/heatpump_optimizer/thermal_model.py:3977-4304  328 LOC  simulate_trajectory_batch
+  custom_components/heatpump_optimizer/optimizer.py:4743-5008  266 LOC  _optimize_with_dhw
+  custom_components/heatpump_optimizer/coordinator.py:6321-6559  239 LOC  _update_current_state
+  custom_components/heatpump_optimizer/coordinator.py:10952-11179  228 LOC  async_simulate
+  custom_components/heatpump_optimizer/dhw_planner.py:1322-1530  209 LOC  _plan_dhw_min_cost
+  custom_components/heatpump_optimizer/optimizer.py:4482-4675  194 LOC  _optimize_space_only
+  custom_components/heatpump_optimizer/dhw_planner.py:1601-1791  191 LOC  _repair_dhw_floor
   max_method_loc = 373 (the worst one, budgeted; a count over a threshold stops pricing growth)
 
 ########## worst 5 cyclomatic (of 27 over 15) ##########
   custom_components/heatpump_optimizer/sysid.py:1777  cc=44  identify
-  custom_components/heatpump_optimizer/optimizer.py:3295  cc=44  optimize
-  custom_components/heatpump_optimizer/coordinator.py:6323  cc=41  _update_current_state
-  custom_components/heatpump_optimizer/thermal_model.py:3929  cc=37  simulate_trajectory_batch
-  custom_components/heatpump_optimizer/optimizer.py:5601  cc=36  get_current_action
+  custom_components/heatpump_optimizer/optimizer.py:3297  cc=44  optimize
+  custom_components/heatpump_optimizer/coordinator.py:6321  cc=41  _update_current_state
+  custom_components/heatpump_optimizer/thermal_model.py:3977  cc=36  simulate_trajectory_batch
+  custom_components/heatpump_optimizer/optimizer.py:5604  cc=36  get_current_action
   max_cc = 44 (the worst one, budgeted; sum_cc is refused -- see the module docstring)
 
 ########## .const import fan-out (names imported per module) ##########
-  custom_components/heatpump_optimizer/config_flow.py: 366  > 50
+  custom_components/heatpump_optimizer/config_flow.py: 368  > 50
   custom_components/heatpump_optimizer/coordinator.py: 100  > 50
   custom_components/heatpump_optimizer/thermal_model.py: 67  > 50
   custom_components/heatpump_optimizer/services.py: 44
@@ -48,9 +48,9 @@
   custom_components/heatpump_optimizer/quick_setup.py: 21
   custom_components/heatpump_optimizer/modbus_prefill.py: 19
   custom_components/heatpump_optimizer/sensor.py: 15
+  custom_components/heatpump_optimizer/wood_fuel.py: 15
   custom_components/heatpump_optimizer/inputs.py: 13
   custom_components/heatpump_optimizer/quiet_windows.py: 13
-  custom_components/heatpump_optimizer/wood_fuel.py: 13
   custom_components/heatpump_optimizer/grid_fee.py: 12
   custom_components/heatpump_optimizer/pump_arbiter.py: 12
   custom_components/heatpump_optimizer/away.py: 11
@@ -97,7 +97,7 @@
 ########## import cycles (function-scope imports in, TYPE_CHECKING out) ##########
 
 ########## dead top-level symbols ##########
-  custom_components/heatpump_optimizer/const.py:1735  ENTITY_FAMILY_OVERRIDES
+  custom_components/heatpump_optimizer/const.py:1739  ENTITY_FAMILY_OVERRIDES
 
 ########## dead members (no live attribute load reaches them) ##########
   dead_methods = 0 (methods and properties; receiver-resolved, reachability from live code)
@@ -143,17 +143,17 @@
   untyped by design: 13 store(s) through a computed name (setattr(x, name, v), __dict__), which no attribute's type sees
     custom_components/heatpump_optimizer/coordinator.py:2403
     custom_components/heatpump_optimizer/coordinator.py:2405
-    custom_components/heatpump_optimizer/coordinator.py:3229
-    custom_components/heatpump_optimizer/coordinator.py:11016
-    custom_components/heatpump_optimizer/coordinator.py:11023
+    custom_components/heatpump_optimizer/coordinator.py:3228
+    custom_components/heatpump_optimizer/coordinator.py:11014
+    custom_components/heatpump_optimizer/coordinator.py:11021
     custom_components/heatpump_optimizer/dhw_learning.py:195
     custom_components/heatpump_optimizer/dhw_learning.py:197
     custom_components/heatpump_optimizer/dhw_learning.py:275
     custom_components/heatpump_optimizer/entity.py:251
     custom_components/heatpump_optimizer/thermal_model.py:264
     custom_components/heatpump_optimizer/thermal_model.py:281
-    custom_components/heatpump_optimizer/thermal_model.py:2167
-    custom_components/heatpump_optimizer/thermal_model.py:2168
+    custom_components/heatpump_optimizer/thermal_model.py:2217
+    custom_components/heatpump_optimizer/thermal_model.py:2218
 
 ########## dynamic-reference allowlist (not counted above) ##########
   ok   custom_components/heatpump_optimizer/const.py  CONF_BUFFER_TANK_LOSS
@@ -174,8 +174,8 @@
   custom_components/heatpump_optimizer/drift.py:286 _note  ==  custom_components/heatpump_optimizer/power_guard.py:157 _note
   custom_components/heatpump_optimizer/inputs.py:948 read  ==  custom_components/heatpump_optimizer/inputs.py:989 read_state
   custom_components/heatpump_optimizer/ledger.py:179 _prune  ==  custom_components/heatpump_optimizer/wear.py:44 observe
-  custom_components/heatpump_optimizer/optimizer.py:4678 _grid_report  ==  custom_components/heatpump_optimizer/tariff.py:843 _peak_excess
-  custom_components/heatpump_optimizer/optimizer.py:4479 _optimize_space_only  ==  custom_components/heatpump_optimizer/optimizer.py:4740 _optimize_with_dhw  ==  custom_components/heatpump_optimizer/optimizer.py:3942 _solve_space
+  custom_components/heatpump_optimizer/optimizer.py:4681 _grid_report  ==  custom_components/heatpump_optimizer/tariff.py:843 _peak_excess
+  custom_components/heatpump_optimizer/optimizer.py:4482 _optimize_space_only  ==  custom_components/heatpump_optimizer/optimizer.py:4743 _optimize_with_dhw  ==  custom_components/heatpump_optimizer/optimizer.py:3944 _solve_space
   custom_components/heatpump_optimizer/price_model.py:191 observe_day  ==  custom_components/heatpump_optimizer/price_model.py:237 observe_day_quarters
   custom_components/heatpump_optimizer/pump_arbiter.py:444 _planned_room  ==  custom_components/heatpump_optimizer/pump_arbiter.py:369 _step_index
   custom_components/heatpump_optimizer/sensor.py:1913 extra_state_attributes  ==  custom_components/heatpump_optimizer/sensor.py:2377 extra_state_attributes
@@ -205,7 +205,7 @@
   seam_cut_total = 422
 
 ########## RESULT lines ##########
-RESULT class_excess_loc=17657 count
+RESULT class_excess_loc=17653 count
 RESULT const_modules_over_50=3 count
 RESULT coordinator_attrs=142 count
 RESULT coordinator_multiassigned_attrs=109 count
@@ -217,7 +217,7 @@ RESULT functions_cc_over_15=27 count
 RESULT functions_cc_over_25=8 count
 RESULT import_cycle_modules=0 count
 RESULT max_cc=44 count
-RESULT max_class_loc=8061 count
+RESULT max_class_loc=8059 count
 RESULT max_method_loc=373 count
 RESULT methods_over_150=15 count
 RESULT methods_over_200=8 count
@@ -225,11 +225,11 @@ RESULT name_kept_members=38 count
 RESULT seam_cut_total=422 count
 RESULT thread_factor=1.0 ratio
 
-########## ratchet vs structure_budgets.json (recorded_at 14ed135512e3) ##########
-FAIL class_excess_loc 17657 > 17653 (+4)
+########## ratchet vs structure_budgets.json (recorded_at 460d7754f486) ##########
+  ok   class_excess_loc 17653 <= 17653
   ok   const_modules_over_50 3 <= 3
-FAIL coordinator_attrs 142 > 141 (+1)
-FAIL coordinator_multiassigned_attrs 109 > 108 (+1)
+  ok   coordinator_attrs 142 <= 142
+  ok   coordinator_multiassigned_attrs 109 <= 109
   ok   coordinator_private_reach 0 <= 0
   ok   dead_methods 0 <= 0
   ok   dead_top_level_symbols 1 <= 1
@@ -238,25 +238,11 @@ FAIL coordinator_multiassigned_attrs 109 > 108 (+1)
   ok   functions_cc_over_25 8 <= 8
   ok   import_cycle_modules 0 <= 0
   ok   max_cc 44 <= 44
-FAIL max_class_loc 8061 > 8057 (+4)
+  ok   max_class_loc 8059 <= 8059
   ok   max_method_loc 373 <= 373
   ok   methods_over_150 15 <= 15
   ok   methods_over_200 8 <= 8
   ok   name_kept_members 38 <= 38
   ok   seam_cut_total 422 <= 422
 
-4 STRUCTURE BUDGET(S) BREACHED
-Three responses, all of them deliberate: pay for the lines
-elsewhere; re-record because the tree genuinely improved; or, for
-a genuine new production FEATURE, RAISE the budget because the
-capability is worth the structure it costs. Paying is the first
-question; a raise is for when the honest answer is that you
-cannot. A raise needs the repository OWNER'S EXPLICIT CONFIRMATION
-before the branch is pushed -- stop and ask, do not push and
-explain.
-A budget may only be re-recorded deliberately, on a clean tree,
-with the reason in the COMMIT -- never to make a failure go away.
---record refuses any row that moves the wrong way unless you pass
---allow-regression="<reason>", and that reason belongs in the commit
-message: main's history keeps it and never a pull-request body.
-rc=1
+STRUCTURE RATCHET PASSED

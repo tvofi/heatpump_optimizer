@@ -1,8 +1,0 @@
-MUTATION TABLE -- scope changed: 2 production file(s) whose code this diff adds or modifies
-  null control: custom_components/heatpump_optimizer/away.py:57 NULL_COMMENT, a comment-only edit every driver in play must let survive
-  null control custom_components/heatpump_optimizer/away.py:57 NULL_COMMENT survived every driver
-  null control custom_components/heatpump_optimizer/away.py:57 NULL_COMMENT survived tests/features.py
-  ok    custom_components/heatpump_optimizer/away.py:244 GUARD_OFF  -- killed by tests/features.py
-  ok    custom_components/heatpump_optimizer/away.py:262 GUARD_OFF  -- killed by tests/features.py
-  ok    custom_components/heatpump_optimizer/away.py:596 RETURN_DEL  -- killed by tests/features.py
-MUTATION TABLE PASSED
