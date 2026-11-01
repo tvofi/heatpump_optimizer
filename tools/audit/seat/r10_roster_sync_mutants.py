@@ -163,7 +163,7 @@ PLANTS = {
         (SRC, "        out.append(c._replace(stage=HOLD_STAGE, held=tuple(held)) if held else c)",
               "        out.append(c)  # M25")],
     "M26_apply_unheld": [
-        (SRC, "            changes = hold_open(roster, changes, dests_for((made,)))\n",
+        (SRC, "            changes = hold_open(roster, changes, dests_for((made,)), legacy)\n",
               "")],
     "M27_owners_before_close": [
         (SRC, "    apply_plan(projected, changes, [], legacy)\n    dests = dests_for(projected)",

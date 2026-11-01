@@ -312,9 +312,10 @@ def hold_open(roster: dict, changes: list[Change], dests_for,
     builds the owners from it, so groups closing together do not count as
     each other's owner; the projection reads `legacy`, the cut-over set
     derive() judged with, or a legacy-only group would project
-    `carries-open`, live, and own its own issue. Eight round-10 issues lost their owner at this
-    transition and were found only by a later sweep, which read main's stale
-    roster and missed three (R10-RCA-ROSTER-SYNC-ORPHANS)."""
+    `carries-open`, live, and own its own issue. Eight round-10 issues lost
+    their owner at this transition and were found only by a later sweep,
+    which read main's stale roster and missed three
+    (R10-RCA-ROSTER-SYNC-ORPHANS)."""
     if not any(c.stage == "done" for c in changes):
         return changes
     projected = copy.deepcopy(roster)
