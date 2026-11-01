@@ -3778,7 +3778,7 @@
     "branch": "fix/r10-sav-comfort",
     "commit": "34cd75bf1fe506334611ba6c074c223317370e67",
     "last_step": null,
-    "next_step": "done: merged in #2745 (34cd75bf1)",
+    "next_step": "critical-path head: part-2 fixer dispatched by orch s10 2026-11-01 for its 8 open carries",
     "note": null,
     "pr": 2745
    },
