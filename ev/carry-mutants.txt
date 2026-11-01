@@ -1,0 +1,1 @@
+RESULT sites=167 unmapped=0 mutants=241 survived=0
