@@ -1,0 +1,26 @@
+{
+ "size": "M",
+ "wave": 1,
+ "models": null,
+ "fixer": null,
+ "reviewer": null,
+ "after": [
+  "R10-PLAN-ARTIFACT",
+  "R10-ORCH-PLANPAGE"
+ ],
+ "files": [
+  "tools/plan/size_durations.py",
+  "tools/plan/replan.py",
+  "tools/plan/durations.json",
+  "tools/audit/seat/plan_page.py"
+ ],
+ "resume": {
+  "stage": "in-progress",
+  "branch": "handoff/r10-plan-real-durations",
+  "commit": "dcc49953a3a0169012a3c26948c1aa37b3293bd6",
+  "last_step": "fixer handoff with body",
+  "next_step": "open PR, then fix review",
+  "note": "orchestrator s9 under mandate 6329234399: both owning groups (R10-PLAN-ARTIFACT, R10-ORCH-PLANPAGE) are done; existing-groups-first finds no live owner",
+  "pr": null
+ }
+}

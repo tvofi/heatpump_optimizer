@@ -1,0 +1,5 @@
+head b8ecad2dc4c5cd112a80eb3d4d5532f3e801d511, check-runs read via pull_request_read get_check_runs at ~18:23Z, total_count 55, one page (perPage 100)
+conclusions: success or skipped for all 55; CodeQL success; none failure/cancelled/timed_out
+pr-contract / pr-contract: 124935345070 success (18:17:23-18:18:05), 124936101352 success (18:20:14-18:21:05)
+gate: 124935547045 success, 124936342016 success
+tests/closures 124924505470 success; tests/coverage 124924505402 success; tests/mutation 124924234676 success; governance/instrument-self-tests 124924234662 success
