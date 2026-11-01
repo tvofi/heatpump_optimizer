@@ -127,8 +127,8 @@ to the group that dropped it, and the window in which a finding routed to it
 is refused (`#n has no owner`) and nothing dispatches it. The disposal decision
 itself is owed either way and cancels. The tracing time was not measured: the
 sweep alone costs 0.9 s, and it missed 3 of the 8 it was run for, which then
-cost this seat. P(recurrence) is measured: 58 of 264 transitions (22 %), 58
-of 161 transitions owning an issue (36 %).
+cost this seat. P(recurrence) is measured: 67 of 264 transitions orphaned an issue
+(58 of them tool-written), 67 of the 161 transitions that owned one.
 
 Verdict: the countermeasure pays if finding and tracing one orphan costs a seat
 more than 4.1 s, and the class owes a barrier regardless. Among barrier forms,
