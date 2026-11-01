@@ -1,0 +1,6 @@
+== S10 merge_pr.sh: KILLED rc=1 | merge_pr self-test: 22 checks, 1 failed
+== postmerge-1 postmerge.py: KILLED rc=1 | postmerge self-test: 16 checks, 7 failed
+== postmerge-2 postmerge.py: KILLED rc=1 | postmerge self-test: 16 checks, 1 failed
+== record_beat-1 record_beat.py: KILLED rc=1 | record_beat self-test: 16 checks, 2 failed
+== record_beat-2 record_beat.py: KILLED rc=1 | record_beat self-test: 16 checks, 4 failed
+RESULT survivors=0

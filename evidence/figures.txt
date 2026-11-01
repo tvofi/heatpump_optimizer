@@ -1,0 +1,43 @@
+== python3 -I tools/audit/seat/merge_train.py --self-test
+  ok   add --auto (bus.sh's event add): the same started train, the comment left for admit_add to fill; --auto with `--` flags is refused
+merge_train self-test: 415 checks, 0 failed
+rc=0
+== bash tools/audit/seat/merge_pr.sh --self-test
+  ok   an owed post-merge step prints OWED after the merge line and fails the script
+merge_pr self-test: 22 checks, 0 failed
+rc=0
+== python3 -I tools/audit/seat/postmerge.py --self-test
+postmerge self-test: 16 checks, 0 failed
+rc=0
+== python3 -I tools/audit/seat/record_beat.py --self-test
+record_beat self-test: 16 checks, 0 failed
+rc=0
+== python3 tests/structure.py
+
+STRUCTURE RATCHET PASSED
+rc=0
+== python3 tests/entities.py
+    from homeassistant.config_entries import ConfigEntryState
+ModuleNotFoundError: No module named 'homeassistant'
+rc=1
+== python3 tests/harness_headers.py
+    from homeassistant.config_entries import ConfigEntryState
+ModuleNotFoundError: No module named 'homeassistant'
+rc=1
+== node tools/policy/policy_lint.mjs --budgets
+
+The working band applies to the five aggregate caps only; every per-file cap above is compared exactly. Re-record an aggregate down when it falls more than 500 below its cap, and on any reclassification.
+rc=0
+== python3 tests/entities.py
+    from homeassistant.config_entries import ConfigEntryState
+ModuleNotFoundError: No module named 'homeassistant'
+== python3 tests/harness_headers.py
+    from homeassistant.config_entries import ConfigEntryState
+ModuleNotFoundError: No module named 'homeassistant'
+dev/governance/roles/standing-merge.md            36   37      504   507 
+== venv-ha python3 tests/entities.py
+    from paho.mqtt.client import MQTTMessage
+ModuleNotFoundError: No module named 'paho'
+== venv-ha python3 tests/harness_headers.py
+
+56 of 112 HARNESS HEADER CHECKS FAILED
