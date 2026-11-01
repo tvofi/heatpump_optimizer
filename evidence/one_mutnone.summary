@@ -1,6 +1,0 @@
-cycles 4 counts {'finite': 0, 'unit': 0, 'no_default': 0, 'agreement': 0, 'cycle': 0, 'not_frozen': 0, 'away': 3, 'cycle_cost': 0}
-away offenders ['2026-10-30T16:00:00+00:00: the recorded command holds away=True, the replay carried away=False', '2026-10-30T17:00:00+00:00: the recorded command holds away=True, the replay carried away=False', '2026-10-30T18:00:00+00:00: the recorded command holds away=True, the replay carried away=False']
-commanded 0 views []
-space_kwh None None
-cycle_cost []
-"cost": {"cpu_ratio": 331.3988, "peak_kib": 2428.2, "loop_cpu_ratio": 0.2063, "timed": 1, "traced": 2, "ref_ms": 30.853908000011643, "loop_ref_ms": 79.61371300000009}

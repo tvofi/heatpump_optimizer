@@ -1,4 +1,0 @@
-Reviewer's REPLAY mutants at head 18bdd5c88acc1581fec86c99b3ccf967ad085ff6 (tests/replay.py --one tests/replay/owner-2026-10-30-away.json --step-minutes 60, HASTUB_TZ=Europe/Stockholm, PYTHONPATH=tests/hastub)
-mutnone : line 1851 `commanded = returns if active else None` -> `commanded = None`  => away 3 offenders, commanded 0  KILLED (one_mutnone.summary)
-mutempty: line 1841 `recorded_away = list((fixture.get("controls") or {}).get("away") or [])` -> `recorded_away = []` => away 0 offenders, commanded 0, every count 0  SURVIVED (one_mutempty.summary); clean head at 15-min step: commanded 12 (one_head.summary)
-fixture-side equivalent: owner fixture with controls.away = [] -> controls()+sanitiser_checks(all fixtures)+synthetic_reproduces(): 138 checks, RED [] (no check notices the recorded command is gone)

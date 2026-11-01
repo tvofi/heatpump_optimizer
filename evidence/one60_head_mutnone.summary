@@ -1,0 +1,5 @@
+cycles 4 counts {'finite': 0, 'unit': 0, 'no_default': 0, 'agreement': 0, 'cycle': 0, 'not_frozen': 0, 'away': 4, 'cycle_cost': 0}
+away offenders ['the fixture declares away coverage but the replay carried no commanded cycle', '2026-10-30T16:00:00+00:00: the recorded command holds away=True, the replay carried away=False', '2026-10-30T17:00:00+00:00: the recorded command holds away=True, the replay carried away=False', '2026-10-30T18:00:00+00:00: the recorded command holds away=True, the replay carried away=False']
+commanded 0 views []
+space_kwh None None
+cycle_cost []
