@@ -17,6 +17,8 @@ in the tree any more, so there is nothing left for them to degenerate.
 import pathlib
 import subprocess
 import sys
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import mutant_guard  # noqa: E402 -- restores the mutated file on a kill and refuses a leftover mutant
 
 ROOT = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else ".").resolve()
 PKG = ROOT / "custom_components/heatpump_optimizer"
@@ -86,6 +88,7 @@ RETIRED = [
  ("M6 capacity extrapolated", "capacity is in neither column since #2492"),
 ]
 
+mutant_guard.arm([f'custom_components/heatpump_optimizer/{f}' for f in sorted({'ledger.py', *(m[1] for m in M)})], root=ROOT)
 only = sys.argv[2:]
 for name, f, old, new in [("M0 unmutated", "ledger.py", "", "")] + M:
     if only and name.split()[0] not in only:
