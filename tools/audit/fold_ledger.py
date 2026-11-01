@@ -49,7 +49,18 @@ second) and refuses, printing one line each:
                       class) and carries neither a barrier nor an rca whose
                       document is in dev/audit/rca;
   UNKNOWN-RCA/DANGLING  a cited rca not in `_rca`, or an `in_tree_home` that is
-                      not an existing file under dev/audit/rca.
+                      not an existing file under dev/audit/rca;
+  MISSING-PATH        a path-shaped token of a class's `barrier` or `detector`
+                      that does not resolve at the root: a token is path-shaped
+                      only when its first segment is a tracked top-level
+                      directory, so a PR label (`F3.1/F3.2`) or a ref
+                      (`handoff/r9-rca-p1@0ade2456`) is not one; a `:line`,
+                      `::symbol` or `@sha` suffix is dropped before the lookup;
+  UNRECORDED-BARRIER  a class with an rca document in dev/audit/rca, a null
+                      barrier and no `barrier_refusal`, while a tests/ script
+                      names the class id: a barrier shipped there is named as
+                      the class's barrier, or the refusal says why it does not
+                      qualify under `_status`.
 The default root is the repository this file lives in. The wave-script lane runs
 the branch's own copy of this file, not a pinned one, so a branch could edit the
 grader it is graded by; the only protection is ownership (CODEOWNERS names it).
@@ -59,6 +70,7 @@ import glob
 import json
 import os
 import re
+import subprocess
 import sys
 import tempfile
 
@@ -194,6 +206,21 @@ def check(root, ledger_path=None, judge_files=None):
         home = [r for r in rcas if _intree(root, led.get("_rca", {}).get(r, {}).get("in_tree_home"))]
         if met and not _has(e.get("barrier")) and not home:
             bad.append(f"OWED: {cid} met a trigger ({_why(t)}) and has no barrier and no rca document in {RCA_DIR}")
+    tops = _tops(root)
+    for cid, e in classes(led).items():
+        for fld in ("barrier", "detector"):
+            for tok in path_tokens(e.get(fld), tops):
+                if not os.path.exists(os.path.join(root, tok)):
+                    bad.append(f"MISSING-PATH: {cid}.{fld} cites {tok}, which is not at {root}")
+    arms = _test_scripts(root)
+    for cid, e in classes(led).items():
+        home = [r for r in e.get("rca", []) if _intree(root, led.get("_rca", {}).get(r, {}).get("in_tree_home"))]
+        if home and not _has(e.get("barrier")) and not _has(e.get("barrier_refusal")):
+            rx = re.compile(r"(?<![\w-])" + re.escape(cid) + r"(?![\w-])")
+            named = sorted(f for f, t in arms.items() if rx.search(t))
+            if named:
+                bad.append(f"UNRECORDED-BARRIER: {cid} has an rca in {RCA_DIR} and no barrier or barrier_refusal, "
+                           f"while {', '.join(named)} name it")
     for r, e in led.get("_rca", {}).items():
         h = e.get("in_tree_home")
         if h is not None and not _intree(root, h):
@@ -205,6 +232,36 @@ def check(root, ledger_path=None, judge_files=None):
         print(b)
     print(f"fold_ledger: {len(bad)} violation(s)")
     return 1 if bad else 0
+
+
+def _tops(root):
+    """The tracked top-level directories at root (its directories, outside git)."""
+    try:
+        out = subprocess.run(["git", "-C", root, "ls-files"], capture_output=True, text=True, check=True).stdout.split()
+        if out and os.path.realpath(subprocess.run(["git", "-C", root, "rev-parse", "--show-toplevel"], capture_output=True,
+                                                   text=True, check=True).stdout.strip()) == os.path.realpath(root):
+            return {f.split("/")[0] for f in out if "/" in f}
+    except (OSError, subprocess.CalledProcessError):
+        pass
+    return {d for d in os.listdir(root) if d != ".git" and os.path.isdir(os.path.join(root, d))}
+
+
+def path_tokens(text, tops):
+    """The repository paths a barrier or detector text cites (see MISSING-PATH)."""
+    out = []
+    for t in re.split(r"[\s,;()\[\]`'\"]+", text or ""):
+        t = re.split(r"::|:\d|@", t)[0].rstrip(".:")
+        if "/" in t and t.split("/")[0] in tops and t not in out:
+            out.append(t)
+    return out
+
+
+def _test_scripts(root):
+    out = {}
+    for f in sorted(glob.glob(os.path.join(root, "tests", "*"))):
+        if f.endswith((".py", ".mjs", ".sh")) and os.path.isfile(f):
+            out[os.path.relpath(f, root)] = open(f, encoding="utf-8", errors="replace").read()
+    return out
 
 
 def _intree(root, rel):
@@ -466,6 +523,46 @@ def self_test():
     rc, out = run_check(_settle({"P1": _entry(["R2 D1-01"], nearest_existing="P2", minted="R2"), "P3": _entry(["R2 a", "R2 b"], nearest_existing="P1", minted="R2"),
                                  "P2": _entry([]), "_rca": {}}), J)
     expect("null control: different nearest classes are separate", rc == 0)
+
+    # MISSING-PATH: a barrier token under a tracked top-level directory resolves
+    # or is refused; a slash-and-dot PR label and a ref are not paths (null controls).
+    def run_tree(led, files=()):
+        with tempfile.TemporaryDirectory() as t:
+            _plant(t, led, J)
+            for rel, body in files:
+                os.makedirs(os.path.dirname(os.path.join(t, rel)), exist_ok=True)
+                open(os.path.join(t, rel), "w").write(body)
+            import io
+            import contextlib
+            buf = io.StringIO()
+            with contextlib.redirect_stdout(buf):
+                rc = check(t)
+            return rc, buf.getvalue()
+    gone = _settle({"P1": _entry(["R2 D1-01"], barrier="run tests/gone.py (F3.1/F3.2, handoff/r9-rca-p1@0ade2456)",
+                                 detector="node tests/here.mjs:12"), "_rca": {}})
+    rc, out = run_tree(gone, [("tests/here.mjs", "//\n")])
+    expect("a barrier citing a path absent at the root is MISSING-PATH", "MISSING-PATH: P1.barrier cites tests/gone.py" in out)
+    rc, out = run_tree(gone, [("tests/here.mjs", "//\n"), ("tests/gone.py", "#\n")])
+    expect("null control: present paths pass, and F3.1/F3.2 and handoff/r9-rca-p1@0ade2456 are not path-shaped",
+           rc == 0 and "MISSING-PATH" not in out)
+    rc, out = run_tree(gone, [("tests/gone.py", "#\n")])
+    expect("a detector path is resolved the same way, its :line suffix dropped", "MISSING-PATH: P1.detector cites tests/here.mjs" in out)
+    # UNRECORDED-BARRIER: an rca on record, a null barrier and a tests/ arm naming the class.
+    doc = {"X": {"level": "class", "in_tree_home": f"{RCA_DIR}/X.md"}}
+    arm = ("tests/entities.py", "R.check('N-log-flood barrier: every site latched', ok)\n")
+    unrec = _settle({"N-log-flood": _entry(["R2 D1-01"], rca=["X"]), "N-order-coupling": _entry(["R2 a"]), "_rca": doc})
+    rc, out = run_tree(unrec, [arm, (f"{RCA_DIR}/X.md", "# rca\n")])
+    expect("a class whose rca is in the tree, with a null barrier while a tests/ arm names it, is UNRECORDED-BARRIER",
+           "UNRECORDED-BARRIER: N-log-flood" in out and "N-order-coupling" not in out)
+    named = _settle({"N-log-flood": _entry(["R2 D1-01"], rca=["X"], barrier="tests/entities.py 'N-log-flood barrier'"),
+                     "N-order-coupling": _entry(["R2 a"]), "_rca": doc})
+    rc, out = run_tree(named, [arm, (f"{RCA_DIR}/X.md", "# rca\n")])
+    expect("null control: the arm named as its barrier passes, and a class with no rca and no arm stays unflagged", rc == 0)
+    refused = _settle({"N-log-flood": _entry(["R2 D1-01"], rca=["X"], barrier_refusal="the arm pins instances only"), "_rca": doc})
+    rc, out = run_tree(refused, [arm, (f"{RCA_DIR}/X.md", "# rca\n")])
+    expect("and a recorded barrier_refusal answers it", rc == 0)
+    rc, out = run_tree(unrec, [("tests/entities.py", "R.check('N-log-flooding is another word', ok)\n"), (f"{RCA_DIR}/X.md", "# rca\n")])
+    expect("null control: a longer id containing the class id is not the class", "UNRECORDED-BARRIER" not in out)
 
     def run_fold(led, judge, sweep=None, rnd=2):
         with tempfile.TemporaryDirectory() as t:

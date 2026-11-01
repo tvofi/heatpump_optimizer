@@ -1,13 +1,21 @@
 #!/usr/bin/env python3
-"""Prove the finder scopes are disjoint and complete within each dimension.
+"""Prove the finder scopes are disjoint and complete within each dimension, and cover the tree.
 
 Usage: python3 tools/audit/check_scopes.py --repo <checkout> [--ref <baseline sha>] [--scopes scopes.json]
-Exit 0 only if every dimension passes; each failure prints the cells owned twice or not at all.
-Null control: --self-test duplicates one seat's block and empties another's; it exits 0 only
-when the checker refuses that perturbed file.
+Exit 0 only if every dimension passes and coverage passes; each failure prints the cells owned
+twice or not at all. Coverage: every tracked path at --ref is in some dimension's universe or
+matches one entry of scopes.json's `_coverage_excluded` (glob -> reason), never both, and every
+entry matches some path; a path in neither is refused by name, so no path goes unmeasured.
+Null control: --self-test duplicates one seat's block and empties another's, drops D10's
+universe, strips the tests/ and blueprints/ globs, and excludes a covered path; it exits 0 only
+when the checker refuses each perturbed file by the path it names.
+Harness citations: a harness under dev/audit/harnesses/ whose header names a dimension brief
+(`D<k>.md`) implements that brief's rule, so the brief must cite the harness's path; each one
+that does not is refused by name.
 --seat <D<k>-s<n>> prints the cells one seat owns instead, one line per (block, file):
 steps, axis values, file. `rest` is resolved here, so a finder is handed files, not a rule.
-.claude/workflows/audit-find.js runs the check in its Prepare step and refuses the round on rc != 0.
+.claude/workflows/audit-find.js runs the check, coverage included, in its Prepare step and refuses the
+round on rc != 0.
 """
 import argparse, itertools, json, re, subprocess, sys, copy
 from pathlib import Path
@@ -91,6 +99,58 @@ def check(scopes, tree, loc):
             print(f"   outside universe/steps {k}")
     return ok
 
+def coverage(scopes, tree, quiet=False):
+    """Paths in no universe and on no exclusion, exclusions that also name a
+    covered path, and exclusions that name nothing. Returns (ok, unclassified)."""
+    covered = set()
+    for dim, d in scopes.items():
+        if not dim.startswith("_") and d["universe"]:
+            covered |= match(tree, d["universe"])
+    excl = scopes.get("_coverage_excluded", {})
+    excluded = {g: match(tree, [g]) for g in excl if not g.startswith("_")}
+    unclassified = sorted(tree - covered - set().union(*excluded.values()))
+    both = sorted(f for fs in excluded.values() for f in fs & covered)
+    dead = sorted(g for g, fs in excluded.items() if not fs)
+    unreasoned = sorted(g for g in excluded if not str(excl[g]).strip())
+    ok = not (unclassified or both or dead or unreasoned)
+    if not quiet:
+        print(f"{'ok' if ok else 'FAIL'} coverage tracked={len(tree)} in_universe={len(covered)} "
+              f"excluded={len(tree & set().union(*excluded.values()))} unclassified={len(unclassified)}")
+        for f in unclassified:
+            print(f"   in no universe and not excluded: {f}")
+        for f in both[:10]:
+            print(f"   excluded but in a universe: {f}")
+        for g in dead:
+            print(f"   exclusion matches no tracked path: {g}")
+        for g in unreasoned:
+            print(f"   exclusion carries no reason: {g}")
+    return ok, unclassified
+
+
+BRIEF_DIR = "dev/governance/dimensions/"
+HARNESS_DIR = "dev/audit/harnesses/"
+BRIEF_NAMED = re.compile(r"(?<![\w/])(D\d{1,2})\.md\b")
+
+
+def uncited_harnesses(harnesses, briefs):
+    """[(harness, brief)] where a harness's header (first 40 lines) names a
+    dimension brief, so it implements that brief's rule, and the brief does not
+    cite the harness's path: a finder reading the brief never learns it exists."""
+    out = []
+    for h, text in sorted(harnesses.items()):
+        for dim in sorted(set(BRIEF_NAMED.findall("\n".join(text.splitlines()[:40])))):
+            if dim in briefs and h not in briefs[dim]:
+                out.append((h, BRIEF_DIR + dim + ".md"))
+    return out
+
+
+def read_harnesses(repo, ref, tree):
+    show = lambda f: subprocess.run(["git", "-C", repo, "show", f"{ref}:{f}"], capture_output=True, text=True).stdout
+    harnesses = {f: show(f) for f in tree if f.startswith(HARNESS_DIR) and f.endswith((".py", ".mjs", ".js", ".sh"))}
+    briefs = {Path(f).stem: show(f) for f in tree if f.startswith(BRIEF_DIR) and f.endswith(".md")}
+    return harnesses, briefs
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--repo", required=True)
@@ -141,8 +201,53 @@ def main():
         none = copy.deepcopy(scopes)
         none["D2"]["seats"][list(none["D2"]["seats"])[-1]] = [{"files": ["**"], "steps": []}]
         res = [check(bad, tree, loc) for bad in (twice, none)]
-        print("SELF-TEST", "passed (both perturbed scopes refused)" if not any(res) else f"FAILED (accepted: owned twice {res[0]}, unowned {res[1]})")
-        sys.exit(0 if not any(res) else 1)
-    sys.exit(0 if check(scopes, tree, loc) else 1)
+        # Coverage arms, each refused by the path it must name, so a broad
+        # exclusion cannot satisfy an arm by rc alone. D10 is the one universe
+        # that alone holds py.typed; stripping every tests/ and blueprints/ glob
+        # is the shape scopes.json had before the suite and the blueprints were
+        # measured; excluding a covered path is classifying it twice.
+        PKG = "custom_components/heatpump_optimizer/"
+        nulls = PKG + "optimizer.py"
+        no_d10 = copy.deepcopy(scopes)
+        no_d10["D10"]["universe"] = []
+        bare = copy.deepcopy(scopes)
+        for k, d in bare.items():
+            if not k.startswith("_"):
+                d["universe"] = [g for g in d["universe"] if not g.startswith(("tests/", "blueprints/"))]
+        bare.get("_coverage_excluded", {}).pop("tests/golden/**", None)
+        twice_cls = copy.deepcopy(scopes)
+        twice_cls.setdefault("_coverage_excluded", {})[nulls] = "perturbation: a covered path excluded"
+        arms = {
+            "drop D10's universe": (no_d10, [PKG + "py.typed"]),
+            "strip tests/ and blueprints/ globs": (bare, ["tests/closure.py", "blueprints/automation/notifications.yaml"]),
+        }
+        cov = {}
+        for name, (bad, must) in arms.items():
+            ok, unc = coverage(bad, tree, quiet=True)
+            cov[name] = (not ok) and all(m in unc for m in must) and nulls not in unc
+            print(f"   coverage arm {name}: refused={not ok} names {must}={all(m in unc for m in must)}")
+        ok_tc, _ = coverage(twice_cls, tree, quiet=True)
+        cov["exclude a covered path"] = not ok_tc
+        live_ok, live_unc = coverage(scopes, tree, quiet=True)
+        cov["null control: optimizer.py covered"] = nulls in tree and nulls not in live_unc
+        print(f"   coverage arm exclude a covered path: refused={not ok_tc}; null control {nulls} covered={cov['null control: optimizer.py covered']}")
+        # Harness citations: a harness naming D15.md in its header, against a
+        # brief that cites it (null control) and one that does not.
+        planted = {HARNESS_DIR + "planted.py": '"""Planted: D15.md step 1 rule."""\n'}
+        cov["a harness the brief does not cite is refused"] = uncited_harnesses(planted, {"D15": "no citation"}) == [
+            (HARNESS_DIR + "planted.py", BRIEF_DIR + "D15.md")]
+        cov["null control: the brief citing it passes"] = uncited_harnesses(planted, {"D15": "run dev/audit/harnesses/planted.py"}) == []
+        print(f"   harness-citation arms: {cov['a harness the brief does not cite is refused']}, null {cov['null control: the brief citing it passes']}")
+        good = not any(res) and all(cov.values())
+        print("SELF-TEST", "passed (every perturbed scope refused)" if good else
+              f"FAILED (accepted: owned twice {res[0]}, unowned {res[1]}; coverage arms {cov})")
+        sys.exit(0 if good else 1)
+    ok = check(scopes, tree, loc)
+    cov_ok, _ = coverage(scopes, tree)
+    bad = uncited_harnesses(*read_harnesses(a.repo, a.ref, tree))
+    print(f"{'ok' if not bad else 'FAIL'} harness citations: {len(bad)} harness(es) implementing a brief's rule the brief does not cite")
+    for h, b in bad:
+        print(f"   {h} names {b} in its header; {b} does not cite it")
+    sys.exit(0 if ok and cov_ok and not bad else 1)
 
 main()
