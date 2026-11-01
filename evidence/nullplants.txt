@@ -1,0 +1,8 @@
+RESULT head=9070029ac mutant=N3_dryrun_projection_overcloses rc=1 KILLED ['roster_sync self-test: 86 checks, 1 failed'] ["FAIL a destination holding a post-cut-over carry projects carries-open: the dry run plans the append (null control) (got: (0, 'pr-state\\nroster_sync: R9-LEG: st"]
+  restored /home/user/wt3n-N3: clean
+RESULT head=9070029ac mutant=N4_write_projection_overcloses rc=1 KILLED ['roster_sync self-test: 86 checks, 1 failed'] ['FAIL and the write appends it and writes carries-open (null control) (got: (0, (\'carries-open\', [\'legacy one\', \'post one\']), "r_sync: carry R9-LEG += \'the oth f']
+  restored /home/user/wt3n-N4: clean
+RESULT head=9070029ac mutant=N1_dryrun_projection_all_legacy rc=0 SURVIVED ['roster_sync self-test: 86 checks, 0 failed'] []
+  restored /home/user/wt3n-N1: clean
+RESULT head=9070029ac mutant=N2_write_projection_all_legacy rc=0 SURVIVED ['roster_sync self-test: 86 checks, 0 failed'] []
+  restored /home/user/wt3n-N2: clean

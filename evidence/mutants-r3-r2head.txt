@@ -1,0 +1,6 @@
+RESULT head=361be3cd6 mutant=N0_null_no_plant rc=0 SURVIVED ['roster_sync self-test: 82 checks, 0 failed'] []
+  restored /home/user/wt3-361be3c-N0_: clean
+RESULT head=361be3cd6 mutant=A4_dryrun_projection_no_legacy rc=0 SURVIVED ['roster_sync self-test: 82 checks, 0 failed'] []
+  restored /home/user/wt3-361be3c-A4_: clean
+RESULT head=361be3cd6 mutant=A5_write_projection_no_legacy rc=0 SURVIVED ['roster_sync self-test: 82 checks, 0 failed'] []
+  restored /home/user/wt3-361be3c-A5_: clean

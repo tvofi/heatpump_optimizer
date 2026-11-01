@@ -1,5 +1,25 @@
+== tools/audit/seat/roster_lib.py
 roster_lib self-test: 60 checks, 0 failed
+== tools/audit/seat/roster_edit.py
 roster_edit self-test: 153 checks, 0 failed
-roster_sync self-test: 82 checks, 0 failed
-r10_roster_ops_mutants self-test: 180 checks, 0 failed
+== tools/audit/seat/roster_sync.py
+roster_sync self-test: 86 checks, 0 failed
+== tools/audit/carry_audit.py
 carry_audit self-test: 214 checks, 0 failed
+== tools/audit/seat/r10_roster_ops_mutants.py
+  ok   a crash with no FAIL line prints its tail
+r10_roster_ops_mutants self-test: 186 checks, 0 failed
+== brief_lint
+TOTAL: 0 error(s) across 48 file(s)
+ISSUELESS ok: a live group with no issue warns; one with an issue, a done group and another schema do not
+== in-tree Y5 Y6
+RESULT mutant=Y5 rc=1 fails=1
+    FAIL the dry run's projection reads the cut-over: a same-pass Carry: to a legacy-only group it closes is refused, not planned
+RESULT mutant=Y6 rc=1 fails=1
+    FAIL the write path's projection reads the cut-over: the group is written done, the carry not appended, nothing stranded
+plants: 2, without a FAIL line: none
+== --null
+RESULT mutant=null tools/audit/carry_audit.py rc=0 fails=0
+RESULT mutant=null tools/audit/seat/roster_edit.py rc=0 fails=0
+RESULT mutant=null tools/audit/seat/roster_lib.py rc=0 fails=0
+RESULT mutant=null tools/audit/seat/roster_sync.py rc=0 fails=0
