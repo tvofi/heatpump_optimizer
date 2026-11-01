@@ -13131,7 +13131,10 @@
     "R10-GRADE-DRIVERS",
     "R10-PARTLOAD-PRICING",
     "R10-TWO-ZONE-HHL",
-    "R10-LIVE-BUNDLE-READS"
+    "R10-LIVE-BUNDLE-READS",
+    "R10-WHY-NOW-WIDGET",
+    "R10-ADVISOR-WHATIF",
+    "R10-LEARNED-STORE-LOAD"
    ],
    "resume": {
     "stage": "not-started",
