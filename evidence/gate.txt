@@ -1,0 +1,4 @@
+verdict ACCEPT
+real: None
+REJECT: dev/programme/triage/s6-batch97.md#P352 is not an ACCEPT ruling (REJECT)
+missing: the triage ruling dev/programme/triage/s6-batch97.md is not on the roster branch or origin/main
