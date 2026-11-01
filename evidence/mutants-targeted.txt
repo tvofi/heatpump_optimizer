@@ -1,0 +1,38 @@
+MUTANT S1-settings-keeps-price_weight: KILLED rc=1 fails=3 ['3 of 19 FR CHECKS FAILED']
+     FAIL after a settings reset every tunable option reads its default  [not default ['price_weight'], stored beyond the wiring ['price_weight']]
+     FAIL a reset of both leaves the wiring alone and every learner at its initial state  [stored ['dhw_enabled', 'dhw_temp_entity', 'indoor_temp_entity', 'lower_floor_temp_entity', 'main_fuse_amperes', 'n
+     FAIL the service needs an entry and a known scope, and resets that entry  [refused [['scope'], ['entry_id', 'scope'], ['entry_id']], answer {'reset': 'fr_svc', 'scope': 'settings'}]
+MUTANT S2-two_zone-pin-dropped: KILLED rc=1 fails=2 ['2 of 19 FR CHECKS FAILED']
+     FAIL after a settings reset every kept key is unchanged, and the topology it implied with it  [moved [], two-zone False]
+     FAIL restore_learned_snapshot undoes the reset: every learner, the accuracy history and the settings as before it  [{}]
+MUTANT S3-dhw-pin-dropped: KILLED rc=1 fails=1 ['1 of 19 FR CHECKS FAILED']
+     FAIL restore_learned_snapshot undoes the reset: every learner, the accuracy history and the settings as before it  [{}]
+MUTANT S4-main-fuse-not-kept: KILLED rc=1 fails=1 ['1 of 19 FR CHECKS FAILED']
+     FAIL the kept keys are the listed wiring and every entity assignment, each an option key  [kept-not-listed [], listed-not-kept ['main_fuse_amperes']]
+MUTANT U1-undo-point-after-void: KILLED rc=1 fails=2 ['2 of 19 FR CHECKS FAILED']
+     FAIL after a learners reset every learner reads what one that never learned reads  [{'thermal_learning': ['house_heat_loss_anchor', 'house_heat_loss_samples', 'house_heat_loss_scale', 'lower_floor_los
+     FAIL a reset of both leaves the wiring alone and every learner at its initial state  [stored ['dhw_enabled', 'dhw_temp_entity', 'indoor_temp_entity', 'lower_floor_temp_entity', 'main_fuse_amperes', 'n
+MUTANT U2-undo_target-never: KILLED rc=1 fails=3 ['3 of 19 FR CHECKS FAILED']
+     FAIL the drift rollback never takes the reset's undo point; the restore does, while it is newest  [undo ['accuracy', 'alarmed_at_capture', 'before_reset', 'healthy', 'learners', 'taken_at', 'unhealthy
+     FAIL restore_learned_snapshot undoes the reset: every learner, the accuracy history and the settings as before it  [{'thermal_learning': ['buffer_cooling_rate', 'buffer_cooling_samples', 'cop_samples'
+     FAIL the spent undo point stays as an ordinary snapshot, so a second restore is the ordinary one
+MUTANT U3-best_restore-takes-undo: KILLED rc=1 fails=1 ['1 of 19 FR CHECKS FAILED']
+     FAIL the drift rollback never takes the reset's undo point; the restore does, while it is newest  [undo ['accuracy', 'alarmed_at_capture', 'before_reset', 'healthy', 'learners', 'taken_at', 'unhealthy
+MUTANT U4-undo-settings-not-restored: KILLED rc=1 fails=1 ['1 of 19 FR CHECKS FAILED']
+     FAIL restore_learned_snapshot undoes the reset: every learner, the accuracy history and the settings as before it  [{'thermal_learning': ['house_heat_loss_anchor', 'house_heat_loss_scale', 'lower_floo
+MUTANT N1-confirm-ignored: KILLED rc=1 fails=1 ['1 of 19 FR CHECKS FAILED']
+     FAIL the options step shows the scope and the confirmation; unconfirmed, nothing changes (null control)  [{'type': 'abort', 'reason': 'factory_reset_done'}, changed (True, True)]
+MUTANT SV1-entry_id-optional: KILLED rc=1 fails=1 ['1 of 19 FR CHECKS FAILED']
+     FAIL the service needs an entry and a known scope, and resets that entry  [refused [['entry_id', 'scope'], ['entry_id']], answer {'reset': 'fr_svc', 'scope': 'settings'}]
+MUTANT SV2-scope-optional: KILLED rc=1 fails=1 ['1 of 19 FR CHECKS FAILED']
+     FAIL the service needs an entry and a known scope, and resets that entry  [refused [['scope'], ['entry_id', 'scope']], answer {'reset': 'fr_svc', 'scope': 'settings'}]
+MUTANT L0-learners-dispatch-off: KILLED rc=1 fails=2 ['2 of 19 FR CHECKS FAILED']
+     FAIL after a learners reset every learner reads what one that never learned reads  [{'thermal_learning': ['buffer_cooling_rate', 'buffer_cooling_samples', 'cop_samples', 'cop_scale', 'curve_learner', 
+     FAIL a reset of both leaves the wiring alone and every learner at its initial state  [stored ['dhw_enabled', 'dhw_temp_entity', 'indoor_temp_entity', 'lower_floor_temp_entity', 'main_fuse_amperes', 'n
+MUTANT S0-settings-dispatch-off: KILLED rc=1 fails=5 ['5 of 19 FR CHECKS FAILED']
+     FAIL after a settings reset every tunable option reads its default  [not default ['comfort_weight', 'dhw_tank_volume', 'min_temperature', 'price_weight', 'target_temperature'], stored beyond the wirin
+     FAIL a reset of both leaves the wiring alone and every learner at its initial state  [stored ['buffer_tank_volume', 'comfort_weight', 'dhw_daily_consumption', 'dhw_min_temperature', 'dhw_setpoint', 'd
+     FAIL restore_learned_snapshot undoes the reset: every learner, the accuracy history and the settings as before it  [{}]
+     FAIL confirmed, the options step resets, sets the entry up again and closes  [{'type': 'abort', 'reason': 'factory_reset_done'}, changed (True, False)]
+MUTANT R-unload-refusal-ignored: KILLED rc=1 fails=1 ['1 of 19 FR CHECKS FAILED']
+     FAIL a refused unload stops the reset at its undo point: settings kept, nothing set up  [set up ['fr_no_unload'], stores ['accuracy', 'snapshots', 'thermal_learning']]
