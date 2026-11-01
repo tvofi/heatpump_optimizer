@@ -75,7 +75,8 @@
   (`CURED #<pr>`), out of `skipped.json`, `SKIP REPORT` and the exit code. `dev/audit/harnesses/r10_train_overlap_grade_p2_mutants.py` holds
   one mutant per arm of that rule. The spool is edited only through the
   instrument: `add --front <pr>` puts an entry first in the next batch (a
-  spooled one is moved there) and `add --remove <pr>` drops a spooled one
+  spooled one is moved there, and the drain keeps it in the `--priority` tier
+  ahead of critical-path entries) and `add --remove <pr>` drops a spooled one
   (rc 1, nothing written, when it is absent), both under the queue's flock
   and each printing the spool order read back. A batch's admission waits
   each head on the required set a pull request's head carries

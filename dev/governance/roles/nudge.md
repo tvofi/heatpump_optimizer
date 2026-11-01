@@ -86,7 +86,7 @@ Zero check runs is stalled zero-runs. Run `tools/pr/approve_held_runs.sh` after 
 
 ## 12. After each merge
 
-Run `tools/audit/worktree_gc.sh` with the owner and repo as its one argument. Post one #201 comment through `tools/pr/gh_comment.py` and require a byte-identical read-back. That comment is not a heartbeat. Run `tools/audit/seat/roster_edit.py` set-stage only when the pull request belongs to a roster group. Run `tools/audit/seat/state_docs.py` with its push flag and the mirror at `~/hpo-orch/state`. The state docs are not the handover. Only a decision-changing merge owes `dev/programme/HANDOVER.md` an updated-for line, in its own pull request. After a roster update, an open issue the plan does not name is scheduled, deferred, or refused. Do not file a new issue. Issues a session has already deferred stay deferred. The overlay names them.
+`tools/audit/seat/postmerge.py` runs after every merge, from `merge_pr.sh` and from the train, and an `OWED` line it prints is the work left: rerun it with `--retry` once the cause is gone. This step keeps only what that tool cannot do. Only a decision-changing merge owes `dev/programme/HANDOVER.md` an updated-for line, in its own pull request. After a roster update, an open issue the plan does not name is scheduled, deferred, or refused. Do not file a new issue. Issues a session has already deferred stay deferred. The overlay names them.
 
 ## 13. Stamps
 

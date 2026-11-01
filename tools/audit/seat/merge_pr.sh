@@ -61,6 +61,18 @@ gates() { # <pr> <mode> <mandate-id> <ready 0|1>
   MANDATE_WHY=${MANDATE_WHY#IN FORCE: }
 }
 
+# P96 (a): app_comment.sh refuses a merge verdict off the live head, so a verdict
+# for another head cannot post here. The reviewed head is the verdict's own
+# `Fix review: merge <sha40>` line; the route for a carried head is the train,
+# which runs `app_approve.sh --carry` at admission and at the head.
+carried_head() { # <pr> <head> <verdict file>: prints CARRIED HEAD and returns 1 when they differ
+  local v
+  v=$(grep -m1 -oE 'Fix review: merge [0-9a-f]{40}' "$3" 2>/dev/null | grep -oE '[0-9a-f]{40}$')
+  { [ -z "$v" ] || [ "$v" = "$2" ]; } && return 0  # mut:carried
+  echo "CARRIED HEAD: #$1's verdict reviewed $v but the head is $2; route: a one-entry queue [{\"pr\": $1, \"verdict\": \"$v\"}] to \`merge_train.py run\` (the train runs app_approve.sh --carry at admission and at the head), not merge_pr.sh"
+  return 1
+}
+
 # K15 (b): a check-run left queued or in progress over a completed workflow
 # run blocks the merge as BLOCKED forever (#2559: 8 attempts); the train's
 # classifier re-runs each such run once, logged with its run id, and re-reads.
@@ -166,9 +178,21 @@ P
   # It imports gh_read.py from its own directory (R10-FLY-GH-READ-RETRY), so the
   # module travels with it: without it every flow stopped at STALE on an ImportError.
   cp "${SELF%/*}/merge_train.py" "${SELF%/*}/gh_read.py" "$mm/tools/audit/seat/"
-  for p in app_comment.sh app_approve.sh preflight.sh worktree_gc.sh; do
+  for p in app_approve.sh preflight.sh worktree_gc.sh; do
     printf '#!/bin/bash\nexit 0\n' > "$mm/tools/audit/$p"; chmod +x "$mm/tools/audit/$p"
   done
+  # app_comment.sh leaves a mark when it is asked to post; postmerge.py is a stub
+  # recording its argv, printing OWED and failing when FAKE_PM_RC says so.
+  mkdir -p "$mm/tools/pr"
+  printf '#!/bin/bash\necho posted >> "$HPO_STATE_DIR/posted"\n' > "$mm/tools/pr/app_comment.sh"
+  chmod +x "$mm/tools/pr/app_comment.sh"
+  cat > "$mm/tools/audit/seat/postmerge.py" <<'PM'
+import os, sys
+open(os.environ["HPO_STATE_DIR"] + "/postmerge.argv", "a").write(" ".join(sys.argv[1:]) + "\n")
+rc = int(os.environ.get("FAKE_PM_RC", "0"))
+if rc: print("OWED record: refused")
+sys.exit(rc)
+PM
   printf 'import sys\nprint(sys.argv[2] if len(sys.argv) > 2 else "")\n' \
     > "$mm/tools/audit/seat/ref_privacy.py"
   printf '#!/bin/bash\nexit 0\n' > "$T/bin2/sleep"; chmod +x "$T/bin2/sleep"
@@ -188,10 +212,12 @@ case "$*" in
 esac
 G
   chmod +x "$T/bin2/gh"
-  flow() { # <merge fails 0|1>: the whole script, offline
-    : > "$T/gh2.log"
+  flow() { # <merge fails 0|1> [verdict sha]: the whole script, offline
+    : > "$T/gh2.log"; rm -f "$T/state2/posted" "$T/state2/postmerge.argv"
+    if [ -n "${2:-}" ]; then printf '# Fix review: merge %s\n' "$2" > "$T/ev/VERDICT.md"
+    else printf '# verdict\n' > "$T/ev/VERDICT.md"; fi
     HPO_STATE_DIR=$T/state2 PATH="$T/bin2:$PATH" FAKE_LOG2=$T/gh2.log FAKE_SHA=$msha \
-      FAKE_MERGE_FAIL=$1 bash "$mm/tools/audit/seat/merge_pr.sh" 42 "$msha" "$T/ev" app \
+      FAKE_MERGE_FAIL=$1 FAKE_PM_RC=${FAKE_PM_RC:-0} bash "$mm/tools/audit/seat/merge_pr.sh" 42 "$msha" "$T/ev" app \
       > "$T/flow.out" 2>&1
     echo $? > "$T/flow.rc"
   }
@@ -204,6 +230,24 @@ G
   [ "$(cat "$T/flow.rc")" != 0 ]
   if [ $? = 0 ]; then pass=$((pass + 1)); echo "  ok   a refused merge fails the script (the line's own exit)"
   else fail=$((fail + 1)); echo "  FAIL a refused merge fails the script"; fi
+  flow 0 "$msha"
+  [ "$(cat "$T/flow.rc")" = 0 ] && [ -f "$T/state2/posted" ] && ! grep -q CARRIED "$T/flow.out"
+  if [ $? = 0 ]; then pass=$((pass + 1)); echo "  ok   null control: a verdict for the head posts as today"
+  else fail=$((fail + 1)); echo "  FAIL null control: a verdict for the head posts as today"; fi
+  flow 0 "$(printf 'e%.0s' {1..40})"
+  [ "$(cat "$T/flow.rc")" != 0 ] && grep -q "^CARRIED HEAD: #42's verdict reviewed e.*merge_train.py" "$T/flow.out" \
+    && [ ! -f "$T/state2/posted" ] && ! grep -q '^pr merge' "$T/gh2.log"
+  if [ $? = 0 ]; then pass=$((pass + 1)); echo "  ok   a verdict for another head refuses CARRIED HEAD, naming the train, and posts nothing"
+  else fail=$((fail + 1)); echo "  FAIL a verdict for another head refuses CARRIED HEAD and posts nothing ($(tail -1 "$T/flow.out"))"; fi
+  flow 0
+  [ "$(cat "$T/state2/postmerge.argv")" = "42 --repo $R --state-dir $T/state2" ]
+  if [ $? = 0 ]; then pass=$((pass + 1)); echo "  ok   the merge runs postmerge.py once, for the merged pull request"
+  else fail=$((fail + 1)); echo "  FAIL the merge runs postmerge.py for the merged pull request ($(cat "$T/state2/postmerge.argv" 2>&1))"; fi
+  FAKE_PM_RC=1 flow 0
+  [ "$(cat "$T/flow.rc")" != 0 ] && grep -qxF "OWED record: refused" "$T/flow.out" \
+    && [ "$(grep -n '^merged ' "$T/flow.out" | cut -d: -f1)" -lt "$(grep -n '^OWED' "$T/flow.out" | cut -d: -f1)" ]
+  if [ $? = 0 ]; then pass=$((pass + 1)); echo "  ok   an owed post-merge step prints OWED after the merge line and fails the script"
+  else fail=$((fail + 1)); echo "  FAIL an owed post-merge step prints OWED after the merge line and fails the script"; fi
   rm -rf "$T"
   echo "merge_pr self-test: $((pass + fail)) checks, $fail failed"
   [ "$fail" = 0 ]
@@ -224,6 +268,7 @@ D=${HPO_STATE_DIR:-$HOME/.local/state/hpo}/merge_pr; mkdir -p "$D/v"
 live=$(gh pr view $PR --json headRefOid --jq .headRefOid); [ "$live" = "$S" ] || { echo "HEAD MOVED: $live"; exit 1; }
 gates "$PR" "$MODE" "$MID" "$READY" || exit 1
 [ "$READY_OWED" = 1 ] && { gh pr ready $PR --repo $R >/dev/null || { echo "READY REFUSED for #$PR"; exit 1; }; }
+carried_head "$PR" "$S" "$E/VERDICT.md" || exit 1
 sed '1s/^# //' "$E/VERDICT.md" > $D/v/verdict-$PR.md; grep -q "$E" $D/v/verdict-$PR.md || printf '\nEvidence: %s/\n' "$(python3 -I tools/audit/seat/ref_privacy.py path "$E")" >> $D/v/verdict-$PR.md
 if test -f tools/audit/app_comment.sh; then bash tools/audit/app_comment.sh $R $PR $D/v/verdict-$PR.md 2>&1; else bash tools/pr/app_comment.sh $R $PR $D/v/verdict-$PR.md 2>&1; fi| tail -1; [ "${PIPESTATUS[0]}" = 0 ] || exit 1
 if [ "$MODE" = owner ]; then
@@ -254,3 +299,6 @@ gh pr merge $PR --merge --match-head-commit $S || exit 1  # mut:merge
 sleep 8; echo "merged $(gh pr view $PR --json mergeCommit --jq .mergeCommit.oid)"
 for n in "$@"; do echo "issue $n $(gh issue view $n --json state --jq .state)"; done
 bash tools/audit/worktree_gc.sh $R 2>&1 | tail -1; git pull -q --ff-only origin main
+# The rest of nudge.md step 12 (the #201 line, the roster stage, the state docs, main's
+# suite state): a failure is printed OWED and never undoes the merge, but fails the script.
+python3 -I tools/audit/seat/postmerge.py "$PR" --repo $R --state-dir "${HPO_STATE_DIR:-$HOME/.local/state/hpo}"  # mut:postmerge

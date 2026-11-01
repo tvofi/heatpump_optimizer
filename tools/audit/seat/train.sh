@@ -15,6 +15,9 @@
 # state dir, ALREADY for a pull request already queued, ADD REFUSED <rule> for
 # one the admission refuses). It never takes the pidfile itself.
 #
+# `add ... --priority` marks the entry HOTFIX: the train drains its spool into the
+# next batch priority entries first, then critical-path entries, then arrival order.
+#
 # What it adds over calling merge_train.py by hand, which the orchestrator's
 # scratch re-duplicated once per session before this existed:
 #   * the seat venv (seat_venv.sh's venv-ci, the pinned 3.14) first on PATH --
@@ -52,7 +55,7 @@ recommended() {
 }
 
 selftest=0
-add_pr="" add_verdict="" add_comment="" add_flags=()
+add_pr="" add_verdict="" add_comment="" add_prio="" add_flags=()
 if [ "${1:-}" = add ]; then
   [ $# -ge 3 ] || die "add needs <pr> <verdict>"
   add_pr=$2; add_verdict=$3; shift 3
@@ -62,6 +65,8 @@ if [ "${1:-}" = add ]; then
     if [ "${rest[0]}" = --verdict-comment ]; then
       [ ${#rest[@]} -ge 2 ] || die "--verdict-comment needs a value"
       add_comment=${rest[1]}; rest=("${rest[@]:2}")
+    elif [ "${rest[0]}" = --priority ]; then
+      add_prio=--priority; rest=("${rest[@]:1}")  # the spool's drain order, not a train flag (P312)
     else
       [ "${rest[0]}" = --queue ] && die "add takes no --queue: the started train's queue is the added entry"
       add_flags+=("${rest[0]}"); set -- "$@" "${rest[0]}"; rest=("${rest[@]:1}")
@@ -405,7 +410,7 @@ if [ -n "$add_pr" ]; then
   echo "mandate: $mandate_note"
   # No pidfile: `add` is no train. Its own lines go to the caller and to the train's log.
   python3 -u tools/audit/seat/merge_train.py add "$add_pr" "$add_verdict" --repo "$repo" --state-dir "$state" \
-    ${mandate:+--mandate "$mandate"} ${add_comment:+--verdict-comment "$add_comment"} \
+    ${mandate:+--mandate "$mandate"} ${add_comment:+--verdict-comment "$add_comment"} ${add_prio:+"$add_prio"} \
     -- ${add_flags[@]+"${add_flags[@]}"} 2>&1 | tee -a "$state/train.log"
   exit "${PIPESTATUS[0]}"
 fi

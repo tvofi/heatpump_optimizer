@@ -127,6 +127,9 @@ MUTANTS = [
      '        ids[g] = _task_id(g, ids)\n    lanes = sorted({open_[g].get("lane") and "?"'),
     ("S14", "pr_args.sh", '"$*" >&2; exit 1; }', '"$*" >&2; exit 0; }'),
     ("S15", "pr_cap.py", 'a = pr.get("author") or {}', 'a = pr.get("author") and {}'),
+    # R10-FLY-TRAIN-DEFAULTS part 2: the post-merge bookkeeping's failure arms and its WAIT arm.
+    ("postmerge-1", "postmerge.py", "        if code != 0:\n            owed.append", "        if False:\n            owed.append"),
+    ("postmerge-2", "postmerge.py", "if code == 3:  # WAIT", "if False:  # WAIT"),
     ("S16", "proof_watch.py", '_, pending, red = _train().classify(last, self.required_names())',
      '_, red, pending = _train().classify(last, self.required_names())'),
     # r10-ci-layout-p2-u9a: the watch reads the train's per-suite gate (A5), never newest-wins.
@@ -149,6 +152,9 @@ MUTANTS = [
      "        return WAIT_RC if why else 0\n"),
     ("record_row-5", "record_row.py", "        return WAIT_RC if why else 0\n",
      "        return 0 if why else WAIT_RC\n"),
+    # R10-FLY-TRAIN-DEFAULTS part 2: the #201 line carries the whole sha; a group is named by equality or its pr.
+    ("record_beat-1", "record_beat.py", 'TEMPLATE = "Merged #{pr} {sha} ({group}).', 'TEMPLATE = "Merged #{pr} {sha:.12} ({group}).'),
+    ("record_beat-2", "record_beat.py", '(grp.get("resume") or {}).get("pr") == pr:', "True:"),
     ("S20", "resume_doc.py", "done = {k for k in G if k not in open_}",
      "done = {k for k in G if k in open_}"),
     ("S21", "roster_edit.py", "    if r.returncode != 0:\n        raise Refuse(",
@@ -239,6 +245,18 @@ MUTANTS = [
     ("merge_train-22", "merge_train.py", "    if not gates or other:\n", "    if not gates:\n"),
     ("merge_train-23", "merge_train.py", "    if commit.get(\"oid\") != head:\n", "    if False:\n"),
     ("merge_train-24", "merge_train.py", "    return sorted(set(required) | set(owed))", "    return required"),
+    # R10-FLY-TRAIN-DEFAULTS part 2, round 2: `add --priority` / `--front` from the CLI into the
+    # spool and the drain (P312 x P112).
+    ("merge_train-34", "merge_train.py", '**({"priority": True} if a.priority else {})}', "}"),
+    ("merge_train-35", "merge_train.py", '"--state-dir", a.state_dir, *rest], front=a.front)',
+     '"--state-dir", a.state_dir, *rest], front=False)'),
+    ("merge_train-36", "merge_train.py", '"verdict_comment", "issues", "priority")', '"verdict_comment", "issues")'),
+    ("merge_train-37", "merge_train.py", "if a.priority else {})}", "if False else {})}"),
+    ("merge_train-38", "merge_train.py", '(e.get("priority") or e.get("front"))', 'e.get("priority")'),
+    ("merge_train-39", "merge_train.py", '{**json.loads(ln), "front": True}', "json.loads(ln)"),
+    ("merge_train-40", "merge_train.py", '            entry["front"] = True\n', "            pass\n"),
+    ("merge_train-41", "merge_train.py", 'key=lambda e: (not (e.get("priority") or e.get("front")), not crit(e)))',
+     'key=lambda e: (not crit(e), not (e.get("priority") or e.get("front"))))'),
     # r10-ci-layout-p2-u9a: the merge-main bot's pin chain under ci.yml's names.
     ("merge_main_bot-1", "tools/pr/merge_main_bot.py", 'PIN_CHAIN = re.compile(r"^tests / (?:',
      'PIN_CHAIN = re.compile(r"^(?:'),
