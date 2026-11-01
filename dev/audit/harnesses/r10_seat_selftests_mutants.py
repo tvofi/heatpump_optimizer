@@ -486,6 +486,22 @@ MUTANTS = [
     ("local_alerts-1", "tools/pr/local_alerts.py", "        if not prs:\n            return 3,",
      "        if False:\n            return 3,"),
     ("local_alerts-2", "tools/pr/local_alerts.py", 'and j.get("conclusion") == "success")', ")"),
+    # r10-closeout-cleanup: the roster gate, the step gate, the keeps, the push arm, the topic refusal.
+    ("closeout-1", "closeout.py", "    if blockers:\n        out(", "    if False:\n        out("),
+    ("closeout-2", "closeout.py", "        if problems and apply:\n            break",
+     "        if False:\n            break"),
+    ("prune_refs-1", "prune_refs.py", "    if name.startswith(CLAUDE_PREFIX):\n        return KEEP_SESSION",
+     "    if False:\n        return KEEP_SESSION"),
+    ("prune_refs-2", "prune_refs.py", "name[len(pre):] in open_groups:", "name[len(pre):] in frozenset():"),
+    ("prune_refs-3", "prune_refs.py", "        if age is None or age < limit:", "        if age is None:"),
+    ("prune_refs-4", "prune_refs.py", "    if missing:\n        raise ApplyRefused", "    if False:\n        raise ApplyRefused"),
+    ("prune_refs-5", "prune_refs.py", 'return any(line.startswith("+") for line',
+     'return any(line.startswith("@@") for line'),
+    ("prune_refs-6", "prune_refs.py", "    return fam == \"dispatch\" and bool(rn.search(tail))",
+     "    return False"),
+    ("worktree_gc-1", "tools/audit/worktree_gc.sh", '    if [ "$up" != 0 ]; then', "    if false; then"),
+    ("worktree_gc-2", "tools/audit/worktree_gc.sh", "      1) printf 'keep  %s  cwd-inside", "      9) printf 'keep  %s  cwd-inside"),
+    ("worktree_gc-3", "tools/audit/worktree_gc.sh", '  [ "$FETCH_OK" -eq 1 ] || return 1', "  true"),
 ]
 
 # Mutants run with extra step environment: (name, base mutant, env).
