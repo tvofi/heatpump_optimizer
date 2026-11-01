@@ -5768,6 +5768,46 @@ async def untouched_option_pages_do_not_reload():
     )
 
 
+async def nightly_a5_resubmits_fit_every_page():
+    """`tests/nightly_ha.py`'s a5 walk posts `option_resubmit`'s payload to
+    every options page, and real Home Assistant validates it against the
+    page's shown schema before the handler runs. The stub validates nothing,
+    so a page whose schema refuses that payload -- the factory-reset page and
+    its after-save key, #3047 -- reached only the nightly lane as
+    `a5:pages_ok`'s `InvalidData`. Here the shown schema is applied to the
+    same payload, through the same function, for every page in the table."""
+    R.section("options: the nightly a5 walk's resubmit fits every page's schema")
+    refused = []
+    for page in config_flow._OPTION_PAGES:
+        flow, entry, _ = fresh_options()
+        shown = await getattr(flow, f"async_step_{page.step}")(None)
+        if shown.get("type") != "form":
+            continue
+        current = {**dict(entry.data), **dict(entry.options)}
+        try:
+            shown["data_schema"](_nightly.option_resubmit(page.step, current))
+        except vol.Invalid as err:
+            refused.append(f"{page.step}: {err}")
+    R.check(
+        "every options page's shown schema accepts the a5 walk's untouched resubmit",
+        not refused,
+        f"refused {refused[:4]}",
+    )
+    # Null control: the same reader refuses a payload the page does not own.
+    flow, entry, _ = fresh_options()
+    shown = await flow.async_step_factory_reset(None)
+    try:
+        shown["data_schema"]({const.CONF_AFTER_SAVE: const.AFTER_SAVE_CLOSE})
+        caught = False
+    except vol.Invalid:
+        caught = True
+    R.check(
+        "null control: the factory-reset page's schema refuses an after-save key",
+        caught,
+        "an after-save key was accepted",
+    )
+
+
 # ---------------------------------------------------------------------------
 # #1067 W1067-G7: the Modbus pre-fill page. One step answered three times:
 # the prefix, then the suggestions to edit, then the save. The entity ids are
@@ -7697,6 +7737,7 @@ async def main() -> int:
     await reconfigure_flow()
     await absent_fallbacks_are_proven()
     await untouched_option_pages_do_not_reload()
+    await nightly_a5_resubmits_fit_every_page()
     await options_modbus_prefill()
     await options_device_prefill()
     await config_flow_quick_setup()
