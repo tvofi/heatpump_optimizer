@@ -1,0 +1,6 @@
+        and e.get("config_entry_id") == entry.get("entry_id")
+    )
+    config = {**entry.get("data", {}), **entry.get("options", {})}
+    rec = open_recorder(config_dir, db, db_url)
+    print("reading the recorder", file=sys.stderr)
+    try:

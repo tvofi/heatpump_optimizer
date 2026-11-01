@@ -1,3 +1,0 @@
-2026-11-01T19:03:01.2937117Z   record: owner-2026-10-30-away.json cpu_ratio=302.6 peak_kib=3744 loop_cpu_ratio=0.2104
-2026-11-01T19:03:59.8359353Z replay lane wall time 912.3 s
-2026-11-01T19:03:59.8359734Z ALL 173 replay checks PASSED

@@ -1,5 +1,5 @@
 # usage: run_one.sh <srcwt> <name> <old> <new>   (old empty = null)
-W=/tmp/tmp.JrV4YJKJEm; src=$1; name=$2; old=$3; new=$4
+W=/root/w; src=$1; name=$2; old=$3; new=$4
 d=$W/m-$name; rm -rf $d; mkdir -p $d
 for x in tests custom_components tools; do cp -r $src/$x $d/; done
 cd $d
