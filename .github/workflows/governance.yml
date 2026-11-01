@@ -635,6 +635,13 @@ jobs:
           python3 -I tools/audit/seat/features_block.py --self-test | tee "$RUNNER_TEMP/features-block-self-test.txt"
           grep -Eq '^features_block self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/features-block-self-test.txt"
 
+      - name: Show the mutant driver killing, sparing and restoring its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/mutant_run.py --self-test | tee "$RUNNER_TEMP/mutant-run-self-test.txt"
+          grep -Eq '^mutant_run self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/mutant-run-self-test.txt"
+
       - name: Show the handoff push and its row writer refusing their own fixtures
         if: ${{ !cancelled() }}
         run: |

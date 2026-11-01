@@ -3836,6 +3836,30 @@ if [ -s "$UNPINNED_SITES" ]; then
   say WARN "unpinned sites" "$(grep -c . "$UNPINNED_SITES") site(s) the diff adds with no pin -- the body owes each a line under ## Unpinned sites (step 7d)"
 fi
 
+# --- 6d'. the diff's added lines mutated (R10-MUTANT-RUN-DRIVER, card 4), REPORT
+# ONLY: `mutant_run.py --diff` applies GUARD_OFF, RETURN_DEL, CMP_BOUND, CALL_DEL
+# and CONST_SWAP to each added Python line and runs MUTANT_CMD, the group's named
+# self-test or `features_block.py` call, once per mutant. Each survivor is a WARN
+# line the body answers (an equivalent one still owes a survivor_triage record);
+# nothing here refuses, and with MUTANT_CMD unset the step skips. The cap keeps
+# the in-tree tier fast; the heavy pass (MUTANT_MAX=0, all mutants) is a cloud
+# seat's.
+if [ -z "${MUTANT_CMD:-}" ]; then
+  say skip "mutants" "MUTANT_CMD unset -- set it to the group's self-test or features_block.py call to mutate the diff's added lines (report only)"
+elif [ ! -f tools/audit/seat/mutant_run.py ]; then
+  say skip "mutants" "tools/audit/seat/mutant_run.py is not in this tree"
+else
+  MUT_OUT=$(python3 -I tools/audit/seat/mutant_run.py --diff "$BASE...HEAD" --cmd "$MUTANT_CMD" \
+    --max-mutants "${MUTANT_MAX:-40}" --report-only 2>&1)
+  MUT_N=$(printf '%s\n' "$MUT_OUT" | grep -c '^SURVIVED ')
+  if [ "$MUT_N" -gt 0 ]; then
+    printf '%s\n' "$MUT_OUT" | grep '^SURVIVED ' | sed 's/^/           /' >&2
+    say WARN "mutants" "$MUT_N survivor(s) on the diff's added lines -- the body answers each (report only)"
+  else
+    say ok "mutants" "no survivor: $(printf '%s\n' "$MUT_OUT" | tail -1 | cut -c1-120)"
+  fi
+fi
+
 # --- 6c. a test must import the production symbol: tests.yml's `no-copies`,
 # before the push. `copies_line` above. The scan reads the whole tree, so it
 # runs only when the diff can introduce a shared top-level name; any other
