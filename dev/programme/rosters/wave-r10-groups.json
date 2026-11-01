@@ -13434,6 +13434,48 @@
     "branch": null,
     "pr": 3075
    }
+  },
+  {
+   "group": "R10-FLY-SEAT-WAITERS",
+   "lane": "F",
+   "kind": "instrument",
+   "class": "instrument",
+   "severity": "medium",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 6,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "tools/audit/seat/proof_watch.py",
+    "tools/audit/seat/INSTRUMENTS.md"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-fly-seat-waiters",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer (S; below CP/production; may run in round 11)",
+    "note": "2026-10-31 (triage: dev/programme/triage/s6-batch94.md#P338, #P339); script census, owner rule tvofi 2026-10-31"
+   },
+   "brief": "From triage P338 and P339 (script census, orchestrator s9, 2026-10-31; owner rule: reusable scripts in a generalized form belong on main). About 60 session-local ref/board watchers and about 67 head waiters re-implement two loops. (1) A new shell instrument named seat_watch (a .sh file beside pulse.py in the seat tools directory): --refs GLOB... [--exclude REGEX] --state FILE --alive FILE --every S --passes N; state under $HPO_STATE_DIR; default 240 s, floor 60 s; exit 0 on the first actionable move printing MOVED <ref> <old> <new>; exit 1 after N passes with one heartbeat line; a move on a ref whose PR is MERGED or CLOSED is counted in the state file, never reported (one open-PR listing per pass). No per-role logic: the caller's --refs/--exclude pick the refs. (2) tools/audit/seat/proof_watch.py --wait-only: repeated --head SHA, --check NAME, --budget H; exit 0 when the check-run completed at every pinned head (print each state); exit 1 on HEAD MOVED or budget; never merges or approves. Rejected: a --run CMD exec arm (a shell chains `&& cmd`), and a `contains` predicate (census carry 5 routes it to the relay). Fixtures: a fixture remote with no move exits 1 after N passes; a moved handoff ref exits 0 with its MOVED line; a merged PR's review-ref move is counted, not reported; wait-only over two heads exits only when both completed; a moved head exits 1. One mutant per tool. Classify the new file (tests/entities.py) and add both instrument pages. triage: dev/programme/triage/s6-batch94.md#P338"
   }
  ]
 }
