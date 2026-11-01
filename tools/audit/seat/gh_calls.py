@@ -227,9 +227,9 @@ def self_test():
         check("a token outside the allowed set is logged with ? for each such character",
               ln[-1].endswith(" api repos/o/r?x?y?z"))
 
-        # The parent field is the caller's argv[0] and, for an interpreter, its script, `-m
-        # <module>` or the `-c` that ends it: never a later word, so no shape of wrapper
-        # command line (argv list, env assignment, pipe, any flag) puts a value in the log.
+        # The parent field is the caller's argv[0] and, for an interpreter, at most one more
+        # word (the shim's header states the rule): these arms pin that a wrapper's argv list,
+        # env assignment, pipe or gh flag value does not reach the log through the real ps.
         def field(via, sh=None):
             run([], via=via, shim_text=sh)
             m_ = LINE.fullmatch(log.read_text().splitlines()[-1])
@@ -267,12 +267,86 @@ def self_test():
             install(good)
         field_mutant("the whole parent argv logged", '"$pcmd" | tr -c', '"$pargs" | tr -c',
                      "GH_TOKEN=ghp_LEAKVAL gh api user; :", "sh -c")
-        field_mutant("-c does not end the field", "-*[ce]*) pcmd=", "-*[ce]*) ;; xx) pcmd=",
+        field_mutant("-c does not end the field", "c|e|s) pcmd=", "c|e|s) ;; xx) pcmd=",
                      "echo ghp_LEAKVAL | gh secret set NAME; :", "sh -c")
-        field_mutant("-m does not take its module", '-m) pcmd="$pcmd -m ${pw[$((i + 1))]}"; break ;;', "",
+        field_mutant("-m does not take its module", '-m) pcmd="$pcmd -m ${pw[$((i + 1))]}"; end=1 ;;', "",
                      f"cd {w} && {py} -m caller --body LEAKVAL", f"{pyn} -m caller")
-        field_mutant("python is not followed to its script", "|python|python[0-9]*|", "|",
+        field_mutant("python is not followed to its script", "python|python[0-9]*|Python|pypy*) flags=", "xx) flags=",
                      f"{py} -I {caller} --body LEAKVAL", f"{pyn} {caller}"[:80])
+
+        # Exact-field arms over a stated parent command line: a fake `ps` prints it, so the
+        # perl, ruby and node shapes need no such interpreter on the host. The real-ps arms
+        # above pin that the shim reads its true parent; these pin the field rule itself.
+        ftools = w / "ftools"
+        ftools.mkdir()
+        for t in tools.iterdir():
+            if t.name != "ps":
+                (ftools / t.name).symlink_to(os.readlink(t))
+        (ftools / "ps").write_text('#!/bin/sh\nprintf "%s\\n" "$HPO_FAKE_PARGS"\n')
+        (ftools / "ps").chmod(0o700)
+        fpath = f"{w / 'own'}:{w / 'real'}:{ftools}"
+
+        def ffield(pargs, sh=None):
+            run(["api", "x"], shim_text=sh, path=fpath, env_extra={"HPO_FAKE_PARGS": pargs})
+            m_ = LINE.fullmatch(log.read_text().splitlines()[-1])
+            return m_.group(3) if m_ else None
+        long_script = "/" + "d" * 90 + "/s.sh"
+        fshapes = {  # parent command line -> the exact field; LEAKVAL is a caller's value
+            "python3 -c__import__('subprocess').run(['gh','api','-fx=LEAKVAL'])": "python3 -c",
+            "python3 -Bc__import__('subprocess').run(['gh','api','-fx=LEAKVAL'])": "python3 -Bc",
+            "perl -esystem('gh','api','-fx=LEAKVAL')": "perl -e",
+            "ruby -esystem('gh','api','-fx=LEAKVAL')": "ruby -e",
+            "node --eval=require('child_process').execFileSync('gh',['-fx=LEAKVAL'])": "node --eval",
+            "node --print=LEAKVAL": "node --print",
+            "bash --command=LEAKVAL": "bash --command",
+            "sh -s LEAKVAL": "sh -s",
+            "sh -s -- LEAKVAL": "sh -s",
+            "bash -s -- --token LEAKVAL": "bash -s",
+            "python3 -W ignore::LEAKVAL caller.py": "python3 caller.py",
+            "python3 -WLEAKVAL caller.py": "python3 caller.py",
+            "python3 -X LEAKVAL caller.py": "python3 caller.py",
+            "python3 -W error -m caller_mod LEAKVAL": "python3 -m caller_mod",
+            "bash -o LEAKVAL s.sh": "bash s.sh",
+            "node --require ./LEAKVAL.js n.js": "node",
+            "node -p LEAKVAL": "node",
+            "ruby -r LEAKVAL x.rb": "ruby",
+            "perl -MLEAKVAL -e x": "perl",
+            "python3 -I caller.py --body LEAKVAL": "python3 caller.py",  # null control: not cut to nothing
+            "sh ./a=b/s.sh LEAKVAL": "sh ./a?b/s.sh",  # `=` in a kept word is logged `?`
+            f"sh {long_script} LEAKVAL": f"sh {long_script}"[:80],  # the 80-character cut
+        }
+        fgot = {pa: ffield(pa) for pa in fshapes}
+        for pa, want_f in fshapes.items():
+            check(f"exact field of parent `{pa[:48]}` is `{want_f[:24]}`", fgot[pa] == want_f)
+
+        # mutants of each rule of the field: each must change an exact-field arm
+        def fmutant(name, reps, pargs):
+            mut_ = good
+            for old, new_ in reps:
+                mut_ = mut_.replace(old, new_)
+            check(f"mutant killed: {name}", mut_ != good and ffield(pargs, mut_) != fshapes[pargs])
+            install(good)
+        glued = "python3 -c__import__('subprocess').run(['gh','api','-fx=LEAKVAL'])"
+        fmutant("a code option logged whole, not cut after its letter",
+                [('pcmd="$pcmd ${a:0:$((j + 1))}"', 'pcmd="$pcmd $a"')], glued)
+        fmutant("-s passed over as a no-value letter, not ending the field",
+                [("c|e|s)", "c|e)"), ("[abfhik", "[sabfhik")], "sh -s LEAKVAL")
+        fmutant("an unknown option letter passed over, not ending the field",
+                [("*) end=1; break ;;\n          esac", "*) ;;\n          esac")], "ruby -r LEAKVAL x.rb")
+        fmutant("an unknown long option passed over, not ending the field",
+                [("--*) end=1 ;;", "--*) ;;")], "node --require ./LEAKVAL.js n.js")
+        fmutant("a value-taking letter read as no-value, its value taken as the script",
+                [("vals='[WX]'", "vals="), ("[bBdEhiIOqPRSuvVx]", "[bBdEhiIOqPRSuvVxWX]")],
+                "python3 -W ignore::LEAKVAL caller.py")
+        fmutant("`=` allowed in the parent field",
+                [("tr -c 'A-Za-z0-9_./: -' '?' | cut", "tr -c 'A-Za-z0-9_./:= -' '?' | cut")], "sh ./a=b/s.sh LEAKVAL")
+        fmutant("the 80-character cut removed", [(" | cut -c1-80)", ")")], f"sh {long_script} LEAKVAL")
+        fmutant("--eval/--print/--command passed over",
+                [('--eval|--eval=*|--print|--print=*|--command|--command=*) pcmd="$pcmd ${a%%=*}"; end=1 ;;',
+                  "--eval*|--print*|--command*) ;;")],
+                "node --eval=require('child_process').execFileSync('gh',['-fx=LEAKVAL'])")
+        fmutant("a long code option logged with its attached code",
+                [('pcmd="$pcmd ${a%%=*}"', 'pcmd="$pcmd $a"')], "node --print=LEAKVAL")
 
         # a log written by an earlier shim (0644) is made owner-only on the next call; a
         # rotated one too, since mv keeps the mode

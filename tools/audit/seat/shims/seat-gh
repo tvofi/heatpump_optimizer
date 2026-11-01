@@ -12,8 +12,12 @@
 # argument out of the line, and a token outside [A-Za-z0-9_./:-] is logged `?`.
 # The caller is the point: the shared token's core bucket was spent twice
 # with no host log naming who (P284); tools/audit/seat/gh_calls.py reads this.
-# The parent command is cut to argv[0], plus an interpreter's script, `-m <module>` or
-# `-c`: no later word of the caller's command line is ever logged. The state directory
+# The parent command is argv[0]'s basename plus, for a shell or interpreter, at most one
+# more word: its script or `-m <module>` as given, or the flag name alone of a `-c`, `-e`,
+# `-s`, `--eval`, `--print` or `--command` option, any code attached to it cut off. An
+# option the rule does not know ends the field unlogged; the field is cleaned and cut to
+# 80 characters. argv[0] and the script path are logged by design: a secret placed in a
+# path is logged too, `=` turned `?` (P284 residual). The state directory
 # is created if missing (mkdir -p); a path that cannot be made is skipped, never fatal.
 # A directory or log the shim creates is owner-only (umask 077), whatever the caller's umask,
 # and an existing log (or its rotated .1) is set 0600 on each write.
@@ -58,30 +62,46 @@ esac
   log=$state/gh-calls.log
   max=${HPO_GH_LOG_MAX:-1048576}
   # The parent field names the caller and nothing it was given: argv[0]'s basename and,
-  # for an interpreter, the script it runs (its first word that is not an option), or
-  # `-m <module>`, or the `-c`/`-e` option that ends the field there. No later word is
-  # read, so no flag value, env assignment or piped secret on a wrapper's command line
-  # reaches the log, whatever the wrapper's shape (P284). A word split on spaces only
-  # ever shortens a field, never lengthens it.
+  # for a shell or interpreter, one more word. Options are read one letter at a time:
+  # a known no-value letter is passed over; a known value-taking letter (python -W/-X,
+  # shell -o/-O) passes over its value, glued or the next word, unlogged; `c`, `e` or `s`
+  # (code on the line, or a script on stdin) logs the option up to that letter and ends
+  # the field; any other letter or long option ends it unlogged. The first word that is
+  # not an option is the script and ends it. So no option value, code, stdin-script
+  # argument or later word reaches the log (P284). Words split on spaces only.
   pargs=$(ps -o args= -p "$PPID" </dev/null 2>/dev/null | tr -c '[:print:]' ' ')
   set -f; read -r -a pw <<< "$pargs"; set +f
   pcmd=${pw[0]##*/}
   case $pcmd in
-    sh|bash|zsh|dash|ksh|python|python[0-9]*|Python|pypy*|node|perl|ruby)
-      i=1
-      while [ "$i" -lt "${#pw[@]}" ]; do
-        a=${pw[$i]}
-        case $a in
-          -m) pcmd="$pcmd -m ${pw[$((i + 1))]}"; break ;;
-          --eval*|--print*|--command*) pcmd="$pcmd $a"; break ;;
-          --*) ;;
-          -*[ce]*) pcmd="$pcmd $a"; break ;;
-          -*) ;;
-          *) pcmd="$pcmd $a"; break ;;
-        esac
-        i=$((i + 1))
-      done ;;
+    python|python[0-9]*|Python|pypy*) flags='[bBdEhiIOqPRSuvVx]' vals='[WX]' ;;
+    sh|bash|zsh|dash|ksh) flags='[abfhiklmnprtuvxBCEHPT]' vals='[oO]' ;;
+    node|perl|ruby) flags=w vals= ;;
+    *) flags= ;;
   esac
+  i=1 end=
+  [ -n "$flags" ] || end=1
+  while [ -z "$end" ] && [ "$i" -lt "${#pw[@]}" ]; do
+    a=${pw[$i]}
+    case $a in
+      -m) pcmd="$pcmd -m ${pw[$((i + 1))]}"; end=1 ;;
+      --eval|--eval=*|--print|--print=*|--command|--command=*) pcmd="$pcmd ${a%%=*}"; end=1 ;;
+      --*) end=1 ;;
+      -?*)
+        j=1
+        while [ "$j" -lt "${#a}" ]; do
+          ch=${a:$j:1}
+          case $ch in
+            c|e|s) pcmd="$pcmd ${a:0:$((j + 1))}"; end=1; break ;;
+            $vals) [ "$((j + 1))" -eq "${#a}" ] && i=$((i + 1)); break ;;
+            $flags) ;;
+            *) end=1; break ;;
+          esac
+          j=$((j + 1))
+        done ;;
+      *) pcmd="$pcmd $a"; end=1 ;;
+    esac
+    i=$((i + 1))
+  done
   pcmd=$(printf '%s' "$pcmd" | tr -c 'A-Za-z0-9_./: -' '?' | cut -c1-80)
   mkdir -p "$state"
   clean() { printf '%s' "${1:--}" | tr -c 'A-Za-z0-9_./:-' '?'; }
