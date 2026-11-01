@@ -13490,6 +13490,54 @@
     "note": "2026-10-31 (triage: dev/programme/triage/s6-batch94.md#P338, #P339); script census, owner rule tvofi 2026-10-31"
    },
    "brief": "From triage P338 and P339 (script census, orchestrator s9, 2026-10-31; owner rule: reusable scripts in a generalized form belong on main). About 60 session-local ref/board watchers and about 67 head waiters re-implement two loops. (1) A new shell instrument named seat_watch (a .sh file beside pulse.py in the seat tools directory): --refs GLOB... [--exclude REGEX] --state FILE --alive FILE --every S --passes N; state under $HPO_STATE_DIR; default 240 s, floor 60 s; exit 0 on the first actionable move printing MOVED <ref> <old> <new>; exit 1 after N passes with one heartbeat line; a move on a ref whose PR is MERGED or CLOSED is counted in the state file, never reported (one open-PR listing per pass). No per-role logic: the caller's --refs/--exclude pick the refs. (2) tools/audit/seat/proof_watch.py --wait-only: repeated --head SHA, --check NAME, --budget H; exit 0 when the check-run completed at every pinned head (print each state); exit 1 on HEAD MOVED or budget; never merges or approves. Rejected: a --run CMD exec arm (a shell chains `&& cmd`), and a `contains` predicate (census carry 5 routes it to the relay). Fixtures: a fixture remote with no move exits 1 after N passes; a moved handoff ref exits 0 with its MOVED line; a merged PR's review-ref move is counted, not reported; wait-only over two heads exits only when both completed; a moved head exits 1. One mutant per tool. Classify the new file (tests/entities.py) and add both instrument pages. triage: dev/programme/triage/s6-batch94.md#P338"
+  },
+  {
+   "group": "R10-FLY-RAISE-REVIEWABLE",
+   "lane": "F",
+   "kind": "instrument",
+   "class": "instrument",
+   "severity": "high",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 6,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "tools/audit/seat/merge_train.py",
+    "tools/audit/seat/bus.sh",
+    "tools/audit/seat/orchestrator_tick.py",
+    "tools/audit/seat/instruments/merge_train.py.md",
+    "tools/audit/seat/instruments/orchestrator_tick.py.md",
+    "dev/governance/roles/orchestrator.md"
+   ],
+   "carry": [
+    "P348: in `tools/audit/seat/bus.sh` `dispatch`, the review-carry refusal (lines 484-494 at `a7dd7f50d`) fires only when the latest verdict naming the reviewed head in `verdict/<pr>`'s history is `merge`. Read it with a `verdict_at` beside `blocked_rounds`. A blocked verdict, or none, mints and prints `review-carry: <rh> was blocked, so a fresh review is owed`. An unreadable ref refuses. Basis: #3045 round 3 at `9ef51b82`, dispatched only by omitting `--reviewed-head`; 38 verdicts since `6f905c40f` sit at a head an earlier verdict had blocked. Rows: blocked at `rh` with a clean range mints; null control: merge at `rh` with a clean range refuses (CARRY); unreadable refuses. One mutant drops the verdict test, and the blocked row fails. Amend `dev/governance/roles/orchestrator.md` line 172 with \"against a reviewed head whose verdict was merge\". triage: dev/programme/triage/s6-batch95.md#P348"
+   ],
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-fly-raise-reviewable",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer (S; ahead of other instrument fly-ins: it blocks every budget-raise PR's review route, critical path included)",
+    "note": "2026-10-31 (triage: dev/programme/triage/s6-batch95.md#P345, #P348)"
+   },
+   "brief": "From triage P345 (orchestrator s9, 2026-10-31). K15 (d) reads a budget-raise PR as not reviewable in the state every raise is in before its review: budget_raise_gate refuses until the owner's approval (or a mandated one) names the head, and that approval follows the verdict. merge_train.classify then reports `gate` and `budget-raise-gate / budget-raise-gate` red; orchestrator_tick.one_pr prints NOT REVIEWABLE (back to its fixer), and bus.sh dispatch (rc 1 from `merge_train.py classify`) refuses the reviewer. Instances: #3045 at 9ef51b82 (OWED-ACK ttl=3, 20:40:47Z, hand override) and #3006 at 979797ad (pre-approval budget-raise-gate reds 17:01, 18:32, 18:34Z). Build, in merge_train.py, the one owner of the state: a function `approval_owed(train, pr, head, red)` that returns the gate's reason when (a) every name in `red` is GATE or `budget-raise-gate / budget-raise-gate`, the latter present; (b) `Train.raise_hold(pr, head, files)` returns at least one raise and held False, with `files` read from git (`git diff --name-only <merge-base origin/main head> head`, the three-dot names), no API listing. It reuses raise_hold and so budget_raise_gate's own raises_between and approval; never restate either, and never match the job log text. A raise_hold Stop is not approval owed (fail closed: the head stays not reviewable). `classify` itself is unchanged: the merge state, the train and main stay as they are. The `classify` subcommand gains `--pr N`; with it, a RED whose red set passes `approval_owed` prints `APPROVAL-OWED <sha> <why>` and exits 4. bus.sh dispatch passes `--pr \"$pr\"` and dispatches on rc 4 as on 0 and 3, printing the line. orchestrator_tick.one_pr, before its NOT REVIEWABLE line, calls the same function and on a reason prints `#N: RAISE APPROVAL OWED at <head8>: review it, then approve under the owner or the mandate (0013) -- not its fixer (K15 (d))` unflagged-as-fixer instead. Rows (each with the null control): (1) the #3045 shape (red = gate + budget-raise-gate, one raise in the diff, owner approval on an older head) is reviewable: classify --pr rc 4, bus dispatch records, tick prints RAISE APPROVAL OWED and no NOT REVIEWABLE; (2) null: the same plus `tests / fast (3.14)` red stays NOT REVIEWABLE / rc 1; (3) null: budget-raise-gate red with no raise in the diff stays rc 1; (4) null: a raise_hold Stop stays rc 1; (5) without --pr, rc 1 is unchanged (old callers). One mutant drops test (b)'s raise count, and row 3 fails. Update both instrument pages. triage: dev/programme/triage/s6-batch95.md#P345"
   }
  ]
 }
