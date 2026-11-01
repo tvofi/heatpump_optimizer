@@ -1,36 +1,59 @@
-MUTANT V-thermal-buffer_cooling_rate: KILLED rc=1 fails=2 ['2 of 19 FR CHECKS FAILED']
+MUTANT V-thermal-buffer_cooling_rate: KILLED rc=1 fails=3 ['3 of 28 FR CHECKS FAILED']
      FAIL after a learners reset every learner reads what one that never learned reads  [{'thermal_learning': ['buffer_cooling_rate']}]
+     FAIL a learners reset drops every learned key, key by key, and keeps every fact, before the entry is set up again  [learned left [('thermal_learning', 'buffer_cooling_rate')], facts lost [], whole sto
      FAIL a reset of both leaves the wiring alone and every learner at its initial state  [stored ['dhw_enabled', 'dhw_temp_entity', 'indoor_temp_entity', 'lower_floor_temp_entity', 'main_fuse_amperes', 'n
-MUTANT V-thermal-buffer_cooling_samples: SURVIVED rc=0 fails=0 ['ALL 19 FR CHECKS PASSED']
-MUTANT V-thermal-_COP_STORE_KEY: KILLED rc=1 fails=2 ['2 of 19 FR CHECKS FAILED']
+MUTANT V-thermal-buffer_cooling_samples: KILLED rc=1 fails=1 ['1 of 28 FR CHECKS FAILED']
+     FAIL a learners reset drops every learned key, key by key, and keeps every fact, before the entry is set up again  [learned left [('thermal_learning', 'buffer_cooling_samples')], facts lost [], whole 
+MUTANT V-thermal-_COP_STORE_KEY: KILLED rc=1 fails=3 ['3 of 28 FR CHECKS FAILED']
      FAIL after a learners reset every learner reads what one that never learned reads  [{'thermal_learning': ['cop_scale']}]
+     FAIL a learners reset drops every learned key, key by key, and keeps every fact, before the entry is set up again  [learned left [('thermal_learning', 'cop_scale')], facts lost [], whole stores left [
      FAIL a reset of both leaves the wiring alone and every learner at its initial state  [stored ['dhw_enabled', 'dhw_temp_entity', 'indoor_temp_entity', 'lower_floor_temp_entity', 'main_fuse_amperes', 'n
-MUTANT V-thermal-cop_samples: SURVIVED rc=0 fails=0 ['ALL 19 FR CHECKS PASSED']
-MUTANT V-thermal-vent_cusum: SURVIVED rc=0 fails=0 ['ALL 19 FR CHECKS PASSED']
-MUTANT V-thermal-cop_baseline: SURVIVED rc=0 fails=0 ['ALL 19 FR CHECKS PASSED']
-MUTANT V-thermal-cop_health_cusum: SURVIVED rc=0 fails=0 ['ALL 19 FR CHECKS PASSED']
-MUTANT V-thermal-immersion_events: SURVIVED rc=0 fails=0 ['ALL 19 FR CHECKS PASSED']
-MUTANT V-thermal-capacity_envelope: SURVIVED rc=0 fails=0 ['ALL 19 FR CHECKS PASSED']
-MUTANT V-thermal-solar_aperture: SURVIVED rc=0 fails=0 ['ALL 19 FR CHECKS PASSED']
-MUTANT V-thermal-internal_gains_profile: SURVIVED rc=0 fails=0 ['ALL 19 FR CHECKS PASSED']
-MUTANT V-thermal-curve_learner: KILLED rc=1 fails=2 ['2 of 19 FR CHECKS FAILED']
+MUTANT V-thermal-cop_samples: KILLED rc=1 fails=1 ['1 of 28 FR CHECKS FAILED']
+     FAIL a learners reset drops every learned key, key by key, and keeps every fact, before the entry is set up again  [learned left [('thermal_learning', 'cop_samples')], facts lost [], whole stores left
+MUTANT V-thermal-vent_cusum: KILLED rc=1 fails=1 ['1 of 28 FR CHECKS FAILED']
+     FAIL a learners reset drops every learned key, key by key, and keeps every fact, before the entry is set up again  [learned left [('thermal_learning', 'vent_cusum')], facts lost [], whole stores left 
+MUTANT V-thermal-cop_baseline: KILLED rc=1 fails=1 ['1 of 28 FR CHECKS FAILED']
+     FAIL a learners reset drops every learned key, key by key, and keeps every fact, before the entry is set up again  [learned left [('thermal_learning', 'cop_baseline')], facts lost [], whole stores lef
+MUTANT V-thermal-cop_health_cusum: KILLED rc=1 fails=1 ['1 of 28 FR CHECKS FAILED']
+     FAIL a learners reset drops every learned key, key by key, and keeps every fact, before the entry is set up again  [learned left [('thermal_learning', 'cop_health_cusum')], facts lost [], whole stores
+MUTANT V-thermal-immersion_events: KILLED rc=1 fails=1 ['1 of 28 FR CHECKS FAILED']
+     FAIL a learners reset drops every learned key, key by key, and keeps every fact, before the entry is set up again  [learned left [('thermal_learning', 'immersion_events')], facts lost [], whole stores
+MUTANT V-thermal-capacity_envelope: KILLED rc=1 fails=1 ['1 of 28 FR CHECKS FAILED']
+     FAIL a learners reset drops every learned key, key by key, and keeps every fact, before the entry is set up again  [learned left [('thermal_learning', 'capacity_envelope')], facts lost [], whole store
+MUTANT V-thermal-solar_aperture: KILLED rc=1 fails=1 ['1 of 28 FR CHECKS FAILED']
+     FAIL a learners reset drops every learned key, key by key, and keeps every fact, before the entry is set up again  [learned left [('thermal_learning', 'solar_aperture')], facts lost [], whole stores l
+MUTANT V-thermal-internal_gains_profile: KILLED rc=1 fails=1 ['1 of 28 FR CHECKS FAILED']
+     FAIL a learners reset drops every learned key, key by key, and keeps every fact, before the entry is set up again  [learned left [('thermal_learning', 'internal_gains_profile')], facts lost [], whole 
+MUTANT V-thermal-curve_learner: KILLED rc=1 fails=3 ['3 of 28 FR CHECKS FAILED']
      FAIL after a learners reset every learner reads what one that never learned reads  [{'thermal_learning': ['curve_learner']}]
+     FAIL a learners reset drops every learned key, key by key, and keeps every fact, before the entry is set up again  [learned left [('thermal_learning', 'curve_learner')], facts lost [], whole stores le
      FAIL a reset of both leaves the wiring alone and every learner at its initial state  [stored ['dhw_enabled', 'dhw_temp_entity', 'indoor_temp_entity', 'lower_floor_temp_entity', 'main_fuse_amperes', 'n
-MUTANT V-thermal-freq_map: SURVIVED rc=0 fails=0 ['ALL 19 FR CHECKS PASSED']
-MUTANT V-thermal-flow_bias: SURVIVED rc=0 fails=0 ['ALL 19 FR CHECKS PASSED']
-MUTANT V-accuracy-accuracy: KILLED rc=1 fails=2 ['2 of 19 FR CHECKS FAILED']
+MUTANT V-thermal-freq_map: KILLED rc=1 fails=1 ['1 of 28 FR CHECKS FAILED']
+     FAIL a learners reset drops every learned key, key by key, and keeps every fact, before the entry is set up again  [learned left [('thermal_learning', 'freq_map')], facts lost [], whole stores left []
+MUTANT V-thermal-flow_bias: KILLED rc=1 fails=1 ['1 of 28 FR CHECKS FAILED']
+     FAIL a learners reset drops every learned key, key by key, and keeps every fact, before the entry is set up again  [learned left [('thermal_learning', 'flow_bias')], facts lost [], whole stores left [
+MUTANT V-accuracy-accuracy: KILLED rc=1 fails=3 ['3 of 28 FR CHECKS FAILED']
      FAIL after a learners reset every learner reads what one that never learned reads  [{'accuracy': ['lead_counts', 'lead_sigma']}]
+     FAIL a learners reset drops every learned key, key by key, and keeps every fact, before the entry is set up again  [learned left [('accuracy', 'accuracy')], facts lost [], whole stores left []]
      FAIL a reset of both leaves the wiring alone and every learner at its initial state  [stored ['dhw_enabled', 'dhw_temp_entity', 'indoor_temp_entity', 'lower_floor_temp_entity', 'main_fuse_amperes', 'n
-MUTANT V-accuracy-dhw_accuracy: SURVIVED rc=0 fails=0 ['ALL 19 FR CHECKS PASSED']
-MUTANT V-accuracy-defrost: KILLED rc=1 fails=2 ['2 of 19 FR CHECKS FAILED']
+MUTANT V-accuracy-dhw_accuracy: KILLED rc=1 fails=1 ['1 of 28 FR CHECKS FAILED']
+     FAIL a learners reset drops every learned key, key by key, and keeps every fact, before the entry is set up again  [learned left [('accuracy', 'dhw_accuracy')], facts lost [], whole stores left []]
+MUTANT V-accuracy-defrost: KILLED rc=1 fails=3 ['3 of 28 FR CHECKS FAILED']
      FAIL after a learners reset every learner reads what one that never learned reads  [{'defrost': ['factors']}]
+     FAIL a learners reset drops every learned key, key by key, and keeps every fact, before the entry is set up again  [learned left [('accuracy', 'defrost')], facts lost [], whole stores left []]
      FAIL a reset of both leaves the wiring alone and every learner at its initial state  [stored ['dhw_enabled', 'dhw_temp_entity', 'indoor_temp_entity', 'lower_floor_temp_entity', 'main_fuse_amperes', 'n
-MUTANT V-accuracy-comfort: KILLED rc=1 fails=1 ['1 of 19 FR CHECKS FAILED']
+MUTANT V-accuracy-comfort: KILLED rc=1 fails=2 ['2 of 28 FR CHECKS FAILED']
      FAIL after a learners reset every learner reads what one that never learned reads  [{'comfort': ['evidence']}]
-MUTANT V-store-kept-dhw_profile: KILLED rc=1 fails=2 ['2 of 19 FR CHECKS FAILED']
+     FAIL a learners reset drops every learned key, key by key, and keeps every fact, before the entry is set up again  [learned left [('accuracy', 'comfort')], facts lost [], whole stores left []]
+MUTANT V-store-kept-dhw_profile: KILLED rc=1 fails=3 ['3 of 28 FR CHECKS FAILED']
      FAIL after a learners reset every learner reads what one that never learned reads  [{'dhw_profile': ['cooling_rate', 'cooling_samples', 'hourly_profile']}]
+     FAIL a learners reset drops every learned key, key by key, and keeps every fact, before the entry is set up again  [learned left [('dhw_profile', 'cooling_rate'), ('dhw_profile', 'cooling_samples'), (
      FAIL a reset of both leaves the wiring alone and every learner at its initial state  [stored ['dhw_enabled', 'dhw_temp_entity', 'indoor_temp_entity', 'lower_floor_temp_entity', 'main_fuse_amperes', 'n
-MUTANT V-store-kept-dhw_draws: SURVIVED rc=0 fails=0 ['ALL 19 FR CHECKS PASSED']
-MUTANT V-store-kept-price_model: KILLED rc=1 fails=2 ['2 of 19 FR CHECKS FAILED']
+MUTANT V-store-kept-dhw_draws: KILLED rc=1 fails=3 ['3 of 28 FR CHECKS FAILED']
+     FAIL after a learners reset every learner reads what one that never learned reads  [{'dhw_draws': ['open_date', 'open_kwh', 'open_label']}]
+     FAIL a learners reset drops every learned key, key by key, and keeps every fact, before the entry is set up again  [learned left [('dhw_draws', 'open_date'), ('dhw_draws', 'open_kwh'), ('dhw_draws', '
+     FAIL a reset of both leaves the wiring alone and every learner at its initial state  [stored ['dhw_enabled', 'dhw_temp_entity', 'indoor_temp_entity', 'lower_floor_temp_entity', 'main_fuse_amperes', 'n
+MUTANT V-store-kept-price_model: KILLED rc=1 fails=3 ['3 of 28 FR CHECKS FAILED']
      FAIL after a learners reset every learner reads what one that never learned reads  [{'price_model': ['shapes']}]
+     FAIL a learners reset drops every learned key, key by key, and keeps every fact, before the entry is set up again  [learned left [('price_model', 'days_seen'), ('price_model', 'model'), ('price_model'
      FAIL a reset of both leaves the wiring alone and every learner at its initial state  [stored ['dhw_enabled', 'dhw_temp_entity', 'indoor_temp_entity', 'lower_floor_temp_entity', 'main_fuse_amperes', 'n

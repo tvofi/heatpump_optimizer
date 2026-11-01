@@ -1,3 +1,0 @@
-Architecture score: dS +0.0036 IMPROVES
-  coord_footprint 2389 -> 2383  +0.0036
-rc=0
