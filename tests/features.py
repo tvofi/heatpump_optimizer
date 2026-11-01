@@ -75601,4 +75601,152 @@ R.check(
 )
 
 
+# R10-HOTFIX-AWAY-PRESENCE (tvofi, 2026-10-30; probe r10-live-away-heating): an
+# away flag from a presence entity reached the plan only at the next scheduled
+# update (one optimization_interval) -- no listener followed the entity; nor the
+# holiday calendar, the other entity whose state switches a band. Driven
+# through the production coordinator's construction and the listener it
+# registers: a flip of the interpreted away state asks for a refresh (Home
+# Assistant's debouncer then runs it), a change that leaves it as it was does not.
+class _ApHass(_FakeHass):
+    """The harness hass, counting the refreshes a listener hands it as tasks."""
+
+    def async_create_task(self, coro):
+        self.asked = getattr(self, "asked", []) + [coro.cr_code.co_name]
+        coro.close()
+
+
+def _ap_coord(entity, slot="away_presence_entity"):
+    cfg = {"tibber_token": "x", "weather_entity": "weather.home"}
+    if entity:
+        cfg[slot] = entity
+    coord = _Coord(_ApHass({}), _FakeEntry(data=cfg))
+    coord.hass.asked = []
+    return coord
+
+
+def _ap_regs(coord, entity):
+    return [a for ids, a in getattr(coord.hass, "state_listeners", []) if ids == [entity]]
+
+
+class _ApEvent:
+    def __init__(self, old, new, attrs=None):
+        self.data = {k: None if v is None else FakeState(v, attributes=attrs)
+                     for k, v in (("old_state", old), ("new_state", new))}
+
+
+def _ap_asks(entity, old, new, attrs=None, slot="away_presence_entity", new_attrs=None):
+    """The tasks one change of ``entity`` starts through its listener, and its listener count."""
+    coord = _ap_coord(entity, slot)
+    event = _ApEvent(old, new, attrs)
+    if new_attrs is not None:
+        event.data["new_state"] = FakeState(new, attributes=new_attrs)
+    for action in _ap_regs(coord, entity):
+        action(event)
+    return coord.hass.asked, len(_ap_regs(coord, entity))
+
+
+_ap_occ = {"device_class": "occupancy"}
+_ap_hol = "holiday_calendar_entity"
+_ap_span = {"start_time": "2026-12-24 00:00:00", "end_time": "2026-12-27 00:00:00"}
+_ap_longer = {"start_time": "2026-12-24 00:00:00", "end_time": "2026-12-28 00:00:00"}
+_ap_flips = {
+    "person home -> not_home": _ap_asks("person.tim", "home", "not_home"),
+    "person not_home -> home": _ap_asks("person.tim", "not_home", "home"),
+    "calendar off -> on": _ap_asks("calendar.holiday", "off", "on"),
+    "input_boolean off -> on": _ap_asks("input_boolean.away", "off", "on"),
+    "occupancy on -> off": _ap_asks("binary_sensor.occ", "on", "off", _ap_occ),
+    "person not_home -> unavailable": _ap_asks("person.tim", "not_home", "unavailable"),
+    "holiday calendar off -> on": _ap_asks("calendar.hol", "off", "on", _ap_span, _ap_hol),
+    "holiday calendar on, a day longer": _ap_asks(
+        "calendar.hol", "on", "on", _ap_span, _ap_hol, new_attrs=_ap_longer),
+}
+_ap_holds = {
+    "person zone work -> school": _ap_asks("person.tim", "work", "school"),
+    "person home -> home (attributes)": _ap_asks("person.tim", "home", "home"),
+    "person unavailable -> home": _ap_asks("person.tim", "unavailable", "home"),
+    "occupancy on -> on": _ap_asks("binary_sensor.occ", "on", "on", _ap_occ),
+    "holiday calendar on -> on, same span": _ap_asks("calendar.hol", "on", "on", _ap_span, _ap_hol),
+    "holiday calendar off -> off, a new span": _ap_asks(
+        "calendar.hol", "off", "off", _ap_span, _ap_hol, new_attrs=_ap_longer),
+}
+R.check(
+    "R10-HOTFIX-AWAY-PRESENCE a presence entity whose interpreted away state flips, "
+    "or a holiday calendar whose dates change, asks for a refresh at once, one per change",
+    all(v == (["async_request_refresh"], 1) for v in _ap_flips.values()), str(_ap_flips),
+)
+R.check(
+    "R10-HOTFIX-AWAY-PRESENCE null control: a change that leaves the interpreted "
+    "away state or the holiday dates as they were asks for no refresh",
+    all(v == ([], 1) for v in _ap_holds.values()), str(_ap_holds),
+)
+_ap_none = _ap_coord(None)
+_ap_reg = _Coord(_ApHass({}), _FakeEntry(data={
+    "tibber_token": "x", "weather_entity": "weather.home",
+    "away_presence_entity": "person.tim", _ap_hol: "calendar.hol"}))
+_ap_both = [ids for ids, _a in getattr(_ap_reg.hass, "state_listeners", [])]
+_ap_unloads = list(_ap_reg.entry._on_unload)
+for _ap_unload in _ap_unloads:
+    if callable(_ap_unload):
+        _ap_unload()
+R.check(
+    "R10-HOTFIX-AWAY-PRESENCE no presence entity or calendar, no listener; one each "
+    "when both are set, and the entry's unload drops both",
+    not getattr(_ap_none.hass, "state_listeners", [])
+    and sorted(_ap_both) == [["calendar.hol"], ["person.tim"]]
+    and all(callable(u) for u in _ap_unloads) and not getattr(_ap_reg.hass, "state_listeners", []),
+    f"{getattr(_ap_none.hass, 'state_listeners', [])} {_ap_both} {_ap_unloads}",
+)
+
+_ap_bare = _ApHass({})
+_ap_watch = getattr(away_mode, "watch_away_inputs", lambda *_a: None)  # base: absent
+_ap_watch(_ap_bare, object(), EntryConfig.from_mapping({
+    "away_presence_entity": "person.tim", _ap_hol: "calendar.hol"}), _al_noop)
+R.check(
+    "R10-HOTFIX-AWAY-PRESENCE an entry with no unload list gets no listener: none "
+    "is registered that its unload could not drop",
+    not getattr(_ap_bare, "state_listeners", []), str(getattr(_ap_bare, "state_listeners", [])),
+)
+
+# The reload handover's window (the same probe): after an options save the
+# first publish is the pre-reload plan, and the background solve setup requests
+# replaces it. Its next-optimization time said the old cycle's (solve + one
+# interval); the card's plan health read that as "next solve in N min" while
+# the solve was already due. The republished handover says the solve is due now.
+async def _ap_handover():
+    """A plan published 10 min ago, due again in 20; a reload; the first publish."""
+    _al_disk.clear()
+    _al_disk.update(away_mode.empty_override(), migrated_helpers=True)
+    hass = _LsRestoreHass()
+    old = _al_coord(hass)
+    await hass.restores[0]
+    published = old._build_data_dict()
+    published["last_optimization"] = dt_util.now() - timedelta(minutes=10)
+    published["next_optimization"] = dt_util.now() + timedelta(minutes=20)
+    new = _al_coord(hass, skip_first_solve=True, reload_handover=published)
+    t0 = dt_util.now()
+    return published, await new._async_update_data(), t0
+
+
+_al_saved = (away_mode.load_mapping, away_mode.persist_override)
+away_mode.load_mapping, away_mode.persist_override = _al_load, _al_save
+try:
+    _ap_published, _ap_first, _ap_t0 = _ls_aio.run(_ap_handover())
+finally:
+    away_mode.load_mapping, away_mode.persist_override = _al_saved
+R.check(
+    "R10-HOTFIX-AWAY-PRESENCE the republished reload handover says the next solve "
+    "is due now, not the pre-reload cycle's time",
+    _ap_first is _ap_published and _ap_first["next_optimization"] <= dt_util.now()
+    and _ap_first["next_optimization"] >= _ap_t0,
+    f"{_ap_first.get('next_optimization')} vs {_ap_t0}",
+)
+R.check(
+    "R10-HOTFIX-AWAY-PRESENCE null control: the handover keeps its own plan age "
+    "(the plan is still the pre-reload one)",
+    9.0 <= (_ap_first.get("plan_age_minutes") or 0) <= 11.0,
+    str(_ap_first.get("plan_age_minutes")),
+)
+
+
 sys.exit(R.close("FEATURE CHECKS"))

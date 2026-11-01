@@ -790,13 +790,14 @@ WORKER_FALLBACK_CAP = 3
 
 
 def _republish_handover_ages(coord: Any, handover: Payload) -> Payload:
-    """Overwrite frozen plan_age_minutes / plan_stale on a reload handover."""
+    """Overwrite frozen plan_age_minutes / plan_stale / next_optimization on a reload handover."""
     last = handover.get("last_optimization")
     if isinstance(last, datetime):
         coord._last_optimization = last
     age = coord._plan_age_minutes()
     handover["plan_age_minutes"] = round(age, 1) if age is not None else None
     handover["plan_stale"] = coord._plan_is_stale()
+    handover["next_optimization"] = dt_util.now()  # the background solve setup requested
     return handover
 
 
@@ -3324,6 +3325,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         boost.spawn_restore_session(
             self, self._spawn, self._adopt_away_override, config, self._entity_state
         )
+        away_mode.watch_away_inputs(hass, entry, config, self.async_request_refresh)
 
     @callback
     def _release_registrations(self) -> None:
@@ -3462,7 +3464,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         self._weather_stale_since: datetime | None = None
         self._weather_outage_cycles: int = 0
         self._current_action: CurrentAction = {}
-        self._unsub_timer: Any = None
         # Fire-and-forget tasks (store saves, listener registrations), held
         # so shutdown can let them finish instead of orphaning them against
         # a torn-down entry; and the Tibber outage latch (D10-09).
@@ -6352,9 +6353,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if refresh is not None and refresh is not asyncio.current_task():
             refresh.cancel()
         await super().async_shutdown()
-        if self._unsub_timer:
-            self._unsub_timer()
-            self._unsub_timer = None
         self._release_registrations()
         await self._legionella.async_release_switch()
         await pump_arbiter.release(self)
