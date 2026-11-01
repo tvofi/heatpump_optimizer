@@ -14176,6 +14176,54 @@
     "note": "s9 carry-routing pass, 2026-11-01: created to receive carries of R10-ORCH-ROSTER-SCHEMA"
    },
    "brief": "The roster queue's residue of R10-ORCH-ROSTER-SCHEMA: a trailing comment on a queue line is never passed as arguments, a run marks each applied line in place, a read-only roster show and diff instrument replaces rebuilt scratch copies, and the group briefs that still name the old handoff route are corrected as roster data through roster_edit.py. Runs after R10-ORCH-ROSTER-SCHEMA. Every carry was moved verbatim by the s9 carry-routing pass (2026-11-01) from a carries-open source group; each names its own controls. Re-measure every figure a carry states at this group's own merge base; carry no count. A carry that says it waits on an owner or orchestrator ruling waits for that ruling, and the body says so."
+  },
+  {
+   "group": "R10-CI-PRIORITY-PAUSE",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "instrument",
+   "severity": "high",
+   "size": "M",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 6,
+   "hot_files": [
+    "merge_train.py"
+   ],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "after": [
+    "R10-ORCH-ROSTER-SCHEMA"
+   ],
+   "files": [
+    "tools/audit/seat/merge_train.py",
+    "tools/audit/seat/roster_lib.py",
+    "tools/audit/seat/orchestrator_tick.py",
+    "dev/audit/config/"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-ci-priority-pause",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer once its after-groups are done",
+    "note": "s9 carry-routing pass, 2026-11-01: created to receive carries of R10-FLY-CANCEL-SWEEP, R10-ORCH-LEDGER, R10-ORCH-ROSTER-SCHEMA"
+   },
+   "brief": "The CI-priority tier module and its config file, the merge train's pause and resume of the lowest-priority pull request's CI when the account's job limit binds, the per-group roster fields that mapping reads (source, hotfix and savings, read through tools/audit/seat/roster_lib.py), and the tick's owed-PR lines ordered by that rank. Owner-directed (tvofi 2026-10-28); R10-FLY-CANCEL-SWEEP's PR #3004 built the sweep only and left this as its part 2. R10-FLOW-TOOLKIT-MODEL consumes the tier rule and is after-edged here. Every carry was moved verbatim by the s9 carry-routing pass (2026-11-01) from a carries-open source group; each names its own controls. Re-measure every figure a carry states at this group's own merge base; carry no count. A carry that says it waits on an owner or orchestrator ruling waits for that ruling, and the body says so."
   }
  ]
 }
