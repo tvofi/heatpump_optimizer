@@ -1,19 +1,25 @@
+null (clean head):
+
+rc=0
 140:set -uo pipefail
---- P1 judged bus.sh: bare line, reason after mut marker (want red)
+--- P1 judged bus.sh bare line reason after mut (want 1)
 tools/audit/seat/bus.sh:1538: f "${zz[@]}"  # mut:pl  # never-empty: why
 rc=1
---- P2 judged bus.sh: non-bare line, reason after mut marker (body: refused in every file; want red)
-
-rc=0
---- P2b judged bus.sh: guarded line, reason after mut marker (want red)
-
-rc=0
---- P3 unjudged pr_args.sh: reason after mut marker (want red)
-tools/audit/seat/pr_args.sh:1505: f x  # mut:pl  # never-empty: why
+--- P2 judged bus.sh non-bare line (want 1)
+tools/audit/seat/bus.sh:1538: f x  # mut:pl  # never-empty: why
 rc=1
---- P4 comment-only reason directly above (want green)
+--- P2b judged bus.sh guarded line (want 1)
+tools/audit/seat/bus.sh:1538: f ${zz[@]+"${zz[@]}"}  # mut:pl  # never-empty: why
+rc=1
+--- P3 pr_args.sh (want 1)
+tools/audit/seat/pr_args.sh:1508: f x  # mut:pl  # never-empty: why
+rc=1
+--- P4 comment-only reason above (want 0)
 
 rc=0
---- P5 reason two lines above (want red)
+--- P5 reason two lines above (want 1)
 tools/audit/seat/bus.sh:1540: f "${zz[@]}"  # mut:pl
 rc=1
+--- self-test
+bare_array self-test: ok
+rc=0
