@@ -1,61 +1,46 @@
-Design review: revise 0e83751b1624081cdd7f7a429fcc551095ac4d28 exemption-gameable
+Design review: approve 95bdde384713962ab98d95d9a9d53f8224fdb22f
 
-Group R10-MACHINERY-RATCHETS (L). Design read from a detached worktree at 0e83751b1624081cdd7f7a429fcc551095ac4d28 (design/r10-machinery-ratchets tip at review start). Code read at 56630e7e6d229d960cf1b4db304d488ee20873e6 (origin/main). The note's base ddf4bfd73bc7 is an ancestor of it, one first-parent merge back (#3097, tools/plan only). Roster brief read at origin/handoff/audit-r10-roster 6b279e3b5.
+Group R10-MACHINERY-RATCHETS (L), round 2. I read the design from a detached worktree at 95bdde384713962ab98d95d9a9d53f8224fdb22f, which was the design/r10-machinery-ratchets tip at review start and was still the tip before this push. I judged it against 56630e7e6d229d960cf1b4db304d488ee20873e6. As the round-1 verdict asked, this round re-checks only the exemption paragraph, the arm list, the Gaming row and the figures.
 
-## Revise points (one)
+## Re-checks
 
-1. design.md:24, design.md:29 and design.md:79 (exemption). The match condition ties an entry to a PR number. It does not tie the entry to the merge that adds it. With `exemptions` as `superset`, which nobody has to approve, any later PR can append entries for machinery PRs that merged earlier and are still in the window. On push, those entries match "the merge subject's number". The window then drops those merges, so M1 and M2 fall and headroom appears with no improvement shipped.
-   - Concrete game: a record-only PR appends 6 entries, each 11% with an existing evidence path, for 6 earlier machinery merges. M1 falls by 6, which is more than its whole band of 5. No arm refuses it.
-   - PR mode is also left undefined. "The event's PR number" names only the candidate, so a push and a PR can grade the same window differently.
-   - Fix wanted:
-     - Honour an entry only when it is added by the merge it exempts: absent from the budgets file at P and present at M on a push, or absent at the merge base and present at the head for the candidate.
-     - Apply the same rule to the base's W−1 merges in PR mode.
-     - Add an arm to the self-test list at :79: "an entry appended later for an already-merged PR leaves M1 and M2 unchanged".
-     - Add one row to the Gaming table at :40 for this move.
-   - This must hold whichever way the owner decides at :31.
+1. **Exemption paragraph (design.md:24-26, :35).** An entry counts only when the merge it exempts is the merge that added it:
+   - On a push, the entry must be absent at P and present at M.
+   - For the candidate, it must be absent at the merge base and present at the head.
+   - In PR mode, the same rule applies to each of the base's W−1 merges.
 
-Everything else passes. On the next round, re-check only the exemption paragraph and the arm list.
+   PR mode is defined at :13. A merged M is graded by its own P and M in both modes. Point 1 of the round-1 verdict is fixed. The condition belongs to the instrument, not to `SCHEMA`, so it still holds under the superset ruling (:35-36).
 
-## Routed decisions (not revise points)
+2. **Arm list (:79) and games played against the rule.** The arm list contains "an entry appended later for an already-merged PR leaves M1 and M2 unchanged". I tried five games. None survives, because the subject-number match and the absent-at-P / present-at-M test must hold together:
+   - **Late append:** the entry is absent at the target's M, so it is refused.
+   - **One record PR appending entries for several merged PRs at once:** each target fails at its own M. On the record PR's own M, none of the entries carries its subject number. So it is refused, and M1 stays flat (it is not lowered by 6).
+   - **Entry pre-added for a future PR number:** the entry is already present at that PR's P, so it is refused. At worst this is self-harm: the PR passes in PR mode and then fails on the push. It loosens no cap.
+   - **Entry on a different path, or the budgets file renamed:** the instrument reads only the budgets file. A file renamed by M makes every entry "absent at P". Even so, only the entry carrying M's own subject number matches. So the game buys nothing beyond M's own entry, and that entry still owes the >10% evidence.
+   - **Rename an entry's key from #X to #Y:**
+     - #Y is exempt only as its own entry, with its own evidence.
+     - #X stays graded by its own M.
+     - Removing #X's entry is a raise under superset, so the owner must approve it.
 
-- decision: owner (carried from :31): `superset` or `override` for `exemptions`.
-- decision: owner, new: while main sits above cap+band, every record merge is refused, and delivery-status-tracking.md owes those records at each merge. The note does not say whether a capped main may hold owed records back until production merges bring M1 down, or whether record merges need a carve-out.
-- decision: orchestrator (carried from :105): add files to the group. Also order the group against R10-FLY-STANDING-CONTRACTS. Its design (design/r10-fly-standing-contracts f21449444) also edits dev/governance/roles/proposal-triage.md and dev/governance/config/policy_budgets.json, and the note's hot-file list at :101-106 names only the overlap with R10-DEPS-ACTIONS-BUMP on governance.yml.
+3. **Gaming row (:47).** "append an exemption for an already-merged PR | flat | flat" is present and is correct.
 
-## Owner's checklist, item by item
+4. **Figures at 56630e7e, re-run by the note's commands.** All of them reproduce:
+   - M1 / window / M2: 521 / 580 / 13624.
+   - Kind split: 213 machinery, 59 production, 308 record.
+   - Bands, as the largest rise above the running minimum, oldest to newest, over 150 positions of sliding 580-merge windows in a 730-merge history: M1 5 and M2 2436. The ranges are M1 516..526 and M2 11188..18162.
+   - ACCEPT verdicts: 218 in 87 files.
 
-- **Figures, re-run at 56630e7e.** Every enumerator reproduces exactly at ddf4bfd. At 56630e7e the following differ, and the fixer re-measures at its own merge base as :81 says:
-  - M1 521 / window 580: same.
-  - M2: 13624, not 13493.
-  - Kind split: 213 machinery / 59 production / 308 record, not 212/59/309.
-  - Bands: M1 5, same. M2 2436, not 2305. M2 range 11188..18162, same. M1 range 516..526 over 150 positions, or 516..527 over 151.
-  - ACCEPT 218 in 87 files: same.
-  - Open groups: 75 at the roster SHA (61 with no product file) and 50 on main. Reproduced, counting groups whose stage is not `done`.
-- **Headroom at 56630e7e** with caps recorded at measurement: M1 has 5 (its band) and M2 has 2436. With the note's figures as caps: M1 5 and M2 13493+2305−13624 = 2174. Both pass today.
-- **Source, counting rule and null control for each metric:** present at :11, :17-19 and :78. The rule classifies production, record and machinery from the merge commit's paths. I tried every gaming move in the table at :40 (not the exemption):
-  - Splitting a machinery PR raises M1 by 1: survives.
-  - Folding a record into a production PR is a real merge saved: survives.
-  - Splitting a production PR, and a one-line product touch on a machinery PR, both lower M1. The note states both holes. M2 still charges the machinery lines, and the residual (product churn that changes no behaviour) is stated: survives as a pair.
-  - Moving a file across the boundary: confirmed in a scratch repository. A rename-only move gives numstat `0 0` under -M, so it survives.
-- **Rejected candidates:** (3) and (5) are rejected with reproduced data. (2), (4) and (6) are rejected by argument: redundancy, or no source exists. That is acceptable.
-- **Budgets file beside policy_budgets.json, governed by budget_raise_gate 0013 through SCHEMA:** confirmed at budget_raise_gate.py:154-227.
-- **Exemption recorded, with an unrecorded-raise control** (:79, "no entry refuses"): present. The defect is point 1.
-- **Named in the note:**
-  - fixer build order and failing test first (:74-86)
-  - mutation targets (:88-95)
-  - instrument doc (:84)
-  - closures.json classification as a measured closure, not INERT (:85)
-- **Scope:** about two pages, and no production code.
-- **Steps 1, 3 and 6:**
-  - Seam: one new owner. The only other merge classifier is `move_kind`, at merge_throughput.py:794.
-  - Sibling readers: no other reader globs `*_budgets.json` except budget_raise_gate.py and its merge_train.py caller through `raises_between`.
-  - Cost: about 10 files, which fits L.
+5. **Diff from 0e83751b1.** Only design.md changed (+17/−12). The changes are the four requested above plus:
+   - the base line (:3);
+   - the three routed decisions recorded as decided (:35-38);
+   - hot_files and `after` (:101-102), which follow the orchestrator's ordering ruling. The ref f214494449b9291146424f97ae3477e1089e4ea5 is confirmed as the current design/r10-fly-standing-contracts tip.
+
+   Nothing else moved. The note is 130 lines and 2290 words, which is still about two pages.
 
 ## Notes for the fixer
 
-- Name the file `machinery_budgets.json`. budget_raise_gate.py:154 discovers budget files by the suffix `_budgets.json`. A hyphenated "machinery-budgets" name, the note's wording at :7, is invisible to the gate. Carry: R10-MACHINERY-RATCHETS (item R1)
-- budget-raise-gate.yml restores the gate from the base, so the landing PR is graded without the new SCHEMA entry. Every leaf of the new file reads `frozen` ("None -> value") and so counts as a raise. Plan for the owner's approving review at the head, or a mandate review with `## Raise justification` and an `Architecture score: dS` line. Carry: R10-MACHINERY-RATCHETS (item R2)
-- `git diff -M --numstat` prints a cross-boundary rename with edits as `{tools => custom_components}/a.py`. Its lines then fall to nonproduct under a prefix test on the printed path; I checked this in a scratch repository: `1 0 {tools => custom_components}/a.py`. Read paths with `-z` and classify by destination. Add an arm for this case. Carry: R10-MACHINERY-RATCHETS (item R3)
-- The kind-split enumerator in `## Figures` uses `--name-only` without -M. The rule at :11 uses numstat product lines under -M -w. The two agree on today's window (59) but differ on a pure move into product. The self-test must exercise the rule, not the enumerator. Carry: R10-MACHINERY-RATCHETS (item R4)
+- The rule at :13 says a merged M is graded "never by the head's files". The evidence condition at :24 resolves the path "at the head". Removing an evidence file later would therefore un-exempt an earlier merge, so that merge counts differently at a different head. This can only tighten the cap, never loosen it. Resolve the evidence path at the exempted M (for the candidate, at the head), and read before/after from the same tree. Carry: R10-MACHINERY-RATCHETS (item R5)
+- The mutation proof targets (:88-95) do not list the added-by-its-own-merge test (absent at P, present at M) or the subject-number match. Add both. The new late-append arm at :79 is the arm that kills those mutants. Carry: R10-MACHINERY-RATCHETS (item R6)
+- Add a self-test arm for the batch case: one merge appends entries for two earlier merged PRs, and M1 and M2 stay unchanged. The single late-append arm at :79 does not cover this. Carry: R10-MACHINERY-RATCHETS (item R7)
+- Items R1-R4 from the round-1 verdict still stand (the `machinery_budgets.json` suffix, the gate restored from the base on the landing PR, `-z` destination paths for cross-boundary renames, and self-testing the rule rather than the enumerator). Carry: R10-MACHINERY-RATCHETS (item R1-R4)
 
 Seat token count: the harness reports none.
