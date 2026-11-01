@@ -18445,8 +18445,20 @@ def _hb_stdlib_reads(spin: bool) -> str:
 
 
 def _hb_stdlib_sampling(reads=_hb_stdlib_reads, platform: str = sys.platform):
-    """``((spinning, idle), None)``, or ``(None, why)`` where macOS denies the read."""
-    return (reads(True), reads(False)), None
+    """``((spinning, idle), None)``, or ``(None, why)`` where macOS denies the read.
+
+    macOS gives no process another's task port without root or the
+    ``com.apple.system-task-ports`` entitlement, its own child included, so on a
+    macOS seat host the read raises PermissionError. Raised at module level it
+    ended this script there, and every check after it went unrun locally; CI's
+    Linux runner reads its child, so there the denial stays a failure.
+    """
+    try:
+        return (reads(True), reads(False)), None
+    except PermissionError as exc:
+        if platform != "darwin":
+            raise
+        return None, f"{platform}: {exc}"
 
 
 def _hb_denied(spin: bool) -> str:
@@ -18478,8 +18490,13 @@ R.check(
     and _hb_sampling_outcome(lambda spin: 1 / 0, "darwin") == "ZeroDivisionError",
     f"{_hb_sampling_outcome(lambda spin: f's{spin}', 'darwin')!r}",
 )
-if _nightly.importlib.util.find_spec("_remote_debugging") is not None:
-    _hb_in, _hb_out = _hb_stdlib_reads(True), _hb_stdlib_reads(False)
+_hb_samples, _hb_why = (
+    _hb_stdlib_sampling() if _nightly.importlib.util.find_spec("_remote_debugging") is not None else (None, "")
+)
+if _hb_why:
+    print(f"  SKIP the stdlib sample of a real spinning process reads as the spin to the control  [{_hb_why}]")
+elif _hb_samples is not None:
+    _hb_in, _hb_out = _hb_samples
     _hb_reads = (
         _nightly.hb_control_reading({"max_gap": _HB_C, "dumps": ["in _hb_spin\nsampler rc=0:\n" + _hb_in]}),
         _nightly.hb_control_reading({"max_gap": _HB_C, "dumps": ["in _hb_spin\nsampler rc=0:\n" + _hb_out]}),
