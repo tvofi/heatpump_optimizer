@@ -397,15 +397,25 @@
   ok   red fixture: 'The card previously showed the price.' is exactly one finding
   ok   red fixture: 'Earlier versions sized the dialog from a guess.' is exactly one finding
   ok   red fixture: 'Older releases kept the slab warm.' is exactly one finding
-  ok   red fixture: 'It reads the old ids, for integration versions older than the move.' is exactly one finding
+  ok   red fixture: 'It reads both ids, for integration versions older than the move.' is exactly one finding
   ok   red fixture: 'An install upgraded from the first layout keeps its ids.' is exactly one finding
   ok   red fixture: 'A learned derate survives the upgrade.' is exactly one finding
   ok   red fixture: 'Its upper clamp is now 1.0 rather than 1.05.' is exactly one finding
   ok   red fixture: 'The new floor was a breaking change.' is exactly one finding
   ok   red fixture: 'The card reads both ids before 2.6.1 too.' is exactly one finding
+  ok   red fixture: 'The weather forecast, the previous behaviour and still the default.' is exactly one finding
+  ok   red fixture: 'Installs that stored the previous default strings keep them.' is exactly one finding
+  ok   red fixture: 'The card tries the old suffix after the current one.' is exactly one finding
+  ok   red fixture: 'Older integrations publish none of them.' is exactly one finding
+  ok   red fixture: 'An install that kept older registry ids is covered.' is exactly one finding
+  ok   red fixture: 'The term silently evaluated to zero for many installs.' is exactly one finding
+  ok   red fixture: 'Before this was shared, the simulation charged the buffer.' is exactly one finding
+  ok   red fixture: 'Some labels read SEK, which is the historical default.' is exactly one finding
+  ok   red fixture: 'The fit degrades to the historical two-column form.' is exactly one finding
   ok   null control: the widened terms' current-behaviour neighbours ("back to now rather than", "the older hourly clock", "an upgrade seems", a calendar month "2026.11", a decimal "0.55") are not findings
+  ok   null control: bare "previous", "old" and "older" in their current sense ("the previous answer", "the previous one", "the old plan stands", "an older Home Assistant", "older than three solve cycles", "silently keeping") are not findings
   ok   null control: "previous day", a purpose-sense "is used to", "Refused together", a code span and a link anchor are not findings
   ok   red fixture: a history-sense "used to" is a finding
   ok   red fixture: an exemption that matches no fragment is a finding
 
-ALL 286 checks PASSED
+ALL 296 checks PASSED

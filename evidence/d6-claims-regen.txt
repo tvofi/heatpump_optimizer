@@ -11,7 +11,5 @@ RESULT ha_module_level_importers=28 modules
 RESULT config_defaults_compared=92 rows
 RESULT config_ranges_compared=101 rows
 RESULT thread_factor=1.0
-RESULT load1=1.39
+RESULT load1=0.97
 RESULT swapins=0
-  UNVERIFIABLE   C109  README.md + docs/how-it-works.md: the links to docs/audit-2026-08.md, docs/audit-2026-09.md and docs/backlog.md re
-  UNVERIFIABLE   C111  README.md + docs/*.md: every external link answers 200 to a HEAD request (20 links)

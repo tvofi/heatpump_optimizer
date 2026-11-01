@@ -1,4 +1,7 @@
-plant [This mode is new in v9.] rc=1 1 of 286 checks FAILED ::   FAIL no user page carries a history phrase outside a reasoned exemption  [docs/setup.md:285: 'new in' | This mode is new in v9.]
-plant [The card previously showed the price.] rc=1 1 of 286 checks FAILED ::   FAIL no user page carries a history phrase outside a reasoned exemption  [docs/setup.md:285: 'previously' | The card previously showed the price.]
-plant [Installs that stored the previous default strings keep them.] rc=0 ALL 286 checks PASSED :: 
-plant [Older integrations publish none of them.] rc=0 ALL 286 checks PASSED :: 
+plant [Installs that stored the previous default strings keep them.] rc=1 1 of 296 checks FAILED :: [docs/setup.md:285: 'previous default' | Installs that stored the previous default strings keep them.] 
+plant [Older integrations publish none of them.] rc=1 1 of 296 checks FAILED :: [docs/setup.md:285: 'Older integrations' | Older integrations publish none of them.] 
+plant [This mode is new in v9.] rc=1 1 of 296 checks FAILED :: [docs/setup.md:285: 'new in' | This mode is new in v9.] 
+plant [The card previously showed the price.] rc=1 1 of 296 checks FAILED :: [docs/setup.md:285: 'previously' | The card previously showed the price.] 
+plant [The price of the previous day is shown.] rc=0 ALL 296 checks PASSED :: 
+plant [The weather forecast, the previous behaviour and still the default.] rc=1 1 of 296 checks FAILED :: [docs/setup.md:285: 'previous behaviour' | The weather forecast, the previous behaviour and still the default.] 
+plant [The term silently evaluated to zero for many installs.] rc=1 1 of 296 checks FAILED :: [docs/setup.md:285: 'silently evaluated' | The term silently evaluated to zero for many installs.] 
