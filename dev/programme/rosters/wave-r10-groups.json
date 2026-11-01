@@ -3700,7 +3700,9 @@
    "issues": [
     2492
    ],
-   "fixes": [],
+   "fixes": [
+    2492
+   ],
    "findings": [],
    "class": "owner",
    "severity": "medium",
