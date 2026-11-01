@@ -239,9 +239,15 @@ def build_rows(roster: dict, plan: dict, snap: dict) -> list:
         fixes = set(entry.get("fixes") or [])
         rows.append({
             "g": g, "lane": pg["lane"], "st": st, "label": label, "pr": pr,
-            # The tier is the plan's computed dispatch priority (0 critical
-            # path, 1 production, 2 savings-ranked); a done group has none.
+            # The tier is the plan's computed dispatch priority (replan.py's
+            # dispatch_tier: 1 main, 2 critical path and hotfixes, 3 production
+            # and instruments saving 12 h or more, 4 other instruments); a done
+            # group has none. Why it is that tier and why it starts when it
+            # does are the plan's own words (`tier_reason`, `start_reason`).
             "tier": pg.get("tier"),
+            "why": "; ".join(x for x in (
+                pg.get("tier_reason"), pg.get("start_reason"), pg.get("duration_basis"),
+                f"sort key {pg['sort_key']}" if pg.get("sort_key") else None) if x),
             "issues": [(n, n in fixes, (state.get(n) or {}).get("state") != "CLOSED",
                         (state.get(n) or {}).get("title", ""))
                        for n in entry.get("issues") or []],
@@ -488,7 +494,7 @@ def render(roster: dict, roster_src: str, plan: dict, snap: dict) -> str:
         f'<td class="mono">{e(r["pr"])}</td>'
         f'<td>{"".join(chip(*i) for i in r["issues"]) or "—"}</td>'
         f'<td class="blk">{e(", ".join(map(short, r["blk"]))) or "—"}</td>'
-        f'<td class="mono">{r["finish"] or "—"}</td>'
+        f'<td class="mono" title="{e(r["why"])}">{r["finish"] or "—"}</td>'
         f'<td class="mono">{r["wave"] or "—"}</td></tr>' for r in rows)
     stamps = "".join(
         f'<tr><td class="mono">{e(s["version"])}</td><td class="mono">{_when(s["at"])}</td>'
@@ -815,10 +821,15 @@ def _self_test() -> int:
                   and '<td class="tier">—</td>' in page
                   and '<th title="dispatch tier' in page,
                   {g: rows[g]["tier"] for g in rows})
-            check("the critical path is tier 0 and production tier 1",
-                  all(rows[g]["tier"] == 0 for g in plan["critical_path"])
-                  and any(rows[g]["tier"] == 1 for g in rows if rows[g]["st"] != "done"),
+            check("the critical path is tier 2 and production tier 3 (the owner's order)",
+                  all(rows[g]["tier"] == replan.TIER_URGENT for g in plan["critical_path"])
+                  and any(rows[g]["tier"] == replan.TIER_PRODUCTION_WORK
+                          for g in rows if rows[g]["st"] != "done"),
                   {g: rows[g]["tier"] for g in rows})
+            check("each open group's ETA cell names why it starts when it does",
+                  all(f'title="{html.escape(rows[g]["why"])}"' in page and plan["groups"][g]["start_reason"]
+                      in rows[g]["why"] for g in rows if rows[g]["st"] != "done"),
+                  {g: rows[g]["why"] for g in rows})
             check("a planned stamp is drawn", 'class="stampline"' in page)
             check("the filter and hide-merged controls ship",
                   'id="hide-done"' in page and 'data-f="blocked"' in page)
@@ -1066,7 +1077,7 @@ td.d{min-width:260px;max-width:440px}
     <label class="chk"><input type="checkbox" id="hide-done"> Hide merged</label>
   </div>
   <div class="scroll"><table>
-    <thead><tr><th>Group</th><th>Description</th><th>Status</th><th title="dispatch tier: 0 critical path, 1 production, 2 savings-ranked">Tier</th><th>PR</th><th>Issues</th><th>Blocked by</th><th>ETA (UTC)</th><th>Wave</th></tr></thead>
+    <thead><tr><th>Group</th><th>Description</th><th>Status</th><th title="dispatch tier: 1 main, 2 critical path and hotfixes, 3 production and instruments saving 12 h or more, 4 other instruments by savings">Tier</th><th>PR</th><th>Issues</th><th>Blocked by</th><th>ETA (UTC)</th><th>Wave</th></tr></thead>
     <tbody id="rows">{{trs}}</tbody>
   </table></div>
   <p class="note">Issue chips: bold border = this group closes it; struck through = the issue is closed. ◆ marks the critical path. Tier is the plan's dispatch priority: 0 the computed critical path, 1 production, 2 non-production ranked by its <code>savings</code> (— for a merged group). Blocked-by lists the roster's <code>after</code> groups not yet done. <b>Part merged</b> means a merged pull request titled with the group delivered part of it and its brief names the residual, so the group stays open and is not counted as merged.</p>
@@ -1092,7 +1103,7 @@ td.d{min-width:260px;max-width:440px}
 
 <section>
   <h2>How the ETAs are computed</h2>
-  <p class="note">Every figure on this page is <code>plan.json</code>'s, written by <code>tools/plan/replan.py</code>; this renderer draws it and computes no schedule of its own. A wave is the set of groups dispatched at one moment, and the next opens as soon as one of {{slots}} pull-request slots frees, so a wave never waits for the previous one to drain; the cap limits concurrency, not the wave boundary. Duration is dispatch to merge by roster size, as the plan recorded it from <code>tools/plan/durations.json</code>: {{sizes}}. {{sizes_provenance}} A group whose fixer is already working gets {{live_pct}}% of its size duration as the remaining estimate. Those are measured lead times, not effort: review rounds and queueing are inside them, so the slot schedule is an upper bound on closure. The batching window is {{window}} minutes; its measured trade is in <code>durations.json</code>.</p>
+  <p class="note">Every figure on this page is <code>plan.json</code>'s, written by <code>tools/plan/replan.py</code>; this renderer draws it and computes no schedule of its own. A wave is the set of groups dispatched at one moment, and the next opens as soon as one of {{slots}} pull-request slots frees, so a wave never waits for the previous one to drain; the cap limits concurrency, not the wave boundary. Duration is dispatch to merge by roster size, as the plan recorded it from <code>tools/plan/durations.json</code>: {{sizes}}. {{sizes_provenance}} A group whose fixer is already working gets {{live_pct}}% of its size duration as the remaining estimate, and starts now, past the slot cap, unless an unmerged dependency holds it; a held (carries-open) group is priced by its open carries, not its size. Hover an ETA for the group's tier, why it starts when it does, its duration basis and its sort key, all the plan's own fields. Those are measured lead times, not effort: review rounds and queueing are inside them. The batching window is {{window}} minutes; its measured trade is in <code>durations.json</code>.</p>
 </section>
 </main>
 <div id="tip" class="tip" hidden></div>
