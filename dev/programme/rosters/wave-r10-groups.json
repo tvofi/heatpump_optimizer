@@ -14080,7 +14080,9 @@
     "tools/audit/carry_audit.py",
     "tools/audit/seat/body_push.sh"
    ],
-   "carry": [],
+   "carry": [
+    "- The contract arm runs `carry_audit.py check --body` without `--roster-ref` (body_patch.sh:98), against the group brief's revision 8. Round 3 carried this to R10-FLOW-BODY-ONLY, but that group's brief and carries at 5620151813e0 contain no `roster-ref` (ev/roster_carries.txt). It is still owed, as one argument naming the freshly fetched round roster branch. Its control is a fixture whose worktree roster holds a carry the roster ref lacks, which must refuse. Carry: R10-FLOW-BODY-ONLY"
+   ],
    "resume": {
     "stage": "not-started",
     "branch": "handoff/r10-body-contract",
