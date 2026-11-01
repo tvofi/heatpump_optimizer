@@ -2354,7 +2354,7 @@ R.check(
 # D2-s4-02: the step is sized under the abort bound by the noise headroom, on
 # the heavy default house (#779's own cell), and still uses the rest of it.
 _r9f41_sid = SystemIdentification(SysIdConfig(enabled=True))
-_r9f41_el = _r9f41_sid._size_step_power(6.0, 3.0, 21.0, 2.0, 0.20, 8.0, 0.3)
+_r9f41_el = _r9f41_sid._size_step_power(6.0, 3.0, 21.0, 2.0, HousePlant(ua=0.20, capacity=8.0, gains=0.3))
 _r9f41_peak, _r9f41_final = _r9f41_sysid._predict_step_excursion_plant(
     HousePlant(ua=0.20, capacity=8.0, gains=0.3), 21.0, 2.0,
     (_r9f41_el or 0.0) * 3.0, 2.0, 2.0
@@ -13161,6 +13161,615 @@ R.check(
     "the next fold after a reset starts from the configuration",
     _li_fold_got == _li_fresh_got and _li_fold_got[1] == 1 and _li_fold_got[0] != 1.0,
     f"reset {_li_fold_got} vs never learned {_li_fresh_got}",
+)
+
+
+# --- R10-FACTORY-RESET: settings, learners or both back to their defaults -----
+#
+# The owner's request (tvofi, 2026-10-30). Real coordinators over a two-zone
+# house with its wiring assigned, set up again the way the reset sets them up
+# (every learned store's loader), each expectation a property: kept keys
+# unchanged, every other setting reading its declared default, every learner
+# reading what a coordinator that never learned reads, and the undo point
+# putting both back.
+import ast as _fr_ast  # noqa: E402
+import dataclasses as _fr_dc  # noqa: E402
+from pathlib import Path as _FrPath  # noqa: E402
+
+from homeassistant.helpers import storage as _fr_storage  # noqa: E402
+from homeassistant.util import dt as _fr_dt  # noqa: E402
+from harness import FakeEntry as _fr_entry_cls, FakeServiceCall as _fr_call  # noqa: E402
+from heatpump_optimizer import config_flow as _fr_flow  # noqa: E402
+from heatpump_optimizer import const as _fr_const  # noqa: E402
+from heatpump_optimizer import entry_config as _fr_ec  # noqa: E402
+from heatpump_optimizer import services as _fr_services  # noqa: E402
+from heatpump_optimizer.coordinator import (  # noqa: E402
+    _FACTORY_VOID as _FR_VOID,
+    async_factory_reset as _fr_reset,
+)
+from heatpump_optimizer.wood_fuel import wood_furnace_on as _fr_wood  # noqa: E402
+
+R.section("A factory reset returns settings, learners or both to their defaults")
+
+_FR_THERMAL_KEYS, _FR_ACC_KEYS = dict(_FR_VOID)["thermal_learning"], dict(_FR_VOID)["accuracy"]
+
+_FR_DATA = dict(_ra_house(two_zone=True), name="My pump", indoor_temp_entity="sensor.indoor",
+                lower_floor_temp_entity="sensor.lower", outdoor_temp_entity="sensor.outdoor",
+                dhw_temp_entity="sensor.dhw", price_source="entity", price_entity="sensor.price",
+                main_fuse_amperes=20, upper_floor_emitter="radiator")
+_FR_OPTS = {"comfort_weight": 3.0, "target_temperature": 22.5, "price_weight": 2.0,
+            "heat_pump_cop_nominal": 3.9, "dhw_setpoint": 58.0, "freq_control_mode": "observe"}
+#: The wiring the body lists, key by key: the reset keeps exactly these.
+_FR_LISTED = {
+    "name", "compressor_freq_sensor", "price_source", "tibber_token", "solar_forecast_source",
+    "two_zone_mode", "upper_floor_emitter", "lower_floor_emitter", "dhw_enabled",
+    "wood_furnace_enabled", "dhw_wood_coil_enabled", "mixing_valve_mode",
+    "mixing_valve_write_target_kind", "space_setpoint_unit", "topology_layout",
+    "topology_positions", "ecl110_command_topic", "ecl110_displace_set_topic",
+    "ecl110_state_topic", "ecl110_mqtt_qos", "ecl110_mqtt_retain", "modbus_prefill_prefix",
+    "main_fuse_amperes", "main_fuse_phases",
+}
+#: Every key a ``CONF_`` constant names (a tuple names several: the weekday
+#: hot-water windows), and Home Assistant's own ``name``.
+_FR_OPTION_KEYS = {key for name, v in vars(_fr_const).items() if name.startswith("CONF_")
+                   for key in ((v,) if isinstance(v, str) else v if isinstance(v, tuple) else ())} | {"name"}
+_FR_ENTITY_KEYS = {k for k in _FR_OPTION_KEYS if k.endswith("_entity")}
+
+
+async def _fr_boot(hass, entry):
+    """What the reset's ``async_setup`` builds: a coordinator over every learned store."""
+    c = Coord(hass, entry)
+    for load in (c._dhw_learner.async_load_profile, c._dhw_learner.async_load_draws,
+                 c._async_load_thermal_learning, c._async_load_price_model,
+                 c._async_load_accuracy, c._async_load_snapshots):
+        await load()
+    entry.runtime_data, entry.state = c, _li_state.LOADED
+    return c
+
+
+def _fr_learn(c):
+    """Every learner the owner names moved off its initial state, saved by its own saver."""
+    c._apply_house_heat_loss_scale(1.4)
+    c._apply_lower_floor_loss_ratio(1.3)
+    c._house_heat_loss_samples, c._lower_floor_loss_samples = 60, 40
+    c._apply_cop_scale(1.13)
+    c._cop_samples = 20
+    c._apply_buffer_cooling_rate(c._buffer_cooling_rate * 1.5)
+    c._buffer_cooling_samples = 9
+    c._comfort_learner.evidence = -1.4
+    c._dhw_learner.apply_cooling_rate(c._dhw_learner.cooling_rate * 1.4)
+    c._dhw_learner.cooling_samples = 7
+    c._dhw_learner.hourly_profile = c._dhw_learner.normalize_profile([1.0] * 12 + [3.0] * 12)
+    c._defrost.factors[0][0] = 0.8
+    c._curve_learner.bias = -0.6
+    c._freq_fallback = True  # a fact the reset keeps: the watchdog's latch
+    c._accuracy.lead_sigma[1.0], c._accuracy.lead_counts[1.0] = 0.3, 12
+    c._price_learner.model.shapes[0][3] = 1.2
+    c._dhw_learner.draw_stats.fold(_fr_dt.now(), "06:00-09:00", 2.5)
+    _aio.run(c._async_save_thermal_learning())
+    _aio.run(c._dhw_learner.async_save_profile())
+    _aio.run(c._dhw_learner.async_save_draws())
+    _aio.run(c._async_save_accuracy())
+    _aio.run(c._async_save_price_model())
+
+
+def _fr_disk(entry_id):
+    """Every stored document of the entry, as the stub writes it."""
+    prefix = f"{_fr_const.DOMAIN}_{entry_id}_"
+    return {k[len(prefix):]: _fi_json.loads(v) for k, v in _fr_storage._DISK.items() if k.startswith(prefix)}
+
+
+def _fr_learned(c):
+    """The learners' persisted shapes without the save stamp and the watchdog's
+    latch, a fact the reset keeps (pinned on its own below)."""
+    out = c._learner_snapshot_payloads()
+    out["thermal_learning"] = {k: v for k, v in out["thermal_learning"].items()
+                               if k not in ("updated_at", "freq_fallback")}
+    return out
+
+
+def _fr_case(scope, entry_id, *, learn=True, then=None):
+    """Reset a learned entry under ``scope``; (before, after, entry, hass, old coordinator).
+    ``then(c)`` runs after the learning, just before the reset (and is not saved)."""
+    hass = FakeHass({})
+    entry = _fr_entry_cls(data=dict(_FR_DATA), options=dict(_FR_OPTS), entry_id=entry_id)
+    hass.config_entries.entries.append(entry)
+    c = _aio.run(_fr_boot(hass, entry))
+    if learn:
+        _fr_learn(c)
+    if then is not None:
+        then(c)
+    before = {"learned": _fr_learned(c), "disk": _fr_disk(entry_id), "config": {**entry.data, **entry.options}}
+
+    async def _setup(eid):
+        hass.config_entries.set_up.append(eid)
+        before.setdefault("at_setup", _fr_disk(entry_id))
+        await _fr_boot(hass, entry)
+        return True
+
+    hass.config_entries.async_setup = _setup
+    _aio.run(_fr_reset(c, scope))
+    return before, entry, hass, c
+
+
+def _fr_fresh(entry, entry_id):
+    """A coordinator that never learned, over the configuration the reset left."""
+    return _aio.run(_fr_boot(FakeHass({}), _fr_entry_cls(data=dict(entry.data), options=dict(entry.options),
+                                                       entry_id=entry_id)))
+
+
+# The enumeration: every option key the integration names, by its constants.
+R.check(
+    "the kept keys are the listed wiring and every entity assignment, each an option key",
+    set(_fr_ec.FACTORY_KEPT) == _FR_LISTED | _FR_ENTITY_KEYS
+    and set(_fr_ec.FACTORY_KEPT) <= _FR_OPTION_KEYS and len(_FR_ENTITY_KEYS) > 30,
+    f"kept-not-listed {sorted(set(_fr_ec.FACTORY_KEPT) - _FR_LISTED - _FR_ENTITY_KEYS)}, "
+    f"listed-not-kept {sorted((_FR_LISTED | _FR_ENTITY_KEYS) - set(_fr_ec.FACTORY_KEPT))}",
+)
+
+_fr_s_before, _fr_s_entry, _fr_s_hass, _fr_s_old = _fr_case("settings", "fr_settings")
+_fr_s_after = {**_fr_s_entry.data, **_fr_s_entry.options}
+_fr_s_new = _fr_s_entry.runtime_data
+_fr_parsed = _fr_ec.EntryConfig.from_mapping(_fr_s_after)
+_fr_not_default = sorted(
+    f.name for f in _fr_dc.fields(_fr_ec.EntryConfig)
+    if f.metadata and f.name not in _fr_ec.FACTORY_KEPT and getattr(_fr_parsed, f.name) != f.default
+)
+R.check(
+    "after a settings reset every tunable option reads its default",
+    not _fr_not_default and set(_fr_s_after) <= set(_fr_ec.FACTORY_KEPT),
+    f"not default {_fr_not_default}, stored beyond the wiring {sorted(set(_fr_s_after) - set(_fr_ec.FACTORY_KEPT))}",
+)
+_fr_kept_moved = sorted(k for k in _fr_s_before["config"] if k in _fr_ec.FACTORY_KEPT
+                        and _fr_s_after.get(k) != _fr_s_before["config"][k])
+R.check(
+    "after a settings reset every kept key is unchanged, and the topology it implied with it",
+    not _fr_kept_moved
+    and _fr_s_new._thermal_params.two_zone_enabled is _fr_s_old._thermal_params.two_zone_enabled is True
+    and _fr_s_new._thermal_params.dhw_enabled is _fr_s_old._thermal_params.dhw_enabled is True
+    and _fr_wood(_fr_s_after) == _fr_wood(_fr_s_before["config"]),
+    f"moved {_fr_kept_moved}, two-zone {_fr_s_new._thermal_params.two_zone_enabled}",
+)
+_fr_s_disk = _fr_disk("fr_settings")
+
+
+def _fr_unstamped(doc):
+    return {k: v for k, v in (doc or {}).items() if k != "updated_at"}
+
+
+# The reload is an options change, and a learner answers it as it answers any
+# options edit (a changed nameplate re-anchors or voids its own learner); what
+# the reset itself owes is to write no learned store.
+_fr_s_setup = _fr_s_before["at_setup"]
+R.check(
+    "a settings reset writes no learned store: each is as it was when the entry is set up again",
+    all(_fr_unstamped(_fr_s_setup.get(k)) == _fr_unstamped(_fr_s_before["disk"].get(k))
+        for k in ("thermal_learning", "dhw_profile", "price_model", "accuracy"))
+    and _fr_s_hass.config_entries.unloaded == _fr_s_hass.config_entries.set_up == ["fr_settings"],
+    str([k for k in ("thermal_learning", "dhw_profile", "price_model", "accuracy")
+         if _fr_unstamped(_fr_s_setup.get(k)) != _fr_unstamped(_fr_s_before["disk"].get(k))]),
+)
+
+_fr_l_before, _fr_l_entry, _fr_l_hass, _ = _fr_case("learners", "fr_learners")
+_fr_l_fresh = _fr_fresh(_fr_l_entry, "fr_learners_fresh")
+_fr_l_got, _fr_l_want = _fr_learned(_fr_l_entry.runtime_data), _fr_learned(_fr_l_fresh)
+_fr_named = ("thermal_learning", "dhw_profile", "comfort", "defrost", "accuracy", "price_model")
+R.check(
+    "the learned state before the reset is not the initial one, learner by learner (the control)",
+    all(_fr_l_before["learned"][k] != _fr_l_want[k] for k in _fr_named),
+    str([k for k in _fr_named if _fr_l_before["learned"][k] == _fr_l_want[k]]),
+)
+R.check(
+    "after a learners reset every learner reads what one that never learned reads",
+    _fr_l_got == _fr_l_want
+    and _fr_l_entry.runtime_data._dhw_accuracy.as_dict() == _fr_l_fresh._dhw_accuracy.as_dict()
+    and _li_state_of(_fr_l_entry.runtime_data) == (1.0, 1.0, 0, 0),
+    str({k: sorted(f for f in set(v) | set(_fr_l_want[k]) if v.get(f) != _fr_l_want[k].get(f))
+         for k, v in _fr_l_got.items() if v != _fr_l_want[k]}),
+)
+# The void list, key by key, against a list this test owns rather than
+# ``_FACTORY_VOID`` itself (an enumeration read from the list it checks pins
+# nothing): every key a learned store holds is a learner the reset drops, or
+# one of these facts it keeps. The heat-loss pair stays, voided by its own
+# path; the rest is the anchors, the meter's last COP, snow memory, the
+# frequency watchdog's latch, the billed peaks, the mode and the save stamp.
+_FR_FACTS = {
+    "thermal_learning": {
+        "house_heat_loss_scale", "house_heat_loss_samples", "lower_floor_loss_ratio",
+        "lower_floor_loss_samples", "house_heat_loss_anchor", "house_heat_loss_basis",
+        "lower_floor_loss_anchor", "heat_loss_zone_entities", "measured_cop", "snow_accum_cm",
+        "snow_accum_last", "last_heavy_snow", "freq_fallback", "updated_at",
+    },
+    "accuracy": {"peaks", "mode"},
+    "dhw_profile": set(), "dhw_draws": set(), "price_model": set(),
+}
+_fr_l_setup = _fr_l_before["at_setup"]
+_fr_learned_keys = sorted((n, k) for n, facts in _FR_FACTS.items()
+                          for k in (_fr_l_before["disk"].get(n) or {}) if k not in facts)
+R.check(
+    "before a learners reset every learned store is on disk and holds learned keys beyond its facts (the control)",
+    all(_fr_l_before["disk"].get(n) for n in _FR_FACTS)
+    and {n for n, _ in _fr_learned_keys} == set(_FR_FACTS) and len(_fr_learned_keys) >= 25,
+    f"stores absent {sorted(n for n in _FR_FACTS if not _fr_l_before['disk'].get(n))}, "
+    f"{len(_fr_learned_keys)} learned key(s)",
+)
+_fr_left = [(n, k) for n, k in _fr_learned_keys if k in (_fr_l_setup.get(n) or {})]
+_fr_facts_lost = sorted((n, k) for n, facts in _FR_FACTS.items() for k in facts
+                        if k in (_fr_l_before["disk"].get(n) or {}) and k not in (_fr_l_setup.get(n) or {}))
+R.check(
+    "a learners reset drops every learned key, key by key, and keeps every fact, before the entry is set up again",
+    not _fr_left and not _fr_facts_lost
+    and not any(n in _fr_l_setup for n, facts in _FR_FACTS.items() if not facts),
+    f"learned left {_fr_left}, facts lost {_fr_facts_lost}, "
+    f"whole stores left {sorted(n for n, f in _FR_FACTS.items() if not f and n in _fr_l_setup)}",
+)
+_fr_l_disk = _fr_disk("fr_learners")
+R.check(
+    "a learners reset keeps the settings and the stores' facts: the watchdog latch, peaks, mode",
+    {**_fr_l_entry.data, **_fr_l_entry.options} == _fr_l_before["config"]
+    and _fr_l_entry.runtime_data._freq_fallback is True
+    and _fr_l_disk["accuracy"].get("peaks") == _fr_l_before["disk"]["accuracy"].get("peaks")
+    and _fr_l_disk["accuracy"].get("mode") == _fr_l_before["disk"]["accuracy"].get("mode"),
+    f"freq_fallback {_fr_l_entry.runtime_data._freq_fallback}",
+)
+
+_fr_b_before, _fr_b_entry, _fr_b_hass, _ = _fr_case("both", "fr_both")
+_fr_b_new = _fr_b_entry.runtime_data
+_fr_b_fresh = _fr_fresh(_fr_b_entry, "fr_both_fresh")
+R.check(
+    "a reset of both leaves the wiring alone and every learner at its initial state",
+    _fr_learned(_fr_b_new) == _fr_learned(_fr_b_fresh)
+    and set({**_fr_b_entry.data, **_fr_b_entry.options}) <= set(_fr_ec.FACTORY_KEPT)
+    and _fr_b_entry.data["indoor_temp_entity"] == "sensor.indoor",
+    f"stored {sorted({**_fr_b_entry.data, **_fr_b_entry.options})}",
+)
+_fr_undo = _fr_b_new._snapshot_ring.snapshots[-1]
+R.check(
+    "the drift rollback never takes the reset's undo point; the restore does, while it is newest",
+    "before_reset" in _fr_undo and _fr_b_new._snapshot_ring.best_restore() is not _fr_undo
+    and _fr_b_new._snapshot_ring.undo_target() is _fr_undo,
+    f"undo {sorted(_fr_undo)}",
+)
+
+
+def _fr_counting_refresh(c):
+    """Record every refresh asked of ``c``: an undo asks the coordinator it unloaded for none."""
+    asked = []
+
+    async def _refresh(*_a, **_k):
+        asked.append(c)
+
+    c.async_request_refresh = _refresh
+    return asked
+
+
+_fr_b_reset_cfg = {**_fr_b_entry.data, **_fr_b_entry.options}
+R.check(
+    "the house is auto-mode before the reset and pinned two-zone by it (the undo's control)",
+    "two_zone_mode" not in _fr_b_before["config"] and _fr_b_reset_cfg.get("two_zone_mode") == "on",
+    f"before {_fr_b_before['config'].get('two_zone_mode')!r}, reset {_fr_b_reset_cfg.get('two_zone_mode')!r}",
+)
+_fr_b_asked = _fr_counting_refresh(_fr_b_new)
+_fr_restored = _aio.run(_fr_b_new.async_restore_learned_snapshot())
+_fr_undone = _fr_b_entry.runtime_data
+R.check(
+    "restore_learned_snapshot undoes the reset: every learner, the accuracy history and the settings exactly as before it",
+    _fr_restored is True and _fr_undone is not _fr_b_new and _fr_learned(_fr_undone) == _fr_b_before["learned"]
+    and _li_state_of(_fr_undone) == (1.4, 1.3, 60, 40)
+    and {**_fr_b_entry.data, **_fr_b_entry.options} == _fr_b_before["config"],
+    str({k: sorted(f for f in set(v) | set(_fr_b_before["learned"][k]) if v.get(f) != _fr_b_before["learned"][k].get(f))
+         for k, v in _fr_learned(_fr_undone).items() if v != _fr_b_before["learned"][k]})
+    + f" config moved {sorted(k for k in set(_fr_b_before['config']) | set({**_fr_b_entry.data, **_fr_b_entry.options}) if _fr_b_before['config'].get(k) != {**_fr_b_entry.data, **_fr_b_entry.options}.get(k))}",
+)
+R.check(
+    "the undo asks the coordinator it unloaded for nothing more: no refresh, no learner applied after it",
+    _fr_b_asked == [] and _fr_b_entry.runtime_data is _fr_undone,
+    f"refreshes asked {len(_fr_b_asked)}",
+)
+# The undo's pins, as stored: an explicit value, and one stored on the other
+# side (data versus options), each come back where and as they were.
+_FR_PIN_DATA = {"name": "x", "two_zone_mode": "auto", "comfort_weight": 3.0, "indoor_temp_entity": "sensor.in"}
+_FR_PIN_OPTS = {"dhw_enabled": False, "target_temperature": 22.0}
+_fr_pin_reset = _fr_ec.factory_settings(_FR_PIN_DATA, _FR_PIN_OPTS, two_zone=True, dhw=True, wood=False)
+_fr_pin_record = _fi_json.loads(_fi_json.dumps(_fr_ec.undo_point("both", _FR_PIN_DATA, _FR_PIN_OPTS)))
+R.check(
+    "an undo puts each pinned key back where and as it was stored, over the pins the reset wrote",
+    _fr_pin_reset != (_FR_PIN_DATA, _FR_PIN_OPTS)
+    and _fr_ec.undone_settings(*_fr_pin_reset, _fr_pin_record) == (_FR_PIN_DATA, _FR_PIN_OPTS),
+    f"reset {_fr_pin_reset}, undone {_fr_ec.undone_settings(*_fr_pin_reset, _fr_pin_record)}",
+)
+# A record missing either half, or holding a half that is not a (data,
+# options) pair, undoes no settings: the reset that wrote it kept them, or the
+# record is not one an undo point writes.
+_fr_pin_malformed = {
+    name: _fr_ec.undone_settings(*_fr_pin_reset, record)
+    for name, record in (
+        ("no pins", {k: v for k, v in _fr_pin_record.items() if k != "pinned"}),
+        ("no settings", {k: v for k, v in _fr_pin_record.items() if k != "settings"}),
+        ("one side", {**_fr_pin_record, "pinned": [{}]}),
+        ("not dicts", {**_fr_pin_record, "settings": [[], []]}),
+    )
+}
+R.check(
+    "an undo record missing either half, or holding a malformed one, undoes no settings",
+    all(v is None for v in _fr_pin_malformed.values())
+    and _fr_ec.undone_settings(*_fr_pin_reset, _fr_pin_record) is not None,
+    str({k: v is None for k, v in _fr_pin_malformed.items()}),
+)
+R.check(
+    "the spent undo point stays as an ordinary snapshot, so a second restore is the ordinary one",
+    not any("before_reset" in snap for snap in _fr_undone._snapshot_ring.snapshots)
+    and len(_fr_undone._snapshot_ring.snapshots) == 1,
+)
+
+
+# The undo of a learners reset: its record carries no settings, and the
+# settings are left exactly as they are.
+_fr_lu_before, _fr_lu_entry, _, _ = _fr_case("learners", "fr_undo_learners")
+_fr_lu_new = _fr_lu_entry.runtime_data
+_fr_lu_record = _fr_lu_new._snapshot_ring.snapshots[-1].get("before_reset", {})
+_fr_counting_refresh(_fr_lu_new)
+_fr_lu_ok = _aio.run(_fr_lu_new.async_restore_learned_snapshot())
+R.check(
+    "restore_learned_snapshot undoes a learners reset: every learner back, the settings untouched",
+    _fr_lu_ok is True and "settings" not in _fr_lu_record and _fr_lu_record.get("scope") == "learners"
+    and _fr_learned(_fr_lu_entry.runtime_data) == _fr_lu_before["learned"]
+    and _li_state_of(_fr_lu_entry.runtime_data) == (1.4, 1.3, 60, 40)
+    and {**_fr_lu_entry.data, **_fr_lu_entry.options} == _fr_lu_before["config"],
+    f"record {sorted(_fr_lu_record)}, restored {_fr_lu_ok}",
+)
+
+# The undo point holds what the learners know at the reset, not what their
+# stores last held: learning since the last save (a COP scale moved from the
+# saved 1.13 to 1.21) is flushed to the stores before their documents are read
+# (``_async_store_documents``), so the undo brings it back.
+_fr_us_before, _fr_us_entry, _, _ = _fr_case(
+    "learners", "fr_undo_unsaved", then=lambda c: c._apply_cop_scale(1.21))
+R.check(
+    "learning since the last save is in memory only before the reset: COP scale 1.21 held, 1.13 stored (the control)",
+    _fr_us_before["learned"]["thermal_learning"].get(_fr_const.CONF_COP_SCALE) == 1.21
+    and _fr_us_before["disk"]["thermal_learning"].get(_fr_const.CONF_COP_SCALE) == 1.13,
+    f"held {_fr_us_before['learned']['thermal_learning'].get(_fr_const.CONF_COP_SCALE)}, "
+    f"stored {_fr_us_before['disk']['thermal_learning'].get(_fr_const.CONF_COP_SCALE)}",
+)
+_fr_us_new = _fr_us_entry.runtime_data
+_fr_counting_refresh(_fr_us_new)
+_fr_us_ok = _aio.run(_fr_us_new.async_restore_learned_snapshot())
+R.check(
+    "the undo restores what the learners knew at the reset, learning since the last save included: COP scale 1.21",
+    _fr_us_ok is True and _fr_us_entry.runtime_data._cop_scale == 1.21
+    and _fr_learned(_fr_us_entry.runtime_data) == _fr_us_before["learned"],
+    f"restored {_fr_us_ok}, COP scale {_fr_us_entry.runtime_data._cop_scale}",
+)
+# "While it is the newest snapshot": once any snapshot follows the undo point,
+# the restore is ``best_restore``'s, health and alarm gates included. A newer
+# snapshot taken on unhealthy inputs is not one ``best_restore`` hands out, so
+# the restore takes neither it nor the undo point. (The healthy newer one is
+# "a weekly snapshot newer than the undo point takes the restore back from it".)
+_fr_ag_before, _fr_ag_entry, _, _ = _fr_case("learners", "fr_undo_aged")
+_fr_ag_new = _fr_ag_entry.runtime_data
+_fr_ag_ring = _fr_ag_new._snapshot_ring
+_fr_ag_ring.take(_fr_dt.now(), _fr_ag_new._learner_snapshot_payloads(), _fr_ag_new._accuracy.summary(), False)
+_fr_counting_refresh(_fr_ag_new)
+_fr_ag_target = _fr_ag_ring.undo_target()
+_fr_ag_ok = _aio.run(_fr_ag_new.async_restore_learned_snapshot())
+R.check(
+    "after an unhealthy snapshot newer than the undo point, the restore takes neither: nothing qualifies, the reset stays",
+    "before_reset" in _fr_ag_ring.snapshots[-2] and _fr_ag_ring.snapshots[-1]["healthy"] is False
+    and _fr_ag_target is None is _fr_ag_ring.best_restore() and _fr_ag_ok is False
+    and _fr_ag_entry.runtime_data is _fr_ag_new and _li_state_of(_fr_ag_new) == (1.0, 1.0, 0, 0),
+    f"target {None if _fr_ag_target is None else sorted(_fr_ag_target)}, restored {_fr_ag_ok}, "
+    f"heat loss {_li_state_of(_fr_ag_new)}",
+)
+
+async def _fr_failed_unload(scope="both"):
+    """An unload Home Assistant refuses: the reset changes nothing but the undo point."""
+    hass = FakeHass({})
+    entry = _fr_entry_cls(data=dict(_FR_DATA), options=dict(_FR_OPTS), entry_id="fr_no_unload")
+    hass.config_entries.entries.append(entry)
+    c = await _fr_boot(hass, entry)
+    c._apply_house_heat_loss_scale(1.4)
+    c._apply_lower_floor_loss_ratio(1.3)
+    c._house_heat_loss_samples, c._lower_floor_loss_samples = 60, 40
+    await c._async_save_thermal_learning()
+    disk = _fr_disk("fr_no_unload")
+
+    async def _refuse(eid):
+        hass.config_entries.unloaded.append(eid)
+        return False
+
+    hass.config_entries.async_unload = _refuse
+    import logging as _fr_logging
+    from heatpump_optimizer import coordinator as _fr_coord_mod
+
+    said = []
+    handler = _fr_logging.Handler()
+    handler.emit = lambda record: said.append(record.getMessage())
+    _fr_coord_mod._LOGGER.addHandler(handler)
+    try:
+        done = await _fr_reset(c, scope)
+    finally:
+        _fr_coord_mod._LOGGER.removeHandler(handler)
+    after = {k: v for k, v in _fr_disk("fr_no_unload").items() if k != "snapshots"}
+    return entry, hass.config_entries, (disk, after), c, (done, said)
+
+
+_fr_nu_entry, _fr_nu_mgr, _fr_nu_disk, _fr_nu_c, (_fr_nu_done, _fr_nu_said) = _aio.run(_fr_failed_unload())
+R.check(
+    "a refused unload changes nothing but the undo point: settings, every store and the heat-loss pair as before",
+    _fr_nu_done is False
+    and {**_fr_nu_entry.data, **_fr_nu_entry.options} == {**_FR_DATA, **_FR_OPTS}
+    and _fr_nu_mgr.set_up == []
+    and all(_fr_unstamped(_fr_nu_disk[1].get(k)) == _fr_unstamped(v) for k, v in _fr_nu_disk[0].items() if k != "snapshots")
+    and _li_state_of(_fr_nu_c) == (1.4, 1.3, 60, 40)
+    and "before_reset" in _fr_nu_c._snapshot_ring.snapshots[-1]
+    and any("not applied" in m for m in _fr_nu_said) and not any(" applied;" in m for m in _fr_nu_said),
+    f"done {_fr_nu_done}, said {_fr_nu_said}, set up {_fr_nu_mgr.set_up}, heat loss {_li_state_of(_fr_nu_c)}, "
+    f"stores moved {sorted(k for k, v in _fr_nu_disk[0].items() if k != 'snapshots' and _fr_unstamped(_fr_nu_disk[1].get(k)) != _fr_unstamped(v))}",
+)
+_fr_nu_c.hass.config_entries.async_unload = _fr_nu_mgr.async_unload
+_fr_nu_undo = _aio.run(_fr_nu_c.async_restore_learned_snapshot())
+R.check(
+    "a refused unload refuses the undo too, and the undo point stays the undo point",
+    _fr_nu_undo is False and "before_reset" in _fr_nu_c._snapshot_ring.snapshots[-1]
+    and _fr_nu_mgr.set_up == [],
+    f"undo {_fr_nu_undo}",
+)
+# Once a weekly snapshot is newer, the restore is the ordinary one again.
+_fr_w_before, _fr_w_entry, _, _ = _fr_case("learners", "fr_weekly")
+_fr_w_ring = _fr_w_entry.runtime_data._snapshot_ring
+_fr_w_ring.take(_fr_dt.now(), _fr_w_entry.runtime_data._learner_snapshot_payloads(), {}, True)
+R.check(
+    "a weekly snapshot newer than the undo point takes the restore back from it",
+    _fr_w_ring.undo_target() is _fr_w_ring.snapshots[-1] and "before_reset" not in _fr_w_ring.snapshots[-1]
+    and "before_reset" in _fr_w_ring.snapshots[-2],
+)
+
+
+async def _fr_flow_case(user_input, entry_id, *, loaded=True):
+    hass = FakeHass({})
+    entry = _fr_entry_cls(data=dict(_FR_DATA), options=dict(_FR_OPTS), entry_id=entry_id)
+    hass.config_entries.entries.append(entry)
+    if loaded:
+        await _fr_boot(hass, entry)
+    flow = _fr_flow.HeatPumpOptimizerOptionsFlow(entry)
+    flow.hass = hass
+    disk = _fr_disk(entry_id)
+    config = ({**entry.data}, {**entry.options})
+    first = await flow.async_step_factory_reset()
+    second = await flow.async_step_factory_reset(user_input) if user_input is not None else None
+    changed = (_fr_disk(entry_id) != disk, ({**entry.data}, {**entry.options}) != config)
+    return first, second, changed, hass.config_entries
+
+
+_fr_cancel = _aio.run(_fr_flow_case({"scope": "both", "confirm": False}, "fr_flow_cancel"))
+R.check(
+    "the options step shows the scope and the confirmation; unconfirmed, nothing changes (null control)",
+    _fr_cancel[0]["type"] == "form" and _fr_cancel[0]["step_id"] == "factory_reset"
+    and set(map(str, _fr_cancel[0]["data_schema"].schema)) == {"scope", "confirm"}
+    and _fr_cancel[1]["type"] == "menu" and _fr_cancel[1]["step_id"] == "advanced"
+    and _fr_cancel[2] == (False, False) and _fr_cancel[3].unloaded == [] and _fr_cancel[3].set_up == [],
+    f"{_fr_cancel[1]}, changed {_fr_cancel[2]}",
+)
+_fr_go = _aio.run(_fr_flow_case({"scope": "both", "confirm": True}, "fr_flow_go"))
+R.check(
+    "confirmed, the options step resets, sets the entry up again and closes",
+    _fr_go[1]["type"] == "abort" and _fr_go[1]["reason"] == "factory_reset_done"
+    and _fr_go[2] == (True, True) and _fr_go[3].unloaded == ["fr_flow_go"] == _fr_go[3].set_up,
+    f"{_fr_go[1]}, changed {_fr_go[2]}",
+)
+
+
+async def _fr_flow_refused():
+    hass = FakeHass({})
+    entry = _fr_entry_cls(data=dict(_FR_DATA), options=dict(_FR_OPTS), entry_id="fr_flow_refused")
+    hass.config_entries.entries.append(entry)
+    await _fr_boot(hass, entry)
+
+    async def _refuse(eid):
+        return False
+
+    hass.config_entries.async_unload = _refuse
+    flow = _fr_flow.HeatPumpOptimizerOptionsFlow(entry)
+    flow.hass = hass
+    await flow.async_step_factory_reset()
+    shown = await flow.async_step_factory_reset({"scope": "both", "confirm": True})
+    try:
+        await _fr_services.handle_factory_reset(hass, _fr_call(
+            "heatpump_optimizer", "factory_reset",
+            _fr_services.SERVICE_SCHEMA_FACTORY_RESET({"entry_id": "fr_flow_refused", "scope": "learners"})))
+        raised = None
+    except Exception as err:  # HomeAssistantError
+        raised = err
+    return shown, raised
+
+
+_fr_refused = _aio.run(_fr_flow_refused())
+R.check(
+    "a refused unload is said as not applied, by the options step and by the service, never as done",
+    _fr_refused[0]["type"] == "abort" and _fr_refused[0]["reason"] == "factory_reset_not_applied"
+    and getattr(_fr_refused[1], "translation_key", None) == "factory_reset_not_applied"
+    and all(_fi_json.loads(_FrPath(p).read_text())["options"]["abort"].get("factory_reset_not_applied")
+            and _fi_json.loads(_FrPath(p).read_text())["exceptions"]["factory_reset_not_applied"]["message"]
+            for p in ("custom_components/heatpump_optimizer/strings.json",
+                      "custom_components/heatpump_optimizer/translations/en.json",
+                      "custom_components/heatpump_optimizer/translations/sv.json")),
+    f"{_fr_refused[0]}, raised {_fr_refused[1]!r}",
+)
+_fr_off = _aio.run(_fr_flow_case({"scope": "both", "confirm": True}, "fr_flow_off", loaded=False))
+R.check(
+    "an entry that is not running is not reset, confirmed or not",
+    _fr_off[1]["type"] == "abort" and _fr_off[1]["reason"] == "factory_reset_not_loaded"
+    and _fr_off[2] == (False, False) and _fr_off[3].unloaded == [],
+    f"{_fr_off[1]}, changed {_fr_off[2]}",
+)
+R.check(
+    "the advanced menu offers the reset, labelled by the translations",
+    "factory_reset" in _fr_flow.HeatPumpOptimizerOptionsFlow._ADVANCED_MENU
+    and all(_fi_json.loads(_FrPath(p).read_text())["options"]["step"]["advanced"]["menu_options"].get("factory_reset")
+            for p in ("custom_components/heatpump_optimizer/strings.json",
+                      "custom_components/heatpump_optimizer/translations/en.json",
+                      "custom_components/heatpump_optimizer/translations/sv.json")),
+)
+
+_fr_svc_refused = []
+for _fr_bad in ({"scope": "both"}, {"entry_id": "x", "scope": "everything"}, {"entry_id": "x"}):
+    try:
+        _fr_services.SERVICE_SCHEMA_FACTORY_RESET(_fr_bad)
+    except Exception:  # vol.Invalid
+        _fr_svc_refused.append(sorted(_fr_bad))
+
+
+async def _fr_service():
+    hass = FakeHass({})
+    entry = _fr_entry_cls(data=dict(_FR_DATA), options=dict(_FR_OPTS), entry_id="fr_svc")
+    hass.config_entries.entries.append(entry)
+    await _fr_boot(hass, entry)
+    answer = await _fr_services.handle_factory_reset(hass, _fr_call(
+        "heatpump_optimizer", "factory_reset",
+        _fr_services.SERVICE_SCHEMA_FACTORY_RESET({"entry_id": "fr_svc", "scope": "settings"})))
+    return answer, hass.config_entries, {**entry.data, **entry.options}
+
+
+_fr_svc = _aio.run(_fr_service())
+R.check(
+    "the service needs an entry and a known scope, and resets that entry",
+    len(_fr_svc_refused) == 3 and _fr_svc[0] == {"reset": "fr_svc", "scope": "settings"}
+    and _fr_svc[1].unloaded == ["fr_svc"] and set(_fr_svc[2]) <= set(_fr_ec.FACTORY_KEPT),
+    f"refused {_fr_svc_refused}, answer {_fr_svc[0]}",
+)
+
+# The store enumeration: every store the integration persists, by the AST walk
+# finite_boundary.py's arm 1 uses, each with its disposition.
+_FR_STORES = {
+    "thermal_learning": "voided: learned keys dropped, the heat-loss pair by its void path",
+    "accuracy": "voided: accuracy, dhw_accuracy, defrost, comfort; peaks and mode are facts",
+    "price_model": "voided",
+    "dhw_profile": "voided",
+    "dhw_draws": "voided",
+    "snapshots": "kept: the undo point lives here",
+    "ledger": "kept: billed energy",
+    "energy": "kept: metered totals",
+    "manual_plan": "kept: the user's own override",
+    "away": "kept: the user's own override",
+    "boost": "kept: the user's own override",
+    "dhw_legionella": "kept: the last disinfection, a safety fact",
+    "notifier": "kept: which notices were sent",
+    "pump_duty": "kept: what was last written to the pump",
+    "debug": "kept: a diagnostics collection",
+}
+_fr_found = set()
+for _fr_p in sorted(_FrPath("custom_components/heatpump_optimizer").glob("*.py")):
+    for _fr_n in _fr_ast.walk(_fr_ast.parse(_fr_p.read_text())):
+        if (isinstance(_fr_n, _fr_ast.Call) and isinstance(_fr_n.func, _fr_ast.Name)
+                and _fr_n.func.id == "QuarantiningStore"):
+            for _fr_arg in _fr_n.args:
+                if isinstance(_fr_arg, _fr_ast.JoinedStr):
+                    _fr_found.add(_fr_arg.values[-1].value.lstrip("_"))
+R.check(
+    "every store the integration persists has a factory-reset disposition",
+    _fr_found == set(_FR_STORES) and len(_fr_found) >= 15,
+    f"undispositioned {sorted(_fr_found - set(_FR_STORES))}, stale {sorted(set(_FR_STORES) - _fr_found)}",
 )
 
 
@@ -25158,6 +25767,7 @@ _SVC_KEYS = {
     "restore_learned_snapshot_no_snapshot": ({"entry_ids"}, "hae"),
     "restore_learned_snapshot_no_refit": ({"entry_ids"}, "hae"),
     "set_thermal_params_invalid_dhw_windows": ({"windows", "error"}, "sve"),
+    "factory_reset_not_applied": ({"entry_id"}, "hae"),
 }
 
 
@@ -25203,6 +25813,15 @@ def _svc_why(outcome, key):
 
 def _svc_check(name, outcome, key):
     R.check(name, not _svc_why(outcome, key), _svc_why(outcome, key) or "ok")
+
+
+# factory_reset's refusal, driven in the R10-FACTORY-RESET section through
+# the real service handler over an unload Home Assistant refuses.
+_svc_check(
+    "factory_reset over an unload Home Assistant refuses raises a translated operational failure",
+    ("raised", _fr_refused[1]) if _fr_refused[1] is not None else ("returned", None),
+    "factory_reset_not_applied",
+)
 
 
 # The driven state: one loaded entry, its coordinator holding no prices, no
@@ -25669,6 +26288,7 @@ _HPO_MOVED = (
     "handle_restore_snapshot",
     "handle_diagnose_interval",
     "handle_reset_heat_loss",
+    "handle_factory_reset",
     "_manual_targets",
     "_loaded_entries",
     "_loaded_coordinators",
@@ -25740,6 +26360,7 @@ _HPO_SERVICE_MAP = {
     "diagnose_interval": "handle_diagnose_interval",
     "debug_collect": "handle_debug_collect",
     "reset_heat_loss_learners": "handle_reset_heat_loss",
+    "factory_reset": "handle_factory_reset",
 }
 _hpo_hass = FakeHass()
 _asyncio.run(_ha_setup_component(_integ, _hpo_hass))
@@ -27494,7 +28115,7 @@ R.check(
 # --- #779: size on the two-state plant, not the one-state exponential ------
 R.section("sysid step sized on the two-state plant (#779)")
 _779_sid = SystemIdentification(SysIdConfig(enabled=True))
-_779_el = _779_sid._size_step_power(6.0, 3.0, 21.0, 2.0, 0.20, 8.0, 0.3)
+_779_el = _779_sid._size_step_power(6.0, 3.0, 21.0, 2.0, HousePlant(ua=0.20, capacity=8.0, gains=0.3))
 _779_q = (_779_el or 0.0) * 3.0
 _779_plant, _779_final = _predict_step_excursion_plant(
     HousePlant(ua=0.20, capacity=8.0, gains=0.3), 21.0, 2.0, _779_q, 2.0, 2.0
@@ -34623,24 +35244,37 @@ for _sig, _name in (
     (_DHW_ONLY_SIG, "a hot-water-only mode"),
     (_OFFLINE, "a pump that is off the network"),
 ):
+    # #2808 (R10-CEILING-PROBE): an armed experiment that has not started is
+    # held, not aborted -- it injects nothing, and the press is not lost to a
+    # passing freeze; a started one still aborts, its samples being the
+    # evidence the freeze says cannot be attributed.
     _si = _SysIdHost(_sig)
     _sysid_cycle(_si, np.full(48, 0.2))
+    _si_started = _SysIdHost(_sig)
+    _si_started._sysid.phase = _SysIdModule.PHASE_STEP
+    _sysid_cycle(_si_started, np.full(48, 0.2))
     R.check(
-        f"{_name} aborts an armed experiment instead of commanding heat",
-        not _si._sysid.active
-        and _si._sysid.phase == _SysIdModule.PHASE_ABORTED
-        and _si._current_action["power"] == 0.0,
-        f"phase {_si._sysid.phase} power {_si._current_action['power']} — a "
+        f"{_name} holds an armed experiment, and aborts a started one, instead of commanding heat",
+        _si._sysid.phase == _SysIdModule.PHASE_ARMED and _si._sysid.held
+        and _si._current_action["power"] == 0.0
+        and _si_started._sysid.phase == _SysIdModule.PHASE_ABORTED
+        and _si_started._current_action["power"] == 0.0,
+        f"phase {_si._sysid.phase} / {_si_started._sysid.phase} power "
+        f"{_si._current_action['power']} — a "
         f"step response measured through this is not a noisy measurement of "
         f"the house, and _adopt_system_identification persists what it fits",
     )
 _si_reason = _SysIdHost(_COOLING)
 _sysid_cycle(_si_reason, np.full(48, 0.2))
+_si_reason_started = _SysIdHost(_COOLING)
+_si_reason_started._sysid.phase = _SysIdModule.PHASE_STEP
+_sysid_cycle(_si_reason_started, np.full(48, 0.2))
 R.check(
-    "the aborted result carries the cause",
-    _si_reason._sysid.result.reason
-    and not _si_reason._sysid.result.completed,
-    f"{_si_reason._sysid.result.reason!r}",
+    "the held experiment and the aborted result each carry the cause",
+    _si_reason._sysid.held
+    and _si_reason_started._sysid.result.reason == _si_reason._sysid.held
+    and not _si_reason_started._sysid.result.completed,
+    f"{_si_reason._sysid.held!r} / {_si_reason_started._sysid.result.reason!r}",
 )
 
 
@@ -37949,6 +38583,8 @@ _ET_KEYS = {
     # D10-s1-03: the refused token, through _raise_auth_failed.
     "tibber_auth_failed": {"error"},
     "debug_collect_inactive": {"entry_id"},
+    # R10-FACTORY-RESET: an unload Home Assistant refuses.
+    "factory_reset_not_applied": {"entry_id"},
 }
 
 
@@ -38022,7 +38658,8 @@ _et_check(
 # schema accepts, in both refusing states. Its preconditions: it drives the
 # whole catalog, each action's payload reaches the handler without an
 # entry_id, and the only refusal it accepts from a schema is of entry_id
-# itself (five actions act on every loaded entry and take none).
+# itself (five actions act on every loaded entry and take none;
+# factory_reset requires one).
 import voluptuous as _ger_vol  # noqa: E402
 
 #: The fields an action's schema requires; any other's smallest payload is {}.
@@ -38031,6 +38668,7 @@ _GER_REQUIRED = {
     "debug_collect": {"action": "status"},
     "assign_entity": {"key": "outdoor_temp_entity", "entity_id": ""},
     "apply_topology": {"layout": "no_valve"},
+    "factory_reset": {"scope": "settings"},
 }
 _ger_actions = sorted(_et_idle.services.async_services()[_DOMAIN])
 _ger_bad, _ger_unreached = [], []
@@ -38043,7 +38681,9 @@ for _ger_name in _ger_actions:
         try:
             _ger_err = _et_call(_et_idle, _ger_name, _ger_payload)
         except _ger_vol.Invalid as _ger_inv:
-            if "entry_id" not in _ger_payload or {
+            # A refusal of entry_id alone: an action taking none refuses the
+            # ghost, and factory_reset, which requires one, refuses its absence.
+            if {
                 tuple(_e.path) for _e in getattr(_ger_inv, "errors", [_ger_inv])
             } != {("entry_id",)}:
                 _ger_unreached.append(f"{_ger_name}: {_ger_inv}")
@@ -49914,6 +50554,16 @@ R.check(
     "parse, and a 140 % humidity selects a defrost bucket that does not "
     "describe any weather",
 )
+R.check(
+    "the range's two ends are humidities: 0 % and 100 % are read, just past either is refused",
+    _t6_humidity([{"humidity": 0, "datetime": _T6_HUM_NOW.isoformat()}]) == 0.0
+    and _t6_humidity([{"humidity": 100, "datetime": _T6_HUM_NOW.isoformat()}]) == 100.0
+    and _t6_humidity([{"humidity": 100.01, "datetime": _T6_HUM_NOW.isoformat()}]) is None
+    and _t6_humidity([{"humidity": -0.01, "datetime": _T6_HUM_NOW.isoformat()}]) is None,
+    f"0 -> {_t6_humidity([{'humidity': 0, 'datetime': _T6_HUM_NOW.isoformat()}])!r}, "
+    f"100 -> {_t6_humidity([{'humidity': 100, 'datetime': _T6_HUM_NOW.isoformat()}])!r} "
+    "-- a saturated or bone-dry forecast is weather, so the bounds are inclusive",
+)
 
 
 # -- `_shutdown_process_pool`: a shutdown that must not raise -------------
@@ -57616,7 +58266,10 @@ _pa_noplan = _PaCoord(_PA_TUYA)
 _pa_noplan._optimization_result = None
 _pa_run(_pa_noplan, 1)
 R.check(
-    "an experiment and a missing plan each get the baseline, not hot water only",
+    # R10-CEILING-PROBE: the experiment's action now carries its own duty (its
+    # zero step here is idle, the gate), where the missing plan keeps the
+    # baseline; neither writes hot water only.
+    "an experiment's zero step and a missing plan never write hot water only",
     all(
         ("select", "select_option", "DHW (Hot Water)") not in c.writes()
         and ("number", "set_value", 48.0) in c.writes()
@@ -60243,9 +60896,11 @@ R.check(
 )
 # The class check's own null control: the same rule over a copy of the module
 # with the experiment's freeze consult removed finds #1523's seam.
-_P5_CONSULT = "else self._learning_frozen(CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY)"
+# The consult is hold_reason's frozen argument (sysid.hold_reason, this PR's
+# move of the stand-down decision): the mutant passes None in its place.
+_P5_CONSULT = "self._learning_frozen(CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY)"
 _p5_src_now = _p5_inspect.getsource(_p5_coord_mod)
-_p5_mut = _p5_ast.parse(_p5_src_now.replace(_P5_CONSULT, "else None"))
+_p5_mut = _p5_ast.parse(_p5_src_now.replace(_P5_CONSULT, "None"))
 R.check(
     "#1523 class check null control: dropping the experiment's consult "
     "re-opens exactly its seam",
@@ -66868,6 +67523,7 @@ def _sp_write(kw, slots, stale=()):
             thermal=_PaNS(params=None),
             params=_PaNS(min_electrical_power=1.5, max_electrical_power=5.5),
             plan=_PaNS(timestamps=[_PA_T0], power_schedule=[kw]),
+            action=None,
         ),
         "space",
         _PA_T0,
@@ -68778,6 +69434,7 @@ def _bst_write(kw, tank, entity_min=20, duty="space"):
             thermal=_BstNS(params=None, curve_flow_temp=lambda _o: None),
             params=_BstNS(min_electrical_power=1.5, max_electrical_power=5.5),
             plan=_BstNS(timestamps=[_BST_T0], power_schedule=[kw]),
+            action=None,
         ),
         duty, _BST_T0,
     )
@@ -74961,6 +75618,912 @@ R.check(
         "heatpump_optimizer_e_pump_duty", {"written": {"silent": ["on", _SA_T0.isoformat()]}}
     ) == ["written/silent/0"],
     f"{_sa_store.off_domain('heatpump_optimizer_e_pump_duty', _sa_record)}",
+)
+
+
+# --- R10-CEILING-PROBE (#2498, #2808): the cheap-night ceiling probe ----------
+# A set-point install's plan rarely writes the flow ceiling, so the metered
+# draw window is censored at the top and the plugin cannot learn the pump's
+# real maximum. The system-identification experiment gains a second kind, the
+# ceiling probe: it commands the configured maximum, the arbiter writes the
+# ceiling for it, and the metered draws of those intervals go to a separate
+# store on ``DrawRange`` whose raw median is the learned top. Every check
+# drives the production symbol; the design is dev/programme/designs/
+# R10-CEILING-PROBE.md as amended by its review (items 7-34).
+import asyncio as _cp_aio  # noqa: E402
+from types import SimpleNamespace as _CpNS  # noqa: E402
+
+from harness import FakeEntry as _CpEntry  # noqa: E402
+from heatpump_optimizer import boost as _cp_boost  # noqa: E402
+from heatpump_optimizer import coordinator as _cp_cmod  # noqa: E402
+from heatpump_optimizer import draw_range as _cp_dr  # noqa: E402
+from heatpump_optimizer import pump_arbiter as _cp_pa  # noqa: E402
+from heatpump_optimizer import sysid as _cp_sid  # noqa: E402
+from heatpump_optimizer.accuracy import AccuracyTracker as _CpTracker  # noqa: E402
+from heatpump_optimizer.entry_config import EntryConfig as _CpConfig  # noqa: E402
+from heatpump_optimizer.sensor import ModelStatusSensor as _CpStatus  # noqa: E402
+from heatpump_optimizer.store import admitted as _cp_admitted  # noqa: E402
+from heatpump_optimizer.thermal_model import ceiling_probe_install as _cp_eligible  # noqa: E402
+
+R.section("R10-CEILING-PROBE: the experiment's step reaches the pump; the ceiling store")
+
+_CP_T0 = datetime(2026, 1, 10, 23, 0, tzinfo=UTC)
+_CP_OPTS = ("Heating", "DHW (Hot Water)", "Heating + DHW")
+
+
+class _CpArb:
+    """The arbiter's coordinator surface on a flow set-point install, band 1-5 kW."""
+
+    def __init__(self, action, power_schedule=(1.5,)):
+        self.hass = FakeHass({
+            "select.pump_mode": FakeState("Heating + DHW", attributes={"options": list(_CP_OPTS)}),
+            "number.dhw_set": FakeState("53", attributes={"min": 40, "max": 63}),
+            "number.water_set": FakeState("53", attributes={"min": 25, "max": 63}),
+        })
+        self._config = _CpConfig.from_mapping({
+            "pump_duty_mode": "control", "heat_pump_mode_entity": "select.pump_mode",
+            "dhw_setpoint_entity": "number.dhw_set", "space_setpoint_entity": "number.water_set",
+            "space_setpoint_unit": "flow",
+        })
+        self._current_action = action
+        self._optimization_result = _CpNS(
+            timestamps=[_CP_T0], power_schedule=list(power_schedule),
+            dhw_power_schedule=[0.0], optimal_setpoints=[21.0],
+        )
+        self._thermal_params = _CpNS(dhw_setpoint=48.0, min_electrical_power=1.0, max_electrical_power=5.0)
+        self._thermal_model = _CpNS(params=self._thermal_params, curve_flow_temp=lambda _o: 34.2)
+        self.entry = _CpNS(entry_id=f"cp{id(self)}")
+
+    def _plan_is_stale(self):
+        return False
+
+    @property
+    def effective_config(self):
+        return self._config
+
+    @property
+    def thermal_params(self):
+        return self._thermal_params
+
+    def arbiter_inputs(self):
+        return _cp_pa.ArbiterInputs(
+            hass=self.hass, config=self._config, mode="auto", plan=self._optimization_result,
+            plan_stale=False, entry_released=False, state=_CpNS(outdoor_temperature=2.0,
+            room_temperature=21.0), thermal=self._thermal_model, params=self._thermal_params,
+            action=self._current_action, measured_power_kw=None, disinfecting=False,
+        )
+
+
+def _cp_arbitrate(action, power_schedule=(1.5,)):
+    """(duty, the flow set-point written, the mode written) for one pass."""
+    c = _CpArb(action, power_schedule)
+    duty = _cp_pa._planned_duty(c, c.arbiter_inputs(), _CP_T0)
+    _cp_aio.run(_cp_pa.apply(c, _CP_T0 + timedelta(minutes=1)))
+    calls = [(d, s, data or {}) for d, s, data in c.hass.services.calls]
+    flow = [x["value"] for d, s, x in calls if d == "number" and x.get("entity_id") == "number.water_set"]
+    mode = [x.get("option") for d, s, x in calls if d == "select"]
+    return duty, (flow[-1] if flow else None), (mode[-1] if mode else None)
+
+
+_CP_SID = {"mode": "system_identification", "dhw_power": 0.0}
+_cp_probe = _cp_arbitrate({**_CP_SID, "power": 5.0})
+_cp_fit = _cp_arbitrate({**_CP_SID, "power": 1.5})
+_cp_relax = _cp_arbitrate({**_CP_SID, "power": 0.0})
+_cp_plan_top = _cp_arbitrate({"mode": "eco", "power": 5.0}, power_schedule=(5.0,))
+_cp_plan_mid = _cp_arbitrate({"mode": "eco", "power": 1.5}, power_schedule=(1.5,))
+R.check(
+    "the probe's step (the configured 5.0 kW maximum) is heating at the flow ceiling",
+    _cp_probe[0] == "space" and _cp_probe[1] == 55.0 and _cp_probe[2] == "Heating",
+    f"{_cp_probe}",
+)
+R.check(
+    "the fit's sized 1.5 kW step writes its own level, below the ceiling, from the action "
+    "not the plan (whose step here is 5.0 kW)",
+    _cp_fit[0] == "space" and _cp_fit[1] == _cp_plan_mid[1] and _cp_fit[1] < 55.0
+    and _cp_arbitrate({**_CP_SID, "power": 1.5}, power_schedule=(5.0,))[1] == _cp_fit[1],
+    f"fit {_cp_fit} plan-mid {_cp_plan_mid}",
+)
+R.check(
+    "the experiment's zero step (the fit's relax) is idle: the gate is written",
+    _cp_relax[0] == "idle" and _cp_relax[1] == 25.0,
+    f"{_cp_relax}",
+)
+R.check(
+    "moving control: a plan at 5.0 and at 1.5 kW write two levels, the ceiling and "
+    "the fit's -- before the fix the experiment wrote the baseline at both",
+    _cp_plan_top[:2] == ("space", 55.0) and _cp_plan_mid[0] == "space" and _cp_plan_mid[1] < 55.0,
+    f"{_cp_plan_top} {_cp_plan_mid}",
+)
+# The duty threshold is the rule ``heat_pump_on`` books (``planned_draw_runs``),
+# never a literal: a step at MIN_RUNNING_DRAW_KW's edge reads the same in both.
+from heatpump_optimizer.thermal_model import MIN_RUNNING_DRAW_KW as _CP_RUN  # noqa: E402
+from heatpump_optimizer.thermal_model import planned_draw_runs as _cp_runs  # noqa: E402
+
+_cp_edge = [
+    (kw, _cp_arbitrate({**_CP_SID, "power": kw})[0], _cp_runs(kw))
+    for kw in (_CP_RUN, _CP_RUN * 1.5, 0.06, 0.04)
+]
+R.check(
+    "the experiment's duty is space exactly where its booked heat_pump_on is True",
+    all((duty == "space") == runs and duty in ("space", "idle") for _kw, duty, runs in _cp_edge),
+    f"{_cp_edge}",
+)
+
+# Carry 31: the supply switch a probe interval runs under. The cycle writes
+# heat_pump_on from planned_draw_runs(override); the one-minute step tick
+# leaves the switch alone under an experiment, so it is not turned off
+# between cycles. Both halves read the production functions.
+_cp_tick_inp = _CpArb({**_CP_SID, "power": 5.0}).arbiter_inputs()
+R.check(
+    "a probe interval: the cycle books the supply on, and the step tick writes nothing over it",
+    _cp_runs(5.0) is True
+    and _cp_pa.step_supply(_cp_tick_inp, _cp_boost.BoostState(), _CP_T0 + timedelta(minutes=15)) is None
+    and _cp_pa.step_supply(
+        _CpArb({"mode": "eco", "power": 0.0}, power_schedule=(0.0,)).arbiter_inputs(),
+        _cp_boost.BoostState(), _CP_T0 + timedelta(minutes=1),
+    ) is False,
+    "null control: a plan step at 0 kW is a tick write of off",
+)
+
+# -- the ceiling store -------------------------------------------------------
+_CP_CEIL = _CpNS(written_c=55.0, gate_c=25.0, ceiling_c=55.0)
+_CP_GATE = _CpNS(written_c=25.0, gate_c=25.0, ceiling_c=55.0)
+_CP_MID = _CpNS(written_c=40.0, gate_c=25.0, ceiling_c=55.0)
+_CP_DAY = 86400.0
+_CP_NOW = _CP_T0.timestamp()
+
+
+def _cp_params(lo=1.0, hi=5.0):
+    return _CpNS(min_electrical_power=lo, max_electrical_power=hi)
+
+
+def _cp_fold(d, drawn, command, experiment_s, split=(5.0, 0.0), hi=5.0):
+    _cp_dr.fold(d, drawn, split, _cp_params(hi=hi), frozen=False, distorted=False,
+                defrost=False, command=command, experiment_s=experiment_s)
+
+
+def _cp_store(values, newest_s=_CP_NOW):
+    d = _cp_dr.DrawRange()
+    for k, v in enumerate(values):
+        d.observe_ceiling(v, newest_s - (len(values) - 1 - k) * 1800.0)
+    return d
+
+
+R.check(
+    "item 29: the accessor is raw -- eleven samples give None, twelve their median",
+    _cp_store([3.0] * 11).learned_max_kw(_CP_NOW) is None
+    and _cp_store([3.0] * 12).learned_max_kw(_CP_NOW) == 3.0,
+)
+R.check(
+    "item 29: twelve at 4.5 kW on a 5.0 kW configuration publish 4.5 (within 15 % is "
+    "still published raw; the agreement ruling is R10-COP-GATE part D's); eleven, None",
+    _cp_store([4.5] * 12).learned_max_kw(_CP_NOW) == 4.5
+    and _cp_store([4.5] * 11).learned_max_kw(_CP_NOW) is None,
+)
+R.check(
+    "item 29: the accessor is the median of the store, not its mean or its extreme -- "
+    "one low interval (a cut step, a partial draw) among eleven at 3.0 kW, and one "
+    "high outlier among eleven, both leave it at 3.0",
+    _cp_store([3.0] * 11 + [1.0]).learned_max_kw(_CP_NOW) == 3.0
+    and _cp_store([1.0] + [3.0] * 11).learned_max_kw(_CP_NOW) == 3.0
+    and _cp_store([3.0] * 11 + [9.0]).learned_max_kw(_CP_NOW) == 3.0,
+)
+R.check(
+    "item 29: the accessor is the median, not an upper quantile -- nine intervals at "
+    "3.0 kW and three at 4.0 kW give 3.0, where the 90th percentile is 4.0",
+    _cp_store([3.0] * 9 + [4.0] * 3).learned_max_kw(_CP_NOW) == 3.0,
+)
+R.check(
+    "the top lapses 45 days after the newest sample, and a sample stamped ahead of "
+    "the clock has no knowable age",
+    _cp_store([3.0] * 12).learned_max_kw(_CP_NOW + 44 * _CP_DAY) == 3.0
+    and _cp_store([3.0] * 12).learned_max_kw(_CP_NOW + 46 * _CP_DAY) is None
+    and _cp_store([3.0] * 12, newest_s=_CP_NOW + 600.0).learned_max_kw(_CP_NOW) is None,
+)
+
+# The routing: an experiment's interval written at the ceiling, running above
+# the idle draw, goes to the store and not the window; everything else folds
+# into the window as before.
+_cp_route = _cp_dr.DrawRange()
+for _cp_v in (0.30,) * 12:
+    _cp_route.observe_idle(_cp_v)
+_cp_fold(_cp_route, 3.0, _CP_CEIL, _CP_NOW)
+_cp_routed = (len(_cp_route.ceiling), len(_cp_route.samples))
+_cp_fold(_cp_route, 3.0, _CP_CEIL, None)
+_cp_plan = (len(_cp_route.ceiling), len(_cp_route.samples))
+R.check(
+    "an experiment's ceiling interval writes the store, not the window; the same "
+    "interval the plan commanded writes the window, not the store",
+    _cp_routed == (1, 0) and _cp_plan == (1, 1),
+    f"experiment {_cp_routed} plan {_cp_plan}",
+)
+_cp_held = _cp_dr.DrawRange()
+for _cp_v in (1.1,) * 12:
+    _cp_held.observe_idle(_cp_v)
+_cp_fold(_cp_held, 1.4, _CP_GATE, _CP_NOW)
+_cp_fold(_cp_held, 1.3, _CP_CEIL, _CP_NOW)
+_cp_fold(_cp_held, 1.4, _CP_CEIL, _CP_NOW)
+_cp_fold(_cp_held, 2.6, _CP_MID, _CP_NOW)
+R.check(
+    "a gate-held 1.4 kW draw above a learned 1.1 kW idle is a running sample yet stores "
+    "nothing, nor does a ceiling draw at the idle draw or a sub-ceiling one; the same "
+    "1.4 kW with the ceiling written does",
+    _cp_dr.is_running_space(1.4, 5.0, 0.0, frozen=False, distorted=False, defrost=False)
+    and [d for d, _t in _cp_held.ceiling] == [1.4],
+    f"{list(_cp_held.ceiling)}",
+)
+# The latch (F6, F7): 48 ceiling samples through ``observe`` on an empty
+# window engage the clamp at append 48; the same 48 routed to the store leave
+# it disengaged and the window empty.
+_cp_latch_w = _cp_dr.DrawRange()
+_cp_latch_s = _cp_dr.DrawRange()
+for _cp_k in range(48):
+    _cp_latch_w.observe(3.0, 5.0, 1.0, 5.0, command=(55.0, 55.0))
+    _cp_fold(_cp_latch_s, 3.0, _CP_CEIL, _CP_NOW + _cp_k * 1800.0)
+R.check(
+    "reversal control: 48 ceiling draws through the window latch the clamp to the "
+    "experiment's own measurement; the same 48 in the store leave engaged False, "
+    "observed() unset and the top published beside the latch",
+    _cp_latch_w.engaged is True and _cp_latch_w.planned(1.0, 5.0) == (3.0, 3.0)
+    and _cp_latch_s.engaged is False and _cp_latch_s.observed() is None
+    and len(_cp_latch_s.samples) == 0 and _cp_latch_s.learned_max_kw(_CP_NOW + 47 * 1800.0) == 3.0
+    and _cp_dr.diagnostics_view(
+        _cp_latch_s, _cp_params(), _CpNS(plan_writes_power=lambda: False, can_duty_cycle=lambda: False),
+        _CP_NOW + 47 * 1800.0,
+    ) == {**_cp_latch_s.summary(), "effective_min_kw": None, "effective_max_kw": None,
+          "learned_max_kw": 3.0},
+    f"window {_cp_latch_w.engaged} {_cp_latch_w.planned(1.0, 5.0)} store {_cp_latch_s.engaged}",
+)
+
+# Item 8: the overdraw drop. A top learned on mild nights (3.0 kW) against
+# ordinary ceiling-written intervals drawing 20 % more at -10 degC: the store
+# drops on the second. Null control: 10 % more, five times, keeps it.
+_cp_over = _cp_store([3.0] * 12)
+_cp_fold(_cp_over, 3.6, _CP_CEIL, None)
+_cp_over_one = len(_cp_over.ceiling)
+_cp_fold(_cp_over, 3.6, _CP_CEIL, None)
+_cp_near = _cp_store([3.0] * 12)
+for _cp_k in range(5):
+    _cp_fold(_cp_near, 3.3, _CP_CEIL, None)
+_cp_mid_over = _cp_store([3.0] * 12)
+for _cp_k in range(5):
+    _cp_fold(_cp_mid_over, 3.6, _CP_MID, None)
+R.check(
+    "item 8: two ordinary ceiling-written draws 20 % over the learned top drop the "
+    "store; one does not, 10 % over never does, and a sub-ceiling draw is no test",
+    _cp_over_one == 12 and len(_cp_over.ceiling) == 0
+    and len(_cp_near.ceiling) == 12 and len(_cp_mid_over.ceiling) == 12,
+    f"{_cp_over_one} {len(_cp_over.ceiling)} {len(_cp_near.ceiling)} {len(_cp_mid_over.ceiling)}",
+)
+_cp_rearm = _cp_store([3.0] * 12)
+_cp_fold(_cp_rearm, 3.6, _CP_CEIL, None)
+_cp_rearm.observe_ceiling(3.0, _CP_NOW + 60.0)
+_cp_fold(_cp_rearm, 3.6, _CP_CEIL, None)
+R.check(
+    "a new probe sample restarts the overdraw count",
+    len(_cp_rearm.ceiling) == 13 and _cp_rearm.overdraws == 1,
+    f"{len(_cp_rearm.ceiling)} {_cp_rearm.overdraws}",
+)
+
+# Persistence (item 7's clock lives here): the store round-trips through the
+# accuracy document, a store-only record keeps it, and every cell is declared.
+_cp_doc_range = _cp_store([3.0] * 12)
+_cp_doc_range.overdraws = 1
+_cp_tracker = _CpTracker()
+_cp_tracker.draw = _cp_doc_range
+_cp_doc = _cp_tracker.as_dict()
+_cp_back = _CpTracker.from_dict(_cp_doc).draw
+R.check(
+    "the store and its overdraw count persist through the accuracy store, a store-only "
+    "record (no window, no configuration) included, and the domains admit every cell",
+    "draw" in _cp_doc and list(_cp_back.ceiling) == list(_cp_doc_range.ceiling)
+    and _cp_back.overdraws == 1 and _cp_back.config is None
+    and _cp_back.learned_max_kw(_CP_NOW) == 3.0
+    and _cp_admitted("accuracy", {"accuracy": {"draw": _cp_doc["draw"]}})
+    and "draw" not in _CpTracker().as_dict(),
+    f"{_cp_doc.get('draw')}",
+)
+_cp_junk = _cp_dr.DrawRange.from_dict({
+    "ceiling": [[3.0, _CP_NOW], ["x", 1.0], [float("nan"), 1.0], [0.1, 1.0], [3.0], [3.1, float("inf")]],
+    "overdraws": True,
+})
+R.check(
+    "an unreadable store row is dropped, not the record; a non-count overdraw reads 0",
+    list(_cp_junk.ceiling) == [(3.0, _CP_NOW)] and _cp_junk.overdraws == 0,
+    f"{list(_cp_junk.ceiling)} {_cp_junk.overdraws}",
+)
+
+# -- the experiment's kinds, clocks and gates ---------------------------------
+_CP_LEAKY = _cp_sid.HousePlant(ua=0.35, capacity=12.0, gains=0.3)
+_CP_TIGHT = _cp_sid.HousePlant(ua=0.12, capacity=4.0, gains=0.3)
+_CP_WEE = _cp_sid.HousePlant(ua=0.05, capacity=1.2, gains=0.3)
+
+
+def _cp_cfg(**kw):
+    return _cp_sid.SysIdConfig(enabled=True, **kw)
+
+
+R.check(
+    "the probe's duration search: 2.0 h on the leaky house, 1.0 h on the tight one "
+    "against the 0.8 K bound, none on a house no two-cycle step fits",
+    _cp_sid.probe_step_hours(_CP_LEAKY, None, 21.0, 2.0, 15.0, _cp_cfg()) == 2.0
+    and _cp_sid.probe_step_hours(_CP_TIGHT, None, 21.0, 2.0, 15.0, _cp_cfg()) == 1.0
+    and _cp_sid.probe_step_hours(_CP_WEE, None, 21.0, 2.0, 15.0, _cp_cfg()) is None,
+)
+R.check(
+    "item 14, both sides of the bound: the probe takes the full 0.8 K, where the fit's "
+    "noise-headroom bound (0.65 K) would leave the tight house one cycle and refuse it",
+    _cp_sid.probe_step_hours(
+        _CP_TIGHT, None, 21.0, 2.0, 15.0,
+        _cp_cfg(max_excursion_c=_cp_sid.DEFAULT_MAX_EXCURSION_C - _cp_sid.SIZING_NOISE_HEADROOM_C),
+    ) is None,
+)
+
+
+def _cp_probe_store(samples, newest_days_ago):
+    return _cp_store([3.0] * samples, newest_s=(_CP_T0 - timedelta(days=newest_days_ago)).timestamp())
+
+
+_cp_armable = {
+    "unconverged": _cp_sid.armable(_cp_cfg(), _CP_T0, None, 150, None, None),
+    "199": _cp_sid.armable(_cp_cfg(), _CP_T0, None, 199, None, None),
+    "converged, no probe": _cp_sid.armable(_cp_cfg(), _CP_T0, None, 482, None, None),
+    "converged, probe": _cp_sid.armable(_cp_cfg(), _CP_T0, None, 482, _cp_dr.DrawRange(), None),
+    "fit clock, probe": _cp_sid.armable(
+        _cp_cfg(), _CP_T0, _CP_T0 - timedelta(days=3), 150, _cp_dr.DrawRange(), None),
+    "unlearned 6 d": _cp_sid.armable(_cp_cfg(), _CP_T0, None, 482, _cp_probe_store(4, 6), None),
+    "unlearned 8 d": _cp_sid.armable(_cp_cfg(), _CP_T0, None, 482, _cp_probe_store(4, 8), None),
+    "learned 29 d": _cp_sid.armable(_cp_cfg(), _CP_T0, None, 482, _cp_probe_store(12, 29), None),
+    "learned 31 d": _cp_sid.armable(_cp_cfg(), _CP_T0, None, 482, _cp_probe_store(12, 31), None),
+    "attempt 3 d": _cp_sid.armable(
+        _cp_cfg(), _CP_T0, None, 482, _cp_dr.DrawRange(), _CP_T0 - timedelta(days=3)),
+}
+R.check(
+    "the kind: the fit while unconverged (150, 199), the probe once converged where "
+    "the install can run one, and a published refusal where it cannot",
+    _cp_armable["unconverged"] == ("fit", "") and _cp_armable["199"] == ("fit", "")
+    and _cp_armable["converged, probe"] == ("ceiling_probe", "")
+    and _cp_armable["converged, no probe"][0] is None
+    and "house already converged" in _cp_armable["converged, no probe"][1]
+    and _cp_armable["fit clock, probe"] == ("ceiling_probe", ""),
+    f"{_cp_armable}",
+)
+R.check(
+    "each kind its own clock: the probe waits 7 days unlearned and 30 once learned, from "
+    "the store's newest sample or this process's last probe step",
+    _cp_armable["unlearned 6 d"][0] is None and _cp_armable["unlearned 8 d"][0] == "ceiling_probe"
+    and _cp_armable["learned 29 d"][0] is None and _cp_armable["learned 31 d"][0] == "ceiling_probe"
+    and _cp_armable["attempt 3 d"][0] is None,
+    f"{_cp_armable}",
+)
+
+
+def _cp_night(kind_samples=482, probe=True, **cfg):
+    """An armed experiment on the leaky house, its outcome and override per cycle."""
+    s = _cp_sid.SystemIdentification(_cp_cfg(**cfg))
+    armed = s.arm(_CP_T0, learner_samples=kind_samples, probe=_cp_dr.DrawRange() if probe else None)
+    return s, armed
+
+
+def _cp_step(s, k, room=21.0, prices=np.linspace(0.5, 2.0, 48), price=0.5, outdoor=2.0, at=_CP_T0):
+    return s.step(
+        at + timedelta(minutes=30 * k), room, outdoor, price, prices, 482, 5.0,
+        cop=3.0, plan_power_kw=1.5, house=_CP_LEAKY,
+    )
+
+
+_cp_run, _cp_run_armed = _cp_night()
+_cp_overrides = [_cp_step(_cp_run, k) for k in range(8)]
+R.check(
+    "a converged house arms a probe: it settles an hour on the plan, steps the configured "
+    "5.0 kW for four intervals, then hands back to the plan, fitting and adopting nothing",
+    _cp_run_armed and _cp_overrides == [None, None, None, 5.0, 5.0, 5.0, 5.0, None]
+    and _cp_run.phase == _cp_sid.PHASE_DONE and _cp_run.result.completed is False
+    and _cp_run.result.reason == "ceiling probe ran 2.0 h at 5.00 kW"
+    and _cp_run.last_run is None and _cp_run.probe_run == _CP_T0 + timedelta(hours=1),
+    f"{_cp_overrides} {_cp_run.phase} {_cp_run.result.reason!r}",
+)
+_cp_view = _cp_run.as_dict()
+R.check(
+    "the view names the kind and the last arm press",
+    _cp_view["kind"] == "ceiling_probe" and _cp_view["last_attempt"] == _CP_T0.isoformat()
+    and _cp_view["held"] is None,
+    f"{_cp_view}",
+)
+_cp_none, _cp_none_armed = _cp_night(probe=False)
+R.check(
+    "a converged house with no meter or no flow set-point is refused at the press, and "
+    "the refusal is published (it used to arm and idle in silence)",
+    _cp_none_armed is False and not _cp_none.active
+    and "house already converged" in _cp_none.result.reason
+    and "no metered flow set-point" in _cp_none.result.reason,
+    f"{_cp_none.result.reason!r}",
+)
+for _cp_label, _cp_kw in (
+    ("outside the night window", {"at": _CP_T0 - timedelta(hours=6)}),
+    ("outside the outdoor band", {"outdoor": 14.0}),
+    ("on an expensive hour", {"price": 1.9}),
+    ("on a flat price", {"prices": np.full(48, 1.0), "price": 1.0}),
+):
+    _cp_g, _ = _cp_night()
+    _cp_g_out = [_cp_step(_cp_g, k, **_cp_kw) for k in range(8)]
+    R.check(
+        f"the comfort and price gates hold the probe: none starts {_cp_label}",
+        _cp_g_out == [None] * 8 and _cp_g.phase == _cp_sid.PHASE_ARMED,
+        f"{_cp_g_out} {_cp_g.phase}",
+    )
+_cp_flat_fit = _cp_sid.SystemIdentification(_cp_cfg())
+_cp_flat_fit.arm(_CP_T0, learner_samples=0)
+R.check(
+    "flat-price null: the fit's gate is unchanged on a flat price (ready), the probe's "
+    "refuses it",
+    _cp_flat_fit.conditions_met(_CP_T0, 2.0, 1.0, np.full(48, 1.0), 0) == (True, "ready")
+    and _cp_g.conditions_met(_CP_T0, 2.0, 1.0, np.full(48, 1.0), 0)[0] is False,
+)
+_cp_hot, _ = _cp_night()
+_cp_hot_out = [_cp_step(_cp_hot, k, room=21.0 + (0.9 if k >= 4 else 0.0)) for k in range(6)]
+R.check(
+    "the comfort abort still stops a probe mid-step",
+    _cp_hot.phase == _cp_sid.PHASE_ABORTED and _cp_hot_out[-1] is None
+    and "excursion" in _cp_hot.result.reason,
+    f"{_cp_hot_out} {_cp_hot.phase}",
+)
+_cp_tightp = _cp_sid.SystemIdentification(_cp_cfg())
+_cp_tightp.arm(_CP_T0, learner_samples=482, probe=_cp_dr.DrawRange())
+_cp_tight_out = [
+    _cp_tightp.step(_CP_T0 + timedelta(minutes=30 * k), 21.0, 2.0, 0.5, np.linspace(0.5, 2.0, 48),
+                    482, 5.0, cop=3.0, plan_power_kw=1.5, house=_CP_TIGHT)
+    for k in range(7)
+]
+R.check(
+    "item 15: the searched duration is the one stepped -- the tight house's 1.0 h probe "
+    "steps two intervals, not the configured 2.0 h",
+    _cp_tight_out == [None, None, None, 5.0, 5.0, None, None]
+    and _cp_tightp.result.reason == "ceiling probe ran 1.0 h at 5.00 kW",
+    f"{_cp_tight_out} {_cp_tightp.result.reason!r}",
+)
+
+# The learners' freeze (#2808): an armed experiment is held with the reason
+# published; a started one still aborts.
+_cp_fz, _ = _cp_night()
+_cp_fz.stand_down("window open")
+_cp_fz_held = (_cp_fz.phase, _cp_fz.held, _cp_fz.as_dict()["held"])
+_cp_fz_out = [_cp_step(_cp_fz, k) for k in range(3)]
+_cp_fz.stand_down("window open")
+R.check(
+    "a freeze holds an armed experiment and publishes why; once started, it aborts",
+    _cp_fz_held == (_cp_sid.PHASE_ARMED, "window open", "window open")
+    and _cp_fz_out[0] is None and _cp_fz.phase == _cp_sid.PHASE_ABORTED
+    and _cp_fz.result.reason == "window open",
+    f"{_cp_fz_held} {_cp_fz.phase} {_cp_fz.result.reason!r}",
+)
+
+# -- the coordinator's wiring -------------------------------------------------
+_CP_COORD_DATA = {"tibber_token": "x", "weather_entity": "weather.home"}
+_CP_PROBE_CFG = {
+    "pump_duty_mode": "control", "space_setpoint_unit": "flow",
+    "space_setpoint_entity": "number.water_set", "heat_pump_power_entity": "sensor.hp_power",
+}
+R.check(
+    "eligibility is install-level and shared with the arbiter's flow-command rule: a "
+    "meter and a flow set-point driven in Control",
+    _cp_eligible(_CP_PROBE_CFG) is True
+    and _cp_eligible({**_CP_PROBE_CFG, "heat_pump_power_entity": ""}) is False
+    and _cp_eligible({**_CP_PROBE_CFG, "space_setpoint_unit": "indoor"}) is False
+    and _cp_eligible({**_CP_PROBE_CFG, "pump_duty_mode": "observe"}) is False,
+)
+
+
+def _cp_coord(samples=482, **config):
+    c = _cp_cmod.HeatPumpOptimizerCoordinator(FakeHass(), _CpEntry(data={**_CP_COORD_DATA, **config}))
+    c._house_heat_loss_samples = samples
+    with_config(c, {"system_identification_enabled": True})
+
+    async def _no_refresh():
+        return None
+
+    c.async_request_refresh = _no_refresh
+    _cp_aio.run(c.async_arm_system_identification())
+    return c
+
+
+_cp_c_probe = _cp_coord(**_CP_PROBE_CFG)
+_cp_c_none = _cp_coord()
+_cp_c_fit = _cp_coord(samples=150, **_CP_PROBE_CFG)
+R.check(
+    "the button's route: a converged flow-metered install arms the probe, a converged "
+    "duty-cycling one is refused with the reason, an unconverged one arms the fit",
+    _cp_c_probe._sysid.active and _cp_c_probe._sysid.kind == "ceiling_probe"
+    and not _cp_c_none._sysid.active and "house already converged" in _cp_c_none._sysid.result.reason
+    and _cp_c_fit._sysid.active and _cp_c_fit._sysid.kind == "fit",
+    f"{_cp_c_probe._sysid.kind} {_cp_c_none._sysid.result.reason!r} {_cp_c_fit._sysid.kind}",
+)
+# Item 7: the probe clock survives a restart, through the persisted store.
+_cp_restart_store = _cp_probe_store(4, 3)
+_cp_restarted = _cp_sid.SystemIdentification(_cp_cfg())
+R.check(
+    "item 7: a probe three days ago, read back from the stored record by a fresh "
+    "experiment object, still refuses the press; eight days ago arms",
+    _cp_restarted.arm(_CP_T0, learner_samples=482, probe=_cp_dr.DrawRange.from_dict(
+        _cp_restart_store.as_dict())) is False
+    and "ceiling probe ran 3.0 days ago" in _cp_restarted.result.reason
+    and _cp_sid.SystemIdentification(_cp_cfg()).arm(
+        _CP_T0, learner_samples=482,
+        probe=_cp_dr.DrawRange.from_dict(_cp_probe_store(4, 8).as_dict())) is True,
+    f"{_cp_restarted.result.reason!r}",
+)
+
+
+def _cp_sysid_cycle(host):
+    async def _unusable(hass, fn, *args):
+        raise _cp_cmod.ProcessWorkerUnavailable("features: executor route")
+
+    real, _cp_cmod._await_process = _cp_cmod._await_process, _unusable
+    try:
+        return _cp_aio.run(host._run_system_identification(np.array([1.0])))
+    finally:
+        _cp_cmod._await_process = real
+
+
+_cp_frz = _cp_coord(**_CP_PROBE_CFG)
+_cp_frz._learning_frozen = lambda *keys: "an open window"
+_cp_sysid_cycle(_cp_frz)
+_cp_frz_armed = (_cp_frz._sysid.phase, _cp_frz._sysid.held)
+_cp_frz._sysid.phase = _cp_sid.PHASE_STEP
+_cp_sysid_cycle(_cp_frz)
+R.check(
+    "the coordinator's freeze holds the armed probe with its reason, and aborts a started one",
+    _cp_frz_armed == (_cp_sid.PHASE_ARMED, "an open window")
+    and _cp_frz._sysid.phase == _cp_sid.PHASE_ABORTED,
+    f"{_cp_frz_armed} {_cp_frz._sysid.phase}",
+)
+
+
+# Item 30: the fold routes on the mode the interval's own action carried,
+# captured in ``_pending_prediction`` beside its split and command -- never on
+# the action adopted since. Two cycles half an hour apart (#2262).
+def _cp_pair(first, then):
+    c = _cp_cmod.HeatPumpOptimizerCoordinator(FakeHass(), _CpEntry(data=dict(_CP_COORD_DATA)))
+    c._measured_power = 3.0
+    c._current_action = dict(first)
+    c._record_accuracy()
+    c._pending_prediction["when"] -= timedelta(minutes=30)
+    c._pending_prediction["flow_command"] = _CP_CEIL
+    c._current_action = dict(then)
+    c._record_accuracy()
+    return len(c._accuracy.draw.ceiling), len(c._accuracy.draw.samples), c._pending_prediction["mode"]
+
+
+_CP_STEP = {"power": 5.0, "dhw_power": 0.0, "mode": "system_identification"}
+_CP_PLAN = {"power": 5.0, "dhw_power": 0.0, "mode": "eco"}
+_cp_last = _cp_pair(_CP_STEP, _CP_PLAN)
+_cp_before = _cp_pair(_CP_PLAN, _CP_STEP)
+R.check(
+    "item 30: a run's last step interval goes to the store although the plan has been "
+    "adopted since; a plan p_max interval just before a run goes to the window although "
+    "the experiment has started since",
+    _cp_last[:2] == (1, 0) and _cp_before[:2] == (0, 1)
+    and _cp_last[2] == "eco" and _cp_before[2] == "system_identification",
+    f"last {_cp_last} before {_cp_before}",
+)
+
+
+# The synthetic pump: a known 3.0 kW electrical maximum behind a configured
+# 5.0 kW, drawn whenever the ceiling is written (and 1.5 kW at the plan's
+# mid level). Probe nights through the production experiment, the pairing the
+# coordinator makes (the interval's own mode, split and command, read at the
+# next cycle), and the production fold. Recovered within 2 % at both step
+# lengths; the control routes on the mode one interval late, as reading the
+# action at the fold would.
+def _cp_pump(house, nights, late=False, noise=0.02, seed=3):
+    rng = np.random.default_rng(seed)
+    store = _cp_dr.DrawRange()
+    for night in range(nights):
+        start = _CP_T0 + timedelta(days=8 * night)
+        s = _cp_sid.SystemIdentification(_cp_cfg())
+        assert s.arm(start, learner_samples=482, probe=store), s.result.reason
+        pending, prev_mode = None, None
+        for k in range(9):
+            now = start + timedelta(minutes=30 * k)
+            override = s.step(now, 21.0, 2.0, 0.5, np.linspace(0.5, 2.0, 48), 482, 5.0,
+                              cop=3.0, plan_power_kw=1.5, house=house)
+            mode = "system_identification" if override is not None else "eco"
+            power = 1.5 if override is None else override
+            if pending is not None:
+                key = mode if late else pending["mode"]
+                drawn = (3.0 if pending["command"] is _CP_CEIL else 1.5) * (1.0 + noise * rng.standard_normal())
+                _cp_dr.fold(store, drawn, (pending["power"], 0.0), _cp_params(), frozen=False,
+                            distorted=False, defrost=False, command=pending["command"],
+                            experiment_s=pending["when"] if key == "system_identification" else None)
+            pending = {"mode": mode, "power": power, "when": now.timestamp(),
+                       "command": _CP_CEIL if power >= 5.0 else _CP_MID}
+            prev_mode = mode
+    return store, prev_mode
+
+
+_cp_pump_leaky, _ = _cp_pump(_CP_LEAKY, 3)
+_cp_pump_tight, _ = _cp_pump(_CP_TIGHT, 6)
+_cp_pump_late, _ = _cp_pump(_CP_TIGHT, 6, late=True)
+_cp_top = lambda d: d.learned_max_kw(d.ceiling_since() or 0.0)  # noqa: E731
+R.check(
+    "the synthetic pump's known 3.0 kW maximum is recovered within 2 %: three 2.0 h "
+    "probes (four store samples each) and six 1.0 h probes (two each)",
+    len(_cp_pump_leaky.ceiling) == 12 and abs(_cp_top(_cp_pump_leaky) - 3.0) <= 0.06
+    and len(_cp_pump_tight.ceiling) == 12 and abs(_cp_top(_cp_pump_tight) - 3.0) <= 0.06
+    and max(d for d, _a in _cp_pump_leaky.samples) < 2.0 and _cp_pump_leaky.engaged is False,
+    f"leaky {len(_cp_pump_leaky.ceiling)} {_cp_top(_cp_pump_leaky)} "
+    f"tight {len(_cp_pump_tight.ceiling)} {_cp_top(_cp_pump_tight)}",
+)
+R.check(
+    "control: routed on the mode one interval late, the 1.0 h probes store one sample "
+    "each and a probe interval reaches the window",
+    len(_cp_pump_late.ceiling) == 6 and _cp_top(_cp_pump_late) is None
+    and max(d for d, _a in _cp_pump_late.samples) > 2.5,
+    f"late {len(_cp_pump_late.ceiling)} window {len(_cp_pump_late.samples)}",
+)
+
+# #2808: the outcome is recorded. The bulky view stays unrecorded; a compact
+# outcome row beside it is recorded, so a refusal has a history.
+_cp_status = _CpStatus.__new__(_CpStatus)
+_cp_status._data = lambda: {"system_identification": _cp_none.as_dict()}
+_cp_attrs = _CpStatus.extra_state_attributes.fget(_cp_status)
+R.check(
+    "the recorded outcome names the kind, the phase, the refusal and the last press, "
+    "outside the unrecorded set, where the bulky view stays",
+    _cp_attrs["system_identification_outcome"] == {
+        "kind": "fit", "phase": "idle", "held": None,
+        "reason": _cp_none.result.reason, "last_attempt": _CP_T0.isoformat(),
+    }
+    and "system_identification_outcome" not in _CpStatus._unrecorded_attributes
+    and "system_identification" in _CpStatus._unrecorded_attributes,
+    f"{_cp_attrs.get('system_identification_outcome')}",
+)
+
+
+# The boundaries, each at its exact edge (the mutation inventory's CMP_BOUND
+# operator moves each by one), and the arms the checks above leave implicit.
+_CP_EDGE_T = _CP_T0 - timedelta(days=30)
+R.check(
+    "the fit's clock is inclusive: exactly 30 days after its last run arms it; 200 learner "
+    "samples is converged, 199 is not",
+    _cp_sid.armable(_cp_cfg(), _CP_T0, _CP_EDGE_T, 150, None, None) == ("fit", "")
+    and _cp_sid.armable(_cp_cfg(), _CP_T0, None, 200, None, None)[0] is None
+    and _cp_sid.armable(_cp_cfg(), _CP_T0, None, 199, None, None) == ("fit", ""),
+)
+R.check(
+    "the probe's clock is inclusive: exactly 7 days after the newest store sample arms it",
+    _cp_sid.armable(_cp_cfg(), _CP_T0, None, 482, _cp_probe_store(4, 7), None) == ("ceiling_probe", ""),
+)
+_cp_fit200 = _cp_sid.SystemIdentification(_cp_cfg())
+_cp_fit200.arm(_CP_T0, learner_samples=0)
+R.check(
+    "a fit armed unconverged stands down at the start once the learner reaches 200 samples",
+    _cp_fit200.conditions_met(_CP_T0, 2.0, 0.5, np.linspace(0.5, 2.0, 48), 200)
+    == (False, "house already converged")
+    and _cp_fit200.conditions_met(_CP_T0, 2.0, 0.5, np.linspace(0.5, 2.0, 48), 199) == (True, "ready"),
+)
+R.check(
+    "the lapse is inclusive: a top exactly 45 days old still stands",
+    _cp_store([3.0] * 12).learned_max_kw(_CP_NOW + 45 * _CP_DAY) == 3.0,
+)
+_cp_edge_store = _cp_dr.DrawRange()
+for _cp_v in (1.0,) * 12:
+    _cp_edge_store.observe_idle(_cp_v)
+R.check(
+    "the store's edges: a set-point exactly CEILING_TOLERANCE_K under the ceiling is the "
+    "ceiling, a draw exactly at the idle margin is the idle draw",
+    _cp_edge_store.takes_ceiling(3.0, _CpNS(written_c=54.5, gate_c=25.0, ceiling_c=55.0))
+    and not _cp_edge_store.takes_ceiling(3.0, _CpNS(written_c=54.25, gate_c=25.0, ceiling_c=55.0))
+    and not _cp_edge_store.takes_ceiling(1.25, _CP_CEIL)
+    and _cp_edge_store.takes_ceiling(1.26, _CP_CEIL),
+)
+_cp_edge_over = _cp_store([3.0] * 12)
+for _cp_k in range(2):
+    _cp_fold(_cp_edge_over, 3.6, _CpNS(written_c=54.5, gate_c=25.0, ceiling_c=55.0), None)
+R.check(
+    "an overdraw counts at a set-point exactly CEILING_TOLERANCE_K under the ceiling",
+    len(_cp_edge_over.ceiling) == 0,
+)
+_cp_full = _cp_store([3.0] * 49)
+R.check(
+    "the store keeps the newest 48 samples (CEILING_WINDOW)",
+    len(_cp_full.ceiling) == 48 and _cp_full.ceiling[0][1] == _CP_NOW - 47 * 1800.0,
+)
+_cp_rows = _cp_dr.DrawRange.from_dict({
+    "ceiling": [[_cp_dr.RUNNING_FLOOR_KW, _CP_NOW], [0.26, _CP_NOW]], "overdraws": -1,
+})
+R.check(
+    "a stored row at the standby floor is dropped, one above it kept; a negative count reads 0",
+    [d for d, _t in _cp_rows.ceiling] == [0.26] and _cp_rows.overdraws == 0,
+)
+_cp_plain = _cp_arbitrate({"mode": "eco", "power": 0.0}, power_schedule=(5.0,))
+R.check(
+    "a plan action's power is not the experiment's: the plan's own step (5.0 kW) decides "
+    "duty and level although the action reads 0 kW",
+    _cp_plain[:2] == ("space", 55.0),
+    f"{_cp_plain}",
+)
+_cp_status._data = lambda: {}
+R.check(
+    "no experiment view, no outcome row",
+    _CpStatus.extra_state_attributes.fget(_cp_status)["system_identification_outcome"] is None,
+)
+from heatpump_optimizer.thermal_model import ThermalParameters as _CpPlant  # noqa: E402
+
+_cp_planted = _cp_sid.SystemIdentification(_cp_cfg())
+_cp_prior = _cp_planted.config.gains_prior_kw
+_cp_planted_ok = _cp_planted.arm(_CP_T0, plant=_CpPlant(), learner_samples=482, probe=_cp_dr.DrawRange())
+R.check(
+    "a probe armed on a declared plant seeds no fit: no slab pair, no re-seeded gains prior",
+    _cp_planted_ok and _cp_planted.kind == "ceiling_probe" and _cp_planted._slab_pair is None
+    and _cp_planted._slab_prior is None and _cp_planted.config.gains_prior_kw == _cp_prior,
+    f"{_cp_planted._slab_pair} {_cp_planted.config.gains_prior_kw} {_cp_prior}",
+)
+_cp_nofit = _cp_sid.SystemIdentification(_cp_cfg())
+_cp_nofit.arm(_CP_T0, learner_samples=482, probe=_cp_dr.DrawRange())
+_cp_nofit_out = [
+    _cp_nofit.step(_CP_T0 + timedelta(minutes=30 * k), 21.0, 2.0, 0.5, np.linspace(0.5, 2.0, 48),
+                   482, 5.0, cop=3.0, plan_power_kw=1.5, house=_CP_WEE)
+    for k in range(5)
+]
+R.check(
+    "a house no two-cycle probe fits is aborted at the step with the reason, injecting nothing "
+    "and starting no probe clock",
+    _cp_nofit_out == [None] * 5 and _cp_nofit.phase == _cp_sid.PHASE_ABORTED
+    and _cp_nofit.result.reason == "no probe step of two cycles fits within the comfort bound"
+    and _cp_nofit.probe_run is None,
+    f"{_cp_nofit_out} {_cp_nofit.phase} {_cp_nofit.result.reason!r}",
+)
+
+_cp_eq_over = _cp_store([3.0] * 12)
+for _cp_k in range(3):
+    _cp_fold(_cp_eq_over, (1.0 + _cp_dr.AGREE_TOLERANCE) * 3.0, _CP_CEIL, None)
+R.check(
+    "a draw exactly AGREE_TOLERANCE over the learned top is no overdraw",
+    len(_cp_eq_over.ceiling) == 12 and _cp_eq_over.overdraws == 0,
+)
+_cp_peak, _ = _cp_sid._predict_step_excursion_plant(
+    _CP_LEAKY, 21.0, 2.0, 15.0, 2.0, _cp_sid.SysIdConfig().relax_hours)
+R.check(
+    "the duration search's bound is inclusive: a peak exactly at the bound keeps the 2.0 h "
+    "step, one ulp under it shortens to 1.5 h",
+    _cp_sid.probe_step_hours(_CP_LEAKY, None, 21.0, 2.0, 15.0, _cp_cfg(max_excursion_c=_cp_peak)) == 2.0
+    and _cp_sid.probe_step_hours(
+        _CP_LEAKY, None, 21.0, 2.0, 15.0, _cp_cfg(max_excursion_c=float(np.nextafter(_cp_peak, 0.0)))
+    ) == 1.5,
+)
+
+
+def _cp_begin(house, cop=3.0, kind="fit"):
+    s = _cp_sid.SystemIdentification(_cp_cfg())
+    s.arm(_CP_T0, learner_samples=0 if kind == "fit" else 482, probe=_cp_dr.DrawRange())
+    s.phase, s._baseline_temp = _cp_sid.PHASE_SETTLING, 21.0
+    s._begin_step_phase(_CP_T0, 2.0, 5.0, cop, house)
+    return s.phase == _cp_sid.PHASE_STEP, s._step_power, s.phase
+
+
+R.check(
+    "the fit's degenerate-house fallback is strict: a loss or a mass of exactly 1e-6 is "
+    "no house to size on, and steps 0.3 of the maximum",
+    _cp_begin(_cp_sid.HousePlant(ua=1e-6, capacity=4.0, gains=0.3))[:2] == (True, 1.5)
+    and _cp_begin(_cp_sid.HousePlant(ua=0.12, capacity=1e-6, gains=0.3))[:2] == (True, 1.5),
+)
+_CP_FLOORED = _cp_sid.HousePlant(ua=0.02, capacity=0.3, gains=0.3, slab_mass=0.05, slab_transfer=0.24)
+R.check(
+    "the probe prices its heat at the fit's COP floor (0.1): at a reported COP of 0.05 the "
+    "0.5 kW it injects fits no step on this house, where 0.25 kW would fit 2.0 h",
+    _cp_begin(_CP_FLOORED, cop=0.05, kind="probe")[2] == _cp_sid.PHASE_ABORTED
+    and _cp_sid.probe_step_hours(_CP_FLOORED, None, 21.0, 2.0, 0.25, _cp_cfg()) == 2.0,
+)
+
+
+# The quiet windows: the solve honours them (off steps, the silent cap), and
+# the experiment's override replaces the solve's action, so the experiment
+# stands down inside one -- held while armed, aborted once started.
+from heatpump_optimizer import quiet_windows as _cp_qw  # noqa: E402
+from homeassistant.util import dt as _cp_dt  # noqa: E402
+
+R.check(
+    "a step inside a quiet off or silent window is named; outside one, or with none set, it is not",
+    _cp_qw.quiet_reason({"quiet_off_windows": "22:00-23:30"}, _CP_T0) == "inside a quiet off window"
+    and _cp_qw.quiet_reason({"quiet_silent_windows": "22:00-23:30"}, _CP_T0) == "inside a quiet silent window"
+    and _cp_qw.quiet_reason({"quiet_off_windows": "09:00-09:30"}, _CP_T0) is None
+    and _cp_qw.quiet_reason({}, _CP_T0) is None,
+)
+_cp_dt.freeze(_CP_T0)
+try:
+    _CP_ROOM = {"indoor_temp_entity": "sensor.room", "outdoor_temp_entity": "sensor.out"}
+    _cp_quiet = _cp_coord(**_CP_PROBE_CFG, **_CP_ROOM, quiet_off_windows="22:00-23:30")
+    _cp_loud = _cp_coord(**_CP_PROBE_CFG, **_CP_ROOM, quiet_off_windows="09:00-09:30")
+    for _cp_c in (_cp_quiet, _cp_loud):
+        _cp_c._learning_frozen = lambda *keys: None  # the freeze is the check above's
+    _cp_sysid_cycle(_cp_quiet)
+    _cp_quiet_armed = (_cp_quiet._sysid.phase, _cp_quiet._sysid.held)
+    _cp_quiet._sysid.phase = _cp_sid.PHASE_STEP
+    _cp_sysid_cycle(_cp_quiet)
+    _cp_sysid_cycle(_cp_loud)
+finally:
+    _cp_dt.freeze(None)
+R.check(
+    "inside a quiet off window the coordinator holds an armed probe with the reason and aborts "
+    "a started one; a window elsewhere in the day holds nothing",
+    _cp_quiet_armed == (_cp_sid.PHASE_ARMED, "inside a quiet off window")
+    and _cp_quiet._sysid.phase == _cp_sid.PHASE_ABORTED
+    and _cp_loud._sysid.held is None,
+    f"{_cp_quiet_armed} {_cp_quiet._sysid.phase} {_cp_loud._sysid.held!r} {_cp_loud._sysid.result.reason!r}",
+)
+
+# The stand-down decision and the arm are the sysid module's, called by the coordinator in one
+# statement each (R10-CEILING-PROBE review: the logic left the hub).
+from heatpump_optimizer import thermal_model as _cp_tm  # noqa: E402
+from types import SimpleNamespace as _cp_ns  # noqa: E402
+_CP_ROOMED = {"indoor_temp_entity": "sensor.room", "outdoor_temp_entity": "sensor.out"}
+_cp_sig = lambda blocked: _cp_ns(space_blocked=blocked, mode=_cp_ns(label="cooling"))  # noqa: E731
+_cp_hold = lambda blocked, frozen, cfg: _cp_sid.hold_reason(_cp_sig(blocked), frozen, cfg, _CP_T0)  # noqa: E731
+R.check(
+    "hold_reason ranks a mode that cannot heat first, then the learners' freeze, then an unread "
+    "room, then a quiet window, and is None when none holds",
+    _cp_hold(True, "external_heat_source", {"quiet_off_windows": "22:00-23:30"})
+    == "heat pump mode cooling cannot heat the house"
+    and _cp_hold(False, "external_heat_source", {"quiet_off_windows": "22:00-23:30"}) == "external_heat_source"
+    and _cp_hold(False, None, {"quiet_off_windows": "22:00-23:30"}) == _cp_tm.INDOOR_UNCONFIGURED_FREEZE
+    and _cp_hold(False, None, {**_CP_ROOMED, "quiet_off_windows": "22:00-23:30"}) == "inside a quiet off window"
+    and _cp_hold(False, None, {**_CP_ROOMED, "quiet_off_windows": "09:00-09:30"}) is None
+    and _cp_hold(False, None, None) is None,
+)
+_cp_armed = _cp_sid.SystemIdentification(_cp_cfg())
+_cp_armed.config.enabled = False
+class _CpOffCfg(dict):
+    system_identification_enabled = False
+
+
+_cp_off_cfg = _CpOffCfg()
+R.check(
+    "arm_from_config takes the switch from the entry's configuration: off arms nothing, whatever the sysid "
+    "config held before",
+    _cp_sid.arm_from_config(_cp_armed, _CP_T0, _cp_off_cfg, None, 0, None) is False
+    and _cp_armed.config.enabled is False and _cp_armed.phase == _cp_sid.PHASE_IDLE,
+)
+
+
+import logging as _cp_logging  # noqa: E402
+
+
+class _CpLogs(_cp_logging.Handler):
+    def __init__(self):
+        super().__init__(_cp_logging.INFO)
+        self.lines = []
+
+    def emit(self, record):
+        self.lines.append(record.getMessage())
+
+
+class _CpOnCfg(dict):
+    system_identification_enabled = True
+
+
+_cp_logs = _CpLogs()
+_cp_log = _cp_logging.getLogger(_cp_sid.__name__)
+_cp_log.addHandler(_cp_logs)
+_cp_prev_level = _cp_log.level
+_cp_log.setLevel(_cp_logging.INFO)
+try:
+    _cp_on = _cp_sid.SystemIdentification(_cp_cfg())
+    _cp_on_armed = _cp_sid.arm_from_config(_cp_on, _CP_T0, _CpOnCfg(_CP_PROBE_CFG), None, 482, _cp_dr.DrawRange())
+    _cp_on_lines = [m for m in _cp_logs.lines if "armed" in m]
+    _cp_logs.lines.clear()
+    _cp_off = _cp_sid.SystemIdentification(_cp_cfg())
+    _cp_sid.arm_from_config(_cp_off, _CP_T0, _CpOffCfg(), None, 482, _cp_dr.DrawRange())
+    _cp_off_lines = [m for m in _cp_logs.lines if "armed" in m]
+finally:
+    _cp_log.removeHandler(_cp_logs)
+    _cp_log.setLevel(_cp_prev_level)
+R.check(
+    "arm_from_config logs the armed kind once when it arms, and says nothing of arming when it does not",
+    _cp_on_armed is True and _cp_on.kind == _cp_sid.KIND_PROBE
+    and _cp_on_lines == [f"System identification armed ({_cp_on.kind}); it will start at the next mild, cheap night hour"]
+    and _cp_off_lines == [],
+    f"{_cp_on_armed} {_cp_on.kind} {_cp_on_lines} {_cp_off_lines}",
 )
 
 
