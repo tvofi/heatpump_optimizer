@@ -356,8 +356,14 @@ def run(c: Ctx, apply: bool, out=print) -> int:
             + ", ".join(blockers))
         if apply:
             return 2
+    if apply:   # tip ages need the objects; an unread age keeps the ref (a dry run keeps them too)
+        c.git("fetch", "--quiet", "--no-tags", c.remote, "+refs/heads/*:refs/remotes/origin/*")
     before = snapshot(c)
     p = plan_refs(c, before["heads"])
+    by_rule: dict = {}
+    for _n, _s, _f, rule, _a in p["rows"]:
+        by_rule[rule] = by_rule.get(rule, 0) + 1
+    out("rules: " + ", ".join(f"{k}={v}" for k, v in sorted(by_rule.items())))
     doomed = [a for v, a, _s in p["actions"] if v == "delete"]
     out(f"plan: {p['tags']} tag(s), {p['deletes']} delete(s), "
         f"{sum(1 for r in p['rows'] if r[4] == 'keep')} kept")
