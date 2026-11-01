@@ -1,0 +1,6 @@
+DIMS[HEAD] audit-find.js:DIMS: missing [] extra []
+DIMS[HEAD] scopes.json keys: missing [] extra []
+DIMS[HEAD] rotation.json keys: missing [] extra []
+DIMS[HEAD] finding.schema.json:dimension: missing [] extra []
+RESULT dim_roster_readers_disagreeing[HEAD]=0 count (of 4)
+rc=0
