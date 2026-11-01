@@ -13662,7 +13662,8 @@
     "custom_components/heatpump_optimizer/translations/sv.json"
    ],
    "carry": [
-    "From the #3062 round-2 fixer, 2026-11-01: on origin/main, custom_components/heatpump_optimizer/strings.json and translations/en.json disagree at the `pump_duty_mode` entry (the #3062 branch does not touch it). Home Assistant serves en.json, so the shipped English text is not the source text. Fix: make en.json equal strings.json for that entry, and find why the strings/en parity check (if one exists) did not catch it; if none exists, add it. Failing test first: the parity check is red on main's two files. Null control: two identical files pass."
+    "From the #3062 round-2 fixer, 2026-11-01: on origin/main, custom_components/heatpump_optimizer/strings.json and translations/en.json disagree at the `pump_duty_mode` entry (the #3062 branch does not touch it). Home Assistant serves en.json, so the shipped English text is not the source text. Fix: make en.json equal strings.json for that entry, and find why the strings/en parity check (if one exists) did not catch it; if none exists, add it. Failing test first: the parity check is red on main's two files. Null control: two identical files pass.",
+    "From R10-HEAT-METER's approved design (design/R10-HEAT-METER 21f4fbfe9): \"has a heat meter\" becomes probe_install(...).measured_heat, covering both heat keys (heat_pump_heat_energy_entity and #2753's heat_pump_thermal_power_entity). COP-GATE renders the new refusal codes (unaligned_meters and the counter refusals) and never overrides them. Control: a counter install with no electric counter shows unaligned_meters, not a COP gate pass."
    ],
    "resume": {
     "stage": "not-started",
