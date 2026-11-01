@@ -14396,7 +14396,9 @@
     "tools/audit/seat/owed_unactioned.py",
     "dev/governance/roles/standing-dispatch.md"
    ],
-   "carry": [],
+   "carry": [
+    "P322 re-routes P241 (`s6-batch49.md#P241`, V155, the owner: 'record PRs should not need a review at all'), stranded on R10-RECORD-HOLD-APPROVE, done at #2918. Adds tools/audit/seat/ledger.py and dev/governance/roles/standing-dispatch.md to this group's files. The code half may be dispatched alone. - `ledger.review_owed` (`ledger.py:618` at 861f949ae) skips a PR whose `headRefName` equals `record_row.RECORD_BRANCH` (`record/autofix`, `record_row.py:619`). Pass the constant in from `orchestrator_tick.py:701`, and never import `record_row` into `ledger.py`. - `standing-dispatch.md` gains one sentence: a record/autofix PR is never dispatched a reviewer. Its oracle is `record_row.py --plan` equality, `tests/delivery_status.py --require-rows` and `--automerge-check --require-green`. Pay the zero-headroom cap by cutting text. Policy: it merges on tvofi's approving review or under mandate 6329234399. - Not changed: `app_approve.sh` and `merge_train.py`'s `sweep_bots`, which already merges the record PR on the guard alone. - Observed 2026-10-31: `REVIEW OWED: #3028 9e688830` on three consecutive sweeps (02:51Z, 03:00Z, 03:12Z), while `--automerge-check --require-green` printed `AUTOMERGE OK #3028`. - Controls: - A record/autofix PR at an unverdicted head prints no REVIEW OWED. - Null: a fix/ PR in the same state prints it. - One mutant: drop the skip, and the record row fails. triage: dev/programme/triage/s6-batch85.md#P322"
+   ],
    "resume": {
     "stage": "not-started",
     "branch": "handoff/r10-tick-pr-buckets",
