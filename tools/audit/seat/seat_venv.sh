@@ -32,7 +32,9 @@
 # machine path, and export HPO_TYPING_PYTHON to venv-ha/bin/python only when
 # that interpreter exists and the variable is unset -- never overriding a
 # value the seat set. --install-shims copies them, as `python` and `python3`,
-# into the bin directory you name, which goes first on the seats' PATH:
+# into the bin directory you name, which goes first on the seats' PATH, with
+# seat-gh as `gh` (it logs the call to $HPO_STATE_DIR/gh-calls.log, then execs the
+# real gh; gh_calls.py reads the log):
 #
 #   tools/audit/seat/seat_venv.sh && tools/audit/seat/seat_venv.sh --install-shims <seat bin dir>
 #
@@ -280,6 +282,9 @@ case ${1:-} in
     for s in python python3; do
       cp "$ROOT/tools/audit/seat/shims/seat-$s" "$dest/$s" && chmod 755 "$dest/$s"
     done
+    # The gh shim (P284) is installed as `gh`; it logs the call, then execs the
+    # real gh found further along PATH. Read the log with gh_calls.py --top.
+    cp "$ROOT/tools/audit/seat/shims/seat-gh" "$dest/gh" && chmod 755 "$dest/gh"
     printf 'seat_venv: shims installed in %s; they run %s/bin/python3\n' "$dest" "$VENV"
     "$dest/python3" -c 'import sys; print("seat_venv: shim resolves to", sys.executable)' \
       || die "the installed shim does not start; build the venv first"
