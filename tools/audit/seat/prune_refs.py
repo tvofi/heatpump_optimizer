@@ -633,7 +633,7 @@ def _self_test_git(results: list) -> None:
 
     with open(os.path.join(bindir, "gh"), "w") as fh:
         fh.write(f'#!/bin/sh\necho "$@" >> {ghlog}\nexit ${{GH_STUB_RC:-1}}\n')
-    os.chmod(os.path.join(bindir, "gh"), 0o755)
+    os.chmod(os.path.join(bindir, "gh"), 0o700)
     saved_path = os.environ["PATH"]
     os.environ["PATH"] = bindir + os.pathsep + saved_path
 
