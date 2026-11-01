@@ -276,3 +276,113 @@ class EntryConfig(Mapping[str, Any]):
 def _restore(raw: dict[str, Any], parsed: dict[str, Any]) -> EntryConfig:
     """``EntryConfig.__reduce__``'s constructor: the stored values and their parse."""
     return EntryConfig(raw=MappingProxyType(raw), **parsed)
+
+
+# -- the factory reset (R10-FACTORY-RESET) ------------------------------------
+
+#: What a factory reset keeps: the wiring that connects the entry to the house,
+#: each with the reason. Every other stored key is a setting and is dropped.
+_WIRING: dict[str, str] = {
+    "name": "the entry's name (Home Assistant's CONF_NAME), not a setting",
+    const.CONF_COMPRESSOR_FREQ_SENSOR: "an entity assignment",
+    const.CONF_PRICE_SOURCE: "the price source",
+    const.CONF_TIBBER_TOKEN: "the price source's credential",
+    const.CONF_SOLAR_FORECAST_SOURCE: "the solar feed, the price source's sibling: "
+    "its default would leave an assigned radiation sensor unread",
+    const.CONF_TWO_ZONE_MODE: "zone topology, written as the settings in force derive it",
+    const.CONF_UPPER_EMITTER: "emitter topology",
+    const.CONF_LOWER_EMITTER: "emitter topology",
+    const.CONF_DHW_ENABLED: "tank topology, written as the settings in force derive it",
+    const.CONF_WOOD_FURNACE_ENABLED: "furnace topology, written as the settings in force derive it",
+    const.CONF_DHW_WOOD_COIL_ENABLED: "tank plumbing: a coil the furnace heats",
+    const.CONF_MIXING_VALVE_MODE: "valve topology",
+    const.CONF_MIXING_VALVE_WRITE_TARGET_KIND: "what the valve's write entity is",
+    const.CONF_SPACE_SETPOINT_UNIT: "what the setpoint entity's number means",
+    const.CONF_TOPOLOGY_LAYOUT: "the plant layout",
+    const.CONF_TOPOLOGY_POSITIONS: "the plant diagram's sensor positions",
+    const.CONF_ECL110_COMMAND_TOPIC: "the controller's MQTT wiring",
+    const.CONF_ECL110_DISPLACE_SET_TOPIC: "the controller's MQTT wiring",
+    const.CONF_ECL110_STATE_TOPIC: "the controller's MQTT wiring",
+    const.CONF_ECL110_QOS: "the controller's MQTT wiring",
+    const.CONF_ECL110_RETAIN: "the controller's MQTT wiring",
+    const.CONF_MODBUS_PREFILL_PREFIX: "the heat pump device the entities came from",
+    const.CONF_MAIN_FUSE_A: "the house's main fuse: a default arms the fuse guard "
+    "against a fuse the house does not have",
+    const.CONF_MAIN_FUSE_PHASES: "the house's main fuse",
+}
+FACTORY_KEPT: Mapping[str, str] = MappingProxyType({
+    **{
+        key: "an entity assignment"
+        for name, key in vars(const).items()
+        if name.startswith("CONF_") and isinstance(key, str) and key.endswith("_entity")
+    },
+    **_WIRING,
+})
+
+Settings = tuple[Mapping[str, Any], Mapping[str, Any]]
+
+
+def settings_of(data: Mapping[str, Any], options: Mapping[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
+    """The (data, options) keys a factory reset drops: what its undo point keeps."""
+    return ({k: v for k, v in data.items() if k not in FACTORY_KEPT},
+            {k: v for k, v in options.items() if k not in FACTORY_KEPT})
+
+
+def with_settings(wiring: Settings, settings: Settings) -> tuple[dict[str, Any], dict[str, Any]]:
+    """``wiring``'s ``FACTORY_KEPT`` keys over ``settings``' others, per (data, options)."""
+    kept = [{k: v for k, v in side.items() if k in FACTORY_KEPT} for side in wiring]
+    rest = settings_of(*settings)
+    return {**rest[0], **kept[0]}, {**rest[1], **kept[1]}
+
+
+#: The kept keys a settings reset writes, in ``factory_settings``' order: the
+#: topology the dropped keys implied, so its undo point records them as they were.
+FACTORY_PINNED: Mapping[str, str] = MappingProxyType({
+    const.CONF_TWO_ZONE_MODE: "an auto-mode house is two-zone by the zone masses the reset drops",
+    const.CONF_DHW_ENABLED: "the tank's presence, implied by its settings",
+    const.CONF_WOOD_FURNACE_ENABLED: "the furnace's presence, implied by its settings",
+})
+
+
+def undo_point(scope: str, data: Mapping[str, Any], options: Mapping[str, Any]) -> dict[str, Any]:
+    """A reset's ``before_reset`` record: its scope, the settings it drops and,
+    per (data, options), the ``FACTORY_PINNED`` keys it writes as they were."""
+    if scope == const.FACTORY_RESET_SCOPES[1]:
+        return {"scope": scope}
+    pinned = [{k: side[k] for k in FACTORY_PINNED if k in side} for side in (data, options)]
+    return {"scope": scope, "settings": list(settings_of(data, options)), "pinned": pinned}
+
+
+def _side_pair(raw: Any) -> tuple[dict[str, Any], dict[str, Any]] | None:
+    """A stored (data, options) pair, as the snapshot store writes one, or None."""
+    if isinstance(raw, list) and len(raw) == 2 and all(isinstance(side, dict) for side in raw):
+        return raw[0], raw[1]
+    return None
+
+
+def undone_settings(
+    data: Mapping[str, Any], options: Mapping[str, Any], undo: Mapping[str, Any],
+) -> tuple[dict[str, Any], dict[str, Any]] | None:
+    """The (data, options) undoing a reset's ``undo_point`` over the wiring in force,
+    or None where the reset kept the settings (or the record is malformed)."""
+    settings, pinned = _side_pair(undo.get("settings")), _side_pair(undo.get("pinned"))
+    if settings is None or pinned is None:
+        return None
+    unpinned = [{k: v for k, v in side.items() if k not in FACTORY_PINNED} for side in (data, options)]
+    wiring = ({**unpinned[0], **pinned[0]}, {**unpinned[1], **pinned[1]})
+    return with_settings(wiring, (settings[0], settings[1]))
+
+
+def factory_settings(
+    data: Mapping[str, Any], options: Mapping[str, Any], *, two_zone: bool, dhw: bool, wood: bool,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """The entry's (data, options) after a factory reset: ``FACTORY_KEPT`` alone.
+
+    A dropped key reads as its default through the parse that reads it absent,
+    so the defaults have one home. The topology a dropped key implied -- the
+    caller's parsed parameters, ``two_zone`` ``dhw`` ``wood`` -- is pinned
+    first: an auto-mode house is two-zone by its zone masses, and dropping
+    those would make it single-zone; the DHW and wood flags likewise.
+    """
+    pinned = dict(zip(FACTORY_PINNED, (const.TWO_ZONE_MODE_ON if two_zone else const.TWO_ZONE_MODE_OFF, dhw, wood)))
+    return with_settings((data, {**options, **pinned}), ({}, {}))
