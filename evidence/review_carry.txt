@@ -1,0 +1,5 @@
+  branch-only commits: 2
+  why: all 2 branch-only commit(s) are automatic merges, and app_approve.sh --carry carries the range
+  25b52d533  Merge commit '76cd77cb007ddbd0351d3a27596cadfbdef02439' into fix/r10-996-runner-claims-2
+  4455f6848  Merge remote-tracking branch 'origin/main' into fix/r10-996-runner-claims-2
+review_carry: CARRY

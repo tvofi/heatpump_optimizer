@@ -1,0 +1,33 @@
+== b 1a8051350406387d5ee1ed966d8a2ba8a770cc31
+RESULT A-both-rewrite-one: refused OK claims=None md=None ['CONFLICTING CLAIMS: both sides rewrote the claim list -- this', "branch claims ['alpha', 'beta'] and the merge", "brings in ['alpha', 'beta']. A claim excuses"]
+RESULT B-stamps-differ: refused OK claims=None md=None ['CONFLICTING CLAIMS: both sides rewrote the claim list -- this', "branch claims ['alpha', 'beta', 'gamma'] and the merge", 'brings in (nothing). A claim excuses']
+RESULT B2-stamp-bump-only-main-ours-adds: resolved OK claims={'alpha': ['base reason'], 'beta': ['base reason'], 'gamma': ['ours']} md=['# may-drift: flat_prices -- polish', '# may-drift: wood_coil -- machine-sensitive'] 
+RESULT C-ours-delete-theirs-edit: refused OK claims=None md=None ['CONFLICTING CLAIMS: both sides rewrote the claim list -- this', "branch claims ['beta'] and the merge", "brings in ['alpha', 'beta']. A claim excuses"]
+RESULT C2-theirs-delete-ours-edit: refused OK claims=None md=None ['CONFLICTING CLAIMS: both sides rewrote the claim list -- this', "branch claims ['alpha', 'beta'] and the merge", "brings in ['beta']. A claim excuses"]
+RESULT C3-delete-vs-silence: resolved OK claims={'beta': ['base reason']} md=['# may-drift: flat_prices -- polish', '# may-drift: wood_coil -- machine-sensitive'] 
+RESULT D-ours-del-maydrift-theirs-edit-beta: refused FAIL claims=None md=None ['CONFLICTING CLAIMS: both sides rewrote the claim list -- this', "branch claims ['alpha', 'beta', 'flat_prices'] and the merge", "brings in ['alpha', 'beta']. A claim excuses"]
+RESULT D2-ours-del-flat-theirs-edit-wood: resolved FAIL claims={'alpha': ['base reason'], 'beta': ['base reason']} md=['# may-drift: flat_prices -- polish', '# may-drift: wood_coil -- machine-sensitive', '# may-drift: wood_coil -- machine-sensitive (reworded)'] 
+RESULT D3-widen-theirs-del-ours-reword: resolved FAIL claims={'alpha': ['base reason'], 'beta': ['base reason']} md=['# may-drift: flat_prices -- polish v2', '# may-drift: wood_coil -- machine-sensitive'] 
+RESULT D4-both-delete: resolved OK claims={'alpha': ['base reason'], 'beta': ['base reason']} md=['# may-drift: wood_coil -- machine-sensitive'] 
+RESULT E-both-add-identical: resolved OK claims={'alpha': ['base reason'], 'beta': ['base reason'], 'gamma': ['same']} md=['# may-drift: flat_prices -- polish', '# may-drift: wood_coil -- machine-sensitive'] 
+RESULT E-both-add-identical-plus-disjoint: refused FAIL claims=None md=None ['CONFLICTING CLAIMS: both sides rewrote the claim list -- this', "branch claims ['alpha', 'beta', 'delta', 'gamma'] and the merge", "brings in ['alpha', 'beta', 'eps', 'gamma']. A claim excuses"]
+RESULT E-both-add-differing: refused OK claims=None md=None ['CONFLICTING CLAIMS: both sides rewrote the claim list -- this', "branch claims ['alpha', 'beta', 'gamma'] and the merge", "brings in ['alpha', 'beta', 'gamma']. A claim excuses"]
+RESULT H-multiline-split: refused OK claims=None md=None ['CONFLICTING CLAIMS: both sides rewrote the claim list -- this', "branch claims ['alpha'] and the merge", "brings in ['alpha']. A claim excuses"]
+RESULT I-disjoint: refused FAIL claims=None md=None ['CONFLICTING CLAIMS: both sides rewrote the claim list -- this', "branch claims ['alpha', 'beta'] and the merge", "brings in ['alpha', 'beta']. A claim excuses"]
+RESULT J-shape-both-add: refused FAIL claims=None md=None ['CONFLICTING CLAIMS: both sides rewrote the claim list -- this', 'branch claims [\'alpha\', \'beta\', "shape: space_reasons[*] * -> \'idle\'"] and the merge', 'brings in [\'alpha\', \'beta\', "shape: dhw_reasons[*] * -> \'idle\'"]. A claim excuses']
+RESULT J2-shape-same-key-diff-reason: refused OK claims=None md=None ['CONFLICTING CLAIMS: both sides rewrote the claim list -- this', 'branch claims [\'alpha\', \'beta\', "shape: space_reasons[*] * -> \'idle\'"] and the merge', 'brings in [\'alpha\', \'beta\', "shape: space_reasons[*] * -> \'idle\'"]. A claim excuses']
+RESULT D2c merged: resolved
+RESULT D2c may_drift_error: no parser
+RESULT D2c may-drift map: {'wood_coil': 'machine-sensitive', 'flat_prices': 'polish'}
+RESULT D2c may_drift_error: CLAIMED AND MAY-DRIFT: tests/golden/claimed_drift.txt lists
+RESULT theirs-deleted alpha: None
+RESULT S1 both bump same, both add disjoint: refused  [CONFLICTING CLAIMS: both sides rewrote the claim list -- this]
+RESULT S2 ours bumps only, theirs adds: resolved stamps=['# claims-for: 7.0.5'] claims=['alpha', 'beta', 'delta']
+RESULT S3 theirs bumps only, ours adds (round-1 B2): resolved stamps=['# claims-for: 7.0.5'] claims=['alpha', 'beta', 'gamma']
+RESULT S4 ours bumps+adds, theirs adds: refused  [CONFLICTING CLAIMS: both sides rewrote the claim list -- this]
+RESULT S5 both bump same, only ours adds: resolved stamps=['# claims-for: 7.0.5'] claims=['alpha', 'beta', 'gamma']
+RESULT S6 both bump differently, no claim change: resolved stamps=['# claims-for: 7.0.6', '# claims-for: 7.0.5'] claims=['alpha', 'beta']
+RESULT S7 ours bumps, theirs adds note beside stamp: resolved stamps=['# claims-for: 7.0.4', '# claims-for: 7.0.5'] claims=['alpha', 'beta']
+RESULT S8 theirs bumps, ours adds note beside stamp: resolved stamps=['# claims-for: 7.0.5', '# claims-for: 7.0.4'] claims=['alpha', 'beta']
+RESULT S9 ours bumps + note, theirs adds note beside stamp + adds claim: resolved stamps=['# claims-for: 7.0.4', '# claims-for: 7.0.5'] claims=['alpha', 'beta', 'delta']
+RESULT S10 ours bump+empty list (release reset), theirs adds: refused  [CONFLICTING CLAIMS: both sides rewrote the claim list -- this]
