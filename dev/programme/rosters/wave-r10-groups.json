@@ -14750,7 +14750,7 @@
     "branch": "handoff/r10-planted-defect-audit",
     "commit": null,
     "last_step": null,
-    "next_step": "dispatch a fixer",
+    "next_step": "dispatch a fixer: tvofi 2026-11-01 ruled dispatch one planted-defect audit per tripped arm, adopt P0=0.28/ALPHA=0.05, never block; owner gate cleared",
     "note": "s9 carry-routing pass, 2026-11-01: created to receive carries of R10-ORCH-LEDGER; owner ruled 2026-11-01, gate cleared"
    },
    "brief": "tvofi 2026-11-01: dispatch one planted-defect audit per tripped arm, adopt P0=0.28/ALPHA=0.05, never block. A review-strength guardrail trip (`review_strength.py --guardrail` printing would-trip) dispatches the planted-defect audit it names, keyed by arm and cut, never twice for the same line, nothing for ok or insufficient; the guardrail still sets no exit code and blocks nothing. The ruling on the R10-FLY-YIELD-GUARD entry in dev/programme/carries/carry-201.json is made; the owner gate is cleared and this group is dispatchable. Stranded on R10-ORCH-DISPATCH-REG and R10-ORCH-BEATD, both done. Every carry was moved verbatim by the s9 carry-routing pass (2026-11-01) from a carries-open source group; each names its own controls. Re-measure every figure a carry states at this group's own merge base; carry no count. A carry that says it waits on this ruling no longer waits: the ruling is made."
