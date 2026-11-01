@@ -1,2 +1,0 @@
-60a61
-> config_flow # r10-wood-notify: the wood_lighting_lead_minutes option joins the seeded wood group; one key added, no value moved

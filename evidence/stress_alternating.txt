@@ -1,8 +1,5 @@
-stress_wtb_1.out:   ok   no scenario exceeds its own recorded cost by the budget factor | worst scenario: shoulder/tariff+pv+cycle used 5597 ms of CPU = 139.1x its 40.2 ms reference; budget is 268x | ALL 113 STRESS CHECKS PASSED
-stress_wtb_2.out:   ok   no scenario exceeds its own recorded cost by the budget factor | worst scenario: shoulder/pv+cycle used 5314 ms of CPU = 124.2x its 42.8 ms reference; budget is 268x | ALL 113 STRESS CHECKS PASSED
-stress_wtb_3.out:   ok   no scenario exceeds its own recorded cost by the budget factor | worst scenario: shoulder/tariff+pv+cycle used 5535 ms of CPU = 133.7x its 41.4 ms reference; budget is 268x | ALL 113 STRESS CHECKS PASSED
-stress_wtb_4.out:   ok   no scenario exceeds its own recorded cost by the budget factor | worst scenario: shoulder/tariff+pv+cycle used 5854 ms of CPU = 136.0x its 43.0 ms reference; budget is 268x | ALL 113 STRESS CHECKS PASSED
-stress_wt_1.out:   ok   no scenario exceeds its own recorded cost by the budget factor | worst scenario: shoulder/tariff+pv+cycle used 5621 ms of CPU = 138.9x its 40.5 ms reference; budget is 268x | ALL 113 STRESS CHECKS PASSED
-stress_wt_2.out:   ok   no scenario exceeds its own recorded cost by the budget factor | worst scenario: shoulder/tariff+pv+cycle used 5811 ms of CPU = 133.0x its 43.7 ms reference; budget is 268x | ALL 113 STRESS CHECKS PASSED
-stress_wt_3.out:   ok   no scenario exceeds its own recorded cost by the budget factor | worst scenario: shoulder/tariff+pv+cycle used 6000 ms of CPU = 146.0x its 41.1 ms reference; budget is 268x | ALL 113 STRESS CHECKS PASSED
-stress_wt_4.out:   ok   no scenario exceeds its own recorded cost by the budget factor | worst scenario: shoulder/tariff+pv+cycle used 5484 ms of CPU = 135.2x its 40.6 ms reference; budget is 268x | ALL 113 STRESS CHECKS PASSED
+base 1:   ok   no scenario exceeds its own recorded cost by the budget factor | ALL 113 STRESS CHECKS PASSED
+wt 1:   ok   no scenario exceeds its own recorded cost by the budget factor | ALL 113 STRESS CHECKS PASSED
+base 2:   ok   no scenario exceeds its own recorded cost by the budget factor | ALL 113 STRESS CHECKS PASSED
+wt 2:   ok   no scenario exceeds its own recorded cost by the budget factor | ALL 113 STRESS CHECKS PASSED
+base 3:   ok   no scenario exceeds its own recorded cost by the budget factor | ALL 113 STRESS CHECKS PASSED

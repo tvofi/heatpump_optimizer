@@ -1,0 +1,7 @@
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1385 GUARD_OFF: if signals.space_blocked:
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1387 RETURN_DEL: return frozen or learner_room_unread(config) or quiet_window
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:2468 GUARD_OFF: if armed:
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:2473 RETURN_DEL: return armed
+CI PREDICT: 4 unpinned site(s) the diff adds -- a warning; the body owes each a line under ## Unpinned sites
+CI PREDICT: no closures, fast, governance or instrument red predicted against df66556f2b20 (a data-file read is not seen)
+exit=0
