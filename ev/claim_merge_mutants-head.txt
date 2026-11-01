@@ -1,0 +1,22 @@
+baseline   rc=0 pass
+RESULT baseline_pass=1
+M1-ours-change-takes-main        killed   failing=11 first: FAIL claims both sides added on different scenarios are both kept  [merged="# Scenarios this branch 
+M2-conflict-takes-ours           killed   failing=6 first: FAIL a scenario both sides rewrote is refused, not unioned  [two branches' claims for one scenario w
+M3-main-deletion-undone          killed   failing=4 first: FAIL a claim main deleted and this branch left alone stays deleted  [merged="# Scenarios this branch
+M4-no-stamp-guard                killed   failing=1 first: FAIL claims both sides changed under different claims-for stamps are refused  [a claim stamped for a
+N10-stamp-guard-three-way        killed   failing=1 first: FAIL claims both sides changed under one stamp both bumped resolve per scenario  [merged=None]
+M6-no-own-lines-check            killed   failing=1 first: FAIL the merge verification catches a lost stamp, a lost may-drift line, a smuggled claim and surviv
+R-keep-deleted                   killed   failing=5 first: FAIL a claim one side deleted and the other left alone stays deleted  [merged="# Scenarios this bran
+R-mine-eq-main-only              killed   failing=2 first: FAIL a claim both sides added identically resolves, kept once  [merged=None]
+N1-no-union-cut                  killed   failing=5 first: FAIL a may-drift line this branch suspended beside a reworded neighbour stays suspended  [merged=Non
+N2-marker-refuse-nothing         killed   failing=3 first: FAIL a may-drift line deleted against rewritten is refused and named  [UNVERIFIED MERGE: the resolve
+N3-file-ignores-marker-refusal   killed   failing=2 first: FAIL a may-drift line deleted against rewritten is refused and named  [CONFLICTING MAY-DRIFT OR STAM
+N4-defect-no-marker-check        killed   failing=2 first: FAIL the merge verification catches a lost stamp, a lost may-drift line, a smuggled claim and surviv
+N6-refusal-unnamed               killed   failing=3 first: FAIL a may-drift line deleted against rewritten is refused and named  [CONFLICTING MAY-DRIFT OR STAM
+N7-stamp-not-a-marker            killed   failing=3 first: FAIL a stamp this branch bumped beside an adjacent note is the one stamp kept  [merged='# Scenarios 
+N8-maydrift-not-a-marker         killed   failing=6 first: FAIL a may-drift line this branch suspended beside a reworded neighbour stays suspended  [merged='# 
+N9-maydrift-key-ignores-name     killed   failing=5 first: FAIL a may-drift line this branch suspended beside a reworded neighbour stays suspended  [merged=Non
+RESULT killed=16
+RESULT survived=0
+RESULT stale=0
+rc=0
