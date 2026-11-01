@@ -10032,9 +10032,9 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-merge-subject-casearm",
-    "commit": null,
+    "commit": "58952e9057b5e0abeb17e88f6007ca077f952c39",
     "last_step": null,
     "next_step": "dispatch a fixer once every after group is done",
     "note": "split from #2697 (three-round rule)",
