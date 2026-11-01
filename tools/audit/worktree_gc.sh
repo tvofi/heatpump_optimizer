@@ -36,10 +36,21 @@
 #   D. a stale venv (a *-venv* directory under /tmp) untouched for 24 hours
 #      that no registered worktree symlinks into at depth <= 2.
 #
+#      A detached worktree whose head is NOT on main may still go as
+#      `on-remote`: clean, not young, not at the origin/main tip, head
+#      reachable from refs/remotes/* or refs/tags/* (read after one
+#      `git fetch --prune origin` at the start of the run; a failed fetch keeps
+#      them all as unmerged-head), and no process with a working directory
+#      inside it (`lsof -a -d cwd`; an unreadable lsof keeps it, naming
+#      cwd-unread). Its commits are on a remote ref, so nothing is lost.
+#
 # THE KEEP RULES, ahead of every deletion and printed with their reason: the
 # main checkout and the directory this runs from; `git worktree lock` (a
 # seat's claim, HANDOVER trap 34); a branch with an OPEN pull request, ever; a
 # branch with no pull request at all (ambiguous, not proved merged); a
+# branch worktree holding a commit no remote ref has (`unpushed`, whatever its
+# pull request says: a merged PR of the same branch name is no proof the new
+# commit merged); a
 # detached worktree that is dirty, at the origin/main tip, not an ancestor of
 # origin/main, or younger than WORKTREE_GC_MIN_AGE; a seat directory holding
 # another live worktree or anything that is not logs, scratch files or
@@ -103,6 +114,11 @@ case "$*" in
       f="$STUB/diff/$(enc "$2")"; [ -f "$f" ] && cat "$f"; exit 0 ;;
   "-C "*" rev-parse --abbrev-ref HEAD")
       f="$STUB/branch-of/$(enc "$2")"; [ -f "$f" ] && cat "$f" || { echo "fatal: not a git repository" >&2; exit 128; } ;;
+  "fetch --prune origin") [ -f "$STUB/fetchfail" ] && exit 1; exit 0 ;;
+  "for-each-ref --count=1 --contains "*)
+      if grep -qx "$4" "$STUB/onremote" 2>/dev/null; then echo "refs/remotes/origin/some-branch"; fi; exit 0 ;;
+  "-C "*" rev-list --count HEAD --not --remotes")
+      f="$STUB/unpushed/$(enc "$2")"; [ -f "$f" ] && cat "$f" || echo 0; exit 0 ;;
   "worktree remove --force "*) rm -rf "$4" ;;
   "branch -D "*) exit 0 ;;
   *) echo "git-stub: unexpected call: $*" >&2; exit 9 ;;
@@ -121,7 +137,15 @@ case "$1" in
   *) echo "gh-stub: unexpected call: $*" >&2; exit 9 ;;
 esac
 STUB
-  chmod +x "$W/bin/gh" "$W/bin/git"
+  cat > "$W/bin/lsof" <<'STUB'
+#!/bin/bash
+printf 'lsof %s\n' "$*" >> "$STUB/log"
+[ -f "$STUB/lsofbroken" ] && exit 1
+printf 'p1\nn/\n'
+[ -f "$STUB/cwds" ] && sed 's/^/n/' "$STUB/cwds"
+exit 0
+STUB
+  chmod +x "$W/bin/gh" "$W/bin/git" "$W/bin/lsof"
 
   age_old() { # seconds dirs... -> every mtime under each back to now-seconds
     python3 - "$@" <<'PY'
@@ -175,17 +199,33 @@ PY
       printf 'worktree %s/orch/seat-unmerged/wt\nHEAD 5555555555555555555555555555555555555555\ndetached\n\n' "$d"
       printf 'worktree %s/orch/seat-dirtymerged/wt\nHEAD 2222222222222222222222222222222222222222\nbranch refs/heads/fix/dirty\n\n' "$d"
       printf 'worktree %s/orch/seat-locked/wt\nHEAD 6666666666666666666666666666666666666666\ndetached\nlocked\n\n' "$d"
+      for n in onremote:7 cwd:8 onremote-young:9 onremote-dirty:b tip:1 nohold:d; do
+        printf 'worktree %s/orch/seat-%s/wt\nHEAD %s\ndetached\n\n' "$d" "${n%%:*}" "$(printf '%040d' 0 | tr 0 "${n##*:}")"
+      done
+      printf 'worktree %s/orch/seat-onremote-locked/wt\nHEAD %s\ndetached\nlocked\n\n' "$d" "$(printf '%040d' 0 | tr 0 a)"
+      printf 'worktree %s/orch/seat-unpushed/wt\nHEAD %s\nbranch refs/heads/fix/unpushed\n\n' "$d" "$(printf '%040d' 0 | tr 0 c)"
     } > "$d/porcelain"
     mkdir -p "$d/orch/seat-merged/wt" "$d/orch/seat-open/wt" "$d/orch/seat-nopr/wt" \
              "$d/orch/seat-detached/wt" "$d/orch/seat-detached/evidence-run12" \
              "$d/orch/seat-unmerged/wt" "$d/orch/seat-dirtymerged/wt" \
-             "$d/orch/seat-locked/wt"
+             "$d/orch/seat-locked/wt" "$d/orch/seat-onremote/wt" "$d/orch/seat-cwd/wt/sub" \
+             "$d/orch/seat-onremote-young/wt" "$d/orch/seat-onremote-dirty/wt" \
+             "$d/orch/seat-tip/wt" "$d/orch/seat-nohold/wt" "$d/orch/seat-onremote-locked/wt" \
+             "$d/orch/seat-unpushed/wt" "$d/unpushed"
+    # Heads a remote ref holds (the origin/main tip 1111 included: a seat reading live main).
+    for c in 7 8 9 a b 1; do printf '%040d\n' 0 | tr 0 "$c"; done > "$d/onremote"
+    printf '%s/orch/seat-cwd/wt/sub\n' "$d" > "$d/cwds"
+    printf 'M f\n' > "$d/status/$(encpath "$d/orch/seat-onremote-dirty/wt")"
+    printf '[{"state":"MERGED"}]\n' > "$d/pr/fix_unpushed.json"
+    printf '1\n' > "$d/unpushed/$(encpath "$d/orch/seat-unpushed/wt")"
     printf 'x\n' > "$d/orch/seat-merged/wt/f"
     printf 'x\n' > "$d/orch/seat-detached/evidence-run12/ev.txt"
     printf 'M f\n' > "$d/status/$(encpath "$d/orch/seat-dirtymerged/wt")"
     printf -- '--- a/f\n+++ b/f\n-uncommitted\n+changed\n' > "$d/diff/$(encpath "$d/orch/seat-dirtymerged/wt")"
     # Collectable detached worktrees must be older than the hour guard.
-    age_old "$H3" "$d/orch/seat-detached" "$d/orch/seat-unmerged" "$d/orch/seat-locked"
+    age_old "$H3" "$d/orch/seat-detached" "$d/orch/seat-unmerged" "$d/orch/seat-locked" \
+            "$d/orch/seat-onremote" "$d/orch/seat-cwd" "$d/orch/seat-onremote-dirty" "$d/orch/seat-tip" \
+            "$d/orch/seat-nohold" "$d/orch/seat-onremote-locked" "$d/orch/seat-unpushed"
   }
 
   # The main sweep: every class in one run, so the interactions (one seat's
@@ -248,8 +288,46 @@ PY
   st "$(gots sweep "keep  $D/tmp/inuse-venv  venv-in-use")" 1 "kept naming venv-in-use"
   [ -d "$D/root" ]; st $? 0 "the main checkout is never touched"
   st "$(gots sweep "/tmp/hpo-orch")" 0 "the fixture redirect holds: the real seats root is never walked (null control)"
-  st "$(grep -c "^gh pr list" "$D/log")" 6 "one PR read per branch worktree plus the two orphan branches"
+  st "$(grep -c "^gh pr list" "$D/log")" 7 "one PR read per branch worktree (the unpushed one included) plus the two orphan branches"
   st "$(grep -c "remove --force $D/orch/seat-nopr" "$D/log")" 0 "a no-PR branch is never removed"
+
+  # on-remote (V137): a clean, old, detached head only a remote ref holds goes.
+  gone "$D/orch/seat-onremote/wt"; st $? 0 "on-remote: a clean detached worktree at a head a remote ref holds is removed"
+  st "$(gots sweep "remove  $D/orch/seat-onremote/wt  on-remote")" 1 "naming on-remote"
+  [ -d "$D/orch/seat-nohold/wt" ]; st $? 0 "null control: the same at a head no remote ref or tag holds is kept"
+  st "$(gots sweep "keep  $D/orch/seat-nohold/wt  unmerged-head")" 1 "naming unmerged-head"
+  [ -d "$D/orch/seat-cwd/wt" ]; st $? 0 "a process cwd inside an on-remote worktree: kept"
+  st "$(gots sweep "keep  $D/orch/seat-cwd/wt  cwd-inside")" 1 "naming cwd-inside"
+  [ -d "$D/orch/seat-onremote-young/wt" ]; st $? 0 "a young on-remote worktree: kept"
+  st "$(gots sweep "keep  $D/orch/seat-onremote-young/wt  young")" 1 "naming young"
+  [ -d "$D/orch/seat-onremote-dirty/wt" ]; st $? 0 "a dirty on-remote worktree: kept"
+  st "$(gots sweep "keep  $D/orch/seat-onremote-dirty/wt  dirty-detached")" 1 "naming dirty-detached"
+  [ -d "$D/orch/seat-onremote-locked/wt" ]; st $? 0 "a locked on-remote worktree: kept"
+  st "$(gots sweep "keep  $D/orch/seat-onremote-locked/wt  locked")" 1 "naming locked"
+  [ -d "$D/orch/seat-tip/wt" ]; st $? 0 "a worktree at the origin/main tip is kept though a remote ref holds it"
+  st "$(gots sweep "keep  $D/orch/seat-tip/wt  unmerged-head")" 1 "naming unmerged-head"
+  # unpushed work (the 2026-10-20 roster worktree): a branch with a merged PR, one commit on no remote ref.
+  [ -d "$D/orch/seat-unpushed/wt" ]; st $? 0 "a branch worktree with an unpushed commit is kept though its PR merged"
+  st "$(gots sweep "keep  $D/orch/seat-unpushed/wt  unpushed")" 1 "naming unpushed"
+  st "$(grep -c "branch -D fix/unpushed" "$D/log")" 0 "and its branch is not deleted"
+  st "$(grep -c "remove --force $D/orch/seat-unpushed" "$D/log")" 0 "and no remove call for it (apply path)"
+  st "$(gots sweep "summary -- eligible")" 1 "one summary line"
+
+  # The same planted case under --dry-run: classify keeps it too, and says so.
+  mkcase dryup; build dryup
+  run dryup --dry-run --keep-dir "$W/dryup/ev" o/r
+  st "$(gots dryup "keep  $W/dryup/orch/seat-unpushed/wt  unpushed")" 1 "dry-run: the unpushed worktree is kept (classify path)"
+  st "$(gots dryup "remove  $W/dryup/orch/seat-onremote/wt  on-remote")" 1 "dry-run: and the on-remote one is named for removal"
+
+  # A failed fetch closes the on-remote class; an unreadable lsof keeps what it would remove.
+  mkcase nofetch; build nofetch; : > "$W/nofetch/fetchfail"
+  run nofetch --keep-dir "$W/nofetch/ev" o/r
+  [ -d "$W/nofetch/orch/seat-onremote/wt" ]; st $? 0 "failed fetch: the on-remote worktree is kept"
+  st "$(gots nofetch "keep  $W/nofetch/orch/seat-onremote/wt  unmerged-head")" 1 "naming unmerged-head"
+  mkcase nolsof; build nolsof; : > "$W/nolsof/lsofbroken"
+  run nolsof --keep-dir "$W/nolsof/ev" o/r
+  [ -d "$W/nolsof/orch/seat-onremote/wt" ]; st $? 0 "unreadable lsof: the on-remote worktree is kept"
+  st "$(gots nolsof "keep  $W/nolsof/orch/seat-onremote/wt  cwd-unread")" 1 "naming cwd-unread"
 
   # Class C must keep the seat dir holding another LIVE worktree -- the header's
   # own keep rule, which classes A/B enforce via dispose_seat_dir. The orphan
@@ -366,6 +444,10 @@ REMOVED_FILE=$(mktemp) || die "cannot create a temp file"
 trap 'rm -f "$LIST" "$LIVE_FILE" "$REMOVED_FILE"' EXIT
 git worktree list --porcelain >"$LIST" 2>/dev/null || die "git worktree list failed; nothing removed"
 
+# One fetch, so "on a remote ref" and "merged" are read at the remote's tip. A
+# failed fetch (offline, no auth) keeps the on-remote class closed.
+FETCH_OK=0
+git fetch --prune origin >/dev/null 2>&1 && FETCH_OK=1
 ORIGIN_MAIN_SHA=$(git rev-parse origin/main 2>/dev/null || printf '')
 
 # state: open | merged | none | error -- from the API, never from the local
@@ -389,6 +471,32 @@ head_is_merged_ancestor() {
   [ -n "$ORIGIN_MAIN_SHA" ] || return 1
   [ "$1" = "$ORIGIN_MAIN_SHA" ] && return 1
   git merge-base --is-ancestor "$1" origin/main 2>/dev/null
+}
+
+# Commits of the worktree's HEAD that no remote-tracking ref has: the unpushed
+# work a merged PR of the same branch name says nothing about. Prints a number,
+# or "?" when git cannot say.
+unpushed_of() { # wt-path
+  local n
+  n=$(git -C "$1" rev-list --count HEAD --not --remotes 2>/dev/null) || { printf '?'; return; }
+  case "$n" in ''|*[!0-9]*) printf '?' ;; *) printf '%s' "$n" ;; esac
+}
+
+# 0 iff the fetch worked and a remote-tracking ref or a tag contains the sha.
+head_on_remote() {
+  [ "$FETCH_OK" -eq 1 ] || return 1
+  [ -n "$ORIGIN_MAIN_SHA" ] && [ "$1" = "$ORIGIN_MAIN_SHA" ] && return 1   # a seat reading live main
+  [ -n "$(git for-each-ref --count=1 --contains "$1" --format='%(refname)' refs/remotes refs/tags 2>/dev/null)" ]
+}
+
+# 0 no process has its cwd inside dir, 1 one does, 2 lsof is unreadable.
+cwd_inside() { # real path of a worktree
+  local out
+  command -v lsof >/dev/null 2>&1 || return 2
+  out=$(lsof -a -d cwd -Fn 2>/dev/null) || return 2
+  [ -n "$out" ] || return 2
+  printf '%s\n' "$out" | awk -v p="$1" 'substr($0,1,1)=="n" { d=substr($0,2); if (d==p || index(d, p "/")==1) f=1 } END { exit f ? 0 : 1 }' && return 1
+  return 0
 }
 
 # 0 iff something under dir was modified within the given seconds; the keep
@@ -496,8 +604,8 @@ print_uncommitted() { # wt-path: the orchestrator's stop-a-seat check
   git -C "$1" diff 2>/dev/null
 }
 
-remove_worktree() { # wt-path
-  printf 'remove  %s\n' "$1"
+remove_worktree() { # wt-path [reason]
+  if [ -n "${2:-}" ]; then printf 'remove  %s  %s\n' "$1" "$2"; else printf 'remove  %s\n' "$1"; fi
   printf '%s\n' "$(realpath_of "$1" 2>/dev/null || printf '%s' "$1")" >>"$REMOVED_FILE"
   if [ "$DRY" -eq 0 ]; then
     if git worktree remove --force "$1"; then
@@ -519,7 +627,7 @@ flush() {
 }
 
 classify() {
-  local real state seat st_out st_rc
+  local real state seat st_out st_rc up onremote c
   real=$(realpath_of "$wt" 2>/dev/null || printf '%s' "$wt")
   printf '%s\n' "$real" >>"$LIVE_FILE"
 
@@ -538,6 +646,10 @@ classify() {
       none) printf 'keep  %s  no-merged-pr\n' "$wt"; KEPT_N=$((KEPT_N+1)); return 0 ;;
       *) printf 'keep  %s  gh-error\n' "$wt"; KEPT_N=$((KEPT_N+1)); return 0 ;;
     esac
+    up=$(unpushed_of "$wt")
+    if [ "$up" != 0 ]; then
+      printf 'keep  %s  unpushed (%s commit(s) on no remote ref)\n' "$wt" "$up"; KEPT_N=$((KEPT_N+1)); return 0
+    fi
     ELIGIBLE=$((ELIGIBLE+1))
     st_out=$(git -C "$wt" status --porcelain 2>/dev/null); st_rc=$?
     if [ -n "$st_out" ] || [ "$st_rc" -ne 0 ]; then print_uncommitted "$wt"; fi
@@ -559,14 +671,23 @@ classify() {
   if [ -n "$st_out" ] || [ "$st_rc" -ne 0 ]; then
     printf 'keep  %s  dirty-detached\n' "$wt"; KEPT_N=$((KEPT_N+1)); return 0
   fi
+  onremote=0
   if ! head_is_merged_ancestor "$head"; then
-    printf 'keep  %s  unmerged-head\n' "$wt"; KEPT_N=$((KEPT_N+1)); return 0
+    if head_on_remote "$head"; then onremote=1
+    else printf 'keep  %s  unmerged-head\n' "$wt"; KEPT_N=$((KEPT_N+1)); return 0; fi
   fi
   if recently_modified "$real" "$MIN_AGE_DETACHED"; then
     printf 'keep  %s  young\n' "$wt"; KEPT_N=$((KEPT_N+1)); return 0
   fi
+  if [ "$onremote" -eq 1 ]; then
+    cwd_inside "$real"; c=$?
+    case "$c" in
+      1) printf 'keep  %s  cwd-inside\n' "$wt"; KEPT_N=$((KEPT_N+1)); return 0 ;;
+      2) printf 'keep  %s  cwd-unread\n' "$wt"; KEPT_N=$((KEPT_N+1)); return 0 ;;
+    esac
+  fi
   ELIGIBLE=$((ELIGIBLE+1))
-  remove_worktree "$wt"
+  if [ "$onremote" -eq 1 ]; then remove_worktree "$wt" on-remote; else remove_worktree "$wt"; fi
   seat=$(seat_dir_of "$real")
   if [ -n "$seat" ]; then HANDLED_SEATS="$HANDLED_SEATS$seat\n"; dispose_seat_dir "$seat"; fi
 }
@@ -609,6 +730,9 @@ if [ -d "$SEATS_REAL" ]; then
         merged) ;;
         *) printf 'keep  %s  unmerged-branch\n' "$seat"; KEPT_N=$((KEPT_N+1)); continue ;;
       esac
+      if [ "$(unpushed_of "$seat_real/wt")" != 0 ]; then
+        printf 'keep  %s  unpushed\n' "$seat"; KEPT_N=$((KEPT_N+1)); continue
+      fi
     elif [ "$wt_branch" = "HEAD" ]; then
       # A detached orphan goes only on a merged head whose sha still resolves.
       ohead=$(git -C "$seat_real/wt" rev-parse HEAD 2>/dev/null) || ohead=""
