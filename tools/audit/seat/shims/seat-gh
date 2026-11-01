@@ -64,11 +64,14 @@ esac
   # The parent field names the caller and nothing it was given: argv[0]'s basename and,
   # for a shell or interpreter, one more word. Options are read one letter at a time:
   # a known no-value letter is passed over; a known value-taking letter (python -W/-X,
-  # shell -o/-O) passes over its value, glued or the next word, unlogged; `c`, `e` or `s`
-  # (code on the line, or a script on stdin) logs the option up to that letter and ends
-  # the field; any other letter or long option ends it unlogged. The first word that is
-  # not an option is the script and ends it. So no option value, code, stdin-script
-  # argument or later word reaches the log (P284). Words split on spaces only.
+  # shell -o/-O) ends the field unlogged, its value never read, so a value of one argv
+  # word with a space in it is not split into a logged script; `c`, `e` or `s` (code on
+  # the line, or a script on stdin) logs the option up to that letter and ends the field;
+  # any other letter or long option ends it unlogged. The first word that is not an
+  # option is the script and ends it. So no option value, code, stdin-script argument or
+  # later word reaches the log, bar the argv[0]/script-path residual above (P284). ps
+  # joins argv with spaces, so the line is split on spaces and a script path containing
+  # a space is cut at it.
   pargs=$(ps -o args= -p "$PPID" </dev/null 2>/dev/null | tr -c '[:print:]' ' ')
   set -f; read -r -a pw <<< "$pargs"; set +f
   pcmd=${pw[0]##*/}
@@ -92,7 +95,7 @@ esac
           ch=${a:$j:1}
           case $ch in
             c|e|s) pcmd="$pcmd ${a:0:$((j + 1))}"; end=1; break ;;
-            $vals) [ "$((j + 1))" -eq "${#a}" ] && i=$((i + 1)); break ;;
+            $vals) end=1; break ;;
             $flags) ;;
             *) end=1; break ;;
           esac
