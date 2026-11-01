@@ -13977,7 +13977,8 @@
     "tools/audit/seat/instruments/body_push.sh.md"
    ],
    "carry": [
-    "Seam with R10-ORCH-MACHINERY: the relay handoff arm becomes the beat's handoff job; keep the body-only path a function the job can call unchanged, and write a ledger disposition for the handoff-body ref when ledger.py exists."
+    "Seam with R10-ORCH-MACHINERY: the relay handoff arm becomes the beat's handoff job; keep the body-only path a function the job can call unchanged, and write a ledger disposition for the handoff-body ref when ledger.py exists.",
+    "P22 (assessor decision, s4, mandate 6329234399): update_pr.sh exits 75 (not 1) for 'branch checked out elsewhere' (l.42) and worktree-in-use, as for its lock, so a live train's worktree is no longer read as permanent. The relay (cloud_relay.sh l.229-230) keys cloud-handoff-failed on (topic, handoff sha, body sha) and appends the update log's last refusal line, so a body-only repair re-triggers it and the reason is kept. Only content refusals (prepr REFUSE) stay recorded failed, and become an OWED line with that reason. Measured: 28 permanent (topic, handoff-sha) entries, reason unrecoverable for all 28; 17 topics' branches gone, 6 landed another way, 5 still behind. Null control: a stub update_pr returning 75 for checked-out-elsewhere is retried next pass and never recorded; a prepr refusal is recorded once with its reason, and a new handoff-body sha re-triggers it."
    ],
    "resume": {
     "stage": "not-started",
