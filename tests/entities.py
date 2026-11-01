@@ -28099,6 +28099,8 @@ try:
         (_ba.sites('set -e\nf "${a[@]}"\n') == [], "a file without set -u is not judged (null)"),
         (len(_ba.sites('f x  # mut:m  # never-empty: why\n')) == 1,
          "a never-empty reason after a mut marker is refused (it unanchors the mutant)"),
+        (len(_ba.sites(_ba_head + 'f x  # mut:m  # never-empty: why\n')) == 1,
+         "a never-empty reason after a mut marker is refused in a set -u file too"),
         (_ba.sites(_ba_head + '# never-empty: why\nf "${a[@]}"  # mut:m\n') == [],
          "a reason on the line above keeps the mut marker last (control)"),
         (_ba.self_test.__call__() == 0, "its own self-test passes"),

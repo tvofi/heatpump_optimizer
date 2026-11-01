@@ -46,21 +46,20 @@ def marked(line: str) -> bool:
 def sites(text: str) -> list[tuple[int, str]]:
     """(line number, line) of each refused expansion in one script's text."""
     lines = text.splitlines()
-    tails = [(n, ln.strip()) for n, ln in enumerate(lines, 1) if MARK.search(ln) and not marked(ln)]
-    if not SET_U.search(text):
-        return tails
-    out = []
-    above = False  # the previous line is a comment-only never-empty reason
-    for n, line in enumerate(lines, 1):
-        comment = line.lstrip().startswith("#")
-        excused, above = above, comment and bool(MARK.search(line))
-        if comment or excused or marked(line):
-            continue
-        for m in BARE.finditer(line):
-            if not line[: m.start()].endswith("${%s[@]+" % m.group(1)):
-                out.append((n, line.strip()))
-                break
-    return out
+    # A reason after a mut marker is refused in every file, judged or not.
+    out = {n for n, ln in enumerate(lines, 1) if MARK.search(ln) and not marked(ln)}
+    if SET_U.search(text):
+        above = False  # the previous line is a comment-only never-empty reason
+        for n, line in enumerate(lines, 1):
+            comment = line.lstrip().startswith("#")
+            excused, above = above, comment and bool(MARK.search(line))
+            if comment or excused or marked(line):
+                continue
+            for m in BARE.finditer(line):
+                if not line[: m.start()].endswith("${%s[@]+" % m.group(1)):
+                    out.add(n)
+                    break
+    return [(n, lines[n - 1].strip()) for n in sorted(out)]
 
 
 def scan(ref: str | None = None) -> list[str]:
@@ -113,6 +112,12 @@ def self_test() -> int:
        "a reason before the mut marker excuses (null)")
     st(len(sites('#!/bin/bash\nf x  # mut:x  # never-empty: argv\n')), 1,
        "a reason after a mut marker is refused in an unjudged file too")
+    st(len(sites(head + 'f x  # mut:x  # never-empty: argv\n')), 1,
+       "a reason after a mut marker is refused in a judged file on a line with no bare expansion")
+    st(len(sites(head + 'f ${a[@]+"${a[@]}"}  # mut:x  # never-empty: argv\n')), 1,
+       "a reason after a mut marker is refused in a judged file on a guarded line")
+    st(sites(head + 'f x  # never-empty: argv  # mut:x\n'), [],
+       "a judged file's non-bare line with the reason before the marker passes (null)")
     for f in fails:
         print("FAIL", f)
     print("bare_array self-test:", "FAILED" if fails else "ok")
