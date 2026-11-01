@@ -15799,6 +15799,51 @@
     "pr": null
    },
    "brief": "Replace dependabot PR #3088 (the pip group, 44 version bumps across the test requirements files listed in files) with a fixer-authored PR, tvofi 2026-11-01: a dependabot branch can never be edited, so the bumps are re-applied here on a fresh branch off main. Apply exactly the version changes #3088 makes. At #3088's head bffd45a03 (base d052f80f7) five checks were red besides pr-contract: tests / fast (3.14), tests / typing, tests / coverage and tests / coverage-ratchet; main passes typing. Bisect which upgrades break which check (pin-by-pin, or by group of related packages), and fix the code or tests the breaking upgrades need; a package whose upgrade cannot land without a design change is held back at its current pin, named in the body with the failure it causes, and routed with a Carry marker, never silently dropped. Every quantified claim keeps its control. Run the scoped gate and tools/pr/prepr.sh. Body names #3088 as superseded; it is closed by the orchestrator once this PR opens."
+  },
+  {
+   "group": "R10-MACHINERY-RATCHETS",
+   "lane": "IN",
+   "kind": "feature",
+   "class": "instrument",
+   "severity": "high",
+   "size": "L",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 1,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "tools/audit/seat/INSTRUMENTS.md",
+    ".github/workflows/governance.yml",
+    "tests/closures.json",
+    "dev/governance/rules/ratchet-budgets.md"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": "designer first (size L): architect note at design/r10-machinery-ratchets, then design review, then fixer",
+    "note": "owner ruling tvofi 2026-11-01 (orch s10): before round-10 closeout; closure waits on it",
+    "pr": null
+   },
+   "brief": "Instrument and machinery ratchets, modelled on the production ratchets (tests/structure.py with tests/structure_budgets.json; dev/governance/config/policy_budgets.json under ratchet-budgets.md), owner ruling tvofi 2026-11-01: production work was 2 of 37 merges in the 24 h to 2026-11-01T19:40Z and 59 of 581 in 14 days; the machinery feeds itself (proposals become tooling groups, tooling PRs forward carries, every merge owes records). Build one-sided caps in a new *_budgets.json file beside policy_budgets.json under dev/governance/config/ (so budget-raise-gate 0013 already governs any raise), measured by a new instrument under tools/audit/ over origin/main history and the round roster, run in governance.yml on every PR and push. The designer chooses and justifies the metric set; candidates: (1) machinery share of merges in a rolling window (cap, only falls), with production share the complement; (2) record merges per production merge (cap); (3) open machinery groups on the round roster (cap, only falls); (4) carries forwarded per merged machinery PR (cap); (5) accepted proposals per round (cap); (6) CI minutes and seat tokens per merged production PR where a measured source exists (cap). Each metric names its source, its counting rule and a null control, and states why it cannot be gamed by moving or splitting (the always_loaded_tokens lesson in ratchet-budgets.md). Improve the existing ratchets where the same class applies. Wire the exemption the owner set for the freeze and the proposal bar: a change proving more than 10% improvement in CI time, programme completion time, right-first-time or token usage is recorded, never silently allowed. Lands before the round-10 closeout stamp (R10-FLY-CLOSURE-MAJOR waits on it); nothing moves to round 11."
   }
  ]
 }
