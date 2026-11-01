@@ -233,7 +233,7 @@ from .const import (
     DEFAULT_OPTIMIZATION_INTERVAL,
     DEFAULT_PRICE_WEIGHT,
     DEFAULT_COMFORT_WEIGHT,
-    # Added in v2.8.0
+    # Added in v2.8.0 (null control)
     CONF_POWER_ENTITY,
     CONF_ENERGY_ENTITY,
     CONF_HOUSE_POWER_ENTITY,
