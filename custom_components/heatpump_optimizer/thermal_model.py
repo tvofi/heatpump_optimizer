@@ -2139,6 +2139,56 @@ def heat_per_cop_kw(params: ThermalParameters, electrical_power: Any) -> Any:
     return electrical_power
 
 
+def power_for_heat_per_cop_kw(
+    params: ThermalParameters, heat_per_cop: Any, hours: float = 1.0
+) -> Any:
+    """The inverse of :func:`heat_per_cop_kw`: the electrical kW whose heat per
+    unit of COP is ``heat_per_cop`` -- ``heat / cop`` in, the draw out.
+
+    The input itself while the derate is 0, so an inverse conversion with no
+    part-load term is byte-identical to the ``heat / cop`` it replaces. On the
+    band ``h = P - a * P * (P - p_min)``, ``a = d / band``, is quadratic, and
+    the draw is its smaller positive root, the one on the rising branch
+    ``_partload_derate`` keeps the band to: ``2h / (b + sqrt(b^2 - 4ah))``
+    with ``b = 1 + a * p_min``, the form that stays exact as ``a`` falls.
+    Below the floor the factor is 1 and the draw is ``h``; past max power the
+    factor is held, so it is ``h / (1 - d)``. Elementwise, like the forward.
+
+    ``hours`` reads ``heat_per_cop`` as an energy over that many hours of
+    steady draw and returns the electrical kWh: the band scales with it, so a
+    day's total converts without a division and multiplication that would
+    leave the zero-derate answer an ulp off ``heat / cop``."""
+    d = params.cop_partload_derate
+    band = (params.max_electrical_power - params.min_electrical_power) * hours
+    if not d or band <= 0.0:
+        return heat_per_cop
+    p_min = params.min_electrical_power * hours
+    p_max = params.max_electrical_power * hours
+    h = np.asarray(heat_per_cop, dtype=float)
+    a = d / band
+    b = 1.0 + a * p_min
+    on_band = 2.0 * h / (b + np.sqrt(np.maximum(b * b - 4.0 * a * h, 0.0)))
+    held = h / (1.0 - d)
+    power = np.where(h <= p_min, h, np.where(held >= p_max, held, on_band))
+    return float(power) if np.ndim(heat_per_cop) == 0 else power
+
+
+def added_power_for_heat_per_cop_kw(
+    params: ThermalParameters, power_kw: Any, heat_per_cop: Any
+) -> Any:
+    """The draw to add to ``power_kw`` so its heat per unit of COP grows by
+    ``heat_per_cop`` (negative: falls by it): a top-up, or a cut, of a step
+    already planned. On the band one kW more buys less heat at a higher draw,
+    so the increment is not the plain quotient's even where the total is.
+
+    ``heat_per_cop`` itself while the derate is 0, so ``plan + increment`` is
+    byte-identical to the ``plan + heat / cop`` it replaces."""
+    if not params.cop_partload_derate:
+        return heat_per_cop
+    return power_for_heat_per_cop_kw(
+        params, heat_per_cop_kw(params, power_kw) + heat_per_cop) - power_kw
+
+
 def delivered_heat_kw(params: ThermalParameters, cop: Any, electrical_power: Any) -> Any:
     """Heat the pump delivers at ``cop`` and ``electrical_power``, space or hot
     water: ``cop`` times :func:`heat_per_cop_kw`, the one association every
@@ -3381,9 +3431,7 @@ class ThermalModel:
         T_buf = state.buffer_tank_temperature
 
         # --- Buffer tank dynamics ---
-        C_buf = p.buffer_tank_thermal_mass
-        if C_buf < 1e-6:
-            C_buf = 0.04  # fallback for 35L
+        C_buf = _buffer_capacity(p)
 
         rad_fraction = p.radiator_power_fraction
 
@@ -3999,9 +4047,7 @@ class ThermalModel:
             start_hour is not None and p.internal_gains_profile is not None
         )
         # Configuration constants hoisted out of the step (uniform per batch).
-        C_buf = p.buffer_tank_thermal_mass
-        if C_buf < 1e-6:
-            C_buf = 0.04
+        C_buf = _buffer_capacity(p)
         rad_fraction = p.radiator_power_fraction
         area_ratio = p.upper_floor_area_ratio
         # Two-zone valve geometry: uniform per batch.
