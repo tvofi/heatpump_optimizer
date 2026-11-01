@@ -13976,7 +13976,9 @@
     "tools/audit/seat/instruments/cloud_relay.sh.md",
     "tools/audit/seat/instruments/body_push.sh.md"
    ],
-   "carry": [],
+   "carry": [
+    "Seam with R10-ORCH-MACHINERY: the relay handoff arm becomes the beat's handoff job; keep the body-only path a function the job can call unchanged, and write a ledger disposition for the handoff-body ref when ledger.py exists."
+   ],
    "resume": {
     "stage": "not-started",
     "branch": "handoff/r10-relay-handoff-arm",
