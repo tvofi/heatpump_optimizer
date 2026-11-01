@@ -25,7 +25,7 @@ head_ref, merge_commit_sha, merged_at}]}).
 
 REFUSALS (exit 1): a plan `replan.stale_reason` calls stale -- its roster
 blob is not the roster's blob at the ref now --, a plan `replan.check_plan`
-refuses, a plan recording no duration model, and an `origin/` roster ref that
+refuses (a plan recording no duration model among them), and an `origin/` roster ref that
 cannot be fetched. The freshness rule is replan.py's, so `--check` and this
 page cannot disagree about which plans are current. A refusal writes the
 UNAVAILABLE page to `--html`: a heading naming what could not be read, every
@@ -600,9 +600,6 @@ def main(argv=None, fetch=fetch_github) -> int:
         bad.append(f"freshness: {stale}")
     if bad:
         return _refuse(a.html, f"{len(bad)} plan violation(s): {bad[0]}", bad)
-    if "model" not in plan["generated"]:
-        return _refuse(a.html, "plan.json records no duration model "
-                       "(generated.model); re-run tools/plan/replan.py", [])
     path = roster_lib.roster_path(a.repo, ref, a.roster_path)
     roster = roster_lib.show_roster(a.repo, ref, path)
     snap = (json.loads(Path(a.github_snapshot).read_text(encoding="utf-8"))
