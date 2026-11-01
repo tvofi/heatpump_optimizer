@@ -11763,7 +11763,7 @@
    ],
    "carry": [],
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": "handoff/r10-fly-gh-call-log",
     "commit": null,
     "last_step": null,
