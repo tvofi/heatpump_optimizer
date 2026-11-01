@@ -1787,8 +1787,10 @@ def merge_claim_decision(
     Returns ``(decided, refused)``: ``decided`` maps each scenario the merge
     keeps to the verbatim lines of the side that decided it, ``refused`` names
     every scenario whose claim lines BOTH sides changed differently, and
-    ``decided`` is None when ``refused`` is non-empty or the ``claims-for:``
-    stamps disagree while both sides changed claims. A scenario's lines are
+    ``decided`` is None when ``refused`` is non-empty or the two sides'
+    ``claims-for:`` stamps differ while both sides changed claims: claims
+    written for different releases do not merge, while a stamp both sides
+    bumped alike is one release, as the stamp's own per-key rule decides. A scenario's lines are
     compared parsed (``parse_claim_map``: same lines, same reasons, count
     included), so whitespace never decides.
 
@@ -1801,9 +1803,7 @@ def merge_claim_decision(
     our_blocks = _claim_blocks(ours)
     their_blocks = _claim_blocks(theirs)
     both_changed = base_map not in (our_map, their_map) and our_map != their_map
-    if both_changed and not (
-        _parse_claims(base)[0] == _parse_claims(ours)[0] == _parse_claims(theirs)[0]
-    ):
+    if both_changed and _parse_claims(ours)[0] != _parse_claims(theirs)[0]:
         return None, []
     decided, refused = _decide_per_key(
         base_map, our_map, their_map, our_blocks, their_blocks)

@@ -22901,6 +22901,25 @@ R.check(
     ),
     "a claim stamped for another release excuses that release's diff only",
 )
+# Both sides bumped the stamp to the SAME release and changed disjoint claims:
+# every claim either side wrote describes that release's diff, so the stamps
+# agree and the merge is per scenario -- the guard above must not refuse it
+# only because the base held the older stamp. One side's bump alone beside
+# the other's claim change stays refused (the check above).
+_CM_BUMPED = [s.replace("claims-for: 6.3.16", "claims-for: 6.3.17")
+              for s in (_CM_OURS_CLAIM, _CM_THEIRS_CLAIM)]
+_CM_BOTH_BUMPED = _env_drift.merge_claim_file(_CM_BASE, *_CM_BUMPED)
+R.check(
+    "claims both sides changed under one stamp both bumped resolve per scenario",
+    _CM_BOTH_BUMPED is not None
+    and [ln for ln in _CM_BOTH_BUMPED.splitlines() if "claims-for:" in ln]
+    == ["# claims-for: 6.3.17"]
+    and _env_drift.parse_claim_map(_CM_BOTH_BUMPED) == {
+        "valve_storage_small_tank": ["the other branch's drift"],
+        "everything_on": ["this branch's own measured drift"],
+    },
+    f"merged={_CM_BOTH_BUMPED!r}",
+)
 # Why refusing matters, measured rather than asserted: had the driver unioned,
 # the #495 inherited-claims guard would NOT have fired, because the unioned
 # list is not exactly the baseline's -- it carries this branch's claim too.

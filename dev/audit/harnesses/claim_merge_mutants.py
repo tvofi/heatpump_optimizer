@@ -15,7 +15,7 @@ kill below is the runner's and not the mutant's. A mutant whose text no
 longer occurs once in the driver prints ``stale`` rather than a verdict.
 The M* and R-* rows are the #3066 review's own mutants (M5 retired with the
 two-way survival check it mutated); N* mutate the stamp and ``may-drift``
-decision. RESULT lines count the rows.
+decision, N10 restoring round 2's three-way stamp guard. RESULT lines count the rows.
 """
 from __future__ import annotations
 
@@ -25,7 +25,20 @@ import sys
 import tempfile
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[3]
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
+
+ROOT = repo_root(__file__)
 DRIVER = "tests/env_drift.py"
 
 # (name, the text replaced, its replacement) -- each must occur exactly once.
@@ -38,7 +51,13 @@ MUTANTS = (
      "        if mine == main or mine == was:\n            lines = their_blocks.get(name)",
      "        if mine == main or mine == was:\n"
      "            lines = our_blocks.get(name) or their_blocks.get(name)"),
-    ("M4-no-stamp-guard", "    if both_changed and not (", "    if False and not ("),
+    ("M4-no-stamp-guard",
+     "    if both_changed and _parse_claims(ours)[0] != _parse_claims(theirs)[0]:",
+     "    if False:"),
+    ("N10-stamp-guard-three-way",
+     "    if both_changed and _parse_claims(ours)[0] != _parse_claims(theirs)[0]:",
+     "    if both_changed and not (\n        _parse_claims(base)[0] == _parse_claims(ours)[0]"
+     " == _parse_claims(theirs)[0]\n    ):"),
     ("M6-no-own-lines-check",
      "            return f\"the claims for '{name}' are neither side's own\"", "            pass"),
     ("R-keep-deleted", "        if lines:\n            decided[name] = lines",
