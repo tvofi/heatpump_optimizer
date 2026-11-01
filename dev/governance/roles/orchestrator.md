@@ -168,8 +168,8 @@ head SHA, invisible to a liveness check for its worktree or marker. A
 head moving under an in-flight review costs it; a code-carrying move re-issuing
 the verdict needs a fresh `bus.sh dispatch` before the reviewer publishes, since
 `push-verdict` refuses a nonce minted at another head.
-Dispatching a second reviewer over a range clean against a reviewed head whose
-verdict was merge (`--reviewed-head`) is the error, not diligence (tvofi, 2026-10-27);
+Dispatching a second reviewer over a range clean against a merge-verdict
+reviewed head (`--reviewed-head`) is the error, not diligence (tvofi, 2026-10-27);
 `review_carry.py`'s `CARRY` refuses it. **A conflict after the handoff is
 resolved by merge, never a re-cut**: merge `origin/main` in, or hand a
 semantic one to the fixer; the resolution delta goes to that reviewer.
@@ -228,8 +228,8 @@ Through the roster seat, on `standing-roster.md`'s terms.
 - A `merge` verdict from a reviewer that measured **this** head, or a **carry**,
   with no reviewer turn (tvofi, 2026-10-01): `tools/pr/app_approve.sh --carry
   <verdict> <head>` reports carried, the files `git diff --name-only <verdict>
-  <head>` names miss the branch's own diff other than its own delivery row,
-  or keep its patch (L6). Else, a resolution delta for the same reviewer.
+  <head>` names miss the branch's own diff bar its delivery row,
+  or keep its patch (L6); else a resolution delta for the same reviewer.
 - CI green at the verdicted head, landed onto a green `main` by
   `tools/audit/seat/merge_train.py batch` (tvofi, 2026-10-07), the only bypass:
   a proved batch merges while `main`'s tree equals its proof's; one entry merges
