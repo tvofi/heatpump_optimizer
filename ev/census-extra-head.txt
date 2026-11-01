@@ -1,0 +1,20 @@
+
+=== doc claims vs code facts (#1413) ===
+README.md:12:	2025.2.0	[![Home Assistant: 2025.2.0+]                                                                      ]
+README.md:31:	began	This project began as a fork of
+README.md:33:	2.2.0	at version 2.2.0. The MPC formulation, the two-zone thermal model with its slab
+README.md:37:	2.3.0	the MQTT interface this integration drives. Versions 2.3.0 onward were developed
+README.md:178:	2025.2.0	- Home Assistant 2025.2.0 or newer (the first release whose own
+README.md:320:	2025.2.0	> **Home Assistant 2025.2.0 and Python 3.13 are the minimum.** An installation
+README.md:760:	instead of the	watchdog can never see divergence and the map learns the setpoint instead of the
+README.md:1100:	reverted	break when the fix is reverted; a null control stating what would falsify the
+docs/configuration.md:630:	instead of the	| Heat pump heat energy meter | none | an          sensor in Wh, kWh or MWh | A cumulative kWh meter of the heat the pump delivers. It is read over ea
+docs/configuration.md:630:	went	| Heat pump heat energy meter | none | an          sensor in Wh, kWh or MWh | A cumulative kWh meter of the heat the pump delivers. It is read over ea
+docs/configuration.md:903:	began	| Disinfection switch mode | observe | observe / control | **Observe** reads the switch and never writes it. **Control** turns it on when the plan's a
+docs/configuration.md:942:	went	| Learn my comfort preference from overrides | off | on/off | Every temperature override says the plan went too far one way. This adjusts the comfort 
+docs/how-it-works.md:841:	instead of the	trusted instead of the inference.
+docs/automations.md:174:	instead of the	taking the sensor and thresholds as inputs instead of the
+docs/dashboard-card.md:535:	went	compressor replacement cost. Beside it, **Where the money went** splits the
+docs/dashboard-card.md:762:	instead of the	instead of the buffer, so the valve blends two sources and gains its own target
+RESULT census_hits=16 mode=extra ref=831cb4b6bb0a681788441ce406db4b687673e4b6
+RESULT by_term {'instead of the': 5, '2025.2.0': 3, 'went': 3, 'began': 2, '2.2.0': 1, '2.3.0': 1, 'reverted': 1}

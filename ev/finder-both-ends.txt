@@ -1,0 +1,34 @@
+
+=== doc claims vs code facts (#1413) ===
+passage docs/how-it-works.md /Earlier versions added explicit anticipation/ present=False
+passage docs/how-it-works.md /now\s+1\.0\s+rather\s+than\s+1\.05/ present=False
+passage docs/how-it-works.md /survives\s+the\s+upgrade/ present=False
+passage docs/dashboard-card.md /Earlier versions sized the dialog/ present=False
+passage docs/dashboard-card.md /upgraded\s+from\s+before/ present=False
+passage docs/dashboard-card.md /older\s+than\s+2\.6\.1/ present=False
+RESULT finder_passages_present=0 ref=6d24f3ac628372993130e3b5525bdb4bc51c0b05
+RESULT stateless_findings=12 ref=6d24f3ac628372993130e3b5525bdb4bc51c0b05
+   docs/configuration.md:976: 'historical default' | still read SEK, which is the historical default rather than a constraint.
+   docs/configuration.md:998: 'older setups' | | Legacy JSON command topic | *(empty)* | MQTT topic | Only for older setups expecting a J
+   docs/how-it-works.md:211: 'Before this was' | Before this was shared, the simulation charged a throttled buffer at the
+   docs/how-it-works.md:670: 'silently evaluated' | integrations never publish an irradiance field, so the term silently evaluated
+   docs/how-it-works.md:677: 'previous behaviour' | 3. **The weather entity's forecast**, the previous behaviour and still the
+   docs/how-it-works.md:888: 'previous behaviour' | it goes stale, everything falls back to the previous behaviour.
+   docs/how-it-works.md:1162: 'historical two-column form' | fit degrades to the historical two-column form and reports no gains figure.
+   docs/dashboard-card.md:179: 'older integrations' | optimizer runs, and older integrations publish none of them. A row with nothing
+   docs/dashboard-card.md:186: 'older registry' | ends in the suffix it wants. An install that kept older registry ids for these
+   docs/dashboard-card.md:187: 'older suffix' | sensors is covered too: the card tries each sensor's older suffix after the
+   docs/ecl110.md:55: 'older setups' | For older setups that expect JSON, the same command is also published to the
+   docs/ecl110.md:87: 'previous default' | that stored the previous default strings keep publishing to them.
+
+
+=== doc claims vs code facts (#1413) ===
+passage docs/how-it-works.md /Earlier versions added explicit anticipation/ present=False
+passage docs/how-it-works.md /now\s+1\.0\s+rather\s+than\s+1\.05/ present=False
+passage docs/how-it-works.md /survives\s+the\s+upgrade/ present=False
+passage docs/dashboard-card.md /Earlier versions sized the dialog/ present=False
+passage docs/dashboard-card.md /upgraded\s+from\s+before/ present=False
+passage docs/dashboard-card.md /older\s+than\s+2\.6\.1/ present=False
+RESULT finder_passages_present=0 ref=831cb4b6bb0a681788441ce406db4b687673e4b6
+RESULT stateless_findings=0 ref=831cb4b6bb0a681788441ce406db4b687673e4b6
+
