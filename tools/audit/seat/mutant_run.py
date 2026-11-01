@@ -531,9 +531,11 @@ def _self_test() -> int:
         hang = ("python3 -c \"import pathlib, time\n"
                 "if 'return hi\\n    if x > hi' in pathlib.Path('lib.py').read_text():\n"
                 f"    pathlib.Path('{pidf}').write_text(str(__import__('os').getpid())); time.sleep(60)\"")
+        t0 = time.monotonic()
         rc, out, _ = drive("--spec", str(spec), "--cmd", hang, "--timeout", "2")
-        check("spec: a mutant that hangs past --timeout is KILLED and its command ends",
-              rc == 0 and out.splitlines() == ["SURVIVED NULL", "KILLED ret_hi"] and _gone(pidf.read_text()))
+        check("spec: a mutant that hangs past --timeout is KILLED, and its command is killed rather than waited out",
+              rc == 0 and out.splitlines() == ["SURVIVED NULL", "KILLED ret_hi"] and time.monotonic() - t0 < 30
+              and _gone(pidf.read_text()))
         for label, body in (("not a list", "{}"), ("not JSON", "[oops"), ("missing keys", '[{"name": "a"}]'),
                             ("empty old", json.dumps([{**bad, "old": ""}])), ("old equals new", json.dumps([{**bad, "new": "return lo"}])),
                             ("absent file", json.dumps([{**bad, "file": "nope.py"}])),
@@ -545,6 +547,7 @@ def _self_test() -> int:
         for label, args in (("both --spec and --diff", ["--spec", str(spec), "--diff", "a...b", "--cmd", pin]),
                             ("neither", ["--cmd", pin]), ("no --cmd", ["--spec", str(spec)]),
                             ("--copy-tree with --in-place", ["--spec", str(spec), "--cmd", pin, "--copy-tree", "--in-place"]),
+                            ("--in-place with a diff end that is not HEAD", ["--diff", f"{base}...{base}", "--cmd", pin, "--in-place"]),
                             ("a two-dot --diff", ["--diff", "HEAD", "--cmd", pin]),
                             ("an unresolvable --diff base", ["--diff", "nobase...HEAD", "--cmd", pin])):
             rc, out, _ = drive(*args)
