@@ -14081,7 +14081,8 @@
     "tools/audit/seat/body_push.sh"
    ],
    "carry": [
-    "- The contract arm runs `carry_audit.py check --body` without `--roster-ref` (body_patch.sh:98), against the group brief's revision 8. Round 3 carried this to R10-FLOW-BODY-ONLY, but that group's brief and carries at 5620151813e0 contain no `roster-ref` (ev/roster_carries.txt). It is still owed, as one argument naming the freshly fetched round roster branch. Its control is a fixture whose worktree roster holds a carry the roster ref lacks, which must refuse. Carry: R10-FLOW-BODY-ONLY"
+    "- The contract arm runs `carry_audit.py check --body` without `--roster-ref` (body_patch.sh:98), against the group brief's revision 8. Round 3 carried this to R10-FLOW-BODY-ONLY, but that group's brief and carries at 5620151813e0 contain no `roster-ref` (ev/roster_carries.txt). It is still owed, as one argument naming the freshly fetched round roster branch. Its control is a fixture whose worktree roster holds a carry the roster ref lacks, which must refuse. Carry: R10-FLOW-BODY-ONLY",
+    "tvofi 2026-10-24 card 7 (owner accepted; CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)), after parts (b) and (c) give body-only transport: every figure a pull request body states comes from a generated block. tools/audit/seat/features_block.py and the figure lint render the block at the head; body_push.sh and the pr-contract refresh it on each synchronize; a hand-typed figure fails the body check, so a stale figure is structurally impossible. Touches the pull request template and checkPrBody (the template and contract are one file), so the owner's review at merge. Controls: a body with a hand-typed figure fails; a head that moves re-renders the block with no agent turn; each rule has a mutant. The generated block must tolerate the body-only path (no push), so render in the body-only job, not only on synchronize."
    ],
    "resume": {
     "stage": "not-started",
