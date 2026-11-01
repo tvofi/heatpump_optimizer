@@ -1,5 +1,0 @@
-unchanged-by-branch(3dot) tests/golden/claimed_drift.txt
-identical-to-main tests/golden/card_claimed_drift.txt
-identical-to-main VERSION
-identical-to-main RELEASE_NOTES.md
-identical-to-main custom_components/heatpump_optimizer/manifest.json

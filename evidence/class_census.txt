@@ -1,7 +1,0 @@
-43:            holiday_dates=away_mode.holiday_dates(
-84:        presence_raw, presence_attrs = self._entity_state(config.presence_entity)
-custom_components/heatpump_optimizer/away.py:265:    return async_track_state_change_event(hass, [entity_id], _changed)
-custom_components/heatpump_optimizer/coordinator.py:8415:        self._unsub_defrost = async_track_state_change_event(
-custom_components/heatpump_optimizer/coordinator.py:8460:        self._unsub_peak_guard = async_track_state_change_event(
-custom_components/heatpump_optimizer/early_cutoff.py:184:        held.unsub = async_track_state_change_event(inp.hass, [room], _changed)
-custom_components/heatpump_optimizer/pump_arbiter.py:1311:        held.unsubs.append(async_track_state_change_event(hass, entities, _changed))
