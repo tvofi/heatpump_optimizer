@@ -245,6 +245,18 @@ MUTANTS = [
     ("merge_train-22", "merge_train.py", "    if not gates or other:\n", "    if not gates:\n"),
     ("merge_train-23", "merge_train.py", "    if commit.get(\"oid\") != head:\n", "    if False:\n"),
     ("merge_train-24", "merge_train.py", "    return sorted(set(required) | set(owed))", "    return required"),
+    # R10-FLY-TRAIN-DEFAULTS part 2, round 2: `add --priority` / `--front` from the CLI into the
+    # spool and the drain (P312 x P112).
+    ("merge_train-34", "merge_train.py", '**({"priority": True} if a.priority else {})}', "}"),
+    ("merge_train-35", "merge_train.py", '"--state-dir", a.state_dir, *rest], front=a.front)',
+     '"--state-dir", a.state_dir, *rest], front=False)'),
+    ("merge_train-36", "merge_train.py", '"verdict_comment", "issues", "priority")', '"verdict_comment", "issues")'),
+    ("merge_train-37", "merge_train.py", "if a.priority else {})}", "if False else {})}"),
+    ("merge_train-38", "merge_train.py", '(e.get("priority") or e.get("front"))', 'e.get("priority")'),
+    ("merge_train-39", "merge_train.py", '{**json.loads(ln), "front": True}', "json.loads(ln)"),
+    ("merge_train-40", "merge_train.py", '            entry["front"] = True\n', "            pass\n"),
+    ("merge_train-41", "merge_train.py", 'key=lambda e: (not (e.get("priority") or e.get("front")), not crit(e)))',
+     'key=lambda e: (not crit(e), not (e.get("priority") or e.get("front"))))'),
     # r10-ci-layout-p2-u9a: the merge-main bot's pin chain under ci.yml's names.
     ("merge_main_bot-1", "tools/pr/merge_main_bot.py", 'PIN_CHAIN = re.compile(r"^tests / (?:',
      'PIN_CHAIN = re.compile(r"^(?:'),

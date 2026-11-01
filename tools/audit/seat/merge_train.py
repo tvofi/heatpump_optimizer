@@ -947,6 +947,8 @@ def spool_edit_locked(t: "Train", pr: int, op: str) -> int:
               f"nothing changed; spool: {spool_order(t.state)}")
         return 1
     rest = [ln for ln in raw if spool_line_pr(ln) != pr]
+    if op == "front":  # the line keeps first place at the drain too (`Train.drain_order`)
+        mine = [json.dumps({**json.loads(ln), "front": True}, sort_keys=True) for ln in mine]
     spool_rewrite(t.state, (mine + rest) if op == "front" else rest)
     t.log(f"{'FRONT' if op == 'front' else 'REMOVED'} #{pr}: spool read back: {spool_order(t.state)}")
     return 0
@@ -1053,6 +1055,8 @@ def train_add(t: "Train", item: dict, train_argv: "list[str]", launch=launch_det
             return 1
         entry = {k: item[k] for k in ("pr", "verdict", "verdict_comment", "issues", "priority") if item.get(k) is not None}
         entry["pr"] = int(pr)
+        if front:
+            entry["front"] = True
         if live:
             spool_append(t.state, entry)
             if front:
@@ -3022,7 +3026,8 @@ class Train:
 
     def drain_order(self, added: "list[dict]") -> "list[dict]":
         """P312: a spool drains into the next batch in an explicit order: entries
-        added with `--priority` (HOTFIX) first, then critical-path entries
+        added with `--priority` (HOTFIX) or `--front` (P112: the entry the spool
+        puts first) first, in spool order, then critical-path entries
         (`self.critical`, the branch read only when two or more wait), then
         arrival order. Python's sort is stable, so ties keep the spool's order."""
         if len(added) < 2:
@@ -3031,7 +3036,7 @@ class Train:
             b = e.get("branch") or self.out("gh", "pr", "view", str(e["pr"]), "--repo", self.repo,
                                            "--json", "headRefName", "--jq", ".headRefName").strip()
             return bool(self.critical({"branch": b}))
-        return sorted(added, key=lambda e: (not e.get("priority"), not crit(e)))  # mut:drain
+        return sorted(added, key=lambda e: (not (e.get("priority") or e.get("front")), not crit(e)))  # mut:drain
 
     def queue_take(self, batches: "list[list[dict]]", k: int) -> bool:
         """Between batches: drain the spool into ONE new batch after those still
@@ -6902,9 +6907,10 @@ def _spool_edit_self_test(check, stub, H: str) -> None:
         st = spool3()
         before = lines_of(st)
         rc, out = cli(st, "--front", "13")
-        check("P112 --front: on a spool of three the named PR goes first, the others keep their order and "
-              "bytes, and the order read back is printed",
-              rc == 0 and lines_of(st) == [before[2], before[0], before[1]]
+        check("P112 --front: on a spool of three the named PR goes first (its line marked `front`), the "
+              "others keep their order and bytes, and the order read back is printed",
+              rc == 0 and lines_of(st)[1:] == before[:2]
+              and json.loads(lines_of(st)[0]) == {**json.loads(before[2]), "front": True}
               and out and out[-1] == "FRONT #13: spool read back: #13 #11 #12")
         live = Train("o/r", st, None, "", (), 1, run=stub({"pr": 14}), log=lambda m: None)
         (st / QUEUE_OPEN).write_text(f"{os.getpid()}\n")
@@ -6944,6 +6950,47 @@ def _spool_edit_self_test(check, stub, H: str) -> None:
         rc2, out2 = cli(st, "11")
         check("P112: --front with --remove, or a plain add with no verdict, is refused (rc 2), nothing written",
               rc == 2 and rc2 == 2 and (st / QUEUE_SPOOL).read_bytes() == raw)
+
+        # P312 x P112: the drain honours what `add --front` / `add --priority` wrote. Every
+        # step runs the CLI into train_add and the real spool, then drain_order reads it back.
+        gl = globals()
+        real_add = gl["train_add"]
+
+        def drained(st: Path) -> "list[int]":
+            def run(argv, cwd=ROOT, stdin=None):
+                return 0, ("cp" if argv[3] == "13" or argv[3] == "23" else "plain") + "\n"
+            dt = Train("o/r", st, None, "", (), 1, run=run, log=lambda m: None,
+                       critical=lambda it: it["branch"] == "cp")
+            return [e["pr"] for e in dt.drain_order(spool_read(st)[0])]
+
+        def via_cli(st: Path, pr: int, *a: str) -> "tuple[int, list[str]]":
+            (st / QUEUE_OPEN).write_text(f"{os.getpid()}\n")
+            gl["train_add"] = lambda t, item, argv, **kw: real_add(
+                Train("o/r", st, None, "", (), 1, run=stub({"pr": pr}), log=print), item, argv, **kw)
+            try:
+                return cli(st, str(pr), H, "--verdict-comment", "42", *a)
+            finally:
+                gl["train_add"] = real_add
+        st = spool3()
+        check("P312 null: no --front, nothing critical but #13 -> arrival order after the critical #13",
+              drained(st) == [13, 11, 12])
+        cli(st, "--front", "12")
+        check("P112 x P312: `--front 12` on a spool holding critical #13 -> the drain runs #12 first, "
+              "as the read-back said, then #13, then #11",
+              [e["pr"] for e in spool_read(st)[0]] == [12, 11, 13] and drained(st) == [12, 13, 11])
+        st = spool3()
+        via_cli(st, 23)
+        rc1, _ = via_cli(st, 21, "--priority")
+        rc2, out2 = via_cli(st, 22, "--front")
+        entries = {e["pr"]: e for e in spool_read(st)[0]}
+        check("add --priority / --front through the CLI, train_add and the spool: #21 is stored with "
+              "priority and #22 with front (neither stored on a plain add), #22 lands first with the order "
+              "read back, and the drain runs #22 and #21 (spool order), the critical #13 and #23, then arrival",
+              rc1 == 0 and rc2 == 0 and entries[21].get("priority") is True and "front" not in entries[21]
+              and entries[22].get("front") is True and "priority" not in entries[22]
+              and not {"priority", "front"} & set(entries[23]) and not {"priority", "front"} & set(entries[11])
+              and out2[-1].endswith("spool read back: #22 #11 #12 #13 #23 #21")
+              and drained(st) == [22, 21, 13, 23, 11, 12])
 
         # The lock: a concurrent add arrives between the edit's read and its
         # rewrite. Under QUEUE_LOCK it waits and its line survives; the same
