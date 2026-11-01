@@ -22789,7 +22789,9 @@ R.check(
 # Unioning two lists reinstates a claim this branch deleted, and
 # `inherited_claims_error` cannot see it, because the unioned list is no longer
 # exactly the baseline's -- `_CM_UNION_IS_SILENT` below measures that. So the
-# driver unions comments and REFUSES a claim list both sides rewrote.
+# driver unions comments, merges the claim list three-way PER SCENARIO and the
+# may-drift lines PER FIXTURE (a deletion stays deleted), and REFUSES a
+# scenario or fixture both sides rewrote.
 _CM_BASE = (
     "# Scenarios this branch deliberately moves, one name per line.\n"
     "#\n"
@@ -22843,17 +22845,146 @@ R.check(
     f"claims={_env_drift.parse_claim_map(_CM_MERGED or '')!r}",
 )
 
-# The case that refuses union. Both sides rewrote the claim list, so no rule
-# can say which claim describes which diff; git keeps the markers.
+# Both sides changed the claim list, each on its own scenario (P209, #2876's
+# shape: additions on both sides, none deleted). Per scenario only one side
+# wrote each line, so the merge keeps both and reinstates nothing.
 _CM_OURS_CLAIM = _CM_OURS.rstrip("\n") + "\neverything_on # this branch's own measured drift\n"
 _CM_THEIRS_CLAIM = (
     _CM_THEIRS.rstrip("\n") + "\nvalve_storage_small_tank # the other branch's drift\n"
 )
+_CM_DISJOINT = _env_drift.merge_claim_file(_CM_BASE, _CM_OURS_CLAIM, _CM_THEIRS_CLAIM)
 R.check(
-    "a claim list both sides rewrote is refused, not unioned",
-    _env_drift.merge_claim_file(_CM_BASE, _CM_OURS_CLAIM, _CM_THEIRS_CLAIM) is None,
-    "two branches' claim lists were merged; a claim excuses a golden diff and "
-    "cannot be inherited by a merge",
+    "claims both sides added on different scenarios are both kept",
+    _CM_DISJOINT is not None
+    and _env_drift.parse_claim_map(_CM_DISJOINT) == {
+        "valve_storage_small_tank": ["the other branch's drift"],
+        "everything_on": ["this branch's own measured drift"],
+    }
+    and _CM_DISJOINT.count("# claims-for: 6.3.16") == 1
+    and "# may-drift: wood_coil -- machine-sensitive" in _CM_DISJOINT
+    and _CM_DISJOINT.startswith("# Scenarios this branch")
+    and _CM_DISJOINT.index("valve_storage_small_tank #")
+    < _CM_DISJOINT.index("everything_on #")
+    < _CM_DISJOINT.index("# may-drift:"),
+    f"merged={_CM_DISJOINT!r}",
+)
+# The case that still refuses. Both sides changed the SAME scenario's lines,
+# so no rule can say which claim describes which diff; git keeps the markers.
+# #2834's shape (the five coord_* scenarios on both sides), at one scenario.
+_CM_OURS_SAME = (
+    _CM_OURS.rstrip("\n") + "\nvalve_storage_small_tank # this branch's reason\n"
+)
+R.check(
+    "a scenario both sides rewrote is refused, not unioned",
+    _env_drift.merge_claim_file(_CM_BASE, _CM_OURS_SAME, _CM_THEIRS_CLAIM) is None
+    and _env_drift.merge_claim_decision(_CM_BASE, _CM_OURS_SAME, _CM_THEIRS_CLAIM)[1]
+    == ["valve_storage_small_tank"]
+    and "valve_storage_small_tank: this branch"
+    in _env_drift.merge_claim_refusal(_CM_BASE, _CM_OURS_SAME, _CM_THEIRS_CLAIM),
+    "two branches' claims for one scenario were merged; a claim excuses a "
+    "golden diff and cannot be inherited by a merge -- refusal="
+    + _env_drift.merge_claim_refusal(_CM_BASE, _CM_OURS_SAME, _CM_THEIRS_CLAIM),
+)
+# A deletion stays deleted: the reinstatement a two-way union makes is the
+# hazard the refusal existed for, and a three-way per-scenario merge cannot
+# make it. Main carries a claim at the base; this branch deletes it and claims
+# another scenario, main leaves it alone and claims a third.
+_CM_BASE_HELD = _CM_BASE.replace(
+    "\n# may-drift:", "everything_on # a claim the base carries\n\n# may-drift:"
+)
+assert _CM_BASE_HELD != _CM_BASE, "base claim anchor missing"
+_CM_THEIRS_HELD = _CM_THEIRS.replace(
+    "\n# may-drift:",
+    "everything_on # a claim the base carries\n"
+    "away_mode # main's new drift\n\n# may-drift:",
+)
+_CM_OURS_DEL = _CM_OURS.replace(
+    "\n# may-drift:", "config_flow # this branch's drift\n\n# may-drift:"
+)
+_CM_DELETED = _env_drift.merge_claim_file(_CM_BASE_HELD, _CM_OURS_DEL, _CM_THEIRS_HELD)
+R.check(
+    "a claim one side deleted and the other left alone stays deleted",
+    _CM_DELETED is not None
+    and _env_drift.parse_claim_map(_CM_DELETED) == {
+        "away_mode": ["main's new drift"],
+        "config_flow": ["this branch's drift"],
+    },
+    f"merged={_CM_DELETED!r}",
+)
+R.check(
+    "a claim one side deleted and the other rewrote is refused",
+    _env_drift.merge_claim_file(
+        _CM_BASE_HELD, _CM_OURS_DEL,
+        _CM_THEIRS_HELD.replace("a claim the base carries", "main rewrote it"),
+    ) is None,
+    "a deleted claim came back carrying the other side's reason",
+)
+# The same rule from main's side: main deletes the base's claim, this branch
+# leaves it alone and claims another scenario. The deletion is main's and
+# must win; a decision that reads this branch's untouched copy brings it back.
+_CM_OURS_HELD = _CM_OURS.replace(
+    "\n# may-drift:",
+    "everything_on # a claim the base carries\n"
+    "config_flow # this branch's drift\n\n# may-drift:",
+)
+_CM_THEIRS_DEL = _CM_THEIRS.replace(
+    "\n# may-drift:", "away_mode # main's new drift\n\n# may-drift:"
+)
+_CM_THEIRS_DELETED = _env_drift.merge_claim_file(
+    _CM_BASE_HELD, _CM_OURS_HELD, _CM_THEIRS_DEL
+)
+R.check(
+    "a claim main deleted and this branch left alone stays deleted",
+    _CM_THEIRS_DELETED is not None
+    and _env_drift.parse_claim_map(_CM_THEIRS_DELETED) == {
+        "away_mode": ["main's new drift"],
+        "config_flow": ["this branch's drift"],
+    },
+    f"merged={_CM_THEIRS_DELETED!r}",
+)
+# Both sides added the same claim, word for word, beside notes of their own:
+# one change made twice is not two changes, so it resolves, kept once.
+_CM_OURS_TWIN = _CM_OURS.rstrip("\n") + "\naway_mode # the same drift\n"
+_CM_THEIRS_TWIN = _CM_THEIRS.rstrip("\n") + "\naway_mode # the same drift\n"
+_CM_TWIN = _env_drift.merge_claim_file(_CM_BASE, _CM_OURS_TWIN, _CM_THEIRS_TWIN)
+R.check(
+    "a claim both sides added identically resolves, kept once",
+    _CM_TWIN is not None
+    and _CM_TWIN.count("away_mode #") == 1
+    and _env_drift.parse_claim_map(_CM_TWIN) == {"away_mode": ["the same drift"]},
+    f"merged={_CM_TWIN!r}",
+)
+# Null control: claims from different releases are not merged per scenario.
+R.check(
+    "claims both sides changed under different claims-for stamps are refused",
+    _env_drift.merge_claim_file(
+        _CM_BASE, _CM_OURS_CLAIM,
+        _CM_THEIRS_CLAIM.replace("claims-for: 6.3.16", "claims-for: 6.3.17"),
+    ) is None
+    and "different\n'claims-for:' stamps" in _env_drift.merge_claim_refusal(
+        _CM_BASE, _CM_OURS_CLAIM,
+        _CM_THEIRS_CLAIM.replace("claims-for: 6.3.16", "claims-for: 6.3.17"),
+    ),
+    "a claim stamped for another release excuses that release's diff only",
+)
+# Both sides bumped the stamp to the SAME release and changed disjoint claims:
+# every claim either side wrote describes that release's diff, so the stamps
+# agree and the merge is per scenario -- the guard above must not refuse it
+# only because the base held the older stamp. One side's bump alone beside
+# the other's claim change stays refused (the check above).
+_CM_BUMPED = [s.replace("claims-for: 6.3.16", "claims-for: 6.3.17")
+              for s in (_CM_OURS_CLAIM, _CM_THEIRS_CLAIM)]
+_CM_BOTH_BUMPED = _env_drift.merge_claim_file(_CM_BASE, *_CM_BUMPED)
+R.check(
+    "claims both sides changed under one stamp both bumped resolve per scenario",
+    _CM_BOTH_BUMPED is not None
+    and [ln for ln in _CM_BOTH_BUMPED.splitlines() if "claims-for:" in ln]
+    == ["# claims-for: 6.3.17"]
+    and _env_drift.parse_claim_map(_CM_BOTH_BUMPED) == {
+        "valve_storage_small_tank": ["the other branch's drift"],
+        "everything_on": ["this branch's own measured drift"],
+    },
+    f"merged={_CM_BOTH_BUMPED!r}",
 )
 # Why refusing matters, measured rather than asserted: had the driver unioned,
 # the #495 inherited-claims guard would NOT have fired, because the unioned
@@ -22901,6 +23032,98 @@ R.check(
     and "# may-drift: wood_coil -- machine-sensitive" in _CM_MD_MERGED,
     f"merged={_CM_MD_MERGED!r}",
 )
+# A may-drift line one side deletes (R8-P3: the suspension that claims the
+# fixture this release) while the other leaves it alone stays deleted, and
+# the claims both sides added still merge -- #2745's and e438816e3's shape,
+# which the two-way survival check refused. Deleting one only narrows what
+# the gate exempts; a may-drift line both sides keep is still owed.
+_CM_OURS_SUSPEND = _CM_OURS_CLAIM.replace(
+    "# may-drift: wood_coil -- machine-sensitive\n", ""
+).rstrip("\n") + "\nwood_coil # suspended may-drift, claimed this release\n"
+assert "# may-drift: wood_coil" not in _CM_OURS_SUSPEND, "may-drift anchor missing"
+_CM_SUSPENDED = _env_drift.merge_claim_file(_CM_BASE, _CM_OURS_SUSPEND, _CM_THEIRS_CLAIM)
+R.check(
+    "a may-drift line one side suspended stays suspended through the merge",
+    _CM_SUSPENDED is not None
+    and "# may-drift: wood_coil" not in _CM_SUSPENDED
+    and set(_env_drift.parse_claim_map(_CM_SUSPENDED))
+    == {"wood_coil", "everything_on", "valve_storage_small_tank"},
+    f"merged={_CM_SUSPENDED!r}",
+)
+# A may-drift line is value-bearing like a claim -- it exempts a fixture -- so
+# it merges three-way per fixture by the claim rule, not by the note union. The
+# union keeps both sides of an overlapping hunk: one side suspends `wood_coil`
+# while the other rewords the ADJACENT `flat_prices` line, and a union alone
+# brings the suspended line back beside both wordings (#3066 review, D2).
+_CM_MD_BASE = _CM_BASE.replace(
+    "# may-drift: wood_coil -- machine-sensitive\n",
+    "# may-drift: flat_prices -- polish\n# may-drift: wood_coil -- machine-sensitive\n",
+)
+assert _CM_MD_BASE != _CM_BASE, "may-drift pair anchor missing"
+_CM_MD_SUSPEND = _CM_MD_BASE.replace("# may-drift: wood_coil -- machine-sensitive\n", "")
+_CM_MD_REWORD = _CM_MD_BASE.replace("-- polish\n", "-- polish (reworded)\n")
+_CM_MD_NOTE = "# #3066: a note so neither side is the base.\n"
+for _cm_label, _cm_ours, _cm_theirs in (
+    ("this branch", _CM_MD_SUSPEND + _CM_MD_NOTE, _CM_MD_REWORD),
+    ("main", _CM_MD_REWORD + _CM_MD_NOTE, _CM_MD_SUSPEND),
+):
+    _cm_md = _env_drift.merge_claim_file(_CM_MD_BASE, _cm_ours, _cm_theirs)
+    R.check(
+        f"a may-drift line {_cm_label} suspended beside a reworded neighbour "
+        "stays suspended",
+        _cm_md is not None
+        and "# may-drift: wood_coil" not in _cm_md
+        and _cm_md.count("# may-drift: flat_prices") == 1
+        and "# may-drift: flat_prices -- polish (reworded)\n" in _cm_md,
+        f"merged={_cm_md!r}",
+    )
+# A may-drift line one side deleted and the other rewrote is the claim rule's
+# delete-against-edit: no rule says which side describes the fixture, so it
+# refuses and the refusal names the fixture (#3066 review, D3). Both sides
+# rewording one line differently refuses alike.
+for _cm_label, _cm_ours, _cm_theirs in (
+    ("deleted against rewritten",
+     _CM_MD_REWORD, _CM_MD_BASE.replace("# may-drift: flat_prices -- polish\n", "")),
+    ("rewritten both ways",
+     _CM_MD_REWORD, _CM_MD_BASE.replace("-- polish\n", "-- polish v2\n")),
+):
+    R.check(
+        f"a may-drift line {_cm_label} is refused and named",
+        _env_drift.merge_claim_file(_CM_MD_BASE, _cm_ours, _cm_theirs) is None
+        and "may-drift" in _env_drift.merge_claim_refusal(
+            _CM_MD_BASE, _cm_ours, _cm_theirs)
+        and "  may-drift: flat_prices:" in _env_drift.merge_claim_refusal(
+            _CM_MD_BASE, _cm_ours, _cm_theirs),
+        _env_drift.merge_claim_refusal(_CM_MD_BASE, _cm_ours, _cm_theirs),
+    )
+# The stamp is the other value-bearing comment line, and the union decided it
+# alike: a bump beside the other side's adjacent note kept both stamps, and
+# `_parse_claims` reads the first, so a bump this branch made was lost.
+_CM_ST_NOTE = "# claims-for: 6.3.16\n#\n"
+assert _CM_ST_NOTE in _CM_BASE, "stamp anchor missing"
+_CM_ST_BUMP = _CM_BASE.replace("claims-for: 6.3.16", "claims-for: 6.3.17")
+_CM_ST_ADJ = _CM_BASE.replace(_CM_ST_NOTE, "# claims-for: 6.3.16\n# an adjacent note\n")
+for _cm_label, _cm_ours, _cm_theirs in (
+    ("this branch bumped", _CM_ST_BUMP, _CM_ST_ADJ),
+    ("main bumped", _CM_ST_ADJ, _CM_ST_BUMP),
+):
+    _cm_st = _env_drift.merge_claim_file(_CM_BASE, _cm_ours, _cm_theirs)
+    R.check(
+        f"a stamp {_cm_label} beside an adjacent note is the one stamp kept",
+        _cm_st is not None
+        and _env_drift._parse_claims(_cm_st)[0] == "6.3.17"
+        and _cm_st.count("claims-for:") == 1
+        and "# an adjacent note" in _cm_st,
+        f"merged={_cm_st!r}",
+    )
+_CM_ST_OTHER = _CM_BASE.replace("claims-for: 6.3.16", "claims-for: 6.3.18")
+R.check(
+    "a stamp both sides bumped differently is refused and named",
+    _env_drift.merge_claim_file(_CM_BASE, _CM_ST_BUMP, _CM_ST_OTHER) is None
+    and "  claims-for::" in _env_drift.merge_claim_refusal(
+        _CM_BASE, _CM_ST_BUMP, _CM_ST_OTHER),
+    _env_drift.merge_claim_refusal(_CM_BASE, _CM_ST_BUMP, _CM_ST_OTHER),
+)
 
 # End to end: a real two-branch conflict, resolved by git calling the driver.
 # The unit checks above pin the resolution; this pins the wiring -- the
@@ -22943,14 +23166,21 @@ with _tempfile.TemporaryDirectory() as _cm_td:
     # Same repo, second scenario: both sides rewrite the claim list. The
     # driver must refuse and leave the markers a human resolves.
     _cm_git("checkout", "-qb", "claimside", "main")
-    _cm_claim.write_text(_CM_OURS_CLAIM)
+    _cm_claim.write_text(_CM_OURS_SAME)
     _cm_git("commit", "-qam", "our claim")
+    _cm_git("checkout", "-qb", "disjointside", "main")
+    _cm_claim.write_text(_CM_OURS_CLAIM)
+    _cm_git("commit", "-qam", "our other claim")
     _cm_git("checkout", "-q", "main")
     _cm_claim.write_text(_CM_THEIRS_CLAIM)
     _cm_git("commit", "-qam", "their claim")
     _cm_git("checkout", "-q", "claimside")
     _cm_refused = _cm_git("merge", "main", "-m", "merge main")
     _cm_refused_file = _cm_claim.read_text()
+    _cm_git("merge", "--abort")
+    _cm_git("checkout", "-q", "disjointside")
+    _cm_disjoint = _cm_git("merge", "main", "-m", "merge main")
+    _cm_disjoint_file = _cm_claim.read_text()
 R.check(
     "git resolves a real two-branch note conflict through the driver",
     _cm_install == "installed"
@@ -22963,16 +23193,28 @@ R.check(
     f"err={_cm_merge.stderr!r} file={_cm_after!r}",
 )
 R.check(
-    "and it leaves a conflict for a claim list both sides rewrote",
+    "and it leaves a conflict for a scenario both sides rewrote",
     _cm_refused.returncode != 0
     and "<<<<<<<" in _cm_refused_file
     and ">>>>>>>" in _cm_refused_file
-    and "everything_on" in _cm_refused_file
-    and "valve_storage_small_tank" in _cm_refused_file
-    and "CONFLICTING CLAIMS" in _cm_refused.stderr,
+    and "this branch's reason" in _cm_refused_file
+    and "the other branch's drift" in _cm_refused_file
+    and "CONFLICTING CLAIMS" in _cm_refused.stderr
+    and "valve_storage_small_tank" in _cm_refused.stderr,
     "a refusal must look exactly like an unconfigured merge -- markers in the "
     f"file, non-zero exit -- got rc={_cm_refused.returncode} "
     f"err={_cm_refused.stderr!r} file={_cm_refused_file!r}",
+)
+R.check(
+    "git resolves claims both sides added on different scenarios",
+    _cm_disjoint.returncode == 0
+    and "<<<<<<<" not in _cm_disjoint_file
+    and _env_drift.parse_claim_map(_cm_disjoint_file) == {
+        "valve_storage_small_tank": ["the other branch's drift"],
+        "everything_on": ["this branch's own measured drift"],
+    },
+    f"rc={_cm_disjoint.returncode} err={_cm_disjoint.stderr!r} "
+    f"file={_cm_disjoint_file!r}",
 )
 # The driver checks its own output before writing it. These are that check's
 # null controls: each corrupts one property a hand resolution preserves, and
@@ -22981,14 +23223,19 @@ R.check(
 _CM_GOOD = _CM_MERGED
 R.check(
     "the merge verification passes the file the merge actually produced",
-    _env_drift.merge_claim_defect(_CM_GOOD, _CM_OURS, _CM_OURS, _CM_THEIRS) is None,
-    _env_drift.merge_claim_defect(_CM_GOOD, _CM_OURS, _CM_OURS, _CM_THEIRS) or "",
+    _env_drift.merge_claim_defect(_CM_GOOD, {}, _CM_BASE, _CM_OURS, _CM_THEIRS) is None
+    and _env_drift.merge_claim_defect(
+        _CM_DISJOINT,
+        _env_drift.merge_claim_decision(_CM_BASE, _CM_OURS_CLAIM, _CM_THEIRS_CLAIM)[0],
+        _CM_BASE, _CM_OURS_CLAIM, _CM_THEIRS_CLAIM,
+    ) is None,
+    _env_drift.merge_claim_defect(_CM_GOOD, {}, _CM_BASE, _CM_OURS, _CM_THEIRS) or "",
 )
 R.check(
     "the merge verification catches a lost stamp, a lost may-drift line, a "
     "smuggled claim and surviving markers",
     all(
-        (_env_drift.merge_claim_defect(bad, _CM_OURS, _CM_OURS, _CM_THEIRS) or "")
+        (_env_drift.merge_claim_defect(bad, {}, _CM_BASE, _CM_OURS, _CM_THEIRS) or "")
         .startswith(head)
         for bad, head in (
             (_CM_GOOD.replace("# claims-for: 6.3.16\n", ""), "the 'claims-for:'"),
@@ -22998,8 +23245,30 @@ R.check(
             (_CM_GOOD + "<<<<<<< main\n", "conflict markers"),
             ("", "the result is empty"),
         )
-    ),
+    )
+    # A decided line rewritten to a reason neither side wrote.
+    and (_env_drift.merge_claim_defect(
+        _CM_DISJOINT.replace("the other branch's drift", "nobody's"),
+        {"valve_storage_small_tank": ["valve_storage_small_tank # nobody's"],
+         "everything_on": ["everything_on # this branch's own measured drift"]},
+        _CM_BASE, _CM_OURS_CLAIM, _CM_THEIRS_CLAIM,
+    ) or "").startswith("the claims for 'valve_storage_small_tank'"),
     "a verification that cannot fail is not a verification",
+)
+# The may-drift arm in the other direction: a line one side suspended, put
+# back into the file the merge produced, is refused -- the union's D2 output.
+_CM_MD_OURS = _CM_MD_SUSPEND + _CM_MD_NOTE
+_CM_MD_GOOD = _env_drift.merge_claim_file(_CM_MD_BASE, _CM_MD_OURS, _CM_MD_REWORD) or ""
+R.check(
+    "the merge verification catches a suspended may-drift line put back",
+    _env_drift.merge_claim_defect(
+        _CM_MD_GOOD, {}, _CM_MD_BASE, _CM_MD_OURS, _CM_MD_REWORD) is None
+    and (_env_drift.merge_claim_defect(
+        _CM_MD_GOOD + "# may-drift: wood_coil -- machine-sensitive\n", {},
+        _CM_MD_BASE, _CM_MD_OURS, _CM_MD_REWORD,
+    ) or "").startswith(
+        "a may-drift or stamp line was lost or reinstated: ['may-drift: wood_coil']"),
+    f"good={_CM_MD_GOOD!r}",
 )
 
 R.check(
@@ -35265,6 +35534,85 @@ R.check(
         "skip-no-base-program", "skip-unchanged", "")),
     f"quiet={_closure.AUTOFIX_QUIET[_MA]}",
 )
+# Countermeasure C of R10-RCA-MUTATION-SURVIVOR (#2840): `mutation-autofix`
+# reddens when the measurement it applied left an added site alive, and says
+# which. Replayed on the shape of #2817's `4fbe4c6a5` measurement (`24 pinned,
+# 2 left unpinned`, the two lives lines below), on `0 left unpinned`, and on a
+# measurement it did not apply. The survivors come from the run's own report
+# lines, so a site cut for the budget, which a later run drives, is no survivor.
+_SV_RUN = (
+    "  pinned   coordinator.py:6100 GUARD_OFF -- killed by tests/features.py\n"
+    "  UNPINNED coordinator.py:6278 GUARD_OFF -- lives\n"
+    "  UNPINNED coordinator.py:6306 GUARD_OFF -- lives\n"
+    "  UNPINNED coordinator.py:6400 GUARD_OFF -- skip-budget\n"
+    "  UNPINNED coordinator.py:6410 GUARD_OFF -- killed by tests/features.py, "
+    "but its anchor also covers a site no run killed\n"
+    "\nPIN KILLED: 24 pinned, 4 left unpinned (2 survived, 1 not started for the "
+    "budget, 0 exclusive tails cut, 0 timed out, 0 skipped)\n")
+_SV_SITES = _mut.survivor_sites(_SV_RUN)
+_SV_RED = _closure.autofix_report(_MA, "changed", _SV_SITES)
+_SV_GOT = [
+    _SV_SITES,
+    _closure.autofix_report(_MA, "changed", [])[0],
+    _SV_RED[0], "coordinator.py:6278 GUARD_OFF" in _SV_RED[1]
+    and "coordinator.py:6306 GUARD_OFF" in _SV_RED[1],
+    _closure.autofix_report(_MA, "skip-head-moved", _SV_SITES)[0],
+    _closure.autofix_report(_MA, "skip-nothing-killed", _SV_SITES)[0],
+    _closure.autofix_report(_MA, "skip-not-allowed", _SV_SITES)[0],
+    _mut.survivor_sites("PIN KILLED: 3 pinned, 0 left unpinned\n"),
+    _mut.survivor_sites(None),
+]
+R.check(
+    "mutation-autofix is red on an applied measurement that left a site alive, naming each; "
+    "green on `0 left unpinned`; quiet on skip-head-moved",
+    _SV_GOT == [["coordinator.py:6278 GUARD_OFF", "coordinator.py:6306 GUARD_OFF"],
+                0, 1, True, 0, 1, 0, [], []],
+    f"(sites, changed+none, changed+2, named, head-moved, nothing-killed+2, not-allowed, "
+    f"0 left, no run) -> {_SV_GOT}",
+)
+# The survivors travel with the pins: each `mutation-pins` shard writes
+# `survivors.txt` beside `pins.json`, `merge_pin_shards` unions them, and
+# `mutation-autofix` reads the union back (`read_survivors`) into the env the
+# report step grades. A merge that kept one shard's list would green the job
+# on the other's survivor.
+with _tempfile.TemporaryDirectory() as _sv_td:
+    _sv_root = Path(_sv_td) / "shards"
+    for _k, _surv in ((1, ["a.py:1 GUARD_OFF"]), (2, []), (3, ["b.py:2 RETURN_DEL"])):
+        _d = _sv_root / f"mutation-pins-{_k}"
+        _d.mkdir(parents=True)
+        (_d / "status").write_text("measured\n")
+        (_d / "pins.json").write_text("{}")
+        (_d / "head").write_text("h\n")
+        (_d / "survivors.txt").write_text("".join(f"{x}\n" for x in _surv))
+    _mut.merge_pin_shards(str(_sv_root), str(Path(_sv_td) / "m"))
+    _SV_MERGED = _mut.read_survivors(str(Path(_sv_td) / "m"))
+    _SV_NONE = _mut.read_survivors(str(Path(_sv_td) / "absent"))
+_MA_JOB = _workflow_job(_TESTS_YML, "mutation-autofix")
+_MP_JOB = _workflow_job(_TESTS_YML, "mutation-pins")
+R.check(
+    "the survivors are written by each pin shard, merged as a union, read by mutation-autofix "
+    "and graded by its report step",
+    _SV_MERGED == ["a.py:1 GUARD_OFF", "b.py:2 RETURN_DEL"] and _SV_NONE == []
+    and "mutation_table.survivor_sites(run.read_text())" in _MP_JOB
+    and "mutation_table.read_survivors(pins)" in _MA_JOB
+    and "AUTOFIX_SURVIVORS: ${{ steps.autofix.outputs.survivors }}" in _MA_JOB
+    and _closure.AUTOFIX_SURVIVOR_GRADED[_MA] == ("changed", "skip-nothing-killed"),
+    f"merged={_SV_MERGED} absent={_SV_NONE}",
+)
+# R10-PIN-DRIVE-INCONCLUSIVE: a pin drive whose lazy baseline refused (rc 0 at
+# --scope changed) returns before `pin_results` is written, so no `PIN KILLED:`
+# summary -- the one line `measurement()` grades by -- can describe sites a red
+# baseline kept from being judged as if they had survived. Order, not wording:
+# `LazyBaselines.killed` reads every run after the stop as no kill.
+_PD_STOP = _MUT_BODY.find("        if verdicts.stop is not None:\n            return verdicts.stop\n        print(f\"  REACH SKIP")
+R.check(
+    "a pin drive whose baseline refused returns before its results are reported as survivors",
+    0 < _PD_STOP < _MUT_BODY.find("entries, report, pin_rc = pin_results(results, kill_runs, baseline,")
+    and _mut.LazyBaselines({}, lambda w, s: 0).killed(
+        0, "x.py", _mut.ScriptRun(rc=1, failed=1, seconds=0.0))
+    is False,
+    f"stop-return at {_PD_STOP}",
+)
 _ma_returns = (_returned_statuses(_mut.measurement)
                | _returned_statuses(_mut.apply_pins))
 R.check(
@@ -35361,6 +35709,56 @@ R.check(
     "(whole and capped, anchors reached over seeds, same seed same slice, cap 1 "
     "skips the twin, no driver no slice, drivers carried, distinct cap-1 "
     f"slices) -> {_DP_GOT}",
+)
+
+# P85, the ledger lane's four shards: `--shard K/N` with `--drain` cuts ONE
+# night's slice -- the seed's `drain_pool` at N times the cap -- by whole
+# anchor. Null control: the shards' union is that unsharded slice, site for
+# site and not by count, no site is in two shards, and a different seed moves
+# the slice (so a shard that ignored the seed could not pass). The shard merge
+# also unions the `survivors.txt` each `write_drain` wrote: a merge that kept
+# one shard's list would pass the pin check above and drop the others'.
+_SH_UN = [_dp_site(f"p.py:g CLAMP_DROP s{i}", "p.py", 20 + i) for i in range(9)]
+_SH_UN += [_dp_site("p.py:g CLAMP_DROP s0", "p.py", 40)]  # a twin: one anchor, two sites
+try:
+    _sh_args = (_SH_UN, _DP_CL, ["tests/x.py"])
+    _sh_key = lambda p: sorted((s["anchor"], s["line"]) for s in p)  # noqa: E731
+    # cap 2 a shard over 3 shards draws 6 of the 10 sites, so the seed matters
+    _sh_parts = [_mut.drain_pool(*_sh_args, 7, 2, (k, 3)) for k in range(1, 4)]
+    _sh_whole = _mut.drain_pool(*_sh_args, 7, 6)
+    _sh_flat = [x for p in _sh_parts for x in _sh_key(p)]
+    _sh_other = _mut.drain_pool(*_sh_args, 8, 6)
+    with _tempfile.TemporaryDirectory() as _sd_td:
+        _sd_root = Path(_sd_td) / "shards"
+        for _k, _surv in ((1, ["a:1", "b:2"]), (2, ["b:2", "c:3"]), (3, []), (4, ["d:4"])):
+            _d = _sd_root / f"mutation-ledger-{_k}"
+            _d.mkdir(parents=True)
+            (_d / "status").write_text("measured\n" if _k < 4 else "skip-nothing-killed\n")
+            (_d / "pins.json").write_text(json.dumps({f"p:{_k}": {"killed_by": "t"}} if _k < 4 else {}))
+            (_d / "head").write_text("h\n")
+            (_d / "survivors.txt").write_text("".join(f"{x}\n" for x in _surv))
+        _mut.merge_pin_shards(str(_sd_root), str(Path(_sd_td) / "m"))
+        _sd_got = (Path(_sd_td) / "m" / "survivors.txt").read_text().split()
+        # a pin merge (no survivors.txt anywhere) leaves none behind
+        for _d in _sd_root.iterdir():
+            (_d / "survivors.txt").unlink()
+        _mut.merge_pin_shards(str(_sd_root), str(Path(_sd_td) / "n"))
+        _sd_none = (Path(_sd_td) / "n" / "survivors.txt").exists()
+    _SH_GOT = [
+        sorted(_sh_flat) == _sh_key(_sh_whole) and len(_sh_flat) == len(set(_sh_flat)) > 0,
+        all(not ({s["anchor"] for s in a} & {s["anchor"] for s in b})
+            for i, a in enumerate(_sh_parts) for b in _sh_parts[i + 1:]),
+        _sh_key(_sh_whole) != _sh_key(_sh_other),
+        _sd_got, _sd_none,
+    ]
+except Exception as _sh_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _SH_GOT = [f"{type(_sh_exc).__name__}: {_sh_exc}"]
+R.check(
+    "--drain --shard K/N: the shards are disjoint whole-anchor slices whose union is "
+    "the unsharded slice at N times the cap; the merge unions the survivors",
+    _SH_GOT[:3] == [True, True, True] and _SH_GOT[3:] == [["a:1", "b:2", "c:3", "d:4"], False],
+    f"(union == unsharded, anchors disjoint, seed moves the slice, merged survivors, "
+    f"pin-merge writes none) -> {_SH_GOT}",
 )
 
 # The push half. On the measured head every pin applies once and a second
@@ -35530,7 +35928,7 @@ R.check(
 _dr_at = _MUT_BODY.find("    if args.drain:\n        head = ")
 R.check(
     "--drain is wired: its slice from drain_pool, its pins written out, the ledger here untouched",
-    "pool = drain_pool(unpinned, closures, allow, args.seed, args.max)" in _MUT_BODY
+    "pool = drain_pool(unpinned, closures, allow, args.seed, args.max, shard)" in _MUT_BODY
     and "status = write_drain(Path(args.drain), entries, head, survivors)" in _MUT_BODY
     and 'how="--drain"' in _MUT_BODY
     and 0 < _dr_at < _MUT_BODY.find("        budgets.setdefault(\"killed_by\", {}).update(entries)")
@@ -35545,7 +35943,13 @@ R.check(
 _ml_meas = _workflow_job(_NIGHTLY_YML, "mutation-ledger")
 _ml_push = _workflow_job(_NIGHTLY_YML, "mutation-ledger-push")
 _ML_MISSING = [w for w, job in (
-    ('--scope full --drain "$out" --max 40', _ml_meas),
+    ('--scope full --drain "$out" --shard ${{ matrix.shard }}/4', _ml_meas),
+    ("--max 80 --jobs 4", _ml_meas),
+    ("--budget-minutes 240", _ml_meas),
+    ("shard: [1, 2, 3, 4]", _ml_meas),
+    ("pattern: mutation-ledger-*", _ml_push),
+    ("m.merge_pin_shards(sys.argv[1], sys.argv[2])", _ml_push),
+    ("if: always() && matrix.shard == 1", _ml_meas),
     ('--seed "$(date -u +%Y%m%d)"', _ml_meas),
     ("github.event_name != 'push'", _ml_meas),
     ("needs.mutation-ledger.result == 'success'", _ml_push),
@@ -35601,7 +36005,7 @@ R.check(
 _CRONS = re.findall(r'cron: "([^"]+)"', _NIGHTLY_YML.split("\njobs:", 1)[0])
 R.check(
     "one schedule cron, nightly.yml's; required lanes share that run (#1930 (d))",
-    _CRONS == ["17 2 * * *"]
+    _CRONS == ["37 0 * * *"]
     and "cron:" not in _TESTS_YML.split("\njobs:", 1)[0]
     and "github.event.schedule" not in _MUTN_JOB
     and "github.event.schedule" not in _ml_meas
@@ -37748,7 +38152,7 @@ R.check(
 # pull request's pin step only to a base program that has the flag.
 _MUT_BW_MISSING = [(j, w) for j, w in (
     ("mutation-nightly", "--budget-minutes 270"),
-    ("mutation-ledger", "--budget-minutes 270"),
+    ("mutation-ledger", "--budget-minutes 240"),
     ("mutation-pins", "&& budget=(--budget-minutes 260)"),
     ("mutation-pins", '"${budget[@]}" "${shard[@]}" 2>&1 | tee "$RUNNER_TEMP/pin-run.txt"'),
     # The budget's ceilings, derived 2026-10-09 from the draw_range-class

@@ -1217,6 +1217,11 @@ jobs:
               mutation_table.load_budgets())
           (out / "pins.json").write_text(json.dumps(added, indent=2))
           (out / "status").write_text(status + "\n")
+          # The sites the run left alive: mutation-autofix reddens on them.
+          if (status in ("measured", "skip-nothing-killed") and run.exists()
+                  and hasattr(mutation_table, "survivor_sites")):
+              (out / "survivors.txt").write_text("".join(
+                  f"{x}\n" for x in mutation_table.survivor_sites(run.read_text())))
           print(f"measure: {status}, {len(added)} anchor(s)")
           PY
 
@@ -2952,6 +2957,7 @@ jobs:
               loop_subject="ci: pin killed mutants",
           )
           print(f"allowed={allowed}")
+          survivors = []
           if not allowed:
               status = "skip-not-allowed"
           else:
@@ -2967,9 +2973,12 @@ jobs:
                   # A base older than the shards: whole on shard 1.
                   pins = os.environ["SHARDS_DIR"] + "/mutation-pins-1"
               status = mutation_table.apply_pins(pins, head)
+              if hasattr(mutation_table, "read_survivors"):
+                  survivors = mutation_table.read_survivors(pins)
           print(f"AUTOFIX: {status}")
           with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
               fh.write(f"status={status}\n")
+              fh.write(f"survivors={'; '.join(survivors)}\n")
           PY
 
       - name: Push the pinned ledger
@@ -3142,6 +3151,8 @@ jobs:
       # a measurement that was owed and did not happen reddens this job.
       - name: Report whether the repair happened
         if: always()
+        env:
+          AUTOFIX_SURVIVORS: ${{ steps.autofix.outputs.survivors }}
         run: |
           python3 -I "$RUNNER_TEMP/pinned/closure.py" autofix-report --job mutation-autofix \
             --status "${{ steps.autofix.outputs.status }}"
