@@ -100,7 +100,8 @@ The changes are in `tools/` shell and Python only, which mutation-autofix does n
 
 ## Red checks
 
-none. No check concluded red at d84340362; the review saw CI pending (`merge_train.py classify` exit 3, WAIT).
+- `governance / instrument-self-tests`: red on main itself, not from this diff. Cause, `pr_args self-test` fails 2 of 158 checks when `ubuntu-latest` lands on ubuntu-26.04, where `/bin/sleep` is the uutils multicall binary; hotfix #3086 (R10-HOTFIX-UUTILS-SLEEP) repairs it. Cheaper detector: none that this branch can add; the same step already runs on every pull request with no job-level `if:`, and main's own red is what it reported. This diff touches no `sleep` call and no `pr_args` self-test.
+- `gate` and `pr-contract / pr-contract` (if red): the aggregate of the check above and this body's earlier `none`; no other check concluded red at d84340362 (the review saw CI pending).
 
 ## Approval
 
