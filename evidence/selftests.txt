@@ -1,0 +1,3 @@
+self-test: 0 failed
+plan_page self-test: 61 checks, 0 failed
+state_docs self-test: all checks passed

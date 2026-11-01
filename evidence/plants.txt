@@ -1,0 +1,53 @@
+##### 8150392 P3
+== unplanted
+self-test: 0 failed
+== P3
+self-test: 0 failed
+##### 8150392 P4
+== unplanted
+self-test: 0 failed
+== P4
+self-test: 0 failed
+##### 8150392 P5
+== unplanted
+self-test: 0 failed
+== P5
+self-test: 0 failed
+##### 8150392 P6
+== unplanted
+self-test: 0 failed
+== P6
+FAIL self-test fails when round-close-check is deleted: rc=0
+self-test: 1 failed
+##### fe4af42 P3
+== unplanted
+self-test: 0 failed
+== P3
+FAIL --check refuses a round-close stamp that is not the last stamp: ['stamp cadence: 2 patch stamps for 6 production merges at a cadence of 5', 'stamp cadence: v1.0.1 carries 0 production groups, not 5']
+FAIL the unmutated copy's self-test exits 0 (null control): rc=1
+FAIL self-test fails when round-close-last is deleted: anchor ' or plan["stamps"][-1] is not closes[0]:' occurs 0 times in 'def check_plan(plan: dict) -> list:'
+self-test: 3 failed
+##### fe4af42 P4
+== unplanted
+self-test: 0 failed
+== P4
+FAIL --check refuses a minor stamp beside a correct round close: []
+FAIL the unmutated copy's self-test exits 0 (null control): rc=1
+FAIL self-test fails when round-close-stray-kind is deleted: anchor 'if s["kind"] not in ("patch", ROUND_CLOSE)]' occurs 0 times in 'def check_plan(plan: dict) -> list:'
+self-test: 3 failed
+##### fe4af42 P5
+== unplanted
+self-test: 0 failed
+== P5
+FAIL build_plan without round_n refuses: it planned a closure
+FAIL the unmutated copy's self-test exits 0 (null control): rc=1
+FAIL self-test fails when round-n-required is deleted: anchor 'roster_path: str = "", *, round_n: int) -> dict:' occurs 0 times in 'def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,'
+self-test: 3 failed
+##### fe4af42 P6
+== unplanted
+self-test: 0 failed
+== P6
+FAIL --check refuses a minor stamp beside a correct round close: ['round close: 1 round-close stamps, expected one, and last', "stamp cadence: unknown stamp kind(s) ['minor']"]
+FAIL the unmutated copy's self-test exits 0 (null control): rc=1
+FAIL self-test fails when round-close-last is deleted: anchor ' or plan["stamps"][-1] is not closes[0]:' occurs 0 times in 'def check_plan(plan: dict) -> list:'
+self-test: 3 failed

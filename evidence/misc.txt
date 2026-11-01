@@ -1,0 +1,9 @@
+  ok   seam_cut_total 422 <= 422
+
+STRUCTURE RATCHET PASSED
+10.0.0 (None, 'round 10 is not above the current major 10 (VERSION 10.0.0); a round closes once, upward')
+10.0.0 (None, 'round 10 is not above the current major 10 (VERSION 10.0.0); a round closes once, upward')
+11.0.0 (None, 'round 10 is not above the current major 11 (VERSION 11.0.0); a round closes once, upward')
+11.0.0 (None, 'round 10 is not above the current major 11 (VERSION 11.0.0); a round closes once, upward')
+('10.0.0', None)
+(None, 'no round to close (round None)')
