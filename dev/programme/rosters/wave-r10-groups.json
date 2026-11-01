@@ -15105,7 +15105,8 @@
    "fixerModel": "sonnet",
    "reviewerModel": "opus",
    "after": [
-    "R10-ORCH-REVIEW-PACKET"
+    "R10-ORCH-REVIEW-PACKET",
+    "R10-MUTANT-RUN-DRIVER"
    ],
    "files": [
     "tools/audit/seat/bus.sh",
