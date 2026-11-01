@@ -1,0 +1,169 @@
+
+=== doc claims vs code facts (#1413) ===
+README.md:35:	originally	ECL110 heat-curve path are all originally strutsfarm's work; the companion
+README.md:37:	were	the MQTT interface this integration drives. Versions 2.3.0 onward were developed
+README.md:113:	releases	legionella clock, the comfort floor — releases pinned slots it cannot honour and
+README.md:178:	newer	- Home Assistant 2025.2.0 or newer (the first release whose own
+README.md:178:	release	- Home Assistant 2025.2.0 or newer (the first release whose own
+README.md:180:	newer	- Python 3.13 or newer. The suite is tested on 3.14.
+README.md:308:	silently	guards would silently discard. A house whose floor coupling is fast enough
+README.md:321:	older	> on an older Home Assistant is not offered updates through the Marketplace or
+README.md:330:	release	release carries                         , the integration folder alone, and
+README.md:395:	was	and restart Home Assistant. Nothing needs doing on Tibber's side — the token was
+README.md:567:	was	#### The whole plan, and when it was made
+README.md:680:	were	| Open Window Detected | The house is losing heat as if a window were open | Diagnostic; learning pauses while it is on |
+README.md:728:	releases	releases the block and the switch says why: an anti-legionella cycle that is
+README.md:788:	previous	|                 | Price a hypothetical comfort choice against the current forecast without disturbing operation. Rate-limited, so rapid repeats retu
+README.md:790:	releases	|                     | Pin exact run slots for up to 20 hours; the optimizer plans around them, and safety still releases any it cannot honour | Opti
+README.md:807:	had	clock and the house comfort floor still override them, and any slot that had to
+README.md:808:	released	be released is reported in the                   attribute of the plan sensors.
+README.md:819:	released	- [Notifications]                                                                                                           — sends the optimizer's do
+README.md:896:	silently	cost terms, so enabling hot water cannot silently change the space-heating
+README.md:900:	released	where they are safe and released where they are not. The peak guard needs two
+README.md:909:	since	breach with learning than without, not a specific figure, since the exact
+README.md:972:	was	that toggles it, hovering a slot shows why it was planned, and the stretch of the
+README.md:1011:	earlier	- Cold when you need it? Widen the frame, or start it earlier.
+README.md:1042:	dropped	- **Heat pump efficiency has dropped** — the pump delivers noticeably less heat per kWh than it did under the same conditions, with the monthly cost. 
+README.md:1044:	was	- **Learned model was restored from a snapshot** — the drift above happened while every input looked healthy, so the learners were rolled back automat
+README.md:1044:	were	- **Learned model was restored from a snapshot** — the drift above happened while every input looked healthy, so the learners were rolled back automat
+README.md:1046:	old	- **Optimization keeps failing; the plan is going stale** — several solves in a row failed. Once the plan is a few intervals old the pump is handed ba
+README.md:1050:	any more	- **The pump's disinfection switch may still be on** — a disinfection switch the optimizer turned on cannot be read any more. Check the pump and turn 
+README.md:1059:	was	- **A configured grid fee looks 100× too large** — almost always öre or cents entered where whole currency was meant. Correct it on **Transfer fees an
+README.md:1066:	was	- **Stored learning could not be read** — stored data from another version could not be read, so that part of what was learned starts again from defau
+README.md:1087:	was	Most of this codebase was written by large language models under human
+README.md:1095:	was	every one caught here was caught by re-measuring rather than by re-reading.
+docs/setup.md:158:	releasing	| Buffer tank | off | A tank between the heat pump and the heating circuits, large enough to store heat. "Yes" records a store-sized tank (500 litres;
+docs/setup.md:176:	was	there: what the house is built from, roughly when it was built, the
+docs/setup.md:260:	changed	Everything the overview shows can be changed afterwards: open the integration
+docs/setup.md:278:	renamed	- **Reconfigure** re-opens just the first screen — a rotated token, a renamed
+docs/configuration.md:92:	used to	| Floor heating return temperature sensor | none | Water coming back from the floor loops. Used to gauge how much heat the slab is holding. |
+docs/configuration.md:128:	was	| Roughly when it was built | 1980–2005 | As above. |
+docs/configuration.md:197:	was	| Roughly when it was built | 1980–2005 | Before 1960 · 1960–1980 · 1980–2005 · After 2005 · Low-energy or passive house | A proxy for insulation stan
+docs/configuration.md:253:	used to	| Window area facing the sun | 10 m² | 0.01–50, 0.5 steps | Glazing that gets direct sun, used to predict free solar heat. |
+docs/configuration.md:274:	used to	| Hot water used per day | 150 L/day | 50–1500 | Roughly your household's daily draw. Used to size what to store before each period. |
+docs/configuration.md:449:	had	restores what you had typed. Each field takes plain times only — day
+docs/configuration.md:467:	used to	| Heat pump DHW set-point entity | none |          /                /           | Optional. The pump's own DHW set-point, used to notice when it canno
+docs/configuration.md:504:	older	| Measurement window | hourly | 15 minutes / 1 hour | Swedish DSOs move to 15-minute settlement through 2026–27. Pick 15 when your bill averages the h
+docs/configuration.md:548:	was	as it was, and if nothing is found, nothing is written at all.
+docs/configuration.md:557:	was	| Modbus package entity prefix |      | text | The start of the package's entity ids —      for                                    . Used when no devi
+docs/configuration.md:580:	were	were read, and the backup heater type register: any value but 7 means the pump
+docs/configuration.md:617:	used to	| Space-heating set-point entity | none |          /                /           | Optional. Used to notice when the entity cannot be read. Written onl
+docs/configuration.md:630:	was	| Heat pump heat energy meter | none | an          sensor in Wh, kWh or MWh | A cumulative kWh meter of the heat the pump delivers. It is read over ea
+docs/configuration.md:649:	earlier	| Hot water tank booster | none | a flag entity | On while the electric heater in the hot water tank runs. Treated like the backup heater above, and e
+docs/configuration.md:861:	was	touching anything, re-typing a value that was already there, or editing a
+docs/configuration.md:892:	used to	| Hot water used per day | 150 L/day | 50–1500 | Roughly your household's daily draw. Used to size what to store before each period. |
+docs/configuration.md:903:	was	| Disinfection switch mode | observe | observe / control | **Observe** reads the switch and never writes it. **Control** turns it on when the plan's a
+docs/configuration.md:903:	renamed	| Disinfection switch mode | observe | observe / control | **Observe** reads the switch and never writes it. **Control** turns it on when the plan's a
+docs/configuration.md:903:	replaced	| Disinfection switch mode | observe | observe / control | **Observe** reads the switch and never writes it. **Control** turns it on when the plan's a
+docs/configuration.md:903:	was	| Disinfection switch mode | observe | observe / control | **Observe** reads the switch and never writes it. **Control** turns it on when the plan's a
+docs/configuration.md:904:	used to	| Shower flow rate | 8.0 L/min | 4–20, 0.5 steps | Only used to translate the tank's contents into shower minutes on the DHW Mixed Water sensor (     
+docs/configuration.md:925:	used to	| Installed capacity | 0.0 kWp | 0–100, 0.1 steps | The array's rated peak, used to scale the production forecast. |
+docs/configuration.md:940:	old	| Ignore sensors that stop updating | on | on/off | A dead battery leaves a normal-looking value in place forever. With this on, an old value is treat
+docs/configuration.md:951:	was	| Staggered recovery after a power cut | off | on/off | After an outage everything restarts at once, which is exactly when a new monthly peak gets set
+docs/configuration.md:967:	silently	| Keep the plan under the main fuse | off | on/off | Caps planned power at what the fuse leaves after the rest of the house. If a cap would make the c
+docs/configuration.md:983:	since	| Time-of-use fee rules | empty | one rule per line | For example                                     . Month, weekday and time parts are each optiona
+docs/configuration.md:983:	were	| Time-of-use fee rules | empty | one rule per line | For example                                     . Month, weekday and time parts are each optiona
+docs/configuration.md:998:	legacy	| Legacy JSON command topic | *(empty)* | MQTT topic | Only for a setup expecting a JSON payload. |
+docs/configuration.md:1024:	changed	the valve mode changed, the probe was removed — the derived default quietly
+docs/configuration.md:1024:	was	the valve mode changed, the probe was removed — the derived default quietly
+docs/configuration.md:1105:	old	itself failed — instead of acknowledging the call while the old plan stands.
+docs/configuration.md:1122:	silently	frames are rejected — the call refuses rather than silently keeping the old
+docs/configuration.md:1122:	old	frames are rejected — the call refuses rather than silently keeping the old
+docs/configuration.md:1205:	released	Safety still wins: a forced-off slot is released if the house or the tank would
+docs/configuration.md:1238:	was	option off deletes what was collected. Download diagnostics on the entry
+docs/how-it-works.md:22:	was	more so: nobody notices what time the water was heated.
+docs/how-it-works.md:153:	silently	silently re-price compressor starts and grid peaks against the electricity they
+docs/how-it-works.md:183:	was	plan *and* reports a saving that was really borrowed heat. So the heat each
+docs/how-it-works.md:249:	was	real: it was paid for, and draining it displaces bought electricity. Capping
+docs/how-it-works.md:318:	was	the glazing blocks the sun the plan was counting on.
+docs/how-it-works.md:403:	was	stored heat mostly gets used in the hours right after it was bought. Commanded,
+docs/how-it-works.md:485:	was	![A decay curve: degrees per thermal kWh still present in the hot water tank against how long ago the kWh was delivered, falling from 2.87 to about th
+docs/how-it-works.md:492:	previous	Six passes, each fixing something the previous one cannot see:
+docs/how-it-works.md:495:	earlier	its temperature at any step is an affine function of the heat put in earlier
+docs/how-it-works.md:514:	were	4. **A second greedy pass** re-buys the energy the zeroed slots were carrying.
+docs/how-it-works.md:527:	since	breach — searching only *after* the last rating-pinned step before it, since
+docs/how-it-works.md:563:	silently	inlet floor underneath would silently refund the fabricated deficit.
+docs/how-it-works.md:570:	silently	bound, and any heat it does have to fabricate is booked rather than silently
+docs/how-it-works.md:611:	since	Since the tank is allowed to cool between frames, a periodic disinfection cycle
+docs/how-it-works.md:735:	moved	Added per kWh moved through the grid, and increasingly by time of day: several
+docs/how-it-works.md:747:	silently	silently diverge from what you typed and from the settlement paths reading the
+docs/how-it-works.md:794:	releases	small heat-curve nudge — for the rest of the window, then releases. Two
+docs/how-it-works.md:795:	release	agreeing readings engage it and two clear ones release it, and a cold tank or
+docs/how-it-works.md:847:	release	confirmations, release is quicker, and a decay window keeps assuming the fire
+docs/how-it-works.md:937:	dropped	battery in a tank probe, a dropped Zigbee room sensor — which leaves a
+docs/how-it-works.md:945:	old	temperature may reasonably be minutes old and an outdoor forecast hours, so the
+docs/how-it-works.md:948:	old	Problem** binary sensor names which inputs are stale, how old they are, and why
+docs/how-it-works.md:963:	dropped	that has physically dropped off the network looks perfectly fresh to the
+docs/how-it-works.md:1002:	was	the optimizer uses, with the electrical power that was actually applied. Slab
+docs/how-it-works.md:1089:	was	there to be worth more than what was already learned; until then the two are
+docs/how-it-works.md:1106:	dropped	vouch for itself — and a deviation beyond 30% is dropped. The EWMA updates from
+docs/how-it-works.md:1111:	since	times the observed correction — not the correction alone, since using the ratio
+docs/how-it-works.md:1143:	silently	guards on almost every night (the feature silently dead) or the survivors carry
+docs/how-it-works.md:1155:	was	was a drifting contaminant (sun through a window, a door left open), and the
+docs/how-it-works.md:1215:	were	serialised state tagged with the accuracy summary and whether inputs were
+docs/how-it-works.md:1221:	were	accuracy. Automatic rollback happens only when the inputs were healthy
+docs/how-it-works.md:1222:	were	throughout the drift window — if the sensors were the problem, the learners
+docs/how-it-works.md:1235:	release	accumulated total, release with hysteresis, so a noisy but centred signal
+docs/how-it-works.md:1311:	since	A pessimistic model — a house *tighter* than configured — is checked too, since
+docs/automations.md:129:	releases	The pins constrain timing only — safety still releases any slot the tank
+docs/automations.md:130:	released	minimum, the legionella clock or the comfort floor cannot honour, and released
+docs/automations.md:140:	released	again. That includes a manual plan whose released slots lapse
+docs/automations.md:149:	older	|                                 | the plan is older than three solve cycles (at least 90 minutes) |           ,               |
+docs/automations.md:150:	released	|                                           | safety released slots of a manual plan; once per channel for each release |           ,           (     
+docs/automations.md:150:	release	|                                           | safety released slots of a manual plan; once per channel for each release |           ,           (     
+docs/automations.md:150:	released	|                                           | safety released slots of a manual plan; once per channel for each release |           ,           (     
+docs/automations.md:152:	release	A receipt that already exists when the integration is updated to the release
+docs/automations.md:182:	had	- [Notify when wood beats the heat pump today]                                                                                                        
+docs/automations.md:182:	moved	- [Notify when wood beats the heat pump today]                                                                                                        
+docs/dashboard-card.md:16:	was	hours the pump was executing heating (from the action sensor's own
+docs/dashboard-card.md:74:	old	| **Plan stale** | No new plan for longer than three solve intervals, and never less than 90 minutes: the same rule the integration uses to stop actin
+docs/dashboard-card.md:109:	release	this release ships.
+docs/dashboard-card.md:126:	historically	error** — how far the tank curve has historically been out at that distance
+docs/dashboard-card.md:141:	was	The windows that band follows are the *resolved* schedule the plan was
+docs/dashboard-card.md:185:	renamed	renamed one individually, it falls back to scanning for any          whose id
+docs/dashboard-card.md:202:	was	Hovering a planned slot shows why it was chosen: cheapest hours, holding the
+docs/dashboard-card.md:228:	was	was last heated;
+docs/dashboard-card.md:245:	release	and Tibber release tomorrow around 13:00 — is shaded and labelled *estimated
+docs/dashboard-card.md:327:	changed	actually been changed. The row fades in when you hover the chart or focus one
+docs/dashboard-card.md:338:	earlier	recorder, so nothing stores what an earlier plan said. The window
+docs/dashboard-card.md:342:	was	returns to the window the card was configured for.
+docs/dashboard-card.md:351:	was	continuous line rather than a gap; the line breaks only where a sensor was
+docs/dashboard-card.md:353:	was	sensor's           , each step the average of what was commanded across it:
+docs/dashboard-card.md:354:	was	on the hot-water series while the pump was in hot-water mode, on the
+docs/dashboard-card.md:359:	was	for the hours the pump was executing heating, drawn from the action sensor's
+docs/dashboard-card.md:362:	was	mode the pump was in. The
+docs/dashboard-card.md:366:	was	the past was never recorded — the card says so in a notice above the chart
+docs/dashboard-card.md:414:	was	full-day override would cover every step it was looking at, and re-applying each
+docs/dashboard-card.md:422:	releases	integration releases just the slots it has to and says so in the banner. Silently
+docs/dashboard-card.md:422:	silently	integration releases just the slots it has to and says so in the banner. Silently
+docs/dashboard-card.md:433:	was	- **Escape** dismisses the menu, however it was opened, and returns focus to
+docs/dashboard-card.md:437:	had	steps. Every edit redraws the chart, which destroys the element that had focus,
+docs/dashboard-card.md:438:	moved	so focus is deliberately moved to the lane the edit happened in — the acted-on
+docs/dashboard-card.md:439:	dropped	slot either is gone or has a new index — rather than being dropped
+docs/dashboard-card.md:440:	was	back at the top of the document. Escape puts it back on the slot the menu was
+docs/dashboard-card.md:461:	silently	rather than silently.
+docs/dashboard-card.md:505:	previous	cannot race and report the price of the previous one — and the solve is
+docs/dashboard-card.md:516:	since	keeps its exact aspect ratio rather than being squeezed to fill the space, since
+docs/dashboard-card.md:528:	was	the basis it was priced on: spot energy and the grid energy fee in kWh, the
+docs/dashboard-card.md:545:	was	was promised. Without a power meter the cost is not measured, and the page
+docs/dashboard-card.md:599:	moved	price tiles: the whole comfort schedule moved one degree and held there, which
+docs/dashboard-card.md:601:	moved	follow a moved setting by less than a degree), averaged over the last 30
+docs/dashboard-card.md:686:	was	- **Plan.** When the plan was solved, when the next solve is due, how many
+docs/dashboard-card.md:809:	dropped	The card's one animation — the zoom controls fading in — is dropped entirely
+docs/dashboard-card.md:830:	old	is cache-busted by integration version, but the browser may still hold an old
+docs/dashboard-card.md:855:	upgrade	### If an upgrade seems to change nothing
+docs/dashboard-card.md:860:	upgrade	permanently, and every upgrade after it loads and is ignored. New features
+docs/dashboard-card.md:871:	release	release the integration stamps — the release step edits the card file itself,
+docs/dashboard-card.md:871:	release	release the integration stamps — the release step edits the card file itself,
+docs/dashboard-card.md:872:	older	so the banner and the integration version move together. If the banner is older than
+docs/dashboard-card.md:875:	older	If it is older than that, or an error mentions a duplicate registration, go to
+docs/dashboard-card.md:906:	dropped	effective value; but any key whose value merely restates its default is dropped
+docs/dashboard-card.md:909:	changed	changed, not a transcript of every default. The one exception is        : an
+docs/ecl110.md:43:	releases	plan's own value when it releases.
+docs/ecl110.md:56:	legacy	legacy topic when it is configured:
+docs/ecl110.md:99:	legacy	|                        | *(empty)* | Legacy JSON command topic |
+docs/ecl110.md:114:	were	whose topics were configured at setup they are enabled. Both are
+docs/ecl110.md:122:	legacy	| ECL110 Effective Displace | °C | The modelled shift the controller has actually reached; its attributes carry the legacy command topic and the statu
+docs/ecl110.md:135:	replaced	**ECL110 Effective Displace** publishes, and it is replaced by the controller's
+RESULT census_hits=165 mode=body ref=2cabb88692e6aa2de382520643afdc477aa1e006
+RESULT by_term {'was': 46, 'release': 11, 'silently': 11, 'were': 10, 'released': 8, 'old': 8, 'used to': 8, 'releases': 7, 'since': 7, 'dropped': 7, 'older': 5, 'moved': 5, 'had': 4, 'earlier': 4, 'changed': 4, 'legacy': 4, 'previous': 3, 'renamed': 3, 'newer': 2, 'replaced': 2, 'upgrade': 2, 'originally': 1, 'any more': 1, 'releasing': 1, 'historically': 1}

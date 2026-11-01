@@ -1,44 +1,57 @@
 # Review packet #3048
-head: 6d24f3ac628372993130e3b5525bdb4bc51c0b05
-base: a7dd7f50d67e0c3819956b15ef95d77f4f6ebfc0
+head: 831cb4b6bb0a681788441ce406db4b687673e4b6
+base: 8fec54ee2afb5e37687f34bc5fd3aa7280f64e1f
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
-## Gate digest: pending
-CodeQL id=124656109736 neutral
-arch-score / arch-score id=124655927331 success
-arm id=124655847286 skipped
-budget-raise-gate / budget-raise-gate id=124655927225 success
-cancel-superseded id=124655852478 success
-codeql / Analyze (actions) id=124655927256 success
-codeql / Analyze (javascript-typescript) id=124655927322 success
-codeql / Analyze (python) id=124655927208 in_progress
-governance / delivery-status id=124655927258 success
-governance / delivery-status-publish id=124655928508 skipped
-governance / env-matrix id=124655927220 success
-governance / instrument-self-tests id=124655927224 in_progress
-governance / policy-docs id=124655927257 success
-governance / record id=124655928260 skipped
-governance / wave-script id=124655927204 success
-hassfest / hassfest id=124655927187 success
-kernel-points id=124655928449 skipped
-prelude id=124655852487 in_progress
-refresh id=124655852357 success
-tests / arch-instrument id=124656034756 success
-tests / briefs id=124655927326 success
-tests / browser id=124656034750 success
-tests / closure-scope id=124655927287 success
-tests / closures id=124656034699 in_progress
-tests / coverage id=124656034740 in_progress
-tests / fast (3.14) id=124656034742 in_progress
-tests / mutation id=124655927217 success
-tests / mutation-autofix id=124656097499 skipped
-tests / mutation-pins id=124656097483 skipped
-tests / nightly-ha id=124656035469 skipped
-tests / nightly-status id=124655927294 success
-tests / replay id=124656035494 skipped
-tests / typing id=124656034781 success
-validate / validate-hacs id=124655927188 success
+## Gate digest: green
+CodeQL id=124720326132 success
+arch-score / arch-score id=124728802539 success
+arm id=124720131746 skipped
+budget-raise-gate / budget-raise-gate id=124728802672 success
+cancel-superseded id=124720135876 success
+codeql id=124728802525 skipped
+codeql / Analyze (actions) id=124720218846 success
+codeql / Analyze (javascript-typescript) id=124720218897 success
+codeql / Analyze (python) id=124720218904 success
+gate id=124730602072 success
+governance id=124728802556 skipped
+governance / delivery-status id=124720218983 success
+governance / delivery-status-publish id=124720220570 skipped
+governance / env-matrix id=124720218974 success
+governance / instrument-self-tests id=124720218905 success
+governance / policy-docs id=124720219008 success
+governance / record id=124720219715 skipped
+governance / wave-script id=124720218950 success
+hassfest id=124728803061 skipped
+hassfest / hassfest id=124720218900 success
+kernel-points id=124728802699 skipped
+pr-contract / pr-contract id=124730379902 success
+prelude id=124720135658 success
+refresh id=124720135803 success
+tests id=124728803117 skipped
+tests / arch-instrument id=124720317736 success
+tests / briefs id=124720218941 success
+tests / browser id=124720317754 success
+tests / ci-ratchet id=124723340074 skipped
+tests / claims-autofix id=124722567097 skipped
+tests / closure-scope id=124720218901 success
+tests / closures id=124720317757 success
+tests / closures-autofix id=124722682813 skipped
+tests / coverage id=124720317746 success
+tests / coverage-ratchet id=124723339209 success
+tests / fast (3.14) id=124720317797 success
+tests / graders-head-copy id=124723339241 success
+tests / lane-proofs id=124723339165 success
+tests / mutation id=124720218862 success
+tests / mutation-autofix id=124720371224 skipped
+tests / mutation-pins id=124720370860 skipped
+tests / nightly-ha id=124720318968 skipped
+tests / nightly-status id=124720218945 success
+tests / replay id=124720318894 skipped
+tests / typing id=124720317749 success
+validate id=124728802983 skipped
+validate / validate-hacs id=124720218863 success
 
 ## Refusals
 none
@@ -59,38 +72,40 @@ ok         python3 tests/doc_claims.py --surfaces | awk -F'\t' 'NF==6{print $1}'
              `git show` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
   ok         node tests/md_tables.mjs
              `tests/md_tables.mjs` is in the tree at this head
+  unverified git merge-tree --write-tree origin/main HEAD
+             `git merge-tree` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
   ok         python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)
              `tests/closure.py` is in the tree at this head
   ok         tests/doc_claims.py
              `tests/doc_claims.py` is in the tree at this head
-  ok         tests/harness_headers.py
-             `tests/harness_headers.py` is in the tree at this head
   ok         tests/plan_view.py
              `tests/plan_view.py` is in the tree at this head
   ok         node tests/card_drift.mjs
              `tests/card_drift.mjs` is in the tree at this head
   ok         tests/layout.py
              `tests/layout.py` is in the tree at this head
-  ok         tests/env_drift.py --claims-only a7dd7f50d
-             `tests/env_drift.py` is in the tree at this head
   ok         tests/closure.py selftest
              `tests/closure.py` is in the tree at this head
+  ok         tests/env_drift.py --claims-only a7dd7f50d
+             `tests/env_drift.py` is in the tree at this head
+  ok         tests/harness_headers.py
+             `tests/harness_headers.py` is in the tree at this head
+  ok         dev/audit/rounds/round4/D7/sysid_estimator_frontier.py
+             `dev/audit/rounds/round4/D7/sysid_estimator_frontier.py` is in the tree at this head
   ok         tests/entities.py
              `tests/entities.py` is in the tree at this head
   ok         tools/pr/prepr.sh
              `tools/pr/prepr.sh` is in the tree at this head
+  ok         python3 tests/structure.py
+             `tests/structure.py` is in the tree at this head
   unverified git diff --quiet origin/main HEAD -- tests/golden/claimed_drift.txt tests/golden/card_claimed_drift.txt
              `git diff` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
   ok         dev/audit/rounds/round4/D6/claims.py
              `dev/audit/rounds/round4/D6/claims.py` is in the tree at this head
-  ok         dev/audit/rounds/round4/D7/sysid_estimator_frontier.py
-             `dev/audit/rounds/round4/D7/sysid_estimator_frontier.py` is in the tree at this head
   ok         tests/env_drift.py --claims-only <merge base>
              `tests/env_drift.py` is in the tree at this head
-  ok         python3 tests/structure.py
-             `tests/structure.py` is in the tree at this head
 
-FIGURES: 17 resolved, 2 not verified, 0 refused
+FIGURES: 17 resolved, 3 not verified, 0 refused
 
 ## Finder's harness: none named
 ### at the base
@@ -395,7 +410,7 @@ index 000000000..1c5b8cea4
 @@ -0,0 +1 @@
 +- [#3048](https://github.com/tvofi/heatpump_optimizer/pull/3048) — **open**, R10-USER-DOCS-FINAL: user docs final (R10-USER-DOCS-FINAL)
 diff --git a/docs/configuration.md b/docs/configuration.md
-index e9683500a..8fb45edc1 100644
+index e9683500a..37c815d39 100644
 --- a/docs/configuration.md
 +++ b/docs/configuration.md
 @@ -63,7 +63,7 @@ install with no entry yet has it off, so this never fires on first setup.)
@@ -819,8 +834,28 @@ index e9683500a..8fb45edc1 100644
  | Estimate prices past the published horizon | on | on/off | Tomorrow's prices arrive around 13:00. Until then this uses your learned daily price shape instead of a flat repeat, and the plan marks which hours are estimated. |
  
  ### Advanced learning features
+@@ -858,8 +972,8 @@ opt-in learners are on **Advanced learning features**.
+ 
+ ### Transfer fees and contract
+ 
+-Fee amounts are in the same currency as your electricity prices; some labels
+-still read SEK, which is the historical default rather than a constraint.
++Fee amounts are in the same currency as your electricity prices; where a label
++reads SEK, that is a label, not a constraint.
+ 
+ | Setting | Default | Range | What it means |
+ |---|---|---|---|
+@@ -881,7 +995,7 @@ is set — an install without an ECL110 never touches these topics. See
+ | Setting | Default | Range | What it means |
+ |---|---|---|---|
+ | Offset command topic | *(empty)* | MQTT topic | Where the parallel heat-curve offset is published. |
+-| Legacy JSON command topic | *(empty)* | MQTT topic | Only for older setups expecting a JSON payload. |
++| Legacy JSON command topic | *(empty)* | MQTT topic | Only for a setup expecting a JSON payload. |
+ | Status topic | *(empty)* | MQTT topic | Where the controller reports its state. |
+ | MQTT quality of service | 1 | 0–2 | 0 is fine for almost everyone. |
+ | Retain MQTT messages | off | on/off | Keeps the last offset on the broker so the controller picks it up after a restart. |
 diff --git a/docs/dashboard-card.md b/docs/dashboard-card.md
-index e6552d388..dd9fa3d74 100644
+index e6552d388..6002f2a17 100644
 --- a/docs/dashboard-card.md
 +++ b/docs/dashboard-card.md
 @@ -105,8 +105,8 @@ figures come from `docs/img/card/make_card_figures.mjs` and the schematics furth
@@ -834,20 +869,29 @@ index e6552d388..dd9fa3d74 100644
  
  ### The two kinds of dashed line
  
-@@ -183,9 +183,9 @@ The card finds those sensors from the plan sensor it has already resolved: it
+@@ -176,16 +176,17 @@ the narrative sensor's own, already in Home Assistant's language. Set
+ 
+ Every part is optional, because every source sensor is. The score has no
+ value until enough history exists, the savings sensors go blank between
+-optimizer runs, and older integrations publish none of them. A row with nothing
++optimizer runs. A row with nothing
+ to say draws no chrome at all rather than an empty strip.
+ 
+ The card finds those sensors from the plan sensor it has already resolved: it
  takes that entity id's prefix and appends `_plan_predicted_savings`,
  `_plan_savings_percentage`, `_plan_optimization_score` and `_plan_narrative`. If you have
  renamed one individually, it falls back to scanning for any `sensor` whose id
 -ends in the suffix it wants. An install upgraded across the #1227 key rename
 -keeps its old registry ids, so the card tries each renamed sensor's pre-#1227
 -suffix after the current one. The savings figure is labelled with the unit the
-+ends in the suffix it wants. An install that kept older registry ids for these
-+sensors is covered too: the card tries each sensor's older suffix after the
-+current one. The savings figure is labelled with the unit the
++ends in the suffix it wants. A savings or score sensor registered with the
++suffix that has no `_plan` in it (`_predicted_savings`, `_savings_percentage`,
++`_optimization_score`) is covered too: the card tries that form after the
++`_plan_` one. The savings figure is labelled with the unit the
  savings sensor itself declares — nothing here converts, so a `currency:` in the
  card config does not relabel it.
  
-@@ -201,10 +201,10 @@ it costs the chart no axis width. Hovering gives its value in W/m².
+@@ -201,10 +202,10 @@ it costs the chart no axis width. Hovering gives its value in W/m².
  Hovering a planned slot shows why it was chosen: cheapest hours, holding the
  minimum temperature, pre-heating before colder weather, using solar surplus, the
  anti-legionella cycle, and so on — or simply keeping the house at target, which
@@ -860,7 +904,7 @@ index e6552d388..dd9fa3d74 100644
  ### Why a step is idle
  
  <picture>
-@@ -268,7 +268,7 @@ yourself and yours wins in every language.
+@@ -268,7 +269,7 @@ yourself and yours wins in every language.
  Prices are labelled with the first currency the card can find:
  
  1. `currency:` in the card config.
@@ -869,7 +913,7 @@ index e6552d388..dd9fa3d74 100644
  3. Home Assistant's own configured currency.
  4. `SEK`, as a last resort.
  
-@@ -332,9 +332,9 @@ A plain vertical scroll is deliberately left alone. The card sits in a dashboard
+@@ -332,9 +333,9 @@ A plain vertical scroll is deliberately left alone. The card sits in a dashboard
  people scroll, and a chart that swallowed the wheel would trap the page the
  moment the pointer crossed it.
  
@@ -882,7 +926,7 @@ index e6552d388..dd9fa3d74 100644
  therefore stays between now and the end of the plan, and zooming out stops at
  the plan's real extent rather than at the configured plot width — past the
  optimizer's horizon there is empty chart, not more plan. The reset button
-@@ -365,7 +365,7 @@ rather than the whole span. If the recorder answers nothing — it is off, or
+@@ -365,7 +366,7 @@ rather than the whole span. If the recorder answers nothing — it is off, or
  the past was never recorded — the card says so in a notice above the chart
  and snaps the window back to now rather than show a past it has no evidence
  for. Panning back needs the recorder's history API, so a frontend without it
@@ -891,7 +935,7 @@ index e6552d388..dd9fa3d74 100644
  
  Zooming changes the axis the lanes are drawn against, not just their appearance,
  so dragging a slot keeps hitting the time under the pointer at any zoom level.
-@@ -435,7 +435,7 @@ add a slot", or a slot's own start and end times. Tab to one and:
+@@ -435,7 +436,7 @@ add a slot", or a slot's own start and end times. Tab to one and:
  Dragging has no keyboard form; add and remove cover the same edits in more
  steps. Every edit redraws the chart, which destroys the element that had focus,
  so focus is deliberately moved to the lane the edit happened in — the acted-on
@@ -900,7 +944,7 @@ index e6552d388..dd9fa3d74 100644
  back at the top of the document. Escape puts it back on the slot the menu was
  opened from.
  
-@@ -461,7 +461,7 @@ rather than silently.
+@@ -461,7 +462,7 @@ rather than silently.
  
  Each hot water window carries a day selector — *Every day*, *Weekdays* or
  *Weekend* — so a household whose mornings differ can say so from the card, in
@@ -909,7 +953,7 @@ index e6552d388..dd9fa3d74 100644
  the options flow with specific days (`Tu-Fr 06:00-08:00`) shows that day list
  as the row's own choice and is saved back unchanged. The editor pre-fills from
  the configured schedule the plan sensors publish as `dhw_windows_spec`, not
-@@ -516,12 +516,9 @@ keeps its exact aspect ratio rather than being squeezed to fill the space, since
+@@ -516,12 +517,9 @@ keeps its exact aspect ratio rather than being squeezed to fill the space, since
  it is drawn with `preserveAspectRatio="none"` and constraining its height would
  stretch every axis label sideways.
  
@@ -925,7 +969,7 @@ index e6552d388..dd9fa3d74 100644
  
  ## The savings page
  
-@@ -661,6 +658,7 @@ When every optional temperature sensor is already configured, that part of the
+@@ -661,6 +659,7 @@ When every optional temperature sensor is already configured, that part of the
  page says exactly that; the integration publishes no ranking at all, and no
  empty table is drawn.
  
@@ -933,7 +977,18 @@ index e6552d388..dd9fa3d74 100644
  ## The health page
  
  The **Health** tab answers "is the plan running on good data?" in one screen,
-@@ -857,7 +855,7 @@ Restart or reload the dashboard afterwards.
+@@ -771,8 +770,8 @@ and the hot water tank says it is refilled through the coil.
+ 
+ ![The two-tank layout with an additional immersed coil connecting the wood furnace tank to the hot water tank: the wood tank's corner disc is a spring and the coil's pipe is drawn in the accent colour](img/model/hydronic-coil.svg)
+ 
+-Each card stretches with the sensor rows inside it, and every row is the
+-same assignment slot it always was: click a row — or tab to it and press
++Each card stretches with the sensor rows inside it, and every row is an
++assignment slot: click a row — or tab to it and press
+ Enter or Space — to pick the entity that feeds it. Each row is a
+ `role="button"` target with a spoken label, and a picker opened from the
+ keyboard takes focus, so the whole page is usable without a pointer. An
+@@ -857,7 +856,7 @@ Restart or reload the dashboard afterwards.
  
  Only one copy of the card can be active: a custom element name can be claimed
  once per page, and the first copy to load keeps it. A second copy — usually a
@@ -942,7 +997,7 @@ index e6552d388..dd9fa3d74 100644
  permanently, and every upgrade after it loads and is ignored. New features
  appear to be missing even though the files on disk are current.
  
-@@ -942,12 +940,12 @@ series:                                  # optional, initial per-series visibili
+@@ -942,12 +941,12 @@ series:                                  # optional, initial per-series visibili
  |----------------|---------|--------------------------------|-------------|
  | `type`         | string  | —                              | Must be `custom:heatpump-optimizer-card`. |
  | `title`        | string  | localized                      | Card header text. Left out, it is the built-in default for the frontend language (`Heat pump plan`, `Värmepumpsplan`). An explicit empty string renders no header text. |
@@ -959,7 +1014,7 @@ index e6552d388..dd9fa3d74 100644
  | `show_stats`   | boolean | `true`                         | Show the headline row (projected savings, optimization score, plan narrative) under the card header. It hides itself, entirely, when the backend publishes none of those sensors. |
  | `series`       | map     | all `true`                     | Initial visibility per series key. Keys: `price`, `dhw_slots`, `space_slots`, `actioned`, `quiet_silent`, `quiet_off`, `outdoor`, `dhw_temp`, `house_temp`, `solar`. |
  
-@@ -956,10 +954,10 @@ series:                                  # optional, initial per-series visibili
+@@ -956,10 +955,10 @@ series:                                  # optional, initial per-series visibili
  The plan sensors pin the object id `sensor.heat_pump_optimizer_*`, so the
  prefix is fixed regardless of the device name. A stock install produces
  `sensor.heat_pump_optimizer_plan_space_heating` and
@@ -974,7 +1029,7 @@ index e6552d388..dd9fa3d74 100644
  
  You normally do not need to configure either option. The card resolves entities
  in this order:
-@@ -969,9 +967,8 @@ in this order:
+@@ -969,9 +968,8 @@ in this order:
     is a stable marker published by the integration, so renaming an entity does
     not break the card.
  3. Any `sensor` whose id ends in `plan_space_heating` / `plan_dhw_heating` /
@@ -986,24 +1041,40 @@ index e6552d388..dd9fa3d74 100644
  
  If nothing is found the card names the id it looked for, so check
  **Developer Tools → States** and set the option explicitly.
-@@ -981,9 +978,9 @@ reloads. The key is the space and hot-water entity ids the config carries (the
+@@ -981,9 +979,9 @@ reloads. The key is the space and hot-water entity ids the config carries (the
  defaults, when you have not set them) plus the card's `title` and `hours` — its
  config identity, not just its data sources — so a 24-hour card on a wall panel
  and a 48-hour card of the same sensors elsewhere keep their own toggles instead
 -of overwriting each other. Cards saved before v4.2.0 used a key of the
 -entity ids alone; that key is still read once as a fallback, so an upgrade does
 -not silently reset every toggle. Writes always go to the new key.
-+of overwriting each other. A card whose toggles were saved under a key of the
-+entity ids alone has that key read once as a fallback, so its toggles are kept.
++of overwriting each other. Toggles stored under a key of the entity ids alone
++are read once as a fallback, so they are kept.
 +Writes always go to the full key.
  
  The `series` option only sets the *initial* visibility the first time the card
  is shown.
 diff --git a/docs/ecl110.md b/docs/ecl110.md
-index da1e1c49d..eeea97148 100644
+index da1e1c49d..3a1eb1420 100644
 --- a/docs/ecl110.md
 +++ b/docs/ecl110.md
-@@ -89,8 +89,8 @@ that stored the previous default strings keep publishing to them.
+@@ -52,7 +52,7 @@ The preferred path is a plain number on the direct set topic:
+ 4
+ ```
+ 
+-For older setups that expect JSON, the same command is also published to the
++For a setup that expects JSON, the same command is also published to the
+ legacy topic when it is configured:
+ 
+ - `ecl110_command_topic` (no default: empty leaves this arm off)
+@@ -83,14 +83,13 @@ Publishing goes through Home Assistant's own `mqtt.publish` service, so the
+ MQTT integration has to be set up. The topics have no shipped
+ default: each one is exactly what you stored, an empty or absent topic leaves
+ that arm off, and nothing is published or subscribed until a topic is set —
+-so an install without an ECL110 never touches these topics at all. Installs
+-that stored the previous default strings keep publishing to them.
++so an install without an ECL110 never touches these topics at all.
+ 
  ## Options
  
  All eight settings live on the options page **Heat curve control (ECL110)**,
@@ -1015,9 +1086,22 @@ index da1e1c49d..eeea97148 100644
  a topic only exists once you store one.
  
 diff --git a/docs/how-it-works.md b/docs/how-it-works.md
-index a87af50d5..15595430c 100644
+index a87af50d5..f90744ae2 100644
 --- a/docs/how-it-works.md
 +++ b/docs/how-it-works.md
+@@ -110,9 +110,9 @@ locally optimal schedule that a different starting guess beats — that is what
+ the two-zone model showed. So each space solve scores four candidate profiles
+ cheaply (a warm start or the naive guess, two price-ranked profiles at
+ different total energy, and a flat half-headroom guess), refines every one of
+-them with L-BFGS-B, and keeps whichever refinement scores best. That is what
+-removed most of the local-optimum gap in the two-zone model; a fifth candidate
+-was not worth the extra full solve on the hardware Home Assistant runs on.
++them with L-BFGS-B, and keeps whichever refinement scores best. Four candidates
++close most of the local-optimum gap in the two-zone model; a fifth would not be
++worth the extra full solve on the hardware Home Assistant runs on.
+ 
+ ---
+ 
 @@ -142,20 +142,19 @@ nothing and the electricity saved is worth real money. The linear term gives
  the penalty a non-zero slope at the boundary and pins the trajectory to the
  floor instead.
@@ -1064,6 +1148,63 @@ index a87af50d5..15595430c 100644
  
  ### The terminal cost, and why it needs caps
  
+@@ -210,11 +208,11 @@ Both panels are `marginal_cop` asked directly over the same outdoor range. With
+ the gate off, the buffer and building-mass curves are not merely close — the
+ generator measures their largest difference and prints it, and it is zero.
+ 
+-Before this was shared, the simulation charged a throttled buffer at the
+-derated COP while the settlement terms paid every stored kWh back at the plain
+-curve. Marginal value below marginal cost is systematic under-charging: the
+-solver only stored heat when the price spread also covered a COP gap the physics
+-never charged. The buffer derate is gated on `cop_flow_carnot`, so installs with
++The sharing matters. A simulation charging a throttled buffer at the derated
++COP while the settlement terms paid every stored kWh back at the plain curve
++would put marginal value below marginal cost, which is systematic
++under-charging: the solver would store heat only when the price spread also
++covered a COP gap the physics never charged. The buffer derate is gated on `cop_flow_carnot`, so installs with
+ no throttling valve return the plain curve bit for bit.
+ 
+ **Settlement caps** stop the reverse error — being paid for heat nobody needs:
+@@ -227,15 +225,15 @@ no throttling valve return the plain curve bit for bit.
+   state — it has to run above the room to push heat into it. In two-zone mode
+   that demand is sized **from the lower zone alone**, because the slab feeds
+   only the lower zone (the upper zone is radiator-fed) and it uses the lower
+-  zone's share of internal gains. Sizing it from the whole house inflated the
+-  cap by the upper zone's demand and over-valued hot-slab end states by exactly
+-  that much.
++  zone's share of internal gains. Sizing it from the whole house would inflate
++  the cap by the upper zone's demand and over-value hot-slab end states by
++  exactly that much.
+ - **Buffer** gets a much higher cap, because that reasoning does not transfer
+   to a tank: a tank only gets hot because the pump deliberately heated it, so
+-  every degree in it will be used. Sharing the slab's cap made the tank
+-  invisible — charging from 45 °C to 70 °C was credited with 0.0 kWh of the
+-  21.8 kWh actually stored, so charging was pure cost and every plan collapsed
+-  to no storage.
++  every degree in it will be used. The slab's cap would make the tank
++  invisible — charging from 45 °C to 70 °C would be credited with 0.0 kWh of the
++  21.8 kWh actually stored, so charging would be pure cost and every plan would
++  collapse to no storage.
+ 
+   The buffer cap is **the ceiling the plan can actually charge to**, not the raw
+   safety rating. Reaching the rating requires the pump to out-run the house's
+@@ -243,13 +241,13 @@ no throttling valve return the plain curve bit for bit.
+   flow-derated COP, which in cold weather a real pump cannot. The ceiling is
+   found by bisection on the net charge rate (monotone decreasing in tank
+   temperature) and lands on the rating in every mild-weather case. The learned
+-  house-leakage scale rides along, because a learned-leaky house that omitted it
+-  got an optimistic ceiling — the one direction this bound must not err.
++  house-leakage scale rides along, because without it a learned-leaky house
++  would get an optimistic ceiling — the one direction this bound must not err.
+ 
+   The cap is then **floored at the tank temperature the solve started from**,
+   clipped at the rating. Heat already in the tank above the charging ceiling is
+   real: it was paid for, and draining it displaces bought electricity. Capping
+-  at the ceiling alone let a plan drain a pre-charged tank — a mild evening's
++  at the ceiling alone would let a plan drain a pre-charged tank — a mild evening's
+   60 °C ahead of a cold snap — with zero settlement, re-creating the
+   tail-dumping this term exists to prevent in exactly the regime where storage
+   matters most.
 @@ -348,24 +346,15 @@ whole plan rests on.
  
  ### Knowing the lower floor rather than guessing it
@@ -1098,6 +1239,15 @@ index a87af50d5..15595430c 100644
  over a long cold spell, and a repair notice says so rather than letting a
  modelled number pass for a measured one. The chart labels the trace
  "Lower floor (modelled)" until a thermometer is assigned.
+@@ -415,7 +404,7 @@ stored heat mostly gets used in the hours right after it was bought. Commanded,
+ the plan can lower the valve's target between charging and the expensive hours —
+ the house coasts on what the building itself holds, the tank keeps its heat —
+ and raise it again for the peak. On the author's Swedish winter price curve that
+-was worth roughly 1–2 SEK a day on top of what storage already saves; at flat
++is worth roughly 1–2 SEK a day on top of what storage already saves; at flat
+ prices the optimizer does not do it at all, because there is nothing to gain.
+ The house is never planned below your comfort floor to achieve it.
+ 
 @@ -425,7 +414,7 @@ its ceiling, so the *building* charges first — and building storage is free,
  because the heat sits at room temperature. Only then does the valve throttle and
  the tank take the surplus, which is stored hot and does cost efficiency.
@@ -1107,6 +1257,21 @@ index a87af50d5..15595430c 100644
  limits do.
  
  **Storing hot is not free.** A heat pump loses efficiency the hotter it must
+@@ -568,10 +557,10 @@ q_effective = q_nominal × min(1, (T_tank - T_inlet) / (40 °C - T_inlet))
+ The tap draws *more* volume from a cooler tank to make the same mixed water, so
+ the enthalpy removed stays exactly nominal all the way down to 40 °C, and only
+ below that does the service itself degrade. Referencing the setpoint instead
+-under-debited the 40 °C-to-setpoint band — the very band cost optimization rides
+-— by up to a third, and booked the deleted demand as savings. Unscaled, a 30 °C
+-tank was charged the full `(setpoint − inlet)` per litre and the inlet floor
+-underneath silently refunded the fabricated deficit.
++would under-debit the 40 °C-to-setpoint band — the very band cost optimization
++rides — by up to a third, and book the deleted demand as savings. Unscaled, a
++30 °C tank would be charged the full `(setpoint − inlet)` per litre and the
++inlet floor underneath would silently refund the fabricated deficit.
+ 
+ Demand-side quantities stay nominal on purpose: the planner's ready-energy
+ targets and the always-hot baseline describe what you want *delivered*, and that
 @@ -579,9 +568,8 @@ does not shrink because the tank happens to be cold.
  
  With the scaled draw, the inlet floor underneath is a genuine no-op safety
@@ -1130,7 +1295,26 @@ index a87af50d5..15595430c 100644
    frames: with learned-profile frames there is no stable frame to attach
    statistics to. Watch **DHW Heavy Day Demand** (disabled by default; it needs
    weeks of data).
-@@ -720,11 +708,11 @@ the same as "no sun".
+@@ -679,15 +667,14 @@ pump alternates within the step either way.
+ ## Weather
+ 
+ Solar gain is only as good as the irradiance behind it, and most weather
+-integrations never publish an irradiance field, so the term silently evaluated
+-to zero for many installs. There are three sources, tried in this order:
++integrations publish no irradiance field, so a forecast without one gives a
++solar gain of zero. There are three sources, tried in this order:
+ 
+ 1. **A local irradiance sensor**, if configured. A real measurement at the
+    actual site beats a model, so this wins outright.
+ 2. **Open-Meteo**, if *Solar irradiance source* is set to it. Pick the location on
+    the map in the configurator; no API key or account is needed.
+-3. **The weather entity's forecast**, the previous behaviour and still the
+-   default.
++3. **The weather entity's forecast**, the default.
+ 
+ Open-Meteo is used through two endpoints because they do different jobs:
+ 
+@@ -720,11 +707,11 @@ the same as "no sun".
  ### Past the published horizon
  
  Nord Pool and Tibber publish tomorrow's prices around 13:00, so before then a
@@ -1147,7 +1331,7 @@ index a87af50d5..15595430c 100644
  
  Instead, a normalised daily price *shape* is learned from the prices actually
  seen, split weekday/weekend (the morning peak is later and shallower at the
-@@ -891,9 +879,9 @@ model simulates two tanks side by side: a burn charges the *wood* tank, the
+@@ -891,13 +878,14 @@ model simulates two tanks side by side: a burn charges the *wood* tank, the
  4-way valve draws wood-first while the wood side can meet the flow temperature
  and shifts to the heat-pump tank as it depletes, and the blend law is the same
  one the outlet sensor measures, so model and measurement cannot disagree. The
@@ -1159,7 +1343,14 @@ index a87af50d5..15595430c 100644
 +for water the pump never made — and cannot eat the buffer's
  safe-temperature headroom, so the plan keeps charging cheap hours right through
  a burn. Heat still in the wood tank at day's end counts in the savings
- settlement and the thermal-battery view, up to 95 °C. Without the probe, or if
+-settlement and the thermal-battery view, up to 95 °C. Without the probe, or if
+-it goes stale, everything falls back to the previous behaviour.
++settlement and the thermal-battery view, up to 95 °C. Without the probe, or
++while it is stale, the wood tank is not a store of its own: the model keeps the
++one buffer tank, and a burn is the bounded free heat described above.
+ 
+ If your hot water tank refills **through a coil immersed in the wood tank**,
+ enable that option on the heating-system page: refill water then enters
 @@ -962,7 +950,7 @@ the learners paused. It is on by default, because it protects everything else
  and costs nothing. Learning also freezes while an external heat source is active
  and while the open-window detector is tripped.
@@ -1236,7 +1427,7 @@ index a87af50d5..15595430c 100644
  ### Active system identification
  
  Optional, and the fastest way to a good model. On a mild, cheap night the
-@@ -1142,8 +1153,8 @@ handing the collinear intercept the noise.
+@@ -1142,13 +1153,13 @@ handing the collinear intercept the noise.
  
  Guards on the result: fitted gains outside −0.5 to 2.0 kW mean the "constant"
  was a drifting contaminant (sun through a window, a door left open), and the
@@ -1247,6 +1438,12 @@ index a87af50d5..15595430c 100644
  bias. Time constant must land in 0.1–200 h and the loss coefficient in
  0.01–5 kW/°C. Confidence comes from the fit's R², tempered by sample count and
  by the achieved temperature excursion, because R² cannot see that a flat fit
+ explains flat data well. If the data cannot support three columns at all, the
+-fit degrades to the historical two-column form and reports no gains figure.
++fit degrades to the two-column form and reports no gains figure.
+ 
+ ### The rest of the learners
+ 
 @@ -1236,9 +1247,8 @@ anti-legionella cycle, and so on — in the plan sensor attributes and in the
  card's tooltip. Without it, an unexpected slot is indistinguishable from a
  bug, which makes the optimizer hard to trust and bug reports much weaker than
@@ -1297,7 +1494,7 @@ index 9488a4150..0d22cbfe7 100644
  ## Quick setup (recommended)
  
 diff --git a/tests/doc_claims.py b/tests/doc_claims.py
-index 377f2edf2..4b8412802 100644
+index 377f2edf2..d288b59a7 100644
 --- a/tests/doc_claims.py
 +++ b/tests/doc_claims.py
 @@ -1957,7 +1957,11 @@ def entity_census(extra: dict) -> list[dict]:
@@ -1486,7 +1683,7 @@ index 377f2edf2..4b8412802 100644
      for r in rows:
          print(f"{'DUE ' if r['due'] else '    '}{r['doc']}:{r['line']} {r['marker']} "
                + ", ".join(f"{g}={v}" for g, v in r["stages"].items()))
-@@ -3854,6 +3924,492 @@ def check_readme_marketplace() -> None:
+@@ -3854,6 +3924,520 @@ def check_readme_marketplace() -> None:
              not [g for g in readme_figure_findings(edited, regen, sha_of) if "its text differs" in g])
  
  
@@ -1886,12 +2083,25 @@ index 377f2edf2..4b8412802 100644
 +# than" needs the "is/are" before it, so "snaps back to now rather than show a past" stays a statement; its gap
 +# admits a decimal point ("now 1.0 rather than") and a wrapped line, never a sentence end. A literal
 +# version (a minimum Home Assistant release, the fork's attribution) goes in STATELESS_EXEMPT with its reason.
++# Round 3 (fix review of #3048 at 6d24f3ac6): "previous/old" + a thing that changes between releases (behaviour,
++# default, version, form, layout, formula, name, id, suffix), "older" + an install or integration, and "silently" + a
++# past-tense verb; then "historical default/form" and "before this/that/it was", the opening of a recounted change
++# ("Before this was shared, the simulation charged ..."). Bare "previous" and "old" stay out: "the previous day",
++# "the previous answer" and "the old plan stands" state what happens now, and "an older Home Assistant" / "older than
++# three solve cycles" compare, not recount. A past-tense counterfactual ("Sizing it from the whole house inflated the
++# cap") has no word-level shape; the round-3 census read every was/were/had hit for it instead.
 +_HISTORY = re.compile(r"(?i:\bnew in\b|\bsince (?:v\d|version\b|#\d)|\bpreviously\b|\bno longer\b|\bused to\b"
 +                      r"|\buntil v\d|\bas before\b|\brenamed from\b|\bround \d"
 +                      r"|\b(?:earlier|older)\s+(?:versions?|releases?)\b"
 +                      r"|\b(?:versions?|releases?)\s+(?:older|newer)\s+than\b"
 +                      r"|\bupgraded\s+from\b|\bthe\s+upgrade\b|\bbreaking\s+change\b"
-+                      r"|\b(?:is|are)\s+now\b(?:[^.;\n]|\.\d|\n(?!\s*\n)){0,40}?\brather\s+than\b)"
++                      r"|\b(?:is|are)\s+now\b(?:[^.;\n]|\.\d|\n(?!\s*\n)){0,40}?\brather\s+than\b"
++                      r"|\bbefore\s+(?:this|that|it)\s+(?:was|were)\b"
++                      r"|\bhistorical\s+(?:[\w-]+\s+)?(?:defaults?|forms?|behaviou?rs?)\b"
++                      r"|\b(?:previous|old)\s+(?:behaviou?rs?|defaults?|versions?|releases?|forms?|layouts?|formulas?"
++                      r"|names?|ids?|suffix(?:es)?)\b"
++                      r"|\bolder\s+(?:integrations?|setups?|installs?|installations?|registry|ids?|suffix(?:es)?)\b"
++                      r"|\bsilently\s+(?:evaluated|was|were|did|read|returned|gave)\b)"
 +                      r"|\bv\d+\.\d+|(?<![\w&])#\d{3,}\b|\bR\d+-"
 +                      r"|(?<![\w.])\d+\.\d+\.\d+\b")
 +# `used to` in its purpose sense ("is used to size the tank", "Used to ..."), which states what a thing does now.
@@ -1954,10 +2164,18 @@ index 377f2edf2..4b8412802 100644
 +            not bad, "; ".join(bad[:4]) + (f" (+{len(bad) - 4})" if len(bad) > 4 else ""))
 +    for plant in ("This mode is new in v9.", "The card previously showed the price.",
 +                  "Earlier versions sized the dialog from a guess.", "Older releases kept the slab warm.",
-+                  "It reads the old ids, for integration versions older than the move.",
++                  "It reads both ids, for integration versions older than the move.",
 +                  "An install upgraded from the first layout keeps its ids.",
 +                  "A learned derate survives the upgrade.", "Its upper clamp is now 1.0 rather than 1.05.",
-+                  "The new floor was a breaking change.", "The card reads both ids before 2.6.1 too."):
++                  "The new floor was a breaking change.", "The card reads both ids before 2.6.1 too.",
++                  "The weather forecast, the previous behaviour and still the default.",
++                  "Installs that stored the previous default strings keep them.",
++                  "The card tries the old suffix after the current one.",
++                  "Older integrations publish none of them.", "An install that kept older registry ids is covered.",
++                  "The term silently evaluated to zero for many installs.",
++                  "Before this was shared, the simulation charged the buffer.",
++                  "Some labels read SEK, which is the historical default.",
++                  "The fit degrades to the historical two-column form."):
 +        got = stateless_findings({"probe.md": f"# T\n\n{plant}\n"}, ())
 +        R.check(f"red fixture: {plant!r} is exactly one finding", len(got) == 1, repr(got))
 +    R.check("null control: the widened terms' current-behaviour neighbours (\"back to now rather than\", \"the older "
@@ -1965,6 +2183,13 @@ index 377f2edf2..4b8412802 100644
 +            not stateless_findings({"probe.md": "# T\n\nThe window snaps back to now rather than show a past. 60 keeps "
 +                                                "the older hourly clock. If an upgrade seems to change nothing, reload. "
 +                                                "From Home Assistant 2026.11 the derate floor is 0.55. Run `2.6.1`.\n"}, ()))
++    R.check("null control: bare \"previous\", \"old\" and \"older\" in their current sense (\"the previous answer\", "
++            "\"the previous one\", \"the old plan stands\", \"an older Home Assistant\", \"older than three solve cycles\", "
++            "\"silently keeping\") are not findings",
++            not stateless_findings({"probe.md": "# T\n\nRapid repeats return the previous answer, not the previous one. "
++                                                "The call refuses while the old plan stands. An older Home Assistant is "
++                                                "not offered updates. The plan is older than three solve cycles. It "
++                                                "refuses rather than silently keeping the old plan.\n"}, ()))
 +    R.check("null control: \"previous day\", a purpose-sense \"is used to\", \"Refused together\", a code span and "
 +            "a link anchor are not findings",
 +            not stateless_findings({"probe.md": "# T\n\nThe previous day's cost. The sensor is used to size the tank."
@@ -1979,7 +2204,7 @@ index 377f2edf2..4b8412802 100644
  def main() -> int:
      check_figures()
      check_product_page()
-@@ -3894,8 +4450,11 @@ def main() -> int:
+@@ -3894,8 +4478,11 @@ def main() -> int:
      check_card_figures()
      check_coffee_button()
      check_readme_marketplace()
