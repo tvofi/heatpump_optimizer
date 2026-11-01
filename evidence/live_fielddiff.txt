@@ -1,0 +1,12 @@
+top-level keys equal: True
+group order equal: True
+R10-ARCH-SHAPES-CLASSIFIER hot_files : ['coordinator.py'] -> []
+R10-ARCH-SHAPES-CLASSIFIER resume.note : None -> "set-files hot_files ['coordinator.py'] -> [] (cite origin/handoff/audit-r10-roster@4abfca2a4)"
+R10-ADVISOR-WHATIF resume.note :  by the roster seat 2026-10-26 under the owner's completion rule (tvofi 20:20Z)" -> "wired by the roster seat 2026-10-26 under the owner's completion rule (tvofi 20:20Z) | set-size S -> L"
+R10-ADVISOR-WHATIF size : S -> L
+R10-FLY-STANDING-CONTRACTS resume.note : quest): re-routes P51 and P95 from R10-ORCH-BEATD (done at #2916, both unbuilt)' -> 'orchestrator s9, 2026-10-31, slipped-proposal audit (tvofi request): re-routes P51 and P95 from R10-ORCH-BEATD (done at #2916, both unbuilt) | set-size S -> L'
+R10-FLY-STANDING-CONTRACTS size : S -> L
+R10-ROSTER-OPS-2 files : ['tools/audit/seat/roster_edit.py', 'tools/audit/seat/roster_lib.py', 'tools/audit/seat/r10_roster_ops_mutants.py', 'tools/audit/seat/instruments/roster_edit.py.md'] -> ['tools/audit/seat/roster_edit.py', 'tools/audit/seat/roster_lib.py', 'tools/audit/seat/r10_roster_ops_mutants.py', 'tools/audit/seat/instruments/roster_edit.py.md', 'tools/audit/seat/roster_sync.py']
+R10-ROSTER-OPS-2 resume.note : -routing pass, 2026-11-01: created to receive carries of R10-ORCH-ROSTER-SCHEMA' -> s/audit/seat/roster_lib.py', 'tools/audit/seat/r10_roster_ops_mutants.py', 'tools/audit/seat/instruments/roster_edit.py.md', 'tools/audit/seat/roster_sync.py']"
+ dev/programme/rosters/wave-r10-groups.json | 19 +++++++++----------
+ 1 file changed, 9 insertions(+), 10 deletions(-)
