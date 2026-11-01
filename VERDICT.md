@@ -1,63 +1,58 @@
-Fix review: merge 7f6d7e72260ca64e98ec13c3b7c46c5e01af62a6
+Fix review: merge 9cddcb4f673ee4bed26a316c4a22128433414eb8
 
-bus-nonce: 2b1ddd8f170885a89e93ce2bbbbb73f8
+bus-nonce: da2390ae2ac258586b5bd20a531539e9
 
 ## Summary
 
-Round 3 of this group's fix review (fixer.md: from the fourth round a re-cut is owed, not a repair). Range `d1662cf7b..7f6d7e72`. The authored commit is `fcbf8ec95`; the rest are an automatic main merge and the bot's `ci: pin killed mutants`. Measured at head `7f6d7e72260ca64e98ec13c3b7c46c5e01af62a6`, merge base `d052f80f7f81d42db5c57a55ebaef7056c7ce01a` (origin/main), from detached worktrees, with the finder's harness. Both earlier blocks are answered in the code and the tests. The verdict is merge on the code. The PR body has not been brought up to round 3; that is a body edit (Findings).
+Round 5 of this group's fix review. This is a scoped re-check of the range `7f6d7e72..9cddcb4f` under the r4 verdict (`verdict/3047`, merge at `7f6d7e72`). I measured from a detached worktree at `9cddcb4f673ee4bed26a316c4a22128433414eb8`, against origin/main `407eb0cb38f3cd43e71f4ed7be1c23f80dc32cc1`.
+
+The range holds two commits. The first is the bot's `ci: pin killed mutants` (`2df0b81e`): 13 killed_by records and nothing else. The second is one automatic merge of origin/main at `407eb0cb`, which itself contains `ca6333333`. That merge needed no resolution. Every item in the brief is answered, so the verdict is merge.
+
+The head moved during the review. It went from `9cddcb4f` to `ace2e21a6f22cc3e9af22b5b1eed6a92b55105d9`, which merges the handoff tip `3f9f152e`. That commit has the same tree, `e58eadb7`, and `review_carry.py 9cddcb4f ace2e21a` prints `CARRY` (all three of its branch-only commits are automatic merges). By fix-review.md step 12 this verdict therefore attaches to `9cddcb4f` and carries to `ace2e21a`; it is not a head-moved case. CI at `9cddcb4f` was cancelled when the new head superseded it, so the CI evidence is taken at `ace2e21a`, the same tree.
 
 ## Findings
 
-- The PR body does not record round 3 (`fcbf8ec95`). `## Mutation proof` and `## Figures` still describe round 2: 28 FR checks, and no U6 or U7 entry. `## Red checks` attributes `tests / fast (3.14)` and `tests / mutation-autofix` only to round 1 (`e2b12a17`). It does not answer the separate red both checks carried at `d1662cf7b`. The cause there was the `tests/entities.py` `_svc_fr_record` stub returning None; it is named only in the commit message. The cheaper detector was running `tests/entities.py` whole on Linux before the handoff: about 25 s on CI, 8 min in this container. The round-2 verdict asked for that answer in the body. The fix is a body edit, which moves no head: add round 3's mutation proof (U6 and U7 killed by the two new checks, the two equivalent `return None` triages), the 31-check figure, and a `## Red checks` entry for the `d1662cf7b` red with that detector. The `pr-contract` run at the head the train merges then checks it. Carry: R10-FACTORY-RESET
-- The head moved while I measured. The PR head is now `2df0b81ed2fb9726a4b8d52de072fdb64520ded1`, one `github-actions[bot]` commit (`ci: pin killed mutants`) that adds 13 `tests/mutation_ledger/killed_by/` records and no production or test line. `tools/audit/seat/review_carry.py 7f6d7e72 2df0b81e` prints `FRESH-REVIEW`, because ledger files count as branch-only content (ev/review_carry.txt). So this verdict does not carry to `2df0b81e` by the tool. Every figure below concerns code and tests that commit leaves unchanged, so they all hold at `2df0b81e`. The orchestrator owes the call on re-confirming at `2df0b81e`, and on `gate` and `pr-contract` there. Neither concluded at `7f6d7e72` (Evidence, CI). Carry: R10-FACTORY-RESET
+- The PR body's `## Head` lists `2cfd6be38070335f5cdd8d4caa08b4ebfb7a1401` and `7aa2a455bfcc26d8ec035b7bc3a5233bf4dd994f` as merges of `ca6333333`. Neither commit is on the remote: `git fetch` answers `not our ref`, and neither is an ancestor of the head. The actual merge of `ca6333333` is `895f0315` on the handoff branch. `## Head` also does not name the live head `ace2e21a`. It does name `9cddcb4f`, which carries, so step 7 is met. Fix by editing the body: drop the two phantom lines and add `ace2e21a` (the handoff merge, tree-identical). Carry: R10-FACTORY-RESET
+- The current-head paragraph of the body's `## Red checks` was written at `2df0b81e`, 18:09 UTC. It still says `tests / mutation` is `in_progress` with "green is not yet read". At the live head that lane now reads `MUTATION TABLE PASSED`. Every red at this head is still named and answered in the body (`budget-raise-gate / budget-raise-gate`, and `gate` as its aggregate), and `pr-contract / pr-contract` passed after the last red. So the trigger is answered, and only the wording is stale. Fix by editing the body to bring the paragraph up to this head. Carry: R10-FACTORY-RESET
+- The `seam_cut_total` 422 -> 423 raise still needs the owner's approving review at the head before `budget-raise-gate` (and therefore `gate`) can go green. This verdict does not give that approval. Carry: R10-FACTORY-RESET
 
 ## Evidence
 
-Contract and head: `git diff <merge-base>...origin/main -- dev/governance/roles/` is empty, so fix-review.md is current. The body's `## Head` names `7f6d7e72260ca64e98ec13c3b7c46c5e01af62a6`, the head I measured. The review packet (ev/review-packet.md) reports no refusals and no advisories, and carry_audit at the head reads 3 routed, 0 unrouted.
+Contract: fix-review.md was read from origin/main, and `git diff <merge-base>...origin/main -- dev/governance/roles/` is empty because the merge base is origin/main. The review packet was rendered here (ev/review-packet-2.md, ev/review-packet-ace2e21a.md). Its `handoff-not-applied` refusal is the one the orchestrator overrode. Its `required-red: gate` refusal is answered below.
 
-Harness: the finder's. That is `ev/` of probe/rev-3047-30905b88 (round 1: the section-extract recipe, run.py, list2.py) and `ev/` of probe/rev-3047-0dec8285 (round 2: run2.py, list4.py, list5.py, full.py). I re-extracted the R10-FACTORY-RESET section from this head's `tests/features.py`, lines 13167..13774, with the module header and `_li_state_of` as the round-2 file carries them (ev/fr_section_head.py). Unmutated it reads `ALL 31 FR CHECKS PASSED` (ev/sec_head.txt). The only changes to the drivers are their paths to the worktree (ev/run.py, ev/run2.py, ev/full.py; ev/list45.py is list4 plus list5 concatenated for full.py).
+(1) Range and bot commit (ev/range.txt, ev/branch_only_compare.txt, ev/review_carry.txt, ev/merge-tree.txt):
+- The first-parent range `7f6d7e72..9cddcb4f` is `2df0b81e` (author `github-actions[bot]`, subject `ci: pin killed mutants`) followed by `9cddcb4f` (a merge of origin/main `407eb0cb`).
+- `git diff --name-status 7f6d7e72 2df0b81e` lists 13 paths, all `A`, all under `tests/mutation_ledger/killed_by/`, for 78 insertions. No production line, test line or budget line is touched.
+- RESULT: re-doing `git merge-tree --write-tree 2df0b81e 407eb0cb` gives `e58eadb7b511cae6dacae67a63891bdd6cfad5b7`, which is the head's own tree. So the merge carries no resolution.
+- Branch-only diff, three-dot, compared at `7f6d7e72` (base `d052f80f7`) and at the head (base `407eb0cb`): the file lists differ only by the 13 records. RESULT: 0 changed lines differ other than those records' added lines. No branch-own production line changed in the merge.
+- `review_carry.py 7f6d7e72 9cddcb4f` prints `FRESH-REVIEW` (rc 1), because the pin commit is branch-only content. That is why this scoped re-check exists, and every record has been checked below.
+- Dispatch override basis, re-derived: `git merge-tree --write-tree 9cddcb4f 3f9f152e` gives `e58eadb7…`, equal to `9cddcb4f`'s tree. The equality holds.
 
-Block (1), verdict/3047 round 1, the void list:
-- RESULT void-entry mutants: 21 killed, 0 survived (ev/mut_void.txt). This is the finder's list2.py verbatim, each entry deleted in turn and run through the section. `_FACTORY_VOID` at this head has 21 entries: 14 thermal, 3 stores whole (`dhw_profile`, `dhw_draws`, `price_model`), 4 accuracy. The brief's figure of 22 does not match the tree. Round 2 counted 21 too.
-- `dhw_draws` is written to disk by the test. Its `None -> ()` mutant is killed by 3 checks.
-- The kills come from "a learners reset drops every learned key, key by key, and keeps every fact", per learner, against the test-owned `_FR_FACTS` list.
-- The entry_config GUARD_OFF (T1, T2), the coordinator RETURN_DEL (C1), and P1..P4, R1..R7, S1/S2/S4, U1..U5, N1/N2, SV1/SV2 and T3..T6 are all killed in the section (ev/mut_list4.txt).
-- The two humidity CMP_BOUND mutants (C2, C3) and the DHW-probe guards (C4, C5) survive the section, as in round 2. Each is killed by the whole of `tests/features.py`: C2 and C3 `1 of 4713 FEATURE CHECKS FAILED`, C4 and C5 `3 of 4713` (ev/mutants-full-features.txt). Unmutated, the whole file reads `ALL 4713 FEATURE CHECKS PASSED`, rc 0 (ev/features_head_unmutated.txt).
+Records (ev/ledger_records.txt):
+- The 13 anchors are `_current_humidity CMP_BOUND` (the CMP_BOUND*2 pair, one anchor); `_dhw_probe_temperature` BOOLOP and GUARD_OFF; `_async_rewrite_entry GUARD_OFF`; `_async_undo_factory_reset RETURN_DEL`; `async_factory_reset.voided` GUARD_OFF and RETURN_DEL; `entry_config` `_side_pair GUARD_OFF`, `undo_point` GUARD_OFF and RETURN_DEL, `undone_settings` GUARD_OFF and RETURN_DEL; and `services.handle_factory_reset GUARD_OFF`.
+- That is 13 records, matching the r4 verdict's 5 + 4 + 4 = 13 shard anchors and the 13 sites the body's `## Unpinned sites` lists as discharged.
+- The ledger reader `tests/mutation_table.py` at the head reports: `ledger_form_problems` [] and `layout_problems` [], so the files are well-formed. `stale_pins` returns 0 in total, and each record's `old` text is present in its file. Each record's key set is {anchor, killed_by, old, reason}, and each sits at its `ledger_relpath`.
+- CI's `tests / mutation` at `ace2e21a` (same tree) prints `PIN RE-VERIFICATION: 9 reproduced, 0 not reproduced` and `1 survivor(s) of 10 evaluated = 0.0% (1 triaged equivalent ...)`, then `MUTATION TABLE PASSED`. The one survivor is `entry_config.py:360 RETURN_DEL`, the triaged trailing `return None` that r4 agreed with. This is a real evaluation, not `INCONCLUSIVE`.
 
-Block (2), round 2 at `d1662cf7b`, the learner flush and `tests/entities.py`:
-- RESULT U6 (`await _async_save_restored(coord)` deleted from `_async_store_documents`): KILLED, `FAIL the undo restores what the learners knew at the reset, learning since the last save included: COP scale 1.21  [restored True, COP scale 1.13]` (ev/mut_list4.txt).
-- The null control, with the flush present, is the new check "learning since the last save is in memory only before the reset: COP scale 1.21 held, 1.13 stored (the control)". It passes, and so does the restore check (ev/sec_head.txt). The control shows the 1.21 is unsaved state when the reset starts, so the undo restoring 1.21 is earned by the flush.
-- RESULT U7 (`undo_target` taking any undo point in the ring): KILLED, by "after an unhealthy snapshot newer than the undo point, the restore takes neither: nothing qualifies, the reset stays".
-- `tests/entities.py` at this head: `ALL 2499 ENTITY CHECKS PASSED`, rc 0, including "factory_reset hands that entry's coordinator its scope and reports both" (ev/entities_head.txt). Its printed `FAIL` lines are the script's own planted-negative self-tests, each followed by its `ok` arm. CI agrees: `tests / fast (3.14)` concluded success at this head.
+(2) Body (read live at 20:2x UTC):
+- The r4-owed edit has landed. `## Mutation proof` carries Round 3 at `fcbf8ec95`: U6 and U7 killed, the null control, and the two equivalent `return None` triages. `## Figures` carries the [round 3] line: 31 FR checks, 4713 feature checks, 2499 entity checks. `## Red checks` carries the `d1662cf7b` `_svc_fr_record` stub red, with its cheaper detector (`tests/entities.py` whole on Linux).
+- `## Red checks` answers `tests / mutation` at `7f6d7e72` (the 14 added sites, answered by the bot's pins), `tests / mutation-autofix`, and `budget-raise-gate` (red until the owner's approval). It also covers `gate` (the aggregate; it follows those) and `pr-contract`.
+- `## Unpinned sites` accounts for the bot's 13 records against its 19 lines.
 
-Lane sites: the lane's exact operators, through the section and the whole file (ev/mut_list5.txt, ev/mutants-full-features.txt):
-- 358 GUARD_OFF, 369 GUARD_OFF and 373 RETURN_DEL are killed in the section; 9955 GUARD_OFF is killed by the whole file.
-- `entry_config.py:360 RETURN_DEL` and `coordinator.py:9957 RETURN_DEL` survive the whole file (`ALL 4713 FEATURE CHECKS PASSED`). Each deletes a function's trailing `return None`, which is an equivalent mutant. Both are recorded by hand under `tests/mutation_ledger/survivor_triage/` in `fcbf8ec95`, and I agree with both records.
+(3) Raise:
+- The `## Raise justification` is unchanged from what r4 judged: six payments, and `Architecture score: dS +0.0030 IMPROVES`.
+- `budget_raise_gate.py --check-body` on that section, `--base 407eb0cb --head 9cddcb4f`, prints `the body's \`## Raise justification\` names the payments tried and the arch_score figures`, rc 0 (ev/check_body.txt).
+- RESULT: at the head, `score.py --diff 407eb0cb` gives `Architecture score: dS +0.0030 IMPROVES`, `coord_footprint 2387 -> 2382` (ev/archscore_head.txt). The Architecture score line stands.
+- RESULT: `tests/structure.py` gives `seam_cut_total 423 <= 423`, `STRUCTURE RATCHET PASSED`, rc 0 (ev/structure_head.txt). The three-dot budget diff shows `seam_cut_total` 422 -> 423, unchanged since `7f6d7e72`.
 
-Mutation lane at this head (tests / mutation 124914587936):
-- It reads `MUTATION TABLE REFUSED -- 3551 unpinned site(s) against 3551 at the ratchet base d052f80f7, 14 of them added by this diff`. Every one of the 14 is in the body's `## Unpinned sites`, each marked mutation-autofix. That list also carries 6 sites that are already pinned or triaged, so it is a superset, not an omission.
-- The three `tests / mutation-pins` shards measured 5 + 4 + 4 = 13 anchors (shard 1: `PIN KILLED: 6 pinned, 0 left unpinned`). The bot commit `2df0b81e` adds exactly 13 killed_by records, one per anchor. `CMP_BOUND*2` is one anchor.
+(4) Head (ev/HEAD.txt, ev/head_moved.txt):
+- At the start, `git ls-remote refs/pull/3047/head` returned `9cddcb4f…`. At 19:11 UTC it returned `ace2e21a…` and still did at verdict time.
+- `ace2e21a` has parents `9cddcb4f` and `3f9f152e`. Its tree is `e58eadb7`, and `git diff 9cddcb4f ace2e21a` is 0 lines. `review_carry` prints `CARRY`, so every number above holds at `ace2e21a`.
+- `## Head` names `9cddcb4f` and its merge of `407eb0cb3`.
+- `git merge-tree --write-tree origin/main 9cddcb4f` exits 0 with tree `e58eadb7`. No claim file conflicts.
 
-Carry-over, re-checked for drift:
-- Undo exact pins, refused-unload messages, FACTORY_KEPT, learner scope, and the undo point taken before the heat-loss void call: all mutants above are killed, as in round 2. The null control "unconfirmed, nothing changes" passes, and N1 is killed.
-- The delivery row `dev/programme/delivery/3047.md` is in the three-dot diff.
-- Claim files: `card_claimed_drift.txt` is byte-identical to origin/main. `claimed_drift.txt` differs on its one `config_flow` line only, which carries this branch's claim. That is expected for a branch that claims a drift (claim-files.md), and it is why the file is not byte-identical.
-- `PYTHONPATH=tests/hastub python3 tests/env_drift.py --all d052f80f7` reads `CLAIMED config_flow: 4 leaves moved`, `NO UNCLAIMED DRIFT: 56 scenario(s)`, `NO STALE FIXTURE: 56`, rc 0 (ev/envdrift_head.txt). `claims-for: 7.1.0` equals VERSION 7.1.0. VERSION, manifest.json and RELEASE_NOTES.md are untouched.
-- `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`, `seam_cut_total 423 <= 423` (ev/structure_head.txt).
-- Scoped gate: `tests/closure.py select --diff d052f80f7` prints `MODE: SCOPED -- 31 script(s) run, 2 scoped out.`
-
-Raise (step 14), `seam_cut_total` 422 -> 423 (ev/raise_plants.txt):
-- Removing the `coord._snapshot_store` wait gives `seam_cut_total=422`, so the +1 is the crossing the body names.
-- Re-spelling the read as `_ctx_of(coord)._snapshot_store` gives 423, so the instrument does not reward a re-spelling.
-- The body's third payment, refusing while `_snapshots_loaded` is false, measures 422, as the body says (+0). I judge it as the body does. It turns a load window into a user-facing refusal, and the existing `factory_reset_not_applied` text would then state the wrong cause. That is not a sounder change.
-- No other existing owner waits on the snapshot read for the learning seam, so I found no payment the body missed. This part is analysis, not a built variant.
-- `python3 tools/audit/archscore/score.py --diff d052f80f7` reads `Architecture score: dS +0.0030 IMPROVES`, `coord_footprint 2387 -> 2382` (ev/archscore_head.txt). The dS matches the body. The footprint pair differs from the body's `2389 -> 2384` because the body measured against older merge bases (`8fec54ee`, `92588d58`), as it states.
-- This verdict does not approve the raise. The approval is the owner's review under budget-raise-gate.
-
-Merge: `git merge-tree --write-tree origin/main 7f6d7e72` exits 0, tree f0a037f0 (ev/merge-tree.txt). No claim file conflicts, so the claimnotes driver did not run.
-
-CI at this head (ev/check-runs-head.txt, ev/classify-log.txt):
-- Concluded red: `tests / mutation`, whose 14 added sites are pinned by the bot commit, and `budget-raise-gate / budget-raise-gate`, red until the owner's approving review (`REFUSED: no decisive review by tvofi`). The body names both.
-- Every other concluded check is success, `tests / fast (3.14)` and `tests / typing` among them.
-- `gate` and `pr-contract` never ran at this head. The bot push to `2df0b81e` superseded it first, and new runs started there at 17:53 UTC. `merge_train.py classify 7f6d7e72` returned 3 (WAIT, `pending: gate`) on every run from 17:01 to 17:59 UTC. So the classifier is unreadable for this head: it can never reach GREEN or RED. I stopped the wait.
-- Because no `pr-contract` run checked the body at this head, the body's red-check record is unverified here. That is the first Finding.
+CI (ev/classify-log.txt, ev/classify-ace-log.txt):
+- `merge_train.py classify 9cddcb4f` exited 1 (RED, `red: gate`). At `9cddcb4f`, `gate`, `tests / mutation`, `tests / fast (3.14)` and the rest were `cancelled` when `ace2e21a` superseded them (ev/review-packet-2.md), so that head can never conclude.
+- At `ace2e21a` (same tree), `classify` exited 1 (RED, `red: gate`). The `gate` log (job 124965229240) reads only `FAIL budget-raise-gate / budget-raise-gate: failure`.
+- At `ace2e21a`, `budget-raise-gate` concluded failure (two runs) and `gate` follows it. Every other check concluded success or skipped. That includes `tests / mutation`, `tests / fast (3.14)`, `tests / closures`, `tests / coverage`, `tests / typing`, `governance / instrument-self-tests` and `codeql / Analyze (python)`.
+- `pr-contract / pr-contract` succeeded at 20:08 UTC and again in run 124964535572, which started 20:13 UTC, after the last red (`budget-raise-gate`, 20:10:58). So the body's red-check record was checked after the last red concluded.

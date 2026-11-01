@@ -1,0 +1,17 @@
+ledger_form_problems: []
+layout_problems: []
+stale_pins total: 0
+coordinator.py:HeatPumpOptimizerCoordinator._current_humidity CMP_BOUND 45eae803 | in ledger: True | relpath ok: False | old in tree: True | stale: False | keys ['anchor', 'killed_by', 'old', 'reason']
+coordinator.py:HeatPumpOptimizerCoordinator._dhw_probe_temperature BOOLOP 25dfd051 | in ledger: True | relpath ok: False | old in tree: True | stale: False | keys ['anchor', 'killed_by', 'old', 'reason']
+coordinator.py:HeatPumpOptimizerCoordinator._dhw_probe_temperature GUARD_OFF 25dfd051 | in ledger: True | relpath ok: False | old in tree: True | stale: False | keys ['anchor', 'killed_by', 'old', 'reason']
+coordinator.py:_async_rewrite_entry GUARD_OFF fa08e1a8 | in ledger: True | relpath ok: False | old in tree: True | stale: False | keys ['anchor', 'killed_by', 'old', 'reason']
+coordinator.py:_async_undo_factory_reset RETURN_DEL 2db28578 | in ledger: True | relpath ok: False | old in tree: True | stale: False | keys ['anchor', 'killed_by', 'old', 'reason']
+coordinator.py:async_factory_reset.voided GUARD_OFF a5312998 | in ledger: True | relpath ok: False | old in tree: True | stale: False | keys ['anchor', 'killed_by', 'old', 'reason']
+coordinator.py:async_factory_reset.voided RETURN_DEL 95fafb69 | in ledger: True | relpath ok: False | old in tree: True | stale: False | keys ['anchor', 'killed_by', 'old', 'reason']
+entry_config.py:_side_pair GUARD_OFF f066afa9 | in ledger: True | relpath ok: False | old in tree: True | stale: False | keys ['anchor', 'killed_by', 'old', 'reason']
+entry_config.py:undo_point GUARD_OFF fdb2fd77 | in ledger: True | relpath ok: False | old in tree: True | stale: False | keys ['anchor', 'killed_by', 'old', 'reason']
+entry_config.py:undo_point RETURN_DEL 9a65f8ca | in ledger: True | relpath ok: False | old in tree: True | stale: False | keys ['anchor', 'killed_by', 'old', 'reason']
+entry_config.py:undone_settings GUARD_OFF f06636d0 | in ledger: True | relpath ok: False | old in tree: True | stale: False | keys ['anchor', 'killed_by', 'old', 'reason']
+entry_config.py:undone_settings RETURN_DEL a2e2bd26 | in ledger: True | relpath ok: False | old in tree: True | stale: False | keys ['anchor', 'killed_by', 'old', 'reason']
+services.py:handle_factory_reset GUARD_OFF 3ac042d3 | in ledger: True | relpath ok: False | old in tree: True | stale: False | keys ['anchor', 'killed_by', 'old', 'reason']
+NOTE: 'relpath ok: False' is my comparison's own error (compared against 'mutation_ledger/killed_by/...'); ledger_relpath returns 'killed_by/<file>/<scope>.<KIND>.<digest>.json', which equals each path under tests/mutation_ledger/ (e.g. killed_by/services.py/handle_factory_reset.GUARD_OFF.3ac042d3.json), and layout_problems() is empty.

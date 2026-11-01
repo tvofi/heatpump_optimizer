@@ -1,49 +1,46 @@
 # Review packet #3047
-head: 7f6d7e72260ca64e98ec13c3b7c46c5e01af62a6
-base: d052f80f7f81d42db5c57a55ebaef7056c7ce01a
+head: 9cddcb4f673ee4bed26a316c4a22128433414eb8
+base: 407eb0cb38f3cd43e71f4ed7be1c23f80dc32cc1
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
 ## Gate digest: red
-CodeQL id=124914767415 neutral
-arch-score / arch-score id=124914588065 success
-arm id=124914498129 skipped
-budget-raise-gate / budget-raise-gate id=124914587987 failure
-cancel-superseded id=124914499408 success
-codeql / Analyze (actions) id=124914587891 success
-codeql / Analyze (javascript-typescript) id=124914587910 success
-codeql / Analyze (python) id=124914587913 in_progress
-governance / delivery-status id=124914587962 success
-governance / delivery-status-publish id=124914590521 skipped
-governance / env-matrix id=124914587984 in_progress
-governance / instrument-self-tests id=124914588001 in_progress
-governance / policy-docs id=124914587940 success
-governance / record id=124914589753 skipped
-governance / wave-script id=124914587915 success
-hassfest / hassfest id=124914587942 success
-kernel-points id=124914588664 skipped
-prelude id=124914499651 in_progress
-refresh id=124914499505 success
-tests / arch-instrument id=124914706514 in_progress
-tests / briefs id=124914587922 success
-tests / browser id=124914706639 in_progress
-tests / closure-scope id=124914587879 success
-tests / closures id=124914706697 in_progress
-tests / coverage id=124914706559 in_progress
-tests / fast (3.14) id=124914706520 in_progress
-tests / mutation id=124914587936 failure
-tests / mutation-pins (1) id=124914791662 in_progress
-tests / mutation-pins (2) id=124914791411 in_progress
-tests / mutation-pins (3) id=124914791436 in_progress
-tests / nightly-ha (2025.2.0) id=124914706556 success
-tests / nightly-ha (stable) id=124914706653 success
-tests / nightly-status id=124914587894 success
-tests / replay id=124914706691 success
-tests / typing id=124914706508 success
-validate / validate-hacs id=124914587899 success
+CodeQL id=124944240608 neutral
+arch-score / arch-score id=124944060871 success
+arm id=124943942359 skipped
+budget-raise-gate / budget-raise-gate id=124944060947 failure
+cancel-superseded id=124943949873 success
+codeql / Analyze (actions) id=124944060857 success
+codeql / Analyze (javascript-typescript) id=124944060953 success
+codeql / Analyze (python) id=124944060985 in_progress
+governance / delivery-status id=124944060951 success
+governance / delivery-status-publish id=124944062676 skipped
+governance / env-matrix id=124944061026 success
+governance / instrument-self-tests id=124944060981 in_progress
+governance / policy-docs id=124944061008 success
+governance / record id=124944062226 skipped
+governance / wave-script id=124944060921 success
+hassfest / hassfest id=124944060916 success
+kernel-points id=124944061729 skipped
+prelude id=124943949861 success
+refresh id=124943949547 success
+tests / arch-instrument id=124944189486 in_progress
+tests / briefs id=124944060958 success
+tests / browser id=124944189411 success
+tests / closure-scope id=124944060941 success
+tests / closures id=124944189489 in_progress
+tests / coverage id=124944189519 in_progress
+tests / fast (3.14) id=124944189528 in_progress
+tests / mutation id=124944060995 in_progress
+tests / nightly-ha (2025.2.0) id=124944189431 success
+tests / nightly-ha (stable) id=124944189471 success
+tests / nightly-status id=124944061077 success
+tests / replay id=124944189425 success
+tests / typing id=124944189454 success
+validate / validate-hacs id=124944060923 success
 
 ## Refusals
-none
+handoff-not-applied: handoff/r10-factory-reset 3f9f152e2ac87cee1a1ab3ac0018d64bd023f13d is not an ancestor of 9cddcb4f673ee4bed26a316c4a22128433414eb8
 
 ## Advisories
 none
@@ -55,10 +52,18 @@ NOTE body item a4676925: R10-LEARNED-STORE-LOAD: R10-LEARNED-STORE-LOAD resolved
 CARRY-AUDIT: 3 finding item(s): 3 routed, 0 unrouted, 0 bad destination(s)
 
 ## figure_lint at the head
-ok         tests/typing_ruler.py --mypy
-             `tests/typing_ruler.py` is in the tree at this head
-  ok         PYTHONPATH=tests/hastub python3 tests/features.py
+ok         PYTHONPATH=tests/hastub python3 tests/features.py
              `tests/features.py` is in the tree at this head
+  ok         python3 tests/entities.py
+             `tests/entities.py` is in the tree at this head
+  ok         python3 tests/structure.py
+             `tests/structure.py` is in the tree at this head
+  ok         tests/env_drift.py --all d052f80f7
+             `tests/env_drift.py` is in the tree at this head
+  ok         tests/closure.py select --diff d052f80f7
+             `tests/closure.py` is in the tree at this head
+  ok         tests/typing_ruler.py --mypy
+             `tests/typing_ruler.py` is in the tree at this head
   ok         PYTHONPATH=tests/hastub python3 tests/config_flow_steps.py
              `tests/config_flow_steps.py` is in the tree at this head
   ok         PYTHONPATH=tests/hastub python3 tests/env_drift.py --all 8fec54ee2afb5e37687f34bc5fd3aa7280f64e1f
@@ -73,8 +78,6 @@ ok         tests/typing_ruler.py --mypy
              `dev/audit/rounds/round4/D6/claims.py` is in the tree at this head
   ok         tests/entities.py
              `tests/entities.py` is in the tree at this head
-  ok         python3 tests/structure.py
-             `tests/structure.py` is in the tree at this head
   ok         python3 tools/audit/archscore/score.py --diff 8fec54ee2afb5e37687f34bc5fd3aa7280f64e1f
              `tools/audit/archscore/score.py` is in the tree at this head
   ok         tests/closure.py select --diff 8fec54ee2
@@ -90,7 +93,7 @@ ok         tests/typing_ruler.py --mypy
   ok         tests/finite_boundary.py
              `tests/finite_boundary.py` is in the tree at this head
 
-FIGURES: 16 resolved, 1 not verified, 0 refused
+FIGURES: 19 resolved, 1 not verified, 0 refused
 
 ## Finder's harness: none named
 ### at the base
@@ -248,6 +251,18 @@ index 000000000..d67aa509c
 +  "old": "        return value if value is not None and 0.0 <= value <= 100.0 else None",
 +  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`return value if value is not None or 0.0 <= value <= 100.0 else None`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
 +}
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._current_humidity.CMP_BOUND.45eae803.json b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._current_humidity.CMP_BOUND.45eae803.json
+new file mode 100644
+index 000000000..22ef24048
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._current_humidity.CMP_BOUND.45eae803.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._current_humidity CMP_BOUND 45eae803",
++  "killed_by": "tests/features.py",
++  "old": "        return value if value is not None and 0.0 <= value <= 100.0 else None",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`return value if value is not None and 0.0 < value <= 100.0 else None`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2. Each of the 2 sites under this anchor was killed."
++}
 diff --git a/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._current_humidity.RETURN_DEL.45eae803.json b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._current_humidity.RETURN_DEL.45eae803.json
 new file mode 100644
 index 000000000..c77bebdab
@@ -259,6 +274,30 @@ index 000000000..c77bebdab
 +  "killed_by": "tests/features.py",
 +  "old": "        return value if value is not None and 0.0 <= value <= 100.0 else None",
 +  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
++}
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._dhw_probe_temperature.BOOLOP.25dfd051.json b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._dhw_probe_temperature.BOOLOP.25dfd051.json
+new file mode 100644
+index 000000000..52b2a109c
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._dhw_probe_temperature.BOOLOP.25dfd051.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._dhw_probe_temperature BOOLOP 25dfd051",
++  "killed_by": "tests/features.py",
++  "old": "        if value is not None and self._learning_frozen(CONF_DHW_TEMP_ENTITY, room_air=False) is None:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`if value is not None or self._learning_frozen(CONF_DHW_TEMP_ENTITY, room_air=False) is None:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
++}
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._dhw_probe_temperature.GUARD_OFF.25dfd051.json b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._dhw_probe_temperature.GUARD_OFF.25dfd051.json
+new file mode 100644
+index 000000000..4c2a483d6
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._dhw_probe_temperature.GUARD_OFF.25dfd051.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._dhw_probe_temperature GUARD_OFF 25dfd051",
++  "killed_by": "tests/features.py",
++  "old": "        if value is not None and self._learning_frozen(CONF_DHW_TEMP_ENTITY, room_air=False) is None:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=7."
 +}
 diff --git a/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator.async_restore_learned_snapshot.GUARD_OFF.d20d64a4.json b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator.async_restore_learned_snapshot.GUARD_OFF.d20d64a4.json
 new file mode 100644
@@ -296,6 +335,18 @@ index 000000000..2ba151ef0
 +  "old": "    if settings is not None:",
 +  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6."
 +}
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/_async_rewrite_entry.GUARD_OFF.fa08e1a8.json b/tests/mutation_ledger/killed_by/coordinator.py/_async_rewrite_entry.GUARD_OFF.fa08e1a8.json
+new file mode 100644
+index 000000000..df6296c04
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/coordinator.py/_async_rewrite_entry.GUARD_OFF.fa08e1a8.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_async_rewrite_entry GUARD_OFF fa08e1a8",
++  "killed_by": "tests/features.py",
++  "old": "        if name in written:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=7."
++}
 diff --git a/tests/mutation_ledger/killed_by/coordinator.py/_async_rewrite_entry.RETURN_DEL.80a0007e.json b/tests/mutation_ledger/killed_by/coordinator.py/_async_rewrite_entry.RETURN_DEL.80a0007e.json
 new file mode 100644
 index 000000000..b2226ca79
@@ -319,6 +370,18 @@ index 000000000..cb047400b
 +  "killed_by": "tests/features.py",
 +  "old": "    return {name: await store.async_load() for (name, _), store in zip(_FACTORY_VOID, _restored_stores(coord))}",
 +  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/_async_undo_factory_reset.RETURN_DEL.2db28578.json b/tests/mutation_ledger/killed_by/coordinator.py/_async_undo_factory_reset.RETURN_DEL.2db28578.json
+new file mode 100644
+index 000000000..3b395833a
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/coordinator.py/_async_undo_factory_reset.RETURN_DEL.2db28578.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_async_undo_factory_reset RETURN_DEL 2db28578",
++  "killed_by": "tests/features.py",
++  "old": "    return await _async_rewrite_entry(coord, spent, undone_settings(coord.entry.data, coord.entry.options, undo))",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6."
 +}
 diff --git a/tests/mutation_ledger/killed_by/coordinator.py/_async_undo_factory_reset.spent.RETURN_DEL.bf2fea10.json b/tests/mutation_ledger/killed_by/coordinator.py/_async_undo_factory_reset.spent.RETURN_DEL.bf2fea10.json
 new file mode 100644
@@ -392,6 +455,42 @@ index 000000000..e74c2d769
 +  "old": "    return done",
 +  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
 +}
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/async_factory_reset.voided.GUARD_OFF.a5312998.json b/tests/mutation_ledger/killed_by/coordinator.py/async_factory_reset.voided.GUARD_OFF.a5312998.json
+new file mode 100644
+index 000000000..db26e0891
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/coordinator.py/async_factory_reset.voided.GUARD_OFF.a5312998.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:async_factory_reset.voided GUARD_OFF a5312998",
++  "killed_by": "tests/features.py",
++  "old": "        if scope == FACTORY_RESET_SCOPES[0]:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
++}
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/async_factory_reset.voided.RETURN_DEL.95fafb69.json b/tests/mutation_ledger/killed_by/coordinator.py/async_factory_reset.voided.RETURN_DEL.95fafb69.json
+new file mode 100644
+index 000000000..e574016ae
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/coordinator.py/async_factory_reset.voided.RETURN_DEL.95fafb69.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:async_factory_reset.voided RETURN_DEL 95fafb69",
++  "killed_by": "tests/features.py",
++  "old": "        return voided_documents(await _async_store_documents(coord))",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/entry_config.py/_side_pair.GUARD_OFF.f066afa9.json b/tests/mutation_ledger/killed_by/entry_config.py/_side_pair.GUARD_OFF.f066afa9.json
+new file mode 100644
+index 000000000..b410a9aa7
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/entry_config.py/_side_pair.GUARD_OFF.f066afa9.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/entry_config.py:_side_pair GUARD_OFF f066afa9",
++  "killed_by": "tests/features.py",
++  "old": "    if isinstance(raw, list) and len(raw) == 2 and all(isinstance(side, dict) for side in raw):",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
++}
 diff --git a/tests/mutation_ledger/killed_by/entry_config.py/factory_settings.RETURN_DEL.9521dcc2.json b/tests/mutation_ledger/killed_by/entry_config.py/factory_settings.RETURN_DEL.9521dcc2.json
 new file mode 100644
 index 000000000..cd6eacae1
@@ -404,6 +503,54 @@ index 000000000..cd6eacae1
 +  "old": "    return with_settings((data, {**options, **pinned}), ({}, {}))",
 +  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6."
 +}
+diff --git a/tests/mutation_ledger/killed_by/entry_config.py/undo_point.GUARD_OFF.fdb2fd77.json b/tests/mutation_ledger/killed_by/entry_config.py/undo_point.GUARD_OFF.fdb2fd77.json
+new file mode 100644
+index 000000000..1739ad1ac
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/entry_config.py/undo_point.GUARD_OFF.fdb2fd77.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/entry_config.py:undo_point GUARD_OFF fdb2fd77",
++  "killed_by": "tests/features.py",
++  "old": "    if scope == const.FACTORY_RESET_SCOPES[1]:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
++}
+diff --git a/tests/mutation_ledger/killed_by/entry_config.py/undo_point.RETURN_DEL.9a65f8ca.json b/tests/mutation_ledger/killed_by/entry_config.py/undo_point.RETURN_DEL.9a65f8ca.json
+new file mode 100644
+index 000000000..247ca6401
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/entry_config.py/undo_point.RETURN_DEL.9a65f8ca.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/entry_config.py:undo_point RETURN_DEL 9a65f8ca",
++  "killed_by": "tests/features.py",
++  "old": "    return {\"scope\": scope, \"settings\": list(settings_of(data, options)), \"pinned\": pinned}",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/entry_config.py/undone_settings.GUARD_OFF.f06636d0.json b/tests/mutation_ledger/killed_by/entry_config.py/undone_settings.GUARD_OFF.f06636d0.json
+new file mode 100644
+index 000000000..61ddf0a0b
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/entry_config.py/undone_settings.GUARD_OFF.f06636d0.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/entry_config.py:undone_settings GUARD_OFF f06636d0",
++  "killed_by": "tests/features.py",
++  "old": "    if settings is None or pinned is None:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/entry_config.py/undone_settings.RETURN_DEL.a2e2bd26.json b/tests/mutation_ledger/killed_by/entry_config.py/undone_settings.RETURN_DEL.a2e2bd26.json
+new file mode 100644
+index 000000000..8806ee5bf
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/entry_config.py/undone_settings.RETURN_DEL.a2e2bd26.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/entry_config.py:undone_settings RETURN_DEL a2e2bd26",
++  "killed_by": "tests/features.py",
++  "old": "    return with_settings(wiring, (settings[0], settings[1]))",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
++}
 diff --git a/tests/mutation_ledger/killed_by/entry_config.py/with_settings.RETURN_DEL.80c79bfe.json b/tests/mutation_ledger/killed_by/entry_config.py/with_settings.RETURN_DEL.80c79bfe.json
 new file mode 100644
 index 000000000..4472f55a9
@@ -415,6 +562,18 @@ index 000000000..4472f55a9
 +  "killed_by": "tests/features.py",
 +  "old": "    return {**rest[0], **kept[0]}, {**rest[1], **kept[1]}",
 +  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6."
++}
+diff --git a/tests/mutation_ledger/killed_by/services.py/handle_factory_reset.GUARD_OFF.3ac042d3.json b/tests/mutation_ledger/killed_by/services.py/handle_factory_reset.GUARD_OFF.3ac042d3.json
+new file mode 100644
+index 000000000..742e59fc6
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/services.py/handle_factory_reset.GUARD_OFF.3ac042d3.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/services.py:handle_factory_reset GUARD_OFF 3ac042d3",
++  "killed_by": "tests/features.py",
++  "old": "        if not await async_factory_reset(coord, data[\"scope\"]):",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
 +}
 diff --git a/tests/mutation_ledger/killed_by/services.py/handle_factory_reset.RETURN_DEL.4bcd781f.json b/tests/mutation_ledger/killed_by/services.py/handle_factory_reset.RETURN_DEL.4bcd781f.json
 new file mode 100644
@@ -2096,7 +2255,7 @@ index d288b59a7..706e5caeb 100644
      }
      rows, _ = prose_count_census(stale, facts)
 diff --git a/tests/entities.py b/tests/entities.py
-index 526b84b2d..5da95af09 100644
+index eb5674363..d03364dfa 100644
 --- a/tests/entities.py
 +++ b/tests/entities.py
 @@ -9087,8 +9087,10 @@ for _step in options._MENU_LABELS:
@@ -2149,7 +2308,7 @@ index 526b84b2d..5da95af09 100644
  }
  R.check(
      "every registered service was invoked above",
-@@ -40488,6 +40513,9 @@ _R10_LOG_ALLOWED_BY_REASON = {
+@@ -40757,6 +40782,9 @@ _R10_LOG_ALLOWED_BY_REASON = {
          ("coordinator.py", "_async_load_thermal_learning"): 1,
          ("coordinator.py", "_async_setup_peak_guard"): 1,
          ("coordinator.py", "async_restore_learned_snapshot"): 1,
@@ -3138,6 +3297,18 @@ index 000000000..d67aa509c
 +  "old": "        return value if value is not None and 0.0 <= value <= 100.0 else None",
 +  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`return value if value is not None or 0.0 <= value <= 100.0 else None`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
 +}
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._current_humidity.CMP_BOUND.45eae803.json b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._current_humidity.CMP_BOUND.45eae803.json
+new file mode 100644
+index 000000000..22ef24048
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._current_humidity.CMP_BOUND.45eae803.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._current_humidity CMP_BOUND 45eae803",
++  "killed_by": "tests/features.py",
++  "old": "        return value if value is not None and 0.0 <= value <= 100.0 else None",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`return value if value is not None and 0.0 < value <= 100.0 else None`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2. Each of the 2 sites under this anchor was killed."
++}
 diff --git a/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._current_humidity.RETURN_DEL.45eae803.json b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._current_humidity.RETURN_DEL.45eae803.json
 new file mode 100644
 index 000000000..c77bebdab
@@ -3149,6 +3320,30 @@ index 000000000..c77bebdab
 +  "killed_by": "tests/features.py",
 +  "old": "        return value if value is not None and 0.0 <= value <= 100.0 else None",
 +  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
++}
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._dhw_probe_temperature.BOOLOP.25dfd051.json b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._dhw_probe_temperature.BOOLOP.25dfd051.json
+new file mode 100644
+index 000000000..52b2a109c
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._dhw_probe_temperature.BOOLOP.25dfd051.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._dhw_probe_temperature BOOLOP 25dfd051",
++  "killed_by": "tests/features.py",
++  "old": "        if value is not None and self._learning_frozen(CONF_DHW_TEMP_ENTITY, room_air=False) is None:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`if value is not None or self._learning_frozen(CONF_DHW_TEMP_ENTITY, room_air=False) is None:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
++}
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._dhw_probe_temperature.GUARD_OFF.25dfd051.json b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._dhw_probe_temperature.GUARD_OFF.25dfd051.json
+new file mode 100644
+index 000000000..4c2a483d6
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._dhw_probe_temperature.GUARD_OFF.25dfd051.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._dhw_probe_temperature GUARD_OFF 25dfd051",
++  "killed_by": "tests/features.py",
++  "old": "        if value is not None and self._learning_frozen(CONF_DHW_TEMP_ENTITY, room_air=False) is None:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=7."
 +}
 diff --git a/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator.async_restore_learned_snapshot.GUARD_OFF.d20d64a4.json b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator.async_restore_learned_snapshot.GUARD_OFF.d20d64a4.json
 new file mode 100644
@@ -3186,6 +3381,18 @@ index 000000000..2ba151ef0
 +  "old": "    if settings is not None:",
 +  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6."
 +}
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/_async_rewrite_entry.GUARD_OFF.fa08e1a8.json b/tests/mutation_ledger/killed_by/coordinator.py/_async_rewrite_entry.GUARD_OFF.fa08e1a8.json
+new file mode 100644
+index 000000000..df6296c04
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/coordinator.py/_async_rewrite_entry.GUARD_OFF.fa08e1a8.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_async_rewrite_entry GUARD_OFF fa08e1a8",
++  "killed_by": "tests/features.py",
++  "old": "        if name in written:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=7."
++}
 diff --git a/tests/mutation_ledger/killed_by/coordinator.py/_async_rewrite_entry.RETURN_DEL.80a0007e.json b/tests/mutation_ledger/killed_by/coordinator.py/_async_rewrite_entry.RETURN_DEL.80a0007e.json
 new file mode 100644
 index 000000000..b2226ca79
@@ -3209,6 +3416,18 @@ index 000000000..cb047400b
 +  "killed_by": "tests/features.py",
 +  "old": "    return {name: await store.async_load() for (name, _), store in zip(_FACTORY_VOID, _restored_stores(coord))}",
 +  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/_async_undo_factory_reset.RETURN_DEL.2db28578.json b/tests/mutation_ledger/killed_by/coordinator.py/_async_undo_factory_reset.RETURN_DEL.2db28578.json
+new file mode 100644
+index 000000000..3b395833a
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/coordinator.py/_async_undo_factory_reset.RETURN_DEL.2db28578.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_async_undo_factory_reset RETURN_DEL 2db28578",
++  "killed_by": "tests/features.py",
++  "old": "    return await _async_rewrite_entry(coord, spent, undone_settings(coord.entry.data, coord.entry.options, undo))",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6."
 +}
 diff --git a/tests/mutation_ledger/killed_by/coordinator.py/_async_undo_factory_reset.spent.RETURN_DEL.bf2fea10.json b/tests/mutation_ledger/killed_by/coordinator.py/_async_undo_factory_reset.spent.RETURN_DEL.bf2fea10.json
 new file mode 100644
@@ -3282,6 +3501,42 @@ index 000000000..e74c2d769
 +  "old": "    return done",
 +  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
 +}
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/async_factory_reset.voided.GUARD_OFF.a5312998.json b/tests/mutation_ledger/killed_by/coordinator.py/async_factory_reset.voided.GUARD_OFF.a5312998.json
+new file mode 100644
+index 000000000..db26e0891
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/coordinator.py/async_factory_reset.voided.GUARD_OFF.a5312998.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:async_factory_reset.voided GUARD_OFF a5312998",
++  "killed_by": "tests/features.py",
++  "old": "        if scope == FACTORY_RESET_SCOPES[0]:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
++}
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/async_factory_reset.voided.RETURN_DEL.95fafb69.json b/tests/mutation_ledger/killed_by/coordinator.py/async_factory_reset.voided.RETURN_DEL.95fafb69.json
+new file mode 100644
+index 000000000..e574016ae
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/coordinator.py/async_factory_reset.voided.RETURN_DEL.95fafb69.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:async_factory_reset.voided RETURN_DEL 95fafb69",
++  "killed_by": "tests/features.py",
++  "old": "        return voided_documents(await _async_store_documents(coord))",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/entry_config.py/_side_pair.GUARD_OFF.f066afa9.json b/tests/mutation_ledger/killed_by/entry_config.py/_side_pair.GUARD_OFF.f066afa9.json
+new file mode 100644
+index 000000000..b410a9aa7
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/entry_config.py/_side_pair.GUARD_OFF.f066afa9.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/entry_config.py:_side_pair GUARD_OFF f066afa9",
++  "killed_by": "tests/features.py",
++  "old": "    if isinstance(raw, list) and len(raw) == 2 and all(isinstance(side, dict) for side in raw):",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
++}
 diff --git a/tests/mutation_ledger/killed_by/entry_config.py/factory_settings.RETURN_DEL.9521dcc2.json b/tests/mutation_ledger/killed_by/entry_config.py/factory_settings.RETURN_DEL.9521dcc2.json
 new file mode 100644
 index 000000000..cd6eacae1
@@ -3294,6 +3549,54 @@ index 000000000..cd6eacae1
 +  "old": "    return with_settings((data, {**options, **pinned}), ({}, {}))",
 +  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6."
 +}
+diff --git a/tests/mutation_ledger/killed_by/entry_config.py/undo_point.GUARD_OFF.fdb2fd77.json b/tests/mutation_ledger/killed_by/entry_config.py/undo_point.GUARD_OFF.fdb2fd77.json
+new file mode 100644
+index 000000000..1739ad1ac
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/entry_config.py/undo_point.GUARD_OFF.fdb2fd77.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/entry_config.py:undo_point GUARD_OFF fdb2fd77",
++  "killed_by": "tests/features.py",
++  "old": "    if scope == const.FACTORY_RESET_SCOPES[1]:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
++}
+diff --git a/tests/mutation_ledger/killed_by/entry_config.py/undo_point.RETURN_DEL.9a65f8ca.json b/tests/mutation_ledger/killed_by/entry_config.py/undo_point.RETURN_DEL.9a65f8ca.json
+new file mode 100644
+index 000000000..247ca6401
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/entry_config.py/undo_point.RETURN_DEL.9a65f8ca.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/entry_config.py:undo_point RETURN_DEL 9a65f8ca",
++  "killed_by": "tests/features.py",
++  "old": "    return {\"scope\": scope, \"settings\": list(settings_of(data, options)), \"pinned\": pinned}",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/entry_config.py/undone_settings.GUARD_OFF.f06636d0.json b/tests/mutation_ledger/killed_by/entry_config.py/undone_settings.GUARD_OFF.f06636d0.json
+new file mode 100644
+index 000000000..61ddf0a0b
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/entry_config.py/undone_settings.GUARD_OFF.f06636d0.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/entry_config.py:undone_settings GUARD_OFF f06636d0",
++  "killed_by": "tests/features.py",
++  "old": "    if settings is None or pinned is None:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/entry_config.py/undone_settings.RETURN_DEL.a2e2bd26.json b/tests/mutation_ledger/killed_by/entry_config.py/undone_settings.RETURN_DEL.a2e2bd26.json
+new file mode 100644
+index 000000000..8806ee5bf
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/entry_config.py/undone_settings.RETURN_DEL.a2e2bd26.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/entry_config.py:undone_settings RETURN_DEL a2e2bd26",
++  "killed_by": "tests/features.py",
++  "old": "    return with_settings(wiring, (settings[0], settings[1]))",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
++}
 diff --git a/tests/mutation_ledger/killed_by/entry_config.py/with_settings.RETURN_DEL.80c79bfe.json b/tests/mutation_ledger/killed_by/entry_config.py/with_settings.RETURN_DEL.80c79bfe.json
 new file mode 100644
 index 000000000..4472f55a9
@@ -3305,6 +3608,18 @@ index 000000000..4472f55a9
 +  "killed_by": "tests/features.py",
 +  "old": "    return {**rest[0], **kept[0]}, {**rest[1], **kept[1]}",
 +  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6."
++}
+diff --git a/tests/mutation_ledger/killed_by/services.py/handle_factory_reset.GUARD_OFF.3ac042d3.json b/tests/mutation_ledger/killed_by/services.py/handle_factory_reset.GUARD_OFF.3ac042d3.json
+new file mode 100644
+index 000000000..742e59fc6
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/services.py/handle_factory_reset.GUARD_OFF.3ac042d3.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/services.py:handle_factory_reset GUARD_OFF 3ac042d3",
++  "killed_by": "tests/features.py",
++  "old": "        if not await async_factory_reset(coord, data[\"scope\"]):",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
 +}
 diff --git a/tests/mutation_ledger/killed_by/services.py/handle_factory_reset.RETURN_DEL.4bcd781f.json b/tests/mutation_ledger/killed_by/services.py/handle_factory_reset.RETURN_DEL.4bcd781f.json
 new file mode 100644

@@ -1,0 +1,5 @@
+NOTE body item 64b8977b: R10-FACTORY-RESET: R10-FACTORY-RESET resolved on origin/handoff/audit-r10-roster
+NOTE body item 86fadb89: R10-LEARNED-STORE-LOAD: R10-LEARNED-STORE-LOAD resolved on origin/handoff/audit-r10-roster
+NOTE body item a4676925: R10-LEARNED-STORE-LOAD: R10-LEARNED-STORE-LOAD resolved on origin/handoff/audit-r10-roster
+CARRY-AUDIT: 3 finding item(s): 3 routed, 0 unrouted, 0 bad destination(s)
+rc=0
