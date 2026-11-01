@@ -5214,7 +5214,9 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
             ("a reason naming no unit (the deferral bound)", [],
              ("run(s) [99] at this head are still being judged past the bound",)),
             ("a reason naming no unit (the prelude cross-check)", [],
-             ("prelude says kind=code pr='', the event says kind=code pr='3045'",))):
+             ("prelude says kind=code pr='', the event says kind=code pr='3045'",)),
+            ("the raise unit itself SKIPPED or PENDING, not failed (no approval judged)", [],
+             (f"{RAISE_GATE}: SKIPPED (this run)", f"{RAISE_GATE}: PENDING (run 9)"))):
         rc, out = owed_cli([*shape3045, *extra], BUDGET_F, RAISE_FIXTURE, None, False, "## Summary\n",
                            "--pr", "3045", logs={1: glog(*reasons)})
         check(f"#3073: a raise whose gate is also red for {label} stays RED, rc 1",
