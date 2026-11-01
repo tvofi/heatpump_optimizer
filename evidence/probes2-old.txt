@@ -1,0 +1,22 @@
+LEAK   | python3 -cCODE glued, no spaces
+       -> 2026-11-01T07:02:33Z 4199 /usr/bin/python3 -c__import__('subprocess').run(['gh','api','-fx=LEAKVAL'])  api -
+LEAK   | python3 -BcCODE glued, no spaces
+       -> 2026-11-01T07:02:33Z 4218 /usr/bin/python3 -Bc__import__('subprocess').run(['gh','api','-fx=LEAKVAL'])  api -
+LEAK   | ruby -rjson -e CODE
+       -> 2026-11-01T07:02:33Z 4237 ruby -rjson -e system('gh','api','-fx=LEAKVAL')  api -
+LEAK   | ruby -eCODE glued
+       -> 2026-11-01T07:02:33Z 4257 ruby -esystem('gh','api','-fx=LEAKVAL')  api -
+LEAK   | node -e CODE
+       -> 2026-11-01T07:02:33Z 4277 node -e require('child_process').execFileSync('gh',['api','-fx=LEAKVAL'])  api -
+LEAK   | node --eval=CODE
+       -> 2026-11-01T07:02:33Z 4302 node --eval=require('child_process').execFileSync('gh',['api','-fx=LEAKVAL'])  api -
+NOLINE | node --print=CODE
+       -> 
+LEAK   | node --require ./r.js n.js LEAKVAL
+       -> 2026-11-01T07:02:33Z 4339 node --require ./r.js n.js LEAKVAL  api x
+LEAK   | node -r ./r.js n.js LEAKVAL
+       -> 2026-11-01T07:02:33Z 4364 node -r ./r.js n.js LEAKVAL  api x
+clean  | node --input-type=module -e CODE
+       -> 2026-11-01T07:02:33Z 4389 node --input-type=commonjs -e require('child_process').execFileSync('gh',['api', api -
+LEAK   | curl|bash -s -- --token LEAKVAL shape
+       -> 2026-11-01T07:02:33Z 4416 bash -s -- --token LEAKVAL  api x

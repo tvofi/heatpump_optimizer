@@ -1,0 +1,5 @@
+identical: tests/golden/claimed_drift.txt
+identical: tests/golden/card_claimed_drift.txt
+identical: VERSION
+identical: RELEASE_NOTES.md
+identical: custom_components/heatpump_optimizer/manifest.json

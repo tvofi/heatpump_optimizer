@@ -1,64 +1,103 @@
-### MUTANT no --input skip: rc=1 2s
-FAIL --input FILE placed before the path is skipped, the path is the target
-FAIL mutant killed: no --input skip
-gh_calls self-test: 38 checks, 2 failed
-### MUTANT clean() tr->cat: rc=1 1s
-FAIL a token outside the allowed set is logged with ? for each such character
-FAIL mutant killed: clean() is cat
-gh_calls self-test: 38 checks, 2 failed
-### MUTANT no mkdir -p: rc=1 1s
-FAIL a missing state directory is created and the call logged (not silently dropped)
-FAIL under umask 022 the shim makes its state dir 0700 and its log 0600
-FAIL mutant killed: no mkdir of the state dir
-gh_calls self-test: 38 checks, 3 failed
-### MUTANT no parent redaction (both seds): rc=1 1s
-FAIL planted -f/--body/--field/glued values never reach the parent field
-FAIL and the flag name stays with a <redacted> marker (the fixture is not vacuous)
-FAIL census: no value-bearing gh flag leaks its value through the parent field
-FAIL mutant killed: no parent redaction
-gh_calls self-test: 38 checks, 4 failed
-### MUTANT drop umask 077: rc=1 1s
-FAIL under umask 022 the shim makes its state dir 0700 and its log 0600
-FAIL mutant killed: the umask leaks past the logging subshell
-gh_calls self-test: 38 checks, 2 failed
-### MUTANT widen: umask 022 in subshell: rc=1 1s
-FAIL under umask 022 the shim makes its state dir 0700 and its log 0600
-FAIL mutant killed: the umask leaks past the logging subshell
-gh_calls self-test: 38 checks, 2 failed
-### MUTANT widen: umask 027 in subshell: rc=1 1s
-FAIL under umask 022 the shim makes its state dir 0700 and its log 0600
-FAIL mutant killed: the umask leaks past the logging subshell
-gh_calls self-test: 38 checks, 2 failed
-### MUTANT drop the subshell (umask 077 at top level): rc=1 1s
-FAIL null control: an unwritable log leaves output and status unchanged
-FAIL the real gh runs under the caller's umask (022), not the shim's
-FAIL mutant killed: the umask leaks past the logging subshell
-gh_calls self-test: 38 checks, 3 failed
-### MUTANT PLANT: umask 077 outside the subshell: rc=1 1s
-FAIL the real gh runs under the caller's umask (022), not the shim's
-FAIL mutant killed: the umask leaks past the logging subshell
-gh_calls self-test: 38 checks, 2 failed
-### MUTANT PLANT: umask 077 just before exec: rc=1 1s
-FAIL the real gh runs under the caller's umask (022), not the shim's
-gh_calls self-test: 38 checks, 1 failed
-### MUTANT drop exec pass-through: rc=1 2s
-FAIL stub bytes (stdout, stdin forwarded) pass through the shim
-FAIL the stub's stderr and exit code pass through
-FAIL null control: an unwritable log leaves output and status unchanged
-FAIL the real gh runs under the caller's umask (022), not the shim's
-FAIL mutant killed: the umask leaks past the logging subshell
-FAIL mutant: the exec line is present in the shim being mutated
-FAIL control: with a fake gh on the old-style PATH the old arm is red (the shim execs it)
-gh_calls self-test: 38 checks, 7 failed
-### MUTANT guard disabled (hermetic_ok -> True): rc=1 2s
-FAIL mutation: a PATH that includes the fake gh fails the hermetic guard
-FAIL mutation: the old-style PATH fails the hermetic guard
-gh_calls self-test: 38 checks, 2 failed
-### MUTANT old-style PATH in the test (+/usr/bin:/bin): rc=1 1s
-FAIL the hermetic guard: the only gh is the shim, or none, on the arm's PATH
-FAIL no real gh: one line, rc 127, no self-exec
-FAIL control: the same fake gh is invisible to the hermetic PATH, the arm stays green
-gh_calls self-test: 38 checks, 3 failed
-### MUTANT self-recursion: usable() without ! is_shim: rc=1 60s
-raise TimeoutExpired(
-subprocess.TimeoutExpired: Command '['/tmp/tmpniqmp_bl/own/gh', 'api', 'repos/o/r/pulls', '-f', 'body=secret']' timed out after 60 seconds
+### MUTANT whole argv logged (pcmd fed pargs)
+  FAIL parent field of `PY -c "import subprocess as s;s.run(['gh','pr','comm` is exactly the caller, no value
+  FAIL parent field of `PY -c "import subprocess as s;s.run(['gh','api','-fx` is exactly the caller, no value
+  FAIL parent field of `GH_TOKEN=ghp_LEAKVAL gh api user; :` is exactly the caller, no value
+  FAIL parent field of `echo ghp_LEAKVAL | gh secret set NAME; :` is exactly the caller, no value
+  FAIL parent field of `env GH_TOKEN=ghp_LEAKVAL gh api user; :` is exactly the caller, no value
+  FAIL parent field of `gh api repos/o/r -fbody=LEAKVAL; :` is exactly the caller, no value
+  FAIL parent field of `env gh pr create --title T --body LEAKVAL x; :` is exactly the caller, no value
+  FAIL parent field of `PY -I W/caller.py --body LEAKVAL` is exactly the caller, no value
+  FAIL parent field of `cd W && PY -m caller --body LEAKVAL` is exactly the caller, no value
+  FAIL census: every gh value flag through a sh -c parent logs exactly `sh -c`
+  FAIL mutant killed: the whole parent argv logged
+gh_calls self-test: 50 checks, 11 failed
+### MUTANT -*[ce]*) skips instead of ending field
+  FAIL parent field of `PY -c "import subprocess as s;s.run(['gh','pr','comm` is exactly the caller, no value
+  FAIL parent field of `PY -c "import subprocess as s;s.run(['gh','api','-fx` is exactly the caller, no value
+  FAIL parent field of `GH_TOKEN=ghp_LEAKVAL gh api user; :` is exactly the caller, no value
+  FAIL parent field of `echo ghp_LEAKVAL | gh secret set NAME; :` is exactly the caller, no value
+  FAIL parent field of `env GH_TOKEN=ghp_LEAKVAL gh api user; :` is exactly the caller, no value
+  FAIL parent field of `gh api repos/o/r -fbody=LEAKVAL; :` is exactly the caller, no value
+  FAIL parent field of `env gh pr create --title T --body LEAKVAL x; :` is exactly the caller, no value
+  FAIL census: every gh value flag through a sh -c parent logs exactly `sh -c`
+  FAIL mutant killed: -c does not end the field
+gh_calls self-test: 50 checks, 9 failed
+### MUTANT chmod 600 log deleted
+  FAIL an existing 0644 log is 0600 after the next call
+  FAIL mutant killed: no chmod of an existing log
+gh_calls self-test: 50 checks, 2 failed
+### MUTANT && chmod 600 log.1 deleted
+  FAIL a 0644 log rotated to .1 is 0600 there
+gh_calls self-test: 50 checks, 1 failed
+### MUTANT exec pass-through dropped
+  FAIL stub bytes (stdout, stdin forwarded) pass through the shim
+  FAIL the stub's stderr and exit code pass through
+  FAIL null control: an unwritable log leaves output and status unchanged
+  FAIL the real gh runs under the caller's umask (022), not the shim's
+  FAIL mutant killed: the umask leaks past the logging subshell
+  FAIL mutant: the exec line is present in the shim being mutated
+  FAIL control: with a fake gh on the old-style PATH the old arm is red (the shim execs it)
+gh_calls self-test: 50 checks, 7 failed
+### MUTANT -f/-F removed from value-flag list
+  FAIL -f/-F values placed before the path are dropped, the path still found
+gh_calls self-test: 50 checks, 1 failed
+### MUTANT hermetic_ok forced True
+## reviewer-planted leak mutants
+### MUTANT PLANT read one word past the script
+gh_calls self-test: 50 checks, 0 failed
+### MUTANT PLANT follow env into its command
+gh_calls self-test: 50 checks, 0 failed
+### MUTANT PLANT include first word after -c
+  FAIL parent field of `PY -c "import subprocess as s;s.run(['gh','pr','comm` is exactly the caller, no value
+  FAIL parent field of `PY -c "import subprocess as s;s.run(['gh','api','-fx` is exactly the caller, no value
+  FAIL parent field of `GH_TOKEN=ghp_LEAKVAL gh api user; :` is exactly the caller, no value
+  FAIL parent field of `echo ghp_LEAKVAL | gh secret set NAME; :` is exactly the caller, no value
+  FAIL parent field of `env GH_TOKEN=ghp_LEAKVAL gh api user; :` is exactly the caller, no value
+  FAIL parent field of `gh api repos/o/r -fbody=LEAKVAL; :` is exactly the caller, no value
+  FAIL parent field of `env gh pr create --title T --body LEAKVAL x; :` is exactly the caller, no value
+  FAIL census: every gh value flag through a sh -c parent logs exactly `sh -c`
+gh_calls self-test: 50 checks, 8 failed
+### MUTANT PLANT drop ? cleaning of = (allow =)
+gh_calls self-test: 50 checks, 0 failed
+### MUTANT PLANT combined -Bc/-uc treated as no code flag
+  FAIL mutant killed: -c does not end the field
+gh_calls self-test: 50 checks, 1 failed
+### MUTANT PLANT -m takes module and next word
+  FAIL parent field of `cd W && PY -m caller --body LEAKVAL` is exactly the caller, no value
+  FAIL mutant killed: -m does not take its module
+gh_calls self-test: 50 checks, 2 failed
+### MUTANT PLANT 80-char cut removed
+gh_calls self-test: 50 checks, 0 failed
+### MUTANT PLANT --eval* treated as plain long option (skip)
+gh_calls self-test: 50 checks, 0 failed
+### MUTANT hermetic_ok forced True (redo)
+-            return gh_on(path) in ([], [f"{shim_dir}/gh"])
++            return True
+  FAIL mutation: a PATH that includes the fake gh fails the hermetic guard
+  FAIL mutation: the old-style PATH fails the hermetic guard
+gh_calls self-test: 50 checks, 2 failed
+### MUTANT PLANT umask 077 outside the subshell
+  FAIL the real gh runs under the caller's umask (022), not the shim's
+gh_calls self-test: 50 checks, 1 failed
+### MUTANT drop umask 077
+-  umask 077
+  FAIL under umask 022 the shim makes its state dir 0700 and its log 0600
+  FAIL mutant killed: the umask leaks past the logging subshell
+gh_calls self-test: 50 checks, 2 failed
+### MUTANT old-style PATH (grep where the arm PATH is built)
+### plant /usr/bin/gh (fake), unmutated self-test
+  ok   no real gh: one line, rc 127, no self-exec
+gh_calls self-test: 50 checks, 0 failed
+### MUTANT old-style PATH (hermetic + :/usr/bin:/bin), /usr/bin/gh planted
+-        hermetic = f"{w / 'own'}:{w / 'real'}:{tools}"
++        hermetic = f"{w / 'own'}:{w / 'real'}:{tools}:/usr/bin:/bin"
+gh_calls self-test: 50 checks, 0 failed
+### MUTANT old-style no_gh_path (+:/usr/bin:/bin), /usr/bin/gh planted
+-        no_gh_path = f"{w / 'own'}:{tools}"
++        no_gh_path = f"{w / 'own'}:{tools}:/usr/bin:/bin"
+  FAIL the hermetic guard: the only gh is the shim, or none, on the arm's PATH
+  FAIL no real gh: one line, rc 127, no self-exec
+  FAIL control: the same fake gh is invisible to the hermetic PATH, the arm stays green
+gh_calls self-test: 50 checks, 3 failed
+### same mutant, no /usr/bin/gh
+gh_calls self-test: 50 checks, 0 failed

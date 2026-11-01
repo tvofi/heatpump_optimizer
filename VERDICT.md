@@ -1,60 +1,59 @@
-Fix review: blocked a7e6a3e5dfa05028be5127fc7a60f512277d861c class-open: the parent-command redaction matches only space-delimited flags, so a python argv-list parent still logs census --body/-f values, and a sh -c parent logs a GH_TOKEN= assignment or a secret piped to gh secret set
+Fix review: blocked 16cb22f640f325e86411d6b9734203f39b1e7ecb class-open: the parent field still logs caller words past argv[0], in glued code options (-cCODE, -eCODE, --eval=CODE) and stdin-script or option-value words (sh -s ARGS, python -W/-X VALUE)
 
-bus-nonce: 0626161eb1d5d28483dcf0068b28d9b3
+bus-nonce: 4ca2508c1e47ecc70591d494ada72668
 
-Round 2 (delta) of the review; the PR is at its third handoff (92fff84c3). I measured head a7e6a3e5dfa05028be5127fc7a60f512277d861c from a detached worktree at that SHA. It merges code head 92fff84c35ee82d727c5a81622980bef10207123 and origin/main 8fec54ee2. I reproduced the round-1 defects from a detached worktree at 87abaed68871d3141b8221965d5a5860a075c43f. `git diff <mb>...origin/main -- dev/governance/roles/` is empty, so the contract I followed is current. `review_carry.py 92fff84c3 a7e6a3e5` prints FRESH-REVIEW, as expected, because no earlier merge verdict exists.
+Review round 3 of PR #3049 (R10-FLY-GH-CALL-LOG, P284). I measured head `16cb22f640f325e86411d6b9734203f39b1e7ecb` (code head e24bda11a) from a detached worktree, using the round-2 finder's leak shapes (origin review/3049, evidence/parent-leak-probes.txt) plus my own shapes. Baseline: a7e6a3e5d.
 
 ## Block
 
-- **class-open: the parent-command field (requirement "field values and bodies are never logged", P284; round-1 finding (a)).** The redaction is two `sed` patterns. Both key on a flag preceded by a space (`(^| )--body…`, `(^| )-[fFHbntTqd]…`), and the short-flag pattern also needs a space-delimited `gh` word. The body's census plants every value through a `sh -c 'gh api … FLAG VAL'` parent only. Every census flag is clean in that shape (25/25, plus 12 `=`/glued forms clean; ev/parent-leak-probes.txt). Three parent shapes outside that shape write the value to gh-calls.log. I reproduced each at this head through the real shim:
-  1. Python argv-list parent: `python3 -c "import subprocess as s;s.run(['gh','pr','comment','--body','LEAKVAL'])"` logs `…['gh','pr','comment','--body','LEAKVAL'] pr comment`. With `'-fx=LEAKVAL'` the same shape logs the `-f` value. The quote before the flag defeats `(^| )`, and `'gh',` is not a `gh` word. In two longer probes the value was cut off only because it fell past the 80-character cut.
-  2. Env-assignment parent: `sh -c 'GH_TOKEN=ghp_LEAKVAL gh api user'` logs the token.
-  3. Piped-secret parent: `sh -c 'echo ghp_LEAKVAL | gh secret set NAME'` logs the secret value of `gh secret set`, the flag-free form that `gh secret set --help` documents.
+The fix claims the parent field is built by construction: argv[0], then for an interpreter one word (the script, `-m <module>`, or the `-c`/`-e`/`--eval`/`--print`/`--command` option that ends the field), and that "no later word of the caller's command line is read". The PR body, `instruments/shims_seat-gh.md` and the shim's header comment all say this. The code does not do it. The round-2 shapes are closed. But the same class (a caller's argument value reaching `gh-calls.log`) is still open through seams the rule admits. Every probe below uses a LEAKVAL marker, and the logged line holds the marker at the evidence location given:
 
-  The body's census is a list of flags, but the field it guards is any command line, so a list of flags cannot close it. `gh_calls.py --top` prints this field, and that output is what gets pasted into an issue when the bucket next runs out. The round-1 verdict's first fix direction closes the class by construction. Log the parent's argv[0], plus argv[1] when argv[0] is an interpreter or shell, and never its later args. A wrapper that is itself a gh-carrying `sh -c` can be replaced by its grandparent. Add self-test arms for the three shapes above, so the fixture is not only `sh -c`.
+- **Glued code option.** The `-*[ce]*)` and `--eval*|--print*|--command*)` cases append the whole token `$a`. When the code is attached to the flag, the token is the code. `python3 -c<code>` and `python3 -Bc<code>` with no space in the code log the code up to the 80-char cut, flag values included (ev/probes2-head.txt lines 1-4). The same holds for `perl -e<code>` (ev/probes-head.txt "perl -eCODE glued"), `ruby -e<code>` (ev/probes2-head.txt line 7) and `node --eval=<code>` (ev/probes2-head.txt line 11). The `?` cleaning only replaces quotes, parentheses and `=`; the value itself survives.
+- **Stdin script (`sh -s`/`bash -s`).** `-s` is skipped as an option, so the first positional argument is logged as if it were the script. `sh -s LEAKVAL < s.sh`, `sh -s -- LEAKVAL`, `bash -s LEAKVAL` and the common install shape `... | bash -s -- --token LEAKVAL` all log `sh LEAKVAL` or `bash LEAKVAL` (ev/probes-head.txt "sh -s" lines; ev/probes2-head.txt last line).
+- **Value-taking interpreter options.** `python3 -W <v> script` and `python3 -X <v> script` log `<v>` as the script (ev/probes-head.txt "-W"/"-X" lines). `python3 -W error -m mod` logs `python3 error`, which also loses the module.
+
+These are the same class round 2 blocked (a value from the caller's command line reaching the log), now reached through the interpreter rule rather than gh's flags. The enumeration the body names ("no word past the one it keeps") does not hold on the code: the kept word is chosen by a predicate whose domain includes option values, positional arguments of a stdin script, and option tokens that carry their own argument. A direction, not a requirement: for any `-c`/`-e`/`--eval`/`--print`/`--command` match, log only the flag name, cut at the first character after the flag letter (or `=`). Treat `-s` as ending the field. Treat any option the field rule does not know as ending the field, rather than skipping it and taking the next word. Pin each with an exact-field arm.
 
 ## Findings
 
-- A log or state directory created before this fix keeps its old mode. The umask governs only creation. Under umask 022, a `gh-calls.log` that the round-1/round-2 shim already wrote stays 0644. An existing `$HOME/.local/state/hpo`, which other tools may have made, stays 0755. `mv` rotation also keeps 0644. The body's "dir 0700, log 0600" holds for fresh paths only (ev/umask-modes.txt). One `chmod 600` of an existing log, or a statement that no host ran the earlier shim, settles it. Carry: R10-FLY-GH-CALL-LOG
-- Minor body inaccuracies, to fix in the same re-handoff. `## Red checks` lists the hermetic tool dir as "ps, tr, cut, wc, mv, date, cat, sh". The code (gh_calls.py:170) also links sed, mkdir, env and python3. "the no-real-gh arm asserts first (`hermetic_ok`)": `hermetic_ok` is a separate `check`, not a gate in front of that arm. A failing guard and a failing arm print two FAILs, and neither stops the other. Carry: R10-FLY-GH-CALL-LOG
-- Value flags missing from the census: `-A/--author-email`, `-S/--search`, `-m/--milestone`, `-l/--label`, `-a/--assignee`, `-r/--reviewer`, `-B/--base`, `--match-head-commit`, `-p/--preview`, `-e/--env` (ev/gh-help-valueflags.txt, gh 2.89.0; all leak, ev/parent-leak-probes.txt). They carry identifiers, not bodies or secrets, apart from `--author-email`, which is personal data, and `-S`, which is free text. I record this so the class rule in the Block can absorb it, not as a block of its own. Carry: R10-FLY-GH-CALL-LOG
+- class-open: glued `-c<code>` / `-e<code>` / `--eval=<code>` tokens log the caller's code, flag values included (python, perl, ruby, node). No arm covers an attached-code token, and the planted mutant "skip `--eval*`" survives the self-test (ev/mutants-head.txt). Carry: #3049 (this PR's fixer owes it (round 4 means a re-cut per fixer.md))
+- class-open: `sh -s ARGS` / `bash -s -- ARGS` logs the first stdin-script argument as the script, and so does an interpreter option's value (`python3 -W v`, `-X v`). The body's "no later word is ever read" claim is stronger than the check. Carry: #3049 (this PR's fixer owes it)
+- surviving mutants at the head. (a) `tr -c` allowing `=` in the parent field survives (50 checks, 0 failed). (b) Removing the 80-char cut survives: no arm pins the cut the body claims. (c) Skipping `--eval*|--print*|--command*` survives. Each is a claim in the body with no arm. Carry: #3049 (add arms in the re-cut)
+- script-path and argv[0] secrets are logged by design. `sh ./GH_TOKEN=abcLEAKVAL/script` logs the path, with `=` turned into `?`, and an argv[0] whose basename holds the marker logs it. These follow from the rule (argv[0] and script are the caller identity), so they are disclosed rather than blocked. The body should state this residual explicitly. Carry: #3049 (a body disclosure in the re-cut)
+- body figure: "51 checks" and "34 at a7e6a3e5" (brief). As root, this container prints 50 at the head and 38 at a7e6a3e5, because one arm self-skips as root ("skip unwritable-directory arm"), so 51 non-root at the head agrees. The new-arm count is 17 by my own diff of the ok lines (38 − 5 removed + 17 added = 50). I found no 34 at a7e6a3e5: it prints 38 as root here. Carry: dismissed: the 51 agrees under the root skip, and 34 appears only in the dispatch brief, not the body
 
 ## Evidence
 
-- RESULT finder's harness (round-1 block): with a decoy `/usr/bin/gh` planted, `env -u BASH_ENV python3 -I tools/audit/seat/gh_calls.py --self-test` gives:
-  - at 87abaed6: `18 checks, 1 failed` (FAIL no real gh: one line, rc 127, no self-exec);
-  - at the head: `38 checks, 0 failed`.
-
-  The decoy was removed afterwards (ev/finder-harness-usr-bin-gh.txt).
-- RESULT self-test at the head under `env -u BASH_ENV`, as root: `38 checks, 0 failed`. The read-only-directory arm prints `skip`, because root can write anyway (ev/selftest-head.txt). As `nobody`: `39 checks, 0 failed` (ev/selftest-head-nonroot.txt). CI job 124725103432 (`governance / instrument-self-tests`) at this head: `gh_calls self-test: 39 checks, 0 failed` (ev/ci-instrument-self-tests-gh_calls.txt). The body's 39 is re-derived.
-- RESULT mutants. I ran each one against the head's committed files under `env -u BASH_ENV`, restored the files after each, and the worktree was clean afterwards (ev/mutants-head.txt). Every mutant was killed:
-  - (b) `--input|` removed: 2 FAIL.
-  - (c) `clean()` `tr` replaced by `cat`: 2 FAIL.
-  - `mkdir -p` dropped: 3 FAIL.
-  - Redaction disabled (both seds): 4 FAIL.
-  - `umask 077` dropped: 2 FAIL.
-  - Widened to `umask 022` or to `umask 027`: 2 FAIL each.
-  - Subshell dropped (`umask 077` at top level, no `( … )`): 3 FAIL.
-  - My plant, `umask 077` moved outside the subshell: 2 FAIL.
-  - My plant, `umask 077; exec`: 1 FAIL ("the real gh runs under the caller's umask").
-  - Exec pass-through dropped: 7 FAIL.
-  - Hermetic guard disabled (`hermetic_ok` returns True): exactly its two mutation arms FAIL.
-  - Old-style PATH (`…:/usr/bin:/bin`) restored in the test with a decoy `/usr/bin/gh` planted: 3 FAIL, including the no-real-gh arm.
-  - (d) Self-recursion (`! is_shim` removed): the self-test terminates after 60 s with `subprocess.TimeoutExpired`, rc 1. It no longer hangs. It prints no summary line, so the CI `grep` step fails.
-- RESULT (U) umask, by hand with a stub gh that prints its umask (ev/umask-modes.txt), caller umask 022:
-  - at 87abaed6: log 0644, real gh umask 0022, and a missing state dir is not created;
-  - at the head: log 0600, a new state dir 0700 with log 0600, real gh umask 0022, and the caller's umask is 0022 after the call.
-
-  The umask is confined to the logging subshell.
-- RESULT (A) alert 46. The code-scanning API answers HTTP 403 from this seat (ev/codeql-46.txt). I read the alert from the check-run annotations instead (ev/codeql-annotations.txt). `CodeQL` check 124609893863 at 87abaed6 concluded failure with 1 annotation: `tools/audit/seat/gh_calls.py:211` "Overly permissive mask in chmod sets file to world readable". That line is `os.chmod(w / "state", 0o755)` in the self-test. The body's answer (the self-test restore at 0o755, not the shim) is true. The head's self-test chmods are all 0o700 or 0o500 (gh_calls.py:158, 163, 281, 290, 297, 354, 384), so the flagged pattern is gone, not renamed. The bash umask change is a separate, real fix, and its arms cover it.
-- CI at this head:
-  - `merge_train.py classify a7e6a3e5…` printed `GREEN a7e6a3e5dfa05028be5127fc7a60f512277d861c pending: none red: none`, rc 0 at 03:23:23Z (ev/ci-classify.txt). Every check run concluded success or skipped.
-  - `CodeQL` check 124725215898 at this head: success, 0 annotations, "No new alerts in code changed by this pull request". It read neutral while the python leg was still running. Alert 46 is resolved by the code change; it was not dismissed.
-- (B) Red checks. No check run at this head concluded `failure` (check-runs API, whole set). The body names and answers the earlier reds: UNDER-SCOPED/INERT READS, `governance / instrument-self-tests` (cause, process state, cheaper detector) and alert 46. The `CodeQL` check is answered through alert 46. My block does not rest on step 11.
-- (C) prepr: the body states no prepr rc. My own run at the head (detached, with the PR body) prints `PRE-PR: a7e6a3e5… rc=0` (ev/prepr-head.txt).
-- `git merge-tree --write-tree origin/main a7e6a3e5`: rc 0, tree bbf3aebff92ee6a208ee98197c6e5e58f85a24d2, no conflict (ev/merge-claims.txt).
-- Claim files, VERSION, the manifest and RELEASE_NOTES.md: the three-dot diff is empty.
-- The delivery row `dev/programme/delivery/3049.md` is in the three-dot diff. `gh_calls.py` is in tests/closures.json. The other new files are under INERT `tools/audit/`. INSTRUMENTS.md lists both instruments.
-- `python3 tests/structure.py`: STRUCTURE RATCHET PASSED. `tests/closure.py select`: `MODE: SCOPED -- 2 script(s) run, 31 scoped out` (ev/structure-scope.txt).
-- Latency: 200 calls each against an `exit 0` stub, in this container: 1.674 ms direct, 24.102 ms through the shim, so about 22.4 ms per call (ev/latency.txt). The body's 56 ms was taken on its own host and I did not re-derive it. My figure is from a different host.
-- The body's census of 25 flags is re-derived: each of the 25 is clean through a `sh -c` parent (ev/parent-leak-probes.txt).
+- RESULT finder-harness a7e6a3e5: 44 LEAK lines out of the round-2 shapes plus mine (ev/probes-a7e6a3e5.txt). The census and argv-list shapes are clean there too (sed redaction), and the 19 out-of-census flags, GH_TOKEN= and piped-secret shapes leak, so the harness fires.
+- RESULT finder-harness head, round-2 shapes: 0 LEAK. All 25 census flags log exactly `sh -c`. The 19 out-of-census flags log `sh -c`. `sh -c GH_TOKEN=... gh` logs `sh -c`. Piped `gh secret set` logs `sh -c`. The python argv-list parent logs `python3 -c` (ev/probes-head.txt).
+- RESULT null control head: `PY -I W/caller.py --body LEAKVAL` logs `python3 <W>/caller.py`, and `cd W && PY -m caller_mod --body LEAKVAL` logs `python3 -m caller_mod`, so the field is not cut to nothing.
+- RESULT reviewer shapes head: 9 LEAK in ev/probes-head.txt and 5 in ev/probes2-head.txt; these are the shapes listed under Block and Findings. Clean (no leak, though sometimes misattributed): `bash -x s.sh LEAKVAL` gives `bash s.sh`; `node --require ./r.js n.js LEAKVAL` gives `node ./r.js` (misattributed to the required file); `perl -Mstrict -e` gives `perl -Mstrict`; `ruby -rjson -e` gives `ruby -e`; `xargs gh` gives `xargs`; `env GH_TOKEN=... gh` gives the env's caller; argv[0] with a space gives the first word.
+- RESULT self-test head (root): `gh_calls self-test: 50 checks, 0 failed`. a7e6a3e5 (root): 38 checks, 0 failed. `seat_venv self-test: 21 checks, 0 failed`.
+- RESULT body mutants, all killed (ev/mutants-head.txt):
+  - whole argv logged: 11 FAIL
+  - `-*[ce]*)` skipping: 9 FAIL
+  - `chmod 600 "$log"` deleted: 2 FAIL
+  - `&& chmod 600 "$log.1"` deleted: 1 FAIL
+  - exec pass-through dropped: 7 FAIL
+  - -f/-F removed: 1 FAIL
+  - hermetic_ok forced True: 2 FAIL
+  - umask 077 dropped: 2 FAIL
+  - umask 077 outside the subshell: 1 FAIL
+- RESULT planted leak mutants:
+  - read one word past the script: killed, 1 FAIL
+  - include the first word after -c: killed, 8 FAIL
+  - `-m` takes module and next word: killed, 2 FAIL
+  - combined `-Bc` treated as no code flag: killed, by the in-test mutant arm only
+  - follow `env` into its command: survives. I judge it equivalent, because env execs its command, so gh's parent is never `env` (a live probe confirms this). Not counted as a finding.
+  - `=` allowed, 80-char cut removed, `--eval*` skipped: survive (Findings O3).
+- RESULT hermetic PATH: with a fake `/usr/bin/gh` planted, the unmutated self-test reads 50/0 and the no-real-gh arm stays ok. Adding `:/usr/bin:/bin` to the arm's `no_gh_path` reads 3 FAIL (the guard, the no-real-gh arm, the control) when /usr/bin/gh exists, and 0 FAIL when it does not. This is host-dependent by nature; the decoy control arm reproduces it on any host.
+- RESULT umask (ev/umask-modes.txt): under caller umask 022 a fresh state dir is 700 and the log 600, and the caller's umask afterwards is 0022. The real gh ran under 0022. An existing 0644 log becomes 600 after the next call. With umask 077 planted outside the subshell, the real gh ran under 0077 and the self-test arm goes red.
+- RESULT alert 46: the head's self-test has no `0o755`; every directory mode it sets is 0o700. It still sets a test log to 0o644 (`0o600 | 0o044`, gh_calls.py lines 282/285/291) to pin the existing-log chmod, which py/overly-permissive-file may flag. I could not read code-scanning alerts from this seat: there is no gh CLI for REST and no MCP code-scanning tool. The `CodeQL` check run is `neutral` and `codeql / Analyze (python)` was still in progress at read time. Whether alert 46 is fixed, dismissed or renamed is not verified here.
+- RESULT shim cost (ev/latency.txt, 200 calls each, stub real gh): no shim 1.8 ms/call, head shim 27.8 ms/call, a7e6a3e5 shim 23.4 ms/call. So the head adds about 26 ms per call over a bare gh, about 4.5 ms more than round 2.
+- RESULT harness_headers: here it fails 56 of 112 on both runs at the head, and also 56 of 112 at origin/main (ev/harness_headers-main.txt; venv-ha python; the harness scripts fail to run in this container). That is environmental, so this seat cannot say whether the body's "12 of 112 once, then 0" is flaky or load-dependent. The PR touches nothing under dev/audit/, and CI is the authority.
+- RESULT daemon coverage: the body's statement is accurate and claims no more than it measured. roster_queue.py:95-97 prepends `tools/audit/seat/shims`, which holds only `seat-gh`, so it is not logged. beatd prepends `beatd_shims`. The body defers a live count to `gh_calls.py --coverage` on the host, which the instrument implements (gh_calls.py:124).
+- RESULT gate: `git merge-tree --write-tree origin/main(df66556f2) <head>` exits 0 (LEDGER-MERGE resolved tests/closures.json as a set). Both claim files, VERSION, RELEASE_NOTES.md and the manifest are byte-identical to the merge base (three-dot). gh_calls.py is in tests/closures.json; the other new files are under INERT tools/audit/. INSTRUMENTS.md lists both instruments. The delivery row dev/programme/delivery/3049.md is in the three-dot diff. `STRUCTURE RATCHET PASSED`. `MODE: SCOPED -- 2 script(s) run, 31 scoped out.`
+- RESULT head check: the head was 16cb22f640f325e86411d6b9734203f39b1e7ecb when measured and when this verdict was written (PR get).
+- Red checks: no concluded red check at read time across the 37 check runs. See CI below. The body's `## Red checks` answers instrument-self-tests and alert 46 from earlier heads; I verified the self-test answer by mutation (hermetic arms above). The alert answer is unverified, as noted under alert 46.
+- RESULT CI: `merge_train.py classify 16cb22f640f325e86411d6b9734203f39b1e7ecb` printed `GREEN ... pending: none red: none` and exited 0 at 07:34:48Z (ev/ci-classify.txt). No check went red at this head, so no `## Red checks` answer is owed for this head. CI green does not settle the block: no committed arm exercises the leak shapes above.
+- RESULT live head: `refs/pull/3049/head` is still 16cb22f640f325e86411d6b9734203f39b1e7ecb when this verdict was finalised.
