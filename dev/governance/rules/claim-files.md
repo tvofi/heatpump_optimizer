@@ -13,11 +13,11 @@ branch's note at one place, so `.gitattributes` routes both to the
 python3 tests/env_drift.py --install-merge-driver
 ```
 
-It unions the notes and merges claims three-way per scenario: a side's change
-or deletion (a `may-drift` line too) wins over the other's silence. It
-**refuses**, naming them, where both sides rewrote one scenario's claims or
-stamped differing `claims-for:`: `merge=union` would reinstate a deleted claim
-the inherited-claims guard misses. Uninstalled, it falls back to the text
+It unions the notes and merges three-way claims per scenario and `may-drift`
+lines per fixture: a side's change or deletion wins over the other's silence.
+It **refuses**, naming them, where both sides rewrote one scenario's claims or
+one fixture's `may-drift` line, or stamped differing `claims-for:`:
+`merge=union` would reinstate a deleted line the inherited-claims guard misses. Uninstalled, it falls back to the text
 merge; git reads `.gitattributes` from the branch merged **into**.
 
 **GitHub is such an uninstalled clone (#570).** Every open pull request turns
