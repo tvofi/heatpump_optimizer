@@ -35,7 +35,7 @@ The round-1 review also found the `_ABSENT_FALLBACKS` bullet removed with no det
 
 ## Head
 
-`7d180484d4b7a04c0d6dba593806c40b630a38a5` (round 2). Two commits on the round-1 head 6502ddfcfd985f97998bbc369fc8807ae81cd9ca: afeba7de3 and 7d180484d. Merge base 8fec54ee2afb5e37687f34bc5fd3aa7280f64e1f. main was not merged: `git merge-tree --write-tree origin/main HEAD` exits 0 against origin/main 92588d581fde4ce287af3db5e8bb61461dc28015 at 2026-11-01T08:55Z, which has not touched `dev/programme/HANDOVER.md` since the merge base.
+PR head `dafcc5759950c7ec3faab4bf993723a758a94710`: the merge of code head `7d180484d4b7a04c0d6dba593806c40b630a38a5` (round 2) with origin/main `92588d581fde4ce287af3db5e8bb61461dc28015`. The code head is two commits on the round-1 head 6502ddfcfd985f97998bbc369fc8807ae81cd9ca: afeba7de3 and 7d180484d. Merge base 8fec54ee2afb5e37687f34bc5fd3aa7280f64e1f. The three-dot diff at the PR head holds `dev/programme/HANDOVER.md` and `dev/programme/delivery/3074.md` only. This repair changes the body alone; no code moved. origin/main is now at 6421fe135d9f5a9e65433a4433f000d2419486bf; `git merge-tree --write-tree origin/main dafcc5759950c7ec3faab4bf993723a758a94710` exits 0 and `git diff 92588d581..origin/main -- dev/programme/HANDOVER.md` is empty, so main has not touched the file since the head was merged.
 
 ## Figures
 
@@ -63,7 +63,16 @@ The diff touches no production, test or check code. The one restored claim that 
 
 ## Red checks
 
-none
+`governance / instrument-self-tests` is red at the PR head (check-run 124810815658, run 41293942755, runner image `ubuntu-26.04`). `gate` and `pr-contract / pr-contract` are red at the head only because of it (`pr-contract` reports "check governance / instrument-self-tests is red and ## Red checks does not name it"). No other check is red at the head; every other completed check-run at the head is success or skipped.
+
+Cause, read from the failing job's log: three steps run the `pr_args.sh` self-test (the opener, the argument builder, the updater) and each prints `pr_args self-test: 158 checks, 2 failed`. The two rows are "open_pr: the null control -- an unrelated sleeper survives" and "null control: a normal successful update_pr leaves nothing behind and stops nothing it did not start". The log line before them is `Security violation: Requested utility `unrelated-sleep` does not match executable name`. `tools/audit/seat/pr_args.sh:625` symlinks `/bin/sleep` as `unrelated-sleep`; on `ubuntu-26.04` coreutils is uutils' multicall binary, which refuses a name it does not know. A seat's local run uses GNU coreutils and passes.
+
+It is not this diff's: the three-dot diff touches none of `pr_args.sh`, `open_pr.sh` or `update_pr.sh` (`git diff $(git merge-base origin/main HEAD)...HEAD --stat -- <the three>` prints nothing), and the same job is red with the same two rows on runs that carry none of this diff:
+- main push run 41294924835 at 6421fe135, job 124813746788, image `ubuntu-26.04`, `pr_args self-test: 158 checks, 2 failed`;
+- PR #3085, run 41300368793 at 07e0e1676, job 124829953054, image `ubuntu-26.04`, the same two failures.
+The last main push run before those, 41284741462 at 92588d581, had the job green (124783717352). `ubuntu-latest` resolves to either image from run to run, which is the whole of the difference.
+
+Cheaper detector and process state: none exists. The check is the detector, and it fired at the first runner that carries the multicall binary; a seat's local run, `prepr.sh` and `ci_predict.py` all use GNU coreutils and cannot see it. The process state is a CI image rollout that outran the instrument, not a gap in this seat's checks. #3086 (R10-HOTFIX-UUTILS-SLEEP, open) owns the fix; this pull request does not touch those files and does not claim the check green. It stays red here until #3086 merges and this head is re-merged with main.
 
 ## Forward-carry
 
