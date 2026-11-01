@@ -3,9 +3,10 @@
 
 Metric, one line per plant: `RESULT mutant=<name> rc=<rc> fails=<n>`, then the
 failing check names. Each plant is one exact one-occurrence replacement in
-tools/audit/seat/roster_edit.py; the driver applies it, runs
-`roster_edit.py --self-test`, and restores the file byte for byte. It refuses
-to start when the file differs from HEAD, so a restore cannot overwrite work.
+tools/audit/seat/roster_edit.py, or in the file a three-part plant names
+(`parts`); the driver applies it, runs that file's `--self-test`, and
+restores it byte for byte. It refuses to start when any target differs from
+HEAD, so a restore cannot overwrite work.
 Expected: every plant rc=1 with fails>=1 -- a FAIL line, not a crash (a
 crash is rc=1 with fails=0 and prints its tail).
 
@@ -27,6 +28,25 @@ Plants, one per refusal of the two ops and per round-trip property:
   T1-T5  the triage gate (decision 0015): the uncited proposal arm, a
          non-ACCEPT verdict passing, a missing batch read as an empty one, the gate's call
          in write_roster, and added_texts blind to appended carries.
+  K1-K9  the carry ledger (#2733): mark-carry's refusals (K1 a carry already
+         marked, K2 an unknown mark, K3 implemented without a sha, K4 the
+         whole moved arm, K5 a move to itself, K6 dismissed with no reason),
+         set-stage bypassing the shared closing rule (K7), the cut-over not
+         read (K8), and set-resume --field stage bypassing it (K9); a move
+         to a closed group (K10), a value holding `]` (K11), and an
+         unreadable cut-over read as no legacy by set-stage (K12).
+  L1-L6  roster_lib's predicate, under roster_lib.py --self-test: marks
+         ignored (L1), legacy ignored (L2), every group's carries legacy at
+         the cut-over (L3), absorbed not closed (L4), closing never
+         downgrades (L5), a mark read anywhere in the text (L6).
+  Y1-Y6  roster_sync: the merge bypassing the shared rule (Y1), an
+         unreadable cut-over read as no legacy (Y2), the write path's
+         re-derive without the legacy set (Y3), apply_plan writing the
+         stage without it (Y4), and the dry run's (Y5) and the write path's
+         (Y6) projection without it, which decides a same-pass Carry:.
+  R1-R5  carry_audit's roster arm: closed-only issues unreported (R1),
+         unlisted issues unreported (R2), #201 reported (R3), absorbed_into
+         unnamed (R4), pull requests read as issues (R5).
   S1-S7  the vocabulary barrier (R10-ORCH-ROSTER-SCHEMA): each of the three
          stage-writing ops losing its classification check (S1 set-stage, S2
          set-resume --field stage, S3 append-group), append-group losing the
@@ -53,6 +73,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
 TARGET = "tools/audit/seat/roster_edit.py"
+DROP = '    del g["carry"][_carry_index(g, index, match, "drop-carry")]\n'
+LIB, SYNC, AUDIT = ("tools/audit/seat/roster_lib.py",
+                    "tools/audit/seat/roster_sync.py", "tools/audit/carry_audit.py")
+_MARK_LINE = next((ln for ln in (ROOT / LIB).read_text().splitlines()
+                   if ln.startswith("_CARRY_MARK = ")), "_CARRY_MARK missing")
 DETACHED = ('g = next((x for x in roster.get("groups", []) '
             'if x.get("group") == group), {})')
 
@@ -67,21 +92,20 @@ PLANTS = {
            f'    {DETACHED}\n    after = [] if spec'),
     "A7": ('    g["after"] = after\n',
            '    g.pop("after", None)\n    g["after"] = after\n'),
-    "C1": ('    if not carry:\n        raise Refuse(f"drop-carry: {group} carries nothing")',
-           '    if False:\n        raise Refuse(f"drop-carry: {group} carries nothing")'),
+    "C1": ('    if not carry:\n        raise Refuse(f"{op}: {group} carries nothing")',
+           '    if False:\n        raise Refuse(f"{op}: {group} carries nothing")'),
     "C2": ("if match in c]\n", "if match in c] or [0]\n"),
     "C3": ("        if len(hits) > 1:\n", "        if False:\n"),
-    "C4": ("        if not 0 <= i < len(carry):\n",
-           "        if not i < len(carry):\n"),
-    "C5": ("            i = int(index)\n",
-           '            i = int(index) if index.lstrip("-").isdigit() else 0\n'),
-    "C6": ("    del carry[i]\n",
-           '    del carry[i]\n    if not carry:\n        del g["carry"]\n'),
-    "C7": ("    del carry[i]\n", "    del carry[i - 1]\n"),
-    "C8": ('    g = _need(roster, group)\n    carry = g.get("carry")',
-           f'    {DETACHED}\n    carry = g.get("carry")'),
+    "C4": ("    if not 0 <= i < len(carry):\n",
+           "    if not i < len(carry):\n"),
+    "C5": ("        i = int(index)\n",
+           '        i = int(index) if index.lstrip("-").isdigit() else 0\n'),
+    "C6": (DROP, DROP + '    if not g["carry"]:\n        del g["carry"]\n'),
+    "C7": (DROP, DROP.replace(')]', ') - 1]')),
+    "C8": ('    g = _need(roster, group)\n    del g["carry"]',
+           f'    {DETACHED}\n    g.setdefault("carry", [])\n    del g["carry"]'),
     "P1": ('p.error("drop-carry takes an index or --match, not both")', "pass"),
-    "P2": ('p.error("drop-carry needs an index or --match")', "pass"),
+    "P2": ('p.error(f"{a.op} needs an index or --match")', "pass"),
     "P3": ('p.error("--match is a drop-carry flag")', "pass"),
     "D1": ("return json.dumps(roster, indent=1)",
            "return json.dumps(roster, indent=2)"),
@@ -109,11 +133,74 @@ PLANTS = {
            "    if True:  # S6\n        return None\n"),
     "S7": ("        op_append_group(roster, value, rel, sizes)\n",
            "        op_append_group(roster, value)  # S7\n"),
+    "K1": ('    if roster_lib.carry_mark(g["carry"][i]):\n', "    if False:  # K1\n"),
+    "K2": ("    if kind not in roster_lib.CARRY_MARKS:\n", "    if False:  # K2\n"),
+    "K3": ('    if kind == "implemented" and not SHA_RE.match(arg):\n',
+           "    if False:  # K3\n"),
+    "K4": ('    if kind == "moved":\n', "    if False:  # K4\n"),
+    "K5": ("        if arg == group:\n", "        if False:  # K5\n"),
+    "K6": ('    if kind == "dismissed" and not arg:\n', "    if False:  # K6\n"),
+    "K7": ('["stage"] = _closing(g, stage, legacy, "set-stage")\n',
+           '["stage"] = stage  # K7\n'),
+    "K8": ("                    legacy = roster_lib.read_legacy(a.worktree, rel)\n",
+           "                    legacy = {}  # K8\n"),
+    "K9": ('        value = _closing(g, value, legacy, "set-resume")\n',
+           "        pass  # K9\n"),
+    "K10": ("        if stage in roster_lib.CARRY_CLOSED:\n",
+            "        if False:  # K10\n"),
+    "K11": ('    if "]" in arg:\n', "    if False:  # K11\n"),
+    "K12": ('raise Refuse(f"the carry cut-over is unreadable, so no "\n'
+            '                                 f"stage is written: {e}")',
+            "legacy = {}  # K12"),
+    "L1": (LIB, "            if carry_mark(c) is None and c not in held]\n",
+           "            if c not in held]  # L1\n"),
+    "L2": (LIB, "            if carry_mark(c) is None and c not in held]\n",
+           "            if carry_mark(c) is None]  # L2\n"),
+    "L3": (LIB, '            if (g.get("resume") or {}).get("stage") in CARRY_CLOSED}\n',
+           "            }  # L3\n"),
+    "L4": (LIB, 'CARRY_CLOSED = DONE_STAGES + ("absorbed",)\n',
+           "CARRY_CLOSED = DONE_STAGES  # L4\n"),
+    "L5": (LIB, '    return ("carries-open" if pending else "done"), pending\n',
+           '    return "done", pending  # L5\n'),
+    # L6 reads the mark's grammar from roster_lib's own line: a second
+    # spelling of it here would be the grammar written twice (agreement.mjs).
+    "L6": (LIB, _MARK_LINE, _MARK_LINE.replace('\\Z")', '")') + "  # L6"),
+    "Y1": (SYNC, '        closed, _ = roster_lib.closing_stage(g, "done", legacy or {})\n',
+           '        closed = "done"  # Y1\n'),
+    "Y2": (SYNC, '            raise Refuse(f"the carry cut-over is unreadable: {e}")\n',
+           "            legacy = {}  # Y2\n"),
+    "Y3": (SYNC, "            changes, _, transitions = derive(roster, prs, legacy)\n",
+           "            changes, _, transitions = derive(roster, prs)  # Y3\n"),
+    "Y4": (SYNC, "        roster_edit.op_set_stage(roster, c.group, c.stage, c.merge_commit,\n"
+                 "                                 legacy=legacy)\n",
+           "        roster_edit.op_set_stage(roster, c.group, c.stage, c.merge_commit)"
+           "  # Y4\n"),
+    "Y5": (SYNC, "        apply_plan(projected, changes, [], legacy)\n        appends, refusals",
+           "        apply_plan(projected, changes, [])  # Y5\n        appends, refusals"),
+    "Y6": (SYNC, "            apply_plan(projected, changes, [], legacy)\n            appends, _",
+           "            apply_plan(projected, changes, [])  # Y6\n            appends, _"),
+    "R1": (AUDIT, "        elif not any(live for _, live in by):\n",
+           "        elif False:  # R1\n"),
+    "R2": (AUDIT, "        if not by:\n", "        if False:  # R2\n"),
+    "R3": (AUDIT, "    for n in sorted(open_issues - {LOG_ISSUE}):\n",
+           "    for n in sorted(open_issues):  # R3\n"),
+    "R4": (AUDIT, '        where = f"absorbed into {into}" if stage == "absorbed" and into else stage\n',
+           "        where = stage  # R4\n"),
+    "R5": (AUDIT, '        elif isinstance(x, dict) and "pull_request" not in x and isinstance(x.get("number"), int):\n',
+           '        elif isinstance(x, dict) and isinstance(x.get("number"), int):  # R5\n'),
 }
 
 
-def target_self_test():
-    r = subprocess.run([sys.executable, TARGET, "--self-test"], cwd=ROOT,
+def parts(name):
+    """(target, old, new) of a plant: roster_edit.py unless the plant names
+    its file. Every target is a Python tool whose `--self-test` prints FAIL
+    lines, so one driver reads them all."""
+    plant = PLANTS[name]
+    return plant if len(plant) == 3 else (TARGET,) + plant
+
+
+def target_self_test(target=TARGET):
+    r = subprocess.run([sys.executable, target, "--self-test"], cwd=ROOT,
                        capture_output=True, text=True)
     fails = [ln for ln in r.stdout.splitlines() if ln.startswith("FAIL ")]
     return r.returncode, fails, (r.stdout + r.stderr).strip().splitlines()[-3:]
@@ -141,12 +228,13 @@ def self_test():
         passed, failed = passed + ok, failed + (not ok)
         print(f"  {'ok  ' if ok else 'FAIL'} {name}")
 
-    text = (ROOT / TARGET).read_text()
-    for name, (old, new) in PLANTS.items():
-        ck(f"{name}: anchor occurs once in {TARGET}", text.count(old) == 1)
+    for name in PLANTS:
+        target, old, new = parts(name)
+        text = (ROOT / target).read_text()
+        ck(f"{name}: anchor occurs once in {target}", text.count(old) == 1)
         ck(f"{name}: the plant changes the text", new != old)
         try:
-            compile(text.replace(old, new), TARGET, "exec")
+            compile(text.replace(old, new), target, "exec")
             ok = True
         except SyntaxError:
             ok = False
@@ -178,38 +266,41 @@ def self_test():
 
 
 def main(argv):
-    path = ROOT / TARGET
     if argv == ["--self-test"]:
         return self_test()
-    if subprocess.run(["git", "diff", "--quiet", "HEAD", "--", TARGET],
+    targets = sorted({parts(n)[0] for n in PLANTS})
+    if subprocess.run(["git", "diff", "--quiet", "HEAD", "--", *targets],
                       cwd=ROOT).returncode != 0:
-        print(f"refusing: {TARGET} differs from HEAD", file=sys.stderr)
+        print(f"refusing: one of {targets} differs from HEAD", file=sys.stderr)
         return 2
     if argv == ["--null"]:
-        report("null", *target_self_test())
+        for target in targets:
+            report(f"null {target}", *target_self_test(target))
         return 0
     names, unknown = select(argv)
     if unknown:
         print(f"unknown plant(s): {unknown}", file=sys.stderr)
         return 2
-    original = path.read_bytes()
+    originals = {t: (ROOT / t).read_bytes() for t in targets}
     survivors = []
     try:
         for name in names:
-            old, new = PLANTS[name]
+            target, old, new = parts(name)
+            path, original = ROOT / target, originals[target]
             text = original.decode("utf-8")
             if text.count(old) != 1:
                 print(f"plant {name}: anchor occurs {text.count(old)} times",
                       file=sys.stderr)
                 return 2
             path.write_bytes(text.replace(old, new).encode("utf-8"))
-            rc, fails, tail = target_self_test()
+            rc, fails, tail = target_self_test(target)
             path.write_bytes(original)
             report(name, rc, fails, tail)
             if not fails:
                 survivors.append(name)
     finally:
-        path.write_bytes(original)
+        for target, original in originals.items():
+            (ROOT / target).write_bytes(original)
     print(f"plants: {len(names)}, without a FAIL line: {survivors or 'none'}")
     return 1 if survivors else 0
 
