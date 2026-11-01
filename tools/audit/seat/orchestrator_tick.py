@@ -852,7 +852,7 @@ class Tick:
             return self.git(argv[1:]) if argv[:1] == ["git"] else (1, "the tick runs gh and git only")
         try:
             t = mt.Train(self.repo, Path("."), None, "", (), 0, run=run, log=lambda _m: None)
-            return mt.approval_owed(t, n, head, mt.classify(self.latest(runs), mt.gating_names(req))[2])
+            return mt.approval_owed(t, n, head, runs, req)
         except (mt.Stop, OSError, ValueError):  # fail closed: an unread raise is not reviewable
             return None
 
@@ -3483,15 +3483,24 @@ def self_test() -> int:
         # shape (gate + budget-raise-gate red, one raise, the owner's approval
         # on an older head) is RAISE APPROVAL OWED, not NOT REVIEWABLE; null
         # controls: a second gate unit red, and the same reds with no raise.
+        # #3073: owed only when the gate's own log names the raise alone; a gate also red
+        # for a SKIPPED unit (absent from the red set) is NOT REVIEWABLE.
         RAISE = "budget-raise-gate / budget-raise-gate"
         bud = "tests/structure_budgets.json"
-        for label, extra_red, files, want in (
-                ("#3045 shape", (), f"{bud}\ntools/x.py\n", True),
-                ("null: tests / fast (3.14) red too", ("tests / fast (3.14)",), f"{bud}\n", False),
-                ("null: no raise in the diff", (), "tools/x.py\n", False)):
+        glog = lambda *r: "".join(f"2026-10-31T21:40:02.5Z {x}\n" for x in (
+            '##[group]Run python3 -I tools/ci/gate.py --pr "$PR"', "##[endgroup]",
+            *(("FAIL " if i == 0 else "") + x for i, x in enumerate(r)), "##[error]Process completed with exit code 1."))
+        own = f"{RAISE}: failure (this run)"
+        for label, extra_red, files, want, why in (
+                ("#3045 shape", (), f"{bud}\ntools/x.py\n", True, (own,)),
+                ("null: tests / fast (3.14) red too", ("tests / fast (3.14)",), f"{bud}\n", False, (own,)),
+                ("null: no raise in the diff", (), "tools/x.py\n", False, (own,)),
+                ("null (#3073): the gate also failed a SKIPPED unit", (), f"{bud}\ntools/x.py\n", False,
+                 (own, "tests / browser: SKIPPED (this run)"))):
             runs = [run_obj("gate", conclusion="failure"), run_obj(RAISE, conclusion="failure"),
                     *(run_obj(x, conclusion="failure") for x in extra_red)]
             t = tick(prs=[pr_obj(75, H1)], required_names=("gate",), runs_at={H1: runs},
+                     gh_extra=[(f"actions/jobs/{runs[0]['id']}/logs", 0, glog(*why))],
                      bodies={75: "## Red checks\n\ngate: x\n"},
                      reviews={75: [[{"user": owner, "state": "APPROVED", "commit_id": H2,
                                      "submitted_at": iso(NOW), "body": "ok"}]]})
