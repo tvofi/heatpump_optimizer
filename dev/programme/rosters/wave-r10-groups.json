@@ -15471,7 +15471,9 @@
    },
    "fixerModel": "opus",
    "reviewerModel": "opus",
-   "after": [],
+   "after": [
+    "R10-GRADE-DRIVERS"
+   ],
    "files": [
     "custom_components/heatpump_optimizer/optimizer.py",
     "custom_components/heatpump_optimizer/plan_slots.py",
