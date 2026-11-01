@@ -21,7 +21,9 @@ the integration's own away switch and return-time entity: the user's
 command, not the integration's output. ``controls.away`` carries it as
 events ``[time, active, return_time]``; the lane replays each through
 ``coordinator.async_set_away``, the call the switch and the datetime entity
-make. Both entities are masked to hashes, so they are found by what they
+make. ``controls.reloads`` carries the minutes the integration reloaded in
+process -- every published entity ``unavailable``, every input readable --
+which the lane replays as a new entry handed the last publish. Both entities are masked to hashes, so they are found by what they
 did: the one published ``datetime`` entity is the return time, and the away
 switch is the one published switch that turned on within a few seconds of
 that return time being set. Anything else is refused.
@@ -122,6 +124,25 @@ def away_events(doc: dict, start: datetime, end: datetime) -> list[list]:
     return events
 
 
+def reloads(doc: dict, start: datetime, end: datetime) -> list[str]:
+    """The minutes in ``[start, end)`` at which every entity the integration
+    publishes went ``unavailable`` while every input stayed readable: the
+    integration reloaded in process (an options save), not Home Assistant."""
+    def unavailable(entities: list[str]) -> dict[str, set[str]]:
+        out: dict[str, set[str]] = {}
+        for eid in entities:
+            for row in doc["states"].get(eid, []):
+                if row[1] == "unavailable" and start <= _ts(row[0]) < end:
+                    out.setdefault(_ts(row[0]).replace(second=0, microsecond=0).isoformat(),
+                                   set()).add(eid)
+        return out
+
+    published, inputs = unavailable(doc["published"]), unavailable(doc["inputs"])
+    return sorted(minute for minute, gone in published.items()
+                  if doc["published"] and len(gone) == len(doc["published"])
+                  and not inputs.get(minute))
+
+
 def _read_ahead(doc: dict, entity_id: str) -> bool:
     return entity_id == doc.get("price_series_entity") or entity_id.startswith("weather.")
 
@@ -147,7 +168,7 @@ def cut(doc: dict, day: str, warmup_days: int = 0,
     out["published"] = []
     out["states"] = {eid: thinned(rows, ahead if _read_ahead(doc, eid) else instants)
                      for eid, rows in doc["states"].items() if eid in doc["inputs"]}
-    out["controls"] = {"away": away_events(doc, start, end)}
+    out["controls"] = {"away": away_events(doc, start, end), "reloads": reloads(doc, start, end)}
     return out
 
 

@@ -47,6 +47,13 @@ THE INVARIANTS, per cycle and per published entity:
                      optimizer's own on threshold), and ``hvac_action`` not
                      idle while ``heat_pump_on`` (#1499's shape);
 ``cycle``            every cycle returns data and no entity property raises;
+``away``             while the owner's recorded command holds away (the
+                     fixture's ``controls.away``, replayed through
+                     ``coordinator.async_set_away``; ``controls.reloads``
+                     replayed as an in-process reload handed the last
+                     publish), the plan's view is away and holds the
+                     override, and -- not recovering -- its published floor
+                     is at the away target (``away_offenders``);
 
 and once per fixture:
 
@@ -276,6 +283,28 @@ def inv_agreement(records: list[dict], plan_draws: bool | None,
                     and rec["state"] not in ("off", None):
                 out.append(f"{rec['entity_id']}: hvac_action {action!r} "
                            "while the current action has heat_pump_on")
+    return out
+
+
+def away_offenders(observations: list[dict]) -> list[str]:
+    """A cycle the owner's recorded command holds away (``controls.away``) whose
+    plan was not made away: the coordinator's live view not active, the
+    override not held, or -- not recovering -- the solve's published floor
+    above the away target. R10-HOTFIX-AWAY-LIVE's stated behaviour: after the
+    switch, a restore and a reload, the live state equals the resolved
+    override and the solve's bands carry the away target. How much the plan
+    then heats is not judged: a floor that outranks the setback by design
+    (the mold guard's, capped at the configured target) heats an away house."""
+    out = []
+    for o in observations:
+        if not o.get("commanded_return"):
+            continue
+        floor_ok = o["recovery"] or (o["floor"] is not None and o["target"] is not None
+                                     and o["floor"] <= o["target"])
+        if not (o["active"] and o["override"] and floor_ok):
+            out.append(f"{o['t']}: commanded away, the plan's view active={o['active']} "
+                       f"override={o['override']} recovery={o['recovery']} "
+                       f"floor={o['floor']} target={o['target']}")
     return out
 
 
@@ -574,6 +603,12 @@ def controls() -> list[tuple[str, bool, str]]:
                 f"cpu_ratio {clean['cpu_ratio']}: solve x3 moved={cpu_solve_moved}"))
     pair("cycle_cost:short_doubling", short_doubling(0.93), short_doubling(1.0001))
     pair("cycle_cost:unmetered_doubling", short_doubling(float("nan")), short_doubling(1.0))
+    held = {"t": "t", "commanded_return": "r", "active": True, "override": True,
+            "recovery": False, "floor": 15.0, "target": 15.0}
+    pair("away", away_offenders([{**held, "active": False}, {**held, "floor": 18.0},
+                                 {**held, "override": False}]),
+         away_offenders([held, {**held, "recovery": True, "floor": 18.0},
+                         {**held, "commanded_return": None, "active": False}]))
     pkg = "/x/custom_components/heatpump_optimizer/"
     pair("cycle_cost:coverage", uncovered_files({pkg + f for f in COST_FILES[1:]}),
          uncovered_files({pkg + f for f in COST_FILES}))
@@ -1303,8 +1338,19 @@ def cut_day_checks() -> list[tuple[str, bool, str]]:
     res.append(("cut_day:away_command_from_the_paired_switch_restart_skipped",
                 [e[1:] for e in events] == [[True, "2026-10-31T19:00:00+00:00"], [False, None]]
                 and events[0][0].startswith("2026-10-30T16:42"), str(events)))
+    res.append(("cut_day:reload_is_every_published_entity_gone_and_no_input",
+                day["controls"]["reloads"] == [(t0_day2 := _ts(events[0][0]).replace(
+                    second=0, microsecond=0) + timedelta(minutes=60)).isoformat()],
+                str(day["controls"]["reloads"])))
+    restart = json.loads(json.dumps(doc))
+    restart["states"]["sensor.indoor_temp"].append(
+        [t0_day2.isoformat(), "unavailable", None, None])
+    restart["states"]["sensor.indoor_temp"].sort(key=lambda r: r[0])
+    res.append(("cut_day:null_restart_with_inputs_gone_is_no_reload",
+                cut_day.cut(restart, "2026-10-30")["controls"]["reloads"] == [],
+                str(cut_day.cut(restart, "2026-10-30")["controls"]["reloads"])))
     res.append(("cut_day:null_day_without_a_command_has_none",
-                cut_day.cut(doc, "2026-10-29")["controls"]["away"] == [],
+                cut_day.cut(doc, "2026-10-29")["controls"] == {"away": [], "reloads": []},
                 str(cut_day.cut(doc, "2026-10-29")["controls"])))
     twin = json.loads(json.dumps(doc))
     twin["states"]["switch.e_00000000cc"] = doc["states"]["switch.e_00000000bb"]
@@ -1488,7 +1534,21 @@ def run_fixture(path: Path, step_minutes: int | None, inject: str | None = None)
     cm._ensure_worker = lambda: worker
     inject_cost(cm, inject)
 
-    hass = FakeHass()
+    class RestoringHass(FakeHass):
+        """``FakeHass`` that keeps the session restore a coordinator spawns -- the
+        stored away override and boosts a reload's new entry reads back -- for
+        ``set_up`` to run once the constructor has returned, as Home Assistant's
+        loop runs the task after it; every other spawn is closed as before."""
+
+        restores: list = []
+
+        def async_create_task(self, coro, name=None, eager_start=None):
+            if getattr(coro, "__name__", "") != "restore_session":
+                return super().async_create_task(coro)
+            self.restores.append(coro)
+            return None
+
+    hass = RestoringHass()
     # Executor jobs run inline on this thread in the double, so the loop
     # thread's own work is the cycle's thread CPU less theirs.
     _EXEC_CPU[0] = 0.0
@@ -1528,42 +1588,51 @@ def run_fixture(path: Path, step_minutes: int | None, inject: str | None = None)
         hass.services.async_register("weather", "get_forecasts", forecasts)
 
     entry = FakeEntry(data=entry_data, options=entry_options)
-    coord = cm.HeatPumpOptimizerCoordinator(hass, entry)
-    entry.runtime_data = coord
-
-    async def no_solar_fetch() -> None:
-        # A fixture records no irradiance, and the lane opens no socket: an
-        # install on the Open-Meteo source replays with no solar forecast.
-        coord._open_meteo = None
-
-    coord._fetch_solar_forecast = no_solar_fetch
     price_series = fixture.get("price_series_entity")
-    if not cm._entity_price_source(config):
-        async def recorded_prices() -> None:
-            now = dt_util.now()
-            day0 = now.replace(hour=0, minute=0, second=0, microsecond=0)
-            span = 2 if now.hour >= 13 else 1
-            rows = []
-            # The day's quarters walked in UTC: a wall-clock walk invents the
-            # spring gap's four quarters and folds the autumn hour onto one.
-            t = dt_util.as_utc(day0)
-            while t < day0 + timedelta(days=span):
-                row = rec.at(price_series, t) if price_series else None
-                value = _num(row[1]) if row else None
-                if value is not None:
-                    rows.append({"total": value, "starts_at": dt_util.as_local(t).isoformat(),
-                                 "level": "NORMAL"})
-                t += timedelta(minutes=15)
-            if not rows:
-                raise UpdateFailed("the fixture records no price series")
-            coord._prices = rows
 
-        coord._fetch_tibber_prices = recorded_prices
+    def set_up(**kwargs):
+        """The coordinator and its entities, as ``async_setup_entry`` builds them;
+        a reload passes ``skip_first_solve`` and the last publish as the handover."""
+        coord = cm.HeatPumpOptimizerCoordinator(hass, entry, **kwargs)
+        entry.runtime_data = coord
+        while hass.restores:
+            asyncio.run(hass.restores.pop(0))
 
-    entities: list = []
-    for platform in integration.PLATFORM_LIST:
-        module = importlib.import_module(f"heatpump_optimizer.{str(platform)}")
-        asyncio.run(module.async_setup_entry(hass, entry, entities.extend))
+        async def no_solar_fetch() -> None:
+            # A fixture records no irradiance, and the lane opens no socket: an
+            # install on the Open-Meteo source replays with no solar forecast.
+            coord._open_meteo = None
+
+        coord._fetch_solar_forecast = no_solar_fetch
+        if not cm._entity_price_source(config):
+            async def recorded_prices() -> None:
+                now = dt_util.now()
+                day0 = now.replace(hour=0, minute=0, second=0, microsecond=0)
+                span = 2 if now.hour >= 13 else 1
+                rows = []
+                # The day's quarters walked in UTC: a wall-clock walk invents the
+                # spring gap's four quarters and folds the autumn hour onto one.
+                t = dt_util.as_utc(day0)
+                while t < day0 + timedelta(days=span):
+                    row = rec.at(price_series, t) if price_series else None
+                    value = _num(row[1]) if row else None
+                    if value is not None:
+                        rows.append({"total": value, "starts_at": dt_util.as_local(t).isoformat(),
+                                     "level": "NORMAL"})
+                    t += timedelta(minutes=15)
+                if not rows:
+                    raise UpdateFailed("the fixture records no price series")
+                coord._prices = rows
+
+            coord._fetch_tibber_prices = recorded_prices
+
+        entities: list = []
+        for platform in integration.PLATFORM_LIST:
+            module = importlib.import_module(f"heatpump_optimizer.{str(platform)}")
+            asyncio.run(module.async_setup_entry(hass, entry, entities.extend))
+        return coord, entities
+
+    coord, entities = set_up()
 
     table = units_table()
     defaults = thermal_defaults()
@@ -1587,6 +1656,7 @@ def run_fixture(path: Path, step_minutes: int | None, inject: str | None = None)
     peaks: list[int] = []
     traced: set[str] = set()
     away_events = list((fixture.get("controls") or {}).get("away") or [])
+    reloads = list((fixture.get("controls") or {}).get("reloads") or [])
     away_seen: list[dict] = []
     commanded: str | None = None  # the return time while the owner's command holds away
     while t < end:
@@ -1597,6 +1667,14 @@ def run_fixture(path: Path, step_minutes: int | None, inject: str | None = None)
             commanded = returns if active else None
             asyncio.run(coord.async_set_away(active=active, return_time=returns, refresh=False)
                         if active else coord.async_set_away(active=False, refresh=False))
+        while reloads and _ts(reloads[0]) <= t:
+            # The integration reloaded in process (an options save): the unload
+            # hands the last publish to the new entry, which publishes it first.
+            reloads.pop(0)
+            coord, entities = set_up(skip_first_solve=True, reload_handover=coord.data)
+            # Setup's first refresh publishes without solving; the cycle's own
+            # update below is the background solve setup schedules after it.
+            coord.data = asyncio.run(coord._async_update_data())
         readings: list[float] = []
         for entity_id in fixture["inputs"]:
             row = rec.at(entity_id, t)
@@ -1634,8 +1712,7 @@ def run_fixture(path: Path, step_minutes: int | None, inject: str | None = None)
             coord.last_update_success = False
             data = coord.data or {}
 
-        if commanded or data.get("away_active"):
-            away_seen.append({**away_observation(data, t), "commanded_return": commanded})
+        away_seen.append({**away_observation(data, t), "commanded_return": commanded})
         action = data.get("current_action") or {}
         records = sweep(entities, action, results["cycle"], t)
         own_loop = (time.thread_time() - began_thread) - (_EXEC_CPU[0] - exec_before)
@@ -1679,6 +1756,7 @@ def run_fixture(path: Path, step_minutes: int | None, inject: str | None = None)
     ref_cpu += [reference_solve()[1] for _ in range(3)]
     loop_ref_cpu += [reference_loop() for _ in range(3)]
     results["not_frozen"] = frozen_offenders(pub_series, inp_series)
+    results["away"] = away_offenders(away_seen)
     figures = cost_figures(cycle_cpu, ref_cpu, peaks, loop_cpu, loop_ref_cpu)
     clean = sum(c for _, c in injected)
     share = ({"injected_ratio": round(sum(i for i, _ in injected) / clean, 4)}
@@ -1705,6 +1783,8 @@ def away_observation(data: dict, t: datetime) -> dict:
     return {"t": t.isoformat(), "active": bool(data.get("away_active")),
             "recovery": bool(data.get("away_recovery_active")),
             "target": data.get("away_target_temperature"),
+            "floor": data.get("min_temperature"),
+            "override": bool(data.get("away_override_active")),
             "space_kwh": round(sum(float(r.get("power") or 0.0) for r in schedule) * step_h, 2),
             "space_slots": sum(1 for r in schedule if float(r.get("power") or 0.0) > 0.1),
             "room_min": min((r["room_temp"] for r in schedule), default=None),
