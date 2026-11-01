@@ -1,20 +1,9 @@
-== structure
-usage: structure.py [-h] [--record] [--allow-regression REASON]
-                    [--seed-seam-map]
-structure.py: error: unrecognized arguments: summary
-== scope
-  MODE: SCOPED -- 2 script(s) run, 31 scoped out.
-  changed files (15), measured against the recorded closures in tests/closures.json:
-      dev/audit/harnesses/r10_fly_raise_reviewable.py
-      dev/audit/harnesses/r10_fly_raise_reviewable_carry.sh
-      dev/governance/roles/orchestrator.md
-      dev/programme/delivery/3073.md
-      tests/closures.json
-      tools/audit/seat/bus.sh
-== policy
-tools/audit/briefs/orchestrator.md               294  295     4245  4251 
-policy_lint rc=0
-RULES-SYNC ok: every generated rule is the generated form of its source
-  ok   seam_cut_total 422 <= 422
 
 STRUCTURE RATCHET PASSED
+  MODE: SCOPED -- 2 script(s) run, 31 scoped out.
+  closure. The claim is re-checked by the FULL unscoped suite that runs
+  gate. Set GATE_SCOPE=full to run everything here and now.
+tools/audit/briefs/orchestrator.md               294  295     4245  4251 
+dev/governance/roles/architect-planner.md         85   85     1261  1261 
+policy_lint rc=0
+RULES-SYNC ok: every generated rule is the generated form of its source

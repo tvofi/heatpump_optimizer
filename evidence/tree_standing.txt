@@ -1,0 +1,21 @@
+claim files / VERSION / manifest / notes vs merge base (three-dot):
+(empty = untouched)
+
+delivery row:
+- [#3073](https://github.com/tvofi/heatpump_optimizer/pull/3073) — **open**, R10-FLY-RAISE-REVIEWABLE: a budget-raise PR is reviewable before its approval; review-carry refuses only a merge verdict (R10-FLY-RAISE-REVIEWABLE)
+
+closures.json diff:
+diff --git a/tests/closures.json b/tests/closures.json
+index 361b84499..1d96d3284 100644
+--- a/tests/closures.json
++++ b/tests/closures.json
+@@ -3942,6 +3942,9 @@
+    "dev/audit/harnesses/r10_flow_dispatch_mutants.py",
+    "dev/audit/harnesses/r10_fly_nightly_hb.py",
+    "dev/audit/harnesses/r10_fly_orphans_landed.sh",
++   "dev/audit/harnesses/r10_fly_raise_reviewable.py",
++   "dev/audit/harnesses/r10_fly_raise_reviewable_carry.sh",
++   "dev/audit/harnesses/r10_fly_raise_reviewable_overfire.py",
+    "dev/audit/harnesses/r10_ftol_cell_search.py",
+    "dev/audit/harnesses/r10_gate_defer_race.py",
+    "dev/audit/harnesses/r10_gate_priority_base.py",
