@@ -1,0 +1,10 @@
+{
+  "_comment": "One-sided caps on what main's merges are spent on, graded by tools/audit/machinery_ratchet.py over the newest window_merges first-parent merges (the counting rule is that program's docstring). Each cap is compared against cap + its _band; re-record a cap down when the measurement falls more than its band below it. Policy: dev/governance/rules/ratchet-budgets.md, the machinery section.",
+  "_recorded": "Measured by `python3 tools/audit/machinery_ratchet.py --measure --window 580 --bands 150` at f04b25a005f51b9df48154a6544c03e6873ed9de. window_merges is the owner's fourteen-day count, frozen: a change to it is a raise.",
+  "window_merges": 580,
+  "nonproduction_merges": 520,
+  "nonproduction_merges_band": 5,
+  "churn_per_kilo_product_lines": 13097,
+  "churn_per_kilo_product_lines_band": 2436,
+  "exemptions": []
+}

@@ -223,6 +223,20 @@ SCHEMA: dict[str, list[tuple[tuple[str, ...], str]]] = {
         (("roles", "*", "opens"), SUPERSET),
         (("files", "*"), CAPFILE),
     ],
+    # The machinery ratchet (tools/audit/machinery_ratchet.py,
+    # R10-MACHINERY-RATCHETS): both caps and both bands are caps; the window
+    # is frozen, since a longer one dilutes either metric; an exemption may be
+    # appended and never removed, and the program, not this schema, refuses
+    # an entry the merge it exempts did not add.
+    "dev/governance/config/machinery_budgets.json": [
+        (("_*",), FREE),
+        (("window_merges",), FROZEN),
+        (("exemptions",), SUPERSET),
+        (("nonproduction_merges",), MAX),
+        (("nonproduction_merges_band",), MAX),
+        (("churn_per_kilo_product_lines",), MAX),
+        (("churn_per_kilo_product_lines_band",), MAX),
+    ],
 }
 
 
@@ -882,6 +896,27 @@ def self_test() -> int:
           raised(P, p0, {**p0, "files": {"CLAUDE.md": float("nan"), "old.md": 10}}), True)
     check("a NaN base lowered to a number is not a raise (null control)",
           raised(S, {**s0, "cut_views": float("nan")}, s0), False)
+
+    G = "dev/governance/config/machinery_budgets.json"
+    ex1 = {"pr": 3100, "measure": "ci_time", "before": 40, "after": 30, "before_command": "a",
+           "after_command": "b", "evidence": "dev/x.txt"}
+    g0 = {"_comment": "x", "window_merges": 580, "nonproduction_merges": 520,
+          "nonproduction_merges_band": 5, "churn_per_kilo_product_lines": 13097,
+          "churn_per_kilo_product_lines_band": 2436, "exemptions": [ex1]}
+    check("machinery: null control", raised(G, g0, g0), False)
+    check("machinery: a cap lowered is routine", raised(G, g0, {**g0, "nonproduction_merges": 519}), False)
+    check("machinery: a cap raised is a raise", raised(G, g0, {**g0, "nonproduction_merges": 521}), True)
+    check("machinery: a band widened is a raise",
+          raised(G, g0, {**g0, "churn_per_kilo_product_lines_band": 2437}), True)
+    check("machinery: an exemption appended is routine",
+          raised(G, g0, {**g0, "exemptions": [ex1, {**ex1, "pr": 3101}]}), False)
+    check("machinery: an exemption removed is a raise", raised(G, g0, {**g0, "exemptions": []}), True)
+    check("machinery: an exemption edited in place is a raise",
+          raised(G, g0, {**g0, "exemptions": [{**ex1, "after": 20}]}), True)
+    check("machinery: the window changed is a raise, either way",
+          (raised(G, g0, {**g0, "window_merges": 600}), raised(G, g0, {**g0, "window_merges": 560})),
+          (True, True))
+    check("machinery: a comment edited is routine", raised(G, g0, {**g0, "_comment": "y"}), False)
 
     U = "tests/new_budgets.json"
     check("unknown file: a change with no schema is a raise", raised(U, {"x": 1}, {"x": 0}), True)
