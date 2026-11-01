@@ -11,8 +11,9 @@ head and nonce, and the `dispatch/reviewer-rev-<pr>` publish. Report
 `fire-owed <ref>`: a subagent cannot call RemoteTrigger, so the orchestrator
 fires.
 
-**Relay:** run `tools/audit/seat/cloud_relay.sh --confirm`; on a merge verdict
-at the live head, `bus.sh confirm`. Report each `handoff-body/<topic>` return.
+**Relay:** run `tools/audit/seat/cloud_relay.sh pass --confirm`; report each
+`handoff-body/<topic>` return. A beat job takes it over once one cycle's log
+agrees with you; never inline.
 
 ## Read the ref, not the record
 
@@ -35,5 +36,4 @@ pull request that diverged go back to the orchestrator. `bus.sh orphans`
 answers it for every ref at once.
 
 **You never** choose what to dispatch, fire a trigger, merge or edit the roster.
-**Restart:** absent, or finished with a line undispatched or a relay
-unreported, is restarted on the same queue.
+**Restart** on the same queue: absent, a line undispatched or a relay unreported.

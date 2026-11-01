@@ -216,6 +216,19 @@ MUTANTS = [
     ("bus-1", "bus.sh", "    0|3) ;;\n", "    0|1|3) ;;\n"),
     ("bus-2", "bus.sh", "    0|3) ;;\n", "    0) ;;\n"),
     ("bus-3", "bus.sh", '    *) die "dispatch: cannot classify', '    *) : "dispatch: cannot classify'),
+    # R10-FLY-RELAY-REVIEW-FF: push-verdict's refusals before review/<pr> moves, and the push buffer.
+    ("bus-4", "bus.sh", '  why=$(carry_gate "$v") || die "push-verdict: $why"\n', ''),
+    ("bus-5", "bus.sh", '  why=$(python3 -I "$ROOT/tools/audit/seat/ref_privacy.py" body-lines "$v") \\\n', '  why=$(true) \\\n'),
+    ("bus-6", "bus.sh", 'git -c http.postBuffer=524288000 push -q "$REMOTE"', 'git push -q "$REMOTE"'),
+    ("bus-7", "bus.sh", '[ -n "$a" ] && [ -z "$(grep -vxF \'dependabot[bot]\' <<< "$a")" ]  # mut:botonly', '[ -n "$a" ]'),
+    ("bus-8", "bus.sh", 'if [ -n "$holder" ] && kill -0 "$holder" 2>/dev/null; then  # mut:watchlock', 'if false; then'),
+    ("bus-9", "bus.sh", '  rm -f "$b"; [ "$rc" != 1 ]  # mut:landed', '  rm -f "$b"; true'),
+    # P43: the pre-flight reads each pull request's destinations with its head as the extra ref
+    ("queue_pre_flight-1", "queue_pre_flight.py", "extra_ref=head or None)", "extra_ref=None)"),
+    # carry_audit.py check reads no roster for a verdict with no finding item (bus.sh's step grades it:
+    # its scratch origin holds no roster until the carry rows plant one).
+    ("carry_audit-1", "tools/audit/carry_audit.py",
+     '            if not finding_rows(body, comments)[0]:\n                return report({"rows": []})', '            if False:\n                pass'),
     # Round 2: GitHub's merge under a local driver, and the reviewer's R1-R4.
     ("merge_train-12", "merge_train.py",
      '    drivers = text_merge(run)\n    if drivers is None:\n        return None\n',
@@ -302,6 +315,7 @@ MUTANTS = [
      '  if [ "$prc" != 0 ]; then\n    echo "body_push: the review packet refuses'),
     # R10-FLOW-BODY-ONLY carry 13 (V147): a PR body names its code head; graded by prepr's self-test
     ("body_push-3", "tools/audit/seat/body_push.sh", '[ -z "$HREF" ] || MSG=', '[ -n "$HREF" ] || MSG='),
+    ("body_push-4", "tools/audit/seat/body_push.sh", '  if [ "$lrc" = 1 ]; then  # mut:landed', '  if false; then'),
     # #2853's review: the class the copy enumeration missed is a link to an
     # in-tree file it does not name. prepr-11 renames a LISTED entry (the
     # pathspec arm); prepr-13 stops the copy taking the generator's own link
@@ -431,13 +445,39 @@ MUTANTS = [
      '    run, start = int(w[0]), int(os.fstat(f.fileno()).st_mtime)\n'),
     ("cloud_relay-31", "cloud_relay.sh", '  if now - start <= lim: continue\n', ''),
     ("cloud_relay-32", "cloud_relay.sh", '  if not held(f): continue\n', ''),
-    ("cloud_relay-33", "cloud_relay.sh", 'confirm_arm; stuck_arm; [ -z "$loop" ]', 'confirm_arm; [ -z "$loop" ]'),
+    ("cloud_relay-33", "cloud_relay.sh", 'confirm_arm; stuck_arm; noreturn_arm; [ -z "$loop" ]', 'confirm_arm; noreturn_arm; [ -z "$loop" ]'),
+    # R10-FLY-RELAY-REVIEW-FF P288: the worktree arm restored holds the #2953 shape again;
+    # the evidence dropped from the HELD line fails its row.
+    ("cloud_relay-39", "cloud_relay.sh", '  [ -n "$v" ] || return 1\n  echo "REVIEW dispatch=',
+     '  [ -n "$v" ] || git worktree list --porcelain | awk -v h="$2" \'$1 == "HEAD" { at = ($2 == h) } $1 == "detached" && at { f = 1 } END { exit !f }\' || return 1\n  echo "REVIEW dispatch='),
+    ("cloud_relay-40", "cloud_relay.sh", '#$pr $hs${why#"${why%% *}"} (head', '#$pr $hs (head'),
+    # P283: the relay's own checkout's update_pr.sh again; no dirty test; no busy test; no levelling.
+    # P-E: the no-return line: its age window, its moved test, its wiring into the pass
+    ("cloud_relay-45", "cloud_relay.sh", '[ "$age" -gt "$lim" ] && [ "$age" -le "$win" ] || continue  # mut:noreturnage', '[ "$age" -le "$win" ] || continue'),
+    ("cloud_relay-46", "cloud_relay.sh", '-gt "$t" ] && { moved=1; break; }  # mut:noreturnmoved', '-gt "$t" ] && { break; }'),
+    ("cloud_relay-47", "cloud_relay.sh", 'stuck_arm; noreturn_arm; [ -z "$loop" ]', 'stuck_arm; [ -z "$loop" ]'),
+    ("cloud_relay-48", "cloud_relay.sh", '[ "$age" -gt "$lim" ] && [ "$age" -le "$win" ] || continue  # mut:noreturnage', '[ "$age" -gt "$lim" ] || continue'),
+    # P332: the confirm arm's skip of a review on a PR that is not open
+    ("cloud_relay-49", "cloud_relay.sh", 'if [ -n "$open" ] && ! grep -qxF "$pr" <<< "$open"; then  # mut:closedskip', 'if false; then'),
+    ("cloud_relay-41", "cloud_relay.sh", 'upd=(bash "$why/update_pr.sh")  # mut:toolsseat', 'upd=(bash "$HERE/update_pr.sh")'),
+    ("cloud_relay-42", "cloud_relay.sh", 'if [ -n "$(git -C "$tw" status --porcelain --untracked-files=no 2>/dev/null)" ]; then', 'if false; then'),
+    ("cloud_relay-43", "cloud_relay.sh", 'if [ -n "$o" ] && kill -0 "$o" 2>/dev/null; then echo', 'if false; then echo'),
+    ("cloud_relay-44", "cloud_relay.sh", '  git -C "$tw" checkout -q --detach origin/main 2>/dev/null \\\n', '  true \\\n'),
     ("ledger-1", "ledger.py", '"confirm-owed": "derived", "push-stuck": "derived",', '"confirm-owed": "derived",'),
     ("pr_args-1", "pr_args.sh", 'p = os.getppid(); start = int(time.time())', 'p = os.getppid(); start = 0'),
     ("tick_loop-3", "tick_loop.sh", 'pass --confirm </dev/null', 'pass </dev/null'),
     # r10-flow-andon: ids are per file (tick_loop-N, heartbeat-N), never a new S number.
     ("tick_loop-1", "tick_loop.sh", '  timeout 60 bash "${HPO_TICK_HEARTBEAT:-$HERE/heartbeat.sh}" --once --message "TICK-PASS $now relay=$rrc tick=$trc"  # mut:heartbeat\n', ""),
     ("tick_loop-2", "tick_loop.sh", '[ $? = 0 ] || echo "HEARTBEAT NOT PUSHED: heartbeat.sh did not finish cleanly"', "true"),
+    # R10-FLY-RELAY-REVIEW-FF P14: the freshness check, one mutant per self-test row.
+    ("tick_loop-4", "tick_loop.sh", 'behind_count "$top" "${CODE_PATHS[@]}")', 'behind_count "$top" .)'),
+    ("tick_loop-5", "tick_loop.sh", '[ "$behind" -gt "$bound" ] || [ "$self" -gt 0 ] || return 0  # mut:bound', 'true'),
+    ("tick_loop-6", "tick_loop.sh", 'elif ! python3 -I -c "$LOCK_FREE" "$1.relay.lock"; then', 'elif false; then'),
+    ("tick_loop-7", "tick_loop.sh", 'elif [ -n "$(git -C "$top" status --porcelain --untracked-files=no)" ]; then', 'elif false; then'),
+    ("tick_loop-8", "tick_loop.sh", 'git -C "$top" show origin/main:tools/audit/seat/tick_loop.sh | bash -n 2>/dev/null', 'true'),
+    ("tick_loop-9", "tick_loop.sh", '    HPO_TICK_RESTARTED=1 exec bash "$top/tools/audit/seat/tick_loop.sh" "${ARGV[@]}"  # mut:exec\n', ''),
+    ("tick_loop-10", "tick_loop.sh", '  if [ -n "$stale" ]; then\n    rrc=stale', '  if false; then\n    rrc=stale'),
+    ("tick_loop-11", "tick_loop.sh", 'if [ -n "${HPO_TICK_RESTARTED:-}" ]; then why=', 'if false; then why='),
     ("heartbeat-1", "heartbeat.sh", 'git -C "$HERE" push -q --no-verify -f "$remote"', 'git -C "$HERE" push -q --no-verify "$remote"'),
     ("heartbeat-2", "heartbeat.sh", '  if [ "$age" -gt "$max" ]; then', '  if [ "$age" -gt $((max * 100)) ]; then'),
     ("heartbeat-3", "heartbeat.sh", '|| { echo "HEARTBEAT NOT PUSHED: $(printf', '|| { echo "$(printf'),
@@ -494,7 +534,8 @@ ENV_MUTANTS = [("S04U", "S04", {"PYTHONUNBUFFERED": "1"})]
 # A mutant planted in a file whose self-test is another instrument's step.
 STEP_OF = {"prepr-9": "tools/pr/prepr.sh", "prepr-10": "tools/pr/prepr.sh",
            "prepr-12": "tools/pr/prepr.sh", "body_push-1": "tools/pr/prepr.sh",
-           "body_push-2": "tools/pr/prepr.sh", "body_push-3": "tools/pr/prepr.sh"}
+           "body_push-2": "tools/pr/prepr.sh", "body_push-3": "tools/pr/prepr.sh", "body_push-4": "tools/pr/prepr.sh",
+           "carry_audit-1": "tools/audit/seat/bus.sh"}
 
 # The wrappers' own line is the dispatch to the self-tests they delegate.
 # S08's wrapper now runs both tallies (delivery_row.sh's and its own pushes):

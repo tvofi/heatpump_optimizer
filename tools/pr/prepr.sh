@@ -2805,6 +2805,18 @@ https://claude.ai/code/session_011aqzm4YL9jLhU4jLvbkLYE'; got=$(lpush)
   grep -q 'were not run (rc 3' <<<"$got" && grep -q '^rc=0$' <<<"$got" \
     && [ "$(git --git-dir="$PDX/bodies.git" rev-parse refs/heads/handoff-body/zz-lint)" != "$was" ]
   st $? 0 "and pushes, saying so, when the handoff refusals cannot be run (rc 3 is never a refusal)"
+  # CARRY 11: body_push runs carry_audit.py landed after the packet; rc 1 pushes nothing, rc 3 pushes.
+  printf '#!/bin/bash\necho "CARRY-MISSING R10-X body item 0123abcd: not in its brief or carries"; exit %s\n' 1 > "$PDX/ld1"
+  printf '#!/bin/bash\necho "carry_audit: UNREAD the roster"; exit %s\n' 3 > "$PDX/ld3"
+  was=$(git --git-dir="$PDX/bodies.git" rev-parse refs/heads/handoff-body/zz-lint)
+  got=$(HPO_HANDOFF_LANDED="bash $PDX/ld1" lpush)
+  grep -q '^CARRY-MISSING R10-X body item 0123abcd' <<<"$got" && grep -q '^rc=1$' <<<"$got" \
+    && [ "$(git --git-dir="$PDX/bodies.git" rev-parse refs/heads/handoff-body/zz-lint)" = "$was" ]
+  st $? 0 "and refuses a body whose carry its group does not hold, naming it and pushing nothing (CARRY 11)"
+  got=$(HPO_HANDOFF_LANDED="bash $PDX/ld3" lpush)
+  grep -q 'carry landing was not checked (rc 3' <<<"$got" && grep -q '^rc=0$' <<<"$got" \
+    && [ "$(git --git-dir="$PDX/bodies.git" rev-parse refs/heads/handoff-body/zz-lint)" != "$was" ]
+  st $? 0 "and pushes, saying so, when the roster cannot be read (rc 3 is never a refusal)"
   (cd "$PDX/r" && git push -q -f origin pinert:refs/heads/handoff/zz-lint); got=$(lpush)
   grep -q 'push the code, then the body' <<<"$got" && grep -q '^rc=1$' <<<"$got"
   st $? 0 "and refuses a body pushed from a checkout that is not the head at handoff/<topic>"

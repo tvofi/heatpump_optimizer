@@ -61,6 +61,20 @@ if [ -n "$HREF" ]; then
   elif [ "$prc" != 0 ]; then
     echo "body_push: the review packet's handoff refusals were not run (rc $prc, above); dispatch still runs structure and hot-file" >&2
   fi
+  # The carry landing (CARRY 11, P287): a body carry its group does not yet hold, on main's
+  # roster or the round's branch, is refused here, so it lands before the open rather than after
+  # a review round (2 of 15 blocked verdicts on 2026-10-29). bus.sh dispatch runs the same check.
+  # rc 3 (the roster unreadable) is said, never a refusal. HPO_HANDOFF_LANDED replaces the check.
+  lrc=0
+  LD=$(cd "$ROOT" && ${HPO_HANDOFF_LANDED:-python3 -I "$ROOT/tools/audit/carry_audit.py" --roster-ref origin/main} \
+    landed --body "$ABS" --topic "$TOPIC" 2>&1) || lrc=$?
+  printf '%s\n' "$LD"
+  if [ "$lrc" = 1 ]; then  # mut:landed
+    echo "body_push: a carry above is not in its group's brief or carries; land it on the round's roster branch (carry_audit.py land-ops), then push the body" >&2
+    exit 1
+  elif [ "$lrc" != 0 ]; then
+    echo "body_push: the carry landing was not checked (rc $lrc, above); bus.sh dispatch checks it again" >&2
+  fi
 else
   echo "body_push: no handoff/$TOPIC on origin, so a result body: the pr-body lint does not apply"
 fi

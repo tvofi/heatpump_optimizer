@@ -73,6 +73,12 @@
 # idle; `confirm` keeps the same check as the signed gate. VERDICT.md alone
 # does not count: it names the sha by construction, and `app_approve.sh`'s
 # evidence gate exists to make a forged verdict forge artifacts too.
+# It also refuses, before review/<pr> moves, a verdict with a line its post
+# would refuse (ref_privacy.py body-lines, naming the line: P76), and one whose
+# finding items name no valid `Carry:` (carry_audit.py, the train pre-flight's
+# parser, over the verdict as its one comment, at origin/main and the round's
+# roster branch as last fetched: P40, P207). The push runs with a 500 MB
+# http.postBuffer: a ~30 MB evidence/ once failed HTTP 400 at git's 1 MB (#2563).
 #
 # NONCE VISIBILITY. The record lives in `$S` — `$HPO_BUS_STATE` else
 # `$HOME/.zcode/bus`, a per-machine path. `dispatch`, `push-verdict` and
@@ -193,6 +199,12 @@ dispatch_binding() { # verdict-file pr head -> 0 when the nonce binds to (pr, he
   [ "$rh" = "$3" ] || { printf 'nonce %s was dispatched at head %s, not the head %s this verdict names; mint a fresh dispatch at this head with bus.sh dispatch %s %s <reviewer>' "$n" "$rh" "$3" "$2" "$3"; return 1; }
   return 0
 }
+bot_only() { # head -> rc 0 when the commits in <remote>/main..head are all, and at least one, dependabot[bot]'s
+  local a
+  git fetch -q "$REMOTE" main 2>/dev/null
+  a=$(git log --format=%an "$REMOTE/main..$1" 2>/dev/null) || return 1
+  [ -n "$a" ] && [ -z "$(grep -vxF 'dependabot[bot]' <<< "$a")" ]  # mut:botonly
+}
 numeric() { case $1 in ''|*[!0-9]*) return 1 ;; esac; return 0; }
 approver_key() { # -> the hpo-approver App's private key on this machine, or a non-zero exit
   local k=${HPO_IDENTITY_DIR:-$HOME/.zcode}/identity-approver.pem
@@ -209,6 +221,45 @@ signed_by_approver() { # pr commit -> rc 0 when the commit's bus-signature is th
     && printf 'hpo-bus verdict %s %s\n' "$pr" "$(git rev-parse "$c^{tree}")" \
        | openssl dgst -sha256 -verify "$t/pub" -signature "$t/sig" >/dev/null 2>&1
   rc=$?; rm -rf "$t"; return $rc
+}
+
+carry_landed() { # pr -> rc 1 when a body carry is not in its group (lines and roster ops on stderr); else 0
+  # An unread body or roster is said and the dispatch goes on: the gate cannot judge it.
+  local b out rc
+  b=$(mktemp) || return 0
+  if ! ${HPO_BUS_GH:-gh} api "repos/$REPO/pulls/$1" --jq '.body // ""' > "$b" 2>/dev/null; then
+    echo "BUS carry-landing UNREAD #$1: the body could not be read; the dispatch goes on" >&2; rm -f "$b"; return 0
+  fi
+  out=$(python3 -I "$ROOT/tools/audit/carry_audit.py" --git-dir "$(git rev-parse --show-toplevel)" --roster-ref origin/main \
+    landed --body "$b" --pr "#$1" 2>&1); rc=$?
+  case $rc in
+    0) ;;
+    1) printf '%s\n' "$out" >&2
+       python3 -I "$ROOT/tools/audit/carry_audit.py" --git-dir "$(git rev-parse --show-toplevel)" --roster-ref origin/main \
+         land-ops --body "$b" --pr "#$1" 2>/dev/null | sed 's,^,  roster op: python3 tools/audit/seat/roster_edit.py ,' >&2 ;;
+    *) printf 'BUS carry-landing UNREAD #%s: %s; the dispatch goes on\n' "$1" "$(tail -n 1 <<< "$out")" >&2 ;;
+  esac
+  rm -f "$b"; [ "$rc" != 1 ]  # mut:landed
+}
+carry_gate() { # verdict-file -> rc 0 when each finding item routes, else why, naming the count and the first
+  # carry_audit.py judges, the parser the train's pre-flight runs (decision 0012): the verdict is
+  # its one verdict comment, the roster read at origin/main and the round's branch (P319) as this
+  # checkout last fetched them (as the pre-flight reads them: no fetch here), and a verdict with
+  # no finding item reads no roster.
+  local cj out rc
+  cj=$(mktemp) || { echo "no temporary file for the carry check"; return 1; }
+  python3 -I -c 'import json, sys; json.dump([{"id": "push-verdict", "body": open(sys.argv[1], encoding="utf-8").read()}], open(sys.argv[2], "w"))' \
+    "$1" "$cj" || { rm -f "$cj"; echo "the verdict could not be read for the carry check"; return 1; }
+  out=$(python3 -I "$ROOT/tools/audit/carry_audit.py" --git-dir "$(git rev-parse --show-toplevel)" --roster-ref origin/main \
+    check --body /dev/null --comments "$cj" 2>&1); rc=$?
+  rm -f "$cj"
+  case $rc in
+    0) return 0 ;;
+    1) printf '%s finding item(s) with no valid Carry: (carry_audit.py); first: %s' \
+         "$(grep -cE '^(UNROUTED|BAD-DEST) ' <<< "$out")" "$(grep -m 1 -E '^(UNROUTED|BAD-DEST) ' <<< "$out")" ;;
+    *) printf 'the carry check could not read the roster: %s' "$(tail -n 1 <<< "$out")" ;;
+  esac
+  return 1
 }
 
 push_verdict() { # pr verdict-file evidence-dir -> proposes the verdict on review/<pr>
@@ -229,6 +280,12 @@ push_verdict() { # pr verdict-file evidence-dir -> proposes the verdict on revie
   # proposal confirm would refuse must be refused here, while the reviewer is
   # still working, not after its seat has gone idle.
   why=$(dispatch_binding "$v" "$pr" "$hsha") || die "push-verdict: $why"
+  # Refused here, while the reviewer is still in its seat, and before review/<pr> moves: a
+  # line the post would refuse (P76: #2735, #2741, each a full re-review), and a finding item
+  # with no valid `Carry:` (P40, P207: #2670, #2876, #2881 parked in the train).
+  why=$(python3 -I "$ROOT/tools/audit/seat/ref_privacy.py" body-lines "$v") \
+    || die "push-verdict: its post would refuse $v at $why; write the path as ~/... or drop it"
+  why=$(carry_gate "$v") || die "push-verdict: $why"
   t=$(mktemp -d) || die "push-verdict: no temporary directory"
   mkdir -p "$t/w/evidence" && cp "$v" "$t/w/VERDICT.md" && cp -R "$ev"/. "$t/w/evidence/" \
     || { rm -rf "$t"; die "push-verdict: could not stage the verdict and its evidence"; }
@@ -277,7 +334,9 @@ append_commit() { # family pr tree message -> pushes one commit on <family>/<pr>
   c=$(git commit-tree "$tree" $parent -m "$msg") || { printf 'bus: REFUSE: commit-tree failed\n' >&2; return 1; }
   python3 -I "$ROOT/tools/audit/seat/ref_privacy.py" guard --ref "$fam/$pr" --message "$msg" \
     || { printf 'bus: REFUSE: %s/%s would publish this host (#2310)\n' "$fam" "$pr" >&2; return 1; }
-  git push -q "$REMOTE" "$c:refs/heads/$fam/$pr" || { printf 'bus: REFUSE: the push of %s/%s was refused\n' "$fam" "$pr" >&2; return 1; }
+  # A large evidence/ (73 files, ~30 MB: #2563) overran git's default 1 MB http.postBuffer and
+  # the chunked POST failed HTTP 400; the buffer holds a pack that size in one request.
+  git -c http.postBuffer=524288000 push -q "$REMOTE" "$c:refs/heads/$fam/$pr" || { printf 'bus: REFUSE: the push of %s/%s was refused\n' "$fam" "$pr" >&2; return 1; }
   printf '%s/%s %s\n' "$fam" "$pr" "$c"
 }
 
@@ -457,8 +516,21 @@ dispatch() { # pr head reviewer [--reviewed-head <sha>] [--nonce N] [--model M] 
   git cat-file -e "$h^{commit}" 2>/dev/null || git fetch -q "$REMOTE" "$h" 2>/dev/null
   git cat-file -e "$h^{commit}" 2>/dev/null \
     || die "dispatch: the head $h is not readable in this checkout; fetch it, then dispatch"
-  git cat-file -e "$h:$row" 2>/dev/null \
-    || die "dispatch: #$pr's head $h carries no $row; the row lands before the review (delivery-status-tracking.md) -- write it and re-push, then dispatch"
+  # A head whose every commit over main is dependabot[bot]'s (P100) takes no row commit: one moves
+  # it off the bot's head and reddens pr-contract against dependabot_contract.mjs (#2773, #2678).
+  # Its row is the orchestrator's on main, so it is read at origin/main; any other head reads its own.
+  if bot_only "$h"; then
+    git cat-file -e "$REMOTE/main:$row" 2>/dev/null \
+      || die "dispatch: #$pr's head $h is dependabot[bot]'s alone and $REMOTE/main carries no $row; land the row on main (a commit on the bot's head reddens pr-contract), then dispatch"
+  else
+    git cat-file -e "$h:$row" 2>/dev/null \
+      || die "dispatch: #$pr's head $h carries no $row; the row lands before the review (delivery-status-tracking.md) -- write it and re-push, then dispatch"
+  fi
+  # THE CARRY LANDING (CARRY 0, P310): a body item routed `Carry: <GROUP>` whose group's brief
+  # and carries hold neither its id nor this pull request is refused here, before a reviewer
+  # blocks on it (14 of 21 carry-missing blocks after #2838), with the roster ops that land it.
+  # A --nonce re-record of a relay-minted nonce is no new dispatch: its mint was judged.
+  [ -n "$n" ] || carry_landed "$pr" || die "dispatch: #$pr's body routes a carry its group does not hold (CARRY-MISSING above); land the roster ops above, then dispatch"
   # THE REVIEWABLE HEAD (K15 (d); the #2577 carry, built by R10-FLOW-MAIN-GATE).
   # A head where a required context's latest run concluded failure is not
   # reviewable. merge_train.py's `classify`, the one owner of that state, answers
@@ -602,6 +674,19 @@ watch() {
     esac
     shift
   done
+  # One watcher per state directory (P102): two re-baseline over each other and one misses a
+  # tip (#2780 r4, 0.6 h). The lock is a directory holding the holder's pid; a dead pid's is
+  # taken over; the exit trap releases it.
+  local lk=$S/watch.lock holder
+  mkdir -p "$S" || die "watch: no state directory $S"
+  if ! mkdir "$lk" 2>/dev/null; then
+    holder=$(cat "$lk/pid" 2>/dev/null)
+    if [ -n "$holder" ] && kill -0 "$holder" 2>/dev/null; then  # mut:watchlock
+      die "watch: another watcher (pid $holder) holds $lk; stop it or let it run"
+    fi
+  fi
+  echo "$$" > "$lk/pid"
+  trap 'rm -rf "$S/watch.lock"' EXIT
   while :; do
     watch_once "$post"; rc=$?
     [ $rc = 3 ] || return $rc
@@ -910,6 +995,26 @@ bus-nonce: $N1b" ] && [ "$(grep -c " $N1b " "$W/state/dispatched")" = 2 ] \
   out=$(run dispatch 7 "$h1" cmsg_Z2); rc=$?
   [ $rc = 0 ] && echo "$out" | grep -q '^bus-nonce: '
   expect "dispatch accepts the same pull request once its row is on the head (null control)" $?
+  # P100: a dependabot-only head reads its row on origin/main; any other head reads its own.
+  mb0=$(git -C "$W/seat" ls-remote origin refs/heads/main | cut -f1); git -C "$W/seat" fetch -q origin main
+  bot() { GIT_AUTHOR_NAME=${3:-dependabot[bot]} git -C "$W/seat" \
+            commit-tree "$(git -C "$W/seat" rev-parse "$1^{tree}")" -p "$1" -m "$2"; }
+  hb=$(bot "$mb0" "bump x")
+  out=$(run dispatch 41 "$hb" cmsg_B0); rc=$?
+  [ $rc != 0 ] && echo "$out" | grep -q "dependabot\[bot\]'s alone and origin/main carries no $ROW_DIR/41.md"
+  expect "null control: a dependabot-only head with its row nowhere is refused (P100)" $?
+  rb41=$(printf -- '- [#41](https://github.com/o/r/pull/41) — **open**\n' | git -C "$W/seat" hash-object -w --stdin)
+  rt41=$(git -C "$W/seat" ls-tree "$mb0" | grep -v "	dev$"; printf '040000 tree %s\tdev\n' "$(printf '040000 tree %s\tprogramme\n' "$(printf '040000 tree %s\tdelivery\n' "$(printf '100644 blob %s\t41.md\n' "$rb41" | git -C "$W/seat" mktree)" | git -C "$W/seat" mktree)" | git -C "$W/seat" mktree)")
+  m41=$(printf '%s\n' "$rt41" | git -C "$W/seat" mktree); m41=$(git -C "$W/seat" -c user.name=t -c user.email=t@t commit-tree "$m41" -p "$mb0" -m "row 41")
+  git -C "$W/seat" push -q origin "$m41:refs/heads/main"; hb=$(bot "$m41" "bump y")
+  out=$(run dispatch 41 "$hb" cmsg_B1); rc=$?
+  [ $rc = 0 ] && echo "$out" | grep -q '^bus-nonce: '
+  expect "a dependabot-only head with its row on origin/main is dispatched (P100)" $?
+  hb=$(bot "$(bot "$mb0" "a hand fix" t)" "bump z")  # cut before the row landed on main
+  out=$(run dispatch 41 "$hb" cmsg_B2); rc=$?
+  [ $rc != 0 ] && echo "$out" | grep -q "carries no $ROW_DIR/41.md"
+  expect "a head with one non-bot commit and its row only on origin/main is refused (P100)" $?
+  git -C "$W/seat" push -q -f origin "$mb0:refs/heads/main"; git -C "$W/seat" fetch -q origin main
   # THE REVIEW CARRY (R10-REVIEW-CARRY; tvofi, 2026-10-27). A fresh nonce over a
   # head whose range against the named reviewed head is clean starts a second
   # reviewer for a proof that did not move. `hm` is a merge-only move (main
@@ -1386,6 +1491,39 @@ B
   [ $rc = 0 ] && [ "$(tip review/7)" != "$r7" ]
   expect "and proposes the same verdict with a clean first line (the null control)" $?
 
+  # P76, P40/P207: a verdict refused before review/7 moves -- a line its post would refuse, a
+  # finding item with no valid Carry: -- each beside the same verdict that proposes (null control).
+  r7=$(tip review/7)
+  rmk() { git -C "$W/seat" mktree; }
+  rb=$(printf '{"groups": [{"group": "R10-LIVE", "resume": {"stage": "not-started"}}]}\n' | git -C "$W/seat" hash-object -w --stdin)
+  rt=$(printf '100644 blob %s\twave-r10-groups.json\n' "$rb" | rmk); rt=$(printf '040000 tree %s\trosters\n' "$rt" | rmk)
+  rt=$(printf '040000 tree %s\tprogramme\n' "$rt" | rmk); rt=$(printf '040000 tree %s\tdev\n' "$rt" | rmk)
+  m0=$(git -C "$W/seat" ls-remote origin refs/heads/main | cut -f1)
+  git -C "$W/seat" push -q origin "$(git -C "$W/seat" -c user.name=t -c user.email=t@t commit-tree "$rt" -p "$m0" -m roster):refs/heads/main"
+  git -C "$W/seat" fetch -q origin main
+  NG=$(run dispatch 7 "$h1" cmsg_G | sed -n 's/^bus-nonce: //p')
+  vg() { printf 'Fix review: merge %s\n\nbus-nonce: %s\n\n## Findings\n\n- %s\n' "$h1" "$NG" "$1" > "$W/vg.md"; seat push-verdict 7 "$W/vg.md" "$W/ev1" 2>&1; }
+  out=$(vg "A defect in x is left in place, not blocking."); rc=$?
+  [ $rc != 0 ] && [ "$(tip review/7)" = "$r7" ] && echo "$out" | grep -q "1 finding item(s) with no valid Carry: (carry_audit.py); first: UNROUTED review push-verdict item [0-9a-f]\{8\} (## Findings)"
+  expect "push-verdict refuses an unrouted finding item, naming it, and review/7 does not move (P40, P207)" $?
+  out=$(vg "A defect in x is left in place, not blocking. Carry: R10-GONE"); rc=$?
+  [ $rc != 0 ] && [ "$(tip review/7)" = "$r7" ] && echo "$out" | grep -q "first: BAD-DEST .*R10-GONE"
+  expect "push-verdict refuses a finding routed to no live group (BAD-DEST)" $?
+  out=$(vg "A defect in x is left in place, not blocking. Carry: R10-LIVE"); rc=$?
+  [ $rc = 0 ] && [ "$(tip review/7)" != "$r7" ]
+  expect "and proposes the same verdict once its finding names a live group (the null control)" $?
+  r7=$(tip review/7)
+  out=$(vg "A defect, its log at $W/hpo/x.log. Carry: R10-LIVE"); rc=$?  # $W is the HOME run() sets
+  [ $rc != 0 ] && [ "$(tip review/7)" = "$r7" ] && echo "$out" | grep -q "its post would refuse .* at line 7: home-directory"
+  expect "push-verdict refuses a home path at line 7, naming the line, and review/7 does not move (P76)" $?
+  out=$(vg "A defect, its log at ~/hpo/x.log. Carry: R10-LIVE"); rc=$?
+  [ $rc = 0 ] && [ "$(tip review/7)" != "$r7" ]
+  expect "and proposes it with the path written ~/... (the null control)" $?
+  GIT_TRACE2_EVENT=$W/tr2 GIT_TRACE2_CONFIG_PARAMS=http.postBuffer seat push-verdict 7 "$W/merge-clean.md" "$W/ev1" >/dev/null 2>&1
+  grep -q '"param":"http.postbuffer","value":"524288000"' "$W/tr2"
+  expect "the verdict push runs with a 500 MB http.postBuffer (#2563's HTTP 400)" $?
+  git -C "$W/seat" push -q -f origin "$m0:refs/heads/main"
+
   # THE THREE-ROUND RULE (fixer.md, "Past three rounds"): verdict/<pr>'s history keeps every
   # round, so the blocked commits on it are the rounds a dispatch would follow.
   blk() { git -C "$W/seat" commit-tree "$(git -C "$W/seat" rev-parse "$h1^{tree}")" ${2:+-p "$2"} \
@@ -1394,8 +1532,9 @@ B
   printf '## Summary\nround four, repaired\n' > "$W/body31"
   f1=$(blk 1); f2=$(blk 2 "$f1"); git -C "$W/seat" push -q origin "$f2:refs/heads/verdict/31"
   out=$(run dispatch 31 "$h1" cmsg_T); rc=$?
-  [ $rc = 0 ] && echo "$out" | grep -q '^bus-nonce: ' && [ ! -s "$W/gh-argv" ]
-  expect "null control: two blocked rounds dispatch, reading no pull-request body" $?
+  # the carry landing reads the body on every dispatch (`.body // ""`); the re-cut rule's own read is `.body`
+  [ $rc = 0 ] && echo "$out" | grep -q '^bus-nonce: ' && ! grep -qx "api|repos/o/r/pulls/31|--jq|.body|" "$W/gh-argv"
+  expect "null control: two blocked rounds dispatch, the re-cut rule reading no pull-request body" $?
   f1=$(blk 3 "$f2"); git -C "$W/seat" push -q origin "$f1:refs/heads/verdict/31"; n=$(grep -c . "$W/state/dispatched")
   out=$(run dispatch 31 "$h1" cmsg_T); rc=$?
   [ $rc != 0 ] && echo "$out" | grep -q "3 blocked round(s).*## Re-cut" && [ "$(grep -c . "$W/state/dispatched")" = "$n" ] \
@@ -1483,6 +1622,40 @@ B
   out=$(cd "$W/seat" && run push-design-verdict R10-G9 "$W/dverd.md"); rc=$?
   [ $rc != 0 ] && echo "$out" | grep -q "no design/R10-G9"; expect "a verdict for a topic with no design ref is refused" $?
 
+  # CARRY 0 / P310: dispatch refuses a body carry its group does not hold, printing the roster op;
+  # the same body passes once the group's carries name this pull request (null control).
+  m0=$(git -C "$W/seat" ls-remote origin refs/heads/main | cut -f1)
+  lroster() { # <carry json list>: origin/main's roster with R10-LIVE holding those carries
+    local rb rt
+    rb=$(printf '{"groups": [{"group": "R10-LIVE", "resume": {"stage": "not-started"}, "brief": "b", "carry": %s}]}\n' "$1" \
+      | git -C "$W/seat" hash-object -w --stdin)
+    rt=$(printf '100644 blob %s\twave-r10-groups.json\n' "$rb" | git -C "$W/seat" mktree); rt=$(printf '040000 tree %s\trosters\n' "$rt" | git -C "$W/seat" mktree)
+    rt=$(printf '040000 tree %s\tprogramme\n' "$rt" | git -C "$W/seat" mktree); rt=$(printf '040000 tree %s\tdev\n' "$rt" | git -C "$W/seat" mktree)
+    git -C "$W/seat" push -q -f origin "$(git -C "$W/seat" -c user.name=t -c user.email=t@t commit-tree "$rt" -p "$m0" -m roster):refs/heads/main"
+    git -C "$W/seat" fetch -q origin main; }
+  lroster '[]'; printf '## Forward-carry\n\n- The census misses the store seam. Carry: R10-LIVE\n' > "$W/body31"
+  nd=$(grep -c . "$W/state/dispatched")
+  out=$(run dispatch 7 "$h1" cmsg_L1); rc=$?
+  [ $rc != 0 ] && echo "$out" | grep -q "^CARRY-MISSING R10-LIVE body item [0-9a-f]\{8\}: not in its brief or carries" \
+    && echo "$out" | grep -q "^  roster op: python3 tools/audit/seat/roster_edit.py append-carry R10-LIVE 'From #7, body item " \
+    && [ "$(grep -c . "$W/state/dispatched")" = "$nd" ]
+  expect "dispatch refuses a body carry its group does not hold, printing the roster op, recording nothing (CARRY 0)" $?
+  lroster '["From #7: the store seam."]'
+  out=$(run dispatch 7 "$h1" cmsg_L2); rc=$?
+  [ $rc = 0 ] && echo "$out" | grep -q '^bus-nonce: '
+  expect "and dispatches once the group's carries name the pull request (P310, the null control)" $?
+  printf '## Summary\nround four, repaired\n' > "$W/body31"
+  git -C "$W/seat" push -q -f origin "$m0:refs/heads/main"; git -C "$W/seat" fetch -q origin main
+  # P102: a second watcher over the same state directory refuses, naming the holder; a dead
+  # holder's lock is taken over; the lock is gone once a watcher exits.
+  sleep 30 & wl=$!; mkdir -p "$W/state/watch.lock"; echo "$wl" > "$W/state/watch.lock/pid"
+  out=$(run watch --once 2>&1); rc=$?
+  [ $rc != 0 ] && echo "$out" | grep -q "another watcher (pid $wl) holds"
+  expect "watch --once under a live watcher's lock refuses and names its pid (P102)" $?
+  kill "$wl"; wait "$wl" 2>/dev/null
+  out=$(run watch --once 2>&1); rc=$?
+  [ $rc = 0 ] && [ ! -e "$W/state/watch.lock" ]
+  expect "null control: a dead watcher's lock is taken over, the pass runs, and its exit releases the lock" $?
   [ -n "${BUS_KEEP:-}" ] && echo "kept $W" || rm -rf "$W"
   printf 'bus self-test: %s checks, %s failed\n' "$((pass + fail))" "$fail"
   [ "$fail" = 0 ]
