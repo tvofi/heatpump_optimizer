@@ -1,0 +1,5 @@
+top keys ['controls', 'entry', 'format', 'inputs', 'price_series_entity', 'published', 'recorder_schema', 'states', 'time_zone', 'window']
+distinct id-shaped strings 26
+hashed 1
+not matching role/hash grammar (paths only): []
+role ids 25 role ids whose role is not an entry key (count): 0
