@@ -2,9 +2,8 @@
 
 Every screen Home Assistant shows when you add the Heat Pump Cost Optimizer,
 in the order you meet it, with a picture of each. Quick setup — the
-recommended route since v6.6.5 — collapses the original eleven-page wizard to
-one page of questions plus an automatic read of the heat pump's own entities;
-the full wizard is still there one menu entry later, and everything either
+recommended route — asks one page of questions plus an automatic read of the
+heat pump's own entities; the full wizard is one menu entry later, and everything either
 path sets can be refined afterwards in Options.
 
 This page is the journey. For what every field *means* — defaults, ranges,
@@ -126,7 +125,7 @@ with three answers:
 
 Two things worth knowing about this menu:
 
-- **It belongs to adding a new entry — and, since #1258, to changing one.**
+- **It belongs to adding a new entry, and Quick setup also to changing one.**
   The menu itself appears only while setting the integration up, but the
   Quick setup questions are also reachable afterwards: open the integration
   and choose **Configure**, where **Quick setup** is the last entry on the
@@ -136,10 +135,8 @@ Two things worth knowing about this menu:
   submit without changing anything and nothing is written. The device
   pre-fill is not offered there, because an existing entry's entity slots
   are already answered — that read stays on the **Pre-fill from a heat
-  pump device** page. **Reconfigure** still reopens only the first
+  pump device** page. **Reconfigure** reopens only the first
   screen and saves back onto the same entry.
-- **Quick setup arrived in v6.6.5.** An install set up on an earlier version
-  never saw the menu; its entries are complete all the same.
 
 ## Quick setup (recommended)
 

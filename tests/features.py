@@ -60259,9 +60259,12 @@ R.check(
 )
 # The class check's own null control: the same rule over a copy of the module
 # with the experiment's freeze consult removed finds #1523's seam.
-_P5_CONSULT = "else self._learning_frozen(CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY)"
+# The consult is hold_reason's frozen argument (sysid.hold_reason, this PR's
+# move of the stand-down decision): the mutant passes None in its place.
+_P5_CONSULT = ("self._pump_signals, "
+               "self._learning_frozen(CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY),")
 _p5_src_now = _p5_inspect.getsource(_p5_coord_mod)
-_p5_mut = _p5_ast.parse(_p5_src_now.replace(_P5_CONSULT, "else None"))
+_p5_mut = _p5_ast.parse(_p5_src_now.replace(_P5_CONSULT, "self._pump_signals, None,"))
 R.check(
     "#1523 class check null control: dropping the experiment's consult "
     "re-opens exactly its seam",
