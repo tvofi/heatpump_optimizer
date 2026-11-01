@@ -13462,9 +13462,10 @@
    ],
    "brief": "Fly-in split from R10-FLOW-TOOLKIT-MODEL's carry \"Round closure is v10.0.0\" (tvofi 2026-10-29, restated 2026-10-31). The plan modelled the round-closing stamp as a minor bump (v7.2.0). The closing stamp must be the round-major release vN.0.0, N the roster's round, the version stamp.py --round-close N assigns. The replanner derives that version from the stamp module, records the round, names the stamp kind round-close and refuses a plan whose closing stamp disagrees; the plan page renders it. Interim stamps stay patch bumps.",
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": null,
-    "pr": 3075
+    "pr": 3075,
+    "commit": "6421fe135d9f5a9e65433a4433f000d2419486bf"
    }
   },
   {
