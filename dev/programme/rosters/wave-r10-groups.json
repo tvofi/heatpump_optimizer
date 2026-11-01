@@ -14871,7 +14871,9 @@
     "tests/entities.py",
     "tools/coverage/coverage_tree.sh"
    ],
-   "carry": [],
+   "carry": [
+    "From the #2632 (R10-LOOP-CPU) fix review (probe/rev-2632-a4ff6382, verdict.md ## Findings), reviewer-dismissed, routed here because no finding is deferred: With `HASTUB_TZ=Europe/Stockholm` set, `tests/features.py` fails at the merge base fef4a135 as well as at this head: 5 of 4299 fail at the base, 4 of 4300 at the head. Two of the failures are the R9-F1.1 N-shared-config pair (\"published mid-solve []\"), and one is the naive/aware timestamp check (ev/features_base_TZ.txt, ev/mutants.txt \"=== null\"). It does not reproduce without that variable: the head prints `ALL 4307 FEATURE CHECKS PASSED`. No workflow under .github/workflows sets HASTUB_TZ. So this is a wall-clock or zone dependence in the suite that predates this branch, outside this group's seam."
+   ],
    "resume": {
     "stage": "not-started",
     "branch": "handoff/r10-suite-host-determinism",
