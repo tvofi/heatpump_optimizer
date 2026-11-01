@@ -28,4 +28,3 @@
   ok   it names the branch's own diff
   ok   an unknown sha cannot decide
 review_carry self-test: 29 checks, 0 failed
-exit 0

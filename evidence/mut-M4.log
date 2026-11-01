@@ -1,0 +1,322 @@
+M4: applied
+ tools/pr/app_approve.sh | 1 -
+ 1 file changed, 1 deletion(-)
+ok   the allowlist is exactly the approver App's login and id
+ok   a merge verdict at the live head of an open, unowned pull request is approved
+ok   with exactly one review POST
+ok   whose event is APPROVE and whose commit_id is the asked-for SHA
+ok   and whose body cites the verdict comment
+ok   the POST carried the installation token, from a header file
+ok   and that header file was mode 600 while it existed
+ok   the head was read twice: before the mint and again before the POST
+ok   the installation token is revoked on exit
+ok   the private directory is gone after a success
+ok   no token, JWT, key or signature text in stdout or stderr after a success
+ok   (null control: the leak grep does find the token where it really is)
+ok   (null control: and the JWT header, where it really is)
+ok   and the read-back line is printed
+ok   (fixture: the evidence dir names the head, so the approval above passed the gate honestly)
+ok   under bash -x the approval still runs
+ok   and no token, JWT, key or signature text reaches the trace
+ok   (null control: a JWT was signed on that run)
+ok   REFUSE: the live head moved off the asked-for SHA
+ok   naming the moved head
+ok   and nothing was minted or posted
+ok   REFUSE: the head moved between the mint and the POST
+ok   and no review was posted
+ok   the minted token is revoked after that refusal
+ok   and the private directory is gone, token and all
+ok   REFUSE: a merged pull request, even at its own head with a merge verdict
+ok   and nothing was minted or posted
+ok   REFUSE: no Fix review verdict at all
+ok   saying so, not falling through to the SHA comparison
+ok   and nothing was minted or posted
+ok   REFUSE: the merge verdict is for another SHA
+ok   naming the SHA the verdict is for
+ok   REFUSE: a newer blocked verdict, on a later page, overrides an older merge
+ok   REFUSE: a merge verdict from an outsider (association NONE)
+ok   and nothing was minted or posted
+ok   REFUSE: a merge verdict from a CONTRIBUTOR outside the allowlist
+ok   REFUSE: a tvofi verdict, the identity decision 0013 retired from verdicts
+ok   read as no App verdict, its OWNER association and evidence notwithstanding
+ok   and nothing was minted or posted
+ok   REFUSE: a verdict as the author App (#1233's defect)
+ok   REFUSE: the App's login on a non-Bot user record
+ok   REFUSE: the App's login and type under another numeric id
+ok   and nothing was minted or posted
+ok   REFUSE: a verdict from the retired seat account is outside the allowlist
+ok   read as no allowlisted verdict, its evidence dir notwithstanding
+ok   and nothing was minted or posted
+ok   a verdict citing ~/-relative evidence is approved, ~ resolved against $HOME at read time (#2310)
+ok   and one whose ~/-relative evidence does not exist is refused (the null control)
+ok   and nothing was minted or posted
+ok   REFUSE: the verdict cites an evidence directory that does not exist
+ok   naming the missing directory
+ok   and nothing was minted or posted
+ok   REFUSE: the evidence directory holds no file naming the head
+ok   naming the exact-sha rule it failed
+ok   and nothing was minted or posted
+ok   REFUSE: '(review-1591/).' and 'a/b/' start no token -- no mid-word slash
+ok   read as citing no path at all, not as citing '/'
+ok   and nothing was minted or posted
+ok   REFUSE: a bare root surrounded by spaces starts no token either
+ok   and nothing was minted or posted
+ok   REFUSE: a single path component, even one that exists, is refused outright
+ok   naming the component-count rule it failed
+ok   and nothing was minted or posted
+ok   a trailing slash on an otherwise-good evidence path is stripped, not refused
+ok   REFUSE: a missing directory cited with a trailing slash
+ok   (kills the trailing-slash-strip mutant) the cited path in the message has no trailing slash
+ok   (null control) that same message never carries a trailing slash either
+ok   pin M3: the boundary class still includes '(' -- the common '(evidence: ...)' citation shape needs it
+ok   (kills the paren-boundary mutant, M3) '(' starts a token, ')' is stripped off it
+ok   (kills the bracket-boundary mutant) '[' starts a token, ']' is stripped off it
+ok   (kills the backtick-boundary mutant) a backtick starts a token, and ends it
+ok   (kills the token-character-class mutant) the token stops at the backtick, not after it
+ok   (kills the quote-boundary mutant) a single quote starts a token too
+ok   REFUSE: /tmp/../ resolves to the root, however many slashes it typed
+ok   and nothing was minted or posted
+ok   REFUSE: <a real component>/../../ collapses to the root too
+ok   and nothing was minted or posted
+ok   REFUSE: a doubled slash alongside a dot-segment still resolves to the root
+ok   and nothing was minted or posted
+ok   pin M18: resolution reads the PHYSICAL directory; `pwd` alone can report a symlink's logical name instead
+ok   pin: a resolved path that is its own mount point is refused
+ok   REFUSE: //tmp/../ resolves to // (not /), and still must be refused
+ok   and nothing was minted or posted
+ok   REFUSE: //dev/fd must not slip past the /dev refusal and reopen the forgery hole
+ok   naming the devfs refusal specifically, not just a missing directory
+ok   REFUSE: //proc/self must not slip past the /proc refusal either
+ok   naming the procfs refusal specifically, where /proc exists
+ok   REFUSE: /proc/self is never qualifying evidence
+ok   naming the procfs refusal specifically, where /proc exists
+ok   REFUSE: /dev/fd is the same hole under devfs
+ok   naming the devfs refusal specifically
+ok   REFUSE: /sys/kernel is the same hole under sysfs
+ok   naming the sysfs refusal specifically
+ok   REFUSE: an outsider's later merge does not displace an allowlisted blocked
+ok   the allowlisted blocked verdict is the one read
+ok   an outsider's later blocked does not displace an allowlisted merge either
+ok   REFUSE: a pull request touching a CODEOWNERS path
+ok   naming the owned path
+ok   and nothing was minted or posted
+ok   REFUSE: an exact owned file at the root
+ok   REFUSE: a rename whose OLD path is owned
+ok   a later owner-less line un-owns: COMMON.md is approvable (last match wins)
+ok   REFUSE: CODEOWNERS unreadable at ref=main, failing closed
+ok   and it was asked for at ref=main
+ok   REFUSE: a CODEOWNERS holding no rules, failing closed
+ok   REFUSE: the App private key is missing
+ok   failing closed with a clear message
+ok   before any gh, openssl or curl call
+ok   REFUSE: an App id with a non-digit in it
+ok   refused as malformed, not stripped to digits
+ok   before any gh, openssl or curl call
+ok   REFUSE: an abbreviated SHA is not an exact head
+ok   refused as a malformed argument, before any call
+ok   a refused POST exits non-zero
+ok   the token is revoked after the failed POST
+ok   the private directory is gone after the failed POST
+ok   (the token header file did exist during that POST)
+ok   and no token, JWT, key or signature text reached stdout or stderr
+ok   the refused POST was sent exactly once
+ok   train 8's shape: a 502 on the pull-request read, then an answer, is approved
+ok   the failed read was retried once (2 calls), then the pre-POST re-read (3)
+ok   after one settle of 5 s
+ok   and the settle is printed, never implied
+ok   a transport error on the comments read, then an answer, is approved
+ok   with exactly 2 calls to that read
+ok   a 429 on the CODEOWNERS read, then an answer, is approved
+ok   with exactly 2 calls to that read
+ok   a secondary-rate-limit 403 on the files read, then an answer, is approved
+ok   with exactly 2 calls to that read
+ok   three transient failures and an answer on the fourth read, the budget's last, are approved
+ok   with exactly 4 calls to that read
+ok   REFUSE: a 404 on the pull-request read
+ok   after exactly 1 call: no retry masks a refusal
+ok   and no settle
+ok   naming the error gh gave, with no attempt count after one call
+ok   and the read's stderr file is gone
+ok   and nothing was minted or posted
+ok   REFUSE: a permission 403 on the files read
+ok   after exactly 1 call
+ok   REFUSE: a 401 on the comments read
+ok   after exactly 1 call
+ok   REFUSE: a 422 on the CODEOWNERS read
+ok   after exactly 1 call
+ok   a readable but wrong head refuses after exactly 1 read
+ok   and no settle
+ok   a readable answer with no verdict refuses after exactly 1 read
+ok   REFUSE: four transient failures spend the budget
+ok   after exactly 4 calls
+ok   the fifth queued failure was never read
+ok   settling 5/15/45 s between them
+ok   naming the last error
+ok   and nothing was minted or posted
+ok   and the read's stderr file is gone
+ok   REFUSE: a read whose stderr file cannot be made
+ok   naming that, not a parse of an empty answer
+ok   and gh was never called
+ok   REFUSE: a read failing with nothing on stderr
+ok   after exactly 1 call
+ok   saying gh left no error
+ok   every queued stderr line classifies as its arm needs (production gh_transient)
+ok   (the census covers every fail-* file an arm made)
+ok   (and holds both classes)
+ok   a 502 followed by a second stderr line, then an answer, is approved
+ok   after one retry of the pull-request read
+ok   every alternative's inputs and near-misses classify as the table needs (production gh_transient)
+ok   and gh_transient prints nothing on either stream
+ok   (the table keys exactly the alternatives gh_transient's source holds)
+ok   (and every alternative holds both a transient input and a refused near-miss)
+ok   (nine alternatives: four case labels, the sed, the phrase, two transport shapes, the default)
+ok   a 502 on the installation read, then an answer, is approved
+ok   with exactly 2 calls to that read
+ok   after a printed settle of 5 s
+ok   a curl timeout (exit 28) on the installation read, then an answer, is approved
+ok   with exactly 2 calls to that read
+ok   REFUSE: a 404 on the installation read (the App is not installed)
+ok   after exactly 1 call: no retry masks a refusal
+ok   naming the status and message the API gave
+ok   and no token was minted
+ok   REFUSE: a 401 on the installation read (a refused JWT)
+ok   after exactly 1 call
+ok   REFUSE: a curl failure that is not transport (exit 60, a certificate)
+ok   after exactly 1 call
+ok   REFUSE: an installation read that answers without an id
+ok   judged after the completed read, never retried
+ok   after exactly 1 call
+ok   REFUSE: four transient failures on the installation read spend the budget
+ok   after exactly 4 calls
+ok   settling 5/15/45 s between them
+ok   naming the last error
+ok   and no token was minted
+ok   every queued curl answer classifies as its arm needs (production curl_get and gh_transient)
+ok   (the census covers every curlfail file an arm made)
+ok   (and holds all three classes)
+ok   every alternative of curl_get classifies as the table needs (production curl_get and gh_transient)
+ok   (the curl table keys exactly the alternatives curl_get's source holds)
+ok   (and every curl alternative but default holds both a transient input and a refused near-miss)
+ok   gh_read.py's gh_transient agrees with this one on every row of the alternatives table
+ok   (and read every row)
+ok   a 502 on the review POST refuses: a write is never retried
+ok   after exactly 1 POST
+ok   and no settle
+ok   --dry-run passes every refusal
+ok   and makes no curl call: nothing minted, nothing posted
+ok   and signs nothing
+ok   reporting what it would do
+ok   --dry-run still refuses what a real run would
+ok   CARRY: a merge from main that leaves the branch's own diff byte-identical
+ok   CARRY: a ci: commit that changes nothing
+ok   NO CARRY: the same merge with one byte of a.txt changed in its resolution (null control)
+ok   refused as a hand-resolved merge
+ok   NO CARRY: a commit of the branch's own that changes a code line
+ok   refused naming that commit
+ok   CARRY: an empty commit of the branch's own (L6)
+ok   NO CARRY: a ci: commit that changes the branch's diff
+ok   refused as a ci: commit outside the driver files
+ok   CARRY: a bot commit that rewrites only its own merge-driver file
+ok   NO CARRY: the same bot subject rewriting a merge-driver file outside its own paths (#3077)
+ok   refused naming the driver file
+ok   NO CARRY: the bot's confined additions, under a ci: subject no writer uses
+ok   refused by the generic ci: guard, not the bot one
+ok   NO CARRY: the bot's pin commit over a row the branch's own diff already carried
+ok   refused by the branch's own comparison, not the confinement check
+ok   NO CARRY: the bot's pin commit over a row the branch's own diff already carried
+ok   refused by the branch's own comparison, not the confinement check
+ok   NO CARRY: the bot's pin commit over a row the branch's own diff already carried
+ok   refused by the branch's own comparison, not the confinement check
+ok   NO CARRY: the bot's pin commit over a row the branch's own diff already carried
+ok   refused by the branch's own comparison, not the confinement check
+ok   CARRY: a bot commit that only ADDS a fresh row is still new bot content
+ok   NO CARRY: a path named '*' is not a wildcard, it is one added file
+ok   refused by the branch's own comparison, literal pathspec holding
+ok   NO CARRY: a hand resolution that moves the branch's change to another function with the same context
+ok   refused as a hand-resolved merge, whatever the diffs compare
+ok   NO CARRY: a merge of a handed-off head whose own main merge was hand-resolved
+ok   refused for the handed-off head's own merge, which the outer diffs cannot see
+ok   NO CARRY: a ci: commit that moves the branch's change to another function with the same context
+ok   refused by the ci: guard
+ok   NO CARRY: a commit of the branch's own that moves its change to another function with the same context (L6)
+ok   refused by the re-merge tree check, which the header-free comparison cannot replace
+ok   CARRY: mutation-autofix's ledger commit, inside its own paths (R9-CI-2b)
+ok   NO CARRY: the same subject touching one more file outside its paths
+ok   NO CARRY: the ledger under another bot's subject, whose paths do not hold it
+ok   NO CARRY: that subject touching a file outside the claim files
+ok   NO CARRY: the ledger commit under the bot's subject but a seat's author (#2059 round 1)
+ok   CARRY: remerge_main.sh's inherited-claims commit, only dropping a claim line
+ok   NO CARRY: the same subject adding a claim line
+ok   CARRY: a merge from main, then the ledger commit it set off (#2024's shape)
+ok   CARRY: a merge of a side branch whose one commit is empty (L6: no PR line changed)
+ok   NO CARRY: a merge of a branch that is not main, its one commit changing a line
+ok   NO CARRY: one merge of main and another branch at once
+ok   CARRY: a merge of a handed-off head that is itself a carried main merge (#2876's shape)
+ok   NO CARRY: a merge of a handed-off head whose main merge changed a byte
+ok   NO CARRY: a rewritten head, not a descendant of the verdict's
+ok   NO CARRY: a head behind the verdict's, the same tree (only the ancestor check refuses it)
+ok   CARRY: a merge from main that shifted the branch's hunk and rewrote a merge-driver file
+ok   NO CARRY: a merge from main that changed a context line of the branch's hunk
+ok   NO CARRY: a driver the branch gave its own file, since drivers are read at main
+ok   CARRY: a re-cut merge of the branch's own previous head (#2876's shape)
+ok   CARRY: a claim file resolved to the pure union of both sides
+ok   with the refusing driver's own words kept out of the carry
+ok   NO CARRY: a claim resolution that drops a line
+ok   refused as a claim resolution that is not the union
+ok   NO CARRY: a claim resolution that rewrites a line
+ok   refused as a claim resolution that is not the union
+ok   the fixture's driver resolved the merge, keeping main's cleared claim cleared
+ok   CARRY: a claim file resolved by main's driver, which is not the union
+ok   NO CARRY: the driver's resolution with one hand-added claim line
+ok   refused as neither the union nor the driver's output
+ok   NO CARRY: main's side dropped by hand, which only the head's own driver would write
+ok   refused on main's driver, not the head's
+ok   NO CARRY: a commit of the branch's own that adds a claim line after main's driver resolved the merge
+ok   refused naming the claim file
+ok   CARRY: an empty commit of the branch's own after main's driver resolved the claim file (null control)
+ok   CARRY: the same in a clone with no claim driver configured, read by main's own driver
+ok   the fixture's ledger driver resolved the merge both sides changed
+FAIL CARRY: a ledger main's driver resolved, in a clone with no ledger driver configured (got '1', want '0')
+ok   NO CARRY: the same ledger with one value then changed by a commit of the branch's own
+ok   refused naming the ledger
+ok   CARRY: the verdict head plus its delivery-row add
+ok   CARRY: the verdict head itself, no commit after it (null control)
+ok   CARRY: a verdict head holding its row plus a row-edit commit
+ok   CARRY: the add and the edit in one range
+ok   NO CARRY: a row-subject commit that also touches one other file
+ok   refused naming that commit
+ok   NO CARRY: a row commit authored by anyone but tvofi
+ok   refused naming that commit and its author
+ok   NO CARRY: a row commit for #7 writing another pull request's row
+ok   refused on the path its subject binds
+ok   NO CARRY: an ordinary commit changing one test line after the row
+ok   refused naming that commit
+ok   NO CARRY: an ordinary commit changing one budget value after the row
+ok   refused naming that commit
+ok   NO CARRY: a commit of the branch's own that edits a merge-driver file (a budget raise)
+ok   refused naming the driver file
+ok   NO CARRY: a ci: subject by a seat that edits a merge-driver file
+ok   refused naming the driver file
+ok   NO CARRY: a merge from main whose merge-driver file is resolved by hand
+ok   refused naming the driver file
+ok   NO CARRY: a commit of the branch's own that edits the driver file a carried bot commit wrote
+ok   refused naming the driver file
+ok   CARRY: an empty commit of the branch's own after a carried bot commit's driver-file write (null control)
+ok   CARRY: an empty commit of the branch's own after a merge from main (null control)
+ok   CARRY: a revert, an absorb of main and the re-apply (L6)
+ok   NO CARRY: the same with a re-apply one byte away
+ok   CARRY: main rewrote a context line beside the branch's lines in a .md file (P17)
+ok   NO CARRY: the same context rewrite in a .py file (code stays strict)
+ok   refused by the branch's own comparison
+ok   NO CARRY: a .md file where main made one of the branch's + lines its own
+ok   NO CARRY: a .md hunk whose context count main changed
+ok   a merge verdict at V is approved at a head it carries to
+ok   at the live head, and the review says it was carried
+ok   printing the carry it relied on
+ok   REFUSE: the verdict at V does not carry to a head one byte away (null control)
+ok   saying why
+ok   and nothing was minted or posted
+ok   REFUSE: a carried verdict whose evidence names neither head
+app_approve self-test: 316 checks, 1 failed
+rc=1
+restored

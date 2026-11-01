@@ -203,4 +203,3 @@ ok   zero retries, zero settles: one read, no sleeping
 ok   and no success line
 ok   the default budget is a first read plus 3 retries, settling 5s/15s/45s (~65s of settles)
 app_push self-test: 204 checks, 0 failed
-exit 0

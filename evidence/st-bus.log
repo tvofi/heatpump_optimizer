@@ -109,4 +109,3 @@
   ok   a verdict first line outside the grammar is refused
   ok   a verdict for a topic with no design ref is refused
 bus self-test: 110 checks, 0 failed
-exit 0
