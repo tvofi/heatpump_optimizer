@@ -15115,7 +15115,9 @@
     "tools/pr/merge_main_bot.py",
     "tests/env_drift.py"
    ],
-   "carry": [],
+   "carry": [
+    "The claimnotes refusal must state the decision it needs, not only the file (P214/V134, from #2872: DIRTY at `fe964895e`, the bot answering `skip-driver-refused tests/golden/claimed_drift.txt`, and the owner diffing both sides to learn that main added `negative_prices`/`summer_dhw_only` while the branch deletes them and rewrites `config_flow`). The decision text already exists and is dropped in transit: `tests/env_drift.py`'s `merge_claim_refusal` (1844-1857) prints both sides' claim sets and the rule (\"keep the claims that describe THIS branch's diff and delete the rest\"), while `tools/pr/merge_main_bot.py:139` emits only `\"skip-driver-refused \" + \",\".join(driver_conflicts or text_conflicts)`. The fix lives in `tools/pr/merge_main_bot.py`, which no group owns, so this carry includes an `edit-brief` taking that file into R10-996-RUNNER-CLAIMS's `files` first; the standing roster seat applies it from the queue, and no fix touches the bot before it lands. Carry the driver's own message into the bot's status line or its stderr -- no second summary, one reader, P207's precedent for `carry_audit`. When the driver cannot be run, print today's filename list rather than a guess; a merge with no claim conflict prints exactly what it prints today (null control). Touch no claim file -- the mandate excludes them -- and decide no claim: the fix is the message path only, and the wording stays in `env_drift.py` as its single source. triage: dev/programme/triage/s6-batch41.md#P214"
+   ],
    "resume": {
     "stage": "not-started",
     "branch": "handoff/r10-merge-bot-refusal-text",
