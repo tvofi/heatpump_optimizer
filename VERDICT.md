@@ -1,29 +1,19 @@
-Fix review: blocked 1ac45d875522d5ab8040f8d89d1f05a7aeadda6d ci-red: governance / instrument-self-tests and pr-contract concluded red at this head; not shown to be this diff's, so not mergeable until re-run green
+Fix review: merge 1ac45d875522d5ab8040f8d89d1f05a7aeadda6d
 
-bus-nonce: 0b0cb173c9cb41f0613c5c6aa69ea2c9
+bus-nonce: 49a95932a47964fb2060fc74e8691440
 
-Round 1. Reviewed from a detached worktree at 1ac45d875522d5ab8040f8d89d1f05a7aeadda6d.
-
-## Block
-
-merge_train classify at this head returned RED (gate). Concluded-red checks in the head's own runs: governance / instrument-self-tests (run 41287667687, job 124792258514), pr-contract / pr-contract (jobs 124798511179 and 124798871788), and gate (red only because of those). The instrument-self-tests log ends at "pr_args self-test: 158 checks, 2 failed", the two rows being "open_pr: the null control -- an unrelated sleeper survives" and "null control: a normal successful update_pr leaves nothing behind and stops nothing it did not start", with the runner printing "Security violation: Requested utility `unrelated-sleep` does not match executable name: /usr/lib/cargo/bin/coreutils/sleep". tools/audit/seat/pr_args.sh is not in this diff and main's recent push runs were green, so this looks like a runner or timing flake, but I could not show that: my local run of the same self-test did not finish within my budget (it stalled after 121 lines with no FAIL). The body's ## Red checks answers neither this red nor pr-contract's, so the red-check duty (fix-review step 11) is also open. Re-run the failed jobs; if instrument-self-tests goes green and pr-contract is answered in the body, the code review below stands and this head can merge with no other change.
+This is round 2: a scoped re-check of the red checks at the same head. The code review in the earlier verdict (refs/heads/verdict/3065) still stands, and I did not repeat it.
 
 ## Findings
 
-- carry_audit now reads Evidence by shape (P308 as designed): a prose nit in Evidence that is neither a lead-opened bullet nor carries Carry: is not flagged. At origin/main a line like "a nit remains: baz is residual." was flagged; at this head it is not (my probe). The design is intended and stated in the body, but a seat that buries a finding mid-sentence in Evidence now passes the audit. Carry: dismissed: the shape reading is the owner's P308 ruling, and the reviewer prompt states it
-- standing-dispatch.md is code-owned policy and the body records the owner's approval as owed. Carry: dismissed: merge needs the owner's approving review under the code-owner rule, which main-protect-checks enforces
+- `governance / instrument-self-tests` is still concluded red at this head. The orchestrator's attempt 4 re-ran only `gate`. Job 124885182327 is the failure carried over from attempt 2. The body's `## Red checks` names this red and answers it. Cause: on runner image ubuntu-26.04, uutils coreutils refuses the `unrelated-sleep` symlink. Process state: (d). Cheaper detector: none. The fix is owned by #3086. The diff touches none of pr_args.sh, open_pr.sh or update_pr.sh. Main's push job 124813746788 at 6421fe135 fails steps 47, 50 and 73, the same three steps the body names, which confirms the red is main's and not this diff's. The body still calls #3086 "open", but it merged at 2026-11-01T12:08:34Z as 473fdfff2 on main's pr_args.sh, so main's next run carries the fix. Carry: dismissed: the red is answered in the body, the check is not among the required contexts that merge_train reads, and the cause is already fixed on main by #3086
 
 ## Evidence
 
-- CI: classify RED at this head (see Block). The earlier WAIT state is superseded.
-- Merge: git merge-tree --write-tree origin/main head exits 0, with no claim-file conflict (inert_reads merged as a set).
-- Self-tests re-run here: tick_loop 26/0, cloud_relay 316/0, bus 123/0, carry_audit 292/0 (ev/*.log). tests/structure.py: STRUCTURE RATCHET PASSED.
-- Three-dot diff has dev/programme/delivery/3065.md, touches no golden or claim file, no VERSION or manifest.
-- The restart (tick_loop.sh fresh_check) never fast-forwards in place and never exits: it takes the relay flock (non-blocking), refuses a branch checkout, a dirty tree (tracked files) and a failing bash -n of origin/main's copy, then checks out detached and execs with the saved argv, once per pass (HPO_TICK_RESTARTED). Otherwise it prints TICK-STALE and skips the relay and sweep arms. My plants (each removed one guard): dirty, bash -n, lock, detached, relay skip: all killed (1, 2, 6, 4 and 3 failing rows), with the null rows (behind 0 silent, within-bound relays) passing.
-- cloud_relay.sh review_freeze: the dispatch-record columns (pr head ref nonce at model) match bus.sh's writer. My plants, dropping the head match and dropping the at time, are killed (1 and 2 failing rows); the null rows pass. My dirty-tools-tree plant ran past my time budget and I stopped it without a result; that guard is covered by the author's cloud_relay-42 mutant, which I did not re-run.
-- bus.sh: planting out the carry_gate call fails the two push-verdict refusal rows. I did not plant the body-lines, postBuffer or dependabot arms myself.
-- Claims about main (P15 --confirm in relay_start, the confirm arm, the retry with REFUSED) I checked only through the PR's own self-test rows, not by reading origin/main line by line.
-- I did not re-run the carry-parser or seat-selftests mutant harnesses, the field-figures harness, prepr, or the scoped gate: the first four are in CI's governance and tests jobs.
-- Red checks: none concluded red at the time of writing, so the ## Red checks section's earlier fast(3.14) red (run on 054e5a25f) is a prior head's, repaired in c5ded0de1.
-- The review packet reports FIGURES 21 resolved, 0 not verified; carry_audit at head routes 1 item (the friction one, dismissed).
-- CI at this head: classify returned WAIT (tests / fast (3.14), closures, graders-head-copy, instrument-self-tests, codeql python still in progress), no red.
+- Head: `git ls-remote origin refs/pull/3065/head` = 1ac45d875522d5ab8040f8d89d1f05a7aeadda6d, both at the start and at the end of this review. It has not moved.
+- CI: `merge_train.py classify 1ac45d875522d5ab8040f8d89d1f05a7aeadda6d` returned WAIT (rc 3) at 15:01:37Z, then `GREEN ... pending: none red: none` (rc 0) at 15:03:09Z (ev/classify.log).
+- Check-runs: I read all pages, 81 runs (ev/check-runs.tsv), and took the latest run per context. `gate` succeeded (jobs 124885190055 and 124885183392). The latest `pr-contract / pr-contract` run started at 14:59:33Z and succeeded (job 124884555088). That is after the last red concluded (10:05:47Z), so that run checked the body that now carries `## Red checks`. Under step 11 a green run is the evidence. The only failure that is a latest run in its context is instrument-self-tests (see Findings). The red pr-contract rows that remain in the listing are earlier runs, superseded by later green runs.
+- Workflow runs at this head (ev/runs.tsv): CI code 41287667687 attempt 4 concluded failure, because it carries the instrument-self-tests job. CI edit 41287668221 attempt 5 succeeded, and so did 41317846192 and 41317561452.
+- Body: `python3 tools/audit/carry_audit.py pr 3065` reports 4 routed, 0 unrouted and 0 bad. Item f2b7b8d4 is dismissed as an evidence line recording verified behaviour (ev/carry_audit_pr.log).
+- Merge: `git merge-tree --write-tree origin/main 1ac45d875522d5ab8040f8d89d1f05a7aeadda6d` exits 0 at origin/main e4c9e2016a455d787d3a7604ef88c803c3ba5c70 (ev/merge-tree.log).
+- Review packet: rendered with rc 0 (ev/packet.log). Its gate digest read red at render time, before attempt 4 concluded, and the live re-read above supersedes it.
