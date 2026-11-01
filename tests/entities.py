@@ -35238,6 +35238,85 @@ R.check(
         "skip-no-base-program", "skip-unchanged", "")),
     f"quiet={_closure.AUTOFIX_QUIET[_MA]}",
 )
+# Countermeasure C of R10-RCA-MUTATION-SURVIVOR (#2840): `mutation-autofix`
+# reddens when the measurement it applied left an added site alive, and says
+# which. Replayed on the shape of #2817's `4fbe4c6a5` measurement (`24 pinned,
+# 2 left unpinned`, the two lives lines below), on `0 left unpinned`, and on a
+# measurement it did not apply. The survivors come from the run's own report
+# lines, so a site cut for the budget, which a later run drives, is no survivor.
+_SV_RUN = (
+    "  pinned   coordinator.py:6100 GUARD_OFF -- killed by tests/features.py\n"
+    "  UNPINNED coordinator.py:6278 GUARD_OFF -- lives\n"
+    "  UNPINNED coordinator.py:6306 GUARD_OFF -- lives\n"
+    "  UNPINNED coordinator.py:6400 GUARD_OFF -- skip-budget\n"
+    "  UNPINNED coordinator.py:6410 GUARD_OFF -- killed by tests/features.py, "
+    "but its anchor also covers a site no run killed\n"
+    "\nPIN KILLED: 24 pinned, 4 left unpinned (2 survived, 1 not started for the "
+    "budget, 0 exclusive tails cut, 0 timed out, 0 skipped)\n")
+_SV_SITES = _mut.survivor_sites(_SV_RUN)
+_SV_RED = _closure.autofix_report(_MA, "changed", _SV_SITES)
+_SV_GOT = [
+    _SV_SITES,
+    _closure.autofix_report(_MA, "changed", [])[0],
+    _SV_RED[0], "coordinator.py:6278 GUARD_OFF" in _SV_RED[1]
+    and "coordinator.py:6306 GUARD_OFF" in _SV_RED[1],
+    _closure.autofix_report(_MA, "skip-head-moved", _SV_SITES)[0],
+    _closure.autofix_report(_MA, "skip-nothing-killed", _SV_SITES)[0],
+    _closure.autofix_report(_MA, "skip-not-allowed", _SV_SITES)[0],
+    _mut.survivor_sites("PIN KILLED: 3 pinned, 0 left unpinned\n"),
+    _mut.survivor_sites(None),
+]
+R.check(
+    "mutation-autofix is red on an applied measurement that left a site alive, naming each; "
+    "green on `0 left unpinned`; quiet on skip-head-moved",
+    _SV_GOT == [["coordinator.py:6278 GUARD_OFF", "coordinator.py:6306 GUARD_OFF"],
+                0, 1, True, 0, 1, 0, [], []],
+    f"(sites, changed+none, changed+2, named, head-moved, nothing-killed+2, not-allowed, "
+    f"0 left, no run) -> {_SV_GOT}",
+)
+# The survivors travel with the pins: each `mutation-pins` shard writes
+# `survivors.txt` beside `pins.json`, `merge_pin_shards` unions them, and
+# `mutation-autofix` reads the union back (`read_survivors`) into the env the
+# report step grades. A merge that kept one shard's list would green the job
+# on the other's survivor.
+with _tempfile.TemporaryDirectory() as _sv_td:
+    _sv_root = Path(_sv_td) / "shards"
+    for _k, _surv in ((1, ["a.py:1 GUARD_OFF"]), (2, []), (3, ["b.py:2 RETURN_DEL"])):
+        _d = _sv_root / f"mutation-pins-{_k}"
+        _d.mkdir(parents=True)
+        (_d / "status").write_text("measured\n")
+        (_d / "pins.json").write_text("{}")
+        (_d / "head").write_text("h\n")
+        (_d / "survivors.txt").write_text("".join(f"{x}\n" for x in _surv))
+    _mut.merge_pin_shards(str(_sv_root), str(Path(_sv_td) / "m"))
+    _SV_MERGED = _mut.read_survivors(str(Path(_sv_td) / "m"))
+    _SV_NONE = _mut.read_survivors(str(Path(_sv_td) / "absent"))
+_MA_JOB = _workflow_job(_TESTS_YML, "mutation-autofix")
+_MP_JOB = _workflow_job(_TESTS_YML, "mutation-pins")
+R.check(
+    "the survivors are written by each pin shard, merged as a union, read by mutation-autofix "
+    "and graded by its report step",
+    _SV_MERGED == ["a.py:1 GUARD_OFF", "b.py:2 RETURN_DEL"] and _SV_NONE == []
+    and "mutation_table.survivor_sites(run.read_text())" in _MP_JOB
+    and "mutation_table.read_survivors(pins)" in _MA_JOB
+    and "AUTOFIX_SURVIVORS: ${{ steps.autofix.outputs.survivors }}" in _MA_JOB
+    and _closure.AUTOFIX_SURVIVOR_GRADED[_MA] == ("changed", "skip-nothing-killed"),
+    f"merged={_SV_MERGED} absent={_SV_NONE}",
+)
+# R10-PIN-DRIVE-INCONCLUSIVE: a pin drive whose lazy baseline refused (rc 0 at
+# --scope changed) returns before `pin_results` is written, so no `PIN KILLED:`
+# summary -- the one line `measurement()` grades by -- can describe sites a red
+# baseline kept from being judged as if they had survived. Order, not wording:
+# `LazyBaselines.killed` reads every run after the stop as no kill.
+_PD_STOP = _MUT_BODY.find("        if verdicts.stop is not None:\n            return verdicts.stop\n        print(f\"  REACH SKIP")
+R.check(
+    "a pin drive whose baseline refused returns before its results are reported as survivors",
+    0 < _PD_STOP < _MUT_BODY.find("entries, report, pin_rc = pin_results(results, kill_runs, baseline,")
+    and _mut.LazyBaselines({}, lambda w, s: 0).killed(
+        0, "x.py", _mut.ScriptRun(rc=1, failed=1, seconds=0.0))
+    is False,
+    f"stop-return at {_PD_STOP}",
+)
 _ma_returns = (_returned_statuses(_mut.measurement)
                | _returned_statuses(_mut.apply_pins))
 R.check(
@@ -35334,6 +35413,56 @@ R.check(
     "(whole and capped, anchors reached over seeds, same seed same slice, cap 1 "
     "skips the twin, no driver no slice, drivers carried, distinct cap-1 "
     f"slices) -> {_DP_GOT}",
+)
+
+# P85, the ledger lane's four shards: `--shard K/N` with `--drain` cuts ONE
+# night's slice -- the seed's `drain_pool` at N times the cap -- by whole
+# anchor. Null control: the shards' union is that unsharded slice, site for
+# site and not by count, no site is in two shards, and a different seed moves
+# the slice (so a shard that ignored the seed could not pass). The shard merge
+# also unions the `survivors.txt` each `write_drain` wrote: a merge that kept
+# one shard's list would pass the pin check above and drop the others'.
+_SH_UN = [_dp_site(f"p.py:g CLAMP_DROP s{i}", "p.py", 20 + i) for i in range(9)]
+_SH_UN += [_dp_site("p.py:g CLAMP_DROP s0", "p.py", 40)]  # a twin: one anchor, two sites
+try:
+    _sh_args = (_SH_UN, _DP_CL, ["tests/x.py"])
+    _sh_key = lambda p: sorted((s["anchor"], s["line"]) for s in p)  # noqa: E731
+    # cap 2 a shard over 3 shards draws 6 of the 10 sites, so the seed matters
+    _sh_parts = [_mut.drain_pool(*_sh_args, 7, 2, (k, 3)) for k in range(1, 4)]
+    _sh_whole = _mut.drain_pool(*_sh_args, 7, 6)
+    _sh_flat = [x for p in _sh_parts for x in _sh_key(p)]
+    _sh_other = _mut.drain_pool(*_sh_args, 8, 6)
+    with _tempfile.TemporaryDirectory() as _sd_td:
+        _sd_root = Path(_sd_td) / "shards"
+        for _k, _surv in ((1, ["a:1", "b:2"]), (2, ["b:2", "c:3"]), (3, []), (4, ["d:4"])):
+            _d = _sd_root / f"mutation-ledger-{_k}"
+            _d.mkdir(parents=True)
+            (_d / "status").write_text("measured\n" if _k < 4 else "skip-nothing-killed\n")
+            (_d / "pins.json").write_text(json.dumps({f"p:{_k}": {"killed_by": "t"}} if _k < 4 else {}))
+            (_d / "head").write_text("h\n")
+            (_d / "survivors.txt").write_text("".join(f"{x}\n" for x in _surv))
+        _mut.merge_pin_shards(str(_sd_root), str(Path(_sd_td) / "m"))
+        _sd_got = (Path(_sd_td) / "m" / "survivors.txt").read_text().split()
+        # a pin merge (no survivors.txt anywhere) leaves none behind
+        for _d in _sd_root.iterdir():
+            (_d / "survivors.txt").unlink()
+        _mut.merge_pin_shards(str(_sd_root), str(Path(_sd_td) / "n"))
+        _sd_none = (Path(_sd_td) / "n" / "survivors.txt").exists()
+    _SH_GOT = [
+        sorted(_sh_flat) == _sh_key(_sh_whole) and len(_sh_flat) == len(set(_sh_flat)) > 0,
+        all(not ({s["anchor"] for s in a} & {s["anchor"] for s in b})
+            for i, a in enumerate(_sh_parts) for b in _sh_parts[i + 1:]),
+        _sh_key(_sh_whole) != _sh_key(_sh_other),
+        _sd_got, _sd_none,
+    ]
+except Exception as _sh_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _SH_GOT = [f"{type(_sh_exc).__name__}: {_sh_exc}"]
+R.check(
+    "--drain --shard K/N: the shards are disjoint whole-anchor slices whose union is "
+    "the unsharded slice at N times the cap; the merge unions the survivors",
+    _SH_GOT[:3] == [True, True, True] and _SH_GOT[3:] == [["a:1", "b:2", "c:3", "d:4"], False],
+    f"(union == unsharded, anchors disjoint, seed moves the slice, merged survivors, "
+    f"pin-merge writes none) -> {_SH_GOT}",
 )
 
 # The push half. On the measured head every pin applies once and a second
@@ -35503,7 +35632,7 @@ R.check(
 _dr_at = _MUT_BODY.find("    if args.drain:\n        head = ")
 R.check(
     "--drain is wired: its slice from drain_pool, its pins written out, the ledger here untouched",
-    "pool = drain_pool(unpinned, closures, allow, args.seed, args.max)" in _MUT_BODY
+    "pool = drain_pool(unpinned, closures, allow, args.seed, args.max, shard)" in _MUT_BODY
     and "status = write_drain(Path(args.drain), entries, head, survivors)" in _MUT_BODY
     and 'how="--drain"' in _MUT_BODY
     and 0 < _dr_at < _MUT_BODY.find("        budgets.setdefault(\"killed_by\", {}).update(entries)")
@@ -35518,7 +35647,13 @@ R.check(
 _ml_meas = _workflow_job(_NIGHTLY_YML, "mutation-ledger")
 _ml_push = _workflow_job(_NIGHTLY_YML, "mutation-ledger-push")
 _ML_MISSING = [w for w, job in (
-    ('--scope full --drain "$out" --max 40', _ml_meas),
+    ('--scope full --drain "$out" --shard ${{ matrix.shard }}/4', _ml_meas),
+    ("--max 80 --jobs 4", _ml_meas),
+    ("--budget-minutes 240", _ml_meas),
+    ("shard: [1, 2, 3, 4]", _ml_meas),
+    ("pattern: mutation-ledger-*", _ml_push),
+    ("m.merge_pin_shards(sys.argv[1], sys.argv[2])", _ml_push),
+    ("if: always() && matrix.shard == 1", _ml_meas),
     ('--seed "$(date -u +%Y%m%d)"', _ml_meas),
     ("github.event_name != 'push'", _ml_meas),
     ("needs.mutation-ledger.result == 'success'", _ml_push),
@@ -35574,7 +35709,7 @@ R.check(
 _CRONS = re.findall(r'cron: "([^"]+)"', _NIGHTLY_YML.split("\njobs:", 1)[0])
 R.check(
     "one schedule cron, nightly.yml's; required lanes share that run (#1930 (d))",
-    _CRONS == ["17 2 * * *"]
+    _CRONS == ["37 0 * * *"]
     and "cron:" not in _TESTS_YML.split("\njobs:", 1)[0]
     and "github.event.schedule" not in _MUTN_JOB
     and "github.event.schedule" not in _ml_meas
@@ -37721,7 +37856,7 @@ R.check(
 # pull request's pin step only to a base program that has the flag.
 _MUT_BW_MISSING = [(j, w) for j, w in (
     ("mutation-nightly", "--budget-minutes 270"),
-    ("mutation-ledger", "--budget-minutes 270"),
+    ("mutation-ledger", "--budget-minutes 240"),
     ("mutation-pins", "&& budget=(--budget-minutes 260)"),
     ("mutation-pins", '"${budget[@]}" "${shard[@]}" 2>&1 | tee "$RUNNER_TEMP/pin-run.txt"'),
     # The budget's ceilings, derived 2026-10-09 from the draw_range-class
