@@ -1,0 +1,24 @@
+--- merge-tree
+LEDGER-MERGE: resolved tests/closures.json
+4df4b031aad89bfbdd87cdb4cc36cd0fd778ff9b
+rc=0
+MB=6421fe135d9f5a9e65433a4433f000d2419486bf
+--- claim files / version vs origin/main
+identical tests/golden/claimed_drift.txt
+identical tests/golden/card_claimed_drift.txt
+identical VERSION
+identical RELEASE_NOTES.md
+identical custom_components/heatpump_optimizer/manifest.json
+--- delivery row in three-dot
+dev/programme/delivery/3055.md
+--- structure
+
+STRUCTURE RATCHET PASSED
+--- gate mode
+  MODE: FULL -- every test script runs, nothing is scoped out.
+--- review_carry 07280b77 -> head
+  3295779d5  Merge commit '07f79c3cf11335c49355c094105a35e6b8367614' into fix/r10-fly-bus-bash32
+  757c71eb9  Merge remote-tracking branch 'origin/main' into fix/r10-fly-bus-bash32
+review_carry: FRESH-REVIEW
+--- origin/main now
+1a8051350406387d5ee1ed966d8a2ba8a770cc31
