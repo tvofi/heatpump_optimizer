@@ -359,7 +359,7 @@ Role: dev/governance/roles/root-cause.md. |  |
 | R10-LEARNED-STORE-LOAD | CORE | 2 | not-started | - | opus/opus | - | Two latent learned-store lifecycle defects found by the R10-FACTORY-RESET fixer (orchestrator s9, 2026-10-31). |  |
 | R10-FLY-STANDING-CONTRACTS | IN | 1 | not-started | - | sonnet/opus | yes: mandated approval under 6329234399 | Standing-seat mechanisation, made permanent (owner, tvofi 2026-10-31, verbatim: "Fold in making this mechanisation/updated sweep and contracts permanent in a... |  |
 | R10-FLY-RELAY-DELIVERED-GUARD | IN | 1 | not-started | - | sonnet/sonnet | - | Root-cause countermeasure (RCA by orchestrator s9, 2026-10-31; out-of-tree RCA at the orchestrator's seat-rca-reviewrefs, which this group lands under the de... |  |
-| R10-FLY-CLOSURE-MAJOR | F | 1 | in-progress | - | opus/opus | - | Owner-ordered (tvofi, 2026-10-31: "I want that implemented, both persistently as well as you applying it locally immediately"). |  |
+| R10-FLY-CLOSURE-MAJOR | F | 1 | in-progress | - | opus/opus | - | Fly-in split from R10-FLOW-TOOLKIT-MODEL's carry "Round closure is v10.0.0" (tvofi 2026-10-29, restated 2026-10-31). |  |
 
 ## ETA
 
