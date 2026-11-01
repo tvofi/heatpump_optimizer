@@ -1,9 +1,0 @@
-
-########## python3 /tmp/tmp.e1Yt5BQgWR tests/stress.py ##########
-  LEASE: tests/stress.py runs under the gate lease as run.sh-1324
-gate_lock: waiting for the lease held by other-holder until 2026-11-01 01:30:51.793841+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waited 5 s for the lease held by other-holder until 2026-11-01 01:30:51.793841+00:00, past its bound of 3 s; run.sh-1324 gives up the wait
->>> FAILED: python3 /tmp/tmp.e1Yt5BQgWR tests/stress.py
---- manifest:
-main-001	76	6	python3 /tmp/tmp.e1Yt5BQgWR tests/stress.py
---- held: /tmp/tmp.jsUc7DIdTP/lock: live label=other-holder pid=1324 expires_at=2026-11-01T01:30:51.793841+00:00 flock_available=True queue=-
