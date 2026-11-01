@@ -1,0 +1,16 @@
+CodeQL check 124609893863 on 87abaed6 annotations:
+[{"path":"tools/audit/seat/gh_calls.py","blob_href":"https://github.com/tvofi/heatpump_optimizer/blob/87abaed68871d3141b8221965d5a5860a075c43f/tools/audit/seat/gh_calls.py","start_line":211,"start_column":9,"end_line":211,"end_column":37,"annotation_level":"failure","title":"Overly permissive file permissions","message":"Overly permissive mask in chmod sets file to world readable.","raw_details":null}]
+1335103883a3fd25057888a08c5ddf379f759eba:
+9ad1cdcec61380ed5b13150118e2350b18e80832:
+92fff84c35ee82d727c5a81622980bef10207123:
+26c93a70a0590a277acd78a788467f88e8d5020d:
+87abaed6 gh_calls.py:211:
+        os.chmod(w / "state", 0o755)
+head chmod calls:
+158:        stub.chmod(0o700)
+163:            dst.chmod(0o700)
+281:        (w / "real2" / "gh").chmod(0o700)
+290:        os.chmod(w / "state", 0o500)
+297:        os.chmod(w / "state", 0o700)
+354:        (decoy / "gh").chmod(0o700)
+384:        (w / "real" / "gh").chmod(0o700)

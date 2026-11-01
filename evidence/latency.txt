@@ -1,4 +1,1 @@
-head 87abaed68871d3141b8221965d5a5860a075c43f, shims/seat-gh, stub gh `exit 0`, 200 calls each, wall clock:
-direct stub per call: 2149 us
-via shim per call:    23041 us
-=> shim overhead ~20.9 ms per call (fork of ps, date, wc, tr, cut subshells) in this container
+200 calls each: direct 1674us/call, via shim 24102us/call, shim cost 22428us/call (this container)

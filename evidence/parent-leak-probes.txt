@@ -1,0 +1,143 @@
+## census, 25 flags via sh -c 'gh api repos/o/r FLAG LEAKVAL'
+clean  | sh -c gh api repos/o/r -f LEAKVAL; :
+       -> 2026-11-01T02:30:33Z 2446 sh -c gh api repos/o/r -f <redacted> api repos/o/r
+clean  | sh -c gh api repos/o/r -F LEAKVAL; :
+       -> 2026-11-01T02:30:33Z 2466 sh -c gh api repos/o/r -F <redacted> api repos/o/r
+clean  | sh -c gh api repos/o/r -H LEAKVAL; :
+       -> 2026-11-01T02:30:33Z 2486 sh -c gh api repos/o/r -H <redacted> api repos/o/r
+clean  | sh -c gh api repos/o/r -b LEAKVAL; :
+       -> 2026-11-01T02:30:33Z 2506 sh -c gh api repos/o/r -b <redacted> api repos/o/r
+clean  | sh -c gh api repos/o/r -n LEAKVAL; :
+       -> 2026-11-01T02:30:33Z 2526 sh -c gh api repos/o/r -n <redacted> api repos/o/r
+clean  | sh -c gh api repos/o/r -t LEAKVAL; :
+       -> 2026-11-01T02:30:33Z 2546 sh -c gh api repos/o/r -t <redacted> api repos/o/r
+clean  | sh -c gh api repos/o/r -T LEAKVAL; :
+       -> 2026-11-01T02:30:33Z 2566 sh -c gh api repos/o/r -T <redacted> api repos/o/r
+clean  | sh -c gh api repos/o/r -q LEAKVAL; :
+       -> 2026-11-01T02:30:33Z 2586 sh -c gh api repos/o/r -q <redacted> api repos/o/r
+clean  | sh -c gh api repos/o/r -d LEAKVAL; :
+       -> 2026-11-01T02:30:33Z 2606 sh -c gh api repos/o/r -d <redacted> api repos/o/r
+clean  | sh -c gh api repos/o/r --body LEAKVAL; :
+       -> 2026-11-01T02:30:33Z 2626 sh -c gh api repos/o/r --body <redacted> api repos/o/r
+clean  | sh -c gh api repos/o/r --body-file LEAKVAL; :
+       -> 2026-11-01T02:30:33Z 2646 sh -c gh api repos/o/r --body-file <redacted> api repos/o/r
+clean  | sh -c gh api repos/o/r --notes LEAKVAL; :
+       -> 2026-11-01T02:30:33Z 2666 sh -c gh api repos/o/r --notes <redacted> api repos/o/r
+clean  | sh -c gh api repos/o/r --notes-file LEAKVAL; :
+       -> 2026-11-01T02:30:33Z 2686 sh -c gh api repos/o/r --notes-file <redacted> api repos/o/r
+clean  | sh -c gh api repos/o/r --title LEAKVAL; :
+       -> 2026-11-01T02:30:33Z 2706 sh -c gh api repos/o/r --title <redacted> api repos/o/r
+clean  | sh -c gh api repos/o/r --subject LEAKVAL; :
+       -> 2026-11-01T02:30:33Z 2726 sh -c gh api repos/o/r --subject <redacted> api repos/o/r
+clean  | sh -c gh api repos/o/r --desc LEAKVAL; :
+       -> 2026-11-01T02:30:33Z 2746 sh -c gh api repos/o/r --desc <redacted> api repos/o/r
+clean  | sh -c gh api repos/o/r --description LEAKVAL; :
+       -> 2026-11-01T02:30:33Z 2766 sh -c gh api repos/o/r --description <redacted> api repos/o/r
+clean  | sh -c gh api repos/o/r --field LEAKVAL; :
+       -> 2026-11-01T02:30:33Z 2786 sh -c gh api repos/o/r --field <redacted> api repos/o/r
+clean  | sh -c gh api repos/o/r --raw-field LEAKVAL; :
+       -> 2026-11-01T02:30:33Z 2806 sh -c gh api repos/o/r --raw-field <redacted> api repos/o/r
+clean  | sh -c gh api repos/o/r --header LEAKVAL; :
+       -> 2026-11-01T02:30:34Z 2826 sh -c gh api repos/o/r --header <redacted> api repos/o/r
+clean  | sh -c gh api repos/o/r --input LEAKVAL; :
+       -> 2026-11-01T02:30:34Z 2846 sh -c gh api repos/o/r --input <redacted> api repos/o/r
+clean  | sh -c gh api repos/o/r --jq LEAKVAL; :
+       -> 2026-11-01T02:30:34Z 2866 sh -c gh api repos/o/r --jq <redacted> api repos/o/r
+clean  | sh -c gh api repos/o/r --template LEAKVAL; :
+       -> 2026-11-01T02:30:34Z 2886 sh -c gh api repos/o/r --template <redacted> api repos/o/r
+clean  | sh -c gh api repos/o/r --env-file LEAKVAL; :
+       -> 2026-11-01T02:30:34Z 2906 sh -c gh api repos/o/r --env-file <redacted> api repos/o/r
+clean  | sh -c gh api repos/o/r --squash-merge-commit-message LEAKVAL; :
+       -> 2026-11-01T02:30:34Z 2926 sh -c gh api repos/o/r --squash-merge-commit-message <redacted> api repos/o/r
+## census flags in = form / glued
+clean  | sh -c gh api repos/o/r --body=LEAKVAL; :
+       -> 2026-11-01T02:30:34Z 2946 sh -c gh api repos/o/r --body <redacted> api repos/o/r
+clean  | sh -c gh api repos/o/r --field=LEAKVAL; :
+       -> 2026-11-01T02:30:34Z 2966 sh -c gh api repos/o/r --field <redacted> api repos/o/r
+clean  | sh -c gh api repos/o/r --raw-field=LEAKVAL; :
+       -> 2026-11-01T02:30:34Z 2986 sh -c gh api repos/o/r --raw-field <redacted> api repos/o/r
+clean  | sh -c gh api repos/o/r --header=LEAKVAL; :
+       -> 2026-11-01T02:30:34Z 3006 sh -c gh api repos/o/r --header <redacted> api repos/o/r
+clean  | sh -c gh api repos/o/r --jq=LEAKVAL; :
+       -> 2026-11-01T02:30:34Z 3026 sh -c gh api repos/o/r --jq <redacted> api repos/o/r
+clean  | sh -c gh api repos/o/r --notes=LEAKVAL; :
+       -> 2026-11-01T02:30:34Z 3046 sh -c gh api repos/o/r --notes <redacted> api repos/o/r
+clean  | sh -c gh api repos/o/r --title=LEAKVAL; :
+       -> 2026-11-01T02:30:34Z 3066 sh -c gh api repos/o/r --title <redacted> api repos/o/r
+clean  | sh -c gh api repos/o/r -fLEAKVAL; :
+       -> 2026-11-01T02:30:34Z 3086 sh -c gh api repos/o/r -f <redacted> api repos/o/r
+clean  | sh -c gh api repos/o/r -FLEAKVAL; :
+       -> 2026-11-01T02:30:34Z 3106 sh -c gh api repos/o/r -F <redacted> api repos/o/r
+clean  | sh -c gh api repos/o/r -HLEAKVAL; :
+       -> 2026-11-01T02:30:34Z 3126 sh -c gh api repos/o/r -H <redacted> api repos/o/r
+clean  | sh -c gh api repos/o/r -bLEAKVAL; :
+       -> 2026-11-01T02:30:34Z 3146 sh -c gh api repos/o/r -b <redacted> api repos/o/r
+clean  | sh -c gh api repos/o/r -qLEAKVAL; :
+       -> 2026-11-01T02:30:34Z 3166 sh -c gh api repos/o/r -q <redacted> api repos/o/r
+## flags outside the census (value-bearing per gh --help)
+LEAK   | sh -c gh pr merge 1 -A LEAKVAL; :
+       -> 2026-11-01T02:30:34Z 3186 sh -c gh pr merge 1 -A LEAKVAL; :  pr merge
+LEAK   | sh -c gh pr merge 1 --author-email LEAKVAL; :
+       -> 2026-11-01T02:30:34Z 3206 sh -c gh pr merge 1 --author-email LEAKVAL; :  pr merge
+LEAK   | sh -c gh pr merge 1 -S LEAKVAL; :
+       -> 2026-11-01T02:30:34Z 3226 sh -c gh pr merge 1 -S LEAKVAL; :  pr merge
+LEAK   | sh -c gh pr merge 1 --search LEAKVAL; :
+       -> 2026-11-01T02:30:34Z 3246 sh -c gh pr merge 1 --search LEAKVAL; :  pr merge
+LEAK   | sh -c gh pr merge 1 -m LEAKVAL; :
+       -> 2026-11-01T02:30:34Z 3266 sh -c gh pr merge 1 -m LEAKVAL; :  pr merge
+LEAK   | sh -c gh pr merge 1 --milestone LEAKVAL; :
+       -> 2026-11-01T02:30:34Z 3286 sh -c gh pr merge 1 --milestone LEAKVAL; :  pr merge
+LEAK   | sh -c gh pr merge 1 -l LEAKVAL; :
+       -> 2026-11-01T02:30:34Z 3306 sh -c gh pr merge 1 -l LEAKVAL; :  pr merge
+LEAK   | sh -c gh pr merge 1 --label LEAKVAL; :
+       -> 2026-11-01T02:30:34Z 3326 sh -c gh pr merge 1 --label LEAKVAL; :  pr merge
+LEAK   | sh -c gh pr merge 1 -a LEAKVAL; :
+       -> 2026-11-01T02:30:34Z 3346 sh -c gh pr merge 1 -a LEAKVAL; :  pr merge
+LEAK   | sh -c gh pr merge 1 --assignee LEAKVAL; :
+       -> 2026-11-01T02:30:34Z 3366 sh -c gh pr merge 1 --assignee LEAKVAL; :  pr merge
+LEAK   | sh -c gh pr merge 1 -r LEAKVAL; :
+       -> 2026-11-01T02:30:34Z 3386 sh -c gh pr merge 1 -r LEAKVAL; :  pr merge
+LEAK   | sh -c gh pr merge 1 --reviewer LEAKVAL; :
+       -> 2026-11-01T02:30:34Z 3406 sh -c gh pr merge 1 --reviewer LEAKVAL; :  pr merge
+LEAK   | sh -c gh pr merge 1 -B LEAKVAL; :
+       -> 2026-11-01T02:30:34Z 3426 sh -c gh pr merge 1 -B LEAKVAL; :  pr merge
+LEAK   | sh -c gh pr merge 1 --base LEAKVAL; :
+       -> 2026-11-01T02:30:34Z 3446 sh -c gh pr merge 1 --base LEAKVAL; :  pr merge
+LEAK   | sh -c gh pr merge 1 --match-head-commit LEAKVAL; :
+       -> 2026-11-01T02:30:34Z 3466 sh -c gh pr merge 1 --match-head-commit LEAKVAL; :  pr merge
+LEAK   | sh -c gh pr merge 1 -p LEAKVAL; :
+       -> 2026-11-01T02:30:34Z 3486 sh -c gh pr merge 1 -p LEAKVAL; :  pr merge
+LEAK   | sh -c gh pr merge 1 --preview LEAKVAL; :
+       -> 2026-11-01T02:30:34Z 3506 sh -c gh pr merge 1 --preview LEAKVAL; :  pr merge
+LEAK   | sh -c gh pr merge 1 -e LEAKVAL; :
+       -> 2026-11-01T02:30:34Z 3526 sh -c gh pr merge 1 -e LEAKVAL; :  pr merge
+LEAK   | sh -c gh pr merge 1 --env LEAKVAL; :
+       -> 2026-11-01T02:30:35Z 3546 sh -c gh pr merge 1 --env LEAKVAL; :  pr merge
+## non-flag shapes
+LEAK   | sh -c GH_TOKEN=ghp_LEAKVAL gh api user; :
+       -> 2026-11-01T02:30:35Z 3566 sh -c GH_TOKEN=ghp_LEAKVAL gh api user; :  api user
+LEAK   | sh -c echo ghp_LEAKVAL | gh secret set NAME; :
+       -> 2026-11-01T02:30:35Z 3586 sh -c echo ghp_LEAKVAL | gh secret set NAME; :  secret set
+LEAK   | sh -c printf %s LEAKVAL | gh secret set NAME; :
+       -> 2026-11-01T02:30:35Z 3607 sh -c printf %s LEAKVAL | gh secret set NAME; :  secret set
+clean  | sh -c gh secret set NAME --body "$(echo LEAKVAL)"; :
+       -> 2026-11-01T02:30:35Z 3628 sh -c gh secret set NAME --body <redacted> secret set
+clean  | python3 -c import subprocess; subprocess.run(['gh','api','repos/o/r','-f','body=LEAKVAL'])
+       -> 2026-11-01T02:30:35Z 3649 python3 -c import subprocess; subprocess.run(['gh','api','repos/o/r','-f','body= api repos/o/r
+clean  | python3 -c import subprocess; subprocess.run(['gh','pr','comment','1','--body','LEAKVAL'])
+       -> 2026-11-01T02:30:35Z 3669 python3 -c import subprocess; subprocess.run(['gh','pr','comment','1','--body',' pr comment
+clean  | python3 -c import subprocess; subprocess.run('gh api repos/o/r -f body=LEAKVAL', shell=True)
+       -> 2026-11-01T02:30:35Z 3690 /bin/sh -c gh api repos/o/r -f <redacted> api repos/o/r
+clean  | timeout 10 gh api repos/o/r -f body=LEAKVAL
+       -> 2026-11-01T02:30:35Z 3710 timeout 10 gh api repos/o/r -f <redacted> api repos/o/r
+clean  | bash -c x=1; gh issue comment 1 --body LEAKVAL; :
+       -> 2026-11-01T02:30:35Z 3730 bash -c x=1; gh issue comment 1 --body <redacted> issue comment
+clean  | sh -c gh api repos/o/r -fbody=LEAKVAL; :
+       -> 2026-11-01T02:30:35Z 3750 sh -c gh api repos/o/r -f <redacted> api repos/o/r
+clean  | sh -c gh api graphql -F query=@LEAKVAL; :
+       -> 2026-11-01T02:30:35Z 3770 sh -c gh api graphql -F <redacted> api graphql
+clean  | xargs -a /dev/null sh -c gh api repos/o/r --body LEAKVAL; :
+       -> 2026-11-01T02:30:35Z 3791 sh -c gh api repos/o/r --body <redacted> api repos/o/r
+python3 -c "import os;os.system('gh api -f body=LEAKVAL')" -> 2026-11-01T02:30:51Z 3896 sh -c -- gh api -f <redacted> api -
+python3 -c "import subprocess as s;s.run(['gh','api','-fx=LEAKVAL'])" -> 2026-11-01T02:30:51Z 3916 python3 -c import subprocess as s;s.run(['gh','api','-fx=LEAKVAL'])  api -
+python3 -c "import subprocess as s;s.run(['gh','pr','comment','--body','LEAKVAL'])" -> 2026-11-01T02:30:51Z 3936 python3 -c import subprocess as s;s.run(['gh','pr','comment','--body','LEAKVAL'] pr comment
