@@ -14105,9 +14105,9 @@
     "Part 1 (orchestrator s10, 2026-11-01, tvofi plan-slip card 1): the set-size, set-files and set-hot ops only, which are this group's carries 5, 9, 10 and 11 counted from 1. Dispatched ahead of R10-ORCH-ROSTER-SCHEMA because approved s9 cards 5 and 6, tvofi's two L resizes and the s10 card-2 coordinator-flag corrections wait on these ops. Carries 1-4, 6-8 and 12 stay with this group for a later part, and set-after R10-ROSTER-OPS-2 R10-ORCH-ROSTER-SCHEMA is restored when part 1 merges."
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "carries-open",
     "branch": "handoff/r10-roster-ops-2",
-    "commit": null,
+    "commit": "59d717699618a6c41b25b0d6251ffc0e67eb1e2e",
     "last_step": null,
     "next_step": "dispatch a fixer once its after-groups are done",
     "note": "s9 carry-routing pass, 2026-11-01: created to receive carries of R10-ORCH-ROSTER-SCHEMA"
