@@ -1,0 +1,99 @@
+== rp-base #2745a
+MERGE-CLAIM: refused tests/golden/claimed_drift.txt
+CONFLICTING CLAIMS: both sides rewrote the claim list -- this
+branch claims ['building_preset', 'capacity_curve', 'capacity_tariff', 'capacity_tariff_15min', 'confidence_margins', 'coord_all_features', 'coord_dhw', 'coord_grid_fee', 'coord_minimal', 'coord_two_zone', 'cop_scale_learned', 'cycling_cost', 'dhw_cold_tank', 'dhw_large_tank', 'dhw_learned_windows', 'dhw_schedule_off', 'direct_flow_carnot', 'everything_on', 'external_heat_active', 'extreme_prices', 'flat_prices', 'fuse_guard', 'horizon_48h', 'legionella_due', 'legionella_due_low_setpoint', 'legionella_off', 'negative_prices', 'peak_masked', 'price_risk', 'start_below_band', 'summer_dhw_only', 'tariff_plus_two_zone', 'valve_storage', 'valve_storage_flat_prices', 'valve_storage_low_target', 'valve_storage_small_tank', 'valve_storage_smart_write', 'valve_upper_direct_slab', 'wide_band', 'winter_single_dhw', 'winter_single_no_dhw', 'winter_two_zone_dhw', 'winter_two_zone_no_dhw', 'wood_coil', 'wood_two_tank', 'wood_two_tank_smart_write'] and the merge
+brings in ['config_flow', 'coord_all_features', 'coord_dhw', 'coord_grid_fee', 'coord_minimal', 'coord_two_zone']. A claim excuses
+one release's golden diff and is written for that diff alone, so
+merging two lists would reinstate a claim one side deleted and
+excuse a drift by accident. Resolve it by hand: keep the claims
+that describe THIS branch's diff and delete the rest.
+== rp-base #2745b
+MERGE-CLAIM: refused tests/golden/claimed_drift.txt
+CONFLICTING CLAIMS: both sides rewrote the claim list -- this
+branch claims ['building_preset', 'capacity_curve', 'capacity_tariff', 'capacity_tariff_15min', 'confidence_margins', 'config_flow', 'coord_all_features', 'coord_dhw', 'coord_grid_fee', 'coord_minimal', 'coord_two_zone', 'cop_scale_learned', 'cycling_cost', 'dhw_cold_tank', 'dhw_large_tank', 'dhw_learned_windows', 'dhw_schedule_off', 'direct_flow_carnot', 'everything_on', 'external_heat_active', 'extreme_prices', 'flat_prices', 'fuse_guard', 'horizon_48h', 'legionella_due', 'legionella_due_low_setpoint', 'legionella_off', 'negative_prices', 'peak_masked', 'price_risk', 'start_below_band', 'summer_dhw_only', 'tariff_plus_two_zone', 'valve_storage', 'valve_storage_flat_prices', 'valve_storage_low_target', 'valve_storage_small_tank', 'valve_storage_smart_write', 'valve_upper_direct_slab', 'wide_band', 'winter_single_dhw', 'winter_single_no_dhw', 'winter_two_zone_dhw', 'winter_two_zone_no_dhw', 'wood_coil', 'wood_two_tank', 'wood_two_tank_smart_write'] and the merge
+brings in ['config_flow', 'coord_all_features', 'coord_dhw', 'coord_grid_fee', 'coord_minimal', 'coord_two_zone']. A claim excuses
+one release's golden diff and is written for that diff alone, so
+merging two lists would reinstate a claim one side deleted and
+excuse a drift by accident. Resolve it by hand: keep the claims
+that describe THIS branch's diff and delete the rest.
+== rp-base #2834
+MERGE-CLAIM: refused tests/golden/claimed_drift.txt
+CONFLICTING CLAIMS: both sides rewrote the claim list -- this
+branch claims ['config_flow', 'coord_all_features', 'coord_dhw', 'coord_grid_fee', 'coord_minimal', 'coord_two_zone'] and the merge
+brings in ['config_flow', 'coord_all_features', 'coord_dhw', 'coord_grid_fee', 'coord_minimal', 'coord_two_zone']. A claim excuses
+one release's golden diff and is written for that diff alone, so
+merging two lists would reinstate a claim one side deleted and
+excuse a drift by accident. Resolve it by hand: keep the claims
+that describe THIS branch's diff and delete the rest.
+== rp-base #2841
+MERGE-CLAIM: refused tests/golden/claimed_drift.txt
+CONFLICTING CLAIMS: both sides rewrote the claim list -- this
+branch claims ['coord_all_features', 'coord_dhw', 'coord_grid_fee', 'coord_minimal', 'coord_two_zone'] and the merge
+brings in ['config_flow', 'coord_all_features', 'coord_dhw', 'coord_grid_fee', 'coord_minimal', 'coord_two_zone']. A claim excuses
+one release's golden diff and is written for that diff alone, so
+merging two lists would reinstate a claim one side deleted and
+excuse a drift by accident. Resolve it by hand: keep the claims
+that describe THIS branch's diff and delete the rest.
+== rp-base 3a07c2eaa
+MERGE-CLAIM: refused tests/golden/claimed_drift.txt
+CONFLICTING CLAIMS: both sides rewrote the claim list -- this
+branch claims ['valve_storage_flat_prices', 'valve_storage_low_target', 'valve_storage_small_tank'] and the merge
+brings in ['config_flow']. A claim excuses
+one release's golden diff and is written for that diff alone, so
+merging two lists would reinstate a claim one side deleted and
+excuse a drift by accident. Resolve it by hand: keep the claims
+that describe THIS branch's diff and delete the rest.
+== rp-base 5bf232eac
+MERGE-CLAIM: refused tests/golden/claimed_drift.txt
+CONFLICTING CLAIMS: both sides rewrote the claim list -- this
+branch claims ['away_setback', 'building_preset', 'capacity_curve', 'capacity_tariff', 'capacity_tariff_15min', 'confidence_margins', 'cool_rainy_summer', 'coord_all_features', 'coord_dhw', 'cop_scale_learned', 'cycling_cost', 'dhw_cold_tank', 'dhw_large_tank', 'dhw_learned_windows', 'dhw_schedule_off', 'direct_flow_carnot', 'everything_on', 'external_heat_active', 'extreme_prices', 'flat_prices', 'fuse_guard', 'horizon_48h', 'horizon_6h', 'legionella_due', 'legionella_due_low_setpoint', 'legionella_off', 'mild_windy_rain', 'narrow_band', 'negative_prices', 'peak_masked', 'precip_snow', 'price_risk', 'shoulder', 'shoulder_two_zone', 'start_above_band', 'start_below_band', 'summer_dhw_only', 'tariff_plus_two_zone', 'wide_band', 'winter_single_dhw', 'winter_two_zone_dhw'] and the merge
+brings in ['away_setback', 'building_preset', 'capacity_curve', 'capacity_tariff', 'capacity_tariff_15min', 'confidence_margins', 'config_flow', 'cool_rainy_summer', 'cop_scale_learned', 'cycling_cost', 'dhw_cold_tank', 'dhw_large_tank', 'dhw_learned_windows', 'dhw_schedule_off', 'direct_flow_carnot', 'everything_on', 'external_heat_active', 'extreme_prices', 'flat_prices', 'fuse_guard', 'horizon_48h', 'horizon_6h', 'legionella_due', 'legionella_due_low_setpoint', 'legionella_off', 'mild_windy_rain', 'narrow_band', 'negative_prices', 'peak_masked', 'precip_snow', 'price_risk', 'shoulder', 'shoulder_two_zone', 'start_above_band', 'start_below_band', 'summer_dhw_only', 'tariff_plus_two_zone', 'valve_storage', 'valve_storage_flat_prices', 'valve_storage_low_target', 'valve_storage_small_tank', 'valve_storage_smart_write', 'valve_upper_direct_slab', 'wide_band', 'winter_single_dhw', 'winter_single_no_dhw', 'winter_two_zone_dhw', 'winter_two_zone_no_dhw', 'wood_coil', 'wood_two_tank', 'wood_two_tank_smart_write']. A claim excuses
+one release's golden diff and is written for that diff alone, so
+merging two lists would reinstate a claim one side deleted and
+excuse a drift by accident. Resolve it by hand: keep the claims
+that describe THIS branch's diff and delete the rest.
+== rp-base e438816e3
+MERGE-CLAIM: refused tests/golden/claimed_drift.txt
+CONFLICTING CLAIMS: both sides rewrote the claim list -- this
+branch claims ['config_flow', 'valve_storage_flat_prices', 'valve_storage_low_target', 'valve_storage_small_tank'] and the merge
+brings in ['away_setback', 'building_preset', 'capacity_curve', 'capacity_tariff', 'capacity_tariff_15min', 'confidence_margins', 'cool_rainy_summer', 'coord_all_features', 'coord_dhw', 'cop_scale_learned', 'cycling_cost', 'dhw_cold_tank', 'dhw_large_tank', 'dhw_learned_windows', 'dhw_schedule_off', 'direct_flow_carnot', 'everything_on', 'external_heat_active', 'extreme_prices', 'flat_prices', 'fuse_guard', 'horizon_48h', 'horizon_6h', 'legionella_due', 'legionella_due_low_setpoint', 'legionella_off', 'mild_windy_rain', 'narrow_band', 'negative_prices', 'peak_masked', 'precip_snow', 'price_risk', 'shoulder', 'shoulder_two_zone', 'start_above_band', 'start_below_band', 'summer_dhw_only', 'tariff_plus_two_zone', 'wide_band', 'winter_single_dhw', 'winter_two_zone_dhw']. A claim excuses
+one release's golden diff and is written for that diff alone, so
+merging two lists would reinstate a claim one side deleted and
+excuse a drift by accident. Resolve it by hand: keep the claims
+that describe THIS branch's diff and delete the rest.
+== rp-head #2745a
+MERGE-CLAIM: resolved tests/golden/claimed_drift.txt
+== rp-head #2745b
+MERGE-CLAIM: resolved tests/golden/claimed_drift.txt
+== rp-head #2834
+MERGE-CLAIM: refused tests/golden/claimed_drift.txt
+CONFLICTING CLAIMS: both sides rewrote the same scenario's claims
+  coord_all_features: this branch ["R10-ADVISOR-RESIDUE: data.recent_kwh_price added (null: the fixture's ledger holds no settled interval)"]; the merge brings in ['R10-CARD-VOICE: setup_topology.dhw_wood_coil_configured added on the two plan sensors (2 leaves, false)']
+  coord_dhw: this branch ["R10-ADVISOR-RESIDUE: data.recent_kwh_price added (null: the fixture's ledger holds no settled interval)"]; the merge brings in ['R10-CARD-VOICE: setup_topology.dhw_wood_coil_configured added on the two plan sensors (2 leaves, false)']
+  coord_grid_fee: this branch ["R10-ADVISOR-RESIDUE: data.recent_kwh_price added (null: the fixture's ledger holds no settled interval)"]; the merge brings in ['R10-CARD-VOICE: setup_topology.dhw_wood_coil_configured added on the two plan sensors (2 leaves, false)']
+  coord_minimal: this branch ["R10-ADVISOR-RESIDUE: data.recent_kwh_price added (null: the fixture's ledger holds no settled interval)"]; the merge brings in ['R10-CARD-VOICE: setup_topology.dhw_wood_coil_configured added on the two plan sensors (2 leaves, false)']
+  coord_two_zone: this branch ["R10-ADVISOR-RESIDUE: data.recent_kwh_price added (null: the fixture's ledger holds no settled interval)"]; the merge brings in ['R10-CARD-VOICE: setup_topology.dhw_wood_coil_configured added on the two plan sensors (2 leaves, false)']
+A claim excuses one release's golden diff and is written for
+that diff alone, so no rule says which of two lines describes
+which diff. Every other scenario merges per side. Resolve these
+by hand: keep the claims that describe THIS branch's diff and
+delete the rest.
+== rp-head #2841
+MERGE-CLAIM: resolved tests/golden/claimed_drift.txt
+== rp-head 3a07c2eaa
+MERGE-CLAIM: resolved tests/golden/claimed_drift.txt
+== rp-head 5bf232eac
+MERGE-CLAIM: refused tests/golden/claimed_drift.txt
+CONFLICTING CLAIMS: both sides rewrote the same scenario's claims
+  valve_storage_flat_prices: this branch (deleted); the merge brings in ['R10-RATIO-SITES (#2239): predictive_info leaves rise as above; displace_schedule[33] -18.4 -> -18.3 in CI and here', 'R10-SAV-BASELINE (#2255): baseline_cost up 108.5->113.1, deferred_energy_cost up -11.4->-5.98, predicted_savings down 30.11->29.31, savings_percentage down 27.75->25.91']
+  valve_storage_low_target: this branch (deleted); the merge brings in ['R10-RATIO-SITES (#2239): predictive_info leaves rise as above; displace_schedule moves by 0.1 (CI [1],[21]; Darwin [9],[29])', 'R10-SAV-BASELINE (#2255): baseline_cost up 186.8->195.2 plus basin plan leaves']
+  valve_storage_small_tank: this branch (deleted); the merge brings in ['R10-RATIO-SITES (#2239): predictive_info leaves rise as above; displace_schedule moves by 0.1 (CI [21],[41]; Darwin [4],[5],[28],...)', 'R10-SAV-BASELINE (#2255): baseline_cost up 149.2->151.3, deferred_energy_cost up 15.56->19.77, predicted_savings down 79.42->77.32, savings_percentage down 53.25->51.12']
+  away_setback: this branch ['D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 50.155768 -> 51.797405; deferred_energy_cost 1.492585 -> 1.297536']; the merge brings in ['R10-SAV-BASELINE (#2255): baseline_cost up 50.16->86.88, deferred_energy_cost up 1.493->30.09, predicted_savings up 17.14->25.27, savings_percentage down 34.18->29.09']
+  building_preset: this branch ['D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 123.842141 -> 125.483777; deferred_energy_cost 28.62115 -> 28.819256']; the merge brings in ['R10-SAV-BASELINE (#2255): baseline_cost up 123.8->127.2, deferred_energy_cost up 28.62->33.98, predicted_savings down 64.58->62.57, savings_percentage down 52.15->49.19']
+  capacity_curve: this branch ['D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 123.221414 -> 124.86305; deferred_energy_cost 32.817854 -> 33.104715']; the merge brings in ['R10-SAV-BASELINE (#2255): baseline_cost up 123.2->123.2, deferred_energy_cost up 32.82->33.61, predicted_savings down 62.25->61.46, savings_percentage down 50.52->49.88']
+  capacity_tariff: this branch ['D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 123.221414 -> 124.86305; deferred_energy_cost 30.681632 -> 29.30125']; the merge brings in ['R10-SAV-BASELINE (#2255): baseline_cost up 123.2->123.2, deferred_energy_cost up 30.68->31.48, predicted_savings down 60.12->59.33, savings_percentage down 48.79->48.15']
+  capacity_tariff_15min: this branch ['D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 123.221414 -> 124.86305']; the merge brings in ['R10-SAV-BASELINE (#2255): baseline_cost up 123.2->123.2']
+  confidence_margins: this branch ['D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 123.221414 -> 124.86305; deferred_energy_cost 16.149201 -> 16.258696']; the merge brings in ['R10-SAV-BASELINE (#2255): baseline_cost up 123.2->123.2, deferred_energy_cost up 16.15->16.94, predicted_savings down 58.26->57.47, savings_percentage down 47.28->46.64']
+  cool_rainy_summer: this branch ['D2-s2-01: the hot-water tank pays its own lift law, dearer than the linear penalty -- baseline_cost 3.513962 -> 4.12063; deferred_energy_cost 0.035951 -> 0.000656']; the merge brings in ['R10-SAV-BASELINE (#2255): baseline_cost up 3.514->6.107, deferred_energy_cost up 0.03595->1.686, predicted_savings up 1.374->2.317, savings_percentage down 39.11->37.95']
+== rp-head e438816e3
+MERGE-CLAIM: resolved tests/golden/claimed_drift.txt
