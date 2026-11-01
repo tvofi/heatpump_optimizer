@@ -11421,9 +11421,9 @@
    ],
    "carry": [],
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-fly-mutant-restore",
-    "commit": null,
+    "commit": "c89de2f620944b438557fbdf65a12ebcf60d1d64",
     "last_step": null,
     "next_step": "dispatch a fixer (fly-in)",
     "note": "triage P247, 2026-10-28",
