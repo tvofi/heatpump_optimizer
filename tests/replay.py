@@ -438,9 +438,20 @@ COST_DETECTION = 2.0
 #: after it read 1.880 and 1.391; sqrt(2) x the geometric midpoint of 1.256
 #: and 1.880 is 2.173, each edge 15.6 % inside the band (floor 1.087).
 #: Re-centre at the next timed week, not on one run.
+#: ``owner-2026-10-30-away.json`` (R10-REPLAY-REAL-DAY), the same rule, sqrt(2)
+#: x the geometric midpoint of the readings' extremes, from the clean ``--one``
+#: replays of 2026-10-31/11-01: ``cpu_ratio`` over the Linux readings -- one CI
+#: ``replay`` job (249.0) and two 4-core boxes (217.8-278.7, 231.8-290.5) --
+#: 217.8-290.5, each edge 18-22 % inside; a loaded M1 (177-394, load average
+#: 30-200) spans more than a 2x band holds and is left out. ``peak_kib`` and
+#: ``loop_cpu_ratio`` over all four environments, the M1 included: 2514-2783
+#: and 0.137-0.227, the loop's edges 9-10 % inside. One CI class only: the
+#: R10-REPLAY-LANE carry asks for both, so re-centre when the other class reads.
 COST_BUDGETS: dict[str, dict[str, float]] = {
     "synthetic-dhw-only.json": {"cpu_ratio": 2.173, "peak_kib": 2686.0,
                                 "loop_cpu_ratio": 0.143},
+    "owner-2026-10-30-away.json": {"cpu_ratio": 355.7, "peak_kib": 3740.0,
+                                   "loop_cpu_ratio": 0.249},
 }
 #: Fixtures the lane replays once, clean, without the three doubled-cost
 #: arms: each arm is a whole replay, and a fixture whose replay costs a large
