@@ -518,7 +518,20 @@ for p in [*sorted(pathlib.Path("tests").glob("*.py")),
 sys.exit(1 if bad else 0)
 PY
 }
+# One prepr resolves the interpreter once (V148): `recorder_parses` costs ~5 s, and
+# step 6a and step 6c's `copies_line` both ask. The main flow sets
+# PREPR_RECORDER_CACHE to a file; a command substitution cannot share a variable,
+# a file it can. Unset (every self-test fixture), each call resolves afresh.
 recorder_python() { # -> the interpreter on stdout; rc 1 with the remedy when none parses
+  local cache=${PREPR_RECORDER_CACHE:-} out r
+  if [ -n "$cache" ] && [ -s "$cache" ]; then
+    printf '%s\n' "$(tail -n +2 "$cache")"; return "$(head -n 1 "$cache")"
+  fi
+  out=$(recorder_python_resolve); r=$?
+  [ -z "$cache" ] || printf '%s\n%s\n' "$r" "$out" > "$cache"
+  printf '%s\n' "$out"; return "$r"
+}
+recorder_python_resolve() { # the uncached resolution
   local c state=${HPO_STATE_DIR:-$HOME/.local/state/hpo}
   if [ -n "${HPO_RECORDER_PYTHON:-}" ]; then
     if recorder_parses "$HPO_RECORDER_PYTHON"; then
@@ -971,11 +984,13 @@ body_line() { # body file, head sha, title, paths file, merge base, head, [unpin
 }
 
 # Step 7e's whole body, so `--self-test` drives the code the step runs.
-# WHY THIS EXISTS (R10-FLOW-JIDOKA). Of round 10's blocked fix reviews, 25 were
-# `carry-missing`: a finding with no destination, which `pr-contract` decides
-# only after the push, with `carry_audit.py check --body`. This is that same
-# checker on the body this run is handed, so the refusal lands before review.
-# It adds no rule (decision 0012); carry_audit.py decides, unmodified.
+# WHY THIS EXISTS (R10-FLOW-JIDOKA). `pr-contract` decides a body's markers only
+# after the push, with `carry_audit.py check --body`; this is that same checker on
+# the body this run is handed, so a missing or dead marker is refused before review.
+# It does NOT judge the `carry-missing` verdict, which is fix-review.md step 10
+# (the destination holds the finding and its control): carry_audit's test is a
+# marker that names a live destination. That gap is process state (c), the step
+# followed and short of its intent: dev/audit/rca/R10-RCA-JIDOKA-YIELD.md.
 #
 # THE ROSTER IS THE ROUND'S BRANCH, FETCHED NOW. fix-review.md step 10 opens a
 # carry at the round's `handoff/audit-r<N>-roster`, never in this worktree, so
@@ -1030,13 +1045,16 @@ preflight_body() { # body file, roster dir, [forwarded numbers...] -> preflight'
 # custom_components/ (a new production name a test already defines) -- runs it
 # here. The scan reads the whole tree, so its wall time is paid only then.
 copies_line() { # tree root, changed-paths file -> one line; rc 0 clean, 1 a copy, 3 skipped
-  local out r
+  local out r py
   if ! grep -qE '^(tests|custom_components)/.*\.py$' "$2" 2>/dev/null; then
     echo "the diff changes no .py under tests/ or custom_components/, so no test can newly share a production name"
     return 3
   fi
   [ -f "$1/tests/closure.py" ] || { echo "no tests/closure.py under $1, so no-copies was not run"; return 3; }
-  out=$(cd "$1" && PYTHONPATH=tests/hastub python3 tests/closure.py no-copies 2>&1); r=$?
+  # The interpreter that parses the tree (V148): the bare `python3` is the system
+  # one on a seat whose PATH still resolves to 3.11, which cannot parse it.
+  py=$(cd "$1" && recorder_python) || { printf '%s\n' "$py"; return 1; }
+  out=$(cd "$1" && PYTHONPATH=tests/hastub "$py" tests/closure.py no-copies 2>&1); r=$?
   if [ "$r" -eq 0 ]; then printf '%s\n' "$out" | tail -1; return 0; fi
   echo "$(printf '%s\n' "$out" | grep -m1 '^COPY-CLAIMED' || printf '%s\n' "$out" | tail -1) ($(printf '%s\n' "$out" | grep -c '^COPY-CLAIMED') in all) -- import the production symbol instead (tests/README.md), or the closures job refuses it"
   return 1
@@ -2028,6 +2046,29 @@ EOS
   got=$(copies_line "$CR" "$CR/changed-none.txt"); r=$?
   st "$r" 3 "a diff touching no .py under tests/ or custom_components/ skips, even over a copy"
   case "$got" in *'changes no .py under tests/ or custom_components/'*) st 1 1 "and the skip line names the boundary";; *) st 0 1 "and the skip line names the boundary";; esac
+  # V148: the interpreter is recorder_python's, never the bare PATH python3.
+  CPB=$(mktemp -d); mkdir -p "$CPB/bin" "$CPB/good" "$CPB/state/venv-ci/bin" "$CPB/empty"
+  printf '#!/bin/sh\nexit 1\n' > "$CPB/bin/python3"; chmod +x "$CPB/bin/python3"
+  printf '#!/bin/sh\nexit 0\n' > "$CPB/state/venv-ci/bin/python3"; chmod +x "$CPB/state/venv-ci/bin/python3"
+  printf '#!/bin/sh\necho "venv ran: $*"\n' > "$CPB/good/pyrun"; chmod +x "$CPB/good/pyrun"
+  # A PATH whose first python3 cannot parse the tree, plus a parsing seat venv:
+  # the venv runs (a wrapper that parses AND prints, so the run is visible).
+  printf '#!/bin/sh\n[ "$1" = - ] && exit 0\necho "no-copies ran under the venv"\n' > "$CPB/state/venv-ci/bin/python3"
+  got=$(HPO_STATE_DIR="$CPB/state" PATH="$CPB/bin:$PATH" copies_line "$CR" "$CR/changed-py.txt"); r=$?
+  st "$r" 0 "a PATH python3 that cannot parse the tree is skipped for the parsing seat venv"
+  case "$got" in *'no-copies ran under the venv'*) st 1 1 "and no-copies ran under that venv, not the bare python3";; *) st 0 1 "and no-copies ran under that venv, not the bare python3";; esac
+  got=$(HPO_STATE_DIR="$CPB/empty" PATH="$CPB/bin:$PATH" copies_line "$CR" "$CR/changed-py.txt"); r=$?
+  st "$r" 1 "with no interpreter that parses the tree no-copies is refused, never read as clean or skipped"
+  case "$got" in *seat_venv.sh*) st 1 1 "and the refusal names seat_venv.sh";; *) st 0 1 "and the refusal names seat_venv.sh";; esac
+  printf '#!/bin/sh\n[ "$1" = - ] && exit 0\necho "no-copies ran under the override"\n' > "$CPB/good/pyrun"
+  got=$(HPO_RECORDER_PYTHON="$CPB/good/pyrun" HPO_STATE_DIR="$CPB/empty" PATH="$CPB/bin:$PATH" copies_line "$CR" "$CR/changed-py.txt"); r=$?
+  case "$got" in *'under the override'*) st 1 1 "HPO_RECORDER_PYTHON naming a parsing interpreter is the one that runs (null control)";; *) st 0 1 "HPO_RECORDER_PYTHON naming a parsing interpreter is the one that runs (null control)";; esac
+  # One resolution per run: with the cache set, the second ask replays the first.
+  RC_CACHE="$CPB/cache"; : > "$RC_CACHE"
+  first=$(PREPR_RECORDER_CACHE="$RC_CACHE" HPO_RECORDER_PYTHON="$CPB/good/pyrun" recorder_python)
+  second=$(PREPR_RECORDER_CACHE="$RC_CACHE" HPO_RECORDER_PYTHON=/bin/false recorder_python)
+  st "$second" "$first" "a second recorder_python in one run replays the cached resolution"
+  rm -rf "${CPB:?}"
   rm -f "$CR/tests/closure.py"
   got=$(copies_line "$CR" "$CR/changed-py.txt"); r=$?
   st "$r" 3 "a tree with no tests/closure.py skips, never refuses"
@@ -3595,6 +3636,9 @@ else
   rm -f "$slot_stderr"
 fi
 
+# One interpreter resolution per run, shared by steps 6a and 6c (`recorder_python`).
+PREPR_RECORDER_CACHE=/tmp/prepr-recpy.$$; : > "$PREPR_RECORDER_CACHE"  # not exported: the nested --self-test must resolve afresh
+
 # --- 2. the scoped gate's MODE line, printed rather than inferred.
 # CLAUDE.md rule 1: `MODE: SCOPED -- 0 script(s) run` and `MODE: FULL` both
 # print zero and mean opposite things. Printing it is the whole step; a seat
@@ -3852,7 +3896,7 @@ if diff_paths "$BASE" "$COPY_PATHS"; then
 else
   step "no-copies" 1 "the changed-path list did not derive from $BASE...HEAD, so no-copies was not run"
 fi
-rm -f "$COPY_PATHS"
+rm -f "$COPY_PATHS" "$PREPR_RECORDER_CACHE"
 
 # --- 6e. no moved path re-added: tests.yml's fast job runs the layout guard;
 # `moved_line` above, 0.4 to 2.1 s. It reads the index against $BASE, so it needs
