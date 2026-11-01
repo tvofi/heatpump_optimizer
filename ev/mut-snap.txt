@@ -1,0 +1,7 @@
+  ok   mypy exited 0 or 1 (clean, or errors found)
+  ok   production-only by construction: every error line is under custom_components/heatpump_optimizer/
+########## errors by module (reported, not ratcheted) ##########
+  snapshots.py                        1
+  FAIL errors did not grow  [recorded 0, measured 1 (+1)]
+  FAIL by_code[no-any-return] did not grow  [recorded 0, measured 1 (+1)]
+2 of 10 typing-ruler checks FAILED
