@@ -8997,7 +8997,7 @@
     "commit": "7deeef1b6b083b0fb5a8379717f3facd61897c6a",
     "last_step": null,
     "next_step": "review and merge the open pull request (#2636)",
-    "note": "Registered after the pull request opened; stage recorded as in-progress because in-review is not a classified roster stage."
+    "note": "s9 carry-routing pass, 2026-11-01: carry 1 -> R10-BASH-KILL-HOOK; carry 2 -> R10-SEAT-IDENTITY-GUARDS; carry 3 -> R10-SEAT-IDENTITY-GUARDS; carry 4 -> R10-SEAT-IDENTITY-GUARDS; carry 5 -> R10-SEAT-IDENTITY-GUARDS; carry 6 -> R10-BASH-KILL-HOOK. Evidence per carry: the routing table route.tsv of that pass."
    },
    "brief": "Owner ruling (tvofi, 2026-10-22): no Claude attribution footers or session links in seat output, that is no generated-with line, no co-author or session trailer, and no session URL in commits, pull request bodies or comments. The pull request bans them in the harness settings and refuses them in the policy lint, an entities check and prepr, each with a planted-defect control. Follow dev/governance/roles/fixer.md."
   },
