@@ -41,6 +41,7 @@ from .const import (
     DEFAULT_SLAB_THERMAL_MASS,
 )
 from .draw_range import DrawRange
+from . import quiet_windows
 from .mixing_valve import is_throttling
 from .payload import SysIdResultView, SysIdView
 from .thermal_model import (
@@ -48,6 +49,8 @@ from .thermal_model import (
     ThermalModel,
     ThermalParameters,
     ThermalState,
+    ceiling_probe_install,
+    learner_room_unread,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -1369,6 +1372,21 @@ def step_detached(
     return vars(experiment), override
 
 
+def hold_reason(signals: Any, frozen: str | None, config: Any, now: datetime) -> str | None:
+    """Why a started or armed experiment stands down this cycle, or ``None``.
+
+    #1523: the experiment is a heat-loss learner, so it stands down on the
+    house learner's own freeze (``frozen``: external heat, a defrost, an open
+    window, an unusable or unconfigured room or outdoor reading) and on a mode
+    that cannot heat. The room half is ``learner_room_unread``. R10-CEILING-PROBE:
+    and in a quiet window, whose override the experiment would not honour.
+    ``config`` is ``None`` for a host that cannot show its entry.
+    """
+    if signals.space_blocked:
+        return f"heat pump mode {signals.mode.label} cannot heat the house"
+    return frozen or learner_room_unread(config) or quiet_windows.quiet_reason(config or {}, now)
+
+
 class SystemIdentification:
     """State machine driving a step-response experiment."""
 
@@ -2433,3 +2451,23 @@ class SystemIdentification:
             "last_attempt": self.last_attempt.isoformat() if self.last_attempt else None,
             "result": self.result.as_dict(),
         }
+
+
+def arm_from_config(
+    ident: SystemIdentification, now: datetime, config: Any, plant: ThermalParameters,
+    learner_samples: int, draw: DrawRange,
+) -> bool:
+    """Arm ``ident`` from the entry's configuration (the coordinator's one call).
+
+    The switch is the configuration's; the draw store is the probe's only
+    where the install can run it (``thermal_model.ceiling_probe_install``).
+    """
+    ident.config.enabled = config.system_identification_enabled
+    probe = draw if ceiling_probe_install(config) else None
+    armed = ident.arm(now, plant=plant, learner_samples=learner_samples, probe=probe)
+    if armed:
+        _LOGGER.info(
+            "System identification armed (%s); it will start at the next mild, cheap night hour",
+            ident.kind,
+        )
+    return armed

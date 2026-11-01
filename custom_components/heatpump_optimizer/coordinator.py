@@ -266,6 +266,7 @@ from .price_model import (
     extend_price_series,
     pull_prices,
 )
+from . import sysid
 from .sysid import HousePlant, SysIdConfig, SystemIdentification, adoption_decision, step_detached
 from .plan_slots import plan_slots
 from .plan_step import PLAN_STEP_MINUTES, plan_step_start
@@ -326,7 +327,6 @@ from .thermal_model import (
     ThermalModel,
     ThermalParameters,
     ThermalState,
-    ceiling_probe_install,
     channel_heating_steps,
     is_sunlit_interval,
     heat_loss_anchor_pair,
@@ -10819,18 +10819,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     async def async_arm_system_identification(self) -> None:
         """Arm a step-response experiment for the next suitable moment."""
         ctx = getattr(self, "_ctx", self)
-        self._sysid.config.enabled = ctx._config.system_identification_enabled
-        if self._sysid.arm(
-            dt_util.now(),
-            plant=ctx._thermal_params,
-            learner_samples=self._house_heat_loss_samples,
-            probe=self._accuracy.draw if ceiling_probe_install(ctx._config) else None,
-        ):
-            _LOGGER.info(
-                "System identification armed (%s); it will start at the next mild, "
-                "cheap night hour",
-                self._sysid.kind,
-            )
+        sysid.arm_from_config(
+            self._sysid, dt_util.now(), ctx._config, ctx._thermal_params, self._house_heat_loss_samples, self._accuracy.draw)
         await self.async_request_refresh()
 
     async def _run_system_identification(self, prices: np.ndarray) -> None:
@@ -10844,18 +10834,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         ctx = getattr(self, "_ctx", self)
         if not self._sysid.active:
             return
-        # #1523: the experiment is a heat-loss learner, so it stands down on
-        # the house learner's own freeze (external heat, a defrost, an open
-        # window, an unusable or unconfigured room or outdoor reading) and on
-        # a mode that cannot heat. The room half is ``learner_room_unread``.
-        # R10-CEILING-PROBE: and in a quiet window, whose override it would not honour.
-        why = (
-            f"heat pump mode {self._pump_signals.mode.label} cannot heat the house"
-            if self._pump_signals.space_blocked
-            else self._learning_frozen(CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY)
-        ) or learner_room_unread(getattr(ctx, "_config", None)) or quiet_windows.quiet_reason(
-            getattr(ctx, "_config", None) or {}, dt_util.now()
-        )
+        why = sysid.hold_reason(
+            self._pump_signals, self._learning_frozen(CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY),
+            getattr(ctx, "_config", None), dt_util.now())
         if why is not None:
             self._sysid.stand_down(why)
             return

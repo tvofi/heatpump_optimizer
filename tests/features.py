@@ -75809,5 +75809,37 @@ R.check(
     f"{_cp_quiet_armed} {_cp_quiet._sysid.phase} {_cp_loud._sysid.held!r} {_cp_loud._sysid.result.reason!r}",
 )
 
+# The stand-down decision and the arm are the sysid module's, called by the coordinator in one
+# statement each (R10-CEILING-PROBE review: the logic left the hub).
+from heatpump_optimizer import thermal_model as _cp_tm  # noqa: E402
+from types import SimpleNamespace as _cp_ns  # noqa: E402
+_CP_ROOMED = {"indoor_temp_entity": "sensor.room", "outdoor_temp_entity": "sensor.out"}
+_cp_sig = lambda blocked: _cp_ns(space_blocked=blocked, mode=_cp_ns(label="cooling"))  # noqa: E731
+_cp_hold = lambda blocked, frozen, cfg: _cp_sid.hold_reason(_cp_sig(blocked), frozen, cfg, _CP_T0)  # noqa: E731
+R.check(
+    "hold_reason ranks a mode that cannot heat first, then the learners' freeze, then an unread "
+    "room, then a quiet window, and is None when none holds",
+    _cp_hold(True, "external_heat_source", {"quiet_off_windows": "22:00-23:30"})
+    == "heat pump mode cooling cannot heat the house"
+    and _cp_hold(False, "external_heat_source", {"quiet_off_windows": "22:00-23:30"}) == "external_heat_source"
+    and _cp_hold(False, None, {"quiet_off_windows": "22:00-23:30"}) == _cp_tm.INDOOR_UNCONFIGURED_FREEZE
+    and _cp_hold(False, None, {**_CP_ROOMED, "quiet_off_windows": "22:00-23:30"}) == "inside a quiet off window"
+    and _cp_hold(False, None, {**_CP_ROOMED, "quiet_off_windows": "09:00-09:30"}) is None
+    and _cp_hold(False, None, None) is None,
+)
+_cp_armed = _cp_sid.SystemIdentification(_cp_cfg())
+_cp_armed.config.enabled = False
+class _CpOffCfg(dict):
+    system_identification_enabled = False
+
+
+_cp_off_cfg = _CpOffCfg()
+R.check(
+    "arm_from_config takes the switch from the entry's configuration: off arms nothing, whatever the sysid "
+    "config held before",
+    _cp_sid.arm_from_config(_cp_armed, _CP_T0, _cp_off_cfg, None, 0, None) is False
+    and _cp_armed.config.enabled is False and _cp_armed.phase == _cp_sid.PHASE_IDLE,
+)
+
 
 sys.exit(R.close("FEATURE CHECKS"))
