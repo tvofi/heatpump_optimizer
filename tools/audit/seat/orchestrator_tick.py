@@ -839,8 +839,9 @@ class Tick:
                       + " ".join(f"{k}={v}" for k, v in sorted(closed.items())))
 
     def _approval_owed(self, n: int, head: str, runs: list, req: list) -> "str | None":
-        """merge_train.approval_owed over this head's gating red set, its
-        reads routed through this tick's own gh and git (P345): the one owner
+        """merge_train.approval_owed over this head's check runs and required
+        list, its reads (the gate logs included, #3073) routed through this
+        tick's own gh and git (P345): the one owner
         of K15 (d)'s raise exception, asked, never restated. A head that
         cannot be fetched, or any failed read, is None: not reviewable."""
         if self.git(["fetch", "-q", "origin", head])[0]:
