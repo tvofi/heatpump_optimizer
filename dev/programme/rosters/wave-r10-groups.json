@@ -14506,7 +14506,9 @@
     "tools/audit/seat/orchestrator_tick.py",
     "tools/audit/seat/heartbeat.sh"
    ],
-   "carry": [],
+   "carry": [
+    "Re-homed from #2265 (R10-TICK-DRIVERS is done; orchestrator ruling under mandate 6329234399, 2026-10-25). The follow-on brief O14 / tick-drivers-2 items are not found on main: L03, L04, L05, P02, and L12 (b) and (c). P55 and P57 were already re-homed elsewhere, and --carry-sweep landed in 5c729de50. For each remaining item, implement it or record it dismissed with a reason. Close #2265 when none remain open."
+   ],
    "resume": {
     "stage": "not-started",
     "branch": "handoff/r10-tick-drivers-2",
