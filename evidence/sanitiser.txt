@@ -1,0 +1,5 @@
+reading the recorder SQLite /tmp/tmpuxg1y3jd/home-assistant_v2.db
+reading the recorder SQLite /tmp/tmpdh6wzbg2/home-assistant_v2.db
+reading the recorder SQLite /tmp/tmpqvscrj5u/home-assistant_v2.db
+RESULT sanitiser+synthetic 103 103
+export --check rc=0

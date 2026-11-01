@@ -1,0 +1,6 @@
+RESULT mutant=null away_controls=3 red=[] NULL-GREEN
+RESULT mutant=drop_override_arm away_controls=3 red=['control:away:override'] KILLED
+RESULT mutant=drop_floor_arm away_controls=3 red=['control:away:floor'] KILLED
+RESULT mutant=recovering_as_not away_controls=3 red=['control:away:view', 'control:away:override', 'control:away:floor'] KILLED
+RESULT mutant=drop_view_arm away_controls=3 red=['control:away:view'] KILLED
+RESULT mutant=recovery_always away_controls=3 red=['control:away:floor'] KILLED
