@@ -15543,7 +15543,9 @@
     "custom_components/heatpump_optimizer/plan_step.py",
     "tests/features.py"
    ],
-   "carry": [],
+   "carry": [
+    "From #2365 (R10-PUMP-MODEL) review 6247340862, item 05cdb5fe, re-verified by the s9 residual sweep at origin/main 92588d581 (2026-11-01). Measured: custom_components/heatpump_optimizer/pump_arbiter.py still spells the plan step width as a literal: `_share` computes `dhw_min = 15.0 * dhw / (space + dhw)` and tests `15.0 - dhw_min < SPLIT_MIN_MINUTES` (lines 1132 and 1135), and `LOG_STEPS = 96` (line 215) is one day of 15-minute steps, while the same module already imports PLAN_STEP_MINUTES and PLAN_STEP_HOURS from plan_step.py (line 168). Fix: derive both from plan_step.py's owner (`PLAN_STEP_MINUTES` in `_share`, and LOG_STEPS as 24 * 60 // PLAN_STEP_MINUTES or a named per-day constant in plan_step.py), so the step width has one spelling. Failing test first: drive `_share` through the production symbol with PLAN_STEP_MINUTES patched to 30 on a both step whose hot-water share is 40 % and assert the split minute is 12, not 6 (red today), and assert the arbiter's decision log holds one day of steps at the patched width. Null control: at the real 15-minute width every existing `_share` and log-length check is unchanged (features.py and block_duty.py green with no golden moved)."
+   ],
    "resume": {
     "stage": "not-started",
     "branch": "handoff/r10-prod-residue-pins",
