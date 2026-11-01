@@ -1,0 +1,23 @@
+branch-only name diff, three-dot at 7f6d7e72 (base d052f80f7) vs at head (base 407eb0cb):
+38a39
+> tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._current_humidity.CMP_BOUND.45eae803.json
+39a41,42
+> tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._dhw_probe_temperature.BOOLOP.25dfd051.json
+> tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._dhw_probe_temperature.GUARD_OFF.25dfd051.json
+42a46
+> tests/mutation_ledger/killed_by/coordinator.py/_async_rewrite_entry.GUARD_OFF.fa08e1a8.json
+44a49
+> tests/mutation_ledger/killed_by/coordinator.py/_async_undo_factory_reset.RETURN_DEL.2db28578.json
+50a56,58
+> tests/mutation_ledger/killed_by/coordinator.py/async_factory_reset.voided.GUARD_OFF.a5312998.json
+> tests/mutation_ledger/killed_by/coordinator.py/async_factory_reset.voided.RETURN_DEL.95fafb69.json
+> tests/mutation_ledger/killed_by/entry_config.py/_side_pair.GUARD_OFF.f066afa9.json
+51a60,63
+> tests/mutation_ledger/killed_by/entry_config.py/undo_point.GUARD_OFF.fdb2fd77.json
+> tests/mutation_ledger/killed_by/entry_config.py/undo_point.RETURN_DEL.9a65f8ca.json
+> tests/mutation_ledger/killed_by/entry_config.py/undone_settings.GUARD_OFF.f06636d0.json
+> tests/mutation_ledger/killed_by/entry_config.py/undone_settings.RETURN_DEL.a2e2bd26.json
+52a65
+> tests/mutation_ledger/killed_by/services.py/handle_factory_reset.GUARD_OFF.3ac042d3.json
+changed +/- lines differing (other than the 13 records' added lines):
+0
