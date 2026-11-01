@@ -129,6 +129,8 @@ PLANTS = {
 #   Z10     set-files' unknown group (a silent write to a detached dict).
 #   Z11     the dispatch dropping the cite, so set-size never checks it.
 #   Z12     set-files writing hot_files on a call that never named it.
+#   R11     cite_why's merge-base --is-ancestor clause dropped, so a ref holds
+#           any commit that exists (the fix review's survivor of #3143).
 CITE_GUARD = ("    if cite is not None and cite_check:\n"
               "        why = cite_check(cite)\n        if why:\n"
               "            raise Refuse(f\"{op}: {why}\")\n")
@@ -156,6 +158,9 @@ PLANTS.update({
     "Z11": ("op_set_size(roster, a.group, value, sizes, rel, a.cite, cite_check)",
             "op_set_size(roster, a.group, value, sizes, rel, None, cite_check)"),
     "Z12": ("    if hot != old_hot:\n", "    if True:  # Z12\n"),
+    "R11": ('                    and _git_ok(checkout, "merge-base", "--is-ancestor",\n'
+            '                                sha, cand):\n',
+            '                    and True:  # R11\n'),
 })
 
 
