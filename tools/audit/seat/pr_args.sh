@@ -1160,7 +1160,7 @@ STUB
       && git -C "$o" branch fix/v HEAD && git -C "$o" checkout -q main && touch "$t/fixv"
   fi
   codeV=$(git -C "$o" rev-parse handoff/v); wsd=$t/vstub; rm -rf "$wsd"; mkdir -p "$wsd"
-  printf '#!/bin/sh\ncase "$*" in *--head*) echo 5 ;; *mergeStateStatus*) [ -e "%s/dirty" ] && echo DIRTY || echo CLEAN ;; "pr view"*) echo "a title" ;; *) exit 99 ;; esac\n' "$wsd" > "$t/bin/gh"
+  printf '#!/bin/sh\ncase "$*" in *--head*) echo 5 ;; *mergeStateStatus*) [ ! -e "%s/msfail" ] || { echo "HTTP 502" >&2; exit 1; }; [ -e "%s/dirty" ] && echo DIRTY || echo CLEAN ;; "pr view"*) echo "a title" ;; *) exit 99 ;; esac\n' "$wsd" "$wsd" > "$t/bin/gh"
   printf '#!/bin/bash\nprintf "%%s %%s\\n" "$(pwd -P)" "$*" >> "%s/bp"\n[ ! -e "%s/bpmoved" ] || { echo "body_patch: REFUSE: the head moved"; exit 1; }\necho "body_patch: OK"\n' "$wsd" "$wsd" > "$wsd/bp.sh"
   upd() { # <mutant> <code sha|->: update_pr.sh fix/v; origin's fix/v before and after in $t/vbefore, $t/vafter
     git -C "$o" rev-parse fix/v > "$t/vbefore"; cp "$t/body.md" "$t/bv.md"
@@ -1205,6 +1205,16 @@ STUB
   [ "$(cat "$t/rc")" = 0 ] && [ "$(pushes)" = 3 ] && git -C "$o" merge-base --is-ancestor main fix/v \
     && [ "$(sed -n 3p "$wsd/argv" | cut -d' ' -f1)" = tvofi/heatpump_optimizer ] && grep -qF "merges origin/main" "$t/bv.md"
   ck "update_pr: a DIRTY pull request still absorbs main, through the full prepr" $?
+  # merge-tree is the local proof when GitHub does not say DIRTY (#3089 review, mutant A): main
+  # conflicting with fix/v is merged, so the run stops on the conflict, patching and pushing nothing
+  rm -f "$wsd/dirty"; printf 'main side\n' > "$o/v" && git -C "$o" add v && git -C "$o" commit -q -m "main: v conflicts"
+  for g in CLEAN msfail; do
+    [ "$g" = CLEAN ] || touch "$wsd/msfail"; upd - -
+    [ "$(cat "$t/rc")" = 1 ] && grep -q "update_pr: STOPPED: .*merge -q --no-edit origin/main" "$t/out" \
+      && [ "$(pushes)" = 3 ] && [ "$(bpcalls)" = 4 ] && [ "$(cat "$t/vbefore")" = "$(cat "$t/vafter")" ]
+    ck "update_pr: main conflicting with the head while gh answers ${g/msfail/an error} is merged: the run stops, patching and pushing nothing" $?
+  done
+  rm -f "$wsd/msfail"; git -C "$o" reset -q --hard HEAD~1
   printf '#!/bin/sh\n[ -e "%s/gh.fail" ] && { echo "HTTP 403" >&2; exit 1; }\ncase "$*" in *--head*) echo 5 ;; "pr list"*) cat "%s/prs.json" ;; "pr view"*) echo "a title" ;; "pr edit"*|"pr ready"*) exit 0 ;; *) exit 99 ;; esac\n' "$t" "$t" > "$t/bin/gh"
   # A refused row push (#2625, #2629: prepr refused p2 on a red CI reported after p1) left the row
   # commit unpushed in the opener's worktree, on the branch, and update_pr.sh refused it as unpushed

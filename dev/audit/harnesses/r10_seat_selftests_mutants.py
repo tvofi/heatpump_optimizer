@@ -447,6 +447,8 @@ MUTANTS = [
     ("cloud_relay-43", "cloud_relay.sh", '    cat "$bd/update.out" >&2\n', ''),
     ("cloud_relay-44", "cloud_relay.sh", '[ -z "$bonly" ] || key="$key $bs"', ':'),
     ("cloud_relay-45", "cloud_relay.sh", 'rm -rf "$bd"; echo "$topic $bs" >> "$bf"  #', 'rm -rf "$bd"  #'),
+    # #3089 review mutant B: a body-only move is not held by the review freeze
+    ("cloud_relay-46", "cloud_relay.sh", 'if [ -z "$bonly" ] && ! grep -qxF "$pr" <<< "$released" && why=', 'if true && ! grep -qxF "$pr" <<< "$released" && why='),
     # R10-UPDATE-PR-SIGNALS (#2549): the update in the loop's own process group again
     ("cloud_relay-29", "cloud_relay.sh", '    pr_own_group "${upd[@]}" "$br"', '    "${upd[@]}" "$br"'),
     # R10-UPDATE-PR-SIGNALS carry 6 (P163): the STUCK andon's age, its bound, its held test, its wiring
@@ -464,6 +466,8 @@ MUTANTS = [
     ("update_pr-3", "update_pr.sh", 'if [ "$H" = "$LIVE" ]; then', 'if false; then'),
     ("update_pr-4", "update_pr.sh", 'git merge-base --is-ancestor "$HT" "$H" || pr_refuse', 'true || pr_refuse'),
     ("update_pr-5", "update_pr.sh", '[ "$rc" = 0 ] || pr_refuse "body-only:', 'true || pr_refuse "body-only:'),
+    # #3089 review mutant A: merge-tree's conflict merges main when gh does not say DIRTY
+    ("update_pr-6", "update_pr.sh", 'git merge-tree --write-tree origin/main HEAD >/dev/null 2>&1 || MAIN=1', 'git merge-tree --write-tree origin/main HEAD >/dev/null 2>&1 || :'),
     ("tick_loop-3", "tick_loop.sh", 'pass --confirm </dev/null', 'pass </dev/null'),
     # r10-flow-andon: ids are per file (tick_loop-N, heartbeat-N), never a new S number.
     ("tick_loop-1", "tick_loop.sh", '  timeout 60 bash "${HPO_TICK_HEARTBEAT:-$HERE/heartbeat.sh}" --once --message "TICK-PASS $now relay=$rrc tick=$trc"  # mut:heartbeat\n', ""),

@@ -993,6 +993,22 @@ EOF
   chk "a new body for a head holding its handoff runs update_pr once, body-only (code -)" 0 test "$(cat "$t/hupdated")" = "fix/topic-a-pr -"
   bodyc "$HS2"; handoff_arm >/dev/null 2>&1
   chk "the next body move runs it once more" 0 test "$(grep -cx "fix/topic-a-pr -" "$t/hupdated")" = 2
+  # the review freeze does not hold a body-only move (#3089 review, mutant B): a merge verdict, or a
+  # dispatch, at a head holding its handoff tip still lets a new body through, once, with no held line
+  rm -f "$t/hupdated"; cp "$t/bus/dispatched" "$t/bus/dispatched.bo"; mkv "verdict: #41 Fix review: merge $HS2"
+  bodyc "$HS2"; ho=$(handoff_arm 2>&1); handoff_arm >/dev/null 2>&1
+  chk "a new body at a contained head holding a merge verdict runs update_pr once, body-only" 0 test "$(cat "$t/hupdated")" = "fix/topic-a-pr -"
+  chk "and is neither printed HELD nor owed handoff-held" 0 test "$(grep -c HELD <<< "$ho")-$(grep -c handoff-held "$LOG.level")" = 0-0
+  git -C "$t/o.git" update-ref -d refs/heads/verdict/41; printf '41 %s cloud %s\n' "$HS2" "$n" >> "$t/bus/dispatched"
+  rm -f "$t/hupdated"; bodyc "$HS2"; ho=$(handoff_arm 2>&1)
+  chk "a new body at a contained head with a reviewer dispatched runs update_pr once, body-only" 0 test "$(cat "$t/hupdated")-$(grep -c HELD <<< "$ho")" = "fix/topic-a-pr --0"
+  # null control: the same head and verdict, with a handoff tip the head does not hold, is still HELD
+  mkv "verdict: #41 Fix review: merge $HS2"; git -C "$t/pr" reset -q --hard "$HS2"; hc moved-past-review; mkref handoff/topic-a
+  HS3=$(git -C "$t/pr" rev-parse HEAD); rm -f "$t/hupdated"; bodyc "$HS3"; ho=$(handoff_arm 2>&1)
+  chk "a handoff tip the verdicted head does not hold is still HELD-VERDICT (null control)" 0 grep -q "^cloud_relay: HELD-VERDICT #41 $HS3 " <<< "$ho"
+  chk "and runs no update and owes handoff-held" 0 test "$([ -e "$t/hupdated" ] && echo ran)-$(grep -c "handoff-held refs/heads/handoff/topic-a $HS3 #41 VERDICT\$" "$LOG.level")" = -1
+  git -C "$t/o.git" update-ref refs/heads/handoff/topic-a "$HS2"; git -C "$t/o.git" update-ref -d refs/heads/verdict/41
+  git -C "$t/pr" reset -q --hard "$PRH"; mv "$t/bus/dispatched.bo" "$t/bus/dispatched"; rm -f "$t/hupdated"
   rm -f "$t/hupdated"; bodyc; handoff_arm >/dev/null 2>&1
   chk "a contained body with no Code: line runs nothing, and is recorded applied" 0 test ! -e "$t/hupdated" -a "$(tail -n 1 "$BF")" = "topic-a $(bsha)"
   bodyc "$HS"; ho=$(handoff_arm 2>&1)
