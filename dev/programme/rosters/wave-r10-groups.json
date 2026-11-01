@@ -14689,6 +14689,51 @@
     "note": "s9 carry-routing pass, 2026-11-01: created to receive carries of R10-FLY-SEAT-ALIVE-ID"
    },
    "brief": "One writer per standing seat and per orchestrator session: a generation token a superseded seat's lingering job checks before it writes, and a session lock keyed on the session binary's own pid that a second resumed session refuses on. Measure first which tracked writers exist per standing seat; wire only those. Stranded on R10-ORCH-BEATD, re-routed through R10-FLY-SEAT-ALIVE-ID, which #3070 closed. Every carry was moved verbatim by the s9 carry-routing pass (2026-11-01) from a carries-open source group; each names its own controls. Re-measure every figure a carry states at this group's own merge base; carry no count. A carry that says it waits on an owner or orchestrator ruling waits for that ruling, and the body says so."
+  },
+  {
+   "group": "R10-SUITE-HOST-DETERMINISM",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "instrument",
+   "severity": "medium",
+   "size": "M",
+   "issues": [
+    2730
+   ],
+   "fixes": [],
+   "findings": [],
+   "wave": 6,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "tests/features.py",
+    "tests/entities.py",
+    "tools/coverage/coverage_tree.sh"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-suite-host-determinism",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer",
+    "note": "s9 carry-routing pass, 2026-11-01: created to receive carries of R10-FLY-SUITE-ENV-FLAKES"
+   },
+   "brief": "Suite determinism residue of R10-FLY-SUITE-ENV-FLAKES (#2659 fixed only the closure recording's CPU grade): the features checks that fail under a non-UTC HASTUB_TZ, the gate-lease concurrency flake, the coverage measurement reading data files before the workers exit, an entities row judging HEAD while its sibling reads the working tree, and the base-red entities checks a cloud seat reads. Each fix keeps a planted-defect control that still reads red (#2730). Every carry was moved verbatim by the s9 carry-routing pass (2026-11-01) from a carries-open source group; each names its own controls. Re-measure every figure a carry states at this group's own merge base; carry no count. A carry that says it waits on an owner or orchestrator ruling waits for that ruling, and the body says so."
   }
  ]
 }
