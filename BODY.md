@@ -9,6 +9,8 @@ Carry 5 (the brief's remaining sub-carries): all in the sections above.
 
 ## Head
 
+ae3cae82332c7a14ddb02075bc7a6c88ce99e28f (opener seat re-publish, 2026-11-01): origin/main merged into the handoff because open_pr refused a conflict in tools/audit/seat/merge_train.py (the add branch: main's --front/--remove edits and this group's --priority item key). Resolved by taking main's block with the item carrying priority; merge_train.py --self-test 415 checks, 0 failed. The sections below were measured at 17b38f7d9 and are not re-measured by this seat.
+
 17b38f7d9884ebab41561a5dfe2cdea768f939f2
 
 ## Mutation proof
