@@ -1,2 +1,1 @@
-  MODE: FULL -- every test script runs, nothing is scoped out.
   MODE: SCOPED -- 7 script(s) run, 26 scoped out.

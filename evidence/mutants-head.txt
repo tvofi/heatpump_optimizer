@@ -1,0 +1,57 @@
+RESULT null cm_rc=0 fails=0 last=ALL 31 CM PASSED
+RESULT r1-M1 cm_rc=1 fails=12 last=11 of 31 CM FAILED
+  FAIL claims both sides added on different scenarios are both kept  [merged="# Scenarios this branch deliberately moves, one name per line.\n#\n# claims-for: 6.3.16\n#\n# W4-G7 S6 (#193, the grid sea
+  FAIL a claim one side deleted and the other left alone stays deleted  [merged="# Scenarios this branch deliberately moves, one name per line.\n#\n# claims-for: 6.3.16\n#\n# W4-G7 S6 (#193, the grid 
+  FAIL a claim main deleted and this branch left alone stays deleted  [merged="# Scenarios this branch deliberately moves, one name per line.\n#\n# claims-for: 6.3.16\n#\n# W4-G7 S6 (#193, the grid se
+RESULT r1-M2 cm_rc=1 fails=7 last=6 of 31 CM FAILED
+  FAIL a scenario both sides rewrote is refused, not unioned  [two branches' claims for one scenario were merged; a claim excuses a golden diff and cannot be inherited by a merge -- refusal=UNVERIFIED
+  FAIL a claim one side deleted and the other rewrote is refused  [a deleted claim came back carrying the other side's reason]
+  FAIL a may-drift line deleted against rewritten is refused and named  [UNVERIFIED MERGE: the resolved claim file did not survive its own
+RESULT r1-M3 cm_rc=1 fails=5 last=4 of 31 CM FAILED
+  FAIL a claim main deleted and this branch left alone stays deleted  [merged="# Scenarios this branch deliberately moves, one name per line.\n#\n# claims-for: 6.3.16\n#\n# W4-G7 S6 (#193, the grid se
+  FAIL a may-drift line this branch suspended beside a reworded neighbour stays suspended  [merged='# Scenarios this branch deliberately moves, one name per line.\n#\n# claims-for: 6.3.16\n#\n# #514: 
+  FAIL a may-drift line main suspended beside a reworded neighbour stays suspended  [merged='# Scenarios this branch deliberately moves, one name per line.\n#\n# claims-for: 6.3.16\n#\n# #514: this br
+Traceback (most recent call last):
+  File "/tmp/claude-0/finder/r1/mut.py", line 13, in <module>
+    a, b = MUT[name]; s = open(path).read(); assert s.count(a) == 1, name; open(path, "w").write(s.replace(a, b))
+                                                    ^^^^^^^^^^^^^^^
+AssertionError: M4
+RESULT r1-M4 NO-ANCHOR
+RESULT r1-M6 cm_rc=1 fails=2 last=1 of 31 CM FAILED
+  FAIL the merge verification catches a lost stamp, a lost may-drift line, a smuggled claim and surviving markers  [a verification that cannot fail is not a verification]
+1 of 31 CM FAILED
+RESULT r1-R-keep-deleted cm_rc=1 fails=0 last=NameError: name 'base' is not defined. Did you mean: 'False'?
+RESULT r1-R-mine-eq-main-only cm_rc=1 fails=3 last=2 of 31 CM FAILED
+  FAIL a claim both sides added identically resolves, kept once  [merged=None]
+  FAIL claims both sides changed under one stamp both bumped resolve per scenario  [merged=None]
+2 of 31 CM FAILED
+RESULT r2-P-D2-no-cut cm_rc=1 fails=6 last=5 of 31 CM FAILED
+  FAIL a may-drift line this branch suspended beside a reworded neighbour stays suspended  [merged=None]
+  FAIL a may-drift line main suspended beside a reworded neighbour stays suspended  [merged=None]
+  FAIL a stamp this branch bumped beside an adjacent note is the one stamp kept  [merged=None]
+RESULT r2-P-D2-no-cut-no-defect cm_rc=1 fails=7 last=6 of 31 CM FAILED
+  FAIL a may-drift line this branch suspended beside a reworded neighbour stays suspended  [merged='# Scenarios this branch deliberately moves, one name per line.\n#\n# claims-for: 6.3.16\n#\n# #514: 
+  FAIL a may-drift line main suspended beside a reworded neighbour stays suspended  [merged='# Scenarios this branch deliberately moves, one name per line.\n#\n# claims-for: 6.3.16\n#\n# #514: this br
+  FAIL a stamp this branch bumped beside an adjacent note is the one stamp kept  [merged='# Scenarios this branch deliberately moves, one name per line.\n#\n# claims-for: 6.3.16\n# an adjacent note\n#
+RESULT r2-P-D3-ignore-marker-refusal cm_rc=1 fails=3 last=2 of 31 CM FAILED
+  FAIL a may-drift line deleted against rewritten is refused and named  [CONFLICTING MAY-DRIFT OR STAMP: both sides rewrote the same
+  FAIL a may-drift line rewritten both ways is refused and named  [CONFLICTING MAY-DRIFT OR STAMP: both sides rewrote the same
+2 of 31 CM FAILED
+RESULT r2-P-D3-ignore-refusal-and-defect cm_rc=1 fails=5 last=4 of 31 CM FAILED
+  FAIL a may-drift line deleted against rewritten is refused and named  [CONFLICTING MAY-DRIFT OR STAMP: both sides rewrote the same
+  FAIL a may-drift line rewritten both ways is refused and named  [CONFLICTING MAY-DRIFT OR STAMP: both sides rewrote the same
+  FAIL the merge verification catches a lost stamp, a lost may-drift line, a smuggled claim and surviving markers  [a verification that cannot fail is not a verification]
+RESULT r2-P-stamp-not-marker cm_rc=1 fails=4 last=3 of 31 CM FAILED
+  FAIL a stamp this branch bumped beside an adjacent note is the one stamp kept  [merged='# Scenarios this branch deliberately moves, one name per line.\n#\n# claims-for: 6.3.16\n# an adjacent note\n#
+  FAIL a stamp main bumped beside an adjacent note is the one stamp kept  [merged='# Scenarios this branch deliberately moves, one name per line.\n#\n# claims-for: 6.3.17\n#\n# claims-for: 6.3.16\n# a
+  FAIL a stamp both sides bumped differently is refused and named  [UNVERIFIED MERGE: the resolved claim file did not survive its own
+RESULT O-guard-three-way cm_rc=1 fails=2 last=1 of 31 CM FAILED
+  FAIL claims both sides changed under one stamp both bumped resolve per scenario  [merged=None]
+1 of 31 CM FAILED
+RESULT O-no-guard cm_rc=1 fails=2 last=1 of 31 CM FAILED
+  FAIL claims both sides changed under different claims-for stamps are refused  [a claim stamped for another release excuses that release's diff only]
+1 of 31 CM FAILED
+RESULT O-guard-base-vs-ours cm_rc=1 fails=3 last=2 of 31 CM FAILED
+  FAIL claims both sides changed under different claims-for stamps are refused  [a claim stamped for another release excuses that release's diff only]
+  FAIL claims both sides changed under one stamp both bumped resolve per scenario  [merged=None]
+2 of 31 CM FAILED
