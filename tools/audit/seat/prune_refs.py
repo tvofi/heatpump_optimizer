@@ -104,6 +104,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import stat
 import subprocess
 import sys
 import time
@@ -577,6 +578,22 @@ def _self_test_keeps(results: list) -> None:
                topic_matches(name, topic) is want, results)
 
 
+STUB_MODE = 0o700  # owner only; PATH lookup of `gh` needs the owner's execute bit
+
+
+def _wide_bits(mode: int) -> int:
+    """The group/other permission bits of `mode` (what CodeQL py/overly-permissive-file reads)."""
+    return stat.S_IMODE(mode) & 0o077
+
+
+def _write_stub(path: str, text: str, mode: int) -> None:
+    """Create a stub file exclusively with `mode`, never widened by a later chmod."""
+    import os
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, mode)
+    with os.fdopen(fd, "w") as fh:
+        fh.write(text)
+
+
 def _self_test_git(results: list) -> None:
     """The push arm and --topic against a throwaway bare remote (tests/throwaway_git.py)."""
     import os
@@ -631,9 +648,12 @@ def _self_test_git(results: list) -> None:
         return {ln.split()[1].split("refs/heads/", 1)[1]: ln.split()[0]
                 for ln in g("ls-remote", "--heads", origin).splitlines()}
 
-    with open(os.path.join(bindir, "gh"), "w") as fh:
-        fh.write(f'#!/bin/sh\necho "$@" >> {ghlog}\nexit ${{GH_STUB_RC:-1}}\n')
-    os.chmod(os.path.join(bindir, "gh"), 0o700)
+    ghstub = os.path.join(bindir, "gh")
+    _write_stub(ghstub, f'#!/bin/sh\necho "$@" >> {ghlog}\nexit ${{GH_STUB_RC:-1}}\n', STUB_MODE)
+    _check("the gh stub has no group/other permission bits",
+           not _wide_bits(os.stat(ghstub).st_mode), results)
+    _check("null: the same check reads a 0o755 mode as wide (and 0o700 as private)",
+           _wide_bits(0o100755) and not _wide_bits(0o100700), results)
     saved_path = os.environ["PATH"]
     os.environ["PATH"] = bindir + os.pathsep + saved_path
 
