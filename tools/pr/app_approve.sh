@@ -246,15 +246,26 @@ bot_paths() { # subject -> one pathspec per line, nothing for an unknown subject
 # claim_driver_wrote <main ref> <merge> <parent 1> <parent 2> <path>: 0 only when
 # main's claim driver resolves <path> at (merge base, parent 1, parent 2) and its
 # output is byte-equal to <path> at <merge>. Quiet, like merge-tree in `carry`.
-claim_driver_wrote() {
-  local m=$1 c=$2 a=$3 b=$4 p=$5 o d r=1
+claim_driver_wrote() { driver_wrote "$@" claimnotes; }
+
+# driver_wrote <main> <commit> <a> <b> <path> <driver>: 0 when <commit>'s <path>
+# is byte-equal to what main's own <driver> (claimnotes or ledgermerge, as
+# main's .gitattributes names them) writes on (merge base, a, b). Main's copy
+# of the driver, never a head's: a branch's own driver would grade itself.
+driver_wrote() {
+  local m=$1 c=$2 a=$3 b=$4 p=$5 o d r=1 src flag
+  case $6 in
+    claimnotes) src=tests/env_drift.py flag=--merge-claim-file ;;
+    ledgermerge) src=tools/merge/ledger_merge.py flag=--merge ;;
+    *) return 1 ;;
+  esac
   o=$(git merge-base "$a" "$b" 2>/dev/null) || return 1
   d=$(mktemp -d) || return 1
-  git show "$m:tests/env_drift.py" > "$d/driver.py" 2>/dev/null \
+  git show "$m:$src" > "$d/driver.py" 2>/dev/null \
     && { git show "$o:$p" > "$d/O" 2>/dev/null || :; } \
     && { git show "$a:$p" > "$d/A" 2>/dev/null || :; } \
     && { git show "$b:$p" > "$d/B" 2>/dev/null || :; } \
-    && python3 -I "$d/driver.py" --merge-claim-file "$d/O" "$d/A" "$d/B" 7 "$p" >/dev/null 2>&1 \
+    && python3 -I "$d/driver.py" "$flag" "$d/O" "$d/A" "$d/B" 7 "$p" >/dev/null 2>&1 \
     && git show "$c:$p" 2>/dev/null | cmp -s - "$d/A" && r=0
   rm -rf "$d"
   return $r
@@ -262,7 +273,7 @@ claim_driver_wrote() {
 
 # carry <verdict sha> <head sha> <main ref>: prints the reason; 0 only on a carry.
 carry() {
-  local v=$1 h=$2 main=$3 c ps ae subj p mv mh t x y b ba bt e cp got want own=""
+  local v=$1 h=$2 main=$3 c ps ae subj p mv mh t x y b ba bt e cp got want own="" botc="" drv lb
   git merge-base --is-ancestor "$v" "$h" 2>/dev/null || { echo "$v is not an ancestor of $h"; return 1; }
   # Read at main, never at a head: a branch that gave a file a driver would
   # otherwise take it out of the comparisons itself.
@@ -354,6 +365,7 @@ carry() {
           || { echo "$c is a commit under a bot's or the delivery row's subject that changes files outside main's merge-driver files and the paths of its subject"; return 1; }
         [ "$ae" = "$(bot_author "$subj")" ] \
           || { echo "$c is authored by $ae, not the writer of its subject ($subj)"; return 1; }
+        botc="$botc$c "  # newest first: what its writer left in a driver file stands (below)
         case "$subj" in *claims*)
           [ "$(git diff --numstat "$c^" "$c" | awk '{s+=$1} END {print s+0}')" = 0 ] \
             || { echo "$c adds claim lines, and its subject only drops them"; return 1; } ;;
@@ -419,6 +431,33 @@ carry() {
     git diff --quiet "$t" "$h" -- . ${x[@]+"${x[@]}"} \
       || { echo "the branch's own commits ${own% } change its content: $h is not the reviewed head $v merged onto $mh"; return 1; }
   fi
+  # The driver files' end state (#3077 round 1). Every comparison above leaves
+  # main's merge-driver files out, so a budget, closure or claim line written
+  # by a commit of the branch's own, by a `ci:` subject anyone can write, or by
+  # a merge's hand resolution would otherwise carry unreviewed. What each holds
+  # at the head must be what an automatic writer produced: git's merge of the
+  # reviewed head onto main as this clone's drivers write it; main's own
+  # driver on the two, for a clone without them; for a claim file, the union
+  # of both sides, the resolution the merge check above also takes; or the
+  # file as the newest carried bot commit to change it left it, a bot being
+  # an author-checked subject (`bot_author`), never a bare `ci:`.
+  t=$(git merge-tree --write-tree --no-messages "$v" "$mh" 2>/dev/null | head -1)
+  case $t in *[!0-9a-f]*) t="" ;; esac
+  while read -r p drv; do
+    [ -n "$p" ] || continue
+    [ -n "$t" ] && [ "$(git rev-parse -q --verify "$t:$p")" = "$(git rev-parse -q --verify "$h:$p")" ] && continue
+    driver_wrote "$main" "$h" "$v" "$mh" "$p" "$drv" && continue
+    if [ "$drv" = claimnotes ]; then
+      got=$(git show "$h:$p" 2>/dev/null | awk 'NF' | sort -u)
+      want=$({ git show "$v:$p" 2>/dev/null; git show "$mh:$p" 2>/dev/null; } | awk 'NF' | sort -u)
+      [ "$got" = "$want" ] && continue
+    fi
+    lb=""
+    for c in $botc; do git diff --quiet "$c^" "$c" -- ":(literal)$p" || { lb=$c; break; }; done
+    [ -n "$lb" ] && [ "$(git rev-parse -q --verify "$lb:$p")" = "$(git rev-parse -q --verify "$h:$p")" ] && continue
+    echo "$p at $h is not the reviewed head $v merged onto $mh, main's driver output on them, nor what a carried bot commit wrote"; return 1
+  done <<<"$(git show "$main:.gitattributes" 2>/dev/null \
+    | awk '!/^#/ {for (i = 2; i <= NF; i++) if ($i ~ /^merge=/) {print $1, substr($i, 7); break}}')"
   local d=(git -c core.quotepath=off diff --binary --no-renames --no-color --no-ext-diff --no-textconv
     --diff-algorithm=myers -U3)
   # In a `*.md` file each context line reads as a bare ` ` (P17): prose main
@@ -1758,6 +1797,15 @@ H_DF=$( cd "$RD" && git checkout -q --detach "$VF" && git merge -q --no-ff --no-
 ( cd "$RD" && bash "$SELF" --carry "$VF" "$H_DF" main ) > "$W/carry.out" 2>&1
 st $? 1 "NO CARRY: main's side dropped by hand, which only the head's own driver would write"
 st "$(grep -c "union of its parents" "$W/carry.out")" 1 "refused on main's driver, not the head's"
+# The claim-file twin (#3077 round 1): an own commit after the driver's merge.
+H_DROWN=$( cd "$RD" && git checkout -q --detach "$H_DR" && printf 'c9 # own\n' >> tests/golden/claimed_drift.txt \
+  && git commit -qam "fix: tidy wording" && git rev-parse HEAD )
+( cd "$RD" && bash "$SELF" --carry "$VD" "$H_DROWN" main ) > "$W/carry.out" 2>&1
+st $? 1 "NO CARRY: a commit of the branch's own that adds a claim line after main's driver resolved the merge"
+st "$(grep -c "claimed_drift.txt at $H_DROWN is not" "$W/carry.out")" 1 "refused naming the claim file"
+H_DREMPTY=$( cd "$RD" && git checkout -q --detach "$H_DR" && git commit -q --allow-empty -m "fix: nothing" && git rev-parse HEAD )
+( cd "$RD" && bash "$SELF" --carry "$VD" "$H_DREMPTY" main ) > "$W/carry.out" 2>&1
+st $? 0 "CARRY: an empty commit of the branch's own after main's driver resolved the claim file (null control)"
 # The delivery row (P123): delivery_row.sh commit_row's subject, author and
 # one path, for an add and an edit; each refusal names its commit.
 TV=70032254+tvofi@users.noreply.github.com
@@ -1788,6 +1836,28 @@ st "$(grep -c "own commits ${H_TESTLINE:0:9} change its content" "$W/carry.out")
 H_BUDGET=$(pin_commit "$H_ROWADD" "fix: one budget value" tests/structure_budgets.json)
 carried "$H_BUDGET"; st $? 1 "NO CARRY: an ordinary commit changing one budget value after the row"
 st "$(grep -c "own commits ${H_BUDGET:0:9} change its content" "$W/carry.out")" 1 "refused naming that commit"
+# The driver files' end state (#3077 round 1): the comparisons above leave
+# main's merge-driver files out, so what they hold at the head is read on its
+# own -- git's automatic merge of the reviewed head onto main, main's driver
+# output on the two, or what a carried bot commit wrote -- whoever wrote the
+# commit: a branch's own, a `ci:` subject, or a merge's resolution.
+H_OWNLED=$(pin_commit "$H_ROWADD" "fix: tidy wording" led.json)
+carried "$H_OWNLED"; st $? 1 "NO CARRY: a commit of the branch's own that edits a merge-driver file (a budget raise)"
+st "$(grep -c "led.json at $H_OWNLED is not" "$W/carry.out")" 1 "refused naming the driver file"
+H_CITIDY=$(AUTHOR_EMAIL=seat@e pin_commit "$V" "ci: tidy" led.json)
+carried "$H_CITIDY"; st $? 1 "NO CARRY: a ci: subject by a seat that edits a merge-driver file"
+st "$(grep -c "led.json at $H_CITIDY is not" "$W/carry.out")" 1 "refused naming the driver file"
+H_MERGELED=$(g checkout -q --detach "$V"; g merge -q --no-ff --no-edit -m "Merge origin/main into fix" "$M1" >/dev/null
+  echo k >> "$W/clone/led.json"; g commit -q --amend -a --no-edit; g rev-parse HEAD)
+carried "$H_MERGELED"; st $? 1 "NO CARRY: a merge from main whose merge-driver file is resolved by hand"
+st "$(grep -c "led.json at $H_MERGELED is not" "$W/carry.out")" 1 "refused naming the driver file"
+H_AFTERBOT=$(pin_commit "$H_CILED" "fix: after the bot" led.json)
+carried "$H_AFTERBOT"; st $? 1 "NO CARRY: a commit of the branch's own that edits the driver file a carried bot commit wrote"
+st "$(grep -c "led.json at $H_AFTERBOT is not" "$W/carry.out")" 1 "refused naming the driver file"
+g checkout -q --detach "$H_CILED"; g commit -q --allow-empty -m "fix: nothing after the bot"; H_BOTEMPTY=$(g rev-parse HEAD)
+carried "$H_BOTEMPTY"; st $? 0 "CARRY: an empty commit of the branch's own after a carried bot commit's driver-file write (null control)"
+g checkout -q --detach "$H_MERGE"; g commit -q --allow-empty -m "fix: nothing after the merge"; H_MERGEEMPTY=$(g rev-parse HEAD)
+carried "$H_MERGEEMPTY"; st $? 0 "CARRY: an empty commit of the branch's own after a merge from main (null control)"
 # L6: a revert and its re-apply around an absorb of main has the reviewed
 # change's patch at the new head; one that re-applies a different line does not.
 g checkout -q --detach "$V"; g revert --no-edit HEAD >/dev/null; _rv=$(g rev-parse HEAD)
