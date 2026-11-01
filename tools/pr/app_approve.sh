@@ -371,7 +371,8 @@ carry() {
           || { echo "$c is a commit under a bot's or the delivery row's subject that changes files outside main's merge-driver files and the paths of its subject"; return 1; }
         [ "$ae" = "$(bot_author "$subj")" ] \
           || { echo "$c is authored by $ae, not the writer of its subject ($subj)"; return 1; }
-        botc="$botc$c "  # newest first: what its writer left in a driver file stands (below)
+        # Newest first: what its writer left in one of its own paths stands (below).
+        while IFS= read -r e; do [ -z "$e" ] || botc="$botc$c $e"$'\n'; done <<<"$b"
         case "$subj" in *claims*)
           [ "$(git diff --numstat "$c^" "$c" | awk '{s+=$1} END {print s+0}')" = 0 ] \
             || { echo "$c adds claim lines, and its subject only drops them"; return 1; } ;;
@@ -446,7 +447,9 @@ carry() {
   # driver on the two, for a clone without them; for a claim file, the union
   # of both sides, the resolution the merge check above also takes; or the
   # file as the newest carried bot commit to change it left it, a bot being
-  # an author-checked subject (`bot_author`), never a bare `ci:`.
+  # an author-checked subject (`bot_author`), never a bare `ci:`, and the file
+  # one of that subject's own paths (`bot_paths`): a closures bot rewriting a
+  # budget is not that budget's writer.
   t=$(git merge-tree --write-tree --no-messages "$v" "$mh" 2>/dev/null | head -1)
   case $t in *[!0-9a-f]*) t="" ;; esac
   while read -r p drv; do
@@ -459,7 +462,10 @@ carry() {
       [ "$got" = "$want" ] && continue
     fi
     lb=""
-    for c in $botc; do git diff --quiet "$c^" "$c" -- ":(literal)$p" || { lb=$c; break; }; done
+    while read -r c e; do
+      [ "$e" = "$p" ] || continue
+      git diff --quiet "$c^" "$c" -- ":(literal)$p" || { lb=$c; break; }
+    done <<<"$botc"
     [ -n "$lb" ] && [ "$(git rev-parse -q --verify "$lb:$p")" = "$(git rev-parse -q --verify "$h:$p")" ] && continue
     echo "$p at $h is not the reviewed head $v merged onto $mh, main's driver output on them, nor what a carried bot commit wrote"; return 1
   done <<<"$(git show "$main:.gitattributes" 2>/dev/null \
@@ -848,7 +854,8 @@ g() { git -C "$W/clone" -c push.negotiate=false "$@"; }
 throwaway_git_init "$W/remote.git" -q --bare && throwaway_git_init "$W/clone" -q -b main && g remote add origin "$W/remote.git"
 ed1() { sed -i.bak "$1" "$W/clone/$2" && rm "$W/clone/$2.bak"; }
 seq 1 40 > "$W/clone/a.txt"; echo b > "$W/clone/b.txt"; seq -f 'l%g' 1 10 > "$W/clone/led.json"
-echo 'led.json merge=ledgermerge' > "$W/clone/.gitattributes"; g add -A; g commit -qm m0
+mkdir -p "$W/clone/tests"; seq -f 'c%g' 1 10 > "$W/clone/tests/closures.json"
+printf 'led.json merge=ledgermerge\ntests/closures.json merge=ledgermerge\n' > "$W/clone/.gitattributes"; g add -A; g commit -qm m0
 g checkout -qb fixa; ed1 's/^5$/five/' a.txt; echo 'a.txt merge=ledgermerge' >> "$W/clone/.gitattributes"
 g commit -qam "fix: own, with a driver for its own file"; V_A=$(g rev-parse HEAD)
 g checkout -q main; g checkout -qb fix; ed1 's/^5$/five/' a.txt; ed1 's/^l1$/L1/' led.json; g commit -qam "fix: own"
@@ -864,7 +871,8 @@ H_EVIL=$(mkmerge "$V" "$M1" "Merge origin/main into fix" evil)
 g checkout -q --detach "$V"; echo x >> "$W/clone/b.txt"; g commit -qam "fix: more"; H_OWN=$(g rev-parse HEAD)
 g checkout -q --detach "$V"; echo rec > "$W/clone/c.json"; g add c.json; g commit -qm "ci: re-record closures"; H_CI=$(g rev-parse HEAD)
 g checkout -q --detach "$V"; g commit -q --allow-empty -m "ci: empty"; H_CIEMPTY=$(g rev-parse HEAD)
-g checkout -q --detach "$V"; ed1 's/^l9$/L9/' led.json; GIT_AUTHOR_EMAIL="41898282+github-actions[bot]@users.noreply.github.com" g commit -qam "ci: re-record closures"; H_CILED=$(g rev-parse HEAD)
+g checkout -q --detach "$V"; ed1 's/^c9$/C9/' tests/closures.json; GIT_AUTHOR_EMAIL="41898282+github-actions[bot]@users.noreply.github.com" g commit -qam "ci: re-record closures"; H_CILED=$(g rev-parse HEAD)
+g checkout -q --detach "$V"; ed1 's/^l9$/L9/' led.json; GIT_AUTHOR_EMAIL="41898282+github-actions[bot]@users.noreply.github.com" g commit -qam "ci: re-record closures"; H_CIOUT=$(g rev-parse HEAD)
 g checkout -q --detach "$V"; g commit -q --allow-empty -m "fix: nothing"; H_OWNEMPTY=$(g rev-parse HEAD)
 # R9-CI-2b: each bot's own paths. mutation-autofix writes the ledger, which
 # is no merge-driver file; remerge_main.sh drops inherited claims under a
@@ -1613,7 +1621,9 @@ st "$(grep -c "own commits ${H_OWN:0:9} change its content" "$W/carry.out")" 1 "
 carried "$H_OWNEMPTY"; st $? 0 "CARRY: an empty commit of the branch's own (L6)"
 carried "$H_CI"; st $? 1 "NO CARRY: a ci: commit that changes the branch's diff"
 st "$(grep -c "outside main's merge-driver files" "$W/carry.out")" 1 "refused as a ci: commit outside the driver files"
-carried "$H_CILED"; st $? 0 "CARRY: a ci: commit that rewrites only a merge-driver file"
+carried "$H_CILED"; st $? 0 "CARRY: a bot commit that rewrites only its own merge-driver file"
+carried "$H_CIOUT"; st $? 1 "NO CARRY: the same bot subject rewriting a merge-driver file outside its own paths (#3077)"
+st "$(grep -c "led.json at $H_CIOUT is not" "$W/carry.out")" 1 "refused naming the driver file"
 carried "$H_PIN_BADMSG"; st $? 1 "NO CARRY: the bot's confined additions, under a ci: subject no writer uses"
 st "$(grep -c "outside main's merge-driver files" "$W/carry.out")" 1 "refused by the generic ci: guard, not the bot one"
 # The narrowing that `bot_paths`' whole-subtree exclusion alone does not give:
@@ -1888,9 +1898,9 @@ H_MERGELED=$(g checkout -q --detach "$V"; g merge -q --no-ff --no-edit -m "Merge
   echo k >> "$W/clone/led.json"; g commit -q --amend -a --no-edit; g rev-parse HEAD)
 carried "$H_MERGELED"; st $? 1 "NO CARRY: a merge from main whose merge-driver file is resolved by hand"
 st "$(grep -c "led.json at $H_MERGELED is not" "$W/carry.out")" 1 "refused naming the driver file"
-H_AFTERBOT=$(pin_commit "$H_CILED" "fix: after the bot" led.json)
+H_AFTERBOT=$(pin_commit "$H_CILED" "fix: after the bot" tests/closures.json)
 carried "$H_AFTERBOT"; st $? 1 "NO CARRY: a commit of the branch's own that edits the driver file a carried bot commit wrote"
-st "$(grep -c "led.json at $H_AFTERBOT is not" "$W/carry.out")" 1 "refused naming the driver file"
+st "$(grep -c "closures.json at $H_AFTERBOT is not" "$W/carry.out")" 1 "refused naming the driver file"
 g checkout -q --detach "$H_CILED"; g commit -q --allow-empty -m "fix: nothing after the bot"; H_BOTEMPTY=$(g rev-parse HEAD)
 carried "$H_BOTEMPTY"; st $? 0 "CARRY: an empty commit of the branch's own after a carried bot commit's driver-file write (null control)"
 g checkout -q --detach "$H_MERGE"; g commit -q --allow-empty -m "fix: nothing after the merge"; H_MERGEEMPTY=$(g rev-parse HEAD)
