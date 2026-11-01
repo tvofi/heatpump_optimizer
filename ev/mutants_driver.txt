@@ -1,0 +1,35 @@
+RESULT mutant=G1 rc=1 fails=1
+    tools/pr/gh_comment.py: FAIL arm6_id_inside_a_longer_number_posts (the gate's whole-number test)
+RESULT mutant=G2 rc=1 fails=2
+    tools/pr/gh_comment.py: FAIL arm6_brief_row_refused_on_patch
+    tools/pr/gh_comment.py: FAIL arm6_field_text_refused_on_patch
+RESULT mutant=G3 rc=1 fails=1
+    tools/pr/gh_comment.py: FAIL arm6_withdraw_naming_another_id_is_refused
+RESULT mutant=G4 rc=1 fails=6
+    tools/pr/gh_comment.py: FAIL arm6_brief_row_refused_on_post
+    tools/pr/gh_comment.py: FAIL arm6_brief_row_refused_on_patch
+    tools/pr/gh_comment.py: FAIL arm6_withdraw_naming_another_id_is_refused
+    tools/pr/gh_comment.py: FAIL arm6_field_text_refused_on_post
+    tools/pr/gh_comment.py: FAIL arm6_field_text_refused_on_patch
+    tools/pr/gh_comment.py: FAIL arm6_a_thread_read_that_fails_refuses
+RESULT mutant=B1 rc=1 fails=2
+    tools/pr/gh_comment.py: FAIL arm6_id_inside_a_longer_number_posts (the gate's whole-number test)
+    tools/policy/budget_raise_gate.py: FAIL mandate: a revocation naming a longer id that ends in this one <stem>es nothing (null control): got 1, want 0
+RESULT mutant=B2 rc=1 fails=10
+    tools/policy/budget_raise_gate.py: FAIL score: a planted false IMPROVES under a mandate is refused: got 0, want 1
+    tools/policy/budget_raise_gate.py: FAIL score: ... and the refusal names both figures: got False, want True
+    tools/policy/budget_raise_gate.py: FAIL score: the true figure passes (null control): got (0, 0), want (0, 1)
+    tools/policy/budget_raise_gate.py: FAIL score: the same dS with another verdict word is refused: got 0, want 1
+    tools/policy/budget_raise_gate.py: FAIL score: the true figure under another heading does not count: got 0, want 1
+    tools/policy/budget_raise_gate.py: FAIL score: a scorer that fails is a refusal: got 0, want 1
+    tools/policy/budget_raise_gate.py: FAIL score: a scorer line that does not read is a refusal: got 0, want 1
+    tools/policy/budget_raise_gate.py: FAIL e2e: ... after running the base's scorer three-dot, fork to head: got None, want '--diff 2b6593bfbfa5ff9a0ffd49a66d90cb97286c2b90 2c3c9237f8cdfef45bf3378336a3296804361aaf'
+    tools/policy/budget_raise_gate.py: FAIL e2e: a planted false IMPROVES under a mandate exits 1, naming the measured figure: got (0, False), want (1, True)
+    tools/policy/budget_raise_gate.py: FAIL e2e: ... and on a head whose own scorer prints it under a mandate exits 1, naming the measured figure: got (0, False), want (1, True)
+RESULT mutant=B3 rc=1 fails=1
+    tools/policy/budget_raise_gate.py: FAIL e2e: ... and on a head whose own scorer prints it under a mandate exits 1, naming the measured figure: got (0, False), want (1, True)
+RESULT mutant=B4 rc=1 fails=1
+    tools/policy/budget_raise_gate.py: FAIL score: the same dS with another verdict word is refused: got 0, want 1
+RESULT plants=8 killed=8
+RESULT mutant=null rc=0 fails=0
+r10_mandate_guard_mutants self-test: 8 checks, 0 failed
