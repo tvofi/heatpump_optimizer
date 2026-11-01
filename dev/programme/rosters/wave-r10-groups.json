@@ -13531,7 +13531,9 @@
    },
    "fixerModel": "opus",
    "reviewerModel": "opus",
-   "after": [],
+   "after": [
+    "R10-MACHINERY-RATCHETS"
+   ],
    "files": [
     "tools/plan/replan.py",
     "tools/audit/seat/plan_page.py"
