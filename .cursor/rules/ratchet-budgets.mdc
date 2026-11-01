@@ -1,6 +1,6 @@
 ---
 description: A one-sided cap may only be re-recorded down for prose that was deleted, never for prose that moved
-globs: dev/governance/config/policy_budgets.json,.claude/rules/**,CLAUDE.md,AGENTS.md,tools/audit/README.md,dev/audit/README.md
+globs: dev/governance/config/*_budgets.json,.claude/rules/**,CLAUDE.md,AGENTS.md,tools/audit/README.md,dev/audit/README.md
 alwaysApply: true
 ---
 # Three caps, because one of them can be gamed by moving a file
@@ -50,19 +50,10 @@ The five aggregate caps — `always_loaded_tokens`, `corpus_tokens` and the thre
 constant line count), get no band and are compared exactly: a per-document
 ratchet paid one file at a time, where a band would buy growth in every file.
 
-It is there because step 3 below was obeyed. Recording an aggregate at exactly
-the measured value leaves the next pull request refused by the previous seat's
-arithmetic rather than by its own prose — `--budgets` prints how many capped
-files sit at zero headroom, and `git log -p` on `corpus_tokens` prints how many
-consecutive commits recorded it at measured. Zero headroom refused no accretion
-over that window. What it did produce is a one-line edit to a cap with no policy
-file in the commit at all, and a two-branch collision (#1122) where main and a
-branch re-recorded the same key over different bases, so neither number was
-right after the merge and the deltas did not add.
-
 **The recorded cap is the last measurement; `_band` is the room a seat works in
-without touching it.** A change inside the band records nothing, so #1122's
-resolution — zero the key and let `--budgets` re-measure the merged tree — is
+without touching it** (why: `_band_note`). A change inside the band records
+nothing, so #1122's resolution — zero the key and let `--budgets` re-measure
+the merged tree — is
 not needed for a collision inside the band, where neither branch edits the line.
 It stays the right move for one larger than the band.
 
@@ -103,3 +94,16 @@ cap, the floor, the corpus and each role; write that, never a cap's value — on
 stated beside its file's name is checked by `counts` in the corpus and the
 record. The `budgets` class is held out of the known-bad ledger: a cap recordable
 as a known defect is not a ratchet.
+
+## The machinery caps
+
+`machinery_budgets.json` caps main's newest `window_merges` merges, graded by
+`tools/audit/machinery_ratchet.py` in `policy-docs`: merges that are not
+production, and nonproduct lines per 1000 product lines. Each closes the
+other's hole (splitting production lowers the first, not the second; a pure
+move costs neither). Each cap takes its band as above; the window is frozen.
+**The owner's exemption**: a change proving over 10% improvement in CI time,
+programme completion time, right-first-time or token usage appends its
+`exemptions` entry (number, measure, before, after, each one's command,
+evidence path) in its own pull request. Recorded, never silently allowed: an
+entry a later merge adds exempts nothing, and removing one is a raise.

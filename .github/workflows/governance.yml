@@ -136,6 +136,7 @@ jobs:
             '.claude/workflows/*.py' \
             '.claude/workflows/vendor' \
             'tools/audit/*.sh' \
+            'tools/audit/machinery_ratchet.py' \
             'tools/audit/record-predicate' \
             'tools/audit/round6/D11/fix/codeowners_gap.py' \
             'tools/policy/*.mjs' \
@@ -190,6 +191,28 @@ jobs:
       - name: Report what the linter found
         if: always()
         run: if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --report; else node tools/policy/policy_lint.mjs --report; fi|| true
+
+      # The machinery ratchet (R10-MACHINERY-RATCHETS; ratchet-budgets.md):
+      # the newest window of main's merges against the caps in
+      # dev/governance/config/machinery_budgets.json, the base's copy of the
+      # program (restored above; the pull request that lands it is graded by
+      # its own, the stated hole for a new file). A pull request is graded as
+      # the candidate merge on its base; a push, the schedule, a merge group
+      # and a dispatch with no pull request grade the window ending at the
+      # checked-out commit. Offline: git history only.
+      - name: Refuse a window of merges past the machinery caps
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || (inputs.base && format('origin/{0}', inputs.base)) || '' }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          PR: ${{ github.event.pull_request.number || github.event.inputs.pr || '' }}
+        run: |
+          set -euo pipefail
+          if [ -n "$PR" ] && [ -n "$BASE" ]; then
+            git cat-file -e "$BASE^{commit}" 2>/dev/null || git fetch -q --no-tags origin "${BASE#origin/}"
+            python3 -I tools/audit/machinery_ratchet.py --check --base "$BASE" --head "$HEAD_SHA" --pr "$PR"
+          else
+            python3 -I tools/audit/machinery_ratchet.py --check --head "$HEAD_SHA"
+          fi
 
       # Last: the base's checker drives the hooks' own self-tests, which are the
       # pull request's (owned) copies -- so nothing graded runs after them.
@@ -393,6 +416,16 @@ jobs:
           set -o pipefail
           if test -f .claude/workflows/budget_raise_gate.py; then python3 .claude/workflows/budget_raise_gate.py --self-test; else python3 tools/policy/budget_raise_gate.py --self-test; fi| tee "$RUNNER_TEMP/brg-self-test.txt"
           grep -Eq '^budget_raise_gate self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/brg-self-test.txt"
+
+      # The machinery ratchet's arms (kinds, window, cap+band, the
+      # cross-boundary move null control, splits, every exemption arm) over
+      # throwaway repositories. Pinned but not owned, so the tally line must
+      # say 0 failed, as for the budget-raise gate above.
+      - name: Show the machinery ratchet refusing its own fixtures
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/machinery_ratchet.py --self-test | tee "$RUNNER_TEMP/mr-self-test.txt"
+          grep -Eq '^machinery_ratchet self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/mr-self-test.txt"
 
       # Which CodeQL legs a pull request may skip (O17): every skip arm against
       # its analyze null control, and every non-pull_request event analyzing

@@ -28,6 +28,7 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
 - [`check_scopes.py`](instruments/check_scopes.py.md) — proves the finder scopes are disjoint and complete within each dimension
 - [`fold_ledger.py`](instruments/fold_ledger.py.md) — folds a round's JUDGE.json and sweeps into `bugclasses.json`
 - [`judge_batch.py`](instruments/judge_batch.py.md) — re-runs every finding's harness, perturbation and null control serially under the gate lease
+- [`machinery_ratchet.py`](instruments/machinery_ratchet.py.md) — caps the nonproduction merges and the nonproduct churn per product line in main's newest merge window, graded in `governance.yml`'s `policy-docs`
 - [`merge_fastpath.py`](instruments/merge_fastpath.py.md) — classifies a changed file as workflow, claim, grader or budget for `merge_train.py`'s batch routing
 - [`merge_throughput.py`](instruments/merge_throughput.py.md) — measures whether merges land inside the previous merge's gate window often enough to justify a merge queue
 - [`preflight.sh`](instruments/preflight.sh.md) — mechanical checks on anything the orchestrator publishes (merge body, issue body, comment, brief)
